@@ -702,7 +702,7 @@
       real*8, parameter :: betads  = 0.5            ! two-stream parameter betad for snow
       real*8, parameter :: betais  = 0.5            ! two-stream parameter betai for snow
       real*8 :: omegas(numrad)           ! two-stream parameter omega for snow by band
-      integer i
+      integer :: i
       data (omegas(i),i=1,numrad) /0.8, 0.4/
       real*8, parameter :: SHR_CONST_TKFRZ   = 273.15       ! freezing T of fresh water          ~ K 
       real*8, parameter :: tfrz   = SHR_CONST_TKFRZ !freezing temperature [K]
@@ -761,7 +761,7 @@
 !
       integer  :: fp,p,c         ! array indices
       !integer  :: ic               ! 0=unit incoming direct; 1=unit incoming diffuse
-      integer  :: ib             ! waveband number
+      integer  :: ib !, i          ! waveband number !Have to move declaration of i to above.
       real*8 :: cosz             ! 0.001 <= coszen <= 1.000
       real*8 :: asu              ! single scattering albedo
       real*8 :: chil(lbp:ubp)    ! -0.4 <= xl <= 0.6
