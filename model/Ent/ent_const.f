@@ -84,8 +84,9 @@
       !* SOIL / HYDROLOGY *
       !********************
 !      integer :: N_DEPTH        !Number of soil layers.  SET IN ENT_INIT
-      !!! setting it to constant for the time being to simplify the compilation
-      integer, parameter :: N_DEPTH = 6
+      integer, parameter :: N_DEPTH = 6 !Number of soil layers. SET AS PAR BUT LATER CAN BE VARIABLE.
+      real*8, parameter :: SOILDEPTH_m(N_DEPTH) = !Bottom depths of soil layers (m)
+     &     (/ 0.1,0.27,0.57,1.08,1.97,3.5 /) !GISS GCM
 
       !**********************
       !* RADIATIVE TRANSFER *
@@ -169,7 +170,7 @@
       integer,parameter :: Carbon = 1
       integer,parameter :: Nitrogen = 2
 !      integer,parameter :: ptrace = 2  !num. nutrient pools used in CASA resp. routine -PK
-      integer,parameter :: nresp_pools = 14  !num. pools used in CASA resp. routine -PK
+      integer,parameter :: NRESP_PATHS = 14  !num. pathways between pools in CASA soil respiration.
       real*8,parameter :: Q10 = 2.d0        !Q10 used in belowground calculations --> value from lit -PK 5/25/06
 
       !* Live pool array indices

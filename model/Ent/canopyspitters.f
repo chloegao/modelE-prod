@@ -176,6 +176,7 @@
      i         ,cop%fracroot(:)
      i         ,pp%cellptr%fice(:), pfpar(cop%pft)%hwilt
      o         , cop%stressH2Ol(:))
+
 !          cop%stressH2O = 1.d0 !### TEMP RUN HACK FOR MMSF ####!
           !* Can't use water_stress2 until have Soilmoist all layers.
 !          cop%stressH2O = water_stress2(cop%pft, N_DEPTH, 

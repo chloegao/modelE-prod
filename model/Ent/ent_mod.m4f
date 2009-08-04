@@ -1251,7 +1251,8 @@ m4_loop(`
 !    &      soil_temp30cm`'m4_brkts(m4_ind)`'
 !          entcell`'m4_brkts(m4_ind)`'%entcell%Soilmoist =
 !    &         soil_moist30cm`'m4_brkts(m4_ind)`'
-          do n=1,N_CASA_LAYERS
+!          do n=1,N_CASA_LAYERS
+          do n=1,N_DEPTH
             entcell`'m4_brkts(m4_ind)`'%entcell%Soiltemp(n) =
      &           soil_temp(n`'m4_comma`'m4_ind)
             entcell`'m4_brkts(m4_ind)`'%entcell%Soilmoist(n) =

@@ -2253,7 +2253,8 @@ cddd      end interface ent_cell_update
 !    &      soil_temp30cm
 !          entcell%entcell%Soilmoist =
 !    &         soil_moist30cm
-          do n=1,N_CASA_LAYERS
+!          do n=1,N_CASA_LAYERS
+          do n=1,N_DEPTH
             entcell%entcell%Soiltemp(n) =
      &           soil_temp(n)
             entcell%entcell%Soilmoist(n) =
@@ -2352,7 +2353,8 @@ cddd      end interface ent_cell_update
 !    &      soil_temp30cm(i1)
 !          entcell(i1)%entcell%Soilmoist =
 !    &         soil_moist30cm(i1)
-          do n=1,N_CASA_LAYERS
+!          do n=1,N_CASA_LAYERS
+          do n=1,N_DEPTH
             entcell(i1)%entcell%Soiltemp(n) =
      &           soil_temp(n,i1)
             entcell(i1)%entcell%Soilmoist(n) =
@@ -2453,7 +2455,8 @@ cddd      end interface ent_cell_update
 !    &      soil_temp30cm(i1,i2)
 !          entcell(i1,i2)%entcell%Soilmoist =
 !    &         soil_moist30cm(i1,i2)
-          do n=1,N_CASA_LAYERS
+!          do n=1,N_CASA_LAYERS
+          do n=1,N_DEPTH
             entcell(i1,i2)%entcell%Soiltemp(n) =
      &           soil_temp(n,i1,i2)
             entcell(i1,i2)%entcell%Soilmoist(n) =

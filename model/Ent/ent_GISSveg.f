@@ -114,11 +114,11 @@
       !* solubfrac - Soluble fraction of litter*!
       !structurallignin, lignineffect - frac of structural C from lignin, effect of lignin on decomp -PK 6/29/06 
       do n = 1,N_PFT
-        lnscl = pfpar(n)%lit_C2N * pfpar(n)%lignin * 2.22 !lignin:nitrogen scalar        
-        solubfract(n) = 0.85 - (0.018 * lnscl)
-        structurallignin(n) = (pfpar(n)%lignin * 0.65 * 2.22) 
-     &                      / (1. - solubfract(n))
-        lignineffect(n) = exp(-3.0 * structuralLignin(n))
+        lnscl = pfpar(n)%lit_C2N * pfpar(n)%lignin * 2.22d0 !lignin:nitrogen scalar        
+        solubfract(n) = 0.85d0 - (0.018d0 * lnscl)
+        structurallignin(n) = (pfpar(n)%lignin * 0.65d0 * 2.22d0) 
+     &                      / (1.d0 - solubfract(n))
+        lignineffect(n) = exp(-3.0 * structuralLignin(n)) !original CASA
       end do
 
       end subroutine prescr_calcconst

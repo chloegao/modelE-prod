@@ -59,10 +59,6 @@
          real*8 :: b1Ht !para 1 for allometric relation btw DBH & height
          real*8 :: b2Ht !para 2 for allometric relation btw DBH & height
 
-! PFT-specific Isoprene Paramaters
-
-         real*8 :: Y_eps    ! PFT-specific fraction of electrons to make isoprene
-
       end type pftype
 !****************************************************************************
 
@@ -104,12 +100,12 @@
       type cohort
          integer :: pft           !* PFT number
          real*8 :: n              ! Density of individuals in cohort (#/m^2)
-         type(entcelltype),pointer :: cellptr => null() !Pointer to ent grid cell
-         type(patch),pointer :: pptr    => null() !Pointer to patch
-         type(cohort),pointer :: taller => null() !Pointer to next tallest cohort
-         type(cohort),pointer :: shorter => null() !Pointer to next shortest cohort
-         type(cohort),pointer :: csptaller => null() !Pointer to next taller conspecific
-         type(cohort),pointer :: cspshorter => null() !Pointer to next shorter conspecfic
+         type(entcelltype),pointer :: cellptr !Pointer to ent grid cell
+         type(patch),pointer :: pptr    !Pointer to patch
+         type(cohort),pointer :: taller !Pointer to next tallest cohort
+         type(cohort),pointer :: shorter !Pointer to next shortest cohort
+         type(cohort),pointer :: csptaller !Pointer to next taller conspecific
+         type(cohort),pointer :: cspshorter !Pointer to next shorter conspecfic
 
          !* PFT PARAMETERS
          ! Only need to index array of pftypes.
@@ -134,7 +130,7 @@
          real*8 :: dbh            ! Stem diameter at breast height (m)
          real*8 :: root_d         ! Root half spheroid diameter (m)
          real*8 :: clump          ! Leaf clumping parameter (TBA)
-         real*8,pointer :: fracroot(:) => null() ! Fraction of roots in soil layer
+         real*8,pointer :: fracroot(:) ! Fraction of roots in soil layer
 
          !* BIOMASS POOLS (g-C/single plant)
          real*8 :: C_fol          ! Foliage carbon 
@@ -178,7 +174,7 @@
 
          !* PHYSIOLOGICAL STATUS *!  !NYK
          real*8 :: stressH2O !* fraction stress factor, 0=stressed, 1=no stress
-         real*8,pointer :: stressH2Ol(:) => null() !Water stress in layers.
+         real*8,pointer :: stressH2Ol(:) !Water stress in layers.
          real*8 :: senescefrac  !Net fraction of foliage that is litterfall.
          !* Additional C accounting
          real*8 :: C_growth  !* Daily tissue growth respiration (kg-C/m2/day)
@@ -189,28 +185,28 @@
 !****************************************************************************
       type canradtype
 !         !Arrays in height levels in the canopy
-         real*8,pointer :: h_lai(:)  => null()  !(m) height levels according to cumulative LAI
-         real*8,pointer :: h_coh(:)  => null()  !(m) height levels acoording to cohorts 
-         real*8,pointer :: heights(:) => null() !(m) height levels at canopy layer boundaries (#layers+1)
-         real*8,pointer :: LAI(:) => null()     !LAI within height level
-         real*8,pointer :: T_sun(:) => null() !sunlit PAR transmittance profile
-         real*8,pointer :: T_sha(:) => null() !shaded PAR transmittance profile
-         real*8,pointer :: I_sun(:) => null() !sunlit PAR absorbance profile
-         real*8,pointer :: I_sha(:) => null() !shaded PAR absorbance profile
+         real*8,pointer :: h_lai(:)   !(m) height levels according to cumulative LAI
+         real*8,pointer :: h_coh(:)   !(m) height levels acoording to cohorts 
+         real*8,pointer :: heights(:) !(m) height levels at canopy layer boundaries (#layers+1)
+         real*8,pointer :: LAI(:)     !LAI within height level
+         real*8,pointer :: T_sun(:) !sunlit PAR transmittance profile
+         real*8,pointer :: T_sha(:) !shaded PAR transmittance profile
+         real*8,pointer :: I_sun(:) !sunlit PAR absorbance profile
+         real*8,pointer :: I_sha(:) !shaded PAR absorbance profile
 !         !Whole-canopy foliage clumping factor
          real*8 :: GORTclump
-         real*8,pointer :: crad_heights(:) => null() !(m) height levels for incident light levels
+         real*8,pointer :: crad_heights(:) !(m) height levels for incident light levels
       end type canradtype
 
 !****************************************************************************
       type patch
          real*8 :: age                !*Patch age (years)
          real*8 :: area               !*Patch area (fraction of entcell)
-         type(entcelltype),pointer:: cellptr => null() !Pointer to grid cell
-         type(patch),pointer :: older => null() !Pointer to next older patch
-         type(patch),pointer :: younger=> null()  !Pointer to next younger patch
-         type(cohort),pointer :: tallest => null() !Pointer to tallest cohort
-         type(cohort),pointer :: shortest => null() !Pointer to shortest cohort
+         type(entcelltype),pointer:: cellptr !Pointer to grid cell
+         type(patch),pointer :: older !Pointer to next older patch
+         type(patch),pointer :: younger !Pointer to next younger patch
+         type(cohort),pointer :: tallest !Pointer to tallest cohort
+         type(cohort),pointer :: shortest !Pointer to shortest cohort
 
          !*- - - - - - - Cohorts summary variables - - - - - - - - - - -*!
          !  Intensive properties (e.g. geometry, LMA) are averages weighted by
@@ -227,7 +223,7 @@
          !@var LAI Total cohort leaf area index (m2[leaf]/m2[ground])
          real*8 LAI               !*
          !@var LAIpft LAI by cover type.
-         real*8,pointer :: LAIpft(:) => null() !(N_COVERTYPES)
+         real*8,pointer :: LAIpft(:) !(N_COVERTYPES)
          !real*8 :: LA            ! Leaf area (m2[leaf]/individual)
 
          !* GEOMETRY - trees:  GORT ellipsoids, grasses:leaf only
@@ -237,7 +233,7 @@
 !         real*8 :: dbh           ! Stem diameter at breast height (m)
 !         real*8 :: root_d         ! Root half spheroid diameter (m)
          real*8 :: clump          ! Leaf clumping parameter (TBA)
-         real*8,pointer :: fracroot(:) => null() ! Fraction of roots in soil layer
+         real*8,pointer :: fracroot(:) ! Fraction of roots in soil layer
 
          !* DIAGNOSTICS - BIOMASS POOLS (kg-C/m^2-ground = sum kg-C/cohorts)
          real*8 :: C_fol          ! Foliage carbon (=LMA*LAI = kgC/m2-gnd)
@@ -274,7 +270,7 @@
          !* EXPORT 
          real*8 :: albedo(N_BANDS)   !Spectral albedo, average over patch
          real*8 :: betad             !Water stress  # CALC FROM Soilmoist & SSTAR by PFT
-         real*8,pointer :: betadl(:) => null() !Water stress in layers.
+         real*8,pointer :: betadl(:) !Water stress in layers.
          real*8 :: TRANS_SW          !Transmittance of shortwave radiation (400-2500 nm) to the ground (fraction)
          real*8 :: CO2flux           !Net CO2 flux up (kg-C/m2-gnd/s)
          !* DIAGNOSTICS - soil
@@ -286,7 +282,8 @@
       !use soil moisture (and temperature) for 2 CASA layers:    -PK 
       !0-30 cm, 30-100 cm (second might change to 30-200 cm)
       !**might change this and soiltemp to dynamically allocated arrays** -PK 7/07 
-         real*8 :: Soilmoist(N_CASA_LAYERS) !Soil moisture (volumetric fraction)   
+!         real*8 :: Soilmoist(N_CASA_LAYERS) !Soil moisture (volumetric fraction)   
+         real*8 :: Soilmoist(N_DEPTH) !Soil moisture (volumetric fraction)   
 
 !         real*8 :: N_deposit    !N deposition (kgN/m2)
 
@@ -294,7 +291,7 @@
          type(canradtype) :: crad !Data structure for light profile
          
          !* Reproductive pools *!
-         real*8,pointer :: Reproduction(:) => null() !Reproductive/seed pools array of length N_PFT (kgC/m2-patch) 
+         real*8,pointer :: Reproduction(:) !Reproductive/seed pools array of length N_PFT (kgC/m2-patch) 
 
          !* Disturbance values
          real*8 :: fuel
@@ -331,8 +328,8 @@
  !        real*8 :: long, lat      !longitude, latitude
  !        integer :: longi, latj    !grid cell i,j
          real*8 :: area         !Area km^2
-         type(patch), pointer:: youngest => null() 
-         type(patch), pointer:: oldest => null() 
+         type(patch), pointer:: youngest
+         type(patch), pointer:: oldest
 
          !*- - - - - - - Cohorts summary variables - - - - - - - - - - -*!
          !* Per vegetated ground area of entcell ** excludes bare soil area.
@@ -350,7 +347,7 @@
          !@var LAI Leaf area index (m2[leaf]/m2[ground]) for vegetated patches only.
          real*8 LAI               
          !@var LAIpft LAI by cover type.
-         real*8,pointer :: LAIpft(:) => null()!(N_COVERTYPES)
+         real*8,pointer :: LAIpft(:) !(N_COVERTYPES)
          !real*8 :: LA            ! Leaf area (m2[leaf]/individual)
 
          !* IMPORT-PRESCRIBED, EXPORT-SIMULATED - GEOMETRY - trees:  GORT ellipsoids, grasses:leaf only
@@ -360,7 +357,7 @@
 !         real*8 :: dbh            ! Stem diameter at breast height (m)
 !         real*8 :: root_d         ! Root half spheroid diameter (m)
 !         real*8 :: clump          ! Leaf clumping parameter (TBA)
-         real*8,pointer :: fracroot(:) => null() ! Fraction of roots in soil layer
+         real*8,pointer :: fracroot(:) ! Fraction of roots in soil layer
 
          !*  IMPORT-PRESCRIBED, EXPORT-SIMULATED - BIOMASS POOLS (g-C/m^2)
          real*8 :: C_fol          ! Foliage carbon (=LMA*LAI = kgC/m2-gnd)
@@ -395,7 +392,7 @@
          real*8 :: z0              !Roughness length, average over patch
          real*8 :: albedo(N_BANDS) !Albedo may be in bands or hyperspectral
          real*8 :: betad             !Water stress  # CALC FROM Soilmoist & SSTAR by PFT
-         real*8,pointer :: betadl(:) => null() !Water stress in layers.
+         real*8,pointer :: betadl(:) !Water stress in layers.
          real*8 :: TRANS_SW  !Transmittance of shortwave radiation to the ground (fraction)
          real*8 :: CO2flux           !Net CO2 flux up (kg-C/m2-gnd/s)
          !* DIAGNOSTICS - soil
@@ -436,10 +433,12 @@
          real*8 :: P_mbar       !Atmospheric pressure (mb)
          real*8 :: Ca           !@Atmos CO2 conc at surface height (mol/m3).
          !next two now explicitly depth-structured (see above) -PK
-         real*8 :: Soilmoist(N_CASA_LAYERS) !Soil moisture (volumetric fraction)
-         real*8 :: Soiltemp(N_CASA_LAYERS)  !Soil temperature (Celsius)
-         real*8,pointer :: Soilmp(:) => null()!Soil matric potential (m)
-         real*8,pointer :: fice(:) => null() !Fraction of soil layer that is ice
+!         real*8 :: Soilmoist(N_CASA_LAYERS) !Soil moisture (volumetric fraction)
+!         real*8 :: Soiltemp(N_CASA_LAYERS)  !Soil temperature (Celsius)
+         real*8 :: Soilmoist(N_DEPTH) !Soil moisture (volumetric fraction)
+         real*8 :: Soiltemp(N_DEPTH)  !Soil temperature (Celsius)
+         real*8,pointer :: Soilmp(:) !Soil matric potential (m)
+         real*8,pointer :: fice(:) !Fraction of soil layer that is ice
          real*8 :: Ch           !Ground to surface heat transfer coefficient 
          real*8 :: U            !Surface layer wind speed (m s-1)
 

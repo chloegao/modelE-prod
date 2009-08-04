@@ -349,7 +349,7 @@
      &     pp%Reproduction(tmp_pft),
      &     pp%TRANS_SW,
      &     pp%Ci, pp%GPP,pp%R_auto,pp%Soil_resp,
-     &     pp%NPP,pp%CO2flux,pp%GCANOPY,
+     &     pp%NPP,pp%CO2flux,pp%GCANOPY,pp%IPP,
      &     tmp_senescefrac,tmp_Sacclim,pp%c_total,
 !### HACK: c_growth is Igor's hack to store daily growth respiration somewhere
 !### HACK: N_up is temporarily litterfall, using unused variable -NK

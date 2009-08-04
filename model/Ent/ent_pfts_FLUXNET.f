@@ -96,8 +96,7 @@
      &     5.1d0, 1.d0, 1.8d0, 25.d0, 50.0d0, 0.15d0,0.153d0,3,
      &     0.0d0, 0.0d0, 0.0d0, 0.0d0, 0.0d0, 0.0d0),
      &     pftype(1,.true., 1,-500.d0,  .50d0, .29d0,  1.5d0, !decidforest
-!     &     12.4d0, 0.6d0, 1.2d0, 58.0d0, 57.0d0, 0.2d0,0.093,2, !SLA for Quercus ilex, Mediavilla & Escudero(2003)
-     &     34.5d0, 0.6d0, 1.2d0, 58.0d0, 57.0d0, 0.2d0,0.093,2, !SLA for oak, Tatarinov & Cienciala (2006)
+     &     34.d0, 0.6d0, 0.4d0, 58.0d0, 57.0d0, 0.2d0,0.093,2, 
      &     0.0170d0, 1.731d0, 0.2350d0, 2.252d0, 23.39d0, -0.0540d0), !late successional
      &     pftype(1,.true., 2,-153.d0,  .50d0, .25d0,  0.9d0, !evergrneedle
      &     9.5d0, 1.2d0, 4.d0,42.0d0, 80.0d0,0.25d0,0.184d0,1, !SLA for Pinus sylvestris, Pensa and Sellin (2002).SLA-CLM 10. lrage WAS 5.0!!!! Pinus sylvestris 2-4 years!!!-NYK
