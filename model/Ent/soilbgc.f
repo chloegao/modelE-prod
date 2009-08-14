@@ -197,10 +197,12 @@ C.. Note: these should be over dead pools only (see resp_path_index)
 !     &                   (watopt-watdry), 1.d0)
         !**function RWC from DelGrosso et al., 2005** -PK 2/07
 !               Wlim(n) = (Soilmoist(n)-watdry)/(watopt - watdry)
-            Wlim(n) = max(0.0d0,
-     &           (Soilmoist(n)-watdry)/(watsat - watdry)) !Made this REW instead of Wlim - NK
+!SOILMOIST_OLD
+!            Wlim(n) = max(0.0d0,
+!     &           (Soilmoist(n)-watdry)/(watsat - watdry)) !Made this REW instead of Wlim - NK
+            Wlim(n) = Soilmoist(n) !Soilmoist is the saturated fraction. - 08/2009 - KIM
          else
-            Wlim = 0.01d0
+            Wlim(n) = 0.01d0
          end if
       end do
 
@@ -379,6 +381,7 @@ ciyf (only need to track limits on inventories)
             end if
          end do                 !irtype - over all 14 respiring pools
       end do                    !N_CASA_LAYERS
+
       end subroutine casa_respire
 
 !***********************************************************************

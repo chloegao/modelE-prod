@@ -5,7 +5,7 @@
 #ifdef ENT_STANDALONE_DIAG
 #define PHENOLOGY_DIAG
 #endif
-!#define DEBUG
+#define DEBUG
 
       use ent_types
       use ent_const
@@ -71,9 +71,19 @@
       real*8, parameter :: paw_max_w = 0.3d0
       real*8, parameter :: paw_min_w = -0.1d0
       real*8, parameter :: paw_res_w = 0.25d0
-      real*8, parameter :: paw_max_h = 0.4d0
-      real*8, parameter :: paw_min_h = 0.1d0
+!SOILMOIST_OLD
+!      real*8, parameter :: paw_max_h = 0.4d0 
+!      real*8, parameter :: paw_min_h = 0.1d0 
+      real*8, parameter :: paw_max_h = 0.5d0 
+      real*8, parameter :: paw_min_h = 0.3d0 
       real*8, parameter :: paw_res_h = 1.0d0
+      !betad : water_stress3
+      real*8, parameter :: betad_max_w = 1.0d0 
+      real*8, parameter :: betad_min_w = 0.5d0 
+      real*8, parameter :: betad_res_w = 0.25d0
+      real*8, parameter :: betad_max_h = 1.0d0 
+      real*8, parameter :: betad_min_h = 0.95d0 !0.8d0 
+      real*8, parameter :: betad_res_h = 1.0d0      
       !light-controll: par_turnover_int & par_turnover_slope
       real*8, parameter :: par_turnover_int = -12.d0 !-10.6d0 
       real*8, parameter :: par_turnover_slope = 0.18d0  
@@ -119,7 +129,6 @@
       logical :: par_limit
       real*8 :: turnover0, llspan0
       real*8 :: zweight, zweight30, zweight90
-      real*8 :: betad
       real*8 :: Soilmoist2layer(N_CASA_LAYERS)
       real*8 :: Soiltemp2layer(N_CASA_LAYERS)
 
@@ -157,8 +166,10 @@
       airtemp_10d=zweight*airtemp_10d+(1.0d0-zweight)*airtemp
       
       !10-day running average of Plant Available Water  
-      paw = min( max(wat-watdry,0.d0) 
-     &     /(watsat-watdry), 1.d0)   
+!SOILMOIST_OLD
+!      paw = min( max(wat-watdry,0.d0) 
+!     &     /(watsat-watdry), 1.d0)
+      paw = wat !now Soilmoist is saturated fraction!!!
       paw_10d=zweight*paw_10d+(1.0d0-zweight)*paw
 
       !10-day running average of PAR
@@ -189,13 +200,8 @@
         do while(ASSOCIATED(cop))
           
           !10-day running average of stressH2O (betad)
-!not-yet implemented
-!          betad=water_stress2(cop%pft, N_DEPTH, 
-!     i         pp%cellptr%Soilmoist(:), pp%cellptr%soil_Phi, 
-!     i         pp%cellptr%soil_dry, 
-!     &         cop%fracroot, pp%cellptr%fice(:), cop%stressH2Ol(:))
-
-!          cop%betad_10d=zweight*cop%betad_10d+(1.d0-zweight)*betad
+          cop%betad_10d=zweight*cop%betad_10d
+     &                 +(1.d0-zweight)*cop%stressH2O
       
           !daily carbon balance
           cop%CB_d =  cop%CB_d + cop%NPP*dtsec/cop%n*1000.d0
@@ -283,8 +289,8 @@
       logical :: temp_limit, water_limit 
       logical :: fall
       logical :: woody
-      integer, parameter :: iwater_limit =0
-      real*8::  betad
+      integer, parameter :: iwater_limit = 2 !SOILMOIST_OLD 0
+      real*8::  betad_10d
 
       soiltemp_10d = pp%cellptr%soiltemp_10d
       airtemp_10d = pp%cellptr%airtemp_10d
@@ -310,6 +316,7 @@
          phenofactor_d=cop%phenofactor_d
          phenofactor=cop%phenofactor
          phenostatus=cop%phenostatus
+         betad_10d=cop%betad_10d
          pft=cop%pft
          phenotype=pfpar(pft)%phenotype
 
@@ -380,55 +387,78 @@
          !water-controoled woody
          if (water_limit .and. woody .and. (phenostatus.ge.2)) then
             select case (iwater_limit)
-            case(0) !default function with the 10-day paw
+            case(0) !default with the 10-day paw
                phenofactor_d = min(1.d0,max(0.d0,
      &          ((paw_10d-paw_min_w)/(paw_max_w-paw_min_w))**paw_res_w))
-            case(1) !water_stress in canopyspitters with the inst. mp
+            case(1) !water_stress 
                phenofactor_d = water_stress(N_DEPTH  
      i         ,pp%cellptr%Soilmp(:)
      i         ,cop%fracroot(:)
      i         ,pp%cellptr%fice(:), pfpar(pft)%hwilt
      o         , cop%stressH2Ol(:)) 
-            case(2) !water_stress in canopyspitters with the 10-day mp
+            case(2) !water_stress3 & betad_10d
             end select
          end if
   
          !water-controlled herbaceous
          if (water_limit .and. (.not. woody)) then
             select case(iwater_limit)
-            case(0)
-            if ((phenostatus.le.2).and.(paw_10d.gt.paw_min_h))then
-               phenofactor_d = min(1.d0,
-     &          ((paw_10d-paw_min_h)/(paw_max_h-paw_min_h))**paw_res_h)
-               if (phenofactor_d .lt. 1.d0) then
-                  phenostatus = 2
-               else
-                  phenostatus = 3
+            case(0) !default with the 10-day paw 
+               if ((phenostatus.le.2).and.(paw_10d.gt.paw_min_h))then
+                  phenofactor_d = min(1.d0,
+     &                 ((paw_10d-paw_min_h)
+     &                 /(paw_max_h-paw_min_h))**paw_res_h)
+                  if (phenofactor_d .lt. 1.d0) then
+                     phenostatus = 2
+                  else
+                     phenostatus = 3
+                  end if
+               else if ((phenostatus.ge.3).and.
+     &                 (paw_10d.lt.paw_max_h))then
+                  phenofactor_d = max(0.d0,
+     &                 ((paw_10d-paw_min_h)
+     &                 /(paw_max_h-paw_min_h))**paw_res_h)
+                  if (phenofactor_d .eq. 0.d0) then
+                     phenostatus = 1
+                  else
+                     phenostatus = 4
+                  end if 
                end if
-            else if ((phenostatus.ge.3).and.(paw_10d.lt.paw_max_h))then
-               phenofactor_d = max(0.d0,
-     &          ((paw_10d-paw_min_h)/(paw_max_h-paw_min_h))**paw_res_h)
-               if (phenofactor_d .eq. 0.d0) then
-                  phenostatus = 1
-               else
-                  phenostatus = 4
-               end if 
-            end if
   
-            case(1) !water_stress in canopyspitter with the inst. mp
-               betad= water_stress(N_DEPTH  
+            case(1) !water_stress 
+               phenofactor_d= water_stress(N_DEPTH  
      i         ,pp%cellptr%Soilmp(:)
      i         ,cop%fracroot(:)
      i         ,pp%cellptr%fice(:), pfpar(pft)%hwilt
      o         , cop%stressH2Ol(:))
-#ifdef DEBUG
-               write(202,'(100e16.6)') betad,pp%cellptr%Soilmp(:)
-     &         ,cop%fracroot(:),pp%cellptr%Soilmoist(:)
-     &         ,pfpar(pft)%hwilt,paw_10d
-#endif
-               phenofactor_d = betad
-            case(2) !water_stress in canopyspitter with the 10-day mp
+            case(2) !water_stress3 & betad_10d
+               if ((phenostatus.le.2).and.
+     &           (betad_10d.gt.betad_min_h))then
+                  phenofactor_d = min(1.d0,
+     &                 ((betad_10d-betad_min_h)
+     &                 /(betad_max_h-betad_min_h))**betad_res_h)
+                  if (phenofactor_d .ge. 0.999d0) then
+                     phenostatus = 3
+                  else
+                     phenostatus = 2
+                  end if
+               else if ((phenostatus.ge.3).and.
+     &            (betad_10d.lt.betad_max_h))then
+                  phenofactor_d = max(0.d0,
+     &                 ((betad_10d-betad_min_h)
+     &                 /(betad_max_h-betad_min_h))**betad_res_h)
+                  if (phenofactor_d .le. EPS) then
+                     phenostatus = 1
+                  else
+                     phenostatus = 4
+                  end if 
+               end if    
             end select
+#ifdef DEBUG
+            write(202,'(100e16.6)') phenofactor_d,pp%cellptr%Soilmp(:)
+     &      ,pp%cellptr%Soilmoist(:)
+     &      ,betad_10d, paw_10d
+#endif
          end if    
  
          if (.not.temp_limit) phenofactor_c = 1.d0
@@ -640,14 +670,14 @@
          cop%C_sw = Cactive * h *qsw * ialloc
          cop%C_hw = Cdead * hw_fract
          cop%C_croot = Cdead * (1-hw_fract)                  
-
-          if (.not.config%do_structuralgrowth) then
+         if (.not.config%do_structuralgrowth) then
              dC_litter_hw = max(0.d0,cop%C_hw - C_hw_old)
              dC_litter_croot = max(0.d0,cop%C_croot - C_croot_old)
              cop%C_hw=C_hw_old
              cop%C_croot=C_croot_old
              Cdead = cop%C_hw+cop%C_croot
-          end if
+         end if
+
          !----------------------------------------------------   
          !*senesce and accumulate litter
          !---------------------------------------------------- 
@@ -717,7 +747,7 @@
 
          cop => cop%shorter 
       end do !looping through cohorts
-
+ 
       call litter_patch(pp, Clossacc) !Update Tpool from all litter.
 
       pp%LAI = laipatch  !Update
@@ -901,13 +931,16 @@ c$$$      Cactive = Cactive + dC_remainder
       integer,intent(in) :: pft !plant functional type
       real*8, intent(in) :: lai,h,dbh,popdens  !lai, h(m), dbh(cm),popd(#/m2)
       real*8, intent(out) :: cpool(N_BPOOLS) !g-C/pool/plant
-
+      real*8 :: qsw
       !* Initialize
       cpool(:) = 0.d0 
       
+      qsw = pfpar(pft)%sla*iqsw
+      if (.not.pfpar(pft)%woody) qsw = 0.0d0
+
       cpool(FOL) = lai/pfpar(pft)%sla/popdens *1d3!Bl
       cpool(FR) = q * cpool(FOL)   !Br
-      cpool(SW) = h * (pfpar(pft)%sla*iqsw) * cpool(FOL)
+      cpool(SW) = h * qsw* cpool(FOL)
       if (pfpar(pft)%woody) then !Woody
         cpool(HW) = dbh2Cdead(pft,dbh) * hw_fract
         cpool(CR) = cpool(HW) * (1-hw_fract)/hw_fract !=dbh2Cdead*(1-hw_fract)
@@ -1143,7 +1176,6 @@ c$$$      end subroutine senesce_cpools
 #else
       cop%C_total = cop%C_total + dC_total
 #endif
-      
 
       do i=1,N_CASA_LAYERS
 
@@ -1167,7 +1199,6 @@ c$$$      end subroutine senesce_cpools
         Clossacc(CARBON,CWD,i) = Clossacc(CARBON,CWD,i) 
      &       + Closs(CARBON,WOOD,i)
       end do                    !loop through CASA layers-->cumul litter per pool per layer -PK
-   
 
       !################ ###################################################
       !#### DUE TO TIMING OF LAI UPDATE IN GISS GCM AT THE DAILY TIME STEP,
@@ -2080,7 +2111,7 @@ c$$$      end if
      &        cop%turnover_amp,
      &        cop%cellptr%airtemp_10d,
      &        cop%cellptr%soiltemp_10d,
-     &        cop%cellptr%paw_10d,
+     &        cop%betad_10d, !cop%cellptr%paw_10d,
      &        cop%cellptr%par_10d,
      &        cop%cellptr%gdd,
      &        cop%cellptr%ncd,

@@ -172,10 +172,11 @@
         !* Assign vegpar
 
         if (cop%LAI.gt.0.d0) then
-          cop%stressH2O = water_stress(N_DEPTH, pp%cellptr%Soilmp(:)
-     i         ,cop%fracroot(:)
-     i         ,pp%cellptr%fice(:), pfpar(cop%pft)%hwilt
-     o         , cop%stressH2Ol(:))
+!SOILMOIST_OLD
+!          cop%stressH2O = water_stress(N_DEPTH, pp%cellptr%Soilmp(:)
+!     i         ,cop%fracroot(:)
+!     i         ,pp%cellptr%fice(:), pfpar(cop%pft)%hwilt
+!     o         , cop%stressH2Ol(:))
 
 !          cop%stressH2O = 1.d0 !### TEMP RUN HACK FOR MMSF ####!
           !* Can't use water_stress2 until have Soilmoist all layers.
@@ -184,6 +185,11 @@
 !     i         pp%cellptr%soil_dry, 
 !     &         cop%fracroot, pp%cellptr%fice(:), cop%stressH2Ol(:))
 !          betad = cop%stressH2O
+
+          !KIM - water_stress3 uses Soilmoist as a satured fraction
+          cop%stressH2O = water_stress3(cop%pft, N_DEPTH, 
+     i         pp%cellptr%Soilmoist(:), 
+     &         cop%fracroot, pp%cellptr%fice(:), cop%stressH2Ol(:))
 
           call calc_Pspar(dtsec,cop%pft,psdrvpar%Pa,psdrvpar%Tc
      i         ,O2frac*psdrvpar%Pa
@@ -440,7 +446,43 @@
       if (betad < EPS2) betad=0.d0
 
       end function water_stress2
+!----------------------------------------------------------------------!
+      function water_stress3(pft, nlayers, thetas, 
+     &     fracroot, fice, betadl) Result(betad)
 
+      implicit none
+      integer,intent(in) :: pft  !Plant functional type number.
+      integer,intent(in) :: nlayers !Number of soil layers
+      real*8,intent(in) ::  thetas(:) !Soil vol. water (vol.water/vol.soil)
+      real*8,intent(in) :: fracroot(:) !Fraction of roots in layer
+      real*8,intent(in) :: fice(:)  !Fraction of ice in layer
+      real*8,intent(out) :: betadl(:) !Water stress in layers
+      real*8 :: betad !Stress value, 0-1, 1=no stress, weighted by layers
+
+      !Local vars
+      integer :: k
+      real*8 :: s  !Normalized soil moisture, s=thetas/thetasat
+      real*8 :: betak  !Stress value for layer k
+
+      !2. Rodriguez-Iturbe, Laio, & Porporato (2001 set) water stress fn 
+      betad = 0.d0
+      do k = 1,nlayers
+        s = thetas(k)
+        if (s.ge.pfpar(pft)%sstar) then
+          betak = 1.d0  !No stress
+        else if ((s.lt.pfpar(pft)%sstar).and.
+     &         (s.gt.(pfpar(pft)%swilt))) then
+          betak = (s-pfpar(pft)%swilt)/
+     &         (pfpar(pft)%sstar-pfpar(pft)%swilt) !Just linear
+        else
+          betak = 0.d0
+        end if
+        betadl(k) = (1.d0-fice(k))*fracroot(k)*betak
+        betad = betad +  (1.d0-fice(k))*fracroot(k)*betak
+      end do
+      if (betad < EPS2) betad=0.d0
+
+      end function water_stress3
 !################## PHOTOSYNTHESIS #########################################
 
       subroutine photosynth_sunshd(
