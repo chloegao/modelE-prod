@@ -22,6 +22,7 @@
       private growth_cpools_active
       private growth_cpools_structural
 !      private senesce_cpools
+      private recruit_annual
       private photosyn_acclim
       private phenology_diag
 
@@ -91,6 +92,8 @@
       real*8, parameter :: r_fract = 0.3d0
       !c_fract: fraction of excess c going to clonal reproduction - only for herbaceous
       real*8, parameter :: c_fract = 0.7d0
+      !mort_seedling: mortality rate for seedling
+      real*8, parameter :: mort_seedling = 0.95d0
 
       contains
 
@@ -532,6 +535,7 @@
       real*8 :: dC_litter_hw,dC_litter_croot
       real*8 :: phenofactor_old, alloc_adj
       logical, parameter :: alloc_new=.false.
+      integer, parameter :: irecruit=1
       real*8 :: dummy
  
      !Initialize
@@ -630,7 +634,7 @@
          !----------------------------------------------------
          !*active growth: increment Cactive and decrease C_lab
          !----------------------------------------------------
-         call  growth_cpools_active(phenofactor,ialloc,Cactive_max,
+         call  growth_cpools_active(pft,phenofactor,ialloc,Cactive_max,
      &        CB_d,Cactive,C_lab,C_fol)
       
          !----------------------------------------------------  
@@ -721,15 +725,20 @@
 
          if (is_annual) then
             if (phenofactor .gt. 0.d0 .AND. cop%h .lt. 0.025d0) then
-               cop%h = 0.05d0
+               cop%h = 0.05d0 !min. height = 0.05m
+	       select case (irecruit)
+	       case(1)
+               call recruit_annual(cop%pptr%Reproduction(pft),cop%h,
+     o              cop%C_fol, cop%C_froot,cop%n, cop%LAI)    
+               cop%pptr%Reproduction(pft) = 0.d0
+               case(2)
                cop%C_fol = height2Cfol(pft,cop%h)
 !               cop%LAI=cop%n*pfpar(pft)%sla*
                cop%LAI=cop%n*sla(pft,cop%llspan)*
      &              (height2Cfol(pft,cop%h)/1000.0d0) 
                cop%C_froot = q*cop%C_fol
-            else if(phenofactor .eq. 0.d0) then
-               cop%C_lab =0.d0
-            end if
+               end select 
+           end if
          end if
 
          !* Summarize for patch level *!
@@ -761,9 +770,10 @@
       end subroutine veg_update
 
       !*********************************************************************
-      subroutine growth_cpools_active(phenofactor,ialloc, 
+      subroutine growth_cpools_active(pft,phenofactor,ialloc, 
      &     Cactive_max,CB_d,Cactive,C_lab,C_fol)
      
+      integer, intent(in) :: pft
       real*8, intent(in) :: phenofactor
       real*8, intent(in) :: ialloc
       real*8, intent(in) :: Cactive_max
@@ -775,6 +785,8 @@
       real*8 ::dC_lab  !g-C/individual. Negative for reduction of C_lab for growth.
       real*8 :: dC_remainder
       real*8 :: dCactive
+      real*8 :: dCavail
+      integer, parameter :: AGrowthModel=2 !1 for no storage; 2 for grass storage; 3 for grass/tree storage
       !-------------------------------
       !*calculate the change in C_lab 
       !-------------------------------    
@@ -788,11 +800,27 @@
             !Cactive_pot (current size + daily accumulated carbon)  
             !Cactive (cuurent size)
             Cactive_pot = Cactive + C_lab
-            dCactive = min(Cactive_max, Cactive_pot) - Cactive
+            dCavail = min(Cactive_max, Cactive_pot) - Cactive
+            select case (AGrowthModel)
+            case(1) !no storage - default
+               dCactive = dCavail
+            case(2) !grass storage
+               if (.not.pfpar(pft)%woody) then !herbaceous
+                  dCactive = r_fract * dCavail 
+               else !woody
+                  dCactive = dCavail
+               end if
+            case(3) !grass/tree storage
+               if (.not.pfpar(pft)%woody) then !herbaceous
+                  dCactive = r_fract * dCavail 
+               else !woody
+                  dCactive = r_fract * dCavail
+               end if
+            end select
             if (dCactive .lt. 0.d0)then
-              dC_lab = - dCactive * l_fract
+                dC_lab = - dCactive * l_fract
             else
-              dC_lab = - dCactive
+                dC_lab = - dCactive
             end if
          end if
       else if (C_lab .lt. 0.d0 ) then
@@ -850,11 +878,12 @@ c$$$      Cactive = Cactive + dC_remainder
       real*8 :: dHdCdead
       real*8 :: dCswdCdead
       integer, parameter :: SGrowthModel=1
-
+      real*8 :: Cavail
       !--------------------------------------------------
       !*calculate the growth fraction for different pools
       !--------------------------------------------------        
       if (.not.pfpar(pft)%woody) then !herbaceous
+         Cavail = C_lab
          if (C_lab .gt. 0.d0 )then
             qs = 0.d0  !no structural pools
             gr_fract = 1.d0 - (r_fract + c_fract)
@@ -863,6 +892,8 @@ c$$$      Cactive = Cactive + dC_remainder
             gr_fract = 1.d0 / l_fract
          end if
       else !woody
+         Cavail = min(C_lab,C_sw) !C used for growth is limited by both size of avaiable labile storage 
+                                  !& size of sapwood pool.
          if (SGrowthModel.eq.1) then !based on ED1
             if (C_fol .gt. 0.d0 .and. 
      &           Cactive .ge. Cactive_max .and. C_lab .gt. 0.d0) then
@@ -909,12 +940,12 @@ c$$$      Cactive = Cactive + dC_remainder
          end if
       end if
        
-      dCdead = gr_fract * qs  * min(C_lab,C_sw) 
-      dCactive = gr_fract *(1.d0 - qs) * min(C_lab,C_sw) 
-      dCrepro =  ( 1.d0 - gr_fract ) * qs * min(C_lab,C_sw) 
+      dCdead = gr_fract * qs  * Cavail 
+      dCactive = gr_fract *(1.d0 - qs) * Cavail
+      dCrepro =  ( 1.d0 - gr_fract )  * Cavail
 
 #ifdef DEBUG
-      write(201,'(100(1pe16.8))') C_lab, dCactive, dCdead
+      write(201,'(100(1pe16.8))') C_lab, dCactive, dCdead,dCrepro
 #endif
 
       !------------------------
@@ -925,6 +956,31 @@ c$$$      Cactive = Cactive + dC_remainder
       Cactive = Cactive + dCactive
 
       end subroutine growth_cpools_structural
+!*************************************************************************
+      subroutine recruit_annual(reproduction,height,
+     &           C_fol,C_froot,nplant,lai)
+      real*8, intent(in) :: reproduction
+      real*8, intent(in) :: height
+      real*8, intent(out) :: C_fol
+      real*8, intent(out) :: C_froot
+      real*8, intent(out) :: nplant
+      real*8, intent(out) :: lai
+      real*8 :: recruit
+      integer :: pft
+      
+      !this subroutine is sepcifically written for C3 annual grass temporarily
+      pft=GRASSC3
+      
+      !amount of carbon, used for recruit
+      recruit = reproduction * (1.d0 - mort_seedling) ! per patch-area
+
+      !properties for new seedling
+      C_fol=height2Cfol(pft,height)
+      C_froot = q *C_fol
+      nplant = recruit / (C_fol + C_froot)
+      LAI = nplant*pfpar(pft)%sla*(C_fol/1000.d0)
+      
+      end subroutine recruit_annual
 !*************************************************************************
 
       subroutine update_plant_cpools(pft, lai, h, dbh, popdens, cpool )
