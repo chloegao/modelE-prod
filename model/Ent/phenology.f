@@ -93,7 +93,7 @@
       !c_fract: fraction of excess c going to clonal reproduction - only for herbaceous
       real*8, parameter :: c_fract = 0.7d0
       !mort_seedling: mortality rate for seedling
-      real*8, parameter :: mort_seedling = 0.95d0
+      real*8, parameter :: mort_seedling = 0.80d0 !0.95d0
 
       contains
 
@@ -534,6 +534,8 @@
       logical :: dormant
       real*8 :: dC_litter_hw,dC_litter_croot
       real*8 :: phenofactor_old, alloc_adj
+      real*8 :: Cfol_half
+      real*8 :: cpool(N_BPOOLS) 
       logical, parameter :: alloc_new=.false.
       integer, parameter :: irecruit=1
       real*8 :: dummy
@@ -546,6 +548,7 @@
       cohortnum = 0
       resp_growth1=0.d0
       resp_growth2=0.d0
+      cpool(:) = 0.d0
 
       cop => pp%tallest
 
@@ -631,11 +634,14 @@
                Cactive_max=height2Cfol(pft,5.d0)*alloc
             end if
          end if
+
+         call prescr_init_Clab(pft,nplant,cpool)
+         Cfol_half =cpool(LABILE)
          !----------------------------------------------------
          !*active growth: increment Cactive and decrease C_lab
          !----------------------------------------------------
          call  growth_cpools_active(pft,phenofactor,ialloc,Cactive_max,
-     &        CB_d,Cactive,C_lab,C_fol)
+     &        Cfol_half,CB_d,Cactive,C_lab,C_fol)
       
          !----------------------------------------------------  
          !*update the active pools
@@ -771,12 +777,13 @@
 
       !*********************************************************************
       subroutine growth_cpools_active(pft,phenofactor,ialloc, 
-     &     Cactive_max,CB_d,Cactive,C_lab,C_fol)
+     &     Cactive_max,Cfol_half,CB_d,Cactive,C_lab,C_fol)
      
       integer, intent(in) :: pft
       real*8, intent(in) :: phenofactor
       real*8, intent(in) :: ialloc
       real*8, intent(in) :: Cactive_max
+      real*8, intent(in) :: Cfol_half
       real*8, intent(in) :: CB_d
       real*8, intent(inout) :: Cactive
       real*8, intent(inout) :: C_lab
@@ -785,8 +792,10 @@
       real*8 ::dC_lab  !g-C/individual. Negative for reduction of C_lab for growth.
       real*8 :: dC_remainder
       real*8 :: dCactive
+      real*8 :: C_labavail
       real*8 :: dCavail
-      integer, parameter :: AGrowthModel=2 !1 for no storage; 2 for grass storage; 3 for grass/tree storage
+      integer, parameter :: CPotModel = 2
+      integer, parameter :: AGrowthModel= 3 !1 grass growth with no storage; 2 grass growth with storage; 3 grass growth with storage after the certain size; 4 grass/tree growth with storage
       !-------------------------------
       !*calculate the change in C_lab 
       !-------------------------------    
@@ -799,22 +808,37 @@
             !Cactive_max (max. allowed pool size according to the DBH)
             !Cactive_pot (current size + daily accumulated carbon)  
             !Cactive (cuurent size)
-            Cactive_pot = Cactive + C_lab
+            select case (CPotModel)
+            case(1)
+               Cactive_pot = Cactive + C_lab
+            case(2)
+               Cactive_pot = Cactive + min(C_lab, CB_d)!only new carbon is used for growth.
+            end select
             dCavail = min(Cactive_max, Cactive_pot) - Cactive
             select case (AGrowthModel)
             case(1) !no storage - default
                dCactive = dCavail
             case(2) !grass storage
                if (.not.pfpar(pft)%woody) then !herbaceous
-                  dCactive = r_fract * dCavail 
+                  dCactive = (1.d0-r_fract) * dCavail 
                else !woody
                   dCactive = dCavail
                end if
-            case(3) !grass/tree storage
+            case(3) !grass storage
                if (.not.pfpar(pft)%woody) then !herbaceous
-                  dCactive = r_fract * dCavail 
+                  if (C_fol .gt. Cfol_half) then
+                     dCactive = (1.d0-r_fract) * dCavail 
+                  else
+                     dCactive = dCavail
+                  end if
                else !woody
-                  dCactive = r_fract * dCavail
+                  dCactive = dCavail
+               end if
+            case(4) !grass/tree storage
+               if (.not.pfpar(pft)%woody) then !herbaceous
+                  dCactive = (1.d0-r_fract) * dCavail 
+               else !woody
+                  dCactive = (1.d0-r_fract) * dCavail
                end if
             end select
             if (dCactive .lt. 0.d0)then
@@ -872,6 +896,7 @@ c$$$      Cactive = Cactive + dC_remainder
       real*8 :: dCactive
       !gr_fract: fraction of excess c going to structural growth
       real*8 :: gr_fract  
+      real*8 :: rp_fract
       real*8 :: qsprime,qs
       real*8 :: dCfoldCdead
       real*8 :: dCfrootdCdead
@@ -885,10 +910,18 @@ c$$$      Cactive = Cactive + dC_remainder
       if (.not.pfpar(pft)%woody) then !herbaceous
          Cavail = C_lab
          if (C_lab .gt. 0.d0 )then
+         if (phenofactor .eq. 0.d0) then
             qs = 0.d0  !no structural pools
-            gr_fract = 1.d0 - (r_fract + c_fract)
+            rp_fract = r_fract + c_fract
+            gr_fract = 1.d0 - rp_fract
          else
-            qs = 0.d0 
+            qs = 0.d0
+            rp_fract = 0.d0
+            gr_fract = 0.d0
+         end if
+         else
+            qs = 0.d0
+            rp_fract = 0.d0
             gr_fract = 1.d0 / l_fract
          end if
       else !woody
@@ -908,33 +941,41 @@ c$$$      Cactive = Cactive + dC_remainder
      &               = 1.d0 / (dCfoldCdead + dCfrootdCdead +
      &                 dCswdCdead)
                   qs=qsprime/(1.d0+qsprime)
-                  gr_fract = 1.d0 - r_fract
+                  rp_fract = r_fract
+                  gr_fract = 1.d0 - rp_fract
                else
                   qs = 1.d0
-                  gr_fract = 1.d0 - r_fract 
+                  rp_fract = r_fract
+                  gr_fract = 1.d0 - rp_fract 
                end if
             else if (C_lab .le. 0.d0)then
                qs = 0.d0
+               rp_fract = 0.d0
                gr_fract = 1.d0 / l_fract
             else
                qs = 0.d0
+               rp_fract = 0.d0
                gr_fract = 1.d0
             end if
          else if (SGrowthModel.eq.2) then !based on ED2
             if (C_lab .gt. 0.d0 .and. CB_d .gt.0.d0 )then
                qs = 1.d0
-               gr_fract = 1.d0 - r_fract 
+               rp_fract = r_fract
+               gr_fract = 1.d0 - rp_fract 
             else
                qs = 0.d0
-               gr_fract = 1.d0 - r_fract
+               rp_fract = r_fract
+               gr_fract = 1.d0 - rp_fract
             end if
          else if (SGrowthModel.eq.3) then !option, reserving Clab 
                                           !not yet implemented
             if (C_lab .gt. 0.d0 .and. CB_d .gt.0.d0 )then
                qs = 1.d0
-               gr_fract = 1.d0 - r_fract 
+               rp_fract = r_fract
+               gr_fract = 1.d0 - rp_fract 
             else
                qs = 0.d0
+               rp_fract = r_fract
                gr_fract = 1.d0 - r_fract
             end if
          end if
@@ -942,7 +983,7 @@ c$$$      Cactive = Cactive + dC_remainder
        
       dCdead = gr_fract * qs  * Cavail 
       dCactive = gr_fract *(1.d0 - qs) * Cavail
-      dCrepro =  ( 1.d0 - gr_fract )  * Cavail
+      dCrepro =  rp_fract  * Cavail
 
 #ifdef DEBUG
       write(201,'(100(1pe16.8))') C_lab, dCactive, dCdead,dCrepro
