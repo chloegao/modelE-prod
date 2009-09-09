@@ -555,7 +555,31 @@
       do while(ASSOCIATED(cop))
                
          pft = cop%pft
-         phenofactor = cop%phenofactor
+         phenofactor = cop%phenofactor        
+
+         cohortnum = cohortnum + 1
+
+
+         is_annual = (pfpar(pft)%phenotype .eq. ANNUAL)
+
+        if (is_annual) then
+            if (phenofactor .gt. 0.d0 .AND. cop%C_fol .eq. 0.d0) then
+               cop%h = 0.05d0 !min. height = 0.05m
+	       select case (irecruit)
+	       case(1)
+               call recruit_annual(cop%pptr%Reproduction(pft),cop%h,
+     o              cop%C_fol, cop%C_froot,cop%n, cop%LAI)    
+               cop%pptr%Reproduction(pft) = 0.d0
+               case(2)
+               cop%C_fol = height2Cfol(pft,cop%h)
+!               cop%LAI=cop%n*pfpar(pft)%sla*
+               cop%LAI=cop%n*sla(pft,cop%llspan)*
+     &              (height2Cfol(pft,cop%h)/1000.0d0) 
+               cop%C_froot = q*cop%C_fol
+               end select 
+           end if
+         end if
+ 
          dbh = cop%dbh
          h = cop%h
          nplant = cop%n
@@ -566,12 +590,8 @@
          C_sw = cop%C_sw
          C_hw = cop%C_hw
          C_croot = cop%C_croot 
-        
-
-         cohortnum = cohortnum + 1
 
 
-         is_annual = (pfpar(pft)%phenotype .eq. ANNUAL)
         !------------------------------------------------
         !*calculate allometric relation - qsw, qf, ialloc
         !------------------------------------------------ 
@@ -678,15 +698,19 @@
          cop%C_fol = phenofactor * Cactive *ialloc
          cop%C_froot = Cactive * qf * ialloc
          cop%C_sw = Cactive * h *qsw * ialloc
-         cop%C_hw = Cdead * hw_fract
-         cop%C_croot = Cdead * (1-hw_fract)                  
+             
          if (.not.config%do_structuralgrowth) then
              dC_litter_hw = max(0.d0,cop%C_hw - C_hw_old)
              dC_litter_croot = max(0.d0,cop%C_croot - C_croot_old)
              cop%C_hw=C_hw_old
              cop%C_croot=C_croot_old
              Cdead = cop%C_hw+cop%C_croot
-         end if
+         else
+            dC_litter_hw =0.d0
+            dC_litter_croot = 0.d0
+            cop%C_hw = Cdead * hw_fract
+            cop%C_croot = Cdead * (1-hw_fract)     
+         endif
 
          !----------------------------------------------------   
          !*senesce and accumulate litter
@@ -728,24 +752,6 @@
          laipatch = laipatch + cop%lai  
 
          cop%Ntot = cop%nm * cop%LAI 
-
-         if (is_annual) then
-            if (phenofactor .gt. 0.d0 .AND. cop%h .lt. 0.025d0) then
-               cop%h = 0.05d0 !min. height = 0.05m
-	       select case (irecruit)
-	       case(1)
-               call recruit_annual(cop%pptr%Reproduction(pft),cop%h,
-     o              cop%C_fol, cop%C_froot,cop%n, cop%LAI)    
-               cop%pptr%Reproduction(pft) = 0.d0
-               case(2)
-               cop%C_fol = height2Cfol(pft,cop%h)
-!               cop%LAI=cop%n*pfpar(pft)%sla*
-               cop%LAI=cop%n*sla(pft,cop%llspan)*
-     &              (height2Cfol(pft,cop%h)/1000.0d0) 
-               cop%C_froot = q*cop%C_fol
-               end select 
-           end if
-         end if
 
          !* Summarize for patch level *!
          !Total respiration flux including growth increment.
