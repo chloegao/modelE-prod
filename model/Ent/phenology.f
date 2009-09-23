@@ -4,8 +4,8 @@
 !@auth Y. Kim
 #ifdef ENT_STANDALONE_DIAG
 #define PHENOLOGY_DIAG
-#endif
 #define DEBUG
+#endif
 
       use ent_types
       use ent_const
