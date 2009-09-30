@@ -93,7 +93,7 @@
       !c_fract: fraction of excess c going to clonal reproduction - only for herbaceous
       real*8, parameter :: c_fract = 0.7d0
       !mort_seedling: mortality rate for seedling
-      real*8, parameter :: mort_seedling = 0.80d0 !0.95d0
+      real*8, parameter :: mort_seedling = 0.90d0 !0.80d0 !0.95d0
 
       contains
 
@@ -288,11 +288,12 @@
       real*8 :: phenofactor
       real*8 :: airt_adj
       real*8 :: light_old
-      integer :: phenostatus
+      real*8 :: phenostatus
       logical :: temp_limit, water_limit 
       logical :: fall
       logical :: woody
-      integer, parameter :: iwater_limit = 2 !SOILMOIST_OLD 0
+      integer, parameter :: iwater_limit = 3 !SOILMOIST_OLD 0
+      real*8 :: mature = 1.1d0 !X day to mature: mature=1+X/1000
       real*8::  betad_10d
 
       soiltemp_10d = pp%cellptr%soiltemp_10d
@@ -346,38 +347,38 @@
          !temperature-controlled woody
          if (temp_limit .and. woody) then
             if ((.not. fall) .and.
-     &         (phenostatus.le.2).and.(gdd.gt.gdd_threshold)) then
+     &         (phenostatus.lt.3.d0).and.(gdd.gt.gdd_threshold)) then
                phenofactor_c = min (1.d0,(gdd-gdd_threshold)/gdd_length)
                if (phenofactor_c .lt. 1.d0) then
-                  phenostatus = 2
+                  phenostatus = 2.d0
                else
-                  phenostatus = 3
+                  phenostatus = 3.d0
                end if
             end if
             if (fall .and. 
-     &         (phenostatus.ge.3).and.
+     &         (phenostatus.ge.3.d0).and.
      &         (airtemp_10d.lt.airt_max_w+airt_adj)) then
                phenofactor_c = min(phenofactor_c,max(0.d0,
      &            (airtemp_10d-airt_min_w-airt_adj)/
      &            (airt_max_w-airt_min_w)))
                if (phenofactor_c .eq. 0.d0) then
-                  phenostatus = 1
+                  phenostatus = 1.d0
                   ncd = 0.d0             !zero-out
                   gdd = 0.d0
                else  
-                  phenostatus = 4
+                  phenostatus = 4.d0
                end if 
             end if
             if (fall .and.
-     &         (phenostatus.ge.3).and.(ld.lt.ld_max)) then
+     &         (phenostatus.ge.3.d0).and.(ld.lt.ld_max)) then
                phenofactor_c = min(phenofactor_c, max(0.d0,
      &          (ld - ld_min)/(ld_max-ld_min)))
                if (phenofactor_c .eq. 0.0d0) then
-                 phenostatus =1
+                 phenostatus =1.d0
                  ncd =0.d0
                  gdd =0.d0
                else
-                 phenostatus=4
+                 phenostatus=4.d0
                end if
             end if 
          end if
@@ -388,7 +389,7 @@
          end if            
                  
          !water-controoled woody
-         if (water_limit .and. woody .and. (phenostatus.ge.2)) then
+         if (water_limit .and. woody .and. (phenostatus.ge.2.d0)) then
             select case (iwater_limit)
             case(0) !default with the 10-day paw
                phenofactor_d = min(1.d0,max(0.d0,
@@ -407,24 +408,24 @@
          if (water_limit .and. (.not. woody)) then
             select case(iwater_limit)
             case(0) !default with the 10-day paw 
-               if ((phenostatus.le.2).and.(paw_10d.gt.paw_min_h))then
+               if ((phenostatus.lt.3.d0).and.(paw_10d.gt.paw_min_h))then
                   phenofactor_d = min(1.d0,
      &                 ((paw_10d-paw_min_h)
      &                 /(paw_max_h-paw_min_h))**paw_res_h)
                   if (phenofactor_d .lt. 1.d0) then
-                     phenostatus = 2
+                     phenostatus = 2.d0
                   else
-                     phenostatus = 3
+                     phenostatus = 3.d0
                   end if
-               else if ((phenostatus.ge.3).and.
+               else if ((phenostatus.ge.3.d0).and.
      &                 (paw_10d.lt.paw_max_h))then
                   phenofactor_d = max(0.d0,
      &                 ((paw_10d-paw_min_h)
      &                 /(paw_max_h-paw_min_h))**paw_res_h)
                   if (phenofactor_d .eq. 0.d0) then
-                     phenostatus = 1
+                     phenostatus = 1.d0
                   else
-                     phenostatus = 4
+                     phenostatus = 4.d0
                   end if 
                end if
   
@@ -435,28 +436,53 @@
      i         ,pp%cellptr%fice(:), pfpar(pft)%hwilt
      o         , cop%stressH2Ol(:))
             case(2) !water_stress3 & betad_10d
-               if ((phenostatus.le.2).and.
+               if ((phenostatus .gt. mature) .and.
+     &           (phenostatus.lt.3.d0).and.
      &           (betad_10d.gt.betad_min_h))then
                   phenofactor_d = min(1.d0,
      &                 ((betad_10d-betad_min_h)
      &                 /(betad_max_h-betad_min_h))**betad_res_h)
                   if (phenofactor_d .ge. 0.999d0) then
-                     phenostatus = 3
+                     phenostatus = 3.d0
                   else
-                     phenostatus = 2
+                     phenostatus = 2.d0
                   end if
-               else if ((phenostatus.ge.3).and.
+               else if ((phenostatus.ge.3.d0).and.
      &            (betad_10d.lt.betad_max_h))then
                   phenofactor_d = max(0.d0,
      &                 ((betad_10d-betad_min_h)
      &                 /(betad_max_h-betad_min_h))**betad_res_h)
                   if (phenofactor_d .le. EPS) then
-                     phenostatus = 1
+                     phenostatus = 1.d0
                   else
-                     phenostatus = 4
+                     phenostatus = 4.d0
+                  end if 
+               end if    
+            case(3) !water_stress3 & betad_10d & no controll in phenostatus
+               if (betad_10d.gt.betad_min_h)then
+                  phenofactor_d = min(1.d0,
+     &                 ((betad_10d-betad_min_h)
+     &                 /(betad_max_h-betad_min_h))**betad_res_h)
+                  if (phenofactor_d .ge. 0.999d0) then
+                     phenostatus = 3.d0
+                  else
+                     phenostatus = 2.d0
+                  end if
+               else if (betad_10d.lt.betad_max_h)then
+                  phenofactor_d = max(0.d0,
+     &                 ((betad_10d-betad_min_h)
+     &                 /(betad_max_h-betad_min_h))**betad_res_h)
+                  if (phenofactor_d .le. EPS) then
+                     phenostatus = 1.d0
+                  else
+                     phenostatus = 4.d0
                   end if 
                end if    
             end select
+          
+            phenostatus = phenostatus + 1.d0/1000.d0  
+        
+
 #ifdef DEBUG
             write(202,'(100e16.6)') phenofactor_d,pp%cellptr%Soilmp(:)
      &      ,pp%cellptr%Soilmoist(:)
@@ -679,7 +705,7 @@
          dormant =
      &      (pfpar(pft)%phenotype .eq. COLDDECID .and. 
      &      pfpar(pft)%woody .and. 
-     &      cop%phenostatus .ne. 2 )
+     &      cop%phenostatus .lt. 2.d0 .and. cop%phenostatus .ge. 3.d0 )
      
          dCrepro = 0.d0
          if (.not.dormant)           
@@ -2192,7 +2218,7 @@ c$$$      end if
       type(cohort), pointer ::cop
       integer :: cohortnum
      
-         write(990,'(2(i5),2(1pe16.8),1(i5),22(1pe16.8))')
+         write(990,'(2(i5),25(1pe16.8))')
      &        cohortnum,
      &        cop%pft,  
      &        cop%phenofactor_c,

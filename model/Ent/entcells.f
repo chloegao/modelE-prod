@@ -141,7 +141,7 @@
       ecp%ncd = 0.0d0 !number of chilling day
       ecp%ld = 0.0d0  !day length (min)
       ecp%light = 0.0d0
-      ecp%fall = .true. 
+      ecp%fall = .false. !MMSF !.true. 
 
       ecp%C_total = 0.d0
       ecp%C_growth = 0.d0
@@ -483,7 +483,8 @@ C NADINE - IS THIS CORRECT?
      &           cpooldata(ncov,FR),0.d0,cpooldata(ncov,CR),0.d0,
      &           Ci_ini, CNC_ini,0.d0,0.d0,0.d0,0.d0, !added last 0 for R_root -PK 5/15/07
      &           0.d0, 0.d0, 
-     &           1.d0, 1.d0,1.d0,3,
+     &           0.d0, 1.d0,0.d0,1.d0, !KIM - starting in the winter for cold-dec.
+!     &           1.d0, 1.d0,1.d0,3.d0, !KIM - starting in the middle of growing season
      &           1.d0, 0.d0,
      &           1.d0, -999.d0) !KIM-added for phenology/growth
           endif

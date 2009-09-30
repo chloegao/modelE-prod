@@ -165,7 +165,7 @@
          real*8 :: phenofactor   !phenofactor_c * phenofactor_d
          real*8 :: phenofactor_c !Cold deciduousness
          real*8 :: phenofactor_d !Drought deciduousness
-         integer :: phenostatus
+         real*8 :: phenostatus
          real*8 :: betad_10d ! 10-day running average of betad
          real*8 :: CB_d !daily carbon balance
          real*8 :: turnover_amp
