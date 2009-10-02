@@ -131,6 +131,10 @@
          real*8 :: root_d         ! Root half spheroid diameter (m)
          real*8 :: clump          ! Leaf clumping parameter (TBA)
          real*8,pointer :: fracroot(:) ! Fraction of roots in soil layer
+         real*8,pointer :: height_dz(:) ! height levels, equal dz
+         real*8,pointer :: fp_dz(:)     ! foliage profile, equal dz (could be empty)
+         real*8,pointer :: height(:)    ! height levels, same as patch
+         real*8,pointer :: fp(:)        ! foliage profile at height (could be zero)
 
          !* BIOMASS POOLS (g-C/single plant)
          real*8 :: C_fol          ! Foliage carbon 
@@ -189,6 +193,8 @@
          real*8,pointer :: h_coh(:)   !(m) height levels acoording to cohorts 
          real*8,pointer :: heights(:) !(m) height levels at canopy layer boundaries (#layers+1)
          real*8,pointer :: LAI(:)     !LAI within height level
+         real*8,pointer :: f_sun(:) !sunlit fraction profile
+         real*8,pointer :: f_sha(:) !shaded fraction profile
          real*8,pointer :: T_sun(:) !sunlit PAR transmittance profile
          real*8,pointer :: T_sha(:) !shaded PAR transmittance profile
          real*8,pointer :: I_sun(:) !sunlit PAR absorbance profile
