@@ -23,13 +23,10 @@
       ! need to know about internal structure of Ent types
       use ent_types, only : entcelltype, patch, cohort, timestruct,
      &     MAX_PATCHES, MAX_COHORTS, ent_config
-      use ent_const, only : N_BANDS,N_COVERTYPES
-     &     , N_OTHER, COVER_SAND
-     &     , N_DEPTH,N_SOIL_TEXTURES
-     &     , N_BPOOLS, N_PFT, N_CASA_LAYERS,NPOOLS,NLIVE,CARBON,PTRACE
+      use ent_const, only : N_BANDS,N_COVERTYPES,N_DEPTH,N_SOIL_TEXTURES
+     &     , N_BPOOLS, N_PFT, N_CASA_LAYERS,NPOOLS,NLIVE,CARBON,PTRACE  !added last 5 for soil bgc -PK 
       !use ent_prescrveg
       use entcells
-      use ent_pfts, only : CROPS,COVEROFFSET
 
       !use prescr_veg ! just for compilation purposes
       implicit none
@@ -37,13 +34,9 @@
       private
 
       !--- public constants ---
-      public N_BANDS, N_COVERTYPES 
-      public N_OTHER, COVER_SAND
-      public N_DEPTH, N_SOIL_TEXTURES, N_BPOOLS
+      public N_BANDS, N_COVERTYPES, N_DEPTH, N_SOIL_TEXTURES, N_BPOOLS
       public N_PFT, N_CASA_LAYERS  !added last one -PK
       public PTRACE, NPOOLS, NLIVE, CARBON  
-      public ent_config
-      public CROPS,COVEROFFSET
 
       public entcelltype_public, ent_cell_pack, ent_cell_unpack
       public ent_get_exports, ent_set_forcings
@@ -51,9 +44,6 @@
       public ent_fast_processes,ent_run,ent_vegcover_update
       public ent_cell_set !, ent_cell_update
       public ent_prescribe_vegupdate
-      public ent_prescribe_vegupdateB
-      public ent_prescribe_vegupdateC
-      public ent_prescribe_vegupdateD
       public ent_cell_print
       public ent_initialize
 
@@ -61,7 +51,7 @@
 
       type entcelltype_public
         private
-        type(entcelltype), pointer :: entcell => null()
+        type(entcelltype), pointer :: entcell
       end type entcelltype_public
 
       !---- public interfaces ---
@@ -202,39 +192,9 @@ cddd      end interface ent_cell_update
       
       end interface
 
-      interface ent_prescribe_vegupdateB
-      
-        module procedure ent_prescribe_vegupdateB_r8_0
-      
-        module procedure ent_prescribe_vegupdateB_r8_1
-      
-        module procedure ent_prescribe_vegupdateB_r8_2
-      
-      end interface
-
-      interface ent_prescribe_vegupdateC
-      
-        module procedure ent_prescribe_vegupdateC_r8_0
-      
-        module procedure ent_prescribe_vegupdateC_r8_1
-      
-        module procedure ent_prescribe_vegupdateC_r8_2
-      
-      end interface
-
-      interface ent_prescribe_vegupdateD
-      
-        module procedure ent_prescribe_vegupdateD_r8_0
-      
-        module procedure ent_prescribe_vegupdateD_r8_1
-      
-        module procedure ent_prescribe_vegupdateD_r8_2
-      
-      end interface
-
 
       !---- global data ----
-      type(ent_config), save :: config
+      type(ent_config) config
 
       contains
 
@@ -335,8 +295,6 @@ cddd      end interface ent_cell_update
      &     do_giss_phenology_1 = do_giss_phenology
       if ( present(do_giss_lai) )
      &     do_giss_lai_1 = do_giss_lai
-      if ( present(do_giss_albedo) )
-     &     do_giss_albedo_1 = do_giss_albedo
       if ( present(jday) ) jday_1 = jday
       if ( present(init) ) init_1 = init
          
@@ -427,8 +385,6 @@ cddd      end interface ent_cell_update
      &     do_giss_phenology_1 = do_giss_phenology
       if ( present(do_giss_lai) )
      &     do_giss_lai_1 = do_giss_lai
-      if ( present(do_giss_albedo) )
-     &     do_giss_albedo_1 = do_giss_albedo
       if ( present(jday) ) jday_1 = jday
       if ( present(init) ) init_1 = init
          
@@ -521,8 +477,6 @@ cddd      end interface ent_cell_update
      &     do_giss_phenology_1 = do_giss_phenology
       if ( present(do_giss_lai) )
      &     do_giss_lai_1 = do_giss_lai
-      if ( present(do_giss_albedo) )
-     &     do_giss_albedo_1 = do_giss_albedo
       if ( present(jday) ) jday_1 = jday
       if ( present(init) ) init_1 = init
          
@@ -555,528 +509,6 @@ cddd      end interface ent_cell_update
       enddo
 
       end subroutine ent_prescribe_vegupdate_r8_2
-
-     
-
-      subroutine ent_prescribe_vegupdateB_r8_0(entcell)
-!@sum updates prescribed vegatation parameters. This parameters can
-!@+   be passed directly in form of arrays like laidata or one can
-!@+   set a flag requesting certain action like do_giss_phenology.
-!@+   All arguments except entcell are optional.
-      use ent_prescribed_updates, only:  entcell_vegupdate
-      type(entcelltype_public),intent(inout) :: entcell 
-      !---
-      !!!real*8, allocatable :: cropsdata_loc(:,:)
-      real*8, pointer :: laidata_1(:), hdata_1(:),
-     &     albedodata_1(:,:), cropsdata_1
-      integer :: hemi_1, jday_1
-      logical :: do_giss_phenology_1, do_giss_lai_1, do_giss_albedo_1
-      logical :: init_1
-      
-      
-
-      
-      
-
-
-      ! set defaults
-      nullify( laidata_1, hdata_1, albedodata_1, cropsdata_1 )
-      do_giss_phenology_1 = .false.
-      do_giss_lai_1 = .true.
-      do_giss_albedo_1 = .false.
-      hemi_1 = -32768
-      jday_1 = -32768
-      init_1 = .false.
-
-      ! now set optional arguments
-         
-      
-          ! skip uninitialized cells (no land)
-        if ( associated(entcell%entcell) ) then
-
-!          write(780,*) __FILE__,__LINE__,hemi_1
-          
-          call entcell_vegupdate(entcell%entcell,
-     &         hemi_1,
-     &         jday_1, do_giss_phenology_1, do_giss_lai_1,
-     &         do_giss_albedo_1,
-     &         laidata_1, hdata_1, albedodata_1, cropsdata_1,
-     &         init_1)
-        endif
-      
-
-      end subroutine ent_prescribe_vegupdateB_r8_0
-
-      subroutine ent_prescribe_vegupdateB_r8_1(entcell)
-!@sum updates prescribed vegatation parameters. This parameters can
-!@+   be passed directly in form of arrays like laidata or one can
-!@+   set a flag requesting certain action like do_giss_phenology.
-!@+   All arguments except entcell are optional.
-      use ent_prescribed_updates, only:  entcell_vegupdate
-      type(entcelltype_public),intent(inout) :: entcell (:)
-      !---
-      !!!real*8, allocatable :: cropsdata_loc(:,:)
-      real*8, pointer :: laidata_1(:), hdata_1(:),
-     &     albedodata_1(:,:), cropsdata_1
-      integer :: hemi_1, jday_1
-      logical :: do_giss_phenology_1, do_giss_lai_1, do_giss_albedo_1
-      logical :: init_1
-      integer i1
-      integer dims(2,1)
-
-      dims(1,:) = lbound(entcell)
-      dims(2,:) = ubound(entcell)
-
-
-      ! set defaults
-      nullify( laidata_1, hdata_1, albedodata_1, cropsdata_1 )
-      do_giss_phenology_1 = .false.
-      do_giss_lai_1 = .true.
-      do_giss_albedo_1 = .false.
-      hemi_1 = -32768
-      jday_1 = -32768
-      init_1 = .false.
-
-      ! now set optional arguments
-         
-      
-      do i1=dims(1,1),dims(2,1)
-          ! skip uninitialized cells (no land)
-        if ( associated(entcell(i1)%entcell) ) then
-
-!          write(780,*) __FILE__,__LINE__,hemi_1
-          
-          call entcell_vegupdate(entcell(i1)%entcell,
-     &         hemi_1,
-     &         jday_1, do_giss_phenology_1, do_giss_lai_1,
-     &         do_giss_albedo_1,
-     &         laidata_1, hdata_1, albedodata_1, cropsdata_1,
-     &         init_1)
-        endif
-      
-      enddo
-
-      end subroutine ent_prescribe_vegupdateB_r8_1
-
-      subroutine ent_prescribe_vegupdateB_r8_2(entcell)
-!@sum updates prescribed vegatation parameters. This parameters can
-!@+   be passed directly in form of arrays like laidata or one can
-!@+   set a flag requesting certain action like do_giss_phenology.
-!@+   All arguments except entcell are optional.
-      use ent_prescribed_updates, only:  entcell_vegupdate
-      type(entcelltype_public),intent(inout) :: entcell (:,:)
-      !---
-      !!!real*8, allocatable :: cropsdata_loc(:,:)
-      real*8, pointer :: laidata_1(:), hdata_1(:),
-     &     albedodata_1(:,:), cropsdata_1
-      integer :: hemi_1, jday_1
-      logical :: do_giss_phenology_1, do_giss_lai_1, do_giss_albedo_1
-      logical :: init_1
-      integer i1,i2
-      integer dims(2,2)
-
-      dims(1,:) = lbound(entcell)
-      dims(2,:) = ubound(entcell)
-
-
-      ! set defaults
-      nullify( laidata_1, hdata_1, albedodata_1, cropsdata_1 )
-      do_giss_phenology_1 = .false.
-      do_giss_lai_1 = .true.
-      do_giss_albedo_1 = .false.
-      hemi_1 = -32768
-      jday_1 = -32768
-      init_1 = .false.
-
-      ! now set optional arguments
-         
-      
-      do i1=dims(1,1),dims(2,1)
-      do i2=dims(1,2),dims(2,2)
-          ! skip uninitialized cells (no land)
-        if ( associated(entcell(i1,i2)%entcell) ) then
-
-!          write(780,*) __FILE__,__LINE__,hemi_1
-          
-          call entcell_vegupdate(entcell(i1,i2)%entcell,
-     &         hemi_1,
-     &         jday_1, do_giss_phenology_1, do_giss_lai_1,
-     &         do_giss_albedo_1,
-     &         laidata_1, hdata_1, albedodata_1, cropsdata_1,
-     &         init_1)
-        endif
-      
-      enddo
-      enddo
-
-      end subroutine ent_prescribe_vegupdateB_r8_2
-
-     
-
-      subroutine ent_prescribe_vegupdateC_r8_0(entcell
-     &     ,hemi,jday,year,
-     &     do_giss_phenology, do_giss_albedo, do_giss_lai, 
-     &     update_crops)
-!@sum updates prescribed vegatation parameters. This parameters can
-!@+   be passed directly in form of arrays like laidata or one can
-!@+   set a flag requesting certain action like do_giss_phenology.
-!@+   All arguments except entcell are optional.
-      use ent_prescribed_updates, only:  entcell_vegupdate
-      type(entcelltype_public),intent(inout) :: entcell 
-      integer, intent(in), target :: hemi 
-      integer,intent(in) :: jday,year
-      logical, intent(in) :: update_crops
-      logical, intent(in) :: do_giss_phenology
-      logical, intent(in) :: do_giss_lai
-      logical, intent(in) :: do_giss_albedo
-      !---
-      !!!real*8, allocatable :: cropsdata_loc(:,:)
-      real*8, pointer :: laidata_1(:), hdata_1(:),
-     &     albedodata_1(:,:), cropsdata_1
-      integer :: hemi_1, jday_1
-      logical :: do_giss_phenology_1, do_giss_lai_1, do_giss_albedo_1
-      logical :: init_1
-      
-      
-
-      
-      
-
-      ! set defaults
-      nullify( laidata_1, hdata_1, albedodata_1, cropsdata_1 )
-      do_giss_phenology_1 = .false.
-      do_giss_lai_1 = .true.
-      do_giss_albedo_1 = .false.
-      hemi_1 = -32768
-      jday_1 = -32768
-      init_1 = .false.
-
-      ! now set optional arguments
-          do_giss_phenology_1 = do_giss_phenology
-          do_giss_lai_1 = do_giss_lai
-          do_giss_albedo_1 = do_giss_albedo
-          jday_1 = jday
-         
-      
-          ! skip uninitialized cells (no land)
-        if ( associated(entcell%entcell) ) then
-
-           hemi_1 = hemi
-!          write(780,*) __FILE__,__LINE__,hemi_1
-          
-          call entcell_vegupdate(entcell%entcell,
-     &         hemi_1,
-     &         jday_1, do_giss_phenology_1, do_giss_lai_1,
-     &         do_giss_albedo_1,
-     &         laidata_1, hdata_1, albedodata_1, cropsdata_1,
-     &         init_1)
-        endif
-      
-
-      end subroutine ent_prescribe_vegupdateC_r8_0
-
-      subroutine ent_prescribe_vegupdateC_r8_1(entcell
-     &     ,hemi,jday,year,
-     &     do_giss_phenology, do_giss_albedo, do_giss_lai, 
-     &     update_crops)
-!@sum updates prescribed vegatation parameters. This parameters can
-!@+   be passed directly in form of arrays like laidata or one can
-!@+   set a flag requesting certain action like do_giss_phenology.
-!@+   All arguments except entcell are optional.
-      use ent_prescribed_updates, only:  entcell_vegupdate
-      type(entcelltype_public),intent(inout) :: entcell (:)
-      integer, intent(in), target :: hemi (:)
-      integer,intent(in) :: jday,year
-      logical, intent(in) :: update_crops
-      logical, intent(in) :: do_giss_phenology
-      logical, intent(in) :: do_giss_lai
-      logical, intent(in) :: do_giss_albedo
-      !---
-      !!!real*8, allocatable :: cropsdata_loc(:,:)
-      real*8, pointer :: laidata_1(:), hdata_1(:),
-     &     albedodata_1(:,:), cropsdata_1
-      integer :: hemi_1, jday_1
-      logical :: do_giss_phenology_1, do_giss_lai_1, do_giss_albedo_1
-      logical :: init_1
-      integer i1
-      integer dims(2,1)
-
-      dims(1,:) = lbound(entcell)
-      dims(2,:) = ubound(entcell)
-
-      ! set defaults
-      nullify( laidata_1, hdata_1, albedodata_1, cropsdata_1 )
-      do_giss_phenology_1 = .false.
-      do_giss_lai_1 = .true.
-      do_giss_albedo_1 = .false.
-      hemi_1 = -32768
-      jday_1 = -32768
-      init_1 = .false.
-
-      ! now set optional arguments
-          do_giss_phenology_1 = do_giss_phenology
-          do_giss_lai_1 = do_giss_lai
-          do_giss_albedo_1 = do_giss_albedo
-          jday_1 = jday
-         
-      
-      do i1=dims(1,1),dims(2,1)
-          ! skip uninitialized cells (no land)
-        if ( associated(entcell(i1)%entcell) ) then
-
-           hemi_1 = hemi(i1)
-!          write(780,*) __FILE__,__LINE__,hemi_1
-          
-          call entcell_vegupdate(entcell(i1)%entcell,
-     &         hemi_1,
-     &         jday_1, do_giss_phenology_1, do_giss_lai_1,
-     &         do_giss_albedo_1,
-     &         laidata_1, hdata_1, albedodata_1, cropsdata_1,
-     &         init_1)
-        endif
-      
-      enddo
-
-      end subroutine ent_prescribe_vegupdateC_r8_1
-
-      subroutine ent_prescribe_vegupdateC_r8_2(entcell
-     &     ,hemi,jday,year,
-     &     do_giss_phenology, do_giss_albedo, do_giss_lai, 
-     &     update_crops)
-!@sum updates prescribed vegatation parameters. This parameters can
-!@+   be passed directly in form of arrays like laidata or one can
-!@+   set a flag requesting certain action like do_giss_phenology.
-!@+   All arguments except entcell are optional.
-      use ent_prescribed_updates, only:  entcell_vegupdate
-      type(entcelltype_public),intent(inout) :: entcell (:,:)
-      integer, intent(in), target :: hemi (:,:)
-      integer,intent(in) :: jday,year
-      logical, intent(in) :: update_crops
-      logical, intent(in) :: do_giss_phenology
-      logical, intent(in) :: do_giss_lai
-      logical, intent(in) :: do_giss_albedo
-      !---
-      !!!real*8, allocatable :: cropsdata_loc(:,:)
-      real*8, pointer :: laidata_1(:), hdata_1(:),
-     &     albedodata_1(:,:), cropsdata_1
-      integer :: hemi_1, jday_1
-      logical :: do_giss_phenology_1, do_giss_lai_1, do_giss_albedo_1
-      logical :: init_1
-      integer i1,i2
-      integer dims(2,2)
-
-      dims(1,:) = lbound(entcell)
-      dims(2,:) = ubound(entcell)
-
-      ! set defaults
-      nullify( laidata_1, hdata_1, albedodata_1, cropsdata_1 )
-      do_giss_phenology_1 = .false.
-      do_giss_lai_1 = .true.
-      do_giss_albedo_1 = .false.
-      hemi_1 = -32768
-      jday_1 = -32768
-      init_1 = .false.
-
-      ! now set optional arguments
-          do_giss_phenology_1 = do_giss_phenology
-          do_giss_lai_1 = do_giss_lai
-          do_giss_albedo_1 = do_giss_albedo
-          jday_1 = jday
-         
-      
-      do i1=dims(1,1),dims(2,1)
-      do i2=dims(1,2),dims(2,2)
-          ! skip uninitialized cells (no land)
-        if ( associated(entcell(i1,i2)%entcell) ) then
-
-           hemi_1 = hemi(i1,i2)
-!          write(780,*) __FILE__,__LINE__,hemi_1
-          
-          call entcell_vegupdate(entcell(i1,i2)%entcell,
-     &         hemi_1,
-     &         jday_1, do_giss_phenology_1, do_giss_lai_1,
-     &         do_giss_albedo_1,
-     &         laidata_1, hdata_1, albedodata_1, cropsdata_1,
-     &         init_1)
-        endif
-      
-      enddo
-      enddo
-
-      end subroutine ent_prescribe_vegupdateC_r8_2
-
-     
-
-      subroutine ent_prescribe_vegupdateD_r8_0(entcell,
-     &     laidata, albedodata)
-!@sum updates prescribed vegatation parameters. This parameters can
-!@+   be passed directly in form of arrays like laidata or one can
-!@+   set a flag requesting certain action like do_giss_phenology.
-!@+   All arguments except entcell are optional.
-      use ent_prescribed_updates, only:  entcell_vegupdate
-      type(entcelltype_public),intent(inout) :: entcell 
-      real*8, intent(in), optional, target ::
-     &     laidata(:)
-      real*8, intent(in), optional, target ::
-     &     albedodata(:,:)
-      !---
-      !!!real*8, allocatable :: cropsdata_loc(:,:)
-      real*8, pointer :: laidata_1(:), hdata_1(:),
-     &     albedodata_1(:,:), cropsdata_1
-      integer :: hemi_1, jday_1
-      logical :: do_giss_phenology_1, do_giss_lai_1, do_giss_albedo_1
-      logical :: init_1
-      
-      
-
-      
-      
-
-      ! set defaults
-      nullify( laidata_1, hdata_1, albedodata_1, cropsdata_1 )
-      do_giss_phenology_1 = .false.
-      do_giss_lai_1 = .true.
-      do_giss_albedo_1 = .false.
-      hemi_1 = -32768
-      jday_1 = -32768
-      init_1 = .false.
-
-      ! now set optional arguments
-      
-          ! skip uninitialized cells (no land)
-        if ( associated(entcell%entcell) ) then
-
-          laidata_1 => laidata(:)
-          albedodata_1 => albedodata(:,:)
-
-!          write(780,*) __FILE__,__LINE__,hemi_1
-          
-          call entcell_vegupdate(entcell%entcell,
-     &         hemi_1,
-     &         jday_1, do_giss_phenology_1, do_giss_lai_1,
-     &         do_giss_albedo_1,
-     &         laidata_1, hdata_1, albedodata_1, cropsdata_1,
-     &         init_1)
-        endif
-      
-
-      end subroutine ent_prescribe_vegupdateD_r8_0
-
-      subroutine ent_prescribe_vegupdateD_r8_1(entcell,
-     &     laidata, albedodata)
-!@sum updates prescribed vegatation parameters. This parameters can
-!@+   be passed directly in form of arrays like laidata or one can
-!@+   set a flag requesting certain action like do_giss_phenology.
-!@+   All arguments except entcell are optional.
-      use ent_prescribed_updates, only:  entcell_vegupdate
-      type(entcelltype_public),intent(inout) :: entcell (:)
-      real*8, intent(in), optional, target ::
-     &     laidata(:,:)
-      real*8, intent(in), optional, target ::
-     &     albedodata(:,:,:)
-      !---
-      !!!real*8, allocatable :: cropsdata_loc(:,:)
-      real*8, pointer :: laidata_1(:), hdata_1(:),
-     &     albedodata_1(:,:), cropsdata_1
-      integer :: hemi_1, jday_1
-      logical :: do_giss_phenology_1, do_giss_lai_1, do_giss_albedo_1
-      logical :: init_1
-      integer i1
-      integer dims(2,1)
-
-      dims(1,:) = lbound(entcell)
-      dims(2,:) = ubound(entcell)
-
-      ! set defaults
-      nullify( laidata_1, hdata_1, albedodata_1, cropsdata_1 )
-      do_giss_phenology_1 = .false.
-      do_giss_lai_1 = .true.
-      do_giss_albedo_1 = .false.
-      hemi_1 = -32768
-      jday_1 = -32768
-      init_1 = .false.
-
-      ! now set optional arguments
-      
-      do i1=dims(1,1),dims(2,1)
-          ! skip uninitialized cells (no land)
-        if ( associated(entcell(i1)%entcell) ) then
-
-          laidata_1 => laidata(:,i1)
-          albedodata_1 => albedodata(:,:,i1)
-
-!          write(780,*) __FILE__,__LINE__,hemi_1
-          
-          call entcell_vegupdate(entcell(i1)%entcell,
-     &         hemi_1,
-     &         jday_1, do_giss_phenology_1, do_giss_lai_1,
-     &         do_giss_albedo_1,
-     &         laidata_1, hdata_1, albedodata_1, cropsdata_1,
-     &         init_1)
-        endif
-      
-      enddo
-
-      end subroutine ent_prescribe_vegupdateD_r8_1
-
-      subroutine ent_prescribe_vegupdateD_r8_2(entcell,
-     &     laidata, albedodata)
-!@sum updates prescribed vegatation parameters. This parameters can
-!@+   be passed directly in form of arrays like laidata or one can
-!@+   set a flag requesting certain action like do_giss_phenology.
-!@+   All arguments except entcell are optional.
-      use ent_prescribed_updates, only:  entcell_vegupdate
-      type(entcelltype_public),intent(inout) :: entcell (:,:)
-      real*8, intent(in), optional, target ::
-     &     laidata(:,:,:)
-      real*8, intent(in), optional, target ::
-     &     albedodata(:,:,:,:)
-      !---
-      !!!real*8, allocatable :: cropsdata_loc(:,:)
-      real*8, pointer :: laidata_1(:), hdata_1(:),
-     &     albedodata_1(:,:), cropsdata_1
-      integer :: hemi_1, jday_1
-      logical :: do_giss_phenology_1, do_giss_lai_1, do_giss_albedo_1
-      logical :: init_1
-      integer i1,i2
-      integer dims(2,2)
-
-      dims(1,:) = lbound(entcell)
-      dims(2,:) = ubound(entcell)
-
-      ! set defaults
-      nullify( laidata_1, hdata_1, albedodata_1, cropsdata_1 )
-      do_giss_phenology_1 = .false.
-      do_giss_lai_1 = .true.
-      do_giss_albedo_1 = .false.
-      hemi_1 = -32768
-      jday_1 = -32768
-      init_1 = .false.
-
-      ! now set optional arguments
-      
-      do i1=dims(1,1),dims(2,1)
-      do i2=dims(1,2),dims(2,2)
-          ! skip uninitialized cells (no land)
-        if ( associated(entcell(i1,i2)%entcell) ) then
-
-          laidata_1 => laidata(:,i1,i2)
-          albedodata_1 => albedodata(:,:,i1,i2)
-
-!          write(780,*) __FILE__,__LINE__,hemi_1
-          
-          call entcell_vegupdate(entcell(i1,i2)%entcell,
-     &         hemi_1,
-     &         jday_1, do_giss_phenology_1, do_giss_lai_1,
-     &         do_giss_albedo_1,
-     &         laidata_1, hdata_1, albedodata_1, cropsdata_1,
-     &         init_1)
-        endif
-      
-      enddo
-      enddo
-
-      end subroutine ent_prescribe_vegupdateD_r8_2
 
      
 
@@ -1167,8 +599,7 @@ cddd      end interface ent_cell_update
       
 
       
-        call ent_integrate(dt, entcell%entcell,
-     &     update_day,config)
+        call ent_integrate(dt, entcell%entcell,update_day,config)
       
 
       end subroutine ent_run_r8_0
@@ -1199,8 +630,7 @@ cddd      end interface ent_cell_update
 
       
       do i1=dims(1,1),dims(2,1)
-        call ent_integrate(dt, entcell(i1)%entcell,
-     &     update_day,config)
+        call ent_integrate(dt, entcell(i1)%entcell,update_day,config)
       
       enddo
 
@@ -1233,8 +663,7 @@ cddd      end interface ent_cell_update
       
       do i1=dims(1,1),dims(2,1)
       do i2=dims(1,2),dims(2,2)
-        call ent_integrate(dt, entcell(i1,i2)%entcell,
-     &     update_day,config)
+        call ent_integrate(dt, entcell(i1,i2)%entcell,update_day,config)
       
       enddo
       enddo
@@ -1832,7 +1261,7 @@ cddd      end interface ent_cell_update
       use cohorts, only : cohort_construct
       use patches, only : patch_construct
       real*8, intent(inout) :: dbuf(0:)
-      type(entcelltype_public), intent(inout) :: entcell ! pointer ?
+      type(entcelltype_public), intent(out) :: entcell ! pointer ?
       !---
       type(entcelltype), pointer :: ecp
       type(patch), pointer :: p, pprev  !@var p current patch
@@ -1916,24 +1345,24 @@ cddd      end interface ent_cell_update
       subroutine copy_vars_single( buf, n, var, flag )
 !@copy variable to/from buffer
 !@+   !!! may need to write similar for arrays and create an interface
-!@+   !!! in that case "n" will have non-trivial value
+!@+   !!! in that case "n" will have non-triial value
       real*8, intent(inout) :: buf(:)
-      integer, intent(inout) :: n
+      integer, intent(out) :: n
       real*8, intent(inout):: var
 !@var flag defines the actual action:
 !@+     -1 copy from var to buffer
 !@+      1 copy from buffer to var
-!@+      0 do nothing - just return the cumulative number of elements
+!@+      0 do nothing - just return the number of fields
       integer, intent(in) :: flag
       !---
       
-      n = n + 1
+      n = 1
       if ( flag == 0 ) return
 
       if ( flag == -1 ) then
-        buf(n) = var
+        buf(1) = var
       else if ( flag == 1 ) then
-        var = buf(n)
+        var = buf(1)
       else
         call stop_model("ent_mod:copy_vars: flag .ne. 0,-1,1",255)
       endif
@@ -1945,7 +1374,7 @@ cddd      end interface ent_cell_update
 !@+   !!! may need to write similar for arrays and create an interface
 !@+   !!! in that case "n" will have non-triial value
       real*8, intent(inout) :: buf(:)
-      integer, intent(inout) :: n
+      integer, intent(out) :: n
       real*8, intent(inout):: var(:)
 !@var flag defines the actual action:
 !@+     -1 copy from var to buffer
@@ -1953,18 +1382,14 @@ cddd      end interface ent_cell_update
 !@+      0 do nothing - just return the number of fields
       integer, intent(in) :: flag
       !---
-      integer :: n0
       
-      n0 = n + 1
-      n = n + size(var)
-
+      n = size(var)
       if ( flag == 0 ) return
 
-      
       if ( flag == -1 ) then
-        buf(n0:n) = var(:)
+        buf(1:n) = var(1:n)
       else if ( flag == 1 ) then
-        var(:) = buf(n0:n)
+        var(1:n) = buf(1:n)
       else
         call stop_model("ent_mod:copy_vars: flag .ne. 0,-1,1",255)
       endif
@@ -1976,7 +1401,7 @@ cddd      end interface ent_cell_update
 !@+   !!! may need to write similar for arrays and create an interface
 !@+   !!! in that case "n" will have non-triial value
       real*8, intent(inout) :: buf(:)
-      integer, intent(inout) :: n
+      integer, intent(out) :: n
       integer, intent(inout):: var
 !@var flag defines the actual action:
 !@+     -1 copy from var to buffer
@@ -1985,13 +1410,13 @@ cddd      end interface ent_cell_update
       integer, intent(in) :: flag
       !---
       
-      n = n + 1
+      n = 1
       if ( flag == 0 ) return
 
       if ( flag == -1 ) then
-        buf(n) = real( var, kind(buf) )
+        buf(1) = real( var, kind(0d0) )
       else if ( flag == 1 ) then
-        var = nint( buf(n) )
+        var = nint( buf(1) )
       else
         call stop_model("ent_mod:copy_vars: flag .ne. 0,-1,1",255)
       endif
@@ -2003,7 +1428,7 @@ cddd      end interface ent_cell_update
 !@+   !!! may need to write similar for arrays and create an interface
 !@+   !!! in that case "n" will have non-triial value
       real*8, intent(inout) :: buf(:)
-      integer, intent(inout) :: n
+      integer, intent(out) :: n
       integer, intent(inout):: var(:)
 !@var flag defines the actual action:
 !@+     -1 copy from var to buffer
@@ -2011,16 +1436,14 @@ cddd      end interface ent_cell_update
 !@+      0 do nothing - just return the number of fields
       integer, intent(in) :: flag
       !---
-      integer :: n0
       
-      n0 = n + 1
-      n = n + size(var)
+      n = size(var)
       if ( flag == 0 ) return
 
       if ( flag == -1 ) then
-        buf(n0:n) = real( var(:), kind(buf))
+        buf(1:n) = real( var(1:n), kind(0d0) )
       else if ( flag == 1 ) then
-        var(:) = nint( buf(n0:n) )
+        var(1:n) = nint( buf(1:n) )
       else
         call stop_model("ent_mod:copy_vars: flag .ne. 0,-1,1",255)
       endif
@@ -2058,17 +1481,23 @@ cddd      end interface ent_cell_update
 
       ! include all cell variables that need i/o
       ! actually soil_texture is BC, but store it to checkpoint for now ...
-      call copy_vars( buf, dc, entcell%soil_texture, flag)
+      call copy_vars( buf(dc:), nn, entcell%soil_texture, flag)
+      dc = dc + nn
 
       ! the following vars are from clim_stats 
       ! do we really need them ??
-      call copy_vars( buf, dc, entcell%soiltemp_10d, flag)
-      call copy_vars( buf, dc, entcell%airtemp_10d, flag)
-      call copy_vars( buf, dc, entcell%paw_10d, flag)
-      call copy_vars( buf, dc, entcell%par_10d, flag)
-      call copy_vars( buf, dc, entcell%gdd, flag)
-      call copy_vars( buf, dc, entcell%ncd, flag)
-      call copy_vars( buf, dc, entcell%ld, flag)
+      call copy_vars( buf(dc:), nn, entcell%soiltemp_10d, flag)
+      dc = dc + nn
+      call copy_vars( buf(dc:), nn, entcell%airtemp_10d, flag)
+      dc = dc + nn
+      call copy_vars( buf(dc:), nn, entcell%paw_10d, flag)
+      dc = dc + nn
+      call copy_vars( buf(dc:), nn, entcell%par_10d, flag)
+      dc = dc + nn
+      call copy_vars( buf(dc:), nn, entcell%gdd, flag)
+      dc = dc + nn
+      call copy_vars( buf(dc:), nn, entcell%ncd, flag)
+      dc = dc + nn
 
       n = dc
 
@@ -2090,18 +1519,18 @@ cddd      end interface ent_cell_update
       dc = 0
 
       ! include all patch variables that need i/o
-      call copy_vars( buf, dc,  p%age,  flag )
-      call copy_vars( buf, dc,  p%area, flag )
-      call copy_vars( buf, dc,  p%Ci,   flag )
+      call copy_vars( buf(dc:), nn,  p%age,  flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  p%area, flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  p%Ci,   flag ); dc = dc + nn
       do i=1,N_CASA_LAYERS      !need b/c Tpool now rank 3  -PK  
-       call copy_vars( buf, dc,  p%Tpool(1,:,i),flag )
-       call copy_vars( buf, dc,  p%Tpool(2,:,i),flag )
+       call copy_vars( buf(dc:), nn,  p%Tpool(1,:,i),flag );dc = dc + nn
+       call copy_vars( buf(dc:), nn,  p%Tpool(2,:,i),flag );dc = dc + nn
       end do
       ! not sure about the following, probably can be restored from 
       ! other data...
-      call copy_vars( buf, dc,  p%soil_type, flag )
-      call copy_vars( buf, dc,  p%GCANOPY, flag )
-      call copy_vars( buf, dc,  p%albedo, flag )
+      call copy_vars( buf(dc:), nn,  p%soil_type, flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  p%GCANOPY, flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  p%albedo, flag ); dc = dc + nn
 
       n = dc
 
@@ -2123,46 +1552,46 @@ cddd      end interface ent_cell_update
       dc = 0
 
       ! include all cohort variables that need i/o
-      call copy_vars( buf, dc,  c%pft,  flag )
-      call copy_vars( buf, dc,  c%n,    flag )
-      call copy_vars( buf, dc,  c%nm,   flag )
-      call copy_vars( buf, dc,  c%lai,  flag )
-      call copy_vars( buf, dc,  c%h,    flag )
-      call copy_vars( buf, dc,  c%dbh,  flag )
-!      call copy_vars( buf, dc,  c%_any_var2_, flag )
+      call copy_vars( buf(dc:), nn,  c%pft,  flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  c%n,    flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  c%nm,   flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  c%lai,  flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  c%h,    flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  c%dbh,  flag ); dc = dc + nn
+!      call copy_vars( buf(dc:), nn,  c%_any_var2_, flag ); dc = dc + nn
       ! data for Tpool, do we need these?
-      call copy_vars( buf, dc,  c%C_fol,  flag )
-      call copy_vars( buf, dc,  c%C_froot,  flag )
-      call copy_vars( buf, dc,  c%C_hw,  flag )
+      call copy_vars( buf(dc:), nn,  c%C_fol,  flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  c%C_froot,  flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  c%C_hw,  flag ); dc = dc + nn
       ! I guess fracroot is also needed ...
-      call copy_vars( buf, dc,  c%fracroot,  flag )
+      call copy_vars( buf(dc:), nn,  c%fracroot,  flag ); dc = dc + nn
 
       ! added new data to restore checkpoint after sumcohort was removed...
-      call copy_vars( buf, dc,  c%Ci,  flag )
-      call copy_vars( buf, dc,  c%gcanopy,  flag )
+      call copy_vars( buf(dc:), nn,  c%Ci,  flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  c%gcanopy,  flag ); dc = dc + nn
 
       ! new data jan 10 2008
-      call copy_vars( buf, dc,  c%C_fol   ,  flag )
-      call copy_vars( buf, dc,  c%N_fol   ,  flag )
-      call copy_vars( buf, dc,  c%C_sw    ,  flag )
-      call copy_vars( buf, dc,  c%N_sw    ,  flag )
-      call copy_vars( buf, dc,  c%C_hw    ,  flag )
-      call copy_vars( buf, dc,  c%N_hw    ,  flag )
-      call copy_vars( buf, dc,  c%C_lab   ,  flag )
-      call copy_vars( buf, dc,  c%N_lab   ,  flag )
-      call copy_vars( buf, dc,  c%C_froot ,  flag )
-      call copy_vars( buf, dc,  c%N_froot ,  flag )
-      call copy_vars( buf, dc,  c%C_croot ,  flag )
-      call copy_vars( buf, dc,  c%N_croot ,  flag )
+      call copy_vars( buf(dc:), nn,  c%C_fol   ,  flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  c%N_fol   ,  flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  c%C_sw    ,  flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  c%N_sw    ,  flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  c%C_hw    ,  flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  c%N_hw    ,  flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  c%C_lab   ,  flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  c%N_lab   ,  flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  c%C_froot ,  flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  c%N_froot ,  flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  c%C_croot ,  flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  c%N_croot ,  flag ); dc = dc + nn
 
       ! diags and hacks (added dec 9 2008)
-      call copy_vars( buf, dc,  c%C_growth,  flag )
-      call copy_vars( buf, dc,  c%C_total ,  flag )
+      call copy_vars( buf(dc:), nn,  c%C_growth,  flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  c%C_total ,  flag ); dc = dc + nn
       ! added on Mar 30 2009. Do we really need this?
-      call copy_vars( buf, dc,  c%llspan  ,  flag )
-      call copy_vars( buf, dc,  c%turnover_amp,  flag )
+      call copy_vars( buf(dc:), nn,  c%llspan  ,  flag ); dc = dc + nn
+      call copy_vars( buf(dc:), nn,  c%turnover_amp,  flag ); dc=dc + nn
       ! needed for frost hardiness ?
-      call copy_vars( buf, dc,  c%Sacclim ,  flag )
+      call copy_vars( buf(dc:), nn,  c%Sacclim ,  flag ); dc=dc + nn
 
       n = dc
 
@@ -2191,9 +1620,10 @@ cddd      end interface ent_cell_update
      &     soil_moist,
 !     &     soil_water,
      &     soil_matric_pot,
-     &     soil_ice_fraction
+     &     soil_ice_fraction,
+     &     daylength
      &     ) ! need to pass Ci, Qf ??
-      type(entcelltype_public),intent(inout):: entcell
+      type(entcelltype_public),intent(out):: entcell
       ! forcings probably should not be optional ...
       real*8 , intent(in)  ::
      &     air_temperature, !KIM - for phenology
@@ -2214,7 +1644,8 @@ cddd      end interface ent_cell_update
      &     soil_moist,
 !     &     soil_water,
      &     soil_matric_pot,
-     &     soil_ice_fraction
+     &     soil_ice_fraction,
+     &     daylength
       !----------
       integer n
       
@@ -2266,6 +1697,10 @@ cddd      end interface ent_cell_update
             entcell%entcell%fice(n) =
      &           soil_ice_fraction(n)
           enddo
+          do n=1,2
+            entcell%entcell%daylength(n) =
+     &           daylength(n)
+          enddo
       
         !enddo
       !enddo
@@ -2290,9 +1725,10 @@ cddd      end interface ent_cell_update
      &     soil_moist,
 !     &     soil_water,
      &     soil_matric_pot,
-     &     soil_ice_fraction
+     &     soil_ice_fraction,
+     &     daylength
      &     ) ! need to pass Ci, Qf ??
-      type(entcelltype_public),intent(inout):: entcell(:)
+      type(entcelltype_public),intent(out):: entcell(:)
       ! forcings probably should not be optional ...
       real*8 ,dimension(:), intent(in)  ::
      &     air_temperature, !KIM - for phenology
@@ -2313,7 +1749,8 @@ cddd      end interface ent_cell_update
      &     soil_moist,
 !     &     soil_water,
      &     soil_matric_pot,
-     &     soil_ice_fraction
+     &     soil_ice_fraction,
+     &     daylength
       !----------
       integer n
       integer i1
@@ -2366,6 +1803,10 @@ cddd      end interface ent_cell_update
             entcell(i1)%entcell%fice(n) =
      &           soil_ice_fraction(n,i1)
           enddo
+          do n=1,2
+            entcell(i1)%entcell%daylength(n) =
+     &           daylength(n,i1)
+          enddo
       
       enddo
         !enddo
@@ -2391,9 +1832,10 @@ cddd      end interface ent_cell_update
      &     soil_moist,
 !     &     soil_water,
      &     soil_matric_pot,
-     &     soil_ice_fraction
+     &     soil_ice_fraction,
+     &     daylength
      &     ) ! need to pass Ci, Qf ??
-      type(entcelltype_public),intent(inout):: entcell(:,:)
+      type(entcelltype_public),intent(out):: entcell(:,:)
       ! forcings probably should not be optional ...
       real*8 ,dimension(:,:), intent(in)  ::
      &     air_temperature, !KIM - for phenology
@@ -2414,7 +1856,8 @@ cddd      end interface ent_cell_update
      &     soil_moist,
 !     &     soil_water,
      &     soil_matric_pot,
-     &     soil_ice_fraction
+     &     soil_ice_fraction,
+     &     daylength
       !----------
       integer n
       integer i1,i2
@@ -2468,6 +1911,10 @@ cddd      end interface ent_cell_update
             entcell(i1,i2)%entcell%fice(n) =
      &           soil_ice_fraction(n,i1,i2)
           enddo
+          do n=1,2
+            entcell(i1,i2)%entcell%daylength(n) =
+     &           daylength(n,i1,i2)
+          enddo
       
       enddo
       enddo
@@ -2501,8 +1948,7 @@ C NADINE
      &     soilresp,
      &     soilcpools,
      &     leaf_area_index,
-     &     C_total,
-     &     C_entcell
+     &     C_total
      &     )
       type(entcelltype_public), intent(in) :: entcell
       real*8,  optional, intent(out) ::
@@ -2523,8 +1969,7 @@ C NADINE
      &     fraction_of_vegetated_soil,
      &     soilresp,
      &     leaf_area_index,
-     &     C_total,
-     &     C_entcell
+     &     C_total
       real*8, dimension(:), optional, intent(out) ::
      &     beta_soil_layers,
      &     albedo,
@@ -2655,15 +2100,6 @@ C NADINE
      &     C_total = 
      &     entcell%entcell%C_total
 
-      if ( present(C_entcell) ) then
-        if ( associated(entcell%entcell) ) then
-          C_entcell = 
-     &     entcell_carbon( entcell%entcell )
-        else
-	  C_entcell = 0.d0
-	endif
-      endif 
-
       
 
       end subroutine ent_get_exports_r8_0
@@ -2690,8 +2126,7 @@ C NADINE
      &     soilresp,
      &     soilcpools,
      &     leaf_area_index,
-     &     C_total,
-     &     C_entcell
+     &     C_total
      &     )
       type(entcelltype_public), intent(in) :: entcell(:)
       real*8, dimension(:), optional, intent(out) ::
@@ -2712,8 +2147,7 @@ C NADINE
      &     fraction_of_vegetated_soil,
      &     soilresp,
      &     leaf_area_index,
-     &     C_total,
-     &     C_entcell
+     &     C_total
       real*8, dimension(:,:), optional, intent(out) ::
      &     beta_soil_layers,
      &     albedo,
@@ -2848,15 +2282,6 @@ C NADINE
      &     C_total(i1) = 
      &     entcell(i1)%entcell%C_total
 
-      if ( present(C_entcell) ) then
-        if ( associated(entcell(i1)%entcell) ) then
-          C_entcell(i1) = 
-     &     entcell_carbon( entcell(i1)%entcell )
-        else
-	  C_entcell(i1) = 0.d0
-	endif
-      endif 
-
       
       enddo
 
@@ -2884,8 +2309,7 @@ C NADINE
      &     soilresp,
      &     soilcpools,
      &     leaf_area_index,
-     &     C_total,
-     &     C_entcell
+     &     C_total
      &     )
       type(entcelltype_public), intent(in) :: entcell(:,:)
       real*8, dimension(:,:), optional, intent(out) ::
@@ -2906,8 +2330,7 @@ C NADINE
      &     fraction_of_vegetated_soil,
      &     soilresp,
      &     leaf_area_index,
-     &     C_total,
-     &     C_entcell
+     &     C_total
       real*8, dimension(:,:,:), optional, intent(out) ::
      &     beta_soil_layers,
      &     albedo,
@@ -3042,15 +2465,6 @@ C NADINE
       if ( present(C_total) )
      &     C_total(i1,i2) = 
      &     entcell(i1,i2)%entcell%C_total
-
-      if ( present(C_entcell) ) then
-        if ( associated(entcell(i1,i2)%entcell) ) then
-          C_entcell(i1,i2) = 
-     &     entcell_carbon( entcell(i1,i2)%entcell )
-        else
-	  C_entcell(i1,i2) = 0.d0
-	endif
-      endif 
 
       
       enddo

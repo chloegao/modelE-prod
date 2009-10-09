@@ -139,9 +139,9 @@
       ecp%par_10d = 100.d0
       ecp%gdd = 0.0d0 !growing degree day
       ecp%ncd = 0.0d0 !number of chilling day
-      ecp%ld = 0.0d0  !day length (min)
-      ecp%light = 0.0d0
-      ecp%fall = .false. !MMSF !.true. 
+      ecp%daylength(:) = 0.0d0  !day length (min)
+      ecp%fall = .true. !KIM - starting in the winter
+!      ecp%fall = .false. !KIM - starting in the middle of growing season
 
       ecp%C_total = 0.d0
       ecp%C_growth = 0.d0
@@ -610,7 +610,7 @@ C NADINE - IS THIS CORRECT?
       write(iu, '(a,a," = ",f10.7)') prefix,"par_10d", ecp%par_10d
       write(iu, '(a,a," = ",f10.7)') prefix,"gdd", ecp%gdd
       write(iu, '(a,a," = ",f10.7)') prefix,"ncd", ecp%ncd
-      write(iu, '(a,a," = ",f10.7)') prefix,"ld", ecp%ld
+      write(iu, '(a,a," = ",f10.7)') prefix,"ld", ecp%daylength(1)
 
       write(iu, '(a,"patches:")') prefix
       pp => ecp%oldest

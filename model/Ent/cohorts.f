@@ -284,15 +284,15 @@ cddd      end subroutine init_cohort_defaults
 
       !* PHENOLOGY/GROWTH *!
       !KIM - starting in the middle of winter for cold-dec.
-!      cop%phenofactor_c = 0.d0
-!      cop%phenofactor_d = 1.d0
-!      cop%phenofactor = 0.d0
-!      cop%phenostatus = 1.d0
-      !KIM - starting in the middle of growing season
-      cop%phenofactor_c = 1.d0
+      cop%phenofactor_c = 0.d0
       cop%phenofactor_d = 1.d0
-      cop%phenofactor = 1.d0
-      cop%phenostatus = 3.d0
+      cop%phenofactor = 0.d0
+      cop%phenostatus = 1.d0
+      !KIM - starting in the middle of growing season
+!      cop%phenofactor_c = 1.d0
+!      cop%phenofactor_d = 1.d0
+!      cop%phenofactor = 1.d0
+!      cop%phenostatus = 3.d0
       cop%betad_10d = 1.d0
       cop%CB_d = 0.d0
       cop%turnover_amp = 1.d0

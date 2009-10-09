@@ -120,7 +120,6 @@
       real*8 :: airtemp
       real*8 :: wat   
       real*8 :: soiltemp     
-      real*8 :: coszen
       real*8 :: soiltemp_10d      
       real*8 :: airtemp_10d
       real*8 :: paw_10d
@@ -149,14 +148,12 @@
       call Soillayer_convert_Ent(ecp%Soiltemp(:), SOILDEPTH_m, 
      &     Soiltemp2layer) 
       soiltemp = Soiltemp2layer(1)
-      coszen = ecp%CosZen
       soiltemp_10d = ecp%soiltemp_10d
       airtemp_10d = ecp%airtemp_10d
       paw_10d = ecp%paw_10d
       par_10d = ecp%par_10d  
       gdd = ecp%gdd
       ncd = ecp%ncd
-      ld =  ecp%ld
 
       zweight=exp(-1.d0/(10.d0*86400.d0/dtsec))  !for 10-day running average
       zweight30=exp(-1.d0/(30.d0*86400.d0/dtsec))  !for 30-day running average
@@ -191,11 +188,6 @@
          end if
       end if
       
-      !Photoperiod (Day length) in minute
-      if ( coszen .gt. 0.d0 ) then
-         ld = ld + dtsec/60.d0
-      end if
-
       pp => ecp%oldest 
       do while (ASSOCIATED(pp)) 
 
@@ -261,7 +253,7 @@
       ecp%par_10d = par_10d
       ecp%gdd = gdd
       ecp%ncd = ncd
-      ecp%ld =  ld
+!      ecp%ld =  ld
 
       end subroutine clim_stats
       !*********************************************************************   
@@ -282,12 +274,11 @@
       real*8 :: paw_10d
       real*8 :: gdd
       real*8 :: ncd
-      real*8 :: ld 
+      real*8 :: ld, ld_old 
       real*8 :: phenofactor_c
       real*8 :: phenofactor_d
       real*8 :: phenofactor
       real*8 :: airt_adj
-      real*8 :: light_old
       real*8 :: phenostatus
       logical :: temp_limit, water_limit 
       logical :: fall
@@ -301,18 +292,18 @@
       paw_10d = pp%cellptr%paw_10d
       gdd = pp%cellptr%gdd
       ncd = pp%cellptr%ncd
-      ld = pp%cellptr%ld
-      light_old=pp%cellptr%light
+      ld = pp%cellptr%daylength(2)
+      ld_old=pp%cellptr%daylength(1)
       fall = pp%cellptr%fall
-      pp%cellptr%light=ld
      
       gdd_threshold = gdd_par1 + gdd_par2*exp(gdd_par3*ncd)  
-      if (fall .and.  pp%cellptr%light .gt. light_old ) then
+
+      if (ld .gt. ld_old ) then
          fall = .false.
-      else if (.not.fall .and. pp%cellptr%light .lt. light_old) then
+      else if (ld .lt. ld_old) then
          fall = .true.
       end if
-      
+
       cop => pp%tallest
       do while(ASSOCIATED(cop))       
       
@@ -803,7 +794,7 @@
       pp%R_auto = resp_auto_patch !Total flux including growth increment.
       pp%R_root = pp%R_root + resp_root_patch !Total flux including growth increment.
       pp%NPP = pp%GPP - resp_auto_patch
-      pp%cellptr%ld =  0.d0  
+!      pp%cellptr%ld =  0.d0  
 
       end subroutine veg_update
 
@@ -2219,7 +2210,7 @@ c$$$      end if
       integer :: cohortnum
      
          write(990,'(2(i5),25(1pe16.8))')
-     &        cohortnum,
+     &        cohortnum, !1
      &        cop%pft,  
      &        cop%phenofactor_c,
      &        cop%phenofactor_d,
@@ -2229,7 +2220,7 @@ c$$$      end if
      &        cop%C_lab,
      &        cop%C_sw,
      &        cop%C_hw,
-     &        cop%C_froot,
+     &        cop%C_froot,!11
      &        cop%C_croot,
      &        cop%NPP,
      &        cop%dbh,
@@ -2239,13 +2230,14 @@ c$$$      end if
      &        cop%llspan,
      &        cop%turnover_amp,
      &        cop%cellptr%airtemp_10d,
-     &        cop%cellptr%soiltemp_10d,
+     &        cop%cellptr%soiltemp_10d, !21
      &        cop%betad_10d, !cop%cellptr%paw_10d,
      &        cop%cellptr%par_10d,
      &        cop%cellptr%gdd,
      &        cop%cellptr%ncd,
-     &        cop%cellptr%CosZen,
-     &        cop%cellptr%ld
+     &        cop%cellptr%CosZen, 
+     &        cop%cellptr%daylength(2)
+!     &        cop%cellptr%fall
 
       end subroutine phenology_diag
 !*************************************************************************
