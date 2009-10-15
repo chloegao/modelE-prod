@@ -133,6 +133,7 @@
       real*8 :: zweight, zweight30, zweight90
       real*8 :: Soilmoist2layer(N_CASA_LAYERS)
       real*8 :: Soiltemp2layer(N_CASA_LAYERS)
+      real*8, dimension(2) :: daylength
 
       sand = ecp%soil_texture(1)*100.d0
       clay = ecp%soil_texture(3)*100.d0
@@ -176,6 +177,11 @@
       par = ecp%IPARdif + ecp%IPARdir
       par_10d=zweight*par_10d+(1.0d0-zweight)*par
 
+      !daylength
+      if (ecp%CosZen > 0.d0) then
+         ecp%daylength(2) = ecp%daylength(2) + dtsec/60.d0
+      end if
+
       !GDD & NCD - Once a day
       if (dailyupdate) then
          !Growing degree days
@@ -186,8 +192,15 @@
          if (airtemp_10d .lt. airtemp_par) then
             ncd = ncd +  1.d0
          end if
-      end if
-      
+         !is fall?      
+         if (NInt(ecp%daylength(2)) .lt. NInt(ecp%daylength(1)) ) then
+            ecp%fall = .true.
+         else if (NInt(ecp%daylength(2)).gt.NInt(ecp%daylength(1))) then
+            ecp%fall = .false.
+         end if 
+         !print*,'fall',ecp%daylength(2),ecp%daylength(1),ecp%fall
+       end if
+
       pp => ecp%oldest 
       do while (ASSOCIATED(pp)) 
 
@@ -253,7 +266,6 @@
       ecp%par_10d = par_10d
       ecp%gdd = gdd
       ecp%ncd = ncd
-!      ecp%ld =  ld
 
       end subroutine clim_stats
       !*********************************************************************   
@@ -274,7 +286,6 @@
       real*8 :: paw_10d
       real*8 :: gdd
       real*8 :: ncd
-      real*8 :: ld, ld_old 
       real*8 :: phenofactor_c
       real*8 :: phenofactor_d
       real*8 :: phenofactor
@@ -286,23 +297,17 @@
       integer, parameter :: iwater_limit = 3 !SOILMOIST_OLD 0
       real*8 :: mature = 1.1d0 !X day to mature: mature=1+X/1000
       real*8::  betad_10d
+      real*8 :: ld
 
       soiltemp_10d = pp%cellptr%soiltemp_10d
       airtemp_10d = pp%cellptr%airtemp_10d
       paw_10d = pp%cellptr%paw_10d
       gdd = pp%cellptr%gdd
       ncd = pp%cellptr%ncd
-      ld = pp%cellptr%daylength(2)
-      ld_old=pp%cellptr%daylength(1)
       fall = pp%cellptr%fall
-     
-      gdd_threshold = gdd_par1 + gdd_par2*exp(gdd_par3*ncd)  
+      ld = pp%cellptr%daylength(2)
 
-      if (ld .gt. ld_old ) then
-         fall = .false.
-      else if (ld .lt. ld_old) then
-         fall = .true.
-      end if
+      gdd_threshold = gdd_par1 + gdd_par2*exp(gdd_par3*ncd)  
 
       cop => pp%tallest
       do while(ASSOCIATED(cop))       
@@ -497,7 +502,6 @@
 
       pp%cellptr%gdd = gdd
       pp%cellptr%ncd = ncd
-      pp%cellptr%fall = fall
 
       end subroutine pheno_update
       !*********************************************************************   
@@ -794,7 +798,6 @@
       pp%R_auto = resp_auto_patch !Total flux including growth increment.
       pp%R_root = pp%R_root + resp_root_patch !Total flux including growth increment.
       pp%NPP = pp%GPP - resp_auto_patch
-!      pp%cellptr%ld =  0.d0  
 
       end subroutine veg_update
 
@@ -2208,8 +2211,13 @@ c$$$      end if
       implicit none
       type(cohort), pointer ::cop
       integer :: cohortnum
-     
-         write(990,'(2(i5),25(1pe16.8))')
+      real*8 :: fall_real
+      if (cop%cellptr%fall) then
+        fall_real=1.d0
+      else
+         fall_real=0.d0
+      end if
+         write(990,'(2(i5),27(1pe16.8))')
      &        cohortnum, !1
      &        cop%pft,  
      &        cop%phenofactor_c,
@@ -2236,7 +2244,9 @@ c$$$      end if
      &        cop%cellptr%gdd,
      &        cop%cellptr%ncd,
      &        cop%cellptr%CosZen, 
-     &        cop%cellptr%daylength(2)
+     &        cop%cellptr%daylength(1),
+     &        cop%cellptr%daylength(2),
+     &        fall_real
 !     &        cop%cellptr%fall
 
       end subroutine phenology_diag

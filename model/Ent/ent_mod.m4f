@@ -870,6 +870,10 @@ m4_loop(`
       dc = dc + nn
       call copy_vars( buf(dc:), nn, entcell%ncd, flag)
       dc = dc + nn
+      call copy_vars( buf(dc:), nn, entcell%daylength(1), flag)
+      dc = dc + nn
+      call copy_vars( buf(dc:), nn, entcell%daylength(2), flag)
+      dc = dc + nn
 
       n = dc
 
@@ -992,8 +996,7 @@ m4_loop(`
      &     soil_moist,
 !     &     soil_water,
      &     soil_matric_pot,
-     &     soil_ice_fraction,
-     &     daylength
+     &     soil_ice_fraction
      &     ) ! need to pass Ci, Qf ??
       type(entcelltype_public),intent(out):: entcell`'m4_brkts(m4_ext)`'
       ! forcings probably should not be optional ...
@@ -1016,8 +1019,7 @@ m4_loop(`
      &     soil_moist,
 !     &     soil_water,
      &     soil_matric_pot,
-     &     soil_ice_fraction,
-     &     daylength
+     &     soil_ice_fraction
       !----------
       integer n
       m4_arr_only(`integer m4_ind')`'
@@ -1068,10 +1070,6 @@ m4_loop(`
      &           soil_matric_pot(n`'m4_comma`'m4_ind)
             entcell`'m4_brkts(m4_ind)`'%entcell%fice(n) =
      &           soil_ice_fraction(n`'m4_comma`'m4_ind)
-          enddo
-          do n=1,2
-            entcell`'m4_brkts(m4_ind)`'%entcell%daylength(n) =
-     &           daylength(n`'m4_comma`'m4_ind)
           enddo
       m4_enddo
         !enddo

@@ -1504,6 +1504,10 @@ cddd      end interface ent_cell_update
       dc = dc + nn
       call copy_vars( buf(dc:), nn, entcell%ncd, flag)
       dc = dc + nn
+      call copy_vars( buf(dc:), nn, entcell%daylength(1), flag)
+      dc = dc + nn
+      call copy_vars( buf(dc:), nn, entcell%daylength(2), flag)
+      dc = dc + nn
 
       n = dc
 
@@ -1626,8 +1630,7 @@ cddd      end interface ent_cell_update
      &     soil_moist,
 !     &     soil_water,
      &     soil_matric_pot,
-     &     soil_ice_fraction,
-     &     daylength
+     &     soil_ice_fraction
      &     ) ! need to pass Ci, Qf ??
       type(entcelltype_public),intent(out):: entcell
       ! forcings probably should not be optional ...
@@ -1650,8 +1653,7 @@ cddd      end interface ent_cell_update
      &     soil_moist,
 !     &     soil_water,
      &     soil_matric_pot,
-     &     soil_ice_fraction,
-     &     daylength
+     &     soil_ice_fraction
       !----------
       integer n
       
@@ -1703,10 +1705,6 @@ cddd      end interface ent_cell_update
             entcell%entcell%fice(n) =
      &           soil_ice_fraction(n)
           enddo
-          do n=1,2
-            entcell%entcell%daylength(n) =
-     &           daylength(n)
-          enddo
       
         !enddo
       !enddo
@@ -1731,8 +1729,7 @@ cddd      end interface ent_cell_update
      &     soil_moist,
 !     &     soil_water,
      &     soil_matric_pot,
-     &     soil_ice_fraction,
-     &     daylength
+     &     soil_ice_fraction
      &     ) ! need to pass Ci, Qf ??
       type(entcelltype_public),intent(out):: entcell(:)
       ! forcings probably should not be optional ...
@@ -1755,8 +1752,7 @@ cddd      end interface ent_cell_update
      &     soil_moist,
 !     &     soil_water,
      &     soil_matric_pot,
-     &     soil_ice_fraction,
-     &     daylength
+     &     soil_ice_fraction
       !----------
       integer n
       integer i1
@@ -1809,10 +1805,6 @@ cddd      end interface ent_cell_update
             entcell(i1)%entcell%fice(n) =
      &           soil_ice_fraction(n,i1)
           enddo
-          do n=1,2
-            entcell(i1)%entcell%daylength(n) =
-     &           daylength(n,i1)
-          enddo
       
       enddo
         !enddo
@@ -1838,8 +1830,7 @@ cddd      end interface ent_cell_update
      &     soil_moist,
 !     &     soil_water,
      &     soil_matric_pot,
-     &     soil_ice_fraction,
-     &     daylength
+     &     soil_ice_fraction
      &     ) ! need to pass Ci, Qf ??
       type(entcelltype_public),intent(out):: entcell(:,:)
       ! forcings probably should not be optional ...
@@ -1862,8 +1853,7 @@ cddd      end interface ent_cell_update
      &     soil_moist,
 !     &     soil_water,
      &     soil_matric_pot,
-     &     soil_ice_fraction,
-     &     daylength
+     &     soil_ice_fraction
       !----------
       integer n
       integer i1,i2
@@ -1916,10 +1906,6 @@ cddd      end interface ent_cell_update
      &           soil_matric_pot(n,i1,i2)
             entcell(i1,i2)%entcell%fice(n) =
      &           soil_ice_fraction(n,i1,i2)
-          enddo
-          do n=1,2
-            entcell(i1,i2)%entcell%daylength(n) =
-     &           daylength(n,i1,i2)
           enddo
       
       enddo

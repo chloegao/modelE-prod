@@ -186,7 +186,11 @@
       !  call patch_dynamics(pp,monthlyupdate)
       ! call summarize_entcell(ecp)
       endif !do_patchdynamics
-
+      
+      if (update_day) then
+        ecp%daylength(1) = ecp%daylength(2)
+        ecp%daylength(2) = 0.d0
+      end if
 
 #ifdef DEBUG
       print *,"End of ent_biophysics"
