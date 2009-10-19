@@ -307,7 +307,10 @@
       ! print *, 'before GORT_clumping...'
       call GORT_clumping(pptr, height_levels, ffp, rdfp, rifp, sunlit, 
      &    shaded, vz)
-   
+      if (.NOT.ASSOCIATED(height_levels)) then ! bare soil or LAI=0
+         print *, 'LAI=0'
+         return
+      endif 
       ! write(1078,*) "level", size(height_levels),height_levels
       ! write(1078,*) "ffp", size(ffp),ffp
       ! write(1078,*) "rdfp", size(rdfp),rdfp
@@ -404,6 +407,10 @@
       
       ! print *, 'before geo_to_gin...'
       call geo_to_gin(pptr, gin, h_coh)
+      if (.NOT.ASSOCIATED(gin)) then ! bare soil or LAI=0
+          print *, 'lai zero'
+          return
+      endif 
       num_profiles = size(gin)
       if (num_profiles .eq. 1.d0) then
           gin1%dens_tree = gin(1)%dens_tree
@@ -1686,12 +1693,20 @@
       do while (ASSOCIATED(cop))
         !* Assign vegpar
 
-        cop%LAI = 3  ! for debugging
+        !cop%LAI = 3  ! for debugging
         if (cop%LAI.gt.lai_thres) then
         ! if (cop%LAI.gt.0.d0) then
            count = count + 1
         endif
-
+        if (count == 0) then
+           print *, 'no vegetation,L,b=', cop%LAI,
+     &   cop%crown_dy
+           pp%crad%heights = 0.d0
+           pp%crad%LAI = 0.d0
+           pp%crad%GORTclump = 0.d0 
+           return
+        endif
+ 
         cop => cop%shorter
       end do
       ! print *, 'count=', count
@@ -1702,11 +1717,11 @@
           allocate(h_coh(1))   
           cop => pp%tallest
           gin(1)%dens_tree = cop%n
-          gin(1)%vert_radius = cop%crown_dy +2 ! debugging
+          gin(1)%vert_radius = cop%crown_dy !+2 ! debugging
           gin(1)%h1 = cop%h - gin(1)%vert_radius
           gin(1)%h2 = gin(1)%h1
           gin(1)%horz_radius = cop%crown_dx
-          ! print *, 'r,b=',cop%crown_dx, cop%crown_dy
+          print *, 'r,b=',cop%crown_dx, cop%crown_dy
           gin(1)%zenith = acos(pp%cellptr%CosZen)
           ! print *, 'CosZen=',pp%cellptr%CosZen
           ! print *, 'zenith=',gin(1)%zenith 
