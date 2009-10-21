@@ -214,6 +214,7 @@
           cop%GPP = 0.d0
           cop%IPP = 0.d0
           TRANS_SW = 1.d0
+          Rd = 0.d0 !KIM-need to set the number as Rd is used for autotrophic respiration.
         endif
         !* Update cohort respiration components, NPP, C_lab
         !## Rd should be removed from pscondleaf, only need total photosynthesis to calculate it.
