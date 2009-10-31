@@ -515,16 +515,16 @@
 
       prefix_c = "        "
 
-      write(iu,'(a,a," = ",f10.7)') prefix,"area",pp%area
-      write(iu,'(a,a," = ",f10.2)') prefix,"age ",pp%age
-      write(iu,'(a,a," = ",f10.7)') prefix,"GCANOPY ",
+      write(iu,'(a,a," = ",99e12.5)') prefix,"area",pp%area
+      write(iu,'(a,a," = ",99e12.5)') prefix,"age ",pp%age
+      write(iu,'(a,a," = ",99e12.5)') prefix,"GCANOPY ",
      &     pp%GCANOPY
-      write(iu,'(a,a," = ",f10.7)') prefix,"Ci ",pp%Ci
-      write(iu,'(a,a," = ",f10.7)') prefix,"nm ",pp%nm
-      write(iu,'(a,a," = ",f10.7)') prefix,"soil H2O ",pp%Soilmoist
+      write(iu,'(a,a," = ",99e12.5)') prefix,"Ci ",pp%Ci
+      write(iu,'(a,a," = ",99e12.5)') prefix,"nm ",pp%nm
+      write(iu,'(a,a," = ",99e12.5)') prefix,"soil H2O ",pp%Soilmoist
       write(iu,'(a,"albedo:")') prefix
       do n=1,N_BANDS
-        write(iu,'(a,"      ",f10.7)') prefix,pp%albedo(n)
+        write(iu,'(a,"      ",99e12.5)') prefix,pp%albedo(n)
       enddo
       write(iu,'(a,"Tpool:")') prefix
       do m=1,PTRACE

@@ -112,17 +112,17 @@
 
          !* NITROGEN status */
          !@var nm   Mean cohort nitrogen (g/m2[leaf]) over whole grid cell
-         real*8 :: nm
+         real*8 :: nm                   
          !@var Ntot Total cohort nitrogen (g/m[ground]2).
-         real*8 Ntot
+         real*8 :: Ntot                 
          !@var LAI Total cohort leaf area index (m2[leaf]/m2[ground])
-         real*8 LAI               !*
+         real*8 :: LAI               !* 
          !@var LMA Leaf mass per leaf area (gC/m2)
-         real*8 LMA
+         real*8 :: LMA                  
          !real*8 :: LA            ! Leaf area (m2[leaf]/individual)
-
+                                                           
          !* ALL QUANTITIES BELOW ARE FOR AN INDIVIDUAL *!
-
+                                                           
          !* GEOMETRY - trees:  GORT ellipsoids, grasses:leaf only
          real*8 :: h              !* Height (m)
          real*8 :: crown_dx       ! Crown horizontal axis length (m)
@@ -135,7 +135,7 @@
          real*8,pointer :: fp_dz(:)     ! foliage profile, equal dz (could be empty)
          real*8,pointer :: height(:)    ! height levels, same as patch
          real*8,pointer :: fp(:)        ! foliage profile at height (could be zero)
-
+                                                           
          !* BIOMASS POOLS (g-C/single plant)
          real*8 :: C_fol          ! Foliage carbon 
          real*8 :: N_fol          ! Foliage nitrogen 
@@ -150,7 +150,7 @@
          real*8 :: C_croot        ! Coarse root carbon
          real*8 :: N_croot        ! Coarse root nitrogen
          !real*8,pointer :: Bpool(PTRACE,NBpools) !Single plant pools of C and N. Replace previous non-array vars - NYK
-
+                                                           
          !* FLUXES (for whole cohort over area cover)
          real*8 :: Ci             !*Internal foliage CO2 (mol/m3) !!Cohort level
          real*8 :: gcanopy        ! Conductance of water vapor/cohort (m/s)
@@ -164,23 +164,23 @@
 !         real*8 :: C_litter       ! C in litterfall
 !         real*8 :: N_litter       ! N in litterfall
          real*8 :: C_to_Nfix      ! Carbon flux to N fixers symbionts
-
-         !* PHENOLOGY - KIM
+                                                           
+         !* PHENOLOGY - KIM             
          real*8 :: phenofactor   !phenofactor_c * phenofactor_d
          real*8 :: phenofactor_c !Cold deciduousness
          real*8 :: phenofactor_d !Drought deciduousness
-         real*8 :: phenostatus
+         real*8 :: phenostatus          
          real*8 :: betad_10d ! 10-day running average of betad
          real*8 :: CB_d !daily carbon balance
-         real*8 :: turnover_amp
-         real*8 :: llspan
+         real*8 :: turnover_amp         
+         real*8 :: llspan               
          real*8 :: Sacclim ! state of acclimation/frost hardiness [deg C]
-
+                                                           
          !* PHYSIOLOGICAL STATUS *!  !NYK
          real*8 :: stressH2O !* fraction stress factor, 0=stressed, 1=no stress
          real*8,pointer :: stressH2Ol(:) !Water stress in layers.
          real*8 :: senescefrac  !Net fraction of foliage that is litterfall.
-         !* Additional C accounting
+         !* Additional C accounting     
          real*8 :: C_growth  !* Daily tissue growth respiration (kg-C/m2/day)
                              !*  Save C_growth to restart to distribute flux over the day.
          real*8 :: C_total   !* Hack to check for C balance.

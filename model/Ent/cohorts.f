@@ -343,6 +343,12 @@ cddd      end subroutine init_cohort_defaults
       allocate( cop%fracroot(N_DEPTH) )
       allocate( cop%stressH2Ol(N_DEPTH) )
 
+      ! just in case...
+      nullify( cop%height_dz )
+      nullify( cop%fp_dz )
+      nullify( cop%height )
+      nullify( cop%fp )
+
       ! set pointers if any
       nullify(cop%cellptr )
       nullify(cop%pptr )
@@ -383,7 +389,7 @@ cddd      end subroutine init_cohort_defaults
       end subroutine cohort_destruct
 
 
-      subroutine cohort_print(iu, cop, prefix)
+      subroutine cohort_print_old(iu, cop, prefix)
       integer, intent(in) :: iu
       type(cohort), intent(in) :: cop
       character*(*), optional, intent(in) :: prefix
@@ -432,9 +438,85 @@ cddd      end subroutine init_cohort_defaults
      &     cop%turnover_amp
 
 
+      end subroutine cohort_print_old
+      
+      subroutine cohort_print(iu, cop, prefix)
+      integer, intent(in) :: iu
+      type(cohort), intent(in) :: cop
+      character*(*), optional, intent(in) :: prefix
+      !---
+      integer n
+
+      write(iu,'(a,a," = ",i7)') prefix,"pft ",cop%pft
+      write(iu,'(a,a," = ",99e12.5)')prefix,"n   ",cop%n
+      write(iu,'(a,a," = ",99e12.5)')prefix,"nm          ",cop%nm            
+      write(iu,'(a,a," = ",99e12.5)')prefix,"Ntot        ",cop%Ntot          
+      write(iu,'(a,a," = ",99e12.5)')prefix,"LAI   	 ",cop%LAI   	 
+      write(iu,'(a,a," = ",99e12.5)')prefix,"LMA         ",cop%LMA           
+      write(iu,'(a,a," = ",99e12.5)')prefix,"h      	 ",cop%h      	 
+      write(iu,'(a,a," = ",99e12.5)')prefix,"crown_dx  	 ",cop%crown_dx  	 
+      write(iu,'(a,a," = ",99e12.5)')prefix,"crown_dy  	 ",cop%crown_dy  	 
+      write(iu,'(a,a," = ",99e12.5)')prefix,"dbh         ",cop%dbh           
+      write(iu,'(a,a," = ",99e12.5)')prefix,"root_d      ",cop%root_d        
+      write(iu,'(a,a," = ",99e12.5)')prefix,"clump       ",cop%clump         
+      write(iu,'(a,a," = ",99e12.5)')prefix,"fracroot(:) ",
+     &     cop%fracroot(:)	    
+      if (associated(cop%height_dz) )
+     &     write(iu,'(a,a," = ",99e12.5)')prefix,"height_dz(:)",
+     &     cop%height_dz(:)  
+      if ( associated(cop%fp_dz) )
+     & write(iu,'(a,a," = ",99e12.5)')prefix,"fp_dz(:)    ",cop%fp_dz(:)      
+      if ( associated(cop%height) )
+     &write(iu,'(a,a," = ",99e12.5)')prefix,"height(:)   ",cop%height(:)     
+      if ( associated(cop%fp) )
+     &   write(iu,'(a,a," = ",99e12.5)')prefix,"fp(:)       ",cop%fp(:)         
+      write(iu,'(a,a," = ",99e12.5)')prefix,"C_fol       ",cop%C_fol         
+      write(iu,'(a,a," = ",99e12.5)')prefix,"N_fol       ",cop%N_fol         
+      write(iu,'(a,a," = ",99e12.5)')prefix,"C_sw        ",cop%C_sw          
+      write(iu,'(a,a," = ",99e12.5)')prefix,"N_sw        ",cop%N_sw          
+      write(iu,'(a,a," = ",99e12.5)')prefix,"C_hw        ",cop%C_hw          
+      write(iu,'(a,a," = ",99e12.5)')prefix,"N_hw        ",cop%N_hw          
+      write(iu,'(a,a," = ",99e12.5)')prefix,"C_lab       ",cop%C_lab         
+      write(iu,'(a,a," = ",99e12.5)')prefix,"N_lab       ",cop%N_lab         
+      write(iu,'(a,a," = ",99e12.5)')prefix,"C_froot     ",cop%C_froot       
+      write(iu,'(a,a," = ",99e12.5)')prefix,"N_froot     ",cop%N_froot       
+      write(iu,'(a,a," = ",99e12.5)')prefix,"C_croot     ",cop%C_croot       
+      write(iu,'(a,a," = ",99e12.5)')prefix,"N_croot     ",cop%N_croot       
+      write(iu,'(a,a," = ",99e12.5)')prefix,"Ci          ",cop%Ci            
+      write(iu,'(a,a," = ",99e12.5)')prefix,"gcanopy     ",cop%gcanopy       
+      write(iu,'(a,a," = ",99e12.5)')prefix,"GPP         ",cop%GPP           
+      write(iu,'(a,a," = ",99e12.5)')prefix,"IPP         ",cop%IPP           
+      write(iu,'(a,a," = ",99e12.5)')prefix,"NPP         ",cop%NPP           
+      write(iu,'(a,a," = ",99e12.5)')prefix,"R_auto      ",cop%R_auto        
+      write(iu,'(a,a," = ",99e12.5)')prefix,"R_root      ",cop%R_root        
+      write(iu,'(a,a," = ",99e12.5)')prefix,"N_up        ",cop%N_up          
+      write(iu,'(a,a," = ",99e12.5)')prefix,"C_to_Nfix   ",cop%C_to_Nfix     
+      write(iu,'(a,a," = ",99e12.5)')prefix,"phenofactor ",
+     &     cop%phenofactor   
+      write(iu,'(a,a," = ",99e12.5)')prefix,"phenofactorc",
+     &     cop%phenofactor_c  
+      write(iu,'(a,a," = ",99e12.5)')prefix,"phenofactord",
+     &     cop%phenofactor_d  
+      write(iu,'(a,a," = ",99e12.5)')prefix,"phenostatus ",
+     &     cop%phenostatus   
+      write(iu,'(a,a," = ",99e12.5)')prefix,"betad_10d	 ",cop%betad_10d	 
+      write(iu,'(a,a," = ",99e12.5)')prefix,"CB_d	 ",cop%CB_d	 
+      write(iu,'(a,a," = ",99e12.5)')prefix,"turnover_amp",
+     &     cop%turnover_amp  
+      write(iu,'(a,a," = ",99e12.5)')prefix,"llspan      ",cop%llspan        
+      write(iu,'(a,a," = ",99e12.5)')prefix,"Sacclim     ",cop%Sacclim    	         
+      write(iu,'(a,a," = ",99e12.5)')prefix,"stressH2O   ",cop%stressH2O
+      if ( associated(cop%stressH2Ol) )
+     &     write(iu,'(a,a," = ",99e12.5)')prefix,"stressH2Ol(:",
+     &     cop%stressH2Ol(:)
+      write(iu,'(a,a," = ",99e12.5)')prefix,"senescefrac ",
+     &     cop%senescefrac	         
+      write(iu,'(a,a," = ",99e12.5)')prefix,"C_growth    ",cop%C_growth      
+      write(iu,'(a,a," = ",99e12.5)')prefix,"C_total     ",cop%C_total       
+   
+    
       end subroutine cohort_print
-      
-      
+       
       !*********************************************************************
       subroutine calc_CASArootfrac(cop,fracrootCASA)  !PK 11/06
       !maps fracroot(N_DEPTH) to fracrootCASA(N_CASA_LAYERS)

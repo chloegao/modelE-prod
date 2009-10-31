@@ -602,15 +602,15 @@ C NADINE - IS THIS CORRECT?
 
       write(iu, '(a,"entcell:")') prefix
       !print '(a," = ",f10.7)',"GCANOPY ",ecp%GCANOPY
-      write(iu, '(a,a," = ",f10.7)') prefix,"soiltemp_10d",
+      write(iu, '(a,a," = ",99e12.5)') prefix,"soiltemp_10d",
      &     ecp%soiltemp_10d
-      write(iu, '(a,a," = ",f10.7)') prefix,"airtemp_10d",
+      write(iu, '(a,a," = ",99e12.5)') prefix,"airtemp_10d",
      &     ecp%airtemp_10d
-      write(iu, '(a,a," = ",f10.7)') prefix,"paw_10d", ecp%paw_10d
-      write(iu, '(a,a," = ",f10.7)') prefix,"par_10d", ecp%par_10d
-      write(iu, '(a,a," = ",f10.7)') prefix,"gdd", ecp%gdd
-      write(iu, '(a,a," = ",f10.7)') prefix,"ncd", ecp%ncd
-      write(iu, '(a,a," = ",f10.7)') prefix,"ld", ecp%daylength(1)
+      write(iu, '(a,a," = ",99e12.5)') prefix,"paw_10d", ecp%paw_10d
+      write(iu, '(a,a," = ",99e12.5)') prefix,"par_10d", ecp%par_10d
+      write(iu, '(a,a," = ",99e12.5)') prefix,"gdd", ecp%gdd
+      write(iu, '(a,a," = ",99e12.5)') prefix,"ncd", ecp%ncd
+      write(iu, '(a,a," = ",99e12.5)') prefix,"ld", ecp%daylength(1)
 
       write(iu, '(a,"patches:")') prefix
       pp => ecp%oldest

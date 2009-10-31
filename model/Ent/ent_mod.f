@@ -1603,6 +1603,20 @@ cddd      end interface ent_cell_update
       ! needed for frost hardiness ?
       call copy_vars( buf(dc:), nn,  c%Sacclim ,  flag ); dc=dc + nn
 
+      ! added Oct 30 2009 (while debugging dynamic phenology)
+      call copy_vars( buf(dc:), nn,  c%Ntot    ,  flag ); dc=dc + nn
+      call copy_vars( buf(dc:), nn,  c%crown_dx,  flag ); dc=dc + nn
+
+      call copy_vars( buf(dc:), nn,  c%phenofactor,  flag ); dc=dc + nn
+      call copy_vars( buf(dc:), nn,  c%phenofactor_c, flag ); dc=dc + nn
+      call copy_vars( buf(dc:), nn,  c%phenostatus, flag ); dc=dc + nn
+      call copy_vars( buf(dc:), nn,  c%betad_10d,  flag ); dc=dc + nn
+      call copy_vars( buf(dc:), nn,  c%CB_d,  flag ); dc=dc + nn
+      call copy_vars( buf(dc:), nn,  c%senescefrac,  flag ); dc=dc + nn
+      call copy_vars( buf(dc:), nn,  c%stressH2O,  flag ); dc=dc + nn
+      call copy_vars( buf(dc:), nn,  c%NPP,  flag ); dc=dc + nn
+
+
       n = dc
 
       end subroutine copy_cohort_vars
