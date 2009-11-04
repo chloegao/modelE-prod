@@ -49,6 +49,7 @@
       public ent_cell_construct, ent_cell_destruct, ent_cell_nullify
       public ent_fast_processes,ent_run,ent_vegcover_update
       public ent_cell_set !, ent_cell_update
+!      public ent_struct_setup  !NEW#########
       public ent_prescribe_vegupdate
       public ent_cell_print
       public ent_initialize
@@ -108,6 +109,17 @@
         module procedure ent_cell_set_r8_2
       
       end interface
+
+      !--- passing initial data to ent cells - mixed veg ---
+!      interface ent_struct_setup
+!      
+!        module procedure ent_struct_setup_r8_0
+!      
+!        module procedure ent_struct_setup_r8_1
+!      
+!        module procedure ent_struct_setup_r8_2
+!      
+!      end interface
 
 
       !--- passing updated prescribed data to ent cells ---
@@ -1110,6 +1122,7 @@ cddd      end interface ent_cell_update
       end subroutine ent_cell_set_r8_2
 
 
+!*************************************************************************
 !*************************************************************************
 
       subroutine ent_cell_pack_2d(dbuf, entcell)

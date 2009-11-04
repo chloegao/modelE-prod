@@ -39,6 +39,7 @@ define(`m4_type_list',`real*8')
       public ent_cell_construct, ent_cell_destruct, ent_cell_nullify
       public ent_fast_processes,ent_run,ent_vegcover_update
       public ent_cell_set !, ent_cell_update
+!      public ent_struct_setup  !NEW#########
       public ent_prescribe_vegupdate
       public ent_cell_print
       public ent_initialize
@@ -82,6 +83,13 @@ define(`m4_type_list',`real*8')
         module procedure ent_cell_set_`'m4_suffix`'
       ')`'
       end interface
+
+      !--- passing initial data to ent cells - mixed veg ---
+!      interface ent_struct_setup
+!      m4_loop(`
+!        module procedure ent_struct_setup_`'m4_suffix`'
+!      ')`'
+!      end interface
 
 
       !--- passing updated prescribed data to ent cells ---
@@ -476,6 +484,7 @@ m4_loop(`
       end subroutine ent_cell_set_`'m4_suffix`'
 ')`'
 
+!*************************************************************************
 !*************************************************************************
 
       subroutine ent_cell_pack_2d(dbuf, entcell)
