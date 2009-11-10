@@ -126,7 +126,10 @@
      &     0.75d0, 58.0d0, 57.d0, 0.2d0, 0.093d0, 2,
      &     0.0170d0, 1.731d0, 0.2350d0, 2.252d0, 23.39d0, -0.0540d0),
      ! !* 7 - drought deciduous broadleaf
-     &     pftype(1,.true.,1,-500.d0, .45d0, .22d0, 1.4d0, 8.3d0, 0.5d0, 
+!     &     pftype(1,.true.,1,-500.d0, .45d0, .22d0, 1.4d0, 8.3d0, 0.5d0,
+!YKIM - Oaks at Tonzi
+!YKIM - sstar = 0.34 & swilt 0.28
+     &     pftype(1,.true.,1,-500.d0, .34d0, .28d0, 1.4d0, 8.3d0, 0.5d0, 
      &     1.2d0,25.0d0, 60.d0, 0.2d0, 0.153d0, 3,
      &     0.0296d0, 1.560d0, 0.0621d0, 2.306d0, 34.62d0, -0.0232d0),
      ! !* 8 - deciduous needleleaf !## SLA from Reich (1997) leaf longev. 1 yr
