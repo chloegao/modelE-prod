@@ -139,6 +139,7 @@
       ecp%par_10d = 100.d0
       ecp%gdd = 0.0d0 !growing degree day
       ecp%ncd = 0.0d0 !number of chilling day
+      ecp%sgdd = 0.d0
       ecp%daylength(:) = 0.0d0  !day length (min)
       ecp%fall = .true. !KIM - starting in the winter
 !      ecp%fall = .false. !KIM - starting in the middle of growing season

@@ -1,4 +1,4 @@
-       module phenology
+      module phenology
 !@sum Routines to calculate phenological change in an entcell:
 !@sum budburst/leafout, albedo change, senescence
 !@auth Y. Kim
@@ -19,6 +19,7 @@
       public veg_update !may change the name into veg_update 
       public litter_cohort, litter_patch   !Now called from veg_update
       public update_plant_cpools
+
       private growth_cpools_active
       private growth_cpools_structural
 !      private senesce_cpools
@@ -54,10 +55,13 @@
       real*8, parameter :: gdd_par2 = 638.d0
       real*8, parameter :: gdd_par3 = -0.01d0 
       !gdd_length
-      real*8, parameter :: gdd_length = 50.d0
+      real*8, parameter :: gdd_length = 200.d0 !50.d0
       !airt_threshold
       real*8, parameter :: airt_max_w = 15.d0
       real*8, parameter :: airt_min_w = 5.d0
+      !soilt_threshold
+      real*8, parameter :: soilt_max = 10.d0
+      real*8, parameter :: soilt_min = 0.d0
       !ld_threshold (minute): light length constraint for cold-deciduous woody PFTs (White et al. 1997)
       real*8, parameter :: ld_threshold = 655.d0
       real*8, parameter :: ld_min =540.d0
@@ -79,11 +83,11 @@
       real*8, parameter :: paw_min_h = 0.3d0 
       real*8, parameter :: paw_res_h = 1.0d0
       !betad : water_stress3
-      real*8, parameter :: betad_max_w = 1.0d0 
-      real*8, parameter :: betad_min_w = 0.5d0 
+      real*8, parameter :: betad_max_w = 0.2d0 !0.5d0 !1.0d0 
+      real*8, parameter :: betad_min_w = 0.d0 !-0.5d0 
       real*8, parameter :: betad_res_w = 0.25d0
       real*8, parameter :: betad_max_h = 1.0d0 
-      real*8, parameter :: betad_min_h = 0.95d0 !0.8d0 
+      real*8, parameter :: betad_min_h = 0.9d0!0.95d0 !0.8d0 
       real*8, parameter :: betad_res_h = 1.0d0      
       !light-controll: par_turnover_int & par_turnover_slope
       real*8, parameter :: par_turnover_int = -12.d0 !-10.6d0 
@@ -126,6 +130,7 @@
       real*8 :: par_10d
       real*8 :: gdd
       real*8 :: ncd
+      real*8 :: sgdd
       real*8 :: ld
       real*8 :: par_crit
       logical :: par_limit
@@ -149,12 +154,14 @@
       call Soillayer_convert_Ent(ecp%Soiltemp(:), SOILDEPTH_m, 
      &     Soiltemp2layer) 
       soiltemp = Soiltemp2layer(1)
+
       soiltemp_10d = ecp%soiltemp_10d
       airtemp_10d = ecp%airtemp_10d
       paw_10d = ecp%paw_10d
       par_10d = ecp%par_10d  
       gdd = ecp%gdd
       ncd = ecp%ncd
+      sgdd = ecp%sgdd
 
       zweight=exp(-1.d0/(10.d0*86400.d0/dtsec))  !for 10-day running average
       zweight30=exp(-1.d0/(30.d0*86400.d0/dtsec))  !for 30-day running average
@@ -187,6 +194,10 @@
          !Growing degree days
          if (airtemp_10d .ge. airtemp_par) then
             gdd = gdd + ( airtemp_10d - airtemp_par )
+         end if
+         !temp.  GDD using soil temperature
+         if (soiltemp_10d .ge. 0.d0) then
+            sgdd = sgdd + ( soiltemp_10d - 0.d0 )
          end if
          !Number of chilling days
          if (airtemp_10d .lt. airtemp_par) then
@@ -266,6 +277,7 @@
       ecp%par_10d = par_10d
       ecp%gdd = gdd
       ecp%ncd = ncd
+      ecp%sgdd = sgdd
 
       end subroutine clim_stats
       !*********************************************************************   
@@ -286,16 +298,19 @@
       real*8 :: paw_10d
       real*8 :: gdd
       real*8 :: ncd
+      real*8 :: sgdd
       real*8 :: phenofactor_c
       real*8 :: phenofactor_d
       real*8 :: phenofactor
       real*8 :: airt_adj
+      real*8 :: soilt_adj
       real*8 :: phenostatus
       logical :: temp_limit, water_limit 
       logical :: fall
       logical :: woody
       integer, parameter :: iwater_limit = 3 !SOILMOIST_OLD 0
-      real*8 :: mature = 1.1d0 !X day to mature: mature=1+X/1000
+      integer, parameter :: itemp_limit = 1
+      real*8 :: mature = 1.2d0 !X day to mature: mature=1+X/1000
       real*8::  betad_10d
       real*8 :: ld
 
@@ -304,14 +319,14 @@
       paw_10d = pp%cellptr%paw_10d
       gdd = pp%cellptr%gdd
       ncd = pp%cellptr%ncd
+      sgdd = pp%cellptr%sgdd
       fall = pp%cellptr%fall
       ld = pp%cellptr%daylength(2)
 
       gdd_threshold = gdd_par1 + gdd_par2*exp(gdd_par3*ncd)  
 
       cop => pp%tallest
-      do while(ASSOCIATED(cop))       
-      
+      do while(ASSOCIATED(cop))                
          phenofactor_c=cop%phenofactor_c
          phenofactor_d=cop%phenofactor_d
          phenofactor=cop%phenofactor
@@ -336,13 +351,16 @@
          end if
 
          airt_adj=0.d0
-         if (pft.eq.DROUGHTDECIDBROAD)airt_adj=5.0d0
+         if (pft.eq.DROUGHTDECIDBROAD)airt_adj=10.d0
+
+         soilt_adj=0.d0
+         if (pft .eq. GRASSC3ARCTIC)soilt_adj=-5.d0
 
          woody = pfpar(pft)%woody
 
          !temperature-controlled woody
-         if (temp_limit .and. woody) then
-            if ((.not. fall) .and.
+         if (temp_limit.and.woody) then
+             if ((.not. fall) .and.
      &         (phenostatus.lt.3.d0).and.(gdd.gt.gdd_threshold)) then
                phenofactor_c = min (1.d0,(gdd-gdd_threshold)/gdd_length)
                if (phenofactor_c .lt. 1.d0) then
@@ -378,12 +396,48 @@
                end if
             end if 
          end if
-         
+
          !temperature-controlled herbaceous 
          if (temp_limit .and. (.not.woody) )then
-            phenofactor_c = 1.d0 !not yet implemented
+!            phenofactor_c = 1.d0 !not yet implemented
+            select case(itemp_limit)
+            case(0)
+               phenofactor_c = max(0.d0,min(1.d0,
+     &              (soiltemp_10d-soilt_min-soilt_adj)
+     &              /(soilt_max-soilt_min)))
+               if (phenofactor_c .ge. 0.999d0) then
+                  phenostatus = 3.d0
+               else if (phenofactor_c .le. EPS) then
+                  phenostatus = 1.d0
+               end if
+            case(1)
+               if ((.not. fall) .and.
+     &           (phenostatus.lt.3.d0).and.(sgdd.gt.100.d0)) then
+                 phenofactor_c = min (1.d0,(sgdd-100.d0)/50.d0)
+                 if (phenofactor_c .lt. 1.d0) then
+                    phenostatus = 2.d0
+                 else
+                    phenostatus = 3.d0
+                 end if
+               end if
+               if (fall .and.
+     &            (phenostatus.ge.3.d0).and.
+     &            (soiltemp_10d.lt.soilt_max+soilt_adj)) then
+                  phenofactor_c = min(phenofactor_c,max(0.d0,
+     &               (soiltemp_10d-soilt_min-soilt_adj)/
+     &               (soilt_max-soilt_min)))
+                  if (phenofactor_c .eq. 0.d0) then
+                     phenostatus = 1.d0
+                     sgdd = 0.d0
+                  else  
+                     phenostatus = 4.d0
+                  end if 
+               end if
+            end select
          end if            
                  
+         !phenofactor_c = 1.d0
+
          !water-controoled woody
          if (water_limit .and. woody .and. (phenostatus.ge.2.d0)) then
             select case (iwater_limit)
@@ -397,9 +451,36 @@
      i         ,pp%cellptr%fice(:), pfpar(pft)%hwilt
      o         , cop%stressH2Ol(:)) 
             case(2) !water_stress3 & betad_10d
+               if ((phenostatus .gt. mature) .and.
+     &           (phenostatus.lt.3.d0).and.
+     &           (betad_10d.gt.betad_min_w))then
+                  phenofactor_d = min(1.d0,
+     &                 ((betad_10d-betad_min_w)
+     &                 /(betad_max_w-betad_min_w))**betad_res_w)
+                  if (phenofactor_d .ge. 0.999d0) then
+                     phenostatus = 3.d0
+                  else
+                     phenostatus = 2.d0
+                  end if
+               else if ((phenostatus.ge.3.d0).and.
+     &            (betad_10d.lt.betad_max_w))then
+                  phenofactor_d = max(0.d0,
+     &                 ((betad_10d-betad_min_w)
+     &                 /(betad_max_w-betad_min_w))**betad_res_w)
+                  if (phenofactor_d .le. EPS) then
+                     phenostatus = 1.d0
+                  else
+                     phenostatus = 4.d0
+                  end if 
+               end if    
+            case(3) !water_stress3 & betad_10d & no controll in phenostatus
+               phenofactor_d = max(0.d0,min(1.d0,
+     &              ((betad_10d-betad_min_w)
+     &              /(betad_max_w-betad_min_w))**betad_res_w))
             end select
          end if
   
+ 
          !water-controlled herbaceous
          if (water_limit .and. (.not. woody)) then
             select case(iwater_limit)
@@ -455,42 +536,36 @@
                   end if 
                end if    
             case(3) !water_stress3 & betad_10d & no controll in phenostatus
-               if (betad_10d.gt.betad_min_h)then
-                  phenofactor_d = min(1.d0,
-     &                 ((betad_10d-betad_min_h)
-     &                 /(betad_max_h-betad_min_h))**betad_res_h)
-                  if (phenofactor_d .ge. 0.999d0) then
-                     phenostatus = 3.d0
-                  else
-                     phenostatus = 2.d0
-                  end if
-               else if (betad_10d.lt.betad_max_h)then
-                  phenofactor_d = max(0.d0,
-     &                 ((betad_10d-betad_min_h)
-     &                 /(betad_max_h-betad_min_h))**betad_res_h)
-                  if (phenofactor_d .le. EPS) then
-                     phenostatus = 1.d0
-                  else
-                     phenostatus = 4.d0
-                  end if 
-               end if    
+               phenofactor_d = max(0.d0,min(1.d0,
+     &              ((betad_10d-betad_min_h)
+     &              /(betad_max_h-betad_min_h))**betad_res_h))
+               if (phenostatus.le.mature)then
+                  phenofactor_d=0.d0
+               end if
+               if (phenofactor_d .ge. 0.999d0) then
+                  phenostatus = 3.d0
+               else if (phenofactor_d .le. EPS) then
+                  phenostatus = 1.d0
+               end if
             end select
           
-            phenostatus = phenostatus + 1.d0/1000.d0  
+            if (aint(cop%phenostatus).eq.aint(phenostatus))then
+              phenostatus = cop%phenostatus + 1.d0/1000.d0  
+	    end if
         
-
+         end if  
+         
 #ifdef DEBUG
             write(202,'(100e16.6)') phenofactor_d,pp%cellptr%Soilmp(:)
      &      ,pp%cellptr%Soilmoist(:)
      &      ,betad_10d, paw_10d
 #endif
-         end if    
- 
+
          if (.not.temp_limit) phenofactor_c = 1.d0
          if (.not.water_limit) phenofactor_d = 1.d0
       
          phenofactor = phenofactor_c * phenofactor_d
-
+         
          cop%phenofactor_c=phenofactor_c
          cop%phenofactor_d=phenofactor_d
          cop%phenofactor=phenofactor
@@ -502,6 +577,8 @@
 
       pp%cellptr%gdd = gdd
       pp%cellptr%ncd = ncd
+      pp%cellptr%sgdd = sgdd
+      
 
       end subroutine pheno_update
       !*********************************************************************   
@@ -1050,14 +1127,15 @@ c$$$      Cactive = Cactive + dC_remainder
       end subroutine recruit_annual
 !*************************************************************************
 
-      subroutine update_plant_cpools(pft, lai, h, dbh, popdens, cpool )
+      subroutine update_plant_cpools(pft, lai,h,dbh,popdens,cpool )
       integer,intent(in) :: pft !plant functional type
       real*8, intent(in) :: lai,h,dbh,popdens  !lai, h(m), dbh(cm),popd(#/m2)
       real*8, intent(out) :: cpool(N_BPOOLS) !g-C/pool/plant
       real*8 :: qsw
+
       !* Initialize
       cpool(:) = 0.d0 
-      
+
       qsw = pfpar(pft)%sla*iqsw
       if (.not.pfpar(pft)%woody) qsw = 0.0d0
 
@@ -1071,9 +1149,9 @@ c$$$      Cactive = Cactive + dC_remainder
         cpool(HW) = 0.d0
         cpool(CR) = 0.d0
       endif
-
-
+      
       end subroutine update_plant_cpools
+
       !*********************************************************************
 c$$$      subroutine senesce_cpools(is_annual, C_fol_old,C_fol,Cactive,
 c$$$     &                          senescefrac, dC_lab)

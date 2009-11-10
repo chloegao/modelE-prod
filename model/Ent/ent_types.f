@@ -466,6 +466,7 @@
          real*8 :: par_10d
          real*8 :: gdd
          real*8 :: ncd
+         real*8 :: sgdd
          real*8 :: daylength(2) !previous & present day 
          logical :: fall
 
