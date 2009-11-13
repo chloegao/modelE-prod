@@ -536,8 +536,57 @@
         enddo
       enddo
       write(iu,'(a,a," = ",i7)') prefix,"soil type",pp%soil_type
-      write(iu,'(a,"cohorts:")') prefix
 
+
+      write(iu,'(a,a," = ",99e12.5)') prefix,"nm	 ",pp%nm		   
+      write(iu,'(a,a," = ",99e12.5)') prefix,"Ntot	",pp%Ntot		   
+      write(iu,'(a,a," = ",99e12.5)') prefix,"LMA   ",pp%LMA		   
+      write(iu,'(a,a," = ",99e12.5)') prefix,"LAI   ",pp%  LAI             
+      write(iu,'(a,a," = ",99e12.5)') prefix,"h       ",pp%  h              !
+      write(iu,'(a,a," = ",99e12.5)') prefix,"crown_dx  ",pp%  crown_dx       !
+      write(iu,'(a,a," = ",99e12.5)') prefix,"crown_dy  ",pp%  crown_dy       !
+      write(iu,'(a,a," = ",99e12.5)') prefix,"clump      ",pp%  clump          !
+      write(iu,'(a,a," = ",99e12.5)') prefix,"C_fol       ",pp%  C_fol          !
+      write(iu,'(a,a," = ",99e12.5)') prefix,"N_fol        ",pp%  N_fol          !
+      write(iu,'(a,a," = ",99e12.5)') prefix,"C_w         ",pp%  C_w           ! 
+      write(iu,'(a,a," = ",99e12.5)') prefix,"N_w       ",pp%  N_w           ! 
+      write(iu,'(a,a," = ",99e12.5)') prefix,"C_lab      ",pp%  C_lab          !
+      write(iu,'(a,a," = ",99e12.5)') prefix,"N_lab       ",pp%  N_lab          !
+      write(iu,'(a,a," = ",99e12.5)') prefix,"C_froot      ",pp% C_froot        !
+      write(iu,'(a,a," = ",99e12.5)') prefix,"N_froot   ",pp%  N_froot        !
+      write(iu,'(a,a," = ",99e12.5)') prefix,"C_root    ",pp%  C_root        ! 
+      write(iu,'(a,a," = ",99e12.5)') prefix,"N_root    ",pp%  N_root        ! 
+      write(iu,'(a,a," = ",99e12.5)') prefix,"Ci        ",pp%  Ci             !
+      write(iu,'(a,a," = ",99e12.5)') prefix,"GCANOPY   ",pp%  GCANOPY        !
+      write(iu,'(a,a," = ",99e12.5)') prefix,"GPP        ",pp%  GPP            !
+      write(iu,'(a,a," = ",99e12.5)') prefix,"IPP        ",pp%  IPP            !
+      write(iu,'(a,a," = ",99e12.5)') prefix,"NPP        ",pp%  NPP            !
+      write(iu,'(a,a," = ",99e12.5)') prefix,"R_auto     ",pp%  R_auto         !
+      write(iu,'(a,a," = ",99e12.5)') prefix,"R_root     ",pp%  R_root         !
+      write(iu,'(a,a," = ",99e12.5)') prefix,"N_up        ",pp%  N_up           !
+      write(iu,'(a,a," = ",99e12.5)') prefix,"z0          ",pp%  z0              
+      write(iu,'(a,a," = ",99e12.5)') prefix,"albedo(N" ,pp%  albedo(:) 
+      write(iu,'(a,a," = ",99e12.5)') prefix,"betad     ",pp%  betad           
+      write(iu,'(a,a," = ",99e12.5)') prefix,"TRANS_SW  ",pp%  TRANS_SW        
+      write(iu,'(a,a," = ",99e12.5)') prefix,"CO2flux    ",pp%  CO2flux         
+      write(iu,'(a,a," = ",99e12.5)') prefix,"Soil_resp",pp%Soil_resp       
+      write(iu,'(a,a," = ",99e12.5)') prefix,"Soilmoist",pp%Soilmoist(:)
+      write(iu,'(a,a," = ",99e12.5)') prefix,"fuel ",pp%fuel		   
+      write(iu,'(a,a," = ",99e12.5)') prefix,"ign_rate",pp%ignition_rate   
+      write(iu,'(a,a," = ",99e12.5)') prefix,"lambda1(",pp%  lambda1(:) !
+      write(iu,'(a,a," = ",99e12.5)') prefix,"d_r",pp%  disturbance_rate
+      write(iu,'(a,a," = ",99e12.5)') prefix,"C_total	",pp%C_total	   
+      write(iu,'(a,a," = ",99e12.5)') prefix,"C_growth  ",pp%  C_growth        
+
+      if ( associated(pp%LAIpft) )
+     & write(iu,'(a,a," = ",99e12.5)') prefix,"LAIpft",pp%LAIpft
+      if ( associated(pp%betadl) )
+     & write(iu,'(a,a," = ",99e12.5)') prefix,"betadl",pp%betadl
+      if ( associated(pp%Reproduction) )
+     & write(iu,'(a,a," = ",99e12.5)') prefix,"Reproduction",
+     &     pp%Reproduction
+
+      write(iu,'(a,"cohorts:")') prefix
       cop => pp%tallest
       nc = 0
       do while( associated(cop) )

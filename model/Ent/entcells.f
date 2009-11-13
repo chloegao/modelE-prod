@@ -611,7 +611,88 @@ C NADINE - IS THIS CORRECT?
       write(iu, '(a,a," = ",99e12.5)') prefix,"par_10d", ecp%par_10d
       write(iu, '(a,a," = ",99e12.5)') prefix,"gdd", ecp%gdd
       write(iu, '(a,a," = ",99e12.5)') prefix,"ncd", ecp%ncd
-      write(iu, '(a,a," = ",99e12.5)') prefix,"ld", ecp%daylength(1)
+      write(iu, '(a,a," = ",99e12.5)') prefix,"ld", ecp%daylength(:)
+
+
+      write(iu, '(a,a," = ",i7)') prefix,"fall", ecp%fall
+      write(iu, '(a,a," = ",99e12.5)') prefix,"nm	", ecp%nm	    
+      write(iu, '(a,a," = ",99e12.5)') prefix,"Ntot	", ecp%Ntot	    
+      write(iu, '(a,a," = ",99e12.5)') prefix,"LMA	", ecp%LMA	    
+      write(iu, '(a,a," = ",99e12.5)') prefix,"LAI      ", ecp%LAI      
+      write(iu, '(a,a," = ",99e12.5)') prefix,"h        ", ecp%h        
+      write(iu, '(a,a," = ",99e12.5)') prefix,"C_fol    ", ecp%C_fol    
+      write(iu, '(a,a," = ",99e12.5)') prefix,"N_fol    ", ecp%N_fol    
+      write(iu, '(a,a," = ",99e12.5)') prefix,"C_w      ", ecp%C_w      
+      write(iu, '(a,a," = ",99e12.5)') prefix,"N_w      ", ecp%N_w      
+      write(iu, '(a,a," = ",99e12.5)') prefix,"C_lab    ", ecp%C_lab    
+      write(iu, '(a,a," = ",99e12.5)') prefix,"N_lab    ", ecp%N_lab    
+      write(iu, '(a,a," = ",99e12.5)') prefix,"C_froot  ", ecp%C_froot  
+      write(iu, '(a,a," = ",99e12.5)') prefix,"N_froot  ", ecp%N_froot  
+      write(iu, '(a,a," = ",99e12.5)') prefix,"C_root   ", ecp%C_root   
+      write(iu, '(a,a," = ",99e12.5)') prefix,"N_root   ", ecp%N_root   
+      write(iu, '(a,a," = ",99e12.5)') prefix,"Ci       ", ecp%Ci       
+      write(iu, '(a,a," = ",99e12.5)') prefix,"GCANOPY  ", ecp%GCANOPY  
+      write(iu, '(a,a," = ",99e12.5)') prefix,"GPP      ", ecp%GPP      
+      write(iu, '(a,a," = ",99e12.5)') prefix,"IPP      ", ecp%IPP      
+      write(iu, '(a,a," = ",99e12.5)') prefix,"NPP      ", ecp%NPP      
+      write(iu, '(a,a," = ",99e12.5)') prefix,"R_auto   ", ecp%R_auto   
+      write(iu, '(a,a," = ",99e12.5)') prefix,"R_root   ", ecp%R_root   
+      write(iu, '(a,a," = ",99e12.5)') prefix,"N_up     ", ecp%N_up     
+      write(iu, '(a,a," = ",99e12.5)') prefix,"z0       ", ecp%z0       
+      write(iu, '(a,a," = ",99e12.5)') prefix,"albedo(N_", ecp%albedo(:)
+      write(iu, '(a,a," = ",99e12.5)') prefix,"betad    ", ecp%betad    
+      write(iu, '(a,a," = ",99e12.5)') prefix,"TRANS_SW ", ecp%TRANS_SW 
+      write(iu, '(a,a," = ",99e12.5)') prefix,"CO2flux  ", ecp%CO2flux  
+      write(iu, '(a,a," = ",99e12.5)') prefix,"Soil_resp", ecp%Soil_resp
+      write(iu, '(a,a," = ",99e12.5)') prefix,"Tpool !(g", ecp%Tpool
+      write(iu, '(a,a," = ",99e12.5)') prefix,"fuel	", ecp%fuel	    
+      write(iu, '(a,a," = ",99e12.5)') prefix,"ignit", ecp%ignition_rate
+      write(iu, '(a,a," = ",99e12.5)') prefix,"lambda1(T",ecp%lambda1(:)
+      write(iu, '(a,a," = ",99e12.5)') prefix,"dis",ecp%disturbance_rate
+      write(iu, '(a,a," = ",99e12.5)') prefix,"fv       ", ecp%fv       
+      write(iu, '(a,a," = ",99e12.5)') prefix,"heat_", ecp%heat_capacity
+      write(iu, '(a,a," = ",99e12.5)') prefix,"fwet_ca", ecp%fwet_canopy
+      write(iu, '(a,a," = ",99e12.5)') prefix,"soil_Phi ", ecp%soil_Phi 
+      write(iu, '(a,a," = ",99e12.5)') prefix,"soil_dry ", ecp%soil_dry 
+      write(iu, '(a,a," = ",99e12.5)') prefix,"soildepth", ecp%soildepth
+      write(iu, '(a,a," = ",99e12.5)') prefix,"theta_max", ecp%theta_max
+      write(iu, '(a,a," = ",99e12.5)') prefix,"k_sat    ", ecp%k_sat    
+      write(iu, '(a,a," = ",99e12.5)') prefix,"root_Phi ", ecp%root_Phi 
+      write(iu, '(a,a," = ",99e12.5)') prefix,"soil_t", ecp%soil_texture
+      write(iu, '(a,a," = ",99e12.5)') prefix,"TairC ! A", ecp%TairC
+      write(iu, '(a,a," = ",99e12.5)') prefix,"TcanopyC ", ecp%TcanopyC 
+      write(iu, '(a,a," = ",99e12.5)') prefix,"Qf       ", ecp%Qf       
+      write(iu, '(a,a," = ",99e12.5)') prefix,"P_mbar   ", ecp%P_mbar   
+      write(iu, '(a,a," = ",99e12.5)') prefix,"Ca       ", ecp%Ca       
+      write(iu, '(a,a," = ",99e12.5)') prefix,"Soilmoist", ecp%Soilmoist
+      write(iu, '(a,a," = ",99e12.5)') prefix,"Soiltem", ecp%Soiltemp(:)
+      write(iu, '(a,a," = ",99e12.5)') prefix,"Ch       ", ecp%Ch       
+      write(iu, '(a,a," = ",99e12.5)') prefix,"U        ", ecp%U        
+      write(iu, '(a,a," = ",99e12.5)') prefix,"IPARdir  ", ecp%IPARdir  
+      write(iu, '(a,a," = ",99e12.5)') prefix,"IPARdif  ", ecp%IPARdif  
+      write(iu, '(a,a," = ",99e12.5)') prefix,"CosZen   ", ecp%CosZen   
+      write(iu, '(a,a," = ",99e12.5)') prefix,"soilte", ecp%soiltemp_10d
+      write(iu, '(a,a," = ",99e12.5)') prefix,"airtemp", ecp%airtemp_10d
+      write(iu, '(a,a," = ",99e12.5)') prefix,"paw_10d  ", ecp%paw_10d  
+      write(iu, '(a,a," = ",99e12.5)') prefix,"par_10d  ", ecp%par_10d  
+      write(iu, '(a,a," = ",99e12.5)') prefix,"gdd      ", ecp%gdd	    
+      write(iu, '(a,a," = ",99e12.5)') prefix,"ncd	", ecp%ncd	    
+      write(iu, '(a,a," = ",99e12.5)') prefix,"daylength", ecp%daylength
+      write(iu, '(a,a," = ",99e12.5)') prefix," fall    ", ecp% fall    
+      write(iu, '(a,a," = ",99e12.5)') prefix,"C_total  ", ecp%C_total  
+      write(iu, '(a,a," = ",99e12.5)') prefix,"C_growth ", ecp%C_growth 
+
+      if ( associated(ecp%LAIpft) )
+     & write(iu,'(a,a," = ",99e12.5)') prefix,"LAIpft",ecp%LAIpft
+      if ( associated(ecp%fracroot) )
+     & write(iu,'(a,a," = ",99e12.5)') prefix,"fracroot",ecp%fracroot
+      if ( associated(ecp%betadl) )
+     & write(iu,'(a,a," = ",99e12.5)') prefix,"betadl",ecp%betadl
+      if ( associated(ecp%Soilmp) )
+     & write(iu,'(a,a," = ",99e12.5)') prefix,"Soilmp",ecp%Soilmp
+      if ( associated(ecp%fice) )
+     & write(iu,'(a,a," = ",99e12.5)') prefix,"fice",ecp%fice
+
 
       write(iu, '(a,"patches:")') prefix
       pp => ecp%oldest
