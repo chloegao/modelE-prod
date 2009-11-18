@@ -354,7 +354,7 @@
          if (pft.eq.DROUGHTDECIDBROAD)airt_adj=10.d0
 
          soilt_adj=0.d0
-         if (pft .eq. GRASSC3ARCTIC)soilt_adj=-5.d0
+!!!fix it         if (pft .eq. GRASSC3ARCTIC)soilt_adj=-5.d0
 
          woody = pfpar(pft)%woody
 

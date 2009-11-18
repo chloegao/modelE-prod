@@ -1,7 +1,7 @@
 #makefile for the component Ent
 .SUFFIXES:
 
-SUPPORTED_OPTIONS = ESMF PFT_MODEL PS_MODEL RAD_MODEL
+SUPPORTED_OPTIONS = ESMF PFT_MODEL PS_MODEL RAD_MODEL NEED_Entcover
 
 FSRCS = 
 F90SRCS = 
@@ -54,6 +54,10 @@ ifeq ($(PS_MODEL),FBB)
   endif
 else
   FSRCS += biophysics.f
+endif
+
+ifeq ($(NEED_Entcover),YES)
+  FSRCS += ent_make_struct.f
 endif
 
 

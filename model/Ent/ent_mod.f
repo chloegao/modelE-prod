@@ -49,7 +49,7 @@
       public ent_cell_construct, ent_cell_destruct, ent_cell_nullify
       public ent_fast_processes,ent_run,ent_vegcover_update
       public ent_cell_set !, ent_cell_update
-!      public ent_struct_setup  !NEW#########
+      public ent_struct_setup  !NEW#########
       public ent_prescribe_vegupdate
       public ent_cell_print
       public ent_initialize
@@ -111,15 +111,15 @@
       end interface
 
       !--- passing initial data to ent cells - mixed veg ---
-!      interface ent_struct_setup
-!      
-!        module procedure ent_struct_setup_r8_0
-!      
-!        module procedure ent_struct_setup_r8_1
-!      
-!        module procedure ent_struct_setup_r8_2
-!      
-!      end interface
+      interface ent_struct_setup
+      
+        module procedure ent_struct_setup_r8_0
+      
+        module procedure ent_struct_setup_r8_1
+      
+        module procedure ent_struct_setup_r8_2
+      
+      end interface
 
 
       !--- passing updated prescribed data to ent cells ---
@@ -2556,6 +2556,66 @@ C NADINE
       enddo
 
       end subroutine ent_cell_print_r8_2
+
+
+
+
+      subroutine ent_struct_setup_r8_0(entcell,iu)
+      use ent_make_struct, only : ent_readcsv
+      type(entcelltype_public),intent(inout) :: entcell 
+      integer, intent(in) :: iu
+      !---
+      
+      
+
+      
+      
+
+      
+        call ent_readcsv(entcell%entcell,iu)
+      
+
+      end subroutine ent_struct_setup_r8_0
+
+      subroutine ent_struct_setup_r8_1(entcell,iu)
+      use ent_make_struct, only : ent_readcsv
+      type(entcelltype_public),intent(inout) :: entcell (:)
+      integer, intent(in) :: iu
+      !---
+      integer i1
+      integer dims(2,1)
+
+      dims(1,:) = lbound(entcell)
+      dims(2,:) = ubound(entcell)
+
+      
+      do i1=dims(1,1),dims(2,1)
+        call ent_readcsv(entcell(i1)%entcell,iu)
+      
+      enddo
+
+      end subroutine ent_struct_setup_r8_1
+
+      subroutine ent_struct_setup_r8_2(entcell,iu)
+      use ent_make_struct, only : ent_readcsv
+      type(entcelltype_public),intent(inout) :: entcell (:,:)
+      integer, intent(in) :: iu
+      !---
+      integer i1,i2
+      integer dims(2,2)
+
+      dims(1,:) = lbound(entcell)
+      dims(2,:) = ubound(entcell)
+
+      
+      do i1=dims(1,1),dims(2,1)
+      do i2=dims(1,2),dims(2,2)
+        call ent_readcsv(entcell(i1,i2)%entcell,iu)
+      
+      enddo
+      enddo
+
+      end subroutine ent_struct_setup_r8_2
 
 
       end module ent_mod
