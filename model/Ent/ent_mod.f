@@ -49,7 +49,6 @@
       public ent_cell_construct, ent_cell_destruct, ent_cell_nullify
       public ent_fast_processes,ent_run,ent_vegcover_update
       public ent_cell_set !, ent_cell_update
-      public ent_struct_setup  !NEW#########
       public ent_prescribe_vegupdate
       public ent_cell_print
       public ent_initialize
@@ -110,6 +109,8 @@
       
       end interface
 
+#ifdef DNEED_ENTCOVER_MODULE
+      public ent_struct_setup  !NEW#########
       !--- passing initial data to ent cells - mixed veg ---
       interface ent_struct_setup
       
@@ -120,7 +121,7 @@
         module procedure ent_struct_setup_r8_2
       
       end interface
-
+#endif
 
       !--- passing updated prescribed data to ent cells ---
 cddd      interface ent_cell_update
@@ -1521,6 +1522,21 @@ cddd      end interface ent_cell_update
       dc = dc + nn
       call copy_vars( buf(dc:), nn, entcell%daylength(2), flag)
       dc = dc + nn
+      call copy_vars( buf(dc:), nn, entcell%fall, flag)
+      dc = dc + nn
+
+!hacks
+      call copy_vars( buf(dc:), nn, entcell%lai, flag)
+      dc = dc + nn
+      call copy_vars( buf(dc:), nn, entcell%soil_Phi, flag)
+      dc = dc + nn
+      call copy_vars( buf(dc:), nn, entcell%soil_dry, flag)
+      dc = dc + nn
+      call copy_vars( buf(dc:), nn, entcell%Qf, flag)
+      dc = dc + nn
+      call copy_vars( buf(dc:), nn, entcell%Soilmp, flag)
+      dc = dc + nn
+
 
       n = dc
 
@@ -1554,6 +1570,12 @@ cddd      end interface ent_cell_update
       call copy_vars( buf(dc:), nn,  p%soil_type, flag ); dc = dc + nn
       call copy_vars( buf(dc:), nn,  p%GCANOPY, flag ); dc = dc + nn
       call copy_vars( buf(dc:), nn,  p%albedo, flag ); dc = dc + nn
+
+      ! just guessing, trying to fix restart
+      call copy_vars( buf(dc:), nn,  p%Reproduction, flag )
+      dc = dc + nn
+      call copy_vars( buf(dc:), nn,  p%lai, flag )
+      dc = dc + nn
 
       n = dc
 
@@ -1622,6 +1644,7 @@ cddd      end interface ent_cell_update
 
       call copy_vars( buf(dc:), nn,  c%phenofactor,  flag ); dc=dc + nn
       call copy_vars( buf(dc:), nn,  c%phenofactor_c, flag ); dc=dc + nn
+      call copy_vars( buf(dc:), nn,  c%phenofactor_d, flag ); dc=dc + nn
       call copy_vars( buf(dc:), nn,  c%phenostatus, flag ); dc=dc + nn
       call copy_vars( buf(dc:), nn,  c%betad_10d,  flag ); dc=dc + nn
       call copy_vars( buf(dc:), nn,  c%CB_d,  flag ); dc=dc + nn
@@ -2558,7 +2581,7 @@ C NADINE
       end subroutine ent_cell_print_r8_2
 
 
-
+#ifdef NEED_ENTCOVER_MODULE
 
       subroutine ent_struct_setup_r8_0(entcell,iu)
       use ent_make_struct, only : ent_readcsv
@@ -2617,6 +2640,7 @@ C NADINE
 
       end subroutine ent_struct_setup_r8_2
 
+#endif
 
       end module ent_mod
 
