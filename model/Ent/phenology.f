@@ -205,9 +205,9 @@
          end if
          !is fall?      
          if (NInt(ecp%daylength(2)) .lt. NInt(ecp%daylength(1)) ) then
-            ecp%fall = .true.
+            ecp%fall = 1
          else if (NInt(ecp%daylength(2)).gt.NInt(ecp%daylength(1))) then
-            ecp%fall = .false.
+            ecp%fall = 0
          end if 
          !print*,'fall',ecp%daylength(2),ecp%daylength(1),ecp%fall
        end if
@@ -319,8 +319,12 @@
       paw_10d = pp%cellptr%paw_10d
       gdd = pp%cellptr%gdd
       ncd = pp%cellptr%ncd
+      if ( pp%cellptr%fall == 1 ) then
+        fall = .true.
+      else
+        fall = .false.
+      endif
       sgdd = pp%cellptr%sgdd
-      fall = pp%cellptr%fall
       ld = pp%cellptr%daylength(2)
 
       gdd_threshold = gdd_par1 + gdd_par2*exp(gdd_par3*ncd)  

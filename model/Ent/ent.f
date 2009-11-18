@@ -151,17 +151,20 @@
       pp => ecp%oldest 
       do while (ASSOCIATED(pp)) 
         patchnum = patchnum + 1
+        !call patch_print(771,pp," ff ")
         call photosynth_cond(dtsec, pp)
 
         if (config%do_phenology_activegrowth) then
           !call uptake_N(dtsec, pp) !?
           !call growth(...)
+          !call patch_print(771,pp," bb ")
           if (update_day) then
             call pheno_update(dtsec,pp)
             call veg_update(dtsec,pp,config)
             !call litter(pp) !Litter is now called within veg_update
 
           end if
+          !call patch_print(771,pp," aa ")
         endif
 
         if (config%do_soilresp) then
@@ -178,7 +181,7 @@
 #endif
           !*********************************************************!
         pp => pp%younger 
-      end do 
+      end do
 
       call summarize_entcell(ecp)
 

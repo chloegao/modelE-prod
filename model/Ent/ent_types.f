@@ -347,11 +347,11 @@
          !@var nm   Mean leaf nitrogen (g/m2[leaf]).
          real*8 :: nm
          !@var Ntot Total cohort nitrogen (g/m[ground]2) for vegetated patches only.
-         real*8 Ntot
+         real*8 :: Ntot
          !@var LMA Leaf mass per leaf area (gC/m2)
-         real*8 LMA
+         real*8 :: LMA
          !@var LAI Leaf area index (m2[leaf]/m2[ground]) for vegetated patches only.
-         real*8 LAI               
+         real*8 :: LAI               
          !@var LAIpft LAI by cover type.
          real*8,pointer :: LAIpft(:) !(N_COVERTYPES)
          !real*8 :: LA            ! Leaf area (m2[leaf]/individual)
@@ -468,7 +468,7 @@
          real*8 :: ncd
          real*8 :: sgdd
          real*8 :: daylength(2) !previous & present day 
-         logical :: fall
+         integer :: fall
 
          ! diags and hacks
          real*8 :: C_total
