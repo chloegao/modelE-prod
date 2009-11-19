@@ -146,6 +146,7 @@
 
       ecp%C_total = 0.d0
       ecp%C_growth = 0.d0
+      ecp%Soilmp(:) = 0.d0
 
       end subroutine zero_entcell
 !**************************************************************************
