@@ -221,11 +221,13 @@
       endif
 
       !* GEOMETRY - WEIGHTED AVERAGES
-      pp%h = pp%h / nsum        !wtd avg
-      pp%crown_dx = pp%crown_dx / nsum !wtd avg
-      pp%crown_dy = pp%crown_dy / nsum !wtd avg
-      pp%clump = pp%clump / nsum !wtd avg - ##SHOULD COME FROM RADIATIVE TRANSFER
-      CALL  sum_roots_cohorts2patch(pp) !froot and C_froot
+      if ( nsum > 0.d0 ) then
+        pp%h = pp%h / nsum      !wtd avg
+        pp%crown_dx = pp%crown_dx / nsum !wtd avg
+        pp%crown_dy = pp%crown_dy / nsum !wtd avg
+        pp%clump = pp%clump / nsum !wtd avg - ##SHOULD COME FROM RADIATIVE TRANSFER
+        CALL  sum_roots_cohorts2patch(pp) !froot and C_froot
+      endif
 
       !* FLUXES 
       if (pp%LAI.gt.0.d0) then

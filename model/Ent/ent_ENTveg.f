@@ -614,8 +614,12 @@ C           TNDRA     SHRUB     DECID     RAINF     BDIRT     GRAC4
         cpool(LABILE) = (alamax(pft+COVEROFFSET)-alamin(pft+COVEROFFSET)
      &       )*4.d0/pfpar(pft)%sla/n*1d3 !g-C/individ.
       else
+       if( n > 0.d0 ) then
         cpool(LABILE) = 0.5d0*alamax(pft+COVEROFFSET)/
      &       pfpar(pft)%sla/n*1d3 !g-C/individ.
+       else
+        cpool(LABILE) = 0.d0
+       endif
       endif
 
       end subroutine prescr_init_Clab
