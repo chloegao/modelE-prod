@@ -2151,8 +2151,13 @@ c$$$      end if
       real*8 function height2dbh(pft,h)
       integer,intent(in) :: pft
       real*8, intent(in) :: h
+      real*8 :: hcrit, hin
 
-      height2dbh = log(1.0-(h-1.3)/pfpar(pft)%b1Ht)/pfpar(pft)%b2Ht
+      hcrit=1.3d0+pfpar(pft)%b1Ht-EPS
+      hin=min(h,hcrit)
+
+      height2dbh = log(1.d0-(hin-1.3d0)/pfpar(pft)%b1Ht)/pfpar(pft)%b2Ht
+      
 
       end function height2dbh
 !*************************************************************************
