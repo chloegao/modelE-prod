@@ -2294,7 +2294,7 @@ c$$$      end if
       type(cohort), pointer ::cop
       integer :: cohortnum
       real*8 :: fall_real
-      if (cop%cellptr%fall) then
+      if (cop%cellptr%fall==1) then
         fall_real=1.d0
       else
          fall_real=0.d0

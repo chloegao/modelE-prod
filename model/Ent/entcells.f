@@ -141,7 +141,7 @@
       ecp%ncd = 0.0d0 !number of chilling day
       ecp%sgdd = 0.d0
       ecp%daylength(:) = 0.0d0  !day length (min)
-      ecp%fall = .true. !KIM - starting in the winter
+      ecp%fall = 1 !KIM- now it's integer...true. !KIM - starting in the winter
 !      ecp%fall = .false. !KIM - starting in the middle of growing season
 
       ecp%C_total = 0.d0
