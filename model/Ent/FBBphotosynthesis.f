@@ -1,6 +1,5 @@
 #include "rundeck_opts.h"
 !#define DEBUG 1
-!#define USE_NR_SOLVER_FOR_FBB
       module  photcondmod
       !This version of photcondmod does leaf level
       !photosynthesis (Farquhar and von Caemmerer, 1982) and
@@ -14,9 +13,7 @@
       save
 
       public init_ci, pscondleaf, biophysdrv_setup,calc_Pspar,ciMIN
-     &     ,frost_hardiness, fbb_night
-
-      public photosynthpar, pspar
+     &     ,frost_hardiness
 
       !=====CONSTANTS=====!
       real*8,parameter :: ciMIN = 1.d-8  !Small error
@@ -39,9 +36,6 @@
       real*8 :: b               !Intercept of Ball-Berry equation (mol m-2 s-1)
       real*8 :: Nleaf           !g-N/m^2[leaf] - May want to take this from Tpool instead.
       real*8 :: stressH2O       !Water stress factor (fraction, 1=no stress)
-      logical :: first_call
-      real*8 :: Ac
-      logical :: reset_ci_cubic1
       end type photosynthpar
 
       private
@@ -91,13 +85,13 @@
       real*8 :: ci!, cs
       real*8,parameter :: LOW_LIGHT_LIMIT = 2.5d0 !umol m-2 s-1.  Nobel 1999, lower light limit for green plants is 0.7 W m-2 ~ 3 umol m-2 s-1.
       
-c      if (IPAR.lt.LOW_LIGHT_LIMIT) then
-c        Rdout = Respveg(pftpar(pft)%Nleaf,psd%Tc)  !Should be only leaf respiration!
-c        Aout = 0.d0
-c        cs = ca - (Aout-Rdout)*1.37d0/Gb
-c        gsout = pftpar(pft)%b
-c        psd%ci = ca             !Dummy assignment, no need to solve for ci 
-c      else
+!      if (IPAR.lt.LOW_LIGHT_LIMIT) then
+!        Rdout = Respveg(pftpar(pft)%Nleaf,psd%Tc)  !Should be only leaf respiration!
+!        Aout = 0.d0
+!        cs = ca - (Aout-Rdout)*1.37d0/Gb
+!        gsout = pftpar(pft)%b
+!        psd%ci = ca             !Dummy assignment, no need to solve for ci 
+!      else
 cddd      print *,"called Photosynth_analyticsoln",
 cddd     &     pft,IPAR,psd%ca,ci,
 cddd     &     psd%Tc,psd%Pa,psd%rh,Gb,gsout,Aout,Rdout,sunlitshaded
@@ -107,26 +101,16 @@ cddd     &     psd%Tc,psd%Pa,psd%rh,Gb,gsout,Aout,Rdout,sunlitshaded
      &  ISPout)
         psd%ci = ci             !Ball-Berry:  ci is analytically solved.  F-K: ci saved between time steps.
 
-c      endif
+!      endif
         
-cddd      !Biological limits for gs - cuticular conductance?
-cddd      if(gsout.lt.(0.00006d0*psd%Pa/(gasc*(psd%Tc+KELVIN)))) then
-cddd        gsout=0.00006d0*psd%Pa/(gasc*(psd%Tc+KELVIN))
-cddd      endif
+      !Biological limits for gs - cuticular conductance?
+      if(gsout.lt.(0.00006d0*psd%Pa/(gasc*(psd%Tc+KELVIN)))) then
+        gsout=0.00006d0*psd%Pa/(gasc*(psd%Tc+KELVIN))
+      endif
 
       end subroutine pscondleaf
 
 !-----------------------------------------------------------------------------
-
-      subroutine fbb_night(Atot,Gs,Rd,Iso)
-      real*8, intent(out) :: Atot,Gs,Rd,Iso
-
-      Atot = 0.d0
-      Gs = BallBerry(0.d0, 1.d0, 1.d0, pspar)
-      Rd = 0.015d0 * pspar%Vcmax
-      Iso = 0.d0
-
-      end subroutine fbb_night
 
       subroutine Photosynth_analyticsoln(pft,IPAR,ca,ci,Tl,Pa,rh,gb,
      o     gs,Atot,Rd,sunlitshaded,isp)
@@ -156,14 +140,9 @@ cddd      endif
       real*8 :: Aiso            ! Rate of photosynthesis for isoprene emissions (umol m-2 s-1)
       real*8 :: cs   !CO2 mole fraction at the leaf surface (umol mol-1)
       real*8 :: Ae, Ac, As
-      real*8, save :: a1c=1.d30, f1c=-1.d30
-      real*8 :: a1e, f1e
+      real*8 :: a1,f1,e1
       real*8, parameter :: alpha=.08d0 !Intrinsic quantum efficiency for CO2 uptake
-#ifdef PS_BVOC
-      logical, parameter :: need_isoprene = .true.
-#else
-      logical, parameter :: need_isoprene = .false.
-#endif
+
       integer, save :: counter = 0
       counter = counter + 1
 
@@ -171,41 +150,6 @@ cddd      endif
 
 !      Rd = Respveg(pspar%Nleaf,Tl)  !Old F&K Respveg is not only leaf respiration.
       Rd = 0.015d0 * pspar%Vcmax    !von Caemmerer book.
-
-
-      if ( IPAR < .000001d0 ) then
-        Atot = 0.d0
-        Anet = - Rd
-        cs = ca - Anet*1.37d0/gb
-        gs = BallBerry(Anet, rh, cs, pspar)
-        ci = cs - Anet/(gs/1.65d0) 
-        isp = 0.d0
-        return
-      endif
-
-
-!      call Ci_Jc(ca,gb,rh,IPAR,Pa,pspar, Rd,O2pres, cic, Jc1)
-      ! Photosynthetic rate limited by RuBP saturation
-      ! Jc_RuBP = pspar%Vcmax*(Cip - pspar%Gammastar)/
-      !           (Cip + pspar%Kc*(1 + O2/pspar%Ko))
-
-      !Assimilation is of the form a1*(Ci - Gammastar)/(e1*Ci + f)
-      if ( pspar%first_call ) then
-        a1c = pspar%Vcmax
-        f1c = pspar%Kc*(1.d0 + O2pres/pspar%Ko) * 1.d06/Pa !umol/mol
-
-        !write(778,*) 2*pspar%Gammastar * 1.d06/Pa, f1
-
-        !call ci_cubic (ca,rh,gb,Pa,Rd,a1c,f1c,pspar,Axxx)
-        call ci_cubic(ca,rh,gb,Pa,Rd,a1c,f1c,pspar,Ac)
-        !if ( Ac >= -Rd ) write(578,*) Axxx, Ac, Ac - Axxx
-        !write(888,*) "Ac", ca,rh,gb,Pa,Rd,a1,f1,pspar,Ac
-        pspar%Ac = Ac
-        pspar%first_call = .false.
-      else
-        Ac = pspar%Ac
-      endif
-
 
 !      call Ci_Je(ca,gb,rh,IPAR,Pa, pspar, Rd, cie, Je1)
       ! Photosynthetic rate limited by light electron transport (umol m-2 s-1)
@@ -215,24 +159,26 @@ cddd      endif
       !Assimilation is of the form a1*(ci - Gammastar.umol)/(e1*ci + f1)
 
 !      a1 = pspar%PARabsorb*IPAR*alpha
-      a1e = IPAR*alpha  !### HACK:  IPAR from canopyspitters.f is APAR.  When we switch to Wenze's canopyrad, then leaf PARabsorb will be used -NK ###
-      f1e = 2*pspar%Gammastar * 1.d06/Pa !Convert from Pa to umol/mol
+      a1 = IPAR*alpha  !### HACK:  IPAR from canopyspitters.f is APAR.  When we switch to Wenze's canopyrad, then leaf PARabsorb will be used -NK ###
 
-      if ( a1e < a1c .or. 
-     &     f1e > f1c .or.
-     &     need_isoprene ) then
-        !call ci_cubic (ca,rh,gb,Pa,Rd,a1e,f1e,pspar,Axxx)
-        call ci_cubic(ca,rh,gb,Pa,Rd,a1e,f1e,pspar,Ae)
-        !write(888,*) "Ae", ca,rh,gb,Pa,Rd,a1,f1,pspar,Ae 
-cddd        call ci_cubic1(ca,rh,gb,Pa,Rd,a1,f1,pspar,Axxx)
-cddd        write(579,*) Ae, Axxx
-cddd        if ( Ae > 0.d0 ) write(578,*) Axxx - Ae
-        !if ( Ae >= -Rd ) write(578,*) Axxx, Ae, Ae - Axxx
-      else
-        Ae = 1.d30
-      endif
+      e1 = 1.d0
+      f1 = 2*pspar%Gammastar * 1.d06/Pa !Convert from Pa to umol/mol
 
+      call ci_cubic(ca,rh,gb,Pa,Rd,a1,e1,f1,pspar,Ae)
+      !write(888,*) "Ae", ca,rh,gb,Pa,Rd,a1,e1,f1,pspar,Ae
 
+!      call Ci_Jc(ca,gb,rh,IPAR,Pa,pspar, Rd,O2pres, cic, Jc1)
+      ! Photosynthetic rate limited by RuBP saturation
+      ! Jc_RuBP = pspar%Vcmax*(Cip - pspar%Gammastar)/
+      !           (Cip + pspar%Kc*(1 + O2/pspar%Ko))
+
+      !Assimilation is of the form a1*(Ci - Gammastar)/(e1*Ci + f)
+      a1 = pspar%Vcmax
+      e1 = 1.d0
+      f1 = pspar%Kc*(1.d0 + O2pres/pspar%Ko) * 1.d06/Pa  !umol/mol
+
+      call ci_cubic(ca,rh,gb,Pa,Rd,a1,e1,f1,pspar,Ac)
+      !write(888,*) "Ac", ca,rh,gb,Pa,Rd,a1,e1,f1,pspar,Ac
 
 !      call Ci_Js(ca,gb,rh,IPAR,Pa,pspar,Rd, cis, Js1)
       !Photosynthetic rate limited by "utilization of photosynthetic products"
@@ -248,22 +194,19 @@ cddd        if ( Ae > 0.d0 ) write(578,*) Axxx - Ae
       if (Atot.lt.0.d0) then
         ! can only happen if ca < Gammastar . Does it make sense? -Yes-NK
 #ifdef OFFLINE
-        write(997,*) "Error, Atot<0.0:",Atot,Ae,Ac,As,ca,gb,rh,IPAR,Pa,
-     &       pspar,sunlitshaded, pspar%Gammastar * 1.d06/Pa
+        write(997,*) "Error, Atot<0.0:",Ae,Ac,As,ca,gb,rh,IPAR,Pa,
+     &       pspar,sunlitshaded
 #endif
         Atot = 0.d0
         Anet = - Rd
-!!        ci = pspar%Gammastar * 1.d06/Pa  
-!!        gs = 0. ! MK: setting to 0 to avoid erratic results
-
-!!       else
+        !ci = pspar%Gammastar * 1.d06/Pa  
+        !gs = pspar%b
+        !return
       endif
 
       cs = ca - Anet*1.37d0/gb
       gs = BallBerry(Anet, rh, cs, pspar)
       ci = cs - Anet/(gs/1.65d0)
-
-!!!        endif
 
 #ifdef PS_BVOC
          call Voccalc(pft,pa,ca,ci,Tl,pspar%Gammastar,
@@ -272,7 +215,6 @@ cddd        if ( Ae > 0.d0 ) write(578,*) Axxx - Ae
 #else
        isp=0.0d0
 #endif
-
       !write(888,*) "gs,ci,cs", gs,ci,cs
 
       end subroutine Photosynth_analyticsoln
@@ -280,8 +222,6 @@ cddd        if ( Ae > 0.d0 ) write(578,*) Axxx - Ae
 !-----------------------------------------------------------------------------
       subroutine Voccalc(pft,pa,ca,ci,Tl,Gammastar,isp,Aiso)
 !@sum Isoprene emissions coupled to photosynthesis
-
-      use ent_pfts
 
       implicit none
       integer,intent(in) :: pft !Plant functional type, 1-C3 grassland
@@ -299,9 +239,9 @@ cddd        if ( Ae > 0.d0 ) write(578,*) Axxx - Ae
       real*8 :: IBASER, Y_alpha, kapco2
       real*8 :: tauiso
 C April 2009 values
-c      real*8, parameter, dimension(numpft) :: Y_eps = !
-c     & (/0.0d0,2.10d-02,8.24d-02,6.48d-02,1.08d-01,
-c     & 4.44d-02,1.38d-01,0.0d0/)
+      real*8, parameter, dimension(numpft) :: Y_eps = !
+     & (/0.0d0,2.10d-02,8.24d-02,6.48d-02,1.08d-01,
+     & 4.44d-02,1.38d-01,0.0d0/)
 C New values June 2009
 C      real*8, parameter, dimension(numpft) :: Y_eps = !
 C     & (/0.0d0,1.91d-02,7.19d-02,5.13d-02,8.79d-02,
@@ -313,9 +253,7 @@ C Y_alpha, Y_eps unitless
   
       Y_alpha=(ci-gammamol)/(6.0*(4.67*ci+9.33*gammamol))
 
-c      isp = Y_eps(pft)*Aiso*Y_alpha
-
-      isp = pfpar(pft)%Y_eps*Aiso*Y_alpha
+      isp = Y_eps(pft)*Aiso*Y_alpha
 
 C Include CO2 effects
 
@@ -324,7 +262,6 @@ C Include CO2 effects
 C Include temperature effects
 
        tauiso = exp(0.1*(Tl-30.0))
-
 
 C Include seasonal effects? Add later.
 C Note can switch on and off kapco2
@@ -629,8 +566,7 @@ cddd      end subroutine Ci_Js
       end function Tresponse
 !=================================================
 
-#ifndef USE_NR_SOLVER_FOR_FBB
-      subroutine ci_cubic(ca,rh,gb,Pa,Rd,a1,f1,pspar,A)
+      subroutine ci_cubic(ca,rh,gb,Pa,Rd,a1,e1,f1,pspar,A)
       !@sum ci_cubic Analytical solution for Ball-Berry/Farquhar cond/photosynth
       !@sum ci (umol/mol)
       !@sum For the case of assimilation being of the form:
@@ -646,6 +582,7 @@ cddd      end subroutine Ci_Js
       real*8 :: Pa              !Pressure (Pa)
       real*8 :: Rd              !Leaf mitochondrial respiration (umol m-2 s-1)
       real*8 :: a1              !Coefficient in linear Farquhar equ.
+      real*8 :: e1              !Coefficient in linear Farquhar equ.
       real*8 :: f1              !Coefficient in linear Farquhar equ.
       real*8, intent(out) :: A
       type(photosynthpar) :: pspar
@@ -677,13 +614,9 @@ cddd      end subroutine Ci_Js
         !!call stop_model("ci_cubic: rh too small ?",255)
       endif
 
-      ! dependence on e1 if needed
-cddd      Y= f1/e1
-cddd      X= -a1/e1 * (gamol+f1/e1)
-cddd      Z= a1/e1 -Rd
-      Y= f1
-      X= -a1 * (gamol+f1)
-      Z= a1 -Rd
+      Y= f1/e1
+      X= -a1/e1 * (gamol+f1/e1)
+      Z= a1/e1 -Rd
 
       if ( Z > 0.d0 ) then
         ! Farquhar curve is above zero. May have solution A > 0
@@ -706,8 +639,8 @@ cddd      Z= a1/e1 -Rd
           print *," m,rh,b,Ra:",pspar%m,rh,b,Ra
           print *,"ca,gb,Pa:",ca,gb,Pa
           print *,"pspar:",pspar
-          print *," A_d_asymp,K,gamol,f1,a1,Rd",
-     &         A_d_asymp,K,gamol,f1,a1,Rd
+          print *," A_d_asymp,K,gamol,f1,a1,e1,Rd",
+     &         A_d_asymp,K,gamol,f1,a1,e1,Rd
           print *,"c3,c2,c1,c", c3,c2,c1,c
           print *,"nroots,cixx",nroots,cixx(1:nroots)
           call stop_model("ci_cubic: no solution",255)
@@ -847,8 +780,7 @@ cddd      !!print *,'QQQQ ',A,ci
         x(3) = x2
       end if
       end subroutine cubicroot
-#endif
-
+      
 !=================================================
 
       subroutine calc_Pspar(dtsec,pft,Pa,Tl,O2pres,stressH2O,
@@ -910,9 +842,6 @@ cddd      !!print *,'QQQQ ',A,ci
       !pspar%Nleaf = pftpar(p)%Nleaf * phenology factor !Here can adjust Nleaf according
                                 !to foliage N pools or phenology factor.
       pspar%stressH2O = stressH2O
-
-      pspar%first_call = .true.
-      pspar%reset_ci_cubic1 = .true.
 
       end subroutine calc_Pspar
 
@@ -1203,228 +1132,5 @@ cddd      end function calc_ci
 
       end function par_phenology        
 !-----------------------------------------------------------------------------
-
-#ifdef USE_NR_SOLVER_FOR_FBB
-       subroutine ci_cubic(ca,rh,gb,Pa,Rd,a1,f1,pspar,A)
-      implicit none
-      real*8 :: ca              !Ambient air CO2 concentration (umol mol-1)
-      real*8 :: rh              !Relative humidity
-      real*8 :: gb              !Leaf boundary layer conductance of water vapor (mol m-2 s-1)
-      real*8 :: Pa              !Pressure (Pa)
-      real*8 :: Rd              !Leaf mitochondrial respiration (umol m-2 s-1)
-      real*8 :: a1              !Coefficient in linear Farquhar equ.
-      real*8 :: f1              !Coefficient in linear Farquhar equ.
-      real*8, intent(out) :: A
-      type(photosynthpar) :: pspar
-      !----Local----
-      real*8, parameter :: S_ATM=1.37d0  ! diffusivity ratio H2O/CO2 (atmosph.)
-      real*8, parameter :: S_STOM=1.65d0 ! diffusivity ratio H2O/CO2 (stomatal)
-      real*8 :: Ra, b, K, gamol, A_d_asymp
-      real*8 :: x1, x2, xacc, x2tmp, x2save
-      integer :: numit, counter=0
-      save
-
-      if ( pspar%reset_ci_cubic1 ) then
-        pspar%reset_ci_cubic1 = .false.
-cddd      if ( pspar%reset_ci_cubic1 == .false. ) then
-cddd        write(777,*) counter, Ra, b, K, gamol, A_d_asymp,
-cddd     &       x1, x2, xacc, x2tmp
-cddd      endif
-      Ra = 1/gb * S_ATM
-      b = pspar%b / S_STOM
-      K = pspar%m * rh / S_STOM
-      gamol = pspar%Gammastar * 1.d06/Pa !Convert Pa to umol/mol
-      A_d_asymp = - b*Ca / (K - b*Ra) ! asymptotic val of A from diffusion eq.
-
-cddd      ! first check some special cases
-cddd      if ( A_d_asymp >= 0.d0 ) then
-cddd        ! this can happen only for very low humidity
-cddd        ! probably should never happen in the real world, but if it does,
-cddd        ! this case should be considered separately
-cddd        !!print *,"!!! A_d_asymp >= 0.d0 !!!", A_d_asymp
-cddd      !!!  A_d_asymp = -1.d30 !!! hack
-cddd        !!print *,"K<b*Ra: m,rh,b,Ra:",pspar%m,rh,b,Ra
-cddd        !!call stop_model("ci_cubic: rh too small ?",255)
-cddd      endif
-
-      !x1 = 0.d0
-      x1 = -Rd
-      x2save = ca/Ra
-      x2tmp =  b*ca / (1.d0 - K + b*Ra)
-      if( x2tmp > 0.d0 ) x2save = min( x2save, x2tmp )
-      x2tmp = A_d_asymp
-      if( x2tmp > 0.d0 ) x2save = min( x2save, x2tmp )
-      x2save = x2save - .0000001d0
-      x2 = min( x2, a1 - Rd)
-      xacc = .0001d0
-      !xacc = .01d0
-cddd      if ( pspar%reset_ci_cubic1 == .false. ) then
-cddd        write(778,*) counter, Ra, b, K, gamol, A_d_asymp,
-cddd     &       x1, x2, xacc, x2tmp
-cddd      endif
-      endif
-      x2 = min( x2save, a1 - Rd)
-      A = rtsafe(A_eqn, x1,x2,xacc,  Ra, b, K, gamol,  ca, a1, f1, Rd
-     &     , numit)
-      !write(577,*) numit
-
-      end subroutine ci_cubic
-
-cddd      subroutine A_eqn(A, f, df,  Ra, b, K, gamol,  ca, a1, f1, Rd )
-cddd      real*8 A, f, df
-cddd      real*8 Ra, b, K, gamol,  ca, a1, f1, Rd
-cddd      !---
-cddd      real*8, parameter :: S_ATM=1.37d0  ! diffusivity ratio H2O/CO2 (atmosph.)
-cddd      real*8, parameter :: S_STOM=1.65d0 ! diffusivity ratio H2O/CO2 (stomatal)
-cddd      real*8 cs, ci, dci
-cddd
-cddd      !write(579,*) "start A_eqn", A
-cddd      cs = ca - A*Ra
-cddd      ci = cs * ( 1.d0 - A/(A*K + b*cs) )
-cddd
-cddd      f = A - ( a1*(ci-gamol)/(ci+f1) -Rd)
-cddd
-cddd      dci = -Ra*( 1.d0 - A/(A*K + b*cs) )
-cddd     &     + cs*(- 1/(A*K + b*cs) + A/(A*K + b*cs)**2*(K-b*Ra) )
-cddd      df = 1 - a1*(f1+gamol)/(ci+f1)**2 * dci
-cddd      
-cddd      !write(579,*) "stop A_eqn", f, df
-cddd
-cddd      end subroutine A_eqn
-
-      subroutine A_eqn(A, f, df,  Ra, b, K1, gamol,  ca, a1, f1, Rd )
-      real*8 A, f, df
-      real*8 Ra, b, K1, gamol,  ca, a1, f1, Rd
-      !---
-      real*8, parameter :: S_ATM=1.37d0  ! diffusivity ratio H2O/CO2 (atmosph.)
-      real*8, parameter :: S_STOM=1.65d0 ! diffusivity ratio H2O/CO2 (stomatal)
-      real*8 cs, ci, dci
-      real*8 byAKbcs, bycif1, K
-
-      if ( A > 0.d0 ) then
-        K = K1
-      else
-        K = 0.d0
-      endif
-      !write(579,*) "start A_eqn", A
-      cs = ca - A*Ra
-      byAKbcs = 1.d0/(A*K + b*cs)
-      ci = cs * ( 1.d0 - A*byAKbcs )
-
-      bycif1 = 1.d0/(ci+f1)
-      f = A - ( a1*(ci-gamol)*bycif1 -Rd)
-
-      dci = -Ra*( 1.d0 - A*byAKbcs )
-     &     + cs*(- byAKbcs + A*byAKbcs*byAKbcs*(K-b*Ra) )
-      df = 1 - a1*(f1+gamol)*bycif1*bycif1 * dci
-      
-      !write(579,*) "stop A_eqn", f, df
-
-      end subroutine A_eqn
-
-      subroutine A_eqn_0(A, f, Ra, b, K1, gamol,  ca, a1, f1, Rd )
-      real*8 A, f
-      real*8 Ra, b, K1, gamol,  ca, a1, f1, Rd
-      !---
-      real*8, parameter :: S_ATM=1.37d0  ! diffusivity ratio H2O/CO2 (atmosph.)
-      real*8, parameter :: S_STOM=1.65d0 ! diffusivity ratio H2O/CO2 (stomatal)
-      real*8 cs, ci, dci
-      real*8 byAKbcs, bycif1, K
-
-      if ( A > 0.d0 ) then
-        K = K1
-      else
-        K = 0.d0
-      endif
-      !write(579,*) "start A_eqn", A
-      cs = ca - A*Ra
-      byAKbcs = 1.d0/(A*K + b*cs)
-      ci = cs * ( 1.d0 - A*byAKbcs )
-
-      bycif1 = 1.d0/(ci+f1)
-      f = A - ( a1*(ci-gamol)*bycif1 -Rd)
-
-      !write(579,*) "stop A_eqn", f, df
-
-      end subroutine A_eqn_0
-
-
-
-      FUNCTION rtsafe(funcd,x1,x2,xacc,  Ra, b, K, gamol,ca, a1, f1, Rd
-     &     , numit )
-!@sum Newton-Raphson solver (Numerical Recepies)
-      INTEGER MAXIT
-      REAL*8 rtsafe,x1,x2,xacc
-      real*8 Ra, b, K, gamol,  ca, a1, f1, Rd
-      integer numit
-      EXTERNAL funcd
-      PARAMETER (MAXIT=100)
-      INTEGER j
-      REAL*8 df,dx,dxold,f,fh,fl,temp,xh,xl
-
-cddd      ! for check
-cddd      real*8 xxx
-cddd      xxx = (x1+x2)/2.d0
-cddd      call funcd(xxx,fl,df,  Ra, b, K, gamol,  ca, a1, f1, Rd)
-cddd      xxx = xxx + .001d0
-cddd      call funcd(xxx,fh,df,  Ra, b, K, gamol,  ca, a1, f1, Rd)
-cddd      write(579,*) "deriv: ", (fh-fl)/.001d0, df
-      
-      numit = 0
-
-      call A_eqn_0(x1,fl,  Ra, b, K, gamol,  ca, a1, f1, Rd)
-      call A_eqn_0(x2,fh,  Ra, b, K, gamol,  ca, a1, f1, Rd)
-      if((fl.gt.0..and.fh.gt.0.).or.(fl.lt.0..and.fh.lt.0.)) then
-        rtsafe = -1.d30
-        return ! for now return 0
-        !call stop_model('root must be bracketed in rtsafe',255)
-      endif
-      if(fl.eq.0.)then
-        rtsafe=x1
-        return
-      else if(fh.eq.0.)then
-        rtsafe=x2
-        return
-      else if(fl.lt.0.)then
-        xl=x1
-        xh=x2
-      else
-        xh=x1
-        xl=x2
-      endif
-      !rtsafe=.5*(x1+x2)
-      rtsafe=x1
-      dxold=abs(x2-x1)
-      dx=dxold
-      call funcd(rtsafe,f,df,  Ra, b, K, gamol,  ca, a1, f1, Rd)
-      do 11 j=1,MAXIT
-        numit = j
-        if(((rtsafe-xh)*df-f)*((rtsafe-xl)*df-f).ge.0..or. abs(2.*
-     *f).gt.abs(dxold*df) ) then
-          dxold=dx
-          dx=0.5*(xh-xl)
-          rtsafe=xl+dx
-          if(xl.eq.rtsafe)return
-        else
-          dxold=dx
-          dx=f/df
-          temp=rtsafe
-          rtsafe=rtsafe-dx
-          if(temp.eq.rtsafe)return
-        endif
-        if(abs(dx).lt.xacc) return
-        call funcd(rtsafe,f,df,  Ra, b, K, gamol,  ca, a1, f1, Rd)
-        if(f.lt.0.) then
-          xl=rtsafe
-        else
-          xh=rtsafe
-        endif
-11    continue
-      call stop_model('rtsafe exceeding maximum iterations',255)
-      return
-      END FUNCTION rtsafe
-#endif
-
-
       end module photcondmod
 

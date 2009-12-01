@@ -314,6 +314,8 @@ cddd      end interface ent_cell_update
      &     do_giss_phenology_1 = do_giss_phenology
       if ( present(do_giss_lai) )
      &     do_giss_lai_1 = do_giss_lai
+      if ( present(do_giss_albedo) )
+     &     do_giss_albedo_1 = do_giss_albedo
       if ( present(jday) ) jday_1 = jday
       if ( present(init) ) init_1 = init
          
@@ -404,6 +406,8 @@ cddd      end interface ent_cell_update
      &     do_giss_phenology_1 = do_giss_phenology
       if ( present(do_giss_lai) )
      &     do_giss_lai_1 = do_giss_lai
+      if ( present(do_giss_albedo) )
+     &     do_giss_albedo_1 = do_giss_albedo
       if ( present(jday) ) jday_1 = jday
       if ( present(init) ) init_1 = init
          
@@ -496,6 +500,8 @@ cddd      end interface ent_cell_update
      &     do_giss_phenology_1 = do_giss_phenology
       if ( present(do_giss_lai) )
      &     do_giss_lai_1 = do_giss_lai
+      if ( present(do_giss_albedo) )
+     &     do_giss_albedo_1 = do_giss_albedo
       if ( present(jday) ) jday_1 = jday
       if ( present(init) ) init_1 = init
          
@@ -1536,7 +1542,10 @@ cddd      end interface ent_cell_update
       dc = dc + nn
       call copy_vars( buf(dc:), nn, entcell%Soilmp, flag)
       dc = dc + nn
-
+      !if ( flag <= 0 ) then
+       call copy_vars( buf(dc:), nn, entcell%sgdd, flag)
+       dc = dc + nn
+      !endif
 
       n = dc
 

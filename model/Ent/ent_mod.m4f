@@ -900,7 +900,10 @@ m4_loop(`
       dc = dc + nn
       call copy_vars( buf(dc:), nn, entcell%Soilmp, flag)
       dc = dc + nn
-
+      !if ( flag <= 0 ) then
+       call copy_vars( buf(dc:), nn, entcell%sgdd, flag)
+       dc = dc + nn
+      !endif
 
       n = dc
 
