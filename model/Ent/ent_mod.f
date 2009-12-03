@@ -109,7 +109,7 @@
       
       end interface
 
-#ifdef DNEED_ENTCOVER_MODULE
+#ifdef NEED_ENTCOVER_MODULE
       public ent_struct_setup  !NEW#########
       !--- passing initial data to ent cells - mixed veg ---
       interface ent_struct_setup
