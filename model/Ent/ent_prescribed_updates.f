@@ -508,12 +508,17 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
       real*8 :: cpool(N_BPOOLS)
       real*8 :: lai_new
       real*8 :: Clossacc(PTRACE,NPOOLS,N_CASA_LAYERS) !Litter accumulator.
+      real*8 :: resp_growth_root !g-C/individ/s
+      real*8 :: resp_growth_patch ! , resp_growth_root_patch !kg-C/m/s
+      integer :: i
 
       if (ASSOCIATED(pp)) then
         !* LAI *AND* BIOMASS - carbon pools *!
         laipatch = 0.d0         !Initialize for summing
         cpool(:) = 0.d0
         Clossacc(:,:,:) = 0.d0
+        resp_growth_patch = 0.d0
+        resp_growth_root = 0.d0
         
         cop => pp%tallest
         do while (ASSOCIATED(cop))
@@ -523,8 +528,16 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
      &           lai_new,Clossacc,.false.)
             laipatch = laipatch + cop%LAI
          endif
+         !* Summarize for patch level. - NOTE:This is total flux, not just the growth increment.
+         resp_growth_patch = resp_growth_patch + cop%R_auto
+         ! the following is not used anywhere
+         !resp_growth_root = resp_growth_root + cop%R_root
+
           cop => cop%shorter
         end do
+        pp%R_auto = resp_growth_patch !Total flux includes growth increment.
+        pp%R_root = resp_growth_root !Total flux includes growth increment.
+        pp%NPP = pp%GPP - resp_growth_patch
         call litter_patch(pp,Clossacc) !Update Tpools following litter accumulation. Daily time step
         pp%LAI = laipatch
 
@@ -552,11 +565,16 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
       real*8 :: cpool(N_BPOOLS)
       real*8 :: lai_old
       real*8 :: C_fol_old,C_froot_old,C_hw_old,C_croot_old,C_sw_old
-      real*8 :: C_lab_old, Clossacc_old, dC
+      real*8 :: resp_growth, resp_growth_root
+      real*8 :: i2a  !Convert g-C/individual to kg-C/m^2
 !#ifdef DEBUG
       integer :: i
       real*8 :: Csum
 !#endif
+
+!!! HACK to deal with undefined variables
+      resp_growth = 0.d0
+      resp_growth_root = 0.d0
 
       lai_old = cop%LAI
       C_fol_old = cop%C_fol
@@ -565,10 +583,6 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
       C_sw_old = cop%C_sw
       C_croot_old = cop%C_croot
       cop%LAI = lai_new
-#ifdef CHECK_CARBON_CONSERVATION
-      C_lab_old = cop%C_lab
-      Clossacc_old = sum(Clossacc(CARBON,SURFMET:CWD,1))
-#endif
  
       !* Update biomass pools except for C_lab.
       call prescr_plant_cpools(cop%pft, cop%lai, cop%h, 
@@ -587,26 +601,6 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
 !        write(992,*)C_fol_old,C_froot_old,C_hw_old,C_sw_old,C_croot_old,
 !     &       cop%C_fol,cop%C_froot,cop%C_hw,cop%C_sw,cop%C_croot
       endif
-
-#ifdef CHECK_CARBON_CONSERVATION
-      dC = cop%C_fol-C_fol_old + cop%C_sw-C_sw_old +
-     &     cop%C_hw-C_hw_old + cop%C_froot-C_froot_old +
-     &     cop%C_croot-C_croot_old + cop%C_lab-C_lab_old +
-     &     (sum(Clossacc(CARBON,SURFMET:CWD,1))-Clossacc_old)/cop%n
-
-      if( abs(dC) > 1.d-8 ) then
-        write(99,*) "litter", dC,
-     &       (sum(Clossacc(CARBON,SURFMET:CWD,1))-Clossacc_old)/cop%n,
-     &       cop%C_fol-C_fol_old, cop%C_sw-C_sw_old, cop%C_hw-C_hw_old,
-     &       cop%C_froot-C_froot_old, cop%C_croot-C_croot_old,
-     &       cop%C_lab-C_lab_old
-
-      endif
-
-!!!! HACK to conserve carbon (add error to C_lab)
-!!!!      cop%C_lab = cop%C_lab - dC  !! seems like not needed any more ...
-#endif
-
         !*## DEBUG ##*!
 !#ifdef DEBUG
       Csum = 0.d0
@@ -619,6 +613,11 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
         
       
       cop%Ntot = cop%nm * cop%LAI !This should eventually go into N allocation routine if dynamic nm.
+
+      i2a = 1d-3*cop%n          !Convert g-C/individual to kg-C/m^2
+      cop%R_auto = cop%R_auto + i2a*resp_growth
+      cop%R_root = cop%R_root + i2a*resp_growth_root
+      cop%NPP = cop%NPP - i2a*resp_growth
       cop%LAI = lai_new  
  
       end subroutine prescr_veglitterupdate_cohort

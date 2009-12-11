@@ -54,6 +54,7 @@
       public ent_initialize
 
       public ent_set_forcings_r8_0
+!      public ent_struct_setup
 
       type entcelltype_public
         private
@@ -2593,7 +2594,7 @@ C NADINE
 #ifdef NEED_ENTCOVER_MODULE
 
       subroutine ent_struct_setup_r8_0(entcell,iu)
-      use ent_make_struct, only : ent_readcsv
+      use ent_make_struct, only : ent_struct_readcsv
       type(entcelltype_public),intent(inout) :: entcell 
       integer, intent(in) :: iu
       !---
@@ -2604,13 +2605,13 @@ C NADINE
       
 
       
-        call ent_readcsv(entcell%entcell,iu)
+        call ent_struct_readcsv(entcell%entcell,iu)
       
 
       end subroutine ent_struct_setup_r8_0
 
       subroutine ent_struct_setup_r8_1(entcell,iu)
-      use ent_make_struct, only : ent_readcsv
+      use ent_make_struct, only : ent_struct_readcsv
       type(entcelltype_public),intent(inout) :: entcell (:)
       integer, intent(in) :: iu
       !---
@@ -2622,14 +2623,14 @@ C NADINE
 
       
       do i1=dims(1,1),dims(2,1)
-        call ent_readcsv(entcell(i1)%entcell,iu)
+        call ent_struct_readcsv(entcell(i1)%entcell,iu)
       
       enddo
 
       end subroutine ent_struct_setup_r8_1
 
       subroutine ent_struct_setup_r8_2(entcell,iu)
-      use ent_make_struct, only : ent_readcsv
+      use ent_make_struct, only : ent_struct_readcsv
       type(entcelltype_public),intent(inout) :: entcell (:,:)
       integer, intent(in) :: iu
       !---
@@ -2642,7 +2643,7 @@ C NADINE
       
       do i1=dims(1,1),dims(2,1)
       do i2=dims(1,2),dims(2,2)
-        call ent_readcsv(entcell(i1,i2)%entcell,iu)
+        call ent_struct_readcsv(entcell(i1,i2)%entcell,iu)
       
       enddo
       enddo

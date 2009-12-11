@@ -6,8 +6,8 @@
       use patches
       use entcells
 
-      public ent_readcsv
-
+      public ent_struct_readcsv
+      
       contains
 
 !************************************************************************
@@ -79,9 +79,9 @@
       call skipstar(iu_entstruct)
       read(iu_entstruct,*) cop%pft
       call skipstar(iu_entstruct)
-      read(iu_entstruct,*) cop%h,cop%crown_dx,cop%crown_dy,
+      read(iu_entstruct,*) cop%n,cop%h,cop%crown_dx,cop%crown_dy,
      &     cop%dbh,cop%root_d,cop%clump
-      write(*,*) cop%h,cop%crown_dx,cop%crown_dy,
+      write(*,*) cop%n,cop%h,cop%crown_dx,cop%crown_dy,
      &     cop%dbh,cop%root_d,cop%clump
       call skipstar(iu_entstruct)
       read(iu_entstruct,*) cop%C_fol,cop%N_fol,cop%C_sw,cop%N_sw,
@@ -203,15 +203,22 @@
       end subroutine ent_struct_readcsv
 
 
-      subroutine ent_readcsv (ecp, iu_entstruct)
+      subroutine ent_struct_readcsv (ecp, iu_entstruct)
 !@sum Read ent vegetation structure from ASCII CSV file
-!@sum Order must be:
+!@sum Called by do_ent_struct:
+!@sum    - do_ent_struct loops through entcells and checks ij bounds
+!@sum    - ent_struct_read_csv allocates an entcell and loops 
+!@sum         through patches and cohorts
+!@sum Order in CSV file must be:
 !@sum First line:  N_CASA_LAYERS
 !@sum e, entcells in any order spanning dimension IM,JM
 !@sum p, patches in order from oldest to youngest
 !@sum c, cohorts in order from tallest to shortest
-!@sum
-!@sum This ordering is not critical, because the insert routines will
+!@sum *, comment line
+!@sum $, end of entcell
+!@sum #, end of file
+!@sum The ordering is not critical, because the CSV file must give the
+!@sum ij indices of the entcell, and the insert routines will
 !@sum sort the patches and cohorts, given age and height.
 
       implicit none
@@ -237,7 +244,8 @@
      &       call stop_model("ent_readcsv: infinite loop",255)
         read(iu_entstruct,*) next
         if (next.eq.'$') then
-          exit
+           write(*,*) 'Ent of entcell.'
+           exit
         else if (next.eq.'*') then !skip comment
         else if (next.eq.'p') then !new patch
           write(*,*) 'p'
@@ -260,7 +268,7 @@
 
       call summarize_entcell(ecp)
 
-      end subroutine ent_readcsv
+      end subroutine ent_struct_readcsv
 
 
       end module ent_make_struct

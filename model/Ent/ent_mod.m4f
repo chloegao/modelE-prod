@@ -44,6 +44,7 @@ define(`m4_type_list',`real*8')
       public ent_initialize
 
       public ent_set_forcings_r8_0
+!      public ent_struct_setup
 
       type entcelltype_public
         private
@@ -1339,7 +1340,7 @@ m4_loop(`
 #ifdef NEED_ENTCOVER_MODULE
 m4_loop(`
       subroutine ent_struct_setup_`'m4_suffix`'(entcell,iu)
-      use ent_make_struct, only : ent_readcsv
+      use ent_make_struct, only : ent_struct_readcsv
       type(entcelltype_public),intent(inout) :: entcell m4_brkts(m4_ext)
       integer, intent(in) :: iu
       !---
@@ -1350,7 +1351,7 @@ m4_loop(`
       m4_arr_only(`dims(2,:) = ubound(entcell)')`'
 
       m4_do(dims)
-        call ent_readcsv(entcell`'m4_brkts(m4_ind)`'%entcell,iu)
+        call ent_struct_readcsv(entcell`'m4_brkts(m4_ind)`'%entcell,iu)
       m4_enddo
 
       end subroutine ent_struct_setup_`'m4_suffix`'

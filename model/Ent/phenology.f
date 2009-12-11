@@ -283,6 +283,7 @@
       !*********************************************************************   
       subroutine pheno_update(dtsec, pp)
 !@sum Update statstics for phneology_update    
+!@sum PHYSICAL time step.
       use ent_const
 
       real*8,intent(in) :: dtsec           !dt in seconds
@@ -588,6 +589,7 @@
       !*********************************************************************   
       subroutine veg_update(dtsec,pp,config)
 !@sum Update the vegetation state and carbon pools:
+!@sum DAILY call.
 !@sum LAI, senescefrac, DBH, height 
 !@sum carbon pools of foliage, sapwood, fineroot, hardwood, coarseroot
 !@sum AND growth respiration from growth and tissue turnnover
@@ -875,10 +877,12 @@
 
       pp%LAI = laipatch  !Update
 
-      !* Update patch luxes with growth respiration. *!
-      pp%R_auto = resp_auto_patch !Total flux including growth increment.
+      !* Update patch fluxes with growth respiration. *!
+      !* The daily respiration fluxes are accumulated in C_growth to
+      !* be distributed over the course of a day to avoid pulses at night.
+!WRONG      pp%R_auto = resp_auto_patch !Total flux including growth increment.
       pp%R_root = pp%R_root + resp_root_patch !Total flux including growth increment.
-      pp%NPP = pp%GPP - resp_auto_patch
+!      pp%NPP = pp%GPP - resp_auto_patch ##Distribute with C_growth
 
       end subroutine veg_update
 
@@ -1403,7 +1407,7 @@ c$$$      end subroutine senesce_cpools
      &       + Closs(CARBON,FROOT,i) * (1-solubfract(pft))
         Clossacc(CARBON,CWD,i) = Clossacc(CARBON,CWD,i) 
      &       + Closs(CARBON,WOOD,i)
-      end do                    !loop through CASA layers-->cumul litter per pool per layer -PK
+      end do   !loop through CASA layers-->cumul litter per pool per layer -PK
 
       !################ ###################################################
       !#### DUE TO TIMING OF LAI UPDATE IN GISS GCM AT THE DAILY TIME STEP,
@@ -1419,6 +1423,7 @@ c$$$      end subroutine senesce_cpools
       do i=1,NPOOLS
         Csum = Csum + Clossacc(CARBON,i,1)
       enddo
+      !## ? Should Csum be added to C_growth ? ## NK
 
       !* Return Clossacc
 
@@ -1427,7 +1432,9 @@ c$$$      end subroutine senesce_cpools
       subroutine litter_growth_cohort(dt,dCrepro,
      i        C_fol_old,C_froot_old,C_hw_old,C_sw_old,C_croot_old,
      &        dC_litter_hw,dC_litter_croot,cop,Clossacc,resp_growth)
-!@sum litter_cohort. Calculates at daily time step litterfall from cohort 
+!@sum litter_cohort for prognostic growth.
+!@sum DAILY TIME STEP.
+!@sum Calculates litterfall from cohort 
 !@sum     to soil, tissue growth,growth respiration, and updates the following
 !@sum     variables:
 !@sum     cohort: C_lab
@@ -1617,7 +1624,8 @@ c$$$      end subroutine senesce_cpools
       do i=1,NPOOLS
         Csum = Csum + Clossacc(CARBON,i,1)
       enddo
-
+      !## ? Should Csum be accumulated in C_growth ? ##NK
+      
       !* Return Clossacc
 
       end subroutine litter_growth_cohort
@@ -1625,8 +1633,11 @@ c$$$      end subroutine senesce_cpools
       subroutine litter_cohort(dt,
      i        C_fol_old,C_froot_old,C_hw_old,C_sw_old,C_croot_old,
      &        cop,Clossacc)
-!@sum litter_cohort. Calculates at daily time step litterfall from cohort 
-!@sum     to soil, tissue growth,growth respiration, and updates the following
+!@sum litter_cohort for static woody structure 
+!@sum               (called by ent_prescribed_updates)
+!@sum DAILY TIME STEP.
+!@sum Calculates litterfall from cohort to soil, tissue growth,
+!@sum growth respiration, and updates the following
 !@sum     variables:
 !@sum     cohort: C_lab
 !@sum             C_growth (daily total tissue growth respiration),
@@ -1884,11 +1895,15 @@ c$$$      end subroutine senesce_cpools
 
       !Cactive = Cactive - loss_leaf - loss_froot !No change in active
       !* Update cohort fluxes with growth respiration *!
-! this doesn't belong here
+      !* NOTE:  R_auto must get updated in canopy biophysics, 
+      !*   distributing daily tissue growth respiration over physical time-step fluxes.
+      !*   R_root is just a diagnostic to distinguish the root component of R_auto, 
+      !*   and it does not affect the atmosphere.
+      !*   It should be updated at the physical time step like R_auto, but
+      !*   then this would necessitate an additional restart variable.
 cddd      i2a = 1d-3*cop%n          !Convert g-C/individual to kg-C/m^2
 cddd      cop%R_auto = cop%R_auto + i2a*resp_growth
 cddd      cop%R_root = cop%R_root + i2a*resp_growth_root
-cddd      cop%NPP = cop%GPP - cop%R_auto
 
       if (C_fol_old.eq.0.d0) then
         cop%senescefrac = 0.d0
