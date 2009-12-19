@@ -38,6 +38,9 @@
 !* 15.  crops - C4 herbaceous           (CROPC4HERB)
 !* 16.  crops - broadleaf woody         (CROPTREE)
 
+
+!## alamax and alamin have been moved to ent_pfts_ENT.f and 
+!##   ent_pfts_ENT_FLUXNET.f - NK
 !KIM - temp. values, NK-updated
 !--- ever_ES_broad ever_LS_broad ever_ES_needle ever_LS_needle 
 !----cold_ES_broad cold_LS_broad drought_broad decid_needle shrub_cold 
@@ -50,39 +53,39 @@ c$$$     $     (/ 8.0d0, 8.0d0, 10.0d0, 10.0d0, 6.0d0 ,6.0d0, 4.0d0
 c$$$     &     ,10.d0, 1.5d0, 2.5d0, 2.0d0, 2.0d0, 2.0d0, 2.0d0
 c$$$     &     , 4.5d0, 6.0d0, 0.d0, 0.d0/)
 
-      real*8, parameter :: alamax(N_COVERTYPES) =
-      !* Matthews LAI *!
-!     $     (/ 8.0d0, 8.0d0, 10.0d0, 10.0d0, 6.0d0 ,6.0d0, 4.0d0
-!     &     ,10.d0, 1.5d0, 2.5d0, 2.0d0, 2.0d0, 2.0d0, 2.0d0
+!      real*8, parameter :: alamax(N_COVERTYPES) =
+!      !* Matthews LAI *!
+!!     $     (/ 8.0d0, 8.0d0, 10.0d0, 10.0d0, 6.0d0 ,6.0d0, 4.0d0
+!!     &     ,10.d0, 1.5d0, 2.5d0, 2.0d0, 2.0d0, 2.0d0, 2.0d0
+!!     &     , 4.5d0, 6.0d0, 0.d0, 0.d0/)
+!#ifndef FLUXNETINIT
+!!      !* Revised Matthews LAI *!
+!     $     (/ 6.0d0, 6.0d0, 8.0d0, 8.0d0, 6.0d0 ,6.0d0, 4.0d0
+!     &     ,6.d0, 1.5d0, 2.5d0, 2.0d0, 2.0d0, 2.0d0, 2.0d0
 !     &     , 4.5d0, 6.0d0, 0.d0, 0.d0/)
-#ifndef FLUXNETINIT
-!      !* Revised Matthews LAI *!
-     $     (/ 6.0d0, 6.0d0, 8.0d0, 8.0d0, 6.0d0 ,6.0d0, 4.0d0
-     &     ,6.d0, 1.5d0, 2.5d0, 2.0d0, 2.0d0, 2.0d0, 2.0d0
-     &     , 4.5d0, 6.0d0, 0.d0, 0.d0/)
-#else
-!      !* FLUXNET LAI *!
-     $     (/ 6.0d0, 5.0d0, 8.0d0, 8.0d0, 6.0d0 ,6.0d0, 4.0d0
-     &     ,6.d0, 1.5d0, 2.5d0, 2.0d0, 2.0d0, 2.0d0, 2.0d0
-     &     , 4.5d0, 6.0d0, 0.d0, 0.d0/)
-#endif
+!#else
+!!      !* FLUXNET LAI *!
+!     $     (/ 6.0d0, 5.0d0, 8.0d0, 8.0d0, 6.0d0 ,6.0d0, 4.0d0
+!     &     ,6.d0, 1.5d0, 2.5d0, 2.0d0, 2.0d0, 2.0d0, 2.0d0
+!     &     , 4.5d0, 6.0d0, 0.d0, 0.d0/)
+!#endif
 
-      real*8, parameter :: alamin(N_COVERTYPES) =
-      !* Matthews LAI *!
-c$$$     $     (/ 6.0d0, 6.0d0, 8.0d0, 8.0d0, 1.0d0, 1.0d0,	1.0d0
-c$$$     &     ,8.0d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 0.1d0, 1.0d0
-c$$$     &     ,1.0d0, 1.0d0, 0.d0, 0.d0 /)
-#ifndef FLUXNETINIT
-      !* Revised Matthews LAI *!
-     $     (/ 5.0d0, 5.0d0, 6.0d0, 6.0d0, 1.0d0, 1.0d0,	1.0d0
-     &     ,1.0d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 0.1d0, 1.0d0
-     &     ,1.0d0, 1.0d0, 0.d0, 0.d0 /)
-#else
-      !* FLUXNET LAI *!
-     $     (/ 5.0d0, 4.0d0, 6.0d0, 6.0d0, 1.0d0, 1.0d0,	1.0d0
-     &     ,1.0d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 0.1d0, 1.0d0
-     &     ,1.0d0, 1.0d0, 0.d0, 0.d0 /)
-#endif
+!      real*8, parameter :: alamin(N_COVERTYPES) =
+!      !* Matthews LAI *!
+!c$$$     $     (/ 6.0d0, 6.0d0, 8.0d0, 8.0d0, 1.0d0, 1.0d0,	1.0d0
+!c$$$     &     ,8.0d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 0.1d0, 1.0d0
+!c$$$     &     ,1.0d0, 1.0d0, 0.d0, 0.d0 /)
+!#ifndef FLUXNETINIT
+!      !* Revised Matthews LAI *!
+!     $     (/ 5.0d0, 5.0d0, 6.0d0, 6.0d0, 1.0d0, 1.0d0,	1.0d0
+!     &     ,1.0d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 0.1d0, 1.0d0
+!     &     ,1.0d0, 1.0d0, 0.d0, 0.d0 /)
+!#else
+!      !* FLUXNET LAI *!
+!     $     (/ 5.0d0, 4.0d0, 6.0d0, 6.0d0, 1.0d0, 1.0d0,	1.0d0
+!     &     ,1.0d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 0.1d0, 1.0d0
+!     &     ,1.0d0, 1.0d0, 0.d0, 0.d0 /)
+!#endif
 
       integer, parameter :: laday(N_COVERTYPES) =
      $     (/ 196, 196, 196, 196, 196, 196, 196
@@ -235,6 +238,7 @@ c$$$     &     ,1.0d0, 1.0d0, 0.d0, 0.d0 /)
       subroutine prescr_veg_albedo(hemi, pft, jday, albedo)
 !@sum returns albedo for vegetation of type pft 
 !@+   as it is computed in GISS modelE
+      use ent_pfts, only:  COVEROFFSET, albvnd
       integer, intent(in) :: hemi !@hemi hemisphere (-1 south, +1 north)
       integer, intent(in) :: pft !@var pftlike iv, plant functional type
       integer, intent(in) :: jday !@jday julian day
@@ -248,80 +252,8 @@ C                    WINTER  SPRING  SUMMER  AUTUMN
      *     SEASON=(/ 15.00,  105.0,  196.0,  288.0/)
 C**** parameters used for vegetation albedo
 !@var albvnd veg alb by veg type, season and band
-      real*8, parameter :: ALBVND(NV,4,6) = RESHAPE( (/
-C
-!--- ever_ES_broad ever_LS_broad ever_ES_needle ever_LS_needle 
-!----cold_ES_broad cold_LS_broad drought_broad decid_needle shrub_cold 
-!----shrub_arid c3grass c4grass c3grass_ann c3grass_arctic 
-!----cropsc4 cropstree
-!----sand bdirt
-!KIM - temp. values, NK-updated: 
-! decid_needle=decid fall-winter & needle spring-summer, 
-! c3grass_ann =c3grass opposite seasons
-!, cropstree = cold_broad
-C
-C     (1)  >SRBALB(6) = VIS  (300 - 770 nm)
-     1 .061,.061,.067,.067,.100,.100,.078, .100,.067,.089,.089,.089,
-     &     .091, .089, .089, .100, .500,.000,
-     2 .061,.061,.067,.067,.055,.055,.073, .067,.100,.100,.100,.100,
-     &     .089, .100, .100, .055, .500,.000,
-     3 .061,.061,.083,.083,.058,.058,.085, .083,.139,.139,.091,.091,
-     &     .100, .091, .091, .058, .500,.000,
-     4 .061,.061,.061,.061,.055,.055,.064, .061, .111,.111,.090,.090,
-     &     .100,.090, .090, .055, .500,.000,
-C
-C     (2)  >SRBALB(5) = NIR  (770 - 860 nm)    (ANIR=Ref)
-     1 .183,.183,.200,.200,.300,.300,.233,.300,.200,.267,.267,.267,
-     &     .350,.267,.267,.300,.500,.000,
-     2 .183,.183,.200,.200,.218,.218,.241,.200,.300,.300,.350,.350,
-     &     .364,.350,.350,.218,.500,.000,
-     3 .183,.183,.250,.250,.288,.288,.297,.250,.417,.417,.364,.364,
-     &     .267,.364,.364,.288,.500,.000,
-     4 .183,.183,.183,.183,.218,.218,.204,.183,.333,.333,.315,.315,
-     &     .315,.315,.315,.218,.500,.000,
-C
-C     (3)  >SRBALB(4) = NIR  (860 -1250 nm)    (ANIR*1.0)
-     1 .183,.183,.200,.200,.300,.300,.233,.300,.200,.267,.267,.267,
-     &     .350,.267,.267,.300,.500,.000,
-     2 .183,.183,.200,.200,.218,.218,.241,.200,.300,.300,.350,.350,
-     &     .364,.350,.350,.218,.500,.000,
-     3 .183,.183,.250,.250,.288,.288,.297,.250,.417,.417,.364,.364,
-     &     .267,.364,.364,.288,.500,.000,
-     4 .183,.183,.183,.183,.218,.218,.204,.218,.333,.333,.315,.315,
-     &     .315,.315,.315,.218,.500,.000,
-C
-C     (4)  >SRBALB(3) = NIR  (1250-1500 nm)    (ANIR*0.4)
-     1 .073,.073,.080,.080,.120,.120,.093,.120,.080,.107,.107,.107,
-     &     .140,.107,.107,.120,.500,.000,
-     2 .073,.073,.080,.080,.083,.083,.096,.080,.120,.120,.140,.140,
-     &     .145,.140,.140,.083,.500,.000,
-     3 .073,.073,.100,.100,.115,.115,.119,.100,.167,.167,.145,.145,
-     &     .107,.145,.145,.115,.500,.000,
-     4 .073,.073,.073,.073,.087,.087,.081,.087,.132,.132,.126,.126,
-     &     .126,.126,.126,.087,.500,.000,
-C
-C     (5)  >SRBALB(2) = NIR  (1500-2200 nm)    (ANIR*0.5)
-     1 .091,.091,.100,.100,.150,.150,.116,.150,.100,.133,.133,.133,
-     &     .175,.133,.133,.150,.500,.000,
-     2 .091,.091,.100,.100,.109,.109,.120,.100,.150,.150,.175,.175,
-     &     .182,.175,.175,.109,.500,.000,
-     3 .091,.091,.125,.125,.144,.144,.148,.125,.208,.208,.182,.182,
-     &     .133,.182,.182,.144,.500,.000,
-     4 .091,.091,.091,.091,.109,.109,.102,.109,.166,.166,.157,.157,
-     &     .157,.157,.157,.109,.500,.000,
-C
-C     (6)  >SRBALB(1) = NIR  (2200-4000 nm)    (ANIR*0.1)
+!@+   albvnd has been moved to ent_pfts_ENT.f - NK
 
-     1 .018,.018,.020,.020,.030,.030,.023,.030,.020,.027,.027,.027,
-     &     .035,.027,.027,.030,.500,.000,
-     2 .018,.018,.020,.020,.022,.022,.024,.020,.030,.030,.035,.035,
-     &     .036,.035,.035,.022,.500,.000,
-     3 .018,.018,.025,.025,.029,.029,.030,.025,.042,.042,.036,.036,
-     &     .027,.036,.036,.029,.500,.000,
-     4 .018,.018,.018,.018,.022,.022,.020,.022,.033,.033,.032,.032,
-     &     .032,.032,.032,.022,.500,.000
-     *     /),(/NV,4,6/) )
-C
 ccc or pass k-vegetation type, L-band and 1 or 2 for Hemisphere
       integer k,kh1,kh2,l
       real*8 seasn1,seasn2,wt2,wt1
@@ -349,7 +281,8 @@ c
       endif
 
       do l=1,6
-        albedo(l)=wt1*ALBVND(pft,kh1,l)+wt2*ALBVND(pft,kh2,l)
+        albedo(l)=wt1*ALBVND(pft+COVEROFFSET,kh1,l)
+     &        +wt2*ALBVND(pft+COVEROFFSET,kh2,l)
       enddo
 
       end subroutine prescr_veg_albedo
@@ -359,29 +292,14 @@ c
       subroutine prescr_calc_rootprof(rootprof, pnum)
       !Return array rootprof of fractions of roots in soil layer
       !Cohort/patch level.
+      use ent_pfts, only: COVEROFFSET, aroot, broot
       real*8 :: rootprof(:)
-      integer :: pnum !plant functional type
+      integer :: pnum !plant functional type + COVEROFFSET
       !-----Local variables------------------
       real*8,parameter :: dz_soil(1:6)=  !N_DEPTH
      &     (/  0.99999964d-01,  0.17254400d+00,
      &     0.29771447d+00,  0.51368874d+00,  0.88633960d+00,
      &     0.15293264d+01 /)
-
-!--- ever_ES_broad ever_LS_broad ever_ES_needle ever_LS_needle 
-!----cold_ES_broad cold_LS_broad drought_broad decid_needle shrub_cold 
-!----shrub_arid c3grass c4grass c3grass_ann c3grass_arctic 
-!----cropsc4 cropstree
-!----sand bdirt
-!KIM - temp. values, NK-updated
-      real*8, parameter :: aroot(N_COVERTYPES) = 
-     $     (/ 1.1d0, 1.1d0, 0.25d0, 0.25d0, 0.25d0, 0.25d0, 0.25d0
-     &     ,0.25d0, 0.8d0, 0.8d0, 0.9d0, 0.9d0, 0.9d0, 0.9d0
-     &     ,0.9d0, 0.25d0, 0.d0, 0.d0 /)
-      real*8, parameter :: broot(N_COVERTYPES) = 
-     $     (/ 0.4d0, 0.4d0, 2.0d0, 2.0d0, 2.0d0, 2.0d0, 2.0d0
-     &     ,2.0d0, 0.4d0, 0.4d0, 0.9d0, 0.9d0, 0.9d0, 0.9d0
-     &     , 0.9d0, 2.0d0, 0.0d0, 0.0d0 /)
-
       integer :: n,l
       real*8 :: z, frup,frdn
 
@@ -413,7 +331,7 @@ c**** calculate root fraction afr averaged over vegetation types
       subroutine prescr_get_rootprof(rootprofdata)
       real*8,intent(out) :: rootprofdata(N_COVERTYPES,N_DEPTH) 
       !---Local--------
-      integer :: pnum !plant functional type      
+      integer :: pnum !plant functional type + COVEROFFSET     
 
       do pnum=1,N_COVERTYPES
         call prescr_calc_rootprof(rootprofdata(pnum,:), pnum)
@@ -426,24 +344,10 @@ c**** calculate root fraction afr averaged over vegetation types
 
       subroutine prescr_get_hdata(hdata)
       !* Return array parameter of GISS vegetation heights.
+       !*## (Can get rid of this subroutine and just assign array vhght)
+      use ent_pfts, only : vhght
       real*8 :: hdata(N_COVERTYPES) 
       !------
-      real*8, parameter :: vhght(N_COVERTYPES) =
-!--- ever_ES_broad ever_LS_broad ever_ES_needle ever_LS_needle 
-!----cold_ES_broad cold_LS_broad drought_broad decid_needle shrub_cold 
-!----shrub_arid c3grass c4grass c3grass_ann c3grass_arctic 
-!----cropsc4 cropstree
-!----sand bdirt
-!KIM - temp. values, NK-updated
-     $     (/25d0, 25d0, 30d0, 30d0, 7.1d0, 7.1d0, 5d0
-     &     , 30d0, 0.1d0, 5d0, 1.5d0, 1.5d0, 1.5d0, 1.5d0
-     &     ,1.75d0, 7.1d0, 0.d0, 0.d0 /)
-
-C        1    2    3    4    5    6    7    8    9   10   11    12
-C      BSAND     GRASS     TREES     EVERG     CROPS     ALGAE
-C           TNDRA     SHRUB     DECID     RAINF     BDIRT     GRAC4
-
-
 
       !* Copy prescr code for calculating seasonal canopy height here.
       ! For prescr Model E replication, don't need to fill in an
@@ -460,18 +364,10 @@ C           TNDRA     SHRUB     DECID     RAINF     BDIRT     GRAC4
 
       subroutine prescr_get_initnm(nmdata)
 !@sum  Mean canopy nitrogen (nmv; g/m2[leaf])
+      !* ##(Can get rid of this subroutine and just assign array vhght)
+      use ent_pfts, only : nmv
       real*8 :: nmdata(N_COVERTYPES)
       !-------
-      real*8, parameter :: nmv(N_COVERTYPES) =
-!--- ever_ES_broad ever_LS_broad ever_ES_needle ever_LS_needle 
-!----cold_ES_broad cold_LS_broad drought_broad decid_needle shrub_cold 
-!----shrub_arid c3grass c4grass c3grass_ann c3grass_arctic 
-!----cropsc4 cropstree
-!----sand bdirt
-!KIM - temp. values, NK-updated
-     $     (/2.7d0, 2.7d0, 2.9d0, 2.9d0, 1.25d0, 1.25d0, 1.03d0
-     &     , 2.9d0, 1.6d0, 2.38d0, 3.27d0, 0.82d0, 3.27d0
-     &     , 3.27d0, 2.50d0, 1.25d0, 0.d0, 0.d0 /)
 
       !* Return intial nm for all vegetation and cover types
       nmdata = nmv
@@ -635,17 +531,10 @@ C           TNDRA     SHRUB     DECID     RAINF     BDIRT     GRAC4
 !*************************************************************************
       subroutine prescr_get_soilcolor(soil_color)
       !* Return arrays of GISS soil color and texture.
+      !## Can get rid of this subroutine and replace with array assignment.
+      use ent_pfts, only : soil_color_prescribed
       integer, intent(out) :: soil_color(N_COVERTYPES)
       !------
-!--- ever_ES_broad ever_LS_broad ever_ES_needle ever_LS_needle 
-!----cold_ES_broad cold_LS_broad drought_broad decid_needle shrub_cold 
-!----shrub_arid c3grass c4grass c3grass_ann c3grass_arctic 
-!----cropsc4 cropstree
-!----sand bdirt
-!KIM - temp. values, NK-updated
-      integer, parameter :: soil_color_prescribed(N_COVERTYPES) =
-     $     (/ 2, 2,  2, 2, 2, 2, 2
-     &     , 2, 2, 2, 2, 2 ,2, 2, 2, 2, 1, 2 /)
 
       soil_color(:) = soil_color_prescribed(:)
 

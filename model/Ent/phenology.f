@@ -1202,7 +1202,10 @@ c$$$      end subroutine senesce_cpools
       subroutine litter_turnover_cohort(dt,
      i        C_fol_old,C_froot_old,C_hw_old,C_sw_old,C_croot_old,
      &        cop,Clossacc,loss_leaf,resp_growth)
-!@sum litter_cohort. Calculates at daily time step litterfall from cohort 
+!@sum litter_turnover_cohort. 
+!@sum CALLED BY phenology veg_update.
+!@sum DAILY TIME STEP.
+!@sum Calculates at daily time step litterfall from cohort 
 !@sum     to soil, tissue growth,growth respiration, and updates the following
 !@sum     variables:
 !@sum     cohort: C_lab
@@ -1261,7 +1264,6 @@ c$$$      end subroutine senesce_cpools
         
       !assign root fractions for CASA layers -PK
       call calc_CASArootfrac(cop,fracrootCASA)
-!      print *, 'from litter(pheno*.f): fracrootCASA(:) =', fracrootCASA !***test*** -PK 11/27/06  
 
       !* NLIVE POOLS *! 
       facclim = frost_hardiness(cop%Sacclim)
@@ -1433,6 +1435,7 @@ c$$$      end subroutine senesce_cpools
      i        C_fol_old,C_froot_old,C_hw_old,C_sw_old,C_croot_old,
      &        dC_litter_hw,dC_litter_croot,cop,Clossacc,resp_growth)
 !@sum litter_cohort for prognostic growth.
+!@sum CALLED BY phenology veg_update.
 !@sum DAILY TIME STEP.
 !@sum Calculates litterfall from cohort 
 !@sum     to soil, tissue growth,growth respiration, and updates the following
@@ -1634,7 +1637,7 @@ c$$$      end subroutine senesce_cpools
      i        C_fol_old,C_froot_old,C_hw_old,C_sw_old,C_croot_old,
      &        cop,Clossacc)
 !@sum litter_cohort for static woody structure 
-!@sum               (called by ent_prescribed_updates)
+!@sum CALLED BY ent_prescribed_updates.
 !@sum DAILY TIME STEP.
 !@sum Calculates litterfall from cohort to soil, tissue growth,
 !@sum growth respiration, and updates the following

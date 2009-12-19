@@ -99,6 +99,7 @@
       !***********************
       integer,parameter :: N_DIST_TYPES = 2 !Number of disturbance types
 
+!#define PFT_MODEL_ENT
 #ifdef PFT_MODEL_ENT
       !************************************************
       !*  ENT PLANT FUNCTIONAL TYPE CONSTANTS         *

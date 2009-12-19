@@ -20,34 +20,36 @@
       public print_ent_pfts, alamin
 #endif 
 !*********************************************************************
-!--- sand tundr  grass  shrub  trees  decid evrgr  rainf crops bdirt algae  c4grass
-      real*8, parameter :: alamax(N_COVERTYPES) =
-      !* Matthews LAI *!
-!     $     (/ 0.d0, 1.5d0, 2.0d0, 2.5d0, 4.0d0, 6.0d0,10.0d0,8.0d0,4.5d0
-!     &     ,0.d0, 0.d0, 2.d0 /)
-#ifndef FLUXNETINIT
-      !* Revised Matthews LAI *!
-     $     (/ 0.d0, 1.5d0, 2.0d0, 2.5d0, 4.0d0, 6.0d0,8.0d0,7.0d0,3.0d0
-     &     ,0.d0, 0.d0, 2.d0 /)
-#else
-      !* FLUXNET Sites *!
-     $     (/ 0.d0, 1.5d0, 2.0d0, 2.5d0, 4.0d0, 6.0d0,6.0d0,7.0d0,4.5d0
-     &     ,0.d0, 0.d0, 2.d0 /)
-#endif
+!## alamax and alamin have been moved to ent_pfts.f and ent_pfts_FLUXNET.f - NK
 
-      real*8, parameter :: alamin(N_COVERTYPES) =
-      !* Matthews LAI *!
-!     $     (/ 0.d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 8.0d0,6.0d0,1.0d0
+!--- sand tundr  grass  shrub  trees  decid evrgr  rainf crops bdirt algae  c4grass
+!      real*8, parameter :: alamax(N_COVERTYPES) =
+!      !* Matthews LAI *!
+!!     $     (/ 0.d0, 1.5d0, 2.0d0, 2.5d0, 4.0d0, 6.0d0,10.0d0,8.0d0,4.5d0
+!!     &     ,0.d0, 0.d0, 2.d0 /)
+!#ifndef FLUXNETINIT
+!      !* Revised Matthews LAI *!
+!     $     (/ 0.d0, 1.5d0, 2.0d0, 2.5d0, 4.0d0, 6.0d0,8.0d0,7.0d0,3.0d0
+!     &     ,0.d0, 0.d0, 2.d0 /)
+!#else
+!      !* FLUXNET Sites *!
+!     $     (/ 0.d0, 1.5d0, 2.0d0, 2.5d0, 4.0d0, 6.0d0,6.0d0,7.0d0,4.5d0
+!     &     ,0.d0, 0.d0, 2.d0 /)
+!#endif
+
+!      real*8, parameter :: alamin(N_COVERTYPES) =
+!      !* Matthews LAI *!
+!!     $     (/ 0.d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 8.0d0,6.0d0,1.0d0
+!!     &     ,0.d0, 0.d0, 1.d0 /)
+!#ifndef FLUXNETINIT
+!      !* Revised Matthews LAI *!
+!     $     (/ 0.d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 6.0d0,6.0d0,1.0d0
 !     &     ,0.d0, 0.d0, 1.d0 /)
-#ifndef FLUXNETINIT
-      !* Revised Matthews LAI *!
-     $     (/ 0.d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 6.0d0,6.0d0,1.0d0
-     &     ,0.d0, 0.d0, 1.d0 /)
-#else
-      !* FLUXNET site *!
-     $     (/ 0.d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 4.5d0,6.0d0,1.0d0
-     &     ,0.d0, 0.d0, 1.d0 /)
-#endif
+!#else
+!      !* FLUXNET site *!
+!     $     (/ 0.d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 4.5d0,6.0d0,1.0d0
+!     &     ,0.d0, 0.d0, 1.d0 /)
+!#endif
 
       integer, parameter :: laday(N_COVERTYPES) =
      $     (/ 0, 196,  196,  196,  196,  196,  196,  196,  196
@@ -155,14 +157,15 @@
       real*8, intent(in) :: vdata(:) !@var pnum cover type
       !-----Local variables------
       real*8 lai, fsum
-      integer pnum
+      integer pft, anum
 
       lai = 0.d0
       fsum = 0.d0
 
-      do pnum=COVEROFFSET+1,COVEROFFSET+N_PFT
-        lai = lai + .5d0 * (alamax(pnum) + alamin(pnum))*vdata(pnum)
-        fsum = fsum + vdata(pnum)
+      do pft=1,N_PFT
+         anum=pft + COVEROFFSET
+        lai = lai + .5d0 * (alamax(anum) + alamin(anum))*vdata(anum)
+        fsum = fsum + vdata(anum)
       enddo
 
       if ( fsum > EPS ) lai = lai/fsum
@@ -173,19 +176,19 @@
 
 !**************************************************************************
 
-      real*8 function prescr_calc_shoot(pnum,hdata,dbhdata)
+      real*8 function prescr_calc_shoot(pft,hdata,dbhdata)
      &     Result(Bshoot)
 !@sum Returns GISS GCM veg shoot kg-C per plant for given vegetation type.
 !@+   From Moorcroft, et al. (2001), who takes allometry data from
 !@+   Saldarriaga et al. (1998).
-      integer,intent(in) :: pnum !@var pnum vegetation type
+      integer,intent(in) :: pft !@var pft vegetation type
       real*8,intent(in) :: hdata(N_COVERTYPES), dbhdata(N_COVERTYPES)
       !-----Local-------
       real*8 :: wooddens
       integer :: n !covertypes index
 
-      n = pnum + COVEROFFSET
-      wooddens = wooddensity_gcm3(pnum)
+      n = pft + COVEROFFSET
+      wooddens = wooddensity_gcm3(pft)
       Bshoot = 0.069 * (hdata(n))**0.572
      &     * (dbhdata(n))**1.94 * (wooddens**0.931)
 
@@ -196,12 +199,13 @@
       subroutine prescr_veg_albedo(hemi, pft, jday, albedo)
 !@sum returns albedo for vegetation of type pft 
 !@+   as it is computed in GISS modelE
+      use ent_pfts, only:  COVEROFFSET, albvnd
       integer, intent(in) :: hemi !@hemi hemisphere (-1 south, +1 north)
       integer, intent(in) :: pft !@var pftlike iv, plant functional type
       integer, intent(in) :: jday !@jday julian day
       real*8, intent(out) :: albedo(N_BANDS) !@albedo returned albedo
       !----------Local----------
-      integer, parameter :: NV=N_COVERTYPES
+!      integer, parameter :: NV=N_COVERTYPES
       !@var SEASON julian day for start of season (used for veg albedo calc)
 C                      1       2       3       4
 C                    WINTER  SPRING  SUMMER  AUTUMN
@@ -209,62 +213,8 @@ C                    WINTER  SPRING  SUMMER  AUTUMN
      *     SEASON=(/ 15.00,  105.0,  196.0,  288.0/)
 C**** parameters used for vegetation albedo
 !@var albvnd veg alb by veg type, season and band
-      real*8, parameter :: ALBVND(NV,4,6) = RESHAPE( (/
-C     (1)  >SRBALB(6) = VIS  (300 - 770 nm)
-C        1    2    3    4    5    6    7    8    9   10   11    12
-C      BSAND     GRASS     TREES     EVERG     CROPS     ALGAE
-C           TNDRA     SHRUB     DECID     RAINF     BDIRT     GRAC4
-     1 .500,.067,.089,.089,.078,.100,.067,.061,.089,.000,.200,.089,
-     2 .500,.062,.100,.100,.073,.055,.067,.061,.100,.000,.200,.100,
-     3 .500,.085,.091,.139,.085,.058,.083,.061,.091,.000,.200,.091,
-     4 .500,.080,.090,.111,.064,.055,.061,.061,.090,.000,.200,.090,
-C
-C     (2)  >SRBALB(5) = NIR  (770 - 860 nm)    (ANIR=Ref)
-C        1    2    3    4    5    6    7    8    9   10   11    12
-C      BSAND     GRASS     TREES     EVERG     CROPS     ALGAE
-C           TNDRA     SHRUB     DECID     RAINF     BDIRT     GRAC4
-     1 .500,.200,.267,.267,.233,.300,.200,.183,.267,.000,.200,.267,
-     2 .500,.206,.350,.300,.241,.218,.200,.183,.350,.000,.200,.350,
-     3 .500,.297,.364,.417,.297,.288,.250,.183,.364,.000,.200,.364,
-     4 .500,.255,.315,.333,.204,.218,.183,.183,.315,.000,.200,.315,
-C
-C     (3)  >SRBALB(4) = NIR  (860 -1250 nm)    (ANIR*1.0)
-C        1    2    3    4    5    6    7    8    9   10   11    12
-C      BSAND     GRASS     TREES     EVERG     CROPS     ALGAE
-C           TNDRA     SHRUB     DECID     RAINF     BDIRT     GRAC4
-     1 .500,.200,.267,.267,.233,.300,.200,.183,.267,.000,.200,.267,
-     2 .500,.206,.350,.300,.241,.218,.200,.183,.350,.000,.200,.350,
-     3 .500,.297,.364,.417,.297,.288,.250,.183,.364,.000,.200,.364,
-     4 .500,.255,.315,.333,.204,.218,.183,.183,.315,.000,.200,.315,
-C
-C     (4)  >SRBALB(3) = NIR  (1250-1500 nm)    (ANIR*0.4)
-C        1    2    3    4    5    6    7    8    9   10   11    12
-C      BSAND     GRASS     TREES     EVERG     CROPS     ALGAE
-C           TNDRA     SHRUB     DECID     RAINF     BDIRT     GRAC4
-     1 .500,.080,.107,.107,.093,.120,.080,.073,.107,.000,.200,.107,
-     2 .500,.082,.140,.120,.096,.083,.080,.073,.140,.000,.200,.140,
-     3 .500,.119,.145,.167,.119,.115,.100,.073,.145,.000,.200,.145,
-     4 .500,.102,.126,.132,.081,.087,.073,.073,.126,.000,.200,.126,
-C
-C     (5)  >SRBALB(2) = NIR  (1500-2200 nm)    (ANIR*0.5)
-C        1    2    3    4    5    6    7    8    9   10   11    12
-C      BSAND     GRASS     TREES     EVERG     CROPS     ALGAE
-C           TNDRA     SHRUB     DECID     RAINF     BDIRT     GRAC4
-     1 .500,.100,.133,.133,.116,.150,.100,.091,.133,.000,.200,.133,
-     2 .500,.103,.175,.150,.120,.109,.100,.091,.175,.000,.200,.175,
-     3 .500,.148,.182,.208,.148,.144,.125,.091,.182,.000,.200,.182,
-     4 .500,.127,.157,.166,.102,.109,.091,.091,.157,.000,.200,.157,
-C
-C     (6)  >SRBALB(1) = NIR  (2200-4000 nm)    (ANIR*0.1)
-C        1    2    3    4    5    6    7    8    9   10   11    12
-C      BSAND     GRASS     TREES     EVERG     CROPS     ALGAE
-C           TNDRA     SHRUB     DECID     RAINF     BDIRT     GRAC4
-     1 .500,.020,.027,.027,.023,.030,.020,.018,.027,.000,.200,.027,
-     2 .500,.021,.035,.030,.024,.022,.020,.018,.035,.000,.200,.035,
-     3 .500,.030,.036,.042,.030,.029,.025,.018,.036,.000,.200,.036,
-     4 .500,.026,.032,.033,.020,.022,.018,.018,.032,.000,.200,.032
-     *     /),(/NV,4,6/) )
-C
+!@+   albvnd has been moved to ent_pfts.f - NK
+
 ccc or pass k-vegetation type, L-band and 1 or 2 for Hemisphere
       integer k,kh1,kh2,l
       real*8 seasn1,seasn2,wt2,wt1
@@ -292,7 +242,8 @@ c
       endif
 
       do l=1,6
-        albedo(l)=wt1*ALBVND(pft,kh1,l)+wt2*ALBVND(pft,kh2,l)
+        albedo(l)=wt1*ALBVND(pft+COVEROFFSET,kh1,l)+
+     &        wt2*ALBVND(pft+COVEROFFSET,kh2,l)
       enddo
 
       end subroutine prescr_veg_albedo
@@ -302,20 +253,15 @@ c
       subroutine prescr_calc_rootprof(rootprof, pnum)
       !Return array rootprof of fractions of roots in soil layer
       !Cohort/patch level.
+      use ent_pfts, only:  COVEROFFSET, aroot, broot
       real*8 :: rootprof(:)
-      integer :: pnum !plant functional type
+      integer :: pnum !plant functional type + COVEROFFSET
       !-----Local variables------------------
       real*8,parameter :: dz_soil(1:6)=  !N_DEPTH
      &     (/  0.99999964d-01,  0.17254400d+00,
      &     0.29771447d+00,  0.51368874d+00,  0.88633960d+00,
      &     0.15293264d+01 /)
- !--- tundr  grass  shrub  trees  decid evrgr  rainf crops bdirt algae  c4grass
-      real*8, parameter :: aroot(N_COVERTYPES) = 
-     $     (/ 0.d0,12.5d0, 0.9d0, 0.8d0,0.25d0,0.25d0,0.25d0,1.1d0,0.9d0
-     &     ,0.d0, 0.d0, 0.9d0 /)
-      real*8, parameter :: broot(N_COVERTYPES) = 
-     $     (/ 0.d0, 1.0d0, 0.9d0, 0.4d0,2.00d0,2.00d0,2.00d0,0.4d0,0.9d0
-     &     ,0.d0, 0.d0, 0.9d0 /)
+!## aroot and broot have been moved to ent_pfts.f. - NK
       integer :: n,l
       real*8 :: z, frup,frdn
 
@@ -347,7 +293,7 @@ c**** calculate root fraction afr averaged over vegetation types
       subroutine prescr_get_rootprof(rootprofdata)
       real*8,intent(out) :: rootprofdata(N_COVERTYPES,N_DEPTH) 
       !---Local--------
-      integer :: pnum !plant functional type      
+      integer :: pnum !plant functional type + COVEROFFSET
 
       do pnum=1,N_COVERTYPES
         call prescr_calc_rootprof(rootprofdata(pnum,:), pnum)
@@ -360,16 +306,10 @@ c**** calculate root fraction afr averaged over vegetation types
 
       subroutine prescr_get_hdata(hdata)
       !* Return array parameter of GISS vegetation heights.
+      !* ##(Can get rid of this subroutine and just assign array vhght)
+      use ent_pfts, only : vhght
       real*8 :: hdata(N_COVERTYPES) 
       !------
-      real*8, parameter :: vhght(N_COVERTYPES) =
-      !* bsand tundrv  grass shrub trees  decid evrgr  rainf crops bdirt algae  c4grass
-      !GISS ORIGINAL
-!     $     (/0.d0, 0.1d0, 1.5d0,   5d0,  15d0,  20d0,  30d0, 25d0,1.75d0
-!     &     ,0.d0, 0.d0, 1.5d0 /)
-      !NYK ADJUSTED VALUES
-     $     (/0.d0, 0.1d0, 1.5d0,  5d0,  7.1d0,  20d0,  30d0, 25d0,1.75d0
-     &     ,0.d0, 0.d0, 1.5d0 /)
 
       !* Copy prescr code for calculating seasonal canopy height here.
       ! For prescr Model E replication, don't need to fill in an
@@ -386,11 +326,10 @@ c**** calculate root fraction afr averaged over vegetation types
 
       subroutine prescr_get_initnm(nmdata)
 !@sum  Mean canopy nitrogen (nmv; g/m2[leaf])
+      !* ##(Can get rid of this subroutine and just assign array vhght)
+      use ent_pfts, only : nmv
       real*8 :: nmdata(N_COVERTYPES)
       !-------
-      real*8, parameter :: nmv(N_COVERTYPES) =
-     $     (/0.d0,1.6d0,3.27d0,2.38d0,1.03d0,1.25d0,2.9d0,2.7d0,2.50d0
-     &     ,0.d0, 0.d0, 0.82d0 /)
 
       !* Return intial nm for all vegetation and cover types
       nmdata = nmv
@@ -508,7 +447,6 @@ c**** calculate root fraction afr averaged over vegetation types
       cpool(FOL) = lai/pfpar(pft)%sla/popdens *1d3!Bl
       cpool(FR) = cpool(FOL)   !Br
       !cpool(LABILE) = 0.d0      !dummy.  For prescribed growth, labile storage is not needed.
-!      if (pft.ne.GRASSC3) then  !Woody
       if (pfpar(pft)%woody ) then !Woody
 !        cpool(SW) = 0.00128d0 * pfpar(pft)%sla * cpool(FR) * h  !Bsw 0.00128 is an error in ED paper.
         cpool(SW) = 0.128d0 * pfpar(pft)%sla * max_cpoolFOL * h  !Bsw CONSTANT
@@ -561,13 +499,10 @@ c**** calculate root fraction afr averaged over vegetation types
 !*************************************************************************
       subroutine prescr_get_soilcolor(soil_color)
       !* Return arrays of GISS soil color and texture.
+      !## Can get rid of this subroutine and replace with array assignment.
+      use ent_pfts, only : soil_color_prescribed
       integer, intent(out) :: soil_color(N_COVERTYPES)
       !------
-
-      !* bsand tundr  grass shrub trees  decid evrgr  rainf crops bdirt algae  c4grass
-      integer, parameter :: soil_color_prescribed(N_COVERTYPES) =
-     $     (/1, 2, 2,  2, 2, 2, 2, 2
-     &     ,2, 2, 2, 2 /)
 
       soil_color(:) = soil_color_prescribed(:)
       
