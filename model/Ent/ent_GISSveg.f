@@ -11,45 +11,18 @@
       public 
      &     prescr_veg_albedo,prescr_calc_rootprof,
      &     prescr_calcconst, prescr_calc_lai
-     &     ,alamax !For temporary phenology
       public prescr_calc_shc,prescr_plant_cpools, prescr_init_Clab
       public prescr_get_hdata,prescr_get_initnm,prescr_get_rootprof,
      &     prescr_get_woodydiameter,prescr_get_pop,prescr_get_crownrad
      &     ,prescr_get_soilcolor,ED_woodydiameter,popdensity
 #ifdef ENT_STANDALONE_DIAG
-      public print_ent_pfts, alamin
+      public print_ent_pfts
 #endif 
 !*********************************************************************
+!* Matthews (1983) 8 biome types
+!--- sand tundr grass shrub trees decid evrgr rainf crops bdirt algae c4grass
+
 !## alamax and alamin have been moved to ent_pfts.f and ent_pfts_FLUXNET.f - NK
-
-!--- sand tundr  grass  shrub  trees  decid evrgr  rainf crops bdirt algae  c4grass
-!      real*8, parameter :: alamax(N_COVERTYPES) =
-!      !* Matthews LAI *!
-!!     $     (/ 0.d0, 1.5d0, 2.0d0, 2.5d0, 4.0d0, 6.0d0,10.0d0,8.0d0,4.5d0
-!!     &     ,0.d0, 0.d0, 2.d0 /)
-!#ifndef FLUXNETINIT
-!      !* Revised Matthews LAI *!
-!     $     (/ 0.d0, 1.5d0, 2.0d0, 2.5d0, 4.0d0, 6.0d0,8.0d0,7.0d0,3.0d0
-!     &     ,0.d0, 0.d0, 2.d0 /)
-!#else
-!      !* FLUXNET Sites *!
-!     $     (/ 0.d0, 1.5d0, 2.0d0, 2.5d0, 4.0d0, 6.0d0,6.0d0,7.0d0,4.5d0
-!     &     ,0.d0, 0.d0, 2.d0 /)
-!#endif
-
-!      real*8, parameter :: alamin(N_COVERTYPES) =
-!      !* Matthews LAI *!
-!!     $     (/ 0.d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 8.0d0,6.0d0,1.0d0
-!!     &     ,0.d0, 0.d0, 1.d0 /)
-!#ifndef FLUXNETINIT
-!      !* Revised Matthews LAI *!
-!     $     (/ 0.d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 6.0d0,6.0d0,1.0d0
-!     &     ,0.d0, 0.d0, 1.d0 /)
-!#else
-!      !* FLUXNET site *!
-!     $     (/ 0.d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 4.5d0,6.0d0,1.0d0
-!     &     ,0.d0, 0.d0, 1.d0 /)
-!#endif
 
       integer, parameter :: laday(N_COVERTYPES) =
      $     (/ 0, 196,  196,  196,  196,  196,  196,  196,  196
@@ -127,12 +100,13 @@
 
 !**************************************************************************
       
-      real*8 function prescr_calc_lai(pnum,jday,hemi ) RESULT(lai)
+      real*8 function prescr_calc_lai(ncov,jday,hemi ) RESULT(lai)
 !@sum Returns GISS GCM leaf area index for given vegetation type, julian day
 !@+   and hemisphere
       use ent_const
+      use ent_pfts, only: alamax, alamin
       !real*8, intent(out) :: lai !@var lai leaf area index - returned
-      integer, intent(in) :: pnum !@var pnum cover type
+      integer, intent(in) :: ncov !@var ncov cover type
       integer, intent(in) :: jday !@var jday julian day
       integer, intent(in) :: hemi !@var hemi =1 in N. hemisphere, =-1 S.hemi
       !-----Local variables------
@@ -142,9 +116,9 @@
       if ( hemi < 0 ) dphi = 2d0*pi*.5d0
 
       !* Return lai *!
-      lai =  .5d0 * (alamax(pnum) + alamin(pnum))
-     $     + .5d0 * (alamax(pnum) - alamin(pnum))
-     $     * cos( 2d0*pi*(laday(pnum)-jday)/dble(EDPERY) + dphi )
+      lai =  .5d0 * (alamax(ncov) + alamin(ncov))
+     $     + .5d0 * (alamax(ncov) - alamin(ncov))
+     $     * cos( 2d0*pi*(laday(ncov)-jday)/dble(EDPERY) + dphi )
 
       end function prescr_calc_lai
 
@@ -154,18 +128,19 @@
       real*8 function prescr_calc_shc(vdata) RESULT(shc)
 !@sum Returns GISS GCM specific heat capacity for canopy
       use ent_const
-      real*8, intent(in) :: vdata(:) !@var pnum cover type
+      use ent_pfts, only: COVEROFFSET, alamax, alamin
+      real*8, intent(in) :: vdata(:) !@var cover type
       !-----Local variables------
       real*8 lai, fsum
-      integer pft, anum
+      integer pft, ncov
 
       lai = 0.d0
       fsum = 0.d0
 
       do pft=1,N_PFT
-         anum=pft + COVEROFFSET
-        lai = lai + .5d0 * (alamax(anum) + alamin(anum))*vdata(anum)
-        fsum = fsum + vdata(anum)
+         ncov=pft + COVEROFFSET
+        lai = lai + .5d0 * (alamax(ncov) + alamin(ncov))*vdata(ncov)
+        fsum = fsum + vdata(ncov)
       enddo
 
       if ( fsum > EPS ) lai = lai/fsum
@@ -175,7 +150,7 @@
       end function prescr_calc_shc
 
 !**************************************************************************
-
+!## This function does not appear to be used - NK
       real*8 function prescr_calc_shoot(pft,hdata,dbhdata)
      &     Result(Bshoot)
 !@sum Returns GISS GCM veg shoot kg-C per plant for given vegetation type.
@@ -185,15 +160,15 @@
       real*8,intent(in) :: hdata(N_COVERTYPES), dbhdata(N_COVERTYPES)
       !-----Local-------
       real*8 :: wooddens
-      integer :: n !covertypes index
+      integer :: ncov !covertypes index
 
-      n = pft + COVEROFFSET
+      ncov = pft + COVEROFFSET
       wooddens = wooddensity_gcm3(pft)
-      Bshoot = 0.069 * (hdata(n))**0.572
-     &     * (dbhdata(n))**1.94 * (wooddens**0.931)
+      Bshoot = 0.069 * (hdata(ncov))**0.572
+     &     * (dbhdata(ncov))**1.94 * (wooddens**0.931)
 
       end function prescr_calc_shoot
-
+ 
 !**************************************************************************
 
       subroutine prescr_veg_albedo(hemi, pft, jday, albedo)
@@ -250,12 +225,12 @@ c
 
 !**************************************************************************
 
-      subroutine prescr_calc_rootprof(rootprof, pnum)
+      subroutine prescr_calc_rootprof(rootprof, ncov)
       !Return array rootprof of fractions of roots in soil layer
       !Cohort/patch level.
       use ent_pfts, only:  COVEROFFSET, aroot, broot
       real*8 :: rootprof(:)
-      integer :: pnum !plant functional type + COVEROFFSET
+      integer :: ncov !plant functional type + COVEROFFSET
       !-----Local variables------------------
       real*8,parameter :: dz_soil(1:6)=  !N_DEPTH
      &     (/  0.99999964d-01,  0.17254400d+00,
@@ -278,7 +253,7 @@ c**** calculate root fraction afr averaged over vegetation types
       frup=0.
       do l=1,n
         z=z+dz_soil(l)
-        frdn=aroot(pnum)*z**broot(pnum) !cumulative root distrib.
+        frdn=aroot(ncov)*z**broot(ncov) !cumulative root distrib.
         !frdn=min(frdn,one)
         frdn=min(frdn,1d0)
         if(l.eq.n)frdn=1.
@@ -293,10 +268,10 @@ c**** calculate root fraction afr averaged over vegetation types
       subroutine prescr_get_rootprof(rootprofdata)
       real*8,intent(out) :: rootprofdata(N_COVERTYPES,N_DEPTH) 
       !---Local--------
-      integer :: pnum !plant functional type + COVEROFFSET
+      integer :: ncov !plant functional type + COVEROFFSET
 
-      do pnum=1,N_COVERTYPES
-        call prescr_calc_rootprof(rootprofdata(pnum,:), pnum)
+      do ncov=1,N_COVERTYPES
+        call prescr_calc_rootprof(rootprofdata(ncov,:), ncov)
         !Return array rootprof of fractions of roots in soil layer
         !by vegetation type.
       end do
@@ -343,17 +318,18 @@ c**** calculate root fraction afr averaged over vegetation types
       real*8,intent(in) :: dbhdata(N_COVERTYPES)
       real*8,intent(out) :: popdata(N_COVERTYPES)
       !---Local-----------
-      integer :: n,pft
+      integer :: ncov,pft
 
       popdata(:) = 0.0 !Zero initialize, and zero bare soil.
       do pft=1,N_PFT
-        n = pft + COVEROFFSET
-        popdata(n) = popdensity(pft,dbhdata(n))
+        ncov = pft + COVEROFFSET
+        popdata(ncov) = popdensity(pft,dbhdata(ncov))
       enddo
       end subroutine prescr_get_pop
 
 !*************************************************************************
       real*8 function popdensity(pft,dbh) Result(popdens)
+      use ent_pfts, only: COVEROFFSET, alamax
       integer,intent(in) :: pft
       real*8, intent(in) :: dbh
       !---Local-----------
@@ -378,39 +354,41 @@ c**** calculate root fraction afr averaged over vegetation types
       !----Local---------
       integer :: n,pft
 
-      wddata(:) = 0.0 !Zero initialize.
+      wddata(:) = 0.0           !Zero initialize.
       do pft = 1,N_PFT
-        n = pft + COVEROFFSET
-        if (pfpar(pft)%woody) then !Woody
-          if (pft.eq.TUNDRA) then
-            wddata(n) = ED_woodydiameter(pft,hdata(n)) * 20 !FUDGE UNTIL HAVE MIXED CANOPIES
-          else                  !Most trees
-            wddata(n) = ED_woodydiameter(pft,hdata(n))
-          end if
-        endif
+         n = pft + COVEROFFSET
+         if (pfpar(pft)%woody) then !Woody
+            if (pft.eq.TUNDRA) then !May need separate shrub allometry
+               wddata(n) = ED_woodydiameter(pft,hdata(n)) * 20. 
+            else                !Most trees
+               wddata(n) = ED_woodydiameter(pft,hdata(n))
+            end if
+         endif
       enddo
       end subroutine prescr_get_woodydiameter
 
 !*************************************************************************
 
       real*8 function ED_woodydiameter(pft,h) Result(dbh)
-      !* Return woody plant diameter (m).
+      !* Return woody plant diameter (cm).
       !* From Moorcroft, et al. (2001)
       integer,intent(in) :: pft !plant functional type
       real*8,intent(in) ::  h !height (m)
       !real*8,intent(out) :: dbh !(cm)
 
-      if (pft.eq.SAVANNA) then
-        dbh = 30.0 !Estimate from Tonzi Ranch, NYK
-      else
+!      if (pft.eq.SAVANNA) then
+!        dbh = 30.0 !Estimate from Tonzi Ranch, NYK
+!      else
         dbh = ((1/2.34)*h)**(1/0.64)
-      endif
+!      endif
       
       end function ED_woodydiameter
 
 !*************************************************************************
 
       subroutine prescr_get_crownrad(popdata,craddata)
+!@sum prescr_get_crownrad - assumes closed-canopy packing of crowns
+!@+      in rows and columns (not staggered).
       real*8,intent(in) :: popdata(N_COVERTYPES)
       real*8,intent(out) :: craddata(N_COVERTYPES)
       !---Local----
@@ -434,6 +412,7 @@ c**** calculate root fraction afr averaged over vegetation types
       !*  CR(kg-C/tree) = 0.5*CR(kg/tree) = 0.5*exp(-4.4835)*(dbh**2.5064).
       !*  The ratio of CR(kg-C/tree)/HW(kg-C/tree) at h=20 m is ~0.153.
       !*  This is about the same as the ratio of their CR biomass/AG biomass.
+      use ent_pfts, only: COVEROFFSET, pfpar, alamax
       integer,intent(in) :: pft !plant functional type
       real*8, intent(in) :: lai,h,dbh,popdens  !lai, h(m), dbh(cm),popd(#/m2)
       real*8, intent(out) :: cpool(N_BPOOLS) !g-C/pool/plant
@@ -446,20 +425,19 @@ c**** calculate root fraction afr averaged over vegetation types
       max_cpoolFOL = alamax(pft+COVEROFFSET)/pfpar(pft)%sla/popdens*1d3
       cpool(FOL) = lai/pfpar(pft)%sla/popdens *1d3!Bl
       cpool(FR) = cpool(FOL)   !Br
-      !cpool(LABILE) = 0.d0      !dummy.  For prescribed growth, labile storage is not needed.
+      !cpool(LABILE) = prognostic as diagnostic.
       if (pfpar(pft)%woody ) then !Woody
 !        cpool(SW) = 0.00128d0 * pfpar(pft)%sla * cpool(FR) * h  !Bsw 0.00128 is an error in ED paper.
         cpool(SW) = 0.128d0 * pfpar(pft)%sla * max_cpoolFOL * h  !Bsw CONSTANT
         cpool(HW) = 0.069d0*(h**0.572d0)*(dbh**1.94d0) * 
      &       (wooddensity_gcm3(pft)**0.931d0) *1d3
- !       cpoolHW  = 0.069d0*(h**0.572d0)*(dbh**1.94d0) * 
-!     &       (wooddensity_gcm3(pft)**0.931d0) *1d3
         cpool(CR) = pfpar(pft)%croot_ratio*cpool(HW) !Estimated from Zerihun (2007)
       else
         cpool(SW) = 0.d0
         cpool(HW) = 0.d0
         cpool(CR) = 0.d0
       endif
+      !write(997,*) pft, lai, h, dbh, popdens, cpool
 
       end subroutine prescr_plant_cpools
 
@@ -469,7 +447,7 @@ c**** calculate root fraction afr averaged over vegetation types
 !@sum (alamax - alamin) for woody and perennial plants.
 !@sum 4x requirement is from Bill Parton (personal communication).
 !@sum For herbaceous annuals, assume seed provides 0.5 of alamax mass (guess).
-
+      use ent_pfts, only : COVEROFFSET, pfpar, alamax, alamin
       implicit none
       integer, intent(in) :: pft
       real*8, intent(in) :: n !Density (#/m^2)
@@ -482,8 +460,12 @@ c**** calculate root fraction afr averaged over vegetation types
         cpool(LABILE) = (alamax(pft+COVEROFFSET)-alamin(pft+COVEROFFSET)
      &       )*4.d0/pfpar(pft)%sla/n*1d3 !g-C/individ.
       else
-        cpool(LABILE) = 0.5d0*alamax(pft+COVEROFFSET)/
-     &       pfpar(pft)%sla/n*1d3 !g-C/individ.
+         if (n > 0.d0) then
+            cpool(LABILE) = 0.5d0*alamax(pft+COVEROFFSET)/
+     &           pfpar(pft)%sla/n*1d3 !g-C/individ.
+         else
+            cpool(LABILE) = 0.d0
+         endif
       endif
 
       end subroutine prescr_init_Clab

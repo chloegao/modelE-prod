@@ -36,6 +36,7 @@
       integer, parameter :: DROUGHTDECIDBROAD =7
       integer, parameter :: DECIDNEEDLE = 8
       integer, parameter :: COLDSHRUB = 9
+      integer, parameter :: TUNDRA = 9  !NYK hack for same name as Matthews
       integer, parameter :: ARIDSHRUB = 10
       integer, parameter :: GRASSC3PER = 11
       integer, parameter :: GRASSC4 = 12
