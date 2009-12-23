@@ -13,18 +13,16 @@ cohorts.f patches.f entcells.f \
 canopyradiation.f \
 growthallometry.f reproduction.f phenology.f \
 disturbance.f soilbgc.f ent_const.f \
-ent_types.f  ent_prescribed_updates.f
+ent_types.f ent_prescr_veg.f ent_prescribed_updates.f
 
 # different versions of the code
 ifeq ($(PFT_MODEL),ENT)
-  FSRCS += ent_ENTveg.f
   ifeq ($(FLUXNET),YES)
     FSRCS += ent_pfts_ENT_FLUXNET.f
   else
     FSRCS += ent_pfts_ENT.f
   endif
 else
-    FSRCS += ent_GISSveg.f
   ifeq ($(FLUXNET),YES)
     FSRCS += ent_pfts_FLUXNET.f
   else

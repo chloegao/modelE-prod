@@ -191,6 +191,10 @@ C           TNDRA     SHRUB     DECID     RAINF     BDIRT     GRAC4
      $     (/ 0.d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 4.5d0,6.0d0,1.0d0
      &     ,0.d0, 0.d0, 1.d0 /)
 
+      integer, parameter :: laday(N_COVERTYPES) =
+     $     (/ 0, 196,  196,  196,  196,  196,  196,  196,  196
+     &     ,0, 0, 196 /)
+
       !***************************************************
       !* Rosenzweig & Abramopoulos root profile parameters
       !***************************************************

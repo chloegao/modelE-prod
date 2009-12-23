@@ -47,11 +47,6 @@
 !----cropsc4 cropstree
 !----sand bdirt
 
-      integer, parameter :: laday(N_COVERTYPES) =
-     $     (/ 196, 196, 196, 196, 196, 196, 196
-     &     ,196, 196, 196, 196, 196, 196, 196
-     &     , 196, 196, 0, 0 /)
-
       real*8,parameter :: EDPERY=365. !GISS CONST.f
 
       contains

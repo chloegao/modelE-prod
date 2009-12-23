@@ -22,11 +22,8 @@
 !* Matthews (1983) 8 biome types
 !--- sand tundr grass shrub trees decid evrgr rainf crops bdirt algae c4grass
 
-!## alamax and alamin have been moved to ent_pfts.f and ent_pfts_FLUXNET.f - NK
-
-      integer, parameter :: laday(N_COVERTYPES) =
-     $     (/ 0, 196,  196,  196,  196,  196,  196,  196,  196
-     &     ,0, 0, 196 /)
+!## alamax, alamin, and ladya have been moved to 
+!##    ent_pfts.f and ent_pfts_FLUXNET.f - NK
 
       real*8,parameter :: EDPERY=365. !GISS CONST.f
 

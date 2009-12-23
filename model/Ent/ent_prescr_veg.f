@@ -38,19 +38,14 @@
 !* 16.  crops - broadleaf woody         (CROPTREE)
 
 
-!## alamax and alamin have been moved to ent_pfts_ENT.f and 
-!##   ent_pfts_ENT_FLUXNET.f - NK
-
 !--- ever_ES_broad ever_LS_broad ever_ES_needle ever_LS_needle 
 !----cold_ES_broad cold_LS_broad drought_broad decid_needle shrub_cold 
 !----shrub_arid c3grass c4grass c3grass_ann c3grass_arctic 
 !----cropsc4 cropstree
 !----sand bdirt
 
-      integer, parameter :: laday(N_COVERTYPES) =
-     $     (/ 196, 196, 196, 196, 196, 196, 196
-     &     ,196, 196, 196, 196, 196, 196, 196
-     &     , 196, 196, 0, 0 /)
+!## alamax, alamin,and laday have been moved to ent_pfts_ENT.f and 
+!##   ent_pfts_ENT_FLUXNET.f - NK
 
       real*8,parameter :: EDPERY=365. !GISS CONST.f
 
