@@ -351,17 +351,11 @@ cddd      end subroutine init_cohort_defaults
       nullify( cop%fp )
 
       ! set pointers if any
-      nullify(cop%cellptr )
       nullify(cop%pptr )
       nullify(cop%taller )
       nullify(cop%shorter )
       nullify(cop%csptaller )
       nullify(cop%cspshorter )
-      if ( present(parent_patch) ) then
-        cop%pptr => parent_patch
-        if ( associated( cop%pptr%cellptr ) )
-     &       cop%cellptr => cop%pptr%cellptr
-      endif
 
       ! set variables
       cop%pft = -1              ! = -1 if pft not set

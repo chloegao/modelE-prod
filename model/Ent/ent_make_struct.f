@@ -253,9 +253,9 @@ cddd      end subroutine ent_struct_readcsv
       !* Set up pointers.
 !      call entcell_construct(ec)
 !      call zero_entcell( ec )
-      call patch_construct(pp,null(),1.d0,2) !Blank patch to hold values.
+      call patch_construct(pp,null(),1.d0,2)!Blank patch to hold values.
       call zero_patch(pp)
-      call cohort_construct(cop,null())
+      call cohort_construct(cop)
       call zero_cohort(cop)
           
       counter = 0

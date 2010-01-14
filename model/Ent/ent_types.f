@@ -100,7 +100,7 @@
       type cohort
          integer :: pft           !* PFT number
          real*8 :: n              ! Density of individuals in cohort (#/m^2)
-         type(entcelltype),pointer :: cellptr !Pointer to ent grid cell
+!         type(entcelltype),pointer :: cellptr !Pointer to ent grid cell !BAD PROGRAMMING - NK
          type(patch),pointer :: pptr    !Pointer to patch
          type(cohort),pointer :: taller !Pointer to next tallest cohort
          type(cohort),pointer :: shorter !Pointer to next shortest cohort

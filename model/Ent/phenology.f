@@ -2317,7 +2317,7 @@ c$$$      end if
       type(cohort), pointer ::cop
       integer :: cohortnum
       real*8 :: fall_real
-      if (cop%cellptr%fall==1) then
+      if (cop%pptr%cellptr%fall==1) then
         fall_real=1.d0
       else
          fall_real=0.d0
@@ -2342,17 +2342,17 @@ c$$$      end if
      &        cop%senescefrac,
      &        cop%llspan,
      &        cop%turnover_amp,
-     &        cop%cellptr%airtemp_10d,
-     &        cop%cellptr%soiltemp_10d, !21
-     &        cop%betad_10d, !cop%cellptr%paw_10d,
-     &        cop%cellptr%par_10d,
-     &        cop%cellptr%gdd,
-     &        cop%cellptr%ncd,
-     &        cop%cellptr%CosZen, 
-     &        cop%cellptr%daylength(1),
-     &        cop%cellptr%daylength(2),
+     &        cop%pptr%cellptr%airtemp_10d,
+     &        cop%pptr%cellptr%soiltemp_10d, !21
+     &        cop%betad_10d, !cop%pptr%cellptr%paw_10d,
+     &        cop%pptr%cellptr%par_10d,
+     &        cop%pptr%cellptr%gdd,
+     &        cop%pptr%cellptr%ncd,
+     &        cop%pptr%cellptr%CosZen, 
+     &        cop%pptr%cellptr%daylength(1),
+     &        cop%pptr%cellptr%daylength(2),
      &        fall_real
-!     &        cop%cellptr%fall
+!     &        cop%pptr%cellptr%fall
 
       end subroutine phenology_diag
 !*************************************************************************

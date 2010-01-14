@@ -1381,7 +1381,6 @@ cddd      end interface ent_cell_update
         do while ( associated(c) )
           c%shorter => cprev
           c%pptr => p
-          c%cellptr => entcell%entcell
           ncdebug = ncdebug + 1
           if ( ncdebug > nc(np-npdebug+1) )
      &         call stop_model("ent_cell_unpack: broken struct: nc",255)
