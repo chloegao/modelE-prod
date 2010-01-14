@@ -14,18 +14,18 @@
       public 
      &     init_canopy_physical,
      &     prescr_vegdata,
-     &     init_vdata, prescr_get_laidata, 
+     &     init_vfraction, prescr_get_laidata, 
      &     prescr_update_vegcrops, prescr_veg_albedodata,
      &     prescr_get_height, !YKIM
      &     prescr_get_soilpools,  !for prescribing soil C, N pools -PK 12/07
      &     prescr_get_cropdata,
      &     prescr_get_soil_C_total
 
-      public prescr_get_hdata,prescr_get_woodydiameter,prescr_get_pop,
-     &     prescr_get_crownrad,prescr_get_carbonplant,prescr_get_initnm,
-     &     prescr_get_rootprof,prescr_get_soilcolor
-
       public init_ent_laidata, init_ent_hdata,  prescr_get_ent_plant
+
+#ifdef NEED_ENTCOVER_MODULE
+      public ent_struct_get_phys
+#endif
 
       contains
 
@@ -57,8 +57,8 @@
       real*8,intent(in) ::
      &     soil_C_total(N_CASA_LAYERS,I0:I1,J0:J1)
       real*8,intent(out) :: 
-     &      Tpool_ini(N_PFT,PTRACE,NPOOLS-NLIVE,N_CASA_LAYERS,  !prescribed soil pools, g/m2
-     &                I0:I1,J0:J1)
+     &      Tpool_ini(N_PFT,PTRACE,NPOOLS-NLIVE,N_CASA_LAYERS,
+     &     I0:I1,J0:J1)         !prescribed soil pools, g/m2
       !-----Local------
 !      first 3 for eventually reading in globally gridded dataset, e.g. ISRIC-WISE
       integer :: iu_SOILCARB
@@ -213,6 +213,7 @@
      &     craddata,cpooldata,rootprofdata,soil_color,soil_texture,
      &     Tpooldata, 
      &     do_soilinit,do_phenology_activegrowth,do_read_from_files)
+      use ent_prescr_veg, only : prescr_get_soilcolor !May want to move this routine to this module.
       implicit none
       integer,intent(in) :: jday, year
       integer,intent(in) :: IM,JM,I0,I1,J0,J1 !long/lat grid number range
@@ -221,11 +222,11 @@
       real*8,intent(out) :: laidata(N_COVERTYPES,I0:I1,J0:J1)
       real*8,intent(out) :: hdata(N_COVERTYPES,I0:I1,J0:J1)
       real*8,intent(out) :: nmdata(N_COVERTYPES)
-      real*8,intent(out) :: rootprofdata(N_COVERTYPES,N_DEPTH)
       real*8,intent(out) :: popdata(N_COVERTYPES,I0:I1,J0:J1)
       real*8,intent(out) :: dbhdata(N_COVERTYPES,I0:I1,J0:J1)
       real*8,intent(out) :: craddata(N_COVERTYPES,I0:I1,J0:J1)
       real*8,intent(out) :: cpooldata(N_COVERTYPES,N_BPOOLS,I0:I1,J0:J1)
+      real*8,intent(out) :: rootprofdata(N_COVERTYPES,N_DEPTH)
       integer,intent(out) :: soil_color(N_COVERTYPES)
       real*8,intent(out) :: soil_texture(N_SOIL_TEXTURES,I0:I1,J0:J1)
       real*8, dimension(N_PFT,PTRACE,NPOOLS-NLIVE,N_CASA_LAYERS,
@@ -247,7 +248,7 @@
 
 
 !YKIM
-cddd      call init_vdata(IM,JM,I0,I1,J0,J1,vegdata)   !veg fractions
+cddd      call init_vfraction(IM,JM,I0,I1,J0,J1,vegdata)   !veg fractions
 cddd      call prescr_veg_albedodata(jday,JM,I0,I1,J0,J1,albedodata)
 cddd      call prescr_get_laidata(jday,JM,I0,I1,J0,J1,laidata) !lai
 cddd      call prescr_update_vegcrops(year,IM,JM,I0,I1,J0,J1,vegdata)
@@ -275,7 +276,7 @@ cddd      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
 !to have options according to do_phenology_activegrowth
 
       if ( do_read_from_files )
-     &     call init_vdata(IM,JM,I0,I1,J0,J1,vegdata)   !veg fractions
+     &     call init_vfraction(IM,JM,I0,I1,J0,J1,vegdata)   !veg fractions
       if ( do_read_from_files )
      &     call prescr_update_vegcrops(year,IM,JM,I0,I1,J0,J1,vegdata)
       call prescr_veg_albedodata(jday,hemi,I0,I1,J0,J1,albedodata)
@@ -335,11 +336,11 @@ cddd      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
 
 
 !***************************************************************************
-      subroutine init_vdata(im,jm,I0,I1,J0,J1,vdata)
+      subroutine init_vfraction(im,jm,I0,I1,J0,J1,vfraction)
       !* This version reads in vegetation structure from prescr data set.
       use FILEMANAGER, only : openunit,closeunit,nameunit
       integer, intent(in) :: im,jm,I0,I1,J0,J1
-      real*8, intent(out) :: vdata(N_COVERTYPES,I0:I1,J0:J1) 
+      real*8, intent(out) :: vfraction(N_COVERTYPES,I0:I1,J0:J1) 
       !------Local---------------------
       !1    2    3    4    5    6    7    8    9   10   11    12
       !BSAND TNDRA GRASS SHRUB TREES DECID EVERG RAINF CROPS BDIRT ALGAE GRAC4
@@ -350,16 +351,16 @@ cddd      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
       real*8 :: s
 
       ! Make sure that unused fractions are set to 0
-      vdata(:,:,:) = 0.d0
+      vfraction(:,:,:) = 0.d0
       call openunit("VEG",iu_VEG,.true.,.true.)
 
       do k=1,N_COVERTYPES-N_OTHER !## Skip algae and grac4 #HACK
         !print *,k
         read(iu_VEG) title , buf
-        vdata(k,I0:I1,J0:J1) = buf(I0:I1,J0:J1)
+        vfraction(k,I0:I1,J0:J1) = buf(I0:I1,J0:J1)
         !print *,"read VEG:", title
       end do
-      !print *,"vdata", vdata(:,I0:I1,J0:J1) !#DEBUG
+      !print *,"vfraction", vfraction(:,I0:I1,J0:J1) !#DEBUG
       call closeunit(iu_VEG)
 
       ! make sure that veg fractions are reasonable
@@ -367,22 +368,22 @@ cddd      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
         do i=I0,I1
           do k=1,N_COVERTYPES
             ! get rid of unreasonably small fractions
-            if ( vdata(k,i,j) < 1.d-4 ) vdata(k,i,j) = 0.d0
+            if ( vfraction(k,i,j) < 1.d-4 ) vfraction(k,i,j) = 0.d0
           enddo
-          s = sum( vdata(:,i,j) )
+          s = sum( vfraction(:,i,j) )
           if ( s > .9d0 ) then
-            vdata(:,i,j) = vdata(:,i,j)/s
+            vfraction(:,i,j) = vfraction(:,i,j)/s
           else if ( s < .1d0 ) then
             print *, "missing veg data at ",i,j,"assume bare soil"
-            vdata(:,i,j) = 0.d0
-            vdata(COVER_SAND,i,j) = 1.d0
+            vfraction(:,i,j) = 0.d0
+            vfraction(COVER_SAND,i,j) = 1.d0
           else
             call stop_model("Incorrect data in VEG file",255)
           endif
         enddo
       enddo
           
-      end subroutine init_vdata
+      end subroutine init_vfraction
 
 !**************************************************************************
       subroutine prescr_get_cropdata(year,IM,JM,I0,I1,J0,J1,cropdata)
@@ -700,6 +701,47 @@ cddd      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
 !        enddo
 !      enddo
       end subroutine prescr_get_soiltexture
+!*************************************************************************
+#ifdef NEED_ENTCOVER_MODULE
+      subroutine ent_struct_get_phys(IM,JM,I0, I1, J0, J1,
+     &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini,
+     &     soil_texture,soil_C_total,Tpooldata,
+     &     do_soilinit,do_read_from_files)
+
+      integer,intent(in) :: IM,JM,I0,I1,J0,J1
+      real*8, dimension(I0:I1,J0:J1) :: Ci_ini,CNC_ini,Tcan_ini,Qf_ini
+      real*8, dimension(N_CASA_LAYERS,I0:I1,J0:J1) :: soil_C_total
+!      integer, dimension(N_COVERTYPES) :: soil_color !soil types 1-bright 2-dark
+      real*8, dimension(N_SOIL_TEXTURES,I0:I1,J0:J1) :: soil_texture
+      real*8, dimension(N_PFT,PTRACE,NPOOLS-NLIVE,N_CASA_LAYERS,
+     &                  I0:I1,J0:J1):: Tpooldata  !g/m2
+      logical,intent(in) :: do_soilinit
+      logical,intent(in) :: do_read_from_files
+      !------
+      call init_canopy_physical(I0, I1, J0, J1,
+     &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini)
+      
+      if ( do_read_from_files )
+     &     call prescr_get_soiltexture(IM,JM,I0,I1,J0,J1,
+     &     soil_texture)
+      !soil_color !Don't need to do here. Gets read in structure file.
+
+#ifdef SET_SOILCARBON_GLOBAL_TO_ZERO
+      Tpooldata = 0.d0
+#else
+      if ( do_soilinit ) then
+#ifndef SOILCARB_SITE
+        call prescr_get_soil_C_total(IM,JM,I0,I1,J0,J1,soil_C_total)
+#endif
+        call prescr_get_soilpools(I0,I1,J0,J1,soil_C_total,Tpooldata)
+      else
+        Tpooldata = 0.d0
+      endif
+#endif
+      end subroutine ent_struct_get_phys
+
+#endif
+!#NEED_ENTCOVER_MODULE
 !*************************************************************************
       end module ent_prescribed_drv
 

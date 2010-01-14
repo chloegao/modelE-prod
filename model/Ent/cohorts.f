@@ -133,6 +133,7 @@
           !nullify(newc%csptaller)
           !nullify(newc%cspshorter)
         end if
+
       end subroutine insert_cohort
       !*********************************************************************
       

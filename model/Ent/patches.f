@@ -15,8 +15,8 @@
       type(entcelltype) :: gp
       real*8, intent(in) :: area
       integer, intent(in) :: soil_type
-      !---
-      type(patch), pointer :: pp
+      !----
+      type(patch),  pointer :: pp !Would be good to return pointer to patch.
 
       !* If !ASSOCIATED(gp) ERROR *!
 
@@ -40,7 +40,7 @@
       subroutine assign_patch(pp,
      &     Ci_ini, CNC_ini, pft, Tpool_ini)
      
-      use ent_const  !for assigning Tpool -PK 12/07
+      use ent_const  
       
       !Eventually may want to include all patch variables as optional vars.
       type(patch),pointer :: pp
@@ -55,7 +55,7 @@
       pp%Ci = Ci_ini
       pp%GCANOPY = CNC_ini
 
-!#ifdef PRESCR_SOILCARB  !PK  - Condition should be unnecessary, since Tpool should at least be initialized to zero.
+      !Assign soil (dead) pools.
       do n=1,N_CASA_LAYERS 
        do i=NLIVE+1,NPOOLS
         pp%Tpool(CARBON,i,n) = Tpool_ini(pft,CARBON,i-NLIVE,n)  
@@ -505,6 +505,28 @@
 
 
       !*********************************************************************
+      subroutine patch_copy(ppin,ppout)
+      ! Copy values in ppin into ppout, only patch-level variables.
+      ! Does not copy cohorts or entcell pointer.
+      ! Patch ppout should already be allocated.
+      type(patch),intent(in) :: ppin
+      type(patch),intent(out) :: ppout
+
+!      if (associated(ppin)) then
+!         if (associated(ppout)) then
+         ppout%age = ppin %age
+         ppout%area = ppin%area
+         ppout%soil_type = ppin%soil_type
+            ppout%Tpool(:,:,:) = ppin%Tpool(:,:,:)
+         !* Other: nm, albedo, fluxes if desired.
+!         else
+!            call stop_model("patch_copy: ppout not allocated",255)
+!         endif
+         !If blank ppin, then do nothing.  May want to stop_model.
+ !     endif
+      end subroutine patch_copy
+
+      !*********************************************************************
       subroutine patch_print(iu,pp,prefix)
       use cohorts, only : cohort_print
       integer, intent(in) :: iu
@@ -602,33 +624,33 @@
       end subroutine patch_print
 
 
-      subroutine patch_extract_pfts(pp, vdata)
+      subroutine patch_extract_pfts(pp, vfraction)
       use ent_pfts
       use ent_const
       use cohorts, only : cohort_print
       type(patch) :: pp
-      real*8 :: vdata(:)
+      real*8 :: vfraction(:)
       !---
       type(cohort),pointer :: cop
       real*8 :: density
 
-      vdata(:) = 0.d0
+      vfraction(:) = 0.d0
       density = 0.d0
       cop => pp%tallest
       do while( associated(cop) )
-        vdata( cop%pft + COVEROFFSET ) = 
-     &       vdata( cop%pft + COVEROFFSET ) + cop%n
+        vfraction( cop%pft + COVEROFFSET ) = 
+     &       vfraction( cop%pft + COVEROFFSET ) + cop%n
         density = density + cop%n
         cop => cop%shorter
       enddo
 
       if ( density>0.d0 ) then
-        vdata(:) = vdata(:)/density
+        vfraction(:) = vfraction(:)/density
       else
         if ( pp%soil_type == 1 ) then
-          vdata(COVER_SAND) = 1.d0
+          vfraction(COVER_SAND) = 1.d0
         else
-          vdata(COVER_DIRT) = 1.d0
+          vfraction(COVER_DIRT) = 1.d0
         endif
       endif
 
@@ -667,6 +689,7 @@
       gp => pp%cellptr
       call insert_patch(gp, area, pp%soil_type)
       pp_new => gp%youngest
+
       if ( associated(pp%tallest) ) then ! have cohort: will insert similar
         call insert_cohort(pp_new, pp%tallest%pft, pp%tallest%n)
       endif

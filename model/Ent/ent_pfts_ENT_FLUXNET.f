@@ -44,6 +44,8 @@
       integer, parameter :: GRASSC3ARCTIC = 14
       integer, parameter :: CROPSC4 = 15
       integer, parameter :: CROPSWOODY = 16
+      integer, parameter :: SAND = 17
+      integer, parameter :: BDIRT = 18
 !##### TEMPORARY HACK - YK #####
 !to avoid the conflict in ent_prescribed_drv.f90, using CROPS!
       integer, parameter :: CROPS = 15

@@ -44,6 +44,9 @@
       integer, parameter :: GRASSC3ARCTIC = 14
       integer, parameter :: CROPSC4 = 15
       integer, parameter :: CROPSWOODY = 16
+      integer, parameter :: SAND = 17
+      integer, parameter :: BDIRT = 18
+
 !##### TEMPORARY HACK - YK #####
 !to avoid the conflict in ent_prescribed_drv.f90, using CROPS!
       integer, parameter :: CROPS = 15
@@ -179,6 +182,9 @@ C
 ! c3grass_ann =c3grass opposite seasons
 !, cropstree = cold_broad
 C
+      !@var SEASON julian day for start of season (used for veg albedo calc)
+C                      1       2       3       4
+C                    WINTER  SPRING  SUMMER  AUTUMN
 C     (1)  >SRBALB(6) = VIS  (300 - 770 nm)
      1 .061,.061,.067,.067,.100,.100,.078, .100,.067,.089,.089,.089,
      &     .091, .089, .089, .100, .500,.000,

@@ -34,6 +34,10 @@
       integer, parameter :: EVERGRNEEDLE = 6
       integer, parameter :: TROPRAINF = 7
       integer, parameter :: CROPS = 8
+      !Array position
+      integer, parameter :: SAND = 1
+      integer, parameter :: BDIRT = 10
+
 !##### TEMPORARY HACK - YK #####
 !to avoid the conflict in phenology.f
       integer, parameter :: DROUGHTDECIDBROAD = 20

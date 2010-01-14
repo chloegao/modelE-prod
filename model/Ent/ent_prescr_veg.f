@@ -14,7 +14,8 @@
       public prescr_calc_shc,prescr_plant_cpools, prescr_init_Clab
       public prescr_get_hdata,prescr_get_initnm,prescr_get_rootprof,
      &     prescr_get_woodydiameter,prescr_get_pop,prescr_get_crownrad
-     &     ,prescr_get_soilcolor,ED_woodydiameter,popdensity
+     &     ,prescr_get_soilcolor
+      public ED_woodydiameter,popdensity,Ent_dbh,crown_radius_hw
 #ifdef ENT_STANDALONE_DIAG
       public print_ent_pfts
 #endif
@@ -144,11 +145,11 @@
 
 !**************************************************************************
       
-      real*8 function prescr_calc_shc(vdata) RESULT(shc)
+      real*8 function prescr_calc_shc(vfraction) RESULT(shc)
 !@sum Returns GISS GCM specific heat capacity for canopy
       use ent_const
       use ent_pfts, only: COVEROFFSET, alamax, alamin
-      real*8, intent(in) :: vdata(:) !@var pnum cover type
+      real*8, intent(in) :: vfraction(:) !@var pnum cover type
       !-----Local variables------
       real*8 lai, fsum
       integer pft, anum
@@ -158,8 +159,8 @@
 
       do pft=1,N_PFT
          anum = pft+COVEROFFSET
-         lai = lai + .5d0 * (alamax(anum) + alamin(anum))*vdata(anum)
-         fsum = fsum + vdata(anum)
+         lai = lai + .5d0*(alamax(anum) + alamin(anum))*vfraction(anum)
+         fsum = fsum + vfraction(anum)
       enddo
 
       if ( fsum > EPS ) lai = lai/fsum
@@ -375,16 +376,24 @@ c**** calculate root fraction afr averaged over vegetation types
       wddata(:) = 0.0           !Zero initialize.
       do pft = 1,N_PFT
          ncov = pft + COVEROFFSET
-         if (pfpar(pft)%woody) then !Woody
-            if (pft.eq.TUNDRA) then !May need separate shrub allometry
-               wddata(ncov) = ED_woodydiameter(pft,hdata(ncov)) * 20.
-            else                !Most trees
-               wddata(ncov) = ED_woodydiameter(pft,hdata(ncov))
-            endif
-         endif
+         wddata(ncov) = Ent_dbh(pft,hdata(ncov))
       enddo
       end subroutine prescr_get_woodydiameter
 
+!*************************************************************************
+      real*8 function Ent_dbh(pft,h) Result(dbh)
+      !* Return dbh (cm).  Checks by pft and modifies ED allometry.
+      integer, intent(in) :: pft
+      real*8, intent(in) :: h !(m)
+
+      if (pfpar(pft)%woody) then !Woody
+         if (pft.eq.TUNDRA) then !May need separate shrub allometry
+            dbh = ED_woodydiameter(pft,h) * 20.
+         else                   !Most trees
+            dbh = ED_woodydiameter(pft,h)
+         endif
+      endif
+      end function Ent_dbh
 !*************************************************************************
 
       real*8 function ED_woodydiameter(pft,h) Result(dbh)
@@ -395,9 +404,26 @@ c**** calculate root fraction afr averaged over vegetation types
       !real*8,intent(out) :: dbh !(cm)
 
       dbh = ((1/2.34)*h)**(1/0.64)
-        
+      !### See also phenology.f height2dbh version. ###!
+
       end function ED_woodydiameter
 
+!*************************************************************************
+      real*8 function crown_radius_hw(dbh) Result(cradm)
+      !* From Harvard Forest late successional hardward allometry.
+      real*8 :: dbh
+
+      cradm = .107d0 * dbh
+
+      end function crown_radius_hw
+!*************************************************************************
+      real*8 function crown_radius_closed(popdensity) Result(cradm)
+      !* Return plant crown radius (m).
+      !* Assumes closed canopy packing given popdensity.
+      real*8, intent(in) :: popdensity !#/m^2
+      
+      cradm = 0.5*sqrt(1/popdensity)
+      end function crown_radius_closed
 !*************************************************************************
 
       subroutine prescr_get_crownrad(popdata,craddata)
@@ -411,7 +437,7 @@ c**** calculate root fraction afr averaged over vegetation types
       craddata(:) = 0.0 !Zero initialize.
       do pft=1,N_PFT
         n = pft + COVEROFFSET
-        craddata(n) = 0.5*sqrt(1/popdata(n))
+        craddata(n) = crown_radius_closed(popdata(n))
       end do
 
       end subroutine prescr_get_crownrad

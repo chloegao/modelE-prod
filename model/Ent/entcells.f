@@ -15,6 +15,7 @@
       save
 
       public zero_entcell, summarize_entcell, entcell_print
+      public assign_entcell
       public init_simple_entcell, entcell_construct, entcell_destruct
       public entcell_extract_pfts, entcell_carbon
 
@@ -166,7 +167,7 @@
       integer :: ip             !#patches
       integer :: ia             !counter variable
       real*8 :: fa, laifa, laifasum
-!      real*8 ::  vdata(N_COVERTYPES) ! needed for a hack to compute canopy
+!      real*8 ::  vfraction(N_COVERTYPES) ! needed for a hack to compute canopy
                                  ! heat capacity exactly as in GISS GCM
 
 
@@ -344,15 +345,17 @@ C NADINE - IS THIS CORRECT?
         !ecp%heat_capacity = !Currently imported
         !ecp%fv = no averaging needed
 
+        ecp%area = fa  !## NK 1/12/2010
+
       end if
 
       ! use original formula for canopy heat cpacity
       !lai = ecp%LAI
       !ecp%heat_capacity=(.010d0+.002d0*lai+.001d0*lai**2)*shw*rhow
-      !extract vdata exactly like in GISS GCM
-      !!vdata(:) = 0.d0
-      !!call entcell_extract_pfts(ecp, vdata(2:) )
-      !!ecp%heat_capacity=GISS_calc_shc(vdata)
+      !extract vfraction exactly like in GISS GCM
+      !!vfraction(:) = 0.d0
+      !!call entcell_extract_pfts(ecp, vfraction(2:) )
+      !!ecp%heat_capacity=GISS_calc_shc(vfraction)
 
       end subroutine summarize_entcell
 !**************************************************************************
@@ -463,10 +466,9 @@ C NADINE - IS THIS CORRECT?
          !call insert_patch(ecp,GCMgridareas(j)*vegdata(pnum))
           call insert_patch(ecp,vegdata(ncov),soildata(ncov))
           pp => ecp%youngest
-          !! seems like assign_patch is needed only for vegetated patches
-          !! - moving it below ( popdens(ncov) > EPS )
-          !!call assign_patch(pp,Ci_ini, CNC_ini, pft, Tpool_ini)  !added pft here -PK 1/23/08
+
           !## Supply also geometry, clumping index
+
           ! insert cohort only if population density > 0 (i.e. skip bare soil)
           if ( popdens(ncov) > EPS ) then 
             if ( pft < 1 .or. pft > N_PFT ) then
@@ -541,7 +543,92 @@ C NADINE - IS THIS CORRECT?
 
       end subroutine init_simple_entcell
 
- !*********************************************************************
+!*************************************************************************
+      subroutine assign_entcell( ecp,
+     isoil_texture,!soil_type,
+!     ialbedodata,
+     iCi_ini, CNC_ini, Tcan_ini, Qf_ini, Tpool_ini, 
+     ireinitialize)
+!@sum assign_entcell. Assigns entcell level values as passed in parameters.
+!+    NOTE:  soil_type is a patch-level variable by cover type in Matthews for
+!+     the purpose of calculating albedo, whereas soil_texture is an 
+!+     entcell-level variable. 
+
+      use patches, only : summarize_patch
+      implicit none
+      type(entcelltype) :: ecp
+      real*8,intent(in) :: soil_texture(N_SOIL_TEXTURES)!soil texture fractions.
+!      real*8,intent(in) :: albedodata(N_BANDS,N_COVERTYPES) !#patch, NOTE:snow
+!      integer,intent(in) :: soil_type(N_COVERTYPES) !#patch, from file or by vegtype.
+
+      real*8 :: Ci_ini, CNC_ini, Tcan_ini, Qf_ini
+      real*8,intent(in) ::
+     &      Tpool_ini(N_PFT,PTRACE,NPOOLS-NLIVE,N_CASA_LAYERS)  
+      logical,intent(in) :: reinitialize
+      !-----Local---------
+      integer :: ncov, pft
+      type(patch),pointer :: pp, pp_tmp, pp_ncov
+      real*8 :: sandfrac,clayfrac,smpsat,bch,watsat,watdry
+
+      !Assign patch values.
+!      pp => ecp%oldest      
+!      do while ( associated(pp) )
+!         pp%area = 0.d0
+!         call assign_patch(pp,Ci_ini, CNC_ini, pft, Tpool_ini)
+!         call summarize_patch(pp) 
+
+         !CALL CALC_ALBEDO HERE 
+!        !*GISS HACK VERSION for initialization.
+         !* These values should get overwritten by prognostic 
+         !* canopy radiative transfer. This provides non-zero default values.
+!         if (associated(pp%tallest)) then
+!            ncov = pp%tallest%pft + COVEROFFSET
+!         else  !Bare soil type needed to be assigned from struct csv file.
+!            ncov = SAND  !##HACK - NK - NEED TO ASSIGN FROM FILE.
+!         endif
+!        pp%albedo = ALBVND(ncov,1,:) !Winter albedo default. Should check hemi.
+         !* Prognostic canopy radiation requires solar zenith angle
+         !call get_patchalbedo(pp) !Currently dummy routine.  Use Two-stream.
+!    
+!      pp => pp%younger
+!      enddo
+
+      !Assign entcell variables.
+      ecp%TcanopyC = Tcan_ini
+      ecp%Qf = Qf_ini
+
+      ! soil textures for CASA
+      ecp%soil_texture(:) = soil_texture(:)
+
+      !Soil porosity and wilting? hygroscopic? point for water stress2 calculation. From soilbgc.f.
+!??      sandfrac = pp%cellptr%soil_texture(1)
+!??      clayfrac = pp%cellptr%soil_texture(3)
+! is it supposed to be
+      sandfrac = soil_texture(1)
+      clayfrac = soil_texture(3)
+
+      watsat =  0.489d0 - 0.00126d0*sandfrac !porosity, saturated soil fraction
+      smpsat = -10.d0*(10.d0**(1.88d0-0.0131d0*sandfrac))
+      bch = 2.91d0 + 0.159d0*clayfrac
+      watdry = watsat * (-316230.d0/smpsat) ** (-1.d0/bch)
+!      watopt = watsat * (-158490.d0/smpsat) ** (-1.d0/bch)
+
+      ecp%soil_Phi = watsat
+      ecp%soil_dry = watdry
+
+
+#ifdef OFFLINE
+      write(*,*) "soil_Phi, soil_dry",ecp%soil_Phi, ecp%soil_dry
+#endif
+
+      call summarize_entcell(ecp)
+
+      !print *,"leaving assign_entcell"
+      !call entcell_print(6,ecp)
+
+      end subroutine assign_entcell
+
+  !*********************************************************************
 
       subroutine entcell_construct(ecp)
       implicit none
@@ -564,7 +651,7 @@ C NADINE - IS THIS CORRECT?
 
       ! maybe the following is not needed, but I guess we wanted
       ! to initialize the cells by default to bare soil (sand)
-      call insert_patch(ecp,1.d0,1)
+      call insert_patch(ecp,1.d0, soil_color_prescribed(SAND))
 
       end subroutine entcell_construct
 
@@ -710,18 +797,18 @@ C NADINE - IS THIS CORRECT?
 
  !*********************************************************************
 
-      subroutine entcell_extract_pfts(ecp, vdata)
+      subroutine entcell_extract_pfts(ecp, vfraction)
       type(entcelltype) :: ecp
-      real*8 :: vdata(:)
+      real*8 :: vfraction(:)
       !---
       type(patch), pointer :: pp
-      real*8 :: vdata_patch(size(vdata))
+      real*8 :: vfraction_patch(size(vfraction))
 
-      vdata(:) = 0.d0
+      vfraction(:) = 0.d0
       pp => ecp%oldest
       do while( associated(pp) )
-        call patch_extract_pfts(pp, vdata_patch)
-        vdata(:) = vdata(:) + vdata_patch(:)*pp%area
+        call patch_extract_pfts(pp, vfraction_patch)
+        vfraction(:) = vfraction(:) + vfraction_patch(:)*pp%area
         pp => pp%younger
       enddo
 
