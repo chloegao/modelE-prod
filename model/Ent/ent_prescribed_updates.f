@@ -43,7 +43,7 @@
 !          if (.not.mixed_VEG) then !* LAI array is by PFT.
              lai_new = laidata(cop%pft)
 !          else !* mixed_VEG, LAI array is in cohort order.
-#ifdef NEED_ENTCOVER_MODULE
+#ifdef MIXED_CANOPY
              lai_new = laidata(i)
              print *,i,'lai_new',lai_new
              print *,'Bug? Need above print to update laipatch(??)'
@@ -52,7 +52,7 @@
              !### laipatch is assigned.?? -NK
 !          endif
 #endif
-!NEED_ENTCOVER_MODULE
+!MIXED_CANOPY
           !* Update biomass pools, senescefrac, accumulate litter
           call prescr_veglitterupdate_cohort(cop,lai_new,Clossacc,init)
 
@@ -98,13 +98,13 @@
           C_froot_old = cop%C_froot
           C_croot_old = cop%C_croot
 !          if (.not.mixed_VEG) then !hdata array is by PFT
-#ifndef NEED_ENTCOVER_MODULE
+#ifndef MIXED_CANOPY
              cop%h = hdata(cop%pft)
 !          else !mixed_VEG, hdata array is by cohort order
-#else  !NEED_ENTCOVER_MODULE
+#else  !MIXED_CANOPY
              cop%h = hdata(i)
 !          endif
-#endif !NEED_ENTCOVER_MODULE
+#endif !MIXED_CANOPY
           if (pfpar(cop%pft)%woody) then !update dbhuse
             cop%dbh = ED_woodydiameter(cop%pft,cop%h)
             if (init) then !Set population density
@@ -528,7 +528,7 @@ cddd     &         - max(0.d0,cop%C_croot-C_croot_old)
 !      print *,'ecp%LAI', ecp%LAI
 !      print *,'ecp%oldest%LAI', ecp%oldest%LAI
 
-#ifndef NEED_ENTCOVER_MODULE
+#ifndef MIXED_CANOPY
       call entcell_update_shc_mosaicveg(ecp)
 #else
       call entcell_update_shc(ecp)

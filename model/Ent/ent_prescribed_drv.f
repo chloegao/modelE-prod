@@ -23,7 +23,7 @@
 
       public init_ent_laidata, init_ent_hdata,  prescr_get_ent_plant
 
-#ifdef NEED_ENTCOVER_MODULE
+#ifdef MIXED_CANOPY
       public ent_struct_get_phys
 #endif
 
@@ -702,7 +702,7 @@ cddd      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
 !      enddo
       end subroutine prescr_get_soiltexture
 !*************************************************************************
-#ifdef NEED_ENTCOVER_MODULE
+#ifdef MIXED_CANOPY
       subroutine ent_struct_get_phys(IM,JM,I0, I1, J0, J1,
      &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini,
      &     soil_texture,soil_C_total,Tpooldata,
@@ -741,7 +741,7 @@ cddd      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
       end subroutine ent_struct_get_phys
 
 #endif
-!#NEED_ENTCOVER_MODULE
+!#MIXED_CANOPY
 !*************************************************************************
       end module ent_prescribed_drv
 

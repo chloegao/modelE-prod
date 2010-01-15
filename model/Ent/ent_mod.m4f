@@ -84,7 +84,7 @@ define(`m4_type_list',`real*8')
       ')`'
       end interface
 
-#ifdef NEED_ENTCOVER_MODULE
+#ifdef MIXED_CANOPY
       public ent_struct_setup
       !--- passing initial data to ent cells - mixed veg ---
       interface ent_struct_setup
@@ -1353,7 +1353,7 @@ m4_loop(`
       end subroutine ent_cell_print_`'m4_suffix`'
 ')`'
 
-#ifdef NEED_ENTCOVER_MODULE
+#ifdef MIXED_CANOPY
 m4_loop(`
       subroutine ent_struct_setup_`'m4_suffix`'(entcell,iu)
       use ent_make_struct, only : ent_struct_readcsv

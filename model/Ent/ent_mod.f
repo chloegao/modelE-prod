@@ -110,7 +110,7 @@
       
       end interface
 
-#ifdef NEED_ENTCOVER_MODULE
+#ifdef MIXED_CANOPY
       public ent_struct_setup
       !--- passing initial data to ent cells - mixed veg ---
       interface ent_struct_setup
@@ -2623,7 +2623,7 @@ C NADINE
       end subroutine ent_cell_print_r8_2
 
 
-#ifdef NEED_ENTCOVER_MODULE
+#ifdef MIXED_CANOPY
 
       subroutine ent_struct_setup_r8_0(entcell,iu)
       use ent_make_struct, only : ent_struct_readcsv
