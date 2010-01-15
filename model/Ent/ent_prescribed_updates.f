@@ -403,6 +403,9 @@ cddd     &         - max(0.d0,cop%C_croot-C_croot_old)
 !******************************************************************
       subroutine entcell_update_shc( ecp )
 !Mixed canopies calculation of shc, or generic any veg structure.
+!  This version preserves old, slightly incorrect lai averaging: shc(avg(lai)).
+!  Correct version is commented out: avg(shc(lai)).
+
       use ent_prescr_veg, only : shc_patch
       implicit none
       type(entcelltype),pointer :: ecp
@@ -414,13 +417,12 @@ cddd     &         - max(0.d0,cop%C_croot-C_croot_old)
       pfrac = 0.d0
       pp => ecp%oldest
       do while (associated(pp))
-         shc = shc + shc_patch(pp)*pp%area  !Original averages mean lai instead.
+         shc = shc + shc_patch(pp)*pp%area
          pfrac = pfrac + pp%area
          pp=>pp%younger
       enddo
 
-
-      if (pfrac>EPS) shc = shc/pfrac
+      if (pfrac>EPS) shc = shc/pfrac !Correct way.
 
       ecp%heat_capacity = shc
       end subroutine entcell_update_shc
@@ -526,11 +528,11 @@ cddd     &         - max(0.d0,cop%C_croot-C_croot_old)
 !      print *,'ecp%LAI', ecp%LAI
 !      print *,'ecp%oldest%LAI', ecp%oldest%LAI
 
-!#ifndef NEED_ENTCOVER_MODULE
-!      call entcell_update_shc_mosaicveg(ecp)
-!#else
+#ifndef NEED_ENTCOVER_MODULE
+      call entcell_update_shc_mosaicveg(ecp)
+#else
       call entcell_update_shc(ecp)
-!#endif
+#endif
 
       !if (YEAR_FLAG.eq.0) call ent_GISS_init(entcellarray,im,jm,jday,year)
       !!!### REORGANIZE WTIH ent_prog.f ####!!!
