@@ -301,8 +301,8 @@ m4_loop(`
      &         laidata_1, hdata_1, albedodata_1, cropsdata_1,
      &         init_1)
         endif
-      m4_enddo
 
+      m4_enddo
       end subroutine ent_prescribe_vegupdate_`'m4_suffix`'
 ')`'
      

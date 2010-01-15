@@ -363,8 +363,8 @@ cddd      end interface ent_cell_update
      &         laidata_1, hdata_1, albedodata_1, cropsdata_1,
      &         init_1)
         endif
-      
 
+      
       end subroutine ent_prescribe_vegupdate_r8_0
 
       subroutine ent_prescribe_vegupdate_r8_1(entcell
@@ -462,9 +462,9 @@ cddd      end interface ent_cell_update
      &         laidata_1, hdata_1, albedodata_1, cropsdata_1,
      &         init_1)
         endif
+
       
       enddo
-
       end subroutine ent_prescribe_vegupdate_r8_1
 
       subroutine ent_prescribe_vegupdate_r8_2(entcell
@@ -563,10 +563,10 @@ cddd      end interface ent_cell_update
      &         laidata_1, hdata_1, albedodata_1, cropsdata_1,
      &         init_1)
         endif
+
       
       enddo
       enddo
-
       end subroutine ent_prescribe_vegupdate_r8_2
 
      

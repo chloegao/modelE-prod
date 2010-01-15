@@ -16,6 +16,7 @@
      &     prescr_get_woodydiameter,prescr_get_pop,prescr_get_crownrad
      &     ,prescr_get_soilcolor
       public ED_woodydiameter,popdensity,Ent_dbh,crown_radius_hw
+     &     ,shc_patch
 #ifdef ENT_STANDALONE_DIAG
       public print_ent_pfts
 #endif
@@ -146,7 +147,7 @@
 !**************************************************************************
       
       real*8 function prescr_calc_shc(vfraction) RESULT(shc)
-!@sum Returns GISS GCM specific heat capacity for canopy
+!@sum Returns GISS GCM specific heat capacity for canopy -- OLD
       use ent_const
       use ent_pfts, only: COVEROFFSET, alamax, alamin
       real*8, intent(in) :: vfraction(:) !@var pnum cover type
@@ -168,6 +169,48 @@
       shc = (.010d0+.002d0*lai+.001d0*lai**2)*shw*rhow
 
       end function prescr_calc_shc
+
+!**************************************************************************
+      real*8 function shc_patch(pp) Result(shc)
+!@sum Returns GISS GCM specific heat capacity for patch.
+      use ent_const
+      use ent_pfts, only: COVEROFFSET, alamax, alamin
+      implicit none
+      type(patch),pointer :: pp
+      !-----
+      type(cohort),pointer :: cop
+      real*8 :: lai
+      integer :: anum
+
+      shc = 0.d0
+      lai = 0.d0
+      cop => pp%shortest
+      do while (associated(cop))
+         anum = cop%pft + COVEROFFSET
+         lai = lai + .5d0*(alamax(anum) + alamin(anum)) 
+         !shc = shc + GISS_shc(cop%pft) !Alternative way.
+         cop => cop%shorter
+      enddo
+
+      shc = (.010d0+.002d0*lai+.001d0*lai**2)*shw*rhow
+
+      end function shc_patch
+!**************************************************************************
+      real*8 function GISS_shc(pft) Result(shc)
+!@sum Returns GISS GCM specific heat capacity for cohort.
+      use ent_const
+      use ent_pfts, only: COVEROFFSET, alamax, alamin
+      integer,intent(in) :: pft
+      !Seems like this ought to use actual LAI, too? - NK
+      !-----Local----
+      real*8 :: lai
+      integer :: anum
+
+      anum = pft+COVEROFFSET
+      lai = .5d0*(alamax(anum) + alamin(anum))
+      shc = (.010d0+.002d0*lai+.001d0*lai**2)*shw*rhow
+
+      end function GISS_shc
 
 !**************************************************************************
 !## This function does not appear to be used - NK
@@ -388,10 +431,13 @@ c**** calculate root fraction afr averaged over vegetation types
 
       if (pfpar(pft)%woody) then !Woody
          if (pft.eq.TUNDRA) then !May need separate shrub allometry
-            dbh = ED_woodydiameter(pft,h) * 20.
+            dbh = ED_woodydiameter(pft,h) * 20.d0
          else                   !Most trees
             dbh = ED_woodydiameter(pft,h)
+            !dbh = height2dbh(pft,h) !phenology.f function
          endif
+      else
+         dbh = 0.d0 !Not woody.
       endif
       end function Ent_dbh
 !*************************************************************************
@@ -403,7 +449,7 @@ c**** calculate root fraction afr averaged over vegetation types
       real*8,intent(in) ::  h !height (m)
       !real*8,intent(out) :: dbh !(cm)
 
-      dbh = ((1/2.34)*h)**(1/0.64)
+      dbh = ((1/2.34d0)*h)**(1/0.64d0)
       !### See also phenology.f height2dbh version. ###!
 
       end function ED_woodydiameter
@@ -422,7 +468,7 @@ c**** calculate root fraction afr averaged over vegetation types
       !* Assumes closed canopy packing given popdensity.
       real*8, intent(in) :: popdensity !#/m^2
       
-      cradm = 0.5*sqrt(1/popdensity)
+      cradm = 0.5d0*sqrt(1/popdensity)
       end function crown_radius_closed
 !*************************************************************************
 

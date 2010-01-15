@@ -20,13 +20,14 @@
 !@sum sets prescribed LAI over the cell and update  C_fol, C_froot, senescefrac
       !use ent_prescrveg, only : prescr_plant_cpools
       use phenology, only : litter_patch
-      type(entcelltype) :: ecp
+      implicit none
+      type(entcelltype) :: ecp  !?pointer? ##
       real*8,intent(in) :: laidata(N_PFT) !@var LAI for all PFT's 
       logical,intent(in) :: init!,mixed_VEG
       !-----Local---------
       type(patch), pointer :: pp  !@var p current patch
       type(cohort), pointer :: cop !@var current cohort
-      real*8 laipatch, lai_old,lai_new
+      real*8 :: laipatch, lai_old,lai_new
       real*8 :: Clossacc(PTRACE,NPOOLS,N_CASA_LAYERS) !Litter accumulator.
       integer :: i
 
@@ -40,13 +41,18 @@
           i = i + 1
           lai_old = cop%LAI
 !          if (.not.mixed_VEG) then !* LAI array is by PFT.
-#ifndef NEED_ENTCOVER_MODULE
              lai_new = laidata(cop%pft)
 !          else !* mixed_VEG, LAI array is in cohort order.
-#else   !NEED_ENTCOVER_MODULE
+#ifdef NEED_ENTCOVER_MODULE
              lai_new = laidata(i)
+             print *,i,'lai_new',lai_new
+             print *,'Bug? Need above print to update laipatch(??)'
+             !### For some reason laipatch is zero if this print statement
+             !### is not done.  Print statement can even go after 
+             !### laipatch is assigned.?? -NK
 !          endif
-#endif  !NEED_ENTCOVER_MODULE
+#endif
+!NEED_ENTCOVER_MODULE
           !* Update biomass pools, senescefrac, accumulate litter
           call prescr_veglitterupdate_cohort(cop,lai_new,Clossacc,init)
 
@@ -55,6 +61,7 @@
         enddo
         call litter_patch(pp,Clossacc) 
         pp%LAI = laipatch
+        print *, 'laipatch',laipatch,pp%LAI
         pp => pp%younger
       enddo
 
@@ -393,7 +400,34 @@ cddd     &         - max(0.d0,cop%C_croot-C_croot_old)
       end subroutine entcell_update_crops
 
 
+!******************************************************************
       subroutine entcell_update_shc( ecp )
+!Mixed canopies calculation of shc, or generic any veg structure.
+      use ent_prescr_veg, only : shc_patch
+      implicit none
+      type(entcelltype),pointer :: ecp
+      !-----Local---------
+      type(patch),pointer :: pp
+      real*8 :: shc, pfrac
+
+      shc = 0.d0
+      pfrac = 0.d0
+      pp => ecp%oldest
+      do while (associated(pp))
+         shc = shc + shc_patch(pp)*pp%area  !Original averages mean lai instead.
+         pfrac = pfrac + pp%area
+         pp=>pp%younger
+      enddo
+
+
+      if (pfrac>EPS) shc = shc/pfrac
+
+      ecp%heat_capacity = shc
+      end subroutine entcell_update_shc
+!******************************************************************
+
+      subroutine entcell_update_shc_mosaicveg( ecp )
+!Old entcell_update_shc      
       use ent_prescr_veg, only : prescr_calc_shc
       use entcells, only : entcell_extract_pfts
       type(entcelltype) :: ecp
@@ -404,10 +438,10 @@ cddd     &         - max(0.d0,cop%C_croot-C_croot_old)
       call entcell_extract_pfts( ecp, vfraction )
       ecp%heat_capacity=prescr_calc_shc(vfraction)
 
-      end subroutine entcell_update_shc
-     
+      end subroutine entcell_update_shc_mosaicveg
 
-      subroutine entcell_vegupdate(entcell, hemi, jday
+
+      subroutine entcell_vegupdate(ecp, hemi, jday
      &     ,do_giss_phenology, do_giss_lai, do_giss_albedo!,mixed_veg
      &     ,laidata, hdata, albedodata, cropsdata, init )
 !@sum updates corresponding data on entcell level (and down). 
@@ -420,7 +454,7 @@ cddd     &         - max(0.d0,cop%C_croot-C_croot_old)
       use entcells,only : summarize_entcell!,entcell_extract_pfts
       use ent_prescr_veg, only : prescr_calc_shc, prescr_veg_albedo
       implicit none
-      type(entcelltype) :: entcell
+      type(entcelltype),pointer :: ecp
       integer,intent(in) :: jday
       integer,intent(in) :: hemi
       logical, intent(in) :: do_giss_phenology
@@ -449,21 +483,21 @@ cddd     &         - max(0.d0,cop%C_croot-C_croot_old)
       if (.not.do_giss_lai) then
 
         if ( associated(cropsdata) )
-     &       call entcell_update_crops(entcell, cropsdata)
+     &       call entcell_update_crops(ecp, cropsdata)
 
         if ( associated(hdata) )
-     &       call entcell_update_height(entcell, hdata, init)!, mixed_veg)
+     &       call entcell_update_height(ecp, hdata, init)!, mixed_veg)
 
         if ( associated(laidata) )
-     &       call entcell_update_lai_poolslitter(entcell,laidata,
+     &       call entcell_update_lai_poolslitter(ecp,laidata,
      &       init)!,mixed_veg)
-
+        
       endif
       ! or veg structure from prescribed GISS LAI phenology 
       if ( do_giss_phenology ) then !do_giss_phenology is redundant with do_giss_lai.
         if ( hemi<-2 .or. jday <-2 )
      &       call stop_model("entcell_vegupdate: needs hemi,jday",255)
-        pp => entcell%oldest
+        pp => ecp%oldest
         do while (ASSOCIATED(pp))
         !* LAI, SENESCEFRAC *!
           if (do_giss_lai) 
@@ -473,11 +507,12 @@ cddd     &         - max(0.d0,cop%C_croot-C_croot_old)
         end do
       endif
 
+
       !* ALBEDO *!
       if ( associated(albedodata) ) then
-        call entcell_update_albedo(entcell, albedodata)
+        call entcell_update_albedo(ecp, albedodata)
       else
-        pp => entcell%oldest
+        pp => ecp%oldest
         do while (ASSOCIATED(pp))
           ! update if have vegetation or not prognostic albedo
           if ( ASSOCIATED(pp%tallest).and.do_giss_albedo )
@@ -487,16 +522,19 @@ cddd     &         - max(0.d0,cop%C_croot-C_croot_old)
         end do
       endif
 
-      call summarize_entcell(entcell)
+      call summarize_entcell(ecp)
+!      print *,'ecp%LAI', ecp%LAI
+!      print *,'ecp%oldest%LAI', ecp%oldest%LAI
 
-      call entcell_update_shc(entcell)
-cddd      vfraction(:) = 0.d0
-cddd      call entcell_extract_pfts(entcell, vfraction(2:) )
-cddd      entcell%heat_capacity=GISS_calc_shc(vfraction)
+!#ifndef NEED_ENTCOVER_MODULE
+!      call entcell_update_shc_mosaicveg(ecp)
+!#else
+      call entcell_update_shc(ecp)
+!#endif
 
       !if (YEAR_FLAG.eq.0) call ent_GISS_init(entcellarray,im,jm,jday,year)
       !!!### REORGANIZE WTIH ent_prog.f ####!!!
-      
+
       end subroutine entcell_vegupdate
 
 

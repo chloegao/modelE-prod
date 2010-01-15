@@ -92,10 +92,9 @@
       implicit none
       type(entcelltype) :: ecp
 
-      ecp%area = 0.0
-      
+      ecp%area = 0.d0
+
       call zero_entcell_patchsum(ecp)
-      
       
       !VEGETATION - EXPORT STATE
       ecp%fv = 0.d0
@@ -170,7 +169,6 @@
 !      real*8 ::  vfraction(N_COVERTYPES) ! needed for a hack to compute canopy
                                  ! heat capacity exactly as in GISS GCM
 
-
       ecp%fv = 0.d0
       call zero_entcell_patchsum(ecp)
 
@@ -191,6 +189,7 @@
         ecp%nm = ecp%nm + pp%nm * laifa !wtd avg by LAI
         ecp%Ntot = ecp%Ntot + pp%Ntot * pp%area !wtd avg by area
         ecp%LMA = ecp%LMA + ecp%LMA * laifa !wtd avg by LAI
+
         do ia=1,N_COVERTYPES
           ecp%LAI = ecp%LAI + pp%LAIpft(ia) * pp%area !wtd avg by area
           ecp%LAIpft(ia) = ecp%LAIpft(ia) + pp%LAIpft(ia) * pp%area !wtd avg by area
@@ -345,8 +344,7 @@ C NADINE - IS THIS CORRECT?
         !ecp%heat_capacity = !Currently imported
         !ecp%fv = no averaging needed
 
-        ecp%area = fa  !## NK 1/12/2010
-
+        ecp%area = fa !## NK used in ent_diag.
       end if
 
       ! use original formula for canopy heat cpacity

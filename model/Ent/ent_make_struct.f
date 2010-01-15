@@ -97,14 +97,13 @@
 !+    This subroutine calculates other allometry and biomass pools.      
       use ent_prescr_veg, only : Ent_dbh, crown_radius_hw,
      &     prescr_plant_cpools, prescr_calc_rootprof, prescr_init_Clab
-      use phenology, only : height2dbh
       use ent_pfts, only : COVEROFFSET,nmv
       implicit none
       type(cohort),pointer :: cop
       !---Local------
       real*8 :: cpool(N_BPOOLS) !g-C/pool/plant
 
-      cop%dbh = height2dbh(cop%pft,cop%h)
+      cop%dbh = Ent_dbh(cop%pft,cop%h)
       cop%crown_dx = crown_radius_hw(cop%dbh) !## Eventually need to make pft-specific
       !cop%crown_dy = 0.66d0*cop%h !* Temporary estimate
       cop%nm = nmv(cop%pft+COVEROFFSET)
