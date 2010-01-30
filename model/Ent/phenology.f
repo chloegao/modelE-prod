@@ -32,7 +32,7 @@
       !l_fract: fraction of leaves retained after leaf fall (unitless)
       real*8, parameter :: l_fract = 0.50d0 
       !growth_r:  fraction of biomass pool required for growth respration to grow that biomass.
-!      real*8, parameter :: growth_r = 0.30d0 !Check same as canopyspitters.f Respiration_autotrophic
+!      real*8, parameter :: growth_r = 0.30d0 !Check same as canopyspitters.f Respauto_NPP_Clabile
       !q: ratio of root to leaf biomass (unitless)
       real*8, parameter :: q=1.0d0 
       !iqsw: sapwood biomass per (leaf area x wood height) (kgC/m2/m)
@@ -1096,6 +1096,11 @@ c$$$      Cactive = Cactive + dC_remainder
       dCactive = gr_fract *(1.d0 - qs) * Cavail
       dCrepro =  rp_fract  * Cavail
 
+!Notes, misc - NK:      
+!      cop%pptr%Reproduction(cop%pft) = 
+!     &     cop%pptr%Reproduction(cop%pft) + 0.2d0*cop%NPP*dtsec !(kg/m2-patch) !Reprod. fraction in ED is 0.3, in CLM-DGVM 0.1, so take avg=0.2.
+
+
 #ifdef DEBUG
       write(201,'(100(1pe16.8))') C_lab, dCactive, dCdead,dCrepro
 #endif
@@ -1795,7 +1800,8 @@ c$$$      end subroutine senesce_cpools
      &       loss_froot         !Turnover growth
      &       + max(0.d0,dC_froot)) !New biomass growth
      &       + 0.16d0*loss_croot !### Hack for regrowth of sapwood converted to replace senesced coarse root.
-        resp_growth = resp_growth_root + 0.14d0 * !Coefficient from Amthor (2000) Table 3
+        resp_growth = resp_growth_root + 
+     &       0.14d0 *           !Coefficient from Amthor (2000) Table 3
      &       ( loss_leaf        !Turnover growth    
      &       +max(0.d0,dC_fol)+max(0.d0,dC_sw)) !New biomass growth
      &       + 0.16d0*loss_hw   !### Hack for regrowth of sapwood converted to replace senesced coarse root.

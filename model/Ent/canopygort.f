@@ -207,7 +207,7 @@
           cop%IPP = Iemis * 0.012d-6 !umol m-2 s-1 to kg-C/m2-ground/s
 
           ! UNCOMMENT BELOW if Anet or Rd are used -MJP
-          Anet = cop%GPP - Rd !Right now Rd and Respiration_autotrophic are inconsistent-NK
+          Anet = cop%GPP - Rd !Right now Rd and Respauto_NPP_Clabile are inconsistent-NK
         else !Zero LAI
           cop%GCANOPY=0.d0 !May want minimum conductance for stems.
           cop%Ci = EPS
@@ -218,11 +218,11 @@
         endif
         !* Update cohort respiration components, NPP, C_lab
         !## Rd should be removed from pscondleaf, only need total photosynthesis to calculate it.
-        call Respiration_autotrophic(dtsec, TcanK,TsoilK,
+        call Respauto_NPP_Clabile(dtsec, TcanK,TsoilK,
      &       pp%cellptr%airtemp_10d+KELVIN,
      &       pp%cellptr%soiltemp_10d+KELVIN, Rd, cop)
 
-        call Allocate_NPP_to_labile(dtsec, cop)
+!        call Allocate_NPP_to_labile(dtsec, cop)
 
         ! update total carbon
         cop%C_total = cop%C_total + cop%NPP*dtsec
@@ -601,39 +601,37 @@
       end function Gs_from_Ci
 
 !################# NPP STORAGE ALLOCATION ######################################
-      subroutine Allocate_NPP_to_labile(dtsec,cop)
+!      subroutine Allocate_NPP_to_labile(dtsec,cop)
 !@sum Allocate_NPP_storage.  Allocates C_lab.
 !@sum This allows C_lab to go negative at the half-hourly time scale, 
-!@sum which prognostic growth/allocation will compensate for by senescence and
-!@sum and translocation from senesced pools.
+!@sum This does not check for C_lab going negative, because either:
+!@sum 1) Respiration_autotrophic adjusts respiration to prevent this from 
+!@sum happening (check current setup); or 
+!@sum 2) C_lab may go negative for less than 24 hours, and then
+!@sum the phenology growth module will do senescence and retranslocation
+!@sum to compensate for the loss.
 !@sum For prescribed LAI, C_lab provides a measure of the imbalance between 
 !@sum the biophysics and prescribed LAI.
-
-      implicit none
-      real*8 :: dtsec
-      type(cohort) :: cop
-
-      !* Accumulate uptake.*!
-!      if ( (cop%NPP*dtsec/cop%n.lt.0.d0).and.
-!     &     (abs(cop%NPP*dtsec/cop%n).ge.cop%C_lab) ) then 
-!        !Don't let C_lab go below zero.
-!        cop%C_lab = EPS
-!      else 
-!     !* old setup 
-!      cop%C_lab = cop%C_lab + 0.8d0*cop%NPP*dtsec/cop%n !(kg/individual)
-!      cop%pptr%Reproduction(cop%pft) = 
-!     &     cop%pptr%Reproduction(cop%pft) + 0.2d0*cop%NPP*dtsec !(kg/m2-patch) !Reprod. fraction in ED is 0.3, in CLM-DGVM 0.1, so take avg=0.2.
-
-        cop%C_lab = cop%C_lab + 1000.d0*cop%NPP*dtsec/cop%n !(g-C/individual)
-!      endif
-
-      end subroutine Allocate_NPP_to_labile
+!
+!      implicit none
+!      real*8 :: dtsec
+!      type(cohort) :: cop
+!
+!        cop%C_lab = cop%C_lab + 1000.d0*cop%NPP*dtsec/cop%n !(g-C/individual)
+!
+!      end subroutine Allocate_NPP_to_labile
 !################# AUTOTROPHIC RESPIRATION ######################################
 
-      subroutine Respiration_autotrophic(dtsec,TcanopyK,TsoilK,
+      subroutine Respauto_NPP_Clabile(dtsec,TcanopyK,TsoilK,
      &     TairK_10d, TsoilK_10d, Rd, cop)
-      !@sum Autotrophic respiration - updates cohort respiration,NPP,C_lab
-      !@sum Returns kg-C/m^2/s
+!@sum Autotrophic respiration, NPP, C_lab
+!@sum - updates cohort respiration,NPP,C_lab
+!@sum Returns kg-C/m^2/s
+!@sum Note:  This does not check for C_lab going negative, because
+!@sum   the phenology/growth module compensates on a daily basis
+!@sum   for negative C_lab by senescence and retranslocation.
+!@sum   For prescribed LAI, C_lab provides a measure of the imbalance between 
+!@sum   the biophysics and prescribed LAI.
       use photcondmod, only:  frost_hardiness
       implicit none
       real*8,intent(in) :: dtsec
@@ -676,10 +674,11 @@
       Resp_growth = Resp_can_growth(cop%pft, 
      &     cop%GPP,Resp_maint, Resp_growth_1)
 
-      !* Total respiration : maintenance + growth
+      !* Update cop respiration, NPP, C_lab.
       cop%R_auto =  Resp_maint + Resp_growth + Resp_growth_1
       cop%R_root = Resp_root
       cop%NPP = cop%GPP - cop%R_auto !kg-C/m2-ground/s
+      cop%C_lab = cop%C_lab + 1000.d0*cop%NPP*dtsec/cop%n !(g-C/individual)
 
 C#define OFFLINE 1
 C#ifdef OFFLINE
@@ -687,7 +686,7 @@ C      write(998,*) cop%C_lab,cop%GPP,cop%NPP,Resp_fol,Resp_sw,Resp_lab,
 C     &Resp_root,Resp_maint,Resp_growth, Resp_growth_1
 C      write(997,*) cop%C_fol,cop%C_froot,cop%C_sw,cop%C_hw,cop%C_croot
 C#endif
-      end subroutine Respiration_autotrophic
+      end subroutine Respauto_NPP_Clabile
 
 !---------------------------------------------------------------------!
       real*8 function Resp_can_maint(pft,C,CN,T_k,T_k_10d,n) 

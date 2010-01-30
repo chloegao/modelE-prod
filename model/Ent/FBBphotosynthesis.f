@@ -135,11 +135,11 @@ cddd     &     psd%Tc,psd%Pa,psd%rh,Gb,gsout,Aout,Rdout,sunlitshaded
 !      type(photosynthpar) :: pspar !Moved to global to module.
       real*8,parameter :: O2pres=20900.d0 !O2 partial pressure in leaf (Pa) Not exactly .209*101325.
       real*8 :: cie, cic, cis   !Leaf internal CO2 (umol mol-1)
-      real*8 :: Je1, Jc1, Js1   !Assimilation of CO2, 3 limiting cases
+!      real*8 :: Je1, Jc1, Js1   !Assimilation of CO2, 3 limiting cases
       real*8 :: Anet            !Net assimilation of CO2 = Atot - aboveground respir (umol m-2 s-1)
       real*8 :: Aiso            ! Rate of photosynthesis for isoprene emissions (umol m-2 s-1)
       real*8 :: cs   !CO2 mole fraction at the leaf surface (umol mol-1)
-      real*8 :: Ae, Ac, As
+      real*8 :: Ae, Ac, As      !Assimilation of CO2, 3 limiting cases
       real*8 :: a1,f1,e1
       real*8, parameter :: alpha=.08d0 !Intrinsic quantum efficiency for CO2 uptake
 
@@ -151,38 +151,33 @@ cddd     &     psd%Tc,psd%Pa,psd%rh,Gb,gsout,Aout,Rdout,sunlitshaded
 !      Rd = Respveg(pspar%Nleaf,Tl)  !Old F&K Respveg is not only leaf respiration.
       Rd = 0.015d0 * pspar%Vcmax    !von Caemmerer book.
 
+      !* Photosynthetic rate limited by light electron transport (umol m-2 s-1)
+      !* Assimilation is of the form a1*(ci - Gammastar.umol)/(e1*ci + f1)
 !      call Ci_Je(ca,gb,rh,IPAR,Pa, pspar, Rd, cie, Je1)
-      ! Photosynthetic rate limited by light electron transport (umol m-2 s-1)
       ! Je_light = (pspar%PARabsorb*IPAR)*alpha*(Cip-pspar%Gammastar)/
       !            (Cip+2*pspar%Gammastar)
-
-      !Assimilation is of the form a1*(ci - Gammastar.umol)/(e1*ci + f1)
-
 !      a1 = pspar%PARabsorb*IPAR*alpha
       a1 = IPAR*alpha  !### HACK:  IPAR from canopyspitters.f is APAR.  When we switch to Wenze's canopyrad, then leaf PARabsorb will be used -NK ###
 
       e1 = 1.d0
       f1 = 2*pspar%Gammastar * 1.d06/Pa !Convert from Pa to umol/mol
-
       call ci_cubic(ca,rh,gb,Pa,Rd,a1,e1,f1,pspar,Ae)
       !write(888,*) "Ae", ca,rh,gb,Pa,Rd,a1,e1,f1,pspar,Ae
 
+      !* Photosynthetic rate limited by RuBP saturation
+      !* Assimilation is of the form a1*(Ci - Gammastar)/(e1*Ci + f)
 !      call Ci_Jc(ca,gb,rh,IPAR,Pa,pspar, Rd,O2pres, cic, Jc1)
-      ! Photosynthetic rate limited by RuBP saturation
       ! Jc_RuBP = pspar%Vcmax*(Cip - pspar%Gammastar)/
       !           (Cip + pspar%Kc*(1 + O2/pspar%Ko))
-
-      !Assimilation is of the form a1*(Ci - Gammastar)/(e1*Ci + f)
       a1 = pspar%Vcmax
       e1 = 1.d0
       f1 = pspar%Kc*(1.d0 + O2pres/pspar%Ko) * 1.d06/Pa  !umol/mol
-
       call ci_cubic(ca,rh,gb,Pa,Rd,a1,e1,f1,pspar,Ac)
       !write(888,*) "Ac", ca,rh,gb,Pa,Rd,a1,e1,f1,pspar,Ac
 
+      !* Photosynthetic rate limited by "utilization of photosynthetic products"
+      !* (umol m-2 s-1)
 !      call Ci_Js(ca,gb,rh,IPAR,Pa,pspar,Rd, cis, Js1)
-      !Photosynthetic rate limited by "utilization of photosynthetic products"
-      ! (umol m-2 s-1)
       !Js_sucrose = pspar%Vcmax/2.d0
       As = pspar%Vcmax/2.d0 - Rd
       !write(888,*) "As", As
