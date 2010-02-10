@@ -32,6 +32,8 @@
       integer :: i
 
       laipatch = 0.d0
+      lai_new = 0.d0
+      lai_old = 0.d0
       Clossacc(:,:,:) = 0.d0
       pp => ecp%oldest      
       do while ( associated(pp) )
@@ -46,7 +48,7 @@
 #ifdef MIXED_CANOPY
              lai_new = laidata(i)
              print *,i,'lai_new',lai_new
-             print *,'Bug? Need above print to update laipatch(??)'
+             print *,'Bug? Need above print stmt to update laipatch(??)'
              !### For some reason laipatch is zero if this print statement
              !### is not done.  Print statement can even go after 
              !### laipatch is assigned.?? -NK

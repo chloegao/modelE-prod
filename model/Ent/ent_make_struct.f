@@ -18,7 +18,7 @@
       character :: check
 
       read(iu_entstruct,*) check
-      write(*,*) 'ss',check
+      !write(*,*) 'ss',check
       do while (check.eq.'*') 
         read(iu_entstruct,*) check
       end do
@@ -72,22 +72,18 @@
       type(cohort) :: cop
       integer :: iu_entstruct
       !---
-!      real*8 :: nm,Ntot,LAI,LMA,h,crown_dx,crown_dy,dbh,root_d,clump
-!      real*8 :: fracroot !skip
-!      real*8 :: C_fol,N_fol,C_sw,N_sw,C_hw,N_hw,C_lab,N_lab,
-!     &     C_froot,N_froot,C_croot,N_croot
 
       call skipstar(iu_entstruct)
       read(iu_entstruct,*) cop%pft
       call skipstar(iu_entstruct)
       read(iu_entstruct,*) cop%n,cop%h,cop%crown_dx,cop%crown_dy,
      &     cop%dbh,cop%root_d,cop%clump
-      write(*,*) cop%n,cop%h,cop%crown_dx,cop%crown_dy,
-     &     cop%dbh,cop%root_d,cop%clump
-      call skipstar(iu_entstruct)
-      read(iu_entstruct,*) cop%C_fol,cop%N_fol,cop%C_sw,cop%N_sw,
-     &     cop%C_hw,cop%N_hw,cop%C_lab,cop%N_lab,cop%
-     &     C_froot,cop%N_froot,cop%C_croot,cop%N_croot
+!      write(*,*) cop%n,cop%h,cop%crown_dx,cop%crown_dy,
+!     &     cop%dbh,cop%root_d,cop%clump
+!      call skipstar(iu_entstruct)
+!      read(iu_entstruct,*) cop%C_fol,cop%N_fol,cop%C_sw,cop%N_sw,
+!     &     cop%C_hw,cop%N_hw,cop%C_lab,cop%N_lab,cop%
+!     &     C_froot,cop%N_froot,cop%C_croot,cop%N_croot
 
       end subroutine read_cohort_struct
 
@@ -123,107 +119,6 @@
       
       end subroutine calc_cohort_allometry
 !************************************************************************
-
-
-! left the old program for a reference - should be removed
-cddd      subroutine ent_struct_readcsv (IM,JM,I0,I1,J0,J1)
-cddd!@sum Read ent vegetation structure from ASCII CSV file
-cddd!@sum Order must be:
-cddd!@sum First line:  N_CASA_LAYERS
-cddd!@sum e, entcells in any order spanning dimension IM,JM
-cddd!@sum p, patches in order from oldest to youngest
-cddd!@sum c, cohorts in order from tallest to shortest
-cddd!@sum
-cddd!@sum This ordering is not critical, because the insert routines will
-cddd!@sum sort the patches and cohorts, given age and height.
-cddd
-cddd      use FILEMANAGER
-cddd      implicit none
-cddd      integer :: IM,JM,I0,I1,J0,J1
-cddd      type(entcelltype) :: cells(I0:I1,J0:J1)
-cddd      type(entcelltype) :: cellsbuf(I0:I1,J0:J1)
-cddd      !----
-cddd      integer :: iu_entstruct
-cddd      character*80, parameter :: ENTSTRUCT="ENTSTRUCT"
-cddd      integer :: N_CASAlayers    !N_CASA_layers
-cddd      integer :: i,j
-cddd      type(entcelltype),pointer :: ecp
-cddd      type(patch),pointer :: pp
-cddd      type(cohort),pointer :: cop
-cddd      real*8 :: fracroot(N_DEPTH)
-cddd      logical :: MORE
-cddd      character :: next
-cddd
-cddd      fracroot(1:N_DEPTH) = 0.d0
-cddd      MORE = .true.  !initialize
-cddd
-cddd!      open(iu_entstruct,file="ent_struct_init.csv",status='unknown')
-cddd      call openunit(trim(ENTSTRUCT),iu_entstruct,.false.,.true.)
-cddd      read(iu_entstruct,*) N_CASAlayers
-cddd      write(*,*) 'N_CASAlayers',N_CASAlayers
-cddd      do while(MORE)
-cddd        read(iu_entstruct,*) next
-cddd        if (next.eq.'$') then !End of data
-cddd          MORE = .false.
-cddd        else if (next.eq.'*') then !skip comment
-cddd        else if (next.eq.'e') then !new entcell
-cddd          write(*,*) 'e'
-cddd          read(iu_entstruct,*) i,j
-cddd          write(*,*) i,j
-cddd          call check_ij_bounds(i,j,I0,I1,J0,J1)
-cddd          call entcell_construct(ecp)
-cddd          call zero_entcell( ecp )
-cddd          call read_entcell_struct( ecp,iu_entstruct )
-cddd          cells(i,j) = ecp
-cddd        else if (next.eq.'p') then !new patch
-cddd          write(*,*) 'p'
-cddd          call insert_patch(ecp,0.d0)
-cddd          pp => ecp%youngest
-cddd          call read_patch_struct(pp,iu_entstruct)
-cddd          write(*,*) 'patch area age soil',pp%area,pp%age,pp%soil_type
-cddd        else if (next.eq.'c') then !new cohort
-cddd          write(*,*) 'c'
-cddd          call insert_cohort(pp,0,
-cddd     &         0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,
-cddd     &         fracroot,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,
-cddd     &         0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,
-cddd     &         0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0)
-cddd          cop => pp%shortest
-cddd          call read_cohort_struct(cop,iu_entstruct)
-cddd          write(*,*) 'cohort pft height',cop%pft,cop%h
-cddd        end if
-cddd        cells(i,j) = ecp
-cddd      end do
-cddd
-cddd!      write(*,*) 'Got here 0.'
-cddd!      do i = I0,I1
-cddd!        do j = J0,J1
-cddd!          call entcell_print(6,cells(i,j))
-cddd!        end do
-cddd!      end do
-cddd
-cddd      write(*,*) 'Summarizing entcells...'
-cddd      do i = I0,I1
-cddd        do j = J0,J1
-cddd          call summarize_entcell(cells(i,j))
-cddd          write(*,*) '...after summarize_entcell'
-cddd          call entcell_print(6,cells(i,j))
-cddd          cellsbuf(i,j) = cells(i,j)
-cddd          write(*,*) '...after assign cellsbuf(i,j)'
-cddd        end do
-cddd      end do
-cddd
-cddd      write(*,*) 'Printing cellsbuf...'
-cddd      do i = I0,I1
-cddd         do j = J0,J1
-cddd            call entcell_print(6, cellsbuf(i,j))
-cddd         end do
-cddd      end do 
-cddd      
-cddd      call closeunit(iu_entstruct)
-cddd      write(*,*) 'Done with creating Ent vegetation structure.'
-cddd      end subroutine ent_struct_readcsv
-
 
       subroutine ent_struct_readcsv (ec, iu_entstruct)
 !@sum Read ent vegetation structure from ASCII CSV file
@@ -297,7 +192,7 @@ cddd      end subroutine ent_struct_readcsv
      &         0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0)
           tcp=>ec%oldest%tallest
           do while (associated(tcp))
-             write(*,*) '1 cohort: pft, h',tcp%pft,tcp%h
+!             write(*,*) '1 cohort: pft, h',tcp%pft,tcp%h
              tcp=>tcp%shorter
           enddo
           
@@ -320,7 +215,7 @@ cddd      end subroutine ent_struct_readcsv
          write(*,*) '  patch: area soil_type =',tpp%area,tpp%soil_type
          tcp=>ec%oldest%tallest
          do while (associated(tcp))
-            write(*,*) '  cohort: pft, h = ',tcp%pft,tcp%h
+            write(*,*) '  cohort: pft=', tcp%pft,' h=',tcp%h
             tcp=>tcp%shorter
          enddo
          tpp=>tpp%younger
