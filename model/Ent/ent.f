@@ -202,6 +202,7 @@
 
 #ifdef ENT_STANDALONE_DIAG
       call ent_diagnostics_entcell(ecp)
+      call entcell_print(6, ecp)
 #endif
 
       end subroutine ent_integrate
