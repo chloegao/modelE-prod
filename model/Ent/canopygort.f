@@ -484,8 +484,8 @@
       integer :: sunlitshaded !1-sunlit, 2-shaded
 
 !      call canopy_rad(Lcum,crp,Isl,Ish,fsl)
-      Isl = pptr%crad%I_sun(L) * cop%fp(L) / pptr%crad%LAI(L)
-      Ish = pptr%crad%I_sha(L) * cop%fp(L) / pptr%crad%LAI(L)
+      Isl = pptr%crad%I_sun(L) 
+      Ish = pptr%crad%I_sha(L) 
       fsl = pptr%crad%f_sun(L)
 !      write(997,*) 'Lcum,sigma, sqrtexpr,kdf,rhor,kbl,pft,canalbedo,
 !     & LAI,solarzen,I0df,I0dr,Isl,Ish,fsl',Lcum,crp,Isl,Ish,fsl
@@ -617,7 +617,7 @@
 !      real*8 :: dtsec
 !      type(cohort) :: cop
 !
-!        cop%C_lab = cop%C_lab + 1000.d0*cop%NPP*dtsec/cop%n !(g-C/individual)
+!      cop%C_lab = cop%C_lab + 1000.d0*cop%NPP*dtsec/cop%n !(g-C/individual)
 !
 !      end subroutine Allocate_NPP_to_labile
 !################# AUTOTROPHIC RESPIRATION ######################################
@@ -645,6 +645,7 @@
       real*8 :: Resp_fol, Resp_sw, Resp_lab, Resp_root, Resp_maint
       real*8 ::Resp_growth, C2N, Resp_growth_1
       real*8 :: facclim
+!      real*8 :: Rauto, adj
 
       facclim = frost_hardiness(cop%Sacclim)
       C2N = 1/(pftpar(cop%pft)%Nleaf*1d-3*pfpar(cop%pft)%SLA)
@@ -666,13 +667,33 @@
       Resp_maint = Resp_root + Resp_fol + Resp_sw + Resp_lab
 !     &       Canopy_resp(vegpar%Ntot, TcanopyC+KELVIN))
 
-      !* actual growth respiration tied to tissue growth.
+      !* Growth respiration from biomass tissue growth.
       Resp_growth_1 = cop%C_growth/(24.d0*3600.d0) !Convert from d-1 to s-1.
       !cop%C_growth = cop%C_growth - Resp_growth_1*dtsec 
 
-      !* Growth respiration tied to GPP; with compensation for tissue growth respiration.
+      !* Growth respiration tied to GPP; compensates for tissue growth respir.
       Resp_growth = Resp_can_growth(cop%pft, 
      &     cop%GPP,Resp_maint, Resp_growth_1)
+
+      !* NK - commented out; may try this but looks unnecessary.
+      !*** Check for Rauto greater than C_labile + GPP:
+      !* If Rauto > C_lab+GPP, then adjust Resp_maint and Resp_growth, but
+      !* cannot adjust Resp_growth_1, because biomass growth was already
+      !* calculated and checked for adequate C_lab for C_growth.
+!      Rauto = Resp_maint + Resp_growth + Resp_growth_1
+!      if ((Rauto).gt.(cop%C_lab+cop%GPP)) then !Reduce respiration
+!         !if (Rauto.gt.0.d0) then !No div by zero - should not have to check.
+!         if ((cop%C_lab +cop%GPP -Resp_growth_1).gt.0.d0) then
+!            adj = (cop%C_lab +cop%GPP -Resp_growth_1)/
+!     &           (Resp_maint + Resp_growth + EPS)
+!         else
+!            !call stop_model("Rauto le zero.", 255)
+!            !C_lab might go below zero with Resp_growth_1.
+!            adj = 0
+!         endif
+!         Resp_maint = adj * Resp_maint
+!         Resp_growth = adj * Resp_growth
+!      endif
 
       !* Update cop respiration, NPP, C_lab.
       cop%R_auto =  Resp_maint + Resp_growth + Resp_growth_1
@@ -686,6 +707,7 @@ C      write(998,*) cop%C_lab,cop%GPP,cop%NPP,Resp_fol,Resp_sw,Resp_lab,
 C     &Resp_root,Resp_maint,Resp_growth, Resp_growth_1
 C      write(997,*) cop%C_fol,cop%C_froot,cop%C_sw,cop%C_hw,cop%C_croot
 C#endif
+
       end subroutine Respauto_NPP_Clabile
 
 !---------------------------------------------------------------------!

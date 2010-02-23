@@ -101,27 +101,27 @@
       ! pft physical state variables structure
       !----------------------------------------------------
       type pft_pstate_type
-        real*8, pointer :: albd(:,:)    !surface albedo (direct)                       (numrad)
-        real*8, pointer :: albi(:,:)    !surface albedo (indirect)                     (numrad)
-        real*8, pointer :: fabd(:,:)    !flux absorbed by veg per unit direct flux     (numrad)
-        real*8, pointer :: fabi(:,:)    !flux absorbed by veg per unit diffuse flux    (numrad)
-        real*8, pointer :: ftdd(:,:)    !down direct flux below veg per unit dir flx   (numrad)
-        real*8, pointer :: ftid(:,:)    !down diffuse flux below veg per unit dir flx  (numrad)
-        real*8, pointer :: ftii(:,:)    !down diffuse flux below veg per unit dif flx  (numrad)
-        real*8, pointer :: frid(:,:)    !up diffuse flux below veg per unit dir flx    (numrad)
-        real*8, pointer :: frii(:,:)    !up diffuse flux below veg per unit dif flx    (numrad) 
+        real*8, pointer :: albd(:,:)    !surface albedo (direct)                       (N_BANDS)
+        real*8, pointer :: albi(:,:)    !surface albedo (indirect)                     (N_BANDS)
+        real*8, pointer :: fabd(:,:)    !flux absorbed by veg per unit direct flux     (N_BANDS)
+        real*8, pointer :: fabi(:,:)    !flux absorbed by veg per unit diffuse flux    (N_BANDS)
+        real*8, pointer :: ftdd(:,:)    !down direct flux below veg per unit dir flx   (N_BANDS)
+        real*8, pointer :: ftid(:,:)    !down diffuse flux below veg per unit dir flx  (N_BANDS)
+        real*8, pointer :: ftii(:,:)    !down diffuse flux below veg per unit dif flx  (N_BANDS)
+        real*8, pointer :: frid(:,:)    !up diffuse flux below veg per unit dir flx    (N_BANDS)
+        real*8, pointer :: frii(:,:)    !up diffuse flux below veg per unit dif flx    (N_BANDS) 
         real*8, pointer :: gdir(:)      !leaf projection in solar direction (0 to 1)
         real*8, pointer :: omega(:,:)   !fraction of intercepted radiation that is scattered (0 to 1)
-        real*8, pointer :: isha(:,:)    !shaded flux per unit incident flux            (numrad)         
-        real*8, pointer :: isun(:,:)    !sunlit flux per unit incident flux            (numrad)         
+        real*8, pointer :: isha(:,:)    !shaded flux per unit incident flux            (N_BANDS)         
+        real*8, pointer :: isun(:,:)    !sunlit flux per unit incident flux            (N_BANDS)         
       end type pft_pstate_type
 
       real*8 :: K
       !real*8, parameter :: PI=3.14159265
       real*8, parameter :: ang_dif = 1.0071   ! 57.7 deg in rad
       real*8, parameter :: dz_gin = 0.1       ! init delta z for profile
-      real*8, parameter :: lai_thres = 0.1    ! don't calculate if lower
-      integer, parameter :: numrad      =   2   ! number of solar radiation bands: vis, nir
+      real*8, parameter :: lai_thres = 0.01    ! don't calculate if lower
+      ! integer, parameter :: N_BANDS      =   2   ! number of solar radiation bands: vis, nir
       integer, parameter :: lbp = 1
       integer, parameter :: ubp = 1
       integer, parameter :: num_vegsol = ubp - lbp + 1
@@ -259,10 +259,10 @@
       integer :: filter_vegsol(num_vegsol), ivt(num_vegsol) 
       integer :: pcolumn(num_vegsol)
       real*8 :: vai(num_vegsol) 
-      real*8 :: rho(num_vegsol,numrad), tau(num_vegsol,numrad)
+      real*8 :: rho(num_vegsol,N_BANDS), tau(num_vegsol,N_BANDS)
       real*8 :: coszen(num_vegsol), esai(num_vegsol), elai(num_vegsol)
-      real*8 :: rhol(num_pft,numrad), taul(num_pft,numrad) 
-      real*8 :: rhos(num_pft,numrad), taus(num_pft,numrad)
+      real*8 :: rhol(num_pft,N_BANDS), taul(num_pft,N_BANDS) 
+      real*8 :: rhos(num_pft,N_BANDS), taus(num_pft,N_BANDS)
 
       type(pft_pstate_type) :: sout
     
@@ -284,18 +284,57 @@
      &   0.10, 0.10, 0.07, 0.10, 0.10, 0.11, 0.11, 0.11, 0.11, 0.11/
       data (rhol(i,2),i=1,16) /0.35, 0.35, 0.35, 0.45, 0.45, 0.45,
      &   0.45, 0.45, 0.35, 0.45, 0.45, 0.58, 0.58, 0.58, 0.58, 0.58/
+      data (rhol(i,3),i=1,16) /0.35, 0.35, 0.35, 0.45, 0.45, 0.45,
+     &   0.45, 0.45, 0.35, 0.45, 0.45, 0.58, 0.58, 0.58, 0.58, 0.58/
+      data (rhol(i,4),i=1,16) /0.35, 0.35, 0.35, 0.45, 0.45, 0.45,
+     &   0.45, 0.45, 0.35, 0.45, 0.45, 0.58, 0.58, 0.58, 0.58, 0.58/
+      data (rhol(i,5),i=1,16) /0.35, 0.35, 0.35, 0.45, 0.45, 0.45,
+     &   0.45, 0.45, 0.35, 0.45, 0.45, 0.58, 0.58, 0.58, 0.58, 0.58/
+      data (rhol(i,N_BANDS),i=1,16) /0.35, 0.35, 0.35, 0.45, 0.45, 0.55,
+     &   0.45, 0.45, 0.35, 0.45, 0.45, 0.58, 0.58, 0.58, 0.58, 0.58/
+      
       data (rhos(i,1),i=1,16) /0.16, 0.16, 0.16, 0.16, 0.16, 0.16, 
      &    0.16, 0.16, 0.16, 0.16, 0.16, 0.36, 0.36, 0.36, 0.36, 0.36/
       data (rhos(i,2),i=1,16) /0.39, 0.39, 0.39, 0.39, 0.39, 0.39, 
      &    0.39, 0.39, 0.39, 0.39, 0.39, 0.58, 0.58, 0.58, 0.58, 0.58/
+      data (rhos(i,3),i=1,16) /0.39, 0.39, 0.39, 0.39, 0.39, 0.39, 
+     &    0.39, 0.39, 0.39, 0.39, 0.39, 0.58, 0.58, 0.58, 0.58, 0.58/
+      data (rhos(i,4),i=1,16) /0.39, 0.39, 0.39, 0.39, 0.39, 0.39, 
+     &    0.39, 0.39, 0.39, 0.39, 0.39, 0.58, 0.58, 0.58, 0.58, 0.58/
+      data (rhos(i,5),i=1,16) /0.39, 0.39, 0.39, 0.39, 0.39, 0.39, 
+     &    0.39, 0.39, 0.39, 0.39, 0.39, 0.58, 0.58, 0.58, 0.58, 0.58/
+      data (rhos(i,N_BANDS),i=1,16) /0.39, 0.39, 0.39, 0.39, 0.39, 0.39, 
+     &    0.39, 0.39, 0.39, 0.39, 0.39, 0.58, 0.58, 0.58, 0.58, 0.58/
+     
       data (taul(i,1),i=1,16) /0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 
      &   0.05, 0.05, 0.05, 0.05, 0.05, 0.07, 0.07, 0.07, 0.07, 0.07/
       data (taul(i,2),i=1,16) /0.10, 0.10, 0.10, 0.25, 0.25, 0.25,  
      &   0.25, 0.25, 0.10, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25/
+      data (taul(i,3),i=1,16) /0.10, 0.10, 0.10, 0.25, 0.25, 0.25,  
+     &   0.25, 0.25, 0.10, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25/
+      data (taul(i,4),i=1,16) /0.10, 0.10, 0.10, 0.25, 0.25, 0.25,  
+     &   0.25, 0.25, 0.10, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25/
+      data (taul(i,5),i=1,16) /0.10, 0.10, 0.10, 0.25, 0.25, 0.25,  
+     &   0.25, 0.25, 0.10, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25/
+      data (taul(i,N_BANDS),i=1,16) /0.10, 0.10, 0.10, 0.25, 0.25, 0.25,  
+     &   0.25, 0.25, 0.10, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25/
+      
       data (taus(i,1),i=1,16) /0.001, 0.001, 0.001, 0.001, 0.001, 
      &   0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.220, 0.220, 
      &   0.220, 0.220, 0.220/
       data (taus(i,2),i=1,16) /0.001, 0.001, 0.001, 0.001, 0.001, 
+     &   0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.380, 0.380, 
+     &   0.380, 0.380, 0.380/
+      data (taus(i,3),i=1,16) /0.001, 0.001, 0.001, 0.001, 0.001, 
+     &   0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.380, 0.380, 
+     &   0.380, 0.380, 0.380/
+      data (taus(i,4),i=1,16) /0.001, 0.001, 0.001, 0.001, 0.001, 
+     &   0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.380, 0.380, 
+     &   0.380, 0.380, 0.380/
+      data (taus(i,5),i=1,16) /0.001, 0.001, 0.001, 0.001, 0.001, 
+     &   0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.380, 0.380, 
+     &   0.380, 0.380, 0.380/
+      data (taus(i,N_BANDS),i=1,16) /0.001, 0.001, 0.001, 0.001, 0.001, 
      &   0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.380, 0.380, 
      &   0.380, 0.380, 0.380/
 
@@ -330,7 +369,7 @@
          ws(p) = esai(p) / max( vai(p), mpe )
       end do
 
-      do ib = 1, numrad
+      do ib = 1, N_BANDS
          do fp = 1,num_vegsol
             p = filter_vegsol(fp)
             rho(p,ib) = max( rhol(ivt(p),ib)*wl(p) + 
@@ -348,7 +387,7 @@
      &   sout)
       
       N2 = size(height_levels)
-      do ib = 1, numrad
+      do ib = 1, N_BANDS
          pptr%albedo(ib) = Id * sout%albd(1,ib) + Ii * sout%albi(1,ib)
       end do
  
@@ -374,6 +413,8 @@
 
       write(1080,*) Id,Ii,pptr%albedo(1),pptr%albedo(2),
      & tran(1),tran(2),I_sun(1),I_sha(1)
+      write(1081,*) T_sun
+      write(1081,*) T_Sha
       pptr%crad%f_sun => sunlit
       pptr%crad%f_sha => shaded
       pptr%crad%T_sun => T_sun
@@ -746,7 +787,7 @@
 !
 ! !USES:
 !    use clmtype
-!    use clm_varpar, only : numrad
+!    use clm_varpar, only : N_BANDS
 !    use clm_varcon, only : omegas, tfrz, betads, betais
 !
 ! !ARGUMENTS:
@@ -766,17 +807,17 @@
       real*8, intent(in)  :: Id                       ! direct light ratio, used for isha and isun
       real*8, intent(in), dimension(:)  :: height_levels
       real*8, intent(in), dimension(:)  :: rdfp, rifp
-      real*8, intent(in)  :: rho(lbp:ubp,numrad)    ! leaf/stem refl weighted by fraction LAI and SAI
-      real*8, intent(in)  :: tau(lbp:ubp,numrad)    ! leaf/stem tran weighted by fraction LAI and SAI
+      real*8, intent(in)  :: rho(lbp:ubp,N_BANDS)    ! leaf/stem refl weighted by fraction LAI and SAI
+      real*8, intent(in)  :: tau(lbp:ubp,N_BANDS)    ! leaf/stem tran weighted by fraction LAI and SAI
 
       type(pft_pstate_type) :: sout    ! output structure for 2stream model
 
 ! !Constant from CLM code to avoid using 'use' model    
       real*8, parameter :: betads  = 0.5            ! two-stream parameter betad for snow
       real*8, parameter :: betais  = 0.5            ! two-stream parameter betai for snow
-      real*8 :: omegas(numrad)           ! two-stream parameter omega for snow by band
+      real*8 :: omegas(N_BANDS)           ! two-stream parameter omega for snow by band
       integer :: i
-      data (omegas(i),i=1,numrad) /0.8, 0.4/
+      data (omegas(i),i=1,N_BANDS) /0.8, 0.4, 0.4, 0.4, 0.4, 0.4/
       real*8, parameter :: SHR_CONST_TKFRZ   = 273.15       ! freezing T of fresh water          ~ K 
       real*8, parameter :: tfrz   = SHR_CONST_TKFRZ !freezing temperature [K]
 
@@ -784,12 +825,16 @@
       real :: xl(numpft)         ! ecophys const - leaf/stem orientation index
       data (xl(i),i=1,numpft) /0.01, 0.01, 0.01, 0.10, 0.10, 0.01, 0.25, 
      &    0.25, 0.01, 0.25, 0.25, -0.30, -0.30, -0.30, -0.30, -0.30/
-      real*8 :: albgrd(2,numrad)   ! ground albedo (direct) (column-level)
-      real*8 :: albgri(2,numrad)   ! ground albedo (diffuse)(column-level)
-      data (albgrd(1,i),i=1,numrad) /0.075, 0.314/
-      data (albgri(1,i),i=1,numrad) /0.075, 0.314/
-      data (albgrd(2,i),i=1,numrad) /0.939, 0.787/
-      data (albgri(2,i),i=1,numrad) /0.939, 0.787/
+      real*8 :: albgrd(2,N_BANDS)   ! ground albedo (direct) (column-level)
+      real*8 :: albgri(2,N_BANDS)   ! ground albedo (diffuse)(column-level)
+      data (albgrd(1,i),i=1,N_BANDS) /0.075, 0.314, 0.314, 0.314, 0.314,
+     &    0.314/
+      data (albgri(1,i),i=1,N_BANDS) /0.075, 0.314, 0.314, 0.314, 0.314,
+     &    0.314/
+      data (albgrd(2,i),i=1,N_BANDS) /0.939, 0.787, 0.787, 0.787, 0.787,
+     &    0.787/
+      data (albgri(2,i),i=1,N_BANDS) /0.939, 0.787, 0.787, 0.787, 0.787,
+     &    0.787/
       real*8 :: Ii                 !diffuse light ratio
 !
 ! !CALLED FROM:
@@ -867,19 +912,19 @@
 !       allocate(vai(lbp:ubp))
 !    end if
       allocate(evai(N_height_level))
-      allocate(sout%albd(lbp:ubp,numrad))
-      allocate(sout%albi(lbp:ubp,numrad))
-      allocate(sout%fabd(N_height_level,numrad))
-      allocate(sout%fabi(N_height_level,numrad))
-      allocate(sout%ftdd(N_height_level,numrad))
-      allocate(sout%ftid(N_height_level,numrad))
-      allocate(sout%ftii(N_height_level,numrad))
-      allocate(sout%frid(N_height_level,numrad))
-      allocate(sout%frii(N_height_level,numrad))
+      allocate(sout%albd(lbp:ubp,N_BANDS))
+      allocate(sout%albi(lbp:ubp,N_BANDS))
+      allocate(sout%fabd(N_height_level,N_BANDS))
+      allocate(sout%fabi(N_height_level,N_BANDS))
+      allocate(sout%ftdd(N_height_level,N_BANDS))
+      allocate(sout%ftid(N_height_level,N_BANDS))
+      allocate(sout%ftii(N_height_level,N_BANDS))
+      allocate(sout%frid(N_height_level,N_BANDS))
+      allocate(sout%frii(N_height_level,N_BANDS))
       allocate(sout%gdir(lbp:ubp))
-      allocate(sout%omega(lbp:ubp,numrad))
-      allocate(sout%isha(N_height_level,numrad))
-      allocate(sout%isun(N_height_level,numrad))
+      allocate(sout%omega(lbp:ubp,N_BANDS))
+      allocate(sout%isha(N_height_level,N_BANDS))
+      allocate(sout%isun(N_height_level,N_BANDS))
 
     ! Assign local pointers to derived subtypes components (column-level)
 
@@ -941,7 +986,7 @@
       end do
       write(1076,*) 'temp0,1,2=', temp0,temp1,temp2
 
-      do ib = 1, numrad
+      do ib = 1, N_BANDS
          do fp = 1,num_vegsol
             p = filter_vegsol(fp)
             c = pcolumn(p)
@@ -1717,7 +1762,7 @@
           allocate(h_coh(1))   
           cop => pp%tallest
           gin(1)%dens_tree = cop%n
-          gin(1)%vert_radius = cop%crown_dy !+2 ! debugging
+          gin(1)%vert_radius = cop%crown_dy  ! debugging
           gin(1)%h1 = cop%h - gin(1)%vert_radius
           gin(1)%h2 = gin(1)%h1
           gin(1)%horz_radius = cop%crown_dx
