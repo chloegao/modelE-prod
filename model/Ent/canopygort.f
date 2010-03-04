@@ -155,7 +155,7 @@
       do while (ASSOCIATED(cop))
 
         !* Assign vegpar
-
+        print *, 'cop%LAI = ', cop%LAI
         if (cop%LAI.gt.0.d0) then
 !SOILMOIST_OLD
 !          cop%stressH2O = water_stress(N_DEPTH, pp%cellptr%Soilmp(:)

@@ -446,7 +446,7 @@ cddd      end subroutine init_cohort_defaults
       write(iu,1)prefix,"n   ",cop%n
       write(iu,1)prefix,"nm          ",cop%nm            
       write(iu,1)prefix,"Ntot        ",cop%Ntot          
-      write(iu,1)prefix,"LAI   	 ",cop%LAI   	 
+      write(iu,1)prefix,"LAI   	     ",cop%LAI 
       write(iu,1)prefix,"LMA         ",cop%LMA           
       write(iu,1)prefix,"h      	 ",cop%h      	 
       write(iu,1)prefix,"crown_dx  	 ",cop%crown_dx  	 
@@ -471,7 +471,7 @@ cddd      end subroutine init_cohort_defaults
       write(iu,1)prefix,"N_sw        ",cop%N_sw          
       write(iu,1)prefix,"C_hw        ",cop%C_hw          
       write(iu,1)prefix,"N_hw        ",cop%N_hw          
-      write(iu,1)prefix,"C_lab       ",cop%C_lab         
+      write(iu,1)prefix,"C_lab       ",cop%C_lab
       write(iu,1)prefix,"N_lab       ",cop%N_lab         
       write(iu,1)prefix,"C_froot     ",cop%C_froot       
       write(iu,1)prefix,"N_froot     ",cop%N_froot       

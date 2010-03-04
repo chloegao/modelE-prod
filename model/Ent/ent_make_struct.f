@@ -184,6 +184,7 @@
           !## Assumes last patch is youngest 
           !## (insert_patch does not currently sort by age).
           call insert_cohort(ec%youngest,cop%pft,
+     !&         cop%n,cop%h,cop%nm,0.d0,cop%crown_dx,cop%crown_dy,
      &         cop%n,cop%h,cop%nm,0.d0,cop%crown_dx,0.d0,
      &         cop%dbh,0.d0,0.d0,0.d0,
      &         cop%fracroot,cop%C_fol,0.d0,cop%C_sw,0.d0,cop%C_hw,

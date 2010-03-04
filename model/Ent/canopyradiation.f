@@ -120,7 +120,7 @@
       !real*8, parameter :: PI=3.14159265
       real*8, parameter :: ang_dif = 1.0071   ! 57.7 deg in rad
       real*8, parameter :: dz_gin = 0.1       ! init delta z for profile
-      real*8, parameter :: lai_thres = 0.01    ! don't calculate if lower
+      real*8, parameter :: lai_thres = 0.001    ! don't calculate if lower
       ! integer, parameter :: N_BANDS      =   2   ! number of solar radiation bands: vis, nir
       integer, parameter :: lbp = 1
       integer, parameter :: ubp = 1
@@ -1737,24 +1737,25 @@
       cop => pp%tallest
       do while (ASSOCIATED(cop))
         !* Assign vegpar
-
+        
+        !print *, 'raw cop%LAI=', cop%LAI
         !cop%LAI = 3  ! for debugging
         if (cop%LAI.gt.lai_thres) then
         ! if (cop%LAI.gt.0.d0) then
            count = count + 1
         endif
-        if (count == 0) then
-           print *, 'no vegetation,L,b=', cop%LAI,
-     &   cop%crown_dy
-           pp%crad%heights = 0.d0
-           pp%crad%LAI = 0.d0
-           pp%crad%GORTclump = 0.d0 
-           return
-        endif
- 
+
         cop => cop%shorter
       end do
-      ! print *, 'count=', count
+
+    !  if (count == 0) then
+    !     print *, 'no vegetation,L,b=', cop%LAI,
+    ! & cop%crown_dy
+    !     pp%crad%heights = 0.d0
+    !     pp%crad%LAI = 0.d0
+    !     pp%crad%GORTclump = 0.d0
+    !     return
+    !  endif
  
       if (count.gt.0.d0) then
         if (count.eq.1.d0) then ! single cohort
@@ -1768,8 +1769,6 @@
           gin(1)%horz_radius = cop%crown_dx
           print *, 'r,b=',cop%crown_dx, cop%crown_dy
           gin(1)%zenith = acos(pp%cellptr%CosZen)
-          ! print *, 'CosZen=',pp%cellptr%CosZen
-          ! print *, 'zenith=',gin(1)%zenith 
           gin(1)%delta_z = dz_gin
           vc = 1.33333 * PI * gin(1)%horz_radius ** 2 * 
      &      gin(1)%vert_radius
@@ -1814,9 +1813,14 @@
         ! pp%crad%h_coh => coh
         write(1077,*) "h_coh",h_coh 
       else
-        print *,'GORT_clumping: no vagetation' 
-        call patch_print(6,pp,"ERROR ")
-        call stop_model("GORT_clumping: no vagetation",255)
+        !print *,'no vegetation,L,b='!, cop%LAI, cop%crown_dy
+        pp%crad%heights = 0.d0
+        pp%crad%LAI = 0.d0
+        pp%crad%GORTclump = 0.d0
+        return 
+        !print *,'GORT_clumping: no vagetation' 
+        !call patch_print(6,pp,"ERROR ")
+        !call stop_model("GORT_clumping: no vagetation",255)
       endif
      
       ! deallocate(coh)
