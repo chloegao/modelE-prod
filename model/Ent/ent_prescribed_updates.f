@@ -403,47 +403,6 @@ cddd     &         - max(0.d0,cop%C_croot-C_croot_old)
 
 
 !******************************************************************
-      subroutine entcell_update_shc( ecp )
-!Mixed canopies calculation of shc, or generic any veg structure.
-!  This version preserves old, slightly incorrect lai averaging: shc(avg(lai)).
-!  Correct version is commented out: avg(shc(lai)).
-
-      use ent_prescr_veg, only : shc_patch
-      implicit none
-      type(entcelltype),pointer :: ecp
-      !-----Local---------
-      type(patch),pointer :: pp
-      real*8 :: shc, pfrac
-
-      shc = 0.d0
-      pfrac = 0.d0
-      pp => ecp%oldest
-      do while (associated(pp))
-         shc = shc + shc_patch(pp)*pp%area
-         pfrac = pfrac + pp%area
-         pp=>pp%younger
-      enddo
-
-      if (pfrac>EPS) shc = shc/pfrac !Correct way.
-
-      ecp%heat_capacity = shc
-      end subroutine entcell_update_shc
-!******************************************************************
-
-      subroutine entcell_update_shc_mosaicveg( ecp )
-!Old entcell_update_shc      
-      use ent_prescr_veg, only : prescr_calc_shc
-      use entcells, only : entcell_extract_pfts
-      type(entcelltype) :: ecp
-      !-----Local---------
-      real*8 vfraction(N_COVERTYPES) ! needed for a hack to compute canopy
-
-      vfraction(:) = 0.d0
-      call entcell_extract_pfts( ecp, vfraction )
-      ecp%heat_capacity=prescr_calc_shc(vfraction)
-
-      end subroutine entcell_update_shc_mosaicveg
-
 
       subroutine entcell_vegupdate(ecp, hemi, jday
      &     ,do_giss_phenology, do_giss_lai, do_giss_albedo!,mixed_veg
@@ -456,7 +415,8 @@ cddd     &         - max(0.d0,cop%C_croot-C_croot_old)
 !@+   (see how it is used in ent_prescribe_vegupdate)
       use patches, only : summarize_patch
       use entcells,only : summarize_entcell!,entcell_extract_pfts
-      use ent_prescr_veg, only : prescr_calc_shc, prescr_veg_albedo
+      !use ent_prescr_veg, only : prescr_calc_shc
+      use ent_prescr_veg, only : prescr_veg_albedo
       implicit none
       type(entcelltype),pointer :: ecp
       integer,intent(in) :: jday
@@ -472,9 +432,9 @@ cddd     &         - max(0.d0,cop%C_croot-C_croot_old)
       logical, intent(in) :: init
       !----Local------
       type(patch),pointer :: pp
-
+      
       !* 1. Update crops to get right patch/cover distribution.
-      !*     NOTE:  CARBON CONSERVATION NEEDDS TO BE CALCULATED FOR CHANGING VEG/CROP COVER!!!
+      !*     NOTE:  CARBON CONSERVATION NEEDDS TO BE CALCULATED FOR CHANGING VEG/CROP COVER ##
       !* 2. Update height to get any height growth (with GISS veg, height is static)
       !* 3. Update LAI, and accumulate litter from new LAI and growth/senescence.
       !*       Cohort litter is accumulated to the patch level.
@@ -530,11 +490,12 @@ cddd     &         - max(0.d0,cop%C_croot-C_croot_old)
 !      print *,'ecp%LAI', ecp%LAI
 !      print *,'ecp%oldest%LAI', ecp%oldest%LAI
 
-#ifndef MIXED_CANOPY
-      call entcell_update_shc_mosaicveg(ecp)
-#else
-      call entcell_update_shc(ecp)
-#endif
+!Moved this into summarize_entcell
+!#ifndef MIXED_CANOPY
+!      call entcell_update_shc_mosaicveg(ecp)
+!#else
+!      call entcell_update_shc(ecp)
+!#endif
 
       !if (YEAR_FLAG.eq.0) call ent_GISS_init(entcellarray,im,jm,jday,year)
       !!!### REORGANIZE WTIH ent_prog.f ####!!!

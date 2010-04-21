@@ -277,31 +277,40 @@
       
 !!!!
     !!! hack to avoid divizion by zero
-      laifasum = max( laifasum, 1.d-10 )
+      !laifasum = max( laifasum, 1.d-10 )
       !------DO AVERAGES-------------------------------------------------
       !!!CHECK IF ECP%AREA IS ZERO!
       if (ASSOCIATED(ecp%oldest)) then
         !- - - - Cohort - - - - - - - - - - - - - - - - - - - - - - - - - 
-        ecp%nm = ecp%nm/laifasum
-        ecp%Ntot = ecp%Ntot/fa
-        ecp%LMA = ecp%LMA/laifasum
-        ecp%LAI = ecp%LAI/fa
-        do ia=1,N_COVERTYPES
-          ecp%LAIpft(ia) = ecp%LAIpft(ia)/fa
-        end do
+        !laifasum weighting
+         if (laifasum.gt.0.) then
+            ecp%nm = ecp%nm/laifasum
+            ecp%LMA = ecp%LMA/laifasum
+            ecp%h = ecp%h/laifasum
+         else
+            ecp%nm = 0.d0
+            ecp%LMA = 0.d0
+            ecp%h = 0.d0
+         endif
 
-        ecp%h = ecp%h/laifasum
-        ecp%fracroot = ecp%fracroot/fa
-        ecp%C_fol = ecp%C_fol/fa
-        ecp%N_fol = ecp%N_fol/fa
-        ecp%C_w = ecp%C_w/fa
-        ecp%N_w = ecp%N_w/fa
-        ecp%C_lab = ecp%C_lab/fa
-        ecp%N_lab = ecp%N_lab/fa
-        ecp%C_froot = ecp%C_froot/fa
-        ecp%N_froot = ecp%N_froot/fa
-        ecp%C_root = ecp%C_root/fa
-        ecp%N_root = ecp%N_root/fa
+         ecp%Ntot = ecp%Ntot/fa
+         ecp%LAI = ecp%LAI/fa
+         
+         do ia=1,N_COVERTYPES
+            ecp%LAIpft(ia) = ecp%LAIpft(ia)/fa
+         end do
+
+         ecp%fracroot = ecp%fracroot/fa
+         ecp%C_fol = ecp%C_fol/fa
+         ecp%N_fol = ecp%N_fol/fa
+         ecp%C_w = ecp%C_w/fa
+         ecp%N_w = ecp%N_w/fa
+         ecp%C_lab = ecp%C_lab/fa
+         ecp%N_lab = ecp%N_lab/fa
+         ecp%C_froot = ecp%C_froot/fa
+         ecp%N_froot = ecp%N_froot/fa
+         ecp%C_root = ecp%C_root/fa
+         ecp%N_root = ecp%N_root/fa
 
         !* Flux variables for GCM/EWB - patch total wtd averages
         ecp%Ci = ecp%Ci/fa
@@ -355,8 +364,85 @@ C NADINE - IS THIS CORRECT?
       !!call entcell_extract_pfts(ecp, vfraction(2:) )
       !!ecp%heat_capacity=GISS_calc_shc(vfraction)
 
+#ifndef MIXED_CANOPY
+      call entcell_update_shc_mosaicveg(ecp)
+#else
+      call entcell_update_shc(ecp)
+#endif
+
       end subroutine summarize_entcell
 !**************************************************************************
+
+      subroutine entcell_update_shc( ecp )
+!@sum entcell_update_shc. 
+!     Mixed canopies calculation of shc, or generic any veg structure.
+!     Old GISS GCM version: shc(avg(lai*vfraction)).
+!     Correct version: avg(shc(lai)*vfraction).
+      use patches, only : shc_patch
+!      use ent_prescr_veg, only : GISS_shc
+      implicit none
+      type(entcelltype),pointer :: ecp
+      !-----Local---------
+      type(patch),pointer :: pp
+      real*8 :: shc, pfrac
+
+      shc = 0.d0
+      pfrac = 0.d0
+      pp => ecp%oldest
+      do while (associated(pp))
+         shc = shc + shc_patch(pp)*pp%area
+         pfrac = pfrac + pp%area
+         pp=>pp%younger
+      enddo
+
+      if (pfrac>EPS) then 
+         shc = shc/pfrac        !Correct way.
+      else
+         !shc = GISS_shc(0.d0)  !Non-zero shc for zero lai from zero patch area.
+         shc = 0.d0
+      endif
+
+      ecp%heat_capacity = shc
+      end subroutine entcell_update_shc
+!******************************************************************
+
+      subroutine entcell_update_shc_mosaicveg( ecp )
+!@sum Returns GISS GCM specific heat capacity for entcell.
+!     This version preserves old, slightly incorrect lai averaging.
+!     shc_entcell = shc(mean lai*vfraction)
+!Old entcell_update_shc      
+      use ent_const
+      use ent_pfts, only: COVEROFFSET, alamax, alamin
+      use ent_prescr_veg, only: GISS_shc
+      type(entcelltype) :: ecp
+      !-----Local---------
+      real*8 vfraction(N_COVERTYPES) ! needed for a hack to compute canopy
+      real*8 lai, fsum
+      integer pft, anum
+
+      lai = 0.d0
+      fsum = 0.d0
+      vfraction(:) = 0.d0
+      call entcell_extract_pfts( ecp, vfraction )
+
+      !Cover-weighted average of Matthews mean annual LAI
+      do pft=1,N_PFT
+         anum = pft+COVEROFFSET
+         lai = lai + .5d0*(alamax(anum) + alamin(anum))*vfraction(anum)
+         fsum = fsum + vfraction(anum)
+      enddo
+      if ( fsum > EPS ) then 
+         lai = lai/fsum
+      else
+         lai = 0.d0
+      endif
+
+      !shc = (.010d0+.002d0*lai+.001d0*lai**2)*shw*rhow
+      
+      ecp%heat_capacity=GISS_shc(lai)
+
+      end subroutine entcell_update_shc_mosaicveg
+
 !**************************************************************************
 
 #ifdef SUMROOTSCELL

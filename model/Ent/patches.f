@@ -91,7 +91,35 @@
 
       end subroutine delete_patch
 
-      !*********************************************************************
+ !**************************************************************************
+      real*8 function shc_patch(pp) Result(shc)
+!@sum Returns GISS GCM specific heat capacity for patch, but with subgrid
+!     calculation of shc.  See comments in entcell_update_shc_mosaicveg.
+      use ent_const
+      use ent_pfts, only: COVEROFFSET, alamax, alamin
+      use ent_prescr_veg, only : GISS_shc
+      implicit none
+      type(patch),pointer :: pp
+      !-----
+      type(cohort),pointer :: cop
+      real*8 :: lai
+      integer :: anum
+
+      shc = 0.d0
+      lai = 0.d0
+      cop => pp%shortest
+      do while (associated(cop))
+         anum = cop%pft + COVEROFFSET
+         lai = lai + .5d0*(alamax(anum) + alamin(anum)) 
+         !shc = shc + GISS_shc(cop%pft) !Alternative way.
+         cop => cop%shorter
+      enddo
+
+      !shc = (.010d0+.002d0*lai+.001d0*lai**2)*shw*rhow
+      shc = GISS_shc(lai)  !Note: original GISS shc is at cell level, not patch.
+
+      end function shc_patch
+!**************************************************************************
 
       subroutine summarize_patch(pp)
       !* Calculates patch-level summary values of cohort pools.

@@ -2,6 +2,12 @@
 
       module ent_prescribed_drv
 
+      !*********************************************************************
+      !*    SUBROUTINES TO READ IN prescr VEGETATION DATA SETS 
+      !*    Array data only, no entcells or patches info.
+      !*    Interfaces with ent_prescr_veg for pft-level calculations.
+      !*********************************************************************
+
       use ent_const
       use ent_pfts
       use ent_prescr_veg
@@ -10,16 +16,10 @@
       private
       save
 
-
       public 
      &     init_canopy_physical,
      &     prescr_vegdata,
-     &     init_vfraction, prescr_get_laidata, 
-     &     prescr_update_vegcrops, prescr_veg_albedodata,
-     &     prescr_get_height, !YKIM
-     &     prescr_get_soilpools,  !for prescribing soil C, N pools -PK 12/07
-     &     prescr_get_cropdata,
-     &     prescr_get_soil_C_total
+     &     prescr_veg_albedodata
 
       public init_ent_laidata, init_ent_hdata,  prescr_get_ent_plant
 
@@ -29,10 +29,6 @@
 
       contains
 
-      !*********************************************************************
-      !*    SUBROUTINES TO READ IN prescr VEGETATION DATA SETS 
-      !*********************************************************************
-
 !***************************************************************************
       subroutine init_canopy_physical(
      & I0,I1,J0,J1,Ci_ini, CNC_ini, Tcan_ini, Qf_ini)
@@ -41,8 +37,8 @@
 
       Ci_ini(:,:) = 0.0127d0
       CNC_ini(:,:) = 0.d0
-      Tcan_ini(:,:) = 0.d0           !Should be a forcing from land surface model.
-      Qf_ini(:,:) = 0.d0             !Should be a forcing from land surface model.
+      Tcan_ini(:,:) = 0.d0        !Should be a forcing from land surface model.
+      Qf_ini(:,:) = 0.d0          !Should be a forcing from land surface model.
 
       end subroutine init_canopy_physical
       
@@ -214,6 +210,8 @@
      &     Tpooldata, 
      &     do_soilinit,do_phenology_activegrowth,do_read_from_files)
       use ent_prescr_veg, only : prescr_get_soilcolor !May want to move this routine to this module.
+      !prescr_vegdata:  Set up vegetation structure from input files or from
+      ! Matthews prescribed calculations.
       implicit none
       integer,intent(in) :: jday, year
       integer,intent(in) :: IM,JM,I0,I1,J0,J1 !long/lat grid number range
@@ -281,18 +279,32 @@ cddd      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
      &     call prescr_update_vegcrops(year,IM,JM,I0,I1,J0,J1,vegdata)
       call prescr_veg_albedodata(jday,hemi,I0,I1,J0,J1,albedodata)
       if (.not.do_phenology_activegrowth) then
+!         if (force_VEG) then
+!            call read_hdata(iu_vht, hdata)
+!            call read_laidata(iu_LAI,I0,I1,J0,J1,laidata)
+!            call rewind(iu_vht)
+!            call rewind(iu_LAI)
+!         else
          call prescr_get_laidata(jday,hemi,I0,I1,J0,J1,laidata) !lai
          do j=J0,J1
-           do i=I0,I1
-             call prescr_get_hdata(hdata(:,i,j)) !height
-             call prescr_get_woodydiameter(hdata(:,i,j), dbhdata(:,i,j))
-             call prescr_get_pop(dbhdata(:,i,j), popdata(:,i,j))
-             call prescr_get_crownrad(popdata(:,i,j), craddata(:,i,j))
-           enddo
+            do i=I0,I1
+               call prescr_get_hdata(hdata(:,i,j)) !height
+            enddo
          enddo
-         call prescr_get_carbonplant(I0,I1,J0,J1,
-     &        laidata,hdata,dbhdata,popdata,cpooldata)
-      else !if do_phenology_activegrowth=true
+!         endif
+         do j=J0,J1
+            do i=I0,I1
+               call prescr_get_hdata(hdata(:,i,j)) !height
+               call prescr_get_woodydiameter(
+     &              hdata(:,i,j), dbhdata(:,i,j))
+               call prescr_get_pop(dbhdata(:,i,j), popdata(:,i,j))
+             !## Need to re-do prescr_get_crownrad fot non-closed canopy.
+               call prescr_get_crownrad(popdata(:,i,j), craddata(:,i,j))
+               call prescr_get_carbonplant(I0,I1,J0,J1,
+     &              laidata,hdata,dbhdata,popdata,cpooldata)
+            enddo
+         enddo
+      else                      !if do_phenology_activegrowth=true
          call init_ent_laidata(IM,JM,I0,I1,J0,J1,laidata) !lai
          call init_ent_hdata(IM,JM,I0,I1,J0,J1,hdata) !height
          !update diameter, population density, carbon plant &  crown rad
@@ -336,11 +348,11 @@ cddd      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
 
 
 !***************************************************************************
-      subroutine init_vfraction(im,jm,I0,I1,J0,J1,vfraction)
+      subroutine init_vfraction(im,jm,I0f,I1f,J0f,J1f,vfraction)
       !* This version reads in vegetation structure from prescr data set.
       use FILEMANAGER, only : openunit,closeunit,nameunit
-      integer, intent(in) :: im,jm,I0,I1,J0,J1
-      real*8, intent(out) :: vfraction(N_COVERTYPES,I0:I1,J0:J1) 
+      integer, intent(in) :: im,jm,I0f,I1f,J0f,J1f
+      real*8, intent(out) :: vfraction(N_COVERTYPES,I0f:I1f,J0f:J1f) 
       !------Local---------------------
       !1    2    3    4    5    6    7    8    9   10   11    12
       !BSAND TNDRA GRASS SHRUB TREES DECID EVERG RAINF CROPS BDIRT ALGAE GRAC4
@@ -357,15 +369,15 @@ cddd      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
       do k=1,N_COVERTYPES-N_OTHER !## Skip algae and grac4 #HACK
         !print *,k
         read(iu_VEG) title , buf
-        vfraction(k,I0:I1,J0:J1) = buf(I0:I1,J0:J1)
+        vfraction(k,I0f:I1f,J0f:J1f) = buf(I0f:I1f,J0f:J1f)
         !print *,"read VEG:", title
       end do
-      !print *,"vfraction", vfraction(:,I0:I1,J0:J1) !#DEBUG
+      !print *,"vfraction", vfraction(:,I0f:I1f,J0f:J1f) !#DEBUG
       call closeunit(iu_VEG)
 
       ! make sure that veg fractions are reasonable
-      do j=J0,J1
-        do i=I0,I1
+      do j=J0f,J1f
+        do i=I0f,I1f
           do k=1,N_COVERTYPES
             ! get rid of unreasonably small fractions
             if ( vfraction(k,i,j) < 1.d-4 ) vfraction(k,i,j) = 0.d0
@@ -473,7 +485,6 @@ cddd      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
 
       subroutine prescr_get_laidata(jday,hemi,I0,I1,J0,J1,laidata)
 !@sum Returns prescr GCM leaf area index for entire grid and given jday.
-      use FILEMANAGER, only : openunit,closeunit,nameunit !for VEG_PROGNOSTIC
       use ent_const,only : N_COVERTYPES
       integer,intent(in) :: jday
       integer, intent(in) :: I0,I1,J0,J1
@@ -555,16 +566,15 @@ cddd      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
 
 !**************************************************************************
 
-      subroutine prescr_get_height(hdata)
-!@sum Returns prescr GCM leaf area index for entire grid and given jday.
-      use ent_const,only : N_COVERTYPES
-      real*8 :: hdata(N_COVERTYPES) 
-      !----------
-      
-      call prescr_get_hdata(hdata)
-
-
-      end subroutine prescr_get_height
+!      subroutine prescr_get_height(hdata)
+!!@sum Returns prescr GCM leaf area index for entire grid and given jday.
+!      use ent_const,only : N_COVERTYPES
+!      real*8 :: hdata(N_COVERTYPES) 
+!      !----------
+!      
+!      call prescr_get_hdata(hdata)
+!
+!      end subroutine prescr_get_height
 
 !**************************************************************************
 

@@ -11,12 +11,12 @@
       public 
      &     prescr_veg_albedo,prescr_calc_rootprof,
      &     prescr_calcconst, prescr_calc_lai
-      public prescr_calc_shc,prescr_plant_cpools, prescr_init_Clab
+      public GISS_shc,prescr_plant_cpools, prescr_init_Clab
       public prescr_get_hdata,prescr_get_initnm,prescr_get_rootprof,
      &     prescr_get_woodydiameter,prescr_get_pop,prescr_get_crownrad
      &     ,prescr_get_soilcolor
       public ED_woodydiameter,popdensity,Ent_dbh,crown_radius_hw
-     &     ,shc_patch
+
 #ifdef ENT_STANDALONE_DIAG
       public print_ent_pfts
 #endif
@@ -146,69 +146,35 @@
 
 !**************************************************************************
       
-      real*8 function prescr_calc_shc(vfraction) RESULT(shc)
-!@sum Returns GISS GCM specific heat capacity for canopy -- OLD
-      use ent_const
-      use ent_pfts, only: COVEROFFSET, alamax, alamin
-      real*8, intent(in) :: vfraction(:) !@var pnum cover type
-      !-----Local variables------
-      real*8 lai, fsum
-      integer pft, anum
+!     real*8 function GISS_shc(pft) Result(shc)
+!!@sum Returns GISS GCM specific heat capacity for cohort.
+!      use ent_const
+!      use ent_pfts, only: COVEROFFSET, alamax, alamin
+!      integer,intent(in) :: pft
+!      !Seems like this ought to use actual LAI, too? - NK
+!      !-----Local----
+!      real*8 :: lai
+!      integer :: anum
+!
+!      anum = pft+COVEROFFSET
+!      lai = .5d0*(alamax(anum) + alamin(anum))
+!      shc = (.010d0+.002d0*lai+.001d0*lai**2)*shw*rhow
+!
+!      end function GISS_shc
 
-      lai = 0.d0
-      fsum = 0.d0
-
-      do pft=1,N_PFT
-         anum = pft+COVEROFFSET
-         lai = lai + .5d0*(alamax(anum) + alamin(anum))*vfraction(anum)
-         fsum = fsum + vfraction(anum)
-      enddo
-
-      if ( fsum > EPS ) lai = lai/fsum
-
-      shc = (.010d0+.002d0*lai+.001d0*lai**2)*shw*rhow
-
-      end function prescr_calc_shc
-
-!**************************************************************************
-      real*8 function shc_patch(pp) Result(shc)
-!@sum Returns GISS GCM specific heat capacity for patch.
-      use ent_const
-      use ent_pfts, only: COVEROFFSET, alamax, alamin
-      implicit none
-      type(patch),pointer :: pp
-      !-----
-      type(cohort),pointer :: cop
-      real*8 :: lai
-      integer :: anum
-
-      shc = 0.d0
-      lai = 0.d0
-      cop => pp%shortest
-      do while (associated(cop))
-         anum = cop%pft + COVEROFFSET
-         lai = lai + .5d0*(alamax(anum) + alamin(anum)) 
-         !shc = shc + GISS_shc(cop%pft) !Alternative way.
-         cop => cop%shorter
-      enddo
-
-      shc = (.010d0+.002d0*lai+.001d0*lai**2)*shw*rhow
-
-      end function shc_patch
-!**************************************************************************
-      real*8 function GISS_shc(pft) Result(shc)
+      real*8 function GISS_shc(meanLAI) Result(shc)
 !@sum Returns GISS GCM specific heat capacity for cohort.
+!     meanLAI = (sum over pfts) 
+!           {.5d0*(alamax(anum) + alamin(anum)) * vfraction }/sum(vfraction)
+!     I.e. GISS GCM computes shc_entcell = shc(mean entcell LAI*vfaction)
+!     instead of shc_entcell = mean(shc(patch LAI)*vfraction)
       use ent_const
-      use ent_pfts, only: COVEROFFSET, alamax, alamin
-      integer,intent(in) :: pft
+      real*8,intent(in) :: meanlai    
+
       !Seems like this ought to use actual LAI, too? - NK
       !-----Local----
-      real*8 :: lai
-      integer :: anum
 
-      anum = pft+COVEROFFSET
-      lai = .5d0*(alamax(anum) + alamin(anum))
-      shc = (.010d0+.002d0*lai+.001d0*lai**2)*shw*rhow
+      shc = (.010d0+.002d0*meanLAI+.001d0*meanLAI**2)*shw*rhow
 
       end function GISS_shc
 
