@@ -292,7 +292,7 @@ c$$$     &     ,1.0d0, 1.0d0, 0.d0, 0.d0 /)
       !***************************************************
       !* Rosenzweig & Abramopoulos root profile parameters
       !***************************************************
- !--- ever_ES_broad ever_LS_broad ever_ES_needle ever_LS_needle 
+!--- ever_ES_broad ever_LS_broad ever_ES_needle ever_LS_needle 
 !----cold_ES_broad cold_LS_broad drought_broad decid_needle shrub_cold 
 !----shrub_arid c3grass c4grass c3grass_ann c3grass_arctic 
 !----cropsc4 cropstree

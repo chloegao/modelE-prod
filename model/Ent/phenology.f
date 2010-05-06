@@ -450,11 +450,12 @@
                phenofactor_d = min(1.d0,max(0.d0,
      &          ((paw_10d-paw_min_w)/(paw_max_w-paw_min_w))**paw_res_w))
             case(1) !water_stress 
-               phenofactor_d = water_stress(N_DEPTH  
-     i         ,pp%cellptr%Soilmp(:)
-     i         ,cop%fracroot(:)
-     i         ,pp%cellptr%fice(:), pfpar(pft)%hwilt
-     o         , cop%stressH2Ol(:)) 
+               phenofactor_d = 0.d0 !HACK
+c$$$               phenofactor_d = water_stress(N_DEPTH  
+c$$$     i         ,pp%cellptr%Soilmp(:)
+c$$$     i         ,cop%fracroot(:)
+c$$$     i         ,pp%cellptr%fice(:), pfpar(pft)%hwilt
+c$$$     o         , cop%stressH2Ol(:)) 
             case(2) !water_stress3 & betad_10d
                if ((phenostatus .gt. mature) .and.
      &           (phenostatus.lt.3.d0).and.
@@ -512,11 +513,12 @@
                end if
   
             case(1) !water_stress 
-               phenofactor_d= water_stress(N_DEPTH  
-     i         ,pp%cellptr%Soilmp(:)
-     i         ,cop%fracroot(:)
-     i         ,pp%cellptr%fice(:), pfpar(pft)%hwilt
-     o         , cop%stressH2Ol(:))
+               phenofactor_d= 0.d0 !HACK
+c$$$               phenofactor_d= water_stress(N_DEPTH  
+c$$$     i         ,pp%cellptr%Soilmp(:)
+c$$$     i         ,cop%fracroot(:)
+c$$$     i         ,pp%cellptr%fice(:), pfpar(pft)%hwilt
+c$$$     o         , cop%stressH2Ol(:))
             case(2) !water_stress3 & betad_10d
                if ((phenostatus .gt. mature) .and.
      &           (phenostatus.lt.3.d0).and.
