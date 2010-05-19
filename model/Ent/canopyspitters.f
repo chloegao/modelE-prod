@@ -187,9 +187,9 @@
 !          betad = cop%stressH2O
 
           !KIM - water_stress3 uses Soilmoist as a satured fraction
-          cop%stressH2O = water_stress3(cop%pft, N_DEPTH, 
-     i         pp%cellptr%Soilmoist(:), 
-     &         cop%fracroot, pp%cellptr%fice(:), cop%stressH2Ol(:))
+          cop%stressH2O = water_stress3(cop%pft, N_DEPTH,  
+     i          pp%cellptr%soil_Phi, pp%cellptr%Soilmoist(:), 
+     &          cop%fracroot, pp%cellptr%fice(:), cop%stressH2Ol(:))
 
           call calc_Pspar(dtsec,cop%pft,psdrvpar%Pa,psdrvpar%Tc
      i         ,O2frac*psdrvpar%Pa
@@ -227,17 +227,17 @@
 
           ! UNCOMMENT BELOW if Anet or Rd are used -MJP
           Anet = cop%GPP - Rd !Right now Rd and Respauto_NPP_Clabile are inconsistent-NK
-        else !Zero LAI
+       else                     !Zero LAI
           cop%GCANOPY=0.d0 !May want minimum conductance for stems.
           cop%Ci = EPS
           cop%GPP = 0.d0
           cop%IPP = 0.d0
           TRANS_SW = 1.d0
           Rd = 0.d0 !KIM-need to set the number as Rd is used for autotrophic respiration.
-        endif
+       endif
         !* Update cohort respiration components, NPP, C_lab
         !## Rd should be removed from pscondleaf, only need total photosynthesis to calculate it.
-        call Respauto_NPP_Clabile(dtsec, TcanK,TsoilK,
+       call Respauto_NPP_Clabile(dtsec, TcanK,TsoilK,
      &       pp%cellptr%airtemp_10d+KELVIN,
      &       pp%cellptr%soiltemp_10d+KELVIN, Rd, cop)
 
@@ -448,12 +448,13 @@
 
       end function water_stress2
 !----------------------------------------------------------------------!
-      function water_stress3(pft, nlayers, thetas, 
+      function water_stress3(pft, nlayers, Phi, thetas, 
      &     fracroot, fice, betadl) Result(betad)
 
       implicit none
       integer,intent(in) :: pft  !Plant functional type number.
       integer,intent(in) :: nlayers !Number of soil layers
+      real*8,intent(in) :: Phi !Soil porosity (m3/m3)
       real*8,intent(in) ::  thetas(:) !Soil vol. water (vol.water/vol.soil)
       real*8,intent(in) :: fracroot(:) !Fraction of roots in layer
       real*8,intent(in) :: fice(:)  !Fraction of ice in layer
@@ -468,7 +469,7 @@
       !2. Rodriguez-Iturbe, Laio, & Porporato (2001 set) water stress fn 
       betad = 0.d0
       do k = 1,nlayers
-        s = thetas(k)
+        s = thetas(k)/Phi
         if (s.ge.pfpar(pft)%sstar) then
           betak = 1.d0  !No stress
         else if ((s.lt.pfpar(pft)%sstar).and.
@@ -739,8 +740,8 @@
 
 C#define OFFLINE 1
 C#ifdef OFFLINE
-C      write(998,*) cop%C_lab,cop%GPP,cop%NPP,Resp_fol,Resp_sw,Resp_lab,
-C     &Resp_root,Resp_maint,Resp_growth, Resp_growth_1
+!      write(998,*) cop%C_lab,cop%GPP,cop%NPP,Resp_fol,Resp_sw,Resp_lab,
+!     &     Resp_root,Resp_maint,Resp_growth, Resp_growth_1
 C      write(997,*) cop%C_fol,cop%C_froot,cop%C_sw,cop%C_hw,cop%C_croot
 C#endif
 
