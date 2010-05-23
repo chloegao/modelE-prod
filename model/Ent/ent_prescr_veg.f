@@ -200,12 +200,14 @@
 
 !**************************************************************************
 
-      subroutine prescr_veg_albedo(hemi, pft, jday, albedo)
+      subroutine prescr_veg_albedo(hemi, ncov, jday, albedo)
 !@sum returns albedo for vegetation of type pft 
 !@+   as it is computed in GISS modelE
-      use ent_pfts, only:  COVEROFFSET, albvnd
+      !use ent_pfts, only:  COVEROFFSET, albvnd
+      use ent_pfts, only:  ALBVND
       integer, intent(in) :: hemi !@hemi hemisphere (-1 south, +1 north)
-      integer, intent(in) :: pft !@var pftlike iv, plant functional type
+      !integer, intent(in) :: pft !@var pftlike iv, plant functional type
+      integer, intent(in) :: ncov !@var cover type, soil or pft, if pft then ncov=pft+COVEROFFSET
       integer, intent(in) :: jday !@jday julian day
       real*8, intent(out) :: albedo(N_BANDS) !@albedo returned albedo
       !----------Local----------
@@ -246,8 +248,8 @@ c
       endif
 
       do l=1,6
-        albedo(l)=wt1*ALBVND(pft+COVEROFFSET,kh1,l)
-     &        +wt2*ALBVND(pft+COVEROFFSET,kh2,l)
+        albedo(l)=wt1*ALBVND(ncov,kh1,l)
+     &        +wt2*ALBVND(ncov,kh2,l)
       enddo
 
       end subroutine prescr_veg_albedo

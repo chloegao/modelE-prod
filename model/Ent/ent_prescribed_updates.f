@@ -413,6 +413,7 @@ cddd     &         - max(0.d0,cop%C_croot-C_croot_old)
 !@+   is given pointer attribute to provide a way to tell the 
 !@+   program that an argument is actually optional and missing
 !@+   (see how it is used in ent_prescribe_vegupdate)
+      use ent_pfts, only: COVEROFFSET
       use patches, only : summarize_patch
       use entcells,only : summarize_entcell!,entcell_extract_pfts
       !use ent_prescr_veg, only : prescr_calc_shc
@@ -480,7 +481,7 @@ cddd     &         - max(0.d0,cop%C_croot-C_croot_old)
         do while (ASSOCIATED(pp))
           ! update if have vegetation or not prognostic albedo
           if ( ASSOCIATED(pp%tallest).and.do_giss_albedo )
-     &         call prescr_veg_albedo(hemi, pp%tallest%pft, 
+     &         call prescr_veg_albedo(hemi, pp%tallest%pft+COVEROFFSET, 
      &         jday, pp%albedo)
           pp => pp%younger
         end do
@@ -557,7 +558,7 @@ cddd     &         - max(0.d0,cop%C_croot-C_croot_old)
 
         !* ALBEDO *! - Moved these lines to entcell_vegupdate.
 !        if ( ASSOCIATED(pp%tallest) ) then ! update if have vegetation
-!          call prescr_veg_albedo(hemi, pp%tallest%pft, 
+!          call prescr_veg_albedo(hemi, pp%tallest%pft+COVEROFFSET, 
 !     &         jday, pp%albedo)
 !        endif
       endif

@@ -546,7 +546,8 @@ cddd      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
       real*8 :: albedodata(N_BANDS,N_COVERTYPES,I0:I1,J0:J1)
       integer :: hemi(I0:I1,J0:J1)
       !----------
-      integer :: pft
+      !integer :: pft
+      integer :: ncov
       integer i,j,jeq
       
       !jeq = JM/2
@@ -555,9 +556,9 @@ cddd      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
         !hemi = 1
         !if (j <= jeq) hemi = -1
         do i=I0,I1
-          do pft = 1, N_COVERTYPES
-            call prescr_veg_albedo(hemi(i,j),pft,jday,
-     &           albedodata(:,pft,i,j))
+          do ncov = 1, N_COVERTYPES
+            call prescr_veg_albedo(hemi(i,j),ncov,jday,
+     &           albedodata(:,ncov,i,j))
           end do
         enddo
       enddo
