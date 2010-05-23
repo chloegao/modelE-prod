@@ -188,7 +188,7 @@
 
           !KIM - water_stress3 uses Soilmoist as a satured fraction
           cop%stressH2O = water_stress3(cop%pft, N_DEPTH,  
-     i          pp%cellptr%soil_Phi, pp%cellptr%Soilmoist(:), 
+     i          pp%cellptr%Soilmoist(:), 
      &          cop%fracroot, pp%cellptr%fice(:), cop%stressH2Ol(:))
 
           call calc_Pspar(dtsec,cop%pft,psdrvpar%Pa,psdrvpar%Tc
@@ -448,14 +448,14 @@
 
       end function water_stress2
 !----------------------------------------------------------------------!
-      function water_stress3(pft, nlayers, Phi, thetas, 
+      function water_stress3(pft, nlayers, thetarel, 
      &     fracroot, fice, betadl) Result(betad)
 
       implicit none
       integer,intent(in) :: pft  !Plant functional type number.
       integer,intent(in) :: nlayers !Number of soil layers
-      real*8,intent(in) :: Phi !Soil porosity (m3/m3)
-      real*8,intent(in) ::  thetas(:) !Soil vol. water (vol.water/vol.soil)
+!      real*8,intent(in) ::  thetas(:) !Soil vol. water (vol.water/vol.soil)
+      real*8,intent(in) ::  thetarel(:) !Relative soil vol. water (vol.water/vol. saturated)
       real*8,intent(in) :: fracroot(:) !Fraction of roots in layer
       real*8,intent(in) :: fice(:)  !Fraction of ice in layer
       real*8,intent(out) :: betadl(:) !Water stress in layers
@@ -469,7 +469,7 @@
       !2. Rodriguez-Iturbe, Laio, & Porporato (2001 set) water stress fn 
       betad = 0.d0
       do k = 1,nlayers
-        s = thetas(k)/Phi
+        s = thetarel(k)
         if (s.ge.pfpar(pft)%sstar) then
           betak = 1.d0  !No stress
         else if ((s.lt.pfpar(pft)%sstar).and.

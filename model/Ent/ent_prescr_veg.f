@@ -248,6 +248,9 @@ c
       endif
 
       do l=1,6
+
+!        albedo(l)=wt1*ALBVND(pft+COVEROFFSET,kh1,l)
+!     &        +wt2*ALBVND(pft+COVEROFFSET,kh2,l)
         albedo(l)=wt1*ALBVND(ncov,kh1,l)
      &        +wt2*ALBVND(ncov,kh2,l)
       enddo

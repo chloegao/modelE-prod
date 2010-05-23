@@ -20,7 +20,7 @@
       real*8, intent(in) :: dtsec !main ent time step (s)
       type(patch),pointer :: pp
       !----Local----------
-      real*8 :: Soilmoist(N_CASA_LAYERS) !(vol frac) by CASA layers.
+      real*8 :: Soilmoist(N_CASA_LAYERS) !(vol fraction) by CASA layers.
       integer :: ivt                     !ivt = pft
       real*8 :: Soiltemp(N_CASA_LAYERS)  !(C) by CASA layers.
       real*8 :: clayfrac                 !fractional clay content in soil
@@ -38,6 +38,7 @@
 !      Soiltemp(:) = pp%cellptr%Soiltemp(:)  !soil temp, texture vary by cell
       call Soillayer_convert_Ent(pp%cellptr%Soilmoist(:), SOILDEPTH_m, 
      &     Soilmoist) 
+      Soilmoist(:) = Soilmoist(:)*pp%cellptr%soil_Phi !Convert from rel.sat. to vol fraction.
       call Soillayer_convert_Ent(pp%cellptr%Soiltemp(:), SOILDEPTH_m, 
      &     Soiltemp) 
 

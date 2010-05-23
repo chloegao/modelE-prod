@@ -90,8 +90,8 @@
      &     pftype(1,.true., 1,-153.d0,  .50d0, .30d0,  1.4d0, !tundra
      &     2.25d0, 0.6d0, 2.8d0, 5.5d0, 50.0d0,0.15d0,1.4d0,2,
      &     0.0800d0, 1.000d0, 0.00001d0, 1.000d0, 0.4778d0, -0.75d0),
-!     &     pftype(2,.false., 3,-2030.d0,  .30d0, .10d0,  1.5d0, !grassC3 !hwilt=Vaira grassland final senescence soilmp layer2
-     &     pftype(2,.false., 3,-2030.d0,  .75d0, .20d0,  1.5d0, !grassC3 !hwilt=Vaira grassland final senescence soilmp layer2
+     &     pftype(2,.false., 3,-2030.d0,  .30d0, .10d0,  1.5d0, !grassC3 !hwilt=Vaira grassland final senescence soilmp layer2
+!!     &     pftype(2,.false., 3,-2030.d0,  .75d0, .20d0,  1.5d0, !grassC3 !NK test
      &     21.6d0, 1.2d0, 1.5d0, UNDEF, 50.0d0, 0.1d0,0.d0,4, ! Ponca nf and SLA
      &     0.0800d0, 1.000d0, 0.00001d0, 1.000d0, 0.4778d0, -0.75d0),
      &     pftype(2,.true., 1,-153.d0,  .40d0, .22d0,  1.3d0, !shrub

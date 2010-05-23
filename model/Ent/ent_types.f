@@ -289,7 +289,7 @@
       !0-30 cm, 30-100 cm (second might change to 30-200 cm)
       !**might change this and soiltemp to dynamically allocated arrays** -PK 7/07 
 !         real*8 :: Soilmoist(N_CASA_LAYERS) !Soil moisture (volumetric fraction)   
-         real*8 :: Soilmoist(N_DEPTH) !Soil moisture (volumetric fraction)   
+         real*8 :: Soilmoist(N_DEPTH) !Soil moisture (relative saturated volumetric fraction)   
 
 !         real*8 :: N_deposit    !N deposition (kgN/m2)
 
