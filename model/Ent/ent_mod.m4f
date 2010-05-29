@@ -38,7 +38,7 @@ define(`m4_type_list',`real*8')
       public ent_get_exports, ent_set_forcings
       public ent_cell_construct, ent_cell_destruct, ent_cell_nullify
       public ent_fast_processes,ent_run,ent_vegcover_update
-      public ent_cell_set !, ent_cell_update
+      public ent_cell_set, ent_cell_set_soilcarbon !, ent_cell_update
       public ent_prescribe_vegupdate
       public ent_cell_print
 !      public ent_initialize !##Renamed as ent_init_config.
@@ -81,6 +81,12 @@ define(`m4_type_list',`real*8')
       interface ent_cell_set
       m4_loop(`
         module procedure ent_cell_set_`'m4_suffix`'
+      ')`'
+      end interface
+
+      interface ent_cell_set_soilcarbon
+      m4_loop(`
+        module procedure ent_cell_set_soilcarbon_`'m4_suffix`'
       ')`'
       end interface
 
@@ -447,7 +453,7 @@ m4_loop(`
      &     pft_soil_type,
      &     vegalbedo,
      &     soil_texture,
-     &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini, Tpool_ini,  !added Tpool_ini for prescribing soil C, N pools -PK
+     &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini, Tpool_ini,
      &     reinitialize)
       type(entcelltype_public),intent(inout)::
      &                            entcell`'m4_brkts(m4_ext)`'
@@ -506,6 +512,38 @@ m4_loop(`
 ')`'
 
 !*************************************************************************
+
+m4_loop(`
+      subroutine ent_cell_set_soilcarbon_`'m4_suffix`'(entcell,
+     &     Tpool_ini )
+      type(entcelltype_public),intent(inout)::
+     &                            entcell`'m4_brkts(m4_ext)`'
+      real*8,dimension(:,:,:,:m4_comma`'m4_ext`') :: Tpool_ini  !g/m2 -soil C
+      !---
+      m4_arr_only(`integer m4_ind')`'
+      m4_arr_only(`integer dims(2,m4_rank)')`'
+
+      m4_arr_only(`dims(1,:) = lbound(entcell)')`'
+      m4_arr_only(`dims(2,:) = ubound(entcell)')`'
+
+      m4_do(dims)
+          !print *,"ent_cell_set_array_2d i,j=",i,j
+        if ( associated(entcell`'m4_brkts(m4_ind)`'%entcell) ) then
+!      if ( .not. associated(ecp) ) 
+!     &      call stop_model("assign_entcell_soilcarbon 1",255)
+          !call entcell_print(6,entcell`'m4_brkts(m4_ind)`'%entcell)
+
+          call assign_entcell_soilcarbon( 
+     &	  entcell`'m4_brkts(m4_ind)`'%entcell,
+     &         Tpool_ini(:,:,:,:`'m4_comma`'m4_ind) )
+
+        endif
+      m4_enddo
+
+      end subroutine ent_cell_set_soilcarbon_`'m4_suffix`'
+')`'
+
+
 !*************************************************************************
 
       subroutine ent_cell_pack_2d(dbuf, entcell)

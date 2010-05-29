@@ -15,7 +15,7 @@
       save
 
       public zero_entcell, summarize_entcell, entcell_print
-      public assign_entcell
+      public assign_entcell, assign_entcell_soilcarbon
       public init_simple_entcell, entcell_construct, entcell_destruct
       public entcell_extract_pfts, entcell_carbon
 
@@ -714,6 +714,25 @@ C NADINE - IS THIS CORRECT?
 
       end subroutine assign_entcell
 
+  !*********************************************************************
+      subroutine assign_entcell_soilcarbon(ecp,Tpools)
+      use patches, only : assign_patch, summarize_patch
+      implicit none
+      type(entcelltype) :: ecp
+      real*8,intent(in) ::
+     &      Tpools(N_PFT,PTRACE,NPOOLS-NLIVE,N_CASA_LAYERS)  
+      !--- Local ---
+      type(patch),pointer :: pp
+
+      pp => ecp%oldest      
+      do while ( associated(pp) )
+         pp%area = 0.d0
+         pp%Tpool(:,(NLIVE+1):NPOOLS,:) = Tpools(pp%tallest%pft,:,:,:)
+         call summarize_patch(pp) 
+         pp => pp%younger
+      enddo
+
+      end subroutine assign_entcell_soilcarbon
   !*********************************************************************
 
       subroutine entcell_construct(ecp)

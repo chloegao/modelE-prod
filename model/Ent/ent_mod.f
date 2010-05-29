@@ -48,7 +48,7 @@
       public ent_get_exports, ent_set_forcings
       public ent_cell_construct, ent_cell_destruct, ent_cell_nullify
       public ent_fast_processes,ent_run,ent_vegcover_update
-      public ent_cell_set !, ent_cell_update
+      public ent_cell_set, ent_cell_set_soilcarbon !, ent_cell_update
       public ent_prescribe_vegupdate
       public ent_cell_print
 !      public ent_initialize !##Renamed as ent_init_config.
@@ -107,6 +107,16 @@
         module procedure ent_cell_set_r8_1
       
         module procedure ent_cell_set_r8_2
+      
+      end interface
+
+      interface ent_cell_set_soilcarbon
+      
+        module procedure ent_cell_set_soilcarbon_r8_0
+      
+        module procedure ent_cell_set_soilcarbon_r8_1
+      
+        module procedure ent_cell_set_soilcarbon_r8_2
       
       end interface
 
@@ -959,7 +969,7 @@ cddd      end interface ent_cell_update
      &     pft_soil_type,
      &     vegalbedo,
      &     soil_texture,
-     &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini, Tpool_ini,  !added Tpool_ini for prescribing soil C, N pools -PK
+     &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini, Tpool_ini,
      &     reinitialize)
       type(entcelltype_public),intent(inout)::
      &                            entcell
@@ -1029,7 +1039,7 @@ cddd      end interface ent_cell_update
      &     pft_soil_type,
      &     vegalbedo,
      &     soil_texture,
-     &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini, Tpool_ini,  !added Tpool_ini for prescribing soil C, N pools -PK
+     &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini, Tpool_ini,
      &     reinitialize)
       type(entcelltype_public),intent(inout)::
      &                            entcell(:)
@@ -1101,7 +1111,7 @@ cddd      end interface ent_cell_update
      &     pft_soil_type,
      &     vegalbedo,
      &     soil_texture,
-     &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini, Tpool_ini,  !added Tpool_ini for prescribing soil C, N pools -PK
+     &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini, Tpool_ini,
      &     reinitialize)
       type(entcelltype_public),intent(inout)::
      &                            entcell(:,:)
@@ -1164,6 +1174,100 @@ cddd      end interface ent_cell_update
 
 
 !*************************************************************************
+
+
+      subroutine ent_cell_set_soilcarbon_r8_0(entcell,
+     &     Tpool_ini )
+      type(entcelltype_public),intent(inout)::
+     &                            entcell
+      real*8,dimension(:,:,:,:) :: Tpool_ini  !g/m2 -soil C
+      !---
+      
+      
+
+      
+      
+
+      
+          !print *,"ent_cell_set_array_2d i,j=",i,j
+        if ( associated(entcell%entcell) ) then
+!      if ( .not. associated(ecp) ) 
+!     &      call stop_model("assign_entcell_soilcarbon 1",255)
+          !call entcell_print(6,entcell%entcell)
+
+          call assign_entcell_soilcarbon( 
+     &	  entcell%entcell,
+     &         Tpool_ini(:,:,:,:) )
+
+        endif
+      
+
+      end subroutine ent_cell_set_soilcarbon_r8_0
+
+      subroutine ent_cell_set_soilcarbon_r8_1(entcell,
+     &     Tpool_ini )
+      type(entcelltype_public),intent(inout)::
+     &                            entcell(:)
+      real*8,dimension(:,:,:,:,:) :: Tpool_ini  !g/m2 -soil C
+      !---
+      integer i1
+      integer dims(2,1)
+
+      dims(1,:) = lbound(entcell)
+      dims(2,:) = ubound(entcell)
+
+      
+      do i1=dims(1,1),dims(2,1)
+          !print *,"ent_cell_set_array_2d i,j=",i,j
+        if ( associated(entcell(i1)%entcell) ) then
+!      if ( .not. associated(ecp) ) 
+!     &      call stop_model("assign_entcell_soilcarbon 1",255)
+          !call entcell_print(6,entcell(i1)%entcell)
+
+          call assign_entcell_soilcarbon( 
+     &	  entcell(i1)%entcell,
+     &         Tpool_ini(:,:,:,:,i1) )
+
+        endif
+      
+      enddo
+
+      end subroutine ent_cell_set_soilcarbon_r8_1
+
+      subroutine ent_cell_set_soilcarbon_r8_2(entcell,
+     &     Tpool_ini )
+      type(entcelltype_public),intent(inout)::
+     &                            entcell(:,:)
+      real*8,dimension(:,:,:,:,:,:) :: Tpool_ini  !g/m2 -soil C
+      !---
+      integer i1,i2
+      integer dims(2,2)
+
+      dims(1,:) = lbound(entcell)
+      dims(2,:) = ubound(entcell)
+
+      
+      do i1=dims(1,1),dims(2,1)
+      do i2=dims(1,2),dims(2,2)
+          !print *,"ent_cell_set_array_2d i,j=",i,j
+        if ( associated(entcell(i1,i2)%entcell) ) then
+!      if ( .not. associated(ecp) ) 
+!     &      call stop_model("assign_entcell_soilcarbon 1",255)
+          !call entcell_print(6,entcell(i1,i2)%entcell)
+
+          call assign_entcell_soilcarbon( 
+     &	  entcell(i1,i2)%entcell,
+     &         Tpool_ini(:,:,:,:,i1,i2) )
+
+        endif
+      
+      enddo
+      enddo
+
+      end subroutine ent_cell_set_soilcarbon_r8_2
+
+
+
 !*************************************************************************
 
       subroutine ent_cell_pack_2d(dbuf, entcell)
