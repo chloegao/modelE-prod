@@ -69,6 +69,31 @@
 !      print*, 'soil C pools: ', pp%Tpool(:,CARBON,:,:)  !optional test -PK
 #endif
       end subroutine assign_patch
+
+      !*********************************************************************
+      subroutine assign_patch_soilcarbon(pp, pft, Tpool_ini)
+      !Eventually may want to include all patch variables as optional vars.
+      !in assign_patch and get rid of this subroutine
+     
+      use ent_const  
+      
+      type(patch),pointer :: pp
+      integer, intent(in) :: pft
+      real*8, dimension(N_PFT,PTRACE,NPOOLS-NLIVE,N_CASA_LAYERS) ::
+     &         Tpool_ini  !gC/m2, soil pools only
+      !----Local-------
+      integer :: i, n
+
+      !Assign soil (dead) pools.
+      do n=1,N_CASA_LAYERS 
+       do i=NLIVE+1,NPOOLS
+        pp%Tpool(CARBON,i,n) = Tpool_ini(pft,CARBON,i-NLIVE,n)  
+       end do
+      end do
+!      pp%Tpool(CARBON,(NLIVE+1):NPOOLS,1:N_CASA_LAYERS) =
+!     &     Tpool_init(pft,CARBON,1:(NPOOLS-NLIVE),1:N_CASA_LAYERS)
+
+      end subroutine assign_patch_soilcarbon
       !*********************************************************************
       subroutine delete_patch(gp, pp)
       !* Delete patch pointed to by pp

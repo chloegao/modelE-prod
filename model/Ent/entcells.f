@@ -723,13 +723,20 @@ C NADINE - IS THIS CORRECT?
      &      Tpools(N_PFT,PTRACE,NPOOLS-NLIVE,N_CASA_LAYERS)  
       !--- Local ---
       type(patch),pointer :: pp
+      integer :: ncov, pft
 
       pp => ecp%oldest      
       do while ( associated(pp) )
-         pp%area = 0.d0
-         pp%Tpool(:,(NLIVE+1):NPOOLS,:) = Tpools(pp%tallest%pft,:,:,:)
-         call summarize_patch(pp) 
-         pp => pp%younger
+         do ncov=1,N_COVERTYPES !One patch with one cohort per pft or bare
+            pft = ncov - COVEROFFSET
+            if (ASSOCIATED(pp%tallest)) then
+               if (pp%tallest%pft.eq.pft) then
+                  call assign_patch_soilcarbon(pp,pft,Tpools)
+                  call summarize_patch(pp) 
+               endif
+            endif
+            pp => pp%younger
+         enddo
       enddo
 
       end subroutine assign_entcell_soilcarbon
