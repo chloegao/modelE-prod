@@ -1194,7 +1194,6 @@ cddd      end interface ent_cell_update
 !      if ( .not. associated(ecp) ) 
 !     &      call stop_model("assign_entcell_soilcarbon 1",255)
           !call entcell_print(6,entcell%entcell)
-
           call assign_entcell_soilcarbon( 
      &	  entcell%entcell,
      &         Tpool_ini(:,:,:,:) )
@@ -1223,7 +1222,6 @@ cddd      end interface ent_cell_update
 !      if ( .not. associated(ecp) ) 
 !     &      call stop_model("assign_entcell_soilcarbon 1",255)
           !call entcell_print(6,entcell(i1)%entcell)
-
           call assign_entcell_soilcarbon( 
      &	  entcell(i1)%entcell,
      &         Tpool_ini(:,:,:,:,i1) )
@@ -1254,7 +1252,6 @@ cddd      end interface ent_cell_update
 !      if ( .not. associated(ecp) ) 
 !     &      call stop_model("assign_entcell_soilcarbon 1",255)
           !call entcell_print(6,entcell(i1,i2)%entcell)
-
           call assign_entcell_soilcarbon( 
      &	  entcell(i1,i2)%entcell,
      &         Tpool_ini(:,:,:,:,i1,i2) )

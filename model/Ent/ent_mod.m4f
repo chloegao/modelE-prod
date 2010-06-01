@@ -532,7 +532,6 @@ m4_loop(`
 !      if ( .not. associated(ecp) ) 
 !     &      call stop_model("assign_entcell_soilcarbon 1",255)
           !call entcell_print(6,entcell`'m4_brkts(m4_ind)`'%entcell)
-
           call assign_entcell_soilcarbon( 
      &	  entcell`'m4_brkts(m4_ind)`'%entcell,
      &         Tpool_ini(:,:,:,:`'m4_comma`'m4_ind) )

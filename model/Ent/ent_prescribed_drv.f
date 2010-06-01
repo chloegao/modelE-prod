@@ -194,7 +194,7 @@
             do nn=NLIVE+1,NPOOLS
                Tpool_ini(p,CARBON,nn-NLIVE,n,I0:I1,J0:J1) =
      &              Cpool_fracs(p,nn-NLIVE,n)
-     &              * soil_C_total_r4(n,I0:I1,J0:J1)*1d3  
+     &              * soil_C_total(n,I0:I1,J0:J1)*1d3  
             end do
          end do
       end do
@@ -215,8 +215,10 @@
 
 !      if (mype==0) then
          call openunit("SOILCARB_global",iu_SOILCARB,.true.,.true.)
+         print *,'Opened SOILCARB_global'
          read (iu_SOILCARB) title, soilCtotal_r4 !data in kg/m2 (converted to g/m2 below)
          call closeunit(iu_SOILCARB)
+         print *,'Closed SOILCARB_gloabl'
 !      endif
 !      call array_bcast_r4( soilCtotal_r4 )
 
