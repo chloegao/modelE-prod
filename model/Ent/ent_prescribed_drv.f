@@ -24,6 +24,10 @@
       public init_ent_laidata, init_ent_hdata,  prescr_get_ent_plant
      &     ,prescr_get_soilpools
 
+      public prescr_get_laidata,prescr_get_carbonplant, 
+     &     prescr_get_soil_C_total,
+     &     prescr_get_cropdata
+
 #ifdef MIXED_CANOPY
       public ent_struct_get_phys
 #endif
