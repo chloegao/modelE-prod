@@ -13,7 +13,7 @@
       save
 
       public init_ci, pscondleaf, biophysdrv_setup,calc_Pspar,ciMIN
-     &     ,frost_hardiness
+     &     ,frost_hardiness, Rdark
 
       !=====CONSTANTS=====!
       real*8,parameter :: ciMIN = 1.d-8  !Small error
@@ -148,7 +148,7 @@ cddd     &     psd%Tc,psd%Pa,psd%rh,Gb,gsout,Aout,Rdout,sunlitshaded
 
       !write(888,*) "counter=", counter
 
-!      Rd = Respveg(pspar%Nleaf,Tl)  !Old F&K Respveg is not only leaf respiration.
+!      Rd = Respveg(pspar%Nleaf,Tl)  !Old F&K Respveg is not only leaf respir.
       Rd = 0.015d0 * pspar%Vcmax    !von Caemmerer book.
 
       !* Photosynthetic rate limited by light electron transport (umol m-2 s-1)
@@ -378,6 +378,14 @@ cddd      end subroutine Photosynth_analyticsoln1
 !      Rd = exp(pftpar(p)%Rdc - pftpar(p)%RdH/(Rgas*(Tl+Kelvin))) !Harley&Tenhunen, 1991
       end function Respveg
 !-----------------------------------------------------------------------------
+      real*8 function Rdark()
+      !Leaf dark respiration
+
+      Rdark = 0.015d0 * pspar%Vcmax !von Caemmerer book.
+      
+      end function Rdark
+!-----------------------------------------------------------------------------
+
       function calc_CO2compp(O2,Kc,Ko,Tl) Result(Gammastar)
 !@sum CO2 compensation point in absence of dark respiration (Pa)
 
@@ -1088,24 +1096,26 @@ cddd      end function calc_ci
       real*8 function frost_hardiness(Sacclim) Result(facclim)
 !@sum frost_hardiness.  Calculate factor for adjusting photosynthetic capacity
 !@sum  due to frost hardiness phenology.
+!      real*8 :: facclim ! acclimation/frost hardiness factor [-]
       real*8,intent(in) :: Sacclim 
       !----Local-----
       real*8,parameter :: Tacclim=-5.93d0 ! threshold temperature for photosynthesis [deg C]
+      !real*8,parameter :: Tacclim=-3.d0 ! Best tune for Hyytiala
                         ! Site specific thres. temp.: state of photosyn.acclim
                         ! Hyytiala Scots Pine, -5.93 deg C Makela et al (2006)
-      real*8,parameter :: a_const=0.0595 ! factor to convert from Sacclim [degC] to facclim [-]
+      !real*8,parameter :: a_const=0.0595 ! factor to convert from Sacclim [degC] to facclim [-]
                         ! Site specific; conversion (1/Sacclim_max)=1/16.8115
                         ! estimated by using the max S from Hyytiala 1998
-!      real*8 :: facclim ! acclimation/frost hardiness factor [-]
+      real*8, parameter :: a_const = 0.1d0 !Closer tune for Hyytiala
 
       if (Sacclim > Tacclim) then ! photosynthesis occurs 
          facclim = a_const * (Sacclim-Tacclim) 
          if (facclim > 1.d0) facclim = 1.d0
 !      elseif (Sacclim < -1E10)then !UNDEFINED
       elseif (Sacclim.eq.UNDEF)then !UNDEFINED
-         facclim = 1.d0   ! no acclimation for this pft and/or simualtion
+         facclim = 1.d0         ! no acclimation for this pft and/or simualtion
       else
-         facclim = 0.01d0 ! arbitrary min value so that photosyn /= zero
+         facclim = 0.01d0       ! arbitrary min value so that photosyn /= zero
       endif
 
       end function frost_hardiness

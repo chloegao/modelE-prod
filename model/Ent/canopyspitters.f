@@ -19,7 +19,7 @@
 
 !      real*8,parameter :: pi = 3.1415926535897932d0 !@param pi    pi
 !      real*8,parameter :: EPS=1.d-8   !Small, to prevent div zero.
-      real*8,parameter :: IPARMINMOL=50  !umol m-2 s-1
+      real*8,parameter :: IPARMINMOL=LOW_PAR_LIMIT  !umol m-2 s-1
       real*8,parameter :: O2frac=.20900 !fraction of Pa, partial pressure.
 
       type :: canraddrv
@@ -58,7 +58,7 @@
       use ent_const
       use ent_types
       use FarquharBBpspar !pspartype, psdrvtype
-      use photcondmod, only : biophysdrv_setup, calc_Pspar
+      use photcondmod, only : biophysdrv_setup, calc_Pspar, Rdark
       use patches, only : patch_print
 !      use physutil, only:  QSAT
 
@@ -227,13 +227,17 @@
 
           ! UNCOMMENT BELOW if Anet or Rd are used -MJP
           Anet = cop%GPP - Rd !Right now Rd and Respauto_NPP_Clabile are inconsistent-NK
-       else                     !Zero LAI
+       else                     !Zero LAI or no light
           cop%GCANOPY=0.d0 !May want minimum conductance for stems.
           cop%Ci = EPS
           cop%GPP = 0.d0
           cop%IPP = 0.d0
-          TRANS_SW = 1.d0
-          Rd = 0.d0 !KIM-need to set the number as Rd is used for autotrophic respiration.
+          if (cop%LAI.eq.0.d0) then 
+             TRANS_SW = 1.d0
+          else !(IPAR*4.05.lt.LOW_LIGHT_LIMIT)) then
+             TRANS_SW = 0.d0
+          endif
+          Rd = Rdark()*cop%LAI !NYK !KIM-was originally setting it to 0.d0
        endif
         !* Update cohort respiration components, NPP, C_lab
         !## Rd should be removed from pscondleaf, only need total photosynthesis to calculate it.
@@ -493,10 +497,10 @@
      i     ,crp                !Canopy radiation parameters 
      i     ,psd                 !Photosynthesis met drivers
      i     ,Gb                  !Leaf boundary layer conductance (mol/m2/s)
-     o     ,Alayer              !Leaf Net assimilation of CO2 in layer (umol m-2 s-1)
-     o     ,gslayer            !Leaf Conductance of water vapor in layer (mol m-2 s-1)
-     o     ,Rdlayer             !Leaf respiration (umol m-2 s-1)
-     o     ,Ilayer)           ! Leaf isoprene emission (umol m-2 s-1)
+     o     ,Aleaf              !Leaf Net assimilation of CO2 in layer (umol m-2 s-1)
+     o     ,gsleaf            !Leaf Conductance of water vapor in layer (mol m-2 s-1)
+     o     ,Rdleaf             !Leaf respiration (umol m-2 s-1)
+     o     ,Ileaf)           ! Leaf isoprene emission (umol m-2 s-1)
       implicit none
       real*8,intent(in) :: Lcum
       type(canraddrv) :: crp
@@ -504,10 +508,10 @@
       real*8,intent(in) :: Gb
       !real*8,intent(in):: cs,Tl,Pa,rh
       !real*8,intent(inout) :: ci
-      real*8,intent(out) :: Alayer !Flux for single leaf
-      real*8,intent(out) :: gslayer !Conductance for single leaf
-      real*8,intent(out) :: Rdlayer !Respiration for single leaf
-      real*8,intent(out) :: Ilayer ! Isop emis for single leaf
+      real*8,intent(out) :: Aleaf !Flux for single leaf
+      real*8,intent(out) :: gsleaf !Conductance for single leaf
+      real*8,intent(out) :: Rdleaf !Respiration for single leaf
+      real*8,intent(out) :: Ileaf ! Isop emis for single leaf
       !------Local---------
       real*8 fsl  !Fraction of sunlit foliage in layer at Lc (unitless).
       real*8 Isl !PAR absorbed by sunlit foliage at Lc (umol/m[foliage]2/s).
@@ -537,10 +541,10 @@
       !call Collatz(crp%pft, Isl,cs,Tl,rh, Pa,ci,gssl,Asl)
       !call Collatz(crp%pft, Ish,cs,Tl,rh, Pa,ci,gssh,Ash)
                    
-      Alayer = fsl*Asl + (1.0d0 - fsl)*Ash
-      gslayer = fsl*gssl + (1.0d0 - fsl)*gssh
-      Rdlayer = fsl*Rdsl + (1.0d0 - fsl)*Rdsh
-      Ilayer = fsl*Iemisl + (1.0d0 - fsl)*Iemiss
+      Aleaf = fsl*Asl + (1.0d0 - fsl)*Ash
+      gsleaf = fsl*gssl + (1.0d0 - fsl)*gssh
+      Rdleaf = fsl*Rdsl + (1.0d0 - fsl)*Rdsh
+      Ileaf = fsl*Iemisl + (1.0d0 - fsl)*Iemiss
 !#ifdef DEBUG
 !      write(998,*) Lcum,crp,Isl,Ish,fsl,psd,gssl,gssh,Asl,Ash,Rdsl,Rdsh
 !#endif

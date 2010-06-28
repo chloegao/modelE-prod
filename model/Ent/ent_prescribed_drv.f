@@ -384,8 +384,8 @@ cddd      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
       vfraction(:,:,:) = 0.d0
       call openunit("VEG",iu_VEG,.true.,.true.)
 
-      do k=1,N_COVERTYPES-N_OTHER !## Skip algae and grac4 #HACK
-        !print *,k
+      do k=1,N_COVERTYPES
+        print *,k
         read(iu_VEG) title , buf
         vfraction(k,I0f:I1f,J0f:J1f) = buf(I0f:I1f,J0f:J1f)
         !print *,"read VEG:", title

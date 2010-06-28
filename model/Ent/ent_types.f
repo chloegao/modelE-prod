@@ -125,8 +125,8 @@
                                                            
          !* GEOMETRY - trees:  GORT ellipsoids, grasses:leaf only
          real*8 :: h              !* Height (m)
-         real*8 :: crown_dx       ! Crown horizontal axis length (m)
-         real*8 :: crown_dy       ! Crown vertical axis length (m)
+         real*8 :: crown_dx       ! Crown horizontal radius (m)
+         real*8 :: crown_dy       ! Crown vertical radius (m)
          real*8 :: dbh            ! Stem diameter at breast height (m)
          real*8 :: root_d         ! Root half spheroid diameter (m)
          real*8 :: clump          ! Leaf clumping parameter (TBA)
@@ -134,7 +134,7 @@
          real*8,pointer :: height_dz(:) ! height levels, equal dz
          real*8,pointer :: fp_dz(:)     ! foliage profile, equal dz (could be empty)
          real*8,pointer :: height(:)    ! height levels, same as patch
-         real*8,pointer :: fp(:)        ! foliage profile at height (could be zero)
+         real*8,pointer :: fp(:)        ! Cumulative foliage profile at height (could be zero); 0 at top of canopy.
                                                            
          !* BIOMASS POOLS (g-C/single plant)
          real*8 :: C_fol          ! Foliage carbon 
@@ -181,7 +181,7 @@
          real*8,pointer :: stressH2Ol(:) !Water stress in layers.
          real*8 :: senescefrac  !Net fraction of foliage that is litterfall.
          !* Additional C accounting     
-         real*8 :: C_growth  !* Daily tissue growth respiration (kg-C/m2/day)
+         real*8 :: C_growth  !* Daily tissue growth respiration (kg-C/m2-cohort/day)
                              !*  Save C_growth to restart to distribute flux over the day.
          real*8 :: C_total   !* Hack to check for C balance.
       end type cohort

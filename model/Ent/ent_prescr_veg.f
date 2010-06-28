@@ -15,7 +15,8 @@
       public prescr_get_hdata,prescr_get_initnm,prescr_get_rootprof,
      &     prescr_get_woodydiameter,prescr_get_pop,prescr_get_crownrad
      &     ,prescr_get_soilcolor
-      public ED_woodydiameter,popdensity,Ent_dbh,crown_radius_hw
+      public ED_woodydiameter,popdensity,Ent_dbh
+      public crown_radius_hw, crown_radius_closed, crown_radius_vert
 
 #ifdef ENT_STANDALONE_DIAG
       public print_ent_pfts
@@ -441,6 +442,12 @@ c**** calculate root fraction afr averaged over vegetation types
       
       cradm = 0.5d0*sqrt(1/popdensity)
       end function crown_radius_closed
+!*************************************************************************
+      real*8 function crown_radius_vert(h,crx)
+      real*8 :: h, crx !Tree height, crown horizontal radius
+      !crown_radius_vert = min(0.45*h,crx*2.7d0)
+      crown_radius_vert = max(0.45*h,crx)  !##
+      end function crown_radius_vert
 !*************************************************************************
 
       subroutine prescr_get_crownrad(popdata,craddata)

@@ -98,6 +98,7 @@
       !* ECOLOGICAL DYNAMICS *
       !***********************
       integer,parameter :: N_DIST_TYPES = 2 !Number of disturbance types
+      real*8,parameter :: LOW_PAR_LIMIT = 2.5d0 !umol m-2 s-1.  Nobel 1999, lower light limit for green plants is 0.7 W m-2 ~ 3 umol m-2 s-1.
 
 !#define PFT_MODEL_ENT
 #ifdef PFT_MODEL_ENT
@@ -133,7 +134,7 @@
       integer,parameter :: ANNUAL = 5 
     
       !************************************************
-      !*  GISS SOIL CONSTANTS                         *
+      !*  COVER SUMMARY CONSTANTS                     *
       !************************************************
 
       integer,parameter :: N_SOILCOV = 2 !2-light sand, dark dirt (GISS) 

@@ -340,76 +340,105 @@
 
       Ii = 1 - Id
       if (Ii .eq. 1.d0) then
-        tempCos = pptr%cellptr%CosZen
-        pptr%cellptr%CosZen = 0.5343  ! diffusive angle
+         tempCos = pptr%cellptr%CosZen !Save input CosZen
+         pptr%cellptr%CosZen = 0.5343  !Substitute diffusive angle
       end if 
       ! print *, 'before GORT_clumping...'
-      call GORT_clumping(pptr, height_levels, ffp, rdfp, rifp, sunlit, 
-     &    shaded, vz)
-      if (.NOT.ASSOCIATED(height_levels)) then ! bare soil or LAI=0
-         print *, 'LAI=0'
-         return
-      endif 
-      ! write(1078,*) "level", size(height_levels),height_levels
-      ! write(1078,*) "ffp", size(ffp),ffp
-      ! write(1078,*) "rdfp", size(rdfp),rdfp
+      if (IPAR.ge.LOW_PAR_LIMIT) then  !Only call canopy rad if there's light.
+         !Check for horizon or night, and set bound, because clumping 
+         !calculation uses tan(zenith). Only near-horizon times can pose
+         !a problem if there is light when the sun is at or below the horizon.
+         !Otherwise, should check for zenith>=PI/2 and zenith<=1.5PI.
+         if (pptr%cellptr%CosZen.lt.0.001d0) then
+            pptr%cellptr%CosZen = 0.001d0  
+         endif
+         call GORT_clumping(pptr, height_levels, ffp, rdfp, rifp
+     &        , sunlit, shaded, vz)
+         if (.NOT.ASSOCIATED(height_levels)) then ! bare soil or LAI=0
+            call stop_model( 'LAI=0',255)  !Trunks
+         endif 
+        ! write(1078,*) "level", size(height_levels),height_levels
+        ! write(1078,*) "ffp", size(ffp),ffp
+        ! write(1078,*) "rdfp", size(rdfp),rdfp
       
-      ! Weight reflectance/transmittance by lai and sai
-      ! Only perform on vegetated pfts where coszen > 0
+        ! Weight reflectance/transmittance by lai and sai
+        ! Only perform on vegetated pfts where coszen > 0
 
-      do i=1, num_vegsol
-         filter_vegsol(i) = i
-         coszen(i) = pptr%cellptr%CosZen
-      end do
+         do i=1, num_vegsol
+            filter_vegsol(i) = i
+            coszen(i) = pptr%cellptr%CosZen
+         end do
 
-      do fp = 1,num_vegsol
-         p = filter_vegsol(fp)
-         vai(p) = elai(p) + esai(p)
-         wl(p) = elai(p) / max( vai(p), mpe )
-         ws(p) = esai(p) / max( vai(p), mpe )
-      end do
-
-      do ib = 1, N_BANDS
          do fp = 1,num_vegsol
             p = filter_vegsol(fp)
-            rho(p,ib) = max( rhol(ivt(p),ib)*wl(p) + 
-     &        rhos(ivt(p),ib)*ws(p), mpe )
-            tau(p,ib) = max( taul(ivt(p),ib)*wl(p) + 
-     &        taus(ivt(p),ib)*ws(p), mpe )
+            vai(p) = elai(p) + esai(p)
+            wl(p) = elai(p) / max( vai(p), mpe )
+            ws(p) = esai(p) / max( vai(p), mpe )
          end do
-      end do
 
-      write(1079,*) lbp,ubp,filter_vegsol(1),num_vegsol,pcolumn(1)
-     & ,coszen(1),Id,size(height_levels),rho(1,1),tau(1,1)
+         do ib = 1, N_BANDS
+            do fp = 1,num_vegsol
+               p = filter_vegsol(fp)
+               rho(p,ib) = max( rhol(ivt(p),ib)*wl(p) + 
+     &              rhos(ivt(p),ib)*ws(p), mpe )
+               tau(p,ib) = max( taul(ivt(p),ib)*wl(p) + 
+     &              taus(ivt(p),ib)*ws(p), mpe )
+            end do
+         end do
 
-      call TwoStream(lbp, ubp, filter_vegsol, num_vegsol, ivt, 
-     &   pcolumn, coszen, Id, height_levels, rdfp, rifp, rho, tau,
-     &   sout)
-      
-      N2 = size(height_levels)
-      do ib = 1, N_BANDS
-         pptr%albedo(ib) = Id * sout%albd(1,ib) + Ii * sout%albi(1,ib)
-      end do
- 
-      tran(1) = Id * (sout%ftdd(N2,1) + sout%ftid(N2,1)) + Ii 
-     &    * sout%ftii(N2,1)
-      tran(2) = Id * (sout%ftdd(N2,2) + sout%ftid(N2,2)) + Ii 
-     &    * sout%ftii(1,2)
-      ! pptr%TRANS_SW = tran(1)
-      pptr%TRANS_SW = tran(1) * exp(-1 * vz(1))
+         write(1079,*) lbp,ubp,filter_vegsol(1),num_vegsol,pcolumn(1)
+     &        ,coszen(1),Id,size(height_levels),rho(1,1),tau(1,1)
 
-      pptr%crad%LAI => ffp
-      allocate(T_sun(N2))
-      allocate(T_sha(N2))
-      allocate(I_sun(N2))
-      allocate(I_sha(N2))
+         call TwoStream(lbp, ubp, filter_vegsol, num_vegsol, ivt, 
+     &        pcolumn, coszen, Id, height_levels, rdfp, rifp, rho, tau,
+     &        sout)
+         
+         N2 = size(height_levels)
+         do ib = 1, N_BANDS
+            pptr%albedo(ib) = Id * sout%albd(1,ib) 
+     &           + Ii * sout%albi(1,ib)
+         end do
+         
+         tran(1) = Id * (sout%ftdd(N2,1) + sout%ftid(N2,1)) + Ii 
+     &        * sout%ftii(N2,1)
+         tran(2) = Id * (sout%ftdd(N2,2) + sout%ftid(N2,2)) + Ii 
+     &        * sout%ftii(1,2)
+         ! pptr%TRANS_SW = tran(1)
+         pptr%TRANS_SW = tran(1) * exp(-1 * vz(1))
 
-      do i = 1, N2
-         T_sun(i) = IPAR*(sout%ftdd(i,1) + sout%ftid(i,1))
-         T_sha(i) = IPAR*sout%ftii(i,1)
-         I_sun(i) = IPAR*sout%isun(i,1)
-         I_sha(i) = IPAR*sout%isha(i,1)
-      end do
+         pptr%crad%LAI => ffp
+         allocate(T_sun(N2))
+         allocate(T_sha(N2))
+         allocate(I_sun(N2))
+         allocate(I_sha(N2))
+         
+         do i = 1, N2
+            T_sun(i) = IPAR*(sout%ftdd(i,1) + sout%ftid(i,1))
+            T_sha(i) = IPAR*sout%ftii(i,1)
+            I_sun(i) = IPAR*sout%isun(i,1)
+            I_sha(i) = IPAR*sout%isha(i,1)
+         end do
+
+      else  !IPAR is less than LOW_LIGHT_LIMIT
+         sunlit = 0.d0
+         shaded = 0.d0
+         N2 = 1
+         do ib = 1, N_BANDS
+            pptr%albedo(ib) = 0.d0
+         end do
+         pptr%TRANS_SW = tran(1) * exp(-1 * vz(1))
+         pptr%crad%LAI => ffp
+         allocate(T_sun(N2))
+         allocate(T_sha(N2))
+         allocate(I_sun(N2))
+         allocate(I_sha(N2))
+         do i = 1, N2
+            T_sun(i) = 0.d0
+            T_sha(i) = 0.d0
+            I_sun(i) = 0.d0
+            I_sha(i) = 0.d0
+         end do
+      endif !if IPAR.ge.LOW_LIGHT_LIMIT
 
       write(1080,*) Id,Ii,pptr%albedo(1),pptr%albedo(2),
      & tran(1),tran(2),I_sun(1),I_sha(1)
@@ -447,6 +476,10 @@
       real*8, dimension(:), pointer :: sunlit, shaded, vz 
       
       ! print *, 'before geo_to_gin...'
+      if (.NOT.ASSOCIATED(pptr)) then
+         print *,'In GORT_clumping: pptr=NULL'
+         stop
+      endif
       call geo_to_gin(pptr, gin, h_coh)
       if (.NOT.ASSOCIATED(gin)) then ! bare soil or LAI=0
           print *, 'lai zero'
@@ -482,22 +515,27 @@
 
       subroutine run_single_gort(gin, pptr, crad_heights, fp, rdfp, 
      &    rifp, sunlit, shaded, vz, h_coh)
-!      subroutine run_single_gort(gin, direct_light_ratio, ivt, height_levels,        &
-!            fp, rdfp, rifp, transmit, sunlit, shaded)
+!      subroutine run_single_gort(gin, direct_light_ratio, ivt, height_levels,
+!     &        fp, rdfp, rifp, transmit, sunlit, shaded)
 
       ! Input
       type(gort_input) ::  gin  ! input structure for gort model
       type(patch), pointer :: pptr
+      ! Output
+      real*8, dimension(:), pointer :: crad_heights 
+      real*8, dimension(:), pointer :: fp, rdfp, rifp
+      real*8, dimension(:), pointer :: sunlit     ! sunlit leaf area fraction
+      real*8, dimension(:), pointer :: shaded     ! shaded leaf area fraction
+      real*8, dimension(:), pointer :: vz
+      real*8, dimension(:), pointer :: h_coh
+      !---- Local ---
+      real*8, dimension(:), pointer :: efp
 
       integer :: N_height_level, N2
       integer :: ilevel, jlevel, tmpl
       real*8 :: clumpd, clumpi
-      real*8, dimension(:), pointer :: fp, rdfp, rifp, efp, vz
-      real*8, dimension(:), pointer :: height_levels, crad_heights 
+      real*8, dimension(:), pointer :: height_levels
       real*8, dimension(:), pointer :: fpt, vzt
-      real*8, dimension(:), pointer :: sunlit     ! sunlit leaf area fraction
-      real*8, dimension(:), pointer :: shaded     ! shaded leaf area fraction
-      real*8, dimension(:), pointer :: h_coh
       real*8 :: tmp_zenith
       type(cohort),pointer :: cop
 
@@ -519,7 +557,7 @@
       allocate(vzt(N_height_level)) 
       ! print *, 'before foliage profile' 
       call get_foliage_profile(gin,height_levels,fpt,vzt)
-      call layering(pptr,height_levels,fpt,gin%delta_z,h_coh,
+      call layering(pptr%crad,height_levels,fpt,gin%delta_z,h_coh,
      &               N2)
       print *, 'N2=', N2
       ! N2 = size(pptr%crad%heights)
@@ -559,6 +597,7 @@
       allocate(shaded(N2))
       sunlit = T(efp, gin%zenith)
       shaded = 1 - sunlit
+      write(1078,*) "heights",size(crad_heights),crad_heights
       write(1078,*) "ffp", size(fp), fp
       write(1078,*) "K,clump=",K,clumpd,clumpi
       write(1078,*) "rdfp", size(rdfp),rdfp
@@ -582,29 +621,29 @@
       type(gort_input), dimension(:), pointer :: gin
       type(patch), pointer :: pptr
 
-
       ! Output
+      real*8, dimension(:), pointer   :: crad_heights
+      real*8, dimension(:), pointer   :: fp
       real*8, dimension(:), pointer   :: rdfp       ! clumping factor * foliage profile
       real*8, dimension(:), pointer   :: rifp       ! clumping factor * foliage profile
       real*8, dimension(:), pointer   :: sunlit     ! sunlit leaf area fraction
       real*8, dimension(:), pointer   :: shaded     ! shaded leaf area fraction
       real*8, dimension(:), pointer   :: vz         ! trunk volumn
-      real*8, dimension(:), pointer   :: height_levels  ! Convolute profile height levels
       real*8, dimension(:), pointer   :: h_coh
 
-
       ! local variables
+      real*8, dimension(:), pointer   :: height_levels  ! Convolute profile height levels
       integer :: num_profiles, iprofile, N_height_level, N2, i
       integer :: ilevel, jlevel, tmpl, iszn
       real*8    :: szn, delta_z, dszn
       real*8    :: tmp_zenith
       real*8    :: clumpd, clumpi
       type(profile_params), dimension(:), pointer :: all_convolute_input
-      real*8, dimension(:), pointer   :: fp, efp  
+      real*8, dimension(:), pointer   :: efp  
       real*8, dimension(:), pointer   :: fpt, rdfpt, rifpt, efpt, vzt
       real*8, dimension(:), pointer   :: tmp_fp, tmp_rdfp, tmp_rifp  
       real*8, dimension(:), pointer   :: tmp_height_levels, tmp_efp
-      real*8, dimension(:), pointer   :: crad_heights, tmp_vz
+      real*8, dimension(:), pointer   :: tmp_vz
 
       real*8, dimension(:), pointer   :: d_fp, d_rdfp, d_rifp, d_efp
       real*8, dimension(:), pointer   :: d_height_levels, d_vz 
@@ -700,7 +739,7 @@
       call convolute(all_convolute_input, pptr,      ! input
      &   fpt, rdfpt, rifpt, efpt, vzt, height_levels)    ! convoluted and run_gort output
 
-      call layering(pptr,height_levels,fpt, gin(1)%delta_z,h_coh,
+      call layering(pptr%crad,height_levels,fpt, gin(1)%delta_z,h_coh,
      &              N2)
       N_height_level = size(height_levels)
 
@@ -1210,7 +1249,9 @@
       horz_radius = gin%horz_radius
       vert_radius = gin%vert_radius
       zenith = gin%zenith
-
+      print *,"dens_tree,dens_fol,h1,h2,dz,hrad,vertrad,zenith=",
+     &     dens_tree,dens_foliage,h1,h2,delta_z,horz_radius,vert_radius,
+     &     zenith
       ! check density
       if ( (dens_tree <= 0.) .or. (dens_foliage <= 0.)) then
         write(*,*) 'Density must be greater than 0. STOPPING ...'
@@ -1241,10 +1282,11 @@
       end if
 
       ! check angle
-      if ((zenith < 0.) .or. (zenith > PI/2.)) then
+      if ((zenith < 0.) .or. (zenith > PI/2.)) then !IS WENZE USING THIS AS ELEVATION ANGLE?
+      !if ((zenith.ge.0.5*PI).and.(zenith.le.1.5*PI)) !Night
         write (*,*) 'Solar zenith angle, zenith, is in radius, and must 
-     &	     be within [0.,1.]. STOPPING ...'
-        stop
+     &	     be within [0.,1.]. CONTINUING ...'
+        !stop
       end if
 
       end subroutine check_inputs
@@ -1956,14 +1998,15 @@
 
       end function get_K2
 
-      subroutine layering(pptr, height_levels, fpt, dz, h_coh,
+      subroutine layering(crad, height_levels, fpt, dz, h_coh,
      &                    n2)
 !@sum Calculate the needed height levels according to LAI profile and 
 !@sum cohort heights, and save to variable ppt%crad
 
       use qsort_c_module
 
-      type(patch), pointer :: pptr
+      !type(patch), pointer :: pptr
+      type(canradtype) :: crad
       real*8, dimension(:), pointer :: height_levels, fpt
       real*8 :: dz
       real*8, dimension(:), pointer :: h_tmp, ha 
@@ -2024,8 +2067,8 @@
       end do
  
       write(1077,*) "lai_bound=", lai_bound 
-      pptr%crad%h_lai => ha
-      write(1077,*) "crad%h_lai=", pptr%crad%h_lai
+      crad%h_lai => ha
+      write(1077,*) "crad%h_lai=", crad%h_lai
    
       if (len_l.gt.0) then  ! multiple cohorts
       do i=len_h+1, len_h+len_l
@@ -2038,8 +2081,8 @@
       call QsortC(ha)
       write(1077,*) ha
 
-      pptr%crad%heights => ha
-      write(1077,*) "heights", pptr%crad%heights
+      crad%heights => ha
+      write(1077,*) "heights", crad%heights
 
       deallocate(h_tmp)
       deallocate(dlai)

@@ -26,6 +26,8 @@
       !* 14- arctic C3 grass
       !* 15- C4 crops
       !* 16 - crops broadleaf woody
+      !SAND = 17
+      !BDIRT = 18
 
       integer, parameter :: EVGRBROADEARLY = 1
       integer, parameter :: EVGRBROADLATE = 2

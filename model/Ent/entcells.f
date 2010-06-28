@@ -563,7 +563,9 @@ C NADINE - IS THIS CORRECT?
             call assign_patch(pp,Ci_ini, CNC_ini, pft, Tpool_ini)
             call insert_cohort(pp,pft,popdens(ncov),hdata(ncov),
      &           nmdata(ncov),laidata(ncov),
-     &           craddata(ncov), craddata(ncov)*2.7d0, 
+     &           craddata(ncov), 
+     &           min(0.45*hdata(ncov),craddata(ncov)*2.7d0),
+!     &           crown_radius_vert(hdata(ncov),cradddata(ncov),!dependency NK
      &           dbhdata(ncov),0.d0,0.d0, 
 !     &           craddata(ncov),0.d0,dbhdata(ncov),0.d0,0.d0,
      &           0.d0, fracrootdata(ncov,:),
