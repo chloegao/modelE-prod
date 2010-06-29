@@ -16,7 +16,7 @@
      &     prescr_get_woodydiameter,prescr_get_pop,prescr_get_crownrad
      &     ,prescr_get_soilcolor
       public ED_woodydiameter,popdensity,Ent_dbh
-      public crown_radius_hw, crown_radius_closed, crown_radius_vert
+      public crown_radius_horiz, crown_radius_vert
 
 #ifdef ENT_STANDALONE_DIAG
       public print_ent_pfts
@@ -357,24 +357,29 @@ c**** calculate root fraction afr averaged over vegetation types
       popdata(:) = 0.0 !Zero initialize, and zero bare soil.
       do pft=1,N_PFT
         ncov = pft + COVEROFFSET
-        popdata(ncov) = popdensity(pft,dbhdata(ncov))
+        popdata(ncov) = popdensity(pft,dbhdata(ncov),alamax(ncov))
       enddo
       end subroutine prescr_get_pop
 
 !*************************************************************************
-      real*8 function popdensity(pft,dbh) Result(popdens)
+      real*8 function popdensity(pft,dbh,LAImax) Result(popdens)
+      !* No. per m^2.  From ED
       use ent_pfts, only: COVEROFFSET, alamax
        integer,intent(in) :: pft
       real*8, intent(in) :: dbh
+      real*8, intent(in) :: LAImax
       !---Local-----------
-      real*8 :: Blmax, wooddens
+      real*8 :: Blmax !Max foliage mass per tree (kg-C/individ)
+      real*8 :: wooddens !Wood density (g/cm^3)
 
       if (.not.pfpar(pft)%woody) then
         popdens = 10.d0       !Grass ##HACK See Stampfli et al 2008 (~25 seedlings/m2 for cover %1-10, but big range)
       else
         wooddens = wooddensity_gcm3(pft)
         Blmax = 0.0419d0 * (dbh**1.56d0) * (wooddens**0.55d0)
-        popdens = (alamax(pft+COVEROFFSET)/pfpar(pft)%sla)/Blmax
+        !popdens = (alamax(pft+COVEROFFSET)/pfpar(pft)%sla)/Blmax 
+        popdens = (LAImax/pfpar(pft)%sla)/Blmax 
+        !leaf area/ground area/(leaf area/kg-C) / (kg-C/individ)
       endif
       end function popdensity
 
@@ -427,13 +432,40 @@ c**** calculate root fraction afr averaged over vegetation types
       end function ED_woodydiameter
 
 !*************************************************************************
-      real*8 function crown_radius_hw(dbh) Result(cradm)
+      real*8 function crown_radius_horiz(pft,dbh,popdensity)
+      !* Return horizontal crown radius (m)
+      integer,intent(in) :: pft
+      real*8, intent(in) :: dbh !cm
+      real*8, intent(in) :: popdensity !#/m^2
+
+      crown_radius_horiz = min(
+     &     crown_radius_closed(popdensity),crown_radius_pft(pft,dbh))
+
+      end function crown_radius_horiz
+!*************************************************************************
+      real*8 function crown_radius_pft(pft,dbh) Result(cradm)
       !* From Harvard Forest late successional hardward allometry.
-      real*8 :: dbh
+      !* with mean conifer dbh_max limit.
+      !* Coefficient 0.107 for late-succ hw is approx. mean for all types.
+      integer, intent(in) :: pft
+      real*8, intent(in) :: dbh
+      !------
+      !dbh_max parameter values from Harvard Forest allometry
+      real*8, parameter :: dbh_max_conifer = 42.d0 !cm.  Mean of for pine and late successional conifer.  
+      real*8, parameter :: dbh_max_hw = 150.d0 !cm.  
+      real*8 :: dbh_max
 
-      cradm = .107d0 * dbh
+      if (is_conifer(pft)) then
+         dbh_max = dbh_max_conifer
+      elseif (is_hw(pft)) then
+         dbh_max = dbh_max_hw
+      else
+         dbh_max = dbh
+      endif
 
-      end function crown_radius_hw
+      cradm = .107d0 * min(dbh, dbh_max) 
+
+      end function crown_radius_pft
 !*************************************************************************
       real*8 function crown_radius_closed(popdensity) Result(cradm)
       !* Return plant crown radius (m).

@@ -181,6 +181,26 @@ C           TNDRA     SHRUB     DECID     RAINF     BDIRT     GRAC4
 
 
       !***************************************************
+      !* PFT categories
+      !***************************************************
+
+      logical, parameter :: is_crop(N_PFT) =
+     &     (/ .false., .false., .false., .false.,
+     &     .false., .false., .false., .true. /)
+
+      logical, parameter :: is_hw(N_PFT) = 
+     &     (/ .false., .false., .false., .true.,
+     &     .true., .false., .true., .false. /)
+
+      logical, parameter :: is_conifer(N_PFT) =
+     &     (/ .false., .false., .false., .false.,
+     &     .false., .true., .false., .false. /)
+
+      logical, parameter :: is_grass(N_PFT) =
+     &     (/ .false., .true., .false., .false.,
+     &     .false., .false., .false., .false. /)
+
+      !***************************************************
       !* Prescribed max and min LAI
       !***************************************************
 !--- sand tundr grass shrub trees decid evrgr rainf crops bdirt algae c4grass

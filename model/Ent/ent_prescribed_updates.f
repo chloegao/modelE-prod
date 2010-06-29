@@ -74,7 +74,7 @@
      i    hdata,init)!,mixed_VEG)
 !@sum sets prescribed LAI over the cell
       use ent_prescr_veg, only : prescr_plant_cpools, popdensity,
-     &     ED_woodydiameter, crown_radius_closed, crown_radius_vert
+     &     ED_woodydiameter, crown_radius_horiz, crown_radius_vert
       use ent_pfts
       type(entcelltype) :: ecp
       real*8,intent(in) :: hdata(N_PFT) !@var LAI for all PFT's 
@@ -110,13 +110,14 @@
           if (pfpar(cop%pft)%woody) then !update dbhuse
             cop%dbh = ED_woodydiameter(cop%pft,cop%h)
             if (init) then !Set population density and crown geometry
-              cop%n = popdensity(cop%pft,cop%dbh) 
-              cop%crown_dx = crown_radius_closed(cop%n)
+              cop%n = popdensity(cop%pft,cop%dbh,
+     &              alamax(cop%PFT+COVEROFFSET))
+              cop%crown_dx = crown_radius_horiz(cop%pft,cop%dbh,cop%n)
               cop%crown_dy = crown_radius_vert(cop%h,cop%crown_dx)
             endif
 #ifdef ENT_STANDALONE_DIAG
-            print *,'pft,n,dbh,crown_dx,crown_dy',
-     &           cop%pft,cop%n,cop%dbh,cop%crown_dx,cop%crown_dy
+            print *,'pft,n,h,dbh,crown_dx,crown_dy',
+     &           cop%pft,cop%n,cop%h,cop%dbh,cop%crown_dx,cop%crown_dy
 #endif            
           endif
 

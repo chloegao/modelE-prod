@@ -250,6 +250,34 @@ C     (6)  >SRBALB(1) = NIR  (2200-4000 nm)    (ANIR*0.1)
      &     .032,.032,.032,.022,.500,.000
      *     /),(/N_COVERTYPES,4,6/) )
 
+      !***************************************************
+      !* PFT categories
+      !***************************************************
+
+      logical, parameter :: is_crop(N_PFT) =
+     &     (/ .false., .false., .false., .false.,
+     &     .false., .false., .false., .false.,
+     &     .false., .false., .false., .false.,
+     &     .false., .false., .true., .true. /)
+
+      logical, parameter :: is_hw(N_PFT) = 
+     &     (/ .true., .true., .false., .false.,
+     &     .true., .true., .true., .false.,
+     &     .false., .false., .false., .false.,
+     &     .false., .false., .false., .true. /)
+
+      logical, parameter :: is_conifer(N_PFT) =
+     &     (/ .false., .false., .true., .true.,
+     &     .false., .false., .false., .true.,
+     &     .false., .false., .false., .false.,
+     &     .false., .false., .false., .false. /)
+
+      logical, parameter :: is_grass(N_PFT) =
+     &     (/ .false., .false., .false., .false., 
+     &     .false., .false., .false., .false.,
+     &     .false., .false., .true., .true.,
+     &     .true., .true., .false., .false. /)
+
 
       !***************************************************
       !* Prescribed max and min LAI
@@ -257,11 +285,11 @@ C     (6)  >SRBALB(1) = NIR  (2200-4000 nm)    (ANIR*0.1)
 !#ifdef FLUXNETINIT  - No need for this flag here any more - NK
 !      !* FLUXNET LAI *!
       real*8, parameter :: alamax(N_COVERTYPES) =
-     $     (/ 6.0d0, 5.0d0, 8.0d0, 8.0d0, 6.0d0 ,6.0d0, 4.0d0
+     $     (/ 6.0d0, 5.0d0, 8.0d0, 3.0d0, 6.0d0 ,6.0d0, 4.0d0
      &     ,6.d0, 1.5d0, 2.5d0, 2.0d0, 2.0d0, 2.0d0, 2.0d0
      &     ,4.5d0, 6.0d0, 0.d0, 0.d0/)
       real*8, parameter :: alamin(N_COVERTYPES) =
-     $     (/ 5.0d0, 4.0d0, 6.0d0, 6.0d0, 1.0d0, 1.0d0,	1.0d0
+     $     (/ 5.0d0, 4.0d0, 6.0d0, 2.25d0, 1.0d0, 1.0d0,1.0d0
      &     ,1.0d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 0.1d0, 1.0d0
      &     ,1.0d0, 1.0d0, 0.d0, 0.d0 /)
 

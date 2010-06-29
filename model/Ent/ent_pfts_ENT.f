@@ -251,6 +251,34 @@ C     (6)  >SRBALB(1) = NIR  (2200-4000 nm)    (ANIR*0.1)
 
 
       !***************************************************
+      !* PFT categories
+      !***************************************************
+
+     logical, parameter :: is_crop(N_PFT) =
+     &     (/ .false., .false., .false., .false.,
+     &     .false., .false., .false., .false.,
+     &     .false., .false., .false., .false.,
+     &     .false., .false., .true., .true. /)
+
+      logical, parameter :: is_hw(N_PFT) = 
+     &     (/ .true., .true., .false., .false.,
+     &     .true., .true., .true., .false.,
+     &     .false., .false., .false., .false.,
+     &     .false., .false., .false., .true. /)
+
+      logical, parameter :: is_conifer(N_PFT) =
+     &     (/ .false., .false., .true., .true.,
+     &     .false., .false., .false., .true.,
+     &     .false., .false., .false., .false.,
+     &     .false., .false., .false., .false. /)
+
+      logical, parameter :: is_grass(N_PFT) =
+     &     (/ .false., .false., .false., .false., 
+     &     .false., .false., .false., .false.,
+     &     .false., .false., .true., .true.,
+     &     .true., .true., .false., .false. /)
+
+      !***************************************************
       !* Prescribed max and min LAI
       !***************************************************
 !KIM - temp. values, NK-updated

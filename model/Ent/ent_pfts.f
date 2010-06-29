@@ -188,7 +188,27 @@ C           TNDRA     SHRUB     DECID     RAINF     BDIRT     GRAC4
      4 .500,.026,.032,.033,.020,.022,.018,.018,.032,.000,.200,.032
      *     /),(/N_COVERTYPES,4,6/) )
 
-      
+      !***************************************************
+      !* PFT categories
+      !***************************************************
+
+      logical, parameter :: is_crop(N_PFT) =
+     &     (/ .false., .false., .false., .false.,
+     &     .false., .false., .false., .true. /)
+
+      logical, parameter :: is_hw(N_PFT) = 
+     &     (/ .false., .false., .false., .true.,
+     &     .true., .false., .true., .false. /)
+
+      logical, parameter :: is_conifer(N_PFT) =
+     &     (/ .false., .false., .false., .false.,
+     &     .false., .true., .false., .false. /)
+
+      logical, parameter :: is_grass(N_PFT) =
+     &     (/ .false., .true., .false., .false.,
+     &     .false., .false., .false., .false. /)
+
+
       !***************************************************
       !* Prescribed max and min LAI
       !***************************************************
@@ -212,7 +232,6 @@ C           TNDRA     SHRUB     DECID     RAINF     BDIRT     GRAC4
       integer, parameter :: laday(N_COVERTYPES) =
      $     (/ 0, 196,  196,  196,  196,  196,  196,  196,  196
      &     ,0, 0, 196 /)
-
 
       !***************************************************
       !* Rosenzweig & Abramopoulos root profile parameters
