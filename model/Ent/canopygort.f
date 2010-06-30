@@ -61,11 +61,6 @@
       real*8 :: IPPsum
       real*8 :: molconc_to_umol
 
-#ifdef DEBUG
-      print *,"Started photosynth_cond in FBB" ! with patch:"
-      !call patch_print(6,pp," ")
-#endif
-
       if ( .NOT.ASSOCIATED(pp%tallest)) then ! bare soil
         pp%TRANS_SW = 1.d0
         return
@@ -108,15 +103,12 @@
         fdir = pp%cellptr%IPARdir / IPAR
       endif
       CosZen = pp%cellptr%CosZen
-      print *, 'ipar,coszen,fdir=', IPAR, CosZen, fdir
       Pa = pp%cellptr%P_mbar * 100.d0
 
       !* Other photosynthesis drivers *!
       !Set up psdrvpar - pack in met drivers.
       Gb = pp%cellptr%Ch*pp%cellptr%U* Pa/
      &     (gasc*(pp%cellptr%TairC+KELVIN)) !m/s * N/m2 * mol K/J * 1/K = mol/m2/s
-!      write(995,*) "canopyspitters Gb:",Gb,pp%cellptr%Ch,pp%cellptr%U,
-!     &     Pa,pp%cellptr%TairC,gasc
       molconc_to_umol = gasc * (pp%cellptr%TcanopyC + KELVIN)/Pa * 1d6
       ca_umol = pp%cellptr%Ca * molconc_to_umol  !Convert to umol/mol or ppm.
       ci_umol = 0.7d0*ca_umol !pp%cellptr%Ci * molconc_to_umol  !This is solved for is pscubic in FBBphotosynthesis.f.  Replace with dummy initialization.
@@ -156,7 +148,6 @@
       !* LOOP THROUGH COHORTS *!
       cop => pp%tallest
       do while (ASSOCIATED(cop))
-         print *,"cop pft, LAI,height=",cop%pft,cop%LAI,cop%h
       !* Assign vegpar
          !print *, 'cop%LAI = ', cop%LAI
          if ((cop%LAI.gt.0.d0).and.(IPAR*4.05d0.gt.LOW_PAR_LIMIT))
@@ -179,6 +170,9 @@
           cop%stressH2O = water_stress3(cop%pft, N_DEPTH, 
      i         pp%cellptr%Soilmoist(:), 
      &         cop%fracroot, pp%cellptr%fice(:), cop%stressH2Ol(:))
+
+          !#HACK TEMPORARY
+          cop%stressH2O = 1.d0
 
           call calc_Pspar(dtsec,cop%pft,psdrvpar%Pa,psdrvpar%Tc
      i         ,O2frac*psdrvpar%Pa
@@ -313,9 +307,9 @@
 
       ! print *, 'pptr%crad%LAI(1)=', pptr%crad%LAI(1) 
       if (.NOT.ASSOCIATED(pptr%crad%LAI)) then ! no LAI
-         print *, 'not associated LAI'
-         return
+         call stop_model('not associated LAI',255)
       endif 
+
       layers=size(pptr%crad%LAI)
          SUM=0.D0
          SUMg=0.d0
@@ -341,7 +335,7 @@
          Iemis = SUMi
 
 !#ifdef DEBUG        
-!        write(92,*) CosZen,IPAR,cradpar,psdrvpar
+!        write(992,*) CosZen,IPAR,cradpar,psdrvpar
 !     &       ,Gb,Gsint,Gs,Atot,Anet,Rd,TRANS_SW
 !#endif
       end subroutine canopyfluxes
@@ -709,13 +703,12 @@
       cop%NPP = cop%GPP - cop%R_auto !kg-C/m2-ground/s
       cop%C_lab = cop%C_lab + 1000.d0*cop%NPP*dtsec/cop%n !(g-C/individual)
 
-C#define OFFLINE 1
-C#ifdef OFFLINE
+#ifdef ENT_STANDALONE_DIAG
       write(998,*) cop%C_lab,cop%GPP,cop%NPP
      &     ,Rd*0.012d-6, Resp_fol,Resp_sw
      &     ,Resp_lab,Resp_root,Resp_maint,Resp_growth, Resp_growth_1
 C      write(997,*) cop%C_fol,cop%C_froot,cop%C_sw,cop%C_hw,cop%C_croot
-C#endif
+#endif
 
       end subroutine Respauto_NPP_Clabile
 
