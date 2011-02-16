@@ -65,21 +65,16 @@ to Jim Hansen and David Rind for supporting the whole ModelE project.</P>
 	directory structure </A>
 	</P>
 	<OL>
-		<LI><P STYLE="margin-bottom: 0in"><A HREF="#part1_1"><TT>model</TT>
-		</A>
-		</P>
-		<LI><P STYLE="margin-bottom: 0in"><A HREF="#part1_2"><TT>decks</TT>
-		</A>
-		</P>
-		<LI><P STYLE="margin-bottom: 0in"><A HREF="#part1_3"><TT>exec</TT> </A>
-		</P>
-		<LI><P STYLE="margin-bottom: 0in"><A HREF="#part1_4"><TT>aux</TT> </A>
-		</P>
-		<LI><P STYLE="margin-bottom: 0in"><A HREF="#part1_5"><TT>doc</TT> </A>
-		</P>
-		<LI><P STYLE="margin-bottom: 0in"><A HREF="#part1_6"><TT>prtdag</TT>
-		</A>
-		</P>
+		<LI><P STYLE="margin-bottom: 0in"><A HREF="#part1_1"><TT>aux</TT> </A></P>
+		<LI><P STYLE="margin-bottom: 0in"><A HREF="#part1_2"><TT>cmor</TT> </A></P>
+		<LI><P STYLE="margin-bottom: 0in"><A HREF="#part1_3"><TT>config</TT> </A></P>
+		<LI><P STYLE="margin-bottom: 0in"><A HREF="#part1_4"><TT>decks</TT> </A></P>
+		<LI><P STYLE="margin-bottom: 0in"><A HREF="#part1_5"><TT>doc</TT> </A></P>
+		<LI><P STYLE="margin-bottom: 0in"><A HREF="#part1_6"><TT>exec</TT> </A></P>
+		<LI><P STYLE="margin-bottom: 0in"><A HREF="#part1_7"><TT>init_cond</TT> </A></P>
+		<LI><P STYLE="margin-bottom: 0in"><A HREF="#part1_8"><TT>model</TT> </A></P>
+		<LI><P STYLE="margin-bottom: 0in"><A HREF="#part1_9"><TT>templates</TT> </A></P>
+		<LI><P STYLE="margin-bottom: 0in"><A HREF="#part1_A"><TT>tests</TT> </A></P>
 	</OL>
 	<LI><P STYLE="margin-bottom: 0in"><A HREF="#part2">Overall model
 	structure and main time stepping loop </A>
@@ -155,13 +150,10 @@ to Jim Hansen and David Rind for supporting the whole ModelE project.</P>
 		<LI><P STYLE="margin-bottom: 0in"><A HREF="#part6_2">Q-flux (mixed
 		layer model) </A>
 		</P>
-		<LI><P STYLE="margin-bottom: 0in"><A HREF="#part6_3">GISS Dynamic
-		ocean model (Russell) </A>
+		<LI><P STYLE="margin-bottom: 0in"><A HREF="#part6_3">Russell ocean model</A>
 		</P>
 		<LI><P STYLE="margin-bottom: 0in"><A HREF="#part6_4">HYCOM (Bleck
 		and Sun) </A>
-		</P>
-		<LI><P STYLE="margin-bottom: 0in"><A HREF="#part6_5">MOM3 </A>
 		</P>
 	</OL>
 	<LI><P STYLE="margin-bottom: 0in"><A HREF="#part7">Tracers </A>
@@ -173,13 +165,15 @@ to Jim Hansen and David Rind for supporting the whole ModelE project.</P>
 		<LI><P STYLE="margin-bottom: 0in"><A HREF="#part7_2">Soluble and
 		Water mass Tracers </A>
 		</P>
-		<LI><P STYLE="margin-bottom: 0in"><A HREF="#part7_3">Aerosol
+		<LI><P STYLE="margin-bottom: 0in"><A HREF="#part7_3">Aerosol and Chemistry
 		Tracers </A>
 		</P>
-		<LI><P STYLE="margin-bottom: 0in"><A HREF="#part7_3">Ocean
+		<LI><P STYLE="margin-bottom: 0in"><A HREF="#part7_4">Ocean Tracers </A>
+		</P>
+		<LI><P STYLE="margin-bottom: 0in"><A HREF="#part7_5">Carbon Cycle
 		Tracers </A>
 		</P>
-		<LI><P STYLE="margin-bottom: 0in"><A HREF="#part7_3">Special
+		<LI><P STYLE="margin-bottom: 0in"><A HREF="#part7_6">Special
 		Tracers </A>
 		</P>
 	</OL>
@@ -190,10 +184,7 @@ to Jim Hansen and David Rind for supporting the whole ModelE project.</P>
 <H2><A NAME="part1"></A>1. Model files and directory structure 
 </H2>
 <P>The distribution of modelE has a top directory which contains the
-following sub-directories: <TT>model</TT>, <TT>exec</TT>, <TT>decks</TT>,
-<TT>doc</TT>, <TT>aux</TT> and <TT>prtdag</TT>. There may also be a
-<TT>CVS</TT> directory for version control purposes (and also in the
-sub-directories).</P>
+following sub-directories: <TT>aux</TT>,  <TT>cmor</TT>,  <TT>config</TT>,  <TT>decks</TT>,  <TT>doc</TT>, <TT>exec</TT>,  <TT>init_cond</TT>,  <TT>model</TT>,  <TT>templates</TT>,  <TT>tests</TT>. </P>
 <H3><A NAME="part1_1"></A><TT>modelE/model</TT> 
 </H3>
 <P>This directory contains all the model source code used in all
@@ -203,7 +194,7 @@ pertain to a particular function. For instance, <TT>SEAICE.f</TT>
 contains modules and subroutines that control the column model for
 sea ice. The associated file <TT>SEAICE_DRV.f</TT> contains the
 interface routines that translate GCM variables to the column model
-and store the resulting fluxes and diagnostics. 
+and store the resulting fluxes and diagnostics. Some shared components are in separate sub_directories. 
 </P>
 <P>Since the model supports a number of 'plug-and-play' options,
 there may be a number of files that contain subroutines or entry
@@ -252,8 +243,8 @@ of the source code files:
 	<LI><P STYLE="margin-bottom: 0in"><TT>ATURB.f:</TT> Calculation of
 	vertical diffusion by atmospheric turbulence 
 	</P>
-	<LI><P STYLE="margin-bottom: 0in"><TT>CLOUDS.f, CLOUDS_COM.f,
-	CLOUDS_DRV.f:</TT> Column model, common variables and driver
+	<LI><P STYLE="margin-bottom: 0in"><TT>CLOUDS2.f, CLOUDS_COM.f,
+	CLOUDS2_DRV.f:</TT> Column model, common variables and driver
 	routines for moist convection and large scale condensation 
 	</P>
 	<LI><P STYLE="margin-bottom: 0in"><TT>CONST.f:</TT> Physical
@@ -392,8 +383,7 @@ of the source code files:
 	</P>
 </UL>
 <P>You will note a couple of modelE conventions. Firstly,
-declarations of variables and arrays that used to be in common blocks
-are now in modules called <TT>*_COM</TT>. Column models and local
+declarations of variables and arrays are in modules called <TT>*_COM</TT>. Column models and local
 routines do not have a suffix, but the driver routines that mediate
 between the GCM code and the local physics are call <TT>*_DRV.f</TT>.
 Sometimes the <TT>_COM</TT> declarations are included in the local
@@ -442,7 +432,7 @@ others are used for running, stopping and checking on the run.</P>
 		</P>
 	<LI><P STYLE="margin-bottom: 0in"><TT>get_input_data:</TT> A useful
 	script used to make a directory of all input data files required for
-	a particular model run. 
+	a particular model run, downloading the data from the central online repository if needed.
 	</P>
 	<LI><P STYLE="margin-bottom: 0in"><TT>modelErc:</TT> Default modelE
 	run-commands file 

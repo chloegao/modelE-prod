@@ -8,14 +8,11 @@
 <BODY>
 <H1>HOW-TO document for the GISS GCM</H1>
 
-<P>
-This document outlines how to achieve some commonly sought results with
-the new modelE. Some of the procedures will be the same as previously,
-but it is more likely that the details will have become slightly more
-straightforward (hopefully!). However, due to the modularization that
-has been done, you are no longer free to do things in an arbitrary
-way, see the notes below for more details. Please feel free to add to
-this document.</P>
+<P> This document outlines how to achieve some commonly sought results
+with GISS modelE. As in any ongoing development project, the
+procedures will change through time, but the basic approach is static.
+If there are any omissions or errors in this document, please feel
+free to suggest edits.</P>
 
 <P>This is only part of the documentation, you can find additional
 information in the glossary of terms (not yet available), the
@@ -33,7 +30,8 @@ in adding functionality or diagnostics.</P>
 
 <P><A HREF="#part0">PART 0: Getting the code and configuring the model</A></P>
 <OL>
-  <LI><A HREF="#part0_1"> HOW-TO get the code from the CVS repository</A>
+  <LI><A HREF="#part0_1a"> HOW-TO get the frozen model code</A>
+  <LI><A HREF="#part0_1"> HOW-TO get the code from the Git repository</A>
   <LI><A HREF="#part0_2"> HOW-TO configure modelE on your machine</A>
   <LI><A HREF="#part0_3"> System requirements</A>
 </OL>
@@ -43,7 +41,7 @@ in adding functionality or diagnostics.</P>
      <OL>
        <LI> <A HREF="#part1_1a"> How to select a rundeck name </A>
        <LI> <A HREF="#part1_1b"> How to compile the model </A>
-       <LI> <A HREF="#part1_1c"> How to interact with CVS to make sure
+       <LI> <A HREF="#part1_1c"> How to interact with Git to make sure
        the run is reproducible</A>
        <LI> <A HREF="#part1_1d"> How to run the model </A>
        <LI> <A HREF="#part1_1e"> How to run the model on multiple
@@ -129,75 +127,36 @@ diagnostics</A></P>
        everybody's versions</A>
 </OL>
 
-<P><A HREF="#appendix">Appendix: Some Technical details</A></P>
-<OL>
-  <LI><A HREF="#app_1"> HOW-TO create and manage cvs revisions</A>
-</OL>
-
 <P>Finally, CREDITS where CREDITS are due:
 <UL>
-  <LI>For ongoing development (who to blame for the current shambles):<BR>
-       Gavin Schmidt, Reto Ruedy, Jean Lerner, Max Kelley,
-       Igor Aleinov, Gary Russell, Ye Cheng, Andy Lacis, Valdar Oinas,
-       M. S. Yao., Larissa Nazarenko, Nick Tausnev, Shan Sun, Greg Faluvegi,
-       Susanne Bauer, Dorothy, Koch, Nadine Bell, Jan Perlwitz
-  <LI>Historical development (stuff we haven't rewritten yet):<BR>
+  <LI>For ongoing development:<BR>
+       G. A. Schmidt, R. Ruedy, L. Nazarenko, G.L. Russell, M. Kelley, I. Aleinov, S. Bauer, M.K. Bhat, R. Bleck, V. Canuto, Y Chen, Y. Cheng, T. Clune, A. Del Genio, W. Gregg, R. de Fainchtein, G. Faluvegi, J.E. Hansen, R.J. Healy, N.Y. Kiang, Y. Kim, D. Koch, A.A. Lacis, A. N. LeGrande, J. Lerner, K.K. Lo, J. Marshall, S. Menon, R.L. Miller, V. Oinas, A.O. Oloso, J. Perlwitz,  M.J. Puma, W.M. Putman, D. Rind, A. Romanou, M. Sato, D.T. Shindell,  S. Sun, R.A. Syed, N. Tausnev, K. Tsigaridis, N. Unger, A. Voulgarakis, M.-S. Yao, and J. Zhang 
+  <LI>Historical development:<BR>
        Bob Suozzo, Suki Sheth, Hans-Peter Zinn, Rick Healy,
        Frank Abramopoulos, Greg Hartke
-  <LI>Inspiration (the people paying for this):<BR>
-       David Rind, Jim Hansen, Tony Del Genio, NASA GSFC
 </UL>
 
 <hr>
 
 <h3><A name="part0">Part 0: Getting the code and configuring the model</A></h3>
 
-<p><A name="part0_1"><b>1) HOW-TO get the code from the CVS repository</b></a></p>
+<p><A name="part0_1a"><b>1) HOW-TO get the frozen model code</b></a></p>
+
+<p> Two frozen model versions are currently available: The AR4 version of the code (Feb 2004), and the AR5 version of code (Feb 2011). Tarballs of the code and data files (AR4) and code (AR5) are available from the <a href="http://www.giss.nasa.gov/tools/modelE">GISS ModelE website</a>. Data for the AR5 code is available via the <a href="http://portal.nccs.nasa.gov/GISS_modelE/index.pl">NCCS data portal</a>, any through using the <tt>exec/get_input_data</tt> program.  
+
+<p><A name="part0_1"><b>1) HOW-TO get the code from the Git repository</b></a></p>
 
 <p>The modelE code includes source code, scripts and some
-documentation. It is stored in a CVS (Concurrent Versions System)
-repository on a dedicated GISS CVS server
+documentation. It is stored in a Git repository on a dedicated GISS server
 <tt>simplex.giss.nasa.gov</tt>. To access the code you need an account 
 on this machine (if you need to set one contact Igor Aleinov). More 
-information on accessing GISS CVS server from NASA machines can be found at 
+information on accessing the GISS server from NASA machines can be found at 
 <A HREF="http://simplex.giss.nasa.gov/giss/">
 http://simplex.giss.nasa.gov/giss/</A> (Accessible only from GISS machines).
-Once you have an account with enabled access
-from your machine you can check-out a copy of the code using the
-following commands:</p>
-<tt>
-   export CVSROOT=simplex.giss.nasa.gov:/giss/cvsroot<br>
-   export CVS_RSH=ssh<br>
-   cvs checkout -r modelE1-patches modelE<br>
-</tt>
 
-<p> This will create a directory <tt>modelE/</tt> in your directory. The code
-will correspond to modelE1 - the frozen version for 2004 with 
-&quot;patches&quot; - latest bug fixes and additional diagnostics.
-To check-out the latest development version you skip <tt>-r tag</tt>
-option:</p>
-<tt>
-   cvs checkout modelE<br>
-</tt>
-<p>To place the model in a
-different directory, use the <tt> -d dirname </tt> option. Depending
-on your level of skill in using CVS, and whether you are a developer,
-you may want to set up a private branch where you can store your own
-changes and additions without interfering with the main development
-process. Be careful here, because committing changes from your private
-branch is difficult and error prone, and so if you anticipate
-contributing to the group effort, you are advised to set up at least
-one version that is on the main development tree (i.e. with no
-branch). Branches are useful for keeping track of special code that
-you need for particular sensitivity experiments you might want to
-perform. </p>
-
-<p> To set up a private branch:</p>
-<tt>
-   cd modelE<br>
-   cvs tag -b your_tag_here<br>
-   cvs update -r your_tag_here<br>
-</tt>
+Once you have an account with enabled access from your machine you can
+check-out a copy of the code using instructions for using Git can be
+found <a href="http://simplex.giss.nasa.gov/modelE/doc/git_howto.html">here</a>.
 
 <p>Please subscribe to the mailing list 'giss-gcm-users-l@giss.nasa.gov'
 by sending a message to Majordomo@giss.nasa.gov with a line</P>
@@ -206,7 +165,7 @@ by sending a message to Majordomo@giss.nasa.gov with a line</P>
 
 <p>in the body of the text. This is to ensure that you are notified of
 bug fixes and new releases. Also this is a forum for you to ask
-questions about the model. If you are a developer, then subscribe to
+questions about the model. If you are a developer, then please subscribe to
 the <tt>giss-gcm-develop-l</tt> list. This will make sure that you are
 notified of all changes to the code and any specific messages related
 to the development process.</p>
@@ -223,8 +182,7 @@ gmake config<br>
 </tt>
 <p>This will create <tt>.modelErc</tt> file in your home directory.
 It will contain default settings, which
-are adjusted for <tt>ra.giss.nasa.gov</tt>. So if you are working on
-GISS <tt>ra</tt> or <tt>poncho</tt> then you are set. On all other
+are adjusted for the local GISS computing environment. On all other
 machines you should edit the file <tt>~/.modelErc</tt> to describe your
 working environment. <tt>.modelErc</tt> also allows you to set some
 personal preferences like to which email address you want the notifications
@@ -307,13 +265,14 @@ which one can set in <tt>~/.modelErc</tt>:</p>
 
 <li>  <tt>COMPILER</tt> - distribution of fortran compiler you are
   using. This has no effect on systems that have only proprietary
-  compiler. Currently supported options:<br>
+  compilers. Currently supported options:<br>
   <tt>Absoft</tt> - Absoft compiler<br> 
   <tt>Intel</tt> - Intel compiler (versions up to 7)<br> 
   <tt>Intel8</tt> - Intel compiler (versions 8 and 9)<br> 
   <tt>Lahey</tt> - Lahey compiler<br> 
   <tt>PGI</tt> - PGI compiler<br> 
   <tt>G95</tt> - GNU g95 compiler<br> 
+  <tt>gfortran</tt> - GNU gfortran compiler<br> 
   <tt>XLF</tt> - IBM XLF compiler<br> 
   (default: not set)<br>
 
@@ -325,7 +284,7 @@ which one can set in <tt>~/.modelErc</tt>:</p>
 The options listed above are the only supported <tt>~/.modelErc</tt>
 options. You can include there something else if you think it
 appropriate, but keep in mind that you are doing it at your own
-risk! (don't complain if something stops working)
+risk! 
 
 <p><A name="part0_3"><b>3) System requirements</b></a></p>
 
@@ -344,34 +303,32 @@ Group compilers. We have been unable (as yet) to get the model to
 compile with the VAST compilers due to internal errors in those
 products. For the NAG and Intel compilers (versions 7.1.037, and
 version 8) some support is offered, but there are a couple of issues
-(see below). Please let us know if you succeed (or more importantly,
-fail) in compiling the code using any other compiler.</p>
+(see below). GNU gfortran has been tested and should work. Please let
+us know if you succeed (or more importantly, fail) in compiling the
+code using any other compiler.</p>
 
-<p> Note that the parallelization used in the code is based on the
-OpenMP shared memory architecture. This is not appropriate for
-multi-processing on a distributed memory platform (such as a Beowulf
-cluster). For machines that share a number of processors per board,
-the OpenMP directives will work up to that number of processors. We
-are moving towards a domain decomposition/MPI approach (which will be
-clear if you look at the code), but this effort is not yet complete or
-functional.</p>
+<p> Note that the parallelization used in the code has been through a
+number of iterations. Currently, MPI is the default, but
+OpenMP directives are still present in much of the code. This is not
+necessarily functional, and any use of an OpenMP architecture will
+require substantial testing and validation (apologies!). </p>
 
 <p> Many GCM subroutines declare temporary arrays which, in FORTRAN,
 reside in a part of the computer's memory known in computer parlance
 as the "stack."  It is essential that a user's stack size be large
-enough to accommodate these arrays.  It is recommended that the stack
-is set to at least 32768 KB for the basic 12 layer 4x5 grid run. Runs
-with higher resolutions and/or tracers may require bigger stack.
-Default stack sizes vary among different computing environments, but
-can be easily adjusted. Stack size is set by commands native to a
-user's $SHELL; for example, a <tt>bash</tt> user would type <tt>ulimit
--s 32768</tt> to set a stack size of 32768 kb. Mysterious crashes in
-the radiation are quite often related to a too small stack. It is
-possible to declare the required stack size inside the GCM
-configuration files in which case the GCM scripts will attempt to
-allocate appropriate stack before running the model (see the section
-<A HREF="#part1_1g"> How to specify the stack size for a particular
-run</A> of this document).</p>
+enough to accommodate these arrays (particularly for simulations using
+a lot of tracers). It is recommended that the stack is set to at
+least 32768 KB for the basic 12 layer 4x5 grid run. Runs with higher
+resolutions and/or tracers may require bigger stack.  Default stack
+sizes vary among different computing environments, but can be easily
+adjusted. Stack size is set by commands native to a user's $SHELL; for
+example, a <tt>bash</tt> user would type <tt>ulimit -s 32768</tt> to
+set a stack size of 32768 kb. Mysterious crashes in the radiation are
+quite often related to a too small stack. It is possible to declare
+the required stack size inside the GCM configuration files in which
+case the GCM scripts will attempt to allocate appropriate stack before
+running the model (see the section <A HREF="#part1_1g"> How to specify
+the stack size for a particular run</A> of this document).</p>
 
 <p>
 <ul> <bf>Compiler peculiarities</bf>
@@ -404,6 +361,22 @@ run</A> of this document).</p>
 	have not verified that this does actually fix all problems.
      </ul>	
 </ul>
+
+<p>The code now makes heavy use of <tt>netcdf</tt> for i/o, though it is not
+compulsory. We strongly recommend installing a version of this
+software (versions 3.6 and up) from <a
+href="http://www.unidata.ucar.edu/software/netcdf/">UCAR
+Unidata</a>. Note that some pre-compiled versions don't play happily
+with all fortran compilers (and locations of needed files can be
+confusing). We recommend that the user download the source code and
+compile the binaries themselves. The location of the include files
+("netcdf.inc") are assumed to be in <tt>$NETCDFHOME/include/<tt> and
+the libraries in <tt>$NETCDFHOME/lib/<tt>. If this isn't where they
+are you may need to edit <tt>config/rules.mk</tt>, but compiling and
+installing them yourself should work better.</P>
+
+<P>If netcdf is not available, then neither <tt>NEW_IO/IO_DRV</tt> nor
+<tt>POUT_netcdf</tt> can be used.</p>
 
 <hr>
 
@@ -453,7 +426,7 @@ limit on the length of the rundeck name due to limitations in the
 batch processing system we normally use</em>. There is a central database
 for storing user's rundecks (along with other pertinent information
 such as the time of compilation, the compiler version, and the current
-CVS branch) in <tt>ra:/u/cmrun/modelE/decks</tt> (configurable in
+Git branch) in <tt>ra:/u/cmrun/modelE/decks</tt> (configurable in
 <tt>~/.modelErc</tt>). This allows us to automatically tell whether a
 rundeck name has already been used.  However, in order to
 minimise any confusion, we propose the following naming convention:
@@ -467,15 +440,12 @@ minimise any confusion, we propose the following naming convention:
         <li> The next part consists of the users initials (or other
              unique identifier.
  <li> If the user is experimenting with variable resolutions,
-             it may be helpful to add 'M12' or 'M23' or 'F32' etc. to
+             it may be helpful to add 'M12' or 'M23' or 'F40' etc. to
              the end of the name to distinguish between the Medium
              resolution 12 or 23 layer model, or the Fine resolution,
-             32 layer model etc.
+             40 layer model etc.
  </ul>
 
-<p> <em>Note that this implies that there would be not necessarily be any
-connection between runs E034xxx and E034yyy, since the numbers now
-refer to the run sequence, rather than the model version sequence.</em></p>
 
    <LI> <A name="part1_1b"><b> How to compile the model </b></A>
 
@@ -537,13 +507,13 @@ you can compile OpenMP-parallelized run with:</p>
      gmake gcm RUN=E001xyz MP=YES
 </pre>
 
-   <LI> <A name="part1_1c"><b> How to interact with CVS to make sure
+   <LI> <A name="part1_1c"><b> How to interact with Git to make sure
      the run is reproducible</b></A>
 <p>
 
 It is of some importance that runs be reproducible, either by other
 people, or later on by the users themselves. With version control now
-using the CVS system, it implies that CVS <B> MUST </B> know about any
+using the Git system, it implies that Git <B> MUST </B> know about any
 code variations that make it into any production run (i.e. one that is
 not simply a compilation test or debugging). We know that test runs
 and production runs are not necessarily easily distinguishable a
@@ -554,7 +524,7 @@ to ensure thats the relevant information is saved is through frequent
 the code. By this we mean at minimum all changes that have effects on
 the prognostic variables (as opposed to diagnostic printout).  </P>
 
-<p> You can also define tags within the CVS tree that can be personal
+<p> You can also define tags within the Git tree that can be personal
 to you, which just mark a particular set of code as a branch point,
 which can then be retrieved at any point.</p>
 
@@ -564,9 +534,9 @@ to ensure that code at least compiles before any commits are made.) </p>
 <p> At the 'setup' stage (or at the 'exe' stage if you are recreating
 an executable files) further information is added to the rundeck
 depository indicating any changes to the rundeck since it was made,
-along with full CVS information on what was actually compiled. To
+along with full Git information on what was actually compiled. To
 retrieve this exact code, it is sufficient to know the time the run
-was compiled, and the CVS branch that the user was on.</p>
+was compiled, and the Git branch that the user was on.</p>
 
    <LI> <A name="part1_1d"><b> How to run the model </b></A>
 
@@ -590,7 +560,7 @@ over again, you can use
 </pre>
 which will recompile the fortran, and replace the executable file in
 the run directory. Then 'runE E001xyz' will pick up from where you
-stopped previously, but with the new code. Any changes to the CVS
+stopped previously, but with the new code. Any changes to the Git
 information between the initial setup and the new code will be
 recorded in the central rundeck repository.</p>
 
@@ -1293,10 +1263,10 @@ releases of the model</b></a></p>
 
 <p> From time to time relatively stable versions of the model will be
 &quot;released&quot;, i.e. that they will be marked and assigned some
-specific name, or &quot;tag&quot; by which they can be checked out from CVS.
+specific name, or &quot;tag&quot; by which they can be checked out from Git.
 The typical name for such released versions will be &quot;modelE-x-y&quot;,
 where x and y are some numbers. It is recommended that those who are
-not involved into active development on the main trunk of the CVS use
+not involved into active development on the main trunk of the Git use
 only these &quot;released&quot; versions. </p>
 
 <p> If you are currently working on your private branch and want to upgrade
@@ -1680,7 +1650,7 @@ complications in keeping things straight.</p>
 <ul>
   <li><A name="part3_5a"><b>A: Variations on existing code</b></a>
 
-<p>Since all code is now kept within CVS, code history is preserved and
+<p>Since all code is now kept within Git, code history is preserved and
 can be retrieved at any time. So for minor modifications to the code
 (i.e. slightly different formulation of a particular term), go
 straight ahead and modify your version. Compare the results from that
@@ -2060,7 +2030,7 @@ hour 23 (assuming a daily related problem). </P>
 <p><A name="part3_14"><b>14) HOW-TO get an innovation included in
 everybody's versions</b></a></p>
 
-<p>Since you are working on the code within CVS, it is possible to
+<p>Since you are working on the code within Git, it is possible to
 upload your changes to the main development branch. However, this is
 highly unrecommended for the average user, and so I am not going to
 tell you how to do it! Instead, please discuss it with one of the
@@ -2068,39 +2038,6 @@ development team. If you wish to make a lot of changes and be part of
 the ongoing development of modelE, then please read the
 <a href="http://www.giss.nasa.gov/~gavin/modelE_develop.html">developers
 guide</a> and then come and talk to me (gavin@giss.nasa.gov).</p>
-
-<h3><A name="appendix">Appendix: Some Technical Notes</a></h3>
-
-<p><A name="app_1"><b>1) HOW-TO create and manage cvs revisions</b></a></p>
-
-<p> Every so often when the code is at a relatively stable stage, a
-revision will be declared and users will have access to any fixes/new
-physics/ etc. up to that point. This is done using (in the working
-directory):</p>
-<tt>
-   cvs tag modelE-x<br>
-</tt>
-
-<p> However, it sometimes happens that bugs are discovered that affect
-an already frozen version, but that upgrading to a new frozen version
-is impractical for some reason. Thus we will make an offshoot of the
-previously frozen version that only contains the fixes. This is done
-by checking out the latest frozen version (as outlined in <a
-href="#part1_1">Part I</a>). Use a branch name such as
-<tt>update-x</tt>. Once you are on the branch, make the fixes that you
-require and commit them. Then, declare a revision (with a suitable
-revision name).</b>
-
-<tt>
-   cvs tag modelE-x-1<br>
-</tt>
-
-<p> Now people should be able to update to the fixed release with
-little or no problems using (in their working dir.): </p>
-
-<tt>
-   cvs update -j modelE-x-1<br>
-</tt>
 
 
 </BODY>
