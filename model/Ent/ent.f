@@ -160,6 +160,7 @@
           !call patch_print(771,pp," bb ")
           if (update_day) then
             call pheno_update(dtsec,pp)
+            !call patch_print(771,pp," bb ")
             call veg_update(dtsec,pp,config)
             !call litter(pp) !Litter is now called within veg_update
 

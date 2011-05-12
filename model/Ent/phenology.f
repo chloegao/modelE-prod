@@ -793,7 +793,6 @@ c$$$     o         , cop%stressH2Ol(:))
      &       C_sw,Cactive_max,C_fol,CB_d,Cactive_old, 
      &       Cactive,C_lab,Cdead,dCrepro) 
 
-
           cop%pptr%Reproduction(cop%pft) = 
      &        cop%pptr%Reproduction(cop%pft)+ dCrepro*cop%n
 

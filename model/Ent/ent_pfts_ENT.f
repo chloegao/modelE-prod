@@ -254,7 +254,7 @@ C     (6)  >SRBALB(1) = NIR  (2200-4000 nm)    (ANIR*0.1)
       !* PFT categories
       !***************************************************
 
-     logical, parameter :: is_crop(N_PFT) =
+      logical, parameter :: is_crop(N_PFT) =
      &     (/ .false., .false., .false., .false.,
      &     .false., .false., .false., .false.,
      &     .false., .false., .false., .false.,

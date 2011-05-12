@@ -356,6 +356,9 @@ cddd      end subroutine init_cohort_defaults
       nullify(cop%shorter )
       nullify(cop%csptaller )
       nullify(cop%cspshorter )
+      if ( present(parent_patch) ) then
+        cop%pptr => parent_patch
+      endif
 
       ! set variables
       cop%pft = -1              ! = -1 if pft not set
