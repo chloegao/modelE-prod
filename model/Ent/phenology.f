@@ -281,12 +281,11 @@
 
       end subroutine clim_stats
       !*********************************************************************   
-      subroutine pheno_update(dtsec, pp)
+      subroutine pheno_update(pp)
 !@sum Update statstics for phneology_update    
 !@sum PHYSICAL time step.
       use ent_const
 
-      real*8,intent(in) :: dtsec           !dt in seconds
       type(patch) :: pp
       !--Local-----
       type(cohort), pointer :: cop
@@ -589,7 +588,7 @@ c$$$     o         , cop%stressH2Ol(:))
 
       end subroutine pheno_update
       !*********************************************************************   
-      subroutine veg_update(dtsec,pp,config)
+      subroutine veg_update(pp,config)
 !@sum Update the vegetation state and carbon pools:
 !@sum DAILY call.
 !@sum LAI, senescefrac, DBH, height 
@@ -597,11 +596,11 @@ c$$$     o         , cop%stressH2Ol(:))
 !@sum AND growth respiration from growth and tissue turnnover
       use ent_const
       use ent_prescr_veg
+      use cohorts, only : cohort_carbon
       implicit none
       type(ent_config) :: config 
       type(patch),pointer :: pp 
       type(cohort), pointer :: cop
-      real*8 :: dtsec
       integer :: pft
       logical :: woody
       logical :: is_annual 
@@ -645,8 +644,12 @@ c$$$     o         , cop%stressH2Ol(:))
       logical, parameter :: alloc_new=.false.
       integer, parameter :: irecruit=1
       real*8 :: dummy
+
+!!! debug
+
+      real*8 :: tot_c_old, tot_c
  
-     !Initialize
+      !Initialize
       laipatch = 0.d0
       Clossacc(:,:,:) = 0.d0 
       resp_auto_patch = 0.d0
@@ -659,12 +662,15 @@ c$$$     o         , cop%stressH2Ol(:))
       cop => pp%tallest
 
       do while(ASSOCIATED(cop))
+
+        tot_c_old = cohort_carbon(cop)
                
          pft = cop%pft
          phenofactor = cop%phenofactor        
 
          cohortnum = cohortnum + 1
 
+         is_annual = .false.
 
          is_annual = (pfpar(pft)%phenotype .eq. ANNUAL)
 
@@ -685,6 +691,7 @@ c$$$     o         , cop%stressH2Ol(:))
                end select 
            end if
          end if
+
  
          dbh = cop%dbh
          h = cop%h
@@ -788,11 +795,12 @@ c$$$     o         , cop%stressH2Ol(:))
      &      cop%phenostatus .lt. 2.d0 .and. cop%phenostatus .ge. 3.d0 )
      
          dCrepro = 0.d0
+#ifdef COMMENT_OUT
          if (.not.dormant)           
      &       call growth_cpools_structural(pft,dbh,h,qsw,qf,phenofactor,
      &       C_sw,Cactive_max,C_fol,CB_d,Cactive_old, 
      &       Cactive,C_lab,Cdead,dCrepro) 
-
+#endif
           cop%pptr%Reproduction(cop%pft) = 
      &        cop%pptr%Reproduction(cop%pft)+ dCrepro*cop%n
 
@@ -836,6 +844,7 @@ c$$$     o         , cop%stressH2Ol(:))
 
          !* Tissue growth respiration is subtracted at physical time step in canopyspitters.f.
          cop%C_growth = (resp_growth1+resp_growth2)*cop%n*1.d-3  
+         cop%C_growth_flux = cop%C_growth/(24.d0*3600.d0) ! resp flux
 
          !Put senesced amount into litterfall into the soil.
 
@@ -868,7 +877,14 @@ c$$$     o         , cop%stressH2Ol(:))
 #endif
             
          !zero-out the daily accumulated carbon 
-         cop%CB_d = 0.d0    
+         cop%CB_d = 0.d0   
+
+         tot_c = cohort_carbon(cop)
+cddd         write(901,*)  
+cddd         write(901,*) "pft ", cop%pft
+cddd         write(901,*) "deltaC ", tot_c - tot_c_old, tot_c_old
+cddd         write(901,*) "deltaC*n ", (tot_c - tot_c_old)*cop%n
+         !write(901,*) "Clossacc ", Clossacc
 
 
          cop => cop%shorter 
@@ -884,6 +900,9 @@ c$$$     o         , cop%stressH2Ol(:))
 !WRONG      pp%R_auto = resp_auto_patch !Total flux including growth increment.
       pp%R_root = pp%R_root + resp_root_patch !Total flux including growth increment.
 !      pp%NPP = pp%GPP - resp_auto_patch ##Distribute with C_growth
+
+
+
 
       end subroutine veg_update
 
@@ -1558,7 +1577,8 @@ c$$$      end subroutine senesce_cpools
         end if
         ! both layers have fine root litter 
         Closs(CARBON,FROOT,i) = cop%n * (1.d0-l_fract)
-     &       * fracrootCASA(i) * max(0.d0,-dC_froot)
+     &       * fracrootCASA(i) * ( max(0.d0,-dC_froot)
+     &       + max(0.d0,-dC_sw) )
       enddo
 
       dC_total = 0.d0
@@ -1601,8 +1621,37 @@ c$$$      end subroutine senesce_cpools
         Clossacc(CARBON,SOILSTR,i) = Clossacc(CARBON,SOILSTR,i) 
      &       + Closs(CARBON,FROOT,i) * (1-solubfract(pft))
         Clossacc(CARBON,CWD,i) = Clossacc(CARBON,CWD,i) 
-     &       + Closs(CARBON,WOOD,i)
+     &       + Closs(CARBON,WOOD,i) 
       end do                    !cumul litter per pool per layer 
+
+      if ( abs( (dC_fol+dC_froot+dC_hw+dC_sw+dC_croot
+     &     +dC_lab)*cop%n + Closs(CARBON,LEAF,1)+Closs(CARBON,FROOT,1)
+     &     + Closs(CARBON,WOOD,1) ) > 1d-10 ) then
+        
+         write(901,*) "Closs ", Closs(CARBON,LEAF,1)
+     &       +Closs(CARBON,FROOT,1)
+     &       + Closs(CARBON,WOOD,1)
+     &       ,"dC ", dC_fol, dC_froot, dC_hw, dC_sw, dC_croot
+     &       ,dC_lab
+     &       ,"dC*n ", (dC_fol+dC_froot+dC_hw+dC_sw+dC_croot
+     &       +dC_lab)*cop%n
+     &       ,"dCrepro ", dCrepro, dCrepro*cop%n
+     &       ,"dC_litter_hw ", dC_litter_hw, dC_litter_hw*cop%n
+     &       ,"dC_litter_croot ",
+     &       dC_litter_croot, dC_litter_croot*cop%n
+
+       endif
+
+cddd      write(901,*) "Closs ", Closs(CARBON,LEAF,1)+Closs(CARBON,FROOT,1)
+cddd     &     + Closs(CARBON,WOOD,1)
+cddd      write(901,*) "dC ", dC_fol, dC_froot, dC_hw, dC_sw, dC_croot
+cddd     &     ,dC_lab
+cddd      write(901,*) "dC*n ", (dC_fol+dC_froot+dC_hw+dC_sw+dC_croot
+cddd     &     +dC_lab)*cop%n
+cddd      write(901,*) "dCrepro ", dCrepro, dCrepro*cop%n
+cddd      write(901,*) "dC_litter_hw ", dC_litter_hw, dC_litter_hw*cop%n
+cddd      write(901,*) "dC_litter_croot ",
+cddd     &     dC_litter_croot, dC_litter_croot*cop%n
 
 !      write(992,*) C_fol_old,C_froot_old,C_hw_old,C_sw_old,C_croot_old,
 !     &     cop%C_lab,cop%C_fol,cop%C_froot,cop%C_hw,cop%C_sw,
@@ -1620,7 +1669,20 @@ c$$$      end subroutine senesce_cpools
 
       cop%C_lab = cop%C_lab + dC_lab
       !at this point, C_lab<0 comes from the rounding errors...
+#ifdef COMMENT_OUT
       if (cop%C_lab < 0.d0) cop%C_lab = 0.d0
+#endif
+      if (cop%C_lab < -1.d-8) then
+        write(902,*) "Clab ", cop%C_lab, dC_lab, cop%pft
+     &       ,"dC ", dC_fol, dC_froot, dC_hw, dC_sw, dC_croot
+     &       ,dC_lab
+     &       ,"dC*n ", (dC_fol+dC_froot+dC_hw+dC_sw+dC_croot
+     &       +dC_lab)*cop%n
+     &       ,"dCrepro ", dCrepro, dCrepro*cop%n
+     &       ,"dC_litter_hw ", dC_litter_hw, dC_litter_hw*cop%n
+     &       ,"dC_litter_croot ",
+     &       dC_litter_croot, dC_litter_croot*cop%n
+      endif
 !      if (cop%C_lab < 0.d0) then
 !         print*,dC_fol,cop%C_fol,dC_sw,cop%C_sw
 !         print*,dC_lab,cop%C_lab, dC_froot, cop%C_froot
@@ -1893,7 +1955,8 @@ c$$$      end subroutine senesce_cpools
 
       !* Tissue growth respiration is subtracted at physical time step
       !* distributed over day in canopy biophysics module with R_auto.
-      cop%C_growth = resp_growth*cop%n*1.d-3  
+      cop%C_growth = resp_growth*cop%n*1.d-3
+      cop%C_growth_flux = cop%C_growth/(24.d0*3600.d0) ! resp flux
 
       !Cactive = Cactive - turn_leaf - turn_froot !No change in active
 

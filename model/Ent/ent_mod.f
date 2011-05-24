@@ -49,6 +49,7 @@
       public ent_get_exports, ent_set_forcings
       public ent_cell_construct, ent_cell_destruct, ent_cell_nullify
       public ent_fast_processes,ent_run,ent_vegcover_update
+      public ent_update_veg_structure
       public ent_cell_set, ent_cell_set_soilcarbon !, ent_cell_update
       public ent_prescribe_vegupdate
       public ent_prescribe_vegupdateB
@@ -194,6 +195,16 @@ cddd      end interface ent_cell_update
         module procedure ent_run_r8_1
       
         module procedure ent_run_r8_2
+      
+      end interface
+
+      interface ent_update_veg_structure
+      
+        module procedure ent_update_veg_structure_r8_0
+      
+        module procedure ent_update_veg_structure_r8_1
+      
+        module procedure ent_update_veg_structure_r8_2
       
       end interface
 
@@ -1305,6 +1316,109 @@ cddd      end interface ent_cell_update
 
 
 
+
+
+      subroutine ent_update_veg_structure_r8_0(entcell)
+      use ent, only : update_veg_structure !ent_integrate_GISS
+!!! it is not clear yet for me how this call will be implemented ...
+!@sum this call updates variable that change on a long time scale.
+!@+   Right now (before real dynamic vegetation is implemented)
+!@+   it should perform prescribed seasonal update of vegatation
+!@+   parameters (LAI, root fraction etc.)
+!@+   I think extra input parameters needed here should be passed 
+!@+   as formal parameters and not be packed into entcell structure.
+!@+   It seems that for prescribed variation of vegeatation
+!@+   parameters we need only "jday"
+!@+   Is it OK from ESMF point of view?
+      !use ent_driver, only : ent_update_veg_structure
+      type(entcelltype_public),intent(inout) :: entcell 
+!      integer, intent(in) :: jday
+      !---
+      
+      
+
+      
+      
+
+      
+        call update_veg_structure(
+     &     entcell%entcell,config)
+      
+
+      end subroutine ent_update_veg_structure_r8_0
+
+      subroutine ent_update_veg_structure_r8_1(entcell)
+      use ent, only : update_veg_structure !ent_integrate_GISS
+!!! it is not clear yet for me how this call will be implemented ...
+!@sum this call updates variable that change on a long time scale.
+!@+   Right now (before real dynamic vegetation is implemented)
+!@+   it should perform prescribed seasonal update of vegatation
+!@+   parameters (LAI, root fraction etc.)
+!@+   I think extra input parameters needed here should be passed 
+!@+   as formal parameters and not be packed into entcell structure.
+!@+   It seems that for prescribed variation of vegeatation
+!@+   parameters we need only "jday"
+!@+   Is it OK from ESMF point of view?
+      !use ent_driver, only : ent_update_veg_structure
+      type(entcelltype_public),intent(inout) :: entcell (:)
+!      integer, intent(in) :: jday
+      !---
+      integer i1
+      integer dims(2,1)
+
+      dims(1,:) = lbound(entcell)
+      dims(2,:) = ubound(entcell)
+
+      
+      do i1=dims(1,1),dims(2,1)
+        call update_veg_structure(
+     &     entcell(i1)%entcell,config)
+      
+      enddo
+
+      end subroutine ent_update_veg_structure_r8_1
+
+      subroutine ent_update_veg_structure_r8_2(entcell)
+      use ent, only : update_veg_structure !ent_integrate_GISS
+!!! it is not clear yet for me how this call will be implemented ...
+!@sum this call updates variable that change on a long time scale.
+!@+   Right now (before real dynamic vegetation is implemented)
+!@+   it should perform prescribed seasonal update of vegatation
+!@+   parameters (LAI, root fraction etc.)
+!@+   I think extra input parameters needed here should be passed 
+!@+   as formal parameters and not be packed into entcell structure.
+!@+   It seems that for prescribed variation of vegeatation
+!@+   parameters we need only "jday"
+!@+   Is it OK from ESMF point of view?
+      !use ent_driver, only : ent_update_veg_structure
+      type(entcelltype_public),intent(inout) :: entcell (:,:)
+!      integer, intent(in) :: jday
+      !---
+      integer i1,i2
+      integer dims(2,2)
+
+      dims(1,:) = lbound(entcell)
+      dims(2,:) = ubound(entcell)
+
+      
+      do i1=dims(1,1),dims(2,1)
+      do i2=dims(1,2),dims(2,2)
+        call update_veg_structure(
+     &     entcell(i1,i2)%entcell,config)
+      
+      enddo
+      enddo
+
+      end subroutine ent_update_veg_structure_r8_2
+
+
+
+
+
+
+
+
+
       subroutine ent_vegcover_update_r8_0(entcell, jday, jyear)
       type(entcelltype_public),intent(inout) :: entcell 
       integer, intent(in) :: jday, jyear
@@ -2329,6 +2443,7 @@ cddd      end interface ent_cell_update
 
       ! diags and hacks (added dec 9 2008)
       call copy_vars( buf, dc,  c%C_growth,  flag )
+      call copy_vars( buf, dc,  c%C_growth_flux,  flag )
       call copy_vars( buf, dc,  c%C_total ,  flag )
       ! added on Mar 30 2009. Do we really need this?
       call copy_vars( buf, dc,  c%llspan  ,  flag )

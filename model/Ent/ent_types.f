@@ -188,6 +188,8 @@
          !* Additional C accounting     
          real*8 :: C_growth  !* Daily tissue growth respiration (kg-C/m2-cohort/day)
                              !*  Save C_growth to restart to distribute flux over the day.
+                             ! - this is remainig respiration carbon 
+         real*8 :: C_growth_flux ! respiration flux due to C_growth
          real*8 :: C_total   !* Hack to check for C balance.
       end type cohort
 
@@ -478,6 +480,10 @@
          ! diags and hacks
          real*8 :: C_total
          real*8 :: C_growth
+
+!!! hack !!! - just to try master phenology
+         real*8 :: ld
+         real*8 :: light
       end type entcelltype
 
 

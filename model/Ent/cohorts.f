@@ -214,6 +214,7 @@
       !* diags and hacks
       cop%C_total = 0.d0
       cop%C_growth = 0.d0
+      cop%C_growth_flux = 0.d0
 
       end subroutine assign_cohort
       !*********************************************************************
@@ -312,6 +313,7 @@ cddd      end subroutine init_cohort_defaults
       !* diags and hacks
       cop%C_total = 0.d0
       cop%C_growth = 0.d0
+      cop%C_growth_flux = 0.d0
       end subroutine zero_cohort
 
 
@@ -429,6 +431,8 @@ cddd      end subroutine init_cohort_defaults
       write(iu, '(a,a," = ",f10.7)') prefix,"c%N_croot", cop%N_croot 
                                                              
       write(iu, '(a,a," = ",f10.7)') prefix,"c%C_growth",cop%C_growth
+      write(iu, '(a,a," = ",f10.7)') prefix,"c%C_growth_flux"
+     &     ,cop%C_growth_flux
       write(iu, '(a,a," = ",f10.7)') prefix,"c%C_total", cop%C_total 
 
       write(iu, '(a,a," = ",f10.7)') prefix,"c%llspan",  cop%llspan
@@ -510,6 +514,7 @@ cddd      end subroutine init_cohort_defaults
       write(iu,1)prefix,"senescefrac ",
      &     cop%senescefrac	         
       write(iu,1)prefix,"C_growth    ",cop%C_growth      
+      write(iu,1)prefix,"C_growth_flux",cop%C_growth_flux    
       write(iu,1)prefix,"C_total     ",cop%C_total       
    
  1    format(a,a," = ",99e23.16)  ! e12.5
@@ -611,6 +616,7 @@ cddd      end subroutine init_cohort_defaults
                                                                            
       cop1%C_total      =w1*cop1%C_total      +w2*cop2%C_total      
       cop1%C_growth     =w1*cop1%C_growth     +w2*cop2%C_growth    
+      cop1%C_growth_flux=w1*cop1%C_growth_flux+w2*cop2%C_growth_flux    
  
       end subroutine cohort_merge_data
 
@@ -624,7 +630,7 @@ cddd      end subroutine init_cohort_defaults
       kgC_indiv = 0.d0
       if (ASSOCIATED(cop)) then
          kgC_indiv = 0.001d0 * (cop%C_fol + cop%C_sw + cop%C_hw + 
-     &        cop%C_lab + cop%C_froot + cop%C_croot)
+     &       cop%C_lab + cop%C_froot + cop%C_croot )
       endif
 
       cohort_carbon = kgC_indiv

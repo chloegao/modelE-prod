@@ -21,6 +21,7 @@
       public ent_ecosystem_dynamics,  ent_biophysics
       !public ent_integrate_GISS,
       public ent_integrate !Added by KIM
+      public update_veg_structure
 
       contains
       !*********************************************************************
@@ -42,6 +43,8 @@
       !---
       type(patch), pointer :: pp
 !      write(*,*) 'Ecosystem dynamics for (long,lat)=(',
+
+      call stop_model("ent_ecosystem_dynamics: not supportd in gcm",255)
 
       pp => ecp%oldest
       do while (ASSOCIATED(pp)) 
@@ -158,13 +161,14 @@
           !call uptake_N(dtsec, pp) !?
           !call growth(...)
           !call patch_print(771,pp," bb ")
-          if (update_day) then
-            call pheno_update(dtsec,pp)
-            !call patch_print(771,pp," bb ")
-            call veg_update(dtsec,pp,config)
-            !call litter(pp) !Litter is now called within veg_update
-
-          end if
+! the following was moved to update_veg_structure()
+cddd          if (update_day) then
+cddd            call pheno_update(pp)
+cddd            !call patch_print(771,pp," bb ")
+cddd            call veg_update(pp,config)
+cddd            !call litter(pp) !Litter is now called within veg_update
+cddd
+cddd          end if
           !call patch_print(771,pp," aa ")
         endif
 
@@ -190,11 +194,18 @@
       !  call patch_dynamics(pp,monthlyupdate)
       ! call summarize_entcell(ecp)
       endif !do_patchdynamics
-      
+
+
+      ! do all daily updates inside the following call
       if (update_day) then
-        ecp%daylength(1) = ecp%daylength(2)
-        ecp%daylength(2) = 0.d0
-      end if
+        call update_veg_structure(ecp, config)
+      endif
+
+! the following was moved to update_veg_structure()
+cddd      if (update_day) then
+cddd        ecp%daylength(1) = ecp%daylength(2)
+cddd        ecp%daylength(2) = 0.d0
+cddd      end if
 
 #ifdef DEBUG
       print *,"End of ent_biophysics"
@@ -207,6 +218,58 @@
 #endif
 
       end subroutine ent_integrate
+
+
+
+
+
+
+
+
+
+      subroutine update_veg_structure(ecp, config)
+!@sum update vagetation structure at the end of day
+      use growthallometry, only : uptake_N
+      use phenology, only : pheno_update, veg_update
+      use entcells, only : summarize_entcell, entcell_print
+      implicit none
+      type(entcelltype) :: ecp
+      type(ent_config) :: config 
+      !-----local--------
+      type(patch),pointer :: pp
+
+      !* Loop through patches
+      pp => ecp%oldest 
+      do while (ASSOCIATED(pp)) 
+        
+        if (config%do_phenology_activegrowth) then
+          call pheno_update(pp)
+          !call patch_print(771,pp," bb ")
+          call veg_update(pp,config)
+          !call litter(pp) !Litter is now called within veg_update
+        endif
+
+        pp => pp%younger 
+      end do
+
+      call summarize_entcell(ecp)
+
+      ecp%daylength(1) = ecp%daylength(2)
+      ecp%daylength(2) = 0.d0
+
+      end subroutine update_veg_structure
+
+
+
+
+
+
+
+
+
+
+
+
 
 
       !*********************************************************************
@@ -225,44 +288,46 @@
       !---Local--------
       type(patch),pointer :: pp
       integer :: patchnum
+
+      call stop_model("ent_biophysics: obsolete code",255)
        
-      patchnum = 0
-      pp => ecp%oldest
-      do while(ASSOCIATED(pp))
-        patchnum = patchnum + 1
-        !print*,'NEXT PATCH'
-        !print*,'Calling photosynth_cond'
-        call photosynth_cond(dtsec, pp)
-        if (config%do_soilresp) then 
-          !print*,'Calling soil_bgc'
-          call soil_bgc(dtsec,pp)
-          pp%CO2flux = -pp%NPP + pp%Soil_resp
-        ! Litter is updated daily in ent_prescribe_vegupdates.
-        ! is do_soilresp flag ok or different flag is needed ?
-        ! if ( dailyupdate ) call litter(pp) 
-
-          !*********** DIAGNOSTICS FOR PLOTTING ********************!
-#ifdef ENT_STANDALONE_DIAG         
-          call summarize_patch(pp)
-          call ent_diagnostics(patchnum,pp)
-#endif
-          !*********************************************************!
-        else 
-          pp%CO2flux = UNDEF
-        endif
-        pp%age = pp%age + dtsec
-        !call summarize_patch(pp)
-
-        pp => pp%younger
-
-      end do
-      call summarize_entcell(ecp)
-
-#ifdef DEBUG
-      print *,"End of ent_biophysics"
-      call entcell_print(6, ecp)
-      print *,"*"
-#endif
+cddd      patchnum = 0
+cddd      pp => ecp%oldest
+cddd      do while(ASSOCIATED(pp))
+cddd        patchnum = patchnum + 1
+cddd        !print*,'NEXT PATCH'
+cddd        !print*,'Calling photosynth_cond'
+cddd        call photosynth_cond(dtsec, pp)
+cddd        if (config%do_soilresp) then 
+cddd          !print*,'Calling soil_bgc'
+cddd          call soil_bgc(dtsec,pp)
+cddd          pp%CO2flux = -pp%NPP + pp%Soil_resp
+cddd        ! Litter is updated daily in ent_prescribe_vegupdates.
+cddd        ! is do_soilresp flag ok or different flag is needed ?
+cddd        ! if ( dailyupdate ) call litter(pp) 
+cddd
+cddd          !*********** DIAGNOSTICS FOR PLOTTING ********************!
+cddd#ifdef ENT_STANDALONE_DIAG         
+cddd          call summarize_patch(pp)
+cddd          call ent_diagnostics(patchnum,pp)
+cddd#endif
+cddd          !*********************************************************!
+cddd        else 
+cddd          pp%CO2flux = UNDEF
+cddd        endif
+cddd        pp%age = pp%age + dtsec
+cddd        !call summarize_patch(pp)
+cddd
+cddd        pp => pp%younger
+cddd
+cddd      end do
+cddd      call summarize_entcell(ecp)
+cddd
+cddd#ifdef DEBUG
+cddd      print *,"End of ent_biophysics"
+cddd      call entcell_print(6, ecp)
+cddd      print *,"*"
+cddd#endif
       end subroutine ent_biophysics
       !*********************************************************************
 
@@ -272,6 +337,9 @@
         type(entcelltype) :: ecp !Not needed this version, but will be.
         logical :: update_struct
         !------local------
+
+        call stop_model("STRUCT_FLAG: not allowed in gcm",255)
+
         update_struct = STRUCT_FLAG_DAY(tt,ecp)
 
       end function STRUCT_FLAG
@@ -287,6 +355,8 @@
         logical :: update_struct
         !-----local----------
         real*8 :: hourfrac
+
+        call stop_model("STRUCT_FLAG_DAY: not allowed in gcm",255)
         
         hourfrac = tt%hour + tt%minute/60.0 + tt%seconds/3600.0
 !        if (hourfrac.le.dtsec) then !Midnight
@@ -309,6 +379,8 @@
         logical :: update_struct
         
         real*8 :: hourfrac
+
+        call stop_model("STRUCT_FLAG_MONTH: not allowed in gcm",255)
         
         hourfrac = tt%hour + tt%minute/60.0 + tt%seconds/3600.0
         if ((tt%day.eq.1).and.

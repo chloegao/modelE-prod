@@ -709,8 +709,9 @@
 !     &       Canopy_resp(vegpar%Ntot, TcanopyC+KELVIN))
 
       !* Growth respiration from biomass tissue growth.
-      Resp_growth_1 = cop%C_growth/(24.d0*3600.d0) !Convert from d-1 to s-1.
-      !cop%C_growth = cop%C_growth - Resp_growth_1*dtsec 
+      !Resp_growth_1 = cop%C_growth/(24.d0*3600.d0) !Convert from d-1 to s-1.
+      Resp_growth_1 = cop%C_growth_flux
+      cop%C_growth = cop%C_growth - Resp_growth_1*dtsec 
 
       !* Growth respiration tied to GPP; compensates for tissue growth respir.
       Resp_growth = Resp_can_growth(cop%pft, 

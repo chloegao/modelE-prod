@@ -39,6 +39,7 @@ define(`m4_type_list',`real*8')
       public ent_get_exports, ent_set_forcings
       public ent_cell_construct, ent_cell_destruct, ent_cell_nullify
       public ent_fast_processes,ent_run,ent_vegcover_update
+      public ent_update_veg_structure
       public ent_cell_set, ent_cell_set_soilcarbon !, ent_cell_update
       public ent_prescribe_vegupdate
       public ent_prescribe_vegupdateB
@@ -140,6 +141,12 @@ cddd      end interface ent_cell_update
       interface ent_run
       m4_loop(`
         module procedure ent_run_`'m4_suffix`'
+      ')`'
+      end interface
+
+      interface ent_update_veg_structure
+      m4_loop(`
+        module procedure ent_update_veg_structure_`'m4_suffix`'
       ')`'
       end interface
 
@@ -565,6 +572,45 @@ m4_loop(`
 
       end subroutine ent_run_`'m4_suffix`'
 ')`'
+
+
+
+m4_loop(`
+      subroutine ent_update_veg_structure_`'m4_suffix`'(entcell)
+      use ent, only : update_veg_structure !ent_integrate_GISS
+!!! it is not clear yet for me how this call will be implemented ...
+!@sum this call updates variable that change on a long time scale.
+!@+   Right now (before real dynamic vegetation is implemented)
+!@+   it should perform prescribed seasonal update of vegatation
+!@+   parameters (LAI, root fraction etc.)
+!@+   I think extra input parameters needed here should be passed 
+!@+   as formal parameters and not be packed into entcell structure.
+!@+   It seems that for prescribed variation of vegeatation
+!@+   parameters we need only "jday"
+!@+   Is it OK from ESMF point of view?
+      !use ent_driver, only : ent_update_veg_structure
+      type(entcelltype_public),intent(inout) :: entcell m4_brkts(m4_ext)
+!      integer, intent(in) :: jday
+      !---
+      m4_arr_only(`integer m4_ind')`'
+      m4_arr_only(`integer dims(2,m4_rank)')`'
+
+      m4_arr_only(`dims(1,:) = lbound(entcell)')`'
+      m4_arr_only(`dims(2,:) = ubound(entcell)')`'
+
+      m4_do(dims)
+        call update_veg_structure(
+     &     entcell`'m4_brkts(m4_ind)`'%entcell,config)
+      m4_enddo
+
+      end subroutine ent_update_veg_structure_`'m4_suffix`'
+')`'
+
+
+
+
+
+
 
 m4_loop(`
       subroutine ent_vegcover_update_`'m4_suffix`'(entcell, jday, jyear)
@@ -1245,6 +1291,7 @@ m4_loop(`
 
       ! diags and hacks (added dec 9 2008)
       call copy_vars( buf, dc,  c%C_growth,  flag )
+      call copy_vars( buf, dc,  c%C_growth_flux,  flag )
       call copy_vars( buf, dc,  c%C_total ,  flag )
       ! added on Mar 30 2009. Do we really need this?
       call copy_vars( buf, dc,  c%llspan  ,  flag )
