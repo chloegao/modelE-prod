@@ -795,12 +795,12 @@ c$$$     o         , cop%stressH2Ol(:))
      &      cop%phenostatus .lt. 2.d0 .and. cop%phenostatus .ge. 3.d0 )
      
          dCrepro = 0.d0
-#ifdef COMMENT_OUT
+!#ifdef COMMENT_OUT
          if (.not.dormant)           
      &       call growth_cpools_structural(pft,dbh,h,qsw,qf,phenofactor,
      &       C_sw,Cactive_max,C_fol,CB_d,Cactive_old, 
      &       Cactive,C_lab,Cdead,dCrepro) 
-#endif
+!#endif
           cop%pptr%Reproduction(cop%pft) = 
      &        cop%pptr%Reproduction(cop%pft)+ dCrepro*cop%n
 
@@ -1552,7 +1552,8 @@ c$$$      end subroutine senesce_cpools
       !* NOTE: Respiration is distributed over the day by canopy module,
       !*       so does not decrease C_lab here.
       dC_lab = 
-     &     - dClab_dbiomass - dCrepro        !Growth (new growth or senescence)
+     &     - dClab_dbiomass 
+!!!     removed - dCrepro since it doesn't conserve carbon       !Growth (new growth or senescence)
 
       !* Recalculate respiration.  Distinguish below- vs. above-ground autotrophic respiration.
 
