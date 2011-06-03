@@ -51,6 +51,8 @@ define(`m4_type_list',`real*8')
 
       public ent_set_forcings_r8_0
 
+      public debug_carbon
+
       type entcelltype_public
         private
         type(entcelltype), pointer :: entcell => null()
@@ -1708,6 +1710,67 @@ m4_loop(`
 ')`'
 
 #endif
+
+! ' 
+      subroutine debug_carbon(entcell, total,
+     &          C_lab, C_sw, C_hw, C_froot, C_croot, C_soil)
+      type(entcelltype_public), intent(in) :: entcell
+      real*8, dimension(:) :: total,
+     &          C_lab, C_sw, C_hw, C_froot, C_croot, C_soil
+      !---
+      type(patch), pointer :: pp
+      type(cohort), pointer :: cop
+      real*8 :: area, n
+      integer i, k, pft
+
+
+      total(:) = 0.d0
+      C_lab(:) = 0.d0
+      C_sw(:) = 0.d0
+      C_hw(:) = 0.d0
+      C_froot(:) = 0.d0
+      C_croot(:) = 0.d0
+      C_soil(:) = 0.d0
+
+      if ( .not. associated(entcell%entcell) ) return
+
+      pp => entcell%entcell%oldest
+
+      do while (associated(pp))
+         area = pp%area
+
+         pft = 0
+         cop => pp%tallest
+         do while (associated(cop))
+           pft = cop%pft
+           n = cop%n
+
+           C_lab(pft) = C_lab(pft) + cop%C_lab*n*area*1.d-3
+           C_sw(pft) = C_sw(pft) + cop%C_sw*n*area*1.d-3
+           C_hw(pft) = C_hw(pft) + cop%C_hw*n*area*1.d-3
+           C_froot(pft) = C_froot(pft) + cop%C_froot*n*area*1.d-3
+           C_croot(pft) = C_croot(pft) + cop%C_croot*n*area*1.d-3
+           !C_(pft) = C_(pft) + cop%C_*n*area*1.d-3
+
+           cop => cop%shorter
+         end do
+
+         !!! assume 1 cohort per patch
+         if ( pft > 0) then ! skip cells with no vegetation
+           do i=1,N_CASA_LAYERS
+             do k=(NLIVE+1),NPOOLS
+               C_soil(pft)=C_soil(pft) + pp%Tpool(CARBON,k,i)*area*1.d-3
+             enddo
+           enddo
+         endif
+
+         pp => pp%younger
+      end do
+
+      total(:) = C_lab(:) + C_sw(:) + C_hw(:) + C_froot(:) + C_croot(:)
+     &     + C_soil
+
+      end subroutine debug_carbon
 
       end module ent_mod
 
