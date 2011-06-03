@@ -1225,8 +1225,6 @@ ccc stuff needed for dynamic vegetation
      &     )
 
 
-
-
       call evap_limits(
 #ifndef USE_ENT
      &     vegcell,
@@ -1405,6 +1403,7 @@ c another surface type
       end do loop_j
 
       call dealloc_pbl_args(pbl_args)
+      call dump_ent_C_diags
 
       ! land water deficit for changing lake fractions
       !!! not working with Ent
@@ -1422,6 +1421,80 @@ c another surface type
 
       return
       end subroutine earth
+
+
+      subroutine dump_ent_C_diags
+      USE DOMAIN_DECOMP_ATM, only : GRID, GET, READT_PARALLEL
+      USE DOMAIN_DECOMP_1D, only : WRITET_PARALLEL
+      use ent_mod, only: entcelltype_public, debug_carbon
+      use ent_com, only : entcells
+      !---
+      real*8, dimension(16,im,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
+     &     total,
+     &          C_lab, C_sw, C_hw, C_froot, C_croot, C_soil
+      real*8, dimension(im,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
+     &     total_sum, C_soil_sum
+      integer, save :: counter = 0
+      integer, save :: fc = 1000
+      character*80 :: title
+      integer :: k, i, j
+      integer :: I_1, I_0, J_1, J_0
+      integer :: I_1H, I_0H, J_1H, J_0H
+
+      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
+     *               J_STRT=J_0,       J_STOP=J_1)
+
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+      I_0H = grid%I_STRT_HALO
+ 
+
+      if ( mod(counter,48*30) == 0 ) then
+
+        fc = fc + 1
+        do j=J_0,J_1
+          do i=I_0,I_1
+            call debug_carbon(entcells(i,j), total(:,i,j),
+     &           C_lab(:,i,j), C_sw(:,i,j), C_hw(:,i,j),
+     &           C_froot(:,i,j), C_croot(:,i,j), C_soil(:,i,j))
+          enddo
+        enddo
+
+        do k=1,16
+          write(title,*) "total ",k
+          call WRITET_PARALLEL(grid,fc,"foo",total(k,:,:),title)
+          write(title,*) "C_lab ",k
+          call WRITET_PARALLEL(grid,fc,"foo",C_lab(k,:,:),title)
+          write(title,*) "C_sw ",k
+          call WRITET_PARALLEL(grid,fc,"foo",C_sw(k,:,:),title)
+          write(title,*) "C_hw ",k
+          call WRITET_PARALLEL(grid,fc,"foo",C_hw(k,:,:),title)
+          write(title,*) "C_froot ",k
+          call WRITET_PARALLEL(grid,fc,"foo",C_froot(k,:,:),title)
+          write(title,*) "C_croot ",k
+          call WRITET_PARALLEL(grid,fc,"foo",C_croot(k,:,:),title)
+          write(title,*) "C_soil ",k
+          call WRITET_PARALLEL(grid,fc,"foo",C_soil(k,:,:),title)
+         enddo
+
+         total_sum = 0.d0
+         C_soil_sum = 0.d0
+         do k=1,16
+           total_sum(:,:) = total_sum(:,:) + total(k,:,:)
+           C_soil_sum(:,:) = C_soil_sum(:,:) + C_soil(k,:,:)
+         enddo
+
+         write(title,*) "total sum"
+         call WRITET_PARALLEL(grid,fc,"foo",total_sum(:,:),title)
+         write(title,*) "C_soil sum"
+         call WRITET_PARALLEL(grid,fc,"foo",C_soil_sum(:,:),title)
+
+      endif
+
+      counter = counter + 1
+
+      end subroutine dump_ent_C_diags
+
 
 c***********************************************************************
 c***********************************************************************
