@@ -232,12 +232,16 @@ cddd      end if
       use growthallometry, only : uptake_N
       use phenology, only : pheno_update, veg_update
       use entcells, only : summarize_entcell, entcell_print
+     &     ,entcell_carbon
       implicit none
       type(entcelltype) :: ecp
       type(ent_config) :: config 
       !-----local--------
       type(patch),pointer :: pp
+      real*8 c_before, c_after
 
+
+      c_before = entcell_carbon(ecp)
       !* Loop through patches
       pp => ecp%oldest 
       do while (ASSOCIATED(pp)) 
@@ -256,6 +260,12 @@ cddd      end if
 
       ecp%daylength(1) = ecp%daylength(2)
       ecp%daylength(2) = 0.d0
+
+      c_after = entcell_carbon(ecp)
+
+      if ( abs(c_after-c_before) > 1.d-10 ) then
+        write(904,*) "dC_cell ", c_after-c_before, c_before
+      endif
 
       end subroutine update_veg_structure
 

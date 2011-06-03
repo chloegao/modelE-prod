@@ -597,6 +597,7 @@ c$$$     o         , cop%stressH2Ol(:))
       use ent_const
       use ent_prescr_veg
       use cohorts, only : cohort_carbon
+      use patches, only : patch_carbon
       implicit none
       type(ent_config) :: config 
       type(patch),pointer :: pp 
@@ -648,6 +649,12 @@ c$$$     o         , cop%stressH2Ol(:))
 !!! debug
 
       real*8 :: tot_c_old, tot_c
+      real*8 :: patch_tot_c_old, patch_tot_c
+      real*8 :: d_tot_c(20), tot_closs(20)
+      real*8 :: tot_closs_acc, tot_closs_acc_old
+      real*8 :: cop_n_old, cop_n
+
+
  
       !Initialize
       laipatch = 0.d0
@@ -659,12 +666,24 @@ c$$$     o         , cop%stressH2Ol(:))
       resp_growth2=0.d0
       cpool(:) = 0.d0
 
+      patch_tot_c_old = patch_carbon(pp)
+
+      tot_closs_acc_old = 0.d0
+      tot_closs_acc = 0.d0
+
       cop => pp%tallest
 
       do while(ASSOCIATED(cop))
 
-        tot_c_old = cohort_carbon(cop)
+        tot_c_old = cop%n*cohort_carbon(cop)
+        cop_n_old = cop%n
                
+cddd         C_fol_old = cop%C_fol
+cddd         C_froot_old = cop%C_froot
+cddd         C_croot_old = cop%C_croot
+cddd         C_sw_old = cop%C_sw
+cddd         C_hw_old = cop%C_hw
+
          pft = cop%pft
          phenofactor = cop%phenofactor        
 
@@ -672,25 +691,25 @@ c$$$     o         , cop%stressH2Ol(:))
 
          is_annual = .false.
 
-         is_annual = (pfpar(pft)%phenotype .eq. ANNUAL)
-
-        if (is_annual) then
-            if (phenofactor .gt. 0.d0 .AND. cop%C_fol .eq. 0.d0) then
-               cop%h = 0.05d0 !min. height = 0.05m
-	       select case (irecruit)
-	       case(1)
-               call recruit_annual(cop%pptr%Reproduction(pft),cop%h,
-     o              cop%C_fol, cop%C_froot,cop%n, cop%LAI)    
-               cop%pptr%Reproduction(pft) = 0.d0
-               case(2)
-               cop%C_fol = height2Cfol(pft,cop%h)
-!               cop%LAI=cop%n*pfpar(pft)%sla*
-               cop%LAI=cop%n*sla(pft,cop%llspan)*
-     &              (height2Cfol(pft,cop%h)/1000.0d0) 
-               cop%C_froot = q*cop%C_fol
-               end select 
-           end if
-         end if
+cddd         is_annual = (pfpar(pft)%phenotype .eq. ANNUAL)
+cddd
+cddd        if (is_annual) then
+cddd            if (phenofactor .gt. 0.d0 .AND. cop%C_fol .eq. 0.d0) then
+cddd               cop%h = 0.05d0 !min. height = 0.05m
+cddd	       select case (irecruit)
+cddd	       case(1)
+cddd               call recruit_annual(cop%pptr%Reproduction(pft),cop%h,
+cddd     o              cop%C_fol, cop%C_froot,cop%n, cop%LAI)    
+cddd               cop%pptr%Reproduction(pft) = 0.d0
+cddd               case(2)
+cddd               cop%C_fol = height2Cfol(pft,cop%h)
+cddd!               cop%LAI=cop%n*pfpar(pft)%sla*
+cddd               cop%LAI=cop%n*sla(pft,cop%llspan)*
+cddd     &              (height2Cfol(pft,cop%h)/1000.0d0) 
+cddd               cop%C_froot = q*cop%C_fol
+cddd               end select 
+cddd           end if
+cddd         end if
 
  
          dbh = cop%dbh
@@ -745,10 +764,12 @@ c$$$     o         , cop%stressH2Ol(:))
          C_hw_old = C_hw
          Cactive_old =Cactive
          
+!#ifdef COMMENT_OUT
          call litter_turnover_cohort(SDAY,
      i        C_fol_old,C_froot_old,C_hw_old,C_sw_old,C_croot_old,
      &        cop,Clossacc,
      &        turn_leaf,resp_growth1)
+!#endif
          C_lab_old =C_lab
          C_lab = cop%C_lab 
          CB_d = cop%CB_d - (C_lab_old-C_lab)
@@ -879,7 +900,14 @@ c$$$     o         , cop%stressH2Ol(:))
          !zero-out the daily accumulated carbon 
          cop%CB_d = 0.d0   
 
-         tot_c = cohort_carbon(cop)
+         d_tot_c(cohortnum) = cop%n*cohort_carbon(cop) - tot_c_old
+         tot_closs_acc = tot_closs_acc + Clossacc(CARBON,LEAF,1)
+     &       +Clossacc(CARBON,FROOT,1)
+     &       + Clossacc(CARBON,WOOD,1)
+         tot_closs(cohortnum) = tot_closs_acc - tot_closs_acc_old
+         tot_closs_acc_old = tot_closs_acc
+         cop_n = cop%n
+
 cddd         write(901,*)  
 cddd         write(901,*) "pft ", cop%pft
 cddd         write(901,*) "deltaC ", tot_c - tot_c_old, tot_c_old
@@ -902,7 +930,13 @@ cddd         write(901,*) "deltaC*n ", (tot_c - tot_c_old)*cop%n
 !      pp%NPP = pp%GPP - resp_auto_patch ##Distribute with C_growth
 
 
+      patch_tot_c = patch_carbon(pp)
 
+      if( abs(patch_tot_c - patch_tot_c_old) > 1d-10 ) then
+        write(903,*) "P ",patch_tot_c - patch_tot_c_old, patch_tot_c_old
+     &      ,"C ",d_tot_c(1:cohortnum)*1000, "S ",tot_closs(1:cohortnum)
+     &       ,"N ", cop_n_old, cop_n
+      endif
 
       end subroutine veg_update
 
@@ -1381,12 +1415,12 @@ c$$$      end subroutine senesce_cpools
       do i=1,N_CASA_LAYERS   
         if (i.eq.1) then        !only top CASA layer has leaf and wood litter -PK   
           Closs(CARBON,LEAF,i) = cop%n * (1.d0-l_fract) * turn_leaf
-          Closs(CARBON,WOOD,i) = cop%n * (turn_hw +
-     &         fracrootCASA(i) *turn_croot)
+          Closs(CARBON,WOOD,i) = cop%n * (max(0.d0,turn_hw) +
+     &         fracrootCASA(i) *max(0.d0,turn_croot))
         else    
           Closs(CARBON,LEAF,i) = 0.d0 
           Closs(CARBON,WOOD,i) = cop%n * 
-     &       (fracrootCASA(i) *turn_croot)
+     &       (fracrootCASA(i) *max(0.d0,turn_croot))
         end if
         ! both layers have fine root litter 
         Closs(CARBON,FROOT,i) = cop%n * (1.d0-l_fract)

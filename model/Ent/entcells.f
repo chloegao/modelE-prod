@@ -967,7 +967,7 @@ C NADINE - IS THIS CORRECT?
 !@sum entcell_carbon (kg-C m-2). Return total carbon in entcell per land
 !@+       area (exclude any water area in entcell grid).  
 !@+       Optionally return component carbon pools.
-      type(entcelltype),pointer :: ecp
+      type(entcelltype) :: ecp
       real*8, optional :: ecp_Cfol
       real*8, optional :: ecp_Cstem
       real*8, optional :: ecp_Croot
