@@ -3631,10 +3631,10 @@ C NADINE
 
 ! ' 
       subroutine debug_carbon(entcell, total,
-     &          C_lab, C_sw, C_hw, C_froot, C_croot, C_soil)
+     &          C_lab, C_fol, C_sw, C_hw, C_froot, C_croot, C_soil)
       type(entcelltype_public), intent(in) :: entcell
       real*8, dimension(:) :: total,
-     &          C_lab, C_sw, C_hw, C_froot, C_croot, C_soil
+     &          C_lab, C_fol, C_sw, C_hw, C_froot, C_croot, C_soil
       !---
       type(patch), pointer :: pp
       type(cohort), pointer :: cop
@@ -3644,6 +3644,7 @@ C NADINE
 
       total(:) = 0.d0
       C_lab(:) = 0.d0
+      C_fol(:) = 0.d0
       C_sw(:) = 0.d0
       C_hw(:) = 0.d0
       C_froot(:) = 0.d0
@@ -3664,6 +3665,7 @@ C NADINE
            n = cop%n
 
            C_lab(pft) = C_lab(pft) + cop%C_lab*n*area*1.d-3
+           C_fol(pft) = C_fol(pft) + cop%C_fol*n*area*1.d-3
            C_sw(pft) = C_sw(pft) + cop%C_sw*n*area*1.d-3
            C_hw(pft) = C_hw(pft) + cop%C_hw*n*area*1.d-3
            C_froot(pft) = C_froot(pft) + cop%C_froot*n*area*1.d-3
@@ -3685,8 +3687,9 @@ C NADINE
          pp => pp%younger
       end do
 
-      total(:) = C_lab(:) + C_sw(:) + C_hw(:) + C_froot(:) + C_croot(:)
-     &     + C_soil
+      total(:) = C_lab(:) + C_fol(:)
+     &	   + C_sw(:) + C_hw(:) + C_froot(:) + C_croot(:)
+     &     + C_soil(:)
 
       end subroutine debug_carbon
 
