@@ -1431,9 +1431,9 @@ c another surface type
       !---
       real*8, dimension(16,im,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      &     total,
-     &          C_lab, C_sw, C_hw, C_froot, C_croot, C_soil
+     &          C_lab, C_fol, C_sw, C_hw, C_froot, C_croot, C_soil
       real*8, dimension(im,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
-     &     total_sum, C_soil_sum
+     &     total_sum, C_soil_sum, C_lab_sum, C_fol_sum
       integer, save :: counter = 0
       integer, save :: fc = 1000
       character*80 :: title
@@ -1455,7 +1455,7 @@ c another surface type
         do j=J_0,J_1
           do i=I_0,I_1
             call debug_carbon(entcells(i,j), total(:,i,j),
-     &           C_lab(:,i,j), C_sw(:,i,j), C_hw(:,i,j),
+     &           C_lab(:,i,j), C_fol(:,i,j), C_sw(:,i,j), C_hw(:,i,j),
      &           C_froot(:,i,j), C_croot(:,i,j), C_soil(:,i,j))
           enddo
         enddo
@@ -1465,6 +1465,8 @@ c another surface type
           call WRITET_PARALLEL(grid,fc,"foo",total(k,:,:),title)
           write(title,*) "C_lab ",k
           call WRITET_PARALLEL(grid,fc,"foo",C_lab(k,:,:),title)
+          write(title,*) "C_fol ",k
+          call WRITET_PARALLEL(grid,fc,"foo",C_fol(k,:,:),title)
           write(title,*) "C_sw ",k
           call WRITET_PARALLEL(grid,fc,"foo",C_sw(k,:,:),title)
           write(title,*) "C_hw ",k
@@ -1479,15 +1481,23 @@ c another surface type
 
          total_sum = 0.d0
          C_soil_sum = 0.d0
+         C_lab_sum = 0.d0
+         C_fol_sum = 0.d0
          do k=1,16
            total_sum(:,:) = total_sum(:,:) + total(k,:,:)
            C_soil_sum(:,:) = C_soil_sum(:,:) + C_soil(k,:,:)
+           C_lab_sum(:,:) = C_lab_sum(:,:) + C_lab(k,:,:)
+           C_fol_sum(:,:) = C_fol_sum(:,:) + C_fol(k,:,:)
          enddo
 
          write(title,*) "total sum"
          call WRITET_PARALLEL(grid,fc,"foo",total_sum(:,:),title)
          write(title,*) "C_soil sum"
          call WRITET_PARALLEL(grid,fc,"foo",C_soil_sum(:,:),title)
+         write(title,*) "C_lab sum"
+         call WRITET_PARALLEL(grid,fc,"foo",C_lab_sum(:,:),title)
+         write(title,*) "C_fol sum"
+         call WRITET_PARALLEL(grid,fc,"foo",C_fol_sum(:,:),title)
 
       endif
 
