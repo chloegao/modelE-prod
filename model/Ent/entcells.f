@@ -836,15 +836,15 @@ C NADINE - IS THIS CORRECT?
       write(iu, 1) prefix,"R_root   ", ecp%R_root   
       write(iu, 1) prefix,"N_up     ", ecp%N_up     
       write(iu, 1) prefix,"z0       ", ecp%z0       
-      write(iu, 1) prefix,"albedo(N_", ecp%albedo(:)
+      write(iu, 1) prefix,"albedo   ", ecp%albedo(:)
       write(iu, 1) prefix,"betad    ", ecp%betad    
       write(iu, 1) prefix,"TRANS_SW ", ecp%TRANS_SW 
       write(iu, 1) prefix,"CO2flux  ", ecp%CO2flux  
       write(iu, 1) prefix,"Soil_resp", ecp%Soil_resp
-      write(iu, 1) prefix,"Tpool !(g", ecp%Tpool
+      write(iu, 1) prefix,"Tpool    ", ecp%Tpool
       write(iu, 1) prefix,"fuel	", ecp%fuel	    
       write(iu, 1) prefix,"ignit", ecp%ignition_rate
-      write(iu, 1) prefix,"lambda1(T",ecp%lambda1(:)
+      write(iu, 1) prefix,"lambda1  ",ecp%lambda1(:)
       write(iu, 1) prefix,"dis",ecp%disturbance_rate
       write(iu, 1) prefix,"fv       ", ecp%fv       
       write(iu, 1) prefix,"heat_", ecp%heat_capacity

@@ -852,6 +852,14 @@ cddd         end if
          !phenology + turnover + C_lab change + growth respiration
          !senescefrac returned is fraction of foliage that is litter.
 
+!!! HACK !!!
+! just to keep the things going reset negavive pools to zero
+         cop%C_fol = max( 0.d0, cop%C_fol)
+         cop%C_froot = max( 0.d0, cop%C_froot)
+         cop%C_croot = max( 0.d0, cop%C_croot)
+         cop%C_sw = max( 0.d0, cop%C_sw)
+         cop%C_hw = max( 0.d0, cop%C_hw)
+
          call litter_growth_cohort(SDAY,dCrepro,
      i        C_fol_old,C_froot_old,C_hw_old,C_sw_old,C_croot_old,
      &        dC_litter_hw,dC_litter_croot,cop,Clossacc,resp_growth2)
