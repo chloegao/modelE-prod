@@ -1,7 +1,7 @@
       module ent_prescr_veg
 
       use ent_const
-      use ent_pfts
+!      use ent_pfts
       !use GCM_module, only:  GCMi, GCMj !Fix to names from GCM
 
       implicit none
@@ -9,8 +9,9 @@
       save
 
       public 
+     &     init_params,!prescr_calcconst, 
      &     prescr_veg_albedo,prescr_calc_rootprof,
-     &     prescr_calcconst, prescr_calc_lai
+     &     prescr_calc_lai
       public GISS_shc,prescr_plant_cpools, prescr_init_Clab
       public prescr_get_hdata,prescr_get_initnm,prescr_get_rootprof,
      &     prescr_get_woodydiameter,prescr_get_pop,prescr_get_crownrad
@@ -56,9 +57,11 @@
 
 !***************************************************************************
 
-      subroutine prescr_calcconst() 
+!      subroutine prescr_calcconst() 
+      subroutine init_params()
       !*    SUBROUTINE TO CALCULATE CONSTANT ARRAYS                     
       use ent_const
+      use ent_pfts
       !--Local------
       integer :: n
       real*8 :: lnscl
@@ -118,7 +121,7 @@
         lignineffect(n) = exp(-3.0 * structuralLignin(n))
       end do
 
-      end subroutine prescr_calcconst
+      end subroutine init_params
 
 !**************************************************************************
       
@@ -126,7 +129,7 @@
 !@sum Returns GISS GCM leaf area index for given vegetation type, julian day
 !@+   and hemisphere
       use ent_const
-      use ent_pfts, only: alamax, alamin
+      use ent_pfts, only: alamax, alamin, laday
       !real*8, intent(out) :: lai !@var lai leaf area index - returned
       integer, intent(in) :: pnum !@var pnum cover type
       integer, intent(in) :: jday !@var jday julian day
@@ -186,6 +189,7 @@
 !@sum Returns GISS GCM veg shoot kg-C per plant for given vegetation type.
 !@+   From Moorcroft, et al. (2001), who takes allometry data from
 !@+   Saldarriaga et al. (1998).
+      use ent_pfts, only : COVEROFFSET
       integer,intent(in) :: pft !@var pft vegetation type
       real*8,intent(in) :: hdata(N_COVERTYPES), dbhdata(N_COVERTYPES)
       !-----Local-------
@@ -349,6 +353,7 @@ c**** calculate root fraction afr averaged over vegetation types
       subroutine prescr_get_pop(dbhdata,popdata)
       !* Return array of GISS-derived vegetation population density (#/m2)
       !* Derived from Moorcroft, et al. (2001)
+      use ent_pfts, only : COVEROFFSET, alamax
       real*8,intent(in) :: dbhdata(N_COVERTYPES)
       real*8,intent(out) :: popdata(N_COVERTYPES)
       !---Local-----------
@@ -364,7 +369,7 @@ c**** calculate root fraction afr averaged over vegetation types
 !*************************************************************************
       real*8 function popdensity(pft,dbh,LAImax) Result(popdens)
       !* No. per m^2.  From ED
-      use ent_pfts, only: COVEROFFSET, alamax
+      use ent_pfts, only: pfpar, COVEROFFSET, alamax
        integer,intent(in) :: pft
       real*8, intent(in) :: dbh
       real*8, intent(in) :: LAImax
@@ -387,7 +392,8 @@ c**** calculate root fraction afr averaged over vegetation types
 
       subroutine prescr_get_woodydiameter(hdata, wddata)
       !* Return array of woody plant diameters at breast height (dbh, cm)
-      use ent_pfts
+      !use ent_pfts
+      use ent_pfts, only : COVEROFFSET
       real*8,intent(in) :: hdata(N_COVERTYPES)
       real*8,intent(out) :: wddata(N_COVERTYPES)
       !----Local---------
@@ -403,6 +409,7 @@ c**** calculate root fraction afr averaged over vegetation types
 !*************************************************************************
       real*8 function Ent_dbh(pft,h) Result(dbh)
       !* Return dbh (cm).  Checks by pft and modifies ED allometry.
+      use ent_pfts, only : pfpar, TUNDRA
       integer, intent(in) :: pft
       real*8, intent(in) :: h !(m)
 
@@ -447,6 +454,7 @@ c**** calculate root fraction afr averaged over vegetation types
       !* From Harvard Forest late successional hardward allometry.
       !* with mean conifer dbh_max limit.
       !* Coefficient 0.107 for late-succ hw is approx. mean for all types.
+      use ent_pfts, only : is_conifer,is_hw
       integer, intent(in) :: pft
       real*8, intent(in) :: dbh
       !------
@@ -485,7 +493,8 @@ c**** calculate root fraction afr averaged over vegetation types
       subroutine prescr_get_crownrad(popdata,craddata)
 !@sum prescr_get_crownrad - assumes closed-canopy packing of crowns
 !@+      in rows and columns (not staggered).
-            real*8,intent(in) :: popdata(N_COVERTYPES)
+      use ent_pfts, only : COVEROFFSET
+      real*8,intent(in) :: popdata(N_COVERTYPES)
       real*8,intent(out) :: craddata(N_COVERTYPES)
       !---Local----
       integer :: n, pft
@@ -568,6 +577,7 @@ c**** calculate root fraction afr averaged over vegetation types
 !*************************************************************************
 
       real*8 function wooddensity_gcm3(pft) Result(wooddens)
+      use ent_pfts, only : pfpar
       integer,intent(in) :: pft
       !* Wood density (g cm-3). Moorcroft et al. (2001).
 
