@@ -25,14 +25,20 @@
       public init_ent_laidata, init_ent_hdata,  prescr_get_ent_plant
      &     ,prescr_get_soilpools
 
-      public prescr_get_laidata,prescr_get_carbonplant, 
-     &     prescr_get_soil_C_total,
-     &     prescr_get_cropdata
+      public prescr_get_laidata,
+     &     prescr_get_cropdata,
+     &     prescr_get_soil_C_total
+      public prescr_get_hdata
+      public prescr_calc_canopy_geometry, prescr_get_carbonplant
+      public prescr_get_pft_vars
 
 !hack to restore functionality (for coupled runs) (Igor hack call from ENT_DRV)
-      public prescr_get_hdata, prescr_get_woodydiameter, prescr_get_pop
-     &     , prescr_get_crownrad, prescr_get_initnm, prescr_get_rootprof
-     &     , prescr_get_soilcolor
+!These are actually ent_prescr_veg routines that should not be called outside
+! this module.
+!      public prescr_get_woodydiameter, prescr_get_pop
+!     &     , prescr_get_crownrad,prescr_get_carbonplant
+!      public  prescr_get_initnm, prescr_get_rootprof
+!     &     , prescr_get_soilcolor
 
 #ifdef MIXED_CANOPY
       public ent_struct_get_phys
@@ -64,9 +70,14 @@
 !***************************************************************************
       subroutine prescr_get_soilpools(I0,I1,J0,J1,
      &     soil_C_total, Tpool_ini)
-      !this routine reads in total soil pool amounts (measured), 
-      !and individual soil pool fractions (modeled pft-dependent values from spinup runs),
-      !then prescribes individual amounts **all carbon amounts should be in g/m2** -PK 12/07   
+      !* For global runs, this routine gets soil_C_total from subroutine 
+      !get_soil_C_total,which reads in total soil pool amounts (measured). 
+      !Then individual soil pool fractions (modeled pft-dependent values 
+      !from spinup runs by PK),are used to prescribe individual amounts.
+      !**all carbon amounts should be in g/m2** -PK 12/07, NK 7/11
+      !
+      !* For site runs, this routine reads in all soil carbon fractions.
+
       use FILEMANAGER, only : openunit,closeunit
       integer,intent(in) :: I0,I1,J0,J1
       real*8,intent(in) ::
@@ -228,9 +239,15 @@
      &     craddata,cpooldata,rootprofdata,soil_color,soil_texture,
      &     Tpooldata, 
      &     do_soilinit,do_phenology_activegrowth,do_read_from_files)
-      use ent_prescr_veg, only : prescr_get_soilcolor !May want to move this routine to this module.
-      !prescr_vegdata:  Set up vegetation structure from input files or from
-      ! Matthews prescribed calculations.
+!@sum prescr_vegdata - File reads and Matthews prescribed calculations.  
+!     This is a general driver routine that calls routines
+!     in this module only to read or calculate vegetation and soil structure
+!     and carbon pools; the module subroutines call routines in ent_prescr_veg,
+!     which do the explicit calculations and are not available to outside
+!     drivers.  
+!     This routine may be imitated by drivers used for off-line runs
+!     or coupled runs to GCMs.
+
       implicit none
       integer,intent(in) :: jday, year
       integer,intent(in) :: IM,JM,I0,I1,J0,J1 !long/lat grid number range
@@ -305,26 +322,14 @@ cddd      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
 !            call rewind(iu_LAI)
 !         else
          call prescr_get_laidata(jday,hemi,I0,I1,J0,J1,laidata) !lai
-!--------------------------------------------------
-         do j=J0,J1
-            do i=I0,I1
-               call prescr_get_hdata(hdata(:,i,j)) !height
-            enddo
-         enddo
+         call prescr_get_hdata(I0,I1,J0,J1,hdata) !height
 !         endif
-!------SUBROUTINE at SINGLE CELL LEVEL-------------
-         do j=J0,J1
-            do i=I0,I1
-!               call prescr_get_hdata(hdata(:,i,j)) !height
-               call prescr_get_woodydiameter(
-     &              hdata(:,i,j), dbhdata(:,i,j))
-               call prescr_get_pop(dbhdata(:,i,j), popdata(:,i,j))
-             !## Need to re-do prescr_get_crownrad fot non-closed canopy.
-               call prescr_get_crownrad(popdata(:,i,j), craddata(:,i,j))
-               call prescr_get_carbonplant(I0,I1,J0,J1,
-     &              laidata,hdata,dbhdata,popdata,cpooldata)
-            enddo
-         enddo
+!------ Could convert next routine to SINGLE CELL LEVEL-------------
+         call prescr_calc_canopy_geometry(I0,I1,J0,J1
+     i        ,hdata
+     o        ,dbhdata,popdata,craddata)
+         call prescr_get_carbonplant(I0,I1,J0,J1,
+     &           laidata,hdata,dbhdata,popdata,cpooldata)
 !---------------------------------------------------
       else                      !if do_phenology_activegrowth=true
          call init_ent_laidata(IM,JM,I0,I1,J0,J1,laidata) !lai
@@ -334,9 +339,7 @@ cddd      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
          call prescr_get_ent_plant(I0,I1,J0,J1, 
      &        laidata,hdata,dbhdata,popdata,craddata,cpooldata)
       endif
-      call prescr_get_initnm(nmdata) !nm ! mean canopy nitrogen
-      call prescr_get_rootprof(rootprofdata)
-      call prescr_get_soilcolor(soil_color)
+      call prescr_get_pft_vars(nmdata,rootprofdata,soil_color)
       if ( do_read_from_files )
      &     call prescr_get_soiltexture(IM,JM,I0,I1,J0,J1,
      &     soil_texture)
@@ -592,18 +595,6 @@ cddd      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
 
 !**************************************************************************
 
-!      subroutine prescr_get_height(hdata)
-!!@sum Returns prescr GCM leaf area index for entire grid and given jday.
-!      use ent_const,only : N_COVERTYPES
-!      real*8 :: hdata(N_COVERTYPES) 
-!      !----------
-!      
-!      call prescr_get_hdata(hdata)
-!
-!      end subroutine prescr_get_height
-
-!**************************************************************************
-
       subroutine init_ent_hdata(IM,JM,I0,I1,J0,J1,hdata3d)
 !@sum YKIM - read the initial height for the prognostic vegetation 
 !@sum (i.e., prognostic phenology/growth with Ent PFTs)
@@ -629,6 +620,56 @@ cddd      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
 
       end subroutine init_ent_hdata
 
+!**************************************************************************
+      subroutine prescr_get_hdata(I0,I1,J0,J1,hdata) !height
+!@sum prescr_get_hdata - Use this file to read in canopy height data or
+      !* or to calculate modeled (parameterized) heights.
+      use ent_const,only : N_COVERTYPES
+      use ent_prescr_veg, only : prescr_calc_hdata
+      integer, intent(in) :: I0,I1,J0,J1
+      real*8,intent(out) :: hdata(N_COVERTYPES,I0:I1,J0:J1)
+      !---Local----
+      integer :: i,j
+
+      !* Read file of height data - TBA
+
+      !* Calculate prescribed model tree heights
+      do j=J0,J1
+         do i=I0,I1
+            call prescr_calc_hdata(hdata(:,i,j))
+         enddo
+      enddo
+      
+      end subroutine prescr_get_hdata
+
+!**************************************************************************
+      subroutine prescr_calc_canopy_geometry(I0,I1,J0,J1
+     i     ,hdata
+     o     ,dbhdata,popdata,craddata)
+      !* Calculate canopy structure variables that would not be provided 
+      !* by data files but are determined through allometric relations to
+      !* height.  
+      !* Subject to change according to data.
+      use ent_prescr_veg, only: prescr_calc_woodydiameter
+     &     ,prescr_get_pop,prescr_get_crownrad
+      integer, intent(in) :: I0,I1,J0,J1
+      real*8,intent(in) :: hdata(N_COVERTYPES,I0:I1,J0:J1)
+      real*8,intent(out) :: dbhdata(N_COVERTYPES,I0:I1,J0:J1)
+      real*8,intent(out) :: popdata(N_COVERTYPES,I0:I1,J0:J1)
+      real*8,intent(out) :: craddata(N_COVERTYPES,I0:I1,J0:J1)
+      !---Local---
+      integer :: i, j
+      
+      do j=J0,J1
+         do i=I0,I1
+            call prescr_calc_woodydiameter(
+     &           hdata(:,i,j), dbhdata(:,i,j))
+            call prescr_get_pop(dbhdata(:,i,j), popdata(:,i,j))
+            !## Need to re-do prescr_get_crownrad fot non-closed canopy.
+            call prescr_get_crownrad(popdata(:,i,j), craddata(:,i,j))
+         enddo
+      enddo
+      end subroutine prescr_calc_canopy_geometry
 !**************************************************************************
       subroutine prescr_get_carbonplant(I0,I1,J0,J1,
      &     laidata, hdata, dbhdata, popdata, cpooldata)
@@ -706,6 +747,21 @@ cddd      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
       
       end subroutine prescr_get_ent_plant
 
+!*************************************************************************
+      subroutine prescr_get_pft_vars(nmdata,rootprofdata,soil_color)
+!@sum Routine to assign pft-dependent arrays that are not gridded.
+      use ent_prescr_veg, only : prescr_calc_initnm,
+     &     prescr_calc_rootprof_all,prescr_calc_soilcolor
+
+      real*8,intent(out) :: nmdata(N_COVERTYPES)
+      real*8,intent(out) :: rootprofdata(N_COVERTYPES,N_DEPTH)
+      integer,intent(out) :: soil_color(N_COVERTYPES)
+
+      call prescr_calc_initnm(nmdata) !nm ! mean canopy nitrogen
+      call prescr_calc_rootprof_all(rootprofdata)
+      call prescr_calc_soilcolor(soil_color)
+      
+      end subroutine prescr_get_pft_vars
 !*************************************************************************
       subroutine prescr_get_soiltexture(im,jm,I0,I1,J0,J1,
      &     soil_texture)

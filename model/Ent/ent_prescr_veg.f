@@ -9,13 +9,14 @@
       save
 
       public 
-     &     init_params,!prescr_calcconst, 
+     &     init_params,!prescr_calcconst renamed init_params 
      &     prescr_veg_albedo,prescr_calc_rootprof,
      &     prescr_calc_lai
       public GISS_shc,prescr_plant_cpools, prescr_init_Clab
-      public prescr_get_hdata,prescr_get_initnm,prescr_get_rootprof,
-     &     prescr_get_woodydiameter,prescr_get_pop,prescr_get_crownrad
-     &     ,prescr_get_soilcolor
+      public prescr_calc_hdata
+     &     ,prescr_calc_woodydiameter,prescr_get_pop,prescr_get_crownrad
+     &     ,prescr_calc_initnm, prescr_calc_rootprof_all
+     &     ,prescr_calc_soilcolor
       public ED_woodydiameter,popdensity,Ent_dbh
       public crown_radius_horiz, crown_radius_vert
 
@@ -303,7 +304,7 @@ c**** calculate root fraction afr averaged over vegetation types
 
 !**************************************************************************
 
-      subroutine prescr_get_rootprof(rootprofdata)
+      subroutine prescr_calc_rootprof_all(rootprofdata)
       real*8,intent(out) :: rootprofdata(N_COVERTYPES,N_DEPTH) 
       !---Local--------
       integer :: ncov !plant functional type + COVEROFFSET     
@@ -313,11 +314,12 @@ c**** calculate root fraction afr averaged over vegetation types
         !Return array rootprof of fractions of roots in soil layer
         !by vegetation type.
       end do
-      end subroutine prescr_get_rootprof
+      end subroutine prescr_calc_rootprof_all
 
 !**************************************************************************
 
-      subroutine prescr_get_hdata(hdata)
+!      subroutine prescr_get_hdata(hdata) !Renamed
+      subroutine prescr_calc_hdata(hdata)
       !* Return array parameter of GISS vegetation heights.
        !*## (Can get rid of this subroutine and just assign array vhght)
       use ent_pfts, only : vhght
@@ -333,11 +335,11 @@ c**** calculate root fraction afr averaged over vegetation types
 
       !* Return hdata heights for all vegetation types
       hdata = vhght
-      end subroutine prescr_get_hdata
+      end subroutine prescr_calc_hdata
 
 !**************************************************************************
 
-      subroutine prescr_get_initnm(nmdata)
+      subroutine prescr_calc_initnm(nmdata)
 !@sum  Mean canopy nitrogen (nmv; g/m2[leaf])
       !* ##(Can get rid of this subroutine and just assign array vhght)
       use ent_pfts, only : nmv
@@ -346,7 +348,7 @@ c**** calculate root fraction afr averaged over vegetation types
 
       !* Return intial nm for all vegetation and cover types
       nmdata = nmv
-      end subroutine prescr_get_initnm
+      end subroutine prescr_calc_initnm
 
 !*************************************************************************
 
@@ -390,7 +392,7 @@ c**** calculate root fraction afr averaged over vegetation types
 
 !*************************************************************************
 
-      subroutine prescr_get_woodydiameter(hdata, wddata)
+      subroutine prescr_calc_woodydiameter(hdata, wddata)
       !* Return array of woody plant diameters at breast height (dbh, cm)
       !use ent_pfts
       use ent_pfts, only : COVEROFFSET
@@ -404,7 +406,7 @@ c**** calculate root fraction afr averaged over vegetation types
          ncov = pft + COVEROFFSET
          wddata(ncov) = Ent_dbh(pft,hdata(ncov))
       enddo
-      end subroutine prescr_get_woodydiameter
+      end subroutine prescr_calc_woodydiameter
 
 !*************************************************************************
       real*8 function Ent_dbh(pft,h) Result(dbh)
@@ -585,7 +587,7 @@ c**** calculate root fraction afr averaged over vegetation types
 
       end function wooddensity_gcm3
 !*************************************************************************
-      subroutine prescr_get_soilcolor(soil_color)
+      subroutine prescr_calc_soilcolor(soil_color)
       !* Return arrays of GISS soil color and texture.
       !## Can get rid of this subroutine and replace with array assignment.
       use ent_pfts, only : soil_color_prescribed
@@ -594,7 +596,7 @@ c**** calculate root fraction afr averaged over vegetation types
 
       soil_color(:) = soil_color_prescribed(:)
 
-      end subroutine prescr_get_soilcolor
+      end subroutine prescr_calc_soilcolor
 !*************************************************************************
 #ifdef ENT_STANDALONE_DIAG
       !Assume PS_MODEL=FBB if running Ent_standalone, so can print out FBBpfts.f.
