@@ -83,15 +83,13 @@
       real*8,intent(in) ::
      &     soil_C_total(N_CASA_LAYERS,I0:I1,J0:J1)
       real*8,intent(out) :: 
-     &      Tpool_ini(N_PFT,PTRACE,NPOOLS-NLIVE,N_CASA_LAYERS,  !prescribed soil pools, g/m2
-     &                I0:I1,J0:J1)
+     &      Tpool_ini(N_PFT,PTRACE,NPOOLS-NLIVE,N_CASA_LAYERS,  
+     &                I0:I1,J0:J1)!prescribed soil pools, g/m2
       !-----Local------
 !      first 3 for eventually reading in globally gridded dataset, e.g. ISRIC-WISE
       integer :: iu_SOILCARB
       integer :: n,p,nn
-      real*8, dimension(N_CASA_LAYERS) :: total_Cpool  !site-specific total measured soil C_org (g-C/m^2), same units as Tpool
       real*8, dimension(N_PFT,NPOOLS-NLIVE,N_CASA_LAYERS) :: Cpool_fracs  !modeled soil C_org pool fractions
-      real*8, dimension(NPOOLS-NLIVE,N_CASA_LAYERS) :: Cpool_tmp !YK
 
       Tpool_ini(:,:,:,:,:,:) = 0.d0  !initialize all pools to zero (g-C/m^2)
 
@@ -197,6 +195,7 @@ ccc        end do
 ccc       end do
 ccc      end do
 ccc#else
+
       !assign Tpool_ini values (pft-specific)
       do p=1,N_PFT
         do n=1,N_CASA_LAYERS 
@@ -383,7 +382,9 @@ cddd      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
       if ( do_read_from_files )
      &     call prescr_get_soiltexture(IM,JM,I0,I1,J0,J1,
      &     soil_texture)
-! ifdef hack may still be needed for cubed sphere
+ccc! ifdef hack may still be needed for cubed sphere
+   ! This setup is to separate file reading into different routines for
+   ! better driver control.
 #ifdef SET_SOILCARBON_GLOBAL_TO_ZERO
       Tpooldata(:,:,:,:,:,:) = 0.d0
 #else
@@ -401,7 +402,7 @@ ccc        call stop_model("fix reading soil C for site", 255)
           call prescr_get_soilpools(I0,I1,J0,J1,soil_C_total,Tpooldata)
 #endif
       else
-        Tpooldata(:,:,:,:,:,:) = 0.d0
+         Tpooldata(:,:,:,:,:,:) = 0.d0
       endif
 #endif
       !print*,'vegdata(:,I1,J1)',vegdata(:,I1,J1)
