@@ -83,15 +83,13 @@
       real*8,intent(in) ::
      &     soil_C_total(N_CASA_LAYERS,I0:I1,J0:J1)
       real*8,intent(out) :: 
-     &      Tpool_ini(N_PFT,PTRACE,NPOOLS-NLIVE,N_CASA_LAYERS,  !prescribed soil pools, g/m2
-     &                I0:I1,J0:J1)
+     &      Tpool_ini(N_PFT,PTRACE,NPOOLS-NLIVE,N_CASA_LAYERS,  
+     &                I0:I1,J0:J1)!prescribed soil pools, g/m2
       !-----Local------
 !      first 3 for eventually reading in globally gridded dataset, e.g. ISRIC-WISE
       integer :: iu_SOILCARB
       integer :: n,p,nn
-      real*8, dimension(N_CASA_LAYERS) :: total_Cpool  !site-specific total measured soil C_org
       real*8, dimension(N_PFT,NPOOLS-NLIVE,N_CASA_LAYERS) :: Cpool_fracs  !modeled soil C_org pool fractions
-      real*8, dimension(NPOOLS-NLIVE,N_CASA_LAYERS) :: Cpool_tmp !YK
 
       Tpool_ini(:,:,:,:,:,:) = 0.d0  !initialize all pools to zero
 
@@ -174,29 +172,6 @@
      &       0.009848682,0.014675189,0.692995043,0.184450822 /)
 #endif
 
-#ifdef SOILCARB_SITE
-!External file should be named as below and should be organized as follows:
-!(1) there should be 1 or 2 columns (corresponding to each soil bgc layer);
-!(2) first non-header row should have total site-measured pool (in g/m2);
-!(3) 9 subsequent rows correspond to modeled 9 soil pool fractions
-!###YK- hack but better way...at least, do not need to change according to the sites.
-      call openunit("SOILCARB_site",iu_SOILCARB,.false.,.true.)  !formatted dataset
-      read(iu_SOILCARB,*)  !skip optional header row(s)
-      read(iu_SOILCARB,*) total_Cpool(:)
-      do nn=1,NPOOLS-NLIVE
-        read(iu_SOILCARB,*) Cpool_tmp(nn,:)
-      end do
-
-      do p=1,N_PFT      
-       do n=1,N_CASA_LAYERS 
-        do nn=NLIVE+1,NPOOLS
-         Cpool_fracs(p,nn-NLIVE,n) = Cpool_tmp(nn-NLIVE,n)
-         Tpool_ini(p,CARBON,nn-NLIVE,n,I0:I1,J0:J1) =
-     &          Cpool_fracs(p,nn-NLIVE,n)*total_Cpool(n)
-        end do
-       end do
-      end do
-#else
       !assign Tpool_ini values (pft-specific)
       do p=1,N_PFT
         do n=1,N_CASA_LAYERS 
@@ -207,7 +182,6 @@
           end do
         end do
       end do
-#endif
 
       end subroutine prescr_get_soilpools
 
@@ -232,7 +206,47 @@
 
       end subroutine prescr_get_soil_C_total
 
-      
+
+!#ifdef SOILCARB_SITE
+      subroutine read_soilcarbon_site(I0,I1,J0,J1,Tpool_ini)
+!External file should be named as below and should be organized as follows:
+!(1) there should be 1 or 2 columns (corresponding to each soil bgc layer);
+!(2) first non-header row should have total site-measured pool (in g/m2);
+!(3) 9 subsequent rows correspond to modeled 9 soil pool fractions
+      use FILEMANAGER, only : openunit,closeunit,nameunit
+
+      integer,intent(in) :: I0,I1,J0,J1
+      real*8,intent(out) :: Tpool_ini(N_PFT,PTRACE,NPOOLS-NLIVE
+     &     ,N_CASA_LAYERS, I0:I1,J0:J1)!prescribed soil pools, g/m2
+      !---Local------------------------
+      !Site total measured soil C_org:
+      integer :: iu_SOILCARB  !File ID
+      real*8, dimension(N_CASA_LAYERS) :: total_Cpool  !g-C/m^2
+      real*8, dimension(NPOOLS-NLIVE,N_CASA_LAYERS) :: Cpool_fracs_in !fraction
+
+      !Variables for calculating soil carbon pools
+      real*8, dimension(N_PFT,NPOOLS-NLIVE,N_CASA_LAYERS) :: Cpool_fracs !fraction
+      integer :: nn,p,n
+
+      call openunit("SOILCARB_site",iu_SOILCARB,.false.,.true.)  !csv dataset
+      read(iu_SOILCARB,*)  !skip optional header row(s)
+      read(iu_SOILCARB,*) total_Cpool(:)
+      do nn=1,NPOOLS-NLIVE
+        read(iu_SOILCARB,*) Cpool_fracs_in(nn,:)
+      end do
+
+      do p=1,N_PFT      
+       do n=1,N_CASA_LAYERS 
+        do nn=NLIVE+1,NPOOLS
+         Cpool_fracs(p,nn-NLIVE,n) = Cpool_fracs_in(nn-NLIVE,n)
+         Tpool_ini(p,CARBON,nn-NLIVE,n,I0:I1,J0:J1) =
+     &          Cpool_fracs(p,nn-NLIVE,n)*total_Cpool(n)
+        end do
+       end do
+      end do
+      end subroutine read_soilcarbon_site
+!#endif
+
 !***************************************************************************
       subroutine prescr_vegdata(jday, year, IM,JM,I0,I1,J0,J1,
      &     vegdata,albedodata,laidata,hdata,nmdata,popdata,dbhdata,
@@ -343,19 +357,27 @@ cddd      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
       if ( do_read_from_files )
      &     call prescr_get_soiltexture(IM,JM,I0,I1,J0,J1,
      &     soil_texture)
-! ifdef hack may still be needed for cubed sphere
+ccc! ifdef hack may still be needed for cubed sphere
+   ! This setup is to separate file reading into different routines for
+   ! better driver control.
 #ifdef SET_SOILCARBON_GLOBAL_TO_ZERO
-      Tpooldata = 0.d0
+      Tpooldata(:,:,:,:,:,:) = 0.d0
 #else
       if ( do_soilinit ) then
+         !Site soil carbon pools
 #ifdef SOILCARB_SITE
-        print *,"do something here to read soil C for a site"
-        call stop_model("fix reading soil C for site", 255)
-#endif
-        call prescr_get_soil_C_total(IM,JM,I0,I1,J0,J1,soil_C_total)
-        call prescr_get_soilpools(I0,I1,J0,J1,soil_C_total,Tpooldata)
+ccc        print *,"do something here to read soil C for a site"
+ccc        call stop_model("fix reading soil C for site", 255)
+         print *,"Getting site soil carbon"
+         call read_soilcarbon_site(I0,I1,J0,J1,Tpooldata)
+#else
+         !Global soil carbon pools
+         print *,'Reading global soil carbon data'
+         call prescr_get_soil_C_total(IM,JM,I0,I1,J0,J1,soil_C_total)
+         call prescr_get_soilpools(I0,I1,J0,J1,soil_C_total,Tpooldata)
       else
-        Tpooldata = 0.d0
+         Tpooldata(:,:,:,:,:,:) = 0.d0
+#endif
       endif
 #endif
       !print*,'vegdata(:,I1,J1)',vegdata(:,I1,J1)
