@@ -700,7 +700,7 @@
       Resp_sw = facclim*0.012D-6 *  !kg-C/m2/s
 !     &     Resp_can_maint(cop%pft,0.0714d0*cop%C_sw, !Sapwood - 330 C:N from CLM, factor 0.5/7=0.0714 relative to foliage from Ruimy et al (1996); 58 from Tatarinov & Cienciala (2006) BIOME-BGC pine live wood
      &     Resp_can_maint(cop%pft,cop%C_sw, !Sapwood - 330 C:N mass ratio from CLM, factor 0.5/7=0.0714 relative to foliage from Ruimy et al (1996); 58 from Tatarinov & Cienciala (2006) BIOME-BGC pine live wood, range 42-73.5 kg-C/kg-N
-     &     330.d0,TcanopyK,TairK_10d, cop%n) 
+     &     42.d0,TcanopyK,TairK_10d, cop%n) 
       Resp_lab = 0.d0           !kg-C/m2/s - Storage - NON-RESPIRING
       !* Assume fine root C:N same as foliage C:N
       Resp_root = facclim*0.012D-6 * Resp_can_maint(cop%pft,cop%C_froot,
@@ -745,8 +745,8 @@
 
 C#define OFFLINE 1
 C#ifdef OFFLINE
-!      write(998,*) cop%C_lab,cop%GPP,cop%NPP,Resp_fol,Resp_sw,Resp_lab,
-!     &     Resp_root,Resp_maint,Resp_growth, Resp_growth_1
+C      write(998,*) cop%C_lab,cop%GPP,cop%NPP,Resp_fol,Resp_sw,Resp_lab,
+C     &     Resp_root,Resp_maint,Resp_growth, Resp_growth_1
 C      write(997,*) cop%C_fol,cop%C_froot,cop%C_sw,cop%C_hw,cop%C_croot
 C#endif
 
@@ -843,7 +843,7 @@ C#endif
 
 !      if (pfpar(pft)%leaftype.eq.NEEDLELEAF) then
       if (pfpar(pft)%woody) then
-        growth_r = 0.4d0 !Amthor (2000) range 0.39-0.77
+        growth_r = 0.40d0 !Default 0.4d0, Amthor (2000) range 0.39-0.77
       else
         growth_r = 0.28d0       !0.28 Value from Ruimy et al. (1996)
       endif

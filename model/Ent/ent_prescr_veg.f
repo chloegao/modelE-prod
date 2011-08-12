@@ -534,8 +534,8 @@ c**** calculate root fraction afr averaged over vegetation types
       cpool(FR) = cpool(FOL)   !Br
       !cpool(LABILE) = prognostic as diagnostic.
       if (pfpar(pft)%woody) then !Woody
-!        cpool(SW) = 0.128d0 * pfpar(pft)%sla * cpool(FOL) * h  !Bsw
-        cpool(SW) = 0.128d0 * pfpar(pft)%sla * max_cpoolFOL * h  !Bsw
+        cpool(SW) = 0.00128d0 * (pfpar(pft)%sla * max_cpoolFOL*1d-3)
+     &       *  max_cpoolFOL * h               !Bsw = 0.128*LAtot*Bfol*h
         cpool(HW) = 0.069d0*(h**0.572d0)*(dbh**1.94d0) * 
      &       (wooddensity_gcm3(pft)**0.931d0) *1d3
         cpool(CR) =  pfpar(pft)%croot_ratio*cpool(HW) !Estimated from Zerihun (2007)

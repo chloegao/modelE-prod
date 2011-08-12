@@ -100,7 +100,7 @@
      &     ,0.90d0               !leaf VIS 1-albedo,CLM BDT temperate, Table 3.1 (Oleson, et al 2004)
 !     &     ,60.d0               !Vmax25, Wilson et al (2001) Walker Branch species average to 51: Quercus prinus 63, Quercus alba 60, Acer rubrum 37.
 !     &     ,51.d0               !Vmax25, CLM BDT tropical 40, BDT temperate & boreal 51, Table 8.2 (Oleson, et al 2004). Wilson et al (2001) Walker Branch species average to 51: Quercus prinus 63, Quercus alba 60, Acer rubrum 37.
-     &     ,39.d0               !Vmax25, tuned to MMSF
+     &     ,39.d0               !Vmax25, 39.0 tuned to MMSF
 !     &     ,63.d0               !Vcmax for Walker Branch spp, Wilson et al (2001) PlantCellEnv.  Quercus prinus 63, Quercus alba 60, Acer Rubrum 37, Acer saccharum 42, Nyssa sylvatica 39.  These average to 51.
      &     ,9.d0               !m, CLM BDT all, Table 8.2 (Oleson, et al 2004)
      &     ,.002d0              !b, CLM (Oleson, et al 2004, Section 8, p. 129)
