@@ -611,13 +611,13 @@ c$$$     o         , cop%stressH2Ol(:))
       real*8 :: C_fol_old,C_froot_old,C_sw_old,C_hw_old,C_croot_old
       real*8 :: C_fol, C_froot, C_croot, C_sw, C_hw
       real*8 :: C_lab
-      ! Cactive active carbon pool, including foliage, sapwood and fine root (gC/pool/individual)
+      ! Cactive active carbon pool: foliage, sapwood, fine root (gC/pool/individual)
       real*8 :: Cactive
       ! Cactive_max maximum active carbon pool allowed by the allometric constraint 
       real*8 :: Cactive_max
       ! Cdead dead carbon pool, including hardwood and coarse root (gC/pool/individual)
       real*8 :: Cdead
-      ! qsw 
+      ! qsw - allometric factor for sapwood as a function of 
       real*8 :: qsw
       ! dbh diameter at the breast height (cm)
       real*8 :: dbh
@@ -860,9 +860,9 @@ cddd         end if
          cop%C_sw = max( 0.d0, cop%C_sw)
          cop%C_hw = max( 0.d0, cop%C_hw)
 
-         call litter_growth_cohort(SDAY,dCrepro,
+         call litter_growth_cohort(dCrepro, !SDAY,dCrepro,
      i        C_fol_old,C_froot_old,C_hw_old,C_sw_old,C_croot_old,
-     &        dC_litter_hw,dC_litter_croot,cop,Clossacc,resp_growth2)
+     &        dC_litter_hw,dC_litter_croot,cop,Clossacc)
 
          if (C_fol_old.eq.0.d0) then
            cop%senescefrac = 0.d0
@@ -872,8 +872,10 @@ cddd         end if
          endif
 
          !* Tissue growth respiration is subtracted at physical time step in canopyspitters.f.
-         cop%C_growth = (resp_growth1+resp_growth2)*cop%n*1.d-3  
-         cop%C_growth_flux = cop%C_growth/(24.d0*3600.d0) ! resp flux
+         !  -Update of C_growth and C_growth_flux is now done inside litter_growth_cohort
+         !   as in litter_cohort.
+         !cop%C_growth = (resp_growth1+resp_growth2)*cop%n*1.d-3  
+         !cop%C_growth_flux = cop%C_growth/(24.d0*3600.d0) ! resp flux
 
          !Put senesced amount into litterfall into the soil.
 
@@ -1264,6 +1266,40 @@ c$$$
 c$$$      end subroutine senesce_cpools
 
 
+      !*********************************************************************
+      subroutine accumulate_Clossacc(pft,Closs, Clossacc)
+      integer, intent(in) :: pft
+      real*8,intent(in) :: Closs(PTRACE,NPOOLS,N_CASA_LAYERS) !Litter per cohort by depth.
+      real*8,intent(inout) :: Clossacc(PTRACE,NPOOLS,N_CASA_LAYERS) !Litter accumulator.
+      !---Local-----
+      integer :: i
+
+      !loop through CASA layers-->cumul litter per pool per layer -PK
+      do i=1,N_CASA_LAYERS
+
+        !* Accumulate *!
+        Clossacc(CARBON,LEAF,i) = Clossacc(CARBON,LEAF,i)
+     &       + Closs(CARBON,LEAF,i)
+        Clossacc(CARBON,FROOT,i) = Clossacc(CARBON,FROOT,i) 
+     &       + Closs(CARBON,FROOT,i)
+        Clossacc(CARBON,WOOD,i) = Clossacc(CARBON,WOOD,i) 
+     &       + Closs(CARBON,WOOD,i)
+      
+        !* NDEAD POOLS *!
+        Clossacc(CARBON,SURFMET,i) = Clossacc(CARBON,SURFMET,i) 
+     &       + Closs(CARBON,LEAF,i) * solubfract(pft)
+        Clossacc(CARBON,SOILMET,i) = Clossacc(CARBON,SOILMET,i) 
+     &       + Closs(CARBON,FROOT,i) * solubfract(pft)
+        Clossacc(CARBON,SURFSTR,i) = Clossacc(CARBON,SURFSTR,i)
+     &       + Closs(CARBON,LEAF,i) * (1-solubfract(pft))
+        Clossacc(CARBON,SOILSTR,i) = Clossacc(CARBON,SOILSTR,i) 
+     &       + Closs(CARBON,FROOT,i) * (1-solubfract(pft))
+        Clossacc(CARBON,CWD,i) = Clossacc(CARBON,CWD,i) 
+     &       + Closs(CARBON,WOOD,i)
+      end do   
+
+      !* Return Clossacc *!
+      end subroutine accumulate_Clossacc
 
       !*********************************************************************
       subroutine litter_turnover_cohort(dt,
@@ -1319,7 +1355,7 @@ c$$$      end subroutine senesce_cpools
       real*8 :: resp_growth,resp_growth_root !g-C/individ/ms/s
       real*8 :: resp_turnover, resp_newgrowth !g-C/individ
       real*8 :: i2a !1d-3*cop%n -- Convert g-C/individual to kg-C/m^2
-      real*8 :: Csum
+!      real*8 :: Csum
       real*8 :: dC_total, dClab_dbiomass
       real*8 :: facclim !Frost hardiness parameter - affects turnover rates in winter.
 
@@ -1455,52 +1491,33 @@ c$$$      end subroutine senesce_cpools
       cop%C_total = cop%C_total + dC_total
 #endif
 
-      do i=1,N_CASA_LAYERS
+      !* Update C_lab *!
+      cop%C_lab = cop%C_lab + dC_lab
 
-        !* Accumulate *!
-        Clossacc(CARBON,LEAF,i) = Clossacc(CARBON,LEAF,i)
-     &       + Closs(CARBON,LEAF,i)
-        Clossacc(CARBON,FROOT,i) = Clossacc(CARBON,FROOT,i) 
-     &       + Closs(CARBON,FROOT,i)
-        Clossacc(CARBON,WOOD,i) = Clossacc(CARBON,WOOD,i) 
-     &       + Closs(CARBON,WOOD,i)
-      
-        !* NDEAD POOLS *!
-        Clossacc(CARBON,SURFMET,i) = Clossacc(CARBON,SURFMET,i) 
-     &       + Closs(CARBON,LEAF,i) * solubfract(pft)
-        Clossacc(CARBON,SOILMET,i) = Clossacc(CARBON,SOILMET,i) 
-     &       + Closs(CARBON,FROOT,i) * solubfract(pft)
-        Clossacc(CARBON,SURFSTR,i) = Clossacc(CARBON,SURFSTR,i)
-     &       + Closs(CARBON,LEAF,i) * (1-solubfract(pft))
-        Clossacc(CARBON,SOILSTR,i) = Clossacc(CARBON,SOILSTR,i) 
-     &       + Closs(CARBON,FROOT,i) * (1-solubfract(pft))
-        Clossacc(CARBON,CWD,i) = Clossacc(CARBON,CWD,i) 
-     &       + Closs(CARBON,WOOD,i)
-      end do   !loop through CASA layers-->cumul litter per pool per layer -PK
+      !* Return Clossacc *!
+      call accumulate_Clossacc(pft, Closs, Clossacc)
+!      Csum = 0.d0
+!      do i=1,NPOOLS
+!        Csum = Csum + Clossacc(CARBON,i,1)
+!      enddo
 
+      !* Return growth respiration/day *!
       !################ ###################################################
       !#### DUE TO TIMING OF LAI UPDATE IN GISS GCM AT THE DAILY TIME STEP,
       !#### GROWTH RESPIRATION FROM CHANGE IN LAI NEEDS TO BE SAVED AS 
       !#### A RESTART VARIABLE IN ORDER TO SEND THAT FLUX TO THE ATMOSPHERE.
       !#### Igor has put in code to distribute C_growth over the day.
       !####################################################################
-
-      cop%C_lab = cop%C_lab + dC_lab
-
-      !* Return Clossacc *!
-      Csum = 0.d0
-      do i=1,NPOOLS
-        Csum = Csum + Clossacc(CARBON,i,1)
-      enddo
-      !## ? Should Csum be added to C_growth ? ## NK
-
-      !* Return Clossacc
+      !* Tissue growth respiration is subtracted at physical time step
+      !* distributed over day in canopy biophysics module with R_auto.
+      cop%C_growth = cop%C_growth + resp_growth*cop%n*1.d-3  !kg-C m-2 day-1
+      cop%C_growth_flux = cop%C_growth/(24.d0*3600.d0) ! resp flux, kg-C m-2 s-1
 
       end subroutine litter_turnover_cohort
       !*********************************************************************
-      subroutine litter_growth_cohort(dt,dCrepro,
+      subroutine litter_growth_cohort(dCrepro,!dt,dCrepro,
      i        C_fol_old,C_froot_old,C_hw_old,C_sw_old,C_croot_old,
-     &        dC_litter_hw,dC_litter_croot,cop,Clossacc,resp_growth)
+     &        dC_litter_hw,dC_litter_croot,cop,Clossacc)
 !@sum litter_cohort for prognostic growth.
 !@sum CALLED BY phenology veg_update.
 !@sum DAILY TIME STEP.
@@ -1532,7 +1549,7 @@ c$$$      end subroutine senesce_cpools
 
       use cohorts, only : calc_CASArootfrac 
       use biophysics, only: Resp_can_growth
-      real*8,intent(in) :: dt !seconds, time since last call
+      !real*8,intent(in) :: dt   !seconds, time since last call
       real*8,intent(in) ::dCrepro
       real*8,intent(in) ::C_fol_old,C_froot_old,C_hw_old,C_croot_old,
      &     C_sw_old
@@ -1550,7 +1567,7 @@ c$$$      end subroutine senesce_cpools
       real*8 :: turn_leaf, turn_froot, turn_hw,turn_croot, turn_live !g-C/individual
       real*8 :: dC_fol, dC_froot, dC_hw, dC_sw, dC_croot,dC_lab !g-C/individual
       real*8 :: adj !Adjustment to keep loss less than C_lab
-      real*8 :: resp_growth,resp_growth_root !g-C/individ/ms/s
+      real*8 :: resp_growth,resp_growth_root !g-C/individ (mass total per day)
       real*8 :: resp_turnover, resp_newgrowth !g-C/individ
       real*8 :: i2a !1d-3*cop%n -- Convert g-C/individual to kg-C/m^2
       real*8 :: Csum
@@ -1644,29 +1661,9 @@ c$$$      end subroutine senesce_cpools
       cop%C_total = cop%C_total + dC_total
 #endif
 
-      do i=1,N_CASA_LAYERS
+      call accumulate_Clossacc(pft, Closs, Clossacc)
 
-        !* Accumulate *!
-        Clossacc(CARBON,LEAF,i) = Clossacc(CARBON,LEAF,i)
-     &       + Closs(CARBON,LEAF,i)
-        Clossacc(CARBON,FROOT,i) = Clossacc(CARBON,FROOT,i) 
-     &       + Closs(CARBON,FROOT,i)
-        Clossacc(CARBON,WOOD,i) = Clossacc(CARBON,WOOD,i) 
-     &       + Closs(CARBON,WOOD,i)
-      
-        !* NDEAD POOLS *!
-        Clossacc(CARBON,SURFMET,i) = Clossacc(CARBON,SURFMET,i) 
-     &       + Closs(CARBON,LEAF,i) * solubfract(pft)
-        Clossacc(CARBON,SOILMET,i) = Clossacc(CARBON,SOILMET,i) 
-     &       + Closs(CARBON,FROOT,i) * solubfract(pft)
-        Clossacc(CARBON,SURFSTR,i) = Clossacc(CARBON,SURFSTR,i)
-     &       + Closs(CARBON,LEAF,i) * (1-solubfract(pft))
-        Clossacc(CARBON,SOILSTR,i) = Clossacc(CARBON,SOILSTR,i) 
-     &       + Closs(CARBON,FROOT,i) * (1-solubfract(pft))
-        Clossacc(CARBON,CWD,i) = Clossacc(CARBON,CWD,i) 
-     &       + Closs(CARBON,WOOD,i) 
-      end do                    !cumul litter per pool per layer 
-
+      !Error check
       if ( abs( (dC_fol+dC_froot+dC_hw+dC_sw+dC_croot
      &     +dC_lab)*cop%n + Closs(CARBON,LEAF,1)+Closs(CARBON,FROOT,1)
      &     + Closs(CARBON,WOOD,1) ) > 1d-10 ) then
@@ -1703,20 +1700,14 @@ cddd     &     dC_litter_croot, dC_litter_croot*cop%n
 !     &     Closs(CARBON,:,:), Clossacc(CARBON,:,:),adj,cop%turnover_amp,
 !     &     facclim,turnoverdtleaf,turnoverdtfroot, turnoverdtwood
 
-      !################ ###################################################
-      !#### DUE TO TIMING OF LAI UPDATE IN GISS GCM AT THE DAILY TIME STEP,
-      !#### GROWTH RESPIRATION FROM CHANGE IN LAI NEEDS TO BE SAVED AS 
-      !#### A RESTART VARIABLE IN ORDER TO SEND THAT FLUX TO THE ATMOSPHERE.
-      !#### Igor has put in code to distribute C_growth over the day.
-      !####################################################################
-
+       !* Update C_lab *!
       cop%C_lab = cop%C_lab + dC_lab
       !at this point, C_lab<0 comes from the rounding errors...
 #ifdef COMMENT_OUT
       if (cop%C_lab < 0.d0) cop%C_lab = 0.d0
 #endif
       if (cop%C_lab < -1.d-8) then
-        write(902,*) "Clab ", cop%C_lab, dC_lab, cop%pft
+        write(902,*) "WARNING: Clab ", cop%C_lab, dC_lab, cop%pft
      &       ,"dC ", dC_fol, dC_froot, dC_hw, dC_sw, dC_croot
      &       ,dC_lab
      &       ,"dC*n ", (dC_fol+dC_froot+dC_hw+dC_sw+dC_croot
@@ -1733,14 +1724,17 @@ cddd     &     dC_litter_croot, dC_litter_croot*cop%n
 !         stop
 !      endif
 
-      !* Return Clossacc *!
-      Csum = 0.d0
-      do i=1,NPOOLS
-        Csum = Csum + Clossacc(CARBON,i,1)
-      enddo
-      !## ? Should Csum be accumulated in C_growth ? ##NK
-      
-      !* Return Clossacc
+      !* Return Clossacc and resp_growth *!
+!      Csum = 0.d0
+!      do i=1,NPOOLS
+!        Csum = Csum + Clossacc(CARBON,i,1)
+!      enddo
+
+      !* Return resp_growth in cop%C_growth *!
+      !* Tissue growth respiration is subtracted at physical time step
+      !* distributed over day in canopy biophysics module with R_auto.
+      cop%C_growth = cop%C_growth + resp_growth*cop%n*1.d-3  !kg-C m-2 day-1
+      cop%C_growth_flux = cop%C_growth/(24.d0*3600.d0) ! resp flux, kg-C m-2 s-1
 
       end subroutine litter_growth_cohort
       !*********************************************************************
@@ -1957,28 +1951,7 @@ cddd     &     dC_litter_croot, dC_litter_croot*cop%n
       cop%C_total = cop%C_total + dC_total
 #endif
 
-      do i=1,N_CASA_LAYERS
-
-        !* Accumulate *!
-        Clossacc(CARBON,LEAF,i) = Clossacc(CARBON,LEAF,i)
-     &       + Closs(CARBON,LEAF,i)
-        Clossacc(CARBON,FROOT,i) = Clossacc(CARBON,FROOT,i) 
-     &       + Closs(CARBON,FROOT,i)
-        Clossacc(CARBON,WOOD,i) = Clossacc(CARBON,WOOD,i) 
-     &       + Closs(CARBON,WOOD,i)
-      
-        !* NDEAD POOLS *!
-        Clossacc(CARBON,SURFMET,i) = Clossacc(CARBON,SURFMET,i) 
-     &       + Closs(CARBON,LEAF,i) * solubfract(pft)
-        Clossacc(CARBON,SOILMET,i) = Clossacc(CARBON,SOILMET,i) 
-     &       + Closs(CARBON,FROOT,i) * solubfract(pft)
-        Clossacc(CARBON,SURFSTR,i) = Clossacc(CARBON,SURFSTR,i)
-     &       + Closs(CARBON,LEAF,i) * (1-solubfract(pft))
-        Clossacc(CARBON,SOILSTR,i) = Clossacc(CARBON,SOILSTR,i) 
-     &       + Closs(CARBON,FROOT,i) * (1-solubfract(pft))
-        Clossacc(CARBON,CWD,i) = Clossacc(CARBON,CWD,i) 
-     &       + Closs(CARBON,WOOD,i)
-      end do  !loop through CASA layers-->cumul litter per pool per layer -PK
+      call accumulate_Clossacc(pft,Closs, Clossacc)
 
 !      write(992,*) C_fol_old,C_froot_old,C_hw_old,C_sw_old,C_croot_old,
 !     &     cop%C_lab,cop%C_fol,cop%C_froot,cop%C_hw,cop%C_sw,
@@ -1998,8 +1971,8 @@ cddd     &     dC_litter_croot, dC_litter_croot*cop%n
 
       !* Tissue growth respiration is subtracted at physical time step
       !* distributed over day in canopy biophysics module with R_auto.
-      cop%C_growth = resp_growth*cop%n*1.d-3
-      cop%C_growth_flux = cop%C_growth/(24.d0*3600.d0) ! resp flux
+      cop%C_growth = cop%C_growth + resp_growth*cop%n*1.d-3
+      cop%C_growth_flux = cop%C_growth/(24.d0*3600.d0) ! resp flux, C s-1
 
       !Cactive = Cactive - turn_leaf - turn_froot !No change in active
 
@@ -2028,6 +2001,8 @@ cddd     &     dC_litter_croot, dC_litter_croot*cop%n
       !----Local------
       integer :: i
 
+      print *,'In litter_patch'
+
       !* NDEAD POOLS *!
        do i=1,N_CASA_LAYERS
         pp%Tpool(CARBON,SURFMET,i) = pp%Tpool(CARBON,SURFMET,i) 
@@ -2041,6 +2016,8 @@ cddd     &     dC_litter_croot, dC_litter_croot*cop%n
         pp%Tpool(CARBON,CWD,i) = pp%Tpool(CARBON,CWD,i) 
      &     + Clossacc(CARBON,CWD,i)
        end do   !loop through CASA layers-->total C per pool per layer -PK
+
+      print *,'End litter_patch'
 
        end subroutine litter_patch
 

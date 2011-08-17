@@ -34,9 +34,10 @@
       laipatch = 0.d0
       lai_new = 0.d0
       lai_old = 0.d0
-      Clossacc(:,:,:) = 0.d0
+!      Clossacc(:,:,:) = 0.d0  !?Moved to inside patch loop - NK
       pp => ecp%oldest      
       do while ( associated(pp) )
+        Clossacc(:,:,:) = 0.d0
         laipatch = 0.d0
         cop => pp%tallest
         do while ( associated(cop) )
@@ -75,6 +76,7 @@
 !@sum sets prescribed LAI over the cell
       use ent_prescr_veg, only : prescr_plant_cpools, popdensity,
      &     ED_woodydiameter, crown_radius_horiz, crown_radius_vert
+      use phenology, only : litter_growth_cohort, litter_patch
       use ent_pfts
       type(entcelltype) :: ecp
       real*8,intent(in) :: hdata(N_PFT) !@var LAI for all PFT's 
@@ -84,6 +86,8 @@
       type(cohort), pointer :: cop !@var current cohort
       real*8 :: cpool(N_BPOOLS)
       real*8 :: C_sw_old, C_hw_old,C_croot_old,C_fol_old,C_froot_old
+      real*8 :: h_old
+      real*8 :: Clossacc(PTRACE,NPOOLS,N_CASA_LAYERS) !Litter accumulator.
       integer :: i
 
       cpool(:) = 0.d0
@@ -91,9 +95,11 @@
       i = 0
 
       do while ( associated(pp) )
+        Clossacc(:,:,:) = 0.d0
         cop => pp%tallest
         do while ( associated(cop) )
           i = i + 1
+          h_old = cop%h
           C_fol_old = cop%C_fol
           C_sw_old = cop%C_sw
           C_hw_old = cop%C_hw
@@ -130,24 +136,27 @@
           cop%C_hw = cpool(HW)
           cop%C_froot = cpool(FR)
           cop%C_croot = cpool(CR)
-cddd          !* Update C_lab
-cddd          if (.not.init) 
-cddd     &         cop%C_lab = cop%C_lab - max(0.d0,cop%C_hw - C_hw_old)
-cddd     &         - max(0.d0,cop%C_sw - C_sw_old) 
-cddd     &         - max(0.d0,cop%C_croot-C_croot_old)
 
-          !!! you don't dump C anywhere else, so make sure it all goes back to cop%C_lab
-          !* Update C_lab
-          if (.not.init) 
-     &         cop%C_lab = cop%C_lab
-     &         - (cop%C_fol - C_fol_old)
-     &         - (cop%C_sw - C_sw_old)
-     &         - (cop%C_hw - C_hw_old)
-     &         - (cop%C_froot - C_froot_old)
-     &         - (cop%C_croot - C_croot_old)
-
+          !* If h loss, dump to litter.  If h growth, withdraw from C_lab.-NK
+          if (.not.init) then
+             if (cop%h<h_old) then      !Decrease in height -> put in litter
+                call litter_growth_cohort(0.d0 !dCrepro=0.d0
+     i             ,C_fol_old,C_froot_old,C_hw_old,C_sw_old,C_croot_old
+     &             ,cop%C_hw-C_hw_old,cop%C_croot-C_croot_old
+     &             ,cop,Clossacc)
+             elseif (cop%h>h_old) then  !Increase in height -> withdraw from C_lab
+                cop%C_lab = cop%C_lab
+     &               - (cop%C_fol - C_fol_old)
+     &               - (cop%C_sw - C_sw_old)
+     &               - (cop%C_hw - C_hw_old)
+     &               - (cop%C_froot - C_froot_old)
+     &               - (cop%C_croot - C_croot_old)
+             endif
+          endif
           cop => cop%shorter
+          print *,'After cop=>cop%shorter'
         enddo
+        call litter_patch(pp, Clossacc)
         pp => pp%younger
       enddo
       !summarize_patch - called outside this routine

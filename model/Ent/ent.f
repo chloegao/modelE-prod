@@ -85,42 +85,6 @@
         end subroutine ent_ecosystem_dynamics
 
       !*********************************************************************
-!      subroutine ent_integrate_GISS(ecp, dtsec)
-!@sum Ent biophysics/biogeochemistry - THIS SUBROUTINE WILL NOT BE NEEDED.
-!      use reproduction
-!      use cohorts
-!      use patches
-!      use biophysics, only : photosynth_cond
-!      use growthallometry, only : uptake_N
-!      use phenology, only : litter
-!      use soilbgc, only : soil_bgc
-!      use phenology, only : phenology_update
-!      use canopyrad, only : recalc_radpar
-!      use entcells, only : summarize_entcell, entcell_print
-!
-!      implicit none
-!      type(entcelltype) :: ecp
-!      real*8 :: dtsec  !dt in seconds
-!!      type(timestruct),pointer :: tt !Time in year.fraction, Greenwich Mean Time
-!      !-----local--------
-!      type(patch),pointer :: pp
-!
-!      pp => ecp%oldest  !changed to => (!) -PK 7/11/06
-!      do while (ASSOCIATED(pp)) 
-!        call photosynth_cond(dtsec, pp)
-!        call uptake_N(dtsec, pp) !Dummy
-!        call litter(pp)  !Update litter pools
-!        call soil_bgc(dtsec, pp)
-!        pp%CO2flux = -pp%NPP + pp%Soil_resp
-!        pp%age = pp%age + dtsec
-!        call summarize_patch(pp)
-!        pp => pp%younger  !changed to => (!) -PK 7/11/06
-!      end do
-!      call summarize_entcell(ecp)
-!
-!      end subroutine ent_integrate_GISS
-
-      !*********************************************************************
 
       subroutine ent_integrate(dtsec, ecp, update_day, config)
 !@sum Ent biophysics/biogeochemistry/patch dynamics
@@ -149,28 +113,24 @@
 
       call clim_stats(dtsec,ecp,config,update_day)
 
-      !* Loop through patches
+      !* Patch dynamics
+      if (config%do_patchdynamics) then
+      !  call patch_dynamics(pp,monthlyupdate)
+      ! call summarize_entcell(ecp)
+      endif
+
+      !* Dynamic phenology
+      if (update_day) then 
+        call update_veg_structure(ecp, config)
+      endif
+
+      !* Biophysics
       patchnum = 0
       pp => ecp%oldest 
       do while (ASSOCIATED(pp)) 
         patchnum = patchnum + 1
         !call patch_print(771,pp," ff ")
         call photosynth_cond(dtsec, pp)
-
-        if (config%do_phenology_activegrowth) then
-          !call uptake_N(dtsec, pp) !?
-          !call growth(...)
-          !call patch_print(771,pp," bb ")
-! the following was moved to update_veg_structure()
-cddd          if (update_day) then
-cddd            call pheno_update(pp)
-cddd            !call patch_print(771,pp," bb ")
-cddd            call veg_update(pp,config)
-cddd            !call litter(pp) !Litter is now called within veg_update
-cddd
-cddd          end if
-          !call patch_print(771,pp," aa ")
-        endif
 
         if (config%do_soilresp) then
           call soil_bgc(dtsec, pp)
@@ -190,25 +150,8 @@ cddd          end if
 
       call summarize_entcell(ecp)
 
-      if (config%do_patchdynamics) then
-      !  call patch_dynamics(pp,monthlyupdate)
-      ! call summarize_entcell(ecp)
-      endif !do_patchdynamics
-
-
-      ! do all daily updates inside the following call
-      if (update_day) then
-        call update_veg_structure(ecp, config)
-      endif
-
-! the following was moved to update_veg_structure()
-cddd      if (update_day) then
-cddd        ecp%daylength(1) = ecp%daylength(2)
-cddd        ecp%daylength(2) = 0.d0
-cddd      end if
-
 #ifdef DEBUG
-      print *,"End of ent_biophysics"
+      print *,"End of ent_integrate"
       call entcell_print(6, ecp)
 #endif
 
