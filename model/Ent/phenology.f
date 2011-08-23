@@ -2001,7 +2001,7 @@ cddd     &     dC_litter_croot, dC_litter_croot*cop%n
       !----Local------
       integer :: i
 
-      print *,'In litter_patch'
+      !print *,'In litter_patch'
 
       !* NDEAD POOLS *!
        do i=1,N_CASA_LAYERS
@@ -2017,7 +2017,7 @@ cddd     &     dC_litter_croot, dC_litter_croot*cop%n
      &     + Clossacc(CARBON,CWD,i)
        end do   !loop through CASA layers-->total C per pool per layer -PK
 
-      print *,'End litter_patch'
+      !print *,'End litter_patch'
 
        end subroutine litter_patch
 
