@@ -894,8 +894,8 @@ cddd      !!print *,'QQQQ ',A,ci
 
       facclim = frost_hardiness(Sacclim)
      
-!      fparlimit = par_phenology(pft,llspan)
-      fparlimit = 1.d0
+      fparlimit = par_phenology(pft,llspan)
+!      fparlimit = 1.d0
 
 !!! this var is not reproducible on restart, please figure out why
 !      fparlimit = 1.d0 ! seems to be ok now

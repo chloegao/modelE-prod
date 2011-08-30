@@ -230,7 +230,7 @@
           !*********************************************     
           par_limit = ((pfpar(cop%pft)%phenotype.eq.EVERGREEN).and.  
      &                (pfpar(cop%pft)%leaftype.eq.BROADLEAF))
-          par_limit = .false. !temp. suppress
+          !par_limit = .false. !temp. suppress
           if (par_limit) then
              par_crit = - par_turnover_int/par_turnover_slope 
              turnover0 = min(100.d0, max(0.01d0, 
@@ -2001,8 +2001,6 @@ cddd     &     dC_litter_croot, dC_litter_croot*cop%n
       !----Local------
       integer :: i
 
-      !print *,'In litter_patch'
-
       !* NDEAD POOLS *!
        do i=1,N_CASA_LAYERS
         pp%Tpool(CARBON,SURFMET,i) = pp%Tpool(CARBON,SURFMET,i) 
@@ -2016,8 +2014,6 @@ cddd     &     dC_litter_croot, dC_litter_croot*cop%n
         pp%Tpool(CARBON,CWD,i) = pp%Tpool(CARBON,CWD,i) 
      &     + Clossacc(CARBON,CWD,i)
        end do   !loop through CASA layers-->total C per pool per layer -PK
-
-      !print *,'End litter_patch'
 
        end subroutine litter_patch
 
