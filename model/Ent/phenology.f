@@ -20,6 +20,9 @@
       public litter_cohort, litter_patch   !Now called from veg_update
       public update_plant_cpools
 
+      private pheno_update_coldwoody
+      private pheno_update_coldherbaceous
+      private pheno_update_drought
       private growth_cpools_active
       private growth_cpools_structural
 !      private senesce_cpools
@@ -28,188 +31,158 @@
       private phenology_diag
 
       !************************************************************************
-      !* GROWTH MODEL CONSTANTS - phenology & carbon allocation 
-      !l_fract: fraction of leaves retained after leaf fall (unitless)
+      !** GROWTH MODEL CONSTANTS - phenology & carbon allocation 
+      !*l_fract: fraction of leaves retained after leaf fall (unitless) (value from ED) 
       real*8, parameter :: l_fract = 0.50d0 
-      !growth_r:  fraction of biomass pool required for growth respration to grow that biomass.
-!      real*8, parameter :: growth_r = 0.30d0 !Check same as canopyspitters.f Respauto_NPP_Clabile
-      !q: ratio of root to leaf biomass (unitless)
+      !*q: ratio of root to leaf biomass (unitless) (value from ED)
       real*8, parameter :: q=1.0d0 
-      !iqsw: sapwood biomass per (leaf area x wood height) (kgC/m2/m)
+      !*iqsw: sapwood biomass per (leaf area x wood height) (kgC/m2/m) (value from ED)
       !3900.0: leaf area per sapwood area (m2/m2) 
       !1000.0: sapwood density (kg/m3)
       !2.0:  biomass per carbon (kg/kgC)
       !(qsw)=(iqsw*sla) (1/m) & (qsw*h): ratio of sapwood to leaf biomass (unitless)
       !(iqsw)=1000.0d0/3900.0d0/2.0d0=0.1282
       real*8, parameter :: iqsw=1000.0d0/3900.0d0/2.0d0
-      !hw_fract: ratio of above ground stem to total stem (stem plus structural roots)
+      !*hw_fract: ratio of above ground stem to total stem (stem plus structural roots) (value from ED)
       real*8, parameter :: hw_fract = 0.70d0 
-      !C2B: ratio of biomass to carbon (kg-Biomass/kg-Carbon)
+      !*C2B: ratio of biomass to carbon (kg-Biomass/kg-Carbon) 
       real*8, parameter :: C2B = 2.0d0 
-      !airtemp_par
+      !*temperature constrain for cold-deciduous PFTs (Botta et al. 1997)
+      !*airtemp_par !base temperature to calculate the growing degree days (gdd)
+      !*gdd_par1/2/3: paramters to estimate the threshold for gdd
+      !*gdd_threshold = gdd_par1 + gdd_par2*exp(gdd_par3*ncd)    
       real*8, parameter :: airtemp_par = 5.d0 
-      !temperature constrain for cold-deciduous PFTs (Botta et al. 1997)
-      ! gdd_par1/2/3: paramters to estimate the threshold for gdd
-      ! gdd_threshold = gdd_par1 + gdd_par2*exp(gdd_par3*ncd)    
       real*8, parameter :: gdd_par1 = -68.d0 
       real*8, parameter :: gdd_par2 = 638.d0
       real*8, parameter :: gdd_par3 = -0.01d0 
-      !gdd_length
-      real*8, parameter :: gdd_length = 200.d0 !50.d0
-      !airt_threshold
+      !*gdd_length - tunning parameters (tuned for HF & MMSF)
+      real*8, parameter :: gdd_length = 200.d0 
+      !*airt_threshold - tunning parameters (tuned for HF & MMSF)
       real*8, parameter :: airt_max_w = 15.d0
       real*8, parameter :: airt_min_w = 5.d0
-      !soilt_threshold
+      !*soilt_threshold - tunning parameters (tunned for Barrow)
       real*8, parameter :: soilt_max = 10.d0
       real*8, parameter :: soilt_min = 0.d0
-      !ld_threshold (minute): light length constraint for cold-deciduous woody PFTs (White et al. 1997)
+      !*sgdd_threshold & length - tunning parameters (tunned for Barrow)
+      real*8, parameter :: soiltemp_par = 0.d0
+      real*8, parameter :: sgdd_threshold = 100.d0
+      real*8, parameter :: sgdd_length=50.d0   
+      !*ld_threshold (minute): light length constraint for cold-deciduous woody PFTs (White et al. 1997)
       real*8, parameter :: ld_threshold = 655.d0
       real*8, parameter :: ld_min =540.d0
       real*8, parameter :: ld_max =550.d0
-      !tsoil_threshold1, tsoil_threshold2 : soil temperature constraint for cold-deciduous woody PFTs (White et al. 1997)
+      !*tsoil_threshold1, tsoil_threshold2 : soil temperature constraint for cold-deciduous woody PFTs (White et al. 1997)
 !      real*8, parameter :: tsoil_threshold1 = 11.15d0
 !      real*8, parameter :: tsoil_threshold2 = 2.d0
-      !ddfacu: the rate of leaf fall (1/day) (IBIS)
+      !*ddfacu: the rate of leaf fall (1/day) (value from IBIS)
       real*8, parameter :: ddfacu = 1.d0/15.d0
-      !paw_: water threshold (unitless)  
-      !_w for woody & _h for herbaceous      
-      real*8, parameter :: paw_max_w = 0.3d0
-      real*8, parameter :: paw_min_w = -0.1d0
-      real*8, parameter :: paw_res_w = 0.25d0
-!SOILMOIST_OLD
-!      real*8, parameter :: paw_max_h = 0.4d0 
-!      real*8, parameter :: paw_min_h = 0.1d0 
-      real*8, parameter :: paw_max_h = 0.5d0 
-      real*8, parameter :: paw_min_h = 0.3d0 
-      real*8, parameter :: paw_res_h = 1.0d0
-      !betad : water_stress3
-      real*8, parameter :: betad_max_w = 0.2d0 !0.5d0 !1.0d0 
-      real*8, parameter :: betad_min_w = 0.d0 !-0.5d0 
+      !*betad : water_stress3  - tunning parameters (sstar/swilt determines betad, then check those first and tune these)
+      !_w for woody & _h  (tunned for MMSF) - max/min/resistance parameters for woody
+      real*8, parameter :: betad_max_w = 0.1d0
+      real*8, parameter :: betad_min_w = 0.d0 
       real*8, parameter :: betad_res_w = 0.25d0
-      real*8, parameter :: betad_max_h = 1.0d0 
-      real*8, parameter :: betad_min_h = 0.9d0!0.95d0 !0.8d0 
+      ! _h for herbaceous  (tunned for Vaira/Tonzi) - max/min/resistance prameters for woody
+      real*8, parameter :: betad_max_h = 0.9d0 
+      real*8, parameter :: betad_min_h = 0.4d0
       real*8, parameter :: betad_res_h = 1.0d0      
-      !light-controll: par_turnover_int & par_turnover_slope
-      real*8, parameter :: par_turnover_int = -12.d0 !-10.6d0 
+      !*light-controll phenology model (Kim et al; originally for ED2)
+      !*different from the original implementation, as it cannot be directly implemented due to model difference.
+      !*e.g.) PAR instead of Rshort & other differences in parameterization requires the model to be tunned for Ent.
+      !*par_turnover_int & par_turnover_slope  - tunning parameters (tunned for TNF; not finalized)
+      real*8, parameter :: par_turnover_int = -12.d0 
       real*8, parameter :: par_turnover_slope = 0.18d0  
-      !r_fract: fraction of excess c going to seed reproduction 
+      !*r_fract: fraction of excess c going to seed reproduction (value from ED)
       real*8, parameter :: r_fract = 0.3d0
-      !c_fract: fraction of excess c going to clonal reproduction - only for herbaceous
+      !*c_fract: fraction of excess c going to clonal reproduction - only for herbaceous (value from ED)
       real*8, parameter :: c_fract = 0.7d0
-      !mort_seedling: mortality rate for seedling
-      real*8, parameter :: mort_seedling = 0.90d0 !0.80d0 !0.95d0
+      !*mort_seedling: mortality rate for seedling (value from ED)
+      real*8, parameter :: mort_seedling = 0.90d0 
 
       contains
 
 
       !*********************************************************************
       subroutine clim_stats(dtsec, ecp, config,dailyupdate)
-!@sum Calculate climate statistics such as 10 day running average   
+!@sum Calculate climate statistics such as 10 day running mean   
       use soilbgc, only : Soillayer_convert_Ent 
       real*8,intent(in) :: dtsec           !dt in seconds
       type(entcelltype) :: ecp      
       type(ent_config) :: config
-      logical, intent(in) :: dailyupdate
+      logical, intent(in) :: dailyupdate  
       !-----local--------
       type(patch), pointer :: pp
       type(cohort), pointer :: cop 
-      !temperature constrain for cold-deciduous PFTs (Botta et al. 1997)
-      !airtemp_par: base temperature to estimate growing degree day (gdd) (degree C)
-!      real*8 :: gdd_threshold
-      real*8 :: sand, clay
-      real*8 :: smpsat, bch
-      real*8 :: watsat, watdry 
-      real*8 :: paw
-      real*8 :: par
-      real*8 :: airtemp
-      real*8 :: wat   
-      real*8 :: soiltemp     
-      real*8 :: soiltemp_10d      
-      real*8 :: airtemp_10d
-      real*8 :: paw_10d
-      real*8 :: par_10d
-      real*8 :: gdd
-      real*8 :: ncd
-      real*8 :: sgdd
-      real*8 :: ld
-      real*8 :: par_crit
-      logical :: par_limit
-      real*8 :: turnover0, llspan0
-      real*8 :: zweight, zweight30, zweight90
-      real*8 :: Soilmoist2layer(N_CASA_LAYERS)
-      real*8 :: Soiltemp2layer(N_CASA_LAYERS)
-      real*8, dimension(2) :: daylength
-
-      sand = ecp%soil_texture(1)*100.d0
-      clay = ecp%soil_texture(3)*100.d0
-      smpsat = -10.d0 * ( 10.d0**(1.88d0-0.0131d0*sand) )
-      bch = 2.91d0 + 0.159d0*clay
-      watsat = 0.489d0 - 0.00126d0*sand 
-      watdry = watsat * (-316230.d0/smpsat) ** (-1.d0/bch) 
+      !*local variables for entcell-level envrionment variable
+      real*8 :: airtemp        !air temperature degC 
+      real*8 :: soiltemp       !soil temperature degC
+      real*8 :: par            !photosynthetic active radiation (PAR)
+      !*local variables for entcell-level variables, 
+      !*updated in this subroutine
+      real*8 :: airtemp_10d    !10 day running mean of air temperature
+      real*8 :: soiltemp_10d   !10 day running mean of soil temperature
+      real*8 :: par_10d        !10 day running mean of PAR
+      real*8 :: gdd            !growing degree days, based on air temperature
+      real*8 :: ncd            !number of chilling days, based on air temperature
+      real*8 :: sgdd           !growing degree days, based on soil temperature
+      !*PAR-limited phenology parameters
+      real*8 :: par_crit       !PAR threshold
+      logical :: par_limit     !logical whether PAR-limited phenology parameterization is applied or not for certain PFTs
+      real*8 :: turnover0      !turnover amplitude, calculated with the phenology parameterization
+      real*8 ::  llspan0       !leaf life span, calculated with the phenology parameterization
+      !*soil temperature for CASA layers
+      real*8 :: Soiltemp2layer(N_CASA_LAYERS)  
+     
   
       airtemp = ecp%TairC
-      call Soillayer_convert_Ent(ecp%Soilmoist(:), SOILDEPTH_m, 
-     &     Soilmoist2layer) 
-      wat = Soilmoist2layer(1)  !Top 30 cm average
       call Soillayer_convert_Ent(ecp%Soiltemp(:), SOILDEPTH_m, 
      &     Soiltemp2layer) 
       soiltemp = Soiltemp2layer(1)
 
       soiltemp_10d = ecp%soiltemp_10d
       airtemp_10d = ecp%airtemp_10d
-      paw_10d = ecp%paw_10d
       par_10d = ecp%par_10d  
       gdd = ecp%gdd
       ncd = ecp%ncd
       sgdd = ecp%sgdd
 
-      zweight=exp(-1.d0/(10.d0*86400.d0/dtsec))  !for 10-day running average
-      zweight30=exp(-1.d0/(30.d0*86400.d0/dtsec))  !for 30-day running average
-      zweight90=exp(-1.d0/(90.d0*86400.d0/dtsec)) 
+      !*10-day running mean of Air Temperature
+      airtemp_10d = running_mean(dtsec, 10.d0, airtemp, airtemp_10d)
 
-      !10-day running average of Soil Temperature
-      soiltemp_10d=zweight*soiltemp_10d+(1.0d0-zweight)*soiltemp
-      
-      !10-day running average of Air Temperature
-      airtemp_10d=zweight*airtemp_10d+(1.0d0-zweight)*airtemp
-      
-      !10-day running average of Plant Available Water  
-!SOILMOIST_OLD
-!      paw = min( max(wat-watdry,0.d0) 
-!     &     /(watsat-watdry), 1.d0)
-      paw = wat !now Soilmoist is saturated fraction!!!
-      paw_10d=zweight*paw_10d+(1.0d0-zweight)*paw
+      !*10-day running mean of Soil Temperature
+      soiltemp_10d = running_mean(dtsec, 10.d0, soiltemp, soiltemp_10d)
 
-      !10-day running average of PAR
-      par = ecp%IPARdif + ecp%IPARdir
-      par_10d=zweight*par_10d+(1.0d0-zweight)*par
+      !*10-day running mean of PAR
+      par = ecp%IPARdif + ecp%IPARdir !total PAR is the sum of diffused and direct PARs
+      par_10d = running_mean(dtsec, 10.d0, par, par_10d)
 
-      !daylength
+      !*daylength
       if (ecp%CosZen > 0.d0) then
          ecp%daylength(2) = ecp%daylength(2) + dtsec/60.d0
       end if
 
-      !GDD & NCD - Once a day
+      !*GDD & NCD - Update Once a day 
       if (dailyupdate) then
-         !Growing degree days
+         !*Calculate Growing degree days
          if (airtemp_10d .ge. airtemp_par) then
             gdd = gdd + ( airtemp_10d - airtemp_par )
          end if
-         !temp.  GDD using soil temperature
-         if (soiltemp_10d .ge. 0.d0) then
-            sgdd = sgdd + ( soiltemp_10d - 0.d0 )
+         !*Calculate Growing degree days for soil temperature 
+         if (soiltemp_10d .ge. soiltemp_par) then
+            sgdd = sgdd + ( soiltemp_10d -soiltemp_par )
          end if
-         !Number of chilling days
+         !*Number of chilling days 
+         !number of days below airtemp_par - chilling requirements
          if (airtemp_10d .lt. airtemp_par) then
             ncd = ncd +  1.d0
          end if
-         !is fall?      
+         !*If the season is fall or not (if fall, it's 1; else, it's 0)
+         !1) it is to control the phenological status      
+         !2) it is determined according to whether the daylength is decreasing (i.e., fall) or not. 
          if (NInt(ecp%daylength(2)) .lt. NInt(ecp%daylength(1)) ) then
             ecp%fall = 1
          else if (NInt(ecp%daylength(2)).gt.NInt(ecp%daylength(1))) then
             ecp%fall = 0
          end if 
-         !print*,'fall',ecp%daylength(2),ecp%daylength(1),ecp%fall
        end if
 
       pp => ecp%oldest 
@@ -218,41 +191,57 @@
         cop => pp%tallest
         do while(ASSOCIATED(cop))
           
-          !10-day running average of stressH2O (betad)
-          cop%betad_10d=zweight*cop%betad_10d
-     &                 +(1.d0-zweight)*cop%stressH2O
-      
-          !daily carbon balance
+          !*10-day running mean of stressH2O (betad)
+          cop%betad_10d = running_mean(dtsec, 10.d0, 
+     &                    cop%stressH2O, cop%betad_10d)
+     &                     
+          !*Daily carbon balance
+          !it is used for the carbon allocation
           cop%CB_d =  cop%CB_d + cop%NPP*dtsec/cop%n*1000.d0
 
           !*********************************************
-          !* evergreen broadleaf - PAR limited    
-          !*********************************************     
+          !* evergreen broadleaf - PAR limited - not finalized yet!
+          !********************************************* 
+
+          !if it is evergreen & broadleaf, radiation-limited phenology is working    
           par_limit = ((pfpar(cop%pft)%phenotype.eq.EVERGREEN).and.  
      &                (pfpar(cop%pft)%leaftype.eq.BROADLEAF))
           !par_limit = .false. !temp. suppress
+          !raidation-limited phenology model 
           if (par_limit) then
              par_crit = - par_turnover_int/par_turnover_slope 
+
+             !calculate the turnover amplitude 
+             !(relative ratio of turnover compared to its intrinsic turnover rate)
+             !based on PAR
              turnover0 = min(100.d0, max(0.01d0, 
      &          par_turnover_slope*par_10d + par_turnover_int))
+
              if (par_10d .lt. par_crit) turnover0 = 0.01d0
-             cop%turnover_amp=zweight*cop%turnover_amp 
-     &          +(1.d0-zweight)*turnover0
-     
-             llspan0 = pfpar(cop%pft)%lrage*12.d0/cop%turnover_amp
-             cop%llspan=zweight90*cop%llspan
-     &          +(1.d0-zweight90)*llspan0     
+
+             !calculate 10 day running mean of turnover amplitude
+             cop%turnover_amp = running_mean(dtsec,10.d0, 
+     &                          turnover0, cop%turnover_amp)
+
+             !calculate the leaf life span based on turnover amplitude
+             !lrage is in year, llspan is in month, and then 12 is used to convert the units
+             llspan0 = pfpar(cop%pft)%lrage*12.d0/cop%turnover_amp 
+
+             !calculate 90 day running mean of llspan
+             cop%llspan = running_mean(dtsec, 90.d0,llspan0,cop%llspan)
+
           else
-             cop%turnover_amp = 1.d0
+
+             cop%turnover_amp = 1.d0 
              cop%llspan = -999.d0
+
           endif
           
 
           !**************************************************************
           !* Update photosynthetic acclimation factor for evergreen veg
           !**************************************************************
-
-          if (config%do_frost_hardiness) then
+          if (config%do_frost_hardiness) then 
              if (((pfpar(cop%pft)%phenotype.eq.EVERGREEN).and.  
      &           (pfpar(cop%pft)%leaftype.eq.NEEDLELEAF)).or.
      &           (pfpar(cop%pft)%phenotype.eq.COLDDECID).or.
@@ -264,7 +253,6 @@
 	  else
               cop%Sacclim = 25.d0 !Force no cold hardening, mild temperature.
           endif
-          !write(993,*) cop%Sacclim
 
           cop => cop%shorter  
         end do        
@@ -273,7 +261,6 @@
 
       ecp%soiltemp_10d = soiltemp_10d
       ecp%airtemp_10d = airtemp_10d
-      ecp%paw_10d = paw_10d
       ecp%par_10d = par_10d
       ecp%gdd = gdd
       ecp%ncd = ncd
@@ -289,34 +276,47 @@
       type(patch) :: pp
       !--Local-----
       type(cohort), pointer :: cop
-  
-      real*8 :: gdd_threshold
       integer :: pft
       integer :: phenotype
-      real*8 :: soiltemp_10d      
-      real*8 :: airtemp_10d
-      real*8 :: paw_10d
-      real*8 :: gdd
-      real*8 :: ncd
-      real*8 :: sgdd
+      real*8 :: airtemp_10d    !10 day running mean of air temperature
+      real*8 :: soiltemp_10d   !10 day running mean of soil temperature    
+      real*8::  betad_10d      !10 day running mean of betad (calculated with stressH2O)  
+      real*8 :: ld             !day length in minutes
+      real*8 :: gdd            !growing degree days, based on air temperature
+      real*8 :: ncd            !number of chilling days, based on air temperature
+      real*8 :: sgdd           !growing degree days, based on soil temperature 
+      real*8 :: airt_adj       !adjustment for air temperature threshold (airt_max & airt_min)
+      real*8 :: soilt_adj      !adjustment for soil temperature threshold (soilt_max & soilt_min)
+      !*phenofactor : phenological elongation factor, ranging 0 (no leaf) to 1 (full leaf)
+      !_c for the cold-deciduous & _d for the drought-deciduous
+      real*8 :: phenofactor
       real*8 :: phenofactor_c
       real*8 :: phenofactor_d
-      real*8 :: phenofactor
-      real*8 :: airt_adj
-      real*8 :: soilt_adj
+      !*phenostatus :  define phenological status
+      !1 - no leaf (phenofactor, equal to 0; after leaf-off in the  fall, until leaf green-up in the next spring)
+      !2 - growing leaf (phenofactor, increasing from 0 to 1 in the spring) 
+      !3 - leaf in full growth (phenofactor, equal to 1)
+      !4 - leaf senescence (phenofactor, decreasing from 1 to 0 in the fall)
       real*8 :: phenostatus
-      logical :: temp_limit, water_limit 
-      logical :: fall
+      real*8 :: phenostatus_c
+      real*8 :: phenostatus_d
+      !*phenogy type 
+      logical :: cold_limit    !.true.=cold deciduous
+      logical :: drought_limit  !.true.=drought deciduous
+      !*GDD treshold (White et al.)      
+      real*8 :: gdd_threshold
+      !*whther the season is fall or not (determined in clim_stats)
+      logical :: fall         !.true. for fall
+      !*whether  PFT is wood or not
       logical :: woody
-      integer, parameter :: iwater_limit = 3 !SOILMOIST_OLD 0
-      integer, parameter :: itemp_limit = 1
-      real*8 :: mature = 1.2d0 !X day to mature: mature=1+X/1000
-      real*8::  betad_10d
-      real*8 :: ld
-
+      !*X day to mature: mature=1+X/1000 
+      !1.1 means 100 days to mature.
+      !it is devised to prevent abrupt grass green-up 
+      !in the middle of winter due to a couple of warm days. 
+      real*8 :: mature = 1.1d0 
+ 
       soiltemp_10d = pp%cellptr%soiltemp_10d
       airtemp_10d = pp%cellptr%airtemp_10d
-      paw_10d = pp%cellptr%paw_10d
       gdd = pp%cellptr%gdd
       ncd = pp%cellptr%ncd
       if ( pp%cellptr%fall == 1 ) then
@@ -327,250 +327,134 @@
       sgdd = pp%cellptr%sgdd
       ld = pp%cellptr%daylength(2)
 
-      gdd_threshold = gdd_par1 + gdd_par2*exp(gdd_par3*ncd)  
-
       cop => pp%tallest
       do while(ASSOCIATED(cop))                
          phenofactor_c=cop%phenofactor_c
          phenofactor_d=cop%phenofactor_d
          phenofactor=cop%phenofactor
-         phenostatus=cop%phenostatus
+         phenostatus_c=cop%phenostatus
+         phenostatus_d=cop%phenostatus
          betad_10d=cop%betad_10d
          pft=cop%pft
          phenotype=pfpar(pft)%phenotype
-
-
-         if (phenotype .eq. COLDDECID) then 
-            temp_limit = .true.
-            water_limit = .false.
-         else if (phenotype .eq. DROUGHTDECID) then 
-            temp_limit = .true.
-            water_limit = .true.
-         else if (phenotype .eq. EVERGREEN) then
-            temp_limit = .false.
-            water_limit = .false.
-         else !any of cold and drought deciduous
-            temp_limit = .true.
-            water_limit = .true.            
-         end if
-
-         airt_adj=0.d0
-         if (pft.eq.DROUGHTDECIDBROAD)airt_adj=10.d0
-
-         soilt_adj=0.d0
-!!!fix it         if (pft .eq. GRASSC3ARCTIC)soilt_adj=-5.d0
-
          woody = pfpar(pft)%woody
 
-         !temperature-controlled woody
-         if (temp_limit.and.woody) then
-             if ((.not. fall) .and.
-     &         (phenostatus.lt.3.d0).and.(gdd.gt.gdd_threshold)) then
-               phenofactor_c = min (1.d0,(gdd-gdd_threshold)/gdd_length)
-               if (phenofactor_c .lt. 1.d0) then
-                  phenostatus = 2.d0
-               else
-                  phenostatus = 3.d0
-               end if
-            end if
-            if (fall .and. 
-     &         (phenostatus.ge.3.d0).and.
-     &         (airtemp_10d.lt.airt_max_w+airt_adj)) then
-               phenofactor_c = min(phenofactor_c,max(0.d0,
-     &            (airtemp_10d-airt_min_w-airt_adj)/
-     &            (airt_max_w-airt_min_w)))
-               if (phenofactor_c .eq. 0.d0) then
-                  phenostatus = 1.d0
-                  ncd = 0.d0             !zero-out
-                  gdd = 0.d0
-               else  
-                  phenostatus = 4.d0
-               end if 
-            end if
-            if (fall .and.
-     &         (phenostatus.ge.3.d0).and.(ld.lt.ld_max)) then
-               phenofactor_c = min(phenofactor_c, max(0.d0,
-     &          (ld - ld_min)/(ld_max-ld_min)))
-               if (phenofactor_c .eq. 0.0d0) then
-                 phenostatus =1.d0
-                 ncd =0.d0
-                 gdd =0.d0
-               else
-                 phenostatus=4.d0
-               end if
-            end if 
+         !***********************************************
+         !*Determine whther PFT cold or drought deciduous
+         !***********************************************
+         if (phenotype .eq. COLDDECID) then 
+            cold_limit = .true.
+            drought_limit = .false.
+         else if (phenotype .eq. DROUGHTDECID) then 
+            cold_limit = .true.
+            drought_limit = .true.
+         else if (phenotype .eq. EVERGREEN) then
+            cold_limit = .false.
+            drought_limit = .false.
+         else !any of cold and drought deciduous
+            cold_limit = .true.
+            drought_limit = .true.            
          end if
 
-         !temperature-controlled herbaceous 
-         if (temp_limit .and. (.not.woody) )then
-!            phenofactor_c = 1.d0 !not yet implemented
-            select case(itemp_limit)
-            case(0)
-               phenofactor_c = max(0.d0,min(1.d0,
-     &              (soiltemp_10d-soilt_min-soilt_adj)
-     &              /(soilt_max-soilt_min)))
-               if (phenofactor_c .ge. 0.999d0) then
-                  phenostatus = 3.d0
-               else if (phenofactor_c .le. EPS) then
-                  phenostatus = 1.d0
-               end if
-            case(1)
-               if ((.not. fall) .and.
-     &           (phenostatus.lt.3.d0).and.(sgdd.gt.100.d0)) then
-                 phenofactor_c = min (1.d0,(sgdd-100.d0)/50.d0)
-                 if (phenofactor_c .lt. 1.d0) then
-                    phenostatus = 2.d0
-                 else
-                    phenostatus = 3.d0
-                 end if
-               end if
-               if (fall .and.
-     &            (phenostatus.ge.3.d0).and.
-     &            (soiltemp_10d.lt.soilt_max+soilt_adj)) then
-                  phenofactor_c = min(phenofactor_c,max(0.d0,
-     &               (soiltemp_10d-soilt_min-soilt_adj)/
-     &               (soilt_max-soilt_min)))
-                  if (phenofactor_c .eq. 0.d0) then
-                     phenostatus = 1.d0
-                     sgdd = 0.d0
-                  else  
-                     phenostatus = 4.d0
-                  end if 
-               end if
-            end select
-         end if            
+         !*Set the air/temperature adjustment for specific PFTs
+         airt_adj=0.d0
+         if (pft.eq.DROUGHTDECIDBROAD)airt_adj=10.d0
+         soilt_adj=0.d0
+         if (pft .eq. GRASSC3ARCTIC)soilt_adj=-5.d0      
+
+
+         !*******************************************
+         !*Update the phenology for Cold-deciduous
+         !*******************************************
+         if (cold_limit)then
+
+           !*Cold-deciduous Woody
+           if (woody) then  
+             !*Update phenofactor and phenostatus
+             call pheno_update_coldwoody(cop%phenostatus, 
+     i            fall, airtemp_10d, airt_adj, ld,
+     o            gdd, ncd, 
+     o            phenofactor_c, phenostatus_c)
+
+          !*Cold-decidous Herbaceous
+          else 
+             !*Update phenofactor and phenostatus
+             call pheno_update_coldherbaceous(cop%phenostatus,
+     i            fall, soiltemp_10d, soilt_adj, 
+     o            sgdd, 
+     o            phenofactor_c, phenostatus_c)
+           end if
+
+         else !cold_limit=.false.
+           phenofactor_c = 1.d0
+           phenostatus_c  = 3.d0
+         end if          
                  
-         !phenofactor_c = 1.d0
+         !*******************************************
+         !*Update the phenology for Drought-deciduous
+         !*******************************************
+         if (drought_limit)then
 
-         !water-controoled woody
-         if (water_limit .and. woody .and. (phenostatus.ge.2.d0)) then
-            select case (iwater_limit)
-            case(0) !default with the 10-day paw
-               phenofactor_d = min(1.d0,max(0.d0,
-     &          ((paw_10d-paw_min_w)/(paw_max_w-paw_min_w))**paw_res_w))
-            case(1) !water_stress 
-               phenofactor_d = 0.d0 !HACK
-c$$$               phenofactor_d = water_stress(N_DEPTH  
-c$$$     i         ,pp%cellptr%Soilmp(:)
-c$$$     i         ,cop%fracroot(:)
-c$$$     i         ,pp%cellptr%fice(:), pfpar(pft)%hwilt
-c$$$     o         , cop%stressH2Ol(:)) 
-            case(2) !water_stress3 & betad_10d
-               if ((phenostatus .gt. mature) .and.
-     &           (phenostatus.lt.3.d0).and.
-     &           (betad_10d.gt.betad_min_w))then
-                  phenofactor_d = min(1.d0,
-     &                 ((betad_10d-betad_min_w)
-     &                 /(betad_max_w-betad_min_w))**betad_res_w)
-                  if (phenofactor_d .ge. 0.999d0) then
-                     phenostatus = 3.d0
-                  else
-                     phenostatus = 2.d0
-                  end if
-               else if ((phenostatus.ge.3.d0).and.
-     &            (betad_10d.lt.betad_max_w))then
-                  phenofactor_d = max(0.d0,
-     &                 ((betad_10d-betad_min_w)
-     &                 /(betad_max_w-betad_min_w))**betad_res_w)
-                  if (phenofactor_d .le. EPS) then
-                     phenostatus = 1.d0
-                  else
-                     phenostatus = 4.d0
-                  end if 
-               end if    
-            case(3) !water_stress3 & betad_10d & no controll in phenostatus
-               phenofactor_d = max(0.d0,min(1.d0,
-     &              ((betad_10d-betad_min_w)
-     &              /(betad_max_w-betad_min_w))**betad_res_w))
-            end select
-         end if
-  
- 
-         !water-controlled herbaceous
-         if (water_limit .and. (.not. woody)) then
-            select case(iwater_limit)
-            case(0) !default with the 10-day paw 
-               if ((phenostatus.lt.3.d0).and.(paw_10d.gt.paw_min_h))then
-                  phenofactor_d = min(1.d0,
-     &                 ((paw_10d-paw_min_h)
-     &                 /(paw_max_h-paw_min_h))**paw_res_h)
-                  if (phenofactor_d .lt. 1.d0) then
-                     phenostatus = 2.d0
-                  else
-                     phenostatus = 3.d0
-                  end if
-               else if ((phenostatus.ge.3.d0).and.
-     &                 (paw_10d.lt.paw_max_h))then
-                  phenofactor_d = max(0.d0,
-     &                 ((paw_10d-paw_min_h)
-     &                 /(paw_max_h-paw_min_h))**paw_res_h)
-                  if (phenofactor_d .eq. 0.d0) then
-                     phenostatus = 1.d0
-                  else
-                     phenostatus = 4.d0
-                  end if 
-               end if
-  
-            case(1) !water_stress 
-               phenofactor_d= 0.d0 !HACK
-c$$$               phenofactor_d= water_stress(N_DEPTH  
-c$$$     i         ,pp%cellptr%Soilmp(:)
-c$$$     i         ,cop%fracroot(:)
-c$$$     i         ,pp%cellptr%fice(:), pfpar(pft)%hwilt
-c$$$     o         , cop%stressH2Ol(:))
-            case(2) !water_stress3 & betad_10d
-               if ((phenostatus .gt. mature) .and.
-     &           (phenostatus.lt.3.d0).and.
-     &           (betad_10d.gt.betad_min_h))then
-                  phenofactor_d = min(1.d0,
-     &                 ((betad_10d-betad_min_h)
-     &                 /(betad_max_h-betad_min_h))**betad_res_h)
-                  if (phenofactor_d .ge. 0.999d0) then
-                     phenostatus = 3.d0
-                  else
-                     phenostatus = 2.d0
-                  end if
-               else if ((phenostatus.ge.3.d0).and.
-     &            (betad_10d.lt.betad_max_h))then
-                  phenofactor_d = max(0.d0,
-     &                 ((betad_10d-betad_min_h)
-     &                 /(betad_max_h-betad_min_h))**betad_res_h)
-                  if (phenofactor_d .le. EPS) then
-                     phenostatus = 1.d0
-                  else
-                     phenostatus = 4.d0
-                  end if 
-               end if    
-            case(3) !water_stress3 & betad_10d & no controll in phenostatus
-               phenofactor_d = max(0.d0,min(1.d0,
-     &              ((betad_10d-betad_min_h)
-     &              /(betad_max_h-betad_min_h))**betad_res_h))
-               if (phenostatus.le.mature)then
-                  phenofactor_d=0.d0
-               end if
-               if (phenofactor_d .ge. 0.999d0) then
-                  phenostatus = 3.d0
-               else if (phenofactor_d .le. EPS) then
-                  phenostatus = 1.d0
-               end if
-            end select
-          
-            if (aint(cop%phenostatus).eq.aint(phenostatus))then
-              phenostatus = cop%phenostatus + 1.d0/1000.d0  
-	    end if
-        
+           !*Drought-deciduous Woody
+           if (woody) then 
+             !*Update phenofactor and phenostatus
+             call pheno_update_drought(cop%phenostatus, 
+     i            mature, 
+     i            betad_10d, betad_min_w, betad_max_w, betad_res_w, 
+     o            phenofactor_d, phenostatus_d)
+
+         !*Drought-decidous Herbaceous
+          else 
+             !*Update phenofactor and phenostatus
+             call pheno_update_drought(cop%phenostatus, 
+     i            mature, 
+     i            betad_10d, betad_min_h, betad_max_h, betad_res_h, 
+     o            phenofactor_d, phenostatus_d)
+           end if   
+    
+         else !drought_limit=.false.
+           phenofactor_d = 1.d0
+           phenostatus_d = 3.d0
          end if  
-         
-#ifdef DEBUG
-            write(202,'(100e16.6)') phenofactor_d,pp%cellptr%Soilmp(:)
-     &      ,pp%cellptr%Soilmoist(:)
-     &      ,betad_10d, paw_10d
-#endif
 
-         if (.not.temp_limit) phenofactor_c = 1.d0
-         if (.not.water_limit) phenofactor_d = 1.d0
-      
-         phenofactor = phenofactor_c * phenofactor_d
+         !*******************************************
+         !*Update the phenology according to PFTs 
+         !*******************************************
+         if (phenotype .eq. COLDDECID) then 
+            phenofactor = phenofactor_c
+            phenostatus = phenostatus_c
+         else if (phenotype .eq. EVERGREEN) then !leaf in full growth
+            phenofactor = 1.d0 
+            phenostatus = 3.d0
+         else if (phenotype .eq. DROUGHTDECIDBROAD .and. 
+     &            .not.phenostatus_c.lt.3.d0) then
+             phenofactor = phenofactor_c
+             phenostatus = phenostatus_c
+         else !any of cold and drought deciduous
+            phenofactor = phenofactor_c * phenofactor_d   
+           if((phenostatus_c.ge.4.d0.and.phenostatus_d.ge.2.d0).or.
+     &       (phenostatus_d.ge.4.d0.and.phenostatus_c.ge.2.d0))then
+             phenostatus = max(phenostatus_c, phenostatus_d)
+           else
+             phenostatus = min(phenostatus_c, phenostatus_d)
+           end if
+          end if
+         
+         !*increment phenostatus by 0.001 
+         !to track how many days after phenostatus has been changed
+         if (aint(cop%phenostatus).eq.aint(phenostatus))then
+            phenostatus = cop%phenostatus + 1.d0/1000.d0  
+         end if
+    
+#ifdef DEBUG
+             write(202,'(3(i5),100(1pe16.8))') pp%cellptr%fall
+     &      ,phenofactor
+     &      ,phenofactor_c,phenofactor_d
+     &      ,phenostatus, cop%phenostatus
+     &      ,phenostatus_c, phenostatus_d
+     &      ,betad_10d,soiltemp_10d, mature
+     &      ,gdd, ncd
+#endif
          
          cop%phenofactor_c=phenofactor_c
          cop%phenofactor_d=phenofactor_d
@@ -587,6 +471,202 @@ c$$$     o         , cop%stressH2Ol(:))
       
 
       end subroutine pheno_update
+      !*********************************************************************  
+      subroutine pheno_update_coldwoody(phenostatus, 
+     i            fall, airtemp_10d, airt_adj, ld,
+     o            gdd, ncd, 
+     o            phenofactor_c, phenostatus_c)
+!@sum Update phenology for cold-decidous woody PFTs
+!@sum Called from pheno_update
+
+      use ent_const
+
+      !input variables
+      real*8, intent(in) :: phenostatus !phenological status (refer pheno_update for details) 
+      logical,intent(in) :: fall        !.true. if the season is fall
+      real*8, intent(in) :: airtemp_10d !10 day running mean of air temperature
+      real*8, intent(in) :: airt_adj    !adjustment for air temperature threshold (airt_max & airt_min)
+      real*8, intent(in) :: ld          !day length in minutes
+      !in/output variables
+      real*8, intent(inout) :: gdd      !growing degree days, based on air temperature
+      real*8, intent(inout) :: ncd      !number of chilling days, based on air temperature  
+      !output variables
+      real*8, intent(out) :: phenofactor_c !phenological factor for cold deciduous (refer pheno_update for details) 
+      real*8, intent(out) :: phenostatus_c !phenological status for cold deciduous (refer pheno_update for details)
+      !local variables
+      real*8 :: gdd_threshold   !GDD treshold (White et al.)      
+
+      !*GDD threshold for leaf green-up 
+      gdd_threshold = gdd_par1 + gdd_par2*exp(gdd_par3*ncd)  
+
+      !*Leaf-on in the spring, triggered by thermal sum
+      !if gdd is larger than its threshold 
+      !in the spring (when there's no leaf (phenostatus=1.X) or leaf is growing (phenostatus=2.X)), 
+      !determine the phenofactor and corresponding phenostatus.
+      if ((.not. fall) .and.
+     &   (phenostatus.lt.3.d0).and.(gdd.gt.gdd_threshold))then  
+         !determine phenofactor by scaling gdd with gdd_threshold and gdd_length
+         phenofactor_c = min (1.d0,(gdd-gdd_threshold)/gdd_length)
+         if (phenofactor_c .lt. 1.d0) then
+            phenostatus_c = 2.d0 !growing leaf
+         else 
+            phenostatus_c = 3.d0 !leaf in full grwoth
+         end if
+      end if
+
+      !*Leaf-off in the fall 
+      !*Leaf-off triggered by air temperature
+      !if air temperature is falling below its maximum 
+      !in the fall (when it's full-leaf (phenostatus=3.X) or leaf is senescening (phenostatus=4.X)), 
+      !determine the phenofactor and corresponding phenostatus.
+      if (fall .and. 
+     &   (phenostatus.ge.3.d0).and.
+     &   (airtemp_10d.lt.airt_max_w+airt_adj)) then
+         !determine phenofactor by scaling air temperature
+         !with its minimum(min+adj) and maximum(max+adj).
+         phenofactor_c = min(phenofactor_c,max(0.d0,
+     &      (airtemp_10d-airt_min_w-airt_adj)/
+     &      (airt_max_w-airt_min_w)))
+         if (phenofactor_c .eq. 0.d0) then
+            phenostatus_c = 1.d0   !no leaf
+            ncd = 0.d0             !zero-out ncd once complete leaf-off occurs.
+            gdd = 0.d0             !zero-out gdd once complete leaf-off occurs.
+         else  
+            phenostatus_c = 4.d0   !leaf senescence
+         end if 
+      end if
+      !*Leaf-off triggered by day-length
+      !if day length is falling shorter than its maximum 
+      !in the fall (when it's full-leaf (phenostatus=3.X) or leaf is senescening (phenostatus=4.X)), 
+      !determine the phenofactor and corresponding phenostatus.
+      if (fall .and.
+     &   (phenostatus.ge.3.d0).and.(ld.lt.ld_max)) then
+         !dtermine phenofactor by scaling the day length with its min and max.
+         phenofactor_c = min(phenofactor_c, max(0.d0,
+     &       (ld - ld_min)/(ld_max-ld_min)))
+         if (phenofactor_c .eq. 0.0d0) then
+            phenostatus_c =1.d0    !no leaf
+            ncd = 0.d0             !zero-out ncd once complete leaf-off occurs.
+            gdd = 0.d0             !zero-out gdd once complete leaf-off occurs.
+         else
+            phenostatus_c = 4.d0   !leaf senescence
+         end if
+      end if    
+       
+      end subroutine pheno_update_coldwoody
+      !*********************************************************************  
+      subroutine pheno_update_coldherbaceous(phenostatus, 
+     i            fall, soiltemp_10d, soilt_adj,
+     o            sgdd,  
+     o            phenofactor_c, phenostatus_c)
+!@sum Update phenology for cold-decidous herbaceous PFTs
+!@sum Called from pheno_update
+
+      use ent_const
+
+      !input variables
+      real*8, intent(in) :: phenostatus !phenological status (refer pheno_update for details) 
+      logical,intent(in) :: fall         !.true. if the season is fall
+      real*8, intent(in) :: soiltemp_10d !10 day running mean of soil temperature
+      real*8, intent(in) :: soilt_adj    !adjustment for soil temperature threshold (soilt_max & soilt_min)
+      !in/output variables
+      real*8, intent(inout) :: sgdd      !growing degree days, based on soil temperature
+      !output variables
+      real*8, intent(out) :: phenofactor_c !phenological factor for cold deciduous (refer pheno_update for details) 
+      real*8, intent(out) :: phenostatus_c !phenological status for cold deciduous (refer pheno_update for details)
+        
+      !*Leaf-on in the spring, triggered by thermal sum, based on soil temperature
+      !if sgdd is larger than its threshold 
+      !in the spring (when there's no leaf (phenostatus=1.X) or leaf is growing (phenostatus=2.X)), 
+      !determine the phenofactor and corresponding phenostatus.
+      if ((.not. fall) .and.
+     &   (phenostatus.lt.3.d0) .and.
+     &   (sgdd.gt.sgdd_threshold)) then
+        !determine phenofactor by scaling sgdd with gsdd_threshold and sgdd_length
+         phenofactor_c  
+     &      = min (1.d0,(sgdd-sgdd_threshold)/sgdd_length)
+         if (phenofactor_c .lt. 1.d0) then
+            phenostatus_c = 2.d0    !growing leaf
+         else 
+            phenostatus_c = 3.d0    !leaf in full growth
+         end if
+      end if
+
+      !*Leaf-off in the fall 
+      !*Leaf-off triggered by soil temperature
+      !if soil temperature is falling below its maximum 
+      !in the fall (when it's full-leaf (phenostatus=3.X) or leaf is senescening (phenostatus=4.X)), 
+      !determine the phenofactor and corresponding phenostatus.
+      if (fall .and.
+     &   (phenostatus.ge.3.d0).and.
+     &   (soiltemp_10d.lt.soilt_max+soilt_adj)) then
+         !determine phenofactor by scaling soil temperature
+         !with its minimum(min+adj) and maximum(max+adj).
+         phenofactor_c = min(phenofactor_c,max(0.d0,
+     &      (soiltemp_10d-soilt_min-soilt_adj)/(soilt_max-soilt_min)))
+         if (phenofactor_c .eq. 0.d0) then
+            phenostatus_c = 1.d0    !no leaf
+            sgdd = 0.d0             !zero-out sgdd once complete leaf-off occurs.
+         else  
+            phenostatus_c = 4.d0    !leaf senescence
+         end if 
+      end if
+    
+
+      end subroutine pheno_update_coldherbaceous
+      !*********************************************************************  
+      subroutine pheno_update_drought(phenostatus, 
+     i            mature, betad_10d, betad_min, betad_max, betad_res,
+     o            phenofactor_d, phenostatus_d)
+!@sum Update phenology for drought-deciduous PFTs
+!@sum Called from pheno_update
+
+      use ent_const
+
+      !input variables
+      real*8, intent(in) :: phenostatus !phenological status (refer pheno_update for details) 
+      real*8, intent(in) :: mature      !X day to mature: mature=1+X/1000  (refer pheno_update for details) 
+      real*8, intent(in) :: betad_10d   !10 day running mean of betad (calculated with stressH2O)  
+      real*8, intent(in) :: betad_min   !betad minimum
+      real*8, intent(in) :: betad_max   !betad maximum
+      real*8, intent(in) :: betad_res   !betad resistance
+      !output variables
+      real*8, intent(out) :: phenofactor_d !phenological factor for drought deciduous (refer pheno_update for details) 
+      real*8, intent(out) :: phenostatus_d !phenological status for drought deciduous (refer pheno_update for details)
+
+      !*Leaf-on in the spring, triggered by water stress 
+      !if betad is larger than its minimum 
+      !in the spring (when there's no leaf (phenostatus=1.X) or leaf is growing (phenostatus=2.X), 
+      !and after long enough after the leaf-off), 
+      !determine the phenofactor and corresponding phenostatus.
+      if ((phenostatus .gt. mature) .and.
+     &   (phenostatus.lt.3.d0).and. (betad_10d.gt.betad_min))then
+         !determine phenofactor by scaling betad with its mim, max and resistance factor
+         phenofactor_d = min(1.d0,
+     &      ((betad_10d-betad_min)/(betad_max-betad_min))**betad_res)
+         if (phenofactor_d .ge. 0.95d0) then
+            phenostatus_d = 3.d0    !leaf in full growth
+         else
+            phenostatus_d = 2.d0    !growing leaf
+         end if
+
+      !*Leaf-off in the fall 
+      !*Leaf-off triggered by water stress
+      !if betad is falling smaller than its maximum 
+      !in the fall (when there's no leaf (phenostatus=1.X) or leaf is growing (phenostatus=2.X)), 
+      !determine the phenofactor and corresponding phenostatus.
+      else if ((phenostatus.ge.3.d0).and. (betad_10d.lt.betad_max))then
+         !determine phenofactor by scaling betad with its mim, max and resistance factor
+         phenofactor_d = max(0.d0,
+     &      ((betad_10d-betad_min)/(betad_max-betad_min))**betad_res)
+         if (phenofactor_d .le. EPS) then
+            phenostatus_d = 1.d0    !no leaf
+         else
+            phenostatus_d = 4.d0    !leaf senescence
+         end if 
+      end if    
+      
+      end subroutine pheno_update_drought
       !*********************************************************************   
       subroutine veg_update(pp,config)
 !@sum Update the vegetation state and carbon pools:
@@ -606,11 +686,11 @@ c$$$     o         , cop%stressH2Ol(:))
       logical :: woody
       logical :: is_annual 
       logical :: par_limit
-      ! phenofactor phenological elongation factor [0,1] (unitless)
-      real*8 :: phenofactor
       real*8 :: C_fol_old,C_froot_old,C_sw_old,C_hw_old,C_croot_old
       real*8 :: C_fol, C_froot, C_croot, C_sw, C_hw
       real*8 :: C_lab
+      ! phenofactor phenological elongation factor [0,1] (unitless)
+      real*8 :: phenofactor
       ! Cactive active carbon pool: foliage, sapwood, fine root (gC/pool/individual)
       real*8 :: Cactive
       ! Cactive_max maximum active carbon pool allowed by the allometric constraint 
@@ -654,8 +734,6 @@ c$$$     o         , cop%stressH2Ol(:))
       real*8 :: tot_closs_acc, tot_closs_acc_old
       real*8 :: cop_n_old, cop_n
 
-
- 
       !Initialize
       laipatch = 0.d0
       Clossacc(:,:,:) = 0.d0 
@@ -764,12 +842,13 @@ cddd         end if
          C_hw_old = C_hw
          Cactive_old =Cactive
          
-!#ifdef COMMENT_OUT
+
+         !*calculate the litter from turnover
          call litter_turnover_cohort(SDAY,
      i        C_fol_old,C_froot_old,C_hw_old,C_sw_old,C_croot_old,
      &        cop,Clossacc,
      &        turn_leaf,resp_growth1)
-!#endif
+
          C_lab_old =C_lab
          C_lab = cop%C_lab 
          CB_d = cop%CB_d - (C_lab_old-C_lab)
@@ -791,6 +870,7 @@ cddd         end if
 
          call prescr_init_Clab(pft,nplant,cpool)
          Cfol_half =cpool(LABILE)
+
          !----------------------------------------------------
          !*active growth: increment Cactive and decrease C_lab
          !----------------------------------------------------
@@ -804,9 +884,9 @@ cddd         end if
          cop%C_froot = Cactive * qf * ialloc
          cop%C_sw = Cactive * h *qsw * ialloc
  
-         !----------------------------------------------------
-         !*structural/active/reproductive
-         !----------------------------------------------------
+         !--------------------------------------------------------
+         !*structural (corresponding active, reproductive) growth
+         !-------------------------------------------------------
 !          print*,pft,pfpar(pft)%phenotype, COLDDECID,pfpar(pft)%woody
 !          print*,cop%phenostatus
          dormant = .false.
@@ -860,6 +940,7 @@ cddd         end if
          cop%C_sw = max( 0.d0, cop%C_sw)
          cop%C_hw = max( 0.d0, cop%C_hw)
 
+         !*calculate the litter from growth
          call litter_growth_cohort(dCrepro, !SDAY,dCrepro,
      i        C_fol_old,C_froot_old,C_hw_old,C_sw_old,C_croot_old,
      &        dC_litter_hw,dC_litter_croot,cop,Clossacc)
@@ -927,10 +1008,12 @@ cddd         write(901,*) "deltaC*n ", (tot_c - tot_c_old)*cop%n
 
          cop => cop%shorter 
       end do !looping through cohorts
- 
-      call litter_patch(pp, Clossacc) !Update Tpool from all litter.
+  
+      !*Update Tpool from all litter.
+      call litter_patch(pp, Clossacc) 
 
-      pp%LAI = laipatch  !Update
+      !*Update patch-level LAI
+      pp%LAI = laipatch  
 
       !* Update patch fluxes with growth respiration. *!
       !* The daily respiration fluxes are accumulated in C_growth to
@@ -969,8 +1052,11 @@ cddd         write(901,*) "deltaC*n ", (tot_c - tot_c_old)*cop%n
       real*8 :: dCactive
       real*8 :: C_labavail
       real*8 :: dCavail
-      integer, parameter :: CPotModel = 2
-      integer, parameter :: AGrowthModel= 3 !1 grass growth with no storage; 2 grass growth with storage; 3 grass growth with storage after the certain size; 4 grass/tree growth with storage
+      !option for active growth
+      !1 grass growth with no storage; 2 grass growth with storage; 
+      !3 grass growth with storage after the certain size; 4 grass/tree growth with storage
+      integer, parameter :: AGrowthModel= 3 
+
       !-------------------------------
       !*calculate the change in C_lab 
       !-------------------------------    
@@ -983,12 +1069,7 @@ cddd         write(901,*) "deltaC*n ", (tot_c - tot_c_old)*cop%n
             !Cactive_max (max. allowed pool size according to the DBH)
             !Cactive_pot (current size + daily accumulated carbon)  
             !Cactive (cuurent size)
-            select case (CPotModel)
-            case(1)
-               Cactive_pot = Cactive + C_lab
-            case(2)
-               Cactive_pot = Cactive + min(C_lab, CB_d)!only new carbon is used for growth.
-            end select
+            Cactive_pot = Cactive + min(C_lab, CB_d)!only new carbon is used for growth.
             dCavail = min(Cactive_max, Cactive_pot) - Cactive
             select case (AGrowthModel)
             case(1) !no storage - default
@@ -1077,8 +1158,11 @@ c$$$      Cactive = Cactive + dC_remainder
       real*8 :: dCfrootdCdead
       real*8 :: dHdCdead
       real*8 :: dCswdCdead
+      !option for structural growth
+      !1 - based on ED1; 2 - based on ED2; 3 - to reserve Clab (not yet implemented) 
       integer, parameter :: SGrowthModel=1
       real*8 :: Cavail
+
       !--------------------------------------------------
       !*calculate the growth fraction for different pools
       !--------------------------------------------------        
@@ -1229,43 +1313,7 @@ c$$$      Cactive = Cactive + dC_remainder
       
       end subroutine update_plant_cpools
 
-      !*********************************************************************
-c$$$      subroutine senesce_cpools(is_annual, C_fol_old,C_fol,Cactive,
-c$$$     &                          senescefrac, dC_lab)
-c$$$      logical, intent(in) :: is_annual  !NOT USED
-c$$$      real*8, intent(in) :: C_fol_old
-c$$$      real*8, intent(in) :: C_fol
-c$$$      !real*8, intent(in) :: C_lab
-c$$$      real*8, intent(inout) :: Cactive
-c$$$      real*8, intent(out) :: senescefrac
-c$$$      real*8, intent(out) :: dC_lab
-c$$$      !---- Local ------
-c$$$      real*8 :: dC_fol
-c$$$      real*8 :: dCactive
-c$$$
-c$$$      senescefrac = 0.d0
-c$$$      if (C_fol_old .gt. C_fol) then 
-c$$$         !with senescening, the part of foliage carbon goes to the litter pool
-c$$$         ! and the remained goes to the labile.
-c$$$         dC_fol = C_fol - C_fol_old !negative
-c$$$         dCactive = dC_fol 
-c$$$         dC_lab = - dCactive * l_fract
-c$$$         if (C_fol_old .ne. 0.d0 ) then 
-c$$$            senescefrac = -dC_fol * (1.d0 - l_fract) 
-c$$$     &           /C_fol_old
-c$$$         endif    
-c$$$      else
-c$$$         dCactive = 0.d0
-c$$$         dC_lab = 0.d0         
-c$$$      endif
-c$$$
-c$$$      !C_lab = C_lab + dC_lab  
-c$$$      !Instead, return dC_lab
-c$$$      Cactive= Cactive + dCactive
-c$$$      
-c$$$      end subroutine senesce_cpools
-
-
+ 
       !*********************************************************************
       subroutine accumulate_Clossacc(pft,Closs, Clossacc)
       integer, intent(in) :: pft
@@ -2160,6 +2208,18 @@ c      end subroutine litter_old
       end subroutine photosyn_acclim
 
 !*************************************************************************
+      real*8 function running_mean(dtsec,numd,var,var_mean) 
+      real*8, intent(in) :: dtsec
+      real*8, intent(in) :: numd !number of days for running mean
+      real*8, intent(in) :: var
+      real*8, intent(in) :: var_mean
+      real*8 :: zweight
+
+      zweight=exp(-1.d0/(numd*86400.d0/dtsec))
+      running_mean=zweight*var_mean+(1.d0-zweight)*var  
+      
+      end function running_mean
+!*************************************************************************
       real*8 function sla(pft,llspan)
       integer, intent(in) :: pft
       real*8, intent(in) :: llspan
@@ -2253,9 +2313,9 @@ c$$$      end if
       real*8 function height2Cfol(pft,height)
       integer,intent(in) :: pft
       real*8, intent(in) :: height
-      real*8,parameter :: h1Cf = 5.0d0  !1.660d0
-      real*8,parameter :: h2Cf = 1.20d0 !1.500d0
-      real*8,parameter :: nplant = 3000.0d0
+      real*8,parameter :: h1Cf = 1.66d0 
+      real*8,parameter :: h2Cf = 1.50d0 
+      real*8,parameter :: nplant = 2500.d0 
       height2Cfol=(1.0d0/C2B) *h1Cf 
      &        *((height*100.0d0)**h2Cf)/nplant
 
@@ -2264,9 +2324,9 @@ c$$$      end if
       real*8 function Cfol2height(pft,Cfol)
       integer,intent(in) :: pft
       real*8, intent(in) :: Cfol !gC/pool/plant
-      real*8,parameter :: h1Cf = 5.0d0  !1.660d0
-      real*8,parameter :: h2Cf = 1.20d0 !1.500d0
-      real*8,parameter :: nplant = 3000.0d0
+      real*8,parameter :: h1Cf = 1.66d0 
+      real*8,parameter :: h2Cf = 1.5d0
+      real*8,parameter :: nplant = 2500.d0
 
       if (Cfol.gt.0.0d0) then
          Cfol2height=exp(log(Cfol*C2B/h1Cf*nplant)/h2Cf)/100.0d0
@@ -2344,34 +2404,6 @@ c$$$      end if
       endif
 
       end function frost_hardiness
-!---------------------------------------------------------------------!
-      function water_stress(nlayers, soilmp, fracroot, fice,
-     &     hwilt, betadl) Result(betad)
-      !1. Rosensweig & Abramopoulos water stress fn.
-
-      implicit none
-      integer,intent(in) :: nlayers !Number of soil layers
-      real*8,intent(in) ::  soilmp(:) !Soil matric potential (m)
-      real*8,intent(in) :: fracroot(:) !Fraction of roots in layer
-      real*8,intent(in) :: fice(:)  !Fraction of ice in layer
-      real*8,intent(in) :: hwilt  !Wilting point of pft, matric pot. (m)
-      real*8,intent(out) :: betadl(:) !Water stress in layers
-      real*8 :: betad !Stress value, 0-1, 1=no stress
-      !---Local-----------
-      integer :: k
-      
-      betad = 0.d0
-      do k = 1,nlayers
-        betadl(k) = (1.d0-fice(k))*fracroot(k)
-!     &       *max((hwilt-soilmp(k))/hwilt,0.d0) !R&A original
-     &       *min(1.d0,max((hwilt-soilmp(k))/(hwilt + 25.d0),0.d0))  !With unstressed range to h=-25 m.
-        betad = betad + betadl(k) 
-      end do
-      if (betad < EPS2) betad=0.d0
-
-      end function water_stress
-
-!----------------------------------------------------------------------!
     
 !*************************************************************************
       subroutine phenology_diag(cohortnum, cop)
@@ -2406,7 +2438,7 @@ c$$$      end if
      &        cop%turnover_amp,
      &        cop%pptr%cellptr%airtemp_10d,
      &        cop%pptr%cellptr%soiltemp_10d, !21
-     &        cop%betad_10d, !cop%pptr%cellptr%paw_10d,
+     &        cop%betad_10d,
      &        cop%pptr%cellptr%par_10d,
      &        cop%pptr%cellptr%gdd,
      &        cop%pptr%cellptr%ncd,
@@ -2418,62 +2450,4 @@ c$$$      end if
 
       end subroutine phenology_diag
 !*************************************************************************
-      !*********************************************************************
-c$$$      subroutine veg_init(pp)
-c$$$
-c$$$      use ent_pfts
-c$$$      use entcells
-c$$$
-c$$$      implicit none
-c$$$      save
-c$$$
-c$$$      type(patch) :: pp
-c$$$      type(cohort), pointer :: cop 
-c$$$      integer :: pft
-c$$$      real*8 :: dbh
-c$$$      real*8 :: h
-c$$$      real*8 :: qsw
-c$$$      real*8 :: ialloc
-c$$$
-c$$$   
-c$$$      pp%cellptr%soiltemp_10d = 0.0d0
-c$$$      pp%cellptr%airtemp_10d = 0.0d0
-c$$$      pp%cellptr%paw_10d = 0.50d0
-c$$$      pp%cellptr%par_10d = 100.d0
-c$$$      pp%cellptr%light_prev = pp%cellptr%CosZen
-c$$$      !call entcell_print( 6, pp%cellptr )
-c$$$
-c$$$      cop => pp%tallest   
-c$$$
-c$$$      do while(ASSOCIATED(cop))
-c$$$         pft=cop%pft
-c$$$         h=cop%h
-c$$$         if (.not.pfpar(pft)%woody) then !grasses/crops/non-woody
-c$$$            dbh = 0.0d0  
-c$$$            cop%n=cop%LAI/pfpar(pft)%sla/(height2Cfol(pft,h)/1000.0d0) 
-c$$$            !write(992,*) "In phenology veg_init herb,cop%n=",cop%n
-c$$$            qsw = 0.d0
-c$$$            cop%C_hw = 0.0d0
-c$$$            cop%C_croot =  0.0d0
-c$$$         else
-c$$$            dbh=height2dbh(pft,h)
-c$$$            cop%n=cop%LAI/pfpar(pft)%sla/(dbh2Cfol(pft,dbh)/1000.0d0)
-c$$$            !write(992,*) "In phenology veg_init woody,cop%n=",cop%n
-c$$$            qsw = pfpar(pft)%sla*iqsw
-c$$$            cop%C_hw = dbh2Cdead(pft,dbh) * hw_fract
-c$$$            cop%C_croot = dbh2Cdead(pft,dbh) * (1.0d0 - hw_fract)
-c$$$         end if
-c$$$         cop%dbh=dbh
-c$$$         cop%C_fol = 1000.0d0*cop%LAI/pfpar(pft)%sla/cop%n
-c$$$         cop%C_froot =  q*1000.0d0*cop%LAI/pfpar(pft)%sla/cop%n
-c$$$         ialloc = (1.0d0+q+h*qsw)
-c$$$         cop%C_sw = cop%C_fol * h * qsw  
-c$$$         cop%llspan = 36.d0  !late successional tropical
-c$$$         cop%phenostatus = 1
-c$$$         cop%C_lab = 0.5 * cop%C_fol
-c$$$
-c$$$         cop => cop%shorter  
-c$$$
-c$$$      end do
-c$$$      end subroutine veg_init
       end module phenology
