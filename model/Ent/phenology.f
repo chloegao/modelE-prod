@@ -685,44 +685,37 @@
       integer :: pft
       logical :: woody
       logical :: is_annual 
-      logical :: par_limit
       real*8 :: C_fol_old,C_froot_old,C_sw_old,C_hw_old,C_croot_old
+      real*8 :: Cactive_old
       real*8 :: C_fol, C_froot, C_croot, C_sw, C_hw
       real*8 :: C_lab
-      ! phenofactor phenological elongation factor [0,1] (unitless)
-      real*8 :: phenofactor
-      ! Cactive active carbon pool: foliage, sapwood, fine root (gC/pool/individual)
-      real*8 :: Cactive
-      ! Cactive_max maximum active carbon pool allowed by the allometric constraint 
-      real*8 :: Cactive_max
-      ! Cdead dead carbon pool, including hardwood and coarse root (gC/pool/individual)
-      real*8 :: Cdead
-      ! qsw - allometric factor for sapwood as a function of 
-      real*8 :: qsw
-      ! dbh diameter at the breast height (cm)
-      real*8 :: dbh
-      ! h plant height (m)
-      real*8 :: h
-      ! plant population (#-individual/m2-ground)
-      real*8 :: nplant
+      real*8 :: phenofactor !phenological elongation factor [0,1] (unitless)
+      real*8 :: Cactive     !active carbon pool: foliage, sapwood, fine root (gC/pool/individual)
+      real*8 :: Cactive_max !maximum active carbon pool allowed by the allometric constraint 
+      real*8 :: Cdead       !dead carbon pool, including hardwood and coarse root (gC/pool/individual)
+      real*8 :: qsw         !allometric factor for sapwood as a function of 
+      real*8 :: dbh         !diameter at the breast height (cm)
+      real*8 :: h           !plant height (m
+      real*8 :: nplant      !plant population (#-individual/m2-ground)
       real*8 :: alloc,ialloc
       real*8 :: senescefrac !This is now net fraction of foliage that is litter.
-      ! CB_d daily carbon balance (gC/individual)
-      real*8 :: CB_d
+      real*8 :: CB_d        !daily carbon balance (gC/individual)
       real*8 :: laipatch
       real*8 :: qf
-      real*8 :: dCrepro, dC_lab
+      real*8 :: dCrepro
+      real*8 :: dC_lab
+      real*8 :: C_lab_old
+      logical :: dormant
+      real*8 :: dC_litter_hw
+      real*8 :: dC_litter_croot
+      real*8 :: Cfol_half
       real*8 :: Clossacc(PTRACE,NPOOLS,N_CASA_LAYERS) !Litter accumulator.
       real*8 :: resp_auto_patch, resp_root_patch !kg-C/m/s
       integer :: cohortnum
-      real*8 :: C_lab_old, Cactive_old
-      real*8 :: turn_leaf,resp_growth1, resp_growth2
-      logical :: dormant
-      real*8 :: dC_litter_hw,dC_litter_croot
-      real*8 :: phenofactor_old, alloc_adj
-      real*8 :: Cfol_half
       real*8 :: cpool(N_BPOOLS) 
-      logical, parameter :: alloc_new=.false.
+      real*8 :: turn_leaf
+      real*8 :: resp_growth1
+      real*8 :: resp_growth2
       integer, parameter :: irecruit=1
       real*8 :: dummy
 
@@ -743,28 +736,21 @@
       resp_growth1=0.d0
       resp_growth2=0.d0
       cpool(:) = 0.d0
-
-      patch_tot_c_old = patch_carbon(pp)
-
       tot_closs_acc_old = 0.d0
       tot_closs_acc = 0.d0
+
+      patch_tot_c_old = patch_carbon(pp)
 
       cop => pp%tallest
 
       do while(ASSOCIATED(cop))
 
-        tot_c_old = cop%n*cohort_carbon(cop)
-        cop_n_old = cop%n
-               
-cddd         C_fol_old = cop%C_fol
-cddd         C_froot_old = cop%C_froot
-cddd         C_croot_old = cop%C_croot
-cddd         C_sw_old = cop%C_sw
-cddd         C_hw_old = cop%C_hw
-
          pft = cop%pft
-         phenofactor = cop%phenofactor        
+         phenofactor = cop%phenofactor   
 
+         tot_c_old = cop%n*cohort_carbon(cop)
+         cop_n_old = cop%n
+               
          cohortnum = cohortnum + 1
 
          is_annual = .false.
@@ -802,39 +788,38 @@ cddd         end if
          C_croot = cop%C_croot 
 
 
-        !------------------------------------------------
-        !*calculate allometric relation - qsw, qf, ialloc
-        !------------------------------------------------ 
-         !qsw  = pfpar(pft)%sla*iqsw
-         qsw  = sla(pft,cop%llspan)*iqsw !qsw*h: ratio of sapwood to leaf biomass
-         if (.not.woody) qsw = 0.0d0 !for herbaceous, no allocation to the wood        
+         !*************************************************
+         !*Allometric relation - qsw, qf, ialloc
+         !*************************************************
+         !*calculate qsw 
+         !qsw*h: ratio of sapwood to leaf biomass
+         qsw  = sla(pft,cop%llspan)*iqsw 
+         !for herbaceous, no allocation to the sap wood   
+         if (.not.woody) qsw = 0.0d0      
          
-         qf = q !q: ratio of root to leaf biomass
+         !*calculate qf
+         !q: ratio of root to leaf biomass  
+         qf = q 
+         !for annual grasses, fine roots are assumed to be proportional to the foliage
          if (is_annual .and. pfpar(pft)%leaftype.eq.MONOCOT)
-     &      qf=q*phenofactor !for annual grasses, fine roots are prop. to the foliage
+     &      qf=q*phenofactor 
          
+         !*calculate total allocation
+         !phenofactor - for foliage, qf - for root, qsw*h - for sapwood
          alloc = phenofactor+qf+h*qsw
-         if (alloc_new) alloc=1.d0+qf+h*qsw
+         !ialloc: inverse of alloc
          if (alloc .ne. 0.0d0) then
            ialloc = 1.d0/alloc
          else
            ialloc = 0.d0
          end if
 
-        !---------------------------------------- 
-        !*determine plant carbon pools 
-        !---------------------------------------- 
-         Cactive = C_froot + C_fol + C_sw
-         if (alloc_new) then
-            phenofactor_old=C_fol/C_froot*qf
-            alloc_adj=alloc-1.d0+phenofactor_old
-            if (alloc_adj.ne.0.d0) then
-               Cactive=(C_froot+C_sw+C_fol)*alloc/alloc_adj
-            else
-               Cactive=C_froot+C_sw+C_fol
-            end if
-         end if
-         Cdead = C_hw + C_croot  
+         !**********************
+         !*Litter from turnover
+         !**********************
+         !*save existing plant carbon pools 
+         Cactive = C_froot + C_fol + C_sw !active = fine root + foliage + sapwood
+         Cdead = C_hw + C_croot           !dead = heartwood + coarse root
          C_fol_old = C_fol
          C_froot_old = C_froot
          C_croot_old = C_croot
@@ -842,83 +827,96 @@ cddd         end if
          C_hw_old = C_hw
          Cactive_old =Cactive
          
-
          !*calculate the litter from turnover
          call litter_turnover_cohort(SDAY,
      i        C_fol_old,C_froot_old,C_hw_old,C_sw_old,C_croot_old,
      &        cop,Clossacc,
      &        turn_leaf,resp_growth1)
 
+         !*update labile carbon from litter_turnover_cohort,
+         !and resulting daily carbon balance
          C_lab_old =C_lab
          C_lab = cop%C_lab 
          CB_d = cop%CB_d - (C_lab_old-C_lab)
 
+         !****************************************************
+         !*Active growth: increment Cactive and decrease C_lab
+         !****************************************************
+         !*determine the potential max. of active pool
+         !*for woody  - allmetirc constraint given DBH
          if (woody) then  
             Cactive_max=dbh2Cfol(pft,dbh)*(alloc+(1.d0-phenofactor))
+         !*for non-woody (i.e., herbaceous)
+         !no allometric constraints in the carbon allocation, 
+         !then use arbitrary max height (5m, tall enough) 
          else
             Cactive_max=height2Cfol(pft,5.d0)*(alloc+(1.d0-phenofactor))
-           !no allometric constraints in the carbon allocation, 
-           !then 5.0d0 is arbitrary number (must be tall enough, then 5m)
-         end if
-         if (alloc_new) then
-            if (woody) then  
-               Cactive_max=dbh2Cfol(pft,dbh)*alloc
-            else
-               Cactive_max=height2Cfol(pft,5.d0)*alloc
-            end if
          end if
 
+         !*determine the half of foliage 
+         !arbitrary number, based on GISS LAImax 
          call prescr_init_Clab(pft,nplant,cpool)
          Cfol_half =cpool(LABILE)
 
-         !----------------------------------------------------
-         !*active growth: increment Cactive and decrease C_lab
-         !----------------------------------------------------
+
+         !*calculate growth of active carbon pools  
          call  growth_cpools_active(pft,phenofactor,ialloc,Cactive_max,
      &        Cfol_half,CB_d,Cactive,C_lab,C_fol)
       
-         !----------------------------------------------------  
-         !*update the active pools
-         !----------------------------------------------------
+         !*update the active carbon pools
          cop%C_fol = phenofactor * Cactive *ialloc
          cop%C_froot = Cactive * qf * ialloc
          cop%C_sw = Cactive * h *qsw * ialloc
  
-         !--------------------------------------------------------
-         !*structural (corresponding active, reproductive) growth
-         !-------------------------------------------------------
-!          print*,pft,pfpar(pft)%phenotype, COLDDECID,pfpar(pft)%woody
-!          print*,cop%phenostatus
+         !*********************************************************
+         !*Structural growth (& corresponding active, reproductive) 
+         !*********************************************************
+         !*determine whether the structural growth is activated or not.
+         !for most of cases, it is activated,
+         !but the structural growth of cold deciduous trees
+         !only in the spring (when leaf is growing).
          dormant = .false.
          dormant =
      &      (pfpar(pft)%phenotype .eq. COLDDECID .and. 
      &      pfpar(pft)%woody .and. 
      &      cop%phenostatus .lt. 2.d0 .and. cop%phenostatus .ge. 3.d0 )
      
+         !*initialize the change in reproductive pool
          dCrepro = 0.d0
-!#ifdef COMMENT_OUT
+
+         !*calculate the structural growth, 
+         !and corresponding changes in active & reproductive pools
          if (.not.dormant)           
      &       call growth_cpools_structural(pft,dbh,h,qsw,qf,phenofactor,
      &       C_sw,Cactive_max,C_fol,CB_d,Cactive_old, 
      &       Cactive,C_lab,Cdead,dCrepro) 
-!#endif
+
+          !*update the patch-level reproductive pool
           cop%pptr%Reproduction(cop%pft) = 
      &        cop%pptr%Reproduction(cop%pft)+ dCrepro*cop%n
 
          
-         !----------------------------------------------------  
-         !*update the active and structural pools
-         !----------------------------------------------------
-         cop%C_fol = phenofactor * Cactive *ialloc
-         cop%C_froot = Cactive * qf * ialloc
-         cop%C_sw = Cactive * h *qsw * ialloc
+         !****************************************
+         !*Update the active and structural pools
+         !****************************************
+         !*allocate the active carbon into foliage, fine root and sapwood, 
+         !according to the allocation ratio
+         cop%C_fol = phenofactor * Cactive *ialloc !foliage = phenofactor * active / (phenofactor + qf + h*qsw)
+         cop%C_froot = Cactive * qf * ialloc       !froot = qf * active / (phenofactor + qf + h*qsw)
+         cop%C_sw = Cactive * h *qsw * ialloc      !sw = (h * qsw) * active / (phenofactor + qf + h*qsw)  
              
+         
+         !*allocate the structural carbon into heartwood and coarse root
+         !*if strcutural growth is off (set in the rundeck),
+         !we assume any estimated changes in hw & croot becomes litter.         
          if (.not.config%do_structuralgrowth) then
              dC_litter_hw = max(0.d0,cop%C_hw - C_hw_old)
              dC_litter_croot = max(0.d0,cop%C_croot - C_croot_old)
              cop%C_hw=C_hw_old
              cop%C_croot=C_croot_old
              Cdead = cop%C_hw+cop%C_croot
+         !*if strcutural growth is off (set in the rundeck),
+         !changes in dead pool is alloocated into hw & croot.         
          else
             dC_litter_hw =0.d0
             dC_litter_croot = 0.d0
@@ -926,9 +924,9 @@ cddd         end if
             cop%C_croot = Cdead * (1-hw_fract)     
          endif
 
-         !----------------------------------------------------   
-         !*senesce and accumulate litter
-         !---------------------------------------------------- 
+         !********************
+         !*Litter from growth 
+         !********************
          !phenology + turnover + C_lab change + growth respiration
          !senescefrac returned is fraction of foliage that is litter.
 
@@ -941,10 +939,11 @@ cddd         end if
          cop%C_hw = max( 0.d0, cop%C_hw)
 
          !*calculate the litter from growth
-         call litter_growth_cohort(dCrepro, !SDAY,dCrepro,
+         call litter_growth_cohort(dCrepro, 
      i        C_fol_old,C_froot_old,C_hw_old,C_sw_old,C_croot_old,
      &        dC_litter_hw,dC_litter_croot,cop,Clossacc)
 
+         !*update the fraction of senescence 
          if (C_fol_old.eq.0.d0) then
            cop%senescefrac = 0.d0
          else
@@ -952,18 +951,10 @@ cddd         end if
      &          (max(0.d0,C_fol_old - cop%C_fol) + turn_leaf)/C_fol_old
          endif
 
-         !* Tissue growth respiration is subtracted at physical time step in canopyspitters.f.
-         !  -Update of C_growth and C_growth_flux is now done inside litter_growth_cohort
-         !   as in litter_cohort.
-         !cop%C_growth = (resp_growth1+resp_growth2)*cop%n*1.d-3  
-         !cop%C_growth_flux = cop%C_growth/(24.d0*3600.d0) ! resp flux
-
-         !Put senesced amount into litterfall into the soil.
-
-
-         !----------------------------------------------------  
-         !*update the plant size, LAI & nitrogen
-         !----------------------------------------------------  
+         !****************************************
+         !*Update the plant size, LAI & nitrogen
+         !****************************************
+         !*update dbh & height  
          if (woody) then
             cop%dbh = Cdead2dbh(pft,Cdead)
             cop%h = dbh2height(pft,cop%dbh)
@@ -972,11 +963,13 @@ cddd         end if
             cop%h = Cfol2height(pft,cop%C_fol)
          end if
          
+         !*update LAI
          !cop%LAI=cop%C_fol/1000.0d0*pfpar(pft)%sla*cop%n
          cop%LAI=cop%C_fol/1000.0d0*sla(pft,cop%llspan)*cop%n
          if (cop%LAI .lt. EPS) cop%LAI=EPS
          laipatch = laipatch + cop%lai  
 
+         !*update Ntot
          cop%Ntot = cop%nm * cop%LAI 
 
          !* Summarize for patch level *!
@@ -984,11 +977,7 @@ cddd         end if
          resp_auto_patch = resp_auto_patch  + cop%R_auto 
          resp_root_patch = resp_root_patch + cop%R_root
 
-#ifdef PHENOLOGY_DIAG
-         call phenology_diag(cohortnum,cop)  
-#endif
-            
-         !zero-out the daily accumulated carbon 
+         !*Zero-out the daily accumulated carbon 
          cop%CB_d = 0.d0   
 
          d_tot_c(cohortnum) = cop%n*cohort_carbon(cop) - tot_c_old
@@ -1006,6 +995,10 @@ cddd         write(901,*) "deltaC*n ", (tot_c - tot_c_old)*cop%n
          !write(901,*) "Clossacc ", Clossacc
 
 
+#ifdef PHENOLOGY_DIAG
+         call phenology_diag(cohortnum,cop)  
+#endif
+            
          cop => cop%shorter 
       end do !looping through cohorts
   
@@ -1018,10 +1011,7 @@ cddd         write(901,*) "deltaC*n ", (tot_c - tot_c_old)*cop%n
       !* Update patch fluxes with growth respiration. *!
       !* The daily respiration fluxes are accumulated in C_growth to
       !* be distributed over the course of a day to avoid pulses at night.
-!WRONG      pp%R_auto = resp_auto_patch !Total flux including growth increment.
       pp%R_root = pp%R_root + resp_root_patch !Total flux including growth increment.
-!      pp%NPP = pp%GPP - resp_auto_patch ##Distribute with C_growth
-
 
       patch_tot_c = patch_carbon(pp)
 
@@ -1037,39 +1027,48 @@ cddd         write(901,*) "deltaC*n ", (tot_c - tot_c_old)*cop%n
       subroutine growth_cpools_active(pft,phenofactor,ialloc, 
      &     Cactive_max,Cfol_half,CB_d,Cactive,C_lab,C_fol)
      
+      !input variables
       integer, intent(in) :: pft
       real*8, intent(in) :: phenofactor
       real*8, intent(in) :: ialloc
       real*8, intent(in) :: Cactive_max
       real*8, intent(in) :: Cfol_half
       real*8, intent(in) :: CB_d
+      !variables updated in the subroutine 
       real*8, intent(inout) :: Cactive
       real*8, intent(inout) :: C_lab
       real*8, intent(inout) :: C_fol
-      real*8 :: Cactive_pot
-      real*8 ::dC_lab  !g-C/individual. Negative for reduction of C_lab for growth.
-      real*8 :: dC_remainder
-      real*8 :: dCactive
-      real*8 :: C_labavail
-      real*8 :: dCavail
+      !local variables
+      real*8 :: Cactive_pot !potential maximum of active carbon pools
+      real*8 :: dC_lab      !change in labile [g-C/individual],  negative for reduction of C_lab for growth.
+      real*8 :: dCactive    !change in active 
+      real*8 :: dCavail     !available carbon for active pool
       !option for active growth
       !1 grass growth with no storage; 2 grass growth with storage; 
       !3 grass growth with storage after the certain size; 4 grass/tree growth with storage
       integer, parameter :: AGrowthModel= 3 
 
-      !-------------------------------
-      !*calculate the change in C_lab 
-      !-------------------------------    
-                   
+      !*******************************
+      !*Calculate the change in C_lab 
+      !*******************************
+      !*1) Allocate the carbon to active pool, 
+      !if both labile pool and daily carbon balance are positive             
       if (C_lab .gt.0.d0 .and. CB_d .gt. 0.d0) then
+        
+         !*1-1) if there's no leaf, 
+         !no change in labile and active pool;
+         !i.e., accumulated labile carbon stays in the labile. 
          if (phenofactor .eq. 0.d0) then
             dC_lab = 0.d0 !store the carbon in the labile
             dCactive = 0.d0
+
+         !*1-2) if leaves are existing, 
+         !certain amount of the labile carbon is relocated into the active carbon.
          else 
             !Cactive_max (max. allowed pool size according to the DBH)
             !Cactive_pot (current size + daily accumulated carbon)  
             !Cactive (cuurent size)
-            Cactive_pot = Cactive + min(C_lab, CB_d)!only new carbon is used for growth.
+            Cactive_pot = Cactive + min(C_lab, CB_d) !only new carbon is used for growth.
             dCavail = min(Cactive_max, Cactive_pot) - Cactive
             select case (AGrowthModel)
             case(1) !no storage - default
@@ -1097,15 +1096,21 @@ cddd         write(901,*) "deltaC*n ", (tot_c - tot_c_old)*cop%n
                   dCactive = (1.d0-r_fract) * dCavail
                end if
             end select
+            !Update dC_lab according to DCactive
             if (dCactive .lt. 0.d0)then
-                dC_lab = - dCactive * l_fract
-            else
-                dC_lab = - dCactive
+                dC_lab = - dCactive * l_fract !translocated from active to labile
+            else 
+                dC_lab = - dCactive           !labile carbon is allocated to active
             end if
          end if
+
+      !*2) Translocate the active carbon to labile, 
+      !if the labile carbon is negative.
       else if (C_lab .lt. 0.d0 ) then
          dCactive = C_lab / l_fract
          dC_lab = - C_lab 
+
+      !*3) Otherwise, nothing happens.
       else  
          dCactive = 0.d0
          dC_lab = 0.d0
@@ -1116,14 +1121,12 @@ cddd         write(901,*) "deltaC*n ", (tot_c - tot_c_old)*cop%n
      &                            Cactive_max,Cactive_pot
 #endif
 
-      !------------------------
-      !*update the carbon pools
-      !------------------------
+      !******************************************
+      !*Update the labile and active carbon pools
+      !******************************************
       C_lab = C_lab + dC_lab
       Cactive = Cactive +dCactive
-c$$$      C_fol = phenofactor * Cactive * ialloc
-c$$$      dC_remainder = (1.d0-phenofactor )*Cactive*ialloc 
-c$$$      Cactive = Cactive + dC_remainder
+
 
       end subroutine growth_cpools_active
 
@@ -1148,45 +1151,62 @@ c$$$      Cactive = Cactive + dC_remainder
       real*8, intent(inout) :: C_lab
       real*8, intent(inout) :: Cdead
       real*8, intent(out) :: dCrepro
-      real*8 :: dCdead 
+      !local variables
+      real*8 :: Cavail        !available carbon for growth
+      real*8 :: dCdead        
       real*8 :: dCactive
-      !gr_fract: fraction of excess c going to structural growth
-      real*8 :: gr_fract  
-      real*8 :: rp_fract
-      real*8 :: qsprime,qs
+      real*8 :: gr_fract      !fraction of excess C going to structural growth
+      real*8 :: rp_fract      !fraction of C to reproductive pool
+      real*8 :: qs            
+      real*8 :: qsprime
       real*8 :: dCfoldCdead
       real*8 :: dCfrootdCdead
       real*8 :: dHdCdead
       real*8 :: dCswdCdead
       !option for structural growth
-      !1 - based on ED1; 2 - based on ED2; 3 - to reserve Clab (not yet implemented) 
+      !1 - based on ED1 (Moorcroft et al.); 2 - based on ED2 (Medvigy et al.)
       integer, parameter :: SGrowthModel=1
-      real*8 :: Cavail
 
-      !--------------------------------------------------
-      !*calculate the growth fraction for different pools
-      !--------------------------------------------------        
-      if (.not.pfpar(pft)%woody) then !herbaceous
+
+      !**************************************************
+      !*Calculate the growth fraction for different pools
+      !**************************************************
+      !*Herbaceous   
+      if (.not.pfpar(pft)%woody) then 
+         !all remained labile carbon can be allocated to different pools. 
          Cavail = C_lab
+         !when labile carbon exists
          if (C_lab .gt. 0.d0 )then
-         if (phenofactor .eq. 0.d0) then
-            qs = 0.d0  !no structural pools
-            rp_fract = r_fract + c_fract
-            gr_fract = 1.d0 - rp_fract
-         else
-            qs = 0.d0
-            rp_fract = 0.d0
-            gr_fract = 0.d0
-         end if
-         else
-            qs = 0.d0
+            !if there's no leaf, 
+            !carbon is allocated btw reproductive and active pools.
+            if (phenofactor .eq. 0.d0) then
+               qs = 0.d0 !no structural pools for grass 
+               rp_fract = r_fract + c_fract
+               gr_fract = 1.d0 - rp_fract
+            !otherwise, labile carbon stays in the pool.
+            else
+               qs = 0.d0 !no structural pools for grass 
+               rp_fract = 0.d0
+               gr_fract = 0.d0
+            end if
+         !if labile pool is negative, 
+         !carbon is translocated from the active pool.
+         else 
+            qs = 0.d0    !no structural pools for grass 
             rp_fract = 0.d0
             gr_fract = 1.d0 / l_fract
          end if
-      else !woody
-         Cavail = min(C_lab,C_sw) !C used for growth is limited by both size of avaiable labile storage 
-                                  !& size of sapwood pool.
-         if (SGrowthModel.eq.1) then !based on ED1
+
+      !*Woody
+      else 
+         !C used for growth is limited by both size of avaiable labile storage 
+         !& size of sapwood pool.
+         Cavail = min(C_lab,C_sw)
+ 
+         !*1)Option 1: Growth, based on ED1
+         !in this option, the active growth is accounted
+         !corresponding to the structural growth
+         if (SGrowthModel.eq.1) then 
             if (C_fol .gt. 0.d0 .and. 
      &           Cactive .ge. Cactive_max .and. C_lab .gt. 0.d0) then
                if (dbh .le. maxdbh(pft))then
@@ -1216,7 +1236,11 @@ c$$$      Cactive = Cactive + dC_remainder
                rp_fract = 0.d0
                gr_fract = 1.d0
             end if
-         else if (SGrowthModel.eq.2) then !based on ED2
+       
+         !*2) Option 2: Growth, based on ED2
+         !in this option, available carbon goes to the structural pool 
+         !without corresponding growth in the active pool
+         else if (SGrowthModel.eq.2) then 
             if (C_lab .gt. 0.d0 .and. CB_d .gt.0.d0 )then
                qs = 1.d0
                rp_fract = r_fract
@@ -1226,17 +1250,6 @@ c$$$      Cactive = Cactive + dC_remainder
                rp_fract = r_fract
                gr_fract = 1.d0 - rp_fract
             end if
-         else if (SGrowthModel.eq.3) then !option, reserving Clab 
-                                          !not yet implemented
-            if (C_lab .gt. 0.d0 .and. CB_d .gt.0.d0 )then
-               qs = 1.d0
-               rp_fract = r_fract
-               gr_fract = 1.d0 - rp_fract 
-            else
-               qs = 0.d0
-               rp_fract = r_fract
-               gr_fract = 1.d0 - r_fract
-            end if
          end if
       end if
        
@@ -1244,18 +1257,14 @@ c$$$      Cactive = Cactive + dC_remainder
       dCactive = gr_fract *(1.d0 - qs) * Cavail
       dCrepro =  rp_fract  * Cavail
 
-!Notes, misc - NK:      
-!      cop%pptr%Reproduction(cop%pft) = 
-!     &     cop%pptr%Reproduction(cop%pft) + 0.2d0*cop%NPP*dtsec !(kg/m2-patch) !Reprod. fraction in ED is 0.3, in CLM-DGVM 0.1, so take avg=0.2.
-
 
 #ifdef DEBUG
       write(201,'(100(1pe16.8))') C_lab, dCactive, dCdead,dCrepro
 #endif
 
-      !------------------------
+      !************************
       !*update the carbon pools
-      !------------------------
+      !************************
       C_lab = C_lab - (dCdead + dCactive+dCrepro)
       Cdead = Cdead + dCdead
       Cactive = Cactive + dCactive
