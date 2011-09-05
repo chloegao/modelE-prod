@@ -41,6 +41,7 @@
 !##### TEMPORARY HACK - YK #####
 !to avoid the conflict in phenology.f
       integer, parameter :: DROUGHTDECIDBROAD = 20
+      integer, parameter :: GRASSC3ARCTIC = 21
 !##### TEMPORARY HACK - YK #####
       !*-----------------------------------------
       !* Veg types correspondence between models:
