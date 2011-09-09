@@ -1751,6 +1751,9 @@ c**** quantities accumulated for surface type tables in diagj
       call inc_aj(i,j,itearth,j_crops  ,  CROPS_DIAG(i,j)*ptype)
 #endif
 
+c**** quantities accumulated for subdd
+      R_acc(I,J)=R_acc(I,J)+(aruns+arunu)*ptype
+
       end subroutine ghy_diag
 
 c***********************************************************************
