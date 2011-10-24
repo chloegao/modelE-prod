@@ -309,11 +309,7 @@ ccc#endif
       logical,intent(in) :: do_read_from_files
 
       !-----Local------
-<<<<<<< HEAD
       integer :: i,j, jeq, p
-=======
-      integer :: i,j, jeq,p
->>>>>>> 8e0fc57010b21d8adb96b03cb771795e5f3f6b8e
       integer hemi(I0:I1,J0:J1)
       REAL*8 :: soil_C_total(N_CASA_LAYERS,I0:I1,J0:J1)
 
