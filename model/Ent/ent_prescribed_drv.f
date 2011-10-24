@@ -309,7 +309,11 @@ ccc#endif
       logical,intent(in) :: do_read_from_files
 
       !-----Local------
+<<<<<<< HEAD
       integer :: i,j, jeq, p
+=======
+      integer :: i,j, jeq,p
+>>>>>>> 8e0fc57010b21d8adb96b03cb771795e5f3f6b8e
       integer hemi(I0:I1,J0:J1)
       REAL*8 :: soil_C_total(N_CASA_LAYERS,I0:I1,J0:J1)
 
@@ -407,20 +411,24 @@ ccc        call stop_model("fix reading soil C for site", 255)
 #endif
       !print*,'vegdata(:,I1,J1)',vegdata(:,I1,J1)
       !print*,'hdata',hdata(:,I1,J1)
-      !print*,'nmdata',nmdata(:,I1,J1)
+      !print*,'soil_color',soil_color
+      !print*,'nmdata',nmdata
       !print*,'dbhdata',dbhdata(:,I1,J1)
       !print*,'popdata',popdata(:,I1,J1)
       !print*,'craddata',craddata(:,I1,J1)
+      !print*,'laidata',laidata(:,I1,J1)
       !do p=1,N_PFT
       !     print*,'cpooldata pft=',p,
-      !&     cpooldata(p+COVEROFFSET,:,I1,J1)
-      ! enddo 
-!      print*,'cpooldata(GRASSC32+COVEROFFSET,:,I1,J1)',
-!     &     cpooldata(GRASSC3+COVEROFFSET,:,I1,J1)
-!    &     cpooldata(SHRUB+COVEROFFSET,:,I1,J1)
-!      print*,'cpooldata(SAVANNA+COVEROFFSET,:,I1,J1)',
-!     &     cpooldata(SAVANNA+COVEROFFSET,:,I1,J1)
-      !print*,'soil_color',soil_color
+      ! &     cpooldata(p+COVEROFFSET,:,I1,J1)
+      !enddo 
+      !do p=1,N_PFT
+      !   print *,'sla pft=',p,pfpar(p)%sla
+      !enddo
+      !do p=1,N_PFT
+      !   print *,'lrage pft=',p,pfpar(p)%lrage
+      !enddo
+      !print *,'vhght',vhght(:)
+      !print *,'alamax',alamax(:)
 
       end subroutine prescr_vegdata
 
