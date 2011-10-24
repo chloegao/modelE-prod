@@ -700,7 +700,7 @@
       Resp_sw = facclim*0.012D-6 *  !kg-C/m2/s
 !     &     Resp_can_maint(cop%pft,0.0714d0*cop%C_sw, !Sapwood - 330 C:N from CLM, factor 0.5/7=0.0714 relative to foliage from Ruimy et al (1996); 58 from Tatarinov & Cienciala (2006) BIOME-BGC pine live wood
      &     Resp_can_maint(cop%pft,cop%C_sw, !Sapwood - 330 C:N mass ratio from CLM, factor 0.5/7=0.0714 relative to foliage from Ruimy et al (1996); 58 from Tatarinov & Cienciala (2006) BIOME-BGC pine live wood, range 42-73.5 kg-C/kg-N
-     &     42.d0,TcanopyK,TairK_10d, cop%n) 
+     &     330.d0,TcanopyK,TairK_10d, cop%n) 
       Resp_lab = 0.d0           !kg-C/m2/s - Storage - NON-RESPIRING
       !* Assume fine root C:N same as foliage C:N
       Resp_root = facclim*0.012D-6 * Resp_can_maint(cop%pft,cop%C_froot,

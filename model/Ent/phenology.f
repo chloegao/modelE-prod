@@ -41,7 +41,7 @@
       !1000.0: sapwood density (kg/m3)
       !2.0:  biomass per carbon (kg/kgC)
       !(qsw)=(iqsw*sla) (1/m) & (qsw*h): ratio of sapwood to leaf biomass (unitless)
-      !(iqsw)=1000.0d0/3900.0d0/2.0d0=0.1282
+      !(iqsw)=1000.0d0/3900.0d0/2.0d0=0.1282 !NOTE: This value corrects an error in the coefficient in Moorcroft et al. (2001) Appendix D, which had the value too small by a factor of 100, at 0.00128.
       real*8, parameter :: iqsw=1000.0d0/3900.0d0/2.0d0
       !*hw_fract: ratio of above ground stem to total stem (stem plus structural roots) (value from ED)
       real*8, parameter :: hw_fract = 0.70d0 
