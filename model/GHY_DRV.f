@@ -1532,6 +1532,7 @@ c***********************************************************************
      &     ,ij_aflmlt,ij_aeruns,ij_aerunu,ij_fveg
      &     ,ij_htsoil,ij_htsnow,ij_aintrcp
      &     ,ij_evapsn,ij_irrW, ij_irrE
+     &     ,ij_ent_debug
 #if (defined HEALY_LM_DIAGS) && (defined USE_ENT) 
      &     ,ij_crops,j_crops,CROPS_DIAG
 #endif
@@ -1557,7 +1558,7 @@ c***********************************************************************
      &    ,qs,ts,ngr=>n,ht,hsn,fr_snow,nsn
      &    ,tg2av,wtr2av,ace2av
      &    ,tg_L,wtr_L,ace_L
-     &    ,airrig,aeirrig
+     &    ,airrig,aeirrig,ent_debug_buf
 
       use ghy_com, only : gdeep, gsaveL, fearth
       USE CLOUDS_COM, only : DDMS
@@ -1641,6 +1642,10 @@ ccc the following values are returned by PBL
       tg1=tsns
       shdt=-ashg
       evhdt=-alhg
+
+      aij(i,j,ij_ent_debug:ij_ent_debug+256-1)=
+     &     aij(i,j,ij_ent_debug+256-1)
+     &     + ent_debug_buf(:)*ptype
 
       aij(i,j,ij_psoil)=aij(i,j,ij_psoil)+ptype/nisurf
       aij(i,j,ij_fveg)=aij(i,j,ij_fveg)+fv/nisurf
