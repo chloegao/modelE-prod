@@ -10,6 +10,7 @@
       use ent_pfts
       use photcondmod, only : pscondleaf, ciMIN
       use FarquharBBpspar
+      use ent_debug_mod, only : ent_d
 
       implicit none
       
@@ -259,6 +260,17 @@
         R_autosum = R_autosum + cop%R_auto
         R_rootsum = R_rootsum + cop%R_root  !PK 5/15/07
         C_labsum = C_labsum + cop%C_lab * cop%n !Sum for cohort.
+
+        !set values for debugging
+        ent_d%vf(cop%pft) = pp%area
+        ent_d%Anet(cop%pft) = Anet
+        ent_d%Atot(cop%pft) = Atot
+        ent_d%Rd(cop%pft) = Rd
+        ent_d%GCANOPY(cop%pft) = GCANOPY
+        ent_d%TRANS_SW(cop%pft) = TRANS_SW
+        ent_d%LAI(cop%pft) = cop%LAI
+        ent_d%GPP(cop%pft) = cop%GPP
+        ent_d%R_auto(cop%pft) = cop%R_auto
 
         cop => cop%shorter
       end do
@@ -745,6 +757,15 @@
       cop%R_root = Resp_root
       cop%NPP = cop%GPP - cop%R_auto !kg-C/m2-ground/s
       cop%C_lab = cop%C_lab + 1000.d0*cop%NPP*dtsec/cop%n !(g-C/individual)
+
+      !set values for debugging
+        ent_d%Resp_fol(cop%pft) = Resp_fol
+        ent_d%Resp_sw(cop%pft) = Resp_sw
+        ent_d%Resp_lab(cop%pft) = Resp_lab
+        ent_d%Resp_root(cop%pft) = Resp_root
+        ent_d%Resp_maint(cop%pft) = Resp_maint
+        ent_d%Resp_growth_1(cop%pft) = Resp_growth_1
+        ent_d%Resp_growth(cop%pft) = Resp_growth
 
 C#define OFFLINE 1
 C#ifdef OFFLINE

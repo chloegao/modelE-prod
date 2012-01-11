@@ -15,6 +15,7 @@ canopyradiation.f \
 allometryfn.f reproduction.f phenology.f \
 disturbance.f soilbgc.f ent_const.f \
 ent_types.f ent_prescr_veg.f ent_prescribed_updates.f \
+ent_debug.f
 
 # different versions of the code
 ifeq ($(PFT_MODEL),ENT)
