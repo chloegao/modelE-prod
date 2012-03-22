@@ -19,6 +19,7 @@
      &     ,prescr_calc_soilcolor
       public ED_woodydiameter,popdensity,Ent_dbh
       public crown_radius_horiz, crown_radius_vert
+      public wooddensity_gcm3
 
 #ifdef ENT_STANDALONE_DIAG
       public print_ent_pfts
@@ -581,14 +582,31 @@ c**** calculate root fraction afr averaged over vegetation types
       end subroutine prescr_init_Clab
 !*************************************************************************
 
+cddd      real*8 function wooddensity_gcm3(pft) Result(wooddens)
+cddd      use ent_pfts, only : pfpar
+cddd      integer,intent(in) :: pft
+cddd      !* Wood density (g cm-3). Moorcroft et al. (2001).
+cddd
+cddd      wooddens = max(0.5d0, 0.5d0 + 0.2d0*(pfpar(pft)%lrage-1.d0))
+cddd
+cddd      end function wooddensity_gcm3
+
+
       real*8 function wooddensity_gcm3(pft) Result(wooddens)
+      !* Returns wood density in total mass per volume (total mass = dry mass = C + N + everything else)
       use ent_pfts, only : pfpar
       integer,intent(in) :: pft
       !* Wood density (g cm-3). Moorcroft et al. (2001).
 
-      wooddens = max(0.5d0, 0.5d0 + 0.2d0*(pfpar(pft)%lrage-1.d0))
+      if (pfpar(pft)%leaftype.eq.NEEDLELEAF) then
+        wooddens = 0.5d0
+      else
+        wooddens = min(
+     &       max(0.5d0, 0.5d0 + 0.2d0*(pfpar(pft)%lrage-1.d0)), 1.05d0)       
+      endif
 
       end function wooddensity_gcm3
+
 !*************************************************************************
       subroutine prescr_calc_soilcolor(soil_color)
       !* Return arrays of GISS soil color and texture.

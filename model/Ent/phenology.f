@@ -36,13 +36,6 @@
       real*8, parameter :: l_fract = 0.50d0 
       !*q: ratio of root to leaf biomass (unitless) (value from ED)
       real*8, parameter :: q=1.0d0 
-      !*iqsw: sapwood biomass per (leaf area x wood height) (kgC/m2/m) (value from ED)
-      !3900.0: leaf area per sapwood area (m2/m2) 
-      !1000.0: sapwood density (kg/m3)
-      !2.0:  biomass per carbon (kg/kgC)
-      !(qsw)=(iqsw*sla) (1/m) & (qsw*h): ratio of sapwood to leaf biomass (unitless)
-      !(iqsw)=1000.0d0/3900.0d0/2.0d0=0.1282 !NOTE: This value corrects an error in the coefficient in Moorcroft et al. (2001) Appendix D, which had the value too small by a factor of 100, at 0.00128.
-      real*8, parameter :: iqsw=1000.0d0/3900.0d0/2.0d0
       !*hw_fract: ratio of above ground stem to total stem (stem plus structural roots) (value from ED)
       real*8, parameter :: hw_fract = 0.70d0 
       !*C2B: ratio of biomass to carbon (kg-Biomass/kg-Carbon) 
@@ -99,6 +92,21 @@
       real*8, parameter :: mort_seedling = 0.90d0 
 
       contains
+
+      real*8 function iqsw(pft)
+      !*iqsw: sapwood biomass per (leaf area x wood height) (kgC/m2/m) (value from ED)
+      !3900.0: leaf area per sapwood area (m2/m2) 
+      !1000.0: sapwood density (kg/m3)
+      !2.0:  biomass per carbon (kg/kgC)
+      !(qsw)=(iqsw*sla) (1/m) & (qsw*h): ratio of sapwood to leaf biomass (unitless)
+      !(iqsw)=1000.0d0/3900.0d0/2.0d0=0.1282 !NOTE: This value corrects an error in the coefficient in Moorcroft et al. (2001) Appendix D, which had the value too small by a factor of 100, at 0.00128.
+      use ent_prescr_veg, only : wooddensity_gcm3
+      real*8, parameter :: iqsw0=1000.0d0/3900.0d0/2.0d0
+      integer, intent(in) :: pft
+
+      iqsw = iqsw0*wooddensity_gcm3(pft)
+
+      end function iqsw
 
 
       !*********************************************************************
@@ -793,7 +801,7 @@ cddd         end if
          !*************************************************
          !*calculate qsw 
          !qsw*h: ratio of sapwood to leaf biomass
-         qsw  = sla(pft,cop%llspan)*iqsw 
+         qsw  = sla(pft,cop%llspan)*iqsw(pft)
          !for herbaceous, no allocation to the sap wood   
          if (.not.woody) qsw = 0.0d0      
          
@@ -1306,7 +1314,7 @@ cddd         write(901,*) "deltaC*n ", (tot_c - tot_c_old)*cop%n
       !* Initialize
       cpool(:) = 0.d0 
 
-      qsw = pfpar(pft)%sla*iqsw
+      qsw = pfpar(pft)%sla*iqsw(pft)
       if (.not.pfpar(pft)%woody) qsw = 0.0d0
 
       cpool(FOL) = lai/pfpar(pft)%sla/popdens *1d3!Bl
