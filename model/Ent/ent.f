@@ -145,10 +145,13 @@
         call ent_diagnostics(patchnum, pp)
 #endif
           !*********************************************************!
+
         pp => pp%younger 
       end do
 
       call summarize_entcell(ecp)
+
+      call debug_diags(ecp)
 
 #ifdef DEBUG
       print *,"End of ent_integrate"
@@ -411,5 +414,71 @@ cddd#endif
      &     ,ecp%NPP,ecp%CO2flux,ecp%GCANOPY
 
       end subroutine ent_diagnostics_entcell
+
+
+      subroutine debug_diags(ecp)
+      use ent_debug_mod
+      type(entcelltype), intent(in) :: ecp
+      !---
+      type(patch),pointer :: pp
+      type(cohort), pointer :: cop
+
+      real*8 :: defacc_scale= 1.d0/(3600*24*1000.d0)  !!! hack
+      real*8 :: area, n, scale
+      integer i, k, pft
+
+
+      ent_d%total(:) = 0.d0
+      ent_d%C_lab(:) = 0.d0
+      ent_d%C_fol(:) = 0.d0
+      ent_d%C_sw(:) = 0.d0
+      ent_d%C_hw(:) = 0.d0
+      ent_d%C_froot(:) = 0.d0
+      ent_d%C_croot(:) = 0.d0
+      ent_d%C_soil(:) = 0.d0
+
+      pp => ecp%oldest
+
+      do while (associated(pp))
+        area = pp%area
+
+        pft = 0
+        cop => pp%tallest
+        do while (associated(cop))
+          pft = cop%pft
+          n = cop%n
+          scale = n*1.d-3 * defacc_scale      ! was : n*area*1.d-3
+
+          ent_d%C_lab(pft) = ent_d%C_lab(pft) + cop%C_lab*scale
+          ent_d%C_fol(pft) = ent_d%C_fol(pft) + cop%C_fol*scale
+          ent_d%C_sw(pft) = ent_d%C_sw(pft) + cop%C_sw*scale
+          ent_d%C_hw(pft) = ent_d%C_hw(pft) + cop%C_hw*scale
+          ent_d%C_froot(pft) = ent_d%C_froot(pft) + cop%C_froot*scale
+          ent_d%C_croot(pft) = ent_d%C_croot(pft) + cop%C_croot*scale
+          !ent_d%C_(pft) = ent_d%C_(pft) + cop%C_*scale
+
+          cop => cop%shorter
+        end do
+
+                                !!! assume 1 cohort per patch
+        if ( pft > 0) then      ! skip cells with no vegetation
+          do i=1,N_CASA_LAYERS
+            do k=(NLIVE+1),NPOOLS
+              ent_d%C_soil(pft)=ent_d%C_soil(pft)
+     &             + pp%Tpool(CARBON,k,i)*1.d-3 * defacc_scale ! *area
+            enddo
+          enddo
+          ent_d%Resp_soil(pft)=ent_d%Resp_soil(pft) + pp%Soil_resp
+        endif
+
+        pp => pp%younger
+      end do
+
+      ent_d%total(:) = ent_d%C_lab(:) + ent_d%C_fol(:)
+     &	   + ent_d%C_sw(:) + ent_d%C_hw(:)
+     &     + ent_d%C_froot(:) + ent_d%C_croot(:)
+     &     + ent_d%C_soil(:)
+
+      end subroutine debug_diags
 
       end module ent
