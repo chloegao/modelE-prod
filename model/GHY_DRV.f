@@ -1403,7 +1403,7 @@ c another surface type
       end do loop_j
 
       call dealloc_pbl_args(pbl_args)
-      call dump_ent_C_diags
+      !call dump_ent_C_diags
 
       ! land water deficit for changing lake fractions
       !!! not working with Ent
@@ -1560,6 +1560,7 @@ c***********************************************************************
      &    ,tg_L,wtr_L,ace_L
      &    ,airrig,aeirrig,ent_debug_buf
 
+      use ent_debug_mod, only : SIZE_ENT_DEBUG
       use ghy_com, only : gdeep, gsaveL, fearth
       USE CLOUDS_COM, only : DDMS
 
@@ -1643,7 +1644,8 @@ ccc the following values are returned by PBL
       shdt=-ashg
       evhdt=-alhg
 
-      aij(i,j, ij_ent_debug:ij_ent_debug+256-1)=
+      aij(i,j, ij_ent_debug:ij_ent_debug+SIZE_ENT_DEBUG-1)=
+     &     aij(i,j, ij_ent_debug:ij_ent_debug+SIZE_ENT_DEBUG-1)
      &     + ent_debug_buf(:)*ptype
 
       aij(i,j,ij_psoil)=aij(i,j,ij_psoil)+ptype/nisurf
