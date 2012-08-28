@@ -596,8 +596,6 @@ c**** calculate root fraction afr averaged over vegetation types
 !      end subroutine prescr_init_Clab_old
 !*************************************************************************
 
-<<<<<<< HEAD
-=======
 cddd      real*8 function wooddensity_gcm3(pft) Result(wooddens)
 cddd      use ent_pfts, only : pfpar
 cddd      integer,intent(in) :: pft
