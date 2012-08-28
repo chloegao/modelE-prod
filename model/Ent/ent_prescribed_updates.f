@@ -75,7 +75,8 @@
      i    hdata,init)!,mixed_VEG)
 !@sum sets prescribed LAI over the cell
       use ent_prescr_veg, only : prescr_plant_cpools, popdensity,
-     &     ED_woodydiameter, crown_radius_horiz, crown_radius_vert
+     &     ED_woodydiameter
+      use allometryfn, only : crown_radius_horiz, crown_radius_vert
       use phenology, only : litter_growth_cohort, litter_patch
       use ent_pfts
       type(entcelltype) :: ecp
@@ -115,12 +116,14 @@
 #endif !MIXED_CANOPY
           if (pfpar(cop%pft)%woody) then !update dbhuse
             cop%dbh = ED_woodydiameter(cop%pft,cop%h)
-            if (init) then !Set population density and crown geometry
-              cop%n = popdensity(cop%pft,cop%dbh,
-     &              alamax(cop%PFT+COVEROFFSET))
+!            if (init) then !Set population density and crown geometry
+!            !This routine should get called after initialization, so
+!            !density should not be updated, only plant geometry.
+!              cop%n = popdensity(cop%pft,cop%dbh,
+!     &              alamax(cop%PFT+COVEROFFSET))
               cop%crown_dx = crown_radius_horiz(cop%pft,cop%dbh,cop%n)
               cop%crown_dy = crown_radius_vert(cop%h,cop%crown_dx)
-            endif
+!            endif
 #ifdef ENT_STANDALONE_DIAG
             print *,'pft,n,h,dbh,crown_dx,crown_dy',
      &           cop%pft,cop%n,cop%h,cop%dbh,cop%crown_dx,cop%crown_dy
@@ -465,14 +468,17 @@
 
         if ( associated(cropsdata) )
      &       call entcell_update_crops(ecp, cropsdata)
+        print *,"update cropsdata: ", associated(cropsdata) !##debug
 
         if ( associated(hdata) )
      &       call entcell_update_height(ecp, hdata, init)!, mixed_veg)
+        print *, "update hdata: ", associated(hdata) !##debug
 
         if ( associated(laidata) )
      &       call entcell_update_lai_poolslitter(ecp,laidata,
      &       init)!,mixed_veg)
-        
+        print *, "update laidata: ",associated(laidata) !##debug
+
       endif
       ! or veg structure from prescribed GISS LAI phenology 
       if ( do_giss_phenology ) then !do_giss_phenology is redundant with do_giss_lai.
@@ -525,8 +531,8 @@
       !* Calculate new LAI, biomass poos, and senescefrac 
       !* for given jday, for prescr vegetation. *!
       use ent_pfts
-      use ent_prescr_veg, only : prescr_calc_lai,prescr_plant_cpools,
-     &     prescr_veg_albedo
+      use ent_prescr_veg, only : prescr_calc_lai!,prescr_plant_cpools,
+     &     ,prescr_veg_albedo
       use phenology, only : litter_patch
       implicit none
       integer,intent(in) :: jday !Day of year.

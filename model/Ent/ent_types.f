@@ -505,6 +505,7 @@
         logical do_structuralgrowth
         logical do_frost_hardiness
         logical do_patchdynamics
+        logical do_init_geo
 !        logical mixed_veg
       end type ent_config
 

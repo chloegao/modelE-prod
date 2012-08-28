@@ -122,7 +122,8 @@
 !     calculation of shc.  See comments in entcell_update_shc_mosaicveg.
       use ent_const
       use ent_pfts, only: COVEROFFSET, alamax, alamin
-      use ent_prescr_veg, only : GISS_shc
+      !use ent_prescr_veg, only : GISS_shc
+      use allometryfn, only : GISS_shc
       implicit none
       type(patch),pointer :: pp
       !-----
@@ -145,6 +146,41 @@
 
       end function shc_patch
 !**************************************************************************
+
+      real*8 function laimean_annual_patch(pp) Result(laires)
+      !NYK:  This function called by entcell_update_shc/_mosaicveg,
+      !      made just to preserve R&A shc scheme, which uses 
+      !      mean annual entcell LAI, constant for Matthews veg,
+      !      but which needs to be replaced by canopy biomass and water, and
+      !      should seasonally vary!
+      use allometryfn, only : Cfol_fn
+      use ent_pfts, only : pfpar
+      implicit none
+      type(patch),pointer :: pp
+      !-----
+      type(cohort),pointer :: cop
+      integer :: pft
+      real*8 :: laimax
+
+      laires = 0.d0
+      cop => pp%tallest
+      do while (ASSOCIATED(cop))
+         pft = cop%pft
+         laimax = .001d0 * Cfol_fn(pft,cop%dbh,cop%h)
+     &        * pfpar(pft)%sla
+         if (pfpar(pft)%phenotype.eq.EVERGREEN) then
+            laires = laires + 0.8d0*laimax  !Arbitrary guess, annual variation
+         else !cold/drought/deciduous & annual
+            laires = laires + 0.5d0*laimax
+            !May need to set minimum of 1.5 for stability, but try actual.
+         endif
+         cop => cop%shorter
+      enddo
+
+      end function laimean_annual_patch
+
+
+      
 
       subroutine summarize_patch(pp)
       !* Calculates patch-level summary values of cohort pools.

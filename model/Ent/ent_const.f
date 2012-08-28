@@ -213,6 +213,17 @@
       real*8,dimension(N_PFT) :: structurallignin !fraction of structural C from lignin -PK 7/5/06 
       real*8,dimension(N_PFT) :: lignineffect !effect of lignin on decomp -PK 7/5/06
       real*8,parameter :: woodligninfract = 0.40 !amt lignin in wood C -PK 7/5/06
+      !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+            character*13, parameter :: Ent_cpool_title(N_BPOOLS) =
+     &     (/
+     &     'FOLIAGE      '
+     &     ,'SAPWOOD      '
+     &     ,'HARDWOOD     '
+     &     ,'LABILE       '
+     &     ,'FINE ROOT    '
+     &     ,'COARSE ROOT  '
+     &     ,'REPRODUCTION '
+     &     /)
 
       !************************************************************************
       end module ent_const

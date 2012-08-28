@@ -10,7 +10,8 @@
       use ent_types
       use ent_const
       use ent_pfts
- 
+      use allometryfn
+
       implicit none
 !      public veg_init
       public clim_stats
@@ -18,7 +19,7 @@
 !      public frost_hardiness  !DEPENDENCY ISSUES WITH BIOPHYSICS
       public veg_update !may change the name into veg_update 
       public litter_cohort, litter_patch   !Now called from veg_update
-      public update_plant_cpools
+!      public update_plant_cpools !Moved to allometryfn.f
 
       private pheno_update_coldwoody
       private pheno_update_coldherbaceous
@@ -30,14 +31,31 @@
       private photosyn_acclim
       private phenology_diag
 
+      !**********************************************************************
+      !Moved these functions to allometryfn.f to avoid dependency problems
+      ! with ent_prescr_veg and entcells, patches, and cohorts:
+
+      !dbh2Cdead, dbh2Cfol, dbh2height
+      !height2dbh, height2Cfol
+      !update_plant_cpools
+      !init_Clab
+      !nplant
+
       !************************************************************************
       !** GROWTH MODEL CONSTANTS - phenology & carbon allocation 
       !*l_fract: fraction of leaves retained after leaf fall (unitless) (value from ED) 
       real*8, parameter :: l_fract = 0.50d0 
       !*q: ratio of root to leaf biomass (unitless) (value from ED)
-      real*8, parameter :: q=1.0d0 
+      !real*8, parameter :: q=1.0d0  !Moved to allometryfn.f
+      !*iqsw: sapwood biomass per (leaf area x wood height) (kgC/m2/m) (value from ED)
+      !3900.0: leaf area per sapwood area (m2/m2) 
+      !1000.0: sapwood density (kg/m3)
+      !2.0:  biomass per carbon (kg/kgC)
+      !(qsw)=(iqsw*sla) (1/m) & (qsw*h): ratio of sapwood to leaf biomass (unitless)
+      !(iqsw)=1000.0d0/3900.0d0/2.0d0=0.1282 !NOTE: This value corrects an error in the coefficient in Moorcroft et al. (2001) Appendix D, which had the value too small by a factor of 100, at 0.00128.
+      !real*8, parameter :: iqsw=1000.0d0/3900.0d0/2.0d0 !Moved to allometryfn.f
       !*hw_fract: ratio of above ground stem to total stem (stem plus structural roots) (value from ED)
-      real*8, parameter :: hw_fract = 0.70d0 
+      !real*8, parameter :: hw_fract = 0.70d0 !Moved to allometryfn.f
       !*C2B: ratio of biomass to carbon (kg-Biomass/kg-Carbon) 
       real*8, parameter :: C2B = 2.0d0 
       !*temperature constrain for cold-deciduous PFTs (Botta et al. 1997)
@@ -92,21 +110,6 @@
       real*8, parameter :: mort_seedling = 0.90d0 
 
       contains
-
-      real*8 function iqsw(pft)
-      !*iqsw: sapwood biomass per (leaf area x wood height) (kgC/m2/m) (value from ED)
-      !3900.0: leaf area per sapwood area (m2/m2) 
-      !1000.0: sapwood density (kg/m3)
-      !2.0:  biomass per carbon (kg/kgC)
-      !(qsw)=(iqsw*sla) (1/m) & (qsw*h): ratio of sapwood to leaf biomass (unitless)
-      !(iqsw)=1000.0d0/3900.0d0/2.0d0=0.1282 !NOTE: This value corrects an error in the coefficient in Moorcroft et al. (2001) Appendix D, which had the value too small by a factor of 100, at 0.00128.
-      use ent_prescr_veg, only : wooddensity_gcm3
-      real*8, parameter :: iqsw0=1000.0d0/3900.0d0/2.0d0
-      integer, intent(in) :: pft
-
-      iqsw = iqsw0*wooddensity_gcm3(pft)
-
-      end function iqsw
 
 
       !*********************************************************************
@@ -278,7 +281,7 @@
       !*********************************************************************   
       subroutine pheno_update(pp)
 !@sum Update statstics for phneology_update    
-!@sum PHYSICAL time step.
+!@sum DAILY time step.
       use ent_const
 
       type(patch) :: pp
@@ -683,9 +686,11 @@
 !@sum carbon pools of foliage, sapwood, fineroot, hardwood, coarseroot
 !@sum AND growth respiration from growth and tissue turnnover
       use ent_const
-      use ent_prescr_veg
+      !use ent_prescr_veg !BAD DEPENDENCY!
       use cohorts, only : cohort_carbon
       use patches, only : patch_carbon
+      use photcondmod, only :  frost_hardiness
+      use biophysics, only : Resp_plant_day
       implicit none
       type(ent_config) :: config 
       type(patch),pointer :: pp 
@@ -726,6 +731,8 @@
       real*8 :: resp_growth2
       integer, parameter :: irecruit=1
       real*8 :: dummy
+      real*8 :: Rauto_day ! Plant respiration estimate for one day.-NK
+      real*8 :: facclim
 
 !!! debug
 
@@ -763,7 +770,7 @@
 
          is_annual = .false.
 
-cddd         is_annual = (pfpar(pft)%phenotype .eq. ANNUAL)
+         is_annual = (pfpar(pft)%phenotype .eq. ANNUAL) !?Was commented out?
 cddd
 cddd        if (is_annual) then
 cddd            if (phenofactor .gt. 0.d0 .AND. cop%C_fol .eq. 0.d0) then
@@ -801,7 +808,7 @@ cddd         end if
          !*************************************************
          !*calculate qsw 
          !qsw*h: ratio of sapwood to leaf biomass
-         qsw  = sla(pft,cop%llspan)*iqsw(pft)
+         qsw  = sla(pft,cop%llspan)*iqsw 
          !for herbaceous, no allocation to the sap wood   
          if (.not.woody) qsw = 0.0d0      
          
@@ -826,7 +833,7 @@ cddd         end if
          !*Litter from turnover
          !**********************
          !*save existing plant carbon pools 
-         Cactive = C_froot + C_fol + C_sw !active = fine root + foliage + sapwood
+         Cactive = C_froot + C_fol + C_sw !active = fine root + fol + sapw
          Cdead = C_hw + C_croot           !dead = heartwood + coarse root
          C_fol_old = C_fol
          C_froot_old = C_froot
@@ -854,21 +861,33 @@ cddd         end if
          !*for woody  - allmetirc constraint given DBH
          if (woody) then  
             Cactive_max=dbh2Cfol(pft,dbh)*(alloc+(1.d0-phenofactor))
-         !*for non-woody (i.e., herbaceous)
-         !no allometric constraints in the carbon allocation, 
-         !then use arbitrary max height (5m, tall enough) 
          else
-            Cactive_max=height2Cfol(pft,5.d0)*(alloc+(1.d0-phenofactor))
+            !*Yeonjoo's - for non-woody (i.e., herbaceous)
+            !no allometric constraints in the carbon allocation, 
+            !then use arbitrary max height (5m, tall enough) 
+            !Cactive_max=height2Cfol(pft,5.d0)*(alloc+(1.d0-phenofactor))
+            !*Replaced with Nancy's
+            Cactive_max=Cfol_fn(pft,dbh,h)
+     &           *(alloc+(1.d0-phenofactor))
          end if
 
-         !*determine the half of foliage 
-         !arbitrary number, based on GISS LAImax 
-         call prescr_init_Clab(pft,nplant,cpool)
+         !Clabile initialization based on max Cfol.
+         call init_Clab(pft,nplant
+     &        ,Cfol_fn(pft,dbh, h)
+     &        ,cpool(LABILE))
          Cfol_half =cpool(LABILE)
 
 
          !*calculate growth of active carbon pools  
-         call  growth_cpools_active(pft,phenofactor,ialloc,Cactive_max,
+         facclim = frost_hardiness(cop%Sacclim)
+         Rauto_day = Resp_plant_day(pft,cpool
+     &        ,cop%pptr%cellptr%TcanopyC + KELVIN
+     &        ,cop%pptr%cellptr%Soiltemp(1) + KELVIN
+     &        ,cop%pptr%cellptr%airtemp_10d + KELVIN
+     &        ,cop%pptr%cellptr%soiltemp_10d + KELVIN
+     &        ,facclim)*1.d3   !gC/day to kgC/day
+         call  growth_cpools_active(pft,phenofactor,ialloc
+     &        ,Rauto_day ,Cactive_max,
      &        Cfol_half,CB_d,Cactive,C_lab,C_fol)
       
          !*update the active carbon pools
@@ -923,8 +942,8 @@ cddd         end if
              cop%C_hw=C_hw_old
              cop%C_croot=C_croot_old
              Cdead = cop%C_hw+cop%C_croot
-         !*if strcutural growth is off (set in the rundeck),
-         !changes in dead pool is alloocated into hw & croot.         
+         !*if strcutural growth is on (set in the rundeck),
+         !changes in dead pool is allocated into hw & croot.         
          else
             dC_litter_hw =0.d0
             dC_litter_croot = 0.d0
@@ -1033,8 +1052,8 @@ cddd         write(901,*) "deltaC*n ", (tot_c - tot_c_old)*cop%n
 
       !*********************************************************************
       subroutine growth_cpools_active(pft,phenofactor,ialloc, 
-     &     Cactive_max,Cfol_half,CB_d,Cactive,C_lab,C_fol)
-     
+     &     Rauto_day,Cactive_max,Cfol_half,CB_d,Cactive,C_lab,C_fol)
+      use biophysics, only : Resp_plant_day
       !input variables
       integer, intent(in) :: pft
       real*8, intent(in) :: phenofactor
@@ -1046,7 +1065,8 @@ cddd         write(901,*) "deltaC*n ", (tot_c - tot_c_old)*cop%n
       real*8, intent(inout) :: Cactive
       real*8, intent(inout) :: C_lab
       real*8, intent(inout) :: C_fol
-      !local variables
+      real*8,intent(in) :: Rauto_day   !kgC/plant/day estimated
+      !---Local variables----------------
       real*8 :: Cactive_pot !potential maximum of active carbon pools
       real*8 :: dC_lab      !change in labile [g-C/individual],  negative for reduction of C_lab for growth.
       real*8 :: dCactive    !change in active 
@@ -1061,7 +1081,8 @@ cddd         write(901,*) "deltaC*n ", (tot_c - tot_c_old)*cop%n
       !*******************************
       !*1) Allocate the carbon to active pool, 
       !if both labile pool and daily carbon balance are positive             
-      if (C_lab .gt.0.d0 .and. CB_d .gt. 0.d0) then
+!      if (C_lab .gt.0.d0 .and. CB_d .gt. 0.d0) then
+      if (C_lab .gt.(Rauto_day*1.d3) .and. CB_d .gt. 0.d0) then
         
          !*1-1) if there's no leaf, 
          !no change in labile and active pool;
@@ -1114,8 +1135,11 @@ cddd         write(901,*) "deltaC*n ", (tot_c - tot_c_old)*cop%n
 
       !*2) Translocate the active carbon to labile, 
       !if the labile carbon is negative.
-      else if (C_lab .lt. 0.d0 ) then
-         dCactive = C_lab / l_fract
+!      else if (C_lab .lt. 0.d0 ) then
+!         dCactive = C_lab / l_fract
+!         dC_lab = - C_lab 
+      else if (C_lab .lt. Rauto_day ) then !C_lab could be + or -.
+         dCactive = min(0.d0,(C_lab-Rauto_day) / l_fract)
          dC_lab = - C_lab 
 
       !*3) Otherwise, nothing happens.
@@ -1143,7 +1167,7 @@ cddd         write(901,*) "deltaC*n ", (tot_c - tot_c_old)*cop%n
      &      C_sw,Cactive_max,C_fol,CB_d,Cactive_old,Cactive,
      &      C_lab, Cdead, dCrepro)
 
-      use ent_prescr_veg
+      !use ent_prescr_veg !BAD DEPENDENCY!
 
       integer, intent(in) :: pft
       real*8, intent(in) :: dbh
@@ -1304,34 +1328,7 @@ cddd         write(901,*) "deltaC*n ", (tot_c - tot_c_old)*cop%n
       
       end subroutine recruit_annual
 !*************************************************************************
-
-      subroutine update_plant_cpools(pft, lai,h,dbh,popdens,cpool )
-      integer,intent(in) :: pft !plant functional type
-      real*8, intent(in) :: lai,h,dbh,popdens  !lai, h(m), dbh(cm),popd(#/m2)
-      real*8, intent(out) :: cpool(N_BPOOLS) !g-C/pool/plant
-      real*8 :: qsw
-
-      !* Initialize
-      cpool(:) = 0.d0 
-
-      qsw = pfpar(pft)%sla*iqsw(pft)
-      if (.not.pfpar(pft)%woody) qsw = 0.0d0
-
-      cpool(FOL) = lai/pfpar(pft)%sla/popdens *1d3!Bl
-      cpool(FR) = q * cpool(FOL)   !Br
-      cpool(SW) = h * qsw* cpool(FOL)
-      if (pfpar(pft)%woody) then !Woody
-        cpool(HW) = dbh2Cdead(pft,dbh) * hw_fract
-        cpool(CR) = cpool(HW) * (1-hw_fract)/hw_fract !=dbh2Cdead*(1-hw_fract)
-      else
-        cpool(HW) = 0.d0
-        cpool(CR) = 0.d0
-      endif
       
-      end subroutine update_plant_cpools
-
- 
-      !*********************************************************************
       subroutine accumulate_Clossacc(pft,Closs, Clossacc)
       integer, intent(in) :: pft
       real*8,intent(in) :: Closs(PTRACE,NPOOLS,N_CASA_LAYERS) !Litter per cohort by depth.
@@ -1400,7 +1397,7 @@ cddd         write(901,*) "deltaC*n ", (tot_c - tot_c_old)*cop%n
       !C_croot replenished from C_lab: no change
 
       use cohorts, only : calc_CASArootfrac 
-      use biophysics, only: Resp_can_growth
+!      use biophysics, only: Resp_can_growth
       real*8,intent(in) :: dt !seconds, time since last call
       real*8,intent(in) ::C_fol_old,C_froot_old,C_hw_old,C_croot_old,
      &     C_sw_old
@@ -1613,7 +1610,7 @@ cddd         write(901,*) "deltaC*n ", (tot_c - tot_c_old)*cop%n
       !C_croot replenished from C_lab: no change
 
       use cohorts, only : calc_CASArootfrac 
-      use biophysics, only: Resp_can_growth
+!      use biophysics, only: Resp_can_growth
       !real*8,intent(in) :: dt   !seconds, time since last call
       real*8,intent(in) ::dCrepro
       real*8,intent(in) ::C_fol_old,C_froot_old,C_hw_old,C_croot_old,
@@ -1836,7 +1833,7 @@ cddd     &     dC_litter_croot, dC_litter_croot*cop%n
       !C_croot replenished from C_lab: no change
 
       use cohorts, only : calc_CASArootfrac 
-      use biophysics, only: Resp_can_growth
+!      use biophysics, only: Resp_can_growth
       real*8,intent(in) :: dt !seconds, time since last call
       real*8,intent(in) ::C_fol_old,C_froot_old,C_hw_old,C_croot_old,
      &     C_sw_old
@@ -2250,31 +2247,11 @@ c      end subroutine litter_old
       endif
       end function sla
 !*************************************************************************
-      real*8 function dbh2Cfol(pft,dbh)
-      integer,intent(in) :: pft
-      real*8, intent(in) :: dbh
-      real*8 :: maxdbh
 
-      maxdbh=log(1.0-(0.999*(pfpar(pft)%b1Ht+1.3)-1.3)  
-     &     /pfpar(pft)%b1Ht)/pfpar(pft)%b2Ht
-
-c$$$      if (.not.pfpar(pft)%woody) then !herbaceous
-c$$$         maxdbh=log(1.0-(0.999*(pfpar(pft)%b1Ht+1.3)-1.3)  
-c$$$     &        /pfpar(pft)%b1Ht)/pfpar(pft)%b2Ht
-c$$$      else !woody
-c$$$         maxdbh=log(1.0-(0.999*pfpar(pft)%b1Ht-1.3)  
-c$$$     &        /pfpar(pft)%b1Ht)/pfpar(pft)%b2Ht
-c$$$      end if
-
-      dbh2Cfol=1000.0d0*(1.0/C2B) *pfpar(pft)%b1Cf 
-     &        * min(dbh, maxdbh)**pfpar(pft)%b2Cf
-
-      end function dbh2Cfol
-!*************************************************************************
       real*8 function maxdbh(pft)
       integer,intent(in) :: pft       
 
-      maxdbh=log(1.0-(0.999*(pfpar(pft)%b1Ht+1.3)-1.3)  
+      maxdbh=log(1.0-(0.999*(pfpar(pft)%b1Ht+a0h(pft))-a0h(pft))  
      &     /pfpar(pft)%b1Ht)/pfpar(pft)%b2Ht
 
 c$$$      if (.not.pfpar(pft)%woody) then !grasses/crops 
@@ -2287,56 +2264,17 @@ c$$$      end if
  
       end function maxdbh
 !*************************************************************************
-      real*8 function dbh2Cdead(pft,dbh)
-      integer,intent(in) :: pft
-      real*8, intent(in) :: dbh
 
-      dbh2Cdead = (1.0/C2B) * pfpar(pft)%b1Cd * 
-     &             dbh**pfpar(pft)%b2Cd * 1000.0d0
 
-      end function  dbh2Cdead
-!*************************************************************************
-      real*8 function dbh2height(pft,dbh)
-      integer,intent(in) :: pft
-      real*8, intent(in) :: dbh
-
-      dbh2height = 1.3 + pfpar(pft)%b1Ht * 
-     &             (1.0-exp(pfpar(pft)%b2Ht*dbh))
-
-      end function dbh2height
-!*************************************************************************
-      real*8 function height2dbh(pft,h)
-      integer,intent(in) :: pft
-      real*8, intent(in) :: h
-      real*8 :: hcrit, hin
-
-      hcrit=1.3d0+pfpar(pft)%b1Ht-EPS
-      hin=min(h,hcrit)
-
-      height2dbh = log(1.d0-(hin-1.3d0)/pfpar(pft)%b1Ht)/pfpar(pft)%b2Ht
-      
-
-      end function height2dbh
-!*************************************************************************
       real*8 function Cdead2dbh(pft,Cdead)
       integer,intent(in) :: pft
       real*8, intent(in) :: Cdead
 
-      Cdead2dbh = (Cdead/1000.0d0*C2B/pfpar(pft)%b1Cd)
+      Cdead2dbh = (Cdead*B2C/1000.0d0/pfpar(pft)%b1Cd)
      &            **(1.0d0/pfpar(pft)%b2Cd)
 
       end function Cdead2dbh
-!*************************************************************************
-      real*8 function height2Cfol(pft,height)
-      integer,intent(in) :: pft
-      real*8, intent(in) :: height
-      real*8,parameter :: h1Cf = 1.66d0 
-      real*8,parameter :: h2Cf = 1.50d0 
-      real*8,parameter :: nplant = 2500.d0 
-      height2Cfol=(1.0d0/C2B) *h1Cf 
-     &        *((height*100.0d0)**h2Cf)/nplant
 
-      end function height2Cfol
 !*************************************************************************
       real*8 function Cfol2height(pft,Cfol)
       integer,intent(in) :: pft
@@ -2382,21 +2320,7 @@ c$$$      end if
       end function dHdDBH
 
 !*************************************************************************
-      real*8 function nplant(pft,dbh,h,lai)
-      integer,intent(in) :: pft
-      real*8, intent(in) :: dbh
-      real*8, intent(in) :: h
-      real*8, intent(in) :: lai
 
-      if (.not.pfpar(pft)%woody) then !grasses/crops/non-woody
-         nplant = lai/pfpar(pft)%sla/(height2Cfol(pft,h)/1000.0d0) 
-      else
-         nplant = lai/pfpar(pft)%sla/(dbh2Cfol(pft,dbh)/1000.0d0)
-      end if
-
-      end function nplant
-
-!*************************************************************************
       real*8 function frost_hardiness(Sacclim) Result(facclim)
 !@sum frost_hardiness.  Calculate factor for adjusting photosynthetic capacity
 !@sum  due to frost hardiness phenology.

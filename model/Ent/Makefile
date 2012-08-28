@@ -6,14 +6,15 @@ SUPPORTED_OPTIONS = ESMF PFT_MODEL PS_MODEL RAD_MODEL MIXED_CANOPY_OPT
 FSRCS = 
 F90SRCS = 
 
-FSRCS += ent_prescribed_drv.f # needed for lsm_standalone
+FSRCS += ent_prescribed_drv.f \
+ent_prescribed_drv_geo.f  # needed for lsm_standalone
 
 FSRCS += ent_mod.f ent.f \
 cohorts.f patches.f entcells.f \
 canopyradiation.f \
-growthallometry.f reproduction.f phenology.f \
+allometryfn.f reproduction.f phenology.f \
 disturbance.f soilbgc.f ent_const.f \
-ent_types.f ent_prescr_veg.f ent_prescribed_updates.f
+ent_types.f ent_prescr_veg.f ent_prescribed_updates.f \
 
 # different versions of the code
 ifeq ($(PFT_MODEL),ENT)

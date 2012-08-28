@@ -190,8 +190,9 @@
         ecp%Ntot = ecp%Ntot + pp%Ntot * pp%area !wtd avg by area
         ecp%LMA = ecp%LMA + ecp%LMA * laifa !wtd avg by LAI
 
+        ecp%LAI = ecp%LAI + pp%LAI*pp%area
         do ia=1,N_COVERTYPES
-          ecp%LAI = ecp%LAI + pp%LAIpft(ia) * pp%area !wtd avg by area
+!          ecp%LAI = ecp%LAI + pp%LAIpft(ia) * pp%area !wtd avg by area
           ecp%LAIpft(ia) = ecp%LAIpft(ia) + pp%LAIpft(ia) * pp%area !wtd avg by area
         end do
 
@@ -242,7 +243,7 @@
         ecp%CO2flux = ecp%CO2flux + pp%CO2flux*pp%area
         
         !* DIAGNOSTICS
-        ecp%Soil_resp = ecp%Soil_resp + pp%Soil_resp*pp%area     !added soil resp (umolC/m2/s) -PK 6/14/06
+        ecp%Soil_resp = ecp%Soil_resp + pp%Soil_resp*pp%area   
         ecp%Tpool(:,:,:) = ecp%Tpool(:,:,:) + pp%Tpool(:,:,:)*pp%area                                                
 
         !* IMPORT Variables calculated by GCM/EWB - downscaled from grid cell
@@ -332,7 +333,7 @@ C NADINE - IS THIS CORRECT?
         ecp%betad = ecp%betad/fa
         ecp%TRANS_SW = ecp%TRANS_SW/fa !Area-weighted average
         ecp%CO2flux = ecp%CO2flux/fa
-        ecp%Soil_resp = ecp%Soil_resp/fa     !added soil resp (umolC/m2/s) -PK 6/14/06
+        ecp%Soil_resp = ecp%Soil_resp/fa  
         ecp%Tpool(:,:,:) = ecp%Tpool(:,:,:)/fa       
         
         !* Variables calculated by GCM/EWB - up/downscaled to/from grid cell
@@ -413,30 +414,45 @@ C NADINE - IS THIS CORRECT?
 !Old entcell_update_shc      
       use ent_const
       use ent_pfts, only: COVEROFFSET, alamax, alamin
-      use ent_prescr_veg, only: GISS_shc
+      use allometryfn, only: do_geo,GISS_shc
       type(entcelltype) :: ecp
       !-----Local---------
       real*8 vfraction(N_COVERTYPES) ! needed for a hack to compute canopy
-      real*8 lai, fsum
+      type(patch),pointer :: pp      
+      real*8 lai, fsum  !lai is mean annual entcell lai.
       integer pft, anum
 
       lai = 0.d0
       fsum = 0.d0
       vfraction(:) = 0.d0
-      call entcell_extract_pfts( ecp, vfraction )
 
-      !Cover-weighted average of Matthews mean annual LAI
-      do pft=1,N_PFT
-         anum = pft+COVEROFFSET
-         lai = lai + .5d0*(alamax(anum) + alamin(anum))*vfraction(anum)
-         fsum = fsum + vfraction(anum)
-      enddo
+      !Cover-weighted average
+      if (.not.do_geo) then
+         !Matthews mean annual LAI
+         call entcell_extract_pfts( ecp, vfraction )
+         do pft=1,N_PFT
+            anum = pft+COVEROFFSET
+            lai = lai + .5d0*(alamax(anum) 
+     &           + alamin(anum))*vfraction(anum)
+            fsum = fsum + vfraction(anum)
+         enddo
+      else
+         !Geographic LAI - NYK
+         !This calculation is just to preserve stability with R&A shc scheme.
+         !Eventually, shc should be based on canopy biomass and water, not LAI.
+         pp = ecp%oldest
+         do while (ASSOCIATED(pp))
+            lai = lai + laimean_annual_patch(pp)*pp%area
+            fsum = fsum + pp%area
+            pp => pp%younger
+         enddo
+      endif
       if ( fsum > EPS ) then 
          lai = lai/fsum
       else
          lai = 0.d0
       endif
-
+         
       !shc = (.010d0+.002d0*lai+.001d0*lai**2)*shw*rhow
       
       ecp%heat_capacity=GISS_shc(lai)
@@ -511,7 +527,6 @@ C NADINE - IS THIS CORRECT?
       integer :: ncov, pft
       type(patch),pointer :: pp, pp_tmp, pp_ncov
       real*8 :: sandfrac,clayfrac,smpsat,bch,watsat,watdry
-
 
       if ( reinitialize ) then
         ! destroy all existing patches since we are going to 
@@ -626,6 +641,7 @@ C NADINE - IS THIS CORRECT?
 
       call summarize_entcell(ecp)
 
+      
       !print *,"leaving init_simple_entcell:"
       !call entcell_print(6,ecp)
 

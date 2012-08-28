@@ -1,5 +1,6 @@
       module ent_pfts
-!@sum Ent default supported 13 vegetation types
+!@sum Ent default supported 16 vegetation types (but early succ do
+!     not have cover and are not tested, yet).
 
       !use ent_pftconst
       use ent_const
@@ -9,6 +10,28 @@
       !***************************************************
       !*      ENT PLANT FUNCTIONAL TYPES                 *
       !***************************************************
+
+            character*50, parameter :: Ent_title(N_COVERTYPES) =
+     &     (/
+     &     '1 - evergreen broadleaf early succ               ',
+     &     '2 - evergreen broadleaf late succ                ',
+     &     '3 - evergreen needleleaf early succ              ',
+     &     '4 - evergreen needleleaf late succ               ',
+     &     '5 - cold deciduous broadleaf early succ          ',
+     &     '6 - cold deciduous broadleaf late succ           ',
+     &     '7 - drought deciduous broadleaf                  ',
+     &     '8 - deciduous needleleaf                         ',
+     &     '9 - cold adapted shrub                           ',
+     &     '10 - arid adapted shrub                          ',
+     &     '11 - C3 grass perennial                          ',
+     &     '12 - C4 grass                                    ',
+     &     '13 - C3 grass - annual                           ',
+     &     '14 - arctic C3 grass                             ',
+     &     '15 - crops herb                                  ',
+     &     '16 - crops woody                                 ',
+     &     '17 - Permanent snow/ice                          ',
+     &     '18 - Bare or sparsely vegetated, urban           '
+     &     /)
 
       !* 1 - evergreen broadleaf early successional
       !* 2 - evergreen broadleaf late successional
@@ -81,8 +104,10 @@
       !* Parameters for plant allomteries 
       !* (Albani et al. Global Change Biology 2006 & 
       !* estimated from KM67 (Santarem, Amazon) tree survey.)
-      !b1Cf - para 1 for allometric relation between DBH & foliage C 
-      !b2Cf - para 2 for allometric relation between DBH & foliage C
+      !b1Cf - para 1 for allometric relation between DBH & foliage kgC woody
+      !                                  and between h and foliage kgC herbs
+      !b2Cf - para 2 for allometric relation between DBH & foliage kgC woody
+      !                                  and between h and foliage kgC herbs
       !b1Cd - para 1 for allometric relation between DBH & structural(dead) C
       !b2Cd - para 2 for allometric relation between DBH & structural(dead) C
       !b1Ht - para 1 for allometric relation between DBH & height
@@ -96,7 +121,7 @@
       !lrage, woodage,lit_C2N,lignin: from CASA parameterizations.
       
       !***************************************************
-      !Temp values for Ent pfts (See ent_const.f for types)
+      !** Values for Ent pfts with SIMARD HEIGHTS for late succ b1Ht ** - NK
       type(pftype),parameter :: pfpar(N_PFT) =         !PFT parameters
       !pst, woody,leaftype, hwilt, sstar, swilt,nf,sla,r,
       !lrage,woodage,lit_C2N,lignin,croot_ratio,phenotype, 
@@ -109,7 +134,7 @@
      ! !* 2 - evergreen broadleaf late successional
      &     pftype(1,.true.,1,-153.d0, .60d0, .29d0, 1.1d0, 9.7d0, 0.5d0, 
      &     3.0d0,41.0d0, 40.d0, 0.2d0, 0.075d0, 1,
-     &     0.0395d0, 1.560d0, 0.1017d0, 2.306d0, 34.62d0, -0.0232d0),
+     &     0.0395d0, 1.560d0, 0.1017d0, 2.306d0, 55.d0, -0.016d0),
      ! !* 3 - evergreen needleleaf early successional
      &     pftype(1,.true.,2,-153.d0, .50d0, .25d0, 0.9d0, 5.9d0, 1.2d0, 
      &     5.0d0, 42.0d0, 80.d0, 0.25d0, 0.184d0, 1,
@@ -117,7 +142,7 @@
      ! !* 4 - evergreen needleleaf late successional
      &     pftype(1,.true.,2,-153.d0, .50d0, .25d0, 0.85d0,5.9d0, 1.2d0, 
      &     5.0d0, 42.0d0, 80.d0, 0.25d0, 0.184d0, 1,
-     &     0.0450d0, 1.683d0, 0.1617d0, 2.1536d0, 22.79d0, -0.0445d0),
+     &     0.0450d0, 1.683d0, 0.1617d0, 2.1536d0, 39.9d0, -0.0445d0),
      ! !* 5 - cold deciduous broadleaf early successional
      &     pftype(1,.true.,1,-500.d0, .50d0, .29d0, 1.5d0,8.8d0,1.2d0, 
      &     1.2d0, 58.0d0, 50.d0, 0.2d0, 0.093d0, 2,
@@ -125,27 +150,27 @@
      ! !* 6 - cold deciduous broadleaf late successional
      &     pftype(1,.true.,1,-500.d0, .50d0, .29d0, 1.4d0, 8.8d0,0.6d0, 
      &     1.2d0, 58.0d0, 50.d0, 0.2d0, 0.093d0, 2,
-     &     0.0170d0, 1.731d0, 0.2350d0, 2.252d0, 23.39d0, -0.0540d0),
+     &     0.0170d0, 1.731d0, 0.2350d0, 2.252d0, 36.8d0, -0.0540d0),
      ! !* 7 - drought deciduous broadleaf
      &     pftype(1,.true.,1,-500.d0, .45d0, .22d0, 1.4d0, 8.3d0,0.5d0, 
      &     1.2d0,25.0d0, 60.d0, 0.2d0, 0.153d0, 3,
-     &     0.0296d0, 1.560d0, 0.0621d0, 2.306d0, 34.62d0, -0.0232d0),
+     &     0.0296d0, 1.560d0, 0.0621d0, 2.306d0, 27.d0, -0.0232d0),
      ! !* 8 - deciduous needleleaf !## SLA from Reich (1997) leaf longev. 1 yr
      &     pftype(1,.true.,2,-100.d0,.55d0, .25d0, 0.9d0, 10.0d0, 0.9d0, 
      &     1.8d0, 27.0d0, 50.d0, 0.2d0, 0.2d0, 2,
-     &     0.0240d0, 1.899d0, 0.1470d0, 2.238d0, 27.14d0, -0.0388d0),
+     &     0.0240d0, 1.899d0, 0.1470d0, 2.238d0, 34.d0, -0.0388d0),
      ! !* 9 - cold adapted shrub
      &     pftype(1,.true.,1,-153.d0,.50d0, .30d0, 1.4d0, 2.25d0, 0.6d0, 
      &     2.8d0, 5.5d0, 50.d0, 0.15d0, 1.40d0, 4,
-     &     0.0800d0, 1.000d0, 0.00001d0, 1.000d0, 0.4778d0, -0.75d0),
+     &     0.0800d0, 1.000d0, 0.00001d0, 1.000d0, 0.78d0, -0.75d0),
      ! !* 10 - arid adapted shrub
      &     pftype(1,.true.,1,-2030.d0,.40d0,.22d0, 1.3d0, 3.25d0, 0.6d0, 
      &     1.0d0, 5.5d0, 65.d0, 0.2d0, 0.32d0, 4,
-     &     0.0800d0, 1.000d0, 0.00001d0, 1.000d0, 0.4778d0, -0.75d0),
+     &     0.0800d0, 1.000d0, 0.00001d0, 1.000d0, 4.d0, -0.75d0),
      ! !* 11 - C3 grass perennial
      &     pftype(1,.false.,3,-2030.d0,.30d0,.10d0,1.5d0, 22.d0, 1.2d0, 
      &     1.5d0, UNDEF, 50.d0, 0.1d0, 0.0d0, 4,
-     &     0.0800d0, 1.000d0, 0.00001d0, 1.000d0, 0.4778d0, -0.75d0),
+     &     0.2100d0, 1.200d0, 0.00001d0, 1.000d0, 0.4778d0, -0.75d0),
      ! !* 12 - C4 grass
      &     pftype(2,.false.,3,-2030.d0,.30d0,.10d0, 1.3d0,22.d0, 0.6d0, 
      &     1.5d0, UNDEF, 50.d0, 0.1d0, 0.0d0, 4,
@@ -153,21 +178,26 @@
      ! !* 13 - C3 grass - annual
      &     pftype(1,.false.,3,-2030.d0,.30d0,.1d0, 1.5d0, 22.d0, 1.2d0, !10->15  
      &     1.5d0, UNDEF, 50.d0, 0.1d0, 0.0d0, 5,
-     &     0.0800d0, 1.000d0, 0.00001d0, 1.000d0, 0.4778d0, -0.75d0),
+     &     0.21d0, 1.200d0, 0.00001d0, 1.000d0, 0.4778d0, -0.75d0),
      ! !* 14 - arctic C3 grass
      &     pftype(1,.false.,3,-153.d0,.60d0, .27d0, 1.4d0, 20.d0, 0.6d0, 
      &     1.5d0, UNDEF, 50.d0, 0.1d0, 0.0d0, 4,
-     &     0.0800d0, 1.000d0, 0.00001d0, 1.000d0, 0.4778d0, -0.75d0),
+     &     0.2100d0, 1.200d0, 0.00001d0, 1.000d0, 0.4778d0, -0.75d0),
      ! !* 15 - C4 crops herbaceous
      &     pftype(2,.false., 1,-153.d0,.45d0,.27d0,1.3d0, 15.d0, 0.6d0, 
      &     1.1d0, UNDEF, 52.5d0, 0.16d0, 0.0d0, 4,
-     &     0.0800d0, 1.000d0, 0.00001d0, 1.000d0, 0.4778d0, -0.75d0),
+     &     2.00d0, 1.200d0, 0.00001d0, 1.000d0, 0.4778d0, -0.75d0),
      ! !* 16 - crops - broadleaf woody !## COPIED FROM BROAD COLDDECID LATE ##
      &     pftype(1,.true.,1,-153.d0,.50d0, .29d0, 1.4d0, 8.3d0, 0.9d0, 
      &     1.2d0, 58.0d0, 50.d0, 0.2d0, 0.093d0, 4,
-     &     0.0170d0, 1.731d0, 0.2350d0, 2.252d0, 23.39d0, -0.0540d0)
+     &     0.0170d0, 1.731d0, 0.2350d0, 2.252d0, 33.8d0, -0.045d0)
      &     /)
 
+      !* Additional phenology and allometry parameters
+      !-- Move a0h later from allometryfn.f when all ent_pfts.f get updated.
+!      real*8, DIMENSION(N_PFT), parameter :: a0h =
+!     &     (/ 1.3d0,0.d0,1.3d0,0.d0,1.3d0,0.d0,0.d0,1.3d0,0.d0,0.d0
+!     &     ,undef,undef,undef,undef,undef,0.d0 /)
 
       !*********************************************************
       !* Prescribed albedoes for Matthews prescribed seasonality

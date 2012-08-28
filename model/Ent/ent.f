@@ -92,7 +92,7 @@
       use cohorts
       use patches
       use biophysics, only : photosynth_cond
-      use growthallometry, only : uptake_N
+      !use growthallometry, only : uptake_N
       use soilbgc, only : soil_bgc
 !      use phenology, only : litter
       use phenology, only : clim_stats, pheno_update, veg_update
@@ -172,7 +172,7 @@
 
       subroutine update_veg_structure(ecp, config)
 !@sum update vagetation structure at the end of day
-      use growthallometry, only : uptake_N
+      !use growthallometry, only : uptake_N
       use phenology, only : pheno_update, veg_update
       use entcells, only : summarize_entcell, entcell_print
      &     ,entcell_carbon

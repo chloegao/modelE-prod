@@ -290,7 +290,7 @@ cddd      end interface ent_cell_update
 !*************************************************************************
       subroutine ent_init_config(
      &     do_soilresp, do_phenology_activegrowth, do_structuralgrowth, 
-     &     do_frost_hardiness, do_patchdynamics)!, mixed_veg)
+     &     do_frost_hardiness, do_patchdynamics, do_init_geo)!, mixed_veg)
 !@sum initializes Ent module. This subroutine should set all the flags
 !@+   and all the variables that are constant during the run.
       use ent_const
@@ -299,6 +299,7 @@ cddd      end interface ent_cell_update
       logical, optional :: do_structuralgrowth
       logical, optional :: do_frost_hardiness
       logical, optional :: do_patchdynamics
+      logical, optional :: do_init_geo
 !      logical, optional :: mixed_veg
 
       print *, "initializing Ent"
@@ -326,6 +327,8 @@ cddd      end interface ent_cell_update
      &     do_frost_hardiness
       if ( present(do_patchdynamics) ) config%do_patchdynamics = 
      &     do_patchdynamics
+      if ( present(do_init_geo) ) config%do_init_geo = 
+     &     do_init_geo
 !      if ( present(mixed_veg) ) config%mixed_veg = mixed_veg
 
       end subroutine ent_init_config

@@ -1,5 +1,7 @@
       module ent_prescr_veg
-
+!@sum ent_prescr_veg - This module should contain routines that are
+!@sum primarily specific to the Matthews prescribed vegetation scheme.
+      
       use ent_const
 !      use ent_pfts
       !use GCM_module, only:  GCMi, GCMj !Fix to names from GCM
@@ -12,14 +14,13 @@
      &     init_params,!prescr_calcconst renamed init_params 
      &     prescr_veg_albedo,prescr_calc_rootprof,
      &     prescr_calc_lai
-      public GISS_shc,prescr_plant_cpools, prescr_init_Clab
+!      public GISS_shc  !NYK - moved to phenology.f
+      public prescr_plant_cpools
       public prescr_calc_hdata
      &     ,prescr_calc_woodydiameter,prescr_get_pop,prescr_get_crownrad
      &     ,prescr_calc_initnm, prescr_calc_rootprof_all
      &     ,prescr_calc_soilcolor
       public ED_woodydiameter,popdensity,Ent_dbh
-      public crown_radius_horiz, crown_radius_vert
-      public wooddensity_gcm3
 
 #ifdef ENT_STANDALONE_DIAG
       public print_ent_pfts
@@ -168,42 +169,43 @@
 !
 !      end function GISS_shc
 
-      real*8 function GISS_shc(meanLAI) Result(shc)
-!@sum Returns GISS GCM specific heat capacity for cohort.
-!     meanLAI = (sum over pfts) 
-!           {.5d0*(alamax(anum) + alamin(anum)) * vfraction }/sum(vfraction)
-!     I.e. GISS GCM computes shc_entcell = shc(mean entcell LAI*vfaction)
-!     instead of shc_entcell = mean(shc(patch LAI)*vfraction)
-      use ent_const
-      real*8,intent(in) :: meanlai    
-
-      !Seems like this ought to use actual LAI, too? - NK
-      !-----Local----
-
-      shc = (.010d0+.002d0*meanLAI+.001d0*meanLAI**2)*shw*rhow
-
-      end function GISS_shc
+!*** MOVED TO phenology.f to keep clean dependencies
+!      real*8 function GISS_shc(meanLAI) Result(shc)
+!!@sum Returns GISS GCM specific heat capacity for cohort.
+!!     meanLAI = (sum over pfts) 
+!!           {.5d0*(alamax(anum) + alamin(anum)) * vfraction }/sum(vfraction)
+!!     I.e. GISS GCM computes shc_entcell = shc(mean entcell LAI*vfaction)
+!!     instead of shc_entcell = mean(shc(patch LAI)*vfraction)
+!      use ent_const
+!      real*8,intent(in) :: meanlai    
+!
+!      !Seems like this ought to use actual LAI, too? - NK
+!      !-----Local----
+!
+!      shc = (.010d0+.002d0*meanLAI+.001d0*meanLAI**2)*shw*rhow
+!
+!      end function GISS_shc
 
 !**************************************************************************
 !## This function does not appear to be used - NK
-      real*8 function prescr_calc_shoot(pft,hdata,dbhdata)
-     &     Result(Bshoot)
-!@sum Returns GISS GCM veg shoot kg-C per plant for given vegetation type.
-!@+   From Moorcroft, et al. (2001), who takes allometry data from
-!@+   Saldarriaga et al. (1998).
-      use ent_pfts, only : COVEROFFSET
-      integer,intent(in) :: pft !@var pft vegetation type
-      real*8,intent(in) :: hdata(N_COVERTYPES), dbhdata(N_COVERTYPES)
-      !-----Local-------
-      real*8 :: wooddens
-      integer :: ncov !covertypes index
-
-      ncov = pft + COVEROFFSET
-      wooddens = wooddensity_gcm3(pft)
-      Bshoot = 0.069 * (hdata(ncov))**0.572
-     &     * (dbhdata(ncov))**1.94 * (wooddens**0.931)
-
-      end function prescr_calc_shoot
+!      real*8 function prescr_calc_shoot(pft,hdata,dbhdata)
+!     &     Result(Bshoot)
+!!@sum Returns GISS GCM veg shoot kg-C per plant for given vegetation type.
+!!@+   From Moorcroft, et al. (2001), who takes allometry data from
+!!@+   Saldarriaga et al. (1998).
+!     use ent_pfts, only : COVEROFFSET
+!      integer,intent(in) :: pft !@var pft vegetation type
+!      real*8,intent(in) :: hdata(N_COVERTYPES), dbhdata(N_COVERTYPES)
+!      !-----Local-------
+!      real*8 :: wooddens
+!      integer :: ncov !covertypes index
+!
+!      ncov = pft + COVEROFFSET
+!      wooddens = wooddensity_gcm3(pft)
+!      Bshoot = 0.069 * (hdata(ncov))**0.572
+!     &     * (dbhdata(ncov))**1.94 * (wooddens**0.931)
+!
+!      end function prescr_calc_shoot
 
 !**************************************************************************
 
@@ -353,11 +355,12 @@ c**** calculate root fraction afr averaged over vegetation types
 
 !*************************************************************************
 
-      subroutine prescr_get_pop(dbhdata,popdata)
+      subroutine prescr_get_pop(dbhdata,laimaxdata,popdata)
       !* Return array of GISS-derived vegetation population density (#/m2)
       !* Derived from Moorcroft, et al. (2001)
       use ent_pfts, only : COVEROFFSET, alamax
       real*8,intent(in) :: dbhdata(N_COVERTYPES)
+      real*8,intent(in) :: laimaxdata(N_COVERTYPES)
       real*8,intent(out) :: popdata(N_COVERTYPES)
       !---Local-----------
       integer :: ncov,pft
@@ -365,7 +368,8 @@ c**** calculate root fraction afr averaged over vegetation types
       popdata(:) = 0.0 !Zero initialize, and zero bare soil.
       do pft=1,N_PFT
         ncov = pft + COVEROFFSET
-        popdata(ncov) = popdensity(pft,dbhdata(ncov),alamax(ncov))
+        !popdata(ncov) = popdensity(pft,dbhdata(ncov),alamax(ncov))
+        popdata(ncov) = popdensity(pft,dbhdata(ncov),laimaxdata(ncov))
       enddo
       end subroutine prescr_get_pop
 
@@ -373,6 +377,7 @@ c**** calculate root fraction afr averaged over vegetation types
       real*8 function popdensity(pft,dbh,LAImax) Result(popdens)
       !* No. per m^2.  From ED
       use ent_pfts, only: pfpar, COVEROFFSET, alamax
+      use allometryfn, only : wooddensity_gcm3
        integer,intent(in) :: pft
       real*8, intent(in) :: dbh
       real*8, intent(in) :: LAImax
@@ -395,7 +400,6 @@ c**** calculate root fraction afr averaged over vegetation types
 
       subroutine prescr_calc_woodydiameter(hdata, wddata)
       !* Return array of woody plant diameters at breast height (dbh, cm)
-      !use ent_pfts
       use ent_pfts, only : COVEROFFSET
       real*8,intent(in) :: hdata(N_COVERTYPES)
       real*8,intent(out) :: wddata(N_COVERTYPES)
@@ -410,6 +414,43 @@ c**** calculate root fraction afr averaged over vegetation types
       end subroutine prescr_calc_woodydiameter
 
 !*************************************************************************
+      real*4 function DBH_from_h (pft,h_m)
+      use ent_pfts, only : pfpar
+      use allometryfn, only : height2dbh
+      !Calculates DBH (cm) from h (m) for woody plants
+      !NK -07/02/2012
+      !Original relation:  
+      !  h_m = a0h + pfpar(pft)%b1Ht*(1-exp(pfpar(pft)%b2Ht*DBH_cm))
+      !Inverse relation:   
+      !  DBH_cm = log(1-(h_m - a0h)/pfpar(pft)%b1Ht)/pfpar(pft)%b2Ht
+      !This places a cap on DBH if h_m goes above pfpar(pft)%b1Ht, 
+      ! which is really wrong, since it is h that is limited while
+      ! DBH gets fatter -
+      !  but we don't know what the upper limit of h is.
+      !  Need to change function unlimited form h = a*dbh^b
+      integer :: pft            !plant functional type number
+      real*8 :: h_m             !height (m)
+      !------
+
+      if (pfpar(pft)%woody) then
+         !if ((h_m.gt.0.0).and.(h_m.lt.1.01*a0h(pft))) then
+         !   DBH_from_h = 1.01*a0h(pft)
+         !elseif (h_m.gt.(a0h(pft)+0.99*pfpar(pft)%b1Ht)) then
+         !   write(*,*) "pft, h, pfpar(pft)%b1Ht",pft,h_m,pfpar(pft)%b1Ht
+         !   DBH_from_h = log(.01)/pfpar(pft)%b2Ht
+         !else
+         !   DBH_from_h = log(1-(h_m - a0h(pft))/pfpar(pft)%b1Ht(pft))/
+         !     &           pfpar(pft)%b2Ht
+         !endif
+
+         DBH_from_h = height2dbh(pft,h_m)
+      else
+         DBH_from_h = 0.0
+      endif
+
+      end function DBH_from_h
+
+!*************************************************************************
       real*8 function Ent_dbh(pft,h) Result(dbh)
       !* Return dbh (cm).  Checks by pft and modifies ED allometry.
       use ent_pfts, only : pfpar, TUNDRA
@@ -418,7 +459,7 @@ c**** calculate root fraction afr averaged over vegetation types
 
       if (pfpar(pft)%woody) then !Woody
          if (pft.eq.TUNDRA) then !May need separate shrub allometry
-            dbh = ED_woodydiameter(pft,h) * 20.d0
+            dbh = ED_woodydiameter(pft,h)! * 20.d0  NEW PARAMS OKAY
          else                   !Most trees
             dbh = ED_woodydiameter(pft,h)
             !dbh = height2dbh(pft,h) !phenology.f function
@@ -432,71 +473,26 @@ c**** calculate root fraction afr averaged over vegetation types
       real*8 function ED_woodydiameter(pft,h) Result(dbh)
       !* Return woody plant diameter (cm).
       !* From Moorcroft, et al. (2001)
+      use allometryfn, only : height2dbh
       integer,intent(in) :: pft !plant functional type
       real*8,intent(in) ::  h !height (m)
       !real*8,intent(out) :: dbh !(cm)
+      
+      !ED version
+      !dbh = ((1/2.34d0)*h)**(1/0.64d0)
 
-      dbh = ((1/2.34d0)*h)**(1/0.64d0)
-      !### See also phenology.f height2dbh version. ###!
+      !phenology.f height2dbh version. ###!
+      dbh = height2dbh(pft,h)
 
       end function ED_woodydiameter
 
-!*************************************************************************
-      real*8 function crown_radius_horiz(pft,dbh,popdensity)
-      !* Return horizontal crown radius (m)
-      integer,intent(in) :: pft
-      real*8, intent(in) :: dbh !cm
-      real*8, intent(in) :: popdensity !#/m^2
-
-      crown_radius_horiz = min(
-     &     crown_radius_closed(popdensity),crown_radius_pft(pft,dbh))
-
-      end function crown_radius_horiz
-!*************************************************************************
-      real*8 function crown_radius_pft(pft,dbh) Result(cradm)
-      !* From Harvard Forest late successional hardward allometry.
-      !* with mean conifer dbh_max limit.
-      !* Coefficient 0.107 for late-succ hw is approx. mean for all types.
-      use ent_pfts, only : is_conifer,is_hw
-      integer, intent(in) :: pft
-      real*8, intent(in) :: dbh
-      !------
-      !dbh_max parameter values from Harvard Forest allometry
-      real*8, parameter :: dbh_max_conifer = 42.d0 !cm.  Mean of for pine and late successional conifer.  
-      real*8, parameter :: dbh_max_hw = 150.d0 !cm.  
-      real*8 :: dbh_max
-
-      if (is_conifer(pft)) then
-         dbh_max = dbh_max_conifer
-      elseif (is_hw(pft)) then
-         dbh_max = dbh_max_hw
-      else
-         dbh_max = dbh
-      endif
-
-      cradm = .107d0 * min(dbh, dbh_max) 
-
-      end function crown_radius_pft
-!*************************************************************************
-      real*8 function crown_radius_closed(popdensity) Result(cradm)
-      !* Return plant crown radius (m).
-      !* Assumes closed canopy packing given popdensity.
-      real*8, intent(in) :: popdensity !#/m^2
-      
-      cradm = 0.5d0*sqrt(1/popdensity)
-      end function crown_radius_closed
-!*************************************************************************
-      real*8 function crown_radius_vert(h,crx)
-      real*8 :: h, crx !Tree height, crown horizontal radius
-      !crown_radius_vert = min(0.45*h,crx*2.7d0)
-      crown_radius_vert = max(0.45*h,crx)  !##
-      end function crown_radius_vert
 !*************************************************************************
 
       subroutine prescr_get_crownrad(popdata,craddata)
 !@sum prescr_get_crownrad - assumes closed-canopy packing of crowns
 !@+      in rows and columns (not staggered).
       use ent_pfts, only : COVEROFFSET
+      use allometryfn, only : Crown_rad_max_from_density
       real*8,intent(in) :: popdata(N_COVERTYPES)
       real*8,intent(out) :: craddata(N_COVERTYPES)
       !---Local----
@@ -505,14 +501,16 @@ c**** calculate root fraction afr averaged over vegetation types
       craddata(:) = 0.0 !Zero initialize.
       do pft=1,N_PFT
         n = pft + COVEROFFSET
-        craddata(n) = crown_radius_closed(popdata(n))
+        !craddata(n) = crown_radius_closed(popdata(n))
+        craddata(n) = Crown_rad_max_from_density(popdata(n))
       end do
 
       end subroutine prescr_get_crownrad
 
 !*************************************************************************
 
-      subroutine prescr_plant_cpools(pft, lai, h, dbh, popdens, cpool )
+      subroutine prescr_plant_cpools(pft, lai, h, dbh, popdens
+     &     , cpool )
       !* Calculate plant carbon pools for single plant (g-C/plant)
       !* After Moorcroft, et al. (2001). No assignment of LABILE pool here.
       !* Coarse root fraction is estimated from Zerihun (2007) for Pinus radiata
@@ -520,26 +518,32 @@ c**** calculate root fraction afr averaged over vegetation types
       !*  CR(kg-C/tree) = 0.5*CR(kg/tree) = 0.5*exp(-4.4835)*(dbh**2.5064).
       !*  The ratio of CR(kg-C/tree)/HW(kg-C/tree) at h=20 m is ~0.153.
       !*  This is about the same as the ratio of their CR biomass/AG biomass.
-      use ent_pfts, only: COVEROFFSET, pfpar, alamax
+      use ent_pfts, only: COVEROFFSET, pfpar !, alamax
+      use allometryfn, only : wooddensity_gcm3, Cfol_fn
       integer,intent(in) :: pft !plant functional type
-      real*8, intent(in) :: lai,h,dbh,popdens  !lai, h(m), dbh(cm),popd(#/m2)
+      real*8, intent(in) :: lai, h,dbh,popdens  !lai, h(m), dbh(cm),popd(/m2)
       real*8, intent(out) :: cpool(N_BPOOLS) !g-C/pool/plant
       !----Local------
-      real*8 :: max_cpoolFOL
+      !real*8 :: max_cpoolFOL
+      real*8 :: LAmax !m2/plant
 
       !* Initialize
       cpool(:) = 0.d0
       
-      max_cpoolFOL = alamax(pft+COVEROFFSET)/pfpar(pft)%sla/popdens*1d3
+      !max_cpoolFOL = alamax(pft+COVEROFFSET)/pfpar(pft)%sla/popdens*1d3
+      !max_cpoolFOL = laimax/pfpar(pft)%sla/popdens*1.d3
+      !LAmax = laimax/popdens
+      LAmax = .001d0*Cfol_fn(pft,dbh,h)*pfpar(pft)%sla
       cpool(FOL) = lai/pfpar(pft)%sla/popdens *1d3 !Bl
       cpool(FR) = cpool(FOL)   !Br
       !cpool(LABILE) = prognostic as diagnostic.
       if (pfpar(pft)%woody) then !Woody
-        cpool(SW) = 0.128d0 
 	 !NOTE: Coefficient 0.128 corrects error in Moorcroft et al. (2001)
          !      See detailed notes for iqsw in phenology.f
+!        cpool(SW) = 0.00128d0 * pfpar(pft)%sla
+!     &      *  max_cpoolFOL * h   !Bsw = 0.00128[kgC/m3]*1d3*(sla*Bfol*1d-3)*h
         cpool(SW) = 0.128d0 *
-     &       (pfpar(pft)%sla * max_cpoolFOL) * h  !Bsw=0.128*LAtot(1d-3*1d3)*h 
+     &       (LAmax) * h  !Bsw=0.128*LAtot(1d-3*1d3)*h 
         cpool(HW) = 0.069d0*(h**0.572d0)*(dbh**1.94d0) * 
      &       (wooddensity_gcm3(pft)**0.931d0) *1d3
         cpool(CR) =  pfpar(pft)%croot_ratio*cpool(HW) !Estimated from Zerihun (2007)
@@ -553,61 +557,45 @@ c**** calculate root fraction afr averaged over vegetation types
       end subroutine prescr_plant_cpools
 
 !*************************************************************************
-      subroutine prescr_init_Clab(pft,n,cpool)
-!@sum prescr_init_Clab - Initializes labile carbon pool to 4x mass of 
-!@sum (alamax - alamin) for woody and perennial plants.
+!      subroutine prescr_init_Clab(pft,n,laimax,Clabile)
+!@sum prescr_init_Clab - Initializes labile carbon pool
+!@sum Deciduous woody: Clab = 4 x max Cfol of plant.
+!@sum Evergreen woody: Clab = 0.5 x max Cfol of plant.
 !@sum 4x requirement is from Bill Parton (personal communication).
-!@sum For herbaceous annuals, assume seed provides 0.5 of alamax mass (guess).
-      use ent_pfts, only : COVEROFFSET, pfpar, alamax, alamin
-      implicit none
-      integer, intent(in) :: pft
-      real*8, intent(in) :: n !Density (#/m^2)
-      real*8, intent(inout) :: cpool(N_BPOOLS) !g-C/pool/plant
-      
-!      cpool(LABILE) = 0.5d0*alamax(pft+COVEROFFSET)/pfpar(pft)%sla/n*1d3 !g-C/individ.
+!@sum 7/1/2012 - Replaced with different subroutine - NK
 
-      if (pfpar(pft)%phenotype.ne.ANNUAL) then
-        !Enough to grow peak foliage and fine roots.
-        cpool(LABILE) = (alamax(pft+COVEROFFSET)-alamin(pft+COVEROFFSET)
-     &       )*4.d0/pfpar(pft)%sla/n*1d3 !g-C/individ.
-      else
-       if( n > 0.d0 ) then
-        cpool(LABILE) = 0.5d0*alamax(pft+COVEROFFSET)/
-     &       pfpar(pft)%sla/n*1d3 !g-C/individ.
-       else
-        cpool(LABILE) = 0.d0
-       endif
-      endif
-
-      end subroutine prescr_init_Clab
+!! This subroutine has been revised and moved to phenology.f.      
+!      subroutine prescr_init_Clab_old(pft,n,cpool)
+!!@sum prescr_init_Clab - Initializes labile carbon pool to 4x mass of 
+!!@sum (alamax - alamin) for woody and perennial plants. 
+!!@sum 4x requirement is from Bill Parton (personal communication).
+!!@sum For herbaceous annuals, assume seed provides 0.5 of alamax mass (guess).
+!!@sum 7/1/2012 - Replaced with different subroutine - NK
+!      use ent_pfts, only : COVEROFFSET, pfpar !, alamax, alamin
+!      implicit none
+!      integer, intent(in) :: pft
+!      real*8, intent(in) :: n !Density (#/m^2)
+!      real*8, intent(in) :: laimax, laimin
+!      real*8, intent(inout) :: cpool(N_BPOOLS) !g-C/pool/plant
+!      
+!!      cpool(LABILE) = 0.5d0*alamax(pft+COVEROFFSET)/pfpar(pft)%sla/n*1d3 !g-C/individ.
+!
+!      if (pfpar(pft)%phenotype.ne.ANNUAL) then
+!        !Enough to grow peak foliage and fine roots.
+!        cpool(LABILE) = (alamax(pft+COVEROFFSET)-alamin(pft+COVEROFFSET)
+!     &       )*4.d0/pfpar(pft)%sla/n*1d3 !g-C/individ.
+!      else
+!       if( n > 0.d0 ) then
+!        cpool(LABILE) = 0.5d0*alamax(pft+COVEROFFSET)/
+!     &       pfpar(pft)%sla/n*1d3 !g-C/individ.
+!       else
+!        cpool(LABILE) = 0.d0
+!       endif
+!      endif
+!
+!      end subroutine prescr_init_Clab_old
 !*************************************************************************
 
-cddd      real*8 function wooddensity_gcm3(pft) Result(wooddens)
-cddd      use ent_pfts, only : pfpar
-cddd      integer,intent(in) :: pft
-cddd      !* Wood density (g cm-3). Moorcroft et al. (2001).
-cddd
-cddd      wooddens = max(0.5d0, 0.5d0 + 0.2d0*(pfpar(pft)%lrage-1.d0))
-cddd
-cddd      end function wooddensity_gcm3
-
-
-      real*8 function wooddensity_gcm3(pft) Result(wooddens)
-      !* Returns wood density in total mass per volume (total mass = dry mass = C + N + everything else)
-      use ent_pfts, only : pfpar
-      integer,intent(in) :: pft
-      !* Wood density (g cm-3). Moorcroft et al. (2001).
-
-      if (pfpar(pft)%leaftype.eq.NEEDLELEAF) then
-        wooddens = 0.5d0
-      else
-        wooddens = min(
-     &       max(0.5d0, 0.5d0 + 0.2d0*(pfpar(pft)%lrage-1.d0)), 1.05d0)       
-      endif
-
-      end function wooddensity_gcm3
-
-!*************************************************************************
       subroutine prescr_calc_soilcolor(soil_color)
       !* Return arrays of GISS soil color and texture.
       !## Can get rid of this subroutine and replace with array assignment.

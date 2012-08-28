@@ -238,7 +238,7 @@ cddd      end subroutine init_cohort_defaults
 
       subroutine zero_cohort(cop)
 !@sum Zero all real variables in cohort record.      
-      use growthallometry,only : init_rootdistr
+      use allometryfn,only : init_rootdistr
       use ent_pfts
       type(cohort),pointer :: cop
 

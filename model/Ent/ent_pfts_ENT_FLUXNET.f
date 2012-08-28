@@ -1,5 +1,5 @@
       module ent_pfts
-!@sum Ent default supported 13 vegetation types
+!@sum Ent default supported 16 vegetation type
 
       !use ent_pftconst
       use ent_const
