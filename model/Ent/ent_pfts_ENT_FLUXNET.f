@@ -10,6 +10,29 @@
       !*      ENT PLANT FUNCTIONAL TYPES                 *
       !***************************************************
 
+      character*50, parameter :: Ent_title(N_COVERTYPES) =
+     &     (/
+     &     '1 - evergreen broadleaf early succ               ',
+     &     '2 - evergreen broadleaf late succ                ',
+     &     '3 - evergreen needleleaf early succ              ',
+     &     '4 - evergreen needleleaf late succ               ',
+     &     '5 - cold deciduous broadleaf early succ          ',
+     &     '6 - cold deciduous broadleaf late succ           ',
+     &     '7 - drought deciduous broadleaf                  ',
+     &     '8 - deciduous needleleaf                         ',
+     &     '9 - cold adapted shrub                           ',
+     &     '10 - arid adapted shrub                          ',
+     &     '11 - C3 grass perennial                          ',
+     &     '12 - C4 grass                                    ',
+     &     '13 - C3 grass - annual                           ',
+     &     '14 - arctic C3 grass                             ',
+     &     '15 - crops herb                                  ',
+     &     '16 - crops woody                                 ',
+     &     '17 - Permanent snow/ice                          ',
+     &     '18 - Bare or sparsely vegetated, urban           '
+     &     /)
+
+
       !* 1 - evergreen broadleaf early successional
       !* 2 - evergreen broadleaf late successional
       !* 3 - evergreen needleleaf early successional
