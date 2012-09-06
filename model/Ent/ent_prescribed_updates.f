@@ -468,16 +468,16 @@
 
         if ( associated(cropsdata) )
      &       call entcell_update_crops(ecp, cropsdata)
-        print *,"update cropsdata: ", associated(cropsdata) !##debug
-
+        !print *,"update cropsdata: ", associated(cropsdata) !##debug
+        
         if ( associated(hdata) )
      &       call entcell_update_height(ecp, hdata, init)!, mixed_veg)
-        print *, "update hdata: ", associated(hdata) !##debug
+        !print *, "update hdata: ", associated(hdata) !##debug
 
         if ( associated(laidata) )
      &       call entcell_update_lai_poolslitter(ecp,laidata,
      &       init)!,mixed_veg)
-        print *, "update laidata: ",associated(laidata) !##debug
+        !print *, "update laidata: ",associated(laidata) !##debug
 
       endif
       ! or veg structure from prescribed GISS LAI phenology 
@@ -498,6 +498,7 @@
       !* ALBEDO *!
       if ( associated(albedodata) ) then
         call entcell_update_albedo(ecp, albedodata)
+        !print *, "update albedodata from array"
       else
         pp => ecp%oldest
         do while (ASSOCIATED(pp))
@@ -507,6 +508,7 @@
      &         jday, pp%albedo)
           pp => pp%younger
         end do
+        !print *, "update albedodata hemi"
       endif
 
       call summarize_entcell(ecp)
