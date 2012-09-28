@@ -15,6 +15,7 @@
       save
 
       public zero_entcell, summarize_entcell, entcell_print
+      public entcell_print_diag
       public assign_entcell, assign_entcell_soilcarbon
       public init_simple_entcell, entcell_construct, entcell_destruct
       public entcell_extract_pfts, entcell_carbon
@@ -919,6 +920,53 @@ C NADINE - IS THIS CORRECT?
  1    format(a,a," = ",99e23.16)  ! e12.5
 
       end subroutine entcell_print
+
+
+ !*********************************************************************
+      subroutine entcell_print_diag(iu, ecp)
+      !Prints out other calculated diagnostics not printed by entcell_print
+      !@auth - NK
+      use patches, only : patch_print_diag
+      integer, intent(in) :: iu
+      type(entcelltype), intent(in) :: ecp
+      !---
+      type(patch), pointer :: pp
+      character*1 :: prefix=" "
+      character*8 prefix_p
+      integer np
+
+      write(iu, '(a,"entcell:")') prefix
+
+      write(iu, 1) prefix,"LMA	", ecp%LMA	    
+      write(iu, 1) prefix,"LAI      ", ecp%LAI      
+      write(iu, 1) prefix,"h        ", ecp%h        
+      write(iu, 1) prefix,"C_fol    ", ecp%C_fol    
+      write(iu, 1) prefix,"C_w      ", ecp%C_w      
+      write(iu, 1) prefix,"C_lab    ", ecp%C_lab    
+      write(iu, 1) prefix,"C_froot  ", ecp%C_froot  
+      write(iu, 1) prefix,"C_root   ", ecp%C_root   
+      write(iu, 1) prefix,"albedo   ", ecp%albedo(:)
+      write(iu, 1) prefix,"Tpool    ", ecp%Tpool
+      write(iu, 1) prefix,"fv       ", ecp%fv       
+      write(iu, 1) prefix,"C_total  ", ecp%C_total  
+      write(iu, 1) prefix,"C_growth ", ecp%C_growth 
+
+      if ( associated(ecp%LAIpft) )
+     & write(iu,1) prefix,"LAIpft",ecp%LAIpft
+
+      write(iu, '(a,"patches:")') prefix
+      pp => ecp%oldest
+      np = 0
+      do while( associated(pp) )
+        np = np + 1
+        write( prefix_p, '(i2,"      ")' ) np
+        call patch_print_diag(iu, pp, prefix//prefix_p)
+        pp => pp%younger
+      enddo
+
+ 1    format(a,a," = ",99e23.16)  ! e12.5
+
+      end subroutine entcell_print_diag
 
  !*********************************************************************
 

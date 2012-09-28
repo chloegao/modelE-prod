@@ -712,6 +712,68 @@
  1    format(a,a," = ",99e23.16)  ! e12.5
       end subroutine patch_print
 
+!*************************************************************************
+
+      subroutine patch_print_diag(iu,pp,prefix)
+      !Prints other calculated diagnostics not output by patch_print
+      use cohorts, only : cohort_print, cohort_print_diag
+      integer, intent(in) :: iu
+      type(patch), intent(in) :: pp
+      character*(*), optional, intent(in) :: prefix !Optional text
+      !---
+      integer n, nc, m, i
+      type(cohort),pointer :: cop
+      character*8 prefix_c
+
+      prefix_c = "        "
+
+      write(iu,'(a,"albedo:")') prefix
+      do n=1,N_BANDS
+        write(iu,'(a,"      ",99e23.16)') prefix,pp%albedo(n)
+      enddo
+      write(iu,'(a,"Tpool:")') prefix
+      do m=1,PTRACE
+        do n=1,NPOOLS,3
+         do i=1,N_CASA_LAYERS
+          write(iu,'(a,"      ",i1,"  ",e23.16,e23.16,e23.16)') prefix,m
+     &         ,pp%Tpool(m,n,i),pp%Tpool(m,n+1,i),pp%Tpool(m,n+2,i)
+         end do
+        enddo
+      enddo
+
+      write(iu,1) prefix,"LMA   ",pp%LMA		   
+      write(iu,1) prefix,"LAI   ",pp%  LAI             
+      write(iu,1) prefix,"h       ",pp%  h              !
+      write(iu,1) prefix,"crown_dx  ",pp%  crown_dx       !
+      write(iu,1) prefix,"crown_dy  ",pp%  crown_dy       !
+      write(iu,1) prefix,"clump      ",pp%  clump          !
+      write(iu,1) prefix,"C_fol       ",pp%  C_fol          !
+      write(iu,1) prefix,"C_w         ",pp%  C_w           ! 
+      write(iu,1) prefix,"C_lab      ",pp%  C_lab          !
+      write(iu,1) prefix,"C_froot      ",pp% C_froot        !
+      write(iu,1) prefix,"C_root    ",pp%  C_root        ! 
+      write(iu,1) prefix,"albedo(N" ,pp%  albedo(:) 
+      write(iu,1) prefix,"C_total	",pp%C_total	   
+
+      if ( associated(pp%LAIpft) )
+     & write(iu,1) prefix,"LAIpft",pp%LAIpft
+      if ( associated(pp%Reproduction) )
+     & write(iu,1) prefix,"Reproduction",
+     &     pp%Reproduction
+
+      write(iu,'(a,"cohorts:")') prefix
+      cop => pp%tallest
+      nc = 0
+      do while( associated(cop) )
+        nc = nc + 1
+        write( prefix_c, '(i2,"      ")' ) nc
+        call cohort_print_diag(iu, cop, prefix//prefix_c)
+        cop => cop%shorter
+      enddo
+
+ 1    format(a,a," = ",99e23.16)  ! e12.5
+      end subroutine patch_print_diag
+!*************************************************************************
 
       subroutine patch_extract_pfts(pp, vfraction)
       use ent_pfts

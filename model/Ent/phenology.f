@@ -459,7 +459,8 @@
          end if
     
 #ifdef DEBUG
-             write(202,'(3(i5),100(1pe16.8))') pp%cellptr%fall
+!             write(202,'(3(i5),100(1pe16.8))') pp%cellptr%fall
+             write(202,*) pp%cellptr%fall
      &      ,phenofactor
      &      ,phenofactor_c,phenofactor_d
      &      ,phenostatus, cop%phenostatus
@@ -861,7 +862,8 @@ cddd         end if
          !*determine the potential max. of active pool
          !*for woody  - allmetirc constraint given DBH
          if (woody) then  
-            Cactive_max=dbh2Cfol(pft,dbh)*(alloc+(1.d0-phenofactor))
+            !Cactive_max=dbh2Cfol(pft,dbh)*(alloc+(1.d0-phenofactor)) !YK
+            Cactive_max=Cfol_fn(pft,dbh,h)*(alloc+(1.d0-phenofactor))
          else
             !*Yeonjoo's - for non-woody (i.e., herbaceous)
             !no allometric constraints in the carbon allocation, 
@@ -1083,6 +1085,7 @@ cddd         write(901,*) "deltaC*n ", (tot_c - tot_c_old)*cop%n
       !*1) Allocate the carbon to active pool, 
       !if both labile pool and daily carbon balance are positive             
 !      if (C_lab .gt.0.d0 .and. CB_d .gt. 0.d0) then
+      write(300,*) phenofactor
       if (C_lab .gt.(Rauto_day*1.d3) .and. CB_d .gt. 0.d0) then
         
          !*1-1) if there's no leaf, 

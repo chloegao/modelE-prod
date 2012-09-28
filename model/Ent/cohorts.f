@@ -522,6 +522,57 @@ cddd      end subroutine init_cohort_defaults
       end subroutine cohort_print
        
       !*********************************************************************
+      subroutine cohort_print_diag(iu, cop, prefix)
+      !Prints other calculated diagnostics not output by cohort_print
+      !@auth NK
+      use ent_pfts
+      use allometryfn, only : Cfol_fn
+      implicit none
+      integer, intent(in) :: iu
+      type(cohort), intent(in) :: cop
+      character*(*), optional, intent(in) :: prefix
+      !---
+      integer :: n
+
+      write(iu,'(a,a," = ",i7)') prefix,"pft ",cop%pft
+      write(iu,1)prefix,"n   ",cop%n
+      write(iu,1)prefix,"LAI   	     ",cop%LAI 
+      write(iu,1)prefix,"LMA         ",cop%LMA           
+      write(iu,1)prefix,"h      	 ",cop%h      	 
+      write(iu,1)prefix,"crown_dx  	 ",cop%crown_dx  	 
+      write(iu,1)prefix,"crown_dy  	 ",cop%crown_dy  	 
+      write(iu,1)prefix,"dbh         ",cop%dbh           
+      write(iu,1)prefix,"Cfolmax     ",Cfol_fn(cop%pft,cop%dbh,cop%h)
+      write(iu,1)prefix,"LA max      ",
+     &     Cfol_fn(cop%pft,cop%dbh,cop%h)/(pfpar(cop%pft)%sla)
+      write(iu,1)prefix,"LAI max     ",
+     &     Cfol_fn(cop%pft,cop%dbh,cop%h)/(pfpar(cop%pft)%sla) * cop%n
+      
+!      write(iu,1)prefix,"fracroot(:) ",
+!     &     cop%fracroot(:)	    
+      if (associated(cop%height_dz) )
+     &     write(iu,1)prefix,"height_dz(:)",
+     &     cop%height_dz(:)  
+      if ( associated(cop%fp_dz) )
+     & write(iu,1)prefix,"fp_dz(:)    ",cop%fp_dz(:)      
+      if ( associated(cop%height) )
+     &write(iu,1)prefix,"height(:)   ",cop%height(:)     
+      if ( associated(cop%fp) )
+     &   write(iu,1)prefix,"fp(:)       ",cop%fp(:)         
+      write(iu,1)prefix,"C_fol       ",cop%C_fol         
+      write(iu,1)prefix,"C_sw        ",cop%C_sw          
+      write(iu,1)prefix,"C_hw        ",cop%C_hw          
+      write(iu,1)prefix,"C_lab       ",cop%C_lab
+      write(iu,1)prefix,"C_froot     ",cop%C_froot       
+      write(iu,1)prefix,"C_croot     ",cop%C_croot       
+
+      write(iu,1)prefix,"C_total     ",cop%C_total       
+   
+ 1    format(a,a," = ",99e23.16)  ! e12.5
+
+      end subroutine cohort_print_diag
+       
+      !*********************************************************************
       subroutine calc_CASArootfrac(cop,fracrootCASA)  !PK 11/06
       !maps fracroot(N_DEPTH) to fracrootCASA(N_CASA_LAYERS)
       !needs to be customized based on thicknesses of CASA layers and GCM layers 

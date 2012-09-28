@@ -491,6 +491,7 @@ ccc        call stop_model("fix reading soil C for site", 255)
              vfraction(:,i,j) = vfraction(:,i,j)/s
           else if ( s < .1d0 ) then
              print *, "missing veg data at ",i,j,"assume bare soil",s
+             print *, "N_COVERTYPES",N_COVERTYPES,I0f,I1f,J0f,J1f
              vfraction(:,i,j) = 0.d0
              vfraction(COVER_SAND,i,j) = 1.d0
           else

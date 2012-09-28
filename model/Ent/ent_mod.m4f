@@ -46,6 +46,7 @@ define(`m4_type_list',`real*8')
       public ent_prescribe_vegupdateC
       public ent_prescribe_vegupdateD
       public ent_cell_print
+      public ent_cell_print_diag
 !      public ent_initialize !##Renamed as ent_init_config.
       public ent_init_config
 
@@ -161,6 +162,12 @@ cddd      end interface ent_cell_update
       interface ent_cell_print
       m4_loop(`
         module procedure ent_cell_print_`'m4_suffix`'
+      ')`'
+      end interface
+
+      interface ent_cell_print_diag
+      m4_loop(`
+        module procedure ent_cell_print_diag_`'m4_suffix`'
       ')`'
       end interface
 
@@ -1645,6 +1652,29 @@ m4_loop(`
 
       end subroutine ent_cell_print_`'m4_suffix`'
 ')`'
+
+
+m4_loop(`
+      subroutine ent_cell_print_diag_`'m4_suffix`'(iu, entcell)
+      integer, intent(in) :: iu
+      type(entcelltype_public),intent(in):: entcell`'m4_brkts(m4_ext)`'
+      m4_arr_only(`integer m4_ind')`'
+      m4_arr_only(`integer dims(2,m4_rank)')`'
+
+      m4_arr_only(`dims(1,:) = lbound(entcell)')`'
+      m4_arr_only(`dims(2,:) = ubound(entcell)')`'
+
+      m4_do(dims)
+        if ( associated(entcell`'m4_brkts(m4_ind)`'%entcell) ) then
+          call entcell_print_diag( iu, entcell`'m4_brkts(m4_ind)`'%entcell )
+        else
+          write( iu, *) "ent_cell_print_diag: Empty entcell"
+        endif
+      m4_enddo
+
+      end subroutine ent_cell_print_diag_`'m4_suffix`'
+')`'
+
 
 #ifdef MIXED_CANOPY
 m4_loop(`
