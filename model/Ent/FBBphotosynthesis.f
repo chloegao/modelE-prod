@@ -450,7 +450,7 @@ cddd      end subroutine Photosynth_analyticsoln1
       end function Respveg
 !-----------------------------------------------------------------------------
       real*8 function Rdark()
-      !Leaf dark respiration
+      !Leaf dark respiration (umol m-2_leaf s-1)
 
       Rdark = 0.015d0 * pspar%Vcmax !von Caemmerer book.
       

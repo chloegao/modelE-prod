@@ -822,7 +822,7 @@ C#endif
       use photcondmod, only : Rdark
       implicit none
       integer,intent(in) :: pft
-      real*8 :: cpools(N_BPOOLS) !plant carbon pools (kgC)
+      real*8 :: cpools(N_BPOOLS) !plant carbon pools (gC)
       real*8,intent(in) :: TcanopyK
       real*8,intent(in) :: TsoilK
       real*8,intent(in) :: TairK_10d
@@ -870,7 +870,7 @@ C#endif
       use photcondmod, only : Rdark, pspar
       implicit none
       integer,intent(in) :: pft
-      real*8 :: cpools(N_BPOOLS) !plant carbon pools (kgC)
+      real*8 :: cpools(N_BPOOLS) !plant carbon pools (gC)
       real*8,intent(in) :: TcanopyK
       real*8,intent(in) :: TsoilK
       real*8,intent(in) :: TairK_10d
@@ -881,15 +881,19 @@ C#endif
       real*8 :: Rmaint
       real*8 :: Rgrowth
       real*8 :: GPPplant !plant GPP (kgC/s/plant)
+      real*8 :: LAplant
+      real*8, parameter :: s2day = 24.d0*60.d0*60.d0
 
       Rmaint = Resp_plant_maint(pft,cpools,TcanopyK,TsoilK,
-     &     TairK_10d, TsoilK_10d,facclim, Rpools)*24.d0*60.d0*60.d0 !s to day
+     &     TairK_10d, TsoilK_10d,facclim, Rpools)
 
-      GPPplant = 0.5d0*pspar%Vcmax * 0.012D-6
-      Rgrowth = (0.012D-6*Rdark() + 
-     &     Resp_can_growth(pft,GPPplant,Rmaint,0.d0))*24.d0*60.d0*60.d0 
+!      LAplant = cpools(FOL)*1.d-3*pfpar(pft)%sla !1d-3*gC*m2/kgC = m2
+!      GPPplant = facclim*0.5d0*pspar%Vcmax *0.012D-6*LAplant !kgC/s/plant
+!      Rgrowth = 0.012D-6*Rdark()*LAplant + 
+!     &     Resp_can_growth(pft,GPPplant,Rmaint,0.d0)
+      Rgrowth = 0.d0  !Just do maintenance respiration requirement.
 
-      Rauto_day = Rmaint + Rgrowth
+      Rauto_day = (Rmaint + Rgrowth)*s2day
       
       end function Resp_plant_day
 !---------------------------------------------------------------------!
@@ -923,7 +927,7 @@ C#endif
       ! See also Ruimy et al. (1996) analysis of growth_r.
       !Fixed to min 0.d0 like ED2. - NYK
       integer :: pft
-      real*8 :: Acan !Canopy photosynthesis rate (mass/m2/s)(any units)
+      real*8 :: Acan !Canopy photosynthesis rate (mass/m2/s)(or any units)
       real*8 :: Rmaint !Canopy maintenance respiration rate (mass/m2/s)
       real*8 :: Rtgrowth !Growth respiration from tissue growth (mass/m2/s)
       real*8 :: growth_r !pft-dependent. E.g.CLM3.0-0.25, ED2 conifer-0.53, ED2 hw-0.33

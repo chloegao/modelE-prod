@@ -132,7 +132,15 @@
       integer,parameter :: DROUGHTDECID = 3
       integer,parameter :: COLDDROUGHTDECID = 4
       integer,parameter :: ANNUAL = 5 
-    
+
+      !* growth form *!
+      integer, parameter :: GRASS = 1
+      integer, parameter :: HERB = 2
+      integer, parameter :: SHRUB = 3
+      integer, parameter :: TREE = 4
+      integer, parameter :: BARE = 5
+
+
       !************************************************
       !*  COVER SUMMARY CONSTANTS                     *
       !************************************************

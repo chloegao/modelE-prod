@@ -148,9 +148,10 @@
      &     1.2d0, 58.0d0, 57.d0, 0.2d0, 0.093d0, 2,
      &     0.0240d0, 1.860d0, 0.1480d0, 2.411d0, 25.18d0, -0.0496d0),
      ! !* 6 - cold deciduous broadleaf late successional
-     &     pftype(1,.true.,1,-500.d0, .50d0, .29d0, 1.4d0,34.5d0,0.6d0, !old SLA 11.5, 0.6
-     &     0.75d0, 58.0d0, 57.d0, 0.2d0, 0.093d0, 2,
-     &     0.0170d0, 1.731d0, 0.2350d0, 2.252d0, 23.39d0, -0.0540d0),
+     &     pftype(1,.true.,1,-500.d0, .50d0, .29d0, 1.4d0,34.0d0,0.6d0, !old SLA 11.5, 0.6
+     &     0.75d0, 58.0d0, 57.d0, 0.3d0, 0.093d0, 2,
+     &     0.0170d0, 1.731d0, 0.2350d0, 2.252d0, 23.39d0, -0.0540d0), !##YK
+!     &     0.0170d0, 1.731d0, 0.2350d0, 2.252d0, 36.8d0, -0.0540d0),   !##NK
      ! !* 7 - drought deciduous broadleaf
 !     &     pftype(1,.true.,1,-500.d0, .45d0, .22d0, 1.4d0, 8.3d0, 0.5d0,
 !YKIM - Oaks at Tonzi
@@ -443,6 +444,36 @@ C     (6)  >SRBALB(1) = NIR  (2200-4000 nm)    (ANIR*0.1)
      &     ( /N_PFT,NPOOLS-NLIVE,1/ ))
 !     &     ( /N_PFT,NPOOLS-NLIVE,N_CASA_LAYERS/ )
       
-      !***************************************************
-      
+      !*********************************************************************
+
+      !wdens_g_cm3 is not calculated from wooddensity_gcm3 but is from data.
+      real*8, DIMENSION(N_PFT), parameter :: wdens_g_cm3 =
+     &     (/ 0.66d0,0.7d0,0.5d0,0.5d0,0.54d0,0.54d0,0.6d0
+     &     ,0.54d0,0.6d0,0.6d0
+     &     ,undef,undef,undef,undef,undef,0.54d0 /)
+      real*8, DIMENSION(N_PFT), parameter :: a0h = !Later move to ent_pfts_ENT.f
+     &     (/ 1.3d0,0.d0,1.3d0,0.d0,1.3d0,1.3d0,0.d0,1.3d0,0.d0,0.d0
+     &     ,undef,undef,undef,undef,undef,0.d0 /)
+      real*8, DIMENSION(N_PFT), parameter :: acr =
+     &     (/ 0.1407d0,0.1407d0,0.2855d0,0.2570d0,0.3070d0,0.2773d0
+     &     ,0.3868d0,0.3046d0,0.500d0,0.500d0
+     &     ,undef,undef,undef,undef,undef,0.3237d0 /)
+      real*8, DIMENSION(N_PFT), parameter :: bcr =
+     &     (/ 1.d0,1.d0,1.d0,1.d0,1.d0,1.d0,1.d0,1.d0,1.d0,1.d0
+     &     ,undef,undef,undef,undef,undef ,1.d0 /)
+      real*8, DIMENSION(N_PFT), parameter :: bR =
+     &     (/ 1.50d0,1.50d0,2.00d0,2.00d0,1.00d0,1.00d0,0.75d0
+     &     ,2.0d0,1.0d0,1.0d0,40.0d0,40.0d0,40.0d0,40.0d0,10.0d0,1.d0 /)
+      integer, DIMENSION(N_PFT), parameter  :: form =
+     &     (/ TREE,TREE,TREE,TREE,TREE,TREE,TREE,TREE,SHRUB,SHRUB
+     &     ,HERB,HERB,HERB,HERB,HERB,TREE /)
+      real*8, DIMENSION(N_PFT), parameter  :: DBHBAmax_cm =
+     &     (/ 150.d0,150.d0,150.d0,150.d0,150.d0,150.d0,150.d0,150.d0
+     &     ,10.d0,10.d0,undef,undef,undef,undef,undef,50.d0 /)
+      logical, DIMENSION(N_PFT), parameter  :: crop =
+     &     (/ .false.,.false.,.false.,.false.,.false.,.false.
+     &     ,.false.,.false.,.false.,.false.,.false.,.false.
+     &     ,.false.,.false.,.true.,.true. /)
+
+!**********************************************************************
       end module ent_pfts
