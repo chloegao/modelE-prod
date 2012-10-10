@@ -21,12 +21,94 @@ as in Gent and McWilliams (1996), but using variable coefficients
 </P>
 
 <p> The model contains up to 12 variable depth subgrid scale straits
-which contect ocean grid boxes, which would not be connected at the
+which contect ocean grid cells, which would not be connected at the
 resolution used. In particular, the Straits of Gibraltar, Hormuz, and
 Nares straits are so modelled. All ocean components are fluxed through
 these straits as a function of the end to end pressure gradients,
 balanced against a drag proportional to the straits 'width' which
-serves as a tuning parameter to get reasonable fluxes. </p>
+serves as a tuning parameter to get reasonable fluxes. </p><BR>
+
+<B>Prognostic Variables</B><BR>
+MO(I,J,L) (kg/m&sup2;)  =  salt water mass per unit area<BR>
+G0MO(I,J,L) (J)  =  potential enthapy in grid cell<BR>
+GXMO,GYMO,GZMO (J)  =  linear gradient of potential enthalpy<BR>
+GXXMO,GYYMO,GZZMO,GXYMO,GYZMO,GZXMO (J)  =  second order moment of potential enthalpy<BR>
+S0MO(I,J,L) (kg)  =  salt mass in grid cell<BR>
+SXMO,SYMO,SZMO (J)  =  linear gradient of salt<BR>
+SXXMO,SYYMO,SZZMO,SXYMO,SYZMO,SZXMO (J)  =  second order moment of salt<BR>
+UO (I,J,L) (m/s)  =  eastward C-grid velocity centered at eastern edge of grid cell<BR> 
+VO (I,J,L) (m/s)  =  northward C-grid velocity centered at northern edge of grid cell<BR>
+UOD (I,J,L) (m/s)  =  eastward D-grid velocity centered at northern edge of grid cell<BR>
+VOD (I,J,L) (m/s)  =  northward D-grid velocity centered at eastern edge of grid cell<BR><BR>
+
+MUST (L,N) (kg/s)  =  mass flux of salt water through strait<BR>
+G0MST (L,N) (J)  =  potential enthalpy in strait cell<BR>
+GXMST,GZMST (J)  =  linear gradient of potential enthapy<BR>
+S0MST (L,N) (kg)  =  salt mass in strait cell<BR>
+SXMST,SZMST (kg)  =  linear gradient of salt<BR><BR>
+
+Cross sectional area of salinity as a function of longitude in an ocean grid cell is:<BR>
+S (kg/kg)  =  S0MO / M  +  2 * SXMO * m / M&sup2;  +  6 * SXXMO * m&sup2; / M&sup3;  -  .5 * SXXMO / M<BR>
+where  M (kg) = MO * oDXYP  and  - .5 M < m < .5 M<BR><BR>
+
+<B>Ocean Functions and the Equation of State</B<BR>
+The following variables are defined for the ocean model:<BR><BR>
+
+C (J/kg&deg;C) = specific heat capacity at constant pressure<BR>
+G (J/kg)   = potential specific enthalpy<BR>
+g (m/s&sup2;)   = Earth's vertical gravitational acceleration<BR>
+H (J/kg)   = specific enthalpy<BR>
+m (kg/m&sup;)  = vertical coordinate = mass above minus mean atmospheric mass<BR>
+P (Pa)     = pressure above mean atmospheric pressure<BR>
+P&sub0; (Pa)    = global mean atmospheric pressure at sea level (101325 Pa)<BR>
+S (kg/kg)  = salinity<BR>
+T (&deg;C)     = in-situ temperature<BR>
+&alpha; (m&sup3;/kg)  = specific volume<BR>
+&beta; (m&sup3;/kg)  = potential specific volume<BR>
+&Gamma; (&deg;C/Pa)  = adiabatic lapse rate<BR>
+&Theta; (&deg;C)     = potential temperature<BR><BR>
+
+G and S can be calculated at any location in the ocean from m and
+the prognostic variables.  The purpose of this section is to derive P,
+H, T, &alpha; and &beta; from G, S and m or G, S and P.  Remember that P = m&middot;?g.<BR><BR>
+
+&alpha;(T,S,P), C(T,S,P) and &Gamma;(T,S,P) are provided by Fofonoff and
+Millard [1983], but also see Fofonoff [1985].  H(T,S,P) is derived as
+follows:<BR><BR
+
+&part;H/&part;P  =  &alpha;(T,S,P)   (Eq. 1)<BR><BR>
+
+&part;T/&part;P  =  &Gamma;(T,S,P)   (Eq. 2)<BR><BR>
+
+are integrated simultaneously from P to Po at constant entropy and
+salinity to obtain H(T,S,P) - H(&Theta;,S,Po).  Po is the reference pressure
+for potential temperature so that &Theta; = T at Po.  Next evaluate H(&Theta;,S,Po)
+- H(&Theta;,0,Po) at constant entropy and pressure which is provided by
+Millero and Leung [1976].  Finally, the differential equation<BR><BR>
+
+&part;H/&part;T  =  C(T,0,Po)   (Eq. 3)<BR><BR>
+
+is integrated from &Theta; to 0&deg;C at constant salinity and pressure to obtain
+H(&Theta;,0,Po) - H(0,0,Po).  The reference value for specific enthalpy is
+set by H(0,0,Po) = 0.  Thus H(T,S,P) is determined by the above formulas.<BR><BR>
+
+&Theta;(T,S,P) and T(&Theta;,S,P) are derived by integrating (Eq. 2) from P to
+Po.  The G of a parcel is defined to be the H of the parcel at Po were
+it raised adiabatically.  Thus, G(T,S,P) = H(&Theta;(T,S,P),S,Po) = G(&Theta;,S).
+&Theta;(G,S) is derived by inverting the first argument of G(&Theta;,S) which is
+possible because G and &Theta; are in a one-to-one relationship at constant S and Po.<BR><BR>
+
+T, H, &alpha; and &beta; can now be derived as functions of G, S and P.
+T(G,S,P) = T(G(&Theta;),S),S,P) = T(&Theta;,S,P)<BR>
+H(G,S,P) = H(G(&Theta;,S),S,P),S,P) = H(&Theta;,S,P) = H(&Theta;(T,S,P),S,P) = H(T,S,P)<BR>
+&alpha;(G,S,P) = &alpha;(G(&Theta;,S),S,P) = &alpha;(&Theta,S,P) = &alpha;(&Theta;(T,S,P),S,P) =
+   &alpha;(T,S,P)<BR>
+&beta;(G,S) = &alpha;(G,S,Po)<BR><BR>
+
+Evaluation of &alpha;(G,S,P), called the equation of state, is
+performed by linear interpolation within a look-up table in the ocean
+model's computer program.  The increments in the table are 4000 (J/kg)
+for G, .001 for S, and 2&middot;?10&sup5; (Pa) for P.
 
 </BODY>
 </HTML>
