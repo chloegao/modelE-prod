@@ -28,6 +28,7 @@ these straits as a function of the end to end pressure gradients,
 balanced against a drag proportional to the straits 'width' which
 serves as a tuning parameter to get reasonable fluxes. </p><BR>
 
+
 <B>Prognostic Variables</B><BR>
 MO(I,J,L) (kg/m&sup2;)  =  salt water mass per unit area<BR>
 G0MO(I,J,L) (J)  =  potential enthapy in grid cell<BR>
@@ -50,6 +51,7 @@ SXMST,SZMST (kg)  =  linear gradients of salt<BR><BR>
 Cross sectional area of salinity as a function of longitude in an ocean grid cell is:<BR>
 S (kg/kg)  =  S0MO / M  +  2 * SXMO * m / M&sup2;  +  6 * SXXMO * m&sup2; / M&sup3;  -  .5 * SXXMO / M<BR>
 where  M (kg) = MO * oDXYP  and  - .5 M < m < .5 M<BR><BR>
+
 
 <B>Ocean Functions and the Equation of State</B><BR>
 The following variables are defined for the ocean model:<BR><BR>
@@ -108,7 +110,71 @@ H(G,S,P) = H(G(&Theta;,S),S,P) = H(&Theta;,S,P) = H(&Theta;(T,S,P),S,P) = H(T,S,
 Evaluation of &alpha;(G,S,P), called the equation of state, is
 performed by linear interpolation within a look-up table in the ocean
 model's computer program.  The increments in the table are 4000 (J/kg)
-for G, .001 for S, and 2&middot;10^5 (Pa) for P.
+for G, .001 for S, and 2&middot;10^5 (Pa) for P.<BR><BR>
+
+
+<B>Ocean Pressure Gradient Force</B><BR>
+
+The pressure gradient force accelerates the velocity between two
+mass grid cells at the same layer.  The force in a layer has two terms:
+the gradient of the mean pressure multiplied by the average mean volume
+of the two cells and the gradient of the mean geopotential multiplied
+by the average mass of the two cells.  Other gradients of
+potential enthalpy and salt are not used in calculating the above mean
+quantities, but the linear vertical gradients are used.<BR><BR>
+
+The mean vertical coordinate, m1, of a grid cell is the average of
+the top edge m and the bottom edge m.  &Delta;m1 is the difference of m at
+the two edges.  The mean pressure of a grid cell is P(m1) = m1&middot;g, where g
+(m/s&sup2;) is the uniform effective gravity.  To calculate the mean
+specific volume of a grid cell we assume that &alpha;(G(m),S(m),P(m)) = &alpha;(m)
+fits a quadratic polynomial in m.  The mean value of the quadratic &alpha;(m)
+from m1-&Delta;m1/2 to m1+&Delta;m1/2 is equal to [&alpha;(m1-x) + &alpha;(m1+x)]/2 where x =
+&Deltam1/&radic;12.  The mean volume of a grid cell is equal to the
+mass multiplied by the mean specific volume which is calculated using
+quadratic precision using two evaluations of &alpha;(G,S,P) per grid cell at
+the vertical coordinates m1-x and m1+x.  This shows how the first term
+of the pressure gradient term is modeled.<BR><BR>
+
+The second term is modeled as follows.  We again assume that &alpha;(m)
+fits a quadratic in each grid cell.  The height, h (meters), at the
+column bottom is specified by the bottom topography.  Integrating
+upwards, the change in h from the bottom layer edge to any level in a
+layer is equal to the integral of &alpha;(m)&middot;dm.  The change in h to the top
+layer edge uses the two evaluations of &alpha; mentioned in the previous
+paragraph and is calculated with quadratic precision.  The top edge
+value of h of a layer becomes the bottom edge value of h for the layer
+above.  The mean geopotential, &Phi; (m&sup2;/s&sup2;), of the layer is the mass
+weighted g&middot;h throughout the layer which is a double integral of &alpha;(m) and
+is equal to<BR>
+
+<PRE>
+            &int;m1+&Delta;m1/2
+&Phi;  =  1/&Delta;m1 &int;         g&middot;h(m) dm  =
+            &int;m1-&Delta;m1/2
+
+            &int;m1+&Delta;m1/2   [               &int;m1+&Delta;m1/2         ]
+   =  1/&Delta;m1 &int;         g [ h(m1+&Delta;m1/2) + &int;         &alpha;(n) dn ] dm  =
+            &int;m1-&Delta;m1/2   [               &int;m                ]
+
+   =  g&middot;h(m1+&Delta;m1/2) + g[&alpha;(m1-x)(3-&radic;3) + &alpha;(m1+x)(3+&radic;3)]m1/12
+</PRE>
+
+The mean &Phi; is calculated with quadratic precision using the same
+two evaluations of &alpha;(G,S,P) as used in evaluating the first term.<BR><BR>
+
+Given an arbitrary quadratic polynomial in an interval
+[-&Delta;m1/2,&Delta;m1/2], the abcissas of the intersection points between the
+polynomial and the least square fit line that fits the polynomial in
+the interval are the points -x and x mentioned above.  These points do
+not depend on the coefficients of the polynomial.  Conversely, there
+are no two other points such that the mean value of an arbitrary
+quadratic polynomial can be derived from evaluating the polynomial at
+the two points.  This mathematical result is even more elegant because
+the double integral in above can be calculated from an evaluation of
+the polynomial at the points -x and x.
+
+<!--#config timefmt="%Y/%m/%d/%T"--><!--#echo var="LAST_MODIFIED"-->
 
 </BODY>
 </HTML>
