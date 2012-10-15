@@ -130,7 +130,7 @@ the two edges.  The mean pressure of a grid cell is P(m1) = m1&middot;g, where g
 specific volume of a grid cell we assume that &alpha;(G(m),S(m),P(m)) = &alpha;(m)
 fits a quadratic polynomial in m.  The mean value of the quadratic &alpha;(m)
 from m1-&Delta;m1/2 to m1+&Delta;m1/2 is equal to [&alpha;(m1-x) + &alpha;(m1+x)]/2 where x =
-&Deltam1/&radic;12.  The mean volume of a grid cell is equal to the
+&Delta;m1/&radic;12.  The mean volume of a grid cell is equal to the
 mass multiplied by the mean specific volume which is calculated using
 quadratic precision using two evaluations of &alpha;(G,S,P) per grid cell at
 the vertical coordinates m1-x and m1+x.  This shows how the first term
@@ -140,7 +140,7 @@ The second term is modeled as follows.  We again assume that &alpha;(m)
 fits a quadratic in each grid cell.  The height, h (meters), at the
 column bottom is specified by the bottom topography.  Integrating
 upwards, the change in h from the bottom layer edge to any level in a
-layer is equal to the integral of &alpha;(m)&middot;dm.  The change in h to the top
+layer is equal to the integral of &alpha;(m) dm.  The change in h to the top
 layer edge uses the two evaluations of &alpha; mentioned in the previous
 paragraph and is calculated with quadratic precision.  The top edge
 value of h of a layer becomes the bottom edge value of h for the layer
@@ -171,8 +171,8 @@ not depend on the coefficients of the polynomial.  Conversely, there
 are no two other points such that the mean value of an arbitrary
 quadratic polynomial can be derived from evaluating the polynomial at
 the two points.  This mathematical result is even more elegant because
-the double integral in above can be calculated from an evaluation of
-the polynomial at the points -x and x.
+the double integral above can be calculated from an evaluation of
+the polynomial at the points -x and x.<BR><BR>
 
 <!--#config timefmt="%Y/%m/%d/%T"--><!--#echo var="LAST_MODIFIED"-->
 
