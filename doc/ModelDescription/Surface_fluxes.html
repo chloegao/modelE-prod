@@ -12,13 +12,136 @@
 <p> Surface fluxes are calculated separately for each land surface
 type (open water, ice, earth and land ice). For each type, a different
 high resolution PBL calculation is done to extrapolate the first layer
-atmospheric properites to the surface (defined as 10m above the
+atmospheric properties to the surface (defined as 10m above the
 ground). The diffusion parameters in the PBL layers are functions of
-the local turbulence closure scheme (Cheng et al, 2002) and are
+the local turbulence closure scheme (Hartke and Rind, 1997; Cheng et al, 2002) and are
 iterated to get a robust estimate of the surface properties
 (temperature, humidity, and tracer concentration) and
 fluxes. Generally, 2 or 4 surface flux time steps are done every hour,
-depending on the vertical resolution.</p>
+depending on the vertical resolution.
+ Between the surface and the middle of the ﬁrst GCM layer,
+ instead of applying the usual interpolation scheme
+ using the similarity laws,  the model integrates closure equations
+ for velocity, potential temperature, humidity and other scalars over
+ the subgrid levels, to ﬁnd their surface values.
+ This procedure, which is unique among the GCMs,
+ is convenient for adding more physics and allows coarse vertical resolutions near the surface.
+</P>
+
+<P><B>References:</B></P>
+
+<P>
+Hartke, G.J., and D. Rind, 1997: Improved surface and boundary layer models for the Goddard Institute for Space Studies general circulation model. J. Geophys. Res., 102, 16407-16442.
+</P>
+<P>
+Cheng, Y., V.M. Canuto, and A.M. Howard, 2002: An improved model for the turbulent PBL. J. Atmos. Sci., 59, 1550-1565.
+</P>
+
+<P><B>Description of PBL_DRV.f</B></P>
+
+<P><B>Description of PBL.f</B></P>
+MODULE SOCPBL - defines subroutines and variables associated with the boundary layer physics.
+t_pbl_args is a derived type structure which contains all
+input/output arguments for PBL. SOCPBL contains:
+
+<P>
+ SUBROUTINE ADVANC - time steps the solutions for the boundary layer variables. 
+All the outputs are contained in the structure pbl_args (an instance of t_pbl_args),
+including: surface (at 10 meter height) values of mean wind components 
+(us,vs), 
+</P>
+<P>
+ SUBROUTINE STARS
+</P>
+<P>
+ SUBROUTINE GETL1 - estimates the master length scale of the turbulence model
+  on the secondary grid
+</P>
+<P>
+ SUBROUTINE GETL- computes the master length scale of the turbulence model
+     on the secondary grid. l0 in this routine is 0.16*(pbl height)
+     according to the LES data (Moeng and Sullivan 1992)
+</P>
+<P>
+ SUBROUTINE DFLUX - computes (dimensionless) surface fluxes of momentum,
+     heat and moisture (drag coefficient, Stanton number,
+     and Dalton number)
+</P>
+<P>
+ SUBROUTINE GETZHQ
+</P>
+<P>
+ SUBROUTINE GETCM
+</P>
+<P>
+ SUBROUTINE GETCHQ
+</P>
+<P>
+ SUBROUTINE SIMIL
+</P>
+<P>
+ SUBROUTINE GRIDDR
+</P>
+<P>
+ SUBROUTINE TFIX
+</P>
+<P>
+ SUBROUTINE CCOEFF0
+</P>
+<P>
+ SUBROUTINE GET_TV
+</P>
+<P>
+ SUBROUTINE GETK
+</P>
+<P>
+ SUBROUTINE E_EQN
+</P>
+<P>
+ SUBROUTINE E_LES
+</P>
+<P>
+ SUBROUTINE T_EQN
+</P>
+<P>
+ SUBROUTINE Q_EQN
+</P>
+<P>
+ SUBROUTINE TR_EQN
+</P>
+<P>
+ SUBROUTINE UV_EQN
+</P>
+<P>
+ SUBROUTINE T_EQN_STA
+</P>
+<P>
+ SUBROUTINE Q_EQN_STA
+</P>
+<P>
+ SUBROUTINE UV_EQN_STA
+</P>
+<P>
+ SUBROUTINE LEVEL2
+</P>
+<P>
+ SUBROUTINE INITS
+</P>
+<P>
+ SUBROUTINE TCHECK
+</P>
+<P>
+ SUBROUTINE UCHECK
+</P>
+<P>
+ SUBROUTINE CHECK1(A,N,ILONG,JLAT,ID)
+</P>
+<P>
+ SUBROUTINE OUTPUT
+</P>
+<P>
+ SUBROUTINE FGRID2
+</P>
 
 </BODY>
 </HTML>
