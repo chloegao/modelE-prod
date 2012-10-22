@@ -262,13 +262,13 @@
         C_labsum = C_labsum + cop%C_lab * cop%n !Sum for cohort.
 
         !set values for debugging
-        ent_d%vf(cop%pft) = pp%area
+        ent_d%vf(cop%pft) = pp%area/(3600*24*1000.d0)
         ent_d%Anet(cop%pft) = Anet
         ent_d%Atot(cop%pft) = Atot
         ent_d%Rd(cop%pft) = Rd
         ent_d%GCANOPY(cop%pft) = GCANOPY
-        ent_d%TRANS_SW(cop%pft) = TRANS_SW
-        ent_d%LAI(cop%pft) = cop%LAI
+        ent_d%TRANS_SW(cop%pft) = TRANS_SW/(3600*24*1000.d0)
+        ent_d%LAI(cop%pft) = cop%LAI/(3600*24*1000.d0)
         ent_d%GPP(cop%pft) = cop%GPP
         ent_d%R_auto(cop%pft) = cop%R_auto
 
