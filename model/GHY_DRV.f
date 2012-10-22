@@ -1643,8 +1643,7 @@ ccc the following values are returned by PBL
       shdt=-ashg
       evhdt=-alhg
 
-      aij(i,j,ij_ent_debug:ij_ent_debug+256-1)=
-     &     aij(i,j,ij_ent_debug+256-1)
+      aij(i,j, ij_ent_debug:ij_ent_debug+256-1)=
      &     + ent_debug_buf(:)*ptype
 
       aij(i,j,ij_psoil)=aij(i,j,ij_psoil)+ptype/nisurf
