@@ -436,6 +436,8 @@ cddd#endif
       ent_d%C_froot(:) = 0.d0
       ent_d%C_croot(:) = 0.d0
       ent_d%C_soil(:) = 0.d0
+      ent_d%phenofactor(:) = 0.d0
+      ent_d%betad(:) = 0.d0
 
       pp => ecp%oldest
 
@@ -455,6 +457,10 @@ cddd#endif
           ent_d%C_hw(pft) = ent_d%C_hw(pft) + cop%C_hw*scale
           ent_d%C_froot(pft) = ent_d%C_froot(pft) + cop%C_froot*scale
           ent_d%C_croot(pft) = ent_d%C_croot(pft) + cop%C_croot*scale
+          ent_d%phenofactor(pft) = ent_d%phenofactor(pft)
+     &         + cop%phenofactor*defacc_scale
+          ent_d%betad(pft) = ent_d%betad(pft)
+     &         + cop%stressH2O*defacc_scale
           !ent_d%C_(pft) = ent_d%C_(pft) + cop%C_*scale
 
           cop => cop%shorter
