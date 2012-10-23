@@ -1012,7 +1012,7 @@ cddd         end if
          !*update LAI
          !cop%LAI=cop%C_fol/1000.0d0*pfpar(pft)%sla*cop%n
          cop%LAI=cop%C_fol/1000.0d0*sla(pft,cop%llspan)*cop%n 
-         print *,'sla:',pfpar(pft)%sla,sla(pft,cop%llspan) !##NK DEBUG
+         !print *,'sla:',pfpar(pft)%sla,sla(pft,cop%llspan) !##NK DEBUG
          if (cop%LAI .lt. EPS) cop%LAI=EPS
          laipatch = laipatch + cop%lai  
 
