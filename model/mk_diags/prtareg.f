@@ -13,8 +13,8 @@
       character(len=16) :: stitle
       character(len=30) :: fmt
       integer :: nreg
-
-      integer :: status,varid,nvars,nreg_dimid,dimids(7)
+      logical :: has_time
+      integer :: status,varid,nvars,nreg_dimid,time_dimid,dimids(7)
       character(len=132) :: xlabel
       character(len=100) :: fromto
 
@@ -32,6 +32,8 @@ c
       status = nf_get_att_text(fid,nf_global,'fromto',fromto)
       call get_dimsize(fid,'nreg',nreg)
       status = nf_inq_dimid(fid,'nreg',nreg_dimid)
+      status = nf_inq_unlimdim(fid,time_dimid)
+      has_time = status==nf_noerr
 
 c
 c allocate workspace
@@ -59,7 +61,13 @@ c
       do varid=1,nvars
         dimids(1:2) = -1
         status = nf_inq_vardimid(fid,varid,dimids)
-        if(dimids(1).ne.nreg_dimid .or. dimids(2).ne.-1) cycle
+        if(dimids(1).ne.nreg_dimid) then
+          if(has_time) then
+            if(dimids(2).ne.time_dimid) cycle
+          elseif(dimids(2).ne.-1) then
+            cycle
+          endif
+        endif
         stitle = ''
         status = nf_get_att_text(fid,varid,'stitle',stitle)
         if(status.ne.nf_noerr) cycle
