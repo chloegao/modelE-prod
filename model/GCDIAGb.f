@@ -309,8 +309,7 @@ c
       scale_gc(k) = .5*1d2*BYGRAV/DT
       jgrid_gc(k) = 2
       pow_gc(k) = -4
-
-
+      denom_gc(k) = jk_dpb
 c
       k=k+1
       jk_vvel = k
@@ -379,6 +378,7 @@ c
       pow_gc(k) = -4
       jgrid_gc(k) = 1
       lgrid_gc(k) = ctr_cp ! according to print routine
+      denom_gc(k) = jk_dpb
 c
       k=k+1
       jk_vtpv = k
@@ -723,6 +723,7 @@ c      pow_gc(k) = -2
       units_gc(k) = 'W/(m^2*mb)'
       scale_gc(k) = 1d2*BYGRAV
       pow_gc(k) = -4
+      denom_gc(k) = jk_dpa
       k = k + 1
       jk_dyn_conv_dse = k                     ; jgrid_gc(k) = 1
       sname_gc(k) = 'dyn_conv_dse'
@@ -730,6 +731,7 @@ c      pow_gc(k) = -2
       units_gc(k) = 'W/(m^2*mb)'
       scale_gc(k) = 1d2*BYGRAV
       pow_gc(k) = -2
+      denom_gc(k) = jk_dpa
       k = k + 1
       jk_nt_dse_e = k                         ; jgrid_gc(k) = 2
       sname_gc(k) = 'nt_dse_eddy'
@@ -737,6 +739,7 @@ c      pow_gc(k) = -2
       units_gc(k) = 'W/mb'
       scale_gc(k) = XWON*FIM*1d2*BYGRAV
       pow_gc(k) = 11
+      denom_gc(k) = jk_dpb
       k = k + 1
       jk_nt_see = k                           ; jgrid_gc(k) = 2
       sname_gc(k) = 'nt_se_eddy'
@@ -744,6 +747,7 @@ c      pow_gc(k) = -2
       units_gc(k) = 'W/mb'
       scale_gc(k) = XWON*FIM*1d2*BYGRAV
       pow_gc(k) = 11
+      denom_gc(k) = jk_dpb
       k = k + 1
       jk_tot_nt_se = k                        ; jgrid_gc(k) = 2
       sname_gc(k) = 'tot_nt_se'
@@ -751,6 +755,7 @@ c      pow_gc(k) = -2
       units_gc(k) = 'W/mb'
       scale_gc(k) = XWON*FIM*1d2*BYGRAV
       pow_gc(k) = 12
+      denom_gc(k) = jk_dpb
       k = k + 1
       jk_we_flx_nor = k                       ; jgrid_gc(k) = 2
       sname_gc(k) = 'we_flx_nor'
