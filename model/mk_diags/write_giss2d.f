@@ -157,10 +157,21 @@ c
         status = nf_inq_varname(fid,varid,vname)
         lname = ''
         status = nf_get_att_text(fid,varid,'long_name',lname)
-        if(status.ne.nf_noerr) lname = vname
+        if(status.eq.nf_noerr) then
+          do k=1,len_trim(lname) ! remove extra NULL characters
+            if(iachar(lname(k:k)).eq.0) lname(k:k)=' '
+          enddo
+        else
+          lname = vname
+        endif
         units = ''
         status = nf_get_att_text(fid,varid,'units',units)
-        if(status.eq.nf_noerr) units = '('//trim(units)//')'
+        if(status.eq.nf_noerr) then
+          do k=1,len_trim(units) ! remove extra NULL characters
+            if(iachar(units(k:k)).eq.0) units(k:k)=' '
+          enddo
+          units = '('//trim(units)//')'
+        endif
         shnhgm = undef
         if(ndims.eq.2) then ! look for global means
           status = nf_inq_varid(fid,trim(vname)//'_hemis',varid2)
