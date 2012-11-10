@@ -48,8 +48,21 @@
 
        end type ent_debug
 
-      type(ent_debug) :: ent_d
-      real*8 :: ent_dl(SIZE_ENT_DEBUG)
-      equivalence(ent_d,ent_dl)
+      type(ent_debug), target :: ent_d
+      !real*8 :: ent_dl(SIZE_ENT_DEBUG)
+      !equivalence(ent_d,ent_dl)
+
+      contains
+
+      subroutine get_ent_debug_ptr(ptr)
+      use ISO_C_BINDING
+      real*8, pointer :: ptr(:)
+      !---
+      type (C_PTR) :: cptr
+
+      cptr = c_loc(ent_d)
+      call c_f_pointer( cptr, ptr, (/SIZE_ENT_DEBUG/) )
+
+      end subroutine get_ent_debug_ptr
 
       end module ent_debug_mod
