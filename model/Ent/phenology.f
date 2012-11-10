@@ -4,7 +4,7 @@
 !@auth Y. Kim
 #ifdef ENT_STANDALONE_DIAG
 #define PHENOLOGY_DIAG
-#define DEBUG
+!#define DEBUG
 #endif
 
       use ent_types
@@ -16,10 +16,8 @@
 !      public veg_init
       public clim_stats
       public pheno_update
-!      public frost_hardiness  !DEPENDENCY ISSUES WITH BIOPHYSICS
       public veg_update !may change the name into veg_update 
       public litter_cohort, litter_patch   !Now called from veg_update
-!      public update_plant_cpools !Moved to allometryfn.f
 
       private pheno_update_coldwoody
       private pheno_update_coldherbaceous
@@ -32,24 +30,14 @@
       private phenology_diag
 
       !**********************************************************************
-      !Moved these functions to allometryfn.f to avoid dependency problems
-      ! with ent_prescr_veg and entcells, patches, and cohorts:
 
-      !dbh2Cdead, dbh2Cfol, dbh2height
-      !dDBHdCdead
-      !height2dbh, height2Cfol
-      !update_plant_cpools
-      !init_Clab
-      !nplant
-
-      !************************************************************************
       !** GROWTH MODEL CONSTANTS - phenology & carbon allocation 
-      !*l_fract: fraction of leaves retained after leaf fall (unitless) (value from ED) 
+      !*l_fract: fraction of leaf C retained after leaf fall (unitless) (value from ED) 
       real*8, parameter :: l_fract = 0.50d0 
       !*q: ratio of root to leaf biomass (unitless) (value from ED)
       !real*8, parameter :: q=1.0d0  !Moved to allometryfn.f
-      !*iqsw: sapwood biomass per (leaf area x wood height) (kgC/m2/m) (value from ED)
-      !3900.0: leaf area per sapwood area (m2/m2) 
+      !*iqsw: sapwood biomass per (leaf area x wood height) (kgC/m2/m) 
+      !3900.0: leaf area per sapwood area (m2/m2) (value from ED)
       !1000.0: sapwood density (kg/m3)
       !2.0:  biomass per carbon (kg/kgC)
       !(qsw)=(iqsw*sla) (1/m) & (qsw*h): ratio of sapwood to leaf biomass (unitless)
@@ -60,7 +48,7 @@
       !real*8, parameter :: hw_fract = 0.70d0 !Moved to allometryfn.f
       !*C2B: ratio of biomass to carbon (kg-Biomass/kg-Carbon) 
       real*8, parameter :: C2B = 2.0d0 
-      !*temperature constrain for cold-deciduous PFTs (Botta et al. 1997)
+      !*temperature constraint for cold-deciduous PFTs (Botta et al. 1997)
       !*airtemp_par !base temperature to calculate the growing degree days (gdd)
       !*gdd_par1/2/3: paramters to estimate the threshold for gdd
       !*gdd_threshold = gdd_par1 + gdd_par2*exp(gdd_par3*ncd)    
@@ -68,15 +56,16 @@
       real*8, parameter :: gdd_par1 = -68.d0 
       real*8, parameter :: gdd_par2 = 638.d0
       real*8, parameter :: gdd_par3 = -0.01d0 
-      !*gdd_length - tunning parameters (tuned for HF & MMSF)
+      !*gdd_length - tuning parameters (tuned for HF & MMSF)
       real*8, parameter :: gdd_length = 200.d0 
-      !*airt_threshold - tunning parameters (tuned for HF & MMSF)
+      !*airt_threshold - tuning parameters (tuned for HF & MMSF)
       real*8, parameter :: airt_max_w = 15.d0
       real*8, parameter :: airt_min_w = 5.d0
-      !*soilt_threshold - tunning parameters (tunned for Barrow)
-      real*8, parameter :: soilt_max = 10.d0
+      !*soilt_threshold - tuning parameters 
+      real*8, parameter :: soilt_max = 5.d0  !10.d0 - old repository value (tuned for Barrow)
       real*8, parameter :: soilt_min = 0.d0
-      !*sgdd_threshold & length - tunning parameters (tunned for Barrow)
+      real*8, parameter :: soilt_base = -5.d0 !Added from YK
+      !*sgdd_threshold & length - tuning parameters (tuned for Barrow)
       real*8, parameter :: soiltemp_par = 0.d0
       real*8, parameter :: sgdd_threshold = 100.d0
       real*8, parameter :: sgdd_length=50.d0   
@@ -116,7 +105,8 @@
 
       !*********************************************************************
       subroutine clim_stats(dtsec, ecp, config,dailyupdate)
-!@sum Calculate climate statistics such as 10 day running mean   
+!@sum Calculate climate statistics such as 10 day running mean 
+!@+   Called by ent.f every physical time step.
       use soilbgc, only : Soillayer_convert_Ent 
       real*8,intent(in) :: dtsec           !dt in seconds
       type(entcelltype) :: ecp      
@@ -280,6 +270,37 @@
       ecp%sgdd = sgdd
 
       end subroutine clim_stats
+
+      !*********************************************************************   
+      subroutine photosyn_acclim(dtsec,Ta,Sacc)
+!@sum Calculate Sacclim accumulator state used to calculate 
+!@+   acclimation/frost hardiness for boreal coniferous forests.  
+!@+   Called by clim_stats during update of phenology climate stats.
+!@+   Based on Repo et al (1990), 
+!@+   Hanninen & Kramer (2007),and  Makela et al (2006)
+      implicit none
+      real*8,intent(in) :: dtsec ! time step size [sec]
+      real*8,intent(in) :: Ta ! air temperature [deg C]
+      real*8,intent(inout) :: Sacc ! state of acclimation [deg C]
+
+      !----Local-----
+      real*8,parameter :: tau_inv = 2.22222e-6 
+                          ! inverse of time constant of delayed
+                          ! response to ambient temperature [sec] = 125 hr 
+                          ! Makela et al (2004) for Scots pine
+
+!      Use a first-order Euler scheme
+       Sacc = Sacc + dtsec*(tau_inv)*(Ta - Sacc) 
+
+!     Predictor-corrector method requires temperature from next timestep
+!       Sacc_old = Sacc
+!       Sacc = Sacc_old + dtsec*(1/tau_acclim)*(Ta - Sacc ) 
+!       Sacc = Sacc_old + ((1/tau_acclim)*(Ta - Sacc_old)+
+!     &                     (1/tau_acclim)*(Ta_next - Sacc))*0.5d*dtsec
+
+      end subroutine photosyn_acclim
+
+
       !*********************************************************************   
       subroutine pheno_update(pp)
 !@sum Update statstics for phneology_update    
@@ -681,15 +702,67 @@
       end if    
       
       end subroutine pheno_update_drought
+
       !*********************************************************************   
+
+      real*8 function turnover_acclim(cop)
+!@sum  turnover_acclim  Seasonal acclimation factor (0-1) for turnover rate of plant tissues.
+!@+    This function uses pft,phenotype, dbh, h, lai, and Sacclim if evergreen.
+!@+    If evergreen, then assign the frost-hardiness factor (only affects cold climates).
+!@+    If deciduous, then assign Cfol/Cfolmax (no turnover when dormant)
+      use photcondmod, only : frost_hardiness
+      type(cohort), pointer :: cop 
+      !---Local-----
+      integer :: pft
+      
+      pft = cop%pft
+      if (pfpar(cop%pft)%phenotype.eq.EVERGREEN) then
+         turnover_acclim = frost_hardiness(cop%Sacclim) 
+      else
+         turnover_acclim = cop%lai/(pfpar(pft)%sla*cop%n*
+     &        Cfol_fn(pft,cop%dbh,cop%h))*1.d3
+      endif
+      end function turnover_acclim
+
+      !*********************************************************************   
+
       subroutine veg_update(pp,config)
 !@sum Update the vegetation state and carbon pools:
-!@sum DAILY call.
-!@sum LAI, senescefrac, DBH, height 
-!@sum carbon pools of foliage, sapwood, fineroot, hardwood, coarseroot
-!@sum AND growth respiration from growth and tissue turnnover
+!@+   DAILY call.
+!@+   Updates LAI, senescefrac, DBH, height 
+!@+   carbon pools of foliage, sapwood, fineroot, hardwood, coarseroot
+!@+   AND growth respiration from growth and tissue turnover.
+!@+   Algorithms for this module are still subject to refinement - NK.
+!@+   Current subroutine steps:
+!@+   1. Calculate allocation ratios from the phenofactor.
+!@+   2. Calculate litter from turnover, update Clabile and available CB_d.
+!@+   3. Calculate Cactive_max given dbh, h, and alloc and phenofactor from 1.
+!@+   4. Allocate CB_d to Cactive and update Clab.  However, if Clab<0 (I will
+!@+   change this to daily maintenance respiration requirement), then senesce
+!@+   to return Clab above the threshold value.  This can result in
+!@+   Cactive>Cactive_max.  Why?
+!@+   5. Update the active pools, Cfol, Csw, Cfroot
+!@+   6. Given new Clab,  Csw and Cfol, re-calculate change in Cdead, Cactive,
+!@+   and Crepro.  There are two options here:  SGrowthModel=1, update the
+!@+   active pool given increase in Cdead;  or SGrowthModel=2, growth Cdead
+!@+   only but not Cactive.
+!@+   7. Update the patch-level Reproduction pool.
+!@+   8. Update the cop active pools (again), capped by Cactive_max (new
+!@+   Cactive_max or old?).
+!@+   9. Update the structural pools, or allocate to litter if
+!@+   do_structuralgrowth is FALSE.
+!@+   10. HACK fix:  prevent cop cpools from going negative.
+!@+   11. Calculate litter from growth.
+!@+   12. Update the senescence fraction.
+!@+   13. Update h and dbh (need conditional for if do_structuralgrowth=TRUE;
+!@+   probably should do this same time as 9).
+!@+   14. Update LAI.
+!@+   15. Zero out CB_d.
+!@+   16. After all cohorts are done, update Tpools from Clossacc for patch.
+!@+   17. Update daily tissue growth respiration accumulated to distribute
+!@+   over half-hourly fluxes. 
+
       use ent_const
-      !use ent_prescr_veg !BAD DEPENDENCY!
       use cohorts, only : cohort_carbon
       use patches, only : patch_carbon
       use photcondmod, only :  frost_hardiness
@@ -730,6 +803,7 @@
       integer :: cohortnum
       real*8 :: cpool(N_BPOOLS) 
       real*8 :: turn_leaf
+      real*8 :: resp_growth
       real*8 :: resp_growth1
       real*8 :: resp_growth2
       integer, parameter :: irecruit=1
@@ -751,12 +825,15 @@
       resp_auto_patch = 0.d0
       resp_root_patch = 0.d0
       cohortnum = 0
+      resp_growth=0.d0
       resp_growth1=0.d0
       resp_growth2=0.d0
       cpool(:) = 0.d0
+      dCrepro = 0.d0
+
+      !C conservation check
       tot_closs_acc_old = 0.d0
       tot_closs_acc = 0.d0
-
       patch_tot_c_old = patch_carbon(pp)
 
       cop => pp%tallest
@@ -804,6 +881,7 @@ cddd         end if
          C_sw = cop%C_sw
          C_hw = cop%C_hw
          C_croot = cop%C_croot 
+         !Set array for passing values in - NK
          cpool(LABILE) = cop%C_lab
          cpool(FOL) = cop%C_fol
          cpool(FR) = cop%C_froot
@@ -867,47 +945,37 @@ cddd         end if
          !*Active growth: increment Cactive and decrease C_lab
          !****************************************************
          !*determine the potential max. of active pool
-         !*for woody  - allometric constraint given DBH
-!         if (woody) then  
-!            Cactive_max=dbh2Cfol(pft,dbh)*(alloc+(1.d0-phenofactor)) !YK
-!         else
-!            !*Yeonjoo's - for non-woody (i.e., herbaceous)
-!            !no allometric constraints in the carbon allocation, 
-!            !then use arbitrary max height (5m, tall enough) 
-!            Cactive_max=height2Cfol(pft,5.d0)*(alloc+(1.d0-phenofactor))
-!         end if
-         Cactive_max=Cfol_fn(pft,dbh,h)*(alloc+(1.d0-phenofactor)) !NK
+         Cactive_max=Cfol_fn(pft,dbh,h)*(alloc+(1.d0-phenofactor)) 
 
-         !Get threshold Cfol_half (this is NOT re-initializing Clab)
-         call init_Clab(pft,nplant
-     &        ,Cfol_fn(pft,dbh, h)
-     &        ,Cfol_half)
+         !Get threshold Cfol_half 
+         !call init_Clab(pft,dbh,h,Cfol_half)
+         Cfol_half = 0.5d0 * Cfol_fn(pft,dbh,h)
 
          !*calculate growth of active carbon pools  
-         facclim = frost_hardiness(cop%Sacclim)
          Rauto_day_gC = Resp_plant_day(pft,cpool
      &        ,cop%pptr%cellptr%TcanopyC + KELVIN
      &        ,cop%pptr%cellptr%Soiltemp(1) + KELVIN
      &        ,cop%pptr%cellptr%airtemp_10d + KELVIN
      &        ,cop%pptr%cellptr%soiltemp_10d + KELVIN
      &        ,facclim)*1.d3   !kgC/day to gC/day
-         call  growth_cpools_active(pft,phenofactor,ialloc
-     &        ,Rauto_day_gC ,Cactive_max,
-     &        Cfol_half,CB_d,Cactive,C_lab,C_fol)
+         call growth_cpools_active(pft,phenofactor,ialloc
+     i        ,Rauto_day_gC,Cactive_max,Cfol_half,CB_d,C_fol
+     o        ,Cactive,C_lab)
 
+#ifdef DEBUG
          write(203,*) Cactive_max, Cactive, pft, dbh !##NK DEBUG
      &           ,phenofactor, ialloc, qf, h, qsw, h*qsw
+#endif
       
          !*update the active carbon pools 
-!!!      - ##NK REDUNDANT - GETS DONE AFTER growth_cpools_structural
-!!!         cop%C_fol = phenofactor * Cactive *ialloc
+         cop%C_fol = phenofactor * Cactive *ialloc
 !!!         if (cop%C_fol>Cfol_fn(pft,dbh,h)) then  !##NK dEBUG
 !!!            print *,"C_fol>Cfol_max", Cactive_max, Cactive, pft, dbh
 !!!     &           ,phenofactor, ialloc, qf, h, qsw, h*qsw
 !            print *,(phenofactor + qf + h*qsw)
 !!!         endif
-!!!         cop%C_froot = qf * Cactive * ialloc !qf = q * phenofactor
-!!!         cop%C_sw = Cactive * h *qsw * ialloc
+         cop%C_froot = qf * Cactive * ialloc !qf = q * phenofactor
+         cop%C_sw = Cactive * h *qsw * ialloc
  
          !*********************************************************
          !*Structural growth (& corresponding active, reproductive) 
@@ -922,22 +990,16 @@ cddd         end if
      &      pfpar(pft)%woody .and. 
      &      cop%phenostatus .lt. 2.d0 .and. cop%phenostatus .ge. 3.d0 )
      
-         !*initialize the change in reproductive pool
-         dCrepro = 0.d0
-
          !*calculate the structural growth, 
          !and corresponding changes in active & reproductive pools
          if (.not.dormant)           
      &       call growth_cpools_structural(pft,dbh,h,qsw,qf,phenofactor,
      i       C_sw,Cactive_max,C_fol,CB_d,Cactive_old, 
      o       Cactive,C_lab,Cdead,dCrepro) 
+!         cop%C_lab = C_lab !Update in litter_growth_cohort after checking do_structuralgrowth
 
-          !*update the patch-level reproductive pool
-          cop%pptr%Reproduction(cop%pft) = 
-     &        cop%pptr%Reproduction(cop%pft)+ dCrepro*cop%n
-
-          !*update Cactive_max in case there was structural growth.
-          Cactive_max=Cfol_fn(pft,dbh,h)*(alloc+(1.d0-phenofactor)) !NK
+         !*update Cactive_max in case there was structural growth.
+!         Cactive_max=Cfol_fn(pft,dbh,h)*(alloc+(1.d0-phenofactor)) !NK
          
          !****************************************
          !*Update the active and structural pools
@@ -945,30 +1007,20 @@ cddd         end if
          !*allocate the active carbon into foliage, fine root and sapwood, 
          !according to the allocation ratio
          !*foliage = phenofactor * active / (phenofactor + qf + h*qsw)
-         cop%C_fol = min(Cactive,Cactive_max)* phenofactor *ialloc 
-         !*froot = qf * active / (phenofactor + qf + h*qsw)
-         cop%C_froot = min(Cactive,Cactive_max) * qf * ialloc
-         !*sw = (h * qsw) * active / (phenofactor + qf + h*qsw)  
-         cop%C_sw = min(Cactive,Cactive_max) * h *qsw * ialloc
-             
-         
-         !*allocate the structural carbon into heartwood and coarse root
-         !*if strcutural growth is off (set in the rundeck),
-         !we assume any estimated changes in hw & croot becomes litter.        
-         if (.not.config%do_structuralgrowth) then
-             dC_litter_hw = max(0.d0,cop%C_hw - C_hw_old)
-             dC_litter_croot = max(0.d0,cop%C_croot - C_croot_old)
-             cop%C_hw=C_hw_old
-             cop%C_croot=C_croot_old
-             Cdead = cop%C_hw+cop%C_croot
-         !*if strcutural growth is on (set in the rundeck),
-         !changes in dead pool is allocated into hw & croot.         
-         else
-            dC_litter_hw =0.d0
-            dC_litter_croot = 0.d0
-            cop%C_hw = Cdead * hw_fract
-            cop%C_croot = Cdead * (1-hw_fract)     
-         endif
+
+         !*First update alloc given possibly new h.
+!!!         alloc = phenofactor+qf+h*qsw
+!!!         !ialloc: inverse of alloc
+!!!         if (alloc .ne. 0.0d0) then
+!!!           ialloc = 1.d0/alloc
+!!!         else
+!!!           ialloc = 0.d0
+!!!         end if
+!         cop%C_fol = min(Cactive,Cactive_max)* phenofactor *ialloc 
+!         !*froot = qf * active / (phenofactor + qf + h*qsw)
+!         cop%C_froot = min(Cactive,Cactive_max) * qf * ialloc
+!         !*sw = (h * qsw) * active / (phenofactor + qf + h*qsw)  
+!         cop%C_sw = min(Cactive,Cactive_max) * h *qsw * ialloc
 
          !********************
          !*Litter from growth 
@@ -978,16 +1030,18 @@ cddd         end if
 
 !!! HACK !!!
 ! just to keep the things going reset negavive pools to zero
-         cop%C_fol = max( 0.d0, cop%C_fol)
-         cop%C_froot = max( 0.d0, cop%C_froot)
-         cop%C_croot = max( 0.d0, cop%C_croot)
-         cop%C_sw = max( 0.d0, cop%C_sw)
-         cop%C_hw = max( 0.d0, cop%C_hw)
+!!!         cop%C_fol = max( 0.d0, cop%C_fol)
+!!!         cop%C_froot = max( 0.d0, cop%C_froot)
+!!!         cop%C_croot = max( 0.d0, cop%C_croot)
+!!!         cop%C_sw = max( 0.d0, cop%C_sw)
+!!!         cop%C_hw = max( 0.d0, cop%C_hw)
 
-         !*calculate the litter from growth
-         call litter_growth_cohort(dCrepro, 
+         !*allocate structural growth and calculate the litter from growth
+         call litter_growth_cohort(config%do_structuralgrowth
+     i         ,dCrepro, 
      i        C_fol_old,C_froot_old,C_hw_old,C_sw_old,C_croot_old,
-     &        dC_litter_hw,dC_litter_croot,cop,Clossacc)
+     i        dC_litter_hw,dC_litter_croot,
+     o        Cdead,cop,Clossacc,resp_growth2)
 
          !*update the fraction of senescence 
          if (C_fol_old.eq.0.d0) then
@@ -1006,7 +1060,7 @@ cddd         end if
             cop%h = dbh2height(pft,cop%dbh)
          else
             cop%dbh = 0.0d0
-            cop%h = Cfol2height(pft,cop%C_fol)
+            cop%h = Cfol2height_herb(pft,cop%C_fol)
          end if
          
          !*update LAI
@@ -1024,6 +1078,17 @@ cddd         end if
          resp_auto_patch = resp_auto_patch  + cop%R_auto 
          resp_root_patch = resp_root_patch + cop%R_root
 
+         !* Tissue growth respiration is distributed over day 
+         !* subtracted at physical time step in canopy biophysics 
+         !* module with R_auto.
+         resp_growth = resp_growth1 + resp_growth2
+         cop%C_growth = cop%C_growth + resp_growth*cop%n*1.d-3 !kg-C m-2 day-1
+         cop%C_growth_flux = cop%C_growth/(24.d0*3600.d0) ! resp flux, kg-C m-2 s-1
+          !*update the patch-level reproductive pool
+          cop%pptr%Reproduction(cop%pft) = 
+     &        cop%pptr%Reproduction(cop%pft)+ dCrepro*cop%n
+
+
          !*Zero-out the daily accumulated carbon 
          cop%CB_d = 0.d0   
 
@@ -1034,6 +1099,7 @@ cddd         end if
          tot_closs(cohortnum) = tot_closs_acc - tot_closs_acc_old
          tot_closs_acc_old = tot_closs_acc
          cop_n = cop%n
+         cop%N_up = tot_closs_acc !### HACK ## TEMP USE OF UNUSED VARIABLE #-NK
 
 cddd         write(901,*)  
 cddd         write(901,*) "pft ", cop%pft
@@ -1060,40 +1126,46 @@ cddd         write(901,*) "deltaC*n ", (tot_c - tot_c_old)*cop%n
       !* be distributed over the course of a day to avoid pulses at night.
       pp%R_root = pp%R_root + resp_root_patch !Total flux including growth increment.
 
+
       patch_tot_c = patch_carbon(pp)
 
+#ifdef DEBUG
       if( abs(patch_tot_c - patch_tot_c_old) > 1d-10 ) then
         write(903,*) "P ",patch_tot_c - patch_tot_c_old, patch_tot_c_old
      &      ,"C ",d_tot_c(1:cohortnum)*1000, "S ",tot_closs(1:cohortnum)
      &       ,"N ", cop_n_old, cop_n
       endif
-
+#endif
       end subroutine veg_update
 
       !*********************************************************************
       subroutine growth_cpools_active(pft,phenofactor,ialloc, 
-     &     Rauto_day_gC,Cactive_max,Cfol_half,CB_d,Cactive,C_lab,C_fol)
+     &     Rauto_day_gC,Cactive_max,Cfol_half,CB_d,C_fol,Cactive,C_lab)
+!@sum Update Cactive and C_lab, reserving fraction for Reproduction.
+!@+   This routine does NOT partition the individual active pools.
       use biophysics, only : Resp_plant_day
       !input variables
       integer, intent(in) :: pft
       real*8, intent(in) :: phenofactor
       real*8, intent(in) :: ialloc
+      real*8,intent(in) :: Rauto_day_gC   !gC/plant/day estimated
       real*8, intent(in) :: Cactive_max
       real*8, intent(in) :: Cfol_half
       real*8, intent(in) :: CB_d
-      !variables updated in the subroutine 
+      real*8, intent(in) :: C_fol
+      !output variables updated in the subroutine 
       real*8, intent(inout) :: Cactive
       real*8, intent(inout) :: C_lab
-      real*8, intent(inout) :: C_fol
-      real*8,intent(in) :: Rauto_day_gC   !gC/plant/day estimated
       !---Local variables----------------
       real*8 :: Cactive_pot !potential maximum of active carbon pools
       real*8 :: dC_lab      !change in labile [g-C/individual],  negative for reduction of C_lab for growth.
       real*8 :: dCactive    !change in active 
       real*8 :: dCavail     !available carbon for active pool
-      !option for active growth
-      !1 grass growth with no storage; 2 grass growth with storage; 
-      !3 grass growth with storage after the certain size; 4 grass/tree growth with storage
+      !AGrowthModel options for active growth:
+      !1 grass growth with no storage; 
+      !2 grass growth with storage; 
+      !3 grass growth with storage after the certain size; 
+      !4 grass/tree growth with storage
       integer, parameter :: AGrowthModel= 3 
 
       !*******************************
@@ -1120,7 +1192,7 @@ cddd         write(901,*) "deltaC*n ", (tot_c - tot_c_old)*cop%n
             !Cactive_max (max. allowed pool size according to the DBH)
             !Cactive_pot (current size + daily accumulated carbon)  
             !Cactive (current size)
-            Cactive_pot = Cactive + min(C_lab, CB_d) !only new carbon is used for growth.
+            Cactive_pot = Cactive + C_lab !min(C_lab, CB_d) !only new carbon is used for growth.
             dCavail = min(Cactive_max, Cactive_pot) - Cactive
             select case (AGrowthModel)
             case(1) !no storage - default
@@ -1167,9 +1239,9 @@ cddd         write(901,*) "deltaC*n ", (tot_c - tot_c_old)*cop%n
 !         dC_lab = - C_lab 
       else if (C_lab .lt. Rauto_day_gC ) then !C_lab could be + or -.
          !* Senesce if C_lab drops low.
-         dCactive = min(0.d0,(C_lab-Rauto_day_gC) / l_fract) !negative change
+         dCactive = min(0.d0,(C_lab-Rauto_day_gC)) / (1.d0-l_fract) !negative change
          !dC_lab = - C_lab 
-         dC_lab = -dCactive*(1.d0-l_fract)  !translocation to C_lab
+         dC_lab = -dCactive * l_fract  !translocation to C_lab
          !## NEED TO PUT IN LITTER FOR SENESCED ACTIVE.
 
       !*3) Otherwise, nothing happens, only respiration in biophysics module.
@@ -1200,9 +1272,8 @@ cddd         write(901,*) "deltaC*n ", (tot_c - tot_c_old)*cop%n
       subroutine growth_cpools_structural(pft,dbh,h,qsw,qf,phenofactor,
      i      C_sw,Cactive_max,C_fol,CB_d,Cactive_old,
      o     Cactive, C_lab, Cdead, dCrepro)
-
-      !use ent_prescr_veg !BAD DEPENDENCY!
-
+!@sum Grow structural carbon: update Cactive, C_lab, Cdead, and Reproduction.
+      
       integer, intent(in) :: pft
       real*8, intent(in) :: dbh
       real*8, intent(in) :: h
@@ -1217,7 +1288,7 @@ cddd         write(901,*) "deltaC*n ", (tot_c - tot_c_old)*cop%n
       real*8, intent(inout) :: C_lab
       real*8, intent(inout) :: Cdead
       real*8, intent(out) :: dCrepro
-      !local variables
+      !---Local variables--------------
       real*8 :: Cavail        !available carbon for growth
       real*8 :: dCdead        
       real*8 :: dCactive
@@ -1231,7 +1302,7 @@ cddd         write(901,*) "deltaC*n ", (tot_c - tot_c_old)*cop%n
       real*8 :: dCswdCdead
       !option for structural growth
       !1 - based on ED1 (Moorcroft et al.); 2 - based on ED2 (Medvigy et al.)
-      integer :: SGrowthModel=2
+      integer :: SGrowthModel=1
 
       !**************************************************
       !*Calculate the growth fraction for different pools
@@ -1266,8 +1337,7 @@ cddd         write(901,*) "deltaC*n ", (tot_c - tot_c_old)*cop%n
       else 
          !C used for growth is limited by both size of avaiable labile storage 
          !& size of sapwood pool.
-         !Cavail = min(C_lab,C_sw) !Yeonjoo's
-         Cavail = min(C_lab, C_sw, CB_d)  !## NK fix
+         Cavail = min(C_lab,C_sw) !Yeonjoo's
 
          !*1)Option 1: Growth, based on ED1
          !in this option, the active growth is accounted
@@ -1302,7 +1372,7 @@ cddd         write(901,*) "deltaC*n ", (tot_c - tot_c_old)*cop%n
                rp_fract = 0.d0
                gr_fract = 1.d0
             end if
-       
+        
          !*2) Option 2: Growth, based on ED2
          !in this option, available carbon goes to the structural pool 
          !without corresponding growth in the active pool
@@ -1331,7 +1401,7 @@ cddd         write(901,*) "deltaC*n ", (tot_c - tot_c_old)*cop%n
       !************************
       !*update the carbon pools
       !************************
-      C_lab = C_lab - (dCdead + dCactive+dCrepro)
+      C_lab = C_lab - (dCdead + dCactive + dCrepro)
       Cdead = Cdead + dCdead
       Cactive = Cactive + dCactive
 
@@ -1339,6 +1409,8 @@ cddd         write(901,*) "deltaC*n ", (tot_c - tot_c_old)*cop%n
 !*************************************************************************
       subroutine recruit_annual(reproduction,height,
      &           C_fol,C_froot,nplant,lai)
+!@sum Recruitment for annual grasses. 
+!@+   Initializes new seedling carbon pools, density, LAI, given initial height
       real*8, intent(in) :: reproduction
       real*8, intent(in) :: height
       real*8, intent(out) :: C_fol
@@ -1355,7 +1427,8 @@ cddd         write(901,*) "deltaC*n ", (tot_c - tot_c_old)*cop%n
       recruit = reproduction * (1.d0 - mort_seedling) ! per patch-area
 
       !properties for new seedling
-      C_fol=height2Cfol(pft,height)
+!      C_fol=height2Cfol(pft,height)  !Yeonjoo's
+      C_fol = Cfol_fn(pft, 0.d0, height)
       C_froot = q *C_fol
       nplant = recruit / (C_fol + C_froot)
       LAI = nplant*pfpar(pft)%sla*(C_fol/1000.d0)
@@ -1363,8 +1436,56 @@ cddd         write(901,*) "deltaC*n ", (tot_c - tot_c_old)*cop%n
       end subroutine recruit_annual
 !*************************************************************************
 
+      subroutine assign_Closs(n, copfracroot, dC_fol, dC_froot, dC_sw
+     i     ,dC_hw, dC_croot
+     o     ,Closs, dC_total)
+!@sum assign_Closs Generic routine to put litter fluxes into array.
+      use cohorts, only : calc_CASArootfrac 
+      real*8, intent(in) :: n   !cohort density (#/m^2)
+      real*8, pointer :: copfracroot(:)
+      real*8,  intent(in) ::    !g-C/plant
+     &     dC_fol, dC_froot,dC_sw ,dC_hw, dC_croot
+      real*8,intent(inout) :: Closs(PTRACE,NPOOLS,N_CASA_LAYERS) !gC/m^2 Litter per cohort
+      real*8,intent(out) :: dC_total !kg-C/m^2 !For carbonb balance check
+      !---Local----
+      integer :: i
+      real*8 :: fracrootCASA(N_CASA_LAYERS)
+
+      !assign root fractions for CASA layers -PK
+      call calc_CASArootfrac(copfracroot,fracrootCASA)
       
+      do i=1,N_CASA_LAYERS   
+         if (i.eq.1) then       !only top CASA layer has leaf and wood litter
+            Closs(CARBON,LEAF,i) = n * (1.d0-l_fract) * 
+     &           max(0.d0,-dC_fol)
+            Closs(CARBON,WOOD,i) = n * (
+     &           max(0.d0,-dC_hw)  + 
+     &           fracrootCASA(i) * 
+     &           (max(0.d0,-dC_croot)))
+         else    
+            Closs(CARBON,LEAF,i) = 0.d0 
+            Closs(CARBON,WOOD,i) = n * 
+     &           fracrootCASA(i) * max(0.d0,-dC_croot)
+         end if
+
+         ! both layers have fine root litter. sapwood treated like fine roots?
+         Closs(CARBON,FROOT,i) = n * (1.d0-l_fract)
+     &        * fracrootCASA(i) * ( max(0.d0,-dC_froot)
+     &        + max(0.d0,-dC_sw) )
+      enddo
+      
+      dC_total = 0.d0
+      do i=1,N_CASA_LAYERS 
+         dC_total = dC_total - Closs(CARBON,LEAF,i) -
+     &        Closs(CARBON,FROOT,i) - Closs(CARBON,WOOD,i)
+      enddo
+      dC_total = dC_total*1.d-3 ! convert it to kg
+      
+      end subroutine assign_Closs
+!*************************************************************************
+
       subroutine accumulate_Clossacc(pft,Closs, Clossacc)
+!@sum Accumulate litter into soil carbon pools.
       integer, intent(in) :: pft
       real*8,intent(in) :: Closs(PTRACE,NPOOLS,N_CASA_LAYERS) !Litter per cohort by depth.
       real*8,intent(inout) :: Clossacc(PTRACE,NPOOLS,N_CASA_LAYERS) !Litter accumulator.
@@ -1431,8 +1552,7 @@ cddd         write(901,*) "deltaC*n ", (tot_c - tot_c_old)*cop%n
       !C_hw replenished from C_lab: no change
       !C_croot replenished from C_lab: no change
 
-      use cohorts, only : calc_CASArootfrac 
-!      use biophysics, only: Resp_can_growth
+      use photcondmod, only : frost_hardiness
       real*8,intent(in) :: dt !seconds, time since last call
       real*8,intent(in) ::C_fol_old,C_froot_old,C_hw_old,C_croot_old,
      &     C_sw_old
@@ -1446,7 +1566,7 @@ cddd         write(901,*) "deltaC*n ", (tot_c - tot_c_old)*cop%n
       real*8 :: turnoverdtfroot !Closs amount from intrinsic turnover of biomass pool.
       real*8 :: turnoverdtwood !Closs amount from intrinsic turnover of biomass pool.
 !      real*8 :: turnoverdttotal!Total
-      real*8 :: turn_leaf, turn_froot, turn_hw,turn_croot, turn_live !g-C/individual
+      real*8 :: turn_leaf, turn_froot, turn_sw, turn_hw,turn_croot!g-C/plant
       real*8 :: dC_fol, dC_froot, dC_hw, dC_sw, dC_croot,dC_lab !g-C/individual
       real*8 :: adj !Adjustment to keep loss less than C_lab
       real*8 :: resp_growth,resp_growth_root !g-C/individ/ms/s
@@ -1454,7 +1574,7 @@ cddd         write(901,*) "deltaC*n ", (tot_c - tot_c_old)*cop%n
       real*8 :: i2a !1d-3*cop%n -- Convert g-C/individual to kg-C/m^2
 !      real*8 :: Csum
       real*8 :: dC_total, dClab_dbiomass
-      real*8 :: facclim !Frost hardiness parameter - affects turnover rates in winter.
+      real*8 :: tacclim !turnover rate factor
 
       Closs(:,:,:) = 0.d0
       !Clossacc(:,:,:) = 0.d0 !Initialized outside of this routine
@@ -1462,60 +1582,52 @@ cddd         write(901,*) "deltaC*n ", (tot_c - tot_c_old)*cop%n
       !* Calculate fresh litter from a cohort *!
       pft = cop%pft
         
-      !assign root fractions for CASA layers -PK
-      call calc_CASArootfrac(cop,fracrootCASA)
-
-      !* NLIVE POOLS *! 
-      facclim = frost_hardiness(cop%Sacclim)
-      turnoverdtleaf = facclim*cop%turnover_amp*annK(pft,LEAF)*SDAY !s^-1 * s/day = day^-1
-!      turnoverdtleaf = facclim*annK(pft,LEAF)*SDAY !s^-1 * s/day = day^-1
-      turnoverdtfroot = facclim*annK(pft,FROOT)*SDAY
+      !calculate turnover rates
+      tacclim = turnover_acclim(cop)
+      turnoverdtleaf = tacclim*cop%turnover_amp*annK(pft,LEAF)*SDAY !s^-1 * s/day = day^-1
+!      turnoverdtleaf = tacclim*annK(pft,LEAF)*SDAY !s^-1 * s/day = day^-1
+      turnoverdtfroot = tacclim*annK(pft,FROOT)*SDAY
       turnoverdtwood = 0.3d0/pfpar(pft)%lrage*
-     &     (1.d0-exp(-annK(pft,WOOD)*SDAY)) !Sapwood not hardwood. 0.08d0 is a tuning factor.
+     &     (1.d0-exp(-annK(pft,WOOD)*SDAY)) !SW not HW, tuning factor.
 
-      !* Turnover draws down C_lab. *!
-      !* Calculate adjustment factor if loss amount is too large for C_lab.
-      turn_leaf = C_fol_old * turnoverdtleaf 
-      turn_froot =  C_froot_old * turnoverdtfroot
-
-      !Wood losses:  
-      turn_hw = C_hw_old * turnoverdtwood 
-      turn_croot = C_croot_old * turnoverdtwood
-      
-      ! no turnover during the winter
-      if (C_fol_old .eq. 0.d0) then
+      !turnover fluxes
+      if (C_fol_old .gt. 0.d0) then
+         turn_leaf = C_fol_old * turnoverdtleaf 
+         turn_froot =  C_froot_old * turnoverdtfroot
+         turn_sw = 0.d0
+         turn_hw = C_hw_old * turnoverdtwood 
+         turn_croot = C_croot_old * turnoverdtwood
+      else
+      !no turnover during the winter
       	turn_leaf = 0.d0
       	turn_froot= 0.d0
+        turn_sw = 0.d0
       	turn_hw = 0.d0
       	turn_croot = 0.d0
       end if
 
-      turn_live = turn_leaf + turn_froot
- 
-	
-      !* Distinguish respiration from turnover vs. from new growth.
-      !* ### With constant prescribed structural tissue, dC_sw=0.d0,but
-      !* ### there must still be regrowth of sapwood to replace that converted
-      !* ### to dead heartwood.  For a hack, turn_hw is regrown as sapwood to
-      !* ### maintain a carbon balance. 
-      resp_turnover = 0.16d0*turn_froot + 0.014d0*turn_leaf !Coefficients from Amthor (2000) Table 3
+      !respiration from turnover and regrowth.
+      !* Coefficients from Amthor (2000) Table 3
+      !* turn_hw is regrown as though sapwood to maintain a carbon balance. 
+      resp_turnover = 0.16d0*turn_froot + 0.014d0*turn_leaf
+     &     + 0.d0*turn_sw
       resp_newgrowth = 0.16d0*(max(0.d0,turn_hw)+max(0.d0,turn_croot)) 
 
-      !* Growth and retranslocation.
-      !* NOTE: Respiration is distributed over the day by canopy module,
-      !*       so does not decrease C_lab here.
+      !turnover draws down C_lab from regrowth and retranslocation.
+      !* (but not respiration, which is distributed over the day)
       dClab_dbiomass =
-     &     max(0.d0,turn_hw) + max(0.d0,turn_croot)
+     &     max(0.d0,turn_leaf) + max(0.d0,turn_froot)
+     &     + max(0.d0,turn_sw)
+     &     + max(0.d0,turn_hw) + max(0.d0,turn_croot)
       dC_lab = - dClab_dbiomass
-     &     - (1-l_fract)*(turn_leaf + turn_froot) !Retranslocated carbon from turnover
+     &     - (1-l_fract)*(turn_leaf + turn_froot) !Retranslocation
 
-
-      !* Limit turnover litter if losses and respiration exceed C_lab.*!
+      !* Calculate adjustment factor if loss amount is too large for C_lab.          !* Limit turnover litter if regrowth and respiration exceed C_lab.*!
       if (cop%C_lab+dC_lab-resp_turnover-resp_newgrowth.lt.0.d0) then
-        if ((0.5d0*cop%C_lab -resp_newgrowth).lt.0.d0)
-     &       then
-          adj = 0.d0            !No turnover litter to preserve C_lab for growth.
-                                !C_lab will probably go negative here, but only a short while.
+         if ((0.5d0*cop%C_lab -resp_newgrowth).lt.0.d0)
+     &        then
+            adj = 0.d0   !No turnover litter to preserve C_lab for growth.
+                !C_lab will probably go negative here, but only a short while.
 !        else                    !Reduce rate of turnover litter.
         else if ((turn_leaf + turn_froot).ne.0.d0)then
           adj = (0.5d0*cop%C_lab - dClab_dbiomass - resp_newgrowth)/
@@ -1534,46 +1646,26 @@ cddd         write(901,*) "deltaC*n ", (tot_c - tot_c_old)*cop%n
       turn_hw = adj*turn_hw
       turn_croot = adj*turn_croot
 
-
       if (adj.lt.1.d0) then
-         
-
-      !* Growth and retranslocation.
-      !* NOTE: Respiration is distributed over the day by canopy module,
-      !*       so does not decrease C_lab here.
+      !* Update C_lab again due to growth and retranslocation
+      !*  (but not day respiration, which is distributed over the day).
       dC_lab = 
-     &     - (1-l_fract)*(turn_leaf + turn_froot) !Retranslocated carbon from turnover
-     &     - (max(0.d0,turn_hw)+max(0.d0,turn_croot))
-
+     &     - (1-l_fract)*(turn_leaf + turn_froot) !retranslocation
+     &     - max(0.d0,turn_leaf) - max(0.d0,turn_froot) !active regrowth
+     &        - max(0.d0,turn_sw)
+     &     - (max(0.d0,turn_hw)+max(0.d0,turn_croot)) !structural regrowth
       end if
 
       resp_growth_root = 0.16d0 * turn_froot + 0.16d0*turn_croot  
       resp_growth = resp_growth_root + 0.14d0*turn_leaf+0.16d0*turn_hw  
 
-      !* Calculate litter from turnover and from senescence*!
+      !* Calculate litter from turnover
       !* Change from senescence is calculated as max(0.d0, C_pool_old-C_pool).
-      ! Senescefrac factor can be calculated by either prescribed or prognostic phenology: ****** NYK!
-      do i=1,N_CASA_LAYERS   
-        if (i.eq.1) then        !only top CASA layer has leaf and wood litter -PK   
-          Closs(CARBON,LEAF,i) = cop%n * (1.d0-l_fract) * turn_leaf
-          Closs(CARBON,WOOD,i) = cop%n * (max(0.d0,turn_hw) +
-     &         fracrootCASA(i) *max(0.d0,turn_croot))
-        else    
-          Closs(CARBON,LEAF,i) = 0.d0 
-          Closs(CARBON,WOOD,i) = cop%n * 
-     &       (fracrootCASA(i) *max(0.d0,turn_croot))
-        end if
-        ! both layers have fine root litter 
-        Closs(CARBON,FROOT,i) = cop%n * (1.d0-l_fract)
-     &       * fracrootCASA(i) * turn_froot
-      enddo
 
-      dC_total = 0.d0
-      do i=1,N_CASA_LAYERS 
-        dC_total = dC_total - Closs(CARBON,LEAF,i) -
-     &       Closs(CARBON,FROOT,i) - Closs(CARBON,WOOD,i)
-      enddo
-      dC_total = dC_total*1.d-3  ! convert it to kg
+      call assign_Closs(cop%n, cop%fracroot
+     &     , -turn_leaf, -turn_froot, -turn_sw
+     &     ,-turn_hw, -turn_croot, Closs, dC_total)
+
 
 !#define RESTRICT_LITTER_FLUX
 #ifdef RESTRICT_LITTER_FLUX
@@ -1598,110 +1690,92 @@ cddd         write(901,*) "deltaC*n ", (tot_c - tot_c_old)*cop%n
 !        Csum = Csum + Clossacc(CARBON,i,1)
 !      enddo
 
-      !* Return growth respiration/day *!
-      !################ ###################################################
-      !#### DUE TO TIMING OF LAI UPDATE IN GISS GCM AT THE DAILY TIME STEP,
-      !#### GROWTH RESPIRATION FROM CHANGE IN LAI NEEDS TO BE SAVED AS 
-      !#### A RESTART VARIABLE IN ORDER TO SEND THAT FLUX TO THE ATMOSPHERE.
-      !#### Igor has put in code to distribute C_growth over the day.
-      !####################################################################
-      !* Tissue growth respiration is subtracted at physical time step
-      !* distributed over day in canopy biophysics module with R_auto.
-      cop%C_growth = cop%C_growth + resp_growth*cop%n*1.d-3  !kg-C m-2 day-1
-      cop%C_growth_flux = cop%C_growth/(24.d0*3600.d0) ! resp flux, kg-C m-2 s-1
+      !* Return resp_growth for the day for C_growth *!
 
       end subroutine litter_turnover_cohort
       !*********************************************************************
-      subroutine litter_growth_cohort(dCrepro,!dt,dCrepro,
-     i        C_fol_old,C_froot_old,C_hw_old,C_sw_old,C_croot_old,
-     &        dC_litter_hw,dC_litter_croot,cop,Clossacc)
-!@sum litter_cohort for prognostic growth.
-!@sum CALLED BY phenology veg_update.
-!@sum DAILY TIME STEP.
-!@sum Calculates litterfall from cohort 
-!@sum     to soil, tissue growth,growth respiration, and updates the following
-!@sum     variables:
-!@sum     cohort: C_lab
-!@sum             C_growth (daily total tissue growth respiration),
-!@sum             senescefrac
-!@sum     patch:  Clossacc
+      subroutine litter_growth_cohort(do_structuralgrowth
+     i     ,dC_repro,      !dt,dCrepro,
+     i     C_fol_old,C_froot_old,C_hw_old,C_sw_old,C_croot_old,
+     &     dC_litter_hw,dC_litter_croot,
+     &     Cdead,cop,Clossacc,resp_growth)
+!@sum litter_growth cohort for prognostic growth.
+!@+   CALLED BY phenology veg_update.
+!@+   DAILY TIME STEP.
+!@+   Calculates cohort litterfall and tissue growth respiration
+!@+   Updates the following cohort variables:
+!@+     cohort: C_lab
+!@+             senescefrac
+!@+   Outputs the following variables 
+!@+     cohort:  resp_growth for C_growth (daily total tissue growth respir),
+!@+     patch:  Clossacc (array for litter component fluxes)
+
       !* NOTES:
-      !* Determine litter from cohort carbon pools and accumulate litter into
-      !* Clossacc array.  
-      !* Active pool loss to litter from turnover is replenished by same amount
-      !* from C_lab, so no change to standing pools except for C_lab.
-      !* Turnover tissue provides retranslocated carbon back to C_lab.
+      !* Determine litter from cohort carbon pools due to pool size changes
+      !*  and accumulate litter into Clossacc array.  
       !* No litter from sapwood.
-      !* Dead pool loss to litter from turnover is replenished by same amount
-      !* from C_lab, but without retranslocation. ## MAY WANT TO EXPERIMENT.
+      !* Since establishment from reproduction for woody plants is not
+      !*  implemented, yet, dCrepro is put into foliage litter to conserve
+      !*  carbon. TEMPORARY
       !* Tissue growth respiration in C_growth is allocated by canopy
       !* biophysics module to fluxes over the course of the whole (next) day.
-      !* After CASA, but called at daily time step. - NYK 7/27/06
-      !* Update cohort pools - SUMMARY *!
-      !C_fol replenished from C_lab: no change
-      !C_froot replenished from C_lab: no change
-      !C_sw =  No litter from sapwood
-      !C_hw replenished from C_lab: no change
-      !C_croot replenished from C_lab: no change
 
-      use cohorts, only : calc_CASArootfrac 
-!      use biophysics, only: Resp_can_growth
-      !real*8,intent(in) :: dt   !seconds, time since last call
-      real*8,intent(in) ::dCrepro
+      use photcondmod, only : frost_hardiness
+
+      logical,intent(in) :: do_structuralgrowth
+      real*8,intent(inout) ::dC_repro  !TEMPORARY inout.
       real*8,intent(in) ::C_fol_old,C_froot_old,C_hw_old,C_croot_old,
      &     C_sw_old
       real*8, intent(in) :: dC_litter_hw, dC_litter_croot
+      real*8, intent(inout) :: Cdead !g-C/plant, structural carbon
       type(cohort),pointer :: cop
-      real*8,intent(inout) :: Clossacc(PTRACE,NPOOLS,N_CASA_LAYERS) !Litter accumulator.
+      real*8,intent(inout) :: Clossacc(PTRACE,NPOOLS,N_CASA_LAYERS) !gC/m^2 Litter accumulator.
+      real*8,intent(out)  :: resp_growth !g-C/individ (mass total per day)
       !--Local-----------------
-      real*8 :: Closs(PTRACE,NPOOLS,N_CASA_LAYERS) !Litter per cohort.  !explicitly depth-structured -PK 7/07
       integer :: pft,i
-      real*8 :: fracrootCASA(N_CASA_LAYERS)
-      real*8 :: turnoverdtleaf !Closs amount from intrinsic turnover of biomass pool.
-      real*8 :: turnoverdtfroot !Closs amount from intrinsic turnover of biomass pool.
-      real*8 :: turnoverdtwood !Closs amount from intrinsic turnover of biomass pool.
-!      real*8 :: turnoverdttotal!Total
-      real*8 :: turn_leaf, turn_froot, turn_hw,turn_croot, turn_live !g-C/individual
+      real*8 :: Closs(PTRACE,NPOOLS,N_CASA_LAYERS) !gC/m^2 Litter per cohort. 
       real*8 :: dC_fol, dC_froot, dC_hw, dC_sw, dC_croot,dC_lab !g-C/individual
-      real*8 :: adj !Adjustment to keep loss less than C_lab
-      real*8 :: resp_growth,resp_growth_root !g-C/individ (mass total per day)
-      real*8 :: resp_turnover, resp_newgrowth !g-C/individ
-      real*8 :: i2a !1d-3*cop%n -- Convert g-C/individual to kg-C/m^2
-      real*8 :: Csum
+!      real*8 :: adj !Adjustment to keep loss less than C_lab
+      real*8 :: resp_growth_root !g-C/individ (mass total per day)
       real*8 :: dC_total, dClab_dbiomass
-      real*8 :: facclim !Frost hardiness parameter - affects turnover rates in winter.
+      real*8 :: Csum
+
       Closs(:,:,:) = 0.d0
       !Clossacc(:,:,:) = 0.d0 !Initialized outside of this routine
 
-      !* Calculate fresh litter from a cohort *!
       pft = cop%pft
         
-      !assign root fractions for CASA layers -PK
-      call calc_CASArootfrac(cop,fracrootCASA)
-!      print *, 'from litter(pheno*.f): fracrootCASA(:) =', fracrootCASA !***test*** -PK 11/27/06  
+      !* Structural plant pools change and structural pool litter.
+      if (.not.do_structuralgrowth) then
+      !* If structural growth is off (set in the rundeck),
+      !* then any estimated changes in hw & croot becomes litter.        
+         dC_hw = cop%C_hw - C_hw_old !Save difference
+         dC_croot = cop%C_croot - C_croot_old
+         cop%C_hw=C_hw_old
+         cop%C_croot=C_croot_old
+         Cdead = cop%C_hw+cop%C_croot !Keep Cdead static.
+      else
+      !* If structural growth is on (set in the rundeck),
+      !* then change in dead pool is allocated into hw & croot.         
+!         cop%C_hw = Cdead * hw_fract  !OLD DELETE!
+!         cop%C_croot = Cdead * (1-hw_fract) !OLD DELETE!
+         cop%C_hw = Cdead2Chw(pft, Cdead)
+         cop%C_croot = Chw2Ccroot(pft,cop%C_hw)
+         dC_hw = cop%C_hw - C_hw_old
+         dC_croot = cop%C_croot - C_croot_old
+      endif
 
-      !* NLIVE POOLS *! 
-      facclim = frost_hardiness(cop%Sacclim)
-
-
-      !* Change in plant tissue pools. *!
+      !*  Active plant tissue pools change 
       dC_fol = cop%C_fol-C_fol_old
       dC_froot = cop%C_froot - C_froot_old
-      dC_hw = cop%C_hw - C_hw_old
       dC_sw = cop%C_sw - C_sw_old
-      dC_croot = cop%C_croot - C_croot_old
 
-      !* Distinguish respiration from turnover vs. from new growth.
-      !* ### With constant prescribed structural tissue, dC_sw=0.d0,but
-      !* ### there must still be regrowth of sapwood to replace that converted
-      !* ### to dead heartwood.  For a hack, turn_hw is regrown as sapwood to
-      !* ### maintain a carbon balance. 
-
-      !* C_lab required for biomass growth or senescence (not turnover)
-      dClab_dbiomass = max(0.d0, dC_fol) + max(0.d0,dC_froot)!Growth of new tissue
+      !* C_lab change for biomass growth or senescence (not turnover)
+      dClab_dbiomass = max(0.d0, dC_fol) + max(0.d0,dC_froot)!New tissue
      &     + max(0.d0,dC_sw)    
      &     + max(0.d0,dC_hw) + max(0.d0,dC_croot)
-     &     - l_fract*( max(0.d0,-dC_fol) + max(0.d0,-dC_froot) !Retranslocated carbon from senescence.
+     &     + max(0.d0,dC_repro)
+     &     - l_fract*( max(0.d0,-dC_fol) + max(0.d0,-dC_froot) !Retranslocation
      &     + max(0.d0,-dC_sw))
 
       !* Growth and retranslocation.
@@ -1709,41 +1783,26 @@ cddd         write(901,*) "deltaC*n ", (tot_c - tot_c_old)*cop%n
       !*       so does not decrease C_lab here.
       dC_lab = 
      &     - dClab_dbiomass 
-!!!     removed - dCrepro since it doesn't conserve carbon       !Growth (new growth or senescence)
 
-      !* Recalculate respiration.  Distinguish below- vs. above-ground autotrophic respiration.
-
-      resp_growth_root = 0.16d0*(max(0.d0,dC_froot)+max(0.d0,dC_croot))!New biomass growth
+      !* Respiration from biomass growth
+      resp_growth_root = 0.16d0*(max(0.d0,dC_froot)+max(0.d0,dC_croot))
       resp_growth = resp_growth_root + 0.14d0 * 
      &      (max(0.d0,dC_fol)+max(0.d0,dC_sw)) + 0.16d0* max(0.d0,dC_hw) 
      
-      !* Calculate litter from turnover and from senescence*!
+      !* Calculate litter from senescence and when do_structuralgrowth=FALSE 
       !* Change from senescence is calculated as max(0.d0, C_pool_old-C_pool).
-      ! Senescefrac factor can be calculated by either prescribed or prognostic phenology: ****** NYK!
-      do i=1,N_CASA_LAYERS   
-        if (i.eq.1) then        !only top CASA layer has leaf and wood litter -PK   
-          Closs(CARBON,LEAF,i) = cop%n * (1.d0-l_fract) * 
-     &         max(0.d0,-dC_fol)
-          Closs(CARBON,WOOD,i) = cop%n * (
-     &        max(0.d0,-dC_hw)  + dC_litter_hw +
-     &        fracrootCASA(i) * (max(0.d0,-dC_croot) + dC_litter_croot))
-        else    
-          Closs(CARBON,LEAF,i) = 0.d0 
-          Closs(CARBON,WOOD,i) = cop%n * 
-     &       (fracrootCASA(i) * (max(0.d0,-dC_croot) + dC_litter_croot))
-        end if
-        ! both layers have fine root litter 
-        Closs(CARBON,FROOT,i) = cop%n * (1.d0-l_fract)
-     &       * fracrootCASA(i) * ( max(0.d0,-dC_froot)
-     &       + max(0.d0,-dC_sw) )
-      enddo
-
-      dC_total = 0.d0
-      do i=1,N_CASA_LAYERS 
-        dC_total = dC_total - Closs(CARBON,LEAF,i) -
-     &       Closs(CARBON,FROOT,i) - Closs(CARBON,WOOD,i)
-      enddo
-      dC_total = dC_total*1.d-3  ! convert it to kg
+      !* For non-annual plants, dump dCrepro into foliage litter until
+      !*   ecological dynamics are implemented.  TEMPORARY
+      if (pfpar(pft)%phenotype.eq.ANNUAL) then
+         call assign_Closs(cop%n, cop%fracroot
+     i        ,dC_fol, dC_froot, dC_sw,dC_hw, dC_croot
+     o        ,Closs, dC_total)
+      else
+         call assign_Closs(cop%n, cop%fracroot
+     i        ,dC_fol-dC_repro, dC_froot, dC_sw,dC_hw, dC_croot
+     o        ,Closs, dC_total)
+         dC_repro = 0.d0        !All put in litter.
+      endif
 
 !#define RESTRICT_LITTER_FLUX
 #ifdef RESTRICT_LITTER_FLUX
@@ -1760,66 +1819,9 @@ cddd         write(901,*) "deltaC*n ", (tot_c - tot_c_old)*cop%n
 
       call accumulate_Clossacc(pft, Closs, Clossacc)
 
-      !Error check
-      if ( abs( (dC_fol+dC_froot+dC_hw+dC_sw+dC_croot
-     &     +dC_lab)*cop%n + Closs(CARBON,LEAF,1)+Closs(CARBON,FROOT,1)
-     &     + Closs(CARBON,WOOD,1) ) > 1d-10 ) then
-        
-         write(901,*) "Closs ", Closs(CARBON,LEAF,1)
-     &       +Closs(CARBON,FROOT,1)
-     &       + Closs(CARBON,WOOD,1)
-     &       ,"dC ", dC_fol, dC_froot, dC_hw, dC_sw, dC_croot
-     &       ,dC_lab
-     &       ,"dC*n ", (dC_fol+dC_froot+dC_hw+dC_sw+dC_croot
-     &       +dC_lab)*cop%n
-     &       ,"dCrepro ", dCrepro, dCrepro*cop%n
-     &       ,"dC_litter_hw ", dC_litter_hw, dC_litter_hw*cop%n
-     &       ,"dC_litter_croot ",
-     &       dC_litter_croot, dC_litter_croot*cop%n
-
-       endif
-
-cddd      write(901,*) "Closs ", Closs(CARBON,LEAF,1)+Closs(CARBON,FROOT,1)
-cddd     &     + Closs(CARBON,WOOD,1)
-cddd      write(901,*) "dC ", dC_fol, dC_froot, dC_hw, dC_sw, dC_croot
-cddd     &     ,dC_lab
-cddd      write(901,*) "dC*n ", (dC_fol+dC_froot+dC_hw+dC_sw+dC_croot
-cddd     &     +dC_lab)*cop%n
-cddd      write(901,*) "dCrepro ", dCrepro, dCrepro*cop%n
-cddd      write(901,*) "dC_litter_hw ", dC_litter_hw, dC_litter_hw*cop%n
-cddd      write(901,*) "dC_litter_croot ",
-cddd     &     dC_litter_croot, dC_litter_croot*cop%n
-
-!      write(992,*) C_fol_old,C_froot_old,C_hw_old,C_sw_old,C_croot_old,
-!     &     cop%C_lab,cop%C_fol,cop%C_froot,cop%C_hw,cop%C_sw,
-!     &     cop%C_croot, cop%dbh,turn_leaf,turn_froot,turn_hw,turn_croot,
-!     &     dC_fol,dC_froot,dC_hw,dC_sw,dC_croot,
-!     &     Closs(CARBON,:,:), Clossacc(CARBON,:,:),adj,cop%turnover_amp,
-!     &     facclim,turnoverdtleaf,turnoverdtfroot, turnoverdtwood
-
        !* Update C_lab *!
       cop%C_lab = cop%C_lab + dC_lab
       !at this point, C_lab<0 comes from the rounding errors...
-#ifdef COMMENT_OUT
-      if (cop%C_lab < 0.d0) cop%C_lab = 0.d0
-#endif
-      if (cop%C_lab < -1.d-8) then
-        write(902,*) "WARNING: Clab ", cop%C_lab, dC_lab, cop%pft
-     &       ,"dC ", dC_fol, dC_froot, dC_hw, dC_sw, dC_croot
-     &       ,dC_lab
-     &       ,"dC*n ", (dC_fol+dC_froot+dC_hw+dC_sw+dC_croot
-     &       +dC_lab)*cop%n
-     &       ,"dCrepro ", dCrepro, dCrepro*cop%n
-     &       ,"dC_litter_hw ", dC_litter_hw, dC_litter_hw*cop%n
-     &       ,"dC_litter_croot ",
-     &       dC_litter_croot, dC_litter_croot*cop%n
-      endif
-!      if (cop%C_lab < 0.d0) then
-!         print*,dC_fol,cop%C_fol,dC_sw,cop%C_sw
-!         print*,dC_lab,cop%C_lab, dC_froot, cop%C_froot
-!         print*,dC_hw,cop%C_hw,dC_croot,cop%C_croot
-!         stop
-!      endif
 
       !* Return Clossacc and resp_growth *!
 !      Csum = 0.d0
@@ -1827,12 +1829,42 @@ cddd     &     dC_litter_croot, dC_litter_croot*cop%n
 !        Csum = Csum + Clossacc(CARBON,i,1)
 !      enddo
 
-      !* Return resp_growth in cop%C_growth *!
+      !* Return resp_growth (plant) for cop%C_growth *!
       !* Tissue growth respiration is subtracted at physical time step
       !* distributed over day in canopy biophysics module with R_auto.
-      cop%C_growth = cop%C_growth + resp_growth*cop%n*1.d-3  !kg-C m-2 day-1
-      cop%C_growth_flux = cop%C_growth/(24.d0*3600.d0) ! resp flux, kg-C m-2 s-1
 
+
+      !----------------Error check--------------------------------
+      if ( abs( (dC_fol+dC_froot+dC_hw+dC_sw+dC_croot
+     &     +dC_lab)*cop%n + Closs(CARBON,LEAF,1)+Closs(CARBON,FROOT,1)
+     &     + Closs(CARBON,WOOD,1) ) > 1d-10 ) then
+
+#ifdef DEBUG        
+         write(901,*) "Closs ", Closs(CARBON,LEAF,1)
+     &       +Closs(CARBON,FROOT,1)
+     &       + Closs(CARBON,WOOD,1)
+     &       ,"dC ", dC_fol, dC_froot, dC_hw, dC_sw, dC_croot
+     &       ,dC_lab
+     &       ,"dC*n ", (dC_fol+dC_froot+dC_hw+dC_sw+dC_croot
+     &       +dC_lab)*cop%n
+     &       ,"dC_repro ", dC_repro, dC_repro*cop%n
+       endif
+
+      if (cop%C_lab < -1.d-8) then
+        write(902,*) "WARNING: Clab ", cop%C_lab, dC_lab, cop%pft
+     &       ,"dC ", dC_fol, dC_froot, dC_hw, dC_sw, dC_croot
+     &       ,dC_lab
+     &       ,"dC*n ", (dC_fol+dC_froot+dC_hw+dC_sw+dC_croot
+     &       +dC_lab)*cop%n
+     &       ,"dCrepro ", dC_repro, dC_repro*cop%n
+      endif
+!      if (cop%C_lab < 0.d0) then
+!         print*,dC_fol,cop%C_fol,dC_sw,cop%C_sw
+!         print*,dC_lab,cop%C_lab, dC_froot, cop%C_froot
+!         print*,dC_hw,cop%C_hw,dC_croot,cop%C_croot
+!         stop
+!      endif
+#endif
       end subroutine litter_growth_cohort
       !*********************************************************************
       subroutine litter_cohort(dt,
@@ -1868,6 +1900,7 @@ cddd     &     dC_litter_croot, dC_litter_croot*cop%n
       !C_croot replenished from C_lab: no change
 
       use cohorts, only : calc_CASArootfrac 
+      use photcondmod, only : frost_hardiness
 !      use biophysics, only: Resp_can_growth
       real*8,intent(in) :: dt !seconds, time since last call
       real*8,intent(in) ::C_fol_old,C_froot_old,C_hw_old,C_croot_old,
@@ -1890,7 +1923,7 @@ cddd     &     dC_litter_croot, dC_litter_croot*cop%n
       real*8 :: i2a !1d-3*cop%n -- Convert g-C/individual to kg-C/m^2
       real*8 :: Csum
       real*8 :: dC_total, dClab_dbiomass
-      real*8 :: facclim !Frost hardiness parameter - affects turnover rates in winter.
+      real*8 :: tacclim !turnover parameter, linear with Cfol/Cfolmax
 
       Closs(:,:,:) = 0.d0
       !Clossacc(:,:,:) = 0.d0 !Initialized outside of this routine
@@ -1899,15 +1932,15 @@ cddd     &     dC_litter_croot, dC_litter_croot*cop%n
       pft = cop%pft
         
       !assign root fractions for CASA layers -PK
-      call calc_CASArootfrac(cop,fracrootCASA)
+      call calc_CASArootfrac(cop%fracroot,fracrootCASA)
 
       !* NLIVE POOLS *! 
-      facclim = frost_hardiness(cop%Sacclim)
-      turnoverdtleaf = facclim*cop%turnover_amp*annK(pft,LEAF)*SDAY !s^-1 * s/day = day^-1
-!      turnoverdtleaf = facclim*annK(pft,LEAF)*SDAY !s^-1 * s/day = day^-1
-      turnoverdtfroot = facclim*annK(pft,FROOT)*SDAY
+      tacclim = turnover_acclim(cop)
+      turnoverdtleaf = tacclim*cop%turnover_amp*annK(pft,LEAF)*SDAY !s^-1 * s/day = day^-1
+!      turnoverdtleaf = tacclim*annK(pft,LEAF)*SDAY !s^-1 * s/day = day^-1
+      turnoverdtfroot = tacclim*annK(pft,FROOT)*SDAY
       turnoverdtwood = 0.32d0/pfpar(pft)%lrage*
-     &     (1.d0-exp(-annK(pft,WOOD)*SDAY)) !Sapwood not hardwood.  0.08d0 is a tuning factor.
+     &     (1.d0-exp(-annK(pft,WOOD)*SDAY)) !Sapwood not hardwood,coefficient is a tuning factor.
 
       !* Turnover draws down C_lab. *!
       !* Calculate adjustment factor if loss amount is too large for C_lab.
@@ -1938,34 +1971,35 @@ cddd     &     dC_litter_croot, dC_litter_croot*cop%n
      &     +0.16d0*(max(0.d0,turn_hw)+max(0.d0,turn_croot)) !##THIS IS RESPIRATION FOR REGROWTH OF SAPWOOD TO ACCOUNT FOR CONVERSION TO HEARTWOOD WITH CONSTANT PLANT STRUCTURE.
 
       !* C_lab required for biomass growth or senescence (not turnover)
-      dClab_dbiomass = max(0.d0, dC_fol) + max(0.d0,dC_froot) !Growth of new tissue
-     &     + max(0.d0,dC_sw)    !For constant structural tissue, dC_sw=0, but still need to account for sapwood growth.
-     &     + max(0.d0,turn_hw)+max(0.d0,turn_croot) !### Sapwood growth to replace that converted to heartwood.
-     &     - l_fract*( max(0.d0,-dC_fol) + max(0.d0,-dC_froot) !Retranslocated carbon from senescence.
-     &     + max(0.d0,-dC_sw))
+      dClab_dbiomass = -max(0.d0, dC_fol) - max(0.d0,dC_froot) !Growth of new tissue
+     &     - max(0.d0,dC_sw)    !For constant structural tissue, dC_sw=0, but still need to account for sapwood growth.
+     &     - max(0.d0,turn_hw)-max(0.d0,turn_croot) !### Sapwood growth to replace that converted to heartwood.
+     &     + l_fract*( max(0.d0,-dC_fol) + max(0.d0,-dC_froot) !Retranslocated carbon from senescence.
+     &     - max(0.d0,-dC_sw))
 
       !* Growth and retranslocation.
       !* NOTE: Respiration is distributed over the day by canopy module,
       !*       so does not decrease C_lab here.
       dC_lab = 
-     &     - (1-l_fract)*(turn_leaf + turn_froot) !Retranslocated carbon from turnover
-     &     - dClab_dbiomass       !Growth (new growth or senescence)
+     &     (l_fract)*(turn_leaf + turn_froot) !Retranslocated carbon from turnover
+     &     + dClab_dbiomass       !Growth (new growth or senescence)
           !- resp_growth          !Distrib resp_growth in cop%C_growth over day.
 
       !* Limit turnover litter if losses and respiration exceed C_lab.*!
-      if (cop%C_lab+dC_lab-resp_turnover-resp_newgrowth.lt.0.d0) then
-        if ((0.5d0*cop%C_lab - dClab_dbiomass-resp_newgrowth).lt.0.d0)
+c      if (cop%C_lab+dC_lab-resp_turnover-resp_newgrowth.lt.0.d0) then
+        if ((0.5d0*cop%C_lab + dClab_dbiomass-resp_newgrowth).lt.0.d0)
      &       then
-          adj = 0.d0            !No turnover litter to preserve C_lab for growth.
-                                !C_lab will probably go negative here, but only a short while.
+         adj = 0.5         !Reduce turnover litter to preserve C_lab for growth.
+         print *,'DEBUG#: adj=0.5*adj',adj !C_lab will probably go negative here, but only a short while.
         else                    !Reduce rate of turnover litter.
-          adj = (0.5d0*cop%C_lab - dClab_dbiomass - resp_newgrowth)/
-     &         ((1-l_fract)*(turn_leaf + turn_froot)
-     &         + resp_turnover)
+c          adj = (0.5d0*cop%C_lab - dClab_dbiomass - resp_newgrowth)/
+c     &         ((1-l_fract)*(turn_leaf + turn_froot)
+c     &         + resp_turnover)
+           adj = 1.d0
         endif
-      else
-        adj = 1.d0
-      endif
+c      else
+c        adj = 1.d0
+c      endif
 
       !* Adjust turnover losses to accommodate low C_lab. *!
       if (adj < 1.d0) then
@@ -1993,16 +2027,19 @@ cddd     &     dC_litter_croot, dC_litter_croot*cop%n
      &       ( turn_leaf           !Turnover growth    
      &       +max(0.d0,dC_fol)+max(0.d0,dC_sw)) !New biomass growth
      &       + 0.16d0*turn_hw      !# Hack for regrowth of sapwood converted to replace senesced hw.
-
-!      write(991,*)  facclim,turn_froot,turn_croot,max(0.d0,dC_froot),
-!     &     max(0.d0,dC_croot), turn_leaf,turn_hw,
-!     &     max(0.d0,dC_fol), max(0.d0,dC_sw) !New biomass growth
-
       !* Recalculate dC_lab in case adj < 1.0.
       dC_lab = 
-     &     - (1-l_fract)*(turn_leaf + turn_froot) !Retranslocated carbon from turnover
-     &     - dClab_dbiomass       !Growth (new growth or senescence)
+     &     (l_fract)*(turn_leaf + turn_froot) !Retranslocated carbon from turnover
+     &     + dClab_dbiomass       !Growth (new growth or senescence) 
           !- resp_growth          !Distrib resp_growth in cop%C_growth over day.
+
+        !##NK DEBUG
+      write(991,*)  tacclim,cop%turnover_amp,adj
+     &       ,turn_froot,turn_croot,max(0.d0,dC_froot)
+     &       ,max(0.d0,dC_croot), turn_leaf,turn_hw
+     &       ,max(0.d0,dC_fol), max(0.d0,dC_sw) !New biomass growth
+     &       ,resp_growth_root, resp_growth
+
 
       !* Calculate litter to soil from turnover and from senescence*!
       !* Change from senescence is calculated as max(0.d0, C_pool_old-C_pool).
@@ -2055,7 +2092,7 @@ cddd     &     dC_litter_croot, dC_litter_croot*cop%n
 !     &     cop%C_croot, cop%dbh,turn_leaf,turn_froot,turn_hw,turn_croot,
 !     &     dC_fol,dC_froot,dC_hw,dC_sw,dC_croot,
 !     &     Closs(CARBON,:,:), Clossacc(CARBON,:,:),adj,cop%turnover_amp,
-!     &     facclim,turnoverdtleaf,turnoverdtfroot, turnoverdtwood
+!     &     tacclim,turnoverdtleaf,turnoverdtfroot, turnoverdtwood
 
       !################ ###################################################
       !#### DUE TO TIMING OF LAI UPDATE IN GISS GCM AT THE DAILY TIME STEP,
@@ -2094,7 +2131,7 @@ cddd     &     dC_litter_croot, dC_litter_croot*cop%n
       subroutine litter_patch(pp, Clossacc)
 !@sum litter_dead.  Update soil Tpools following litterfall.
       type(patch),pointer :: pp 
-      real*8,intent(in) :: Clossacc(PTRACE,NPOOLS,N_CASA_LAYERS) !Litter accumulator.
+      real*8,intent(in) :: Clossacc(PTRACE,NPOOLS,N_CASA_LAYERS) !gC/m^2 Litter accumulator.
       !----Local------
       integer :: i
 
@@ -2229,35 +2266,9 @@ c
 c      end subroutine litter_old
 
 !*********************************************************************
-
-      subroutine photosyn_acclim(dtsec,Ta,Sacc)
-!@sum Model for state of acclimation/frost hardiness based 
-!@sum for boreal coniferous forests based on Repo et al (1990), 
-!@sum Hanninen & Kramer (2007),and  Makela et al (2006)
-      implicit none
-      real*8,intent(in) :: dtsec ! time step size [sec]
-      real*8,intent(in) :: Ta ! air temperature [deg C]
-      real*8,intent(inout) :: Sacc ! state of acclimation [deg C]
-
-      !----Local-----
-      real*8,parameter :: tau_inv = 2.22222e-6 
-                          ! inverse of time constant of delayed
-                          ! response to ambient temperature [sec] = 125 hr 
-                          ! Makela et al (2004) for Scots pine
-
-!      Use a first-order Euler scheme
-       Sacc = Sacc + dtsec*(tau_inv)*(Ta - Sacc) 
-
-!!     Predictor-corrector method requires temperature from next timestep
-!       Sacc_old = Sacc
-!       Sacc = Sacc_old + dtsec*(1/tau_acclim)*(Ta - Sacc ) 
-!       Sacc = Sacc_old + ((1/tau_acclim)*(Ta - Sacc_old)+
-!     &                     (1/tau_acclim)*(Ta_next - Sacc))*0.5d*dtsec
-
-      end subroutine photosyn_acclim
-
-!*************************************************************************
       real*8 function running_mean(dtsec,numd,var,var_mean) 
+!@sum Function for expiring running mean for phenological climate statistics.
+!@+   Daily average, taking into account time step of function call.
       real*8, intent(in) :: dtsec
       real*8, intent(in) :: numd !number of days for running mean
       real*8, intent(in) :: var
@@ -2270,86 +2281,8 @@ c      end subroutine litter_old
       end function running_mean
 !*************************************************************************
 
-      real*8 function maxdbh(pft)
-      integer,intent(in) :: pft       
-
-      maxdbh=log(1.0-(0.999*(pfpar(pft)%b1Ht+a0h(pft))-a0h(pft))  
-     &     /pfpar(pft)%b1Ht)/pfpar(pft)%b2Ht
-
-c$$$      if (.not.pfpar(pft)%woody) then !grasses/crops 
-c$$$         maxdbh=log(1.0-(0.999*(pfpar(pft)%b1Ht+1.3)-1.3)  
-c$$$     &        /pfpar(pft)%b1Ht)/pfpar(pft)%b2Ht
-c$$$      else !woody   
-c$$$         maxdbh=log(1.0-(0.999*pfpar(pft)%b1Ht-1.3)  
-c$$$     &        /pfpar(pft)%b1Ht)/pfpar(pft)%b2Ht
-c$$$      end if
- 
-      end function maxdbh
-!*************************************************************************
-
-      real*8 function Cfol2height(pft,Cfol)
-      integer,intent(in) :: pft
-      real*8, intent(in) :: Cfol !gC/pool/plant
-      real*8,parameter :: h1Cf = 1.66d0 
-      real*8,parameter :: h2Cf = 1.5d0
-      real*8,parameter :: nplant = 2500.d0
-
-      if (Cfol.gt.0.0d0) then
-         Cfol2height=exp(log(Cfol*C2B/h1Cf*nplant)/h2Cf)/100.0d0
-      else
-         Cfol2height=0.d0
-      end if
-
-      end function Cfol2height
-!*************************************************************************
- 
-      real*8 function dDBHdCfol(pft,Cfol)
-      integer,intent(in) :: pft
-      real*8, intent(in) :: Cfol
-
-      dDBHdCfol=(C2B/1000.0d0/pfpar(pft)%b1Cf)**(1.0d0/pfpar(pft)%b2Cf)
-     &          *Cfol**((1.0d0/pfpar(pft)%b2Cf)-1.0d0)
-     &          /pfpar(pft)%b2Cf
-
-      end function dDBHdCfol
-!*************************************************************************
-      real*8 function dHdDBH(pft,dbh)
-      integer,intent(in) :: pft
-      real*8, intent(in) :: dbh
-
-      dHdDBH = - pfpar(pft)%b1Ht*pfpar(pft)%b2Ht
-     &         * exp(pfpar(pft)%b2Ht * dbh)
-      end function dHdDBH
-
-!*************************************************************************
-
-      real*8 function frost_hardiness(Sacclim) Result(facclim)
-!@sum frost_hardiness.  Calculate factor for adjusting photosynthetic capacity
-!@sum  due to frost hardiness phenology.
-      real*8,intent(in) :: Sacclim 
-      !----Local-----
-      real*8,parameter :: Tacclim=-5.93d0 ! threshold temperature for photosynthesis [deg C]
-                        ! Site specific thres. temp.: state of photosyn.acclim
-                        ! Hyytiala Scots Pine, -5.93 deg C Makela et al (2006)
-      real*8,parameter :: a_const=0.0595 ! factor to convert from Sacclim [degC] to facclim [-]
-                        ! Site specific; conversion (1/Sacclim_max)=1/16.8115
-                        ! estimated by using the max S from Hyytiala 1998
-!      real*8 :: facclim ! acclimation/frost hardiness factor [-]
-
-      if (Sacclim > Tacclim) then ! photosynthesis occurs 
-         facclim = a_const * (Sacclim-Tacclim) 
-         if (facclim > 1.d0) facclim = 1.d0
-!      elseif (Sacclim < -1E10)then !UNDEFINED
-      elseif (Sacclim.eq.UNDEF)then !UNDEFINED
-         facclim = 1.d0   ! no acclimation for this pft and/or simualtion
-      else
-         facclim = 0.01d0 ! arbitrary min value so that photosyn /= zero
-      endif
-
-      end function frost_hardiness
-    
-!*************************************************************************
       subroutine phenology_diag(cohortnum, cop)
+!@sum Debugging routine to print out phenology diagnostics to fort.990.
       implicit none
       type(cohort), pointer ::cop
       integer :: cohortnum

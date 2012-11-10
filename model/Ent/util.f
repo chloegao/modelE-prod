@@ -1,5 +1,6 @@
       module util
-!@sum Utility routines
+!@sum Utility routines for Ent_standalone and giss_LSM_standalone runs
+!@+   Utilities for managing time variables.
 
       implicit none
       private
@@ -10,6 +11,7 @@
       contains
 
       integer function YEARSEC(year) result(seconds_in_year)
+!@sum YEARSEC  Seconds in a year for leap and non-leap years.
           integer :: year
           integer, parameter :: sday = 86400 !second in a day
 
@@ -21,9 +23,10 @@
       end function YEARSEC
 
       LOGICAL FUNCTION IsLeapYear(year) Result(Leap)
-!  Return IsLeapYear as true if YEAR is a number that is
-!  exactly divisible by 4, except for century years which
-!  must also be divisible by 400.
+!@sum IsLeapYear  Return true if leap year.
+!@+   Is leap year if YEAR is a number that is
+!@+   exactly divisible by 4, except for century years which
+!@+   must also be divisible by 400.
 !
 !     INPUT:
 !         year: 4-digit number                  [I4]
@@ -70,6 +73,7 @@
       
       !************************************************************************
       integer function JulianDay(time) Result(jday)
+!@sum JulianDay  Julian day of a leap or non-leap year given time data struct.
       use ent_types, only : timestruct
       type(timestruct),intent(in) :: time
       integer :: m
@@ -99,7 +103,7 @@
       !************************************************************************
 
       integer function TimeDiff(time, prevtime) Result(dtsec)
-      !Calculate the time difference between time and prevtime in seconds
+!@sum TimeDiff Time difference between time and prevtime in seconds
       use ent_types, only : timestruct
 
       type(timestruct), intent(in) :: time, prevtime

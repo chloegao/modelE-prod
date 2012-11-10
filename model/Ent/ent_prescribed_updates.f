@@ -1,6 +1,6 @@
       module ent_prescribed_updates
-!@sum Routines for updating prescribed vegetation. These routines
-!@+   work on entcell level or lower.
+!@sum Routines for updating prescribed (Matthews) vegetation. 
+!@+   These routines work on the entcell level or lower.
 
 !#define DEBUG TRUE  !NYK
 
@@ -9,16 +9,122 @@
       implicit none
       private
 
+      public entcell_vegupdate
       !public entcell_update_lai, entcell_update_albedo
       !public entcell_update_shc
-      public entcell_vegupdate
 
       contains
 
+!************************************************************************
+
+      subroutine entcell_vegupdate(ecp, hemi, jday
+     &     ,do_giss_phenology, do_giss_lai, do_giss_albedo!,mixed_veg
+     &     ,laidata, hdata, albedodata, cropsdata, init )
+!@sum Main routine for prescribed vegetation structure updates
+!@+   at the entcell level (and down). 
+!@+   DAILY TIME STEP ASSUMED. Coordinate-dependent
+!@+   All var parameters except entcell are optional. 
+!@+   Var arrays have pointer attribute to provide a way to tell the 
+!@+   program that an argument is actually optional and not missing
+!@+   (see how it is used in ent_prescribe_vegupdate)
+      use ent_pfts, only: COVEROFFSET
+      use patches, only : summarize_patch
+      use entcells,only : summarize_entcell
+      use ent_prescr_veg, only : prescr_veg_albedo
+      implicit none
+      type(entcelltype),pointer :: ecp
+      integer,intent(in) :: jday
+      integer,intent(in) :: hemi
+      logical, intent(in) :: do_giss_phenology
+      logical, intent(in) :: do_giss_lai
+      logical, intent(in) :: do_giss_albedo
+!      logical, intent(in) :: mixed_veg
+      real*8,  pointer :: laidata(:)  !Array of length N_PFT
+      real*8,  pointer :: hdata(:)  !Array of length N_PFT
+      real*8,  pointer :: albedodata(:,:)
+      real*8,  pointer :: cropsdata
+      logical, intent(in) :: init
+      !----Local------
+      type(patch),pointer :: pp
+      
+      !* 1. Update crops to get right patch/cover distribution.
+      !*     NOTE:  CARBON CONSERVATION NEEDS TO BE CALCULATED FOR CHANGING VEG/CROP COVER ##
+      !* 2. Update height to get any height growth (with GISS veg, height is static)
+      !* 3. Update LAI, and accumulate litter from new LAI and growth/senescence.
+      !*       Cohort litter is accumulated to the patch level.
+      !*    3a. If external LAI, then litter is calculated based on that external LAI change.
+      !*    3b. If GISS prescribed LAI, then new LAI is calculated, and then litter.
+      !* 4. Update albedo based on new vegetation structure.
+
+      !* VEGETATION STRUCTURE AND LITTER *!
+      ! veg structure update with external data if provided
+      if (.not.do_giss_lai) then
+
+        if ( associated(cropsdata) )
+     &       call entcell_update_crops(ecp, cropsdata)
+        !print *,"update cropsdata: ", associated(cropsdata) !##debug
+        
+        if ( associated(hdata) )
+     &       call entcell_update_height(ecp, hdata, init)!, mixed_veg)
+        !print *, "update hdata: ", associated(hdata) !##debug
+
+        if ( associated(laidata) )
+     &       call entcell_update_lai_poolslitter(ecp,laidata,
+     &       init)!,mixed_veg)
+        !print *, "update laidata: ",associated(laidata) !##debug
+
+      endif
+      ! or veg structure from prescribed GISS LAI phenology 
+      if ( do_giss_phenology ) then !do_giss_phenology is redundant with do_giss_lai.
+        if ( hemi<-2 .or. jday <-2 )
+     &       call stop_model("entcell_vegupdate: needs hemi,jday",255)
+        pp => ecp%oldest
+        do while (ASSOCIATED(pp))
+        !* LAI, SENESCEFRAC *!
+          if (do_giss_lai) 
+     &         call prescr_phenology(jday,hemi, pp, do_giss_lai)
+         !call summarize_patch(pp) !* Redundant because summarize_entcell is called.
+          pp => pp%younger
+        end do
+      endif
+
+
+      !* ALBEDO *!
+      if ( associated(albedodata) ) then
+        call entcell_update_albedo(ecp, albedodata)
+        !print *, "update albedodata from array"
+      else
+        pp => ecp%oldest
+        do while (ASSOCIATED(pp))
+          ! update if have vegetation or not prognostic albedo
+          if ( ASSOCIATED(pp%tallest).and.do_giss_albedo )
+     &         call prescr_veg_albedo(hemi, pp%tallest%pft+COVEROFFSET, 
+     &         jday, pp%albedo)
+          pp => pp%younger
+        end do
+        !print *, "update albedodata hemi"
+      endif
+
+      call summarize_entcell(ecp)
+!      print *,'ecp%LAI', ecp%LAI
+!      print *,'ecp%oldest%LAI', ecp%oldest%LAI
+
+!Moved this into summarize_entcell
+!#ifndef MIXED_CANOPY
+!      call entcell_update_shc_mosaicveg(ecp)
+!#else
+!      call entcell_update_shc(ecp)
+!#endif
+
+      !if (YEAR_FLAG.eq.0) call ent_GISS_init(entcellarray,im,jm,jday,year)
+      !!!### REORGANIZE WTIH ent_prog.f ####!!!
+
+      end subroutine entcell_vegupdate
+
+!************************************************************************
       subroutine entcell_update_lai_poolslitter( ecp,
      i    laidata,init)!,mixed_VEG)
 !@sum sets prescribed LAI over the cell and update  C_fol, C_froot, senescefrac
-      !use ent_prescrveg, only : prescr_plant_cpools
       use phenology, only : litter_patch
       implicit none
       type(entcelltype) :: ecp  !?pointer? ##
@@ -73,10 +179,10 @@
 
       subroutine entcell_update_height( ecp,
      i    hdata,init)!,mixed_VEG)
-!@sum sets prescribed LAI over the cell
-      use ent_prescr_veg, only : prescr_plant_cpools, popdensity,
-     &     ED_woodydiameter
+!@sum sets prescribed canopy height for entcell subgrid fractions.
+      use ent_prescr_veg, only : popdensity
       use allometryfn, only : crown_radius_horiz, crown_radius_vert
+     &     ,height2dbh, allom_plant_cpools
       use phenology, only : litter_growth_cohort, litter_patch
       use ent_pfts
       type(entcelltype) :: ecp
@@ -86,9 +192,11 @@
       type(patch), pointer :: pp  !@var p current patch
       type(cohort), pointer :: cop !@var current cohort
       real*8 :: cpool(N_BPOOLS)
+      real*8 :: Cdead,dC_repro
       real*8 :: C_sw_old, C_hw_old,C_croot_old,C_fol_old,C_froot_old
       real*8 :: h_old
       real*8 :: Clossacc(PTRACE,NPOOLS,N_CASA_LAYERS) !Litter accumulator.
+      real*8 :: resp_growth2
       integer :: i
 
       cpool(:) = 0.d0
@@ -114,8 +222,8 @@
              cop%h = hdata(i)
 !          endif
 #endif !MIXED_CANOPY
-          if (pfpar(cop%pft)%woody) then !update dbhuse
-            cop%dbh = ED_woodydiameter(cop%pft,cop%h)
+          if (pfpar(cop%pft)%woody) then !update dbh
+            cop%dbh = height2dbh(cop%pft,cop%h)
 !            if (init) then !Set population density and crown geometry
 !            !This routine should get called after initialization, so
 !            !density should not be updated, only plant geometry.
@@ -131,7 +239,7 @@
           endif
 
           !* Update biomass pools except for C_lab.
-          call prescr_plant_cpools(cop%pft, cop%lai, cop%h, 
+          call allom_plant_cpools(cop%pft, cop%lai, cop%h, 
      &         cop%dbh, cop%n, cpool )
 
           cop%C_fol = cpool(FOL)
@@ -142,11 +250,15 @@
 
           !* If h loss, dump to litter.  If h growth, withdraw from C_lab.-NK
           if (.not.init) then
-             if (cop%h<h_old) then      !Decrease in height -> put in litter
-                call litter_growth_cohort(0.d0 !dCrepro=0.d0
+             if (cop%h<h_old) then !Decrease in height -> put in litter
+                Cdead = cop%C_hw + cop%C_croot 
+                dC_repro = 0.d0
+                call litter_growth_cohort(.true. !prescribed structural growth
+     i             ,dC_repro
      i             ,C_fol_old,C_froot_old,C_hw_old,C_sw_old,C_croot_old
      &             ,cop%C_hw-C_hw_old,cop%C_croot-C_croot_old
-     &             ,cop,Clossacc)
+     &             ,Cdead
+     &             ,cop,Clossacc, resp_growth2)
              elseif (cop%h>h_old) then  !Increase in height -> withdraw from C_lab
                 cop%C_lab = cop%C_lab
      &               - (cop%C_fol - C_fol_old)
@@ -154,6 +266,7 @@
      &               - (cop%C_hw - C_hw_old)
      &               - (cop%C_froot - C_froot_old)
      &               - (cop%C_croot - C_croot_old)
+                !###NK - Need to add tissue growth respiration here.
              endif
           endif
           cop => cop%shorter
@@ -190,7 +303,7 @@
 
       subroutine entcell_update_crops( ecp,
      i    cropsdata)
-!@sum sets prescribed albedo in vegetated patches of the cell (skips bare soil)
+!@sum sets prescribed crop cover given input crop cover array.
 !@+   This subroutine assumes one cohort per patch !!!
 !@+  
 !@+   - Calculate vegetation, v, and soil, s, carbon/area, c, for non-crop patches, k.
@@ -238,7 +351,7 @@
       use patches, only : patch_has_pft, patch_split, patch_merge,
      &     delete_patch, patch_set_pft, patch_delete_cohort
       type(entcelltype) :: ecp
-      real*8,intent(in) :: cropsdata !@var albedo for all PFTs 
+      real*8,intent(in) :: cropsdata !@var crop cover fraction.
       !-----Local---------
       integer, parameter :: PFT_CROPS = 8
       type(patch), pointer :: pp, pp_crops, pp_tmp, pp_end
@@ -423,117 +536,14 @@
 
 !******************************************************************
 
-      subroutine entcell_vegupdate(ecp, hemi, jday
-     &     ,do_giss_phenology, do_giss_lai, do_giss_albedo!,mixed_veg
-     &     ,laidata, hdata, albedodata, cropsdata, init )
-!@sum updates corresponding data on entcell level (and down). 
-!@+   DAILY TIME STEP ASSUMED.
-!@+   everything except entcell is optional. coordinate-dependent
-!@+   is given pointer attribute to provide a way to tell the 
-!@+   program that an argument is actually optional and missing
-!@+   (see how it is used in ent_prescribe_vegupdate)
-      use ent_pfts, only: COVEROFFSET
-      use patches, only : summarize_patch
-      use entcells,only : summarize_entcell!,entcell_extract_pfts
-      !use ent_prescr_veg, only : prescr_calc_shc
-      use ent_prescr_veg, only : prescr_veg_albedo
-      implicit none
-      type(entcelltype),pointer :: ecp
-      integer,intent(in) :: jday
-      integer,intent(in) :: hemi
-      logical, intent(in) :: do_giss_phenology
-      logical, intent(in) :: do_giss_lai
-      logical, intent(in) :: do_giss_albedo
-!      logical, intent(in) :: mixed_veg
-      real*8,  pointer :: laidata(:)  !Array of length N_PFT
-      real*8,  pointer :: hdata(:)  !Array of length N_PFT
-      real*8,  pointer :: albedodata(:,:)
-      real*8,  pointer :: cropsdata
-      logical, intent(in) :: init
-      !----Local------
-      type(patch),pointer :: pp
-      
-      !* 1. Update crops to get right patch/cover distribution.
-      !*     NOTE:  CARBON CONSERVATION NEEDDS TO BE CALCULATED FOR CHANGING VEG/CROP COVER ##
-      !* 2. Update height to get any height growth (with GISS veg, height is static)
-      !* 3. Update LAI, and accumulate litter from new LAI and growth/senescence.
-      !*       Cohort litter is accumulated to the patch level.
-      !*    3a. If external LAI, then litter is calculated based on that external LAI change.
-      !*    3b. If GISS prescribed LAI, then new LAI is calculated, and then litter.
-      !* 4. Update albedo based on new vegetation structure.
-
-      !* VEGETATION STRUCTURE AND LITTER *!
-      ! veg structure update with external data if provided
-      if (.not.do_giss_lai) then
-
-        if ( associated(cropsdata) )
-     &       call entcell_update_crops(ecp, cropsdata)
-        !print *,"update cropsdata: ", associated(cropsdata) !##debug
-        
-        if ( associated(hdata) )
-     &       call entcell_update_height(ecp, hdata, init)!, mixed_veg)
-        !print *, "update hdata: ", associated(hdata) !##debug
-
-        if ( associated(laidata) )
-     &       call entcell_update_lai_poolslitter(ecp,laidata,
-     &       init)!,mixed_veg)
-        !print *, "update laidata: ",associated(laidata) !##debug
-
-      endif
-      ! or veg structure from prescribed GISS LAI phenology 
-      if ( do_giss_phenology ) then !do_giss_phenology is redundant with do_giss_lai.
-        if ( hemi<-2 .or. jday <-2 )
-     &       call stop_model("entcell_vegupdate: needs hemi,jday",255)
-        pp => ecp%oldest
-        do while (ASSOCIATED(pp))
-        !* LAI, SENESCEFRAC *!
-          if (do_giss_lai) 
-     &         call prescr_phenology(jday,hemi, pp, do_giss_lai)
-         !call summarize_patch(pp) !* Redundant because summarize_entcell is called.
-          pp => pp%younger
-        end do
-      endif
-
-
-      !* ALBEDO *!
-      if ( associated(albedodata) ) then
-        call entcell_update_albedo(ecp, albedodata)
-        !print *, "update albedodata from array"
-      else
-        pp => ecp%oldest
-        do while (ASSOCIATED(pp))
-          ! update if have vegetation or not prognostic albedo
-          if ( ASSOCIATED(pp%tallest).and.do_giss_albedo )
-     &         call prescr_veg_albedo(hemi, pp%tallest%pft+COVEROFFSET, 
-     &         jday, pp%albedo)
-          pp => pp%younger
-        end do
-        !print *, "update albedodata hemi"
-      endif
-
-      call summarize_entcell(ecp)
-!      print *,'ecp%LAI', ecp%LAI
-!      print *,'ecp%oldest%LAI', ecp%oldest%LAI
-
-!Moved this into summarize_entcell
-!#ifndef MIXED_CANOPY
-!      call entcell_update_shc_mosaicveg(ecp)
-!#else
-!      call entcell_update_shc(ecp)
-!#endif
-
-      !if (YEAR_FLAG.eq.0) call ent_GISS_init(entcellarray,im,jm,jday,year)
-      !!!### REORGANIZE WTIH ent_prog.f ####!!!
-
-      end subroutine entcell_vegupdate
-
-
       subroutine prescr_phenology(jday,hemi,pp,do_giss_lai)
-      !* DAILY TIME STEP *!
-      !* Calculate new LAI, biomass poos, and senescefrac 
-      !* for given jday, for prescr vegetation. *!
+!@sum Prescribed (Matthews 1983) phenology (LAI seasonality)
+!@+   and associated litterfall.
+!@+   DAILY TIME STEP.
+!@+   Calculate new LAI, biomass poos, and senescefrac 
+!@+      for given jday, for prescribed vegetation structure.
       use ent_pfts
-      use ent_prescr_veg, only : prescr_calc_lai!,prescr_plant_cpools,
+      use ent_prescr_veg, only : prescr_calc_lai
      &     ,prescr_veg_albedo
       use phenology, only : litter_patch
       implicit none
@@ -578,10 +588,9 @@
 !******************************************************************************
       subroutine prescr_veglitterupdate_cohort(
      &     cop,lai_new,Clossacc,init)
-!@sum prescr_veglitterupdate_cohort Given new LAI, update cohort biomass
-!@sum pools, litter, senescefrac. - NYK
+!@sum Given new LAI, update cohort biomass pools, litter, senescefrac.
       use phenology, only : litter_cohort
-      use ent_prescr_veg, only :prescr_plant_cpools
+      use allometryfn, only :allom_plant_cpools
       implicit none
       type(cohort),pointer :: cop
       real*8,intent(in) :: lai_new
@@ -609,8 +618,8 @@
       Clossacc_old = sum(Clossacc(CARBON,SURFMET:CWD,1))
 #endif
  
-      !* Update biomass pools except for C_lab.
-      call prescr_plant_cpools(cop%pft, cop%lai, cop%h, 
+      !* Get new biomass pools except for C_lab.
+      call allom_plant_cpools(cop%pft, cop%lai, cop%h, 
      &     cop%dbh, cop%n, cpool )
       cop%C_fol = cpool(FOL)
       cop%C_sw = cpool(SW)

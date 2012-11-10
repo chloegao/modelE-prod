@@ -1,9 +1,10 @@
 Ent modules  
 
-README - this document
+README - This document describes the modules for running the Ent Terrestrial Biosphere Model coupled to the GISS GCM.  Driver modules for performing off-line runs with the Ent TBM are available only to developers.
 
 COMPILING INSTRUCTIONS
 HOW-TO
+HOW-TO-devel
 Rules.make
 sfmakedepend
 makefile
@@ -37,6 +38,8 @@ r_<run_name> - name of executable *
 
 PRESCRIBED VEGETATION
 ent_prescribed_drv.f - initialization or update from files or prescribed calc.
+ent_prescribed_drv_geo.f - initialization routines for geographic vegetation files
+			(LAIent, HITEent, LAImaxent)
 ent_prescribed_updates.f - only entcell_vegupdate
 ent_prescr_veg.f:  pft- and cohort-level vegetation prescribed properties
 

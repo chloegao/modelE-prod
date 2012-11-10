@@ -1,5 +1,5 @@
       module ent_pfts
-!@sum GISS vegetation types for Ent model.
+!@sum Parameter sets for GISS 8 vegetation biome types for Ent model.
 
       use ent_const
       use ent_types

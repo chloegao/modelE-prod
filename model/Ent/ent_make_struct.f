@@ -1,5 +1,6 @@
       module ent_make_struct
-
+!@sum ent_make_struct  Off-line module for generating an Ent vegetation
+!@+   data structure, given ascii input file of entcell-patch-cohort structure.
       use ent_types
       use ent_const
       use cohorts
@@ -91,21 +92,22 @@
       subroutine calc_cohort_allometry(cop)
 !@sum calc_cohort_allometry.  cop comes initialized with pft, n, h.
 !+    This subroutine calculates other allometry and biomass pools.      
-      use ent_prescr_veg, only : Ent_dbh, crown_radius_hw,
-     &     prescr_plant_cpools, prescr_calc_rootprof, init_Clab
+      use ent_prescr_veg, only : crown_radius_hw,
+     &     prescr_calc_rootprof, init_Clab
+      use allometryfn, only : height2dbh, allom_plant_cpools
       use ent_pfts, only : COVEROFFSET,nmv
       implicit none
       type(cohort),pointer :: cop
       !---Local------
       real*8 :: cpool(N_BPOOLS) !g-C/pool/plant
 
-      cop%dbh = Ent_dbh(cop%pft,cop%h)
+      cop%dbh = height2dbh(cop%pft,cop%h)
       cop%crown_dx = crown_radius_hw(cop%dbh) !## Eventually need to make pft-specific
       !cop%crown_dy = 0.66d0*cop%h !* Temporary estimate
       cop%nm = nmv(cop%pft+COVEROFFSET)
       !if (.not.FORCE_VEG)
       !cop%LAI = No need to assign LAI here, because max is used for allometry.
-      call prescr_plant_cpools(cop%pft,0.d0,cop%h,cop%dbh,cop%n,cpool)
+      call allom_plant_cpools(cop%pft,0.d0,cop%h,cop%dbh,cop%n,cpool)
       !if .not.FORCE_INIT_CLAB 
       call init_Clab(cop%pft,cop%dbh,cop%h,cpool)
       !else *ent_struct_readcsv should provide Clab

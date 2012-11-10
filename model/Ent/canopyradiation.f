@@ -1,5 +1,9 @@
+!This file contains two modules, qsort_c_module and canopyrad.
+
       module qsort_c_module
-!@sum Sort a serie in descending order
+!@sum Module with routines to sort a series in descending order
+!@auth W.Yang
+
 #define DEBUG
 
       implicit none
@@ -59,8 +63,11 @@
       end module qsort_c_module
 
       module canopyrad
-!@sum Routines for calculating canopy radiation and albedo.
+!@sum Routines for calculating canopy radiation and albedo with the
+!@+   Analytical Clumped Two-Stream (ACTS) model (Ni-Meister et al. 2010).
+!@+   Is called by canopygort module to provide light for photosynthesis.
 !@auth W.Ni-Meister
+!@+   UNDER DEVELOPMENT
 
       !Ent MODULES TO USE
       use ent_const
@@ -70,7 +77,7 @@
       private
       save
 
-      public recalc_radpar_cell, get_patchalbedo, recalc_radpar
+      public recalc_radpar_cell, recalc_radpar
       public get_canopy_rad, GORT_clumping, TwoStream       
       public :: gort_input
       public :: pft_pstate_type
@@ -131,50 +138,9 @@
       contains
       !*********************************************************************
       
-      subroutine get_patchalbedo(pp)
-!@sum !* Return albedo for patch.
-      !* This version reads in vegetation structure from GISS data set.
-      !use ent_GISSveg, only : GISS_veg_albedo
-      implicit none
-!!!       integer :: jday  !Day of year. - not needed for real simulation
-      !type(timestruct) :: tt
-      type(patch),pointer :: pp
-      !------
-
-      !---------------------------------------------------------------
-      !* GISS version for calculating seasonal aalbveg.
-      !* Assumes each GISS grid cell vegetation fraction corresponds to
-      !* one patch, which contains one cohort, which gives the albedo.
-      !  Should be same as assigning
-      !  pp%albedo = aalbveg(i,j)
-      !---------------------------------------------------------------
-
-      !* Prescribed albedo is passed in.
- !     call GISS_veg_albedo(pp%cellptr%latj,pp%tallest%pft,
- !    &     jday, pp%albedo)
-
-
-      !* Prognostic albedo is calculated here.
-      !---------------------------------------------------------------
-      !* Ent template for GORT clumping index canopy radiative transfer.
-      !---------------------------------------------------------------
-!      do cop=pp%tallest
-        !Get albedo of cop%pft for given tt
-        !   - Summarize foliage density in layers
-        !* CALCULATE PATCH ALBEDO USING GORT CLUMPING INDEX
-!        cop = cop%shorter
-!        if (.NOT.ASSOCIATED(cop)) then exit
-!      end do
-
-      end subroutine get_patchalbedo
-
-
-      !*********************************************************************
-
-
       subroutine recalc_radpar_cell(pptr)
 !@sum Calculate canopy radiation geometrical parameters following structural
-!@sum changes.  At patch level.
+!@sum changes.  At patch level.  PLACE HOLDER.
 
       type(entcelltype) :: pptr
 
@@ -246,7 +212,8 @@
       
       !*********************************************************************
       subroutine get_canopy_rad(pptr, IPAR, Id)
-
+      !ACTS canopy radiation.
+      !UNDER DEVELOPMENT
       type(patch),pointer :: pptr
       ! real*8 :: h               !Height in canopy
       

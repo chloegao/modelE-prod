@@ -1,5 +1,4 @@
       module soilbgc
-
 !@sum Routines to simulate soil biogeochemistry:
 !@sum microbial dynamics, C & N pools, respiration and N fluxes.
 
@@ -14,6 +13,11 @@
       
 !***********************************************************************      
       subroutine soil_bgc(dtsec, pp)
+!@sum soil_bgc  Main routine to interface with driver to calculate 
+!@+   soil respiration and update soil carbon pools. 
+!@+   Sets up drivers then calls physics routine.
+!@auth P.Kharecha, N.Y.Kiang
+
       use patches, only : print_Tpool
       implicit none
 
@@ -61,9 +65,12 @@
 
 !***********************************************************************
       subroutine casa_bgfluxes(dtsec, Soilmoist, ivt
-     &     ,Soiltemp, clayfrac, sandfrac, siltfrac 
-     &     ,Tpool,Cflux)
-
+     i     ,Soiltemp, clayfrac, sandfrac, siltfrac 
+     o     ,Tpool,Cflux)
+!@sum casa_bgfluxes  Main physics routine to calculate soil respiration
+!@+   and update soil carbon pools. 
+!@+   From CASA with modified moisture and temperature responses.
+!@auth P.Kharecha, N.Y.Kiang
       implicit none
 
       real*8,intent(in) :: dtsec !main ent time step (s)
@@ -74,7 +81,7 @@
       real*8,intent(in) :: sandfrac !fractional sand content in soil
       real*8,intent(in) :: siltfrac !fractional silt content in soil
       real*8,intent(inout) :: Tpool(PTRACE,NPOOLS,N_CASA_LAYERS) !total plant and soil C,N pools
-      real*8,intent(out) :: Cflux !total respiration flux to atm (gC/m2/s) !main output from this routine -PK 6/15/06
+      real*8,intent(out) :: Cflux !total respiration flux to atm (gC/m2/s)
 
 ! ------------------------ local variables ------------------------
       integer ::  n,m
@@ -325,7 +332,7 @@ ciyf (only need to track limits on inventories)
 !***********************************************************************
       subroutine casa_respire(ivt ,eff ,frac_donor
      &     ,Closs, Resp, Tpool)
-      
+!@sum casa_respire  Calculate soil respiration and transfers between soil pools
       implicit none
 
 ! ------------------------ input/output variables -----------------
@@ -433,6 +440,7 @@ ciyf (only need to track limits on inventories)
       end subroutine Soillayer_convert_Ent
 
 !***********************************************************************
+c Commented out due to lack of parameterization.
 c      subroutine vertCtransport(dtsec, Tpool)
 c      !calculates inter-layer C transport (based on Baisden et al., GBC 16, 2002) -PK 5/07
 c      implicit none

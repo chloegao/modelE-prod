@@ -19,7 +19,7 @@
      &     phenofactor_c, phenofactor_d, phenofactor, phenostatus, 
      &     betad_10d, CB_d,
      &     turnover_amp, llspan) !KIM -7 vars for phenology
-      !NYK - stressH2O and stressH2Ol depend on soil moisture, are calculated in biophysics.f.
+!@sum insert_cohort Insert new cohort into a canopy patch.
 
       type(patch),pointer :: pp
       integer :: pft
@@ -147,8 +147,8 @@
      &     betad_10d, CB_d,
      &     turnover_amp, llspan)
 !     &     stressH2O, stressH2Ol)
+!@sum assign_cohort  Assign values to a cohort.
 
-      !Given cohort's characteristics, assign to cohort data variable.
       use ent_pfts
       type(cohort) :: cop
       integer :: pft
@@ -238,7 +238,6 @@ cddd      end subroutine init_cohort_defaults
 
       subroutine zero_cohort(cop)
 !@sum Zero all real variables in cohort record.      
-      use allometryfn,only : init_rootdistr
       use ent_pfts
       type(cohort),pointer :: cop
 
@@ -321,6 +320,7 @@ cddd      end subroutine init_cohort_defaults
       !*********************************************************************
        
       subroutine reorganize_cohorts(pp)
+!@sum Place holder.
       type(patch),pointer :: pp
 
       !---------------------------------------------------------------
@@ -333,9 +333,10 @@ cddd      end subroutine init_cohort_defaults
 
 
       subroutine cohort_construct(cop, parent_patch, pnum)
-      !@sum create a cohort with default values. if optional values
-      !@+ are provided - set them
-      ! this function may eventually be combined with assign_cohort
+!@sum cohort_construct  Create a cohort with default values. if optional values
+!@+ are provided - set them
+!@auth I.Aleinov.
+      ! This function may eventually be combined with assign_cohort
       ! for better performance
       type(cohort),pointer :: cop
       integer, optional :: pnum
@@ -374,7 +375,8 @@ cddd      end subroutine init_cohort_defaults
 
 
       subroutine cohort_destruct(cop)
-      !@sum deallocate memory used by cohort
+!@sum cohort_destruct Deallocate memory used by cohort
+!@auth I.Aleinov.
       type(cohort),pointer :: cop
 
       ! we may want ot collapse hole between "taller" and "shorter"
@@ -390,6 +392,7 @@ cddd      end subroutine init_cohort_defaults
 
 
       subroutine cohort_print_old(iu, cop, prefix)
+!@sum Debug routine to print contents of a cohort.
       integer, intent(in) :: iu
       type(cohort), intent(in) :: cop
       character*(*), optional, intent(in) :: prefix
@@ -443,6 +446,7 @@ cddd      end subroutine init_cohort_defaults
       end subroutine cohort_print_old
       
       subroutine cohort_print(iu, cop, prefix)
+!@sum Debug routine to print contents of a cohort.
       integer, intent(in) :: iu
       type(cohort), intent(in) :: cop
       character*(*), optional, intent(in) :: prefix
@@ -523,7 +527,8 @@ cddd      end subroutine init_cohort_defaults
        
       !*********************************************************************
       subroutine cohort_print_diag(iu, cop, prefix)
-      !Prints other calculated diagnostics not output by cohort_print
+!@sum Debug routine to print other calculated diagnostics not output 
+!@+   by cohort_print
       !@auth NK
       use ent_pfts
       use allometryfn, only : Cfol_fn
@@ -573,10 +578,12 @@ cddd      end subroutine init_cohort_defaults
       end subroutine cohort_print_diag
        
       !*********************************************************************
-      subroutine calc_CASArootfrac(cop,fracrootCASA)  !PK 11/06
-      !maps fracroot(N_DEPTH) to fracrootCASA(N_CASA_LAYERS)
-      !needs to be customized based on thicknesses of CASA layers and GCM layers 
-      type(cohort),intent(in) :: cop
+      subroutine calc_CASArootfrac(copfracroot,fracrootCASA)  !PK 11/06
+!@sum calc_CASArootfrac  Maps fracroot(N_DEPTH) to fracrootCASA(N_CASA_LAYERS)
+!@+   ifdef customization required dependent on thicknesses of CASA layers
+!@+   and GCM layers 
+      !type(cohort),intent(in) :: cop
+      real*8,pointer :: copfracroot(:)
       real*8,intent(out) :: fracrootCASA(N_CASA_LAYERS)
 
       if (N_CASA_LAYERS == 1) then
@@ -584,9 +591,9 @@ cddd      end subroutine init_cohort_defaults
       else
 #ifdef NCASA2
       !***scheme for N_CASA_LAYERS=2 (layers: 0-30, 30-100 cm)*** 
-         fracrootCASA(1) = cop%fracroot(1) + cop%fracroot(2)  !CASA layer 1 --> GISS GCM layers 1,2
-         fracrootCASA(2) = cop%fracroot(3) + cop%fracroot(4)  !CASA layer 2 --> GISS layers 3,4
-     &                + cop%fracroot(5)                    !need to add 5th GISS layer (mainly for trees) -PK 6/26/07
+         fracrootCASA(1) = copfracroot(1) + copfracroot(2)  !CASA layer 1 --> GISS GCM layers 1,2
+         fracrootCASA(2) = copfracroot(3) + copfracroot(4)  !CASA layer 2 --> GISS layers 3,4
+     &                + copfracroot(5)                    !need to add 5th GISS layer (mainly for trees) -PK 6/26/07
 #endif
       end if
                                
@@ -595,6 +602,7 @@ cddd      end subroutine init_cohort_defaults
 
 
       subroutine cohort_merge_data( cop1, wp1, cop2, wp2 )
+!@sum Cohort management, to merge similar cohorts into one.
       type(cohort)  :: cop1, cop2
       real*8 :: wp1, wp2
       !---

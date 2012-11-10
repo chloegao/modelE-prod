@@ -1,7 +1,9 @@
       module FarquharBBpspar
-      !@sum pfts  Plant functional type parameters for
-      !Farqhuar-von Caemmerer (1982) photosynthesis and 
-      !Ball-Berry (1985) stomatal conductance.
+!@sum Module Ent plant functional type (PFT) parameters for Ent 16 PFTs tailored to
+!@+   Fluxnet sites in Ent_standalone runs.
+!@+   for Farqhuar-von Caemmerer (1982) photosynthesis and 
+!@+   Ball-Berry (1985) stomatal conductance.
+
       use ent_const, only : N_PFT
 
       implicit none

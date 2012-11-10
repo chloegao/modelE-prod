@@ -1,5 +1,6 @@
       module ent_pfts
-!@sum Ent default supported 16 vegetation type
+!@sum Parameter set for Ent default supported 16 plant functional types
+!@+   tailored to Fluxnet site Ent_standalone runs.
 
       !use ent_pftconst
       use ent_const
@@ -149,8 +150,8 @@
      &     0.0240d0, 1.860d0, 0.1480d0, 2.411d0, 25.18d0, -0.0496d0),
      ! !* 6 - cold deciduous broadleaf late successional
      &     pftype(1,.true.,1,-500.d0, .50d0, .29d0, 1.4d0,34.0d0,0.6d0, !old SLA 11.5, 0.6
-     &     0.75d0, 58.0d0, 57.d0, 0.3d0, 0.093d0, 2,
-     &     0.0170d0, 1.731d0, 0.2350d0, 2.252d0, 23.39d0, -0.0540d0), !##YK
+     &     0.75d0, 58.0d0, 57.d0, 0.2d0, 0.093d0, 2,
+     &     0.0170d0, 1.731d0, 0.2350d0, 2.252d0, 27.9d0, -0.0540d0), !##YK
 !     &     0.0170d0, 1.731d0, 0.2350d0, 2.252d0, 36.8d0, -0.0540d0),   !##NK
      ! !* 7 - drought deciduous broadleaf
 !     &     pftype(1,.true.,1,-500.d0, .45d0, .22d0, 1.4d0, 8.3d0, 0.5d0,

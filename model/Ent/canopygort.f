@@ -2,8 +2,12 @@
 
       module biophysics !canopygort
 !@sum GORT and two-stream canopy radiative transfer (sunlit/shaded 
-!@sum leaves), and non-equal distant multiple cohort canopy layering.
-!@sum Call photosynthesis/conductance routines from other module.
+!@sum leaves), and non-equidistant multiple cohort canopy layering.
+!@+   Analytical Clumped Two-Stream (ACTS) model of Ni-Meister et al. (2010).
+!@+   Accounts for foliage clumping.  Alternative to canopyspitters.f.
+!@+   Scales up leaf-level fluxes.
+!@+   UNDER DEVELOPMENT.
+!@auth W.Yang, N.Y.Kiang
 
       use ent_types
       use ent_const
@@ -27,11 +31,14 @@
       contains
 !################## MAIN SUBROUTINE #########################################
       subroutine photosynth_cond(dtsec, pp)
-      !@sum Farquhar-Ball-Berry version of photosynth_cond.
-      !@sum Calculates photosynthesis, autotrophic respiration, conductance,
-      !@sum looping through cohorts.
-      !@sum Inputs:  met drivers, radiation, Ca, Tcanopy
-      !@sum Outputs:  GPP, NPP, respiration components
+!@sum photosynth_cond  Main routine to set up drivers and calculate 
+!@sum canopy scale fluxes.
+!@+   Version that calls Farquhar-Ball-Berry leaf biophysics.
+!@+   Calculates photosynthesis, autotrophic respiration, H2O conductance,
+!@+   looping through cohorts.
+!@+   Inputs:  met drivers, radiation, Ca, Tcanopy
+!@+   Outputs:  GPP, NPP, autotrophic respiration components
+ 
       use ent_const
       use ent_types
       use FarquharBBpspar !pspartype, psdrvtype
@@ -264,8 +271,9 @@
 !     i     ,if_ci)
 !@sum canopyfluxes Calculates photosynthesis and conductance with
 !@sum Farqhuar et al. (1980) photosynthesis, Ball-Berry stomatal conductance,
-!@um  and Spitters (1986, 1987) canopy radiation (sunlit, shaded leaves).
-!@sum Integrates vertically over the canopy with Simpson's Rule.
+!@sum and ACTS (Ni-Meister et al. 2010) canopy radiation (clumped, sunlit, 
+!@sum shaded leaves).
+!@sum Integrates vertically over the canopy.
 !@sum Ci is updated at the canopy level using the canopy boundary layer
 !@sum conductance as in Friend and Kiang (2005). 
 
@@ -343,7 +351,7 @@
 !---------------------------------------------------------------------!
       function water_stress(nlayers, soilmp, fracroot, fice,
      &     hwilt, betadl) Result(betad)
-      !1. Rosensweig & Abramopoulos water stress fn.
+!@sum Rosensweig & Abramopoulos (1997) plant water stress function.
 
       implicit none
       integer,intent(in) :: nlayers !Number of soil layers
@@ -370,6 +378,9 @@
 !----------------------------------------------------------------------!
       function water_stress2(pft, nlayers, thetas, thetasat, thetamin, 
      &     fracroot, fice, betadl) Result(betad)
+!@sum Rodriguez-Iturbe et al. (2001) water stress function.
+!@+   Version if input is volumetric soil water content.
+!@auth N.Y.Kiang
       !  thetasat = watsat = 0.489d0 - 0.00126d0*sandfrac  !From soilbgc.f
 
       implicit none
@@ -411,6 +422,9 @@
 !----------------------------------------------------------------------!
       function water_stress3(pft, nlayers, thetas, 
      &     fracroot, fice, betadl) Result(betad)
+!@sum Rodriguez-Iturbe et al. (2001) water stress function.
+!@+   Version if input is relative soil water content (saturated fraction).
+!@auth N.Y.Kiang
 
       implicit none
       integer,intent(in) :: pft  !Plant functional type number.
@@ -448,6 +462,8 @@
 !################## PHOTOSYNTHESIS #########################################
 
       subroutine photosynth_sunshd(
+!@sum photosynth_sunshd  Calculates sunlit and shaded leaf fluxes.
+!@auth N.Y.Kiang
       !new scheme parameters
      i     pptr                 !patch pointer
      i     ,cop                 !cohort pointer
@@ -523,6 +539,7 @@
 !@sum ##### NOTE: Parameter Ball_b should actually be passed in with pspar.
 !@sum #####       Have to set up for generic pspar for different photosynthesis
 !@sum #####       routines.  (NK)
+!@+   FOR DIAGNOSTIC/TESTING, NOT USED FOR REGULAR RUNS.
 
       implicit none
 
@@ -548,7 +565,9 @@
 
 !---------------------------------------------------------------------------
       subroutine Gs_bound(dt, LAI, Gsnew, Gsinout)  
-      !@sum Gs_bound Limit rate of change of Gs (umol m-2 s-1)
+!@sum Gs_bound Limit rate of change of Gs (umol m-2 s-1)
+!@+   Call to this was commented out - Igor?
+!@auth A.Friend
       ! Required change in canopy conductance to reach equilibrium (m/s).
       implicit none
       real*8,intent(in) :: dt, LAI
@@ -580,7 +599,7 @@
 
 !---------------------------------------------------------------------------
       function Gs_from_Ci(Anet,Ca,Gb,Gs,Ci,IPAR) Result(gsout)
-      !Inversion of calc_Ci_canopy
+!@sum Inversion of calc_Ci_canopy
       implicit none
       real*8 :: Anet !Leaf net assimilation of CO2 (umol m-2 s-1)
       real*8 :: ca !Ambient air CO2 mole fraction at surface reference height (umol mol-1)
@@ -631,6 +650,7 @@
 !@sum   for negative C_lab by senescence and retranslocation.
 !@sum   For prescribed LAI, C_lab provides a measure of the imbalance between 
 !@sum   the biophysics and prescribed LAI.
+!@+   To be updated from routines in canopyspitters.f
       use photcondmod, only:  frost_hardiness
       implicit none
       real*8,intent(in) :: dtsec
@@ -715,7 +735,9 @@ C      write(997,*) cop%C_fol,cop%C_froot,cop%C_sw,cop%C_hw,cop%C_croot
 !---------------------------------------------------------------------!
       real*8 function Resp_can_maint(pft,C,CN,T_k,T_k_10d,n) 
      &     Result(R_maint)
-      !Canopy maintenance respiration (umol/m2-ground/s)
+!@sum Canopy maintenance respiration (umol/m2-ground/s)
+!@+   To be updated from routines in canopyspitters.f
+
       !-Based on biomass amount (total N in pool). From CLM3.0.
       !C3 vs. C4:  Byrd et al. (1992) showed no difference in maintenance
       ! respiration costs between C3 and C4 leaves in a lab growth study.
@@ -776,7 +798,8 @@ C      write(997,*) cop%C_fol,cop%C_froot,cop%C_sw,cop%C_hw,cop%C_croot
 !---------------------------------------------------------------------!
       real*8 function Resp_root(Tcelsius,froot_kgCm2) Result(Rootresp)
 !@sum Frootresp = fine root respiration (kgC/s/m2)
-      !From ED model.  Not used.
+!@+   NOT USED.
+      !From ED model.  
       real*8 :: Tcelsius, froot_kgCm2
       
       Rootresp = OptCurve(Tcelsius,1.0d0,3000.d0) * froot_kgCm2/SECPY
@@ -796,7 +819,9 @@ C      write(997,*) cop%C_fol,cop%C_froot,cop%C_sw,cop%C_hw,cop%C_croot
 !---------------------------------------------------------------------!
       real*8 function Resp_can_growth(pft,Acan,Rmaint,Rtgrowth) 
      &     Result(R_growth)
-      !Canopy growth respiration (Whatever units are input for Acan and Rmaint).
+!@sum Growth (light) respiration (units as input for Acan and Rmaint).
+!@auth N.Y.Kiang
+
       !Based on photosynthetic activity. See Amthor (2000) review of
       ! Mcree - de Wit - Penning de Vries - Thornley respiration paradigms.
       ! See also Ruimy et al. (1996) analysis of growth_r.

@@ -5,12 +5,11 @@
 !@sum ent_driver routines and the subroutine ent_model called by a 
 !@sum main program.
 
-!@auth N. Kiang
+!@auth N.Y. Kiang
 
 !#define ENT_STANDALONE_DIAG TRUE
 !#define DEBUG
 
-      !Ent MODULES TO USE
       use ent_const
       use ent_types
 
@@ -18,83 +17,21 @@
       private
       save
 
-      public ent_ecosystem_dynamics,  ent_biophysics
-      !public ent_integrate_GISS,
-      public ent_integrate !Added by KIM
+      public ent_integrate 
       public update_veg_structure
+      public ent_biophysics
+      public ent_ecosystem_dynamics
 
       contains
       !*********************************************************************
-      subroutine ent_ecosystem_dynamics(dtsec,tt,ecp,ALBEDO_FLAG)
-!@sum Ent ecosystem dynamics.
-      use phenology
-      use disturbance
-      use canopyrad
-      use disturbance
-      use reproduction
-      use cohorts, only : reorganize_cohorts
-      use patches, only : reorganize_patches, summarize_patch
-      use entcells, only : summarize_entcell
-
-      real*8,intent(in) :: dtsec
-      type(timestruct),pointer :: tt
-      type(entcelltype) :: ecp
-      logical, optional, intent(in) :: ALBEDO_FLAG
-      !---
-      type(patch), pointer :: pp
-!      write(*,*) 'Ecosystem dynamics for (long,lat)=(',
-
-      call stop_model("ent_ecosystem_dynamics: not supportd in gcm",255)
-
-      pp => ecp%oldest
-      do while (ASSOCIATED(pp)) 
-      !#### THIS LOOP: NEED TO REPLACE ALL CALLS WITH ecp TO CALLS WITH pp ##
-
-        if (ALBEDO_FLAG) then
-          call get_patchalbedo(pp)
-        end if
-
-!        call ent_integrate(dtsec,ecp,0.0) !Biophysics, respiration
-
-        if (STRUCT_FLAG(tt,ecp)) then
-          call reproduction_calc(dtsec, tt, pp)
-          call reorganize_cohorts(pp)
-!          call phenology_update (dtsec,tt, pp) !UPDATE LAI
-          call recalc_radpar (pp) !UPDATE canopy radiative transfer
-        end if
-        call summarize_patch(pp)
-      
-        !Flag when it's time to update disturbance.
-        !May be at set time intervals, or function of biomass accumulation, etc.
-        !For now, monthly update as a place holder.
-        if (STRUCT_FLAG_MONTH(tt,ecp)) then
-        !* Update phenology and disturbance
-        !call phenology_update (dtsec,tt, pp) !UPDATE LAI - put in ent_integrate
-          call fire_frequency_cell (dtsec,tt, ecp) !DUMMY
-          call recalc_radpar_cell (ecp) !
-          call reorganize_patches(ecp)
-          call calc_cell_disturbance_rates(dtsec,tt,ecp)
-        else
-          call calc_cell_disturbance_rates(dtsec,tt,ecp)
-        end if
-        pp => pp%younger
-      end do
-
-      call summarize_entcell(ecp)
-
-        end subroutine ent_ecosystem_dynamics
-
-      !*********************************************************************
 
       subroutine ent_integrate(dtsec, ecp, update_day, config)
-!@sum Ent biophysics/biogeochemistry/patch dynamics
-      use reproduction
+!@sum Main routine to control Ent biophysics/biogeochemistry. 
+!@+   (Patch ecological dynamics TBA)
       use cohorts
       use patches
       use biophysics, only : photosynth_cond
-      !use growthallometry, only : uptake_N
       use soilbgc, only : soil_bgc
-!      use phenology, only : litter
       use phenology, only : clim_stats, pheno_update, veg_update
       use canopyrad, only : recalc_radpar
       use entcells, only : summarize_entcell, entcell_print
@@ -114,10 +51,10 @@
       call clim_stats(dtsec,ecp,config,update_day)
 
       !* Patch dynamics
-      if (config%do_patchdynamics) then
+      !if (config%do_patchdynamics) then
       !  call patch_dynamics(pp,monthlyupdate)
       ! call summarize_entcell(ecp)
-      endif
+      !endif
 
       !* Dynamic phenology
       if (update_day) then 
@@ -167,15 +104,8 @@
 
 
 
-
-
-
-
-
-
       subroutine update_veg_structure(ecp, config)
-!@sum update vagetation structure at the end of day
-      !use growthallometry, only : uptake_N
+!@sum Update prognostic vegetation structure (seasonal) at the end of day
       use phenology, only : pheno_update, veg_update
       use entcells, only : summarize_entcell, entcell_print
      &     ,entcell_carbon
@@ -196,7 +126,6 @@
           call pheno_update(pp)
           !call patch_print(771,pp," bb ")
           call veg_update(pp,config)
-          !call litter(pp) !Litter is now called within veg_update
         endif
 
         pp => pp%younger 
@@ -209,14 +138,15 @@
 
       c_after = entcell_carbon(ecp)
 
+#ifdef DEBUG
       if ( abs(c_after-c_before) > 1.d-10 ) then
         write(904,*) "dC_cell ", c_after-c_before, c_before
       endif
+#endif
 
       end subroutine update_veg_structure
 
-
-
+      !*********************************************************************
 
 
 
@@ -230,13 +160,15 @@
 
       !*********************************************************************
       subroutine ent_biophysics(dtsec, ecp, config)
-!@sum  Photosynthesis CO2 uptake.
+!@sum  Photosynthesis CO2 uptake and conductance of water vapor.
+!@+    This optional routine may be used by a GCM or land surface driver
+!@+    to calculate only surface conductance without biogeochemistry.
+!@+    Useful for implicit schemes, but not used in the default setup.
 !@+    If do_soilresp, then also  soil respiration for net CO2 fluxes.
       use biophysics, only : photosynth_cond
       use soilbgc, only : soil_bgc
       use patches, only : summarize_patch
       use entcells, only : summarize_entcell, entcell_print
-!      use phenology,only : litter !### Igor won't like this here.
       implicit none
       real*8 :: dtsec  !dt in seconds
       type(entcelltype) :: ecp
@@ -286,6 +218,65 @@ cddd      print *,"*"
 cddd#endif
       end subroutine ent_biophysics
       !*********************************************************************
+
+      subroutine ent_ecosystem_dynamics(dtsec,tt,ecp,ALBEDO_FLAG)
+!@sum Ent ecosystem dynamics. UNDER DEVELOPMENT
+!@auth N.Y.Kiang
+      use phenology
+      use canopyrad
+      use disturbance
+      use cohorts, only : reorganize_cohorts
+      use patches, only : reorganize_patches, summarize_patch
+      use entcells, only : summarize_entcell
+
+      real*8,intent(in) :: dtsec
+      type(timestruct),pointer :: tt
+      type(entcelltype) :: ecp
+      logical, optional, intent(in) :: ALBEDO_FLAG
+      !---
+      type(patch), pointer :: pp
+
+      call stop_model("ent_ecosystem_dynamics: not supportd in gcm",255)
+
+      pp => ecp%oldest
+      do while (ASSOCIATED(pp)) 
+      !#### THIS LOOP: NEED TO REPLACE ALL CALLS WITH ecp TO CALLS WITH pp ##
+
+        if (ALBEDO_FLAG) then
+!          call get_patchalbedo(pp)  !Place holder
+        end if
+
+!        call ent_integrate(dtsec,ecp,0.0) !Biophysics, respiration
+
+        if (STRUCT_FLAG(tt,ecp)) then
+          call reorganize_cohorts(pp)
+!          call phenology_update (dtsec,tt, pp) !UPDATE LAI
+          call recalc_radpar (pp) !UPDATE canopy radiative transfer
+        end if
+        call summarize_patch(pp)
+      
+        !Flag when it's time to update disturbance.
+        !May be at set time intervals, or function of biomass accumulation, etc.
+        !For now, monthly update as a place holder.
+        if (STRUCT_FLAG_MONTH(tt,ecp)) then
+        !* Update phenology and disturbance
+        !call phenology_update (dtsec,tt, pp) !UPDATE LAI - put in ent_integrate
+          call fire_frequency_cell (dtsec,tt, ecp) !DUMMY
+          call recalc_radpar_cell (ecp) !
+          call reorganize_patches(ecp)
+          call calc_cell_disturbance_rates(dtsec,tt,ecp)
+        else
+          call calc_cell_disturbance_rates(dtsec,tt,ecp)
+        end if
+        pp => pp%younger
+      end do
+
+      call summarize_entcell(ecp)
+
+        end subroutine ent_ecosystem_dynamics
+
+      !*********************************************************************
+
 
       function STRUCT_FLAG(tt, ecp) Result(update_struct)
 !@sum Flag to determine if it's time to update vegetation structure.

@@ -89,7 +89,7 @@
 !**************************************************************************
 
       subroutine zero_entcell(ecp)
-      !@sum Zeros import/export variables of entdata type
+!@sum Zeros import/export variables of entdata type
       implicit none
       type(entcelltype) :: ecp
 
@@ -464,8 +464,8 @@ C NADINE - IS THIS CORRECT?
 
 #ifdef SUMROOTSCELL
       subroutine sum_roots_patches2cell(ecp)
-      !@sum Calculate grid-averaged depth-, mass-, and cover-weighted average
-      !@sum of fine roots.
+!@sum Calculate grid-averaged depth-, mass-, and cover-weighted average
+!@sum of fine roots.
       type(entcelltype),pointer :: ecp
       !-----Local variables-------
       type(patch),pointer :: pp
@@ -500,12 +500,12 @@ C NADINE - IS THIS CORRECT?
 
 !*************************************************************************
       subroutine init_simple_entcell( ecp,
-     ivegdata,popdens,laidata,hdata,dbhdata,craddata,
-     icpooldata,nmdata,
-     ifracrootdata,soildata,albedodata,soil_texture,
-     iCi_ini, CNC_ini, Tcan_ini, Qf_ini, Tpool_ini,  !added Tpool_ini for prescribed soil C, N pools -PK
-     ireinitialize)
-      !@sum Initializes an entcell assuming one cohort per patch.
+     i     vegdata,popdens,laidata,hdata,dbhdata,craddata,
+     i     cpooldata,nmdata,
+     i     fracrootdata,soildata,albedodata,soil_texture,
+     i     Ci_ini, CNC_ini, Tcan_ini, Qf_ini, Tpool_ini,
+     i     reinitialize)
+!@sum Initializes an entcell assuming one cohort per patch.
       use patches, only : summarize_patch
       type(entcelltype) :: ecp
       real*8,intent(in) :: vegdata(N_COVERTYPES) !Veg cover fractions.
@@ -650,10 +650,10 @@ C NADINE - IS THIS CORRECT?
 
 !*************************************************************************
       subroutine assign_entcell( ecp,
-     isoil_texture,!soil_type,
-!     ialbedodata,
-     iCi_ini, CNC_ini, Tcan_ini, Qf_ini, Tpool_ini, 
-     ireinitialize)
+     i     soil_texture,        !soil_type,
+!     i     albedodata,
+     i     Ci_ini, CNC_ini, Tcan_ini, Qf_ini, Tpool_ini, 
+     i     reinitialize)
 !@sum assign_entcell. Assigns entcell level values as passed in parameters.
 !+    NOTE:  soil_type is a patch-level variable by cover type in Matthews for
 !+     the purpose of calculating albedo, whereas soil_texture is an 
@@ -735,6 +735,7 @@ C NADINE - IS THIS CORRECT?
 
   !*********************************************************************
       subroutine assign_entcell_soilcarbon(ecp,Tpools)
+!@sum Distribute entcell grid soil carbon (e.g. from file) to subgrid pathes.
       use patches, only : assign_patch, summarize_patch
       implicit none
       type(entcelltype) :: ecp
@@ -757,6 +758,7 @@ C NADINE - IS THIS CORRECT?
   !*********************************************************************
 
       subroutine entcell_construct(ecp)
+!@sum entcell_construct  Allocate memory for an entcell and nullify pointers.
       implicit none
       type(entcelltype), pointer :: ecp
 
@@ -784,6 +786,7 @@ C NADINE - IS THIS CORRECT?
  !*********************************************************************
 
       subroutine entcell_destruct(ecp)
+!@sum entcell_destruct  Deallocate memory for an entcell.
       implicit none
       type(entcelltype), pointer :: ecp
       !---
@@ -806,6 +809,7 @@ C NADINE - IS THIS CORRECT?
  !*********************************************************************
       
       subroutine entcell_print(iu, ecp)
+!@sum entcell_print  Print contents of an entcell.
       use patches, only : patch_print
       integer, intent(in) :: iu
       type(entcelltype), intent(in) :: ecp
@@ -924,8 +928,8 @@ C NADINE - IS THIS CORRECT?
 
  !*********************************************************************
       subroutine entcell_print_diag(iu, ecp)
-      !Prints out other calculated diagnostics not printed by entcell_print
-      !@auth - NK
+!@sum Prints out other calculated diagnostics not printed by entcell_print
+!@auth - NK
       use patches, only : patch_print_diag
       integer, intent(in) :: iu
       type(entcelltype), intent(in) :: ecp
@@ -971,6 +975,7 @@ C NADINE - IS THIS CORRECT?
  !*********************************************************************
 
       subroutine entcell_extract_pfts(ecp, vfraction)
+!@sum entcell_extract_pfts Extract cover fraction of subgrid patches.
       type(entcelltype) :: ecp
       real*8 :: vfraction(:)
       !---
@@ -990,6 +995,7 @@ C NADINE - IS THIS CORRECT?
  !*********************************************************************
 
       subroutine get_patch_by_cover(ecp, ncov, pp_ncov)
+!@sum Point to a patch of a given cover type in the given entcell.
       type(entcelltype) :: ecp
       integer :: ncov
       type(patch), pointer :: pp_ncov

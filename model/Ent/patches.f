@@ -9,8 +9,8 @@
       contains
       !*********************************************************************
       subroutine insert_patch(gp, area, soil_type)
-      !* Insert patch at youngest end of patch list. *!
-      !* Blank patch with no cohorts.
+!@sum insert_patch Insert patch at youngest end of patch list.
+!@+   Blank patch with no cohorts.
       implicit none
       type(entcelltype) :: gp
       real*8, intent(in) :: area
@@ -39,7 +39,7 @@
       !*********************************************************************
       subroutine assign_patch(pp,
      &     Ci_ini, CNC_ini, pft, Tpool_ini)
-     
+!@sum assign_patch   Initialize some canopy and soil variables for a patch.
       use ent_const  
       
       !Eventually may want to include all patch variables as optional vars.
@@ -49,21 +49,21 @@
       real*8, dimension(N_PFT,PTRACE,NPOOLS-NLIVE,N_CASA_LAYERS) ::
      &         Tpool_ini  !in g/m2 -PK
       !----Local-------
-      !for prescribed soil C_org (or N) pools  -PK
       integer :: i, n
 
       pp%Ci = Ci_ini
       pp%GCANOPY = CNC_ini
 
       !Assign soil (dead) pools.
-      do n=1,N_CASA_LAYERS 
-       do i=NLIVE+1,NPOOLS
-        pp%Tpool(CARBON,i,n) = Tpool_ini(pft,CARBON,i-NLIVE,n)  
-       end do
-      end do
-!#else
-!      pp%Tpool(:,:,:) = 0.d0  
-!#endif
+      call assign_patch_soilcarbon(pp, pft, Tpool_ini)
+!      do n=1,N_CASA_LAYERS 
+!       do i=NLIVE+1,NPOOLS
+!        pp%Tpool(CARBON,i,n) = Tpool_ini(pft,CARBON,i-NLIVE,n)  
+!       end do
+!      end do
+c!#else
+c!      pp%Tpool(:,:,:) = 0.d0  
+c!#endif
 
 #ifdef OFFLINE  
 !      print*, 'soil C pools: ', pp%Tpool(:,CARBON,:,:)  !optional test -PK
@@ -72,6 +72,7 @@
 
       !*********************************************************************
       subroutine assign_patch_soilcarbon(pp, pft, Tpool_ini)
+!@sum assign_patch_soilcarbon  Initialize.
       !Eventually may want to include all patch variables as optional vars.
       !in assign_patch and get rid of this subroutine
      
@@ -96,7 +97,7 @@
       end subroutine assign_patch_soilcarbon
       !*********************************************************************
       subroutine delete_patch(gp, pp)
-      !* Delete patch pointed to by pp
+!@sum Delete patch pointed to by pp
       !* NOTE:  THIS DOES NOT AUTOMATICALLY UPDATE ENTCELL SUMMMARY VALUES
       implicit none
       type(entcelltype) :: gp
@@ -118,8 +119,9 @@
 
  !**************************************************************************
       real*8 function shc_patch(pp) Result(shc)
-!@sum Returns GISS GCM specific heat capacity for patch, but with subgrid
-!     calculation of shc.  See comments in entcell_update_shc_mosaicveg.
+!@sum Return GISS GCM specific heat capacity for patch, but with subgrid
+!@+   calculation of shc.  See comments in entcell_update_shc_mosaicveg.
+!@+   Awkward legacy code.
       use ent_const
       use ent_pfts, only: COVEROFFSET, alamax, alamin
       !use ent_prescr_veg, only : GISS_shc
@@ -148,6 +150,7 @@
 !**************************************************************************
 
       real*8 function laimean_annual_patch(pp) Result(laires)
+!@sum Calculate lai annual mean ONLY for old R&A shc scheme.
       !NYK:  This function called by entcell_update_shc/_mosaicveg,
       !      made just to preserve R&A shc scheme, which uses 
       !      mean annual entcell LAI, constant for Matthews veg,
@@ -183,10 +186,10 @@
       
 
       subroutine summarize_patch(pp)
-      !* Calculates patch-level summary values of cohort pools.
-      ! * Intensive properties (e.g. geometry, LMA) are averages weighted by
-      ! total number of individuals (may want to do by biomass of cohort)
-      ! * Extensive properties (e.g. biomass, Ntot) are totals per m2 ground
+!@sum summarize_patch Calculate patch-level summary values of cohort pools.
+!@+   Intensive properties (e.g. geometry, LMA) are averages weighted by
+!@+   total number of individuals (may want to do by biomass of cohort)
+!@+   Extensive properties (e.g. biomass, Ntot) are totals per m2 ground
       use cohorts, only: calc_CASArootfrac  !PK 7/07
       !use canopyrad
       implicit none
@@ -196,7 +199,7 @@
       real*8 :: nc, nsum  !density, sum
       integer :: ia  !array index
       integer :: pft
-      real*8 :: fracrootCASA(N_CASA_LAYERS)  !to map fracroot to fracrootCASA -PK 7/07
+      real*8 :: fracrootCASA(N_CASA_LAYERS)  !to map fracroot to fracrootCASA
       real*8 :: gCindiv_to_kgCm2
 
       !* Zero out cohort summary variables *!
@@ -215,8 +218,7 @@
         pft = cop%pft
         
       !assign root fractions for CASA layers -PK 11/06 
-      call calc_CASArootfrac(cop,fracrootCASA)
-!      print *, 'from patches: fracrootCASA(:) =', fracrootCASA !***test*** -PK 11/27/06 
+      call calc_CASArootfrac(cop%fracroot,fracrootCASA)
 
         !*- - - - - - COHORT SUMMARY VARIABLES - - - - - - - - - -
         nc = cop%n  
@@ -475,8 +477,8 @@
       !*********************************************************************
       !*********************************************************************
       subroutine sum_roots_cohorts2patch(pp)
-      !@sum Calculate patch-level depth- and mass-weighted average
-      !@sum of fine roots depth fractions, fracroot.
+!@sum Calculate patch-level depth- and mass-weighted average
+!@sum of fine roots depth fractions, fracroot.
       implicit none
       type(patch),pointer :: pp
       !-----Local variables-------
@@ -516,6 +518,7 @@
       !*********************************************************************
       
       subroutine reorganize_patches(entcell)
+!@sum Place holder.
       implicit none
       type(entcelltype) :: entcell
 
@@ -531,6 +534,8 @@
       !*********************************************************************
 
       subroutine patch_construct(pp, parent_entcell, area, soil_type)
+!@sum patch_construct  Allocate memory for a new patch and point to entcell
+!@+   but nullify older and younger and cohort pointers.
       use cohorts, only : cohort_construct
       implicit none
       type(patch), pointer :: pp
@@ -569,6 +574,7 @@
       !*********************************************************************
 
       subroutine patch_destruct(pp)
+!@sum patch_destruct  Deallocate memory for a patch.
       use cohorts, only : cohort_destruct
       implicit none
       type(patch), pointer :: pp
@@ -595,9 +601,9 @@
 
       !*********************************************************************
       subroutine patch_copy(ppin,ppout)
-      ! Copy values in ppin into ppout, only patch-level variables.
-      ! Does not copy cohorts or entcell pointer.
-      ! Patch ppout should already be allocated.
+!@sum patch_copy  Copy values in ppin into ppout, only patch-level variables.
+!@+   Does not copy cohorts or entcell pointer.
+!@+   Patch ppout should already be allocated.
       type(patch),intent(in) :: ppin
       type(patch),intent(out) :: ppout
 
@@ -617,6 +623,7 @@
 
       !*********************************************************************
       subroutine patch_print(iu,pp,prefix)
+!@sum patch_print  Print contents of a patch.
       use cohorts, only : cohort_print
       integer, intent(in) :: iu
       type(patch), intent(in) :: pp
@@ -715,7 +722,8 @@
 !*************************************************************************
 
       subroutine patch_print_diag(iu,pp,prefix)
-      !Prints other calculated diagnostics not output by patch_print
+!@sum Print other calculated diagnostics not output by patch_print
+!@auth N.Y.Kiang
       use cohorts, only : cohort_print, cohort_print_diag
       integer, intent(in) :: iu
       type(patch), intent(in) :: pp
@@ -776,6 +784,8 @@
 !*************************************************************************
 
       subroutine patch_extract_pfts(pp, vfraction)
+!@sum patch_extract_pfts  Extract cohort density fraction from a patch.
+!@+   This is a place holder routine, as the calculation is meaningless.
       use ent_pfts
       use ent_const
       use cohorts, only : cohort_print
@@ -811,6 +821,7 @@
 !**************************************************************************
 
       subroutine print_Tpool(Tpool)
+!@sum Print carbon pools in Tpool.
       real*8 :: Tpool(PTRACE,NPOOLS,N_CASA_LAYERS)
       print*,'Tpool(CARBON,LEAF,:)',Tpool(CARBON,LEAF,:)
       print*,'Tpool(CARBON,FROOT,:)',Tpool(CARBON,FROOT,:)
@@ -830,7 +841,8 @@
 
 
       subroutine patch_split(pp, area, pp_new)
-!!!   this subroutine works only with 0 or 1 coherts per patch !
+!@sum patch_split.  Split a 0- or 1-cohort patch into two cohorts.
+
       use cohorts, only : insert_cohort
       type(patch), pointer :: pp, pp_new
       real*8 area
@@ -856,6 +868,7 @@
 
 
       subroutine patch_set_pft(pp, pft)
+!@sum patch_set_pft  For mosaicked veg, insert a cohort of pft into a patch.
 !!!   this subroutine works only with 0 or 1 coherts per patch !
       use cohorts, only : insert_cohort
       type(patch), pointer :: pp
@@ -878,6 +891,8 @@
 
 
       subroutine patch_merge(pp1, pp2)
+!@sum patch_merge  Merge two patches into one.
+!@+   Merges areas and calls another routine to merge patch data.
       implicit none
       type(patch), pointer :: pp1, pp2
       !---
@@ -898,7 +913,7 @@
       end subroutine patch_merge
 
       subroutine patch_merge_data( pp1, w1, pp2, w2 )
-!@sum Initialize patch, zeroing variables.
+!@sum patch_merge_data.  Merge the data in two patches into one patch.
       use cohorts, only : cohort_merge_data
       implicit none
       type(patch) :: pp1, pp2
@@ -1007,6 +1022,7 @@
 
 
       function patch_has_pft( pp, pft )
+!@sum Logical if a pft exists in a patch.
       logical patch_has_pft
       type(patch), intent(in) :: pp
       integer, intent(in) :: pft
@@ -1027,6 +1043,7 @@
 
 
       subroutine patch_delete_cohort( pp, cop_del )
+!@sum patch_delete_cohort  Delete a cohort from a patch
       use cohorts, only : cohort_destruct
       type(patch), pointer :: pp
       type(cohort), pointer :: cop_del

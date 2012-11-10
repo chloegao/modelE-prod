@@ -1,5 +1,7 @@
       module ent_pfts
-!@sum GISS vegetation types for Ent model.
+!@sum Parameter set for GISS 8 vegetation biome types for Ent model, with
+!@+   parameters for isoprene emissions by Nadine Unger.
+!@+   NOT FOR PUBLIC USE.
 
       use ent_const
       use ent_types
