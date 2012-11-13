@@ -1835,11 +1835,11 @@ cddd         write(901,*) "deltaC*n ", (tot_c - tot_c_old)*cop%n
 
 
       !----------------Error check--------------------------------
+#ifdef DEBUG        
       if ( abs( (dC_fol+dC_froot+dC_hw+dC_sw+dC_croot
      &     +dC_lab)*cop%n + Closs(CARBON,LEAF,1)+Closs(CARBON,FROOT,1)
      &     + Closs(CARBON,WOOD,1) ) > 1d-10 ) then
 
-#ifdef DEBUG        
          write(901,*) "Closs ", Closs(CARBON,LEAF,1)
      &       +Closs(CARBON,FROOT,1)
      &       + Closs(CARBON,WOOD,1)
