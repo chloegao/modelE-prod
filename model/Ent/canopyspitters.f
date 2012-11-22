@@ -781,11 +781,11 @@
         ent_d%Resp_growth(cop%pft) = Resp_growth
 
 C#define OFFLINE 1
-C#ifdef OFFLINE
+#ifdef OFFLINE
       write(998,*) cop%C_lab,cop%GPP,cop%NPP,Resp_fol,Resp_sw,Resp_lab,
      &     Resp_root,Resp_maint,Resp_growth, Resp_growth_1
 !      write(997,*) cop%C_fol,cop%C_froot,cop%C_sw,cop%C_hw,cop%C_croot
-C#endif
+#endif
 
       end subroutine Respauto_NPP_Clabile
 

@@ -315,9 +315,7 @@
                !LAmax(p,i,j) = dbh2Cfol(p,dbhdata(p,i,j)) * pfpar(p)%sla
                LAmax(p,i,j) = 0.001d0 * !gC to kgC for sla in m2/kgC
      &              Cfol_fn(p,dbhdata(p,i,j),hdata(p,i,j))*pfpar(p)%sla
-               print *, 'LAmax',p,i,j
                popdata(p,i,j) = DIV0(laimaxgeo(p,i,j),LAmax(p,i,j))
-               print *,'popdata',p,i,j
 !               ! Get LA actual per plant
 !!               if (.not.present(laidata)) then
 !!                  call calc_leafarea_plant_hemi(
@@ -343,11 +341,9 @@
 
                call init_Clab(p,dbhdata(p,i,j)
      &              ,hdata(p,i,j),cpooldata(p,LABILE,i,j)) !LABILE
-                print *, 'LABILE',p,i,j
 
                craddata(p,i,j) = min(Crown_rad_allom(p,hdata(p,i,j)),
      &              Crown_rad_max_from_density(popdata(p,i,j)))
-               print *,'craddata',p,i,j
                call flush(6)
             endif
             enddo

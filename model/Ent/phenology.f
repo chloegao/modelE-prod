@@ -1261,10 +1261,10 @@ cddd         write(901,*) "deltaC*n ", (tot_c - tot_c_old)*cop%n
       C_lab = C_lab + dC_lab
       Cactive = Cactive +dCactive
 
-      if (Cactive>Cactive_max) then !## NK DEBGU
-         print *,'Cactive>Cactive_max',Cactive_max,Cactive
-     &        ,CB_d,Rauto_day_gC
-      endif
+c      if (Cactive>Cactive_max) then !## NK DEBGU
+c         print *,'Cactive>Cactive_max',Cactive_max,Cactive
+c     &        ,CB_d,Rauto_day_gC
+c      endif
 
       end subroutine growth_cpools_active
 
@@ -1990,7 +1990,7 @@ c      if (cop%C_lab+dC_lab-resp_turnover-resp_newgrowth.lt.0.d0) then
         if ((0.5d0*cop%C_lab + dClab_dbiomass-resp_newgrowth).lt.0.d0)
      &       then
          adj = 0.5         !Reduce turnover litter to preserve C_lab for growth.
-         print *,'DEBUG#: adj=0.5*adj',adj !C_lab will probably go negative here, but only a short while.
+c         print *,'DEBUG#: adj=0.5*adj',adj !C_lab will probably go negative here, but only a short while.
         else                    !Reduce rate of turnover litter.
 c          adj = (0.5d0*cop%C_lab - dClab_dbiomass - resp_newgrowth)/
 c     &         ((1-l_fract)*(turn_leaf + turn_froot)
