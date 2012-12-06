@@ -259,8 +259,9 @@ cddd        if ( Ae > 0.d0 ) write(578,*) Axxx - Ae
       endif
 
 
-      !* Photosynthetic rate limited by "utilization of photosynthetic products"
-      !* (umol m-2 s-1)
+      !* Photosynthetic rate limited by utilization of photosynthetic products:
+      !* (umol m-2 s-1)  Triosphosphate (TPU limitation for C3,
+      !*    PEP carboxylase limitation for C4.
       if (pfpar(pspar%pft)%pst.eq.C3) then
          !call Ci_Js(ca,gb,rh,IPAR,Pa,pspar,Rd, cis, Js1)
          !Js_sucrose = pspar%Vcmax/2.d0
@@ -681,7 +682,7 @@ cddd      end subroutine Ci_Js
       end function Tresponse
 !=================================================
       subroutine  Astot_C4(ca,rh,gb,Rd,pspar,Astot)
-!@sum As_C4 Triosphosphate-limited carbon assimilation for C4 photosynthesis
+!@sum As_C4 PEP carboxlase-limited carbon assimilation for C4 photosynthesis
 !@+   After Collatz, and CLM's correction of the coefficient
 !@+   Returns Astot = Atot = 4000.d0*pspar%Vcmax*ci
 !@+   Solving for As via the equations:
