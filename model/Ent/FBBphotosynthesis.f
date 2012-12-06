@@ -722,8 +722,8 @@ cddd      end subroutine Ci_Js
       b0 = -2.d0*Rd*X + Y
       c0 = (Rd**2.d0)*X - Rd*Y + Z
 
-      Aspos = (-b0 + sqrt(2*b0 - 4.d0*a0*c0))/(2*a0)
-      Asneg = (-b0 - sqrt(2*b0 - 4.d0*a0*c0))/(2*a0)
+      Aspos = (-b0 + sqrt(b0**2.d0 - 4.d0*a0*c0))/(2*a0)
+      Asneg = (-b0 - sqrt(b0**2.d0 - 4.d0*a0*c0))/(2*a0)
 
       Astot = max(Aspos, Asneg)
 
