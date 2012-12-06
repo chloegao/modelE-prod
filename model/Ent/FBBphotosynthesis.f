@@ -150,6 +150,7 @@ cddd      endif
 !@+   ci is solved for analytically for each of the limiting cases.
 !@+   Outputs gs, Atot, Rd. May output also other VOC fluxes.
 !@auth  N.Y.Kiang, I.Aleinov
+      use ent_pfts, only : pfpar
       implicit none
       integer,intent(in) :: pft !Plant functional type, 1-C3 grassland
       real*8,intent(in) :: IPAR !Absorbed PAR.  WRONG OLD COMMENT:Incident PAR (umol m-2 s-1) 
@@ -172,7 +173,7 @@ cddd      endif
       real*8 :: Anet            !Net assimilation of CO2 = Atot - aboveground respir (umol m-2 s-1)
       real*8 :: Aiso            ! Rate of photosynthesis for isoprene emissions (umol m-2 s-1)
       real*8 :: cs   !CO2 mole fraction at the leaf surface (umol mol-1)
-      real*8 :: Ae, Ac, As
+      real*8 :: Ae, Ac, As      !* These are Anet!
       real*8, save :: a1c=1.d30, f1c=-1.d30
       real*8 :: a1e, f1e
       real*8, parameter :: alpha=.08d0 !Intrinsic quantum efficiency for CO2 uptake
@@ -209,15 +210,18 @@ cddd      endif
 
       !Assimilation is of the form a1*(Ci - Gammastar)/(e1*Ci + f)
       if ( pspar%first_call ) then
-        a1c = pspar%Vcmax
-        f1c = pspar%Kc*(1.d0 + O2pres/pspar%Ko) * 1.d06/Pa !umol/mol
+         if (pfpar(pspar%pft)%pst.eq.C3) then
+            a1c = pspar%Vcmax
+            f1c = pspar%Kc*(1.d0 + O2pres/pspar%Ko) * 1.d06/Pa !umol/mol
+            !write(778,*) 2*pspar%Gammastar * 1.d06/Pa, f1
 
-        !write(778,*) 2*pspar%Gammastar * 1.d06/Pa, f1
-
-        !call ci_cubic (ca,rh,gb,Pa,Rd,a1c,f1c,pspar,Axxx)
-        call ci_cubic(ca,rh,gb,Pa,Rd,a1c,f1c,pspar,Ac)
-        !if ( Ac >= -Rd ) write(578,*) Axxx, Ac, Ac - Axxx
-        !write(888,*) "Ac", ca,rh,gb,Pa,Rd,a1,f1,pspar,Ac
+            !call ci_cubic (ca,rh,gb,Pa,Rd,a1c,f1c,pspar,Axxx)
+            call ci_cubic(ca,rh,gb,Pa,Rd,a1c,f1c,pspar,Ac)
+            !if ( Ac >= -Rd ) write(578,*) Axxx, Ac, Ac - Axxx
+            !write(888,*) "Ac", ca,rh,gb,Pa,Rd,a1,f1,pspar,Ac
+         else !C4 photosynthesis
+            Ac = pspar%Vcmax - Rd
+         endif
         pspar%Ac = Ac
         pspar%first_call = .false.
       else
@@ -232,49 +236,59 @@ cddd      endif
 
       !Assimilation is of the form a1*(ci - Gammastar.umol)/(e1*ci + f1)
 
-!      a1 = pspar%PARabsorb*IPAR*alpha
-      a1e = IPAR*alpha  !### HACK:  IPAR from canopyspitters.f is APAR.  When we switch to Wenze's canopyrad, then leaf PARabsorb will be used -NK ###
-      f1e = 2*pspar%Gammastar * 1.d06/Pa !Convert from Pa to umol/mol
+      if (pfpar(pspar%pft)%pst.eq.C3) then
+         !a1 = pspar%PARabsorb*IPAR*alpha
+         a1e = IPAR*alpha       !### HACK:  IPAR from canopyspitters.f is APAR.  When we switch to Wenze's canopyrad, then leaf PARabsorb will be used -NK ###
+         f1e = 2*pspar%Gammastar * 1.d06/Pa !Convert from Pa to umol/mol
 
-      if ( a1e < a1c .or. 
-     &     f1e > f1c .or.
-     &     need_isoprene ) then
-        !call ci_cubic (ca,rh,gb,Pa,Rd,a1e,f1e,pspar,Axxx)
-        call ci_cubic(ca,rh,gb,Pa,Rd,a1e,f1e,pspar,Ae)
-        !write(888,*) "Ae", ca,rh,gb,Pa,Rd,a1,f1,pspar,Ae 
+         if ( a1e < a1c .or. 
+     &        f1e > f1c .or.
+     &        need_isoprene ) then
+            !call ci_cubic (ca,rh,gb,Pa,Rd,a1e,f1e,pspar,Axxx)
+            call ci_cubic(ca,rh,gb,Pa,Rd,a1e,f1e,pspar,Ae)
+            !write(888,*) "Ae", ca,rh,gb,Pa,Rd,a1,f1,pspar,Ae 
 cddd        call ci_cubic1(ca,rh,gb,Pa,Rd,a1,f1,pspar,Axxx)
 cddd        write(579,*) Ae, Axxx
 cddd        if ( Ae > 0.d0 ) write(578,*) Axxx - Ae
         !if ( Ae >= -Rd ) write(578,*) Axxx, Ae, Ae - Axxx
-      else
-        Ae = 1.d30
+         else
+            Ae = 1.d30
+         endif
+      else !C4 photosynthesis
+         Ae = IPAR*alpha - Rd
       endif
-
 
 
       !* Photosynthetic rate limited by "utilization of photosynthetic products"
       !* (umol m-2 s-1)
-!      call Ci_Js(ca,gb,rh,IPAR,Pa,pspar,Rd, cis, Js1)
-      !Js_sucrose = pspar%Vcmax/2.d0
-      As = pspar%Vcmax/2.d0 - Rd
-      !write(888,*) "As", As
+      if (pfpar(pspar%pft)%pst.eq.C3) then
+         !call Ci_Js(ca,gb,rh,IPAR,Pa,pspar,Rd, cis, Js1)
+         !Js_sucrose = pspar%Vcmax/2.d0
+         As = pspar%Vcmax/2.d0 - Rd  !?Is this double counting Rd? ##NK
+         !write(888,*) "As", As
+      else !C4 photosynthesis
+        !Assimilation is of the form a1*(ci - Gammastar.umol)/(e1*ci + f1)
+         !As = 4000.d0*pspar%Vcmax*ci - Rd
+         call Astot_C4(ca,rh,gb,Rd,pspar,As) !This is Atot
+         As = As - Rd !Make it Anet
+      endif
 
       Anet = min(Ae, Ac, As)
       Atot = Anet + Rd
       Aiso = Ae + Rd
 
       if (Atot.lt.0.d0) then
-        ! can only happen if ca < Gammastar . Does it make sense? -Yes-NK
+      ! can only happen if ca < Gammastar . Does it make sense? -Yes-NK
 #ifdef OFFLINE
-        write(997,*) "Error, Atot<0.0:",Atot,Ae,Ac,As,ca,gb,rh,IPAR,Pa,
-     &       pspar,sunlitshaded, pspar%Gammastar * 1.d06/Pa
+         write(997,*) "Error, Atot<0.0:",Atot,Ae,Ac,As,ca,gb,rh,IPAR
+     &        ,Pa,pspar,sunlitshaded, pspar%Gammastar * 1.d06/Pa
 #endif
-        Atot = 0.d0
-        Anet = - Rd
-!!        ci = pspar%Gammastar * 1.d06/Pa  
-!!        gs = 0. ! MK: setting to 0 to avoid erratic results
+         Atot = 0.d0
+         Anet = - Rd
+!!       ci = pspar%Gammastar * 1.d06/Pa  
+!!       gs = 0. ! MK: setting to 0 to avoid erratic results
 
-!!       else
+!!    else
       endif
 
       cs = ca - Anet*1.37d0/gb
@@ -666,18 +680,69 @@ cddd      end subroutine Ci_Js
 
       end function Tresponse
 !=================================================
+      subroutine  Astot_C4(ca,rh,gb,Rd,pspar,Astot)
+!@sum As_C4 Triosphosphate-limited carbon assimilation for C4 photosynthesis
+!@+   After Collatz, and CLM's correction of the coefficient
+!@+   Returns Astot = Atot = 4000.d0*pspar%Vcmax*ci
+!@+   Solving for As via the equations:
+!@+   1) Anet = Astot - Rd
+!@+           = (ca - ci)/[(1.37*rb + 1.65*rs)] 
+!@+           = (ca - cs)/(1.37*rb) 
+!@+           = (cs - ci)/(1.65*rs)
+!@+   2) 1/rs = gs = m*A*rh/cs + b     
+!@+   3) Astot = 4000.d0*pspar%Vcmax*ci  !4000 is CLM, Collatz had 1800.
+!@+   Do subsitutions to eliminate cs and ci and solve for As.
+
+
+      real*8,intent(in) :: ca  !Surface air CO2 concentration (umol/mol)
+      real*8,intent(in) :: rh   !Relative humidity
+      real*8,intent(in) :: gb   !Leaf boundary layer conductance of water vapor (mol m-2 s-1)
+      real*8,intent(in) :: Rd   !Leaf mitochondrial respiration (umol m-2 s-1)
+      type(photosynthpar) :: pspar
+      real*8,intent(out) :: Astot  !Gross assimilation of carbon (umol m-2 s-1)
+      !---Local----
+      real*8 :: ci !Leaf internal CO2 concentration (umol/mol)
+      real*8 :: K1, K2, K3, K4
+      real*8 :: X, Y, Z
+      real*8 :: b0, a0, c0
+      real*8 :: Aspos, Asneg
+
+      K1 = pspar%m * rh
+      K2 = 4000.*pspar%Vcmax
+      K3 = 1.37/gb
+      K4 = 1.65*ca
+      
+      !Anet^2*X + A*Y + Z = 0
+      X = (K1-K3)/(1/K2 + K3) + 1.65*K3
+      Y = pspar%b*ca/(1/K2 + K3) - ca*K1 - ca*pspar%b*K3 -1.65*ca
+      Z = pspar%b * ca**2.d0
+
+      !a0*Atot^2 + b0*Atot + c0 = 0
+      a0 = X
+      b0 = -2.d0*Rd*X + Y
+      c0 = (Rd**2.d0)*X - Rd*Y + Z
+
+      Aspos = (-b0 + sqrt(2*b0 - 4.d0*a0*c0))/(2*a0)
+      Asneg = (-b0 - sqrt(2*b0 - 4.d0*a0*c0))/(2*a0)
+
+      Astot = max(Aspos, Asneg)
+
+      end subroutine Astot_C4
+
+!=================================================
 
 #ifndef USE_NR_SOLVER_FOR_FBB
       subroutine ci_cubic(ca,rh,gb,Pa,Rd,a1,f1,pspar,A)
 !@sum ci_cubic Analytical solution for cubic equation of coupled
 !@+   Ball-Berry/Farquhar stomatal conductance/photosynthesis.
 !@+   Version that uses analytical equation solution.
+!@+   Solves for Anet.
 !@auth I.Aleinov
       !@sum ci (umol/mol)
       !@sum For the case of assimilation being of the form:
-      !@sum         A = a*(Cip - Gammastar)/(e*Cip + f) - Rd
+      !@sum         A = Anet = a*(Cip - Gammastar)/(e*Cip + f) - Rd
       !@sum Numerator and denominator are converted from (Pa/Pa) to (umol mol-1)/(umol mol-1)
-      !@sum         A = a1*(ci - gammamol) /(e1*ci + fmol) - Rd
+      !@sum         A = Anet = a1*(ci - gammamol) /(e1*ci + fmol) - Rd
       !@sum where gammamol = Gammastar*1d06/Pa, fmol = f1 = f*1d06/Pa
 
       implicit none

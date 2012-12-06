@@ -121,6 +121,10 @@
       !************************************************
       !* GENERIC VEGETATION CONSTANTS                 *
       !************************************************
+      !* photosynthetic pathway type pst in pftype
+      integer,parameter :: C3 = 1
+      integer,parameter :: C4 = 2
+
       !* leaftype in pftype *!
       integer,parameter :: BROADLEAF = 1
       integer,parameter :: NEEDLELEAF = 2
