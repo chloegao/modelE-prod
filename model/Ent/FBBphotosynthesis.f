@@ -270,8 +270,7 @@ cddd        if ( Ae > 0.d0 ) write(578,*) Axxx - Ae
       else !C4 photosynthesis
         !Assimilation is of the form a1*(ci - Gammastar.umol)/(e1*ci + f1)
          !As = 4000.d0*pspar%Vcmax*ci - Rd
-         call Astot_C4(ca,rh,gb,Rd,pspar,As) !This is Atot
-         As = As - Rd !Make it Anet
+         call Asnet_C4(ca,rh,gb,Rd,pspar,As) !This is Anet
       endif
 
       Anet = min(Ae, Ac, As)
@@ -681,12 +680,12 @@ cddd      end subroutine Ci_Js
 
       end function Tresponse
 !=================================================
-      subroutine  Astot_C4(ca,rh,gb,Rd,pspar,Astot)
-!@sum As_C4 PEP carboxlase-limited carbon assimilation for C4 photosynthesis
+      subroutine  Asnet_C4(ca,rh,gb,Rd,pspar,Asnet)
+!@sum Asnet_C4 PEP carboxlase-limited carbon assimilation for C4 photosynthesis
 !@+   After Collatz, and CLM's correction of the coefficient
-!@+   Returns Astot = Atot = 4000.d0*pspar%Vcmax*ci
-!@+   Solving for As via the equations:
-!@+   1) Anet = Astot - Rd
+!@+   Returns Asnet = Atot - Rd = 4000.d0*pspar%Vcmax*ci - Rd
+!@+   Solving for Asnet via the equations:
+!@+   1) Asnet = Astot - Rd
 !@+           = (ca - ci)/[(1.37*rb + 1.65*rs)] 
 !@+           = (ca - cs)/(1.37*rb) 
 !@+           = (cs - ci)/(1.65*rs)
@@ -700,7 +699,7 @@ cddd      end subroutine Ci_Js
       real*8,intent(in) :: gb   !Leaf boundary layer conductance of water vapor (mol m-2 s-1)
       real*8,intent(in) :: Rd   !Leaf mitochondrial respiration (umol m-2 s-1)
       type(photosynthpar) :: pspar
-      real*8,intent(out) :: Astot  !Gross assimilation of carbon (umol m-2 s-1)
+      real*8,intent(out) :: Asnet  !Net assimilation of carbon (umol m-2 s-1)
       !---Local----
       real*8 :: ci !Leaf internal CO2 concentration (umol/mol)
       real*8 :: K1, K2, K3, K4
@@ -709,26 +708,27 @@ cddd      end subroutine Ci_Js
       real*8 :: Aspos, Asneg
 
       K1 = pspar%m * rh
-      K2 = 4000.*pspar%Vcmax
-      K3 = 1.37/gb
-      K4 = 1.65*ca
+      K2 = 4000.d0*pspar%Vcmax
+      K3 = 1.37d0/gb
+      K4 = 1.65d0*ca
       
       !Anet^2*X + A*Y + Z = 0
-      X = (K1-K3)/(1/K2 + K3) + 1.65*K3
-      Y = pspar%b*ca/(1/K2 + K3) - ca*K1 - ca*pspar%b*K3 -1.65*ca
-      Z = pspar%b * ca**2.d0
+      X = (K1 - pspar%b*K3)*(1/K2 + K3) - 1.65d0*K3
+      Y = ca*(pspar%b*(1/K2 + K3) - K1 + pspar%b*K3) + K4
+      Z = -pspar%b * ca**2.d0
 
+      !This section is correct to solve for Atot, solves to Anet+Rd.
       !a0*Atot^2 + b0*Atot + c0 = 0
-      a0 = X
-      b0 = -2.d0*Rd*X + Y
-      c0 = (Rd**2.d0)*X - Rd*Y + Z
+      !a0 = X
+      !b0 = -2.d0*Rd*X + Y
+      !c0 = (Rd**2.d0)*X - Rd*Y + Z
+      !Aspos = (-b0 + sqrt(b0**2.d0 - 4.d0*a0*c0))/(2*a0)
+      !Asneg = (-b0 - sqrt(b0**2.d0 - 4.d0*a0*c0))/(2*a0)
+      !Astot = max(Aspos, Asneg)
 
-      Aspos = (-b0 + sqrt(b0**2.d0 - 4.d0*a0*c0))/(2*a0)
-      Asneg = (-b0 - sqrt(b0**2.d0 - 4.d0*a0*c0))/(2*a0)
+      Asnet = (-Y + sqrt(Y**2 - 4*X*Z))/(2*X) !Positive root is max.
 
-      Astot = max(Aspos, Asneg)
-
-      end subroutine Astot_C4
+      end subroutine Asnet_C4
 
 !=================================================
 
