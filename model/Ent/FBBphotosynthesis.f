@@ -727,7 +727,7 @@ cddd      end subroutine Ci_Js
       !Asneg = (-b0 - sqrt(b0**2.d0 - 4.d0*a0*c0))/(2*a0)
       !Astot = max(Aspos, Asneg)
 
-      Asnet = (-Y + sqrt(Y**2 - 4*X*Z))/(2*X) !Positive root is max.
+      Asnet = (-Y + sqrt(Y**2.d0 - 4.d0*X*Z))/(2.d0*X) !Positive root is max.
 
       end subroutine Asnet_C4
 
