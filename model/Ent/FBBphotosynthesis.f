@@ -683,14 +683,15 @@ cddd      end subroutine Ci_Js
       subroutine  Asnet_C4(ca,rh,gb,Rd,pspar,Asnet)
 !@sum Asnet_C4 PEP carboxlase-limited carbon assimilation for C4 photosynthesis
 !@+   After Collatz, and CLM's correction of the coefficient
-!@+   Returns Asnet = Atot - Rd = 4000.d0*pspar%Vcmax*ci - Rd
+!@+   Returns Asnet = Astot - Rd
 !@+   Solving for Asnet via the equations:
 !@+   1) Asnet = Astot - Rd
 !@+           = (ca - ci)/[(1.37*rb + 1.65*rs)] 
 !@+           = (ca - cs)/(1.37*rb) 
 !@+           = (cs - ci)/(1.65*rs)
 !@+   2) 1/rs = gs = m*A*rh/cs + b     
-!@+   3) Astot = 4000.d0*pspar%Vcmax*ci  !4000 is CLM, Collatz had 1800.
+!@+   3) Astot = 4000.d0*pspar%Vcmax*(ci*1e-06)  
+!@+        !4000 is CLM, Collatz had 1800. Convert ci from umol/mol to mol/mol
 !@+   Do subsitutions to eliminate cs and ci and solve for As.
 
 
@@ -708,7 +709,7 @@ cddd      end subroutine Ci_Js
       real*8 :: Aspos, Asneg
 
       K1 = pspar%m * rh
-      K2 = 4000.d0*pspar%Vcmax
+      K2 = 4000.d0*pspar%Vcmax * 1.d-06
       K3 = 1.37d0/gb
       K4 = 1.65d0*ca
       
