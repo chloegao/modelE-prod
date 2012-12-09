@@ -715,8 +715,8 @@ cddd      end subroutine Ci_Js
       
       !Anet^2*X + A*Y + Z = 0
       X = (K1 - pspar%b*K3)*(1/K2 + K3) - 1.65d0*K3
-      Y = ca*(pspar%b*(1/K2 + K3) - K1 + pspar%b*K3) + K4
-      Z = -pspar%b * ca**2.d0
+      Y = ca*(pspar%b/K2 - K1 + 1.65d0) + Rd*(K1/K2 - pspar%b*K2/K2)
+      Z = -pspar%b * ca * ( Rd/K2 - ca )
 
       !This section is correct to solve for Atot, solves to Anet+Rd.
       !a0*Atot^2 + b0*Atot + c0 = 0
