@@ -49,8 +49,9 @@
       real*8 :: b               !Intercept of Ball-Berry equation (mol m-2 s-1)
       real*8 :: Nleaf           !g-N/m^2[leaf] - May want to take this from Tpool instead.
       real*8 :: stressH2O       !Water stress factor (fraction, 1=no stress)
-      logical :: first_call
-      real*8 :: Ac
+      logical :: first_call     !For optimizing run
+      real*8 :: Ac              !Save Ac for calculation only once per timestep.
+      real*8 :: As              !Save As for calculation only once per timestep.
       logical :: reset_ci_cubic1
       end type photosynthpar
 
@@ -261,16 +262,19 @@ cddd        if ( Ae > 0.d0 ) write(578,*) Axxx - Ae
 
       !* Photosynthetic rate limited by utilization of photosynthetic products:
       !* (umol m-2 s-1)  Triosphosphate (TPU limitation for C3,
-      !*    PEP carboxylase limitation for C4.
-      if (pfpar(pspar%pft)%pst.eq.C3) then
-         !call Ci_Js(ca,gb,rh,IPAR,Pa,pspar,Rd, cis, Js1)
-         !Js_sucrose = pspar%Vcmax/2.d0
-         As = pspar%Vcmax/2.d0 - Rd  !?Is this double counting Rd? ##NK
-         !write(888,*) "As", As
-      else !C4 photosynthesis
-        !Assimilation is of the form a1*(ci - Gammastar.umol)/(e1*ci + f1)
-         !As = 4000.d0*pspar%Vcmax*ci - Rd
-         call Asnet_C4(ca,rh,gb,Rd,pspar,As) !This is Anet
+      !*                 PEP carboxylase limitation for C4.
+      if (first_call) then
+         if (pfpar(pspar%pft)%pst.eq.C3) then
+           !call Ci_Js(ca,gb,rh,IPAR,Pa,pspar,Rd, cis, Js1)
+           !Js_sucrose = pspar%Vcmax/2.d0
+            As = pspar%Vcmax/2.d0 - Rd !?Is this double counting Rd? ##NK
+           !write(888,*) "As", As
+         else  !C4 photosynthesis
+           !As = 4000.d0*pspar%Vcmax*ci - Rd
+            call Asnet_C4(ca,rh,gb,Rd,pspar,As) !This is Anet
+         endif
+      else
+         As = pspar%As
       endif
 
       Anet = min(Ae, Ac, As)
