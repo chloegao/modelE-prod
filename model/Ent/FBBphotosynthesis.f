@@ -273,6 +273,8 @@ cddd        if ( Ae > 0.d0 ) write(578,*) Axxx - Ae
            !As = 4000.d0*pspar%Vcmax*ci - Rd
             call Asnet_C4(ca,rh,gb,Rd,pspar,As) !This is Anet
          endif
+         pspar%As = As
+         pspar%first_call = .false.
       else
          As = pspar%As
       endif
