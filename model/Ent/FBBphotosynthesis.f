@@ -715,7 +715,7 @@ cddd      end subroutine Ci_Js
       
       !Anet^2*X + A*Y + Z = 0
       X = (K1 - pspar%b*K3)*(1/K2 + K3) - 1.65d0*K3
-      Y = ca*(pspar%b/K2 - K1 + 1.65d0) + Rd*(K1/K2 - pspar%b*K2/K2)
+      Y = ca*(pspar%b/K2 - K1 + 1.65d0) + Rd/K2*(K1 - pspar%b*K3)
       Z = -pspar%b * ca * ( Rd/K2 - ca )
 
       !This section is correct to solve for Atot, solves to Anet+Rd.
@@ -727,7 +727,8 @@ cddd      end subroutine Ci_Js
       !Asneg = (-b0 - sqrt(b0**2.d0 - 4.d0*a0*c0))/(2*a0)
       !Astot = max(Aspos, Asneg)
 
-      Asnet = (-Y + sqrt(Y**2.d0 - 4.d0*X*Z))/(2.d0*X) !Positive root is max.
+      Asnet = max (-Rd,
+     &     ,(-Y + sqrt(Y**2.d0 - 4.d0*X*Z))/(2.d0*X)) !Positive root is max.
 
       end subroutine Asnet_C4
 
