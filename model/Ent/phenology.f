@@ -3,7 +3,7 @@
 !@sum budburst/leafout, albedo change, senescence
 !@auth Y. Kim
 #ifdef ENT_STANDALONE_DIAG
-#define PHENOLOGY_DIAG
+!#define PHENOLOGY_DIAG
 !#define DEBUG
 #endif
 
@@ -2034,12 +2034,13 @@ c      endif
           !- resp_growth          !Distrib resp_growth in cop%C_growth over day.
 
         !##NK DEBUG
+#ifdef DEBUG
       write(991,*)  tacclim,cop%turnover_amp,adj
      &       ,turn_froot,turn_croot,max(0.d0,dC_froot)
      &       ,max(0.d0,dC_croot), turn_leaf,turn_hw
      &       ,max(0.d0,dC_fol), max(0.d0,dC_sw) !New biomass growth
      &       ,resp_growth_root, resp_growth
-
+#endif
 
       !* Calculate litter to soil from turnover and from senescence*!
       !* Change from senescence is calculated as max(0.d0, C_pool_old-C_pool).
