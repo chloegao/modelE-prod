@@ -351,7 +351,7 @@ ccc#endif
          call prescr_get_hdata(I0,I1,J0,J1,hdata) !height
 !         endif
 !------ Could convert next routine to SINGLE CELL LEVEL-------------
-         call prescr_get_laimaxdata(I0,I1,J0,J1,laimaxdata) !,laimindata)
+         !call prescr_get_laimaxdata(I0,I1,J0,J1,laimaxdata) !,laimindata)
 
          call prescr_calc_canopy_geometry(I0,I1,J0,J1
      i        ,hdata
@@ -365,6 +365,7 @@ ccc#endif
       
          !update diameter, population density, carbon plant &  crown rad
          if (.not.do_init_geo) then
+            call prescr_get_laidata(jday,hemi,I0,I1,J0,J1,laidata) !lai
             print *,'Calling prescr_get_ent_plant'
             call prescr_get_ent_plant(I0,I1,J0,J1, 
      i           laidata,hdata,laimaxdata,

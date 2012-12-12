@@ -1,4 +1,4 @@
-!#define  DEBUG  1
+#define  DEBUG  1
 
       module biophysics !canopyspitters
 !@sum Spitters (1986) canopy radiative transfer (sunlit/shaded leaves), and
@@ -89,10 +89,10 @@
       real*8 :: IPPsum
       real*8 :: molconc_to_umol
 
-#ifdef DEBUG
-      print *,"Started photosynth_cond in FBB" ! with patch:"
-      !call patch_print(6,pp," ")
-#endif
+!#ifdef DEBUG
+!      print *,"Started photosynth_cond in FBB" ! with patch:"
+!      !call patch_print(6,pp," ")
+!#endif
 
       if ( .NOT.ASSOCIATED(pp%tallest)) then ! bare soil
         pp%TRANS_SW = 1.d0
@@ -801,6 +801,20 @@ C#define OFFLINE 1
       ! leaf nitrogen content (assimilation and growth respiration did 
       ! respond to leaf N content). In lab conditions, leaf dark respiration
       ! was about 1 umol-CO2 m-2 s-1 for an N range of ~70 to 155 mmol-N m-2.
+! Re CLM parameters: 
+!       CLM calculates this per individual*population/area_fraction
+!       to give flux per area of pft cover rather than per ground area.
+
+!Other versions:
+!        !*Original CASA *!
+!     &       exp(308.56d0*(1/56.02d0 - (1/(T_k-227.13d0)))) * 
+!     &       ugBiomass_per_gC/ugBiomass_per_umolCO2
+!        !*Acclimation vertical shift*! 56.02 = 10+273.15-227.13.  76.02 = 30+273.15-227.13.
+!        !*Acclimation horizontal shift.
+!     &       exp(308.56d0*                                     
+!     &       (1/56.02d0 
+!     &       - (1/(T_k-min(30.d0,max(10.d0,T_k_10d))+10.d0-227.13d0))))
+!     &       * ugBiomass_per_gC/ugBiomass_per_umolCO2
 
       implicit none
       integer :: pft            !Plant functional type.
@@ -826,24 +840,14 @@ C#define OFFLINE 1
 
       if (T_k>228.15d0) then    ! set to cut-off at 45 deg C 
         R_maint = facclim * pfpar(pft)%r * k_CLM * (C/CN) * 
-        !*Original CASA *!
-!     &       exp(308.56d0*(1/56.02d0 - (1/(T_k-227.13d0)))) * 
-!     &       ugBiomass_per_gC/ugBiomass_per_umolCO2
-        !*Acclimation vertical shift*! 56.02 = 10+273.15-227.13.  76.02 = 30+273.15-227.13.
      &       exp(308.56d0*                                     
      &       (1/min(max(56.02d0,T_k_10d-227.13d0),76.02d0)
      &       - (1/(T_k-227.13d0))))
      &       * ugBiomass_per_gC/ugBiomass_per_umolCO2
-        !*Acclimation horizontal shift.
-!     &       exp(308.56d0*                                     
-!     &       (1/56.02d0 
-!     &       - (1/(T_k-min(30.d0,max(10.d0,T_k_10d))+10.d0-227.13d0))))
-!     &       * ugBiomass_per_gC/ugBiomass_per_umolCO2
       else 
          R_maint = 0.d0
       endif
-      !Note:  CLM calculates this per individual*population/area_fraction
-      !      to give flux per area of pft cover rather than per ground area.
+
       end function Resp_cpool_maint
 !---------------------------------------------------------------------!
       real*8 function Resp_plant_maint(pft,cpools,TcanopyK,TsoilK,
@@ -869,10 +873,10 @@ C#define OFFLINE 1
       real*8 :: Rd
       real*8 :: Resp_fol, Resp_sw, Resp_lab, Resp_froot
       real*8 :: C2N
-      real*8,parameter :: umols_to_kgCs = 0.012D-6
+      real*8,parameter :: umols_to_kgCs = 0.012d-6
 
-      C2N = 1/(pftpar(pft)%Nleaf*1d-3*pfpar(pft)%SLA)
-      Rd = Rdark()*cpools(FOL)*(pfpar(pft)%SLA*1.d-3) !Rd*LA
+      C2N = 1/(pftpar(pft)%Nleaf*.001d0*pfpar(pft)%SLA)
+      Rd = Rdark()*cpools(FOL)*(pfpar(pft)%SLA*.001d0) !Rd*LA
 
       !* Maintenance respiration - leaf + sapwood + storage
       Resp_fol = umols_to_kgCs *
@@ -893,6 +897,13 @@ C#define OFFLINE 1
       rpools(CR) = 0.d0
 
       Rmaintp =  Resp_froot + Resp_fol + Resp_sw + Resp_lab
+
+#ifdef DEBUG
+      write(206,*) cpools(FOL),cpools(SW),cpools(HW),cpools(FR)
+     &     ,cpools(CR)
+      write(204,*) Rd*umols_to_kgCs, rpools(FOL),rpools(SW),rpools(HW)
+     &     ,rpools(FR),rpools(CR), Rmaintp,umols_to_kgCs
+#endif
 
       end function Resp_plant_maint
 !---------------------------------------------------------------------!
@@ -932,6 +943,10 @@ C#define OFFLINE 1
 !      Rgrowth = 0.d0  !Just do maintenance respiration requirement.
 
       Rauto_day = (Rmaint + Rgrowth)*s2day
+
+#ifdef DEBUG
+      write(205,*) Rmaint, Rgrowth, Rauto_day
+#endif
       
       end function Resp_plant_day
 !---------------------------------------------------------------------!
