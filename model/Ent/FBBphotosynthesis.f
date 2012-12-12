@@ -263,7 +263,7 @@ cddd        if ( Ae > 0.d0 ) write(578,*) Axxx - Ae
       !* Photosynthetic rate limited by utilization of photosynthetic products:
       !* (umol m-2 s-1)  Triosphosphate (TPU limitation for C3,
       !*                 PEP carboxylase limitation for C4.
-      if (first_call) then
+      if (pspar%first_call) then
          if (pfpar(pspar%pft)%pst.eq.C3) then
            !call Ci_Js(ca,gb,rh,IPAR,Pa,pspar,Rd, cis, Js1)
            !Js_sucrose = pspar%Vcmax/2.d0
@@ -698,7 +698,7 @@ cddd      end subroutine Ci_Js
 !@+   2) 1/rs = gs = m*A*rh/cs + b     
 !@+   3) Astot = 4000.d0*pspar%Vcmax*(ci*1e-06)  
 !@+        !4000 is CLM, Collatz had 1800. Convert ci from umol/mol to mol/mol
-!@+   Do subsitutions to eliminate cs and ci and solve for As.
+!@+   Do subsitutions to eliminate cs and ci and solve for Asnet.
 
 
       real*8,intent(in) :: ca  !Surface air CO2 concentration (umol/mol)
@@ -725,6 +725,7 @@ cddd      end subroutine Ci_Js
       Z = -pspar%b * ca * ( Rd/K2 - ca )
 
       !This section is correct to solve for Atot, solves to Anet+Rd.
+      !Easier just to add Rd to Asnet.
       !a0*Atot^2 + b0*Atot + c0 = 0
       !a0 = X
       !b0 = -2.d0*Rd*X + Y
@@ -733,7 +734,7 @@ cddd      end subroutine Ci_Js
       !Asneg = (-b0 - sqrt(b0**2.d0 - 4.d0*a0*c0))/(2*a0)
       !Astot = max(Aspos, Asneg)
 
-      Asnet = max (-Rd,
+      Asnet = max (-Rd
      &     ,(-Y + sqrt(Y**2.d0 - 4.d0*X*Z))/(2.d0*X)) !Positive root is max.
 
       end subroutine Asnet_C4
@@ -1027,6 +1028,8 @@ cddd      !!print *,'QQQQ ',A,ci
       pspar%stressH2O = stressH2O
 
       pspar%first_call = .true.
+!      pspar%As = 0.d0 !Unnecessary but zero anyway
+!      pspar%Ac = 0.d0 !Unnecessary but zero anyway
       pspar%reset_ci_cubic1 = .true.
 
       end subroutine calc_Pspar
