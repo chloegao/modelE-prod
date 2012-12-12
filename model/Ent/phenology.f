@@ -2057,7 +2057,8 @@ c      if (cop%C_lab+dC_lab-resp_turnover-resp_newgrowth.lt.0.d0) then
         if ((0.5d0*cop%C_lab + dClab_dbiomass-resp_newgrowth).lt.0.d0)
      &       then
          adj = 0.5         !Reduce turnover litter to preserve C_lab for growth.
-!         print *,'DEBUG#: adj=0.5*adj',adj !C_lab will probably go negative here, but only a short while.
+c         print *,'DEBUG#: adj=0.5*adj',adj !C_lab will probably go negative here, but only a short while.
+
         else                    !Reduce rate of turnover litter.
 c          adj = (0.5d0*cop%C_lab - dClab_dbiomass - resp_newgrowth)/
 c     &         ((1-l_fract)*(turn_leaf + turn_froot)
@@ -2101,7 +2102,6 @@ c      endif
           !- resp_growth          !Distrib resp_growth in cop%C_growth over day.
 
 #ifdef DEBUG
-        !##NK DEBUG
       write(991,*)  tacclim,cop%turnover_amp,adj
      &       ,turn_froot,turn_croot,max(0.d0,dC_froot)
      &       ,max(0.d0,dC_croot), turn_leaf,turn_hw
