@@ -214,7 +214,6 @@ cddd      endif
          if (pfpar(pspar%pft)%pst.eq.C3) then
             a1c = pspar%Vcmax
             f1c = pspar%Kc*(1.d0 + O2pres/pspar%Ko) * 1.d06/Pa !umol/mol
-            !write(778,*) 2*pspar%Gammastar * 1.d06/Pa, f1
 
             !call ci_cubic (ca,rh,gb,Pa,Rd,a1c,f1c,pspar,Axxx)
             call ci_cubic(ca,rh,gb,Pa,Rd,a1c,f1c,pspar,Ac)
@@ -223,10 +222,10 @@ cddd      endif
          else !C4 photosynthesis
             Ac = pspar%Vcmax - Rd
          endif
-        pspar%Ac = Ac
-        pspar%first_call = .false.
-      else
-        Ac = pspar%Ac
+         pspar%Ac = Ac
+         !pspar%first_call = .false. !Probably bug-prone, but reset after As
+      else 
+         Ac = pspar%Ac
       endif
 
 
@@ -263,20 +262,21 @@ cddd        if ( Ae > 0.d0 ) write(578,*) Axxx - Ae
       !* Photosynthetic rate limited by utilization of photosynthetic products:
       !* (umol m-2 s-1)  Triosphosphate (TPU limitation for C3,
       !*                 PEP carboxylase limitation for C4.
-      if (pspar%first_call) then
-         if (pfpar(pspar%pft)%pst.eq.C3) then
+      if (pfpar(pspar%pft)%pst.eq.C3) then
            !call Ci_Js(ca,gb,rh,IPAR,Pa,pspar,Rd, cis, Js1)
            !Js_sucrose = pspar%Vcmax/2.d0
-            As = pspar%Vcmax/2.d0 - Rd !?Is this double counting Rd? ##NK
+            As = pspar%Vcmax/2.d0 - Rd  !Anet
+            pspar%As = As
            !write(888,*) "As", As
-         else  !C4 photosynthesis
-           !As = 4000.d0*pspar%Vcmax*ci - Rd
+      else  !C4 photosynthesis
+            !As = 4000.d0*pspar%Vcmax*ci - Rd
+         if (pspar%first_call) then
             call Asnet_C4(ca,rh,gb,Rd,pspar,As) !This is Anet
+            pspar%As = As
+         else
+            As = pspar%As
+            pspar%first_call = .false.
          endif
-         pspar%As = As
-         pspar%first_call = .false.
-      else
-         As = pspar%As
       endif
 
       Anet = min(Ae, Ac, As)

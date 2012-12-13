@@ -1,4 +1,6 @@
+#ifdef ENT_STANDALONE_DIAG
 #define  DEBUG  1
+#endif
 
       module biophysics !canopyspitters
 !@sum Spitters (1986) canopy radiative transfer (sunlit/shaded leaves), and

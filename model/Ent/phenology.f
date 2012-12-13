@@ -3,8 +3,8 @@
 !@sum budburst/leafout, albedo change, senescence
 !@auth Y. Kim
 #ifdef ENT_STANDALONE_DIAG
-!#define PHENOLOGY_DIAG
-!#define DEBUG
+#define PHENOLOGY_DIAG
+#define DEBUG
 #endif
 
       use ent_types
@@ -1029,7 +1029,7 @@ cddd         end if
      i              ,Rauto_day_gC,C_sw,Cactive_max,C_fol,CB_d
      i              ,Cactive_old
      o              ,Cactive,C_lab,Cdead,dCrepro) 
-              cop%C_lab = C_lab !Update in litter_growth_cohort after checking do_structuralgrowth
+            cop%C_lab = C_lab !Update in litter_growth_cohort after checking do_structuralgrowth
             endif
 
          !*update Cactive_max in case there was structural growth.
@@ -1232,12 +1232,7 @@ cddd         write(901,*) "deltaC*n ", (tot_c - tot_c_old)*cop%n
 
          !*1-2) if leaves are existing, 
          !certain amount of the labile carbon is relocated into the active carbon.
-!         else if (phenostatus.ge.4.d0) then !senescing, Cactive cannot increase
-!            dCactive = -(C_fol - Cactive*ialloc*phenofactor) !reduce by dC_fol
-!            Cactive = Cactive + dCactive
-!            dC_lab = -dCactive * l_fract
          else                   !growing
-
             !Cactive_max (max. allowed pool size according to the DBH)
             !Cactive_pot (current size + daily accumulated carbon)  
             !Cactive (current size)
@@ -1245,6 +1240,7 @@ cddd         write(901,*) "deltaC*n ", (tot_c - tot_c_old)*cop%n
             Cactive_pot = min(Cactive_max,Cactive + min(C_lab, CB_d)) !only new carbon is used for growth.
 !            dCavail = min(Cactive_max, Cactive_pot) - Cactive
             dCavail = Cactive_pot - Cactive
+
             select case (AGrowthModel)
             case(1) !no storage - default
                dCactive = dCavail
@@ -1468,7 +1464,8 @@ cddd         write(901,*) "deltaC*n ", (tot_c - tot_c_old)*cop%n
       Cactive = Cactive + dCactive
 
 #ifdef DEBUG
-      write(201,'(100(1pe16.8))') Cavail,C_lab, dCactive, dCdead,dCrepro
+      write(201,'(100(1pe16.8))') Cavail,C_lab, Rauto_day
+     &     ,dCactive, dCdead,dCrepro
 #endif
 
       end subroutine growth_cpools_structural

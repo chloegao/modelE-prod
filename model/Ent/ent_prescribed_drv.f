@@ -359,14 +359,14 @@ ccc#endif
          call prescr_get_carbonplant(I0,I1,J0,J1,
      &           laidata,hdata,dbhdata,popdata,cpooldata)
 !---------------------------------------------------
-      else                      !if do_phenology_activegrowth=true or do_read_from_files
+      else  !if do_phenology_activegrowth=true or do_read_from_files
          call init_ent_laimax_geo(IM,JM,I0,I1,J0,J1,laimaxdata) !Read file
          call init_ent_hdata(IM,JM,I0,I1,J0,J1,hdata) !height
       
          !update diameter, population density, carbon plant &  crown rad
          if (.not.do_init_geo) then
-            call prescr_get_laidata(jday,hemi,I0,I1,J0,J1,laidata) !lai
-            print *,'Calling prescr_get_ent_plant'
+!            call prescr_get_laidata(jday,hemi,I0,I1,J0,J1,laidata) !lai
+            print *,'Calling prescr_get_ent_plant in ent_prescribed_drv'
             call prescr_get_ent_plant(I0,I1,J0,J1, 
      i           laidata,hdata,laimaxdata,
      o           dbhdata,popdata,craddata,cpooldata)
