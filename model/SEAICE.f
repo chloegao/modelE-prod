@@ -38,12 +38,15 @@ C**** snow/ice thermal diffusivity (Pringle et al, 2007)
       real*8, parameter :: alamdS=0.09d0, alamdT=-0.011d0
 !@param RHOS density of snow (kg/m^3)
       REAL*8, PARAMETER :: RHOS = 300.0
-!@var FLEADOC lead fraction for ocean ice (%)
+!@var FLEADOC lead fraction for ocean ice (1) for mean ice thickness of 1 m
       REAL*8, PARAMETER :: FLEADOC = 0.06d0
 !@var FLEADLK lead fraction for lakes (%)
       REAL*8, PARAMETER :: FLEADLK = 0.
 !@var FLEADMX maximum thickness for lead fraction (m)
       REAL*8, PARAMETER :: FLEADMX = 5.
+!@param BYHREF (1/m) reciprocal of scale depth for calculating open water
+!@+     fraction as a function of mean ice thickness
+      REAL*8, PARAMETER :: BYHREF = 1.1d0
 !@param BYRLS reciprocal of snow density*lambda
       REAL*8, PARAMETER :: BYRLS = 1./(RHOS*ALAMS)
 !@param MU coefficient of seawater freezing point w.r.t. salinity
@@ -676,7 +679,7 @@ c    *                     BYZICX=1./(Z1I+Z2OIX)
       REAL*8 FMSI1,FMSI2,FMSI3,FMSI4, FHSI1,FHSI2,FHSI3,FHSI4,
      &       FSSI1,FSSI2,FSSI3,FSSI4
       REAL*8 HSNOW(2),SNOWL(2),TSNW(2),HICE(LMI),SICE(LMI),MICE(LMI)
-      REAL*8 ROICEN, OPNOCN, DRSI, MSI1, MSI2xx
+      REAL*8 ROICEN, OPNOCN, DRSI, MSI1, MSI2xx, HAVG
       integer l
 
       DMIMP=0. ; DHIMP=0. ; DSIMP=0.
@@ -809,7 +812,11 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
       END IF
 
 C**** COMPRESS THE ICE HORIZONTALLY IF TOO THIN OR LEAD FRAC. TOO SMALL
-      OPNOCN=MIN(0.1d0,FLEAD*RHOI/(ROICE*(ACE1I+MSI2)))
+      HAVG = ROICE*(ACE1I+MSI2)/RHOI ! average ice thickness in meters
+      ! using exp() form to reduce wintertime open ocean heat loss in the
+      ! presence of thick ice, keeping same lead fraction at 1 m thickness
+      !OPNOCN=MIN(0.1d0,FLEAD/HAVG)
+      OPNOCN=MIN(0.1D0,FLEAD*EXP(-BYHREF*(HAVG-1D0)))
       IF ((ROICE*(ACE1I+MSI2)).gt.FLEADMX*RHOI) OPNOCN=0. ! no leads for h>mx
       IF (MSI2.LT.AC2OIM .or. ROICE.GT.1.-OPNOCN) THEN
 
@@ -867,7 +874,9 @@ C****
 
 C**** Clean up ice fraction (if rsi>(1-OPNOCN)-1d-3) => rsi=(1-OPNOCN))
       IF (ROICE.gt.0) THEN
-      OPNOCN=MIN(0.1d0,FLEAD*RHOI/(ROICE*(ACE1I+MSI2)))    ! -BYZICX)
+      HAVG = ROICE*(ACE1I+MSI2)/RHOI ! average ice thickness in meters
+      !OPNOCN=MIN(0.1d0,FLEAD/HAVG)
+      OPNOCN=MIN(0.1D0,FLEAD*EXP(-BYHREF*(HAVG-1D0)))
       IF ((ROICE*(ACE1I+MSI2)).gt.FLEADMX*RHOI) OPNOCN=0.  ! no leads for h>mx
       IF (ROICE.gt.(1.-OPNOCN)-1d-3) THEN
         ROICEN = 1.-OPNOCN
