@@ -1,6 +1,6 @@
       module ent_pfts
-!@sum Parameter sets fo Ent default supported 16 plant functional types.
-!@+   (Early successional types do not have cover and are not tested, yet).
+!@sum Ent default supported 16 vegetation types (but early succ do
+!     not have cover and are not tested, yet).
 
       !use ent_pftconst
       use ent_const
@@ -51,33 +51,6 @@
       !* 16 - crops broadleaf woody
       !SAND = 17
       !BDIRT = 18
-
-!*********************************************************************
-!* Ent PFTs
-!* 1.  evergreen broadleaf early successional (BROADEVERGRTREES1)
-!* 2.  evergreen broadleaf late successional  (BROADEVERGRTREES2)
-!* 3.  evergreen needleleaf early successional (NEEDLEEVERGRTREES1)
-!* 4.  evergreen needleleaf late successional  (NEEDLEEVERGRTREES2)
-!* 5.  cold deciduous broadleaf early successional (BROADCOLDDECIDTREES1)
-!* 6.  cold deciduous broadleaf late successional  (BROADCOLDDECIDTREES2)
-!* 7.  drought deciduous broadleaf	(BROADDRYDECIDTEE)
-!* 8.  decidous needleleaf	        (NEEDLEDECIDTREE)
-!* 9.  cold adapted shrub               (SHRUBCOLD)
-!* 10.  arid adapted shrub              (SHRUBARID)
-!* 11.  C3 grass - perennial            (GRASSC3PERENN)
-!* 12.  C4 grass - perennial            (GRASSC4PERENN)
-!* 13.  C3 grass - annual               (GRASSC3ANN)
-!* 14.  arctic C3 grass                 (GRASSC3ARCTIC)
-!* 15.  crops - C4 herbaceous           (CROPC4HERB)
-!* 16.  crops - broadleaf woody         (CROPTREE)
-
-
-!--- ever_ES_broad ever_LS_broad ever_ES_needle ever_LS_needle 
-!----cold_ES_broad cold_LS_broad drought_broad decid_needle shrub_cold 
-!----shrub_arid c3grass c4grass c3grass_ann c3grass_arctic 
-!----cropsc4 cropstree
-!----sand bdirt
-
 
       integer, parameter :: EVGRBROADEARLY = 1
       integer, parameter :: EVGRBROADLATE = 2
@@ -157,67 +130,83 @@
      ! !* 1 - evergreen broadleaf early successional
      &     pftype(1,.true.,1,-153.d0, .60d0, .29d0, 1.2d0, 8.8d0, 0.5d0, 
      &     1.8d0, 41.0d0, 40.d0, 0.2d0, 0.075d0, 1,
-     &     0.0347d0, 1.560d0, 0.0816d0, 2.306d0, 34.62d0, -0.0232d0),
+     &     0.0347d0, 1.560d0, 0.0816d0, 2.306d0, 34.62d0, -0.0232d0,
+     &     0.d0),
      ! !* 2 - evergreen broadleaf late successional
      &     pftype(1,.true.,1,-153.d0, .60d0, .29d0, 1.1d0, 9.7d0, 0.5d0, 
      &     3.0d0,41.0d0, 40.d0, 0.2d0, 0.075d0, 1,
-     &     0.0395d0, 1.560d0, 0.1017d0, 2.306d0, 55.d0, -0.016d0),
+     &     0.0395d0, 1.560d0, 0.1017d0, 2.306d0, 55.d0, -0.016d0,
+     &     0.d0),
      ! !* 3 - evergreen needleleaf early successional
      &     pftype(1,.true.,2,-153.d0, .50d0, .25d0, 0.9d0, 5.9d0, 1.2d0, 
      &     5.0d0, 42.0d0, 80.d0, 0.25d0, 0.184d0, 1,
-     &     0.0240d0, 1.899d0, 0.1470d0, 2.238d0, 27.14d0, -0.0388d0),
+     &     0.0240d0, 1.899d0, 0.1470d0, 2.238d0, 27.14d0, -0.0388d0,
+     &     0.d0),
      ! !* 4 - evergreen needleleaf late successional
      &     pftype(1,.true.,2,-153.d0, .50d0, .25d0, 0.85d0,5.9d0, 1.2d0, 
      &     5.0d0, 42.0d0, 80.d0, 0.25d0, 0.184d0, 1,
-     &     0.0450d0, 1.683d0, 0.1617d0, 2.1536d0, 39.9d0, -0.0445d0),
+     &     0.0450d0, 1.683d0, 0.1617d0, 2.1536d0, 39.9d0, -0.0445d0,
+     &     0.d0),
      ! !* 5 - cold deciduous broadleaf early successional
      &     pftype(1,.true.,1,-500.d0, .50d0, .29d0, 1.5d0,8.8d0,1.2d0, 
      &     1.2d0, 58.0d0, 50.d0, 0.2d0, 0.093d0, 2,
-     &     0.0240d0, 1.860d0, 0.1480d0, 2.411d0, 25.18d0, -0.0496d0),
+     &     0.0240d0, 1.860d0, 0.1480d0, 2.411d0, 25.18d0, -0.0496d0,
+     &     0.d0),
      ! !* 6 - cold deciduous broadleaf late successional
      &     pftype(1,.true.,1,-500.d0, .50d0, .29d0, 1.4d0, 8.8d0,0.6d0, 
      &     1.2d0, 58.0d0, 50.d0, 0.2d0, 0.093d0, 2,
-     &     0.0170d0, 1.731d0, 0.2350d0, 2.252d0, 36.8d0, -0.0540d0),
+     &     0.0170d0, 1.731d0, 0.2350d0, 2.252d0, 36.8d0, -0.0540d0,
+     &     0.d0),
      ! !* 7 - drought deciduous broadleaf
      &     pftype(1,.true.,1,-500.d0, .45d0, .22d0, 1.4d0, 8.3d0,0.5d0, 
      &     1.2d0,25.0d0, 60.d0, 0.2d0, 0.153d0, 3,
-     &     0.0296d0, 1.560d0, 0.0621d0, 2.306d0, 27.d0, -0.0232d0),
+     &     0.0296d0, 1.560d0, 0.0621d0, 2.306d0, 27.d0, -0.0232d0,
+     &     0.d0),
      ! !* 8 - deciduous needleleaf !## SLA from Reich (1997) leaf longev. 1 yr
      &     pftype(1,.true.,2,-100.d0,.55d0, .25d0, 0.9d0, 10.0d0, 0.9d0, 
      &     1.8d0, 27.0d0, 50.d0, 0.2d0, 0.2d0, 2,
-     &     0.0240d0, 1.899d0, 0.1470d0, 2.238d0, 34.d0, -0.0388d0),
+     &     0.0240d0, 1.899d0, 0.1470d0, 2.238d0, 34.d0, -0.0388d0,
+     &     0.d0),
      ! !* 9 - cold adapted shrub
      &     pftype(1,.true.,1,-153.d0,.50d0, .30d0, 1.4d0, 2.25d0, 0.6d0, 
      &     2.8d0, 5.5d0, 50.d0, 0.15d0, 1.40d0, 4,
-     &     0.0800d0, 1.000d0, 0.00001d0, 1.000d0, 0.78d0, -0.75d0),
+     &     0.0800d0, 1.000d0, 0.00001d0, 1.000d0, 0.78d0, -0.75d0,
+     &     0.d0),
      ! !* 10 - arid adapted shrub
      &     pftype(1,.true.,1,-2030.d0,.40d0,.22d0, 1.3d0, 3.25d0, 0.6d0, 
      &     1.0d0, 5.5d0, 65.d0, 0.2d0, 0.32d0, 4,
-     &     0.0800d0, 1.000d0, 0.00001d0, 1.000d0, 4.d0, -0.75d0),
+     &     0.0800d0, 1.000d0, 0.00001d0, 1.000d0, 4.d0, -0.75d0,
+     &     0.d0),
      ! !* 11 - C3 grass perennial
      &     pftype(1,.false.,3,-2030.d0,.30d0,.10d0,1.5d0, 22.d0, 1.2d0, 
      &     1.5d0, UNDEF, 50.d0, 0.1d0, 0.0d0, 4,
-     &     0.2100d0, 1.200d0, 0.00001d0, 1.000d0, 0.4778d0, -0.75d0),
+     &     0.2100d0, 1.200d0, 0.00001d0, 1.000d0, 0.4778d0, -0.75d0,
+     &     0.d0),
      ! !* 12 - C4 grass
      &     pftype(2,.false.,3,-2030.d0,.30d0,.10d0, 1.3d0,22.d0, 0.6d0, 
      &     1.5d0, UNDEF, 50.d0, 0.1d0, 0.0d0, 4,
-     &     0.0800d0, 1.000d0, 0.00001d0, 1.000d0, 0.4778d0, -0.75d0),
+     &     0.0800d0, 1.000d0, 0.00001d0, 1.000d0, 0.4778d0, -0.75d0,
+     &     0.d0),
      ! !* 13 - C3 grass - annual
      &     pftype(1,.false.,3,-2030.d0,.30d0,.1d0, 1.5d0, 22.d0, 1.2d0, !10->15  
      &     1.5d0, UNDEF, 50.d0, 0.1d0, 0.0d0, 5,
-     &     0.21d0, 1.200d0, 0.00001d0, 1.000d0, 0.4778d0, -0.75d0),
+     &     0.21d0, 1.200d0, 0.00001d0, 1.000d0, 0.4778d0, -0.75d0,
+     &     0.d0),
      ! !* 14 - arctic C3 grass
      &     pftype(1,.false.,3,-153.d0,.60d0, .27d0, 1.4d0, 20.d0, 0.6d0, 
      &     1.5d0, UNDEF, 50.d0, 0.1d0, 0.0d0, 4,
-     &     0.2100d0, 1.200d0, 0.00001d0, 1.000d0, 0.4778d0, -0.75d0),
+     &     0.2100d0, 1.200d0, 0.00001d0, 1.000d0, 0.4778d0, -0.75d0,
+     &     0.d0),
      ! !* 15 - C4 crops herbaceous
      &     pftype(2,.false., 1,-153.d0,.45d0,.27d0,1.3d0, 15.d0, 0.6d0, 
      &     1.1d0, UNDEF, 52.5d0, 0.16d0, 0.0d0, 4,
-     &     2.00d0, 1.200d0, 0.00001d0, 1.000d0, 0.4778d0, -0.75d0),
+     &     2.00d0, 1.200d0, 0.00001d0, 1.000d0, 0.4778d0, -0.75d0,
+     &     0.d0),
      ! !* 16 - crops - broadleaf woody !## COPIED FROM BROAD COLDDECID LATE ##
      &     pftype(1,.true.,1,-153.d0,.50d0, .29d0, 1.4d0, 8.3d0, 0.9d0, 
      &     1.2d0, 58.0d0, 50.d0, 0.2d0, 0.093d0, 4,
-     &     0.0170d0, 1.731d0, 0.2350d0, 2.252d0, 33.8d0, -0.045d0)
+     &     0.0170d0, 1.731d0, 0.2350d0, 2.252d0, 33.8d0, -0.045d0,
+     &     0.d0)
      &     /)
 
       !* Additional phenology and allometry parameters
@@ -350,30 +339,31 @@ c$$$     $     (/ 8.0d0, 8.0d0, 10.0d0, 10.0d0, 6.0d0 ,6.0d0, 4.0d0
 c$$$     &     ,10.d0, 1.5d0, 2.5d0, 2.0d0, 2.0d0, 2.0d0, 2.0d0
 c$$$     &     , 4.5d0, 6.0d0, 0.d0, 0.d0/)
 
-      real*8, parameter :: alamax(N_COVERTYPES) =
-      !* Matthews LAI *!
-!     $     (/ 8.0d0, 8.0d0, 10.0d0, 10.0d0, 6.0d0 ,6.0d0, 4.0d0
-!     &     ,10.d0, 1.5d0, 2.5d0, 2.0d0, 2.0d0, 2.0d0, 2.0d0
-!     &     , 4.5d0, 6.0d0, 0.d0, 0.d0/)
-!      !* Revised Matthews LAI *!
-     $     (/ 6.0d0, 6.0d0, 8.0d0, 8.0d0, 6.0d0 ,6.0d0, 4.0d0
-     &     ,6.d0, 1.5d0, 2.5d0, 2.0d0, 2.0d0, 2.0d0, 2.0d0
-     &     , 4.5d0, 6.0d0, 0.d0, 0.d0/)
-
-      real*8, parameter :: alamin(N_COVERTYPES) =
-      !* Matthews LAI *!
-c$$$     $     (/ 6.0d0, 6.0d0, 8.0d0, 8.0d0, 1.0d0, 1.0d0,	1.0d0
-c$$$     &     ,8.0d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 0.1d0, 1.0d0
-c$$$     &     ,1.0d0, 1.0d0, 0.d0, 0.d0 /)
-      !* Revised Matthews LAI *!
-     $     (/ 5.0d0, 5.0d0, 6.0d0, 6.0d0, 1.0d0, 1.0d0,	1.0d0
-     &     ,1.0d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 0.1d0, 1.0d0
-     &     ,1.0d0, 1.0d0, 0.d0, 0.d0 /)
-
-      integer, parameter :: laday(N_COVERTYPES) =
-     $     (/ 196, 196, 196, 196, 196, 196, 196
-     &     ,196, 196, 196, 196, 196, 196, 196
-     &     , 196, 196, 0, 0 /)
+!!! in the old code these arrays are defined elsewhere - commenting out I.A.
+cddd      real*8, parameter :: alamax(N_COVERTYPES) =
+cddd      !* Matthews LAI *!
+cddd!     $     (/ 8.0d0, 8.0d0, 10.0d0, 10.0d0, 6.0d0 ,6.0d0, 4.0d0
+cddd!     &     ,10.d0, 1.5d0, 2.5d0, 2.0d0, 2.0d0, 2.0d0, 2.0d0
+cddd!     &     , 4.5d0, 6.0d0, 0.d0, 0.d0/)
+cddd!      !* Revised Matthews LAI *!
+cddd     $     (/ 6.0d0, 6.0d0, 8.0d0, 8.0d0, 6.0d0 ,6.0d0, 4.0d0
+cddd     &     ,6.d0, 1.5d0, 2.5d0, 2.0d0, 2.0d0, 2.0d0, 2.0d0
+cddd     &     , 4.5d0, 6.0d0, 0.d0, 0.d0/)
+cddd
+cddd      real*8, parameter :: alamin(N_COVERTYPES) =
+cddd      !* Matthews LAI *!
+cdddc$$$     $     (/ 6.0d0, 6.0d0, 8.0d0, 8.0d0, 1.0d0, 1.0d0,	1.0d0
+cdddc$$$     &     ,8.0d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 0.1d0, 1.0d0
+cdddc$$$     &     ,1.0d0, 1.0d0, 0.d0, 0.d0 /)
+cddd      !* Revised Matthews LAI *!
+cddd     $     (/ 5.0d0, 5.0d0, 6.0d0, 6.0d0, 1.0d0, 1.0d0,	1.0d0
+cddd     &     ,1.0d0, 1.0d0, 1.0d0, 1.0d0, 1.0d0, 0.1d0, 1.0d0
+cddd     &     ,1.0d0, 1.0d0, 0.d0, 0.d0 /)
+cddd
+cddd      integer, parameter :: laday(N_COVERTYPES) =
+cddd     $     (/ 196, 196, 196, 196, 196, 196, 196
+cddd     &     ,196, 196, 196, 196, 196, 196, 196
+cddd     &     , 196, 196, 0, 0 /)
 
 
       !***************************************************
@@ -502,38 +492,6 @@ c$$$     &     ,1.0d0, 1.0d0, 0.d0, 0.d0 /)
      &     ( /N_PFT,NPOOLS-NLIVE,1/ ))
 !     &     ( /N_PFT,NPOOLS-NLIVE,N_CASA_LAYERS/ )
 
-      !***************************************************
-      !Originally in allometryfn.f
-      !wdens_g_cm3 is not calculated from wooddensity_gcm3 but is from data.
-      real*8, DIMENSION(N_PFT), parameter :: wdens_g_cm3 =
-     &     (/ 0.66d0,0.7d0,0.5d0,0.5d0,0.54d0,0.54d0,0.6d0
-     &     ,0.54d0,0.6d0,0.6d0
-     &     ,undef,undef,undef,undef,undef,0.54d0 /)
-      real*8, DIMENSION(N_PFT), parameter :: a0h = 
-     &     (/ 1.3d0,0.d0,1.3d0,0.d0,1.3d0,0.d0,0.d0,1.3d0,0.d0,0.d0
-     &     ,undef,undef,undef,undef,undef,0.d0 /)
-      real*8, DIMENSION(N_PFT), parameter :: acr =
-     &     (/ 0.1407d0,0.1407d0,0.2855d0,0.2570d0,0.3070d0,0.2773d0
-     &     ,0.3868d0,0.3046d0,0.500d0,0.500d0
-     &     ,undef,undef,undef,undef,undef,0.3237d0 /)
-      real*8, DIMENSION(N_PFT), parameter :: bcr =
-     &     (/ 1.d0,1.d0,1.d0,1.d0,1.d0,1.d0,1.d0,1.d0,1.d0,1.d0
-     &     ,undef,undef,undef,undef,undef ,1.d0 /)
-      real*8, DIMENSION(N_PFT), parameter :: bR =
-     &     (/ 1.50d0,1.50d0,2.00d0,2.00d0,1.00d0,1.00d0,0.75d0
-     &     ,2.0d0,1.0d0,1.0d0,40.0d0,40.0d0,40.0d0,40.0d0,10.0d0,1.d0 /)
-      integer, DIMENSION(N_PFT), parameter  :: form =
-     &     (/ TREE,TREE,TREE,TREE,TREE,TREE,TREE,TREE,SHRUB,SHRUB
-     &     ,HERB,HERB,HERB,HERB,HERB,TREE /)
-      real*8, DIMENSION(N_PFT), parameter  :: DBHBAmax_cm =
-     &     (/ 150.d0,150.d0,150.d0,150.d0,150.d0,150.d0,150.d0,150.d0
-     &     ,10.d0,10.d0,undef,undef,undef,undef,undef,50.d0 /)
-      logical, DIMENSION(N_PFT), parameter  :: crop =
-     &     (/ .false.,.false.,.false.,.false.,.false.,.false.
-     &     ,.false.,.false.,.false.,.false.,.false.,.false.
-     &     ,.false.,.false.,.true.,.true. /)
-
-   
       !***************************************************
 
       end module ent_pfts
