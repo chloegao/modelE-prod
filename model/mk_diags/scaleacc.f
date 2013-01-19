@@ -292,12 +292,13 @@ c
             n1_hemis = 1
           endif
           if(do_vmean) then
-            varid_vmean = -99
             status = nf_inq_varid(ofid,trim(sname_acc(k))//'_vmean',
      &           varid_vmean)
             if(status.eq.nf_noerr) then
               allocate(
      &             xout_vmean_all(size(xout_vmean)*slices_total))
+            else
+              varid_vmean = -99
             endif
             n1_vmean = 1
           endif
@@ -407,7 +408,7 @@ c
 c
 c scale/write the vertical means of this field if present
 c
-        if(do_vmean) then
+        if(do_vmean .and. varid_vmean.gt.0) then
           srt(sdim) = k
 #ifdef HIMEM
           call get_slice_real(accarr_vmean,3,
@@ -436,7 +437,7 @@ c
           n2_vmean = n1_vmean + size(xout_vmean) - 1
           xout_vmean_all(n1_vmean:n2_vmean) = xout_vmean
           n1_vmean = n2_vmean + 1
-          if(varid_vmean.gt.0 .and. slices_remaining.eq.0) then
+          if(slices_remaining.eq.0) then
             status = nf_put_var_real(ofid,varid_vmean,xout_vmean_all)
             deallocate(xout_vmean_all)
           endif
