@@ -853,7 +853,7 @@ C     FMSI4 = 0
       TRICE(:,2) = TRICE(:,2)*ROICE/ROICEN + FTRSI1(:)-FTRSI2(:)
       TRICE(:,3) = TRICE(:,3)*ROICE/ROICEN + FTRSI2(:)-FTRSI3(:)
       TRICE(:,4) = TRICE(:,4)*ROICE/ROICEN + FTRSI3(:)
-      TRSNOW(:) = TRSNOW(:)*ROICE/ROICEN
+      TRSNOW(:,:) = TRSNOW(:,:)*ROICE/ROICEN
 #endif
       MSI2 = MSI2*ROICE/ROICEN + FMSI2
 C     SNOW*ROICEN = SNOW*roice  ! snow mass (kg) is conserved
