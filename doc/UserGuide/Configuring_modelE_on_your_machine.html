@@ -1,0 +1,102 @@
+<!DOCTYPE HTML>
+<HTML lang=en>
+<HEAD>
+  <TITLE>Configuring modelE on your machine</TITLE>
+  <link rel="stylesheet" href="modele.css" type="text/css" />
+  <meta charset="UTF-8">
+</HEAD>
+<BODY>
+
+<H3>Configuring modelE on your machine</H3>
+
+<P>
+Before you start working with modelE you have to make sure that all
+necesssary software is installed on your computer. This includes a
+Fortran compiler (gfortran or intel), netcdf library, MPI library,
+Git and wget. 
+
+<P>
+On Mac OS computer you can install all this software with MacPorts
+(MacPorts have to be installed on your computer, see www.macports.org
+for instructions). The following instructions assume that you are
+going to work with gfortran 4.7 compiler:
+<pre><code>
+    sudo port -v install gcc47
+    sudo port -v install netcdf +gcc47
+    sudo port -v install netcdf-fortran +gcc47
+    sudo port -v install openmpi +gcc47
+    sudo port -v install git-core
+    sudo port -v install wget
+    sudo port select --set gcc mp-gcc47
+</code></pre>
+
+<P>
+On Linux machine you can also install these with the package manager (say,
+with <code>yum</code> on CentOS), but it is advisable to compile
+netcdf and openmpi from the source to ensure their compatibility with
+the fortran compiler you are using.
+
+<P>
+Once all necessary software is installed you can proceed to
+downloading the model source code:
+<pre><code>
+    git clone simplex.giss.nasa.gov:/giss/gitrepo/modelE.git
+</code></pre>
+Now switch to &quot;decks&quot; directory (that's where all 
+&quot;make&quot; commands
+should be executed) and execute &quot;make config&quot;:
+<pre><code>
+    cd modelE/decks
+    make config COMPILER=gfortran ModelE_Support=$HOME/ModelE_Support
+</code></pre>
+Here &quot;$HOME/ModelE_Support&quot; is a directory where you want
+modelE to store all its data (input files, administrative data, model
+output etc.). You can use a different path for it if you like. 
+The &quot;config&quot; command will create a
+&quot;ModelE_Support&quot; directory with a necessary directory tree. 
+It will also create a <code>~/.modelErc</code> config file with your
+global settings. You have to edit it to set the type of copiler and
+MPI distribution you are using and also the location of your netcdf
+and MPI libraries. For the software installed with MacPorts in the
+example above you will need to set:
+<pre><code>
+    COMPILER=gfortran
+    NETCDFHOME=/opt/local
+    MPIDISTR=openmpi
+    MPIDIR=/opt/local
+</code></pre>
+
+Your computer should now be ready to run modelE jobs, both serial and
+parallel ones.
+
+<H4>Other options</H4>
+
+<P>
+If you want to use a different compiler, i.e. Intel <code>ifort</code>
+you should set:
+<pre><code>
+    COMPILER=intel
+</code></pre>
+
+<P>
+Standard installation of netcdf library assumes that the library files
+are located in $NETCDFHOME/lib and its include files are in
+$NETCDFHOME/include. If your coputer uses a different setup you can
+specify these locations explicitly by setting the variables
+<pre><code>
+    NETCDFLIBDIR
+    NETCDFINCLUDEDIR
+</code></pre>
+
+<P>
+ModelE supports the following MPI distributions: intel, openmpi,
+mpich2, mvapich2, SCALI. Set MPIDISTR variable to the name of the
+distribution you are using. For example if you are using Intel MPI
+set: 
+<pre><code>
+    MPIDISTR=intel
+</code></pre>
+
+
+</BODY>
+</HTML>
