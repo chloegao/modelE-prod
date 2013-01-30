@@ -1,0 +1,30 @@
+<!DOCTYPE HTML>
+<HTML lang=en>
+<HEAD>
+  <TITLE>Creating a rundeck</TITLE>
+  <link rel="stylesheet" href="modele.css" type="text/css" />
+  <meta charset="UTF-8">
+</HEAD>
+<BODY>
+
+<H3>Creating a rundeck</H3>
+
+<P>
+Each modelE run is completely described by a configuration file 
+which we call a &quot;rundeck&quot;. 
+<P>
+A rundeck can be created by copying an existing rundeck to a file with
+a different name and then modifying it. One can also create a typical
+rundeck for a particular configuration from one of the provided
+templates (files modelE/templates/*.R). To create a rundeck from a
+template just execute
+<pre>
+    make rundeck RUN=&lt;RunID&gt; RUNSRC=&lt;Template&gt;
+</pre>
+where <code>&lt;RunID&gt;</code> is the name of the new rundeck and 
+<code>&lt;Template&gt;</code> is the name of a template (both
+without <code>.R</code>).
+<P>
+See next chapter for a detailed description of modelE rundeck.
+</BODY>
+</HTML>
