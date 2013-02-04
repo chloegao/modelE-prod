@@ -820,7 +820,6 @@ C**** COMPRESS THE ICE HORIZONTALLY IF TOO THIN OR LEAD FRAC. TOO SMALL
       IF ((ROICE*(ACE1I+MSI2)).gt.FLEADMX*RHOI) OPNOCN=0. ! no leads for h>mx
       IF (MSI2.LT.AC2OIM .or. ROICE.GT.1.-OPNOCN) THEN
 
-
 C**** separate out snow and ice components
       call get_snow_ice_layer(SNOW,MSI2,HSIL,SSIL,
 #ifdef TRACERS_WATER
@@ -861,7 +860,14 @@ C     SNOW*ROICEN = SNOW*roice  ! snow mass (kg) is conserved
       HSNOW(:) = HSNOW(:)*ROICE/ROICEN
       ROICE = ROICEN
 
-C**** reconsitute snow and ice layers
+C**** relayer upper two layers
+        call relayer_12(HSNOW,HICE,SICE,MICE,SNOWL
+#ifdef TRACERS_WATER
+     *       ,TRSNOW,TRICE 
+#endif 
+     *       )
+
+C**** reconstitute snow and ice layers
       call set_snow_ice_layer(HSNOW,HICE,SICE,MICE,SNOWL,
 #ifdef TRACERS_WATER
      *       TRSNOW,TRICE,TRSIL, 
@@ -894,7 +900,7 @@ C**** Clean up ice fraction (if rsi>(1-OPNOCN)-1d-3) => rsi=(1-OPNOCN))
         MSI2=MSI2-FMSI4         ! new ice mass of second physical layer
         FRI(1:2)=XSI(1:2)*ACE1I/(ACE1I+MSI2)
         FRI(3:4)=XSI(3:4)*MSI2/(ACE1I+MSI2)
-
+        
 C**** separate out snow and ice components
         call get_snow_ice_layer(SNOW,MSI2,HSIL,SSIL,
 #ifdef TRACERS_WATER
