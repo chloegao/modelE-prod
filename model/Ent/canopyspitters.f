@@ -13,6 +13,7 @@
       use ent_pfts
       use photcondmod, only : pscondleaf, ciMIN
       use FarquharBBpspar
+      use respiration_autotrophic
       use ent_debug_mod, only : ent_d
 
       implicit none
@@ -64,7 +65,8 @@
       use ent_const
       use ent_types
       use FarquharBBpspar !pspartype, psdrvtype
-      use photcondmod, only : biophysdrv_setup, calc_Pspar, Rdark
+      use photcondmod, only : biophysdrv_setup, calc_Pspar, pspar
+      use respiration_autotrophic, only : Rdark
       use patches, only : patch_print
 !      use physutil, only:  QSAT
 
@@ -242,13 +244,13 @@
           else !(IPAR*4.05.lt.LOW_LIGHT_LIMIT)) then
              TRANS_SW = 0.d0
           endif
-          Rd = Rdark()*cop%LAI !NYK !KIM-was originally setting it to 0.d0
+          Rd = Rdark(pspar%Vcmax)*cop%LAI 
        endif
         !* Update cohort respiration components, NPP, C_lab
         !## Rd should be removed from pscondleaf, only need total photosynthesis to calculate it.
        call Respauto_NPP_Clabile(dtsec, TcanK,TsoilK,
-     &       pp%cellptr%airtemp_10d+KELVIN,
-     &       pp%cellptr%soiltemp_10d+KELVIN, Rd, cop)
+     &      pp%cellptr%airtemp_10d+KELVIN,
+     &      pp%cellptr%soiltemp_10d+KELVIN, Rd, cop)
 
 !        call Allocate_NPP_to_labile(dtsec, cop)
 
@@ -687,12 +689,11 @@
 !      cop%C_lab = cop%C_lab + 1000.d0*cop%NPP*dtsec/cop%n !(g-C/individual)
 !
 !      end subroutine Allocate_NPP_to_labile
-!################# AUTOTROPHIC RESPIRATION ######################################
-        subroutine Respauto_NPP_Clabile(dtsec,TcanopyK,TsoilK,
+
+      subroutine Respauto_NPP_Clabile(dtsec,TcanopyK,TsoilK,
      &     TairK_10d, TsoilK_10d, Rd, cop)
-!@sum Autotrophic respiration, NPP, C_lab
-!@sum - updates cohort respiration,NPP,C_lab
-!@sum Returns kg-C/m^2/s
+!@sum Updates cohort-level autotrophic respiration, NPP, and C_lab
+!@sum (All in kg-C/m^2/s)
 !@auth N.Y.Kiang
 !@+   Note:  This does not check for C_lab going negative, because
 !@+   the phenology/growth module compensates on a daily basis
@@ -703,6 +704,7 @@
 !@+    Resp_cpool_maint(cop%pft,0.0714d0*cop%C_sw, !Sapwood - 330 C:N from CLM, factor 0.5/7=0.0714 relative to foliage from Ruimy et al (1996); 58 from Tatarinov & Cienciala (2006) BIOME-BGC pine live wood range 42-73.5 kg-C/kg-N; 
 
       use photcondmod, only:  frost_hardiness
+      use respiration_autotrophic
       implicit none
       real*8,intent(in) :: dtsec
       real*8,intent(in) :: TcanopyK
@@ -712,8 +714,8 @@
       real*8,intent(in) :: Rd !umol m-2 s-1 Calculated at leaf level in photosynthesis module.
       type(cohort),pointer :: cop
       !----Local-----
-      real*8 :: Resp_fol, Resp_sw, Resp_lab, Resp_root, Resp_maint
-      real*8 ::Resp_growth, C2N, Resp_growth_1
+      real*8 :: Resp_fol, Resp_sw, Resp_lab, Resp_froot, Resp_maint
+      real*8 :: Resp_growth, C2N, Resp_growth_1
       real*8 :: facclim
       real*8 :: umols_to_kgCm2s
 !      real*8 :: Rauto, adj
@@ -732,10 +734,10 @@
      &     100.d0,TcanopyK,TairK_10d, facclim) 
       Resp_lab = 0.d0           !kg-C/m2/s - Storage - NON-RESPIRING
       !* Assume fine root C:N same as foliage C:N
-      Resp_root = umols_to_kgCm2s * Resp_cpool_maint(
+      Resp_froot = umols_to_kgCm2s * Resp_cpool_maint(
      &     cop%pft,cop%C_froot,C2N,TsoilK,TsoilK_10d,facclim) 
 
-      Resp_maint = Resp_root + Resp_fol + Resp_sw + Resp_lab
+      Resp_maint = Resp_froot + Resp_fol + Resp_sw + Resp_lab
 !     &       Canopy_resp(vegpar%Ntot, TcanopyC+KELVIN))
 
       !* Growth respiration from biomass tissue growth.
@@ -769,7 +771,7 @@
 
       !* Update cop respiration, NPP, C_lab.
       cop%R_auto =  Resp_maint + Resp_growth + Resp_growth_1
-      cop%R_root = Resp_root
+      cop%R_root = Resp_froot
       cop%NPP = cop%GPP - cop%R_auto !kg-C/m2-ground/s
       cop%C_lab = cop%C_lab + 1000.d0*cop%NPP*dtsec/cop%n !(g-C/individual)
 
@@ -777,7 +779,7 @@
         ent_d%Resp_fol(cop%pft) = Resp_fol
         ent_d%Resp_sw(cop%pft) = Resp_sw
         ent_d%Resp_lab(cop%pft) = Resp_lab
-        ent_d%Resp_root(cop%pft) = Resp_root
+        ent_d%Resp_root(cop%pft) = Resp_froot
         ent_d%Resp_maint(cop%pft) = Resp_maint
         ent_d%Resp_growth_1(cop%pft) = Resp_growth_1
         ent_d%Resp_growth(cop%pft) = Resp_growth
@@ -785,219 +787,11 @@
 C#define OFFLINE 1
 #ifdef OFFLINE
       write(998,*) cop%C_lab,cop%GPP,cop%NPP,Resp_fol,Resp_sw,Resp_lab,
-     &     Resp_root,Resp_maint,Resp_growth, Resp_growth_1
+     &     Resp_froot,Resp_maint,Resp_growth, Resp_growth_1
 !      write(997,*) cop%C_fol,cop%C_froot,cop%C_sw,cop%C_hw,cop%C_croot
 #endif
 
       end subroutine Respauto_NPP_Clabile
-
-!---------------------------------------------------------------------!
-      real*8 function Resp_cpool_maint(pft,C,CN,T_k,T_k_10d,facclim) 
-     &     Result(R_maint)
-!@sum Maintenance respiration for a plant carbon pool of size C (umol/plant/s)
-!@+   Based on biomass amount (total N in pool). From CLM3.0.
-!@auth N.Y.Kiang
-      !C3 vs. C4:  Byrd et al. (1992) showed no difference in maintenance
-      ! respiration costs between C3 and C4 leaves in a lab growth study.
-      ! Also, maintenance (dark) respiration showed no relation to
-      ! leaf nitrogen content (assimilation and growth respiration did 
-      ! respond to leaf N content). In lab conditions, leaf dark respiration
-      ! was about 1 umol-CO2 m-2 s-1 for an N range of ~70 to 155 mmol-N m-2.
-! Re CLM parameters: 
-!       CLM calculates this per individual*population/area_fraction
-!       to give flux per area of pft cover rather than per ground area.
-
-!Other versions:
-!        !*Original CASA *!
-!     &       exp(308.56d0*(1/56.02d0 - (1/(T_k-227.13d0)))) * 
-!     &       ugBiomass_per_gC/ugBiomass_per_umolCO2
-!        !*Acclimation vertical shift*! 56.02 = 10+273.15-227.13.  76.02 = 30+273.15-227.13.
-!        !*Acclimation horizontal shift.
-!     &       exp(308.56d0*                                     
-!     &       (1/56.02d0 
-!     &       - (1/(T_k-min(30.d0,max(10.d0,T_k_10d))+10.d0-227.13d0))))
-!     &       * ugBiomass_per_gC/ugBiomass_per_umolCO2
-
-      implicit none
-      integer :: pft            !Plant functional type.
-      real*8 :: C               !g-C/individual 
-                                !Can be leaf, stem, or root pools.
-      real*8 :: CN              !C:N ratio of the respective pool
-      real*8 :: T_k             !Temperature of canopy (Kelvin)
-      real*8 :: T_k_10d         !Temperature of air 10-day average (Kelvin)
-                                !  Should be canopy temp, but 10-day avg. okay.
-      real*8 :: facclim         !frost-hardiness stress factor
-
-      !---Local-------
-      real*8,parameter :: k_CLM = 6.34d-07 !(s-1) rate from CLM.
-      real*8,parameter :: ugBiomass_per_gC = 2.d6
-      real*8,parameter :: ugBiomass_per_umolCO2 = 28.5
-!      real*8 :: k_pft !Factor for different PFT respiration rates.
-
-!      if (pfpar(pft)%leaftype.eq.NEEDLELEAF) then
-!        k_pft = 2.d0
-!      else
-!        k_pft = 1.d0
-!      endif
-
-      if (T_k>228.15d0) then    ! set to cut-off at 45 deg C 
-        R_maint = facclim * pfpar(pft)%r * k_CLM * (C/CN) * 
-     &       exp(308.56d0*                                     
-     &       (1/min(max(56.02d0,T_k_10d-227.13d0),76.02d0)
-     &       - (1/(T_k-227.13d0))))
-     &       * ugBiomass_per_gC/ugBiomass_per_umolCO2
-      else 
-         R_maint = 0.d0
-      endif
-
-      end function Resp_cpool_maint
-!---------------------------------------------------------------------!
-      real*8 function Resp_plant_maint(pft,cpools,TcanopyK,TsoilK,
-     &     TairK_10d, TsoilK_10d, facclim, rpools) Result(Rmaintp)
-!@sum (kgC/s/plant) Maintenance respiration of a plant.
-!@auth N.Y.Kiang
-      !Sapwood:   330 C:N mass ratio from CLM, 
-      !   factor 0.5/7=0.0714 relative to foliage from Ruimy et al (1996);
-      !    58 from Tatarinov & Cienciala (2006) BIOME-BGC pine live wood,
-      !        range 42-73.5 kg-C/kg-N
-
-      use photcondmod, only : Rdark
-      implicit none
-      integer,intent(in) :: pft
-      real*8 :: cpools(N_BPOOLS) !plant carbon pools (gC)
-      real*8,intent(in) :: TcanopyK
-      real*8,intent(in) :: TsoilK
-      real*8,intent(in) :: TairK_10d
-      real*8,intent(in) :: TsoilK_10d
-      real*8,intent(in) :: facclim
-      real*8 :: rpools(N_BPOOLS) !plant respiration by pools (kgC/s/plant)
-      !---Local---
-      real*8 :: Rd
-      real*8 :: Resp_fol, Resp_sw, Resp_lab, Resp_froot
-      real*8 :: C2N
-      real*8,parameter :: umols_to_kgCs = 0.012d-6
-
-      C2N = 1/(pftpar(pft)%Nleaf*.001d0*pfpar(pft)%SLA)
-      Rd = Rdark()*cpools(FOL)*(pfpar(pft)%SLA*.001d0) !Rd*LA
-
-      !* Maintenance respiration - leaf + sapwood + storage
-      Resp_fol = umols_to_kgCs *
-     &     (Rd + Resp_cpool_maint(pft, cpools(FOL),C2N,
-     &     TcanopyK, TairK_10d,facclim)) !Foliage
-      Resp_sw = umols_to_kgCs *
-     &     Resp_cpool_maint(pft,cpools(SW), 
-     &     330.d0,TcanopyK,TairK_10d,facclim) 
-      Resp_lab = 0.d0           !kg-C/m2/s - Storage - NON-RESPIRING
-      !* Assume fine root C:N same as foliage C:N
-      Resp_froot = umols_to_kgCs * Resp_cpool_maint(pft
-     &     ,cpools(FR),C2N,TsoilK,TsoilK_10d,facclim) 
-
-      rpools(FOL) = Resp_fol
-      rpools(SW) = Resp_sw
-      rpools(HW) = 0.d0
-      rpools(FR) = Resp_froot
-      rpools(CR) = 0.d0
-
-      Rmaintp =  Resp_froot + Resp_fol + Resp_sw + Resp_lab
-
-#ifdef DEBUG
-      write(206,*) cpools(FOL),cpools(SW),cpools(HW),cpools(FR)
-     &     ,cpools(CR)
-      write(204,*) Rd*umols_to_kgCs, rpools(FOL),rpools(SW),rpools(HW)
-     &     ,rpools(FR),rpools(CR), Rmaintp,umols_to_kgCs
-#endif
-
-      end function Resp_plant_maint
-!---------------------------------------------------------------------!
-
-      real*8 function Resp_plant_day(pft,cpools,TcanopyK,TsoilK,
-     &     TairK_10d, TsoilK_10d,facclim) Result(Rauto_day)
-!@sum (kgC/day/plant) Estimate of total respiration required by
-!@+    a plant for one day, excluding tissue growth respiration.
-!@auth N.Y.Kiang
-      !  Commented out, because estimate too big:
-      !  Light growth respiration is estimated based on GPP at half Vcmax
-      !  over the whole day (accounts for tundra plants getting 24-hr light).
-      use photcondmod, only : Rdark, pspar
-      implicit none
-      integer,intent(in) :: pft
-      real*8 :: cpools(N_BPOOLS) !plant carbon pools (gC)
-      real*8,intent(in) :: TcanopyK
-      real*8,intent(in) :: TsoilK
-      real*8,intent(in) :: TairK_10d
-      real*8,intent(in) :: TsoilK_10d
-      real*8,intent(in) :: facclim
-      !---Local----
-      real*8 :: Rpools(N_BPOOLS) !plant respiration by pools (kgC/s/plant)
-      real*8 :: Rmaint
-      real*8 :: Rgrowth
-      real*8 :: GPPplant !plant GPP (kgC/s/plant)
-      real*8 :: LAplant
-      real*8, parameter :: s2day = 24.d0*60.d0*60.d0
-
-      Rmaint = Resp_plant_maint(pft,cpools,TcanopyK,TsoilK,
-     &     TairK_10d, TsoilK_10d,facclim, Rpools)
-
-!      LAplant = cpools(FOL)*1.d-3*pfpar(pft)%sla !1d-3*gC*m2/kgC = m2
-!      GPPplant = facclim*0.5d0*pspar%Vcmax *0.012D-6*LAplant !kgC/s/plant
-!      Rgrowth = 0.012D-6*Rdark()*LAplant + 
-!     &     Resp_can_growth(pft,GPPplant,Rmaint,0.d0)
-!      Rgrowth = 0.d0  !Just do maintenance respiration requirement.
-
-      Rauto_day = (Rmaint + Rgrowth)*s2day
-
-#ifdef DEBUG
-      write(205,*) Rmaint, Rgrowth, Rauto_day
-#endif
-      
-      end function Resp_plant_day
-!---------------------------------------------------------------------!
-
-      real*8 function Resp_root(Tcelsius,froot_kgCm2) Result(Rootresp)
-!@sum Frootresp = fine root respiration (kgC/s/m2)
-!@+   NOT USED.
-      !From ED model.  Not used.
-      real*8 :: Tcelsius, froot_kgCm2
-      
-      Rootresp = OptCurve(Tcelsius,1.0d0,3000.d0) * froot_kgCm2/SECPY
-     &     /((1.d0 + exp(0.4d0*(5.0d0-Tcelsius)))
-     &     *(1.d0 + exp(0.4d0*(Tcelsius-45.d0))))
-
-      end function Resp_root
-!---------------------------------------------------------------------!
-
-      real*8 function OptCurve(Tcelsius,x,y) Result(OptCurveResult)
-!@sum Optimum curve, where OptCurveResult=x at 15 Celsius.
-      !From ED model.
-      real*8 :: Tcelsius, x, y
-      
-      OptCurveResult = x * exp(y*(1/288.15d0 - 1/(Tcelsius+KELVIN)))
-      end function OptCurve
-
-!---------------------------------------------------------------------!
-      real*8 function Resp_can_growth(pft,Acan,Rmaint,Rtgrowth) 
-     &     Result(R_growth)
-!@sum Growth (light) respiration (units as input for Acan and Rmaint).
-!@auth N.Y.Kiang
-      !Based on photosynthetic activity. See Amthor (2000) review of
-      ! Mcree - de Wit - Penning de Vries - Thornley respiration paradigms.
-      ! See also Ruimy et al. (1996) analysis of growth_r.
-      !Fixed to min 0.d0 like ED2. - NYK
-      integer :: pft
-      real*8 :: Acan !Canopy photosynthesis rate (mass/m2/s)(or any units)
-      real*8 :: Rmaint !Canopy maintenance respiration rate (mass/m2/s)
-      real*8 :: Rtgrowth !Growth respiration from tissue growth (mass/m2/s)
-      real*8 :: growth_r !pft-dependent. E.g.CLM3.0-0.25, ED2 conifer-0.53, ED2 hw-0.33
-
-!      if (pfpar(pft)%leaftype.eq.NEEDLELEAF) then
-      if (pfpar(pft)%woody) then
-        growth_r = 0.40d0 !Default 0.4d0, Amthor (2000) range 0.39-0.77
-      else
-        growth_r = 0.28d0       !0.28 Value from Ruimy et al. (1996)
-      endif
-
-      R_growth = max(0.d0, growth_r*(Acan - Rmaint) - Rtgrowth)
-      end function Resp_can_growth
 
 !################# RADIATIVE TRANSFER ######################################
       subroutine canopy_rad_setup(

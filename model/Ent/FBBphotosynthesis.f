@@ -24,7 +24,7 @@
       save
 
       public init_ci, pscondleaf, biophysdrv_setup,calc_Pspar,ciMIN
-     &     ,Rdark !,fbb_night
+      !,fbb_night
       public frost_hardiness, par_phenology
       public photosynthpar, pspar
 
@@ -152,6 +152,7 @@ cddd      endif
 !@+   Outputs gs, Atot, Rd. May output also other VOC fluxes.
 !@auth  N.Y.Kiang, I.Aleinov
       use ent_pfts, only : pfpar
+      use respiration_autotrophic, only : Rdark
       implicit none
       integer,intent(in) :: pft !Plant functional type, 1-C3 grassland
       real*8,intent(in) :: IPAR !Absorbed PAR.  WRONG OLD COMMENT:Incident PAR (umol m-2 s-1) 
@@ -188,8 +189,7 @@ cddd      endif
 
       !write(888,*) "counter=", counter
 
-!      Rd = Respveg(pspar%Nleaf,Tl)  !Old F&K Respveg is not only leaf respir.
-      Rd = 0.015d0 * pspar%Vcmax    !von Caemmerer book.
+      Rd = Rdark(pspar%Vcmax)
 
 
       if ( IPAR < .000001d0 ) then
@@ -487,15 +487,6 @@ c      Rd = Nleaf * exp(18.72d0 - 46390.d0/(Rgas*(Tl+Kelvin)))
 c
 c!      Rd = exp(pftpar(p)%Rdc - pftpar(p)%RdH/(Rgas*(Tl+Kelvin))) !Harley&Tenhunen, 1991
 c      end function Respveg
-!-----------------------------------------------------------------------------
-      real*8 function Rdark()
-!@sum Rdark  Leaf dark respiration, Rd (umol m-2_leaf s-1)
-!@+   From S. von Caemmerer (2000) Biochemical Models of Leaf Photosynthesis,
-!@+   CSIRO book.
-
-      Rdark = 0.015d0 * pspar%Vcmax !von Caemmerer book.
-      
-      end function Rdark
 !-----------------------------------------------------------------------------
 
       function calc_CO2compp(O2,Kc,Ko,Tl) Result(Gammastar)

@@ -766,7 +766,7 @@
       use cohorts, only : cohort_carbon
       use patches, only : patch_carbon
       use photcondmod, only :  frost_hardiness
-      use biophysics, only : Resp_plant_day
+      use respiration_autotrophic, only : Resp_plant_day
       implicit none
       type(ent_config) :: config 
       type(patch),pointer :: pp 

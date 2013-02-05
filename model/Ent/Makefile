@@ -12,7 +12,7 @@ ent_prescribed_drv_geo.f  # needed for lsm_standalone
 FSRCS += ent_mod.f ent.f \
 cohorts.f patches.f entcells.f \
 canopyradiation.f \
-allometryfn.f reproduction.f phenology.f \
+allometryfn.f reproduction.f phenology.f respiration_auto.f \
 disturbance.f soilbgc.f ent_const.f \
 ent_types.f ent_prescr_veg.f ent_prescribed_updates.f \
 ent_debug.f
