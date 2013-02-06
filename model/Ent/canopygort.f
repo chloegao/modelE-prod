@@ -15,12 +15,11 @@
       use photcondmod, only : pscondleaf, ciMIN
       use canopyrad, only : get_canopy_rad
       use FarquharBBpspar
+      use respauto_physio
 
       implicit none
       
       public photosynth_cond !This is interface for Ent.
-      public Resp_can_growth
-      !public canopyfluxes
 
 !      real*8,parameter :: pi = 3.1415926535897932d0 !@param pi    pi
 !      real*8,parameter :: EPS=1.d-8   !Small, to prevent div zero.
@@ -43,8 +42,9 @@
       use ent_types
       use FarquharBBpspar !pspartype, psdrvtype
       use photcondmod, only : biophysdrv_setup, calc_Pspar, Rdark
+      use respauto_physio, only : water_stress3
       use patches, only : patch_print
-
+      use physutil, only : QSAT
       implicit none
 
       real*8, intent(in) :: dtsec
@@ -348,117 +348,6 @@
 !#endif
       end subroutine canopyfluxes
 
-!---------------------------------------------------------------------!
-      function water_stress(nlayers, soilmp, fracroot, fice,
-     &     hwilt, betadl) Result(betad)
-!@sum Rosensweig & Abramopoulos (1997) plant water stress function.
-
-      implicit none
-      integer,intent(in) :: nlayers !Number of soil layers
-      real*8,intent(in) ::  soilmp(:) !Soil matric potential (m)
-      real*8,intent(in) :: fracroot(:) !Fraction of roots in layer
-      real*8,intent(in) :: fice(:)  !Fraction of ice in layer
-      real*8,intent(in) :: hwilt  !Wilting point of pft, matric pot. (m)
-      real*8,intent(out) :: betadl(:) !Water stress in layers
-      real*8 :: betad !Stress value, 0-1, 1=no stress
-      !---Local-----------
-      integer :: k
-      
-      betad = 0.d0
-      do k = 1,nlayers
-        betadl(k) = (1.d0-fice(k))*fracroot(k)
-!     &       *max((hwilt-soilmp(k))/hwilt,0.d0) !R&A original
-     &       *min(1.d0,max((hwilt-soilmp(k))/(hwilt + 25.d0),0.d0))  !With unstressed range to h=-25 m.
-        betad = betad + betadl(k) 
-      end do
-      if (betad < EPS2) betad=0.d0
-
-      end function water_stress
-
-!----------------------------------------------------------------------!
-      function water_stress2(pft, nlayers, thetas, thetasat, thetamin, 
-     &     fracroot, fice, betadl) Result(betad)
-!@sum Rodriguez-Iturbe et al. (2001) water stress function.
-!@+   Version if input is volumetric soil water content.
-!@auth N.Y.Kiang
-      !  thetasat = watsat = 0.489d0 - 0.00126d0*sandfrac  !From soilbgc.f
-
-      implicit none
-      integer,intent(in) :: pft  !Plant functional type number.
-      integer,intent(in) :: nlayers !Number of soil layers
-      real*8,intent(in) ::  thetas(:) !Soil vol. water (vol.water/vol.soil)
-      real*8,intent(in) :: thetasat  !Saturated soil water (vol.water/vol.soil)
-                                !Equals porosity
-      real*8,intent(in) :: thetamin !Hygroscopic H2O cont(vol.water/vol.soil)
-      real*8,intent(in) :: fracroot(:) !Fraction of roots in layer
-      real*8,intent(in) :: fice(:)  !Fraction of ice in layer
-      real*8,intent(out) :: betadl(:) !Water stress in layers
-      real*8 :: betad !Stress value, 0-1, 1=no stress, weighted by layers
-
-      !Local vars
-      integer :: k
-      real*8 :: s  !Normalized soil moisture, s=thetas/thetasat
-      real*8 :: betak  !Stress value for layer k
-
-      !2. Rodriguez-Iturbe, Laio, & Porporato (2001 set) water stress fn 
-      betad = 0.d0
-      do k = 1,nlayers
-        s = thetas(k)/thetasat
-        if (s.ge.pfpar(pft)%sstar) then
-          betak = 1.d0  !No stress
-        else if ((s.lt.pfpar(pft)%sstar).and.
-     &         (s.gt.(pfpar(pft)%swilt))) then
-          betak = (s-pfpar(pft)%swilt)/
-     &         (pfpar(pft)%sstar-pfpar(pft)%swilt) !Just linear
-        else
-          betak = 0.d0
-        end if
-        betadl(k) = (1.d0-fice(k))*fracroot(k)*betak
-        betad = betad +  (1.d0-fice(k))*fracroot(k)*betak
-      end do
-      if (betad < EPS2) betad=0.d0
-
-      end function water_stress2
-!----------------------------------------------------------------------!
-      function water_stress3(pft, nlayers, thetas, 
-     &     fracroot, fice, betadl) Result(betad)
-!@sum Rodriguez-Iturbe et al. (2001) water stress function.
-!@+   Version if input is relative soil water content (saturated fraction).
-!@auth N.Y.Kiang
-
-      implicit none
-      integer,intent(in) :: pft  !Plant functional type number.
-      integer,intent(in) :: nlayers !Number of soil layers
-      real*8,intent(in) ::  thetas(:) !Soil vol. water (vol.water/vol.soil)
-      real*8,intent(in) :: fracroot(:) !Fraction of roots in layer
-      real*8,intent(in) :: fice(:)  !Fraction of ice in layer
-      real*8,intent(out) :: betadl(:) !Water stress in layers
-      real*8 :: betad !Stress value, 0-1, 1=no stress, weighted by layers
-
-      !Local vars
-      integer :: k
-      real*8 :: s  !Normalized soil moisture, s=thetas/thetasat
-      real*8 :: betak  !Stress value for layer k
-
-      !2. Rodriguez-Iturbe, Laio, & Porporato (2001 set) water stress fn 
-      betad = 0.d0
-      do k = 1,nlayers
-        s = thetas(k)
-        if (s.ge.pfpar(pft)%sstar) then
-          betak = 1.d0  !No stress
-        else if ((s.lt.pfpar(pft)%sstar).and.
-     &         (s.gt.(pfpar(pft)%swilt))) then
-          betak = (s-pfpar(pft)%swilt)/
-     &         (pfpar(pft)%sstar-pfpar(pft)%swilt) !Just linear
-        else
-          betak = 0.d0
-        end if
-        betadl(k) = (1.d0-fice(k))*fracroot(k)*betak
-        betad = betad +  (1.d0-fice(k))*fracroot(k)*betak
-      end do
-      if (betad < EPS2) betad=0.d0
-
-      end function water_stress3
 !################## PHOTOSYNTHESIS #########################################
 
       subroutine photosynth_sunshd(
@@ -525,45 +414,7 @@
       end subroutine photosynth_sunshd
 
 !################# CANOPY CONDUCTANCE ######################################
-      function calc_Ci_canopy(Ca,Gb, Gs,Anet,LAI,IPAR) Result(ci)
-!@sum Foliage internal CO2 conc (mol mol-3) assuming diffusive flux of CO2
-!@sum is at steady-state with biochemical uptake by photosynthesis and
-!@sum that there is zero leaf boundary layer resistance (infinite gb),
-!@sum and that there is no leaf cuticular conductance of CO2.
-!@sum Full equation:  ci = ca - Anet*(1.37/gb + 1.65/gs)
-!@sum 1.37 = ratio of diffusivities of CO2 and water vapor in laminar flow
-!@sum       in the leaf boundary layer
-!@sum 1.65 = ratio of diffusivities of CO2 and water vapor in still air at
-!@sum       the leaf surface
-!@sum (Monteith, 1995;  Kiang, 2003;  Collatz 1991)
-!@sum ##### NOTE: Parameter Ball_b should actually be passed in with pspar.
-!@sum #####       Have to set up for generic pspar for different photosynthesis
-!@sum #####       routines.  (NK)
-!@+   FOR DIAGNOSTIC/TESTING, NOT USED FOR REGULAR RUNS.
 
-      implicit none
-
-      real*8,intent(in) :: ca !CO2 mole fraction at surface reference height (umol mol-1)
-      real*8,intent(in) :: Gb !Canopy boundary layer conductance of water vapor (mol m-2 s-1)
-      real*8,intent(in) :: Gs !Canopy Stomatal conductance of water vapor(mol m-2 s-1)
-      real*8,intent(in) :: Anet !Leaf net assimilation of CO2 (umol m-2 s-1)
-      real*8,intent(in) :: LAI !Leaf area index 
-      real*8,intent(in) :: IPAR !Incident PAR (umol m-2 s-1)
-      real*8 :: ci              !Leaf internal CO2 concentration (umol mol-1)
-      !----Local------
-      real*8,parameter :: MINPARMOL=50  !umol m-2 s-1
-      real*8,parameter :: Ball_b = 0.01 !mol m-2 s-1
-
-      if (IPAR.lt.MINPARMOL) then  !Stomates closed
-        ci = ca - Anet*1.37/Ball_b
-      else
-        ci = ca - Anet*(1.37/Gb + 1.65/Gs) !LAI cancels in numerator and denominator.
-      endif
-
-
-      end function calc_Ci_canopy
-
-!---------------------------------------------------------------------------
       subroutine Gs_bound(dt, LAI, Gsnew, Gsinout)  
 !@sum Gs_bound Limit rate of change of Gs (umol m-2 s-1)
 !@+   Call to this was commented out - Igor?
@@ -642,16 +493,19 @@
 
       subroutine Respauto_NPP_Clabile(dtsec,TcanopyK,TsoilK,
      &     TairK_10d, TsoilK_10d, Rd, cop)
-!@sum Autotrophic respiration, NPP, C_lab
-!@sum - updates cohort respiration,NPP,C_lab
-!@sum Returns kg-C/m^2/s
-!@sum Note:  This does not check for C_lab going negative, because
-!@sum   the phenology/growth module compensates on a daily basis
-!@sum   for negative C_lab by senescence and retranslocation.
-!@sum   For prescribed LAI, C_lab provides a measure of the imbalance between 
-!@sum   the biophysics and prescribed LAI.
-!@+   To be updated from routines in canopyspitters.f
+!@sum Updates cohort-level autotrophic respiration, NPP, and C_lab
+!@sum (All in kg-C/m^2/s)
+!@auth N.Y.Kiang
+!@+   Note:  This does not check for C_lab going negative, because
+!@+   the phenology/growth module compensates on a daily basis
+!@+   for negative C_lab by senescence and retranslocation.
+!@+   For prescribed LAI, C_lab provides a measure of the imbalance between 
+!@+   the biophysics and prescribed LAI.
+!@+   For sapwood:
+!@+    Resp_cpool_maint(cop%pft,0.0714d0*cop%C_sw, !Sapwood - 330 C:N from CLM, factor 0.5/7=0.0714 relative to foliage from Ruimy et al (1996); 58 from Tatarinov & Cienciala (2006) BIOME-BGC pine live wood range 42-73.5 kg-C/kg-N; 
+
       use photcondmod, only:  frost_hardiness
+      use respauto_physio
       implicit none
       real*8,intent(in) :: dtsec
       real*8,intent(in) :: TcanopyK
@@ -661,43 +515,42 @@
       real*8,intent(in) :: Rd !umol m-2 s-1 Calculated at leaf level in photosynthesis module.
       type(cohort),pointer :: cop
       !----Local-----
-      real*8 :: Resp_fol, Resp_sw, Resp_lab, Resp_root, Resp_maint
-      real*8 ::Resp_growth, C2N, Resp_growth_1
-      real*8 :: facclim,betad
+      real*8 :: Resp_fol, Resp_sw, Resp_lab, Resp_froot, Resp_maint
+      real*8 :: Resp_growth, C2N, Resp_growth_1
+      real*8 :: facclim
+      real*8 :: umols_to_kgCm2s
+!      real*8 :: Rauto, adj
 
+      umols_to_kgCm2s = 0.012D-6 * cop%n !Convert individ flux to canopy.
       facclim = frost_hardiness(cop%Sacclim)
-      betad = cop%stressH2O
       C2N = 1/(pftpar(cop%pft)%Nleaf*1d-3*pfpar(cop%pft)%SLA)
 
       !* Maintenance respiration - leaf + sapwood + storage
-      Resp_fol = betad*facclim*0.012D-6 !kg-C/m2/s
-     &     *(Rd*0.012d-6 + Resp_can_maint(cop%pft, cop%C_fol,C2N,
-     &     TcanopyK, TairK_10d, cop%n)) !Foliage
+      Resp_fol = umols_to_kgCm2s *
 !!     &       Canopy_resp(vegpar%Ntot, TcanopyC+KELVIN) !Foliage
-!     &     cop%LAI*1.d0!*exp(308.56d0*(1/71.02d0  - (1/(TcanopyK-227.13d0)))) !Temp factor 1 at TcanopyC=25
-!     Sapwood - 330 C:N mass ratio from CLM, factor 0.5/7=0.0714 relative to foliage from Ruimy et al (1996); 58 from Tatarinov & Cienciala (2006) BIOME-BGC pine live wood, range 42-73.5 kg-C/kg-N
-!     Sapwood - 330 C:N from CLM, factor 0.5/7=0.0714 relative to foliage from Ruimy et al (1996); 58 from Tatarinov & Cienciala (2006) BIOME-BGC pine live wood 
-      Resp_sw = betad*facclim*0.012D-6 *  !kg-C/m2/s
-!     &     Resp_can_maint(cop%pft,0.0714d0*cop%C_sw, 
-     &     Resp_can_maint(cop%pft,cop%C_sw, 
-     &     330.d0,TcanopyK,TairK_10d, cop%n) 
+     &     (Rd + Resp_cpool_maint(cop%pft, cop%C_fol,C2N,
+     &     TcanopyK, TairK_10d, facclim)) !Foliage
+      Resp_sw = umols_to_kgCm2s *
+     &     Resp_cpool_maint(cop%pft,cop%C_sw, 
+     &     100.d0,TcanopyK,TairK_10d, facclim) 
       Resp_lab = 0.d0           !kg-C/m2/s - Storage - NON-RESPIRING
       !* Assume fine root C:N same as foliage C:N
-      Resp_root = betad*facclim*0.012D-6 
-     &     * Resp_can_maint(cop%pft,cop%C_froot,
-     &     C2N,TsoilK,TsoilK_10d,cop%n) 
-      Resp_maint = Resp_root + Resp_fol + Resp_sw + Resp_lab
+      Resp_froot = umols_to_kgCm2s * Resp_cpool_maint(
+     &     cop%pft,cop%C_froot,C2N,TsoilK,TsoilK_10d,facclim) 
+
+      Resp_maint = Resp_froot + Resp_fol + Resp_sw + Resp_lab
 !     &       Canopy_resp(vegpar%Ntot, TcanopyC+KELVIN))
 
       !* Growth respiration from biomass tissue growth.
-      Resp_growth_1 = cop%C_growth/(24.d0*3600.d0) !Convert from d-1 to s-1.
-      !cop%C_growth = cop%C_growth - Resp_growth_1*dtsec 
+      !Resp_growth_1 = cop%C_growth/(24.d0*3600.d0) !Convert from d-1 to s-1.
+      Resp_growth_1 = cop%C_growth_flux
+      cop%C_growth = cop%C_growth - Resp_growth_1*dtsec 
 
       !* Growth respiration tied to GPP; compensates for tissue growth respir.
       Resp_growth = Resp_can_growth(cop%pft, 
      &     cop%GPP,Resp_maint, Resp_growth_1)
 
-      !* NK - commented out; may try this but looks unnecessary.
+      !* NK - commented out -- should be done in phenology with senescence.
       !*** Check for Rauto greater than C_labile + GPP:
       !* If Rauto > C_lab+GPP, then adjust Resp_maint and Resp_growth, but
       !* cannot adjust Resp_growth_1, because biomass growth was already
@@ -719,180 +572,29 @@
 
       !* Update cop respiration, NPP, C_lab.
       cop%R_auto =  Resp_maint + Resp_growth + Resp_growth_1
-      cop%R_root = Resp_root
+      cop%R_root = Resp_froot
       cop%NPP = cop%GPP - cop%R_auto !kg-C/m2-ground/s
       cop%C_lab = cop%C_lab + 1000.d0*cop%NPP*dtsec/cop%n !(g-C/individual)
 
-#ifdef ENT_STANDALONE_DIAG
-      write(998,*) cop%C_lab,cop%GPP,cop%NPP
-     &     ,Rd*0.012d-6, Resp_fol,Resp_sw
-     &     ,Resp_lab,Resp_root,Resp_maint,Resp_growth, Resp_growth_1
-C      write(997,*) cop%C_fol,cop%C_froot,cop%C_sw,cop%C_hw,cop%C_croot
+      !set values for debugging
+        ent_d%Resp_fol(cop%pft) = Resp_fol
+        ent_d%Resp_sw(cop%pft) = Resp_sw
+        ent_d%Resp_lab(cop%pft) = Resp_lab
+        ent_d%Resp_root(cop%pft) = Resp_froot
+        ent_d%Resp_maint(cop%pft) = Resp_maint
+        ent_d%Resp_growth_1(cop%pft) = Resp_growth_1
+        ent_d%Resp_growth(cop%pft) = Resp_growth
+
+C#define OFFLINE 1
+#ifdef OFFLINE
+      write(998,*) cop%C_lab,cop%GPP,cop%NPP,Resp_fol,Resp_sw,Resp_lab,
+     &     Resp_froot,Resp_maint,Resp_growth, Resp_growth_1
+!      write(997,*) cop%C_fol,cop%C_froot,cop%C_sw,cop%C_hw,cop%C_croot
 #endif
 
       end subroutine Respauto_NPP_Clabile
+   
 
-!---------------------------------------------------------------------!
-      real*8 function Resp_can_maint(pft,C,CN,T_k,T_k_10d,n) 
-     &     Result(R_maint)
-!@sum Canopy maintenance respiration (umol/m2-ground/s)
-!@+   To be updated from routines in canopyspitters.f
-
-      !-Based on biomass amount (total N in pool). From CLM3.0.
-      !C3 vs. C4:  Byrd et al. (1992) showed no difference in maintenance
-      ! respiration costs between C3 and C4 leaves in a lab growth study.
-      ! Also, maintenance (dark) respiration showed no relation to
-      ! leaf nitrogen content (assimilation and growth respiration did 
-      ! respond to leaf N content). In lab conditions, leaf dark respiration
-      ! was about 1 umol-CO2 m-2 s-1 for an N range of ~70 to 155 mmol-N m-2.
-      !-Incorporates temperature acclimation to 10-day average temperature
-
-      implicit none
-      integer :: pft            !Plant functional type.
-      real*8 :: C               !g-C/individual 
-                                !Can be leaf, stem, or root pools.
-      real*8 :: CN              !C:N ratio of the respective pool
-      real*8 :: T_k             !Temperature of canopy (Kelvin)
-      real*8 :: T_k_10d         !Temperature of air 10-day average (Kelvin)
-                                !  Ideally this should be canopy temp, but 10-day avg. okay.
-      real*8 :: n               !Density of individuals (no./m2)
-      !---Local-------
-      real*8,parameter :: k_CLM = 6.34d-07 !(s-1) rate from CLM.
-!      real*8,parameter :: k_Ent = 2.d0 !Correction factor to k_CLM until find where they got their k_CLM.
-      real*8,parameter :: ugBiomass_per_gC = 2.d6
-      real*8,parameter :: ugBiomass_per_umolCO2 = 28.5
-      real*8 :: Tref
-
-!      real*8 :: k_pft !Factor for different PFT respiration rates.
-
-!      if (pfpar(pft)%leaftype.eq.NEEDLELEAF) then
-!        k_pft = 2.d0
-!      else
-!        k_pft = 1.d0
-!      endif
-
-      Tref = T_k_10d
-      !Tref = 10.d0 +273.15  !Original default
-
-      if (T_k>228.15d0) then    ! set to cut-off at 45 deg C 
-        R_maint = n * pfpar(pft)%r * k_CLM * (C/CN) * !C in CLM is g-C/individual
-        !*Original CASA *!
-!     &       exp(308.56d0*(1/56.02d0 - (1/(T_k-227.13d0)))) * 
-!     &       ugBiomass_per_gC/ugBiomass_per_umolCO2
-        !*Acclimation vertical shift*! 56.02 = 10+273.15-227.13.  76.02 = 30+273.15-227.13.
-     &       exp(308.56d0*                                     
-     &       (1/min(max(56.02d0,Tref-227.13d0),76.02d0)
-     &       - (1/(T_k-227.13d0))))
-     &       * ugBiomass_per_gC/ugBiomass_per_umolCO2
-        !*Acclimation horizontal shift.
-!     &       exp(308.56d0*                                     
-!     &       (1/56.02d0 
-!     &       - (1/(T_k-min(30.d0,max(10.d0,Tref))+10.d0-227.13d0))))
-!     &       * ugBiomass_per_gC/ugBiomass_per_umolCO2
-      else 
-         R_maint = 0.d0
-      endif
-      !Note:  CLM calculates this per individual*population/area_fraction
-      !      to give flux per area of pft cover rather than per ground area.
-      end function Resp_can_maint
-!---------------------------------------------------------------------!
-      real*8 function Resp_root(Tcelsius,froot_kgCm2) Result(Rootresp)
-!@sum Frootresp = fine root respiration (kgC/s/m2)
-!@+   NOT USED.
-      !From ED model.  
-      real*8 :: Tcelsius, froot_kgCm2
-      
-      Rootresp = OptCurve(Tcelsius,1.0d0,3000.d0) * froot_kgCm2/SECPY
-     &     /((1.d0 + exp(0.4d0*(5.0d0-Tcelsius)))
-     &     *(1.d0 + exp(0.4d0*(Tcelsius-45.d0))))
-
-      end function Resp_root
-!---------------------------------------------------------------------!
-      real*8 function OptCurve(Tcelsius,x,y) Result(OptCurveResult)
-!@sum Optimum curve, where OptCurveResult=x at 15 Celsius.
-      !From ED model.
-      real*8 :: Tcelsius, x, y
-      
-      OptCurveResult = x * exp(y*(1/288.15d0 - 1/(Tcelsius+KELVIN)))
-      end function OptCurve
-
-!---------------------------------------------------------------------!
-      real*8 function Resp_can_growth(pft,Acan,Rmaint,Rtgrowth) 
-     &     Result(R_growth)
-!@sum Growth (light) respiration (units as input for Acan and Rmaint).
-!@auth N.Y.Kiang
-
-      !Based on photosynthetic activity. See Amthor (2000) review of
-      ! Mcree - de Wit - Penning de Vries - Thornley respiration paradigms.
-      ! See also Ruimy et al. (1996) analysis of growth_r.
-      !Fixed to min 0.d0 like ED2. - NYK
-      integer :: pft
-      real*8 :: Acan !Canopy photosynthesis rate (mass/m2/s)(any units)
-      real*8 :: Rmaint !Canopy maintenance respiration rate (mass/m2/s)
-      real*8 :: Rtgrowth !Growth respiration from tissue growth (mass/m2/s)
-      real*8 :: growth_r !pft-dependent. E.g.CLM3.0-0.25, ED2 conifer-0.53, ED2 hw-0.33
-
-!      if (pfpar(pft)%leaftype.eq.NEEDLELEAF) then
-      if (pfpar(pft)%woody) then
-!        growth_r = 0.4d0 !Amthor (2000) range 0.39-0.77
-        growth_r = 0.28d0       !0.28 Value from Ruimy et al. (1996)
-      else
-        growth_r = 0.28d0       !0.28 Value from Ruimy et al. (1996)
-      endif
-
-      R_growth = max(0.d0, growth_r*(Acan - Rmaint) - Rtgrowth)
-      end function Resp_can_growth
-
-!============================================================================
-      FUNCTION QSAT (TM,LH,PR)
-!@sum  QSAT calculates saturation vapour mixing ratio
-!@auth Gary Russell
-!@ver  1.0 (I think this is at least version 2.0)
-!      USE CONSTANT, only : mrat,rvap,tf
-      IMPLICIT NONE
-!@var Physical constants from GISS GCM CONST.f
-      real*8, parameter :: MWAT = 18.015d0 !molecular weight of water vapour (g/mol)
-      real*8, parameter :: MAIR = 28.9655d0 !molecular weight of dry air (28.9655 g/mol)
-      real*8, parameter :: MRAT = MWAT/MAIR 
-      real*8, parameter :: RVAP = 1d3 * GASC/MWAT !gas constant for water vapour (461.5 J/K kg)
-!@var A,B,C   expansion coefficients for QSAT
-      REAL*8, PARAMETER :: A=6.108d0*MRAT    !3.797915d0
-      REAL*8, PARAMETER :: B= 1./(RVAP*TFRZ)   !7.93252d-6
-      REAL*8, PARAMETER :: C= 1./RVAP        !2.166847d-3
-C**** Note that if LH is considered to be a function of temperature, the
-C**** correct argument in QSAT is the average LH from t=0 (C) to TM, ie.
-C**** LH = 0.5*(LH(0)+LH(t)), where LH(0)=
-      REAL*8, INTENT(IN) :: TM  !@var TM   temperature (K)
-      REAL*8, INTENT(IN) :: PR  !@var PR   air pressure (mb)
-      REAL*8, INTENT(IN) :: LH  !@var LH   lat. heat of vap./sub. (J/kg)
-      REAL*8 :: QSAT            !@var QSAT sat. vapour mixing ratio
-      QSAT = A*EXP(LH*(B-C/max(130.d0,TM)))/PR
-      RETURN
-      END FUNCTION QSAT
-!============================================================================
-!      FUNCTION QSATold (TM,QL,PR) Result(QSATcalc)
-!      implicit none
-!!@sum  QSAT calculates saturation vapour mixing ratio (kg/kg)
-!!@auth Gary Russell
-!!@ver  1.0
-!!      USE CONSTANT, only : mrat,rvap,tf
-!!      IMPLICIT NONE
-!!@var A,B,C   expansion coefficients for QSAT
-!      REAL*8, PARAMETER :: A=3.797915d0    !3.797915d0
-!      REAL*8, PARAMETER :: B=7.93252d-6    !7.93252d-6
-!      REAL*8, PARAMETER :: C=2.166847d-3         !2.166847d-3
-!      real*8 :: TM, QL, PR
-!      real*8 :: QSATcalc
-!!**** Note that if QL is considered to be a function of temperature, the
-!!**** correct argument in QSAT is the average QL from t=0 (C) to TM, ie.
-!!**** QL = 0.5*(QL(0)+QL(t))
-!!      REAL*8, INTENT(IN) :: TM  !@var TM   potential temperature (K)
-!!      REAL*8, INTENT(IN) :: PR  !@var PR   air pressure (mb)
-!!     REAL*8, INTENT(IN) :: QL  !@var QL   lat. heat of vap./sub. (J/kg)
-!!      REAL*8 :: QSAT            !@var QSAT sat. vapour mixing ratio
-!      QSATcalc = A*EXP(QL*(B-C/TM))/PR
-!
-!    END function QSATold
 !============================================================================
 
       end module biophysics !canopyspitters

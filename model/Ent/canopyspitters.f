@@ -13,13 +13,12 @@
       use ent_pfts
       use photcondmod, only : pscondleaf, ciMIN
       use FarquharBBpspar
-      use respiration_autotrophic
+!      use respauto_physio
       use ent_debug_mod, only : ent_d
 
       implicit none
       
       public photosynth_cond !This is interface for Ent.
-      public Resp_plant_day
       !public canopyfluxes
 
 !      real*8,parameter :: pi = 3.1415926535897932d0 !@param pi    pi
@@ -66,9 +65,9 @@
       use ent_types
       use FarquharBBpspar !pspartype, psdrvtype
       use photcondmod, only : biophysdrv_setup, calc_Pspar, pspar
-      use respiration_autotrophic, only : Rdark
+      use respauto_physio, only : Rdark, water_stress3
       use patches, only : patch_print
-!      use physutil, only:  QSAT
+      use physutil, only:  QSAT
 
       implicit none
 
@@ -402,117 +401,7 @@
 !#endif
       end subroutine canopyfluxes
 
-!---------------------------------------------------------------------!
-      function water_stress(nlayers, soilmp, fracroot, fice,
-     &     hwilt, betadl) Result(betad)
-!@sum Rosensweig & Abramopoulos (1997) plant water stress function.
 
-      implicit none
-      integer,intent(in) :: nlayers !Number of soil layers
-      real*8,intent(in) ::  soilmp(:) !Soil matric potential (m)
-      real*8,intent(in) :: fracroot(:) !Fraction of roots in layer
-      real*8,intent(in) :: fice(:)  !Fraction of ice in layer
-      real*8,intent(in) :: hwilt  !Wilting point of pft, matric pot. (m)
-      real*8,intent(out) :: betadl(:) !Water stress in layers
-      real*8 :: betad !Stress value, 0-1, 1=no stress
-      !---Local-----------
-      integer :: k
-      
-      betad = 0.d0
-      do k = 1,nlayers
-        betadl(k) = (1.d0-fice(k))*fracroot(k)
-!     &       *max((hwilt-soilmp(k))/hwilt,0.d0) !R&A original
-     &       *min(1.d0,max((hwilt-soilmp(k))/(hwilt + 25.d0),0.d0))  !With unstressed range to h=-25 m.
-        betad = betad + betadl(k) 
-      end do
-      if (betad < EPS2) betad=0.d0
-
-      end function water_stress
-
-!----------------------------------------------------------------------!
-      function water_stress2(pft, nlayers, thetas, thetasat, thetamin, 
-     &     fracroot, fice, betadl) Result(betad)
-!@sum Rodriguez-Iturbe et al. (2001) water stress function.
-!@+   Version if input is volumetric soil water content.
-!@auth N.Y.Kiang
-      !  thetasat = watsat = 0.489d0 - 0.00126d0*sandfrac  !From soilbgc.f
-
-      implicit none
-      integer,intent(in) :: pft  !Plant functional type number.
-      integer,intent(in) :: nlayers !Number of soil layers
-      real*8,intent(in) ::  thetas(:) !Soil vol. water (vol.water/vol.soil)
-      real*8,intent(in) :: thetasat  !Saturated soil water (vol.water/vol.soil)
-                                !Equals porosity
-      real*8,intent(in) :: thetamin !Hygroscopic H2O cont(vol.water/vol.soil)
-      real*8,intent(in) :: fracroot(:) !Fraction of roots in layer
-      real*8,intent(in) :: fice(:)  !Fraction of ice in layer
-      real*8,intent(out) :: betadl(:) !Water stress in layers
-      real*8 :: betad !Stress value, 0-1, 1=no stress, weighted by layers
-
-      !Local vars
-      integer :: k
-      real*8 :: s  !Normalized soil moisture, s=thetas/thetasat
-      real*8 :: betak  !Stress value for layer k
-
-      !2. Rodriguez-Iturbe, Laio, & Porporato (2001 set) water stress fn 
-      betad = 0.d0
-      do k = 1,nlayers
-        s = thetas(k)/thetasat
-        if (s.ge.pfpar(pft)%sstar) then
-          betak = 1.d0  !No stress
-        else if ((s.lt.pfpar(pft)%sstar).and.
-     &         (s.gt.(pfpar(pft)%swilt))) then
-          betak = (s-pfpar(pft)%swilt)/
-     &         (pfpar(pft)%sstar-pfpar(pft)%swilt) !Just linear
-        else
-          betak = 0.d0
-        end if
-        betadl(k) = (1.d0-fice(k))*fracroot(k)*betak
-        betad = betad +  (1.d0-fice(k))*fracroot(k)*betak
-      end do
-      if (betad < EPS2) betad=0.d0
-
-      end function water_stress2
-!----------------------------------------------------------------------!
-      function water_stress3(pft, nlayers, thetarel, 
-     &     fracroot, fice, betadl) Result(betad)
-!@sum Rodriguez-Iturbe et al. (2001) water stress function.
-!@+   Version if input is relative soil water content (saturated fraction).
-!@auth N.Y.Kiang
-      implicit none
-      integer,intent(in) :: pft  !Plant functional type number.
-      integer,intent(in) :: nlayers !Number of soil layers
-!      real*8,intent(in) ::  thetas(:) !Soil vol. water (vol.water/vol.soil)
-      real*8,intent(in) ::  thetarel(:) !Relative soil vol. water (vol.water/vol. saturated)
-      real*8,intent(in) :: fracroot(:) !Fraction of roots in layer
-      real*8,intent(in) :: fice(:)  !Fraction of ice in layer
-      real*8,intent(out) :: betadl(:) !Water stress in layers
-      real*8 :: betad !Stress value, 0-1, 1=no stress, weighted by layers
-
-      !Local vars
-      integer :: k
-      real*8 :: s  !Normalized soil moisture, s=thetas/thetasat
-      real*8 :: betak  !Stress value for layer k
-
-      !2. Rodriguez-Iturbe, Laio, & Porporato (2001 set) water stress fn 
-      betad = 0.d0
-      do k = 1,nlayers
-        s = thetarel(k)
-        if (s.ge.pfpar(pft)%sstar) then
-          betak = 1.d0  !No stress
-        else if ((s.lt.pfpar(pft)%sstar).and.
-     &         (s.gt.(pfpar(pft)%swilt))) then
-          betak = (s-pfpar(pft)%swilt)/
-     &         (pfpar(pft)%sstar-pfpar(pft)%swilt) !Just linear
-        else
-          betak = 0.d0
-        end if
-        betadl(k) = (1.d0-fice(k))*fracroot(k)*betak
-        betad = betad +  (1.d0-fice(k))*fracroot(k)*betak
-      end do
-      if (betad < EPS2) betad=0.d0
-
-      end function water_stress3
 !################## PHOTOSYNTHESIS #########################################
 
       subroutine photosynth_sunshd(
@@ -577,44 +466,7 @@
       end subroutine photosynth_sunshd
 
 !################# CANOPY CONDUCTANCE ######################################
-      function calc_Ci_canopy(Ca,Gb, Gs,Anet,LAI,IPAR) Result(ci)
-!@sum Foliage internal CO2 conc (mol mol-3) assuming diffusive flux of CO2
-!@sum is at steady-state with biochemical uptake by photosynthesis and
-!@sum that there is zero leaf boundary layer resistance (infinite gb),
-!@sum and that there is no leaf cuticular conductance of CO2.
-!@sum Full equation:  ci = ca - Anet*(1.37/gb + 1.65/gs)
-!@sum 1.37 = ratio of diffusivities of CO2 and water vapor in laminar flow
-!@sum       in the leaf boundary layer
-!@sum 1.65 = ratio of diffusivities of CO2 and water vapor in still air at
-!@sum       the leaf surface
-!@sum (Monteith, 1995;  Kiang, 2003;  Collatz 1991)
-!@sum ##### NOTE: Parameter Ball_b should actually be passed in with pspar.
-!@sum #####       Have to set up for generic pspar for different photosynthesis
-!@sum #####       routines.  (NK)
-!@+   FOR DIAGNOSTIC/TESTING, NOT USED FOR REGULAR RUNS.
 
-      implicit none
-
-      real*8,intent(in) :: ca !CO2 mole fraction at surface reference height (umol mol-1)
-      real*8,intent(in) :: Gb !Canopy boundary layer conductance of water vapor (mol m-2 s-1)
-      real*8,intent(in) :: Gs !Canopy Stomatal conductance of water vapor(mol m-2 s-1)
-      real*8,intent(in) :: Anet !Leaf net assimilation of CO2 (umol m-2 s-1)
-      real*8,intent(in) :: LAI !Leaf area index 
-      real*8,intent(in) :: IPAR !Incident PAR (umol m-2 s-1)
-      real*8 :: ci              !Leaf internal CO2 concentration (umol mol-1)
-      !----Local------
-      real*8,parameter :: MINPARMOL=50  !umol m-2 s-1
-      real*8,parameter :: Ball_b = 0.01 !mol m-2 s-1
-
-      if (IPAR.lt.MINPARMOL) then  !Stomates closed
-        ci = ca - Anet*1.37/Ball_b
-      else
-        ci = ca - Anet*(1.37/Gb + 1.65/Gs) !LAI cancels in numerator and denominator.
-      endif
-
-      end function calc_Ci_canopy
-
-!---------------------------------------------------------------------------
       subroutine Gs_bound(dt, LAI, Gsnew, Gsinout)  
 !@sum Gs_bound Limit rate of change of Gs (umol m-2 s-1)
 !@+   Call to this was commented out - Igor?
@@ -690,6 +542,7 @@
 !
 !      end subroutine Allocate_NPP_to_labile
 
+!########################################################################################
       subroutine Respauto_NPP_Clabile(dtsec,TcanopyK,TsoilK,
      &     TairK_10d, TsoilK_10d, Rd, cop)
 !@sum Updates cohort-level autotrophic respiration, NPP, and C_lab
@@ -704,7 +557,7 @@
 !@+    Resp_cpool_maint(cop%pft,0.0714d0*cop%C_sw, !Sapwood - 330 C:N from CLM, factor 0.5/7=0.0714 relative to foliage from Ruimy et al (1996); 58 from Tatarinov & Cienciala (2006) BIOME-BGC pine live wood range 42-73.5 kg-C/kg-N; 
 
       use photcondmod, only:  frost_hardiness
-      use respiration_autotrophic
+      use respauto_physio
       implicit none
       real*8,intent(in) :: dtsec
       real*8,intent(in) :: TcanopyK
@@ -1147,56 +1000,7 @@ C#define OFFLINE 1
       end subroutine trapzd
 
 
-!============================================================================
-      FUNCTION QSAT (TM,LH,PR)
-!@sum  QSAT calculates saturation vapour mixing ratio
-!@auth Gary Russell
-!@ver  1.0 (I think this is at least version 2.0)
-!      USE CONSTANT, only : mrat,rvap,tf
-      IMPLICIT NONE
-!@var Physical constants from GISS GCM CONST.f
-      real*8, parameter :: MWAT = 18.015d0 !molecular weight of water vapour (g/mol)
-      real*8, parameter :: MAIR = 28.9655d0 !molecular weight of dry air (28.9655 g/mol)
-      real*8, parameter :: MRAT = MWAT/MAIR 
-      real*8, parameter :: RVAP = 1d3 * GASC/MWAT !gas constant for water vapour (461.5 J/K kg)
-!@var A,B,C   expansion coefficients for QSAT
-      REAL*8, PARAMETER :: A=6.108d0*MRAT    !3.797915d0
-      REAL*8, PARAMETER :: B= 1./(RVAP*TFRZ)   !7.93252d-6
-      REAL*8, PARAMETER :: C= 1./RVAP        !2.166847d-3
-C**** Note that if LH is considered to be a function of temperature, the
-C**** correct argument in QSAT is the average LH from t=0 (C) to TM, ie.
-C**** LH = 0.5*(LH(0)+LH(t)), where LH(0)=
-      REAL*8, INTENT(IN) :: TM  !@var TM   temperature (K)
-      REAL*8, INTENT(IN) :: PR  !@var PR   air pressure (mb)
-      REAL*8, INTENT(IN) :: LH  !@var LH   lat. heat of vap./sub. (J/kg)
-      REAL*8 :: QSAT            !@var QSAT sat. vapour mixing ratio
-      QSAT = A*EXP(LH*(B-C/max(130.d0,TM)))/PR
-      RETURN
-      END FUNCTION QSAT
-!============================================================================
-!      FUNCTION QSATold (TM,QL,PR) Result(QSATcalc)
-!      implicit none
-!!@sum  QSAT calculates saturation vapour mixing ratio (kg/kg)
-!!@auth Gary Russell
-!!@ver  1.0
-!!      USE CONSTANT, only : mrat,rvap,tf
-!!      IMPLICIT NONE
-!!@var A,B,C   expansion coefficients for QSAT
-!      REAL*8, PARAMETER :: A=3.797915d0    !3.797915d0
-!      REAL*8, PARAMETER :: B=7.93252d-6    !7.93252d-6
-!      REAL*8, PARAMETER :: C=2.166847d-3         !2.166847d-3
-!      real*8 :: TM, QL, PR
-!      real*8 :: QSATcalc
-!!**** Note that if QL is considered to be a function of temperature, the
-!!**** correct argument in QSAT is the average QL from t=0 (C) to TM, ie.
-!!**** QL = 0.5*(QL(0)+QL(t))
-!!      REAL*8, INTENT(IN) :: TM  !@var TM   potential temperature (K)
-!!      REAL*8, INTENT(IN) :: PR  !@var PR   air pressure (mb)
-!!     REAL*8, INTENT(IN) :: QL  !@var QL   lat. heat of vap./sub. (J/kg)
-!!      REAL*8 :: QSAT            !@var QSAT sat. vapour mixing ratio
-!      QSATcalc = A*EXP(QL*(B-C/TM))/PR
-!
-!    END function QSATold
+
 !============================================================================
 
       end module biophysics !canopyspitters

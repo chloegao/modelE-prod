@@ -766,7 +766,7 @@
       use cohorts, only : cohort_carbon
       use patches, only : patch_carbon
       use photcondmod, only :  frost_hardiness
-      use respiration_autotrophic, only : Resp_plant_day
+      use respauto_physio, only : Resp_plant_day
       implicit none
       type(ent_config) :: config 
       type(patch),pointer :: pp 
@@ -1184,7 +1184,7 @@ cddd         write(901,*) "deltaC*n ", (tot_c - tot_c_old)*cop%n
      &     ,Rauto_day_gC,Cactive_max,Cfol_half,CB_d,C_fol,Cactive,C_lab)
 !@sum Update Cactive and C_lab, reserving fraction for Reproduction.
 !@+   This routine does NOT partition the individual active pools.
-      use biophysics, only : Resp_plant_day
+      use respauto_physio, only : Resp_plant_day
       !input variables
       integer, intent(in) :: pft
       real*8, intent(in) :: phenofactor
@@ -1965,7 +1965,6 @@ cddd         write(901,*) "deltaC*n ", (tot_c - tot_c_old)*cop%n
 
       use cohorts, only : calc_CASArootfrac 
       use photcondmod, only : frost_hardiness
-!      use biophysics, only: Resp_can_growth
       real*8,intent(in) :: dt !seconds, time since last call
       real*8,intent(in) ::C_fol_old,C_froot_old,C_hw_old,C_croot_old,
      &     C_sw_old

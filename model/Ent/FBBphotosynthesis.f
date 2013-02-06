@@ -152,7 +152,7 @@ cddd      endif
 !@+   Outputs gs, Atot, Rd. May output also other VOC fluxes.
 !@auth  N.Y.Kiang, I.Aleinov
       use ent_pfts, only : pfpar
-      use respiration_autotrophic, only : Rdark
+      use respauto_physio, only : Rdark
       implicit none
       integer,intent(in) :: pft !Plant functional type, 1-C3 grassland
       real*8,intent(in) :: IPAR !Absorbed PAR.  WRONG OLD COMMENT:Incident PAR (umol m-2 s-1) 
