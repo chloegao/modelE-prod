@@ -13,7 +13,7 @@ FSRCS += ent_mod.f ent.f \
 cohorts.f patches.f entcells.f \
 physutil.f \
 canopyradiation.f \
-allometryfn.f reproduction.f phenology.f respiration_auto.f \
+allometryfn.f reproduction.f phenology.f respauto_physio.f \
 disturbance.f soilbgc.f ent_const.f \
 ent_types.f ent_prescr_veg.f ent_prescribed_updates.f \
 ent_debug.f
