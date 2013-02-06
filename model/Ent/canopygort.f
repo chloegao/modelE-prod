@@ -15,7 +15,7 @@
       use photcondmod, only : pscondleaf, ciMIN
       use canopyrad, only : get_canopy_rad
       use FarquharBBpspar
-      use respauto_physio
+      use ent_debug_mod, only : ent_d 
 
       implicit none
       
@@ -41,8 +41,8 @@
       use ent_const
       use ent_types
       use FarquharBBpspar !pspartype, psdrvtype
-      use photcondmod, only : biophysdrv_setup, calc_Pspar, Rdark
-      use respauto_physio, only : water_stress3
+      use photcondmod, only : biophysdrv_setup, calc_Pspar,pspar
+      use respauto_physio, only : Rdark, water_stress3
       use patches, only : patch_print
       use physutil, only : QSAT
       implicit none
@@ -217,7 +217,7 @@
           cop%Ci = EPS
           cop%GPP = 0.d0
           cop%IPP = 0.d0
-          Rd = Rdark()*cop%LAI
+          Rd = Rdark(pspar%Vcmax)*cop%LAI
        endif
         !* Update cohort respiration components, NPP, C_lab
        call Respauto_NPP_Clabile(dtsec, TcanK,TsoilK,

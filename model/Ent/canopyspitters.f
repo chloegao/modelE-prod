@@ -13,7 +13,6 @@
       use ent_pfts
       use photcondmod, only : pscondleaf, ciMIN
       use FarquharBBpspar
-!      use respauto_physio
       use ent_debug_mod, only : ent_d
 
       implicit none
