@@ -11,7 +11,7 @@
 
 <P>
 Before you start working with modelE you have to make sure that all
-necesssary software is installed on your computer. This includes a
+necessary software is installed on your computer. This includes a
 Fortran compiler (gfortran or intel), netcdf library, MPI library,
 Git and wget. 
 
@@ -76,7 +76,7 @@ output etc.). You can use a different path for it if you like.
 The &quot;config&quot; command will create a
 &quot;ModelE_Support&quot; directory with a necessary directory tree. 
 It will also create a <code>~/.modelErc</code> config file with your
-global settings. You have to edit it to set the type of copiler and
+global settings. You have to edit it to set the type of compiler and
 MPI distribution you are using and also the location of your netcdf
 and MPI libraries. For the software installed with MacPorts in the
 example above you will need to set:
@@ -102,7 +102,7 @@ you should set:
 <P>
 Standard installation of netcdf library assumes that the library files
 are located in $NETCDFHOME/lib and its include files are in
-$NETCDFHOME/include. If your coputer uses a different setup you can
+$NETCDFHOME/include. If your computer uses a different setup you can
 specify these locations explicitly by setting the variables
 <pre><code>
     NETCDFLIBDIR
@@ -118,6 +118,46 @@ set:
     MPIDISTR=intel
 </code></pre>
 
+<H4>Getting it work with default yum packages on CentOS 5</H4>
+
+<P>
+You will not be able to make it work with default NetCDF package - it
+was compiled with gfortran compiler which is too old. The compilation
+will fail at the time of linking. Instead, compile NetCDF from the
+source as described in Appendix.
+
+<P>
+You can use MPI package which comes with CentOS 5. Both OpenMPI and 
+MPICH2 work, though OpenMPI would produce some warning messages during
+the execution and is less straightforward to configure. So, if you
+have to use precompiled MPI package with CentOS 5, we recommend using
+MPICH2. 
+
+<P>
+MPICH2 seems to come pre-installed on CentOS 5 machines. If not, you
+have to &quot;yum install&quot; the packages &quot;mpich2&quot; and
+&quot;mpich2-devel&quot;. MPICH2 is controlled by Linux modules, so
+before using it in a shell window you have to activate it with 
+<pre>
+    module load mpich2-x86_64
+</pre>
+(you may want to include this command into your ~/.profile or
+~.bashrc). MPICH2 uses a daemon for its communications, so one has to
+start it before starting any MPI jobs:
+<pre>
+    mpd &
+</pre>
+It has to be started only once per session, so don't put it into your
+~/.bashrc . Since information about MPICH2 is provided by a Linux
+module, you don't need to specify MPIDIR. So, variables in your
+~/.modelErc should look like
+<pre>
+    COMPILER=gfortran
+    NETCDFHOME=/opt/netcdf/3.6.3
+    MPIDISTR=mpich2
+</pre>
+Here it is assumed that you have installed your NetCDF library to
+<code>/opt/netcdf/3.6.3</code> .
 
 </BODY>
 </HTML>
