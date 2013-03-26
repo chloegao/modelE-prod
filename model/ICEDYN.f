@@ -1113,15 +1113,32 @@ c store b-grid lons/lats for interpolations
       Subroutine ICDYN_MASKS
       use DOMAIN_DECOMP_1D, only : getDomainBounds
       use DOMAIN_DECOMP_1D, only : NORTH,SOUTH,HALO_UPDATE
+      use pario, only : par_open,par_close,read_dist_data
       IMPLICIT NONE
       INTEGER :: J_0,J_1,J_0S,J_1S
-      INTEGER :: I,J,K
-
+      INTEGER :: I,J,K,fid
+      real*8, allocatable :: msk(:,:)
+      logical :: ex
 C****
 C**** Extract useful local domain parameters from ice dynamics grid
 C****
       call getDomainBounds(grid_ICDYN, J_STRT =J_0,    J_STOP =J_1,
      &     J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S )
+
+      allocate(
+     &     msk(imicdyn,grid_icdyn%j_strt_halo:grid_icdyn%j_stop_halo))
+      inquire(file='ICEDYN_MASKFAC',exist=ex)
+      if(ex) then
+        ! If this file exists, we multiply the velocity mask uvm by
+        ! its contents.  This is a way of manually restricting flow in
+        ! coastal regions where heffm=ceiling(focean) allows flow
+        ! through thin strips of land.
+        fid = par_open(grid_icdyn,'ICEDYN_MASKFAC','read')
+        call read_dist_data(grid_icdyn,fid,'mask',msk)
+        call par_close(grid_icdyn,fid)
+      endif
+
+      icedyn_processors_only: if(grid_ICDYN%have_domain) then
 
 C**** sin/cos ice-ocean turning angle
       SINWAT=SIN(OIPHI)
@@ -1187,11 +1204,22 @@ C**** Update halo of PHI for distributed memory implementation
         end do
       end do
 
+      if(ex) then
+        do j=j_0,j_1s
+          ! note: array from disk indexed w/o extra halo cells at IDL
+          uvm(2:imicdyn+1,j) = uvm(2:imicdyn+1,j)*msk(1:imicdyn,j)
+        enddo
+      endif
+
 c set cyclic conditions on eastern and western boundary
        do j=j_0,j_1S
         uvm(1,j) = uvm(nx1-1,j)
         uvm(nx1,j) = uvm(2,j)
       enddo
+
+      endif icedyn_processors_only
+
+      deallocate(msk)
 
       end subroutine ICDYN_MASKS
 
