@@ -18,7 +18,8 @@
       public entcell_print_diag
       public assign_entcell, assign_entcell_soilcarbon
       public init_simple_entcell, entcell_construct, entcell_destruct
-      public entcell_extract_pfts, entcell_carbon
+      public entcell_extract_pfts, entcell_extract_heights
+      public entcell_carbon
 
       contains
 !**************************************************************************
@@ -991,6 +992,28 @@ C NADINE - IS THIS CORRECT?
       enddo
 
       end subroutine entcell_extract_pfts
+
+ !*********************************************************************
+
+      subroutine entcell_extract_heights(ecp, h)
+!@sum return maximum height per pft
+      type(entcelltype) :: ecp
+      real*8 :: h(:)
+      !---
+      type(patch), pointer :: pp
+      type(cohort),pointer :: cop
+
+      h(:) = 0.d0
+      pp => ecp%oldest
+      do while( associated(pp) )
+        cop => pp%tallest
+        if( associated(cop) ) then
+          h(cop%pft + COVEROFFSET) = max(h(cop%pft + COVEROFFSET),cop%h)
+        endif
+        pp => pp%younger
+      enddo
+
+      end subroutine entcell_extract_heights
 
  !*********************************************************************
 

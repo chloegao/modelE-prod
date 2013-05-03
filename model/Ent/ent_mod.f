@@ -2816,6 +2816,7 @@ C NADINE
      &     canopy_height,
      &     fraction_of_vegetated_soil,
      &     vegetation_fractions,
+     &     vegetation_heights,
      &     soilresp,
      &     soilcpools,
      &     leaf_area_index,
@@ -2846,7 +2847,8 @@ C NADINE
       real*8, dimension(:), optional, intent(out) ::
      &     beta_soil_layers,
      &     albedo,
-     &     vegetation_fractions
+     &     vegetation_fractions,
+     &     vegetation_heights
       real*8, dimension(:,:,:), optional, intent(out) ::
      &     soilcpools
       !----------
@@ -2954,6 +2956,11 @@ C NADINE
      &       vegetation_fractions(:))
       endif
 
+      if ( present(vegetation_heights) ) then
+        call entcell_extract_heights(entcell%entcell,
+     &       vegetation_heights(:))
+      endif
+
       if ( present(soilcpools) ) then
         do n=1,N_CASA_LAYERS
          do p=1,PTRACE
@@ -3005,6 +3012,7 @@ C NADINE
      &     canopy_height,
      &     fraction_of_vegetated_soil,
      &     vegetation_fractions,
+     &     vegetation_heights,
      &     soilresp,
      &     soilcpools,
      &     leaf_area_index,
@@ -3035,7 +3043,8 @@ C NADINE
       real*8, dimension(:,:), optional, intent(out) ::
      &     beta_soil_layers,
      &     albedo,
-     &     vegetation_fractions
+     &     vegetation_fractions,
+     &     vegetation_heights
       real*8, dimension(:,:,:,:), optional, intent(out) ::
      &     soilcpools
       !----------
@@ -3147,6 +3156,11 @@ C NADINE
      &       vegetation_fractions(:,i1))
       endif
 
+      if ( present(vegetation_heights) ) then
+        call entcell_extract_heights(entcell(i1)%entcell,
+     &       vegetation_heights(:,i1))
+      endif
+
       if ( present(soilcpools) ) then
         do n=1,N_CASA_LAYERS
          do p=1,PTRACE
@@ -3199,6 +3213,7 @@ C NADINE
      &     canopy_height,
      &     fraction_of_vegetated_soil,
      &     vegetation_fractions,
+     &     vegetation_heights,
      &     soilresp,
      &     soilcpools,
      &     leaf_area_index,
@@ -3229,7 +3244,8 @@ C NADINE
       real*8, dimension(:,:,:), optional, intent(out) ::
      &     beta_soil_layers,
      &     albedo,
-     &     vegetation_fractions
+     &     vegetation_fractions,
+     &     vegetation_heights
       real*8, dimension(:,:,:,:,:), optional, intent(out) ::
      &     soilcpools
       !----------
@@ -3340,6 +3356,11 @@ C NADINE
       if ( present(vegetation_fractions) ) then
         call entcell_extract_pfts(entcell(i1,i2)%entcell,
      &       vegetation_fractions(:,i1,i2))
+      endif
+
+      if ( present(vegetation_heights) ) then
+        call entcell_extract_heights(entcell(i1,i2)%entcell,
+     &       vegetation_heights(:,i1,i2))
       endif
 
       if ( present(soilcpools) ) then
