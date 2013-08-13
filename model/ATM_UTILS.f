@@ -265,6 +265,10 @@ C**** Fill in polar boxes
             PEDN(LM+1:LMAX+1,I,J) = PEDNL(LM+1:LMAX+1)
             PEK (LM+1:LMAX+1,I,J) = PEDN(LM+1:LMAX+1,I,J)**KAPA
           END IF
+        END DO
+      END DO
+      DO J=J_0,J_1
+        DO I=I_0H,I_1H
           SQRTP(I,J) = SQRT(P(I,J))
         END DO
       END DO
