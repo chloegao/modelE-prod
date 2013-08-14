@@ -154,7 +154,7 @@ c
       do 30 j=1,jja
          if (depthij(i,j).le.0.) goto 32
             do 31 k=2,k33
-               if (z33(k-1) >= depthij(i,j) .and 
+               if (z33(k-1) <= depthij(i,j) .and 
      &              .z33(k) > depthij(i,j)) then
                   kij(i,j)=k-1
                   go to 32
