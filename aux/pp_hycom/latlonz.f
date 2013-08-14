@@ -269,7 +269,7 @@ c        end do
 c     end do
 CCC   TEST end
 
-c     --- Shift the first meredian to DATE line ( -179.5 degrees_east )
+c     --- Shift the first meridian to DATE line ( -179.5 degrees_east )
       sshij = cshift(sshij,iia/2,1)
       dpmixij = cshift(dpmixij,iia/2,1)
       iceij = cshift(iceij,iia/2,1)
