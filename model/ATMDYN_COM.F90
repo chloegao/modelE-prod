@@ -238,7 +238,7 @@
       Integer :: I,J,L,fid, I1,IN,J1,JN
       Logical :: QSP,QNP
       Real*8  :: MVAR
-      integer :: initial_psurf_from_topo
+      integer :: initial_psurf_from_topo=0
       real*8, dimension(:,:), allocatable :: expz,aexpz
       real*8 :: aexpz_sum
 
