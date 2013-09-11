@@ -418,17 +418,17 @@ c manage the reading/writing of timing information. could be done better
           if(pname(1:5).eq.'EMPTY') exit
           select case(ptype)
           case ('i')
-            call get_param(pname,pvali,plen)
+            call get_param(pname,pvali,plen,update_access_flag=.false.)
             call write_attr(grid,fid,'iparam',trim(pname),
      &           pvali(1:plen))
             niparam = niparam + 1
           case ('r')
-            call get_param(pname,pvalr,plen)
+            call get_param(pname,pvalr,plen,update_access_flag=.false.)
             call write_attr(grid,fid,'rparam',trim(pname),
      &           pvalr(1:plen))
             nrparam = nrparam + 1
           case ('c')
-            call get_param(pname,pvalc,plen)
+            call get_param(pname,pvalc,plen,update_access_flag=.false.)
             cstr = trim(pvalc(1))
 c Arrays of strings are not supported here.  Separate the
 c strings with the character "|".
