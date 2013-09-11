@@ -14,15 +14,23 @@ filters: U,V in E-W direction (after every dynamics time step)              ?
 Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
 #define SCM                          ! run as Single Column Model
+#define NEW_IO
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
-RES_F40  ! horiz/vert resolution, 2x2.5, top at 0.1mb, 40 layers
-MODEL_COM GEOM_B IORSF       ! model variables and geometry
+#include "latlon_source_files"
+#include "static_ocn_source_files"
+
+ATM_COM
+RES_F40                             ! horiz/vert resolution, 2x2.5, top at 0.1mb, 40 layers
+MODEL_COM                           ! model variables and geometry
+IO_DRV                              ! new i/o
 TRIDIAG                             ! tridiagonal matrix solver
 MODELE                              ! Main and model overhead
                                     ! parameter database
-              ALLOC_DRV             ! domain decomposition, allocate global distributed arrays
+ALLOC_DRV                           ! domain decomposition, allocate
+ATM_DRV
+OCN_DRV
 ATMDYN_COM ATMDYN_SCM MOMEN2ND  ! replace atmospheric dynamics with SCM routines
 ATMDYN_SCM_EXT ATM_UTILS
 SCM_COM SCMDATA_TWPICE              ! routines for reading and processing SCM forcings and IC's
@@ -38,19 +46,16 @@ LAKES_COM LAKES                     ! lake modules
 SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_COM LANDICE_DRV                 ! land ice modules
 ICEDYN_DUM                          ! ice dynamics modules
-OCEAN OCNML                         ! ocean modules
 SNOW_DRV SNOW                       ! snow model
 RAD_COM RAD_DRV RADIATION           ! radiation modules
 RAD_UTILS ALBEDO READ_AERO          ! radiation and albedo
-DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics (diag, diag_prt dummies in scm_diag) 
-DIAG_ZONAL GCDIAGb                  ! grid-dependent code for lat-circle diags
+DIAG_COM DEFACC DIAG DEFACC         ! diagnostics (diag, diag_prt dummies in scm_diag) 
 DIAG_RES_F                          ! diagnostics (resolution dependent)
 SCM_DIAG_COM SCM_DIAG               ! SCM diagnostics
       FFT144                        ! utilities
-POUT                                ! post-processing output
 
 Components:
-MPI_Support shared
+#include "E4_components_nc"    /* without "Ent" */
 
 Data input files:
 AIC=AIC.RES_F40.D771201.nc  ! observed init cond (atm. only) ISTART=2
@@ -139,6 +144,7 @@ KSOLAR=2
 
 ! parameters that control the atmospheric/boundary conditions
 ! if set to 0, the current (day/) year is used: transient run
+master_yr=1979
 crops_yr=1979  ! if -1, crops in VEG-file is used
 s0_yr=1979
 s0_day=182
