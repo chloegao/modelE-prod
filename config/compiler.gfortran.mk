@@ -20,6 +20,14 @@ EXTENDED_SOURCE = -ffixed-line-length-132
 #FFLAGS += -frecord-marker=4
 #F90FLAGS += -frecord-marker=4
 
+# check if ABI was specified explicitly
+ifneq ($(ABI),)
+FFLAGS += -m$(ABI)
+F90FLAGS += -m$(ABI)
+LFLAGS += -m$(ABI)
+endif
+
+
 # machine-specific options
 ifeq ($(MACHINE),IRIX64)
 FFLAGS += -mabi=64 

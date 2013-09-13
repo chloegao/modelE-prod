@@ -58,8 +58,12 @@ CPPFLAGS =
 I = I
 # by default assume that fortran compiler can do cpp
 EXTERNAL_CPP = NO
-# by default assume that we build 64-bit code with gcc-like compiler
-CFLAGS = -O2 -m64
+# assume that C compiler understands basic gcc flags
+CFLAGS = -O2
+# check if ABI was specified
+ifneq ($(ABI),)
+  CFLAGS += -m$(ABI)
+endif
 # define default name for m4
 M4 = m4
 # default runlib
