@@ -1070,7 +1070,7 @@ C**** Update orbital parameters at start of year
       USE RAD_COM, only : dh2o,H2ObyCH4,ghg_yr
 #ifdef TRACERS_WATER
       use OldTracer_mod, only: tr_wd_type, nWATER,tr_H2ObyCH4, itime_tr0
-      USE TRACER_COM, only: trm,ntm=>NTM
+      USE TRACER_COM, only: trm,NTM
 #endif
       USE DIAG_COM, only : aj=>aj_loc,j_h2och4,ftype,ntype
       USE DOMAIN_DECOMP_ATM, only : grid, getDomainBounds, am_I_root
@@ -1293,7 +1293,7 @@ C     OUTPUT DATA
 
 #ifdef TRACERS_ON
       use OldTracer_mod, only: trname, trpdens
-      USE TRACER_COM, only: NTM=>NTM
+      USE TRACER_COM, only: NTM
      *     ,n_Ox,trm,n_OCB,n_BCII,n_BCIA
      *     ,n_OCIA,N_OCII,n_so4_d2,n_so4_d3,n_SO4,n_stratOx
      *     ,n_N_AKK_1

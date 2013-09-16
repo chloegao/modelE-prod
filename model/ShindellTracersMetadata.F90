@@ -8,6 +8,7 @@ module ShindellTracersMetadata_mod
   use sharedTracersMetadata_mod, only: CH4_setspec, &
     N2O_setspec, H2O2_setspec
   use sharedTracersMetadata_mod, only: convert_HSTAR
+  use TRACER_COM, only: NTM_chem_beg, NTM_chem_end
   use TRACER_COM, only: n_CH4,  n_N2O, n_Ox,   n_NOx, & 
     n_N2O5,   n_HNO3,  n_H2O2,  n_CH3OOH,   n_HCHO,  &
     n_HO2NO2, n_CO,    n_PAN,   n_H2O17,             &
@@ -122,14 +123,76 @@ contains
       end if
     end if
 
+    call calculateIndexOffsets
+
 !------------------------------------------------------------------------------
   contains
 !------------------------------------------------------------------------------
+
+    subroutine calculateIndexOffsets
+      use TRACER_COM, only: nn_CH4,  nn_N2O, nn_Ox,   nn_NOx, & 
+           nn_N2O5,   nn_HNO3,  nn_H2O2,  nn_CH3OOH,   nn_HCHO,  &
+           nn_HO2NO2, nn_CO,    nn_PAN,   nn_H2O17,             &
+           nn_Isoprene, nn_AlkylNit, nn_Alkenes, nn_Paraffin,   &
+           nn_stratOx, nn_Terpenes,nn_codirect,                &
+           nn_isopp1g,nn_isopp1a,nn_isopp2g,nn_isopp2a,         &
+           nn_apinp1g,nn_apinp1a,nn_apinp2g,nn_apinp2a,         &
+           nn_ClOx,   nn_BrOx,  nn_HCl,   nn_HOCl,   nn_ClONO2,  &
+           nn_HBr,    nn_HOBr,  nn_BrONO2,nn_CFC,    nn_GLT
+      use TRACER_COM, only: NTM_chem_beg
+      integer :: offset
+
+     offset = ntm_chem_beg - 1
+     nn_CH4 = n_CH4 - offset
+     nn_N2O = n_N2O - offset
+     nn_Ox = n_Ox - offset
+     nn_NOx = n_NOx - offset
+     nn_N2O5 = n_N2O5 - offset
+     nn_HNO3 = n_HNO3 - offset
+     nn_H2O2 = n_H2O2 - offset
+     nn_CH3OOH = n_CH3OOH - offset
+     nn_HCHO = n_HCHO - offset
+     nn_HO2NO2 = n_HO2NO2 - offset
+     nn_CO = n_CO - offset
+     nn_PAN = n_PAN - offset
+     nn_H2O17 = n_H2O17 - offset
+     nn_Isoprene = n_Isoprene - offset
+     nn_AlkylNit = n_AlkylNit - offset
+     nn_Alkenes = n_Alkenes - offset
+     nn_Paraffin = n_Paraffin - offset
+     nn_stratOx = n_stratOx - offset
+    if (tracers_terp) then
+       nn_Terpenes = n_Terpenes - offset
+     end if
+     nn_codirect = n_codirect - offset
+#ifdef TRACERS_AEROSOLS_SOA
+     nn_isopp1g = n_isopp1g - offset
+     nn_isopp1a = n_isopp1a - offset
+     nn_isopp2g = n_isopp2g - offset
+     nn_isopp2a = n_isopp2a - offset
+     nn_apinp1g = n_apinp1g - offset
+     nn_apinp1a = n_apinp1a - offset
+     nn_apinp2g = n_apinp2g - offset
+     nn_apinp2a = n_apinp2a - offset
+#endif
+     nn_ClOx = n_ClOx - offset
+     nn_BrOx = n_BrOx - offset
+     nn_HCl = n_HCl - offset
+     nn_HOCl = n_HOCl - offset
+     nn_ClONO2 = n_ClONO2 - offset
+     nn_HBr = n_HBr - offset
+     nn_HOBr = n_HOBr - offset
+     nn_BrONO2 = n_BrONO2 - offset
+     nn_CFC = n_CFC - offset
+     nn_GLT = n_GLT - offset
+
+    end subroutine calculateIndexOffsets
 
     subroutine Ox_setSpec(name)
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_Ox = n
+      NTM_chem_beg = n
       call set_ntm_power(n, -8)
       call set_tr_mm(n, 48.d0)
       if (tracers_drydep) then
@@ -459,6 +522,7 @@ contains
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_CFC = n
+      NTM_chem_end = n
       call set_ntm_power(n, -12)
       call set_tr_mm(n, 137.4d0) !CFC11
     end subroutine CFC_setSpec

@@ -2062,7 +2062,7 @@ subroutine qmom_topo_adjustments
   use domain_decomp_atm, only : grid,getDomainBounds,halo_update
 #ifdef TRACERS_WATER
   use OldTracer_mod, only: tr_wd_type, nWATER
-  use tracer_com, only: trm,trmom,ntm=>NTM
+  use tracer_com, only: trm,trmom,NTM
 #endif
   use clouds_com, only : svlhx
   implicit none

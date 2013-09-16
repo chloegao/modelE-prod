@@ -277,6 +277,9 @@ C**** Each tracer has a variable name and a unique index
      *                               ntm_terp+
      *                               ntm_shindell_strat+
      *                               ntm_soa
+      ! Set by Shindell
+      integer :: NTM_chem_beg
+      integer :: NTM_chem_end
 #ifdef TRACERS_AMP
 #else
 #ifdef TRACERS_TOMAS
@@ -406,6 +409,18 @@ C**** Each tracer has a variable name and a unique index
      *     n_M_MXX_SS=0,n_N_MXX_1 =0,n_M_OCS_SU=0,n_M_OCS_OC=0,
      *     n_N_OCS_1=0,n_M_SSS_SS=0,n_M_SSS_SU=0,
      *     n_H2SO4=0, n_N_SSA_1=0, n_N_SSC_1=0
+
+! Shindell tracer indices with offsets:
+      integer :: nn_CH4,  nn_N2O, nn_Ox,   nn_NOx,  
+     *     nn_N2O5,   nn_HNO3,  nn_H2O2,  nn_CH3OOH,   nn_HCHO,  
+     *     nn_HO2NO2, nn_CO,    nn_PAN,   nn_H2O17,             
+     *     nn_Isoprene, nn_AlkylNit, nn_Alkenes, nn_Paraffin,   
+     *     nn_stratOx, nn_Terpenes,nn_codirect,                
+     *     nn_isopp1g,nn_isopp1a,nn_isopp2g,nn_isopp2a,         
+     *     nn_apinp1g,nn_apinp1a,nn_apinp2g,nn_apinp2a,         
+     *     nn_ClOx,   nn_BrOx,  nn_HCl,   nn_HOCl,   nn_ClONO2,  
+     *      nn_HBr,    nn_HOBr,  nn_BrONO2,nn_CFC,    nn_GLT
+
 #ifdef TRACERS_AMP
 !@var ntmAMPi Index of the first AMP tracer
 !@var ntmAMPe Index of the last AMP tracer

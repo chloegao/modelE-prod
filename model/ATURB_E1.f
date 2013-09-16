@@ -28,7 +28,7 @@ cc      USE SOMTQ_COM, only : tmom,qmom
       USE DIAG_COM, only : jl_trbhr,jl_damdc,jl_trbke,jl_trbdlht
 #ifdef TRACERS_ON
       use OldTracer_mod, only: itime_tr0, t_qlimit
-      USE TRACER_COM, only : ntm=>NTM,trm  !,trmom
+      USE TRACER_COM, only : NTM,trm  !,trmom
 #ifndef SKIP_TRACER_DIAGS
       USE TRDIAG_COM, only: jlnt_turb
 #endif

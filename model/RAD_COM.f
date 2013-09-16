@@ -278,7 +278,7 @@ C**** Local variables initialised in init_RAD
       USE RESOLUTION, ONLY : IM, JM, LM
       USE ATM_COM, ONLY : LM_REQ
 #ifdef TRACERS_ON
-      USE tracer_com,ONLY : Ntm => NTM
+      USE tracer_com,ONLY : NTM
 #endif
       USE RAD_COM, ONLY : RQT,Tchg,SRHR,TRHR,FSF,FSRDIR,SRVISSURF,TRSURF
      *     ,SRDN, CFRAC, RCLD, chem_tracer_save,rad_to_chem,rad_to_file
@@ -414,7 +414,7 @@ C**** Local variables initialised in init_RAD
      *         ,lhead,irsficnt,irsficno
       USE ATM_COM, only : kradia
 #ifdef TRACERS_ON
-      USE tracer_com,ONLY : Ntm => NTM
+      USE tracer_com,ONLY : NTM
 #endif
       USE RAD_COM
       USE Dictionary_mod
@@ -821,7 +821,7 @@ C**** Local variables initialised in init_RAD
 !@ver  beta new_ prefix avoids name clash with the default version
       use model_com, only : ioread,iowrite
 #ifdef TRACERS_ON
-      USE tracer_com , only : ntm => NTM
+      USE tracer_com , only : NTM
 #endif
       use rad_com
       use domain_decomp_atm, only : grid

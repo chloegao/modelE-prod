@@ -10,7 +10,7 @@
       USE CONSTANT, only : grav,bygrav,shw,rhow,lhm,shi,teeny,undef
 #ifdef TRACERS_WATER
       use OldTracer_mod, only: trname
-      USE TRACER_COM, only : ntm=>NTM
+      USE TRACER_COM, only : NTM
 #endif
       IMPLICIT NONE
       SAVE
@@ -1443,7 +1443,7 @@ C****
       USE DIAG_COM, only : aij=>aij_loc,ij_mrvr
 #ifdef TRACERS_WATER
       use OldTracer_mod, only: trname, trw0, itime_tr0,tr_wd_type,nWATER
-      USE TRACER_COM, only : ntm=>NTM,n_water
+      USE TRACER_COM, only : NTM,n_water
       USE TRDIAG_COM, only : taijn=>taijn_loc
       USE TRDIAG_COM, only : tij_rvr,to_per_mil,units_tij,scale_tij
 #endif
@@ -1560,7 +1560,7 @@ C****
       USE GEOM, only : axyp,imaxj
 #ifdef TRACERS_WATER
       use OldTracer_mod, only: trname, t_qlimit
-      USE TRACER_COM, only : ntm=>NTM
+      USE TRACER_COM, only : NTM
 #endif
       USE LAKES
       USE LAKES_COM
@@ -2965,7 +2965,7 @@ C****
       USE GEOM, only : imaxj
 #ifdef TRACERS_WATER
       use OldTracer_mod, only: trname, t_qlimit
-      USE TRACER_COM, only : ntm=>NTM
+      USE TRACER_COM, only : NTM
 #endif
       USE SEAICE, only : lmi,xsi,ace1i,Ti
       USE SEAICE_COM, only : x=>si_atm

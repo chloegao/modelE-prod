@@ -10,7 +10,7 @@ c
       USE CONSTANT, only   : pi, mair, mwat, radian,avog
       USE ATM_COM, only    : MA, byMA, PMID, PK
       USE RAD_COM, only    : rcloudfj=>rcld !!! ,salbfj=>salb
-      USE TRACER_COM, only : ntm=>NTM, trm, ntm_soa, ntm_terp
+      USE TRACER_COM, only : NTM, trm, ntm_soa, ntm_terp
       use OldTracer_mod, only: TR_MM
 
       IMPLICIT NONE
