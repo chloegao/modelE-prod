@@ -157,7 +157,7 @@
 
 #ifndef CUBED_SPHERE                                   !  Lat-Lon Grid
       I1 = GRID%I_STRT_HALO  ;  IN = GRID%I_STOP_HALO  !  1:IM
-      J1 = GRID%J_STRT_HALO  ;  JN = GRID%J_STOP       !  primary row limits used by velocity
+      j1 = grid%j_strt_stgr - 1;  jn = grid%j_stop_stgr !  primary rows surrounding velocity rows
 #endif
 
 #ifdef CUBED_SPHERE                                    !  Cube-Sphere grid
