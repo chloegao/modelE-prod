@@ -9066,6 +9066,7 @@ c$$$      use OldTracer_mod, only: tr_mm, nBBsources, mass2vol
       use TRACER_COM, only: n_SO4, n_SO4_d1, n_SO4_d2, n_SO4_d3
       use TRACER_COM, only: n_NO3p, n_OCIA, n_OCII, n_SO2
       use TRACER_COM, only: ntm_chem, ntsurfsrc
+      use TRACER_COM, only: ntm_chem_beg, ntm_chem_end
       use TRACER_COM, only: n_NOx, naircraft, nBiomass, nChemistry
       use TRACER_COM, only: nVolcanic, nOverwrite, nChemloss, nOther
       use TRACER_COM, only:  trans_emis_overr_day, trans_emis_overr_yr
@@ -9178,7 +9179,6 @@ C****
       call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
-
 
 C**** All sources are saved as kg/s
       do n=1,NTM
@@ -9496,8 +9496,10 @@ C**** Allow overriding of transient emissions date:
       call apply_tracer_3Dsource(nOther,n_NOx)
 
 C**** Make sure that these 3D sources for all chem tracers start at 0.:
-      tr3Dsource(I_0:I_1,J_0:J_1,:,nChemistry,1:ntm_chem)  = 0.d0
-      tr3Dsource(I_0:I_1,J_0:J_1,:,nOverwrite,1:ntm_chem) = 0.d0
+      tr3Dsource(I_0:I_1,J_0:J_1,:,nChemistry,ntm_chem_beg:ntm_chem_end)
+     &  = 0.d0
+      tr3Dsource(I_0:I_1,J_0:J_1,:,nOverwrite,ntm_chem_beg:ntm_chem_end)
+     &  = 0.d0
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
       tr3Dsource(I_0:I_1,J_0:J_1,:,nChemistry,n_stratOx)  = 0.d0
       tr3Dsource(I_0:I_1,J_0:J_1,:,nOverwrite,n_stratOx) = 0.d0
@@ -9510,7 +9512,6 @@ C**** Make sure that these 3D sources for all chem tracers start at 0.:
 #ifdef TRACERS_AEROSOLS_SOA
       tr3Dsource(I_0:I_1,J_0:J_1,:,nChemistry,n_soa_i:n_soa_e)  = 0.d0
 #endif  /* TRACERS_AEROSOLS_SOA */
-
 
       if (is_set_param('initial_ghg_setup')) then
         call get_param('initial_GHG_setup', initial_GHG_setup)
@@ -9529,7 +9530,7 @@ C**** Call the model CHEMISTRY and OVERWRITEs:
                       ! tr3Dsource defined within, for both processes
 
 C**** Apply chemistry and overwrite changes:
-      do n=1,ntm_chem
+      do n=ntm_chem_beg, ntm_chem_end
         call apply_tracer_3Dsource(nChemistry,n)
         call apply_tracer_3Dsource(nOverwrite,n)
       end do

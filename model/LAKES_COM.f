@@ -7,7 +7,7 @@
 !@sum  LAKES_COM model variables for Lake/Rivers module
 !@auth Gavin Schmidt
 #ifdef TRACERS_WATER
-      USE TRACER_COM, only : ntm=>NTM
+      USE TRACER_COM, only : NTM
 #endif
       USE SEAICE_COM, only : icestate,iceocn_xchng_vars
       IMPLICIT NONE
@@ -71,7 +71,7 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
       USE LAKES_COM, ONLY: MWL, GML, TLAKE, MLDLK, FLAKE, TANLK, SVFLAKE
      &     ,HLAKE,DLAKE,GLAKE,icelak
 #ifdef TRACERS_WATER
-      USE TRACER_COM, only : NTM=> NTM
+      USE TRACER_COM, only : NTM
       USE LAKES_COM, ONLY:  TRLAKE
 #endif
       USE EXCHANGE_TYPES, only : alloc_xchng_vars

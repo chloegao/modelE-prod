@@ -1706,7 +1706,7 @@ C**** fluxes associated with variable lake fractions
       USE GEOM, only : dlatm,sinip,cosip
 #endif
 #ifdef TRACERS_ON
-      USE tracer_com,ONLY : Ntm=> NTM
+      USE tracer_com,ONLY : NTM
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)

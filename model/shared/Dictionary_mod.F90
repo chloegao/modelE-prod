@@ -12,11 +12,15 @@ module Dictionary_mod
 !@+ Simple copy routines to copy parameters to/from database:
 !@+     set_param( name, value, dim, opt ) - put a parameter with the
 !@+       name <name> and the value <value> to the database
-!@+     get_param( name, value, dim, default ) - copy the value of
+!@+     get_param( name, value, dim, default, update_access_flag ) 
+!@+       - copy the value of
 !@+       the parameter <name> from the database to the variable <value>.
 !@+       If <name> is not present in the database the program 
 !@+       will stop, unless <default> is present, in which case
 !@+       <value> will be set to <default> 
+!@+       If <update_access_flag> is present and set to .false., then
+!@+       access flag will not be updated and the database will still
+!@+       assume that you did not access this parameter.
 !@+
 !@+ Query logical function:
 !@+     is_set_param( name ) - returns .true. if parameter <name> is
@@ -437,18 +441,23 @@ contains
   end subroutine get_iparam
 
 
-  subroutine get_aiparam( name, value, np, default )
+  subroutine get_aiparam( name, value, np, default, update_access_flag )
     implicit none
     character*(*), intent(in) ::  name
     integer, intent (in) :: np
     integer, intent(out) ::  value(np)
     integer, intent(in), optional ::  default(np)    
+    logical, intent(in), optional :: update_access_flag
+    logical :: update_access
     type (ParamStr), pointer :: PStr
+
+    update_access = .true.
+    if (present(update_access_flag) ) update_access = update_access_flag
 
     call get_pstr( name, np, 'i', PStr )
     if ( associated( PStr) ) then
       value(1:np) = Idata( PStr%indx : PStr%indx+np-1 )
-      PStr%is_accessed = 'y'
+      if ( update_access ) PStr%is_accessed = 'y'
     else if ( present(default) ) then
       value(1:np) = default(1:np)
     else
@@ -515,18 +524,23 @@ contains
   end subroutine get_rparam
 
 
-  subroutine get_arparam( name, value, np, default )
+  subroutine get_arparam( name, value, np, default, update_access_flag )
     implicit none
     character*(*), intent(in) ::  name
     integer, intent (in) :: np
     real*8, intent(out) ::  value(np)
     real*8, intent(in), optional ::  default(np)
+    logical, intent(in), optional :: update_access_flag
+    logical :: update_access
     type (ParamStr), pointer :: PStr
+
+    update_access = .true.
+    if (present(update_access_flag) ) update_access = update_access_flag
 
     call get_pstr( name, np, 'r', PStr )
     if ( associated( PStr) ) then
-    value(1:np) = Rdata( PStr%indx : PStr%indx+np-1 )
-    PStr%is_accessed = 'y'
+      value(1:np) = Rdata( PStr%indx : PStr%indx+np-1 )
+      if ( update_access ) PStr%is_accessed = 'y'
     else if ( present(default) ) then
       value(1:np) = default(1:np)
     else
@@ -606,18 +620,23 @@ contains
   end subroutine get_cparam
 
 
-  subroutine get_acparam( name, value, np, default )
+  subroutine get_acparam( name, value, np, default, update_access_flag )
     implicit none
     character*(*), intent(in) ::  name
     integer, intent (in) :: np
     character*(*), intent(out) ::  value(np)
     character*(*), intent(in), optional ::  default(np)
+    logical, intent(in), optional :: update_access_flag
+    logical :: update_access
     type (ParamStr), pointer :: PStr
+
+    update_access = .true.
+    if (present(update_access_flag) ) update_access = update_access_flag
 
     call get_pstr( name, np, 'c', PStr )
     if ( associated( PStr) ) then
       value(1:np) = Cdata( PStr%indx : PStr%indx+np-1 )
-      PStr%is_accessed = 'y'
+      if ( update_access ) PStr%is_accessed = 'y'
     else if ( present(default) ) then
       value(1:np) = default(1:np)
     else
@@ -907,6 +926,7 @@ contains
     do n=1, num_param
       if ( Params(n)%source .ne. 'r' ) cycle
       if ( Params(n)%is_accessed == 'y' ) cycle
+      if ( Params(n)%name(1:6) == '_file_' ) cycle
       select case( Params(n)%attrib )
       case ('i')
         write(kunit, *) 'WARNING: defined in rundeck but not used: ', &

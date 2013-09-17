@@ -36,7 +36,7 @@ module MiscTracersMetadata_mod
   use OldTracer_mod, only: set_tr_h2obych4
   use OldTracer_mod, only: set_trdecay
   use TRACER_COM, only: &
-    n_Air, n_water, n_H2O18, n_HDO, n_HTO, n_Ox, n_NOx, n_Pb210,n_Be7, &
+    n_Air, n_water, n_H2O18, n_HDO, n_HTO, n_Pb210,n_Be7, &
     n_Be10, n_CFCn, n_CO2n, n_Age, n_SO4_d1, n_SO4_d2, n_SO4_d3, &
     n_N_d1, n_N_d2, n_N_d3, n_NH3,   n_NH4,   n_NO3p, &
     n_vbsGm2, n_vbsGm1, n_vbsGz,  n_vbsGp1, n_vbsGp2, n_vbsGp3, n_vbsGp4, &

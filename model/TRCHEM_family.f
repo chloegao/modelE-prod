@@ -11,7 +11,7 @@ C**** GLOBAL parameters and variables:
       USE RESOLUTION, only : ls1,ptop,psf
       USE RESOLUTION, only : LM
       USE DYNAMICS, only : sig
-      USE TRACER_COM, only : n_CH4, n_Ox
+      USE TRACER_COM, only : n_CH4, n_Ox, nn_Ox, nn_CH4
       USE TRCHEM_Shindell_COM, only:ss,rr,y,nO2,nM,nH2O,nO,nO1D,nO3,pOx
 
       IMPLICIT NONE
@@ -41,21 +41,21 @@ c       for concentration of O:
         az=(ss(2,L,I,J)+ss(3,L,I,J))/(rr(iO3form,L)*y(nO2,L))
 c       for concentration of O(1D):
         bz=ss(2,L,I,J)/(rr(8,L)*y(nO2,L)+rr(9,L)*y(nM,L)+
-     &  rr(10,L)*y(nH2O,L)+rr(11,L)*y(n_CH4,L))
+     &  rr(10,L)*y(nH2O,L)+rr(11,L)*y(nn_CH4,L))
         if(PRES(L) < 50.) then
           bz=bz*2.5d0
 !test   else if(PRES(L) > 100.) then
 !test     bz=bz*0.9d0
         endif
         P1=1.d0/(1.d0+az+bz)
-        y(nO,L)=P1*az*y(n_Ox,L)
-        y(nO1D,L)=P1*bz*y(n_Ox,L)
-        y(nO3,L)=y(n_Ox,L)-y(nO,L)-y(nO1D,L)
+        y(nO,L)=P1*az*y(nn_Ox,L)
+        y(nO1D,L)=P1*bz*y(nn_Ox,L)
+        y(nO3,L)=y(nn_Ox,L)-y(nO,L)-y(nO1D,L)
         if(y(nO,L) < 0.)  y(nO,L)  =0.d0
         if(y(nO1D,L) < 0.)y(nO1D,L)=0.d0
         if(y(nO3,L) < 1.) y(nO3,L) =1.d0
-        if(y(n_Ox,L) < 1.)y(n_Ox,L)=1.d0
-        pOx(I,J,L)=y(nO3,L)/y(n_Ox,L)
+        if(y(nn_Ox,L) < 1.)y(nn_Ox,L)=1.d0
+        pOx(I,J,L)=y(nO3,L)/y(nn_Ox,L)
       enddo
 c
       return
@@ -73,7 +73,7 @@ C**** GLOBAL parameters and variables:
 
       USE RESOLUTION, only         : LS1
       USE ATM_COM, only            : LTROPO
-      USE TRACER_COM, only         : n_NOx
+      USE TRACER_COM, only         : n_NOx, nn_NOx
       USE TRCHEM_Shindell_COM, only:rr,y,yNO3,nO3,nHO2,yCH3O2,nO,nC2O3,
      &                  ta,nXO2,ss,nNO,nNO2,pNOx,nNO3,nHONO,which_trop
      &                  ,nClO,nOClO,nBrO
@@ -123,13 +123,13 @@ C       C is for NO2->NO reactions :
         if(l <= maxl) C = C + rr(7,L)*y(nO3,L)*0.25d0 
         p2=B/(B+C)
         p1=1-p2
-        y(nNO,L)= p1*y(n_NOx,L)
-        y(nNO2,L)=p2*y(n_NOx,L)
+        y(nNO,L)= p1*y(nn_NOx,L)
+        y(nNO2,L)=p2*y(nn_NOx,L)
 C       Set limits on NO, NO2, NOx:
         if(y(nNO,L)   < 1.)   y(nNO,L) = 1.d0
         if(y(nNO2,L)  < 1.)  y(nNO2,L) = 1.d0
-        if(y(n_NOx,L) < 1.) y(n_NOx,L) = 1.d0
-        pNOx(I,J,L)=y(nNO2,L)/y(n_NOx,L)
+        if(y(nn_NOx,L) < 1.) y(nn_NOx,L) = 1.d0
+        pNOx(I,J,L)=y(nNO2,L)/y(nn_NOx,L)
         y(nNO3,L) =1.d0
         y(nHONO,L)=1.d0
       enddo
@@ -150,13 +150,24 @@ C**** GLOBAL parameters and variables:
       USE DYNAMICS, only : sig
       USE GEOM, only : LAT2D_DG
       USE ATM_COM, only: LTROPO
+
       USE TRACER_COM, only : n_CH4,n_HNO3,n_CH3OOH,n_H2O2,n_HCHO,n_CO,
      &                       n_Paraffin,n_Alkenes,n_Isoprene,n_AlkylNit,
 #ifdef TRACERS_TERP
      &                       n_Terpenes,
+     &                       nn_Terpenes,
 #endif  /* TRACERS_TERP */
-     &                       rsulf1,rsulf2,rsulf4,n_SO2,n_DMS
-     &                       ,n_HBr,n_HOCl,n_HCl
+     &                       rsulf1,rsulf2,rsulf4,n_SO2,n_DMS,
+     &                       n_HBr,n_HOCl,n_HCl
+
+      USE TRACER_COM, only : nn_CH4,nn_HNO3,nn_CH3OOH,nn_H2O2,nn_HCHO,
+     &                       nn_CO,nn_Paraffin,nn_Alkenes,nn_Isoprene,
+     &                       nn_AlkylNit,
+#ifdef TRACERS_TERP
+     &                       nn_Terpenes,
+#endif  /* TRACERS_TERP */
+     &                       nn_HBr,nn_HOCl,nn_HCl
+
       USE TRCHEM_Shindell_COM, only:pHOx,rr,y,nNO2,nNO,yCH3O2,nH2O,nO3,
      &                        nO2,nM,nHO2,nOH,nH2,nAldehyde,nXO2,nXO2N,
      &                        ta,ss,nC2O3,nROR,yso2,ydms,which_trop
@@ -207,14 +218,14 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
        aqqz=2.d0*(pHOx(I,J,L)*rr(1,L) + (pHOx(I,J,L)*pHOx(I,J,L))*
      & (rr(3,L)+rr(iH2O2form,L)) + rr(15,L))
 
-       bqqz=pHOx(I,J,L)*(rr(12,L)*y(n_CH4,L)+rr(16,L)*
-     & y(n_HNO3,L)+rr(23,L)*y(n_CH3OOH,L)+rr(iHNO3form,L)
+       bqqz=pHOx(I,J,L)*(rr(12,L)*y(nn_CH4,L)+rr(16,L)*
+     & y(nn_HNO3,L)+rr(23,L)*y(nn_CH3OOH,L)+rr(iHNO3form,L)
      & *y(nNO2,L)+rr(iHONOform,L)*y(nNO,L))+rr(22,L)*yCH3O2(I,J,L)
      & +pHOx(I,J,L)*(rr(38,L)*y(nAldehyde,L)+rr(37,L)
-     & *y(n_Paraffin,L)*0.89d0+rr(34,L)*y(n_Alkenes,L)
-     & +rr(30,L)*y(n_Isoprene,L)*0.15d0+rr(33,L)*y(n_AlkylNit,L)
+     & *y(nn_Paraffin,L)*0.89d0+rr(34,L)*y(nn_Alkenes,L)
+     & +rr(30,L)*y(nn_Isoprene,L)*0.15d0+rr(33,L)*y(nn_AlkylNit,L)
 #ifdef TRACERS_TERP
-     & +rr(iTerpenesOH,L)*y(n_Terpenes,L)*0.15d0
+     & +rr(iTerpenesOH,L)*y(nn_Terpenes,L)*0.15d0
 #endif  /* TRACERS_TERP */
      & )
      & +rr(43,L)*y(nXO2,L)+y(nXO2N,L)*
@@ -223,22 +234,22 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
      & +pHOx(I,J,L)*(rsulf1(i,j,l)*ydms(i,j,l) + 
      & rsulf2(i,j,l)*ydms(i,j,l))
 
-       cqqz=(2.d0*(ss(4,L,I,J)*y(n_H2O2,L))+ss(9,L,I,J)*y(n_HNO3,L)+
-     & 2.d0*(ss(13,L,I,J)*y(n_HCHO,L))+2.d0*ss(14,L,I,J)*y(n_CH3OOH,L)+
-     & (rr(20,L)*y(nNO,L)+0.66d0*(rr(27,L)*yCH3O2(I,J,L)))
+       cqqz=(2.d0*(ss(4,L,I,J)*y(nn_H2O2,L))+ss(9,L,I,J)*y(nn_HNO3,L)+
+     & 2.d0*(ss(13,L,I,J)*y(nn_HCHO,L))+2.d0*ss(14,L,I,J)*y(nn_CH3OOH,L)
+     & +(rr(20,L)*y(nNO,L)+0.66d0*(rr(27,L)*yCH3O2(I,J,L)))
      & *yCH3O2(I,J,L))
 
        cqqz=cqqz+
-     & ((2.d0*(rr(10,L)*y(nH2O,L))+rr(11,L)*y(n_CH4,L))*
+     & ((2.d0*(rr(10,L)*y(nH2O,L))+rr(11,L)*y(nn_CH4,L))*
      & ss(2,L,I,J)*y(nO3,L))/
      & (rr(8,L)*y(nO2,L)+rr(9,L)*y(nM,L)+
-     & rr(10,L)*y(nH2O,L)+rr(11,L)*y(n_CH4,L))
+     & rr(10,L)*y(nH2O,L)+rr(11,L)*y(nn_CH4,L))
      & +ss(16,L,I,J)*y(nAldehyde,L)*2.d0+(rr(39,L)*y(nNO,L)
      & +rr(40,L)*y(nC2O3,L)*2.d0)*y(nC2O3,L)
-     & +(rr(42,L)*0.94d0+1.6d3)*y(nROR,L)+rr(35,L)*y(n_Alkenes,L)
-     & *y(nO3,L)*0.65d0+rr(31,L)*y(n_Isoprene,L)*y(nO3,L)*0.58d0
+     & +(rr(42,L)*0.94d0+1.6d3)*y(nROR,L)+rr(35,L)*y(nn_Alkenes,L)
+     & *y(nO3,L)*0.65d0+rr(31,L)*y(nn_Isoprene,L)*y(nO3,L)*0.58d0
 #ifdef TRACERS_TERP
-     & +rr(iTerpenesO3,L)*y(n_Terpenes,L)*y(nO3,L)*0.58d0
+     & +rr(iTerpenesO3,L)*y(nn_Terpenes,L)*y(nO3,L)*0.58d0
 #endif  /* TRACERS_TERP */
 
        sqroot=sqrt(bqqz*bqqz+4.d0*aqqz*cqqz)
@@ -248,14 +259,14 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
 
 c Now partition HOx into OH and HO2:
        ! CZ: OH->HO2 reactions :
-       cz=rr(2,L)*y(nO3,L)+rr(13,L)*y(n_CO,L)
-     & +rr(14,L)*y(n_H2O2,L)+rr(19,L)*y(nH2,L)
-     & +rr(21,L)*y(n_HCHO,L)+rr(37,L)*y(n_Paraffin,L)
-     & *0.11d0+rr(30,L)*y(n_Isoprene,L)*0.85d0
+       cz=rr(2,L)*y(nO3,L)+rr(13,L)*y(nn_CO,L)
+     & +rr(14,L)*y(nn_H2O2,L)+rr(19,L)*y(nH2,L)
+     & +rr(21,L)*y(nn_HCHO,L)+rr(37,L)*y(nn_Paraffin,L)
+     & *0.11d0+rr(30,L)*y(nn_Isoprene,L)*0.85d0
 #ifdef TRACERS_TERP
-     & +rr(iTerpenesOH,L)*y(n_Terpenes,L)*0.85d0
+     & +rr(iTerpenesOH,L)*y(nn_Terpenes,L)*0.85d0
 #endif  /* TRACERS_TERP */
-     & +rr(34,L)*y(n_Alkenes,L)
+     & +rr(34,L)*y(nn_Alkenes,L)
        ! SO2 oxidation: 
      & + rsulf4(i,j,l)*yso2(i,j,l)
 
@@ -298,39 +309,39 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
        aqqz=2.d0*(pHOx(I,J,L)*rr(1,L) + pHOx(I,J,L)*pHOx(I,J,L)*
      & (rr(3,L)+rr(iH2O2form,L)) + rr(15,L))
 
-       bqqz=pHOx(I,J,L)*(rr(12,L)*y(n_CH4,L)+rr(16,L)*
-     & y(n_HNO3,L)+rr(iHNO3form,L)*y(nNO2,L)+rr(iHONOform,L)*y(nNO,L))
-     & +rr(52,L)*y(n_HCl,L)*pHOx(I,J,L)+rr(53,L)*y(n_HOCl,L)
+       bqqz=pHOx(I,J,L)*(rr(12,L)*y(nn_CH4,L)+rr(16,L)*
+     & y(nn_HNO3,L)+rr(iHNO3form,L)*y(nNO2,L)+rr(iHONOform,L)*y(nNO,L))
+     & +rr(52,L)*y(nn_HCl,L)*pHOx(I,J,L)+rr(53,L)*y(nn_HOCl,L)
      & *pHOx(I,J,L)+rr(56,L)*y(nOClO,L)*pHOx(I,J,L)+
      & rr(59,L)*y(nCl,L)
      & +rr(62,L)*y(nClO,L)*pHOx(I,J,L)+rr(63,L)*y(nClO,L)
-     & +rr(68,L)*y(n_HBr,L)*pHOx(I,J,L)+rr(72,L)*y(nBr,L)
+     & +rr(68,L)*y(nn_HBr,L)*pHOx(I,J,L)+rr(72,L)*y(nBr,L)
      & +rr(73,L)*y(nBrO,L)+rr(81,L)*y(nBrO,L)*pHOx(I,J,L)
 
        ! Use OH production without O1D explicitly:
-       cqqz=2.d0*ss(4,L,i,j)*y(n_H2O2,L)+ss(9,L,i,j)*y(n_HNO3,L)
-     & +ss(21,L,i,j)*y(n_HOCl,L) 
-     & +rr(54,L)*y(n_HCl,L)*y(nO,L)+rr(55,L)*y(n_HOCl,L)*y(nO,L)
-     & +rr(57,L)*y(n_HOCl,L)*y(nCl,L)+rr(58,L)*y(nCl,L)*
-     & y(n_H2O2,L)+rr(79,L)*y(nBr,L)*y(n_H2O2,L)
-     & +rr(84,L)*y(n_HBr,L)*y(nO,L)
+       cqqz=2.d0*ss(4,L,i,j)*y(nn_H2O2,L)+ss(9,L,i,j)*y(nn_HNO3,L)
+     & +ss(21,L,i,j)*y(nn_HOCl,L) 
+     & +rr(54,L)*y(nn_HCl,L)*y(nO,L)+rr(55,L)*y(nn_HOCl,L)*y(nO,L)
+     & +rr(57,L)*y(nn_HOCl,L)*y(nCl,L)+rr(58,L)*y(nCl,L)*
+     & y(nn_H2O2,L)+rr(79,L)*y(nBr,L)*y(nn_H2O2,L)
+     & +rr(84,L)*y(nn_HBr,L)*y(nO,L)
      
        ! water vapor photolysis in SRBs:
        if(PRES(L) < 10.) cqqz = cqqz + 0.5d0*SF3(I,J,L)*y(nH2O,L) 
 
        ! production from O1D limited to O1D amount:
        rcqqz=rr(8,L)*y(nO2,L)+rr(9,L)*y(nM,L)+
-     & rr(10,L)*y(nH2O,L)+rr(11,L)*y(n_CH4,L)
+     & rr(10,L)*y(nH2O,L)+rr(11,L)*y(nn_CH4,L)
        if(rcqqz > 1)then
          ratio=1.d0/rcqqz
        else
          ratio=1.d0
        endif
        cqqz=cqqz+ratio*        
-     & ((2.d0*rr(10,L)*y(nH2O,L)+rr(11,L)*y(n_CH4,L))*
+     & ((2.d0*rr(10,L)*y(nH2O,L)+rr(11,L)*y(nn_CH4,L))*
      & ss(2,L,I,J)*y(nO3,L))/
      & (rr(8,L)*y(nO2,L)+rr(9,L)*y(nM,L)+
-     & rr(10,L)*y(nH2O,L)+rr(11,L)*y(n_CH4,L))
+     & rr(10,L)*y(nH2O,L)+rr(11,L)*y(nn_CH4,L))
 
        sqroot=sqrt(bqqz*bqqz+4.d0*aqqz*cqqz)
        y(nHO2,L)=(sqroot-bqqz)/(2.d0*aqqz)
@@ -339,9 +350,9 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
 
 c Now partition HOx into OH and HO2:
 c CZ: OH->HO2 reactions :
-       cz=rr(2,L)*y(nO3,L)+rr(13,L)*y(n_CO,L)
-     & +rr(14,L)*y(n_H2O2,L)+rr(19,L)*y(nH2,L)
-     & +rr(21,L)*y(n_HCHO,L)
+       cz=rr(2,L)*y(nO3,L)+rr(13,L)*y(nn_CO,L)
+     & +rr(14,L)*y(nn_H2O2,L)+rr(19,L)*y(nH2,L)
+     & +rr(21,L)*y(nn_HCHO,L)
      & +rr(61,L)*y(nClO,L)+rr(80,L)*y(nBrO,L)
 
        dz=rr(4,L)*y(nO3,L)+rr(6,L)*y(nNO,L)
@@ -390,6 +401,8 @@ C**** GLOBAL parameters and variables:
       USE RESOLUTION, only : LS1
       USE RESOLUTION, only : LM
       USE TRACER_COM, only : n_ClOx,n_HOCl,n_ClONO2,n_HCl,n_H2O2,n_CH4
+      USE TRACER_COM, only : nn_ClOx,nn_HOCl,nn_ClONO2,nn_HCl,nn_H2O2,
+     &    nn_CH4
       USE TRCHEM_Shindell_COM, only:pClOx,rr,y,nClO,nOClO,nCl,nCl2O2,
      &    ta,ss,nO3,nHO2,nNO3,nO,nNO,nBr,nOH,nBrO,nCH3O2,nM,nCl2,nH2,
      &    SZA,dt2,pClx,pOClOx,nNO2,which_trop,yCl2,yCl2O2
@@ -428,10 +441,10 @@ c Set Cl2 and default Cl2O2:
        y(nCl2O2,L)=yCl2O2(I,J,L)   ! non-zero at low temp, see below
 
 c Full ClOxfam code from offline photochemistry:
-       y(nClO,L)=y(n_ClOx,L)*pClOx(I,J,L)
-       y(nOClO,L)=y(n_ClOx,L)*pOClOx(I,J,L)
-       y(nCl,L)=y(n_ClOx,L)*pClx(I,J,L)
-       if(y(n_ClOx,L) == 0) CYCLE
+       y(nClO,L)=y(nn_ClOx,L)*pClOx(I,J,L)
+       y(nOClO,L)=y(nn_ClOx,L)*pOClOx(I,J,L)
+       y(nCl,L)=y(nn_ClOx,L)*pClx(I,J,L)
+       if(y(nn_ClOx,L) == 0) CYCLE
 
 c Low temperature stabilizes ClO dimer, use [Cl2O2] only for
 c calculating Cl amount, otherwise ignore:
@@ -452,22 +465,22 @@ c calculating Cl amount, otherwise ignore:
      &   +y(nClO,L)*(1.d-12*exp(-1590./TA(L))+3.d-11*exp(-2450./TA(L))
      &   + 3.5d-13*exp(-1370./TA(L))) 
        D=y(nO3,L)*rr(49,L)+y(nBrO,L)*rr(75,L)
-       F=(rr(53,L)*y(nOH,L)*y(n_HOCl,L)+rr(55,L)*y(nO,L)*
-     &   y(n_HOCl,L)+rr(65,L)*y(n_ClONO2,L)*y(nO,L))/y(n_ClOx,L)
+       F=(rr(53,L)*y(nOH,L)*y(nn_HOCl,L)+rr(55,L)*y(nO,L)*
+     &   y(nn_HOCl,L)+rr(65,L)*y(nn_ClONO2,L)*y(nO,L))/y(nn_ClOx,L)
        G=rr(62,L)*y(nOH,L)+rr(63,L)*y(nHO2,L)+rr(77,L)*
      &   y(nBrO,L)+2.d0*rr(iClOplusClO,L)*y(nClO,L)+
      &   rr(iClOplusNO2,L)*y(nNO2,L)
        Q=rr(56,L)*y(nOH,L)
        V=C-D
        X=rr(51,L)*y(nOH,L)*y(nCl2,L)+rr(54,L)*y(nO,L)*
-     &   y(n_HCl,L)+ 2.d0*
+     &   y(nn_HCl,L)+ 2.d0*
      &   ss(18,L,i,j)*y(nCl2,L)+2.d0*ss(20,L,i,j)*y(nCl2O2,L)+
-     &   ss(21,L,i,j)*y(n_HOCl,L)+ss(22,L,i,j)*y(n_ClONO2,L)
-       X=X/y(n_ClOx,L)
-       YY=rr(57,L)*y(n_HOCl,L)+rr(58,L)*y(n_H2O2,L)+rr(59,L)*
-     &   y(nHO2,L)+rr(82,L)*y(n_CH4,L)+rr(83,L)*y(nH2,L)
-       if((dt2*y(n_ClOx,L)) /= 0)then
-         dClOx=(y(n_ClOx,L)-ClOx_old(L))/(dt2*y(n_ClOx,L))
+     &   ss(21,L,i,j)*y(nn_HOCl,L)+ss(22,L,i,j)*y(nn_ClONO2,L)
+       X=X/y(nn_ClOx,L)
+       YY=rr(57,L)*y(nn_HOCl,L)+rr(58,L)*y(nn_H2O2,L)+rr(59,L)*
+     &   y(nHO2,L)+rr(82,L)*y(nn_CH4,L)+rr(83,L)*y(nH2,L)
+       if((dt2*y(nn_ClOx,L)) /= 0)then
+         dClOx=(y(nn_ClOx,L)-ClOx_old(L))/(dt2*y(nn_ClOx,L))
        else
          dClOx=0.d0
        endif
@@ -500,27 +513,27 @@ c calculating Cl amount, otherwise ignore:
          if(y(nOClO,L) < 0.) y(nOClO,L)=0.d0
        endif 
        
-       y(nCl,L)=p1*y(n_ClOx,L)
-       y(nClO,L)=p2*y(n_ClOx,L)
+       y(nCl,L)=p1*y(nn_ClOx,L)
+       y(nClO,L)=p2*y(nn_ClOx,L)
   
-       if(SZA < 90.) y(nOClO,L)=p3*y(n_ClOx,L)  
+       if(SZA < 90.) y(nOClO,L)=p3*y(nn_ClOx,L)  
        if(y(nCl,L) < 0)   y(nCl,L)   =0.d0
        if(y(nClO,L) < 1)  y(nClO,L)  =0.d0
        if(y(nOClO,L) < 1) y(nOClO,L) =0.d0
-       if(y(n_ClOx,L) < 1)y(n_ClOx,L)=1.0
+       if(y(nn_ClOx,L) < 1)y(nn_ClOx,L)=1.0
            
 
 c Normalize so that amount of ClOx doesn't change:
        if((y(nCl,L)+y(nClO,L)+y(nOClO,L)) > 0.)then
-          rnormnum=y(n_ClOx,L)/(y(nCl,L)+y(nClO,L)+y(nOClO,L))
+          rnormnum=y(nn_ClOx,L)/(y(nCl,L)+y(nClO,L)+y(nOClO,L))
           y(nCl,L)=y(nCl,L)*rnormnum
           y(nClO,L)=y(nClO,L)*rnormnum
           y(nOClO,L)=y(nOClO,L)*rnormnum
        endif
 
-       pClOx(I,J,L)=y(nClO,L)/y(n_ClOx,L)
-       pClx(I,J,L)=y(nCl,L)/y(n_ClOx,L)
-       pOClOx(I,J,L)=y(nOClO,L)/y(n_ClOx,L)
+       pClOx(I,J,L)=y(nClO,L)/y(nn_ClOx,L)
+       pClx(I,J,L)=y(nCl,L)/y(nn_ClOx,L)
+       pOClOx(I,J,L)=y(nOClO,L)/y(nn_ClOx,L)
 
       enddo  ! end of altitude loop
       yCl2O2(I,J,:)=y(nCl2O2,:)
@@ -539,6 +552,7 @@ C**** GLOBAL parameters and variables:
       USE RESOLUTION, only : LS1
       USE ATM_COM, only    : LTROPO
       USE TRACER_COM, only : n_BrOx,n_H2O2,n_HBr,n_HOBr,n_BrONO2
+      USE TRACER_COM, only : nn_BrOx,nn_H2O2,nn_HBr,nn_HOBr,nn_BrONO2
       USE TRCHEM_Shindell_COM, only:rr,y,nO3,nClO,nOClO,nNO,nO,nBr,nOH,
      &    nBrO,ss,nHO2,nNO2,pBrOx,which_trop
 
@@ -569,10 +583,10 @@ C**** Local parameters and variables and arguments:
      &  rr(80,L)+ss(25,L,i,j)
         c=rr(73,L)*y(nHO2,L)+rr(77,L)*y(nClO,L)+rr(81,L)*
      &  y(nOH,L)+rr(iBrOplusNO2,L)*y(nNO2,L)    
-        d=rr(72,L)*y(nHO2,L)+rr(79,L)*y(n_H2O2,L)
-        eq=rr(68,L)*y(n_HBr,L)*y(nOH,L)+rr(84,L)*y(n_HBr,L)*
-     &  y(nO,L)+ss(24,L,i,j)*y(n_HOBr,L)
-        f=ss(23,L,i,j)*y(n_BrONO2,L)
+        d=rr(72,L)*y(nHO2,L)+rr(79,L)*y(nn_H2O2,L)
+        eq=rr(68,L)*y(nn_HBr,L)*y(nOH,L)+rr(84,L)*y(nn_HBr,L)*
+     &  y(nO,L)+ss(24,L,i,j)*y(nn_HOBr,L)
+        f=ss(23,L,i,j)*y(nn_BrONO2,L)
         if(a+b /= 0)then
           p2=a/(a+b)
         else
@@ -581,14 +595,14 @@ C**** Local parameters and variables and arguments:
         if(p2 < 0)p2=0.d0
         if(p2 > 1)p2=1.d0
         p1=1-p2    
-        y(nBr,L)=p1*y(n_BrOx,L)
-        y(nBrO,L)=p2*y(n_BrOx,L)
+        y(nBr,L)=p1*y(nn_BrOx,L)
+        y(nBrO,L)=p2*y(nn_BrOx,L)
         if(y(nBr,L) < 1)   y(nBr,L)   =0.d0
         if(y(nBrO,L) < 1)  y(nBrO,L)  =0.d0
         if(y(nBr,L) > 1d9) y(nBr,L)   =0.d0
         if(y(nBrO,L) > 1d9)y(nBrO,L)  =0.d0
-        if(y(n_BrOx,L) < 1)y(n_BrOx,L)=1.d0
-        pBrOx(I,J,L)=y(nBrO,L)/y(n_BrOx,L)
+        if(y(nn_BrOx,L) < 1)y(nn_BrOx,L)=1.d0
+        pBrOx(I,J,L)=y(nBrO,L)/y(nn_BrOx,L)
       enddo ! end of altitude loop
 
       return

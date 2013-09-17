@@ -1050,7 +1050,7 @@ C****
       USE ATM_COM, only : pk
       USE DYNAMICS, only : COS_LIMIT,mfiltr,sig
 #ifdef TRACERS_ON
-      USE TRACER_COM, only: ntm=>NTM,trm,trmom
+      USE TRACER_COM, only: NTM,trm,trmom
       use OldTracer_mod, only: trname,ITIME_TR0
 #endif
       USE FLUXES, only : atmsrf
@@ -2773,7 +2773,7 @@ c      end module ATMDYN_QDYNAM
 !@auth J. Lerner
       use resolution, only : im,jm,lm
       USE MODEL_COM, only: itime
-      USE TRACER_COM, only: trm, trmom, ntm=>NTM
+      USE TRACER_COM, only: trm, trmom, NTM
       use OldTracer_mod, only: itime_tr0, trname, t_qlimit
       USE TRACER_ADV
 #ifndef SKIP_TRACER_DIAGS
