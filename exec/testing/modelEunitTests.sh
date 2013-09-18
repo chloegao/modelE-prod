@@ -39,10 +39,12 @@ submitJob()
   local testLog=$3
   local mpi=$4
 
-  local deck=E4TcadiF40
+  #local deck=E4TcadiF40
+  local deck=nonProduction_E4TcadC12
 
   MAKELOG=make.log.${compiler}
   FAILLOG=${testLog}.FAILED
+  pfunitSuffix="-mpi"
   if [ "$mpi" == "NO" ]; then
     pfunitSuffix="-serial"
     FAILLOG=${testLog}${pfunitSuffix}.FAILED
@@ -67,13 +69,13 @@ EOF
   if [ "$compiler" == "intel" ]; then
 
     cat << EOF >> $jobScript
-module load comp/intel-13.0.0.079 mpi/impi-3.2.2.006
+module load comp/intel-13.1.3.192 mpi/impi-3.2.2.006
 EOF
    
   else
 
     cat << EOF >> $jobScript
-module load other/comp/gcc-4.7.1 other/mpi/mvapich2-1.9a2/gcc-4.7.1
+module load other/comp/gcc-4.8.1 other/mpi/openmpi/1.7.2-gcc-4.8.1-shared
 EOF
 
   fi
@@ -185,7 +187,7 @@ EOF
 # MAIN
 # ---------------------
 
-ROOT=$MODELROOT/exec/testing/
+ROOT=$MODELROOT/exec/testing/testsOutput
 cd $ROOT
 toEmail="$CONFIG.unit"
 rm -f $toEmail

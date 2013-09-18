@@ -16,9 +16,6 @@ EXIT_ERR=1
 OK=0
 checkMPI=0
 checkSERIAL=0
-NUM_FAIL=0
-NUM_WARN=0
-NUM_TESTS=0
 
 # -------------------------------------------------------------------
 updReport()
@@ -34,36 +31,29 @@ updReport()
 checkStatus() 
 # -------------------------------------------------------------------
 {
+# Process the diffreport output.
    local diffsize=$1
    local name1=$2
    local name2=$3
    local file1=${name1##*/}
    local file2=${name2##*/}
 
-   if [ $diffsize -ne 0 ]; then
-      if [[ "$name2" =~ baseline ]]; then
-         updReport "  ->WARNING: $file1 BASELINE CHANGED"
-         deckResults[1]="NO"
-         let NUM_WARN++
-      elif [[ "$name1" =~ MPI && "$name2" =~ SERIAL ]]; then
-         updReport "  ->ERROR: $file1 MPI and SERIAL DIFFER"
-         deckResults[3]="NO"
-         let NUM_FAIL++
-      else
-         updReport "  ->ERROR: $file1 is NOT RESTART REPRODUCIBLE"
-         # We will not count as a failure the restart reproducibility problem
-         # associated with E4TcadiF40 and E4TcadC12
-         if [[ "$name1" =~ E4Tcad ]]; then
-           updReport "  -->TODO: This is a well known problem with E4Tcad rundecks"
-         else
-           deckResults[2]="NO"
-           let NUM_FAIL++
-         fi
-      fi
-      export willPrintAdditional=YES
+# If two files are identical then diffSize=0 and we return $OK
+   if [ $diffsize -eq 0 ]; then return $OK; fi
+# else process cases one at a time...
+   export willPrintAdditional=YES
+   if [[ "$name2" =~ baseline ]]; then
+      updReport "  ->WARNING: $name1 BASELINE CHANGED"
+      deckResults[1]="NO"
       return $EXIT_ERR
    fi
-   return $OK
+   if [[ "$name1" =~ MPI && "$name2" =~ SERIAL ]]; then
+      updReport "  ->ERROR: $name1 MPI and SERIAL DIFFER"
+      deckResults[3]="NO"
+      return $EXIT_ERR
+   fi
+   updReport "  ->ERROR: $name1 is NOT RESTART REPRODUCIBLE"
+   deckResults[2]="NO"
 }
 
 # -------------------------------------------------------------------
@@ -75,12 +65,10 @@ fileExists()
       updReport "  ->ERROR: $file does NOT exist"
       if [[ "$file" =~ baseline ]]; then
          # Baseline file does not exist
-         #let NUM_WARN++
          updReport "  -->Could not compare against baseline"
          deckResults[1]="NO"
       else
          # Model failed during compilation or at runtime
-         #let NUM_FAIL++
          deckResults[0]="NO"
          deckResults[1]="---"
          deckResults[2]="---"
@@ -104,14 +92,17 @@ doDiff()
    local deck=$3
    local comp=$4
 
-   let NUM_TESTS++
    fileExists "$file1"
    return_val=$?
    if [ "$return_val" -eq $OK ]; then
       fileExists "$file2"
       return_val=$?
       if [ "$return_val" -eq $OK ]; then
-         $diffExec $file1 $file2 > fileDiff
+         if [ -e skipList ]; then
+           $diffExec $file1 $file2 skipList > fileDiff
+         else
+           $diffExec $file1 $file2 > fileDiff
+         fi
          wait
          diffSize=`cat fileDiff | wc -c`; rm -f fileDiff
          # If necessary save new file to BASELINE directory
@@ -138,6 +129,17 @@ doDiff()
 }
 
 # -------------------------------------------------------------------
+createCADSkipList()
+# -------------------------------------------------------------------
+{
+cat << EOF > skipList
+trabl_ocn01
+trabl_gla01
+trabl_lnd01
+taijn
+EOF
+}
+# -------------------------------------------------------------------
 deckDiff()
 # -------------------------------------------------------------------
 {
@@ -152,29 +154,36 @@ deckDiff()
    for deck in "${deckArray[@]}"; do
       # defaults
       compileErr=OK
-      baseNotChanged=YES
+      # I do not check TRAPS tests against baseline - mark as NA
+      [ $CONFIG == "TRAPS" ] && baseNotChanged=NA || baseNotChanged=YES
       isRstReprod=YES
       isNPEReprod=YES
       deckResults=($compileErr $baseNotChanged $isRstReprod $isNPEReprod)
       export deckResults
       report=( "${report[@]}" "$deck [$comp] :" )
       echo "  --- DECK = $deck ---"
+      if [[ $deck =~ E4Tcad ]]; then
+         createCADSkipList
+      fi
       # Don't do serial comparisons of C90 and AR5 rundecks
       if [[ "$deck" =~ C90 ]] || [[ "$deck" =~ AR5_CAD ]] || [[ "$deck" =~ tomas ]] || [[ "$deck" =~ amp ]]; then
          echo "  ->Skip SERIAL comparison"
       else
         if [ $checkSERIAL -gt 0 ]; then
 # compare SERIAL restart reproducibility
+# SCM is not restart reproducible, so skip it
           if [[ ! "$deck" =~ SCM ]]; then
             echo "  ->compare SERIAL restart reproducibility..."
             doDiff $deck.SERIAL.$comp.1dy $deck.SERIAL.$comp.restart $deck $comp
           else
             echo "  ->Skip restart reproducibility..."
           fi
+          if [ $CONFIG != "TRAPS" ]; then
 # compare SERIAL baseline (previous day) restart reproducibility
           echo "  ->compare SERIAL baseline reproducibility.."
           doDiff $deck.SERIAL.$comp.1hr $baseline/$deck.SERIAL.$comp.1hr $deck $comp
           doDiff $deck.SERIAL.$comp.1dy $baseline/$deck.SERIAL.$comp.1dy $deck $comp
+          fi
         fi
       fi
       if [[ "$comp" =~ nag ]] || [[ "$deck" =~ SCM ]]; then
@@ -193,8 +202,10 @@ deckDiff()
           echo "  ->compare MPI baseline reproducibility..."
           for npe in "${npeArray[@]}"; do
             if [ $checkMPI -gt 0 ]; then
+              if [ $CONFIG != "TRAPS" ]; then
               doDiff $deck.MPI.$comp.1hr.np=$npe $baseline/$deck.MPI.$comp.1hr.np=$npe $deck $comp
               doDiff $deck.MPI.$comp.1dy.np=$npe $baseline/$deck.MPI.$comp.1dy.np=$npe $deck $comp
+              fi
             fi
 # compare MPI vs SERIAL reproducibility
             echo "  ->compare MPI vs SERIAL reproducibility..."
@@ -211,6 +222,9 @@ deckDiff()
       fi # skip MPI comparisons
       resultString="$deck $comp ${deckResults[@]}"
       deckReport=( "${deckReport[@]}" "$resultString" )
+      if [[ $deck =~ E4Tcad ]]; then
+         rm -f skipList
+      fi
    done
 }
 
@@ -366,7 +380,6 @@ createEmailReport()
 {
 # Create report for email
 
-   #rm -f $TESTD/${CONFIG}.diff
    echo "ModelE test results, branch=$branch" 
    echo "--------------------------------------------------------------------------"
 
@@ -463,7 +476,7 @@ declare -a SCMdecks
 
 export willPrintAdditional=NO
 
-TESTD=$MODELROOT/exec/testing
+TESTD=$MODELROOT/exec/testing/testsOutput
 
 cd $TESTD
 

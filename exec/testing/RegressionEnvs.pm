@@ -193,7 +193,7 @@ sub saveForDiffreport()
    my $rsize = scalar @rundecks;
    my $csize = scalar @compilers;
 
-   my $file =  $env->{GIT_CLONE} . "/exec/testing/" . "." . "$cfgFile";
+   my $file =  $env->{GIT_CLONE} . "/exec/testing/testsOutput/" . "." . "$cfgFile";
    open (FH, "> $file") or die "Can't open $file for write: $!";
    my $i = 0;
    while($i < $rsize)

@@ -77,9 +77,9 @@ sub compileRundeck
   else
   {
     my $dFlags;
-    if ($compiler eq 'intel') { $dFlags="\"-O0 -g -traceback\""; }
-    elsif ($compiler eq 'gfortran') { $dFlags="\"-O0 -g -fbacktrace\""; }
-    elsif ($compiler eq 'nag') { $dFlags="\"-O0 -g -gline\""; }
+    if ($compiler eq 'intel') { $dFlags="\"-O0 -g -traceback -CB -fpe0 -check uninit -ftrapuv\""; }
+    elsif ($compiler eq 'gfortran') { $dFlags="\"-O0 -g -fbacktrace -fbounds-check -fcheck-array-temporaries -ffpe-trap=invalid,zero,overflow\""; }
+    elsif ($compiler eq 'nag') { $dFlags="\"-O0 -g -gline -C=all -gline\""; }
     $flags = "$extraFlags{$configuration} $extraFlags{$rundeck} $extraFlags{$compiler} EXTRA_FFLAGS=$dFlags";
   }
   $flags =~ s/(\$npes)/1/eeg;
@@ -88,18 +88,6 @@ sub compileRundeck
   unlink($logFile); # delete it
 
   my $commandString;
-  if ($rundeck =~ m/^(E_AR5)/i)
-  { 
-    $commandString = <<EOF;
-    export MODELERC=$MODELERC;
-    cd $installDir/decks;
-    make -f new.mk rundeck RUN=$expName RUNSRC=$rundeck;
-    make -f new.mk vclean RUN=$expName;
-    make -f new.mk -j gcm RUN=$expName $flags COMPILER=$compiler;
-EOF
-  }
-  else 
-  {
     $commandString = <<EOF;
     export MODELERC=$MODELERC;
     cd $installDir/decks;
@@ -107,8 +95,6 @@ EOF
     make clean RUN=$expName;
     make -j gcm RUN=$expName $flags COMPILER=$compiler;
 EOF
-  }
-
 
   my $binDir = $expName . "_bin";
   print "compileRundeck: $commandString \n" if $localDebug;
@@ -160,8 +146,8 @@ sub runConfiguration
   else
   {
     my $dFlags;
-    if ($compiler eq 'intel') { $dFlags="\"-O0 -g -traceback\""; }
-    elsif ($compiler eq 'gfortran') { $dFlags="\"-O0 -g -fbacktrace\""; }
+    if ($compiler eq 'intel') { $dFlags="\"-O0 -g -traceback -CB -fpe0 -check uninit -ftrapuv\""; }
+    elsif ($compiler eq 'gfortran') { $dFlags="\"-O0 -g -fbacktrace -fbounds-check -fcheck-array-temporaries -ffpe-trap=invalid,zero,overflow\""; }
     elsif ($compiler eq 'nag') { $dFlags="\"-O0 -g -gline\""; }
     $flags = "$extraFlags{$configuration} $extraFlags{$rundeck} $extraFlags{$compiler} EXTRA_FFLAGS=$dFlags";
   }
@@ -306,17 +292,6 @@ sub createMakeCommand
 
   if ($time == 2 || $time == 48 ) 
   {
-    if ($deck =~ m/^(E_AR5)/i)
-    {
-      return ("export MODELERC=$rc; 
-             ../exec/editRundeck.sh $exp $time 2 1;
-             make -f new.mk rundeck RUN=$exp RUNSRC=$deck OVERWRITE=YES; 
-             make -f new.mk -j setup RUN=$exp $flags; 
-             ../exec/runE_new $exp -np $npes -cold-restart; 
-             rm -f $exp/run_status")
-    }
-    else
-    {
       if ($time == 2) {
         return ("export MODELERC=$rc; 
            make rundeck RUN=$exp RUNSRC=$deck OVERWRITE=YES;  
@@ -332,7 +307,6 @@ sub createMakeCommand
            ../exec/runE $exp -np $npes -cold-restart; 
            rm -f $exp/run_status")
       }
-    }
   }
   else
   {

@@ -86,9 +86,8 @@ watchJob()
 
    # Run suite of modelE tests
    if [ "$RUN_TESTS" == "YES" ]; then
-     echo "Run regressionTests.pl..."
-     /usr/bin/perl regressionTests.pl $CONFIG.cfg >> $CONFIG.out 2>&1
-     wait
+     echo "Execute regressionTests.pl with $CONFIG configuration..."
+     /usr/bin/perl regressionTests.pl $CONFIG.cfg 1>> $CONFIG.out 2>&1
    else
      echo "Skipped regression tests (RUN_TESTS=$RUN_TESTS)"
      echo "Skipped regression tests (RUN_TESTS=$RUN_TESTS)" >> $CONFIG.out
@@ -98,6 +97,7 @@ watchJob()
    if [ "$RUN_UNIT_TESTS" == "YES" ]; then
      echo "Run unit tests..."
      ./modelEunitTests.sh
+     wait
    else
      echo "Skipped unit tests (RUN_UNIT_TESTS=$RUN_UNIT_TESTS)"
      echo "Skipped unit tests (RUN_UNIT_TESTS=$RUN_UNIT_TESTS)" >> $CONFIG.out

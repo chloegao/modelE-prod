@@ -129,7 +129,7 @@ sub runInBatch
   }
   else
   {
-    if    ($jobname =~ nonProduction) 
+    if    ($jobname =~ nonProduction || $jobname =~ C12) 
     { $walltime = "00:30:00"; }
     elsif ($jobname =~ M20) 
     { $walltime = "01:00:00"; }
@@ -140,7 +140,7 @@ sub runInBatch
     elsif ($jobname =~ tomas || $jobname =~ AR5_CAD || $jobname =~ amp) 
     { $walltime = "03:00:00"; $nodes=4; }
     else 
-    { $walltime = "01:00:00"; $nodes=1; }
+    { $walltime = "03:00:00"; $nodes=1; }
   }
   print " runInBatch: doMock=$doMock, onEC2=$onEC2, COMPILER=$compiler\n";
   print " runInBatch: jobname=$jobname, walltime=$walltime, nodes=$nodes\n";
