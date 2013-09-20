@@ -51,7 +51,7 @@ contains
     use Dictionary_mod, only: Dictionary
     use AttributeDictionary_mod
     use FileManager
-    class (Test_TracerIO) :: this
+    class (Test_TracerIO), intent(inout) :: this
     integer :: iounit
 
     call openUnit('testTracers.txt', iounit, qold=.false., qbin=.false.)
@@ -88,7 +88,7 @@ contains
 
   subroutine tearDown(this)
     use Dictionary_mod, only: clean
-    class (Test_TracerIO) :: this
+    class (Test_TracerIO), intent(inout) :: this
 
     close(this%iounit, status='delete')
     this%iounit = -1
@@ -100,7 +100,7 @@ contains
 
 @Test  
   subroutine testReadFromText(this)
-    class (Test_TracerIO) :: this
+    class (Test_TracerIO), intent(inout) :: this
 
     integer :: iounit
 
@@ -113,14 +113,14 @@ contains
 
   ! support routine
   subroutine readTracers(this)
-    class (Test_TracerIO) :: this
+    class (Test_TracerIO), intent(inout) :: this
     this%bundle = readFromText(this%iounit, this%newDefaultValues)
   end subroutine readTracers
 
 @Test  
   subroutine testWriteFormatted(this)
     use FileManager
-    class (Test_TracerIO) :: this
+    class (Test_TracerIO), intent(inout) :: this
     type (TracerBundle) :: bundle
     integer :: iounit
 
@@ -141,7 +141,7 @@ contains
 @Test  
   subroutine testWriteUnformatted(this)
      use FileManager
-    class (Test_TracerIO) :: this
+    class (Test_TracerIO), intent(inout) :: this
     type (TracerBundle) :: bundle
     integer :: iounit
 

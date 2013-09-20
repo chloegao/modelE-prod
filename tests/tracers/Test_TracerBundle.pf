@@ -100,23 +100,27 @@ contains
 
   end subroutine testHasAttribute
 
-@Test
+@test
   subroutine testAddMandatoryA(this)
     class (Test_TracerBundle), intent(inout) :: this
 
+! make 'molecularMass' a mandatory attribute
     call this%bundle%addMandatoryAttribute('molecularMass')
+! insert a 'naked' tracer to the bundle...i.e. no attributes
     call this%bundle%insert('otherTracer', newTracer('otherTracer'))
-    call assertExceptionRaised("TracerBundle_mod - species otherTracer is missing mandatory attribute molecularMass and it failed to detect missing mandatory option.")
+! since 'otherTracer' is missing mandatory attribute, assertion fails
+    call assertExceptionRaised("TracerBundle_mod - species 'otherTracer' is missing mandatory attribute 'molecularMass'.")
 
   end subroutine testAddMandatoryA
 
-@Test
+@test
   subroutine testAddMandatoryB(this)
     class (Test_TracerBundle), intent(inout) :: this
 
+! make 'newAttribute' a mandatory attribute
     call this%bundle%addMandatoryAttribute('newAttribute')
 
-    call assertExceptionRaised( "TracerBundle_mod - species speciesA is missing mandatory attribute newAttribute and it failed to detect missing mandatory option.")
+    call assertExceptionRaised( "TracerBundle_mod - species 'speciesA' is missing mandatory attribute 'newAttribute'.")
 
   end subroutine testAddMandatoryB
 

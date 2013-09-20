@@ -215,7 +215,7 @@ auxdeep: aux
 clean vclean clean_all:
 	$(MAKE) -C $(MODEL_DIR) $@ $(OPTS_MAIN)
 ifneq ($(PFUNIT),)
-	$(MAKE) -C $(TESTS_DIR) distclean
+	$(MAKE) -C $(TESTS_DIR) clean
 endif
 	$(MAKE) -C $(AUX_DIR) $@ $(OPTS_MAIN)
 

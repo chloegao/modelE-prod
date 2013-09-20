@@ -1,5 +1,6 @@
-.PHONY: clean tests all createTestSuites
+.PHONY: tests all createTestSuites clean
 
+COMPILER ?= gfortran
 EXTERNAL_CPP = NO
 CONFIG_DIR = ../config
 SOURCE_DIR = ../model
@@ -15,7 +16,11 @@ LIBS := $(foreach ITEM, $(COMPLIBS), $(SOURCE_DIR)/$(ITEM))
 
 # Determine modelE components to be tested based on availability
 
+ifeq ($(COMPONENTS),)
+TESTDIRS = shared profiler MPI_Support tracers
+else
 TESTDIRS := $(foreach ITEM, $(COMPONENTS), $(wildcard $(ITEM)))
+endif
 ifeq ($(USE_MPI),NO)
   TESTDIRS := $(filter-out MPI_Support,$(TESTDIRS))
 endif
@@ -34,7 +39,8 @@ ifeq ($(COMPILER), intel)
   PFUNITMK := Intel.mk
 endif
 ifeq ($(COMPILER), gfortran)
-  PFUNITMK := GNU.mk
+  F90 = gfortran
+  F90FLAGS += -g -O0 -fbacktrace
 endif
 ifeq ($(COMPILER), nag)
   PFUNITMK := NAG.mk
@@ -42,11 +48,8 @@ ifeq ($(COMPILER), nag)
 endif
 
 # Sets F90 and additional F90FLAGS
-include $(PFUNIT)/include/$(PFUNITMK)
-F90FLAGS += $(CPPFLAGS) -I$(PFUNIT)/mod -I$(PFUNIT)/include -I.
-EXEFLAGS += $(CPPFLAGS) -I$(PFUNIT)/mod -I$(PFUNIT)/include 
-F90FLAGS += $(TESTINCS)
-EXEFLAGS += $(EXEINCS)
+F90FLAGS += -I$(PFUNIT)/mod -I$(PFUNIT)/include -I. $(TESTINCS)
+EXEFLAGS += -I$(PFUNIT)/mod -I$(PFUNIT)/include $(EXEINCS)
 
 ifeq ($(USE_MPI),YES)
   F90 := mpif90
@@ -60,28 +63,26 @@ export USE_MPI
 
 # Targets:
 
+EXE = tests.x
+
+#$(EXE): createTestSuites testSuites.inc tests
+$(EXE): testSuites.inc tests
+	$(F90) -I. -o $@ $(EXEFLAGS) $(PFUNIT)/include/driver.F90 $(TESTLIBS) $(LIBS) $(PFLIB) $(IOLIB)
+
+tests:
+	@for dir in $(TESTDIRS); do \
+	make -C $$dir all; done
+
 createTestSuites:
 	rm -f testSuites.inc
 	@for f in ${TESTDIRS}; do \
 	echo \#include \"$${f}/testSuites.inc\" >> testSuites.inc; \
 	done;
 
-EXE = tests.x
-
-$(EXE): createTestSuites testSuites.inc tests
-	$(F90) -o $@ $(EXEFLAGS) $(PFUNIT)/include/driver.F90 $(TESTLIBS) $(LIBS) $(PFLIB) $(IOLIB)
-
 clean:
 	@for dir in $(TESTDIRS); do \
 	make -C $$dir clean; done
-
-distclean:
-	make clean
-	$(RM) *.o *.mod *.x
-
-tests:
-	@for dir in $(TESTDIRS); do \
-	make -C $$dir all; done
+	$(RM) tests.x
 
 all: $(EXE)
 ifeq ($(MPI),YES)
