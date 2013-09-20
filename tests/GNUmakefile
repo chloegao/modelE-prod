@@ -65,8 +65,7 @@ export USE_MPI
 
 EXE = tests.x
 
-#$(EXE): createTestSuites testSuites.inc tests
-$(EXE): testSuites.inc tests
+$(EXE): createTestSuites testSuites.inc tests
 	$(F90) -I. -o $@ $(EXEFLAGS) $(PFUNIT)/include/driver.F90 $(TESTLIBS) $(LIBS) $(PFLIB) $(IOLIB)
 
 tests:
