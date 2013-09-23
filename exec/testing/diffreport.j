@@ -162,7 +162,7 @@ deckDiff()
       export deckResults
       report=( "${report[@]}" "$deck [$comp] :" )
       echo "  --- DECK = $deck ---"
-      if [[ $deck =~ E4Tcad ]]; then
+      if [[ $deck =~ E4Tcad ]] || [[ $deck =~ AR5_CAD ]]; then
          createCADSkipList
       fi
       # Don't do serial comparisons of C90 and AR5 rundecks

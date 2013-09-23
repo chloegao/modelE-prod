@@ -55,7 +55,7 @@ submitJob()
   cat << EOF > $jobScript
 #!/bin/bash
 #PBS -N modelEut
-#PBS -l select=1:ncpus=12
+#PBS -l select=1:mpiprocs=12
 #PBS -l walltime=0:03:00
 #PBS -W group_list=s1001
 #PBS -j oe
@@ -141,7 +141,7 @@ EOF
 
 # PARSE FOR ERRORS
 
-  local anyError=`grep ' Error' $testLog` 
+  local anyError=`grep ' FAIL' $testLog` 
   if [ "$anyError" != "" ]; then
     local errMsg=" ### Error detected during unit tests" >> $toEmail
     echo "SUMMARY:"  >> $toEmail
@@ -150,8 +150,7 @@ EOF
     echo ""  >> $toEmail
   fi 
    
-  local didTestsFail=`grep 'Failure in' $testLog` 
-  if [ "$didTestsFail" != "" ]; then
+  if [ "$anyError" != "" ]; then
     totLines=`cat $testLog | wc | awk '{print $1}'`
     if [ "$mpi" == "NO" ]; then
       execLine=`cat $testLog | grep -in './tests.x' | awk -F: '{print $1}'`
@@ -165,13 +164,14 @@ EOF
     head -$showLines foo >> $toEmail
     rm foo
   else
-    msg=$(tail -2 $testLog | grep " run")
+    msg=$(tail -3 $testLog | grep "OK")
     if [ "$msg" == "" ]; then
       cp $testLog $FAILLOG
       echo " ### Tests failed to run." >> $toEmail
       echo " ### Check $FAILLOG" >> $toEmail
     else
-      tail -2 $testLog | grep " run" >> $toEmail
+      tail -3 $testLog | grep "OK" >> $toEmail
+      tail -2 $testLog | grep "(" >> $toEmail
       rm -f $testLog
     fi
     echo ""  >> $toEmail
