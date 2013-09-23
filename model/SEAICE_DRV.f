@@ -1708,6 +1708,7 @@ C**** adjust rad fluxes for change in ice fraction
       RETURN
       END SUBROUTINE seaice_to_atmgrid
 
+#ifndef STANDALONE_OCEAN /* remainder of file skipped */
       subroutine daily_seaice(end_of_day,atmocn,atmice)
       use model_com, only : kocean
       use exchange_types, only : atmocn_xchng_vars,atmice_xchng_vars
@@ -2258,3 +2259,4 @@ C**** update heat and salt
 
       RETURN
       end subroutine daily_ocnml_offline
+#endif /* ifndef STANDALONE_OCEAN */
