@@ -178,15 +178,14 @@ C**** Leap-frog re-initialization: IF (NS.LT.NIdyn)
       Call AFLUX  (NS,   U,V,MA,MASUM,    MA   ,MASUM)
       Call ADVECM (DTFS,         MA,      MODD3,MSUMODD)
       Call GWDRAG (DTFS, U,V,       UX,VX,MODD3, T,TZ, .True.)
-      Call VDIFF  (DTFS, U,V,       UX,VX,       T)
-!     Call ADVECV (DTFS, U,V,MA, MA,UX,VX,MODD3)
+      Call VDIFF  (DTFS, U,V,       UX,VX,MODD3, T)
+      Call ADVECV (DTFS, U,V,MA, MA,UX,VX,MODD3)
 !     Call PGF    (DTFS, U,V,MA,    UX,VX,MODD3, T,TZ)
        CALL CALC_PIJL (LM,P,PIJL)
        PU(:,:,:) = MU(:,:,:)*kg2mb
        PV(:,:,:) = MV(:,:,:)*kg2mb
        SD(:,:,:) = MW(:,:,:)*kg2mb
        PB(:,:)   = (MSUMODD(:,:) - MFIXs)*kg2mb
-      CALL ADVECV (P,UX,VX,PB,U,V,Pijl,DTFS)  !P->pijl
       CALL PGF (UX,VX,PB,U,V,T,TZ,Pijl,DTFS)
 c      if (QUVfilter) CALL FLTRUV(UX,VX,U,V)
       call isotropuv(ux,vx,COS_LIMIT)
@@ -199,15 +198,14 @@ c      if (QUVfilter) CALL FLTRUV(UX,VX,U,V)
       Call AFLUX  (NS, UX,VX,MODD3,MSUMODD,  MA,   MASUM)
       Call ADVECM (DT,              MA,      MODD1,MSUMODD)
       Call GWDRAG (DT, UX,VX,          UT,VT,MODD1, T,TZ, .False.)
-      Call VDIFF  (DT, UX,VX,          UT,VT,       T)
-!     Call ADVECV (DT, UX,VX,MODD3, MA,UT,VT,MODD1)
+      Call VDIFF  (DT, UX,VX,          UT,VT,MODD1, T)
+      Call ADVECV (DT, UX,VX,MODD3, MA,UT,VT,MODD1)
 !     Call PGF    (DT, UX,VX,MODD3,    UT,VT,MODD1, T,TZ)
        CALL CALC_PIJL (LS1-1,PB,PIJL)
        PU(:,:,:) = MU(:,:,:)*kg2mb
        PV(:,:,:) = MV(:,:,:)*kg2mb
        SD(:,:,:) = MW(:,:,:)*kg2mb
        PA(:,:)   = (MSUMODD(:,:) - MFIXs)*kg2mb
-      CALL ADVECV (P,UT,VT,PA,UX,VX,Pijl,DT)   !PB->pijl
       CALL PGF (UT,VT,PA,UX,VX,T,TZ,Pijl,DT)
 
 c      if (QUVfilter) CALL FLTRUV(UT,VT,UX,VX)
@@ -222,15 +220,14 @@ c      if (QUVfilter) CALL FLTRUV(UT,VT,UX,VX)
       Call AFLUX  (NS,   U,V,MA,MASUM,       MODD1,MSUMODD)
       Call ADVECM (DTLF,         MODD1,      MODD3,MSUMODD)
       Call GWDRAG (DTLF, U,V,          UT,VT,MODD3, T,TZ, .False.)
-      Call VDIFF  (DTLF, U,V,          UT,VT,       T)
-!     Call ADVECV (DTLF, U,V,MA, MODD1,UT,VT,MODD3)
+      Call VDIFF  (DTLF, U,V,          UT,VT,MODD3, T)
+      Call ADVECV (DTLF, U,V,MA, MODD1,UT,VT,MODD3)
 !     Call PGF    (DTLF, U,V,MA,       UT,VT,MODD3, T,TZ)
        CALL CALC_PIJL (LS1-1,P,PIJL)
        PU(:,:,:) = MU(:,:,:)*kg2mb
        PV(:,:,:) = MV(:,:,:)*kg2mb
        SD(:,:,:) = MW(:,:,:)*kg2mb
        PB(:,:)   = (MSUMODD(:,:) - MFIXs)*kg2mb
-      CALL ADVECV (PA,UT,VT,PB,U,V,Pijl,DTLF)   !P->pijl
       CALL PGF (UT,VT,PB,U,V,T,TZ,Pijl,DTLF)
 c      if (QUVfilter) CALL FLTRUV(UT,VT,U,V)
       call isotropuv(ut,vt,COS_LIMIT)
@@ -249,14 +246,13 @@ c      if (QUVfilter) CALL FLTRUV(UT,VT,U,V)
       Call AFLUX  (NS,   UT,VT,MODD1,MSUMODD,   MEVEN,MASUM)
       Call ADVECM (DTLF,              MEVEN,    MA,MASUM)
       Call GWDRAG (DTLF, UT,VT,             U,V,MA, T,TZ, .False.)
-      Call VDIFF  (DTLF, UT,VT,             U,V,    T)
-!     Call ADVECV (DTLF, UT,VT,MODD1, MEVEN,U,V,MA)
+      Call VDIFF  (DTLF, UT,VT,             U,V,MA, T)
+      Call ADVECV (DTLF, UT,VT,MODD1, MEVEN,U,V,MA)
        CALL CALC_PIJL (LS1-1,PA,PIJL)
        PU(:,:,:) = MU(:,:,:)*kg2mb
        PV(:,:,:) = MV(:,:,:)*kg2mb
        SD(:,:,:) = MW(:,:,:)*kg2mb
         P(:,:)   = (MASUM(:,:) - MFIXs)*kg2mb
-      CALL ADVECV (PC,U,V,P,UT,VT,Pijl,DTLF)     !PA->pijl
             MODDA = Mod (NSTEP+4-NS + NDAA*NIDYN, NDAA*NIDYN+2)  ! strat
          IF(MODDA.LT.MRCH) CALL DIAGA0   ! strat
 C**** ACCUMULATE MASS FLUXES FOR TRACERS and Q
@@ -724,7 +720,6 @@ C**** Compute MW (kg/s) = downward vertical mass flux
       USE ATM_COM, only : gz,phi
       Use DYNAMICS,   Only: pu,spa,dut,dvt,do_polefix,mrch
      &     ,dsig,sige,sig,bydsig
-c      USE DIAG, only : diagcd
       USE DOMAIN_DECOMP_ATM, only: grid
       USE DOMAIN_DECOMP_1D, Only : getDomainBounds
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE
@@ -1297,7 +1292,6 @@ c      by4ton=1./(4.**nshap)
       USE GEOM, only : dxyn,dxys
       USE DYNAMICS, only : dt,mrch,ang_uv, COS_LIMIT,do_polefix
      &  ,DT_XUfilter,DT_XVfilter,DT_YVfilter,DT_YUfilter
-c      USE DIAG, only : diagcd
 C**********************************************************************
 C**** FILTERING IS DONE IN X-DIRECTION WITH A 8TH ORDER SHAPIRO
 C**** FILTER. THE EFFECT OF THE FILTER IS THAT OF DISSIPATION AT
@@ -1602,7 +1596,6 @@ c**** Extract domain decomposition info
       USE DYNAMICS, only : x_sdrag,csdragl,lsdrag
      *     ,lpsdrag,ang_sdrag,Wc_Jdrag,wmax,vsdragl
       use dynamics, only : l1_rtau,rtau,linear_sdrag
-c      USE DIAG, only : diagcd
       USE DOMAIN_DECOMP_ATM, only: grid
       USE DOMAIN_DECOMP_1D, only : getDomainBounds
       IMPLICIT NONE
@@ -2472,7 +2465,7 @@ C****
       REAL*8, INTENT(IN),
      &        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
      &        UX,VX
-!@var DUT,DVT current momentum changes
+!@var DUT,DVT current momentum changes (kg*m/s)
       REAL*8, INTENT(IN),
      &        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
      &        DUT,DVT
@@ -2533,8 +2526,8 @@ C****
         END DO
         if (dopit) DUTIL=DUTIL+2.*DT1*RADIUS*OMEGA*COSV(J)*
      *       (PI(J-1)*RAVPN(J-1)+PI(J)*RAVPS(J))
-        DAMB(J)=DUTIL*COSV(J)*RADIUS*mb2kg
-        DKEB(J)=RKEIL*mb2kg
+         DAMB(J) = DUTIL*COSV(J)*RADIUS
+         DKEB(J) = RKEIL
       END DO
 C****
 
@@ -2554,7 +2547,7 @@ c
       CALL TIMEOUT(BEGIN,MDIAG,MDYN)
       RETURN
       END SUBROUTINE DIAGCD
-c      end module DIAG
+
 
       subroutine regrid_to_primary_1d(x)
       USE RESOLUTION, only : jm
@@ -2575,6 +2568,7 @@ c      end module DIAG
       end subroutine regrid_to_primary_1d
 
       SUBROUTINE DIAG5D (M5,NDT,DUT,DVT)
+      Use CONSTANT,   Only: kg2mb
       use resolution, only : im,jm,lm
       USE MODEL_COM, only : MDIAG,MDYN
       USE DYNAMICS, only : dsig
@@ -2628,7 +2622,7 @@ C**** TRANSFER RATES FOR KINETIC ENERGY IN THE DYNAMICS
             IF(KUV.EQ.1) CALL FFT(DUT(1,J,L),FA,FB)
             IF(KUV.EQ.2) CALL FFT(DVT(1,J,L),FA,FB)
             DO N=1,NM
-              X(N)=.5*FIM*
+               X(N) = .5*FIM * kg2mb *
      &          (FA(N-1)*FCUVA(N-1,J,L,KUV)+FB(N-1)*FCUVB(N-1,J,L,KUV))
             ENDDO
             X(1)=X(1)+X(1)

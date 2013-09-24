@@ -27,43 +27,55 @@
       return
       end subroutine moment_enq_order
 
-      SUBROUTINE ADVECV (PA,UT,VT,PB,U,V,P,DT1)
+
+      Subroutine ADVECV (DT1, U,V,MMEAN, MBEFOR,UT,VT,MAFTER)
 !@sum  ADVECV Advects momentum (incl. coriolis) using mass fluxes
 !@auth Original development team
+!**** Input: DT1 = time step (s)
+!****        U,V = mean horizontal velocity during time step (m/s)
+!****     MBEFOR = mass distribution at start of time step (kg/m^2)
+!****     MAFTER = mass distribution at end of time step (kg/m^2)
+!****      MMEAN = mean mass distribution during time step (kg/m^2)
+!****     PU=>MU = eastward mass flux (kg/s)
+!****     PV=>MV = northward mass flux (kg/s)
+!****     SD=>MW = downward vertical mass flux (kg/s)
+!**** Output: UT,VT = horizontal velocity updated by advection (m/s)         
+!****
       USE RESOLUTION, only : im,jm,lm
       USE DIAG_COM, only : modd5k
       USE DOMAIN_DECOMP_ATM, only : GRID
-      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, NORTH,SOUTH
+      Use DOMAIN_DECOMP_1D,  Only: HALO_UPDATE, NORTH,SOUTH
       USE DOMAIN_DECOMP_1D, only : haveLatitude, getDomainBounds
       USE GEOM, only : fcor,dxyv,dxyn,dxys,dxv,ravpn,ravps
      &     ,sini=>siniv,cosi=>cosiv,acor,polwt
-      Use DYNAMICS, Only : pu,pv,sd,spa,dut,dvt,dsig
+      Use DYNAMICS,   Only: PU=>MU,PV=>MV,SD=>MW, SPA,DUT,DVT
       USE DYNAMICS, only : do_polefix,mrch
 c      USE DIAG, only : diagcd
       IMPLICIT NONE
       REAL*8 U(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),
-     * V(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),
-     * P(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
+     *       V(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
       REAL*8 UT(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),
-     * VT(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),
-     * PA(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
-     * PB(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
-     * FD(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
+     *       VT(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
+      Real*8 :: MMEAN(LM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
+     *         MBEFOR(LM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
+     *         MAFTER(LM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
 
+!**** Local variables
+      Real*8 :: FD(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
       INTEGER I,J,IP1,IM1,L  !@var I,J,IP1,IM1,L  loop variables
-      REAL*8 VMASS,RVMASS,ALPH,PDT4,DT1,DT2,DT4,DT8,DT12,DT24
+      Real*8 :: VMASS,ALPH,PDT4,DT1,DT2,DT4,DT8,DT12,DT24
      *     ,FLUX,FLUXU,FLUXV
       REAL*8 FLUXU_N_S,FLUXV_N_S
       REAL*8 FLUXU_SW_NE,FLUXV_SW_NE
       REAL*8 FLUXU_SE_NW,FLUXV_SE_NW
-
-      REAL*8   VMASS2(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO),
-     *         ASDU(IM,GRID%J_STRT_SKP:GRID%J_STOP_HALO,LM-1)
+      REAL*8 :: ASDU(IM,GRID%J_STRT_SKP:GRID%J_STOP_HALO,LM-1)
+      Real*8 :: UP(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),
+     *          VP(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),
+     *          USVS(IM,LM),VSVS(IM,LM),USVN(IM,LM),VSVN(IM,LM)
 c pole fix variables
-      integer :: hemi,jpo,jns,jv,jvs,jvn,jj,ipole
+      integer :: hemi,jpo,jns,jv,jvs,jvn,ipole
       real*8 :: utmp,vtmp,wts
       real*8, dimension(im) :: dmt
-      real*8, dimension(im,2) :: usv,vsv,usv0,vsv0
 C****
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0S, J_1S, J_0H, J_0STG, J_1STG
@@ -87,83 +99,45 @@ C****
 C**** SCALE UT AND VT WHICH MAY THEN BE PHYSICALLY INTERPRETED AS
 C**** MOMENTUM COMPONENTS
 C****
-C     I=IM
-C     DO 120 J=2,JM
-C     DO 120 IP1=1,IM
-C     VMASS=.5*((PA(I,J-1)+PA(IP1,J-1))*DXYN(J-1)
-C    *  +(PA(I,J)+PA(IP1,J))*DXYS(J))
-C     DO 110 L=1,LS1-1
-C     UT(I,J,L)=UT(I,J,L)*VMASS*DSIG(L)
-C 110 VT(I,J,L)=VT(I,J,L)*VMASS*DSIG(L)
-C 120 I=IP1
-C     DO 150 L=LS1,LM
-C     DO 150 J=2,JM
-C     VMASS=SMASS(J)*DSIG(L)
-C     DO 150 I=1,IM
-C     UT(I,J,L)=UT(I,J,L)*VMASS
-C 150 VT(I,J,L)=VT(I,J,L)*VMASS
-C     DUT=0.
-C     DVT=0.
-C
-      CALL HALO_UPDATE(grid, PA, FROM=SOUTH)
       DO 110 J=J_0S,J_1
       I=IM
       DO 110 IP1=1,IM
-         VMASS2(I,J)=.5*((PA(I,J-1)+PA(IP1,J-1))*DXYN(J-1)
-     *                 +(PA(I,J)+PA(IP1,J))*DXYS(J))
-         I=IP1
-  110 CONTINUE
-      DO L=1,LM
-        IF(L.LT.LS1) THEN  !  DO L=1,LS1-1
-          DO J=J_0S,J_1
-            DUT(:,J,L)=0.0
-            DVT(:,J,L)=0.0
-            UT(:,J,L)=UT(:,J,L)*VMASS2(:,J)*DSIG(L)
-            VT(:,J,L)=VT(:,J,L)*VMASS2(:,J)*DSIG(L)
-          END DO
-        ELSE               !  DO L=LS1,LM
-          DO J=J_0S,J_1
-            VMASS=SMASS(J)*DSIG(L)
-            DUT(:,J,L)=0.0
-            DVT(:,J,L)=0.0
-            UT(:,J,L)=UT(:,J,L)*VMASS
-            VT(:,J,L)=VT(:,J,L)*VMASS
-          END DO
-        END IF
-      END DO
+      Do L=1,LM
+         VMASS = .5*((MBEFOR(L,I,J-1)+MBEFOR(L,Ip1,J-1))*DXYN(J-1) +
+     +               (MBEFOR(L,I,J  )+MBEFOR(L,Ip1,J  ))*DXYS(J))
+         UT(I,J,L) = UT(I,J,L)*VMASS
+         VT(I,J,L) = VT(I,J,L)*VMASS  ;  EndDo
+  110 I = Ip1
+      DUT(:,J_0S:J_1,:) = 0
+      DVT(:,J_0S:J_1,:) = 0
 C****
 C**** BEGINNING OF LAYER LOOP
 C****
-      CALL HALO_UPDATE(GRID,U  ,FROM=SOUTH+NORTH)
-      CALL HALO_UPDATE(GRID,V  ,FROM=SOUTH+NORTH)
-CAOO no need to communicate, local compute      CALL HALO_UPDATE(GRID,DUT,FROM)
-CAOO no need to communicate, local compute      CALL HALO_UPDATE(GRID,DVT,FROM)
+!**** Use interpolated velocity values at poles
+      Call HALO_UPDATE (GRID, U, From=NORTH)
+      Call HALO_UPDATE (GRID, V, From=NORTH)
+!     Call HALO_UPDATE (GRID, U, From=NORTH3)
+!     Call HALO_UPDATE (GRID, V, From=NORTH3)
+      If (J_0STG==2)  Then
+         USVS(:,:) = U(:,2,:)
+         VSVS(:,:) = V(:,2,:)
+         U(:,2,:) = POLWT*U(:,2,:) + (1-POLWT)*U(:,3,:)
+         V(:,2,:) = POLWT*V(:,2,:) + (1-POLWT)*V(:,3,:)  ;  EndIf
 
+      Call HALO_UPDATE (GRID, U, From=SOUTH)
+      Call HALO_UPDATE (GRID, V, From=SOUTH)
+!     Call HALO_UPDATE (GRID, U, From=SOUTHJMm1)
+!     Call HALO_UPDATE (GRID, V, From=SOUTHJMm1)
+      If (J_1STG==JM)  Then
+         USVN(:,:) = U(:,JM,:)
+         VSVN(:,:) = V(:,JM,:)
+         U(:,JM,:) = POLWT*U(:,JM,:) + (1-POLWT)*U(:,JM-1,:)
+         V(:,JM,:) = POLWT*V(:,JM,:) + (1-POLWT)*V(:,JM-1,:)  ;  EndIf
+      
+      Call HALO_UPDATE (GRID, U, From=NORTH)
+      Call HALO_UPDATE (GRID, V, From=NORTH)
       DO 300 L=1,LM
 
-c
-c interpolate polar velocities to the appropriate latitude
-c
-      do ipole=1,2
-      if((haveLatitude(grid,J=2) .or. haveLatitude(grid,J=3)) .and. 
-     &        ipole.eq.1) then
-         jv = 2 ! why not staggered grid
-         jvs = 2 ! jvs is the southernmost velocity row
-         jvn = jvs + 1 ! jvs is the northernmost velocity row
-         wts = polwt
-      else if(haveLatitude(grid,J=JM) .and. ipole.eq.2) then
-         jv = JM ! why not staggered grid
-         jvs = jv - 1
-         jvn = jvs + 1
-         wts = 1.-polwt
-      else
-         cycle
-      endif
-      usv0(:,ipole) = u(:,jv,l)
-      vsv0(:,ipole) = v(:,jv,l)
-      u(:,jv,l) = wts*u(:,jvs,l) + (1.-wts)*u(:,jvn,l)
-      v(:,jv,l) = wts*v(:,jvs,l) + (1.-wts)*v(:,jvn,l)
-      enddo
 C****
 C**** HORIZONTAL ADVECTION OF MOMENTUM
 C****
@@ -249,22 +223,16 @@ C**** CONTRIBUTION FROM THE SOUTHEAST-NORTHWEST MASS FLUX
 
   230 I=IP1
 
-c restore uninterpolated values of u,v at the pole
-      do ipole=1,2
-      if((haveLatitude(grid,J=2) .or. haveLatitude(grid,J=3)) .and. 
-     &        ipole.eq.1) then
-         jv = 2 ! why not staggered grid
-      else if(haveLatitude(grid,J=JM) .and. ipole.eq.2) then
-         jv = JM ! why not staggered grid
-      else
-         cycle
-      endif
-      u(:,jv,l) = usv0(:,ipole)
-      v(:,jv,l) = vsv0(:,ipole)
-      enddo
-
   300 CONTINUE
 
+!**** Restore uninterpolated values of U,V at poles   
+      If (J_0STG==2)  Then
+         U(:,2,:) = USVS(:,:)
+         V(:,2,:) = VSVS(:,:)  ;  EndIf
+      If (J_1STG==JM)  Then
+         U(:,JM,:) = USVN(:,:)
+         V(:,JM,:) = VSVN(:,:)  ;  EndIf
+      
       if(do_polefix.eq.1) then
 c Horizontal advection for the polar row is performed upon
 c x-y momentum rather than spherical-coordinate momentum,
@@ -276,8 +244,18 @@ c in models with a polar half-box.
 c Explicit cross-polar advection will be ignored until issues with
 c corner fluxes and spherical geometry can be resolved.
        
+!**** Polar velocities need values next to pole
+!     Call HALO_UPDATE (GRID, U, From=NORTH)
+!     Call HALO_UPDATE (GRID, V, From=NORTH)
+!     Call HALO_UPDATE (GRID, U, From=NORTH3)
+!     Call HALO_UPDATE (GRID, V, From=NORTH3)
+      Call HALO_UPDATE (GRID, U, From=SOUTH)
+      Call HALO_UPDATE (GRID, V, From=SOUTH)
+!     Call HALO_UPDATE (GRID, U, From=SOUTHJMm1)
+!     Call HALO_UPDATE (GRID, V, From=SOUTHJMm1)
+
         do ipole=1,2
-          if(have_south_pole .and. ipole.eq.1) then
+          if(J_0STG==2 .and. ipole.eq.1) then
             hemi = -1
             jpo = 1
             jns = jpo + 1
@@ -285,7 +263,7 @@ c corner fluxes and spherical geometry can be resolved.
             jvs = 2          ! jvs is the southernmost velocity row
             jvn = jvs + 1       ! jvs is the northernmost velocity row
             wts = polwt
-          else if(have_north_pole .and. ipole.eq.2) then
+          else if(J_1STG==JM .and. ipole.eq.2) then
             hemi = +1
             jpo = JM
             jns = jpo - 1
@@ -302,19 +280,16 @@ c
 c Copy u,v into temporary storage and transform u,v to x-y coordinates
 c
       do j=jvs,jvn
-         jj = j-jvs+1
          do i=1,im
-            usv(i,jj) = u(i,j,l)
-            vsv(i,jj) = v(i,j,l)
-            u(i,j,l) = cosi(i)*usv(i,jj)-hemi*sini(i)*vsv(i,jj)
-            v(i,j,l) = cosi(i)*vsv(i,jj)+hemi*sini(i)*usv(i,jj)
+            UP(i,j,l) = cosi(i)*U(I,J,L) - hemi*sini(i)*V(I,J,L)
+            VP(i,j,l) = cosi(i)*V(I,J,L) + hemi*sini(i)*U(I,J,L)
          enddo
       enddo
 c
 c interpolate polar velocities to the appropriate latitude
 c
-      u(:,jv,l) = wts*u(:,jvs,l) + (1.-wts)*u(:,jvn,l)
-      v(:,jv,l) = wts*v(:,jvs,l) + (1.-wts)*v(:,jvn,l)
+      UP(:,jv,l) = wts*UP(:,jvs,l) + (1.-wts)*UP(:,jvn,l)
+      VP(:,jv,l) = wts*VP(:,jvs,l) + (1.-wts)*VP(:,jvn,l)
 
 c
 c Compute advective tendencies of xy momentum in the polar rows
@@ -327,10 +302,10 @@ c
       do ip1=1,im
 C**** CONTRIBUTION FROM THE WEST-EAST MASS FLUX
       FLUX=DT8*(PU(IP1,JPO,L)+PU(I,JPO,L)+PU(IP1,JNS,L)+PU(I,JNS,L))
-      FLUXU=FLUX*(U(IP1,JV,L)+U(I,JV,L))
+      FLUXU=FLUX*(UP(IP1,JV,L)+UP(I,JV,L))
       DUT(IP1,JV,L)=DUT(IP1,JV,L)+FLUXU
       DUT(I,JV,L)  =DUT(I,JV,L)  -FLUXU
-      FLUXV=FLUX*(V(IP1,JV,L)+V(I,JV,L))
+      FLUXV=FLUX*(VP(IP1,JV,L)+VP(I,JV,L))
       DVT(IP1,JV,L)=DVT(IP1,JV,L)+FLUXV
       DVT(I,JV,L)  =DVT(I,JV,L)  -FLUXV
       DMT(IP1)=DMT(IP1)+FLUX+FLUX
@@ -338,8 +313,8 @@ C**** CONTRIBUTION FROM THE WEST-EAST MASS FLUX
 C**** CONTRIBUTION FROM THE SOUTH-NORTH MASS FLUX
       FLUX=DT8*(PV(I,JVS,L)+PV(IP1,JVS,L)+PV(I,JVN,L)+PV(IP1,JVN,L))
       FLUX=FLUX*HEMI
-      DUT(I,JV,L)=DUT(I,JV,L)+FLUX*(U(I,JVS,L)+U(I,JVN,L))
-      DVT(I,JV,L)=DVT(I,JV,L)+FLUX*(V(I,JVS,L)+V(I,JVN,L))
+      DUT(I,JV,L)=DUT(I,JV,L)+FLUX*(UP(I,JVS,L)+UP(I,JVN,L))
+      DVT(I,JV,L)=DVT(I,JV,L)+FLUX*(VP(I,JVS,L)+VP(I,JVN,L))
       DMT(I)=DMT(I)+FLUX+FLUX
       i = ip1
       enddo ! i
@@ -349,23 +324,13 @@ c and convert dut,dvt from xy to polar coordinates
 c
       do i=1,im
          dut(i,jv,l) = dut(i,jv,l) +
-     &        (acor-1d0)*(dut(i,jv,l)-dmt(i)*u(i,jv,l))
+     &        (acor-1d0)*(dut(i,jv,l)-dmt(i)*UP(i,jv,l))
          dvt(i,jv,l) = dvt(i,jv,l) +
-     &        (acor-1d0)*(dvt(i,jv,l)-dmt(i)*v(i,jv,l))
+     &        (acor-1d0)*(dvt(i,jv,l)-dmt(i)*VP(i,jv,l))
          utmp = dut(i,jv,l)
          vtmp = dvt(i,jv,l)
          dut(i,jv,l) = cosi(i)*utmp+hemi*sini(i)*vtmp
          dvt(i,jv,l) = cosi(i)*vtmp-hemi*sini(i)*utmp
-      enddo
-c
-c get the untransformed u,v back from storage space
-c
-      do j=jvs,jvn
-         jj = j-jvs+1
-         do i=1,im
-            u(i,j,l) = usv(i,jj)
-            v(i,j,l) = vsv(i,jj)
-         enddo
       enddo
       enddo ! loop over layers
       enddo ! loop over poles
@@ -434,10 +399,10 @@ C**** CALL DIAGNOSTICS
       END DO
       END DO
       END DO
+
 C****
 C**** CORIOLIS FORCE
 C****
-        CALL HALO_UPDATE(GRID,P ,FROM=SOUTH+NORTH)
       DO L=1,LM
         IM1=IM
         DO I=1,IM
@@ -467,9 +432,8 @@ C****     Set the Coriolis term to zero at the Poles:
         DO J=J_0S,J_1
           IM1=IM
           DO I=1,IM
-            PDT4=DT8*(P(I,J-1,L)+P(I,J,L))
-            IF(L.GE.LS1) PDT4=DT4*PSFMPT
-            ALPH=PDT4*(FD(I,J)+FD(I,J-1))*DSIG(L)
+            PDT4 = DT8*(MMEAN(L,I,J-1)+MMEAN(L,I,J))
+            ALPH = PDT4*(FD(I,J)+FD(I,J-1))
             DUT(I,J,L)=DUT(I,J,L)+ALPH*V(I,J,L)
             DUT(IM1,J,L)=DUT(IM1,J,L)+ALPH*V(IM1,J,L)
             DVT(I,J,L)=DVT(I,J,L)-ALPH*U(I,J,L)
@@ -499,9 +463,8 @@ c which has already been included in advective form
                dvt(:,j,l) = 0.
                im1=im
                do i=1,im
-                  pdt4=dt8*(p(i,jpo,l)+p(i,jns,l))
-                  if(l.ge.ls1) pdt4=dt4*psfmpt
-                  alph=pdt4*(2.*fcor(jpo) + fcor(jns))*dsig(l)
+                  PDT4 = DT8*(MMEAN(L,i,jpo)+MMEAN(L,i,jns))
+                  ALPH = PDT4*(2*fcor(jpo) + fcor(jns))
                   dut(i  ,j,l)=dut(i  ,j,l)+alph*v(i  ,j,l)
                   dut(im1,j,l)=dut(im1,j,l)+alph*v(im1,j,l)
                   dvt(i  ,j,l)=dvt(i  ,j,l)-alph*u(i  ,j,l)
@@ -519,33 +482,17 @@ C****
 C**** ADD CORIOLIS FORCE INCREMENTS TO UT AND VT
 C**** AND UNDO SCALING PERFORMED AT BEGINNING OF ADVECV
 C****
-      CALL HALO_UPDATE(GRID,PB,FROM=SOUTH)
-      DO J=J_0S,J_1
-        I=IM
-        DO IP1=1,IM
-          VMASS2(I,J)=.5*((PB(I,J-1)+PB(IP1,J-1))*DXYN(J-1)
-     *                 +(PB(I,J)+PB(IP1,J))*DXYS(J))
-          I=IP1
-        END DO
-      END DO
-      DO L=1,LM
-        IF(L.LT.LS1) THEN  !  DO L=1,LS1-1
-          DO J=J_0S,J_1
-            VT(:,J,L)=(VT(:,J,L)+DVT(:,J,L))/(VMASS2(:,J)*DSIG(L))
-            UT(:,J,L)=(UT(:,J,L)+DUT(:,J,L))/(VMASS2(:,J)*DSIG(L))
-            DUT(:,J,L)=0.0
-            DVT(:,J,L)=0.0
-          END DO
-        ELSE               !  DO L=LS1,LM
-          DO J=J_0S,J_1
-            RVMASS=1./(SMASS(J)*DSIG(L))
-            UT(:,J,L)=(UT(:,J,L)+DUT(:,J,L))*RVMASS
-            VT(:,J,L)=(VT(:,J,L)+DVT(:,J,L))*RVMASS
-            DUT(:,J,L)=0.0
-            DVT(:,J,L)=0.0
-          END DO
-        END IF
-      END DO
+      DO 610 J=J_0S,J_1
+      I=IM
+      DO 610 IP1=1,IM
+      Do L=1,LM
+         VMASS = .5*((MAFTER(L,I,J-1)+MAFTER(L,Ip1,J-1))*DXYN(J-1) +
+     +               (MAFTER(L,I,J  )+MAFTER(L,Ip1,J  ))*DXYS(J))
+         UT(I,J,L) = (UT(I,J,L) + DUT(I,J,L)) / VMASS
+         VT(I,J,L) = (VT(I,J,L) + DVT(I,J,L)) / VMASS  ;  EndDo
+  610 I = Ip1
+      DUT(:,J_0S:J_1,:) = 0
+      DVT(:,J_0S:J_1,:) = 0
 C
       RETURN
       END SUBROUTINE ADVECV

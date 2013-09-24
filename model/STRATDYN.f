@@ -103,7 +103,7 @@ c lowest level at which there are gravity waves
       EndModule STRAT
 
 
-      Subroutine GWDCOL (PLE,PL,DP)
+      Subroutine GWDCOL (PLE,PL,MAUV)
 C 
 C     GWDCOL  Column Gravity Wave Drag Routine
 C 
@@ -134,7 +134,7 @@ C**** 3-8 Convective waves
 C**** 9   Deformation wave
 C****
 C 
-      USE CONSTANT,         ONLY : GRAV,RGAS 
+      Use CONSTANT, Only: GRAV,RGAS,kg2mb 
       Use STRAT
       IMPLICIT NONE 
 C 
@@ -142,11 +142,11 @@ C     *******  Declaration Section  *******
 C
       REAL*8, PARAMETER :: ERR=1d-20, H0=8000., XFROUD=1.  
       REAL*8, PARAMETER :: ROTK = 1.5, RKBY3= ROTK*ROTK*ROTK   
-      Real*8 :: PLE(LM+1),PL(LM),DP(LM)
+      Real*8,Intent(In) :: PLE(LM+1),PL(LM),MAUV(LM)
 C
 C     **  LOCAL  **   
 C
-      REAL*8 MUB(LM+1,NM),MU(NM)
+      Real*8  :: DP(LM), MUB(LM+1,NM),MU(NM)
       REAL*8, DIMENSION(LM) :: UEDGE,VEDGE,BYFACS,WMC,DFM,DFR,DFTL
       INTEGER LD(NM)
       INTEGER L,N,LN,NMX,LD1,LTOP,LMAX   
@@ -157,6 +157,7 @@ C
 C****
 C**** INITIALIZE THE MOMENTUM FLUX FOR VARIOUS WAVES
 C****
+      DP(:)     = MAUV(:)*kg2mb
       MU(:)         = 0.
       UR(:)         = 0
       LD(:)         = LM+1    ! set drag level = LM+1 (turns off drag)
@@ -170,18 +171,18 @@ C
 C**** MOUNTAIN WAVES generate at 1 s.d. above topography ...
       IF (QGWMTN.EQ.1 .AND. RANMTN.LT.0.25d0)  THEN 
         LD(1)=LBREAK
-        U0=(UL(1)*DP(1)+UL(2)*DP(2))/(DP(1)+DP(2))
-        V0=(VL(1)*DP(1)+VL(2)*DP(2))/(DP(1)+DP(2))
+        U0 = (UL(1)*MAUV(1) + UL(2)*MAUV(2)) / (MAUV(1) + MAUV(2))
+        V0 = (VL(1)*MAUV(1) + VL(2)*MAUV(2)) / (MAUV(1) + MAUV(2))
         W0=SQRT(U0*U0+V0*V0)
         UR(1)=U0/(W0+ ERR)
         VR(1)=V0/(W0+ ERR)
-        BV0=(BVF(1)*DP(1)+BVF(2)*DP(2))/(DP(1)+DP(2))
+        BV0 = (BVF(1)*MAUV(1) + BVF(2)*MAUV(2)) / (MAUV(1) + MAUV(2))
         ZVAR=ABS(UR(1))*ZVARX_cell+ABS(VR(1))*ZVARY_cell
         IF(ZVAR.LT.XCDNST(1)*XCDNST(1)) ZVAR=0.
 C.... if Froude number (U0/BV0*ZSD) > 1
 C.... limit ZSD to be consistent with Froude no. (U0/BV0*ZSD) > 1
         IF (ZVAR.GT.(XFROUD*W0/BV0)**2) ZVAR=(XFROUD*W0/BV0)**2
-        P0=(PL(1)*DP(1)+PL(2)*DP(2))/(DP(1)+DP(2))
+        P0 = (PL(1)*MAUV(1) + PL(2)*MAUV(2)) / (MAUV(1) + MAUV(2))
         WT(1)=ZWT_cell 
         MU(1)=-CMTN*EK(1)/(H0*ROTK)*P0*BV0*W0*ZVAR
         IF(MU(1)*(UL(LBREAK)*UR(1)+VL(LBREAK)*VR(1)).GE.0.) MU(1)=0.
@@ -657,7 +658,7 @@ C**** box and a model grid box weighted by 1/EK; wave_length=sqrt(area)
 
 #ifndef CUBED_SPHERE /* ends with io_strat */
 
-      Subroutine VDIFF (DT1, UT,VT, U,V,T)
+      Subroutine VDIFF (DT1, UT,VT, U,V,MA, T)
 !@sum VDIFF Vertical Diffusion in stratosphere
 !@auth Bob Suozzo/Jean Lerner
 !**** If GWDRAG is disabled then VDIFF needs halo PEDN,PMID
@@ -666,7 +667,7 @@ C**** Vertical diffusion coefficient depends on wind shear.
 C**** Uses TRIDIAG for implicit scheme (MU=1) as in diffuse53.
 C**** This version only does diffusion for lowest LDIFM layers.
 C****
-      USE CONSTANT, only : rgas,grav,twopi,kapa,sha
+      Use CONSTANT,   Only: RGAS,GRAV,TWOPI,KAPA,SHA,kg2mb
       USE RESOLUTION, only : ptop,ls1
       USE RESOLUTION, only : im,jm,lm
       Use ATM_COM,    Only: PEDN,PMID,PK
@@ -687,7 +688,8 @@ C****
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
      *                                             RHO, DUT, DVT, DKE
       REAL*8, DIMENSION(0:LDIFM+1) :: UL,VL,TL,PL,RHOL
-      Real*8 :: DP(LM),AM(LM),AL(LM),AU(LM),B(LM),DU(LM),DV(LM)
+      Real*8 :: DP(LM),AM(LM),AL(LM),AU(LM),B(LM),DU(LM),DV(LM),
+     *          MAUV(LM)
       REAL*8, DIMENSION(LDIFM+1) :: PLE,RHOE,DPE,DFLX,KMEDGE,KHEDGE
       REAL*8, PARAMETER :: MU=1.
       REAL*8, INTENT(INOUT),
@@ -696,6 +698,7 @@ C****
       REAL*8, INTENT(IN),
      *        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
      *                                                        UT,VT
+      Real*8,Intent(In) :: MA(LM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
       REAL*8, INTENT(IN) :: DT1
       REAL*8 G2DT,PIJ,TPHYS,ANGM,DPT,DUANG
       INTEGER I,J,L,IP1,NDT,N,LMAX
@@ -791,10 +794,12 @@ C**** Note area weighting for four point means
         VL(L)=V(I,J,L)
         RHOL(L)=(RHO(I,J-1,L)+RHO(IP1,J-1,L))*RAPVN(J-1)+
      *          (RHO(I,J  ,L)+RHO(IP1,J  ,L))*RAPVS(J)
-        PLE(L) = (PEDN(L,I,J-1) + PEDN(L,Ip1,J-1))*RAPVN(J-1) +
-     +           (PEDN(L,I,J  ) + PEDN(L,Ip1,J  ))*RAPVS(J)
-         PL(L) = (PMID(L,I,J-1) + PMID(L,Ip1,J-1))*RAPVN(J-1) +
-     +           (PMID(L,I,J  ) + PMID(L,Ip1,J  ))*RAPVS(J)
+        MAUV(L) = (  MA(L,I,J-1) +   MA(L,Ip1,J-1))*RAPVN(J-1) +
+     +            (  MA(L,I,J  ) +   MA(L,Ip1,J  ))*RAPVS(J)
+         PLE(L) = (PEDN(L,I,J-1) + PEDN(L,Ip1,J-1))*RAPVN(J-1) +
+     +            (PEDN(L,I,J  ) + PEDN(L,Ip1,J  ))*RAPVS(J)
+          PL(L) = (PMID(L,I,J-1) + PMID(L,Ip1,J-1))*RAPVN(J-1) +
+     +            (PMID(L,I,J  ) + PMID(L,Ip1,J  ))*RAPVS(J)
       END DO
 C**** Edge values at LM+1 don't matter since diffusiv flx=F(L)-F(L-1)=0
       L = LM+1   !!!! A lot relies on LDIFM=LM !!!
@@ -831,8 +836,8 @@ C**** Update model winds
         IF (MRCH.GT.0) THEN
           DO L=1,LM
             AJL(J,L,JL_DUDTVDIF) = AJL(J,L,JL_DUDTVDIF) + DU(L)*BYIM
-            DUT(I,J,L) = DUT(I,J,L) + DU(L)*DP(L)*DXYV(J)
-            DVT(I,J,L) = DVT(I,J,L) + DV(L)*DP(L)*DXYV(J)
+            DUT(I,J,L) = DUT(I,J,L) + DU(L)*MAUV(L)*DXYV(J)
+            DVT(I,J,L) = DVT(I,J,L) + DV(L)*MAUV(L)*DXYV(J)
             DKE(I,J,L) = DU(L)*(U(I,J,L)+0.5*DU(L))+
      *                   DV(L)*(V(I,J,L)+0.5*DV(L))
           END DO
@@ -840,7 +845,7 @@ C**** Update model winds
 C**** Save AM change and update U,V
         ANGM = 0.
         DO L=1,LM
-          ANGM = ANGM - DU(L)*DP(L)
+          ANGM = ANGM - DU(L)*MAUV(L)
           U(I,J,L) = U(I,J,L) + DU(L)
           V(I,J,L) = V(I,J,L) + DV(L)
         END DO
@@ -848,11 +853,11 @@ C**** Save AM change and update U,V
         if (ang_gwd.gt.0) then  ! add in ang mom
           lmax=ls1-1            ! below ptop
           if (ang_gwd.gt.1) lmax=lm ! over whole column
-          DUANG = ANGM / (PLE(1) - PLE(LMAX+1))
+          DUANG = ANGM * kg2mb / (PLE(1) - PLE(LMAX+1))
           IF (MRCH.GT.0) THEN
             DO L=1,LMAX
               DKE(I,J,L) = DKE(I,J,L) + DUANG*(U(I,J,L)+0.5*DUANG)
-              DUT(I,J,L) = DUT(I,J,L) + DUANG*DP(L)*DXYV(J)
+              DUT(I,J,L) = DUT(I,J,L) + DUANG*MAUV(L)*DXYV(J)
               AJL(J,L,JL_DUDTVDIF) = AJL(J,L,JL_DUDTVDIF) + DUANG*BYIM
             END DO
           END IF
@@ -971,7 +976,7 @@ C**** GWDRAG is called from DYNAM with arguments:
 !****         MA = mass per unit area at end of timestep (kg/m^2)
 !**** Output: U,V,T = wind and Potential Temp. at beginning of timestep
 C****
-      USE CONSTANT, only : grav,sha,kapa,rgas
+      Use CONSTANT,   Only: GRAV,SHA,KAPA,RGAS,kg2mb
       USE RESOLUTION, only : im,jm,lm
       USE MODEL_COM, only : dtsrc
       Use ATM_COM,    Only: ZATMO, PEDN,PMID,PDSIG,PK
@@ -1010,7 +1015,7 @@ C
       LOGICAL, INTENT(IN) :: CALC_DEFORM
 
 !**** Local variables
-      Real*8 :: PLE(LM+1),PL(LM),DP(LM)
+      Real*8 :: PLE(LM+1),PL(LM),MAUV(LM)
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
      *     DUT3,DVT3,DKE,TLS,THLS,BVS
       REAL*8, DIMENSION(IM,LM) :: UIL,VIL,TLIL,THIL,BVIL
@@ -1124,14 +1129,14 @@ C****
          PLE(L) = (PEDN(L,I,J-1) + PEDN(L,Ip1,J-1))*RAPVN(J-1) +
      +            (PEDN(L,I,J  ) + PEDN(L,Ip1,J  ))*RAPVS(J)  ;  EndDo
       DO L=1,LM
-         PL(L) = ( PMID(L,I,J-1)+ PMID(L,Ip1,J-1))*RAPVN(J-1) +
-     +           ( PMID(L,I,J  )+ PMID(L,Ip1,J  ))*RAPVS(J)
-         DP(L) = (PDSIG(L,I,J-1)+PDSIG(L,Ip1,J-1))*RAPVN(J-1) +
-     +           (PDSIG(L,I,J  )+PDSIG(L,Ip1,J  ))*RAPVS(J)
+          PL(L) = (PMID(L,I,J-1) + PMID(L,Ip1,J-1))*RAPVN(J-1) +
+     +            (PMID(L,I,J  ) + PMID(L,Ip1,J  ))*RAPVS(J)
+        MAUV(L) = (  MA(L,I,J-1) +   MA(L,Ip1,J-1))*RAPVN(J-1) +
+     +            (  MA(L,I,J  ) +   MA(L,Ip1,J  ))*RAPVS(J)
       TL(L)=TLIL(I,L)
       THL(L)=THIL(I,L)
       RHO(L)=PL(L)/(RGAS*TL(L))
-      BVFSQ=BVIL(I,L)/(DP(L)*THL(L))*GRAV*GRAV*RHO(L)
+      BVFSQ = BVIL(I,L)*GRAV*GRAV*RHO(L) / (MAUV(L)*kg2mb * THL(L))
       IF (PL(L).GE..4d0) THEN
         BVF(L)=SQRT(MAX(BVFSQ,1.d-10))
       ELSE
@@ -1194,7 +1199,7 @@ C
 C     Call the GWD Column 
 C 
 C**************************************
-      Call GWDCOL (PLE,PL,DP) 
+      Call GWDCOL (PLE,PL,MAUV) 
 C**************************************
 C 
       IF(LDRAG.LE.LM) THEN
@@ -1234,27 +1239,21 @@ C****
          DO L=LDRAG-1,LM
           DKE(I,J,L)=DUT(L)*(0.5*DUT(L)+UIL(I,L)) +
      *               DVT(L)*(0.5*DVT(L)+VIL(I,L))
-          DUT3(I,J,L) = DUT(L)*DP(L)*DXYV(J)
-          DVT3(I,J,L) = DVT(L)*DP(L)*DXYV(J)
+          DUT3(I,J,L) = DUT(L)*MAUV(L)*DXYV(J)
+          DVT3(I,J,L) = DVT(L)*MAUV(L)*DXYV(J)
          END DO
       END IF
 C 
 C**** Save AM change
       if (ang_gwd.gt.0) then    ! add in ang mom
         DO N=1,NM
-          ANGM = 0.
-          DO L=LDRAG-1,LM
-            ANGM = ANGM - DUGWD(L,N)*DP(L)
-          END DO
-          DPT=0
-          DO L=1,LMAX_ANGM(N)
-            DPT=DPT+DP(L)
-          END DO
+           ANGM = - Sum (DUGWD(LDRAG-1:LM,N)*MAUV(LDRAG-1:LM))
+           DPT  = Sum (MAUV(1:LMAX_ANGM(N)))
           DUANG = ANGM/DPT
           IF (MRCH.eq.2) THEN
             DO L=1,LMAX_ANGM(N)
               DKE(I,J,L) = DKE(I,J,L)+DUANG*(0.5*DUANG+UIL(I,L)+DUT(L))
-              DUT3(I,J,L)=DUT3(I,J,L)+DUANG*DP(L)*DXYV(J)
+              DUT3(I,J,L)=DUT3(I,J,L)+DUANG*MAUV(L)*DXYV(J)
             END DO
           END IF
           DO L=1,LMAX_ANGM(N)
