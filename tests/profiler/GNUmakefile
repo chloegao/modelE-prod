@@ -18,13 +18,7 @@ $(LIB): $(OBJS)
 	ar -r $@ $?
 	-@ranlib $@
 
-all: createTestSuites $(OBJS) $(LIB)
-
-createTestSuites:
-	rm -f testSuites.inc
-	@for f in ${SRCS}; do \
-	  echo ADD_TEST_SUITE\($${f%.*}\_mod\_suite\) >> testSuites.inc; \
-	done;
+all: $(OBJS) $(LIB)
 
 testSuites.inc: $(SRCS)
 
