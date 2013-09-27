@@ -1,0 +1,31 @@
+module Test_BaseTime_mod
+  use pfunit_mod
+  use BaseTime_mod
+  implicit none
+
+  integer, private, parameter :: SP = selected_real_kind(6)
+  integer, private, parameter :: DP = selected_real_kind(14)
+contains
+
+@test
+  subroutine test_assignment()
+    use Rational_mod
+    type (BaseTime) :: t
+    type (Rational) :: r
+    real(kind=SP) :: x_sp
+    real(kind=DP) :: x_dp
+
+    t = BaseTime(0) ! compiles?
+    t = BaseTime(0.d0) ! compiles?
+
+    t = BaseTime(Rational(1,1,2))
+
+    x_sp = t%convertToReal()
+    @assertEqual(1.5, x_sp)
+
+    x_dp = t%convertToReal()
+    @assertEqual(1.5, x_dp)
+
+  end subroutine test_assignment
+
+end module Test_BaseTime_mod

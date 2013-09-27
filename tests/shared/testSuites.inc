@@ -1,3 +1,6 @@
+ADD_TEST_SUITE(Test_Rational_mod_suite)
+ADD_TEST_SUITE(Test_BaseTime_mod_suite)
+ADD_TEST_SUITE(Test_Time_mod_suite)
 ADD_TEST_SUITE(Test_Dictionary_mod_suite)
 ADD_TEST_SUITE(Test_StringUtilities_mod_suite)
 ADD_TEST_SUITE(Test_GenericType_mod_suite)
@@ -11,4 +14,3 @@ ADD_TEST_SUITE(Test_AttributeDictionary_mod_suite)
 ADD_TEST_SUITE(Test_AttributeAssociativeArray_mod_suite)
 ADD_TEST_SUITE(Test_AssociativeArrayIterator_mod_suite)
 ADD_TEST_SUITE(Test_AssociativeArray_mod_suite)
-

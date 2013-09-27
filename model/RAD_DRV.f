@@ -13,17 +13,20 @@ C****
 !@sum calculate zenith angle for current time step
 !@auth Gavin Schmidt (from RADIA)
       USE CONSTANT, only : twopi
-      USE MODEL_COM, only : itime,nday,dtsrc
+      USE MODEL_COM, only : itime,nday,dtsrc, calendr
       use TimeConstants_mod, only: SECONDS_PER_DAY
       USE RAD_COM, only : cosz1
       USE RAD_COSZ0, only : coszt
+      USE BaseTime_mod
       IMPLICIT NONE
       INTEGER JTIME
       REAL*8 ROT1,ROT2
+      type (BaseTime) :: sPerDay
 
       JTIME=MOD(ITIME,NDAY)
       ROT1=(TWOPI*JTIME)/NDAY
-      ROT2=ROT1+TWOPI*DTsrc/SECONDS_PER_DAY
+      sPerDay = calendr%getSecondsPerDay()
+      ROT2=ROT1+TWOPI*DTsrc/sPerDay%convertToReal()
       CALL COSZT (ROT1,ROT2,COSZ1)
 
       END SUBROUTINE CALC_ZENITH_ANGLE
@@ -859,8 +862,7 @@ c      end if
       USE DOMAIN_DECOMP_ATM, only : am_I_root,GRID,REWIND_PARALLEL
      *     ,READT_PARALLEL, getDomainBounds
       USE RESOLUTION, only : im,jm
-      use model_com, only: modelEclock
-      USE MODEL_COM, only : JDendOfM,JDmidOfM
+      use model_com, only: modelEclock, calendr
       USE GEOM, only : imaxj
       USE RADPAR, only : FULGAS,JYEARR=>JYEAR,JDAYR=>JDAY
      *     ,xref,KYEARV
@@ -980,7 +982,7 @@ C**** FIND INTERPOLATION COEFFICIENTS (LINEAR/QUADRATIC FIT)
       END DO
       END IF
 C**** Calculate CHL for current day
-      TIME=(DATE-.5)/(JDendOFM(month)-JDendOFM(month-1))-.5 ! -.5<TIME<.5
+      TIME=(DATE-.5)/(calendr%getDaysPerMonth(month))-.5 ! -.5<TIME<.5
       DO J=J_0,J_1
         DO I=I_0,IMAXJ(J)
           IF (FOCEAN(I,J).gt.0) THEN

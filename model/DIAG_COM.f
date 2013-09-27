@@ -245,13 +245,13 @@ C****   10 - 1: mid strat               1 and up : upp strat.
 !@var ADIURN diurnal diagnostics (24 hour cycles at selected points)
       REAL*8, DIMENSION(NDIUVAR,NDIUPT,HR_IN_DAY), public :: ADIURN
      &     ,ADIURN_loc
-!@param HR_IN_MONTH hours in month
-      INTEGER, PARAMETER, public :: HR_IN_MONTH=HR_IN_DAY*31
+!@param HR_IN_MONTH max hours in month
+      INTEGER, public :: HR_IN_MONTH
+      
 #ifndef NO_HDIURN
 !@var HDIURN hourly diagnostics (hourly value at selected points)
 !@+     Same quantities as ADIURN but not averaged over the month
-      REAL*8, DIMENSION(NDIUVAR,NDIUPT,HR_IN_MONTH), public :: HDIURN
-     &     ,HDIURN_loc
+      REAL*8, allocatable, public :: HDIURN(:,:,:), HDIURN_loc(:,:,:)
 #endif
 !@param KAGC number of latitude-height General Circulation diags
 !@param KAGCX number of accumulated+derived GC diagnostics
@@ -1063,6 +1063,7 @@ c instances of arrays
 !@auth NCCS (Goddard) Development Team
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID,getDomainBounds,AM_I_ROOT
       USE RESOLUTION, ONLY : IM,LM
+      USE Calendar_mod, only: Calendar
       USE ATM_COM, ONLY : lm_req
       USE DIAG_COM, ONLY : KAJ,KCON,KAJL,KASJL,KAIJ,KAGC,KAIJK,KAIJmm,
      &                   KGZ,KOA,KTSF,nwts_ij,KTD,NREG,KAIJL,JM_BUDG
@@ -1105,12 +1106,21 @@ c instances of arrays
       use diag_zonal, only : get_alloc_bounds
       use fluxes, only : atmocn
       USE DIAG_COM, only : dxyp_budg,nofm,consrv_loc
+#ifndef NO_HDIURN
+      USE DIAG_COM, only : hdiurn, hdiurn_loc
+#endif
+      USE DIAG_COM, only : NDIUVAR, NDIUPT
+      use Diag_com, only : HR_IN_MONTH
+      use TimeConstants_mod, only: INT_MONTHS_PER_YEAR,INT_HOURS_PER_DAY
+      use Model_Com, only: calendr
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
+
       INTEGER :: I_1H, I_0H, J_1H, J_0H
       INTEGER :: IER
       LOGICAL, SAVE :: init = .false.
       integer :: j_0budg,j_1budg,j_0jk,j_1jk
+      integer :: mnth
 
       If (init) Then
          Return ! Only invoke once
@@ -1125,6 +1135,21 @@ c instances of arrays
      &     j_strt_budg=j_0budg,j_stop_budg=j_1budg,
      &     j_strt_jk=j_0jk,j_stop_jk=j_1jk)
 
+      hr_in_month = 0
+      do mnth = 1, INT_MONTHS_PER_YEAR
+         hr_in_month = 
+     &        max(hr_in_month, 
+     &        INT_HOURS_PER_DAY*calendr%getDaysPerMonth(mnth))
+      end do
+#ifndef NO_HDIURN
+      allocate(
+     &     HDIURN(NDIUVAR, NDIUPT, hr_in_month),
+     &     HDIURN_loc(NDIUVAR, NDIUPT, hr_in_month),
+     &     STAT=IER)
+      HDIURN_loc = 0
+      HDIURN = 0
+#endif
+       
       ALLOCATE(  JREG(I_0H:I_1H, J_0H:J_1H),
      &         SQRTM(I_0H:I_1H, J_0H:J_1H),
      &         STAT = IER)
@@ -1323,16 +1348,7 @@ c allocate master copies of budget- and JK-arrays on root
       IMPLICIT NONE
 
 !@param KACC total number of diagnostic elements
-      INTEGER, PARAMETER :: KACC= JM_BUDG*KAJ*NTYPE + NREG*KAJ
-     *     + JM_BUDG*LM*KAJL + JM_BUDG*LM_REQ*KASJL + IM*JM*KAIJ +
-     *     IM*JM*LM*KAIJL + NEHIST*HIST_DAYS + JM_BUDG*KCON +
-     *     (IMLONH+1)*KSPECA*NSPHER + KTPE*NHEMI +
-     *     HR_IN_DAY*NDIUVAR*NDIUPT +
-     *     RE_AND_IM*Max12HR_sequ*NWAV_DAG*KWP + JM*LM*KAGC +
-     *     IM*JM*LM*KAIJK+ntau*npres*nisccp
-#ifndef NO_HDIURN
-     *     + NDIUVAR*NDIUPT*HR_IN_MONTH
-#endif
+      INTEGER :: KACC
 !@var AJ4,...,AFLX4 real*4 dummy arrays needed for postprocessing only
       ! REAL*4 AJ4(JM_BUDG,KAJ,NTYPE),AREG4(NREG,KAJ)
       ! REAL*4 AJL4(JM_BUDG,LM,KAJL),ASJL4(JM_BUDG,LM_REQ,KASJL),AIJ4(IM,JM,KAIJ)
@@ -1444,6 +1460,18 @@ C**** The regular model (Kradia le 0)
      *   ',TSFR(IJM,',KTSF,')'
       write (MODULE_HEADER(i_ida:i_ida+9),'(a7,i2,a1)')
      *   ',idacc(',nsampl,')'
+      KACC= JM_BUDG*KAJ*NTYPE + NREG*KAJ
+     *     + JM_BUDG*LM*KAJL + JM_BUDG*LM_REQ*KASJL + IM*JM*KAIJ +
+     *     IM*JM*LM*KAIJL + NEHIST*HIST_DAYS + JM_BUDG*KCON +
+     *     (IMLONH+1)*KSPECA*NSPHER + KTPE*NHEMI +
+     *     HR_IN_DAY*NDIUVAR*NDIUPT +
+     *     RE_AND_IM*Max12HR_sequ*NWAV_DAG*KWP + JM*LM*KAGC +
+     *     IM*JM*LM*KAIJK+ntau*npres*nisccp
+#ifndef NO_HDIURN
+     *     + size(HDIURN)
+#endif
+
+
       write (MODULE_HEADER(i_ida+9+1:i_ida+9 + 5+8+1),'(a5,i8,a1)')
      *   ',acc(',kacc,')'
       i_xtra = i_ida+9 + 5+8+1 + 1

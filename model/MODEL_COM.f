@@ -5,6 +5,7 @@
 !@auth Original Development Team
       use ModelClock_mod
       use TimeConstants_mod, only: INT_MONTHS_PER_YEAR,INT_DAYS_PER_YEAR
+      use Calendar_mod, only: Calendar
       IMPLICIT NONE
       SAVE
 
@@ -49,6 +50,7 @@ C**** (Simplified) Calendar Related Terms
 !@nlparam IYEAR1  year 1 of internal clock (Itime=0 to 365*NDAY)
       INTEGER :: NDAY,IYEAR1=-1   !@var relate internal to calendar time
 
+      class (Calendar), pointer :: calendr
       type (ModelClock), public :: modelEClock
 !@var ITIME current time in ITUs (1 ITU = DTsrc sec, currently 1 hour)
       INTEGER :: Itime
@@ -117,6 +119,58 @@ C**** (Simplified) Calendar Related Terms
 
       contains
 
+      ! Use rundeck parameters to determine which calendar to use
+      function makeCalendar() result(calendr)
+      use Constant, only: pi, omega
+      use TimeConstants_mod, only: SECONDS_PER_DAY
+      use Calendar_mod
+      use JulianCalendar_mod
+      use PlanetCalendar_mod
+      USE Dictionary_mod, only: get_param, sync_param
+      use BaseTime_mod
+      use Rational_mod
+      use DOMAIN_DECOMP_1d, only: am_i_root
+      implicit none
+      class (Calendar), pointer :: calendr
+
+      character(len=80) :: calendarName
+      real*8 :: siderialRotationPeriod
+      real*8 :: orbitalPeriod
+      real*8 :: s
+
+      type (BaseTime) :: secondsPerDay, secondsPerYear
+      integer :: daysPerYear
+      type (Rational) :: r
+
+      calendarName = 'Julian' ! default
+      call sync_param('calendar', calendarName)
+
+      select case (calendarName)
+
+      case ('Julian','julian','JULIAN')
+        if (AM_I_ROOT()) print*,'Using Julian calendar'
+         calendr => makeJulianCalendar()
+
+      case ('Planet','planet','PLANET')
+
+         call get_param('orbitalPeriod', orbitalPeriod)
+         call get_param('siderialRotationPeriod',siderialRotationPeriod)
+
+         secondsPerYear = newBaseTime(Rational(orbitalPeriod,
+     &        tolerance=1.d-6))
+         s = 1.d0 / (1/siderialRotationPeriod - 1/orbitalPeriod)
+         secondsPerDay = newBaseTime( Rational(s, tolerance=1.d-6) )
+         daysPerYear = nint(secondsPerYear / secondsPerDay)
+         if (AM_I_ROOT()) then
+           print*,'Using planetary calendar:', s
+           print*,'   Days per year: ', daysPerYear
+           print*,'   Seconds per day: ', secondsPerDay%convertToReal()
+         endif
+         calendr => makePlanetCalendar(secondsPerDay, daysPerYear)
+      end select
+
+      end function makeCalendar
+
 !TODO move to ModelClock class
       logical function isBeginningAccumPeriod(clock)
       type (ModelClock) :: clock
@@ -129,7 +183,8 @@ C**** (Simplified) Calendar Related Terms
       months=(year-Jyear0)*INT_MONTHS_PER_YEAR + month - JMON0
       isBeginningAccumPeriod = 
      &     clock%isBeginningOfDay() .and. 
-     &     months.ge.NMONAV .and. day.eq.1+JDendOfM(month-1)
+     &     months.ge.NMONAV .and. 
+     &     day.eq.1+calendr%getLastDayOfMonth(month-1)
 
       end function isBeginningAccumPeriod
 
@@ -155,15 +210,17 @@ C**** Accumulating_period information
 
       subroutine reset_mdiag
 !@sum reset info common to all diagnostics
-      use model_com, only : idacc,
+      use model_com, only : idacc,modelEClock,
      &     itime,itime0,nday,iyear1,jyear0,jmon0,jdate0,jhour0,amon0
       implicit none
       integer jd0
       idacc(1:12)=0
       idacc(12)=1
+
+      call modelEclock%getDate(jyear0, jmon0, jd0, jdate0, jhour0,
+     &     amon0)
       itime0=itime
-      call getdte(itime0,nday,iyear1,jyear0,jmon0,jd0,
-     *     jdate0,jhour0,amon0)
+
       return
       end subroutine reset_mdiag
 
@@ -355,7 +412,7 @@ C****
 !@sum  getdte gets julian calendar info from internal timing info
 !@auth Gavin Schmidt
       use TimeConstants_mod, only : HOURS_PER_DAY, INT_DAYS_PER_YEAR
-      USE MODEL_COM, only : JDendOfM,amonth
+      USE MODEL_COM, only : amonth, calendr
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: It,Nday,Iyr0
       INTEGER, INTENT(OUT) :: Jyr,Jmn,Jd,Jdate,Jhour
@@ -364,10 +421,10 @@ C****
       Jyr=Iyr0+It/(Nday*INT_DAYS_PER_YEAR)
       Jd=1+It/Nday-(Jyr-Iyr0)*INT_DAYS_PER_YEAR
       Jmn=1
-      do while (Jd.GT.JDendOfM(Jmn))
+      do while (Jd.GT.calendr%getLastDayOfMonth(Jmn))
         Jmn=Jmn+1
       end do
-      Jdate=Jd-JDendOfM(Jmn-1)
+      Jdate=Jd-calendr%getLastDayOfMonth(Jmn-1)
       Jhour=mod(It*HOURS_PER_DAY/Nday,HOURS_PER_DAY)
       amn=amonth(Jmn)
 
@@ -385,12 +442,11 @@ C****
       LOGICAL, INTENT(IN) :: end_of_day   !!!!! NOT USED ?????
       integer :: year, month, day, hour, date
 
-      call modelEclock%getDate(year=year, month=month, dayOfYear=day, 
-     *     hour=hour, date=date)
 C****
 C**** CALCULATE THE DAILY CALENDAR
 C****
-      call getdte(Itime,Nday,iyear1,year,month,day,date,hour,amon)
+      call modelEclock%getDate(year=year, month=month, dayOfYear=day, 
+     *     date=date, hour=hour, amn=amon)
 
       RETURN
       END SUBROUTINE DAILY_cal

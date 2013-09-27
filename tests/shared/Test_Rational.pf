@@ -1,0 +1,174 @@
+module Test_Rational_mod
+  use pfunit_mod
+  use Rational_mod
+
+  integer, private, parameter :: SP = selected_real_kind(6)
+  integer, private, parameter :: DP = selected_real_kind(14)
+
+contains
+
+!@test
+  subroutine test_add_integers()
+    @assertTrue(Rational(2) == Rational(1) + Rational(1))
+    @assertTrue(Rational(5) == Rational(2) + Rational(3))
+  end subroutine test_add_integers
+
+!@test
+  subroutine test_add_sameDenominator()
+    @assertTrue(Rational(2,5) == Rational(1,5) + Rational(1,5))
+  end subroutine test_add_sameDenominator
+
+!@test
+  subroutine test_add_simplify()
+    @assertTrue(Rational(1) == Rational(2,2))
+    @assertTrue(Rational(1,1,2) == Rational(3,2))
+  end subroutine test_add_simplify
+
+!@test
+  subroutine test_add_mixed()
+    @assertTrue(Rational(5,6) == Rational(1,2) + Rational(1,3))
+    @assertTrue(Rational(2,1,12) == Rational(1,1,3) + Rational(0,3,4))
+ end subroutine test_add_mixed
+
+!@test
+  subroutine test_negative_numerator()
+    @assertTrue(Rational(-1) == Rational(-2,2))
+    @assertTrue(Rational(-1,2) == Rational(-1,1,2))
+    @assertTrue(Rational(1,2) == Rational(1,-1,2))
+    @assertTrue(Rational(-3,2) == Rational(-1,-1,2))
+ end subroutine test_negative_numerator
+
+@test
+  subroutine test_convertReal()
+    type (Rational) :: f
+
+    @assertTrue(Rational(0,1) == Rational(0., epsilon(1.)))
+    @assertTrue(Rational(1,2) == Rational(0.5, epsilon(1.)))
+    @assertTrue(Rational(1,3) == Rational(1./3, epsilon(1.)))
+    @assertTrue(Rational(3,2) == Rational(1.5, epsilon(1.)))
+    @assertTrue(Rational(-15,17) == Rational(-15./17, epsilon(1.)))
+
+    @assertTrue(Rational(0,1) == Rational(0.d0, epsilon(1.d0)))
+    @assertTrue(Rational(1,2) == Rational(0.5d0, epsilon(1.d0)))
+    @assertTrue(Rational(1,3) == Rational(1.d0/3, epsilon(1.d0)))
+    @assertTrue(Rational(3,2) == Rational(1.5d0, epsilon(1.d0)))
+    @assertTrue(Rational(-15,17) == Rational(-15.d0/17, epsilon(1.d0)))
+     
+   end subroutine test_convertReal
+
+@test
+subroutine test_convertHard()
+  real(kind=DP) :: pi
+  real(kind=DP) :: tolerance = 1.d-12
+  type (Rational) :: piRational
+
+  pi = 2*acos(1.0)
+  piRational = Rational(pi, tolerance)
+
+  @assertEqual(pi, piRational%convertToReal(), tolerance)
+end subroutine test_convertHard
+
+@test
+   subroutine test_compareInteger()
+     @assertTrue(Rational(1,1) == 1)
+     @assertTrue(1 == Rational(1))
+
+     @assertFalse(Rational(2,1,3) == 2)
+   end subroutine test_compareInteger
+
+@test
+   subroutine test_multiply()
+
+     @assertTrue(Rational(1,1)*Rational(2,1) == Rational(2,1))
+     @assertTrue(Rational(1,3)*Rational(5,4) == Rational(5,12))
+     @assertTrue(Rational(1,1,3)*Rational(1,1,4) == Rational(1,2,3))
+
+     @assertTrue(Rational(-1,-1,3)*Rational(1,1,4) == Rational(-1,-2,3))
+
+     @assertTrue(Rational(2,3) == 2 * Rational(1,3))
+     @assertTrue(Rational(2,3) == Rational(1,3) * 2)
+   end subroutine test_multiply
+
+@test
+   subroutine test_divide()
+
+     @assertTrue(Rational(1,1) == Rational(2,1) / 2)
+     @assertTrue(Rational(3,10) == Rational(6,5) / Rational(4,1))
+
+   end subroutine test_divide
+
+@test
+   subroutine test_convert()
+     type (Rational) :: x
+
+     x = Rational(1,1)
+     @assertEqual(1., x%convertToReal())
+
+     x = Rational(15, 12, 17)
+     @assertEqual(15 + 12.d0/17, x%convertToReal())
+
+   end subroutine test_convert
+
+@test
+   subroutine test_nint()
+     
+     @assertEqual(0, nint(Rational(0)))
+     @assertEqual(1, nint(Rational(1)))
+     @assertEqual(-1, nint(Rational(-1)))
+
+     @assertEqual(1, nint(Rational(3,4)))
+     @assertEqual(1, nint(Rational(5,4)))
+
+     @assertEqual(2, nint(Rational(3,2)))
+
+     @assertEqual(-1, nint(Rational(-3,4)))
+
+   end subroutine test_nint
+
+
+@test
+   subroutine test_useCase_dt()
+     real :: secondsPerDay
+     real :: dt
+
+     secondsPerDay = 24*3600.
+     dt = 1800.
+
+     @assertEqual(48, 2*nint(Rational(secondsPerDay, 1.e-5)/(2*Rational(dt,1.e-5))))
+   end subroutine test_useCase_dt
+
+@test
+   subroutine test_lessThan()
+
+     @assertTrue(Rational(1) < Rational(2))
+     @assertFalse(Rational(1) < Rational(1))
+     @assertFalse(Rational(2) < Rational(1))
+
+     @assertTrue(Rational(3,4) < Rational(4,5))
+     @assertFalse(Rational(4,5) < Rational(3,4))
+
+     @assertTrue(Rational(-1) < Rational(0))
+
+     @assertTrue(Rational(-4,3) < Rational(-1,2))
+     @assertTrue(Rational(-4,3) < Rational(+1,2))
+
+   end subroutine test_lessThan
+
+@test
+   subroutine test_greaterThan()
+
+     @assertFalse(Rational(1) > Rational(2))
+     @assertFalse(Rational(1) > Rational(1))
+     @assertTrue(Rational(2) > Rational(1))
+
+     @assertFalse(Rational(3,4) > Rational(4,5))
+     @assertTrue(Rational(4,5) > Rational(3,4))
+
+     @assertFalse(Rational(-1) > Rational(0))
+
+     @assertFalse(Rational(-4,3) > Rational(-1,2))
+     @assertFalse(Rational(-4,3) > Rational(+1,2))
+
+   end subroutine test_greaterThan
+
+end module Test_Rational_mod

@@ -1,4 +1,5 @@
 module ModelClock_mod
+  use BaseTime_mod
   use Time_mod
   implicit none
   private
@@ -7,17 +8,20 @@ module ModelClock_mod
   public :: newModelClock
 
   type :: ModelClock
+!!$    private
     type (Time) :: currentTime
     type (Time) :: startTime
+    type (BaseTime) :: dt
 
     ! modelE legacy representation
-    integer :: timeStep
+    integer :: tick
     integer :: stepsPerDay
 
   contains
     procedure :: getTimeInSecondsFromDate
     procedure :: getAbsoluteTimeInSeconds
-    procedure :: getTimeStep
+    procedure :: getTimeTick
+    procedure :: getDt
     procedure :: isBeginningOfDay
     procedure :: nextTick
     procedure :: getDate
@@ -32,50 +36,61 @@ module ModelClock_mod
 contains
 
   ! constructor
-  function newModelClock(startTime, timeStep, stepsPerDay) result(clock)
+  function newModelClock(startTime, startTick, stepsPerDay) result(clock)
+    use Calendar_mod
     type (ModelClock) :: clock
     type (Time), intent(in) :: startTime
-    integer, intent(in) :: timeStep
+    integer, intent(in) :: startTick
     integer, intent(in) :: stepsPerDay
 
-    clock%timeStep = timeStep
+    class (Calendar), pointer :: pCalendar
+
+    clock%tick = startTick
     clock%stepsPerDay = stepsPerDay
 
-    clock%startTime= startTime
+    clock%startTime = startTime
     clock%currentTime = startTime
+
+    pCalendar => startTime%calendar
+
+    clock%dt = newBaseTime(pCalendar%getSecondsPerDay() / stepsPerDay)
+
   end function newModelClock
 
   subroutine nextTick(this)
-    use TimeConstants_mod, only: INT_SECONDS_PER_DAY
     class (ModelClock), intent(inout) :: this
-    integer*8 :: stepSize
 
-    this%timeStep = this%timeStep + 1
-    stepSize = INT_SECONDS_PER_DAY / this%stepsPerDay
-    call this%currentTime%add(stepSize)
+    this%tick = this%tick + 1
+    call this%currentTime%add(this%dt)
+
   end subroutine nextTick
 
-  integer function getTimeStep(this)
+  integer function getTimeTick(this)
     class (ModelClock), intent(in) :: this
-    getTimeStep = this%timeStep
-  end function getTimeStep
+    getTimeTick = this%tick
+  end function getTimeTick
+
+  type (BaseTime) function getDt(this) result(dt)
+    class (ModelClock), intent(in) :: this
+    dt = this%dt
+  end function getDt
 
   logical function isBeginningOfDay(this)
     class (ModelClock), intent(in) :: this
     
-    isBeginningOfDay = mod(this%timeStep, this%stepsPerDay) == 0
+    isBeginningOfDay = mod(this%tick, this%stepsPerDay) == 0
   end function isBeginningOfDay
 
   function getAbsoluteTimeInSeconds(this) result (secs)
     integer*8 :: secs
     class (ModelClock), intent(inout) :: this
-    secs = this%currentTime%get()
+    secs = this%currentTime%getWhole()
   end function getAbsoluteTimeInSeconds
 
-  function getTimeInSecondsFromDate(this, year, month, date, hour) result (secs)
+  function getTimeInSecondsFromDate(this, year, month, date, hour) result (seconds)
     use Calendar_mod, only: Calendar
     use BaseTime_mod
-    integer*8 :: secs
+    type (BaseTime) :: seconds
     class (ModelClock), intent(inout) :: this
     integer, intent(in) :: year, month, date, hour
     type (Time) :: aTime
@@ -84,7 +99,7 @@ contains
     pCalendar => this%currentTime%calendar
     aTime = newTime(pCalendar)
     call aTime%setByDate(year, month, date, hour)
-    secs = this%currentTime%get() - aTime%get()
+    seconds = newBaseTime(this%currentTime - aTime)
 
   end function getTimeInSecondsFromDate
 
@@ -93,7 +108,6 @@ contains
 !@sum  getDate gets Calendar info from internal timing info
 !@auth Gavin Schmidt (updated by Tom CLune)
     use TimeConstants_mod, only: INT_SECONDS_PER_HOUR
-    use JulianCalendar_mod, only: LAST_JULIAN_DAY_IN_MONTH
     use JulianCalendar_mod, only: JULIAN_MONTHS
     use Month_mod, only: LEN_MONTH_ABBREVIATION, Month_type
 
@@ -109,10 +123,12 @@ contains
     if (present(year)) year = this%currentTime%getYear()
     if (present(dayOfYear)) dayOfYear = this%currentTime%getDayOfYear()
     if (present(month)) month = this%currentTime%getMonth()
+
     if (present(amn)) then
       mnth = this%currentTime%getMonth()
-      amn = JULIAN_MONTHS(mnth)%abbreviation
+      amn = this%currentTime%getAbbreviation()
     end if
+
     if (present(date)) date = this%currentTime%getDate()
     if (present(hour)) hour = this%currentTime%getHour()
 
@@ -131,6 +147,7 @@ contains
 
   integer function date(this)
     class (ModelClock), intent(in) :: this
+
     date = this%currentTime%getDate()
   end function date
 
@@ -141,6 +158,7 @@ contains
 
   integer function hour(this)
     class (ModelClock), intent(in) :: this
+
     hour = this%currentTime%getHour()
   end function hour
 

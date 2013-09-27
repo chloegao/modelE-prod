@@ -1245,9 +1245,9 @@ C****
 !@auth Gavin Schmidt
       use domain_decomp_atm, only: getDomainBounds,grid,am_i_root
       USE RESOLUTION, only : im,jm,lm
-      USE MODEL_COM, only : modelEclock
+      USE MODEL_COM, only : modelEclock, calendr
       USE MODEL_COM, only : itime,itime0,nday,iyear1
-     &     ,dtsrc,xlabel,JDendOfM,lrunid
+     &     ,dtsrc,xlabel,lrunid
       use TimeConstants_mod, only: INT_DAYS_PER_YEAR
       USE FILEMANAGER, only : openunit, closeunit, nameunit
       use ghy_com, only: gdeep,gsaveL,ngm
@@ -4347,20 +4347,26 @@ c time_subdd
 !@sum time_subdd calculates value of time coordinate 'time' for subdd output
 !@auth Jan Perlwitz
       use model_com, only: modelEclock
-
+      use BaseTime_mod, only: BaseTime, newBaseTime
       implicit none
 
       integer,intent(in) :: rec
       logical,intent(in) :: q24
-      integer :: year, month, dayOfYear
+      integer :: year, month, date
+      type (BaseTime) :: t
 
       call modelEclock%getDate(year=year, month=month,
-     &       dayOfYear=dayOfYear)
-      if (q24) then
-        time_subdd = real((year - iyear1)*INT_DAYS_PER_YEAR + dayOfYear - 1,kind=8)
-      else
-        time_subdd = real((year - iyear1)*INT_DAYS_PER_YEAR + JDendOfM(month - 1)
-     &       ,kind=8)*24. + (rec - 1)*nsubdd*dtsrc/3600.
+     &       date=date)
+      if (q24) then ! coordinate is #days
+        t = newBaseTime(
+     &       madelEclock%getTimeInSecondsFromDate(iyear1,month,date,0)
+        time_subdd = nint(t / calendr%getSecondsPerDay())
+      else ! coordinate is #hours
+        t = newBaseTime(
+     &       madelEclock%getTimeInSecondsFromDate(iyear1,month,0,0)
+     &        + (rec-1)*nsubdd*dtsrc)
+        time_subdd = 
+     &       nint(t / (calendr%getSecondsPerDay()/INT_HOURS_PER_DAY))
       end if
 
       return
@@ -5875,7 +5881,7 @@ C**** Set conservation diagnostics for ice mass, energy, salt
       USE FILEMANAGER
       USE CONSTANT, only : undef
       USE RESOLUTION, only : im,jm
-      USE MODEL_COM, only : JDendOfM,aMON,Jmon0,Jyear0,NMONAV,
+      USE MODEL_COM, only : aMON,Jmon0,Jyear0,NMONAV,
      &                      modelEclock
       use TimeConstants_mod, only: DAYS_PER_YEAR, INT_DAYS_PER_YEAR,
      &                             INT_MONTHS_PER_YEAR

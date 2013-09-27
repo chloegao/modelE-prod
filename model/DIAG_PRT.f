@@ -4146,9 +4146,8 @@ C****
 !@+       exactly to same numbers as in DIAGDD.
 !@auth J. Lerner
 #ifndef NO_HDIURN
-      use model_com, only: modelEclock
       use TimeConstants_mod, only: HOURS_PER_DAY
-      USE MODEL_COM, only :   JDendOfM,NDAY,
+      USE MODEL_COM, only :   modelEclock, NDAY, calendr,
      &     idacc,JDATE0,AMON,AMON0,JYEAR0,XLABEL,LRUNID
       USE DIAG_COM, only :   kdiag,qdiag,units_dd,hr_in_month
      *     ,hdiurn,ijdd,namdd,ndiuvar,hr_in_day,scale_dd,lname_dd
@@ -4171,7 +4170,8 @@ C****
       IF (NDAYS.LE.0) RETURN
 C****
 C**** KP packs the quantities for postprocessing (skipping unused)
-      jdayofM = JDendOfM(month)-JDendOfM(month-1)
+      
+      jdayofM = calendr%getDaysPerMonth(month)
       IREGF=1
       IREGL=NDIUPT-KDIAG(13)      ! kd13=KDIAG(13)>0: skip last kd13 pts
       IF (KDIAG(13).LT.0.AND.KDIAG(13).GE.-NDIUPT) IREGF=-KDIAG(13)

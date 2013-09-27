@@ -71,7 +71,7 @@ C**** Command line options
      &     , iowrite_single, isBeginningAccumPeriod
      &     , KCOPY, NMONAV, IRAND, iowrite_mon, MDIAG, NDAY
      &     , rsf_file_name, iowrite, KDISK, dtSRC, MSURF
-     &     , JDendOfM
+     &     , calendr
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,broadcast,sumxpe
       USE RANDOM
       USE GETTIME_MOD
@@ -130,7 +130,7 @@ C****
       call parse_params(iu_IFILE)
       call closeunit(iu_IFILE)
 
-      call initializeModelE
+      call initializeModelE()
 
 C****
 C**** INITIALIZATIONS
@@ -375,8 +375,10 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
 
       contains
 
-      subroutine initializeModelE
+      subroutine initializeModelE()
       USE DOMAIN_DECOMP_1D, ONLY : init_app
+      use Model_com, only: calendr, makeCalendar
+      implicit none
 
       call initializeSysTimers()
 
@@ -386,20 +388,22 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
       call init_app()
       call initializeDefaultTimers()
 
+      calendr => makeCalendar()
+
       call alloc_drv_atm()
       call alloc_drv_ocean()
 
       end subroutine initializeModelE
 
       subroutine startNewDay()
-      use model_com, only: modelEclock
+      use model_com, only: modelEclock, calendr
 C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
       logical :: newmonth
       integer :: month, day
 
       month = modelEclock%month()
       day = modelEclock%dayOfYear()
-      newmonth = (day == 1+JDendOfM(month-1))
+      newmonth = (day == 1+ calendr%getLastDayOfMonth(month-1))
       call daily_DIAG(newmonth) ! atmosphere
       if(newmonth) then         ! ocean
         call reset_ODIAG(0)
@@ -600,7 +604,7 @@ C****
      *     ,nday,dtsrc,kdisk,jmon0,jyear0
      *     ,iyear1,itime,itimei,itimee
      *     ,idacc,modelEclock
-     *     ,aMONTH,jdendofm,aMON0
+     *     ,aMONTH,aMON0
      *     ,ioread,irerun,irsfic
      *     ,melse,Itime0,Jdate0
      *     ,Jhour0,rsf_file_name
@@ -618,9 +622,10 @@ C****
      &                              INT_DAYS_PER_YEAR
       use ModelClock_mod, only: ModelClock, newModelClock
       use Time_mod, only: Time, newTime
-      use Calendar_mod, only: Calendar
-      use JulianCalendar_mod, only: makeJulianCalendar
+      use MODEL_COM, only: calendr
       use Month_mod, only: LEN_MONTH_ABBREVIATION
+      use BaseTime_mod
+      use Rational_mod, only: nint
 
       IMPLICIT NONE
 !@var istart  postprocessing(-1)/start(1-8)/restart(>8)  option
@@ -659,10 +664,12 @@ C****    List of parameters that are disregarded at restarts
       character*132 :: bufs
       integer, parameter :: MAXLEN_RUNID = 32
 
-      type (Time) :: modelETimeI
-      class (Calendar), pointer :: pCalendar
+      type (Time) :: modelETimeI, tmpTime, modelETime0, modelETimeE
+      type (Time) :: modelETime
       integer :: hour, month, day, date, year
       character(len=LEN_MONTH_ABBREVIATION) :: amon
+      type (BaseTime) :: dtSrcUsed
+      real(8) :: dt, dtnew, DT_XUfilter, DT_YUfilter
 
 C****
 C**** Default setting for ISTART : restart from latest save-file (10)
@@ -730,72 +737,85 @@ C****   Current settings: 2 - from observed data                    ****
 C****                     8 - from current model M-file - no resets ****
 C****                                                               ****
 C***********************************************************************
-C****
+C**** 
 C**** Set quantities that are derived from the namelist parameters
-C****
-!@var NDAY=(1 day)/DTsrc : even integer; adjust DTsrc later if necessary
-      NDAY = 2*NINT(.5*SECONDS_PER_DAY/DTsrc)
+C**** 
+!@var NDAY=(1 day)/DTsrc : even integer; adjust DTsrc to be commensurate
+        NDAY = 2*nint(calendr%getSecondsPerDay()/(DTsrc*2))
+        dtSrcUsed = newBaseTime(calendr%getSecondsPerDay() / NDAY)
+        DTsrc = dtSrcUsed%convertToReal()
 
 C**** Get Start Time; at least YearI HAS to be specified in the rundeck
-      IF (YearI.lt.0) then
-        IF (AM_I_ROOT())
-     *   WRITE(6,*) 'Please choose a proper start year yearI, not',yearI
-        call stop_model('INPUT: yearI not provided',255)
-      END IF
-      IF (Iyear1.lt.0) Iyear1 = yearI
-      IhrI = HourI + INT_HOURS_PER_DAY*(dateI-1 + JDendofM(monthI-1) +
-     &       INT_DAYS_PER_YEAR*(yearI-Iyear1))
-      ITimeI = IhrI*NDAY/INT_HOURS_PER_DAY ! internal clock counts DTsrc-steps
-      Itime=ItimeI
-      IF (IhrI.lt.0) then
-        IF (AM_I_ROOT())
-     *  WRITE(6,*) 'Improper start time OR Iyear1=',Iyear1,' > yearI;',
-     *  ' yearI,monthI,dateI,hourI=',yearI,monthI,dateI,hourI
-        call stop_model(
-     &       'INPUT: Improper start date or base year Iyear1',255)
-      END IF
+        IF (YearI.lt.0) then
+          IF (AM_I_ROOT())
+     *      WRITE(6,*) 'Please choose a proper start year yearI, not',
+     *                  yearI
+          call stop_model('INPUT: yearI not provided',255)
+        END IF
+        IF (Iyear1.lt.0) Iyear1 = yearI
+        tmpTime = newTime(calendr)
+        modelETime0 = newTime(calendr)
 
-      IF (ISTART.EQ.2) THEN
-C****
+        call tmpTime%setByDate(yearI, monthI, dateI, hourI)
+        call modelEtime0%setByDate(iyear1, month=1, date=1, hour=0)
+
+        IhrI = nint((tmpTime - modelEtime0)/calendr%getSecondsPerHour())
+        ITimeI = nint((tmpTime - modelEtime0)/ dtSrcUsed)
+        Itime=ItimeI
+        IF (IhrI.lt.0) then
+          IF (AM_I_ROOT())
+     *      WRITE(6,*) 'Improper start time OR Iyear1=',Iyear1,
+     *      ' > yearI;',' yearI,monthI,dateI,hourI=',
+     *      yearI,monthI,dateI,hourI
+          call stop_model(
+     &      'INPUT: Improper start date or base year Iyear1',255)
+        END IF
+
+        IF (ISTART.EQ.2) THEN
+C**** 
 C**** Cold Start: ISTART=2
-C****
-        XLABEL(1:80)='Observed atmospheric data from NMC tape'
+C**** 
+          XLABEL(1:80)='Observed atmospheric data from NMC tape'
 
 C**** Set flag to initialise topography-related variables
-        init_topog_related = 1
+          init_topog_related = 1
 
-      ELSE IF (ISTART==8) THEN
-C****
-C****   Data from current type of RESTART FILE
-C****
-      ! no need to read SRHR,TRHR,FSF,TSFREZ,diag.arrays
-        call io_rsf("AIC",IhrX,irsfic,ioerr)
+        ELSE IF (ISTART==8) THEN
+C**** 
+C**** Data from current type of RESTART FILE
+C**** 
+! no need to read SRHR,TRHR,FSF,TSFREZ,diag.arrays
+          call io_rsf("AIC",IhrX,irsfic,ioerr)
 
+          tmpTime = modelEtime0
+          call tmpTime%add(calendr%getSecondsPerHour()*Ihrx)
 C**** Check consistency of starting time
-        IF( (MOD(IHRI-IHRX,INT_HOURS_PER_DAY*INT_DAYS_PER_YEAR).ne.0) ) 
-     &  THEN
-         WRITE (6,*) ' Difference in hours between ',
+          IF( ((modelEtimeI%getDayOfYear()/=tmpTime%getDayOfYear()) .or.
+     &      (modelEtimeI%getHour() /= tmpTime%getHour())) ) then
+            WRITE (6,*) ' Difference in hours between ',
      &       'Starting date and Data date:',
-     &       MOD(IHRI-IHRX,INT_HOURS_PER_DAY*INT_DAYS_PER_YEAR)
-         WRITE (6,*) 'Please change HOURI,DATEI,MONTHI'
-         call stop_model('INPUT: start date inconsistent with data',255)
-        ENDIF
-      END IF
+     &       modelEtimeI%getDayOfYear(),'d:',modelEtimeI%getHour(),'h ',
+     &       tmpTime%getDayOfYear(),'d:',tmpTime%getHour(),'h '
+            WRITE (6,*) 'Please change HOURI,DATEI,MONTHI'
+             call stop_model('INPUT: start date inconsistent with data',
+     &       255)
+          ENDIF
+        END IF
 
 C**** Set flags to initialise some variables related to topography
-      call sync_param( "init_topog_related", init_topog_related )
+        call sync_param( "init_topog_related", init_topog_related )
 
-      IF (init_topog_related == 1) then
-        do_IC_fixups = 1        ! new default, not necessarily final
-      ENDIF
+        IF (init_topog_related == 1) then
+          do_IC_fixups = 1      ! new default, not necessarily final
+        ENDIF
 
-      IF (AM_I_ROOT())
-     *     WRITE(6,'(A,i3,1x,a4,i5,a3,i3,3x,a,i2/" ",a)')
-     *  '0Model started on',datei,aMONTH(monthi),yeari,' Hr',houri,
-     *  'ISTART =',ISTART,XLABEL(1:80)    ! report input file label
-      XLABEL = RLABEL                     ! switch to rundeck label
+        IF (AM_I_ROOT())
+     *    WRITE(6,'(A,i3,1x,a4,i5,a3,i3,3x,a,i2/" ",a)')
+     *    '0Model started on',datei,aMONTH(monthi),yeari,' Hr',houri,
+     *    'ISTART =',ISTART,XLABEL(1:80) ! report input file label
+        XLABEL = RLABEL       ! switch to rundeck label
 
-      else ! initial versus restart
+      else                    ! initial versus restart
 C***********************************************************************
 C****                                                               ****
 C****                  RESTARTS: ISTART > 8                         ****
@@ -807,42 +827,42 @@ C****                    12 - from fort.2                           ****
 C****               13 & up - from earlier of fort.1 or fort.2      ****
 C****                                                               ****
 C***********************************************************************
-C****
-C****   DATA FROM end-of-month RESTART FILE     ISTART=9
-C****        mainly used for REPEATS and delayed EXTENSIONS
-      IF(ISTART==9) THEN                     !  diag.arrays are not read in
-        call io_rsf("AIC",Itime,irerun,ioerr)
-        WRITE (6,'(A,I2,A,I11,A,A/)') '0Model restarted; ISTART=',
-     *    ISTART,', TIME=',Itime,' ',XLABEL(1:80) ! sho input file label
-        XLABEL = RLABEL                        ! switch to rundeck label
-        TIMING = 0
-      ELSE
-C****
+C**** 
+C**** DATA FROM end-of-month RESTART FILE     ISTART=9
+C**** mainly used for REPEATS and delayed EXTENSIONS
+        IF(ISTART==9) THEN      !  diag.arrays are not read in
+          call io_rsf("AIC",Itime,irerun,ioerr)
+          WRITE (6,'(A,I2,A,I11,A,A/)') '0Model restarted; ISTART=',
+     *      ISTART,', TIME=',Itime,' ',XLABEL(1:80) ! sho input file label
+          XLABEL = RLABEL       ! switch to rundeck label
+          TIMING = 0
+        ELSE
+C**** 
 C**** RESTART ON DATA SETS 1 OR 2, ISTART=10 or more
-C****
+C**** 
 C**** CHOOSE DATA SET TO RESTART ON
-        IF(ISTART==11 .OR. ISTART==12) THEN
-          KDISK=ISTART-10
-        ELSEIF(ISTART==10 .OR. ISTART==13) THEN
-          call find_later_rsf(kdisk)
-          IF (ISTART.GE.13)     KDISK=3-KDISK
-        ENDIF
-        call io_rsf(rsf_file_name(KDISK),Itime,ioread,ioerr)
-        KDISK_restart = KDISK
-        if (AM_I_ROOT())
+          IF(ISTART==11 .OR. ISTART==12) THEN
+            KDISK=ISTART-10
+          ELSEIF(ISTART==10 .OR. ISTART==13) THEN
+            call find_later_rsf(kdisk)
+            IF (ISTART.GE.13)     KDISK=3-KDISK
+          ENDIF
+          call io_rsf(rsf_file_name(KDISK),Itime,ioread,ioerr)
+          KDISK_restart = KDISK
+          if (AM_I_ROOT())
      *      WRITE (6,'(A,I2,A,I11,A,A/)') '0RESTART DISK READ, UNIT',
      *      KDISK,', Time=',Itime,' ',XLABEL(1:80)
 
 C**** Switch KDISK if the other file is (or may be) bad (istart>10)
-C****     so both files will be fine after the next write execution
-        IF (istart.gt.10) KDISK=3-KDISK
+C**** so both files will be fine after the next write execution
+          IF (istart.gt.10) KDISK=3-KDISK
 C**** Keep KDISK after reading from the later restart file, so that
-C****     the same file is overwritten first; in case of trouble,
-C****     the earlier restart file will still be available
+C**** the same file is overwritten first; in case of trouble,
+C**** the earlier restart file will still be available
 
-      ENDIF
+        ENDIF
 
-      endif ! initial versus restart
+      endif                   ! initial versus restart
 
 C***********************************************************************
 C****                                                              *****
@@ -863,23 +883,33 @@ C****
 
 C**** Update ItimeE only if YearE or IhourE is specified in the rundeck
 C****
-      if(timee.lt.0) timee=houre*nday/INT_HOURS_PER_DAY
-      IF(yearE.ge.0) ItimeE = (( (yearE-iyear1)*INT_DAYS_PER_YEAR + 
-     &              JDendofM(monthE-1) + dateE-1) * INT_HOURS_PER_DAY) *
-     &              NDAY/INT_HOURS_PER_DAY + TIMEE
-C**** Alternate (old) way of specifying end time
-      if(IHOURE.gt.0) ItimeE=IHOURE*NDAY/INT_HOURS_PER_DAY
+      modelETime0 = newTime(calendr)
+      call modelEtime0%setByDate(iyear1, month=1, date=1, hour=0)
+
+      dtSrcUsed = newBaseTime(calendr%getSecondsPerDay() / NDAY)                       
+      DTsrc = dtSrcUsed%convertToReal()
+      modelETimeE = newTime(calendr)
+      if (timee .lt. 0) then
+        timee = houre*nday/INT_HOURS_PER_DAY
+        call modelEtimeE%setByDate(yearE, monthE, dateE, houre)
+      else
+        call modelEtimeE%setByDate(yearE, monthE, dateE, 0)
+        call modelEtimeE%add(DTsrcUsed * timee)
+      end if
+      ITimeE = nint((modelEtimeE - modelEtime0) / dtSrcUsed)
+
 
 C**** Check consistency of DTsrc with NDAY
-      if (is_set_param("DTsrc") .and. nint(SECONDS_PER_DAY/DTsrc)
-     &    .ne. NDAY) then
+      if (is_set_param("DTsrc") .and. 
+     &     nint(calendr%getSecondsPerDay()/DTsrc) .ne. NDAY) then
         if (AM_I_ROOT()) then
           write(6,*) 'DTsrc=',DTsrc,' has to stay at/be set to', 
-     &               SECONDS_PER_DAY/NDAY
+     &               calendr%getSecondsPerDay()/NDAY
         end if
         call stop_model('INPUT: DTsrc inappropriately set',255)
       end if
-      DTsrc = SECONDS_PER_DAY/NDAY
+      DTsrcUsed = newBaseTime(calendr%getSecondsPerDay() / NDAY)
+      DTsrc = DTsrcUsed%convertToReal()
       call set_param( "DTsrc", DTsrc, 'o' )   ! copy DTsrc into DB
 
 C**** NMONAV has to be 1(default),2,3,4,6,12, i.e. a factor of 12
@@ -898,15 +928,35 @@ C**** Get the rest of parameters from DB or put defaults to DB
 
       call init_Model
 
-C**** Set julian date information
-      call getdte(Itime,Nday,Iyear1,year,month,day,date,hour,amon)
-      call getdte(Itime0,Nday,iyear1,Jyear0,Jmon0,J,Jdate0,Jhour0,amon0)
+C**** Set date information
 
-      pCalendar => makeJulianCalendar()
-      modelETimeI = newTime(pCalendar)
-      call getdte(Itime,Nday,Iyear1,year,month,day,date,hour,amon)
-      call modelEtimeI%setByDate(year, month, date, hour)
-      modelEclock = newModelClock(modelEtimeI,itime,Nday)
+      modelETime0 = newTime(calendr)
+
+      call modelEtime0%setByDate(iyear1, month=1, date=1, hour=0)
+      call modelEtime0%add(dtSrcUsed * itime0)
+
+      jyear0 = modelEtime0%getYear()
+      jmon0 = modelEtime0%getMonth()
+      jdate0 = modelEtime0%getDate()
+      jhour0 = modelEtime0%getHour()
+      amon0 = modelEtime0%getAbbreviation()
+
+      modelETime = newTime(calendr)
+      call modelEtime%setByDate(yearI, monthI, dateI, hourI)
+      call modelETime%add( dtSrcUsed * (itime-itimei) )
+
+      year = modelEtime%getYear()
+      month = modelEtime%getMonth()
+      day = modelEtime%getDayOfYear()
+      date = modelEtime%getDate()
+      hour = modelEtime%getHour()
+      amon = modelEtime%getAbbreviation()
+
+      modelEclock = newModelClock(modelEtime,itime,Nday)
+
+      call setDtParam('dt', dt, dtSrcUsed)
+      call setDtParam('DT_XUfilter', DT_XUfilter, dtSrcUsed)
+      call setDtParam('DT_YUfilter', DT_YUfilter, dtSrcUsed)
 
       CALL DAILY_cal(.false.)                  ! not end_of_day
 
@@ -962,7 +1012,31 @@ C****
       call stop_model('Error in NAMELIST parameters',255)
   910 write (6,*) 'Error readin I-file'
       call stop_model('Error reading I-file',255)
+
+
       END SUBROUTINE INPUT
+
+      subroutine setDtParam(tName, tParam, dtSrc)
+      USE Dictionary_mod
+      use BaseTime_mod
+      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT
+      character(len=*) :: tName
+      type (BaseTime), intent(in) :: dtSrc
+      real(8), intent(inout) :: tParam
+      real(8) :: tOld
+
+      tOld = tParam
+      call get_param(tName, tParam)
+      tParam = dtSrc%convertToReal()/nint(dtSrc%convertToReal()/tParam)
+      call set_param( tName, tParam, 'o' )
+      
+      if (abs(tParam-tOld) .gt. 1.0e-15) then
+        if (AM_I_ROOT()) then
+          write(6,*) trim(tName),' has changed from ', tOld,' to ',
+     *      tParam 
+        end if
+      end if
+      end subroutine setDtParam
 
       subroutine print_and_check_PPopts
 !@sum prints preprocessor options in english and checks some

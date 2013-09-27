@@ -18,7 +18,8 @@ F90SRCS  = AbstractAttribute.F90 \
 	GenericType_mod.F90 \
 	Geometry_mod.F90 \
 	GetTime_mod.F90 \
-	JulianCalendar_mod.F90 \
+	JulianCalendar.F90 \
+	PlanetCalendar.F90 \
 	KeyValuePair_mod.F90 \
 	ModelClock.F90 \
 	Month.F90 \
@@ -27,6 +28,7 @@ F90SRCS  = AbstractAttribute.F90 \
 	PolynomialInterpolator.F90 \
 	Precision_mod.F90 \
 	Random_mod.F90 \
+	Rational.F90 \
 	RootFinding_mod.F90 \
 	RunTimeControls_mod.F90 \
 	SpecialFunctions.F90 \
