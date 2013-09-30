@@ -522,7 +522,7 @@ C====
 !@sum Read in monthly sources and interpolate to current day
 !@auth Jean Lerner and others / Greg Faluvegi
       USE RESOLUTION, only : im,jm
-      USE MODEL_COM, only: idofm=>JDmidOfM
+      USE JulianCalendar_mod, only: idofm=>JDmidOfM
       USE FILEMANAGER, only : NAMEUNIT
       USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds,READT_PARALLEL
      &     ,REWIND_PARALLEL
@@ -1424,7 +1424,7 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
      & READT_PARALLEL, REWIND_PARALLEL, BACKSPACE_PARALLEL
       USE RESOLUTION, only : im,jm
       use model_com, only: modelEclock
-      USE MODEL_COM, only: idofm=>JDmidOfM
+      USE JulianCalendar_mod, only: idofm=>JDmidOfM
 
       implicit none
 

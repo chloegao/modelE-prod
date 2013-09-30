@@ -1020,7 +1020,7 @@ C**** GLOBAL parameters and variables:
       use tracers_drydep, only: ijreg,xylai,xlai,xlai2,ireg
       use resolution, only : im,jm
       use model_com, only: modelEclock
-      use model_com, only: JDmidOfM
+      use JulianCalendar_mod, only: JDmidOfM
       use TimeConstants_mod, only: INT_MONTHS_PER_YEAR
       implicit none
 

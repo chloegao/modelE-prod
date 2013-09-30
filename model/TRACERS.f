@@ -1110,7 +1110,7 @@ C****
       USE DOMAIN_DECOMP_ATM, only : READT_PARALLEL, REWIND_PARALLEL
       USE RESOLUTION, only: im,jm
       use model_com, only: modelEclock
-      USE MODEL_COM, only: idofm=>JDmidOfM
+      USE JulianCalendar_mod, only: idofm=>JDmidOfM
       use TimeConstants_mod, only: INT_DAYS_PER_YEAR, 
      &  INT_MONTHS_PER_YEAR
       implicit none

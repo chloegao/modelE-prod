@@ -149,7 +149,7 @@ C                    Ocean         Land      ! r**3: r=.085,.052 microns
 ! same vertical grid.  A per-aerosol plbaer in calls to REPART in the
 ! radiation code would allow more flexibility.
       use domain_decomp_atm, only : grid
-      use model_com, only : jdmidofm ! for md1850 month interp
+      use JulianCalendar_mod, only : jdmidofm ! for md1850 month interp
       use timestream_mod, only : init_stream,read_stream
      &     ,reset_stream_properties,get_by_index
       use pario, only : par_open,par_close,read_dist_data,read_data

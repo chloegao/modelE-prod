@@ -3,7 +3,8 @@
       subroutine OCN_mesosc(kappam3d)
 
       USE MODEL_COM,  only : nstep=>itime,itimei,nday
-     . ,iyear1,jdendofm,aMON,dtsrc,xlabel,lrunid
+     . ,iyear1,aMON,dtsrc,xlabel,lrunid
+      use JulianCalendar_mod, only: jdendofm
       USE CONSTANT,   only : grav,omega
       USE OCEANR_DIM, only : ogrid
       USE OCEANRES,   only : idm=>imo,jdm=>jmo,kdm=>lmo,dzo

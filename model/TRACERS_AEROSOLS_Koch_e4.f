@@ -231,7 +231,7 @@ c
 !@auth Jean Lerner and others / Greg Faluvegi
       use resolution, only: im,jm
       use model_com, only: modelEclock
-      USE MODEL_COM, only: idofm=>JDmidOfM
+      USE JulianCalendar_mod, only: idofm=>JDmidOfM
       use TimeConstants_mod, only: INT_DAYS_PER_YEAR,INT_MONTHS_PER_YEAR
       USE FILEMANAGER, only : NAMEUNIT
       USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds,READT_PARALLEL,
@@ -313,7 +313,7 @@ c**** Interpolate two months of data to current day
       SUBROUTINE READ_OFFHNO3(OUT)
       use resolution, only: im,jm,lm
       use model_com, only: modelEclock
-      USE MODEL_COM, only : JDendOFM
+      USE JulianCalendar_mod, only : JDendOFM
       USE DOMAIN_DECOMP_ATM, only : grid,am_i_root
       IMPLICIT NONE
       include 'netcdf.inc'
@@ -397,7 +397,7 @@ c -----------------------------------------------------------------
       SUBROUTINE READ_OFFSS(OUT)
       use resolution, only: im,jm,lm
       use model_com, only: modelEclock
-      USE MODEL_COM, only : JDendOFM
+      USE JulianCalendar_mod, only : JDendOFM
       USE DOMAIN_DECOMP_ATM, only : grid,am_i_root
       IMPLICIT NONE
       include 'netcdf.inc'
@@ -1769,7 +1769,7 @@ c melting snow
 !  we run aerosols independent of gases
       use resolution, only: im,jm
       use model_com, only: modelEclock
-      USE MODEL_COM, only: idofm=>JDmidOfM
+      USE JulianCalendar_mod, only: idofm=>JDmidOfM
       use TimeConstants_mod, only: INT_MONTHS_PER_YEAR
       USE FILEMANAGER, only : NAMEUNIT
       USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds,READT_PARALLEL

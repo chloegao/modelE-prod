@@ -15,10 +15,10 @@ contains
     real(kind=SP) :: x_sp
     real(kind=DP) :: x_dp
 
-    t = BaseTime(0) ! compiles?
-    t = BaseTime(0.d0) ! compiles?
+    t = newBaseTime(0)
+    t = newBaseTime(0.d0)
 
-    t = BaseTime(Rational(1,1,2))
+    t = newBaseTime(Rational(1,1,2))
 
     x_sp = t%convertToReal()
     @assertEqual(1.5, x_sp)

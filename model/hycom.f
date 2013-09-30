@@ -103,8 +103,9 @@ c
       !USE SEAICE_COM, only : rsi,msi
       USE SEAICE, only : fsss,tfrez,Ei ! number, functions - ok
       !USE MODEL_COM, only : focean
+      USE JulianCalendar_mod, only: jdendofm
       USE MODEL_COM, only: dtsrc
-     *  ,itime,iyear1,nday,jdendofm,modelEclock,aMON
+     *  ,itime,iyear1,nday,modelEclock,aMON
       use TimeConstants_mod, only: INT_HOURS_PER_DAY, SECONDS_PER_HOUR,
      &      INT_DAYS_PER_YEAR, INT_SECONDS_PER_HOUR, INT_SECONDS_PER_DAY
      &      ,SECONDS_PER_DAY, DAYS_PER_YEAR

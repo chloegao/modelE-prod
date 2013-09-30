@@ -132,8 +132,9 @@
 #endif
 
       USE MODEL_COM, only: modelEclock
-     . ,itime,iyear1,jdendofm,aMON,dtsrc
+     . ,itime,iyear1,aMON,dtsrc
      . ,xlabel,lrunid
+      use JulianCalendar_mod, only: jdendofm
       use TimeConstants_mod, only: HOURS_PER_DAY
 
       USE FILEMANAGER, only: openunit,closeunit

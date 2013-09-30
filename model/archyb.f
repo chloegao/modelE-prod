@@ -4,8 +4,9 @@
 c
 c --- write archive file for time level n to flnm ( b i n a r y  hycom fmt)
 c
+      USE JulianCalendar_mod, only : jdendofm
       USE MODEL_COM, only : modelEclock,
-     *  itime,iyear1,nday,jdendofm,aMON,xlabel,lrunid,monthi,datei
+     *  itime,iyear1,nday,aMON,xlabel,lrunid,monthi,datei
       use TimeConstants_mod, only: SECONDS_PER_DAY
       USE HYCOM_SCALARS, only : nstep,time,lp,theta,huge,baclin,onem
      &     ,thref,nhr,g

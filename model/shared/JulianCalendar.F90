@@ -34,8 +34,9 @@ module JulianCalendar_mod
     procedure :: getMidDayOfMonth
   end type JulianCalendar
 
-  public :: LAST_JULIAN_DAY_IN_MONTH
-  public :: MID_JULIAN_DAY_IN_MONTH
+  !         Legacy :  New
+  public :: JDendOfM, LAST_JULIAN_DAY_IN_MONTH
+  public :: JDmidOfM, MID_JULIAN_DAY_IN_MONTH
 
   ! Not entirely clear if these constants belong here, since they actually
   ! should vary for other planets and/or eras (e.g. paleo has shorter day)

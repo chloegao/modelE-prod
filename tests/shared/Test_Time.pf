@@ -17,12 +17,9 @@ contains
 
     t1 = newTime(makeJulianCalendar())
     t2 = newTime(makeJulianCalendar())
-    t = BaseTime(Rational(1,2,3))
-    call t1%set(t)
-    call t1%print()
+    t = newBaseTime(Rational(1,2,3))
+    t1%BaseTime = t
     t2 = t1
-    call t2%print()
-    call t%print()
     @assertTrue(t1 == t2)
 
   end subroutine test_copy
