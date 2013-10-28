@@ -110,7 +110,7 @@ c     endif
 
       SUBROUTINE DYNAM
 !@sum  DYNAM Integrate dynamic terms
-!@vers 2013/08/06
+!@vers 2013/10/23
 !@auth Original development team
       Use CONSTANT,   Only: by3,SHA,kg2mb,mb2kg,RGAS,byGRAV
       Use RESOLUTION, Only: IM,JM,LM,LS1, MFIXs
@@ -180,13 +180,12 @@ C**** Leap-frog re-initialization: IF (NS.LT.NIdyn)
       Call GWDRAG (DTFS, U,V,       UX,VX,MODD3, T,TZ, .True.)
       Call VDIFF  (DTFS, U,V,       UX,VX,MODD3, T)
       Call ADVECV (DTFS, U,V,MA, MA,UX,VX,MODD3)
-!     Call PGF    (DTFS, U,V,MA,    UX,VX,MODD3, T,TZ)
+      Call PGF    (DTFS, U,V,MA,    UX,VX,MODD3, T,TZ)
        CALL CALC_PIJL (LM,P,PIJL)
        PU(:,:,:) = MU(:,:,:)*kg2mb
        PV(:,:,:) = MV(:,:,:)*kg2mb
        SD(:,:,:) = MW(:,:,:)*kg2mb
        PB(:,:)   = (MSUMODD(:,:) - MFIXs)*kg2mb
-      CALL PGF (UX,VX,PB,U,V,T,TZ,Pijl,DTFS)
 c      if (QUVfilter) CALL FLTRUV(UX,VX,U,V)
       call isotropuv(ux,vx,COS_LIMIT)
 
@@ -200,14 +199,12 @@ c      if (QUVfilter) CALL FLTRUV(UX,VX,U,V)
       Call GWDRAG (DT, UX,VX,          UT,VT,MODD1, T,TZ, .False.)
       Call VDIFF  (DT, UX,VX,          UT,VT,MODD1, T)
       Call ADVECV (DT, UX,VX,MODD3, MA,UT,VT,MODD1)
-!     Call PGF    (DT, UX,VX,MODD3,    UT,VT,MODD1, T,TZ)
+      Call PGF    (DT, UX,VX,MODD3,    UT,VT,MODD1, T,TZ)
        CALL CALC_PIJL (LS1-1,PB,PIJL)
        PU(:,:,:) = MU(:,:,:)*kg2mb
        PV(:,:,:) = MV(:,:,:)*kg2mb
        SD(:,:,:) = MW(:,:,:)*kg2mb
        PA(:,:)   = (MSUMODD(:,:) - MFIXs)*kg2mb
-      CALL PGF (UT,VT,PA,UX,VX,T,TZ,Pijl,DT)
-
 c      if (QUVfilter) CALL FLTRUV(UT,VT,UX,VX)
       call isotropuv(ut,vt,COS_LIMIT)
       GO TO 360
@@ -222,13 +219,12 @@ c      if (QUVfilter) CALL FLTRUV(UT,VT,UX,VX)
       Call GWDRAG (DTLF, U,V,          UT,VT,MODD3, T,TZ, .False.)
       Call VDIFF  (DTLF, U,V,          UT,VT,MODD3, T)
       Call ADVECV (DTLF, U,V,MA, MODD1,UT,VT,MODD3)
-!     Call PGF    (DTLF, U,V,MA,       UT,VT,MODD3, T,TZ)
+      Call PGF    (DTLF, U,V,MA,       UT,VT,MODD3, T,TZ)
        CALL CALC_PIJL (LS1-1,P,PIJL)
        PU(:,:,:) = MU(:,:,:)*kg2mb
        PV(:,:,:) = MV(:,:,:)*kg2mb
        SD(:,:,:) = MW(:,:,:)*kg2mb
        PB(:,:)   = (MSUMODD(:,:) - MFIXs)*kg2mb
-      CALL PGF (UT,VT,PB,U,V,T,TZ,Pijl,DTLF)
 c      if (QUVfilter) CALL FLTRUV(UT,VT,U,V)
       call isotropuv(ut,vt,COS_LIMIT)
       PA(:,:) = PB(:,:)     ! LOAD PB TO PA
@@ -272,8 +268,7 @@ C**** ADVECT Q AND T
 
       CALL CALC_PIJL(LS1-1,PC,PIJL)
 c      CALL CALC_PIJL(LS1-1,PA,PIJL) ! true leapfrog
-!     Call PGF    (DTLF, UT,VT,MODD1,       U,V,MA, T,TZ)
-      CALL PGF (U,V,P,UT,VT,TT,TZT,Pijl,DTLF)    !PC->pijl
+      Call PGF    (DTLF, UT,VT,MODD1,       U,V,MA, TT,TZT)
 
       call compute_mass_flux_diags(PHI, PU, PV, dt)
 
@@ -677,7 +672,8 @@ C**** Compute MW (kg/s) = downward vertical mass flux
             Write (6,990) I,J,MRCH,ZATMO(I,J),DT1,
      *           (L,U(IM1,J,L),U(I,J,L),U(IM1,J+1,L),U(I,J+1,L),
      *              V(IM1,J,L),V(I,J,L),V(IM1,J+1,L),V(I,J+1,L),
-     *           MNEW(L,I,J),MOLD(L,I,J),T(I,J,L),Q(I,J,L),L=LM,1,-1)
+     *              MNEW(L,I,J),MOLD(L,I,J),T(I,J,L),Q(I,J,L)*1000,
+     *            L=LM,1,-1)
             Write (6,*) "Pressure diagnostic error"
           endif
         EndDo  ;  EndDo
@@ -699,46 +695,96 @@ C**** Compute MW (kg/s) = downward vertical mass flux
       Call HALO_UPDATE        (GRID, MSUM, From=SOUTH)
       Call MAtoP (MNEW)
       Return
-  990 Format (/'0PRESSURE DIAGNOSTIC     I,J,MRCH=',3I4,2F10.2/
-     *  '     ZATMO=',F10.3,' DT=',F6.1/
+  990 Format (/'0PRESSURE DIAGNOSTIC  I,J,MRCH,ZATMO,DT=',3I4,2F10.2/
      *  '  L     U(I-1,J)     U(I,J)   U(I-1,J+1)    U(I,J+1)',
      *      '    V(I-1,J)     V(I,J)   V(I-1,J+1)    V(I,J+1)',
-     *      '        MNEW       MOLD       T(I,J)     Q(I,J)' /
+     *      '       MNEW        MOLD      T(I,J)      Q*1000' /
      *  (I3,11F12.3,F12.6))
       EndSubroutine ADVECM
 
 
-      SUBROUTINE PGF (UT,VT,PB,U,V,T,SZ,P,DT1)
+      Subroutine PGF (DT1, U,V,MAM, UT,VT,MAFTER, S0,SZ)
 !@sum  PGF Adds pressure gradient forces to momentum
 !@auth Original development team
-      USE CONSTANT, only : grav,rgas,kapa,bykapa,bykapap1,bykapap2
-      USE RESOLUTION, only : ls1,psfmpt,ptop
-      USE RESOLUTION, only : im,jm,lm
-      USE ATM_COM, only : zatmo
-      USE DIAG_COM, only : modd5k
-      USE GEOM, only : imaxj,dxyv,dxv,dyv,dxyp,dyp,dxp,acor,acor2
-      USE ATM_COM, only : gz,phi
-      Use DYNAMICS,   Only: pu,spa,dut,dvt,do_polefix,mrch
-     &     ,dsig,sige,sig,bydsig
+!**** Input: DT1 = time step (s)
+!****        U,V = mean horizontal velocity during time step (m/s)
+!****        MAM = mean mass distribution during time step (kg/m^2)
+!****      S0,SZ = potential temperature and vertical gradient (K)
+!****     MAFTER = mass distribution at end of time step (kg/m^2)
+!**** Output: UT,VT = velocity updated by pressure gradient force (m/s)
+
+!**** R (J/kg*C) = gas constant = 287 for dry air
+!**** K          = exponent of exner function = R/SHA
+!**** M (kg/m^2) = vertical coordinate = air mass above the level
+!**** DM(kg/m^2) = layer mass difference = MAM
+!**** P (Pa)     = pressure = M*GRAV
+!**** DP(Pa)     = layer pressure difference = PD - PU 
+!**** A (m^3/kg) = specific volume = R*T / P
+!**** S (K)      = potential temperature = S0 - SZ*2*(M-M0)/(MD-MU) =
+!****            = S0 - SZ*2*(P-P0)/(PD-PU) = S0 - SZ*2*(P-P0)/DP =
+!****            = S0+SZ*2*P0/DP - SZ*2*P/DP
+!**** T (K)      = temperature = S * P(mb)^K = S*.01^K * P^K =
+!****            = [(S0+SZ*2*P0/DP)*.01^K - P*(SZ*2/DP)*.01^K]*P^K =
+!****            = (X - P*Y)*P^K = X*P^K - Y*P^(K+1)
+
+!**** Integral of A*dM from MU to MD (from top to bottom of layer)
+!**** Int[A*dM] = Int[R*T*dP/P*G] = R*Int{[X*P^(K-1) - Y*P^K]*dP}/G = 
+!**** = R*{X*P^K/K - Y*P^(K+1)/(K+1)}/G from PU to PD = 
+!**** = R*{X*(PD^K-PU^K)/K - Y*[PD^(K+1)-PU^(K+1)]/(K+1)}/G 
+
+!**** Compute DGZ thickness everwhere in a layer from layer bottom
+!**** G*dZ = - A*dP = - (R*T/P)*dP = - R*[X*P^(K-1) - Y*P^K]*dP
+!**** DGZ = - Int{R*[X*P^(K-1) - Y*P^K]*dP} from PD to P =
+!****     = - R*{X*(P^K-PD^K)/K - Y*[P^(K+1)-PD^(K+1)]/(K+1)} 
+!****     = R*{X*(PD^K-P^K)/K - Y*[PD^(K+1)-P^(K+1)]/(K+1)} 
+
+!**** DGZup = R*{X*(PD^K-PU^K)/K - Y*[PD^(K+1)-PU^(K+1)]/(K+1)} 
+!**** Int[A*dM] = DGZup/G 
+
+!**** Compute mass weighted average value of DGZ in a layer
+!**** DGZave = Int{DGZ*dP}/DP from PD to PU =
+!**** = R*Int({X*(PD^K-P^K)/K - Y*[PD^(K+1)-P^(K+1)]/(K+1)}*dP)/DP =
+!**** = R*{X*[P*PD^K - P^(K+1)/(K+1)]/K -
+!****    - Y*[P*PD^(K+1) - P^(K+2)/(K+2)]/(K+1)}/DP =
+!**** = R*(X*{(PD-PU)*PD^K - [PD^(K+1)-PU^(K+1)]/(K+1)}/K -
+!****    - Y*{(PD-PU)*PD^(K+1) - [PD^(K+2)-PU^(K+2)]/(K+2)}/(K+1))/DP =
+!**** = R*(X*{DP*PD^K - [PD^(K+1)-PU^(K+1)]/(K+1)}/K -
+!****    - Y*{DP*PD^(K+1) - [PD^(K+2)-PU^(K+2)]/(K+2)}/(K+1))/DP =
+
+!**** GZave(L) = GZATMO + Sum[DGZup(1:L-1)] + DGZave(L)
+
+!**** PGFU (kg*m/s^2) = 
+!**** = {Mean[Int(A*dM)] * dP/dX + Mean(DM) * dGZave/dX} * DX*DY =
+!**** = {Mean[Int(A*dM)] * dP + Mean(DM) * dGZave} * DY
+!**** DUT (kg*m/s) = dTIME * PolarFiltered(PGFU)
+
+      Use CONSTANT,   Only: GRAV,RGAS,KAPA,byGRAV,
+     *                      zK=>byKAPA,zKp1=>byKAPAp1,zKp2=>byKAPAp2
+      Use RESOLUTION, Only: IM,JM,LM, MTOP
+      Use ATM_COM,    Only: ZATMO
+      Use DIAG_COM,   Only: MODD5K
+      Use GEOM,       Only: IMAXJ,DXV,DYV,DXYS,DXYN, ACOR,ACOR2
+      Use ATM_COM,    Only: GZ,PHI
+      Use DYNAMICS,   Only: DUT,DVT,AdM=>SPA,DO_POLEFIX,MRCH
       USE DOMAIN_DECOMP_ATM, only: grid
       USE DOMAIN_DECOMP_1D, Only : getDomainBounds
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE
       Use DOMAIN_DECOMP_1D,  Only: SOUTH
       USE DOMAIN_DECOMP_1D, only : haveLatitude
       IMPLICIT NONE
-
-      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM):: U,V,T
+      Real*8 :: DT1
+      Real*8,Dimension(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) ::
+     *   U,V, UT,VT, S0,SZ
+      Real*8,Dimension(LM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
+     *   MAM,MAFTER
+!**** Local variables
+      Real*8,Dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
+     *   P,PGFU
+      Real*8 :: DT4,DGZU(LM),DGZA(LM),
+     *          M,PU,PKU,PKPU,PKPPU,DP,zDP,X,Y,PD,PKD,PKPD,PKPPD,GZD,
+     *          FACTOR,FLUX, VMASS
+     *  ,HUNDREDTHeKAPA
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO):: FD,RFDUX
-      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) ::
-     *  UT, VT, QT, P, SZ
-      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
-     *  PB
-
-      REAL*8 PKE(LS1:LM+1)
-      REAL*8 DT4,DT1
-      REAL*8 PIJ,PDN,PKDN,PKPDN,PKPPDN,PUP,PKUP,PKPUP,PKPPUP,DP,P0,X
-     *     ,BYDP
-      REAL*8 TZBYDP,FLUX,FDNP,FDSP,RFDU,PHIDN,FACTOR
       INTEGER I,J,L,IM1,IP1,IPOLE  !@var I,J,IP1,IM1,L,IPOLE loop variab.
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0STG, J_1STG, J_0S, J_1S, J_0H, J_1H
@@ -751,95 +797,66 @@ c**** Extract domain decomposition info
      &         HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 C****
       DT4=DT1/4.
-      DO L=LS1,LM+1
-        PKE(L)=(PSFMPT*SIGE(L)+PTOP)**KAPA
-      END DO
-C****
-C**** VERTICAL DIFFERENCING
-C****
-      DO L=LS1,LM
-      SPA(:,:,L)=0.
-      END DO
+      HUNDREDTHeKAPA = .01d0**KAPA
 
+!**** Loop over grid columns
       DO J=J_0,J_1
       DO I=1,IMAXJ(J)
-        PIJ=P(I,J,1)
-        PDN=PIJ+PTOP
-        PKDN=PDN**KAPA
-        PHIDN=ZATMO(I,J)
-C**** LOOP OVER THE LAYERS
-        DO L=1,LM
-          PKPDN=PKDN*PDN
-          PKPPDN=PKPDN*PDN
-          IF(L.GE.LS1) THEN
-            DP=DSIG(L)*PSFMPT
-            BYDP=1./DP
-            P0=SIG(L)*PSFMPT+PTOP
-            TZBYDP=2.*SZ(I,J,L)*BYDP
-            X=T(I,J,L)+TZBYDP*P0
-            PUP=SIGE(L+1)*PSFMPT+PTOP
-            PKUP=PKE(L+1)
-            PKPUP=PKUP*PUP
-            PKPPUP=PKPUP*PUP
-          ELSE
-            DP=DSIG(L)*PIJ
-            BYDP=1./DP
-            P0=SIG(L)*PIJ+PTOP
-            TZBYDP=2.*SZ(I,J,L)*BYDP
-            X=T(I,J,L)+TZBYDP*P0
-            PUP=SIGE(L+1)*PIJ+PTOP
-            PKUP=PUP**KAPA
-            PKPUP=PKUP*PUP
-            PKPPUP=PKPUP*PUP
-C****   CALCULATE SPA, MASS WEIGHTED THROUGHOUT THE LAYER
-            SPA(I,J,L)=RGAS*((X+TZBYDP*PTOP)*(PKPDN-PKPUP)*BYKAPAP1
-     *      -X*PTOP*(PKDN-PKUP)*BYKAPA-TZBYDP*(PKPPDN-PKPPUP)*BYKAPAP2)
-     *      *BYDP
-          END IF
-C**** CALCULATE PHI, MASS WEIGHTED THROUGHOUT THE LAYER
-          PHI(I,J,L)=PHIDN+RGAS*(X*PKDN*BYKAPA-TZBYDP*PKPDN*BYKAPAP1
-     *      -(X*(PKPDN-PKPUP)*BYKAPA-TZBYDP*(PKPPDN-PKPPUP)*BYKAPAP2)
-     *      *BYDP*BYKAPAP1)
-C**** CALULATE PHI AT LAYER TOP (EQUAL TO BOTTOM OF NEXT LAYER)
-          PHIDN=PHIDN+RGAS*(X*(PKDN-PKUP)*BYKAPA-TZBYDP*(PKPDN-PKPUP)
-     *     *BYKAPAP1)
-          PDN=PUP
-          PKDN=PKUP
-        END DO
-      END DO
-      END DO
+!**** Integrate pressures from the top down
+         M   = MTOP
+         PU  = M*GRAV
+         PKU = PU**KAPA  ;  PKPU = PKU*PU  ;  PKPPU = PKPU*PU
+         Do L=LM,1,-1
+            DP  = MAM(L,I,J)*GRAV
+            zDP = 1 / DP
+            Y   = SZ(I,J,L)*2*zDP*HUNDREDTHeKAPA
+            X   = S0(I,J,L)*HUNDREDTHeKAPA + Y*(PU+.5*DP)
+            PD  = PU + DP
+            PKD = PD**KAPA  ;  PKPD = PKD*PD  ;  PKPPD = PKPD*PD
+!           AdM = RGAS*(X*(PKD-PKU)*zK - Y*(PKPD-PKPU)*zKp1)/GRAV
+            DGZU(L) = RGAS*(X*(PKD-PKU)*zK - Y*(PKPD-PKPU)*zKp1)
+            DGZA(L) = RGAS*(X*(DP*PKD - (PKPD-PKPU)*zKp1)*zK -
+     -                      Y*(DP*PKPD - (PKPPD-PKPPU)*zKp2)*zKp1)*zDP
+            AdM(I,J,L) = DGZU(L)*byGRAV
+              P(I,J,L) = GRAV*(M + .5*MAM(L,I,J))
+            M   = M + MAM(L,I,J)
+            PU  = PD
+            PKU = PKD  ;  PKPU = PKPD  ;  PKPPU=PKPPD  ;  EndDo
+!**** Integrate altitude from the bottom up
+         GZD = ZATMO(I,J)
+         Do L=1,LM
+            GZ(I,J,L) = GZD + DGZA(L)
+            GZD = GZD + DGZU(L)  ;  EndDo  ;  EndDo  ;  EndDo
+
 C**** SET POLAR VALUES FROM THOSE AT I=1
       IF (haveLatitude(grid, J=1)) THEN
         DO L=1,LM
-          SPA(2:IM,1,L)=SPA(1,1,L)
-          PHI(2:IM,1,L)=PHI(1,1,L)
-        END DO
-      END IF
+            AdM(2:IM,1,L) = AdM(1,1,L)
+              P(2:IM,1,L) =   P(1,1,L)
+             GZ(2:IM,1,L) =  GZ(1,1,L)  ;  EndDo  ;  EndIf
       IF (haveLatitude(grid, J=JM)) THEN
         DO L=1,LM
-          SPA(2:IM,JM,L)=SPA(1,JM,L)
-          PHI(2:IM,JM,L)=PHI(1,JM,L)
-        END DO
-      END IF
+            AdM(2:IM,JM,L) = AdM(1,JM,L)
+              P(2:IM,JM,L) =   P(1,JM,L)
+             GZ(2:IM,JM,L) =  GZ(1,JM,L)  ;  EndDo  ;  EndIf
 
-      DO L=1,LM
-        GZ(:,:,L)=PHI(:,:,L)
-      END DO
 C****
 C**** PRESSURE GRADIENT FORCE
 C****
 C**** NORTH-SOUTH DERIVATIVE AFFECTS THE V-COMPONENT OF MOMENTUM
 C
       CALL HALO_UPDATE(grid, P,   FROM=SOUTH)
-      CALL HALO_UPDATE(grid, PHI, FROM=SOUTH)
-      CALL HALO_UPDATE(grid, SPA, FROM=SOUTH)
+      Call HALO_UPDATE (GRID, AdM, From=SOUTH)
+      Call HALO_UPDATE (GRID, GZ,  From=SOUTH)
+      PHI(:,:,:) = GZ(:,:,:)
       DO 3236 L=1,LM
       DO 3236 J=J_0STG,J_1STG
-      FACTOR = DT4*DXV(J)*DSIG(L)
+      FACTOR = DT4*DXV(J)
       IM1=IM
       DO 3234 I=1,IM
-      FLUX=    ((P(I,J,L)+P(I,J-1,L))*(PHI(I,J,L)-PHI(I,J-1,L))+
-     *  (SPA(I,J,L)+SPA(I,J-1,L))*(P(I,J,L)-P(I,J-1,L)))*FACTOR
+      FLUX = ((AdM(I,J,L)+AdM(I,J-1,L))*( P(I,J,L)- P(I,J-1,L)) +
+     +        (MAM(L,I,J)+MAM(L,I,J-1))*(GZ(I,J,L)-GZ(I,J-1,L))) *
+     *       FACTOR
       DVT(I,J,L)  =DVT(I,J,L)  -FLUX
       DVT(IM1,J,L)=DVT(IM1,J,L)-FLUX
  3234 IM1=I
@@ -847,29 +864,25 @@ C
 C
 C**** SMOOTHED EAST-WEST DERIVATIVE AFFECTS THE U-COMPONENT
 C
-C Although PU appears to require a halo update, the halos
-C of PHI, SPA, and P enable implementation without the additional halo.
-C
       DO L=1,LM
-        IF (haveLatitude(grid, J=1)) PU(:,1,L)=0.
-        IF (haveLatitude(grid, J=JM)) PU(:,JM,L)=0.
+         If (J_0STG == 2)   PGFU(:,1 ,L) = 0
+         If (J_1STG == JM)  PGFU(:,JM,L) = 0
         I=IM
 
         DO J=Max(2,J_0STG-1),J_1STG
           DO IP1=1,IM
-            PU(I,J,L)=(P(IP1,J,L)+P(I,J,L))*(PHI(IP1,J,L)-PHI(I,J,L))+
-     *           (SPA(IP1,J,L)+SPA(I,J,L))*(P(IP1,J,L)-P(I,J,L))
+            PGFU(I,J,L) =
+     =         (AdM(Ip1,J,L)+AdM(I,J,L))*( P(Ip1,J,L)- P(I,J,L)) +
+     +         (MAM(L,Ip1,J)+MAM(L,I,J))*(GZ(Ip1,J,L)-GZ(I,J,L))
             I=IP1
           END DO
         END DO
 
-        CALL AVRX (PU(1,J_0H,L),jrange=(/MAX(2,J_0H),MIN(JM-1,J_1H)/))
+        Call AVRX (PGFU(1,J_0H,L), JRANGE=(/Max(2,J_0H),Min(JM-1,J_1)/))
 
         DO J=J_0STG,J_1STG
-          FACTOR = -DT4*DYV(J)*DSIG(L)
-          DO I=1,IM
-            DUT(I,J,L)=DUT(I,J,L)+FACTOR*(PU(I,J,L)+PU(I,J-1,L))
-          END DO
+            FACTOR = -DT4*DYV(J)
+            DUT(:,J,L) = DUT(:,J,L) + FACTOR*(PGFU(:,J,L)+PGFU(:,J-1,L))
         END DO
       END DO
 
@@ -894,45 +907,18 @@ C**** CALL DIAGNOSTICS
          CALL DIAGCD (grid,3,U,V,DUT,DVT,DT1)
       ENDIF
 C****
+!**** Undo scaling performed at beginning of ADVECV
 C****
-C**** UNDO SCALING PERFORMED AT BEGINNING OF DYNAM
-C****
-      DO 3410 J=J_0STG,J_1STG
-      DO 3410 I=1,IM
- 3410 FD(I,J)=PB(I,J)*DXYP(J)
-      IF (haveLatitude(grid, J=1)) THEN
-        FDSP=PB(1, 1)*DXYP( 1)
-        FDSP=FDSP+FDSP
-        DO I=1,IM
-          FD(I, 1)=FDSP
-        END DO
-      END IF
-      IF (haveLatitude(grid, J=JM)) THEN
-        FDNP=PB(1,JM)*DXYP(JM)
-        FDNP=FDNP+FDNP
-        DO I=1,IM
-          FD(I,JM)=FDNP
-        END DO
-      END IF
-C
-      CALL HALO_UPDATE(grid, FD, FROM=SOUTH)
-      DO 3530 J=J_0STG,J_1STG
+      Do 3525 J=J_0STG,J_1STG
       I=IM
       DO 3525 IP1=1,IM
-      RFDUX(I,J)=4./(FD(I,J)+FD(IP1,J)+FD(I,J-1)+FD(IP1,J-1))
+      Do L=1,LM
+         VMASS = .5*((MAFTER(L,I,J-1)+MAFTER(L,Ip1,J-1))*DXYN(J-1) +
+     +               (MAFTER(L,I,J  )+MAFTER(L,Ip1,J  ))*DXYS(J))
+         UT(I,J,L) = UT(I,J,L) + DUT(I,J,L) / VMASS
+         VT(I,J,L) = VT(I,J,L) + DVT(I,J,L) / VMASS  ;  EndDo
  3525 I = IP1
- 3530 CONTINUE
-C
-      DO 3550 L=1,LM
-      DO 3550 J=J_0STG,J_1STG
-      RFDU=1./(PSFMPT*DXYV(J)*DSIG(L))
-      DO 3540 I=1,IM
-      IF(L.LT.LS1) RFDU=RFDUX(I,J)*BYDSIG(L)
-      VT(I,J,L)=VT(I,J,L)+DVT(I,J,L)*RFDU
-      UT(I,J,L)=UT(I,J,L)+DUT(I,J,L)*RFDU
- 3540 CONTINUE
- 3550 CONTINUE
-C
+
       RETURN
       END SUBROUTINE PGF
 
