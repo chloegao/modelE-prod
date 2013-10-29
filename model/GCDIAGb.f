@@ -58,11 +58,13 @@
       use DYNAMICS, only : dt,do_gwdrag
       use GCDIAG
       use DIAG_COM
+      use GC_COM
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       use GEOM, only : lat_dg
 #ifdef NEW_IO
       use cdl_mod
 #endif
+      use diag_zonal, only : xwon
       implicit none
       integer :: k,kk
       character(len=10) :: ystr,zstr,powstr
@@ -1245,12 +1247,14 @@ C****
       Use ATM_COM,    Only: MA,u,v,t,p,q,wm
       USE GEOM, only : bydxyp,bydxyv,rapvs,rapvn,
      &     COSV,DXV,DXYN,DXYP,DXYS,DXYV,DYP,DYV,FCOR,IMAXJ
-      USE DIAG_COM, only : imh,fim,byim,jeq,ia_dga,ndaa
-     &    ,agc=>agc_loc,aijk=>aijk_loc,speca,nspher, ! adiurn,hdiurn
-     &     nwav_dag,ndiupt,hr_in_day
-     *     ,klayer,idd_w,ijdd
+      USE DIAG_COM, only : imh,fim,byim,ia_dga,ndaa
+     &    ,aijk=>aijk_loc, ! adiurn,hdiurn
+     &     ndiupt,hr_in_day
+     *     ,idd_w,ijdd
      &     ,aij=>aij_loc,ij_puq,ij_pvq,ij_dsev
       USE GCDIAG
+      USE GC_COM, only : jeq,
+     &    agc=>agc_loc,speca,nspher,klayer,nwav_dag
       USE ATM_COM, only : phi,plij,pmid,pedn
       Use DYNAMICS,  Only: CONV,dut,dvt,SD,sig,sige,dsig
       USE DIAG_LOC, only : w,tx,pm,pl,pmo,plo
@@ -2315,9 +2319,10 @@ C****
       USE MODEL_COM, only : IDACC,MDIAG
       USE ATM_COM, only : P,T,U,V,ZATMO
       USE GEOM, only : AREAG,DXYN,DXYP,DXYS,imaxj
-      USE DIAG_COM, only : speca,atpe,nspher,kspeca,klayer
-      USE DIAG_COM, only : SQRTM,agc=>agc_loc
-      USE DIAG_COM, only : imh,fim,byim,jeq
+      USE GC_COM, only : speca,atpe,nspher,kspeca,klayer,agc=>agc_loc
+     &     ,jeq
+      USE DIAG_COM, only : SQRTM
+      USE DIAG_COM, only : imh,fim,byim
       USE GCDIAG, only : jl_ape
       USE DIAG_LOC, only : lupa,ldna
       USE ATM_COM, only : sqrtp,pk
@@ -2666,8 +2671,9 @@ C****
       USE RESOLUTION, only : im,jm,lm
       USE MODEL_COM, only : IDACC,MDIAG
       USE ATM_COM, only : P,U,V,PHI
-      USE DIAG_COM, only : nwav_dag,wave,max12hr_sequ,j50n,kwp,re_and_im
-     &     ,ia_12hr,imh,jeq
+      USE GC_COM, only : nwav_dag,wave,max12hr_sequ,kwp,re_and_im
+     &     ,jeq,j50n
+      USE DIAG_COM, only : ia_12hr,imh
       USE DIAG_LOC, only : ldex
       USE DOMAIN_DECOMP_ATM, only : GRID
       USE DOMAIN_DECOMP_1D, only : getDomainBounds,SUMXPE,AM_I_ROOT
@@ -2772,9 +2778,10 @@ c Calculate derived GC outputs
       use model_com, only : idacc,dtsrc
       use dynamics, only : dt,dsig
       use domain_decomp_atm, only : am_i_root
-      use diag_com, only : kdiag,kagc,jgrid_gc,hemis_gc,vmean_gc,
-     &     agc_in=>agc, agc=>agc_out, ia_dga,ndaa,
-     &     plm, pme=>ple_dn, ple, byim, kep
+      use diag_com, only : kdiag, ia_dga,ndaa,
+     &     plm, pme=>ple_dn, ple, byim
+      use gc_com, only : kagc,jgrid_gc,hemis_gc,vmean_gc,
+     &     agc_in=>agc, agc=>agc_out, kep
       use gcdiag
       use geom, only : dxyp,dxyv,dxv,bydxyp,cosv,cosp,imaxj,fcor
       implicit none

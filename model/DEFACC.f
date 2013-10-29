@@ -18,10 +18,14 @@ c-----------------------------------------------------------------------
       call sjl_defs
       call ij_defs
 c      call il_defs
+#ifndef SCM
       call wave_defs
       call gc_defs
+#endif
       call ijl_defs
+#ifndef SCM
       call ijk_defs
+#endif
       call diurn_defs
       call ijhc_defs
       return
@@ -1026,8 +1030,10 @@ c
       call init_cdl_type('cdl_latbudg',cdl_latbudg)
       call add_coord(cdl_latbudg,'lat_budg',jm_budg,
      &     units='degrees_north',coordvalues=lat_budg)
+#ifndef SCM
       call add_dim(cdl_latbudg,'shnhgm',3)
       call add_dim(cdl_latbudg,'lat_budg_plus3',jm_budg+3)
+#endif
       call add_var(cdl_latbudg,'float area_budg(lat_budg) ;',
      &       units='m^2')
       call add_vardata(cdl_latbudg,'area_budg',dxyp_budg)
@@ -1048,8 +1054,10 @@ c
      &         trim(sname)//':fmt = "'//trim(fmt_j(k))//'" ;')
         call add_varline(cdl_j,
      &       trim(sname)//':stitle = "'//trim(stitle_j(k))//'" ;')
+#ifndef SCM
         call add_var(cdl_j,
      &       'float '//trim(sname)//'_hemis(ntype,shnhgm) ;')
+#endif
       enddo
 
 c
@@ -1093,8 +1101,10 @@ c
         call add_var(cdl_consrv,
      &       'float '//trim(sname)//'(lat_budg) ;',
      &       long_name=trim(title_con(k)))
+#ifndef SCM
         call add_var(cdl_consrv,
      &       'float '//trim(sname)//'_hemis(shnhgm) ;')
+#endif
       enddo
 #endif
 
@@ -4840,8 +4850,9 @@ c netcdf CDL notation.  The C convention for dimension ordering
 c must be used (reversed wrt Fortran).
 c
       call init_cdl_type('cdl_aij',cdl_ij_template)
+#ifndef SCM
       call add_dim(cdl_ij_template,'shnhgm',3)
-
+#endif
 #ifdef CUBED_SPHERE
       ijstr='(tile,y,x) ;'
       do i=1,im
@@ -4894,8 +4905,10 @@ c
      &       'float '//trim(name_ij(k))//trim(ijstr),
      &       units=trim(units_ij(k)),
      &       long_name=trim(lname_ij(k)))
+#ifndef SCM
         call add_var(cdl_ij,
      &       'float '//trim(name_ij(k))//'_hemis(shnhgm) ;')
+#endif
 #ifdef CUBED_SPHERE
         call add_var(cdl_ij_latlon,
      &       'float '//trim(name_ij(k))//'(lat,lon) ;',
@@ -5071,7 +5084,7 @@ c
       lname_jl(k) = 'DTEMP/DT BY STRATOSPHERIC DRAG'
       units_jl(k) = 'K/DAY'
       pow_jl(k) = -1
-      scale_jl(k) = SECONDS_PER_DAY/(FIM*DTsrc)
+      scale_jl(k) = SECONDS_PER_DAY/(IM*DTsrc)
       ia_jl(k) = ia_src
 c
       k=k+1
@@ -5683,12 +5696,14 @@ c        call get_zstr(lgrid_jl(k),zstr)
           call add_varline(cdl_jl,
      &         trim(sname_jl(k))//':prtpow = '//trim(powstr)//' ;')
         endif
+#ifndef SCM
         call add_var(cdl_jl, 'float '//trim(sname_jl(k))//'_hemis('//
      &       trim(zstr)//',shnhgm) ;')
         if(denom_jl(k).gt.0) then
           call add_var(cdl_jl, 'float '//trim(sname_jl(k))//
      &         '_vmean(lat_budg_plus3) ;')
         endif
+#endif
       enddo
 #endif
 
@@ -6199,8 +6214,9 @@ c
       return
       end subroutine ijl_defs
 
+#ifndef SCM
       subroutine wave_defs
-      use DIAG_COM
+      use GC_COM
       use MODEL_COM, only : qcheck
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       implicit none
@@ -6283,6 +6299,7 @@ c
       end if
       return
       end subroutine wave_defs
+#endif
 
       subroutine tsf_defs
       use DIAG_COM

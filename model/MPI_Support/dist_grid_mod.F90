@@ -429,6 +429,14 @@ MODULE dist_grid_mod
      distGrid%private%hasEquator =  &
           ( (AIbounds(3) <= J_EQUATOR) .AND. (AIbounds(4) >= J_EQUATOR))
 
+     if (JM==1) then
+        distGrid%private%hasSouthPole = .false.
+        distGrid%private%hasNorthPole = .false.
+        distGrid%private%hasEquator    = .false.
+        distGrid%J_STRT_SKP = 1
+        distGrid%J_STOP_SKP = 1
+     endif
+
 #ifdef USE_DD2D_UTILS
 ! need to initialize the dd2d version of dist_grid for I/O
      call init_dist_grid( &

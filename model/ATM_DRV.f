@@ -26,12 +26,12 @@
 #endif
 #ifndef CUBED_SPHERE
       USE ATMDYN, only : DYNAM,SDRAG
-     &     ,FILTER, COMPUTE_DYNAM_AIJ_DIAGNOSTICS
+     &     ,COMPUTE_DYNAM_AIJ_DIAGNOSTICS
 #endif
 #ifdef SCM
       USE ATM_COM, only : t,p,q
       USE SCMCOM , only : SG_CONV,SCM_SAVE_T,SCM_SAVE_Q,
-     &    iu_scm_prt,iu_scm_diag,I_TARG,J_TARG,nstepscm
+     &    iu_scm_prt,iu_scm_diag,nstepscm
 #endif
 #ifdef TRACERS_TOMAS
       USE TRACER_COM, only : NBINS, IDTNUMD,IDTSO4,IDTECIL, IDTECOB,
@@ -72,7 +72,9 @@ C****
          MODD5D=MOD(Itime-ItimeI,NDA5D)
 
          IF (MODD5D.EQ.0) IDACC(ia_d5d)=IDACC(ia_d5d)+1
+#ifndef SCM
          IF (MODD5D.EQ.0) CALL DIAG5A (2,0)
+#endif
          IF (MODD5D.EQ.0) CALL DIAGCA (1)
 
       PTOLD = P ! save for clouds
@@ -86,8 +88,8 @@ C**** Initialise total energy (J/m^2)
       NSTEPSCM = ITIME-ITIMEI
       write(0,*) 'NSTEPSCM ',NSTEPSCM
       do L=1,LM
-         SCM_SAVE_T(L) = T(I_TARG,J_TARG,L)
-         SCM_SAVE_Q(L) = Q(I_TARG,J_TARG,L)
+         SCM_SAVE_T(L) = T(1,1,L)
+         SCM_SAVE_Q(L) = Q(1,1,L)
       enddo
 c     do L=1,LM
 c        write(iu_scm_prt,'(a13,i3,4(f9.3))')
@@ -112,14 +114,19 @@ c     enddo
 #ifndef CUBED_SPHERE
       CALL SDRAG (DTsrc)
 #endif
+#endif /* USE_FVCORE */
+
+#if defined(USE_FVCORE) || defined(SCM)
         if (MOD(Itime-ItimeI,NDAA).eq.0) THEN
           call DIAGA
+#ifndef SCM
           call DIAGB
 #ifdef CUBED_SPHERE
           call EPFLUX
 #endif
+#endif
         endif
-#endif /* USE_FVCORE */
+#endif
 
 C**** This fix adjusts thermal energy to conserve total energy TE=KE+PE
 C**** Currently energy is put in uniformly weighted by mass
@@ -183,9 +190,14 @@ C**** calculate zenith angle for current time step
 
          CALL CHECKT ('DYNAM ')
          CALL TIMER (NOW,MSURF)
+
+#ifndef SCM
          IF (MODD5D.EQ.0) CALL DIAG5A (7,NIdyn)
+#endif
          IF (MODD5D.EQ.0) CALL DIAGCA (2)
+#ifndef SCM
          IF (MOD(Itime,NDAY/2).eq.0) CALL DIAG7A
+#endif
 C****
 C**** INTEGRATE SOURCE TERMS
 C****
@@ -204,7 +216,9 @@ c dissipation gets included in the KE->PE adjustment
          MODD5S=MOD(Itime-ItimeI,NDA5S)
          atmocn%MODD5S = MODD5S
          IF (MODD5S.EQ.0) IDACC(ia_d5s)=IDACC(ia_d5s)+1
+#ifndef SCM
          IF (MODD5S.EQ.0.AND.MODD5D.NE.0) CALL DIAG5A (1,0)
+#endif
          IF (MODD5S.EQ.0.AND.MODD5D.NE.0) CALL DIAGCA (1)
 
 C**** FIRST CALL MELT_SI SO THAT TOO SMALL ICE FRACTIONS ARE REMOVED
@@ -220,7 +234,10 @@ C**** CONDENSATION, SUPER SATURATION AND MOIST CONVECTION
       CALL CONDSE
          CALL CHECKT ('CONDSE')
          CALL TIMER (NOW,MCNDS)
+
+#ifndef SCM
          IF (MODD5S.EQ.0) CALL DIAG5A (9,NIdyn)
+#endif
          IF (MODD5S.EQ.0) CALL DIAGCA (3)
 
 C**** RADIATION, SOLAR AND THERMAL
@@ -228,7 +245,10 @@ C**** RADIATION, SOLAR AND THERMAL
       CALL RADIA
          CALL CHECKT ('RADIA ')
          CALL TIMER (NOW,MRAD)
+
+#ifndef SCM
          IF (MODD5S.EQ.0) CALL DIAG5A (11,NIdyn)
+#endif
          IF (MODD5S.EQ.0) CALL DIAGCA (4)
 
 #ifdef TRACERS_ON
@@ -384,7 +404,9 @@ c
      &     ,MODD5S,NDAa, NDA5d,NDA5s,NDA4
       USE SUBDAILY, only : nsubdd,get_subdd,accSubdd
 #ifndef CUBED_SPHERE
+#ifndef SCM
       USE ATMDYN, only : FILTER
+#endif
       USE ATM_COM, only : P
       USE RESOLUTION, only : PTOP
 #endif
@@ -420,9 +442,11 @@ C**** ADD DISSIPATED KE FROM COLUMN PHYSICS CALCULATION BACK AS LOCAL HEAT
          CALL CHECKT ('DISSIP')
          CALL TIMER (NOW,MSURF)
          IF (MODD5S.EQ.0) CALL DIAGCA (7)
+#ifndef SCM
          IF (MODD5S.EQ.0) CALL DIAG5A (12,NIdyn)
+#endif
 
-#ifdef CUBED_SPHERE
+#if defined(CUBED_SPHERE) || defined(SCM) 
       IDACC(ia_filt)=IDACC(ia_filt)+1 ! prevent /0
 #else
 C**** SEA LEVEL PRESSURE FILTER
@@ -472,7 +496,9 @@ c*****call scm diagnostics every time step
       call scm_diag
 #endif
 
+#ifndef SCM
       IF (MOD(Itime+1-ItimeI,NDA4).EQ.0) CALL DIAG4A ! at hr 23 E-history
+#endif
 
       IF (Kvflxo.EQ.0.) OA(:,:,4:KOA)=0. ! to prepare for future saves
 
@@ -494,7 +520,9 @@ C****
       USE MODEL_COM, only :
      *      irand,idacc ,nday,dtsrc ,iyear1,itime,itimei,itimee
      *     ,mdyn,mcnds,mrad,msurf,mdiag
+#ifndef SCM
       USE DIAG_ZONAL, only : imlon
+#endif
       USE RANDOM
       USE DYNAMICS, only : USE_UNR_DRAG
       USE ATM_COM, only : ij_debug
@@ -602,8 +630,10 @@ C****
       CALL RINIT (IRAND)
 c Note on FFT initialization: IMLON is defined by the diag_zonal module,
 c not by the resolution module.  IMLON==IM for a latlon grid.
+#ifndef SCM
       CALL FFT0 (IMLON)  ! CALL FFT0(IM)
       CALL init_QUS(grid,im,jm,lm)
+#endif
 #ifndef CUBED_SPHERE
       CALL init_ATMDYN
 #endif
@@ -719,7 +749,6 @@ C****
 
       subroutine alloc_drv_atm()
 #ifdef SCM
-      USE SCMCOM, only : I_TARG,J_TARG
       use Dictionary_mod, only : sync_param
 #endif
 c Driver to allocate arrays that become dynamic as a result of
@@ -732,7 +761,9 @@ c set-up for MPI implementation
 #endif
       USE RESOLUTION, only : im,jm,lm
 #ifndef CUBED_SPHERE
+#ifndef SCM
       USE MOMENTS, only : initMoments
+#endif
 #endif
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       use TRACER_COM, only: initTracerCom, alloc_tracer_com
@@ -743,15 +774,9 @@ c set-up for MPI implementation
       include 'mpif.h'      ! Needed for GLINT2
 #endif
 
-#ifdef SCM
-!TODO push init_grid SCM option down into INIT_GRID.
-      call sync_param( "J_TARG", J_TARG )
-      call init_grid(grid, im, jm, lm, j_scm=j_targ)
-#else
 c initialize the atmospheric domain decomposition
 c for now, CREATE_CAP is only relevant to the cubed sphere grid
       call init_grid(grid, im, jm, lm, CREATE_CAP=.true.)
-#endif
 
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       call initTracerCom
@@ -820,7 +845,9 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
       CALL alloc_dust(grid)
 #endif
 #endif
+#ifndef SCM
       call alloc_tracer_adv(grid)
+#endif
 #ifdef USE_ENT
 !!! should be done in init_module_ent
       call alloc_ent_com(grid)
@@ -841,7 +868,9 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
       call alloc_scm_com()
 #endif
 #ifndef CUBED_SPHERE
+#ifndef SCM
       call initMoments
+#endif
 #endif
       end subroutine alloc_drv_atm
 
@@ -923,7 +952,9 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
       implicit none
       logical, intent(in) :: end_of_day ! not used yet
 
+#ifndef SCM
       call DIAG5A (1,0)
+#endif
       call DIAGCA (1)
       CALL daily_atmdyn(.true.)  ! end_of_day
       CALL daily_orbit(.true.)   ! end_of_day
@@ -938,7 +969,9 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
       call daily_tracer(.true.)
 #endif
       call CHECKT ('DAILY ')
+#ifndef SCM
       call DIAG5A (16,NDAY*NIdyn)
+#endif
       call DIAGCA (10)
       call sys_flush(6)
       call UPDTYPE

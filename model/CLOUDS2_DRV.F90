@@ -16,9 +16,14 @@ subroutine CONDSE
   use DOMAIN_DECOMP_ATM, only : GLOBALSUM
   use QUSDEF, only : nmom
   use SOMTQ_COM, only : t3mom=>tmom,q3mom=>qmom
-  use GEOM, only : imaxj,axyp,byaxyp, kmaxj
+  use GEOM, only : imaxj,axyp,byaxyp
+#ifndef SCM
+  use GEOM, only : kmaxj
+#endif
 #ifndef CUBED_SPHERE
+#ifndef SCM
   use GEOM, only : ravj
+#endif
 #endif
   use RANDOM
   use RAD_COM, only : cosz1
@@ -186,7 +191,7 @@ subroutine CONDSE
 
 #ifdef SCM
   use SCMCOM , only : SCM_SAVE_Q,SCM_SAVE_T,SCM_DEL_Q,SCM_DEL_T, &
-       SCM_ATURB_FLAG,iu_scm_prt,NRINIT, NSTEPSCM, I_TARG,J_TARG
+       SCM_ATURB_FLAG,iu_scm_prt,NRINIT, NSTEPSCM
   use SCMDIAG , only : WCUSCM,WCUALL,WCUDEEP,PRCCDEEP,NPRCCDEEP, &
        MPLUMESCM,MPLUMEALL,MPLUMEDEEP,ENTSCM,ENTALL,ENTDEEP, &
        DETRAINDEEP,TPALL,PRCSS,PRCMC,dTHmc,dqmc,dTHss,dqss, &
@@ -336,6 +341,9 @@ subroutine CONDSE
 #endif
 #ifdef CLD_AER_CDNC
   real*8 :: cldwt,cldwtdz
+#endif
+#ifdef SCM
+  integer :: kmaxj(1)=1
 #endif
   integer :: iThread
   integer :: numThreads
@@ -519,35 +527,34 @@ subroutine CONDSE
 !!!   DCL=NINT(DCLEV(I,J))   ! prevented by openMP bug
         DCL=int(DCLEV(I,J)+.5)
 #ifdef SCM
-        if (I.eq.I_TARG .and. J.eq.J_TARG) then
-          do LL=1,LM
-            do L=1,LM
-              WCUALL(L,1,LL)=0.
-              WCUALL(L,2,LL)=0.
-              MPLUMEALL(L,1,LL)=0.
-              MPLUMEALL(L,2,LL)=0.
-              ENTALL(L,1,LL)=0.
-              ENTALL(L,2,LL)=0.
-              DETRAINDEEP(L,1,LL) = 0.0
-              DETRAINDEEP(L,2,LL) = 0.0
-              TPALL(L,1,LL)=0.
-              TPALL(L,2,LL)=0.
-              PRCCDEEP(L,1,LL) = 0.0
-              PRCCDEEP(L,2,LL)  = 0.0
-              NPRCCDEEP(L,1,LL) = 0.0
-              NPRCCDEEP(L,2,LL) = 0.0
-            enddo
-          enddo
+        do LL=1,LM
           do L=1,LM
-            WCUDEEP(L,1) = 0.0
-            WCUDEEP(L,2) = 0.0
-            MPLUMEDEEP(L,1) = 0.0
-            MPLUMEDEEP(L,2) = 0.0
-            ENTDEEP(L,1) = 0.0
-            ENTDEEP(L,2) = 0.0
+            WCUALL(L,1,LL)=0.
+            WCUALL(L,2,LL)=0.
+            MPLUMEALL(L,1,LL)=0.
+            MPLUMEALL(L,2,LL)=0.
+            ENTALL(L,1,LL)=0.
+            ENTALL(L,2,LL)=0.
+            DETRAINDEEP(L,1,LL) = 0.0
+            DETRAINDEEP(L,2,LL) = 0.0
+            TPALL(L,1,LL)=0.
+            TPALL(L,2,LL)=0.
+            PRCCDEEP(L,1,LL) = 0.0
+            PRCCDEEP(L,2,LL)  = 0.0
+            NPRCCDEEP(L,1,LL) = 0.0
+            NPRCCDEEP(L,2,LL) = 0.0
           enddo
-        endif
+        enddo
+        do L=1,LM
+          WCUDEEP(L,1) = 0.0
+          WCUDEEP(L,2) = 0.0
+          MPLUMEDEEP(L,1) = 0.0
+          MPLUMEDEEP(L,2) = 0.0
+          ENTDEEP(L,1) = 0.0
+          ENTDEEP(L,2) = 0.0
+        enddo
 #endif
+#ifndef SCM
 #ifdef CUBED_SPHERE
         ra = .5d0
 #else
@@ -557,6 +564,7 @@ subroutine CONDSE
         do K=1,KMAX
           RA(K)=RAVJ(K,J)
         end do
+#endif
 #endif
 #endif
         !**** PRESSURES, AND PRESSURE TO THE KAPA
@@ -724,12 +732,10 @@ subroutine CONDSE
         !ECON  E = (sum(TL(:)*AIRM(:))*SHA + sum(QM(:))*LHE +sum(WML(:)*(LHE
         !ECON*     -SVLHXL(:))*AIRM(:)))*100.*BYGRAV
 #ifdef SCM
-        if (I.eq.I_TARG.and.J.eq.J_TARG) then
-          do L=1,LM
-            dTHmc(L) = T(I,J,L)
-            dqmc(L) = Q(I,J,L)
-          enddo
-        endif
+        do L=1,LM
+          dTHmc(L) = T(I,J,L)
+          dqmc(L) = Q(I,J,L)
+        enddo
 #endif
 
         !**** MOIST CONVECTION
@@ -950,14 +956,12 @@ subroutine CONDSE
           DDM1(I,J) = DDMFLX(1)*RGAS*TSV/(GRAV*PEDN(1,I,J)*DTSrc)
         end if
 #ifdef SCM
-        if (I.eq.I_TARG.and.J.eq.J_TARG) then
-          do L=1,LM
-            dTHmc(L) = T(I,J,L)-dTHmc(L)
-            dqmc(L) = Q(I,J,L)-dqmc(L)
-            dTHss(L) = T(I,J,L)
-            dqss(L) = Q(I,J,L)
-          enddo
-        endif
+        do L=1,LM
+          dTHmc(L) = T(I,J,L)-dTHmc(L)
+          dqmc(L) = Q(I,J,L)-dqmc(L)
+          dTHss(L) = T(I,J,L)
+          dqss(L) = Q(I,J,L)
+        enddo
 #endif
 
 #ifdef TRACERS_ON
@@ -1008,18 +1012,14 @@ subroutine CONDSE
           QMOM(:,L)=QMOMLS(:,L)
         end do
 #ifdef SCM
-        if (I.eq.I_TARG.and.J.eq.J_TARG) then
-          SCM_SVWMXL(:) = SVWMXL(:)
-        endif
+        SCM_SVWMXL(:) = SVWMXL(:)
 #endif
         WMX(:)=WML(:)+SVWMXL(:)
         AQ(:)=(QL(:)-QTOLD(:,I,J))*BYDTsrc
 #ifdef SCM
-        if (I.eq.I_TARG .and. J.eq.J_TARG) then
-          if (NRINIT.ne.0) then
-            AQ(:) = ((SCM_SAVE_Q(:) &
-                 +SCM_DEL_Q(:))-QTOLD(:,I,J))*BYDTsrc
-          endif
+        if (NRINIT.ne.0) then
+          AQ(:) = ((SCM_SAVE_Q(:) &
+               +SCM_DEL_Q(:))-QTOLD(:,I,J))*BYDTsrc
         endif
 #endif
         RNDSSL(:,1:LP50)=RNDSS(:,1:LP50,I,J)
@@ -1288,17 +1288,15 @@ subroutine CONDSE
         end if
         !     save isccp diagnostics for SCM
 #ifdef SCM
-        if (I.eq.I_TARG.and.J.eq.J_TARG) then
-          isccp_sunlit = sunlit
-          isccp_ctp = ctp(1)
-          isccp_tauopt = tauopt(1)
-          isccp_lowcld = sum(fq_isccp(2:ntau,6:7))
-          isccp_midcld = sum(fq_isccp(2:ntau,4:5))
-          isccp_highcld = sum(fq_isccp(2:ntau,1:3))
-          isccp_fq(:,:) = fq_isccp(:,:)
-          isccp_boxtau = boxtau
-          isccp_boxptop = boxptop
-        endif
+        isccp_sunlit = sunlit
+        isccp_ctp = ctp(1)
+        isccp_tauopt = tauopt(1)
+        isccp_lowcld = sum(fq_isccp(2:ntau,6:7))
+        isccp_midcld = sum(fq_isccp(2:ntau,4:5))
+        isccp_highcld = sum(fq_isccp(2:ntau,1:3))
+        isccp_fq(:,:) = fq_isccp(:,:)
+        isccp_boxtau = boxtau
+        isccp_boxptop = boxptop
 #endif
 
         !**** Peak static stability diagnostic
@@ -1358,10 +1356,8 @@ subroutine CONDSE
         PM_acc(I,J)=PM_acc(I,J)+PRCP-PRECSS(I,J)
 #ifdef SCM
         !**** save total precip for time step (in mm/hr) for SCM
-        if (I.eq.I_TARG .and. J.eq.J_TARG) then
-          PRCSS = PRECSS(I,J)*(SECONDS_PER_HOUR/DTsrc)
-          PRCMC = (PREC(I,J)-PRECSS(I,J))*(SECONDS_PER_HOUR/DTsrc)
-        endif
+        PRCSS = PRECSS(I,J)*(SECONDS_PER_HOUR/DTsrc)
+        PRCMC = (PREC(I,J)-PRECSS(I,J))*(SECONDS_PER_HOUR/DTsrc)
 #endif
 
 #ifdef INTERACTIVE_WETLANDS_CH4
@@ -1423,12 +1419,10 @@ subroutine CONDSE
           end if
         enddo
 #ifdef SCM
-        if (I.eq.I_TARG.and.J.eq.J_TARG) then
-          do L=1,LM
-            dTHss(L) = T(I,J,L) - dTHss(L)
-            dqss(L) = Q(I,J,L) - dqss(L)
-          enddo
-        endif
+        do L=1,LM
+          dTHss(L) = T(I,J,L) - dTHss(L)
+          dqss(L) = Q(I,J,L) - dqss(L)
+        enddo
 #endif
 
         !**** Uncomment next two lines for check on water conservation
@@ -1762,19 +1756,9 @@ subroutine CONDSE
   !
   !     NOW UPDATE THE MODEL WINDS
   !
-#ifndef SCM
+
   call avg_replicated_duv_to_vgrid(ukm,vkm,kmax_nonpolar, &
        ukmsp,vkmsp,ukmnp,vkmnp)
-#else
-  I=I_TARG
-  J=J_TARG
-  do L=1,LM
-    do K=1,2 ! KMAXJ(J)
-      U(I,J,L)=U(I,J,L)+UKM(K,L,I,J)
-      V(I,J,L)=V(I,J,L)+VKM(K,L,I,J)
-    end do
-  end do
-#endif
 
   !**** ADD IN CHANGE OF MOMENTUM BY MOIST CONVECTION AND CTEI
   UASV(:,I_0:I_1,J_0S:J_1S) = UA(:,I_0:I_1,J_0S:J_1S)
@@ -1794,6 +1778,7 @@ subroutine CONDSE
 420 format(1X,'ENT  AT I=21 L=5'/,1X,10F8.2/,1X,10F8.2)
 
   call stopTimer('CONDSE()')
+
   return
 end subroutine CONDSE
 
@@ -1806,7 +1791,10 @@ subroutine init_CLD(istart)
   use MODEL_COM, only : dtsrc
   USE ATM_COM, only : t,q ! for coldstart istart=2 case
   use DOMAIN_DECOMP_ATM, only : GRID, AM_I_ROOT
-  use GEOM, only : lat2d, kmaxj
+  use GEOM, only : lat2d
+#ifndef SCM
+  use GEOM, only : kmaxj
+#endif
 #if(defined CALCULATE_LIGHTNING)||(defined TRACERS_SPECIAL_Shindell)
   use LIGHTNING, only : tune_lt_land, tune_lt_sea
 #endif
@@ -1862,6 +1850,9 @@ subroutine init_CLD(istart)
   INTEGER      :: il0,jl0,kl0,nm0
   CHARACTER*20 :: bname='kuku.txt'
   CHARACTER*15 :: sname='MODELE_mainV3: '
+#endif
+#ifdef SCM
+  integer :: kmaxj(1)=1
 #endif
 
   I_0 =GRID%I_STRT
@@ -1958,6 +1949,9 @@ subroutine init_CLD(istart)
   !
   n = maxval(kmaxj(j_0:j_1))
   allocate(RA(n))
+#ifdef SCM
+  RA(:) = 1D0
+#endif
   allocate(UM(n,lm),VM(n,lm),UM1(n,lm),VM1(n,lm))
   allocate(U_0(n,lm),V_0(n,lm))
   n = minval(kmaxj(j_0:j_1))

@@ -205,7 +205,8 @@ C****
      &     Itime,ItimeI,Itime0,XLABEL,AMONTH,nday
       USE GEOM, only : DLAT,DXYP,LAT_DG
       USE ATM_COM, only : pmidl00
-      USE DIAG_COM, only : jm,lm,keyct,keynr,ned,nkeynr,jeq
+      USE DIAG_COM, only : jm,lm,keyct,keynr,nkeynr
+      USE GC_COM, only : ned,jeq
       USE Dictionary_mod
       IMPLICIT NONE
       PRIVATE
@@ -812,6 +813,7 @@ C****
 !@auth G. Schmidt/J. Lerner
       use filemanager
       USE DIAG_COM
+      USE GC_COM, only : lname_gc,sname_gc,kagcx
       IMPLICIT NONE
       INTEGER :: K,kk,iu_Ijk
       LOGICAL qIjk,Ql(KAJL),Qk(KAGCx)
@@ -875,15 +877,16 @@ C****
       USE GEOM, only :
      &     AREAG,BYDXYP,COSV,DXV,DXYP,DXYV,DYP,FCOR,WTJ,lat_dg
       USE MDIAG_COM, only : acc_period
-      USE DIAG_COM, only : im,jm,lm,kep,fim,byim,imh,
+      USE GC_COM, only : kep,
+     &     agc=>agc_out,scale_gc,ia_gc,units_gc,sname_gc,lname_gc,
+     &     jgrid_gc,pow_gc,denom_gc
+      USE DIAG_COM, only : im,jm,lm,fim,byim,imh,
      &     kdiag,qdiag,linect,ia_dga,p1000k,
      &     plm,ple_dn,ple,pmb,kgz,kgz_max,
      &     aij,ij_phi1k,aijl,aijk,ijk_q,
      &     ajl,scale_jl,ia_jl,units_jl,sname_jl,lname_jl,
      &     jgrid_jl,pow_jl,
      &     asjl,
-     &     agc=>agc_out,scale_gc,ia_gc,units_gc,sname_gc,lname_gc,
-     &     jgrid_gc,pow_gc,denom_gc,
      &     jk_tx,jk_hght,jk_q,jk_rh,jk_cldh2o,jk_cldwtr,jk_cldice,
      &     jl_dudfmdrg,jl_dumtndrg,jl_dushrdrg,
      &     jl_dumcdrgm10,jl_dumcdrgp10,jl_mcdrgpm10,
@@ -2489,9 +2492,9 @@ c      deallocate(anum,aden,xjl)
      &     ,sname_strlen,units_strlen,lname_strlen
       USE DIAG_COM, only : im,lm,aijl,lm_req,qdiag
      &     ,ia_src,ia_rad,ia_dga,plm,ple,linect
-     &     ,j5s,j5n,j5suv,j5nuv,j50n,j70n
      &     ,IJL_U,IJL_V,IJK_TX,IJL_W,IJK_RH,IJL_RC,IJL_MC
      &     ,ia_ijl,denom_ijl
+      USE GC_COM, only : j5s,j5n,j5suv,j5nuv,j50n,j70n
       USE CONSTANT, only : grav,rgas,by3,sha,bygrav,teeny
       USE GEOM, only : dxyp
       IMPLICIT NONE
@@ -2800,7 +2803,8 @@ C****
       use model_com, only: modelEclock
       USE MODEL_COM, only :
      &     IDACC,JDATE0,AMON,AMON0,JYEAR0,XLABEL,lrunid
-      USE DIAG_COM, only : im,qdiag,ia_12hr,ia_inst,
+      USE DIAG_COM, only : qdiag,im,ia_12hr,ia_inst
+      USE gc_COM, only :
      &     nwav_dag,wave,Max12HR_sequ,Min12HR_sequ
       USE MDIAG_COM, only : acc_period,
      &     sname_strlen,units_strlen,lname_strlen
@@ -3147,7 +3151,7 @@ c**** fill in some key numbers
       USE DOMAIN_DECOMP_ATM, only : GRID
       USE CONSTANT, only :  undef
       USE GEOM, only : wtj
-      USE DIAG_COM, only : im,jm,fim,jeq
+      USE DIAG_COM, only : im,jm,fim
       IMPLICIT NONE
 
       real*8, dimension(im,jm) :: anum,aden,wtij,smap
@@ -3230,6 +3234,7 @@ c**** find hemispheric and global means
       !USE VEG_COM, only : vdata
       USE DIAG_COM
       USE GCDIAG
+      USE GC_COM, only : AGC
       USE BDIJ
       USE MDIAG_COM, only : acc_period,
      &     sname_strlen,units_strlen,lname_strlen
@@ -3745,10 +3750,12 @@ c**** Redefine nmaplets,nmaps,Iord,Qk if  kdiag(3) > 0
      &     jyear0,nday,itime,itime0,xlabel,lrunid
       USE GEOM, only :
      &     areag,WTJ
-      USE DIAG_COM, only :  fim,jeq,qdiag,
+      USE DIAG_COM, only :  fim,qdiag,
      &     consrv,kcon,scale_con,title_con,nsum_con,ia_con,kcmx,
-     *     inc=>incj,xwon,ia_inst,name_consrv,lname_consrv,
+     *     inc=>incj,ia_inst,name_consrv,lname_consrv,
      *     units_consrv,jm=>jm_budg,dxyp_budg,lat_budg
+      USE GC_COM, only : jeq
+      USE DIAG_ZONAL, only : xwon
       USE MDIAG_COM, only : acc_period,
      &     sname_strlen,units_strlen,lname_strlen
       IMPLICIT NONE
@@ -3872,10 +3879,12 @@ C****
      &     IDACC,JHOUR0,JDATE0,
      &     AMON,AMON0,JYEAR0,XLABEL
       USE GEOM, only : DXYV
-      USE DIAG_COM, only : im,jm,lm,istrat,fim,jeq,
-     &     speca,atpe,agc,aijk,kspeca,ktpe,nhemi,nspher,klayer
-     &     ,xwon,ia_d5s,ia_filt,ia_12hr,ia_d5f,ia_d5d,ia_dga
+      USE DIAG_COM, only : im,jm,lm,fim,
+     &     aijk,ia_d5s,ia_filt,ia_12hr,ia_d5f,ia_d5d,ia_dga
      *     ,ia_inst,kdiag
+      USE GC_COM, only : speca,atpe,agc,kspeca,ktpe,nhemi,nspher,klayer,
+     &     istrat,jeq
+      USE DIAG_ZONAL, only : xwon
       USE GCDIAG
       USE DYNAMICS, only : DT
       IMPLICIT NONE
@@ -4170,7 +4179,7 @@ C****
       IF (NDAYS.LE.0) RETURN
 C****
 C**** KP packs the quantities for postprocessing (skipping unused)
-      
+
       jdayofM = calendr%getDaysPerMonth(month)
       IREGF=1
       IREGL=NDIUPT-KDIAG(13)      ! kd13=KDIAG(13)>0: skip last kd13 pts
@@ -4258,8 +4267,10 @@ C****
       USE MODEL_COM, only :
      &     IDACC,JHOUR0,JDATE0,AMON,AMON0,
      &     JYEAR0,NDAY,Itime0,XLABEL
-      USE DIAG_COM, only : im,jm,lm,fim,istrat,
-     &     energy,ned,nehist,hist_days,xwon,ia_inst,ia_d4a,nda4
+      USE DIAG_COM, only : im,jm,lm,fim,
+     &     ia_inst,ia_d4a,nda4
+      USE GC_COM, only : istrat,energy,ned,nehist,hist_days
+      USE DIAG_ZONAL, only : xwon
       IMPLICIT NONE
 
       REAL*8, DIMENSION(2) :: FAC
@@ -4767,9 +4778,10 @@ cddd#else
 cddd      USE VEG_COM,   only : vdata
 cddd#endif
       USE DIAG_COM, only : IM, AIJ,  AIJ_loc, AJ,   AJ_loc,
-     *     AGC,  AGC_loc, AIJK, AIJK_loc,
+     *     AIJK, AIJK_loc,
      *     ASJL, ASJL_loc, AJL,  AJL_loc , CONSRV, CONSRV_loc, TSFREZ,
      *     TSFREZ_loc, WT_IJ
+      USE GC_COM, only : AGC, AGC_loc
       USE DOMAIN_DECOMP_ATM, ONLY : GRID
       USE DOMAIN_DECOMP_1D, ONLY : am_i_root,pack_data
       USE CONSTANT, only : NaN
@@ -4832,8 +4844,9 @@ cddd      DEALLOCATE(tmp)
 
       SUBROUTINE DIAG_SCATTER
       USE DIAG_COM, only : AIJ, AIJ_loc, AJ,  AJ_loc,
-     *     AGC, AGC_loc, AIJK, AIJK_loc, ASJL, ASJL_loc,
+     *     AIJK, AIJK_loc, ASJL, ASJL_loc,
      *     AJL,  AJL_loc, TSFREZ, TSFREZ_loc
+      USE GC_COM, only : AGC, AGC_loc
       USE DOMAIN_DECOMP_ATM, ONLY : GRID
       USE DOMAIN_DECOMP_1D, ONLY : UNPACK_DATA, UNPACK_DATAj
       USE DOMAIN_DECOMP_1D, ONLY : am_i_root

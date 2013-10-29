@@ -954,9 +954,11 @@ C**** Set date information
 
       modelEclock = newModelClock(modelEtime,itime,Nday)
 
+#ifndef SCM
       call setDtParam('dt', dt, dtSrcUsed)
       call setDtParam('DT_XUfilter', DT_XUfilter, dtSrcUsed)
       call setDtParam('DT_YUfilter', DT_YUfilter, dtSrcUsed)
+#endif
 
       CALL DAILY_cal(.false.)                  ! not end_of_day
 

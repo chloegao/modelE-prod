@@ -1,13 +1,20 @@
 !@sum RES_F40.F90   Resolution file, 2x2.5 Lat-Lon Grid, 40 layers, top at .1 mb, no GWDRAG
-!@ver 2013/03/21
 !@auth Original Development Team
+
+#include "rundeck_opts.h"
 
       Module RESOLUTION
       Implicit None
 !@var IM,JM = longitudinal and latitudinal number of grid cells
 !@var LM    = number of dynamical layers
 !@var LS1   = lowest layer of strtosphere
-      Integer*4,Parameter :: IM=144,JM=90,LM=40, LS1=24
+#ifdef SCM
+      Integer*4,Parameter :: IM=1,JM=1
+#else
+      Integer*4,Parameter :: IM=144,JM=90
+#endif
+
+      Integer*4,Parameter :: LM=40, LS1=24
 
 !@var MDRYA = dry atmospheric mass (kg/m^2) = 100*PSF/GRAV
 !@var MTOP  = mass above dynamical top (kg/m^2) = 100*PMTOP/GRAV
@@ -69,6 +76,7 @@
                              20d0,  10d0,5.62d0,3.16d0,1.78d0,  1.d0,        &
                            .562d0,.316d0,.178d0, PMTOP /)                       !  L=..,LM+1
 
+#ifndef SCM
 !**** KEP depends on whether stratos. EP flux diagnostics are calculated
 !**** If dummy EPFLUX is used set KEP=0, otherwise KEP=21
 !@param KEP number of lat/height E-P flux diagnostics
@@ -79,6 +87,7 @@
 !**** ISTRAT = 1:  1 mb <= PMTOP <  10 mb
 !**** ISTRAT = 0: 10 mb <= PMTOP
       Integer*4,Parameter :: ISTRAT = 2
+#endif
 
       EndModule RESOLUTION
 

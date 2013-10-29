@@ -1655,8 +1655,7 @@ C**** routines for accumulating zonal mean diags (lat/lon grid)
 !@+   to the latitude-height zonal sum TAJLS(TJL_INDEX).
 !@auth M. Kelley
       USE TRDIAG_COM, only : tajls=>tajls_loc
-      USE DIAG_COM, only : wtbudg
-      USE GEOM, only : j_budg
+      USE DIAG_COM, only : wtbudg,j_budg
       IMPLICIT NONE
 !@var I,J,L atm gridpoint indices for the accumulation
       INTEGER, INTENT(IN) :: I,J,L
@@ -1677,8 +1676,7 @@ C**** each point to a zonal mean (not bitwise reproducible for MPI).
 !@+   to the latitude-height zonal sum TAJLS(TJL_INDEX).
 !@auth M. Kelley
       USE TRDIAG_COM, only : tajls=>tajls_loc
-      USE DIAG_COM, only : wtbudg2
-      USE GEOM, only : j_budg
+      USE DIAG_COM, only : wtbudg2,j_budg
       IMPLICIT NONE
 !@var I,J,L atm gridpoint indices for the accumulation
       INTEGER, INTENT(IN) :: I,J,L
@@ -1699,8 +1697,7 @@ C**** each point to a zonal mean (not bitwise reproducible for MPI).
 !@+   to the latitude-height zonal sums TAJLS(:,L1:L2,TJL_INDEX).
 !@auth M. Kelley
       USE TRDIAG_COM, only : tajls=>tajls_loc
-      USE DIAG_COM, only : wtbudg
-      USE GEOM, only : j_budg
+      USE DIAG_COM, only : wtbudg,j_budg
       IMPLICIT NONE
 !@var I,J,L1,L2 atm gridpoint indices for the accumulation
       INTEGER, INTENT(IN) :: I,J,L1,L2,NL
@@ -1724,8 +1721,7 @@ C**** each point to a zonal mean (not bitwise reproducible for MPI).
 !@+   to the latitude-height zonal sums TAJLS(:,L1:L2,TJL_INDEX).
 !@auth M. Kelley
       USE TRDIAG_COM, only : tajls=>tajls_loc
-      USE DIAG_COM, only : wtbudg2
-      USE GEOM, only : j_budg
+      USE DIAG_COM, only : wtbudg2,j_budg
       IMPLICIT NONE
 !@var I,J,L1,L2 atm gridpoint indices for the accumulation
       INTEGER, INTENT(IN) :: I,J,L1,L2,NL
@@ -1749,8 +1745,7 @@ C**** each point to a zonal mean (not bitwise reproducible for MPI).
 !@+   and tracer n to the latitude-height zonal sum TAJLN(TJL_INDEX,N).
 !@auth M. Kelley
       USE TRDIAG_COM, only : tajln=>tajln_loc
-      USE DIAG_COM, only : wtbudg
-      USE GEOM, only : j_budg
+      USE DIAG_COM, only : wtbudg,j_budg
       IMPLICIT NONE
 !@var I,J,L atm gridpoint indices, N tracer no. for the accumulation
       INTEGER, INTENT(IN) :: I,J,L,N
@@ -1769,8 +1764,7 @@ C**** each point to a zonal mean (not bitwise reproducible for MPI).
 !@+   and tracer n to the latitude-height zonal sum TAJLN(TJL_INDEX,N).
 !@auth M. Kelley
       USE TRDIAG_COM, only : tajln=>tajln_loc
-      USE DIAG_COM, only : wtbudg
-      USE GEOM, only : j_budg
+      USE DIAG_COM, only : wtbudg,j_budg
       IMPLICIT NONE
 !@var I,J,L atm gridpoint indices, N tracer no. for the accumulation
       INTEGER, INTENT(IN) :: I,J,L1,L2,NL,N

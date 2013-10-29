@@ -1155,14 +1155,14 @@ C**** Add water to relevant tracers as well
 !@auth Original Development Team
 !@calls tropwmo,coszs,coszt, RADPAR:rcompx ! writer,writet
       USE CONSTANT, only : lhe,lhs,twopi,tf,stbo,rhow,mair,grav
-     *     ,bysha,pi,radian
+     *     ,bysha,pi,radian,areag
       USE RESOLUTION, only : pmtop
       USE RESOLUTION, only : im,jm,lm
       USE ATM_COM, only : kradia,lm_req,p,t,q,iu_rad,req_fac_d
       USE MODEL_COM
       use TimeConstants_mod, only: SECONDS_PER_DAY, INT_DAYS_PER_YEAR
       USE ATM_COM, only : byaml00
-      USE GEOM, only : imaxj, axyp, areag, byaxyp
+      USE GEOM, only : imaxj, axyp, byaxyp
      &     ,lat2d,lon2d
       USE RADPAR
      &  , only :  ! routines
@@ -1236,7 +1236,6 @@ C     OUTPUT DATA
       USE SCMDIAG, only : SRDFLBTOP,SRNFLBTOP,SRUFLBTOP,TRUFLBTOP,
      *                    SRDFLBBOT,SRNFLBBOT,SRUFLBBOT,TRUFLBBOT,
      *                    TRDFLBBOT,TRDFLBTOP,SRFHRLCOL,TRFCRLCOL
-      USE SCMCOM, only : I_TARG,J_TARG
 #endif
       USE DIAG_COM, only : ia_rad,jreg,aij=>aij_loc,aijl=>aijl_loc
      &     ,ntype,ftype,itocean,itlake,itearth,itlandi,itoice,itlkice
@@ -1576,9 +1575,6 @@ C**** Calculate mean cosine of zenith angle for the full radiation step
       S0=S0X*S00WM2*RATLS0/RSDIST
 
 c**** find scaling factors for surface albedo reduction
-#ifdef SCM
-      xdalbs = 0.d0
-#else
       if(dalbsnX.ne.0.) then
       IF (HAVE_SOUTH_POLE) THEN
          sumda_psum(:,1)=axyp(1,1)
@@ -1607,7 +1603,6 @@ c      ILON72=INT(.5+(I-.5)*72./IM+.5)
       xdalbs=-dalbsnX*sumda/tauda
       IF(QCHECK) write(6,*) 'coeff. for snow alb reduction',xdalbs
       endif ! dalbsnX not zero
-#endif
 
       if(kradia.le.0) then
       IF (QCHECK) THEN
@@ -2751,22 +2746,20 @@ C**** Save fluxes at four levels surface, P0, P1, LTROPO
       TNFS(4,I,J)=TRNFLB(LTROPO(I,J))
 
 #ifdef SCM
-      if (I.eq.I_TARG .and. J.eq.J_TARG) then
-          do L=1,LM
-             SRFHRLCOL(L) = SRFHRL(L) * COSZ1(I,J)
-             TRFCRLCOL(L) = TRFCRL(L)
-          enddo
-          SRNFLBBOT = SRNFLB(1) * COSZ1(I,J)            ! Surface
-          SRNFLBTOP = SRNFLB(LM+LM_REQ+1) * COSZ1(I,J)  ! P0 = TOA
-          SRDFLBBOT = SRDFLB(1) * COSZ1(I,J)
-          SRDFLBTOP = SRDFLB(LM+LM_REQ+1) * COSZ1(I,J)
-          SRUFLBBOT = SRUFLB(1) * COSZ1(I,J)
-          SRUFLBTOP = SRUFLB(LM+LM_REQ+1) * COSZ1(I,J)
-          TRUFLBTOP = TRUFLB(LM+LM_REQ+1)
-          TRDFLBTOP = TRDFLB(LM+LM_REQ+1)
-          TRUFLBBOT = TRUFLB(1)
-          TRDFLBBOT = TRDFLB(1)
-      endif
+      do L=1,LM
+        SRFHRLCOL(L) = SRFHRL(L) * COSZ1(I,J)
+        TRFCRLCOL(L) = TRFCRL(L)
+      enddo
+      SRNFLBBOT = SRNFLB(1) * COSZ1(I,J)           ! Surface
+      SRNFLBTOP = SRNFLB(LM+LM_REQ+1) * COSZ1(I,J) ! P0 = TOA
+      SRDFLBBOT = SRDFLB(1) * COSZ1(I,J)
+      SRDFLBTOP = SRDFLB(LM+LM_REQ+1) * COSZ1(I,J)
+      SRUFLBBOT = SRUFLB(1) * COSZ1(I,J)
+      SRUFLBTOP = SRUFLB(LM+LM_REQ+1) * COSZ1(I,J)
+      TRUFLBTOP = TRUFLB(LM+LM_REQ+1)
+      TRDFLBTOP = TRDFLB(LM+LM_REQ+1)
+      TRUFLBBOT = TRUFLB(1)
+      TRDFLBBOT = TRDFLB(1)
 #endif
 
 C****

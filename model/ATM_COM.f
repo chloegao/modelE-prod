@@ -151,11 +151,7 @@ C**** module should own dynam variables used by other routines
      &     TTROPO,
 #endif
      &     DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
-#ifdef CUBED_SPHERE
-       use GEOM, only : geom_cs
-#else
-       USE GEOM, only : geom_b
-#endif
+      use GEOM, only : geom_atm
       use pario, only : par_open,par_close,read_dist_data
       use Dictionary_mod, only : sync_param, get_param
 
@@ -179,11 +175,7 @@ C**** module should own dynam variables used by other routines
 C****
 C**** CALCULATE SPHERICAL GEOMETRY
 C****
-#ifdef CUBED_SPHERE
-      call geom_cs
-#else
-      CALL GEOM_B
-#endif
+      call geom_atm
 
       ALLOCATE(ZATMO(I_0H:I_1H,J_0H:J_1H), STAT = IER)
       ALLOCATE(P(I_0H:I_1H,J_0H:J_1H), STAT = IER)

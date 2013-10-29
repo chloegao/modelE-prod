@@ -138,7 +138,7 @@
 ! to zero by default. They have to be initialized to something now
 ! to avoid floating point exceptions...
       MU(:,:,:) = 0  ;  MV(:,:,:) = 0  ;  CONV(:,:,:) = 0
-      PU(:,:,:) = 0  ;  PV(:,:,:) = 0
+      PU(:,:,:) = 0  ;  PV(:,:,:) = 0  ;  SD(:,:,:) = 0
       EndSubroutine ALLOC_DYNAMICS
 !!!#endif
 
@@ -406,7 +406,11 @@
       Return
       EndSubroutine INIT_SDRAG
 
-
+#ifdef SCM
+      Subroutine DAILY_ATMDYN (end_of_day)
+        logical :: end_of_day
+      end Subroutine DAILY_ATMDYN
+#else
       Subroutine DAILY_ATMDYN (end_of_day)
 !@sum  DAILY performs daily tasks at end-of-day and maybe at (re)starts
 !@auth Original Development Team
@@ -423,7 +427,6 @@
       Integer :: I,J,L, I1,IN,J1,JN
       Logical :: QSP,QNP
 
-#ifndef SCM
       If (.not.(END_of_DAY .or. ITIME==ITIMEI))  Return
       Call GetDomainBounds (GRID, I_STRT=I1, I_STOP=IN, J_STRT=J1, J_STOP=JN, &
                                   HAVE_SOUTH_POLE=QSP, HAVE_NORTH_POLE=QNP)
@@ -447,6 +450,7 @@
 
       If (AM_I_ROOT() .and. Abs(DELTAP) > 1d-6) &
          Write (6,'(A25,F10.6/)') '0PRESSURE ADDED IN GMP IS',DELTAP
-#endif
+
       Return
       EndSubroutine DAILY_ATMDYN
+#endif

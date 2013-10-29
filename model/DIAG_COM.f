@@ -1,18 +1,22 @@
 #include "rundeck_opts.h"
+
       MODULE DIAG_COM
 !@sum  DIAG_COM Diagnostic model variables
 !@auth Original Development Team
 !@ver  2010/11/12
-      use resolution, only : ls1,kep,istrat
-      use resolution, only : im,jm,lm
+      use resolution, only : im,jm,lm,ls1
       USE ATM_COM, only : lm_req
-      use diag_zonal, only : jm_budg,imlonh,jmlat,xwon
+#ifndef SCM
+      use diag_zonal, only : jm_budg
+#endif
       use socpbl, only : npbl=>n
 #ifdef NEW_IO
       use cdl_mod
 #endif
 #ifndef CUBED_SPHERE
+#ifndef SCM
       use geom, only : imh,fim,byim
+#endif
 #endif
       use mdiag_com, only : sname_strlen,units_strlen,lname_strlen
       use mdiag_com, only : ia_cpl
@@ -20,31 +24,43 @@
       SAVE
       private
 
-      public LM_REQ,im,jm,lm,imlonh,istrat,kep,jm_budg,jmlat,xwon
+      public LM_REQ,im,jm,lm,jm_budg
 
-#ifndef CUBED_SPHERE
-      public :: imh,fim,byim
+#ifdef SCM
+      integer, parameter :: jm_budg=1
 #endif
 
-c!@param IMH half the number of latitudinal boxes
-c      INTEGER, PARAMETER, public :: IMH=IM/2
-c!@param FIM,BYIM real values related to number of long. grid boxes
-c      REAL*8, PARAMETER, public :: FIM=IM, BYIM=1./FIM
-!@param JEQ grid box zone around or immediately north of the equator
-      INTEGER, PARAMETER, public :: JEQ=1+JM/2
+#ifndef CUBED_SPHERE
+#ifndef SCM
+      public :: imh,fim,byim
+#endif
+#endif
 
+!@var LSTR level of interface between low and mid strat. (approx 10 mb)
+      INTEGER, public :: LSTR = LM   ! defaults to model top.
 
 !!  WARNING: if new diagnostics are added, change io_diags/reset_DIAG !!
 C**** ACCUMULATING DIAGNOSTIC ARRAYS
 
 !@var LAT_BUDG latitudes of budget grid
 !@var DXYP_BUDG area array of budget grid
-      REAL*8, DIMENSION(JM_BUDG), public :: LAT_BUDG,DXYP_BUDG
+!@var J_BUDG a mapping array that takes every grid point to the 
+!@+   zonal mean budget array
+!@var j_0b, j_1b are the min/max zonal budget latitudes for this processor
+!@var wtbudg,wtbudg2 area weights for diagnostics on budget grid
 
-!@var local area array of budget grid (locally owned by 1 processor but has global size)
-      REAL*8, DIMENSION(JM_BUDG), public :: DXYP_BUDG_LOC
-!@var area weight for diagnostics on budget grid
-      REAL*8, ALLOCATABLE, DIMENSION(:,:), public :: WTBUDG,WTBUDG2
+      REAL*8, DIMENSION(JM_BUDG), public ::
+     &     LAT_BUDG,DXYP_BUDG,DXYP_BUDG_LOC
+
+      integer, public :: j_0b=1, j_1b=1
+
+#ifdef SCM
+      integer, public :: J_BUDG(1,1)=1
+      real*8, public, dimension(1,1) :: WTBUDG=1d0,WTBUDG2=1d0
+#else
+      integer, public, allocatable, dimension(:,:) :: J_BUDG
+      real*8, public, allocatable, dimension(:,:) :: WTBUDG,WTBUDG2
+#endif
 
 !@param KAJ number of accumulated zonal budget diagnostics
       INTEGER, PARAMETER, public :: KAJ=85
@@ -71,6 +87,7 @@ C**** Define surface types (mostly used for weighting AJ diagnostics)
 !@var place so its size could be allocated dynamically and still have
 !@var it preserved from call to call of DIAG5A
       REAL*8, ALLOCATABLE, DIMENSION(:,:), public :: SQRTM
+
 !@param NREG number of regions for budget diagnostics
       INTEGER, PARAMETER, public :: NREG=24
 !@var AREG regional budget diagnostics
@@ -140,15 +157,6 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
 !@var AIJL 3D accumulations for longitude/latitude/level diagnostics
       REAL*8, DIMENSION(:,:,:,:), allocatable, public :: AIJL,AIJL_loc
 
-C NEHIST=(TROPO/L STRAT/M STRAT/U STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
-!@param NED number of different energy history diagnostics
-!@param NEHIST,HIST_DAYS number of energy history columns,rows (max)
-      INTEGER, PARAMETER, public :: NED=10
-      INTEGER, PARAMETER, public :: NEHIST=NED*(2+ISTRAT)
-      INTEGER, PARAMETER, public :: HIST_DAYS=100
-!@var ENERGY energy diagnostics
-      REAL*8, DIMENSION(NEHIST,HIST_DAYS), public :: ENERGY
-
 !@var NPTS number of points at which standard conserv. diags are called
       INTEGER, PARAMETER, public :: NPTS = 11
 !@param NQUANT Number of conserved quantities in conservation diags
@@ -180,27 +188,6 @@ C NEHIST=(TROPO/L STRAT/M STRAT/U STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
      *     "LAND SURFC","SURFACE   ","FILTER    ","OCEAN     ",
      *     "DAILY     ","SRF OCN FL","OCN DYNAM "/)
 
-!@param KSPECA,NSPHER number of spectral diagnostics, and harmonics used
-      INTEGER, PARAMETER, public :: KSPECA=20
-      INTEGER, PARAMETER, public :: NSPHER=4*(2+ISTRAT)
-!@var SPECA spectral diagnostics
-      REAL*8, DIMENSION((IMLONH+1),KSPECA,NSPHER), public :: SPECA
-!@var KLAYER index for dividing up atmosphere into layers for spec.anal.
-      INTEGER, DIMENSION(LM), public :: KLAYER
-!@param PSPEC pressure levels at which layers are seperated and defined
-C**** 1000 - 150: troposphere           150 - 10 : low strat.
-C****   10 - 1: mid strat               1 and up : upp strat.
-      REAL*8, DIMENSION(4), PARAMETER, public ::
-     &     PSPEC = (/ 150., 10., 1., 0. /)
-!@var LSTR level of interface between low and mid strat. (approx 10 mb)
-      INTEGER, public :: LSTR = LM   ! defaults to model top.
-
-!@param KTPE number of spectral diagnostics for pot. enthalpy
-      INTEGER, PARAMETER, public :: KTPE=8
-      integer, parameter, public :: NHEMI=2
-!@var ATPE pot. enthalpy spectral diagnostics
-      REAL*8, DIMENSION(KTPE,NHEMI), public :: ATPE
-
 !@param HR_IN_DAY hours in day
       INTEGER, PARAMETER, public :: HR_IN_DAY=24
 !@param lmax_dd2 most upper layer for which multilayer diurnal diagnostics
@@ -222,11 +209,15 @@ C****   10 - 1: mid strat               1 and up : upp strat.
 #endif
 #endif
 !@param NDIUPT number of points where diurnal diagnostics are kept
+#ifdef SCM
+      INTEGER, PARAMETER, public :: NDIUPT=1
+#else
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
       INTEGER, PARAMETER, public :: NDIUPT=34
 #else
       INTEGER, PARAMETER, public :: NDIUPT=4
+#endif
 #endif
 !@dbparam adiurn_dust  flag to switch on/off intra daily diagnostics for dust
 !@+                    default=0 (off)
@@ -247,35 +238,16 @@ C****   10 - 1: mid strat               1 and up : upp strat.
      &     ,ADIURN_loc
 !@param HR_IN_MONTH max hours in month
       INTEGER, public :: HR_IN_MONTH
-      
 #ifndef NO_HDIURN
 !@var HDIURN hourly diagnostics (hourly value at selected points)
 !@+     Same quantities as ADIURN but not averaged over the month
       REAL*8, allocatable, public :: HDIURN(:,:,:), HDIURN_loc(:,:,:)
 #endif
-!@param KAGC number of latitude-height General Circulation diags
-!@param KAGCX number of accumulated+derived GC diagnostics
-      INTEGER, PARAMETER, public :: KAGC=82+KEP, KAGCX=KAGC+100
-!@var AGC latitude-height General Circulation diagnostics
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: AGC,AGC_loc
-     &     ,AGC_out
 
 !@param KAIJK number of lat/lon constant pressure diagnostics
       INTEGER, PARAMETER, public :: KAIJK=15
 !@var AIJK lat/lon constant pressure diagnostics
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:), public :: AIJK,AIJK_loc
-
-!@param NWAV_DAG number of components in spectral diagnostics
-      INTEGER, PARAMETER, public :: NWAV_DAG=min(9,imlonh)
-!@param Max12HR_sequ,Min12HR_sequ lengths of time series for wave powers
-      INTEGER, PARAMETER, public :: Max12HR_sequ=2*31, Min12HR_sequ=2*28
-!@param RE_AND_IM complex components of wave power diagnostics
-      INTEGER, PARAMETER, public :: RE_AND_IM=2
-!@param KWP number of wave power diagnostics
-      INTEGER, PARAMETER, public :: KWP=12
-!@var WAVE frequency diagnostics (wave power)
-      REAL*8, DIMENSION(RE_AND_IM,Max12HR_sequ,NWAV_DAG,KWP), public ::
-     &     WAVE
 
 C**** parameters and variables for ISCCP diags
 !@param ntau,npress number of ISCCP optical depth,pressure categories
@@ -813,25 +785,6 @@ c derived/composite diagnostics
 !@var IA_SJL idacc-numbers for SJL diagnostics
       integer, dimension(kasjl), public :: ia_sjl
 
-!@var SNAME_GC Names of lat-pressure GC diagnostics
-      character(len=sname_strlen), dimension(kagcx), public :: sname_gc
-!@var LNAME_GC,UNITS_GC Descriptions/Units of GC diagnostics
-      character(len=lname_strlen), dimension(kagcx), public :: lname_gc
-      character(len=units_strlen), dimension(kagcx), public :: units_gc
-!@var SCALE_GC printout scaling factors for GC diagnostics
-      REAL*8, dimension(kagcx), public :: scale_gc
-!@var IA_GC,JGRID_GC,LGRID_GC idacc-numbers,gridtypes for GC diagnostics
-      integer, dimension(kagcx), public :: ia_gc,jgrid_gc,lgrid_gc
-!@var DENOM_GC index of AGC element to use as weight
-      integer, dimension(kagcx), public :: denom_gc
-!@var POW_GC printed output scaled by 10**(-pow_gc)
-      integer, dimension(kagcx), public :: pow_gc
-!@var HEMIS_GC hemispheric/global averages of AGC
-!@var VMEAN_GC vertical sums of AGC
-      real*8, dimension(:,:,:), allocatable, public :: hemis_gc,vmean_gc
-!@var lat_gc latitudes of the primary grid for GC diagnostics
-      real*8, dimension(jmlat), public :: lat_gc,lat_gc2
-
 !@var SCALE_IJK scaling for weighted AIJK diagnostics
       REAL*8, DIMENSION(Kaijk), public :: SCALE_IJK
 !@var OFF_IJK offset for weighted AIJK diagnostics
@@ -859,10 +812,6 @@ c derived/composite diagnostics
       character(len=units_strlen), dimension(kaijl), public ::
      &     units_ijl
 
-      character(len=sname_strlen), dimension(kwp), public :: name_wave
-      character(len=units_strlen), dimension(kwp), public :: units_wave
-      character(len=lname_strlen), dimension(kwp), public :: lname_wave
-
       character(len=sname_strlen), dimension(kcon), public ::
      &     name_consrv = 'unused'
       character(len=units_strlen), dimension(kcon), public ::
@@ -871,14 +820,6 @@ c derived/composite diagnostics
      &     lname_consrv
 !@var HEMIS_CONSRV hemispheric/global averages of CONSRV
       real*8, dimension(:,:), allocatable, public :: hemis_consrv
-
-!@var J50N,J70N,J5NUV,J5SUV,J5S,J5N special latitudes for AIL diags
-      INTEGER, PARAMETER, public :: J50N  = (50.+90.)*(JM-1)/180.+1.5
-      INTEGER, PARAMETER, public :: J70N  = (70.+90.)*(JM-1)/180.+1.5
-      INTEGER, PARAMETER, public :: J5NUV = (90.+5.)*(JM-1.)/180.+2.
-      INTEGER, PARAMETER, public :: J5SUV = (90.-5.)*(JM-1.)/180.+2.
-      INTEGER, PARAMETER, public :: J5N   = (90.+5.)*(JM-1.)/180.+1.5
-      INTEGER, PARAMETER, public :: J5S   = (90.-5.)*(JM-1.)/180.+1.5
 
       character(len=sname_strlen), dimension(ndiuvar), public :: name_dd
       character(len=units_strlen), dimension(ndiuvar), public ::
@@ -994,8 +935,6 @@ CXXXX inci,incj NOT GRID-INDPENDENT
      &     cdl_ij,cdl_ij_latlon,cdl_ijmm
 !@var CDL_JL consolidated metadata for AJL output fields in CDL notation
       type(cdl_type), public :: cdl_jl,cdl_jl_template
-!@var CDL_GC consolidated metadata for AGC output fields in CDL notation
-      type(cdl_type), public :: cdl_gc
 !@var CDL_IJL consolidated metadata for AIJL output fields in CDL notation
       type(cdl_type), public ::
      &     cdl_ijl_template,cdl_ijl_latlon_template,
@@ -1012,13 +951,11 @@ CXXXX inci,incj NOT GRID-INDPENDENT
 
 c declarations that facilitate switching between restart and acc
 c instances of arrays
-      target :: aj,aj_out,areg,areg_out,agc,agc_out
+      target :: aj,aj_out,areg,areg_out
       REAL*8, dimension(:,:,:), public, pointer ::
      &     AJ_ioptr
       REAL*8, dimension(:,:), public, pointer ::
      &     AREG_ioptr
-      REAL*8, dimension(:,:,:), public, pointer ::
-     &     AGC_ioptr
 #endif
 
       logical :: Qbp(NTYPE_OUT+1) ! +1 for regions
@@ -1065,10 +1002,10 @@ c instances of arrays
       USE RESOLUTION, ONLY : IM,LM
       USE Calendar_mod, only: Calendar
       USE ATM_COM, ONLY : lm_req
-      USE DIAG_COM, ONLY : KAJ,KCON,KAJL,KASJL,KAIJ,KAGC,KAIJK,KAIJmm,
+      USE DIAG_COM, ONLY : KAJ,KCON,KAJL,KASJL,KAIJ,KAIJK,KAIJmm,
      &                   KGZ,KOA,KTSF,nwts_ij,KTD,NREG,KAIJL,JM_BUDG
       USE DIAG_COM, ONLY : SQRTM,AJ_loc,JREG,AJL_loc,ASJL_loc
-     *     ,AIJ_loc,AGC_loc,AIJK_loc,AIJL_loc,AFLX_ST,ftype,ntype
+     *     ,AIJ_loc,AIJK_loc,AIJL_loc,AFLX_ST,ftype,ntype
      *     ,Z_inst,RH_inst,T_inst,TDIURN,TSFREZ_loc,OA,P_acc,PM_acc
 #if (defined ttc_subdd) || (defined etc_subdd)
      *     ,u_inst,v_inst
@@ -1089,10 +1026,9 @@ c instances of arrays
 #endif
      *     ,saveHCLDI,saveMCLDI,saveLCLDI,saveCTPI,saveTAUI,saveSCLDI
      *     ,saveTCLDI,saveMCCLDTP
-      USE DIAG_COM, ONLY : JMLAT,AJ,AJL,ASJL,AGC,AJ_OUT,ntype_out
-     &     ,AGC_out
+      USE DIAG_COM, ONLY : AJ,AJL,ASJL,AJ_OUT,ntype_out
       USE DIAG_COM, ONLY : hemis_j,hemis_jl,vmean_jl,hemis_consrv
-     &     ,hemis_gc,vmean_gc,hemis_ij
+     &     ,hemis_ij
       USE DIAG_COM, only : aijmm
 #ifdef TRACERS_SPECIAL_Shindell
       USE DIAG_COM, ONLY : o_inst,n_inst,m_inst,x_inst
@@ -1103,7 +1039,9 @@ c instances of arrays
      &     ,o_more,n_more,m_more,x_more
 #endif
 #endif
+#ifndef SCM
       use diag_zonal, only : get_alloc_bounds
+#endif
       use fluxes, only : atmocn
       USE DIAG_COM, only : dxyp_budg,nofm,consrv_loc
 #ifndef NO_HDIURN
@@ -1115,11 +1053,10 @@ c instances of arrays
       use Model_Com, only: calendr
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
-
       INTEGER :: I_1H, I_0H, J_1H, J_0H
       INTEGER :: IER
       LOGICAL, SAVE :: init = .false.
-      integer :: j_0budg,j_1budg,j_0jk,j_1jk
+      integer :: j_0budg,j_1budg
       integer :: mnth
 
       If (init) Then
@@ -1131,9 +1068,13 @@ c instances of arrays
       I_0H = grid%I_STRT_HALO
       I_1H = grid%I_STOP_HALO
 
+#ifdef SCM
+      j_0budg = 1
+      j_1budg = 1
+#else
       call get_alloc_bounds(grid,
-     &     j_strt_budg=j_0budg,j_stop_budg=j_1budg,
-     &     j_strt_jk=j_0jk,j_stop_jk=j_1jk)
+     &     j_strt_budg=j_0budg,j_stop_budg=j_1budg)
+#endif
 
       hr_in_month = 0
       do mnth = 1, INT_MONTHS_PER_YEAR
@@ -1149,7 +1090,7 @@ c instances of arrays
       HDIURN_loc = 0
       HDIURN = 0
 #endif
-       
+
       ALLOCATE(  JREG(I_0H:I_1H, J_0H:J_1H),
      &         SQRTM(I_0H:I_1H, J_0H:J_1H),
      &         STAT = IER)
@@ -1158,7 +1099,6 @@ c instances of arrays
      &         AJ_loc(J_0BUDG:J_1BUDG, KAJ, NTYPE),
      &         AJL_loc(J_0BUDG:J_1BUDG, LM, KAJL),
      &         ASJL_loc(J_0BUDG:J_1BUDG,LM_REQ,KASJL),
-     &         AGC_loc(J_0JK:J_1JK,LM,KAGC),
      &         AIJ_loc(I_0H:I_1H,J_0H:J_1H,KAIJ),
      &         AIJmm(I_0H:I_1H,J_0H:J_1H,KAIJmm),
      &         Z_inst(KGZ,I_0H:I_1H,J_0H:J_1H),
@@ -1247,31 +1187,23 @@ c allocate master copies of budget- and JK-arrays on root
         ALLOCATE(AJ(JM_BUDG, KAJ, NTYPE),
      &           AJL(JM_BUDG, LM, KAJL),
      &           ASJL(JM_BUDG,LM_REQ,KASJL),
-     &           AGC(JMLAT,LM,KAGC),
-     &           AGC_out(JMLAT,LM,KAGC),
      &           STAT = IER)
         allocate(aj_out(jm_budg,kaj,ntype_out))
         allocate(hemis_j(3,kaj,ntype_out))
         allocate(hemis_jl(3,lm,kajl))
         allocate(vmean_jl(jm_budg+3,1,kajl))
         allocate(hemis_consrv(3,kcon))
-        allocate(hemis_gc(3,lm,kagc))
-        allocate(vmean_gc(jmlat+3,1,kagc))
         allocate(hemis_ij(1,3,kaij))
       else
         ALLOCATE(AJ(1,1,1),
      &           AJL(1,1,1),
      &           ASJL(1,1,1),
-     &           AGC(1,1,1),
-     &           AGC_out(1,1,1),
      &        STAT = IER)
         allocate(aj_out(1,1,1))
         allocate(hemis_j(1,1,1))
         allocate(hemis_jl(1,1,1))
         allocate(vmean_jl(1,1,1))
         allocate(hemis_consrv(1,1))
-        allocate(hemis_gc(1,1,1))
-        allocate(vmean_gc(1,1,1))
         allocate(hemis_ij(1,1,1))
 
       endif
@@ -1286,8 +1218,146 @@ c allocate master copies of budget- and JK-arrays on root
 
       call initDiagj
 
+#ifndef SCM
+      call alloc_gc_com(grid)
+#endif
+
       RETURN
       END SUBROUTINE ALLOC_DIAG_COM
+
+#ifndef SCM
+      module gc_com
+      use mdiag_com, only : sname_strlen,units_strlen,lname_strlen
+      use resolution, only : jm,lm,ls1
+      use diag_zonal, only : imlonh,jmlat
+      use resolution, only : kep,istrat
+      use cdl_mod
+      implicit none
+
+!@param JEQ grid box zone around or immediately north of the equator
+      INTEGER, PARAMETER, public :: JEQ=1+JM/2
+
+!@var J50N,J70N,J5NUV,J5SUV,J5S,J5N special latitudes
+      INTEGER, PARAMETER, public :: J50N  = (50.+90.)*(JM-1)/180.+1.5
+      INTEGER, PARAMETER, public :: J70N  = (70.+90.)*(JM-1)/180.+1.5
+      INTEGER, PARAMETER, public :: J5NUV = (90.+5.)*(JM-1.)/180.+2.
+      INTEGER, PARAMETER, public :: J5SUV = (90.-5.)*(JM-1.)/180.+2.
+      INTEGER, PARAMETER, public :: J5N   = (90.+5.)*(JM-1.)/180.+1.5
+      INTEGER, PARAMETER, public :: J5S   = (90.-5.)*(JM-1.)/180.+1.5
+
+
+!@param KAGC number of latitude-height General Circulation diags
+!@param KAGCX number of accumulated+derived GC diagnostics
+      INTEGER, PARAMETER, public :: KAGC=82+KEP, KAGCX=KAGC+100
+!@var AGC latitude-height General Circulation diagnostics
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: AGC,AGC_loc
+     &     ,AGC_out
+
+C NEHIST=(TROPO/L STRAT/M STRAT/U STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
+!@param NED number of different energy history diagnostics
+!@param NEHIST,HIST_DAYS number of energy history columns,rows (max)
+      INTEGER, PARAMETER, public :: NED=10
+      INTEGER, PARAMETER, public :: NEHIST=NED*(2+ISTRAT)
+      INTEGER, PARAMETER, public :: HIST_DAYS=100
+!@var ENERGY energy diagnostics
+      REAL*8, DIMENSION(NEHIST,HIST_DAYS), public :: ENERGY
+
+!@param KSPECA,NSPHER number of spectral diagnostics, and harmonics used
+      INTEGER, PARAMETER, public :: KSPECA=20
+      INTEGER, PARAMETER, public :: NSPHER=4*(2+ISTRAT)
+!@var SPECA spectral diagnostics
+      REAL*8, DIMENSION((IMLONH+1),KSPECA,NSPHER), public :: SPECA
+!@var KLAYER index for dividing up atmosphere into layers for spec.anal.
+      INTEGER, DIMENSION(LM), public :: KLAYER
+!@param PSPEC pressure levels at which layers are seperated and defined
+C**** 1000 - 150: troposphere           150 - 10 : low strat.
+C****   10 - 1: mid strat               1 and up : upp strat.
+      REAL*8, DIMENSION(4), PARAMETER, public ::
+     &     PSPEC = (/ 150., 10., 1., 0. /)
+
+!@param KTPE number of spectral diagnostics for pot. enthalpy
+      INTEGER, PARAMETER, public :: KTPE=8
+      integer, parameter, public :: NHEMI=2
+!@var ATPE pot. enthalpy spectral diagnostics
+      REAL*8, DIMENSION(KTPE,NHEMI), public :: ATPE
+
+!@param NWAV_DAG number of components in spectral diagnostics
+      INTEGER, PARAMETER, public :: NWAV_DAG=min(9,imlonh)
+!@param Max12HR_sequ,Min12HR_sequ lengths of time series for wave powers
+      INTEGER, PARAMETER, public :: Max12HR_sequ=2*31, Min12HR_sequ=2*28
+!@param RE_AND_IM complex components of wave power diagnostics
+      INTEGER, PARAMETER, public :: RE_AND_IM=2
+!@param KWP number of wave power diagnostics
+      INTEGER, PARAMETER, public :: KWP=12
+!@var WAVE frequency diagnostics (wave power)
+      REAL*8, DIMENSION(RE_AND_IM,Max12HR_sequ,NWAV_DAG,KWP), public ::
+     &     WAVE
+
+      character(len=sname_strlen), dimension(kwp), public :: name_wave
+      character(len=units_strlen), dimension(kwp), public :: units_wave
+      character(len=lname_strlen), dimension(kwp), public :: lname_wave
+
+!@var SNAME_GC Names of lat-pressure GC diagnostics
+      character(len=sname_strlen), dimension(kagcx), public :: sname_gc
+!@var LNAME_GC,UNITS_GC Descriptions/Units of GC diagnostics
+      character(len=lname_strlen), dimension(kagcx), public :: lname_gc
+      character(len=units_strlen), dimension(kagcx), public :: units_gc
+!@var SCALE_GC printout scaling factors for GC diagnostics
+      REAL*8, dimension(kagcx), public :: scale_gc
+!@var IA_GC,JGRID_GC,LGRID_GC idacc-numbers,gridtypes for GC diagnostics
+      integer, dimension(kagcx), public :: ia_gc,jgrid_gc,lgrid_gc
+!@var DENOM_GC index of AGC element to use as weight
+      integer, dimension(kagcx), public :: denom_gc
+!@var POW_GC printed output scaled by 10**(-pow_gc)
+      integer, dimension(kagcx), public :: pow_gc
+!@var HEMIS_GC hemispheric/global averages of AGC
+!@var VMEAN_GC vertical sums of AGC
+      real*8, dimension(:,:,:), allocatable, public :: hemis_gc,vmean_gc
+!@var lat_gc latitudes of the primary grid for GC diagnostics
+      real*8, dimension(jmlat), public :: lat_gc,lat_gc2
+
+!@var CDL_GC consolidated metadata for AGC output fields in CDL notation
+      type(cdl_type), public :: cdl_gc
+
+      target :: agc,agc_out
+      REAL*8, dimension(:,:,:), public, pointer ::
+     &     AGC_ioptr
+
+      end module gc_com
+
+      subroutine alloc_gc_com(grid)
+      use domain_decomp_atm, only : dist_grid,am_i_root
+      use resolution, only : lm
+      use gc_com, only : kagc,jmlat,agc,agc_loc,agc_out
+      use gc_com, only : hemis_gc,vmean_gc
+      use diag_zonal, only : get_alloc_bounds
+      implicit none
+      type (dist_grid), intent(in) :: grid
+      integer :: ier
+      integer :: j_0jk,j_1jk
+
+      call get_alloc_bounds(grid,
+     &     j_strt_jk=j_0jk,j_stop_jk=j_1jk)
+
+      allocate(agc_loc(j_0jk:j_1jk,lm,kagc))
+
+c allocate master copies of budget- and jk-arrays on root
+      if(am_i_root()) then
+        allocate(agc(jmlat,lm,kagc),
+     &           agc_out(jmlat,lm,kagc))
+        allocate(hemis_gc(3,lm,kagc))
+        allocate(vmean_gc(jmlat+3,1,kagc))
+      else
+        allocate(agc(1,1,1),
+     &           agc_out(1,1,1),
+     &        stat = ier)
+        allocate(hemis_gc(1,1,1))
+        allocate(vmean_gc(1,1,1))
+      endif
+
+      return
+      end subroutine alloc_gc_com
+#endif
 
       SUBROUTINE ALLOC_ijdiag_glob
 !@sum  To allocate large global arrays only when needed
@@ -1331,362 +1401,359 @@ c allocate master copies of budget- and JK-arrays on root
       RETURN
       END SUBROUTINE DEALLOC_ijdiag_glob
 
-      SUBROUTINE io_diags(kunit,it,iaction,ioerr)
-!@sum  io_diag reads and writes diagnostics to file
-!@auth Gavin Schmidt
-      USE MODEL_COM, only : ioread,ioread_single,irerun
-     *    ,iowrite,iowrite_mon,iowrite_single,lhead, idacc,nsampl
-      USE ATM_COM, only : Kradia
-      USE MDIAG_COM, only : monacc
-      USE DIAG_COM
-      USE DOMAIN_DECOMP_ATM, Only : grid
-      USE DOMAIN_DECOMP_1D, Only : getDomainBounds
-      USE DOMAIN_DECOMP_1D, Only : PACK_DATA, UNPACK_DATA
-      USE DOMAIN_DECOMP_1D, Only : PACK_COLUMN, UNPACK_COLUMN
-      USE DOMAIN_DECOMP_1D, Only : AM_I_ROOT
-      USE DOMAIN_DECOMP_1D, Only : broadcast
-      IMPLICIT NONE
-
-!@param KACC total number of diagnostic elements
-      INTEGER :: KACC
-!@var AJ4,...,AFLX4 real*4 dummy arrays needed for postprocessing only
-      ! REAL*4 AJ4(JM_BUDG,KAJ,NTYPE),AREG4(NREG,KAJ)
-      ! REAL*4 AJL4(JM_BUDG,LM,KAJL),ASJL4(JM_BUDG,LM_REQ,KASJL),AIJ4(IM,JM,KAIJ)
-      ! REAL*4 AIJL4(IM,JM,LM,KAIJL),ENERGY4(NEHIST,HIST_DAYS)
-      ! REAL*4 CONSRV4(JM_BUDG,KCON),SPECA4(IMLONH+1,KSPECA,NSPHER)
-      ! REAL*4 ATPE4(KTPE,NHEMI),ADIURN4(NDIUVAR,NDIUPT,HR_IN_DAY)
-      ! REAL*4 WAVE4(RE_AND_IM,Max12HR_sequ,NWAV_DAG,KWP)
-      ! REAL*4 AGC4(JM,LM,KAGC),AIJK4(IM,JM,LM,KAIJK)
-      ! REAL*4 AISCCP4(ntau,npres,nisccp)
-      ! REAL*4 TSFREZ4(IM,JM,KTSF),AFLX4(LM+LM_REQ+1,IM,JM,5)
-      REAL*4,allocatable, dimension(:,:,:) :: AJ4,AJL4,ASJL4
-     *            ,AIJ4,AGC4, SPECA4, ADIURN4, AISCCP4, TSFREZ4
-      REAL*4,allocatable, dimension(:,:) :: AREG4,ENERGY4,CONSRV4,ATPE4
-      REAL*4,allocatable, dimension(:,:,:,:) :: WAVE4, AIJK4,AIJL4,AFLX4
-#ifndef NO_HDIURN
-      ! REAL*4 HDIURN4(NDIUVAR,NDIUPT,HR_IN_MONTH)
-      REAL*4,allocatable ::  HDIURN4(:,:,:)
-#endif
-      integer monac1(12),i_ida,i_xtra,it_check
-!@var Kcomb counts acc-files as they are added up
-      INTEGER, SAVE :: Kcomb=0
-
-      INTEGER kunit   !@var kunit unit number of read/write
-      INTEGER idac1(12)
-      INTEGER iaction !@var iaction flag for reading or writing to file
-!@var IOERR 1 (or -1) if there is (or is not) an error in i/o
-      INTEGER, INTENT(INOUT) :: IOERR
-!@var HEADER Character string label for individual records
-      CHARACTER*80 :: HEADER, MODULE_HEADER = "DIAG01"
-!@var header_subdd string label for subdaily accumulation arrays
-      character(len=80) :: header_subdd
-!@var it input/ouput value of hour
-      INTEGER, INTENT(INOUT) :: it
-      ! REAL*8 :: AFLX_ST_GLOB(LM+LM_REQ+1,IM,JM,5)
-      REAL*8,allocatable :: AFLX_ST_GLOB(:,:,:,:)
-      real(kind=8),allocatable,dimension(:,:) :: P_acc_glob,PM_acc_glob
-
-      INTEGER :: J_0, J_1
-
-      call getDomainBounds( grid, J_STRT=J_0, J_STOP=J_1  )
-
-      if(kradia.gt.0) then
-        write (MODULE_HEADER(LHEAD+1:80),'(a6,i8,a20,i3,a7)')
-     *   '#acc(=',idacc(2),') R8:SU.SD.TU.TD.dT(',lm+lm_req+1,',ijM,5)'
-
-        IF (AM_I_ROOT()) then
-           allocate (AFLX_ST_glob(LM+LM_REQ+1,IM,JM,5))
-        else
-           allocate (AFLX_ST_glob(LM+LM_REQ+1,1,1,5))
-        end if
-
-        SELECT CASE (IACTION)
-        CASE (IOWRITE)            ! output to standard restart file
-          CALL PACK_COLUMN(grid, AFLX_ST, AFLX_ST_glob)
-          IF (AM_I_ROOT()) THEN
-            WRITE (kunit,err=10) MODULE_HEADER,idacc(2),AFLX_ST_glob,it
-          END IF
-        CASE (IOWRITE_SINGLE)     ! output in single precision
-          MODULE_HEADER(LHEAD+18:LHEAD+18) = '4'
-          MODULE_HEADER(LHEAD+44:80) = ',monacc(12)'
-          CALL PACK_COLUMN(grid, AFLX_ST, AFLX_ST_glob)
-          IF (AM_I_ROOT()) THEN
-            WRITE (kunit,err=10) MODULE_HEADER,idacc(2),
-     *           REAL(AFLX_ST_glob,KIND=4), monacc,it
-          END IF
-        CASE (IOWRITE_MON)        ! output to end-of-month restart file
-          MODULE_HEADER(LHEAD+1:80) = 'itime '
-          IF (AM_I_ROOT()) THEN
-            WRITE (kunit,err=10) MODULE_HEADER,it
-          END IF
-        CASE (ioread)           ! input from restart file
-          if (AM_I_ROOT()) THEN
-           READ (kunit,err=10) HEADER,idacc(2),AFLX_ST_glob,it
-           IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-            PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
-            GO TO 10
-           END IF
-          endif
-          CALL UNPACK_COLUMN(grid, AFLX_ST_glob, AFLX_ST)
-          CALL broadcast(grid, idacc)
-          CALL broadcast(grid, it   )
-
-        CASE (IOREAD_SINGLE)      !
-!ESMF-- Allow all processes to read to avoid scattering monac1 and idac1.
-          CALL PACK_COLUMN(grid, AFLX_ST, AFLX_ST_glob)
-          if (AM_I_ROOT()) then
-             allocate (AFLX4(LM+LM_REQ+1,IM,JM,5))
-             READ (kunit,err=10) HEADER,idac1(2),AFLX4,monac1
-             AFLX_ST_glob = AFLX_ST_glob + AFLX4
-             deallocate (AFLX4)
-          end if
-          CALL UNPACK_COLUMN(grid, AFLX_ST_glob, AFLX_ST)
-          CALL broadcast(grid,idac1)
-          CALL broadcast(grid,monac1)
-          IDACC(2) = IDACC(2) + IDAC1(2)
-          monacc = monacc + monac1
-        END SELECT
-
-        deallocate (AFLX_ST_glob)
-
-        return
-      end if
-
-C**** The regular model (Kradia le 0)
-      write (MODULE_HEADER(LHEAD+1:LHEAD+15),'(a10,i4,a1)')
-     *   'I/R8 keys(',1+NKEYNR*NKEYMO,')'             ! keyct,keynr(:,:)
-      i_ida = Lhead + 10+4+1 + 10+2+1 + 1
-      write (MODULE_HEADER(LHEAD+10+4+1+1:i_ida-1),'(a10,i2,a1)')
-     *   ',TSFR(IJM,',KTSF,')'
-      write (MODULE_HEADER(i_ida:i_ida+9),'(a7,i2,a1)')
-     *   ',idacc(',nsampl,')'
-      KACC= JM_BUDG*KAJ*NTYPE + NREG*KAJ
-     *     + JM_BUDG*LM*KAJL + JM_BUDG*LM_REQ*KASJL + IM*JM*KAIJ +
-     *     IM*JM*LM*KAIJL + NEHIST*HIST_DAYS + JM_BUDG*KCON +
-     *     (IMLONH+1)*KSPECA*NSPHER + KTPE*NHEMI +
-     *     HR_IN_DAY*NDIUVAR*NDIUPT +
-     *     RE_AND_IM*Max12HR_sequ*NWAV_DAG*KWP + JM*LM*KAGC +
-     *     IM*JM*LM*KAIJK+ntau*npres*nisccp
-#ifndef NO_HDIURN
-     *     + size(HDIURN)
-#endif
-
-
-      write (MODULE_HEADER(i_ida+9+1:i_ida+9 + 5+8+1),'(a5,i8,a1)')
-     *   ',acc(',kacc,')'
-      i_xtra = i_ida+9 + 5+8+1 + 1
-
-      call alloc_ijdiag_glob
-
-      allocate(P_acc_glob(im,jm),PM_acc_glob(im,jm))
-
-      SELECT CASE (IACTION)
-      CASE (IOWRITE)            ! output to standard restart file
-        write (MODULE_HEADER(i_xtra:80),             '(a7,i2,a)')
-     *   ',x(IJM,',KTD+KOA,')'  ! make sure that i_xtra+7+2 < 80
-
-        Call Gather_Diagnostics()
-
-        If (AM_I_ROOT()) THEN
-          WRITE (kunit,err=10) MODULE_HEADER,keyct,KEYNR,TSFREZ,
-     *     idacc, AJ,AREG,AJL,ASJL,AIJ,
-     *     AIJL, ENERGY,CONSRV,
-     *     SPECA,ATPE,ADIURN,WAVE,AGC,AIJK,AISCCP,
-#ifndef NO_HDIURN
-     *     HDIURN,
-#endif
-     *     TDIURN_glob,OA_glob,it
-        END IF
-
-c**** write accumulation arrays for subdaily diagnostics
-        call pack_data(grid,P_acc,P_acc_glob)
-        call pack_data(grid,PM_acc,PM_acc_glob)
-        header_subdd='accumulation variables for subdaily diagnostics'
-        if (am_i_root()) write(kunit,err=10) header_subdd,P_acc_glob
-     &       ,PM_acc_glob
-
-      CASE (IOWRITE_SINGLE)     ! output in single precision
-        MODULE_HEADER(LHEAD+1:LHEAD+4) = 'I/R4'
-        MODULE_HEADER(i_xtra:80) = ',monacc(12)'
-
-        Call Gather_Diagnostics()
-
-        If (AM_I_ROOT()) THEN
-          WRITE (kunit,err=10) MODULE_HEADER,
-     *     keyct,KEYNR,REAL(TSFREZ,KIND=4),   idacc,
-     *     REAL(AJ,KIND=4),REAL(AREG,KIND=4),
-     *     REAL(AJL,KIND=4),REAL(ASJL,KIND=4),
-     *     REAL(AIJ,KIND=4),REAL(AIJL,KIND=4),
-     *     REAL(ENERGY,KIND=4), REAL(CONSRV,KIND=4),
-     *     REAL(SPECA,KIND=4),REAL(ATPE,KIND=4),REAL(ADIURN,KIND=4),
-     *     REAL(WAVE,KIND=4),REAL(AGC,KIND=4),
-     *     REAL(AIJK,KIND=4),REAL(AISCCP,KIND=4),
-#ifndef NO_HDIURN
-     *     REAL(HDIURN,KIND=4),
-#endif
-     *     monacc,it
-        END IF
-      CASE (IOWRITE_MON)        ! output to end-of-month restart file
-        MODULE_HEADER(i_ida:80) = ',it '
-
-        CALL PACK_DATA(grid, TSFREZ_loc, TSFREZ)
-        If (AM_I_ROOT()) THEN
-          WRITE (kunit,err=10) MODULE_HEADER,keyct,KEYNR,TSFREZ,it
-        END IF
-      CASE (ioread)           ! input from restart file
-        if (AM_I_ROOT()) Then
-          READ (kunit,err=10) HEADER,keyct,KEYNR,TSFREZ,
-     *       idacc, AJ,AREG,AJL,ASJL,AIJ,AIJL,
-     *       ENERGY,CONSRV,SPECA,ATPE,ADIURN,WAVE,AGC,AIJK,AISCCP,
-#ifndef NO_HDIURN
-     *       HDIURN,
-#endif
-     *       TDIURN_glob,OA_glob,it
-        IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-          PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
-          GO TO 10
-        END IF
-        END IF
-
-        Call BCAST_Scalars()
-        Call Scatter_Diagnostics()
-
-c**** read accumulation arrays for subdaily diagnostics
-        if (am_i_root()) read(kunit,err=10) header_subdd,P_acc_glob
-     &       ,PM_acc_glob
-        call unpack_data(grid,P_acc_glob,P_acc)
-        call unpack_data(grid,PM_acc_glob,PM_acc)
-
-      CASE (IOREAD_SINGLE)      !
-        call Gather_Diagnostics()  ! to keep global arrays in up-to-date
-        If (AM_I_ROOT()) Then
-          call alloc_diag_r4
-          READ (kunit,err=10) HEADER,keyct,KEYNR,TSFREZ4,
-     *         idac1, AJ4,AREG4,AJL4,ASJL4,AIJ4,AIJL4,ENERGY4
-     *         ,CONSRV4,SPECA4,ATPE4,ADIURN4,WAVE4,AGC4,AIJK4,AISCCP4,
-#ifndef NO_HDIURN
-     *       HDIURN4,
-#endif
-     *       monac1,it_check
-          if(it.ne.it_check) then
-            PRINT*,"io_diags: compare aj,aj4, ... dimensions"
-            GO TO 10            ! or should that be just a warning ??
-          end if
-
-        ! copy or add in to full precision global variables
-        ! First "non-distributed" arrays
-          ENERGY=ENERGY+ENERGY4
-          SPECA=SPECA+SPECA4 ; ATPE=ATPE+ATPE4 ; ADIURN=ADIURN+ADIURN4
-          WAVE=WAVE+WAVE4
-          AISCCP=AISCCP+AISCCP4
-#ifndef NO_HDIURN
-          HDIURN=HDIURN+HDIURN4
-#endif
-          AREG  = AREG   + AREG4
-          CONSRV= CONSRV + CONSRV4
-          ! Now for the global versions of the distributed arrays
-          TSFREZ= TSFREZ4       ! not accumulated
-          AJ    = AJ     + AJ4
-          AJL   = AJL    + AJL4
-          ASJL  = ASJL   + ASJL4
-          AIJ   = AIJ    + AIJ4
-          AGC   = AGC    + AGC4
-          AIJK  = AIJK   + AIJK4
-          AIJL  = AIJL   + AIJL4
-
-          IDACC = IDACC + IDAC1
-          call dealloc_diag_r4
-        End If
-
-        ! Send to other processors - update distributed arrays
-        Call BCAST_Scalars()
-
-        Call Scatter_Diagnostics()
-
-!@var idacc(5) is the length of a time series (daily energy history).
-!****   If combining acc-files, rather than concatenating these series,
-!****   we average their beginnings (up to the length of the shortest)
-        Kcomb = Kcomb + 1          ! reverse addition, take min instead
-        if (Kcomb.gt.1) IDACC(5) = MIN(IDACC(5)-IDAC1(5),IDAC1(5))
-        monacc = monacc + monac1
-      CASE (irerun)      ! only keynr,tsfrez needed at beg of acc-period
-        If (AM_I_ROOT()) Then
-          READ (kunit,err=10) HEADER,keyct,KEYNR,TSFREZ  ! 'it' not read
-          IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-            PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
-            GO TO 10
-          END IF
-        End If
-        CALL broadcast(grid, keyct )
-        CALL broadcast(grid, KEYNR )
-        CALL UNPACK_DATA(grid,  TSFREZ, TSFREZ_loc)
-      END SELECT
-
-      call dealloc_ijdiag_glob
-
-      deallocate(P_acc_glob,PM_acc_glob)
-      RETURN
-
- 10   IOERR=1
-      call dealloc_ijdiag_glob
-      deallocate(P_acc_glob,PM_acc_glob)
-      RETURN
-
-      Contains
-
-      Subroutine BCAST_Scalars()
-        CALL broadcast(grid, keyct )
-        CALL broadcast(grid, KEYNR )
-        CALL broadcast(grid, idacc )
-        CALL broadcast(grid, ENERGY)
-        CALL broadcast(grid, SPECA )
-        CALL broadcast(grid, ATPE  )
-c        CALL broadcast(grid, ADIURN)
-        CALL broadcast(grid, WAVE  )
-        CALL broadcast(grid, AISCCP)
-#ifndef NO_HDIURN
-c        CALL broadcast(grid, HDIURN)
-#endif
-        CALL broadcast(grid, it    )
-      End Subroutine BCAST_Scalars
-
-      Subroutine Scatter_Diagnostics()
-        call scatter_zonal_diags()
-        CALL UNPACK_DATA(grid,  TSFREZ, TSFREZ_loc)
-        CALL UNPACK_DATA(grid,  AIJ,    AIJ_loc)
-        CALL UNPACK_DATA(grid,  AIJK,   AIJK_loc)
-        CALL UNPACK_DATA(grid,  AIJL,   AIJL_loc)
-        CALL UNPACK_DATA(grid,  TDIURN_glob, TDIURN)
-        CALL UNPACK_DATA(grid,  OA_glob,     OA)
-      End Subroutine Scatter_Diagnostics
-
-      Subroutine alloc_diag_r4
-        allocate (AJ4(JM_BUDG,KAJ,NTYPE),AREG4(NREG,KAJ))
-        allocate (AJL4(JM_BUDG,LM,KAJL),ASJL4(JM_BUDG,LM_REQ,KASJL))
-        allocate (AIJ4(IM,JM,KAIJ))
-        allocate (AIJL4(IM,JM,LM,KAIJL),ENERGY4(NEHIST,HIST_DAYS))
-        allocate (CONSRV4(JM_BUDG,KCON),SPECA4(IMLONH+1,KSPECA,NSPHER))
-        allocate (ATPE4(KTPE,NHEMI),ADIURN4(NDIUVAR,NDIUPT,HR_IN_DAY))
-        allocate (WAVE4(RE_AND_IM,Max12HR_sequ,NWAV_DAG,KWP))
-        allocate (AGC4(JM,LM,KAGC),AIJK4(IM,JM,LM,KAIJK))
-        allocate (AISCCP4(ntau,npres,nisccp))
-        allocate (TSFREZ4(IM,JM,KTSF))
-#ifndef NO_HDIURN
-        allocate (HDIURN4(NDIUVAR,NDIUPT,HR_IN_MONTH))
-#endif
-      End Subroutine alloc_diag_r4
-
-      Subroutine dealloc_diag_r4
-        deallocate (AJ4,AREG4,  AJL4,ASJL4,AIJ4,AIJL4)
-        deallocate (ENERGY4,CONSRV4,SPECA4,ATPE4,ADIURN4,WAVE4)
-        deallocate (AGC4,AIJK4, AISCCP4,TSFREZ4)
-#ifndef NO_HDIURN
-        deallocate (HDIURN4)
-#endif
-      End Subroutine dealloc_diag_r4
-
-
-      END SUBROUTINE io_diags
+c      SUBROUTINE io_diags(kunit,it,iaction,ioerr)
+c!@sum  io_diag reads and writes diagnostics to file
+c!@auth Gavin Schmidt
+c      USE MODEL_COM, only : ioread,ioread_single,irerun
+c     *    ,iowrite,iowrite_mon,iowrite_single,lhead, idacc,nsampl
+c      USE ATM_COM, only : Kradia
+c      USE MDIAG_COM, only : monacc
+c      USE DIAG_COM
+c      USE DOMAIN_DECOMP_ATM, Only : grid
+c      USE DOMAIN_DECOMP_1D, Only : getDomainBounds
+c      USE DOMAIN_DECOMP_1D, Only : PACK_DATA, UNPACK_DATA
+c      USE DOMAIN_DECOMP_1D, Only : PACK_COLUMN, UNPACK_COLUMN
+c      USE DOMAIN_DECOMP_1D, Only : AM_I_ROOT
+c      USE DOMAIN_DECOMP_1D, Only : broadcast
+c      IMPLICIT NONE
+c
+c!@param KACC total number of diagnostic elements
+c      INTEGER, PARAMETER :: KACC= JM_BUDG*KAJ*NTYPE + NREG*KAJ
+c     *     + JM_BUDG*LM*KAJL + JM_BUDG*LM_REQ*KASJL + IM*JM*KAIJ +
+c     *     IM*JM*LM*KAIJL + NEHIST*HIST_DAYS + JM_BUDG*KCON +
+c     *     (IMLONH+1)*KSPECA*NSPHER + KTPE*NHEMI +
+c     *     HR_IN_DAY*NDIUVAR*NDIUPT +
+c     *     RE_AND_IM*Max12HR_sequ*NWAV_DAG*KWP + JM*LM*KAGC +
+c     *     IM*JM*LM*KAIJK+ntau*npres*nisccp
+c#ifndef NO_HDIURN
+c     *     + NDIUVAR*NDIUPT*HR_IN_MONTH
+c#endif
+c!@var AJ4,...,AFLX4 real*4 dummy arrays needed for postprocessing only
+c      ! REAL*4 AJ4(JM_BUDG,KAJ,NTYPE),AREG4(NREG,KAJ)
+c      ! REAL*4 AJL4(JM_BUDG,LM,KAJL),ASJL4(JM_BUDG,LM_REQ,KASJL),AIJ4(IM,JM,KAIJ)
+c      ! REAL*4 AIJL4(IM,JM,LM,KAIJL),ENERGY4(NEHIST,HIST_DAYS)
+c      ! REAL*4 CONSRV4(JM_BUDG,KCON),SPECA4(IMLONH+1,KSPECA,NSPHER)
+c      ! REAL*4 ATPE4(KTPE,NHEMI),ADIURN4(NDIUVAR,NDIUPT,HR_IN_DAY)
+c      ! REAL*4 WAVE4(RE_AND_IM,Max12HR_sequ,NWAV_DAG,KWP)
+c      ! REAL*4 AGC4(JM,LM,KAGC),AIJK4(IM,JM,LM,KAIJK)
+c      ! REAL*4 AISCCP4(ntau,npres,nisccp)
+c      ! REAL*4 TSFREZ4(IM,JM,KTSF),AFLX4(LM+LM_REQ+1,IM,JM,5)
+c      REAL*4,allocatable, dimension(:,:,:) :: AJ4,AJL4,ASJL4
+c     *            ,AIJ4,AGC4, SPECA4, ADIURN4, AISCCP4, TSFREZ4
+c      REAL*4,allocatable, dimension(:,:) :: AREG4,ENERGY4,CONSRV4,ATPE4
+c      REAL*4,allocatable, dimension(:,:,:,:) :: WAVE4, AIJK4,AIJL4,AFLX4
+c#ifndef NO_HDIURN
+c      ! REAL*4 HDIURN4(NDIUVAR,NDIUPT,HR_IN_MONTH)
+c      REAL*4,allocatable ::  HDIURN4(:,:,:)
+c#endif
+c      integer monac1(12),i_ida,i_xtra,it_check
+c!@var Kcomb counts acc-files as they are added up
+c      INTEGER, SAVE :: Kcomb=0
+c
+c      INTEGER kunit   !@var kunit unit number of read/write
+c      INTEGER idac1(12)
+c      INTEGER iaction !@var iaction flag for reading or writing to file
+c!@var IOERR 1 (or -1) if there is (or is not) an error in i/o
+c      INTEGER, INTENT(INOUT) :: IOERR
+c!@var HEADER Character string label for individual records
+c      CHARACTER*80 :: HEADER, MODULE_HEADER = "DIAG01"
+c!@var header_subdd string label for subdaily accumulation arrays
+c      character(len=80) :: header_subdd
+c!@var it input/ouput value of hour
+c      INTEGER, INTENT(INOUT) :: it
+c      ! REAL*8 :: AFLX_ST_GLOB(LM+LM_REQ+1,IM,JM,5)
+c      REAL*8,allocatable :: AFLX_ST_GLOB(:,:,:,:)
+c      real(kind=8),allocatable,dimension(:,:) :: P_acc_glob,PM_acc_glob
+c
+c      INTEGER :: J_0, J_1
+c
+c      call getDomainBounds( grid, J_STRT=J_0, J_STOP=J_1  )
+c
+c      if(kradia.gt.0) then
+c        write (MODULE_HEADER(LHEAD+1:80),'(a6,i8,a20,i3,a7)')
+c     *   '#acc(=',idacc(2),') R8:SU.SD.TU.TD.dT(',lm+lm_req+1,',ijM,5)'
+c
+c        IF (AM_I_ROOT()) then
+c           allocate (AFLX_ST_glob(LM+LM_REQ+1,IM,JM,5))
+c        else
+c           allocate (AFLX_ST_glob(LM+LM_REQ+1,1,1,5))
+c        end if
+c
+c        SELECT CASE (IACTION)
+c        CASE (IOWRITE)            ! output to standard restart file
+c          CALL PACK_COLUMN(grid, AFLX_ST, AFLX_ST_glob)
+c          IF (AM_I_ROOT()) THEN
+c            WRITE (kunit,err=10) MODULE_HEADER,idacc(2),AFLX_ST_glob,it
+c          END IF
+c        CASE (IOWRITE_SINGLE)     ! output in single precision
+c          MODULE_HEADER(LHEAD+18:LHEAD+18) = '4'
+c          MODULE_HEADER(LHEAD+44:80) = ',monacc(12)'
+c          CALL PACK_COLUMN(grid, AFLX_ST, AFLX_ST_glob)
+c          IF (AM_I_ROOT()) THEN
+c            WRITE (kunit,err=10) MODULE_HEADER,idacc(2),
+c     *           REAL(AFLX_ST_glob,KIND=4), monacc,it
+c          END IF
+c        CASE (IOWRITE_MON)        ! output to end-of-month restart file
+c          MODULE_HEADER(LHEAD+1:80) = 'itime '
+c          IF (AM_I_ROOT()) THEN
+c            WRITE (kunit,err=10) MODULE_HEADER,it
+c          END IF
+c        CASE (ioread)           ! input from restart file
+c          if (AM_I_ROOT()) THEN
+c           READ (kunit,err=10) HEADER,idacc(2),AFLX_ST_glob,it
+c           IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
+c            PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
+c            GO TO 10
+c           END IF
+c          endif
+c          CALL UNPACK_COLUMN(grid, AFLX_ST_glob, AFLX_ST)
+c          CALL broadcast(grid, idacc)
+c          CALL broadcast(grid, it   )
+c
+c        CASE (IOREAD_SINGLE)      !
+c!ESMF-- Allow all processes to read to avoid scattering monac1 and idac1.
+c          CALL PACK_COLUMN(grid, AFLX_ST, AFLX_ST_glob)
+c          if (AM_I_ROOT()) then
+c             allocate (AFLX4(LM+LM_REQ+1,IM,JM,5))
+c             READ (kunit,err=10) HEADER,idac1(2),AFLX4,monac1
+c             AFLX_ST_glob = AFLX_ST_glob + AFLX4
+c             deallocate (AFLX4)
+c          end if
+c          CALL UNPACK_COLUMN(grid, AFLX_ST_glob, AFLX_ST)
+c          CALL broadcast(grid,idac1)
+c          CALL broadcast(grid,monac1)
+c          IDACC(2) = IDACC(2) + IDAC1(2)
+c          monacc = monacc + monac1
+c        END SELECT
+c
+c        deallocate (AFLX_ST_glob)
+c
+c        return
+c      end if
+c
+cC**** The regular model (Kradia le 0)
+c      write (MODULE_HEADER(LHEAD+1:LHEAD+15),'(a10,i4,a1)')
+c     *   'I/R8 keys(',1+NKEYNR*NKEYMO,')'             ! keyct,keynr(:,:)
+c      i_ida = Lhead + 10+4+1 + 10+2+1 + 1
+c      write (MODULE_HEADER(LHEAD+10+4+1+1:i_ida-1),'(a10,i2,a1)')
+c     *   ',TSFR(IJM,',KTSF,')'
+c      write (MODULE_HEADER(i_ida:i_ida+9),'(a7,i2,a1)')
+c     *   ',idacc(',nsampl,')'
+c      write (MODULE_HEADER(i_ida+9+1:i_ida+9 + 5+8+1),'(a5,i8,a1)')
+c     *   ',acc(',kacc,')'
+c      i_xtra = i_ida+9 + 5+8+1 + 1
+c
+c      call alloc_ijdiag_glob
+c
+c      allocate(P_acc_glob(im,jm),PM_acc_glob(im,jm))
+c
+c      SELECT CASE (IACTION)
+c      CASE (IOWRITE)            ! output to standard restart file
+c        write (MODULE_HEADER(i_xtra:80),             '(a7,i2,a)')
+c     *   ',x(IJM,',KTD+KOA,')'  ! make sure that i_xtra+7+2 < 80
+c
+c        Call Gather_Diagnostics()
+c
+c        If (AM_I_ROOT()) THEN
+c          WRITE (kunit,err=10) MODULE_HEADER,keyct,KEYNR,TSFREZ,
+c     *     idacc, AJ,AREG,AJL,ASJL,AIJ,
+c     *     AIJL, ENERGY,CONSRV,
+c     *     SPECA,ATPE,ADIURN,WAVE,AGC,AIJK,AISCCP,
+c#ifndef NO_HDIURN
+c     *     HDIURN,
+c#endif
+c     *     TDIURN_glob,OA_glob,it
+c        END IF
+c
+cc**** write accumulation arrays for subdaily diagnostics
+c        call pack_data(grid,P_acc,P_acc_glob)
+c        call pack_data(grid,PM_acc,PM_acc_glob)
+c        header_subdd='accumulation variables for subdaily diagnostics'
+c        if (am_i_root()) write(kunit,err=10) header_subdd,P_acc_glob
+c     &       ,PM_acc_glob
+c
+c      CASE (IOWRITE_SINGLE)     ! output in single precision
+c        MODULE_HEADER(LHEAD+1:LHEAD+4) = 'I/R4'
+c        MODULE_HEADER(i_xtra:80) = ',monacc(12)'
+c
+c        Call Gather_Diagnostics()
+c
+c        If (AM_I_ROOT()) THEN
+c          WRITE (kunit,err=10) MODULE_HEADER,
+c     *     keyct,KEYNR,REAL(TSFREZ,KIND=4),   idacc,
+c     *     REAL(AJ,KIND=4),REAL(AREG,KIND=4),
+c     *     REAL(AJL,KIND=4),REAL(ASJL,KIND=4),
+c     *     REAL(AIJ,KIND=4),REAL(AIJL,KIND=4),
+c     *     REAL(ENERGY,KIND=4), REAL(CONSRV,KIND=4),
+c     *     REAL(SPECA,KIND=4),REAL(ATPE,KIND=4),REAL(ADIURN,KIND=4),
+c     *     REAL(WAVE,KIND=4),REAL(AGC,KIND=4),
+c     *     REAL(AIJK,KIND=4),REAL(AISCCP,KIND=4),
+c#ifndef NO_HDIURN
+c     *     REAL(HDIURN,KIND=4),
+c#endif
+c     *     monacc,it
+c        END IF
+c      CASE (IOWRITE_MON)        ! output to end-of-month restart file
+c        MODULE_HEADER(i_ida:80) = ',it '
+c
+c        CALL PACK_DATA(grid, TSFREZ_loc, TSFREZ)
+c        If (AM_I_ROOT()) THEN
+c          WRITE (kunit,err=10) MODULE_HEADER,keyct,KEYNR,TSFREZ,it
+c        END IF
+c      CASE (ioread)           ! input from restart file
+c        if (AM_I_ROOT()) Then
+c          READ (kunit,err=10) HEADER,keyct,KEYNR,TSFREZ,
+c     *       idacc, AJ,AREG,AJL,ASJL,AIJ,AIJL,
+c     *       ENERGY,CONSRV,SPECA,ATPE,ADIURN,WAVE,AGC,AIJK,AISCCP,
+c#ifndef NO_HDIURN
+c     *       HDIURN,
+c#endif
+c     *       TDIURN_glob,OA_glob,it
+c        IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
+c          PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
+c          GO TO 10
+c        END IF
+c        END IF
+c
+c        Call BCAST_Scalars()
+c        Call Scatter_Diagnostics()
+c
+cc**** read accumulation arrays for subdaily diagnostics
+c        if (am_i_root()) read(kunit,err=10) header_subdd,P_acc_glob
+c     &       ,PM_acc_glob
+c        call unpack_data(grid,P_acc_glob,P_acc)
+c        call unpack_data(grid,PM_acc_glob,PM_acc)
+c
+c      CASE (IOREAD_SINGLE)      !
+c        call Gather_Diagnostics()  ! to keep global arrays in up-to-date
+c        If (AM_I_ROOT()) Then
+c          call alloc_diag_r4
+c          READ (kunit,err=10) HEADER,keyct,KEYNR,TSFREZ4,
+c     *         idac1, AJ4,AREG4,AJL4,ASJL4,AIJ4,AIJL4,ENERGY4
+c     *         ,CONSRV4,SPECA4,ATPE4,ADIURN4,WAVE4,AGC4,AIJK4,AISCCP4,
+c#ifndef NO_HDIURN
+c     *       HDIURN4,
+c#endif
+c     *       monac1,it_check
+c          if(it.ne.it_check) then
+c            PRINT*,"io_diags: compare aj,aj4, ... dimensions"
+c            GO TO 10            ! or should that be just a warning ??
+c          end if
+c
+c        ! copy or add in to full precision global variables
+c        ! First "non-distributed" arrays
+c          ENERGY=ENERGY+ENERGY4
+c          SPECA=SPECA+SPECA4 ; ATPE=ATPE+ATPE4 ; ADIURN=ADIURN+ADIURN4
+c          WAVE=WAVE+WAVE4
+c          AISCCP=AISCCP+AISCCP4
+c#ifndef NO_HDIURN
+c          HDIURN=HDIURN+HDIURN4
+c#endif
+c          AREG  = AREG   + AREG4
+c          CONSRV= CONSRV + CONSRV4
+c          ! Now for the global versions of the distributed arrays
+c          TSFREZ= TSFREZ4       ! not accumulated
+c          AJ    = AJ     + AJ4
+c          AJL   = AJL    + AJL4
+c          ASJL  = ASJL   + ASJL4
+c          AIJ   = AIJ    + AIJ4
+c          AGC   = AGC    + AGC4
+c          AIJK  = AIJK   + AIJK4
+c          AIJL  = AIJL   + AIJL4
+c
+c          IDACC = IDACC + IDAC1
+c          call dealloc_diag_r4
+c        End If
+c
+c        ! Send to other processors - update distributed arrays
+c        Call BCAST_Scalars()
+c
+c        Call Scatter_Diagnostics()
+c
+c!@var idacc(5) is the length of a time series (daily energy history).
+c!****   If combining acc-files, rather than concatenating these series,
+c!****   we average their beginnings (up to the length of the shortest)
+c        Kcomb = Kcomb + 1          ! reverse addition, take min instead
+c        if (Kcomb.gt.1) IDACC(5) = MIN(IDACC(5)-IDAC1(5),IDAC1(5))
+c        monacc = monacc + monac1
+c      CASE (irerun)      ! only keynr,tsfrez needed at beg of acc-period
+c        If (AM_I_ROOT()) Then
+c          READ (kunit,err=10) HEADER,keyct,KEYNR,TSFREZ  ! 'it' not read
+c          IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
+c            PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
+c            GO TO 10
+c          END IF
+c        End If
+c        CALL broadcast(grid, keyct )
+c        CALL broadcast(grid, KEYNR )
+c        CALL UNPACK_DATA(grid,  TSFREZ, TSFREZ_loc)
+c      END SELECT
+c
+c      call dealloc_ijdiag_glob
+c
+c      deallocate(P_acc_glob,PM_acc_glob)
+c      RETURN
+c
+c 10   IOERR=1
+c      call dealloc_ijdiag_glob
+c      deallocate(P_acc_glob,PM_acc_glob)
+c      RETURN
+c
+c      Contains
+c
+c      Subroutine BCAST_Scalars()
+c        CALL broadcast(grid, keyct )
+c        CALL broadcast(grid, KEYNR )
+c        CALL broadcast(grid, idacc )
+c        CALL broadcast(grid, ENERGY)
+c        CALL broadcast(grid, SPECA )
+c        CALL broadcast(grid, ATPE  )
+cc        CALL broadcast(grid, ADIURN)
+c        CALL broadcast(grid, WAVE  )
+c        CALL broadcast(grid, AISCCP)
+c#ifndef NO_HDIURN
+cc        CALL broadcast(grid, HDIURN)
+c#endif
+c        CALL broadcast(grid, it    )
+c      End Subroutine BCAST_Scalars
+c
+c      Subroutine Scatter_Diagnostics()
+c        call scatter_zonal_diags()
+c        CALL UNPACK_DATA(grid,  TSFREZ, TSFREZ_loc)
+c        CALL UNPACK_DATA(grid,  AIJ,    AIJ_loc)
+c        CALL UNPACK_DATA(grid,  AIJK,   AIJK_loc)
+c        CALL UNPACK_DATA(grid,  AIJL,   AIJL_loc)
+c        CALL UNPACK_DATA(grid,  TDIURN_glob, TDIURN)
+c        CALL UNPACK_DATA(grid,  OA_glob,     OA)
+c      End Subroutine Scatter_Diagnostics
+c
+c      Subroutine alloc_diag_r4
+c        allocate (AJ4(JM_BUDG,KAJ,NTYPE),AREG4(NREG,KAJ))
+c        allocate (AJL4(JM_BUDG,LM,KAJL),ASJL4(JM_BUDG,LM_REQ,KASJL))
+c        allocate (AIJ4(IM,JM,KAIJ))
+c        allocate (AIJL4(IM,JM,LM,KAIJL),ENERGY4(NEHIST,HIST_DAYS))
+c        allocate (CONSRV4(JM_BUDG,KCON),SPECA4(IMLONH+1,KSPECA,NSPHER))
+c        allocate (ATPE4(KTPE,NHEMI),ADIURN4(NDIUVAR,NDIUPT,HR_IN_DAY))
+c        allocate (WAVE4(RE_AND_IM,Max12HR_sequ,NWAV_DAG,KWP))
+c        allocate (AGC4(JM,LM,KAGC),AIJK4(IM,JM,LM,KAIJK))
+c        allocate (AISCCP4(ntau,npres,nisccp))
+c        allocate (TSFREZ4(IM,JM,KTSF))
+c#ifndef NO_HDIURN
+c        allocate (HDIURN4(NDIUVAR,NDIUPT,HR_IN_MONTH))
+c#endif
+c      End Subroutine alloc_diag_r4
+c
+c      Subroutine dealloc_diag_r4
+c        deallocate (AJ4,AREG4,  AJL4,ASJL4,AIJ4,AIJL4)
+c        deallocate (ENERGY4,CONSRV4,SPECA4,ATPE4,ADIURN4,WAVE4)
+c        deallocate (AGC4,AIJK4, AISCCP4,TSFREZ4)
+c#ifndef NO_HDIURN
+c        deallocate (HDIURN4)
+c#endif
+c      End Subroutine dealloc_diag_r4
+c
+c
+c      END SUBROUTINE io_diags
 
       Subroutine Gather_Diagnostics()
       use domain_decomp_atm, only : grid
@@ -1754,34 +1821,50 @@ c more complicated logic
       Subroutine Gather_zonal_diags()
       use domain_decomp_atm, only : grid
       use diag_com
+#ifdef SCM
+      implicit none
+      AJ = AJ_loc
+      AJL = AJL_loc
+      ASJL = ASJL_loc
+#else
       use diag_zonal, only : pack_lc
+      use gc_com
       implicit none
       call pack_lc(grid, AJ_loc,     AJ)
       call pack_lc(grid, AJL_loc,    AJL)
       call pack_lc(grid, ASJL_loc,   ASJL)
       call pack_lc(grid, AGC_loc,    AGC)
+#endif
       return
       End Subroutine Gather_zonal_diags
 
       Subroutine Scatter_zonal_diags()
       use domain_decomp_atm, only : grid
       use diag_com
+#ifdef SCM
+      implicit none
+      AJ_loc = AJ
+      AJL_loc = AJL
+      ASJL_loc = ASJL
+#else
       use diag_zonal, only : unpack_lc
+      use gc_com
       implicit none
       call unpack_lc  (grid, aj,     aj_loc)
       call unpack_lc  (grid, ajl,    ajl_loc)
       call unpack_lc  (grid, asjl,   asjl_loc)
       call unpack_lc  (grid, agc,    agc_loc)
+#endif
       return
       End Subroutine Scatter_zonal_diags
 
 C**** Routines associated with the budget grid
-
+#ifndef SCM
       SUBROUTINE SET_J_BUDG
 !@sum set_j_budg definition for grid points map to budget-grid zonal means
 !@auth Gavin Schmidt
-      USE GEOM, only : j_budg,j_0b,j_1b,lat2d_dg
-      USE DIAG_COM, only : jm_budg
+      USE GEOM, only : lat2d_dg
+      USE DIAG_COM, only : jm_budg,j_budg,j_0b,j_1b
       USE DOMAIN_DECOMP_ATM, only :GRID,getDomainBounds
       IMPLICIT NONE
 !@var I,J are atm grid point values for the accumulation
@@ -1814,11 +1897,12 @@ C**** define limits on budget indices for each processor
       subroutine set_wtbudg()
 !@sum Precomputes area weights for zonal means on budget grid
 !auth Denis Gueyffier
-      USE GEOM, only : j_budg, axyp, imaxj
+      USE GEOM, only : axyp, imaxj
 #ifndef CUBED_SPHERE
       USE DIAG_COM, only : im,fim
 #endif
       USE DIAG_COM, only : jm_budg,wtbudg,wtbudg2,lat_budg,dxyp_budg
+     &     ,j_budg
       USE DOMAIN_DECOMP_ATM, only :GRID,getDomainBounds
       IMPLICIT NONE
       INTEGER :: I,J,J_0,J_1,I_0,I_1
@@ -1863,8 +1947,8 @@ C**** box in lat/lon case.
 !@sum  pre-computes area of budget-grid band (zig-zag band on the cubed sphere)
 !@+    accross processors. Several processors can contribute to same band
 !@auth Denis Gueyffier
-      use GEOM, only: J_BUDG,axyp
-      use DIAG_COM, only : dxyp_budg,dxyp_budg_loc,JM_BUDG
+      use GEOM, only: axyp
+      use DIAG_COM, only : dxyp_budg,dxyp_budg_loc,JM_BUDG,J_BUDG
       USE DOMAIN_DECOMP_ATM, only :grid,getDomainBounds,sumxpe,broadcast
       IMPLICIT NONE
       INTEGER :: I,J,J_0,J_1,I_0,I_1
@@ -1888,12 +1972,12 @@ C**** box in lat/lon case.
 
       return
       end subroutine set_budg_area
+#endif /* not SCM */
 
       SUBROUTINE INC_AJ(I,J,ITYPE,J_DIAG,ACC)
 !@sum inc_aj grid dependent incrementer for zonal mean budget diags
 !@auth Gavin Schmidt
-      USE DIAG_COM, only : aj=>aj_loc, wtbudg
-      USE GEOM, only : j_budg
+      USE DIAG_COM, only : aj=>aj_loc, wtbudg, j_budg
       IMPLICIT NONE
 !@var I,J are atm grid point values for the accumulation
 !@var ITYPE is the surface type
@@ -1915,8 +1999,8 @@ C**** each point to a zonal mean (not bitwise reproducible for MPI).
       SUBROUTINE INC_AREG(I,J,JR,J_DIAG,ACC)
 !@sum inc_areg incrementer for regional budget diags
 !@auth Gavin Schmidt
-      USE DIAG_COM, only : areg=>areg_loc,wtbudg
-      USE GEOM, only : j_budg,axyp
+      USE DIAG_COM, only : areg=>areg_loc
+      USE GEOM, only : axyp
       IMPLICIT NONE
 !@var I,J are atm grid point values for the accumulation
 !@var JR is the region
@@ -1935,8 +2019,7 @@ C**** each point to a zonal mean (not bitwise reproducible for MPI).
 !@sum inc_ajl adds ACC located at atmospheric gridpoint I,J,L
 !@+   to the latitude-height zonal sum AJL(J,L,JL_INDEX).
 !@auth M. Kelley
-      USE DIAG_COM, only : ajl=>ajl_loc,wtbudg
-      USE GEOM, only : j_budg
+      USE DIAG_COM, only : ajl=>ajl_loc,wtbudg,j_budg
       IMPLICIT NONE
 !@var I,J,L atm gridpoint indices for the accumulation
       INTEGER, INTENT(IN) :: I,J,L
@@ -1953,8 +2036,7 @@ C**** each point to a zonal mean (not bitwise reproducible for MPI).
 
       SUBROUTINE INC_AJL2(I,J,L,JL_INDEX,ACC)
 c temporary variant of inc_ajl without any weighting
-      USE DIAG_COM, only : ajl=>ajl_loc
-      USE GEOM, only : j_budg
+      USE DIAG_COM, only : ajl=>ajl_loc,j_budg
       IMPLICIT NONE
 !@var I,J,L atm gridpoint indices for the accumulation
       INTEGER, INTENT(IN) :: I,J,L
@@ -1974,8 +2056,7 @@ c temporary variant of inc_ajl without any weighting
 !@+   to the latitude-height zonal sum ASJL(J,L,JL_INDEX).
 !@+   This is a trivial version for the latlon grid.
 !@auth M. Kelley
-      USE DIAG_COM, only : asjl=>asjl_loc,wtbudg
-      USE GEOM, only : j_budg
+      USE DIAG_COM, only : asjl=>asjl_loc,wtbudg,j_budg
       IMPLICIT NONE
 !@var I,J,L atm gridpoint indices for the accumulation
       INTEGER, INTENT(IN) :: I,J,L
@@ -1998,13 +2079,16 @@ c temporary variant of inc_ajl without any weighting
       use model_com, only : idacc
       use mdiag_com, only : monacc
       use diag_com, only :
-     &     aj=>aj_ioptr,areg=>areg_ioptr,agc=>agc_ioptr,
+     &     aj=>aj_ioptr,areg=>areg_ioptr,
      &     aij=>aij_loc,aijl=>aijl_loc,aijk=>aijk_loc, ! dist
      &     oa,tdiurn,aijmm,                            ! dist
      &     ajl,asjl,consrv,
-     &     speca,atpe,adiurn,energy,wave,aisccp
+     &     adiurn,aisccp
 #ifndef NO_HDIURN
       use diag_com, only :  hdiurn
+#endif
+#ifndef SCM
+      use gc_com, only : agc=>agc_ioptr,speca,atpe,energy,wave
 #endif
       use domain_decomp_atm, only : grid
       use pario, only : defvar,write_attr
@@ -2027,8 +2111,10 @@ c temporary variant of inc_ajl without any weighting
       call defvar(grid,fid,aijl,'aijl(dist_im,dist_jm,lm,kaijl)',
      &     r4_on_disk=r4_on_disk)
 #ifndef CUBED_SPHERE
+#ifndef SCM
       call defvar(grid,fid,aijk,'aijk(dist_im,dist_jm,lm,kaijk)',
      &     r4_on_disk=r4_on_disk)
+#endif
 #endif
 
       call defvar(grid,fid,aj,'aj(jm_budg,kaj,ntype)',
@@ -2037,13 +2123,23 @@ c temporary variant of inc_ajl without any weighting
      &     r4_on_disk=r4_on_disk)
       call defvar(grid,fid,asjl,'asjl(jm_budg,lm_req,kasjl)',
      &     r4_on_disk=r4_on_disk)
-      call defvar(grid,fid,agc,'agc(jmlat,lm,kagc)',
-     &     r4_on_disk=r4_on_disk)
       call defvar(grid,fid,consrv,'consrv(jm_budg,kcon)',
      &     r4_on_disk=r4_on_disk)
 
       call defvar(grid,fid,areg,'areg(nreg,kaj)',r4_on_disk=r4_on_disk)
 
+      call defvar(grid,fid,aisccp,'aisccp(ntau,npres,nisccp)',
+     &     r4_on_disk=r4_on_disk)
+      call defvar(grid,fid,adiurn,
+     &     'adiurn(ndiuvar,ndiupt,hr_in_day)',r4_on_disk=r4_on_disk)
+#ifndef NO_HDIURN
+      call defvar(grid,fid,hdiurn,
+     &     'hdiurn(ndiuvar,ndiupt,hr_in_month)',r4_on_disk=r4_on_disk)
+#endif
+
+#ifndef SCM
+      call defvar(grid,fid,agc,'agc(jmlat,lm,kagc)',
+     &     r4_on_disk=r4_on_disk)
       call defvar(grid,fid,energy,'energy(nehist,hist_days)',
      &     r4_on_disk=r4_on_disk)
       call defvar(grid,fid,speca,
@@ -2053,13 +2149,6 @@ c temporary variant of inc_ajl without any weighting
       call defvar(grid,fid,wave,
      &     'wave(re_and_im,max12hr_sequ,nwav_dag,kwp)',
      &     r4_on_disk=r4_on_disk)
-      call defvar(grid,fid,aisccp,'aisccp(ntau,npres,nisccp)',
-     &     r4_on_disk=r4_on_disk)
-      call defvar(grid,fid,adiurn,
-     &     'adiurn(ndiuvar,ndiupt,hr_in_day)',r4_on_disk=r4_on_disk)
-#ifndef NO_HDIURN
-      call defvar(grid,fid,hdiurn,
-     &     'hdiurn(ndiuvar,ndiupt,hr_in_month)',r4_on_disk=r4_on_disk)
 #endif
 
       if(.not.r4_on_disk) then          ! reproducibility info
@@ -2104,13 +2193,16 @@ c    primary instances of arrays when writing restart files
 c    extended/rescaled instances of arrays when writing acc files
       use mdiag_com, only : monacc
       use diag_com, only : kaijl,
-     &     aj=>aj_ioptr,areg=>areg_ioptr,agc=>agc_ioptr,
+     &     aj=>aj_ioptr,areg=>areg_ioptr,
      &     aij=>aij_loc,aijl=>aijl_loc,aijk=>aijk_loc, ! dist
      &     oa,tdiurn,aijmm,                            ! dist
      &     ajl,asjl,consrv,
-     &     speca,atpe,adiurn,energy,wave,aisccp
+     &     adiurn,aisccp
 #ifndef NO_HDIURN
       use diag_com, only :  hdiurn
+#endif
+#ifndef SCM
+      use gc_com, only : agc=>agc_ioptr,speca,atpe,energy,wave
 #endif
       use domain_decomp_atm, only : grid
       use domain_decomp_1d, only : hasNorthPole, hasSouthPole
@@ -2139,10 +2231,6 @@ c    extended/rescaled instances of arrays when writing acc files
         endif
         call write_data(grid,fid,'monacc',monacc)
         call write_data(grid,fid,'idacc',idacc)
-        call write_data(grid,fid,'energy',energy)
-        call write_data(grid,fid,'speca',speca)
-        call write_data(grid,fid,'atpe',atpe)
-        call write_data(grid,fid,'wave',wave)
         call write_data(grid,fid,'aisccp',aisccp)
         call write_data(grid,fid,'adiurn',adiurn)
 #ifndef NO_HDIURN
@@ -2154,25 +2242,30 @@ c    extended/rescaled instances of arrays when writing acc files
         call write_dist_data(grid,fid,'aijmm',aijmm)
         call write_dist_data(grid,fid,'aijl',aijl)
 #ifndef CUBED_SPHERE
+#ifndef SCM
         call write_dist_data(grid,fid,'aijk',aijk)
+#endif
 #endif
 
         call write_data(grid,fid,'aj',aj)
         call write_data(grid,fid,'ajl',ajl)
         call write_data(grid,fid,'asjl',asjl)
-        call write_data(grid,fid,'agc',agc)
         call write_data(grid,fid,'consrv',consrv)
 
         call write_data(grid,fid,'areg',areg)
+
+#ifndef SCM
+        call write_data(grid,fid,'agc',agc)
+        call write_data(grid,fid,'energy',energy)
+        call write_data(grid,fid,'speca',speca)
+        call write_data(grid,fid,'atpe',atpe)
+        call write_data(grid,fid,'wave',wave)
+#endif
 
       case (ioread)            ! input from restart or acc file
 c for which scalars is bcast_all=.true. necessary?
         call read_data(grid,fid,'monacc',monacc,bcast_all=.true.)
         call read_data(grid,fid,'idacc',idacc,bcast_all=.true.)
-        call read_data(grid,fid,'energy',energy,bcast_all=.true.)
-        call read_data(grid,fid,'speca',speca,bcast_all=.true.)
-        call read_data(grid,fid,'atpe',atpe,bcast_all=.true.)
-        call read_data(grid,fid,'wave',wave,bcast_all=.true.)
         call read_data(grid,fid,'aisccp',aisccp,bcast_all=.true.)
         call read_data(grid,fid,'adiurn',adiurn,bcast_all=.true.)
 #ifndef NO_HDIURN
@@ -2184,17 +2277,27 @@ c for which scalars is bcast_all=.true. necessary?
         call read_dist_data(grid,fid,'aijmm',aijmm)
         call read_dist_data(grid,fid,'aijl',aijl)
 #ifndef CUBED_SPHERE
+#ifndef SCM
         call read_dist_data(grid,fid,'aijk',aijk)
+#endif
 #endif
 
         call read_data(grid,fid,'aj',aj)
         call read_data(grid,fid,'ajl',ajl)
         call read_data(grid,fid,'asjl',asjl)
-        call read_data(grid,fid,'agc',agc)
         call read_data(grid,fid,'consrv',consrv)
-        call scatter_zonal_diags
 
         call read_data(grid,fid,'areg',areg)
+
+#ifndef SCM
+        call read_data(grid,fid,'agc',agc)
+        call read_data(grid,fid,'energy',energy,bcast_all=.true.)
+        call read_data(grid,fid,'speca',speca,bcast_all=.true.)
+        call read_data(grid,fid,'atpe',atpe,bcast_all=.true.)
+        call read_data(grid,fid,'wave',wave,bcast_all=.true.)
+#endif
+
+        call scatter_zonal_diags
 
       case (iowrite_mon)            ! specials
         call stop_model('new_io_acc: fix io_oda call',255)
@@ -2308,23 +2411,27 @@ c new_io_subdd
 !@sum  def_meta_atmacc defines metadata in atm acc files
 !@auth M. Kelley
 !@ver  beta
-      use diag_com, only : kagc,
-     &     ia_j,ia_jl,ia_ij,ia_ijl,ia_con,ia_gc,ia_ijk,
+      use diag_com, only :
+     &     ia_j,ia_jl,ia_ij,ia_ijl,ia_con,ia_ijk,
      &     name_j,name_reg,sname_jl,name_ij,name_ijl,name_dd,
-     &     name_consrv,sname_gc,name_ijk,
+     &     name_consrv,name_ijk,
      &     cdl_j,cdl_reg,cdl_jl,
      &     cdl_ij,cdl_ijl,cdl_ij_latlon,cdl_ijl_latlon,
-     &     cdl_dd,cdl_hd,cdl_consrv,cdl_gc,cdl_ijk,
-     &     hemis_j,hemis_jl,vmean_jl,hemis_consrv,hemis_gc,vmean_gc,
+     &     cdl_dd,cdl_hd,cdl_consrv,cdl_ijk,
+     &     hemis_j,hemis_jl,vmean_jl,hemis_consrv,
      &     hemis_ij,
      &     scale_j,scale_jl,scale_ij,scale_ijl,scale_dd,scale_con,
-     &     scale_gc,scale_ijk,
+     &     scale_ijk,
      &     iden_j,iden_reg,denom_jl,denom_ijl,denom_ij,denom_dd,
-     &     denom_gc,denom_ijk,
+     &     denom_ijk,
      &     lm,
      &     isccp_diags,isccp_press,isccp_tau,isccp_late,wisccp,
      &     scale_ijmm,name_ijmm,cdl_ijmm,
      &     write_regions
+#ifndef SCM
+      use gc_com, only : kagc,ia_gc,sname_gc,cdl_gc,hemis_gc,
+     &     vmean_gc,scale_gc,denom_gc
+#endif
       use geom, only : axyp
 #ifdef CUBED_SPHERE
       use geom, only : lon2d_dg,lat2d_dg,lonbds,latbds
@@ -2347,9 +2454,11 @@ c new_io_subdd
 
       call write_attr(grid,fid,'aj','reduction','sum')
       call write_attr(grid,fid,'aj','split_dim',2)
+#ifndef SCM
       call defvar(grid,fid,hemis_j,'hemis_aj(shnhgm,kaj,ntype)',
      &     r4_on_disk=.true.)
       call write_attr(grid,fid,'hemis_aj','reduction','sum')
+#endif
       call defvar(grid,fid,ia_j,'ia_aj(kaj)')
       call defvar(grid,fid,scale_j,'scale_aj(kaj)')
       call defvar(grid,fid,iden_j,'denom_aj(kaj)')
@@ -2369,9 +2478,11 @@ c new_io_subdd
 
       call write_attr(grid,fid,'consrv','reduction','sum')
       call write_attr(grid,fid,'consrv','split_dim',2)
+#ifndef SCM
       call defvar(grid,fid,hemis_consrv,'hemis_consrv(shnhgm,kcon)',
      &     r4_on_disk=.true.)
       call write_attr(grid,fid,'hemis_consrv','reduction','sum')
+#endif
       call defvar(grid,fid,ia_con,'ia_consrv(kcon)')
       call defvar(grid,fid,scale_con,'scale_consrv(kcon)')
       call defvar(grid,fid,name_consrv,
@@ -2381,18 +2492,21 @@ c new_io_subdd
 
       call write_attr(grid,fid,'ajl','reduction','sum')
       call write_attr(grid,fid,'ajl','split_dim',3)
+#ifndef SCM
       call defvar(grid,fid,hemis_jl,'hemis_ajl(shnhgm,lm,kajl)',
      &     r4_on_disk=.true.)
       call write_attr(grid,fid,'hemis_ajl','reduction','sum')
       call defvar(grid,fid,vmean_jl,'vmean_ajl(jm_budg_plus3,one,kajl)',
      &     r4_on_disk=.true.)
       call write_attr(grid,fid,'vmean_ajl','reduction','sum')
+#endif
       call defvar(grid,fid,ia_jl,'ia_ajl(kajl)')
       call defvar(grid,fid,scale_jl,'scale_ajl(kajl)')
       call defvar(grid,fid,denom_jl,'denom_ajl(kajl)')
       call defvar(grid,fid,sname_jl,'sname_ajl(sname_strlen,kajl)')
       call defvar_cdl(grid,fid,cdl_jl,'cdl_ajl(cdl_strlen,kcdl_ajl)')
 
+#ifndef SCM
       call write_attr(grid,fid,'agc','reduction','sum')
       call write_attr(grid,fid,'agc','split_dim',3)
       call defvar(grid,fid,hemis_gc,'hemis_agc(shnhgm,lm,kagc)',
@@ -2408,6 +2522,7 @@ c new_io_subdd
      &     'sname_agc(sname_strlen,kagc)')
       call defvar_cdl(grid,fid,cdl_gc,
      &     'cdl_agc(cdl_strlen,kcdl_agc)')
+#endif
 
       call write_attr(grid,fid,'aij','reduction','sum')
       call write_attr(grid,fid,'aij','split_dim',3)
@@ -2416,9 +2531,11 @@ c new_io_subdd
       call defvar(grid,fid,denom_ij,'denom_aij(kaij)')
       call defvar(grid,fid,name_ij,'sname_aij(sname_strlen,kaij)')
       call defvar_cdl(grid,fid,cdl_ij,'cdl_aij(cdl_strlen,kcdl_aij)')
+#ifndef SCM
       call defvar(grid,fid,hemis_ij,'hemis_aij(one,shnhgm,kaij)',
      &     r4_on_disk=.true.)
       call write_attr(grid,fid,'hemis_aij','reduction','sum')
+#endif
 #ifdef CUBED_SPHERE
       call defvar_cdl(grid,fid,cdl_ij_latlon,
      &     'cdl_aij_latlon(cdl_strlen,kcdl_aij_latlon)')
@@ -2445,6 +2562,7 @@ c new_io_subdd
 #endif
 
 #ifndef CUBED_SPHERE
+#ifndef SCM
       call write_attr(grid,fid,'aijk','reduction','sum')
       call write_attr(grid,fid,'aijk','split_dim',4)
       call defvar(grid,fid,ia_ijk,'ia_aijk(kaijk)')
@@ -2453,6 +2571,7 @@ c new_io_subdd
       call defvar(grid,fid,name_ijk,'sname_aijk(sname_strlen,kaijk)')
       call defvar_cdl(grid,fid,cdl_ijk,
      &     'cdl_aijk(cdl_strlen,kcdl_aijk)')
+#endif
 #endif
 
       call write_attr(grid,fid,'adiurn','reduction','sum')
@@ -2496,23 +2615,27 @@ c new_io_subdd
 !@sum  write_meta_atmacc write atm accumulation metadata to file
 !@auth M. Kelley
       use model_com, only : nday,idacc
-      use diag_com, only : kagc,
-     &     ia_j,ia_jl,ia_ij,ia_ijl,ia_con,ia_gc,ia_ijk,
+      use diag_com, only :
+     &     ia_j,ia_jl,ia_ij,ia_ijl,ia_con,ia_ijk,
      &     name_j,name_reg,sname_jl,name_ij,name_ijl,name_dd,
-     &     name_consrv,sname_gc,name_ijk,nisccp,ntau,
+     &     name_consrv,name_ijk,nisccp,ntau,
      &     cdl_j,cdl_reg,cdl_jl,
      &     cdl_ij,cdl_ijl,cdl_ij_latlon,cdl_ijl_latlon,
-     &     cdl_dd,cdl_hd,cdl_consrv,cdl_gc,cdl_ijk,
-     &     hemis_j,hemis_jl,vmean_jl,hemis_consrv,hemis_gc,vmean_gc,
+     &     cdl_dd,cdl_hd,cdl_consrv,cdl_ijk,
+     &     hemis_j,hemis_jl,vmean_jl,hemis_consrv,
      &     hemis_ij,
      &     scale_j,scale_jl,scale_ij,scale_ijl,scale_dd,scale_con,
-     &     scale_gc,scale_ijk,
+     &     scale_ijk,
      &     iden_j,iden_reg,denom_jl,denom_ij,denom_ijl,denom_dd,
-     &     denom_gc,denom_ijk,
+     &     denom_ijk,
      &     lm,ia_12hr,
      &     isccp_diags,isccp_press,isccp_tau,isccp_late,wisccp,
      &     scale_ijmm,name_ijmm,cdl_ijmm,
      &     write_regions
+#ifndef SCM
+      use gc_com, only : kagc,ia_gc,sname_gc,cdl_gc,hemis_gc,
+     &     vmean_gc,scale_gc,denom_gc
+#endif
       use geom, only : axyp
 #ifdef CUBED_SPHERE
       use geom, only : lon2d_dg,lat2d_dg,lonbds,latbds
@@ -2534,7 +2657,9 @@ c new_io_subdd
 
       call write_dist_data(grid,fid,'axyp',axyp)
 
+#ifndef SCM
       call write_data(grid,fid,'hemis_aj',hemis_j)
+#endif
       call write_data(grid,fid,'ia_aj',ia_j)
       call write_data(grid,fid,'scale_aj',scale_j)
       call write_data(grid,fid,'denom_aj',iden_j)
@@ -2549,20 +2674,25 @@ c new_io_subdd
       call write_cdl(grid,fid,'cdl_areg',cdl_reg)
       endif
 
+#ifndef SCM
       call write_data(grid,fid,'hemis_consrv',hemis_consrv)
+#endif
       call write_data(grid,fid,'ia_consrv',ia_con)
       call write_data(grid,fid,'scale_consrv',scale_con)
       call write_data(grid,fid,'sname_consrv',name_consrv)
       call write_cdl(grid,fid,'cdl_consrv',cdl_consrv)
 
+#ifndef SCM
       call write_data(grid,fid,'hemis_ajl',hemis_jl)
       call write_data(grid,fid,'vmean_ajl',vmean_jl)
+#endif
       call write_data(grid,fid,'ia_ajl',ia_jl)
       call write_data(grid,fid,'scale_ajl',scale_jl)
       call write_data(grid,fid,'denom_ajl',denom_jl)
       call write_data(grid,fid,'sname_ajl',sname_jl)
       call write_cdl(grid,fid,'cdl_ajl',cdl_jl)
 
+#ifndef SCM
       call write_data(grid,fid,'hemis_agc',hemis_gc)
       call write_data(grid,fid,'vmean_agc',vmean_gc)
       call write_data(grid,fid,'ia_agc',ia_gc(1:kagc))
@@ -2570,8 +2700,11 @@ c new_io_subdd
       call write_data(grid,fid,'denom_agc',denom_gc(1:kagc))
       call write_data(grid,fid,'sname_agc',sname_gc(1:kagc))
       call write_cdl(grid,fid,'cdl_agc',cdl_gc)
+#endif
 
+#ifndef SCM
       call write_data(grid,fid,'hemis_aij',hemis_ij)
+#endif
       call write_data(grid,fid,'ia_aij',ia_ij)
       call write_data(grid,fid,'scale_aij',scale_ij)
       call write_data(grid,fid,'denom_aij',denom_ij)
@@ -2595,11 +2728,13 @@ c new_io_subdd
 #endif
 
 #ifndef CUBED_SPHERE
+#ifndef SCM
       call write_data(grid,fid,'ia_aijk',ia_ijk)
       call write_data(grid,fid,'scale_aijk',scale_ijk)
       call write_data(grid,fid,'denom_aijk',denom_ijk)
       call write_data(grid,fid,'sname_aijk',name_ijk)
       call write_cdl(grid,fid,'cdl_aijk',cdl_ijk)
+#endif
 #endif
 
       ntime_dd = (idacc(ia_12hr)/2)*(nday/24)
@@ -2645,10 +2780,15 @@ c new_io_subdd
 c point i/o pointers for diagnostic accumlations to the
 c instances of the arrays used during normal operation.
       use diag_com
+#ifndef SCM
+      use gc_com
+#endif
       implicit none
       aj_ioptr     => aj
       areg_ioptr   => areg
+#ifndef SCM
       agc_ioptr    => agc
+#endif
       return
       end subroutine set_ioptrs_atmacc_default
 
@@ -2656,10 +2796,15 @@ c instances of the arrays used during normal operation.
 c point i/o pointers for diagnostic accumlations to the
 c instances of the arrays containing derived outputs
       use diag_com
+#ifndef SCM
+      use gc_com
+#endif
       implicit none
       aj_ioptr     => aj_out
       areg_ioptr   => areg_out
+#ifndef SCM
       agc_ioptr    => agc_out
+#endif
       return
       end subroutine set_ioptrs_atmacc_extended
 

@@ -1702,7 +1702,14 @@ C**** fluxes associated with variable lake fractions
 #endif
       USE FLUXES
       USE GEOM, only : lat2d
+
 #ifndef CUBED_SPHERE
+#ifndef SCM
+#define USE_DLATM
+#endif
+#endif
+
+#ifdef USE_DLATM
       USE GEOM, only : dlatm,sinip,cosip
 #endif
 #ifdef TRACERS_ON
@@ -1913,7 +1920,7 @@ C**** Ensure that no round off error effects land with ice and earth
         atmocns(k)%grid => grd_dum
         atmocns(k)%lat(:,:) = lat2d(:,:)
         atmocns(k)%focean(:,:) = focean(:,:)
-#ifndef CUBED_SPHERE
+#ifdef USE_DLATM
         atmocns(k)%dlatm = dlatm
         atmocns(k)%sini(:) = sinip(:)
         atmocns(k)%cosi(:) = cosip(:)
@@ -1930,7 +1937,7 @@ C**** Ensure that no round off error effects land with ice and earth
         atmices(k)%grid => grd_dum
         atmices(k)%lat(:,:) = lat2d(:,:)
         atmices(k)%focean(:,:) = focean(:,:)
-#ifndef CUBED_SPHERE
+#ifdef USE_DLATM
         atmices(k)%dlatm = dlatm
         atmices(k)%sini(:) = sinip(:)
         atmices(k)%cosi(:) = cosip(:)

@@ -12,7 +12,7 @@ C-------------------------------------------------------------------------------
       USE SCMCOM , only : SCM_SURFACE_FLAG,NARM,TAUARM,NRINIT,IKT, 
      &                  AMEANPS, SG_T, SG_Q,
      &                  SG_U,SG_V,ASWINDSPD,AQS,AVS,AUS,ATSAIR,ATSKIN,
-     &                  iu_scm_prt,I_TARG,J_TARG,NSTEPSCM
+     &                  iu_scm_prt,NSTEPSCM
       USE RESOLUTION , only : LM, ls1, ptop,psf
       USE ATM_COM , only : P,PK,T,Q,U,V
       use fluxes, only : FLAND,FOCEAN,FLICE,FLAKE0,FEARTH0
@@ -27,18 +27,18 @@ C-------------------------------------------------------------------------------
       INTEGER L,I,J       
 
       call openunit("scm.prt",iu_scm_prt,.false.,.false.)
-      call sync_param( "I_TARG",I_TARG)
-      call sync_param( "J_TARG",J_TARG)
-      write(0,*) 'I/J Targets set ',I_TARG,J_TARG
-      write(iu_scm_prt,*) 'I/J Targets set ',I_TARG,J_TARG
+c      call sync_param( "I_TARG",I_TARG)
+c      call sync_param( "J_TARG",J_TARG)
+      write(0,*) 'I/J Targets set ',1,1
+      write(iu_scm_prt,*) 'I/J Targets set ',1,1
 
-      if ((I_TARG.lt.1 .or. I_TARG.gt. 144) .or.
-     &    (J_TARG.lt.2 .or. J_TARG.gt.89)) then
-        write(iu_scm_prt,*)
-     &             'Invalid grid coordinates for selected box ',
-     &       I_TARG,J_TARG
-        STOP 100
-      endif
+c      if ((I_TARG.lt.1 .or. I_TARG.gt. 144) .or.
+c     &    (J_TARG.lt.2 .or. J_TARG.gt.89)) then
+c        write(iu_scm_prt,*)
+c     &             'Invalid grid coordinates for selected box ',
+c     &       I_TARG,J_TARG
+c        STOP 100
+c      endif
 
       if (SCM_SURFACE_FLAG.eq.0) then
           write(0,*) 
@@ -61,10 +61,10 @@ C-------------------------------------------------------------------------------
       NRINIT = 0                      ! when to reinitialize t,q profiles to data
       IKT = 1                         ! index to data
  
-      write(iu_scm_prt,25) FLAND(I_TARG,J_TARG),
-     &   FOCEAN(I_TARG,J_TARG),FLICE(I_TARG,J_TARG),
-     &   FLAKE0(I_TARG,J_TARG),
-     &   FEARTH0(I_TARG,J_TARG),FEARTH(I_TARG,J_TARG)
+      write(iu_scm_prt,25) FLAND(1,1),
+     &   FOCEAN(1,1),FLICE(1,1),
+     &   FLAKE0(1,1),
+     &   FEARTH0(1,1),FEARTH(1,1)
  25   format(1x,'init flags  land ocean lice lake earth0 earth ',
      &   6(f8.3))
 
@@ -78,14 +78,14 @@ c     initialize variables from SCM data
 
 c     get I_TARG and J_TARG from MODEL_TARGET_COM.f  as included in MODEL_COM 
 c     module   
-      P(I_TARG,J_TARG) = AMEANPS - PTOP     
+      P(1,1) = AMEANPS - PTOP     
 
       call CALC_AMPK(LM)
       
       do L = 1,LM
 c        fill T with potential temperature as ARM provided
-         Q(I_TARG,J_TARG,L) = SG_Q(L)
-         T(I_TARG,J_TARG,L) = SG_T(L)/PK(L,I_TARG,J_TARG)
+         Q(1,1,L) = SG_Q(L)
+         T(1,1,L) = SG_T(L)/PK(L,1,1)
       enddo 
 
 c     also note for U,V initialize boxes around target I,J for mean wind
@@ -95,27 +95,27 @@ c     check at some point into passing mean surface winds.
       
       do L=1,LM
 c        write(iu_scm_prt,'(a10,i3,i5,i5,2(f9.3))') 
-c    &       'L J I u v ',l,I_TARG,J_TARG,sg_u(L),sg_v(l)
-         U(I_TARG,J_TARG,L) = SG_U(L)
-         V(I_TARG,J_TARG,L) = SG_V(L)
+c    &       'L J I u v ',l,1,1,sg_u(L),sg_v(l)
+         U(1,1,L) = SG_U(L)
+         V(1,1,L) = SG_V(L)
       enddo 
 c
 cccc
 c     set surface variables - - - find new variable names
 c 
-      atmsrf%WSAVG(I_TARG,J_TARG)  = ASWINDSPD        !BLDATA(1)  
-      atmsrf%USAVG(I_TARG,J_TARG) = AUS
-      atmsrf%VSAVG(I_TARG,J_TARG) = AVS
+      atmsrf%WSAVG(1,1)  = ASWINDSPD        !BLDATA(1)  
+      atmsrf%USAVG(1,1) = AUS
+      atmsrf%VSAVG(1,1) = AVS
 
-      atmlnd%GTEMP(I_TARG,J_TARG) = ATSKIN        !GDATA(4)    
-      atmocn%GTEMP(I_TARG,J_TARG) = ATSKIN 
-      atmocn%GTEMP2(I_TARG,J_TARG) = ATSKIN 
-      atmocn%GTEMPR(I_TARG,J_TARG) = ATSKIN + TF
-      atmlnd%GTEMPR(I_TARG,J_TARG) = ATSKIN + TF
+      atmlnd%GTEMP(1,1) = ATSKIN        !GDATA(4)    
+      atmocn%GTEMP(1,1) = ATSKIN 
+      atmocn%GTEMP2(1,1) = ATSKIN 
+      atmocn%GTEMPR(1,1) = ATSKIN + TF
+      atmlnd%GTEMPR(1,1) = ATSKIN + TF
 
-      write(iu_scm_prt,120) atmocn%GTEMP(I_TARG,J_TARG),
-     &      atmocn%GTEMP2(I_TARG,J_TARG),atmlnd%GTEMP(I_TARG,J_TARG),
-     &      atmocn%GTEMPR(I_TARG,J_TARG),atmlnd%GTEMPR(I_TARG,J_TARG)
+      write(iu_scm_prt,120) atmocn%GTEMP(1,1),
+     &      atmocn%GTEMP2(1,1),atmlnd%GTEMP(1,1),
+     &      atmocn%GTEMPR(1,1),atmlnd%GTEMPR(1,1)
  120  format(1x,
      &    'initial temps  gtemp11 gtemp21 gtemp14 gtempr1 gtempr4 ',
      &     5(f10.3))
@@ -773,26 +773,26 @@ C
       MODINT = 9999
       if (NRINIT.gt.0) MODINT = MOD(NSTEPSCM,NRINIT)
       
-      write(iu_scm_prt,25) FLAND(I_TARG,J_TARG),
-     &   FOCEAN(I_TARG,J_TARG),FLICE(I_TARG,J_TARG),
-     &   FLAKE0(I_TARG,J_TARG),
-     &   FEARTH0(I_TARG,J_TARG),FEARTH(I_TARG,J_TARG)
+      write(iu_scm_prt,25) FLAND(1,1),
+     &   FOCEAN(1,1),FLICE(1,1),
+     &   FLAKE0(1,1),
+     &   FEARTH0(1,1),FEARTH(1,1)
  25   format(1x,'pass flags  land ocean lice lake earth0 earth ',
      &   6(f8.3))
 c
 c     if you want to change the land/water flags --- this is the place to do it
 CCCC   for this case assume land grid point
-      FLAND(I_TARG,J_TARG) = 1.0
-      FOCEAN(I_TARG,J_TARG) = 0.0
-      FEARTH(I_TARG,J_TARG) = 0.0
-      FLAKE0(I_TARG,J_TARG) = 0.0
-      FLAKE(I_TARG,J_TARG) = 0.0
-      FEARTH0(I_TARG,J_TARG) = 1.0
-      FEARTH(I_TARG,J_TARG) = 1.0
-      write(iu_scm_prt,25) FLAND(I_TARG,J_TARG),
-     &   FOCEAN(I_TARG,J_TARG),FLICE(I_TARG,J_TARG),
-     &   FLAKE0(I_TARG,J_TARG),
-     &   FEARTH0(I_TARG,J_TARG),FEARTH(I_TARG,J_TARG)
+      FLAND(1,1) = 1.0
+      FOCEAN(1,1) = 0.0
+      FEARTH(1,1) = 0.0
+      FLAKE0(1,1) = 0.0
+      FLAKE(1,1) = 0.0
+      FEARTH0(1,1) = 1.0
+      FEARTH(1,1) = 1.0
+      write(iu_scm_prt,25) FLAND(1,1),
+     &   FOCEAN(1,1),FLICE(1,1),
+     &   FLAKE0(1,1),
+     &   FEARTH0(1,1),FEARTH(1,1)
 
 c
 c
@@ -800,7 +800,7 @@ c
       call pass_scm_layers 
 
 c * * * * indices
-      P(I_TARG,J_TARG) = AMEANPS - PTOP   
+      P(1,1) = AMEANPS - PTOP   
       call CALC_AMPK(LM)
  
  
@@ -812,50 +812,50 @@ C     if it is time to reinitialize them
 
       if (MODINT.eq.0) then
 c         do L = 1,LM
-c            write(iu_scm_prt,300) L,Q(I_TARG,J_TARG,L),
-c    &                  T(I_TARG,J_TARG,L)
+c            write(iu_scm_prt,300) L,Q(1,1,L),
+c    &                  T(1,1,L)
 c300         format(1x,'pass_SCMDATA OLD L Q T ',i5,E10.4,f8.2)
 c         enddo
           do L = 1,LM
-             Q(I_TARG,J_TARG,L) = SG_Q(L)
+             Q(1,1,L) = SG_Q(L)
 C            get potential temperature 
 C* * * * check how to do this now
-             T(I_TARG,J_TARG,L) = SG_T(L) / PK(L,I_TARG,J_TARG)    
-c            write(iu_scm_prt,310) L,Q(I_TARG,J_TARG,L),SG_T(L),
-c    &                     T(I_TARG,J_TARG,L)
+             T(1,1,L) = SG_T(L) / PK(L,1,1)    
+c            write(iu_scm_prt,310) L,Q(1,1,L),SG_T(L),
+c    &                     T(1,1,L)
 c310         format(1x,'NEW ICS  L Q SGT T ',i5,E10.4,f9.2,f8.2)
           enddo 
-          atmlnd%GTEMP(I_TARG,J_TARG) = ATSKIN        !GDATA(4)
-          atmocn%GTEMP(I_TARG,J_TARG) = ATSKIN 
-          atmocn%GTEMP2(I_TARG,J_TARG) = ATSKIN  
-          atmocn%GTEMPR(I_TARG,J_TARG) = ATSKIN + TF
-          atmlnd%GTEMPR(I_TARG,J_TARG) = ATSKIN + TF
-          write(iu_scm_prt,340) atmlnd%GTEMP(I_TARG,J_TARG),
-     &       atmocn%GTEMP(I_TARG,J_TARG),atmocn%GTEMP2(I_TARG,J_TARG),
-     &       atmocn%GTEMPR(I_TARG,J_TARG)
+          atmlnd%GTEMP(1,1) = ATSKIN        !GDATA(4)
+          atmocn%GTEMP(1,1) = ATSKIN 
+          atmocn%GTEMP2(1,1) = ATSKIN  
+          atmocn%GTEMPR(1,1) = ATSKIN + TF
+          atmlnd%GTEMPR(1,1) = ATSKIN + TF
+          write(iu_scm_prt,340) atmlnd%GTEMP(1,1),
+     &       atmocn%GTEMP(1,1),atmocn%GTEMP2(1,1),
+     &       atmocn%GTEMPR(1,1)
  340      format(1x,'SCM GTEMP14 GTEMP11 GTEMP21 GTEMPR1 ',4(f10.3))
       endif
 
       do L=1,LM
-         U(I_TARG,J_TARG,L) = SG_U(L)
-         V(I_TARG,J_TARG,L) = SG_V(L)
+         U(1,1,L) = SG_U(L)
+         V(1,1,L) = SG_V(L)
       enddo 
 c
 c     set surface variables 
 c    
 
-      atmsrf%WSAVG(I_TARG,J_TARG)  = ASWINDSPD        !BLDATA(1)
-      atmsrf%USAVG(I_TARG,J_TARG) = AUS
-      atmsrf%VSAVG(I_TARG,J_TARG) = AVS
+      atmsrf%WSAVG(1,1)  = ASWINDSPD        !BLDATA(1)
+      atmsrf%USAVG(1,1) = AUS
+      atmsrf%VSAVG(1,1) = AVS
       if (SCM_SURFACE_FLAG.eq.1) then
-          atmlnd%GTEMP(I_TARG,J_TARG) = ATSKIN        !GDATA(4)
-          atmocn%GTEMP(I_TARG,J_TARG) = ATSKIN   
-          atmocn%GTEMP2(I_TARG,J_TARG) = ATSKIN   
-          atmocn%GTEMPR(I_TARG,J_TARG) = ATSKIN+TF
-          atmlnd%GTEMPR(I_TARG,J_TARG) = ATSKIN + TF
-          write(iu_scm_prt,360) atmlnd%GTEMP(I_TARG,J_TARG),
-     &       atmocn%GTEMP(I_TARG,J_TARG),atmocn%GTEMP2(I_TARG,J_TARG),
-     &       atmocn%GTEMPR(I_TARG,J_TARG),atmlnd%GTEMPR(I_TARG,J_TARG)
+          atmlnd%GTEMP(1,1) = ATSKIN        !GDATA(4)
+          atmocn%GTEMP(1,1) = ATSKIN   
+          atmocn%GTEMP2(1,1) = ATSKIN   
+          atmocn%GTEMPR(1,1) = ATSKIN+TF
+          atmlnd%GTEMPR(1,1) = ATSKIN + TF
+          write(iu_scm_prt,360) atmlnd%GTEMP(1,1),
+     &       atmocn%GTEMP(1,1),atmocn%GTEMP2(1,1),
+     &       atmocn%GTEMPR(1,1),atmlnd%GTEMPR(1,1)
  360      format(1x,
      &      'pass SCM GTEMP14 GTEMP11 GTEMP21 GTEMPR1 GTEMPR4',
      &        5(f10.3))

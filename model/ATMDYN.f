@@ -2572,7 +2572,8 @@ c
       use resolution, only : im,jm,lm
       USE MODEL_COM, only : MDIAG,MDYN
       USE DYNAMICS, only : dsig
-      USE DIAG_COM, only : speca,nspher,klayer,imh,fim,jeq
+      USE GC_COM, only : speca,nspher,klayer,jeq
+      USE DIAG_COM, only : imh,fim
       USE ATMDYN, only : FCUVA,FCUVB
       USE DOMAIN_DECOMP_ATM, only: grid, getDomainBounds
       USE DOMAIN_DECOMP_1D, only : GLOBALSUM, WRITE_PARALLEL
@@ -2698,7 +2699,8 @@ C****
       use resolution, only : im,jm,lm
       USE ATM_COM, only : q
       USE SOMTQ_COM, only : qmom
-      USE DIAG_COM, only: agc=>agc_loc,byim
+      USE DIAG_COM, only: byim
+      USE GC_COM, only: agc=>agc_loc
       USE GCDIAG, only : jl_totntlh,jl_zmfntlh,jl_totvtlh,jl_zmfvtlh
       Use ATM_COM, Only: PS,MB,MMA,MWs
       USE TRACER_ADV, only:

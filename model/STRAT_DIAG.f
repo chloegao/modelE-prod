@@ -48,7 +48,8 @@ C****
       Use DYNAMICS,  Only: SD
       USE DIAG_COM, only : byim
 #endif
-      USE DIAG_COM, only : agc=>agc_loc,kagc,kep,pl=>plm
+      USE DIAG_COM, only : pl=>plm
+      USE GC_COM, only : agc=>agc_loc,kagc,kep
       USE ATM_COM, only : pdsigl00
       IMPLICIT NONE
 
@@ -594,7 +595,7 @@ C****     U - Zonal wind (corners) (m s-1)
       USE DOMAIN_DECOMP_ATM, only: grid
       USE DOMAIN_DECOMP_1D, only : getDomainBounds
       USE RESOLUTION, only : im,jm,lm
-      USE  DIAG_COM, only : agc=>agc_loc,KAGC
+      USE GC_COM, only : agc=>agc_loc,KAGC
       REAL*8, INTENT(INOUT), 
      *        DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
      *                                                        U
@@ -632,10 +633,11 @@ C****
       USE RESOLUTION, only : lm
       USE MODEL_COM, only : dtsrce=>dtsrc,idacc
       USE DYNAMICS, only : dsig
-      USE DIAG_COM, only : ndaa,ajl,kagc,kep,agc,jl_damdc,jl_dammc
+      USE DIAG_COM, only : ndaa,ajl,jl_damdc,jl_dammc
      &     ,jl_dudfmdrg,jl_dumtndrg,jl_dushrdrg,jl_dudtsdif,jl_dudtvdif
      &     ,jl_dumcdrgm10,jl_dumcdrgp10,jl_dumcdrgm20,jl_dumcdrgp20
      &     ,jl_dumcdrgm40,jl_dumcdrgp40
+      USE GC_COM, only : kagc,kep,agc
      &     ,lname=>lname_gc,sname=>sname_gc,units=>units_gc,pow=>pow_gc
       USE ATM_COM, only : pmidl00,pdsigl00
 #ifdef CUBED_SPHERE

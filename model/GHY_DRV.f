@@ -736,7 +736,7 @@ c****
       use model_com, only : dtsrc,nday,itime
 #ifdef SCM
       use SCMCOM , only : SCM_SURFACE_FLAG,ASH,ALH,iu_scm_prt,
-     &                    ATSKIN,NSTEPSCM, I_TARG,J_TARG
+     &                    ATSKIN,NSTEPSCM
       use SCMDIAG, only : EVPFLX,SHFLX
 #endif
       use DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, AM_I_ROOT
@@ -1317,10 +1317,9 @@ c**** wearth+aiearth are used in radiation only
      &     w(1,1) / ( thets(1,1)*dz_ij(i,j,1) )
 
 #ifdef SCM
-      if ((I.eq.I_TARG.and.J.eq.J_TARG)
-     &     .and.SCM_SURFACE_FLAG.ge.1) then
-           atmlnd%gtemp(i,j) = ATSKIN
-           atmlnd%gtempr(i,j) = ATSKIN + tf
+      if (SCM_SURFACE_FLAG.ge.1) then
+        atmlnd%gtemp(i,j) = ATSKIN
+        atmlnd%gtempr(i,j) = ATSKIN + tf
       endif
 #endif
 c**** calculate fluxes using implicit time step for non-ocean points
@@ -1337,31 +1336,24 @@ C**** calculate correction for different TG in radiation and surface
 #ifdef SCM
 c     if SCM use sensible and latent heat fluxes provided by ARM
 c        values
-      if (i.eq.I_TARG.and.j.eq.J_TARG) then
-          if (SCM_SURFACE_FLAG.eq.1) then
-             atmlnd%dth1(i,j)=atmlnd%dth1(i,j)
-     &             +ash*pbl_args%dtsurf*ptype/(sha*ma1)
-             atmlnd%dq1(i,j) =atmlnd%dq1(i,j)
-     &             +alh*pbl_args%dtsurf*ptype/(ma1*lhe)
-             EVPFLX = EVPFLX + ALH*ptype
-             SHFLX = SHFLX + ASH*ptype
-             write(iu_scm_prt,981) i,ptype,atmlnd%dth1(i,j),
-     &                  atmlnd%dq1(i,j),
-     &                  EVPFLX,SHFLX
+      if (SCM_SURFACE_FLAG.eq.1) then
+        atmlnd%dth1(i,j)=atmlnd%dth1(i,j)
+     &       +ash*pbl_args%dtsurf*ptype/(sha*ma1)
+        atmlnd%dq1(i,j) =atmlnd%dq1(i,j)
+     &       +alh*pbl_args%dtsurf*ptype/(ma1*lhe)
+        EVPFLX = EVPFLX + ALH*ptype
+        SHFLX = SHFLX + ASH*ptype
+        write(iu_scm_prt,981) i,ptype,atmlnd%dth1(i,j),
+     &       atmlnd%dq1(i,j),
+     &       EVPFLX,SHFLX
  981         format(1x,'EARTH ARM   i ptype dth1 dq1 evpflx shflx ',
      &            i5,f9.4,f9.4,f9.5,f11.5,f11.5)
-          elseif (SCM_SURFACE_FLAG.eq.2) then
-             atmlnd%dth1(i,j)=atmlnd%dth1(i,j)-(SHDT+dLWDT)*
+      elseif (SCM_SURFACE_FLAG.eq.2) then
+        atmlnd%dth1(i,j)=atmlnd%dth1(i,j)-(SHDT+dLWDT)*
      &       ptype/(sha*ma1)
-             atmlnd%dq1(i,j) =atmlnd%dq1(i,j)+aevap*ptype/ma1
+        atmlnd%dq1(i,j) =atmlnd%dq1(i,j)+aevap*ptype/ma1
 c            write(iu_scm_prt,982) i,ptype,atmlnd%dth1(i,j),dq1(i,j)
 c982         format(1x,'EARTH GCM    i ptype dth1 dq1 ',i5,f9.4,f9.4,f9.5)
-          endif
-      else
-          atmlnd%dth1(i,j)=atmlnd%dth1(i,j)-(SHDT+dLWDT)*ptype/(sha*ma1)
-          atmlnd%dq1(i,j) =atmlnd%dq1(i,j)+aevap*ptype/ma1
-          atmlnd%sensht(i,j) = atmlnd%sensht(i,j)+SHDT
-          atmlnd%latht(i,j) = atmlnd%latht(i,j) + EVHDT
       endif
 #else
       atmlnd%dth1(i,j)=-(SHDT+dLWDT)/(sha*ma1)
@@ -1487,7 +1479,6 @@ c***********************************************************************
 #ifdef SCM
       use SCMDIAG, only : EVPFLX,SHFLX
       use SCMCOM, only : SCM_SURFACE_FLAG,iu_scm_prt,ATSKIN
-     &     ,I_TARG,J_TARG
 #endif
       use DOMAIN_DECOMP_ATM, only : grid
       use geom, only : axyp,lat2d
@@ -1684,13 +1675,11 @@ c**** quantities accumulated for regions in diagj
 #endif
 
 #ifdef SCM
-      if (J.eq.J_TARG.and.I.eq.I_TARG) then
-        if (SCM_SURFACE_FLAG.eq.0.or.SCM_SURFACE_FLAG.eq.2) then
-          EVPFLX = EVPFLX + aevap*PTYPE*lhe/DTSURF
-          SHFLX  = SHFLX  - SHDT *PTYPE/DTSURF
+      if (SCM_SURFACE_FLAG.eq.0.or.SCM_SURFACE_FLAG.eq.2) then
+        EVPFLX = EVPFLX + aevap*PTYPE*lhe/DTSURF
+        SHFLX  = SHFLX  - SHDT *PTYPE/DTSURF
 c             write(iu_scm_prt,*) 'ghy_drv  evpflx shflx ptype ',
 c    &                  EVPFLX,SHFLX,ptype
-        endif
       endif
 #endif
 
@@ -1765,6 +1754,7 @@ c**** modifications needed for split of bare soils into 2 types
       use snow_drvm, only : snow_cover_coef2=>snow_cover_coef
      &     ,snow_cover_same_as_rad
       use pario, only : par_open,par_close,read_dist_data
+      use filemanager, only : file_exists
       implicit none
 
       real*8, intent(in) :: dtsurf
@@ -1827,19 +1817,23 @@ c**** read land surface parameters or use defaults
       if ( ghy_default_data == 0 ) then ! read from files
 
 c**** read soils parameters
-        fid = par_open(grid,'SOIL','read')
-        call read_dist_data(grid,fid,'dz',dz_ij)
-        call read_dist_data(grid,fid,'q',q_ij)
-        call read_dist_data(grid,fid,'qk',qk_ij)
-        call read_dist_data(grid,fid,'sl',sl_ij)
-        call par_close(grid,fid)
+        if(file_exists('SOIL')) then
+          fid = par_open(grid,'SOIL','read')
+          call read_dist_data(grid,fid,'dz',dz_ij)
+          call read_dist_data(grid,fid,'q',q_ij)
+          call read_dist_data(grid,fid,'qk',qk_ij)
+          call read_dist_data(grid,fid,'sl',sl_ij)
+          call par_close(grid,fid)
+        endif
 
 c**** read topmodel parameters
-        fid = par_open(grid,'TOP_INDEX','read')
-        top_index_ij = 0. ! in case top_index is absent in the file
-        call read_dist_data(grid,fid,'top_index',top_index_ij)
-        call read_dist_data(grid,fid,'top_dev',top_dev_ij)
-        call par_close(grid,fid)
+        if(file_exists('TOP_INDEX')) then
+          fid = par_open(grid,'TOP_INDEX','read')
+          top_index_ij = 0.     ! in case top_index is absent in the file
+          call read_dist_data(grid,fid,'top_index',top_index_ij)
+          call read_dist_data(grid,fid,'top_dev',top_dev_ij)
+          call par_close(grid,fid)
+        endif
 
       else  ! reset to default data
         if ( istart>0 .and. istart<8 ) then ! reset all
@@ -1949,7 +1943,6 @@ c**** cosday, sinday should be defined (reset once a day in daily_earth)
       use model_com, only : itime
 #ifdef SCM
       use SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
-     &     ,I_TARG,J_TARG
 #endif
       use fluxes, only : atmlnd,focean, flice
 #ifdef USE_ENT
@@ -2244,10 +2237,9 @@ c**** set gtemp array
             atmlnd%gtemp(i,j)=tsns_ij(i,j)
             atmlnd%gtempr(i,j) =tearth(i,j)+tf
 #ifdef SCM
-            if ((i.eq.I_TARG.and.j.eq.J_TARG)
-     &                .and.SCM_SURFACE_FLAG.ge.1) then
-                 atmlnd%gtemp(i,j) = ATSKIN
-                 atmlnd%gtempr(i,j) = ATSKIN + tf
+            if (SCM_SURFACE_FLAG.ge.1) then
+              atmlnd%gtemp(i,j) = ATSKIN
+              atmlnd%gtempr(i,j) = ATSKIN + tf
             endif
 #endif
           end if
@@ -4672,7 +4664,6 @@ c**** Also reset snow fraction for albedo computation
 #endif
 #ifdef SCM
       use SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
-     &     ,I_TARG,J_TARG
 #endif
       use FLUXES, only : atmlnd
       !use veg_com, only : afb
@@ -4754,10 +4745,9 @@ c**** wearth+aiearth are used in radiation only
           atmlnd%gtemp(i,j)=tsns_ij(i,j)
           atmlnd%gtempr(i,j) =tearth(i,j)+tf
 #ifdef SCM
-          if ((I.eq.I_TARG.and.j.eq.J_TARG)
-     &            .and.SCM_SURFACE_FLAG.ge.1) then
-               atmlnd%gtemp(i,j) = ATSKIN
-               atmlnd%gtempr(i,j) = ATSKIN + tf
+          if (SCM_SURFACE_FLAG.ge.1) then
+            atmlnd%gtemp(i,j) = ATSKIN
+            atmlnd%gtempr(i,j) = ATSKIN + tf
           endif
 #endif
 

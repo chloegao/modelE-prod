@@ -638,6 +638,7 @@ c**** Modify the vegetation fractions
       subroutine get_vdata(vdata)
       use DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds!, AM_I_ROOT
       use pario, only : par_open,par_close,read_dist_data
+      use filemanager, only : file_exists
       !use vegetation, only : cond_scheme,vegCO2X_off,crops_yr
       !use veg_com
       !use model_com, only : jyear,focean
@@ -674,12 +675,18 @@ c**** read land surface parameters or use defaults
      &     'evergreen      ','rainforest     ','cultivation    ',
      &     'darksoil       '
      &     /)
-      fid = par_open(grid,'VEG','read')
-      do k=1,size(vegnames)
-        vdata(:,:,k) = 0. ! if type is absent in file, assume 0
-        call read_dist_data(grid,fid,trim(vegnames(k)),vdata(:,:,k))
-      enddo
-      call par_close(grid,fid)
+
+      if(file_exists('VEG')) then
+        fid = par_open(grid,'VEG','read')
+        do k=1,size(vegnames)
+          vdata(:,:,k) = 0.     ! if type is absent in file, assume 0
+          call read_dist_data(grid,fid,trim(vegnames(k)),vdata(:,:,k))
+        enddo
+        call par_close(grid,fid)
+      else
+        vdata(:,:,:) = 0.
+        vdata(:,:,1) = 1. ! all bare soil if no input data available
+      endif
 
 c**** zero-out vdata(11) until it is properly read in
       do k=N_COVERTYPES-N_OTHER+1, N_COVERTYPES

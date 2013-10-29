@@ -1,5 +1,6 @@
 #include "rundeck_opts.h"
 
+#ifndef SCM
 #ifdef CUBED_SPHERE
       SUBROUTINE PGRAD_PBL
 !@sum  PGRAD_PBL calculates surface/layer 1 pressure gradients for pbl
@@ -177,6 +178,7 @@ C**** to be used in the PBL, at the primary grids
       END IF
 
       END SUBROUTINE PGRAD_PBL
+#endif
 #endif
 
       SUBROUTINE CALC_PIJL(lmax,p,pijl)

@@ -21,7 +21,7 @@ module CLOUDS
 #endif
 #ifdef SCM
   use SCMCOM, only: SCM_SAVE_T,SCM_SAVE_Q,SCM_DEL_T, &
-       SCM_DEL_Q,SCM_ATURB_FLAG,iu_scm_prt,NRINIT,I_TARG,J_TARG
+       SCM_DEL_Q,SCM_ATURB_FLAG,iu_scm_prt,NRINIT
   use SCMDIAG, only : WCUSCM,WCUALL,WCUDEEP,PRCCDEEP,NPRCCDEEP, &
        MPLUMESCM,MPLUMEALL,MPLUMEDEEP, &
        ENTSCM,ENTALL,ENTDEEP,DETRAINDEEP, &
@@ -769,11 +769,9 @@ contains
     SAVWL1=0.
     LHP=0
 #ifdef SCM
-    if (i_debug.eq.I_TARG .and. j_debug.eq.J_TARG) then
-      WCUDEEP=0. ; MPLUMEDEEP=0. ; ENTDEEP=0.
-      DETRAINDEEP = 0. ; PRCCDEEP = 0. ; NPRCCDEEP = 0.
-      TPALL = 0. ; MCCOND = 0. ; PRCCGRP = 0. ; PRCCICE = 0.
-    endif
+    WCUDEEP=0. ; MPLUMEDEEP=0. ; ENTDEEP=0.
+    DETRAINDEEP = 0. ; PRCCDEEP = 0. ; NPRCCDEEP = 0.
+    TPALL = 0. ; MCCOND = 0. ; PRCCGRP = 0. ; PRCCICE = 0.
 #endif
     SAVE1L=0.
     SAVE2L=0.
@@ -815,10 +813,8 @@ contains
     TDNL=0.
     QDNL=0.
 #ifdef SCM
-    if (i_debug.eq.I_TARG.and.j_debug.eq.J_TARG) then
-      CUMFLX=0.
-      DWNFLX=0.
-    endif
+    CUMFLX=0.
+    DWNFLX=0.
 #endif
     !**** save initial values (which will be updated after subsid)
     SM1=SM
@@ -1037,11 +1033,9 @@ contains
             ENT(L)=0.     ;  DET(L)=0.    ;    BUOY(L)=0.
             WCU(L)=0.     ; SMDNL(L)=0.   ;  QMDNL(L)=0.
 #ifdef SCM
-            if (i_debug.eq.I_TARG .and. j_debug.eq.J_TARG) then
-              WCUALL(L,IC,LMIN) = 0.
-              MPLUMEALL(L,IC,LMIN) = 0.
-              ENTALL(L,IC,LMIN) = 0.
-            endif
+            WCUALL(L,IC,LMIN) = 0.
+            MPLUMEALL(L,IC,LMIN) = 0.
+            ENTALL(L,IC,LMIN) = 0.
 #endif
           end do
           SMOMDNL(:,:)=0.   ;  QMOMDNL(:,:)=0.
@@ -1723,16 +1717,14 @@ contains
             if (WCU(L).ge.0.D0) WCU(L)=min(50.D0,WCU(L))
             if (WCU(L).lt.0.D0) WCU(L)=max(-50.D0,WCU(L))
 #ifdef SCM
-            if (i_debug.eq.I_TARG .and. j_debug.eq.J_TARG) then
               !     save cumulus updraft speed and plume temperature
-              WCUALL(L,IC,LMIN) = WCU(L)
-              MPLUMEALL(L,IC,LMIN) = CCM(L-1)
-              ENTALL(L,IC,LMIN) = 1000.D0*ENT(L)
-              TPALL(L,IC,LMIN) = TP   ! Save plume temp ????? THIS IS NOT CORRECT
+            WCUALL(L,IC,LMIN) = WCU(L)
+            MPLUMEALL(L,IC,LMIN) = CCM(L-1)
+            ENTALL(L,IC,LMIN) = 1000.D0*ENT(L)
+            TPALL(L,IC,LMIN) = TP   ! Save plume temp ????? THIS IS NOT CORRECT
               !     write(iu_scm_prt,885) LMIN,ic,L,WCU(L), WCUALL(L,IC,LMIN)
               !885  format(1x,'mstcnv  lmin ic l wcu wcuall ',
               !    *      i5,i5,i5,2(f12.6))
-            endif
 #endif
             !**** UPDATE ALL QUANTITIES CARRIED BY THE PLUME
             !      SVLATL(L)=VLAT(L)
@@ -1803,25 +1795,23 @@ contains
         TAUMCL(LMIN:LMAX)=TAUMCL(LMIN:LMAX)+TAUMC1(LMIN:LMAX)
 
 #ifdef SCM
-        if (i_debug.eq.I_TARG .and. j_debug.eq.J_TARG) then
-          if(PLE(LMIN)-PLE(LMAX+1).ge.450.) then
+        if(PLE(LMIN)-PLE(LMAX+1).ge.450.) then
             !       write(iu_scm_prt,887) LMIN,LMAX,IC
             !887    format(1x,'mstcnv -- deep lmin lmax ic ',i5,i5,i5)
-            do L=LMIN,LMAX
-              WCUDEEP(L,IC) = WCU(L)
-              MPLUMEDEEP(L,IC) = CCM(L-1)
-              ENTDEEP(L,IC) = 1000.D0*ENT(L)
-              if(IC.eq.1) then
-                SAVWL(L)=WCU(L)
-              else
-                SAVWL1(L)=WCU(L)
-              end if
+          do L=LMIN,LMAX
+            WCUDEEP(L,IC) = WCU(L)
+            IF(L.GT.1) MPLUMEDEEP(L,IC) = CCM(L-1)
+            ENTDEEP(L,IC) = 1000.D0*ENT(L)
+            if(IC.eq.1) then
+              SAVWL(L)=WCU(L)
+            else
+              SAVWL1(L)=WCU(L)
+            end if
               !       write(iu_scm_prt,888) ic,L,WCUDEEP(L,ic)
               !888    format(1x,'mstcnv--  deep  ic l wcudeep ',
               !    *                     i5,i5,f10.4)
             end do
-          end if
-        endif
+        end if
 #endif
 
         if(PL(LMIN).lt.850.d0) then
@@ -2291,12 +2281,10 @@ contains
           DTOTW(L)=DTOTW(L)+SLHE*(QM(L)-QMT(L)+COND(L))*FMC1
           DDMFLX(L)=DDMFLX(L)+DDM(L)*FMC1
 #ifdef SCM
-          if (i_debug.eq.I_TARG.and.j_debug.eq.J_TARG) then
-            CUMFLX(L) = 100.*MCFLX(L)*bygrav/dtsrc
-            DWNFLX(L) = 100.*DDMFLX(L)*bygrav/dtsrc
+          CUMFLX(L) = 100.*MCFLX(L)*bygrav/dtsrc
+          DWNFLX(L) = 100.*DDMFLX(L)*bygrav/dtsrc
             !           write(iu_scm_prt,*) 'L CUMFLX DWNFLX ',
             !    &            L,CUMFLX(L),DWNFLX(L)
-          endif
 #endif
         end do
         !**** save new 'environment' profile for static stability calc.
@@ -2321,18 +2309,17 @@ contains
             FCLW=0.
             if (COND(L).gt.0) FCLW=(COND(L)-CONDP(L))/COND(L)
 #ifdef SCM
-            if (i_debug.eq.I_TARG .and. j_debug.eq.J_TARG) then
               !ccc  in g/m3
               !            PRCCDEEP(L,IC,LMIN) = FMC1*1.d5*CONDP(L) *         ! save COND
               !    *             BYAM(L)*PL(L)/(RGAS*TL(L))
               !            NPRCCDEEP(L,IC,LMIN) = FMC1*1.d5*(COND(l)-CONDP(L)) *
               !    *             BYAM(L)*PL(L)/(RGAS*TL(L))
               !ccc  in kg/kg
-              PRCCDEEP(L,IC,LMIN) = FMC1*CONDP(L)*BYAM(L)       ! save COND
-              NPRCCDEEP(L,IC,LMIN) = FMC1*(COND(l)-CONDP(L))*BYAM(L)
-              PRCCGRP(L,IC,LMIN) = FMC1*CONDGP(L)*BYAM(L)
-              PRCCICE(L,IC,LMIN) = FMC1*CONDIP(L)*BYAM(L)
-              DETRAINDEEP(L,IC,LMIN) = FCLW*COND(L)*BYAM(L)*FMC1
+            PRCCDEEP(L,IC,LMIN) = FMC1*CONDP(L)*BYAM(L)       ! save COND
+            NPRCCDEEP(L,IC,LMIN) = FMC1*(COND(l)-CONDP(L))*BYAM(L)
+            PRCCGRP(L,IC,LMIN) = FMC1*CONDGP(L)*BYAM(L)
+            PRCCICE(L,IC,LMIN) = FMC1*CONDIP(L)*BYAM(L)
+            DETRAINDEEP(L,IC,LMIN) = FCLW*COND(L)*BYAM(L)*FMC1
               !            write(iu_scm_prt,889) lmin,ic,FMC1,L,
               !    *              PRCCDEEP(L,IC,LMIN)*1000.,
               !    *              NPRCCDEEP(L,IC,LMIN)*1000.,TPALL(L,IC,LMIN),
@@ -2341,7 +2328,6 @@ contains
               !889         format(1x,
               !    *        'mc--dp lmin ic fmc1 l prcc nprcc tp grp ice',
               !    *              2(i4),f8.3,i4,f9.5,f9.5,f8.2,f9.5,f9.5)
-            endif
 #endif
             !**** check in case saved condensate is different phase
             if (SVLATL(L).gt.0 .and. SVLATL(L).ne.VLAT(L)) HEAT1(L)= &
@@ -2370,11 +2356,9 @@ contains
         !****
 
 #ifdef SCM
-        if (i_debug.eq.I_TARG .and. j_debug.eq.J_TARG) then
-          do L=1,LM
-            MCCOND(L,IC,LMIN) = COND(L)*FMC1*BYAM(L)
-          enddo
-        endif
+        do L=1,LM
+          MCCOND(L,IC,LMIN) = COND(L)*FMC1*BYAM(L)
+        enddo
 #endif
         PRCP=COND(LMAX)
         PRHEAT=CDHEAT(LMAX)
@@ -2748,11 +2732,9 @@ contains
     WCONST=WMU*(1.-PEARTH)+WMUL*PEARTH
     WMSUM=0.
 #ifdef SCM
-    if (i_debug.eq.I_TARG.and.j_debug.eq.J_TARG) then
-      SCM_LWP_MC = 0.d0
-      SCM_IWP_MC = 0.d0
-      SCM_WM_MC = 0.d0
-    endif
+    SCM_LWP_MC = 0.d0
+    SCM_IWP_MC = 0.d0
+    SCM_WM_MC = 0.d0
 #endif
 #ifdef CLD_AER_CDNC
     WMCLWP=0.  ; WMCTWP=0. ; ACDNWM=0. ; ACDNIM=0.
@@ -2764,11 +2746,9 @@ contains
       TEMWM=(TAUMCL(L)-SVWMXL(L)*AIRM(L))*1.d2*BYGRAV
       if(TL(L).ge.TF) WMSUM=WMSUM+TEMWM ! pick up water path
 #ifdef SCM
-      if (i_debug.eq.I_TARG.and.j_debug.eq.J_TARG) then
-        SCM_WM_MC(L) = TAUMCL(L)*BYAM(L)-SVWMXL(L)
-        if (TL(L).ge.TF) SCM_LWP_MC = SCM_LWP_MC + TEMWM
-        if (TL(L).lt.TF) SCM_IWP_MC = SCM_IWP_MC + TEMWM
-      endif
+      SCM_WM_MC(L) = TAUMCL(L)*BYAM(L)-SVWMXL(L)
+      if (TL(L).ge.TF) SCM_LWP_MC = SCM_LWP_MC + TEMWM
+      if (TL(L).lt.TF) SCM_IWP_MC = SCM_IWP_MC + TEMWM
 #endif
 
 
@@ -3369,12 +3349,10 @@ contains
       TH(L)=TL(L)/PLK(L)
 #ifdef SCM
       !     preserving T for difference from before updating with ARM data
-      if (i_debug.eq.I_TARG .and. j_debug.eq.J_TARG) then
-        if (NRINIT.ne.0) then
-          TH(L) = SCM_SAVE_T(L)*PLK(L)+SCM_DEL_T(L)+ &
-               HCHANG/(SHA*FSSL(L)+teeny)
-          TH(L) = TH(L)/PLK(L)
-        endif
+      if (NRINIT.ne.0) then
+        TH(L) = SCM_SAVE_T(L)*PLK(L)+SCM_DEL_T(L)+ &
+             HCHANG/(SHA*FSSL(L)+teeny)
+        TH(L) = TH(L)/PLK(L)
       endif
 #endif
 
@@ -4245,9 +4223,7 @@ contains
         if(CM.gt.BYDTsrc) CM=BYDTsrc
         PREP(L)=WMX(L)*CM
 #ifdef SCM
-        if (i_debug.eq.I_TARG .and. j_debug.eq.J_TARG) then
-          PRESAV(L)=PREP(L)*DTsrc
-        endif
+        PRESAV(L)=PREP(L)*DTsrc
 #endif
         if(TL(L).lt.TF.and.LHX.eq.LHE) then ! check snowing pdf
           PRATM=1d5*COEFM*WMX(L)*PL(L)/(WCONST*FCLD*TL(L)*RGAS+teeny)
@@ -4337,9 +4313,7 @@ contains
           PREP(L)=max(0d0,(WMX(L)-DWDT)*BYDTsrc) ! precip out cloud water
           WMPR(L)=PREP(L)*DTsrc ! precip water (for opt. depth calculation)
 #ifdef SCM
-          if (i_debug.eq.I_TARG .and. j_debug.eq.J_TARG) then
-            PRESAV(L)=PREP(L)*DTsrc
-          endif
+          PRESAV(L)=PREP(L)*DTsrc
 #endif
         end if
         ER(L)=(1.-RH(L))**ERP*LHX*PREBAR(L+1)*GbyAIRM0 ! GRAV/AIRM0
@@ -5045,10 +5019,8 @@ contains
     !**** COMPUTE CLOUD PARTICLE SIZE AND OPTICAL THICKNESS
     WMSUM=0.
 #ifdef SCM
-    if (i_debug.eq.I_TARG.and.j_debug.eq.J_TARG) then
-      SCM_LWP_SS = 0.d0
-      SCM_IWP_SS = 0.d0
-    endif
+    SCM_LWP_SS = 0.d0
+    SCM_IWP_SS = 0.d0
 #endif
 #ifdef CLD_AER_CDNC
     ACDNWS=0.
@@ -5277,10 +5249,8 @@ contains
       if(TAUSSL(L).gt.100.) TAUSSL(L)=100.
       if(LHX.eq.LHE) WMSUM=WMSUM+TEM      ! pick up water path
 #ifdef SCM
-      if (i_debug.eq.I_TARG.and.j_debug.eq.J_TARG) then
-        if (LHX.eq.LHE) SCM_LWP_SS = SCM_LWP_SS + TEM
-        if (LHX.eq.LHS) SCM_IWP_SS = SCM_IWP_SS + TEM
-      endif
+      if (LHX.eq.LHE) SCM_LWP_SS = SCM_LWP_SS + TEM
+      if (LHX.eq.LHS) SCM_IWP_SS = SCM_IWP_SS + TEM
 #endif
 #ifdef CLD_AER_CDNC
       SMLWP=WMSUM

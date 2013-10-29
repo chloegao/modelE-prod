@@ -1105,6 +1105,7 @@ c
       IF(DOMAIN.EQ.'OCEAN') THEN
         DO J=J_0, J_1
         DO I=I_0, I_1
+          IF(atmice%FOCEAN(I,J).LE.0.) cycle
           AIJ(I,J,ATMICE%IJ_MUSI)=AIJ(I,J,ATMICE%IJ_MUSI)
      &         +ATMICE%MUSI(I,J)
           AIJ(I,J,ATMICE%IJ_HUSI)=AIJ(I,J,ATMICE%IJ_HUSI)
@@ -1123,6 +1124,7 @@ c
         DO N=1,NTM
         DO J=J_0, J_1
         DO I=I_0, I_1
+          IF(atmice%FOCEAN(I,J).LE.0.) cycle
           TAIJN(I,J,atmice%TIJ_TUSI,N)=TAIJN(I,J,atmice%TIJ_TUSI,N)
      &         +ATMICE%TUSI(I,J,N)
           TAIJN(I,J,atmice%TIJ_TVSI,N)=TAIJN(I,J,atmice%TIJ_TVSI,N)
@@ -1626,7 +1628,7 @@ C****
 !@auth Gavin Schmidt
       USE CONSTANT, only : tf
 #ifdef SCM
-      USE SCMCOM, only : SCM_SURFACE_FLAG,ATSKIN,I_TARG,J_TARG
+      USE SCMCOM, only : SCM_SURFACE_FLAG,ATSKIN
 #endif
       USE SEAICE_COM, only : si_atm,si_ocn
       USE SEAICE, only : ace1i,xsi,lmi,Ti
@@ -1670,12 +1672,10 @@ C**** set GTEMP etc. array for ice
      &                1d3*si_atm%SSI(2,I,J)/(XSI(2)*MSI1))
         atmice%GTEMPR(I,J) = atmice%GTEMP(I,J)+TF
 #ifdef SCM
-        if (I.eq.I_TARG.and.J.eq.J_TARG) then
-            if (SCM_SURFACE_FLAG.ge.1) then
-                atmice%GTEMP(I,J) = ATSKIN
-                atmice%GTEMP2(I,J) = ATSKIN
-                atmice%GTEMPR(I,J) = ATSKIN + TF
-            endif
+        if (SCM_SURFACE_FLAG.ge.1) then
+          atmice%GTEMP(I,J) = ATSKIN
+          atmice%GTEMP2(I,J) = ATSKIN
+          atmice%GTEMPR(I,J) = ATSKIN + TF
         endif
 #endif
 #ifdef TRACERS_WATER
@@ -1784,7 +1784,10 @@ c
      &     MSIold,RSIold
       integer :: jyear,jday,itocean,itoice,j_implh,j_implm
 
-      if(.not.rsi_exists) return
+      if(.not.rsi_exists) then
+        SI_OCN%RSI(:,:) = 0.
+        return
+      endif
 
       call modelEclock%getDate(year=jyear, dayOfYear=jday)
 
@@ -1976,7 +1979,6 @@ C**** SET DEFAULTS IF NO OCEAN ICE
       USE SEAICE_COM, only : si_ocn
       USE SEAICE, only : tfrez
 #ifdef SCM
-      USE SCMCOM, only : I_TARG,J_TARG
       USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
 #endif
       USE EXCHANGE_TYPES, only : atmocn_xchng_vars,atmice_xchng_vars
@@ -1998,11 +2000,9 @@ c
           atmice%GTEMP2(I,J)=TFO
           atmice%GTEMPR(I,J) = TFO+TF
 #ifdef SCM
-          if (I.eq.I_TARG.and.J.eq.J_TARG) then
-            if (SCM_SURFACE_FLAG.ge.1) then
-              atmice%GTEMP(I,J) = ATSKIN
-              atmice%GTEMPR(I,J) = ATSKIN + TF
-            endif
+          if (SCM_SURFACE_FLAG.ge.1) then
+            atmice%GTEMP(I,J) = ATSKIN
+            atmice%GTEMPR(I,J) = ATSKIN + TF
           endif
 #endif
         ENDIF

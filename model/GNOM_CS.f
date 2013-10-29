@@ -27,7 +27,7 @@ c
       MODULE GEOM
 !@sum  GEOM contains geometric variables and arrays
 !@auth M. Kelley
-!@cont GEOM_CS
+!@cont GEOM_ATM
 
       USE RESOLUTION, only : IM,JM
       USE CONSTANT, only : radius,twopi,areag
@@ -89,18 +89,10 @@ c     shift grid 10 degrees West to avoid corner over Japan
 !@var  KMAXJ varying number of adjacent velocity points
       INTEGER, DIMENSION(JM) :: KMAXJ
 
-
-!@var J_BUDG a mapping array that takes every grid point to the
-!@+   zonal mean budget array
-      integer, allocatable, dimension(:,:) :: J_BUDG
-!@var j_0b, j_1b are the min/max zonal budget latitudes for this processor
-      integer :: j_0b, j_1b
-
-
       CONTAINS
 
-      SUBROUTINE GEOM_CS
-!@sum  GEOM_CS Calculate geometry for CS grid
+      SUBROUTINE GEOM_ATM
+!@sum  GEOM_ATM Calculate geometry for CS grid
 !@auth M. Kelley
       USE CONSTANT, only : RADIUS,PI,TWOPI,radian
       use DOMAIN_DECOMP_ATM, only: grid, getDomainBounds, halo_update
@@ -309,7 +301,7 @@ c at C-grid v locations
       enddo
 
       return
-      END SUBROUTINE GEOM_CS
+      END SUBROUTINE GEOM_ATM
 
       subroutine csxy2ll(x,y,tile,lon,lat)
 c converts x,y,tile to lon,lat (radians)

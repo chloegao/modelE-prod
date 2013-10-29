@@ -732,13 +732,14 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
           enddo
           enddo
         enddo
-      else
+        call par_close(grid,fid)
+      elseif(file_exists('SOIL')) then ! check SOIL presence, not GIC
         ! IC file with extensive units (per-layer heat and water amounts)
         fid = par_open(grid,'GIC','read')
         call new_io_earth  (fid,ioread)
         call new_io_soils  (fid,ioread)
+        call par_close(grid,fid)
       endif
-      call par_close(grid,fid)
       return
       end subroutine read_landsurf_ic
 

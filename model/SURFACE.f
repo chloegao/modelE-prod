@@ -37,7 +37,6 @@ C****
 #ifdef SCM
       USE SCMDIAG, only : EVPFLX,SHFLX
       USE SCMCOM, only : iu_scm_prt, ALH, ASH, SCM_SURFACE_FLAG
-     &     ,I_TARG,J_TARG
 #endif
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, GLOBALSUM
       USE GEOM, only : axyp,imaxj,byaxyp
@@ -703,13 +702,11 @@ C**** Limit heat fluxes out of lakes if near minimum depth
       !EVAPOR(I,J,ITYPE)=EVAPOR(I,J,ITYPE)+EVAP
       asflx(itype)%EVAPOR(I,J)=asflx(itype)%EVAPOR(I,J)+EVAP
 #ifdef SCM
-      if (J.eq.J_TARG.and.I.eq.I_TARG) then
-          if (SCM_SURFACE_FLAG.eq.0.or.SCM_SURFACE_FLAG.eq.2) then
-              EVPFLX = EVPFLX -(DQ1X*MA1)*(PTYPE/DTSURF)*LHE
-              SHFLX = SHFLX - SHDT*PTYPE/DTSURF
+      if (SCM_SURFACE_FLAG.eq.0.or.SCM_SURFACE_FLAG.eq.2) then
+        EVPFLX = EVPFLX -(DQ1X*MA1)*(PTYPE/DTSURF)*LHE
+        SHFLX = SHFLX - SHDT*PTYPE/DTSURF
 c             write(iu_scm_prt,*) 'srf  evpflx shflx ptype ',
 c    *                   EVPFLX,SHFLX,ptype
-          endif
       endif
 #endif
       TGRND(ITYPE,I,J)=TG1  ! includes skin effects
@@ -720,7 +717,7 @@ C**** calculate correction for different TG in radiation and surface
 C**** final fluxes
 #ifdef SCM
 cccccc for SCM use ARM provided fluxes for designated box
-      if ((I.eq.I_TARG.and.J.eq.J_TARG).and.SCM_SURFACE_FLAG.eq.1) then
+      if (SCM_SURFACE_FLAG.eq.1) then
            asflx(itype)%DTH1(I,J)=asflx(itype)%DTH1(I,J) +
      &        ash*DTSURF*ptype/(SHA*MA1)
            asflx(itype)%DQ1(I,J)=asflx(itype)%DQ1(I,J) + 
@@ -738,12 +735,10 @@ cccccc for SCM use ARM provided fluxes for designated box
       asflx(itype)%sensht(i,j) = asflx(itype)%sensht(i,j)+SHDT
       asflx(itype)%DQ1(I,J) = -DQ1X
 #ifdef SCM
-      if (i.eq.I_TARG.and.j.eq.J_TARG) then
-          write(iu_scm_prt,988) I,PTYPE,asflx(itype)%DTH1(I,J),
-     &          asflx(itype)%DQ1(I,J),SHDT,dLWDT
- 988      format(1x,'988 SURFACE GCM  I PTYPE DTH1 DQ1 SHDT dLWDT ',
+      write(iu_scm_prt,988) I,PTYPE,asflx(itype)%DTH1(I,J),
+     &     asflx(itype)%DQ1(I,J),SHDT,dLWDT
+ 988  format(1x,'988 SURFACE GCM  I PTYPE DTH1 DQ1 SHDT dLWDT ',
      &           i5,f9.4,f9.5,f9.6,f12.4,f10.4)
-      endif
       endif
 #endif
       DMUA_IJ=RCDMWS*(US-UOCEAN)

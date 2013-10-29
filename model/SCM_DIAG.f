@@ -215,24 +215,24 @@ C--- Added by J.W. ending ---C
       endif
 
       pk1000 = 1000.**kapa
-      PCOL = P(I_TARG,J_TARG)
-      TSURF = atmsrf%TSAVG(I_TARG,J_TARG)
-      TSKIN = atmlnd%GTEMP(I_TARG,J_TARG)
+      PCOL = P(1,1)
+      TSURF = atmsrf%TSAVG(1,1)
+      TSKIN = atmlnd%GTEMP(1,1)
       
       do L = 1,LM
 C--- Added by J.W. starting ---C
-         GZPRT(L) = GZ(I_TARG,J_TARG,L)
+         GZPRT(L) = GZ(1,1,L)
 C--- Added by J.W. ending ---C
-         TPRT(L) = T(I_TARG,J_TARG,L)*PK(L,I_TARG,J_TARG) 
-         QPRT(L) = Q(I_TARG,J_TARG,L)
-         WMCOL(L) = WM(I_TARG,J_TARG,L)
-         SVLHXCOL(L) = SVLHX(L,I_TARG,J_TARG)
-         SVLATCOL(L) = SVLAT(L,I_TARG,J_TARG)
-         CLCVSS(L) = CLDSS(L,I_TARG,J_TARG)
-         CLCVMC(L) = CLDMC(L,I_TARG,J_TARG)
-         CLSAV(L) = CLDSAV(L,I_TARG,J_TARG)   
-         TAUSSC(L) = TAUSS(L,I_TARG,J_TARG)
-         TAUMCC(L) = TAUMC(L,I_TARG,J_TARG)
+         TPRT(L) = T(1,1,L)*PK(L,1,1) 
+         QPRT(L) = Q(1,1,L)
+         WMCOL(L) = WM(1,1,L)
+         SVLHXCOL(L) = SVLHX(L,1,1)
+         SVLATCOL(L) = SVLAT(L,1,1)
+         CLCVSS(L) = CLDSS(L,1,1)
+         CLCVMC(L) = CLDMC(L,1,1)
+         CLSAV(L) = CLDSAV(L,1,1)   
+         TAUSSC(L) = TAUSS(L,1,1)
+         TAUMCC(L) = TAUMC(L,1,1)
 ccc Now use potential temp  in K/day and q still in kg/kg 
          dTtot(L) = PK1000*dTtot(L)*daysec/dtsrc
          dqtot(L) = dqtot(L)*daysec/dtsrc
@@ -298,8 +298,8 @@ C     before writing out diagnostics convert cumulus diagnostics
 c     do L = 1,LM
 c        write(iu_scm_prt,80) L,CUMHET(L),CUMOST(L)
 c 80     format(1x,'L  het mst ',i5,2(f12.3))    
-c        CUMHET(L) = CUMHET(L)*10.E-13*SHA*AXYP(I_TARG,J_TARG)/(GRAV*DTSRC)
-c        CUMOST(L) = CUMOST(L)*10.E-13*SHA*AXYP(I_TARG,J_TARG)/(GRAV*DTSRC)
+c        CUMHET(L) = CUMHET(L)*10.E-13*SHA*AXYP(1,1)/(GRAV*DTSRC)
+c        CUMOST(L) = CUMOST(L)*10.E-13*SHA*AXYP(1,1)/(GRAV*DTSRC)
 c     enddo
 c     do L=1,LM
 c        write(iu_scm_prt,82) L,CUMFLX(L),DWNFLX(L)

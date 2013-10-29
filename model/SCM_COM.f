@@ -99,7 +99,8 @@ C SCM DATA as provided from ARM variational analysis
       INTEGER iu_scm_prt,iu_scm_diag    
 
 !**** Target Coordinates for SCM
-      INTEGER*4 :: I_TARG,J_TARG   !TWP I=125,J=39  set targets in parameter list
+      REAL*8 :: LON_TARG,LAT_TARG
+c      INTEGER*4 :: I_TARG,J_TARG   !TWP I=125,J=39  set targets in parameter list
       INTEGER*4 :: NSTEPSCM=0      !Time step counter for SCM
    
       
@@ -168,3 +169,81 @@ c     endif
       return
 
       end subroutine ALLOC_SCM_COM
+
+      MODULE GEOM
+!@sum  GEOM contains geometric variables and arrays
+!@auth M. Kelley
+
+      IMPLICIT NONE
+      SAVE
+
+      real*8, dimension(1,1) ::
+!@var  lat2d latitude of mid point of primary grid box (radians)
+!@var  lat2d_dg latitude of mid point of primary grid box (degrees)
+     &     lat2d,lat2d_dg
+!@var  lon2d longitude of mid point of primary grid box (radians)
+!@var  lon2d_dg longitude of mid point of primary grid box (degrees)
+     &     ,lon2d,lon2d_dg
+     &     ,lon_dg,lat_dg
+     &     ,sinlat2d, coslat2d
+
+!@var  axyp,byaxyp area of grid box (+inverse) (m^2)
+!@+    Note these should not play any role in a single-column
+!@+    model. For clarity, references to them will be replaced
+!@+    by usage of axyp_nominal in parts of the model which
+!@+    apply a scale-aware parameterization approach.
+      real*8, dimension(1,1) :: axyp, byaxyp, axyp_nominal
+
+      integer, dimension(1) :: imaxj
+
+      CONTAINS
+
+      SUBROUTINE GEOM_ATM
+      USE CONSTANT, only : PI,TWOPI,radian
+      use Dictionary_mod, only : get_param,sync_param
+      use scmcom, only : lon_targ, lat_targ
+      implicit none
+
+      ! mandatory rundeck parameters: lon and lat of target point
+      call get_param('lon_targ',lon_targ)
+      call get_param('lat_targ',lat_targ)
+
+      if(abs(lon_targ).gt.180d0 .or. abs(lat_targ).gt.90d0)
+     &     call stop_model(
+     &       'geom_atm: invalid lon_targ,lat_targ in rundeck',255)
+
+      lon2d_dg(1,1) = lon_targ
+      lat2d_dg(1,1) = lat_targ
+
+      axyp_nominal(1,1) = 1.
+      call sync_param('nominal_area',axyp_nominal(1,1))
+
+      axyp(1,1) = axyp_nominal(1,1)
+
+      byaxyp(1,1) = 1d0/axyp(1,1)
+
+      lon2d(1,1) = lon2d_dg(1,1)*radian
+      lat2d(1,1) = lat2d_dg(1,1)*radian
+
+      sinlat2d(1,1) = sin(lat2d(1,1))
+      coslat2d(1,1) = cos(lat2d(1,1))
+      lon2d(1,1) = lon2d(1,1) + pi ! IDL has a value of zero
+      if(lon2d(1,1) .lt. 0.) lon2d(1,1)= lon2d(1,1) + twopi
+
+      imaxj = 1
+
+      lon_dg = lon2d_dg
+      lat_dg = lat2d_dg
+
+      return
+      END SUBROUTINE GEOM_ATM
+
+      subroutine lonlat_to_ij(ll,ij)
+      implicit none
+      real*8, intent(in) :: ll(2)
+      integer, intent(out) :: ij(2)
+      ij = (/ 1, 1 /)
+      return
+      end subroutine lonlat_to_ij
+
+      END MODULE GEOM

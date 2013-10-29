@@ -117,8 +117,7 @@ C**** Zonal mean cloud water concentration
       SUBROUTINE DIAGTCA (M,NT)
 !@sum  DIAGTCA Keeps track of the conservation properties of tracers
 !@auth Gary Russell/Gavin Schmidt/Jean Lerner
-      USE GEOM, only : j_budg, j_0b, j_1b
-      USE DIAG_COM, only : jm_budg
+      USE DIAG_COM, only : jm_budg,j_budg, j_0b, j_1b
       USE TRDIAG_COM, only: tconsrv=>tconsrv_loc,nofmt,title_tcon
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       IMPLICIT NONE
@@ -230,7 +229,7 @@ C****
 !@sum  INC_DIAGTCB Keeps track of the conservation properties of tracers
 !@+    This routine takes an already calculated difference
 !@auth Gary Russell/Gavin Schmidt/Jean Lerner
-      USE GEOM, only : j_budg
+      USE DIAG_COM, only : j_budg
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       USE RESOLUTION, only: im,jm
       USE TRDIAG_COM, only: tconsrv=>tconsrv_loc,nofmt
@@ -281,8 +280,7 @@ C**** No need to save current value
 !@sum  DIAGTCB Keeps track of the conservation properties of tracers
 !@+    This routine takes an already calculated difference
 !@auth Gary Russell/Gavin Schmidt/Jean Lerner
-      USE GEOM, only : j_budg, j_0b, j_1b
-      USE DIAG_COM, only : jm_budg
+      USE DIAG_COM, only : jm_budg,j_budg, j_0b, j_1b
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       USE RESOLUTION, only: jm,im
       USE TRDIAG_COM, only: tconsrv=>tconsrv_loc,nofmt,title_tcon
@@ -364,8 +362,10 @@ C**** No need to save current value
      &     TCONSRV,ktcon,scale_tcon,title_tcon,nsum_tcon,ia_tcon,nofmt,
      &     lname_tconsrv,name_tconsrv,units_tconsrv,
      &     natmtrcons,nocntrcons 
-      USE DIAG_COM, only: jeq,inc=>incj,xwon,kdiag,qdiag
+      USE DIAG_COM, only: inc=>incj,kdiag,qdiag
      &     ,jm=>jm_budg,dxyp_budg,lat_budg
+      USE GC_COM, only : jeq
+      USE DIAG_ZONAL, only : xwon
       USE MDIAG_COM, only: acc_period
      &     ,sname_strlen,units_strlen,lname_strlen
       IMPLICIT NONE

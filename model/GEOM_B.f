@@ -8,7 +8,7 @@
       IMPLICIT NONE
       PRIVATE
 
-      public :: GEOM_B, areag
+      public :: GEOM_ATM, areag
       public :: lonlat_to_ij
       public :: lonlat_to_tile
       public :: lon_to_I
@@ -108,16 +108,11 @@ C**** some B-grid conservation quantities
       integer, parameter :: jg_u=2, jg_ke=2
 
       real*8, public :: acor,acor2,polwt
-!@var J_BUDG a mapping array that takes every grid point to the 
-!@+   zonal mean budget array
-      integer, public, allocatable, dimension(:,:) :: J_BUDG
-!@var j_0b, j_1b are the min/max zonal budget latitudes for this processor
-      integer, public :: j_0b, j_1b
 
       CONTAINS
 
-      SUBROUTINE GEOM_B
-!@sum  GEOM_B Calculate spherical geometry for B grid
+      SUBROUTINE GEOM_ATM
+!@sum  GEOM_ATM Calculate spherical geometry for B grid
 !@auth Original development team (modifications by G. Schmidt)
       use domain_decomp_atm, only : grid, hasSouthPole, hasNorthPole
       IMPLICIT NONE
@@ -421,7 +416,7 @@ C**** set up mapping arrays for budget/conserv diags
       call set_wtbudg() !sets area weights
  
       RETURN
-      END SUBROUTINE GEOM_B
+      END SUBROUTINE GEOM_ATM
 
       subroutine lonlat_to_ij(ll,ij)
 c converts lon,lat=ll(1:2) into model i,j=ij(1:2) (primary grid)

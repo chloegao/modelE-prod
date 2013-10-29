@@ -7,10 +7,6 @@
 !@sum  getTotalEnergy Dummy
 !@auth Tom Clune (SIVO)
 !
-      use GEOM, only: DXYP, AREAG
-      use DOMAIN_DECOMP_ATM, only: grid
-      use DOMAIN_DECOMP_1D, only: GLOBALSUM, getDomainBounds
-      USE DOMAIN_DECOMP_1D, only : haveLatitude
       REAL*8 :: totalEnergy
 
       totalEnergy = 0.

@@ -104,8 +104,11 @@ C**** Some local constants
       USE MODEL_COM, only : idacc
      *     ,mdyn,mdiag
       USE ATM_COM, only : zatmo,WM,u,v,t,p,q,lm_req,req_fac_m
-      USE GEOM, only : sinlat2d,coslat2d,axyp,imaxj,ddy_ci,ddy_cj,
+      USE GEOM, only : sinlat2d,coslat2d,axyp,imaxj,
      &     lon2d_dg,byaxyp
+#ifndef SCM
+      USE GEOM, only : ddy_ci,ddy_cj
+#endif
       USE RAD_COM, only : rqt
       USE ATM_COM, only : pmidl00
       USE DIAG_COM, only : ia_dga,jreg,ntype,ftype,
@@ -632,6 +635,7 @@ C****
       call halo_update(grid, tx_trop)
       call halo_update(grid, tx_strat)
 
+#ifndef SCM
       if(i_0h.lt.i_0) then      ! halo cells exist in i direction
         im1s=i_0-1; ip1s=i_0+1; ip1e=i_1+1
       else                      ! periodic
@@ -658,6 +662,7 @@ C****
           i=ip1
         enddo
       enddo
+#endif
 
       DO J=J_0S,J_1S
       DO I=I_0,I_1
@@ -978,7 +983,8 @@ C****
       SUBROUTINE conserv_DIAG (M,CONSFN,ICON)
 !@sum  conserv_DIAG generic routine keeps track of conserved properties
 !@auth Gary Russell/Gavin Schmidt
-      USE GEOM, only : j_budg, j_0b, j_1b, imaxj
+      USE GEOM, only : imaxj
+      USE DIAG_COM, only : j_budg, j_0b, j_1b
       USE DIAG_COM, only : consrv=>consrv_loc,nofm, jm_budg,wtbudg
       USE DOMAIN_DECOMP_ATM, only : getDomainBounds, GRID
       IMPLICIT NONE
@@ -1199,20 +1205,17 @@ c          W =(Q(I,J,L)+WM(I,J,L))*PDSIG(L,I,J)*mb2kg
 C****
       END SUBROUTINE conserv_EWM
 
+#ifndef SCM
       SUBROUTINE DIAG4A
 C****
 C**** THIS ROUTINE PRODUCES A TIME HISTORY OF ENERGIES
 C****
       USE RESOLUTION, only : im
       USE MODEL_COM, only : IDACC
-      USE DIAG_COM, only : energy,speca,ned,istrat
+      USE GC_COM, only : energy,speca,ned,istrat
       IMPLICIT NONE
 
       INTEGER :: I,IDACC5,N,NM
-
-#ifdef SCM
-      return
-#endif
 
       IF (IDACC(4).LE.0.OR.IDACC(7).LE.0) RETURN
       NM=1+IM/2
@@ -1239,6 +1242,7 @@ C****
       RETURN
 C****
       END SUBROUTINE DIAG4A
+#endif
 
       module subdaily
 !@sum SUBDAILY defines variables associated with the sub-daily diags
@@ -5272,6 +5276,9 @@ c**** find MSU channel 2,3,4 temperatures
       USE SEAICE_COM, only : si_atm
       USE LAKES_COM, only : flake
       USE ATM_COM, only : pednl00,pmidl00
+#ifndef SCM
+      USE GC_COM, only : PSPEC,NSPHER,KLAYER,ISTRAT
+#endif
       USE DIAG_COM, only : aij_loc
       USE DIAG_COM, only : kvflxo
       USE DIAG_COM, only : TSFREZ => TSFREZ_loc
@@ -5279,8 +5286,8 @@ c**** find MSU channel 2,3,4 temperatures
       USE DIAG_COM, only : keyct, KEYNR, PLE
       USE DIAG_COM, only : PLM, p1000k, icon_AM, NOFM
       USE DIAG_COM, only : PLE_DN, icon_KE, NSUM_CON, IA_CON, SCALE_CON
-      USE DIAG_COM, only : TITLE_CON, PSPEC, LSTR, NSPHER, KLAYER
-      USE DIAG_COM, only : ISTRAT, kgz, pmb, kgz_max
+      USE DIAG_COM, only : TITLE_CON, LSTR
+      USE DIAG_COM, only : kgz, pmb, kgz_max
       USE DIAG_COM, only : TF_DAY1, TF_LAST, TF_LKON, TF_LKOFF
       USE DIAG_COM, only : name_consrv, units_consrv, lname_consrv
       USE DIAG_COM, only : CONPT0, icon_MS, icon_TPE, icon_WM, icon_EWM
@@ -5466,7 +5473,10 @@ c
         sarea_reg(n) = max(sarea_reg(n), 1d-30)
       enddo
 
-
+#ifdef SCM
+      namdd = 'XXXX'
+      ijdd = 1
+#else
 C**** Initialse diurnal diagnostic locations (taken from the 4x5 res)
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
@@ -5513,6 +5523,7 @@ c        Longitude, Latitude
 c if people still want to specify dd points as ij, let them
       call sync_param( "IJDD", IJDD(1:2,1), 2*NDIUPT )
 #endif
+#endif /* not SCM */
 
       call sync_param( "adiurn_dust",adiurn_dust)
       call sync_param( "lh_diags",lh_diags)
@@ -5666,6 +5677,7 @@ C**** sensible + potential energy associated with water mass as well)
       CALL SET_CON(QCON,CONPT,"ENRG WAT","(10**3 J/M^2)   ",
      *     "(10**-2 W/M^2)  ",1d-3,1d2,icon_EWM)
 
+#ifndef SCM
 C**** Initialize layering for spectral diagnostics
 C**** add in epsilon=1d-5 to avoid roundoff mistakes
       KL=1
@@ -5688,6 +5700,7 @@ C**** add in epsilon=1d-5 to avoid roundoff mistakes
         call stop_model(
      *    "Stratospheric definition problem for spectral diags.",255)
       END IF
+#endif
 
 C**** Calculate the max number of geopotential heights
       do k=1,kgz
@@ -5830,6 +5843,9 @@ C**** Set conservation diagnostics for ice mass, energy, salt
 !@auth Original Development Team
       USE ATM_COM, only : kradia,u
       USE DIAG_COM
+#ifndef SCM
+      USE GC_COM
+#endif
       USE Dictionary_mod
       USE DOMAIN_DECOMP_ATM, only: grid,am_i_root
       IMPLICIT NONE
@@ -5844,13 +5860,21 @@ C**** Set conservation diagnostics for ice mass, energy, salt
       end if
 
       if(am_i_root()) then
-        aj = 0; ajl = 0; asjl = 0; agc = 0
+        aj = 0; ajl = 0; asjl = 0
       endif
       AJ_loc=0    ; AREG_loc=0; AREG=0
       AJL_loc=0  ; ASJL_loc=0   ; AIJ_loc=0
-      AIJL_loc=0   ; ENERGY=0 ; CONSRV = 0; CONSRV_loc=0
-      SPECA=0 ; ATPE=0 ; WAVE=0 ; AGC_loc=0   ; AIJK_loc=0
+      AIJL_loc=0   ; CONSRV = 0; CONSRV_loc=0
+      AIJK_loc=0
       AIJmm = -1d30
+
+#ifndef SCM
+      if(am_i_root()) then
+        agc = 0
+      endif
+      SPECA=0 ; ATPE=0 ; WAVE=0 ; AGC_loc=0; ENERGY=0
+#endif
+
 #ifndef NO_HDIURN
       HDIURN=0; HDIURN_loc=0
 #endif
@@ -6182,7 +6206,7 @@ C****
       subroutine calc_derived_aij
 !@sum Calculate derived lat/lon diagnostics prior to printing
 !@auth Group
-      USE CONSTANT, only : grav,rgas,bygrav,tf,teeny
+      USE CONSTANT, only : grav,rgas,bygrav,tf,teeny,areag
       USE DOMAIN_DECOMP_ATM, only : GRID,SUMXPE,AM_I_ROOT
       USE Domain_decomp_1d, only: hasSouthPole, hasNorthPole
       USE RESOLUTION, only : im,jm,lm
@@ -6190,7 +6214,7 @@ C****
       USE ATM_COM, only : zatmo
       USE RESOLUTION, only : pmtop
       USE FLUXES, only : fearth0,flice,focean
-      USE GEOM, only : imaxj,axyp,lat2d,areag
+      USE GEOM, only : imaxj,axyp,lat2d
       USE DIAG_COM, only : aij=>aij_loc,tsfrez=>tsfrez_loc,
      &     kaij,hemis_ij,jgrid_ij,
      &     aijl=>aijl_loc,ia_ij,ia_src,ia_inst,ia_dga,tf_last,tf_day1,
@@ -6447,6 +6471,7 @@ C**** LOOP BACKWARDS SO THAT INITIALISATION IS DONE BEFORE SUMMATION!
 c
 c compute hemispheric and global means
 c
+#ifndef SCM
       hemfac = 2./sum(dxyp_budg)
       do m=1,ntype_out
       do k=1,kaj
@@ -6466,7 +6491,7 @@ c
      &       hemfac*sum(consrv(j1:j2,k)*dxyp_budg(j1:j2))
         hemis_consrv(3,k) = .5*(hemis_consrv(1,k)+hemis_consrv(2,k))
       enddo
-
+#endif
 c
 c scale areg by area
 c
@@ -6524,6 +6549,7 @@ c
 c
 c compute hemispheric/global means and vertical sums
 c
+#ifndef SCM
       hemfac = 2./sum(dxyp_budg)
       do k=1,kajl
         do l=1,lm
@@ -6536,6 +6562,7 @@ c
         vmean_jl(1:jm_budg,1,k) = sum(ajl(:,:,k),dim=2)
         vmean_jl(jm_budg+1:jm_budg+3,1,k) = sum(hemis_jl(:,:,k),dim=2)
       enddo
+#endif
 
       return
       end subroutine diagjl_prep
@@ -6627,10 +6654,14 @@ C****
       call gather_zonal_diags
       call collect_scalars
       call calc_derived_aij
+#ifndef SCM
       call calc_derived_aijk
+#endif
       call diagj_prep
       call diagjl_prep
+#ifndef SCM
       call diaggc_prep
+#endif
       call diag_river_prep
       if(isccp_diags.eq.1) call diag_isccp_prep
 #ifdef TRACERS_ON
