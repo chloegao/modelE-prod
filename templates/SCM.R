@@ -143,10 +143,10 @@ TAero_BCB=/path/to/user/directory/extractions/BCB_Koch2008_kg_m2_144x90x20_1890-
 ! modes of operation may also prescribe ocean surface conditions
 ! via mechanisms other than these files. SICE and ZSIFAC can be
 ! omitted if the simulation location is free of sea ice.
-OSST=/path/to/user/directory/extractions/OST_144x90.B.1975-1984avg.Hadl1.nc  ! SST
+OSST=/path/to/user/directory/extractions/OST_144x90.1996-2005avg.HadISST1.1.nc  ! SST
 ! rsi var. in SICE is sea ice fraction, ZSIFAC var. dm is used to get ice thickness
-SICE=/path/to/user/directory/extractions/SICE_144x90.B.1975-1984avg.Hadl1.nc
-ZSIFAC=/path/to/user/directory/extractions/SICE_144x90.B.1975-1984avg.Hadl1.nc
+SICE=/path/to/user/directory/extractions/SICE_144x90.1996-2005avg.HadISST1.1.nc
+ZSIFAC=/path/to/user/directory/extractions/SICE_144x90.1996-2005avg.HadISST1.1.nc
 !OCNML=XXX ! see comment above regarding the OCNML source code.
 
 ! These land-surface files are only needed if the TOPO file for
