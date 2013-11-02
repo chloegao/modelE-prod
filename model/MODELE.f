@@ -71,7 +71,7 @@ C**** Command line options
      &     , iowrite_single, isBeginningAccumPeriod
      &     , KCOPY, NMONAV, IRAND, iowrite_mon, MDIAG, NDAY
      &     , rsf_file_name, iowrite, KDISK, dtSRC, MSURF
-     &     , calendr
+     &     , calendar
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,broadcast,sumxpe
       USE RANDOM
       USE GETTIME_MOD
@@ -90,7 +90,7 @@ C**** Command line options
       use SystemTimers_mod
       use seaice_com, only : si_ocn,iceocn ! temporary until precip_si,
       use fluxes, only : atmocn,atmice     ! precip_oc calls are moved
-      use Month_mod, only: LEN_MONTH_ABBREVIATION
+      use CalendarMonth_mod, only: LEN_MONTH_ABBREVIATION
       implicit none
 C**** Command line options
       logical, intent(in) :: qcRestart
@@ -376,8 +376,11 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
       contains
 
       subroutine initializeModelE()
-      USE DOMAIN_DECOMP_1D, ONLY : init_app
-      use Model_com, only: calendr, makeCalendar
+      USE DOMAIN_DECOMP_1D, ONLY : init_app, am_i_root
+      use Model_com, only: orbit, calendar, makeOrbit
+      use Dictionary_mod
+      USE MODEL_COM, only : master_yr
+      use AbstractOrbit_mod, only: AbstractOrbit
       implicit none
 
       call initializeSysTimers()
@@ -388,7 +391,16 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
       call init_app()
       call initializeDefaultTimers()
 
-      calendr => makeCalendar()
+      if (is_set_param("master_yr")) then
+        call get_param( "master_yr", master_yr )
+      else
+        call stop_model('Please define master_yr in the rundeck.',255)
+      endif
+
+      allocate(orbit, source=makeOrbit())
+      allocate(calendar, source=orbit%makeCalendar())
+
+      if (am_i_root()) call calendar%print(2000)
 
       call alloc_drv_atm()
       call alloc_drv_ocean()
@@ -396,14 +408,18 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
       end subroutine initializeModelE
 
       subroutine startNewDay()
-      use model_com, only: modelEclock, calendr
+      use model_com, only: modelEclock, calendar
+      use CalendarMonth_mod
 C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
       logical :: newmonth
-      integer :: month, day
+      integer :: month, day, year
+      type (CalendarMonth) :: cMonth
 
+      year = modelEclock%year()
       month = modelEclock%month()
       day = modelEclock%dayOfYear()
-      newmonth = (day == 1+ calendr%getLastDayOfMonth(month-1))
+      cMonth = calendar%getCalendarMonth(month=month-1,year=year)
+      newmonth = (day == 1+ cMonth%lastDayInMonth)
       call daily_DIAG(newmonth) ! atmosphere
       if(newmonth) then         ! ocean
         call reset_ODIAG(0)
@@ -581,11 +597,6 @@ C**** Rundeck parameters:
       call sync_param( "KCOPY", KCOPY )
       call sync_param( "KOCEAN", KOCEAN )
       call sync_param( "IRAND", IRAND )
-      if (is_set_param("master_yr")) then
-        call get_param( "master_yr", master_yr )
-      else
-        call stop_model('Please define master_yr in the rundeck.',255)
-      endif
       RETURN
 C****
       end subroutine init_Model
@@ -622,8 +633,8 @@ C****
      &                              INT_DAYS_PER_YEAR
       use ModelClock_mod, only: ModelClock, newModelClock
       use Time_mod, only: Time, newTime
-      use MODEL_COM, only: calendr
-      use Month_mod, only: LEN_MONTH_ABBREVIATION
+      use MODEL_COM, only: calendar
+      use CalendarMonth_mod, only: LEN_MONTH_ABBREVIATION
       use BaseTime_mod
       use Rational_mod, only: nint
 
@@ -741,9 +752,10 @@ C****
 C**** Set quantities that are derived from the namelist parameters
 C**** 
 !@var NDAY=(1 day)/DTsrc : even integer; adjust DTsrc to be commensurate
-        NDAY = 2*nint(calendr%getSecondsPerDay()/(DTsrc*2))
-        dtSrcUsed = newBaseTime(calendr%getSecondsPerDay() / NDAY)
+        NDAY = 2*nint(calendar%getSecondsPerDay()/(DTsrc*2))
+        dtSrcUsed = newBaseTime(calendar%getSecondsPerDay() / NDAY)
         DTsrc = dtSrcUsed%convertToReal()
+        call set_param( "DTsrc", DTsrc, 'o')
 
 C**** Get Start Time; at least YearI HAS to be specified in the rundeck
         IF (YearI.lt.0) then
@@ -753,13 +765,13 @@ C**** Get Start Time; at least YearI HAS to be specified in the rundeck
           call stop_model('INPUT: yearI not provided',255)
         END IF
         IF (Iyear1.lt.0) Iyear1 = yearI
-        tmpTime = newTime(calendr)
-        modelETime0 = newTime(calendr)
+        tmpTime = newTime(calendar)
+        modelETime0 = newTime(calendar)
 
         call tmpTime%setByDate(yearI, monthI, dateI, hourI)
         call modelEtime0%setByDate(iyear1, month=1, date=1, hour=0)
 
-        IhrI = nint((tmpTime - modelEtime0)/calendr%getSecondsPerHour())
+        IhrI = nint((tmpTime -modelEtime0)/calendar%getSecondsPerHour())
         ITimeI = nint((tmpTime - modelEtime0)/ dtSrcUsed)
         Itime=ItimeI
         IF (IhrI.lt.0) then
@@ -788,7 +800,7 @@ C****
           call io_rsf("AIC",IhrX,irsfic,ioerr)
 
           tmpTime = modelEtime0
-          call tmpTime%add(calendr%getSecondsPerHour()*Ihrx)
+          call tmpTime%add(calendar%getSecondsPerHour()*Ihrx)
 C**** Check consistency of starting time
           IF( ((modelEtimeI%getDayOfYear()/=tmpTime%getDayOfYear()) .or.
      &      (modelEtimeI%getHour() /= tmpTime%getHour())) ) then
@@ -883,12 +895,13 @@ C****
 
 C**** Update ItimeE only if YearE or IhourE is specified in the rundeck
 C****
-      modelETime0 = newTime(calendr)
+      modelETime0 = newTime(calendar)
       call modelEtime0%setByDate(iyear1, month=1, date=1, hour=0)
 
-      dtSrcUsed = newBaseTime(calendr%getSecondsPerDay() / NDAY)                       
+      dtSrcUsed = newBaseTime(calendar%getSecondsPerDay() / NDAY)                       
       DTsrc = dtSrcUsed%convertToReal()
-      modelETimeE = newTime(calendr)
+
+      modelETimeE = newTime(calendar)
       if (timee .lt. 0) then
         timee = houre*nday/INT_HOURS_PER_DAY
         call modelEtimeE%setByDate(yearE, monthE, dateE, houre)
@@ -901,14 +914,14 @@ C****
 
 C**** Check consistency of DTsrc with NDAY
       if (is_set_param("DTsrc") .and. 
-     &     nint(calendr%getSecondsPerDay()/DTsrc) .ne. NDAY) then
+     &     nint(calendar%getSecondsPerDay()/DTsrc) .ne. NDAY) then
         if (AM_I_ROOT()) then
           write(6,*) 'DTsrc=',DTsrc,' has to stay at/be set to', 
-     &               calendr%getSecondsPerDay()/NDAY
+     &               calendar%getSecondsPerDay()/NDAY
         end if
         call stop_model('INPUT: DTsrc inappropriately set',255)
       end if
-      DTsrcUsed = newBaseTime(calendr%getSecondsPerDay() / NDAY)
+      DTsrcUsed = newBaseTime(calendar%getSecondsPerDay() / NDAY)
       DTsrc = DTsrcUsed%convertToReal()
       call set_param( "DTsrc", DTsrc, 'o' )   ! copy DTsrc into DB
 
@@ -930,7 +943,7 @@ C**** Get the rest of parameters from DB or put defaults to DB
 
 C**** Set date information
 
-      modelETime0 = newTime(calendr)
+      modelETime0 = newTime(calendar)
 
       call modelEtime0%setByDate(iyear1, month=1, date=1, hour=0)
       call modelEtime0%add(dtSrcUsed * itime0)
@@ -941,7 +954,7 @@ C**** Set date information
       jhour0 = modelEtime0%getHour()
       amon0 = modelEtime0%getAbbreviation()
 
-      modelETime = newTime(calendr)
+      modelETime = newTime(calendar)
       call modelEtime%setByDate(yearI, monthI, dateI, hourI)
       call modelETime%add( dtSrcUsed * (itime-itimei) )
 
@@ -1027,8 +1040,10 @@ C****
       real(8), intent(inout) :: tParam
       real(8) :: tOld
 
-      tOld = tParam
       call get_param(tName, tParam)
+      if (tParam == 0) return
+
+      tOld = tParam
       tParam = dtSrc%convertToReal()/nint(dtSrc%convertToReal()/tParam)
       call set_param( tName, tParam, 'o' )
       

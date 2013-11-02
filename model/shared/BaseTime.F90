@@ -1,5 +1,5 @@
 module BaseTime_mod
-  use Rational_mod, only: Rational
+  use Rational_mod
   implicit none
   private
 

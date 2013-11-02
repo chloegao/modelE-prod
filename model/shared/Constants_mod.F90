@@ -188,8 +188,8 @@ module constant
 #else
   real*8,parameter :: EDPERD = 1.
   real*8,parameter :: EDPERY = 365.
-  real*8,parameter :: omega = TWOPI*(EDPERD+EDPERY)/ &
-       &                            (EDPERD*EDPERY*SDAY)
+  real*8,parameter :: omega = TWOPI*(1/EDPERD+EDPERY)/ &
+       &                            ((1/EDPERD)*EDPERY*SDAY)
 #endif
 !@param omega2 2*omega
   real*8,parameter :: omega2 = 2.*omega

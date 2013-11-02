@@ -1,43 +1,72 @@
-! Design loosely based upon that from ESMF to support time represented as
-! rational numbers with large range and high accuracy.
-! Rational number ensure that subcycles align perfectly with 
-! larger cycles.  E.g. dt evenly divides day.
-
 module Rational_mod
+!@sum
+!@+!---------------------------------------------------------------------------
+!@+
+!@+ This module provides a class which implements rational
+!@+ numbers/arithmetic of the form q = w + n/d where {w,n,d} are
+!@+ integers.  This representation, motivated by the treatment in ESMF,
+!@+ provides a large range as well as sufficient accuracy to represent
+!@+ most floating point values.
+!@+
+!@+ Times in the model are subclasses of Rational {BaseTime, Time,
+!@+ TimeInterval}.  This ensures that certain ratios are exact integers
+!@+ and prevents roundoff from inducing incorrect assertions about 
+!@+ beginnings of cyclic periods (e.g. days).
+!@+
+!@+ NOTE: arithmetic among nontrivial Rational objects can easily lead to
+!@+ integer overflow which is not detectable by most compilers.
+!@+
+!@auth T. Clune
+!@+---------------------------------------------------------------------------
+
+  use KindParameters_mod, only: SP, DP, DEFAULT_INT, LONG_INT
   implicit none
   private
 
-  public :: Rational
-  public :: nint
+!---------------------------------------------------------------------------
+! Public entities
 
-  integer, parameter :: DEFAULT_INT = kind(1)
-  integer, parameter :: LONG_INT = selected_int_kind(10)
+  ! Derived type and constructor
+  public :: Rational  
+
+  ! Procedures for rounding to integer
+  public :: nint
+  public :: floor
+  public :: ceiling
+
+  ! modulo(q) returns   q - floor(q)
+  public :: modulo
+!---------------------------------------------------------------------------
+
   integer, parameter :: LONG = max(DEFAULT_INT, LONG_INT) ! in case only 32 bit available
-  integer, parameter :: SP = selected_real_kind(6)
-  integer, parameter :: DP = selected_real_kind(14)
 
   ! Numerical value is whole + numerator/denominator
   type Rational
+    integer(kind=LONG) :: whole       = 0
     integer(kind=LONG) :: numerator   = 0 
     integer(kind=LONG) :: denominator = 1 ! always positive
-    integer(kind=LONG) :: whole       = 0
   contains
     procedure :: getWhole
 !!$    procedure, pass(this) :: toReal_sp
 !!$    procedure, pass(this) :: toReal_dp
 
+    ! Arithmetic operations
     procedure :: add_fraction
     procedure :: subtract_fraction
 
     procedure :: multiply_fraction
-    procedure, pass(a) :: multiply_int
-    procedure, pass(a) :: multiply_int2
+    procedure, pass(a) :: multiply_intLeft
+    procedure, pass(a) :: multiply_intRight
+    procedure, pass(a) :: multiply_longLeft
+    procedure, pass(a) :: multiply_longRight
 
     procedure :: divide_fraction
     procedure, pass(a) :: divide_realdp
-    procedure, pass(a) :: divide_int4
-    procedure, pass(a) :: divide_int8
+    procedure, pass(a) :: divide_byInt4
+    procedure, pass(a) :: divide_byInt8
+    procedure, pass(a) :: divide_intoInt4
 
+    ! Comparison operators
     procedure :: equals_fraction
     procedure, pass(a) :: equals_int
     procedure, pass(b) :: equals_int2
@@ -47,14 +76,16 @@ module Rational_mod
 
     generic :: operator(+) => add_fraction
     generic :: operator(-) => subtract_fraction
-    generic :: operator(*) => multiply_fraction, multiply_int, multiply_int2
-    generic :: operator(/) => divide_fraction, divide_realDP, divide_int4, divide_int8
+    generic :: operator(*) => multiply_fraction, multiply_intLeft, multiply_intRight, &
+         & multiply_longLeft, multiply_longRight
+    generic :: operator(/) => divide_fraction, divide_realDP, &
+         &  divide_byInt4, divide_byInt8, divide_intoInt4
     generic :: operator(==) => equals_fraction, equals_int, equals_int2
     generic :: operator(<) => lessThan_fraction
     generic :: operator(>) => greaterThan_fraction
 !!$    generic :: assignment(=) => toReal_sp, toReal_dp
-    procedure, private :: reduce
 
+    procedure, private :: reduce ! put in canonical form
     procedure :: print
 
   end type Rational
@@ -76,6 +107,18 @@ module Rational_mod
   interface nint
     module procedure nintRational
   end interface nint
+
+  interface floor
+    module procedure floorRational
+  end interface floor
+
+  interface ceiling
+    module procedure ceilingRational
+  end interface ceiling
+
+  interface modulo
+    module procedure moduloRational
+ end interface modulo
 
 contains
 
@@ -111,20 +154,57 @@ contains
 
   ! Return the nearest integer
   ! Rounds to even for r = n + m/2
-  integer function nintRational(this) result(n)
-    class (Rational), intent(in) :: this
+  integer function nintRational(q) result(n)
+    class (Rational), intent(in) :: q
 
-    n = abs(this%whole)
+    n = abs(q%whole)
 
-    if (2*abs(this%numerator) > this%denominator) then
+    if (2*abs(q%numerator) > q%denominator) then
       n = n + 1
-    else if (2*abs(this%numerator) == this%denominator) then
+    else if (2*abs(q%numerator) == q%denominator) then
       if (mod(n,2) == 1) n = n + 1
     end if
     
-    if (this%whole < 0 .or. this%numerator < 0) n = - n
+    if (q%whole < 0 .or. q%numerator < 0) n = - n
 
   end function nintRational
+
+  integer function floorRational(q) result(floor)
+    class (Rational), intent(in) :: q
+
+    if (q%numerator >= 0) then ! exact integer
+       floor = q%getWhole()
+    else
+       floor = q%getWhole() - 1
+    end if
+
+  end function floorRational
+
+
+  integer function ceilingRational(q) result(ceiling)
+    class (Rational), intent(in) :: q
+
+    if (q%numerator <= 0) then ! exact integer
+       ceiling = q%getWhole()
+    else
+       ceiling = q%getWhole() + 1
+    end if
+
+  end function ceilingRational
+
+
+  function moduloRational(q, r) result(modulo)
+    type (Rational) :: modulo
+    class (Rational), intent(in) :: q
+    class (Rational), intent(in) :: r
+
+    type (Rational) :: s
+
+    s = q / r
+    modulo = q - (r * floor(s))
+
+  end function moduloRational
+
 
   function newRational_defaultWhole(whole) result(r)
     type (Rational) :: r
@@ -134,6 +214,7 @@ contains
     r%numerator = 0
     r%denominator = 1
   end function newRational_defaultWhole
+
 
   function newRational_default_n_over_d(numerator, denominator) result(r)
     type (Rational) :: r
@@ -303,7 +384,7 @@ contains
   end function multiply_fraction
 
 ! Multiply by int on right
-  function multiply_int(a, i) result(c)
+  function multiply_intRight(a, i) result(c)
     class (Rational), intent(in) :: a
     integer, intent(in) :: i
     type (Rational) :: c
@@ -313,10 +394,10 @@ contains
     c%denominator = a%denominator
     call c%reduce()
 
-  end function multiply_int
+  end function multiply_intRight
 
 ! Multiply by int on left
-  function multiply_int2(i, a) result(c)
+  function multiply_intLeft(i, a) result(c)
     integer, intent(in) :: i
     class (Rational), intent(in) :: a
     type (Rational) :: c
@@ -326,14 +407,41 @@ contains
     c%denominator = a%denominator
     call c%reduce()
 
-  end function multiply_int2
+  end function multiply_intLeft
+  
+! Multiply by long int on right
+  function multiply_longRight(a, i) result(c)
+    class (Rational), intent(in) :: a
+    integer(kind=LONG), intent(in) :: i
+    type (Rational) :: c
+
+    c%whole = a%whole * i
+    c%numerator = a%numerator * i
+    c%denominator = a%denominator
+    call c%reduce()
+
+  end function multiply_longRight
+
+! Multiply by long int on left
+  function multiply_longLeft(i, a) result(c)
+    integer(kind=LONG), intent(in) :: i
+    class (Rational), intent(in) :: a
+    type (Rational) :: c
+
+    c%whole = i * a%whole
+    c%numerator = i * a%numerator
+    c%denominator = a%denominator
+    call c%reduce()
+
+  end function multiply_longLeft
+  
 
 ! Divide two fractions and reduce to simplest form.
   function divide_fraction(a, b) result(c)
     class (Rational), intent(in) :: a
     class (Rational), intent(in) :: b
     type (Rational) :: c
-
+    
     c = Rational(a%whole*a%denominator + a%numerator, &
          & b%whole*b%denominator + b%numerator) * &
          & Rational(b%denominator, a%denominator)
@@ -353,7 +461,7 @@ contains
   end function divide_realDP
 
 ! Divide fractions by an integer and reduce
-  function divide_int4(a, i) result(c)
+  function divide_byInt4(a, i) result(c)
     class (Rational), intent(in) :: a
     integer(kind=DEFAULT_INT), intent(in) :: i
     type (Rational) :: c
@@ -361,10 +469,21 @@ contains
     c = a / Rational(i)
     call c%reduce()
 
-  end function divide_int4
+  end function divide_byInt4
+
+! Divide integer by a fraction
+  function divide_intoInt4(i, a) result(c)
+    integer(kind=DEFAULT_INT), intent(in) :: i
+    class (Rational), intent(in) :: a
+    type (Rational) :: c
+
+    c = Rational(i) / a
+    call c%reduce()
+
+  end function divide_intoInt4
 
 ! Divide fractions by an integer and reduce
-  function divide_int8(a, i) result(c)
+  function divide_byInt8(a, i) result(c)
     class (Rational), intent(in) :: a
     integer(kind=LONG), intent(in) :: i
     type (Rational) :: c
@@ -372,7 +491,7 @@ contains
     c = a / Rational(i)
     call c%reduce()
 
-  end function divide_int8
+  end function divide_byInt8
 
   logical function equals_fraction(a, b) result(equals)
     class (Rational), intent(in) :: a

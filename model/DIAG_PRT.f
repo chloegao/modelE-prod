@@ -4156,12 +4156,13 @@ C****
 !@auth J. Lerner
 #ifndef NO_HDIURN
       use TimeConstants_mod, only: HOURS_PER_DAY
-      USE MODEL_COM, only :   modelEclock, NDAY, calendr,
+      USE MODEL_COM, only :   modelEclock, NDAY, calendar,
      &     idacc,JDATE0,AMON,AMON0,JYEAR0,XLABEL,LRUNID
       USE DIAG_COM, only :   kdiag,qdiag,units_dd,hr_in_month
      *     ,hdiurn,ijdd,namdd,ndiuvar,hr_in_day,scale_dd,lname_dd
      *     ,name_dd,denom_dd,ia_12hr,NDIUPT
       USE MDIAG_COM, only : acc_period
+      use CalendarMonth_mod
       IMPLICIT NONE
       REAL*8, DIMENSION(HR_IN_MONTH) :: XHOUR
       INTEGER, DIMENSION(HR_IN_MONTH) :: MHOUR
@@ -4171,6 +4172,7 @@ C****
       REAL*8, DIMENSION(HR_IN_MONTH,NDIUVAR) :: FHOUR
       CHARACTER :: CPOUT*2
       integer :: year, month, date
+      type (CalendarMonth) :: cMonth
 
       call modelEclock%getDate(year=year, month=month, date=date)
 
@@ -4180,7 +4182,8 @@ C****
 C****
 C**** KP packs the quantities for postprocessing (skipping unused)
 
-      jdayofM = calendr%getDaysPerMonth(month)
+      cMonth = calendar%getCalendarMonth(month, year)
+      jdayofM = cMonth%daysInMonth
       IREGF=1
       IREGL=NDIUPT-KDIAG(13)      ! kd13=KDIAG(13)>0: skip last kd13 pts
       IF (KDIAG(13).LT.0.AND.KDIAG(13).GE.-NDIUPT) IREGF=-KDIAG(13)

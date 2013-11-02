@@ -56,6 +56,19 @@ module PlanetParams_mod
        ptop = 150d0 &
        )
 !
+  type(PlanetParams_t), parameter, private :: &
+       likeMars = &
+       PlanetParams_t( &
+       name = 'likeMars', &
+       sday = 86400d0, &  ! for physics testing, still using Earth values for sday,omega
+       omega = (2d0*3.1415926535897932d0)*366d0/(365d0*86400d0), &
+       grav = 3.711d0, &
+       radius = 6371000d0*.531d0, &
+       mair = 44.01d0, &  ! pure CO2
+       srat = 1.31d0, &   ! 0 C value at en.wikipedia.org/wiki/Carbon_dioxide_(data_page)
+       psf = 6.36d0, &
+       ptop = .3d0 & ! Olympus Mons forces this small ptop/psf ratio.
+       )
 
 !@param PlanetParams the instance of PlanetParams_t to be used. CPP selects
 !@+     which instance of PlanetParams_t is copied into PlanetParams.

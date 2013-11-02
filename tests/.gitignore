@@ -1,3 +1,4 @@
+*.i90
 *.mod
 *.o
 *.x
@@ -5,4 +6,4 @@
 /.pFUnitLog
 /run_status
 /suite_list
-*.i90
+/testSuites.inc

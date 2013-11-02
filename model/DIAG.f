@@ -1249,7 +1249,7 @@ C****
 !@auth Gavin Schmidt
       use domain_decomp_atm, only: getDomainBounds,grid,am_i_root
       USE RESOLUTION, only : im,jm,lm
-      USE MODEL_COM, only : modelEclock, calendr
+      USE MODEL_COM, only : modelEclock, calendar
       USE MODEL_COM, only : itime,itime0,nday,iyear1
      &     ,dtsrc,xlabel,lrunid
       use TimeConstants_mod, only: INT_DAYS_PER_YEAR

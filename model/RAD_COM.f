@@ -8,6 +8,7 @@
       USE RESOLUTION, only : im,jm,lm
       USE ATM_COM, only : lm_req
       USE RADPAR, only : S0,ITRMAX
+      use AbstractOrbit_mod, only: AbstractOrbit
 !@var S0 solar 'constant' needs to be saved between calls to radiation
       IMPLICIT NONE
       SAVE
@@ -265,6 +266,17 @@ C**** Local variables initialised in init_RAD
       integer, parameter :: jm_dh2o=18
       real*8 :: lat_dh2o(jm_dh2o)
 #endif
+
+      class (AbstractOrbit), allocatable :: orbit
+
+      contains
+
+
+      subroutine radiationSetOrbit(anOrbit)
+      class (AbstractOrbit), intent(in) :: anOrbit
+      allocate(orbit, source=anOrbit)
+      end subroutine radiationSetOrbit
+
 
       END MODULE RAD_COM
 

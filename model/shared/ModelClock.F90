@@ -18,6 +18,7 @@ module ModelClock_mod
     integer :: stepsPerDay
 
   contains
+    procedure :: getCurrentTime
     procedure :: getTimeInSecondsFromDate
     procedure :: getAbsoluteTimeInSeconds
     procedure :: getTimeTick
@@ -37,13 +38,13 @@ contains
 
   ! constructor
   function newModelClock(startTime, startTick, stepsPerDay) result(clock)
-    use Calendar_mod
+    use AbstractCalendar_mod
     type (ModelClock) :: clock
     type (Time), intent(in) :: startTime
     integer, intent(in) :: startTick
     integer, intent(in) :: stepsPerDay
 
-    class (Calendar), pointer :: pCalendar
+    class (AbstractCalendar), pointer :: pCalendar
 
     clock%tick = startTick
     clock%stepsPerDay = stepsPerDay
@@ -61,7 +62,7 @@ contains
     class (ModelClock), intent(inout) :: this
 
     this%tick = this%tick + 1
-    call this%currentTime%add(this%dt)
+    call this%currentTime%setBaseTime(newBaseTime(this%currentTime + this%dt))
 
   end subroutine nextTick
 
@@ -87,14 +88,22 @@ contains
     secs = this%currentTime%getWhole()
   end function getAbsoluteTimeInSeconds
 
+
+  function getCurrentTime(this) result(t)
+    type (Time) :: t
+    class (ModelClock), intent(in) :: this
+    t = this%currentTime
+  end function getCurrentTime
+
+
   function getTimeInSecondsFromDate(this, year, month, date, hour) result (seconds)
-    use Calendar_mod, only: Calendar
+    use AbstractCalendar_mod, only: AbstractCalendar
     use BaseTime_mod
     type (BaseTime) :: seconds
     class (ModelClock), intent(inout) :: this
     integer, intent(in) :: year, month, date, hour
     type (Time) :: aTime
-    class (Calendar), pointer :: pCalendar
+    class (AbstractCalendar), pointer :: pCalendar
 
     pCalendar => this%currentTime%calendar
     aTime = newTime(pCalendar)
@@ -109,7 +118,7 @@ contains
 !@auth Gavin Schmidt (updated by Tom CLune)
     use TimeConstants_mod, only: INT_SECONDS_PER_HOUR
     use JulianCalendar_mod, only: JULIAN_MONTHS
-    use Month_mod, only: LEN_MONTH_ABBREVIATION, Month_type
+    use CalendarMonth_mod, only: LEN_MONTH_ABBREVIATION, CalendarMonth
 
     class (ModelClock), intent(in) :: this
     integer, optional, intent(out) :: year
@@ -163,7 +172,7 @@ contains
   end function hour
 
   function abbrev(this)
-    use Month_mod, only: LEN_MONTH_ABBREVIATION
+    use CalendarMonth_mod, only: LEN_MONTH_ABBREVIATION
     character(len=LEN_MONTH_ABBREVIATION) abbrev
     class (ModelClock), intent(in) :: this
 
