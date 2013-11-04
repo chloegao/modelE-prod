@@ -43,10 +43,16 @@ C**** NIdyn=dtsrc/dt(dyn) has to be a multiple of 2
       if (is_set_param("DT") .and. nint(DTsrc/dt).ne.NIdyn) then
         if (AM_I_ROOT())
      *       write(6,*) 'DT=',DT,' has to be changed to',DTsrc/NIdyn
-        call stop_model('INPUT: DT inappropriately set',255)
+        if(trim(planet_name).eq.'Earth') then
+          ! We do not allow automatic rounding of timesteps for Earth,
+          ! since such a situation is usually due to a rundeck typo
+          call stop_model('INPUT: DT inappropriately set',255)
+        endif
       end if
       DT = DTsrc/NIdyn
       call set_param( "DT", DT, 'o' )         ! copy DT into DB
+
+c      call setDtParam('dt', dt, dtSrcUsed)
 
       ! Defaults for bounds on surface pressure (i.e. column mass)
       ! minimum: a multiple of the mass in the constant-pressure domain
@@ -81,18 +87,22 @@ C**** Determine if FLTRUV is called.
          if (DT_XUfilter > 0. .and. DT_XUfilter < DT) then
              DT_XUfilter = DT
              WRITE(6,*) "DT_XUfilter too small; reset to :",DT_XUfilter
+             call set_param( "DT_XUfilter", DT_XUfilter, 'o' )
          end if
          if (DT_XVfilter > 0. .and. DT_XVfilter < DT) then
              DT_XVfilter = DT
              WRITE(6,*) "DT_XVfilter too small; reset to :",DT_XVfilter
+             call set_param( "DT_XVfilter", DT_XVfilter, 'o' )
          end if
          if (DT_YUfilter > 0. .and. DT_YUfilter < DT) then
              DT_YUfilter = DT
              WRITE(6,*) "DT_YUfilter too small; reset to :",DT_YUfilter
+             call set_param( "DT_YUfilter", DT_YUfilter, 'o' )
          end if
          if (DT_YVfilter > 0. .and. DT_YVfilter < DT) then
              DT_YVfilter = DT
              WRITE(6,*) "DT_YVfilter too small; reset to :",DT_YVfilter
+             call set_param( "DT_YVfilter", DT_YVfilter, 'o' )
          end if
       end if
 c Warn if polar fixes requested for a model not having a half polar box
@@ -106,6 +116,28 @@ c     endif
       ALLOCATE( FCUVA(0:IMH, grid%j_strt_halo:grid%j_stop_halo, LM, 2),
      &          FCUVB(0:IMH, grid%j_strt_halo:grid%j_stop_halo, LM, 2))
       end SUBROUTINE init_ATMDYN
+
+c      subroutine setDtParam(tName, tParam, dtSrc)
+c      USE Dictionary_mod
+c      use BaseTime_mod
+c      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT
+c      character(len=*) :: tName
+c      type (BaseTime), intent(in) :: dtSrc
+c      real(8), intent(inout) :: tParam
+c      real(8) :: tOld
+c
+c      tOld = tParam
+c      call get_param(tName, tParam)
+c      tParam = dtSrc%convertToReal()/nint(dtSrc%convertToReal()/tParam)
+c      call set_param( tName, tParam, 'o' )
+c      
+c      if (abs(tParam-tOld) .gt. 1.0e-15) then
+c        if (AM_I_ROOT()) then
+c          write(6,*) trim(tName),' has changed from ', tOld,' to ',
+c     *      tParam 
+c        end if
+c      end if
+c      end subroutine setDtParam
 
 
       SUBROUTINE DYNAM

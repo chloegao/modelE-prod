@@ -669,7 +669,6 @@ C****    List of parameters that are disregarded at restarts
       integer :: hour, month, day, date, year
       character(len=LEN_MONTH_ABBREVIATION) :: amon
       type (BaseTime) :: dtSrcUsed
-      real(8) :: dt, dtnew, DT_XUfilter, DT_YUfilter
 
 C****
 C**** Default setting for ISTART : restart from latest save-file (10)
@@ -954,12 +953,6 @@ C**** Set date information
 
       modelEclock = newModelClock(modelEtime,itime,Nday)
 
-#ifndef SCM
-      call setDtParam('dt', dt, dtSrcUsed)
-      call setDtParam('DT_XUfilter', DT_XUfilter, dtSrcUsed)
-      call setDtParam('DT_YUfilter', DT_YUfilter, dtSrcUsed)
-#endif
-
       CALL DAILY_cal(.false.)                  ! not end_of_day
 
 #ifndef STANDALONE_OCEAN
@@ -1017,28 +1010,6 @@ C****
 
 
       END SUBROUTINE INPUT
-
-      subroutine setDtParam(tName, tParam, dtSrc)
-      USE Dictionary_mod
-      use BaseTime_mod
-      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT
-      character(len=*) :: tName
-      type (BaseTime), intent(in) :: dtSrc
-      real(8), intent(inout) :: tParam
-      real(8) :: tOld
-
-      tOld = tParam
-      call get_param(tName, tParam)
-      tParam = dtSrc%convertToReal()/nint(dtSrc%convertToReal()/tParam)
-      call set_param( tName, tParam, 'o' )
-      
-      if (abs(tParam-tOld) .gt. 1.0e-15) then
-        if (AM_I_ROOT()) then
-          write(6,*) trim(tName),' has changed from ', tOld,' to ',
-     *      tParam 
-        end if
-      end if
-      end subroutine setDtParam
 
       subroutine print_and_check_PPopts
 !@sum prints preprocessor options in english and checks some
