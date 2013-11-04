@@ -63,9 +63,9 @@ $resolutions->{E4TampF40}               = "2x2.5";
 $resolutions->{E4TcadiF40}              = "2x2.5";
 $resolutions->{E4arobio_h4c}            = "2x2.5";
 $resolutions->{E4arobio_g6c}            = "2x2.5";
-$resolutions->{E4TctomasF40}           = "2x2.5";
+$resolutions->{E4TctomasF40}            = "2x2.5";
 $resolutions->{E_AR5_CADI}              = "2x2.5";
-$resolutions->{SCMSGPCONT}              = "0";   # single column model 
+$resolutions->{SGP4TESTS}               = "0";   # single column model 
 $resolutions->{E4C90L40}                = "CS";  # cubed sphere
 
 # numProcesses is resolution based (Note that domain decomposition is along y)  

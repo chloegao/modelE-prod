@@ -14,7 +14,7 @@ watchJob()
 # Input arguments: $1=job id
   jobID=$1
 
-  maxWait=180
+  maxWait=3600
   seconds=0
   jobSuccess=0
   while [ $seconds -lt $maxWait ];
@@ -56,10 +56,9 @@ submitJob()
 #!/bin/bash
 #PBS -N modelEut
 #PBS -l select=1:mpiprocs=12
-#PBS -l walltime=0:03:00
+#PBS -l walltime=0:05:00
 #PBS -W group_list=s1001
 #PBS -j oe
-#PBS -V
 
 # set up the modeling environment
 . /usr/share/modules/init/bash
@@ -69,13 +68,13 @@ EOF
   if [ "$compiler" == "intel" ]; then
 
     cat << EOF >> $jobScript
-module load comp/intel-13.1.3.192 mpi/impi-3.2.2.006
+module load comp/intel-14.0.0.080 mpi/impi-3.2.2.006 other/git-1.7.3.4
 EOF
    
   else
 
     cat << EOF >> $jobScript
-module load other/comp/gcc-4.8.1 other/mpi/openmpi/1.7.2-gcc-4.8.1-shared
+module load other/comp/gcc-4.8.1 other/mpi/openmpi/1.7.2-gcc-4.8.1-shared other/git-1.7.3.4
 EOF
 
   fi
@@ -91,8 +90,6 @@ git clone $MODELROOT ${deck}.${compiler} > /dev/null 2>&1
 
 cd $REGSCRATCH/${deck}.${compiler}/decks
 make rundeck RUN=$deck RUNSRC=$deck >> make.log.${compiler} 2>&1
-wait
-
 EOF
 
   if [ "$compiler" == "intel" ]; then
@@ -123,7 +120,9 @@ EOF
   echo "RESULTS [$compiler MPI=$mpi]:" >> $toEmail
   echo ""  >> $toEmail
   jobID=`qsub $jobScript`
-  jobID=`echo $jobID | sed 's/.[a-z]*$//g'`
+  # Not necessary under SLURM
+  #jobID=`echo $jobID | sed 's/.[a-z]*$//g'`
+  #echo 'jobID='$jobID
   if [ -z "$jobID" ]; then
     echo "There was a queue submission problem" >> $toEmail
     echo ""  >> $toEmail
@@ -134,7 +133,7 @@ EOF
 
   if [ $jobRan -eq 0 ]; then
     cp $testLog $FAILLOG
-    echo " ### The PBS $jobID did not complete on time." >> $toEmail
+    echo " ### jobID=$jobID wait time (3600 secs) expired." >> $toEmail
     echo " ### Check $FAILLOG" >> $toEmail
     return
   fi  
@@ -187,7 +186,7 @@ EOF
 # MAIN
 # ---------------------
 
-ROOT=$MODELROOT/exec/testing/testsOutput
+ROOT=$MODELROOT/exec/testing/testsOutput/
 cd $ROOT
 toEmail="$CONFIG.unit"
 rm -f $toEmail

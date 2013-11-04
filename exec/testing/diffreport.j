@@ -4,7 +4,6 @@
 #PBS -W group_list=s1001
 #PBS -N diffrepo
 #PBS -j oe
-#PBS -V
 
 # This job script is executed by mainRegTests.sh after the regression tests
 # have been executed. Its main purpose is to compare the restart results
@@ -16,6 +15,8 @@ EXIT_ERR=1
 OK=0
 checkMPI=0
 checkSERIAL=0
+compileFAILURES=0
+NF=0
 
 # -------------------------------------------------------------------
 updReport()
@@ -54,6 +55,7 @@ checkStatus()
    fi
    updReport "  ->ERROR: $name1 is NOT RESTART REPRODUCIBLE"
    deckResults[2]="NO"
+   return $EXIT_ERR
 }
 
 # -------------------------------------------------------------------
@@ -69,6 +71,7 @@ fileExists()
          deckResults[1]="NO"
       else
          # Model failed during compilation or at runtime
+         let compileFAILURES++ 
          deckResults[0]="NO"
          deckResults[1]="---"
          deckResults[2]="---"
@@ -106,12 +109,14 @@ doDiff()
          wait
          diffSize=`cat fileDiff | wc -c`; rm -f fileDiff
          # If necessary save new file to BASELINE directory
+         if [ $updateBase == "YES" ]; then
          if [[ "$file2" =~ baseline ]]; then
            if [ $diffSize -ne 0 ]; then
              # Update baseline directory"
-             updReport "  -->Updated baseline"
+             updReport "  -->Updated modified baseline"
              cp -f $file1 $file2
            fi
+         fi
          fi
          checkStatus $diffSize "$file1" "$file2"
          return $?
@@ -126,6 +131,15 @@ doDiff()
    else
       return $FILE_ERR
    fi
+}
+
+# -------------------------------------------------------------------
+createSCMSkipList()
+# -------------------------------------------------------------------
+{
+cat << EOF > skipList
+aij
+EOF
 }
 
 # -------------------------------------------------------------------
@@ -154,14 +168,20 @@ deckDiff()
    for deck in "${deckArray[@]}"; do
       # defaults
       compileErr=OK
-      # I do not check TRAPS tests against baseline - mark as NA
+      # Do not check TRAPS tests against baseline - mark as NA
       [ $CONFIG == "TRAPS" ] && baseNotChanged=NA || baseNotChanged=YES
+      # SCM is not restart reproducible - mark as NA
+      # [[ $deck =~ SCM ]] && isRstReprod=NA || isRstReprod=YES
       isRstReprod=YES
       isNPEReprod=YES
       deckResults=($compileErr $baseNotChanged $isRstReprod $isNPEReprod)
+      echo "initial values: "${deckResults[@]}
       export deckResults
       report=( "${report[@]}" "$deck [$comp] :" )
       echo "  --- DECK = $deck ---"
+      if [[ $deck =~ SGP ]]; then
+         createSCMSkipList
+      fi
       if [[ $deck =~ E4Tcad ]] || [[ $deck =~ AR5_CAD ]]; then
          createCADSkipList
       fi
@@ -172,21 +192,23 @@ deckDiff()
         if [ $checkSERIAL -gt 0 ]; then
 # compare SERIAL restart reproducibility
 # SCM is not restart reproducible, so skip it
-          if [[ ! "$deck" =~ SCM ]]; then
+          if [[ ! "$deck" =~ SGP ]]; then
             echo "  ->compare SERIAL restart reproducibility..."
             doDiff $deck.SERIAL.$comp.1dy $deck.SERIAL.$comp.restart $deck $comp
+            if [ $? -ne $OK ]; then  NF=$(($NF+1)); fi
           else
             echo "  ->Skip restart reproducibility..."
           fi
           if [ $CONFIG != "TRAPS" ]; then
-# compare SERIAL baseline (previous day) restart reproducibility
-          echo "  ->compare SERIAL baseline reproducibility.."
-          doDiff $deck.SERIAL.$comp.1hr $baseline/$deck.SERIAL.$comp.1hr $deck $comp
-          doDiff $deck.SERIAL.$comp.1dy $baseline/$deck.SERIAL.$comp.1dy $deck $comp
+# compare SERIAL baseline (previous day) reproducibility
+            echo "  ->compare SERIAL baseline reproducibility.."
+            doDiff $deck.SERIAL.$comp.1hr $baseline/$deck.SERIAL.$comp.1hr $deck $comp
+            doDiff $deck.SERIAL.$comp.1dy $baseline/$deck.SERIAL.$comp.1dy $deck $comp
+            if [ $? -ne $OK ]; then NF=$(($NF+1)); fi
           fi
         fi
       fi
-      if [[ "$comp" =~ nag ]] || [[ "$deck" =~ SCM ]]; then
+      if [[ "$comp" =~ nag ]] || [[ "$deck" =~ SGP ]]; then
         echo "  ->Skip MPI comparisons when using NAG compiler or SCM rundeck"
       else
 # compare MPI restart reproducibility - 3rd argument ($3) is NPE configuration
@@ -196,6 +218,7 @@ deckDiff()
           for npe in "${npeArray[@]}"; do
             if [ $checkMPI -gt 0 ]; then
               doDiff $deck.MPI.$comp.1dy.np=$npe $deck.MPI.$comp.restart.np=$npe $deck $comp
+              if [ $? -ne $OK ]; then  NF=$(($NF+1));  fi
             fi
           done
 # compare MPI baseline (previous day) restart reproducibility
@@ -203,18 +226,20 @@ deckDiff()
           for npe in "${npeArray[@]}"; do
             if [ $checkMPI -gt 0 ]; then
               if [ $CONFIG != "TRAPS" ]; then
-              doDiff $deck.MPI.$comp.1hr.np=$npe $baseline/$deck.MPI.$comp.1hr.np=$npe $deck $comp
-              doDiff $deck.MPI.$comp.1dy.np=$npe $baseline/$deck.MPI.$comp.1dy.np=$npe $deck $comp
+                doDiff $deck.MPI.$comp.1hr.np=$npe $baseline/$deck.MPI.$comp.1hr.np=$npe $deck $comp
+                doDiff $deck.MPI.$comp.1dy.np=$npe $baseline/$deck.MPI.$comp.1dy.np=$npe $deck $comp
+                if [ $? -ne $OK ]; then NF=$(($NF+1)); fi
               fi
             fi
 # compare MPI vs SERIAL reproducibility
             echo "  ->compare MPI vs SERIAL reproducibility..."
             if [[ $checkMPI -gt 0 ]] && [[ "$LEVEL" != "INSANE" ]]; then
-	      if [[ "$deck" =~ C90 ]] || [[ "$deck" =~ AR5_CAD ]] || [[ "$deck" =~ tomas ]] || [[ "$deck" =~ amp ]] || [[ "$comp" =~ nag ]] || [[ "$deck" =~ SCM ]]; then
+	      if [[ "$deck" =~ C90 ]] || [[ "$deck" =~ AR5_CAD ]] || [[ "$deck" =~ tomas ]] || [[ "$deck" =~ amp ]] || [[ "$comp" =~ nag ]] || [[ "$deck" =~ SGP ]]; then
                 echo "  ->SKIP compare MPI vs SERIAL reproducibility.."
               else
 	        doDiff $deck.MPI.$comp.1hr.np=$npe $deck.SERIAL.$comp.1hr $deck $comp
 	        doDiff $deck.MPI.$comp.1dy.np=$npe $deck.SERIAL.$comp.1dy $deck $comp
+                if [ $? -ne $OK ]; then  NF=$(($NF+1)); fi
               fi
             fi
           done
@@ -222,9 +247,13 @@ deckDiff()
       fi # skip MPI comparisons
       resultString="$deck $comp ${deckResults[@]}"
       deckReport=( "${deckReport[@]}" "$resultString" )
-      if [[ $deck =~ E4Tcad ]]; then
+      if [[ $deck =~ E4Tcad ]] || [[ $deck =~ AR5_CAD ]]; then
          rm -f skipList
       fi
+      if [[ $deck =~ SGP ]]; then
+         rm -f skipList
+      fi
+      echo "final values: "${deckResults[@]}
    done
 }
 
@@ -249,6 +278,9 @@ checkENVS()
       }
    else
       diffExec=/usr/bin/cmp
+   fi
+   if [ ! -z $UPDATE_BASE ]; then
+      updateBase=$UPDATE_BASE
    fi
 }
 
@@ -296,7 +328,11 @@ readCFG()
 # restore IFS
    IFS=$OIFS
 
-   echo "Total DECKs: ${id}"
+   numDecks=${id}
+   numCompilers=${ic}
+   numTests=`echo "$numDecks * $numCompilers * 3" | bc`
+   echo "Total DECKs: "$numDecks
+   echo "Total TESTs: "$numTests
 }
 
 # -------------------------------------------------------------------
@@ -373,29 +409,36 @@ separateDecks()
    echo "HiResNpes is: ${HiResNpes[@]}"
    echo "CSNpes is: ${CSNpes[@]}"
 }
-
 # -------------------------------------------------------------------
 createEmailReport()
 # -------------------------------------------------------------------
 {
 # Create report for email
 
-   echo "ModelE test results, branch=$branch" 
-   echo "--------------------------------------------------------------------------"
+  numLines=${#deckReport[*]}
+  i=0
+  while [ $i -lt $numLines ]; do
+     echo "${deckReport[$i]}" 
+     echo "${deckReport[$i]}" >> $TESTD/.diffrep
+     let i++
+  done
 
-   numLines=${#deckReport[*]}
-   i=0
-   while [ $i -lt $numLines ]; do
-      echo "${deckReport[$i]}" 
-      echo "${deckReport[$i]}" >> $TESTD/.diffrep
-      let i++
-   done
+  echo "ModelE test results, branch=$branch" >> $TESTD/.foo
+#  echo "--------------------------------------------------------------------------"
+#  echo "NOTES: " >> $TESTD/.foo
+#  echo "       Total decks      = $numDecks" >> $TESTD/.foo
+#  echo "       Total tests      = $numTests" >> $TESTD/.foo
+#  if [[ $compileFAILURES -gt 0 ]]  && [[ $compileFAILURES -eq $numDecks ]] ; then
+#    echo " ****** modelE failed to compiled." >> $TESTD/.foo
+#    return
+#  else
+#    echo "       Compile FAILURES = $compileFAILURES" >> $TESTD/.foo
+#  fi
+#  echo "       Test failures    = $NF" >> $TESTD/.foo
+#  bad=`echo "$numTests - $NF" | bc `
+#  goodPerc=`echo "$bad * 100 / $numTests" | bc`
+#  echo "       Success rate     = ${goodPerc}% " >> $TESTD/.foo
 
-echo "ModelE test results, branch=$branch" > $TESTD/.foo
-#echo "Total tests=$NUM_TESTS, Failed=$NUM_FAIL" >> $TESTD/.foo
-if [ $NUM_WARN -gt 0 ]; then
-echo "NOTE: Model baseline has changed." >> $TESTD/.foo
-fi
 echo "------------------------------------------------------------" >> $TESTD/.foo
 echo "                                  -REPRODUCIBILITY-" >> $TESTD/.foo
 echo "        RUNDECK""   COMPILER ""  RUN ""  BAS ""  RST ""  NPE " >> $TESTD/.foo
@@ -438,12 +481,12 @@ archive()
    cp -f $TESTD/${CONFIG}.diff $MODELEBASELINE/reports/${CONFIG}.diff.`date +%F`
 
 # if we found errors then we are done
-   if [ $NUM_FAIL -gt 0 ]; then
-      echo "ERROR: Regression tests failed. Will NOT create modelE snapshot"
+   if [ $NF -gt 0 ]; then
+      echo "ERROR: One or more tests failed. Will NOT create modelE snapshot"
       exit $EXIT_ERR
    else 
-      if [ "$writeOK" -eq 1 ]; then touch $WORKSPACE/.success; fi
-      echo "Regression tests successful. Will create modelE snapshot"
+      if [ $writeOK -eq 1 ]; then touch $WORKSPACE/.success; fi
+      echo "All tests were successful. Will create modelE snapshot"
       # Create modelE snapshot
       if [ -z $MOCKMODELE ]; then
          if [ -d "$REGSCRATCH/$BRANCH" ]; then
@@ -513,7 +556,9 @@ done
 
 createEmailReport
 
+if [ $? -eq $OK ]; then
 copy2Workspace
+fi
 
 archive
 

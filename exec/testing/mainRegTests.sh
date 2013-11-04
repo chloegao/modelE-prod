@@ -109,7 +109,6 @@ watchJob()
      # Submit job to run diffreport.x
      if [ -z "$MOCKMODELE" ]; then
        jobID=`qsub $MODELROOT/exec/testing/diffreport.j`
-       jobID=`echo $jobID | sed 's/.[a-z]*$//g'`
        watchJob $jobID
      else
        $MODELROOT/exec/testing/diffreport.j > $CONFIG.diff
