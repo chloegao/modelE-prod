@@ -137,7 +137,7 @@
       use JulianCalendar_mod, only: jdendofm
       use TimeConstants_mod, only: HOURS_PER_DAY
 
-      USE FILEMANAGER, only: openunit,closeunit
+      USE FILEMANAGER, only: openunit,closeunit,file_exists
 
 #ifdef TRACERS_GASEXCH_ocean_CO2
       USE TRACER_COM, only : NTM    !tracers involved in air-sea gas exch
@@ -247,7 +247,19 @@ c
       !note: we do not initialize obio_P,det and car
 
 #ifdef OBIO_ON_GARYocean
-      call obio_bioinit_g
+      if(file_exists('obio_inicond')) then
+        ! read initial state in netcdf format.  this input file contains the
+        ! result of the special-case initializations in obio_bioinit_g
+        call new_io_obio_inicond
+        ! not sure why trivial initial values for avgq, gcmax were
+        ! being set in obio_bioinit_g rather than obio_init. - M.K.
+        avgq(:,:,:) = 25.0 !  Light saturation data
+        gcmax(:,:,:) = 0.0 !  Coccolithophore max growth rate
+        call obio_trint(0) ! todo: move corresp. call out of obio_bioinit_g
+                           ! to a point after this if-test
+      else
+        call obio_bioinit_g
+      endif
 #else
       tracav_loc = 0.
       plevav_loc=0.
