@@ -728,6 +728,7 @@ c------------------------------------------------------------------------------
       logical vrbos,dateline
 
       character*80 filename
+      real*8 dlata,offib,datmis
 
       if ( AM_I_ROOT() ) then
 
@@ -774,8 +775,11 @@ cdiag.    i,j,1,data(i,j,k),data_mask(i,j)
 
       !iron gocart data start from dateline
       if (dateline) idl_n=0.d0   !no of poits away from dateline
-      call HNTR80(igrd,jgrd,idl_n,60.d0,
-     .             idm,jdm,0.d0,oDLATM,-9999.d0)
+      dlata = 60d0
+      offib = 0d0
+      datmis = -9999d0
+      call HNTR80(igrd,jgrd,idl_n,dlata,
+     .             idm,jdm,offib,oDLATM,datmis)
 
       !use hntr8p in order to get correct polar value: 
       !i.e. average longitudinal value everywhere

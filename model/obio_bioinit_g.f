@@ -703,6 +703,8 @@ c------------------------------------------------------------------------------
      .          250, 300, 400, 500, 600, 700, 800, 900,1000,1100,1200,
      .    1300,1400,1500,1750,2000,2500,3000,3500,4000,4500,5000,5500/
 
+      real*8 offia,offib,dlata,datmis
+
 !--------------------------------------------------------------
 
       !read no3 files from Watson and convert to ascii
@@ -752,9 +754,12 @@ cdiag endif
       enddo    ! j-loop
 
 !compute glb average and replace missing data
-
-      call HNTR80(igrd,jgrd,180.d0,60.d0,
-     .             imo,jmo,0.d0,oDLATM,-9999.d0)
+      offia = 180d0
+      offib = 0d0
+      dlata = 60d0
+      datmis = -9999d0
+      call HNTR80(igrd,jgrd,offia,dlata,
+     .             imo,jmo,offib,oDLATM,datmis)
 
       call HNTR8P (data_mask,data(:,:,k),fldo(:,:,k))
 
