@@ -424,6 +424,114 @@ c**** Extract domain decomposition info
       return
       end subroutine new_io_obio
 
+      subroutine new_io_obio_inicond
+      USE obio_com, only: tracer=>tracer_loc
+      use ocn_tracer_com, only : ntm,trname
+      use ocean, only : lmo,lmm,ze,zmid,focean
+      use ocean, only : im,jm
+      use oceanr_dim, only : grid=>ogrid
+      use pario, only : par_open,par_close
+     &     ,read_data,read_dist_data,get_dimlens
+      use domain_decomp_1d, only : halo_update
+      implicit none
+
+      integer i,j,l,lm,lm_in,lmo_in,n,fid,ii,jj
+      logical :: need_zregrid
+      real*8 :: rz(lmo)
+      real*8, allocatable :: z_in(:)
+      real*8, dimension(:,:,:), allocatable :: arr_in,arr_tmp
+      integer :: dlens(7),ndims
+      integer :: i_0,i_1,j_0,j_1
+      integer :: i_0h,i_1h,j_0h,j_1h
+
+      i_0 = grid%i_strt
+      i_1 = grid%i_stop
+      j_0 = grid%j_strt
+      j_1 = grid%j_stop
+
+      i_0h = grid%i_strt_halo
+      i_1h = grid%i_stop_halo
+      j_0h = grid%j_strt_halo
+      j_1h = grid%j_stop_halo
+
+
+      fid = par_open(grid,'obio_inicond','read')
+
+      call get_dimlens(grid,fid,'Nitr',ndims,dlens)
+      lmo_in = dlens(3)
+
+      allocate(z_in(lmo_in),arr_in(i_0h:i_1h,j_0h:j_1h,lmo_in))
+      allocate(arr_tmp(0:im+1,j_0h:j_1h,lmo)) ! temporary until 2D decomp
+      arr_in = 0.
+
+      if(lmo_in == lmo) then
+        z_in = zmid ! default
+        call read_data(grid,fid,'z',z_in,bcast_all=.true.)
+        need_zregrid = .not. all(abs(z_in-zmid) < 1d0)
+      else
+        call read_data(grid,fid,'z',z_in,bcast_all=.true.)
+        need_zregrid = .true.
+      endif
+
+      tracer(:,:,:,:) = -9999.
+      do n=1,ntm
+        call read_dist_data(grid,fid,trim(trname(n)),arr_in)
+        if(need_zregrid) then
+          do j=j_0,j_1
+          do i=i_0,i_1
+            if(focean(i,j).le.0) cycle
+            lm = lmm(i,j)
+            call VLKtoLZ(lmo_in,lm,z_in,ze,
+     &           arr_in(i,j,:),tracer(i,j,:,n),rz)
+          enddo
+          enddo
+        else
+          tracer(:,:,:,n) = arr_in
+        endif
+        arr_tmp(1:im,:,:) = tracer(:,:,:,n)
+        do j=j_0,j_1
+          arr_tmp(0,j,:) = arr_tmp(im,j,:)
+          arr_tmp(im+1,j,:) = arr_tmp(1,j,:)
+        enddo
+        call halo_update(grid,arr_tmp)
+        do j=j_0,j_1
+        do i=i_0,i_1
+          lm = lmm(i,j)
+          do l=lm+1,lmo
+            tracer(i,j,l,n) = 0.
+          enddo
+          if(focean(i,j).le.0.) cycle
+          do lm_in=0,lmo-1
+            if(arr_tmp(i,j,1+lm_in).lt.0.) exit
+          enddo
+          if(lm_in.ge.lm) cycle
+          do l=lm_in+1,lm            
+c            do jj=j-1,j+1
+            do jj=max(1,j-1),min(jm,j+1) ! temporary limits
+            do ii=i-1,i+1
+              if(jj.eq.j .and. ii.eq.i) cycle
+              if(arr_tmp(ii,jj,l).lt.0.) cycle
+              tracer(i,j,l,n) = arr_tmp(ii,jj,l)
+            enddo
+            enddo
+          enddo
+          do lm_in=0,lmo-1
+            if(tracer(i,j,1+lm_in,n).lt.0.) exit
+          enddo
+          if(lm_in.ge.lm) cycle
+          do l=lm_in+1,lm
+            tracer(i,j,l,n) = tracer(i,j,lm_in,n)
+          enddo
+        enddo
+        enddo
+      enddo
+
+      call par_close(grid,fid)
+      deallocate(arr_in,arr_tmp)
+
+      return
+      end subroutine new_io_obio_inicond
+
 #else
 
       subroutine obio_set_data_after_archiv
