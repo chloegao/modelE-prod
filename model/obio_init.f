@@ -4,7 +4,7 @@ c ----------------------------------------------------------------
 c --- biological/light setup
 c ----------------------------------------------------------------
 c 
-      USE FILEMANAGER, only: openunit,closeunit
+      USE FILEMANAGER, only: openunit,closeunit,file_exists
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT, pack_data
 
       USE obio_dim
@@ -41,7 +41,6 @@ c
 #ifdef ALK_RUNOFF
      .                    ,ralkconc_loc
 #endif
-      USE pario
 #endif
 #ifdef OBIO_ON_GARYocean
       USE OCEANRES, only : idm=>imo,jdm=>jmo,kdm=>lmo
@@ -54,6 +53,7 @@ c
       USE hycom_scalars, only : nstep,baclin
       USE hycom_dim, only : ogrid
 #endif
+      USE pario
 
 
       implicit none  
@@ -541,6 +541,11 @@ c  Read in factors to compute average irradiance
       print*, '    '
       endif
 
+      if(file_exists('ironflux')) then ! read netcdf format flux
+	fid = par_open(ogrid,'ironflux','read')
+	call read_dist_data(ogrid,fid,'ironflux',atmFe)
+	call par_close(ogrid,fid)
+      else
 !     open(unit=iu_bio,file='atmFedirect0'
 !    . ,form='unformatted',status='old',access='direct' 
 !    . ,recl=idm*jdm*8/4)
@@ -555,6 +560,7 @@ c  Read in factors to compute average irradiance
 #else
         call bio_inicond2D(filename,atmFe(:,:,:),.true.)
 #endif
+      endif ! netcdf iron or not
 
 #ifdef OBIO_RUNOFF
 ! read in nutrient concentrations, already regridded to model grid
