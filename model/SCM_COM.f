@@ -80,6 +80,20 @@ C SCM DATA as provided from ARM variational analysis
       REAL*8 ATSWDN
 !@var ATSWIN ARM TOA SW INS (W/m**2)
       REAL*8 ATSWIN
+!@var ASRFALBEDO Surface Albedo (initless)
+      REAL*8 ASRFALBEDO
+!@var ARMDATE Julian day fraction from ARM
+      REAL*8 ARMDATE
+
+
+
+
+!@var ARMFAC   factor to take into consideration the difference in size 
+!              between the area of the ARM site and the GCM grid box area
+!              for the Wind Divergence    
+      REAL*8 ARMFAC
+!@var ARM_ELEV terrain hgt at ARM site in m
+      REAL*8 ARM_ELEV
   
 !@var SCM_SURFACE_FLAG 0-use GCM calculated surface fluxes,
 !                      1-use SCM prescribed surface fluxes  
@@ -88,6 +102,14 @@ C SCM DATA as provided from ARM variational analysis
 !@var SCM_ATURB_FLAG   0-run with dry convection routine
 !                      1-run with aturb routine
       INTEGER SCM_ATURB_FLAG
+!@var SCM_SURF_ALBEDO_FLAG    0-run with GCM calculated surface albedo
+!                             1-run with SCM ARM prescribed surface albedo
+      INTEGER SCM_SURF_ALBEDO_FLAG
+!@var SCM_RELAX_FORCING_FLAG  0 - run with ARM forcings as given
+!                             1 - run with a relaxing over time of the ARM forcings
+      INTEGER SCM_RELAX_FORCING_FLAG
+
+
 !@var NARM #of GCM time steps per ARM time step
       INTEGER NARM
 !@var NRINIT #of GCM time steps between reinitializing T,Q 
@@ -96,7 +118,19 @@ C SCM DATA as provided from ARM variational analysis
       INTEGER TAUARM
 !@var IKT index to arm data interpolated to time steps
       INTEGER IKT
-      INTEGER iu_scm_prt,iu_scm_diag    
+      INTEGER iu_scm_prt,iu_scm_diag,iu_scm_seed
+      INTEGER jrandscm    
+
+!@var IFLRESET,NRAMP,IRESET  used for doing updating with a ramp, then saving only
+!     time steps after ramp, then backtracking and ramping again before the next saved
+!     time steps
+!     IFLRESET = flag
+!     NRAMP = length of ramp in time steps
+!     NRESET = length of ramp + buffer
+!     IRESET = index to output buffers
+      INTEGER IFLRESET,NRAMP,NRESET,IRESET
+
+      parameter (NRESET=72)
 
 !**** Target Coordinates for SCM
       REAL*8 :: LON_TARG,LAT_TARG
@@ -105,8 +139,9 @@ c      INTEGER*4 :: I_TARG,J_TARG   !TWP I=125,J=39  set targets in parameter li
    
       
       INTEGER MCT
+      INTEGER NTOTSCM
 
-      parameter (MCT=1500)
+      parameter (MCT=3000)
 
       REAL*8 HTA_HR(LM,MCT)    
       REAL*8 VSA_HR(LM,MCT)
@@ -139,33 +174,66 @@ c      INTEGER*4 :: I_TARG,J_TARG   !TWP I=125,J=39  set targets in parameter li
       REAL*4 ATLWUPHR(MCT) 
       REAL*4 ATSWDNHR(MCT)
       REAL*4 ATSWINHR(MCT)
+      REAL*4 ASRFALBHR(MCT)
 
       REAL*8 SCM_SAVE_T(LM),SCM_SAVE_Q(LM),SCM_DEL_T(LM),
      &       SCM_DEL_Q(LM)
 
+c
+c     add buffers for running ramp/reset to store cloud variables
+c
+      real*8 CBTTOLD(LM,0:MCT),CBQTOLD(LM,0:MCT),CBWM(LM,0:MCT),
+     *       CBPTOLD(0:MCT),CBSVLHX(LM,0:MCT),
+     *       CBRHSAV(LM,0:MCT),CBCLDSAV(LM,0:MCT),
+     *       CBCLDSAV1(LM,0:MCT)
 
       end module SCMCOM
 c
 c    
       subroutine ALLOC_SCM_COM()
    
-      USE SCMCOM, only : SCM_SURFACE_FLAG,SCM_ATURB_FLAG
+      USE SCMCOM, only : SCM_SURFACE_FLAG,SCM_ATURB_FLAG,
+     &            SCM_SURF_ALBEDO_FLAG,SCM_RELAX_FORCING_FLAG,
+     &            ARMFAC,ARM_ELEV,IFLRESET,IRESET,NRAMP,
+     &            iu_scm_prt
 
 
 !@var SCM_SURFACE FLAG   0-run with GCM calculated surface fluxes
-!                       1-run with ARM prescribed surface fluxes
-!                       2-RUN WITH ARM srf tmps and GCM calc srf fluxes
+!                        1-run with ARM prescribed surface fluxes
+!                        2-RUN WITH ARM srf tmps and GCM calc srf fluxes
       SCM_SURFACE_FLAG = 1     
 
 !@var SCM_ATURB_FLAG     0-run with DRYCNV dry convection routine 
 !                        1-run with ATURB turbulence routine    
       SCM_ATURB_FLAG = 1
-c     if (SCM_ATURB_FLAG.eq.0) then
-c         write(0,*) 'RUN with DRYCNV routine '
-c     elseif (SCM_ATURB_FLAG.eq.1) then
-c         write(0,*) 'RUN with ATURB routine '
-c     endif    
-  
+ 
+!@var SCM_SURF_ALBEDO_FLAG   0-run with GCM calculated surface albedo
+!                            1-run with SCM ARM prescribed surface albedo
+      SCM_SURF_ALBEDO_FLAG = 0
+
+!@var SCM_RELAX_FORCING_FLAG   0-run with ARM forcings as given
+!                              1-run with relaxation of forcings
+      SCM_RELAX_FORCING_FLAG = 0
+
+!@var ARMFAC
+!     variable to scale windiv for difference in area of ARM site and
+!     GCM grid box    see subroutine FCONV in ATMDYN_SCM.f
+c     for now set ARMFAC TO 1.0   to be determined when setting up run.
+      ARMFAC=1.0
+
+!@var ARM_ELEV   set terrain hgt of ARM site in m
+!                SGP = 320.m
+      ARM_ELEV = 320.
+
+
+!@var  IFLRESET          0-run without ramp/reset/updating
+!                        1-run with ramp/reset/updating
+      IFLRESET = 0
+      NRAMP = 24
+      IRESET = 0
+      if (IFLRESET.eq.1) write(0,*) 'run with ramps iflreset nramp ',
+     &                   iflreset,nramp
+
       return
 
       end subroutine ALLOC_SCM_COM

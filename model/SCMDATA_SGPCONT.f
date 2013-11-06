@@ -9,8 +9,8 @@ C-------------------------------------------------------------------------------
       SUBROUTINE init_scmdata
 
 !     read data from file store time history and set up initial conditions
-      USE SCMCOM , only : SCM_SURFACE_FLAG,NARM,TAUARM,NRINIT,IKT, 
-     &                  AMEANPS, SG_T, SG_Q,
+      USE SCMCOM , only : SCM_SURFACE_FLAG,SCM_SURF_ALBEDO_FLAG,
+     &                    NARM,TAUARM,NRINIT,IKT,AMEANPS, SG_T, SG_Q,
      &                  SG_U,SG_V,ASWINDSPD,AQS,AVS,AUS,ATSAIR,ATSKIN,
      &                  iu_scm_prt,NSTEPSCM
       USE RESOLUTION , only : LM, ls1, ptop,psf
@@ -20,6 +20,7 @@ C-------------------------------------------------------------------------------
       USE LAKES_COM, only : FLAKE 
       USE CONSTANT , only : KAPA,TF   
       USE FLUXES, only : atmocn,atmlnd,atmsrf
+      USE RADPAR, only : KEEPAL
       USE FILEMANAGER
       USE Dictionary_mod
       IMPLICIT NONE
@@ -29,8 +30,8 @@ C-------------------------------------------------------------------------------
       call openunit("scm.prt",iu_scm_prt,.false.,.false.)
 c      call sync_param( "I_TARG",I_TARG)
 c      call sync_param( "J_TARG",J_TARG)
-      write(0,*) 'I/J Targets set ',1,1
-      write(iu_scm_prt,*) 'I/J Targets set ',1,1
+c      write(0,*) 'I/J Targets set ',1,1
+c      write(iu_scm_prt,*) 'I/J Targets set ',1,1
 
 c      if ((I_TARG.lt.1 .or. I_TARG.gt. 144) .or.
 c     &    (J_TARG.lt.2 .or. J_TARG.gt.89)) then
@@ -40,6 +41,7 @@ c     &       I_TARG,J_TARG
 c        STOP 100
 c      endif
 
+c     check scm_surface_flag
       if (SCM_SURFACE_FLAG.eq.0) then
           write(0,*) 
      &        'SCM set to run with GCM calculated surface fluxes'
@@ -56,6 +58,12 @@ c      endif
           write(iu_scm_prt,*)
      &        'SCM set to run with ARM srf tmps + GCM calc srf fluxes'
       endif
+
+c     check scm_surf_albedo_flag
+      if (SCM_SURF_ALBEDO_FLAG.eq.1) KEEPAL = 1
+
+
+c     set data indices
       NARM = 2                        ! for 30 min time steps from hourly input 
       TAUARM = 0                      ! not used for now 
       NRINIT = 0                      ! when to reinitialize t,q profiles to data
@@ -133,7 +141,7 @@ C
 
       IMPLICIT NONE
       INTEGER NTARM,NVARSRF 
-      parameter(NTARM=696,NVARSRF=43)  !SGP CONT 31
+      parameter(NTARM=744,NVARSRF=44)  !SGP CONT  Jan 2005 
       REAL*4 d(NVARSRF,NTARM), rdat(NTARM,NVARSRF)
       character*50 var_name(NVARSRF)    
 
@@ -229,10 +237,12 @@ c
       do itp = 1,NTARM-1
          dt = d(1,itp+1)-d(1,itp)
          dt = dt/RARM
-         do ii=1,NARM
+         do ii=1,NARM-1
             itim = itim+1
             stmstep(itim) = stmstep(itim-1)+dt
          enddo
+         itim = itim+1
+         stmstep(itim) = d(1,itp+1)
       enddo
 
       itim = 1
@@ -240,10 +250,12 @@ c
       do itp = 1,NTARM-1
          dp = d(10,itp+1)-d(10,itp)
          dp = dp/RARM
-         do ii = 1,NARM
+         do ii = 1,NARM-1
             itim = itim+1
             AMPS(itim) = AMPS(itim-1)+dp
          enddo
+         itim = itim+1
+         AMPS(itim) = d(10,itp+1)
       enddo 
 
       PSMEAN=0.0
@@ -256,14 +268,16 @@ c     write(iu_scm_prt,120) NTOT,PSMEAN
 c120  format(1x,'NTOT   PSMEAN ',i5,f10.2)
 
       itim = 1
-      ATSK(itim)=d(13,1)
+      ATSK(itim)=d(44,1)             !new SGP CONT FRC data   index 44   
       do itp = 1,NTARM-1
-         dt = d(13,itp+1)-d(13,itp)
+         dt = d(44,itp+1)-d(44,itp)
          dt = dt/RARM
-         do ii = 1,NARM
+         do ii = 1,NARM-1
             itim = itim+1
             ATSK(itim) = ATSK(itim-1)+dt
          enddo
+         itim=itim+1
+         ATSK(itim) = d(44,itp+1)
       enddo 
 
       itim = 1
@@ -271,10 +285,12 @@ c120  format(1x,'NTOT   PSMEAN ',i5,f10.2)
       do itp = 1,NTARM-1
          dt = d(12,itp+1)-d(12,itp)
          dt = dt/RARM
-         do ii = 1,NARM
+         do ii = 1,NARM-1
             itim = itim+1
             ATSA(itim) = ATSA(itim-1)+dt
          enddo
+         itim = itim+1
+         ATSA(itim) = d(12,itp+1)
       enddo 
 
 
@@ -283,10 +299,12 @@ c120  format(1x,'NTOT   PSMEAN ',i5,f10.2)
       do itp = 1,NTARM-1
          dt = d(7,itp+1)-d(7,itp)
          dt = dt/RARM
-         do ii = 1,NARM
+         do ii = 1,NARM-1
             itim = itim+1
             APRCHR(itim) = APRCHR(itim-1)+dt
          enddo
+         itim = itim+1
+         APRCHR(itim) = d(7,itp+1)
       enddo 
 
       itim = 1
@@ -294,32 +312,38 @@ c120  format(1x,'NTOT   PSMEAN ',i5,f10.2)
       do itp = 1,NTARM-1
          dt = d(8,itp+1)-d(8,itp)
          dt = dt/RARM
-         do ii = 1,NARM
+         do ii = 1,NARM-1
             itim = itim+1
             ALHHR(itim) = ALHHR(itim-1)+dt
          enddo
+         itim = itim+1
+         ALHHR(itim) = d(8,itp+1)
       enddo 
-
-      itim = 1
-      ARHHR(itim) = d(14,1)
-      do itp = 1,NTARM-1 
-         dt = d(14,itp+1)-d(14,itp)
-         dt = dt/RARM
-         do ii = 1,NARM
-            itim = itim + 1
-            ARHHR(itim) = ARHHR(itim-1) + dt
-         enddo
-      enddo
 
       itim = 1
       ASHHR(itim)=d(9,1)
       do itp = 1,NTARM-1
          dt = d(9,itp+1)-d(9,itp)
          dt = dt/RARM
-         do ii = 1,NARM
+         do ii = 1,NARM-1
             itim = itim+1
             ASHHR(itim) = ASHHR(itim-1)+dt
          enddo
+         itim = itim+1
+         ASHHR(itim) = d(9,itp+1)
+      enddo
+
+      itim = 1
+      ARHHR(itim) = d(14,1)
+      do itp = 1,NTARM-1 
+         dt = d(14,itp+1)-d(14,itp)
+         dt = dt/RARM
+         do ii = 1,NARM-1
+            itim = itim + 1
+            ARHHR(itim) = ARHHR(itim-1) + dt
+         enddo
+         itim = itim+1
+         ARHHR(itim) = d(14,itp+1)
       enddo
 
       itim = 1
@@ -327,10 +351,12 @@ c120  format(1x,'NTOT   PSMEAN ',i5,f10.2)
       do itp = 1,NTARM-1
          dt = d(15,itp+1)-d(15,itp)
          dt = dt/RARM
-         do ii = 1,NARM
+         do ii = 1,NARM-1
             itim = itim+1
             AWSHR(itim) = AWSHR(itim-1)+dt
          enddo
+         itim=itim+1
+         AWSHR(itim) = d(15,itp+1)
       enddo 
 
       itim = 1
@@ -338,10 +364,12 @@ c120  format(1x,'NTOT   PSMEAN ',i5,f10.2)
       do itp = 1,NTARM-1
          dt = d(16,itp+1)-d(16,itp)
          dt = dt/RARM
-         do ii = 1,NARM
+         do ii = 1,NARM-1
             itim = itim+1
             AUSHR(itim) = AUSHR(itim-1)+dt
          enddo
+         itim = itim+1
+         AUSHR(itim) = d(16,itp+1)
       enddo 
 
       itim = 1
@@ -349,10 +377,12 @@ c120  format(1x,'NTOT   PSMEAN ',i5,f10.2)
       do itp = 1,NTARM-1
          dt = d(17,itp+1)-d(17,itp)
          dt = dt/RARM
-         do ii = 1,NARM
+         do ii = 1,NARM-1
             itim = itim+1
             AVSHR(itim) = AVSHR(itim-1)+dt
          enddo
+         itim = itim+1
+         AVSHR(itim) = d(17,itp+1)
       enddo 
 
       itim = 1
@@ -360,10 +390,12 @@ c120  format(1x,'NTOT   PSMEAN ',i5,f10.2)
       do itp = 1,NTARM-1
          dt = d(37,itp+1)-d(37,itp)
          dt = dt/RARM
-         do ii = 1,NARM
+         do ii = 1,NARM-1
             itim = itim + 1
             AQSHR(itim) = AQSHR(itim-1) + dt
          enddo
+         itim = itim+1
+         AQSHR(itim) = d(37,itp+1)
       enddo
 
       itim = 1
@@ -371,66 +403,13 @@ c120  format(1x,'NTOT   PSMEAN ',i5,f10.2)
       do itp = 1,NTARM-1
          dt = d(28,itp+1)-d(28,itp)
          dt = dt/RARM
-         do ii = 1,NARM
+         do ii = 1,NARM-1
             itim = itim+1
             ALWPHR(itim) = ALWPHR(itim-1)+dt
          enddo
+         itim = itim+1
+         ALWPHR(itim) = d(28,itp+1)
       enddo
-
-c     itim = 1
-c     ADWDTHR(itim) = d(29,1)
-c     do itp = 1,NTARM-1
-c        dt = d(29,itp+1)-d(29,itp)
-c        dt = dt/RARM
-c        do ii = 1,NARM
-c           itim = itim+1
-c           ADWDTHR(itim) = ADWDTHR(itim-1)+dt
-c        enddo
-c     enddo
-
-c     itim = 1
-c     ADWADVHR(itim) = d(30,1)
-c     do itp = 1,NTARM-1
-c        dt = d(30,itp+1)-d(30,itp)
-c        dt = dt/RARM
-c        do ii = 1,NARM
-c           itim = itim+1
-c           ADWADVHR(itim) = ADWADVHR(itim-1)+dt
-c        enddo
-c     enddo
-
-c     itim = 1
-c     ATLWUPHR(itim) = d(19,1)
-c     do itp = 1,NTARM-1
-c        dt = d(19,itp+1)-d(19,itp)
-c        dt = dt/RARM
-c        do ii = 1,NARM
-c           itim = itim+1
-c           ATLWUPHR(itim) = ATLWUPHR(itim-1)+dt
-c        enddo
-c     enddo
-
-c     itim = 1
-c     ATSWDNHR(itim) = d(20,1)
-c     do itp = 1,NTARM-1
-c        dt = d(20,itp+1)-d(20,itp)
-c        dt = dt/RARM
-c        do ii = 1,NARM
-c           itim = itim+1
-c           ATSWDNHR(itim) = ATSWDNHR(itim-1)+dt
-c        enddo
-c     enddo
-
-c     itim = 1
-c     ATSWINHR(itim) = d(21,1)
-c     do itp = 1,NTARM-1
-c        dt = d(21,itp+1)-d(21,itp)
-c        dt = dt/RARM
-c        do ii = 1,NARM
-c           itim = itim+1
-c           ATSWINHR(itim) = ATSWINHR(itim-1)+dt
-c        enddo
-c     enddo
 
       return
 
@@ -451,8 +430,6 @@ c     enddo
 
       ASTIME = stmstep(KT)
 c
-c     in this test version apply an averaged LH and SH over this time
-c     step by getting an average of time now and time next
       ALH = ALHHR(KT)
       ASH = ASHHR(KT)
       AMEANPS = AMPS(KT)
@@ -488,7 +465,7 @@ c    &       2(i6),f10.2,f10.4,f10.4)
 
       IMPLICIT NONE
       INTEGER NTARM,NVARLAY,NPARM,NPM
-      parameter(NTARM=696,NVARLAY=25, NPARM=37)  !SGP CONT 31
+      parameter(NTARM=744,NVARLAY=18, NPARM=37)  !SGP CONT new  Jan 2005
       parameter(NPM=NPARM-1)
 
       real*4 time(NTARM),      !Calenday day
@@ -651,13 +628,14 @@ C                   in CASE 3 Intercomparison Instructions
          enddo
       enddo
 
-      do itp = 1,NTARM 
-         do ip = 1,NPARM 
-            acld3hr(ip,itp) = d(19,ip,itp) 
+cccccc no arscl data in this version of the continuous forcing data
+c     do itp = 1,NTARM 
+c        do ip = 1,NPARM 
+c           acld3hr(ip,itp) = d(19,ip,itp) 
 c           write(iu_scm_prt,101)  itp,ip,acld3hr(ip,itp)   
 c101        format(1x,'itp ip  clds ',i5,i5,f10.3)
-         enddo
-      enddo
+c        enddo
+c     enddo
 
       RARM = NARM
       i = 1 
@@ -665,10 +643,12 @@ c101        format(1x,'itp ip  clds ',i5,i5,f10.3)
       do itp = 1,NTARM-1
          dt = time(itp+1)-time(itp)
          dt = dt/RARM
-         do ii = 1,NARM
+         do ii = 1,NARM-1
             i=i+1
             STMSTEPL(i) = STMSTEPL(i-1)+dt
          enddo
+         i = i+1
+         STMSTEPL(i) = time(itp+1)
       enddo
 
 C     call interpolation routine to interpolate to hourly and then
@@ -747,7 +727,8 @@ c     enddo
 
 
       do L=1,LM
-         SG_ARSCL(L) = ACLDHR(L,KT)
+c         SG_ARSCL(L) = ACLDHR(L,KT)
+          SG_ARSCL(L) = 0.d0
       enddo
  
       return
@@ -763,20 +744,24 @@ c     enddo
       USE GHY_COM, only : FEARTH
       USE LAKES_COM, only : FLAKE
       USE FLUXES, only : atmocn,atmlnd,atmsrf
-      USE CONSTANT, only : tf,KAPA 
+      USE CONSTANT, only : tf,KAPA,RGAS,GRAV 
       USE SCMCOM
+
+      IMPLICIT NONE
 C     
 C
+      REAL*8 ZE,DZ(LM)
       INTEGER MODINT
       INTEGER I,J,L 
 C                
+
       MODINT = 9999
       if (NRINIT.gt.0) MODINT = MOD(NSTEPSCM,NRINIT)
       
-      write(iu_scm_prt,25) FLAND(1,1),
-     &   FOCEAN(1,1),FLICE(1,1),
-     &   FLAKE0(1,1),
-     &   FEARTH0(1,1),FEARTH(1,1)
+c     write(iu_scm_prt,25) FLAND(1,1),
+c    &   FOCEAN(1,1),FLICE(1,1),
+c    &   FLAKE0(1,1),
+c    &   FEARTH0(1,1),FEARTH(1,1)
  25   format(1x,'pass flags  land ocean lice lake earth0 earth ',
      &   6(f8.3))
 c
@@ -802,7 +787,18 @@ c
 c * * * * indices
       P(1,1) = AMEANPS - PTOP   
       call CALC_AMPK(LM)
- 
+
+c calculate SG_HGT
+      ZE = 0.d0
+      do L=1,LM
+         DZ(L) = ((SGE_P(L)-SGE_P(L+1))/SG_P(L))
+     &           *((RGAS/GRAV)*T(1,1,L)*PK(L,1,1))
+         SG_HGT(L) = ZE + DZ(L)/2.0
+c        write(iu_scm_prt,22) L,SG_P(L),
+c    &          T(1,1,L)*PK(L,1,1),ZE,SG_HGT(L)
+c22      format(1x,'l p t ze z ',i5,f10.2,f10.2,f12.2,f12.2)
+         ZE = ZE + DZ(L)
+      enddo
  
       if ((ALTIME-ASTIME).gt.0.005) stop 4000 
 
@@ -819,7 +815,6 @@ c         enddo
           do L = 1,LM
              Q(1,1,L) = SG_Q(L)
 C            get potential temperature 
-C* * * * check how to do this now
              T(1,1,L) = SG_T(L) / PK(L,1,1)    
 c            write(iu_scm_prt,310) L,Q(1,1,L),SG_T(L),
 c    &                     T(1,1,L)
@@ -875,13 +870,14 @@ C
       SUBROUTINE arm_to_sig(parm)
 
       USE RESOLUTION , only : LM,LS1,PTOP,PSF
+      USE MODEL_COM , only : MONTHI
       USE DYNAMICS, only : SIG,SIGE
       USE SCMCOM  
       USE CONSTANT , only : grav
 C
       IMPLICIT NONE
       INTEGER NTARM,NPARM 
-      parameter(NTARM=696,NPARM=37)  
+      parameter(NTARM=744,NPARM=37)  
       
       COMMON /CTHREE/ t3hr(NPARM,NTARM),q3hr(NPARM,NTARM),
      &     u3hr(NPARM,NTARM),v3hr(NPARM,NTARM),om3hr(NPARM,NTARM),
@@ -915,7 +911,30 @@ C     pass three hour data and interpolate to 1 hr data
       INTEGER L,n,ni,ip,itp,itt,ii,i,ihr      
       INTEGER IASTART,NB,NE,ITOP      
  
+cc
+cc    since ARM data only goes up to 40mb at TOA  use
+cc    McClatchey data (1972) for standard profile  for mid-latitude summer
+cc    from  Andy Lacis (subroutine PHATMO - in RAD_UTILS.f )
+      real*8 TMC(LM),QMC(LM),HMC(LM),DD,OO,SS,OCM,WCM
+      integer NPHD,NATM,NJLAT
+      integer INDATM(12,3)
+      data  INDATM/ 1,1,1,1,1,1,1,1,1,1,1,1,
+     &              3,3,3,2,2,2,2,2,2,3,3,3,
+     &              5,5,5,4,4,4,4,4,4,5,5,5/
 
+c
+c    get index for McClatchey 
+
+      NPHD = 1
+      NJLAT = 0
+      if (lat_targ.ge.-23.5 .and. lat_targ.ge.23.5) NJLAT=1
+      if (lat_targ.ge.-66.5 .and. lat_targ.lt.-23.5) NJLAT=2
+      if (lat_targ.gt.23.5 .and. lat_targ.le.66.5) NJLAT=2
+      if (lat_targ.lt.-66.5 .or. lat_targ.gt.66.5) NJLAT=3
+      if (NJLAT.eq.0) stop 16
+      NATM = INDATM(monthi,NJLAT)
+      write(iu_scm_prt,40) lat_targ,NJLAT,monthi,NATM
+ 40   format(1x,'lat_targ NJLAT monthi NATM ',f10.2,i5,i5,i5)
 
 c     first get temperature and humidity on an hourly basis
       RARM = NARM
@@ -927,10 +946,12 @@ c     first get temperature and humidity on an hourly basis
          do ip = 1,NPARM
             dx = t3hr(ip,itp+1)-t3hr(ip,itp)
             dx = dx/RARM
-            do ii = 1,NARM
+            do ii = 1,NARM-1
                i = ni+ii
                t1hr(ip,i) = t1hr(ip,i-1)+dx
             enddo
+            i=i+1
+            t1hr(ip,i) = t3hr(ip,itp+1)
          enddo
          ni = ni + NARM
       enddo 
@@ -943,10 +964,12 @@ c     first get temperature and humidity on an hourly basis
          do ip = 1,NPARM 
             dx = q3hr(ip,itp+1)-q3hr(ip,itp)
             dx = dx/RARM
-            do ii = 1,NARM
+            do ii = 1,NARM-1
                i = ni+ii
                q1hr(ip,i) = q1hr(ip,i-1)+dx
             enddo
+            i=i+1
+            q1hr(ip,i) = q3hr(ip,itp+1)
          enddo
          ni = ni + NARM
       enddo 
@@ -959,10 +982,12 @@ c     first get temperature and humidity on an hourly basis
          do ip = 1,NPARM   
             dx = u3hr(ip,itp+1)-u3hr(ip,itp)
             dx = dx/RARM
-            do ii = 1,NARM
+            do ii = 1,NARM-1
                i = ni+ii
                u1hr(ip,i) = u1hr(ip,i-1)+dx
             enddo
+            i=i+1
+            u1hr(ip,i) = u3hr(ip,itp+1)
          enddo
          ni = ni + NARM
       enddo 
@@ -975,10 +1000,12 @@ c     first get temperature and humidity on an hourly basis
          do ip = 1,NPARM
             dx = v3hr(ip,itp+1)-v3hr(ip,itp)
             dx = dx/RARM
-            do ii = 1,NARM
+            do ii = 1,NARM-1
                i = ni+ii
                v1hr(ip,i) = v1hr(ip,i-1)+dx
             enddo
+            i=i+1
+            v1hr(ip,i) = v3hr(ip,itp+1)
          enddo
          ni = ni + NARM
       enddo 
@@ -991,10 +1018,12 @@ c     first get temperature and humidity on an hourly basis
          do ip = 1,NPARM 
             dx = om3hr(ip,itp+1)-om3hr(ip,itp)
             dx = dx/RARM
-            do ii = 1,NARM
+            do ii = 1,NARM-1
                i = ni+ii
                om1hr(ip,i) = om1hr(ip,i-1)+dx
             enddo
+            i=i+1
+            om1hr(ip,i) = om3hr(ip,itp+1)
          enddo
          ni = ni + NARM
       enddo 
@@ -1007,10 +1036,12 @@ c     first get temperature and humidity on an hourly basis
          do ip = 1,NPARM 
             dx = wd3hr(ip,itp+1)-wd3hr(ip,itp)
             dx = dx/RARM
-            do ii = 1,NARM
+            do ii = 1,NARM-1
                i = ni+ii
                wd1hr(ip,i) = wd1hr(ip,i-1)+dx
             enddo
+            i=i+1
+            wd1hr(ip,i) = wd3hr(ip,itp+1)
          enddo
          ni = ni + NARM
       enddo 
@@ -1023,10 +1054,12 @@ c     first get temperature and humidity on an hourly basis
          do ip = 1,NPARM 
             dx = hta3hr(ip,itp+1)-hta3hr(ip,itp)
             dx = dx/RARM
-            do ii = 1,NARM
+            do ii = 1,NARM-1
                i = ni+ii
                hta1hr(ip,i) = hta1hr(ip,i-1)+dx
             enddo
+            i=i+1
+            hta1hr(ip,i) = hta3hr(ip,itp+1)
          enddo
          ni = ni + NARM
       enddo 
@@ -1039,10 +1072,12 @@ c     first get temperature and humidity on an hourly basis
          do ip = 1,NPARM    
             dx = vsa3hr(ip,itp+1)-vsa3hr(ip,itp)
             dx = dx/RARM
-            do ii = 1,NARM
+            do ii = 1,NARM-1
                i = ni+ii
                vsa1hr(ip,i) = vsa1hr(ip,i-1)+dx
             enddo
+            i=i+1
+            vsa1hr(ip,i) = vsa3hr(ip,itp+1)
          enddo
          ni = ni + NARM
       enddo 
@@ -1055,10 +1090,12 @@ c     first get temperature and humidity on an hourly basis
          do ip = 1,NPARM  
             dx = hqa3hr(ip,itp+1)-hqa3hr(ip,itp)
             dx = dx/RARM
-            do ii = 1,NARM
+            do ii = 1,NARM-1
                i = ni+ii
                hqa1hr(ip,i) = hqa1hr(ip,i-1)+dx
             enddo
+            i=i+1
+            hqa1hr(ip,i) = hqa3hr(ip,itp+1)
          enddo
          ni = ni + NARM
       enddo 
@@ -1071,10 +1108,12 @@ c     first get temperature and humidity on an hourly basis
          do ip = 1,NPARM   
             dx = vqa3hr(ip,itp+1)-vqa3hr(ip,itp)
             dx = dx/RARM
-            do ii = 1,NARM
+            do ii = 1,NARM-1
                i = ni+ii
                vqa1hr(ip,i) = vqa1hr(ip,i-1)+dx
             enddo
+            i=i+1
+            vqa1hr(ip,i) = vqa3hr(ip,itp+1)
          enddo
          ni = ni + NARM
       enddo 
@@ -1088,11 +1127,14 @@ c     first get temperature and humidity on an hourly basis
          do ip = 1,NPARM 
             dx = acld3hr(ip,itp+1)-acld3hr(ip,itp)
             dx = dx/RARM
-            do ii = 1,NARM
+            do ii = 1,NARM-1
                i=ni+ii
                acld1hr(ip,i) = acld1hr(ip,i-1)+dx
                if (acld1hr(ip,i).lt.0.0) acld1hr(ip,i) = 0.0
             enddo
+            i=i+1
+            acld1hr(ip,i) = acld3hr(ip,itp+1)
+            if (acld1hr(ip,i).lt.0.0) acld1hr(ip,i) = 0.0
          enddo
          ni = ni + NARM
       enddo
@@ -1120,6 +1162,18 @@ c               write(iu_scm_prt,*) 'l sge_p sg_p ',l,SGE_P(l),SG_P(l)
 c            enddo
 c            write(iu_scm_prt,*) 'l sge_p      ',lm+1,sge_p(lm+1)
 
+ccc     call PHATMO get standard atmosphere data
+
+             if (ihr.eq.1) then
+                 do L=1,LM
+                    call PHATMO(SG_P(L),HMC(L),DD,TMC(L),OO,
+     &                       QMC(L),SS,OCM,WCM,NPHD,NATM)
+                    write(iu_scm_prt,143) L,SG_P(L),HMC(L),
+     &                    TMC(L),QMC(L)*1000.0
+ 143                format(1x,'P H TMC QMC ',i5,f10.2,f12.2,
+     &                     f10.2,f10.4)
+                 enddo
+             endif
 
              do i=1,NPARM 
                 AP(i) = parm(i)
@@ -1127,7 +1181,6 @@ c            write(iu_scm_prt,*) 'l sge_p      ',lm+1,sge_p(lm+1)
 C
 c            check TWP ARM pressure levels
 C            create array of ARM pressure level endpoints
-ccccc        APE(1) = AMPS(ihr)
              do n=1,NPARM 
                 APE(n) = AP(n)+12.5
              enddo
@@ -1142,6 +1195,9 @@ c            write(iu_scm_prt,*) 'n APE    ',nparm+1,APE(nparm+1)
              IASTART=1
              if (AMPS(ihr).lt.APE(1)) IASTART=2
              if (AMPS(ihr).lt.APE(2)) IASTART=3
+c            write(iu_scm_prt,150) IASTART
+ 150         format(1x,'IASTART ',i5)
+ 
 c
              sumaqh = 0.0
              sumaqv = 0.0
@@ -1305,15 +1361,15 @@ c                           model layer overlaps the 2 top ARM layers
                         VSA_HR(L,ihr) = 0.0
                         HQA_HR(L,ihr) = 0.0
                         VQA_HR(L,ihr) = 0.0
+                        OMGHR(L,ihr) = 0.0
+                        ACLDHR(L,ihr) = 0.0
+                        WDHR(L,ihr) = 0.0 
 c                       what to do at TOP above ARM layers for the
-C                       following variables
-                        QHR(L,ihr) = QHR(L-1,ihr)
-                        THR(L,ihr) = THR(L-1,ihr)
+C                       following variables    Use McClatchey climatology
+                        QHR(L,ihr) = QMC(L) 
+                        THR(L,ihr) = TMC(L)
                         UHR(L,ihr) = UHR(L-1,ihr)
                         VHR(L,ihr) = VHR(L-1,ihr)
-                        OMGHR(L,ihr) = OMGHR(L-1,ihr)
-                        ACLDHR(L,ihr) = 0.0
-                        WDHR(L,ihr) = WDHR(L-1,ihr) 
                     endif
                 else if (NB.eq.0 .or. (NB.eq.NE.and.NB.eq.1)) then
 c                  gcm layer completely contained within the arm layer 

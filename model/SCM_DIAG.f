@@ -15,7 +15,7 @@ c     save diagnostics for run of MODELE SCM
       USE SCMDIAG
       USE RAD_COM, only : srhr,trhr
       USE FLUXES, only : atmlnd, atmsrf
-      USE CONSTANT, only : SHA, GRAV, kapa 
+      USE CONSTANT, only : SHA, GRAV, kapa, tf 
       USE GEOM, only : axyp 
       USE FILEMANAGER, only : openunit,closeunit
       
@@ -82,7 +82,8 @@ C             SVLHXCOL   (LM)     Liquid/Ice Flag (SS) save Latent Heats (j/Kg)
 C             SVLATCOL   (LM)     Liquid/Ice Flag (MC) save Latent Heats (j/Kg)
 C             CSIZE      (LM,2)   Particle Size (10**-06m)     1=mc,2=ss 
 C             EFFRAD     (LM)     Effective Radius (10**-06m)
-C             CUMFLX     (LM)     Cumulus Mass Flux (kg/m**2 /s) 
+C             CUMFLXCOL  (LM)     Cumulus Mass Flux (kg/m**2 /s) 
+C             DWNFLXCOL  (LM)     Downdraft Mass Flux (kg/m**2 /s)
 C             CUMHET     (LM)     Cumulus Heating  (10**14 W)
 C             CUMOST     (LM)     Cumulus Moistening (10**14 W)
 C             SRDFLBTOP           INC SW on Top of Atmos (W/m**2) 
@@ -94,6 +95,7 @@ C             TRUFLBBOT           Upward LW at Z0  (W/m**2)
 C             TRDFLBBOT           LW INC on Z0  (W/m**2)
 C             PRCSS               Precip - Large Scale SS (mm/hour) 
 C             PRCMC               Precip - Convective (mm/hour)
+C             SCM_PBL_HGT         height of the top of the boundary layer (m)
 C             EVPFLX              Evaporation Flux 
 C             SHFLX               Sensible Heat Flux 
 C             SOILMS              Soil Moisture 
@@ -194,8 +196,9 @@ C--- Added by J.W. ending ---C
       real*8 TPRT(LM), QPRT(LM) ,TSURF, TSKIN, WMCOL(LM)    
       real*8 TDIFF,QDIFF
       real*8 PCOL, SVLHXCOL(LM),SVLATCOL(LM)    
+      real*8 CUMFLXCOL(LM),DWNFLXCOL(LM)
       real*8 daysec,pk1000
-      real*8 tt,tf,tr,tmc,tss,tbl
+      real*8 tt,tr,tmc,tss,tbl
       INTEGER L,LMIN,IC,IU    
       INTEGER IPLUM,IPL,IPLUMSV      
       INTEGER IDEBUG
@@ -218,7 +221,8 @@ C--- Added by J.W. ending ---C
       PCOL = P(1,1)
       TSURF = atmsrf%TSAVG(1,1)
       TSKIN = atmlnd%GTEMP(1,1)
-      
+ccc   SCM_PBL_HGT = atmsrf%dblavg(1,1)   ??????
+      SCM_PBL_HGT = 0.0
       do L = 1,LM
 C--- Added by J.W. starting ---C
          GZPRT(L) = GZ(1,1,L)
@@ -251,6 +255,23 @@ c    *      dTtot(L),dTfrc(L),dTrad(L),
 c    *      dTHmc(L),dTHbl(L),dTHss(L) 
 c  18    format(1x,'N L dT tot frc rad mc bl ss ',i5,i5,6(f12.3))
       enddo      
+
+      CUMFLXCOL = 0.d0
+      DWNFLXCOL = 0.d0
+      do LMIN = 1,LM
+         do IC = 1,2
+            do L=1,LM
+               CUMFLXCOL(L) = CUMFLXCOL(L) + CUMFLX(L,IC,LMIN)
+               DWNFLXCOL(L) = DWNFLXCOL(L) + DWNFLX(L,IC,LMIN)
+            enddo
+         enddo
+      enddo
+c     do L = 1,LM
+c        if (CUMFLXCOL(L).gt.0.d0.or.DWNFLXCOL(L).gt.0.d0)
+c    &       write(iu_scm_prt,82) L,CUMFLXCOL(L),DWNFLXCOL(L)
+c82      format(1x,'DIAG  L CUMFLX DWNFLX ',i5,f12.6,f12.6)
+c     enddo
+
 
       do L=1,LM
 C--- Added by J.W. starting ---C
@@ -301,10 +322,6 @@ c 80     format(1x,'L  het mst ',i5,2(f12.3))
 c        CUMHET(L) = CUMHET(L)*10.E-13*SHA*AXYP(1,1)/(GRAV*DTSRC)
 c        CUMOST(L) = CUMOST(L)*10.E-13*SHA*AXYP(1,1)/(GRAV*DTSRC)
 c     enddo
-c     do L=1,LM
-c        write(iu_scm_prt,82) L,CUMFLX(L),DWNFLX(L)
-c82      format(1x,'L CUMFLX DWNFLX ',i5,f10.5,f10.5)
-c     enddo
 
 c     Use the hourly version of the ARM data to save as a diagnostic
       do L = 1,LM
@@ -329,52 +346,31 @@ c     enddo
      &                          (isccp_fq(ic,L),ic=1,ntau)
  114     format(1x,I10,7(f10.4))
       enddo
-C
-c     WRITE(iu_scm_diag) NSTEPSCM,PCOL,TPRT,QPRT,TSURF,TSKIN,CLCVSS,
-c    *           CLCVMC,CLTHCK,WMCOL,SVLHXCOL,SVLATCOL,CSIZE,EFFRAD,
-c    *           CUMFLX,CUMHET, CUMOST,SRDFLBTOP,SRNFLBTOP,TRUFLBTOP,
-c    *           SRDFLBBOT,SRNFLBBOT,TRUFLBBOT,TRDFLBBOT,PRCSS,PRCMC,
-c    *           EVPFLX,SHFLX,SOILMS,SRFHRLCOL,
-c    *           TRFCRLCOL,TAUSSC,TAUMCC,SG_P,ARMT,ARMQ,
-c    *           SG_OMEGA,APREC,ALH,ASH,AMEANPS,ATSAIR,ATSKIN,
-c    *           ARHSAIR,SG_U,SG_V,SG_HOR_TMP_ADV,
-c    *           SG_VER_S_ADV,SG_HOR_Q_ADV,SG_VER_Q_ADV,CLSAV,
-c    *           CLDFLG,DWNFLX,RHC,ALWP,ADWDT,ADWADV,ATLWUP,
-c    *           ATSWDN,ATSWIN,SG_ARSCL,PRESAV,PREMC,LHPSAV,LHPMC,
-c    *           WCUSCM,WCUDEEP,PRCCDEEP,NPRCCDEEP,TPALL,MCCOND,
-c    *           PRCCGRP,PRCCICE,MPLUMESCM,MPLUMEDEEP
-c    *           ,GZPRT,ENTSCM,ENTDEEP,DETRAINDEEP
-c    *           ,SCM_LWP_MC,SCM_IWP_MC,SCM_LWP_SS,SCM_IWP_SS
-c    *           ,SCM_WM_MC,SRUFLBTOP,SRUFLBBOT,TRDFLBTOP 
-c    *           ,dTtot,dqtot,dTfrc,dqfrc,dTrad
-
 
       WRITE(iu_scm_diag) NSTEPSCM,PCOL,TPRT,QPRT,TSURF,TSKIN,CLCVSS,
-     *           CLCVMC,CLTHCK,WMCOL,SVLHXCOL,SVLATCOL,CSIZE,EFFRAD,
-     *           CUMFLX,CUMHET, CUMOST,SRDFLBTOP,SRNFLBTOP,TRUFLBTOP,
+     *           CLCVMC,WMCOL,SVLHXCOL,SVLATCOL,CSIZE,EFFRAD,
+     *           CUMFLXCOL,DWNFLXCOL,SRDFLBTOP,SRNFLBTOP,TRUFLBTOP,
      *           SRDFLBBOT,SRNFLBBOT,TRUFLBBOT,TRDFLBBOT,PRCSS,PRCMC,
-     *           EVPFLX,SHFLX,SOILMS,SRFHRLCOL,
+     *           SCM_PBL_HGT,EVPFLX,SHFLX,SRFHRLCOL,
      *           TRFCRLCOL,TAUSSC,TAUMCC,SG_P,ARMT,ARMQ,
      *           SG_OMEGA,APREC,ALH,ASH,AMEANPS,ATSAIR,ATSKIN,
-     *           ARHSAIR,SG_U,SG_V,SG_HOR_TMP_ADV,
+     *           SG_U,SG_V,SG_HOR_TMP_ADV,
      *           SG_VER_S_ADV,SG_HOR_Q_ADV,SG_VER_Q_ADV,CLSAV,
-     *           CLDFLG,DWNFLX,RHC,ALWP,ADWDT,ADWADV,ATLWUP,
-     *           ATSWDN,ATSWIN,SG_ARSCL,PRESAV,PREMC,LHPSAV,LHPMC,
-     *           SCM_LWP_MC,SCM_IWP_MC,SCM_LWP_SS,SCM_IWP_SS,
-     *           SCM_WM_MC,SRUFLBTOP,SRUFLBBOT,TRDFLBTOP, 
+     *           ATSWDN,ATSWIN,SG_ARSCL,
+     *           SRUFLBTOP,SRUFLBBOT,TRDFLBTOP, 
      *           dTtot,dqtot,dTfrc,dqfrc,dTrad,dTHmc,dqmc,
-     *           dTHbl,dqbl,dTHss,dqss,isccp_sunlit,isccp_ctp,
+     *           dTHbl,dqbl,dTHss,dqss
+     *            ,isccp_sunlit,isccp_ctp,
      *           isccp_tauopt,isccp_lowcld,isccp_midcld,isccp_highcld,
      *           isccp_fq,isccp_totcldarea,isccp_boxtau,isccp_boxptop
 
 
-c     WRITE(3) TAU,P,fqI,totcldareaI,mnptopI,mntauI,bxtauI,bxptopI,
-c    *         cldbdz,cldtdz
 C 
       write(iu_scm_prt,99) NSTEPSCM
  99   format(//1x,'END OF TIME STEP      NSTEPSCM  ',i6)
-      write(iu_scm_prt,100) NSTEPSCM,PCOl,TSURF,TSKIN 
-100   format(1x,'NSTEP P tsurfair tskin  ',i5,3(f10.4))
+      write(iu_scm_prt,100) NSTEPSCM,PCOL,TSURF,TSKIN+tf,ATSAIR+tf,
+     *                      ATSKIN+tf
+100   format(1x,'NSTEP P tsurfair tskin  ',i5,5(f10.4))
       write(iu_scm_prt,110) PRCSS,PRCMC
 110   format(1x,'PRCSS MC ',2(f10.4))
       write(iu_scm_prt,120) SRNFLBBOT,SRNFLBTOP,SRDFLBBOT,SRDFLBTOP, 

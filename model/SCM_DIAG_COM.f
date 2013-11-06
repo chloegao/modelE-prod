@@ -13,13 +13,15 @@
       real*8 LHPSAV(LM),LHPMC(LM),PRESAV(LM),PREMC(LM)
 
       real*8   CLCVSS(LM),CLCVMC(LM),CLTHCK(LM),CSIZE(LM,2),   
-     *         EFFRAD(LM),TAUSSC(LM),TAUMCC(LM),CUMFLX(LM),
+     *         EFFRAD(LM),TAUSSC(LM),TAUMCC(LM),CUMFLX(LM,2,LM),
      *         CUMHET(LM),CUMOST(LM),PRCSS,PRCMC,EVPFLX,SHFLX,
-     *         SOILMS,CLDFLG(LM),DWNFLX(LM),RHC(LM)
+     *         SOILMS,CLDFLG(LM),DWNFLX(LM,2,LM),RHC(LM)
       real*8   clsav(LM)
       real*8 SRDFLBTOP,SRNFLBTOP,SRUFLBTOP,SRUFLBBOT,
      *       TRUFLBTOP,TRDFLBTOP,SRDFLBBOT,SRNFLBBOT,
-     *       TRUFLBBOT,TRDFLBBOT
+     *       TRUFLBBOT,TRDFLBBOT,CSSRNTOP,CSTRUTOP,
+     *       CSSRNBOT,CSTRNBOT,CSSRDBOT,TRNFLBBOT
+      real*8 SCM_PBL_HGT
       real*8, DIMENSION(LM) :: SRFHRLCOL,TRFCRLCOL
 c     
 c     isccp diagnostics
@@ -53,5 +55,6 @@ c
 c     dt and dq over time step from different processes
       real*8 dTtot(LM),dqtot(LM),dTfrc(LM),dqfrc(LM),dTrad(LM)
       real*8 dTHmc(LM),dqmc(LM),dTHbl(LM),dqbl(LM),dTHss(LM),dqss(LM)
+      real*8 dTradsw(LM),dTradlw(LM)
 
       END MODULE SCMDIAG  

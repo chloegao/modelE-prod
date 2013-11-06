@@ -2281,8 +2281,8 @@ contains
           DTOTW(L)=DTOTW(L)+SLHE*(QM(L)-QMT(L)+COND(L))*FMC1
           DDMFLX(L)=DDMFLX(L)+DDM(L)*FMC1
 #ifdef SCM
-          CUMFLX(L) = 100.*MCFLX(L)*bygrav/dtsrc
-          DWNFLX(L) = 100.*DDMFLX(L)*bygrav/dtsrc
+          CUMFLX(L,IC,LMIN) = 100.*MCFLX(L)*bygrav/dtsrc
+          DWNFLX(L,IC,LMIN) = 100.*DDMFLX(L)*bygrav/dtsrc
             !           write(iu_scm_prt,*) 'L CUMFLX DWNFLX ',
             !    &            L,CUMFLX(L),DWNFLX(L)
 #endif

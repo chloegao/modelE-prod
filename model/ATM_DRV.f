@@ -105,7 +105,6 @@ c     enddo
 #ifndef USE_FVCORE
       CALL DYNAM()
 #else
-
       ! Using FV instead
         IF (MOD(Itime-ItimeI,NDAA).eq.0) CALL DIAGA0
 
@@ -675,7 +674,6 @@ c      call stop_model('set_noice_defaults prob that fwater==flake'//
 c     &     ' not initialized yet?',255)
       call seaice_to_atmgrid(atmice) ! set gtemp etc.
       CALL init_LAKES(inilake,istart_fixup)
-
 C****
 C**** INITIALIZE GROUND HYDROLOGY ARRAYS (INCL. VEGETATION)
 C**** Recompute Ground hydrology data if redoGH (new soils data)
@@ -684,6 +682,7 @@ C****
       iniSNOW = is_coldstart       ! extract snow data from first soil layer
       redoGH = .false.
       CALL init_LSM(DTsrc/NIsurf,redoGH,iniSNOW,inilake,ISTART)
+
 #ifdef IRRIGATION_ON
       call init_irrigate()
 #endif
