@@ -1244,7 +1244,7 @@ C****
       USE RESOLUTION, only : ls1,psfmpt,ptop
       USE RESOLUTION, only : im,jm,lm
       USE MODEL_COM, only : idacc,mdyn,mdiag
-      Use ATM_COM,    Only: MA,u,v,t,p,q,wm
+      Use ATM_COM,    Only: MA,u,v,t,p,q,qcl,qci
       USE GEOM, only : bydxyp,bydxyv,rapvs,rapvn,
      &     COSV,DXV,DXYN,DXYP,DXYS,DXYV,DYP,DYV,FCOR,IMAXJ
       USE DIAG_COM, only : imh,fim,byim,ia_dga,ndaa
@@ -1450,7 +1450,7 @@ C**** VERTICAL COMPONENT
       VPE = V(IM1,J,L  )+V(IM1,J+1,L  )+V(I,J,L  )+V(I,J+1,L  )+
      *      V(IM1,J,L+1)+V(IM1,J+1,L+1)+V(I,J,L+1)+V(I,J+1,L+1)
       PVTHP = PVTHP + VPE*MA(L,I,J)*(T(I,J,L)+T(I,J,L+1)-THMN)
-      CsLPU = CsLPU - UPE*(CsL(I)-CsLMN) 
+      CsLPU = CsLPU - UPE*(CsL(I)-CsLMN)
   874 IM1=I
       AGC(J,L,JL_EPFLXV) = AGC(J,L,JL_EPFLXV) + .25*byDXYP(J)*
      &     ((.5*FIM*FCOR(J)-.25*DUDX)*PVTHP/DTHDP + CsLPU)*kg2mb
@@ -3000,7 +3000,7 @@ c
      &          +AGC(J+1,L,JK_VTAMEDDY)-AGC(J+1,l-1,JK_VTAMEDDY))
           endif
           n = jk_dudt_epdiv
-          agc(j,l,n) = 
+          agc(j,l,n) =
      &         ( AGC(J+1,L,JK_EPFLXNCP)*DXCOSV(J+1)-
      &           AGC(J  ,L,JK_EPFLXNCP)*DXCOSV(J) )/(DXYP(J)*COSP(J))
      &         +.5*(
@@ -3121,7 +3121,7 @@ c
         do j=j_0stg,j_1stg
           do i=1,im
             aijk(i,j,l,ijk_phi) =
-     &           aijk(i,j,l,ijk_dse) - sha*aijk(i,j,l,ijk_tb) 
+     &           aijk(i,j,l,ijk_dse) - sha*aijk(i,j,l,ijk_tb)
           enddo
         enddo
       enddo

@@ -146,7 +146,7 @@ c      end subroutine setDtParam
       Use CONSTANT,   Only: by3,byGRAV,RGAS,SHA,kg2mb
       Use RESOLUTION, Only: IM,JM,LM,LS1, MFIXs
       USE MODEL_COM, only : DTsrc
-      Use ATM_COM,    Only: MA,U,V,T,Q,WM,MASUM, MUs,MVs,MWs, GZ, P
+      Use ATM_COM,    Only: MA,U,V,T,Q,QCL,QCI,MASUM, MUs,MVs,MWs, GZ, P
       Use GEOM,       Only: AXYP
       USE SOMTQ_COM, only : tmom,mz
       Use DYNAMICS,   Only: MU,MV,MW, pu,pv,sd,dut,dvt
@@ -540,7 +540,7 @@ C**** Compute MU*3 at poles
             DUMMYN(1) = 0
             Do I=2,IM
                DUMMYN(I) = DUMMYN(I-1) + (MV(I,JM,L)-MVN)  ;  EndDo
-            PBN = Sum(DUMMYN(:))*byIM   
+            PBN = Sum(DUMMYN(:))*byIM
             SPA(:,JM,L) = 4*(DUMMYN(:)-PBN+MUN) / (DYP(JM-1)*MA(L,1,JM))
              MU(:,JM,L) = 3*(DUMMYN(:)-PBN+MUN)  ;  EndDo  ;  EndIf
 
@@ -580,7 +580,7 @@ c in ADVECV.
       Do 320 J=Max(J1XP,3),JNXP
       Do 320 I=1,IM
       If (ZATMO(I,J-1) == ZATMO(I,J))  GoTo 320
-      If (ZATMO(I,J-1) <  ZATMO(I,J))      
+      If (ZATMO(I,J-1) <  ZATMO(I,J))
      *   Then  ;  M = MASUM(I,J-1)
                   Do L=1,LS1-1
                      If (MV(I,J,L) <= 0)  GoTo 320
@@ -665,7 +665,7 @@ C**** Compute MW (kg/s) = downward vertical mass flux
       n_exception = 0
       Do J=J1,JN
       Do I=1,IMAXJ(J)
-         MNEW(1,I,J) = MOLD(1,I,J) + 
+         MNEW(1,I,J) = MOLD(1,I,J) +
      +      DT1*(CONV(I,J,1) + MW(I,J,1))*byDXYP(J)
          Do L=2,LM-1
             MNEW(L,I,J) = MOLD(L,I,J) +
@@ -705,7 +705,7 @@ C**** Compute MW (kg/s) = downward vertical mass flux
         EndDo  ;  EndDo
       endif
 
-      if(n_exception_all==2) 
+      if(n_exception_all==2)
      &     call stop_model('ADVECM: Mass diagnostic error',11)
 
       If (QSP)  Then
@@ -744,7 +744,7 @@ C**** Compute MW (kg/s) = downward vertical mass flux
 !**** M (kg/m^2) = vertical coordinate = air mass above the level
 !**** DM(kg/m^2) = layer mass difference = MAM
 !**** P (Pa)     = pressure = M*GRAV
-!**** DP(Pa)     = layer pressure difference = PD - PU 
+!**** DP(Pa)     = layer pressure difference = PD - PU
 !**** A (m^3/kg) = specific volume = R*T / P
 !**** S (K)      = potential temperature = S0 - SZ*2*(M-M0)/(MD-MU) =
 !****            = S0 - SZ*2*(P-P0)/(PD-PU) = S0 - SZ*2*(P-P0)/DP =
@@ -754,18 +754,18 @@ C**** Compute MW (kg/s) = downward vertical mass flux
 !****            = (X - P*Y)*P^K = X*P^K - Y*P^(K+1)
 
 !**** Integral of A*dM from MU to MD (from top to bottom of layer)
-!**** Int[A*dM] = Int[R*T*dP/P*G] = R*Int{[X*P^(K-1) - Y*P^K]*dP}/G = 
-!**** = R*{X*P^K/K - Y*P^(K+1)/(K+1)}/G from PU to PD = 
-!**** = R*{X*(PD^K-PU^K)/K - Y*[PD^(K+1)-PU^(K+1)]/(K+1)}/G 
+!**** Int[A*dM] = Int[R*T*dP/P*G] = R*Int{[X*P^(K-1) - Y*P^K]*dP}/G =
+!**** = R*{X*P^K/K - Y*P^(K+1)/(K+1)}/G from PU to PD =
+!**** = R*{X*(PD^K-PU^K)/K - Y*[PD^(K+1)-PU^(K+1)]/(K+1)}/G
 
 !**** Compute DGZ thickness everwhere in a layer from layer bottom
 !**** G*dZ = - A*dP = - (R*T/P)*dP = - R*[X*P^(K-1) - Y*P^K]*dP
 !**** DGZ = - Int{R*[X*P^(K-1) - Y*P^K]*dP} from PD to P =
-!****     = - R*{X*(P^K-PD^K)/K - Y*[P^(K+1)-PD^(K+1)]/(K+1)} 
-!****     = R*{X*(PD^K-P^K)/K - Y*[PD^(K+1)-P^(K+1)]/(K+1)} 
+!****     = - R*{X*(P^K-PD^K)/K - Y*[P^(K+1)-PD^(K+1)]/(K+1)}
+!****     = R*{X*(PD^K-P^K)/K - Y*[PD^(K+1)-P^(K+1)]/(K+1)}
 
-!**** DGZup = R*{X*(PD^K-PU^K)/K - Y*[PD^(K+1)-PU^(K+1)]/(K+1)} 
-!**** Int[A*dM] = DGZup/G 
+!**** DGZup = R*{X*(PD^K-PU^K)/K - Y*[PD^(K+1)-PU^(K+1)]/(K+1)}
+!**** Int[A*dM] = DGZup/G
 
 !**** Compute mass weighted average value of DGZ in a layer
 !**** DGZave = Int{DGZ*dP}/DP from PD to PU =
@@ -779,7 +779,7 @@ C**** Compute MW (kg/s) = downward vertical mass flux
 
 !**** GZave(L) = GZATMO + Sum[DGZup(1:L-1)] + DGZave(L)
 
-!**** PGFU (kg*m/s^2) = 
+!**** PGFU (kg*m/s^2) =
 !**** = {Mean[Int(A*dM)] * dP/dX + Mean(DM) * dGZave/dX} * DX*DY =
 !**** = {Mean[Int(A*dM)] * dP + Mean(DM) * dGZave} * DY
 !**** DUT (kg*m/s) = dTIME * PolarFiltered(PGFU)
@@ -1051,7 +1051,7 @@ C****
       USE RESOLUTION, only : ls1,ptop,psf,pmtop
       USE RESOLUTION, only : im,jm,lm
       USE MODEL_COM, only : itime
-      USE ATM_COM, only : t,p,q,wm,zatmo
+      USE ATM_COM, only : t,p,q,qcl,qci,zatmo
       USE GEOM, only : areag,dxyp,byim
       USE SOMTQ_COM, only : tmom,qmom
       USE ATM_COM, only : pk
@@ -1162,7 +1162,9 @@ c adjust pot. temp. to maintain unchanged absolute temp.
         T(I,J,L)= T(I,J,L)*
      &       ((POLD(I,J)*SIG(L)+PTOP)/(P(I,J)*SIG(L)+PTOP))**KAPA
         Q(I,J,L)= Q(I,J,L)*PRAT(I,J)
-        WM(I,J,L)=WM(I,J,L)*PRAT(I,J)
+!       WM(I,J,L)=WM(I,J,L)*PRAT(I,J)
+        QCL(I,J,L)=QCL(I,J,L)*PRAT(I,J)
+        QCI(I,J,L)=QCI(I,J,L)*PRAT(I,J)
         QMOM(:,I,J,L)=QMOM(:,I,J,L)*PRAT(I,J)
       END DO
       END DO
@@ -3046,7 +3048,7 @@ c Switch the sign convention back to "positive downward".
             Bsum = Bsum + Bm(Ikh) * exp(-(C(IC,Ikh)/Cw(Ikh))**2 * aLn2)
          end do
          Eps = Eps + Bsum * dc(Ikh) * ( rhoe(IZ0(J)) * 100.0_r8 )
-                                                       !!!100.0_r8 arises from the units of P and rho.
+                                                    !!!100.0_r8 arises from the units of P and rho.
       end do
       Eps = Bt(J,modelEclock%dayOfYear()) / Eps
       !...Calculating source spectra (function of azimuth, horizontal wave number)
