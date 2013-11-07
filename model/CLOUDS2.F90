@@ -4415,7 +4415,7 @@ contains
           PREP(L)=max(0d0,(QCLX(L)-DWDT)*BYDTsrc) ! precip out cloud water
           WMPR(L)=PREP(L)*DTsrc ! precip water (for opt. depth calculation)
 #ifdef SCM
-          if (i_debug.eq.I_TARG .and. j_debug.eq.J_TARG) then
+          if (i_debug==1 .and. j_debug==1) then
             PRESAV(L)=PREP(L)*DTsrc
           endif
 #endif

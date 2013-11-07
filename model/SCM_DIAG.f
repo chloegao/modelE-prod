@@ -5,7 +5,7 @@ c     save diagnostics for run of MODELE SCM
 
 
       USE RESOLUTION, only: LM
-      USE ATM_COM,    only: p,u,v,t,q,wm,gz,pk
+      USE ATM_COM,    only: p,u,v,t,q,qcl,gz,pk
       USE MODEL_COM , only: dtsrc
       USE DYNAMICS,   only: sige,sig
       USE CLOUDS_COM, only: SVLHX,SVLAT,RHSAV,CLDSAV,tauss,taumc,
@@ -229,7 +229,7 @@ C--- Added by J.W. starting ---C
 C--- Added by J.W. ending ---C
          TPRT(L) = T(1,1,L)*PK(L,1,1) 
          QPRT(L) = Q(1,1,L)
-         WMCOL(L) = WM(1,1,L)
+         WMCOL(L) = QCL(1,1,L)
          SVLHXCOL(L) = SVLHX(L,1,1)
          SVLATCOL(L) = SVLAT(L,1,1)
          CLCVSS(L) = CLDSS(L,1,1)
