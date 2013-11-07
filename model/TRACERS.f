@@ -1173,7 +1173,7 @@ c**** Interpolate two months of data to current day
 #ifdef TRACERS_ON
       USE CONSTANT, only : teeny
       USE RESOLUTION, only: im,jm,lm
-      USE ATM_COM, only : q,wm
+      USE ATM_COM, only : q,qcl
       USE GEOM, only : axyp,imaxj
       USE SOMTQ_COM, only : qmom
       USE ATM_COM, only : MA
@@ -1207,7 +1207,7 @@ c**** Interpolate two months of data to current day
      *       'X'//trname(n))
         CALL CHECK3(trm(:,J_0:J_1,:,n),IM,nJ,LM,SUBR,trname(n))
 #ifdef TRACERS_WATER
-        CALL CHECK3(trwm(:,J_0:J_1,:,n),IM,nJ,LM,SUBR,'WM'//trname(n))
+        CALL CHECK3(trwm(:,J_0:J_1,:,n),IM,nJ,LM,SUBR,'QCL'//trname(n))
 #endif
 
 C**** check for negative tracer amounts (if t_qlimit is set)
@@ -1260,13 +1260,13 @@ C**** check whether air mass is conserved
             errsc=(q(i,j,l)+sum(abs(qmom(:,i,j,l))))*ma(l,i,j)*axyp(i,j)
             if (errsc.eq.0.) errsc=1.
             relerr=abs(trm(i,j,l,n)-q(i,j,l)*ma(l,i,j)*axyp(i,j))/errsc
-            if (wm(i,j,l).gt.0 .and. trwm(i,j,l,n).gt.1.) relerr
-     *           =max(relerr,(trwm(i,j,l,n)-wm(i,j,l)*ma(l,i,j)*axyp(i,j
-     *           ))/(wm(i,j,l)*ma(l,i,j)*axyp(i,j)))
-            if ((wm(i,j,l).eq.0 .and.trwm(i,j,l,n).gt.1) .or. (wm(i,j,l)
-     *           .gt.teeny .and.trwm(i,j,l,n).eq.0))
+            if (qcl(i,j,l).gt.0 .and. trwm(i,j,l,n).gt.1.) relerr
+     *           =max(relerr,(trwm(i,j,l,n)-qcl(i,j,l)*ma(l,i,j)*
+     *           axyp(i,j))/(qcl(i,j,l)*ma(l,i,j)*axyp(i,j)))
+            if ((qcl(i,j,l).eq.0 .and.trwm(i,j,l,n).gt.1) .or. 
+     *           (qcl(i,j,l).gt.teeny .and.trwm(i,j,l,n).eq.0))
      *           print*,"Liquid water mismatch: ",subr,i,j,l,trwm(i,j,l
-     *           ,n),wm(i,j,l)*ma(l,i,j)*axyp(i,j)
+     *           ,n),qcl(i,j,l)*ma(l,i,j)*axyp(i,j)
             do m=1,nmom
               relerr=max(relerr,(trmom(m,i,j,l,n)-qmom(m,i,j,l)*ma(l,i,j
      *             )*axyp(i,j))/errsc)
@@ -1274,7 +1274,7 @@ C**** check whether air mass is conserved
             if (relerr.gt.errmax) then
               lmax=l ; imax=i ; jmax=j ; errmax=relerr
               tmax=trm(i,j,l,n) ; qmax=q(i,j,l)*ma(l,i,j)*axyp(i,j)
-              twmax=trwm(i,j,l,n) ; wmax=wm(i,j,l)*ma(l,i,j)*axyp(i,j)
+              twmax=trwm(i,j,l,n) ; wmax=qcl(i,j,l)*ma(l,i,j)*axyp(i,j)
               tmomax(:)=trmom(:,i,j,l,n)
               qmomax(:)=qmom(:,i,j,l)*ma(l,i,j)*axyp(i,j)
             end if
