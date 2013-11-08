@@ -1027,7 +1027,6 @@ C**** CORRECTED.
       USE RESOLUTION, only : im,jm,lm
       USE ATM_COM, only : u,v,t,p,q,qcl,qci,pk
 #ifdef BLK_2MOM
-      USE ATM_COM, only : wmice
 #endif
       USE MODEL_COM
       USE DOMAIN_DECOMP_ATM, only : grid, getDomainBounds, AM_I_ROOT
@@ -1072,8 +1071,6 @@ C**** Check all prog. arrays for Non-numbers
         CALL CHECK3B(QCI(I_0:I_1,J_0:J_1,:),I_0,I_1,J_0,J_1,NJPOL,LM,
      &       SUBR,'qci   ')
 #ifdef BLK_2MOM
-        CALL CHECK3B(WMICE(I_0:I_1,J_0:J_1,:),I_0,I_1,J_0,J_1,NJPOL,LM,
-     &       SUBR,'wmice    ')
 #endif
 
         DO J=J_0,J_1
@@ -1095,10 +1092,6 @@ C**** Check all prog. arrays for Non-numbers
             call stop_model('WM<0 in CHECKT',255)
           END IF
 #ifdef BLK_2MOM
-          IF (WMICE(I,J,L).lt.0.) then
-            print*,"After ",SUBR," WMICE < 0 ",i,j,WMICE(I,J,L)
-            call stop_model('WMICE<0 in CHECKT',255)
-          END IF
 #endif
         END DO
         END DO

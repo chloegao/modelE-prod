@@ -4072,7 +4072,7 @@ contains
           write(iuo,*) dtB2M
 
           write(iuo,*) 'wmx wmxice tl ql pl svlhxl lhx '
-          write(iuo,*) wmx
+          write(iuo,*) qclx
           write(iuo,*) wmxice
           write(iuo,*) tl
           write(iuo,*) ql
