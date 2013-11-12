@@ -35,7 +35,6 @@ C**** Variables used in DIAG5 calculations
       use constant, only : planet_name
       use dynamics
       use Dictionary_mod
-      use constant, only : mb2kg
       implicit none
       call get_param( "DT", DT )
 C**** NIdyn=dtsrc/dt(dyn) has to be a multiple of 2
@@ -43,10 +42,16 @@ C**** NIdyn=dtsrc/dt(dyn) has to be a multiple of 2
       if (is_set_param("DT") .and. nint(DTsrc/dt).ne.NIdyn) then
         if (AM_I_ROOT())
      *       write(6,*) 'DT=',DT,' has to be changed to',DTsrc/NIdyn
-        call stop_model('INPUT: DT inappropriately set',255)
+        if(trim(planet_name).eq.'Earth') then
+          ! We do not allow automatic rounding of timesteps for Earth,
+          ! since such a situation is usually due to a rundeck typo
+          call stop_model('INPUT: DT inappropriately set',255)
+        endif
       end if
       DT = DTsrc/NIdyn
       call set_param( "DT", DT, 'o' )         ! copy DT into DB
+
+c      call setDtParam('dt', dt, dtSrcUsed)
 
       ! Defaults for bounds on surface pressure (i.e. column mass)
       ! minimum: a multiple of the mass in the constant-pressure domain
@@ -81,18 +86,22 @@ C**** Determine if FLTRUV is called.
          if (DT_XUfilter > 0. .and. DT_XUfilter < DT) then
              DT_XUfilter = DT
              WRITE(6,*) "DT_XUfilter too small; reset to :",DT_XUfilter
+             call set_param( "DT_XUfilter", DT_XUfilter, 'o' )
          end if
          if (DT_XVfilter > 0. .and. DT_XVfilter < DT) then
              DT_XVfilter = DT
              WRITE(6,*) "DT_XVfilter too small; reset to :",DT_XVfilter
+             call set_param( "DT_XVfilter", DT_XVfilter, 'o' )
          end if
          if (DT_YUfilter > 0. .and. DT_YUfilter < DT) then
              DT_YUfilter = DT
              WRITE(6,*) "DT_YUfilter too small; reset to :",DT_YUfilter
+             call set_param( "DT_YUfilter", DT_YUfilter, 'o' )
          end if
          if (DT_YVfilter > 0. .and. DT_YVfilter < DT) then
              DT_YVfilter = DT
              WRITE(6,*) "DT_YVfilter too small; reset to :",DT_YVfilter
+             call set_param( "DT_YVfilter", DT_YVfilter, 'o' )
          end if
       end if
 c Warn if polar fixes requested for a model not having a half polar box
@@ -107,17 +116,38 @@ c     endif
      &          FCUVB(0:IMH, grid%j_strt_halo:grid%j_stop_halo, LM, 2))
       end SUBROUTINE init_ATMDYN
 
+c      subroutine setDtParam(tName, tParam, dtSrc)
+c      USE Dictionary_mod
+c      use BaseTime_mod
+c      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT
+c      character(len=*) :: tName
+c      type (BaseTime), intent(in) :: dtSrc
+c      real(8), intent(inout) :: tParam
+c      real(8) :: tOld
+c
+c      tOld = tParam
+c      call get_param(tName, tParam)
+c      tParam = dtSrc%convertToReal()/nint(dtSrc%convertToReal()/tParam)
+c      call set_param( tName, tParam, 'o' )
+c
+c      if (abs(tParam-tOld) .gt. 1.0e-15) then
+c        if (AM_I_ROOT()) then
+c          write(6,*) trim(tName),' has changed from ', tOld,' to ',
+c     *      tParam
+c        end if
+c      end if
+c      end subroutine setDtParam
+
 
       SUBROUTINE DYNAM
 !@sum  DYNAM Integrate dynamic terms
-!@vers 2013/10/23
+!@vers 2013/10/31
 !@auth Original development team
-      Use CONSTANT,   Only: by3,SHA,kg2mb,mb2kg,RGAS,byGRAV
+      Use CONSTANT,   Only: by3,byGRAV,RGAS,SHA,kg2mb
       Use RESOLUTION, Only: IM,JM,LM,LS1, MFIXs
       USE MODEL_COM, only : DTsrc
-      Use ATM_COM,    Only: MA,U,V,T,Q,WM,MASUM, MUs,MVs,MWs, PHI,MB,
-     *                      P, PTOLD, PS,PK,PMID,PEDN
-      USE GEOM, only : dyv,dxv,dxyp,areag,bydxyp
+      Use ATM_COM,    Only: MA,U,V,T,Q,QCL,QCI,MASUM, MUs,MVs,MWs, GZ, P
+      Use GEOM,       Only: AXYP
       USE SOMTQ_COM, only : tmom,mz
       Use DYNAMICS,   Only: MU,MV,MW, pu,pv,sd,dut,dvt
      &    ,cos_limit,nidyn,dt,mrch,nstep,quvfilter,USE_UNR_DRAG
@@ -169,7 +199,6 @@ C**** Leap-frog re-initialization: IF (NS.LT.NIdyn)
       TZ(:,:,:) = TMOM(MZ,:,:,:)
 
 !**** Initial forward step:  MODD3 = MA + .667*DT*F(U,V,MA)
-!**** If GWDRAG is disabled then VDIFF needs halo PEDN,PMID
       MRCH=0
 #          ifdef NUDGE_ON
            Call NUDGE_PREP
@@ -186,7 +215,6 @@ C**** Leap-frog re-initialization: IF (NS.LT.NIdyn)
        PV(:,:,:) = MV(:,:,:)*kg2mb
        SD(:,:,:) = MW(:,:,:)*kg2mb
        PB(:,:)   = (MSUMODD(:,:) - MFIXs)*kg2mb
-c      if (QUVfilter) CALL FLTRUV(UX,VX,U,V)
       call isotropuv(ux,vx,COS_LIMIT)
 
 !**** Initial backward step:  MODD1 = MA + DT*F(UX,VX,MODD3)
@@ -205,7 +233,6 @@ c      if (QUVfilter) CALL FLTRUV(UX,VX,U,V)
        PV(:,:,:) = MV(:,:,:)*kg2mb
        SD(:,:,:) = MW(:,:,:)*kg2mb
        PA(:,:)   = (MSUMODD(:,:) - MFIXs)*kg2mb
-c      if (QUVfilter) CALL FLTRUV(UT,VT,UX,VX)
       call isotropuv(ut,vt,COS_LIMIT)
       GO TO 360
 
@@ -225,7 +252,6 @@ c      if (QUVfilter) CALL FLTRUV(UT,VT,UX,VX)
        PV(:,:,:) = MV(:,:,:)*kg2mb
        SD(:,:,:) = MW(:,:,:)*kg2mb
        PB(:,:)   = (MSUMODD(:,:) - MFIXs)*kg2mb
-c      if (QUVfilter) CALL FLTRUV(UT,VT,U,V)
       call isotropuv(ut,vt,COS_LIMIT)
       PA(:,:) = PB(:,:)     ! LOAD PB TO PA
       MODD1(:,:,:) = MODD3(:,:,:)
@@ -258,8 +284,9 @@ C**** ACCUMULATE MASS FLUXES FOR TRACERS and Q
 C**** ADVECT Q AND T
        TT(:,:,:) =  T(:,:,:)
       TZT(:,:,:) = TZ(:,:,:)
-      Call CALC_AMP (PC,MMA)
-      Call AADVT (MMA,T,TMOM, SD,PU,PV, DTLF,.False.,FPEU,FPEV)
+      Do L=1,LM
+         MMA(:,:,L) = MEVEN(L,:,:)*AXYP(:,:)  ;  EndDo
+      Call AADVT (DTLF, MMA,T,TMOM, .False., FPEU,FPEV)
 !     save z-moment of temperature in contiguous memory for later
       TZ(:,:,:) = TMOM(MZ,:,:,:)
        PC(:,:)   = .5*( P(:,:)  + PC(:,:))
@@ -270,10 +297,9 @@ C**** ADVECT Q AND T
 c      CALL CALC_PIJL(LS1-1,PA,PIJL) ! true leapfrog
       Call PGF    (DTLF, UT,VT,MODD1,       U,V,MA, TT,TZT)
 
-      call compute_mass_flux_diags(PHI, PU, PV, dt)
+      Call COMPUTE_MASS_FLUX_DIAGS (GZ, MU,MV, DT)
 
       CALL CALC_AMPK(LS1-1)
-c      if (QUVfilter) CALL FLTRUV(U,V,UT,VT)
       call isotropuv(u,v,COS_LIMIT)
       if (USE_UNR_DRAG==0) CALL SDRAG (DTLF)
          If (Mod(NSTEP+4-NS+NDAA*NIDYN,NDAA*NIDYN+2) < MRCH)  Then
@@ -298,7 +324,7 @@ C**** Restart after 8 steps due to divergence of solutions
       MWs(:,:,1:LM-1) = MWs(:,:,1:LM-1) * DTLF
 
 c apply east-west filter to U and V once per physics timestep
-      CALL FLTRUV(U,V,UT,VT)
+      Call FLTRUV
 c apply north-south filter to U and V once per physics timestep
       call conserv_amb_ext(u,am1) ! calculate ang. mom. before filter
       call fltry2(u,1d0) ! 2nd arg could be set using DT_YUfilter
@@ -313,15 +339,15 @@ c apply north-south filter to U and V once per physics timestep
       END SUBROUTINE DYNAM
 
 
-      Subroutine compute_mass_flux_diags(PHI, PU, PV, dt)
+      Subroutine COMPUTE_MASS_FLUX_DIAGS (GZ, MU,MV, DT)
       use RESOLUTION, only: IM, LM
       USE DOMAIN_DECOMP_ATM, only: grid
       use DOMAIN_DECOMP_1D, only: halo_update, SOUTH, getDomainBounds
       use DIAG_COM, only: AIJ => AIJ_loc, IJ_FGZU, IJ_FGZV
 
-      real*8, intent(inout) :: PHI(:,grid%J_STRT_HALO:,:)
-      real*8, intent(in) :: PU(:,grid%J_STRT_HALO:,:)
-      real*8, intent(in) :: PV(:,grid%J_STRT_HALO:,:)
+      Real*8,Intent(In) :: GZ(:,GRID%J_STRT_HALO:,:),
+     *                     MU(:,GRID%J_STRT_HALO:,:),
+     *                     MV(:,GRID%J_STRT_HALO:,:)
       real*8, intent(in) :: dt
 
       integer :: J_0S, J_1S
@@ -331,13 +357,13 @@ c apply north-south filter to U and V once per physics timestep
       call getDomainBounds(grid, J_STRT_STGR=J_0STG,J_STOP_STGR=J_1STG,
      &                           J_STRT_SKP =J_0S,  J_STOP_SKP =J_1S)
 
-      CALL HALO_UPDATE(grid, PHI, FROM=SOUTH)
+!     Call HALO_UPDATE (GRID, GZ, From=SOUTH)   haloed in PGF
       DO J=J_0S,J_1S ! eastward transports
       DO L=1,LM
          I=IM
          DO IP1=1,IM
             AIJ(I,J,IJ_FGZU)=AIJ(I,J,IJ_FGZU)+
-     &           (PHI(I,J,L)+PHI(IP1,J,L))*PU(I,J,L)*DT ! use DT=DTLF/2
+     &           (GZ(I,J,L)+GZ(IP1,J,L))*MU(I,J,L)*DT ! use DT=DTLF/2
             I=IP1
          END DO
       END DO
@@ -346,7 +372,7 @@ c apply north-south filter to U and V once per physics timestep
       DO L=1,LM
          DO I=1,IM
             AIJ(I,J,IJ_FGZV)=AIJ(I,J,IJ_FGZV)+
-     &           (PHI(I,J-1,L)+PHI(I,J,L))*PV(I,J,L)*DT ! use DT=DTLF/2
+     &           (GZ(I,J-1,L)+GZ(I,J,L))*MV(I,J,L)*DT ! use DT=DTLF/2
          END DO
       END DO
       END DO
@@ -514,7 +540,7 @@ C**** Compute MU*3 at poles
             DUMMYN(1) = 0
             Do I=2,IM
                DUMMYN(I) = DUMMYN(I-1) + (MV(I,JM,L)-MVN)  ;  EndDo
-            PBN = Sum(DUMMYN(:))*byIM   
+            PBN = Sum(DUMMYN(:))*byIM
             SPA(:,JM,L) = 4*(DUMMYN(:)-PBN+MUN) / (DYP(JM-1)*MA(L,1,JM))
              MU(:,JM,L) = 3*(DUMMYN(:)-PBN+MUN)  ;  EndDo  ;  EndIf
 
@@ -554,7 +580,7 @@ c in ADVECV.
       Do 320 J=Max(J1XP,3),JNXP
       Do 320 I=1,IM
       If (ZATMO(I,J-1) == ZATMO(I,J))  GoTo 320
-      If (ZATMO(I,J-1) <  ZATMO(I,J))      
+      If (ZATMO(I,J-1) <  ZATMO(I,J))
      *   Then  ;  M = MASUM(I,J-1)
                   Do L=1,LS1-1
                      If (MV(I,J,L) <= 0)  GoTo 320
@@ -639,7 +665,7 @@ C**** Compute MW (kg/s) = downward vertical mass flux
       n_exception = 0
       Do J=J1,JN
       Do I=1,IMAXJ(J)
-         MNEW(1,I,J) = MOLD(1,I,J) + 
+         MNEW(1,I,J) = MOLD(1,I,J) +
      +      DT1*(CONV(I,J,1) + MW(I,J,1))*byDXYP(J)
          Do L=2,LM-1
             MNEW(L,I,J) = MOLD(L,I,J) +
@@ -679,7 +705,7 @@ C**** Compute MW (kg/s) = downward vertical mass flux
         EndDo  ;  EndDo
       endif
 
-      if(n_exception_all==2) 
+      if(n_exception_all==2)
      &     call stop_model('ADVECM: Mass diagnostic error',11)
 
       If (QSP)  Then
@@ -718,7 +744,7 @@ C**** Compute MW (kg/s) = downward vertical mass flux
 !**** M (kg/m^2) = vertical coordinate = air mass above the level
 !**** DM(kg/m^2) = layer mass difference = MAM
 !**** P (Pa)     = pressure = M*GRAV
-!**** DP(Pa)     = layer pressure difference = PD - PU 
+!**** DP(Pa)     = layer pressure difference = PD - PU
 !**** A (m^3/kg) = specific volume = R*T / P
 !**** S (K)      = potential temperature = S0 - SZ*2*(M-M0)/(MD-MU) =
 !****            = S0 - SZ*2*(P-P0)/(PD-PU) = S0 - SZ*2*(P-P0)/DP =
@@ -728,18 +754,18 @@ C**** Compute MW (kg/s) = downward vertical mass flux
 !****            = (X - P*Y)*P^K = X*P^K - Y*P^(K+1)
 
 !**** Integral of A*dM from MU to MD (from top to bottom of layer)
-!**** Int[A*dM] = Int[R*T*dP/P*G] = R*Int{[X*P^(K-1) - Y*P^K]*dP}/G = 
-!**** = R*{X*P^K/K - Y*P^(K+1)/(K+1)}/G from PU to PD = 
-!**** = R*{X*(PD^K-PU^K)/K - Y*[PD^(K+1)-PU^(K+1)]/(K+1)}/G 
+!**** Int[A*dM] = Int[R*T*dP/P*G] = R*Int{[X*P^(K-1) - Y*P^K]*dP}/G =
+!**** = R*{X*P^K/K - Y*P^(K+1)/(K+1)}/G from PU to PD =
+!**** = R*{X*(PD^K-PU^K)/K - Y*[PD^(K+1)-PU^(K+1)]/(K+1)}/G
 
 !**** Compute DGZ thickness everwhere in a layer from layer bottom
 !**** G*dZ = - A*dP = - (R*T/P)*dP = - R*[X*P^(K-1) - Y*P^K]*dP
 !**** DGZ = - Int{R*[X*P^(K-1) - Y*P^K]*dP} from PD to P =
-!****     = - R*{X*(P^K-PD^K)/K - Y*[P^(K+1)-PD^(K+1)]/(K+1)} 
-!****     = R*{X*(PD^K-P^K)/K - Y*[PD^(K+1)-P^(K+1)]/(K+1)} 
+!****     = - R*{X*(P^K-PD^K)/K - Y*[P^(K+1)-PD^(K+1)]/(K+1)}
+!****     = R*{X*(PD^K-P^K)/K - Y*[PD^(K+1)-P^(K+1)]/(K+1)}
 
-!**** DGZup = R*{X*(PD^K-PU^K)/K - Y*[PD^(K+1)-PU^(K+1)]/(K+1)} 
-!**** Int[A*dM] = DGZup/G 
+!**** DGZup = R*{X*(PD^K-PU^K)/K - Y*[PD^(K+1)-PU^(K+1)]/(K+1)}
+!**** Int[A*dM] = DGZup/G
 
 !**** Compute mass weighted average value of DGZ in a layer
 !**** DGZave = Int{DGZ*dP}/DP from PD to PU =
@@ -753,7 +779,7 @@ C**** Compute MW (kg/s) = downward vertical mass flux
 
 !**** GZave(L) = GZATMO + Sum[DGZup(1:L-1)] + DGZave(L)
 
-!**** PGFU (kg*m/s^2) = 
+!**** PGFU (kg*m/s^2) =
 !**** = {Mean[Int(A*dM)] * dP/dX + Mean(DM) * dGZave/dX} * DX*DY =
 !**** = {Mean[Int(A*dM)] * dP + Mean(DM) * dGZave} * DY
 !**** DUT (kg*m/s) = dTIME * PolarFiltered(PGFU)
@@ -1021,11 +1047,11 @@ C**** MFILTR=1  SMOOTH P USING SEA LEVEL PRESSURE FILTER
 C****        2  SMOOTH T USING TROPOSPHERIC STRATIFICATION OF TEMPER
 C****        3  SMOOTH P AND T
 C****
-      USE CONSTANT, only : bygrav,kapa,sha,mb2kg,rgas
+      Use CONSTANT,   Only: byGRAV,RGAS,SHA,KAPA
       USE RESOLUTION, only : ls1,ptop,psf,pmtop
       USE RESOLUTION, only : im,jm,lm
       USE MODEL_COM, only : itime
-      USE ATM_COM, only : t,p,q,wm,zatmo
+      USE ATM_COM, only : t,p,q,qcl,qci,zatmo
       USE GEOM, only : areag,dxyp,byim
       USE SOMTQ_COM, only : tmom,qmom
       USE ATM_COM, only : pk
@@ -1136,7 +1162,9 @@ c adjust pot. temp. to maintain unchanged absolute temp.
         T(I,J,L)= T(I,J,L)*
      &       ((POLD(I,J)*SIG(L)+PTOP)/(P(I,J)*SIG(L)+PTOP))**KAPA
         Q(I,J,L)= Q(I,J,L)*PRAT(I,J)
-        WM(I,J,L)=WM(I,J,L)*PRAT(I,J)
+!       WM(I,J,L)=WM(I,J,L)*PRAT(I,J)
+        QCL(I,J,L)=QCL(I,J,L)*PRAT(I,J)
+        QCI(I,J,L)=QCI(I,J,L)*PRAT(I,J)
         QMOM(:,I,J,L)=QMOM(:,I,J,L)*PRAT(I,J)
       END DO
       END DO
@@ -1269,12 +1297,12 @@ c      by4ton=1./(4.**nshap)
       return
       end subroutine fltry2
 
-      SUBROUTINE FLTRUV(U,V,UT,VT)
+      Subroutine FLTRUV
 !@sum  FLTRUV Filters 2 gridpoint noise from the velocity fields
 !@auth Original development team
       USE CONSTANT, only : sha
       USE RESOLUTION, only : im,jm,lm
-      USE ATM_COM, only : t,pdsig,pk
+      Use ATM_COM,    Only: MA,U,V,T, PK
       USE GEOM, only : dxyn,dxys
       USE DYNAMICS, only : dt,mrch,ang_uv, COS_LIMIT,do_polefix
      &  ,DT_XUfilter,DT_XVfilter,DT_YVfilter,DT_YUfilter
@@ -1286,20 +1314,15 @@ C**********************************************************************
       USE DOMAIN_DECOMP_ATM, only: grid
       USE DOMAIN_DECOMP_1D, only : getDomainBounds
       IMPLICIT NONE
-      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM),
-     *     INTENT(INOUT) :: U,V
-      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM),
-     *     INTENT(IN) :: UT,VT
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) ::
      *     DUT,DVT,USAVE,VSAVE
-      REAL*8 X(IM),YV(max(2*JM,IM)),DP(IM)
+      Real*8 :: X(IM),YV(Max(2*JM,IM)), ANGM,MMUV(IM),MMUVs
       REAL*8 XUby4toN,XVby4toN,YVby4toN,YUby4toN
       REAL*8 :: DT1=0.
       INTEGER I,J,K,L,N,IP1  !@var I,J,L,N  loop variables
       REAL*8 YV2,YVJ,YVJM1,X1,XI,XIM1
       INTEGER, PARAMETER :: NSHAP=8  ! NSHAP MUST BE EVEN
       REAL*8, PARAMETER :: BY16=1./16., by4toN=1./(4.**NSHAP)
-      REAL*8 angm,dpt,D2V,D2U
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0STG, J_1STG, J_0S, J_1S
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
@@ -1364,27 +1387,24 @@ C**** Conserve angular momentum along latitudes
       DO L=1,LM
         DO J=J_0STG,J_1STG
           ANGM=0.
-          DPT=0.
+          MMUVs = 0
           I=IM
           DO IP1=1,IM
-            DP(I)=0.5*((PDSIG(L,IP1,J-1)+PDSIG(L,I,J-1))*DXYN(J-1)
-     *           +(PDSIG(L,IP1,J  )+PDSIG(L,I,J  ))*DXYS(J  ))
-            ANGM=ANGM-DP(I)*(U(I,J,L)-USAVE(I,J,L))
-            DPT=DPT+DP(I)
+             MMUV(I) = .5*((MA(L,Ip1,J-1)+MA(L,I,J-1))*DXYN(J-1) +
+     +                     (MA(L,Ip1,J  )+MA(L,I,J  ))*DXYS(J))
+             MMUVs = MMUVs + MMUV(I)
+             ANGM = ANGM - MMUV(I)*(U(I,J,L)-USAVE(I,J,L))
             I=IP1
           END DO
-          DO I=1,IM
-            if (ang_uv.eq.1) U(I,J,L)=U(I,J,L)+ANGM/DPT
-            DUT(I,J,L)=(U(I,J,L)-USAVE(I,J,L))*DP(I)
-            DVT(I,J,L)=(V(I,J,L)-VSAVE(I,J,L))*DP(I)
-          END DO
+          If (ANG_UV == 1)  U(:,J,L) = U(:,J,L) + ANGM/MMUVs
+          DUT(:,J,L) = (U(:,J,L)-USAVE(:,J,L))*MMUV(:)
+          DVT(:,J,L) = (V(:,J,L)-VSAVE(:,J,L))*MMUV(:)
         END DO
       END DO
 
-C**** Call diagnostics only for even time step
-      IF (MRCH.eq.2) THEN
-        CALL DIAGCD(grid,5,UT,VT,DUT,DVT,DT1)
-      END IF
+      USAVE(:,:,:) = .5*(USAVE(:,:,:)+U(:,:,:))
+      VSAVE(:,:,:) = .5*(VSAVE(:,:,:)+V(:,:,:))
+      Call DIAGCD (GRID,5,USAVE,VSAVE,DUT,DVT,DT1)
 
       RETURN
       END SUBROUTINE FLTRUV
@@ -1570,15 +1590,14 @@ c**** Extract domain decomposition info
       SUBROUTINE SDRAG(DT1)
 !@sum  SDRAG puts a drag on the winds in the top layers of atmosphere
 !@auth Original Development Team
-      USE CONSTANT, only : grav,rgas,sha
+      Use CONSTANT,   Only: GRAV,RGAS,SHA
       USE RESOLUTION, only : ls1
       USE RESOLUTION, only : im,jm,lm
       USE MODEL_COM, only : itime
-      USE ATM_COM, only : u,v,t
+      Use ATM_COM,    Only: MA,U,V,T, PEDN,PK
       USE GEOM, only : cosv,imaxj,kmaxj,idij,idjj,rapj,dxyv,dxyn,dxys
      *     ,rapvs,rapvn
       USE DIAG_COM, only : ajl=>ajl_loc,jl_dudtsdrg
-      USE ATM_COM, only : pk,pdsig,pedn
       USE DYNAMICS, only : x_sdrag,csdragl,lsdrag
      *     ,lpsdrag,ang_sdrag,Wc_Jdrag,wmax,vsdragl
       use dynamics, only : l1_rtau,rtau,linear_sdrag
@@ -1591,15 +1610,15 @@ c**** Extract domain decomposition info
 !@var L(P)SDRAG lowest level at which SDRAG_lin is applied (near poles)
 C**** SDRAG_const is applied above PTOP (150 mb) and below the SDRAG_lin
 C**** regime (but not above P_CSDRAG)
-      REAL*8 WL,TL,RHO,CDN,X,DP,DPL(LM),du,dps
-!@var DUT,DVT change in momentum (mb m^3/s)
+      Real*8 :: X,MAUV,WL,TL,RHO,CDN,MMUV(LM),DU
+!@var DUT,DVT change in momentum (kg*m/s)
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) ::
      *        DUT,DVT
       INTEGER I,J,L,IP1,K,Lmax
       logical cd_lin
 !@var ang_mom is the sum of angular momentun at layers LS1 to LM
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO)    ::
-     *        ang_mom, sum_airm
+     *        ANG_MOM, SUM_MMUV
 !@var wmaxp =.75*wmax,the imposed limit for stratospheric winds (m/s)
       real*8 wmaxp,wmaxj,xjud
 c**** Extract domain decomposition info
@@ -1611,9 +1630,7 @@ c**** Extract domain decomposition info
      &         HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
      &         HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
-      ang_mom=0. ;  sum_airm=0. ; dut=0.
-C*
-      DUT=0. ; DVT=0.
+      ANG_MOM(:,:) = 0  ;  DUT(:,:,:) = 0  ;  DVT(:,:,:) = 0
 
       if(linear_sdrag) then
 
@@ -1622,14 +1639,13 @@ C*
         do j=j_0stg, j_1stg
         i=im
         do ip1=1,im
-          dps= (pdsig(l,ip1,j-1)+pdsig(l,i,j-1))*rapvn(j-1)+
-     *         (pdsig(l,ip1,j  )+pdsig(l,i,j  ))*rapvs(j)
+           MAUV = (MA(L,Ip1,J-1)+MA(L,I,J-1))*RAPVN(J-1) +
+     +            (MA(L,Ip1,J  )+MA(L,I,J  ))*RAPVS(J)
 c**** adjust diags for possible difference between dt1 and dtsrc
 c        call inc_ajl(i,j,l,jl_dudtsdrg,-u(i,j,l)*x) ! for a-grid only
           ajl(j,l,jl_dudtsdrg) = ajl(j,l,jl_dudtsdrg) -u(i,j,l)*x
-          dp=dps*dxyv(j)
-          dut(i,j,l)=-x*u(i,j,l)*dp
-          dvt(i,j,l)=-x*v(i,j,l)*dp
+           DUT(I,J,L) = - X*MAUV*DXYV(J)*U(I,J,L)
+           DVT(I,J,L) = - X*MAUV*DXYV(J)*V(I,J,L)
           u(i,j,l)=u(i,j,l)*(1.-x)
           v(i,j,l)=v(i,j,l)*(1.-x)
           ang_mom(i,j) = ang_mom(i,j) - dut(i,j,l)
@@ -1666,17 +1682,16 @@ C**** the following is equivalent to first reducing (U,V), if necessary,
 C**** then finding the drag and applying it to the reduced winds
                     CDN=CSDRAGl(l)*xjud
         IF (cd_lin) CDN=(X_SDRAG(1)+X_SDRAG(2)*min(WL,wmaxj))*xjud
-        DPS= (PDSIG(L,IP1,J-1)+PDSIG(L,I,J-1))*RAPVN(J-1)+
-     *       (PDSIG(L,IP1,J  )+PDSIG(L,I,J  ))*RAPVS(J)
-        X=DT1*RHO*CDN*min(WL,wmaxj)*GRAV*VSDRAGL(L)/DPS
+         MAUV = (MA(L,Ip1,J-1)+MA(L,I,J-1))*RAPVN(J-1) +
+     +          (MA(L,Ip1,J  )+MA(L,I,J  ))*RAPVS(J)
+         X = DT1*RHO*CDN*Min(WL,WMAXJ)*GRAV*VSDRAGL(L) / MAUV
         if (wl.gt.wmaxj) X = 1. - (1.-X)*wmaxj/wl
 C**** adjust diags for possible difference between DT1 and DTSRC
 c        call inc_ajl(i,j,l,JL_DUDTSDRG,-U(I,J,L)*X) ! for a-grid only
         ajl(j,l,jl_dudtsdrg) = ajl(j,l,jl_dudtsdrg) -u(i,j,l)*x
-        DP=DPS*DXYV(J)
-        ang_mom(i,j) = ang_mom(i,j)+U(I,J,L)*X*DP
-        DUT(I,J,L)=-X*U(I,J,L)*DP
-        DVT(I,J,L)=-X*V(I,J,L)*DP
+         DUT(I,J,L) = - X*MAUV*DXYV(J)*U(I,J,L)
+         DVT(I,J,L) = - X*MAUV*DXYV(J)*V(I,J,L)
+         ANG_MOM(I,J) = ANG_MOM(I,J) -DUT(I,J,L)
         U(I,J,L)=U(I,J,L)*(1.-X)
         V(I,J,L)=V(I,J,L)*(1.-X)
         I=IP1
@@ -1693,18 +1708,19 @@ C*
       if (ang_sdrag.gt.0) then
         lmax=ls1-1
         if (ang_sdrag.gt.1) lmax=lm
+        SUM_MMUV(:,:) = 0
         do j = J_0STG,J_1STG
         I=IM
         do ip1 = 1,im
           do l = 1,lmax
-            DPL(L)=0.5*((PDSIG(L,IP1,J-1)+PDSIG(L,I,J-1))*DXYN(J-1)
-     *        +(PDSIG(L,IP1,J  )+PDSIG(L,I,J  ))*DXYS(J  ))
-            sum_airm(i,j) = sum_airm(i,j)+DPL(L)
+            MMUV(L) = .5*((MA(L,Ip1,J-1)+MA(L,I,J-1))*DXYN(J-1) +
+     +                    (MA(L,Ip1,J  )+MA(L,I,J  ))*DXYS(J))
+            SUM_MMUV(I,J) = SUM_MMUV(I,J) + MMUV(L)
           end do
 C*
           do l = 1,lmax
-            du = ang_mom(i,j)/sum_airm(i,j)
-            DUT(I,J,L) = DUT(I,J,L) + du*dpl(l)
+            DU = ANG_MOM(I,J) / SUM_MMUV(I,J)
+            DUT(I,J,L) = DUT(I,J,L) + DU*MMUV(L)
 c            call inc_ajl(i,j,l,JL_DUDTSDRG,du) ! for a-grid only
             ajl(j,l,jl_dudtsdrg) = ajl(j,l,jl_dudtsdrg) +du
             U(I,J,L)=U(I,J,L) + du
@@ -2417,13 +2433,12 @@ c        X(I,J) = .25*(XIM1J+X(I,J)+X(IM1,J+1)+X(I,J+1))
       return
       end subroutine regrid_btoa_ext
 
-c      module DIAG
-c      contains
+
       Subroutine DIAGCD (GRID,M,UX,VX,DUT,DVT,DT1)
 !@sum  DIAGCD Keeps track of the conservation properties of angular
 !@+    momentum and kinetic energy inside dynamics routines
 !@auth Gary Russell
-      USE CONSTANT, only : omega,mb2kg, radius
+      Use CONSTANT,   Only: RADIUS,OMEGA
       use resolution, only : im,jm,lm
       USE MODEL_COM, only : mdiag,mdyn
       USE GEOM, only : cosv, ravpn,ravps,bydxyp,fim,byim
@@ -2554,7 +2569,6 @@ c
       end subroutine regrid_to_primary_1d
 
       SUBROUTINE DIAG5D (M5,NDT,DUT,DVT)
-      Use CONSTANT,   Only: kg2mb
       use resolution, only : im,jm,lm
       USE MODEL_COM, only : MDIAG,MDYN
       USE DYNAMICS, only : dsig
@@ -2567,7 +2581,7 @@ c
       IMPLICIT NONE
 
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
-     &        DUT,DVT
+     &        DUT,DVT  !  (kg*m/s)
 
       INTEGER :: M5,NDT
 
@@ -2609,7 +2623,7 @@ C**** TRANSFER RATES FOR KINETIC ENERGY IN THE DYNAMICS
             IF(KUV.EQ.1) CALL FFT(DUT(1,J,L),FA,FB)
             IF(KUV.EQ.2) CALL FFT(DVT(1,J,L),FA,FB)
             DO N=1,NM
-               X(N) = .5*FIM * kg2mb *
+               X(N) = .5*FIM *
      &          (FA(N-1)*FCUVA(N-1,J,L,KUV)+FB(N-1)*FCUVB(N-1,J,L,KUV))
             ENDDO
             X(1)=X(1)+X(1)
@@ -3034,7 +3048,7 @@ c Switch the sign convention back to "positive downward".
             Bsum = Bsum + Bm(Ikh) * exp(-(C(IC,Ikh)/Cw(Ikh))**2 * aLn2)
          end do
          Eps = Eps + Bsum * dc(Ikh) * ( rhoe(IZ0(J)) * 100.0_r8 )
-                                                       !!!100.0_r8 arises from the units of P and rho.
+                                                    !!!100.0_r8 arises from the units of P and rho.
       end do
       Eps = Bt(J,modelEclock%dayOfYear()) / Eps
       !...Calculating source spectra (function of azimuth, horizontal wave number)

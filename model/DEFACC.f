@@ -3114,7 +3114,7 @@ c
       units_ij(k) = '10^10 W'
       name_ij(k) = 'fgzu'
       ia_ij(k) = ia_src
-      scale_ij(k) = 100.*BYGRAV * 1.d-10/DTsrc
+      SCALE_IJ(K) = 1d-10 / DTSRC
       igrid_ij(k) = 2
       jgrid_ij(k) = 1
       ir_ij(k) = ir_m1325_475
@@ -3125,7 +3125,7 @@ c
       units_ij(k) = '10^10 W'
       name_ij(k) = 'fgzv'
       ia_ij(k) = ia_src
-      scale_ij(k) = 100.*BYGRAV * 1.d-10/DTsrc
+      SCALE_IJ(K) = 1d-10 / DTSRC
       igrid_ij(k) = 1
       jgrid_ij(k) = 2
       ir_ij(k) = ir_m1325_475
@@ -4908,7 +4908,7 @@ c
 #ifndef SCM
         call add_var(cdl_ij,
      &       'float '//trim(name_ij(k))//'_hemis(shnhgm) ;')
-#endif
+#endif     
 #ifdef CUBED_SPHERE
         call add_var(cdl_ij_latlon,
      &       'float '//trim(name_ij(k))//'(lat,lon) ;',

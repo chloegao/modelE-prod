@@ -103,7 +103,7 @@ C**** Some local constants
       USE RESOLUTION, only : im,jm,lm
       USE MODEL_COM, only : idacc
      *     ,mdyn,mdiag
-      USE ATM_COM, only : zatmo,WM,u,v,t,p,q,lm_req,req_fac_m
+      USE ATM_COM, only : zatmo,QCL,QCI,u,v,t,p,q,lm_req,req_fac_m
       USE GEOM, only : sinlat2d,coslat2d,axyp,imaxj,
      &     lon2d_dg,byaxyp
 #ifndef SCM
@@ -278,7 +278,8 @@ C**** NUMBERS ACCUMULATED FOR A SINGLE LEVEL
 #endif
           AIJ(I,J,IJ_SLP)=AIJ(I,J,IJ_SLP)+SLP(PS,TS_SLP,ZS)-P1000
 C**** calculate pressure diags including water
-          PS = PS + Sum((Q(I,J,:)+WM(I,J,:))*MA(:,I,J))*kg2mb
+!         PS = PS + Sum((Q(I,J,:)+WM(I,J,:))*MA(:,I,J))*kg2mb
+          PS = PS +Sum((Q(I,J,:)+QCL(I,J,:)+QCI(I,J,:))*MA(:,I,J))*kg2mb
           AIJ(I,J,IJ_PRESQ)=AIJ(I,J,IJ_PRESQ)+ PS
           AIJ(I,J,IJ_SLPQ)=AIJ(I,J,IJ_SLPQ)+SLP(PS,TS_SLP,ZS)-P1000
 
@@ -472,10 +473,11 @@ c ajl(jl_dtdyn) was incremented by -t(i,j,l) before dynamics
             DO IT=1,NTYPE
               CALL INC_AJ(I,J,IT,J_TX,(TX(I,J,L)-TF)*FTYPE(IT,I,J)*
      *             DBYSD)
-              CALL INC_AJ(I,J,IT,J_QP,(Q(I,J,L)+WM(I,J,L))*PIJ*DSIG(L)
-     *             *FTYPE(IT,I,J))
+              CALL INC_AJ(I,J,IT,J_QP,(Q(I,J,L)+QCL(I,J,L)+QCI(I,J,L))*
+     *             PIJ*DSIG(L)*FTYPE(IT,I,J))
             END DO
-            CALL INC_AREG(I,J,JR,J_QP,(Q(I,J,L)+WM(I,J,L))*PIJ*DSIG(L))
+            CALL INC_AREG(I,J,JR,J_QP,(Q(I,J,L)+QCL(I,J,L)+QCI(I,J,L))
+     *                    *PIJ*DSIG(L))
             CALL INC_AREG(I,J,JR,J_TX,(TX(I,J,L)-TF)*DBYSD)
           END DO
         END DO
@@ -773,11 +775,12 @@ c
           phidp(lcp(l)) = phidp(lcp(l)) + dpx(l)*phi(i,j,lmod(l))
           qdp(lcp(l))   = qdp(lcp(l))   + dpx(l)*q(i,j,lmod(l))
           rhdp(lcp(l))  = rhdp(lcp(l))  + dpx(l)*rh(lmod(l))
-          wmdp(lcp(l))  = wmdp(lcp(l))  + dpx(l)*wm(i,j,lmod(l))
+          wmdp(lcp(l))  = wmdp(lcp(l))  + dpx(l)*(qcl(i,j,lmod(l))+
+     *      qci(i,j,lmod(l)))
           if( svlhx(lmod(l),i,j) == lhe)
-     *      wmliqdp(lcp(l)) = wmliqdp(lcp(l)) + dpx(l)*wm(i,j,lmod(l))
+     *      wmliqdp(lcp(l)) = wmliqdp(lcp(l)) + dpx(l)*qcl(i,j,lmod(l))
           if( svlhx(lmod(l),i,j) == lhs)
-     *      wmfrzdp(lcp(l)) = wmfrzdp(lcp(l)) + dpx(l)*wm(i,j,lmod(l))
+     *      wmfrzdp(lcp(l)) = wmfrzdp(lcp(l)) + dpx(l)*qci(i,j,lmod(l))
         enddo
         do l=1,lm
           aijl(i,j,l,ijk_dp) = aijl(i,j,l,ijk_dp) + dpwt(l)
@@ -1121,7 +1124,7 @@ C****
 !@auth Gary Russell/Gavin Schmidt
       USE CONSTANT, only : mb2kg
       USE RESOLUTION, only : im,jm,lm
-      USE ATM_COM, only : wm,q
+      USE ATM_COM, only : qcl,qci,q
       USE GEOM, only : imaxj
       USE ATM_COM, only : pdsig
       USE DOMAIN_DECOMP_ATM, only : getDomainBounds, GRID
@@ -1146,7 +1149,9 @@ C****
       DO I=I_0,IMAXJ(J)
         WATER(I,J) = 0.
         DO L=1,LM
-          WATER(I,J)=WATER(I,J)+(Q(I,J,L)+WM(I,J,L))*PDSIG(L,I,J)
+C         WATER(I,J)=WATER(I,J)+(Q(I,J,L)+WM(I,J,L))*PDSIG(L,I,J)
+          WATER(I,J)=WATER(I,J)+(Q(I,J,L)+QCI(I,J,L)+QCL(I,J,L))
+     *       *PDSIG(L,I,J)
         ENDDO
         WATER(I,J)=WATER(I,J)*mb2kg
       ENDDO
@@ -1163,7 +1168,7 @@ C****
 !@auth Gary Russell/Gavin Schmidt
       USE CONSTANT, only : mb2kg,shv,grav,lhe
       USE RESOLUTION, only : im,jm,lm
-      USE ATM_COM, only : wm,t,q,p
+      USE ATM_COM, only : qcl,qci,t,q,p
       USE GEOM, only : imaxj
       USE ATM_COM, only : pdsig, pmid, pk
       USE CLOUDS_COM, only : svlhx
@@ -1192,7 +1197,9 @@ C****
         DO L=1,LM
 c this calculation currently only calculates latent heat
 c          W =(Q(I,J,L)+WM(I,J,L))*PDSIG(L,I,J)*mb2kg
-          EL=(Q(I,J,L)*LHE+WM(I,J,L)*(LHE-SVLHX(L,I,J)))*PDSIG(L,I,J)
+C         EL=(Q(I,J,L)*LHE+WM(I,J,L)*(LHE-SVLHX(L,I,J)))*PDSIG(L,I,J)
+          EL=(Q(I,J,L)*LHE+QCL(I,J,L)*(LHE-SVLHX(L,I,J))
+     *      +QCI(I,J,L)*(LHE-SVLHX(L,I,J)))*PDSIG(L,I,J)
           EWATER(I,J)=EWATER(I,J)+EL !+W*(SHV*T(I,J,L)*PK(L,I,J)+GRAV
 !     *           *HSCALE*LOG(P(I,J)/PMID(L,I,J)))
         ENDDO
@@ -1534,7 +1541,8 @@ C**** Some names have more than one unit associated (i.e. "ZALL")
 #endif
 #ifdef etc_subdd
      &        "w","I","F", !omega(w),convective cloud(I),stratiform cloud(F)
-     &        "H","L","E","S", !heating from total moist conv(H),large-scale conden.(L),deep conv(E),shallow conv(S)
+     &        "H","L","E","S", !heating from total moist conv(H),large-scale conden.(L),deep conv(E)
+,shallow conv(S)
      &        "c","i", ! cloud liquid (c)/ice (i) water content
 #endif
      &          "O", "X", "M", "N")! Ox, NOx, CO, NO2
@@ -2633,7 +2641,8 @@ C**** diags on fixed pressure levels or velocity
 #endif
 #ifdef etc_subdd
      &        "w","I","F", !omega(w),convective cloud(I),stratiform cloud(F)
-     &        "H","L","E","S", !heating from total moist conv(H),large-scale conden.(L),deep conv(E),shallow conv(S)
+     &        "H","L","E","S", !heating from total moist conv(H),large-scale conden.(L),deep conv(E)
+,shallow conv(S)
      &        "c","i", ! cloud liquid (c)/ice (i) water content
 #endif
      &        "O","X","M","N")  ! Ox, NOx, CO, NO2
@@ -4369,7 +4378,7 @@ c time_subdd
         t = newBaseTime(
      &       madelEclock%getTimeInSecondsFromDate(iyear1,month,0,0)
      &        + (rec-1)*nsubdd*dtsrc)
-        time_subdd = 
+        time_subdd =
      &       nint(t / (calendr%getSecondsPerDay()/INT_HOURS_PER_DAY))
       end if
 

@@ -14,11 +14,19 @@
       USE SOMTQ_COM,  only: tmom,mz
       USE ATM_COM,    only: t,p,q,PMID,PEDN,MUs,MVs,MWs
       USE DOMAIN_DECOMP_ATM, only : grid
+      USE SCMDIAG, only : dTfrc,dqfrc,dTtot,dqtot
 
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) ::
      &     TZ,PIJL
 
       INTEGER L
+
+      do L=1,LM
+         dTtot(L) = T(1,1,L)
+         dqtot(L) = Q(1,1,L)
+         dTfrc(L) = T(1,1,L)
+         dqfrc(L) = Q(1,1,L)
+      enddo
 
       do L=1,LM
          MUs(:,:,L) = 0.
@@ -32,7 +40,7 @@
       CALL CALC_AMPK(LM)
 
       call SCM_FORCN
-
+  
       CALL tq_zmom_init(T,Q,PMID,PEDN)
 
       DO L=1,LM
@@ -42,6 +50,12 @@
       CALL PGF_SCM(T,TZ,PIJL)
 
       call FCONV
+c
+c     calculate change in T and Q due to large scale forcings
+      do L=1,LM
+         dTfrc(L) = T(1,1,L)-dTfrc(L)
+         dqfrc(L) = Q(1,1,L)-dqfrc(L)
+      enddo
 
       return
       END SUBROUTINE DYNAM
@@ -54,48 +68,95 @@ c     apply advective forcings from ARM Variational analysis to T and Q
       USE RESOLUTION, only: LM
       USE DYNAMICS,   only: SIG
       USE CONSTANT,   only: KAPA 
-      USE CLOUDS,     only: SCM_DEL_T, SCM_DEL_Q
-      USE SCMCOM,     only: SG_HOR_TMP_ADV, SG_VER_S_ADV, SG_HOR_Q_ADV,
-     &              SG_VER_Q_ADV,iu_scm_prt,NSTEPSCM
+      USE SCMCOM,     only: SCM_RELAX_FORCING_FLAG,SG_HOR_TMP_ADV,
+     &          SG_VER_S_ADV, SG_HOR_Q_ADV,SG_VER_Q_ADV,SG_T,SG_Q,
+     &          NSTEPSCM,SCM_DEL_T, SCM_DEL_Q,iu_scm_prt 
 
       IMPLICIT NONE
 
-
-
       INTEGER L
 
-cccccc is there some other variable they keep or function for doing this
-      do L = 1,LM
-         T(1,1,L) = T(1,1,L)*PK(L,1,1) 
-c        write(iu_scm_prt,*) 'FORCN -old tq  ',L,T(I_TARG,J_TARG,L),
-c    &               Q(I_TARG,J_TARG,L)*1000.0 
-      enddo
-     
+      REAL*8  dTdtls,dqdtls,tadv,dTrel,dqrel
+      real*8  deltnorel,tnorel
+c * * tadv = advective time scale for relaxation toward observed values
+c            run with  tadv = 3 hours  (in secs=10800)
+      parameter (tadv=10800)
+
 
       do L = 1,LM
-c        write(iu_scm_prt,*) 'tadvs ',L,SG_HOR_TMP_ADV(L),
-c    *                       SG_VER_S_ADV(L)
-         SCM_DEL_T(L) = SG_HOR_TMP_ADV(L)*DTSRC + SG_VER_S_ADV(L)*DTSRC   
-         T(1,1,L) = T(1,1,L) + SCM_DEL_T(L)
-c        write(iu_scm_prt,*) 'add tadv delT T ',L,SCM_DEL_T(L),
-c    &               T(I_TARG,J_TARG,L)    
-      enddo   
-      do L = 1,LM
-c        write(iu_scm_prt,*) 'qadvs ',L,SG_HOR_Q_ADV(L),SG_VER_Q_ADV(L) 
-         SCM_DEL_Q(L) = SG_HOR_Q_ADV(L)*DTSRC + SG_VER_Q_ADV(L)*DTSRC    
-         Q(1,1,L) = Q(1,1,L) + SCM_DEL_Q(L)
-         if (Q(1,1,L).lt.0.0) then
-            write(99,51) NSTEPSCM,L,Q(1,1,L)
-  51        format(1x,'SCM_FORCN NSTEP  L Q ',
-     &               2(i5),f10.7) 
-            SCM_DEL_Q(L) = -Q(1,1,L)
-            Q(1,1,L) = 0.0
-         endif
+         T(1,1,L) = T(1,1,L)*PK(L,1,1) 
       enddo
+
+      if (SCM_RELAX_FORCING_FLAG.eq.0) then
+c         use forcings as given
+          do L=1,LM 
+             SCM_DEL_T(L)=SG_HOR_TMP_ADV(L)*DTSRC+SG_VER_S_ADV(L)*DTSRC   
+             T(1,1,L) = T(1,1,L) + SCM_DEL_T(L)
+c            write(iu_scm_prt,*) 'add tadv delT T ',L,SCM_DEL_T(L),
+c    &               T(I_TARG,J_TARG,L)    
+          enddo   
+      else
+c         use relaxation of forcings over time
+          do L = 1,LM
+             deltnorel = 0.0
+             Tnorel = 0.0
+c            write(iu_scm_prt,*) 'tadvs ',L,SG_HOR_TMP_ADV(L),
+c    *                       SG_VER_S_ADV(L)
+c            calculate delta T with relaxation toward observed value
+c            write(iu_scm_prt,109) L,SG_T(L),T(I_TARG,J_TARG,L)
+ 109         format(1x,' before frc    L SGT Tmodel ',i5,2(f10.3))
+             dTdtls = SG_HOR_TMP_ADV(L)+SG_VER_S_ADV(L)
+             dTrel = (SG_T(L)-T(1,1,L))/tadv
+             SCM_DEL_T(L) = dTdtls + dTrel
+             SCM_DEL_T(L) = SCM_DEL_T(L)*DTSRC
+             deltnorel = dTdtls*DTSRC
+c            write(iu_scm_prt,110) dTdtls,dTrel
+ 110         format(1x,'wth relaxed frcing dTdtls dTrel ',2(f12.8))
+             Tnorel = T(1,1,L) + deltnorel
+             T(1,1,L) = T(1,1,L) + SCM_DEL_T(L)
+c            write(iu_scm_prt,111) L,SCM_DEL_T(L),T(1,1,L),
+c    &                  deltnorel,Tnorel
+ 111         format(1x,' after frc L delt Tmodel ',i5,2(f10.3),
+     &             ' deltnorel tnorel ',2(f10.3))
+          enddo
+      endif
+
+      if (SCM_RELAX_FORCING_FLAG.eq.0) then
+c         use forcings as given
+          do L = 1,LM
+c            write(iu_scm_prt,*) 'qadvs ',
+c    &              L,SG_HOR_Q_ADV(L),SG_VER_Q_ADV(L) 
+             SCM_DEL_Q(L)=SG_HOR_Q_ADV(L)*DTSRC+SG_VER_Q_ADV(L)*DTSRC    
+             Q(1,1,L) = Q(1,1,L) + SCM_DEL_Q(L)
+             if (Q(1,1,L).lt.0.0) then
+                write(99,51) NSTEPSCM,L,Q(1,1,L)
+  51            format(1x,'SCM_FORCN NSTEP  L Q ',
+     &                   2(i5),f10.7) 
+                SCM_DEL_Q(L) = -Q(1,1,L)
+                Q(1,1,L) = 0.0
+             endif
+          enddo
+      else
+          do L = 1,LM
+c            calculate delta q with relaxation toward oberved value
+             dqdtls = SG_HOR_Q_ADV(L)+SG_VER_Q_ADV(L)
+             dqrel = (SG_Q(L)-Q(1,1,L))/tadv
+             SCM_DEL_Q(L) = dqdtls + dqrel
+             SCM_DEL_Q(L) = SCM_DEL_Q(L)*DTSRC
+             Q(1,1,L) = Q(1,1,L) + SCM_DEL_Q(L)
+             if (Q(1,1,L).lt.0.0) then
+                write(99,151) NSTEPSCM,L,Q(1,1,L)
+ 151            format(1x,'SCM_FORCN NSTEP  L Q ',
+     &                   2(i5),f10.7)
+                SCM_DEL_Q(L) = -Q(1,1,L)
+                Q(1,1,L) = 0.0
+             endif
+          enddo
+      endif
     
       do L = 1,LM
-c        write(iu_scm_prt,*) 'FORCN - new tq  ',L,T(I_TARG,J_TARG,L),
-c    &               Q(I_TARG,J_TARG,L)*1000.0 
+c        write(iu_scm_prt,*) 'FORCN - new tq  ',L,T(1,1,L),
+c    &               Q(1,1,L)*1000.0 
          T(1,1,L) = T(1,1,L)/PK(L,1,1)    
       enddo
 
@@ -137,22 +198,31 @@ c
       USE RESOLUTION, only: LM
       USE DYNAMICS,   only: DSIG
       USE ATM_COM,    only: P
-      USe GEOM,       only: AXYP   
-      USE SCMCOM,     only: SG_WINDIV, SG_CONV
+      USE GEOM,       only: AXYP   
+      USE SCMCOM,     only: SG_WINDIV,SG_CONV,ARMFAC,iu_scm_prt
    
       IMPLICIT NONE
 
+      integer L,ifirst
 
-      real*4 ARMFAC 
-      integer L
-
-      DATA ARMFAC/1.0/
+cccc  now set in SCM_COM.f  ALLOC_SCM()
+c     DATA ARMFAC/1.0/
 c     DATA ARMFAC/2.2/
 c     DATA ARMFAC/1.08/
+ 
+      DATA ifirst/0/
       
+ 
+c     check grid box size
+      if (ifirst.eq.0) then
+          write(iu_scm_prt,100) AXYP(1,1),ARMFAC
+ 100      format(1x,'for this latlon AXYP ARMFAC ',
+     &          f15.2,f10.4)
+          ifirst = 1
+      endif
+
 
 c     want to fill SD (IDUM,JDUM)  check out 
-
       DO L=1,LM
          SG_CONV(L) = SG_WINDIV(L)*DSIG(L)*P(1,1)
      &                 *AXYP(1,1)*ARMFAC

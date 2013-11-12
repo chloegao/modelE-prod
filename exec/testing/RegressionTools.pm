@@ -206,7 +206,7 @@ sub runConfiguration
     else
       exit 1;
     fi
-    if [[ "$rundeck" == "SCMSGPCONT" ]]; then
+    if [[ "$rundeck" == "SGP4TESTS" ]]; then
        echo "Not restart reproducible";
     else
       $restart;

@@ -8,7 +8,7 @@ containing /path/to/user/directory/extractions - see notes below)
 SCM-irrelevant codes and input files are excluded.
 Template #includes should be refactored so that this exclusion happens automatically.
 
-SCM case: SGP Jan 2000
+SCM case: SGP Jan 2005
 For other cases, change one or more of the following as necessary:
 (1) SCMDATA_SGPCONT to another case-specific code (until this aspect is generalized)
 (2) SCM-specific forcing files SCMSRF, SCMLAY et al.
@@ -18,6 +18,7 @@ For other cases, change one or more of the following as necessary:
 
 Preprocessor Options
 #define SCM
+#define USE_ENT
 #define NEW_IO
 End Preprocessor Options
 
@@ -27,7 +28,7 @@ RES_F40
 
 SCM_COM
 SCM_DIAG
-SCMDATA_SGPCONT  !SCMDATA_TWPICE
+SCMDATA_SGPCONT 
 ATMDYN_SCM
 ATMDYN_SCM_EXT
 SCM_DIAG_COM
@@ -41,7 +42,9 @@ LANDICE LANDICE_COM SURFACE_LANDICE LANDICE_DRV
 
 GHY_COM GHY_DRV
 
-VEG_COM VEGETATION VEG_DRV
+VEG_DRV
+! VEG_COM VEGETATION 
+ENT_DRV ENT_COM ! + Ent
 
 LAKES_COM LAKES
 
@@ -65,13 +68,19 @@ QUS_COM QUSDEF
 FLUXES
 
 Components:
-shared MPI_Support solvers giss_LSM dd2d
+shared MPI_Support solvers giss_LSM 
+dd2d
+Ent
+
+Component Options:
+OPTS_Ent = ONLINE=YES PS_MODEL=FBB
+OPTS_giss_LSM = USE_ENT=YES
 
 Data input files:
 
 ! Forcing for SGP case
-SCMSRF=scm_sgpcont_0001_surface.dat
-SCMLAY=scm_sgpcont_0001_layer.dat
+SCMSRF=SGP.surface.0501.dat
+SCMLAY=SGP.layer.0501.dat
 
 ! The set of forcings for a particular SCM test case typically does not include
 ! all of the data required to run Model E.  Each line below of the form
@@ -157,6 +166,7 @@ ZSIFAC=/path/to/user/directory/extractions/SICE_144x90.1996-2005avg.HadISST1.1.n
 VEG=/path/to/user/directory/extractions/V144X90_no_crops.ext.nc
 CROPS=/path/to/user/directory/extractions/CROPS_and_pastures_Pongratz_to_Hurtt_144X90N_nocasp.nc
 SOIL=/path/to/user/directory/extractions/S144X900098M.ext.nc
+SOILCARB_global=/path/to/user/directory/extractions/soilcarb_top30cm_2x2.5.nc
 TOP_INDEX=/path/to/user/directory/extractions/top_index_144x90_a.ij.ext.nc
 
 
@@ -215,12 +225,14 @@ NIsurf=1        ! Number of surface physics timesteps per atm. physics timestep.
 NRAD=1          ! Full radiation calculation every NRAD physics timesteps.
 
 ! cloud tuning parameters
-U00a=.74
-U00b=2.00
+U00a=.60
+U00b=1.00
+wmui_multiplier=2.0
+entrainment_cont1=.4
 
 ! parameters that control temporally varying inputs:
 ! if set to 0, the current (day/) year is used: transient run
-master_yr=1850
+master_yr=1979
 !crops_yr=1850  ! if -1, crops in VEG-file is used
 !s0_yr=1850
 !s0_day=182
@@ -241,7 +253,7 @@ madaer=3        ! indicates use of TAero_XXX aerosol files by radiation.
 
 ! parameters affecting diagn. output
 aer_rad_forc=0   ! if set =1, radiation is called numerous times - slow !!
-cloud_rad_forc=0 ! calls radiation twice; use =0 to save cpu time
+cloud_rad_forc=1 ! calls radiation twice; use =0 to save cpu time
 isccp_diags=1    ! use =0 to save cpu time, but you lose some key diagnostics
 nda5d=13         ! use =1 to get more accurate energy cons. diag (increases CPU time)
 nda5s=13         ! use =1 to get more accurate energy cons. diag (increases CPU time)

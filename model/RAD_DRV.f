@@ -1260,9 +1260,12 @@ C     OUTPUT DATA
       USE CLOUDS_COM, only : tauss,taumc,svlhx,rhsav,svlat,cldsav,
      *     cldmc,cldss,csizmc,csizss,llow,lmid,lhi,fss
 #ifdef SCM
+      USE SCMCOM, only : SCM_SURF_ALBEDO_FLAG,iu_scm_prt
       USE SCMDIAG, only : SRDFLBTOP,SRNFLBTOP,SRUFLBTOP,TRUFLBTOP,
-     *                    SRDFLBBOT,SRNFLBBOT,SRUFLBBOT,TRUFLBBOT,
-     *                    TRDFLBBOT,TRDFLBTOP,SRFHRLCOL,TRFCRLCOL
+     &                    SRDFLBBOT,SRNFLBBOT,SRUFLBBOT,TRUFLBBOT,
+     &                    TRDFLBBOT,TRDFLBTOP,SRFHRLCOL,TRFCRLCOL,
+     &                    CSSRNTOP,CSTRUTOP,CSSRNBOT,CSTRNBOT,
+     &                    CSSRDBOT,TRNFLBBOT,dTradlw,dTradsw
 #endif
       USE DIAG_COM, only : ia_rad,jreg,aij=>aij_loc,aijl=>aijl_loc
      &     ,ntype,ftype,itocean,itlake,itearth,itlandi,itoice,itlkice
@@ -2425,6 +2428,13 @@ C**** Optional calculation of CRF using a clear sky calc.
           CALL RCOMPX          ! cloud_rad_forc>0 : clr sky
           SNFSCRF(I,J)=SRNFLB(LM+LM_REQ+1)   ! always TOA
           TNFSCRF(I,J)=TRNFLB(LM+LM_REQ+1)   ! always TOA
+#ifdef SCM
+          CSSRNTOP = SRNFLB(LM+LM_REQ+1)*COSZ2(I,J)
+          CSTRUTOP = TRUFLB(LM+LM_REQ+1)
+          CSSRNBOT = SRNFLB(1)*COSZ2(I,J)
+          CSTRNBOT = TRNFLB(1)
+          CSSRDBOT = SRDFLB(1)*COSZ2(I,J)
+#endif
 C         BEGIN AMIP
           AIJ(I,J,IJ_SWDCLS)=AIJ(I,J,IJ_SWDCLS)+SRDFLB(1)*COSZ2(I,J)
           AIJ(I,J,IJ_SWNCLS)=AIJ(I,J,IJ_SWNCLS)+SRNFLB(1)*COSZ2(I,J)
@@ -3372,6 +3382,11 @@ C****
           DO L=1,LM
             T(I,J,L)=T(I,J,L)+(SRHR(L,I,J)*COSZ1(I,J)+TRHR(L,I,J))*
      *           DTsrc*bysha*byMA(l,i,j)/PK(L,I,J)
+#ifdef SCM
+            dTradlw(L)=TRHR(L,I,J)*DTsrc*bysha*byMA(l,i,j)/PK(L,I,J)
+            dTradsw(L)=SRHR(L,I,J)*COSZ1(I,J)
+     &                *DTsrc*bysha*byMA(L,I,J)/PK(L,I,J)
+#endif
           END DO
           AIJ(I,J,IJ_SRINCP0)=AIJ(I,J,IJ_SRINCP0)+(S0*COSZ1(I,J))
         END DO

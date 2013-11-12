@@ -201,7 +201,7 @@
       end function FieldSum
 
       function volumeIntegration(quantity)
-      use ocean, only : dxypo, focean,imaxj
+      use ocean, only : dxypo, focean,imaxj,lmm
       use oceanres,  only: dzo
       real*8, intent(inout) :: quantity(:,j_0h:,:,:)
       real*8 :: volumeIntegration(size(quantity,4))
@@ -221,7 +221,7 @@
           if (j.eq.jdm) gridCellVolume = gridCellVolume * idm
           do i= 1, imaxj(j)
             do n = 1, numTracers
-               if (focean(i,j) > 0) then
+               if (focean(i,j) > 0 .and. k <= lmm(i,j)) then
                  partialIntegration(j,n) = partialIntegration(j,n) + 
      &                 quantity(i,j,k,n) * gridCellVolume
               end if

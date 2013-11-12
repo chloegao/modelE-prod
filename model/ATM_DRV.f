@@ -5,7 +5,7 @@
       USE Dictionary_mod
       use resolution, only : im,jm,lm,ls1,ptop
       USE MODEL_COM
-      USE ATM_COM, only : p,wm
+      USE ATM_COM, only : p,qcl,qci
       USE ATM_COM, only : MUs,MVs,sd_clouds,ptold,ps,kea
       Use DYNAMICS,   Only: nstep,nidyn,nfiltr,mfiltr,dt
       USE DOMAIN_DECOMP_ATM, only: grid
@@ -105,7 +105,6 @@ c     enddo
 #ifndef USE_FVCORE
       CALL DYNAM()
 #else
-
       ! Using FV instead
         IF (MOD(Itime-ItimeI,NDAA).eq.0) CALL DIAGA0
 
@@ -145,7 +144,9 @@ C**** Scale WM mixing ratios to conserve liquid water
       DO L=1,LS1-1
       DO J=J_0,J_1
       DO I=I_0,I_1
-        WM(I,J,L)=WM(I,J,L)* (PTOLD(I,J)/P(I,J))
+!       WM(I,J,L)=WM(I,J,L)* (PTOLD(I,J)/P(I,J))
+        QCL(I,J,L)=QCL(I,J,L)* (PTOLD(I,J)/P(I,J))
+        QCI(I,J,L)=QCI(I,J,L)* (PTOLD(I,J)/P(I,J))
       END DO
       END DO
       END DO
@@ -675,7 +676,6 @@ c      call stop_model('set_noice_defaults prob that fwater==flake'//
 c     &     ' not initialized yet?',255)
       call seaice_to_atmgrid(atmice) ! set gtemp etc.
       CALL init_LAKES(inilake,istart_fixup)
-
 C****
 C**** INITIALIZE GROUND HYDROLOGY ARRAYS (INCL. VEGETATION)
 C**** Recompute Ground hydrology data if redoGH (new soils data)
@@ -684,6 +684,7 @@ C****
       iniSNOW = is_coldstart       ! extract snow data from first soil layer
       redoGH = .false.
       CALL init_LSM(DTsrc/NIsurf,redoGH,iniSNOW,inilake,ISTART)
+
 #ifdef IRRIGATION_ON
       call init_irrigate()
 #endif
@@ -864,7 +865,7 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
       call alloc_nudge(grid)
 #endif
 
-#ifdef SCM 
+#ifdef SCM
       call alloc_scm_com()
 #endif
 #ifndef CUBED_SPHERE
@@ -960,10 +961,10 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
       CALL daily_orbit(.true.)   ! end_of_day
       CALL daily_ch4ox(.true.)   ! end_of_day
       call daily_RAD(.true.)
-        
+
       call daily_LAKE
       call daily_EARTH(.true.)  ! end_of_day
-        
+
       call daily_LI
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       call daily_tracer(.true.)
@@ -1024,9 +1025,8 @@ C**** CORRECTED.
       USE CONSTANT, only : tf
       USE RESOLUTION, only : ls1
       USE RESOLUTION, only : im,jm,lm
-      USE ATM_COM, only : u,v,t,p,q,wm,pk
+      USE ATM_COM, only : u,v,t,p,q,qcl,qci,pk
 #ifdef BLK_2MOM
-      USE ATM_COM, only : wmice
 #endif
       USE MODEL_COM
       USE DOMAIN_DECOMP_ATM, only : grid, getDomainBounds, AM_I_ROOT
@@ -1064,11 +1064,13 @@ C**** Check all prog. arrays for Non-numbers
      &       SUBR,'q     ')
         CALL CHECK3B(P(I_0:I_1,J_0:J_1),I_0,I_1,J_0,J_1,NJPOL,1,
      &       SUBR,'p     ')
-        CALL CHECK3B(WM(I_0:I_1,J_0:J_1,:),I_0,I_1,J_0,J_1,NJPOL,LM,
-     &       SUBR,'wm    ')
+!       CALL CHECK3B(WM(I_0:I_1,J_0:J_1,:),I_0,I_1,J_0,J_1,NJPOL,LM,
+!    &       SUBR,'wm    ')
+        CALL CHECK3B(QCL(I_0:I_1,J_0:J_1,:),I_0,I_1,J_0,J_1,NJPOL,LM,
+     &       SUBR,'qcl   ')
+        CALL CHECK3B(QCI(I_0:I_1,J_0:J_1,:),I_0,I_1,J_0,J_1,NJPOL,LM,
+     &       SUBR,'qci   ')
 #ifdef BLK_2MOM
-        CALL CHECK3B(WMICE(I_0:I_1,J_0:J_1,:),I_0,I_1,J_0,J_1,NJPOL,LM,
-     &       SUBR,'wmice    ')
 #endif
 
         DO J=J_0,J_1
@@ -1085,15 +1087,11 @@ C**** Check all prog. arrays for Non-numbers
             print*,"After ",SUBR," Q < 0 ",i,j,Q(I,J,L)
             call stop_model('Q<0 in CHECKT',255)
           END IF
-          IF (WM(I,J,L).lt.0.) then
-            print*,"After ",SUBR," WM < 0 ",i,j,WM(I,J,L)
+          IF (QCL(I,J,L)+QCI(I,J,L).lt.0.) then
+         print*,"After ",SUBR," QCL+QCI < 0 ",i,j,QCL(I,J,L),QCI(I,J,L)
             call stop_model('WM<0 in CHECKT',255)
           END IF
 #ifdef BLK_2MOM
-          IF (WMICE(I,J,L).lt.0.) then
-            print*,"After ",SUBR," WMICE < 0 ",i,j,WMICE(I,J,L)
-            call stop_model('WMICE<0 in CHECKT',255)
-          END IF
 #endif
         END DO
         END DO

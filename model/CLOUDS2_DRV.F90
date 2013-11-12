@@ -10,7 +10,7 @@ subroutine CONDSE
                                SECONDS_PER_HOUR
   use RESOLUTION, only : ls1,psf,ptop
   use RESOLUTION, only : im,jm,lm
-  use ATM_COM, only : p,u,v,t,q,wm
+  use ATM_COM, only : p,u,v,t,q,qcl,qci
   use DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds,AM_I_ROOT
   use MODEL_COM, only : DTsrc,itime,modelEclock
   use DOMAIN_DECOMP_ATM, only : GLOBALSUM
@@ -44,10 +44,10 @@ subroutine CONDSE
        ,tls,qls,tmc,qmc,ddm1,airx,lmc &
        ,ddms,tdn1,qdn1,ddml
 #if (defined mjo_subdd) || (defined etc_subdd)
-  use CLOUDS_COM, only : CLWC3D,CIWC3D,TLH3D,LLH3D,SLH3D,DLH3D 
+  use CLOUDS_COM, only : CLWC3D,CIWC3D,TLH3D,LLH3D,SLH3D,DLH3D
 #endif
 #ifdef etc_subdd
-  use CLOUDS_COM, only : LWP2D,IWP2D 
+  use CLOUDS_COM, only : LWP2D,IWP2D
 #endif
 #ifdef mjo_subdd
   use CLOUDS_COM, only : TMCDRY,SMCDRY,DMCDRY,LSCDRY
@@ -109,7 +109,7 @@ subroutine CONDSE
   use TRACER_COM, only: trwm
 #else
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||    (defined TRACERS_QUARZHEM)
-  use TRACER_COM, only: Ntm_dust 
+  use TRACER_COM, only: Ntm_dust
 #endif
 #ifdef TRACERS_DUST
   use TRACER_COM, only: imDust
@@ -167,10 +167,13 @@ subroutine CONDSE
   use CLOUDS, only : BYDTsrc,mstcnv,lscond & ! glb var & subs
        ,airm,byam,etal,sm,smom,qm,qmom,isc,dxypij,lp50,hcndss &
        ,tl,ris,ri1,ri2,mcflx,sshr,dgdsm,dphase,dtotw,dqcond,dctei &
-       ,wml,sdl,u_0,v_0,um,vm,um1,vm1,qs,us,vs,dcl,airxl,prcpss &
+!      ,wml,sdl,u_0,v_0,um,vm,um1,vm1,qs,us,vs,dcl,airxl,prcpss &
+       ,qcil,qcll,sdl,u_0,v_0,um,vm,um1,vm1,qs,us,vs,dcl,airxl,prcpss &
        ,prcpmc,pearth,ts,taumcl,cldmcl,svwmxl,svlatl,svlhxl,dgdqm &
        ,cldslwij,clddepij,csizel,precnvl,vsubl,lmcmax,lmcmin,wmsum &
-       ,aq,dpdt,th,ql,wmx,ttoldl,rh,taussl,cldssl,cldsavl,rh1,roice &
+!      ,aq,dpdt,th,ql,wmx,ttoldl,rh,taussl,cldssl,cldsavl,rh1,roice &
+       ,aq,dpdt,th,ql,qcix,qclx,ttoldl,rh,taussl,cldssl,cldsavl,rh1 &
+       ,roice &
        ,kmax,ra,pl,ple,plk,rndssl,lhp,debug,fssl,pland,cldsv1 &
        ,smommc,smomls,qmommc,qmomls,ddmflx,wturb &
        ,tvl,w2l,gzl,savwl,savwl1,save1l,save2l &
@@ -209,7 +212,7 @@ subroutine CONDSE
   use FLUXES, only : prec,eprec,precss,focean,fland,flice, &
        atmocn,atmice,atmgla,atmlnd,atmsrf
 #ifdef TRACERS_WATER
-  use FLUXES, only : trprec 
+  use FLUXES, only : trprec
 #else
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||    (defined TRACERS_QUARZHEM)
   use FLUXES, only : trprec_dust
@@ -302,7 +305,7 @@ subroutine CONDSE
   !red*                       Reduced Arrays 1                 *********
   !        not clear yet whether they still speed things up
   real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,LM) :: &
-       GZIL,SD_CLDIL,WMIL
+       GZIL,SD_CLDIL,QCIIL,QCLIL
   real*8, dimension(NMOM,GRID%I_STRT_HALO:GRID%I_STOP_HALO,LM) :: &
        TMOMIL,QMOMIL
 #ifdef TRACERS_ON
@@ -435,7 +438,7 @@ subroutine CONDSE
 #ifdef TRACERS_AMP
   AQsulfRATE = 0.d0
 #endif
-#ifdef TRACERS_TOMAS  
+#ifdef TRACERS_TOMAS
       AQSO4oxid_mc(:,:,:) = 0.d0
       AQSO4oxid_ls(:,:,:) = 0.d0
 #endif
@@ -479,7 +482,8 @@ subroutine CONDSE
 #ifndef SCM
           SD_CLDIL(I,L) = MWs(I,J,L)/DTsrc ! averaged SD
 #endif
-          WMIL(I,L) = WM(I,J,L)
+          QCIIL(I,L) = QCI(I,J,L)
+          QCLIL(I,L) = QCL(I,J,L)
           TMOMIL(:,I,L) = T3MOM(:,I,J,L)
           QMOMIL(:,I,L) = Q3MOM(:,I,J,L)
         end do
@@ -628,7 +632,8 @@ subroutine CONDSE
           QMOM(:,L) =QMOMIL(:,I,L)*AIRM(L)
           QMOMMC(:,L) =QMOM(:,L)
           QMOMLS(:,L) =QMOM(:,L)
-          WML(L)=WMIL(I,L)
+          QCIL(L)=QCIIL(I,L)
+          QCLL(L)=QCLIL(I,L)
           QL(L) =Q(I,J,L)
           !**** others
           SDL(L)=SD_CLDIL(I,L)*BYAXYP(I,J)
@@ -1014,7 +1019,16 @@ subroutine CONDSE
 #ifdef SCM
         SCM_SVWMXL(:) = SVWMXL(:)
 #endif
-        WMX(:)=WML(:)+SVWMXL(:)
+!       WMX(:)=WML(:)+SVWMXL(:)
+        QCLX(:)=QCLL(:)
+        QCIX(:)=QCIL(:)
+        DO L=1,LMCMAX
+         IF(SVLATL(L).EQ.LHE) THEN
+          QCLX(L)=QCLX(L)+SVWMXL(L)
+         ELSEIF(SVLATL(L).EQ.LHS) THEN
+          QCIX(L)=QCIX(L)+SVWMXL(L)
+         ENDIF
+        END DO
         AQ(:)=(QL(:)-QTOLD(:,I,J))*BYDTsrc
 #ifdef SCM
         if (NRINIT.ne.0) then
@@ -1182,35 +1196,37 @@ subroutine CONDSE
         WM1=0  ; WMI=0
         do L=1,LP50
           if(SVLHXL(L).eq.LHE) then
-            aijl(i,j,l,ijl_cldwtr) = aijl(i,j,l,ijl_cldwtr) + WMX(L)*AIRM(L)
+!           aijl(i,j,l,ijl_cldwtr) = aijl(i,j,l,ijl_cldwtr) + WMX(L)*AIRM(L)
+            aijl(i,j,l,ijl_cldwtr) = aijl(i,j,l,ijl_cldwtr) + QCLX(L)*AIRM(L)
 #ifdef mjo_subdd
-            CLWC3D(L,I,J)=CLWC3D(L,I,J)+WMX(L)
+            CLWC3D(L,I,J)=CLWC3D(L,I,J)+QCLX(L)
 #endif
 #ifdef etc_subdd
-            CLWC3D(L,I,J)=WMX(L)
-            LWP2D(I,J)=LWP2D(I,J)+WMX(L)*AIRM(L)*100.*BYGRAV
+            CLWC3D(L,I,J)=QCLX(L)    ! WMX(L)
+            LWP2D(I,J)=LWP2D(I,J)+QCLX(L)*AIRM(L)*100.*BYGRAV
 #endif
           endif
           if(SVLHXL(L).eq.LHS) then
-            aijl(i,j,l,ijl_cldice) = aijl(i,j,l,ijl_cldice) + WMX(L)*AIRM(L)
+!           aijl(i,j,l,ijl_cldice) = aijl(i,j,l,ijl_cldice) + WMX(L)*AIRM(L)
+            aijl(i,j,l,ijl_cldice) = aijl(i,j,l,ijl_cldice) + QCIX(L)*AIRM(L)
 #ifdef mjo_subdd
-            CIWC3D(L,I,J)=CIWC3D(L,I,J)+WMX(L)
+            CIWC3D(L,I,J)=CIWC3D(L,I,J)+QCIX(L)  ! WMX(L)
 #endif
 #ifdef etc_subdd
-            CIWC3D(L,I,J)=WMX(L)
-            IWP2D(I,J)=IWP2D(I,J)+WMX(L)*AIRM(L)*100.*BYGRAV
+            CIWC3D(L,I,J)=QCIX(L)   ! WMX(L)
+            IWP2D(I,J)=IWP2D(I,J)+QCIX(L)*AIRM(L)*100.*BYGRAV
 #endif
           endif
-          WM1=WM1+WMX(L)*AIRM(L)
-          if (SVLHXL(L).eq.LHS) WMI=WMI+WMX(L)*AIRM(L)
+          WM1=WM1+(QCLX(L)+QCIX(L))*AIRM(L)
+          if (SVLHXL(L).eq.LHS) WMI=WMI+QCIX(L)*AIRM(L)
         end do
         AIJ(I,J,IJ_CLDW)=AIJ(I,J,IJ_CLDW)+WM1*100.*BYGRAV   ! all condensate
         AIJ(I,J,IJ_CLDI)=AIJ(I,J,IJ_CLDI)+WMI*100.*BYGRAV   ! ice only
 #ifdef TRACERS_AMP
 #ifndef NO_HDIURN
-        DIURN_LWC(I,J,:) = WMX(:) * AIRM(:)
-        DIURN_LWP(I,J)   = WMSUM  
-#endif    
+        DIURN_LWC(I,J,:) = (QCLX(:)+QCIX(:)) * AIRM(:)
+        DIURN_LWP(I,J)   = WMSUM
+#endif
 #endif
         !**** Calculate ISCCP cloud diagnostics if required
         if (isccp_diags.eq.1) then
@@ -1392,7 +1408,8 @@ subroutine CONDSE
           !**** update moment changes
           TMOMIL(:,I,L)=SMOM(:,L)*BYAM(L)
           QMOMIL(:,I,L)=QMOM(:,L)*BYAM(L)
-          WMIL(I,L)=WMX(L)
+          QCIIL(I,L)=QCIX(L)   ! WMX(L)
+          QCLIL(I,L)=QCLX(L)   ! WMX(L)
 
           !**** CALCULATE WIND TENDENCIES AND STORE IN UKM,VKM
           if(J.eq.1 .and. HAVE_SOUTH_POLE)  then
@@ -1695,7 +1712,8 @@ subroutine CONDSE
       !****
       do L=1,LM
         do I=I_0thread,I_1thread
-          WM(I,J,L) = WMIL(I,L)
+          QCI(I,J,L) = QCIIL(I,L)
+          QCL(I,J,L) = QCLIL(I,L)
           T3MOM(:,I,J,L) = TMOMIL(:,I,L)
           Q3MOM(:,I,J,L) = QMOMIL(:,I,L)
         end do
@@ -1750,7 +1768,7 @@ subroutine CONDSE
 #endif
 
 #ifdef TRACERS_TOMAS
-!C     To fix inconsistent aerosol size distribution and water eqm. 
+!C     To fix inconsistent aerosol size distribution and water eqm.
       CALL aeroupdate
 #endif
   !
@@ -1824,7 +1842,7 @@ subroutine init_CLD(istart)
   use CLOUDS, only: ntix, TM, TMOM, TRDNL &
        ,DTM, DTMR, TMDNL, DTMOM, DTMOMR, TMOMDNL
 #endif
-  
+
   use CLOUDS_COM, only : llow,lmid,lhi &
        ,isccp_reg2d,UKM,VKM,ttold,qtold
   use DIAG_COM, only : nisccp,isccp_late &
@@ -1942,7 +1960,7 @@ subroutine init_CLD(istart)
     allocate(TRCONDV(NTM,LM)); TRCONDV = 0
 #endif
 #endif
-  
+
   !
   ! allocate space for the varying number of staggered
   ! wind data to be vertically mixed by clouds on the A grid

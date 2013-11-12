@@ -45,7 +45,8 @@
 !@var U,V east-west, and north-south velocities (m/s)
 !@var T potential temperature (referenced to 1 mb) (K)
 !@var Q specific humidity (kg water vapor/kg air)
-!@var WM cloud liquid water amount (kg water/kg air)
+!@var qcl cloud liquid water amount (kg water/kg air)
+!@var qci cloud ice water amount (kg water/kg air)
 #ifdef BLK_2MOM
 !@var WMICE cloud ice amount (kg water/kg air)
 #endif
@@ -54,9 +55,9 @@
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: V
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: T
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: Q
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: WM
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: qcl
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: qci
 #ifdef BLK_2MOM
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: WMICE
 #endif
 
 !@var MASUM (kg/m^2) = [column mass per unit area] - MTOP
@@ -137,11 +138,10 @@ C**** module should own dynam variables used by other routines
      &     ,hassouthpole,hasnorthpole
       USE RESOLUTION, ONLY : IM,JM,LM,PSFMPT
       USE ATM_COM, ONLY : temperature_istart1
-      USE ATM_COM, ONLY : ZATMO,P,U,V,T,Q,WM
+      USE ATM_COM, ONLY : ZATMO,P,U,V,T,Q,qcl,qci
 #ifdef BLK_2MOM
-     *  ,WMICE
 #endif
-      USE ATM_COM, ONLY : 
+      USE ATM_COM, ONLY :
      &     PLIJ,PDSIG,MA,byMA,PMID,PK,
      &     PEDN,PEK,SD_CLOUDS,GZ,PHI,
      &     MUs,MVs,MWs,MB,MMA,DKE,KEA,
@@ -183,9 +183,9 @@ C****
       ALLOCATE(V(I_0H:I_1H,J_0H:J_1H,LM), STAT = IER)
       ALLOCATE(T(I_0H:I_1H,J_0H:J_1H,LM), STAT = IER)
       ALLOCATE(Q(I_0H:I_1H,J_0H:J_1H,LM), STAT = IER)
-      ALLOCATE(WM(I_0H:I_1H,J_0H:J_1H,LM), STAT = IER)
+      ALLOCATE(qcl(I_0H:I_1H,J_0H:J_1H,LM), STAT = IER)
+      ALLOCATE(qci(I_0H:I_1H,J_0H:J_1H,LM), STAT = IER)
 #ifdef BLK_2MOM
-      ALLOCATE(WMICE(I_0H:I_1H,J_0H:J_1H,LM), STAT = IER)
 #endif
 
       U(:,:,:)=0.
@@ -193,9 +193,9 @@ C****
       T(:,:,:)=temperature_istart1  ! will be changed to pot.temp later
       Q(:,:,:)=3.D-6
       P(:,:)=PSFMPT
-      WM    (:,:,:)=0.
+      qcl(:,:,:)=0.
+      qci(:,:,:)=0.
 #ifdef BLK_2MOM
-      WMICE (:,:,:)=0.
 #endif
 
       fid = par_open(grid,'TOPO','read')
@@ -225,50 +225,50 @@ C**** Check polar uniformity
       end if
 
       ! K-I-J arrays
-      ALLOCATE ( PLIJ(LM,I_0H:I_1H,J_0H:J_1H), 
+      ALLOCATE ( PLIJ(LM,I_0H:I_1H,J_0H:J_1H),
      $          PDSIG(LM,I_0H:I_1H,J_0H:J_1H),
-     $             MA(LM,I_0H:I_1H,J_0H:J_1H),  
+     $             MA(LM,I_0H:I_1H,J_0H:J_1H),
      $           byMA(LM,I_0H:I_1H,J_0H:J_1H),
-     $           PMID(LM,I_0H:I_1H,J_0H:J_1H),    
+     $           PMID(LM,I_0H:I_1H,J_0H:J_1H),
      $             PK(LM,I_0H:I_1H,J_0H:J_1H),
-     $         PEDN(LM+1,I_0H:I_1H,J_0H:J_1H), 
+     $         PEDN(LM+1,I_0H:I_1H,J_0H:J_1H),
      $          PEK(LM+1,I_0H:I_1H,J_0H:J_1H),
      $   STAT = IER)
 
       ! I-J-K arrays
-      ALLOCATE( SD_CLOUDS(I_0H:I_1H,J_0H:J_1H,LM),  
-     $                 GZ(I_0H:I_1H,J_0H:J_1H,LM), 
-     $                PHI(I_0H:I_1H,J_0H:J_1H,LM), 
-     $                MUs(I_0H:I_1H,J_0H:J_1H,LM), 
-     $                MVs(I_0H:I_1H,J_0H:J_1H,LM), 
-     $                MWs(I_0H:I_1H,J_0H:J_1H,LM),  
-     $                 MB(I_0H:I_1H,J_0H:J_1H,LM), 
-     $                MMA(I_0H:I_1H,J_0H:J_1H,LM), 
-     $                DKE(I_0H:I_1H,J_0H:J_1H,LM), 
-     $                KEA(I_0H:I_1H,J_0H:J_1H,LM), 
-     $                UALIJ(LM,I_0H:I_1H,J_0H:J_1H), 
-     $                VALIJ(LM,I_0H:I_1H,J_0H:J_1H), 
-     $              WSAVE(I_0H:I_1H,J_0H:J_1H,LM-1), 
+      ALLOCATE( SD_CLOUDS(I_0H:I_1H,J_0H:J_1H,LM),
+     $                 GZ(I_0H:I_1H,J_0H:J_1H,LM),
+     $                PHI(I_0H:I_1H,J_0H:J_1H,LM),
+     $                MUs(I_0H:I_1H,J_0H:J_1H,LM),
+     $                MVs(I_0H:I_1H,J_0H:J_1H,LM),
+     $                MWs(I_0H:I_1H,J_0H:J_1H,LM),
+     $                 MB(I_0H:I_1H,J_0H:J_1H,LM),
+     $                MMA(I_0H:I_1H,J_0H:J_1H,LM),
+     $                DKE(I_0H:I_1H,J_0H:J_1H,LM),
+     $                KEA(I_0H:I_1H,J_0H:J_1H,LM),
+     $                UALIJ(LM,I_0H:I_1H,J_0H:J_1H),
+     $                VALIJ(LM,I_0H:I_1H,J_0H:J_1H),
+     $              WSAVE(I_0H:I_1H,J_0H:J_1H,LM-1),
      $   STAT = IER)
 
       ! I-J arrays
-      ALLOCATE(  SQRTP(I_0H:I_1H,J_0H:J_1H), 
+      ALLOCATE(  SQRTP(I_0H:I_1H,J_0H:J_1H),
      $           MASUM(I_0H:I_1H,J_0H:J_1H),
      $          PTROPO(I_0H:I_1H,J_0H:J_1H),
-     $          LTROPO(I_0H:I_1H,J_0H:J_1H),  
+     $          LTROPO(I_0H:I_1H,J_0H:J_1H),
 #ifdef etc_subdd
      $          TTROPO(I_0H:I_1H,J_0H:J_1H),   ! extra subdaily
 #endif
      $           PTOLD(I_0H:I_1H,J_0H:J_1H),
-     $     DPDX_BY_RHO(I_0H:I_1H,J_0H:J_1H), 
+     $     DPDX_BY_RHO(I_0H:I_1H,J_0H:J_1H),
      $     DPDY_BY_RHO(I_0H:I_1H,J_0H:J_1H),
-     $   DPDX_BY_RHO_0(I_0H:I_1H,J_0H:J_1H), 
+     $   DPDX_BY_RHO_0(I_0H:I_1H,J_0H:J_1H),
      $   DPDY_BY_RHO_0(I_0H:I_1H,J_0H:J_1H),
      $              PS(I_0H:I_1H,J_0H:J_1H),
      $   STAT = IER)
 
 ! correct or wrong, but being static all arrays were initialized
-! to zero by default. They have to be initialized to something now 
+! to zero by default. They have to be initialized to something now
 ! to avoid floating point exceptions...
       DPDX_BY_RHO(I_0H:I_1H,J_0H:J_1H) = 0.d0
       DPDY_BY_RHO(I_0H:I_1H,J_0H:J_1H) = 0.d0
@@ -299,15 +299,15 @@ C**** Check polar uniformity
 !@var V_glob Work array for parallel I/O
 !@var T_glob Work array for parallel I/O
 !@var Q_glob Work array for parallel I/O
-!@var WM_glob Work array for parallel I/O
+!@var qcl_glob Work array for parallel I/O
+!@var qci_glob Work array for parallel I/O
 #ifdef BLK_2MOM
-!@var WMICE_glob Work array for parallel I/O
 #endif
 !@var P_glob Work array for parallel I/O
       REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: !(IM,JM,LM)
-     &     U_glob,V_glob,T_glob,Q_glob,WM_glob
+     &     U_glob,V_glob,T_glob,Q_glob,qcl_glob
+     &     ,qci_glob
 #ifdef BLK_2MOM
-     *,WMICE_glob
 #endif
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: P_glob!(IM,JM)
       integer :: img, jmg, lmg
@@ -329,9 +329,9 @@ C**** Check polar uniformity
       allocate(T_glob(img,jmg,lmg))
       allocate(P_glob(IM,JM))
       allocate(Q_glob(img,jmg,lmg))
-      allocate(WM_glob(img,jmg,lmg))
+      allocate(qcl_glob(img,jmg,lmg))
+      allocate(qci_glob(img,jmg,lmg))
 #ifdef BLK_2MOM
-      allocate(WMICE_glob(img,jmg,lmg))
 #endif
 
       SELECT CASE (IACTION)
@@ -340,23 +340,23 @@ C**** Check polar uniformity
         CALL PACK_DATA(grid, V, V_GLOB)
         CALL PACK_DATA(grid, T, T_GLOB)
         CALL PACK_DATA(grid, Q, Q_GLOB)
-        CALL PACK_DATA(grid, WM, WM_GLOB)
+        CALL PACK_DATA(grid, qcl, qcl_GLOB)
+        CALL PACK_DATA(grid, qci, qci_GLOB)
 #ifdef BLK_2MOM
-        CALL PACK_DATA(grid, WMICE, WMICE_GLOB)
 #endif
         CALL PACK_DATA(grid, P, P_GLOB)
         IF (AM_I_ROOT())
      &    WRITE (kunit,err=10) MODULE_HEADER,U_glob,V_glob,T_glob,
-     &                         P_glob,Q_glob,WM_glob
+     &                         P_glob,Q_glob,qcl_glob
+     &                        ,qci_glob
 #ifdef BLK_2MOM
-     &   ,WMICE_glob
 #endif
       CASE (IOREAD:)          ! input from restart file
         if ( AM_I_ROOT() ) then
           READ (kunit,err=10) HEADER,U_glob,V_glob,T_glob,
-     &                           P_glob,Q_glob,WM_glob
+     &                           P_glob,Q_glob,qcl_glob
+     &                          ,qci_glob
 #ifdef BLK_2MOM
-     &   ,WMICE_glob
 #endif
           IF (HEADER(1:LHEAD).ne.MODULE_HEADER(1:LHEAD)) THEN
             PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
@@ -367,9 +367,9 @@ C**** Check polar uniformity
         CALL UNPACK_DATA(grid, V_GLOB, V)
         CALL UNPACK_DATA(grid, T_GLOB, T)
         CALL UNPACK_DATA(grid, Q_GLOB, Q)
-        CALL UNPACK_DATA(grid, WM_GLOB, WM)
+        CALL UNPACK_DATA(grid, qcl_GLOB, qcl)
+        CALL UNPACK_DATA(grid, qci_GLOB, qci)
 #ifdef BLK_2MOM
-        CALL UNPACK_DATA(grid, WMICE_GLOB, WMICE)
 #endif
         CALL UNPACK_DATA(grid, P_GLOB, P)
       END SELECT
@@ -385,9 +385,9 @@ C**** Check polar uniformity
         deallocate(T_glob)
         deallocate(P_glob)
         deallocate(Q_glob)
-        deallocate(WM_glob)
+        deallocate(qcl_glob)
+        deallocate(qci_glob)
 #ifdef BLK_2MOM
-        deallocate(WMICE_glob)
 #endif
       end subroutine freemem
       END SUBROUTINE io_atm
@@ -411,7 +411,7 @@ ccc was not sure where to dump these routines ... IA
       call getDomainBounds( grid, j_strt_halo=j_0h, j_stop_halo=j_1h,
      &     i_strt_halo=i_0h, i_stop_halo=i_1h )
       allocate( buf(i_0h:i_1h,j_0h:j_1h), stat=ier)
-      call defvar(grid, fid, buf, trim(name_dims))     
+      call defvar(grid, fid, buf, trim(name_dims))
       deallocate( buf )
       end subroutine declare_conserv_diags
 
@@ -437,7 +437,7 @@ ccc was not sure where to dump these routines ... IA
       end module conserv_diags
 
       subroutine def_rsf_atm(fid)
-!@sum  def_rsf_model defines U,V,T,P,Q,WM array structure in restart files
+!@sum  def_rsf_model defines U,V,T,P,Q,qcl array structure in restart files
 !@auth M. Kelley
 !@ver  beta
       use atm_com
@@ -452,10 +452,10 @@ ccc was not sure where to dump these routines ... IA
       call defvar(grid,fid,v,'v'//ijlstr)
       call defvar(grid,fid,t,'t'//ijlstr)
       call defvar(grid,fid,q,'q'//ijlstr)
-      call defvar(grid,fid,wm,'wm'//ijlstr)
+      call defvar(grid,fid,qcl,'qcl'//ijlstr)
+      call defvar(grid,fid,qci,'qci'//ijlstr)
       call defvar(grid,fid,p,'p(dist_im,dist_jm)')
 #ifdef BLK_2MOM
-      call defvar(grid,fid,wmice,'wmice'//ijlstr)
 #endif
       call declare_conserv_diags( grid, fid, 'watmo(dist_im,dist_jm)' )
       call declare_conserv_diags( grid, fid, 'ekatmo(dist_im,dist_jm)' )
@@ -465,7 +465,7 @@ ccc was not sure where to dump these routines ... IA
       end subroutine def_rsf_atm
 
       subroutine new_io_atm(fid,iaction)
-!@sum  new_io_model read/write U,V,T,P,Q,WM arrays from/to restart files
+!@sum  new_io_model read/write U,V,T,P,Q,qcl arrays from/to restart files
 !@auth M. Kelley
 !@ver  beta new_ prefix avoids name clash with the default version
       use model_com, only : iowrite,ioread
@@ -484,9 +484,9 @@ ccc was not sure where to dump these routines ... IA
         call write_dist_data(grid, fid, 't', t)
         call write_dist_data(grid, fid, 'p', p)
         call write_dist_data(grid, fid, 'q', q)
-        call write_dist_data(grid, fid, 'wm', wm)
+        call write_dist_data(grid, fid, 'qcl', qcl)
+        call write_dist_data(grid, fid, 'qci', qci)
 #ifdef BLK_2MOM
-        call write_dist_data(grid, fid, 'wmice', wmice)
 #endif
         call dump_conserv_diags( grid, fid, 'watmo', conserv_WM )
         call dump_conserv_diags( grid, fid, 'ekatmo', conserv_KE )
@@ -498,9 +498,9 @@ ccc was not sure where to dump these routines ... IA
         call read_dist_data(grid, fid, 't', t)
         call read_dist_data(grid, fid, 'p', p)
         call read_dist_data(grid, fid, 'q', q)
-        call read_dist_data(grid, fid, 'wm', wm)
+        call read_dist_data(grid, fid, 'qcl', qcl)
+        call read_dist_data(grid, fid, 'qci', qci)
 #ifdef BLK_2MOM
-        call read_dist_data(grid, fid, 'wmice', wmice)
 #endif
       end select
       return

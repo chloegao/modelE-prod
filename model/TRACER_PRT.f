@@ -15,7 +15,7 @@
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       USE RESOLUTION, only : im,jm,lm
       USE MODEL_COM, only: itime
-      USE ATM_COM, only: wm,t
+      USE ATM_COM, only: qcl,t
       USE ATM_COM, only: pmid,pk
       USE DIAG_COM, only: jl_dpasrc,jl_dwasrc
       USE GEOM, only: imaxj,axyp,byaxyp
@@ -60,7 +60,8 @@ C**** save some basic model diags for weighting
         do j=J_0,J_1
           do i=I_0,imaxj(j)
             call inc_ajl2(i,j,l,jl_dpasrc,axyp(i,j)*MA(l,i,j))
-            call inc_ajl2(i,j,l,jl_dwasrc,axyp(i,j)*MA(l,i,j)*wm(i,j,l))
+            call inc_ajl2(i,j,l,jl_dwasrc,axyp(i,j)*MA(l,i,j)*
+     &        qcl(i,j,l))
           end do
         end do
       end do

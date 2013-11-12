@@ -67,22 +67,23 @@ cc    ALLOCATE(CM(LM),F_L(LM),FMOM_L(NMOM,LM))
       RETURN
       END SUBROUTINE init_QUS
 
-      SUBROUTINE AADVT (MA,RM,RMOM,SD,PU,PV,DT,QLIMIT,FQU,FQV)
+      Subroutine AADVT (DT, MM,RM,RMOM, QLIMIT, FQU,FQV)
 !@sum  AADVT advection driver
 !@auth G. Russell, modified by Maxwell Kelley
 c****
 c**** AADVT advects tracers using the Quadradic Upstream Scheme.
 c****
 c**** input:
-c****  pu,pv,sd (kg/s) = east-west,north-south,vertical mass fluxes
+c****  MU,MV,MW (kg/s) = east-west,north-south,vertical mass fluxes
 c****      qlimit = whether moment limitations should be used
 C****         DT (s) = time step
 c****
 c**** input/output:
 c****     rm = tracer concentration
 c****   rmom = moments of tracer concentration
-c****     ma (kg) = fluid mass
+c****     MM (kg) = fluid mass
 c****
+      Use DYNAMICS, Only: MU,MV,MW
       USE DOMAIN_DECOMP_ATM, only: grid, getDomainBounds
       USE DOMAIN_DECOMP_1D, only: HALO_UPDATE, NORTH,SOUTH
       USE QUSDEF
@@ -90,17 +91,11 @@ c****
       IMPLICIT NONE
 
       REAL*8, dimension(im,grid%J_STRT_HALO:grid%J_STOP_HALO,lm) :: 
-     &                  rm,ma
+     &                  MM,RM
       REAL*8, dimension(NMOM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) 
      &               :: rmom
-
       REAL*8, INTENT(IN) :: DT
-      REAL*8, dimension(im,grid%J_STRT_HALO:grid%J_STOP_HALO,lm), 
-     &    intent(in) :: pu,pv
-      REAL*8, dimension(im,grid%J_STRT_HALO:grid%J_STOP_HALO,lm-1),
-     &    intent(in) :: sd
       LOGICAL, INTENT(IN) :: QLIMIT
-
       REAL*8, dimension(im,grid%J_STRT_HALO:grid%J_STOP_HALO), 
      & intent(inout) :: fqu,fqv
 
@@ -147,52 +142,51 @@ C****
       DO L=1,LM
       DO J=J_0,J_1
       DO I=1,IM
-         RM(I,J,L)=RM(I,J,L)*MA(I,J,L)
-         RMOM(:,I,J,L)=RMOM(:,I,J,L)*MA(I,J,L)
+         RM    (I,J,L) = RM    (I,J,L)*MM(I,J,L)
+         RMOM(:,I,J,L) = RMOM(:,I,J,L)*MM(I,J,L)
       enddo
       enddo
       enddo
 C****
 C**** Advect the tracer using the quadratic upstream scheme
 C****
-CC    mflx(:,:,:)=pu(:,:,:)*(.5*dt)
+CC    mflx(:,:,:)=MU(:,:,:)*(.5*dt)
        DO L=1,LM
-          mflx(:,:,l)=pu(:,:,l)*(.5*dt)
+          MFLX(:,:,L) = MU(:,:,L)*(.5*DT)
        ENDDO
-      CALL AADVTX (RM,RMOM,MA,MFLX,QLIMIT,FQU)
+      Call AADVTX (RM,RMOM,MM,MFLX,QLIMIT,FQU)
 
-CC    mflx(:,1:jm-1,:)=pv(:,2:jm,:)*dt
+CC    mflx(:,1:jm-1,:)=MV(:,2:jm,:)*dt
 CC    mflx(:,jm,:)=0.
-C**** Halo boxes for pv updated before call to AADVT.
-!      call HALO_UPDATE(grid, pv, from=NORTH)
+!     Call HALO_UPDATE (GRID, MV, From=NORTH)   Haloed in AFLUX
        DO L=1,LM
-          mflx(:,J_0:J_1S,l)=pv(:,J_0+1:J_1S+1,l)*dt
+          MFLX(:,J_0:J_1S,L) = MV(:,J_0+1:J_1S+1,L)*DT
        ENDDO
        if (HAVE_NORTH_POLE) mflx(:,jm,:)=0.
 
-      CALL AADVTY (RM,RMOM,MA,MFLX,QLIMIT,FQV)
-CC    mflx(:,:,1:lm-1)=sd(:,:,1:lm-1)*(-dt)
+      Call AADVTY (RM,RMOM,MM,MFLX,QLIMIT,FQV)
+CC    mflx(:,:,1:lm-1)=MW(:,:,1:lm-1)*(-dt)
 CC    mflx(:,:,lm)=0.
       DO L=1,LM
          IF(L.NE.LM)  THEN
-            MFLX(:,:,L)=SD(:,:,L)*(-DT)
+            MFLX(:,:,L) = MW(:,:,L)*(-DT)
          ELSE
             MFLX(:,:,L)=0.
          END IF
       ENDDO
-      CALL AADVTZ (RM,RMOM,MA,MFLX,QLIMIT)
-CC    mflx(:,:,:)=pu(:,:,:)*(.5*dt)
+      Call AADVTZ (RM,RMOM,MM,MFLX,QLIMIT)
+CC    mflx(:,:,:)=MU(:,:,:)*(.5*dt)
        DO L=1,LM
-          mflx(:,:,l)=pu(:,:,l)*(.5*dt)
+          MFLX(:,:,L) = MU(:,:,L)*(.5*DT)
        ENDDO
-      CALL AADVTX (RM,RMOM,MA,MFLX,QLIMIT,FQU)
+      Call AADVTX (RM,RMOM,MM,MFLX,QLIMIT,FQU)
 C****
 C**** convert from mass to concentration units
 C****
       DO L=1,LM
       DO J=J_0,J_1
       DO I=1,IM
-         BYMA = 1.D0/MA(I,J,L)
+         byMA = 1 / MM(I,J,L)
          RM(I,J,L)=RM(I,J,L)*BYMA
          RMOM(:,I,J,L)=RMOM(:,I,J,L)*BYMA
       enddo

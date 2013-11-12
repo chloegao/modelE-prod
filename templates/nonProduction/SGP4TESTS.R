@@ -59,8 +59,8 @@ shared MPI_Support solvers giss_LSM dd2d
 Data input files:
 
 ! Forcing for SGP case
-SCMSRF=scm_sgpcont_0001_surface.dat
-SCMLAY=scm_sgpcont_0001_layer.dat
+SCMSRF=SGP.surface.0501.dat
+SCMLAY=SGP.layer.0501.dat
 
 ! Topography, area fractions of surface types
 TOPO=SGP_extractions/Z2HX2fromZ1QX1N.nc
@@ -168,12 +168,14 @@ NIsurf=1        ! Number of surface physics timesteps per atm. physics timestep.
 NRAD=1          ! Full radiation calculation every NRAD physics timesteps.
 
 ! cloud tuning parameters
-U00a=.74
-U00b=2.00
+U00a=.60
+U00b=1.00
+wmui_multiplier=2.0
+entrainment_cont1=.4
 
 ! parameters that control temporally varying inputs:
 ! if set to 0, the current (day/) year is used: transient run
-master_yr=1850
+master_yr=1979
 !crops_yr=1850  ! if -1, crops in VEG-file is used
 !s0_yr=1850
 !s0_day=182
@@ -194,7 +196,7 @@ madaer=3        ! indicates use of TAero_XXX aerosol files by radiation.
 
 ! parameters affecting diagn. output
 aer_rad_forc=0   ! if set =1, radiation is called numerous times - slow !!
-cloud_rad_forc=0 ! calls radiation twice; use =0 to save cpu time
+cloud_rad_forc=1 ! calls radiation twice; use =0 to save cpu time
 isccp_diags=1    ! use =0 to save cpu time, but you lose some key diagnostics
 nda5d=13         ! use =1 to get more accurate energy cons. diag (increases CPU time)
 nda5s=13         ! use =1 to get more accurate energy cons. diag (increases CPU time)

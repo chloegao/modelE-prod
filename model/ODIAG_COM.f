@@ -32,8 +32,6 @@
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)  :: OIJ_loc   !ny? ,OIJ
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)  :: OIJmm
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: OIJL_loc !ny? ,OIJL
-      REAL*8, DIMENSION(:,:,:), allocatable      :: OIJ
-      REAL*8, DIMENSION(:,:,:,:), allocatable :: OIJL
       REAL*8, DIMENSION(LMO,KOL)   :: OL
       REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: OLNST!(LMO,NMST,KOLNST)
 
@@ -258,7 +256,6 @@ C****
       INTEGER, PARAMETER :: KTOIJL=10
 !@var TOIJL  3-dimensional ocean tracer diagnostics
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:,:) :: TOIJL_loc !ny? ,TOIJL
-      REAL*8, DIMENSION(:,:,:,:,:), ALLOCATABLE    :: TOIJL
 !@var toijl_xxx indices for TOIJL diags
       INTEGER, PARAMETER :: toijl_conc=1,toijl_tflx=2,toijl_gmfl=6
      *     ,toijl_wtfl=10
@@ -2249,20 +2246,16 @@ c
 !@sum  reset_odiag zeros out ocean diagnostics if needed
 !@auth G. Schmidt
       USE DOMAIN_DECOMP_1D, only: am_i_root
-      USE ODIAG, only : oij,oij_loc,oijmm,oijl,oijl_loc,ol,olnst
+      USE ODIAG, only : oij_loc,oijmm,oijl_loc,ol,olnst
 #ifdef TRACERS_OCEAN
-     *     ,toijl,toijl_loc,tlnst
+     *     ,toijl_loc,tlnst
 #endif
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: isum  ! needed for plug-play compatibility
 
-      if (am_i_root()) then
-         OIJ=0. ; OIJL=0. 
-      end if
       OIJ_loc=0. ; OIJL_loc=0. ; OL=0. ; OLNST=0.
       OIJmm = -1d30
 #ifdef TRACERS_OCEAN
-      if (am_i_root()) TOIJL=0. 
       TOIJL_loc=0. ; TLNST = 0.
 #ifndef TRACERS_ON
 #ifndef STANDALONE_OCEAN
@@ -2309,17 +2302,6 @@ c
 
       if(am_i_root()) then
         ALLOCATE( KBASIN_glob (IM,JM), STAT=IER )
-        ALLOCATE( OIJ (IM,JM,KOIJ), STAT=IER )
-        ALLOCATE(OIJL (IM,JM,LMO,KOIJL), STAT=IER )
-#ifdef TRACERS_OCEAN
-        ALLOCATE(TOIJL (IM,JM,LMO,KTOIJL,NTM), STAT=IER )
-#endif
-      else
-        ALLOCATE( OIJ (1,1,1), STAT=IER )
-        ALLOCATE(OIJL (1,1,1,1), STAT=IER )
-#ifdef TRACERS_OCEAN
-        ALLOCATE(TOIJL (1,1,1,1,1), STAT=IER )
-#endif
       endif
       ALLOCATE(OLNST(LMO,NMST,KOLNST))
 
@@ -2367,10 +2349,7 @@ c
       USE OCEANR_DIM, only : grid=>ogrid
       IMPLICIT NONE
 
-      call pack_data (grid, OIJ_loc  , OIJ)
-      call pack_data (grid, OIJL_loc , OIJL)
 #ifdef TRACERS_OCEAN
-      call pack_data (grid, TOIJL_loc, TOIJL)
 #ifndef TRACERS_ON
 #ifndef STANDALONE_OCEAN
       call gather_zonal_tcons
@@ -2388,12 +2367,9 @@ c
       USE OCEANR_DIM, only : grid=>ogrid
       IMPLICIT NONE
 
-      call unpack_data (grid, OIJ  , OIJ_loc)
-      call unpack_data (grid, OIJL , OIJL_loc)
       CALL broadcast(grid, OL)
       CALL broadcast(grid, OLNST)
 #ifdef TRACERS_OCEAN
-      call unpack_data (grid, TOIJL, TOIJL_loc)
       CALL broadcast(grid, TLNST)
 #ifndef TRACERS_ON
 #ifndef STANDALONE_OCEAN
