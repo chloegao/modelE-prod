@@ -256,7 +256,7 @@ CCC      real*8 :: bgrid
 !@var emax limit on turbulent kinetic energy
 !@var ustar_min limit on surface friction speed 
       real*8, parameter :: smax=0.25d0,smin=0.005d0,cmax=smax*smax,
-     *     cmin=smin*smin,emax=1.d5,ustar_min=1d-1
+     *     cmin=smin*smin,emax=1.d5,ustar_min=1d-2
      *    ,lmonin_min=1d-4,lmonin_max=1d4
 
 !@param xdelt When used in place of deltx in expressions involving
