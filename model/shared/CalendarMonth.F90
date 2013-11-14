@@ -3,6 +3,7 @@ module CalendarMonth_mod
   private
 
   public :: CalendarMonth
+  public :: newCalendarMonth
   integer, parameter, public :: LEN_MONTH_ABBREVIATION = 4
   integer, parameter, public :: MAX_LEN_MONTH_NAME = 24
 
@@ -20,13 +21,10 @@ module CalendarMonth_mod
 
   integer, parameter :: DAYS_PER_WEEK = 7
 
-  interface CalendarMonth
-     module procedure newCalendarMonth
-  end interface CalendarMonth
-
 contains
 
   function newCalendarMonth(name, daysInMonth, firstDayInMonth, midDayInMonth) result(month)
+    use StringUtilities_mod, only: toUpperCase
     type (CalendarMonth) :: month
     character(len=*), intent(in) :: name
     integer, intent(in) :: daysInMonth
@@ -34,7 +32,7 @@ contains
     integer, intent(in) :: midDayInMonth
 
     month%fullName = trim(name)
-    month%abbreviation = name(1:3) // ' '
+    month%abbreviation = toUpperCase(name(1:3)) // ' '
 
     month%daysInMonth = daysInMonth
     month%firstDayInMonth = firstDayInMonth

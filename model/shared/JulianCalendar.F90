@@ -27,6 +27,7 @@ module JulianCalendar_mod
 
   type (CalendarMonth), parameter :: JULIAN_MONTHS(0:MONTHS_PER_YEAR+1) = &
        [ &
+!                     Name        Abbr    #d  1st  Lst  Mid
        CalendarMonth('December',  'DEC ', 31, -30,   0, -15), &
        CalendarMonth('January',   'JAN ', 31, 001, 031, 016), &
        CalendarMonth('February',  'FEB ', 28, 032, 059, 045), &

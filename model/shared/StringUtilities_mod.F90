@@ -5,6 +5,7 @@ module StringUtilities_mod
   private
 
   public :: toLowerCase
+  public :: toUpperCase
   public :: stringToInteger
   public :: stringToRealDP
   public :: stringToLogical
@@ -16,6 +17,11 @@ module StringUtilities_mod
     module procedure toLowerCase_scalar
     module procedure toLowerCase_array
   end interface toLowerCase
+
+  interface toUpperCase
+    module procedure toUpperCase_scalar
+    module procedure toUpperCase_array
+ end interface toUpperCase
 
   interface toString
     module procedure toString_integer
@@ -53,6 +59,32 @@ contains
 
   end function toLowerCase_scalar
 
+  pure function toUpperCase_scalar(string) result(newString)
+!@auth T. Clune
+!@sum Produces a copy of the string argument, but with any 
+!@+ lower case letters replaced by their upper case equivalent.
+!@+ Characters which are not alphabetic letters are copied without
+!@+  modification.
+    character(len=*), intent(in) :: string
+    character(len=len(string)) :: newString
+
+    integer n, i
+    integer A, Z, shift, c
+
+    a = iachar( 'a' )
+    z = iachar( 'z' )
+    shift = iachar( 'a' ) - iachar( 'A' )
+
+    newString = trim(string)
+    n = len(trim(newString))
+    do i=1,n
+      c = iachar( newString(i:i) )
+      if ( c>=a .and. c<=z ) newString(i:i) = achar( c - shift )
+    enddo
+
+ end function toUpperCase_scalar
+
+
   pure function toLowerCase_array(string) result(newString)
     character(len=*), intent(in) :: string(:)
     character(len=len(string(1))) :: newString(size(string))
@@ -62,6 +94,16 @@ contains
       newString(i) = trim(toLowerCase(string(i)))
     end do
   end function toLowerCase_array
+
+  pure function toUpperCase_array(string) result(newString)
+    character(len=*), intent(in) :: string(:)
+    character(len=len(string(1))) :: newString(size(string))
+
+    integer :: i
+    do i = 1, size(string)
+      newString(i) = trim(toUpperCase(string(i)))
+    end do
+  end function toUpperCase_array
 
   ! The following procedures are elemental and thus cannot throw exceptions
   ! Input values must be checked before calling.
