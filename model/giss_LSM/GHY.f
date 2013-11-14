@@ -300,8 +300,8 @@ ccc   external functions
 ! model will stop.  Default values can be overridden with rundeck params.
 !@var minGroundTemperature - minimum allowed temperature for ground
 !@var maxGroundTemperature - maximum allowed temperature for ground
-      real*8, public :: minGroundTemperature = 130.d0 ! Celsius
-      real*8, public :: maxGroundTemperature = -150.d0 ! Celsius
+      real*8, public :: maxGroundTemperature = 130.d0 ! Celsius
+      real*8, public :: minGroundTemperature = -150.d0 ! Celsius
 
 
       contains
