@@ -194,7 +194,7 @@ C
 C--- Added by J.W. starting ---C
       real*8 GZPRT(LM)
 C--- Added by J.W. ending ---C
-      real*8 TPRT(LM),QPRT(LM),TSURF,TSKIN,SCMQCL(LM),SCMQCI(LM)    
+      real*8 TPRT(LM),QPRT(LM),TSURF,TSKIN,SCMQCI(LM),SCMQCL(LM)
       real*8 TDIFF,QDIFF
       real*8 PCOL, SVLHXCOL(LM),SVLATCOL(LM)    
       real*8 CUMFLXCOL(LM),DWNFLXCOL(LM)
@@ -230,6 +230,7 @@ C--- Added by J.W. starting ---C
 C--- Added by J.W. ending ---C
          TPRT(L) = T(1,1,L)*PK(L,1,1) 
          QPRT(L) = Q(1,1,L)
+!        WMCOL(L) = WM(1,1,L)   replaced with QCI,QCL
          SCMQCL(L) = QCL(1,1,L)
          SCMQCI(L) = QCI(1,1,L)
          SVLHXCOL(L) = SVLHX(L,1,1)
@@ -388,21 +389,11 @@ c
          write(iu_scm_prt,140) L,SG_P(L),TPRT(L),
      +         QPRT(L)*1000.0,SCMQCL(L)*1000.0,SCMQCI(L)*1000.,
      +         SCM_SVWMXL(L)*1000.0,TAUSSC(L),TAUMCC(L),
-     +                 CLCVSS(L)*100.,CLCVMC(L)*100.,SG_ARSCL(L)
+     +         CLCVSS(L)*100.,CLCVMC(L)*100.,SG_ARSCL(L)
  140     format(1x,i2,f8.2,' T ',f7.2,' Q',f7.3,' qcl qci det',
      +          3(f7.3),' tauss mc',2(f7.2),' cfss mc',
      +          2(f7.2),' cld',f5.1)
       enddo 
-
-c     do L=1,LM
-c        write(iu_scm_prt,140) L,SG_P(L),TPRT(L),ARMT(L),
-c    +         QPRT(L)*1000.0,ARMQ(L)*1000.0,SCMQCL(L)*1000.0,
-c    +         SCMQCI(L)*1000.0,TAUSSC(L),TAUMCC(L),
-c    +         CLCVSS(L)*100.,CLCVMC(L)*100.,SG_ARSCL(L)
-c140     format(1x,i3,f8.2,' T ',2(f7.2),'  Q ',2(f7.3),'  qcl qci ',
-c    +          2(f7.4),'  tauss mc ',2(f8.3),'  camtss mc ',
-c    +          2(f7.3),' arscl ',f6.2)
-c     enddo 
 
       RETURN 
 
