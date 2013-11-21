@@ -5,12 +5,15 @@ c --- Delete 'array' elements outside 'mask'. Then
 c --- break 'array' into sections, each 'nchar' characters wide, for printing.
 c
       USE HYCOM_SCALARS, only : lp
+      USE HYCOM_DIM, only: jdm
       implicit none
 c
       integer idm,ii,jj
       character title*(*)
-      real array(idm,1),work(idm,1),offset,scale
-      integer mask(idm,1)
+      real work(idm,jdm)
+      real array(idm,jdm)
+      integer mask(idm,jdm)
+      real offset,scale
       !--- local vars
       real cvmgp,cvmgz,a,b,c
       integer nchar,ncols,n,j1,j2,i,j,ic
