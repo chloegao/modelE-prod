@@ -459,6 +459,9 @@ C****
       ALLOCATE(   LMM(IM,J_0H:J_1H), STAT = IER)
       ALLOCATE(   LMU(IM,J_0H:J_1H), STAT = IER)
       ALLOCATE(   LMV(IM,J_0H:J_1H), STAT = IER)
+      lmm = 0
+      lmu = 0
+      lmv = 0
 
       ALLOCATE(   MO(IM,J_0H:J_1H,LMO), STAT = IER)
       ALLOCATE(   UO(IM,J_0H:J_1H,LMO), STAT = IER)
