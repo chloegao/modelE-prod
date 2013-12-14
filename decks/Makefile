@@ -18,6 +18,7 @@ RUN_COMMAND = $(SCRIPTS_DIR)/runE
 RUNSRC  = EM20
 RUN     =
 RUNDECKSRC = $(TEMPLATES_DIR)/$(RUNSRC).R
+PRUNDECKSRC = $(TEMPLATES_DIR)/$(RUNSRC).py
 RUNDECK = $(DECKS_DIR)/$(RUN).R
 
 USER = $(shell whoami)
@@ -72,18 +73,21 @@ rundeck: linkNonProduction
 	echo 'use OVERWRITE=YES to overwrite'; \
 	exit 1; fi
 	#$(MAKE) -C $(MODEL_DIR) $@ RUN=$(RUN) DECKS_DIR=$(DECKS_DIR) RUNSRC=$(RUNSRC)
-	@if [ ! -s $(RUNDECKSRC) ]; then \
-	echo 'Source rundeck $(RUNDECKSRC) does not exist'; exit 1; fi
 	@if [ "$(RUN)" = "" ]; then \
-	echo 'You should specify run name on a command line (i.e. RUN=...)'; \
-	exit 1; fi
-	@echo '---- Regenerating Rundeck $(RUNDECK) from default ($(RUNDECKSRC)) ----'
-	@if [ $(RUNDECK) != $(RUNDECKSRC) ]; then  \
-	sed 's/^'$(RUNSRC)'\([:\. ]\)/'$(RUN)'\1/g' $(RUNDECKSRC) \
-	| $(SCRIPTS_DIR)/protect_ccp_options.pl -c | $(CPP) -I$(TEMPLATES_DIR) \
-	| $(SCRIPTS_DIR)/protect_ccp_options.pl -c -u \
-	> $(RUNDECK); \
-	fi;
+	  echo 'You should specify run name on a command line (i.e. RUN=...)'; \
+	  exit 1; fi
+	@if [ -s $(PRUNDECKSRC) ]; then \
+	  echo "Generating rundeck from $(PRUNDECKSRC)" ; \
+	  python $(PRUNDECKSRC) > $(RUNDECK); \
+	elif [ -s $(RUNDECKSRC) ]; then \
+	  echo '---- Regenerating Rundeck $(RUNDECK) from default ($(RUNDECKSRC)) ----' ; \
+	  sed 's/^'$(RUNSRC)'\([:\. ]\)/'$(RUN)'\1/g' $(RUNDECKSRC) \
+	  | $(SCRIPTS_DIR)/protect_ccp_options.pl -c | $(CPP) -I$(TEMPLATES_DIR) \
+	  | $(SCRIPTS_DIR)/protect_ccp_options.pl -c -u \
+	  > $(RUNDECK); \
+	else \
+	  echo "No source rundeck for $(RUNSRC)" ; exit 1; \
+	fi
 	@echo '---------             Rundeck  created               ---------' 
 	@cp -f $(RUN).R $(DECKS_REPOSITORY)/$(RUN).R
 	@chmod 644 $(DECKS_REPOSITORY)/$(RUN).R      #just in case ...
