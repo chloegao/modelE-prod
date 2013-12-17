@@ -240,9 +240,9 @@ module CLOUDS
 !@var TTOLDL previous potential temperature
 !@var CLDSAVL saved large-scale cloud cover
 #ifdef CLD_AER_CDNC
-  real*8, dimension(LM)::OLDCDL,OLDCDI
-!@var OLDCDL is saved CDNC
-!@var OLDCDI is saved ice crystal numbe
+  real*8, dimension(LM)::NCLL,NCIL
+!@var NCLL is saved CDNC
+!@var NCIL is saved ice crystal numbe
 #endif
   !**** new arrays must be set to model arrays in driver (after LSCOND)
   real*8, dimension(LM) :: SSHR,DCTEI,TAUSSL,CLDSSL
@@ -3563,7 +3563,7 @@ contains
 #if (defined CLD_AER_CDNC) && (defined TRACERS_AEROSOLS_Koch)
       call GET_CDNC(L,LHX,WCONST,WMUI,AIRM(L),QCLX(L),DXYPIJ, &
            FCLD,CLEARA(L),CLDSAVL(L),DSS,PL(L),TL(L), &
-           OLDCDL(L),VVEL,SME(L),DSU,CDNL0,CDNL1)
+           NCLL(L),VVEL,SME(L),DSU,CDNL0,CDNL1)
       DSU_SV(:,L) = DSU(:) ! save for opt. depth calc.
       !     write(6,*)"Where is",DSU(L),l
       SNd=CDNL1
@@ -3604,13 +3604,13 @@ contains
       ! Set microphysics
       if(LHX.eq.LHE)  then
         mdrop=QCLX(L)            ! drop content, [kg water/kg air]
-        ndrop =OLDCDL(L)*1.d6   !convert from cm-3 to m-3
+        ndrop =NCLL(L)*1.d6   !convert from cm-3 to m-3
         if (QCLX(L).eq.0.) ndrop=0.d0
         ncrys=0.d0;mcrys=0.0d0
       else
         WMXICE(L) = QCIX(L)
         mcrys=WMXICE(L)         ! crys content, [kg water/kg air]
-        ncrys=OLDCDI(L)*1.d6     ! convert cm-3 to m-3; set at 0.1 l-1 = 1.d-4 cm-3
+        ncrys=NCIL(L)*1.d6     ! convert cm-3 to m-3; set at 0.1 l-1 = 1.d-4 cm-3
         if (QCIX(L).eq.0.) ncrys=0.d0
         ndrop=0.0d0;mdrop=0.0d0
       endif
@@ -4184,9 +4184,9 @@ contains
       if(CLDSAVL(L).eq.0.) then
         SNd=SNd
       elseif (DCLD(L).le.0.d0) then
-        SNd=OLDCDL(L)
+        SNd=NCLL(L)
       elseif(DCLD(L).gt.0.d0) then
-        SNd=( (OLDCDL(L)*CLDSAVL(L)) + (SNd*DCLD(L)) )/FCLD
+        SNd=( (NCLL(L)*CLDSAVL(L)) + (SNd*DCLD(L)) )/FCLD
       endif
       !* If using an alternate definition for QAUT
       rablk=execute_bulk2m_driver('get','mprc')
@@ -5305,9 +5305,9 @@ contains
 !@auth Menon for CDNC prediction
 #ifdef TRACERS_AEROSOLS_Koch
       call GET_CDNC_UPD(L,LHX,WCONST,WMUI,QCLX(L),FCLD,NEWCLD, &
-           SAVCLD,VVEL,SME(L),DSU,OLDCDL(L), &
+           SAVCLD,VVEL,SME(L),DSU,NCLL(L), &
            CDNL0,CDNL1)
-      OLDCDL(L) = CDNL1
+      NCLL(L) = CDNL1
       SNd=CDNL1
       !** Pass old and new cloud droplet number
       NEWCDN=SNd
@@ -5315,12 +5315,12 @@ contains
       !     if (L.eq.1)write(6,*)"BLK_2M NUPD",NEWCDN,OLDCDN
 #endif
 #ifdef TRACERS_AMP
-      OLDCDL(L)=SNd
-      OLDCDI(L)=SNdi
+      NCLL(L)=SNd
+      NCIL(L)=SNdi
 #endif
 #ifdef TRACERS_TOMAS
-       OLDCDL(L)=SNd
-       OLDCDI(L)=SNdi
+       NCLL(L)=SNd
+       NCIL(L)=SNdi
 #endif
 #endif
 #if (defined CLD_AER_CDNC) || (defined BLK_2MOM)
@@ -5340,16 +5340,16 @@ contains
       !        ncrys=mcrys/mi0         ! crys concent, [No/m3]
       if(LHX.eq.LHE)  then
         mdrop =QCLX(L)
-        ndrop= OLDCDL(L)*1.d6  !mdrop/mw0         ! drop concent, [No/m3]
+        ndrop= NCLL(L)*1.d6  !mdrop/mw0         ! drop concent, [No/m3]
         if(QCLX(L).eq.0.) ndrop=0.0
       else
         mcrys =QCIX(L)
         WMXICE(L) = QCIX(L)
-        ncrys= OLDCDI(L)*1.d6  !mcrys/mi0         ! crystal concent, [No/m3]
+        ncrys= NCIL(L)*1.d6  !mcrys/mi0         ! crystal concent, [No/m3]
         if(QCIX(L).eq.0.) ncrys=0.0
       endif
       !      if(L.eq.1)write(6,*)"5th check BLK_2M",
-      !    *WMX(L),OLDCDL(L),OLDCDI(L)
+      !    *WMX(L),NCLL(L),NCIL(L)
       !
       ldummy=execute_bulk2m_driver('all' &
            ,ndrop,mdrop,ncrys,mcrys,'end')
@@ -5381,9 +5381,9 @@ contains
       if(SAVCLD.eq.0.) then
         SNd=SNd
       elseif (DCLD(L).le.0.d0) then
-        SNd=OLDCDL(L)
+        SNd=NCLL(L)
       elseif(DCLD(L).gt.0.d0) then
-        SNd=( (OLDCDL(L)*SAVCLD) + (SNd*DCLD(L)) )/NEWCLD
+        SNd=( (NCLL(L)*SAVCLD) + (SNd*DCLD(L)) )/NEWCLD
       endif
       rablk=execute_bulk2m_driver('get','value','ni') + ( &
                                 !       nnuccc             ! change n due to contact droplets freez
@@ -5401,8 +5401,8 @@ contains
       !      SNdI=rablk(mkx)*1.0d-6             ! from ncrys [No/m^3] to SNdI in [No/cc]
       SNdI = 0.06417127d0
       if(SNdI.gt.1.d0) SNdI=1.d0      !try to limit to 1000 /l
-      OLDCDL(L) = SNd
-      OLDCDI(L) = SNdI
+      NCLL(L) = SNd
+      NCIL(L) = SNdI
 #ifdef TRACERS_AMP
       nactc(l,1:nmodes) =  naero(mkx,1:nmodes)
       !      do nm=1,nmodes
@@ -5422,7 +5422,7 @@ contains
       !     If (SCDNCI.le.0.06d0) SCDNCI=0.06417127d0   !set min ice crystal
       if (SCDNCI.le.0.0d0) SCDNCI=teeny           !set min ice crystal
       if(SCDNCW.gt.1400.d0) SCDNCw=1400.d0
-      !     if (SCDNCW.gt.20.) write(6,*) "SCND CDNC",SCDNCW,OLDCDL(l),l
+      !     if (SCDNCW.gt.20.) write(6,*) "SCND CDNC",SCDNCW,NCLL(l),l
 #endif
 
       if(LHX.eq.LHE) then

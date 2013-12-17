@@ -30,7 +30,7 @@ subroutine CONDSE
   use CLOUDS_COM, only : ttold,qtold,svlhx,svlat,rhsav,cldsav &
        ,isccp_reg2d,ukm,vkm,ncol
 #ifdef CLD_AER_CDNC
-  use CLOUDS_COM, only : oldnl,oldni,clwp,cdn3d,cre3d  ! for 3 hrly diag
+  use CLOUDS_COM, only : ncl,nci,clwp,cdn3d,cre3d  ! for 3 hrly diag
 #endif
 #if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
   use CLOUDS_COM, only :  ctem,cd3d,cl3d,ci3d  ! for 3 hrly diag
@@ -183,7 +183,7 @@ subroutine CONDSE
 #ifdef CLD_AER_CDNC
        use CLOUDS, only : acdnwm,acdnim,acdnws,acdnis,arews,arewm,areis,areim &
        ,alwim,alwis,alwwm,alwws,nlsw,nlsi,nmcw,nmci &
-       ,oldcdl,oldcdi,sme &
+       ,ncll,ncil,sme &
        ,cdn3dl,cre3dl,smlwp &
        ,wmclwp,wmctwp,CDNC_TOMAS
 
@@ -601,10 +601,10 @@ subroutine CONDSE
         CI3DL(:) =CI3D(:,I,J)
 #endif
 #ifdef CLD_AER_CDNC
-        OLDCDL(:)=OLDNL(:,I,J)
-        OLDCDI(:)=OLDNI(:,I,J)  ! OLDNI is for rsf save
+        NCLL(:)=NCL(:,I,J)
+        NCIL(:)=NCI(:,I,J)  ! NCI is for rsf save
         SME(:)  =EGCM(:,I,J)  !saving 3D TKE value
-        !       if(l.eq.2)write(6,*)"CTEM_DRV",CTEML(L),SME(L),OLDCDL(L)
+        !       if(l.eq.2)write(6,*)"CTEM_DRV",CTEML(L),SME(L),NCLL(L)
         CDN3DL(:)=CDN3D(:,I,J)
         CRE3DL(:)=CRE3D(:,I,J)
         SMLWP=CLWP(I,J)
@@ -1345,8 +1345,8 @@ subroutine CONDSE
         CI3D(:,I,J) =CI3DL(:)
 #endif
 #ifdef CLD_AER_CDNC
-        OLDNL(:,I,J)=OLDCDL(:)
-        OLDNI(:,I,J)=OLDCDI(:)
+        NCL(:,I,J)=NCLL(:)
+        NCI(:,I,J)=NCIL(:)
         EGCM(:,I,J) =SME(:)
         CDN3D(:,I,J)=CDN3DL(:)
         CRE3D(:,I,J)=CRE3DL(:)
