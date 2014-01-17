@@ -49,8 +49,8 @@ End Preprocessor Options
 
 Object modules:
      ! resolution-specific source codes
-RES_CS90L40                         ! C90 horiz. resolution, top at 0.1mb, 40 layers
-
+AtmCS90                           ! 90 Cube-Sphere Grid
+AtmLstrat40                        ! vertical resolution is 40 layers -> 0.1mb
      ! Codes used by the cubed-atmosphere configuration (FV dynamics)
 #include "cubed_sphere_source_files"
 

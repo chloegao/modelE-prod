@@ -18,7 +18,9 @@ Preprocessor Options
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
-RES_M20AT DIAG_RES_M FFT72          ! horiz/vert resolution, 4x5deg, 20 layers -> .1mb
+Atm72x46                          ! horizontal resolution is 72x46 -> 4x5deg
+AtmL12                             ! vertical resolution is 12 layers -> 10mb
+DIAG_RES_M FFT72                    ! 
 MODEL_COM GEOM_B IO_DRV              ! model variables and geometry
 TRIDIAG                             ! tridiagonal matrix solver
 MODELE                              ! Main and model overhead

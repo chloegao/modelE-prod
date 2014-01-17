@@ -24,7 +24,8 @@ End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
 
-RES_F40
+Atm144x90  
+AtmL40 
 
 SCM_COM
 SCM_DIAG

@@ -10,7 +10,9 @@ End Preprocessor Options
 
 Object modules:
      ! resolution-specific source codes
-RES_C12 DIAG_RES_M           ! horiz/vert resolution, 8x10deg, 12 layers
+HORZ_36x24                   ! horizontal resolution is 36x24 -> 8x10
+VERT_12                      ! vertical resolution is 12 -> 10mb
+DIAG_RES_M
 FFT36                         ! Fast Fourier Transform
 
 IO_DRV                              ! new i/o

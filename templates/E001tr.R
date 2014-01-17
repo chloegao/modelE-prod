@@ -31,7 +31,8 @@ Run Options
 STACKSIZE=131072
 
 Object modules: (in order of decreasing priority)
-RES_M23                             ! horiz/vert resolution
+Atm72x46                   ! horizontal resolution is 72x46 -> 4x5deg
+AtmL23                      ! vertical resolution is 23 layers -> 0.1mb
 MODEL_COM GEOM_B IO_DRV             ! model variables and geometry
 TRIDIAG                             ! tridiagonal matrix solver
 MODELE                              ! Main and model overhead

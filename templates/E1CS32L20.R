@@ -21,9 +21,11 @@ Run Options
 STACKSIZE=524288
 
 Object modules: (in order of decreasing priority)
-RES_C32M20AT DIAG_RES_M FFTW_COM          ! horiz/vert resolution, 4x5deg, 20 layers -> .1mb
-MODEL_COM GEOM_CS IO_DRV             ! model variables and geometry
-!GNOM_CS                             ! GNOMONIC cubed sphere geometry
+AtmCS32                           ! 32 Cube-Sphere Grid
+AtmL20AT                           ! vertical resolution is 20 layers -> 0.1mb
+DIAG_RES_M FFTW_COM       
+MODEL_COM GEOM_CS IO_DRV            ! model variables and geometry
+!GNOM_CS                            ! GNOMONIC cubed sphere geometry
 TRIDIAG                             ! tridiagonal matrix solver
 MODELE                              ! Main and model overhead
 pario_fbsa
