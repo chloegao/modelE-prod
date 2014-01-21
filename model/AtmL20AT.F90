@@ -1,3 +1,4 @@
+#include "rundeck_opts.h"
 module VerticalRes
 !@sum Vertical Resolution file, 20 layers, top at .1 mb, no GWDRAG
 !@auth Original Development Team

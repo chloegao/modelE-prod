@@ -1,3 +1,4 @@
+#include "rundeck_opts.h"
 module HorizontalRes
 !@sum Horizontal Resolution file, 2x2.5 Lat-Lon Grid
 !@auth NCCS ASTG
