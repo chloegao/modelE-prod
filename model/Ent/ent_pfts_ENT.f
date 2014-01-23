@@ -72,6 +72,26 @@
       integer, parameter :: SAND = 17
       integer, parameter :: BDIRT = 18
 
+      character(len=13), parameter :: ent_pft_names(N_PFT) = (/
+     &     "ever_br_early",
+     &     "ever_br_late ",
+     &     "ever_nd_early",
+     &     "ever_nd_late ",
+     &     "cold_br_early",
+     &     "cold_br_late ",
+     &     "drought_br   ",
+     &     "decid_nd     ",
+     &     "cold_shrub   ",
+     &     "arid_shrub   ",
+     &     "c3_grass_per ",
+     &     "c4_grass     ",
+     &     "c3_grass_ann ",
+     &     "c3_grass_arct",
+     &     "crops_herb   ",
+     &     "crops_woody  "
+     &     /)
+
+
 !##### TEMPORARY HACK - YK #####
 !to avoid the conflict in ent_prescribed_drv.f90, using CROPS!
       integer, parameter :: CROPS = 15
