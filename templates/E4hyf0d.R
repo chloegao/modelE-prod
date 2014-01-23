@@ -21,7 +21,7 @@ End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
 Atm144x90                  ! horizontal resolution is 144x90 -> 2x2.5deg
-AtmLstrat40                 ! vertical resolution is 40 layers -> 0.1mb
+AtmL40                      ! vertical resolution is 40 layers -> 0.1mb
 MODEL_COM GEOM_B IORSF              ! model variables and geometry
 MODELE                              ! Main and model overhead
 ALLOC_DRV             ! domain decomposition, allocate global distributed arrays

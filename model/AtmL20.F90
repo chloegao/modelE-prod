@@ -1,6 +1,6 @@
 #include "rundeck_opts.h"
 module VerticalRes
-!@sum Vertical Resolution file, 20 layers, top at .1 mb, no GWDRAG
+!@sum Vertical Resolution file, 20 layers, top at .1 mb
 !@auth Original Development Team
   use constant, only : grav,mb2kg
 #ifdef PLANET_PARAMS
@@ -113,33 +113,4 @@ module VerticalRes
 !****       1528.6 834/834  8504.4 10033.0         4252.2 5780.8  
 
 
-!**** KEP depends on whether stratos. EP flux diagnostics are calculated
-!**** If dummy EPFLUX is used set KEP=0, otherwise KEP=21
-!@param KEP number of lat/height E-P flux diagnostics
-  Integer*4,Parameter :: KEP = 0
-
-!**** Based on model top, determine how much of stratosphere is resolved
-!**** ISTRAT = 2:          PMTOP <   1 mb
-!**** ISTRAT = 1:  1 mb <= PMTOP <  10 mb
-!**** ISTRAT = 0: 10 mb <= PMTOP
-  Integer*4,Parameter :: ISTRAT = 2
 End Module VerticalRes
-
-Subroutine DUMMY_STRAT
-!**** Dummy routines in place of STRATDYN
-!**** The vertical resolution also determines whether stratospheric wave drag will be applied or not.
-!**** Hence also included here are some dummy routines for non-stratospheric models.
-!@sum DUMMY dummy routines for non-stratospheric models
-  Entry INIT_GWDRAG
-  Entry GWDRAG
-  Entry VDIFF
-  Entry io_strat
-  Entry ALLOC_STRAT_COM
-!**** Dummy routines in place of STRAT_DIAG (EP flux calculations)
-!**** Note that KEP=0 is set to zero above for the dummy versions.
-  Entry EPFLUX
-  Entry EPFLXI
-  Entry EPFLXP
-  Return
-End Subroutine DUMMY_STRAT
-

@@ -19,7 +19,7 @@ End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
 Atm72x46                          ! horizontal resolution is 72x46 -> 4x5deg
-AtmL20AT                            ! vertical resolution is 20 layers -> 10mb
+AtmL20 STRAT_DUM                  ! vertical resolution is 20 layers -> 10mb
 DIAG_RES_M FFT72                    ! 
 MODEL_COM GEOM_B IO_DRV              ! model variables and geometry
 TRIDIAG                             ! tridiagonal matrix solver

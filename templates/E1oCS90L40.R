@@ -30,7 +30,7 @@ End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
 AtmCS90                           ! 90 Cube-Sphere Grid
-AtmLstrat40                        ! vertical resolution is 40 layers -> 0.1mb
+AtmL40                             ! vertical resolution is 40 layers -> 0.1mb
 FFTW_COM          
 ORES_1Qx1_L32                       ! ocean vertical resolution, 13 layers  
 MODEL_COM GNOM_CS IO_DRV

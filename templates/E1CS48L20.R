@@ -22,7 +22,7 @@ STACKSIZE=524288
 
 Object modules: (in order of decreasing priority)
 AtmCS48                    ! 48 Cube-Sphere Grid
-AtmLstrat40                 ! vertical resolution is 20 layers
+AtmL20 STRAT_DUM                 ! vertical resolution is 20 layers
 DIAG_RES_M FFTW_COM  
 MODEL_COM GEOM_CS IO_DRV               ! model variables and geometry
 !GNOM_CS                             ! GNOMONIC cubed sphere geometry

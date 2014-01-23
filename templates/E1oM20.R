@@ -26,7 +26,7 @@ End Preprocessor Options
 Object modules: (in order of decreasing priority)
        ! resolution-specific source codes
 Atm72x46                   ! horizontal resolution is 72x46 -> 4x5deg
-AtmL20AT                    ! vertical resolution is 20 layers -> 0.1mb
+AtmL20 STRAT_DUM          ! vertical resolution is 20 layers -> 0.1mb
 DIAG_RES_M  
 ORES_5x4_L13                ! ocean horiz res 4x5deg, 13 vert layers
 FFT72                      ! Fast Fourier Transform

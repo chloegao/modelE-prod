@@ -26,7 +26,7 @@ End Preprocessor Options
 Object modules:
      ! resolution-specific source codes
 AtmCS90                           ! 90 Cube-Sphere Grid
-AtmLstrat40                        ! vertical resolution is 40 layers -> 0.1mb
+AtmL40                             ! vertical resolution is 40 layers -> 0.1mb
 ORES_1Qx1_L32                       ! ocean horiz res 2x2.5deg, 32 vert layers
 OFFT288E                            ! Fast Fourier Transform
 

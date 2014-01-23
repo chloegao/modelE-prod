@@ -18,7 +18,7 @@ End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
 AtmCS32                           ! 32 Cube-Sphere Grid
-AtmL20AT                           ! vertical resolution is 20 layers -> 0.1mb
+AtmL20 STRAT_DUM                 ! vertical resolution is 20 layers -> 0.1mb
 DIAG_RES_M FFT72   
 MODEL_COM GEOM_B IORSF              ! model variables and geometry
 TRIDIAG                             ! tridiagonal matrix solver

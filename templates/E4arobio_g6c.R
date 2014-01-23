@@ -30,7 +30,7 @@ End Preprocessor Options
 Object modules: (in order of decreasing priority)
      ! resolution-specific source codes
 Atm144x90                  ! horizontal resolution is 144x90 -> 2x2.5deg
-AtmLstrat40                 ! vertical resolution is 40 layers -> 0.1mb
+AtmL40                      ! vertical resolution is 40 layers -> 0.1mb
 ORES_2Hx2_L32                       ! ocean horiz res 2x2.5deg, 32 vert layers
 DIAG_RES_F                          ! diagnostics (resolution dependent)
 FFT144 OFFT144E                     ! utilities

@@ -1228,11 +1228,23 @@ c allocate master copies of budget- and JK-arrays on root
 #ifndef SCM
       module gc_com
       use mdiag_com, only : sname_strlen,units_strlen,lname_strlen
-      use resolution, only : jm,lm,ls1
+      use resolution, only : jm,lm,ls1,pmtop
       use diag_zonal, only : imlonh,jmlat
-      use resolution, only : kep,istrat
       use cdl_mod
       implicit none
+
+!**** Based on model top, determine how much of stratosphere is resolved
+!**** ISTRAT = 2:          PMTOP <   1 mb
+!**** ISTRAT = 1:  1 mb <= PMTOP <  10 mb
+!**** ISTRAT = 0: 10 mb <= PMTOP
+      integer, parameter :: ! todo when pmtop no longer a parameter: make
+                            ! istrat-related arrays allocatable
+     &     istrat = min(2,max(0,ceiling(log10(10d0/pmtop))))
+
+!**** KEP depends on whether stratos. EP flux diagnostics are calculated
+!**** If dummy EPFLUX is used set KEP=0, otherwise KEP=21
+!@var KEP number of lat/height E-P flux diagnostics
+      integer :: KEP
 
 !@param JEQ grid box zone around or immediately north of the equator
       INTEGER, PARAMETER, public :: JEQ=1+JM/2
@@ -1246,9 +1258,10 @@ c allocate master copies of budget- and JK-arrays on root
       INTEGER, PARAMETER, public :: J5S   = (90.-5.)*(JM-1.)/180.+1.5
 
 
-!@param KAGC number of latitude-height General Circulation diags
+!@var KAGC number of latitude-height General Circulation diags
 !@param KAGCX number of accumulated+derived GC diagnostics
-      INTEGER, PARAMETER, public :: KAGC=82+KEP, KAGCX=KAGC+100
+      INTEGER, public :: KAGC!=82+KEP
+      INTEGER, PARAMETER, public :: KAGCX=82+21+100
 !@var AGC latitude-height General Circulation diagnostics
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: AGC,AGC_loc
      &     ,AGC_out
@@ -1328,7 +1341,7 @@ C****   10 - 1: mid strat               1 and up : upp strat.
       subroutine alloc_gc_com(grid)
       use domain_decomp_atm, only : dist_grid,am_i_root
       use resolution, only : lm
-      use gc_com, only : kagc,jmlat,agc,agc_loc,agc_out
+      use gc_com, only : kep,kagc,jmlat,agc,agc_loc,agc_out
       use gc_com, only : hemis_gc,vmean_gc
       use diag_zonal, only : get_alloc_bounds
       implicit none
@@ -1338,6 +1351,9 @@ C****   10 - 1: mid strat               1 and up : upp strat.
 
       call get_alloc_bounds(grid,
      &     j_strt_jk=j_0jk,j_stop_jk=j_1jk)
+
+      call get_kep(kep)
+      kagc = 82+kep
 
       allocate(agc_loc(j_0jk:j_1jk,lm,kagc))
 

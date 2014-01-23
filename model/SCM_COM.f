@@ -3,8 +3,16 @@
 !@auth  Audrey Wolf
 !
 C--------------------------------------------------------------------------------
+
+      module HorizontalRes
+!@sum Trivial horizontal resolution definition for SCM
+      implicit none
+!@var IM,JM = longitudinal and latitudinal number of grid cells
+      integer, parameter :: IM=1,JM=1
+      end module HorizontalRes
+
       Module SCMCOM
-      USE RESOLUTION , ONLY : LM
+      use VerticalRes, only : LM
       IMPLICIT NONE
       SAVE
 

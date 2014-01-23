@@ -43,7 +43,7 @@ End Preprocessor Options
 Object modules:
      ! resolution-specific source codes
 Atm36x24                     ! horizontal resolution is 36x24 -> 8x10
-AtmL12                       ! vertical resolution is 12 layers -> 10mb
+AtmL12 STRAT_DUM             ! vertical resolution is 12 layers -> 10mb
 DIAG_RES_M                   ! diagnostics
 FFT36                        ! Fast Fourier Transform
 

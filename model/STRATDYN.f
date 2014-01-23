@@ -6,6 +6,12 @@
 C**** TO DO:
 C****   i) A-grid <-> B-grid  should be done with indexes etc.
 
+      subroutine get_kep(kep)
+      implicit none
+      integer :: kep
+      kep = 21
+      end subroutine get_kep
+
       MODULE STRAT
 !@sum  STRAT local stratospheric variables for GW drag etc.
 !@auth Bob Suozzo/Jean Lerner

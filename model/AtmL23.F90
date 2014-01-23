@@ -1,5 +1,5 @@
 module VerticalRes
-!@sum Vertical Resolution file, 23 layers, top at .20576514 Pa, no GWDRAG
+!@sum Vertical Resolution file, 23 layers, top at .20576514 Pa
 !@ver 2013/03/21
 !@auth Original Development Team
   Implicit None
@@ -53,15 +53,5 @@ module VerticalRes
     10d0, 4.63d0, 1.46d0,  0.460995258d0, &  !      L=18,21
     .1449994968d0, .0312002802d0,  PMTOP /)   !      L=22,LM+1
 
-!**** KEP depends on whether stratos. EP flux diagnostics are calculated
-!**** If dummy EPFLUX is used set KEP=0, otherwise KEP=21
-!@param KEP number of lat/height E-P flux diagnostics
-  Integer*4,Parameter :: KEP = 21
-
-!**** Based on model top, determine how much of stratosphere is resolved
-!**** ISTRAT = 2:          PMTOP <   1 mb
-!**** ISTRAT = 1:  1 mb <= PMTOP <  10 mb
-!**** ISTRAT = 0: 10 mb <= PMTOP
-  Integer*4,Parameter :: ISTRAT = 2
 End Module VerticalRes
 
