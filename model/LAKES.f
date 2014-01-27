@@ -411,6 +411,7 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
       USE RESOLUTION, only : im,jm
       USE MODEL_COM, only : dtsrc
       USE ATM_COM, only : zatmo
+      USE ATM_COM, only : traditional_coldstart_aic
 #ifdef SCM
       USE SCMCOM, only : SCM_SURFACE_FLAG,ATSKIN
 #endif
@@ -528,7 +529,9 @@ C**** Ensure that HLAKE is a minimum of 1m for FLAKE>0
 C**** Set lake variables from surface temperature
 C**** This is just an estimate for the initiallisation
         if(istart==2) then ! pbl has not been initialized yet
-          call read_pbl_tsurf_from_nmcfile
+          if(traditional_coldstart_aic)
+          ! todo: get this temperature via other means
+     &         call read_pbl_tsurf_from_nmcfile
         endif
         DO J=J_0, J_1
           DO I=I_0, I_1

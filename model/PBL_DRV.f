@@ -736,6 +736,7 @@ c -------------------------------------------------------------
       USE Dictionary_mod
       USE CONSTANT, only : lhe,lhs,tf,omega2,deltx
       USE ATM_COM, only : u,v,p,t,q
+      USE ATM_COM, only : traditional_coldstart_aic
       USE GEOM, only : imaxj,sinlat2d
 #ifdef TRACERS_ON
       use TRACER_COM, only: NTM
@@ -831,7 +832,10 @@ C****
 
       if(istart==2) then ! replace with cold vs warm start logic
 
-        call read_pbl_tsurf_from_nmcfile
+        if(traditional_coldstart_aic) then
+          ! todo: get this via other means
+          call read_pbl_tsurf_from_nmcfile
+        endif
         CDM=.001d0
 
         DO J=J_0,J_1

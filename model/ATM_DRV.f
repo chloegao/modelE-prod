@@ -602,7 +602,10 @@ C****
       call set_param("LS1",LS1,'o')
       call set_param("PLBOT",Plbot,LM+1,'o')
 
-      if(istart.eq.2) call read_nmc()
+      if(istart.eq.2) then
+        call read_aic()
+        call aic_part2()
+      endif
 
 #ifdef USE_ESMF
       call init_esmf_clock_for_modelE( int(dtsrc), atmclock )
@@ -1116,3 +1119,375 @@ C**** check tracers
 
       RETURN
       END SUBROUTINE CHECKT
+
+      subroutine read_aic
+!@sum read_AIC for a cold start, read the atmospheric IC file.
+!@+   Two input options are currently recognized
+!@+      (1) The input file has already been remapped to the model layering
+!@+          and contains the variables traditionally expected by the model
+!@+          (winds, temperature, specific humidity, surface pressure).
+!@+      (2) Winds, temperature, geopotential height, and RH are available
+!@+          on constant-pressure levels.  Surface pressure is obtained via
+!@+          the hydrostatic assumption.  Remapping from constant-pressure
+!@+          levels to the model layering is peformed, and RH is converted
+!@+          to specific humidity. The initial coding for this option was
+!@+          imported from init_cond/AIC.D771201.f and generalized considerably.
+!@+          If tropopause pressure and temperature are available, they
+!@+          are used in the vertical remapping.  The coding for the
+!@+          assumed vertical structure of RH above the upper troposphere
+!@+          will be made more configurable as AIC files with better-quality
+!@+          RH data (than the historical AIC) become available.
+!@+
+!@+   Logic will be added to handle other possible input layerings and
+!@+   combinations of available fields.
+      use constant, only : grav,rgas,lhe
+      use VerticalRes, only : lm,ptop
+      use atm_com, only : zatmo,psrf=>p,
+     &     ualij,valij,uout=>u,vout=>v,
+     &     tout=>t,qout=>q
+      use atm_com, only : traditional_coldstart_aic
+      use fluxes, only : atmsrf
+      use pario, only : par_open,par_close,read_data,read_dist_data
+     &     ,get_dimlens,variable_exists
+      Use DOMAIN_DECOMP_ATM, Only: GRID, GetDomainBounds, globalmax,
+     &     am_i_root,halo_update_column
+      implicit none
+      real*8, parameter :: GBYR  = GRAV/RGAS
+
+      real*8, dimension(:,:,:), allocatable ::
+     &     uin,vin,tin,zin,rh1,rhin
+      real*8, dimension(:,:), allocatable :: ptrop,ttrop,zsrf
+
+      real*8, dimension(:), allocatable :: u,v,t,rh,p,plev
+      real*8 :: pe(0:lm)
+      real*8, dimension(lm) :: pmid,pdum,pdum2,adum
+
+      real*8, dimension(lm) :: xa,xb
+      REAL*8 HSRF,TM,PR,PL,DTDZ,RHTROP,WTDN
+      REAL*8 QSAT ! external function
+      real*8 :: max_loc,max_zsrf,max_zin,max_ptrop,max_psrat
+      INTEGER :: I,J,L,K,K1,KK,KMZIN,KMTROP,KMRH,KMIN,KM,N
+      integer :: dlens(7)
+      integer :: i_0h,i_1h,j_0h,j_1h
+      integer :: i_0,i_1,j_0,j_1
+      integer :: j_0stg,j_1stg
+
+      integer :: fid
+
+      fid = par_open(grid,'AIC','read')
+
+      traditional_coldstart_aic = 
+     &           variable_exists(grid,fid,'u')
+     &     .and. variable_exists(grid,fid,'v')
+     &     .and. variable_exists(grid,fid,'t')
+     &     .and. variable_exists(grid,fid,'p')
+     &     .and. variable_exists(grid,fid,'q')
+
+      if(traditional_coldstart_aic) then
+        call read_dist_data(grid,fid,'u',uout)
+        call read_dist_data(grid,fid,'v',vout)
+        call read_dist_data(grid,fid,'t',tout)
+        call read_dist_data(grid,fid,'p',psrf)
+        call read_dist_data(grid,fid,'q',qout)
+        call par_close(grid,fid)
+        return
+      endif
+
+      Call GetDomainBounds(GRID,
+     &     I_STRT=I_0,I_STOP=I_1, J_STRT=J_0,J_STOP=J_1)
+
+      Call GetDomainBounds(GRID,
+     &     I_STRT=I_0H,I_STOP=I_1H, J_STRT=J_0H,J_STOP=J_1H)
+
+      UALIJ = 0.
+      VALIJ = 0.
+
+      call get_dimlens(grid,fid,'p',n,dlens)
+      if(n.ne.1) call stop_model('read_aic: bad ndims for p',255)
+      km = dlens(1)
+
+      call get_dimlens(grid,fid,'z',n,dlens)
+      if(n.ne.3) call stop_model('read_aic: bad ndims for z',255)
+      kmzin = dlens(3)
+
+      call get_dimlens(grid,fid,'rh',n,dlens)
+      if(n.ne.3) call stop_model('read_aic: bad ndims for rh',255)
+      kmrh = dlens(3)
+
+      allocate(u(0:km+1),v(0:km+1),t(0:km+1),rh(0:km+1),p(0:km+1))
+      allocate(plev(km))
+      allocate(
+     &     uin(i_0h:i_1h,j_0h:j_1h,km),
+     &     vin(i_0h:i_1h,j_0h:j_1h,km),
+     &     tin(i_0h:i_1h,j_0h:j_1h,km),
+     &     rhin(i_0h:i_1h,j_0h:j_1h,km),
+     &     zin(i_0h:i_1h,j_0h:j_1h,kmzin),
+     &     rh1(i_0h:i_1h,j_0h:j_1h,kmrh))
+      allocate(
+     &     zsrf(i_0h:i_1h,j_0h:j_1h),
+     &     ptrop(i_0h:i_1h,j_0h:j_1h),
+     &     ttrop(i_0h:i_1h,j_0h:j_1h))
+
+      call read_data(grid,fid,'p',plev,bcast_all=.true.)
+      call read_dist_data(grid,fid,'u',uin)
+      call read_dist_data(grid,fid,'v',vin)
+      call read_dist_data(grid,fid,'t',tin)
+      call read_dist_data(grid,fid,'rhclim',rhin)
+      call read_dist_data(grid,fid,'rh',rh1)
+      call read_dist_data(grid,fid,'z',zin)
+C****   PTROP = tropopause pressure (mb)
+C****   TTROP = tropopause temperature (K)
+      ptrop = 0. ! if ptrop not present, it is assumed to be zero.
+      call read_dist_data(grid,fid,'ptrop',ptrop)
+      call read_dist_data(grid,fid,'ttrop',ttrop)
+      call par_close(grid,fid)
+
+      do k=1,kmrh
+        rhin(:,:,k) = rh1(:,:,k)
+      enddo
+
+      zsrf(i_0:i_1,j_0:j_1) = zatmo(i_0:i_1,j_0:j_1)/grav
+
+      max_loc = maxval(zsrf(i_0:i_1,j_0:j_1))
+      call globalmax(grid,max_loc,max_zsrf)
+      max_loc = maxval(zin(i_0:i_1,j_0:j_1,kmzin))
+      call globalmax(grid,max_loc,max_zin)
+      if(max_zsrf.gt.max_zin) then
+        if(am_i_root()) then
+          write(6,*) 'Surface topography exceeds largest input z'
+          write(6,*) 'max(zsrf), max(zin) = ',max_zsrf,max_zin
+        endif
+        call stop_model('error in AIC vert. interp.',255)
+      endif
+
+      max_loc = maxval(ptrop(i_0:i_1,j_0:j_1))
+      call globalmax(grid,max_loc,max_ptrop)
+      if(max_ptrop.ge.plev(1)) then
+        if(am_i_root()) then
+          write(6,*) 'Tropopause pressure exceeds first pressure level.'
+          write(6,*) 'max(PTROP),PLEV(1) ',max_ptrop,PLEV(1)
+        endif
+        call stop_model('error in AIC vert. interp.',255)
+      endif
+
+C****
+C**** Perform vertical interpolation of prognostic quantities
+C**** from pressure surfaces to model levels.
+C**** have been horizontally interpolated to the approprate grid.
+C****
+
+      DO J=J_0,J_1
+      DO I=I_0,I_1
+
+C**** Determine lowest input pressure level above the surface
+      HSRF = ZSRF(I,J)
+      DO K1=1,KMZIN
+        IF(ZIN(I,J,K1).gt.HSRF) exit
+      enddo
+
+C**** Determine highest input pressure level below the tropopause
+      DO KMTROP=KM,1,-1
+        IF(PLEV(KMTROP).gt.PTROP(I,J)) exit
+      enddo
+
+      !CALL TSBOOK(JDAY,PTROP(I,J),DLATDG*(J-(.5*(1+JM))),TTRPPC,QTROP)
+      RHTROP = 0. ! 100.*QTROP/QSAT(TTRPPC,LHE,PTROP(I,J))
+
+c load pressure, temperature, and rh values into 1D arrays.
+
+      kk = 0
+      DO K=K1,KM
+        if(k.eq.kmtrop+1) then
+c insert tropopause values if available.
+          kk = kk + 1
+          P(KK) = PTROP(I,J)
+          T(KK) = TTROP(I,J)
+          RH(KK) = RHTROP
+        endif
+        kk = kk + 1
+        P(kk) = PLEV(K)
+        T(kk) = TIN(I,J,K)
+        if(k.gt.kmtrop) then
+C**** To put Q=0 in stratosphere, set R... = 0. below
+          RH(kk) = 0.           ! RHJ(J,K)
+        elseif(k.le.kmrh)  then
+          RH(kk) = RHIN(I,J,K)
+        else
+          wtdn = (PLEV(K)-PTROP(I,J))/(PLEV(KMRH)-PTROP(I,J))
+          RH(kk) = RHIN(I,J,KMRH)*wtdn + RHTROP*(1d0-wtdn)
+        endif
+      enddo
+
+      KMIN = KK
+
+C**** Calculate surface pressure
+      IF(K1.eq.1) THEN
+        DTDZ = 0D0
+      ELSE
+        DTDZ = (TIN(I,J,K1)-TIN(I,J,K1-1)) / (ZIN(I,J,K1)-ZIN(I,J,K1-1))
+      ENDIF
+      IF(ABS(DTDZ).lt.1.E-5) THEN  ! isothermal
+        P(0) = PLEV(K1)
+     &       *EXP(GBYR*(ZIN(I,J,K1)-HSRF)/T(1))
+      ELSE
+        P(0) = PLEV(K1)
+     &       *(1.-DTDZ*(ZIN(I,J,K1)-HSRF)/T(1))**(-GBYR/DTDZ)
+      ENDIF
+
+C**** Calculate surface air temperature and surface relative humidity
+      IF(K1.gt.1) THEN
+        wtdn = (P(0)-P(1))/(PLEV(K1-1)-P(1))
+        T(0) = wtdn*TIN(I,J,K1-1) + (1d0-wtdn)*T(1)
+        RH(0) = wtdn*RHIN(I,J,K1-1) + (1d0-wtdn)*RH(1)
+      else
+        T(0) = TIN(I,J,1)
+        RH(0) = RHIN(I,J,1)
+      endif
+
+C****
+C**** Calculate output values
+C****
+C**** Surface pressure, surface air temperature
+C****
+      PSRF(I,J)  = P(0)
+      atmsrf%TSAVG(I,J) = T(0)
+
+      CALL CALC_VERT_AMP(P(0)-PTOP,LM,Pdum,Adum,Pdum2,PE,PMID)
+
+C****
+C**** Remap temperature and RH to model layers
+C**** Convert RH to specific humidity
+C****
+      CALL VNTRP1 (KMIN,P,T, LM,PE,XA)
+      CALL VNTRP1 (KMIN,P,RH, LM,PE,XB)
+      DO L=1,LM
+        TOUT(I,J,L) = XA(L)
+        QOUT(I,J,L) = max(3.e-6,.01*XB(L)*QSAT(XA(L),LHE,PMID(L)))
+      ENDDO
+
+c A-grid winds.  No insertion of tropopause values.
+      U(0) = UIN(I,J,max(1,K1-1))
+      V(0) = VIN(I,J,max(1,K1-1))
+      P(0) = PLEV(max(1,K1-1)) + 1d-6
+      kk = 0
+      DO K=K1,KM
+        kk = kk + 1
+        P(kk)=PLEV(K)
+        U(kk)=UIN(I,J,K)
+        V(kk)=VIN(I,J,K)
+      ENDDO
+      KMIN = KK
+      CALL VNTRP1 (KMIN,P,U, LM,PE,XA)
+      CALL VNTRP1 (KMIN,P,V, LM,PE,XB)
+      DO L=1,LM
+        UALIJ(L,I,J) = XA(L)
+        VALIJ(L,I,J) = XB(L)
+      ENDDO
+
+      ENDDO ! I
+      ENDDO ! J
+
+      max_loc = maxval(ptrop(i_0:i_1,j_0:j_1)/psrf(i_0:i_1,j_0:j_1))
+      call globalmax(grid,max_loc,max_psrat)
+      if(max_psrat.gt..9d0) then
+        if(am_i_root()) then
+          write(6,*) 'Tropopause pressure too high'
+          write(6,*) 'max(ptrop/psrf) = ',max_psrat
+        endif
+        call stop_model('error in AIC vert. interp.',255)
+      endif
+
+#if defined(SCM) || defined(CUBED_SPHERE)
+      do l=1,lm
+        do j=j_0,j_1
+          do i=i_0,i_1
+            uout(i,j,l) = ualij(l,i,j)
+            vout(i,j,l) = valij(l,i,j)
+          enddo
+        enddo
+      enddo
+#else
+      ! convert velocities to their native grid/orientation
+      ! for the moment, this only applies to the B-grid
+      ! dynamics scheme.  The cubed-sphere case is handled elsewhere.
+      Call GetDomainBounds(GRID,
+     &     J_STRT_STGR=J_0STG,J_STOP_STGR=J_1STG)
+      call halo_update_column(grid,ualij)
+      call halo_update_column(grid,valij)
+      do l=1,lm
+        do j=j_0stg,j_1stg
+          do i=i_0,i_1-1 ! im-1
+            uout(i,j,l) = .25d0*
+     &           (ualij(l,i,j-1)+ualij(l,i+1,j-1)
+     &           +ualij(l,i,j  )+ualij(l,i+1,j  ))
+            vout(i,j,l) = .25d0*
+     &           (valij(l,i,j-1)+valij(l,i+1,j-1)
+     &           +valij(l,i,j  )+valij(l,i+1,j  ))
+          enddo
+          i = i_1 ! im
+            uout(i,j,l) = .25d0*
+     &           (ualij(l,i,j-1)+ualij(l,  1,j-1)
+     &           +ualij(l,i,j  )+ualij(l,  1,j  ))
+            vout(i,j,l) = .25d0*
+     &           (valij(l,i,j-1)+valij(l,  1,j-1)
+     &           +valij(l,i,j  )+valij(l,  1,j  ))
+        enddo
+      enddo
+#endif
+
+      contains
+
+      SUBROUTINE VNTRP1 (KM,P,AIN,  LMA,PE,AOUT)
+C**** Vertically interpolates a 1-D array
+C**** Input:       KM = number of input pressure levels
+C****            P(K) = input pressure levels (mb)
+C****          AIN(K) = input quantity at level P(K)
+C****             LMA = number of vertical layers of output grid
+C****           PE(L) = output pressure levels (mb) (edges of layers)
+C**** Output: AOUT(L) = output quantity: mean between PE(L-1) & PE(L)
+C****
+      IMPLICIT NONE
+      INTEGER :: KM,LMA
+      REAL*8 P(0:KM),AIN(0:KM),    PE(0:LMA),AOUT(LMA)
+      INTEGER :: K,K1,L
+      REAL*8 :: PDN,ADN,PUP,AUP,PSUM,ASUM
+C****
+      PDN = PE(0)
+      ADN = AIN(0)
+      K=1
+C**** Ignore input levels below ground level pe(0)=p(0)
+      IF(P(1).GT.PE(0)) THEN
+         DO K1=2,KM
+         K=K1
+         IF(P(K).LT.PE(0)) THEN  ! interpolate to ground level
+           ADN=AIN(K)+(AIN(K-1)-AIN(K))*(PDN-P(K))/(P(K-1)-P(K))
+           GO TO 300
+         END IF
+         END DO
+         STOP 'VNTRP1 - error - should not get here'
+      END IF
+C**** Integrate - connecting input data by straight lines
+  300 DO 330 L=1,LMA
+      ASUM = 0.
+      PSUM = 0.
+      PUP = PE(L)
+  310 IF(P(K).le.PUP)  GO TO 320
+      PSUM = PSUM + (PDN-P(K))
+      ASUM = ASUM + (PDN-P(K))*(ADN+AIN(K))/2.
+      PDN  = P(K)
+      ADN  = AIN(K)
+      K=K+1
+      IF(K.LE.KM) GO TO 310
+      stop 'VNTRP1 - should not happen'
+C****
+  320 AUP  = AIN(K) + (ADN-AIN(K))*(PUP-P(K))/(PDN-P(K))
+      PSUM = PSUM + (PDN-PUP)
+      ASUM = ASUM + (PDN-PUP)*(ADN+AUP)/2.
+      AOUT(L) = ASUM/PSUM
+      PDN = PUP
+  330 ADN = AUP
+C****
+      RETURN
+      END SUBROUTINE VNTRP1
+
+      end subroutine read_aic

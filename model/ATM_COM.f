@@ -67,6 +67,10 @@
 
       real*8, parameter :: temperature_istart1=250. ! not used
 
+! flag needed until surface components always obtain near-surface conditions
+! from the atm state rather than reading them directly from the AIC
+      logical :: traditional_coldstart_aic=.true.
+
 !**** Boundary condition arrays:
 !@var ZATMO: surface elevation (m)
       REAL*8, ALLOCATABLE, DIMENSION(:,:)   :: ZATMO

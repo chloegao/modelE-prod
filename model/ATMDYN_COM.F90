@@ -224,18 +224,19 @@
       Return
       EndSubroutine CALC_VERT_AMP
 
-
-      Subroutine READ_NMC
-!**** read atmospheric initial conditions file
+      Subroutine aic_part2
+!@sum aic_part2 Once the fundamental atm state variables have been read from
+!@+   the AIC file, this routine converts everything to ModelE form (units
+!@+   changes, auxiliary variables, etc.)
       Use CONSTANT,   Only: mb2kg,areag,rgas
       Use RESOLUTION, Only: IM,JM,LM, MTOP,MFIX,MFIXs,MFRAC, PSF,PTOP
       Use ATM_COM,    Only: MA,U,V,T,P,Q, PK,PMID,PEDN,UALIJ,VALIJ, ZATMO
+      Use ATM_COM,    Only: traditional_coldstart_aic
       Use DOMAIN_DECOMP_ATM, Only: GRID, GetDomainBounds, globalsum
-      use pario, only : par_open,par_close,read_dist_data
       use GEOM, only : axyp
       use Dictionary_mod
       Implicit none
-      Integer :: I,J,L,fid, I1,IN,J1,JN
+      Integer :: I,J,L, I1,IN,J1,JN
       Logical :: QSP,QNP
       Real*8  :: MVAR
       integer :: initial_psurf_from_topo=0
@@ -246,14 +247,7 @@
                                   HAVE_SOUTH_POLE=QSP, HAVE_NORTH_POLE=QNP)
 
 
-      fid = par_open(grid,'AIC','read')
-      call read_dist_data(grid,fid,'p',p)
-      call read_dist_data(grid,fid,'u',u)
-      call read_dist_data(grid,fid,'v',v)
-      call read_dist_data(grid,fid,'t',t)
-      call read_dist_data(grid,fid,'q',q)
-      call par_close(grid,fid)
-
+      if(traditional_coldstart_aic) then
       if(is_set_param('initial_psurf_from_topo')) &
            call get_param('initial_psurf_from_topo',initial_psurf_from_topo)
       if(initial_psurf_from_topo==1) then
@@ -279,6 +273,7 @@
         enddo
         enddo
         deallocate(expz,aexpz)
+      endif
       endif
 
       Do J=J1,JN
@@ -317,7 +312,7 @@
 #endif
 
       Return
-      EndSubroutine READ_NMC
+      EndSubroutine aic_part2
 
 
       Subroutine PERTURB_TEMPS
