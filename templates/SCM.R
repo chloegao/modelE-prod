@@ -68,6 +68,8 @@ QUS_COM QUSDEF
 
 FLUXES
 
+STRAT_DUM
+
 Components:
 shared MPI_Support solvers giss_LSM 
 dd2d
