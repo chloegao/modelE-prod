@@ -643,3 +643,91 @@ C**** get rundeck parameter for cosmogenic source factor
       ef_fact3d(:,:)=1.d0
 
       end subroutine laterInitTracerMetadata
+
+!------------------------------------------------------------------------------
+      subroutine InitTracerMetadataAtmOcnCpler()
+!------------------------------------------------------------------------------
+      use Dictionary_mod
+#if (defined TRACERS_OCEAN) && !defined(TRACERS_OCEAN_INDEP)
+! atmosphere copies atmosphere-declared tracer info to ocean
+! so that the ocean can "inherit" it without referencing atm. code
+      use ocn_tracer_com, only : 
+     &     n_Water_ocn      => n_Water,
+     &     itime_tr0_ocn    => itime_tr0,
+     &     ntrocn_ocn       => ntrocn,
+     &     to_per_mil_ocn   => to_per_mil,
+     &     t_qlimit_ocn     => t_qlimit,
+     &     conc_from_fw_ocn => conc_from_fw,
+     &     trdecay_ocn      => trdecay,
+     &     trw0_ocn         => trw0
+#endif
+      USE FLUXES, only : atmocn
+#ifdef TRACERS_GASEXCH_ocean
+      use OldTracer_mod, only: vol2mass
+#endif
+      USE TRACER_COM, only: ntm
+      use OldTracer_mod, only: trw0
+#ifdef TRACERS_GASEXCH_ocean_CO2
+      USE obio_forc, only : atmCO2
+#endif
+#if (!defined(TRACERS_GASEXCH_ocean_CO2)) && defined(TRACERS_GASEXCH_land_CO2)
+      real*8 :: atmCO2 = 280.d0
+#endif
+      implicit none
+      integer :: n
+
+#if defined(TRACERS_GASEXCH_ocean_CO2) || defined(TRACERS_GASEXCH_land_CO2)
+      call sync_param("atmCO2",atmCO2)
+#endif
+
+#if (defined TRACERS_OCEAN) && !defined(TRACERS_OCEAN_INDEP)
+! atmosphere copies atmosphere-declared tracer info to ocean module
+! so that the ocean can "inherit" it without referencing atm. code
+      n_Water_ocn = n_Water
+      do n=1,ntm
+        itime_tr0_ocn(n)    = itime_tr0(n)
+        ntrocn_ocn(n)       = ntrocn(n)
+        to_per_mil_ocn(n)   = to_per_mil(n)
+        t_qlimit_ocn(n)     = t_qlimit(n)
+        conc_from_fw_ocn(n) = conc_from_fw(n) 
+        trdecay_ocn(n)      = trdecay(n)
+        trw0_ocn(n)         = trw0(n)
+      enddo
+#endif
+
+! copy atmosphere-declared tracer info to atm-ocean coupler data
+! structure for uses within ocean codes
+      allocate(atmocn%trw0(ntm))
+      do n=1,ntm
+        atmocn%trw0(n) = trw0(n)
+      enddo
+#ifdef TRACERS_GASEXCH_ocean
+      allocate(atmocn%vol2mass(ntm))
+      do n=1,ntm
+        atmocn%vol2mass(n) = vol2mass(n)
+      enddo
+#endif
+
+      end subroutine InitTracerMetadataAtmOcnCpler
+
+!------------------------------------------------------------------------------
+      subroutine InitTracerDiagMetadata()
+!------------------------------------------------------------------------------
+      implicit none
+
+C**** Set some diags that are the same regardless
+      call set_generic_tracer_diags
+
+C**** Zonal mean/height diags
+      call init_jls_diag
+
+C**** lat/lon tracer sources, sinks and specials
+      call init_ijts_diag
+
+C**** lat/lon/height tracer specials
+      call init_ijlts_diag
+
+C**** Initialize conservation diagnostics
+      call init_tracer_cons_diag
+
+      end subroutine InitTracerDiagMetadata

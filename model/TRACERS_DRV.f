@@ -7,12 +7,6 @@
 !@+        Tracer initialisation + sources: tracer_ic, set_tracer_source
 !@+        Entry points: daily_tracer
 !@auth Jean Lerner/Gavin Schmidt
-      subroutine init_tracer
-      implicit none
-
-      call laterInitTracerMetadata()
-      call initTracerGriddedData()
-      end subroutine init_tracer
 
       subroutine init_tracer_cons_diag
 !@sum init_tracer_cons_diag Initialize tracer conservation diagnostics

@@ -959,11 +959,9 @@ C**** Set date information
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
 C**** Initialise tracer parameters and diagnostics
 C**** MUST be before other init routines
-C**** TODO: split init_tracer into general definitions and
-C**** component-specific ops, folding the latter into component inits
-      if(istart.eq.2) call read_nmc()  ! hack, see TODO
-      CALL CALC_AMPK(LM)               ! hack
-      call init_tracer
+      call laterInitTracerMetadata()
+      call InitTracerDiagMetadata()
+      call InitTracerMetadataAtmOcnCpler()
 #endif
 #endif
 
