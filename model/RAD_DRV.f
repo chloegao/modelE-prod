@@ -65,7 +65,7 @@ C****
      *     ,FS8OPX_orig,FT8OPX_orig
 #endif
       USE RAD_COM, only : rqt, s0x, co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx
-     *     ,CH4X_RADoverCHEM
+     *     ,o2x,no2x,n2cx,yGHGx,so2x,CH4X_RADoverCHEM
      *     ,s0_yr,s0_day,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr
      *     ,H2ObyCH4,dH2O,h2ostratx,O3x,RHfix,CLDx,ref_mult,COSZ1
      *     ,obliq,eccn,omegt,obliq_def,eccn_def,omegt_def
@@ -174,15 +174,20 @@ C**** sync radiation parameters from input
       endif
       call sync_param( "orb_par", orb_par, 3 )
       call sync_param( "S0X", S0X )
-      call sync_param( "CO2X", CO2X )
-      call sync_param( "N2OX", N2OX )
-      call sync_param( "CH4X", CH4X )
+      call sync_param( "CO2X", CO2X )     ! fulgas(2)
+      call sync_param( "O2X", O2X )       ! fulgas(4)
+      call sync_param( "NO2X", NO2X )     ! fulgas(5)
+      call sync_param( "N2OX", N2OX )     ! fulgas(6)
+      call sync_param( "CH4X", CH4X )     ! fulgas(7)
       call sync_param( "CH4X_RADoverCHEM", CH4X_RADoverCHEM )
-      call sync_param( "CFC11X", CFC11X )
-      call sync_param( "CFC12X", CFC12X )
-      call sync_param( "XGHGX", XGHGX )
-      call sync_param( "H2OstratX", H2OstratX )
-      call sync_param( "O3X", O3X )
+      call sync_param( "CFC11X", CFC11X ) ! fulgas(8)
+      call sync_param( "CFC12X", CFC12X ) ! fulgas(9)
+      call sync_param( "N2CX", N2CX )     ! fulgas(10)
+      call sync_param( "XGHGX", XGHGX )   ! fulgas(11)
+      call sync_param( "YGHGX", YGHGX )   ! fulgas(12)
+      call sync_param( "SO2X", SO2X )     ! fulgas(13)
+      call sync_param( "H2OstratX", H2OstratX ) ! fulgas(1)
+      call sync_param( "O3X", O3X )       ! fulgas(3)
       call sync_param( "CLDX", CLDX )
       call sync_param( "H2ObyCH4", H2ObyCH4 )
       call get_param( "S0_yr", S0_yr, default=master_yr )
@@ -871,6 +876,7 @@ c      end if
 #endif
       USE RADPAR, only : rcompt,writet
       USE RAD_COM, only : co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx,h2ostratx
+     *     ,o2x,no2x,n2cx,yghgx,so2x
      *     ,o3x,o3_yr,ghg_yr,co2ppm,Volc_yr,albsn_yr,dalbsnX
 #ifdef CHL_from_SeaWIFs
      *     ,iu_CHL,achl,echl1,echl0,bchl,cchl
@@ -926,6 +932,10 @@ C**** Update time dependent radiative parameters each day
       CALL RCOMPT
 !     FULGAS(2:) is set only in the first call to RCOMPT unless ghg_yr=0
 !     Optional scaling of the observed value only in case it was (re)set
+      if(.not. end_of_day .and. H2OstratX.GE.0.)
+     *   FULGAS(1)=FULGAS(1)*H2OstratX
+      if(.not. end_of_day .or. O3_yr==0.) 
+     *   FULGAS(3)=FULGAS(3)*O3X
       if(ghg_yr.eq.0 .or. .not. end_of_day) then
          FULGAS(2)=FULGAS(2)*CO2X
          FULGAS(6)=FULGAS(6)*N2OX
@@ -933,10 +943,14 @@ C**** Update time dependent radiative parameters each day
          FULGAS(8)=FULGAS(8)*CFC11X
          FULGAS(9)=FULGAS(9)*CFC12X
          FULGAS(11)=FULGAS(11)*XGHGX
+         FULGAS(12)=FULGAS(12)*YGHGX
       end if
-      IF(.not. end_of_day .and. H2OstratX.GE.0.)
-     *     FULGAS(1)=FULGAS(1)*H2OstratX
-      IF(.not. end_of_day .or. O3_yr==0.) FULGAS(3)=FULGAS(3)*O3X
+      if(.not. end_of_day) then
+         FULGAS(4)=FULGAS(4)*O2X
+         FULGAS(5)=FULGAS(5)*NO2X
+         FULGAS(10)=FULGAS(10)*N2CX
+         FULGAS(13)=FULGAS(13)*SO2X ! no effect since FULGAS(13)=0.
+      end if
 
 C**** write trend table for forcing 'itwrite' for years iwrite->jwrite
 C**** itwrite: 1-2=GHG 3=So 4-5=O3 6-9=aerosols: Trop,DesDust,Volc,Total
