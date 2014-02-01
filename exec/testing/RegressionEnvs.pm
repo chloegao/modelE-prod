@@ -65,7 +65,9 @@ sub getIntelEnvironment
   $env->{COMPILER}="intel";
   if ($branch =~ m/AR5/) 
   {
-    $env->{BASELIBDIR}="/usr/local/other_old/esmf/2.2.2rp3_intel-10.1.017_impi-3.2.2.006/Linux";
+    $env->{ESMF_DIR}="/discover/nobackup/projects/giss/esmf_2_2_ifort_10.1.017_intelmpi";
+    $env->{ESMF_BOPT}="O";
+    $env->{ESMF}="YES";
     $env->{NETCDFHOME}="/usr/local/other/netcdf/3.6.2_intel-10.1.013";
     $env->{PNETCDFHOME}="/discover/nobackup/mkelley5/pnetcdf-1.2.0";
   }
@@ -97,7 +99,8 @@ sub getGfortranEnvironment
   else 
   {
     $env->{MPIDISTR}="openmpi";
-    $env->{MPIDIR}="/usr/local/other/SLES11.1/openMpi/1.7.2/gcc-4.8.1-shared";
+    #$env->{MPIDIR}="/usr/local/other/SLES11.1/openMpi/1.7.2/gcc-4.8.1-shared";
+    $env->{MPIDIR}="/gpfsm/dnb32/mbhat/TestSlurm/Installs/openmpi/1.7.2-gcc-4.8.1-shared";
     $env->{BASELIBDIR5}="/usr/local/other/esmf400rp1/gcc4.7_openmpi-1.4.5";
     $env->{PNETCDFHOME}="/usr/local/other/pnetcdf/gcc-4.8.1_openmpi-1.7.2";
     $env->{NETCDFHOME}="/usr/local/other/netcdf/3.6.2_gcc4.8.1";
@@ -193,7 +196,7 @@ sub saveForDiffreport()
    my $rsize = scalar @rundecks;
    my $csize = scalar @compilers;
 
-   my $file =  $env->{GIT_CLONE} . "/exec/testing/testsOutput/" . "." . "$cfgFile";
+   my $file =  $ENV{TESTD} . "/." . $cfgFile;
    open (FH, "> $file") or die "Can't open $file for write: $!";
    my $i = 0;
    while($i < $rsize)

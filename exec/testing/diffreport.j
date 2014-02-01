@@ -134,7 +134,7 @@ doDiff()
 }
 
 # -------------------------------------------------------------------
-createSCMSkipList()
+createSCMskipList()
 # -------------------------------------------------------------------
 {
 cat << EOF > skipList
@@ -143,7 +143,17 @@ EOF
 }
 
 # -------------------------------------------------------------------
-createCADSkipList()
+createAR5skipList()
+# -------------------------------------------------------------------
+{
+cat << EOF > skipList
+trabl
+taijn
+EOF
+}
+
+# -------------------------------------------------------------------
+createCADskipList()
 # -------------------------------------------------------------------
 {
 cat << EOF > skipList
@@ -151,6 +161,9 @@ trabl_ocn01
 trabl_gla01
 trabl_lnd01
 taijn
+taijs
+tajls
+tconsrv
 EOF
 }
 # -------------------------------------------------------------------
@@ -168,31 +181,49 @@ deckDiff()
    for deck in "${deckArray[@]}"; do
       # defaults
       compileErr=OK
+      baseNotChanged=YES
+      isRstReprod=YES
+      isNPEReprod=YES
+      # Do not check NPE reproducibility for NUOPC - mark as NA
+      [ $CONFIG == "NUOPC" ] && isNPEReprod=NA || isNPEReprod=YES
+
       # Do not check TRAPS tests against baseline - mark as NA
       [ $CONFIG == "TRAPS" ] && baseNotChanged=NA || baseNotChanged=YES
       # SCM is not restart reproducible - mark as NA
-      # [[ $deck =~ SCM ]] && isRstReprod=NA || isRstReprod=YES
-      isRstReprod=YES
-      isNPEReprod=YES
+      [[ "$deck" =~ SCM || "$deck" =~ SGP ]] && isRstReprod=NA || isRstReprod=YES
+
       deckResults=($compileErr $baseNotChanged $isRstReprod $isNPEReprod)
       echo "initial values: "${deckResults[@]}
       export deckResults
       report=( "${report[@]}" "$deck [$comp] :" )
       echo "  --- DECK = $deck ---"
-      if [[ $deck =~ SGP ]]; then
-         createSCMSkipList
+      if [[ $deck =~ E4Tcad ]]; then
+         createCADskipList
       fi
-      if [[ $deck =~ E4Tcad ]] || [[ $deck =~ AR5_CAD ]]; then
-         createCADSkipList
-      fi
-      # Don't do serial comparisons of C90 and AR5 rundecks
-      if [[ "$deck" =~ C90 ]] || [[ "$deck" =~ AR5_CAD ]] || [[ "$deck" =~ tomas ]] || [[ "$deck" =~ amp ]]; then
+      if [[ "$deck" =~ E_AR5_CADI ]]; then
+         echo "  ->Baseline reproducibility..."
+         doDiff $deck.MPI.$comp.1hr.np=44 $baseline/$deck.MPI.$comp.1hr.np=44 $deck $comp
+         doDiff $deck.MPI.$comp.1dy.np=44 $baseline/$deck.MPI.$comp.1dy.np=44 $deck $comp
+         createAR5skipList
+         echo "  ->Restart reproducibility..."
+         doDiff $deck.MPI.$comp.1dy.np=44 $deck.MPI.$comp.restart.np=44 $deck $comp
+      elif [[ "$deck" =~ SCM || "$deck" =~ SGP ]]; then
+         echo "  ->Baseline reproducibility..."
+         createSCMskipList
+         doDiff $deck.SERIAL.$comp.1hr $baseline/$deck.SERIAL.$comp.1hr $deck $comp
+         doDiff $deck.SERIAL.$comp.1dy $baseline/$deck.SERIAL.$comp.1dy $deck $comp
+      else
+
+# ---------
+
+      # Don't do serial comparisons of C90 and some tracers rundecks
+      if [[ "$deck" =~ C90 ]] || [[ "$deck" =~ tomas ]] || [[ "$deck" =~ amp ]]; then
          echo "  ->Skip SERIAL comparison"
       else
         if [ $checkSERIAL -gt 0 ]; then
 # compare SERIAL restart reproducibility
 # SCM is not restart reproducible, so skip it
-          if [[ ! "$deck" =~ SGP ]]; then
+          if [[ ! "$deck" =~ SGP || ! "$deck" =~ SCM ]]; then
             echo "  ->compare SERIAL restart reproducibility..."
             doDiff $deck.SERIAL.$comp.1dy $deck.SERIAL.$comp.restart $deck $comp
             if [ $? -ne $OK ]; then  NF=$(($NF+1)); fi
@@ -208,8 +239,9 @@ deckDiff()
           fi
         fi
       fi
-      if [[ "$comp" =~ nag ]] || [[ "$deck" =~ SGP ]]; then
-        echo "  ->Skip MPI comparisons when using NAG compiler or SCM rundeck"
+
+      if [[ "$comp" =~ nag ]] || [[ $deck =~ SGP ]];|| [[ $deck =~ SCM ]] then
+        echo "  ->Skip MPI comparisons when using NAG compiler"
       else
 # compare MPI restart reproducibility - 3rd argument ($3) is NPE configuration
         if [ ! -z $3 ]; then
@@ -234,23 +266,23 @@ deckDiff()
 # compare MPI vs SERIAL reproducibility
             echo "  ->compare MPI vs SERIAL reproducibility..."
             if [[ $checkMPI -gt 0 ]] && [[ "$LEVEL" != "INSANE" ]]; then
-	      if [[ "$deck" =~ C90 ]] || [[ "$deck" =~ AR5_CAD ]] || [[ "$deck" =~ tomas ]] || [[ "$deck" =~ amp ]] || [[ "$comp" =~ nag ]] || [[ "$deck" =~ SGP ]]; then
+              if [[ "$deck" =~ C90 ]] || [[ "$deck" =~ tomas ]] || [[ "$deck" =~ amp ]] || [[ "$comp" =~ nag ]] || [[ $deck =~ SGP ]] || [[ $deck =~ SCM ]]; then
                 echo "  ->SKIP compare MPI vs SERIAL reproducibility.."
               else
-	        doDiff $deck.MPI.$comp.1hr.np=$npe $deck.SERIAL.$comp.1hr $deck $comp
-	        doDiff $deck.MPI.$comp.1dy.np=$npe $deck.SERIAL.$comp.1dy $deck $comp
+                doDiff $deck.MPI.$comp.1hr.np=$npe $deck.SERIAL.$comp.1hr $deck $comp
+                doDiff $deck.MPI.$comp.1dy.np=$npe $deck.SERIAL.$comp.1dy $deck $comp
                 if [ $? -ne $OK ]; then  NF=$(($NF+1)); fi
               fi
             fi
           done
         fi
-      fi # skip MPI comparisons
+     fi  # not NAG
+# ---------
+
+      fi
       resultString="$deck $comp ${deckResults[@]}"
       deckReport=( "${deckReport[@]}" "$resultString" )
-      if [[ $deck =~ E4Tcad ]] || [[ $deck =~ AR5_CAD ]]; then
-         rm -f skipList
-      fi
-      if [[ $deck =~ SGP ]]; then
+      if [[ $deck =~ E4Tcad ]] || [[ $deck =~ AR5_CAD ]] || [[ $deck =~ SGP ]] || [[ $deck =~ SCM ]]; then
          rm -f skipList
       fi
       echo "final values: "${deckResults[@]}
@@ -518,8 +550,6 @@ declare -a AR5Decks
 declare -a SCMdecks
 
 export willPrintAdditional=NO
-
-TESTD=$MODELROOT/exec/testing/testsOutput
 
 cd $TESTD
 

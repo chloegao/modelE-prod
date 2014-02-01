@@ -129,9 +129,7 @@ sub runInBatch
   }
   else
   {
-    if    ($jobname =~ nonProduction || $jobname =~ C12) 
-    { $walltime = "00:30:00"; }
-    elsif ($jobname =~ M20) 
+    if ($jobname =~ M20 || $jobname =~ nonProduction || $jobname =~ C12) 
     { $walltime = "01:00:00"; }
     elsif ($jobname =~ obio) 
     { $walltime = "02:00:00"; }

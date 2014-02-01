@@ -186,7 +186,7 @@ EOF
 # MAIN
 # ---------------------
 
-ROOT=$MODELROOT/exec/testing/testsOutput/
+ROOT=$TESTD
 cd $ROOT
 toEmail="$CONFIG.unit"
 rm -f $toEmail
