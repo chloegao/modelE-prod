@@ -59,11 +59,11 @@ $resolutions->{nonProduction_E_AR5_C12} = "8x10";
 $resolutions->{EM20}                    = "4x5";
 $resolutions->{E1oM20}                  = "4x5";
 $resolutions->{E4F40}                   = "2x2.5";
-$resolutions->{E4TampF40}               = "2x2.5";
 $resolutions->{E4TcadiF40}              = "2x2.5";
 $resolutions->{E4arobio_h4c}            = "2x2.5";
 $resolutions->{E4arobio_g6c}            = "2x2.5";
-$resolutions->{E4TctomasF40}            = "2x2.5";
+$resolutions->{E4TctomasF40}            = "2x2.5m"; #MPI "large"
+$resolutions->{E4TampF40}               = "2x2.5m"; #MPI "large"
 $resolutions->{E_AR5_CADI}              = "2x2.5";
 $resolutions->{SGP4TESTS}               = "0";   # single column model 
 $resolutions->{E4C90L40}                = "CS";  # cubed sphere
@@ -80,6 +80,7 @@ $numProcesses->{"4x5"}->{INSANE}       = [23,44];
 $numProcesses->{"4x5"}->{POLAR}       = [23,46];
 
 $numProcesses->{"2x2.5"}->{GENTLE}     = [1,8];
+$numProcesses->{"2x2.5m"}->{GENTLE}     = [44];
 $numProcesses->{"2x2.5"}->{AGGRESSIVE} = [1,45];
 $numProcesses->{"2x2.5"}->{INSANE}     = [45,88];
 $numProcesses->{"2x2.5"}->{POLAR}     = [46,90];
@@ -157,11 +158,6 @@ foreach my $rundeck (@rundecks)
 { 
   foreach $compiler (@compilers) 
   {
-    if ($compiler eq 'nag') 
-    {
-      $ENV{PATH}="/usr/local/other/SLES11.1/mvapich2/1.8.1/nag-5.3-907/bin:".$ENV{PATH};
-      $ENV{LD_LIBRARY_PATH}="/usr/local/other/SLES11.1/mvapich2/1.8.1/nag-5.3-907/lib:".$ENV{LD_LIBRARY_PATH};
-    }
     $env->{$compiler}->{RUNDECK} = $rundeck;
 
     foreach $configuration (@{$useCases->{$rundeck}->{CONFIGURATIONS}}) 
