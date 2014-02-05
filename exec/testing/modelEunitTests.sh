@@ -39,8 +39,7 @@ submitJob()
   local testLog=$3
   local mpi=$4
 
-  #local deck=E4TcadiF40
-  local deck=nonProduction_E4TcadC12
+  local deck=E4TcadiF40
 
   MAKELOG=make.log.${compiler}
   FAILLOG=${testLog}.FAILED
@@ -68,13 +67,13 @@ EOF
   if [ "$compiler" == "intel" ]; then
 
     cat << EOF >> $jobScript
-module load comp/intel-14.0.0.080 mpi/impi-3.2.2.006 other/git-1.7.3.4
+module load comp/intel-14.0.1.106 mpi/impi-3.2.2.006 other/git-1.8.5.2
 EOF
    
   else
 
     cat << EOF >> $jobScript
-module load other/comp/gcc-4.8.1 other/mpi/openmpi/1.7.2-gcc-4.8.1-shared other/git-1.7.3.4
+module load other/comp/gcc-4.9.0 other/mpi/openmpi/1.7.3-gcc-4.9.0 other/git-1.8.5.2
 EOF
 
   fi
