@@ -66,18 +66,18 @@ contains
 
 @Test  
   subroutine testAssignAttributeReference(this)
-    use AttributeReference_mod
+    use AttributeHashMap_mod
     use IntegerAttribute_mod, only: assignment(=)
     class (Test_AttributeDictionary), intent(inout) :: this
     
-    type (AttributeReference) :: scalar
+    type (AbstractAttributeReference) :: scalar
     integer, pointer :: i => null()
 
-    type (IntegerAttribute) :: iAttr
+    type (IntegerAttribute), target :: iAttr
 
     iAttr = newAttribute(1)
     
-    call scalar%set(iattr)
+    scalar%ptr => iattr
 
     i = scalar
     @assertEqual(1, i)

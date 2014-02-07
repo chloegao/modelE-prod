@@ -82,6 +82,7 @@ contains
   logical function equals(this, b)
     class (VectorAttribute), intent(in) :: this
     class (AbstractAttribute), intent(in) :: b
+    equals = .true.
   end function Equals
 
   function toString(this) result(string)

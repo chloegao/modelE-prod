@@ -1,48 +1,130 @@
 module Test_Tracer_mod
   use pFUnit_mod
   use Tracer_mod
-  use Dictionary_mod, only: Dictionary
+  use AttributeDictionary_mod, only: assignment(=)
   implicit none
-  private
 
-  public :: testHasProperty
-  public :: testSetProperty
+@TestCase
+  type, extends(TestCase) :: Test_Tracer
+    type (Tracer) :: CO2
+    type (Tracer) :: H2O17
+    procedure(runMethod), pointer :: userMethod => null()
+  contains
+    procedure :: setUp     ! overides generic
+    procedure :: tearDown  ! overrides generic
+    procedure :: runMethod ! runs userMethod
+  end type Test_Tracer
+
+  interface Test_Tracer
+    module procedure newTest_Tracer
+  end interface Test_Tracer
 
   integer, parameter :: dp = selected_real_kind(14)
 
 contains
 
-@Test
-  subroutine testSetProperty()
-    use GenericType_mod
-    use Dictionary_mod
+  function newTest_Tracer(name, userMethod) result(t)
+    type (Test_Tracer) :: t
+     character(len=*), intent(in) :: name
+     procedure(runMethod) :: userMethod
+     call t%setName(name)
+     t%userMethod => userMethod
+   end function newTest_Tracer
+  
+   subroutine runMethod(this)
+     class (Test_Tracer), intent(inout) :: this
+     call this%userMethod()
+   end subroutine runMethod
+
+  subroutine setUp(this)
+    class (Test_Tracer), intent(inout) :: this
+
+    this%CO2 = newTracer('CO2')
+    call this%CO2%insert('molecularMass', 4.4d+1)
+
+    this%H2O17 = newTracer('H2O17')
+    call this%H2O17%insert('molecularMass', 1.9d+1)
+
+  end subroutine setUp
+
+  subroutine tearDown(this)
+    class (Test_Tracer), intent(inout) :: this
+  end subroutine tearDown
+
+@test
+  subroutine testSetProperty(this)
+    use AbstractAttribute_mod, only: AbstractAttribute
+    class (Test_Tracer), intent(inout) :: this
 
     real(kind=dp) :: expected
-    real(kind=dp), pointer :: found
-    type (Dictionary), pointer :: properties
-    type (Tracer), pointer :: aTracer
+    real(kind=dp), pointer :: found => null()
 
-    aTracer => newTracer('speciesA')
-    expected = 1.0
-    call aTracer%insert('otherProperty', expected)
-    allocate(found)
-    found = aTracer%getReference('otherProperty')
+    expected = 44.0
+    found = this%CO2%getReference('molecularMass')
     @assertEqual(expected, found)
-    call clean(aTracer)
 
   end subroutine testSetProperty
 
-@Test
-  subroutine testHasProperty()
-    use GenericType_mod
+@test
+  subroutine testGetValue(this)
+   use AbstractAttribute_mod, only: AbstractAttribute
+    class (Test_Tracer), intent(inout) :: this
+    real(kind=dp) :: expected
+    real(kind=dp), pointer :: found => null()
+    class (AbstractAttribute), allocatable :: absatt
 
-    real(kind=dp) :: expected, found
-    type (Tracer), pointer :: aTracer
+    expected = 44.0
+    found = this%CO2%getValue('molecularMass')
+    @assertEqual(expected, found)
 
-    aTracer => newTracer('speciesA')
-    call aTracer%insert('optionA', 'description')
-    @assertFalse(aTracer%has('optionB'))
+  end subroutine testGetValue
+
+@test
+  subroutine testHasProperty(this)
+    class (Test_Tracer), intent(inout) :: this
+
+    @assertFalse(this%CO2%has('unknown'))
 
   end subroutine testHasProperty
+
+@test
+  subroutine testGetName(this)
+    class (Test_Tracer), intent(inout) :: this
+
+    @assertEqual('H2O17', getName(this%H2O17))
+
+  end subroutine testGetName
+
+@test
+  subroutine testToTracer(this)
+    class (Test_Tracer), intent(inout) :: this
+    type (Tracer) :: newCO2
+
+    ! Test the assignment (=) operator
+    newCO2 = this%CO2
+    @assertEqual('CO2', getName(newCO2))
+
+  end subroutine testToTracer
+
+@test
+  subroutine testCopyInto(this)
+    class (Test_Tracer), intent(inout) :: this
+    type (Tracer) :: H2O17copy
+
+    real(kind=dp) :: expected
+    real(kind=dp), pointer :: found
+
+    ! Test the tracer copy
+    call copyInto (H2O17copy, this%H2O17)
+
+    ! H2O17copy should have same properties as this%H2O17
+    @assertTrue(this%H2O17%has('molecularMass'))
+
+    expected = 19.0
+    allocate(found)
+    found = H2O17copy%getReference('molecularMass')
+    @assertEqual(expected, found)
+
+  end subroutine testCopyInto
 
 end module Test_Tracer_mod

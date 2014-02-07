@@ -1,17 +1,8 @@
-#define HAS_PRINT
-#define TYPE Tracer
-#include <AssociativeArrayTemplate.h>
-
-#define VALUE_TYPE Tracer
-#undef ITERATOR_TYPE
-#define ITERATOR_TYPE TracerIterator
-#include <HashMapTemplate.h>
-
-
 module TracerBundle_mod
-  use AttributeDictionary_mod, only: AttributeDictionary
+  use AttributeDictionary_mod
   use Tracer_mod
-  use TracerHashMap_mod ! Extend this
+  use AttributeHashMap_mod, only: AbstractAttributeReference
+  use TracerHashMap_mod
   implicit none
   private
 
@@ -25,7 +16,6 @@ module TracerBundle_mod
 
   public :: NOT_FOUND
 
-!!$  type, extends(TracerHashMap) :: TracerBundle
   type, extends(TracerHashMap) :: TracerBundle
 !!$    private
     type (AttributeDictionary) :: defaultValues
@@ -33,9 +23,10 @@ module TracerBundle_mod
     logical :: locked = .false.
     type (AttributeDictionary) :: attributeVectorCache
   contains
+    procedure :: delete
     procedure :: insertEntry ! override base class method
     procedure :: insertGetName ! extend generic
-    generic :: insert => insertGetName
+    generic   :: insert => insertGetName
     procedure :: findAttribute
     procedure :: getAttribute
     procedure :: setAttribute
@@ -44,10 +35,11 @@ module TracerBundle_mod
     procedure :: addDefault_logical
     procedure :: addDefault_real64
     procedure :: addDefault_string
-    generic :: addDefault => addDefault_integer, addDefault_logical, &
-         & addDefault_real64, addDefault_string
+    generic   :: addDefaultValue => addDefault_integer, &
+                                    addDefault_logical, &
+                                    addDefault_real64, &
+                                    addDefault_string
     procedure :: countHaveAttribute
-    procedure :: makeSubset
     procedure :: getAttributeVector
     procedure :: addMandatoryAttribute
     procedure :: writeFormatted
@@ -97,11 +89,13 @@ contains
     character(len=*), intent(in) :: species
     character(len=*), intent(in) :: attributeName
     class (AbstractAttribute), intent(in) :: attributeValue
-
+!    type(TracerReference) :: ref
     class (Tracer), pointer :: t
 
     t => this%getReference(species)
-    call t%insert(attributeName, attributeValue)
+!    ref = this%getReference(species)
+!    t => ref%ptr
+    call  t%insert(attributeName, attributeValue)
 
   end subroutine setAttribute
  
@@ -113,12 +107,13 @@ contains
     integer, intent(in) :: unit
     type (AttributeDictionary), optional, intent(in) :: defaultValues
     type (TracerBundle) :: bundle
-    type (Tracer), pointer :: aTracer
+    type (Tracer) :: aTracer
     type (Parser_type) :: parser
 
     integer :: status
 
     bundle = newTracerBundle()
+
     if (present(defaultValues)) then
       ! TODO might need a deep copy here?
       bundle%defaultValues = defaultValues
@@ -127,10 +122,9 @@ contains
     end if
     
     do
-      aTracer => readOneTracer(unit, status)
+      aTracer = readOneTracer(unit, status)
       if (status /= 0) exit
       call bundle%insert(getName(aTracer), aTracer)
-      deallocate(aTracer)
     end do
 
   end function readFromText
@@ -240,7 +234,7 @@ contains
     integer :: oldVersion
     character(len=len(DESCRIPTION)) :: tag
     character(len=LEN_HEADER) :: header
-    type (Tracer), pointer :: t
+    type (Tracer) :: t
 
     read(unit) header
     read(header, '(a,11x,i10.0)') tag, oldVersion
@@ -256,7 +250,7 @@ contains
     read(unit) n
     this = newTracerBundle()
     do i = 1, n
-      t => newTracer()
+      t = newTracer()
       call readUnformattedTracer(t, unit)
       call this%insert(getName(t), t)
     end do
@@ -374,11 +368,16 @@ contains
     character(len=*), intent(in) :: species
     character(len=*), intent(in) :: attribute
     class (AbstractAttribute), pointer :: attributeValue
+    type (AbstractAttributeReference) :: attrRef
+!    type (TRACERreference) :: ref
 
     class (Tracer), pointer :: t
 
     t => this%getReference(trim(species))
-    attributeValue => t%getReference(attribute)
+!    ref = this%getReference(trim(species))
+!    t => ref%ptr
+    attrRef = t%getReference(attribute)
+    attributeValue => attrRef%ptr
 
   end function getAttribute
 
@@ -390,32 +389,6 @@ contains
 
   end function countHaveAttribute
 
-  function makeSubset(this, withAttribute) result(subset)
-    class (TracerBundle), target, intent(in) :: this
-    character(len=*), intent(in) :: withAttribute
-    type (TracerBundle) :: subset
-
-    integer :: i
-    type (TracerIterator) :: iter
-    class (Tracer), pointer :: t
-
-    subset = newTracerBundle()
-    subset%defaultValues = this%defaultValues
-
-    iter = this%begin()
-    do while (iter /= this%last())
-      t => iter%value()
-      if (t%has(withAttribute)) then
-        call subset%insertReference(trim(iter%key()), iter%value())
-      end if
-      call iter%next()
-    end do
-
-    ! no further modifications are permitted
-    subset%locked = .true. 
-
-  end function makeSubset
-
   function getAttributeVector(this, attributeName) result(vector)
     use AbstractAttribute_mod
     use AttributeReference_mod
@@ -424,9 +397,11 @@ contains
     type (AttributeReference), pointer :: vector(:)
 
     class (Tracer), pointer :: t
-    type (VectorAttribute) :: reference
+    type (VectorAttribute) :: vecAttr
     type (TracerIterator) :: iter
     class (AbstractAttribute), pointer :: attribute
+    type (AbstractAttributeReference) :: attrRef
+
     integer :: i
 
     ! must be at least one tracer to determine type of result
@@ -437,7 +412,8 @@ contains
 
     if (this%attributeVectorCache%has(attributeName)) then
       ! Should be doable in 1 step, but compiler struggles ...
-      attribute => this%attributeVectorCache%getReference(attributeName)
+      attrRef = this%attributeVectorCache%getReference(attributeName)
+      attribute => attrRef%ptr
       vector = attribute
       return
     end if
@@ -455,13 +431,14 @@ contains
         call throwException('All tracers must have specified attribute to use getAttributeVector() method.',14)
         return
       end if
-      call vector(i)%set(t%getReference(attributeName))
+      attrRef = t%getReference(attributeName)
+      call vector(i)%set(attrRef%ptr)
       i = i + 1
       call iter%next()
     end do
 
-    reference = newVectorAttribute(vector)
-    call this%attributeVectorCache%insert(attributeName, reference) ! save for efficient reference next time
+    vecAttr = newVectorAttribute(vector)
+    call this%attributeVectorCache%insert(attributeName, vecAttr) ! save for efficient reference next time
 
   end function getAttributeVector
 
@@ -474,6 +451,7 @@ contains
 
     type (TracerIterator) :: iter
     class (Tracer), pointer :: t
+!    type (TRACERreference) :: ref
 
     isEqual = .true.
 
@@ -481,6 +459,8 @@ contains
     do while (iter /= bundleA%last())
       name = trim(iter%key())
       t => iter%value()
+!      ref = bundleB%getReference(name)
+!      if (.not. (t%equals(ref%ptr))) then
       if (.not. (t%equals(bundleB%getReference(name)))) then
         isEqual = .false.
         exit
@@ -502,11 +482,13 @@ contains
   end subroutine cleanBundle
 
   subroutine insertEntry(this, key, value)
+    
     class (TracerBundle), target, intent(inout) :: this
     character(len=*), intent(in) :: key ! name
     class (Tracer) :: value ! tracer
-
     class (Tracer), pointer :: p
+
+!    type(TRACERreference) :: ref
 
     if (this%locked) then
       call throwException("TracerBundle_mod - cannot insert new tracer into subset. " // &
@@ -516,6 +498,9 @@ contains
     call assertHasAttributes(value, this%mandatoryAttributes)
 
     call this%TracerHashMap%insertEntry(key, value) ! invoke parent method
+!    ref = this%getReference(key)
+
+!    call ref%ptr%merge(this%defaultValues)
     p => this%getReference(key)
 
     call p%merge(this%defaultValues)
@@ -526,8 +511,6 @@ contains
     class (TracerBundle), intent(inout) :: this
     class (Tracer) :: value ! tracer
 
-    class (Tracer), pointer :: p
-
     call this%insertEntry(getName(value), value)
 
   end subroutine insertGetName
@@ -537,15 +520,23 @@ contains
     class (TracerBundle), intent(in) :: this
     character(len=*), intent(in) :: species
     character(len=*), intent(in) :: attributeName
-
     class (AbstractAttribute), pointer :: attribute
-
     class (Tracer), pointer :: t
-    
+!    type(TRACERreference) :: ref
+!    type(AbstractAttributeReference) :: refAttr
+
     t => this%getReference(species)
-    attribute => t%getReference(attributeName)
-    
+! This is now the wrong interface:
+!    attribute => t%getReference(attributeName)
+    attribute => null()
+
+!    ref = this%getReference(species)
+!    refAttr = ref%ptr%getReference(attributeName)
+!    attribute => refAttr%ptr
+
   end function findAttribute
+
+
 
   subroutine copyBundle(a, b)
     use TracerHashMap_mod, only: assignment(=)
@@ -563,5 +554,14 @@ contains
     a%locked = b%locked
     a%attributeVectorCache = b%attributeVectorCache
   end subroutine copyBundle
+
+  subroutine delete(this)
+    class (TracerBundle), intent(inout) :: this
+    integer :: i
+
+    call clean(this%defaultValues)
+    deallocate(this%mandatoryAttributes)
+
+  end subroutine delete
 
 end module TracerBundle_mod

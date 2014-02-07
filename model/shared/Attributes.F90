@@ -74,15 +74,12 @@ contains
     end select
   end subroutine toType
 
-  subroutine toTypeUnwrap(value, reference)
-    use AttributeReference_mod
+  subroutine toTypeUnwrap(value, wrappedPtr)
+    use AttributeHashMap_mod
     integer, pointer, intent(inout) :: value (:)
-    type (AttributeReference), intent(in) :: reference
+    type (AbstractAttributeReference), intent(in) :: wrappedPtr
 
-    class (AbstractAttribute), pointer :: p
-
-    p => reference%get()
-    value = p
+    value = wrappedPtr%ptr
 
   end subroutine toTypeUnwrap
 
@@ -230,20 +227,18 @@ contains
     type is (IntegerAttribute)
       value => q%value
     class default
+    value => null()
 !!$      call entry%print()
       call throwException('Illegal conversion of IntegerAttribute.',255)
     end select
   end subroutine toType
 
-  subroutine toTypeUnwrap(value, reference)
-    use AttributeReference_mod
+  subroutine toTypeUnwrap(value, wrappedPtr)
+    use AttributeHashMap_mod
     integer, pointer, intent(inout) :: value 
-    type (AttributeReference), intent(in) :: reference
+    type (AbstractAttributeReference), intent(in) :: wrappedPtr
 
-    class (AbstractAttribute), pointer :: p
-
-    p => reference%get()
-    value = p
+    value = wrappedPtr%ptr
 
   end subroutine toTypeUnwrap
 
@@ -252,7 +247,7 @@ contains
     integer, pointer, intent(inout) :: value(:)
     type (AttributeReference), intent(in) :: references(:)
 
-    class (AbstractAttribute), pointer :: p
+!!$    class (AbstractAttribute), pointer :: p
     integer, pointer :: q
     integer :: i, n
 
@@ -260,8 +255,8 @@ contains
     allocate(value(n))
 
     do i = 1, n
-!!$      p => references(i)%get()
-      q = references(i)!%get()
+!      q = references(i)%get()
+      call toType(q,references(i)%get())
       value(i) = q
       nullify(q)
     end do
@@ -414,15 +409,12 @@ contains
     end select
   end subroutine toType
 
-  subroutine toTypeUnwrap(value, reference)
-    use AttributeReference_mod
+  subroutine toTypeUnwrap(value, wrappedPtr)
+    use AttributeHashMap_mod
     logical, pointer, intent(inout) :: value (:)
-    type (AttributeReference), intent(in) :: reference
+    type (AbstractAttributeReference), intent(in) :: wrappedPtr
 
-    class (AbstractAttribute), pointer :: p
-
-    p => reference%get()
-    value = p
+    value = wrappedPtr%ptr
 
   end subroutine toTypeUnwrap
 
@@ -575,15 +567,12 @@ contains
     end select
   end subroutine toType
 
-  subroutine toTypeUnwrap(value, reference)
-    use AttributeReference_mod
+  subroutine toTypeUnwrap(value, wrappedPtr)
+    use AttributeHashMap_mod
     logical, pointer, intent(inout) :: value 
-    type (AttributeReference), intent(in) :: reference
+    type (AbstractAttributeReference), intent(in) :: wrappedPtr
 
-    class (AbstractAttribute), pointer :: p
-
-    p => reference%get()
-    value = p
+    value = wrappedPtr%ptr
 
   end subroutine toTypeUnwrap
 
@@ -592,7 +581,7 @@ contains
     logical, pointer, intent(inout) :: value(:)
     type (AttributeReference), intent(in) :: references(:)
 
-    class (AbstractAttribute), pointer :: p
+!!$    class (AbstractAttribute), pointer :: p
     logical, pointer :: q
     integer :: i, n
 
@@ -600,8 +589,7 @@ contains
     allocate(value(n))
 
     do i = 1, n
-!!$      p => references(i)%get()
-      q = references(i)!%get()
+      q = references(i)%get()
       value(i) = q
       nullify(q)
     end do
@@ -754,15 +742,12 @@ contains
     end select
   end subroutine toType
 
-  subroutine toTypeUnwrap(value, reference)
-    use AttributeReference_mod
+  subroutine toTypeUnwrap(value, wrappedPtr)
+    use AttributeHashMap_mod
     real(kind=DP), pointer, intent(inout) :: value (:)
-    type (AttributeReference), intent(in) :: reference
+    type (AbstractAttributeReference), intent(in) :: wrappedPtr
 
-    class (AbstractAttribute), pointer :: p
-
-    p => reference%get()
-    value = p
+    value = wrappedPtr%ptr
 
   end subroutine toTypeUnwrap
 
@@ -915,15 +900,12 @@ contains
     end select
   end subroutine toType
 
-  subroutine toTypeUnwrap(value, reference)
-    use AttributeReference_mod
+  subroutine toTypeUnwrap(value, wrappedPtr)
+    use AttributeHashMap_mod
     real(kind=DP), pointer, intent(inout) :: value 
-    type (AttributeReference), intent(in) :: reference
+    type (AbstractAttributeReference), intent(in) :: wrappedPtr
 
-    class (AbstractAttribute), pointer :: p
-
-    p => reference%get()
-    value = p
+    value = wrappedPtr%ptr
 
   end subroutine toTypeUnwrap
 
@@ -932,7 +914,7 @@ contains
     real(kind=DP), pointer, intent(inout) :: value(:)
     type (AttributeReference), intent(in) :: references(:)
 
-    class (AbstractAttribute), pointer :: p
+!!$    class (AbstractAttribute), pointer :: p
     real(kind=DP), pointer :: q
     integer :: i, n
 
@@ -940,8 +922,7 @@ contains
     allocate(value(n))
 
     do i = 1, n
-!!$      p => references(i)%get()
-      q = references(i)!%get()
+      q = references(i)%get()
       value(i) = q
       nullify(q)
     end do
@@ -1094,15 +1075,12 @@ contains
     end select
   end subroutine toType
 
-  subroutine toTypeUnwrap(value, reference)
-    use AttributeReference_mod
+  subroutine toTypeUnwrap(value, wrappedPtr)
+    use AttributeHashMap_mod
     character(len=MAX_LEN_ATTRIBUTE_STRING), pointer, intent(inout) :: value (:)
-    type (AttributeReference), intent(in) :: reference
+    type (AbstractAttributeReference), intent(in) :: wrappedPtr
 
-    class (AbstractAttribute), pointer :: p
-
-    p => reference%get()
-    value = p
+    value = wrappedPtr%ptr
 
   end subroutine toTypeUnwrap
 
@@ -1256,15 +1234,12 @@ contains
     end select
   end subroutine toType
 
-  subroutine toTypeUnwrap(value, reference)
-    use AttributeReference_mod
+  subroutine toTypeUnwrap(value, wrappedPtr)
+    use AttributeHashMap_mod
     character(len=MAX_LEN_ATTRIBUTE_STRING), pointer, intent(inout) :: value 
-    type (AttributeReference), intent(in) :: reference
+    type (AbstractAttributeReference), intent(in) :: wrappedPtr
 
-    class (AbstractAttribute), pointer :: p
-
-    p => reference%get()
-    value = p
+    value = wrappedPtr%ptr
 
   end subroutine toTypeUnwrap
 
@@ -1273,7 +1248,7 @@ contains
     character(len=MAX_LEN_ATTRIBUTE_STRING), pointer, intent(inout) :: value(:)
     type (AttributeReference), intent(in) :: references(:)
 
-    class (AbstractAttribute), pointer :: p
+!!$    class (AbstractAttribute), pointer :: p
     character(len=MAX_LEN_ATTRIBUTE_STRING), pointer :: q
     integer :: i, n
 
@@ -1281,8 +1256,7 @@ contains
     allocate(value(n))
 
     do i = 1, n
-!!$      p => references(i)%get()
-      q = references(i)!%get()
+      q = references(i)%get()
       value(i) = q
       nullify(q)
     end do

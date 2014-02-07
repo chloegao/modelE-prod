@@ -4,17 +4,13 @@ module Test_HashMapIterator_mod
   use FooHashMap_mod
   implicit none
 
-  public :: setUp
-  public :: tearDown
-
-  public :: Test_HashMapIterator
   interface Test_HashMapIterator
     module procedure newTest_HashMapIterator
   end interface Test_HashMapIterator
 
 @TestCase
   type, extends(TestCase) :: Test_HashMapIterator
-    type (FooHashMap), pointer :: dictionary
+    type (FooHashMap) :: dictionary
      procedure(runMethod), pointer :: userMethod => null()
   contains
      procedure :: setUp     ! overides generic
@@ -41,7 +37,7 @@ contains
 
   subroutine setUp(this)
     class (Test_HashMapIterator), intent(inout) :: this
-    this%dictionary => newFooHashMap()
+    this%dictionary = newFooHashMap()
     call this%dictionary%insert('A', Foo(1))
     call this%dictionary%insert('B', Foo(2))
     call this%dictionary%insert('C', Foo(3))
@@ -50,17 +46,16 @@ contains
   subroutine tearDown(this)
     class (Test_HashMapIterator), intent(inout) :: this
     call clean(this%dictionary)
-    deallocate(this%dictionary)
   end subroutine tearDown
   
   ! hasNext() returns false for empty associative array
 @Test  
   subroutine testIteratorHasNext_empty(this)
     class (Test_HashMapIterator), intent(inout) :: this
-    type (FooHashMap), pointer :: emptyDictionary
+    type (FooHashMap) :: emptyDictionary
     type (FooHashMapIterator) :: iterator
 
-    emptyDictionary => newFooHashMap()
+    emptyDictionary = newFooHashMap()
     iterator = emptyDictionary%begin()
 
     @assertFalse(iterator%hasNext())
@@ -74,10 +69,10 @@ contains
 @Test  
   subroutine testIteratorNotEqual_empty(this)
     class (Test_HashMapIterator), intent(inout) :: this
-    type (FooHashMap), pointer :: emptyDictionary
+    type (FooHashMap) :: emptyDictionary
     type (FooHashMapIterator) :: iterator
 
-    emptyDictionary => newFooHashMap()
+    emptyDictionary = newFooHashMap()
     iterator = emptyDictionary%begin()
 
     @assertFalse(iterator /= emptyDictionary%last())

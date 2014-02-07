@@ -18,7 +18,7 @@ module Tracer_mod
   public :: findSurfaceSources
   public :: addSurfaceSource
   public :: readSurfaceSources
-  public :: assignment(=)
+!!$  public :: assignment(=)
 
   public :: NTSURFSRCMAX
   public :: copyInto
@@ -33,6 +33,8 @@ module Tracer_mod
     integer :: ntSurfSrc = 0
     type (TracerSurfaceSource) :: surfaceSources(NTSURFSRCMAX)
     type (TracerSource3D) :: sources3D(NT3DSRCMAX)
+ contains
+    procedure :: getName
   end type Tracer
 
   interface newTracer
@@ -45,10 +47,10 @@ module Tracer_mod
     module procedure writeUnformatted_tracer
   end interface
 
-  interface assignment(=)
-    module procedure toTracer
-  end interface assignment(=)
-
+!!$  interface assignment(=)
+!!$    module procedure toTracer
+!!$  end interface assignment(=)
+!!$
   interface clean
     module procedure cleanTracer
   end interface
@@ -59,9 +61,8 @@ contains
   function newEmptyTracer() result(aTracer)
 !@sum Construct empty tracer    
     use Dictionary_mod, only: Dictionary
-    type (Tracer), pointer :: aTracer
+    type (Tracer) :: aTracer
 
-    allocate(aTracer)
     aTracer%AttributeDictionary = newAttributeDictionary()
 
   end function newEmptyTracer
@@ -70,9 +71,9 @@ contains
 !@sum Construct named tracer
     use Dictionary_mod, only: Dictionary
     character(len=*), intent(in) :: name
-    type (Tracer), pointer :: aTracer
+    type (Tracer) :: aTracer
 
-    aTracer => newEmptyTracer()
+    aTracer = newEmptyTracer()
     call aTracer%insert('name', trim(name))
     aTracer%ntSurfsrc = 0
     
@@ -89,15 +90,14 @@ contains
   end function TracerCopy
 
   function getName(this) result (name)
-    use AbstractAttribute_mod
-    type (Tracer), intent(in) :: this
+    use AbstractAttribute_mod, only: MAX_LEN_ATTRIBUTE_STRING
+    use AttributeHashMap_mod
+    class (Tracer), target, intent(in) :: this
     character(len=MAX_LEN_ATTRIBUTE_STRING), pointer :: name
-    class (AbstractAttribute), pointer :: p
+    type (AbstractAttributeReference) :: ref
 
-    ! TODO Intel is now struggling with the line below - no idea why.  Worked before other changes.
-!!$    name = this%getReference('name')
-    p => this%getReference('name')
-    name = p
+    ref = this%getReference('name')
+    name = ref
     
   end function getName
 
@@ -106,7 +106,6 @@ contains
     type (Tracer), intent(in) :: this
     integer, intent(in) :: unit
 
-!!$    call this%properties%writeUnformatted(unit)
     call this%writeUnformatted(unit)
     
   end subroutine writeUnformatted_tracer
@@ -128,7 +127,7 @@ contains
 
     integer, intent(in) :: unit
     integer, intent(out) :: status
-    type (Tracer), pointer :: aTracer
+    type (Tracer) :: aTracer
 
     type (Parser_type) :: parser
 
@@ -137,11 +136,9 @@ contains
     call setTokenSeparators(parser, '=,')
     call setCommentCharacters(parser, '!#')
 
-    aTracer => newEmptyTracer()
+    aTracer = newEmptyTracer()
     aTracer%AttributeDictionary = parse(parser, unit, status)
 
-!!$    aTracer%properties = parse(parser, unit, status)
-    
     if (status /= 0) return
 
   end function readOneTracer

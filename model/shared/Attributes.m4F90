@@ -80,15 +80,12 @@ contains
     end select
   end subroutine toType
 
-  subroutine toTypeUnwrap(value, reference)
-    use AttributeReference_mod
+  subroutine toTypeUnwrap(value, wrappedPtr)
+    use AttributeHashMap_mod
     downcase($1)[]$2, pointer, intent(inout) :: value m4_dimensions($3)
-    type (AttributeReference), intent(in) :: reference
+    type (AbstractAttributeReference), intent(in) :: wrappedPtr
 
-    class (AbstractAttribute), pointer :: p
-
-    p => reference%get()
-    value = p
+    value = wrappedPtr%ptr
 
   end subroutine toTypeUnwrap
 
@@ -98,7 +95,7 @@ ifelse($3,0,
     downcase($1)[]$2, pointer, intent(inout) :: value(:)
     type (AttributeReference), intent(in) :: references(:)
 
-    class (AbstractAttribute), pointer :: p
+!!$    class (AbstractAttribute), pointer :: p
     downcase($1)[]$2, pointer :: q
     integer :: i, n
 
@@ -106,8 +103,7 @@ ifelse($3,0,
     allocate(value(n))
 
     do i = 1, n
-!!$      p => references(i)%get()
-      q = references(i)!%get()
+      q = references(i)%get()
       value(i) = q
       nullify(q)
     end do

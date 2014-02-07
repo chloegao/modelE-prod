@@ -97,10 +97,13 @@ contains
   ! getReference() returns nonassociated pointer for keys that have not been used.
 @Test  
   subroutine testGetReference_notFound(this)
+    use AttributeHashMap_mod, only: AbstractAttributeReference
     class (Test_AssociativeArray), intent(inout) :: this
     class (Foo), pointer :: p
+!    type (AbstractAttributeReference) :: attrRef
 
     call this%dictionary%insert('A', Foo(1))
+!    attrRef = this%dictionary%getReference('B')
     p => this%dictionary%getReference('B')
     @assertTrue(.not. associated(p))
 

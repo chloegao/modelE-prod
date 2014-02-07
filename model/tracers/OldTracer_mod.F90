@@ -401,8 +401,10 @@ contains
     numTracers = numTracers + 1
     internalTracers(numTracers)%name = trim(name)
 
-    t => newTracer(name)
-    call tracerReference%insert(name, t)
+    call tracerReference%insert(name, newTracer(name))
+
+!    t => newTracer(name)
+!    call tracerReference%insert(name, t)
     t => tracerReference%getReference(name)
     call t%insert('index', numTracers)
     call defaultSpec(numTracers, t)

@@ -12,6 +12,7 @@
 !@sum init_tracer_cons_diag Initialize tracer conservation diagnostics
 !@auth Gavin Schmidt
       use AbstractAttribute_mod, only: AbstractAttribute
+      use AttributeHashMap_mod, only: AbstractAttributeReference
       use Attributes_mod, only: assignment(=), IntegerAttribute
       use TracerSurfaceSource_mod, only: TracerSurfaceSource
       USE TRACER_COM, only: ntm
@@ -43,6 +44,7 @@
       logical :: qcon(KTCON-1), qsum(KTCON-1), T=.TRUE. , F=.FALSE.
       logical :: Qf
       integer n,k,g,kk
+      type (AbstractAttributeReference) :: attrRef
       class (AbstractAttribute), pointer :: pa
       integer, pointer :: index
       class (Tracer), pointer :: pTracer
@@ -161,8 +163,11 @@ C**** set some defaults
 
 ! TODO: ifort needs to split this into two steps ???
 c$$$        index = (pTracer%getReference('index'))
-        pa => pTracer%getReference('index')
-        index = pa
+
+        attrRef = pTracer%getReference('index')
+        index = attrRef%ptr
+!        pa => pTracer%getReference('index')
+!        index = pa
         n = index
         sources => pTracer%surfaceSources
 
@@ -8244,6 +8249,7 @@ C**** at the start of any day
 !@sum tracer_source calculates non-interactive sources for tracers
 !@vers 2013/03/26
 !@auth Jean Lerner/Gavin Schmidt
+      use AttributeHashMap_mod, only: AbstractAttributeReference
       USE MODEL_COM, only: itime,dtsrc,nday
       use TracerSurfaceSource_mod, only: TracerSurfaceSource
       use Tracer_mod, only: Tracer, getName
@@ -8364,6 +8370,7 @@ c      real*8 :: nlight, max_COSZ1, fact0
       integer :: year, month, dayOfYear
 
       type (TracerIterator) :: iter
+      type (AbstractAttributeReference) :: attrRef
       class (AbstractAttribute), pointer :: pa
       integer, pointer :: index
 
@@ -8387,9 +8394,11 @@ C**** All sources are saved as kg/s
       iter = tracers%begin()
       do while (iter /= tracers%last())
         pTracer => iter%value()
+        attrRef = pTracer%getReference('index')
+        index = attrRef%ptr
 
-        pa => pTracer%getReference('index')
-        index = pa
+!        pa => pTracer%getReference('index')
+!        index = pa
         n = index
 
         pTracer => tracers%getReference(trname(n))
