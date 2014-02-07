@@ -1,0 +1,126 @@
+module Test_TracerReference_mod
+  use pFUnit_mod
+  use Tracer_mod
+  use TracerPointer_mod
+  use AttributeDictionary_mod
+  use Attributes_mod
+
+  implicit none
+
+@TestCase
+  type, extends(TestCase) :: TestTracerPointer
+    type (TracerPointer) :: tracerRef
+
+    procedure(runMethod), pointer :: userMethod => null()
+  contains
+    procedure :: setUp     ! overides generic
+    procedure :: tearDown  ! overrides generic
+    procedure :: runMethod ! runs userMethod
+  end type TestTracerPointer
+
+  interface TestTracerPointer
+    module procedure newTestTracerPointer
+  end interface TestTracerPointer
+
+contains
+
+  function newTestTracerPointer(name, userMethod) result(test)
+    type (TestTracerPointer) :: test
+    character(len=*), intent(in) :: name
+    procedure(runMethod) :: userMethod
+
+    call test%setName(name)
+    test%userMethod => userMethod
+
+  end function newTestTracerPointer
+
+  subroutine runMethod(this)
+    class (TestTracerPointer), intent(inout) :: this
+    call this%userMethod()
+  end subroutine runMethod
+
+  subroutine setUp(this)
+    class (TestTracerPointer), intent(inout) :: this
+    type (Tracer) :: aTracer
+    type (TracerPointer) :: trp
+
+    aTracer = newTracer('speciesA')
+    !this%tracerRef = TracerPointer(aTracer)
+    !trp = TracerPointer(aTracer)
+    call this%tracerRef%set(aTracer)
+
+    !call trp%set(aTracer)
+  end subroutine setUp
+
+  subroutine tearDown(this)
+    class (TestTracerPointer), intent(inout) :: this
+  end subroutine tearDown
+
+
+@test
+  subroutine testSetReference(this)
+    class (TestTracerPointer), intent(inout) :: this
+    type (Tracer) :: aTracer
+    class (Tracer), pointer :: reference
+
+! Does not work from setup:
+    aTracer = newTracer('speciesA')
+    call this%tracerRef%set(aTracer)
+
+!!$    call this%tracerRef%print()
+
+    reference => this%tracerRef%get()
+    ! Check if name of tracer refrence is correct
+    @assertEqual('speciesA', reference%getName())
+
+   end subroutine testSetReference
+
+@test
+  subroutine testInsertIntegerAttribute(this)
+    class (TestTracerPointer), intent(inout) :: this
+    class (Tracer), pointer :: found
+    type (Tracer) :: aTracer
+   
+    integer, pointer :: pInteger
+    integer, parameter :: INT_VALUE=1
+
+! Does not work from setup:
+    aTracer = newTracer('speciesA')
+    call this%tracerRef%set(aTracer)
+
+    call this%tracerRef%insert('A', INT_VALUE)
+    found => this%tracerRef%get()
+
+    pInteger = found%getReference('A')
+    @assertEqual(INT_VALUE, pInteger)
+
+  end subroutine testInsertIntegerAttribute
+
+
+@test
+  subroutine testInsertLogicalAttribute(this)
+    class (TestTracerPointer), intent(inout) :: this
+    class (Tracer), pointer :: found
+    type (Tracer) :: aTracer
+   
+    logical, pointer :: pLogical
+    logical, parameter :: LOG_VALUE=.true.
+
+! Does not work from setup:
+    aTracer = newTracer('speciesA')
+    call this%tracerRef%set(aTracer)
+
+    call this%tracerRef%insert('A', .true.)
+    call this%tracerRef%insert('B', .false.)
+
+    found => this%tracerRef%get()
+    pLogical = found%getReference('A')
+    @assertTrue(pLogical)
+
+    pLogical = found%getReference('B')
+    @assertFalse(pLogical)
+
+  end subroutine testInsertLogicalAttribute
+
+
+end module Test_TracerReference_mod
