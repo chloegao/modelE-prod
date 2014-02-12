@@ -155,11 +155,9 @@ sub runInBatch
 #!/bin/bash
 #PBS -l select=$nodes:mpiprocs=12
 #PBS -l walltime=$walltime
-#PBS -W group_list=s1001
 #PBS -N $validPBSname
-#PBS -j oe
 #PBS $queueString
-#PBS -V
+#SBATCH -A s1001
 
 cd \$PBS_O_WORKDIR
 

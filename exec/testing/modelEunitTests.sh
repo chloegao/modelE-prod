@@ -1,4 +1,4 @@
-#!/usr/local/bin/bash
+#!/bin/bash
 
 # Script to run modelE unit tests on Linux (DISCOVER)
 
@@ -53,11 +53,10 @@ submitJob()
 
   cat << EOF > $jobScript
 #!/bin/bash
-#PBS -N modelEut
+#PBS -N mEunit
 #PBS -l select=1:mpiprocs=12
 #PBS -l walltime=0:05:00
-#PBS -W group_list=s1001
-#PBS -j oe
+#SBATCH -A s1001
 
 # set up the modeling environment
 . /usr/share/modules/init/bash
@@ -85,10 +84,10 @@ export MODELERC=$REGSCRATCH/${compiler}/modelErc.${compiler}
 
 cd $REGSCRATCH
 rm -rf ${deck}.${compiler}
-git clone $MODELROOT ${deck}.${compiler} > /dev/null 2>&1
+git clone /discover/nobackup/ccruz/devel/modelE.clones/master ${deck}.${compiler} > /dev/null 2>&1
 
 cd $REGSCRATCH/${deck}.${compiler}/decks
-make rundeck RUN=$deck RUNSRC=$deck >> make.log.${compiler} 2>&1
+make rundeck RUN=$deck RUNSRC=$deck >> $MAKELOG 2>&1
 EOF
 
   if [ "$compiler" == "intel" ]; then
@@ -108,7 +107,7 @@ EOF
   fi
 
   cat << EOF >> $jobScript
-make tests RUN=$deck MPI=$mpi >> $testLog 2>&1
+make tests RUN=$deck MPI=$mpi > $testLog 2>&1
 wait
 EOF
   chmod +x $jobScript
@@ -119,9 +118,6 @@ EOF
   echo "RESULTS [$compiler MPI=$mpi]:" >> $toEmail
   echo ""  >> $toEmail
   jobID=`qsub $jobScript`
-  # Not necessary under SLURM
-  #jobID=`echo $jobID | sed 's/.[a-z]*$//g'`
-  #echo 'jobID='$jobID
   if [ -z "$jobID" ]; then
     echo "There was a queue submission problem" >> $toEmail
     echo ""  >> $toEmail
@@ -137,48 +133,64 @@ EOF
     return
   fi  
 
-# PARSE FOR ERRORS
+}
 
-  local anyError=`grep ' FAIL' $testLog` 
-  if [ "$anyError" != "" ]; then
-    local errMsg=" ### Error detected during unit tests" >> $toEmail
-    echo "SUMMARY:"  >> $toEmail
-    echo "..."  >> $toEmail
-    tail -10 $testLog >> $toEmail
-    echo ""  >> $toEmail
-  fi 
-   
-  if [ "$anyError" != "" ]; then
-    totLines=`cat $testLog | wc | awk '{print $1}'`
+# -------------------------------------------------------------------
+parseLog()
+# -------------------------------------------------------------------
+{
+  local testLog=$1
+  FAILLOG=${testLog}.FAILED
+  pfunitSuffix="-mpi"
+  if [ "$mpi" == "NO" ]; then
+    pfunitSuffix="-serial"
+    FAILLOG=${testLog}${pfunitSuffix}.FAILED
+  fi
+
+# PARSE FOR SUCCESS
+
+  local lineNo=0
+  local OK='OK'
+  local a=`grep -n $OK $testLog | head -1`
+  lineNo=${a%%:*}
+  # tests ran and all was OK
+  if [ ! -z $lineNo ]; then
+    msg=$(head -$(( lineNo+1 )) $testLog | tail -1)
+    echo " $OK : " $msg  >> $toEmail
+    return
+  fi
+
+# PARSE FOR FAILURES / BUILD / RUNTIME ERRORS
+
+  lineNo=0
+  local failures='FAILURES!!!'
+  a=`grep -n $failures $testLog | head -1`
+  lineNo=${a%%:*}
+  # tests ran and there were failures
+  if [ ! -z $lineNo ]; then
+    msg=$(head -$(( lineNo+1 )) $testLog | tail -1)
+    echo " $failures : " $msg  >> $toEmail
+  # tests did not run
+  else
+    cp $testLog $FAILLOG
     if [ "$mpi" == "NO" ]; then
       execLine=`cat $testLog | grep -in './tests.x' | awk -F: '{print $1}'`
     else
       execLine=`cat $testLog | grep -in 'mpirun -np' | awk -F: '{print $1}'`
     fi
-    # prune the output a little more...
-    blockLines=$((totLines-execLine))
-    showLines=$((blockLines-1)) 
-    tail -$blockLines $testLog > foo
-    head -$showLines foo >> $toEmail
-    rm foo
-  else
-    msg=$(tail -3 $testLog | grep "OK")
-    if [ "$msg" == "" ]; then
-      cp $testLog $FAILLOG
-      echo " ### Tests failed to run." >> $toEmail
-      echo " ### Check $FAILLOG" >> $toEmail
+    if [ "$execLine" == "" ]; then
+      echo " ### COMPILATION ERROR." >> $toEmail
     else
-      tail -3 $testLog | grep "OK" >> $toEmail
-      tail -2 $testLog | grep "(" >> $toEmail
-      rm -f $testLog
+      msg=`grep SIGSEGV $testLog | grep SIGSEGV`
+      if [ $msg == "" ]; then
+         echo " ### UNEXPECTED RUNTIME ERROR." >> $toEmail
+      else
+         echo " ### RUNTIME ERROR : $msg, segmentation fault occurred" >> $toEmail
+      fi
     fi
+    echo " ### Check $FAILLOG" >> $toEmail
     echo ""  >> $toEmail
-  fi 
-  wait
-
-# DELETE FILES
-  rm -f $testLog $jobScript
-
+  fi
 }
 
 # ---------------------
@@ -196,9 +208,11 @@ for mpi in "${mpiMode[@]}"; do
   for compiler in "${compilers[@]}"; do 
     echo " -- COMPILER=$compiler"
     job=modelE.${compiler}.j
-    log=${ROOT}${compiler}".log"
+    log=${ROOT}"/"${compiler}".log"
     submitJob "$compiler" "$job" "$log" "$mpi"
-  done 
-done 
+    parseLog "$log"
+    rm -f $job $log
+  done
+done
 
 exit 0
