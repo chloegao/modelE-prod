@@ -1,3 +1,8 @@
+!@sum This template produces a module that encapsulates a HashMap object.
+!@+ An HashMap object stores elements formed by a combination of a key
+!@+ value and a mapped value.
+!@auth NCCS ASTG
+
 #define IDENTITY(A) A
 #define CONCAT(A,B) IDENTITY(A)IDENTITY(B)
 
@@ -84,6 +89,11 @@ module MODULE_NAME
   integer, parameter :: MAX_LEN_KEY = 32
   integer, parameter :: DONE = -1
 
+! A hash map is an associative container that stores elements formed by a 
+! combination of a key value and a mapped value. The (key,value) structure
+! is managed by the AssociateArray object (Map type) and the actual mapped
+! value is implemented in a hashFunction
+
   type HASH_TYPE
 !!$    private
     integer :: tableSize = -1
@@ -105,6 +115,7 @@ module MODULE_NAME
     procedure :: last
   end type HASH_TYPE
 
+! iterators are used to access the sequence of HashMap elements.
   type :: ITERATOR_TYPE
 !!$    private
     class (HASH_TYPE), pointer :: reference => null()
@@ -188,7 +199,7 @@ contains
 
     hashValue = this%hashFunction(toLowerCase(key))
     call this%table(hashValue)%insert(key, value)
-    
+
   end subroutine setValue
 
   subroutine insertEntry(this, key, value)

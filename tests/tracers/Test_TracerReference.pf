@@ -45,17 +45,13 @@ contains
     type (TracerPointer) :: trp
 
     aTracer = newTracer('speciesA')
-    !this%tracerRef = TracerPointer(aTracer)
-    !trp = TracerPointer(aTracer)
     call this%tracerRef%set(aTracer)
 
-    !call trp%set(aTracer)
   end subroutine setUp
 
   subroutine tearDown(this)
     class (TestTracerPointer), intent(inout) :: this
   end subroutine tearDown
-
 
 @test
   subroutine testSetReference(this)
@@ -63,15 +59,16 @@ contains
     type (Tracer) :: aTracer
     class (Tracer), pointer :: reference
 
-! Does not work from setup:
-    aTracer = newTracer('speciesA')
+! TODO: Why doesn't this work when specified in setup?
+! Need to repeat here:
+    aTracer = newTracer('speciesAx')
     call this%tracerRef%set(aTracer)
 
 !!$    call this%tracerRef%print()
 
     reference => this%tracerRef%get()
-    ! Check if name of tracer refrence is correct
-    @assertEqual('speciesA', reference%getName())
+    ! Check if name of tracer reference is correct
+    @assertEqual('speciesAx', reference%getName())
 
    end subroutine testSetReference
 
@@ -84,7 +81,8 @@ contains
     integer, pointer :: pInteger
     integer, parameter :: INT_VALUE=1
 
-! Does not work from setup:
+! TODO: Why doesn't this work when specified in setup?
+! Need to repeat here:
     aTracer = newTracer('speciesA')
     call this%tracerRef%set(aTracer)
 
@@ -96,7 +94,6 @@ contains
 
   end subroutine testInsertIntegerAttribute
 
-
 @test
   subroutine testInsertLogicalAttribute(this)
     class (TestTracerPointer), intent(inout) :: this
@@ -106,7 +103,8 @@ contains
     logical, pointer :: pLogical
     logical, parameter :: LOG_VALUE=.true.
 
-! Does not work from setup:
+! TODO: Why doesn't this work when specified in setup?
+! Need to repeat here:
     aTracer = newTracer('speciesA')
     call this%tracerRef%set(aTracer)
 
@@ -121,6 +119,5 @@ contains
     @assertFalse(pLogical)
 
   end subroutine testInsertLogicalAttribute
-
 
 end module Test_TracerReference_mod

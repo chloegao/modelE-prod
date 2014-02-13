@@ -1,3 +1,8 @@
+!@sum This template produces a module that encapsulates an AssociativeArray
+!@+ object. An associative container stores elements formed by a combination
+!@+ of a key value and its associated value.
+!@auth NCCS ASTG
+
 #define IDENTITY(A) A
 #define CONCAT(A,B) IDENTITY(A)IDENTITY(B)
 
@@ -59,6 +64,7 @@ module MODULE_NAME
   integer, parameter :: MAX_LEN_KEY = 32
   integer, parameter :: INDEX_NOT_FOUND = -1
 
+! Each element in an associative array is uniquely identified by its key value.
   type KeyValue
     character(len=MAX_LEN_KEY) :: key
     class (TYPE_NAME), allocatable :: value
@@ -70,6 +76,9 @@ module MODULE_NAME
   end type
 #endif
 
+! A container is a holder object that stores a collection of elements
+! The container manages the storage space for its elements and provides 
+! member functions to access them, either directly or through iterators 
   type :: CONTAINER_TYPE
     private
     integer :: numEntries
@@ -90,6 +99,7 @@ module MODULE_NAME
     procedure :: last
   end type CONTAINER_TYPE
 
+! iterators are used to access the sequence of AssociativeArray elements.
   type :: ITERATOR_TYPE
 !!$    private
     integer :: iter
@@ -269,6 +279,9 @@ contains
     integer :: newCount
     integer :: i
 
+! TODO: THis print statament causes error:
+! Operating system error: Cannot allocate memory
+!    print *, 'KEY=',key
     if (this%has(key)) then
       i = getIndex(this, key)
       deallocate(this%entries(i)%value)

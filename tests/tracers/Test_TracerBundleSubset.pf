@@ -88,7 +88,6 @@ contains
     call this%charm%insert('ntmPower', -13)
 
     this%bundle = newTracerBundle()
-    this%subsetBundleCopy = TracerBundleSubset(this%bundle)
 
     call this%bundle%insert(this%CO2%getName(), this%CO2)
     call this%bundle%insert(this%H2O17%getName(), this%H2O17)
@@ -109,6 +108,7 @@ contains
     ! create a subset of tracers with odd parity
     this%subsetOdd = TracerBundleSubset(this%bundle, fptr)
 
+    this%subsetBundleCopy = TracerBundleSubset(this%bundle)
 
   end subroutine setUp
 
@@ -174,7 +174,22 @@ contains
   end function isOdd
 
 @test
-  subroutine testGetEvenSubset1(this)
+  subroutine testSubsetCopy(this)
+    class (TestTracerBundleSubset), intent(inout) :: this
+    type (Tracer) :: t
+    class (Tracer), pointer :: tp
+
+! test inserting a new tracer entry into subset copy
+    t = newTracer('Ox')
+    call this%subsetBundleCopy%insert(t)
+! get reference to recently inserted tracer and check name
+    tp => this%subsetBundleCopy%getReference('Ox')
+    @assertEqual('Ox', tp%getName())
+
+  end subroutine testSubsetCopy
+
+@test
+  subroutine testGetEvenSubset(this)
     class (TestTracerBundleSubset), intent(inout) :: this
     class (Tracer), pointer :: tp
 
@@ -182,7 +197,7 @@ contains
     tp => this%subsetEven%getReference('charm')
     @assertTrue(this%subsetEven%has('charm'))
 
-  end subroutine testGetEvenSubset1
+  end subroutine testGetEvenSubset
 
 @test
   subroutine testGetReference(this)
@@ -226,6 +241,7 @@ contains
 !!$
 !!$  end subroutine testMergeSubset
 !!$
+
 @test
   subroutine testSetAttribute(this)
     use Attributes_mod, only: newAttribute
@@ -280,3 +296,5 @@ contains
   end subroutine testHasAttribute
 
 end module Test_TracerBundleSubset_mod
+
+! TODO: Need to fix merge implementation
