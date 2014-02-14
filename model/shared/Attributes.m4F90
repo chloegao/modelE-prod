@@ -103,7 +103,8 @@ ifelse($3,0,
     allocate(value(n))
 
     do i = 1, n
-      q = references(i)%get()
+!      q = references(i)%get()
+      call toType(q,references(i)%get())
       value(i) = q
       nullify(q)
     end do
