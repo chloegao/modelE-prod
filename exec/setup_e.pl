@@ -424,7 +424,7 @@ print RUNID <<EOF;
     rc=`head -1 run_status`
     ./${runID}uln
     rm -f lock
-    if [ \$touch_ifile -eq 1 ] ; then touch \$IFILE ; fi
+    if [ \$touch_ifile -eq 1 ] ; then sleep 1 ; touch \$IFILE ; fi
     exit \$rc
 EOF
 close RUNID;
