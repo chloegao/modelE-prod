@@ -227,7 +227,6 @@ contains
     type is (IntegerAttribute)
       value => q%value
     class default
-    value => null()
 !!$      call entry%print()
       call throwException('Illegal conversion of IntegerAttribute.',255)
     end select
@@ -255,8 +254,7 @@ contains
     allocate(value(n))
 
     do i = 1, n
-!      q = references(i)%get()
-      call toType(q,references(i)%get())
+      q = references(i)%get()
       value(i) = q
       nullify(q)
     end do
