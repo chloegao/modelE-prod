@@ -6948,8 +6948,8 @@ C**** ESMF: Each processor reads the global array: N2Oic
                  trm(i,j,l,n) = N2OICX(i,j,l)*ICfactor
                end do   ; end do   ; end do
              else
-               if(ghg_yr/=0)then; write(ghg_name,'(I4)') ghg_yr
-               else; write(ghg_name,'(I4)') modelEclock%year(); endif
+               if(ghg_yr/=0)then; write(ghg_name,'(I4.4)') ghg_yr
+               else; write(ghg_name,'(I4.4)') modelEclock%year(); endif
                ghg_file='GHG_IC_'//ghg_name
                call openunit(ghg_file,iu_data,.true.,.true.)
                do m=1,3
@@ -7047,8 +7047,8 @@ C**** Fill in the tracer; above 100 mb interpolate linearly with P to 0 at top
                  end do   ; end do   ; end do
                end select
              else
-               if(ghg_yr/=0)then; write(ghg_name,'(I4)') ghg_yr
-               else; write(ghg_name,'(I4)') modelEclock%year(); endif
+               if(ghg_yr/=0)then; write(ghg_name,'(I4.4)') ghg_yr
+               else; write(ghg_name,'(I4.4)') modelEclock%year(); endif
                ghg_file='GHG_IC_'//ghg_name
                call openunit(ghg_file,iu_data,.true.,.true.)
                do m=1,4
@@ -7492,8 +7492,8 @@ c**** earth
                trm(I,J,L,n) = CFCIC(I,J,L)*ICfactor
              end do   ; end do   ; end do
            else
-             if(ghg_yr/=0)then; write(ghg_name,'(I4)') ghg_yr
-             else; write(ghg_name,'(I4)') modelEclock%year(); endif
+             if(ghg_yr/=0)then; write(ghg_name,'(I4.4)') ghg_yr
+             else; write(ghg_name,'(I4.4)') modelEclock%year(); endif
              ghg_file='GHG_IC_'//ghg_name
              call openunit(ghg_file,iu_data,.true.,.true.)
              do m=1,5

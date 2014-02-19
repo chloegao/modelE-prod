@@ -290,8 +290,8 @@ C--------special section for ghg runs ---------
      &               byavog*axyp(i,j)*tr_mm(n_CFC)*fact_CFC ! i.e. in trm units now!
               enddo
             enddo 
-            if(ghg_yr/=0)then; write(ghg_name,'(I4)')ghg_yr
-            else; write(ghg_name,'(I4)')modelEclock%year(); endif
+            if(ghg_yr/=0)then; write(ghg_name,'(I4.4)')ghg_yr
+            else; write(ghg_name,'(I4.4)')modelEclock%year(); endif
             ghg_file='GHG_IC_'//ghg_name
             call openunit(ghg_file,iu,.true.,.false.)
             do m=1,5
