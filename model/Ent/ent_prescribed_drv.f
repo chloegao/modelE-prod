@@ -3,11 +3,9 @@
       module ent_prescribed_drv
 
       !*********************************************************************
-!@sum !*    SUBROUTINES TO READ IN prescribed VEGETATION DATA SETS 
-!@+   !+      for initialization and updating prescribed cover like crops.
-!@+   !*    Array data only, no entcells or patches info.
-!@+   !*    Interfaces with ent_prescr_veg for Matthews pft-level calculations
-!@+   !*      or with ent_prescribed_drv_geo for geographic initialization.
+      !*    SUBROUTINES TO READ IN prescr VEGETATION DATA SETS 
+      !*    Array data only, no entcells or patches info.
+      !*    Interfaces with ent_prescr_veg for pft-level calculations.
       !*********************************************************************
 
       use ent_const
@@ -50,7 +48,6 @@
 
 !***************************************************************************
       subroutine ent_init_params()
-!@sum Initialize some Ent parameters.
       use ent_prescr_veg, only : init_params
 
       !call prescr_calcconst !renamed init_params
@@ -60,7 +57,6 @@
 !***************************************************************************
       subroutine init_canopy_physical(
      & I0,I1,J0,J1,Ci_ini, CNC_ini, Tcan_ini, Qf_ini)
-!@sum For old Friend & Kiang (2005) biophysics. Initialize LSM outputs.
       integer,intent(in) :: I0,I1,J0,J1
       real*8, DIMENSION(I0:I1,J0:J1) :: Ci_ini,CNC_ini,Tcan_ini,Qf_ini
 
@@ -74,7 +70,6 @@
 !***************************************************************************
       subroutine prescr_get_soilpools(I0,I1,J0,J1,
      &     soil_C_total, Tpool_ini)
-!@sum Prescribe initial partitioning of soil carbon pools given total.
       !* For global runs, this routine gets soil_C_total from subroutine 
       !get_soil_C_total,which reads in total soil pool amounts (measured). 
       !Then individual soil pool fractions (modeled pft-dependent values 
@@ -218,7 +213,6 @@ ccc#endif
 
       subroutine prescr_get_soil_C_total(IM,JM,I0,I1,J0,J1,
      &     soil_C_total)
-!@sum (gC/m2) Read map of total soil carbon from file.
       use FILEMANAGER, only : openunit,closeunit
       integer,intent(in) :: IM,JM,I0,I1,J0,J1
       real*8,intent(out) ::
@@ -240,7 +234,6 @@ ccc#endif
 
 !#ifdef SOILCARB_SITE
       subroutine read_soilcarbon_site(I0,I1,J0,J1,Tpool_ini)
-!@sum (gC/m2 by soil layer) Read site values for soil carbon pools from file.
 !External file should be named as below and should be organized as follows:
 !(1) there should be 1 or 2 columns (corresponding to each soil bgc layer);
 !(2) first non-header row should have total site-measured pool (in g/m2);
@@ -288,8 +281,7 @@ ccc#endif
      &     Tpooldata, 
      &     do_soilinit,do_phenology_activegrowth,do_init_geo
      &     ,do_read_from_files)
-!@sum prescr_vegdata - File reading and Matthews prescribed calculations
-!@+   of vegetation structure. Off-line (standalone) runs only.
+!@sum prescr_vegdata - File reads and Matthews prescribed calculations.  
 !     This is a general driver routine that calls routines
 !     in this module only to read or calculate vegetation and soil structure
 !     and carbon pools; the module subroutines call routines in ent_prescr_veg,
@@ -297,8 +289,7 @@ ccc#endif
 !     drivers.  
 !     This routine may be imitated by drivers used for off-line runs
 !     or coupled runs to GCMs.
-      use ent_prescribed_drv_geo, only : init_entvegdata_geo
-     &     ,init_ent_laimax_geo
+      use ent_prescribed_drv_geo, only : get_entvegdata_geo
       implicit none
       integer,intent(in) :: jday, year
       integer,intent(in) :: IM,JM,I0,I1,J0,J1 !long/lat grid number range
@@ -333,14 +324,42 @@ ccc#endif
         if (j <= jeq) hemi(:,j) = -1
       enddo
 
+
+!YKIM
+cddd      call init_vfraction(IM,JM,I0,I1,J0,J1,vegdata)   !veg fractions
+cddd      call prescr_veg_albedodata(jday,JM,I0,I1,J0,J1,albedodata)
+cddd      call prescr_get_laidata(jday,JM,I0,I1,J0,J1,laidata) !lai
+cddd      call prescr_update_vegcrops(year,IM,JM,I0,I1,J0,J1,vegdata)
+cddd      call prescr_get_hdata(hdata) !height
+cddd      !print *,'hdata',hdata
+cddd      call prescr_get_initnm(nmdata) !nm
+cddd      call prescr_get_rootprof(rootprofdata)
+cddd      call prescr_get_woodydiameter(hdata,dbhdata)
+cddd      !print *,"dbhdata",dbhdata
+cddd      call prescr_get_pop(dbhdata,popdata)
+cddd      !print *,"popdata",popdata
+cddd      call prescr_get_crownrad(popdata,craddata)
+cddd      call prescr_get_carbonplant(IM,JM,I0,I1,J0,J1,
+cddd     &     laidata,hdata,dbhdata,popdata,cpooldata)
+cddd      !do i=1,N_COVERTYPES
+cddd      !  print*,"cpooldata(ncov)",i,cpooldata(i,:,I0:I1,J0:J1)
+cddd      !end do
+cddd      call prescr_get_soilcolor(soil_color)
+cddd      call prescr_get_soiltexture(IM,JM,I0,I1,J0,J1,
+cddd     &     soil_texture)
+cddd      call prescr_soilpools(IM,JM,I0,I1,J0,J1,Tpooldata,do_soilinit)
+
+!YKIM
+!change sequences of calls
+!to have options according to do_phenology_activegrowth
+
       if ( do_read_from_files )
      &     call init_vfraction(IM,JM,I0,I1,J0,J1,vegdata)   !veg fractions
       if ( do_read_from_files )
      &     call prescr_update_vegcrops(year,IM,JM,I0,I1,J0,J1
      &     ,vegdata)
 
-      if ((.not.do_phenology_activegrowth).and.
-     &     (.not.do_read_from_files)) then
+      if (.not.do_phenology_activegrowth) then
 !         if (force_VEG) then
 !            call read_hdata(iu_vht, hdata)
 !            call read_laidata(iu_LAI,I0,I1,J0,J1,laidata)
@@ -351,30 +370,27 @@ ccc#endif
          call prescr_get_hdata(I0,I1,J0,J1,hdata) !height
 !         endif
 !------ Could convert next routine to SINGLE CELL LEVEL-------------
-         !call prescr_get_laimaxdata(I0,I1,J0,J1,laimaxdata) !,laimindata)
+         call prescr_get_laimaxdata(I0,I1,J0,J1,laimaxdata) !,laimindata)
 
          call prescr_calc_canopy_geometry(I0,I1,J0,J1
-     i        ,hdata
+     i        ,hdata,laimaxdata
      o        ,dbhdata,popdata,craddata)
          call prescr_get_carbonplant(I0,I1,J0,J1,
      &           laidata,hdata,dbhdata,popdata,cpooldata)
 !---------------------------------------------------
-      else  !if do_phenology_activegrowth=true or do_read_from_files
-         call init_ent_laimax_geo(IM,JM,I0,I1,J0,J1,laimaxdata) !Read file
+      else                      !if do_phenology_activegrowth=true
+         call init_ent_laidata(IM,JM,I0,I1,J0,J1,laidata) !lai
          call init_ent_hdata(IM,JM,I0,I1,J0,J1,hdata) !height
-      
          !update diameter, population density, carbon plant &  crown rad
+         !can be more modular like the above - Should I???  -YKIM
          if (.not.do_init_geo) then
-!            call prescr_get_laidata(jday,hemi,I0,I1,J0,J1,laidata) !lai
-            print *,'Calling prescr_get_ent_plant in ent_prescribed_drv'
+            print *,'Calling prescr_get_ent_plant'
             call prescr_get_ent_plant(I0,I1,J0,J1, 
-     i           laidata,hdata,laimaxdata,
-     o           dbhdata,popdata,craddata,cpooldata)
+     &           laidata,hdata,dbhdata,popdata,craddata,cpooldata)
          else
             print *, 'Initializing geographic veg data.'
-            call init_ent_laidata(IM,JM,I0,I1,J0,J1,laidata) !lai
-            call init_entvegdata_geo( IM,JM,I0,I1,J0,J1
-     i           ,laidata,hdata,laimaxdata
+            call get_entvegdata_geo( IM,JM,I0,I1,J0,J1
+     i           ,laidata,hdata
      o           ,popdata ,dbhdata,craddata,cpooldata) 
          endif
       endif
@@ -435,7 +451,7 @@ ccc        call stop_model("fix reading soil C for site", 255)
 
 !***************************************************************************
       subroutine init_vfraction(im,jm,I0f,I1f,J0f,J1f,vfraction)
-!@sum Read in vegetation and soil cover from file (mosaicked fractions).
+      !* This version reads in vegetation structure from prescr data set.
       use FILEMANAGER, only : openunit,closeunit,nameunit
       integer, intent(in) :: im,jm,I0f,I1f,J0f,J1f
       real*8, intent(out) :: vfraction(N_COVERTYPES,I0f:I1f,J0f:J1f) 
@@ -489,8 +505,8 @@ ccc        call stop_model("fix reading soil C for site", 255)
 
 !**************************************************************************
       subroutine prescr_get_cropdata(year,IM,JM,I0,I1,J0,J1,cropdata)
-!@sum Read in crop cover fractions from file.
-!@+   Calculates crop fraction for given year.
+      !* This version reads in crop distribution from prescr data set.
+      !* And calculates crop fraction for given year.
       use FILEMANAGER, only : openunit,closeunit,nameunit
       integer, intent(in) :: year
       integer, intent(in) :: IM, JM, I0, I1, J0, J1
@@ -530,7 +546,7 @@ ccc        call stop_model("fix reading soil C for site", 255)
 
       subroutine prescr_update_vegcrops(year,IM,JM,I0,I1,J0,J1,
      &     vegdata)
-!@sum Rescales natural vegetation cover fractions given new crop cover.
+      !* Modify vegdata given new cropdata.
       integer,intent(in) :: year
       integer, intent(in) :: IM,JM,I0,I1,J0,J1
       real*8, intent(inout) :: vegdata(N_COVERTYPES,I0:I1,J0:J1)
@@ -543,6 +559,8 @@ ccc        call stop_model("fix reading soil C for site", 255)
 
       !* Loop *!
       print *,"Getting crop cover."
+!!! hack --> remove crops
+!!!      cropdata(:,:) = 0.d0
       call prescr_get_cropdata(year,IM,JM,I0,I1,J0,J1,cropdata) !crop fraction
 
       !* If cropdata was prepared somewhere else, then cover is as simple as
@@ -574,7 +592,6 @@ ccc        call stop_model("fix reading soil C for site", 255)
 
       subroutine prescr_get_laidata(jday,hemi,I0,I1,J0,J1,laidata)
 !@sum Returns prescr GCM leaf area index for entire grid and given jday.
-!@+   Based on seasonal sinusoidally varying LAI by veg type from R&A 1997.
       use ent_const,only : N_COVERTYPES
       integer,intent(in) :: jday
       integer, intent(in) :: I0,I1,J0,J1
@@ -602,8 +619,8 @@ ccc        call stop_model("fix reading soil C for site", 255)
 !**************************************************************************
 
       subroutine init_ent_laidata(IM,JM,I0,I1,J0,J1,laidata)
-!@sum Read the initial LAI for prognostic vegetation 
-!@+   (i.e., prognostic phenology/growth with Ent PFTs)
+!@sum YKIM - read the initial LAI for the prognostic vegetation 
+!@sum (i.e., prognostic phenology/growth with Ent PFTs)
 
       use FILEMANAGER, only : openunit,closeunit,nameunit !for VEG_PROGNOSTIC
       use ent_const,only : N_COVERTYPES
@@ -615,7 +632,7 @@ ccc        call stop_model("fix reading soil C for site", 255)
       integer :: iu_LAI
       integer :: k !@var cover type
 
-      call openunit("LAIinit",iu_LAI,.true.,.true.)
+      call openunit("LAIent",iu_LAI,.true.,.true.)
 
       do k=1,N_COVERTYPES
         read(iu_LAI) title , buf
@@ -630,7 +647,6 @@ ccc        call stop_model("fix reading soil C for site", 255)
 
 !**************************************************************************
       subroutine prescr_veg_albedodata(jday,hemi,I0,I1,J0,J1,albedodata)
-!@sum Assign seasonal prescribed albedo by cover type (Matthews, 1983).
       integer,intent(in) :: jday
       integer, intent(in) :: I0,I1,J0,J1
       real*8 :: albedodata(N_BANDS,N_COVERTYPES,I0:I1,J0:J1)
@@ -658,8 +674,8 @@ ccc        call stop_model("fix reading soil C for site", 255)
 !**************************************************************************
 
       subroutine init_ent_hdata(IM,JM,I0,I1,J0,J1,hdata3d)
-!@sum Read the initial height for prognostic vegetation. 
-!@+   (i.e., prognostic phenology/growth with Ent PFTs)
+!@sum YKIM - read the initial height for the prognostic vegetation 
+!@sum (i.e., prognostic phenology/growth with Ent PFTs)
       use FILEMANAGER, only : openunit,closeunit,nameunit !for VEG_PROGNOSTIC
       use ent_const,only : N_COVERTYPES
       integer, intent(in) :: IM,JM,I0,I1,J0,J1
@@ -687,7 +703,7 @@ ccc        call stop_model("fix reading soil C for site", 255)
 
       subroutine prescr_get_laimaxdata(I0,I1,J0,J1
      &     ,laimaxdata)!,laimindata)
-!@sum Make arrays of prescribed LAI: alamax, alamin from Matthews (1983).
+      !* Make arrays of prescribed alamax, alamin of Matthews data.
       !* This should access alamax and alamin via ent_prescr_veg, but
       !* so many levels is annoying for a trivial assignment. ...NK
       implicit none
@@ -706,8 +722,8 @@ ccc        call stop_model("fix reading soil C for site", 255)
 
 !**************************************************************************
       subroutine prescr_get_hdata(I0,I1,J0,J1,hdata) !height
-!@sum Return array of prescribed canopy heights (m) by vegetation type
-!@+   (Matthews, 1983).
+!@sum prescr_get_hdata - Use this file to read in canopy height data or
+      !* or to calculate modeled (parameterized) heights.
       use ent_const,only : N_COVERTYPES
       use ent_prescr_veg, only : prescr_calc_hdata
       integer, intent(in) :: I0,I1,J0,J1
@@ -728,23 +744,24 @@ ccc        call stop_model("fix reading soil C for site", 255)
 
 !**************************************************************************
       subroutine prescr_calc_canopy_geometry(I0,I1,J0,J1
-     i     ,hdata,dbhdata,popdata,craddata)
-!@sum Calculate canopy structure variables that would not be provided 
-!@+   by data files but are determined through allometric relations to
-!@+   height.  
-!@+   Subject to change according to data.
+     i     ,hdata,laimaxdata,dbhdata,popdata,craddata)
+      !* Calculate canopy structure variables that would not be provided 
+      !* by data files but are determined through allometric relations to
+      !* height.  
+      !* Subject to change according to data.
       use ent_prescr_veg, only: prescr_calc_woodydiameter
      &     ,prescr_get_pop,prescr_get_crownrad
       integer, intent(in) :: I0,I1,J0,J1
       real*8,intent(in) :: hdata(N_COVERTYPES,I0:I1,J0:J1)
+      real*8,intent(in) :: laimaxdata(N_COVERTYPES,I0:I1,J0:J1)
       real*8,intent(out) :: dbhdata(N_COVERTYPES,I0:I1,J0:J1)
       real*8,intent(out) :: popdata(N_COVERTYPES,I0:I1,J0:J1)
       real*8,intent(out) :: craddata(N_COVERTYPES,I0:I1,J0:J1)
       !---Local---
       integer :: i, j
-      real*8 :: laimaxdata(N_COVERTYPES,I0:I1,J0:J1)
       
-      call prescr_get_laimaxdata(I0,I1,J0,J1,laimaxdata)
+      !!! pass from calling routine
+      !!!call prescr_get_laimaxdata(I0,I1,J0,J1,laimaxdata)
 
       do j=J0,J1
          do i=I0,I1
@@ -764,9 +781,9 @@ ccc        call stop_model("fix reading soil C for site", 255)
       subroutine prescr_get_carbonplant(I0,I1,J0,J1,
      &     laidata, hdata, dbhdata,popdata
      &     , cpooldata)
-!@sum Calculate per plant carbon pools (g-C/plant) from geometry and 
-!@+   alamax for Matthews (1983) vegetation structure arrays.
-      use allometryfn, only : allom_plant_cpools,init_Clab
+      !*  Calculate per plant carbon pools (g-C/plant).
+      !*  After Moorcroft, et al. (2001).
+      use allometryfn, only : init_Clab
       implicit none
       integer,intent(in) :: I0,I1,J0,J1
       real*8,intent(in) :: laidata(N_COVERTYPES,I0:I1,J0:J1) 
@@ -785,7 +802,7 @@ ccc        call stop_model("fix reading soil C for site", 255)
         do i=I0,I1
           do pft=1,N_PFT
             p = pft + COVEROFFSET
-            call allom_plant_cpools(pft,laidata(p,i,j)
+            call prescr_plant_cpools(pft,laidata(p,i,j)
      &           , hdata(p,i,j)
      &           ,dbhdata(p,i,j), popdata(p,i,j),cpooldata(p,:,i,j))
             call init_Clab(pft,dbhdata(p,i,j)
@@ -796,19 +813,17 @@ ccc        call stop_model("fix reading soil C for site", 255)
       
       end subroutine prescr_get_carbonplant
 !**************************************************************************
-      subroutine prescr_get_ent_plant(I0,I1,J0,J1
-     i     ,laidata, hdata3d, laimax
-     o     ,dbhdata3d, popdata3d, craddata3d,cpooldata)
-!@sum Calculate woody diameter, population density, crown geometry,
-!@+   carbon pools for the Ent prognostic vegetation and geographic variation.
-!@+   Density is obtained from max LAI and geometric allometry.
-      use allometryfn, only: allom_plant_cpools, height2dbh,nplant
+      subroutine prescr_get_ent_plant(I0,I1,J0,J1,
+     &     laidata, hdata3d, dbhdata3d, popdata3d, craddata3d,cpooldata)
+!@sum YKIM- calculate woody diameter, population denisty, crown radiation
+!@sum & carbon pools for the Ent prognostic vegetation
+!@sum Density is obtained from alamax of Matthews ("prescr").
+      use allometryfn, only: update_plant_cpools, height2dbh,nplant
      &     ,Crown_rad_max_from_density,Crown_rad_allom, init_Clab
       implicit none
       integer,intent(in) :: I0,I1,J0,J1
       real*8,intent(in) :: laidata(N_COVERTYPES,I0:I1,J0:J1) 
       real*8,intent(in) :: hdata3d(N_COVERTYPES,I0:I1,J0:J1)
-      real*8,intent(in) :: laimax(N_COVERTYPES,I0:I1,J0:J1) 
       real*8,intent(out) :: dbhdata3d(N_COVERTYPES,I0:I1,J0:J1)
       real*8,intent(out) :: popdata3d(N_COVERTYPES,I0:I1,J0:J1) 
       real*8,intent(out) :: craddata3d(N_COVERTYPES,I0:I1,J0:J1) 
@@ -817,6 +832,9 @@ ccc        call stop_model("fix reading soil C for site", 255)
       !----Local----
       integer :: pft !@var pft vegetation type
       integer :: i,j, n
+      real*8 :: laimax(N_COVERTYPES,I0:I1,J0:J1) 
+
+      call prescr_get_laimaxdata(I0,I1,J0,J1,laimax)
 
 !Zero initialize.
       dbhdata3d(:,:,:) = 0.0 
@@ -827,10 +845,6 @@ ccc        call stop_model("fix reading soil C for site", 255)
         do i=I0,I1
           do pft = 1,N_PFT
             n = pft + COVEROFFSET
-            print *,'pft,i,j',n,pft,i,j !##DEBUG NK
-            print *,'laimax',laimax(n,i,j)
-            print *,'laidata',laidata(n,i,j)
-            print *,'hdata3d',hdata3d(n,i,j)
             !update woody diameter
             if (pfpar(pft)%woody)  dbhdata3d(n,i,j) 
      &                             =height2dbh(pft,hdata3d(n,i,j))  
@@ -843,7 +857,7 @@ ccc        call stop_model("fix reading soil C for site", 255)
      &           Crown_rad_max_from_density(popdata3d(n,i,j))
      &           ,Crown_rad_allom(pft,hdata3d(n,i,j)))
             !update cabon pools
-            call allom_plant_cpools(pft,laidata(n,i,j)
+            call update_plant_cpools(pft,laidata(n,i,j)
      &           ,hdata3d(n,i,j),dbhdata3d(n,i,j), popdata3d(n,i,j)
      &           ,cpooldata(n,:,i,j))
 !            call prescr_init_Clab(pft,popdata3d(n,i,j),
@@ -858,7 +872,7 @@ ccc        call stop_model("fix reading soil C for site", 255)
 
 !*************************************************************************
       subroutine prescr_get_pft_vars(nmdata,rootprofdata,soil_color)
-!@sum Routine to assign pft-dependent misc. arrays that are not gridded.
+!@sum Routine to assign pft-dependent arrays that are not gridded.
       use ent_prescr_veg, only : prescr_calc_initnm,
      &     prescr_calc_rootprof_all,prescr_calc_soilcolor
 
@@ -874,7 +888,7 @@ ccc        call stop_model("fix reading soil C for site", 255)
 !*************************************************************************
       subroutine prescr_get_soiltexture(im,jm,I0,I1,J0,J1,
      &     soil_texture)
-!@sum Return arrays of GISS soil color and texture.
+      !* Return arrays of GISS soil color and texture.
       use FILEMANAGER, only : openunit,closeunit
       integer, intent(in) :: im,jm,I0,I1,J0,J1
       real*8, intent(out) :: soil_texture(N_SOIL_TEXTURES,I0:I1,J0:J1)
@@ -908,7 +922,7 @@ ccc        call stop_model("fix reading soil C for site", 255)
      &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini,
      &     soil_texture,soil_C_total,Tpooldata,
      &     do_soilinit,do_read_from_files)
-!@sum Initialize canopy and soil physics for mixed canopies.
+
       integer,intent(in) :: IM,JM,I0,I1,J0,J1
       real*8, dimension(I0:I1,J0:J1) :: Ci_ini,CNC_ini,Tcan_ini,Qf_ini
       real*8, dimension(N_CASA_LAYERS,I0:I1,J0:J1) :: soil_C_total
