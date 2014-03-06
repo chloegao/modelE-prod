@@ -164,8 +164,8 @@ module constant
 !@var visc_wtr_kin kinematic viscosity of water (35 psu, 20 deg C) (m^2/s)
   real*8,parameter :: visc_wtr_kin = 1.05d-6
 
-!@var avog Avogadro's constant (atmos/mole)
-  real*8,parameter :: avog=6.023d23
+!@var avog Avogadro's constant (molecules/mole)
+  real*8,parameter :: avog=6.02214129d23
 
   !**** Astronomical constants
 

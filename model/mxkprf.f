@@ -2927,6 +2927,7 @@ c --- local 1-d arrays for matrix solution
      &     ghat(kdm+1),zm(kdm+1),hm(kdm),dzb(kdm),
      &     totemo,totemn,tosalo,tosaln,tndcyt,tndcys,
      &     totrco(ntrcr),totrcn(ntrcr),trscal(ntrcr)
+      real,parameter :: fresh = 1.		! lowest allowed srfc.salinity
 c
 c --- tridiagonal matrix solution arrays
       real tri(kdm,0:1)      ! dt/dz/dz factors in trid. matrix
@@ -2935,9 +2936,9 @@ c --- tridiagonal matrix solution arrays
      &     tcl(kdm),         ! lower .....     (k-1) ..
      &     rhs(kdm)          ! right-hand-side terms
 c
-      real    ghatflux
+      real    ghatflux,salin,sumthk,frac
       integer ka,kn,kan,ktr,nlayer
-      integer k
+      integer k,k1
 c
       real, parameter :: difriv =   60.0e-4  !river diffusion
       real,   parameter :: tofset = 0.
@@ -3054,6 +3055,39 @@ c --- s solution
       call tridrhs(hm,s1do,diffs,ghat,ghatflux,tri,nlayer,rhs,delt1)
       call tridmat(tcu,tcc,tcl,nlayer,hm,rhs,s1do,s1dn,diffs)
 c
+c --- if surf.salinity gets too low, import some salt from lower layers
+      if (s1dn(1).lt.fresh) then
+        tosaln=s1dn(1)*hm(1)
+        sumthk=        hm(1)
+        print 105,'(mxkprfbij) warning: surf.salinity too low at',
+     &    i,j,(k,hm(k),s1dn(k),k=1,5)
+ 105    format (a,2i5/(i4,2f7.3))
+        do k=2,kk
+          salin=tosaln/sumthk
+          if (s1dn(k).gt.fresh .and. hm(k).gt.0. .and.
+     &      tosaln+s1dn(k)*hm(k).gt.fresh*(sumthk+hm(k))) then
+            frac=sumthk*(fresh-salin)/(hm(k)*(s1dn(k)-fresh))
+cc          if (frac.lt.0. .or. frac.gt.1.) then
+cc            print '(a,2i5,a,f9.4)','(mxkprfbij)',i,j,
+cc   &        '  illegal frac value:',frac
+cc            stop '(frac outside range)'
+cc          end if
+            s1dn(k)=(1.-frac)*s1dn(k)+frac*fresh
+            salin=fresh
+            exit
+          else		! insufficient amount of salt in layer k
+            tosaln=tosaln+s1dn(k)*hm(k)
+            sumthk=sumthk+        hm(k)
+            salin=tosaln/sumthk
+          end if
+        end do
+        do k1=1,k-1
+          s1dn(k1)=salin
+        end do
+        print 105,'(mxkprfbij) adjusted salinity profile at',
+     &    i,j,(k,hm(k),s1dn(k),k=1,5)
+      end if				! s1dn(1) < fresh
+
       if (vrbos) then
           write (lp,103) (nstep,i,j,k,
      &    hm(max(1,k-1)),1.e4*difft(k),1.e4*diffs(k),
