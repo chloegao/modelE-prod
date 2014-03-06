@@ -93,6 +93,7 @@ c
      &                       whichsoa,apartmolar,LM_soa
 #endif  /* TRACERS_AEROSOLS_SOA */
       use zonalmean_mod, only : zonalmean_ij2ij
+
       use TRACER_COM, only: nn_CH4,  nn_N2O, nn_Ox,   nn_NOx, 
      &      nn_N2O5,   nn_HNO3,  nn_H2O2,  nn_CH3OOH,   nn_HCHO, 
      &      nn_HO2NO2, nn_CO,    nn_PAN,   nn_H2O17,             
@@ -102,6 +103,15 @@ c
      &      nn_apinp1g,nn_apinp1a,nn_apinp2g,nn_apinp2a,         
      &      nn_ClOx,   nn_BrOx,  nn_HCl,   nn_HOCl,   nn_ClONO2,  
      &      nn_HBr,    nn_HOBr,  nn_BrONO2,nn_CFC,    nn_GLT
+
+c***#ifdef CACHED_SUBDD
+c***      use subdd_mod, only : subdd_groups,subdd_type,subdd_ngroups
+c***     &     ,inc_subdd,find_groups, LmaxSUBDD
+c***#endif
+      use photolysis, only: photoj,sza,szamax,tfastj,zj,o3_fastj,jppj
+     &                     ,pfastj2,miedx2,mxfastj,jpnl,naa,sf3_fact
+     &                     ,sf2_fact
+
       IMPLICIT NONE
 
 C**** Local parameters and variables and arguments:

@@ -1,5 +1,237 @@
 #include "rundeck_opts.h"
 
+      module photolysis
+
+      USE DOMAIN_DECOMP_ATM, only: write_parallel 
+      use RESOLUTION, only: lm
+      implicit none
+!@var j_iprn,j_jprn,j_prnrts for Shindell chemistry debugging
+!@var jppj number of chemical reactions in the currently active chemistry
+!@var nlbatm Level of lower photolysis boundary - usually surface ('1')
+!@var nw1,nw2 beginning, ending wavelength for wavelength "bins"
+!@var nwww Number of wavelength bins, from NW1:NW2
+!@var naa Number of categories for scattering phase functions
+!@var nss this is a copy of JPPJ that is read in from a file
+!@var npdep Number of pressure dependencies
+!@var nk Number of wavelengths at which functions are supplied
+      integer :: j_iprn,j_jprn,jppj,nlbatm,nw1,nw2,nwww,naa,nss,npdep,nk
+!@dbparam rad_FL whether(>0) or not(=0) to have fastj photon flux vary 
+      integer :: rad_FL=0
+      logical :: j_prnrts
+!@param jpnl number of photolysis levels
+!@param szamax max Zenith Angle(98 deg at 63 km;99 degrees at 80 km)
+!@param ncfastj2 number of levels in the fastj2 atmosphere
+!@param nbfastj number of boundaries for fastj2 (=lm+1)
+!@param N__ Number of levels in Mie grid: 2*(2*lpar+2+jaddto(1))+3
+!@param M__ Number of Gauss points used
+!@param nfastj number of quadrature points in OPMIE
+!@param mfastj lower limit of mfit?
+!@param mfit expansion of phase function in OPMIE
+!@param mxfastj Number of aerosol/cloud types supplied from CTM
+!@param nlfastj maximum number levels after inserting extra Mie levels
+!@param njval Number of species for which to calculate J-values
+!@param nwfastj maximum number of wavelength bins that can be used
+!@param np maximum aerosol phase functions
+!@param n_bnd3 maximum number of spectral bands 3
+      integer, parameter :: jpnl=lm
+     &                     ,szamax=98.d0
+     &                     ,ncfastj2=2*lm+2
+     &                     ,nbfastj=lm+1
+     &                     ,N__=1800 !jan00, was 450, then 900 in Nov99
+     &                     ,M__=4
+     &                     ,nfastj=4
+     &                     ,mfastj=1
+     &                     ,mfit=2*M__
+     &                     ,mxfastj=17
+     &                     ,nlfastj=1000 !increased Nov 2010
+     &                     ,njval=27 !formerly read in from jv_spec00_15.dat
+     &                     ,nwfastj=18
+     &                     ,np=60
+     &                     ,n_bnd3=107
+!@var title0 blank title read in I think
+      character(len=78) :: title0
+!@var lpdep Label for pressure dependence
+      character(len=7), dimension(3) :: lpdep
+!@var titlej titles read from O2, O3, and other species X-sections
+      character(len=7), dimension(3,njval) :: titlej
+!@var title_aer_pf titles read from aerosol phase function file
+      character(len=20), dimension(np) :: title_aer_pf !formerly TITLEA( )
+!@var jndlev Levels at which we want J-values (centre of CTM levels)
+      integer, dimension(lm) :: jndlev
+!@param miedx2 choice of aerosol types for fastj2
+      integer, dimension(lm+1,mxfastj) :: miedx2
+!@var jaddlv Additional levels associated with each level
+!@var jadsub ?
+      integer, dimension(nlfastj) :: jaddlv,jadsub
+!@var jaddto Cumulative total of new levels to be added
+      integer, dimension(nlfastj+1) :: jaddto
+!@var jpdep Index of cross sections requiring P dependence
+      integer, dimension(njval) :: jpdep  
+!@param masfac Conversion factor, pressure to column density (fastj2)
+!@param odmax Maximum allowed optical depth, above which they're scaled
+!@param dtausub # optic. depths at top of cloud requiring subdivision
+!@param dtaumax max optical depth above which must instert new level
+!@param dsubdiv additional levels in first dtausub of cloud (fastj2) 
+!@param zzht Scale height above top of atmosphere (cm)
+      real*8, parameter :: masfac=100.d0*6.022d23/28.97d0/9.8d0/10.d0 !XXXXXXXXX
+     &                    ,odmax=200.d0
+     &                    ,dtausub=1.d0
+     &                    ,dtaumax=1.0d0
+     &                    ,dsubdiv=1.d1
+     &                    ,zzht=5.d5
+!@var emu,wtfastj ?
+      real*8, parameter, dimension(M__)  :: emu = (/.06943184420297D0,
+     &        .33000947820757D0,.66999052179243D0,.93056815579703D0/), 
+     &                                    wtfastj=(/.17392742256873D0,
+     &         .32607257743127D0,.32607257743127D0,.17392742256873D0/)
+!@var sza the solar zenith angle (degrees)
+!@var u0 cosine of the solar zenith angle
+!@var rflect Surface albedo (Lamertian) in fastj
+!@var zflux,zrefl,zu0 ?
+!@var sf3_fact used to alter SF3 in time (see comments in master)
+!@var sf2_fact used to alter SF2 in time (see comments in master)
+!@var bin4_1988 fastj2 bin#4 photon flux for year 1988
+!@var bin4_1991 fastj2 bin#4 photon flux for year 1991
+!@var bin5_1988 fastj2 bin#5 photon flux for year 1988
+      real*8 :: sza,u0,rflect,zflux,zrefl,zu0,sf3_fact,sf2_fact
+     &         ,bin4_1991,bin4_1988,bin5_1988
+!@var afastj,c1,hfastj,v1,bfastj,aafastj,cc,sfastj,wfastj,u1 ?
+!@var pm,pm0,dd,ztau,fz,fjfastj ?
+      real*8, dimension(M__)           :: afastj,c1,hfastj,v1
+      real*8, dimension(N__)           :: ztau,fz,fjfastj
+      real*8, dimension(M__,M__)       :: bfastj,aafastj,cc,sfastj,
+     &                                    wfastj,u1
+      real*8, dimension(M__,2*M__)     :: pm
+      real*8, dimension(2*M__)         :: pm0
+      real*8, dimension(M__,M__,N__)   :: dd
+!@var rr2 former RR from fastj ?
+      real*8, dimension(M__,N__)       :: rr2    
+!@var pomega Scattering phase function
+      real*8, dimension(2*M__,N__)     :: pomega
+!@var pomegaj Scattering phase function. the 2nd dimension on pomegaj
+      real*8, dimension(2*M__,2*LM+2+1):: pomegaj
+!@var tqq Temperature for supplied cross sections
+      real*8, dimension(3,njval)       :: tqq
+!@var qaafastj Aerosol scattering phase functions
+!@var waafastj Wavelengths for the NK supplied phase functions
+      real*8, dimension(4,np)          :: qaafastj,waafastj
+!@var wl Centres of wavelength bins - 'effective wavelength'
+!@var fl Solar flux incident on top of atmosphere (cm-2.s-1)
+!@var qrayl Rayleigh scattering ?
+!@var qbc Black Carbon abs. extinct. (specific cross-sect.m2/g)
+!@var fl_dummy placeholder for reading FL if rad_FL>0
+!@var flx temp array for varying FL if rad_FL>0   
+      real*8, dimension(nwfastj)       :: wl,fl,qrayl,qbc,fl_dummy,flx
+!@var wbin Boundaries of wavelength bins
+      real*8, dimension(nwfastj+1)     :: wbin
+!@var qo2 O2 cross-sections
+!@var qo3 O3 cross-sections
+!@var q1d O3 => O(1D) quantum yield
+!@var zpdep Pressure dependencies by wavelength bin
+      real*8, dimension(nwfastj,3)     :: qo2,qo3,q1d,zpdep !XXX zpdep XXXXXXXXX
+!@var qqq Supplied cross sections in each wavelength bin (cm2),
+!@+       read in in RD_TJPL
+      real*8, dimension(nwfastj,2,njval-3):: qqq
+!@var fff Actinic flux at each level for each wavelength bin and level
+      real*8, dimension(nwfastj,jpnl)  :: fff
+!@var oref2    fastj2 O3 reference profile
+!@var tref2    fastj2 temperature reference profile
+!@var bref2    fastj2 black carbon reference profile
+      REAL*8, DIMENSION(51,18,12)       :: oref2,tref2 !XXXXXXXXXXXXXXXXXXXXXXXX
+      REAL*8, DIMENSION(51)             :: bref2 !XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+!@var aer2 fastj2 aerosol profile?
+      real*8, dimension(mxfastj,nbfastj):: aer2
+!@var amf Air mass factor for slab between level and level above
+      real*8, dimension(nbfastj,nbfastj):: amf
+!@var tj2 Temperature profile on fastj2 photolysis grid
+!@var do32 fastj2 Ozone number density at each pressure level (")
+!@var dbc2 fastj2 Mass of Black Carbon at each model level (g/cm-3)
+!@var zfastj2 Altitude of boundaries of model levels (cm) fastj2
+!@var dmfastj2 fastj2 Air column for each model level (molec/cm2)
+      real*8, dimension(nbfastj) :: tj2,do32,dbc2,zfastj2,dmfastj2
+!@var tfastj temperature profile sent to FASTJ
+!@var odcol Optical depth at each model level
+      real*8, dimension(lm) :: tfastj,odcol
+!@var pfastj2 pressure at level boundaries, sent to FASTJ2
+      real*8, dimension(lm+3) :: pfastj2
+!@var o3_fastj ozone sent to fastj
+      real*8, dimension(2*lm) :: o3_fastj
+!@var ssa single scattering albedo ?
+!@var raa ?
+      real*8, dimension(4,np) :: ssa,raa
+!@var paa Scaling for extinctions
+      real*8, dimension(8,4,np) :: paa
+!@var jlabel Reference label identifying appropriate J-value to use
+      character(len=7), allocatable, dimension(:) :: jlabel
+!@var jind mapping index for jvalues
+!@var ks mollst number for source gas in photolysis reaction
+      integer, allocatable, dimension(:) :: jind,ks
+!@var kss mollst number for product gases from photolysis
+      integer, allocatable, dimension(:,:) :: kss
+!@var jfacta Quantum yield (or multiplication factor) for photolysis
+      real*8, allocatable, dimension(:) :: jfacta
+!@var zj photodissociation coefficient (level,reaction)
+      real*8, allocatable, dimension(:,:) :: zj
+
+      contains
+
+
+
+      SUBROUTINE phtlst
+!@sum phtlst read Photolysis Reactions and parameters
+!@auth Drew Shindell (modelEifications by Greg Faluvegi)
+!@ver  1.0 (based on cheminit0C5_M23p & ds4p_chem_init_M23)
+!@calls lstnum
+
+C**** GLOBAL parameters and variables:
+      USE FILEMANAGER, only: openunit,closeunit
+
+      IMPLICIT NONE
+
+C**** Local parameters and variables and arguments:
+!@var ate species name
+!@var nabs,al,nll,nhu,o2up,o3up currently read from JPLPH, but not used
+!@var i,j dummy loop variables
+!@var iu_data temporary unit number
+      INTEGER                   :: nabs,nll,nhu,i,j,iu_data
+      CHARACTER*8, DIMENSION(3) :: ate
+      character(len=300)        :: out_line
+      REAL*8                    :: al,o2up,o3up
+
+C Read in photolysis parameters:
+      call openunit('JPLPH',iu_data,.false.,.true.)
+      read(iu_data,121)nss,nabs,al,nll,nhu,o2up,o3up
+C Check on the number of photolysis reactions:
+      IF(nss /= JPPJ)
+     &call stop_model('WARNING: nss /= JPPJ, check # photo'//
+     &                ' rxns',255)
+
+c Assign ks and kss gas numbers of photolysis reactants from list:
+      write(out_line,*) ' '
+      call write_parallel(trim(out_line))
+      write(out_line,*) 'Photolysis reactions used in the model: '
+      call write_parallel(trim(out_line))
+      do i=1,JPPJ
+        read(iu_data,112)ate
+        write(out_line,172) i,ate(1),' + hv   --> ',ate(2),' + ',ate(3)
+        call write_parallel(trim(out_line))
+#ifdef TRACERS_SPECIAL_Shindell
+        call lstnum(ate(1),ks(i))
+        do j=2,3
+           call lstnum(ate(j),kss(j-1,i))
+        end do
+#endif
+      end do
+ 121  format(//2(45x,i2/),43x,f4.2/44x,i3/45x,i2/2(40x,e7.1/))
+ 112  format(4x,a8,3x,a8,1x,a8)
+ 172  format(1x,i2,2x,a8,a12,a8,a3,a8)
+      call closeunit(iu_data)
+
+      return
+      end SUBROUTINE phtlst
+
+
+
       subroutine photoj(nslon,nslat)
 !@sum from jv_trop.f: FAST J-Value code, troposphere only (mjprather
 !@+ 6/96). Uses special wavelength quadrature spectral data
@@ -17,17 +249,13 @@ c  D. Shindell, Aug. 2002
 C**** GLOBAL parameters and variables:
 
       USE DOMAIN_DECOMP_ATM,only : GRID,getDomainBounds
-      USE RESOLUTION, only   : LM
       USE CONSTANT, only     : radian
-      USE TRCHEM_Shindell_COM, only: SZA,TFASTJ,JFASTJ,jpnl,jppj,zj,
-     &                           szamax,U0,NCFASTJ2,iprn,jprn,prnrts
 
       IMPLICIT NONE
 
 C**** Local parameters and variables and arguments:
 !@var nslon,nslat I and J spatial indicies passed from master chem
 !@var i,j,k dummy loop variables
-!@var NCFASTJ2 Number of levels in atmosphere
       INTEGER, INTENT(IN) :: nslon, nslat
       INTEGER             :: i,j,k
       logical             :: jay
@@ -38,17 +266,15 @@ C**** Local parameters and variables and arguments:
       
       jay = (NSLAT >= J_0 .and. NSLAT <= J_1) 
       
-      zj(:,:)    =0.d0
-      JFASTJ(:,:)=0.d0
+      zj(:,:)    =0.d0 ! photolysis rates returned to chemistry
       U0 = DCOS(SZA*radian)
 
       if(SZA <= szamax)then 
         CALL SET_PROF(NSLON,NSLAT)  ! Set up profiles on model levels
-        IF(prnrts .and. NSLON == iprn .and. NSLAT == jprn)
+        IF(j_prnrts .and. NSLON == j_iprn .and. NSLAT == j_jprn)
      &  CALL PRTATM(2,NSLON,NSLAT,jay) ! Print out atmosphere
         CALL JVALUE(nslon,nslat)    ! Calculate actinic flux
         CALL JRATET(1.d0,NSLAT,NSLON)! Calculate photolysis rates   
-        JFASTJ(:,:)= zj(:,:) ! photolysis rates returned to chemistry
       end if
 c
       return
@@ -73,10 +299,6 @@ C**** GLOBAL parameters and variables:
       USE RESOLUTION, only  : JM,LM
       USE GEOM, only: lat2d_dg
       use model_com, only: modelEclock
-      USE MODEL_COM, only: Itime
-      USE TRCHEM_Shindell_COM, only: TFASTJ,odcol,O3_FASTJ,PFASTJ2,
-     &     dlogp,masfac,oref2,tref2,bref2,TJ2,DO32,DBC2,zfastj2,
-     &     dmfastj2,NBFASTJ,AER2,MXFASTJ
       USE RAD_COM,only: ttausv_ntrace,ntrix
       USE RADPAR, only : NTRACE
       use OldTracer_mod, only: trname
@@ -84,6 +306,8 @@ C**** GLOBAL parameters and variables:
       IMPLICIT NONE
 
 C**** Local parameters and variables and arguments:
+!@param dlogp 10.d0**(-2./16.)
+      real*8, parameter :: dlogp=7.49894209d-1 !=10^(-.125)
 !@var nslon,nslat I and J spatial indicies passed from master chem
 !@var pstd Approximate pressures of levels for supplied climatology
 !@var skip_tracer logical to not define aer2 for a rad code tracer
@@ -224,10 +448,10 @@ c  Calculate column quantities for Fast-J2:
 
 C**** GLOBAL parameters and variables:
 
-      USE RESOLUTION, only   : LM
+      USE RESOLUTION, only   : IM
       USE RAD_COM, only      : ALB
-      USE TRCHEM_Shindell_COM, only: RCLOUDFJ,odsum,odmax,
-     &            nlbatm,RFLECT,NBFASTJ,AER2,jadsub,dtausub,odcol
+!@var rcloudfj cloudiness (optical depth) parameter, radiation to fastj
+      USE RAD_COM, only    : rcloudfj=>rcld !!! ,salbfj=>salb
 
       IMPLICIT NONE
 
@@ -235,7 +459,8 @@ C**** Local parameters and variables and arguments:
 !@var nslon,nslat I and J spatial indicies passed from master chem
       INTEGER, INTENT(IN) :: nslon, nslat
       integer             :: l, k, j
-      real*8              :: odtot
+!@var odsum Column optical depth
+      real*8              :: odtot,odsum
 
 c Default lower photolysis boundary as bottom of level 1
       nlbatm = 1
@@ -294,22 +519,18 @@ c Set sub-division switch if appropriate
 
 C**** GLOBAL parameters and variables:
 
-      USE RESOLUTION, only: LM
-      USE TRCHEM_Shindell_COM, only: jpnl,TFASTJ,VALJ,NW1,NW2,NJVAL,
-     &                               QQQ,JPPJ,ZJ,jfacta,FFF,TQQ,JIND
+      USE RESOLUTION, only: IM
 
       IMPLICIT NONE
 
 C**** Local parameters and variables and arguments:
-c     FFF    Actinic flux at each level for each wavelength bin
-c     QQQ    Cross sections for species (read in in RD_TJPL)
 c     SOLF   Solar distance factor, for scaling; normally given by:
 c                      1.0-(0.034*cos(real(iday-172)*2.0*pi/365.))
-c     TQQ    Temperatures at which QQQ cross sections supplied
       integer :: i, j, k, l, nslon, nslat,jgas
-      real*8  :: qo2tot, qo3tot, qo31d, qo33p, qqqt, xseco2, xseco3,
-     &           xsec1d, solf, tfact
+      real*8  :: qo2tot, qo3tot, qo31d, qo33p, qqqt,
+     &           solf, tfact
       real*8, dimension(LM) :: Tx
+      REAL*8, DIMENSION(NJVAL) :: VALJ
 
       Tx(1:LM)=TFASTJ(1:LM)
 
@@ -353,16 +574,15 @@ C------ Calculate remaining J-values with T-dep X-sections
 !@+ modelEifications: Greg Faluvegi
 
 C**** GLOBAL parameters and variables:
-      USE DOMAIN_DECOMP_ATM, only: write_parallel
       USE RESOLUTION, only  : JM
       USE GEOM, only: lat2d_dg
       use model_com, only: modelEclock
-      USE TRCHEM_Shindell_COM, only: SZA,NBFASTJ,MXFASTJ,DMFASTJ2,TJ2,
-     &             masfac,dlogp2,oref2,tref2,DO32,AER2,PFASTJ2,ZFASTJ2
 
       IMPLICIT NONE
 
 C**** Local parameters and variables and arguments:
+!@param dlogp2 10.d0**(-1./16.)
+      real*8, parameter :: dlogp2=8.65964323d-1 !=10^(-.0625)
 !@var nslon,nslat I and J spatial indicies passed from master chem
 !@var NFASTJq Print out 1=column totals only, 2=
 !@+   full columns, 3=full columns and climatology
@@ -451,11 +671,6 @@ C---Print out climatology:
 !@auth UCI (see note above), GCM incorporation: Drew Shindell,
 !@+ modelEifications: Greg Faluvegi
 
-C**** GLOBAL parameters and variables:
-
-      USE RESOLUTION, only: LM
-      USE TRCHEM_Shindell_COM, only: NW1,NW2,NBFASTJ,WL,FL,FFF,JPNL,TJ2
-
       IMPLICIT NONE
 
 C**** Local parameters and variables and arguments:
@@ -468,7 +683,6 @@ C**** Local parameters and variables and arguments:
       REAL*8, DIMENSION(NBFASTJ) :: XQO3_2, XQO2_2
       REAL*8, DIMENSION(JPNL)    :: AVGF
       REAL*8                     :: WAVE
-      REAL*8 XSECO2,XSECO3 ! >>> FUNCTIONS <<<
 
       AVGF(:) = 0.d0   ! JPNL
       FFF(NW1:NW2,:) = 0.d0 ! JPNL
@@ -492,16 +706,12 @@ C---Loop over all wavelength bins:
 
 
 
-      FUNCTION XSECO3(K,TTT)
+      REAL*8 FUNCTION XSECO3(K,TTT)
 !@sum XSECO3  O3 Cross-sections for all processes interpolated across
 !@+   3 temps
 !@auth UCI (see note above), GCM incorporation: Drew Shindell,
 !@+ modelEifications: Greg Faluvegi
 !@calls FLINT
-
-C**** GLOBAL parameters and variables:
-
-      USE TRCHEM_Shindell_COM, only: TQQ,QO3
 
       IMPLICIT NONE
 
@@ -510,7 +720,6 @@ C**** Local parameters and variables and arguments:
 !@var TTT returned termperature profile
       INTEGER, INTENT(IN) :: k
       real*8              :: TTT
-      REAL*8 xseco3,FLINT ! >>> FUNCTIONS <<<
       
       XSECO3  =
      &FLINT(TTT,TQQ(1,2),TQQ(2,2),TQQ(3,2),QO3(K,1),QO3(K,2),QO3(K,3))
@@ -519,16 +728,12 @@ C**** Local parameters and variables and arguments:
 
 
 
-      FUNCTION XSEC1D(K,TTT)
+      REAL*8 FUNCTION XSEC1D(K,TTT)
 !@sum XSEC1D  Quantum yields for O3 --> O2 + O(1D) interpolated across
 !@+   3 temps
 !@auth UCI (see note above), GCM incorporation: Drew Shindell,
 !@+ modelEifications: Greg Faluvegi
 !@calls FLINT
-
-C**** GLOBAL parameters and variables:
-
-      USE TRCHEM_Shindell_COM, only: TQQ,Q1D
 
       IMPLICIT NONE
 
@@ -537,7 +742,6 @@ C**** Local parameters and variables and arguments:
 !@var TTT returned termperature profile
       INTEGER, INTENT(IN) :: k
       real*8              :: TTT
-      REAL*8 xsec1d,FLINT ! >>> FUNCTIONS <<<
       
       XSEC1D =
      &FLINT(TTT,TQQ(1,3),TQQ(2,3),TQQ(3,3),Q1D(K,1),Q1D(K,2),Q1D(K,3))
@@ -546,16 +750,12 @@ C**** Local parameters and variables and arguments:
 
 
 
-      FUNCTION XSECO2(K,TTT)
+      REAL*8 FUNCTION XSECO2(K,TTT)
 !@sum XSECO2 Cross-sections for O2 interpolated across 3 temps; No
 !@+   S_R Bands yet!
 !@auth UCI (see note above), GCM incorporation: Drew Shindell,
 !@+ modelEifications: Greg Faluvegi
 !@calls FLINT
-
-C**** GLOBAL parameters and variables:
-
-      USE TRCHEM_Shindell_COM, only: TQQ,QO2
 
       IMPLICIT NONE
 
@@ -564,7 +764,6 @@ C**** Local parameters and variables and arguments:
 !@var TTT returned termperature profile
       INTEGER, INTENT(IN) :: k
       real*8              :: TTT
-      REAL*8 xseco2,FLINT ! >>> FUNCTIONS <<<
       
       XSECO2 =
      &FLINT(TTT,TQQ(1,1),TQQ(2,1),TQQ(3,1),QO2(K,1),QO2(K,2),QO2(K,3))
@@ -616,9 +815,6 @@ C**** Local parameters and variables and arguments:
 C**** GLOBAL parameters and variables:
 
       USE CONSTANT, only: radius
-      USE RESOLUTION, only: LM
-      USE TRCHEM_Shindell_COM, only: U0,NBFASTJ,ZFASTJ2,ZZHT,TANHT,
-     & nlbatm,AMF
 
       IMPLICIT NONE
 
@@ -629,8 +825,10 @@ C**** Local parameters and variables and arguments:
 !@var RZ Distance from centre of Earth to each point (cm)
 !@var RQ Square of radius ratios
 !@var XL Slant path between points
+!@var tanht Tangent height for the current SZA
       INTEGER :: II, I, J, K
       REAL*8  :: Ux, Htemp, AIRMAS, GMU, ZBYR, xmu1, xmu2, xl, DIFF
+     &          ,tanht
       REAL*8, DIMENSION(NBFASTJ) :: RZ, RQ
   
       AIRMAS(Ux,Htemp) = (1.0d0+Htemp)/SQRT(Ux*Ux+2.0d0*Htemp*(1.0d0-
@@ -780,14 +978,7 @@ C--------------------------------------------------------------------
 C
 C**** GLOBAL parameters and variables:
 C
-      USE DOMAIN_DECOMP_ATM, only: write_parallel
-      USE RESOLUTION, only : LM
-      USE MODEL_COM, only: itime
-      USE TRCHEM_Shindell_COM, only: NBFASTJ,POMEGA,NCFASTJ2,
-     & POMEGAJ,MIEDX2,QAAFASTJ,SSA,NLBATM,DO32,DMFASTJ2,QRAYL,
-     & AMF,PAA,jaddlv,dtaumax,dtausub,dsubdiv,U0,RFLECT,MXFASTJ,
-     & NLFASTJ,ZTAU,jadsub,N__,ZU0,ZREFL,ZFLUX,FZ,jaddto,jndlev,
-     & FJFASTJ,M__,AER2,MFIT
+      USE MODEL_COM, only: modelEclock
                           
       IMPLICIT NONE
 
@@ -806,7 +997,6 @@ C**** Local parameters and variables and arguments:
 ! POMEGA=Scattering phase function
 ! jaddlv(i)=Number of new levels to add between (i) and (i+1)
 ! jaddto(i)=Total number of new levels to add to and above level (i)
-! jndlev(j)=Level needed for J-value for CTM layer (j)
 
       integer :: KW,km,i,j,k,l,ix,j1,ND
       character(len=300) :: out_line
@@ -979,7 +1169,7 @@ c Reinitialize level arrays:
      &    reflect issues with the optical depth of a tracer or 
      &    clouds being unreasonable. Please check!!
      &    If in 1997 (very anomalous fire year), it is OK to 
-     &    increase NLFASTJ to 1200 in TRCHEM_Shindell_COM.
+     &    increase NLFASTJ to 1200 in TRCHEM_fastj2.f.
      &    But for other years, please check
      &    for possible issues.',255)
         endif
@@ -1081,7 +1271,7 @@ C---Update total number of levels and check does not exceed N__
      &    reflect issues with the optical depth of a tracer or 
      &    clouds being unreasonable. Please check!!
      &    If in 1997 (very anomalous fire year), it is OK to 
-     &    increase N__ to 3000 in TRCHEM_Shindell_COM.
+     &    increase N__ to 3000 in fastj2.f.
      &    But for other years, please check
      &    for possible issues.',255)
         endif
@@ -1153,11 +1343,6 @@ C   initialize variables FIXED/UNUSED in this special version:
 C   FTOP=1.0=astrophys flux (unit of pi) at SZA, -ZU0, use for scaling
 C   FBOT=0.0=ext isotropic flux on lower boundary
 
-C**** GLOBAL parameters and variables:
-
-      USE TRCHEM_Shindell_COM, only: NFASTJ,EMU,WTFASTJ,ZFLUX,ZU0,
-     & MFASTJ,MFIT,ZREFL,FZ,PM0,PM,FJFASTJ
-                          
       IMPLICIT NONE
 
 C**** Local parameters and variables and arguments:
@@ -1192,11 +1377,6 @@ C Solve eqn of R.T. only for first-order M=1
 !@auth UCI (see note above), GCM incorporation: Drew Shindell,
 !@+ modelEifications: Greg Faluvegi
 
-C**** GLOBAL parameters and variables:
-
-      USE TRCHEM_Shindell_COM, only: BFASTJ,NFASTJ,CC,HFASTJ,
-     & AFASTJ,DD,RR2,C1,FJFASTJ,WTFASTJ,EMU,AAFASTJ
-                           
       IMPLICIT NONE
 
 C**** Local parameters and variables and arguments:
@@ -1286,12 +1466,6 @@ C----------MEAN J & H
 !@auth UCI (see note above), GCM incorporation: Drew Shindell,
 !@+ modelEifications: Greg Faluvegi
 
-C**** GLOBAL parameters and variables:
-
-      USE TRCHEM_Shindell_COM, only: NFASTJ,MFASTJ,MFIT,POMEGA,PM,PM0,
-     & HFASTJ,FZ,SFASTJ,WTFASTJ,WFASTJ,U1,V1,BFASTJ,CC,AFASTJ,EMU,C1,
-     & ZTAU,AAFASTJ,ZFLUX,ZREFL
-                           
       IMPLICIT NONE
 
 C**** Local parameters and variables and arguments:
@@ -1543,3 +1717,423 @@ C---MULTIPLY (U-INVERSE)*(L-INVERSE)
       AFASTJ(4,3) = AFASTJ(4,4)*AFASTJ(4,3)
       RETURN
       END SUBROUTINE MATIN4
+
+
+
+      SUBROUTINE inphot
+!@sum inphot initialise photolysis rate data, called directly from the
+!@+   cinit routine in ASAD. Currently use to read the JPL spectral data
+!@+   and standard O3 and T profiles and to set the appropriate reaction
+!@+   index.
+!@auth Drew Shindell (modelEifications by Greg Faluvegi)
+!@ver  1.0 (based on cheminit0C5_M23p & ds4p_chem_init_M23)
+!@calls RD_TJPL,RD_PROF
+
+C**** GLOBAL parameters and variables:
+      USE FILEMANAGER, only: openunit,closeunit
+
+      IMPLICIT NONE
+
+C**** Local parameters and variables and arguments:
+!@var ipr Photolysis reaction counter
+!@var cline dummmy text
+!@var i dummy loop variable
+!@var iu_data temporary unit number
+!@var temp1 temp variable to read in jfacta
+!@var temp2 temp variable to read in jlabel
+      integer            :: iu_data, ipr, i, L
+      character*120      :: cline
+      character(len=300) :: out_line
+      character*7        :: temp2
+      real*8             :: temp1
+
+c Reread the ratj_GISS.d file to map photolysis rate to reaction
+c Read in quantum yield jfacta and fastj label jlabel
+      ipr=0
+      call openunit('RATJ',iu_data,.false.,.true.)
+ 10   read(iu_data,'(a)',err=20) cline
+      if(cline(2:5) == '9999') then
+        go to 20
+      elseif(cline(1:1) == '#' .or. cline(5:5) == '$') then
+        go to 10
+      else
+        ipr=ipr+1
+        backspace iu_data
+        read(iu_data,'(78x,f5.1,2x,a7)',err=20) temp1,temp2
+        jfacta(ipr) = temp1
+        jlabel(ipr) = temp2
+        jfacta(ipr)=jfacta(ipr)*1.d-2 
+        go to 10
+      endif
+ 20   call closeunit(iu_data)
+      if(ipr /= JPPJ) then
+        write(out_line,1000) ipr,JPPJ
+        call write_parallel(trim(out_line),crit=.true.)
+        call stop_model('problem with # photolysis reactions',255)
+      endif
+
+c Print details:
+      write(out_line,1100) ipr
+      call write_parallel(trim(out_line))
+      do i=1,ipr
+        write(out_line,1200) i, jlabel(i), jfacta(i)
+        call write_parallel(trim(out_line))
+      enddo
+
+c Read in JPL spectral data set:
+      call openunit('SPECFJ',iu_data,.false.,.true.)
+      call RD_TJPL(iu_data)
+      call closeunit(iu_data)
+
+c Read in T & O3 climatology:
+      call openunit('ATMFJ',iu_data,.false.,.true.)
+      call RD_PROF(iu_data)
+      call closeunit(iu_data)
+
+ 1000 format(' Error: ',i3,' photolysis labels but ',i3,' reactions')
+ 1100 format(' Fast-J Photolysis Scheme: considering ',i2,' reactions')
+ 1200 format(3x,i2,': ',a7,' (Q.Y. ',f6.3,') ')
+      return
+      end SUBROUTINE inphot
+
+
+
+      SUBROUTINE RD_TJPL(NJ1)
+!@sum RD_TJPL Read wavelength bins, solar fluxes, Rayleigh parameters,
+!@+   T-dependent cross sections and Rayleigh/aerosol scattering phase
+!@+   functions with temperature dependences. Current data originates
+!@+   from JPL'97.
+!@auth Drew Shindell (modelEifications by Greg Faluvegi)
+!@ver  1.0 (based on cheminit0C5_M23p & ds4p_chem_init_M23)
+
+      IMPLICIT NONE
+
+C**** Local parameters and variables and arguments:
+!@var NJ1 local copy of unit number to read
+!@var i,j,k,iw dummy loop variables
+!@var jj dummy variable
+!@var nQQQ minus no. additional J-values from X-sects (O2,O3P,O3D+NQQQ)
+!@var NJVAL2 temporary test for NJVAL= its constant value...
+      INTEGER, INTENT(IN) :: NJ1
+      INTEGER             :: i,j,k,iw,jj,nqqq,NJVAL2
+      character(len=300)  :: out_line
+
+      TQQ = 0.d0
+
+      if(rad_FL == 0)then
+        bin4_1991 = 9.431d+11
+        bin4_1988 = 9.115E+11
+        bin5_1988 = 5.305E+12
+      endif
+
+C Read in spectral data:
+      READ(NJ1,'(A)') TITLE0
+      WRITE(out_line,'(1X,A)') TITLE0
+      call write_parallel(trim(out_line))
+      READ(NJ1,'(10X,4I5)') NJVAL2,NWWW,NW1,NW2
+      IF(NJVAL /= NJVAL2) THEN
+        WRITE(out_line,*)'NJVAL (constant)= ',NJVAL,' but it is ',
+     &  NJVAL2,'when read in from SPECFJ file.  Please reconcile.'
+        call write_parallel(trim(out_line),crit=.true.)
+        call stop_model('NJVAL problem in RD_TJPL',255)
+      END IF
+      NQQQ = NJVAL-3
+      READ(NJ1,102) (WBIN(IW),IW=1,NWWW)
+      READ(NJ1,102) (WBIN(IW+1),IW=1,NWWW)
+      READ(NJ1,102) (WL(IW),IW=1,NWWW)
+      if(rad_FL == 0)then
+        READ(NJ1,102) (FL(IW),IW=1,NWWW)
+      else
+        READ(NJ1,102) (FL_DUMMY(IW),IW=1,NWWW)
+      endif
+      READ(NJ1,102) (QRAYL(IW),IW=1,NWWW)
+      READ(NJ1,102) (QBC(IW),IW=1,NWWW)   !From Loiusse et al[JGR,96]
+
+C Read O2 X-sects, O3 X-sects, O3=>O(1D) quant yields(each at 3 temps):
+      DO K=1,3
+        READ(NJ1,103) TITLEJ(K,1),TQQ(K,1), (QO2(IW,K),IW=1,NWWW)
+      ENDDO
+      DO K=1,3
+        READ(NJ1,103) TITLEJ(K,2),TQQ(K,2), (QO3(IW,K),IW=1,NWWW)
+      ENDDO
+      DO K=1,3
+        READ(NJ1,103) TITLEJ(K,3),TQQ(K,3), (Q1D(IW,K),IW=1,NWWW)
+      ENDDO
+      do k=1,3
+        write(out_line,200) titlej(1,k),(tqq(i,k),i=1,3)
+        call write_parallel(trim(out_line))
+      enddo
+
+C Read remaining species:  X-sections at 2 T's :
+      DO J=1,NQQQ
+        READ(NJ1,103) TITLEJ(1,J+3),TQQ(1,J+3),(QQQ(IW,1,J),IW=1,NWWW)
+        READ(NJ1,103) TITLEJ(2,J+3),TQQ(2,J+3),(QQQ(IW,2,J),IW=1,NWWW)
+        write(out_line,200) titlej(1,j+3),(tqq(i,j+3),i=1,2)
+        call write_parallel(trim(out_line))
+      ENDDO
+      READ(NJ1,'(A)') TITLE0
+
+C (Don't) read pressure dependencies:
+      npdep=0
+
+c Zero index arrays:
+      jind=0
+      jpdep=0
+
+C Set mapping index:
+      do j=1,NJVAL
+        do k=1,JPPJ
+          if(jlabel(k) == titlej(1,j)) jind(k)=j
+        enddo
+        do k=1,npdep
+          if(lpdep(k) == titlej(1,j)) jpdep(j)=k
+        enddo
+      enddo
+      do k=1,JPPJ
+        if(jfacta(k) == 0.d0) then
+          write(out_line,*) 'Not using photolysis reaction ',k
+          call write_parallel(trim(out_line))
+        endif
+        if(jind(k) == 0) then
+          if(jfacta(k) == 0.d0) then
+            jind(k)=1
+          else
+            write(out_line,*)
+     &      'Which J-rate for photolysis reaction ',k,' ?'
+            call write_parallel(trim(out_line),crit=.true.)
+            call stop_model('J-rate problem in RD_TJPL',255)
+          endif
+        endif
+      enddo
+
+C Read aerosol phase functions:
+      read(NJ1,'(A10,I5,/)') TITLE0,NAA
+      if(NAA > NP)then 
+        write(out_line,350) NAA
+        call write_parallel(trim(out_line),crit=.true.)
+        call stop_model('NAA too large in RD_TJPL',255)
+      endif
+      NK=4        ! Fix number of wavelengths at 4
+      do j=1,NAA
+        read(NJ1,110) title_aer_pf(j)
+        do k=1,NK
+          read(NJ1,'(A5,F8.4,F7.3,F8.4,1x,8F6.3)') WAAFASTJ(k,j),
+     &    QAAFASTJ(k,j),RAA(k,j),SSA(k,j),(PAA(i,k,j),i=1,8)
+        enddo
+      enddo
+
+      write(out_line,*) 'Aerosol phase functions & wavelengths'
+      call write_parallel(trim(out_line))
+      DO J=1,NAA
+        write(out_line,'(1x,A8,I2,A,9F8.1)')
+     $  title_aer_pf(J),J,'  wavel=',(WAAFASTJ(K,J),K=1,NK)
+        call write_parallel(trim(out_line))
+        write(out_line,'(9x,I2,A,9F8.4)') J,'  Qext =',
+     &  (QAAFASTJ(K,J),K=1,NK)
+        call write_parallel(trim(out_line))
+      ENDDO   
+
+      if(rad_FL == 0)then
+        SF2_fact=FL(5)/bin5_1988
+        SF3_fact=0.1d-6*(FL(4)-bin4_1988)/(bin4_1991-bin4_1988)
+      endif
+
+  101 FORMAT(8E10.3)
+  102 FORMAT((10X,6E10.3)/(10X,6E10.3)/(10X,6E10.3))
+  103 FORMAT(A7,F3.0,6E10.3/(10X,6E10.3)/(10X,6E10.3))
+  104 FORMAT(13x,i2)
+  105 FORMAT(A7,3x,7E10.3)
+  110 format(3x,a5)
+  200 format(1x,' x-sect:',a10,3(3x,f6.2))
+  201 format(1x,' pr.dep:',a10,7(1pE10.3))
+  350 format(' Too many phase functions supplied; increase NP to ',i2)
+      RETURN
+      END SUBROUTINE RD_TJPL
+
+
+
+      SUBROUTINE READ_FL(end_of_day)
+!@sum READ_FL Instead of reading the photon fluxes (FL) once from the 
+!@+   SPECFJ file, this now varyies year-to-year as read from FLTRAN file.
+!@+   Format is like the SPECFJ file, data should be consistent with the   
+!@+   RADN9 file.
+!@auth Greg Faluvegi (based on RD_TJPL above)
+!@ver  1.0 
+
+C**** GLOBAL parameters and variables:
+      USE FILEMANAGER, only: openunit,closeunit
+      USE RAD_COM, only: s0_yr
+      USE RADPAR, only: icycs0,icycs0f
+      USE MODEL_COM, only: modelEClock
+
+      IMPLICIT NONE
+      
+C**** Local parameters and variables and arguments:
+      integer :: yearx,iunit,i,iw,wantYear,firstYear,lastYear,icyc
+      logical, intent(in) :: end_of_day
+      character(len=300) :: out_line
+      logical :: found1988, found1991
+ 
+      ! only for start of years and restarts:
+      if(.not. end_of_day .or. modelEclock%dayOfYear() == 1) then
+
+        ! set year we are looking for based on rad code s0_yr:
+        if(s0_yr==0)then 
+          wantYear=modelEclock%year()
+        else
+          wantYear=s0_yr
+        end if
+
+        if(wantYear > 2000)then
+          icyc=icycs0f
+        else
+          icyc=icycs0
+        end if
+
+        ! scan the file to make sure needed years are there
+        ! and to see whether we need to cycle based on the 
+        ! initial few or last few years:
+
+        found1988=.false. ; found1991=.false.
+        CALL openunit('FLTRAN',iunit,.false.,.true.)
+        READ(iunit,*) ! 1 line of comments
+        i=0
+        scanLoop: do
+          i=i+1
+          READ(iunit,102,end=100) yearx,(FLX(IW),IW=1,NWWW)
+          if(i==1)firstYear=yearx
+          if(yearx==1988)found1988=.true.
+          if(yearx==1991)found1991=.true.
+        end do scanLoop
+ 100    lastYear=yearx    
+        rewind(iunit)
+        if(.not.found1988)call stop_model('1988 problem READ_FL',13)
+        if(.not.found1991)call stop_model('1991 problem READ_FL',13)
+       
+        if(lastYear-firstYear+1 < icyc)
+     &  call stop_model('years in FLTRAN file < icyc',13)
+        if(wantYear < firstYear)then
+          write(out_line,*)'READ_FL year ',wantYear,' outside of file.'
+          call write_parallel(trim(out_line))
+          ! next line depends on integer arithmatic:
+          wantYear=wantYear+icyc*((firstYear-wantYear+icyc-1)/icyc)
+          write(out_line,*)'Using: ',wantYear,' instead.'
+          call write_parallel(trim(out_line))
+        else if(wantYear > lastYear)then
+          write(out_line,*)'READ_FL year ',wantYear,' outside of file.'
+          call write_parallel(trim(out_line))
+          ! next line depends on integer arithmatic:
+          wantYear=wantYear-icyc*((wantYear-lastYear+icyc-1)/icyc)
+          write(out_line,*)'Using: ',wantYear,' instead.'
+          call write_parallel(trim(out_line))
+        end if
+
+        ! now read file with appropriate (safe) target year:
+        READ(iunit,*) ! 1 line of comments
+        readLoop: do
+          READ(iunit,102,end=101) yearx,(FLX(IW),IW=1,NWWW)
+          if(yearx == wantYear) then
+            FL(1:NWWW)=FLX(1:NWWW)
+          else
+            FL_DUMMY(1:NWWW)=FLX(1:NWWW)
+          endif
+          if(yearx == 1988)then
+            if(yearx == wantYear)then
+              bin4_1988=FL(4); bin5_1988=FL(5)
+            else      
+              bin4_1988=FL_DUMMY(4); bin5_1988=FL_DUMMY(5)
+            endif
+          else if(yearx == 1991)then
+            if(yearx == wantYear)then
+              bin4_1991=FL(4)
+            else
+              bin4_1991=FL_DUMMY(4)
+            endif
+          endif
+          if(yearx >= wantYear.and.yearx >= 1991) exit readLoop
+        end do readLoop
+
+        write(out_line,*)'READ_FL Using year ',wantYear,
+     &  ' bin4_now/1988/1991= ',FL(4),bin4_1988,bin4_1991,
+     &  ' bin5_now/1988= ',FL(5),bin5_1988
+        call write_parallel(trim(out_line))
+
+        call closeunit(iunit)
+      endif
+
+      if(rad_FL > 0)then
+        SF2_fact=FL(5)/bin5_1988
+        SF3_fact=0.1d-6*(FL(4)-bin4_1988)/(bin4_1991-bin4_1988)
+      endif
+  102 FORMAT((I4,6X,6E10.3)/(10X,6E10.3)/(10X,6E10.3))
+      RETURN 
+
+ 101  CONTINUE ! This should no longer be reached.        
+      call stop_model("READ_FL end of file problem.",13)
+      RETURN 
+      END SUBROUTINE READ_FL  
+
+
+
+      SUBROUTINE rd_prof(nj2)
+!@sum rd_prof input T & O3 reference profiles, define Black Carbon prof.
+!@auth Drew Shindell (modelEifications by Greg Faluvegi)
+!@ver  1.0 (based on cheminit0C5_M23p & ds4p_chem_init_M23)
+
+      IMPLICIT NONE
+
+C**** Local parameters and variables and arguments:
+!@var nj2 local unit number
+!@var ia,i,m,l,lat,mon,ntlats,ntmons,n216 local dummy variables
+      INTEGER, INTENT(IN) :: nj2
+      integer :: ia, i, m, l, lat, mon, ntlats, ntmons, n216
+      character(len=300) :: out_line
+      REAL*8 :: ofac, ofak
+
+      READ(NJ2,'(A)') TITLE0
+      WRITE(out_line,'(1X,A)') TITLE0
+      call write_parallel(trim(out_line))
+      READ(NJ2,'(2I5)') NTLATS,NTMONS
+      WRITE(out_line,1000) NTLATS,NTMONS
+      call write_parallel(trim(out_line))
+      N216 = MIN0(216, NTLATS*NTMONS)
+      DO IA=1,N216
+        READ(NJ2,'(1X,I3,3X,I2)') LAT, MON
+        M = MIN(12, MAX(1, MON))
+        L = MIN(18, MAX(1, (LAT+95)/10))
+        READ(NJ2,'(3X,11F7.1)') (TREF2(I,L,M), I=1,41)
+        READ(NJ2,'(3X,11F7.4)') (OREF2(I,L,M), I=1,31)
+      ENDDO
+  
+c Extend climatology to 100 km:
+      ofac=exp(-2.d5/ZZHT)
+      do i=32,51
+        ofak=ofac**(i-31)
+        do m=1,ntmons
+          do l=1,ntlats
+            oref2(i,l,m)=oref2(31,l,m)*ofak
+          enddo
+        enddo
+      enddo
+      do l=1,ntlats
+        do m=1,ntmons
+          do i=42,51
+            tref2(i,l,m)=tref2(41,l,m)
+          enddo
+        enddo
+      enddo
+
+c Approximate Black Carbon up to 10 km; surface 200 ng/m3 (Liousse et
+c al) Scale: 1 ng/m3 = 1.0d-15 g/cm3 (1.0d-11 g/m2/cm as BREF is in
+c cm))
+      do i=1,6;  BREF2(i) =10.d0*1.0d-11; end do
+      do i=7,51; BREF2(i) =0.d0         ; end do
+
+      return
+ 1000 format(1x,'Data: ',i3,' Lats x ',i2,' Months')
+
+      end SUBROUTINE rd_prof
+
+
+
+      end module photolysis
