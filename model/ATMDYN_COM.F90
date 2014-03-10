@@ -352,7 +352,7 @@
       Use DOMAIN_DECOMP_ATM, Only: AM_I_ROOT
       Use Dictionary_mod
       Implicit None
-      Integer :: L,LCSDRAG,nrtau
+      Integer :: L,LCSDRAG,nrtau,nvsdragl
       character(len=1) :: partype
 
       linear_sdrag = is_set_param('rtau')
@@ -373,8 +373,17 @@
         Call sync_param ("PP_SDRAG", PP_SDRAG )
         Call sync_param ("ANG_SDRAG",ANG_SDRAG )
         Call sync_param ("Wc_Jdrag", Wc_Jdrag )
-        Call sync_param ("VSDRAGL",  VSDRAGL, LM-LS1+1 )
         Call sync_param ("wmax",     WMAX )
+
+        if(is_set_param('VSDRAGL')) then
+          ! logic to allow rundecks to specify only the nonzero
+          ! elements of VSDRAGL near the model top
+          call query_param('VSDRAGL',nvsdragl,partype)
+          if(nvsdragl < lm-ls1+1) vsdragl(ls1:lm-nvsdragl) = 0.
+        else
+          nvsdragl = lm-ls1+1
+        endif
+        Call sync_param ("VSDRAGL",  VSDRAGL(lm-nvsdragl+1:lm), nvsdragl )
 
 !**** Calculate levels for application of SDRAG: LSDRAG,LPSDRAG->LM i.e.
 !**** all levels above and including P_SDRAG mb (PP_SDRAG near poles)
