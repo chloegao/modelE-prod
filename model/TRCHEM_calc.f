@@ -1397,10 +1397,10 @@ c       produced by SRB photlysis (SF2 is NO + hv rate) :
 c       rxnN1=3.8d-11*exp(85d0*byta)*y(nOH,L)
         ! that's N+OH->NO+H, not in JPL (rates from IUPAC 1989)
         rxnN2=1.5d-11*exp(-3600.d0*byta)*y(nO2,L) ! N+O2->NO+O
-          rxnN3=5.8d-12*exp(220.d0*byta)*y(nNO2,L)  ! N+O2->N2O+O
-          rxnN4=2.1d-11*exp(100.d0*byta)*y(nNO,L)   ! N+O2->N2+O
-          NprodOx=2.0d0*SF2(I,J,L)*y(nNO,L)*dt2               
-          NlossNOx=3.0d1*NprodOx*(rxnN3+rxnN4)/(rxnN2+rxnN3+rxnN4)
+        rxnN3=5.8d-12*exp(220.d0*byta)*y(nNO2,L)  ! N+NO2->N2O+O
+        rxnN4=2.1d-11*exp(100.d0*byta)*y(nNO,L) ! N+NO->N2+O
+        NprodOx=2.0d0*SF2(I,J,L)*y(nNO,L)*dt2               
+        NlossNOx=3.0d1*NprodOx*(rxnN3+rxnN4)/(rxnN2+rxnN3+rxnN4)
         changeL(L,n_NOx)=changeL(L,n_NOx)-NlossNOx
      &  *(axyp(I,J)*rMAbyM(L))*vol2mass(n_NOx)
         conc2mass=axyp(I,J)*rMAbyM(L)*vol2mass(n_Ox)
