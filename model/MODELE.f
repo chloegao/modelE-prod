@@ -91,6 +91,10 @@ C**** Command line options
       use seaice_com, only : si_ocn,iceocn ! temporary until precip_si,
       use fluxes, only : atmocn,atmice     ! precip_oc calls are moved
       use Month_mod, only: LEN_MONTH_ABBREVIATION
+#ifdef CACHED_SUBDD
+      USE SUBDD_MOD, only : write_daily_files,days_per_file
+#endif
+
       implicit none
 C**** Command line options
       logical, intent(in) :: qcRestart
@@ -116,6 +120,10 @@ C**** Command line options
       real*8 :: tloopbegin, tloopend
       integer :: hour, month, day, date, year
       character(len=LEN_MONTH_ABBREVIATION) :: amon
+
+#ifdef CACHED_SUBDD
+      character(len=8) :: yyyymmdd
+#endif
 
 #ifdef USE_SYSUSAGE
       do i_su=0,max_su
@@ -187,6 +195,10 @@ C****
         call startNewDay()
       end if
 
+#ifdef CACHED_SUBDD
+      call set_subdd_period()
+#endif
+
       call atm_phase1
 
 C****
@@ -210,6 +222,16 @@ C**** also drives "surface" components that are on the atm grid)
 
 ! phase 2 changes surf pressure which affects the ocean
       call atm_phase2
+
+#ifdef CACHED_SUBDD
+      if(write_daily_files .and.
+     &     mod(itime+1,days_per_file*nday).eq.0) then
+        write(yyyymmdd,'(i4,i2.2,i2.2)') year,month,date
+        filenm=yyyymmdd//'.subdd'//XLABEL(1:LRUNID)
+        call write_subdd_accfile (filenm)
+      endif
+#endif
+
 C****
 C**** UPDATE Internal MODEL TIME AND CALL DAILY IF REQUIRED
 C****
@@ -269,6 +291,12 @@ C**** KCOPY > 0 : SAVE THE DIAGNOSTIC ACCUM ARRAYS IN SINGLE PRECISION
           end do
           filenm=aDATE(1:7)//'.acc'//XLABEL(1:LRUNID)
           call io_rsf (filenm,Itime,iowrite_single,ioerr)
+#ifdef CACHED_SUBDD
+          if(.not.write_daily_files) then
+            filenm=aDATE(1:7)//'.subdd'//XLABEL(1:LRUNID)
+            call write_subdd_accfile (filenm)
+          endif
+#endif
 C**** KCOPY > 1 : ALSO SAVE THE RESTART INFORMATION
           IF (KCOPY.GT.1) THEN
             CALL RFINAL (IRAND)
@@ -995,6 +1023,15 @@ C**** MUST be before other init routines
          call print_param( 6 )
          WRITE (6,'(A7,12I6)') "IDACC=",(IDACC(I),I=1,12)
       end if
+
+#ifdef CACHED_SUBDD
+      ! Initialize subdaily diagnostics
+      call parse_subdd
+      call reset_cached_subdd
+      if(istart.ge.10) then
+        call read_subdd_rsf(trim(rsf_file_name(kdisk_restart))//'.nc')
+      endif
+#endif
 
 C****
       RETURN

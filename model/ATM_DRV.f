@@ -178,6 +178,10 @@ C**** Scale WM mixing ratios to conserve liquid water
 
       call stopTimer('Atm. Dynamics')
 
+#ifdef CACHED_SUBDD
+      call get_subdd_vinterp_coeffs ! doing after dynamics
+#endif
+
 C****
 C**** Calculate tropopause level and pressure
 C****
@@ -403,7 +407,9 @@ c
 #endif
       USE DIAG_COM, only : kvflxo,oa,koa,ia_filt
      &     ,MODD5S,NDAa, NDA5d,NDA5s,NDA4
+#ifndef CACHED_SUBDD
       USE SUBDAILY, only : nsubdd,get_subdd,accSubdd
+#endif
 #ifndef CUBED_SPHERE
 #ifndef SCM
       USE ATMDYN, only : FILTER
@@ -484,10 +490,14 @@ C**** Accumulate tracer distribution diagnostics
 C****
 C**** WRITE SUB-DAILY DIAGNOSTICS EVERY NSUBDD hours
 C****
+#ifdef CACHED_SUBDD
+      call accum_subdd_atm
+#else
       if (Nsubdd.ne.0) then
         call accSubdd
         if (mod(Itime+1,Nsubdd).eq.0) call get_subdd
       end if
+#endif
 #ifdef TRACERS_DUST
       call ahourly
 #endif
@@ -994,7 +1004,9 @@ C**** ZERO OUT INTEGRATED QUANTITIES
       end subroutine daily_atm
 
       subroutine finalize_atm
+#ifndef CACHED_SUBDD
       USE SUBDAILY, only : close_subdd
+#endif
 #ifdef USE_FVCORE
       USE MODEL_COM, only : kdisk
       USE FV_INTERFACE_MOD, only: fvstate
@@ -1009,8 +1021,10 @@ C**** ZERO OUT INTEGRATED QUANTITIES
          call Finalize(fvstate, kdisk)
 #endif
 
+#ifndef CACHED_SUBDD
 C**** CLOSE SUBDAILY OUTPUT FILES
       CALL CLOSE_SUBDD
+#endif
 
 #ifdef SCM
       call closeunit(iu_scm_prt)

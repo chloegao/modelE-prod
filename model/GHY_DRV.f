@@ -4908,3 +4908,45 @@ c     *         +flake(i,j)*sum(w_ij(0:ngm,3,i,j) )*rhow
 #endif
       end subroutine get_fb_fv
 
+#ifdef CACHED_SUBDD
+      subroutine gijlh_defs(arr,nmax,decl_count)
+c 3D outputs (model horizontal grid on soil layers).
+      use model_com, only : dtsrc,nday
+      use subdd_mod, only : info_type
+! info_type_ is a homemade structure constructor for older compilers
+      use subdd_mod, only : info_type_
+      implicit none
+      integer :: nmax,decl_count
+      type(info_type) :: arr(nmax)
+
+      decl_count = 0
+
+      arr(next()) = info_type_(
+     &  sname = 'GT',
+     &  lname = 'Soil Temperature Layers 1-6, Land',
+     &  units = 'C'
+     &     )
+c
+! This note copied from DIAG.f version:
+! 8/13/10: for RELATIVE wetness, edit giss_LSM/GHY.f
+! and activate the corresponding lines where wtr_L is set
+      arr(next()) = info_type_(
+     &  sname = 'GW',
+     &  lname = 'Ground Wetness Layers 1-6, Land',
+     &  units = 'm'
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'GI',
+     &  lname = 'Ground Ice Layers 1-6, Land',
+     &  units = 'liq. equiv. m'
+     &     )
+
+      return
+      contains
+      integer function next()
+      decl_count = decl_count + 1
+      next = decl_count
+      end function next
+      end subroutine gijlh_defs
+#endif /* CACHED_SUBDD */

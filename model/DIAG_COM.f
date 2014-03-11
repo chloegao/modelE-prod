@@ -2133,6 +2133,10 @@ c temporary variant of inc_ajl without any weighting
 #endif
 #endif
 
+#ifdef CACHED_SUBDD
+      if(.not.r4_on_disk) call def_rsf_subdd_acc(fid,r4_on_disk)
+#endif
+
       call defvar(grid,fid,aj,'aj(jm_budg,kaj,ntype)',
      &     r4_on_disk=r4_on_disk)
       call defvar(grid,fid,ajl,'ajl(jm_budg,lm,kajl)',
@@ -2326,6 +2330,12 @@ c            IF (AM_I_ROOT()) call closeunit(iu_ODA)
 
 #ifdef TRACERS_ON
         call new_io_trdiag (fid,iaction)
+#endif
+
+#ifdef CACHED_SUBDD
+      if(iaction.eq.iowrite) then
+        call write_subdd_accdata(fid,iaction)
+      endif
 #endif
 
       return
