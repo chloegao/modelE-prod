@@ -180,7 +180,8 @@
 
 !@dbparam write_daily_files flag indicating whether to output data
 !@+   once per day (the default is once per month)
-      logical :: write_daily_files
+      logical :: write_one_file = .false.
+      logical :: write_daily_files = .false.
       logical :: write_monthly_files ! = .not. write_daily_files
 !@dbparam days_per_file output files are written every days_per_file days
 !@+   if set in the rundeck or if write_daily_files is true, in which
@@ -1091,6 +1092,7 @@ c
      &     namedd,kdd,is_inst,
      &     diaglist,listlen,ndiags,dsize3_input)
       use model_com, only : nday,dtsrc
+      use model_com, only : itimei,itimee
       use resolution, only : lm ! temporary?
       use cdl_mod, only : add_var,add_varline,add_coord
       use domain_decomp_atm, only : grid,get=>getdomainbounds
@@ -1155,7 +1157,11 @@ c
         endif
       enddo
 
-      nperiod = ceiling(real(days_per_file*nday)/real(nsubdd))
+      if(write_one_file) then
+        nperiod = ceiling(real(itimee-itimei)/real(nsubdd))
+      else
+        nperiod = ceiling(real(days_per_file*nday)/real(nsubdd))
+      endif
 
       call get(grid,i_strt_halo=i_0h,i_stop_halo=i_1h,
      &              j_strt_halo=j_0h,j_stop_halo=j_1h)
@@ -1305,6 +1311,7 @@ c
 
       subroutine create_solo(subdd,nsubdd,vname,is_inst)
       use model_com, only : nday,dtsrc
+      use model_com, only : itimei,itimee
       implicit none
       type(subdd_type) :: subdd
       integer :: nsubdd
@@ -1317,7 +1324,11 @@ c
 
       ndiags = 1
 
-      nperiod = ceiling(real(days_per_file*nday)/real(nsubdd))
+      if(write_one_file) then
+        nperiod = ceiling(real(itimee-itimei)/real(nsubdd))
+      else
+        nperiod = ceiling(real(days_per_file*nday)/real(nsubdd))
+      endif
 
       subdd%grpname = vname
       subdd%strdimlen = 'k'//trim(vname)
@@ -1372,7 +1383,7 @@ c
       use domain_decomp_atm, only : grid,get=>getdomainbounds
       use dictionary_mod
       use subdd_mod, only : write_daily_files,days_per_file,
-     &     vinterp_using_timeavgs,write_monthly_files,
+     &     vinterp_using_timeavgs,write_monthly_files,write_one_file,
      &     create_group,subdd_ngroups,subdd_ngroups_max,subdd_groups,
      &     cdl_ijt,info_type,namedd_strlen,sname_strlen,
      &     lmaxsubdd,subdd_npres,subdd_pres,subdd_pk,aijph_l1,aijph_l2
@@ -1427,6 +1438,7 @@ C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
       type(info_type), dimension(nmax_possible,ncats_max) ::
      &     diaglists
       integer :: write_daily_files_int,vinterp_using_timeavgs_int
+      integer :: write_one_file_int
 
       integer :: i_0h,i_1h,j_0h,j_1h
       character(len=80) :: errmsg
@@ -1436,7 +1448,13 @@ C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
 
       allocate(subdd_groups(subdd_ngroups_max))
 
-      if(is_set_param('days_per_file')) then
+      if(is_set_param('write_one_file')) then
+        call get_param( "write_one_file" ,write_one_file_int)
+        write_one_file = write_one_file_int == 1
+        if(write_one_file) then
+          days_per_file = 1 ! not really used
+        endif
+      elseif(is_set_param('days_per_file')) then
         call get_param( "days_per_file" ,days_per_file)
         write_daily_files = .true.
       else
@@ -1449,7 +1467,8 @@ C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
           days_per_file = 31
         endif
       endif
-      write_monthly_files = .not. write_daily_files
+      write_monthly_files = .not.
+     &     (write_daily_files .or. write_one_file)
 
       vinterp_using_timeavgs_int = 0
       call sync_param("vinterp_using_timeavgs" ,
@@ -2833,7 +2852,7 @@ C**** cached_subdd on model levels
 !@sum set_subdd_period get index of the current subdd accumulation period
       use model_com, only : itime,itimei,nday,dtsrc,modelEclock
       use subdd_mod, only : sched_src,subdd_type
-     &     ,write_monthly_files,days_per_file
+     &     ,write_one_file,write_monthly_files,days_per_file
       implicit none
       integer :: istep,subdd_period,jdate
       type(subdd_type) :: subdd
@@ -2852,7 +2871,9 @@ C**** cached_subdd on model levels
         endif
         subdd_period = max(1,sum(subdd%nacc(:,sched_src)))
       else
-        if(write_monthly_files) then
+        if(write_one_file) then
+          istep = itime-itimei
+        elseif(write_monthly_files) then
           call modelEclock%getDate(date=jdate)
           istep = (jdate-1)*nday + mod(itime,nday)
         else
@@ -2874,15 +2895,16 @@ C**** cached_subdd on model levels
       character(len=32) :: timeunitstr
       integer :: year1,mon1,day1,jdate1,hour1
       character(len=4) :: amon1,ystr
-      character(len=2) :: mstr,dstr
+      character(len=2) :: mstr,dstr,hstr
       call getdte(
      &     itimei,nday,iyear1,year1,mon1,day1,jdate1,hour1,amon1)
       write(ystr,'(i4.4)') year1
       write(mstr,'(i2.2)') mon1
       write(dstr,'(i2.2)') jdate1
-        ! note: assuming simulations all start at 00:00 UTC
+      write(hstr,'(i2.2)') hour1
+        ! note: assuming simulations all start at HH:00 UTC
       timeunitstr = 'hours since '//
-     &     ystr//'-'//mstr//'-'//dstr//' 00:00 UTC'
+     &     ystr//'-'//mstr//'-'//dstr//' '//hstr//':00 UTC'
       return
       end subroutine get_subdd_timeunitstr
 

@@ -92,7 +92,8 @@ C**** Command line options
       use fluxes, only : atmocn,atmice     ! precip_oc calls are moved
       use Month_mod, only: LEN_MONTH_ABBREVIATION
 #ifdef CACHED_SUBDD
-      USE SUBDD_MOD, only : write_daily_files,days_per_file
+      USE SUBDD_MOD, only : write_monthly_files,write_daily_files,
+     &     days_per_file,write_one_file
 #endif
 
       implicit none
@@ -224,12 +225,16 @@ C**** also drives "surface" components that are on the atm grid)
       call atm_phase2
 
 #ifdef CACHED_SUBDD
-      if(write_daily_files .and.
+      if(write_one_file .and. itime+1.eq.itimee) then ! run finished
+        filenm = 'allsteps.subdd'//XLABEL(1:LRUNID)
+      elseif(write_daily_files .and.
      &     mod(itime+1,days_per_file*nday).eq.0) then
         write(yyyymmdd,'(i4,i2.2,i2.2)') year,month,date
         filenm=yyyymmdd//'.subdd'//XLABEL(1:LRUNID)
-        call write_subdd_accfile (filenm)
+      else
+        filenm = ''
       endif
+      if(filenm.ne.'') call write_subdd_accfile (filenm)
 #endif
 
 C****
@@ -292,7 +297,7 @@ C**** KCOPY > 0 : SAVE THE DIAGNOSTIC ACCUM ARRAYS IN SINGLE PRECISION
           filenm=aDATE(1:7)//'.acc'//XLABEL(1:LRUNID)
           call io_rsf (filenm,Itime,iowrite_single,ioerr)
 #ifdef CACHED_SUBDD
-          if(.not.write_daily_files) then
+          if(write_monthly_files) then
             filenm=aDATE(1:7)//'.subdd'//XLABEL(1:LRUNID)
             call write_subdd_accfile (filenm)
           endif
