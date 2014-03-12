@@ -165,7 +165,7 @@ subroutine CONDSE
 #endif
 
   use CLOUDS, only : BYDTsrc,mstcnv,lscond & ! glb var & subs
-       ,airm,byam,etal,sm,smom,qm,qmom,isc,dxypij,lp50,hcndss &
+       ,airm,byam,etal,sm,smom,qm,qmom,isc,dxypij,LMCLD,hcndss &
        ,tl,ris,ri1,ri2,mcflx,sshr,dgdsm,dphase,dtotw,dqcond,dctei &
 !      ,wml,sdl,u_0,v_0,um,vm,um1,vm1,qs,us,vs,dcl,airxl,prcpss &
        ,qcil,qcll,sdl,u_0,v_0,um,vm,um1,vm1,qs,us,vs,dcl,airxl,prcpss &
@@ -379,22 +379,22 @@ subroutine CONDSE
   !
   !     Burn some random numbers corresponding to latitudes off
   !     processor
-  call BURN_RANDOM(nij_before_j0(J_0)*LP50*3)
+  call BURN_RANDOM(nij_before_j0(J_0)*LMCLD*3)
 
   do J=J_0,J_1
-    call BURN_RANDOM((I_0-1)*LP50*3)
+    call BURN_RANDOM((I_0-1)*LMCLD*3)
     do I=I_0,IMAXJ(J)
-      do L=LP50,1,-1
+      do L=LMCLD,1,-1
         do NR=1,3
           RNDSS(NR,L,I,J) = RANDU(xx)
         end do
       end do
       !     Do not bother to save random numbers for isccp_clouds
     end do
-    call BURN_RANDOM(nij_after_i1(I_1)*LP50*3)
+    call BURN_RANDOM(nij_after_i1(I_1)*LMCLD*3)
   end do
 
-  call BURN_RANDOM(nij_after_j1(J_1)*LP50*3)
+  call BURN_RANDOM(nij_after_j1(J_1)*LMCLD*3)
 
   !     But save the current seed in case isccp_routine is activated
   if (isccp_diags.eq.1) call RFINAL(seed)
@@ -1036,7 +1036,7 @@ subroutine CONDSE
                +SCM_DEL_Q(:))-QTOLD(:,I,J))*BYDTsrc
         endif
 #endif
-        RNDSSL(:,1:LP50)=RNDSS(:,1:LP50,I,J)
+        RNDSSL(:,1:LMCLD)=RNDSS(:,1:LMCLD,I,J)
         FSSL(:)=FSS(:,I,J)
         do L=1,LM
           do K=1,KMAX
@@ -1105,18 +1105,18 @@ subroutine CONDSE
         endif
 
         !**** Uncomment next few lines for check on conservation
-        !ECON W1 = sum( (WML(1:LP50)*(LHE-SVLHXL(1:LP50))
-        !ECON*     +SVWMXL(1:LP50)*(LHE-SVLATL(1:LP50)))*AIRM(1:LP50))
-        !ECON E = ( sum(TL(1:LP50)*AIRM(1:LP50))*SHA + sum(QL(1:LP50)
-        !ECON*     *AIRM(1:LP50))*LHE )*100.*BYGRAV
+        !ECON W1 = sum( (WML(1:LMCLD)*(LHE-SVLHXL(1:LMCLD))
+        !ECON*     +SVWMXL(1:LMCLD)*(LHE-SVLATL(1:LMCLD)))*AIRM(1:LMCLD))
+        !ECON E = ( sum(TL(1:LMCLD)*AIRM(1:LMCLD))*SHA + sum(QL(1:LMCLD)
+        !ECON*     *AIRM(1:LMCLD))*LHE )*100.*BYGRAV
 
         !**** LARGE-SCALE CLOUDS AND PRECIPITATION
         call LSCOND(IERR,WMERR,LERR,i,j)
 
-        !ECON E1 = ( sum( ((TLS(I,J,1:LP50)-TH(1:LP50))*PLK(1:LP50)*AIRM(1:LP50)
-        !ECON*     *SHA +(QLS(I,J,1:LP50)-QL(1:LP50))*AIRM(1:LP50)*LHE)
-        !ECON*     *FSSL(1:LP50))+W1-sum(WMX(1:LP50)*(LHE-SVLHXL(1:LP50))
-        !ECON*     *AIRM(1:LP50)) )*100.*BYGRAV
+        !ECON E1 = ( sum( ((TLS(I,J,1:LMCLD)-TH(1:LMCLD))*PLK(1:LMCLD)*AIRM(1:LMCLD)
+        !ECON*     *SHA +(QLS(I,J,1:LMCLD)-QL(1:LMCLD))*AIRM(1:LMCLD)*LHE)
+        !ECON*     *FSSL(1:LMCLD))+W1-sum(WMX(1:LMCLD)*(LHE-SVLHXL(1:LMCLD))
+        !ECON*     *AIRM(1:LMCLD)) )*100.*BYGRAV
 
         !**** Error reports
         if (IERR.ne.0) write(99,'(I10,3I4,A,D14.5,A)') &
@@ -1194,7 +1194,7 @@ subroutine CONDSE
 
         !**** cloud water diagnostics
         WM1=0  ; WMI=0
-        do L=1,LP50
+        do L=1,LMCLD
           if(SVLHXL(L).eq.LHE) then
 !           aijl(i,j,l,ijl_cldwtr) = aijl(i,j,l,ijl_cldwtr) + WMX(L)*AIRM(L)
             aijl(i,j,l,ijl_cldwtr) = aijl(i,j,l,ijl_cldwtr) + QCLX(L)*AIRM(L)
@@ -1493,18 +1493,18 @@ subroutine CONDSE
           n = ntix(nx)
 
 #ifndef SKIP_TRACER_DIAGS
-          do l=1,lp50
+          do l=1,LMCLD
             dtrm(l) = tm(l,nx)-trm_lni(l,n,i)*fssl(l)
 #ifdef TRACERS_WATER
                  dtrm(l) = dtrm(l) + (trwml(nx,l)-trwm_lni(l,n,i)-trsvwml(nx,l))
 #endif
           enddo
-          if(itcon_ss(n).gt.0) call inc_diagtcb(i,j,sum(dtrm(1:lp50)), &
+          if(itcon_ss(n).gt.0) call inc_diagtcb(i,j,sum(dtrm(1:LMCLD)), &
                itcon_ss(n),n)
-          call inc_tajln_column(i,j,1,lp50,lm,jlnt_lscond,n,dtrm)
+          call inc_tajln_column(i,j,1,LMCLD,lm,jlnt_lscond,n,dtrm)
 #endif  /*SKIP_TRACER_DIAGS*/
 
-          do l=1,lp50
+          do l=1,LMCLD
 #ifdef TRACERS_WATER
             trwm_lni(l,n,i) = trwml(nx,l)
 #endif
@@ -1587,31 +1587,31 @@ subroutine CONDSE
               if (ijts_trdpmc(6,n) > 0) taijs(i,j,ijts_trdpmc(6,n)) &
                    =taijs(i,j,ijts_trdpmc(6,n))+sum(trwash_mc(1:lmcmax,nx))
 
-              if(jls_trdpls(1,n) > 0) call inc_tajls_column(i,j,1,lp50,lm, &
+              if(jls_trdpls(1,n) > 0) call inc_tajls_column(i,j,1,LMCLD,lm, &
                    jls_trdpls(1,n),trwash_ls(:,nx))
-              if(jls_trdpls(2,n) > 0) call inc_tajls_column(i,j,1,lp50,lm, &
+              if(jls_trdpls(2,n) > 0) call inc_tajls_column(i,j,1,LMCLD,lm, &
                    jls_trdpls(2,n),trprcp_ls(:,nx))
-              if(jls_trdpls(3,n) > 0) call inc_tajls_column(i,j,1,lp50,lm, &
+              if(jls_trdpls(3,n) > 0) call inc_tajls_column(i,j,1,LMCLD,lm, &
                    jls_trdpls(3,n),trclwc_ls(:,nx))
-              if(jls_trdpls(4,n) > 0) call inc_tajls_column(i,j,1,lp50,lm, &
+              if(jls_trdpls(4,n) > 0) call inc_tajls_column(i,j,1,LMCLD,lm, &
                    jls_trdpls(4,n),trevap_ls(:,nx))
-              if(jls_trdpls(5,n) > 0) call inc_tajls_column(i,j,1,lp50,lm, &
+              if(jls_trdpls(5,n) > 0) call inc_tajls_column(i,j,1,LMCLD,lm, &
                    jls_trdpls(5,n),trclwe_ls(:,nx))
-              if(jls_trdpls(6,n) > 0) call inc_tajls_column(i,j,1,lp50,lm, &
+              if(jls_trdpls(6,n) > 0) call inc_tajls_column(i,j,1,LMCLD,lm, &
                    jls_trdpls(6,n),trcond_ls(:,nx))
 
               if (ijts_trdpls(1,n) > 0) taijs(i,j,ijts_trdpls(1,n)) &
-                   =taijs(i,j,ijts_trdpls(1,n))+sum(trwash_ls(1:lp50,nx))
+                   =taijs(i,j,ijts_trdpls(1,n))+sum(trwash_ls(1:LMCLD,nx))
               if (ijts_trdpls(2,n) > 0) taijs(i,j,ijts_trdpls(2,n)) &
-                   =taijs(i,j,ijts_trdpls(2,n))+sum(trprcp_ls(1:lp50,nx))
+                   =taijs(i,j,ijts_trdpls(2,n))+sum(trprcp_ls(1:LMCLD,nx))
               if (ijts_trdpls(3,n) > 0) taijs(i,j,ijts_trdpls(3,n)) &
-                   =taijs(i,j,ijts_trdpls(3,n))+sum(trclwc_ls(1:lp50,nx))
+                   =taijs(i,j,ijts_trdpls(3,n))+sum(trclwc_ls(1:LMCLD,nx))
               if (ijts_trdpls(4,n) > 0) taijs(i,j,ijts_trdpls(4,n)) &
-                   =taijs(i,j,ijts_trdpls(4,n))+sum(trevap_ls(1:lp50,nx))
+                   =taijs(i,j,ijts_trdpls(4,n))+sum(trevap_ls(1:LMCLD,nx))
               if (ijts_trdpls(5,n) > 0) taijs(i,j,ijts_trdpls(5,n)) &
-                   =taijs(i,j,ijts_trdpls(5,n))+sum(trclwe_ls(1:lp50,nx))
+                   =taijs(i,j,ijts_trdpls(5,n))+sum(trclwe_ls(1:LMCLD,nx))
               if (ijts_trdpls(6,n) > 0) taijs(i,j,ijts_trdpls(6,n)) &
-                   =taijs(i,j,ijts_trdpls(6,n))+sum(trcond_ls(1:lp50,nx))
+                   =taijs(i,j,ijts_trdpls(6,n))+sum(trcond_ls(1:LMCLD,nx))
             end if
 #endif
 #ifdef TRACERS_DUST
@@ -1818,7 +1818,8 @@ subroutine init_CLD(istart)
 #endif
   use CLOUDS, only : lmcm,bydtsrc,xmass,brcld,bybr,U00wtrX,U00ice &
        ,U00a,U00b       & ! tuning knobs to replace U00ice and U00wtrX
-       ,HRMAX,ISC,lp50,RICldX,RWCldOX,xRIcld,do_blU00,tautab,invtau &
+       ,MAXCTOP         & ! the maximum cloud top (mb)
+       ,HRMAX,ISC,LMCLD,RICldX,RWCldOX,xRIcld,do_blU00,tautab,invtau &
        ,funio_denominator,autoconv_multiplier,radius_multiplier &
        ,entrainment_cont1,entrainment_cont2,wmui_multiplier &
        ,RA,UM,VM,UM1,VM1,U_0,V_0
@@ -1981,6 +1982,7 @@ subroutine init_CLD(istart)
   call sync_param( 'U00a', U00a )
   call sync_param( 'U00b', U00b )
   call sync_param( "LMCM", LMCM )
+  call sync_param( "MAXCTOP", MAXCTOP )
   call sync_param( "HRMAX", HRMAX )
   call sync_param( "RICldX", RICldX )
   xRIcld = .001d0*(RICldX-1.d0)
@@ -2007,13 +2009,13 @@ subroutine init_CLD(istart)
   BYBR=((1.-BRCLD)*(1.-2.*BRCLD))**BY3
 
   !**** SEARCH FOR THE 50 MB LEVEL
-  LP50=LM
+  LMCLD=LM
   do L=LM-1,1,-1
     PLE=.25*(PEDNL00(L)+2.*PEDNL00(L+1)+PEDNL00(L+2))
-    if (PLE.lt.50.) LP50=L
+    if (PLE.lt.MAXCTOP) LMCLD=L
   end do
   if (AM_I_ROOT())  write(6,*) &
-       "Maximum level for LSCOND calculations (50mb): ",LP50
+       "Maximum level for LSCOND calculations (MAXCTOP mb): ",LMCLD
 
   !**** CLOUD LAYER INDICES USED FOR DIAGNOSTICS (MATCHES ISCCP DEFNs)
   do L=1,LM
