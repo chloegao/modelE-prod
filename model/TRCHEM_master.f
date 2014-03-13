@@ -26,7 +26,7 @@ c
       use TimeConstants_mod, only: HOURS_PER_DAY
       USE TRACER_COM, only  : ntm
       USE TRACER_COM, only  : COUPLED_CHEM
-      USE CONSTANT, only    : radian,gasc,mair,mb2kg,pi,avog,rgas,
+      USE CONSTANT, only    : radian,gasc,mair,mb2kg,pi,avog,rgas,pO2,
      &                        bygrav,lhe,undef
       USE ATM_COM, only     : pedn,LTROPO
       USE DYNAMICS, only    : sig
@@ -490,7 +490,7 @@ c Save presure, temperature, thickness, rel. hum. in local arrays:
      & (rgas*bygrav*TX(i,j,L)*LOG(pedn(L,i,j)/pedn(L+1,i,j)))
 c Calculate M and set fixed ratios for O2 & H2:
        y(nM,L)=pres(L)/(ta(L)*cboltz)
-       y(nO2,L)=y(nM,L)*pfix_O2
+       y(nO2,L)=y(nM,L)*pO2
        if(pres2(l) > 20.d0)then
          y(nH2,L)=y(nM,L)*pfix_H2
        else

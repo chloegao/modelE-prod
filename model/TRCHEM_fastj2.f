@@ -4,6 +4,7 @@
 
       USE DOMAIN_DECOMP_ATM, only: write_parallel 
       use RESOLUTION, only: lm
+      use constant, only: pO2
       implicit none
 !@var j_iprn,j_jprn,j_prnrts for Shindell chemistry debugging
 !@var jppj number of chemical reactions in the currently active chemistry
@@ -599,11 +600,11 @@ C**** Local parameters and variables and arguments:
 
 C---Calculate columns, for diagnostic output only:
       COLO3(NBFASTJ) = DO32(NBFASTJ)
-      COLO2(NBFASTJ) = DMFASTJ2(NBFASTJ)*0.20948d0
+      COLO2(NBFASTJ) = DMFASTJ2(NBFASTJ)*pO2
       COLAX(:,NBFASTJ) = AER2(:,NBFASTJ)
       do I=NBFASTJ-1,1,-1
         COLO3(i) = COLO3(i+1)+DO32(i)
-        COLO2(i) = COLO2(i+1)+DMFASTJ2(i)*0.20948d0
+        COLO2(i) = COLO2(i+1)+DMFASTJ2(i)*pO2
         COLAX(:,i) = COLAX(:,i+1)+AER2(:,i)
       enddo
       write(out_line,1200) '  SZA=',sza
@@ -648,7 +649,7 @@ C---Print out climatology:
           climat(6)=tref2(i,l,m)
           climat(7)=PJC
           climat(8)=climat(8)+climat(4)
-          climat(9)=climat(9)+climat(3)*0.20948d0
+          climat(9)=climat(9)+climat(3)*pO2
           write(out_line,1100) I,(climat(k),k=1,9)
           call write_parallel(trim(out_line),crit=jay)
         enddo
@@ -1034,7 +1035,7 @@ C---Set up total optical depth over each CTM level, DTAUX:
       J1 = NLBATM
       do J=J1,NBFASTJ
         XLO3=DO32(J)*XQO3_2(J)
-        XLO2=DMFASTJ2(J)*XQO2_2(J)*0.20948d0
+        XLO2=DMFASTJ2(J)*XQO2_2(J)*pO2
         XLRAY=DMFASTJ2(J)*QRAYL(KW)
         if(WAVEL <= 291.d0) XLRAY=XLRAY * 0.57d0
         XLAER(:)=AER2(:,J)*QXMIE(:,J) ! MXFASTJ

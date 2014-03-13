@@ -42,7 +42,6 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
 !@+     and 6.02E26 is Avogadro's number in molecules/Kmol.
 !@param cpd conversion from molecules/cm3 to mole/m3
 !@param BYO3MULT = 1/O3MULT
-!@param pfix_O2 fixed ratio of O2/M
 !@param pfix_H2 fixed ratio of H2/M
 !@param pfix_Aldehyde fixed ratio of Aldehyde/M for initial conditions
 !@param MWabyMWw ratio of molecular weights of air/water
@@ -139,7 +138,6 @@ C ----------------------------------------------
       REAL*8, PARAMETER ::  O3MULT       = 2.14d-2,
      &                      BYO3MULT     = 1./O3MULT,
      &                      T_thresh     = 200.d0,
-     &                      pfix_O2      = 0.209476d0,
      &                      pfix_H2      = 560.d-9,
      &                      pfix_Aldehyde= 2.d-9,
      &                      MWabyMWw     = mair/mwat,
