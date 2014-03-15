@@ -3,26 +3,16 @@ module Test_Timer_mod
    use Timer_mod
    implicit none
    private
-
-   public :: setUp
-   public :: tearDown
-
    public :: Test_Timer
-   interface Test_Timer
-     module procedure newTest_Timer
-   end interface Test_Timer
-
    integer, parameter :: dp = selected_real_kind(14)
 
 @TestCase
    type, extends(TestCase) :: Test_Timer
       type (Timer_type) :: timer
       type (Timer_type) :: otherTimer
-      procedure(runMethod), pointer :: userMethod => null()
    contains
       procedure :: setUp     ! overides generic
       procedure :: tearDown  ! overrides generic
-      procedure :: runMethod ! runs userMethod
    end type Test_Timer
 
    public :: test_getNumTrips0
@@ -54,21 +44,6 @@ module Test_Timer_mod
    real(kind=dp), parameter :: EPS = EPSilon(1.)
 
 contains
-
-   function newTest_Timer(name, userMethod) result(test)
-     type (Test_Timer) :: test
-     character(len=*), intent(in) :: name
-     procedure(runMethod) :: userMethod
-
-     call test%setName(name)
-     test%userMethod => userMethod
-   
-   end function newTest_Timer
-
-   subroutine runMethod(this)
-     class (Test_Timer), intent(inout) :: this
-     call this%userMethod()
-   end subroutine runMethod
 
    subroutine setUp(this)
       class (Test_Timer), intent(inout) :: this

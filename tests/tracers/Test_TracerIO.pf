@@ -7,12 +7,7 @@ module Test_TracerIO_mod
   implicit none
   private
 
-   public :: setUp
-   public :: tearDown
    public :: Test_TracerIO
-   interface Test_TracerIO
-     module procedure newTest_TracerIO
-   end interface Test_TracerIO
 
 @TestCase
    type, extends(TestCase) :: Test_TracerIO
@@ -21,11 +16,9 @@ module Test_TracerIO_mod
     type (AttributeDictionary) :: newDefaultValues
     integer :: iounit
     integer :: numTracers
-      procedure(runMethod), pointer :: userMethod => null()
    contains
       procedure :: setUp     ! overides generic
       procedure :: tearDown  ! overrides generic
-      procedure :: runMethod ! runs userMethod
    end type Test_TracerIO
 
   public :: testReadFromText
@@ -33,19 +26,6 @@ module Test_TracerIO_mod
   public :: testWriteUnformatted
 
 contains
-
-   function newTest_TracerIO(name, userMethod) result(test)
-     type (Test_TracerIO) :: test
-     character(len=*), intent(in) :: name
-     procedure(runMethod) :: userMethod
-     call test%setName(name)
-     test%userMethod => userMethod
-   end function newTest_TracerIO
-
-   subroutine runMethod(this)
-     class (Test_TracerIO), intent(inout) :: this
-     call this%userMethod()
-   end subroutine runMethod
 
   subroutine setUp(this)
     use Dictionary_mod, only: Dictionary

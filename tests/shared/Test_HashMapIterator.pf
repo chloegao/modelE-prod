@@ -4,40 +4,17 @@ module Test_HashMapIterator_mod
   use FooHashMap_mod
   implicit none
 
-  public :: setUp
-  public :: tearDown
-
   public :: Test_HashMapIterator
-  interface Test_HashMapIterator
-    module procedure newTest_HashMapIterator
-  end interface Test_HashMapIterator
 
 @TestCase
   type, extends(TestCase) :: Test_HashMapIterator
     type (FooHashMap), pointer :: dictionary
-     procedure(runMethod), pointer :: userMethod => null()
   contains
      procedure :: setUp     ! overides generic
      procedure :: tearDown  ! overrides generic
-     procedure :: runMethod ! runs userMethod
  end type Test_HashMapIterator
 
 contains
-
-   function newTest_HashMapIterator(name, userMethod) result(test)
-     type (Test_HashMapIterator) :: test
-     character(len=*), intent(in) :: name
-     procedure(runMethod) :: userMethod
-
-     call test%setName(name)
-     test%userMethod => userMethod
-
-   end function newTest_HashMapIterator
-
-   subroutine runMethod(this)
-     class (Test_HashMapIterator), intent(inout) :: this
-     call this%userMethod()
-   end subroutine runMethod
 
   subroutine setUp(this)
     class (Test_HashMapIterator), intent(inout) :: this
