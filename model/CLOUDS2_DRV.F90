@@ -236,6 +236,10 @@ subroutine CONDSE
   use tracers_dust,only : prelay
 #endif
   use TimerPackage_mod, only: startTimer => start, stopTimer => stop
+#ifdef CACHED_SUBDD
+      use subdd_mod, only : subdd_groups,subdd_type,subdd_ngroups, &
+           inc_subdd,find_groups
+#endif
   implicit none
 
 #ifdef TRACERS_ON
@@ -325,6 +329,17 @@ subroutine CONDSE
        SAVEN2(IM,16,LM),W500P1(16),ENTJ(16),SAVWC1(IM,16,LM)
   integer :: J_0,J_1,J_0H,J_1H,J_0S,J_1S,I_0,I_1
   logical :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+
+#ifdef CACHED_SUBDD
+      integer :: igrp,ngroups,grpids(subdd_ngroups)
+      type(subdd_type), pointer :: subdd
+!@var sddarr temporary array for passing reordered/derived fields
+!@+   to inc_subdd
+      real*8, dimension(grid%i_strt_halo:grid%i_stop_halo, &
+                        grid%j_strt_halo:grid%j_stop_halo) :: sddarr
+      real*8, dimension(grid%i_strt_halo:grid%i_stop_halo, &
+                        grid%j_strt_halo:grid%j_stop_halo,lm) :: sddarr3d
+#endif
 
   integer, parameter :: n_idx1 = 5
   integer, parameter :: n_idx2 = 3
@@ -1794,6 +1809,44 @@ subroutine CONDSE
 
 415 format(1X,'W500 AT I=21 L=5 TIME= ',I10/,1X,10F8.3/,1X,10F8.3)
 420 format(1X,'ENT  AT I=21 L=5'/,1X,10F8.2/,1X,10F8.2)
+
+#ifdef CACHED_SUBDD
+!****
+!**** Collect some high-frequency outputs
+!****
+      call find_groups('aijh',grpids,ngroups)
+      do igrp=1,ngroups
+      subdd => subdd_groups(grpids(igrp))
+      do k=1,subdd%ndiags
+      select case (subdd%name(k))
+      case ('prec')
+        call inc_subdd(subdd,k,prec)
+      case ('snowfall')
+        do j=j_0,j_1; do i=i_0,imaxj(j)
+          if(eprec(i,j).ge.0.) then
+            sddarr(i,j) = 0.
+          else
+            sddarr(i,j) = prec(i,j)
+          endif
+        enddo;        enddo
+        call inc_subdd(subdd,k,sddarr)
+      end select
+      enddo
+      enddo
+
+      call find_groups('aijlh',grpids,ngroups)
+      do igrp=1,ngroups
+      subdd => subdd_groups(grpids(igrp))
+      do k=1,subdd%ndiags
+      select case (subdd%name(k))
+      case ('qcl')
+        call inc_subdd(subdd,k,qcl)
+      case ('qci')
+        call inc_subdd(subdd,k,qci)
+      end select
+      enddo
+      enddo
+#endif
 
   call stopTimer('CONDSE()')
 
