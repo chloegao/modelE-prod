@@ -2357,6 +2357,18 @@ c
      &     )
 c
       arr(next()) = info_type_(
+     &  sname = 'qcl',
+     &  lname = 'cloud water',
+     &  units = 'kg/kg'
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'qci',
+     &  lname = 'cloud ice',
+     &  units = 'kg/kg'
+     &     )
+c
+      arr(next()) = info_type_(
      &  sname = 'z',
      &  lname = 'HEIGHT',
      &  units = 'm',
