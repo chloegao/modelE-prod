@@ -547,7 +547,7 @@ c   set up input files to read SCM layer data
       read(iu,*,ERR=290,END=295)
       read(iu,112,ERR=290,END=295)mm
       read(iu,*,ERR=290,END=295)
-      read(iu,('(i8)'),ERR=290,END=295) nv
+      read(iu,'(i8)',ERR=290,END=295) nv
 
       do i=1,NTARM
          write(iu_scm_prt,90) i,yy(i),mo(i),dd(i),hh(i),mm(i)

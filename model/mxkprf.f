@@ -780,7 +780,7 @@ c
         write (lp,'(a,4f10.4,i2)')
      &   'frac[rb],beta[rb] =',
      &   frac_r,frac_b,onem*beta_r,onem*beta_b,jrlv
-        call flush(lp)
+        call sys_flush(lp)
       endif
 c
       do k=1,kk
@@ -804,7 +804,7 @@ c
             if (vrbos) then
               write (lp,101) nstep,i,j,k, 
      &          1.0,swfrac(k+1),dtemp,dsaln
-              call flush(lp)
+              call sys_flush(lp)
             endif
           elseif (k.le.klist(i,j)) then
             dtemp=(swfrac(k)-swfrac(k+1))*sswflx(i,j)*
@@ -813,7 +813,7 @@ c
             if (vrbos) then
               write (lp,101) nstep,i,j,k,
      &          swfrac(k),swfrac(k+1),dtemp
-              call flush(lp)
+              call sys_flush(lp)
             endif
           else !k.gt.klist(i,j)
             dtemp=0.0
@@ -968,7 +968,7 @@ c
             write (lp,'(i9,2i5,i3,a,f8.2,f8.3)')
      &          nstep,i,j,k,
      &          '  z,swfrac =',zgrid(i,j,k),swfrac(k)
-            call flush(lp)
+            call sys_flush(lp)
           endif
         enddo  !k=1,klist
 c
@@ -1057,7 +1057,7 @@ c
      &   hwide(k),1.e4*vcty(i,j,k),1.e4*dift(i,j,k),1.e4*difs(i,j,k),
      &     k=1,kk  )  ! TNL
 CTNL &     k=1,kk+1)
-           call flush(lp)
+           call sys_flush(lp)
         endif
 c
         if (iocnmx.gt.4) then
@@ -1240,7 +1240,7 @@ c --- calculate swfrml, the fraction of solar radiation left at depth hbl
             write (lp,'(i9,2i5,i3,a,4es8.1)')
      &          nstep,i,j,nbl,
      &          '  hbl,swfrml =',hbl,swfrml
-            call flush(lp)
+            call sys_flush(lp)
           endif
 c
 c --- limit check on hbl for negative (stablizing) surface buoyancy forcing
@@ -1279,7 +1279,7 @@ c --- find new nbl and re-calculate swfrml
           write (lp,'(i9,2i5,i3,a,4e10.2)')
      &        nstep,i,j,nbl,
      &        '  hbl,swfrml =',hbl,swfrml
-          call flush(lp)
+          call sys_flush(lp)
         endif
 c
 c --- find forcing stability and buoyancy forcing for final hbl values
@@ -1439,7 +1439,7 @@ c
      &  hwide(k),1.e4*vcty(i,j,k),1.e4*dift(i,j,k),1.e4*difs(i,j,k),
      &    ghats(i,j,k),k=1,kk  )  ! TNL
 CTNL &    ghats(i,j,k),k=1,kk+1)
-          call flush(lp)
+          call sys_flush(lp)
         endif
 c
 c --- save array dpbl=onem*hbl for ice, output and diagnosis
@@ -1768,7 +1768,7 @@ c
           write (lp,103) (nstep,iter,i,j,k,
      &  hwide(k),1.e4*vcty(i,j,k),1.e4*dift(i,j,k),1.e4*difs(i,j,k),
      &  ghats(i,j,k),k=kk,1,-1)
-          call flush(lp)
+          call sys_flush(lp)
         endif
         if(vrbos .and. mod(nstep,20).eq.0) then
           print *,'nbbl,hbbl',nbbl,hbbl
@@ -1862,7 +1862,7 @@ c
      &        hm(k),t1do(k),t1dn(k),s1do(k),s1dn(k),
      &        0.0,0.0,
      &        k=1,nlayer)
-            call flush(lp)
+            call sys_flush(lp)
           endif
 c
 c --- u solution
@@ -1881,7 +1881,7 @@ c
           if (vrbos) then
             write (lp,105) (nstep,iter,i,j,k,
      &        hm(k),u1do(k),u1dn(k),v1do(k),v1dn(k),k=1,nlayer)
-            call flush(lp)
+            call sys_flush(lp)
           endif
 c
 c --- reset old variables in preparation for next iteration
@@ -2144,7 +2144,7 @@ c
             if (vrbos) then
               write (lp,101) nstep,i,j,k,
      &          0.,1.-swfrac(k+1),dtemp,dsaln
-              call flush(lp)
+              call sys_flush(lp)
             endif
           elseif (k.le.klist(i,j)) then
             dtemp=(swfrac(k)-swfrac(k+1))*sswflx(i,j)*
@@ -2153,7 +2153,7 @@ c
             if (vrbos) then
               write (lp,101) nstep,i,j,k,
      &          1.-swfrac(k),1.-swfrac(k+1),dtemp
-              call flush(lp)
+              call sys_flush(lp)
             endif
           else !k.gt.klist(i,j)
             dtemp=0.0
@@ -2337,7 +2337,7 @@ c --- Check that "slq2" has been set to 0 where it might have been negative.
         write(lp,*) "ri1=",ri1,"    rid1=",rid1
         write(lp,*) "dri=",dri
         write(lp,*) "Program will stop."
-        call flush(lp)
+        call sys_flush(lp)
                stop '(mxgissaij)'
       endif
 c
@@ -2462,7 +2462,7 @@ c --- Want to consider statically stable case only: Ri > 0.
      &       "************************************************"
             write(lp,*) "Error detected in turbulence module." 
             write(lp,*) "theta_r (=",abs(theta_r),") too large"
-            call flush(lp)
+            call sys_flush(lp)
                    stop '(mxgissaij)'
           endif
           if (theta_r.lt.(-pidbl)/4.) then
@@ -2520,7 +2520,7 @@ c --- Sound the alarm if have unrealizability outside expected range in angle.
             write(lp,*) " "
             write(lp,*) "i,j=",i,j
             write(lp,*) "Program will stop."
-            call flush(lp)
+            call sys_flush(lp)
                    stop '(mxgissaij)'
           endif
 c
@@ -2561,7 +2561,7 @@ c
           write(lp,*) " "
           write(lp,*) "i,j=",i,j
           write(lp,*) "Program will stop."
-          call flush(lp)
+          call sys_flush(lp)
                  stop '(mxgissaij)'
         endif 
 c
@@ -2599,7 +2599,7 @@ c --- Interpolate 1D table of background vs. theta_r instead.
 *         write(lp,*) '  sh_r  = ',sh_r1(itheta_r0),sh_r1(itheta_r1)
 *         write(lp,*) '  ss_r  = ',ss_r1(itheta_r0),ss_r1(itheta_r1)
 *         write(lp,*) 'slq2_r  = ',slq2_r1(itheta_r0),slq2_r1(itheta_r1)
-*         call flush(lp)
+*         call sys_flush(lp)
 *       endif
         deltheta_r1 = theta_r - itheta_r0*deltheta_r
         delsm_back = sm_r1(itheta_r1) - sm_r1(itheta_r0)
@@ -2623,7 +2623,7 @@ c --- Interpolate 1D table of background vs. theta_r instead.
         write(lp,*) "ifbg_theta_interp=",ifbg_theta_interp
         write(lp,*) "ifrafglt=",ifrafglt
         write(lp,*) "Program is stopping."
-        call flush(lp)
+        call sys_flush(lp)
                stop '(mxgissaij)'
       endif
 c
@@ -2718,7 +2718,7 @@ c --- Stop if background diffusivities are negative.
             write(lp,*) " "
             write(lp,*) "i,j=",i,j
             write(lp,*) "Program will stop."
-            call flush(lp)
+            call sys_flush(lp)
                    stop '(mxgissaij)'
           endif
 c
@@ -2773,7 +2773,7 @@ c
             write(lp,*) " "
             write(lp,*) "i,j=",i,j
             write(lp,*) "Program will stop."
-            call flush(lp)
+            call sys_flush(lp)
                    stop '(mxgissaij)'
           endif
         endif
@@ -2855,7 +2855,7 @@ c --- stop if DIFFUSIVITY IS NEGATIVE.
      &                  akm(k),akh(k),aks(k)
         write(lp,*) " "
         write(lp,*) "Program will stop."
-        call flush(lp)
+        call sys_flush(lp)
                stop '(mxgissaij)'
       endif
       enddo
@@ -2998,7 +2998,7 @@ c
           write (lp,102) (nstep,i,j,k,
      &      hm(k),t1do(k),temp(i,j,kn),s1do(k),saln(i,j,kn),
      &      k=1,nlayer)
-          call flush(lp)
+          call sys_flush(lp)
  102    format(25x,
      &     '  thick   t old   t ijo   s old   s ijo'
      &     /(i9,2i5,i3,2x,f9.2,4f8.3))
@@ -3095,7 +3095,7 @@ cc          end if
           write (lp,104) (nstep,i,j,k,
      &      hm(k),t1do(k),t1dn(k),s1do(k),s1dn(k),
      &      k=1,nlayer)
-          call flush(lp)
+          call sys_flush(lp)
  103    format(25x,'   thick    t diff    s diff   nonlocal'
      &     /(i9,2i5,i3,1x,3f10.2,f11.6))
  104    format(25x,
@@ -3298,7 +3298,7 @@ c
       if (vrbos) then
         write (lp,106) (nstep,i,j,k,
      &    hm(k),u1do(k),u1dn(k),k=1,nlayer)
-        call flush(lp)
+        call sys_flush(lp)
       endif
       return
  106  format(23x,'   thick   u old   u new'/(i9,2i5,i3,1x,f10.3,2f8.3))
@@ -3397,7 +3397,7 @@ c
       if (vrbos) then
         write (lp,107) (nstep,i,j,k,
      &    hm(k),v1do(k),v1dn(k),k=1,nlayer)
-        call flush(lp)
+        call sys_flush(lp)
       endif
       return
  107  format(23x,'   thick   v old   v new'/(i9,2i5,i3,1x,f10.3,2f8.3))

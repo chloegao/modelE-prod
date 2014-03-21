@@ -24,7 +24,7 @@ contains
           ptr15,ptr16,ptr17,ptr18,ptr19, &
           ptr20,ptr21,ptr22,ptr23,ptr24, &
           ptr25,ptr26,ptr27,ptr28,ptr29
-    integer :: k,n
+    integer :: n
 !
 ! the size of the bundle is equal to the number of optional
 ! arguments present
@@ -113,7 +113,7 @@ contains
           ptr05,ptr06,ptr07,ptr08,ptr09, &
           ptr10,ptr11,ptr12,ptr13,ptr14, &
           ptr15,ptr16,ptr17,ptr18,ptr19
-    integer :: k,n
+    integer :: n
 !
 ! the size of the bundle is equal to the number of optional
 ! arguments present

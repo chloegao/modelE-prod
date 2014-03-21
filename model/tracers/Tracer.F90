@@ -89,15 +89,21 @@ contains
   end function TracerCopy
 
   function getName(this) result (name)
+!    use StringAttribute_mod, only: assignment(=)
     use AbstractAttribute_mod
+    use StringAttribute_mod, only: toType
     type (Tracer), intent(in) :: this
     character(len=MAX_LEN_ATTRIBUTE_STRING), pointer :: name
     class (AbstractAttribute), pointer :: p
 
     ! TODO Intel is now struggling with the line below - no idea why.  Worked before other changes.
-!!$    name = this%getReference('name')
+!    name = this%getReference('name')
     p => this%getReference('name')
-    name = p
+! TODO: NAG error:
+! NAME dereferenced or deallocated but not pointer-assigned or allocated
+!    name = p
+! workaround:
+    call toType(name, p)
     
   end function getName
 
@@ -289,20 +295,21 @@ contains
     class default
       call stop_model('Illegal conversion in Tracer_mod.',255)
     end select
-
     
   end subroutine toTracer
 
   subroutine copyInto(a, b)
+!!$    use TracerSurfaceSource_mod, only: copySurfaceType
+!!$    use TracerSource_mod, only: copySourceType
     type (Tracer), intent(out) :: a
     type (Tracer), intent(in) :: b
 
     a%properties = b%properties
     a%AttributeDictionary = b%AttributeDictionary
     a%ntSurfSrc = b%ntSurfSrc
-    a%surfaceSources = b%surfaceSources
-    a%sources3D = b%sources3D
-    
+!!$    call copySurfaceType(a%surfaceSources, b%surfaceSources)
+!!$    call copySourceType(a%sources3D, b%sources3D)
+ 
   end subroutine copyInto
 
 end module Tracer_mod

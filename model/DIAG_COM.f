@@ -1383,7 +1383,6 @@ c allocate master copies of budget- and jk-arrays on root
       USE DIAG_COM, ONLY : KAIJ,KAIJK,KOA,KTSF,KTD,KAIJL
       USE DIAG_COM, ONLY : AIJ,AIJK,AIJL,TSFREZ,TDIURN_GLOB,OA_GLOB
       IMPLICIT NONE
-      INTEGER :: IER
 
       if(AM_I_ROOT()) then
          ALLOCATE(AIJ(IM,JM,KAIJ),
@@ -2671,7 +2670,7 @@ c new_io_subdd
       use cdl_mod, only : write_cdl
       implicit none
       integer fid   !@var fid unit number of read/write
-      integer :: i,n,ntime_dd,ntime_hd
+      integer :: ntime_dd,ntime_hd
       real*8, allocatable :: tmpArr(:)
 
 #ifdef CUBED_SPHERE

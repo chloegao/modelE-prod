@@ -630,7 +630,7 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
       TYPE(atmsrf_xchng_vars) :: THIS
       TYPE(atmsrf_xchng_vars), optional :: THAT
       INTEGER :: I_0H, I_1H, J_1H, J_0H
-      INTEGER :: K, IER
+      INTEGER :: IER
 #ifdef TRACERS_ON
       integer :: ntm
 #endif

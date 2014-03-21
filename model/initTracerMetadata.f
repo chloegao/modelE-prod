@@ -648,7 +648,7 @@ C**** get rundeck parameter for cosmogenic source factor
 !------------------------------------------------------------------------------
       subroutine InitTracerMetadataAtmOcnCpler()
 !------------------------------------------------------------------------------
-      use Dictionary_mod
+      use Dictionary_mod, only: sync_param
 #if (defined TRACERS_OCEAN) && !defined(TRACERS_OCEAN_INDEP)
 ! atmosphere copies atmosphere-declared tracer info to ocean
 ! so that the ocean can "inherit" it without referencing atm. code
@@ -671,10 +671,10 @@ C**** get rundeck parameter for cosmogenic source factor
 #ifdef TRACERS_GASEXCH_ocean_CO2
       USE obio_forc, only : atmCO2
 #endif
+      implicit none
 #if (!defined(TRACERS_GASEXCH_ocean_CO2)) && defined(TRACERS_GASEXCH_land_CO2)
       real*8 :: atmCO2 = 280.d0
 #endif
-      implicit none
       integer :: n
 
 #if defined(TRACERS_GASEXCH_ocean_CO2) || defined(TRACERS_GASEXCH_land_CO2)

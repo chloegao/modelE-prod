@@ -33,6 +33,8 @@ module m4_attributeType($1,$2,$3,$4)_mod
   public :: TYPE
   public :: newAttribute
   public :: assignment(=)
+  ifelse($3,0,public :: toTypeVector)
+  public :: toType
 
   type, extends(AbstractAttribute) :: TYPE
     ifelse($3,0,
@@ -98,19 +100,19 @@ ifelse($3,0,
     downcase($1)[]$2, pointer, intent(inout) :: value(:)
     type (AttributeReference), intent(in) :: references(:)
 
-    class (AbstractAttribute), pointer :: p
+!!$    class (AbstractAttribute), pointer :: p
     downcase($1)[]$2, pointer :: q
     integer :: i, n
 
     n = size(references)
     allocate(value(n))
-
+    allocate(q)
     do i = 1, n
 !!$      p => references(i)%get()
-      q = references(i)!%get()
+      q = references(i)%get()
       value(i) = q
-      nullify(q)
     end do
+    nullify(q)
 
   end subroutine toTypeVector
 ]

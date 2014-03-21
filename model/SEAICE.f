@@ -1618,7 +1618,6 @@ C**** Be careful to avoid taking too much tracer from ocean box
      $     ,Erat2,Si,MSI1,Tf,Eratd
       REAL*8 SICE(LMI),HICE(LMI),HSNOW(2),MICE(LMI),SNOWL(2),FMSI2,
      $     TSNW(2),TSIL(LMI)
-      integer l
 
 C**** test for snow ice possibility
       IF (RHOI*SNOW.gt.(ACE1I+MSI2)*(RHOWS-RHOI)) THEN
@@ -1878,7 +1877,6 @@ C**** lower levels
       REAL*8, INTENT(INOUT) :: TRSNOW(NTM,2),TRICE(NTM,LMI)
       REAL*8 FTRSI1(NTM)
 #endif 
-      INTEGER L
       REAL*8 FMSI1,FHSI1,FSSI1
 
       FMSI1 = SNOWL(1)+MICE(1)-XSI(1)*(SNOWL(1)+SNOWL(2)+ACE1I)

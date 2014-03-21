@@ -120,7 +120,7 @@ contains
 
     type (TracerSurfaceSource), intent(inout) :: this
     character(len=*), intent(in) :: name
-    integer :: n1,n2,error
+    integer :: error
     character*(*) str
     character(len=16) :: yearStepStr
 
@@ -293,7 +293,7 @@ contains
     real*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO, &
          &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: &
          &     data
-    integer ::  iu, k
+    integer ::  iu
     integer, intent(in) :: xyear, xday
 
     integer :: J_0, J_1, I_0, I_1
@@ -534,7 +534,6 @@ contains
 
     INTEGER :: J_1, J_0, I_0, I_1
     integer :: aer_int_yr,master_yr
-    logical :: cyclic
 
     if(.not.is_fbsa(fname)) then
 

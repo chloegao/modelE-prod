@@ -162,6 +162,9 @@ C**** set some defaults
 ! TODO: ifort needs to split this into two steps ???
 c$$$        index = (pTracer%getReference('index'))
         pa => pTracer%getReference('index')
+! TODO : NAG error:
+! dereferenced or deallocated but not pointer-assigned or allocated
+        allocate(index)
         index = pa
         n = index
         sources => pTracer%surfaceSources
@@ -8390,6 +8393,9 @@ C**** All sources are saved as kg/s
         pTracer => iter%value()
 
         pa => pTracer%getReference('index')
+! TODO : NAG error:
+! dereferenced or deallocated but not pointer-assigned or allocated
+        allocate(index)
         index = pa
         n = index
 

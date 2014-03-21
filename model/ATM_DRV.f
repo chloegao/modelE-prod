@@ -1377,7 +1377,7 @@ C****
       CALL VNTRP1 (KMIN,P,RH, LM,PE,XB)
       DO L=1,LM
         TOUT(I,J,L) = XA(L)
-        QOUT(I,J,L) = max(3.e-6,.01*XB(L)*QSAT(XA(L),LHE,PMID(L)))
+        QOUT(I,J,L) = max(3.d-6,.01*XB(L)*QSAT(XA(L),LHE,PMID(L)))
       ENDDO
 
 c A-grid winds.  No insertion of tropopause values.

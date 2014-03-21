@@ -428,7 +428,7 @@
       Implicit None
       Logical,Intent(In) :: END_of_DAY
       Real*8  :: DELTAP,PBAR,SMASS, CMASS(GRID%I_STRT_HALO:GRID%I_STOP_HALO,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
-      Integer :: I,J,L, I1,IN,J1,JN
+      Integer :: I1,IN,J1,JN
       Logical :: QSP,QNP
 
       If (.not.(END_of_DAY .or. ITIME==ITIMEI))  Return

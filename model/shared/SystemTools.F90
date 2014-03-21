@@ -31,6 +31,7 @@ contains
     integer, parameter :: MAX_LEN=80
     character(len=len(dir)+1), target :: dir0
     character(len=MAX_LEN), dimension(size(list)), target :: list_loc
+!    character(len=1), dimension(size(list)), target :: list_loc
     type(c_ptr), dimension(size(list)), target :: c_list_ptrs
     integer (c_int) :: nl
     integer (c_int) :: ls
@@ -45,7 +46,7 @@ contains
     dir0 = dir//C_NULL_CHAR
 
     do n = 1, nl
-      c_list_ptrs(n) = c_loc(list_loc(n))
+      c_list_ptrs(n) = c_loc(list_loc(n)(1:1))
     end do
 
     num=c_field_list(c_loc(dir0(1:1)), c_loc(c_list_ptrs), nl, ls)

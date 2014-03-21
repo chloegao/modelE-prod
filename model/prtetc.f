@@ -431,10 +431,9 @@ c --- the printed numbers actually represent (array(i,j) + offset) * scale
 c
       USE HYCOM_SCALARS, only : lp
       implicit none
-c
+      integer idm,jdm,i,j,iz,jz,jwrap
       real array(idm,jdm),scale,offset
       character what*12
-      integer idm,jdm,i,j,iz,jz,jwrap
       jwrap(j)=mod(j-1+jdm,jdm)+1               !  for use in cyclic domain
 c
  100  format(a12,9i7)

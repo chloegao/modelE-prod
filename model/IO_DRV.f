@@ -20,7 +20,7 @@ C**** For all iaction < 0  ==> WRITE, For all iaction > 0  ==> READ
       INTEGER, INTENT(INOUT) :: it
 !@var IOERR (1,0,-1) if there (is, is maybe, is not) an error in i/o
       INTEGER, INTENT(INOUT) :: IOERR
-      integer :: fid,k,iorw
+      integer :: fid,iorw
       logical :: do_io_prog,do_io_acc,do_io_longacc,r4
       character(len=200) :: tmpname
 
@@ -244,7 +244,6 @@ c idacc(5) is not additive
       use pario, only : defvar,write_attr
       implicit none
       integer fid   !@var fid file id
-      integer :: n
       integer :: intdum
       call write_attr(grid,fid,'global','xlabel',xlabel)
       call defvar(grid,fid,itime,'itime')
