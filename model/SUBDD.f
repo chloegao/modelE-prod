@@ -1603,6 +1603,11 @@ c add (calls to) the analogs of ijh_defs et al.
       call ijlh_defs(diaglists(1,k),nmax_possible,diaglens(k))
 
       k = k + 1
+      catshapes(k) = 'aijh'; categories(k) = 'rijh'
+      input_sizes3(k) = 0
+      call rijh_defs (diaglists(1,k),nmax_possible,diaglens(k))
+
+      k = k + 1
       catshapes(k) = 'gijlh'; categories(k) = 'gijlh'
       input_sizes3(k) = ngm
       call gijlh_defs(diaglists(1,k),nmax_possible,diaglens(k))
@@ -1922,27 +1927,6 @@ c
      &     )
 c
       arr(next()) = info_type_(
-     &  sname = 'swd',
-     &  lname = 'SOLAR DOWNWARD FLUX at SURFACE',
-     &  units = 'W/m^2',
-     &  sched = sched_rad
-     &     )
-c
-      arr(next()) = info_type_(
-     &  sname = 'swu',
-     &  lname = 'SOLAR UPWARD FLUX at SURFACE',
-     &  units = 'W/m^2',
-     &  sched = sched_rad
-     &     )
-c
-      arr(next()) = info_type_(
-     &  sname = 'swdf',
-     &  lname = 'SOLAR DOWNWARD DIFFUSE FLUX at SURFACE',
-     &  units = 'W/m^2',
-     &  sched = sched_rad
-     &     )
-c
-      arr(next()) = info_type_(
      &  sname = 'lwd',
      &  lname = 'LONGWAVE DOWNWARD FLUX at SURFACE',
      &  units = 'W/m^2'
@@ -1964,14 +1948,6 @@ c
      &  sname = 'swt',
      &  lname = 'SOLAR NET FLUX AT TOA',
      &  units = 'W/m^2'
-     &     )
-c
-      arr(next()) = info_type_(
-     &  sname = 'olrrad',
-     &  lname = 'OUTGOING LW RADIATION at TOA'//
-     &                 ' (via RADIA), same as AIC: trnf_toa',
-     &  units = 'W/m^2',
-     &  sched = sched_rad
      &     )
 c
       arr(next()) = info_type_(
@@ -1999,14 +1975,6 @@ c
      &  lname = 'Ice Fraction Over Open Water',
      &  units = '%',
      &  scale = 1d2
-     &     )
-c
-      arr(next()) = info_type_(
-     &  sname = 'tcld',
-     &  lname = 'Total Cloud Cover (as seen by rad)',
-     &  units = '%',
-     &  scale = 1d2,
-     &  sched = sched_rad
      &     )
 c
       arr(next()) = info_type_(
@@ -2041,30 +2009,6 @@ c
      &     )
 c
       arr(next()) = info_type_(
-     &  sname = 'cod',
-     &  lname = 'Cloud optical depth warm clouds',
-     &  units = '-',
-     &  sched = sched_rad
-     &     )
-      arr(next()) = info_type_(
-     &  sname = 'cid',
-     &  lname = 'Cloud optical depth ice clouds',
-     &  units = '-',
-     &  sched = sched_rad
-     &     )
-c
-      arr(next()) = info_type_(
-     &  sname = 'wtrcld',
-     &  lname = 'Water cloud frequency',
-     &  units = '-'
-     &     )
-      arr(next()) = info_type_(
-     &  sname = 'icecld',
-     &  lname = 'Ice cloud frequency',
-     &  units = '-'
-     &     )
-c
-      arr(next()) = info_type_(
      &  sname = 'dzwm',
      &  lname = 'height warm conv clouds',
      &  units = 'm'
@@ -2084,35 +2028,11 @@ c
      &  lname = 'height ice large scale clouds',
      &  units = 'm'
      &     )
-
-
-c
-      arr(next()) = info_type_(
-     &  sname = 'ctt',
-     &  lname = 'Cloud top temperature',
-     &  units = 'C',
-     &  sched = sched_rad
-     &     )
-c
-      arr(next()) = info_type_(
-     &  sname = 'ctp',
-     &  lname = 'Cloud top pressure',
-     &  units = 'hPa',
-     &  sched = sched_rad
-     &     )
-c
-      arr(next()) = info_type_(
-     &  sname = 'cldcv',
-     &  lname = 'Cloud frequency as ssen by Radiation',
-     &  units = '-',
-     &  sched = sched_rad
-     &     )
 c
       arr(next()) = info_type_(
      &  sname = 'ctp_mc',
      &  lname = 'Convective Cloud top pressure',
-     &  units = 'Pa',
-     &  sched = sched_rad
+     &  units = 'Pa'
      &     )
 c
       arr(next()) = info_type_(

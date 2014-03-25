@@ -1361,6 +1361,10 @@ c          use TRACER_COM, only: SNFST0,TNFST0
       use AerParam_mod, only: depoBC,depoBC_1990
       USE TimerPackage_mod, only: startTimer => start, stopTimer => stop
       USE Dictionary_mod, only : get_param, is_set_param
+#ifdef CACHED_SUBDD
+      use subdd_mod, only : sched_rad, subdd_groups, subdd_type
+     &     ,subdd_ngroups,inc_subdd,find_groups, lmaxsubdd
+#endif
       IMPLICIT NONE
 C
 C     INPUT DATA   partly (i,j) dependent, partly global
@@ -1377,10 +1381,22 @@ C     INPUT DATA   partly (i,j) dependent, partly global
      *     SNFS,TNFS
       REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
      &                  grid%J_STRT_HALO:grid%J_STOP_HALO) ::
-     *     SNFSCRF,TNFSCRF,SNFSCRF2,TNFSCRF2
+     &     SNFSCRF,TNFSCRF,SNFSCRF2,TNFSCRF2,LWDNCS,
+     &     SWUS,CTT,CTP,WTRCLD,ICECLD
       REAL*8, DIMENSION(18,grid%I_STRT_HALO:grid%I_STOP_HALO,
      &                  grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      *     SNFSAERRF,TNFSAERRF
+
+#ifdef CACHED_SUBDD
+      integer :: igrp,ngroups,grpids(subdd_ngroups)
+      type(subdd_type), pointer :: subdd
+      REAL*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
+     &                  grid%j_strt_halo:grid%j_stop_halo) ::
+     &     SDDARR
+      REAL*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
+     &                  grid%j_strt_halo:grid%j_stop_halo,lm) ::
+     &     SDDARR3D
+#endif
 #ifdef ACCMIP_LIKE_DIAGS
 !@var snfs_ghg,tnfs_ghg like SNFS/TNFS but with reference GHG for
 !@+   radiative forcing calculations. TOA only.
@@ -1733,6 +1749,15 @@ c      write(6,*) 'RJH: GHG: FORC=',ghg_totforc
       aj_alb_inds = (/ J_PLAVIS, J_PLANIR, J_ALBVIS, J_ALBNIR,
      &                 J_SRRVIS, J_SRRNIR, J_SRAVIS, J_SRANIR /)
 
+      cfrac = 0.
+      wtrcld = 0.
+      icecld = 0.
+      tausumw = 0.
+      tausumi = 0.
+      ctp = 0.
+      ctt = 0.
+      swus = 0.
+
 C****
 C**** MAIN J LOOP
 C****
@@ -1939,10 +1964,12 @@ C**** effective cloud cover diagnostics
          if(optdw.gt.0.) then
             AIJ(I,J,IJ_optdw)=AIJ(I,J,IJ_optdw)+optdw
             AIJ(I,J,IJ_wtrcld)=AIJ(I,J,IJ_wtrcld)+1.
+            WTRCLD(I,J) =   1.
          end if
          if(optdi.gt.0.) then
             AIJ(I,J,IJ_optdi)=AIJ(I,J,IJ_optdi)+optdi
             AIJ(I,J,IJ_icecld)=AIJ(I,J,IJ_icecld)+1.
+            ICECLD(I,J) =   1.
          end if
 
          DO KR=1,NDIUPT
@@ -2415,6 +2442,12 @@ C**** Optional calculation of CRF using a clear sky calc.
           CALL RCOMPX          ! cloud_rad_forc>0 : clr sky
           SNFSCRF(I,J)=SRNFLB(LM+LM_REQ+1)   ! always TOA
           TNFSCRF(I,J)=TRNFLB(LM+LM_REQ+1)   ! always TOA
+          LWDNCS(I,J)=STBO*(                 ! clr sky trhr(0)
+     &      POCEAN*atmocn%GTEMPR(I,J)**4
+     &     + POICE*atmice%GTEMPR(I,J)**4
+     &     + PLICE*atmgla%GTEMPR(I,J)**4
+     &     +PEARTH*atmlnd%GTEMPR(I,J)**4)
+     &     -TRNFLB(1)
 #ifdef SCM
           CSSRNTOP = SRNFLB(LM+LM_REQ+1)*COSZ2(I,J)
           CSTRUTOP = TRUFLB(LM+LM_REQ+1)
@@ -2809,6 +2842,8 @@ C****
       swu_avg(I,J)=swu_avg(I,J)+SRUFLB(1)*CSZ2
 #endif
 
+      SWUS(I,J)=SRUFLB(1)*CSZ2
+
       SRDN(I,J) = SRDFLB(1)     ! save total solar flux at surface
 C**** SALB(I,J)=ALB(I,J,1)      ! save surface albedo (pointer)
       FSRDIR(I,J)=SRXVIS        ! direct visible solar at surface **coefficient
@@ -2860,6 +2895,8 @@ C**** Save cloud top diagnostics here
       if (CLDCV.le.0.) go to 590
       AIJ(I,J,IJ_CLDTPPR)=AIJ(I,J,IJ_CLDTPPR)+plb(ltopcl+1)
       AIJ(I,J,IJ_CLDTPT)=AIJ(I,J,IJ_CLDTPT)+(tlb(ltopcl+1) - tf)
+      CTT(i,j) = (tlb(ltopcl+1) - tf)
+      CTP(i,j) = plb(ltopcl+1)
 C**** Save cloud tau=1 related diagnostics here (opt.depth=1 level)
       tauup=0.
       DO L=LM,1,-1
@@ -3349,6 +3386,95 @@ c longwave GHG forcing at TOA
       SWHR_cnt=SWHR_cnt+1
       LWHR_cnt=LWHR_cnt+1
 #endif
+
+#ifdef CACHED_SUBDD
+      do k=1,subdd_ngroups
+        subdd => subdd_groups(k)
+        subdd%nacc(subdd%subdd_period,sched_rad) =
+     &  subdd%nacc(subdd%subdd_period,sched_rad) + 1
+      enddo
+C****
+C**** Collect some high-frequency outputs
+C****
+      call find_groups('rijh',grpids,ngroups)
+      do igrp=1,ngroups
+      subdd => subdd_groups(grpids(igrp))
+      do k=1,subdd%ndiags
+      select case (subdd%name(k))
+      case ('olrrad')
+        do j=j_0,j_1; do i=i_0,imaxj(j)
+          sddarr(i,j) = tnfs(3,i,j)
+        enddo;        enddo
+        call inc_subdd(subdd,k,sddarr)
+      case ('olrcs')
+        if(cloud_rad_forc.le.0.) call stop_model(
+     &       'diagnostic olrcs needs cloud_rad_forc>0',255)
+        call inc_subdd(subdd,k,TNFSCRF)
+      case ('lwds')
+        do j=j_0,j_1; do i=i_0,imaxj(j)
+          sddarr(i,j) = trhr(0,i,j)
+        enddo;        enddo
+        call inc_subdd(subdd,k,sddarr)
+      case ('lwdscs')
+        if(cloud_rad_forc.le.0.) call stop_model(
+     &       'diagnostic lwdscs needs cloud_rad_forc>0',255)
+        call inc_subdd(subdd,k,lwdncs)
+      case ('lwus')
+        do j=j_0,j_1; do i=i_0,imaxj(j)
+          sddarr(i,j) = trhr(0,i,j) + tnfs(1,i,j)
+        enddo;        enddo
+        call inc_subdd(subdd,k,sddarr)
+      case ('swus')
+        call inc_subdd(subdd,k,SWUS)
+      case ('swds')
+        do j=j_0,j_1; do i=i_0,imaxj(j)
+          sddarr(i,j)=srdn(i,j)*cosz1(i,j)
+        enddo;        enddo
+        call inc_subdd(subdd,k,sddarr)
+      case ('swdf')
+        do j=j_0,j_1; do i=i_0,imaxj(j)
+          sddarr(i,j)=fsrdif(i,j)+difnir(i,j)
+        enddo;        enddo
+        call inc_subdd(subdd,k,sddarr)
+      case ('totcld')
+        call inc_subdd(subdd,k,cfrac)
+      case ('wtrcld')
+        call inc_subdd(subdd,k,WTRCLD)
+      case ('icecld')
+        call inc_subdd(subdd,k,ICECLD)
+      case ('cod')
+        call inc_subdd(subdd,k,TAUSUMW)
+      case ('cid')
+        call inc_subdd(subdd,k,TAUSUMI)
+      case ('ctp')
+        call inc_subdd(subdd,k,CTP)
+      case ('ctt')
+        call inc_subdd(subdd,k,CTT)
+      end select
+
+      enddo
+      enddo
+
+c      call find_groups('rijlh',grpids,ngroups)
+c      do igrp=1,ngroups
+c      subdd => subdd_groups(grpids(igrp))
+c      do k=1,subdd%ndiags
+c      select case (subdd%name(k))
+c      case ('swhr')
+c        do j=j_0,j_1; do i=i_0,imaxj(j); do l=1,lmaxsubdd
+c          sddarr3d(i,j,l) = SRHR(L,I,J)*bysha*byma(L,I,J)*COSZ2(I,J)
+c        enddo;                enddo;    enddo
+c        call inc_subdd(subdd,k,sddarr3d)
+c      case ('lwhr')
+c        do j=j_0,j_1; do i=i_0,imaxj(j); do l=1,lmaxsubdd
+c          sddarr3d(i,j,l) = TRHR(L,I,J)*bysha*byma(L,I,J)
+c        enddo;           enddo;         enddo
+c        call inc_subdd(subdd,k,sddarr3d)
+c      end select
+c      enddo
+c      enddo
+
+#endif  /* CACHED_SUBDD */
 
 C****
 C**** Update radiative equilibrium temperatures
@@ -4193,3 +4319,136 @@ C****
       end
 #endif
 
+#ifdef CACHED_SUBDD
+      subroutine rijh_defs(arr,nmax,decl_count)
+c
+c 2D outputs
+c
+      use subdd_mod, only : info_type,sched_rad
+! info_type_ is a homemade structure constructor for older compilers
+      use subdd_mod, only : info_type_
+      implicit none
+      integer :: nmax,decl_count
+      type(info_type) :: arr(nmax)
+c
+c note: next() is a locally declared function to increment decl_count
+c
+
+      decl_count = 0
+
+c
+      arr(next()) = info_type_(
+     &  sname = 'olrrad',
+     &  lname = 'OUTGOING LW RADIATION at TOA (in RADIA)',
+     &  units = 'W/m^2',
+     &  sched = sched_rad
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'olrcs',
+     &  lname = 'OUTGOING LW RADIATION at TOA, CLEAR-SKY',
+     &  units = 'W/m^2',
+     &  sched = sched_rad
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'lwds',
+     &  lname = 'LONGWAVE DOWNWARD FLUX at SURFACE',
+     &  units = 'W/m^2',
+     &  sched = sched_rad
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'lwdscs',
+     &  lname = 'LONGWAVE DOWNWARD FLUX at SURFACE, CLEAR-SKY',
+     &  units = 'W/m^2',
+     &  sched = sched_rad
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'lwus',
+     &  lname = 'LONGWAVE UPWARD FLUX at SURFACE',
+     &  units = 'W/m^2',
+     &  sched = sched_rad
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'totcld',
+     &  lname = 'Total Cloud Cover (as seen by rad)',
+     &  units = '%',
+     &  scale = 1d2,
+     &  sched = sched_rad
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'cod',
+     &  lname = 'Cloud optical depth warm clouds',
+     &  units = '-',
+     &  sched = sched_rad
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'cid',
+     &  lname = 'Cloud optical depth ice clouds',
+     &  units = '-',
+     &  sched = sched_rad
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'wtrcld',
+     &  lname = 'Water cloud frequency',
+     &  units = '-',
+     &  sched = sched_rad
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'icecld',
+     &  lname = 'Ice cloud frequency',
+     &  units = '-',
+     &  sched = sched_rad
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'ctt',
+     &  lname = 'Cloud top temperature',
+     &  units = 'C',
+     &  sched = sched_rad
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'ctp',
+     &  lname = 'Cloud top pressure',
+     &  units = 'hPa',
+     &  sched = sched_rad
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'swds',
+     &  lname = 'SOLAR DOWNWARD FLUX at SURFACE',
+     &  units = 'W/m^2',
+     &  sched = sched_rad
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'swus',
+     &  lname = 'SOLAR UPWARD FLUX at SURFACE',
+     &  units = 'W/m^2',
+     &  sched = sched_rad
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'swdf',
+     &  lname = 'SOLAR DOWNWARD DIFFUSE FLUX at SURFACE',
+     &  units = 'W/m^2',
+     &  sched = sched_rad
+     &     )
+
+
+      return
+      contains
+      integer function next()
+      decl_count = decl_count + 1
+      next = decl_count
+      end function next
+      end subroutine rijh_defs
+#endif
