@@ -214,13 +214,10 @@ contains
     type (Dictionary) :: aDictionary
     integer :: i
 
-#ifdef PFUNIT
     aDictionary = Dictionary()
     i = aDictionary%lookup('alpha')
-    @assertFailedAssert('GenericType_mod: nonconforming shapes.')
-    @assertFailedAssert('Key not found: <alpha>.', &
-         & 'Failed to detect missing key.')
-#endif
+    call assertExceptionRaised('GenericType_mod: nonconforming shapes.')
+    call assertExceptionRaised('Key not found: <alpha>')
 
   end subroutine testKeyNotFound
 
@@ -279,7 +276,7 @@ contains
 @Test
   subroutine testGetNumEntries()
     type (Dictionary) :: aDictionary
-    real(kind=dp) :: expected, found
+    real(kind=dp) :: expected
 
     expected = 1
     aDictionary = Dictionary()
@@ -333,14 +330,11 @@ contains
 @Test
   subroutine testFailDuplicateKey()
     type (Dictionary) :: aDictionary
-#ifdef USE_PFUNIT
     aDictionary = Dictionary()
     call aDictionary%insert('a', 1)
     call aDictionary%insert('a', 2)
-    @assertFailedAssert('Dictionary: duplicate key - <a>.', &
-         & 'Failed to diagnose duplicate key.')
+    call assertExceptionRaised('Dictionary: duplicate key')
     call clean(aDictionary)
-#endif
   end subroutine testFailDuplicateKey
 
 @Test

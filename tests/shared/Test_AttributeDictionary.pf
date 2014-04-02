@@ -168,6 +168,7 @@ contains
     real(kind=dp), pointer :: gammaValue
     logical, pointer :: deltaValues(:)
 
+    allocate(deltaValues(4))
     call this%dictionary%insert('beta', 2)
     call this%dictionary%insert('gamma', 3.d0)
     call this%dictionary%insert('delta', [.true., .false., .true., .true.])
@@ -189,6 +190,7 @@ contains
 
     deltaValues = this%dictionary%getReference('delta')
     @assertTrue(all([.true.,.false.,.true.,.true.] .eqv. deltaValues), 'Wrong value for "delta".')
+    deallocate(deltaValues)
 
   end subroutine testComplexCase
   
