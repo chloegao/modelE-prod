@@ -2205,7 +2205,7 @@ C**** If no radiatively active tracers are defined, nothing changes.
 C**** Currently this works for aerosols and ozone but should be extended
 C**** to cope with all trace gases.
 C****
-      FSTOPX(:)=1. ; FTTOPX(:)=1. ; FTAUC=1. ! deflt (aeros/clouds on)
+      FTAUC=1. ! deflt (clouds on)
       use_tracer_chem(:) = 0 ! by default use climatological ozone/ch4
 C**** Set level for inst. rad. forc. calcs for aerosols/trace gases
 C**** This is set from the rundeck.
@@ -2222,6 +2222,7 @@ C**** or not.
       if (rad_interact_aer > 0) onoff_aer=1
       if (clim_interact_chem > 0) onoff_chem=1
       use_o3_ref=0
+      FSTOPX(:)=onoff_aer ; FTTOPX(:)=onoff_aer
 
 C YUNHA LEE - took the shindell outside of the Koch/dust directives.
 #ifdef TRACERS_SPECIAL_Shindell
@@ -2242,7 +2243,6 @@ C**** Ozone and Methane:
     (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
 C**** Aerosols incl. Dust:        set up for radiative forcing diagnostics
       if (NTRACE>0 .and. moddrf==0) then
-        FSTOPX(:)=onoff_aer ; FTTOPX(:)=onoff_aer
         set_clayilli=.FALSE.
         set_claykaol=.FALSE.
         set_claysmec=.FALSE.
