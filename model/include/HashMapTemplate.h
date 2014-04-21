@@ -77,7 +77,7 @@ module MODULE_NAME
   public :: HASH_TYPE
   public :: CONSTRUCTOR
   public :: ITERATOR_TYPE
-  public :: assignment(=)
+!  public :: assignment(=)
   public :: operator(/=)
   public :: operator(==)
   public :: clean
@@ -113,6 +113,8 @@ module MODULE_NAME
     ! iterator operations
     procedure :: begin
     procedure :: last
+    procedure :: copy
+    generic, public :: assignment(=) => copy
   end type HASH_TYPE
 
 ! iterators are used to access the sequence of HashMap elements.
@@ -126,6 +128,8 @@ module MODULE_NAME
     procedure :: next
     procedure :: key
     procedure :: value
+    procedure :: copyIter
+    generic, public :: assignment(=) => copyIter
   end type ITERATOR_TYPE
 
   interface clean
@@ -133,10 +137,10 @@ module MODULE_NAME
     module procedure clean_iterator
   end interface clean
 
-  interface assignment(=)
-    module procedure copy
-    module procedure copyIter
-  end interface assignment(=)
+!!$  interface assignment(=)
+!!$    module procedure copy
+!!$    module procedure copyIter
+!!$  end interface assignment(=)
 
   interface operator(/=)
     module procedure notEqual
@@ -292,7 +296,9 @@ contains
   end function hasIt
 
   subroutine copy(a, b)
-    type (HASH_TYPE), intent(inout) :: a
+    class (HASH_TYPE), intent(inout) :: a
+!    class (HASH_TYPE), intent(in)  :: b
+!    type (HASH_TYPE), intent(inout) :: a
     type (HASH_TYPE), intent(in)  :: b
 
     integer :: i
@@ -307,8 +313,10 @@ contains
   end subroutine copy
  
   subroutine copyIter(a, b)
-     type (ITERATOR_TYPE), intent(inout) :: a
-     type (ITERATOR_TYPE), intent(in) :: b
+     class (ITERATOR_TYPE), intent(inout) :: a
+     class (ITERATOR_TYPE), intent(in) :: b
+!     type (ITERATOR_TYPE), intent(inout) :: a
+!     type (ITERATOR_TYPE), intent(in) :: b
 
      a%reference => b%reference
      a%hashValue = b%hashValue

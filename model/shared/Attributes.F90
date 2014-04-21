@@ -28,7 +28,7 @@ module Integer1dAttribute_mod
 
   public :: TYPE
   public :: newAttribute
-  public :: assignment(=)
+  public :: assignment(=), toType
 
   type, extends(AbstractAttribute) :: TYPE
     integer, allocatable :: value (:)
@@ -187,7 +187,7 @@ module IntegerAttribute_mod
 
   public :: TYPE
   public :: newAttribute
-  public :: assignment(=)
+  public :: assignment(=), toType
 
   type, extends(AbstractAttribute) :: TYPE
     integer :: value
@@ -254,7 +254,8 @@ contains
     allocate(value(n))
 
     do i = 1, n
-      q = references(i)%get()
+!      q = references(i)%get()
+      call toType(q,references(i)%get())
       value(i) = q
       nullify(q)
     end do
@@ -361,7 +362,7 @@ module Logical1dAttribute_mod
 
   public :: TYPE
   public :: newAttribute
-  public :: assignment(=)
+  public :: assignment(=), toType
 
   type, extends(AbstractAttribute) :: TYPE
     logical, allocatable :: value (:)
@@ -520,7 +521,7 @@ module LogicalAttribute_mod
 
   public :: TYPE
   public :: newAttribute
-  public :: assignment(=)
+  public :: assignment(=), toType
 
   type, extends(AbstractAttribute) :: TYPE
     logical :: value
@@ -587,7 +588,8 @@ contains
     allocate(value(n))
 
     do i = 1, n
-      q = references(i)%get()
+!      q = references(i)%get()
+      call toType(q,references(i)%get())
       value(i) = q
       nullify(q)
     end do
@@ -694,7 +696,7 @@ module RealDP1dAttribute_mod
 
   public :: TYPE
   public :: newAttribute
-  public :: assignment(=)
+  public :: assignment(=), toType
 
   type, extends(AbstractAttribute) :: TYPE
     real(kind=DP), allocatable :: value (:)
@@ -853,7 +855,7 @@ module RealDPAttribute_mod
 
   public :: TYPE
   public :: newAttribute
-  public :: assignment(=)
+  public :: assignment(=), toType
 
   type, extends(AbstractAttribute) :: TYPE
     real(kind=DP) :: value
@@ -920,7 +922,8 @@ contains
     allocate(value(n))
 
     do i = 1, n
-      q = references(i)%get()
+!      q = references(i)%get()
+      call toType(q,references(i)%get())
       value(i) = q
       nullify(q)
     end do
@@ -1027,7 +1030,7 @@ module String1dAttribute_mod
 
   public :: TYPE
   public :: newAttribute
-  public :: assignment(=)
+  public :: assignment(=), toType
 
   type, extends(AbstractAttribute) :: TYPE
     character(len=MAX_LEN_ATTRIBUTE_STRING), allocatable :: value (:)
@@ -1187,7 +1190,7 @@ module StringAttribute_mod
 
   public :: TYPE
   public :: newAttribute
-  public :: assignment(=)
+  public :: assignment(=), toType
 
   type, extends(AbstractAttribute) :: TYPE
     character(len=MAX_LEN_ATTRIBUTE_STRING) :: value
@@ -1254,7 +1257,8 @@ contains
     allocate(value(n))
 
     do i = 1, n
-      q = references(i)%get()
+!      q = references(i)%get()
+      call toType(q,references(i)%get())
       value(i) = q
       nullify(q)
     end do

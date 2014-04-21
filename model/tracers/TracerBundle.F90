@@ -12,7 +12,7 @@ module TracerBundle_mod
   public :: readUnformattedBundle ! constructor
   public :: operator(==)
   public :: clean
-  public :: assignment(=) ! re-export from hash package
+!  public :: assignment(=) ! re-export from hash package
 
   public :: NOT_FOUND
 
@@ -44,6 +44,7 @@ module TracerBundle_mod
     procedure :: addMandatoryAttribute
     procedure :: writeFormatted
     procedure :: writeUnformatted => writeUnformatted_bundle
+    procedure :: copy=>copyBundle
   end type TracerBundle
 
   interface clean
@@ -60,9 +61,9 @@ module TracerBundle_mod
   integer, parameter :: VERSION = 1
   character(len=*), parameter :: DESCRIPTION = 'TracerBundle'
 
-  interface assignment(=)
-     module procedure copyBundle
-  end interface assignment(=)
+!!$  interface assignment(=)
+!!$     module procedure copyBundle
+!!$  end interface assignment(=)
 
 
 contains
@@ -536,12 +537,15 @@ contains
 
   end function findAttribute
 
-
-
   subroutine copyBundle(a, b)
-    use TracerHashMap_mod, only: assignment(=)
-    type (TracerBundle), intent(inout) :: a
-    type (TracerBundle), intent(in) :: b
+!    use TracerHashMap_mod, only: assignment(=)
+    class (TracerBundle), intent(inout) :: a
+    class (TracerHashMap), intent(in) :: b
+!    type (TracerBundle), intent(inout) :: a
+!    type (TracerBundle), intent(in) :: b
+
+    select type (b)
+      type is (TracerBundle)
     a%TracerHashMap = b%TracerHashMap
     a%defaultValues = b%defaultValues
     if (allocated(b%mandatoryAttributes)) then
@@ -553,6 +557,8 @@ contains
     end if
     a%locked = b%locked
     a%attributeVectorCache = b%attributeVectorCache
+    end select
+
   end subroutine copyBundle
 
   subroutine delete(this)

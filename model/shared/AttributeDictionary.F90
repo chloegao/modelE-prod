@@ -25,7 +25,7 @@ module AttributeDictionary_mod
 
   public :: AttributeDictionary
   public :: newAttributeDictionary
-  public :: assignment(=), copyIt
+  public :: assignment(=)  !, copyIt
   public :: clean
 
   type, extends(AttributeHashMap) :: AttributeDictionary

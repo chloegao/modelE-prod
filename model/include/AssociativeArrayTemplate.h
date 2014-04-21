@@ -97,6 +97,8 @@ module MODULE_NAME
     ! iterator operations
     procedure :: begin
     procedure :: last
+!    procedure :: copy
+!    generic, public :: assignment(=) => copy
   end type CONTAINER_TYPE
 
 ! iterators are used to access the sequence of AssociativeArray elements.
@@ -429,6 +431,8 @@ contains
   end function getIndex
 
   subroutine copy(a, b)
+!    class (CONTAINER_TYPE), intent(inout) :: a
+!    class (CONTAINER_TYPE), intent(in   ) :: b
     type (CONTAINER_TYPE), intent(inout) :: a
     type (CONTAINER_TYPE), intent(in)  :: b
 

@@ -32,7 +32,7 @@ module m4_attributeType($1,$2,$3,$4)_mod
 
   public :: TYPE
   public :: newAttribute
-  public :: assignment(=)
+  public :: assignment(=), toType
 
   type, extends(AbstractAttribute) :: TYPE
     ifelse($3,0,
