@@ -891,6 +891,7 @@ C              ---------------------------------------------------------
       TRVALK(:,:) = 0  ;  TRCALK(:,:) = 0  ;  TRGXLK(:,:) = 0
        U0GAS(:,:) = 0  ;   ULGAS(:,:) = 0
       TRACER(:,:) = 0
+       EPLOW(:,:)  = 0 ;   EPMID(:,:) = 0  ;   EPHIG(:,:) = 0
 
       IF(LASTVC > 0) CALL SETATM
       IF(NL > LX)   call stop_model('rcomp1: increase LX',255)

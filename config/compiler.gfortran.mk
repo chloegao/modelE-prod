@@ -40,5 +40,7 @@ endif
 ifeq ($(COMPILE_WITH_TRAPS),YES)
 FFLAGS += -fbounds-check -fcheck-array-temporaries -ffpe-trap=invalid,zero,overflow -fbacktrace
 F90FLAGS += -fbounds-check -fcheck-array-temporaries -ffpe-trap=invalid,zero,overflow -fbacktrace
+FFLAGS += -finit-real=snan
+F90LAGS += -finit-real=snan
 #LFLAGS += -lefence
 endif

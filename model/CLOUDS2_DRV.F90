@@ -494,7 +494,9 @@ subroutine CONDSE
       do L=1,LM
         do I=I_0thread,I_1thread
           GZIL(I,L) = GZ(I,J,L)
-#ifndef SCM
+#ifdef SCM
+          SD_CLDIL(I,L) = SD_CLOUDS(I,J,L)
+#else
           SD_CLDIL(I,L) = MWs(I,J,L)/DTsrc ! averaged SD
 #endif
           QCIIL(I,L) = QCI(I,J,L)
