@@ -29,10 +29,9 @@ module Tracer_mod
 
   type, extends(AttributeDictionary) :: Tracer
 !!$    private
-    type (Dictionary) :: properties
     integer :: ntSurfSrc = 0
-    type (TracerSurfaceSource) :: surfaceSources(NTSURFSRCMAX)
-    type (TracerSource3D) :: sources3D(NT3DSRCMAX)
+    type (TracerSurfaceSource), allocatable, dimension(:) :: surfaceSources
+    type (TracerSource3D), allocatable, dimension(:)  :: sources3D
   end type Tracer
 
   interface newTracer
@@ -63,6 +62,8 @@ contains
 
     allocate(aTracer)
     aTracer%AttributeDictionary = newAttributeDictionary()
+    allocate(aTracer%surfaceSources(NTSURFSRCMAX))
+    allocate(aTracer%sources3D(NT3DSRCMAX))
 
   end function newEmptyTracer
 
@@ -85,6 +86,8 @@ contains
     type (Tracer) :: copy
 
     copy%AttributeDictionary = original%AttributeDictionary
+    copy%surfaceSources = original%surfaceSources
+    copy%sources3D = original%sources3D
 
   end function TracerCopy
 
@@ -112,7 +115,6 @@ contains
     type (Tracer), intent(in) :: this
     integer, intent(in) :: unit
 
-!!$    call this%properties%writeUnformatted(unit)
     call this%writeUnformatted(unit)
     
   end subroutine writeUnformatted_tracer
@@ -122,7 +124,6 @@ contains
 !!$    use Dictionary_mod, only: readUnformatted
     type (Tracer), intent(inout) :: this
     integer, intent(in) :: unit
-!!$    call readUnformatted(this%properties, unit)
     call this%readUnformatted(unit)
   end subroutine readUnformattedTracer
 
@@ -146,8 +147,6 @@ contains
     aTracer => newEmptyTracer()
     aTracer%AttributeDictionary = parse(parser, unit, status)
 
-!!$    aTracer%properties = parse(parser, unit, status)
-    
     if (status /= 0) return
 
   end function readOneTracer
@@ -299,17 +298,14 @@ contains
   end subroutine toTracer
 
   subroutine copyInto(a, b)
-!!$    use TracerSurfaceSource_mod, only: copySurfaceType
-!!$    use TracerSource_mod, only: copySourceType
     type (Tracer), intent(out) :: a
     type (Tracer), intent(in) :: b
 
-    a%properties = b%properties
     a%AttributeDictionary = b%AttributeDictionary
     a%ntSurfSrc = b%ntSurfSrc
-!!$    call copySurfaceType(a%surfaceSources, b%surfaceSources)
-!!$    call copySourceType(a%sources3D, b%sources3D)
- 
+    a%surfaceSources = b%surfaceSources
+    a%sources3D = b%sources3D
+
   end subroutine copyInto
 
 end module Tracer_mod

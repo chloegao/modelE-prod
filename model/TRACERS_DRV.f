@@ -150,10 +150,12 @@ C**** set some defaults
       k = 0
       pTracer => tracers%getReference('SO2')
       SO2sources => pTracer%surfaceSources
+#ifdef TRACERS_TOMAS
       pTracer => tracers%getReference('AECOB_01')
       AECOB01sources => pTracer%surfaceSources
       pTracer => tracers%getReference('AOCOB_01')
       AOCOB01sources => pTracer%surfaceSources
+#endif
       
       iter = tracers%begin()
       do while (iter /= tracers%last())
@@ -1287,10 +1289,13 @@ C**** set defaults for some precip/wet-dep related diags
       k = 0
       pTracer => tracers%getReference('SO2')
       SO2sources => pTracer%surfaceSources
+      
+#ifdef TRACERS_TOMAS
       pTracer => tracers%getReference('AECOB_01')
       AECOB01sources => pTracer%surfaceSources
       pTracer => tracers%getReference('AOCOB_01')
       AOCOB01sources => pTracer%surfaceSources
+#endif
       do n=1,NTM
         pTracer => tracers%getReference(trname(n))
         sources => pTracer%surfaceSources
@@ -3007,10 +3012,12 @@ C**** This needs to be 'hand coded' depending on circumstances
       k = 0
       pTracer => tracers%getReference('SO2')
       SO2sources => pTracer%surfaceSources
+#if (defined TRACERS_TOMAS) || (defined TRACERS_AMP) 
       pTracer => tracers%getReference('AECOB_01')
       AECOB01sources => pTracer%surfaceSources
       pTracer => tracers%getReference('AOCOB_01')
       AOCOB01sources => pTracer%surfaceSources
+#endif
       
       do n=1,NTM
         pTracer => tracers%getReference(trname(n))
@@ -4653,6 +4660,8 @@ c SO4 from industrial emissions
      *    'AECOB_01','AECOB_02','AECOB_03','AECOB_04','AECOB_05',
      *    'AECOB_06','AECOB_07','AECOB_08','AECOB_09','AECOB_10',
      *    'AECOB_11','AECOB_12','AECOB_13','AECOB_14','AECOB_15')
+
+
         do kr=1,ntsurfsrc(n_AECOB(1))
           k = k + 1
           ijts_source(kr,n) = k
@@ -5629,12 +5638,6 @@ c SW forcing from albedo change
 #endif
 
 #ifdef TRACERS_AMP
-      pTracer => tracers%getReference('SO2')
-      SO2sources => pTracer%surfaceSources
-      pTracer => tracers%getReference('AECOB_01')
-      AECOB01sources => pTracer%surfaceSources
-      pTracer => tracers%getReference('AOCOB_01')
-      AOCOB01sources => pTracer%surfaceSources
       do n=1,NTM
         pTracer => tracers%getReference(trname(n))
         sources => pTracer%surfaceSources
