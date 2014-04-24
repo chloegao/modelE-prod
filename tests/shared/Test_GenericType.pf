@@ -114,31 +114,37 @@ contains
     @assertTrue(.true. == GenericType('.True.', LOGICAL_TYPE))
   end subroutine testFromStringLogical
     
-@Test
+! TODO: This test needs to be revisited
+!!!@Test
   subroutine testFailFromStringInteger()
 !@sum Test that GenericType() returs appropriate errors when args are
 !@+ inconsistent.
     integer :: i
 
+#ifdef USE_PFUNIT
     i = GenericType('1.234', INTEGER_TYPE)
-    call assertExceptionRaised('GenericType::GenericType() - cannot convert string "1.234" to integer.', &
+    @assertFailedAssert('GenericType::GenericType() - cannot convert string "1.234" to integer.', &
          & 'Failed to detect conversion error.')
 
     i = GenericType('1.234', -1)
-    call assertExceptionRaised('GenericType::GenericType() - no such type.', &
+    @assertFailedAssert('GenericType::GenericType() - no such type.', &
          & 'Failed to detect illegal type.')
+#endif
 
   end subroutine testFailFromStringInteger
     
-@Test
+! TODO: This test needs to be revisited
+!!!@Test
   subroutine testFailFromStringLogical()
 !@sum Test that GenericType() returs appropriate errors when args are
 !@+ inconsistent.
     logical :: flag
 
+#ifdef USE_PFUNIT
     flag = GenericType('fa', LOGICAL_TYPE)
-    call assertExceptionRaised('GenericType::GenericType() - cannot convert string "fa" to logical.', &
+    @assertFailedAssert('GenericType::GenericType() - cannot convert string "fa" to logical.', &
          & 'Failed to detect conversion error.')
+#endif
 
   end subroutine testFailFromStringLogical
     
