@@ -9,7 +9,7 @@ LFLAGS =
 F90_VERSION = $(shell $(F90) --version | head -1)
 
 # option to treat default real as real*8
-R8 = -fdefault-real-8
+R8 = -fdefault-real-8 -fdefault-double-8
 EXTENDED_SOURCE = -ffixed-line-length-132
 
 #
