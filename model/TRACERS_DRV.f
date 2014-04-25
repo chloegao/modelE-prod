@@ -148,15 +148,17 @@ C**** set some defaults
 #endif
 
       k = 0
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
       pTracer => tracers%getReference('SO2')
       SO2sources => pTracer%surfaceSources
+#endif      
 #ifdef TRACERS_TOMAS
       pTracer => tracers%getReference('AECOB_01')
       AECOB01sources => pTracer%surfaceSources
       pTracer => tracers%getReference('AOCOB_01')
       AOCOB01sources => pTracer%surfaceSources
-#endif
-      
+#endif      
       iter = tracers%begin()
       do while (iter /= tracers%last())
         pTracer => iter%value()
@@ -1287,9 +1289,11 @@ C**** set defaults for some precip/wet-dep related diags
 #endif
 
       k = 0
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
       pTracer => tracers%getReference('SO2')
-      SO2sources => pTracer%surfaceSources
-      
+      SO2sources => pTracer%surfaceSources     
+#endif
 #ifdef TRACERS_TOMAS
       pTracer => tracers%getReference('AECOB_01')
       AECOB01sources => pTracer%surfaceSources
@@ -1931,6 +1935,8 @@ c stratiform cloud phase source of SO4
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #endif
 c industrial source
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
         do kk=1,ntsurfsrc(n_SO2)
           k = k + 1
           jls_source(kk,n) = k
@@ -1942,6 +1948,7 @@ c industrial source
           jls_power(k) =0
           units_jls(k) = unit_string(jls_power(k),'kg/s')
         enddo
+#endif
 c gravitational settling of SO4
         k = k + 1
         jls_grav(n) = k
@@ -2244,6 +2251,8 @@ c biomass source of SO4
         jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 c industrial source
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
         do kk=1,ntsurfsrc(n_SO2)
           k = k + 1
           jls_source(kk,n) = k
@@ -2255,7 +2264,7 @@ c industrial source
           jls_power(k) =0
           units_jls(k) = unit_string(jls_power(k),'kg/s')
         enddo
-
+#endif
         case ('ANUM__01','ANUM__02','ANUM__03','ANUM__04','ANUM__05',
      *    'ANUM__06','ANUM__07','ANUM__08','ANUM__09','ANUM__10',
      *    'ANUM__11','ANUM__12','ANUM__13','ANUM__14','ANUM__15')
@@ -3010,15 +3019,17 @@ C**** Defaults for ijts (sources, sinks, etc.)
 #endif
 C**** This needs to be 'hand coded' depending on circumstances
       k = 0
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
       pTracer => tracers%getReference('SO2')
       SO2sources => pTracer%surfaceSources
-#if (defined TRACERS_TOMAS) || (defined TRACERS_AMP) 
+#endif
+#ifdef TRACERS_TOMAS 
       pTracer => tracers%getReference('AECOB_01')
       AECOB01sources => pTracer%surfaceSources
       pTracer => tracers%getReference('AOCOB_01')
       AOCOB01sources => pTracer%surfaceSources
 #endif
-      
       do n=1,NTM
         pTracer => tracers%getReference(trname(n))
         sources => pTracer%surfaceSources
@@ -4058,6 +4069,8 @@ c put in production of SO4 from gas phase
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 c SO4 from industrial emissions
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
         do kr=1,ntsurfsrc(n_SO2)
           k = k + 1
           ijts_source(kr,n) = k
@@ -4070,6 +4083,7 @@ c SO4 from industrial emissions
           units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
           scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         enddo
+#endif
 #ifdef TRACERS_AEROSOLS_Koch
 c put in source of SO4 from aqueous chem
         k = k + 1
@@ -4571,7 +4585,6 @@ c SO4 from industrial emissions
           units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
           scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         enddo
-
         case ('ANUM__01','ANUM__02','ANUM__03','ANUM__04','ANUM__05',
      *    'ANUM__06','ANUM__07','ANUM__08','ANUM__09','ANUM__10',
      *    'ANUM__11','ANUM__12','ANUM__13','ANUM__14','ANUM__15')
@@ -5655,6 +5668,8 @@ c SW forcing from albedo change
           units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
           scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 c Surface industrial emissions
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
         do kr=1,ntsurfsrc(n_SO2)
           k = k + 1
             ijts_source(kr,n) = k
@@ -5667,6 +5682,7 @@ c Surface industrial emissions
             units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
             scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         enddo
+#endif
         case('M_BC1_BC','M_OCC_OC')
 c Surface industrial emissions
        do kr=1,ntsurfsrc(n)
