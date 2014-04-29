@@ -20,6 +20,9 @@ module AbstractAttribute_mod
     procedure(writeUnformatted), deferred :: writeUnformatted
     procedure(readUnformatted), deferred :: readUnformatted
     procedure(clean), deferred :: clean
+    procedure(getReferenceScalar), deferred :: getReferenceScalar
+    procedure(getReferenceVector), deferred :: getReferenceVector
+    generic :: getReference => getReferenceScalar, getReferenceVector
   end type AbstractAttribute
 
   type AttributePointer
@@ -67,6 +70,18 @@ module AbstractAttribute_mod
       import AbstractAttribute
       class (AbstractAttribute), intent(inout) :: this
     end subroutine clean
+
+    subroutine getReferenceScalar(this, reference)
+      import AbstractAttribute
+      class (AbstractAttribute), target, intent(in) :: this
+      class (*), pointer, intent(out) :: reference
+    end subroutine getReferenceScalar
+
+    subroutine getReferenceVector(this, reference)
+      import AbstractAttribute
+      class (AbstractAttribute), target, intent(in) :: this
+      class (*), pointer, intent(out) :: reference(:)
+    end subroutine getReferenceVector
 
   end interface
 

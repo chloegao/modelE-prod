@@ -44,7 +44,6 @@ module TracerBundle_mod
     procedure :: addMandatoryAttribute
     procedure :: writeFormatted
     procedure :: writeUnformatted => writeUnformatted_bundle
-    procedure :: copy=>copyBundle
   end type TracerBundle
 
   interface clean
@@ -60,11 +59,6 @@ module TracerBundle_mod
   integer, parameter :: LEN_HEADER = 80
   integer, parameter :: VERSION = 1
   character(len=*), parameter :: DESCRIPTION = 'TracerBundle'
-
-!!$  interface assignment(=)
-!!$     module procedure copyBundle
-!!$  end interface assignment(=)
-
 
 contains
 
@@ -559,30 +553,6 @@ contains
 !    attribute => refAttr%ptr
 
   end function findAttribute
-
-  subroutine copyBundle(a, b)
-!    use TracerHashMap_mod, only: assignment(=)
-    class (TracerBundle), intent(inout) :: a
-    class (TracerHashMap), intent(in) :: b
-!    type (TracerBundle), intent(inout) :: a
-!    type (TracerBundle), intent(in) :: b
-
-    select type (b)
-      type is (TracerBundle)
-    a%TracerHashMap = b%TracerHashMap
-    a%defaultValues = b%defaultValues
-    if (allocated(b%mandatoryAttributes)) then
-#ifdef COMPILER_Intel8
-      allocate(a%mandatoryAttributes, source=b%mandatoryAttributes)
-#else
-      a%mandatoryAttributes = b%mandatoryAttributes
-#endif
-    end if
-    a%locked = b%locked
-    a%attributeVectorCache = b%attributeVectorCache
-    end select
-
-  end subroutine copyBundle
 
   subroutine delete(this)
     class (TracerBundle), intent(inout) :: this

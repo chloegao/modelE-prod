@@ -47,6 +47,8 @@ module m4_attributeType($1,$2,$3,$4)_mod
     procedure :: writeUnformatted
     procedure :: readUnformatted
     procedure :: toString
+    procedure :: getReferenceScalar
+    procedure :: getReferenceVector
   end type TYPE
 
   interface newAttribute
@@ -113,6 +115,22 @@ ifelse($3,0,
   end subroutine toTypeVector
 ]
 )
+
+  subroutine getReferenceScalar(this, reference)
+    class (m4_attributeType($1,$2,$3,$4)), target, intent(in) :: this
+    class (*), pointer, intent(out) :: reference
+    ifelse($3,0,
+    reference => this%value,
+    call stop_model("Expected vector instead of scalar", 99))
+  end subroutine getReferenceScalar
+
+  subroutine getReferenceVector(this, reference)
+    class (m4_attributeType($1,$2,$3,$4)), target, intent(in) :: this
+    class (*), pointer, intent(out) :: reference(:)
+    ifelse($3,1,
+    reference => this%value,
+    call stop_model("Expected scalar instead of vector", 99))
+  end subroutine getReferenceVector
 
   logical function equals(this, b)
     class (m4_attributeType($1,$2,$3,$4)), intent(in) :: this

@@ -113,8 +113,6 @@ module MODULE_NAME
     ! iterator operations
     procedure :: begin
     procedure :: last
-    procedure :: copy
-    generic, public :: assignment(=) => copy
   end type HASH_TYPE
 
 ! iterators are used to access the sequence of HashMap elements.
@@ -137,11 +135,6 @@ module MODULE_NAME
     module procedure clean_iterator
   end interface clean
 
-!!$  interface assignment(=)
-!!$    module procedure copy
-!!$    module procedure copyIter
-!!$  end interface assignment(=)
-
   interface operator(/=)
     module procedure notEqual
   end interface operator(/=)
@@ -152,6 +145,12 @@ module MODULE_NAME
 
 contains
 
+! Workaround for intel 14.0.2
+! (Don't ask)
+  subroutine fake(a)
+    integer :: a
+  end subroutine fake
+  
   function CONSTRUCTOR(hashTableSize) result(dictionary)
     integer, optional :: hashTableSize
     type (HASH_TYPE) :: dictionary
@@ -295,24 +294,7 @@ contains
 
   end function hasIt
 
-  subroutine copy(a, b)
-    class (HASH_TYPE), intent(inout) :: a
-!    class (HASH_TYPE), intent(in)  :: b
-!    type (HASH_TYPE), intent(inout) :: a
-    class (HASH_TYPE), intent(in)  :: b
-
-    integer :: i
-
-    a%tableSize = b%tableSize
-    allocate(a%table(a%tableSize))
-
-    do i = 1, a%tableSize
-      a%table(i) = b%table(i)
-    end do
-
-  end subroutine copy
- 
-  subroutine copyIter(a, b)
+ subroutine copyIter(a, b)
      class (ITERATOR_TYPE), intent(inout) :: a
      class (ITERATOR_TYPE), intent(in) :: b
 !     type (ITERATOR_TYPE), intent(inout) :: a

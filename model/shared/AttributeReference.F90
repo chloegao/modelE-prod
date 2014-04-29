@@ -26,6 +26,8 @@ module AttributeReference_mod
     procedure :: writeUnformatted
     procedure :: readUnformatted
     procedure :: clean
+    procedure :: getReferenceScalar
+    procedure :: getReferenceVector
   end type VectorAttribute
 
   interface assignment(=)
@@ -109,6 +111,19 @@ contains
   subroutine clean(this)
     class (VectorAttribute), intent(inout) :: this
   end subroutine Clean
+
+  subroutine getReferenceScalar(this, reference)
+    class (VectorAttribute), target, intent(in) :: this
+    class (*), pointer, intent(out) :: reference
+    reference => null()
+  end subroutine getReferenceScalar
+
+  subroutine getReferenceVector(this, reference)
+    class (VectorAttribute), target, intent(in) :: this
+    class (*), pointer, intent(out) :: reference(:)
+    reference => null()
+  end subroutine getReferenceVector
+
 
 end module AttributeReference_mod
 
