@@ -10,34 +10,12 @@ module Test_TracerReference_mod
 @TestCase
   type, extends(TestCase) :: TestTracerPointer
     type (TracerPointer) :: tracerRef
-
-    procedure(runMethod), pointer :: userMethod => null()
   contains
     procedure :: setUp     ! overides generic
     procedure :: tearDown  ! overrides generic
-    procedure :: runMethod ! runs userMethod
   end type TestTracerPointer
 
-  interface TestTracerPointer
-    module procedure newTestTracerPointer
-  end interface TestTracerPointer
-
 contains
-
-  function newTestTracerPointer(name, userMethod) result(test)
-    type (TestTracerPointer) :: test
-    character(len=*), intent(in) :: name
-    procedure(runMethod) :: userMethod
-
-    call test%setName(name)
-    test%userMethod => userMethod
-
-  end function newTestTracerPointer
-
-  subroutine runMethod(this)
-    class (TestTracerPointer), intent(inout) :: this
-    call this%userMethod()
-  end subroutine runMethod
 
   subroutine setUp(this)
     class (TestTracerPointer), intent(inout) :: this

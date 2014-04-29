@@ -1251,6 +1251,8 @@ C****
       END SUBROUTINE DIAG4A
 #endif
 
+#ifndef CACHED_SUBDD
+
       module subdaily
 !@sum SUBDAILY defines variables associated with the sub-daily diags
 !@auth Gavin Schmidt
@@ -5078,6 +5080,8 @@ c write physical variable
 
       end module subdaily
 
+#endif /* not using CACHED_SUBDD */
+
       subroutine ahourly
 !@sum ahourly saves instantaneous variables at sub-daily frequency
 !@+   for diurnal cycle diagnostics
@@ -5320,7 +5324,9 @@ c**** find MSU channel 2,3,4 temperatures
       USE DOMAIN_DECOMP_ATM, only: GRID,getDomainBounds,WRITE_PARALLEL,
      &     AM_I_ROOT,GLOBALSUM
       use msu_wts_mod
+#ifndef CACHED_SUBDD
       USE SUBDAILY, only : init_subdd
+#endif
       USE DIAG_COM, only : itoice,itlkice,itocean,itlake
       IMPLICIT NONE
       INTEGER I,J,L,K,KL,n,ioerr,months,years,mswitch,ldate
@@ -5783,9 +5789,11 @@ C****
         call io_POS(iu_VFLXO,Itime,2*im*jm*koa,Nday) ! real*8-dim -> 2*
       end if
 
+#ifndef CACHED_SUBDD
 C**** Initiallise file for sub-daily diagnostics, controlled by space-
 C**** separated string segments in SUBDD,SUBDD{1,2,3,4} in the rundeck
       call init_subdd(aDATE)
+#endif
 
       RETURN
       END SUBROUTINE init_DIAG
@@ -5928,7 +5936,9 @@ C**** Set conservation diagnostics for ice mass, energy, salt
      *     ,ij_lkon,ij_lkoff,ij_lkice,tsfrez=>tsfrez_loc,tdiurn
      *     ,tf_lkon,tf_lkoff,tf_day1,tf_last
       USE DIAG_COM, only : kvflxo,iu_VFLXO
+#ifndef CACHED_SUBDD
       USE SUBDAILY, only : reset_subdd
+#endif
       USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds,am_i_root
 #ifdef TRACERS_ON
       USE RAD_COM,only: ttausv_sum,ttausv_sum_cs,ttausv_count
@@ -6056,8 +6066,10 @@ C**** THINGS THAT GET DONE AT THE BEGINNING OF EVERY ACC.PERIOD
             call closeunit( iu_VFLXO )
             call openunit('VFLXO'//aDATE(1:7),iu_VFLXO,.true.,.false.)
           end if
+#ifndef CACHED_SUBDD
 C**** reset sub-daily diag files
           call reset_subdd(aDATE)
+#endif
         end if                  !  beginning of acc.period
       end if                    !  beginning of month
 

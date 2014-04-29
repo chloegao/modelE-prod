@@ -444,7 +444,7 @@ c**** local vars for output to pbl_args
       real*8 :: us,vs,ws,tsv,qsrf,khs,dskin,ustar,cm,ch,cq,wsgcm,wspdf
       real*8 :: ws0
 c**** other local vars
-      real*8 :: qsat,deltaSST,tgskin,qnet,ts,rhosrf,qgrnd,tg1,delt
+      real*8 :: qsat,deltaSST,tgskin,qnet,ts,rhosrf,qgrnd,delt
       real*8 :: tstar,qstar,ustar0,test,wstar3,wstar2h,tgrnd,ustar_oc
       real*8 :: bgrid,an2,as2,dudz,dvdz,tau,tgr4skin
       real*8 :: ws02
@@ -458,7 +458,7 @@ c**** other local vars
 C****
       REAL*8,DIMENSION(n) :: z
       REAL*8,DIMENSION(n-1) :: zhat,km,gm,gh
-      REAL*8 :: lmonin,lmonin_dry,snow
+      REAL*8 :: lmonin,lmonin_dry
 #ifdef TRACERS_ON
       real*8, dimension(n,NTM) :: trsave
       real*8 trcnst,trsf,cqsave,byrho,rh1,evap,visc
@@ -490,6 +490,7 @@ C****
       real*8 ss_num(nbins),dust_num(nbins),tot_dust,tot_seasalt
       real*8 ss_emis
 #endif
+      real*8 tg1
       if(xdelt /= 0d0) call stop_model(
      &     'PBL.f is not yet compatible with xdelt==deltx',255)
 
@@ -1170,7 +1171,7 @@ C**** tracer code output
 #endif
 
 
-      real*8 dz,vel1,du1,dv1,dudz,dtdz,dqdz,zgs
+      real*8 dz,vel1,du1,dv1,dudz,zgs
       real*8 tflx,qflx,tvflx,tgrndv,tv(2),tstarv,dtv1
 
       tgrndv = tgrnd*(1.+deltx*qgrnd)
@@ -1363,7 +1364,7 @@ c**** To compute the drag coefficient,Stanton number and Dalton number
       integer :: itr
 #endif
 
-      real*8 :: nu,num,nuh,nuq
+      real*8 :: nu
       real*8 dm,ustar,dum
       real*8, parameter :: Sc=0.595d0, Pr=0.71d0
 
@@ -1674,7 +1675,7 @@ c     dz(j)==zhat(j)-zhat(j-1), dzh(j)==z(j+1)-z(j)
       real*8 z1pass,znpass,b,xipass,lznbyz1
       common /grids_99/z1pass,znpass,b,xipass,lznbyz1
       external fgrid2
-      integer i,iter  !@var i,iter loop variable
+      integer i  !@var i,iter loop variable
       real*8 dxi,zmin,zmax,dxidz,dxidzh
 
       z1pass=z1
@@ -2146,7 +2147,7 @@ c     rhs(n-1)=0.
       logical, intent(in) :: ddml_eq_1
 
       real*8 :: facth,factx,facty,rat
-      integer :: i,j,iter  !@var i,j,iter loop variable
+      integer :: i !@var i loop variable
 
       do i=2,n-1
          sub(i)=-dtime/(dz(i)*dzh(i-1))*kh(i-1)
@@ -2459,7 +2460,7 @@ c****              + ( 1 - fr_sat ) * tr_evap_max
       real*8, intent(in) ::  dpdxr,dpdyr,dpdxr0,dpdyr0
 
       real*8 :: factx,facty,dpdx,dpdy,usurf,factor
-      integer :: i,j,iter  !@var i,j,iter loop variable
+      integer :: i  !@var i loop variable
 
       do i=2,n-1
          sub(i)=-dtime/(dz(i)*dzh(i-1))*km(i-1)
@@ -2675,7 +2676,7 @@ c#endif /* PBL_USES_GCM_TENDENCIES */
       real*8, intent(in) ::  dpdxr,dpdyr,dpdxr0,dpdyr0
 
       real*8 :: factx,facty,dpdx,dpdy,usurf,factor
-      integer :: i,j,iter  !@var i,j,iter loop variable
+      integer :: i  !@var i loop variable
 c**** passed for SCM
       real*8 ug,vg
 
@@ -2818,7 +2819,7 @@ ccc if running SCM then use ug and vg instead of dpdx,dpdy
       integer, parameter ::  itmax=5
       integer, parameter ::  iprint=0,jprint=41 ! set iprint>0 to debug
       real*8, parameter ::  w=0.50,tol=1d-3
-      integer :: i,j,iter,ierr  !@var i,j,iter loop variable
+      integer :: i,iter,ierr  !@var i,iter loop variable
 #ifdef TRACERS_SPECIAL_O18
       real*8 :: fac_cq_tr(NTM)   ! not used here
 #endif

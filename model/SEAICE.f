@@ -1618,7 +1618,6 @@ C**** Be careful to avoid taking too much tracer from ocean box
      $     ,Erat2,Si,MSI1,Tf,Eratd
       REAL*8 SICE(LMI),HICE(LMI),HSNOW(2),MICE(LMI),SNOWL(2),FMSI2,
      $     TSNW(2),TSIL(LMI)
-      integer l
 
 C**** test for snow ice possibility
       IF (RHOI*SNOW.gt.(ACE1I+MSI2)*(RHOWS-RHOI)) THEN
@@ -1878,7 +1877,6 @@ C**** lower levels
       REAL*8, INTENT(INOUT) :: TRSNOW(NTM,2),TRICE(NTM,LMI)
       REAL*8 FTRSI1(NTM)
 #endif 
-      INTEGER L
       REAL*8 FMSI1,FHSI1,FSSI1
 
       FMSI1 = SNOWL(1)+MICE(1)-XSI(1)*(SNOWL(1)+SNOWL(2)+ACE1I)
@@ -2539,18 +2537,26 @@ C**** albedo calculations
 !@sum   read_seaice_ic read sea ice initial conditions file.
       use model_com, only : ioread
       use seaice_com, only : grid=>sigrid
-      use pario, only : par_open,par_close
+      use pario, only : par_open,par_close,variable_exists
       use filemanager, only : file_exists
       implicit none
       integer :: fid
-      if(file_exists('GIC')) then
-        fid = par_open(grid,'GIC','read')
-      elseif(file_exists('SICEIC')) then
+      logical :: altstyle_coldstart=.false.
+      if(file_exists('SICEIC')) then
         fid = par_open(grid,'SICEIC','read')
+        altstyle_coldstart = variable_exists(grid,fid,'tsi_top')
+      elseif(file_exists('GIC')) then
+        fid = par_open(grid,'GIC','read')
       else
         return
       endif
-      call new_io_seaice (fid,ioread)
+      if(altstyle_coldstart) then
+        ! IC file has T,S
+        call altstyle_seaice_ic(fid)
+      else
+        ! IC file has per-layer heat,salt
+        call new_io_seaice (fid,ioread)
+      endif
       call par_close(grid,fid)
       return
       end subroutine read_seaice_ic
@@ -2655,4 +2661,116 @@ C**** albedo calculations
       end select
       return
       end subroutine new_io_seaice
+
+      subroutine altstyle_seaice_ic(fid)
+!@sum  altstyle_seaice_ic reads sea ice state from an alternate
+!@+    style IC file with temperature,salinity (intensive units)
+!@+    and converts to the per-layer heat,salt (extensive units
+!@+    J/m2, kg/m2) provided by the traditional IC file.
+!@+    Other fields (ice mass, meltponds etc.) in the alternate file
+!@+    are the same as in the traditional file.
+!@+    For the moment, temperature and salinity in the IC file are
+!@+    specified via
+!@+      1. tsnow_top (K), the temperature at the top of any
+!@+         snow existing on the ice
+!@+      2. tsi_top (K), the temperature at the top of the ice
+!@+         (i.e. snow base)
+!@+      3. salt (psu), the mean salinity of the ice
+!@+    Temperature is piecewise linearly interpolated between
+!@+      1. tsnow_top and tsi_top
+!@+      2. tsi_top and the ocean temperature tfo
+!@+    Before trying to understand this subroutine, see module
+!@+    SEAICE for explanation of
+!@+      1. the distinction between mass layers and thermal layers
+!@+      2. the blending of ice and snow in thermal layers
+!@+      3. ACE1I
+!@auth M. Kelley
+      use constant, only : tf
+      use seaice_com, only : grid=>sigrid,si_ocn
+      use pario, only : read_dist_data
+      use domain_decomp_1d, only : getDomainBounds
+      use seaice, only : lmi,Ei,ace1i,xsi
+      implicit none
+      integer fid      !@var fid unit number of read
+      integer :: i_0h,i_1h, j_0h,j_1h
+      real*8, dimension(:,:), allocatable ::
+     &     tsi_top,tsnow_top,salt
+      real*8, dimension(lmi) :: tl,ml
+      real*8 :: mice,msnow,msi1,msi2,icefr(2),zbot,ztop,dtdz,tfo
+      integer :: i,j,l
+      
+      i_0h = grid%i_strt_halo
+      i_1h = grid%i_stop_halo
+      j_0h = grid%j_strt_halo
+      j_1h = grid%j_stop_halo
+      allocate(tsi_top(i_0h:i_1h,j_0h:j_1h))
+      allocate(tsnow_top(i_0h:i_1h,j_0h:j_1h))
+      allocate(salt(i_0h:i_1h,j_0h:j_1h))
+
+      call read_dist_data(grid, fid, 'rsi', si_ocn%rsi)
+      call read_dist_data(grid, fid, 'snow', si_ocn%snowi)
+      call read_dist_data(grid, fid, 'msi', si_ocn%msi)
+      call read_dist_data(grid, fid, 'tsi_top', tsi_top)
+      call read_dist_data(grid, fid, 'tsnow_top', tsnow_top)
+      call read_dist_data(grid, fid, 'salt', salt)
+      call read_dist_data(grid, fid, 'pond_melt', si_ocn%pond_melt)
+      call read_dist_data(grid, fid, 'flag_dsws', si_ocn%flag_dsws)
+
+
+      tsi_top = tsi_top - tf
+      tsnow_top = tsnow_top - tf
+
+      tfo = -1.9d0
+      do j=grid%j_strt,grid%j_stop
+      do i=grid%i_strt,grid%i_stop
+        if(si_ocn%rsi(i,j).le.0d0) then
+          si_ocn%hsi(:,i,j) = 0d0
+          si_ocn%ssi(:,i,j) = 0d0
+          cycle
+        endif
+        msnow = si_ocn%snowi(i,j)
+        mice = si_ocn%msi(i,j)
+        msi2 = max(0d0,mice - ace1i)
+        msi1 = si_ocn%snowi(i,j) + ace1i
+        ml(1:2) = xsi(1:2)*msi1
+        ml(3:lmi) = xsi(3:lmi)*msi2
+        si_ocn%msi(i,j) = msi2
+
+        icefr(1) = max(0d0,ace1i-ml(2))/ml(1)
+        icefr(2) = min(1d0,ace1i/ml(2))
+
+        dtdz = (tsi_top(i,j)-tfo)/(mice+1d-30)
+        zbot = 0d0
+        do l=1,lmi
+          ztop = zbot
+          if(l.le.2) then
+            zbot = zbot + icefr(l)*ml(l)
+          else
+            zbot = zbot + ml(l)
+          endif
+          tl(l) = tsi_top(i,j) - dtdz*.5d0*(zbot+ztop)
+        enddo
+
+        dtdz = (tsnow_top(i,j)-tsi_top(i,j))/(msnow+1d-30)
+        zbot = 0d0
+        do l=1,2
+          ztop = zbot
+          zbot = zbot + (1d0-icefr(l))*ml(l)
+          tl(l) = icefr(l)*tl(l) + (1d0-icefr(l))*
+     &       (tsnow_top(i,j) - dtdz*.5d0*(zbot+ztop))
+        enddo
+        do l=1,2
+          si_ocn%hsi(l,i,j) = Ei(tl(l),icefr(l)*salt(i,j))*ml(l)
+          si_ocn%ssi(l,i,j) = (salt(i,j)*1d-3)*ml(l)*icefr(l)
+        enddo
+        do l=3,lmi
+          si_ocn%hsi(l,i,j) = Ei(tl(l),salt(i,j))*ml(l)
+          si_ocn%ssi(l,i,j) = (salt(i,j)*1d-3)*ml(l)
+        enddo
+
+      enddo
+      enddo
+
+      return
+      end subroutine altstyle_seaice_ic
 #endif /* NEW_IO */

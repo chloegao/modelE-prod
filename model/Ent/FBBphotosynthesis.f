@@ -685,7 +685,7 @@ cddd      Z= a1/e1 -Rd
       X= -a1 * (gamol+f1)
       Z= a1 -Rd
 
-      if ( Z > 0.d0 ) then
+      if ( Z + X/(Ca+Y) > 0.d0 ) then
         ! Farquhar curve is above zero. May have solution A > 0
         c = -(b*Ca*(X + (Ca + Y)*Z))
         c1 = Ca*Z - K*(X + Ca*Z + Y*Z) + 
@@ -714,13 +714,13 @@ cddd      Z= a1/e1 -Rd
         endif
 
         if ( A >= 0 ) then
+cddd          ! just in case, check consistency
 cddd          cs = ca - A*Ra
 cddd          Rs = 1.d0 / (K*A/cs + b)
 cddd          ci = cs - A*Rs
-cddd          ! just in case, check consistency
+cddd          !print *,'QQQQ ',A,ci,cs
 cddd          if ( ci < 0.d0 ) call stop_model("ci_cubic: ci<0",255)
 cddd          if ( cs < 0.d0 ) call stop_model("ci_cubic: cs<0",255)
-cddd          !!print *,'QQQQ ',A,ci
           return
         endif
 

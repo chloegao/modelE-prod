@@ -4,40 +4,17 @@ module Test_AssociativeArrayIterator_mod
   use FooAssociativeArray_mod
   implicit none
 
-   public :: setUp
-   public :: tearDown
-
-   public :: Test_AssociativeArrayIterator
-   interface Test_AssociativeArrayIterator
-     module procedure newTest_AssociativeArrayIterator
-   end interface Test_AssociativeArrayIterator
+  public :: Test_AssociativeArrayIterator
 
 @TestCase
    type, extends(TestCase) :: Test_AssociativeArrayIterator
-    type (FooAssociativeArray) :: dictionary
-      procedure(runMethod), pointer :: userMethod => null()
+     type (FooAssociativeArray) :: dictionary
    contains
-      procedure :: setUp     ! overides generic
-      procedure :: tearDown  ! overrides generic
-      procedure :: runMethod ! runs userMethod
+     procedure :: setUp     ! overides generic
+     procedure :: tearDown  ! overrides generic
   end type Test_AssociativeArrayIterator
 
 contains
-
-   function newTest_AssociativeArrayIterator(name, userMethod) result(test)
-     type (Test_AssociativeArrayIterator) :: test
-     character(len=*), intent(in) :: name
-     procedure(runMethod) :: userMethod
-
-     call test%setName(name)
-     test%userMethod => userMethod
-
-   end function newTest_AssociativeArrayIterator
-
-   subroutine runMethod(this)
-     class (Test_AssociativeArrayIterator), intent(inout) :: this
-     call this%userMethod()
-   end subroutine runMethod
 
   subroutine setUp(this)
     class (Test_AssociativeArrayIterator), intent(inout) :: this

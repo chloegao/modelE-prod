@@ -4,36 +4,17 @@ module Test_HashMap_mod
   use FooHashMap_mod
   implicit none
 
-  interface Test_HashMap
-    module procedure newTest_HashMap
-  end interface Test_HashMap
+  public :: Test_HashMap
 
 @TestCase
    type, extends(TestCase) :: Test_HashMap
     type (FooHashMap) :: dictionary
-      procedure(runMethod), pointer :: userMethod => null()
    contains
       procedure :: setUp     ! overides generic
       procedure :: tearDown  ! overrides generic
-      procedure :: runMethod ! runs userMethod
   end type Test_HashMap
 
 contains
-
-   function newTest_HashMap(name, userMethod) result(test)
-     type (Test_HashMap) :: test
-     character(len=*), intent(in) :: name
-     procedure(runMethod) :: userMethod
-
-     call test%setName(name)
-     test%userMethod => userMethod
-
-   end function newTest_HashMap
-
-   subroutine runMethod(this)
-     class (Test_HashMap), intent(inout) :: this
-     call this%userMethod()
-   end subroutine runMethod
 
   subroutine setUp(this)
     class (Test_HashMap), intent(inout) :: this
@@ -50,7 +31,7 @@ contains
   subroutine testSize_empty(this)
     class (Test_HashMap), intent(inout) :: this
 
-!!$    @assertEqual(0, this%dictionary%size())
+    @assertEqual(0, this%dictionary%size())
 
   end subroutine testSize_empty
 

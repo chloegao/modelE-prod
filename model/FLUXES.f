@@ -630,7 +630,7 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
       TYPE(atmsrf_xchng_vars) :: THIS
       TYPE(atmsrf_xchng_vars), optional :: THAT
       INTEGER :: I_0H, I_1H, J_1H, J_0H
-      INTEGER :: K, IER
+      INTEGER :: IER
 #ifdef TRACERS_ON
       integer :: ntm
 #endif
@@ -1122,7 +1122,10 @@ c
         do j=grid%j_strt,grid%j_stop
         do i=grid%i_strt,grid%i_stop
           avg%srfstate_exports(i,j,l) = avg%srfstate_exports(i,j,l) +
-     &         patches(k)%srfstate_exports(i,j,l)*ftype(i,j,k)
+c    &         patches(k)%srfstate_exports(i,j,l)*ftype(i,j,k)
+c workaround for uninitialized patches%srfstate_exports multiply by zero
+     &    merge( patches(k)%srfstate_exports(i,j,l)*ftype(i,j,k),
+     &           0d0, ftype(i,j,k) > 0 )
         enddo
         enddo
         enddo

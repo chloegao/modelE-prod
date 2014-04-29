@@ -20,16 +20,10 @@ module Test_TracerBundleSubset_mod
     type (TracerBundleSubset) :: subsetBundleCopy
     integer :: numTracers
 
-    procedure(runMethod), pointer :: userMethod => null()
   contains
     procedure :: setUp     ! overides generic
     procedure :: tearDown  ! overrides generic
-    procedure :: runMethod ! runs userMethod
   end type TestTracerBundleSubset
-
-  interface TestTracerBundleSubset
-    module procedure newTestTracerBundleSubset
-  end interface TestTracerBundleSubset
 
   abstract interface
     function func (t)
@@ -44,19 +38,6 @@ module Test_TracerBundleSubset_mod
   integer, parameter :: DP = selected_real_kind(14)
 
 contains
-
-  function newTestTracerBundleSubset(name, userMethod) result(test)
-    type (TestTracerBundleSubset) :: test
-    character(len=*), intent(in) :: name
-    procedure(runMethod) :: userMethod
-    call test%setName(name)
-    test%userMethod => userMethod
-  end function newTestTracerBundleSubset
-
-  subroutine runMethod(this)
-    class (TestTracerBundleSubset), intent(inout) :: this
-    call this%userMethod()
-  end subroutine runMethod
 
   subroutine setUp(this)
     class (TestTracerBundleSubset), intent(inout) :: this

@@ -29,11 +29,10 @@ module Tracer_mod
 
   type, extends(AttributeDictionary) :: Tracer
 !!$    private
-    type (Dictionary) :: properties
     integer :: ntSurfSrc = 0
-    type (TracerSurfaceSource) :: surfaceSources(NTSURFSRCMAX)
-    type (TracerSource3D) :: sources3D(NT3DSRCMAX)
- contains
+    type (TracerSurfaceSource), allocatable, dimension(:) :: surfaceSources
+    type (TracerSource3D), allocatable, dimension(:)  :: sources3D
+  contains
     procedure :: getName
   end type Tracer
 
@@ -64,6 +63,8 @@ contains
     type (Tracer) :: aTracer
 
     aTracer%AttributeDictionary = newAttributeDictionary()
+    allocate(aTracer%surfaceSources(NTSURFSRCMAX))
+    allocate(aTracer%sources3D(NT3DSRCMAX))
 
   end function newEmptyTracer
 
@@ -86,6 +87,8 @@ contains
     type (Tracer) :: copy
 
     copy%AttributeDictionary = original%AttributeDictionary
+    copy%surfaceSources = original%surfaceSources
+    copy%sources3D = original%sources3D
 
   end function TracerCopy
 
@@ -101,7 +104,7 @@ contains
     ref = this%getReference('name')
 !    name = ref
     call toType(name, ref%ptr)
-   
+
   end function getName
 
   subroutine writeUnformatted_tracer(this, unit)
@@ -118,7 +121,6 @@ contains
 !!$    use Dictionary_mod, only: readUnformatted
     type (Tracer), intent(inout) :: this
     integer, intent(in) :: unit
-!!$    call readUnformatted(this%properties, unit)
     call this%readUnformatted(unit)
   end subroutine readUnformattedTracer
 
@@ -289,7 +291,6 @@ contains
     class default
       call stop_model('Illegal conversion in Tracer_mod.',255)
     end select
-
     
   end subroutine toTracer
 
@@ -297,12 +298,11 @@ contains
     type (Tracer), intent(out) :: a
     type (Tracer), intent(in) :: b
 
-    a%properties = b%properties
     a%AttributeDictionary = b%AttributeDictionary
     a%ntSurfSrc = b%ntSurfSrc
     a%surfaceSources = b%surfaceSources
     a%sources3D = b%sources3D
-    
+
   end subroutine copyInto
 
 end module Tracer_mod

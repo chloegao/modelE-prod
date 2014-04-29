@@ -7,19 +7,14 @@ module Test_GatherScatter_mod
   private
 
    public :: Test_GatherScatter
-   interface Test_GatherScatter
-     module procedure newTest_GatherScatter
-   end interface Test_GatherScatter
 
 @TestCase
    type, extends(MpiTestCase) :: Test_GatherScatter
       integer :: ibeg, iend, jbeg, jend      ! local dimensions
       type (DIST_GRID) :: distGrid
-      procedure(runMethod), pointer :: userMethod => null()
    contains
       procedure :: setUp     ! overides generic
       procedure :: tearDown  ! overrides generic
-      procedure :: runMethod ! runs userMethod
    end type Test_GatherScatter
 
   public :: test_GatherReal
@@ -32,23 +27,6 @@ module Test_GatherScatter_mod
   integer, parameter :: LM = 2
 
 contains
-
-   function newTest_GatherScatter(name, userMethod, numProcesses) result(test)
-     type (Test_GatherScatter) :: test
-     character(len=*), intent(in) :: name
-     integer, intent(in) :: numProcesses
-     procedure(runMethod) :: userMethod
-
-     call test%setName(name)
-     test%userMethod => userMethod
-     call test%setNumProcesses(numProcesses)
-   
-   end function newTest_GatherScatter
-
-   subroutine runMethod(this)
-     class (Test_GatherScatter), intent(inout) :: this
-     call this%userMethod()
-   end subroutine runMethod
 
   subroutine setUp(this)
     class (Test_GatherScatter), intent(inout) :: this

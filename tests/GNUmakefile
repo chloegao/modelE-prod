@@ -1,27 +1,34 @@
 .PHONY: tests all createTestSuites clean
+.DEFAULT_GOAL = tests
 
-COMPILER ?= gfortran
-EXTERNAL_CPP = NO
-CONFIG_DIR = ../config
+MODELERC ?= $(HOMEDIR)/.modelErc
+ifeq ($(wildcard $(MODELERC)),)
+   $(error $(MODELERC) not found.)
+endif
+include $(MODELERC)
+ifeq ($(COMPILER),)
+   $(error you need to specify COMPILER in your ~.modelErc)
+endif
 SOURCE_DIR = ../model
-DECKS_DIR = ../decks
-USE_MPI = NO
-ifeq ($(MPI),YES)
-  USE_MPI = YES
+
+# Unfortunately COMPILER is defined differently in modelE (gfortran)
+# than in PFUNIT (GNU). So, we rename here to inherit the correct PFUNIT
+# configuration.
+ifeq ($(COMPILER),gfortran)
+   COMPILER=GNU
 endif
 
-INCS := $(foreach ITEM, $(COMPONENTS), $(SOURCE_DIR)/$(ITEM))
 COMPLIBS = $(shell perl -e 'print reverse <>;' < $(SOURCE_DIR)/.liblist)
 LIBS := $(foreach ITEM, $(COMPLIBS), $(SOURCE_DIR)/$(ITEM))
 
 # Determine modelE components to be tested based on availability
-
 ifeq ($(COMPONENTS),)
 TESTDIRS = shared profiler MPI_Support tracers
 else
 TESTDIRS := $(foreach ITEM, $(COMPONENTS), $(wildcard $(ITEM)))
 endif
-ifeq ($(USE_MPI),NO)
+
+ifeq ($(USEMPI),)
   TESTDIRS := $(filter-out MPI_Support,$(TESTDIRS))
 endif
 
@@ -33,44 +40,36 @@ EXEINCS := $(foreach ITEM, $(TESTDIRS), -I$(ITEM))
 PFLIB = -L$(PFUNIT)/lib -lpfunit
 IOLIB += -L$(NETCDFHOME)/lib -lnetcdf 
 
-# Defaults
-
-ifeq ($(COMPILER), intel)
-  PFUNITMK := Intel.mk
-endif
-ifeq ($(COMPILER), gfortran)
-  F90 = gfortran
-  F90FLAGS += -g -O0 -fbacktrace
-endif
-ifeq ($(COMPILER), nag)
-  PFUNITMK := NAG.mk
-  F90FLAGS += -fpp
-endif
-
-# Sets F90 and additional F90FLAGS
-F90FLAGS += -I$(PFUNIT)/mod -I$(PFUNIT)/include -I. $(TESTINCS)
+FFLAGS += -I$(PFUNIT)/mod -I$(PFUNIT)/include -I. $(TESTINCS)
 EXEFLAGS += -I$(PFUNIT)/mod -I$(PFUNIT)/include $(EXEINCS)
+ifeq ($(COMPILER),nag)
+  FFLAGS += -kind=byte
+endif
 
-ifeq ($(USE_MPI),YES)
-  F90 := mpif90
-  EXEFLAGS += -DUSE_MPI -DUSE_PFUNIT
+ifeq ($(USEMPI),YES)
+  FFLAGS += -DUSE_MPI
   IOLIB += -L$(PNETCDFHOME)/lib -lpnetcdf
 endif
-
-export F90FLAGS
-export F90
-export USE_MPI
 
 # Targets:
 
 EXE = tests.x
 
-$(EXE): createTestSuites testSuites.inc tests
-	$(F90) -I. -o $@ $(EXEFLAGS) $(PFUNIT)/include/driver.F90 $(TESTLIBS) $(LIBS) $(PFLIB) $(IOLIB)
+$(EXE): createTestSuites testSuites.inc SUT
+	$(FC) -I. -o $@ $(EXEFLAGS) $(FPPFLAGS) $(PFUNIT)/include/driver.F90 $(TESTLIBS) $(LIBS) $(PFLIB) $(IOLIB)
 
-tests:
+all: $(EXE)
+ifeq ($(MPI),YES)
+	mpirun -np 12 ./$(EXE)
+else
+	./$(EXE)
+endif
+
+SUT:
 	@for dir in $(TESTDIRS); do \
 	make -C $$dir all; done
+
+tests: all
 
 createTestSuites:
 	rm -f testSuites.inc
@@ -83,10 +82,8 @@ clean:
 	make -C $$dir clean; done
 	$(RM) tests.x
 
-all: $(EXE)
-ifeq ($(MPI),YES)
-	mpirun -np 12 ./$(EXE)
-else
-	./$(EXE)
-endif
-
+export FC
+export MPIF90
+export FFLAGS
+export FPPLAGS
+export USEMPI

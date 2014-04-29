@@ -8,33 +8,14 @@ module Test_Tracer_mod
   type, extends(TestCase) :: Test_Tracer
     type (Tracer) :: CO2
     type (Tracer) :: H2O17
-    procedure(runMethod), pointer :: userMethod => null()
   contains
     procedure :: setUp     ! overides generic
     procedure :: tearDown  ! overrides generic
-    procedure :: runMethod ! runs userMethod
   end type Test_Tracer
-
-  interface Test_Tracer
-    module procedure newTest_Tracer
-  end interface Test_Tracer
 
   integer, parameter :: dp = selected_real_kind(14)
 
 contains
-
-  function newTest_Tracer(name, userMethod) result(t)
-    type (Test_Tracer) :: t
-     character(len=*), intent(in) :: name
-     procedure(runMethod) :: userMethod
-     call t%setName(name)
-     t%userMethod => userMethod
-   end function newTest_Tracer
-  
-   subroutine runMethod(this)
-     class (Test_Tracer), intent(inout) :: this
-     call this%userMethod()
-   end subroutine runMethod
 
   subroutine setUp(this)
     class (Test_Tracer), intent(inout) :: this

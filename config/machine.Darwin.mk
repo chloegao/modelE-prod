@@ -1,4 +1,4 @@
 # Darwin - specific options
 
-CPP = /usr/bin/cpp -P -traditional
+CPP = cpp -P -traditional
 CPPFLAGS = -DMACHINE_MAC

@@ -6,39 +6,22 @@ module Test_TracerBundle_mod
 
   implicit none
 
-  interface Test_TracerBundle
-    module procedure newTest_TracerBundle
-  end interface Test_TracerBundle
+   public :: Test_TracerBundle
 
 @TestCase
-  type, extends(TestCase) :: Test_TracerBundle
-    type (Tracer) :: speciesA
-    type (Tracer) :: speciesB
-    type (TracerBundle) :: bundle
-    integer :: numTracers
-    procedure(runMethod), pointer :: userMethod => null()
-  contains
-     procedure :: setUp     ! overides generic
-     procedure :: tearDown  ! overrides generic
-     procedure :: runMethod ! runs userMethod
-  end type Test_TracerBundle
+   type, extends(TestCase) :: Test_TracerBundle
+     type (Tracer), pointer :: speciesA
+     type (Tracer), pointer :: speciesB
+     type (TracerBundle) :: bundle
+     integer :: numTracers
+   contains
+      procedure :: setUp     ! overides generic
+      procedure :: tearDown  ! overrides generic
+   end type Test_TracerBundle
 
    integer, parameter :: dp = selected_real_kind(14)
 
 contains
-
-   function newTest_TracerBundle(name, userMethod) result(test)
-     type (Test_TracerBundle) :: test
-     character(len=*), intent(in) :: name
-     procedure(runMethod) :: userMethod
-     call test%setName(name)
-     test%userMethod => userMethod
-   end function newTest_TracerBundle
-
-   subroutine runMethod(this)
-     class (Test_TracerBundle), intent(inout) :: this
-     call this%userMethod()
-   end subroutine runMethod
 
 ! Create a bundle with two tracers
   subroutine setUp(this)

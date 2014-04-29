@@ -33,6 +33,7 @@ module m4_attributeType($1,$2,$3,$4)_mod
   public :: TYPE
   public :: newAttribute
   public :: assignment(=), toType
+  ifelse($3,0,public :: toTypeVector)
 
   type, extends(AbstractAttribute) :: TYPE
     ifelse($3,0,
@@ -101,13 +102,13 @@ ifelse($3,0,
 
     n = size(references)
     allocate(value(n))
-
+    allocate(q)
     do i = 1, n
 !      q = references(i)%get()
       call toType(q,references(i)%get())
       value(i) = q
-      nullify(q)
     end do
+    nullify(q)
 
   end subroutine toTypeVector
 ]

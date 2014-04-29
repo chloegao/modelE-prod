@@ -1224,7 +1224,7 @@ c
      .   ,'mxlayr',int(1000.*mxlayr_time)
      .   ,'hybgen',int(1000.*hybgen_time)
 c
-      if (mod(nstep,5).eq.0) call flush(lp)
+      if (mod(nstep,5).eq.0) call sys_flush(lp)
       end if  ! AM_I_ROOT
       !write(0,*) __FILE__,__LINE__
 

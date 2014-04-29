@@ -337,7 +337,6 @@ contains
   subroutine assertHasAttributes(this, attributes)
     type (Tracer), intent(in) :: this
     character(len=MAX_LEN_KEY), intent(in) :: attributes(:)
-    character(len=MAX_LEN_KEY) :: name
 
     integer :: i
 
@@ -389,6 +388,31 @@ contains
     number = count(hasAttribute(this, withAttribute))
 
   end function countHaveAttribute
+
+  function makeSubset(this, withAttribute) result(subset)
+    class (TracerBundle), target, intent(in) :: this
+    character(len=*), intent(in) :: withAttribute
+    type (TracerBundle) :: subset
+
+    type (TracerIterator) :: iter
+    class (Tracer), pointer :: t
+
+    subset = newTracerBundle()
+    subset%defaultValues = this%defaultValues
+
+    iter = this%begin()
+    do while (iter /= this%last())
+      t => iter%value()
+      if (t%has(withAttribute)) then
+        call subset%insertReference(trim(iter%key()), iter%value())
+      end if
+      call iter%next()
+    end do
+
+    ! no further modifications are permitted
+    subset%locked = .true. 
+
+  end function makeSubset
 
   function getAttributeVector(this, attributeName) result(vector)
     use AbstractAttribute_mod
@@ -473,7 +497,6 @@ contains
 
   subroutine cleanBundle(this)
     type (TracerBundle), intent(inout) :: this
-    integer :: i
 
     call clean(this%defaultValues)
     !    if (size(this%mandatoryAttributes)>0) then

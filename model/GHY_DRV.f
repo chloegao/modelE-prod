@@ -1282,7 +1282,11 @@ c**** set snow fraction for albedo computation (used by RAD_DRV.f)
       endif
 
 c**** snowe used in RADIATION
-      snowe(i,j)=1000.*(snowd(1)*fb+snowd(2)*fv)
+c     snowe(i,j)=1000.*(snowd(1)*fb+snowd(2)*fv)
+c workaround for uninitialzed snowd multiply by zero
+      snowe(i,j)=1000.*
+     &     ( merge( snowd(1)*fb, 0d0, fb > 0 ) +
+     &       merge( snowd(2)*fv, 0d0, fv > 0 ) )
       atmlnd%snow(i,j) = snowe(i,j)
       atmlnd%snowfr(i,j) =
      *       ( fb*fr_snow_rad_ij(1,i,j)
@@ -4908,3 +4912,45 @@ c     *         +flake(i,j)*sum(w_ij(0:ngm,3,i,j) )*rhow
 #endif
       end subroutine get_fb_fv
 
+#ifdef CACHED_SUBDD
+      subroutine gijlh_defs(arr,nmax,decl_count)
+c 3D outputs (model horizontal grid on soil layers).
+      use model_com, only : dtsrc,nday
+      use subdd_mod, only : info_type
+! info_type_ is a homemade structure constructor for older compilers
+      use subdd_mod, only : info_type_
+      implicit none
+      integer :: nmax,decl_count
+      type(info_type) :: arr(nmax)
+
+      decl_count = 0
+
+      arr(next()) = info_type_(
+     &  sname = 'GT',
+     &  lname = 'Soil Temperature Layers 1-6, Land',
+     &  units = 'C'
+     &     )
+c
+! This note copied from DIAG.f version:
+! 8/13/10: for RELATIVE wetness, edit giss_LSM/GHY.f
+! and activate the corresponding lines where wtr_L is set
+      arr(next()) = info_type_(
+     &  sname = 'GW',
+     &  lname = 'Ground Wetness Layers 1-6, Land',
+     &  units = 'm'
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'GI',
+     &  lname = 'Ground Ice Layers 1-6, Land',
+     &  units = 'liq. equiv. m'
+     &     )
+
+      return
+      contains
+      integer function next()
+      decl_count = decl_count + 1
+      next = decl_count
+      end function next
+      end subroutine gijlh_defs
+#endif /* CACHED_SUBDD */

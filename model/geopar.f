@@ -32,12 +32,7 @@ c
       real*4 real4(idm,jdm),lat4(idm,jdm,4),lon4(idm,jdm,4)
 c --- 'glufac' = regional viscosity enhancement factor
       real, parameter :: glufac=3., zero=0.
-#ifdef COMPILER_G95
-      real sind, cosd
-      external sind, cosd
-#endif
     
-      !write(0,*) "ok ",__FILE__,__LINE__
 c
 c --- read basin depth array
       write (lp,'(2a)') ' reading bathymetry file from ',flnmdep
@@ -134,7 +129,7 @@ c --- define coriolis parameter and grid size
       jb=mod(j     ,jj)+1
       do 56 i=1,ii
 c
-      corio(i,j)=sind(latij(i,j,4))*4.*pi/86164.        !  86400 * 365 / 366
+      corio(i,j)=sin(latij(i,j,4))*4.*pi/86164.        !  86400 * 365 / 366
 c
       scpy(i,j)=sphdis(latij(i,j ,2),lonij(i,j ,2),
      .                 latij(i,jb,2),lonij(i,jb,2))
@@ -539,17 +534,13 @@ c --- dist.(m) between 2 points on sphere, lat/lon (x1,y1) and lat/lon (x2,y2)
       USE CONSTANT, only: radius
       implicit none
       real x1,y1,x2,y2,sphdis,ang,radian
-#ifdef COMPILER_G95
-      real sind, cosd
-      external sind, cosd
-#endif
       data radian/57.2957795/
 c
       ang=mod(y2-y1+540.,360.)-180.
-      sphdis=radius*acos(min(1.,cosd(90.-x1)*cosd(90.-x2)
-     .                         +sind(90.-x1)*sind(90.-x2)*cosd(ang)))
+      sphdis=radius*acos(min(1.,cos(90.-x1)*cos(90.-x2)
+     .                         +sin(90.-x1)*sin(90.-x2)*cos(ang)))
       if (sphdis.eq.0.) 
-     .  sphdis=radius*sqrt((x2-x1)**2+(ang*cosd(.5*(x1+x2)))**2)/radian
+     .  sphdis=radius*sqrt((x2-x1)**2+(ang*cos(.5*(x1+x2)))**2)/radian
 cdiag if (sphdis.eq.0.) write (*,'(a,2f8.3,2x,2f8.3)')
 cdiag.  'warning - zero distance between lat/lon points',x1,y1,x2,y2
       sphdis=max(sphdis,1.)
@@ -568,10 +559,7 @@ cdiag.  'warning - zero distance between lat/lon points',x1,y1,x2,y2
       real*8, dimension(3) :: vi,vip1,vn,cri,crip1,crn
       integer :: i
       real*8 :: twopibyn,cc
-#ifdef COMPILER_G95
-      real sind, cosd
-      external sind, cosd
-#endif
+
       twopibyn = twopi/n
       vn = v3d(lon(n),lat(n))
       vi = v3d(lon(1),lat(1))
@@ -593,36 +581,13 @@ cdiag.  'warning - zero distance between lat/lon points',x1,y1,x2,y2
       contains
       function v3d(lon,lat)
       real*8 :: lon,lat,v3d(3)
-      v3d(1:2) = cosd(lat)*(/cosd(lon),sind(lon)/); v3d(3) = sind(lat)
+      v3d(1:2) = cos(lat)*(/cos(lon),sin(lon)/); v3d(3) = sin(lat)
       end function v3d
       function cross3d(v1,v2)
       real*8, dimension(3) :: v1,v2,cross3d
       cross3d = cshift(v1,1)*cshift(v2,-1)-cshift(v1,-1)*cshift(v2,1)
       end function cross3d
       end subroutine gc_polyarea
-
-#ifdef COMPILER_G95
-
-      function sind(x) result (ds)
-        implicit none
-        integer, parameter :: dp = selected_real_kind(15,307)
-        real(kind=dp), intent(in) :: x
-        real(kind=dp) ds
-        real(kind=dp), parameter :: pi_dp = 4 * atan(1.d0) / 180.d0
-        ds = sin(pi_dp * x)
-      end function sind
-
-      function cosd(x) result(dc)
-        implicit none
-        integer, parameter :: dp = selected_real_kind(15,307)
-        real(kind=dp), intent(in) :: x
-        real(kind=dp) dc
-        real(kind=dp), parameter :: pi_dp = 4 * atan(1.d0) / 180.d0
-        dc = cos(pi_dp * x)
-      end function cosd
-
-#endif
-
 c
 c> Revision history
 c>

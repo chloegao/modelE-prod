@@ -6,12 +6,7 @@ module Test_TimerList_mod
    implicit none
    private
 
-   public :: setUp, tearDown
    public :: Test_TimerList
-   interface Test_TimerList
-     module procedure newTest_TimerList
-   end interface Test_TimerList
-
    public :: test_initialize
    public :: test_addTimer
    public :: test_getTimer
@@ -24,29 +19,12 @@ module Test_TimerList_mod
 @TestCase
    type, extends(TestCase) :: Test_TimerList
       integer :: iplace
-      procedure(runMethod), pointer :: userMethod => null()
    contains
       procedure :: setUp     ! overides generic
       procedure :: tearDown  ! overrides generic
-      procedure :: runMethod ! runs userMethod
    end type Test_TimerList
 
 contains
-
-   function newTest_TimerList(name, userMethod) result(test)
-     type (Test_TimerList) :: test
-     character(len=*), intent(in) :: name
-     procedure(runMethod) :: userMethod
-
-     call test%setName(name)
-     test%userMethod => userMethod
-   
-   end function newTest_TimerList
-
-   subroutine runMethod(this)
-     class (Test_TimerList), intent(inout) :: this
-     call this%userMethod()
-   end subroutine runMethod
 
    subroutine setUp(this)
       class (Test_TimerList), intent(inout) :: this

@@ -403,9 +403,10 @@ C**** GLOBAL parameters and variables:
       USE TRACER_COM, only : n_ClOx,n_HOCl,n_ClONO2,n_HCl,n_H2O2,n_CH4
       USE TRACER_COM, only : nn_ClOx,nn_HOCl,nn_ClONO2,nn_HCl,nn_H2O2,
      &    nn_CH4
+      use photolysis, only : sza
       USE TRCHEM_Shindell_COM, only:pClOx,rr,y,nClO,nOClO,nCl,nCl2O2,
      &    ta,ss,nO3,nHO2,nNO3,nO,nNO,nBr,nOH,nBrO,nCH3O2,nM,nCl2,nH2,
-     &    SZA,dt2,pClx,pOClOx,nNO2,which_trop,yCl2,yCl2O2
+     &    dt2,pClx,pOClOx,nNO2,which_trop,yCl2,yCl2O2
 
       IMPLICIT NONE
 

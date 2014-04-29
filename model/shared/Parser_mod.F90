@@ -413,8 +413,6 @@ contains
 !@+ Should possibly relocate to GenericType_mod
     use StringUtilities_mod, only: toLowerCase
     character(len=*), intent(in) :: string
-    logical :: logicalValue
-    integer :: status
     
     select case (trim(toLowerCase(string)))
     case ('t','f','true','false','.true.','.false.')
@@ -520,7 +518,6 @@ contains
     integer, intent(in) :: unit
     class (AttributeDictionary), intent(in) :: dictionary
 
-    integer :: i, j
     character(len=MAX_LEN_LINE) :: line
     type (AttributeHashMapIterator) :: iter
     class (AbstractAttribute), pointer :: t

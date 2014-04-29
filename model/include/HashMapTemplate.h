@@ -161,7 +161,7 @@ contains
 
     hashTableSize_ = DEFAULT_HASH_TABLE_SIZE
     if (present(hashTableSize)) hashTableSize_ = hashTableSize
-
+    
     allocate(dictionary%table(hashTableSize_))
     dictionary%tableSize = hashTableSize_
 

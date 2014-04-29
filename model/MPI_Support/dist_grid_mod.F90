@@ -1702,8 +1702,8 @@ MODULE dist_grid_mod
 #ifdef USE_MPI
       TYPE (AXISINDEX), Pointer :: AI(:,:)
 #endif
-      INTEGER :: I,J, II,JJ,nk,k
-      INTEGER :: ierr, p, rc
+      INTEGER :: I,J,nk,k
+      INTEGER :: ierr, pc, p
       INTEGER :: ni_loc, nj_loc, nip, njp, icnt, npes
       LOGICAL :: reverse_
 
@@ -1821,8 +1821,8 @@ MODULE dist_grid_mod
 #ifdef USE_MPI
       TYPE (AXISINDEX), Pointer :: AI(:,:)
 #endif
-      INTEGER :: I,J, II,JJ
-      INTEGER :: ierr, p, rc
+      INTEGER :: I,J
+      INTEGER :: ierr, p
       INTEGER :: ni_loc, nj_loc, nip, njp, icnt, npes
       LOGICAL :: reverse_
 
@@ -1935,8 +1935,8 @@ MODULE dist_grid_mod
 #ifdef USE_MPI
       TYPE (AXISINDEX), Pointer :: AI(:,:)
 #endif
-      INTEGER :: I,J, II,JJ,k
-      INTEGER :: ierr, p, rc
+      INTEGER :: I,J,k
+      INTEGER :: ierr, p
       INTEGER :: ni_loc, nj_loc, nip, njp, icnt, npes
       INTEGER :: n, nk
       LOGICAL :: reverse_
@@ -2226,7 +2226,6 @@ MODULE dist_grid_mod
       integer function getLogUnit()
 ! ----------------------------------------------------------------------
         use FileManager, only: openUnit
-        integer :: unit
         character(len=40) :: logFileName
 
         integer, parameter :: UNINITIALIZED = -1

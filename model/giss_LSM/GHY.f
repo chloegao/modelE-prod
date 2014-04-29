@@ -184,7 +184,9 @@ ccc fractions of dry,wet,covered by snow canopy
      &     ,fc(0:1),fch(0:1)
 ccc   the following three declarations are various conductivity
 ccc   coefficients (or data needed to compute them)
-      real*8 xkh(ng,2),xkhm(ng,2),h(0:ng,2) ,xk(0:ng,2),xinfc(2)
+      real*8 :: h(0:ng,2) = 0
+      real*8 :: xk(0:ng,2) = 0
+      real*8 xkh(ng,2),xkhm(ng,2),xinfc(2)
      &     ,d(0:ng,2) ,xku(0:ng,2)
       real*8 hlm(0:64), xklm(0:64,imt-1),dlm(0:64,imt-1)
       real*8 xkus(ng,2), xkusa(2)

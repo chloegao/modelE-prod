@@ -47,10 +47,10 @@ C
       USE TRCHEM_Shindell_COM, only: chemrate,photrate,cpd,
      &                   yCH3O2,yC2O3,yXO2,yXO2N,yRXPAR,yAldehyde,
      &                   yROR,nCH3O2,nC2O3,nXO2,nXO2N,nRXPAR,
-     &                   nAldehyde,nROR,nr,nn,dt2,nss,ks,dest,prod,
+     &                   nAldehyde,nROR,nr,nn,dt2,dest,prod,
      &                   ny,rr,nO1D,nOH,nNO,nHO2,ta,nM,ss,
      &                   nO3,nNO2,nNO3,prnrts,jprn,iprn,lprn,ay,
-     &                   prnchg,y,kss,nps,kps,nds,kds,
+     &                   prnchg,y,nps,kps,nds,kds,
      &                   npnr,nnr,ndnr,kpnr,kdnr,nH2O,which_trop,
      &                   Jacet,acetone
      &                   ,SF3,ratioNs,ratioN2,rNO2frac,nO,nClO,nBrO
@@ -59,7 +59,7 @@ C
 #ifdef TRACERS_AEROSOLS_SOA
        USE TRACERS_SOA, only: apartmolar,whichsoa,soa_apart,LM_soa
 #endif  /* TRACERS_AEROSOLS_SOA */
-      USE DIAG_COM, only : aj,j_h2och4,ftype,ntype
+      USE DIAG_COM, only : ftype,ntype
       USE ATM_COM, only : pmidl00
       use TRACER_COM, only: nn_CH4,  nn_N2O, nn_Ox,   nn_NOx, 
      &      nn_N2O5,   nn_HNO3,  nn_H2O2,  nn_CH3OOH,   nn_HCHO, 
@@ -71,6 +71,8 @@ C
      &      nn_ClOx,   nn_BrOx,  nn_HCl,   nn_HOCl,   nn_ClONO2,  
      &      nn_HBr,    nn_HOBr,  nn_BrONO2,nn_CFC,    nn_GLT
 
+      USE DIAG_COM, only : aj,j_h2och4
+      use photolysis, only: ks,kss
 c
       IMPLICIT NONE
 c
@@ -1395,10 +1397,10 @@ c       produced by SRB photlysis (SF2 is NO + hv rate) :
 c       rxnN1=3.8d-11*exp(85d0*byta)*y(nOH,L)
         ! that's N+OH->NO+H, not in JPL (rates from IUPAC 1989)
         rxnN2=1.5d-11*exp(-3600.d0*byta)*y(nO2,L) ! N+O2->NO+O
-          rxnN3=5.8d-12*exp(220.d0*byta)*y(nNO2,L)  ! N+O2->N2O+O
-          rxnN4=2.1d-11*exp(100.d0*byta)*y(nNO,L)   ! N+O2->N2+O
-          NprodOx=2.0d0*SF2(I,J,L)*y(nNO,L)*dt2               
-          NlossNOx=3.0d1*NprodOx*(rxnN3+rxnN4)/(rxnN2+rxnN3+rxnN4)
+        rxnN3=5.8d-12*exp(220.d0*byta)*y(nNO2,L)  ! N+NO2->N2O+O
+        rxnN4=2.1d-11*exp(100.d0*byta)*y(nNO,L) ! N+NO->N2+O
+        NprodOx=2.0d0*SF2(I,J,L)*y(nNO,L)*dt2               
+        NlossNOx=3.0d1*NprodOx*(rxnN3+rxnN4)/(rxnN2+rxnN3+rxnN4)
         changeL(L,n_NOx)=changeL(L,n_NOx)-NlossNOx
      &  *(axyp(I,J)*rMAbyM(L))*vol2mass(n_NOx)
         conc2mass=axyp(I,J)*rMAbyM(L)*vol2mass(n_Ox)
@@ -1569,7 +1571,8 @@ c
 C**** GLOBAL parameters and variables:
 
       USE TRCHEM_Shindell_COM, only: nr,chemrate,photrate,rr,y,nn,dt2,
-     &                          ss,ks,ny,dest,prod,JPPJ,nhet
+     &                          ss,ny,dest,prod,nhet
+      use photolysis, only: jppj,ks
 
       IMPLICIT NONE
 

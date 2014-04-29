@@ -114,6 +114,8 @@ module CLOUDS
 !@dbparam U00b tuning knob for U00 below 850 mb and in convective regions
   real*8 :: U00a = 0.55d0       ! default
   real*8 :: U00b = 1.00d0       ! default
+!@dbparam MAXCTOP max cloud top pressure
+  real*8 :: MAXCTOP =50.d0  ! default
 !@dbparam funio_denominator funio denominator
   real*8 :: funio_denominator=22.d0  ! default
 !@dbparam autoconv_multiplier autoconversion rate multiplier
@@ -306,8 +308,8 @@ module CLOUDS
 #endif
 
 !@var KMAX index for surrounding velocity
-!@var LP50 50mb level
-  integer ::  KMAX,LP50
+!@var LMCLD max cloud top level
+  integer ::  KMAX,LMCLD
 !@var PEARTH fraction of land in grid box
 !@var TS average surface temperture (C)
 !@var RIS, RI1, RI2 Richardson numbers
@@ -3226,7 +3228,7 @@ contains
       trcond_ls=0.D0
     end if
 #endif
-    do L=1,LP50
+    do L=1,LMCLD
       CLEARA(L)=1.-CLDSAVL(L)
 !     if(WMX(L).le.0.) CLEARA(L)=1.
       IF(SVLHXL(L).EQ.LHE) THEN
@@ -3239,15 +3241,15 @@ contains
 #endif
     end do
     DQUP=0.
-    TOLDUP=TL(LP50)
-    PREICE(LP50+1)=0.
+    TOLDUP=TL(LMCLD)
+    PREICE(LMCLD+1)=0.
     WCONST=WMU*(1.-PEARTH)+WMUL*PEARTH
     SSHR=0.
     DCTEI=0.
     !****
     !**** MAIN L LOOP FOR LARGE-SCALE CONDENSATION, PRECIPITATION AND CLOUDS
     !****
-    do L=LP50,1,-1
+    do L=LMCLD,1,-1
       TOLD=TL(L)
       QOLD=QL(L)
       OLDLHX=SVLHXL(L)
@@ -3305,7 +3307,7 @@ contains
         end if
         if (debug) print*,"ls0",l,oldlhx,oldlat,lhx,lhp(l)
 
-        if (L.lt.LP50) then
+        if (L.lt.LMCLD) then
           !**** Decide whether precip initiates B-F process
           IF(OLDLHX.EQ.LHE) THEN
             PML=QCLX(L)*AIRM(L)*BYGRAV
@@ -5034,7 +5036,7 @@ contains
     !****
     !**** CLOUD-TOP ENTRAINMENT INSTABILITY
     !****
-    do L=LP50-1,1,-1
+    do L=LMCLD-1,1,-1
       LHX=SVLHXL(L)
       SM(L)=TH(L)*AIRM(L)
       QM(L)=QL(L)*AIRM(L)
@@ -5275,7 +5277,7 @@ contains
     NLSI = 0
     CDNC_TOMAS=0.
 #endif
-    do L=1,LP50
+    do L=1,LMCLD
       FCLD=CLDSSL(L)+teeny
 !     WTEM=1.d5*WMX(L)*PL(L)/(FCLD*TL(L)*RGAS+teeny)
       LHX=SVLHXL(L)
@@ -5510,7 +5512,7 @@ contains
     end do
 
     !**** CALCULATE OPTICAL THICKNESS
-    do L=1,LP50
+    do L=1,LMCLD
       CLDSV1(L)=CLDSSL(L)
       LHX=SVLHXL(L)
 !     if(WMX(L).le.0.) SVLHXL(L)=0.
@@ -5549,7 +5551,7 @@ contains
 #if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
     !Save variables for 3 hrly diagnostics
     !     AAA=1
-    !     DO L=LP50,1,-1
+    !     DO L=LMCLD,1,-1
     !       if (CLDSSL(L).gt.0.d0.and.CLDMCL(L).gt.0.d0) then
     !        if (TAUSSL(L).gt.0.d0.and.TAUMCL(L).gt.0.d0) then
     !         if (CLDSSL(L).LE.randu(xx))GO TO 7
@@ -5576,7 +5578,7 @@ contains
     !       ENDIF
     !     ENDDO
 
-    do L=1,LP50
+    do L=1,LMCLD
       PRS = (PL(1)-PTOP)/SIG(1)
 
       if (L.ge.ls1) then

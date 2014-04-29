@@ -2088,8 +2088,8 @@ C**** Tracers are diffused after iteration and follow salinity
               minrat = min(minrat, trml(l,n)/dflux)
             endif
           enddo
-          minrat = max(minrat, 0.) ! in case min tracer was already < 0
-          if(minrat .lt. 1.) then
+          minrat = max(minrat, 0.d0) ! in case min tracer was already < 0
+          if(minrat .lt. 1.d0) then
             minrat = minrat*0.95d0 ! leave min tracer slightly > 0
             ghatt(1:lmij-1,n) = ghatt(1:lmij-1,n)*minrat
           endif

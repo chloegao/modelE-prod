@@ -1383,7 +1383,6 @@ c allocate master copies of budget- and jk-arrays on root
       USE DIAG_COM, ONLY : KAIJ,KAIJK,KOA,KTSF,KTD,KAIJL
       USE DIAG_COM, ONLY : AIJ,AIJK,AIJL,TSFREZ,TDIURN_GLOB,OA_GLOB
       IMPLICIT NONE
-      INTEGER :: IER
 
       if(AM_I_ROOT()) then
          ALLOCATE(AIJ(IM,JM,KAIJ),
@@ -2133,6 +2132,10 @@ c temporary variant of inc_ajl without any weighting
 #endif
 #endif
 
+#ifdef CACHED_SUBDD
+      if(.not.r4_on_disk) call def_rsf_subdd_acc(fid,r4_on_disk)
+#endif
+
       call defvar(grid,fid,aj,'aj(jm_budg,kaj,ntype)',
      &     r4_on_disk=r4_on_disk)
       call defvar(grid,fid,ajl,'ajl(jm_budg,lm,kajl)',
@@ -2326,6 +2329,12 @@ c            IF (AM_I_ROOT()) call closeunit(iu_ODA)
 
 #ifdef TRACERS_ON
         call new_io_trdiag (fid,iaction)
+#endif
+
+#ifdef CACHED_SUBDD
+      if(iaction.eq.iowrite) then
+        call write_subdd_accdata(fid,iaction)
+      endif
 #endif
 
       return
@@ -2661,7 +2670,7 @@ c new_io_subdd
       use cdl_mod, only : write_cdl
       implicit none
       integer fid   !@var fid unit number of read/write
-      integer :: i,n,ntime_dd,ntime_hd
+      integer :: ntime_dd,ntime_hd
       real*8, allocatable :: tmpArr(:)
 
 #ifdef CUBED_SPHERE
