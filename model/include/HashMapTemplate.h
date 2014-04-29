@@ -299,7 +299,7 @@ contains
     class (HASH_TYPE), intent(inout) :: a
 !    class (HASH_TYPE), intent(in)  :: b
 !    type (HASH_TYPE), intent(inout) :: a
-    type (HASH_TYPE), intent(in)  :: b
+    class (HASH_TYPE), intent(in)  :: b
 
     integer :: i
 
