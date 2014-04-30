@@ -334,7 +334,7 @@ contains
 
     @assertEqual(1, aDictionary%size())
     @assertTrue(aDictionary%has('key'), 'There should not be a "key".')
-    i = aDictionary%getReference('key')
+    i => toPointer(aDictionary%getReference('key'),i)
     @assertEqual([1,2,3], i, 'Wrong value for "key".')
 
     call clean(aDictionary)
@@ -356,7 +356,7 @@ contains
 
     integer :: status
 
-    integer, pointer :: betaValue
+    integer :: betaValue
     real(kind=dp), pointer :: gammaValue
     logical, pointer :: deltaValues(:)
 
@@ -392,13 +392,13 @@ contains
     betaValue = aDictionary%getReference('beta')
     @assertEqual(2, betaValue, 'Wrong value for "beta".')
 
-    gammaValue = aDictionary%getReference('gamma')
+    gammaValue => toPointer(aDictionary%getReference('gamma'), gammaValue)
     @assertEqual(3.d+0, gammaValue, 'Wrong value for "gamma".')
 
-    gammaValue = aDictionary%getReference('Gamma')
+    gammaValue = toPointer(aDictionary%getReference('Gamma'), gammaValue)
     @assertEqual(3.d+0, gammaValue, 'Wrong value for "Gamma".')
 
-    deltaValues = aDictionary%getReference('delta')
+    deltaValues => toPointer(aDictionary%getReference('delta'), deltaValues)
     @assertTrue(all([.true.,.false.,.true.,.true.] .eqv. deltaValues), 'Wrong value for "delta".')
 
     call clean(aDictionary)
@@ -458,14 +458,14 @@ contains
     @assertTrue(aDictionary%has('gamma'), 'There should be a "gamma".')
     @assertTrue(aDictionary%has('delta'), 'There should be a "delta".')
 
-    betaValue = aDictionary%getReference('beta')
+    betaValue => toPointer(aDictionary%getReference('beta'), betaValue)
     @assertEqual(2, betaValue, 'Wrong value for "beta".')
 
-    gammaValue = aDictionary%getReference('gamma')
+    gammaValue => toPointer(aDictionary%getReference('gamma'),gammaValue)
     @assertEqual(3.d+0, gammaValue, 'Wrong value for "gamma".')
 
-    deltaValues = aDictionary%getReference('delta')
-    @assertTrue(all([.true.,.false.,.true.,.true.] .eqv. deltaValues), 'Wrong value for "delta".')
+    deltaValues => toPointer(aDictionary%getReference('delta'), deltaValues)
+    @asserttrue(all([.true.,.false.,.true.,.true.] .eqv. deltaValues), 'Wrong value for "delta".')
 
   end subroutine testParseAttribute
 
@@ -538,7 +538,7 @@ contains
 
     bDictionary = parse(parser, iounit, status)
 
-    i = bDictionary%getReference('key')
+    i => toPointer(bDictionary%getReference('key'), i)
 
     @assertTrue(aDictionary%equals(bDictionary))
 

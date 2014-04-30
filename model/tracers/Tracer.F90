@@ -10,7 +10,6 @@ module Tracer_mod
   public :: newTracer            ! constructor
   public :: clean
 
-  public :: getName
   public :: writeUnformatted
   public :: readUnformattedTracer
   public :: readOneTracer
@@ -95,15 +94,12 @@ contains
   function getName(this) result (name)
     use AbstractAttribute_mod, only: MAX_LEN_ATTRIBUTE_STRING
     use AttributeHashMap_mod
-    use StringAttribute_mod, only: toType
+    use StringAttribute_mod, only: toPointer
     class (Tracer), target, intent(in) :: this
     character(len=MAX_LEN_ATTRIBUTE_STRING), pointer :: name
-    type (AbstractAttributeReference) :: ref
 !    class (AbstractAttribute), pointer :: p
 
-    ref = this%getReference('name')
-!    name = ref
-    call toType(name, ref%ptr)
+    name => toPointer(this%getReference('name'),name)
 
   end function getName
 

@@ -1,7 +1,6 @@
 module TracerBundle_mod
   use AttributeDictionary_mod
   use Tracer_mod
-  use AttributeHashMap_mod, only: AbstractAttributeReference
   use TracerHashMap_mod
   implicit none
   private
@@ -119,7 +118,7 @@ contains
     do
       aTracer = readOneTracer(unit, status)
       if (status /= 0) exit
-      call bundle%insert(getName(aTracer), aTracer)
+      call bundle%insert(aTracer%getName(), aTracer)
     end do
 
   end function readFromText
@@ -247,7 +246,7 @@ contains
     do i = 1, n
       t = newTracer()
       call readUnformattedTracer(t, unit)
-      call this%insert(getName(t), t)
+      call this%insert(t%getName(), t)
     end do
 
   end function readUnformattedBundle
@@ -348,7 +347,7 @@ contains
 
     assertHasAttribute = .true.
     if (.not. this%has(attribute)) then
-      name = getName(this)
+      name = this%getName()
       call throwException("TracerBundle_mod - species '" // trim(name) // &
         & "' is missing mandatory attribute '" // trim(attribute) // "'.", 14)
       assertHasAttribute = .false.
@@ -362,7 +361,7 @@ contains
     character(len=*), intent(in) :: species
     character(len=*), intent(in) :: attribute
     class (AbstractAttribute), pointer :: attributeValue
-    type (AbstractAttributeReference) :: attrRef
+    class (AbstractAttribute), pointer :: attr
 !    type (TRACERreference) :: ref
 
     class (Tracer), pointer :: t
@@ -370,8 +369,7 @@ contains
     t => this%getReference(trim(species))
 !    ref = this%getReference(trim(species))
 !    t => ref%ptr
-    attrRef = t%getReference(attribute)
-    attributeValue => attrRef%ptr
+    attributeValue => t%getReference(attribute)
 
   end function getAttribute
 
@@ -419,7 +417,6 @@ contains
     type (VectorAttribute) :: vecAttr
     type (TracerIterator) :: iter
     class (AbstractAttribute), pointer :: attribute
-    type (AbstractAttributeReference) :: attrRef
 
     integer :: i
 
@@ -431,9 +428,8 @@ contains
 
     if (this%attributeVectorCache%has(attributeName)) then
       ! Should be doable in 1 step, but compiler struggles ...
-      attrRef = this%attributeVectorCache%getReference(attributeName)
-      attribute => attrRef%ptr
-      vector = attribute
+      attribute => this%attributeVectorCache%getReference(attributeName)
+      vector => toPointer(attribute, vector)
       return
     end if
 
@@ -450,8 +446,8 @@ contains
         call throwException('All tracers must have specified attribute to use getAttributeVector() method.',14)
         return
       end if
-      attrRef = t%getReference(attributeName)
-      call vector(i)%set(attrRef%ptr)
+      attribute => t%getReference(attributeName)
+      call vector(i)%set(attribute)
       i = i + 1
       call iter%next()
     end do
@@ -529,7 +525,7 @@ contains
     class (TracerBundle), intent(inout) :: this
     class (Tracer) :: value ! tracer
 
-    call this%insertEntry(getName(value), value)
+    call this%insertEntry(value%getName(), value)
 
   end subroutine insertGetName
 

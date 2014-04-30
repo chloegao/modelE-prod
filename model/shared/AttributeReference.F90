@@ -7,6 +7,7 @@ module AttributeReference_mod
   public :: VectorAttribute
   public :: newVectorAttribute
   public :: assignment(=)
+  public :: toPointer
   
   type AttributeReference
 !!$    private
@@ -33,6 +34,10 @@ module AttributeReference_mod
   interface assignment(=)
     module procedure toType
   end interface assignment(=)
+
+  interface toPointer
+     module procedure toPointerType
+  end interface toPointer
 
 contains
 
@@ -124,6 +129,17 @@ contains
     reference => null()
   end subroutine getReferenceVector
 
+  function toPointerType(this, vector) result(ptr)
+     type (AttributeReference), pointer :: ptr(:)
+     class (AbstractAttribute), target, intent(in) :: this
+     type (AttributeReference), intent(in) :: vector(:)
+
+     select type (this)
+     class is (VectorAttribute)
+        ptr => this%ptr
+     end select
+
+  end function toPointerType
 
 end module AttributeReference_mod
 

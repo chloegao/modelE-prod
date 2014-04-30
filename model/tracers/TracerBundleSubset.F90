@@ -322,7 +322,6 @@ module TracerBundleSubset_mod
   use TracerPointer_mod
   use TracerBundle_mod
   use TracerHashMap_mod
-  use AttributeHashMap_mod, only: attrReference=>AbstractAttributeReference
   implicit none
   private
 
@@ -380,10 +379,15 @@ contains
     class (Tracer), pointer :: tp
     type (TracerPointer) :: trp
 
+    integer :: i
+
+    i = 0
+
     newTracerBundleSubset%TracerBundle = newTracerBundle() 
     newTracerBundleSubset%reference => bundle
     iter = bundle%begin()
     do while (iter /= bundle%last())
+       i = i + 1
       tp => iter%value()
       if (aFilter(tp)) then ! invoke parent insert method
         trp = TracerPointer(tp)
@@ -552,13 +556,11 @@ contains
     character(len=*), intent(in) :: attributeName
 
     class (AbstractAttribute), pointer :: attribute
-    type(attrReference) :: attrRef
 
     class (Tracer), pointer :: t
    
     t => this%getSubsetReference(species)
-    attrRef = t%getReference(attributeName) 
-    attribute => attrRef%ptr
+    attribute => t%getReference(attributeName) 
     
   end function findAttribute
 
@@ -568,13 +570,11 @@ contains
     character(len=*), intent(in) :: species
     character(len=*), intent(in) :: attribute
     class (AbstractAttribute), pointer :: attributeValue
-    type(attrReference) :: attrRef
 
     class (Tracer), pointer :: t
 
     t => this%getSubsetReference(trim(species))
-    attrRef = t%getReference(attribute)
-    attributeValue => attrRef%ptr
+    attributeValue => t%getReference(attribute)
 
   end function getAttribute
 

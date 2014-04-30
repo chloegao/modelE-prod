@@ -102,7 +102,6 @@ module MODULE_NAME
     procedure :: hashFunction
     procedure :: size => getSize
     procedure :: getReference
-    procedure :: getValue
     procedure :: setValue
     procedure :: insertEntry
     generic :: insert => insertEntry
@@ -145,12 +144,6 @@ module MODULE_NAME
 
 contains
 
-! Workaround for intel 14.0.2
-! (Don't ask)
-  subroutine fake(a)
-    integer :: a
-  end subroutine fake
-  
   function CONSTRUCTOR(hashTableSize) result(dictionary)
     integer, optional :: hashTableSize
     type (HASH_TYPE) :: dictionary
@@ -231,7 +224,6 @@ contains
     hashValue = this%hashFunction(toLowerCase(key))
     m => this%table(hashValue)
     call m%insertReference(key, value)
-!!$    call this%table(hashValue)%insertReference(key, value)
 
   end subroutine insertReference
 
@@ -266,21 +258,6 @@ contains
 
   end function getReference
 #endif
-  function getValue(this, key) result(val)
-    use StringUtilities_mod, only: toLowerCase
-    class (HASH_TYPE), intent(in) :: this
-    character(len=*), intent(in) :: key
-    class (TYPE_NAME), allocatable :: val
-    type (Map) :: table
-    integer :: hashValue
-    character(len=len(key)) lowerCaseKey
-
-    lowerCaseKey = trim(toLowerCase(key))
-    hashValue = this%hashFunction(lowerCaseKey)
-    table = this%table(hashValue)
-    allocate(val, source=table%getValue(lowerCaseKey))
-
-  end function getValue
 
   logical function hasIt(this, key)
     use StringUtilities_mod, only: toLowerCase

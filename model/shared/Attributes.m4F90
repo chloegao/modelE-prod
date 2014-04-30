@@ -32,7 +32,7 @@ module m4_attributeType($1,$2,$3,$4)_mod
 
   public :: TYPE
   public :: newAttribute
-  public :: assignment(=), toType
+  public :: assignment(=), toPointer
   ifelse($3,0,public :: toTypeVector)
 
   type, extends(AbstractAttribute) :: TYPE
@@ -57,9 +57,13 @@ module m4_attributeType($1,$2,$3,$4)_mod
 
   interface assignment(=)
     module procedure toType
-    module procedure toTypeUnwrap
+!!$    module procedure toTypeUnwrap
     ifelse($3,0,module procedure toTypeVector)
   end interface
+
+  interface toPointer
+     module procedure toPointerType
+  end interface toPointer
 
 contains
 
@@ -71,34 +75,45 @@ contains
   end function constructor
 
   subroutine toType(value, entry)
-    downcase($1)[]$2, pointer, intent(inout) :: value m4_dimensions($3)
-    class (AbstractAttribute), target, intent(in) :: entry
+    downcase($1)[]$2, ifelse($3,1,allocatable[,]) intent(inout) :: value m4_dimensions($3)
+    class (AbstractAttribute), intent(in) :: entry
 
     select type (q => entry)
     type is (m4_attributeType($1,$2,$3,$4))
-      value => q%value
+      value = q%value
     class default
-!!$      call entry%print()
       call throwException('Illegal conversion of m4_attributeType($1,$2,$3,$4).',255)
     end select
   end subroutine toType
 
-  subroutine toTypeUnwrap(value, wrappedPtr)
-    use AttributeHashMap_mod
-    downcase($1)[]$2, pointer, intent(inout) :: value m4_dimensions($3)
-    type (AbstractAttributeReference), intent(in) :: wrappedPtr
+  function toPointerType(entry, cast) result(ptr)
+    downcase($1)[]$2, pointer :: ptr m4_dimensions($3)
+    class (AbstractAttribute), target, intent(in) :: entry
+    downcase($1)[]$2, intent(inout) :: cast m4_dimensions($3)
 
-    value = wrappedPtr%ptr
+    select type (q => entry)
+    type is (m4_attributeType($1,$2,$3,$4))
+       ptr => q%value
+    class default
+      call throwException('Illegal conversion of m4_attributeType($1,$2,$3,$4).',255)
+    end select
+  end function toPointerType
 
-  end subroutine toTypeUnwrap
+!!$  subroutine toTypeUnwrap(value, wrappedPtr)
+!!$    use AttributeHashMap_mod
+!!$    downcase($1)[]$2, pointer, intent(inout) :: value m4_dimensions($3)
+!!$    type (AbstractAttributeReference), intent(in) :: wrappedPtr
+!!$
+!!$    value = wrappedPtr%ptr
+!!$
+!!$  end subroutine toTypeUnwrap
 
 ifelse($3,0,
 [  subroutine toTypeVector(value, references)
     use AttributeReference_mod
-    downcase($1)[]$2, pointer, intent(inout) :: value(:)
+    downcase($1)[]$2, allocatable, intent(inout) :: value(:)
     type (AttributeReference), intent(in) :: references(:)
 
-!!$    class (AbstractAttribute), pointer :: p
     downcase($1)[]$2, pointer :: q
     integer :: i, n
 
@@ -242,5 +257,6 @@ foreachq([case],[m4_KIND_TYPES],[  use _cat([m4_attributeType],case)_mod
 ])dnl
   implicit none
   public :: assignment(=)
+  public :: toPointer
 
 end module Attributes_mod  

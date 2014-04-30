@@ -67,7 +67,7 @@ contains
     call this%tracerRef%insert('A', INT_VALUE)
     found => this%tracerRef%get()
 
-    pInteger = found%getReference('A')
+    pInteger => toPointer(found%getReference('A'), pInteger)
     @assertEqual(INT_VALUE, pInteger)
 
   end subroutine testInsertIntegerAttribute
@@ -78,7 +78,7 @@ contains
     class (Tracer), pointer :: found
     type (Tracer) :: aTracer
    
-    logical, pointer :: pLogical
+    logical :: pLogical
     logical, parameter :: LOG_VALUE=.true.
 
 ! TODO: Why doesn't this work when specified in setup?

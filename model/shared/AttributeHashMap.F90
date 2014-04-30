@@ -2,7 +2,7 @@
 #define USE_MODULE AbstractAttribute_mod
 #define TYPE_NAME AbstractAttribute
 #define HAS_PRINT
-#define WRAPPED_TYPE
+!#define WRAPPED_TYPE
 
 #include <AssociativeArrayTemplate.h>
 

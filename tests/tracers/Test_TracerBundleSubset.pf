@@ -4,6 +4,7 @@ module Test_TracerBundleSubset_mod
   use TracerPointer_mod
   use TracerBundle_mod
   use TracerBundleSubset_mod
+  use Attributes_mod
 
   implicit none
 
@@ -34,8 +35,6 @@ module Test_TracerBundleSubset_mod
   end interface
 
   procedure (func), pointer :: fptr => null ()
-
-  integer, parameter :: DP = selected_real_kind(14)
 
 contains
 
@@ -125,12 +124,12 @@ contains
     use Tracer_mod
     class (Tracer), intent(in) :: t
     logical :: isEven
-    integer, pointer :: iptr
+    integer :: i
 
     ! if tracer parity is even then return true
     if (t%has('parity')) then
-      iPtr = t%getReference("parity") 
-      isEven = (mod(iPtr,2) == 0)
+      i = t%getReference("parity") 
+      isEven = (mod(i,2) == 0)
     else
       isEven = .false.
     end if
@@ -142,12 +141,12 @@ contains
     use Tracer_mod
     class (Tracer), intent(in) :: t
     logical :: isOdd
-    integer, pointer :: iptr
+    integer :: parity
 
     ! if tracer parity is odd then return true
     if (t%has('parity')) then
-      iPtr = t%getReference("parity")
-      isOdd = (mod(iPtr,2) == 1)
+      parity = t%getReference("parity")
+      isOdd = (mod(parity,2) == 1)
     else
       isOdd = .false.
     end if
@@ -228,10 +227,10 @@ contains
     use Attributes_mod, only: newAttribute
 ! Under gfortran we need to use Attributes_mod and then run crashes
 ! with seg fault - else we get compilation errors
-    !use Attributes_mod
+    use Attributes_mod
     class (TestTracerBundleSubset), intent(inout) :: this
     integer :: expected
-    integer, pointer :: found
+    integer :: found
 
     call this%subsetHasMM%setAttribute('CO2', 'parity',newAttribute(0))
     expected = 0
@@ -244,10 +243,10 @@ contains
   subroutine testGetAttribute(this)
 ! Under gfortran we need to use Attributes_mod and then run crashes
 ! with seg fault - else we get compilation errors
-    !use Attributes_mod
+    use Attributes_mod
     class (TestTracerBundleSubset), intent(inout) :: this
     real(kind=DP) :: expected
-    real(kind=DP), pointer :: found
+    real(kind=DP) :: found
 
     expected = 4.4d+1
     found = this%subsetHasMM%getAttribute('CO2', 'molecularMass')

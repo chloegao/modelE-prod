@@ -72,7 +72,6 @@ contains
   ! getReference() returns nonassociated pointer for keys that have not been used.
 @Test  
   subroutine testGetReference_notFound(this)
-    use AttributeHashMap_mod, only: AbstractAttributeReference
     class (Test_AssociativeArray), intent(inout) :: this
     class (Foo), pointer :: p
 !    type (AbstractAttributeReference) :: attrRef

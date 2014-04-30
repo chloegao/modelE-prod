@@ -28,7 +28,7 @@ module Integer1dAttribute_mod
 
   public :: TYPE
   public :: newAttribute
-  public :: assignment(=), toType
+  public :: assignment(=), toPointer
   
 
   type, extends(AbstractAttribute) :: TYPE
@@ -51,9 +51,13 @@ module Integer1dAttribute_mod
 
   interface assignment(=)
     module procedure toType
-    module procedure toTypeUnwrap
+!!$    module procedure toTypeUnwrap
     
   end interface
+
+  interface toPointer
+     module procedure toPointerType
+  end interface toPointer
 
 contains
 
@@ -65,26 +69,38 @@ contains
   end function constructor
 
   subroutine toType(value, entry)
-    integer, pointer, intent(inout) :: value (:)
-    class (AbstractAttribute), target, intent(in) :: entry
+    integer, allocatable, intent(inout) :: value (:)
+    class (AbstractAttribute), intent(in) :: entry
 
     select type (q => entry)
     type is (Integer1dAttribute)
-      value => q%value
+      value = q%value
     class default
-!!$      call entry%print()
       call throwException('Illegal conversion of Integer1dAttribute.',255)
     end select
   end subroutine toType
 
-  subroutine toTypeUnwrap(value, wrappedPtr)
-    use AttributeHashMap_mod
-    integer, pointer, intent(inout) :: value (:)
-    type (AbstractAttributeReference), intent(in) :: wrappedPtr
+  function toPointerType(entry, cast) result(ptr)
+    integer, pointer :: ptr (:)
+    class (AbstractAttribute), target, intent(in) :: entry
+    integer, intent(inout) :: cast (:)
 
-    value = wrappedPtr%ptr
+    select type (q => entry)
+    type is (Integer1dAttribute)
+       ptr => q%value
+    class default
+      call throwException('Illegal conversion of Integer1dAttribute.',255)
+    end select
+  end function toPointerType
 
-  end subroutine toTypeUnwrap
+!!$  subroutine toTypeUnwrap(value, wrappedPtr)
+!!$    use AttributeHashMap_mod
+!!$    integer, pointer, intent(inout) :: value (:)
+!!$    type (AbstractAttributeReference), intent(in) :: wrappedPtr
+!!$
+!!$    value = wrappedPtr%ptr
+!!$
+!!$  end subroutine toTypeUnwrap
 
 
 
@@ -202,7 +218,7 @@ module IntegerAttribute_mod
 
   public :: TYPE
   public :: newAttribute
-  public :: assignment(=), toType
+  public :: assignment(=), toPointer
   public :: toTypeVector
 
   type, extends(AbstractAttribute) :: TYPE
@@ -224,9 +240,13 @@ module IntegerAttribute_mod
 
   interface assignment(=)
     module procedure toType
-    module procedure toTypeUnwrap
+!!$    module procedure toTypeUnwrap
     module procedure toTypeVector
   end interface
+
+  interface toPointer
+     module procedure toPointerType
+  end interface toPointer
 
 contains
 
@@ -238,33 +258,44 @@ contains
   end function constructor
 
   subroutine toType(value, entry)
-    integer, pointer, intent(inout) :: value 
-    class (AbstractAttribute), target, intent(in) :: entry
+    integer,  intent(inout) :: value 
+    class (AbstractAttribute), intent(in) :: entry
 
     select type (q => entry)
     type is (IntegerAttribute)
-      value => q%value
+      value = q%value
     class default
-!!$      call entry%print()
       call throwException('Illegal conversion of IntegerAttribute.',255)
     end select
   end subroutine toType
 
-  subroutine toTypeUnwrap(value, wrappedPtr)
-    use AttributeHashMap_mod
-    integer, pointer, intent(inout) :: value 
-    type (AbstractAttributeReference), intent(in) :: wrappedPtr
+  function toPointerType(entry, cast) result(ptr)
+    integer, pointer :: ptr 
+    class (AbstractAttribute), target, intent(in) :: entry
+    integer, intent(inout) :: cast 
 
-    value = wrappedPtr%ptr
+    select type (q => entry)
+    type is (IntegerAttribute)
+       ptr => q%value
+    class default
+      call throwException('Illegal conversion of IntegerAttribute.',255)
+    end select
+  end function toPointerType
 
-  end subroutine toTypeUnwrap
+!!$  subroutine toTypeUnwrap(value, wrappedPtr)
+!!$    use AttributeHashMap_mod
+!!$    integer, pointer, intent(inout) :: value 
+!!$    type (AbstractAttributeReference), intent(in) :: wrappedPtr
+!!$
+!!$    value = wrappedPtr%ptr
+!!$
+!!$  end subroutine toTypeUnwrap
 
   subroutine toTypeVector(value, references)
     use AttributeReference_mod
-    integer, pointer, intent(inout) :: value(:)
+    integer, allocatable, intent(inout) :: value(:)
     type (AttributeReference), intent(in) :: references(:)
 
-!!$    class (AbstractAttribute), pointer :: p
     integer, pointer :: q
     integer :: i, n
 
@@ -392,7 +423,7 @@ module Logical1dAttribute_mod
 
   public :: TYPE
   public :: newAttribute
-  public :: assignment(=), toType
+  public :: assignment(=), toPointer
   
 
   type, extends(AbstractAttribute) :: TYPE
@@ -415,9 +446,13 @@ module Logical1dAttribute_mod
 
   interface assignment(=)
     module procedure toType
-    module procedure toTypeUnwrap
+!!$    module procedure toTypeUnwrap
     
   end interface
+
+  interface toPointer
+     module procedure toPointerType
+  end interface toPointer
 
 contains
 
@@ -429,26 +464,38 @@ contains
   end function constructor
 
   subroutine toType(value, entry)
-    logical, pointer, intent(inout) :: value (:)
-    class (AbstractAttribute), target, intent(in) :: entry
+    logical, allocatable, intent(inout) :: value (:)
+    class (AbstractAttribute), intent(in) :: entry
 
     select type (q => entry)
     type is (Logical1dAttribute)
-      value => q%value
+      value = q%value
     class default
-!!$      call entry%print()
       call throwException('Illegal conversion of Logical1dAttribute.',255)
     end select
   end subroutine toType
 
-  subroutine toTypeUnwrap(value, wrappedPtr)
-    use AttributeHashMap_mod
-    logical, pointer, intent(inout) :: value (:)
-    type (AbstractAttributeReference), intent(in) :: wrappedPtr
+  function toPointerType(entry, cast) result(ptr)
+    logical, pointer :: ptr (:)
+    class (AbstractAttribute), target, intent(in) :: entry
+    logical, intent(inout) :: cast (:)
 
-    value = wrappedPtr%ptr
+    select type (q => entry)
+    type is (Logical1dAttribute)
+       ptr => q%value
+    class default
+      call throwException('Illegal conversion of Logical1dAttribute.',255)
+    end select
+  end function toPointerType
 
-  end subroutine toTypeUnwrap
+!!$  subroutine toTypeUnwrap(value, wrappedPtr)
+!!$    use AttributeHashMap_mod
+!!$    logical, pointer, intent(inout) :: value (:)
+!!$    type (AbstractAttributeReference), intent(in) :: wrappedPtr
+!!$
+!!$    value = wrappedPtr%ptr
+!!$
+!!$  end subroutine toTypeUnwrap
 
 
 
@@ -566,7 +613,7 @@ module LogicalAttribute_mod
 
   public :: TYPE
   public :: newAttribute
-  public :: assignment(=), toType
+  public :: assignment(=), toPointer
   public :: toTypeVector
 
   type, extends(AbstractAttribute) :: TYPE
@@ -588,9 +635,13 @@ module LogicalAttribute_mod
 
   interface assignment(=)
     module procedure toType
-    module procedure toTypeUnwrap
+!!$    module procedure toTypeUnwrap
     module procedure toTypeVector
   end interface
+
+  interface toPointer
+     module procedure toPointerType
+  end interface toPointer
 
 contains
 
@@ -602,33 +653,44 @@ contains
   end function constructor
 
   subroutine toType(value, entry)
-    logical, pointer, intent(inout) :: value 
-    class (AbstractAttribute), target, intent(in) :: entry
+    logical,  intent(inout) :: value 
+    class (AbstractAttribute), intent(in) :: entry
 
     select type (q => entry)
     type is (LogicalAttribute)
-      value => q%value
+      value = q%value
     class default
-!!$      call entry%print()
       call throwException('Illegal conversion of LogicalAttribute.',255)
     end select
   end subroutine toType
 
-  subroutine toTypeUnwrap(value, wrappedPtr)
-    use AttributeHashMap_mod
-    logical, pointer, intent(inout) :: value 
-    type (AbstractAttributeReference), intent(in) :: wrappedPtr
+  function toPointerType(entry, cast) result(ptr)
+    logical, pointer :: ptr 
+    class (AbstractAttribute), target, intent(in) :: entry
+    logical, intent(inout) :: cast 
 
-    value = wrappedPtr%ptr
+    select type (q => entry)
+    type is (LogicalAttribute)
+       ptr => q%value
+    class default
+      call throwException('Illegal conversion of LogicalAttribute.',255)
+    end select
+  end function toPointerType
 
-  end subroutine toTypeUnwrap
+!!$  subroutine toTypeUnwrap(value, wrappedPtr)
+!!$    use AttributeHashMap_mod
+!!$    logical, pointer, intent(inout) :: value 
+!!$    type (AbstractAttributeReference), intent(in) :: wrappedPtr
+!!$
+!!$    value = wrappedPtr%ptr
+!!$
+!!$  end subroutine toTypeUnwrap
 
   subroutine toTypeVector(value, references)
     use AttributeReference_mod
-    logical, pointer, intent(inout) :: value(:)
+    logical, allocatable, intent(inout) :: value(:)
     type (AttributeReference), intent(in) :: references(:)
 
-!!$    class (AbstractAttribute), pointer :: p
     logical, pointer :: q
     integer :: i, n
 
@@ -756,7 +818,7 @@ module RealDP1dAttribute_mod
 
   public :: TYPE
   public :: newAttribute
-  public :: assignment(=), toType
+  public :: assignment(=), toPointer
   
 
   type, extends(AbstractAttribute) :: TYPE
@@ -779,9 +841,13 @@ module RealDP1dAttribute_mod
 
   interface assignment(=)
     module procedure toType
-    module procedure toTypeUnwrap
+!!$    module procedure toTypeUnwrap
     
   end interface
+
+  interface toPointer
+     module procedure toPointerType
+  end interface toPointer
 
 contains
 
@@ -793,26 +859,38 @@ contains
   end function constructor
 
   subroutine toType(value, entry)
-    real(kind=DP), pointer, intent(inout) :: value (:)
-    class (AbstractAttribute), target, intent(in) :: entry
+    real(kind=DP), allocatable, intent(inout) :: value (:)
+    class (AbstractAttribute), intent(in) :: entry
 
     select type (q => entry)
     type is (RealDP1dAttribute)
-      value => q%value
+      value = q%value
     class default
-!!$      call entry%print()
       call throwException('Illegal conversion of RealDP1dAttribute.',255)
     end select
   end subroutine toType
 
-  subroutine toTypeUnwrap(value, wrappedPtr)
-    use AttributeHashMap_mod
-    real(kind=DP), pointer, intent(inout) :: value (:)
-    type (AbstractAttributeReference), intent(in) :: wrappedPtr
+  function toPointerType(entry, cast) result(ptr)
+    real(kind=DP), pointer :: ptr (:)
+    class (AbstractAttribute), target, intent(in) :: entry
+    real(kind=DP), intent(inout) :: cast (:)
 
-    value = wrappedPtr%ptr
+    select type (q => entry)
+    type is (RealDP1dAttribute)
+       ptr => q%value
+    class default
+      call throwException('Illegal conversion of RealDP1dAttribute.',255)
+    end select
+  end function toPointerType
 
-  end subroutine toTypeUnwrap
+!!$  subroutine toTypeUnwrap(value, wrappedPtr)
+!!$    use AttributeHashMap_mod
+!!$    real(kind=DP), pointer, intent(inout) :: value (:)
+!!$    type (AbstractAttributeReference), intent(in) :: wrappedPtr
+!!$
+!!$    value = wrappedPtr%ptr
+!!$
+!!$  end subroutine toTypeUnwrap
 
 
 
@@ -930,7 +1008,7 @@ module RealDPAttribute_mod
 
   public :: TYPE
   public :: newAttribute
-  public :: assignment(=), toType
+  public :: assignment(=), toPointer
   public :: toTypeVector
 
   type, extends(AbstractAttribute) :: TYPE
@@ -952,9 +1030,13 @@ module RealDPAttribute_mod
 
   interface assignment(=)
     module procedure toType
-    module procedure toTypeUnwrap
+!!$    module procedure toTypeUnwrap
     module procedure toTypeVector
   end interface
+
+  interface toPointer
+     module procedure toPointerType
+  end interface toPointer
 
 contains
 
@@ -966,33 +1048,44 @@ contains
   end function constructor
 
   subroutine toType(value, entry)
-    real(kind=DP), pointer, intent(inout) :: value 
-    class (AbstractAttribute), target, intent(in) :: entry
+    real(kind=DP),  intent(inout) :: value 
+    class (AbstractAttribute), intent(in) :: entry
 
     select type (q => entry)
     type is (RealDPAttribute)
-      value => q%value
+      value = q%value
     class default
-!!$      call entry%print()
       call throwException('Illegal conversion of RealDPAttribute.',255)
     end select
   end subroutine toType
 
-  subroutine toTypeUnwrap(value, wrappedPtr)
-    use AttributeHashMap_mod
-    real(kind=DP), pointer, intent(inout) :: value 
-    type (AbstractAttributeReference), intent(in) :: wrappedPtr
+  function toPointerType(entry, cast) result(ptr)
+    real(kind=DP), pointer :: ptr 
+    class (AbstractAttribute), target, intent(in) :: entry
+    real(kind=DP), intent(inout) :: cast 
 
-    value = wrappedPtr%ptr
+    select type (q => entry)
+    type is (RealDPAttribute)
+       ptr => q%value
+    class default
+      call throwException('Illegal conversion of RealDPAttribute.',255)
+    end select
+  end function toPointerType
 
-  end subroutine toTypeUnwrap
+!!$  subroutine toTypeUnwrap(value, wrappedPtr)
+!!$    use AttributeHashMap_mod
+!!$    real(kind=DP), pointer, intent(inout) :: value 
+!!$    type (AbstractAttributeReference), intent(in) :: wrappedPtr
+!!$
+!!$    value = wrappedPtr%ptr
+!!$
+!!$  end subroutine toTypeUnwrap
 
   subroutine toTypeVector(value, references)
     use AttributeReference_mod
-    real(kind=DP), pointer, intent(inout) :: value(:)
+    real(kind=DP), allocatable, intent(inout) :: value(:)
     type (AttributeReference), intent(in) :: references(:)
 
-!!$    class (AbstractAttribute), pointer :: p
     real(kind=DP), pointer :: q
     integer :: i, n
 
@@ -1120,7 +1213,7 @@ module String1dAttribute_mod
 
   public :: TYPE
   public :: newAttribute
-  public :: assignment(=), toType
+  public :: assignment(=), toPointer
   
 
   type, extends(AbstractAttribute) :: TYPE
@@ -1143,9 +1236,13 @@ module String1dAttribute_mod
 
   interface assignment(=)
     module procedure toType
-    module procedure toTypeUnwrap
+!!$    module procedure toTypeUnwrap
     
   end interface
+
+  interface toPointer
+     module procedure toPointerType
+  end interface toPointer
 
 contains
 
@@ -1157,26 +1254,38 @@ contains
   end function constructor
 
   subroutine toType(value, entry)
-    character(len=MAX_LEN_ATTRIBUTE_STRING), pointer, intent(inout) :: value (:)
-    class (AbstractAttribute), target, intent(in) :: entry
+    character(len=MAX_LEN_ATTRIBUTE_STRING), allocatable, intent(inout) :: value (:)
+    class (AbstractAttribute), intent(in) :: entry
 
     select type (q => entry)
     type is (String1dAttribute)
-      value => q%value
+      value = q%value
     class default
-!!$      call entry%print()
       call throwException('Illegal conversion of String1dAttribute.',255)
     end select
   end subroutine toType
 
-  subroutine toTypeUnwrap(value, wrappedPtr)
-    use AttributeHashMap_mod
-    character(len=MAX_LEN_ATTRIBUTE_STRING), pointer, intent(inout) :: value (:)
-    type (AbstractAttributeReference), intent(in) :: wrappedPtr
+  function toPointerType(entry, cast) result(ptr)
+    character(len=MAX_LEN_ATTRIBUTE_STRING), pointer :: ptr (:)
+    class (AbstractAttribute), target, intent(in) :: entry
+    character(len=MAX_LEN_ATTRIBUTE_STRING), intent(inout) :: cast (:)
 
-    value = wrappedPtr%ptr
+    select type (q => entry)
+    type is (String1dAttribute)
+       ptr => q%value
+    class default
+      call throwException('Illegal conversion of String1dAttribute.',255)
+    end select
+  end function toPointerType
 
-  end subroutine toTypeUnwrap
+!!$  subroutine toTypeUnwrap(value, wrappedPtr)
+!!$    use AttributeHashMap_mod
+!!$    character(len=MAX_LEN_ATTRIBUTE_STRING), pointer, intent(inout) :: value (:)
+!!$    type (AbstractAttributeReference), intent(in) :: wrappedPtr
+!!$
+!!$    value = wrappedPtr%ptr
+!!$
+!!$  end subroutine toTypeUnwrap
 
 
 
@@ -1295,7 +1404,7 @@ module StringAttribute_mod
 
   public :: TYPE
   public :: newAttribute
-  public :: assignment(=), toType
+  public :: assignment(=), toPointer
   public :: toTypeVector
 
   type, extends(AbstractAttribute) :: TYPE
@@ -1317,9 +1426,13 @@ module StringAttribute_mod
 
   interface assignment(=)
     module procedure toType
-    module procedure toTypeUnwrap
+!!$    module procedure toTypeUnwrap
     module procedure toTypeVector
   end interface
+
+  interface toPointer
+     module procedure toPointerType
+  end interface toPointer
 
 contains
 
@@ -1331,33 +1444,44 @@ contains
   end function constructor
 
   subroutine toType(value, entry)
-    character(len=MAX_LEN_ATTRIBUTE_STRING), pointer, intent(inout) :: value 
-    class (AbstractAttribute), target, intent(in) :: entry
+    character(len=MAX_LEN_ATTRIBUTE_STRING),  intent(inout) :: value 
+    class (AbstractAttribute), intent(in) :: entry
 
     select type (q => entry)
     type is (StringAttribute)
-      value => q%value
+      value = q%value
     class default
-!!$      call entry%print()
       call throwException('Illegal conversion of StringAttribute.',255)
     end select
   end subroutine toType
 
-  subroutine toTypeUnwrap(value, wrappedPtr)
-    use AttributeHashMap_mod
-    character(len=MAX_LEN_ATTRIBUTE_STRING), pointer, intent(inout) :: value 
-    type (AbstractAttributeReference), intent(in) :: wrappedPtr
+  function toPointerType(entry, cast) result(ptr)
+    character(len=MAX_LEN_ATTRIBUTE_STRING), pointer :: ptr 
+    class (AbstractAttribute), target, intent(in) :: entry
+    character(len=MAX_LEN_ATTRIBUTE_STRING), intent(inout) :: cast 
 
-    value = wrappedPtr%ptr
+    select type (q => entry)
+    type is (StringAttribute)
+       ptr => q%value
+    class default
+      call throwException('Illegal conversion of StringAttribute.',255)
+    end select
+  end function toPointerType
 
-  end subroutine toTypeUnwrap
+!!$  subroutine toTypeUnwrap(value, wrappedPtr)
+!!$    use AttributeHashMap_mod
+!!$    character(len=MAX_LEN_ATTRIBUTE_STRING), pointer, intent(inout) :: value 
+!!$    type (AbstractAttributeReference), intent(in) :: wrappedPtr
+!!$
+!!$    value = wrappedPtr%ptr
+!!$
+!!$  end subroutine toTypeUnwrap
 
   subroutine toTypeVector(value, references)
     use AttributeReference_mod
-    character(len=MAX_LEN_ATTRIBUTE_STRING), pointer, intent(inout) :: value(:)
+    character(len=MAX_LEN_ATTRIBUTE_STRING), allocatable, intent(inout) :: value(:)
     type (AttributeReference), intent(in) :: references(:)
 
-!!$    class (AbstractAttribute), pointer :: p
     character(len=MAX_LEN_ATTRIBUTE_STRING), pointer :: q
     integer :: i, n
 
@@ -1489,5 +1613,6 @@ module Attributes_mod
   use StringAttribute_mod
   implicit none
   public :: assignment(=)
+  public :: toPointer
 
 end module Attributes_mod  

@@ -42,8 +42,8 @@ contains
     call H2O17%insert('optionD', 2)
 
     this%bundle = newTracerBundle()
-    call this%bundle%insert(getName(CO2), CO2)
-    call this%bundle%insert(getName(H2O17), H2O17)
+    call this%bundle%insert(CO2%getName(), CO2)
+    call this%bundle%insert(H2O17%getName(), H2O17)
     this%numTracers = 2
 
   end subroutine setUp
@@ -58,7 +58,7 @@ contains
     use GenericType_mod
     class (Test_TracerBundle), intent(inout) :: this
     real(kind=dp) :: expected
-    real(kind=dp), pointer :: found
+    real(kind=dp) :: found
 
     expected = 4.4d+1
     found = this%bundle%getAttribute('CO2', 'molecularMass')
@@ -110,9 +110,9 @@ contains
     use GenericType_mod
     class (Test_TracerBundle), intent(inout) :: this
     logical :: expectedDoesDecay
-    logical, pointer :: foundDoesDecay
+    logical :: foundDoesDecay
     integer :: expectedOptionD
-    integer, pointer :: foundOptionD
+    integer :: foundOptionD
 
     call this%bundle%addDefaultValue('doesDecay', .true.)
     call this%bundle%addDefaultValue('optionD',  1)
@@ -143,7 +143,7 @@ contains
     character(len=*), parameter :: NAME_1 = 'Tracer_1'
     character(len=*), parameter :: NAME_2 = 'Tracer_2'
     character(len=*), parameter :: ATTRIBUTE = 'newAttribute'
-    integer, pointer :: foundValue
+    integer :: foundValue
 
     type (Tracer) :: aTracer
     type (TracerBundle) :: aBundle
@@ -180,7 +180,7 @@ contains
     character(len=*), parameter :: NAME_1 = 'Tracer_1'
     character(len=*), parameter :: NAME_2 = 'Tracer_2'
     character(len=*), parameter :: ATTRIBUTE = 'newAttribute'
-    integer, pointer :: foundValue
+    integer :: foundValue
 
     type (Tracer) :: aTracer
     type (TracerBundle) :: aBundle
@@ -214,8 +214,8 @@ contains
     class (Test_TracerBundle), intent(inout) :: this
 
     type (AttributeReference), pointer :: molecularMass(:)
-    real*8, pointer :: mm1, mm2
-    real*8, pointer :: mm1Found, mm2Found
+    real*8 :: mm1, mm2
+    real*8 :: mm1Found, mm2Found
 
     molecularMass => null()
     molecularMass => this%bundle%getAttributeVector('molecularMass')

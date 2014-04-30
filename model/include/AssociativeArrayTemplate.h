@@ -60,7 +60,9 @@ module MODULE_NAME
   public :: operator(==)
   public :: clean
   public :: MAX_LEN_KEY
+#ifdef WRAPPED_TYPE	  
   public :: REFERENCE_TYPE
+#endif
   integer, parameter :: MAX_LEN_KEY = 32
   integer, parameter :: INDEX_NOT_FOUND = -1
 
