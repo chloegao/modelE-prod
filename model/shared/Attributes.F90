@@ -41,8 +41,6 @@ module Integer1dAttribute_mod
     procedure :: writeUnformatted
     procedure :: readUnformatted
     procedure :: toString
-    procedure :: getReferenceScalar
-    procedure :: getReferenceVector
   end type TYPE
 
   interface newAttribute
@@ -103,18 +101,6 @@ contains
 !!$  end subroutine toTypeUnwrap
 
 
-
-  subroutine getReferenceScalar(this, reference)
-    class (Integer1dAttribute), target, intent(in) :: this
-    class (*), pointer, intent(out) :: reference
-    call stop_model("Expected vector instead of scalar", 99)
-  end subroutine getReferenceScalar
-
-  subroutine getReferenceVector(this, reference)
-    class (Integer1dAttribute), target, intent(in) :: this
-    class (*), pointer, intent(out) :: reference(:)
-    reference => this%value
-  end subroutine getReferenceVector
 
   logical function equals(this, b)
     class (Integer1dAttribute), intent(in) :: this
@@ -230,8 +216,6 @@ module IntegerAttribute_mod
     procedure :: writeUnformatted
     procedure :: readUnformatted
     procedure :: toString
-    procedure :: getReferenceScalar
-    procedure :: getReferenceVector
   end type TYPE
 
   interface newAttribute
@@ -312,18 +296,6 @@ contains
   end subroutine toTypeVector
 
 
-
-  subroutine getReferenceScalar(this, reference)
-    class (IntegerAttribute), target, intent(in) :: this
-    class (*), pointer, intent(out) :: reference
-    reference => this%value
-  end subroutine getReferenceScalar
-
-  subroutine getReferenceVector(this, reference)
-    class (IntegerAttribute), target, intent(in) :: this
-    class (*), pointer, intent(out) :: reference(:)
-    call stop_model("Expected scalar instead of vector", 99)
-  end subroutine getReferenceVector
 
   logical function equals(this, b)
     class (IntegerAttribute), intent(in) :: this
@@ -436,8 +408,6 @@ module Logical1dAttribute_mod
     procedure :: writeUnformatted
     procedure :: readUnformatted
     procedure :: toString
-    procedure :: getReferenceScalar
-    procedure :: getReferenceVector
   end type TYPE
 
   interface newAttribute
@@ -498,18 +468,6 @@ contains
 !!$  end subroutine toTypeUnwrap
 
 
-
-  subroutine getReferenceScalar(this, reference)
-    class (Logical1dAttribute), target, intent(in) :: this
-    class (*), pointer, intent(out) :: reference
-    call stop_model("Expected vector instead of scalar", 99)
-  end subroutine getReferenceScalar
-
-  subroutine getReferenceVector(this, reference)
-    class (Logical1dAttribute), target, intent(in) :: this
-    class (*), pointer, intent(out) :: reference(:)
-    reference => this%value
-  end subroutine getReferenceVector
 
   logical function equals(this, b)
     class (Logical1dAttribute), intent(in) :: this
@@ -625,8 +583,6 @@ module LogicalAttribute_mod
     procedure :: writeUnformatted
     procedure :: readUnformatted
     procedure :: toString
-    procedure :: getReferenceScalar
-    procedure :: getReferenceVector
   end type TYPE
 
   interface newAttribute
@@ -707,18 +663,6 @@ contains
   end subroutine toTypeVector
 
 
-
-  subroutine getReferenceScalar(this, reference)
-    class (LogicalAttribute), target, intent(in) :: this
-    class (*), pointer, intent(out) :: reference
-    reference => this%value
-  end subroutine getReferenceScalar
-
-  subroutine getReferenceVector(this, reference)
-    class (LogicalAttribute), target, intent(in) :: this
-    class (*), pointer, intent(out) :: reference(:)
-    call stop_model("Expected scalar instead of vector", 99)
-  end subroutine getReferenceVector
 
   logical function equals(this, b)
     class (LogicalAttribute), intent(in) :: this
@@ -831,8 +775,6 @@ module RealDP1dAttribute_mod
     procedure :: writeUnformatted
     procedure :: readUnformatted
     procedure :: toString
-    procedure :: getReferenceScalar
-    procedure :: getReferenceVector
   end type TYPE
 
   interface newAttribute
@@ -893,18 +835,6 @@ contains
 !!$  end subroutine toTypeUnwrap
 
 
-
-  subroutine getReferenceScalar(this, reference)
-    class (RealDP1dAttribute), target, intent(in) :: this
-    class (*), pointer, intent(out) :: reference
-    call stop_model("Expected vector instead of scalar", 99)
-  end subroutine getReferenceScalar
-
-  subroutine getReferenceVector(this, reference)
-    class (RealDP1dAttribute), target, intent(in) :: this
-    class (*), pointer, intent(out) :: reference(:)
-    reference => this%value
-  end subroutine getReferenceVector
 
   logical function equals(this, b)
     class (RealDP1dAttribute), intent(in) :: this
@@ -1020,8 +950,6 @@ module RealDPAttribute_mod
     procedure :: writeUnformatted
     procedure :: readUnformatted
     procedure :: toString
-    procedure :: getReferenceScalar
-    procedure :: getReferenceVector
   end type TYPE
 
   interface newAttribute
@@ -1102,18 +1030,6 @@ contains
   end subroutine toTypeVector
 
 
-
-  subroutine getReferenceScalar(this, reference)
-    class (RealDPAttribute), target, intent(in) :: this
-    class (*), pointer, intent(out) :: reference
-    reference => this%value
-  end subroutine getReferenceScalar
-
-  subroutine getReferenceVector(this, reference)
-    class (RealDPAttribute), target, intent(in) :: this
-    class (*), pointer, intent(out) :: reference(:)
-    call stop_model("Expected scalar instead of vector", 99)
-  end subroutine getReferenceVector
 
   logical function equals(this, b)
     class (RealDPAttribute), intent(in) :: this
@@ -1226,8 +1142,6 @@ module String1dAttribute_mod
     procedure :: writeUnformatted
     procedure :: readUnformatted
     procedure :: toString
-    procedure :: getReferenceScalar
-    procedure :: getReferenceVector
   end type TYPE
 
   interface newAttribute
@@ -1288,18 +1202,6 @@ contains
 !!$  end subroutine toTypeUnwrap
 
 
-
-  subroutine getReferenceScalar(this, reference)
-    class (String1dAttribute), target, intent(in) :: this
-    class (*), pointer, intent(out) :: reference
-    call stop_model("Expected vector instead of scalar", 99)
-  end subroutine getReferenceScalar
-
-  subroutine getReferenceVector(this, reference)
-    class (String1dAttribute), target, intent(in) :: this
-    class (*), pointer, intent(out) :: reference(:)
-    reference => this%value
-  end subroutine getReferenceVector
 
   logical function equals(this, b)
     class (String1dAttribute), intent(in) :: this
@@ -1416,8 +1318,6 @@ module StringAttribute_mod
     procedure :: writeUnformatted
     procedure :: readUnformatted
     procedure :: toString
-    procedure :: getReferenceScalar
-    procedure :: getReferenceVector
   end type TYPE
 
   interface newAttribute
@@ -1498,18 +1398,6 @@ contains
   end subroutine toTypeVector
 
 
-
-  subroutine getReferenceScalar(this, reference)
-    class (StringAttribute), target, intent(in) :: this
-    class (*), pointer, intent(out) :: reference
-    reference => this%value
-  end subroutine getReferenceScalar
-
-  subroutine getReferenceVector(this, reference)
-    class (StringAttribute), target, intent(in) :: this
-    class (*), pointer, intent(out) :: reference(:)
-    call stop_model("Expected scalar instead of vector", 99)
-  end subroutine getReferenceVector
 
   logical function equals(this, b)
     class (StringAttribute), intent(in) :: this
