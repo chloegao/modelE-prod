@@ -20,7 +20,7 @@ EXTENDED_SOURCE = -extend_source
 # flags needed for particular releases
 
 # default flags for latest releases (work for 12.*, 13.*):
-FFLAGS_RELEASE = -assume protect_parens -fp-model strict -warn nousage
+FFLAGS_RELEASE = -assume protect_parens -fp-model strict -warn nousage -assume realloc_lhs
 
 # if some releases require different flags enter them here
 ifeq ($(IFORT_RELEASE),11.1)
