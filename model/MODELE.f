@@ -112,7 +112,8 @@ C**** Command line options
       REAL*8 start,now, DTIME,TOTALT
 
       CHARACTER aDATE*14
-      CHARACTER*8 :: flg_go='___GO___'      ! green light
+      CHARACTER*8 :: string_go='___GO___'      ! green light
+      CHARACTER*8 :: str
       integer :: iflag=1
       external sig_stop_model
       logical :: start9
@@ -154,7 +155,7 @@ C**** Set run_status to "run in progress"
 
       IF (AM_I_ROOT()) Then
          open(3,file='flagGoStop',form='FORMATTED',status='REPLACE')
-         write (3,'(A8)') flg_go
+         write (3,'(A8)') string_go
          close (3)
       END IF
       call sys_signal( 15, sig_stop_model )  ! works only on single CPU
@@ -341,21 +342,21 @@ C**** CPU TIME FOR CALLING DIAGNOSTICS
 C**** TEST FOR TERMINATION OF RUN
       IF (MOD(Itime,Nssw).eq.0) then
        IF (AM_I_ROOT()) then
-        flg_go = '__STOP__'     ! stop if flagGoStop if missing
         iflag=0
-        open(3,file='flagGoStop',form='FORMATTED',status='OLD',err=210)
-        read (3,'(A8)',end=210) flg_go
-        close (3)
- 210    continue
-        IF (flg_go .eq. '___GO___') iflag=1
+        if ( .not. stop_on ) then
+          open(3,file='flagGoStop',form='FORMATTED',status='OLD'
+     &         ,err=210)
+          read (3,'(A8)',end=210) str
+          close (3)
+ 210      continue
+          IF (str .eq. string_go) iflag=1
+        endif
         call broadcast(iflag)
        else
         call broadcast(iflag)
-        if (iflag .eq. 1) flg_go = '___GO___'
-        if (iflag .eq. 0) flg_go = '__STOP__'
        end if
       endif
-      IF (flg_go.ne.'___GO___' .or. stop_on) THEN
+      IF ( iflag == 0 ) THEN
 C**** Flag to continue run has been turned off
          WRITE (6,'("0Flag to continue run has been turned off.")')
          EXIT main_loop
