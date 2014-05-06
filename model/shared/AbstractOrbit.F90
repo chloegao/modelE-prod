@@ -48,8 +48,8 @@ module AbstractOrbit_mod
   type, abstract :: AbstractOrbit
     private
 
-    type (TimeInterval) :: siderealPeriod ! seconds
-    type (TimeInterval) :: rotationPeriod ! seconds
+    type (TimeInterval) :: siderealOrbitalPeriod ! seconds
+    type (TimeInterval) :: siderealRotationPeriod ! seconds
     type (TimeInterval) :: meanDay        ! seconds
     real(kind=WP) :: meanDistance  ! in astronomical units (AU's)
 
@@ -68,13 +68,13 @@ module AbstractOrbit_mod
     procedure(getSlow), deferred :: getObliquity
     procedure(getSlow), deferred :: getLongitudeAtPeriapsis
     
-    procedure :: getSiderealPeriod
-    procedure :: getRotationPeriod
+    procedure :: getSiderealOrbitalPeriod
+    procedure :: getSiderealRotationPeriod
     procedure :: getMeanDay
     procedure :: getMeanDistance
     
-    procedure :: setRotationPeriod
-    procedure :: setSiderealPeriod
+    procedure :: setSiderealRotationPeriod
+    procedure :: setSiderealOrbitalPeriod
     procedure :: setMeanDay
     procedure :: setMeanDistance
     
@@ -247,20 +247,20 @@ contains
   end function getMeanDistance
 
 
-  subroutine setRotationPeriod(this, rotationPeriod)
+  subroutine setSiderealRotationPeriod(this, siderealRotationPeriod)
     use TimeInterval_mod, only: TimeInterval
     class (AbstractOrbit), intent(inout) :: this
-    type (TimeInterval) :: rotationPeriod
-    this%rotationPeriod = rotationPeriod
-  end subroutine setRotationPeriod
+    type (TimeInterval) :: siderealRotationPeriod
+    this%siderealRotationPeriod = siderealRotationPeriod
+  end subroutine setSiderealRotationPeriod
 
 
-  function getRotationPeriod(this) result(rotationPeriod)
+  function getSiderealRotationPeriod(this) result(siderealRotationPeriod)
     use TimeInterval_mod, only: TimeInterval
-    type (TimeInterval) :: rotationPeriod
+    type (TimeInterval) :: siderealRotationPeriod
     class (AbstractOrbit), intent(in) :: this
-    rotationPeriod = this%rotationPeriod
-  end function getRotationPeriod
+    siderealRotationPeriod = this%siderealRotationPeriod
+  end function getSiderealRotationPeriod
 
 
   subroutine setMeanDay(this, meanDay)
@@ -279,20 +279,20 @@ contains
   end function getMeanDay
 
 
-  subroutine setSiderealPeriod(this, siderealPeriod)
+  subroutine setSiderealOrbitalPeriod(this, siderealOrbitalPeriod)
     use TimeInterval_mod, only: TimeInterval
     class (AbstractOrbit), intent(inout) :: this
-    type (TimeInterval), intent(in) :: siderealPeriod
-    this%siderealPeriod = siderealPeriod
-  end subroutine setSiderealPeriod
+    type (TimeInterval), intent(in) :: siderealOrbitalPeriod
+    this%siderealOrbitalPeriod = siderealOrbitalPeriod
+ end subroutine setSiderealOrbitalPeriod
 
 
-  function getSiderealPeriod(this) result(siderealPeriod)
+  function getSiderealOrbitalPeriod(this) result(siderealOrbitalPeriod)
     use TimeInterval_mod, only: TimeInterval
-    type (TimeInterval) :: siderealPeriod
+    type (TimeInterval) :: siderealOrbitalPeriod
     class (AbstractOrbit), intent(in) :: this
-    siderealPeriod = this%siderealPeriod
-  end function getSiderealPeriod
+    siderealOrbitalPeriod = this%siderealOrbitalPeriod
+  end function getSiderealOrbitalPeriod
 
 
   ! For diagnsotic purposes - default to stdout
@@ -327,7 +327,7 @@ contains
     M0 = this%getMeanAnomaly(t)
     M1 = computeMeanAnomaly(trueAnomaly + angle, this%getEccentricity())
     
-    tOrbit = this%getSiderealPeriod()
+    tOrbit = this%getSiderealOrbitalPeriod()
     newT = newBaseTime(t + Rational((M1-M0)/(2*PI) * tOrbit%convertToReal(), 1.d-6))
   end function rotate
 

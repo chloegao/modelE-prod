@@ -91,6 +91,7 @@ C**** Command line options
       use seaice_com, only : si_ocn,iceocn ! temporary until precip_si,
       use fluxes, only : atmocn,atmice     ! precip_oc calls are moved
       use CalendarMonth_mod, only: LEN_MONTH_ABBREVIATION
+      use Constant, only: initializeConstants
       implicit none
 C**** Command line options
       logical, intent(in) :: qcRestart
@@ -388,6 +389,7 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
 #ifdef USE_MPP
       call fms_init( )
 #endif
+      call initializeConstants()
       call init_app()
       call initializeDefaultTimers()
 

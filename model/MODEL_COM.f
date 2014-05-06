@@ -222,9 +222,6 @@ C**** (Simplified) Calendar Related Terms
         eccen = orbit%getEccentricity()
         obliq = orbit%getObliquity()
         omegt = orbit%getLongitudeAtPeriapsis()
-        write(6,*) '  Eccentricity:', eccen
-        write(6,*) '  Obliquity (degs):',obliq
-        write(6,*) '  Precession (degs from ve):',omegt
       end if
       
       end function makeEarthOrbit
@@ -236,6 +233,7 @@ C**** (Simplified) Calendar Related Terms
       use Rational_mod
       use DOMAIN_DECOMP_1d, only: am_i_root
       use Dictionary_mod
+      use Constant, only: planetParams
       type (PlanetaryOrbit) :: orbit
       character(len=*), intent(in) :: planetName
 
@@ -250,38 +248,33 @@ C**** (Simplified) Calendar Related Terms
       type (TimeInterval) :: secondsPerYear
       integer :: daysPerYear
 
-      call get_param('eccentricity', eccentricity)
-      call get_param('obliquity', obliquity)
-      call get_param('longitudeAtPeriapsis', longitudeAtPeriapsis)
-      call get_param('orbitalPeriod', orbitalPeriod)
-      call get_param('rotationPeriod',rotationPeriod)
-      call get_param('meanDistance',meanDistance)
+      associate (p => planetParams)
 
-      print*,trim(planetName)
-      print*,'eccentricity: ', eccentricity
-      print*,'obliquity: ', obliquity
-      print*,'rotationPeriod: ', rotationPeriod
-      print*,'orbitalPeriod: ', orbitalPeriod
+      orbit = PlanetaryOrbit(p)
 
-      orbit = PlanetaryOrbit(obliquity, eccentricity, 
-     &     longitudeAtPeriapsis, orbitalPeriod, rotationPeriod, 
-     &     meanDistance)
-
-      secondsPerYear = TimeInterval(Rational(orbitalPeriod,
-     &     tolerance=1.d-6))
-      s = 1.d0 / (1/rotationPeriod - 1/orbitalPeriod)
+      secondsPerYear = TimeInterval(
+     & Rational(p%getSiderealOrbitalPeriod(), tolerance=1.d-6))
+      s = 1.d0 / 
+     &     (1/p%getSiderealRotationPeriod() - 
+     &     1/p%getSiderealOrbitalPeriod())
       secondsPerDay = TimeInterval( Rational(s, tolerance=1.d-6) )
       daysPerYear = nint(secondsPerYear / secondsPerDay)
-
-      print*,__LINE__,__FILE__
+      end associate
 
       if (AM_I_ROOT()) then
-        print*,'Using planetary calendar:', s
-        print*,'   Days per year: ', daysPerYear
-        print*,'   Seconds per day: ', secondsPerDay%convertToReal()
-        write(6,*) '  Eccentricity:', eccentricity
-        write(6,*) '  Obliquity (degs):',obliquity
-        write(6,*) '  Precession (degs from ve):',longitudeAtPeriapsis
+         write(*,*) 'Planet :: ' // trim(planetName)
+         write(*,*)'Using planetary calendar:', s
+         write(*,*)'siderealRotationPeriod: ', 
+     &        orbit%getSiderealRotationPeriod()
+         write(*,*)'siderealOrbitalPeriod: ', 
+     &        orbit%getSiderealOrbitalPeriod()
+         write(*,*)'meanDistance: ', orbit%getMeanDistance()
+         write(*,*) '  Precession (degs from ve):',
+     &        orbit%getLongitudeAtPeriapsis()
+         write(*,*)'   Days per year: ', daysPerYear
+         write(*,*)'   Seconds per day: ', secondsPerDay%convertToReal()
+         write(*,*) '  Eccentricity:', orbit%getEccentricity()
+         write(*,*) '  Obliquity (degs):',orbit%getObliquity()
       end if
 
       end function makePlanetOrbit

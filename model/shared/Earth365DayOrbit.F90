@@ -2,10 +2,14 @@ module Earth365DayOrbit_mod
   use KindParameters_mod, only: WP => DP
   use AbstractOrbit_mod, only: AbstractOrbit
   use FixedOrbit_mod, only: FixedOrbit
-  use JulianCalendar_mod, only: SECONDS_PER_YEAR
+  use TimeConstants_mod, only: INT_SECONDS_PER_YEAR
   use Rational_mod
   use BaseTime_mod, only: BaseTime, newBaseTime
   use TimeInterval_mod, only: TimeInterval
+  use PlanetaryParams_mod, only: DEFAULT_ECCENTRICITY
+  use PlanetaryParams_mod, only: DEFAULT_OBLIQUITY
+  use PlanetaryParams_mod, only: DEFAULT_LONGITUDE_AT_PERIAPSIS
+
   implicit none
   private
 
@@ -26,9 +30,6 @@ module Earth365DayOrbit_mod
      module procedure newEarth365DayOrbit_config  ! from rundeck
   end interface Earth365DayOrbit
 
-  real(kind=WP), parameter :: DEFAULT_ECCENTRICITY = 0.0167D0
-  real(kind=WP), parameter :: DEFAULT_OBLIQUITY = 23.44D0
-  real(kind=WP), parameter :: DEFAULT_LONGITUDE_AT_PERIAPSIS = 282.9D0
 
   real(kind=WP), parameter :: PI = 2*asin(1.d0)
   real(kind=WP), parameter :: RADIANS_PER_DEGREE = PI/180
@@ -70,7 +71,7 @@ contains
     use StringUtilities_mod, only: toLowerCase
     use OrbitUtilities_mod, only: computeMeanAnomaly, computeTrueAnomaly
     use JulianCalendar_mod, only: JulianCalendar
-    use JulianCalendar_mod, only: SECONDS_PER_DAY
+    use TimeConstants_mod, only: INT_SECONDS_PER_DAY
     use TimeInterval_mod, only: TimeInterval
     use Rational_mod
 
@@ -82,7 +83,7 @@ contains
     type (JulianCalendar) :: julian
     type (BaseTime) :: timeAtPeriapsis
     type (TimeInterval) :: siderealPeriod
-    type (TimeInterval) :: rotationPeriod
+    type (TimeInterval) :: siderealRotationPeriod
     real (kind=WP) :: meanAnomaly
     real (kind=WP) :: trueAnomaly
 
@@ -95,15 +96,15 @@ contains
     ! Hardwired date for Vernal Equinox:   March 21 12:00
     orbit%timeAtVernalEquinox = julian%convertToTime(year=1, month=3, date=21, hour=12)
     timeAtPeriapsis = newBaseTime(orbit%timeAtVernalEquinox - &
-         & Rational((meanAnomaly/(2*PI)) * SECONDS_PER_YEAR, tolerance=1.d-15))
+         & Rational((meanAnomaly/(2*PI)) * INT_SECONDS_PER_YEAR, tolerance=1.d-15))
 
     call orbit%setTimeAtPeriapsis(timeAtPeriapsis)
-    siderealPeriod = TimeInterval(Rational(SECONDS_PER_YEAR))
-    call orbit%setSiderealPeriod(siderealPeriod)
+    siderealPeriod = TimeInterval(Rational(INT_SECONDS_PER_YEAR))
+    call orbit%setSiderealOrbitalPeriod(siderealPeriod)
 
     ! Around the world in 80 days ...
-    rotationPeriod = TimeInterval((Rational(SECONDS_PER_DAY)*365)/366)
-    call orbit%setRotationPeriod(rotationPeriod)
+    siderealRotationPeriod = TimeInterval((Rational(INT_SECONDS_PER_DAY)*365)/366)
+    call orbit%setSiderealRotationPeriod(siderealRotationPeriod)
 
     orbit%provenance = 'Orbital parameters set by rundeck:'
 
@@ -118,7 +119,7 @@ contains
       call orbit%setObliquity(obliq)
       call orbit%setEccentricity(eccen)
 
-      call orbit%setMeanDay(TimeInterval(SECONDS_PER_DAY))
+      call orbit%setMeanDay(TimeInterval(INT_SECONDS_PER_DAY))
 
     end subroutine setFixed
 

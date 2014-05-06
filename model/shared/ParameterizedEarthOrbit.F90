@@ -62,8 +62,8 @@ contains
       orbit%timeAtVernalEquinox = newBaseTime(Rational(79*24+12)*3600)
       call orbit%setTimeAtPeriapsis(newBaseTime(Rational(2*24+5)*3600))
 
-      call orbit%setSiderealPeriod(TimeInterval(Rational(365*24*3600)))
-      call orbit%setRotationPeriod(TimeInterval(Rational(24*3600 * 365,366)))
+      call orbit%setSiderealOrbitalPeriod(TimeInterval(Rational(365*24*3600)))
+      call orbit%setSiderealRotationPeriod(TimeInterval(Rational(24*3600 * 365,366)))
       call orbit%setYear(referenceYear) ! default
 
    end function newParameterizedEarthOrbit
@@ -111,7 +111,7 @@ contains
     type (Rational) :: fraction
     type (TimeInterval) :: P
 
-    P = this%getSiderealPeriod()
+    P = this%getSiderealOrbitalPeriod()
     fraction = modulo(t,P) - modulo(this%timeAtPeriapsis,P)
     fraction = fraction / P
 

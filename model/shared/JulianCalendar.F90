@@ -3,13 +3,13 @@ module JulianCalendar_mod
   use AbstractCalendar_mod, only: MONTHS_PER_YEAR
   use CalendarMonth_mod, only: CalendarMonth
   use TimeInterval_mod, only: TimeInterval
+  use TimeConstants_mod, only: INT_SECONDS_PER_DAY
+  use TimeConstants_mod, only: SECONDS_PER_YEAR
+  use TimeConstants_mod, only: INT_DAYS_PER_YEAR
   implicit none
   private
 
   public :: JulianCalendar
-  public :: SECONDS_PER_YEAR
-  public :: SECONDS_PER_DAY
-  public :: SECONDS_PER_HOUR
   public :: JULIAN_MONTHS ! for other calendars to see
 
   public :: jdmidofm
@@ -18,12 +18,6 @@ module JulianCalendar_mod
    contains
 
   end type JulianCalendar
-
-  integer, parameter :: HOURS_PER_DAY = 24
-  integer, parameter :: DAYS_PER_YEAR = 365
-  integer, parameter :: SECONDS_PER_HOUR = 3600
-  integer, parameter :: SECONDS_PER_DAY = HOURS_PER_DAY * SECONDS_PER_HOUR
-  integer, parameter :: SECONDS_PER_YEAR = DAYS_PER_YEAR * SECONDS_PER_DAY
 
   type (CalendarMonth), parameter :: JULIAN_MONTHS(0:MONTHS_PER_YEAR+1) = &
        [ &
@@ -63,8 +57,8 @@ contains
     type (CalendarDate) :: birthday
     integer :: n
 
-    call calendar%setDaysPerYear(DAYS_PER_YEAR)
-    call calendar%setSecondsPerDay(TimeInterval(SECONDS_PER_DAY))
+    call calendar%setDaysPerYear(INT_DAYS_PER_YEAR)
+    call calendar%setSecondsPerDay(TimeInterval(INT_SECONDS_PER_DAY))
     
     do n = 0, MONTHS_PER_YEAR + 1
        call calendar%setNthCalendarMonth(n, JULIAN_MONTHS(n))

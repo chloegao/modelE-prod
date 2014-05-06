@@ -1,6 +1,14 @@
 #include "rundeck_opts.h"
 
 module constant
+   use MathematicalConstants_mod, only: PI, TWOPI
+   use MathematicalConstants_mod, only: RADIAN
+   use MathematicalConstants_mod, only: zero, one
+   use MathematicalConstants_mod, only: rt2, byrt2
+   use MathematicalConstants_mod, only: rt3, byrt3
+   use MathematicalConstants_mod, only: rt12, byrt12
+   use MathematicalConstants_mod, only: by3, by6, by9, by12
+   use PlanetaryParams_mod, only: PlanetaryParams
 #ifdef PLANET_PARAMS
   use PlanetParams_mod, only : PlanetParams
 #endif
@@ -12,24 +20,6 @@ module constant
 
   !**** Numerical constants
 
-  real*8,parameter :: pi = 3.1415926535897932d0 !@param pi    pi
-  real*8,parameter :: twopi = 2d0*pi           !@param twopi 2*pi
-  real*8,parameter :: radian = pi/180d0        !@param radian pi/180
-!@param zero,one 0 and 1 for occasional use as arguments
-  real*8,parameter :: zero = 0d0, one=1d0
-!@param rt2,byrt2   sqrt(2), 1/sqrt(2)
-  real*8,parameter :: rt2 = 1.4142135623730950d0
-  real*8,parameter :: byrt2 = 1./rt2
-!@param rt3,byrt3   sqrt(3), 1/sqrt(3)
-  real*8,parameter :: rt3 = 1.7320508075688772d0
-  real*8,parameter :: byrt3 = 1./rt3
-!@param rt12,byrt12   sqrt(12), 1/sqrt(12)
-  real*8,parameter :: rt12 = 3.4641016151377546d0
-  real*8,parameter :: byrt12 = 1./rt12
-  real*8,parameter :: by3 =1./3d0  !@param by3  1/3
-  real*8,parameter :: by6 =1./6d0  !@param by6  1/6
-  real*8,parameter :: by9 =1./9d0  !@param by9  1/9
-  real*8,parameter :: by12=1./12d0 !@param by12 1/12
 !@param undef Missing value
   real*8,parameter :: undef=-1.d30
 !@param teeny  small positive value used in num/(den+teeny) to avoid 0/0
@@ -182,17 +172,9 @@ module constant
   real*8,parameter :: hrday = sday/3600.
 
 !@param omega earth's rotation rate (7.29 s^-1)
-  !      real*8,parameter :: omega = 7.2921151467d-5 ! NOVAS value
-#ifdef PLANET_PARAMS
-  real*8,parameter :: omega = PlanetParams%omega
-#else
-  real*8,parameter :: EDPERD = 1.
-  real*8,parameter :: EDPERY = 365.
-  real*8,parameter :: omega = TWOPI*(1/EDPERD+EDPERY)/ &
-       &                            ((1/EDPERD)*EDPERY*SDAY)
-#endif
+  real*8, protected :: omega
 !@param omega2 2*omega
-  real*8,parameter :: omega2 = 2.*omega
+  real*8, protected :: omega2
 
 !@param radius radius of the earth (6371000 m, IUGG)
 #ifdef PLANET_PARAMS
@@ -236,7 +218,29 @@ module constant
   character(len=16), parameter :: planet_name='Earth'
 #endif
 
+    type (PlanetaryParams) :: planetParams
+    logical, save :: init = .false.
+
 contains
+
+   subroutine initializeConstants()
+      ! Some qty's can no longer be Fortran PARAMETERs due to the
+      ! need to support exoplanet run-time configuration
+
+      real*8 :: rotationPeriod
+
+      if (init) return
+
+      init = .true.
+
+      planetParams = PlanetaryParams() ! read from rundeck
+      rotationPeriod = planetParams%getSiderealRotationPeriod()
+      omega = 2*pi/rotationPeriod
+      omega2 = 2*omega
+
+      write(*,*)'omega = ', omega
+
+   end subroutine initializeConstants
 
   real*8 function visc_air(T)
 !@sum visc_air dynamic viscosity of air (function of T) (kg/m s)
@@ -262,5 +266,6 @@ contains
 
     return
   end function visc_air_kin
+
 
 end module constant

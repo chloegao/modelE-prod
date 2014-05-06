@@ -25,6 +25,7 @@ module PlanetaryOrbit_mod
 
   interface PlanetaryOrbit
     module procedure newPlanetaryOrbit
+    module procedure newPlanetaryOrbit_fromParams
   end interface PlanetaryOrbit
 
 
@@ -33,11 +34,25 @@ module PlanetaryOrbit_mod
 
 contains
 
+  function newPlanetaryOrbit_fromParams(planetParams) result(orbit)
+     use PlanetaryParams_mod
+     type (PlanetaryOrbit) :: orbit
+     type (PlanetaryParams), intent(in) :: planetParams
 
-  ! TODO: too many parameters to constructor
-  ! TODO: mean distance is missing
+     associate(p => planetParams)
+       orbit = PlanetaryOrbit( &
+          & p%getObliquity(), &
+          & p%getEccentricity(), &
+          & p%getLongitudeOfPeriapsis(), &
+          & p%getSiderealOrbitalPeriod(), &
+          & p%getSiderealRotationPeriod(), &
+          & p%getMeanDistance())
+     end associate
+     
+  end function newPlanetaryOrbit_fromParams
+
   function newPlanetaryOrbit(obliquity, eccentricity, longitudeOfPeriapsis, &
-       & siderealPeriod, rotationPeriod, meanDistance) result(orbit)
+       & siderealPeriod, siderealRotationPeriod, meanDistance) result(orbit)
     use Rational_mod
     use BaseTime_mod
     use TimeInterval_mod
@@ -47,7 +62,7 @@ contains
     real (kind=WP), intent(in) :: eccentricity
     real (kind=WP), intent(in) :: longitudeOfPeriapsis
     real (kind=WP), intent(in) :: siderealPeriod
-    real (kind=WP), intent(in) :: rotationPeriod
+    real (kind=WP), intent(in) :: siderealRotationPeriod
     real (kind=WP), intent(in) :: meanDistance
 
     real (kind=WP) :: meanDay
@@ -66,13 +81,13 @@ contains
     ! Note sidereal period and rotation period are adjusted to ensure integer days per year
     ! while preserving the length of the mean day.   Other conventions are possible.
     !--------------------------------------------------------------------------------------
-    meanDay = 1/(1/rotationPeriod - 1/siderealPeriod)
+    meanDay = 1/(1/siderealRotationPeriod - 1/siderealPeriod)
     daysPerYear = nint(siderealPeriod / meanDay)
     q=Rational(meanDay, tolerance=1.d-6)
     meanDayInterval = TimeInterval(q)
     call orbit%setMeanDay(meanDayInterval)
-    call orbit%setSiderealPeriod(TimeInterval(daysPerYear * meanDayInterval))
-    call orbit%setRotationPeriod(TimeInterval(meanDayInterval * Rational(daysPerYear, daysPerYear+1)))
+    call orbit%setSiderealOrbitalPeriod(TimeInterval(daysPerYear * meanDayInterval))
+    call orbit%setSiderealRotationPeriod(TimeInterval(meanDayInterval * Rational(daysPerYear, daysPerYear+1)))
     
     MA0 = computeMeanAnomaly(PI/180*(longitudeOfPeriapsis - EARTH_LON_AT_PERIHELION), &
          & eccentricity)

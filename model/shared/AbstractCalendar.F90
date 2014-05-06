@@ -17,6 +17,8 @@ module AbstractCalendar_mod
   use AbstractTimeStamp_mod
   use CalendarDate_mod
   use AbstractTimeStampHashMap_mod
+  use TimeConstants_mod, only: MONTHS_PER_YEAR => INT_MONTHS_PER_YEAR
+  use TimeConstants_mod, only: HOURS_PER_DAY => INT_HOURS_PER_DAY
   implicit none
   private
 
@@ -148,9 +150,6 @@ module AbstractCalendar_mod
 
 
   end interface
-
-  integer, parameter :: MONTHS_PER_YEAR = 12 ! default for all calendars
-  integer, parameter :: HOURS_PER_DAY = 24   ! default for all calendars
 
 contains
 

@@ -21,6 +21,8 @@ F90SRCS  = AbstractAttribute.F90 \
 	GetTime_mod.F90 \
 	KeyValuePair_mod.F90 \
 	Parser_mod.F90 \
+	MathematicalConstants.F90 \
+	PlanetaryParams.F90\
 	PlanetParams_mod.F90 \
 	PolynomialInterpolator.F90 \
 	Precision_mod.F90 \

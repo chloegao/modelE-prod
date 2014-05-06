@@ -11,15 +11,19 @@ module TimeConstants_mod
   implicit none
   public  ! just a bunch of named constants
 
+  ! Constants that are assumed for _all_ planets
+  integer, parameter :: INT_HOURS_PER_DAY = 24
+  integer, parameter :: INT_MONTHS_PER_YEAR = 12
+
+  ! Earth specific values (Julian calendar)
   integer, parameter :: INT_SECONDS_PER_MINUTE = 60
   integer, parameter :: INT_MINUTES_PER_HOUR = 60
-  integer, parameter :: INT_HOURS_PER_DAY = 24
   integer, parameter :: INT_DAYS_PER_YEAR = 365
-  integer, parameter :: INT_MONTHS_PER_YEAR = 12
 
   integer, parameter :: INT_SECONDS_PER_HOUR = INT_SECONDS_PER_MINUTE * INT_MINUTES_PER_HOUR
   integer, parameter :: INT_SECONDS_PER_DAY = INT_SECONDS_PER_HOUR * INT_HOURS_PER_DAY
   integer, parameter :: INT_MINUTES_PER_DAY = INT_MINUTES_PER_HOUR * INT_HOURS_PER_DAY
+  integer, parameter :: INT_SECONDS_PER_YEAR = INT_DAYS_PER_YEAR * INT_SECONDS_PER_DAY
 
   real*8, parameter :: SECONDS_PER_MINUTE = INT_SECONDS_PER_MINUTE
   real*8, parameter :: SECONDS_PER_HOUR = INT_SECONDS_PER_HOUR
