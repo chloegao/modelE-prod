@@ -81,7 +81,7 @@ contains
 
     type (JulianCalendar) :: julian
     type (BaseTime) :: timeAtPeriapsis
-    type (TimeInterval) :: siderialPeriod
+    type (TimeInterval) :: siderealPeriod
     type (TimeInterval) :: rotationPeriod
     real (kind=WP) :: meanAnomaly
     real (kind=WP) :: trueAnomaly
@@ -98,8 +98,8 @@ contains
          & Rational((meanAnomaly/(2*PI)) * SECONDS_PER_YEAR, tolerance=1.d-15))
 
     call orbit%setTimeAtPeriapsis(timeAtPeriapsis)
-    siderialPeriod = TimeInterval(Rational(SECONDS_PER_YEAR))
-    call orbit%setSiderialPeriod(siderialPeriod)
+    siderealPeriod = TimeInterval(Rational(SECONDS_PER_YEAR))
+    call orbit%setSiderealPeriod(siderealPeriod)
 
     ! Around the world in 80 days ...
     rotationPeriod = TimeInterval((Rational(SECONDS_PER_DAY)*365)/366)

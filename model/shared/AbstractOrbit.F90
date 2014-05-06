@@ -48,7 +48,7 @@ module AbstractOrbit_mod
   type, abstract :: AbstractOrbit
     private
 
-    type (TimeInterval) :: siderialPeriod ! seconds
+    type (TimeInterval) :: siderealPeriod ! seconds
     type (TimeInterval) :: rotationPeriod ! seconds
     type (TimeInterval) :: meanDay        ! seconds
     real(kind=WP) :: meanDistance  ! in astronomical units (AU's)
@@ -68,13 +68,13 @@ module AbstractOrbit_mod
     procedure(getSlow), deferred :: getObliquity
     procedure(getSlow), deferred :: getLongitudeAtPeriapsis
     
-    procedure :: getSiderialPeriod
+    procedure :: getSiderealPeriod
     procedure :: getRotationPeriod
     procedure :: getMeanDay
     procedure :: getMeanDistance
     
     procedure :: setRotationPeriod
-    procedure :: setSiderialPeriod
+    procedure :: setSiderealPeriod
     procedure :: setMeanDay
     procedure :: setMeanDistance
     
@@ -279,20 +279,20 @@ contains
   end function getMeanDay
 
 
-  subroutine setSiderialPeriod(this, siderialPeriod)
+  subroutine setSiderealPeriod(this, siderealPeriod)
     use TimeInterval_mod, only: TimeInterval
     class (AbstractOrbit), intent(inout) :: this
-    type (TimeInterval), intent(in) :: siderialPeriod
-    this%siderialPeriod = siderialPeriod
-  end subroutine setSiderialPeriod
+    type (TimeInterval), intent(in) :: siderealPeriod
+    this%siderealPeriod = siderealPeriod
+  end subroutine setSiderealPeriod
 
 
-  function getSiderialPeriod(this) result(siderialPeriod)
+  function getSiderealPeriod(this) result(siderealPeriod)
     use TimeInterval_mod, only: TimeInterval
-    type (TimeInterval) :: siderialPeriod
+    type (TimeInterval) :: siderealPeriod
     class (AbstractOrbit), intent(in) :: this
-    siderialPeriod = this%siderialPeriod
-  end function getSiderialPeriod
+    siderealPeriod = this%siderealPeriod
+  end function getSiderealPeriod
 
 
   ! For diagnsotic purposes - default to stdout
@@ -327,7 +327,7 @@ contains
     M0 = this%getMeanAnomaly(t)
     M1 = computeMeanAnomaly(trueAnomaly + angle, this%getEccentricity())
     
-    tOrbit = this%getSiderialPeriod()
+    tOrbit = this%getSiderealPeriod()
     newT = newBaseTime(t + Rational((M1-M0)/(2*PI) * tOrbit%convertToReal(), 1.d-6))
   end function rotate
 

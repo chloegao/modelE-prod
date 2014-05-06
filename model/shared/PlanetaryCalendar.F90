@@ -113,7 +113,7 @@ contains
     
     call calendar%setSecondsPerDay(orbit%getMeanDay())
 
-    daysPerYear = nint(orbit%getSiderialPeriod()/orbit%getMeanDay())
+    daysPerYear = nint(orbit%getSiderealPeriod()/orbit%getMeanDay())
 
     ! Require a minimum number of days per year. (Suggested by G. Schmidt.)
     if (daysPerYear < MIN_DAYS_PER_YEAR) then
@@ -123,7 +123,7 @@ contains
       write(*,*) '***********************************************************'
       daysPerYear = MIN_DAYS_PER_YEAR
       call calendar%setSecondsPerDay( &
-           & TimeInterval( orbit%getSiderialPeriod() / daysPerYear ))
+           & TimeInterval( orbit%getSiderealPeriod() / daysPerYear ))
     end if
     
     call calendar%setDaysPerYear(daysPerYear)

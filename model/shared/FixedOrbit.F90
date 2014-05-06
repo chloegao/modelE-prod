@@ -134,7 +134,7 @@ contains
 
     type (TimeInterval) :: P
 
-    P = this%getSiderialPeriod()
+    P = this%getSiderealPeriod()
     fraction = modulo(t,P) - modulo(this%timeAtPeriapsis,P)
     fraction = fraction / P
 

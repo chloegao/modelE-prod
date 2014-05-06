@@ -62,7 +62,7 @@ contains
       orbit%timeAtVernalEquinox = newBaseTime(Rational(79*24+12)*3600)
       call orbit%setTimeAtPeriapsis(newBaseTime(Rational(2*24+5)*3600))
 
-      call orbit%setSiderialPeriod(TimeInterval(Rational(365*24*3600)))
+      call orbit%setSiderealPeriod(TimeInterval(Rational(365*24*3600)))
       call orbit%setRotationPeriod(TimeInterval(Rational(24*3600 * 365,366)))
       call orbit%setYear(referenceYear) ! default
 
@@ -111,13 +111,9 @@ contains
     type (Rational) :: fraction
     type (TimeInterval) :: P
 
-    write(*,*)__LINE__,__FILE__; call flush(6)
-    P = this%getSiderialPeriod()
-    write(*,*)__LINE__,__FILE__; call flush(6)
+    P = this%getSiderealPeriod()
     fraction = modulo(t,P) - modulo(this%timeAtPeriapsis,P)
-    write(*,*)__LINE__,__FILE__; call flush(6)
     fraction = fraction / P
-    write(*,*)__LINE__,__FILE__; call flush(6)
 
     meanAnomaly = fraction%convertToReal() * (2*PI)
 
@@ -133,11 +129,8 @@ contains
 
     real(kind=WP) :: meanAnomaly
 
-    write(*,*)__LINE__,__FILE__; call flush(6)
     meanAnomaly = this%getMeanAnomaly(t)
-    write(*,*)__LINE__,__FILE__; call flush(6)
     trueAnomaly = computeTrueAnomaly(meanAnomaly, this%getEccentricity())
-    write(*,*)__LINE__,__FILE__; call flush(6)
 
   end function getTrueAnomaly
 
@@ -169,21 +162,15 @@ contains
     type (BaseTime) :: winterSolstice
     type (BaseTime) :: summerSolstice
 
-    print*,__LINE__,__FILE__
     allocate(calendar, source=JulianCalendar())
 
     ! Add orbital dates
-    print*,__LINE__,__FILE__
 
     vernalEquinox  = this%timeAtVernalEquinox
-    print*,__LINE__,__FILE__
     summerSolstice = this%rotate(vernalEquinox, PI/2)
-    print*,__LINE__,__FILE__
     autumnalEquinox = this%rotate(vernalEquinox, PI)
-    print*,__LINE__,__FILE__
     winterSolstice = this%rotate(vernalEquinox, 3*PI/2)
 
-    print*,__LINE__,__FILE__
     call calendar%addTransitionDate('vernal equinox', &
          & calendar%getCalendarDate(vernalEquinox))
     call calendar%addTransitionDate('autumnal equinox', &
@@ -192,7 +179,6 @@ contains
          & calendar%getCalendarDate(winterSolstice))
     call calendar%addTransitionDate('summer solstice', &
          & calendar%getCalendarDate(summerSolstice))
-    print*,__LINE__,__FILE__
 
   end function makeCalendar
 
