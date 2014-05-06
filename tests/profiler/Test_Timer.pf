@@ -2,15 +2,6 @@ module Test_Timer_mod
    use pFUnit_mod
    use Timer_mod
    implicit none
-   private
-
-   public :: setUp
-   public :: tearDown
-
-   public :: Test_Timer
-   interface Test_Timer
-     module procedure newTest_Timer
-   end interface Test_Timer
 
    integer, parameter :: dp = selected_real_kind(14)
 
@@ -18,57 +9,14 @@ module Test_Timer_mod
    type, extends(TestCase) :: Test_Timer
       type (Timer_type) :: timer
       type (Timer_type) :: otherTimer
-      procedure(runMethod), pointer :: userMethod => null()
    contains
       procedure :: setUp     ! overides generic
       procedure :: tearDown  ! overrides generic
-      procedure :: runMethod ! runs userMethod
    end type Test_Timer
-
-   public :: test_getNumTrips0
-   public :: test_getNumTrips1
-   public :: test_getNumTrips2
-   public :: test_getNumTripsAfterReset
- 
-   public :: test_getTimeNoTrips
-
-   public :: test_addTime
-   public :: test_addTime2
-   public :: test_getTimeAfterReset
-
-   public :: test_reallyMeasuresTime
-
-   public :: test_isActiveUnused
-   public :: test_isActiveAfterStart
-   public :: test_isActiveAfterStop
-   public :: test_isActiveAfterReset
-
-   public :: test_getMaximumTimeNoTrips
-   public :: test_getMaximumTime
-   public :: test_getMinimumTimeNoTrips
-   public :: test_getMinimumTime
-   public :: test_getAverageTripTimeNoTrips
-   public :: test_getAverageTripTime
-   public :: test_getExclusiveTime
 
    real(kind=dp), parameter :: EPS = EPSilon(1.)
 
 contains
-
-   function newTest_Timer(name, userMethod) result(test)
-     type (Test_Timer) :: test
-     character(len=*), intent(in) :: name
-     procedure(runMethod) :: userMethod
-
-     call test%setName(name)
-     test%userMethod => userMethod
-   
-   end function newTest_Timer
-
-   subroutine runMethod(this)
-     class (Test_Timer), intent(inout) :: this
-     call this%userMethod()
-   end subroutine runMethod
 
    subroutine setUp(this)
       class (Test_Timer), intent(inout) :: this

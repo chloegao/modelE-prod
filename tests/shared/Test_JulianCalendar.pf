@@ -6,6 +6,7 @@ module Test_JulianCalendar_mod
   use BaseTime_mod
   use TimeInterval_mod
   use Time_mod, only: Time, newTime
+  use TimeConstants_mod
   implicit none
 
 contains

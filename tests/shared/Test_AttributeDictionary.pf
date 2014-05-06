@@ -5,40 +5,16 @@ module Test_AttributeDictionary_mod
 
   implicit none
 
-   public :: setUp
-   public :: tearDown
-
-   public :: Test_AttributeDictionary
-   interface Test_AttributeDictionary
-     module procedure newTest_AttributeDictionary
-   end interface Test_AttributeDictionary
 
 @TestCase
    type, extends(TestCase) :: Test_AttributeDictionary
     type (AttributeDictionary) :: dictionary
-      procedure(runMethod), pointer :: userMethod => null()
    contains
       procedure :: setUp     ! overides generic
       procedure :: tearDown  ! overrides generic
-      procedure :: runMethod ! runs userMethod
   end type Test_AttributeDictionary
 
 contains
-
-   function newTest_AttributeDictionary(name, userMethod) result(test)
-     type (Test_AttributeDictionary) :: test
-     character(len=*), intent(in) :: name
-     procedure(runMethod) :: userMethod
-
-     call test%setName(name)
-     test%userMethod => userMethod
-
-   end function newTest_AttributeDictionary
-
-   subroutine runMethod(this)
-     class (Test_AttributeDictionary), intent(inout) :: this
-     call this%userMethod()
-   end subroutine runMethod
 
   subroutine setUp(this)
     class (Test_AttributeDictionary), intent(inout) :: this
