@@ -1282,7 +1282,11 @@ c**** set snow fraction for albedo computation (used by RAD_DRV.f)
       endif
 
 c**** snowe used in RADIATION
-      snowe(i,j)=1000.*(snowd(1)*fb+snowd(2)*fv)
+c     snowe(i,j)=1000.*(snowd(1)*fb+snowd(2)*fv)
+c workaround for uninitialzed snowd multiply by zero
+      snowe(i,j)=1000.*
+     &     ( merge( snowd(1)*fb, 0d0, fb > 0 ) +
+     &       merge( snowd(2)*fv, 0d0, fv > 0 ) )
       atmlnd%snow(i,j) = snowe(i,j)
       atmlnd%snowfr(i,j) =
      *       ( fb*fr_snow_rad_ij(1,i,j)

@@ -1121,7 +1121,10 @@ c
         do j=grid%j_strt,grid%j_stop
         do i=grid%i_strt,grid%i_stop
           avg%srfstate_exports(i,j,l) = avg%srfstate_exports(i,j,l) +
-     &         patches(k)%srfstate_exports(i,j,l)*ftype(i,j,k)
+c    &         patches(k)%srfstate_exports(i,j,l)*ftype(i,j,k)
+c workaround for uninitialized patches%srfstate_exports multiply by zero
+     &    merge( patches(k)%srfstate_exports(i,j,l)*ftype(i,j,k),
+     &           0d0, ftype(i,j,k) > 0 )
         enddo
         enddo
         enddo
