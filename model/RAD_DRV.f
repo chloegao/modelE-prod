@@ -84,15 +84,6 @@ C****
 #ifdef ALTER_RADF_BY_LAT
      *     ,FULGAS_lat,FS8OPX_lat,FT8OPX_lat
 #endif
-#ifdef CHL_from_SeaWIFs
-     *     ,iu_CHL
-#endif
-#if (defined OBIO_RAD_coupling) || (defined CHL_from_SeaWIFs)
-     *     ,wfac
-#endif
-#ifdef OBIO_RAD_coupling
-      USE RAD_COM, only : DIRVIS,FSRDIF,DIRNIR,DIFNIR
-#endif
       use RAD_COSZ0, only : cosz_init
       USE CLOUDS_COM, only : llow
       USE DIAG_COM, only : iwrite,jwrite,itwrite,save3dAOD
@@ -135,16 +126,6 @@ C****
 !@var QBIN true if files for radiation input files are binary
       LOGICAL :: QBIN(14)=(/.TRUE.,.TRUE.,.FALSE.,.TRUE.,.TRUE.,.TRUE.
      *     ,.TRUE.,.TRUE.,.FALSE.,.TRUE.,.TRUE.,.TRUE.,.TRUE.,.TRUE./)
-
-#if (defined OBIO_RAD_coupling) || (defined CHL_from_SeaWIFs)
-      integer, parameter :: nlt=33
-      real*8 :: aw(nlt), bw(nlt), saw, sbw
-      real*8 :: b0, b1, b2, b3, a0, a1, a2, a3, expterm, tlog, fac, rlam
-      integer :: nl,ic , iu_bio, lambda, lam(nlt)
-      character title*50
-      data a0,a1,a2,a3 /0.9976d0, 0.2194d0,  5.554d-2,  6.7d-3 /
-      data b0,b1,b2,b3 /5.026d0, -0.01138d0, 9.552d-6, -2.698d-9/
-#endif
 
       character(len=300) :: out_line
       character*6 :: skip
@@ -758,11 +739,6 @@ C**** set up unit numbers for 14 more radiation input files
         call openunit(RUNSTR(IU),NRFUN(IU),QBIN(IU),.true.)
       END DO
 
-#ifdef CHL_from_SeaWIFs
-C**** open chlorophyll data
-      call openunit("CHL_DATA",iu_CHL,.true.,.true.)
-#endif
-
       LS1_loc=1  ! default
 C***********************************************************************
 C     Main Radiative Initializations
@@ -804,32 +780,6 @@ C**** Read in the factors used for alterations:
       call closeunit(iu2)
 #endif
 
-#if (defined OBIO_RAD_coupling) || (defined CHL_from_SeaWIFs)
-      call openunit('cfle1',iu_bio,.false.,.true.)
-      do ic = 1,6
-        read(iu_bio,'(a50)')title
-      enddo
-      do nl = 1,nlt
-        read(iu_bio,20) lambda,saw,sbw
-        lam(nl) = lambda
-        aw(nl) = saw
-        bw(nl) = sbw
-        if (lam(nl) .lt. 900) then
-          expterm = exp(-(aw(nl)+0.5*bw(nl)))
-          tlog = dlog(1.0D-36+expterm)
-          fac = a0 + a1*tlog + a2*tlog*tlog + a3*tlog*tlog*tlog
-          wfac(nl) = max(0d0,min(fac,1d0))
-        else
-          rlam = float(lam(nl))
-          fac = b0 + b1*rlam + b2*rlam*rlam + b3*rlam*rlam*rlam
-          wfac(nl) = max(fac,0d0)
-        endif
-      enddo
-      print*,'RAD_DRV, wfac initializ= ', wfac
-      call closeunit(iu_bio)
- 20   format(i5,f15.4,f10.4)
-#endif
-
 #ifdef TRACERS_ON
 c**** set tracerRadiaActiveFlag for radiatively active tracer
       do n=1,ntrace
@@ -862,13 +812,8 @@ c      end if
 !@sum  daily_RAD sets radiation parameters that change every day
 !@auth G. Schmidt
 !@calls RADPAR:RCOMPT
-      USE CONSTANT, only : by12
-      USE FILEMANAGER, only : NAMEUNIT
-      USE DOMAIN_DECOMP_ATM, only : am_I_root,GRID,REWIND_PARALLEL
-     *     ,READT_PARALLEL, getDomainBounds
-      USE RESOLUTION, only : im,jm
-      use model_com, only: modelEclock, calendr
-      USE GEOM, only : imaxj
+      USE DOMAIN_DECOMP_ATM, only : am_I_root
+      use model_com, only: modelEclock
       USE RADPAR, only : FULGAS,JYEARR=>JYEAR,JDAYR=>JDAY
      *     ,xref,KYEARV
 #ifdef ALTER_RADF_BY_LAT
@@ -878,33 +823,13 @@ c      end if
       USE RAD_COM, only : co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx,h2ostratx
      *     ,o2x,no2x,n2cx,yghgx,so2x
      *     ,o3x,o3_yr,ghg_yr,co2ppm,Volc_yr,albsn_yr,dalbsnX
-#ifdef CHL_from_SeaWIFs
-     *     ,iu_CHL,achl,echl1,echl0,bchl,cchl
-      USE FLUXES, only : focean,atmocn
-#endif
       use DIAG_COM, only : iwrite,jwrite,itwrite
+      use runtimecontrols_mod, only: chl_from_seawifs
       IMPLICIT NONE
       LOGICAL, INTENT(IN) :: end_of_day
-!@var TEMP_LOCAL stores ACHL+ECHL1 to avoid the use of common block
-      REAL*8 :: TEMP_LOCAL(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
-     &                     GRID%J_STRT_HALO:GRID%J_STOP_HALO,2)
-!@var IMON0 current month for CHL climatology reading
-      INTEGER, SAVE :: IMON0 = 0
-      INTEGER :: LSTMON,I,J
-      REAL*8 TIME
+      integer :: year, dayOfYear
 
-      INTEGER :: J_0,J_1, I_0,I_1
-      LOGICAL :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
-      integer :: year, month, dayOfYear, date
-
-      call modelEclock%getDate(year=year, month=month,
-     &     dayOfYear=dayOfYear, date=date)
-
-      call getDomainBounds(GRID,J_STRT=J_0,J_STOP=J_1,
-     &         HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
-     &         HAVE_NORTH_POLE=HAVE_NORTH_POLE)
-      I_0 = grid%I_STRT
-      I_1 = grid%I_STOP
+      call modelEclock%getDate(year=year, dayOfYear=dayOfYear)
 
 C**** Update time dependent radiative parameters each day
 !     Get black carbon deposition data for the appropriate year
@@ -965,7 +890,58 @@ C**** Save initial rad forcing alterations:
 C**** Define CO2 (ppm) for rest of model
       co2ppm = FULGAS(2)*XREF(1)
 
-#ifdef CHL_from_SeaWIFs
+      if (chl_from_seawifs) call get_chl_from_seawifs
+
+      RETURN
+      END SUBROUTINE daily_RAD
+
+
+      subroutine get_chl_from_seawifs
+
+      USE DOMAIN_DECOMP_ATM, only : GRID,REWIND_PARALLEL
+     .     ,READT_PARALLEL, getDomainBounds
+      USE FLUXES, only : focean,atmocn
+      USE CONSTANT, only : by12
+      use model_com, only: modelEclock
+      USE RESOLUTION, only : im,jm
+      USE FILEMANAGER, only : NAMEUNIT
+      USE GEOM, only : imaxj
+      USE MODEL_COM, only : calendr
+      USE filemanager, only: openunit
+      implicit none
+
+      REAL*8 :: TEMP_LOCAL(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     .                     GRID%J_STRT_HALO:GRID%J_STOP_HALO,2)
+      integer :: month, date
+      LOGICAL :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
+      INTEGER :: LSTMON, I, J, J_0, J_1, I_0, I_1
+      INTEGER, SAVE :: IMON0 = 0
+      integer, save :: iu_chl=-1
+!@var ACHL,ECHL1,ECHL0,BCHL,CCHL arrays for the reading in chlorophyll
+      REAL*8, ALLOCATABLE, DIMENSION(:,:), save :: ACHL,ECHL1,ECHL0,
+     .                   BCHL, CCHL
+      REAL*8 :: TIME
+      INTEGER :: I_0H, I_1H, J_0H, J_1H
+
+      I_0H = grid%I_STRT_HALO
+      I_1H = grid%I_STOP_HALO
+      J_0H = grid%J_STRT_HALO
+      J_1H = grid%J_STOP_HALO
+      if (iu_chl.lt.0) then
+        call openunit("CHL_DATA",iu_CHL,.true.,.true.)
+        allocate(ACHL(I_0H:I_1H,J_0H:J_1H),
+     .           ECHL1(I_0H:I_1H,J_0H:J_1H),
+     .           ECHL0(I_0H:I_1H,J_0H:J_1H),
+     .           BCHL(I_0H:I_1H,J_0H:J_1H),
+     .           CCHL(I_0H:I_1H,J_0H:J_1H))
+      endif
+      call modelEclock%getDate(month=month, date=date)
+      call getDomainBounds(GRID,J_STRT=J_0,J_STOP=J_1,
+     .         HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
+     .         HAVE_NORTH_POLE=HAVE_NORTH_POLE)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+
 C**** Read in Seawifs files here
       IF (month.NE.IMON0) THEN
       IF (IMON0==0) THEN
@@ -1014,10 +990,10 @@ C**** REPLICATE VALUES AT POLE
       IF(HAVE_SOUTH_POLE) then
        if (FOCEAN(1, 1).gt.0) atmocn%CHL(2:IM, 1)=atmocn%CHL(1, 1)
       ENDIF
-#endif
+      atmocn%chl_defined=.true.
+      return
 
-      RETURN
-      END SUBROUTINE daily_RAD
+      end subroutine get_chl_from_seawifs
 
       SUBROUTINE DAILY_orbit(end_of_day)
 !@sum  DAILY performs daily tasks at end-of-day and maybe at (re)starts
@@ -1813,7 +1789,6 @@ c           ICKERR=ICKERR+1
         END IF
       END DO
 
-#if (defined CHL_from_SeaWIFs) || (defined TRACERS_OceanBiology)
 C**** Set Chlorophyll concentration
       if (POCEAN.gt.0) then
           LOC_CHL = atmocn%chl(I,J)
@@ -1821,7 +1796,6 @@ C**** Set Chlorophyll concentration
 !         write(*,'(a,3i5,e12.4)')'RAD_DRV:',
 !    .    itime,i,j,chl(i,j)
       endif
-#endif
 
       LS1_loc=LTROPO(I,J)+1  ! define stratosphere for radiation
 C**** kradia>1: adjusted forcing, i.e. T adjusts in L=LS1_loc->LM+3

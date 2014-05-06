@@ -55,6 +55,9 @@ c
 #endif
       USE pario
 
+      use obio_ocalbedo_mod, only: lam, ocalbedo_init=>init
+      use RunTimeControls_mod, only: obio_rad_coupling,
+     .      chl_from_seawifs, chl_from_obio
 
       implicit none  
 
@@ -62,14 +65,14 @@ c
       integer iu_bio
       integer nt,nl
       integer imon,ihr,nrec,ichan
-      integer np,lambda,ic
+      integer lambda,ic
       integer icd,ntr,ich,ih,iu_fac
       integer fid
       real saw,sbw,sac,sbc
       real*4  facirr4(nh,nch,5,ncd)
 
       real planck,c,hc,oavo,rlamm,rlam450,Sdom,rlam,hcoavo
-     .    ,rnn,rbot,t,tlog,fac,a0,a1,a2,a3,b0,b1,b2,b3,pi
+     .    ,rnn,rbot,pi
      .    ,dummy
 
       real fldo2(idm,jdm,kdm)
@@ -81,9 +84,6 @@ c
       character*80 filename,fn
 
       data cacbc,cabw /'acbc25b.dat','abw25b.dat'/
-
-      data a0,a1,a2,a3 /0.9976,0.2194,5.554E-2,6.7E-3/
-      data b0,b1,b2,b3 /5.026,-0.01138,9.552E-6,-2.698E-9/
 
 c 
       if (AM_I_ROOT()) print*, 'Ocean Biology setup starts'
@@ -304,19 +304,6 @@ c  Water data files
 !     open(4,file='/explore/nobackup/aromanou/2.0deg/'//cfle
 !    .      ,status='old',form='formatted')
 
-      call openunit('cfle1',iu_bio)
-      do ic = 1,6
-       read(iu_bio,'(a50)')title
-      enddo
-      np = 0    
-      do nl = 1,nlt
-       read(iu_bio,20)lambda,saw,sbw
-       lam(nl) = lambda
-       aw(nl) = saw
-       bw(nl) = sbw
-      enddo
-      call closeunit(iu_bio)
- 20   format(i5,f15.4,f10.4)
 
 c  Phytoplankton group chl-specific absorption and total scattering
 c  data.  Chl-specific absorption data is normalized to 440 nm; convert
@@ -324,13 +311,13 @@ c  here to actual ac*(440)
 !     cfle = cacbc
 !     open(4,file='/explore/nobackup/aromanou/2.0deg/'//cfle
 !    .      ,status='old',form='formatted')
+      call ocalbedo_init
       call openunit('cfle2',iu_bio)
       do ic = 1,6
        read(iu_bio,'(a50)')title
       enddo
       do nt = 1,nchl
        read(iu_bio,'(a50)')title
-       np = 0
        do nl = 1,19
         read(iu_bio,30)lambda,sac,sbc
         ac(nt,nl) = sac
@@ -411,25 +398,6 @@ c  Read in factors to compute average irradiance
 !     print*,'nstep, facirr(10,18,1)=',nstep,facirr(10,18,1,1)
 !     print*, '    '
 !     endif
-
-#ifndef OBIO_RAD_coupling
-!ifst part from ocalbedo.f
-!if obio-rad-coupling is defined this part is done inside RAD_COM.f and RAD_DRV.f
-      rn = 1.341        !index of refraction of pure seawater
-      roair = 1.2E3     !density of air g/m3
-      do nl = 1,nlt
-       if (lam(nl) .lt. 900)then
-        t = exp(-(aw(nl)+0.5*bw(nl)))
-        tlog = alog(1.0E-36+t)
-        fac = a0 + a1*tlog + a2*tlog*tlog + a3*tlog*tlog*tlog
-        wfac(nl) = min(fac,1.0)
-        wfac(nl) = max(fac,0.0)
-       else
-        fac = b0 + b1*rlam + b2*rlam*rlam + b3*rlam*rlam*rlam
-        wfac(nl) = max(fac,0.0)
-       endif
-      enddo
-#endif
 
 !ifst part from ptend.f
        do k=1,kdm
@@ -667,15 +635,12 @@ c  Read in factors to compute average irradiance
       if (ALK_CLIM.eq.1) write(*,*) 'ALKLNTY, GLODAP annmean'
       if (ALK_CLIM.eq.2) write(*,*) 'ALKALINITY prognostic'
 
-#ifdef OBIO_RAD_coupling
-      print*, 'OBIO - RADIATION COUPLING'
-#ifdef CHL_from_SeaWIFs
-      print*, 'USE SeaWIFs chlorophyl distributions'
-#endif
-#ifdef CHL_from_OBIO
-      print*, 'USE model chlorophyl distributions'
-#endif
-#endif
+      if (obio_rad_coupling) then
+        print*, 'OBIO - RADIATION COUPLING'
+        if (chl_from_seawifs) print*,
+     .                           'USE SeaWIFs chlorophyl distributions'
+        if (chl_from_obio) print*, 'USE model chlorophyl distributions'
+      endif
 #ifdef pCO2_ONLINE
       print*, 'PCO2 is computed online and not through lookup table'
 #else

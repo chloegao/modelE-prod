@@ -5,7 +5,8 @@ c
 c  Sets daily parameters for ocean irradiance.
 c
       USE obio_dim
-      USE obio_incom, only : lam,ac,bc,aw,nl450,excdom
+      USE obio_incom, only : ac,bc,nl450,excdom
+      use obio_ocalbedo_mod, only: aw
       USE obio_com, only : npst,npnd,obio_P,avgq1d,ihra_ij
      .                    ,acdom
 

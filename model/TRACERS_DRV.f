@@ -6757,7 +6757,6 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       USE AMP_AEROSOL
 #endif
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_GASEXCH_ocean_CO2)
-      USE MODEL_COM, only : nstep=>itime
 #ifdef constCO2
       USE obio_forc, only : atmCO2
 #else

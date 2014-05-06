@@ -10,6 +10,7 @@ c  in light, and computes average cosine for direct irradiance.
       USE obio_incom, only :rad
       USE obio_forc,  only :rmud,Ed,Es,solz
       USE obio_com,   only :npst,npnd,hour_of_day,day_of_month
+      use obio_ocalbedo_mod, only: nlt
 
       implicit none
 

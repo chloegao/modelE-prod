@@ -399,11 +399,6 @@ c  internals:
 !@var  ke    transport coefficient for the turbulent kinetic energy.
 !@var  tv    local virtual potential temperature
 
-#ifdef TRACERS_GASEXCH_ocean
-#ifdef TRACERS_GASEXCH_ocean_CO2
-      USE MODEL_COM, only : nstep=>itime
-#endif
-#endif
 #ifdef TRACERS_TOMAS
       USE TOMAS_EMIS
 #endif 

@@ -5,6 +5,7 @@
 ! parameters and arrays neccessary for obio_init and obio_bioinit
 
       USE obio_dim
+      use obio_ocalbedo_mod, only: nlt
 
       implicit none
 
@@ -76,13 +77,8 @@ C if CARBON == 1
 C if CARBON /=1    parameter(Rm=1.0/24.0)      !max zoopl. growth rate/hr
 
 
-      integer lam(nlt)               !wavelength in nm
-      
       !array of factors to compute mean irradiance w/in water column
       real facirr(nh,nch,5,ncd)  
-
-      !absorption,scattering coefficients of water
-      real aw(nlt),bw(nlt)
 
       !absorption and scattering coefficients of chlorophyll
       real ac(nchl,nlt),bc(nchl,nlt)
@@ -108,13 +104,7 @@ c     parameter(bn=0.5,bs=0.5)        !N/chl and Si/chl ratios
 
       integer nl450
 
-      real excdom(nlt),bbw,Dmax,rd,ru,rmus,rmuu,rn,roair
-
-#ifndef OBIO_RAD_coupling
-      !if obio-rad-coupling is defined then this part is done 
-      !inside RAD_COM.f and RAD_DRV.f
-      real wfac(nlt)
-#endif
+      real excdom(nlt),bbw,Dmax,rd,ru,rmus,rmuu
 
 !define compensation depth
       real, parameter ::  zc = 75. ! in meters (from OCMIP)

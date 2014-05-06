@@ -360,11 +360,10 @@
          REAL*8, DIMENSION(:,:), POINTER ::
      &     DIRVIS,DIFVIS,DIRNIR,DIFNIR
 #endif
-#if (defined CHL_from_SeaWIFs) || (defined TRACERS_OceanBiology)
 C**** array of Chlorophyll data for use in ocean albedo calculation
 !@var CHL Chlorophyll concentration data (mgr/m**3)
          REAL*8, DIMENSION(:,:), POINTER :: CHL
-#endif
+         logical :: chl_defined ! df: temporary until obio_ocalbedo is made more general
 
 !@var eflow_gl global integral of eflowo
          real*8 :: eflow_gl=0.
@@ -1204,9 +1203,7 @@ c
 #ifdef TRACERS_GASEXCH_ocean_CO2
      &          this % pCO2    ( I_0H:I_1H , J_0H:J_1H ),
 #endif
-#if (defined CHL_from_SeaWIFs) || (defined TRACERS_OceanBiology)
      &          this % CHL     ( I_0H:I_1H , J_0H:J_1H ),
-#endif
      &   STAT = IER)
 
       this % UOSURF = 0.
@@ -1223,9 +1220,8 @@ c
      &     'alloc_atmocn_xchng_vars: ntm /= ntm_gasexch',255)
 #endif
 
-#if (defined CHL_from_SeaWIFs) || (defined TRACERS_OceanBiology)
       this % CHL = 0.
-#endif
+      this%chl_defined=.false.
 
 #ifdef OBIO_RAD_coupling
       allocate(

@@ -30,7 +30,6 @@
 
 
 
-      USE FILEMANAGER
       USE MODEL_COM, only: nstep=>itime
 
       implicit  none

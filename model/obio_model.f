@@ -130,6 +130,7 @@
 ! will have something here
 #endif
 #endif
+      use obio_ocalbedo_mod, only: obio_ocalbedo
 
       USE MODEL_COM, only: modelEclock
      . ,itime,iyear1,aMON,dtsrc
@@ -155,7 +156,6 @@
       USE OCEAN,      only : ZOE=>ZE,g0m,s0m,mo,dxypo,focean,lmm
      .                      ,trmo,txmo,tymo,tzmo
       USE KPP_COM,    only : kpl
-      USE OCN_TRACER_COM,    only : obio_tr_mm
 #else
       USE hycom_dim
       USE hycom_arrays, only: tracer,dpinit,temp,saln,oice
@@ -176,6 +176,8 @@
       implicit none
       type(atmocn_xchng_vars) :: atm
 
+      REAL*4  :: obio_tr_mm(16)= (/ 14., 14., 28.055, 55.845, 1., 1.,
+     .     1., 1., 1., 14., 14., 28.055, 55.845, 12., 12., 1. /)
       integer i,j,k,l,km,nn,mm
 
       integer ihr,ichan,iyear,nt,ihr0,lgth,kmax
@@ -684,7 +686,7 @@ cdiag    endif
          !ocean albedo is computed in ALBEDO.f
          !have to have hygr =  .true. 
          call obio_ocalbedo(wind,solz,dummy,dummy,dummy1,
-     .                      rod,ros,.true.,vrbos,i,j)
+     .                      rod,ros,.true.,i,j)
 
 
 cdiag    if (vrbos)
@@ -1104,6 +1106,7 @@ cdiag     endif
           tot_chlo(i,j)=tot_chlo(i,j)+obio_P(1,nnut+nt)
        enddo
        atm%chl(i,j) = tot_chlo(i,j)
+       atm%chl_defined=.true.
        if (vrbos) then
           !!!write(*,'(/,a,3i5,e12.4)')
           write(*,*)

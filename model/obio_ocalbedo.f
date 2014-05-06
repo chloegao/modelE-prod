@@ -1,7 +1,20 @@
 #include "rundeck_opts.h"      
 
+      module obio_ocalbedo_mod
+
+      implicit none
+
+      integer, parameter :: nlt=33                ! number of spectral channels
+      real*8, dimension(nlt), private :: wfac
+      real*8, dimension(nlt), protected :: aw, bw ! absorption,scattering coefficients of water
+
+      integer, dimension(nlt), protected :: lam   ! wavelength in nm
+      logical, private :: initialized=.false.
+
+      contains
+
       subroutine obio_ocalbedo(wind,solz,bocvn,xocvn,chl,
-     .                         rod,ros,hycgr,vrbos,i,j)
+     .                         rod,ros,hycgr,i,j)
 
 ***********************************************************************
 ***** this routine is used by both atmosphere and ocean at each (i,j)
@@ -21,35 +34,24 @@ c  Derive surface reflectance as a function of solz and wind
 c  Includes spectral dependence of foam reflectance derived from Frouin
 c  et al., 1996 (JGR)
       USE CONSTANT, only : radian
-      USE FILEMANAGER
-      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
-#if (defined CHL_from_SeaWIFs) || (defined OBIO_RAD_coupling)
-!wfac does not depend on (i,j) thus indept of grid choice
-      USE RAD_COM, only : wfac  
-#elif (defined  CHL_from_OBIO) ||  (defined TRACERS_OceanBiology)
-      USE obio_incom, only : wfac 
-#endif
-#if (defined CHL_from_OBIO) || (defined TRACERS_OceanBiology)
-      USE obio_incom, only : lam
-#endif
-      USE MODEL_COM,  only : nstep=>itime
 
       implicit none
 
-      integer nl,i,j
+      real*8, intent(in)  :: wind, solz, chl
+      logical, intent(in) :: hycgr
+      integer, intent(in) :: i,j
+      real*8, dimension(6), intent(out) :: bocvn, xocvn
+      real*8, dimension(:), intent(out) :: rod, ros
+
+      integer nl
       real*8 cn,rof,rosps,rospd,rtheta
       real*8 sintr,rthetar,rmin,rpls,sinrmin,sinrpls,tanrmin
       real*8 tanrpls,sinp,tanp,a,b
 
-      real*8, intent(in)  :: wind, solz, chl
       real*8 :: sunz
  
-      real*8, dimension(6), intent(out) :: bocvn
-      real*8, dimension(6), intent(out) :: xocvn
-
       real*8 :: sum1, sum2, part_sum
       logical :: obio_reflectance, res
-      integer, parameter :: nlt=33
       real*8, dimension(nlt) :: refl
 
 !!!!!!!!!!  Boris' part !!!!!!!!!!!!!!!!!
@@ -73,20 +75,12 @@ C**** gband is the distribution of the 31 bands for the 6 band GISS code
 c      real*8 :: part_sum(6) = (/0.526854,0.0643897,0.196531,0.066281,
 c     .                        0.066922,0.0497974/)
         real*8 :: lam8(nlt)
-#ifdef CHL_from_SeaWIFs
-       integer:: lam(nlt) = (/ 250, 325, 350, 375, 400
-     .                       , 425, 450, 475, 500, 525
-     .                       , 550, 575, 600, 625, 650
-     .                       , 675, 700, 725, 775, 850
-     .                       , 950,1050,1150,1250,1350
-     .                       ,1450,1550,1650,1750,1900,2200,2900,3700/)
-#endif
 !!!!!!!!!! end Boris' part !!!!!!!!!!!!!!!!!
-      logical vrbos,hycgr
 
-      real*8 :: roair, rn, rod(nlt),ros(nlt)
+      real*8 :: roair, rn
       integer :: ngiss
 
+      call init
       rn = 1.341d0  ! index of refraction of pure seawater
       roair = 1.2D3 ! density of air g/m3  SHOULD BE INTERACTIVE?
 
@@ -142,19 +136,6 @@ c  Reflectance totals
       !lam is integer, lam8 is real8
       lam8=float(lam)
 
-      if(vrbos.and..not.hycgr)then
-      do nl=1,nlt
-          write(*,'(a,i5,9d12.4)')'ocalbedo: A', 
-     .    nl,lam8(nl),wfac(nl),wind,sunz,rof,rospd,rosps,rod(nl),ros(nl)
-      enddo
-      endif
-      if(vrbos.and.hycgr)then
-      do nl=1,nlt
-          write(*,'(a,i5,8d12.4)')'ocalbedo O:', 
-     .    nl,wfac(nl),wind,sunz,rof,rosps,rospd,rod(nl),ros(nl)
-      enddo
-      endif
-
       if (hycgr) return  !we do not compute albedo coefs
                          !from within ocean, but from atmos
       
@@ -173,11 +154,7 @@ C**** get chlorophyll term
         sum2 = 0.0
         do nl=gband(ngiss), gband(ngiss+1)-1 
           if (refl(nl).lt.0) refl(nl) = 0.0
-#ifdef CHL0
-          ros(nl) = ros(nl) 
-#else
           ros(nl) = ros(nl) + refl(nl)
-#endif
           sum1 = sum1+weight(nl)*rod(nl)
           sum2 = sum2+weight(nl)*ros(nl)
         enddo
@@ -199,3 +176,50 @@ C**** get chlorophyll term
 !!!!!!!!!! end Boris' part !!!!!!!!!!!!!!!!!
       return
       end subroutine obio_ocalbedo
+
+!=======================================================================
+      subroutine init
+
+      use filemanager, only: openunit, closeunit
+      implicit none
+
+      real*8 :: saw, sbw
+      real*8 :: b0, b1, b2, b3, a0, a1, a2, a3, expterm, tlog, fac, rlam
+      integer :: nl,ic , iu_bio, lambda
+      character title*50
+      data a0,a1,a2,a3 /0.9976d0, 0.2194d0,  5.554d-2,  6.7d-3 /
+      data b0,b1,b2,b3 /5.026d0, -0.01138d0, 9.552d-6, -2.698d-9/
+
+      if (initialized) then
+        return
+      else
+        initialized=.true.
+      endif
+      call openunit('cfle1',iu_bio,.false.,.true.)
+      do ic = 1,6
+        read(iu_bio,'(a50)')title
+      enddo
+      do nl = 1,nlt
+        read(iu_bio,20) lambda,saw,sbw
+        lam(nl) = lambda
+        aw(nl) = saw
+        bw(nl) = sbw
+        if (lam(nl) .lt. 900) then
+          expterm = exp(-(aw(nl)+0.5*bw(nl)))
+          tlog = dlog(1.0D-36+expterm)
+          fac = a0 + a1*tlog + a2*tlog*tlog + a3*tlog*tlog*tlog
+          wfac(nl) = max(0d0,min(fac,1d0))
+        else
+          rlam = float(lam(nl))
+          fac = b0 + b1*rlam + b2*rlam*rlam + b3*rlam*rlam*rlam
+          wfac(nl) = max(fac,0d0)
+        endif
+      enddo
+      call closeunit(iu_bio)
+ 20   format(i5,f15.4,f10.4)
+      return
+
+      end subroutine init
+!=======================================================================
+
+      end module obio_ocalbedo_mod

@@ -238,18 +238,7 @@ C**** using the rad_forc_lev parameter.
 
 !@var co2ppm Current CO2 level as seen by radiation
       REAL*8 :: co2ppm = 280.    ! set a reasonable default value
-
-#ifdef CHL_from_SeaWIFs
-!@var ACHL,ECHL1,ECHL0,BCHL,CCHL arrays for the reading in chlorophyll
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: ACHL,ECHL1,ECHL0,BCHL,
-     *     CCHL
-!@var iu_CHL unit for chlorophyll file
-      INTEGER iu_CHL
-#endif
-#if (defined CHL_from_SeaWIFs) || (defined OBIO_RAD_coupling)
-      REAL*8,  DIMENSION(33)   ::  wfac
-#endif
-
+      
 C**** Local variables initialised in init_RAD
 !@var PLB0,QL0 global parts of local arrays (to avoid OMP-copyin)
       REAL*8, DIMENSION(LM_REQ)       :: PLB0,SHL0
@@ -292,12 +281,6 @@ C**** Local variables initialised in init_RAD
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
      *     ,ttausv_ntrace,maxNtraceFastj
-#endif
-#ifdef CHL_from_SeaWIFs
-     *     ,achl,echl1,echl0,bchl,cchl
-#endif
-#if (defined CHL_from_SeaWIFs) || (defined OBIO_RAD_coupling)
-     *     ,wfac
 #endif
 #ifdef TRACERS_ON
      *     ,ttausv_sum,ttausv_sum_cs,ttausv_count,nTracerRadiaActive
@@ -370,13 +353,6 @@ C**** Local variables initialised in init_RAD
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
      &     ttausv_ntrace(I_0H:I_1H,J_0H:J_1H,maxNtraceFastj,Lm),
-#endif
-#ifdef CHL_from_SeaWIFs
-     &         ACHL(I_0H:I_1H,J_0H:J_1H),
-     &         ECHL1(I_0H:I_1H,J_0H:J_1H),
-     &         ECHL0(I_0H:I_1H,J_0H:J_1H),
-     &         BCHL(I_0H:I_1H,J_0H:J_1H),
-     &         CCHL(I_0H:I_1H,J_0H:J_1H),
 #endif
      *     STAT=IER)
 

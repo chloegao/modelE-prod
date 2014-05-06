@@ -293,10 +293,8 @@ C     -------------------
 !@sum GETSUR computes surface albedo for each grid box
 !@auth A. Lacis/V. Oinas (modifications by I. Aleinov/G. Schmidt)
 
-
-#if (defined CHL_from_OBIO) || (defined CHL_from_SeaWIFs)
-      USE MODEL_COM,  only : nstep=>itime
-#endif
+      use fluxes, only: atmocn
+      use obio_ocalbedo_mod, only: obio_ocalbedo
 
 #ifdef SCM
       USE SCMCOM, only : ASRFALBEDO,iu_scm_prt
@@ -317,7 +315,7 @@ C**** input from driver
      *     TGO,TGOI,TGE,TGLI,ZOICE,FMP,ZSNWOI,ZMP,
      *     SNOWOI,SNOWE,SNOWLI,SNOW_FRAC(2),WEARTH,WMAG,PVT(12),
      &     dalbsn,LOC_CHL
-      LOGICAL*4 :: FLAGS, vrbos
+      LOGICAL*4 :: FLAGS
 C**** output
       REAL*8 BXA(7),PRNB(6,4),PRNX(6,4),SRBALB(6),SRXALB(6),TRGALB(33),
      &     BGFEMD(33),BGFEMT(33),
@@ -421,7 +419,7 @@ C
         XOCVN(L)=XOCNIR
       END DO
 
-#if (defined CHL_from_OBIO) || (defined CHL_from_SeaWIFs)
+      if (atmocn%chl_defined) then
 C**** chlorophyl modification of albedo
 ! bocvn is the diffuse albedo (function of wind speed)
 ! xocnv is the direct albedo (function of the solar zenith angle)
@@ -429,38 +427,13 @@ C**** chlorophyl modification of albedo
 ! however, direct albedo calculation in obio_ocalbedo is 
 ! slightly different than in the default model.
 
-      vrbos=.false.
-c     if (ILON.eq.1.and.JLAT.eq.4) vrbos=.true.
 
       !call obio_ocalbedo with hycgr=.false. because the
       !calculation is done on the amtos grid here and we
       !need to return bocvn,xocvn but dont return rod and ros
-      if (vrbos) then
-        do L=1,6
-        write(*,'(a,3i5,5e12.4)')"ALBEDO1: ",
-     .   nstep,ilon,jlat,WMAG,COSZ,LOC_CHL,BOCVN(L),XOCVN(L)
-        enddo
-      end if
-
-cdiag write(*,'(a,3i5,5e12.4)')'ALBEDO, diags:',
-cdiag. nstep,ilon,jlat,WMAG,COSZ,LOC_CHL,BOCVN(1),XOCVN(1)
-
-#ifdef CHL0
-      call  obio_ocalbedo(WMAG,COSZ,BOCVN,XOCVN,
-     .     0.d0,dummy1,dummy2,.false.,vrbos,ILON,JLAT)
-#else
-      call  obio_ocalbedo(WMAG,COSZ,BOCVN,XOCVN,
-     .     LOC_CHL,dummy1,dummy2,.false.,vrbos,ILON,JLAT)
-#endif
-      if (vrbos) then
-        do L=1,6
-         write(*,'(a,3i5,2e12.4)')"ALBEDO2: ",
-     .      nstep,ilon,jlat,BOCVN(L),XOCVN(L)
-        enddo
-      end if
-  !   call sys_flush(6)
-
-#endif
+        call  obio_ocalbedo(WMAG,COSZ,BOCVN,XOCVN,
+     .     LOC_CHL,dummy1,dummy2,.false.,ILON,JLAT)
+      endif
 
 C**** For lakes increase albedo if lakes are very shallow
 C**** This is a fix to prevent lakes from overheating when they
