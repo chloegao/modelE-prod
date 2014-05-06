@@ -37,7 +37,7 @@ contains
   ! TODO: too many parameters to constructor
   ! TODO: mean distance is missing
   function newPlanetaryOrbit(obliquity, eccentricity, longitudeOfPeriapsis, &
-       & siderialPeriod, rotationPeriod, meanDistance) result(orbit)
+       & siderealPeriod, rotationPeriod, meanDistance) result(orbit)
     use Rational_mod
     use BaseTime_mod
     use TimeInterval_mod
@@ -46,7 +46,7 @@ contains
     real (kind=WP), intent(in) :: obliquity
     real (kind=WP), intent(in) :: eccentricity
     real (kind=WP), intent(in) :: longitudeOfPeriapsis
-    real (kind=WP), intent(in) :: siderialPeriod
+    real (kind=WP), intent(in) :: siderealPeriod
     real (kind=WP), intent(in) :: rotationPeriod
     real (kind=WP), intent(in) :: meanDistance
 
@@ -63,15 +63,15 @@ contains
     call orbit%setMeanDistance(meanDistance)
 
     !--------------------------------------------------------------------------------------
-    ! Note siderial period and rotation period are adjusted to ensure integer days per year
+    ! Note sidereal period and rotation period are adjusted to ensure integer days per year
     ! while preserving the length of the mean day.   Other conventions are possible.
     !--------------------------------------------------------------------------------------
-    meanDay = 1/(1/rotationPeriod - 1/siderialPeriod)
-    daysPerYear = nint(siderialPeriod / meanDay)
+    meanDay = 1/(1/rotationPeriod - 1/siderealPeriod)
+    daysPerYear = nint(siderealPeriod / meanDay)
     q=Rational(meanDay, tolerance=1.d-6)
     meanDayInterval = TimeInterval(q)
     call orbit%setMeanDay(meanDayInterval)
-    call orbit%setSiderialPeriod(TimeInterval(daysPerYear * meanDayInterval))
+    call orbit%setSiderealPeriod(TimeInterval(daysPerYear * meanDayInterval))
     call orbit%setRotationPeriod(TimeInterval(meanDayInterval * Rational(daysPerYear, daysPerYear+1)))
     
     MA0 = computeMeanAnomaly(PI/180*(longitudeOfPeriapsis - EARTH_LON_AT_PERIHELION), &
