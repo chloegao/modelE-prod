@@ -294,7 +294,9 @@ C     -------------------
 !@auth A. Lacis/V. Oinas (modifications by I. Aleinov/G. Schmidt)
 
       use fluxes, only: atmocn
+#if (defined CHL_from_OBIO) || (defined CHL_from_SeaWIFs)
       use obio_ocalbedo_mod, only: obio_ocalbedo
+#endif
 
 #ifdef SCM
       USE SCMCOM, only : ASRFALBEDO,iu_scm_prt
@@ -419,6 +421,7 @@ C
         XOCVN(L)=XOCNIR
       END DO
 
+#if (defined CHL_from_OBIO) || (defined CHL_from_SeaWIFs)
       if (atmocn%chl_defined) then
 C**** chlorophyl modification of albedo
 ! bocvn is the diffuse albedo (function of wind speed)
@@ -434,6 +437,7 @@ C**** chlorophyl modification of albedo
         call  obio_ocalbedo(WMAG,COSZ,BOCVN,XOCVN,
      .     LOC_CHL,dummy1,dummy2,.false.,ILON,JLAT)
       endif
+#endif
 
 C**** For lakes increase albedo if lakes are very shallow
 C**** This is a fix to prevent lakes from overheating when they
