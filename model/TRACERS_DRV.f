@@ -12,11 +12,14 @@
 !@sum init_tracer_cons_diag Initialize tracer conservation diagnostics
 !@auth Gavin Schmidt
       use AbstractAttribute_mod, only: AbstractAttribute
-      use Attributes_mod, only: assignment(=), IntegerAttribute
+      use Attributes_mod, only: assignment(=)
       use Attributes_mod, only: toPointer
+      use Tracer_mod
+      use TracerBundle_mod
+      use TracerHashMap_mod
+      use AttributeDictionary_mod, only: assignment(=)
       use TracerSurfaceSource_mod, only: TracerSurfaceSource
       USE TRACER_COM, only: ntm
-      use TracerHashMap_mod, only: TracerIterator, operator(/=)
       USE TRACER_COM, only: noverwrite
       USE TRACER_COM, only: nvolcanic
       USE TRACER_COM, only: nother
@@ -44,8 +47,8 @@
       logical :: qcon(KTCON-1), qsum(KTCON-1), T=.TRUE. , F=.FALSE.
       logical :: Qf
       integer n,k,g,kk
+      integer, pointer :: index=> null()
       class (AbstractAttribute), pointer :: pa
-      integer, pointer :: index
       class (Tracer), pointer :: pTracer
       type (TracerSurfaceSource), pointer :: sources(:) 
       type (TracerSurfaceSource), pointer :: SO2sources(:)
@@ -163,12 +166,8 @@ C**** set some defaults
       iter = tracers%begin()
       do while (iter /= tracers%last())
         pTracer => iter%value()
-
-! TODO: ifort needs to split this into two steps ???
-c$$$        index = (pTracer%getReference('index'))
-        index = toPointer(pTracer%getReference('index'), index)
-!        pa => pTracer%getReference('index')
-!        index = pa
+        
+        index => toPointer(pTracer%getReference('index'), index)
         n = index
         sources => pTracer%surfaceSources
 
@@ -8268,6 +8267,9 @@ C**** at the start of any day
 !@auth Jean Lerner/Gavin Schmidt
       USE MODEL_COM, only: itime,dtsrc,nday
       use TracerSurfaceSource_mod, only: TracerSurfaceSource
+      use Attributes_mod
+      use AttributeDictionary_mod
+      use TracerBundle_mod
       use Tracer_mod, only: Tracer
       use model_com, only: modelEclock
       use RESOLUTION, only: im
@@ -8338,8 +8340,7 @@ C**** at the start of any day
 #endif
       use TracerHashMap_mod, only:
      &     TracerIterator, operator(/=)
-      use Attributes_mod, only: assignment(=), IntegerAttribute
-      use Attributes_mod, only: toPointer
+      use Attributes_mod
       use AbstractAttribute_mod
       implicit none
       integer :: i,j,ns,ns_isop,l,ky,n,nsect,kreg
@@ -8388,7 +8389,6 @@ c      real*8 :: nlight, max_COSZ1, fact0
 
       type (TracerIterator) :: iter
       class (AbstractAttribute), pointer :: pa
-      integer, pointer :: index
 
       call modelEclock%getDate(year=year, month=month, 
      *     dayOfYear=dayOfYear)
@@ -8410,12 +8410,6 @@ C**** All sources are saved as kg/s
       iter = tracers%begin()
       do while (iter /= tracers%last())
         pTracer => iter%value()
-        index => toPointer(pTracer%getReference('index'), index)
-
-!        pa => pTracer%getReference('index')
-!        index = pa
-        n = index
-
         pTracer => tracers%getReference(trname(n))
         sources => pTracer%surfaceSources
       if (itime.lt.itime_tr0(n)) cycle

@@ -1,5 +1,7 @@
 module Test_Parser_mod
-  use pFUnit_mod
+   use pFUnit_mod
+   use AbstractAttribute_mod
+   use Attributes_mod
   implicit none
 
 
@@ -8,8 +10,6 @@ module Test_Parser_mod
 !!$  public :: testMissingEndQuote
 !!$  public :: testFirstSep ! '='
 !!$  public :: testIgnoreEmbeddedComments
-
-   integer, parameter :: dp = selected_real_kind(14)
 
 contains
 
@@ -282,7 +282,6 @@ contains
     use Parser_mod
     use FileManager
     use AttributeDictionary_mod
-    use Attributes_mod
     type (Parser_type) :: parser
 
     type (AttributeDictionary) :: aDictionary
@@ -320,7 +319,6 @@ contains
     use Parser_mod
     use FileManager
     use AttributeDictionary_mod
-    use Attributes_mod
     type (Parser_type) :: parser
 
     type (AttributeDictionary) :: aDictionary
@@ -386,7 +384,6 @@ contains
     use Parser_mod, only: setTokenSeparators
     use FileManager
     use AttributeDictionary_mod
-    use Attributes_mod
     type (Parser_type) :: parser
 
     type (AttributeDictionary) :: aDictionary
@@ -570,3 +567,4 @@ contains
   end subroutine testWriteTextExample
 
 end module Test_Parser_mod
+

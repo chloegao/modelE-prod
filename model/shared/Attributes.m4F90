@@ -55,7 +55,6 @@ module m4_attributeType($1,$2,$3,$4)_mod
 
   interface assignment(=)
     module procedure toType
-!!$    module procedure toTypeUnwrap
     ifelse($3,0,module procedure toTypeVector)
   end interface
 
@@ -87,24 +86,15 @@ contains
   function toPointerType(entry, cast) result(ptr)
     downcase($1)[]$2, pointer :: ptr m4_dimensions($3)
     class (AbstractAttribute), target, intent(in) :: entry
-    downcase($1)[]$2, intent(inout) :: cast m4_dimensions($3)
+    downcase($1)[]$2 :: cast m4_dimensions($3)
 
     select type (q => entry)
     type is (m4_attributeType($1,$2,$3,$4))
        ptr => q%value
     class default
-      call throwException('Illegal conversion of m4_attributeType($1,$2,$3,$4).',255)
+      call throwException('Illegal association of m4_attributeType($1,$2,$3,$4).',255)
     end select
   end function toPointerType
-
-!!$  subroutine toTypeUnwrap(value, wrappedPtr)
-!!$    use AttributeHashMap_mod
-!!$    downcase($1)[]$2, pointer, intent(inout) :: value m4_dimensions($3)
-!!$    type (AbstractAttributeReference), intent(in) :: wrappedPtr
-!!$
-!!$    value = wrappedPtr%ptr
-!!$
-!!$  end subroutine toTypeUnwrap
 
 ifelse($3,0,
 [  subroutine toTypeVector(value, references)

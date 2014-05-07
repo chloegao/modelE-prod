@@ -255,7 +255,6 @@ contains
   end subroutine testGetAttribute
 
   subroutine testFindAttribute(this)
-    use AttributeDictionary_mod, only: assignment(=)
     class (TestTracerBundleSubset), intent(inout) :: this
     real(kind=DP) :: expected
     real(kind=DP), pointer :: found

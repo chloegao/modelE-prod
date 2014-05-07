@@ -1,7 +1,8 @@
 module Test_AttributeDictionary_mod
   use pfunit_mod
   use AttributeDictionary_mod
-  use Attributes_mod
+  use AbstractAttribute_mod
+  use Attributes_mod, only: assignment(=)
 
   implicit none
 
@@ -48,7 +49,7 @@ contains
 @Test  
   subroutine testAssignAttributeReference(this)
     use AttributeHashMap_mod
-    use IntegerAttribute_mod, only: assignment(=)
+    use IntegerAttribute_mod
     class (Test_AttributeDictionary), intent(inout) :: this
     
     integer, pointer :: i => null()
@@ -67,6 +68,7 @@ contains
 !!!@Test
   subroutine testAssignAttributeReferenceMulti(this)
     use AttributeReference_mod
+    use IntegerAttribute_mod
     class (Test_AttributeDictionary), intent(inout) :: this
     
     type (AttributeReference), target :: vector(3)

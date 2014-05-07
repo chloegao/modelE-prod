@@ -1,7 +1,8 @@
 module Test_Tracer_mod
   use pFUnit_mod
   use Tracer_mod
-  use AttributeDictionary_mod, only: assignment(=)
+  use AbstractAttribute_mod
+  use Attributes_mod
   implicit none
 
 @TestCase
@@ -12,8 +13,6 @@ module Test_Tracer_mod
     procedure :: setUp     ! overides generic
     procedure :: tearDown  ! overrides generic
   end type Test_Tracer
-
-  integer, parameter :: dp = selected_real_kind(14)
 
 contains
 

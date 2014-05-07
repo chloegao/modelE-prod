@@ -350,6 +350,7 @@ end interface
   abstract interface
     subroutine IdefaultSpec(n_idx, trcer)
     use Tracer_mod
+    use Attributes_mod, only: assignment(=)
     integer, intent(in) :: n_idx
     class (Tracer), pointer :: trcer
     end subroutine IdefaultSpec
@@ -386,6 +387,7 @@ contains
   end subroutine initializeOldTracers
 
   integer function oldAddTracer(name) result(n)
+     use Attributes_mod, only: assignment(=)
     character(len=*), intent(in) :: name
     type (OldTracer_type), allocatable :: tmp(:)
     class (Tracer), pointer :: t

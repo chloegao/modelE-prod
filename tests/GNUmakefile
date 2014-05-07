@@ -46,6 +46,13 @@ ifeq ($(COMPILER),nag)
   FFLAGS += -kind=byte
 endif
 
+ifeq ($(COMPILER),intel)
+  FFLAGS += -assume realloc_lhs
+#  FFLAGS += -O0 -g -traceback -warn nousage -convert big_endian -assume protect_parens -ftz -fpp
+  FFLAGS += -O0 -g -traceback -convert big_endian -warn nousage -ftz -fpp -assume protect_parens
+endif
+
+
 ifeq ($(USEMPI),YES)
   FFLAGS += -DUSE_MPI
   IOLIB += -L$(PNETCDFHOME)/lib -lpnetcdf

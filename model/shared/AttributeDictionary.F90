@@ -25,7 +25,6 @@ module AttributeDictionary_mod
 
   public :: AttributeDictionary
   public :: newAttributeDictionary
-  public :: assignment(=)  !, copyIt
   public :: toPointer
   public :: clean
 

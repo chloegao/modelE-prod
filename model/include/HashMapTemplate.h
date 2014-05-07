@@ -408,6 +408,7 @@ contains
 
     if (this%hashValue == DONE) then
       call throwException('Cannot call next() when hash has no remaining iterations.',14)
+      return
     end if
 
     if (this%subIterator%hasNext()) then

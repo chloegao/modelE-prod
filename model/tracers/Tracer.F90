@@ -181,9 +181,6 @@ contains
     ! been reached.
 
     nsrc=0
-    if (am_i_root()) &
-         &  print*,__LINE__,__FILE__,' tracer = ',  &
-         &     trim(getName(trcer)), nsrc, ntsurfsrcmax
 
     loop_n: do n = 1, ntsurfsrcmax
 
