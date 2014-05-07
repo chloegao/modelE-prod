@@ -2,6 +2,7 @@ module Test_TracerBundle_mod
   use pFUnit_mod
   use Tracer_mod
   use TracerBundle_mod
+  use TracerHashMap_mod
   use AttributeDictionary_mod, only: assignment(=)
 
   implicit none
@@ -25,8 +26,6 @@ contains
 
 ! Create a bundle with two tracers
   subroutine setUp(this)
-    use FileManager
-    use GenericType_mod
     class (Test_TracerBundle), intent(inout) :: this
     type (Tracer) :: CO2, H2O17
 
@@ -72,11 +71,16 @@ contains
     class (Test_TracerBundle), intent(inout) :: this
 
     real(kind=dp) :: expected
+    logical :: order1
+    logical :: order2
 
-    ! chack that all tracers in bundle have 'molecularMass' attribute
+    ! check that all tracers in bundle have 'molecularMass' attribute
     @assertTrue(all(this%bundle%hasAttribute('molecularMass')),'molecularMass')
-    ! chack all 'fromFossilFuel' tracers values in bundle
-    @assertTrue(all([.true.,.false.] .eqv. this%bundle%hasAttribute('fromFossilFuel')),'fromFossilFuel')
+    ! check all 'fromFossilFuel' tracers values in bundle
+    ! do not know which order tracers were stored
+    order1 = all([.true.,.false.] .eqv. this%bundle%hasAttribute('fromFossilFuel'))
+    order2 = all([.false.,.true.] .eqv. this%bundle%hasAttribute('fromFossilFuel'))
+    @assertTrue(order1 .or. order2,'fromFossilFuel')
 
   end subroutine testHasAttribute
 
@@ -98,9 +102,9 @@ contains
     class (Test_TracerBundle), intent(inout) :: this
 
 ! make 'newAttribute' a mandatory attribute
-    call this%bundle%addMandatoryAttribute('newAttribute')
+    call this%bundle%addMandatoryAttribute('doesDecay')
 
-    call assertExceptionRaised( "TracerBundle_mod - species 'CO2' is missing mandatory attribute 'newAttribute'.")
+    call assertExceptionRaised( "TracerBundle_mod - species 'H2O17' is missing mandatory attribute 'doesDecay'.")
 
   end subroutine testAddMandatoryB
 
@@ -280,5 +284,32 @@ contains
     call bundle%setAttribute('N2O5', "mass2vol", newAttribute(1.234d0))
 
   end subroutine test_modelErepdroducer
+
+  @test
+  subroutine test_iterator(this)
+     class (Test_TracerBundle), intent(inout) :: this
+
+     type (TracerIterator) :: iterator
+     class (Tracer), pointer :: ptr
+     integer :: i
+
+     iterator= this%bundle%begin()
+
+     ptr => iterator%value()
+     i = -1
+     i = ptr%getReference('optionD')
+     @assertTrue(any([1,2] == i))
+     print*,__LINE__,__FILE__, i
+
+     call iterator%next()
+     ptr => iterator%value()
+     i = -1
+     i = ptr%getReference('optionD')
+     @assertTrue(any([1,2] == i))
+
+     print*,__LINE__,__FILE__, i
+
+  end subroutine test_iterator
+
 
 end module Test_TracerBundle_mod

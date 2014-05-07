@@ -117,7 +117,7 @@ contains
 
   end subroutine testGetReferenceB
 
-@test  
+!@test  
   subroutine testMerge(this)
     class (Test_HashMap), intent(inout) :: this
     type (FooHashMap) :: otherDictionary

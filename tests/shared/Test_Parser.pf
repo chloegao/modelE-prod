@@ -1,33 +1,7 @@
 module Test_Parser_mod
   use pFUnit_mod
   implicit none
-  private
 
-  ! legacy
-  public :: testStripComment_noComment
-  public :: testStripComment
-  public :: testStripComment_1stChar
-
-  public :: testStripComment_new
-  public :: testSkipHeader
-  public :: testNoBeginData
-  public :: testIsEndData
-
-  public :: testSplitTokensA
-  public :: testSplitTokensB
-  public :: testSplitTokensC
-  public :: testSplitTokensD
-  public :: testSplitEmbeddedComma
-  public :: testBadFirstSeparator
-
-  public :: testParseEOF
-  public :: testParseSimple
-  public :: testParse
-  public :: testParseAttribute
-  public :: testParseNoValue
-
-  public :: testWriteFormatted
-  public :: testWriteTextExample
 
 
 !TO DO - create tests for these:
@@ -168,7 +142,7 @@ contains
     type (Parser_type) :: parser
     character(len=*), parameter :: separators = '=,'
     character(len=128) :: string
-    character(len=MAX_LEN_TOKEN), pointer :: tokens(:)
+    character(len=MAX_LEN_TOKEN), pointer :: tokens(:) => null()
 
     call setTokenSeparators(parser, separators)
 
@@ -184,7 +158,7 @@ contains
     type (Parser_type) :: parser
     character(len=*), parameter :: separators = '=,'
     character(len=128) :: string
-    character(len=MAX_LEN_TOKEN), pointer :: tokens(:)
+    character(len=MAX_LEN_TOKEN), pointer :: tokens(:) => null()
 
     call setTokenSeparators(parser, separators)
 
@@ -203,7 +177,7 @@ contains
     type (Parser_type) :: parser
     character(len=*), parameter :: separators = '=,'
     character(len=128) :: string
-    character(len=MAX_LEN_TOKEN), pointer :: tokens(:)
+    character(len=MAX_LEN_TOKEN), pointer :: tokens(:) => null()
 
     call setTokenSeparators(parser, separators)
 
@@ -223,7 +197,7 @@ contains
     type (Parser_type) :: parser
     character(len=*), parameter :: separators = '=,'
     character(len=128) :: string
-    character(len=MAX_LEN_TOKEN), pointer :: tokens(:)
+    character(len=MAX_LEN_TOKEN), pointer :: tokens(:) => null()
 
     call setTokenSeparators(parser, separators)
 
@@ -247,7 +221,7 @@ contains
     type (Parser_type) :: parser
     character(len=*), parameter :: separators = '=,'
     character(len=128) :: string
-    character(len=MAX_LEN_TOKEN), pointer :: tokens(:)
+    character(len=MAX_LEN_TOKEN), pointer :: tokens(:) => null()
 
     call setTokenSeparators(parser, separators)
 
@@ -263,13 +237,13 @@ contains
   end subroutine testSplitEmbeddedComma
 
 ! TODO: This test needs to be revisited
-!!!@Test
+@test
   subroutine testBadFirstSeparator()
     use Parser_mod
     type (Parser_type) :: parser
     character(len=*), parameter :: separators = '= ,'
     character(len=128) :: string
-    character(len=MAX_LEN_TOKEN), pointer :: tokens(:)
+    character(len=MAX_LEN_TOKEN), pointer :: tokens(:) => null()
 
 #ifdef USE_PFUNIT
     call setTokenSeparators(parser, separators)
@@ -282,7 +256,7 @@ contains
 
   end subroutine testBadFirstSeparator
 
-@Test
+@test
   subroutine testParseEOF()
     use Parser_mod
     use FileManager
@@ -313,7 +287,7 @@ contains
 
     type (AttributeDictionary) :: aDictionary
     integer :: iounit
-    integer, pointer :: i(:)
+    integer, pointer :: i(:) => null()
     character(len=*), parameter :: BEGIN_DATA = '*** end header ***'
     character(len=*), parameter :: END_DATA = '*** end params ***'
     integer :: status
@@ -357,8 +331,8 @@ contains
     integer :: status
 
     integer :: betaValue
-    real(kind=dp), pointer :: gammaValue
-    logical, pointer :: deltaValues(:)
+    real(kind=dp), pointer :: gammaValue => null()
+    logical, pointer :: deltaValues(:) => null()
 
     call openUnit('testParser.txt', iounit, qold=.false., qbin=.false.)
     write(iounit,'(a)') 'alpha = 0' ! ignore - in header
@@ -422,10 +396,10 @@ contains
 
     integer :: status
 
-    integer, pointer :: betaValue
-    real(kind=dp), pointer :: gammaValue
-    logical, pointer :: deltaValues(:)
-    class (AbstractAttribute), pointer :: p
+    integer, pointer :: betaValue => null()
+    real(kind=dp), pointer :: gammaValue => null()
+    logical, pointer :: deltaValues(:) => null()
+    class (AbstractAttribute), pointer :: p => null()
 
     call openUnit('testParser.txt', iounit, qold=.false., qbin=.false.)
     write(iounit,'(a)') 'alpha = 0' ! ignore - in header
@@ -470,7 +444,7 @@ contains
   end subroutine testParseAttribute
 
 ! TODO: This test needs to be revisited
-!!!@Test
+@Test
   subroutine testParseNoValue()
 !@sum Tests that an exception is thrown if there is no value to associate with a key.
     use Parser_mod
@@ -521,7 +495,8 @@ contains
 
     integer :: status
 
-    integer, pointer :: i(:)
+    integer :: j(1)
+    integer, pointer :: i(:) => null()
 
     aDictionary = newAttributeDictionary()
     call aDictionary%insert('key',[1,2,3])
@@ -538,7 +513,8 @@ contains
 
     bDictionary = parse(parser, iounit, status)
 
-    i => toPointer(bDictionary%getReference('key'), i)
+    i => toPointer(bDictionary%getReference('key'), j)
+
 
     @assertTrue(aDictionary%equals(bDictionary))
 

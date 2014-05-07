@@ -93,4 +93,19 @@ contains
 
   end subroutine testCopyInto
 
+@test
+  subroutine sanity(this)
+     class (Test_Tracer), intent(inout) :: this
+     type (Tracer) :: t
+
+     integer :: i
+
+     t = newTracer('noname')
+     call t%insert('index', 5)
+     i = t%getReference('index')
+
+     @assertEqual(5, i)
+     
+  end subroutine sanity
+
 end module Test_Tracer_mod

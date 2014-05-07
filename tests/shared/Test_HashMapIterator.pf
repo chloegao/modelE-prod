@@ -118,6 +118,7 @@ contains
 
 @Test  
   subroutine testKeyValue(this)
+     use Attributes_mod
     class (Test_HashMapIterator), intent(inout) :: this
     type (FooHashMapIterator) :: iterator
     
@@ -125,9 +126,9 @@ contains
     logical :: foundB
     logical :: foundC
 
-    class (Foo), pointer :: valueA
-    class (Foo), pointer :: valueB
-    class (Foo), pointer :: valueC
+    class (Foo), pointer :: valueA => null()
+    class (Foo), pointer :: valueB => null()
+    class (Foo), pointer :: valueC => null()
 
     iterator = this%dictionary%begin()
 

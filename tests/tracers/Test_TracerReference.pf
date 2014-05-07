@@ -35,7 +35,7 @@ contains
   subroutine testSetReference(this)
     class (TestTracerPointer), intent(inout) :: this
     type (Tracer) :: aTracer
-    class (Tracer), pointer :: reference
+    class (Tracer), pointer :: reference => null()
 
 ! TODO: Why doesn't this work when specified in setup?
 ! Need to repeat here:
@@ -53,10 +53,10 @@ contains
 @test
   subroutine testInsertIntegerAttribute(this)
     class (TestTracerPointer), intent(inout) :: this
-    class (Tracer), pointer :: found
+    class (Tracer), pointer :: found => null()
     type (Tracer) :: aTracer
    
-    integer, pointer :: pInteger
+    integer, pointer :: pInteger => null()
     integer, parameter :: INT_VALUE=1
 
 ! TODO: Why doesn't this work when specified in setup?
@@ -75,7 +75,7 @@ contains
 @test
   subroutine testInsertLogicalAttribute(this)
     class (TestTracerPointer), intent(inout) :: this
-    class (Tracer), pointer :: found
+    class (Tracer), pointer :: found => null()
     type (Tracer) :: aTracer
    
     logical :: pLogical
