@@ -43,8 +43,8 @@ FFLAGS += $(FFLAGS_RELEASE)
 F90FLAGS += $(FFLAGS_RELEASE)
 
 ifeq ($(COMPILE_WITH_TRAPS),YES)
-FFLAGS += -CB -fpe0 -check uninit -ftrapuv -traceback
+FFLAGS += -CB -fpe0 -check uninit -ftrapuv -traceback -assume realloc_lhs
 LFLAGS += -CB -fpe0 -check uninit -ftrapuv -traceback
-F90FLAGS += -CB -fpe0 -check uninit -ftrapuv -traceback
+F90FLAGS += -CB -fpe0 -check uninit -ftrapuv -traceback  -assume realloc_lhs
 LFLAGSF += -CB -fpe0 -check uninit -ftrapuv -traceback
 endif
