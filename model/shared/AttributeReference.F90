@@ -6,7 +6,7 @@ module AttributeReference_mod
   public :: AttributeReference
   public :: VectorAttribute
   public :: newVectorAttribute
-  public :: assignment(=)
+!!$  public :: assignment(=)
   public :: toPointer
   
   type AttributeReference
@@ -29,11 +29,13 @@ module AttributeReference_mod
     procedure :: clean
     procedure :: getReferenceScalar
     procedure :: getReferenceVector
+    procedure, pass(entry) :: toType
+    procedure, pass(entry) :: toTypeVector
   end type VectorAttribute
 
-  interface assignment(=)
-    module procedure toType
-  end interface assignment(=)
+!!$  interface assignment(=)
+!!$    module procedure toType
+!!$  end interface assignment(=)
 
   interface toPointer
      module procedure toPointerType
@@ -70,21 +72,23 @@ contains
       this%ptr(i)%ptr => b(i)%ptr ! shallow copy - preserve references
     end do
 
-    
   end function newVectorAttribute
   
-  subroutine toType(a, b)
-    type (AttributeReference), pointer, intent(out) :: a(:)
-    class (AbstractAttribute), intent(in) :: b
+  subroutine toType(value, entry)
+     class(*), intent(inout) :: value
+     class (VectorAttribute), intent(in) :: entry
 
-    select type (p => b)
-    type is (VectorAttribute)
-      a => p%ptr
-    class default
-      call throwException('Illegal conversion of VectorAttribute.',255)
-    end select
+     call throwException('unsupported conversion',255)
 
   end subroutine toType
+
+
+  subroutine toTypeVector(value, entry)
+     class(*), allocatable, intent(inout) :: value(:)
+     class (VectorAttribute), intent(in) :: entry
+
+     call throwException('unsupported conversion',255)
+  end subroutine toTypeVector
 
   logical function equals(this, b)
     class (VectorAttribute), intent(in) :: this

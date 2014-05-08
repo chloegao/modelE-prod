@@ -28,8 +28,6 @@ module Integer1dAttribute_mod
 
   public :: TYPE
   public :: newAttribute
-  public :: assignment(=), toPointer
-  
 
   type, extends(AbstractAttribute) :: TYPE
     integer, allocatable :: value (:)
@@ -41,16 +39,16 @@ module Integer1dAttribute_mod
     procedure :: writeUnformatted
     procedure :: readUnformatted
     procedure :: toString
+    procedure, pass(entry) :: toType
+    procedure, pass(entry) :: toTypeVector
+    generic :: assignment(=) => toType
   end type TYPE
 
   interface newAttribute
     module procedure constructor
   end interface
 
-  interface assignment(=)
-    module procedure toType
-    
-  end interface
+!!$  
 
   interface toPointer
      module procedure toPointerType
@@ -66,12 +64,12 @@ contains
   end function constructor
 
   subroutine toType(value, entry)
-    integer, allocatable, intent(inout) :: value (:)
-    class (AbstractAttribute), intent(in) :: entry
+    class(*), allocatable, intent(inout) :: value
+    class (Integer1dAttribute), intent(in) :: entry
 
-    select type (q => entry)
-    type is (Integer1dAttribute)
-      value = q%value
+    select type (q => value)
+    type is (integer)
+       q = entry%value
     class default
       call throwException('Illegal conversion of Integer1dAttribute.',255)
     end select
@@ -90,6 +88,17 @@ contains
     end select
   end function toPointerType
 
+  subroutine toTypeVector(value, references)
+    use AttributeReference_mod
+    integer, allocatable, intent(inout) :: value(:)
+    class (AttributeReference), intent(in) :: references(:)
+    class (AbstractAttribute), pointer :: p
+    integer, pointer :: q
+    integer :: i, n
+
+        call throwException('Cannot convert to vector', 255)
+
+  end subroutine toTypeVector
 
 
   logical function equals(this, b)
@@ -194,8 +203,6 @@ module IntegerAttribute_mod
 
   public :: TYPE
   public :: newAttribute
-  public :: assignment(=), toPointer
-  public :: toTypeVector
 
   type, extends(AbstractAttribute) :: TYPE
     integer :: value
@@ -206,16 +213,19 @@ module IntegerAttribute_mod
     procedure :: writeUnformatted
     procedure :: readUnformatted
     procedure :: toString
+    procedure, pass(entry) :: toType
+    procedure, pass(entry) :: toTypeVector
+    generic :: assignment(=) => toType
   end type TYPE
 
   interface newAttribute
     module procedure constructor
   end interface
 
-  interface assignment(=)
-    module procedure toType
-    module procedure toTypeVector
-  end interface
+!!$  !!$  interface assignment(=)
+!!$     module procedure toTypeVector
+!!$  end interface
+!!$
 
   interface toPointer
      module procedure toPointerType
@@ -231,12 +241,12 @@ contains
   end function constructor
 
   subroutine toType(value, entry)
-    integer,  intent(inout) :: value 
-    class (AbstractAttribute), intent(in) :: entry
+    class(*),  intent(inout) :: value
+    class (IntegerAttribute), intent(in) :: entry
 
-    select type (q => entry)
-    type is (IntegerAttribute)
-      value = q%value
+    select type (q => value)
+    type is (integer)
+       q = entry%value
     class default
       call throwException('Illegal conversion of IntegerAttribute.',255)
     end select
@@ -258,23 +268,26 @@ contains
   subroutine toTypeVector(value, references)
     use AttributeReference_mod
     integer, allocatable, intent(inout) :: value(:)
-    type (AttributeReference), intent(in) :: references(:)
-
+    class (AttributeReference), intent(in) :: references(:)
+    class (AbstractAttribute), pointer :: p
     integer, pointer :: q
     integer :: i, n
 
+    
     n = size(references)
     allocate(value(n))
     allocate(q)
     do i = 1, n
-!      q = references(i)%get()
-      call toType(q,references(i)%get())
-      value(i) = q
+       p => references(i)%get()
+!!$      q = p
+!!$      call toType(q,references(i)%get())
+!!$       call p%toType(q)
+      value(i) = p
     end do
     nullify(q)
 
-  end subroutine toTypeVector
 
+  end subroutine toTypeVector
 
 
   logical function equals(this, b)
@@ -375,8 +388,6 @@ module Logical1dAttribute_mod
 
   public :: TYPE
   public :: newAttribute
-  public :: assignment(=), toPointer
-  
 
   type, extends(AbstractAttribute) :: TYPE
     logical, allocatable :: value (:)
@@ -388,16 +399,16 @@ module Logical1dAttribute_mod
     procedure :: writeUnformatted
     procedure :: readUnformatted
     procedure :: toString
+    procedure, pass(entry) :: toType
+    procedure, pass(entry) :: toTypeVector
+    generic :: assignment(=) => toType
   end type TYPE
 
   interface newAttribute
     module procedure constructor
   end interface
 
-  interface assignment(=)
-    module procedure toType
-    
-  end interface
+!!$  
 
   interface toPointer
      module procedure toPointerType
@@ -413,12 +424,12 @@ contains
   end function constructor
 
   subroutine toType(value, entry)
-    logical, allocatable, intent(inout) :: value (:)
-    class (AbstractAttribute), intent(in) :: entry
+    class(*), allocatable, intent(inout) :: value
+    class (Logical1dAttribute), intent(in) :: entry
 
-    select type (q => entry)
-    type is (Logical1dAttribute)
-      value = q%value
+    select type (q => value)
+    type is (logical)
+       q = entry%value
     class default
       call throwException('Illegal conversion of Logical1dAttribute.',255)
     end select
@@ -437,6 +448,17 @@ contains
     end select
   end function toPointerType
 
+  subroutine toTypeVector(value, references)
+    use AttributeReference_mod
+    logical, allocatable, intent(inout) :: value(:)
+    class (AttributeReference), intent(in) :: references(:)
+    class (AbstractAttribute), pointer :: p
+    logical, pointer :: q
+    integer :: i, n
+
+        call throwException('Cannot convert to vector', 255)
+
+  end subroutine toTypeVector
 
 
   logical function equals(this, b)
@@ -541,8 +563,6 @@ module LogicalAttribute_mod
 
   public :: TYPE
   public :: newAttribute
-  public :: assignment(=), toPointer
-  public :: toTypeVector
 
   type, extends(AbstractAttribute) :: TYPE
     logical :: value
@@ -553,16 +573,19 @@ module LogicalAttribute_mod
     procedure :: writeUnformatted
     procedure :: readUnformatted
     procedure :: toString
+    procedure, pass(entry) :: toType
+    procedure, pass(entry) :: toTypeVector
+    generic :: assignment(=) => toType
   end type TYPE
 
   interface newAttribute
     module procedure constructor
   end interface
 
-  interface assignment(=)
-    module procedure toType
-    module procedure toTypeVector
-  end interface
+!!$  !!$  interface assignment(=)
+!!$     module procedure toTypeVector
+!!$  end interface
+!!$
 
   interface toPointer
      module procedure toPointerType
@@ -578,12 +601,12 @@ contains
   end function constructor
 
   subroutine toType(value, entry)
-    logical,  intent(inout) :: value 
-    class (AbstractAttribute), intent(in) :: entry
+    class(*),  intent(inout) :: value
+    class (LogicalAttribute), intent(in) :: entry
 
-    select type (q => entry)
-    type is (LogicalAttribute)
-      value = q%value
+    select type (q => value)
+    type is (logical)
+       q = entry%value
     class default
       call throwException('Illegal conversion of LogicalAttribute.',255)
     end select
@@ -605,23 +628,26 @@ contains
   subroutine toTypeVector(value, references)
     use AttributeReference_mod
     logical, allocatable, intent(inout) :: value(:)
-    type (AttributeReference), intent(in) :: references(:)
-
+    class (AttributeReference), intent(in) :: references(:)
+    class (AbstractAttribute), pointer :: p
     logical, pointer :: q
     integer :: i, n
 
+    
     n = size(references)
     allocate(value(n))
     allocate(q)
     do i = 1, n
-!      q = references(i)%get()
-      call toType(q,references(i)%get())
-      value(i) = q
+       p => references(i)%get()
+!!$      q = p
+!!$      call toType(q,references(i)%get())
+!!$       call p%toType(q)
+      value(i) = p
     end do
     nullify(q)
 
-  end subroutine toTypeVector
 
+  end subroutine toTypeVector
 
 
   logical function equals(this, b)
@@ -722,8 +748,6 @@ module RealDP1dAttribute_mod
 
   public :: TYPE
   public :: newAttribute
-  public :: assignment(=), toPointer
-  
 
   type, extends(AbstractAttribute) :: TYPE
     real(kind=DP), allocatable :: value (:)
@@ -735,16 +759,16 @@ module RealDP1dAttribute_mod
     procedure :: writeUnformatted
     procedure :: readUnformatted
     procedure :: toString
+    procedure, pass(entry) :: toType
+    procedure, pass(entry) :: toTypeVector
+    generic :: assignment(=) => toType
   end type TYPE
 
   interface newAttribute
     module procedure constructor
   end interface
 
-  interface assignment(=)
-    module procedure toType
-    
-  end interface
+!!$  
 
   interface toPointer
      module procedure toPointerType
@@ -760,12 +784,12 @@ contains
   end function constructor
 
   subroutine toType(value, entry)
-    real(kind=DP), allocatable, intent(inout) :: value (:)
-    class (AbstractAttribute), intent(in) :: entry
+    class(*), allocatable, intent(inout) :: value
+    class (RealDP1dAttribute), intent(in) :: entry
 
-    select type (q => entry)
-    type is (RealDP1dAttribute)
-      value = q%value
+    select type (q => value)
+    type is (real(kind=DP))
+       q = entry%value
     class default
       call throwException('Illegal conversion of RealDP1dAttribute.',255)
     end select
@@ -784,6 +808,17 @@ contains
     end select
   end function toPointerType
 
+  subroutine toTypeVector(value, references)
+    use AttributeReference_mod
+    real(kind=DP), allocatable, intent(inout) :: value(:)
+    class (AttributeReference), intent(in) :: references(:)
+    class (AbstractAttribute), pointer :: p
+    real(kind=DP), pointer :: q
+    integer :: i, n
+
+        call throwException('Cannot convert to vector', 255)
+
+  end subroutine toTypeVector
 
 
   logical function equals(this, b)
@@ -888,8 +923,6 @@ module RealDPAttribute_mod
 
   public :: TYPE
   public :: newAttribute
-  public :: assignment(=), toPointer
-  public :: toTypeVector
 
   type, extends(AbstractAttribute) :: TYPE
     real(kind=DP) :: value
@@ -900,16 +933,19 @@ module RealDPAttribute_mod
     procedure :: writeUnformatted
     procedure :: readUnformatted
     procedure :: toString
+    procedure, pass(entry) :: toType
+    procedure, pass(entry) :: toTypeVector
+    generic :: assignment(=) => toType
   end type TYPE
 
   interface newAttribute
     module procedure constructor
   end interface
 
-  interface assignment(=)
-    module procedure toType
-    module procedure toTypeVector
-  end interface
+!!$  !!$  interface assignment(=)
+!!$     module procedure toTypeVector
+!!$  end interface
+!!$
 
   interface toPointer
      module procedure toPointerType
@@ -925,12 +961,12 @@ contains
   end function constructor
 
   subroutine toType(value, entry)
-    real(kind=DP),  intent(inout) :: value 
-    class (AbstractAttribute), intent(in) :: entry
+    class(*),  intent(inout) :: value
+    class (RealDPAttribute), intent(in) :: entry
 
-    select type (q => entry)
-    type is (RealDPAttribute)
-      value = q%value
+    select type (q => value)
+    type is (real(kind=DP))
+       q = entry%value
     class default
       call throwException('Illegal conversion of RealDPAttribute.',255)
     end select
@@ -952,23 +988,26 @@ contains
   subroutine toTypeVector(value, references)
     use AttributeReference_mod
     real(kind=DP), allocatable, intent(inout) :: value(:)
-    type (AttributeReference), intent(in) :: references(:)
-
+    class (AttributeReference), intent(in) :: references(:)
+    class (AbstractAttribute), pointer :: p
     real(kind=DP), pointer :: q
     integer :: i, n
 
+    
     n = size(references)
     allocate(value(n))
     allocate(q)
     do i = 1, n
-!      q = references(i)%get()
-      call toType(q,references(i)%get())
-      value(i) = q
+       p => references(i)%get()
+!!$      q = p
+!!$      call toType(q,references(i)%get())
+!!$       call p%toType(q)
+      value(i) = p
     end do
     nullify(q)
 
-  end subroutine toTypeVector
 
+  end subroutine toTypeVector
 
 
   logical function equals(this, b)
@@ -1069,8 +1108,6 @@ module String1dAttribute_mod
 
   public :: TYPE
   public :: newAttribute
-  public :: assignment(=), toPointer
-  
 
   type, extends(AbstractAttribute) :: TYPE
     character(len=MAX_LEN_ATTRIBUTE_STRING), allocatable :: value (:)
@@ -1082,16 +1119,16 @@ module String1dAttribute_mod
     procedure :: writeUnformatted
     procedure :: readUnformatted
     procedure :: toString
+    procedure, pass(entry) :: toType
+    procedure, pass(entry) :: toTypeVector
+    generic :: assignment(=) => toType
   end type TYPE
 
   interface newAttribute
     module procedure constructor
   end interface
 
-  interface assignment(=)
-    module procedure toType
-    
-  end interface
+!!$  
 
   interface toPointer
      module procedure toPointerType
@@ -1107,12 +1144,12 @@ contains
   end function constructor
 
   subroutine toType(value, entry)
-    character(len=MAX_LEN_ATTRIBUTE_STRING), allocatable, intent(inout) :: value (:)
-    class (AbstractAttribute), intent(in) :: entry
+    class(*), allocatable, intent(inout) :: value
+    class (String1dAttribute), intent(in) :: entry
 
-    select type (q => entry)
-    type is (String1dAttribute)
-      value = q%value
+    select type (q => value)
+    type is (character(len=MAX_LEN_ATTRIBUTE_STRING))
+       q = entry%value
     class default
       call throwException('Illegal conversion of String1dAttribute.',255)
     end select
@@ -1131,6 +1168,17 @@ contains
     end select
   end function toPointerType
 
+  subroutine toTypeVector(value, references)
+    use AttributeReference_mod
+    character(len=MAX_LEN_ATTRIBUTE_STRING), allocatable, intent(inout) :: value(:)
+    class (AttributeReference), intent(in) :: references(:)
+    class (AbstractAttribute), pointer :: p
+    character(len=MAX_LEN_ATTRIBUTE_STRING), pointer :: q
+    integer :: i, n
+
+        call throwException('Cannot convert to vector', 255)
+
+  end subroutine toTypeVector
 
 
   logical function equals(this, b)
@@ -1236,8 +1284,6 @@ module StringAttribute_mod
 
   public :: TYPE
   public :: newAttribute
-  public :: assignment(=), toPointer
-  public :: toTypeVector
 
   type, extends(AbstractAttribute) :: TYPE
     character(len=MAX_LEN_ATTRIBUTE_STRING) :: value
@@ -1248,16 +1294,19 @@ module StringAttribute_mod
     procedure :: writeUnformatted
     procedure :: readUnformatted
     procedure :: toString
+    procedure, pass(entry) :: toType
+    procedure, pass(entry) :: toTypeVector
+    generic :: assignment(=) => toType
   end type TYPE
 
   interface newAttribute
     module procedure constructor
   end interface
 
-  interface assignment(=)
-    module procedure toType
-    module procedure toTypeVector
-  end interface
+!!$  !!$  interface assignment(=)
+!!$     module procedure toTypeVector
+!!$  end interface
+!!$
 
   interface toPointer
      module procedure toPointerType
@@ -1273,12 +1322,12 @@ contains
   end function constructor
 
   subroutine toType(value, entry)
-    character(len=MAX_LEN_ATTRIBUTE_STRING),  intent(inout) :: value 
-    class (AbstractAttribute), intent(in) :: entry
+    class(*),  intent(inout) :: value
+    class (StringAttribute), intent(in) :: entry
 
-    select type (q => entry)
-    type is (StringAttribute)
-      value = q%value
+    select type (q => value)
+    type is (character(len=MAX_LEN_ATTRIBUTE_STRING))
+       q = entry%value
     class default
       call throwException('Illegal conversion of StringAttribute.',255)
     end select
@@ -1300,23 +1349,26 @@ contains
   subroutine toTypeVector(value, references)
     use AttributeReference_mod
     character(len=MAX_LEN_ATTRIBUTE_STRING), allocatable, intent(inout) :: value(:)
-    type (AttributeReference), intent(in) :: references(:)
-
+    class (AttributeReference), intent(in) :: references(:)
+    class (AbstractAttribute), pointer :: p
     character(len=MAX_LEN_ATTRIBUTE_STRING), pointer :: q
     integer :: i, n
 
+    
     n = size(references)
     allocate(value(n))
     allocate(q)
     do i = 1, n
-!      q = references(i)%get()
-      call toType(q,references(i)%get())
-      value(i) = q
+       p => references(i)%get()
+!!$      q = p
+!!$      call toType(q,references(i)%get())
+!!$       call p%toType(q)
+      value(i) = p
     end do
     nullify(q)
 
-  end subroutine toTypeVector
 
+  end subroutine toTypeVector
 
 
   logical function equals(this, b)
@@ -1420,7 +1472,8 @@ module Attributes_mod
   use String1dAttribute_mod
   use StringAttribute_mod
   implicit none
-  public :: assignment(=)
-  public :: toPointer
+!!$  public :: assignment(=)
+!!$  public :: toPointer
+!!$  public :: toType
 
 end module Attributes_mod  

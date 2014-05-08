@@ -20,6 +20,9 @@ module AbstractAttribute_mod
     procedure(writeUnformatted), deferred :: writeUnformatted
     procedure(readUnformatted), deferred :: readUnformatted
     procedure(clean), deferred :: clean
+    procedure(toType), pass(entry), deferred :: toType
+    procedure(toTypeVector), pass(entry), deferred :: toTypeVector
+    generic :: assignment(=) => toType, toTypeVector
   end type AbstractAttribute
 
   type AttributePointer
@@ -32,6 +35,18 @@ module AbstractAttribute_mod
   integer, parameter :: MAX_LEN_LINE = 1000
 
   abstract interface
+
+     subroutine toType(value, entry)
+        import AbstractAttribute
+        class(*), intent(inout) :: value
+        class (AbstractAttribute), intent(in) :: entry
+     end subroutine toType
+
+     subroutine toTypeVector(value, entry)
+        import AbstractAttribute
+        class(*), allocatable, intent(inout) :: value(:)
+        class (AbstractAttribute), intent(in) :: entry
+     end subroutine toTypeVector
 
     logical function equals(this, b)
       import AbstractAttribute

@@ -32,8 +32,6 @@ module m4_attributeType($1,$2,$3,$4)_mod
 
   public :: TYPE
   public :: newAttribute
-  public :: assignment(=), toPointer
-  ifelse($3,0,public :: toTypeVector)
 
   type, extends(AbstractAttribute) :: TYPE
     ifelse($3,0,
@@ -47,16 +45,20 @@ module m4_attributeType($1,$2,$3,$4)_mod
     procedure :: writeUnformatted
     procedure :: readUnformatted
     procedure :: toString
+    procedure, pass(entry) :: toType
+    procedure, pass(entry) :: toTypeVector
+    generic :: assignment(=) => toType
   end type TYPE
 
   interface newAttribute
     module procedure constructor
   end interface
 
-  interface assignment(=)
-    module procedure toType
-    ifelse($3,0,module procedure toTypeVector)
-  end interface
+!!$  ifelse($3,0,
+!!$  interface assignment(=)
+!!$     module procedure toTypeVector
+!!$  end interface
+!!$)
 
   interface toPointer
      module procedure toPointerType
@@ -72,12 +74,12 @@ contains
   end function constructor
 
   subroutine toType(value, entry)
-    downcase($1)[]$2, ifelse($3,1,allocatable[,]) intent(inout) :: value m4_dimensions($3)
-    class (AbstractAttribute), intent(in) :: entry
+    class(*), ifelse($3,1,allocatable[,]) intent(inout) :: value
+    class (m4_attributeType($1,$2,$3,$4)), intent(in) :: entry
 
-    select type (q => entry)
-    type is (m4_attributeType($1,$2,$3,$4))
-      value = q%value
+    select type (q => value)
+    type is (downcase($1)[]$2)
+       q = entry%value
     class default
       call throwException('Illegal conversion of m4_attributeType($1,$2,$3,$4).',255)
     end select
@@ -96,28 +98,32 @@ contains
     end select
   end function toPointerType
 
-ifelse($3,0,
-[  subroutine toTypeVector(value, references)
+  subroutine toTypeVector(value, entry)
     use AttributeReference_mod
     downcase($1)[]$2, allocatable, intent(inout) :: value(:)
-    type (AttributeReference), intent(in) :: references(:)
-
+    class (AttributeReference), intent(in) :: references(:)
+    class (AbstractAttribute), pointer :: p
     downcase($1)[]$2, pointer :: q
     integer :: i, n
 
+    ifelse($3,1,
+[    call throwException('Cannot convert to vector', 255)],
+[
     n = size(references)
     allocate(value(n))
     allocate(q)
     do i = 1, n
-!      q = references(i)%get()
-      call toType(q,references(i)%get())
-      value(i) = q
+       p => references(i)%get()
+!!$      q = p
+!!$      call toType(q,references(i)%get())
+!!$       call p%toType(q)
+      value(i) = p
     end do
     nullify(q)
+])
 
   end subroutine toTypeVector
-]
-)
+
 
   logical function equals(this, b)
     class (m4_attributeType($1,$2,$3,$4)), intent(in) :: this
@@ -228,7 +234,8 @@ module Attributes_mod
 foreachq([case],[m4_KIND_TYPES],[  use _cat([m4_attributeType],case)_mod
 ])dnl
   implicit none
-  public :: assignment(=)
-  public :: toPointer
+!!$  public :: assignment(=)
+!!$  public :: toPointer
+!!$  public :: toType
 
 end module Attributes_mod  
