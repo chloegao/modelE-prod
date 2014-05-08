@@ -48,8 +48,8 @@ endif
 
 ifeq ($(COMPILER),intel)
   FFLAGS += -assume realloc_lhs
-#  FFLAGS += -O0 -g -traceback -warn nousage -convert big_endian -assume protect_parens -ftz -fpp
-  FFLAGS += -O0 -g -traceback -convert big_endian -warn nousage -ftz -fpp -assume protect_parens
+  FFLAGS += -O0 -g -traceback -warn nousage -convert big_endian -assume protect_parens -ftz -fpp
+#  FFLAGS += -O0 -g -traceback# -warn nousage -convert big_endian -ftz -fpp
 endif
 
 

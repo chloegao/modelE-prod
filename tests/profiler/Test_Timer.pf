@@ -2,8 +2,7 @@ module Test_Timer_mod
    use pFUnit_mod
    use Timer_mod
    implicit none
-   private
-   public :: Test_Timer
+
    integer, parameter :: dp = selected_real_kind(14)
 
 @TestCase

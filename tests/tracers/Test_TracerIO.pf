@@ -5,9 +5,7 @@ module Test_TracerIO_mod
   use Dictionary_mod, only: Dictionary
   use AttributeDictionary_mod, only: AttributeDictionary
   implicit none
-  private
 
-   public :: Test_TracerIO
 
 @TestCase
    type, extends(TestCase) :: Test_TracerIO
@@ -20,10 +18,6 @@ module Test_TracerIO_mod
       procedure :: setUp     ! overides generic
       procedure :: tearDown  ! overrides generic
    end type Test_TracerIO
-
-  public :: testReadFromText
-  public :: testWriteFormatted
-  public :: testWriteUnformatted
 
 contains
 
@@ -87,7 +81,6 @@ contains
 
     iounit = this%iounit
     bundle = readFromText(iounit, this%newDefaultValues)
-
     @assertEqual(this%numTracers, bundle%size(), 'Incorrect number of tracers found.')
 
   end subroutine testReadFromText
