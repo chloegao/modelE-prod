@@ -85,12 +85,13 @@ C**** Initialise total energy (J/m^2)
       initialTotalEnergy = getTotalEnergy()
 
 #ifdef SCM
-      NSTEPSCM = ITIME-ITIMEI
+      !NSTEPSCM = ITIME-ITIMEI
       write(0,*) 'NSTEPSCM ',NSTEPSCM
       do L=1,LM
          SCM_SAVE_T(L) = T(1,1,L)
          SCM_SAVE_Q(L) = Q(1,1,L)
       enddo
+      NSTEPSCM = NSTEPSCM + 1
 c     do L=1,LM
 c        write(iu_scm_prt,'(a13,i3,4(f9.3))')
 c    &              'before dynam ',
