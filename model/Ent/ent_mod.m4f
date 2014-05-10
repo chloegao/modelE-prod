@@ -19,7 +19,7 @@ define(`m4_type_list',`real*8')
      &     , N_BPOOLS, N_PFT, N_CASA_LAYERS,NPOOLS,NLIVE,CARBON,PTRACE
       !use ent_prescrveg
       use entcells
-      use ent_pfts, only : CROPS,COVEROFFSET,ent_pft_names
+      use ent_pfts, only : CROPS,COVEROFFSET,ent_cover_names
 
       !use prescr_veg ! just for compilation purposes
       implicit none
@@ -33,7 +33,7 @@ define(`m4_type_list',`real*8')
       public N_PFT, N_CASA_LAYERS  !added last one -PK
       public PTRACE, NPOOLS, NLIVE, CARBON  
       public ent_config
-      public CROPS,COVEROFFSET,ent_pft_names
+      public CROPS,COVEROFFSET,ent_cover_names
 
       public entcelltype_public, ent_cell_pack, ent_cell_unpack
       public ent_get_exports, ent_set_forcings

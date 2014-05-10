@@ -72,7 +72,7 @@
       integer, parameter :: SAND = 17
       integer, parameter :: BDIRT = 18
 
-      character(len=13), parameter :: ent_pft_names(N_PFT) = (/
+      character(len=13), parameter :: ent_cover_names(N_COVERTYPES) = (/
      &     "ever_br_early",
      &     "ever_br_late ",
      &     "ever_nd_early",
@@ -88,7 +88,9 @@
      &     "c3_grass_ann ",
      &     "c3_grass_arct",
      &     "crops_herb   ",
-     &     "crops_woody  "
+     &     "crops_woody  ",
+     &     "bare_bright  ",
+     &     "bare_dark    "
      &     /)
 
 

@@ -170,7 +170,7 @@
         enddo
         call litter_patch(pp,Clossacc) 
         pp%LAI = laipatch
-        print *, 'laipatch',laipatch,pp%LAI
+        !print *, 'laipatch',laipatch,pp%LAI
         pp => pp%younger
       enddo
 
