@@ -43,7 +43,6 @@ contains
 
     pInteger => toPointer(this%dictionary%getReference('A'), pInteger)
     @assertEqual(1, pInteger)
-
   end subroutine testInsertIntegerAttribute
 
 @Test  
@@ -63,15 +62,14 @@ contains
 
   end subroutine testAssignAttributeReference
 
-! TODO: This test needs to be revisited
-! i = vector => Error: Illegal conversion of IntegerAttribute
-!!!@Test
+@Test
   subroutine testAssignAttributeReferenceMulti(this)
     use AttributeReference_mod
     use IntegerAttribute_mod
     class (Test_AttributeDictionary), intent(inout) :: this
     
-    type (AttributeReference), target :: vector(3)
+    type (VectorAttribute) :: vector
+    type (AttributeReference) :: refs(3)
     integer, allocatable :: i(:)
 
     type (IntegerAttribute) :: iAttr(3)
@@ -80,10 +78,11 @@ contains
     iAttr(2) = newAttribute(2)
     iAttr(3) = newAttribute(5)
 
-    call vector(1)%set(iAttr(1))
-    call vector(2)%set(iAttr(2))
-    call vector(3)%set(iAttr(3))
-
+    call refs(1)%set(iAttr(1))
+    call refs(2)%set(iAttr(2))
+    call refs(3)%set(iAttr(3))
+    vector = newVectorAttribute(refs)
+    
     i = vector
 
     @assertEqual([1,2,5], i)

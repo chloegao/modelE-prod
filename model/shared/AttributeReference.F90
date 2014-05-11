@@ -6,7 +6,7 @@ module AttributeReference_mod
   public :: AttributeReference
   public :: VectorAttribute
   public :: newVectorAttribute
-!!$  public :: assignment(=)
+  public :: assignment(=)
   public :: toPointer
   
   type AttributeReference
@@ -19,7 +19,7 @@ module AttributeReference_mod
 
   type, extends(AbstractAttribute) :: VectorAttribute
 !!$    private
-    type (AttributeReference), pointer :: ptr(:)
+    type (AttributeReference), allocatable :: items(:)
   contains
     procedure :: equals
     procedure :: print
@@ -29,13 +29,13 @@ module AttributeReference_mod
     procedure :: clean
     procedure :: getReferenceScalar
     procedure :: getReferenceVector
-    procedure, pass(entry) :: toType
-    procedure, pass(entry) :: toTypeVector
+    procedure :: size_
+    generic :: size => size_
   end type VectorAttribute
 
-!!$  interface assignment(=)
-!!$    module procedure toType
-!!$  end interface assignment(=)
+  interface assignment(=)
+    module procedure toType_
+  end interface assignment(=)
 
   interface toPointer
      module procedure toPointerType
@@ -67,28 +67,26 @@ contains
 
     n = size(b)
 
-    allocate(this%ptr(n))
+    allocate(this%items(n))
     do i = 1, n
-      this%ptr(i)%ptr => b(i)%ptr ! shallow copy - preserve references
+      this%items(i)%ptr => b(i)%ptr ! shallow copy - preserve references
     end do
 
   end function newVectorAttribute
   
-  subroutine toType(value, entry)
-     class(*), intent(inout) :: value
-     class (VectorAttribute), intent(in) :: entry
+  subroutine toType_(a, b)
+    type (AttributeReference), allocatable, intent(out) :: a(:)
+    class (AbstractAttribute), intent(in) :: b
 
-     call throwException('unsupported conversion',255)
+    select type (p => b)
+    type is (VectorAttribute)
+      a = p%items
+    class default
+      call throwException('Illegal conversion of VectorAttribute.',255)
+    end select
 
-  end subroutine toType
+  end subroutine toType_
 
-
-  subroutine toTypeVector(value, entry)
-     class(*), allocatable, intent(inout) :: value(:)
-     class (VectorAttribute), intent(in) :: entry
-
-     call throwException('unsupported conversion',255)
-  end subroutine toTypeVector
 
   logical function equals(this, b)
     class (VectorAttribute), intent(in) :: this
@@ -140,10 +138,16 @@ contains
 
      select type (this)
      class is (VectorAttribute)
-        ptr => this%ptr
+        ptr => this%items
      end select
 
   end function toPointerType
+
+  integer function size_(this)
+     class (VectorAttribute), intent(in) :: this
+     size_ = size(this%items)
+  end function size_
+  
 
 end module AttributeReference_mod
 

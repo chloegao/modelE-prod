@@ -153,7 +153,7 @@ contains
 
   end function isOdd
 
-@test
+!@test
   subroutine testSubsetCopy(this)
     class (TestTracerBundleSubset), intent(inout) :: this
     type (Tracer) :: t
@@ -179,7 +179,7 @@ contains
 
   end subroutine testGetEvenSubset
 
-@test
+!@test
   subroutine testGetReference(this)
     class (TestTracerBundleSubset), intent(inout) :: this
     class (Tracer), pointer :: tp
@@ -190,7 +190,7 @@ contains
 
   end subroutine testGetReference
 
-@test
+!@test
   subroutine testInsert(this)
     class (TestTracerBundleSubset), intent(inout) :: this
     type (Tracer) :: t
@@ -222,7 +222,7 @@ contains
 !!$  end subroutine testMergeSubset
 !!$
 
-@test
+!@test
   subroutine testSetAttribute(this)
     use Attributes_mod, only: newAttribute
 ! Under gfortran we need to use Attributes_mod and then run crashes
@@ -239,7 +239,7 @@ contains
 
   end subroutine testSetAttribute
 
-@test
+!@test
   subroutine testGetAttribute(this)
 ! Under gfortran we need to use Attributes_mod and then run crashes
 ! with seg fault - else we get compilation errors
