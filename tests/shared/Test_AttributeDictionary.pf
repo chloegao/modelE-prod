@@ -1,8 +1,16 @@
+! Workaround for ifort bug with -assume protect_parens
+#ifdef PROTECT_PARENS
+#define ASSIGN_ATTR(a,b) call toType(a,b)
+#else
+#define ASSIGN_ATTR(a,b) a = b
+#endif
+
+
 module Test_AttributeDictionary_mod
   use pfunit_mod
   use AttributeDictionary_mod
   use AbstractAttribute_mod
-  use Attributes_mod, only: assignment(=)
+  use Attributes_mod
 
   implicit none
 
@@ -38,7 +46,7 @@ contains
 
     call this%dictionary%insert('A', 1)
 
-    i = this%dictionary%getReference('A')
+    ASSIGN_ATTR(i, this%dictionary%getReference('A'))
     @assertEqual(1, i)
 
     pInteger => toPointer(this%dictionary%getReference('A'), pInteger)
@@ -83,7 +91,8 @@ contains
     call refs(3)%set(iAttr(3))
     vector = newVectorAttribute(refs)
     
-    i = vector
+
+    ASSIGN_ATTR(i, vector)
 
     @assertEqual([1,2,5], i)
 
@@ -99,7 +108,7 @@ contains
 
     call this%dictionary%insert('A', [1,2])
 
-    aInteger = this%dictionary%getReference('A')
+    ASSIGN_ATTR(aInteger, this%dictionary%getReference('A'))
     @assertEqual([1,2], aInteger)
 
     pInteger => toPointer( this%dictionary%getReference('A'), pInteger)
@@ -116,7 +125,7 @@ contains
     real*8, parameter :: VALUE = 1.23d0
     call this%dictionary%insert('A', VALUE)
 
-    pRealDP = this%dictionary%getReference('A')
+    ASSIGN_ATTR(pRealDP, this%dictionary%getReference('A'))
     @assertEqual(VALUE, pRealDP)
 
   end subroutine testInsertRealDPAttribute
@@ -130,7 +139,7 @@ contains
     real*8, parameter :: VALUES(3) = [1.2,3.4,5.6]
     call this%dictionary%insert('A', VALUES)
 
-    pRealDP = this%dictionary%getReference('A')
+    ASSIGN_ATTR(pRealDP, this%dictionary%getReference('A'))
     @assertEqual(VALUES, pRealDP)
 
   end subroutine testInsertRealDP1DAttribute
@@ -161,10 +170,10 @@ contains
     call this%dictionary%insert('A', TRUE)
     call this%dictionary%insert('B', FALSE)
 
-    pLogical = this%dictionary%getReference('A')
+    ASSIGN_ATTR(pLogical, this%dictionary%getReference('A'))
     @assertTrue(pLogical)
  
-    pLogical = this%dictionary%getReference('B')
+    ASSIGN_ATTR(pLogical, this%dictionary%getReference('B'))
     @assertFalse(pLogical)
 
   end subroutine testInsertLogicalAttribute
@@ -190,16 +199,16 @@ contains
     @assertTrue(this%dictionary%has('gamma'), 'There should be a "gamma".')
     @assertTrue(this%dictionary%has('delta'), 'There should be a "delta".')
 
-    betaValue = this%dictionary%getReference('beta')
+    ASSIGN_ATTR(betaValue, this%dictionary%getReference('beta'))
     @assertEqual(2, betaValue, 'Wrong value for "beta".')
 
-    gammaValue = this%dictionary%getReference('gamma')
+    ASSIGN_ATTR(gammaValue, this%dictionary%getReference('gamma'))
     @assertEqual(3.d+0, gammaValue, 'Wrong value for "gamma".')
 
-    gammaValue = this%dictionary%getReference('Gamma')
+    ASSIGN_ATTR(gammaValue, this%dictionary%getReference('Gamma'))
     @assertEqual(3.d+0, gammaValue, 'Wrong value for "Gamma".')
 
-    deltaValues = this%dictionary%getReference('delta')
+    ASSIGN_ATTR(deltaValues, this%dictionary%getReference('delta'))
     @assertTrue(all([.true.,.false.,.true.,.true.] .eqv. deltaValues), 'Wrong value for "delta".')
 
   end subroutine testComplexCase

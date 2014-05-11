@@ -1,3 +1,10 @@
+! Workaround for ifort bug with -assume protect_parens
+#ifdef PROTECT_PARENS
+#define ASSIGN_ATTR(a,b) call toType(a,b)
+#else
+#define ASSIGN_ATTR(a,b) a = b
+#endif
+
 module Test_Parser_mod
    use pFUnit_mod
    use AbstractAttribute_mod
@@ -361,13 +368,13 @@ contains
     @assertTrue(aDictionary%has('gamma'), 'There should be a "gamma".')
     @assertTrue(aDictionary%has('delta'), 'There should be a "delta".')
 
-    betaValue = aDictionary%getReference('beta')
+    ASSIGN_ATTR(betaValue, aDictionary%getReference('beta'))
     @assertEqual(2, betaValue, 'Wrong value for "beta".')
 
     gammaValue => toPointer(aDictionary%getReference('gamma'), gammaValue)
     @assertEqual(3.d+0, gammaValue, 'Wrong value for "gamma".')
 
-    gammaValue = toPointer(aDictionary%getReference('Gamma'), gammaValue)
+    ASSIGN_ATTR(gammaValue, aDictionary%getReference('Gamma'))
     @assertEqual(3.d+0, gammaValue, 'Wrong value for "Gamma".')
 
     deltaValues => toPointer(aDictionary%getReference('delta'), deltaValues)

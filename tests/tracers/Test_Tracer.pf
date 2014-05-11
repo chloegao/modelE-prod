@@ -1,3 +1,10 @@
+! Workaround for ifort bug with -assume protect_parens
+#ifdef PROTECT_PARENS
+#define ASSIGN_ATTR(a,b) call toType(a,b)
+#else
+#define ASSIGN_ATTR(a,b) a = b
+#endif
+
 module Test_Tracer_mod
   use pFUnit_mod
   use Tracer_mod
@@ -40,7 +47,7 @@ contains
     real(kind=dp) :: found
 
     expected = 44.0
-    found = this%CO2%getReference('molecularMass')
+    ASSIGN_ATTR(found, this%CO2%getReference('molecularMass'))
     @assertEqual(expected, found)
 
   end subroutine testSetProperty
@@ -87,7 +94,7 @@ contains
     @assertTrue(this%H2O17%has('molecularMass'))
 
     expected = 19.0
-    found = H2O17copy%getReference('molecularMass')
+    ASSIGN_ATTR(found, H2O17copy%getReference('molecularMass'))
     @assertEqual(expected, found)
 
   end subroutine testCopyInto
@@ -101,7 +108,7 @@ contains
 
      t = newTracer('noname')
      call t%insert('index', 5)
-     i = t%getReference('index')
+     ASSIGN_ATTR(i,t%getReference('index'))
 
      @assertEqual(5, i)
      

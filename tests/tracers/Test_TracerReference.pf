@@ -1,3 +1,10 @@
+! Workaround for ifort bug with -assume protect_parens
+#ifdef PROTECT_PARENS
+#define ASSIGN_ATTR(a,b) call toType(a,b)
+#else
+#define ASSIGN_ATTR(a,b) a = b
+#endif
+
 module Test_TracerReference_mod
   use pFUnit_mod
   use Tracer_mod
@@ -90,10 +97,10 @@ contains
     call this%tracerRef%insert('B', .false.)
 
     found => this%tracerRef%get()
-    pLogical = found%getReference('A')
+    ASSIGN_ATTR(pLogical, found%getReference('A'))
     @assertTrue(pLogical)
 
-    pLogical = found%getReference('B')
+    ASSIGN_ATTR(pLogical, found%getReference('B'))
     @assertFalse(pLogical)
 
   end subroutine testInsertLogicalAttribute
