@@ -153,7 +153,7 @@ contains
 
   end function isOdd
 
-!@test
+@test
   subroutine testSubsetCopy(this)
     class (TestTracerBundleSubset), intent(inout) :: this
     type (Tracer) :: t
