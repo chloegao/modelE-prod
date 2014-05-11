@@ -1,3 +1,10 @@
+! Workaround for ifort bug with -assume protect_parens
+#ifdef PROTECT_PARENS
+#define ASSIGN_ATTR(a,b) call toType(a,b)
+#else
+#define ASSIGN_ATTR(a,b) a = b
+#endif
+
 module Test_TracerBundleSubset_mod
   use pFUnit_mod
   use Tracer_mod
@@ -128,7 +135,7 @@ contains
 
     ! if tracer parity is even then return true
     if (t%has('parity')) then
-      i = t%getReference("parity") 
+      ASSIGN_ATTR(i, t%getReference("parity"))
       isEven = (mod(i,2) == 0)
     else
       isEven = .false.
@@ -145,7 +152,7 @@ contains
 
     ! if tracer parity is odd then return true
     if (t%has('parity')) then
-      parity = t%getReference("parity")
+      ASSIGN_ATTR(parity, t%getReference("parity"))
       isOdd = (mod(parity,2) == 1)
     else
       isOdd = .false.
@@ -234,7 +241,7 @@ contains
 
     call this%subsetHasMM%setAttribute('CO2', 'parity',newAttribute(0))
     expected = 0
-    found = this%subsetHasMM%getAttribute('CO2', 'parity')
+    ASSIGN_ATTR(found, this%subsetHasMM%getAttribute('CO2', 'parity'))
     @assertEqual(expected, found)
 
   end subroutine testSetAttribute
@@ -249,7 +256,7 @@ contains
     real(kind=DP) :: found
 
     expected = 4.4d+1
-    found = this%subsetHasMM%getAttribute('CO2', 'molecularMass')
+    ASSIGN_ATTR(found, this%subsetHasMM%getAttribute('CO2', 'molecularMass'))
     @assertEqual(expected, found)
 
   end subroutine testGetAttribute
@@ -260,7 +267,7 @@ contains
     real(kind=DP), pointer :: found
 
     expected = 4.4d+1
-    found = this%subsetHasMM%findAttribute('CO2', 'molecularMass')
+    ASSIGN_ATTR(found, this%subsetHasMM%findAttribute('CO2', 'molecularMass'))
     @assertEqual(expected, found)
 
   end subroutine testFindAttribute
