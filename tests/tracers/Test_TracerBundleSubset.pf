@@ -179,7 +179,7 @@ contains
 
   end subroutine testGetEvenSubset
 
-!@test
+@test
   subroutine testGetReference(this)
     class (TestTracerBundleSubset), intent(inout) :: this
     class (Tracer), pointer :: tp
@@ -190,7 +190,7 @@ contains
 
   end subroutine testGetReference
 
-!@test
+@test
   subroutine testInsert(this)
     class (TestTracerBundleSubset), intent(inout) :: this
     type (Tracer) :: t
@@ -205,24 +205,24 @@ contains
 
   end subroutine testInsert
 
-!!$@test
-!!$  subroutine testMergeSubset(this)
-!!$    use AbstractAttribute_mod
-!!$    class (TestTracerBundleSubset), intent(inout) :: this
-!!$    class (Tracer), pointer :: tp
-!!$    character(len=MAX_LEN_ATTRIBUTE_STRING), pointer :: name
-!!$
-!!$    tp => this%subsetOdd%getReference('strange')
-!!$! Merge even and odd subsets
-!!$    call this%subsetEven%merge(this%subsetOdd)
-!!$    tp => this%subsetEven%getReference('strange')
-!!$    name => tp%getName()
-!!$    @assertEqual('strange', name)
-!!$
-!!$  end subroutine testMergeSubset
-!!$
+@test
+  subroutine testMergeSubset(this)
+    use AbstractAttribute_mod
+    class (TestTracerBundleSubset), intent(inout) :: this
+    class (Tracer), pointer :: tp
+    character(len=MAX_LEN_ATTRIBUTE_STRING), pointer :: name
 
-!@test
+    tp => this%subsetOdd%getReference('strange')
+! Merge even and odd subsets
+    call this%subsetEven%merge(this%subsetOdd)
+    tp => this%subsetEven%getReference('strange')
+    name => tp%getName()
+    @assertEqual('strange', name)
+
+  end subroutine testMergeSubset
+
+
+@test
   subroutine testSetAttribute(this)
     use Attributes_mod, only: newAttribute
 ! Under gfortran we need to use Attributes_mod and then run crashes
@@ -239,7 +239,7 @@ contains
 
   end subroutine testSetAttribute
 
-!@test
+@test
   subroutine testGetAttribute(this)
 ! Under gfortran we need to use Attributes_mod and then run crashes
 ! with seg fault - else we get compilation errors
