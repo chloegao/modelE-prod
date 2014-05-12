@@ -5,7 +5,7 @@
 !@auth NR
 
       USE obio_dim
-      use obio_ocalbedo_mod, only: nlt
+      use ocalbedo_mod, only: nlt
 
 #ifdef OBIO_ON_GARYocean
       USE OCEANRES, only : kdm=>lmo

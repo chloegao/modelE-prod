@@ -2568,6 +2568,7 @@ c
       jgrid_ij(k) = 2
       ir_ij(k) = ir_m45_130
 c
+#ifdef CHL_DIAGNOSTIC
       k=k+1
       IJ_CHL = k
       lname_ij(k) = 'Total Chlorophyll'
@@ -2577,6 +2578,7 @@ c
       ia_ij(k) = ia_rad
       scale_ij(k) = 1.
       denom_ij(k) = IJ_POCEAN
+#endif /* #ifdef CHL_DIAGNOSTIC */
 c
 
 #ifdef TRACERS_GASEXCH_ocean

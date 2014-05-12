@@ -13,7 +13,6 @@ obio_init|$(R8)|                      !
 obio_bioinit|$(R8)|                   !
 obio_daysetrad|$(R8)|                 !
 obio_daysetbio|$(R8)|                 !
-obio_ocalbedo|$(R8)|                  !
 obio_sfcirr|$(R8)|                    !
 obio_limits|$(R8)|                    !
 obio_edeu|$(R8)|                      !
@@ -21,7 +20,6 @@ obio_ptend|$(R8)|                     !
 obio_update|$(R8)|                    !
 obio_carbon|$(R8)|                    !
 obio_trint|$(R8)|                     !
-obio_reflectance|$(R8)|
 obio_sinksettl|$(R8)|
 obio_archyb
 obio_diffmod|$(R8)|

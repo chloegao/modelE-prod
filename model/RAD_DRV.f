@@ -1792,7 +1792,8 @@ c           ICKERR=ICKERR+1
 C**** Set Chlorophyll concentration
       if (POCEAN.gt.0) then
           LOC_CHL = atmocn%chl(I,J)
-          AIJ(I,J,IJ_CHL)=AIJ(I,J,IJ_CHL)+atmocn%CHL(I,J)*FOCEAN(I,J)
+          if (ij_chl.gt.0)
+     .       AIJ(I,J,IJ_CHL)=AIJ(I,J,IJ_CHL)+atmocn%CHL(I,J)*FOCEAN(I,J)
 !         write(*,'(a,3i5,e12.4)')'RAD_DRV:',
 !    .    itime,i,j,chl(i,j)
       endif

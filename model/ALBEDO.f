@@ -294,7 +294,7 @@ C     -------------------
 !@auth A. Lacis/V. Oinas (modifications by I. Aleinov/G. Schmidt)
 
       use fluxes, only: atmocn
-      use obio_ocalbedo_mod, only: obio_ocalbedo
+      use ocalbedo_mod, only: ocalbedo
 
 #ifdef SCM
       USE SCMCOM, only : ASRFALBEDO,iu_scm_prt
@@ -424,14 +424,14 @@ C**** chlorophyl modification of albedo
 ! bocvn is the diffuse albedo (function of wind speed)
 ! xocnv is the direct albedo (function of the solar zenith angle)
 ! chlorophyll changes only the diffuse albedo
-! however, direct albedo calculation in obio_ocalbedo is 
+! however, direct albedo calculation in ocalbedo is 
 ! slightly different than in the default model.
 
 
-      !call obio_ocalbedo with hycgr=.false. because the
+      !call ocalbedo with hycgr=.false. because the
       !calculation is done on the amtos grid here and we
       !need to return bocvn,xocvn but dont return rod and ros
-        call  obio_ocalbedo(WMAG,COSZ,BOCVN,XOCVN,
+        call  ocalbedo(WMAG,COSZ,BOCVN,XOCVN,
      .     LOC_CHL,dummy1,dummy2,.false.,ILON,JLAT)
       endif
 
