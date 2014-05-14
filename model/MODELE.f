@@ -590,6 +590,8 @@ C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
       USE MODEL_COM, only : stop_on
       implicit none
       stop_on = .true.
+      print *,"got signal 15"
+      call sys_flush(6)
       end subroutine sig_stop_model
 
 

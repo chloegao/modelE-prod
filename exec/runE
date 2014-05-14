@@ -72,6 +72,7 @@ fi
 run_command=${RUNID}.qsub
 cd "$CMRUNDIR/$RUNID"
 echo "#!/bin/sh" > $run_command
+echo "trap '' TERM" >> $run_command
 echo "cd $CMRUNDIR/$RUNID" >> $run_command
 echo "./$RUNID $OPTS" >> $run_command
 chmod 755 $run_command

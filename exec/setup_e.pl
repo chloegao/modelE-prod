@@ -364,6 +364,7 @@ if ( $mpi ) {
 open RUNID, ">$runID" or die "can't open $runID for writing\n";
 print RUNID <<EOF;
 \#!/bin/sh
+    trap '' TERM
     PRTFILE=${runID}.PRT
     IFILE="I"
     NP="\$MP_SET_NUMTHREADS"
