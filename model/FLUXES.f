@@ -363,7 +363,7 @@
 C**** array of Chlorophyll data for use in ocean albedo calculation
 !@var CHL Chlorophyll concentration data (mgr/m**3)
          REAL*8, DIMENSION(:,:), POINTER :: CHL
-         logical :: chl_defined ! df: temporary until obio_ocalbedo is made more general
+         logical :: chl_defined ! df: temporary until ocalbedo is made more general
 
 !@var eflow_gl global integral of eflowo
          real*8 :: eflow_gl=0.

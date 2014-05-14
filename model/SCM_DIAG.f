@@ -206,7 +206,7 @@ C--- Added by J.W. ending ---C
  
       DATA  daysec/86400./
 
-      if (NSTEPSCM.eq.0) then
+      if(iu_scm_diag.lt.0) then ! startup
           call openunit('scm.save.sige',iu,.true.,.false.)
           WRITE(iu) SIGE
           call closeunit(iu)

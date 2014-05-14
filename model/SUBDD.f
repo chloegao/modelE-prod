@@ -315,6 +315,10 @@ c SUSA
 !@+     output fields
       integer, parameter :: namedd_strlen=sname_strlen
 
+!@itimei_subdd timestep counter at beginning of execution
+!@+           (only matters for write_one_file case)
+      integer :: itimei_subdd
+
 !@type info_type a derived type for metadata about output fields
       type info_type
       character(len=sname_strlen) :: sname='no output'
@@ -1158,7 +1162,8 @@ c
       enddo
 
       if(write_one_file) then
-        nperiod = ceiling(real(itimee-itimei)/real(nsubdd))
+        !nperiod = ceiling(real(itimee-itimei)/real(nsubdd))
+        nperiod = ceiling(real(itimee-itimei_subdd)/real(nsubdd))
       else
         nperiod = ceiling(real(days_per_file*nday)/real(nsubdd))
       endif
@@ -1325,7 +1330,8 @@ c
       ndiags = 1
 
       if(write_one_file) then
-        nperiod = ceiling(real(itimee-itimei)/real(nsubdd))
+        !nperiod = ceiling(real(itimee-itimei)/real(nsubdd))
+        nperiod = ceiling(real(itimee-itimei_subdd)/real(nsubdd))
       else
         nperiod = ceiling(real(days_per_file*nday)/real(nsubdd))
       endif
@@ -1375,7 +1381,7 @@ c
 !@+   and declare subdaily diag metadata and allocate space
 !@+   for requested outputs
 !@auth M. Kelley
-      use model_com, only : dtsrc,nday
+      use model_com, only : dtsrc,nday,itime
       use resolution, only : lm
       use constant, only : sday,kapa
       use diag_com, only : cdl_ij_template
@@ -1385,7 +1391,7 @@ c
       use subdd_mod, only : write_daily_files,days_per_file,
      &     vinterp_using_timeavgs,write_monthly_files,write_one_file,
      &     create_group,subdd_ngroups,subdd_ngroups_max,subdd_groups,
-     &     cdl_ijt,info_type,namedd_strlen,sname_strlen,
+     &     cdl_ijt,info_type,namedd_strlen,sname_strlen,itimei_subdd,
      &     lmaxsubdd,subdd_npres,subdd_pres,subdd_pk,aijph_l1,aijph_l2
       use ghy_com, only: ngm
       implicit none
@@ -1445,6 +1451,8 @@ C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
 
       call sync_param( "Nsubdd",Nsubdd)
       if(Nsubdd.le.0) return
+
+      itimei_subdd = itime
 
       allocate(subdd_groups(subdd_ngroups_max))
 
@@ -2785,6 +2793,7 @@ C**** cached_subdd on model levels
       use model_com, only : itime,itimei,nday,dtsrc,modelEclock
       use subdd_mod, only : sched_src,subdd_type
      &     ,write_one_file,write_monthly_files,days_per_file
+     &     ,itimei_subdd
       implicit none
       integer :: istep,subdd_period,jdate
       type(subdd_type) :: subdd
@@ -2804,7 +2813,8 @@ C**** cached_subdd on model levels
         subdd_period = max(1,sum(subdd%nacc(:,sched_src)))
       else
         if(write_one_file) then
-          istep = itime-itimei
+          !istep = itime-itimei
+          istep = itime-itimei_subdd
         elseif(write_monthly_files) then
           call modelEclock%getDate(date=jdate)
           istep = (jdate-1)*nday + mod(itime,nday)

@@ -130,7 +130,7 @@
 ! will have something here
 #endif
 #endif
-      use obio_ocalbedo_mod, only: obio_ocalbedo
+      use ocalbedo_mod, only: ocalbedo
 
       USE MODEL_COM, only: modelEclock
      . ,itime,iyear1,aMON,dtsrc
@@ -685,7 +685,7 @@ cdiag    endif
          !compute rod and ros only here. not ocean albedo.
          !ocean albedo is computed in ALBEDO.f
          !have to have hygr =  .true. 
-         call obio_ocalbedo(wind,solz,dummy,dummy,dummy1,
+         call ocalbedo(wind,solz,dummy,dummy,dummy1,
      .                      rod,ros,.true.,i,j)
 
 

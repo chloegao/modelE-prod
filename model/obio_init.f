@@ -55,7 +55,7 @@ c
 #endif
       USE pario
 
-      use obio_ocalbedo_mod, only: lam, ocalbedo_init=>init
+      use ocalbedo_mod, only: lam, ocalbedo_init=>init
       use RunTimeControls_mod, only: obio_rad_coupling,
      .      chl_from_seawifs, chl_from_obio
 

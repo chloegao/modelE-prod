@@ -1,4 +1,228 @@
-      logical function obio_reflectance(r2,chl_in,lam,nlt,ilon,jlat)
+#include "rundeck_opts.h"      
+
+      module ocalbedo_mod
+
+      implicit none
+
+      integer, parameter :: nlt=33                ! number of spectral channels
+      real*8, dimension(nlt), private :: wfac
+      real*8, dimension(nlt), protected :: aw, bw ! absorption,scattering coefficients of water
+
+      integer, dimension(nlt), protected :: lam   ! wavelength in nm
+      logical, private :: initialized=.false.
+
+      contains
+
+      subroutine ocalbedo(wind,solz,bocvn,xocvn,chl,
+     .                         rod,ros,hycgr,i,j)
+
+***********************************************************************
+***** this routine is used by both atmosphere and ocean at each (i,j)
+***** where implicitly it is assumed that
+***** wind,solz,bocvn,xocvn,chl are in the atmos gird if hycgr=.false. 
+***** wind,solz,                are in the ocean gird if hycgr=.true.
+***** when this routine is called from within ocean, it does not compute
+***** albedo coefficients. Those are computed on the atmos grid.
+***** when this routine is called from within ocean, it does not pass
+***** reflectances
+***********************************************************************
+
+c  Computes ocean surface albedo from solar zenith angle (solz)
+c  and wind speed (wind, m/s).
+c  Albedo is provided as direct (albd) and diffuse (albs).
+c  Derive surface reflectance as a function of solz and wind
+c  Includes spectral dependence of foam reflectance derived from Frouin
+c  et al., 1996 (JGR)
+      USE CONSTANT, only : radian
+
+      implicit none
+
+      real*8, intent(in)  :: wind, solz, chl
+      logical, intent(in) :: hycgr
+      integer, intent(in) :: i,j
+      real*8, dimension(6), intent(out) :: bocvn, xocvn
+      real*8, dimension(:), intent(out) :: rod, ros
+
+      integer nl
+      real*8 cn,rof,rosps,rospd,rtheta
+      real*8 sintr,rthetar,rmin,rpls,sinrmin,sinrpls,tanrmin
+      real*8 tanrpls,sinp,tanp,a,b
+
+      real*8 :: sunz
+ 
+      real*8 :: sum1, sum2, part_sum
+      logical :: res
+      real*8, dimension(nlt) :: refl
+
+!!!!!!!!!!  Boris' part !!!!!!!!!!!!!!!!!
+!@sum Those are the weights which were obtained by normalizing solar flux
+!@sum for the Lamda's range 0 - 4000 nm. We used Landau fitting function for it.
+!@sum They are used to be used for getting 6 band approximation based on 33
+!@sum Watson Gregg band calculations
+!@sum band_6(j) = Sum(band_33(i)*weight(i))/Sum(part_sum(i))
+C**** WHY IS WEIGHT ONLY DECLARED TO BE 31 AND NOT 33?
+      real*8 :: weight(31) = (/0.0158378,0.0201205,0.0241885,0.0277778,
+     .                       0.0307124,0.0329082,0.0343586,0.0351143,
+     .                       0.0352609,0.0349008,0.0341389,0.0330742,
+     .                       0.0317941,0.0303725,0.0288696,0.0273329,
+     .                       0.0500921,0.0643897,0.0686573,0.0532013,
+     .                       0.0416379,0.0330341,0.0265929,0.0217156,
+     .                       0.0179725,0.0150596,0.0127618,0.0158128,
+     .                       0.0232875,0.0313132,0.0184843/)
+
+C**** gband is the distribution of the 31 bands for the 6 band GISS code
+      integer :: gband(7) = (/ 1, 18, 19, 23, 26, 30, 32 /)
+c      real*8 :: part_sum(6) = (/0.526854,0.0643897,0.196531,0.066281,
+c     .                        0.066922,0.0497974/)
+        real*8 :: lam8(nlt)
+!!!!!!!!!! end Boris' part !!!!!!!!!!!!!!!!!
+
+      real*8 :: roair, rn
+      integer :: ngiss
+
+      call init
+      rn = 1.341d0  ! index of refraction of pure seawater
+      roair = 1.2D3 ! density of air g/m3  SHOULD BE INTERACTIVE?
+
+      sunz=acos(solz)/radian  !in degs
+
+c  Foam and diffuse reflectance
+      if (wind .gt. 4.0) then
+        if (wind .le. 7.0) then
+          cn = 6.2D-4 + 1.56D-3/wind
+          rof = roair*cn*2.2D-5*wind*wind - 4.0D-4
+        else
+          cn = 0.49D-3 + 0.065D-3*wind
+          rof = (roair*cn*4.5D-5 - 4.0D-5)*wind*wind
+        endif
+        rosps = 0.057d0
+      else
+        rof = 0.0
+        rosps = 0.066d0
+      endif
+      
+c  Direct
+c   Fresnel reflectance for sunz < 40, wind < 2 m/s
+      if (sunz .lt. 40.0 .or. wind .lt. 2.0) then
+        if (sunz .eq. 0.0) then
+          rospd = 0.0211d0
+        else
+          rtheta = sunz*radian
+          sintr = sin(rtheta)/rn
+          rthetar = asin(sintr)
+          rmin = rtheta - rthetar
+          rpls = rtheta + rthetar
+          sinrmin = sin(rmin)
+          sinrpls = sin(rpls)
+          tanrmin = tan(rmin)
+          tanrpls = tan(rpls)
+          sinp = (sinrmin*sinrmin)/(sinrpls*sinrpls)
+          tanp = (tanrmin*tanrmin)/(tanrpls*tanrpls)
+          rospd = 0.5*(sinp + tanp)
+        endif
+      else
+       !Empirical fit otherwise
+        a = 0.0253d0
+        b = -7.14D-4*wind + 0.0618d0
+        rospd = a*exp(b*(sunz-40.0))
+      endif
+
+c  Reflectance totals
+      do nl = 1,nlt
+        ros(nl) = rosps + rof*wfac(nl)
+        rod(nl) = rospd + rof*wfac(nl)
+      enddo
+
+      !lam is integer, lam8 is real8
+      lam8=float(lam)
+
+      if (hycgr) return  !we do not compute albedo coefs
+                         !from within ocean, but from atmos
+      
+!!!!!!!!!! Boris' part !!!!!!!!!!!!!!!!!
+C**** get chlorophyll term
+      ! function reflectance calculates reflectance 
+      ! as a function of chl and wavelength (lam)
+
+      res = reflectance(refl,chl,lam8,nlt,i,j)
+ 
+!  transition between band33 and band6 approximation
+
+! loop over giss radiation bands
+      do ngiss=1,6
+        sum1 = 0.0
+        sum2 = 0.0
+        do nl=gband(ngiss), gband(ngiss+1)-1 
+          if (refl(nl).lt.0) refl(nl) = 0.0
+          ros(nl) = ros(nl) + refl(nl)
+          sum1 = sum1+weight(nl)*rod(nl)
+          sum2 = sum2+weight(nl)*ros(nl)
+        enddo
+        part_sum=sum(weight(gband(ngiss):gband(ngiss+1)-1))
+        xocvn(ngiss) = sum1/part_sum
+        bocvn(ngiss) = sum2/part_sum
+
+      if (xocvn(ngiss).ge.1. .or. bocvn(ngiss).ge.1.) then
+         print*, 'XOCVN/BOCVN greater than 1 at ngiss,i,j=',
+     .                ngiss,i,j
+         do nl=gband(ngiss), gband(ngiss+1)-1
+           write(*,'(i5,4e12.4)')
+     .     nl,rod(nl),ros(nl),refl(nl),weight(gband(ngiss))
+         enddo
+         stop
+      endif
+      enddo
+    
+!!!!!!!!!! end Boris' part !!!!!!!!!!!!!!!!!
+      return
+      end subroutine ocalbedo
+
+!=======================================================================
+      subroutine init
+
+      use filemanager, only: openunit, closeunit
+      implicit none
+
+      real*8 :: saw, sbw
+      real*8 :: b0, b1, b2, b3, a0, a1, a2, a3, expterm, tlog, fac, rlam
+      integer :: nl,ic , iu_bio, lambda
+      character title*50
+      data a0,a1,a2,a3 /0.9976d0, 0.2194d0,  5.554d-2,  6.7d-3 /
+      data b0,b1,b2,b3 /5.026d0, -0.01138d0, 9.552d-6, -2.698d-9/
+
+      if (initialized) then
+        return
+      else
+        initialized=.true.
+      endif
+      call openunit('cfle1',iu_bio,.false.,.true.)
+      do ic = 1,6
+        read(iu_bio,'(a50)')title
+      enddo
+      do nl = 1,nlt
+        read(iu_bio,20) lambda,saw,sbw
+        lam(nl) = lambda
+        aw(nl) = saw
+        bw(nl) = sbw
+        if (lam(nl) .lt. 900) then
+          expterm = exp(-(aw(nl)+0.5*bw(nl)))
+          tlog = dlog(1.0D-36+expterm)
+          fac = a0 + a1*tlog + a2*tlog*tlog + a3*tlog*tlog*tlog
+          wfac(nl) = max(0d0,min(fac,1d0))
+        else
+          rlam = float(lam(nl))
+          fac = b0 + b1*rlam + b2*rlam*rlam + b3*rlam*rlam*rlam
+          wfac(nl) = max(fac,0d0)
+        endif
+      enddo
+      call closeunit(iu_bio)
+ 20   format(i5,f15.4,f10.4)
+      return
+
+      end subroutine init
+!=======================================================================
+
+      logical function reflectance(r2,chl_in,lam,nlt,ilon,jlat)
 
 !  r2:  the reflectance calculated as a function of chl and wavelength
 !  chl: chloryphyl
@@ -15,7 +239,7 @@
 ! uses Kw with Pope & Fry (1997) for aw, Morel (1974) 
 ! for bbw and Loisel & Morel (1998) for bp(550). 
 !
-!       wavelength is from obio_init (as lam)
+!       wavelength is lam
 
 ! bbw_out backscattering coefficient in pure water
 ! bbt     backscattering coefficient due to suspended particles
@@ -65,7 +289,6 @@ c: r2<0 are missing values
       real*8 :: chl_in, bp550, var_exp, c, discr
       integer :: count_loops, iterator
    
-      logical :: kw, bbw, aw, bilin_mud
 
       key =.false.
    
@@ -100,7 +323,7 @@ c: r2<0 are missing values
       enddo
 	  
       if (chl_in <= 0.001) then 
-        key =  aw(lam,nlt,aw_out)
+        key =  get_aw(lam,nlt,aw_out)
         key =  kw(lam,nlt,kw_out)
         key =  bbw(lam,nlt,bbw_out)
         do j = 1, nlt
@@ -140,9 +363,9 @@ c: r2<0 are missing values
         end if
       enddo  
 
-      obio_reflectance = .true.
+      reflectance = .true.
  
-      end function obio_reflectance
+      end function reflectance
   
       logical function get_virtual_index(int_point,data_array,
      &                                   dim,ridx,vidx)
@@ -161,8 +384,7 @@ c: r2<0 are missing values
       real*8, intent(out) :: vidx
       integer, intent(out) :: ridx
 
-      real*8 :: min,find_min
-      real*8 :: max,find_max
+      real*8 :: min, max
    
       min = find_min(data_array,dim)
       max = find_max(data_array,dim)
@@ -241,11 +463,10 @@ c: r2<0 are missing values
 	    
       integer, parameter :: wl_sb_size = 61
       real*8, dimension(wl_sb_size) :: wl_sb
-      real*8 :: interpolate
    
       integer :: i, ri_sb81
       real*8 :: vi_sb81
-      logical key, get_virtual_index
+      logical key 
       real*8 :: min, max, int_bbw
    
 
@@ -289,7 +510,7 @@ c: r2<0 are missing values
   
       end function interpolate
   
-      logical function  aw(data_arr, size_arr, aw_out)
+      logical function  get_aw(data_arr, size_arr, aw_out)
 
        integer, intent(in) :: size_arr
        real*8, dimension(size_arr), intent(in)  :: data_arr
@@ -299,8 +520,8 @@ c: r2<0 are missing values
    
        integer :: i, ri_aw
        real*8 :: vi_aw
-       logical key, get_virtual_index
-       real*8 :: min, max, int_aw_pf97, interpolate
+       logical key
+       real*8 :: min, max, int_aw_pf97
    
        real*8, dimension(158) :: aw_pf97 = (/0.0325,  0.0204,  0.0156,  
      &               0.0114,  
@@ -357,9 +578,9 @@ c: r2<0 are missing values
 	aw_out(i) = int_aw_pf97    
 	
        enddo
-      aw = .true.
+      get_aw = .true.
 
-      end function aw
+      end function get_aw
 
       logical function  kw(data_arr, size_arr, kw_out)
 
@@ -372,10 +593,10 @@ c: r2<0 are missing values
        real*8, dimension(size_arr) :: aw_out, bbw_out
     
        integer :: i
-       logical key, aw, bbw
+       logical key
    
    
-        key =  aw(data_arr,size_arr,aw_out)
+        key =  get_aw(data_arr,size_arr,aw_out)
         key =  bbw(data_arr,size_arr,bbw_out)
    
         do i = 1, size_arr
@@ -395,6 +616,8 @@ c: r2<0 are missing values
 
 ! mu_d look-up table (Morel & Maritorena, 2001)
 ! Bilinear interpolation (chl and wavelength) in the mu_d look-up table
+
+      implicit none
 
        integer, intent(in) :: size_arr
        real*8, dimension(size_arr), intent(in) :: data_arr
@@ -430,7 +653,7 @@ c: r2<0 are missing values
 	real*8    :: min, max, min_wl, max_wl, vic, vil	
 	integer :: ic=0, il=0, k				 
 
-	 integer :: row,col
+	 integer :: row,col,i
 
 
    
@@ -547,3 +770,5 @@ c: r2<0 are missing values
        bilin = f
 
        end function bilin
+
+      end module ocalbedo_mod

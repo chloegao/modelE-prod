@@ -578,7 +578,7 @@ C****      names, indices, units, idacc-numbers, etc.
      *     ,ij_3dlwm,ij_3dlim,ij_3dlws,ij_3dlis
      *     ,ij_ssprec,ij_mcprec,IJ_WMCLWP,IJ_WMCTWP
      &     ,ij_wdry,ij_wtke,ij_wmoist,ij_wsgcm,ij_wspdf
-     &     ,ij_flam,ij_CtoG,ij_flash,ij_chl,ij_swaerrf,ij_lwaerrf
+     &     ,ij_flam,ij_CtoG,ij_flash,ij_chl=-1,ij_swaerrf,ij_lwaerrf
      *     ,ij_swaersrf,ij_lwaersrf,ij_swaerabs,ij_lwaerabs,ij_swaerrfnt
      *     ,ij_lwaerrfnt,ij_swaersrfnt,ij_lwaersrfnt,ij_swaerabsnt
      *     ,ij_lwaerabsnt,ij_evapsn,ij_irrW,ij_irrE,ij_irrW_tot

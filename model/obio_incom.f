@@ -5,7 +5,7 @@
 ! parameters and arrays neccessary for obio_init and obio_bioinit
 
       USE obio_dim
-      use obio_ocalbedo_mod, only: nlt
+      use ocalbedo_mod, only: nlt
 
       implicit none
 

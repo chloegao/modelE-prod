@@ -824,6 +824,9 @@ C****
 
           tmpTime = modelEtime0
           call tmpTime%add(calendr%getSecondsPerHour()*Ihrx)
+
+          modelEtimeI = modelEtime0
+          call modelEtimeI%add(calendr%getSecondsPerHour()*IhrI)
 C**** Check consistency of starting time
           IF( ((modelEtimeI%getDayOfYear()/=tmpTime%getDayOfYear()) .or.
      &      (modelEtimeI%getHour() /= tmpTime%getHour())) ) then
