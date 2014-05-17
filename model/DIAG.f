@@ -1688,7 +1688,7 @@ c get_subdd
 !@+                    SWH,LWH,TDRY,DDRY,SDRY,LDRY              ! mjo_subdd
 !@+                    LWP,IWP,TTRO,PBLH   ! additional etc_subdd
 !@+                    CTEM,CD3D,CI3D,CL3D,CDN3D,CRE3D,CLWP  ! aerosol
-!@+                    TAUSS,TAUMC,CLDSS,CLDMC,MCCTP
+!@+                    TAUSS,TAUMC,CLDSS,CLDMC,MCCTP,CLDTOT
 !@+                    SO4_d1,SO4_d2,SO4_d3,   ! het. chem
 !@+                    Clay, Silt1, Silt2, Silt3  ! dust
 !@+                    TrSMIXR surface mixing ratio for all tracers [kg/kg]
@@ -1810,6 +1810,7 @@ c get_subdd
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: DATAR8
       INTEGER :: I,J,K,L,kp,ks,kunit,n,n1,nc
       REAL*8 POICE,PEARTH,PLANDI,POCEAN,QSAT,PS,SLP, ZS,TAUL
+      REAL*8 PmcClr,PssClr,PssClrt ! for CLDTOT
       INTEGER :: J_0,J_1,J_0S,J_1S,I_0,I_1
       LOGICAL :: polefix,have_south_pole,have_north_pole,skip
       INTEGER :: DAY_OF_MONTH ! for daily averages
@@ -1894,6 +1895,28 @@ C**** accumulating/averaging mode ***
               end if
             end do
           end do
+        case ("CLDTOT")       ! total cloud cover (%)
+          do j=J_0,J_1
+            do i=I_0,imaxj(j)
+              PmcClr=1. ; PssClr=1. ; PssClrt=1.
+              do l=1,lm
+                if(cldmc(l,i,j)>1.) cldmc(l,i,j)=1.
+         !!     if(cldmc(l,i,j)<0.) cldmc(l,i,j)=0.
+         !!     if(cldss(l,i,j)>1.) cldss(l,i,j)=1.
+         !!     if(cldss(l,i,j)<0.) cldss(l,i,j)=0.
+                PmcClr = min(PmcClr, 1. - cldmc(l,i,j))
+                if( cldss(l,i,j) == 0. ) then
+                   PssClr = PssClr*PssClrt
+                   PssClrt = 1.
+                end if
+                PssClrt = min( PssClrt, 1.-cldss(l,i,j) )
+              end do
+              PssClr = PssClr*PssClrt
+              datar8(i,j) = 100.*(1.-PmcClr*PssClr)
+            end do
+          end do
+          units_of_data = '%'
+          long_name = 'Total Cloud Cover (w/o rand#)'
 #ifdef mjo_subdd
 C**** accumulating/averaging mode ***
           datar8=sst_avg/Nsubdd
