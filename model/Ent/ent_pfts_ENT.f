@@ -72,6 +72,7 @@
       integer, parameter :: SAND = 17
       integer, parameter :: BDIRT = 18
 
+#ifdef MODIS_LAI
       character(len=13), parameter :: ent_cover_names(N_COVERTYPES) = (/
      &     "ever_br_early",
      &     "ever_br_late ",
@@ -92,7 +93,7 @@
      &     "bare_bright  ",
      &     "bare_dark    "
      &     /)
-
+#endif
 
 !##### TEMPORARY HACK - YK #####
 !to avoid the conflict in ent_prescribed_drv.f90, using CROPS!

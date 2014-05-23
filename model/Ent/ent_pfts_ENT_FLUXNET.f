@@ -74,6 +74,30 @@
 !to avoid the conflict in ent_prescribed_drv.f90, using CROPS!
       integer, parameter :: CROPS = 15
 !##### END OF TEMPORARY HACK #####
+
+
+      !* netcdf names *!
+      character(len=13), parameter :: ent_cover_names(N_COVERTYPES) = (/
+     &     "ever_br_early",
+     &     "ever_br_late ",
+     &     "ever_nd_early",
+     &     "ever_nd_late ",
+     &     "cold_br_early",
+     &     "cold_br_late ",
+     &     "drought_br   ",
+     &     "decid_nd     ",
+     &     "cold_shrub   ",
+     &     "arid_shrub   ",
+     &     "c3_grass_per ",
+     &     "c4_grass     ",
+     &     "c3_grass_ann ",
+     &     "c3_grass_arct",
+     &     "crops_herb   ",
+     &     "crops_woody  ",
+     &     "bare_bright  ",
+     &     "bare_dark    "
+     &     /)
+
       
       ! other parameters needed for Ent to compile
       integer, parameter :: COVEROFFSET = 0
