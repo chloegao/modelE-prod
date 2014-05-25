@@ -239,5 +239,30 @@ end subroutine test_convertHard
 
    end subroutine test_modulo
 
+@test
+   subroutine test_toString_whole()
+      type (Rational) :: r
+
+      r = Rational(1)
+      @assertTrue(r == Rational(r%toString()))
+
+      r = Rational(2)
+      @assertTrue(r == Rational(r%toString()))
+
+   end subroutine test_toString_whole
+
+
+@test
+   subroutine test_toString_all()
+      type (Rational) :: r
+
+      r = Rational(1,2,3)
+      @assertTrue(r == Rational(r%toString()))
+
+      r = Rational(-1,-2,3)
+      @assertTrue(r == Rational(r%toString()))
+
+   end subroutine test_toString_all
+
 
 end module Test_Rational_mod
