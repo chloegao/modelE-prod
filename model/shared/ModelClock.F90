@@ -5,7 +5,6 @@ module ModelClock_mod
   private
 
   public :: ModelClock
-  public :: newModelClock
 
   type :: ModelClock
 !!$    private
@@ -34,10 +33,15 @@ module ModelClock_mod
     procedure :: abbrev ! month abbreviation
   end type ModelClock
 
+  interface modelClock
+     module procedure newModelClock_time
+     module procedure newModelClock_string
+  end interface modelClock
+
 contains
 
   ! constructor
-  function newModelClock(startTime, startTick, stepsPerDay) result(clock)
+  function newModelClock_time(startTime, startTick, stepsPerDay) result(clock)
     use AbstractCalendar_mod
     type (ModelClock) :: clock
     type (Time), intent(in) :: startTime
@@ -56,7 +60,23 @@ contains
 
     clock%dt = newBaseTime(pCalendar%getSecondsPerDay() / stepsPerDay)
 
-  end function newModelClock
+  end function newModelClock_time
+
+
+  ! constructor
+  function newModelClock_string(string, calendar) result(clock)
+     use AbstractCalendar_mod
+     use BaseTime_mod
+     type (ModelClock) :: clock
+     character(len=*), intent(in) :: string
+     class (AbstractCalendar), intent(in) :: calendar
+
+     type (BaseTime) :: base
+
+     clock%currentTime = newTime(calendar)
+     call clock%currentTime%setBaseTime(newBaseTime(string))
+ 
+  end function newModelClock_string
 
   subroutine nextTick(this)
     class (ModelClock), intent(inout) :: this

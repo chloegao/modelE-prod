@@ -27,7 +27,7 @@ module Rational_mod
 ! Public entities
 
   ! Derived type and constructor
-  public :: Rational  
+  public :: Rational
 
   ! Procedures for rounding to integer
   public :: nint
@@ -42,6 +42,7 @@ module Rational_mod
 
   ! Numerical value is whole + numerator/denominator
   type Rational
+     private
     integer(kind=LONG) :: whole       = 0
     integer(kind=LONG) :: numerator   = 0 
     integer(kind=LONG) :: denominator = 1 ! always positive
@@ -637,6 +638,8 @@ contains
      write(*,'(a,i0," + ",i0,"/",i0)') 'Rational: ',this%whole, this%numerator, this%denominator
   end subroutine print
 
+
+  ! Used for checkpointing.
   function toString(this) result(string)
      character(len=:), allocatable :: string
      class (Rational), intent(in) :: this
