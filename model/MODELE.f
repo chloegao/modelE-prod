@@ -633,7 +633,7 @@ C****
 
       use TimeConstants_mod, only : SECONDS_PER_DAY, INT_HOURS_PER_DAY, 
      &                              INT_DAYS_PER_YEAR
-      use ModelClock_mod, only: ModelClock, newModelClock
+      use ModelClock_mod, only: ModelClock
       use Time_mod, only: Time, newTime
       use MODEL_COM, only: calendar
       use CalendarMonth_mod, only: LEN_MONTH_ABBREVIATION
@@ -680,6 +680,8 @@ C****    List of parameters that are disregarded at restarts
       type (Time) :: modelETimeI, tmpTime, modelETime0, modelETimeE
       type (Time) :: modelETime
       integer :: hour, month, day, date, year
+
+      character(len=80) :: tmpStr
       character(len=LEN_MONTH_ABBREVIATION) :: amon
       type (BaseTime) :: dtSrcUsed
 
@@ -966,7 +968,10 @@ C**** Set date information
       hour = modelEtime%getHour()
       amon = modelEtime%getAbbreviation()
 
-      modelEclock = newModelClock(modelEtime,itime,Nday)
+      modelEclock = ModelClock(modelEtime,dtSrcUsed,itime)
+
+      tmpStr = modelEclock%toString()
+      modelEclock = ModelClock(tmpStr, calendar, dtSrcUsed)
 
       CALL DAILY_cal(.false.)                  ! not end_of_day
 
