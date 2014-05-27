@@ -9,12 +9,10 @@ module ModelClock_mod
   type :: ModelClock
 !!$    private
     type (Time) :: currentTime
-    type (Time) :: startTime
     type (BaseTime) :: dt
 
     ! modelE legacy representation
     integer :: tick
-    integer :: stepsPerDay
 
   contains
     procedure :: getCurrentTime
@@ -31,6 +29,7 @@ module ModelClock_mod
     procedure :: dayOfYear
     procedure :: hour
     procedure :: abbrev ! month abbreviation
+    procedure :: toString => toString_clock
   end type ModelClock
 
   interface modelClock
@@ -41,40 +40,40 @@ module ModelClock_mod
 contains
 
   ! constructor
-  function newModelClock_time(startTime, startTick, stepsPerDay) result(clock)
+  function newModelClock_time(startTime, dt, startTick) result(clock)
     use AbstractCalendar_mod
     type (ModelClock) :: clock
     type (Time), intent(in) :: startTime
+    type (BaseTime), intent(in) :: dt
     integer, intent(in) :: startTick
-    integer, intent(in) :: stepsPerDay
 
-    class (AbstractCalendar), pointer :: pCalendar
-
-    clock%tick = startTick
-    clock%stepsPerDay = stepsPerDay
-
-    clock%startTime = startTime
     clock%currentTime = startTime
-
-    pCalendar => startTime%calendar
-
-    clock%dt = newBaseTime(pCalendar%getSecondsPerDay() / stepsPerDay)
+    clock%tick = startTick
+    clock%dt = dt
 
   end function newModelClock_time
 
 
   ! constructor
-  function newModelClock_string(string, calendar) result(clock)
+  function newModelClock_string(string, calendar, dt) result(clock)
      use AbstractCalendar_mod
      use BaseTime_mod
      type (ModelClock) :: clock
      character(len=*), intent(in) :: string
      class (AbstractCalendar), intent(in) :: calendar
+     type (BaseTime), intent(in) :: dt
 
-     type (BaseTime) :: base
+     type (Time) :: t
+     integer :: startTick
+     character(len=80) :: tmpString
 
-     clock%currentTime = newTime(calendar)
-     call clock%currentTime%setBaseTime(newBaseTime(string))
+     t = newTime(calendar)
+
+     read(string,'(i,1x,a)') startTick, tmpString
+
+     call t%setBaseTime(newBaseTime(tmpString))
+
+     clock = ModelClock(t, dt, startTick)
  
   end function newModelClock_string
 
@@ -98,8 +97,19 @@ contains
 
   logical function isBeginningOfDay(this)
     class (ModelClock), intent(in) :: this
+
+    type (Time) :: timeAtPreviousStep
     
-    isBeginningOfDay = mod(this%tick, this%stepsPerDay) == 0
+    timeAtPreviousStep = newTime(this%currentTime%calendar)
+    call timeAtPreviousStep%setBaseTime(newBaseTime(this%currentTime - this%dt))
+
+    isBeginningOfDay = (this%hour() == 0) .and. (timeAtPreviousStep%getHour() /= 0)
+    if (isBeginningOfDay) then
+       print*,'**********'
+       print*,'new day', this%tick
+       print*,'new hour', this%hour()
+       print*,'oldhour', timeatpreviousstep%getHour()
+    end if
   end function isBeginningOfDay
 
   function getAbsoluteTimeInSeconds(this) result (secs)
@@ -198,5 +208,14 @@ contains
 
     abbrev = this%currentTime%getAbbreviation()
   end function abbrev
+
+  function toString_clock(this) result(string)
+     use StringUtilities_mod, only: toString
+     character(len=:), allocatable :: string
+     class (ModelClock), intent(in) :: this
+
+     string = toString(this%tick) // ' ' // this%currentTime%toString()
+
+  end function toString_clock
 
 end module ModelClock_mod
