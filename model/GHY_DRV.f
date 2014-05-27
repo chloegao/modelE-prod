@@ -271,7 +271,7 @@ ccc tracers variables
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
     (defined TRACERS_TOMAS)
       ! todo: move (some of) this to subroutine dust_emission_prep
-      call modelEclock%getDate(month=month, dayOfYear=dayOfYear)
+      call modelEclock%get(month=month, dayOfYear=dayOfYear)
       pbl_args%snow=snowe(i,j)
       pbl_args%wearth=wearth(i,j)
       pbl_args%aiearth=aiearth(i,j)
@@ -892,7 +892,7 @@ C****   define local grid
       integer, save :: counter=0
       integer :: dayOfYear
 
-      dayOfYear = modelEclock%dayOfYear()
+      dayOfYear = modelEclock%getDayOfYear()
 
       counter = counter + 1
 
@@ -955,8 +955,8 @@ c****
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
       pbl_args % moddd = moddd
-      pbl_args % ih = 1+modelEclock%hour()
-      pbl_args % ihm = pbl_args%ih+(modelEclock%date()-1)*24
+      pbl_args % ih = 1+modelEclock%getHour()
+      pbl_args % ihm = pbl_args%ih+(modelEclock%getDate()-1)*24
 #endif
 
       loop_j: do j=J_0,J_1
@@ -1532,7 +1532,7 @@ ccc the following values are returned by PBL
       real*8, external :: qsat
       integer :: dayOfYear
 
-      dayOfYear = modelEclock%dayOfYear()
+      dayOfYear = modelEclock%getDayOfYear()
 
       us = pbl_args%us
       vs = pbl_args%vs
@@ -1555,8 +1555,8 @@ ccc the following values are returned by PBL
       timez=dayOfYear+(mod(itime,nday)+(ns-1.)/nisurf)/nday ! -1 ??
       if(dayOfYear.le.31) timez=timez+DAYS_PER_YEAR
 
-      ih=1+modelEclock%hour()
-      ihm = ih+(modelEclock%date()-1)*INT_HOURS_PER_DAY
+      ih=1+modelEclock%getHour()
+      ihm = ih+(modelEclock%getDate()-1)*INT_HOURS_PER_DAY
 
       spring=-1.
       if((dayOfYear.ge.32).and.(dayOfYear.le.212)) spring=1.
@@ -1926,7 +1926,7 @@ c**** cosday, sinday should be defined (reset once a day in daily_earth)
       dayOfYear=1+mod(itime/nday,int(EARTH_DAYS_PER_YEAR))
 
 #ifdef USE_ENT
-      call modelEclock%getDate(year=year, dayOfYear=dayOfYear)
+      call modelEclock%get(year=year, dayOfYear=dayOfYear)
       CALL init_module_ent(istart.le.2, dayOfYear, year, FOCEAN)
 #else
       cosday=cos(twopi/EARTH_DAYS_PER_YEAR*dayOfYear)
@@ -3353,7 +3353,7 @@ C**** define local grid
       real*8 ws11,ws12
       integer :: year, dayOfYear
 
-      call modelEclock%getDate(year=year, dayOfYear=dayOfYear)
+      call modelEclock%get(year=year, dayOfYear=dayOfYear)
 
 C**** Extract useful local domain parameters from "grid"
       call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)

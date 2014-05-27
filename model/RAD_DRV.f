@@ -266,7 +266,7 @@ C**** Set orbital parameters appropriately
       write(57,*) orb_par_year_bp, variable_orb_par
       select case (variable_orb_par)
       case(1) ! use parameters for model_year-orb_par_year_bp
-        pyear = modelEclock%year()-orb_par_year_bp ! bp=before present model year
+        pyear = modelEclock%getYear()-orb_par_year_bp ! bp=before present model year
         call orbpar(pyear,eccn, obliq, omegt)
         if (am_i_root()) then
           write(6,*) 'Variable orbital parameters, updated each year'
@@ -900,7 +900,7 @@ c      end if
       integer :: year, month, dayOfYear, date
       type (CalendarMonth) :: cMonth
 
-      call modelEclock%getDate(year=year, month=month,
+      call modelEclock%get(year=year, month=month,
      &     dayOfYear=dayOfYear, date=date)
 
       call getDomainBounds(GRID,J_STRT=J_0,J_STOP=J_1,
@@ -1036,7 +1036,7 @@ C**** REPLICATE VALUES AT POLE
       real*8 :: declinationAngle
       type (TimeInterval) :: halfDay
 
-      call modelEclock%getDate(year=year, dayOfYear=dayOfYear)
+      call modelEclock%get(year=year, dayOfYear=dayOfYear)
 
 C**** CALCULATE SOLAR ANGLES AND ORBIT POSITION
 C**** This is for noon (GMT) for new day.
@@ -1115,7 +1115,7 @@ c**** Extract domain decomposition info
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
       integer :: year, month
 
-      call modelEclock%getDate(year=year, month=month)
+      call modelEclock%get(year=year, month=month)
 
       call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
@@ -1505,7 +1505,7 @@ c     INTEGER ICKERR,JCKERR,KCKERR
       LOGICAL, DIMENSION(:,:), POINTER :: FLAG_DSWS
       integer :: year, dayOfYear, hour, date
 
-      call modelEclock%getDate(year=year, dayOfYear=dayOfYear,
+      call modelEclock%get(year=year, dayOfYear=dayOfYear,
      *     hour=hour, date=date)
 
       RSI => SI_ATM%RSI
@@ -3393,8 +3393,8 @@ C****
       END DO
 
 C**** daily diagnostics
-      IH=1+modelEclock%hour()
-      IHM = IH+(modelEclock%date()-1)*24
+      IH=1+modelEclock%getHour()
+      IHM = IH+(modelEclock%getDate()-1)*24
       DO KR=1,NDIUPT
         I = IJDD(1,KR)
         J = IJDD(2,KR)

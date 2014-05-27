@@ -111,7 +111,7 @@ c  1000 mb are assumed to extend down to the actual P(nslon,nslat).
 
 c  Select appropriate monthly and latitudinal profiles:
       ydgrd=lat2d_dg(nslon,nslat)
-      m = max(1,min(12,modelEclock%month()))
+      m = max(1,min(12,modelEclock%getMonth()))
       l = max(1,min(18,(int(ydgrd)+99)/10))
 
 c  Temporary arrays for climatology data
@@ -411,7 +411,7 @@ C---Print out climatology:
       if(NFASTJq > 2) then
         climat(:)=0.d0
         ydgrd=lat2d_dg(nslon,nslat)
-        m = max(1,min(12,modelEclock%month()))
+        m = max(1,min(12,modelEclock%getMonth()))
         l = max(1,min(18,(int(ydgrd)+99)/10))
         write(out_line,*) 'Specified Climatology'
         call write_parallel(trim(out_line),crit=jay)

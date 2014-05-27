@@ -135,8 +135,8 @@ C****
         enddo
       endif
 
-      IH=modelEclock%hour()+1
-      IHM = IH+(modelEclock%date()-1)*24
+      IH=modelEclock%getHour()+1
+      IHM = IH+(modelEclock%getDate()-1)*24
 c avoid uninitialized variable problems when the first gridpoint
 c in the domain is ocean
       SNOW = 0.

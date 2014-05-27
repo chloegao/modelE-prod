@@ -155,7 +155,7 @@ C**** Set run_status to "run in progress"
         START= START-TIMING(M)
       END DO
 
-      call modelEclock%getDate(hour=hour, date=date, year=year,amn=amon)
+      call modelEclock%get(hour=hour, date=date, year=year,amn=amon)
 
       if (AM_I_ROOT())
      *   WRITE (6,'(A,11X,A4,I5,A5,I3,A4,I3,6X,A,I4,I10)')
@@ -215,7 +215,8 @@ C****
 C**** UPDATE Internal MODEL TIME AND CALL DAILY IF REQUIRED
 C****
       call modelEclock%nextTick()
-      call modelEclock%getDate(year, month, day, date, hour, amon)
+      call modelEclock%get(year=year, month=month, dayOfYear=day, 
+     &     date=date, hour=hour, amn=amon)
       Itime=Itime+1                       ! DTsrc-steps since 1/1/Iyear1
 
       if (modelEclock%isBeginningOfDay()) THEN ! NEW DAY
@@ -417,9 +418,9 @@ C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
       integer :: month, day, year
       type (CalendarMonth) :: cMonth
 
-      year = modelEclock%year()
-      month = modelEclock%month()
-      day = modelEclock%dayOfYear()
+      year = modelEclock%getYear()
+      month = modelEclock%getMonth()
+      day = modelEclock%getDayOfYear()
       cMonth = calendar%getCalendarMonth(month=month-1,year=year)
       newmonth = (day == 1+ cMonth%lastDayInMonth)
       call daily_DIAG(newmonth) ! atmosphere
@@ -445,7 +446,7 @@ C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
       integer :: hour, date
       character(len=LEN_MONTH_ABBREVIATION) :: amon
 
-      call modelEclock%getDate(hour=hour, date=date, amn=amon)
+      call modelEclock%get(hour=hour, date=date, amn=amon)
 
       CALL rfinal(IRAND)
       call set_param( "IRAND", IRAND, 'o' )

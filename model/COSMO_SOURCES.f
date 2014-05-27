@@ -231,7 +231,7 @@ c        print*, "phi_record (1) = ", phi_record(1)
       end do
       call closeunit(iuc)  
 
-      phi_yr = modelEclock%year() + 0.5
+      phi_yr = modelEclock%getYear() + 0.5
       print*, "phi_yr = ", phi_yr
       do i = 1,nyrs
          if (phi_yr .eq. year(i)) then
@@ -342,7 +342,7 @@ C**** convert from atoms/g/s to (kg tracer)/ (kg air/m^2) /s
       INTEGER :: J_1, J_0, I_0, I_1
       integer :: year, month, day, hour, date
 
-      call modelEclock%getDate(month=month, dayOfYear=day)
+      call modelEclock%get(month=month, dayOfYear=day)
 
       call getDomainBounds(grid,J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT

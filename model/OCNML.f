@@ -90,7 +90,7 @@
       integer :: i,j, j_0,j_1,i_0,i_1
       integer :: jyear,jday
 
-      call modelEclock%getDate(year=jyear, dayOfYear=jday)
+      call modelEclock%get(year=jyear, dayOfYear=jday)
 
       call getDomainBounds(grid,j_strt=j_0,j_stop=j_1)
       i_0 = grid%i_strt
@@ -189,7 +189,7 @@ c
      &     OTA_glob(:,:,:),OTB_glob(:,:,:),OTC_glob(:,:)
       integer :: jyear,jday
 
-      call modelEclock%getDate(year=jyear, dayOfYear=jday)
+      call modelEclock%get(year=jyear, dayOfYear=jday)
 
       call getDomainBounds(grid,j_strt=j_0,j_stop=j_1)
       I_0 = grid%I_STRT

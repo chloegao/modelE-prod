@@ -192,7 +192,7 @@ C**** (Simplified) Calendar Related Terms
 
       select case (variable_orb_par)
       case (1) 
-        pYear = modelEclock%year()-orb_par_year_bp ! bp=before present model year
+        pYear = modelEclock%getYear()-orb_par_year_bp ! bp=before present model year
         allocate(orbit, source=ParameterizedEarthOrbit(pYear))
         eccen = orbit%getEccentricity()
         obliq = orbit%getObliquity()
@@ -287,9 +287,9 @@ C**** (Simplified) Calendar Related Terms
       type (CalendarMonth) :: cMonth
 
       integer :: month, day, year
-      month = clock%month()
-      day = clock%dayOfYear()
-      year = clock%year()
+      month = clock%getMonth()
+      day = clock%getDayOfYear()
+      year = clock%getYear()
       months=(year-Jyear0)*INT_MONTHS_PER_YEAR + month - JMON0
 
       cMonth = calendar%getCalendarMonth(month-1, year)
@@ -330,8 +330,8 @@ C**** Accumulating_period information
       idacc(1:12)=0
       idacc(12)=1
 
-      call modelEclock%getDate(jyear0, jmon0, jd0, jdate0, jhour0,
-     &     amon0)
+      call modelEclock%get(year=jyear0, month=jmon0, dayOfYear=jd0,
+     & date=jdate0, hour=jhour0, amn=amon0)
       itime0=itime
 
       return
@@ -565,7 +565,7 @@ C****
 C****
 C**** CALCULATE THE DAILY CALENDAR
 C****
-      call modelEclock%getDate(year=year, month=month, dayOfYear=day, 
+      call modelEclock%get(year=year, month=month, dayOfYear=day, 
      *     date=date, hour=hour, amn=amon)
 
       RETURN

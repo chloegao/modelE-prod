@@ -203,7 +203,7 @@
 !--------------------------------------------------------
       diagno_bio=.false.
 c
-      call modelEclock%getDate(year=year, month=month, date=date,
+      call modelEclock%get(year=year, month=month, date=date,
      .  hour=hour, dayOfYear=dayOfYear)
 
 #ifdef OBIO_ON_GARYocean

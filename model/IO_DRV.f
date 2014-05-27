@@ -173,7 +173,7 @@ c
       real*8 :: days
       integer :: year, hour, date
 
-      call modelEclock%getDate(year=year, hour=hour, date=date)
+      call modelEclock%get(year=year, hour=hour, date=date)
 
       days=(itime-itime0)/float(nday)
       write(fromto,902) jyear0,amon0,jdate0,jhour0,
@@ -333,9 +333,9 @@ c write a text version of the date to a restart/acc file
       character(len=5) :: chr
       integer :: month
 
-      write(cmo,'(i2.2)') modelEclock%month()
-      write(cday,'(i2.2)') modelEclock%date()
-      write(cyr,'(i4.4)') modelEclock%year()
+      write(cmo,'(i2.2)') modelEclock%getMonth()
+      write(cday,'(i2.2)') modelEclock%getDate()
+      write(cyr,'(i4.4)') modelEclock%getYear()
 !      write(chr,'(f4.1)') real(jhour)
       write(chr,'(f5.2)') (real(mod(itime,nday))/real(nday))*24.
       caldate=cmo//'/'//cday//'/'//cyr//' hr '//chr

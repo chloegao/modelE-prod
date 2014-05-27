@@ -200,8 +200,8 @@ C****
       NSTEPS=NIsurf*ITime
       DTSURF=DTsrc/NIsurf
       byNIsurf=1.d0/real(NIsurf)
-      IH=modelEclock%hour()+1
-      IHM = IH+(modelEclock%date()-1)*INT_HOURS_PER_DAY
+      IH=modelEclock%getHour()+1
+      IHM = IH+(modelEclock%getDate()-1)*INT_HOURS_PER_DAY
 
       DO J=J_0,J_1
       DO I=I_0,IMAXJ(J)

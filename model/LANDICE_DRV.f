@@ -1025,7 +1025,7 @@ C**** implicit fluxes. If this is used, then ice sheets/snow are FORCED to
 C**** be in balance. This may not be appropriate for transient runs but
 C**** we aren't getting that right anyway.
 
-      If (modelEclock%dayOfYear()==1)  Then  !  Jan 1 only, EndIf at 500
+      If (modelEclock%getDayOfYear()==1)  Then  !  Jan 1 only, EndIf at 500
 
 C**** Calculate mass/energy/tracer accumulation for the past year
         do j=j_0,j_1; do i=i_0,i_1
@@ -1105,8 +1105,9 @@ C*** prevent iceberg sucking
 
 C**** adjust hemispheric mean glacial melt amounts (only on root processor)
       if (AM_I_ROOT()) THEN
-          write(6,*) "Adjusting glacial melt: ", modelEclock%dayOfYear()
-     *        ,modelEclock%year()
+          write(6,*) "Adjusting glacial melt: ", 
+     &         modelEclock%getDayOfYear()
+     *        ,modelEclock%getYear()
           write(6,*) "Mass (before): ",accpda,accpdg,mdwnimp_SH
      *         ,mdwnimp_NH
           write(6,*) "Temp (before): ",(eaccpda/accpda+lhm)/shi

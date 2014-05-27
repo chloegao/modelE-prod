@@ -3050,7 +3050,7 @@ c Switch the sign convention back to "positive downward".
          Eps = Eps + Bsum * dc(Ikh) * ( rhoe(IZ0(J)) * 100.0_r8 )
                                                     !!!100.0_r8 arises from the units of P and rho.
       end do
-      Eps = Bt(J,modelEclock%dayOfYear()) / Eps
+      Eps = Bt(J,modelEclock%getDayOfYear()) / Eps
       !...Calculating source spectra (function of azimuth, horizontal wave number)
       do IAZ = 1, N_Az
          Ugw_S = ue(IZ0(J))

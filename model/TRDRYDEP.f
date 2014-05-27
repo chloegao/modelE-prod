@@ -1053,18 +1053,20 @@ C**** Local parameters and variables and arguments
 ! to interpolate. If in 2nd half of month, use jmon and jmon+1.
 ! Determine the number of days between current mid-months:
 
-      if(modelEclock%dayOfYear() < startday(modelEclock%month()))then
+      if(modelEclock%getDayOfYear() < 
+     *     startday(modelEclock%getMonth())) then
         offset=-1
       else
         offset=0
       endif
-      itd = startday(modelEclock%month()+1+offset) - 
-     *     startday(modelEclock%month()+offset)
+      itd = startday(modelEclock%getMonth()+1+offset) - 
+     *     startday(modelEclock%getMonth()+offset)
 
 ! If about to reach middle of next month, or this is first 
 ! timestep upon (re)start, read the files:
 
-      if (modelEclock%dayOfYear() == startday(modelEclock%month()) .or. 
+      if (modelEclock%getDayOfYear() == 
+     *     startday(modelEclock%getMonth()) .or. 
      *     isave==0) then
         isave=1
         call readlai(offset)
@@ -1140,7 +1142,7 @@ C**** Local parameters and variables and arguments
 ! (Greg Faluvegi altering to include offset):
 
 ! read first month's LAI's:
-      fbin='LAI'//cmonth(modelEclock%month()+offset)//"BIN"
+      fbin='LAI'//cmonth(modelEclock%getMonth()+offset)//"BIN"
 c      write(6,*) fbin
       call openunit(trim(fbin),iunit,.true.,.true.)
       do k=1,nvegtype
@@ -1153,7 +1155,7 @@ c      write(6,*) fbin
       call closeunit(iunit)
 
 ! read second month's LAI's:
-      fbin='LAI'//cmonth(modelEclock%month()+offset+1)//"BIN"
+      fbin='LAI'//cmonth(modelEclock%getMonth()+offset+1)//"BIN"
 c      write(6,*) fbin
       call openunit(trim(fbin),iunit,.true.,.true.)
       do k=1,nvegtype
@@ -1171,9 +1173,9 @@ c      write(6,*) fbin
 ! read first month's LAI's:      
       if ( am_i_root() ) then      
         xlai_glob(:,:,:)= 0.d0 ! just in case, initialize
-        call openunit('LAI'//cmonth(modelEclock%month()+offset),
+        call openunit('LAI'//cmonth(modelEclock%getMonth()+offset),
      &       iunit,.false.,.true.)
-        write(6,*)'Reading LAI'//cmonth(modelEclock%month()+offset)
+        write(6,*)'Reading LAI'//cmonth(modelEclock%getMonth()+offset)
         do 
           read(iunit,"(3I3,20F5.1)",end=20) i,j,index,
      &    (xlai_glob(i,j,k),k=1,index)
@@ -1186,9 +1188,9 @@ c      write(6,*) fbin
 ! read second month's LAI's:      
       if ( am_i_root() ) then 
         xlai2_glob(:,:,:)=0.d0 ! just in case, initialize
-        call openunit('LAI'//cmonth(modelEclock%month()+offset+1),
+        call openunit('LAI'//cmonth(modelEclock%getMonth()+offset+1),
      &       iunit,.false.,.true.)
-        write(6,*)'Reading LAI'//cmonth(modelEclock%month()+offset+1)
+        write(6,*)'Reading LAI'//cmonth(modelEclock%getMonth()+offset+1)
         do
           read(iunit,"(3I3,20F5.1)",end=40) i,j,index,
      &    (xlai2_glob(i,j,k),k=1,index)
