@@ -2,19 +2,9 @@
 !#define DEBUG 1
 !#define USE_NR_SOLVER_FOR_FBB
       module  photcondmod
-!@sum Photosynthesis and stomatal conductance at the leaf level at the
-!@+   physical time step.
-!@+   Photosynthesis from Farquhar and von Caemmerer (1982) and
-!@+   Stomatal conductance from Ball and Berry (1985, 1987).
-!@+   Cubic solution to coupled equations by I. Aleinov, this module.
-!@+
-!@+   Main routine pscondleaf is called by the canopy biophysics module
-!@+   which scales up fluxes from the leaf to the canopy level.
-!@+
-!@+   Physiological status routines, frost_hardiness and par-phenology, are
-!@+   necessary for seasonal variation in leaf photosynthetic capacity in
-!@+   biophysics-only runs, and are also used by the phenology module when
-!@+   prognostic phenology is run.
+      !This version of photcondmod does leaf level
+      !photosynthesis (Farquhar and von Caemmerer, 1982) and
+      !stomatal conductance (Ball and Berry, 1985, 1987).
       
       use FarquharBBpspar
       use ent_const
@@ -24,8 +14,8 @@
       save
 
       public init_ci, pscondleaf, biophysdrv_setup,calc_Pspar,ciMIN
-      !,fbb_night
-      public frost_hardiness, par_phenology
+     &     ,frost_hardiness, fbb_night, Rdark
+
       public photosynthpar, pspar
 
       !=====CONSTANTS=====!
@@ -38,9 +28,9 @@
       real*8,parameter :: KoQ10 = 1.2d0   !Ko Q10 exponent, Collatz (1991)
 
       !=====DECLARED TYPES======!
-      type photosynthpar       !Calculated values from pft-dependent pspartypes
-      integer :: pft           !Plant functional type.  1-C3 grassland
-      real*8 :: PARabsorb      !Leaf PAR absorptance (fraction)
+      type photosynthpar        !Calculated values from pft-dependent pspartypes
+      integer :: pft            !Plant functional type.  1-C3 grassland
+      real*8 :: PARabsorb       !Leaf PAR absorptance (fraction)
       real*8 :: Vcmax           !Maximum photosynthetic capacity (umol m-2 s-1)
       real*8 :: Kc              !Michaelis-Menten parameter for CO2 (Pa)
       real*8 :: Ko              !Michaelis-Menten parameter for O2 (Pa)
@@ -49,9 +39,8 @@
       real*8 :: b               !Intercept of Ball-Berry equation (mol m-2 s-1)
       real*8 :: Nleaf           !g-N/m^2[leaf] - May want to take this from Tpool instead.
       real*8 :: stressH2O       !Water stress factor (fraction, 1=no stress)
-      logical :: first_call     !For optimizing run
-      real*8 :: Ac              !Save Ac for calculation only once per timestep.
-      real*8 :: As              !Save As for calculation only once per timestep.
+      logical :: first_call
+      real*8 :: Ac
       logical :: reset_ci_cubic1
       end type photosynthpar
 
@@ -63,7 +52,6 @@
       contains
 
       subroutine init_ci(ca, ci)
-!@sum init_ci  Initialize leaf internal CO2 concentration.
       implicit none
       real*8,intent(in) :: ca   !Ambient air CO2 concentration (umol mol-1)
       real*8,intent(inout) :: ci !Leaf internal CO2 mole fraction  (umol mol-1)
@@ -76,7 +64,7 @@
       
 !-----------------------------------------------------------------------------
       subroutine biophysdrv_setup(ca,ci,Tc,Pa,rh,psdrvpar)
-!@sum Set up met drivers for photosynthesis at every physical time step.
+      !* Set up met drivers for photosynthesis.
       implicit none
       real*8,intent(in) :: ca, ci, Tc, Pa, rh
       type(psdrvtype),intent(out) :: psdrvpar
@@ -91,15 +79,12 @@
 !-----------------------------------------------------------------------------
       subroutine pscondleaf(pft,IPAR,psd,Gb,gsout,Aout,Rdout
      &     ,sunlitshaded,ISPout)
-!@sum pscondleaf  Main routine to obtain leaf-level photosynthesis, 
-!@+   stomatal conductance, and dark respiration.  
-!@+   See Photosynth_analyticsoln for units.
       implicit none
       integer,intent(in) :: pft
       real*8,intent(in) :: IPAR !umol m-2 s-1. Absorbed PAR. Should APAR.
       type(psdrvtype) :: psd
       real*8,intent(in) :: Gb !mol m-2 s-1
-      real*8,intent(out) :: gsout, Aout, Rdout !ci recorded in psd
+      real*8,intent(out) :: gsout, Aout, Rdout !ci in psd
       real*8,intent(out) :: ISPout
       integer,intent(in) :: sunlitshaded
       !---Local---
@@ -133,26 +118,21 @@ cddd      endif
 
 !-----------------------------------------------------------------------------
 
-!      subroutine fbb_night(Atot,Gs,Rd,Iso)
-!      real*8, intent(out) :: Atot,Gs,Rd,Iso
-!
-!      Atot = 0.d0
-!      Gs = BallBerry(0.d0, 1.d0, 1.d0, pspar)
-!      Rd = 0.015d0 * pspar%Vcmax
-!      Iso = 0.d0
-!
-!      end subroutine fbb_night
+      subroutine fbb_night(Atot,Gs,Rd,Iso)
+      real*8, intent(out) :: Atot,Gs,Rd,Iso
+
+      Atot = 0.d0
+      Gs = BallBerry(0.d0, 1.d0, 1.d0, pspar)
+      Rd = 0.015d0 * pspar%Vcmax
+      Iso = 0.d0
+
+      end subroutine fbb_night
 
       subroutine Photosynth_analyticsoln(pft,IPAR,ca,ci,Tl,Pa,rh,gb,
      o     gs,Atot,Rd,sunlitshaded,isp)
-!@sum Photosynth_analyticsoln  Selects the correct root for the 
-!@+   solution to the cubic coupled equations of  Farquhar photosynthesis and 
-!@+   Ball-Berry conductance, including dark respiration.  
-!@+   ci is solved for analytically for each of the limiting cases.
-!@+   Outputs gs, Atot, Rd. May output also other VOC fluxes.
-!@auth  N.Y.Kiang, I.Aleinov
-      use ent_pfts, only : pfpar
-      use respauto_physio, only : Rdark
+      !@sum Photosynth_cubic Farquhar photosynthesis and Ball-Berry conductance
+      !@sum and autotrophic respiration.  ci is solved for analytically for each
+      !@sum of the limiting cases.
       implicit none
       integer,intent(in) :: pft !Plant functional type, 1-C3 grassland
       real*8,intent(in) :: IPAR !Absorbed PAR.  WRONG OLD COMMENT:Incident PAR (umol m-2 s-1) 
@@ -161,12 +141,12 @@ cddd      endif
       real*8,intent(in) :: rh   !Relative humidity
       real*8,intent(in) :: Pa   !Pressure (Pa)
       real*8,intent(in) :: gb   !Leaf boundary layer conductance of water vapor (mol m-2 s-1)
-      integer,intent(in) :: sunlitshaded !For diagnostic outputs only.
       real*8,intent(out) :: ci   !Leaf internal CO2 concentration (umol mol-1)      
       real*8,intent(out) :: gs  !Leaf stomatal conductance (mol-H2O m-2 s-1)
       real*8,intent(out) :: Atot !Leaf gross photosynthesis (CO2 uptake, micromol m-2 s-1)
       real*8,intent(out) :: Rd  !Dark = above-ground growth + maintenance respiration (umol m-2 s-1)
       real*8,intent(out) :: isp ! Isoprene emission (umol C m-2 s-1)
+      integer,intent(in) :: sunlitshaded !For diagnostic outputs only.
         !---Local----
 !      type(photosynthpar) :: pspar !Moved to global to module.
       real*8,parameter :: O2pres=20900.d0 !O2 partial pressure in leaf (Pa) Not exactly .209*101325.
@@ -175,7 +155,7 @@ cddd      endif
       real*8 :: Anet            !Net assimilation of CO2 = Atot - aboveground respir (umol m-2 s-1)
       real*8 :: Aiso            ! Rate of photosynthesis for isoprene emissions (umol m-2 s-1)
       real*8 :: cs   !CO2 mole fraction at the leaf surface (umol mol-1)
-      real*8 :: Ae, Ac, As      !* These are Anet!
+      real*8 :: Ae, Ac, As
       real*8, save :: a1c=1.d30, f1c=-1.d30
       real*8 :: a1e, f1e
       real*8, parameter :: alpha=.08d0 !Intrinsic quantum efficiency for CO2 uptake
@@ -189,7 +169,8 @@ cddd      endif
 
       !write(888,*) "counter=", counter
 
-      Rd = Rdark(pspar%Vcmax)
+!      Rd = Respveg(pspar%Nleaf,Tl)  !Old F&K Respveg is not only leaf respir.
+      Rd = 0.2d0 * 0.015d0 * pspar%Vcmax    !0.2d0 tune factor x von Caemmerer book.
 
 
       if ( IPAR < .000001d0 ) then
@@ -211,21 +192,19 @@ cddd      endif
 
       !Assimilation is of the form a1*(Ci - Gammastar)/(e1*Ci + f)
       if ( pspar%first_call ) then
-         if (pfpar(pspar%pft)%pst.eq.C3) then
-            a1c = pspar%Vcmax
-            f1c = pspar%Kc*(1.d0 + O2pres/pspar%Ko) * 1.d06/Pa !umol/mol
+        a1c = pspar%Vcmax
+        f1c = pspar%Kc*(1.d0 + O2pres/pspar%Ko) * 1.d06/Pa !umol/mol
 
-            !call ci_cubic (ca,rh,gb,Pa,Rd,a1c,f1c,pspar,Axxx)
-            call ci_cubic(ca,rh,gb,Pa,Rd,a1c,f1c,pspar,Ac)
-            !if ( Ac >= -Rd ) write(578,*) Axxx, Ac, Ac - Axxx
-            !write(888,*) "Ac", ca,rh,gb,Pa,Rd,a1,f1,pspar,Ac
-         else !C4 photosynthesis
-            Ac = pspar%Vcmax - Rd
-         endif
-         pspar%Ac = Ac
-         !pspar%first_call = .false. !Probably bug-prone, but reset after As
-      else 
-         Ac = pspar%Ac
+        !write(778,*) 2*pspar%Gammastar * 1.d06/Pa, f1
+
+        !call ci_cubic (ca,rh,gb,Pa,Rd,a1c,f1c,pspar,Axxx)
+        call ci_cubic(ca,rh,gb,Pa,Rd,a1c,f1c,pspar,Ac)
+        !if ( Ac >= -Rd ) write(578,*) Axxx, Ac, Ac - Axxx
+        !write(888,*) "Ac", ca,rh,gb,Pa,Rd,a1,f1,pspar,Ac
+        pspar%Ac = Ac
+        pspar%first_call = .false.
+      else
+        Ac = pspar%Ac
       endif
 
 
@@ -236,65 +215,49 @@ cddd      endif
 
       !Assimilation is of the form a1*(ci - Gammastar.umol)/(e1*ci + f1)
 
-      if (pfpar(pspar%pft)%pst.eq.C3) then
-         !a1 = pspar%PARabsorb*IPAR*alpha
-         a1e = IPAR*alpha       !### HACK:  IPAR from canopyspitters.f is APAR.  When we switch to Wenze's canopyrad, then leaf PARabsorb will be used -NK ###
-         f1e = 2*pspar%Gammastar * 1.d06/Pa !Convert from Pa to umol/mol
+!      a1 = pspar%PARabsorb*IPAR*alpha
+      a1e = IPAR*alpha  !### HACK:  IPAR from canopyspitters.f is APAR.  When we switch to Wenze's canopyrad, then leaf PARabsorb will be used -NK ###
+      f1e = 2*pspar%Gammastar * 1.d06/Pa !Convert from Pa to umol/mol
 
-         if ( a1e < a1c .or. 
-     &        f1e > f1c .or.
-     &        need_isoprene ) then
-            !call ci_cubic (ca,rh,gb,Pa,Rd,a1e,f1e,pspar,Axxx)
-            call ci_cubic(ca,rh,gb,Pa,Rd,a1e,f1e,pspar,Ae)
-            !write(888,*) "Ae", ca,rh,gb,Pa,Rd,a1,f1,pspar,Ae 
+      if ( a1e < a1c .or. 
+     &     f1e > f1c .or.
+     &     need_isoprene ) then
+        !call ci_cubic (ca,rh,gb,Pa,Rd,a1e,f1e,pspar,Axxx)
+        call ci_cubic(ca,rh,gb,Pa,Rd,a1e,f1e,pspar,Ae)
+        !write(888,*) "Ae", ca,rh,gb,Pa,Rd,a1,f1,pspar,Ae 
 cddd        call ci_cubic1(ca,rh,gb,Pa,Rd,a1,f1,pspar,Axxx)
 cddd        write(579,*) Ae, Axxx
 cddd        if ( Ae > 0.d0 ) write(578,*) Axxx - Ae
         !if ( Ae >= -Rd ) write(578,*) Axxx, Ae, Ae - Axxx
-         else
-            Ae = 1.d30
-         endif
-      else !C4 photosynthesis
-         Ae = IPAR*alpha - Rd
+      else
+        Ae = 1.d30
       endif
 
 
-      !* Photosynthetic rate limited by utilization of photosynthetic products:
-      !* (umol m-2 s-1)  Triosphosphate (TPU limitation for C3,
-      !*                 PEP carboxylase limitation for C4.
-      if (pfpar(pspar%pft)%pst.eq.C3) then
-           !call Ci_Js(ca,gb,rh,IPAR,Pa,pspar,Rd, cis, Js1)
-           !Js_sucrose = pspar%Vcmax/2.d0
-            As = pspar%Vcmax/2.d0 - Rd  !Anet
-            pspar%As = As
-           !write(888,*) "As", As
-      else  !C4 photosynthesis
-            !As = 4000.d0*pspar%Vcmax*ci - Rd
-         if (pspar%first_call) then
-            call Asnet_C4(ca,rh,gb,Rd,pspar,As) !This is Anet
-            pspar%As = As
-         else
-            As = pspar%As
-            pspar%first_call = .false.
-         endif
-      endif
+
+      !* Photosynthetic rate limited by "utilization of photosynthetic products"
+      !* (umol m-2 s-1)
+!      call Ci_Js(ca,gb,rh,IPAR,Pa,pspar,Rd, cis, Js1)
+      !Js_sucrose = pspar%Vcmax/2.d0
+      As = pspar%Vcmax/2.d0 - Rd
+      !write(888,*) "As", As
 
       Anet = min(Ae, Ac, As)
       Atot = Anet + Rd
       Aiso = Ae + Rd
 
       if (Atot.lt.0.d0) then
-      ! can only happen if ca < Gammastar . Does it make sense? -Yes-NK
+        ! can only happen if ca < Gammastar . Does it make sense? -Yes-NK
 #ifdef OFFLINE
-         write(997,*) "Error, Atot<0.0:",Atot,Ae,Ac,As,ca,gb,rh,IPAR
-     &        ,Pa,pspar,sunlitshaded, pspar%Gammastar * 1.d06/Pa
+        write(997,*) "Error, Atot<0.0:",Atot,Ae,Ac,As,ca,gb,rh,IPAR,Pa,
+     &       pspar,sunlitshaded, pspar%Gammastar * 1.d06/Pa
 #endif
-         Atot = 0.d0
-         Anet = - Rd
-!!       ci = pspar%Gammastar * 1.d06/Pa  
-!!       gs = 0. ! MK: setting to 0 to avoid erratic results
+        Atot = 0.d0
+        Anet = - Rd
+!!        ci = pspar%Gammastar * 1.d06/Pa  
+!!        gs = 0. ! MK: setting to 0 to avoid erratic results
 
-!!    else
+!!       else
       endif
 
       cs = ca - Anet*1.37d0/gb
@@ -317,8 +280,8 @@ cddd        if ( Ae > 0.d0 ) write(578,*) Axxx - Ae
 
 !-----------------------------------------------------------------------------
       subroutine Voccalc(pft,pa,ca,ci,Tl,Gammastar,isp,Aiso)
-!@sum Voccalc  Isoprene emissions coupled to photosynthesis
-!@auth Nadine Unger
+!@sum Isoprene emissions coupled to photosynthesis
+
       use ent_pfts
 
       implicit none
@@ -456,41 +419,46 @@ cddd      end subroutine Photosynth_analyticsoln1
 !-----------------------------------------------------------------------------
 
 
-c      function Respveg(Nleaf,Tl) Result(Rd)
-c!@sum Respveg Leaf dark respiration, Rd (umol-CO2 m-2[leaf] s-1)
-c!@+   Version from Friend & Kiang (2005).
-c!@+   Keep for experimentation/development.
-c      !Rd = dark respiration = mitochondrial respiration =
-c      !  growth respiration(activity) + maintenance respiration (biomass)
-c      !Does not include photorespiration.
-c      !Need to distinguish aboveground respiration for leaf Ci vs. roots.
-c
-c      implicit none
-c!      type(photosynthpar) :: pspar
-c      real*8,intent(in) :: Nleaf !(g-N/m^2 leaf) leaf nitrogen 
-c      real*8,intent(in) :: Tl !Leaf temperature (Celsius)
-c      real*8 :: Rd  !Autotrophic respiration (umol-CO2 m-2[leaf] s-1)
-c!      integer :: p
-c      !Collatz, et al. (1991).  No good.  Doesn't rise with temperature.
-c!       Rd = 0.015 * pspar%Vcmax !Only leaf maintenance respiration.
-c
-c      !* Friend and Kiang (2005) - total autotrophic respiration.
-c      !Rd  based on temperature and nitrogen content.
-c      !Rd = 0.2 (umol m-2 s-1) * N (g) (Carswell, et al., 2000)
-c      !N(g m-2) per Vcmax from Harley, et al. (1992, Fig. 4), cotton.
-c      !Temperature response from Bernacchi, et al. (2001)
-c!      Rd = 0.2d0 * (pspar%Vcmax + 9.6d0)/60.d0
-c!     &     *exp(18.72d0 - 46390.d0/(Rgas*(Tl+Kelvin)))
-c      !N(g m-2) per LAI from Ponca Ntot/LA, get mean 1st 120 days of season 2.47 g/m-2[leaf]
-c      !The Harley relation is an order of magnitude too small.
-c      Rd = Nleaf * exp(18.72d0 - 46390.d0/(Rgas*(Tl+Kelvin)))
-c
-c!      Rd = exp(pftpar(p)%Rdc - pftpar(p)%RdH/(Rgas*(Tl+Kelvin))) !Harley&Tenhunen, 1991
-c      end function Respveg
+      function Respveg(Nleaf,Tl) Result(Rd)
+      !@sum Respveg Autotrophic respiration (umol-CO2 m-2[leaf] s-1)
+      !Rd = dark respiration = mitochondrial respiration =
+      !  growth respiration(activity) + maintenance respiration (biomass)
+      !Does not include photorespiration.
+      !Need to distinguish aboveground respiration for leaf Ci vs. roots.
+
+      implicit none
+!      type(photosynthpar) :: pspar
+      real*8,intent(in) :: Nleaf !(g-N/m^2 leaf) leaf nitrogen 
+      real*8,intent(in) :: Tl !Leaf temperature (Celsius)
+      real*8 :: Rd  !Autotrophic respiration (umol-CO2 m-2[leaf] s-1)
+!      integer :: p
+      !Collatz, et al. (1991).  No good.  Doesn't rise with temperature.
+!       Rd = 0.015 * pspar%Vcmax !Only leaf maintenance respiration.
+
+      !* Friend and Kiang (2005) - total autotrophic respiration.
+      !Rd  based on temperature and nitrogen content.
+      !Rd = 0.2 (umol m-2 s-1) * N (g) (Carswell, et al., 2000)
+      !N(g m-2) per Vcmax from Harley, et al. (1992, Fig. 4), cotton.
+      !Temperature response from Bernacchi, et al. (2001)
+!      Rd = 0.2d0 * (pspar%Vcmax + 9.6d0)/60.d0
+!     &     *exp(18.72d0 - 46390.d0/(Rgas*(Tl+Kelvin)))
+      !N(g m-2) per LAI from Ponca Ntot/LA, get mean 1st 120 days of season 2.47 g/m-2[leaf]
+      !The Harley relation is an order of magnitude too small.
+      Rd = Nleaf * exp(18.72d0 - 46390.d0/(Rgas*(Tl+Kelvin)))
+
+!      Rd = exp(pftpar(p)%Rdc - pftpar(p)%RdH/(Rgas*(Tl+Kelvin))) !Harley&Tenhunen, 1991
+      end function Respveg
+!-----------------------------------------------------------------------------
+      real*8 function Rdark()
+      !Leaf dark respiration (umol m-2_leaf s-1)
+
+      Rdark = 0.015d0 * pspar%Vcmax !von Caemmerer book.
+      
+      end function Rdark
 !-----------------------------------------------------------------------------
 
       function calc_CO2compp(O2,Kc,Ko,Tl) Result(Gammastar)
-!@sum calc_CO2compp CO2 compensation point in absence of dark respiration (Pa)
+!@sum CO2 compensation point in absence of dark respiration (Pa)
 
       implicit none
       real*8,intent(in) :: O2 !O2 partial pressure in leaf (Pa)
@@ -640,11 +608,9 @@ cddd      end subroutine Ci_Js
 !-----------------------------------------------------------------------------
       
       function arrhenius(Tcelsius,c1,c2) Result(arrh)
-!@sum arrhenius Arrhenius response to temperature for biological kinetics.
-!@+   From David Medvigy's lphys.f90
+      !From David Medvigy's lphys.f90
       implicit none
-      real*8 :: Tcelsius
-      real*8 :: c1,c2 !Process-specific temperature response parameters.
+      real*8 :: Tcelsius,c1,c2
       real*8 :: arrh
 
       arrh = c1*exp(c2*(1.d0/288.15d0-1.d0/(Tcelsius+Kelvin)))
@@ -652,11 +618,9 @@ cddd      end subroutine Ci_Js
       end function arrhenius
 !=================================================
       function Q10fn(Q10par,Tcelsius) Result(Q10factor)
-!@sum Q10fn  Q10 function, biological response to temperature.
-!@+   From Collatz, et al. (1991)
+      !@sum From Collatz, et al. (1991)
       implicit none
-      real*8 :: Q10par, Tcelsius !parameter, temperature 
-      real*8 :: Q10factor
+      real*8 :: Q10par, Tcelsius,Q10factor
 
       Q10factor = Q10par**((Tcelsius-25.d0)/10.d0)
 
@@ -664,9 +628,7 @@ cddd      end subroutine Ci_Js
 !=================================================
 
       function Tresponse(c,deltaH,Tcelsius) Result(Tfactor)
-!@sum Tresponse  Arrhenius temperature response function that accounts for
-!@+   activation energy.
-!@+   From Bernacchi, et al. (2001).
+      !@sum From Bernacchi, et al. (2001).  Also Arrhenius.
       implicit none
       real*8,intent(in) :: c !Scaling factor
       real*8,intent(in) :: deltaH !Activation energy 
@@ -677,73 +639,15 @@ cddd      end subroutine Ci_Js
 
       end function Tresponse
 !=================================================
-      subroutine  Asnet_C4(ca,rh,gb,Rd,pspar,Asnet)
-!@sum Asnet_C4 PEP carboxlase-limited carbon assimilation for C4 photosynthesis
-!@+   After Collatz, and CLM's correction of the coefficient
-!@+   Returns Asnet = Astot - Rd
-!@+   Solving for Asnet via the equations:
-!@+   1) Asnet = Astot - Rd
-!@+           = (ca - ci)/[(1.37*rb + 1.65*rs)] 
-!@+           = (ca - cs)/(1.37*rb) 
-!@+           = (cs - ci)/(1.65*rs)
-!@+   2) 1/rs = gs = m*A*rh/cs + b     
-!@+   3) Astot = 4000.d0*pspar%Vcmax*(ci*1e-06)  
-!@+        !4000 is CLM, Collatz had 1800. Convert ci from umol/mol to mol/mol
-!@+   Do subsitutions to eliminate cs and ci and solve for Asnet.
-
-
-      real*8,intent(in) :: ca  !Surface air CO2 concentration (umol/mol)
-      real*8,intent(in) :: rh   !Relative humidity
-      real*8,intent(in) :: gb   !Leaf boundary layer conductance of water vapor (mol m-2 s-1)
-      real*8,intent(in) :: Rd   !Leaf mitochondrial respiration (umol m-2 s-1)
-      type(photosynthpar) :: pspar
-      real*8,intent(out) :: Asnet  !Net assimilation of carbon (umol m-2 s-1)
-      !---Local----
-      real*8 :: ci !Leaf internal CO2 concentration (umol/mol)
-      real*8 :: K1, K2, K3, K4
-      real*8 :: X, Y, Z
-      real*8 :: b0, a0, c0
-      real*8 :: Aspos, Asneg
-
-      K1 = pspar%m * rh
-      K2 = 4000.d0*pspar%Vcmax * 1.d-06
-      K3 = 1.37d0/gb
-      K4 = 1.65d0*ca
-      
-      !Anet^2*X + A*Y + Z = 0
-      X = (K1 - pspar%b*K3)*(1/K2 + K3) - 1.65d0*K3
-      Y = ca*(pspar%b/K2 - K1 + 1.65d0) + Rd/K2*(K1 - pspar%b*K3)
-      Z = -pspar%b * ca * ( Rd/K2 - ca )
-
-      !This section is correct to solve for Atot, solves to Anet+Rd.
-      !Easier just to add Rd to Asnet.
-      !a0*Atot^2 + b0*Atot + c0 = 0
-      !a0 = X
-      !b0 = -2.d0*Rd*X + Y
-      !c0 = (Rd**2.d0)*X - Rd*Y + Z
-      !Aspos = (-b0 + sqrt(b0**2.d0 - 4.d0*a0*c0))/(2*a0)
-      !Asneg = (-b0 - sqrt(b0**2.d0 - 4.d0*a0*c0))/(2*a0)
-      !Astot = max(Aspos, Asneg)
-
-      Asnet = max (-Rd
-     &     ,(-Y + sqrt(Y**2.d0 - 4.d0*X*Z))/(2.d0*X)) !Positive root is max.
-
-      end subroutine Asnet_C4
-
-!=================================================
 
 #ifndef USE_NR_SOLVER_FOR_FBB
       subroutine ci_cubic(ca,rh,gb,Pa,Rd,a1,f1,pspar,A)
-!@sum ci_cubic Analytical solution for cubic equation of coupled
-!@+   Ball-Berry/Farquhar stomatal conductance/photosynthesis.
-!@+   Version that uses analytical equation solution.
-!@+   Solves for Anet.
-!@auth I.Aleinov
+      !@sum ci_cubic Analytical solution for Ball-Berry/Farquhar cond/photosynth
       !@sum ci (umol/mol)
       !@sum For the case of assimilation being of the form:
-      !@sum         A = Anet = a*(Cip - Gammastar)/(e*Cip + f) - Rd
+      !@sum         A = a*(Cip - Gammastar)/(e*Cip + f) - Rd
       !@sum Numerator and denominator are converted from (Pa/Pa) to (umol mol-1)/(umol mol-1)
-      !@sum         A = Anet = a1*(ci - gammamol) /(e1*ci + fmol) - Rd
+      !@sum         A = a1*(ci - gammamol) /(e1*ci + fmol) - Rd
       !@sum where gammamol = Gammastar*1d06/Pa, fmol = f1 = f*1d06/Pa
 
       implicit none
@@ -858,8 +762,7 @@ cddd      !!print *,'QQQQ ',A,ci
 
 !=================================================
       subroutine cubicroot(a,b,c,d,x,n) 
-!@sum cubicroot  Solve cubic equation: a x^3 + b x^2 + c x + d = 0 *!
-!@auth I.Aleinov
+      !* solve cubic equation: a x^3 + b x^2 + c x + d = 0 *!
       !* Written by Igor Aleinov from solution by Cardano in
       !* Korn, Korn, Mathematical Handbook.
       implicit none
@@ -961,10 +864,11 @@ cddd      !!print *,'QQQQ ',A,ci
 
       subroutine calc_Pspar(dtsec,pft,Pa,Tl,O2pres,stressH2O,
      &                      Sacclim,llspan)
-!@sum calc_Pspar Collatz photosynthesis parameters in data structure pspar.
-!@    pspar is GLOBAL TO MODULE.
-      !Later need to replace these with von Caemmerer book Arrhenius
-      !function sensitivities (her Table 2.3)
+      !@sum calc_Pspar Collatz photosynthesis parameters in type pspar, which
+      !@sum is GLOBAL TO MODULE.
+      !@sum Later need to replace these with von Caemmerer book Arrhenius
+      !@sum function sensitivities (her Table 2.3)
+!      use phenology, only : frost_hardiness ! REPEAT: dependency issues
       implicit none
       integer,intent(in) :: pft   !Plant functional type, 1=C3 grassland
       real*8,intent(in) :: dtsec
@@ -980,8 +884,8 @@ cddd      !!print *,'QQQQ ',A,ci
       !----Local-----
       real*8 :: facclim ! acclimation/forst hardiness factor [-]
       !Below parameters are declared at top of module, though only used here.
-!      real*8,parameter :: Kc        !Michaelis-Menten constant for CO2 (Pa)
-!      real*8,parameter :: Ko        !Michaelis-Menten constant for O2 (Pa)
+!      real*8,parameter :: Kc              !Michaelis-Menten constant for CO2 (Pa)
+!      real*8,parameter :: Ko              !Michaelis-Menten constant for O2 (Pa)
 !      real*8,parameter :: KcQ10           !Kc Q10 exponent
 !      real*8,parameter :: KoQ10           !Ko Q10 exponent
       real*8 :: fparlimit !light(i.e.,PAR) control
@@ -1019,70 +923,14 @@ cddd      !!print *,'QQQQ ',A,ci
       pspar%stressH2O = stressH2O
 
       pspar%first_call = .true.
-!      pspar%As = 0.d0 !Unnecessary but zero anyway
-!      pspar%Ac = 0.d0 !Unnecessary but zero anyway
       pspar%reset_ci_cubic1 = .true.
 
       end subroutine calc_Pspar
 
 !-----------------------------------------------------------------------------
-      real*8 function par_phenology(pft,llspan) Result(fparlimit)  
-!@sum par_phenology  Physiological status variable for Vcmax of tropical
-!@+   broadleaf evergreen trees.
-!@auth Y.Kim
-      integer, intent(in) :: pft
-      real*8, intent(in) :: llspan
-      real*8, parameter :: vc_tran =12.d0 !9.d0 ! 7.2     !transition
-      real*8, parameter :: vc_slop = 15.d0 !10.d0 !16.9    !slope
-      real*8, parameter :: vc_amp = 15.d0 !30.d0 !29.8    !amplitude
-      real*8, parameter :: vc_min = 10.d0 !25.d0 !7.7     !minimum
-
-      if (llspan > 0.d0) then
-         fparlimit = (vc_amp/(1.d0+(llspan/vc_tran)**vc_slop)+vc_min)
-     &               /pftpar(pft)%Vcmax
-      else
-         fparlimit = 1.d0
-      endif
-
-      end function par_phenology        
-!-----------------------------------------------------------------------------
-
-      real*8 function frost_hardiness(Sacclim) Result(facclim)
-!@sum frost_hardiness.  Calculate factor for adjusting photosynthetic capacity
-!@+   due to frost hardiness phenology.
-!@+   Based on Repo et al (1990), Hanninen & Kramer (2007),
-!@+   and Makela et al (2006)
-!@auth M.Puma
-      real*8,intent(in) :: Sacclim 
-!      real*8 :: facclim ! acclimation/frost hardiness factor [0. to 1.]
-      !----Local-----
-      real*8,parameter :: Tacclim=-5.93d0 ! threshold temperature for photosynthesis [deg C]
-      !real*8,parameter :: Tacclim=-3.d0 ! Best tune for Hyytiala
-                        ! Site specific thres. temp.: state of photosyn.acclim
-                        ! Hyytiala Scots Pine, -5.93 deg C Makela et al (2006)
-      !real*8,parameter :: a_const=0.0595 ! factor to convert from Sacclim [degC] to facclim [-]
-                        ! Site specific; conversion (1/Sacclim_max)=1/16.8115
-                        ! estimated by using the max S from Hyytiala 1998
-      real*8, parameter :: a_const = 0.1d0 !Closer tune for Hyytiala
-
-      if (Sacclim > Tacclim) then ! photosynthesis occurs 
-         facclim = a_const * (Sacclim-Tacclim) 
-         if (facclim > 1.d0) facclim = 1.d0
-!      elseif (Sacclim < -1E10)then !UNDEFINED
-      elseif (Sacclim.eq.UNDEF)then !UNDEFINED
-         facclim = 1.d0         ! no acclimation for this pft and/or simualtion
-      else
-         facclim = 0.01d0       ! arbitrary min value so that photosyn /= zero
-      endif
-
-      end function frost_hardiness
-
-!-----------------------------------------------------------------------------
-
       function BallBerry(Anet, rh, cs, pspar) Result (gsw)
 !@sum Ball-Berry (1987) model of leaf stomatal conductance of 
-!@    water vapor, gsw (mol m-2 s-1)      
-!@auth N.Y.Kiang
+!@sum water vapor, gsw (mol m-2 s-1)      
       implicit none
       real*8,intent(in) :: Anet !Net assimilation of CO2 (umol m-2 s-1)
       real*8,intent(in) :: rh   !Relative humidity (fractional ratio)
@@ -1321,14 +1169,56 @@ cddd
 cddd      end function calc_ci
 
 !-----------------------------------------------------------------------------
+!*************************************************************************
+      !##### Due to dependency issues, this function is repeated in phenology.f
+      !##### Need to put common functions in a different module for both.
+      real*8 function frost_hardiness(Sacclim) Result(facclim)
+!@sum frost_hardiness.  Calculate factor for adjusting photosynthetic capacity
+!@sum  due to frost hardiness phenology.
+!      real*8 :: facclim ! acclimation/frost hardiness factor [-]
+      real*8,intent(in) :: Sacclim 
+      !----Local-----
+      real*8,parameter :: Tacclim=-5.93d0 ! threshold temperature for photosynthesis [deg C]
+      !real*8,parameter :: Tacclim=-3.d0 ! Best tune for Hyytiala
+                        ! Site specific thres. temp.: state of photosyn.acclim
+                        ! Hyytiala Scots Pine, -5.93 deg C Makela et al (2006)
+      !real*8,parameter :: a_const=0.0595 ! factor to convert from Sacclim [degC] to facclim [-]
+                        ! Site specific; conversion (1/Sacclim_max)=1/16.8115
+                        ! estimated by using the max S from Hyytiala 1998
+      real*8, parameter :: a_const = 0.1d0 !Closer tune for Hyytiala
+
+      if (Sacclim > Tacclim) then ! photosynthesis occurs 
+         facclim = a_const * (Sacclim-Tacclim) 
+         if (facclim > 1.d0) facclim = 1.d0
+!      elseif (Sacclim < -1E10)then !UNDEFINED
+      elseif (Sacclim.eq.UNDEF)then !UNDEFINED
+         facclim = 1.d0         ! no acclimation for this pft and/or simualtion
+      else
+         facclim = 0.01d0       ! arbitrary min value so that photosyn /= zero
+      endif
+
+      end function frost_hardiness
+!-----------------------------------------------------------------------------
+      real*8 function par_phenology(pft,llspan) Result(fparlimit)  
+      integer, intent(in) :: pft
+      real*8, intent(in) :: llspan
+      real*8, parameter :: vc_tran =12.d0 !9.d0 ! 7.2     !transition
+      real*8, parameter :: vc_slop = 15.d0 !10.d0 !16.9    !slope
+      real*8, parameter :: vc_amp = 15.d0 !30.d0 !29.8    !amplitude
+      real*8, parameter :: vc_min = 10.d0 !25.d0 !7.7     !minimum
+
+      if (llspan > 0.d0) then
+         fparlimit = (vc_amp/(1.d0+(llspan/vc_tran)**vc_slop)+vc_min)
+     &               /pftpar(pft)%Vcmax
+      else
+         fparlimit = 1.d0
+      endif
+
+      end function par_phenology        
+!-----------------------------------------------------------------------------
 
 #ifdef USE_NR_SOLVER_FOR_FBB
-      subroutine ci_cubic(ca,rh,gb,Pa,Rd,a1,f1,pspar,A)
-!@sum ci_cubic Numerical solution for cubic equation of coupled
-!@+   Ball-Berry/Farquhar stomatal conductance/photosynthesis.
-!@+   Solves for Atot.
-!@+   Version that uses Newton-Raphson solver
-!@auth I.Aleinov
+       subroutine ci_cubic(ca,rh,gb,Pa,Rd,a1,f1,pspar,A)
       implicit none
       real*8 :: ca              !Ambient air CO2 concentration (umol mol-1)
       real*8 :: rh              !Relative humidity
@@ -1416,9 +1306,6 @@ cddd
 cddd      end subroutine A_eqn
 
       subroutine A_eqn(A, f, df,  Ra, b, K1, gamol,  ca, a1, f1, Rd )
-!@sum Calculates the f coefficient in the coupled equ of photosynth/cond.
-!@+   Igor, what is this solving for?? For f and df?
-!@+   I.Aleinov
       real*8 A, f, df
       real*8 Ra, b, K1, gamol,  ca, a1, f1, Rd
       !---
@@ -1449,8 +1336,6 @@ cddd      end subroutine A_eqn
       end subroutine A_eqn
 
       subroutine A_eqn_0(A, f, Ra, b, K1, gamol,  ca, a1, f1, Rd )
-!@sum Calculates coefficients in equation for coupled photosynth/cond.
-!@auth I.Aleinov
       real*8 A, f
       real*8 Ra, b, K1, gamol,  ca, a1, f1, Rd
       !---
@@ -1480,8 +1365,7 @@ cddd      end subroutine A_eqn
 
       FUNCTION rtsafe(funcd,x1,x2,xacc,  Ra, b, K, gamol,ca, a1, f1, Rd
      &     , numit )
-!@sum Newton-Raphson solver (Numerical Recipes)
-!@auth   I.Aleinov
+!@sum Newton-Raphson solver (Numerical Recepies)
       INTEGER MAXIT
       REAL*8 rtsafe,x1,x2,xacc
       real*8 Ra, b, K, gamol,  ca, a1, f1, Rd

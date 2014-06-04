@@ -577,10 +577,10 @@
       C2N = 1/(pftpar(cop%pft)%Nleaf*1d-3*pfpar(cop%pft)%SLA)
 
       !* Maintenance respiration - leaf + sapwood + storage
-      Resp_fol = umols_to_kgCm2s *
-!!     &       Canopy_resp(vegpar%Ntot, TcanopyC+KELVIN) !Foliage
-     &     (Rd + Resp_cpool_maint(cop%pft, cop%C_fol,C2N,
-     &     TcanopyK, TairK_10d, facclim)) !Foliage
+      Resp_fol = umols_to_kgCm2s * Rd !Von Caemmer version from qsimp
+!!      Resp_fol = Canopy_resp(vegpar%Ntot, TcanopyC+KELVIN) !Friend version
+!!      Resp_fol = Resp_cpool_maint(cop%pft, cop%C_fol,C2N,
+!!!     &     TcanopyK, TairK_10d, facclim)) !Generalized version
       Resp_sw = umols_to_kgCm2s *
      &     Resp_cpool_maint(cop%pft,cop%C_sw, 
      &     100.d0,TcanopyK,TairK_10d, facclim) 

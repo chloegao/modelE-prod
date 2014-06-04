@@ -42,7 +42,7 @@
 !      Soiltemp(:) = pp%cellptr%Soiltemp(:)  !soil temp, texture vary by cell
       call Soillayer_convert_Ent(pp%cellptr%Soilmoist(:), SOILDEPTH_m, 
      &     Soilmoist) 
-!      Soilmoist(:) = Soilmoist(:)*pp%cellptr%soil_Phi !Convert from rel.sat. to vol fraction. TEMPORARY TESTS
+      Soilmoist(:) = Soilmoist(:)*pp%cellptr%soil_Phi !Convert from rel.sat. to vol fraction. !WHY WAS THIS COMMENTED OUT? TEMPORARY TESTS
       call Soillayer_convert_Ent(pp%cellptr%Soiltemp(:), SOILDEPTH_m, 
      &     Soiltemp) 
 

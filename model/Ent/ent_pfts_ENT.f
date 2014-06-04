@@ -29,8 +29,8 @@
      &     '14 - arctic C3 grass                             ',
      &     '15 - crops herb                                  ',
      &     '16 - crops woody                                 ',
-     &     '17 - Permanent snow/ice                          ',
-     &     '18 - Bare or sparsely vegetated, urban           '
+     &     '17 - SAND? / Permanent snow/ice                  ',
+     &     '18 - DIRT / Bare or sparsely vegetated, urban    '
      &     /)
 
       !* 1 - evergreen broadleaf early successional
@@ -71,8 +71,12 @@
       integer, parameter :: CROPSWOODY = 16
       integer, parameter :: SAND = 17
       integer, parameter :: BDIRT = 18
+!##### TEMPORARY HACK - YK #####
+!to avoid the conflict in ent_prescribed_drv.f90, using CROPS!
+      integer, parameter :: CROPS = 15
+!##### END OF TEMPORARY HACK #####
+      
 
-#ifdef MODIS_LAI
       character(len=13), parameter :: ent_cover_names(N_COVERTYPES) = (/
      &     "ever_br_early",
      &     "ever_br_late ",
@@ -93,13 +97,8 @@
      &     "bare_bright  ",
      &     "bare_dark    "
      &     /)
-#endif
 
-!##### TEMPORARY HACK - YK #####
-!to avoid the conflict in ent_prescribed_drv.f90, using CROPS!
-      integer, parameter :: CROPS = 15
-!##### END OF TEMPORARY HACK #####
-      
+
       ! other parameters needed for Ent to compile
       integer, parameter :: COVEROFFSET = 0
 
