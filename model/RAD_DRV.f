@@ -1222,6 +1222,7 @@ C     OUTPUT DATA
       USE RANDOM
       USE CLOUDS_COM, only : tauss,taumc,svlhx,rhsav,svlat,cldsav,
      *     cldmc,cldss,csizmc,csizss,llow,lmid,lhi,fss
+     *    ,get_cld_overlap  !  subroutine
 #ifdef SCM
       USE SCMCOM, only : SCM_SURF_ALBEDO_FLAG,iu_scm_prt
       USE SCMDIAG, only : SRDFLBTOP,SRNFLBTOP,SRUFLBTOP,TRUFLBTOP,
@@ -1426,7 +1427,7 @@ C  GHG Effective forcing relative to 1850
       REAL*8, DIMENSION(LM) :: TOTCLD,dcc_cdncl,dod_cdncl
       INTEGER I,J,L,K,KR,LR,JR,IH,IHM,INCH,JK,IT,iy,iend,N,onoff_aer
      *     ,onoff_chem,LFRC,JTIME,n1,moddrf
-      REAL*8 ROT1,ROT2,PLAND,CSS,CMC,DEPTH,QSS,TAUSSL,RANDSS
+      REAL*8 ROT1,ROT2,PLAND,CSS,CMC,DEPTH,QSS,TAUSSL
      *     ,TAUMCL,ELHX,CLDCV,X,OPNSKY,CSZ2,tauup,taudn,ptype4(4)
      *     ,taucl,wtlin,MSTRAT,STRATQ,STRJ,MSTJ,optdw,optdi,rsign_aer
      *     ,rsign_chem,tauex5,tauex6,tausct,taugcb,dcdnc
@@ -1435,12 +1436,11 @@ C  GHG Effective forcing relative to 1850
      *     ,CLDinfo(LM,3,grid%I_STRT_HALO:grid%I_STOP_HALO,
      &                   grid%J_STRT_HALO:grid%J_STOP_HALO)
       REAL*8 tmpS(8),tmpT(8)
-      REAL*8 RANDXX ! temporary
       REAL*8 QSAT
 #ifdef BC_ALB
       REAL*8 dALBsn1
 #endif
-      LOGICAL NO_CLOUD_ABOVE, set_clayilli,set_claykaol,set_claysmec,
+      LOGICAL set_clayilli,set_claykaol,set_claysmec,
      &     set_claycalc,set_clayquar
 C
       REAL*8  RDSS(LM,grid%I_STRT_HALO:grid%I_STOP_HALO,
@@ -1650,7 +1650,7 @@ C**** MC clouds are considered as a block for each I,J grid point
       DO J=J_0,J_1                    ! complete overlap
       CALL BURN_RANDOM((I_0-1))
       DO I=I_0,IMAXJ(J)
-        RDMC(I,J) = RANDU(X)
+        RDMC(I,J) = RANDU(X)          ! 1 random number per column
       END DO
       CALL BURN_RANDOM(nij_after_i1(I_1))
       END DO
@@ -1663,21 +1663,11 @@ C**** SS clouds are considered as a block for each continuous cloud
       DO J=J_0,J_1                    ! semi-random overlap
       CALL BURN_RANDOM((I_0-1)*LM)
       DO I=I_0,IMAXJ(J)
-        NO_CLOUD_ABOVE = .TRUE.
-        DO L=LM,1,-1
+        ! reverse loop kept only for consistency with previous version
+        DO L=LM,1,-1   !   better:  1,LM
           IF(TAUSS(L,I,J).le.taulim) CLDSS(L,I,J)=0.
           IF(TAUMC(L,I,J).le.taulim) CLDMC(L,I,J)=0.
-          RANDXX = RANDU(X)
-          IF(CLDSS(L,I,J).GT.0.) THEN
-            IF (NO_CLOUD_ABOVE) THEN
-              RANDSS = RANDXX
-              NO_CLOUD_ABOVE = .FALSE.
-            END IF
-          ELSE
-            RANDSS = 1.
-            NO_CLOUD_ABOVE = .TRUE.
-          END IF
-          RDSS(L,I,J) = RANDSS
+          RDSS(L,I,J) = RANDU(X)
         END DO
       END DO
       CALL BURN_RANDOM(nij_after_i1(I_1)*LM)
@@ -1824,6 +1814,10 @@ C****
       endif
       dCC_CDNCL = CC_cdncx*dCDNC*CDNCL
       dOD_CDNCL = OD_cdncx*dCDNC*CDNCL
+
+C**** Adjust RDSS for semi-random overlap
+      get_cld_overlap (lm, cldss(:,i,j), randSS=rdss(:,i,j))
+
       DO L=1,LM
         if(q(i,j,l)<0) then
            WRITE(6,*)'In Radia: Time,I,J,L,Q<0',ITime,I,J,L,Q,'->0'

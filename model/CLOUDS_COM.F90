@@ -100,6 +100,78 @@ module CLOUDS_COM
   integer,parameter :: ncol = 20    !@var ncol number of subcolumns
 #endif
 
+contains
+  subroutine get_cld_overlap (lmax, cldssl, cldmcl, CldTot, RandSS)
+!@sum Defines the cloud overlap type and either adjusts the random numbers
+!@+    accordingly and/or finds the probability for the total cloud cover
+!@auth R.Ruedy
+  integer,          intent(in)    :: lmax
+  real*8,           intent(in)    :: cldssl(lmax)
+  real*8, optional, intent(in)    :: cldmcl(lmax)
+  real*8, optional, intent(out)   :: CldTot
+  real*8, optional, intent(inout) :: RandSS(lmax)
+  integer L
+  logical same_cloud
+  real*8 clearmc, clearss, clearss_part
+
+!  Current scheme: - semi-random overlap for supersaturation (SS) clouds
+!                  - full overlap for moist convective (MC) clouds
+!                  - random overlap of SS and MC clouds
+
+!  SS Clouds: Clouds in consecutive layers are treated as part of the
+!             same cloud with maximal overlap (single random number)
+!             Random overlap is used for clouds separated by clear layers
+
+!  Note 1: The first block is a slimmed-down version of the remaining part
+!          (with the RandSS-line un-commented); the current MC and MC/SS
+!          overlap schemes are already realized by having picked a single MC
+!          random number for the whole column in addition to the ones for SS
+!          (That block was added to avoid unneeded computations in long runs)
+!  Note 2: Reverse looping over L was only kept for bit-wise consistency 
+!          with the previous version of the code.
+
+   if(present(RandSS)) then
+     same_cloud = .false.
+     do L=lmax,1,-1       ! better:  1,lmax  (and replace L+1 by L-1 below)
+        if( cldssl(L) > 0 ) then
+          if(same_cloud) RandSS(L) = RandSS(L+1)        ! use same random #
+          same_cloud = .true.                           
+        else
+          same_cloud = .false.                          
+        end if
+     end do
+   end if
+   if (.not.present(CldTot)) return
+
+   same_cloud = .false. ; clearss=1. ; clearss_part=1. ; clearmc=1.
+   do L=1,lmax
+      if( cldssl(L) > 0 ) then
+!!      if(same_cloud) RandSS(L) = RandSS(L-1)            ! use same random #
+        clearss_part = min( clearss_part, 1-cldssl(L) )   ! total overlap
+        same_cloud = .true.                               
+      else                                                ! clear sky layer
+        same_cloud = .false.                         
+        clearss = clearss * clearss_part                  ! random overlap
+        clearss_part = 1.                                 ! reset for next cloud
+      end if
+   end do
+   clearss = clearss * clearss_part                 
+
+!! Treat convective clouds as a single cloud with max. overlap
+!! (using the same random number for the whole column)
+
+   clearmc = 1.
+   do l=1,lmax
+      clearmc = min (clearmc, 1. - cldmcl(l))
+   end do
+   if (clearmc < 0) clearmc = 0.
+
+ !! Use random overlap for MC and SS cloud
+    CldTot = 1 - clearss*clearmc
+    return
+
+    end subroutine get_cld_overlap
+
 end module CLOUDS_COM
 
 subroutine ALLOC_CLOUDS_COM(grid)

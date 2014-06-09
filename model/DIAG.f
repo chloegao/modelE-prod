@@ -1726,7 +1726,7 @@ c get_subdd
      *                ,cosu,sinu,dxv,dyp,bydxyp
 #endif
       USE CLOUDS_COM, only : llow,lmid,lhi,cldss,cldmc,taumc,tauss,fss
-     *           ,svlat,svlhx
+     *           ,svlat,svlhx, get_cld_overlap
 #if (defined mjo_subdd) || (defined etc_subdd)
      *              ,CLWC3D,CIWC3D,TLH3D,LLH3D,SLH3D,DLH3D
 #endif
@@ -1810,7 +1810,7 @@ c get_subdd
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: DATAR8
       INTEGER :: I,J,K,L,kp,ks,kunit,n,n1,nc
       REAL*8 POICE,PEARTH,PLANDI,POCEAN,QSAT,PS,SLP, ZS,TAUL
-      REAL*8 PmcClr,PssClr,PssClrt ! for CLDTOT
+      REAL*8 totcc ! for CLDTOT
       INTEGER :: J_0,J_1,J_0S,J_1S,I_0,I_1
       LOGICAL :: polefix,have_south_pole,have_north_pole,skip
       INTEGER :: DAY_OF_MONTH ! for daily averages
@@ -1898,21 +1898,8 @@ C**** accumulating/averaging mode ***
         case ("CLDTOT")       ! total cloud cover (%)
           do j=J_0,J_1
             do i=I_0,imaxj(j)
-              PmcClr=1. ; PssClr=1. ; PssClrt=1.
-              do l=1,lm
-                if(cldmc(l,i,j)>1.) cldmc(l,i,j)=1.
-         !!     if(cldmc(l,i,j)<0.) cldmc(l,i,j)=0.
-         !!     if(cldss(l,i,j)>1.) cldss(l,i,j)=1.
-         !!     if(cldss(l,i,j)<0.) cldss(l,i,j)=0.
-                PmcClr = min(PmcClr, 1. - cldmc(l,i,j))
-                if( cldss(l,i,j) == 0. ) then
-                   PssClr = PssClr*PssClrt
-                   PssClrt = 1.
-                end if
-                PssClrt = min( PssClrt, 1.-cldss(l,i,j) )
-              end do
-              PssClr = PssClr*PssClrt
-              datar8(i,j) = 100.*(1.-PmcClr*PssClr)
+              call get_cld_overlap(lm,cldss(:,i,j),cldmc(:,i,j),totcc)
+              datar8(i,j) = 100.*totcc
             end do
           end do
           units_of_data = '%'
