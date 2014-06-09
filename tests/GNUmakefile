@@ -1,7 +1,8 @@
-.PHONY: tests all createTestSuites clean
+.PHONY: tests all clean
 .DEFAULT_GOAL = tests
 
 MODELERC ?= $(HOMEDIR)/.modelErc
+
 ifeq ($(wildcard $(MODELERC)),)
    $(error $(MODELERC) not found.)
 endif
@@ -18,17 +19,25 @@ ifeq ($(COMPILER),gfortran)
    COMPILER=GNU
 endif
 
+ifeq ($(COMPILER), intel)
+  FFLAGS += -g -O0 -traceback -check uninit -check bounds -assume protect_parens
+endif
+ifeq ($(COMPILER), GNU)
+  FFLAGS += -g -O0 -fbacktrace -fbounds-check
+endif
+
 COMPLIBS = $(shell perl -e 'print reverse <>;' < $(SOURCE_DIR)/.liblist)
 LIBS := $(foreach ITEM, $(COMPLIBS), $(SOURCE_DIR)/$(ITEM))
 
 # Determine modelE components to be tested based on availability
 ifeq ($(COMPONENTS),)
-TESTDIRS = shared profiler MPI_Support tracers
+  TESTDIRS = shared profiler
 else
-TESTDIRS := $(foreach ITEM, $(COMPONENTS), $(wildcard $(ITEM)))
+  TESTDIRS := $(foreach ITEM, $(COMPONENTS), $(wildcard $(ITEM)))
 endif
 
-ifeq ($(USEMPI),)
+ifeq ($(MPI),)
+  MPI=NO
   TESTDIRS := $(filter-out MPI_Support,$(TESTDIRS))
 endif
 
@@ -36,18 +45,22 @@ TESTLIBS := $(foreach ITEM, $(TESTDIRS), $(ITEM)/lib$(ITEM).a)
 # The inclue paths are different when compiling tests and executable
 TESTINCS := $(foreach ITEM, $(TESTDIRS), -I../$(SOURCE_DIR)/$(ITEM))
 EXEINCS := $(foreach ITEM, $(TESTDIRS), -I$(ITEM))
+EXEOBJS := $(foreach ITEM, $(TESTDIRS), $(ITEM)/*.o)
 
 PFLIB = -L$(PFUNIT)/lib -lpfunit
 IOLIB += -L$(NETCDFHOME)/lib -lnetcdf 
 
 FFLAGS += -I$(PFUNIT)/mod -I$(PFUNIT)/include -I. $(TESTINCS)
+
 EXEFLAGS += -I$(PFUNIT)/mod -I$(PFUNIT)/include $(EXEINCS)
 ifeq ($(COMPILER),nag)
   FFLAGS += -kind=byte
 endif
 
-ifeq ($(USEMPI),YES)
+ifeq ($(MPI),YES)
+  FC = mpif90
   FFLAGS += -DUSE_MPI
+  EXEFLAGS += -DUSE_MPI 
   IOLIB += -L$(PNETCDFHOME)/lib -lpnetcdf
 endif
 
@@ -55,8 +68,8 @@ endif
 
 EXE = tests.x
 
-$(EXE): createTestSuites testSuites.inc SUT
-	$(FC) -I. -o $@ $(EXEFLAGS) $(FPPFLAGS) $(PFUNIT)/include/driver.F90 $(TESTLIBS) $(LIBS) $(PFLIB) $(IOLIB)
+$(EXE): testSuites.inc SUT
+	$(FC) -o $@ $(EXEFLAGS) $(FPPFLAGS) $(PFUNIT)/include/driver.F90 $(EXEOBJS) $(PFLIB) $(IOLIB) $(LIBS)
 
 all: $(EXE)
 ifeq ($(MPI),YES)
@@ -71,12 +84,6 @@ SUT:
 
 tests: all
 
-createTestSuites:
-	rm -f testSuites.inc
-	@for f in ${TESTDIRS}; do \
-	echo \#include \"$${f}/testSuites.inc\" >> testSuites.inc; \
-	done;
-
 clean:
 	@for dir in $(TESTDIRS); do \
 	make -C $$dir clean; done
@@ -86,4 +93,4 @@ export FC
 export MPIF90
 export FFLAGS
 export FPPLAGS
-export USEMPI
+export MPI
