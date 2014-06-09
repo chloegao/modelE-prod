@@ -12,7 +12,7 @@ VEG_DRV                             ! vegetation
 ! VEG_COM VEGETATION                ! old vegetation
 ENT_DRV  ENT_COM   ! + Ent          ! new vegetation
 PBL_COM PBL_DRV PBL                 ! atmospheric pbl
-ATURB_E1                            ! turbulence in whole atmosphere
+ATURB                               ! turbulence in whole atmosphere
 LAKES_COM LAKES                     ! lake modules
 SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_COM LANDICE_DRV     ! land ice modules

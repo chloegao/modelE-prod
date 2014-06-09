@@ -3,6 +3,13 @@
 !#define ROUGHL_HACK
 
       module PBL_DRV
+!@sum module PBL_DRV is to compute
+!@+  the turbulent transport of momentum, heat and moisture between
+!@+  the surface and the middle of the first GCM layer
+!@+  to find the values of the various PBL variables at the surface.
+!@+  It contains the subroutine PBL.
+
+      USE CONSTANT, only : omega2
       use SOCPBL, only : t_pbl_args, xdelt
       use SOCPBL, only : alloc_pbl_args, dealloc_pbl_args
       implicit none
@@ -11,11 +18,30 @@
 
       public t_pbl_args, pbl, xdelt
       public alloc_pbl_args, dealloc_pbl_args
+      public coriol30,dbls0,slope0,dbl_max_stable
+      real*8, parameter :: coriol30=.5d0*omega2 ! at 30 degrees lat.
+      real*8, parameter :: dbls0=10.d0, slope0=0.5d0
+      real*8, parameter :: dbl_max_stable=dbls0+slope0*500. ! meters
+
       contains
 
       SUBROUTINE PBL(I,J,IHC,ITYPE,PTYPE,pbl_args,atm)
-!@sum  PBL calculate pbl profiles for each surface type
-!@+        Contains code common for all surfaces
+!@sum PBL contains code common for all surface.
+!@+  It calculates pbl profiles, for each surface type,
+!@+  to find the values of
+!@+  the various PBL variables at the surface,
+!@+  and accumulates diagnostics and output.
+!@+  It is called from within
+!@+  the subroutine SURFCE (for itype=1, 2 and 3,
+!@+  i.e., surface types ocean,
+!@+  seaice and landice respectively, in SURFACE.f),
+!@+  and from within the subroutine earth
+!@+  (for itype=4, i.e., surface type land, in GHY_DRV.f).
+!@+  Dynamic equations for the mean turbulent variables
+!@+  are integrated over npbl(=8) sublayers
+!@+  between the surface (sublayer 1)
+!@+  and the middle of the first GCM layer (sublayer npbl),
+!@+  using tridiagonal method.
 !@auth Greg. Hartke/Ye Cheng
 !@var DDMS downdraft mass flux in kg/(m^2 s), (i,j)
 !@var TDN1 downdraft temperature in K, (i,j)
@@ -52,9 +78,11 @@
       INTEGER, INTENT(IN) :: ITYPE  !@var ITYPE surface type
       REAL*8, INTENT(IN) :: PTYPE  !@var PTYPE percent surface type
       type (t_pbl_args) :: pbl_args
+c     lmonin=-133.d0
       class (atmsrf_xchng_vars) :: atm
-      REAL*8 Ts
+      REAL*8 Ts,tmp
       real*8 :: qsat ! external
+      real*8, parameter :: S1byG1=.57735d0
 
 #ifdef TRACERS_ON
       integer nx,n
@@ -97,6 +125,9 @@ c      logical pole
 !@+            (if xdelt=0, TSV is the actual temperature)
 !@var QS     = surface value of the specific moisture
 !@var DBL    = boundary layer height (m)
+!@var DBLS   = stable boundary layer height (m)
+!@var LDBL   = layer immediately above dbl
+!@var LDBLS  = layer immediately above dbls
 !@var KMS    = momentum transport coefficient at ZGS (m**2/s)
 !@var KHS    = heat transport coefficient at ZGS (m**2/s)
 !@var KHQ    = moist transport coefficient at ZGS (m**2/s)
@@ -124,6 +155,8 @@ c      logical pole
       real*8, dimension(ntm) :: trnradius,trndens,trnmm
       real*8 :: rts,rtsdt
 #endif
+      real*8 dbls,ustar,lmonin
+      integer ldbls,ldbl
 
       pbl_args%psurf = atm%srfp(i,j)
       pbl_args%QSOL = atm%fshort(i,j)*atm%cosz1(i,j) ! solar heating
@@ -199,13 +232,12 @@ C        roughness lengths from Brutsaert for rough surfaces
         Z0M=ROUGHL(I,J)           ! 30./(10.**ROUGHL(I,J))
       ENDIF
       ztop=zgs+zs1  ! zs1 is calculated before pbl is called
-      IF (pbl_args%TKV.EQ.pbl_args%TGV)
-     &     pbl_args%TGV = 1.0001d0*pbl_args%TGV
+c     IF (pbl_args%TKV.EQ.pbl_args%TGV)
+c    &     pbl_args%TGV = 1.0001d0*pbl_args%TGV
 
       dbl = bldep(i,j)
-      ug   = ugeo(i,j) !ua(L,i,j)
-      vg   = vgeo(i,j) !va(L,i,j)
-
+      ug   = ugeo(i,j) !ua(ldbl,i,j)
+      vg   = vgeo(i,j) !va(ldbl,i,j)
       coriol=sinlat2d(i,j)*omega2
 
       upbl(:)=atm%uabl(:,i,j)
@@ -342,6 +374,7 @@ C        roughness lengths from Brutsaert for rough surfaces
       psisrf=atan2(pbl_args%vs,pbl_args%us+teeny)
       psi   =psisrf-psitop
       atm%ustar_pbl(i,j)=pbl_args%ustar
+      atm%lmonin_pbl(i,j)=pbl_args%lmonin
 C ******************************************************************
       TS=pbl_args%TSV/(1.+pbl_args%QSRF*xdelt)
       if(planet_name.eq.'Earth') then
@@ -724,14 +757,19 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
       end subroutine read_pbl_tsurf_from_nmcfile
 
       subroutine init_pbl(inipbl,istart)
+!@sum init_pbl sets up the initialization of wind,
+!@+  virtual potential temperature, and specific humidity
+!@+  fields in the boundary layer (between
+!@+  the surface and the middle
+!@+  of the first GCM layer). The initial values of these
+!@+  fields are obtained by solving the static equations for these
+!@+  fields using the turbulence model of Cheng et al. (2002).
+!@+  These initial values are used when starting from a restart
+!@+  file that does not have these data stored.
+!@+  It is called by subroutine INPUT (in MODELE.f).
 c -------------------------------------------------------------
 c These routines include the array ipbl which indicates if the
 c  computation for a particular ITYPE was done last time step.
-c Sets up the initialization of wind, temperature, and moisture
-c  fields in the boundary layer. The initial values of these
-c  fields are obtained by solving the static equations of the
-c  Level 2 model. This is used when starting from a restart
-c  file that does not have this data stored.
 c -------------------------------------------------------------
       USE Dictionary_mod
       USE CONSTANT, only : lhe,lhs,tf,omega2,deltx
@@ -781,7 +819,7 @@ C**** ignore ocean currents for initialisation.
       integer i,j,k,lpbl !@var i,j,k loop variable
       real*8 pland,pwater,plice,psoil,poice,pocean,
      *     ztop,elhx,coriol,tgrndv,pij,ps,psk,qgrnd
-     *     ,utop,vtop,qtop,ttop,zgrnd,cm,ch,cq,ustar
+     *     ,utop,vtop,qtop,ttop,zgrnd,cm,ch,cq,ustar,lmonin,tmp
       real*8 qsat
       real*8 ::  dpdxr,dpdyr,dpdxr0,dpdyr0
       real*8, dimension(npbl) :: upbl,vpbl,tpbl,qpbl
@@ -851,7 +889,10 @@ C**** SET SURFACE MOMENTUM TRANSFER TAU0
 C**** Initialize surface friction velocity
           do ipatch=1,size(asflx)
             asflx(ipatch)%USTAR_pbl(I,J)=atmsrf%WSAVG(I,J)*SQRT(CDM)
+            asflx(ipatch)%lmonin_pbl(I,J)=100.d0
           enddo
+          atmsrf%ustar_pbl(i,j)=0.1d0
+          atmsrf%lmonin_pbl(i,j)=100.d0
 C**** SET SURFACE SPECIFIC HUMIDITY FROM FIRST LAYER HUMIDITY
           atmsrf%QSAVG(I,J)=Q(I,J,1)
           atmsrf%QGAVG(I,J)=Q(I,J,1)
@@ -974,7 +1015,7 @@ C**** fix roughness length for ocean ice that turned to land ice
             vg = vtop
 #endif
             call inits(tgrndv,qgrnd,zgrnd,zgs,ztop,utop,vtop,
-     2                 ttop,qtop,coriol,cm,ch,cq,ustar,
+     2                 ttop,qtop,coriol,cm,ch,cq,ustar,lmonin,
      3                 uocean,vocean,ilong,jlat,itype4
      &                 ,dpdxr,dpdyr,dpdxr0,dpdyr0
      &                 ,upbl,vpbl,tpbl,qpbl,epbl,ug,vg)
@@ -995,6 +1036,7 @@ C**** fix roughness length for ocean ice that turned to land ice
 
             asflx(ipatch)%ipbl(i,j)=1
             asflx(ipatch)%ustar_pbl(i,j)=ustar
+            asflx(ipatch)%lmonin_pbl(i,j)=lmonin
 
  200      end do
         end do
@@ -1010,8 +1052,11 @@ C**** fix roughness length for ocean ice that turned to land ice
       end subroutine init_pbl
 
       subroutine loadbl
-!@sum loadbl initiallise boundary layer calc each surface time step
-!@auth Ye Cheng
+!@sum loadbl initializes boundary layer calculation each surface time step.
+!@+  It checks to see if ice has
+!@+  melted or frozen out of one grid box (i,j).
+!@+  It is called from subroutine SURFCE (in SURFACE.f).
+!@auth Greg. Hartke/Ye Cheng
 c ----------------------------------------------------------------------
 c             This routine checks to see if ice has
 c              melted or frozen out of a grid box.
@@ -1149,6 +1194,7 @@ C**** initialise some pbl common variables
 
       subroutine setbl(ain,aout,i,j)
 !@sum setbl initiallise bl from another surface type for one grid box
+!@+  It is called from subroutine loadbl.
 !@auth Ye Cheng
       USE EXCHANGE_TYPES
       USE PBLCOM, only : npbl
@@ -1168,6 +1214,7 @@ C**** initialise some pbl common variables
       aout%chgs(i,j)=ain%chgs(i,j)
       aout%cqgs(i,j)=ain%cqgs(i,j)
       aout%ustar_pbl(i,j)=ain%ustar_pbl(i,j)
+      aout%lmonin_pbl(i,j)=ain%lmonin_pbl(i,j)
       return
       end subroutine setbl
 
@@ -1201,20 +1248,23 @@ C**** initialise some pbl common variables
       end subroutine getztop
 
       subroutine get_dbl
-      USE FLUXES, only : atmsrf
+!@sum
+!@+   called from SURFACE.f
+      USE FLUXES, only : atmsrf,asflx
       USE CONSTANT, only :  rgas,grav,omega2,deltx,teeny
       USE ATM_COM, only : t,q,ua=>ualij,va=>valij
       USE ATM_COM, only : pmid,pk
       use SOCPBL, only : zgs
       USE PBLCOM
-      use GEOM, only : imaxj
+      USE GEOM, only : imaxj,sinlat2d
       use PBL_DRV
       use domain_decomp_atm, only : grid
+      use PBL_DRV, only : coriol30,dbls0,slope0,dbl_max_stable
+      USE RESOLUTION, only : ls1
       implicit none
-      integer :: ldc
-      integer :: i,j,l
-      real*8 :: zpbl,zpbl1,tbar,tl,pl,tl1,pl1,dbl,ztop
-      REAL*8, parameter :: dbl_max=3000., dbl_max_stable=500. ! meters
+      integer :: i,j,l,ldbl,ldbls
+      real*8 :: ztop,coriol,dbl,ustar,lmonin,tmp,dbls
+      real*8 :: zpbl,pl1,tl1,pl,tl,tbar
       real*8 :: thbar ! function
 
       do j=grid%j_strt,grid%j_stop
@@ -1223,76 +1273,41 @@ C**** initialise some pbl common variables
         ztop = zgs +
      &       .5d-2*RGAS*((atmsrf%temp1(I,J)*(1.+atmsrf%q1(i,j)*xdelt))*
      &       atmsrf%srfpk(i,j))*atmsrf%AM1(i,j)/atmsrf%p1(i,j)
-
-      ! FIND THE PBL HEIGHT IN METERS (DBL) AND THE CORRESPONDING
-      ! GCM LAYER (L) AT WHICH TO COMPUTE UG AND VG.
-      ! LDC IS THE LAYER TO WHICH DRY CONVECTION/TURBULENCE MIXES
-
-c       IF (TKV.GE.TGV) THEN
-c         ! ATMOSPHERE IS STABLE WITH RESPECT TO THE GROUND
-c         ! DETERMINE VERTICAL LEVEL CORRESPONDING TO HEIGHT OF PBL:
-c         ! WHEN ATMOSPHERE IS STABLE, CAN COMPUTE DBL BUT DO NOT
-c         ! KNOW THE INDEX OF THE LAYER.
-c         ustar=ustar_pbl(itype,i,j)
-c         DBL=min(0.3d0*USTAR/OMEGA2,dbl_max_stable)
-c         if (dbl.le.ztop) then
-c           dbl=ztop
-c           L=1
-c         else
-c           ! FIND THE VERTICAL LEVEL NEXT HIGHER THAN DBL AND
-c           ! COMPUTE Ug and Vg THERE:
-c           zpbl=ztop
-c           pl1=pmid(1,i,j)         ! pij*sig(1)+ptop
-c           tl1=t(i,j,1)*(1.+xdelt*q(i,j,1))*pk(1,i,j)
-c           do l=2,ls1
-c             pl=pmid(l,i,j)        !pij*sig(l)+ptop
-c             tl=t(i,j,l)*(1.+xdelt*q(i,j,l))*pk(l,i,j) !virtual,absolute
-c             tbar=thbar(tl1,tl)
-c             zpbl=zpbl-(rgas/grav)*tbar*(pl-pl1)/(pl1+pl)*2.
-c             if (zpbl.ge.dbl) exit
-c             pl1=pl
-c             tl1=tl
-c           end do
-c         endif
-
-c     ELSE
-        ! ATMOSPHERE IS UNSTABLE WITH RESPECT TO THE GROUND
-        ! LDC IS THE LEVEL TO WHICH DRYCNV/ATURB MIXES.
-        ! FIND DBL FROM LDC.  IF BOUNDARY
-        ! LAYER HEIGHT IS LESS THAN DBL_MAX, ASSIGN LDC TO L, OTHERWISE
-        ! MUST FIND INDEX FOR NEXT MODEL LAYER ABOVE 3 KM:
-
-        LDC=max(int(DCLEV(I,J)+.5d0),1)
-        IF (LDC.EQ.0) LDC=1
-        if (ldc.eq.1) then
-          dbl=ztop
-          l=1
+      ! FIND THE PBL HEIGHT IN METERS (DBL) AND THE GCM LAYER IMMEDIATELY
+      ! ABOVE (ldbl) AT WHICH TO COMPUTE UG AND VG.
+      coriol=sinlat2d(i,j)*omega2
+      ldbl=max(int(dclev(i,j)+.5d0),1)
+      dbl=max(pblht(i,j),dbls0)
+      ustar=atmsrf%ustar_pbl(i,j)
+      lmonin=atmsrf%lmonin_pbl(i,j)
+      if(lmonin.gt.0.) then
+        ! ATMOSPHERE IS STABLE WITH RESPECT TO THE GROUND
+        tmp=max(abs(coriol),coriol30)
+        dbls=dbls0+slope0*(abs(lmonin*ustar/tmp))**.5d0
+        dbls=max(min(dbls,dbl_max_stable),zgs)
+        if(dbls.le.ztop) then
+          ldbls=1
         else
           zpbl=ztop
-          pl1=pmid(1,i,j)                             ! pij*sig(1)+ptop
-          tl1=t(i,j,1)*(1.+xdelt*q(i,j,1))*pk(1,i,j)  ! expbyk(pl1)
-          zpbl1=ztop
-          do l=2,ldc
-            pl=pmid(l,i,j)                            ! pij*sig(l)+ptop
-            tl=t(i,j,l)*(1.+xdelt*q(i,j,l))*pk(l,i,j) ! expbyk(pl)
+          pl1=pmid(1,i,j)         ! pij*sig(1)+ptop
+          tl1=t(i,j,1)*(1.+xdelt*q(i,j,1))*pk(1,i,j)
+          do l=2,ls1
+            pl=pmid(l,i,j)        !pij*sig(l)+ptop
+            tl=t(i,j,l)*(1.+xdelt*q(i,j,l))*pk(l,i,j) !virtual,absolute
             tbar=thbar(tl1,tl)
             zpbl=zpbl-(rgas/grav)*tbar*(pl-pl1)/(pl1+pl)*2.
-            if (zpbl.ge.dbl_max) then
-              zpbl=zpbl1
-              exit
-            endif
+            if (zpbl.ge.dbls) exit
             pl1=pl
             tl1=tl
-            zpbl1=zpbl
           end do
-          l=min(l,ldc)
-          dbl=zpbl
+          ldbls=l
         endif
+        dbl=min(dbl,dbls)
+        ldbl=min(ldbl,ldbls)
+      endif
 
-c     ENDIF
-
-      ugeo(i,j) = ua(L,i,j)
-      vgeo(i,j) = va(L,i,j)
+      ugeo(i,j) = ua(ldbl,i,j)
+      vgeo(i,j) = va(ldbl,i,j)
       bldep(i,j) = dbl
 
       enddo
@@ -1301,8 +1316,10 @@ c     ENDIF
       end subroutine get_dbl
 
       SUBROUTINE CHECKPBL(SUBR)
-!@sum  CHECKPBL Checks whether PBL data are reasonable
-!@auth Original Development Team
+!@sum CHECKPBL checks whether PBL data are reasonable
+!@+  (to check if the data contain NaN/INF).
+!@+  It is called by subroutine CHECKT, the latter is called
+!@+  from PROGRAM GISS_modelE (in MODELE.f).
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       USE PBLCOM, only : dclev
       USE FLUXES, only : atmsrf
@@ -1334,8 +1351,6 @@ C**** Check for NaN/INF in boundary layer data
      &     I_0,I_1,J_0,J_1,NJPOL,1,SUBR,'vsavg')
       CALL CHECK3B(atmsrf%tauavg(I_0:I_1,J_0:J_1),
      &     I_0,I_1,J_0,J_1,NJPOL,1,SUBR,'tauavg')
-c      CALL CHECK3C(ustar_pbl(:,I_0:I_1,J_0:J_1),4,I_0,I_1,J_0,J_1,NJPOL,
-c     &     SUBR,'ustar')
 
       CALL CHECK3B(atmsrf%tgvavg(I_0:I_1,J_0:J_1),
      &     I_0,I_1,J_0,J_1,NJPOL,1,SUBR,'tgvavg')

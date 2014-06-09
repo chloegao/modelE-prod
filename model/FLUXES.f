@@ -106,6 +106,7 @@
      &     ,cmgs,chgs,cqgs
 !@var USTAR_pbl friction velocity (sqrt of srfc mom flux) (m/s)
      &     ,ustar_pbl
+     &     ,lmonin_pbl
 !@var WSAVG     SURFACE WIND MAGNITUDE (M/S)
 !@var TSAVG     SURFACE AIR TEMPERATURE (K)
 !@var QSAVG     SURFACE AIR SPECIFIC HUMIDITY (1)
@@ -821,6 +822,7 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
      &     ,this%chgs
      &     ,this%cqgs
      &     ,this%ustar_pbl
+     &     ,this%lmonin_pbl
      &     ,this%wspdf
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
@@ -2078,6 +2080,8 @@ C**** Ensure that no round off error effects land with ice and earth
         call defvar(grid,fid,asflx(ipatch)%ipbl,vname)
         vname = 'ustar_pbl'//dimstr
         call defvar(grid,fid,asflx(ipatch)%ustar_pbl,vname)
+        vname = 'lmonin_pbl'//dimstr
+        call defvar(grid,fid,asflx(ipatch)%lmonin_pbl,vname)
 #ifdef TRACERS_ON
         dimstr='_'//trim(asflx(ipatch)%surf_name)// 
      &       '(npbl,ntm,dist_im,dist_jm)'
@@ -2095,6 +2099,10 @@ c      call defvar(grid,fid,atmsrf%dclev,'dclev(dist_im,dist_jm)')
       call defvar(grid,fid,atmsrf%tauavg,'tauavg(dist_im,dist_jm)')
       call defvar(grid,fid,atmsrf%tgvavg,'tgvavg(dist_im,dist_jm)')
       call defvar(grid,fid,atmsrf%qgavg,'qgavg(dist_im,dist_jm)')
+      call defvar(grid,fid,atmsrf%ustar_pbl
+     &   ,'ustar_pbl(dist_im,dist_jm)')
+      call defvar(grid,fid,atmsrf%lmonin_pbl
+     &   ,'lmonin_pbl(dist_im,dist_jm)')
 
       return
       end subroutine def_rsf_fluxes
@@ -2159,6 +2167,9 @@ c      call defvar(grid,fid,atmsrf%dclev,'dclev(dist_im,dist_jm)')
           vname = 'ustar_pbl'//suffix
           call write_dist_data(grid, fid, trim(vname),
      &         asflx(ipatch)%ustar_pbl)
+          vname = 'lmonin_pbl'//suffix
+          call write_dist_data(grid, fid, trim(vname),
+     &         asflx(ipatch)%lmonin_pbl)
 #ifdef TRACERS_ON
           vname = 'trabl'//suffix
           call write_dist_data(grid, fid, trim(vname),
@@ -2175,6 +2186,8 @@ c        call write_dist_data(grid,fid,'dclev',atmsrf%dclev)
         call write_dist_data(grid,fid,'tauavg',atmsrf%tauavg)
         call write_dist_data(grid,fid,'tgvavg',atmsrf%tgvavg)
         call write_dist_data(grid,fid,'qgavg',atmsrf%qgavg)
+        call write_dist_data(grid,fid,'ustar_pbl',atmsrf%ustar_pbl)
+        call write_dist_data(grid,fid,'lmonin_pbl',atmsrf%lmonin_pbl)
 
       case (ioread)             ! input from restart file
         !call read_dist_data(grid,fid,'gtemp',atmocn%gtemp)
@@ -2219,6 +2232,9 @@ c        call write_dist_data(grid,fid,'dclev',atmsrf%dclev)
           vname = 'ustar_pbl'//suffix
           call read_dist_data(grid, fid, trim(vname),
      &         asflx(ipatch)%ustar_pbl)
+          vname = 'lmonin_pbl'//suffix
+          call read_dist_data(grid, fid, trim(vname),
+     &         asflx(ipatch)%lmonin_pbl)
 #ifdef TRACERS_ON
           vname = 'trabl'//suffix
           call read_dist_data(grid, fid, trim(vname),
@@ -2235,6 +2251,8 @@ c        call read_dist_data(grid,fid,'dclev',atmsrf%dclev)
         call read_dist_data(grid,fid,'tauavg',atmsrf%tauavg)
         call read_dist_data(grid,fid,'tgvavg',atmsrf%tgvavg)
         call read_dist_data(grid,fid,'qgavg',atmsrf%qgavg)
+        call read_dist_data(grid,fid,'ustar_pbl',atmsrf%ustar_pbl)
+        call read_dist_data(grid,fid,'lmonin_pbl',atmsrf%lmonin_pbl)
 
       end select
       return

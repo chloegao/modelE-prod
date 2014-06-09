@@ -5,12 +5,23 @@
 #endif
 
       MODULE SOCPBL
-!@sum  SOCPBL deals with boundary layer physics
+!@sum module SOCPBL defines subroutines and variables associated with
+!@+  the boundary layer physics.
+!@+  It sets up npbl(=8) sublayers between the surface (sublayer 1)
+!@+  and the middle of the first GCM layer (sublayer npbl),
+!@+  and integrates, over these sublayers, the dynamic equations
+!@+  for the mean turbulent variables using turbulence models,
+!@+  to find the surface values of these variables and
+!@+  related fluxes.
+!@+  t_pbl_args is a derived type structure which contains all
+!@+  input/output arguments for PBL.
+!@+  SOCPBL contains the following subroutines:
+!@+  advanc,stars,getl,dflux,simil,griddr,tfix
+!@+  ccoeff0,getk,e_eqn,t_eqn,q_eqn,uv_eqn,
+!@+  t_eqn_sta,q_eqn_sta,uv_eqn_sta,
+!@+  inits,tcheck,ucheck,check1,output,rtsafe.
 !@auth Ye Cheng/G. Hartke (modifications by G. Schmidt)
-!@cont pbl,advanc,stars,getl,dflux,simil,griddr,tfix
-!@cont ccoeff0,getk,e_eqn,t_eqn,q_eqn,uv_eqn
-!@cont t_eqn_sta,q_eqn_sta,uv_eqn_sta
-!@cont inits,tcheck,ucheck,check1,output,rtsafe
+
 
       USE CONSTANT, only : grav,pi,radian,bygrav,teeny,deltx,tf
      &     ,by3,lhe,rgas,rhows,mair,byrhows,sha,shv,shw,stbo,visc_air
@@ -64,6 +75,10 @@
       ! public parameters
       public n,zgs,XCDpbl,kappa,emax,skin_effect,ustar_min
      &   ,lmonin_min,lmonin_max,xdelt,calc_wspdf
+     &   ,sigma,gamahu,gamams,gamamu,zet1,slope1,zeth
+     &   ,se,k_max,kmmin,khmin,kqmin,kemin,emin
+     &   ,find_phim0,find_phih
+
 
       ! public interfaces
       public advanc,inits,ccoeff0
@@ -100,7 +115,7 @@ c**** Do not use global variables for that purpose !
         ! output:
         real*8 us,vs,ws,tsv,qsrf,cm,ch,cq,dskin,ws0
         ! the following args needed for diagnostics
-        real*8 psi,dbl,khs,ug,vg,wg,ustar,zgs
+        real*8 psi,dbl,khs,ug,vg,wg,ustar,lmonin,zgs
         real*8 canopy_temperature
 !@var wsgcm magnitude of the GCM surface wind - ocean currents [m/s]
 !@var wspdf mean surface wind calculated from PDF of wind speed [m/s]
@@ -238,16 +253,19 @@ C**** boundary layer parameters
       real*8, parameter :: zgs=10. !@var zgs height of surface layer (m)
 
 C**** parameters for surface fluxes
-      !Hogstrom 1988:
-      real*8, parameter :: sigma=0.95d0,sigma1=1.-sigma
-      real*8, parameter :: gamamu=19.3d0,gamahu=11.6d0,gamams=6.d0,
-     *     gamahs=7.8d0/sigma
+      !Hogstrom 1988,1996:
+      real*8, parameter :: sigma=0.95d0,sigma1=1.-sigma,sigma2=1.+sigma
+      real*8, parameter :: gamamu=19.0d0,gamahu=11.6d0,gamams=5.3d0,
+     *     gamahs=8.d0/sigma
 
-      ! Businger 1971:
-ccc   real*8, parameter :: sigma=0.74d0,sigma1=1.-sigma
-ccc   real*8, parameter :: gamamu=15.0d0,gamahu=9.d0,gamams=4.7d0,
-ccc  *     gamahs=4.7d0/sigma
+      real*8, parameter :: zet1=0.5d0   !var zet1 critical value of zet=z/lmonin
+      real*8, parameter :: slope1=0.1d0 !var slope1 slope of PHI's of zet>zet1
 
+      !Zeng et al 1998:
+      real*8, parameter :: zetm=-1.464d0
+      real*8, parameter :: zeth=-1.072d0
+      real*8, parameter :: se=0.1d0,k_max=500.d0
+     &  ,kmmin=1.5d-5,khmin=2.5d-5,kqmin=2.5d-5,kemin=1.5d-5,emin=1d-6
 
 CCC !@var bgrid log-linear gridding parameter
 CCC      real*8 :: bgrid
@@ -257,7 +275,7 @@ CCC      real*8 :: bgrid
 !@var ustar_min limit on surface friction speed 
       real*8, parameter :: smax=0.25d0,smin=0.005d0,cmax=smax*smax,
      *     cmin=smin*smin,emax=1.d5,ustar_min=1d-2
-     *    ,lmonin_min=1d-4,lmonin_max=1d4
+     *    ,lmonin_min=1d-20,lmonin_max=1d20
 
 !@param xdelt When used in place of deltx in expressions involving
 !@+     virtual temperature T, xdelt=0 switches off virtual T effects.
@@ -290,9 +308,11 @@ CCC      real*8 :: bgrid
      &     ,tr,trnradius,trndens,trnmm
 #endif
      &     )
-!@sum  advanc  time steps the solutions for the boundary layer variables
+!@sum time steps the solutions for the boundary layer variables.
+!@+  It is called from within the subroutine pbl (in PBL_DRV.f).
+!@+  All its outputs are contained in the structure pbl_args
+!@+  (an instance of t_pbl_args).
 !@auth  Ye Cheng/G. Hartke
-!@ver   1.0
 c    input:
 !@var  coriol  2.*omega*sin(latitude), the coriolis factor
 !@var  utop  x component of wind at the top of the layer
@@ -437,12 +457,12 @@ c**** local vars for input from pbl_args
       real*8 :: gusti
 c**** local vars for output to pbl_args
       real*8 :: us,vs,ws,tsv,qsrf,khs,dskin,ustar,cm,ch,cq,wsgcm,wspdf
-      real*8 :: ws0
+      real*8 :: ws0,lmonin
 c**** other local vars
       real*8 :: qsat,deltaSST,tgskin,qnet,ts,rhosrf,qgrnd,delt
       real*8 :: tstar,qstar,ustar0,test,wstar3,wstar2h,tgrnd,ustar_oc
       real*8 :: bgrid,an2,as2,dudz,dvdz,tau,tgr4skin
-      real*8 :: ws02
+      real*8 :: ws02,dm
       real*8, parameter ::  tol=1d-3,w=.5d0
       integer, parameter ::  itmax=5
       integer, parameter :: iprint=0,jprint=41  ! set iprint>0 to debug
@@ -453,7 +473,7 @@ c**** other local vars
 C****
       REAL*8,DIMENSION(n) :: z
       REAL*8,DIMENSION(n-1) :: zhat,km,gm,gh
-      REAL*8 :: lmonin,lmonin_dry
+      REAL*8 :: lmonin_dry
 #ifdef TRACERS_ON
       real*8, dimension(n,NTM) :: trsave
       real*8 trcnst,trsf,cqsave,byrho,rh1,evap,visc
@@ -601,7 +621,7 @@ c estimate net flux and ustar_oc from current tg,qg etc.
 
         call getk(km,kh,kq,ke,gm,gh,u,v,tv,e,lscale,dzh,n)
         call stars(ustar,tstar,qstar,lmonin,lmonin_dry,tgrnd,qgrnd,ts,
-     2             u,v,t,q,z,z0m,z0h,z0q,cm,ch,cq,
+     2             u,v,t,q,z,z0m,z0h,z0q,cm,ch,cq,dm,
 #ifdef TRACERS_SPECIAL_O18
      *             fac_cq_tr,
 #endif
@@ -629,7 +649,7 @@ c estimate net flux and ustar_oc from current tg,qg etc.
         call e_eqn(esave,e,u,v,tv,km,kh,ke,lscale,dz,dzh,
      2                 ustar,dtime,n)
 
-        call e_les(tstar,ustar,wstar3,dbl,lmonin,zhat,lscale,e,n)
+ccc     call e_les(tstar,ustar,wstar3,dbl,lmonin,zhat,lscale,e,n)
 
         ! Inclusion of gustiness in surface fluxes
         ! Redelsperger et al. 2000, eqn(13), J. Climate, 13, 402-421
@@ -1106,6 +1126,7 @@ c**** copy output to pbl_args
       pbl_args%dbl = dbl
       pbl_args%khs = khs
       pbl_args%ustar = ustar
+      pbl_args%lmonin = lmonin
       pbl_args%zgs = zgs
       pbl_args%gusti = gusti
       pbl_args%tprime=tprime
@@ -1128,7 +1149,6 @@ C**** tracer code output
       pbl_args%km(:) = km(:)
       pbl_args%gm(:) = gm(:)
       pbl_args%gh(:) = gh(:)
-      pbl_args%lmonin = lmonin
 #endif
 #endif
 
@@ -1137,15 +1157,21 @@ C**** tracer code output
 
       subroutine stars(
      &     ustar,tstar,qstar,lmonin,lmonin_dry,tgrnd,qgrnd,ts,
-     2                 u,v,t,q,z,z0m,z0h,z0q,cm,ch,cq,
+     2                 u,v,t,q,z,z0m,z0h,z0q,cm,ch,cq,dm,
 #ifdef TRACERS_SPECIAL_O18
      *                 fac_cq_tr,
 #endif
      3                 km,kh,kq,dzh,itype,n)
-!@sum computes USTAR,TSTAR and QSTAR
-!@+   Momentum flux = USTAR*USTAR
-!@+   Heat flux     = USTAR*TSTAR
-!@+   MOISTURE flux = USTAR*QSTAR
+!@sum computes the friction speed, ustar, the virtual potential
+!@+  temperature scale, tstar, and the specific humidity scale,
+!@+  qstar. Note that
+!@+  surface momentum flux = ustar*ustar
+!@+  surface heat flux     = ustar*tstar
+!@+  surface moisture flux = ustar*qstar
+!@+  It also calculates and outputs the Monin-Obukov length, lmonin, 
+!@+  the roughness lengths (z0m,z0h,z0q), the drag coefficient (cm),
+!@+  the Stanton number (ch) and the Dalton number (cq)
+!@+  by calling subroutine dflux.
 !@auth Ye Cheng/G. Hartke (modifications by G. Schmidt)
 !@var USTAR the friction speed
 !@var TSTAR the virtual potential temperature scale
@@ -1160,13 +1186,13 @@ C**** tracer code output
       real*8, intent(in) :: tgrnd,qgrnd,ts
       real*8, intent(inout) :: z0m
       real*8, intent(out) :: ustar,tstar,qstar,lmonin,lmonin_dry
-      real*8, intent(out) :: z0h,z0q,cm,ch,cq
+      real*8, intent(out) :: z0h,z0q,cm,ch,cq,dm
 #ifdef TRACERS_SPECIAL_O18
       real*8, intent(out) :: fac_cq_tr(NTM)
 #endif
 
 
-      real*8 dz,vel1,du1,dv1,dudz,zgs
+      real*8 dz,vel1,du1,dv1,dudz,dtdz,dqdz,zgs
       real*8 tflx,qflx,tvflx,tgrndv,tv(2),tstarv,dtv1
 
       tgrndv = tgrnd*(1.+deltx*qgrnd)
@@ -1212,7 +1238,7 @@ C**** tracer code output
       if(abs(lmonin).gt.lmonin_max) lmonin=sign(lmonin_max,lmonin)
 
 c**** To compute the drag coefficient,Stanton number and Dalton number
-      call dflux(lmonin,ustar,vel1,ts,z0m,z0h,z0q,zgs,cm,ch,cq,
+      call dflux(lmonin,ustar,vel1,ts,z0m,z0h,z0q,zgs,cm,ch,cq,dm,
 #ifdef TRACERS_SPECIAL_O18
      *     fac_cq_tr,
 #endif
@@ -1222,9 +1248,9 @@ c**** To compute the drag coefficient,Stanton number and Dalton number
       end subroutine stars
 
       subroutine getl1(e,zhat,dzh,lscale,n)
-!@sum getl1 estimates the master length scale of the turbulence model
-!@+   on the secondary grid
-!@auth  Ye Cheng/G. Hartke
+!@sum getl1 estimates the master length scale, lscale, of the
+!@+  turbulence model on the secondary grid, zhat.
+!@auth Ye Cheng/G. Hartke
       implicit none
 
       integer, intent(in) :: n     !@var n  array dimension
@@ -1242,6 +1268,7 @@ c**** To compute the drag coefficient,Stanton number and Dalton number
         sum2=sum2+sqrt(e(j))*dzh(j)
       end do
       l0=alpha*sum1/sum2
+      if (l0.lt.zhat(1)) l0=zhat(1)
 
       do j=1,n-1
         l1=kappa*zhat(j)
@@ -1252,11 +1279,10 @@ c**** To compute the drag coefficient,Stanton number and Dalton number
       end subroutine getl1
 
       subroutine getl(e,u,v,t,zhat,dzh,lmonin,ustar,lscale,dbl,n)
-!@sum   getl computes the master length scale of the turbulence model
-!@+     on the secondary grid. l0 in this routine is 0.16*(pbl height)
-!@+     according to the LES data (Moeng and Sullivan 1992)
-!@auth  Ye Cheng/G. Hartke
-!@ver   1.0
+!@sum getl computes the master length scale, lscale, of the
+!@+  turbulence model on the secondary grid, zhat,
+!@+  using the formulas by Nakanishi (2001) from the LES data.
+!@auth Ye Cheng/G. Hartke
 !@var e z-profle of turbulent kinetic energy
 !@var u z-profle of west-east   velocity component
 !@var v z-profle of south-north velocity component
@@ -1318,18 +1344,22 @@ c**** To compute the drag coefficient,Stanton number and Dalton number
       end subroutine getl
 
       subroutine dflux(lmonin,ustar0,vsurf,ts,z0m,z0h,z0q,zgs,
-     *                 cm,ch,cq,
+     *                 cm,ch,cq,dm,
 #ifdef TRACERS_SPECIAL_O18
      *                 fac_cq_tr,
 #endif
      *                 itype)
-!@sum   dflux computes (dimensionless) surface fluxes of momemtun,
-!@+     heat and moisture (drag coefficient, Stanton number,
-!@+     and Dalton number)
-!@+     Now with explicit Sc and Pr number dependence
-!@+     and flexibility for water isotopes
+!@sum dflux computes the dimensionless surface fluxes of momentum,
+!@+  heat and moisture (drag coefficient Cm , Stanton number Ch,
+!@+  and Dalton number Cq), with explicit Schmidt number (Sc) and
+!@+  Prandtl number (Pr) dependence
+!@+  and flexibility for water isotopes.
+!@+  It also computes the roughness lengths for momentum, z0m
+!@+  (for itype=1 or 2, i.e., surface type ocean or seaice),
+!@+  for temperature, z0h, and for water vapor, z0q, all in meters
+!@+  (Hartke and Rind, 1997).
+!@+  It is called from within subroutine stars.
 !@auth  Ye Cheng/G. Hartke (mods by G. Schmidt)
-!@ver   1.0
 !@var lmonin = Monin-Obukhov length (m)
 !@var ustar  = friction speed (sqrt of surface momentum flux) (m/sec)
 !@var vsurf  = total surface wind speed, used to limit ustar -> cm
@@ -1346,21 +1376,21 @@ c**** To compute the drag coefficient,Stanton number and Dalton number
 !@var Sc    = Schmidt (no relation) number (visc_air_kin/diff)
 !@var Pr    = Prandtl number (visc_air_kin/therm_diff)
 !@var fac_cq_tr = ratio of cq for water isotopes = f(Sc_tr)
+
       USE CONSTANT, only : visc_air_kin
       implicit none
 
       real*8,  intent(in) :: lmonin,ustar0,vsurf,zgs,ts
       integer,  intent(in) :: itype
       real*8,  intent(inout) :: z0m
-      real*8,  intent(out) :: cm,ch,cq,z0h,z0q
+      real*8,  intent(out) :: cm,ch,cq,dm,z0h,z0q
 #ifdef TRACERS_SPECIAL_O18
       real*8, intent(out) :: fac_cq_tr(NTM)
       real*8 :: cq_tr(NTM),z0q_tr(NTM),Sc_tr,get_diff_rel
       integer :: itr
 #endif
-
-      real*8 :: nu
-      real*8 dm,ustar,dum
+      real*8 :: nu,num,nuh,nuq,dpsim,dpsih,dpsiq
+      real*8 ustar,dum
       real*8, parameter :: Sc=0.595d0, Pr=0.71d0
 
 C**** Kinematic viscosity
@@ -1399,9 +1429,9 @@ c    empirical evidence suggests:
 c *********************************************************************
       endif
 
-      call getcm(zgs,z0m,lmonin,dm,cm)
-      call getchq(zgs,z0m,lmonin,dm,z0h,dum,ch)
-      call getchq(zgs,z0m,lmonin,dm,z0q,dum,cq)
+      call  getcm(zgs,z0m,lmonin,dm,dpsim,cm)
+      call getchq(zgs,z0h,lmonin,dm,dpsih,ch)
+      call getchq(zgs,z0q,lmonin,dm,dpsiq,cq)
 
 #ifdef TRACERS_SPECIAL_O18
       do itr=1,NTM
@@ -1418,9 +1448,12 @@ c *********************************************************************
       end subroutine dflux
 
       subroutine getzhq(ustar,z0m,ScPr,nu,z0min,z0hq)
-!@sum calculate z0hq heat/humidity roughness length
-!@+   modified from eqs 5.24, 5.27 and 5.35 in Brutsaert (1982)
+!@sum getzhq calculates the roughness lengths for heat (z0h)
+!@+  and for humidity (z0q), 
+!@+  modified from Eqs 5.24, 5.27 and 5.35 in Brutsaert (1982).
+!@+  It is called from within subroutine dflux.
 !!*** remove z0min for original HR97 code
+
       implicit none
       real*8, intent(in) :: ustar,z0m,ScPr,z0min,nu
       real*8, intent(out) :: z0hq
@@ -1444,112 +1477,61 @@ C**** functional dependence on Sc,Pr for smooth, rough surfaces
       return
       end subroutine getzhq
 
-      subroutine getcm(zgs,z0m,lmonin,dm,cm)
-!@sum calculate cm drag coefficient for momentum
-!@+   Hartke and Rind (1997)
+      subroutine getcm(z,z0,lmonin,dm,dpsim,cm)
+!@sum calculates the drag coefficient (cm) for momentum flux
+!@+  (Hartke and Rind, 1997; Zeng et al., 1998; updated by Y. Cheng, 2014).
+!@+   It is called from within subroutine dflux.
       implicit none
-      real*8, intent(in) :: zgs,z0m,lmonin
-      real*8, intent(out) :: dm,cm
+      real*8, intent(in) :: z,z0,lmonin
+      real*8, intent(out) :: dm,dpsim,cm
 
-      real*8 zgsbyl,z0mbyl,cmn,dpsim,xms,xm0,lzgsbyz0m
+      real*8 zet,zet0,x,x0,xm
 
-      lzgsbyz0m = log(zgs/z0m)
-      cmn=kappa*kappa/(lzgsbyz0m**2)
+      zet=z/lmonin
+      zet0=z0/lmonin
 
-      zgsbyl=zgs/lmonin
-      z0mbyl=z0m/lmonin
-
-c *********************************************************************
-c  Now compute DPSI, which is the difference in the psi functions
-c    computed at zgs and the relevant roughness height:
-c *********************************************************************
-
-      if (lmonin.gt.0.) then
-c *********************************************************************
-c  Here the atmosphere is stable with respect to the ground:
-        dpsim=-gamams*(zgsbyl-z0mbyl)
-c *********************************************************************
-      else
-c *********************************************************************
-c  Here the atmosphere is unstable with respect to the ground:
-        xms  =    (1.-gamamu*zgsbyl)**0.25d0
-        xm0  =    (1.-gamamu*z0mbyl)**0.25d0
-        dpsim=log((1.+xms)*(1.+xms)*(1.+xms*xms)/
-     2           ((1.+xm0)*(1.+xm0)*(1.+xm0*xm0)))-
-     3        2.*(atan(xms)-atan(xm0))
-c *********************************************************************
-      endif
-
-      dm=      1./(1.-min(dpsim/lzgsbyz0m,.9d0))**2
-      cm=XCDpbl*dm*cmn
+      call find_dpsim(zet,zet0,dpsim)
+      dm=max(log(z/z0)-dpsim,1.d-3)
+      cm=kappa*kappa/(dm*dm)
       if (cm.gt.cmax) cm=cmax
       if (cm.lt.cmin) cm=cmin
-
       return
       end subroutine getcm
 
-      subroutine getchq(zgs,z0m,lmonin,dm,z0hq,chq0,chq)
-!@sum calculate chq drag coefficients for heat/water
-!@+   Hartke and Rind (1997)
+      subroutine getchq(z,z0,lmonin,dm,dpsih,ch)
+!@sum calculates the Stanton number or Dalton number (ch or cq)
+!@+  for heat and latent heat fluxes
+!@+  (Hartke and Rind, 1997; Zeng et al., 1998; updated by Y. Cheng, 2014).
+!@+   It is called from within subroutine dflux.
       implicit none
-      real*8, intent(in) :: zgs,z0m,lmonin,dm,z0hq
-      real*8, intent(out) :: chq,chq0  ! final and unlimited version
+      real*8, intent(in) :: z,z0,lmonin,dm
+      real*8, intent(out) :: dpsih,ch
 
-      real*8 zgsbyl,z0hqbyl,chqn,dpsihq,xhqs,xhq0,lzgsbyz0m,lzgsbyz0hq
-     *     ,dhq
+      real*8 zet,zet0,x,x0,xh,dh
 
-      lzgsbyz0m  = log(zgs/z0m)
-      lzgsbyz0hq = log(zgs/z0hq)
+      zet=z/lmonin
+      zet0=z0/lmonin
 
-      chqn=kappa*kappa/(lzgsbyz0m*lzgsbyz0hq)
-
-      zgsbyl=zgs/lmonin
-      z0hqbyl=z0hq/lmonin
-
-c *********************************************************************
-c  Now compute DPSI, which is the difference in the psi functions
-c    computed at zgs and the relevant roughness height:
-c *********************************************************************
-
-      if (lmonin.gt.0.) then
-c *********************************************************************
-c  Here the atmosphere is stable with respect to the ground:
-        dpsihq= sigma1*lzgsbyz0hq-sigma*gamahs*(zgsbyl-z0hqbyl)
-c *********************************************************************
-      else
-c *********************************************************************
-c  Here the atmosphere is unstable with respect to the ground:
-        xhqs  =sqrt(1.-gamahu*zgsbyl)
-        xhq0  =sqrt(1.-gamahu*z0hqbyl)
-        dpsihq=sigma1*lzgsbyz0hq+2.*sigma*log((1.+xhqs)/(1.+xhq0))
-c *********************************************************************
-      endif
-
-      dhq=sqrt(dm)/(1.-min(dpsihq/lzgsbyz0hq,.9d0))
-
-      chq=dhq*chqn
-      chq0=chq
-      if (chq.gt.cmax) chq=cmax
-      if (chq.lt.cmin) chq=cmin
-
+      call find_dpsih(zet,zet0,dpsih)
+      dh=max(log(z/z0)-dpsih,1.d-3)
+      ch=kappa*kappa/(dm*dh)
+      if (ch.gt.cmax) ch=cmax
+      if (ch.lt.cmin) ch=cmin
       return
       end subroutine getchq
 
-      subroutine simil(u,t,q,z,ustar,tstar,qstar,
-     2                 z0m,z0h,z0q,lmonin,tg,qg)
+      subroutine simil(z,z0m,z0h,z0q,lmonin,ustar,tstar,qstar,tg,qg
+     2                 ,u,t,q,dpsim,dpsih,dpsiq)
 !@sum   simil calculates the similarity solutions for wind speed,
 !@+     virtual potential temperature, and moisture mixing ratio
 !@+     at height z.
 !@auth  Ye Cheng/G. Hartke
-!@ver   1.0
 !@var     z       height above ground at which solution is computed (m)
-!@var     ustar   friction speed (m/sec)
-!@var     tstar   temperature scale (K)
-!@var     qstar   moisture scale
 !@var     z0m     momentum roughness height (m)
 !@var     z0h     temperature roughness height (m)
 !@var     z0q     moisture roughness height (m)
 !@var     lmonin  Monin-Obukhov length scale (m)
+!@var     ustar   friction speed (m/sec)
 !@var     tg      ground temperature (K)
 !@var     qg      ground moisture mixing ratio
 !@var     u       computed similarity solution for wind speed (m/sec)
@@ -1558,64 +1540,29 @@ c *********************************************************************
 !@var     q       computed similarity solution for moisture mixing ratio
       implicit none
 
-      real*8,  intent(in) :: z,ustar,tstar,qstar,z0m,z0h,z0q
-      real*8,  intent(in) :: lmonin,tg,qg
-      real*8,  intent(out) :: u,t,q
-
-      real*8 zbyl,z0mbyl,z0hbyl,z0qbyl,dpsim,dpsih,dpsiq,xm,xm0,xh,xh0
-     *     ,xq,xq0,lzbyz0m,lzbyz0h,lzbyz0q
-
-      zbyl  =z  /lmonin
-      z0mbyl=z0m/lmonin
-      z0hbyl=z0h/lmonin
-      z0qbyl=z0q/lmonin
-      lzbyz0m=log(z/z0m)
-      lzbyz0h=log(z/z0h)
-      lzbyz0q=log(z/z0q)
-c *********************************************************************
-c  Now compute DPSI, which is the difference in the psi functions
-c    computed at zgs and the relevant roughness height:
-c *********************************************************************
-
-      if (lmonin.gt.0.) then
-c *********************************************************************
-c  Here the atmosphere is stable with respect to the ground:
-        dpsim=-gamams*(zbyl-z0mbyl)
-        dpsih= sigma1*lzbyz0h-sigma*gamahs*(zbyl-z0hbyl)
-        dpsiq= sigma1*lzbyz0q-sigma*gamahs*(zbyl-z0qbyl)
-c *********************************************************************
-        else
-c *********************************************************************
-c  Here the atmosphere is unstable with respect to the ground:
-        xm   =    (1.-gamamu*  zbyl)**0.25d0
-        xm0  =    (1.-gamamu*z0mbyl)**0.25d0
-        xh   =sqrt(1.-gamahu*  zbyl)
-        xh0  =sqrt(1.-gamahu*z0hbyl)
-        xq   =sqrt(1.-gamahu*  zbyl)
-        xq0  =sqrt(1.-gamahu*z0qbyl)
-        dpsim=log((1.+xm )*(1.+xm )*(1.+xm *xm )/
-     2           ((1.+xm0)*(1.+xm0)*(1.+xm0*xm0)))-
-     3        2.*(atan(xm )-atan(xm0))
-        dpsih=sigma1*lzbyz0h+2.*sigma*log((1.+xh)/(1.+xh0))
-        dpsiq=sigma1*lzbyz0q+2.*sigma*log((1.+xq)/(1.+xq0))
-c *********************************************************************
-      endif
-
-      u=   (ustar/kappa)*(lzbyz0m-dpsim)
-      t=tg+(tstar/kappa)*(lzbyz0h-dpsih)
-      q=qg+(qstar/kappa)*(lzbyz0q-dpsiq)
-
+      real*8,  intent(in) :: z,z0m,z0h,z0q,lmonin,ustar,tstar,qstar
+     &                      ,tg,qg
+      real*8,  intent(out) :: u,t,q,dpsim,dpsih,dpsiq
+      real*8 dm,cm,ch,cq
+      call  getcm(z,z0m,lmonin,dm,dpsim,cm)
+      call getchq(z,z0h,lmonin,dm,dpsih,ch)
+      call getchq(z,z0q,lmonin,dm,dpsiq,cq)
+      u=   (ustar/kappa)*(log(z/z0m)-dpsim)
+      t=tg+(tstar/kappa)*(log(z/z0h)-dpsih)
+      q=qg+(qstar/kappa)*(log(z/z0q)-dpsiq)
       return
       end subroutine simil
 
       subroutine griddr(z,zhat,xi,xihat,dz,dzh,z1,zn,bgrid,n,ierr)
-!@sum Computes altitudes on the vertical grid. The XI coordinates are
-!@+   uniformly spaced and are mapped in a log-linear fashion onto the
-!@+   Z grid. (The Z's are the physical coords.) Also computes the
-!@+   altitudes on the secondary grid, ZHAT(I), and the derivatives
-!@+   dxi/dz evaluated at both all Z(I) and ZHAT(I).
+!@sum griddr computes altitudes on vertical grid. The xi coordinates are
+!@+  uniformly spaced and are mapped in a log-linear fashion onto the
+!@+  z grid. (The z's are the physical coords.) Also computes the
+!@+  altitudes on the secondary grid, zhat, and the derivatives
+!@+  dxi/dz evaluated at both all z and zhat. z and zhat are staggered:
+!@+  mean quantitied are calculated at z, turbulent kinetic enery
+!@+  and fluxes are calculated at zhat.
 !@auth  Ye Cheng/G. Hartke
-!@ver   1.0
+
 c     Grids:
 c
 c                n   - - - - - - - - - - - - -
@@ -1718,9 +1665,11 @@ c     dz(j)==zhat(j)-zhat(j-1), dzh(j)==z(j+1)-z(j)
       end subroutine griddr
 
       subroutine tfix(t,z,ttop,tgrnd,lmonin,tstar,ustar,khs,n)
-!@sum   tfix
+!@sum tfix linearly interpolates between the ground temperature tgrnd and the
+!@+  virtual potential temperature at the middle of the first GCM layer 
+!@+  to reset the T(z) profile.
+!@+  It is called when the T(z) profile becomes irregular.
 !@auth  Ye Cheng/G. Hartke
-!@ver   1.0
 
       implicit none
 
@@ -1746,14 +1695,14 @@ c     dz(j)==zhat(j)-zhat(j-1), dzh(j)==z(j+1)-z(j)
       if(abs(lmonin).lt.lmonin_min) lmonin=sign(lmonin_min,lmonin)
       if(abs(lmonin).gt.lmonin_max) lmonin=sign(lmonin_max,lmonin)
 
+
       return
       end subroutine tfix
 
       subroutine ccoeff0
-!@sum   ccoeff0 sets/calculates model coefficients for the
-!@+     Giss 2000 turbulence model (level2 2/2.5)
+!@sum ccoeff0 sets/calculates model coefficients for the
+!@+  GISS 2002 turbulence model (Cheng et al., 2002).
 !@auth  Ye Cheng
-!@ver   1.0
       implicit none
 
       ! temperary variable
@@ -1841,6 +1790,7 @@ c     find ghmin,ghmax,gmmax0:
       end subroutine ccoeff0
 
       subroutine get_tv(t,q,tv,n)
+!@sum get_tv converts temperature T to virtual temperature Tv
       USE CONSTANT, only : deltx
       implicit none
       integer, intent(in) :: n    !@var n  array dimension
@@ -1854,10 +1804,13 @@ c     find ghmin,ghmax,gmmax0:
       end subroutine get_tv
 
       subroutine getk(km,kh,kq,ke,gma,gha,u,v,t,e,lscale,dzh,n)
-!@sum   getk calculates eddy diffusivities Km, Kh and Ke
-!@+     Giss 2000 turbulence model at level 2.5
-!@auth  Ye Cheng
-!@ver   1.0
+!@sum getk computes the turbulent diffusivities for momentum, Km,
+!@+  for heat, Kh, for moisture, Kq and for kinetic energy, Ke,
+!@+  at the secondary grids,
+!@+  using the GISS second order closure model (Cheng et al., 2000).
+!@+  u,v,t,q,ke are calculated at the primary grid z, while
+!@+  e,lscale,km,kh,gm,gh are calculated at the secondary grid zhat.
+!@auth  Ye Cheng/G. Hartke
 c     Grids:
 c
 c                n   - - - - - - - - - - - - -
@@ -1877,13 +1830,6 @@ c
 c     dz(j)==zhat(j)-zhat(j-1), dzh(j)==z(j+1)-z(j)
 c     at main: u,v,t,q,ke
 c     at edge: e,lscale,km,kh,gm,gh
-!@sum getk computes the turbulent viscosity, Km, and turbulent
-!@+   conductivity, Kh, and turbulent diffusivity , Ke,
-!@+   using the GISS second order closure model (2000)
-!@+   at main: u,v,t,q,ke
-!@+   at secondary: e,lscale,km,kh,gma,gha
-!@auth  Ye Cheng/G. Hartke
-!@ver   1.0
 !@var u,v,t,e,lscale,t_real z-profiles
 !@var dz(j) zhat(j)-zhat(j-1)
 !@var dzh(j)  z(j+1)-z(j)
@@ -1906,8 +1852,6 @@ c     at edge: e,lscale,km,kh,gm,gh
       real*8, dimension(n-1), intent(in) :: e,lscale,dzh
       real*8, dimension(n-1), intent(out) :: km,kh,kq,ke,gma,gha
 
-      real*8, parameter :: se=0.1d0,kmax=100.d0
-     &  ,kmmin=1.5d-5,khmin=2.5d-5,kqmin=2.5d-5,kemin=1.5d-5
       real*8 :: an2,dudz,dvdz,as2,ell,den,qturb,tau,gh,gm,gmmax,sm,sh
      &  ,sq,taue
       integer :: i !@var i loop variable
@@ -1931,10 +1875,10 @@ c     at edge: e,lscale,km,kh,gm,gh
         sh=(s4+s5*gh+s6*gm)/den
         sq=sh
         taue=tau*e(i)
-        km(i)=min(max(taue*sm,kmmin),kmax)
-        kh(i)=min(max(taue*sh,khmin),kmax)
-        kq(i)=min(max(taue*sq,kqmin),kmax)
-        ke(i)=min(max(taue*se,kemin),kmax)
+        km(i)=min(max(taue*sm,kmmin),k_max)
+        kh(i)=min(max(taue*sh,khmin),k_max)
+        kq(i)=min(max(taue*sq,kqmin),k_max)
+        ke(i)=min(max(taue*se,kemin),k_max)
         gma(i)=gm
         gha(i)=gh
       end do
@@ -1943,11 +1887,13 @@ c     at edge: e,lscale,km,kh,gm,gh
 
       subroutine e_eqn(esave,e,u,v,t,km,kh,ke,lscale,
      &                     dz,dzh,ustar,dtime,n)
-!@sum e_eqn integrates differential eqn for e (tridiagonal method)
-!@+   between the surface and the first GCM layer.
-!@+   The boundary conditions at the bottom are:
-!@+   e(1)=(1/2)*B1**(2/3)*ustar**2
-!@+   at the top, dedz is continuous
+!@sum e_eqn integrates differential eqns for
+!@+  the turbulent kinetic energy, e, using tridiagonal method over 
+!@+  npbl-1(=7) sublayer edges (i.e., the secondary grids).
+!@+  The boundary condition near the bottom is:
+!@+  e(1)=(1/2)*B1**(2/3)*ustar**2.
+!@+  At the top secondary grid, nearest to the middle of the
+!@+  first GCM layer, e is prescribed.
 !@auth Ye Cheng/G. Hartke
 !@var u z-profle of west-east   velocity component
 !@var v z-profle of south-north velocity component
@@ -2008,29 +1954,29 @@ c
       sup(1)=0.
       rhs(1)=0.5d0*b123*ustar*ustar
 
-      j=n-1
-      an2=2.*grav*(t(j+1)-t(j))/((t(j+1)+t(j))*dzh(j))
-      dudz=(u(j+1)-u(j))/dzh(j)
-      dvdz=(v(j+1)-v(j))/dzh(j)
-      as2=max(dudz*dudz+dvdz*dvdz,teeny)
-      ri=an2/as2
-      if(ri.gt.rimax) ri=rimax
-      aa=c1*ri*ri-c2*ri+c3
-      bb=c4*ri+c5
-      cc=2.d0
-      if(abs(aa).lt.1d-8) then
-        gm= -cc/bb
-      else
-        tmp=bb*bb-4.*aa*cc
-        gm=(-bb-sqrt(tmp))/(2.*aa)
-      endif
-      sub(n-1)=0.
-      dia(n-1)=1.
-      rhs(n-1)=max(0.5d0*(B1*lscale(j))**2*as2/max(gm,teeny),teeny)
+c      j=n-1
+c      an2=2.*grav*(t(j+1)-t(j))/((t(j+1)+t(j))*dzh(j))
+c      dudz=(u(j+1)-u(j))/dzh(j)
+c      dvdz=(v(j+1)-v(j))/dzh(j)
+c      as2=max(dudz*dudz+dvdz*dvdz,teeny)
+c      ri=an2/as2
+c      if(ri.gt.rimax) ri=rimax
+c      aa=c1*ri*ri-c2*ri+c3
+c      bb=c4*ri+c5
+c      cc=2.d0
+c      if(abs(aa).lt.1d-8) then
+c        gm= -cc/bb
+c      else
+c        tmp=bb*bb-4.*aa*cc
+c        gm=(-bb-sqrt(tmp))/(2.*aa)
+c      endif
+c      sub(n-1)=0.
+c      dia(n-1)=1.
+c      rhs(n-1)=max(0.5d0*(B1*lscale(j))**2*as2/max(gm,teeny),teeny)
 
-c     sub(n-1)=-1.
-c     dia(n-1)=1.
-c     rhs(n-1)=0.
+      sub(n-1)=-1.
+      dia(n-1)=1.
+      rhs(n-1)=0.
 
       call TRIDIAG(sub,dia,sup,rhs,e,n-1)
 
@@ -2042,7 +1988,7 @@ c     rhs(n-1)=0.
       end subroutine e_eqn
 
       subroutine e_les(tstar,ustar,wstar3,dbl,lmonin,zhat,lscale,e,n)
-!@sum e_gcm finds e according to the parameterization of les data
+!@sum e_les finds e according to the parameterization of les data
 !@Ref Moeng and Sullivan 1994, J. Atmos. Sci., 51, 999-1022.
 !@Ref Cheng et al. 2002, J. Atmos. Sci., 59, 1550-1565.
 !@auth  Ye Cheng
@@ -2056,33 +2002,25 @@ c     rhs(n-1)=0.
       real*8, intent(in) :: tstar,ustar,wstar3,dbl,lmonin
       real*8, dimension(n), intent(in) :: zhat,lscale
       real*8, dimension(n), intent(inout) :: e
-      real*8, parameter :: emin=1.d-6
       integer :: j !@var j loop variable
-      real*8 :: tvflx,ustar3,zj,kz,zeta,phi_m,eps,ej
+      real*8 :: tvflx,ustar3,zj,kz,zet,phim,eps,ej
 
       tvflx=ustar*tstar
       ustar3=ustar*ustar*ustar
-      do j=1,n-1   ! Dyer 1974
+      do j=1,n-1
         zj=zhat(j)
         kz=kappa*zj
         if(zj.le.dbl) then
-          zeta=zj/lmonin
-          if(zeta.ge.0.) then ! stable or neutral
-            if(zeta.le.1.) then
-              phi_m=1.+5.*zeta
-            else
-              phi_m=5.+zeta
-            endif
-          else                ! unstable
-            phi_m=(1.-15.*zeta)**(-.25d0)
-          endif
-          eps=.4d0*wstar3/dbl+ustar3*(1.-zj/dbl)*phi_m/kz
-          ej=.5d0*(24.d0*lscale(j)*eps)**(2.*by3)
+          zet=zj/lmonin
+          call find_phim(zet,phim)
+          eps=.4d0*wstar3/dbl+ustar3*(1.-zj/dbl)*phim/kz
+          ej=.5d0*(19.3d0*lscale(j)*eps)**(2.*by3)
           ej=min(max(ej,emin),emax)
         else
-          ej=0.
+          ej=emin
         endif
-        e(j)=max(e(j),ej)
+        e(j)=max(e(j),ej) ! e(j) on the rhs is an input
+c       e(j)=ej
       end do
       return
       end subroutine e_les
@@ -2091,20 +2029,27 @@ c     rhs(n-1)=0.
      &     ,ttop,dtdt_gcm,dtime,n
      &     ,dpdxr,dpdyr,dpdxr0,dpdyr0,usurf0,tprime,tdns
      &     ,qdns,ddml_eq_1)
-!@sum t_eqn integrates differential eqn for t (tridiagonal method)
-!@+   between the surface and the first GCM layer.
-!@+   Boundary conditions at bottom: Mellor and Yamada 1982, Eq(72),
-!@+   Redelsperger et al. 2000, J. Climate, 13, 402-421
-!@+   Emanuel and Zivkovic 1999, JAS, 56, 1766-1782
-!@+   including the effects on the surface flux
-!@+   due to the moist convection wind gustiness and the
-!@+   downdraft temperature perturbation
+!@sum t_eqn integrates differential eqns for 
+!@+  the virtual potential temperature, T, using tridiagonal method 
+!@+  over npbl(=8) sublayers between the surface (sublayer 1)
+!@+  and the middle of the first GCM layer (sublayer npbl).
+!@+  The boundary condition at the bottom is:
 !@+   kh * dt/dz = ch * ( usurf*(t1 - tgrnd)
-!@+                      +(1+xdelt*q1)*(usurf-usurf0)*tprime )
-!@+          ### the following term was removed from BC at the bottom
-!@+          ###   + xdelt * t1/(1+xdelt*q1) * kq * dqdz
-!@+   where tprime=tdns-t1/(1+xdelt*q1), t1 is at surf
-!@+   at the top, the virtual potential temperature is prescribed.
+!@+               +(1+xdelt*q1)*(usurf-usurf0)*tprime )
+!@+  which includes the effects on the surface flux
+!@+  due to the moist convection wind gustiness and the
+!@+  downdraft temperature perturbation
+!@+  (Redelsperger et al. 2000; Emanuel and Zivkovic 1999),
+!@+  where 
+!@+  tprime=tdns-t1/(1+xdelt*q1),
+!@+  t1, q1 are the T and Q at the surface, 
+!@+  and tdns is the downdraft temperature in K at (i,j), which is
+!@+  calculated in subroutines CONDSE (in CLOUDS2_DRV.f) and 
+!@+  PBL (in PBL_DRV.f).
+!@+  At the top, i.e., the middle of the first GCM layer, 
+!@+  T is prescribed.
+!@+  ### the following term was removed from BC at the bottom
+!@+  ###   + xdelt * t1/(1+xdelt*q1) * kq * dqdz
 !@auth Ye Cheng/G. Hartke
 !@var u z-profle of west-east   velocity component
 !@var v z-profle of south-north velocity component
@@ -2142,7 +2087,7 @@ c     rhs(n-1)=0.
       logical, intent(in) :: ddml_eq_1
 
       real*8 :: facth,factx,facty,rat
-      integer :: i !@var i loop variable
+      integer :: i  !@var i loop variable
 
       do i=2,n-1
          sub(i)=-dtime/(dz(i)*dzh(i-1))*kh(i-1)
@@ -2196,21 +2141,26 @@ c       rhs(i)=t0(i)-dtime*t(i)*bygrav*(v(i)*facty+u(i)*factx)
 
       subroutine q_eqn(q0,q,kq,dz,dzh,cq,usurf,qgrnd,qtop,dtime,n
      &     ,flux_max,fr_sat,usurf0,qprime,qdns,ddml_eq_1)
-!@sum q_eqn integrates differential eqn q (tridiagonal method)
-!@+   between the surface and the first GCM layer.
-!@+   The boundary conditions at the bottom Ref:
-!@+   Redelsperger et al. 2000, J. Climate, 13, 402-421
-!@+   Emanuel and Zivkovic 1999, JAS, 56, 1766-1782
-!@+   including the effects on the surface flux
-!@+   due to the moist convection wind gustiness and the
-!@+   downdraft specific humidity perturbation
-!@+   kq * dq/dz = min ( cq * usurf * (q1 - qgrnd)
-!@+                    + cq * (usurf-usurf0) * qprime ,
-!@+           fr_sat * ( cq * usurf * (q1 - qgrnd)
-!@+                    + cq * (usurf-usurf0) * qprime )
-!@+       - ( 1 - fr_sat ) * flux_max )
-!@+   where qprime=qdns-q1, q1 is q at surf
-!@+   at the top, the moisture is prescribed.
+!@sum q_eqn integrates differential eqns for
+!@+  the specific humidity, Q, using tridiagonal method over npbl(=8)
+!@+  sublayers between the surface (sublayer 1)
+!@+  and the middle of the first GCM layer (sublayer npbl).
+!@+  The boundary condition at the bottom is:
+!@+    kq * dq/dz = min ( cq * usurf * (q1 - qgrnd)
+!@+                     + cq * (usurf-usurf0) * qprime ,
+!@+            fr_sat * ( cq * usurf * (q1 - qgrnd)
+!@+                     + cq * (usurf-usurf0) * qprime )
+!@+        - ( 1 - fr_sat ) * flux_max ),
+!@+  which includes the effects on the surface flux
+!@+  due to the moist convection wind gustiness and the
+!@+  downdraft specific humidity  perturbation
+!@+  (Redelsperger et al. 2000; Emanuel and Zivkovic 1999),
+!@+  where qprime=qdns-q1, q1 is Q at the surface
+!@+  and qdns is the downdraft humidity in kg/kg, (i,j), which is
+!@+  calculated in subroutines CONDSE (in CLOUDS2_DRV.f) 
+!@+  and PBL (in PBL_DRV.f).
+!@+  At the top, i.e., the middle of the first GCM layer,
+!@+  Q is prescribed.
 !@auth Ye Cheng/G. Hartke
 !@var q z-profle of specific humidity
 !@var q0 z-profle of q at previous time step
@@ -2270,7 +2220,7 @@ c       rhs(i)=t0(i)-dtime*t(i)*bygrav*(v(i)*facty+u(i)*factx)
 
       call TRIDIAG(sub,dia,sup,rhs,q,n)
 
-c**** Now let us check if the computed flux doesn't exceed the maximum
+c**** Now let us check if the computed flux doesnt exceed the maximum
 c**** for unsaturated fraction
 
       if ( fr_sat .ge. 1. ) return   ! all soil is saturated
@@ -2304,18 +2254,21 @@ c****             - ( 1 - fr_sat ) * flux_max
      *     tr_evap_max,fr_sat,
 #endif
      *     dtime,n)
-!@sum tr_eqn integrates differential eqn for tracers (tridiag. method)
-!@+   between the surface and the first GCM layer.
-!@+   The boundary conditions at the bottom are:
-!@+   kq * dtr/dz = sfac * trs - constflx
-!@+   i.e. for moisture, sfac=cq*usurf, constflx=cq*usurf*qg
-!@+        to get:  kq * dq/dz = cq * usurf * (qs - qg)
-!@+   for new moisture (including downdraft effects)
-!@+        sfac=cq*(usurf-dusurf), constflx=cq*(usurf*qg + dusurf*qdns)
-!@+    or  sfac=cq*usurf0, constflx=cq*(usurf*(qg+qdns)-usurf0*qdns)
-!@+        to get:  kq * dq/dz = cq*(usurf*(qs-qg) + dusurf*(qdns-qs))
-!@+   This should be flexible enough to deal with most situations.
-!@+   at the top, the tracer conc. is prescribed.
+!@sum tr_eqn integrates differential eqns for
+!@+  the tracers, TR, using tridiagonal method over npbl(=8)
+!@+  sublayers between the surface (sublayer 1)
+!@+  and the middle of the first GCM layer (sublayer npbl).
+!@+  The boundary condition at the bottom is:
+!@+  kq * dtr/dz = sfac * trs - constflx,
+!@+  i.e. for moisture, sfac=cq*usurf, constflx=cq*usurf*qg,
+!@+  to get:  kq * dq/dz = cq * usurf * (qs - qg);
+!@+  for new moisture (including downdraft effects),
+!@+  sfac=cq*(usurf-dusurf), constflx=cq*(usurf*qg + dusurf*qdns),
+!@+  or sfac=cq*usurf0, constflx=cq*(usurf*(qg+qdns)-usurf0*qdns),
+!@+  to get:  kq * dq/dz = cq*(usurf*(qs-qg) + dusurf*(qdns-qs)).
+!@+  This should be flexible enough to deal with most situations.
+!@+  At the top, i.e., the middle of the first GCM layer,
+!@+  TR is prescribed.
 !@auth Ye Cheng/G. Hartke
 !@var tr z-profle of tracer concentration
 !@var tr0 z-profle of tr at previous time step
@@ -2412,12 +2365,15 @@ c****              + ( 1 - fr_sat ) * tr_evap_max
      &                  dtime,coriol,
      3                  ug,vg,uocean,vocean,n
      &                  ,dpdxr,dpdyr,dpdxr0,dpdyr0)
-!@sum uv_eqn integrates differential eqns for u & v (tridiagonal method)
-!@+   between the surface and the first GCM layer.
-!@+   The boundary conditions at the bottom are:
-!@+   km * du/dz = cm * usurf * u
-!@+   km * dv/dz = cm * usurf * v
-!@+    at the top, the winds are prescribed.
+!@sum uv_eqn integrates differential eqns for
+!@+  mean velocity u and v using tridiagonal method over npbl(=8)
+!@+  sublayers between the surface (sublayer 1)
+!@+  and the middle of the first GCM layer (sublayer npbl).
+!@+  The boundary condition at the bottom is:
+!@+  km * du/dz = cm * usurf * u and
+!@+  km * dv/dz = cm * usurf * v.
+!@+  At the top, i.e., the middle of the first GCM layer,
+!@+  u, v are prescribed.
 !@auth Ye Cheng/G. Hartke
 !@var u z-profle of west-east   velocity component
 !@var v z-profle of south-north velocity component
@@ -2455,7 +2411,7 @@ c****              + ( 1 - fr_sat ) * tr_evap_max
       real*8, intent(in) ::  dpdxr,dpdyr,dpdxr0,dpdyr0
 
       real*8 :: factx,facty,dpdx,dpdy,usurf,factor
-      integer :: i  !@var i loop variable
+      integer :: i,j,iter  !@var i,j,iter loop variable
 
       do i=2,n-1
          sub(i)=-dtime/(dz(i)*dzh(i-1))*km(i-1)
@@ -2516,11 +2472,14 @@ c#endif /* PBL_USES_GCM_TENDENCIES */
       end subroutine uv_eqn
 
       subroutine t_eqn_sta(t,q,kh,kq,dz,dzh,ch,usurf,tgrnd,ttop,n)
-!@sum  t_eqn_sta computes the static solutions of t
-!@+    between the surface and the first GCM layer.
-!@+    The boundary conditions at the bottom are:
-!@+    kh * dt/dz = ch * usurf * (t - tg)
-!@+    at the top, virtual potential temperature is prescribed.
+!@sum t_eqn_sta computes the static solutions of
+!@+ the virtual potential temperature, T,
+!@+ between the surface and the first GCM layer.
+!@+ The boundary condition at the bottom is:
+!@+ kh * dt/dz = ch * usurf * (t - tg).
+!@+ At the top, T is prescribed.
+!@+ It is called only at the initialization
+!@+ (from within subroutine inits).
 !@auth Ye Cheng/G. Hartke
 !@var u z-profle of west-east   velocity component
 !@var v z-profle of south-north velocity component
@@ -2576,11 +2535,14 @@ c#endif /* PBL_USES_GCM_TENDENCIES */
       end subroutine t_eqn_sta
 
       subroutine q_eqn_sta(q,kq,dz,dzh,cq,usurf,qgrnd,qtop,n)
-!@sum  q_eqn_sta computes the static solutions of q
-!@+    between the surface and the first GCM layer.
-!@+    The boundary conditions at the bottom are:
-!@+    kq * dq/dz = cq * usurf * (q - qg)
-!@+    at the top, moisture is prescribed.
+!@sum q_eqn_sta computes the static solutions of
+!@+ the specific humidity, Q,
+!@+ between the surface and the first GCM layer.
+!@+ The boundary condition at the bottom is:
+!@+ kq * dq/dz = cq * usurf * (q - qg).
+!@+ At the top, Q is prescribed.
+!@+ It is called only at the initialization
+!@+ (from within subroutine inits).
 !@auth Ye Cheng/G. Hartke
 !@var u z-profle of west-east   velocity component
 !@var v z-profle of south-north velocity component
@@ -2636,13 +2598,17 @@ c#endif /* PBL_USES_GCM_TENDENCIES */
       subroutine uv_eqn_sta(u,v,z,km,dz,dzh,
      2            ustar,cm,utop,vtop,coriol,uocean,vocean,n
      &            ,dpdxr,dpdyr,dpdxr0,dpdyr0,ug,vg)
-!@sum  uv_eqn_sta computes the static solutions of the u and v
-!@+    between the surface and the first GCM layer.
-!@+    The boundary conditions at the bottom are:
-!@+    km * du/dz = cm * usurf * u
-!@+    km * dv/dz = cm * usurf * v
-!@+    at the top, the winds are prescribed.
+!@sum uv_eqn_sta computes the static solutions of the
+!@+  wind components, u and v,
+!@+  between the surface and the first GCM layer.
+!@+  The boundary conditions at the bottom are:
+!@+  km * du/dz = cm * usurf * u,
+!@+  km * dv/dz = cm * usurf * v.
+!@+  At the top, u and v are prescribed.
+!@+  It is called only at the initialization
+!@+  (from within subroutine inits).
 !@auth Ye Cheng/G. Hartke
+!@ver  1.0
 !@var u z-profle of west-east   velocity component
 !@var v z-profle of south-north velocity component
 !@var z vertical height at the main grids (meter)
@@ -2671,7 +2637,7 @@ c#endif /* PBL_USES_GCM_TENDENCIES */
       real*8, intent(in) ::  dpdxr,dpdyr,dpdxr0,dpdyr0
 
       real*8 :: factx,facty,dpdx,dpdy,usurf,factor
-      integer :: i  !@var i loop variable
+      integer :: i,j,iter  !@var i,j,iter loop variable
 c**** passed for SCM
       real*8 ug,vg
 
@@ -2717,10 +2683,8 @@ ccc if running SCM then use ug and vg instead of dpdx,dpdy
       end subroutine uv_eqn_sta
 
       subroutine level2(e,u,v,t,lscale,dzh,n)
-!@sum  level2 computes the turbulent kinetic energy e using the
-!@+    GISS 2000 turbulence model at level 2
+!@sum level2 computes the turbulent kinetic energy e (Cheng et al., 2002).
 !@auth  Ye Cheng/G. Hartke
-!@ver   1.0
 !@var e z-profle of turbulent kinetic energy
 !@var u z-profle of west-east   velocity component
 !@var v z-profle of south-north velocity component
@@ -2766,13 +2730,20 @@ ccc if running SCM then use ug and vg instead of dpdx,dpdy
       end subroutine level2
 
       subroutine inits(tgrnd,qgrnd,zgrnd,zgs,ztop,utop,vtop,
-     2          ttop,qtop,coriol,cm,ch,cq,ustar,uocean,vocean,
+     2          ttop,qtop,coriol,cm,ch,cq,ustar,lmonin,uocean,vocean,
      3          ilong,jlat,itype
      &          ,dpdxr,dpdyr,dpdxr0,dpdyr0
      &          ,u,v,t,q,e,ug,vg)
-!@sum  inits initializes the winds, virtual potential temperature,
-!@+    and humidity using static solutions of the GISS 2000
-!@+    turbulence model at level 2
+!@sum inits initializes the winds, virtual potential temperature,
+!@+  and humidity by solving their differential equations for the
+!@+  static solutions, using tridiagonal method over npbl(=8)
+!@+  sublayers between the surface (sublayer 1)
+!@+  and the middle of the first GCM layer (sublayer npbl).
+!@+  (Cheng et a., 2002).
+!@+  It is called by subroutine init_pbl (in PBL_DRV.f),
+!@+  and the latter (init_pbl) is called 
+!@+  by subroutine INPUT (in MODELE.f).
+!@auth  Ye Cheng/G. Hartke
 !@var  n number of sub-grid levels for the PBL
 !@var  tgrnd virtual potential temperature of ground,at roughness height
 !@var  qgrnd  moisture at the ground, at the roughness height
@@ -2800,23 +2771,23 @@ ccc if running SCM then use ug and vg instead of dpdx,dpdy
 
       real*8, intent(in) :: tgrnd,qgrnd,zgrnd,zgs,ztop,utop,vtop,ttop
      *     ,qtop,coriol,uocean,vocean
-      real*8, intent(out) :: cm,ch,cq,ustar
+      real*8, intent(out) :: cm,ch,cq,ustar,lmonin
       integer, intent(in) :: ilong,jlat,itype
       real*8, intent(in) ::  dpdxr,dpdyr,dpdxr0,dpdyr0
 
       real*8, dimension(n-1) :: km,kh,kq,ke,gm,gh
       real*8, dimension(n) :: z,dz,xi,usave,vsave,tsave,qsave
       real*8, dimension(n-1) :: zhat,xihat,dzh,lscale,esave
-      real*8 :: lmonin,lmonin_dry,bgrid,z0m,z0h,z0q,hemi,psi1,psi0,psi
+      real*8 :: lmonin_dry,bgrid,z0m,z0h,z0q,hemi,psi1,psi0,psi
      *     ,usurf,tstar,qstar,ustar0,dtime,test
      *     ,wstar3,wstar2h,usurfq,usurfh,ts
 
-      integer, parameter ::  itmax=5
+      integer, parameter ::  itmax=100
       integer, parameter ::  iprint=0,jprint=41 ! set iprint>0 to debug
       real*8, parameter ::  w=0.50,tol=1d-3
       integer :: i,iter,ierr  !@var i,iter loop variable
 #ifdef TRACERS_SPECIAL_O18
-      real*8 :: fac_cq_tr(NTM)   ! not used here
+      real*8 :: fac_cq_tr(ntm)   ! not used here
 #endif
 
       real*8 dbl ! I hope it is really a local variable (was global before) I.A
@@ -2825,6 +2796,7 @@ ccc if running SCM then use ug and vg instead of dpdx,dpdy
       real*8, dimension(n-1), intent(out) :: e
 c****  passed for scm
       real*8  ug,vg
+      real*8  dm
 
       dbl=1000.d0 !initial guess of dbl
       z0m=zgrnd
@@ -2884,17 +2856,11 @@ c Initialization for iteration:
       ustar0=0.
       do iter=1,itmax
 
-        if(iter.eq.1) then
-          call getl1(e,zhat,dzh,lscale,n)
-        else
-          call getl(e,u,v,t,zhat,dzh,lmonin,ustar,lscale,dbl,n)
-        endif
-
+        call getl1(e,zhat,dzh,lscale,n)
         call getk(km,kh,kq,ke,gm,gh,u,v,t,e,lscale,dzh,n)
-
         ts=t(1)/(1+q(1)*xdelt)
         call stars(ustar,tstar,qstar,lmonin,lmonin_dry,tgrnd,qgrnd,ts,
-     2             u,v,t,q,z,z0m,z0h,z0q,cm,ch,cq,
+     2             u,v,t,q,z,z0m,z0h,z0q,cm,ch,cq,dm,
 #ifdef TRACERS_SPECIAL_O18
      *             fac_cq_tr,
 #endif
@@ -2964,7 +2930,7 @@ c     call check1(ustar,1,ilong,jlat,1)
       end subroutine inits
 
       subroutine tcheck(t,tgrnd,n)
-!@sum   tcheck checks for reasonable temperatures
+!@sum tcheck checks for reasonable temperatures
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
 c ----------------------------------------------------------------------
@@ -3023,7 +2989,7 @@ c ----------------------------------------------------------------------
       end subroutine tcheck
 
       subroutine ucheck(u,v,z,ustar,lmonin,z0m,hemi,psi0,psi1,n)
-!@sum  ucheck makes sure that the winds remain within reasonable
+!@sum ucheck makes sure that the winds remain within reasonable
 !@+    bounds during the initialization process. (Sometimes the computed
 !@+    wind speed iterated out in left field someplace, *way* outside
 !@+    any reasonable range.) Tests and corrects both direction and
@@ -3042,7 +3008,8 @@ c ----------------------------------------------------------------------
 
       real*8, intent(in) :: lmonin,z0m,hemi,psi0,psi1,ustar
 
-      real*8 psilim,psirot,angle,utotal,x,x0,dpsim,psiu,zbyl,z0byl,utest
+      real*8 psilim,psirot,angle,utotal,x,x0,dpsim,psiu,zet,zet0,utest
+      real*8 xm
       integer i                 !@var i  loop and dummy variables
 
       if (lmonin.ge.0.) then
@@ -3064,43 +3031,32 @@ c  set the wind magnitude to that given by similarity theory:
         utotal=sqrt(u(i)*u(i)+v(i)*v(i))
         utest =sqrt(u(i+1)*u(i+1)+v(i+1)*v(i+1))
         if (utotal.gt.utest) then
-          zbyl=z(i)/lmonin
-          z0byl=z0m/lmonin
-          if (lmonin.gt.0.) then
-            dpsim=-gamams*(zbyl-z0byl)
-            else
-            x  = (1.-gamamu* zbyl)**0.25d0
-            x0 = (1.-gamamu*z0byl)**0.25d0
-            dpsim=log((1.+x )*(1.+x )*(1.+x *x )/
-     2               ((1.+x0)*(1.+x0)*(1.+x0*x0)))-
-     3            2.*(atan(x)-atan(x0))
-          endif
+          zet=z(i)/lmonin
+          zet0=z0m/lmonin
+          call find_dpsim(zet,zet0,dpsim)
           utotal=(ustar/kappa)*(log(z(i)/z0m)-dpsim)
           if (utotal.gt.utest) utotal=0.95d0*utest
           u(i)=utotal*cos(psiu)
           v(i)=utotal*sin(psiu)
         endif
-
         if (hemi*psirot.lt.0.) then
           angle=psi0+psi1*float(n-i)/float(n-1)
           u(i)=utotal*cos(angle)
           v(i)=utotal*sin(angle)
-          go to 100
-        endif
-
-        if (hemi*psirot.gt.psilim) then
+        elseif (hemi*psirot.gt.psilim) then
           angle=psi0+hemi*psilim*float(n-i)/float(n-1)
           u(i)=utotal*cos(angle)
           v(i)=utotal*sin(angle)
         endif
 
- 100  end do
+      end do
 
       return
       end subroutine ucheck
 
+
       subroutine check1(a,n,ilong,jlat,id)
-!@sum   check1 checks for NaN'S and INF'S in real 1-D arrays.
+!@sum check1 checks for NaN'S and INF'S in real 1-D arrays.
 !@auth  Ye Cheng/G. Hartke
 !@ver   1.0
       implicit none
@@ -3136,9 +3092,8 @@ c  set the wind magnitude to that given by similarity theory:
      3                  ustar,tstar,qstar,lmonin,tgrnd,qgrnd,
      4                  utop,vtop,ttop,qtop,
      5                  dtime,bgrid,ilong,jlat,iter,itype,n)
-!@sum   output produces output for diagnostic purposes
+!@sum output produces output for diagnostic purposes.
 !@auth  Ye Cheng/G. Hartke
-!@ver   1.0
 !@calls simil
       implicit none
       real*8, parameter :: degree=1./radian
@@ -3157,7 +3112,7 @@ c  set the wind magnitude to that given by similarity theory:
       real*8 :: psitop,psi,utotal,utot1,utot2,sign,shear,tgrad,qgrad
      *     ,uflux,hflux,qflux,bvfrq2,shear2,rich,dqdz,dtdz,dudz
      *     ,phim,phih,dudzs,dtdzs,dqdzs,uratio,tratio,qratio,dbydzh
-     *     ,tgradl,prod,utest,ttest,qtest
+     *     ,tgradl,prod,utest,ttest,qtest,dpsim,dpsih,dpsiq,zet
 
       write (99,5000) ilong,jlat,itype,dtime,iter,ustar,tstar,qstar,
      2                lmonin,tgrnd,qgrnd,cm,ch,cq,z0m,z0h,z0q,
@@ -3171,8 +3126,8 @@ c  set the wind magnitude to that given by similarity theory:
         if (psi.lt.0.) psi=psi+360.
         psi=psi-psitop
         utotal=sqrt(u(i)*u(i)+v(i)*v(i))
-        call simil(utest,ttest,qtest,z(i),ustar,tstar,qstar,
-     2             z0m,z0h,z0q,lmonin,tgrnd,qgrnd)
+        call simil(z(i),z0m,z0h,z0q,lmonin,ustar,tstar,qstar
+     2       ,tgrnd,qgrnd,utest,ttest,qtest,dpsim,dpsih,dpsiq)
         write (99,3000) i,z(i),u(i),v(i),psi,utotal,utest,
      2                    t(i),ttest,q(i),qtest
       end do
@@ -3202,19 +3157,16 @@ c  set the wind magnitude to that given by similarity theory:
       end do
       write (99,9000)
       write (99,7000)
+
       do i=1,n-1
         utot1=sqrt(u(i+1)*u(i+1)+v(i+1)*v(i+1))
         utot2=sqrt(  u(i)*  u(i)+  v(i)*  v(i))
         dudz=(utot1-utot2)/dzh(i)
         dtdz=(t(i+1)-t(i))/dzh(i)
         dqdz=(q(i+1)-q(i))/dzh(i)
-        if (lmonin.lt.0.) then
-          phim = 1./((1.-gamamu*zhat(i)/lmonin)**0.25)
-          phih = sigma/sqrt(1.-gamahu*zhat(i)/lmonin)
-          else
-          phim = 1.+gamams*zhat(i)/lmonin
-          phih = sigma*(1.+gamahs*zhat(i)/lmonin)
-        endif
+        zet=zhat(i)/lmonin
+        call find_phim(zet,phim)
+        call find_phih(zet,phih)
         dudzs=ustar*phim/(kappa*zhat(i))
         dtdzs=tstar*phih/(kappa*zhat(i))
         dqdzs=qstar*phih/(kappa*zhat(i))
@@ -3273,6 +3225,141 @@ c ----------------------------------------------------------------------
 9000  format (1x)
       end subroutine output
 
+      subroutine find_phim0(zet,phim)
+      implicit none
+      ! in:
+      real*8 zet
+      ! out:
+      real*8 phim
+      if(zet.ge.0.d0) then ! stable or neutral
+        if(zet.le.zet1) then
+          phim=1.+gamams*zet
+        else
+          phim=1.+gamams*zet1+slope1*(zet-zet1)
+        endif
+      else                ! unstable
+c       if(zet.ge.zetm) then
+          phim=(1.-gamamu*zet)**(-.25d0)
+c       else
+c         phim=0.7d0*kappa**(2*by3)*(-zet)**by3
+c       endif
+      endif
+      return
+      end subroutine find_phim0
+
+      subroutine find_phim(zet,phim)
+      implicit none
+      ! in:
+      real*8 zet
+      ! out:
+      real*8 phim
+      if(zet.ge.0.d0) then ! stable or neutral
+        if(zet.le.zet1) then
+          phim=1.+gamams*zet
+        else
+          phim=1.+gamams*zet1+slope1*(zet-zet1)
+        endif
+      else                ! unstable
+        if(zet.ge.zetm) then
+          phim=(1.-gamamu*zet)**(-.25d0)
+        else
+          phim=0.7d0*kappa**(2*by3)*(-zet)**by3
+        endif
+      endif
+      return
+      end subroutine find_phim
+
+      subroutine find_phih(zet,phih)
+      implicit none
+      ! in:
+      real*8 zet
+      ! out:
+      real*8 phih
+      if(zet.ge.0.d0) then ! stable or neutral
+        if(zet.le.zet1) then
+          phih=sigma*(1.+gamahs*zet)
+        else
+          phih=sigma*(1.+gamahs*zet1+slope1*(zet-zet1))
+        endif
+      else                ! unstable
+        if(zet.ge.zeth) then
+          phih=sigma*(1-gamahu*zet)**(-.5d0)
+        else
+          phih=.9d0*kappa**(4.d0/3.d0)*(-zet)**(-by3)
+        endif
+      endif
+      return
+      end subroutine find_phih
+
+      subroutine find_dpsim(zet,zet0,dpsim)
+      implicit none
+      ! in:
+      real*8 zet,zet0
+      ! out:
+      real*8 dpsim
+      real*8 x,x0,xm
+      ! dpsim:
+      if(zet.ge.0.d0) then ! stable
+        if(zet.le.zet1) then
+          dpsim=-gamams*(zet-zet0)
+        else
+          dpsim=-gamams*(zet1-zet0)
+     &          +zet1*(slope1-gamams)*log(zet/zet1)
+     &          -slope1*(zet-zet1)
+        endif
+      else                 ! unstable
+        x= (1.-gamamu*zet)**0.25d0
+        x0=(1.-gamamu*zet0)**0.25d0
+        xm= (1.-gamamu*zetm)**0.25d0
+        if(zet.gt.zetm) then
+          dpsim=log((1+x)*(1+x)*(1+x*x)/
+     1          ((1+x0)*(1+x0)*(1+x0*x0)))-
+     2          2.*(atan(x)-atan(x0))
+        else
+          dpsim=log((1+xm)*(1+xm)*(1+xm*xm)/
+     1          ((1+x0)*(1+x0)*(1+x0*x0)))-
+     2          2.*(atan(xm)-atan(x0))
+     3          +log(zet/zetm)
+     4          -1.140125d0*((-zet)**by3-(-zetm)**by3)
+                ! 0.7*kappa**(2/3)*3 = 1.140125
+        endif
+      endif
+      return
+      end subroutine find_dpsim
+
+      subroutine find_dpsih(zet,zet0,dpsih)
+      implicit none
+      ! in:
+      real*8 zet,zet0
+      ! out:
+      real*8 dpsih
+      real*8 x,x0,xh
+      ! dpsih
+      if(zet.ge.0.d0) then ! stable
+        if(zet.le.zet1) then
+          dpsih=sigma1*log(zet/zet0)-sigma*gamahs*(zet-zet0)
+        else
+          dpsih=sigma1*log(zet1/zet0)-sigma*gamahs*(zet1-zet0)
+     &         +(1+sigma*(zet1*(slope1-gamahs)-1))*log(zet/zet1)
+     &         -sigma*slope1*(zet-zet1)
+        endif
+      else                 ! unstable
+        x= (1.-gamahu*zet)**0.5d0
+        x0=(1.-gamahu*zet0)**0.5d0
+        xh= (1.-gamahu*zeth)**0.5d0
+        if(zet.gt.zeth) then
+          dpsih=log(zet/zet0)
+     &          +sigma*log((1+x)*(1-x0)/((1-x)*(1+x0)))
+        else
+          dpsih=log(zet/zet0)
+     2          +sigma*log((1+xh)*(1-x0)/((1-xh)*(1+x0)))
+     3          -0.7957508d0*((-zeth)**(-by3)-(-zet)**(-by3))
+                ! 0.9*kappa**(4/3)*3 = 0.7957508
+        endif
+      endif
+      return
+      end subroutine find_dpsih
+
       subroutine alloc_pbl_args(pbl_args)
       type (t_pbl_args), intent(inout) :: pbl_args
 
@@ -3328,8 +3415,9 @@ c ----------------------------------------------------------------------
       END MODULE SOCPBL
 
       subroutine fgrid2(z,f,df)
-!@sum  fgrid2 computes functional relationship of z and xi + derivative
-!@+    fgrid2 will be called in function NewtonMethod(fgrid2,x1,x2,xacc)
+!@sum fgrid2 computes functional relationship of z and xi;
+!@+  it is used in function NewtonMethod,
+!@+  the latter is called by subroutine griddr.
 !@auth Ye Cheng/G. Hartke
       implicit none
       real*8, intent(in) :: z
@@ -3361,7 +3449,7 @@ C**** k thermal cond. 0.596 W/mK (35 psu, 20 deg, 0 press)
       real*8 :: fc
 
 C**** calculate micro-layer thickness (m)
-C**** Cap ustar so that it doesn't get too small in low wind conditions
+C**** Cap ustar so that it does not get too small in low wind conditions
 C**** ustar_oc > 0.00098 corresponding to tau > 0.001 N/m2
       del = lam*visc_wtr_kin/max(ustar_oc,0.00098d0)
 
