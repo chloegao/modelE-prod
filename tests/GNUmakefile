@@ -20,10 +20,10 @@ ifeq ($(COMPILER),gfortran)
 endif
 
 ifeq ($(COMPILER), intel)
-  FFLAGS += -g -O0 -traceback -check uninit -check bounds -assume protect_parens
+  FFLAGS += -g -O0 -traceback
 endif
 ifeq ($(COMPILER), GNU)
-  FFLAGS += -g -O0 -fbacktrace -fbounds-check
+  FFLAGS += -g -O0 -fbacktrace 
 endif
 
 COMPLIBS = $(shell perl -e 'print reverse <>;' < $(SOURCE_DIR)/.liblist)
@@ -36,27 +36,30 @@ else
   TESTDIRS := $(foreach ITEM, $(COMPONENTS), $(wildcard $(ITEM)))
 endif
 
+# Exclude MPI_Support tests if not running MPI tests
 ifeq ($(MPI),)
   MPI=NO
   TESTDIRS := $(filter-out MPI_Support,$(TESTDIRS))
 endif
 
 TESTLIBS := $(foreach ITEM, $(TESTDIRS), $(ITEM)/lib$(ITEM).a)
-# The inclue paths are different when compiling tests and executable
+# The include paths are different when compiling tests and executable
 TESTINCS := $(foreach ITEM, $(TESTDIRS), -I../$(SOURCE_DIR)/$(ITEM))
 EXEINCS := $(foreach ITEM, $(TESTDIRS), -I$(ITEM))
 EXEOBJS := $(foreach ITEM, $(TESTDIRS), $(ITEM)/*.o)
+FFLAGS += -I$(PFUNIT)/mod -I$(PFUNIT)/include -I. $(TESTINCS)
+EXEFLAGS += -I$(PFUNIT)/mod -I$(PFUNIT)/include $(EXEINCS)
 
+# Required libraries
 PFLIB = -L$(PFUNIT)/lib -lpfunit
 IOLIB += -L$(NETCDFHOME)/lib -lnetcdf 
 
-FFLAGS += -I$(PFUNIT)/mod -I$(PFUNIT)/include -I. $(TESTINCS)
-
-EXEFLAGS += -I$(PFUNIT)/mod -I$(PFUNIT)/include $(EXEINCS)
+# NAG note: PFUNIT must be compiled with -kind=byte
 ifeq ($(COMPILER),nag)
   FFLAGS += -kind=byte
 endif
 
+# For MPI, use compiler wrapper and link to parallel-netcdf library
 ifeq ($(MPI),YES)
   FC = mpif90
   FFLAGS += -DUSE_MPI
@@ -68,8 +71,9 @@ endif
 
 EXE = tests.x
 
-$(EXE): testSuites.inc SUT
-	$(FC) -o $@ $(EXEFLAGS) $(FPPFLAGS) $(PFUNIT)/include/driver.F90 $(EXEOBJS) $(PFLIB) $(IOLIB) $(LIBS)
+MYLIBS = $(EXEOBJS) $(LIBS) $(PFLIB) $(IOLIB)
+$(EXE): testSuites.inc TESTS
+	$(FC) -o $@ $(EXEFLAGS) $(PFUNIT)/include/driver.F90 $(MYLIBS)
 
 all: $(EXE)
 ifeq ($(MPI),YES)
@@ -78,7 +82,7 @@ else
 	./$(EXE)
 endif
 
-SUT:
+TESTS:
 	@for dir in $(TESTDIRS); do \
 	make -C $$dir all; done
 

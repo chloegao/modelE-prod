@@ -1,18 +1,9 @@
 module Test_TimerList_mod
-   use pFUnit_mod
    use TimerList_mod, only: start, stop, reset, getTimer, getNumTimers, isTimer, addTimer
    use TimerList_mod, only: initializeTimer=>initialize
    use TimerList_mod, only: finalizeTimer=>finalize
+   use pFUnit_mod
    implicit none
-   private
-
-   public :: Test_TimerList
-   public :: test_initialize
-   public :: test_addTimer
-   public :: test_getTimer
-   public :: test_startTimerNotFound
-   public :: test_stopTimerNotFound
-   public :: test_detectUnbalanced
 
    integer, parameter :: dp = selected_real_kind(14)
 
