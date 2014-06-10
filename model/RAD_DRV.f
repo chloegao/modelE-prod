@@ -1816,7 +1816,7 @@ C****
       dOD_CDNCL = OD_cdncx*dCDNC*CDNCL
 
 C**** Adjust RDSS for semi-random overlap
-      get_cld_overlap (lm, cldss(:,i,j), randSS=rdss(:,i,j))
+      call get_cld_overlap (lm, cldss(:,i,j), randSS=rdss(:,i,j))
 
       DO L=1,LM
         if(q(i,j,l)<0) then

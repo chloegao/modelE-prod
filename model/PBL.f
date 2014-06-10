@@ -187,8 +187,7 @@ c**** output
 !@+                       only) [kg/m^2/s]
         REAL*8 :: dust_flux(Ntm_dust),dust_flux2(Ntm_dust)
      *       ,dust_event1,dust_event2,wtrsh
-        REAL*8 :: z(npbl),km(npbl-1),gh(npbl-1),gm(npbl-1),zhat(npbl-1),
-     &       lmonin
+        REAL*8 :: z(npbl),km(npbl-1),gh(npbl-1),gm(npbl-1),zhat(npbl-1)
 !@var pbl_args%hbaij accumulated precipitation - evaporation balance  [kg/m^2]
 !@var pbl_args%ricntd no. of hours with negative precipitation - evaporation
 !@+                   balance [1]
