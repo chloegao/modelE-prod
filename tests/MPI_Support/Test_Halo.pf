@@ -5,19 +5,18 @@ module Test_Halo_mod
     destroy_grid, getDomainBounds, NORTH, SOUTH
   use Halo_mod
   implicit none
-  private
 
-   public :: Test_Halo
+  public :: Test_Halo
 
 @TestCase
-   type, extends(MpiTestCase) :: Test_Halo
-      integer :: ibeg, iend, jbeg, jend      ! local dimensions
-      integer :: ibegh, iendh, jbegh, jendh  ! local dimensions + halo
-      type (DIST_GRID) :: distGrid
-   contains
-      procedure :: setUp     ! overides generic
-      procedure :: tearDown  ! overrides generic
-   end type Test_Halo
+  type, extends(MpiTestCase) :: Test_Halo
+    integer :: ibeg, iend, jbeg, jend      ! local dimensions
+    integer :: ibegh, iendh, jbegh, jendh  ! local dimensions + halo
+    type (DIST_GRID) :: distGrid
+  contains
+    procedure :: setUp     ! overides generic
+    procedure :: tearDown  ! overrides generic
+  end type Test_Halo
 
   public :: test_HaloUpdateSouthPole1D
   public :: test_HaloUpdateNorthPole1D

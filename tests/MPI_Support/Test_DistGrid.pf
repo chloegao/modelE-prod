@@ -5,17 +5,16 @@ module Test_DistGrid_mod
     broadcast, transp
 
   implicit none
-  private
 
   public :: Test_DistGrid
 
 @TestCase
-   type, extends(MpiTestCase) :: Test_DistGrid
-      type (DIST_GRID) :: distGrid
-   contains
-      procedure :: setUp     ! overides generic
-      procedure :: tearDown  ! overrides generic
-   end type Test_DistGrid
+  type, extends(MpiTestCase) :: Test_DistGrid
+    type (DIST_GRID) :: distGrid
+  contains
+    procedure :: setUp     ! overides generic
+    procedure :: tearDown  ! overrides generic
+  end type Test_DistGrid
 
   ! compute axes indices of a distributed grid
   public :: test_getAxisIndexNoOverlap
