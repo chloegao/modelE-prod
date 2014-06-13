@@ -124,10 +124,10 @@ sub getNagEnvironment
   }
   else 
   {
-    $env->{MPIDISTR}="mvapich2";
-    $env->{MPIDIR}="/usr/local/other/SLES11.1/mvapich2/1.8.1/nag-5.3-907";
+    $env->{MPIDISTR}="openmpi";
+    $env->{MPIDIR}="/usr/local/other/SLES11.1/openMpi/1.7.3/nag-5.3";
     $env->{BASELIBDIR5}="";
-    $env->{PNETCDFHOME}="/usr/local/other/pnetcdf/nag-5.3-886_mvapich2-1.8";
+    $env->{PNETCDFHOME}="/usr/local/other/pnetcdf/nag-5.3-openmpi-1.7.3";
     $env->{NETCDFHOME}="/usr/local/other/netcdf/3.6.2_nag-5.3";
   }
   $env->{MODELERC} = $env->{SCRATCH_DIRECTORY} . "/nag/modelErc.nag";

@@ -155,15 +155,26 @@ my $shortName;
 
 print "Loop over all configurations...\n";
 foreach my $rundeck (@rundecks) 
-{ 
+  { 
   foreach $compiler (@compilers) 
   {
+#    # Temporary condition to deal with partial NAG port
+#    if ($compiler eq 'nag') {
+#	next OUTER if { $rundeck ne "EM20" || $rundeck ne "nonProduction_E_AR5_C12" || $rundeck ne "SGP4TESTS" }
+#    }
+
     $env->{$compiler}->{RUNDECK} = $rundeck;
 
     foreach $configuration (@{$useCases->{$rundeck}->{CONFIGURATIONS}}) 
     {
 
-      $env->{$compiler}->{CONFIGURATION} = $configuration;
+#      # OVERRIDE config setting: temporary condition to deal with partial NAG port
+#      if ($compiler eq 'nag') {
+#	 $env->{$compiler}->{CONFIGURATION} = ["SERIAL"];
+#      } else {
+         $env->{$compiler}->{CONFIGURATION} = $configuration;
+#      }
+
       $env->{$compiler}->{DEBUGFLAGS} = $useCases->{$rundeck}->{DEBUGFLAGS};
       $env->{$compiler}->{DURATION} = $useCases->{$rundeck}->{DURATION};
 

@@ -2,6 +2,11 @@
 .DEFAULT_GOAL = tests
 
 MODELERC ?= $(HOMEDIR)/.modelErc
+ifneq ($(MPI),YES)
+  USEMPI=NO
+else
+  USEMPI=YES
+endif
 
 ifeq ($(wildcard $(MODELERC)),)
    $(error $(MODELERC) not found.)
@@ -37,8 +42,7 @@ else
 endif
 
 # Exclude MPI_Support tests if not running MPI tests
-ifeq ($(MPI),)
-  MPI=NO
+ifeq ($(USEMPI),NO)
   TESTDIRS := $(filter-out MPI_Support,$(TESTDIRS))
 endif
 
@@ -60,7 +64,7 @@ ifeq ($(COMPILER),nag)
 endif
 
 # For MPI, use compiler wrapper and link to parallel-netcdf library
-ifeq ($(MPI),YES)
+ifeq ($(USEMPI),YES)
   FC = mpif90
   FFLAGS += -DUSE_MPI
   EXEFLAGS += -DUSE_MPI 
@@ -76,7 +80,7 @@ $(EXE): testSuites.inc TESTS
 	$(FC) -o $@ $(EXEFLAGS) $(PFUNIT)/include/driver.F90 $(MYLIBS)
 
 all: $(EXE)
-ifeq ($(MPI),YES)
+ifeq ($(USEMPI),YES)
 	mpirun -np 12 ./$(EXE)
 else
 	./$(EXE)
@@ -97,4 +101,4 @@ export FC
 export MPIF90
 export FFLAGS
 export FPPLAGS
-export MPI
+export USEMPI

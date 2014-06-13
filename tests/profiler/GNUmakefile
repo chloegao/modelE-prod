@@ -5,7 +5,7 @@ ALLFILES:=$(wildcard *.pf)
 # avoid compilation errors.
 MPIFILES:=Test_TimerParallel.pf
 
-ifeq ($(MPI),YES)
+ifeq ($(USEMPI),YES)
   SRCS := $(ALLFILES)
 else
   SRCS := $(filter-out $(MPIFILES),$(ALLFILES))

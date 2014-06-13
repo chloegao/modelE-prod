@@ -36,8 +36,6 @@ checkStatus()
    local diffsize=$1
    local name1=$2
    local name2=$3
-   local file1=${name1##*/}
-   local file2=${name2##*/}
 
 # If two files are identical then diffSize=0 and we return $OK
    if [ $diffsize -eq 0 ]; then return $OK; fi
@@ -94,6 +92,9 @@ doDiff()
    local file2=$2
    local deck=$3
    local comp=$4
+ 
+   local return_val
+   local diffSize
 
    fileExists "$file1"
    return_val=$?
@@ -224,7 +225,20 @@ deckDiff()
          createSCMskipList
       fi
 
-# --- SPECIAL CASES
+# --- SPECIAL CASE: NAG
+      if [[ "$comp" =~ nag ]]; then
+
+         echo "  ->Baseline reproducibility..."
+         doDiff $deck.SERIAL.$comp.1hr $baseline/$deck.SERIAL.$comp.1hr $deck $comp
+         doDiff $deck.SERIAL.$comp.1dy $baseline/$deck.SERIAL.$comp.1dy $deck $comp
+         if [[ "$deck" =~ EM20 || "$deck" =~ E_AR5_C12 ]]; then
+           echo "  ->Restart reproducibility..."
+           doDiff $deck.SERIAL.$comp.1dy $deck.SERIAL.$comp.restart $deck $comp
+         fi
+
+      else
+
+# --- SPECIAL CASES for INTEL and GNU
 # The following rundecks only run either under MPI or SERIAL
       if [[ "$deck" =~ E_AR5_CADI ]] || [[ "$deck" =~ tomas ]] || [[ "$deck" =~ amp ]]; then
          echo "  ->Baseline reproducibility..."
@@ -303,8 +317,9 @@ deckDiff()
         fi
      fi
 # ---------
+      fi # SPECIAL CASES for INTEL and GNU
 
-      fi
+      fi # NAG
       resultString="$deck $comp ${deckResults[@]}"
       deckReport=( "${deckReport[@]}" "$resultString" )
       rm -f skipList
