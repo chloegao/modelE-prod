@@ -43,6 +43,9 @@ export MPI
 export COMPONENTS
 export PNETCDFHOME
 export NETCDFHOME
+# For unit tests
+export F90FLAGS
+export CPPFLAGS
 
 V =
 
