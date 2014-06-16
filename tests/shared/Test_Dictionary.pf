@@ -332,15 +332,14 @@ contains
   end subroutine testGetKeys
 
 ! TODO: This test needs to be revisited
-!!!@Test
+@Test
   subroutine testFailDuplicateKey()
     type (Dictionary) :: aDictionary
 #ifdef USE_PFUNIT
     aDictionary = Dictionary()
     call aDictionary%insert('a', 1)
     call aDictionary%insert('a', 2)
-    @assertFailedAssert('Dictionary: duplicate key - <a>.', &
-         & 'Failed to diagnose duplicate key.')
+    @assertExceptionRaised('Dictionary: duplicate key - <a>.')
     call clean(aDictionary)
 #endif
   end subroutine testFailDuplicateKey

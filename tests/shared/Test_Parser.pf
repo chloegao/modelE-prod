@@ -263,7 +263,7 @@ contains
   end subroutine testSplitEmbeddedComma
 
 ! TODO: This test needs to be revisited
-!!!@Test
+@Test
   subroutine testBadFirstSeparator()
     use Parser_mod
     type (Parser_type) :: parser
@@ -275,8 +275,7 @@ contains
     call setTokenSeparators(parser, separators)
 
     tokens => splitTokens(parser, " my var = 3")
-    @assertFailedAssert('Parser_mod: Illegal syntax.  "=" not first separator.', &
-         & 'Failed to detect illegal syntax.')
+    @assertExceptionRaised('Parser_mod: Illegal syntax.  "=" not first separator.')
     deallocate(tokens)
 #endif
 
@@ -470,15 +469,14 @@ contains
   end subroutine testParseAttribute
 
 ! TODO: This test needs to be revisited
-!!!@Test
+@Test
   subroutine testParseNoValue()
 !@sum Tests that an exception is thrown if there is no value to associate with a key.
     use Parser_mod
     use FileManager
-    use Dictionary_mod
+    use AttributeDictionary_mod
     type (Parser_type) :: parser
-
-    type (Dictionary) :: aDictionary
+    type (AttributeDictionary) :: aDictionary
     integer :: iounit
     character(len=*), parameter :: BEGIN_DATA = '*** end header ***'
     character(len=*), parameter :: END_DATA = '*** end params ***'
@@ -498,9 +496,7 @@ contains
     call setTokenSeparators(parser, ' =,')
     call setCommentCharacters(parser, '!#')
     aDictionary = parse(parser, iounit, status)
-    @assertFailedAssert('Parser_mod: syntax error in input unit.', &
-         & 'Failed to detect syntax error in parse')
-
+    @assertExceptionRaised('Parser_mod: syntax error in input unit.')
     close(iounit, status='delete')
 #endif
   end subroutine testParseNoValue
@@ -511,7 +507,6 @@ contains
     use FileManager
     use AttributeDictionary_mod
     type (Parser_type) :: parser
-
     type (AttributeDictionary) :: aDictionary
     type (AttributeDictionary) :: bDictionary
     integer :: iounit
@@ -555,7 +550,6 @@ contains
     use FileManager
     use AttributeDictionary_mod
     type (Parser_type) :: parser
-
     type (AttributeDictionary) :: aDictionary
     type (AttributeDictionary) :: bDictionary
     integer :: iounit

@@ -4,18 +4,17 @@ module Test_GatherScatter_mod
     getDomainBounds
   use GatherScatter_mod, only: pack_data, unpack_data
   implicit none
-  private
 
-   public :: Test_GatherScatter
+  public :: Test_GatherScatter
 
 @TestCase
-   type, extends(MpiTestCase) :: Test_GatherScatter
-      integer :: ibeg, iend, jbeg, jend      ! local dimensions
-      type (DIST_GRID) :: distGrid
-   contains
-      procedure :: setUp     ! overides generic
-      procedure :: tearDown  ! overrides generic
-   end type Test_GatherScatter
+  type, extends(MpiTestCase) :: Test_GatherScatter
+    integer :: ibeg, iend, jbeg, jend      ! local dimensions
+    type (DIST_GRID) :: distGrid
+  contains
+    procedure :: setUp     ! overides generic
+    procedure :: tearDown  ! overrides generic
+  end type Test_GatherScatter
 
   public :: test_GatherReal
   public :: test_ScatterReal

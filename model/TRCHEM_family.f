@@ -317,6 +317,9 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
      & +rr(62,L)*y(nClO,L)*pHOx(I,J,L)+rr(63,L)*y(nClO,L)
      & +rr(68,L)*y(nn_HBr,L)*pHOx(I,J,L)+rr(72,L)*y(nBr,L)
      & +rr(73,L)*y(nBrO,L)+rr(81,L)*y(nBrO,L)*pHOx(I,J,L)
+       ! oxidation of DMS,SO2: 
+     & +pHOx(I,J,L)*(rsulf1(i,j,l)*ydms(i,j,l) + 
+     & rsulf2(i,j,l)*ydms(i,j,l))
 
        ! Use OH production without O1D explicitly:
        cqqz=2.d0*ss(4,L,i,j)*y(nn_H2O2,L)+ss(9,L,i,j)*y(nn_HNO3,L)
@@ -354,6 +357,8 @@ c CZ: OH->HO2 reactions :
      & +rr(14,L)*y(nn_H2O2,L)+rr(19,L)*y(nH2,L)
      & +rr(21,L)*y(nn_HCHO,L)
      & +rr(61,L)*y(nClO,L)+rr(80,L)*y(nBrO,L)
+       ! SO2 oxidation: 
+     & + rsulf4(i,j,l)*yso2(i,j,l)
 
        dz=rr(4,L)*y(nO3,L)+rr(6,L)*y(nNO,L)
      & +rr(60,L)*y(nCl,L)+rr(90,L)*y(nO,L)

@@ -2,6 +2,12 @@
 .DEFAULT_GOAL = tests
 
 MODELERC ?= $(HOMEDIR)/.modelErc
+ifneq ($(MPI),YES)
+  USEMPI=NO
+else
+  USEMPI=YES
+endif
+FFLAGS = $(CPPFLAGS) $(F90FLAGS)
 
 ifeq ($(wildcard $(MODELERC)),)
    $(error $(MODELERC) not found.)
@@ -19,13 +25,6 @@ ifeq ($(COMPILER),gfortran)
    COMPILER=GNU
 endif
 
-ifeq ($(COMPILER), intel)
-  FFLAGS += -g -O0 -traceback
-endif
-ifeq ($(COMPILER), GNU)
-  FFLAGS += -g -O0 -fbacktrace 
-endif
-
 COMPLIBS = $(shell perl -e 'print reverse <>;' < $(SOURCE_DIR)/.liblist)
 LIBS := $(foreach ITEM, $(COMPLIBS), $(SOURCE_DIR)/$(ITEM))
 
@@ -37,8 +36,7 @@ else
 endif
 
 # Exclude MPI_Support tests if not running MPI tests
-ifeq ($(MPI),)
-  MPI=NO
+ifeq ($(USEMPI),NO)
   TESTDIRS := $(filter-out MPI_Support,$(TESTDIRS))
 endif
 
@@ -46,9 +44,8 @@ TESTLIBS := $(foreach ITEM, $(TESTDIRS), $(ITEM)/lib$(ITEM).a)
 # The include paths are different when compiling tests and executable
 TESTINCS := $(foreach ITEM, $(TESTDIRS), -I../$(SOURCE_DIR)/$(ITEM))
 EXEINCS := $(foreach ITEM, $(TESTDIRS), -I$(ITEM))
-EXEOBJS := $(foreach ITEM, $(TESTDIRS), $(ITEM)/*.o)
-FFLAGS += -I$(PFUNIT)/mod -I$(PFUNIT)/include -I. $(TESTINCS)
-EXEFLAGS += -I$(PFUNIT)/mod -I$(PFUNIT)/include $(EXEINCS)
+FFLAGS += $(TESTINCS)
+EXEFLAGS += $(FFLAGS) $(EXEINCS)
 
 # Required libraries
 PFLIB = -L$(PFUNIT)/lib -lpfunit
@@ -60,10 +57,8 @@ ifeq ($(COMPILER),nag)
 endif
 
 # For MPI, use compiler wrapper and link to parallel-netcdf library
-ifeq ($(MPI),YES)
+ifeq ($(USEMPI),YES)
   FC = mpif90
-  FFLAGS += -DUSE_MPI
-  EXEFLAGS += -DUSE_MPI 
   IOLIB += -L$(PNETCDFHOME)/lib -lpnetcdf
 endif
 
@@ -71,12 +66,12 @@ endif
 
 EXE = tests.x
 
-MYLIBS = $(EXEOBJS) $(LIBS) $(PFLIB) $(IOLIB)
+MYLIBS = $(TESTLIBS) $(LIBS) $(PFLIB) $(IOLIB)
 $(EXE): testSuites.inc TESTS
 	$(FC) -o $@ $(EXEFLAGS) $(PFUNIT)/include/driver.F90 $(MYLIBS)
 
 all: $(EXE)
-ifeq ($(MPI),YES)
+ifeq ($(USEMPI),YES)
 	mpirun -np 12 ./$(EXE)
 else
 	./$(EXE)
@@ -96,5 +91,4 @@ clean:
 export FC
 export MPIF90
 export FFLAGS
-export FPPLAGS
-export MPI
+export USEMPI

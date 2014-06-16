@@ -5,7 +5,7 @@ module Test_TracerBundle_mod
 
   implicit none
 
-   public :: Test_TracerBundle
+  public :: Test_TracerBundle
 
 @TestCase
    type, extends(TestCase) :: Test_TracerBundle

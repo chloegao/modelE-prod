@@ -10856,11 +10856,6 @@ C Greg: certain things now done outside the loops for speed:
      *     c= 1.155d-11,         ! 5.5d-20*0.21d0*1.d-11/aa
      *     d= 4.0d-11            ! 4.0d-20*1.d-11/aa
 
-#ifdef TRACERS_SPECIAL_Shindell
-!@var maxl chosen tropopause 0=LTROPO(I,J), 1=LS1-1
-      integer maxl
-#endif
-
       call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
@@ -10881,12 +10876,6 @@ C***4.SO2 + OH -> SO4 + HO2
       do l=1,LM
       do j=J_0,J_1
       do i=I_0,imaxj(j)
-c
-      maxl = ltropo(i,j)
-#ifdef TRACERS_SPECIAL_Shindell
-      if(which_trop.eq.1)maxl=ls1-1
-#endif
-      if(l.le.maxl) then
 
 C Calculate effective temperature
 
@@ -10910,8 +10899,6 @@ c DMM is number density of air in molecules/cm3
         ek4 = 1.d0/(1.d0 + (f*f))
 
         rsulf4(i,j,l) = (rk4/(1.d0 + 0.5d12*rk4  ))*(0.45d0**ek4)
-
-      endif
 
       end do
       end do

@@ -205,7 +205,7 @@ EOF
     elsif ($compiler eq "nag")  
     {
       $script .= <<EOF;
-module load comp/nag-5.3-907 other/mpi/mvapich2-1.8.1/nag-5.3-907
+module load comp/nag-5.3 other/mpi/openmpi/1.7.3-nag-5.3
 EOF
     }
     else 
@@ -291,7 +291,7 @@ sub setModuleEnvironment
       }
       elsif ($compiler eq "nag") 
       {
-        module (load, "comp/nag-5.3-907", "other/mpi/mvapich2-1.8.1/nag-5.3-907");
+        module (load, "comp/nag-5.3", "other/mpi/openmpi/1.7.3-nag-5.3");
       } 
       else 
       {

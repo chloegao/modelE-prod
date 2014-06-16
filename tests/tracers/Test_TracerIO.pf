@@ -5,9 +5,8 @@ module Test_TracerIO_mod
   use Dictionary_mod, only: Dictionary
   use AttributeDictionary_mod, only: AttributeDictionary
   implicit none
-  private
 
-   public :: Test_TracerIO
+  public :: Test_TracerIO
 
 @TestCase
    type, extends(TestCase) :: Test_TracerIO
