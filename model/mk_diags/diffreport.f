@@ -4,14 +4,12 @@
       implicit none
       include 'netcdf.inc'
       integer :: status,vtype,varid1,varid2,fid1,fid2,yesno_vid,nargs
-      character(len=256) :: file1,file2
-      character(len=40) :: vname,pos_str,yesno,attname
-      character(len=256) :: skipList
-      character(len=32) :: varToSkip
+      character(len=80) :: file1,file2
+      character(len=40) :: vname,pos_str,yesno,attname,yesno_list
       integer :: iargc,nvars,ndims,dsizes(7),iatt,natts,n,cnt0,cntn
       integer :: arrsize1,arrsize2
       real*8, dimension(:), allocatable :: arr1,arr2,arrdiff,fd,fd1
-      integer :: nmax_abs(1),nmax_rel(1), io_status
+      integer :: nmax_abs(1),nmax_rel(1)
       real*8 :: max_abs,max_rel
       logical, dimension(:), allocatable :: dothisvar
       logical :: print_usage
@@ -21,34 +19,29 @@ c parse command line
 c
       nargs = iargc()
       if(nargs.ne.2 .and. nargs.ne.3) then
-        write(6,*) 'usage: diffreport file1 file2 [optional: skipList]'
+        write(6,*) 'usage: diffreport file1 file2 [optional: YesNoList]'
         write(6,*)
         write(6,*)
-     &       '   Note that difference reports for selected variables'
+     &       '   Difference reports for selected variables can be'
         write(6,*)
-     &       '   can be suppressed via the contents of file skipList.'
+     &       '   suppressed via the attributes of variable YesNoList.'
         write(6,*)
-     &       '   skipList contains a list of variable names, one per'
-        write(6,*)
-     &       '   line, as follows:'
+     &       '   Example: if file1 contains a variable'
         write(6,*)
         write(6,*)
-     &       '      trabl_ocn01'
+     &       '      double IsImportant ;'
         write(6,*)
-     &       '      trabl_gla01'
+     &       '             IsImportant:x = "no" ;'
         write(6,*)
-     &       '      trabl_lnd01'
+     &       '             IsImportant:y = "no" ;'
         write(6,*)
-     &       '      taijn'
-        write(6,*)
-        write(6,*)
-     &       '   so that:'
+     &       '             IsImportant:z = "yes" ;'
         write(6,*)
         write(6,*)
-     &       '      diffreport file1 file2 skipList'
+     &       '   diffreport file1 file2 IsImportant'
         write(6,*)
         write(6,*)
-     &       '   will skip fields trabl_ocn01,...,taijn'
+     &       '   will skip fields x and y, but not z.'
         stop
       endif
 
@@ -70,11 +63,8 @@ c
 c check for a list of names to skip
 c
       if(nargs.eq.3) then
-        call getarg(3,skipList)
-        open (unit=11, file=skipList, form='formatted', status='old')
-        do while(.true.)
-        read(11,*,END=12)varToSkip
-        status = nf_inq_varid(fid1,trim(varToSkip),yesno_vid)
+        call getarg(3,yesno_list)
+        status = nf_inq_varid(fid1,trim(yesno_list),yesno_vid)
         if(status.eq.nf_noerr) then
           dothisvar(yesno_vid) = .false.
           status = nf_inq_varnatts(fid1,yesno_vid,natts)
@@ -87,12 +77,11 @@ c
      &           dothisvar(varid1) = yesno.eq.'yes'
           enddo
         else
-          write(6,*) 'warning: nonexistent variable '//
-     &         trim(varToSkip)
+          write(6,*) 'warning: nonexistent yesno_list '//
+     &         trim(yesno_list)
         endif
-        end do
       endif
-12    continue
+
 c
 c loop over arrays
 c
@@ -136,13 +125,13 @@ c absolute
           arrdiff = abs(arr1-arr2)
           max_abs = maxval(arrdiff)
           nmax_abs = maxloc(arrdiff)
-          call get_pos_str( nmax_abs, ndims, dsizes, pos_str)
+          call get_pos_str(nmax_abs,ndims,dsizes,pos_str)
           write(6,*) '          abs: ',max_abs,trim(pos_str)
 c relative
           arrdiff = arrdiff/max(abs(arr1),abs(arr2))
           max_rel = maxval(arrdiff)
           nmax_rel = maxloc(arrdiff)
-          call get_pos_str( nmax_rel, ndims, dsizes, pos_str)
+          call get_pos_str(nmax_rel,ndims,dsizes,pos_str)
           write(6,*) '          rel: ',max_rel,trim(pos_str)
           deallocate(arrdiff)
 c fraction of differences containing more than 8 bits of information
