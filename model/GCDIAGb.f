@@ -63,6 +63,7 @@
       use GEOM, only : lat_dg
 #ifdef NEW_IO
       use cdl_mod
+      use MDIAG_COM, only : make_timeaxis
 #endif
       use diag_zonal, only : xwon
       implicit none
@@ -71,6 +72,7 @@
 #ifdef NEW_IO
       type(cdl_type) :: cdl_dum
 #endif
+      logical :: set_miss
 c
       do k=1,kagcx
          write(sname_gc(k),'(a3,i3.3)') 'AGC',k
@@ -996,21 +998,30 @@ c
         else
           zstr='(ple,'
         endif
+        set_miss = denom_gc(k).ne.0
         call add_var(cdl_gc,
      &       'float '//trim(sname_gc(k))//trim(zstr)//trim(ystr)//') ;',
      &       units=trim(units_gc(k)),
-     &       long_name=trim(lname_gc(k))
+     &       long_name=trim(lname_gc(k)),
+     &       auxvar_string=
+     &          'float '//trim(sname_gc(k))//'_hemis'//
+     &          trim(zstr)//'shnhgm) ;',
+     &       set_miss=set_miss,
+     &       make_timeaxis=make_timeaxis
      &       )
         if(pow_gc(k).ne.0) then
           write(powstr,'(i3)') pow_gc(k)
           call add_varline(cdl_gc,
      &         trim(sname_gc(k))//':prtpow = '//trim(powstr)//' ;')
         endif
-        call add_var(cdl_gc,'float '//trim(sname_gc(k))//'_hemis'//
-     &       trim(zstr)//'shnhgm) ;')
         if(denom_gc(k).gt.0) then
-          call add_var(cdl_gc,'float '//trim(sname_gc(k))//
-     &         '_vmean('//trim(ystr)//'_plus3) ;')
+          if(make_timeaxis) then ! hacky logic
+            call add_var(cdl_gc,'float '//trim(sname_gc(k))//
+     &           '_vmean(time,'//trim(ystr)//'_plus3) ;')
+          else
+            call add_var(cdl_gc,'float '//trim(sname_gc(k))//
+     &           '_vmean('//trim(ystr)//'_plus3) ;')
+          endif
         endif
       enddo
 #endif
@@ -1029,6 +1040,7 @@ c
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       USE GEOM, only : lon_dg,lat_dg
 #ifdef NEW_IO
+      use MDIAG_COM, only : make_timeaxis
       use DIAG_COM, only : cdl_ijk,cdl_heights
       use cdl_mod
 #endif
@@ -1040,6 +1052,7 @@ c
 c igrid,jgrid,kgrid = 1 for centers, 2 for edges
       integer :: igrid,jgrid,kgrid,ijkg
       character(len=8) :: xstr,ystr,zstr
+      logical :: set_miss
 c
       do k=1,kaijk
          write(name_ijk(k),'(a4,i3.3)') 'AIJK',k
@@ -1219,11 +1232,14 @@ c
         else
           zstr='(ple,'
         endif
+        set_miss = denom_ijk(k).ne.0
         call add_var(cdl_ijk,
      &       'float '//trim(name_ijk(k))//
      &       trim(zstr)//trim(ystr)//trim(xstr),
      &       units=trim(units_ijk(k)),
-     &       long_name=trim(lname_ijk(k)))
+     &       long_name=trim(lname_ijk(k)),
+     &       set_miss=set_miss,
+     &       make_timeaxis=make_timeaxis)
       enddo
 
 #endif

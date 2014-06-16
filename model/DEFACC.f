@@ -65,6 +65,7 @@ c#endif
       use DIAG_COM_RAD
       use DOMAIN_DECOMP_ATM, only: AM_I_ROOT
 #ifdef NEW_IO
+      use MDIAG_COM, only : make_timeaxis
       use cdl_mod
 #endif
       USE FLUXES, only : atmice
@@ -80,6 +81,7 @@ c#endif
       integer :: k,kk
       character(len=30) :: sname
       character(len=8) :: namreg_1word(23)
+      logical :: set_miss
 c
       do k=1,kaj
          write(name_j(k),'(a2,i3.3)') 'AJ',k
@@ -1047,18 +1049,19 @@ c
       do k=1,kaj
         if(trim(stitle_j(k)).eq.'no output') cycle
         sname = 'J_'//trim(name_j(k))
+        set_miss = iden_j(k).ne.0
         call add_var(cdl_j,
      &       'float '//trim(sname)//'(ntype,lat_budg) ;',
      &       long_name=trim(lname_j(k)),
-     &       units=trim(units_j(k)) )
+     &       auxvar_string=
+     &         'float '//trim(sname)//'_hemis(ntype,shnhgm) ;',
+     &       units=trim(units_j(k)),
+     &       set_miss=set_miss,
+     &       make_timeaxis=make_timeaxis)
         call add_varline(cdl_j,
      &         trim(sname)//':fmt = "'//trim(fmt_j(k))//'" ;')
         call add_varline(cdl_j,
      &       trim(sname)//':stitle = "'//trim(stitle_j(k))//'" ;')
-#ifndef SCM
-        call add_var(cdl_j,
-     &       'float '//trim(sname)//'_hemis(ntype,shnhgm) ;')
-#endif
       enddo
 
 c
@@ -1080,10 +1083,13 @@ c
         if(trim(stitle_j(k)).eq.'no output') cycle
         if(trim(fmt_reg(k)).eq.'not computed') cycle
         sname = 'reg_'//trim(name_j(k))
+        set_miss = iden_reg(k).ne.0
         call add_var(cdl_reg,
      &       'float '//trim(sname)//'(nreg) ;',
      &       long_name=trim(lname_j(k)),
-     &       units=trim(units_j(k)) )
+     &       units=trim(units_j(k)),
+     &       set_miss=set_miss,
+     &       make_timeaxis=make_timeaxis)
         call add_varline(cdl_reg,
      &       trim(sname)//':fmt = "'//trim(fmt_reg(k))//'" ;')
         call add_varline(cdl_reg,
@@ -1122,6 +1128,7 @@ c
       use fluxes, only : nisurf,atmice
 #ifdef NEW_IO
       use cdl_mod
+      use MDIAG_COM, only : make_timeaxis
 #endif
       use geom
       use dynamics, only : do_gwdrag,ido_gwdrag
@@ -1129,6 +1136,7 @@ c
       integer :: i,k,kk,k1,l,n
       character(len=16) :: ijstr
       real*8 x_dummy(im)
+      logical :: set_miss
 c
       do k=1,kaij
          write(name_ij(k),'(a3,i3.3)') 'AIJ',k
@@ -4903,21 +4911,24 @@ c
 
       do k=1,kaij
         if(trim(units_ij(k)).eq.'unused') cycle
+        set_miss = denom_ij(k).ne.0
         call add_var(cdl_ij,
      &       'float '//trim(name_ij(k))//trim(ijstr),
      &       units=trim(units_ij(k)),
-     &       long_name=trim(lname_ij(k)))
-#ifndef SCM
-        call add_var(cdl_ij,
-     &       'float '//trim(name_ij(k))//'_hemis(shnhgm) ;')
-#endif     
+     &       long_name=trim(lname_ij(k)),
+     &       auxvar_string=
+     &         'float '//trim(name_ij(k))//'_hemis(shnhgm);',
+     &       set_miss=set_miss,
+     &       make_timeaxis=make_timeaxis)
 #ifdef CUBED_SPHERE
         call add_var(cdl_ij_latlon,
      &       'float '//trim(name_ij(k))//'(lat,lon) ;',
      &       units=trim(units_ij(k)),
-     &       long_name=trim(lname_ij(k)))
-        call add_var(cdl_ij_latlon,
-     &       'float '//trim(name_ij(k))//'_hemis(shnhgm) ;')
+     &       long_name=trim(lname_ij(k)),
+     &       auxvar_string=
+     &         'float '//trim(name_ij(k))//'_hemis(shnhgm);',
+     &       set_miss=set_miss,
+     &       make_timeaxis=make_timeaxis)
 #endif
       enddo
 
@@ -4948,11 +4959,13 @@ c
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
 #ifdef NEW_IO
       use cdl_mod
+      use MDIAG_COM, only : make_timeaxis
 #endif
       implicit none
       integer :: l,k,kk
       character(len=10) :: zstr,powstr
       real*8, dimension(lm) :: one_to_lm
+      logical :: set_miss
 c
       do k=1,kajl
          write(sname_jl(k),'(a3,i3.3)') 'AJL',k
@@ -5690,21 +5703,30 @@ c        call get_zstr(lgrid_jl(k),zstr)
         else
           zstr='ple'
         endif
+        set_miss = denom_jl(k).ne.0
         call add_var(cdl_jl, 'float '//trim(sname_jl(k))//'('//
      &       trim(zstr)//',lat_budg) ;',
      &       units=trim(units_jl(k)),
-     &       long_name=trim(lname_jl(k)))
+     &       long_name=trim(lname_jl(k)),
+     &       auxvar_string=
+     &         'float '//trim(sname_jl(k))//'_hemis('//
+     &          trim(zstr)//',shnhgm) ;',
+     &       set_miss=set_miss,
+     &       make_timeaxis=make_timeaxis)
         if(pow_jl(k).ne.0) then
           write(powstr,'(i2)') pow_jl(k)
           call add_varline(cdl_jl,
      &         trim(sname_jl(k))//':prtpow = '//trim(powstr)//' ;')
         endif
 #ifndef SCM
-        call add_var(cdl_jl, 'float '//trim(sname_jl(k))//'_hemis('//
-     &       trim(zstr)//',shnhgm) ;')
         if(denom_jl(k).gt.0) then
-          call add_var(cdl_jl, 'float '//trim(sname_jl(k))//
-     &         '_vmean(lat_budg_plus3) ;')
+          if(make_timeaxis) then ! hacky logic
+            call add_var(cdl_jl, 'float '//trim(sname_jl(k))//
+     &           '_vmean(time,lat_budg_plus3) ;')
+          else
+            call add_var(cdl_jl, 'float '//trim(sname_jl(k))//
+     &           '_vmean(lat_budg_plus3) ;')
+          endif
         endif
 #endif
       enddo
@@ -5784,10 +5806,12 @@ c
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
 #ifdef NEW_IO
       use cdl_mod
+      use MDIAG_COM, only : make_timeaxis
 #endif
       implicit none
       integer :: k,kk
       character(len=16) :: zstr,hstr,tstr
+      logical :: set_miss
 c
       do k=1,kaijl
          write(name_ijl(k),'(a4,i3.3)') 'AIJL',k
@@ -6200,16 +6224,21 @@ c
       do k=1,kaijl
         if(trim(units_ijl(k)).eq.'unused') cycle
         call get_zstr(lgrid_ijl(k),zstr)
+        set_miss = denom_ijl(k).ne.0
         call add_var(cdl_ijl,
      &       'float '//trim(name_ijl(k))//
      &       trim(tstr)//trim(zstr)//trim(hstr),
      &       units=trim(units_ijl(k)),
-     &       long_name=trim(lname_ijl(k)))
+     &       long_name=trim(lname_ijl(k)),
+     &       set_miss=set_miss,
+     &       make_timeaxis=make_timeaxis)
 #ifdef CUBED_SPHERE
         call add_var(cdl_ijl_latlon, 'float '//
      &       trim(name_ijl(k))//'('//trim(zstr)//',lat,lon);',
      &       units=trim(units_ijl(k)),
-     &       long_name=trim(lname_ijl(k)))
+     &       long_name=trim(lname_ijl(k)),
+     &       set_miss=set_miss,
+     &       make_timeaxis=make_timeaxis)
 #endif
       enddo
 
@@ -6366,6 +6395,7 @@ c
       integer :: k,kk,l, lmax_dd0=5 ! why?
       character*2 lst(lm)
       real*8 :: dummy_hrs(hr_in_month)
+      logical :: set_miss
 
 C**** define levels strings
       do l=1,lm
@@ -7170,10 +7200,12 @@ c
      &     reshape(ijdd,(/size(ijdd)/)) )
       do k=1,ndiuvar
         if(trim(lname_dd(k)).eq.'unused') cycle
+        set_miss = denom_dd(k).ne.0
         call add_var(cdl_dd,
      &       'float '//trim(name_dd(k))//'(hour,ndiupt) ;',
      &       long_name=trim(lname_dd(k)),
-     &       units=trim(units_dd(k)) )
+     &       units=trim(units_dd(k)),
+     &       set_miss=set_miss)
       enddo
 
       do k=1,hr_in_month

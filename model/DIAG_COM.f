@@ -2458,6 +2458,7 @@ c new_io_subdd
       implicit none
       integer :: fid         !@var fid file id
       integer :: int_dummy
+      real*8 :: r8dum
 
 #ifdef CUBED_SPHERE
       call defvar(grid,fid,lon2d_dg,'lon(dist_im,dist_jm)')
@@ -2467,6 +2468,8 @@ c new_io_subdd
 #endif
 
       call defvar(grid,fid,axyp,'axyp(dist_im,dist_jm)')
+      call defvar(grid,fid,r8dum,'time')
+      call write_attr(grid,fid,'time','reduction','avg')
 
       call write_attr(grid,fid,'aj','reduction','sum')
       call write_attr(grid,fid,'aj','split_dim',2)
@@ -2630,7 +2633,7 @@ c new_io_subdd
       subroutine write_meta_atmacc(fid)
 !@sum  write_meta_atmacc write atm accumulation metadata to file
 !@auth M. Kelley
-      use model_com, only : nday,idacc
+      use model_com, only : nday,idacc,jyear0,jmon0
       use diag_com, only :
      &     ia_j,ia_jl,ia_ij,ia_ijl,ia_con,ia_ijk,
      &     name_j,name_reg,sname_jl,name_ij,name_ijl,name_dd,
@@ -2663,6 +2666,7 @@ c new_io_subdd
       integer fid   !@var fid unit number of read/write
       integer :: ntime_dd,ntime_hd
       real*8, allocatable :: tmpArr(:)
+      real*8 :: r8time
 
 #ifdef CUBED_SPHERE
       call write_dist_data(grid,fid,'lon',lon2d_dg)
@@ -2672,6 +2676,9 @@ c new_io_subdd
 #endif
 
       call write_dist_data(grid,fid,'axyp',axyp)
+
+      r8time = real(jyear0,kind=8)+(real(jmon0,kind=8)-.5)/12d0
+      call write_data(grid,fid,'time',r8time)
 
 #ifndef SCM
       call write_data(grid,fid,'hemis_aj',hemis_j)

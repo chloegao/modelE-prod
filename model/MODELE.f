@@ -550,7 +550,11 @@ C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
      *     ,NMONAV,Ndisk,Nssw,KCOPY,KOCEAN,IRAND,ItimeI
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
       USE Dictionary_mod
+#ifdef NEW_IO
+      USE MDIAG_COM, only : make_timeaxis
+#endif
       implicit none
+      integer :: dummy_int
 
 C**** Rundeck parameters:
       call sync_param( "NMONAV", NMONAV )
@@ -565,6 +569,11 @@ C**** Rundeck parameters:
       else
         call stop_model('Please define master_yr in the rundeck.',255)
       endif
+#ifdef NEW_IO
+      dummy_int = 0
+      call sync_param("make_timeaxis",dummy_int)
+      make_timeaxis = dummy_int==1
+#endif
       RETURN
 C****
       end subroutine init_Model
