@@ -1760,7 +1760,7 @@ c get_subdd
 #endif
       USE SEAICE_COM, only : si_atm
       USE LAKES_COM, only : flake
-      USE GHY_COM, only : snowe,fearth,wearth,aiearth,soil_surf_moist
+      USE GHY_COM, only : fearth,wearth,aiearth,soil_surf_moist
       USE RAD_COM, only : trhr,srhr,srdn,salb,cfrac,cosz1
      &     ,tausumw,tausumi
 #ifdef mjo_subdd
@@ -2169,7 +2169,7 @@ c          datar8=SECONDS_PER_DAY*prec/dtsrc
               PLANDI=FLICE(I,J)
               datar8(i,j)=1d3*(snowi(I,J)*POICE
      &             +atmgla%SNOW(I,J)*PLANDI
-     &             +SNOWE(I,J)*PEARTH)/RHOW
+     &             +atmlnd%SNOWE(I,J)*PEARTH)/RHOW
             end do
           end do
           units_of_data = 'w.e. mm'
@@ -2181,7 +2181,7 @@ c          datar8=SECONDS_PER_DAY*prec/dtsrc
               POICE=rsi(I,J)*(FOCEAN(I,J)+FLAKE(I,J))
               if(snowi(I,J) > 0.)datar8(i,j)=datar8(i,j)+POICE
               PEARTH=FEARTH(I,J)
-              if(SNOWE(I,J) > 0.)datar8(i,j)=datar8(i,j)+PEARTH
+              if(atmlnd%SNOWE(I,J) > 0.)datar8(i,j)=datar8(i,j)+PEARTH
               PLANDI=FLICE(I,J)
               if(atmgla%SNOW(I,J) > 0.)datar8(i,j)=datar8(i,j)+PLANDI
               datar8(i,j)=min(1.d0,datar8(i,j))
@@ -6253,14 +6253,14 @@ C****
      *     ij_netrdp, ij_albp, ij_albg, ij_albv,   ij_pwater, ij_lk,
      *     ij_fland, ij_dzt1, ij_albgv, ij_clrsky, ij_pocean, ij_ts,
      *     ij_RTSE, ij_HWV, ij_PVS,
-     &     IJ_TRNFP0,IJ_SRNFP0,IJ_TRSUP,IJ_TRSDN,IJ_EVAP,IJ_QS,IJ_PRES,
-     &     IJ_SRREF,IJ_SRVIS,IJ_SRINCP0,IJ_SRINCG,IJ_SRNFG,IJ_PHI1K,
-     &     IJ_US,IJ_VS,IJ_UJET,IJ_VJET,IJ_CLDCV,IJ_TATM,IJK_DP,IJK_TX,
+     &     IJ_TRSUP,IJ_TRSDN,IJ_EVAP,IJ_QS,IJ_PRES,
+     &     IJ_PHI1K,
+     &     IJ_US,IJ_VS,IJ_UJET,IJ_VJET,IJ_TATM,IJK_DP,IJK_TX,
      &     IJ_MSU2,IJ_MSU3,IJ_MSU4,KGZ_MAX,GHT,PMB,
      &     ij_TminC,ij_TmaxC,ij_TDcomp,
-     *     ij_swaerrf,ij_lwaerrf,ij_swaersrf,ij_lwaersrf,ij_swaerabs,
-     *     ij_lwaerabs,ij_swaerrfnt,ij_lwaerrfnt,ij_swaersrfnt,
-     *     ij_lwaersrfnt,ij_swaerabsnt,ij_lwaerabsnt
+     *     ij_swaerabs,
+     *     ij_lwaerabs,ij_swaerabsnt,ij_lwaerabsnt
+      use DIAG_COM_RAD
       IMPLICIT NONE
       INTEGER :: I,J,L,K,K1,K2,N,KHEM
       INTEGER :: J_0,J_1,I_0,I_1
@@ -6430,15 +6430,16 @@ c
       USE MODEL_COM, only : dtsrc,idacc
       USE DIAG_COM, only : jm_budg,
      &     aj,ntype_out,ntype,wt=>wtj_comp,aj_out,areg,areg_out,
-     &     nreg,kaj,j_albp0,j_srincp0,j_albg,j_srincg,
-     &     j_srabs,j_srnfp0,j_srnfg,j_trnfp0,j_hsurf,j_trhdt,j_trnfp1,
-     *     j_hatm,j_rnfp0,j_rnfp1,j_srnfp1,j_rhdt,j_hz1,j_prcp,j_prcpss,
+     &     nreg,kaj,j_albp0,j_albg,
+     &     j_srabs,j_trhdt,
+     *     j_rnfp0,j_rnfp1,j_rhdt,j_hz1,j_prcp,j_prcpss,
      *     j_prcpmc,j_hz0,j_implh,j_shdt,j_evhdt,j_eprcp,j_erun,
      *     j_hz2,j_ervr,
      *     ia_src,ia_rad,ia_inst,
      &     sarea=>sarea_reg,
      &     hemis_j,dxyp_budg,
      &     consrv,hemis_consrv,kcon,nsum_con,scale_con,ia_con
+      USE DIAG_COM_RAD
       IMPLICIT NONE
       REAL*8 :: A1BYA2,hemfac
       INTEGER :: J,JR,J1,J2,K,M,IT
@@ -6539,13 +6540,14 @@ c
       use dynamics, only : do_gwdrag
       use domain_decomp_atm, only : am_i_root
       use diag_com, only : kajl,jm_budg,
-     &     ajl,asjl,jl_srhr,jl_trcr,jl_rad_cool,
+     &     ajl,asjl,jl_rad_cool,
      &     jl_sumdrg,jl_dumtndrg,jl_dushrdrg,
      &     jl_mcdrgpm10,jl_dumcdrgm10,jl_dumcdrgp10,
      &     jl_mcdrgpm20,jl_dumcdrgm20,jl_dumcdrgp20,
      &     jl_mcdrgpm40,jl_dumcdrgm40,jl_dumcdrgp40,
      &     jl_dudfmdrg,jl_dudtsdif,
      &     dxyp_budg,hemis_jl,vmean_jl
+      use diag_com_rad
       implicit none
       integer :: j,j1,j2,l,k,lr,n
       real*8 :: hemfac

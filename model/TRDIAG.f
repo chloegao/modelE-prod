@@ -621,6 +621,7 @@ c
       use OldTracer_mod, only: trname, trw0
       use tracer_com, only: ntm, n_water
       use diag_com
+      use diag_com_rad, only : ij_cldcv
       use mdiag_com, only : sname_strlen
       use trdiag_com, only : taijn=>taijn_loc, taijs=>taijs_loc,
      &     ktaij_,ktaij_out,taij=>taij_out,

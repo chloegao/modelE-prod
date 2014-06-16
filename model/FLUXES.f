@@ -418,8 +418,8 @@ C**** array of Chlorophyll data for use in ocean albedo calculation
 !@+   after advsi (kg/m^2) (used for qflux model)
      &     ,FWSIM,MSICNV,HSICNV
 !@var RSI fraction of water area covered in ice
-!@var SNOWI snow amount on sea ice (kg/m^2)
-     &     ,RSI,SNOWI
+!@var SNOWI,ZSNOWI amount, thickness of snow on sea ice (kg/m^2, m)
+     &     ,RSI,SNOWI,ZSNOWI
 !@var USI,VSI ice velocities (m/s)
      &     ,USI,VSI ! temporary while ice still on atm grid
      &     ,SNOAGE ! really belongs to icestate
@@ -490,6 +490,13 @@ c         REAL*8, DIMENSION(:,:), POINTER :: SNOWLI,SNOWFR,SNOWDP
       type, extends(atmsrf_xchng_vars) :: atmlnd_xchng_vars
 !@var bare_soil_wetness bare_soil_wetness (1)
          REAL*8, DIMENSION(:,:), POINTER :: bare_soil_wetness
+!@var snowe snow amount seen by radiation
+         REAL*8, DIMENSION(:,:), POINTER :: snowe
+ccc FR_SNOW_RAD is snow fraction for albedo computations
+ccc actually it should be the same as FR_SNOW_IJ but currently the snow
+ccc model can't handle fractional cover for thick snow (will fix later)
+         REAL*8, DIMENSION(:,:,:), POINTER :: FR_SNOW_RAD
+
       end type atmlnd_xchng_vars
 
       type, extends(simple_bounds_type) :: iceocn_xchng_vars
@@ -1280,12 +1287,14 @@ c workaround for uninitialized patches%srfstate_exports multiply by zero
      &          this % SUSI   ( I_0H:I_1H , J_0H:J_1H ),
      &          this % SVSI   ( I_0H:I_1H , J_0H:J_1H ),
      &          this % SNOAGE ( I_0H:I_1H , J_0H:J_1H ),
+     &          this % ZSNOWI ( I_0H:I_1H , J_0H:J_1H ),
      &   STAT = IER)
       this % UISURF = 0.
       this % VISURF = 0.
       this % MSICNV = 0.
       this % HSICNV = 0.
       this % SNOAGE = 0.
+      this % ZSNOWI = 0.
 
 #ifdef TRACERS_WATER
       ALLOCATE( this % TUSI   (I_0H:I_1H, J_0H:J_1H, NTM),
@@ -1382,8 +1391,12 @@ c workaround for uninitialized patches%srfstate_exports multiply by zero
       I_1H = grd_dum%I_STOP_HALO
       J_0H = grd_dum%J_STRT_HALO
       J_1H = grd_dum%J_STOP_HALO
-      ALLOCATE( this % bare_soil_wetness ( I_0H:I_1H , J_0H:J_1H ),
+      ALLOCATE(
+     &     this % bare_soil_wetness ( I_0H:I_1H , J_0H:J_1H ),
+     &     this % snowe ( I_0H:I_1H , J_0H:J_1H ),
+     &     this % fr_snow_rad(2,i_0h:i_1h,j_0h:j_1h),
      &     STAT = IER)
+      this % snowe = 0.
       return
       end subroutine alloc_atmlnd_xchng_vars
 

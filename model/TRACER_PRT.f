@@ -1226,7 +1226,7 @@ C****
       use OldTracer_mod, only: dodrydep, dowetdep, trname, trw0
       USE TRACER_COM, only: ntm, n_water
       USE DIAG_COM
-
+      USE DIAG_COM_RAD, only : ij_cldcv
       USE TRDIAG_COM, only : taijn, taijs, sname_tij, lname_tij,
      *     units_tij, scale_tij, tij_mass, lname_ijts,  sname_ijts,
      *     units_ijts,  scale_ijts,  ia_ijts, ktaij, ktaijs, 

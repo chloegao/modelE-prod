@@ -71,7 +71,7 @@ C
      &      nn_ClOx,   nn_BrOx,  nn_HCl,   nn_HOCl,   nn_ClONO2,  
      &      nn_HBr,    nn_HOBr,  nn_BrONO2,nn_CFC,    nn_GLT
 
-      USE DIAG_COM, only : aj,j_h2och4
+      USE DIAG_COM_RAD, only : j_h2och4
       use photolysis, only: ks,kss
 c
       IMPLICIT NONE

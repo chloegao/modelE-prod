@@ -166,6 +166,9 @@ C----------------
       REAL*8 :: VTAULAT(JM_DIAG)
 #endif
 
+      logical :: set_gases_internally = .true.,
+     &           set_aerosols_internally = .true.
+
 !@var U0GAS   reference gas amounts, 13 types  (cm atm)      (in setgas)
 C     array with local and global entries: repeat this section in driver
       REAL*8 U0GAS(LX,13)
@@ -1677,6 +1680,7 @@ C      -----------------------------------------------------------------
 
 
 C--------------------------------
+      if(set_gases_internally) then
 !!!                   CALL GETO3D(ILON,JLAT) ! may have to be changed ??
       if(use_o3_ref > 0 )then
         CALL REPART (O3JREF(1,IGCM,JGCM),PLBO3,NLO3+1, ! in
@@ -1695,10 +1699,14 @@ C--------------------------------
         endif
       endif
                       CALL GETGAS
+      else
+        CALL TAUGAS
+      endif
 C--------------------------------
 
 
 C--------------------------------
+      if(set_aerosols_internally) then
       SRBEXT=1.d-20 ; SRBSCT=0. ; SRBGCB=0. ; TRBALK=0.
       IF(MADBAK > 0) CALL GETBAK
 
@@ -1709,6 +1717,7 @@ C--------------------------------
       IF(MADVOL > 0) THEN ; CALL GETVOL
        ELSE ; SRVEXT=0.     ; SRVSCT=0. ; SRVGCB=0. ; TRVALK=0. ; END IF
       chem_out(:,2)=SRVEXT(:,6) ! save 3D aerosol extinction in SUB RADIA
+      endif
 C--------------------------------
 
 

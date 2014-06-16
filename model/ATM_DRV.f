@@ -680,6 +680,7 @@ C****
       CALL daily_orbit(.false.)             ! not end_of_day
       CALL daily_ch4ox(.false.)             ! not end_of_day
       CALL daily_RAD(.false.)
+      if(istart.eq.2) call read_rad_ic
 
       call atm_phase1_exports
 
@@ -1507,3 +1508,164 @@ C****
       END SUBROUTINE VNTRP1
 
       end subroutine read_aic
+
+#ifdef CACHED_SUBDD
+      subroutine accum_subdd_atm
+C**** interpolate to pressure levels and accumulate the subdd diagnostics
+      USE CONSTANT, only : teeny,lhe,bygrav
+      use subdd_mod, only : lmaxsubdd
+      use subdd_mod, only : subdd_type,subdd_groups,subdd_ngroups
+      use subdd_mod, only : aijph_l1,aijph_l2
+     &      ,subdd_npres,subdd_pk, subdd_pres
+      use subdd_mod, only : inc_subdd,find_groups
+      use atm_com, only : ualij,valij,gz,wsave,pk,pmid
+      use domain_decomp_atm, only : grid,get=>getdomainbounds
+      use resolution, only : lm
+      use atm_com, only: p,u,v,t,q,zatmo
+      use resolution, only: ptop
+      USE GEOM, only: imaxj
+      use fluxes, only : atmsrf
+      implicit none
+      INTEGER :: LDN,LUP,I,J,L,k,igrp,ngroups,grpids(subdd_ngroups)
+      INTEGER :: J_0, J_1, J_0H, J_1H, I_0,I_1
+      type(subdd_type), pointer :: subdd
+      REAL*8 QSAT, WTDN,WTUP,qinterp,tinterp,qsat_interp
+      real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
+     &                  grid%j_strt_halo:grid%j_stop_halo,lm) ::
+     &     vortl,sddarr
+      real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
+     &                  grid%j_strt_halo:grid%j_stop_halo) ::
+     &     sddarr2d
+      real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
+     &                  grid%j_strt_halo:grid%j_stop_halo,subdd_npres)
+     &     :: sddcp
+
+      real*8 slp ! function
+
+      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
+     &               J_STRT=J_0,        J_STOP=J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+
+      call find_groups('aijh',grpids,ngroups)
+      do igrp=1,ngroups
+      subdd => subdd_groups(grpids(igrp))
+      do k=1,subdd%ndiags
+      select case (subdd%name(k))
+C
+      case ('p_surf')
+        sddarr2d = p(:,:) + ptop
+        call inc_subdd(subdd,k,sddarr2d)
+C
+      case ('slp')
+        do j=j_0,j_1; do i=i_0,imaxj(j)
+          !ts = t(i,j,1)*pek(1,i,j)
+          sddarr2d(i,j) =
+     &         slp(p(i,j)+ptop,atmsrf%tsavg(i,j),bygrav*zatmo(i,j))
+        enddo;        enddo
+        call inc_subdd(subdd,k,sddarr2d)
+      end select
+      enddo
+      enddo
+
+      call find_groups('aijph',grpids,ngroups)
+      do igrp=1,ngroups
+      subdd => subdd_groups(grpids(igrp))
+      do k=1,subdd%ndiags
+      select case (subdd%name(k))
+      case ('ucp')
+        call inc_subdd(subdd,k,ualij,jdim=3)
+      case ('vcp')
+        call inc_subdd(subdd,k,valij,jdim=3)
+      case ('zcp')
+        call inc_subdd(subdd,k,gz)
+      case ('tcp')
+        do l=1,subdd_npres; do j=j_0,j_1; do i=i_0,imaxj(j)
+           ldn = aijph_l1(i,j,l)    ;  lup = aijph_l2(i,j,l)
+          wtdn = aijph_l1(i,j,l)-ldn; wtup = aijph_l2(i,j,l)-lup
+          sddcp(i,j,l) =
+     &         (wtdn*t(i,j,ldn) +wtup*t(i,j,lup))*subdd_pk(l)
+        enddo;              enddo;        enddo
+        call inc_subdd(subdd,k,sddcp)
+      case ('qcp')
+        do l=1,subdd_npres; do j=j_0,j_1; do i=i_0,imaxj(j)
+           ldn = aijph_l1(i,j,l)    ;  lup = aijph_l2(i,j,l)
+          wtdn = aijph_l1(i,j,l)-ldn; wtup = aijph_l2(i,j,l)-lup
+          if(wtdn+wtup.gt.0.) then
+            sddcp(i,j,l) =
+     &       exp(wtdn*log(q(i,j,ldn)+teeny) +wtup*log(q(i,j,lup)+teeny))
+          else
+            sddcp(i,j,l) = 0.
+          endif
+        enddo;              enddo;        enddo
+        call inc_subdd(subdd,k,sddcp)
+      case ('vortcp')
+        call stop_model('import get_vorticity from ar5_v2',255)
+        !call get_vorticity(vortl)
+        call inc_subdd(subdd,k,vortl)
+      case ('wcp')
+        sddarr(:,:,1:lm-1) = wsave
+        sddarr(:,:,lm) = 0.
+        call inc_subdd(subdd,k,sddarr)
+      case ('rhcp')
+        do l=1,subdd_npres; do j=j_0,j_1; do i=i_0,imaxj(j)
+           ldn = aijph_l1(i,j,l)    ;  lup = aijph_l2(i,j,l)
+          wtdn = aijph_l1(i,j,l)-ldn; wtup = aijph_l2(i,j,l)-lup
+C**** The if-statement was added for nan-locations near topography, surface. 
+C**** "else qinterp=0" should not impact results. 
+          if(wtdn+wtup.gt.0.) then
+             qinterp =
+     &     exp(wtdn*log(q(i,j,ldn)+teeny)+wtup*log(q(i,j,lup)+teeny))
+          else
+             qinterp = 0.0d0
+          endif
+          tinterp=(wtdn*t(i,j,ldn) +wtup*t(i,j,lup))*subdd_pk(l)
+          qsat_interp = QSAT(tinterp,LHE,subdd_pres(l))
+          sddcp(i,j,l) = (qinterp/qsat_interp)*100.0d0
+         enddo;              enddo;        enddo
+         call inc_subdd(subdd,k,sddcp)
+      end select
+      enddo
+      enddo
+
+C**** cached_subdd on model levels
+      call find_groups('aijlh',grpids,ngroups)
+      do igrp=1,ngroups
+      subdd => subdd_groups(grpids(igrp))
+      do k=1,subdd%ndiags
+      select case (subdd%name(k))
+      case ('t')
+        do l=1,lmaxsubdd; do j=j_0,j_1; do i=i_0,imaxj(j)
+          sddarr(i,j,l) = t(i,j,l)*pk(l,i,j)
+        enddo;              enddo;        enddo
+        call inc_subdd(subdd,k,sddarr)
+      case ('q')
+        call inc_subdd(subdd,k,q)
+      case ('rh')
+        do l=1,lmaxsubdd; do j=j_0,j_1; do i=i_0,imaxj(j)
+          sddarr(i,j,l) = 
+     &    q(i,j,l)/QSAT(t(i,j,l)*pk(l,i,j),LHE,pmid(l,i,j))*100.0d0
+        enddo;              enddo;        enddo
+        call inc_subdd(subdd,k,sddarr)
+      case ('z')
+        call inc_subdd(subdd,k,gz)
+      case ('u')
+        call inc_subdd(subdd,k,ualij,jdim=3)
+      case ('v')
+        call inc_subdd(subdd,k,valij,jdim=3)
+#ifndef CUBED_SPHERE
+      case ('ub') ! b-grid wind, EW component
+        call inc_subdd(subdd,k,u)
+      case ('vb') ! b-grid wind, NS component
+        call inc_subdd(subdd,k,v)
+#endif
+      case ('w')
+        sddarr(:,:,1:lm-1) = wsave
+        sddarr(:,:,lm) = 0.
+        call inc_subdd(subdd,k,sddarr)
+      end select
+      enddo
+      enddo
+      return
+      end subroutine accum_subdd_atm
+#endif

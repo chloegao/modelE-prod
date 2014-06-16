@@ -2265,6 +2265,8 @@ c        Em= 0.
 !@var MSI mass of ice second layer (layer 1=const) (kg/m^2)
 C**** Note that MSI includes the mass of salt in sea ice
      &        ,MSI
+!@var ZSI total ice thickness (m)
+     &        ,ZSI
 !@var pond_melt amount of melt pond mass (kg/m^2)
 C**** Note this is a virtual meltpond and is only used for
 C**** albedo calculations
@@ -2370,6 +2372,7 @@ C**** albedo calculations
      &     state % RSI(I_0H:I_1H, J_0H:J_1H),
      &     state % SNOWI(I_0H:I_1H, J_0H:J_1H),
      &     state % MSI(I_0H:I_1H, J_0H:J_1H),
+     &     state % ZSI(I_0H:I_1H, J_0H:J_1H),
      &     state % pond_melt(I_0H:I_1H, J_0H:J_1H),
      &     state % flag_dsws(I_0H:I_1H, J_0H:J_1H),
      &     state % HSI(LMI, I_0H:I_1H, J_0H:J_1H),
@@ -2386,6 +2389,7 @@ C**** albedo calculations
       state % rsi = 0.d0
       state % SNOWI = 0.d0
       state % MSI = 0.d0
+      state % ZSI = 0.d0
       state % pond_melt = 0.d0
       state % flag_dsws  = .false.
       state % hsi = 0.d0

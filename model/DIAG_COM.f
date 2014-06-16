@@ -145,8 +145,8 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
 !@+   IJL/IJK refer to model versus constant-pressure levels
       INTEGER, public ::
      &     IJL_DP,IJK_DP,IJL_U,IJL_V,IJK_TX,IJK_Q,
-     &     IJL_W,IJK_RH,IJL_RC,IJL_MC
-      INTEGER, public :: IJL_CF, IJL_MCamFX, IJL_cldwtr,IJL_cldice
+     &     IJL_W,IJK_RH,IJL_MC
+      INTEGER, public :: IJL_MCamFX, IJL_cldwtr,IJL_cldice
      &    ,IJL_LLH,IJL_MCTLH,IJL_MCDLH,IJL_MCSLH
      &    ,IJL_LDRY,IJL_TMCDRY,IJL_DMCDRY,IJL_SMCDRY
      &    ,IJL_REWM,IJL_REWS,IJL_CDWM,IJL_CDWS,IJL_CWWM,IJL_CWWS
@@ -495,22 +495,20 @@ C****      names, indices, units, idacc-numbers, etc.
 
 !@var J_xxx zonal J diagnostic names
       INTEGER, public ::
-     &     J_SRINCP0, J_SRNFP0, J_SRNFP1, J_SRABS, J_SRINCG,
-     *     J_SRNFG, J_TRNFP0, J_TRNFP1, J_TRHDT, J_RNFP0, J_RNFP1,
+     &     J_SRABS,
+     *     J_TRHDT, J_RNFP0, J_RNFP1,
      *     J_RHDT, J_SHDT, J_EVHDT, J_HZ1, J_TG2, J_TG1, J_EVAP,
      *     J_PRCP, J_TX, J_TX1, J_TSRF, J_DTSGST, J_DTDGTR, J_RICST,
      *     J_RICTR, J_ROSST, J_ROSTR, J_RSI, J_TYPE, J_RSNOW,
      *     J_OHT, J_DTDJS, J_DTDJT, J_LSTR, J_LTRO, J_EPRCP,
-     *     J_RUN, J_ERUN, J_HZ0, J_H2OCH4, J_LWCORR,
+     *     J_RUN, J_ERUN, J_HZ0, J_LWCORR,
      *     J_RVRD,J_ERVR,J_IMPLM, J_IMPLH,
-     *     J_WTR1,J_ACE1, J_WTR2,J_ACE2, J_SNOW, J_BRTEMP, J_HZ2,
-     *     J_PCLDSS,J_PCLDMC, J_PCLD,J_CTOPP, J_PRCPSS, J_PRCPMC, J_QP,
-     *     J_GAM,J_GAMM, J_GAMC,J_TRINCG, J_FTHERM, J_HSURF, J_HATM,
-     *     J_PLAVIS,J_PLANIR,J_ALBVIS, J_ALBNIR, J_SRRVIS, J_SRRNIR,
-     *     J_SRAVIS,J_SRANIR,J_CLDDEP, J_CLRTOA, J_CLRTRP, J_TOTTRP,
+     *     J_WTR1,J_ACE1, J_WTR2,J_ACE2, J_SNOW, J_HZ2,
+     *     J_CTOPP, J_PRCPSS, J_PRCPMC, J_QP,
+     *     J_GAM,J_GAMM, J_GAMC,J_FTHERM,
      *     J_ALBP0,J_ALBG,J_IRGW,J_IRGWE
 #ifdef HEALY_LM_DIAGS
-     *     ,J_VTAU,J_CROPS,J_GHG
+     *     ,J_CROPS
 #endif
 !@var NAME_J,UNITS_J Names/Units of zonal J diagnostics
       character(len=sname_strlen), dimension(kaj), public :: name_j
@@ -539,16 +537,16 @@ C****      names, indices, units, idacc-numbers, etc.
      *     IJ_PHI850, IJ_PHI700, IJ_PHI500, IJ_PHI300, IJ_PHI100,
      *     IJ_PHI30, IJ_PHI10, IJ_PHI3p4, IJ_PHI0p7, IJ_PHI0p16,
      *     IJ_PHI0p07, IJ_PHI0p03, IJ_T850, IJ_T500, IJ_T300, IJ_Q850,
-     *     IJ_Q500, IJ_Q300, IJ_PMCCLD, IJ_CLDTPPR, IJ_CLDCV, IJ_DSEV,
-     *     IJ_CLDTPT, IJ_CLDCV1, IJ_CLDT1T,IJ_CLDT1P, IJ_T700, IJ_Q700,
-     *     ij_wtrcld,ij_icecld,ij_optdw,ij_optdi,IJ_PBLHT, IJ_RH700,
-     *     IJ_RH1, IJ_RH850, IJ_RH500, IJ_RH300, IJ_SWCRF, IJ_LWCRF,
-     *     IJ_SWCRF2, IJ_LWCRF2, IJ_T100,IJ_Q100,IJ_RH100,
-     *     IJ_TRNFP0, IJ_SRTR, IJ_NETH, IJ_SRNFP0, IJ_SRINCP0, IJ_SRNFG,
-     *     IJ_SRINCG, IJ_TG1, IJ_RSIT, IJ_TDSL, IJ_TDCOMP, IJ_DTDP,
+     *     IJ_Q500, IJ_Q300, IJ_DSEV,
+     *     IJ_T700, IJ_Q700,
+     *     IJ_PBLHT, IJ_RH700,
+     *     IJ_RH1, IJ_RH850, IJ_RH500, IJ_RH300,
+     *     IJ_T100,IJ_Q100,IJ_RH100,
+     *     IJ_SRTR, IJ_NETH,
+     *     IJ_TG1, IJ_RSIT, IJ_TDSL, IJ_TDCOMP, IJ_DTDP,
      *     IJ_RUNE, IJ_TS1, IJ_RUNLI, IJ_WS, IJ_TS, IJ_US, IJ_VS,
-     *     IJ_SLP, IJ_UJET, IJ_VJET, IJ_PCLDL, IJ_PCLDM, IJ_PCLDH,
-     *     IJ_BTMPW, IJ_SRREF, IJ_SRVIS, IJ_TOC2, IJ_TAUS, IJ_TAUUS,
+     *     IJ_SLP, IJ_UJET, IJ_VJET,
+     *     IJ_TOC2, IJ_TAUS, IJ_TAUUS,
      *     IJ_TAUVS, IJ_GWTR, IJ_QS, IJ_STRNGTS, IJ_ARUNU, IJ_DTGDTS,
      *     IJ_PUQ, IJ_PVQ, IJ_TGO, IJ_TGO2, IJ_EVAPO, ij_RHs,
      *     IJ_EVAPI, IJ_EVAPLI,IJ_EVAPE, IJ_F0OC,IJ_F0LI,IJ_F0E,
@@ -559,33 +557,31 @@ C****      names, indices, units, idacc-numbers, etc.
      *     IJ_FGZU, IJ_FGZV, IJ_ERVR, IJ_MRVR, IJ_SSS, IJ_PRECMC,
      *     IJ_LKON, IJ_LKOFF, IJ_LKICE, IJ_PTROP, IJ_TTROP,
      *     ! IJ_MSU2,IJ_MSU2R,
-     *     IJ_FRMP, IJ_P850, IJ_CLR_SRINCG,
+     *     IJ_P850,
      *     IJ_GPP, IJ_IPP, IJ_RAUTO, IJ_CLAB, IJ_DLEAF, IJ_LAI, !VEG DIAGNOSTICS
      *     IJ_SOILRESP, IJ_SOILCPOOLSUM, !additional veg diags (soil bgc)
      *     IJ_GICE, IJ_GWTR1, IJ_ZSNOW, IJ_AFLMLT, IJ_AERUNS, IJ_AERUNU,
      *     IJ_HTSOIL, IJ_HTSNOW, IJ_AINTRCP, IJ_MCCLDTP, IJ_MCCLDBS,
-     *     IJ_SRNTP,IJ_TRNTP,IJ_CLR_SRNTP,IJ_CLR_TRNTP, IJ_TRSDN,
-     *     IJ_TRSUP, IJ_CLR_SRNFG,IJ_CLR_TRDNG,IJ_CLR_SRUPTOA,
-     *     IJ_CLR_TRUPTOA, IJ_CLDW, IJ_CLDI, IJ_QM, IJ_SSH, IJ_FWOC,
+     *     IJ_TRSDN,
+     *     IJ_TRSUP, IJ_CLDW, IJ_CLDI, IJ_QM, IJ_SSH, IJ_FWOC,
      *     IJ_DSKIN, IJ_MCCVTP, IJ_MCCVBS,
-     *     IJ_SWDCLS,IJ_SWNCLS,IJ_LWDCLS,IJ_SWNCLT,IJ_LWNCLT,
      *     IJ_P1000,IJ_P925,IJ_P700,IJ_P600,IJ_P500, IJ_LI, IJ_LK,
-     &     IJ_FVEG,IJ_GUSTI, IJ_MCCON, IJ_SRVDIR, IJ_SRVISSURF
-     *     ,IJ_WISUM, IJ_SLPQ, IJ_PRESQ, IJ_RNFP1
+     &     IJ_FVEG,IJ_GUSTI, IJ_MCCON
+     *     ,IJ_WISUM, IJ_SLPQ, IJ_PRESQ
      *     ,ij_dzwm,ij_dzim,ij_dzws,ij_dzis
      *     ,ij_3dnwm,ij_3dnim,ij_3dnws,ij_3dnis
      *     ,ij_3drwm,ij_3drim,ij_3drws,ij_3dris
      *     ,ij_3dlwm,ij_3dlim,ij_3dlws,ij_3dlis
      *     ,ij_ssprec,ij_mcprec,IJ_WMCLWP,IJ_WMCTWP
      &     ,ij_wdry,ij_wtke,ij_wmoist,ij_wsgcm,ij_wspdf
-     &     ,ij_flam,ij_CtoG,ij_flash,ij_chl=-1,ij_swaerrf,ij_lwaerrf
-     *     ,ij_swaersrf,ij_lwaersrf,ij_swaerabs,ij_lwaerabs,ij_swaerrfnt
-     *     ,ij_lwaerrfnt,ij_swaersrfnt,ij_lwaersrfnt,ij_swaerabsnt
+     &     ,ij_flam,ij_CtoG,ij_flash
+     *     ,ij_swaerabs,ij_lwaerabs
+     *     ,ij_swaerabsnt
      *     ,ij_lwaerabsnt,ij_evapsn,ij_irrW,ij_irrE,ij_irrW_tot
      *     ,ij_mwl,ij_gml,ij_mwlir,ij_gmlir,ij_irrgw,ij_irrgwE
      *     ,ij_kw, ij_alpha, ij_gasx, ij_rvrflo
      *     ,ij_sisnd
-     *     ,ij_siswd,ij_siswu,ij_silwd,ij_silwu,ij_sish
+     *     ,ij_silwd,ij_silwu,ij_sish
      *     ,ij_impmli,ij_imphli,ij_eicb,ij_micb, IJ_ERVRO, IJ_MRVRO
      *     ,IJ_IMPMGR,IJ_IMPHGR,IJ_IMPMKI,IJ_IMPHKI
      *     ,IJ_MLKtoGR,IJ_HLKtoGR
@@ -606,10 +602,6 @@ C****      names, indices, units, idacc-numbers, etc.
 !@var IJ_xxxI names for ISCCP diagnostics
       INTEGER, public ::
      &     IJ_CTPI,IJ_TAUI,IJ_LCLDI,IJ_MCLDI,IJ_HCLDI,IJ_TCLDI,IJ_SCLDI
-#ifdef ACCMIP_LIKE_DIAGS
-!@var IJ_fcghg GHG forcing diagnostics (2=LW,SW, 4=CH4,N2O,CFC11,CFC12)
-      INTEGER, public, dimension(2,4) :: IJ_fcghg
-#endif
 c weighting fractions
       INTEGER, public :: IJ_PSOIL,IJ_CLRSKY,IJ_POCEAN,IJ_POPOCN,IJ_VSFR
      *     ,IJ_BSFR,IJ_POPWAT,IJ_PWATER
@@ -724,14 +716,13 @@ c derived/composite diagnostics
 !@var JL_xxx, JK_xxx names for AJL indices
 !@+   JL/JK refer to model versus constant-pressure levels
       INTEGER, public ::
-     &     jl_mcmflx,jl_srhr,jl_trcr,jl_sshr,jl_trbhr,jl_mchr
-     &     ,jl_dtdyn,jl_totcld,jl_mcdflx,jl_sscld,jl_mccld
+     &     jl_mcmflx,jl_sshr,jl_trbhr,jl_mchr
+     &     ,jl_dtdyn,jl_mcdflx
      &     ,jl_rhe,jl_damdc,jl_dammc,jl_mchphas,jl_mcdtotw
      &     ,jl_mcldht,jl_trbke,jl_trbdlht,jl_mcheat,jl_mcdry
      &     ,jl_mcdeep,jl_mcshlw,jl_cldmc,jl_cldss,jl_csizmc,jl_csizss
-     &     ,jl_wcld,jl_icld,jl_wcod,jl_icod,jl_wcsiz,jl_icsiz
      &     ,jl_cnumwm,jl_cnumim,jl_cnumws,jl_cnumis
-     &     ,jl_dpa,jl_dpasrc,jl_dwasrc,jl_wcldwt,jl_icldwt
+     &     ,jl_dpa,jl_dpasrc,jl_dwasrc
      &     ,jl_rad_cool
      &     ,jl_epacwt,jl_wpacwt
      &     ,jl_uepac,jl_vepac,jl_wepac,jl_uwpac,jl_vwpac,jl_wwpac
@@ -832,13 +823,13 @@ c derived/composite diagnostics
 !@var IDD_xxx names for diurnal diagnostics
       INTEGER, public ::
 c     standard set of names
-     &     IDD_ISW, IDD_PALB, IDD_GALB, IDD_ABSA, IDD_ECND,
+     &     IDD_ECND,
      *     IDD_SPR, IDD_PT5, IDD_TS, IDD_TG1, IDD_Q5, IDD_QS,
      *     IDD_QG, IDD_SWG, IDD_LWG, IDD_SH, IDD_LH, IDD_HZ0, IDD_UG,
      *     IDD_VG, IDD_WG, IDD_US, IDD_VS, IDD_WS, IDD_CIA, IDD_RIS,
      *     IDD_RIG, IDD_CM, IDD_CH, IDD_CQ, IDD_EDS, IDD_DBL, IDD_DCF,
-     *     IDD_LDC, IDD_PR, IDD_EV, IDD_DMC, IDD_SMC, IDD_CL7, IDD_W,
-     *     IDD_CCV, IDD_SSP, IDD_MCP ! 56
+     *     IDD_LDC, IDD_PR, IDD_EV, IDD_DMC, IDD_SMC, IDD_W,
+     *     IDD_SSP, IDD_MCP ! 56
 c     names for one layer dust diagnostics
      &     ,idd_wtke,idd_wd,idd_wm,idd_wsgcm,idd_wspdf,idd_wtrsh
      &     ,idd_emis,idd_emis2,idd_ws2,idd_ustar,idd_us3,idd_stress
@@ -852,7 +843,7 @@ c     names for npbl layers dust diagnostics
 c     names for npbl-1 layers dust diagnostics
      &     ,idd_zhat1,idd_e1,idd_km1,idd_ri1 ! +4*(npbl-1)
 c    hourly AMP diagnostics
-     *     ,idd_diam, idd_aot, idd_aot2, idd_lwp, idd_ccn, idd_cdnc
+     *     ,idd_diam, idd_lwp, idd_ccn, idd_cdnc
      *     ,idd_mass, idd_numb, idd_so2, idd_lwc, idd_ncL, idd_pres
 
 !@var tf_xxx tsfrez diagnostic names

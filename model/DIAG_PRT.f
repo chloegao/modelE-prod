@@ -893,13 +893,13 @@ C****
      &     jl_dumcdrgm20,jl_dumcdrgp20,jl_mcdrgpm20,
      &     jl_dumcdrgm40,jl_dumcdrgp40,jl_mcdrgpm40,
      &     jl_dudtsdif,jl_sumdrg,jl_dudtvdif,jl_dudtsdrg,jl_dtdtsdrg,
-     &     jl_dtdyn,jl_mcmflx,jl_mcdflx,jl_srhr,jl_trcr,jl_rad_cool,
-     &     jl_totcld,jl_sscld,jl_mccld,jl_rhe,jl_wcld,jl_icld,
-     &     jl_wcod,jl_icod,jl_wcsiz,jl_icsiz,jl_trbke,jl_sshr,jl_trbhr,
+     &     jl_dtdyn,jl_mcmflx,jl_mcdflx,jl_rad_cool,
+     &     jl_rhe,jl_trbke,jl_sshr,jl_trbhr,
      &     jl_trbdlht,jl_mcldht,jl_mcheat,jl_mcdeep,jl_mcshlw,jl_mcdry,
      &     jl_csizmc,jl_csizss,jl_damdc,jl_dammc,
      &     jl_uepac,jl_vepac,jl_wepac,jl_uwpac,jl_vwpac,jl_wwpac
      &    ,jl_cnumwm,jl_cnumim,jl_cnumws,jl_cnumis
+      USE DIAG_COM_RAD
       USE GCDIAG
       USE WORKJK
       IMPLICIT NONE
@@ -2492,8 +2492,9 @@ c      deallocate(anum,aden,xjl)
      &     ,sname_strlen,units_strlen,lname_strlen
       USE DIAG_COM, only : im,lm,aijl,lm_req,qdiag
      &     ,ia_src,ia_rad,ia_dga,plm,ple,linect
-     &     ,IJL_U,IJL_V,IJK_TX,IJL_W,IJK_RH,IJL_RC,IJL_MC
+     &     ,IJL_U,IJL_V,IJK_TX,IJL_W,IJK_RH,IJL_MC
      &     ,ia_ijl,denom_ijl
+      USE DIAG_COM_RAD, only : IJL_RC
       USE GC_COM, only : j5s,j5n,j5suv,j5nuv,j50n,j70n
       USE CONSTANT, only : grav,rgas,by3,sha,bygrav,teeny
       USE GEOM, only : dxyp
@@ -3233,6 +3234,7 @@ c**** find hemispheric and global means
       USE GEOM, only : DXV
       !USE VEG_COM, only : vdata
       USE DIAG_COM
+      USE DIAG_COM_RAD
       USE GCDIAG
       USE GC_COM, only : AGC
       USE BDIJ

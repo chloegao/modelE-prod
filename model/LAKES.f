@@ -799,6 +799,17 @@ C****
         END DO
       END DO
 
+      do j=j_0,j_1
+      do i=i_0,imaxj(j)
+        if(flake(i,j).gt.0.) then
+          DLAKE(I,J)=MWL(I,J)/(RHOW*FLAKE(I,J)*AXYP(I,J))
+          GLAKE(I,J)=GML(I,J)/(FLAKE(I,J)*AXYP(I,J))
+        else
+          DLAKE(I,J)=0.
+          GLAKE(I,J)=0.
+        endif
+      enddo
+      enddo
 
 C**** assume that at the start GHY is in balance with LAKES
       SVFLAKE = FLAKE
@@ -940,7 +951,7 @@ C****
       USE FLUXES, only : atmocn,focean,fland
       USE LAKES, only : kdirec,rate,iflow,jflow,river_fac,
      *     kd911,ifl911,jfl911,lake_rise_max
-      USE LAKES_COM, only : tlake,gml,mwl,mldlk,flake,hlake
+      USE LAKES_COM, only : tlake,gml,mwl,mldlk,flake,hlake,dlake,glake
       USE SEAICE_COM, only : lakeice=>si_atm
       Use TimerPackage_Mod, only: StartTimer=>Start,StopTimer=>Stop
 
@@ -1400,6 +1411,13 @@ C**** Set GTEMP array for lakes
 
       do j=j_0,j_1
       do i=i_0,imaxj(j)
+        if(flake(i,j).gt.0.) then
+          DLAKE(I,J)=MWL(I,J)/(RHOW*FLAKE(I,J)*AXYP(I,J))
+          GLAKE(I,J)=GML(I,J)/(FLAKE(I,J)*AXYP(I,J))
+        else
+          DLAKE(I,J)=0.
+          GLAKE(I,J)=0.
+        endif
         if(focean(i,j).gt.0.) then
           byoarea = 1.d0/(axyp(i,j)*focean(i,j))
           flowo(i,j) = flowo(i,j)*byoarea

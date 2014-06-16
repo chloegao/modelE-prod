@@ -1711,7 +1711,7 @@ c
       USE CONSTANT, only: pi,gasc
       USE FLUXES, only: atmsrf
       use TimeConstants_mod, only: DAYS_PER_YEAR
-      USE GHY_COM, only: snoage
+      USE RAD_COM, only: snoage
       USE AEROSOL_SOURCES, only: snosiz
       IMPLICIT none
       REAL*8 E,A,age,r0,radmm,ert,

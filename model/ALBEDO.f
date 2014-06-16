@@ -296,10 +296,6 @@ C     -------------------
       use fluxes, only: atmocn
       use ocalbedo_mod, only: ocalbedo
 
-#ifdef SCM
-      USE SCMCOM, only : ASRFALBEDO,iu_scm_prt
-#endif
-
       implicit none
 
 !********* start  in/out *****************************
@@ -814,16 +810,6 @@ C**** calculate final variables always over 6-bands
           SRBALB(J)=BVNSUR(L)
           SRXALB(J)=XVNSUR(L)
         END DO
-#ifdef SCM
-      ELSE
-        DO J=1,6
-          L=7-J
-          SRBALB(j)=ASRFALBEDO
-          SRXALB(j)=ASRFALBEDO
-c         write(iu_scm_prt,'(a24,i5,2(f10.4))')
-c    &       'in ALBEDO srbalb srxalb ',j,SRBALB(j),SRXALB(j)
-        END DO
-#endif
       ENDIF
 C
 C                     --------------------------------------------------

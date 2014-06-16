@@ -207,7 +207,8 @@ subroutine CONDSE
        ua=>ualij,va=>valij,ltropo
   use DYNAMICS, only : wcpsig,dsig,sig,bydsig
   use SEAICE_COM, only : si_atm
-  use GHY_COM, only : snoage,fearth
+  use GHY_COM, only : fearth
+  use RAD_COM, only : snoage
   use LAKES_COM, only : flake
   use FLUXES, only : prec,eprec,precss,focean,fland,flice, &
        atmocn,atmice,atmgla,atmlnd,atmsrf

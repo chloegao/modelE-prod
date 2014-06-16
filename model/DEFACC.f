@@ -62,6 +62,7 @@ c#endif
       use MODEL_COM, only : dtsrc,kocean,qcheck
       use DYNAMICS, only : sige
       use DIAG_COM
+      use DIAG_COM_RAD
       use DOMAIN_DECOMP_ATM, only: AM_I_ROOT
 #ifdef NEW_IO
       use cdl_mod
@@ -1116,6 +1117,7 @@ c
       use MODEL_COM
       use TimeConstants_mod, only : SECONDS_PER_DAY
       use DIAG_COM
+      use DIAG_COM_RAD
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       use fluxes, only : nisurf,atmice
 #ifdef NEW_IO
@@ -4939,6 +4941,7 @@ c
       use MODEL_COM, only : dtsrc,qcheck
       use DYNAMICS, only : nidyn,do_gwdrag
       use DIAG_COM
+      use DIAG_COM_RAD
 #ifdef CUBED_SPHERE
       use GCDIAG, only : fim
 #endif
@@ -5777,6 +5780,7 @@ c
       use TimeConstants_mod, only: SECONDS_PER_DAY
       use MODEL_COM, only : dtsrc
       use DIAG_COM
+      use DIAG_COM_rad
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
 #ifdef NEW_IO
       use cdl_mod
@@ -6349,6 +6353,7 @@ c
       use MODEL_COM, only : dtsrc,qcheck
       use FLUXES, only : nisurf
       use DIAG_COM
+      use DIAG_COM_RAD
       use SOCPBL, only : npbl=>n
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
 #ifdef NEW_IO

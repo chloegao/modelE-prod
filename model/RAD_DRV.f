@@ -65,7 +65,7 @@ C****
      *     ,FS8OPX_orig,FT8OPX_orig
 #endif
       USE RAD_COM, only : rqt, s0x, co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx
-     *     ,o2x,no2x,n2cx,yGHGx,so2x,CH4X_RADoverCHEM
+     *     ,o2x,no2x,n2cx,yGHGx,so2x,CH4X_RADoverCHEM,snoage_def
      *     ,s0_yr,s0_day,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr
      *     ,H2ObyCH4,dH2O,h2ostratx,O3x,RHfix,CLDx,ref_mult,COSZ1
      *     ,obliq,eccn,omegt,obliq_def,eccn_def,omegt_def
@@ -86,8 +86,9 @@ C****
 #endif
       use RAD_COSZ0, only : cosz_init
       USE CLOUDS_COM, only : llow
-      USE DIAG_COM, only : iwrite,jwrite,itwrite,save3dAOD
+      USE DIAG_COM, only : iwrite,jwrite,itwrite
 #ifdef TRACERS_ON
+      USE DIAG_COM, only : save3dAOD
       USE TRACER_COM, only: ntm
       USE TRACER_COM, only: n_BCIA, n_BCB, n_NO3p
       USE TRACER_COM, only: n_Clay, n_Silt1, n_Silt2, n_Silt3, n_Silt4
@@ -111,6 +112,33 @@ C****
 #endif
       use AerParam_mod, only : aermix
       use AerParam_mod, only: depoBC,depoBC_1990
+
+      ! begin section for radiation-only SCM
+      use constant, only : gasc,tf,mair,mwat,pi,lhe,lhs,mb2kg,kapa
+      use atm_com, only : q,p,pmid,pedn,pdsig,pek,ma,byma,ltropo
+      use atm_com, only : aml00,byaml00,req_fac,kradia,lm_req
+      use resolution, only : im,plbot,ptop,ls1
+      use rad_com, only : modrd
+      use radpar, only : u0gas,ulgas,set_gases_internally
+      use radpar, only : set_aerosols_internally,
+     &    sraext,srasct,sragcb,
+     &    srdext,srdsct,srdgcb,
+     &    srvext,srvsct,srvgcb,
+     &    srbext,srbsct,srbgcb,
+     &    traalk,trdalk,trvalk,trbalk
+      use radpar, only: keepal,srbalb,srxalb
+      use pario, only : par_open,par_close,read_data,read_dist_data
+      use fluxes, only : atmsrf,asflx4,focean,fland,flice
+      use fluxes, only : atmocn,atmice,atmgla,atmlnd
+      use ghy_com, only : fearth
+#ifndef USE_ENT
+      use veg_com, only : vdata
+#endif
+      use lakes_com, only : flake
+      use seaice_com, only : si_atm
+      use clouds_com, only : svlhx,svlat,rhsav
+      !use clouds_com, only : lmid,lhi
+      ! end section for radiation-only SCM
       IMPLICIT NONE
 
       integer, intent(in) :: istart
@@ -129,6 +157,16 @@ C****
 
       character(len=300) :: out_line
       character*6 :: skip
+
+      ! begin section for radiation-only SCM
+      real*8 :: cosz_const
+      character(len=6) :: gasnames(13)
+      integer :: fid,igas
+      real*8 :: szadeg,s0cosz,s0_tmp,cosz_tmp,tloc
+      integer :: rad_scm_int
+      logical :: rad_scm=.false.
+      real*8 qsat ! external
+      ! end section for radiation-only SCM
 
       INTEGER :: I,J
       INTEGER :: I_0,I_1,J_0,J_1
@@ -208,6 +246,7 @@ C**** sync radiation parameters from input
       call sync_param( "KSOLAR", KSOLAR )
       call sync_param( "KSIALB", KSIALB )
       call sync_param( "KZSNOW", KZSNOW )
+      call sync_param( "snoage_def", snoage_def )
       call sync_param( "snoage_fac_max", snoage_fac_max )
       call sync_param( "nradfrc", nradfrc )
       if(snoage_fac_max.lt.0. .or. snoage_fac_max.gt.1.) then
@@ -221,7 +260,9 @@ C**** sync radiation parameters from input
       call sync_param( "cloud_rad_forc", cloud_rad_forc )
       call sync_param( "aer_rad_forc", aer_rad_forc )
       call sync_param( "ref_mult", ref_mult )
+#ifdef TRACERS_ON
       call sync_param( "save3dAOD", save3dAOD)
+#endif
       REFdry = REFdry*ref_mult
 
       if(is_set_param('planck_tmin')) then
@@ -233,15 +274,6 @@ C**** sync radiation parameters from input
 
       call getDomainBounds(grid,
      &     I_STRT=I_0,I_STOP=I_1,J_STRT=J_0,J_STOP=J_1)
-
-      if(istart==2) then ! replace with cold vs warm start logic
-C**** SET RADIATION EQUILIBRIUM TEMPERATURES FROM LAYER LM TEMPERATURE
-        DO J=J_0,J_1
-        DO I=I_0,I_1
-          RQT(:,I,J)=T(I,J,LM)*PK(LM,I,J)
-        ENDDO
-        ENDDO
-      endif
 
 C**** Set orbital parameters appropriately
       select case (variable_orb_par)
@@ -278,7 +310,135 @@ C**** Set orbital parameters appropriately
         eccn=eccn_def
       end select
 
-      call cosz_init
+
+      if(is_set_param('rad_scm')) then
+        call get_param('rad_scm',rad_scm_int)
+        rad_scm = im.eq.1 .and. jm.eq.1 .and. rad_scm_int==1
+      endif
+      if(rad_scm) then
+        ! Some of the initializations in this block will be
+        ! moved elsewhere once refactorings in the rest of
+        ! the GCM are complete.
+
+        modrd = 0 ! just in case
+        i = 1
+        j = 1
+
+        if(file_exists('TOPO')) then
+          fid = par_open(grid,'TOPO','read')
+          call read_dist_data(grid,fid,'focean',focean)
+          call read_dist_data(grid,fid,'fgice',flice)
+          call par_close(grid,fid)
+        else
+          call get_param('focean',focean(1,1))
+          call get_param('flice',flice(1,1))
+          call get_param('rsi',si_atm%rsi(1,1))
+        endif
+        fland = 1d0-focean
+        fearth = 1d0 - focean - flice
+        flake = 0.
+
+        pednl00(1:lm+1) = plbot ! default
+        pednl00(lm+2:lm+lm_req) = req_fac(1:lm_req-1)*pednl00(lm+1)
+        pednl00(lm+lm_req+1) = 0.
+
+        if(file_exists('TEMP1D')) then
+          fid = par_open(grid,'TEMP1D','read')
+          call read_data(grid,fid,'t',t(i,j,:))
+          call par_close(grid,fid)
+        elseif(file_exists('AIC')) then
+          fid = par_open(grid,'AIC','read')
+          call read_dist_data(grid,fid,'t',t)
+          call read_dist_data(grid,fid,'q',q)
+          call read_dist_data(grid,fid,'p',p)
+          call read_dist_data(grid,fid,'tsurf',atmsrf%gtempr)
+          do l=ls1-1,1,-1  ! sigma-rescaling
+            pednl00(l) = ptop +
+     &           (pednl00(l)-ptop)*((p(1,1)-ptop)/(pednl00(1)-ptop))
+          enddo
+          call par_close(grid,fid)
+        elseif(is_set_param('temp1d')) then
+          call get_param('temp1d',t(i,j,:),lm)
+        endif
+        do l=1,lm+lm_req
+          aml00(l) = mb2kg*(pednl00(l)-pednl00(l+1))
+          byaml00(l) = 1d0/aml00(l)
+        enddo
+        pedn(1:lm+1,i,j) = pednl00(1:lm+1)
+        do l=1,lm
+          pmid(l,i,j) = .5d0*(pedn(l,i,j)+pedn(l+1,i,j))
+          pdsig(l,i,j) = (pedn(l,i,j)-pedn(l+1,i,j))
+          ma(l,i,j) = pdsig(l,i,j)*mb2kg
+          byma(l,i,j) = 1d0/ma(l,i,j)
+        enddo
+        pk = pmid**kapa
+        pek = pedn**kapa
+        p(i,j) = pedn(1,i,j)-ptop
+
+        do l=1,lm
+          t(i,j,l) = t(i,j,l)/pk(l,i,j)
+        enddo
+
+        if(file_exists('GTEMPR')) then
+          fid = par_open(grid,'GTEMPR','read')
+          call read_data(grid,fid,'gtempr',atmsrf%gtempr)
+          call par_close(grid,fid)
+        elseif(is_set_param('gtempr')) then
+          call get_param('gtempr',atmsrf%gtempr(1,1))
+        endif
+
+        call get_param('wsavg',atmsrf%wsavg(1,1),default=7d0)
+        call get_param('bare_soil_wetness',
+     &       atmlnd%bare_soil_wetness(1,1),default=1d0)
+        call get_param('snow',atmsrf%snow(1,1),default=0d0)
+#ifndef USE_ENT
+        call get_param('vdata',vdata(1,1,:),size(vdata,3),
+     &      default=(/0d0,0d0,1d0,0d0,0d0,0d0,0d0,0d0,0d0,0d0,0d0,0d0/))
+#endif
+        if(file_exists('SUN')) then
+          fid = par_open(grid,'SUN','read')
+          call read_data(grid,fid,'szadeg',szadeg)
+          call read_data(grid,fid,'s0cosz',s0cosz)
+          call par_close(grid,fid)
+          cosz_tmp = cos(szadeg*pi/180d0)
+          s0_tmp = s0cosz/cosz_tmp
+          call sync_param('cosz',cosz_tmp)
+          call sync_param('s0',s0_tmp)
+        endif
+        LTROPO = 1
+
+        atmsrf%tsavg = atmsrf%gtempr
+        atmocn%gtempr = atmsrf%gtempr
+        atmice%gtempr = atmsrf%gtempr
+        atmgla%gtempr = atmsrf%gtempr
+        atmlnd%gtempr = atmsrf%gtempr
+        do n=1,4
+          asflx4(n)%gtempr = atmsrf%gtempr
+        enddo
+        atmgla%snow = atmsrf%snow
+
+      endif
+
+      if(is_set_param('srxalb')) then
+        keepal = 1
+        call get_param('srxalb',srxalb,size(srxalb))
+        call get_param('srbalb',srbalb,size(srbalb))
+      endif
+      if(is_set_param('cosz')) then
+        call get_param('cosz',cosz_const)
+        call cosz_init(cosz_const=cosz_const)
+      else
+        call cosz_init
+      endif
+
+      if(istart==2) then ! replace with cold vs warm start logic
+C**** SET RADIATION EQUILIBRIUM TEMPERATURES FROM LAYER LM TEMPERATURE
+        DO J=J_0,J_1
+        DO I=I_0,I_1
+          RQT(:,I,J)=T(I,J,LM)*PK(LM,I,J)
+        ENDDO
+        ENDDO
+      endif
 
 C****
 C**** SET THE CONTROL PARAMETERS FOR THE RADIATION (need mean pressures)
@@ -798,6 +958,67 @@ c        call openunit(trim('RAD'//aDATE(1:7)),iu_RAD,.true.,.false.)
 c        if (Kradia.lt.0) call io_POS(iu_RAD,Itime-1,2*dimrad_sv,Nrad)
 c      end if
 
+      if(rad_scm) then
+        if(file_exists('GASES')) then
+C     GAS NUMBER    1         2    3      4    5         6           7
+C                 H2O       CO2   O3     O2  NO2       N2O         CH4
+C     GAS NUMBER    8         9   10        11          12          13
+C              CCL3F1    CCL2F2   N2     CFC-Y       CFC-Z         SO2
+
+          gasnames =
+     &         ['h2o','co2','o3','o2','no2','n2o','ch4',
+     &         'cfc11','cfc12','n2','cfc-y','cfc-z','so2']
+          set_gases_internally = .false.
+          u0gas = 0.
+          fid = par_open(grid,'GASES','read')
+          do igas=1,size(gasnames)
+            call read_data(grid,fid,trim(gasnames(igas)),
+     &           u0gas(1:lm,igas))
+            u0gas(lm+1:,igas) = u0gas(lm,igas) ! fill lm+1:lm+lm_req
+            if(trim(gasnames(igas)).eq.'h2o') then
+              q(1,1,:) = u0gas(1:lm,igas)*(mwat/mair) ! vol. ratio -> sp. hum.
+            endif
+            u0gas(:,igas) = aml00*u0gas(:,igas)   ! vol. ratio -> cm-atm
+     &           *((1d5/mair)*(gasc*tf/101325d0))
+          enddo
+          call par_close(grid,fid)
+
+         !fulgas = 1. ! needed?
+
+          ulgas = u0gas
+        endif
+        if(file_exists('VISAODangstr')) then
+          set_aerosols_internally = .false.
+c          fid = par_open(grid,'VISAODangstr','read')          
+c          not needed for initial CIRC cases which have zero aerosol
+c          todo:  read optical depths and scale with Angstrom exponent
+c          weighted by solar flux
+c          ....
+c          call par_close(grid,fid)
+          sraext = 0.; srasct = 0.; sragcb = 0.
+          srdext = 0.; srdsct = 0.; srdgcb = 0.
+          srvext = 0.; srvsct = 0.; srvgcb = 0.
+          srbext = 0.; srbsct = 0.; srbgcb = 0.
+          traalk = 0.
+          trdalk = 0.
+          trvalk = 0.
+          trbalk = 0.
+        endif
+        i = 1
+        j = 1
+        do l=1,lm
+          tloc = t(i,j,l)*pk(l,i,j)
+          if(tloc.ge.tf) then
+            svlhx(l,i,j) = lhe
+          else
+            svlhx(l,i,j) = lhs
+          endif
+          svlat(l,i,j) = svlhx(l,i,j)
+          rhsav(l,i,j) = q(i,j,l)/qsat(tloc,svlhx(l,i,j),pmid(l,i,j))
+        enddo
+        !llow=1; lmid=2; lhi=3
+      endif
+
       RETURN
       END SUBROUTINE init_RAD
 
@@ -813,6 +1034,7 @@ c      end if
 !@auth G. Schmidt
 !@calls RADPAR:RCOMPT
       USE DOMAIN_DECOMP_ATM, only : am_I_root
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID, getDomainBounds
       use model_com, only: modelEclock
       USE RADPAR, only : FULGAS,JYEARR=>JYEAR,JDAYR=>JDAY
      *     ,xref,KYEARV
@@ -823,11 +1045,14 @@ c      end if
       USE RAD_COM, only : co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx,h2ostratx
      *     ,o2x,no2x,n2cx,yghgx,so2x
      *     ,o3x,o3_yr,ghg_yr,co2ppm,Volc_yr,albsn_yr,dalbsnX
-      use DIAG_COM, only : iwrite,jwrite,itwrite
+     &     ,snoage,snoage_def
+      use DIAG_COM, only : iwrite,jwrite,itwrite,tdiurn
       use runtimecontrols_mod, only: chl_from_seawifs
+      use geom, only : imaxj
       IMPLICIT NONE
       LOGICAL, INTENT(IN) :: end_of_day
       integer :: year, dayOfYear
+      integer :: i,j, i_0,i_1,j_0,j_1, itype
 
       call modelEclock%getDate(year=year, dayOfYear=dayOfYear)
 
@@ -891,6 +1116,37 @@ C**** Define CO2 (ppm) for rest of model
       co2ppm = FULGAS(2)*XREF(1)
 
       if (chl_from_seawifs) call get_chl_from_seawifs
+
+      if (end_of_day) then
+
+        call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
+        call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1)
+
+        do j=J_0,J_1
+        do i=I_0,imaxj(j)
+c****
+c**** increase snow age depending on snoage_def
+c****
+          if (snoage_def.eq.0) then ! update indep. of ts
+            do itype=1,3
+              snoage(itype,i,j)=1.+.98d0*snoage(itype,i,j)
+            end do
+          elseif (snoage_def.eq.1) then ! update if max T>0
+            if (tdiurn(i,j,7).gt.0) snoage(1,i,j)=1.+.98d0
+     *           *snoage(1,i,j) ! ocean ice (not currently used)
+            if (tdiurn(i,j,8).gt.0) snoage(2,i,j)=1.+.98d0
+     *           *snoage(2,i,j) ! land ice
+            if (tdiurn(i,j,2).gt.0) snoage(3,i,j)=1.+.98d0
+     *           *snoage(3,i,j) ! land
+          else
+            write(6,*) "This snoage_def is not defined: ",snoage_def
+            write(6,*) "Please use: 0 (update indep of T)"
+            write(6,*) "            1 (update if T>0)"
+            call stop_model('stopped in RAD_DRV.f',255)
+          end if
+        enddo
+        enddo
+      endif
 
       RETURN
       END SUBROUTINE daily_RAD
@@ -1064,7 +1320,8 @@ C**** Update orbital parameters at start of year
       use OldTracer_mod, only: tr_wd_type, nWATER,tr_H2ObyCH4, itime_tr0
       USE TRACER_COM, only: trm,NTM
 #endif
-      USE DIAG_COM, only : aj=>aj_loc,j_h2och4,ftype,ntype
+      USE DIAG_COM, only : ftype,ntype
+      USE DIAG_COM_RAD, only : j_h2och4
       USE DOMAIN_DECOMP_ATM, only : grid, getDomainBounds, am_I_root
       IMPLICIT NONE
       REAL*8 :: xCH4,xdH2O
@@ -1191,7 +1448,7 @@ C     OUTPUT DATA
      &          ,SRXNIR,SRDNIR
       USE RAD_COM, only : modrd,nrad
       USE RAD_COM, only : rqt,srhr,trhr,fsf,cosz1,s0x,rsdist,nradfrc
-     *     ,CH4X_RADoverCHEM
+     *     ,CH4X_RADoverCHEM,snoage
      *     ,plb0,shl0,tchg,alb,fsrdir,srvissurf,srdn,cfrac,rcld
      *     ,chem_tracer_save,rad_interact_aer,kliq,RHfix,CLDx
      *     ,ghg_yr,CO2X,N2OX,CH4X,CFC11X,CFC12X,XGHGX,rad_forc_lev,ntrix
@@ -1237,40 +1494,16 @@ C     OUTPUT DATA
 #ifndef NO_HDIURN
      *     hdiurn=>hdiurn_loc,
 #endif
-     *     iwrite,jwrite,itwrite,ndiupt,j_pcldss,j_pcldmc,ij_pmccld,
-     *     j_clddep,j_pcld,ij_cldcv,ij_pcldl,ij_pcldm,ij_pcldh,
-     *     ij_cldtppr,j_srincp0,j_srnfp0,j_srnfp1,j_srincg,
-     *     j_srnfg,j_brtemp,j_trincg,j_hsurf,j_hatm,ij_trnfp0,
-     *     j_plavis, j_planir, j_albvis, j_albnir,
-     *     j_srrvis, j_srrnir, j_sravis, j_sranir,
-     *     ij_srnfp0,ij_srincp0,ij_srnfg,ij_srincg,ij_btmpw,ij_srref
-     *     ,ij_srvis,ij_rnfp1,j_clrtoa,j_clrtrp,j_tottrp,ijl_rc
-     *     ,ijdd,idd_cl7,idd_ccv,idd_isw,idd_palb,idd_galb, idd_aot
-     *     ,idd_aot2
-     *     ,idd_absa,jl_srhr,jl_trcr,jl_totcld,jl_sscld,jl_mccld
-     *     ,ij_frmp,jl_wcld,jl_icld,jl_wcod,jl_icod,jl_wcsiz,jl_icsiz
-     *     ,jl_wcldwt,jl_icldwt
-     *     ,ij_clr_srincg,ij_CLDTPT,ij_cldt1t,ij_cldt1p,ij_cldcv1
-     *     ,ij_wtrcld,ij_icecld,ij_optdw,ij_optdi,ij_swcrf,ij_lwcrf
-     *     ,AFLX_ST, hr_in_day,hr_in_month,ij_srntp,ij_trntp
-     *     ,ij_clr_srntp,ij_clr_trntp,ij_clr_srnfg,ij_clr_trdng
-     *     ,ij_clr_sruptoa,ij_clr_truptoa,ijl_cf
-     *     ,ij_swdcls,ij_swncls,ij_lwdcls,ij_swnclt,ij_lwnclt, NREG
-     *     ,adiurn_dust,j_trnfp0,j_trnfp1,ij_srvdir, ij_srvissurf
-     *     ,ij_chl, ij_swaerrf, ij_lwaerrf,ij_swaersrf,ij_lwaersrf
-     *     ,ij_swaerrfnt,ij_lwaerrfnt,ij_swaersrfnt,ij_lwaersrfnt
-     *     ,ij_swcrf2,ij_lwcrf2, ij_siswd, ij_siswu, save3dAOD
-#ifdef ACCMIP_LIKE_DIAGS
-     *     ,ij_fcghg ! array
+     *     iwrite,jwrite,itwrite,ndiupt
+     *     ,ijdd
+     *     ,AFLX_ST, hr_in_day,hr_in_month
+      USE DIAG_COM_RAD
+#ifdef TRACERS_ON
+      USE DIAG_COM, only : adiurn_dust,save3dAOD
 #endif
-#ifdef HEALY_LM_DIAGS
-     *     ,j_vtau,j_ghg
-#endif
-
       USE ATM_COM, only : pk,pedn,pmid,pdsig,ltropo,MA,byMA
-      USE SEAICE, only : rhos,ace1i,rhoi
       USE SEAICE_COM, only : si_atm
-      USE GHY_COM, only : snowe_com=>snowe,snoage,fr_snow_rad_ij,fearth
+      USE GHY_COM, only : fearth
 #ifdef USE_ENT
       use ent_com, only : entcells
       use ent_mod, only : ent_get_exports
@@ -1279,7 +1512,7 @@ C     OUTPUT DATA
 #else
       USE VEG_COM, only : vdata
 #endif
-      USE LAKES_COM, only : flake,mwl
+      USE LAKES_COM, only : flake,dlake!,mwl
       USE FLUXES, only : asflx4,atmocn,atmice,atmgla,atmlnd,atmsrf
      &     ,flice,fland,focean
       USE DOMAIN_DECOMP_ATM, ONLY: grid, write_parallel
@@ -1480,7 +1713,7 @@ c     INTEGER ICKERR,JCKERR,KCKERR
       real*8 :: qcb_col(6,ICOMP-2)
 #endif
 
-      REAL*8, DIMENSION(:,:), POINTER :: RSI,MSI,SNOWI,POND_MELT
+      REAL*8, DIMENSION(:,:), POINTER :: RSI,ZSI,SNOWI,POND_MELT
       LOGICAL, DIMENSION(:,:), POINTER :: FLAG_DSWS
       integer :: year, dayOfYear, hour, date
 
@@ -1488,7 +1721,7 @@ c     INTEGER ICKERR,JCKERR,KCKERR
      *     hour=hour, date=date)
 
       RSI => SI_ATM%RSI
-      MSI => SI_ATM%MSI
+      ZSI => SI_ATM%ZSI
       SNOWI => SI_ATM%SNOWI
       POND_MELT => SI_ATM%POND_MELT
       FLAG_DSWS => SI_ATM%FLAG_DSWS
@@ -1542,11 +1775,11 @@ C****   input data:          WARNINGS
 C****        1 - any changes here also go in later (look for 'iu_rad')
 C****        2 - keep "dimrad_sv" up-to-date:         dimrad_sv=IM*JM*{
      *     ,T,RQT,atmsrf%TsAvg                         ! LM+LM_REQ+1+
-     *     ,QR,P,CLDinfo,rsi,msi                       ! LM+1+3*LM+1+1+
+     *     ,QR,P,CLDinfo,rsi,zsi                       ! LM+1+3*LM+1+1+
 !     *     ,(((GTEMPR(k,i,j),k=1,4),i=1,im),j=1,jm)    ! (4+)
-     *     ,wsoil,atmsrf%wsavg,snowi,atmgla%snow,snowe_com ! 1+1+1+1+1+
+     *     ,wsoil,atmsrf%wsavg,snowi,atmgla%snow,atmlnd%snowe ! 1+1+1+1+1+
      *     ,snoage,fmp_com,flag_dsws,ltropo            ! 3+1+.5+.5+
-     *     ,fr_snow_rad_ij,mwl,flake                   ! 2+1+1
+     *     ,atmlnd%fr_snow_rad,dlake,flake                   ! 2+1+1
 C****   output data: really needed only if kradia=2
      *     ,srhra,trhra                                ! 2(LM+LM_REQ+1)}
 C****   total: dimrad_sv= IM*JM*(7*LM + 3*LM_REQ + 24 (+4)) => RAD_COM.f
@@ -1581,7 +1814,13 @@ C**** Calculate mean cosine of zenith angle for the full radiation step
       JDAYR=dayOfYear
       JYEARR=YEAR
 
-      S0=S0X*S00WM2*RATLS0/RSDIST
+      if(is_set_param('s0')) then
+        ! typically only used for SCM
+        call get_param('s0',s0)
+        s00wm2 = s0 ! just in case
+      else
+        S0=S0X*S00WM2*RATLS0/RSDIST
+      endif
 
 c**** find scaling factors for surface albedo reduction
       if(dalbsnX.ne.0.) then
@@ -1597,7 +1836,7 @@ c      ILON72=INT(.5+(I-.5)*72./IM+.5)
         ilon72 = 1 + int( 72d0*lon2d(i,j)/twopi )
         jlat46 = 1 + int( 45d0*(lat2d(i,j)+92d0*radian)/pi )
         fsnow = flice(i,j) + rsi(i,j)*(1-fland(i,j))
-        if(SNOWE_COM(I,J).gt.0.) fsnow = fsnow+fearth(i,j)
+        if(atmlnd%SNOWE(I,J).gt.0.) fsnow = fsnow+fearth(i,j)
         sumda_psum(i,j) = axyp(i,j)*fsnow
         tauda_psum(i,j) = axyp(i,j)*fsnow*depobc_1990(i,j)
       end do
@@ -2108,14 +2347,14 @@ C**** Zenith angle and GROUND/SURFACE parameters
       TSL=atmsrf%TSAVG(I,J)
       SNOWOI=SNOWI(I,J)
       SNOWLI=atmgla%SNOW(I,J)
-      SNOWE=SNOWE_COM(I,J)                    ! snow depth (kg/m**2)
-      snow_frac(:) = fr_snow_rad_ij(:,i,j)    ! snow cover (1)
+      SNOWE=atmlnd%SNOWE(I,J)                    ! snow depth (kg/m**2)
+      snow_frac(:) = atmlnd%fr_snow_rad(:,i,j)    ! snow cover (1)
       AGESN(1)=SNOAGE(3,I,J)    ! land         ! ? why are these numbers
       AGESN(2)=SNOAGE(1,I,J)    ! ocean ice        so confusing ?
       AGESN(3)=SNOAGE(2,I,J)    ! land ice
 c      print*,"snowage",i,j,SNOAGE(1,I,J)
 C**** set up parameters for new sea ice and snow albedo
-      zsnwoi=snowoi/rhos
+      zsnwoi=atmice%ZSNOWI(I,J)
       if(dalbsnX.ne.0.) then
         dALBsn = xdalbs*depobc(i,j)
       else
@@ -2129,7 +2368,7 @@ c to use on-line tracer albedo impact, set dALBsnX=0. in rundeck
       dALBsn=dALBsn1
 #endif
       if (poice.gt.0.) then
-        zoice=(ace1i+msi(i,j))/rhoi
+        zoice = ZSI(i,j)
         flags=flag_dsws(i,j)
         if (kradia .le. 0) then
           fmp=min(1.6d0*sqrt(pond_melt(i,j)/rhow),1d0)
@@ -2142,10 +2381,11 @@ c to use on-line tracer albedo impact, set dALBsnX=0. in rundeck
         zoice=0. ; flags=.FALSE. ; fmp=0. ; zmp=0.
       endif
 C**** set up new lake depth parameter to incr. albedo for shallow lakes
-      zlake=0.
-      if (plake.gt.0) then
-        zlake = MWL(I,J)/(RHOW*PLAKE*AXYP(I,J))
-      end if
+c      zlake=0.
+c      if (plake.gt.0) then
+c        zlake = MWL(I,J)/(RHOW*PLAKE*AXYP(I,J))
+c      end if
+      zlake = dlake(i,j)
 C****
       if (kradia .le. 0) then
         !WEARTH=(WEARTH_COM(I,J)+AIEARTH(I,J))/(WFCS(I,J)+1.D-20)
@@ -2910,11 +3150,11 @@ c     IF(KCKERR.GT.0)  call stop_model('In Radia: Q<0',255)
 C**** save all input data to disk if kradia<0
       if (kradia.lt.0) write(iu_rad) itime
      &     ,T,RQT,atmsrf%TsAvg   ! LM+LM_REQ+1+
-     &     ,QR,P,CLDinfo,rsi,msi ! LM+1+3*LM+1+1+
+     &     ,QR,P,CLDinfo,rsi,zsi ! LM+1+3*LM+1+1+
 !     &     ,(((GTEMPR(k,i,j),k=1,4),i=1,im),j=1,jm) ! (4+)
-     &     ,wsoil,atmsrf%wsavg,snowi,atmgla%snow,snowe_com ! 1+1+1+1+1+
+     &     ,wsoil,atmsrf%wsavg,snowi,atmgla%snow,atmlnd%snowe ! 1+1+1+1+1+
      &     ,snoage,fmp_com,flag_dsws,ltropo ! 3+1+.5+.5+
-     &     ,fr_snow_rad_ij,mwl,flake ! 2+1+1
+     &     ,atmlnd%fr_snow_rad,dlake,flake ! 2+1+1
 C**** output data: really needed only if kradia=2
      &     ,srhra,trhra         ! 2(LM+LM_REQ+1)
      &     ,itime
@@ -4421,3 +4661,254 @@ c
       end function next
       end subroutine rijh_defs
 #endif
+
+
+      subroutine readIFile(IFile)
+! Consolidated duplicate of MODELE.f code snippets that read the
+! I-file containing the parameter database and INPUTZ namelist.
+! Currently used by radiation-only configuration; to be moved
+! to MODELE.f and used by all configurations once full testing
+! is completed.
+! Note that INPUTZ contains fewer variables in this version.
+      USE FILEMANAGER, only : openunit,closeunit
+      Use Parser_mod
+      use Model_com, only : xlabel, lrunid
+      USE MODEL_COM, only : HOURI,DATEI,MONTHI,YEARI,IYEAR1
+      use diag_com, only : itwrite
+      implicit none
+C**** Command line options
+      character(len=*), intent(in) :: IFile
+
+      integer :: iu_IFILE
+!@nlparam IHRI,TIMEE,IHOURE   end of model run
+!@var  IHRI,IHOURE start and end of run in hours (from 1/1/IYEAR1 hr 0)
+      CHARACTER NLREC*80,RLABEL*132
+      NAMELIST/INPUTZ/
+     *     ITWRITE
+C****    List of parameters that are disregarded at restarts
+     *     ,HOURI,DATEI,MONTHI,YEARI
+      NAMELIST/INPUTZ_cold/
+     *     ITWRITE
+C****    List of parameters that are disregarded at restarts
+     *     ,HOURI,DATEI,MONTHI,YEARI
+      character*132 :: bufs
+      integer, parameter :: MAXLEN_RUNID = 32
+      integer :: lid1,lid2,fid,noff
+
+
+C****
+C**** Reading rundeck (I-file) options
+C****
+      call openunit(trim(ifile),iu_IFILE,.false.,.true.)
+      call parse_params(iu_IFILE)
+      call closeunit(iu_IFILE)
+
+C****
+C**** Print Header and Label (2 lines) from rundeck
+C****
+      call openunit(trim(ifile),iu_IFILE,.false.,.true.)
+      !if (AM_I_ROOT())
+      WRITE (6,'(A,40X,A/)') '0','GISS CLIMATE MODEL'
+      READ(iu_IFILE,'(A80)') XLABEL(1:80),NLREC
+      NOFF=0
+      IF (XLABEL(73:80).EQ.'        ') NOFF=8   ! for 72-column rundecks
+      XLABEL(81-NOFF:132)=NLREC(1:52+NOFF)
+      !if (AM_I_ROOT())
+      WRITE (6,'(A,A/)') '0',XLABEL
+      RLABEL = XLABEL !@var RLABEL rundeck-label
+
+      lid1 = INDEX(XLABEL,'(') -1
+      if (lid1.lt.1) lid1=MAXLEN_RUNID+1
+      lid2 = INDEX(XLABEL,' ') -1
+      if (lid2.lt.1) lid2=MAXLEN_RUNID+1
+      LRUNID = min(lid1,lid2)
+      IF (LRUNID.gt.MAXLEN_RUNID) call stop_model
+     *     ('INPUT: Rundeck name too long. Shorten to 32 char or less'
+     *     ,255)
+
+C****
+C**** Read parameters from the rundeck to database and namelist
+C****
+      do
+        read( iu_IFILE, *, err=910, end=910 ) bufs
+        if ( bufs == '&&END_PARAMETERS' ) exit
+      enddo
+
+      READ (iu_IFILE,NML=INPUTZ,ERR=900)
+
+      call closeunit(iu_IFILE)
+
+      IF (YearI.lt.0) then
+        WRITE(6,*) 'Please choose a proper start year yearI, not',yearI
+        call stop_model('INPUT: yearI not provided',255)
+      END IF
+
+      return
+C****
+C**** TERMINATE BECAUSE OF IMPROPER PICK-UP
+C****
+  900 write (6,*) 'Error in NAMELIST parameters'
+      call stop_model('Error in NAMELIST parameters',255)
+  910 write (6,*) 'Error readin I-file'
+      call stop_model('Error reading I-file',255)
+
+      end subroutine readIFile
+
+      subroutine run_radonly(IFile)
+!@sum Call single-column radiation-only model once
+      USE Dictionary_mod
+      USE DOMAIN_DECOMP_1D, ONLY : init_app
+      use Model_com, only: itime, itimeE, master_yr, xlabel, lrunid
+      USE MODEL_COM, only : YEARI,IYEAR1
+      USE DOMAIN_DECOMP_ATM, ONLY : grid,init_grid
+#ifdef CACHED_SUBDD
+      use diag_com
+      use geom, only : lon_dg,lat_dg
+#endif
+      implicit none
+C**** Command line options
+      character(len=*), intent(in) :: IFile
+c
+      integer :: i,j,l,n
+      character(len=80) :: filenm
+
+      call init_app()
+
+      call readIFile(IFile)
+
+      if (is_set_param("master_yr")) then
+        call get_param( "master_yr", master_yr )
+      else
+        call stop_model('Please define master_yr in the rundeck.',255)
+      endif
+
+      Iyear1 = yearI
+
+      call sundial
+
+      itimeE = itime+1  ! for length-1 nominal time axis in diags
+
+      call init_grid(grid, 1, 1, 1, width=0)
+
+      !call alloc_clouds_com(grid)
+      call alloc_rad_com(grid)
+      !call alloc_veg_com(grid)
+
+      call geom_1pt
+
+      CALL init_RAD(2) ! istart=2
+      CALL daily_orbit(.false.)             ! not end_of_day
+      CALL daily_RAD(.false.)
+
+      call print_param( 6 )
+
+#ifdef CACHED_SUBDD
+      ! Initialize diagnostics framework
+      call init_cdl_type('cdl_aij',cdl_ij_template)
+      call add_coord(cdl_ij_template,'lon',1,units='degrees_east',
+     &     coordvalues=lon_dg(:,1))
+      call add_coord(cdl_ij_template,'lat',1,units='degrees_north',
+     &     coordvalues=lat_dg(:,1))
+      call parse_subdd
+      call reset_cached_subdd
+      call get_subdd_vinterp_coeffs
+      call set_subdd_period()
+#endif
+
+      call calc_zenith_angle
+      call radia
+
+#ifdef CACHED_SUBDD
+      filenm = 'allsteps.subdd'//XLABEL(1:LRUNID)
+      call write_subdd_accfile (filenm)
+#endif
+
+      call stop_model('Radiation calculations completed.',13)
+
+      contains
+
+      subroutine geom_1pt
+      use geom
+      use constant, only : pi,twopi,radian
+      use dictionary_mod, only : get_param,sync_param
+      implicit none
+      real*8 :: lon_targ,lat_targ
+
+      ! mandatory rundeck parameters: lon and lat of target point
+      call get_param('lon_targ',lon_targ)
+      call get_param('lat_targ',lat_targ)
+
+      if(abs(lon_targ).gt.180d0 .or. abs(lat_targ).gt.90d0)
+     &     call stop_model(
+     &       'geom_atm: invalid lon_targ,lat_targ in rundeck',255)
+
+      lon2d_dg(1,1) = lon_targ
+      lat2d_dg(1,1) = lat_targ
+
+      axyp(1,1) = 1.
+
+      byaxyp(1,1) = 1d0/axyp(1,1)
+
+      lon2d(1,1) = lon2d_dg(1,1)*radian
+      lat2d(1,1) = lat2d_dg(1,1)*radian
+
+      sinlat2d(1,1) = sin(lat2d(1,1))
+      coslat2d(1,1) = cos(lat2d(1,1))
+      lon2d(1,1) = lon2d(1,1) + pi ! IDL has a value of zero
+      if(lon2d(1,1) .lt. 0.) lon2d(1,1)= lon2d(1,1) + twopi
+
+      imaxj = 1
+
+      lon_dg = lon2d_dg
+      lat_dg = lat2d_dg
+
+      return
+      end subroutine geom_1pt
+
+      subroutine sundial
+! Duplicate of relevant snippets of clock initialization in MODELE.f.
+! Currently used by radiation-only configuration; will disappear
+! once the clock initialization in MODELE.f has been cleanly isolated
+! from other intialization activities.
+      USE Dictionary_mod
+      USE MODEL_COM, only :
+     *      nday,dtsrc,itime,itimei
+     *     ,HOURI,DATEI,MONTHI,YEARI
+      use MODEL_COM, only: modelEclock, calendr, makeCalendar
+      use ModelClock_mod, only: ModelClock, newModelClock
+      use Time_mod, only: Time, newTime
+      use BaseTime_mod, only : baseTime,newBaseTime
+      use Rational_mod, only: nint
+      implicit none
+
+      type (Time) :: modelETime0
+      type (Time) :: modelETime
+      type (BaseTime) :: dtSrcUsed
+
+      calendr => makeCalendar()
+
+C**** Get those parameters which are needed in this subroutine
+      call get_param( "DTsrc", DTsrc )
+
+!@var NDAY=(1 day)/DTsrc : even integer; adjust DTsrc to be commensurate
+      NDAY = 2*nint(calendr%getSecondsPerDay()/(DTsrc*2))
+
+      dtSrcUsed = newBaseTime(calendr%getSecondsPerDay() / NDAY)
+      DTsrc = dtSrcUsed%convertToReal()
+
+      modelETime0 = newTime(calendr)
+      modelETime = newTime(calendr)
+
+      call modelEtime%setByDate(yearI, monthI, dateI, hourI)
+      call modelEtime0%setByDate(yearI, month=1, date=1, hour=0)
+
+      ITimeI = nint((modelEtime - modelEtime0)/ dtSrcUsed)
+      Itime = ItimeI
+
+      modelEclock = newModelClock(modelEtime,itime,Nday)
+
+      CALL DAILY_cal(.false.)   ! not end_of_day
+
+      end subroutine sundial
+
+      end subroutine run_radonly

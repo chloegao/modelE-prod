@@ -256,6 +256,12 @@ C**** Local variables initialised in init_RAD
       real*8 :: lat_dh2o(jm_dh2o)
 #endif
 
+!@dbparam snoage_def determines how snowage is calculated:
+!@+       = 0     independent of temperature
+!@+       = 1     only when max daily local temp. over type > 0
+      integer :: snoage_def = 0
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: SNOAGE
+
       END MODULE RAD_COM
 
       SUBROUTINE ALLOC_RAD_COM(grid)
@@ -272,7 +278,7 @@ C**** Local variables initialised in init_RAD
 #endif
       USE RAD_COM, ONLY : RQT,Tchg,SRHR,TRHR,FSF,FSRDIR,SRVISSURF,TRSURF
      *     ,SRDN, CFRAC, RCLD, chem_tracer_save,rad_to_chem,rad_to_file
-     *     ,KLIQ, COSZ1, COSZ_day, SUNSET, dH2O, ALB, SALB
+     *     ,KLIQ, COSZ1, COSZ_day, SUNSET, dH2O, ALB, SALB, SNOAGE
      *     ,srnflb_save, trnflb_save, ttausv_save, ttausv_cs_save
      *     ,FSRDIF,DIRNIR,DIFNIR,TAUSUMW,TAUSUMI,DIRVIS
 #ifdef mjo_subdd
@@ -322,6 +328,7 @@ C**** Local variables initialised in init_RAD
      *     chem_tracer_save(2,LM, I_0H:I_1H, J_0H:J_1H),
      *     rad_to_chem(5, LM, I_0H:I_1H, J_0H:J_1H),
      *     rad_to_file(5, LM, I_0H:I_1H, J_0H:J_1H),
+     *     SNOAGE(3,I_0H:I_1H,J_0H:J_1H),
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
      *     stratO3_tracer_save(LM, I_0H:I_1H, J_0H:J_1H),
 #endif
@@ -758,6 +765,8 @@ C**** Local variables initialised in init_RAD
       call defvar(grid,fid,dirnir,'dirnir(dist_im,dist_jm)')
       call defvar(grid,fid,difnir,'difnir(dist_im,dist_jm)')
       call defvar(grid,fid,rcld,'rcld(lm,dist_im,dist_jm)')
+      call defvar(grid,fid,snoage,'snoage(d3,dist_im,dist_jm)')
+
 #ifdef TRACERS_ON
 #ifdef TRACERS_SPECIAL_Shindell
       call defvar(grid,fid,chem_tracer_save,
@@ -825,6 +834,7 @@ C**** Local variables initialised in init_RAD
         call write_dist_data(grid, fid,'srdn',   srdn)
         call write_dist_data(grid, fid,'cfrac',  cfrac)
         call write_dist_data(grid, fid,'rcld', rcld, jdim=3)
+        call write_dist_data(grid, fid,'snoage', snoage,jdim=3)
 #ifdef TRACERS_SPECIAL_Shindell
         call write_dist_data(grid,fid,
      &       'chem_tracer_save', chem_tracer_save, jdim=4)
@@ -870,6 +880,7 @@ C**** Local variables initialised in init_RAD
         call read_dist_data(grid, fid,'srdn',   srdn)
         call read_dist_data(grid, fid,'cfrac',  cfrac)
         call read_dist_data(grid, fid,'rcld', rcld, jdim=3)
+        call read_dist_data(grid, fid,'snoage', snoage,jdim=3)
 #ifdef TRACERS_SPECIAL_Shindell
         call read_dist_data(grid,fid,
      &       'chem_tracer_save', chem_tracer_save, jdim=4)
@@ -900,4 +911,150 @@ C**** Local variables initialised in init_RAD
       end select
       return
       end subroutine new_io_rad
+
+      subroutine read_rad_ic
+!@sum   read_rad_ic read radiation coldstart initial conditions file.
+      use rad_com, only : snoage
+      use domain_decomp_atm, only : grid
+      use pario, only : par_open,par_close,read_dist_data
+      implicit none
+      integer fid   !@var fid unit number of read/write
+
+      fid = par_open(grid,'GIC','read')
+      call read_dist_data(grid, fid, 'snoage', snoage,jdim=3)
+      call par_close(grid,fid)
+
+      return
+      end subroutine read_rad_ic
+
 #endif /* NEW_IO */
+
+      MODULE DIAG_COM_RAD
+      implicit none
+
+      integer ::
+     &      j_h2och4=1
+     &     ,j_pcldss=1
+     &     ,j_pcldmc=1
+     &     ,j_clddep=1
+     &     ,j_pcld=1
+     &     ,j_srincp0=1
+     &     ,j_srnfp0=1
+     &     ,j_srnfp1=1
+     &     ,j_srincg=1
+     &     ,j_srnfg=1
+     &     ,j_brtemp=1
+     &     ,j_trincg=1
+     &     ,j_hsurf=1
+     &     ,j_hatm=1
+     &     ,j_plavis=1
+     &     ,j_planir=1
+     &     ,j_albvis=1
+     &     ,j_albnir=1
+     &     ,j_srrvis=1
+     &     ,j_srrnir=1
+     &     ,j_sravis=1
+     &     ,j_sranir=1
+     &     ,j_trnfp0=1
+     &     ,j_trnfp1=1
+     &     ,j_clrtoa=1
+     &     ,j_clrtrp=1
+     &     ,j_tottrp=1
+#ifdef HEALY_LM_DIAGS
+     *     ,j_vtau=1
+     *     ,j_ghg=1
+#endif
+
+      integer ::
+     &      jl_srhr=1
+     &     ,jl_trcr=1
+     &     ,jl_totcld=1
+     &     ,jl_sscld=1
+     &     ,jl_mccld=1
+     &     ,jl_wcld=1
+     &     ,jl_icld=1
+     &     ,jl_wcod=1
+     &     ,jl_icod=1
+     &     ,jl_wcsiz=1
+     &     ,jl_icsiz=1
+     &     ,jl_wcldwt=1
+     &     ,jl_icldwt=1
+
+      integer ::
+     &      ij_pmccld=1
+     &     ,ij_trnfp0=1
+     &     ,ij_cldcv=1
+     &     ,ij_pcldl=1
+     &     ,ij_pcldm=1
+     &     ,ij_pcldh=1
+     &     ,ij_cldtppr=1
+     &     ,ij_srvis=1
+     &     ,ij_rnfp1=1
+     &     ,ij_srnfp0=1
+     &     ,ij_srincp0=1
+     &     ,ij_srnfg=1
+     &     ,ij_srincg=1
+     &     ,ij_btmpw=1
+     &     ,ij_srref=1
+     &     ,ij_frmp=1
+     &     ,ij_clr_srincg=1
+     &     ,ij_CLDTPT=1
+     &     ,ij_cldt1t=1
+     &     ,ij_cldt1p=1
+     &     ,ij_cldcv1=1
+     &     ,ij_wtrcld=1
+     &     ,ij_icecld=1
+     &     ,ij_optdw=1
+     &     ,ij_optdi=1
+     &     ,ij_swcrf=1
+     &     ,ij_lwcrf=1
+     &     ,ij_srntp=1
+     &     ,ij_trntp=1
+     &     ,ij_clr_srntp=1
+     &     ,ij_clr_trntp=1
+     &     ,ij_clr_srnfg=1
+     &     ,ij_clr_trdng=1
+     &     ,ij_clr_sruptoa=1
+     &     ,ij_clr_truptoa=1
+     &     ,ij_swdcls=1
+     &     ,ij_swncls=1
+     &     ,ij_lwdcls=1
+     &     ,ij_swnclt=1
+     &     ,ij_lwnclt=1
+     &     ,ij_srvdir=1
+     &     ,ij_srvissurf=1
+     &     ,ij_chl=-1
+     &     ,ij_swaerrf=1
+     &     ,ij_lwaerrf=1
+     &     ,ij_swaersrf=1
+     &     ,ij_lwaersrf=1
+     &     ,ij_swaerrfnt=1
+     &     ,ij_lwaerrfnt=1
+     &     ,ij_swaersrfnt=1
+     &     ,ij_lwaersrfnt=1
+     &     ,ij_swcrf2=1
+     &     ,ij_lwcrf2=1
+     &     ,ij_siswd=1
+     &     ,ij_siswu=1
+
+#ifdef ACCMIP_LIKE_DIAGS
+!@var IJ_fcghg GHG forcing diagnostics (2=LW,SW, 4=CH4,N2O,CFC11,CFC12)
+      integer, dimension(2,4) :: ij_fcghg
+#endif
+      
+      integer ::
+     &      ijl_rc=1
+     &     ,ijl_cf=1
+
+      integer ::
+     &      idd_cl7=1
+     &     ,idd_ccv=1
+     &     ,idd_isw=1
+     &     ,idd_palb=1
+     &     ,idd_galb=1
+     &     ,idd_aot=1
+     &     ,idd_aot2=1
+     &     ,idd_absa=1
+
+
+      END MODULE DIAG_COM_RAD
