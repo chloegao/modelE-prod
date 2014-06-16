@@ -841,7 +841,7 @@ CCCCCCCCCCCCCCCCC NON-FAMILY CHEMISTRY CCCCCCCCCCCCCCCCCCCCCCCC
 
 C Save 3D radical arrays to pass to aerosol code:
       if(coupled_chem == 1) then
-        do l=1,maxl
+        do l=1,LM
           oh_live(i,j,l)=y(nOH,L)
           no3_live(i,j,l)=yNO3(i,j,l)
         end do
