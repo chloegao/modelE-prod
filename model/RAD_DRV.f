@@ -966,8 +966,9 @@ C     GAS NUMBER    8         9   10        11          12          13
 C              CCL3F1    CCL2F2   N2     CFC-Y       CFC-Z         SO2
 
           gasnames =
-     &         ['h2o','co2','o3','o2','no2','n2o','ch4',
-     &         'cfc11','cfc12','n2','cfc-y','cfc-z','so2']
+     &         ['h2o   ','co2   ','o3    ','o2    ','no2   ',
+     &          'n2o   ','ch4   ','cfc11 ','cfc12 ','n2    ',
+     &          'cfc-y ','cfc-z ','so2   ']
           set_gases_internally = .false.
           u0gas = 0.
           fid = par_open(grid,'GASES','read')
