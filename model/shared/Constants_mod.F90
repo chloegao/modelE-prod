@@ -10,7 +10,7 @@ module constant
    use MathematicalConstants_mod, only: by3, by6, by9, by12
    use PlanetaryParams_mod, only: PlanetaryParams
 #ifdef PLANET_PARAMS
-  use PlanetParams_mod, only : PlanetParams
+  use PlanetParams_mod, only : exoPlanetParams=>PlanetParams
 #endif
 !@sum  CONSTANT definitions for physical constants and useful numbers
 !@auth G. Schmidt
@@ -96,7 +96,7 @@ module constant
   real*8,parameter :: bygasc = 1./gasc
 !@param mair molar mass of dry air (28.9655 g/mol)
 #ifdef PLANET_PARAMS
-  real*8,parameter :: mair = PlanetParams%mair
+  real*8,parameter :: mair = exoPlanetParams%mair
 #else
   real*8,parameter :: mair = 28.9655d0
 #endif
@@ -118,7 +118,7 @@ module constant
 
 !@param srat ratio of specific heats at const. press. and vol. (=1.401)
 #ifdef PLANET_PARAMS
-  real*8,parameter :: srat = PlanetParams%srat
+  real*8,parameter :: srat = exoPlanetParams%srat
 #else
   real*8,parameter :: srat = 1.401d0
 #endif
@@ -161,7 +161,7 @@ module constant
 
 !@param sday  sec per day (s)
 #ifdef PLANET_PARAMS
-  real*8,parameter :: sday = PlanetParams%sday
+  real*8,parameter :: sday = exoPlanetParams%sday
 #else
   real*8,parameter :: sday = 86400.
 #endif
@@ -178,7 +178,7 @@ module constant
 
 !@param radius radius of the earth (6371000 m, IUGG)
 #ifdef PLANET_PARAMS
-  real*8,parameter :: radius = PlanetParams%radius
+  real*8,parameter :: radius = exoPlanetParams%radius
 #else
   real*8,parameter :: radius = 6371000.
 #endif
@@ -188,7 +188,7 @@ module constant
 !@param grav gravitaional accelaration (9.80665 m/s^2)
   !**** SI reference gravity (at 45 deg) = 9.80665
 #ifdef PLANET_PARAMS
-  real*8,parameter :: grav = PlanetParams%grav
+  real*8,parameter :: grav = exoPlanetParams%grav
 #else
   real*8,parameter :: grav = 9.80665d0
 #endif
@@ -213,13 +213,14 @@ module constant
   real*8,parameter :: kgpa2mm = 1d0, mm2kgpa = 1d0
 
 #ifdef PLANET_PARAMS
-  character(len=16), parameter :: planet_name=PlanetParams%name
+  character(len=16), parameter :: planet_name=exoPlanetParams%name
 #else
   character(len=16), parameter :: planet_name='Earth'
 #endif
 
-    type (PlanetaryParams) :: planetParams
-    logical, save :: init = .false.
+
+  type (PlanetaryParams) :: planetParams
+  logical :: init = .false.
 
 contains
 
