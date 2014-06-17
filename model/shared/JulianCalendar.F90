@@ -12,8 +12,6 @@ module JulianCalendar_mod
   public :: JulianCalendar
   public :: JULIAN_MONTHS ! for other calendars to see
 
-  public :: jdmidofm
-
   type, extends(FixedCalendar) :: JulianCalendar
    contains
 
@@ -39,7 +37,20 @@ module JulianCalendar_mod
        ]
 
   ! Legacy support
-  integer :: jdmidofm(0:MONTHS_PER_YEAR+1) = JULIAN_MONTHS%midDayInMonth
+  !         Legacy :  New
+  public :: JDendOfM, LAST_JULIAN_DAY_IN_MONTH
+  public :: JDmidOfM, MID_JULIAN_DAY_IN_MONTH
+
+!@var LAST_JULIAN_DAY_IN_MONTH (JDendOfM, ) last Julian day in month
+  integer, parameter :: LAST_JULIAN_DAY_IN_MONTH(0:MONTHS_PER_YEAR) = (/ &
+       & 0,31,59,90,120,151,181,212,243,273,304,334,365 &
+       & /)
+  integer, parameter :: JDendOfM(0:MONTHS_PER_YEAR) = LAST_JULIAN_DAY_IN_MONTH
+!@var MID_JULIAN_DAY_IN_MONTH(0:13) (JDmidOfM(0:13)) middle Julian day in month
+  integer, parameter :: MID_JULIAN_DAY_IN_MONTH(0:MONTHS_PER_YEAR+1) = (/ &
+       & -15,16,45,75,106,136,167,197,228,259,289,320,350,381 &
+       & /)
+  integer, parameter :: JDmidOfM(0:MONTHS_PER_YEAR+1) = MID_JULIAN_DAY_IN_MONTH
 
   ! Time is expressed as seconds since January 01 0h in BASE_YEAR
   integer, parameter :: BASE_YEAR = 1
