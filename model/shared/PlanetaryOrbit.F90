@@ -43,7 +43,7 @@ contains
        orbit = PlanetaryOrbit( &
           & p%getObliquity(), &
           & p%getEccentricity(), &
-          & p%getLongitudeOfPeriapsis(), &
+          & p%getLongitudeAtPeriapsis(), &
           & p%getSiderealOrbitalPeriod(), &
           & p%getSiderealRotationPeriod(), &
           & p%getMeanDistance())
@@ -51,7 +51,7 @@ contains
      
   end function newPlanetaryOrbit_fromParams
 
-  function newPlanetaryOrbit(obliquity, eccentricity, longitudeOfPeriapsis, &
+  function newPlanetaryOrbit(obliquity, eccentricity, longitudeAtPeriapsis, &
        & siderealPeriod, siderealRotationPeriod, meanDistance) result(orbit)
     use Rational_mod
     use BaseTime_mod
@@ -60,7 +60,7 @@ contains
     type (PlanetaryOrbit) :: orbit
     real (kind=WP), intent(in) :: obliquity
     real (kind=WP), intent(in) :: eccentricity
-    real (kind=WP), intent(in) :: longitudeOfPeriapsis
+    real (kind=WP), intent(in) :: longitudeAtPeriapsis
     real (kind=WP), intent(in) :: siderealPeriod
     real (kind=WP), intent(in) :: siderealRotationPeriod
     real (kind=WP), intent(in) :: meanDistance
@@ -71,7 +71,7 @@ contains
     type (Rational) :: q
     real (kind=WP) :: MA0
 
-    call orbit%setLongitudeAtPeriapsis(longitudeOfPeriapsis)
+    call orbit%setLongitudeAtPeriapsis(longitudeAtPeriapsis)
     call orbit%setObliquity(obliquity)
     call orbit%setEccentricity(eccentricity)
 
@@ -89,7 +89,7 @@ contains
     call orbit%setSiderealOrbitalPeriod(TimeInterval(daysPerYear * meanDayInterval))
     call orbit%setSiderealRotationPeriod(TimeInterval(meanDayInterval * Rational(daysPerYear, daysPerYear+1)))
     
-    MA0 = computeMeanAnomaly(PI/180*(longitudeOfPeriapsis - EARTH_LON_AT_PERIHELION), &
+    MA0 = computeMeanAnomaly(PI/180*(longitudeAtPeriapsis - EARTH_LON_AT_PERIHELION), &
          & eccentricity)
     call orbit%setTimeAtPeriapsis(newBaseTime(MA0/(2*PI) * (daysPerYear*meanDay)))
 

@@ -840,11 +840,11 @@ C bin5_1988 fastj2 bin#5 photon flux for year 1988
       logical :: found1988, found1991
  
       ! only for start of years and restarts:
-      if(.not. end_of_day .or. modelEclock%dayOfYear() == 1) then
+      if(.not. end_of_day .or. modelEclock%getDayOfYear() == 1) then
 
         ! set year we are looking for based on rad code s0_yr:
         if(s0_yr==0)then 
-          wantYear=modelEclock%year()
+          wantYear=modelEclock%getYear()
         else
           wantYear=s0_yr
         end if

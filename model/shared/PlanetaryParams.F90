@@ -45,7 +45,7 @@ module PlanetaryParams_mod
       ! Orbital parameters
       real (kind=WP) :: obliquity = DEFAULT_OBLIQUITY
       real (kind=WP) :: eccentricity = DEFAULT_ECCENTRICITY
-      real (kind=WP) :: longitudeOfPeriapsis = DEFAULT_LONGITUDE_AT_PERIAPSIS
+      real (kind=WP) :: longitudeAtPeriapsis = DEFAULT_LONGITUDE_AT_PERIAPSIS
       real (kind=WP) :: siderealOrbitalPeriod = DEFAULT_SIDEREAL_ORBITAL_PERIOD
       real (kind=WP) :: meanDistance  = 1.0 ! A.U.
 
@@ -60,7 +60,7 @@ module PlanetaryParams_mod
       ! Orbital parameters
       procedure :: getObliquity
       procedure :: getEccentricity
-      procedure :: getLongitudeOfPeriapsis
+      procedure :: getLongitudeAtPeriapsis
       procedure :: getSiderealOrbitalPeriod
       procedure :: getMeanDistance
 
@@ -84,7 +84,7 @@ contains
 
       call sync_param('obliquity', params%obliquity)
       call sync_param('eccentricity', params%eccentricity)
-      call sync_param('longitudeOfPeriapsis', params%longitudeOfPeriapsis)
+      call sync_param('longitudeAtPeriapsis', params%longitudeAtPeriapsis)
       call sync_param('siderealOrbitalPeriod', params%siderealOrbitalPeriod)
       call sync_param('siderealRotationPeriod', params%siderealRotationPeriod)
       
@@ -103,10 +103,10 @@ contains
    end function getEccentricity
 
 
-   real (kind=WP) function getLongitudeOfPeriapsis(this) result(longitudeOfPeriapsis)
+   real (kind=WP) function getLongitudeAtPeriapsis(this) result(longitudeAtPeriapsis)
       class (PlanetaryParams), intent(in) :: this
-      longitudeOfPeriapsis = this%longitudeOfPeriapsis
-   end function getLongitudeOfPeriapsis
+      longitudeAtPeriapsis = this%longitudeAtPeriapsis
+   end function getLongitudeAtPeriapsis
 
 
    real (kind=WP) function getSiderealOrbitalPeriod(this) result(siderealOrbitalPeriod)

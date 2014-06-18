@@ -6,7 +6,7 @@
 module Time_mod
   use AbstractCalendar_mod, only: AbstractCalendar
   use Rational_mod
-  use BaseTime_mod, only: BaseTime
+  use BaseTime_mod
   implicit none
   private
 
@@ -114,7 +114,7 @@ contains
 
 
   subroutine add(this, dt)
-     use BaseTime_mod, only: newBaseTime
+     use BaseTime_mod, only: BaseTime
      class (Time), intent(inout) :: this
      class (Rational), intent(in) :: dt
 

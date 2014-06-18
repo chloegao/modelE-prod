@@ -41,7 +41,7 @@ c
       character flnm*40,intvl*3,title*80
       integer :: year, month, dayOfYear, date, hour
 c
-      call modelEclock%getDate(year=year, month=month, date=date,
+      call modelEclock%get(year=year, month=month, date=date,
      .  hour=hour, dayOfYear=dayOfYear)
 
       call getdte(Itime,Nday,Iyear1,year,month,dayOfYear,date,hour,amon)

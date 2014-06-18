@@ -155,7 +155,7 @@ C**** Set run_status to "run in progress"
         START= START-TIMING(M)
       END DO
 
-      call modelEclock%getDate(hour=hour, date=date, year=year,amn=amon)
+      call modelEclock%get(hour=hour, date=date, year=year,amn=amon)
 
       if (AM_I_ROOT())
      *   WRITE (6,'(A,11X,A4,I5,A5,I3,A4,I3,6X,A,I4,I10)')
@@ -215,7 +215,8 @@ C****
 C**** UPDATE Internal MODEL TIME AND CALL DAILY IF REQUIRED
 C****
       call modelEclock%nextTick()
-      call modelEclock%getDate(year, month, day, date, hour, amon)
+      call modelEclock%get(year=year, month=month, dayOfYear=day, 
+     &     date=date, hour=hour, amn=amon)
       Itime=Itime+1                       ! DTsrc-steps since 1/1/Iyear1
 
       if (modelEclock%isBeginningOfDay()) THEN ! NEW DAY
@@ -417,9 +418,9 @@ C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
       integer :: month, day, year
       type (CalendarMonth) :: cMonth
 
-      year = modelEclock%year()
-      month = modelEclock%month()
-      day = modelEclock%dayOfYear()
+      year = modelEclock%getYear()
+      month = modelEclock%getMonth()
+      day = modelEclock%getDayOfYear()
       cMonth = calendar%getCalendarMonth(month=month-1,year=year)
       newmonth = (day == 1+ cMonth%lastDayInMonth)
       call daily_DIAG(newmonth) ! atmosphere
@@ -445,7 +446,7 @@ C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
       integer :: hour, date
       character(len=LEN_MONTH_ABBREVIATION) :: amon
 
-      call modelEclock%getDate(hour=hour, date=date, amn=amon)
+      call modelEclock%get(hour=hour, date=date, amn=amon)
 
       CALL rfinal(IRAND)
       call set_param( "IRAND", IRAND, 'o' )
@@ -633,7 +634,7 @@ C****
 
       use TimeConstants_mod, only : SECONDS_PER_DAY, INT_HOURS_PER_DAY, 
      &                              INT_DAYS_PER_YEAR
-      use ModelClock_mod, only: ModelClock, newModelClock
+      use ModelClock_mod, only: ModelClock
       use Time_mod, only: Time, newTime
       use MODEL_COM, only: calendar
       use CalendarMonth_mod, only: LEN_MONTH_ABBREVIATION
@@ -680,6 +681,8 @@ C****    List of parameters that are disregarded at restarts
       type (Time) :: modelETimeI, tmpTime, modelETime0, modelETimeE
       type (Time) :: modelETime
       integer :: hour, month, day, date, year
+
+      character(len=80) :: tmpStr
       character(len=LEN_MONTH_ABBREVIATION) :: amon
       type (BaseTime) :: dtSrcUsed
 
@@ -966,7 +969,10 @@ C**** Set date information
       hour = modelEtime%getHour()
       amon = modelEtime%getAbbreviation()
 
-      modelEclock = newModelClock(modelEtime,itime,Nday)
+      modelEclock = ModelClock(modelEtime,dtSrcUsed,itime)
+
+      tmpStr = modelEclock%toString()
+      modelEclock = ModelClock(tmpStr, calendar, dtSrcUsed)
 
       CALL DAILY_cal(.false.)                  ! not end_of_day
 

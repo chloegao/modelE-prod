@@ -27,7 +27,7 @@ module Rational_mod
 ! Public entities
 
   ! Derived type and constructor
-  public :: Rational  
+  public :: Rational
 
   ! Procedures for rounding to integer
   public :: nint
@@ -42,6 +42,7 @@ module Rational_mod
 
   ! Numerical value is whole + numerator/denominator
   type Rational
+     private
     integer(kind=LONG) :: whole       = 0
     integer(kind=LONG) :: numerator   = 0 
     integer(kind=LONG) :: denominator = 1 ! always positive
@@ -87,6 +88,7 @@ module Rational_mod
 
     procedure, private :: reduce ! put in canonical form
     procedure :: print
+    procedure :: toString
 
   end type Rational
 
@@ -102,6 +104,7 @@ module Rational_mod
 
     module procedure newRational_real_sp
     module procedure newRational_real_dp
+    module procedure newRational_string
   end interface Rational
 
   interface nint
@@ -337,6 +340,14 @@ contains
      r = newRational_long(w, p_n, q_n)
 
   end function newRational_real_dp
+
+  ! Supports checkpoint/restart
+  function newRational_string(string) result(r)
+     type (Rational) :: r
+     character(len=*), intent(in) :: string
+
+     read(string,*) r%whole, r%numerator, r%denominator
+  end function newRational_string
 
 ! Add two fractions and reduce to simplest form.
   function add_fraction(a, b) result(c)
@@ -626,5 +637,18 @@ contains
      class (Rational), intent(in) :: this
      write(*,'(a,i0," + ",i0,"/",i0)') 'Rational: ',this%whole, this%numerator, this%denominator
   end subroutine print
+
+
+  ! Used for checkpointing.
+  function toString(this) result(string)
+     character(len=:), allocatable :: string
+     class (Rational), intent(in) :: this
+
+     allocate(character(len=60) :: string)
+
+     write(string,'(3(I0,1x))') this%whole, this%numerator, this%denominator
+     string = trim(string)
+
+  end function toString
 
 end module Rational_mod

@@ -1512,7 +1512,7 @@ C**** Set conservation diagnostics for ice mass, energy, salt
         endif
         cyclic = seaice_yr /= 0 ! seaice_yr==0 implies transient mode.
         seaice_yr = abs(seaice_yr)
-        call modelEclock%getDate(year=jyear, dayOfYear=jday)
+        call modelEclock%get(year=jyear, dayOfYear=jday)
         if(cyclic) jyear = seaice_yr
         call init_stream(grid,RSIstream,'SICE','rsi',0d0,1d0,'ppm',
      &       jyear,jday,msk=atmocn%focean,cyclic=cyclic)
@@ -1789,7 +1789,7 @@ c
         return
       endif
 
-      call modelEclock%getDate(year=jyear, dayOfYear=jday)
+      call modelEclock%get(year=jyear, dayOfYear=jday)
 
       itocean = atmice%itocean
       itoice = atmice%itoice
@@ -2043,7 +2043,7 @@ c
       INTEGER :: IJ_FWIO,J_IMELT,J_HMELT,J_SMELT
       INTEGER :: JMON,itocean,itoice,J_IMPLM,J_IMPLH
 
-      call modelEclock%getDate(month=jmon)
+      jmon = modelEclock%getMonth()
 
       itocean = atmice%itocean
       itoice = atmice%itoice
@@ -2184,7 +2184,7 @@ c
       integer :: jmon,itoice
 
       !itoice = atmice%itoice
-      call modelEclock%getDate(month=jmon)
+      jmon = modelEclock%getMonth()
 
       I_0 = atmice%I_0
       I_1 = atmice%I_1

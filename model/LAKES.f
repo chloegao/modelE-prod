@@ -1459,7 +1459,7 @@ C****
       I_1 = grid%I_STOP
 
       DAYS=(Itime-Itime0)/REAL(nday,kind=8)
-      call modelEclock%getDate(year=year, hour=hour, date=date)
+      call modelEclock%get(year=year, hour=hour, date=date)
       WRITE(out_line,900) JYEAR0,AMON0,JDATE0,JHOUR0,YEAR,AMON,DATE,
      *      HOUR,ITIME,DAYS
       IF (AM_I_ROOT()) CALL WRITE_PARALLEL(trim(out_line), UNIT=6)
@@ -2775,7 +2775,7 @@ c     *         +ZATMO(I,J)*MWL(I,J)
       END SUBROUTINE conserv_LKE
 
       subroutine diag_river_prep
-      use constant, only : rhow,sday
+      use constant, only : rhow
       use domain_decomp_atm, only : grid,getDomainBounds,sumxpe
       use constant, only : rhow
       use model_com, only : dtsrc

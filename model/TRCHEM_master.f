@@ -235,7 +235,7 @@ C**** Local parameters and variables and arguments:
 #endif
       integer :: hour, idx
 
-      call modelEclock%getDate(hour=hour)
+      call modelEclock%get(hour=hour)
 
       call getDomainBounds(grid, 
      &               J_STRT    =J_0,  J_STOP    =J_1,
@@ -291,7 +291,7 @@ C--------special section for ghg runs ---------
               enddo
             enddo 
             if(ghg_yr/=0)then; write(ghg_name,'(I4)')ghg_yr
-            else; write(ghg_name,'(I4)')modelEclock%year(); endif
+            else; write(ghg_name,'(I4)')modelEclock%getYear(); endif
             ghg_file='GHG_IC_'//ghg_name
             call openunit(ghg_file,iu,.true.,.false.)
             do m=1,5
@@ -2106,9 +2106,9 @@ C Make sure nighttime chemistry changes are not too big:
       integer, intent(in) :: i,j
       integer :: L
 
-      dec=radian*23.455d0*COS( ((modelEclock%dayOfYear()-173)*twopi)
+      dec=radian*23.455d0*COS( ((modelEclock%getDayOfYear()-173)*twopi)
      * /DAYS_PER_YEAR )
-      lha=twopi*real(modelEclock%hour())/HOURS_PER_DAY
+      lha=twopi*real(modelEclock%getHour())/HOURS_PER_DAY
 
       CC=COS(lat2d(I,J))*COS(dec)
       SS=SIN(lat2d(I,J))*SIN(dec)

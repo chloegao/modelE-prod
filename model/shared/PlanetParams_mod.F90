@@ -13,12 +13,6 @@ module PlanetParams_mod
 !@+   Not intended to be widely used to control physics settings etc.
 !@+   May be removed in future.
      character(len=16) :: name
-!@param sday  sec per day (s)
-     real*8 :: sday
-!@param omega rotation rate (1/s)
-     real*8 :: omega
-! edperd, edpery only seem to be used to set omega.  For now, setting omega directly.
-!     real*8 :: edperd,edpery
 !@param grav gravitational acceleration (m/s2)
      real*8 :: grav
 !@param radius planetary radius (m)
@@ -46,8 +40,6 @@ module PlanetParams_mod
        notEarth = &
        PlanetParams_t( &
        name = 'notEarth', &
-       sday = 86400d0, &
-       omega = (2d0*3.1415926535897932d0)*366d0/(365d0*86400d0), &
        grav = 9.80665d0, &
        radius = 6371000d0, &
        mair = 28.9655d0, &
@@ -60,8 +52,6 @@ module PlanetParams_mod
        likeMars = &
        PlanetParams_t( &
        name = 'likeMars', &
-       sday = 86400d0, &  ! for physics testing, still using Earth values for sday,omega
-       omega = (2d0*3.1415926535897932d0)*366d0/(365d0*86400d0), &
        grav = 3.711d0, &
        radius = 6371000d0*.531d0, &
        mair = 44.01d0, &  ! pure CO2

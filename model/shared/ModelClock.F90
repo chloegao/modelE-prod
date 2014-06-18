@@ -5,17 +5,14 @@ module ModelClock_mod
   private
 
   public :: ModelClock
-  public :: newModelClock
 
   type :: ModelClock
 !!$    private
     type (Time) :: currentTime
-    type (Time) :: startTime
     type (BaseTime) :: dt
 
     ! modelE legacy representation
     integer :: tick
-    integer :: stepsPerDay
 
   contains
     procedure :: getCurrentTime
@@ -25,38 +22,64 @@ module ModelClock_mod
     procedure :: getDt
     procedure :: isBeginningOfDay
     procedure :: nextTick
+    procedure :: get
+    procedure :: getYear
+    procedure :: getMonth
     procedure :: getDate
-    procedure :: year
-    procedure :: month
-    procedure :: date
-    procedure :: dayOfYear
-    procedure :: hour
-    procedure :: abbrev ! month abbreviation
+    procedure :: getDayOfYear
+    procedure :: getHour
+    procedure :: getAbbrev ! month abbreviation
+    procedure :: toString => toString_clock
   end type ModelClock
+
+  interface modelClock
+     module procedure newModelClock_time
+     module procedure newModelClock_string
+  end interface modelClock
+
+  ! used to force keyword use in get()
+  type UnusedType
+  end type UnusedType
 
 contains
 
   ! constructor
-  function newModelClock(startTime, startTick, stepsPerDay) result(clock)
+  function newModelClock_time(startTime, dt, startTick) result(clock)
     use AbstractCalendar_mod
     type (ModelClock) :: clock
     type (Time), intent(in) :: startTime
+    type (BaseTime), intent(in) :: dt
     integer, intent(in) :: startTick
-    integer, intent(in) :: stepsPerDay
 
-    class (AbstractCalendar), pointer :: pCalendar
-
-    clock%tick = startTick
-    clock%stepsPerDay = stepsPerDay
-
-    clock%startTime = startTime
     clock%currentTime = startTime
+    clock%tick = startTick
+    clock%dt = dt
 
-    pCalendar => startTime%calendar
+  end function newModelClock_time
 
-    clock%dt = newBaseTime(pCalendar%getSecondsPerDay() / stepsPerDay)
 
-  end function newModelClock
+  ! constructor
+  function newModelClock_string(string, calendar, dt) result(clock)
+     use AbstractCalendar_mod
+     use BaseTime_mod
+     type (ModelClock) :: clock
+     character(len=*), intent(in) :: string
+     class (AbstractCalendar), intent(in) :: calendar
+     type (BaseTime), intent(in) :: dt
+
+     type (Time) :: t
+     integer :: startTick
+     character(len=80) :: tmpString
+
+     t = newTime(calendar)
+
+     read(string,'(i,1x,a)') startTick, tmpString
+
+     call t%setBaseTime(newBaseTime(tmpString))
+
+     clock = ModelClock(t, dt, startTick)
+ 
+  end function newModelClock_string
 
   subroutine nextTick(this)
     class (ModelClock), intent(inout) :: this
@@ -78,8 +101,14 @@ contains
 
   logical function isBeginningOfDay(this)
     class (ModelClock), intent(in) :: this
+
+    type (Time) :: timeAtPreviousStep
     
-    isBeginningOfDay = mod(this%tick, this%stepsPerDay) == 0
+    timeAtPreviousStep = newTime(this%currentTime%calendar)
+    call timeAtPreviousStep%setBaseTime(newBaseTime(this%currentTime - this%dt))
+
+    isBeginningOfDay = (this%getHour() == 0) .and. (timeAtPreviousStep%getHour() /= 0)
+
   end function isBeginningOfDay
 
   function getAbsoluteTimeInSeconds(this) result (secs)
@@ -113,7 +142,7 @@ contains
   end function getTimeInSecondsFromDate
 
 
-  subroutine getDate(this, year, month, dayOfYear, date, hour, amn)
+  subroutine get(this, unused, year, month, dayOfYear, date, hour, amn)
 !@sum  getDate gets Calendar info from internal timing info
 !@auth Gavin Schmidt (updated by Tom CLune)
     use TimeConstants_mod, only: INT_SECONDS_PER_HOUR
@@ -121,6 +150,7 @@ contains
     use CalendarMonth_mod, only: LEN_MONTH_ABBREVIATION, CalendarMonth
 
     class (ModelClock), intent(in) :: this
+    type (UnusedType), optional :: unused
     integer, optional, intent(out) :: year
     integer, optional, intent(out) :: month
     integer, optional, intent(out) :: dayOfYear
@@ -142,41 +172,51 @@ contains
     if (present(hour)) hour = this%currentTime%getHour()
 
     return
-  end subroutine getDate
+  end subroutine get
 
-  integer function year(this)
+  integer function getYear(this) result(year)
     class (ModelClock), intent(in) :: this
     year = this%currentTime%getYear()
-  end function year
+  end function getYear
 
-  integer function month(this)
+  integer function getMonth(this) result(month)
     class (ModelClock), intent(in) :: this
     month = this%currentTime%getMonth()
-  end function month
+  end function getMonth
 
-  integer function date(this)
-    class (ModelClock), intent(in) :: this
-
-    date = this%currentTime%getDate()
-  end function date
-
-  integer function dayOfYear(this)
+  integer function getDayOfYear(this) result(dayOfYear)
     class (ModelClock), intent(in) :: this
     dayOfYear = this%currentTime%getDayOfYear()
-  end function dayOfYear
+  end function getDayOfYear
 
-  integer function hour(this)
+
+  integer function getDate(this) result(date)
+    class (ModelClock), intent(in) :: this
+    date = this%currentTime%getDate()
+  end function getDate
+
+
+  integer function getHour(this) result(hour)
     class (ModelClock), intent(in) :: this
 
     hour = this%currentTime%getHour()
-  end function hour
+  end function getHour
 
-  function abbrev(this)
+  function getAbbrev(this) result(abbrev)
     use CalendarMonth_mod, only: LEN_MONTH_ABBREVIATION
     character(len=LEN_MONTH_ABBREVIATION) abbrev
     class (ModelClock), intent(in) :: this
 
     abbrev = this%currentTime%getAbbreviation()
-  end function abbrev
+  end function getAbbrev
+
+  function toString_clock(this) result(string)
+     use StringUtilities_mod, only: toString
+     character(len=:), allocatable :: string
+     class (ModelClock), intent(in) :: this
+
+     string = toString(this%tick) // ' ' // this%currentTime%toString()
+
+  end function toString_clock
 
 end module ModelClock_mod

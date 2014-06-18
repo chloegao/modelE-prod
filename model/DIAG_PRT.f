@@ -449,7 +449,7 @@ C**** PRINTS THE TABLE OF KEY NUMBERS
 C****
       integer :: year, month, hour, date
 
-      call modelEclock%getDate(year=year, month=month, hour=hour,
+      call modelEclock%get(year=year, month=month, hour=hour,
      *     date=date)
       DAYS=(Itime-Itime0)/FLOAT(nday)
       KEYNR(1,KEYCT)=JMON0
@@ -675,7 +675,7 @@ C**** Arrays needed for full output
       CHARACTER*200    :: fmt918
       integer :: year, hour, date
 
-      call modelEclock%getDate(year=year, hour=hour, date=date)
+      call modelEclock%get(year=year, hour=hour, date=date)
 
       fmt903 = "('0',131('-')/20X,'G      NH     SH   ',24I4)"
       fmt918 = "('0',16X,23(1X,A4)/17X,23(1X,A4)/1X,131('-'))"
@@ -1863,7 +1863,7 @@ C****
 
       integer :: year, date
 
-      call modelEclock%getDate(year=year, date=date)
+      call modelEclock%get(year=year, date=date)
 
       if ( present(ARQX) ) goto 777
 
@@ -2106,7 +2106,7 @@ C****
 
       integer :: year, date
 
-      call modelEclock%getDate(year=year, date=date)
+      call modelEclock%get(year=year, date=date)
 
       if ( present(ARQX) ) goto 777
 
@@ -2305,7 +2305,7 @@ c      real*8, dimension(:,:), allocatable :: anum,aden,xjl
 
       integer :: year, date
 
-      call modelEclock%getDate(year=year, date=date)
+      call modelEclock%get(year=year, date=date)
 
       if(present(vsumfac)) then
         vsfac = vsumfac
@@ -2739,7 +2739,7 @@ C**** INITIALIZE CERTAIN QUANTITIES
       INTEGER :: I,L,LMAX
       integer :: year, date
 
-      call modelEclock%getDate(year=year, date=date)
+      call modelEclock%get(year=year, date=date)
 
 C****
 C**** PRODUCE A LONGITUDE BY LAYER TABLE OF THE ARRAY A
@@ -2843,7 +2843,7 @@ C****
 
       integer :: year, date
 
-      call modelEclock%getDate(year=year, date=date)
+      call modelEclock%get(year=year, date=date)
 
       NMAX=NWAV_DAG
       IDACC9=IDACC(ia_12hr)
@@ -3089,7 +3089,7 @@ C**FREQUENCY BAND AVERAGE
       integer isumz,isumg
       integer :: year
 
-      year = modelEclock%year()
+      year = modelEclock%getYear()
 
       isumz = 2 ; isumg = 2  !  default: in most cases MEANS are needed
       if (k.eq.ij_dsev) isumz = 1
@@ -3264,7 +3264,7 @@ c**** find hemispheric and global means
      &     DE4TI,BYDPK,SZNDEG
       integer :: year, hour, date
 
-      call modelEclock%getDate(year=year, hour=hour, date=date)
+      call modelEclock%get(year=year, hour=hour, date=date)
 
 C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
       IF(QDIAG) call open_ij(trim(acc_period)//'.ij'//XLABEL(1:LRUNID)
@@ -3615,7 +3615,7 @@ C**** Print out full-page digital maps
       INTEGER :: I,J,jgrid
       integer :: year, hour, date
 
-      call modelEclock%getDate(year=year, hour=hour, date=date)
+      call modelEclock%get(year=year, hour=hour, date=date)
 
 C**** WRITE HEADER LINES
       DAYS=(Itime-Itime0)/FLOAT(nday)
@@ -3775,7 +3775,7 @@ C**** Arrays needed for full output and pdE
       CHARACTER*38, DIMENSION(KCON) :: TITLEO
       integer :: year, hour, date
 
-      call modelEclock%getDate(year=year, hour=hour, date=date)
+      call modelEclock%get(year=year, hour=hour, date=date)
 
 C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
       IF (QDIAG)
@@ -3915,7 +3915,7 @@ C****
       REAL*8 :: FACTOR,FNM
       integer :: year, hour, date
 
-      call modelEclock%getDate(year=year, hour=hour, date=date)
+      call modelEclock%get(year=year, hour=hour, date=date)
 
       NM=1+IM/2
       IF (IDACC(ia_inst).LT.1) IDACC(ia_inst)=1
@@ -4063,7 +4063,7 @@ C****
       CHARACTER :: CPOUT*2
       integer :: year, date
 
-      call modelEclock%getDate(year=year, date=date)
+      call modelEclock%get(year=year, date=date)
 
 C****
       NDAYS=IDACC(ia_12hr)/2
@@ -4174,7 +4174,7 @@ C****
       integer :: year, month, date
       type (CalendarMonth) :: cMonth
 
-      call modelEclock%getDate(year=year, month=month, date=date)
+      call modelEclock%get(year=year, month=month, date=date)
 
 C****
       NDAYS=IDACC(ia_12hr)/2
@@ -4287,7 +4287,7 @@ C****
       REAL*8 :: TOFDYX
       integer :: year, hour, date
 
-      call modelEclock%getDate(year=year, hour=hour, date=date)
+      call modelEclock%get(year=year, hour=hour, date=date)
 
       IDACC5=IDACC(ia_d4a)
       IF (IDACC5.LE.0) RETURN

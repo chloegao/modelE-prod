@@ -41,7 +41,7 @@ c
      . mon_date(13)=(/0,31,59,90,120,151,181,212,243,273,304,334,365/)
       integer :: year, month, dayOfYear, date, hour
 c
-      call modelEclock%getDate(year=year, month=month, date=date,
+      call modelEclock%get(year=year, month=month, date=date,
      .  hour=hour, dayOfYear=dayOfYear)
       call getdte(Itime,Nday,Iyear1,year,month,dayOfYear,date,hour,amon)
       print *,'stamp',Itime,Nday,Iyear1,year,month,dayOfYear,date,hour,

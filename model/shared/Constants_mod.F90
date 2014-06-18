@@ -157,20 +157,9 @@ module constant
 !@var avog Avogadro's constant (atmos/mole)
   real*8,parameter :: avog=6.023d23
 
-  !**** Astronomical constants
-
-!@param sday  sec per day (s)
-#ifdef PLANET_PARAMS
-  real*8,parameter :: sday = exoPlanetParams%sday
-#else
-  real*8,parameter :: sday = 86400.
-#endif
-!@param syr  sec per year (s)
-  real*8,parameter :: syr = sday*365.
-
-!@param hrday  hours in a day (hrs)
-  real*8,parameter :: hrday = sday/3600.
-
+!**** Astronomical constants
+!@param daysPerYear number of solar days per orbital period
+  real*8, protected :: daysPerYear
 !@param omega earth's rotation rate (7.29 s^-1)
   real*8, protected :: omega
 !@param omega2 2*omega
@@ -229,6 +218,8 @@ contains
       ! need to support exoplanet run-time configuration
 
       real*8 :: rotationPeriod
+      real*8 :: orbitalPeriod
+      real*8 :: rotationsPerYear
 
       if (init) return
 
@@ -236,10 +227,15 @@ contains
 
       planetParams = PlanetaryParams() ! read from rundeck
       rotationPeriod = planetParams%getSiderealRotationPeriod()
+      orbitalPeriod = planetParams%getSiderealOrbitalPeriod()
       omega = 2*pi/rotationPeriod
       omega2 = 2*omega
 
-      write(*,*)'omega = ', omega
+      rotationsPerYear = orbitalPeriod / rotationPeriod
+      daysPerYear = rotationPeriod * (rotationsPerYear / (rotationsPerYear - 1))
+
+!!$      syr = orbitalPeriod
+
 
    end subroutine initializeConstants
 
