@@ -158,6 +158,7 @@ C**** (Simplified) Calendar Related Terms
       use ParameterizedEarthOrbit_mod
       use DOMAIN_DECOMP_1d, only: am_i_root
       use Dictionary_mod
+      use Constant, only: planetParams
       implicit none
       class (AbstractOrbit), allocatable :: orbit
 
@@ -209,7 +210,9 @@ C**** (Simplified) Calendar Related Terms
           write(6,*) 'Fixed orbital parameters from year',pyear,' CE:'
         end if
       case (-1) ! orbital parameters fixed, directly set
-        eccen= orb_par(1) ; obliq=orb_par(2) ; omegt=orb_par(3)
+        eccen = planetParams%getEccentricity()
+        obliq = planetParams%getObliquity()
+        omegt = planetParams%getLongitudeAtPeriapsis()
         allocate(orbit, source=Earth365DayOrbit(eccen, obliq, omegt))
         if (am_i_root()) then
           write(6,*) 'Orbital Parameters Specified:'
