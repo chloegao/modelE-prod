@@ -2775,7 +2775,7 @@ c     *         +ZATMO(I,J)*MWL(I,J)
       END SUBROUTINE conserv_LKE
 
       subroutine diag_river_prep
-      use constant, only : rhow,sday
+      use constant, only : rhow
       use domain_decomp_atm, only : grid,getDomainBounds,sumxpe
       use constant, only : rhow
       use model_com, only : dtsrc

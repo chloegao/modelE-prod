@@ -77,7 +77,7 @@
       use domain_decomp_atm, only : getDomainBounds,grid
       use diag_com, only : aij=>aij_loc,ij_toc2,ij_tgo2
       use constant, only : twopi,shw,rhows
-      use TimeConstants_mod, only : edpery
+      use Constant, only : daysPerYear
       use model_com, only : itime,itimei
       use model_com, only :  modelEclock
       use timestream_mod, only : read_stream
@@ -116,7 +116,7 @@ C**** limit z1o to the annual-maximum mixed layer depth z12o
 
 C**** Calculate sines and cosines of the time of year for
 C**** obtaining OHT convergence from arrays OT[ABC]
-      ANGLE=TWOPI*JDAY/EDPERY
+      ANGLE=TWOPI*JDAY/daysPerYear
       SINANG=SIN(ANGLE)
       SN2ANG=SIN(2*ANGLE)
       SN3ANG=SIN(3*ANGLE)

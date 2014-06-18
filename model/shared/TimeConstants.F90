@@ -44,15 +44,5 @@ module TimeConstants_mod
   integer, parameter :: JDPERY = INT_DAYS_PER_YEAR
 !@var JMperY number of months per year
   integer, parameter :: JMPERY = INT_MONTHS_PER_YEAR
-!@var SDAY seconds per day
-  real*8, parameter :: SDAY = SECONDS_PER_DAY
-!@var SYR seconds per year
-  real*8, parameter :: SYR = SECONDS_PER_YEAR
-!@var HRDAY hours per day
-  real*8, parameter :: HRDAY = HOURS_PER_DAY
-!@var EDPERD Earth days per day
-  real*8, parameter :: EDPERD = EARTH_DAYS_PER_DAY
-!@var EDPERY Earth days per year
-  real*8, parameter :: EDPERY = EARTH_DAYS_PER_YEAR
 
 end module TimeConstants_mod

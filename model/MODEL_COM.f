@@ -575,7 +575,7 @@ C****
 !-------------------------------------------------------------------------------
       subroutine init_esmf_clock_for_modelE(interval, clock)
 !-------------------------------------------------------------------------------
-      use constant, only : hrday
+      use TimeConstants_mod, only: HOURS_PER_DAY
       use MODEL_COM, only : itimei,itimee,nday,iyear1
       use ESMF
       implicit none
@@ -594,9 +594,11 @@ C****
       CHARACTER*4 :: cmon
 
       call getdte(itimei,nday,iyear1,YEARI,MONTHI,jday,DATEI,HOURI,cmon)
-      MINTI = nint(mod( mod(Itimei*hrday/Nday,hrday) * 60d0, 60d0))
+      MINTI = nint(mod( 
+     &     mod(Itimei*HOURS_PER_DAY/Nday,HOURS_PER_DAY) * 60d0, 60d0))
       call getdte(itimee,nday,iyear1,YEARE,MONTHE,jday,DATEE,HOURE,cmon)
-      MINTE = nint(mod( mod(Itimee*hrday/Nday,hrday) * 60d0, 60d0))
+      MINTE = nint(mod( 
+     &     mod(Itimee*HOURS_PER_DAY/Nday,HOURS_PER_DAY) * 60d0, 60d0))
 
     ! initialize calendar to be Gregorian type
       gregorianCalendar = esmf_calendarcreate(ESMF_CALKIND_GREGORIAN,
