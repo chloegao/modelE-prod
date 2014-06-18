@@ -140,10 +140,6 @@ meanDistance = 1.52366231 ! AU
 ! scaling factor for solar brightness is now from mean distance.
 s0x=1.00
 
-variable_orb_par=-1
-! orb_par = ecc, obliq, long-per
-orb_par=0.093, 25.19d0, 280.3268714047452d0
-
 ! scaling factor for CO2 amounts.  Increase by the ratio of 95% molar CO2 to
 ! whatever concentration is in the GHG file (which has ppmv units)
 !co2x=1.
