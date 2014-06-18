@@ -132,8 +132,8 @@ planetName = 'Mars'
 eccentricity = 0.093
 obliquity = 25.19d0 ! degrees
 longitudeAtPeriapsis = 251.0! degrees
-orbitalPeriod  = 59354294.4 ! seconds
-rotationPeriod = 88642.6848 ! seconds
+siderealOrbitalPeriod  = 59354294.4 ! seconds
+siderealRotationPeriod = 88642.6848 ! seconds
 meanDistance = 1.52366231 ! AU
 
 
@@ -206,5 +206,5 @@ KOCEAN=0
  &INPUTZ
    YEARI=0001,MONTHI=12,DATEI=30,HOURI=0, IYEAR1=0001 ! or earlier
    YEARE=1951,MONTHE=1,DATEE=1,HOURE=0,     KDIAG=13*0,
-   ISTART=2,IRANDI=0, YEARE=0020,MONTHE=2,DATEE=1,HOURE=1
+   ISTART=2,IRANDI=0, YEARE=0001,MONTHE=12,DATEE=30,HOURE=1
  /
