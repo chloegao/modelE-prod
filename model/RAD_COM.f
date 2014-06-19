@@ -917,13 +917,20 @@ C**** Local variables initialised in init_RAD
       use rad_com, only : snoage
       use domain_decomp_atm, only : grid
       use pario, only : par_open,par_close,read_dist_data
+      use filemanager, only : file_exists
       implicit none
       integer fid   !@var fid unit number of read/write
 
-      fid = par_open(grid,'GIC','read')
-      call read_dist_data(grid, fid, 'snoage', snoage,jdim=3)
-      call par_close(grid,fid)
-
+      if(file_exists('GIC')) then
+        ! Read snow age using old-style IC (from rsf)
+        fid = par_open(grid,'GIC','read')
+        call read_dist_data(grid, fid, 'snoage', snoage,jdim=3)
+        call par_close(grid,fid)
+      else
+        ! Newer cold-start IC files contain only the fundamental state variables.
+        ! Set snow age to zero (Initial snow albedo irrelevant for cold starts).
+        snoage = 0d0
+      endif
       return
       end subroutine read_rad_ic
 
