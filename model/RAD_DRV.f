@@ -987,6 +987,25 @@ C              CCL3F1    CCL2F2   N2     CFC-Y       CFC-Z         SO2
          !fulgas = 1. ! needed?
 
           ulgas = u0gas
+
+          ! Multiply gas amounts by rundeck scaling factors.
+          ! Looping not an option since fulgas array does not yet
+          ! contain the factors.
+
+          !ulgas(:, 1) = ulgas(:, 1)*H2OstratX
+          ulgas(:, 2) = ulgas(:, 2)*CO2X
+          ulgas(:, 3) = ulgas(:, 3)*O3X
+          ulgas(:, 4) = ulgas(:, 4)*O2X
+          ulgas(:, 5) = ulgas(:, 5)*NO2X
+          ulgas(:, 6) = ulgas(:, 6)*N2OX
+          ulgas(:, 7) = ulgas(:, 7)*CH4X
+          ulgas(:, 8) = ulgas(:, 8)*CFC11X
+          ulgas(:, 9) = ulgas(:, 9)*CFC12X
+          ulgas(:,10) = ulgas(:,10)*N2CX
+          ulgas(:,11) = ulgas(:,11)*XGHGX
+          ulgas(:,12) = ulgas(:,12)*YGHGX
+          ulgas(:,13) = ulgas(:,13)*SO2X
+
         endif
         if(file_exists('VISAODangstr')) then
           set_aerosols_internally = .false.
