@@ -206,6 +206,7 @@ C**** (Simplified) Calendar Related Terms
       case (0)  ! orbital parameters fixed from year orb_par_year_bp
         pyear=1950.-orb_par_year_bp ! here "present" means "1950"
         allocate(orbit, source=Earth365DayOrbit(pYear))
+        call orbit%setYear(pYear)
         if (am_i_root()) then
           write(6,*) 'Fixed orbital parameters from year',pyear,' CE:'
         end if
