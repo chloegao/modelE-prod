@@ -199,7 +199,7 @@ C--------------------------------------------------------
 
       REAL*8 TRDFLB(LX+1),TRUFLB(LX+1),TRNFLB(LX+1), TRFCRL(LX)
       REAL*8 SRDFLB(LX+1),SRUFLB(LX+1),SRNFLB(LX+1), SRFHRL(LX)
-      REAL*8 chem_out(LX,5)
+      REAL*8 :: chem_out(LX,5)=0d0
       REAL*8 SRIVIS,SROVIS,PLAVIS,SRINIR,SRONIR,PLANIR,
      *       SRDVIS,SRUVIS,ALBVIS,SRDNIR,SRUNIR,ALBNIR,
      *       SRTVIS,SRRVIS,SRAVIS,SRTNIR,SRRNIR,SRANIR
@@ -6322,7 +6322,7 @@ C
       TAER=WSREXT(L,6)
       IPI0=WSRPI0(L,6)*1000.D0+1.D-05
       HLM=0.5D0*(HLB0(L+1)+HLB0(L))
-      TLAPS=(TLT(L)-TLB(L))/(HLB0(L+1)-HLB0(L))
+      TLAPS=(TLT(L)-TLB(L))/max(1d-3,HLB0(L+1)-HLB0(L))
       IRHL=RHL(L)*100.0
       IF(PL(L) < 1.D0) THEN
       WRITE(KW,6212) L,PL(L),HLM,TLM(L),TLAPS,SHL(L),IRHL

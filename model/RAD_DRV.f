@@ -4766,6 +4766,7 @@ C****
       use diag_com
       use geom, only : lon_dg,lat_dg
 #endif
+      use TimerPackage_mod, only: initializeTimerPackage_mod=>initialize
       implicit none
 C**** Command line options
       character(len=*), intent(in) :: IFile
@@ -4774,6 +4775,8 @@ c
       character(len=80) :: filenm
 
       call init_app()
+
+      call initializeTimerPackage_mod() ! avoid probs when RADIA calls timers
 
       call readIFile(IFile)
 
