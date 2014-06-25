@@ -27,7 +27,7 @@ module PlanetaryCalendar_mod
 
   real (kind=WP), parameter :: PI = 2*asin(1.d0)
 
-  integer, parameter :: MIN_DAYS_PER_YEAR = 200
+  integer, parameter :: MIN_DAYS_PER_YEAR = 120
 
 contains
 
