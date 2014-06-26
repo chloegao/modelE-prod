@@ -109,6 +109,7 @@
 
       !* ZERO SOME OUTPUT VARIABLES AT PATCH LEVEL
       pp%TRANS_SW = 1.d0 !Case of zero LAI.
+      Iemis = undef !NKDEBUG
       !* Time-stepped outputs:  CNC, Ci, Qf.
 
       !* INITIALIZE SUMMARY OUTPUT VARIABLES *!
@@ -195,7 +196,13 @@
           cop%stressH2O = water_stress3(cop%pft, N_DEPTH,  
      i          pp%cellptr%Soilmoist(:), 
      &          cop%fracroot, pp%cellptr%fice(:), cop%stressH2Ol(:))
-
+!          if ((pfpar(cop%pft)%pst.eq.C4)
+!     &          .and.(cop%stressH2O.eq.0.d0)) then
+!                print *,'pft,stressH2O',cop%pft,cop%stressH2O
+!     &                   ,cop%fracroot
+!     &                   ,pp%cellptr%Soilmoist(:),pp%cellptr%fice(:)
+!     &                   ,psdrvpar
+!          endif  !NK DEBUG
           call calc_Pspar(dtsec,cop%pft,psdrvpar%Pa,psdrvpar%Tc
      i         ,O2frac*psdrvpar%Pa
      i         ,cop%stressH2O,cop%Sacclim,cop%llspan)
@@ -211,7 +218,6 @@
      &         ,Iemis
      &         ,TRANS_SW)       !NOTE:  Should include stressH2O.
 !     &       ,if_ci)  
-
           if (pfpar(cop%pft)%leaftype.eq.BROADLEAF) then
             ! stomata on underside of leaves so max stomatal blocking = 0
             fdry_pft_eff = 1.d0
@@ -368,7 +374,6 @@
       !call qsimp(cradpar%LAI,cradpar,ci,Tc,Pa,rh,Anet,Gsint) 
       !### LAIcanopy for radiation and LAIcohort for photosynthesis need to be distinguished.
       call qsimp(cradpar%LAI,cradpar,psdrvpar,Gb,Atot,Gsint,Rdint,Iint) 
-
 !#DEBUG      
 !      write(993,*) cradpar,psdrvpar,Gb,Atot,Gsint,Rdint,Iint
       !sigma	sqrtexpr	kdf	rhor	kbl	pft	canalbedo	LAI	Coszen	I0df	I0dr	ca	ci	Tc	Pa	rh	Gb	Atot	Gsint	Rdint	Iint
@@ -444,7 +449,6 @@
 
       !Calculate photosynthesis and stomatal conductance.
 !      write(991,*) 'sunlit'
-
       sunlitshaded = 1
       call pscondleaf(crp%pft,Isl,psd,Gb,gssl,Asl,Rdsl,sunlitshaded,
      & Iemisl)
