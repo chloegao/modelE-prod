@@ -282,7 +282,7 @@ cddd        if ( Ae > 0.d0 ) write(578,*) Axxx - Ae
 
       !Anet = min(Ae, Ac, As)
       !Limit flux for numerical stability, keep cs>0.2*ca
-      Anet = min(Ae, Ac, As, 0.8d0*ca*gb/1.37d0) !Limit flux for numerical stability
+      Anet = min(Ae, Ac, As, 0.8d0*ca*gb/1.37d0) 
       Atot = Anet + Rd
       Aiso = Ae + Rd
 
