@@ -384,7 +384,7 @@ C NADINE - IS THIS CORRECT?
       use patches, only : shc_patch
 !      use ent_prescr_veg, only : GISS_shc
       implicit none
-      type(entcelltype),pointer :: ecp
+      type(entcelltype) :: ecp
       !-----Local---------
       type(patch),pointer :: pp
       real*8 :: shc, pfrac

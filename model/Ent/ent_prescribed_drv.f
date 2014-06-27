@@ -933,7 +933,7 @@ ccc        call stop_model("fix reading soil C for site", 255)
       logical,intent(in) :: do_soilinit
       logical,intent(in) :: do_read_from_files
       !------
-      real*8 :: soil_C_total(N_CASA_LAYERS,I0:I1,J0:J1)
+      !real*8 :: soil_C_total(N_CASA_LAYERS,I0:I1,J0:J1)
       call init_canopy_physical(I0, I1, J0, J1,
      &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini)
       
@@ -946,8 +946,15 @@ ccc        call stop_model("fix reading soil C for site", 255)
       Tpooldata(:,:,:,:,:,:) = 0.d0
 #else
       if ( do_soilinit ) then
+#ifdef SOILCARB_SITE
+         print *,"Getting site soil carbon"
+         call read_soilcarbon_site(I0,I1,J0,J1,Tpooldata)
+#else
+        !Global soil carbon pools
+        print *,'Reading global soil carbon data'
         call prescr_get_soil_C_total(IM,JM,I0,I1,J0,J1,soil_C_total)
         call prescr_get_soilpools(I0,I1,J0,J1,soil_C_total,Tpooldata)
+#endif
       else
         Tpooldata = 0.d0
       endif

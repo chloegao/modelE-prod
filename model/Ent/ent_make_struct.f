@@ -92,9 +92,10 @@
       subroutine calc_cohort_allometry(cop)
 !@sum calc_cohort_allometry.  cop comes initialized with pft, n, h.
 !+    This subroutine calculates other allometry and biomass pools.      
-      use ent_prescr_veg, only : crown_radius_hw,
-     &     prescr_calc_rootprof, init_Clab
-      use allometryfn, only : height2dbh, allom_plant_cpools
+      !use ent_prescr_veg, only : crown_radius_hw
+      use ent_prescr_veg, only :  prescr_calc_rootprof
+      use allometryfn, only : Crown_rad_allom, height2dbh
+     &    , allom_plant_cpools, init_Clab
       use ent_pfts, only : COVEROFFSET,nmv
       implicit none
       type(cohort),pointer :: cop
@@ -102,14 +103,15 @@
       real*8 :: cpool(N_BPOOLS) !g-C/pool/plant
 
       cop%dbh = height2dbh(cop%pft,cop%h)
-      cop%crown_dx = crown_radius_hw(cop%dbh) !## Eventually need to make pft-specific
+      !cop%crown_dx = crown_radius_hw(cop%dbh) !## Eventually need to make pft-specific
+      cop%crown_dx = Crown_rad_allom(cop%pft,cop%h)
       !cop%crown_dy = 0.66d0*cop%h !* Temporary estimate
       cop%nm = nmv(cop%pft+COVEROFFSET)
       !if (.not.FORCE_VEG)
       !cop%LAI = No need to assign LAI here, because max is used for allometry.
       call allom_plant_cpools(cop%pft,0.d0,cop%h,cop%dbh,cop%n,cpool)
       !if .not.FORCE_INIT_CLAB 
-      call init_Clab(cop%pft,cop%dbh,cop%h,cpool)
+      call init_Clab(cop%pft,cop%dbh,cop%h,cpool(LABILE))
       !else *ent_struct_readcsv should provide Clab
       call prescr_calc_rootprof(cop%fracroot,cop%pft + COVEROFFSET)
       cop%C_fol = cpool(FOL)
@@ -149,7 +151,8 @@
       !* Set up pointers.
 !      call entcell_construct(ec)
 !      call zero_entcell( ec )
-      call patch_construct(pp,null(),1.d0,2)!Blank patch to hold values.
+      !!call patch_construct(pp,null(),1.d0,2)!Blank patch to hold values.
+      call patch_construct(pp,ec,1.d0,2)!Blank patch to hold values.
       call zero_patch(pp)
       call cohort_construct(cop)
       call zero_cohort(cop)
@@ -165,18 +168,21 @@
         if (next.eq.'$') then
            write(*,*) 'End of entcell.'
            end_of_entcell = .true.
-           exit
+           !exit
         else if (next.eq.'*') then !skip comment
         else if (next.eq.'p') then !new patch
           write(*,*) 'p'
           pk = pk + 1
-          call read_patch_struct(pp,iu_entstruct)
+          !!!call read_patch_struct(pp,iu_entstruct)
           if (pk.gt.1) then !First patch overwrites any default initial dummy.
              write(*,*) 'pk = ', pk
-             call insert_patch(ec,pp%area,pp%soil_type) 
+             !!!call insert_patch(ec,pp%area,pp%soil_type) 
+             call insert_patch(ec,1.d0,2) 
              write(*,*) 'inserted patch'
           endif
-          call patch_copy(pp,ec%youngest) !Copy read-in patch data.
+          pp=>ec%youngest
+          call read_patch_struct(pp,iu_entstruct)
+          !!!call patch_copy(pp,ec%youngest) !Copy read-in patch data.
 
           write(*,*) 'patch age area soil',pp%age,pp%area,pp%soil_type
         else if (next.eq.'c') then !new cohort
@@ -186,7 +192,7 @@
           !## Assumes last patch is youngest 
           !## (insert_patch does not currently sort by age).
           call insert_cohort(ec%youngest,cop%pft,
-     !&         cop%n,cop%h,cop%nm,0.d0,cop%crown_dx,cop%crown_dy,
+!     &         cop%n,cop%h,cop%nm,0.d0,cop%crown_dx,cop%crown_dy,
      &         cop%n,cop%h,cop%nm,0.d0,cop%crown_dx,0.d0,
      &         cop%dbh,0.d0,0.d0,0.d0,
      &         cop%fracroot,cop%C_fol,0.d0,cop%C_sw,0.d0,cop%C_hw,

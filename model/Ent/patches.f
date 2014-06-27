@@ -293,8 +293,7 @@ c!#endif
 
        pp%C_total = pp%C_total + cop%C_total
        pp%C_growth = pp%C_growth + cop%C_growth
-
-        cop => cop%shorter
+       cop => cop%shorter
       end do    !loop through cohorts
 
       !* ------- DO AVERAGES ----------------------------------------------*!
@@ -367,7 +366,7 @@ c!#endif
       pp%crown_dx = 0.d0
       pp%crown_dy = 0.d0
       pp%clump = 0.d0
-      pp%fracroot = 0.d0
+      pp%fracroot(:) = 0.d0
       pp%C_fol = 0.d0
       pp%N_fol = 0.d0
       pp%C_w = 0.d0
@@ -637,6 +636,7 @@ c!#endif
 
       write(iu,1) prefix,"area",pp%area
       write(iu,1) prefix,"age ",pp%age
+      write(iu,1) prefix,"fracroot",pp%fracroot
       write(iu,1) prefix,"GCANOPY ",
      &     pp%GCANOPY
       write(iu,1) prefix,"Ci ",pp%Ci
