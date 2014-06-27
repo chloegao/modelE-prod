@@ -23,7 +23,7 @@
 
       PUBLIC snow_adv, snow_redistr, snow_fraction, i_earth, j_earth
       public MIN_SNOW_THICKNESS, MIN_FRACT_COVER, rho_water,
-     &     rho_fresh_snow
+     &     rho_fresh_snow, minSnowTemperature
 
 ccc physical parameters
 !@var rho_fresh_snow density of fresh snow (kg m-3)
