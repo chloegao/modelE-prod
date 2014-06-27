@@ -73,7 +73,7 @@ contains
 
      t = newTime(calendar)
 
-     read(string,'(i,1x,a)') startTick, tmpString
+     read(string,'(i8,1x,a)') startTick, tmpString
 
      call t%setBaseTime(newBaseTime(tmpString))
 
