@@ -1751,6 +1751,7 @@ c**** modifications needed for split of bare soils into 2 types
       use diag_com, only : npts,icon_wtg,icon_htg,conpt0
       use sle001, only : hl0, dt, 
      &     minGroundTemperature,  maxGroundTemperature
+      use snow_model, only : minSnowTemperature
       use ghy_com
       use snow_drvm, only : snow_cover_coef2=>snow_cover_coef
      &     ,snow_cover_same_as_rad
@@ -1815,7 +1816,7 @@ c**** read rundeck parameters
 
       call sync_param( "minGroundTemperature", minGroundTemperature)
       call sync_param( "maxGroundTemperature", maxGroundTemperature)
-
+      minSnowTemperature = minGroundTemperature
 
 c**** read land surface parameters or use defaults
       if ( ghy_default_data == 0 ) then ! read from files

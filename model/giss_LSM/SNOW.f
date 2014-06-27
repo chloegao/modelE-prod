@@ -55,6 +55,11 @@ ccc      real*8, parameter :: MIN_SNOW_THICKNESS =  0.01d0  ! was 0.09d0
 !@var i_earth, j_earth coordinate of current point (for debugging)
       integer i_earth, j_earth
 
+!@var minSnowTemperature minimum allowed snow temperature (C)
+!@+   (in GCM runs is reset in GHY_DRV to minGroundTemperature, 
+!@+    which is a rundeck parameter)
+      real*8 :: minSnowTemperature = -120.d0
+
       CONTAINS
 
       subroutine pass_water( wsn, hsn, dz, nl,
@@ -456,7 +461,8 @@ ccc compute temperature of the layers (and amount of ice)
       tsn(nl+1) = t_ground
 
 c!!! this is for debugging
-      if(tsn(1).lt.-120.d0) call stop_model("SNOW:tsn<-120",255)
+      if(tsn(1).lt.minSnowTemperature)
+     &     call stop_model("SNOW:tsn<minSnowTemperature",255)
 
 ccc compute incomming heat flux (from atm.)
 ccc include all fluxes except htpr (which is already included)
@@ -481,7 +487,8 @@ ccc solve heat equation
      &     flux_in, flux_in_deriv, flux_corr, dt )
 
 c!!! this is for debugging
-      if(tsn(1).lt.-120.d0) call stop_model("SNOW:he:tsn<-120",255)
+      if(tsn(1).lt.minSnowTemperature)
+     &     call stop_model("SNOW:he:tsn<minSnowTemperature",255)
 
       heat_to_ground = heat_to_ground + flux_in
 
@@ -553,7 +560,7 @@ ccc repack the layers
 #endif
 
 c!!! this is for debugging
-      if(tsn(1).lt.-120.d0) then
+      if(tsn(1).lt.minSnowTemperature) then
         print*,"tsn error",i_earth, j_earth,1,tsn(1:nl)
         call stop_model('snow_adv_1: tsn error',255)
       end if
