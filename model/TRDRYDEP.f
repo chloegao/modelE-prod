@@ -1074,8 +1074,8 @@ C**** Local parameters and variables and arguments
 
 ! interpolate to current day:
 
-      beta = real(modelEclock%dayOfYear() -
-     *     startday(modelEclock%month()+offset),kind=8) 
+      beta = real(modelEclock%getDayOfYear() -
+     *     startday(modelEclock%getMonth()+offset),kind=8) 
      *     / real(itd,kind=8)
       alpha = 1.d0 - beta
       do j=J_0,J_1 ; do i=I_0,I_1 ; do k=1,ijreg(i,j)

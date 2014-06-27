@@ -250,6 +250,7 @@ C**** (Simplified) Calendar Related Terms
       real*8 :: s
       type (TimeInterval) :: secondsPerDay
       type (TimeInterval) :: secondsPerYear
+      type (TimeInterval) :: period
       integer :: daysPerYear
 
       associate (p => planetParams)
@@ -268,10 +269,10 @@ C**** (Simplified) Calendar Related Terms
       if (AM_I_ROOT()) then
          write(*,*) 'Planet :: ' // trim(planetName)
          write(*,*)'Using planetary calendar:', s
-         write(*,*)'siderealRotationPeriod: ', 
-     &        orbit%getSiderealRotationPeriod()
-         write(*,*)'siderealOrbitalPeriod: ', 
-     &        orbit%getSiderealOrbitalPeriod()
+         period = orbit%getSiderealRotationPeriod()
+         write(*,*)'siderealRotationPeriod: ', period%convertToReal()
+         period = orbit%getSiderealOrbitalPeriod()
+         write(*,*)'siderealOrbitalPeriod: ', period%convertToReal() 
          write(*,*)'meanDistance: ', orbit%getMeanDistance()
          write(*,*) '  Precession (degs from ve):',
      &        orbit%getLongitudeAtPeriapsis()

@@ -610,6 +610,7 @@ C****
 C**** THIS SUBROUTINE SETS THE PARAMETERS IN THE C ARRAY, READS IN THE
 C**** INITIAL CONDITIONS, AND CALCULATES THE DISTANCE PROJECTION ARRAYS
 C****
+      use TimeInterval_mod
       USE FILEMANAGER, only : openunit,closeunit
       USE TIMINGS, only : timing,ntimeacc
       USE Dictionary_mod
@@ -685,6 +686,7 @@ C****    List of parameters that are disregarded at restarts
       character(len=80) :: tmpStr
       character(len=LEN_MONTH_ABBREVIATION) :: amon
       type (BaseTime) :: dtSrcUsed
+      type (TimeInterval) :: secsPerDay
 
 C****
 C**** Default setting for ISTART : restart from latest save-file (10)
@@ -920,8 +922,9 @@ C**** Check consistency of DTsrc with NDAY
       if (is_set_param("DTsrc") .and. 
      &     nint(calendar%getSecondsPerDay()/DTsrc) .ne. NDAY) then
         if (AM_I_ROOT()) then
+          secsPerDay = calendar%getSecondsPerDay()
           write(6,*) 'DTsrc=',DTsrc,' has to stay at/be set to', 
-     &               calendar%getSecondsPerDay()/NDAY
+     &               secsPerDay%convertToReal()/NDAY
         end if
         call stop_model('INPUT: DTsrc inappropriately set',255)
       end if

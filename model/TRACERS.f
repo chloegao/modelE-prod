@@ -1144,7 +1144,7 @@ C****
      *      jdlast.ne.INT_DAYS_PER_YEAR) then
             if (AM_I_ROOT()) write(6,*)
      *      'Incorrect values in Tracer Source:JDAY,JDLAST=',
-     *      modelEclock%geDayOfYear(),JDLAST
+     *      modelEclock%getDayOfYear(),JDLAST
             call stop_model('stopped in TRACERS.f',255)
           end if
           imon=imon-INT_MONTHS_PER_YEAR  ! New year

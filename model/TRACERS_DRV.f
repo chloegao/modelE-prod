@@ -6674,7 +6674,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
 #ifdef GLINT2
       USE FLUXES, only : atmglas_hp
 #endif
-      USE CONSTANT, only: mair,rhow,sday,grav,tf,avog,rgas
+      USE CONSTANT, only: mair,rhow,grav,tf,avog,rgas
       use TimeConstants_mod, only: SECONDS_PER_DAY
       USE resolution,ONLY : Im,Jm,Lm,Ls1,ptop
       USE ATM_COM, only : q,qcl

@@ -276,18 +276,18 @@ C
           if (imon == 13)  CALL REWIND_PARALLEL( iu )
         end if
       else                         ! Do we need to read in second month?
-        if (modelEclockgetDayOfYear() /= jdlast+1) then ! Check that data is read in daily
-          if (modelEclockgetDayOfYear() /= 1 .OR. 
+        if (modelEclock%getDayOfYear() /= jdlast+1) then ! Check that data is read in daily
+          if (modelEclock%getDayOfYear() /= 1 .OR. 
      &      jdlast /= INT_DAYS_PER_YEAR) then
             write(out_line,*)'Bad day values in read_monthly_3Dsources'
-     &      //': JDAY,JDLAST=',modelEclockgetDayOfYear(),JDLAST
+     &      //': JDAY,JDLAST=',modelEclock%getDayOfYear(),JDLAST
             call write_parallel(trim(out_line),crit=.true.)
             call stop_model('Bad values in read_monthly_3Dsources',255)
           end if
           imon=imon-INT_MONTHS_PER_YEAR             ! New year
           go to 130
         end if
-        if (modelEclockgetDayOfYear() <= idofm(imon)) go to 130
+        if (modelEclock%getDayOfYear() <= idofm(imon)) go to 130
         imon=imon+1                ! read in new month of data
         if (imon == 13) then
           CALL REWIND_PARALLEL( iu  )
@@ -303,7 +303,7 @@ C
       END DO
  130  continue
 c**** Interpolate two months of data to current day
-      frac = float(idofm(imon)-modelEclockgetDayOfYear())
+      frac = float(idofm(imon)-modelEclock%getDayOfYear())
      &     / (idofm(imon)-idofm(imon-1))
       data1(:,J_0:J_1,:) =
      &     tlca(:,J_0:J_1,:)*frac + tlcb(:,J_0:J_1,:)*(1.-frac)
@@ -346,7 +346,7 @@ c ----------------------------------------------------------------
       if (step_rea.ne.modelEclock%getMonth()) then 
         step_rea = modelEclock%getMonth()
         if ( am_i_root() ) then
-          print*,'READING HNO3 OFFLINE ',modelEclock%getMonth(), step_rea
+        print*,'READING HNO3 OFFLINE ',modelEclock%getMonth(), step_rea
         endif
 c -----------------------------------------------------------------
 c   Opening of the files to be read
@@ -540,9 +540,9 @@ c       endif ! lm
         endif !itype
         else !AEROCOM run, prescribed flux
 c if after Feb 28 skip the leapyear day
-         jread=modelEclockgetDayOfYear()
-         if (modelEclockgetDayOfYear().gt.59) 
-     *        jread=modelEclockgetDayOfYear()+1
+         jread=modelEclock%getDayOfYear()
+         if (modelEclock%getDayOfYear().gt.59) 
+     *        jread=modelEclock%getDayOfYear()+1
 c         if (j.eq.1.or.j.eq.46) DMS_AER(i,j,jread)
 c     *      =DMS_AER(i,j,jread)*72.d0
          erate=DMS_AER(i,j,jread)/SECONDS_PER_DAY/axyp(i,j)*
@@ -616,9 +616,9 @@ c     units are kg salt/m2/s
         endif
       else
 c if after Feb 28 skip the leapyear day
-        jread=modelEclockgetDayOfYear()
-        if (modelEclockgetDayOfYear().gt.59) 
-     &       jread=modelEclockgetDayOfYear()+1
+        jread=modelEclock%getDayOfYear()
+        if (modelEclock%getDayOfYear().gt.59) 
+     &       jread=modelEclock%getDayOfYear()+1
         if (ibin.eq.1) then
           ss=SS1_AER(i,j,jread)/(SECONDS_PER_DAY*axyp(i,j))
 #ifdef TRACERS_AEROSOLS_OCEAN
