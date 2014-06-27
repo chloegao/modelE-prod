@@ -1177,15 +1177,20 @@ c       cgu1=7.2d0*wstar*(-uflx)/(wm1**2*dbl)
 c       cgv1=7.2d0*wstar*(-vflx)/(wm1**2*dbl)
         ! counter-gradient uw,vw turned off
         cgu1=0.;cgv1=0.
+#ifdef TRACERS_ON
+        do nt=1,nta
+          cgtr(nt)=7.2*wstar*max(-trflx(nt),0.d0)/(wm1**2*dbl)
+        end do
+#endif
       else
         phih1=0.;by_phim1=0.;wm1=0.;pr1=0.;cgh1=0.
         cgu1=0.;cgv1=0.
-      endif
 #ifdef TRACERS_ON
-      do nt=1,nta
-        cgtr(nt)=7.2*wstar*max(-trflx(nt),0.d0)/(wm1**2*dbl)
-      end do
+        do nt=1,nta
+          cgtr(nt)=0.
+        end do
 #endif
+      endif
       do j=1,n
           kz=kappa*ze(j)
           tau=b1*lscale(j)/(qturb(j)+teeny)
