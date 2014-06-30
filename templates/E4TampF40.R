@@ -72,9 +72,6 @@ TRDIAG                              ! new i/o
 !#include "tracer_shindell_source_files"
 !#include "tracer_aerosols_source_files"
 TRACERS_AEROSOLS_Koch_e4            ! BC/OC/sulfate/seasalt
-AmpTracersMetadata
-sharedTracersMetadata
-MiscTracersMetadata
 #include "tracer_AMP_source_files"
 TRAMP_eqsam_v03d
 

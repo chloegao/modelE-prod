@@ -57,10 +57,6 @@ AtmL40                      ! vertical resolution is 40 layers -> 0.1mb
 TRDUST_COM TRDUST TRDUST_DRV        ! dust tracer specific code
 #include "tracer_shared_source_files"
 TRDIAG                              ! for offline postprocessing
-ShindellTracersMetadata
-sharedTracersMetadata
-KochTracersMetadata
-MiscTracersMetadata
 #include "tracer_shindell_source_files"
 #include "tracer_aerosols_source_files"
 

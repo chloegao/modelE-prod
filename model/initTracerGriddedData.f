@@ -4,7 +4,7 @@
 !@calls sync_param, SET_TCON, RDLAND, RDDRYCF
       USE DOMAIN_DECOMP_ATM, only:GRID,getDomainBounds,AM_I_ROOT,
      &     write_parallel,readt8_parallel
-      USE CONSTANT, only: mair,mwat,pi
+      USE CONSTANT, only: mair,mwat
 #ifdef TRACERS_AEROSOLS_SOA
      &                   ,gasc
 #endif  /* TRACERS_AEROSOLS_SOA */
@@ -147,10 +147,6 @@
 #ifdef TRACERS_TOMAS
       integer :: bin
       real*8 :: TOMAS_dens,TOMAS_radius
-#endif
-#if (defined TRACERS_WATER) || (defined TRACERS_DRYDEP)
-!@param convert_HSTAR converts from mole/Joule to mole/(L*atm)
-      real*8, parameter :: convert_HSTAR = 1.01325d2
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
 !@var iu_data unit number

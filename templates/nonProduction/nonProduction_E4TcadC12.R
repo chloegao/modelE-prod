@@ -61,10 +61,6 @@ TRDUST_COM TRDUST TRDUST_DRV        ! dust tracer specific code
 #include "tracer_shindell_source_files"
 #include "tracer_aerosols_source_files"
 TRDIAG
-ShindellTracersMetadata
-sharedTracersMetadata
-KochTracersMetadata
-MiscTracersMetadata
 
 #include "latlon_source_files"
 #include "modelE4_source_files"

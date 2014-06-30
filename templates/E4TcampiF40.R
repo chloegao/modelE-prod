@@ -71,11 +71,6 @@ TRDUST_COM TRDUST TRDUST_DRV        ! dust tracer specific code
 TRDIAG                              ! new i/o
 #include "tracer_shindell_source_files"
 TRACERS_AEROSOLS_Koch_e4            ! BC/OC/sulfate/seasalt
-AmpTracersMetadata
-ShindellTracersMetadata
-sharedTracersMetadata
-KochTracersMetadata
-MiscTracersMetadata
 !  OFF TRACERS_AEROSOLS_SOA                ! Secondary Organic Aerosols
 #include "tracer_AMP_source_files"
 TRAMP_eqsam_v03d
