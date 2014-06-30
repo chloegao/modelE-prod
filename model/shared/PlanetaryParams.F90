@@ -87,6 +87,7 @@ contains
       call sync_param('longitudeAtPeriapsis', params%longitudeAtPeriapsis)
       call sync_param('siderealOrbitalPeriod', params%siderealOrbitalPeriod)
       call sync_param('siderealRotationPeriod', params%siderealRotationPeriod)
+      call sync_param('meanDistance', params%meanDistance)
       
    end function newPlanetaryParams_fromRundeck
 

@@ -177,9 +177,6 @@ NIsurf=1        ! increase as layer 1 gets thinner
 ! Number of physics timesteps per radiation timestep.  Default is 5.
 nrad=1
 
-! save alternating checkpoint files every Ndisk physics timesteps
-Ndisk=1440
-
 ! KCOPY=1: save acc and alternating checkpoint files only.  KCOPY=2: save rsf also
 KCOPY=2
 
@@ -196,11 +193,14 @@ nssw=2          ! until diurnal diagn. are fixed, nssw should be even
 ! do not affect Mars runs
 master_yr=1850
 KOCEAN=0
-Ndisk=480
+
+! save alternating checkpoint files every Ndisk physics timesteps
+Ndisk=1440
+
 &&END_PARAMETERS
 
  &INPUTZ
- YEARI=1949,MONTHI=12,DATEI=1,HOURI=0, ! pick IYEAR1=YEARI (default) or < YEARI
- YEARE=1949,MONTHE=12,DATEE=2,HOURE=0,     KDIAG=12*0,9,
- ISTART=2,IRANDI=0, YEARE=1949,MONTHE=12,DATEE=1,HOURE=1,
+  YEARI=0000,MONTHI=12,DATEI=1,HOURI=0,
+  YEARE=0000,MONTHE=2,DATEE=49,HOURE=0,  KDIAG=12*0,9,
+  ISTART=2,IRANDI=0, YEARE=0000,MONTHE=12,DATEE=1,HOURE=1,
 /
