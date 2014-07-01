@@ -4,6 +4,7 @@ module Test_AssociativeArray_mod
   use FooAssociativeArray_mod
   implicit none
 
+   public :: Test_AssociativeArray
 
 @TestCase
    type, extends(TestCase) :: Test_AssociativeArray

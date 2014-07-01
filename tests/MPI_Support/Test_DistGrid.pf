@@ -5,24 +5,16 @@ module Test_DistGrid_mod
     broadcast, transp
 
   implicit none
-  private
 
-  public :: setUp
-  public :: tearDown
   public :: Test_DistGrid
-  interface Test_DistGrid
-    module procedure newTest_DistGrid
-  end interface Test_DistGrid
 
 @TestCase
-   type, extends(MpiTestCase) :: Test_DistGrid
-      type (DIST_GRID) :: distGrid
-      procedure(runMethod), pointer :: userMethod => null()
-   contains
-      procedure :: setUp     ! overides generic
-      procedure :: tearDown  ! overrides generic
-      procedure :: runMethod ! runs userMethod
-   end type Test_DistGrid
+  type, extends(MpiTestCase) :: Test_DistGrid
+    type (DIST_GRID) :: distGrid
+  contains
+    procedure :: setUp     ! overides generic
+    procedure :: tearDown  ! overrides generic
+  end type Test_DistGrid
 
   ! compute axes indices of a distributed grid
   public :: test_getAxisIndexNoOverlap
@@ -56,22 +48,6 @@ module Test_DistGrid_mod
   integer, parameter :: LM = 2
 
 contains
-
-   function newTest_DistGrid(name, userMethod, numProcesses) result(test)
-     type (Test_DistGrid) :: test
-     character(len=*), intent(in) :: name
-     integer, intent(in) :: numProcesses
-     procedure(runMethod) :: userMethod
-
-     call test%setName(name)
-     test%userMethod => userMethod
-     call test%setNumProcesses(numProcesses)
-   end function newTest_DistGrid
-
-   subroutine runMethod(this)
-     class (Test_DistGrid), intent(inout) :: this
-     call this%userMethod()
-   end subroutine runMethod
 
   subroutine setUp(this)
     class (Test_DistGrid), intent(inout) :: this

@@ -3,6 +3,7 @@ module Test_Timer_mod
    use Timer_mod
    implicit none
 
+   public :: Test_Timer
    integer, parameter :: dp = selected_real_kind(14)
 
 @TestCase

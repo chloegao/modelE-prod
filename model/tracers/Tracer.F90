@@ -29,10 +29,9 @@ module Tracer_mod
 
   type, extends(AttributeDictionary) :: Tracer
 !!$    private
-    type (Dictionary) :: properties
     integer :: ntSurfSrc = 0
-    type (TracerSurfaceSource) :: surfaceSources(NTSURFSRCMAX)
-    type (TracerSource3D) :: sources3D(NT3DSRCMAX)
+    type (TracerSurfaceSource), allocatable, dimension(:) :: surfaceSources
+    type (TracerSource3D), allocatable, dimension(:)  :: sources3D
   end type Tracer
 
   interface newTracer
@@ -63,6 +62,8 @@ contains
 
     allocate(aTracer)
     aTracer%AttributeDictionary = newAttributeDictionary()
+    allocate(aTracer%surfaceSources(NTSURFSRCMAX))
+    allocate(aTracer%sources3D(NT3DSRCMAX))
 
   end function newEmptyTracer
 
@@ -85,19 +86,27 @@ contains
     type (Tracer) :: copy
 
     copy%AttributeDictionary = original%AttributeDictionary
+    copy%surfaceSources = original%surfaceSources
+    copy%sources3D = original%sources3D
 
   end function TracerCopy
 
   function getName(this) result (name)
+!    use StringAttribute_mod, only: assignment(=)
     use AbstractAttribute_mod
+    use StringAttribute_mod, only: toType
     type (Tracer), intent(in) :: this
     character(len=MAX_LEN_ATTRIBUTE_STRING), pointer :: name
     class (AbstractAttribute), pointer :: p
 
     ! TODO Intel is now struggling with the line below - no idea why.  Worked before other changes.
-!!$    name = this%getReference('name')
+!    name = this%getReference('name')
     p => this%getReference('name')
-    name = p
+! TODO: NAG error:
+! NAME dereferenced or deallocated but not pointer-assigned or allocated
+!    name = p
+! workaround:
+    call toType(name, p)
     
   end function getName
 
@@ -106,7 +115,6 @@ contains
     type (Tracer), intent(in) :: this
     integer, intent(in) :: unit
 
-!!$    call this%properties%writeUnformatted(unit)
     call this%writeUnformatted(unit)
     
   end subroutine writeUnformatted_tracer
@@ -116,7 +124,6 @@ contains
 !!$    use Dictionary_mod, only: readUnformatted
     type (Tracer), intent(inout) :: this
     integer, intent(in) :: unit
-!!$    call readUnformatted(this%properties, unit)
     call this%readUnformatted(unit)
   end subroutine readUnformattedTracer
 
@@ -140,8 +147,6 @@ contains
     aTracer => newEmptyTracer()
     aTracer%AttributeDictionary = parse(parser, unit, status)
 
-!!$    aTracer%properties = parse(parser, unit, status)
-    
     if (status /= 0) return
 
   end function readOneTracer
@@ -289,7 +294,6 @@ contains
     class default
       call stop_model('Illegal conversion in Tracer_mod.',255)
     end select
-
     
   end subroutine toTracer
 
@@ -297,12 +301,11 @@ contains
     type (Tracer), intent(out) :: a
     type (Tracer), intent(in) :: b
 
-    a%properties = b%properties
     a%AttributeDictionary = b%AttributeDictionary
     a%ntSurfSrc = b%ntSurfSrc
     a%surfaceSources = b%surfaceSources
     a%sources3D = b%sources3D
-    
+
   end subroutine copyInto
 
 end module Tracer_mod

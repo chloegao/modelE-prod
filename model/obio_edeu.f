@@ -14,8 +14,9 @@ c  final is quanta for phytoplankton growth.
  
 
       USE obio_dim
-      USE obio_incom, only : aw,bw,ac,bc,facirr,lam,Dmax,bbw
+      USE obio_incom, only : ac,bc,facirr,Dmax,bbw
      .                      ,rmus,nl450,zc
+      use ocalbedo_mod, only: aw, bw, lam, nlt
       USE obio_forc,  only : Ed,Es,rmud,tirrq,tirrq_critical
       USE obio_com,   only : acdom,npst,npnd,WtoQ,dp1d,avgq1d
      .                      ,obio_P,p1d

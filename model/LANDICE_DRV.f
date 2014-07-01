@@ -317,6 +317,7 @@ C****
      &     IJHC_IMPHLI		! done GROUND_LI
 
       use DIAG_COM, only : ia_src,ia_srf,cdl_ij_template
+      use MDIAG_COM, only : make_timeaxis
 #ifdef CUBED_SPHERE
       use LANDICE_COM, only : cdl_ijhc_latlon
       use DIAG_COM, only : cdl_ij_latlon_template
@@ -328,6 +329,7 @@ C****
       implicit none
       integer :: k,kk
       character(len=32) :: dimstr,lldimstr
+      logical :: set_miss
 c
       do k=1,kijhc
          write(sname_ijhc(k),'(a4,i3.3)') 'IJHC',k
@@ -470,15 +472,20 @@ c
 #endif
       do k=1,kijhc
         if(trim(units_ijhc(k)).eq.'unused') cycle
+        set_miss = denom_ijhc(k).ne.0
         call add_var(cdl_ijhc,
      &       'float '//trim(sname_ijhc(k))//trim(dimstr),
      &       units=trim(units_ijhc(k)),
-     &       long_name=trim(lname_ijhc(k)))
+     &       long_name=trim(lname_ijhc(k)),
+     &       set_miss=set_miss,
+     &       make_timeaxis=make_timeaxis)
 #ifdef CUBED_SPHERE
         call add_var(cdl_ijhc_latlon,
      &       'float '//trim(sname_ijhc(k))//trim(lldimstr),
      &       units=trim(units_ijhc(k)),
-     &       long_name=trim(lname_ijhc(k)))
+     &       long_name=trim(lname_ijhc(k)),
+     &       set_miss=set_miss,
+     &       make_timeaxis=make_timeaxis)
 #endif
       enddo
 

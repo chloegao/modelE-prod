@@ -204,7 +204,7 @@ C     Loop over all grid cells
 
 
                temp = pk(l,i,j)*t(i,j,l) !should be in [K]
-               rh = MIN(1.,q(i,j,l)/QSAT(temp,lhe,pmid(l,i,j))) ! rH [0-1]
+               rh = MIN(1.d0,q(i,j,l)/QSAT(temp,lhe,pmid(l,i,j))) ! rH [0-1]
                pres= pmid(l,i,j)*100. ! pmid in [hPa]
                boxmass = MA(l,i,j)*axyp(i,j) !kg of air
                boxvol=boxmass/mair*1000.d0
@@ -621,7 +621,7 @@ C     Swap GCM variables into aerosol algorithm variables
       enddo
 
       temp = pk(l,i,j)*t(i,j,l) !should be in [K]
-      rh = MIN(1.,q(i,j,l)/QSAT(temp,lhe,pmid(l,i,j))) ! rH [0-1]
+      rh = MIN(1.d0,q(i,j,l)/QSAT(temp,lhe,pmid(l,i,j))) ! rH [0-1]
             
       call mnfix(Nk,Mk)  
       call ezwatereqm(Mk)
@@ -1536,7 +1536,7 @@ C     Loop over all grid cells
       DO I=I_0,IMAXJ(J)
 
         temp = pk(l,i,j)*t(i,j,l) !should be in [K]
-        rh = MIN(1.,q(i,j,l)/QSAT(temp,lhe,pmid(l,i,j))) ! rH [0-100%]
+        rh = MIN(1.d0,q(i,j,l)/QSAT(temp,lhe,pmid(l,i,j))) ! rH [0-100%]
 C     Swap GCM variables into aerosol algorithm variables
         do n=1,NBINS
           Nk(n)=trm(i,j,l,IDTNUMD-1+n)

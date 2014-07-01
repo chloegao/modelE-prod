@@ -1,11 +1,11 @@
 .PHONY: clean all
 
 ALLFILES:=$(wildcard *.pf)
-# We need to exclude MPI test files whe running serial tests to 
+# We need to exclude MPI test files when running serial tests to 
 # avoid compilation errors.
 MPIFILES:=Test_TimerParallel.pf
 
-ifeq ($(USE_MPI),YES)
+ifeq ($(USEMPI),YES)
   SRCS := $(ALLFILES)
 else
   SRCS := $(filter-out $(MPIFILES),$(ALLFILES))
@@ -26,7 +26,7 @@ testSuites.inc: $(SRCS)
 	python $(PFUNIT)/bin/pFUnitParser.py $<  $@
 
 %.o: %.F90
-	$(F90) -c $(F90FLAGS) $<
+	$(FC) -c $(FFLAGS) $<
 
 clean:
 	$(RM) *.o *.mod *.a

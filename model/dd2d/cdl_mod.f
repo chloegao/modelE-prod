@@ -20,7 +20,7 @@
       end type cdl_type
 
       public :: cdl_strlen,init_cdl_type,print_cdl,add_dim,add_coord,
-     &     add_var,add_varline,add_dataline,add_vardata,
+     &     add_var,add_varline,add_dataline,add_vardata,add_unlimdim,
      &     copy_dims,copy_coord_vars,
      &     copy_data,merge_cdl,assemble_cdl,defvar_cdl,write_cdl
       
@@ -50,6 +50,7 @@
       integer, intent(in) :: dimsize
       character(len=10) :: dimstr
       integer :: k
+      call checkname(trim(dimname))
       write(dimstr,'(i10)') dimsize
       k = cdl%ndims + 1
       cdl%dims(k) = indent//trim(dimname)//' = '//
@@ -57,6 +58,18 @@
       cdl%ndims  = k
       return
       end subroutine add_dim
+
+      subroutine add_unlimdim(cdl,dimname)
+      type(cdl_type), intent(inout) :: cdl
+      character(len=*), intent(in) :: dimname
+      integer :: k
+      call checkname(trim(dimname))
+      k = cdl%ndims + 1
+      cdl%dims(k) = indent//trim(dimname)//
+     &     ' = UNLIMITED ; // (0 currently)'
+      cdl%ndims  = k
+      return
+      end subroutine add_unlimdim
 
       subroutine copy_dims(cdl_in,cdl_out)
       type(cdl_type), intent(in) :: cdl_in
@@ -128,19 +141,24 @@
       return
       end subroutine copy_data
 
-      subroutine add_var(cdl,varstr,units,long_name)
+      subroutine add_var(cdl,varstr,units,long_name,auxvar_string,
+     &     set_miss,make_timeaxis)
       type(cdl_type), intent(inout) :: cdl
       character(len=*), intent(in) :: varstr
-      character(len=*), intent(in), optional :: units,long_name
+      character(len=*), intent(in), optional ::
+     &     units,long_name,auxvar_string
+      logical, intent(in), optional :: set_miss,make_timeaxis
       character(len=cdl_strlen) :: varname,tmpstr
       integer :: k,n1,n2
-      k = cdl%nvarlines + 1
+      logical :: make_timeaxis_
+      make_timeaxis_ = .false.
+      if(present(make_timeaxis)) make_timeaxis_ = make_timeaxis
       tmpstr = adjustl(varstr)
+      call get_varname(tmpstr,varname)
+      if(make_timeaxis_) call formvar_time(tmpstr)
+      k = cdl%nvarlines + 1
       call alloc_vars(cdl,k)
       cdl%vars(k) = indent//tmpstr
-      n1 = index(tmpstr,' ')+1
-      n2 = index(tmpstr,'(')-1
-      varname = tmpstr(n1:n2)
       if(present(units)) then
         if(len_trim(units).gt.0) then
           k = k + 1
@@ -153,6 +171,20 @@
         cdl%vars(k) = indent2//trim(varname)//':long_name = "'//
      &     trim(long_name)//'" ;'
       endif
+      if(present(set_miss)) then
+        if(set_miss) then
+          k = k + 1
+          cdl%vars(k) = indent2//trim(varname)//
+     &         ':missing_value = -1.e30f ;'
+        endif
+      endif
+      if(present(auxvar_string)) then
+        tmpstr = adjustl(auxvar_string)
+        call get_varname(tmpstr,varname)
+        if(make_timeaxis_) call formvar_time(tmpstr)
+        k = k + 1
+        cdl%vars(k) = indent//tmpstr
+      endif
       cdl%nvarlines  = k
       return
       end subroutine add_var
@@ -160,13 +192,99 @@
       subroutine add_varline(cdl,varstr)
       type(cdl_type), intent(inout) :: cdl
       character(len=*), intent(in) :: varstr
-      integer :: k
+      character(len=cdl_strlen) :: varname,attname,tmpstr
+      integer :: k,nc,ne,lt
+      tmpstr = adjustl(varstr)
+      lt = len_trim(tmpstr)
+      nc = index(tmpstr,':')
+      ne = index(tmpstr,'=')
+      if(nc.eq.0 .or. nc.eq.ne-1 .or. ne.eq.0 .or. ne.eq.lt) then
+        write(6,*) 'add_varline: syntax error: ',trim(varstr)
+        call stop_model('add_varline: syntax error',255)
+      else
+        if(nc.gt.1) then
+          varname=tmpstr(1:nc-1)
+          call checkname(varname)
+        endif
+        attname=adjustl(tmpstr(nc+1:ne-1))
+        call checkname(attname)
+      endif
       k = cdl%nvarlines + 1
       call alloc_vars(cdl,k)
       cdl%vars(k) = indent2//trim(varstr)
       cdl%nvarlines  = k
       return
       end subroutine add_varline
+
+      subroutine get_varname(varstr,varname)
+      character(len=cdl_strlen) :: varstr,varname
+      integer :: n1,n2
+      n1 = index(varstr,' ')+1
+      n2 = index(varstr,'(')-1
+      if(n2.gt.0) then
+        varname = adjustl(varstr(n1:n2))
+      else
+        n2 = index(varstr,';')-1
+        varname = adjustl(varstr(n1:n2))
+      endif
+      call checkname(trim(varname))
+      call checktype(varstr(1:n1-1),trim(varname))
+      end subroutine get_varname
+
+      subroutine formvar_time(varstr)
+      character(len=cdl_strlen) :: varstr
+      integer :: n1,n2
+      n2 = index(varstr,';')
+      n1 = index(varstr,'(')
+      if(n1.gt.0) then
+        varstr = varstr(1:n1-1)//'(time,'//varstr(n1+1:n2)
+      else
+        varstr = trim(varstr(1:n2-1))//'(time);'
+      endif
+      return
+      end subroutine formvar_time
+
+      subroutine checkname(namestr)
+c Two rules:
+c All characters must be A-Z|a-z|0-9|_|+|-|.|@
+c First character must be A-Z|a-z
+      character(len=*) :: namestr
+      integer :: i,ascii,r
+      logical :: is_bad
+      integer, parameter :: num_ranges=7
+      integer, dimension(2,num_ranges) :: bds=reshape((/
+c          A-Z    a-z     0-9    +      -   .   @      _
+     &     65,90, 97,122, 48,57, 43,43, 45,46, 64,64, 95,95
+     &     /),(/2,num_ranges/))
+      do i=1,len_trim(namestr)
+        ascii = iachar(namestr(i:i))
+        is_bad = .true.
+        do r=1,num_ranges
+          if(ascii.ge.bds(1,r) .and. ascii.le.bds(2,r)) then
+            is_bad = .false.
+            exit
+          endif
+          if(i.eq.1 .and. r.eq.2) exit ! 1st char A-Z|a-z
+        enddo
+        if(is_bad) exit
+      enddo
+      if(is_bad) then
+        write(6,*) 'bad character at position ',i,
+     &       'in name ',trim(namestr)
+        call stop_model('invalid netcdf name',255)
+      endif
+      end subroutine checkname
+
+      subroutine checktype(typestr,varname)
+      character(len=*) :: typestr,varname
+      select case(trim(typestr))
+      case ('float','double','int','char','short')
+      case default
+        write(6,*) 'bad type '//trim(typestr)//
+     &       ' for variable '//trim(varname)
+        call stop_model('invalid netcdf type',255)
+      end select
+      end subroutine checktype
 
       subroutine add_dataline(cdl,varstr)
       type(cdl_type), intent(inout) :: cdl
@@ -179,12 +297,19 @@
       return
       end subroutine add_dataline
 
-      subroutine add_vardata_r8_1d(cdl,varname,values)
+      subroutine add_vardata_r8_1d(cdl,varname,values,fmtstr)
       type(cdl_type), intent(inout) :: cdl
       character(len=*), intent(in) :: varname
       real*8, dimension(:), intent(in) :: values
+      character(len=*), intent(in), optional :: fmtstr
       integer :: k,line,i1,i2,pos,varsize,nl
+      character(len=32) :: fmtstr_
       integer, parameter :: npl=6 ! 6 values per line
+      if(present(fmtstr)) then
+        fmtstr_ = '(6('//trim(fmtstr)//',","))'
+      else
+        fmtstr_ = '(6(1pe13.5,","))'
+      endif
       varsize = size(values)
       k = cdl%ndatalines + 1
       nl = (varsize+npl-1)/npl
@@ -195,7 +320,7 @@
         i2 = min(varsize,i1+npl-1)
         k = k + 1
         cdl%datavalues(k) = ''
-        write(cdl%datavalues(k),'(6(1pe13.5,","))') values(i1:i2)
+        write(cdl%datavalues(k),fmtstr_) values(i1:i2)
         if(i2.eq.varsize) then
           pos = len_trim(cdl%datavalues(k))
           cdl%datavalues(k)(pos:pos) = ';'
@@ -256,6 +381,14 @@
       subroutine assemble_cdl(cdl)
       type(cdl_type), intent(inout) :: cdl
       integer :: k,n
+      logical :: needs_time
+      needs_time = .false.
+      do n=1,cdl%nvarlines
+        if(index(cdl%vars(n),'(time').gt.0) then
+          needs_time = .true.
+          exit
+        endif
+      enddo
       if(allocated(cdl%text)) deallocate(cdl%text)
       n = cdl%ndims + cdl%ncoordlines
      &  + cdl%nvarlines + cdl%ndatalines + 1000
@@ -267,9 +400,23 @@
       do n=1,cdl%ndims
         k = k + 1
         cdl%text(k) = cdl%dims(n)
+        if(index(cdl%dims(n),'time =').gt.0) then
+          needs_time = .false.
+        endif
       enddo
+      if(needs_time) then
+        k = k + 1
+        cdl%text(k) = indent//'time = UNLIMITED;'
+      endif
       k = k + 1
       cdl%text(k) = 'variables:  '
+      if(needs_time) then
+        k = k + 1
+        cdl%text(k) = indent//'double time(time);'
+        k = k + 1
+        cdl%text(k) = indent2//'time:units = "'//
+     &       'years since 0000-01-01 00:00 UTC" ;'
+      endif
       do n=1,cdl%ncoordlines
         k = k + 1
         cdl%text(k) = cdl%coords(n)
@@ -278,9 +425,15 @@
         k = k + 1
         cdl%text(k) = cdl%vars(n)
       enddo
-      if(cdl%ndatalines.gt.0) then
+      if(needs_time .or. cdl%ndatalines.gt.0) then
         k = k + 1
         cdl%text(k) = 'data:  '
+      endif
+      if(needs_time) then
+        k = k + 1
+        cdl%text(k) = 'time = 0;'
+      endif
+      if(cdl%ndatalines.gt.0) then
         do n=1,cdl%ndatalines
           k = k + 1
           cdl%text(k) = cdl%datavalues(n)

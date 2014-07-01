@@ -7,12 +7,6 @@
 !@+        Tracer initialisation + sources: tracer_ic, set_tracer_source
 !@+        Entry points: daily_tracer
 !@auth Jean Lerner/Gavin Schmidt
-      subroutine init_tracer
-      implicit none
-
-      call laterInitTracerMetadata()
-      call initTracerGriddedData()
-      end subroutine init_tracer
 
       subroutine init_tracer_cons_diag
 !@sum init_tracer_cons_diag Initialize tracer conservation diagnostics
@@ -154,13 +148,17 @@ C**** set some defaults
 #endif
 
       k = 0
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
       pTracer => tracers%getReference('SO2')
       SO2sources => pTracer%surfaceSources
+#endif      
+#ifdef TRACERS_TOMAS
       pTracer => tracers%getReference('AECOB_01')
       AECOB01sources => pTracer%surfaceSources
       pTracer => tracers%getReference('AOCOB_01')
       AOCOB01sources => pTracer%surfaceSources
-      
+#endif      
       iter = tracers%begin()
       do while (iter /= tracers%last())
         pTracer => iter%value()
@@ -168,6 +166,9 @@ C**** set some defaults
 ! TODO: ifort needs to split this into two steps ???
 c$$$        index = (pTracer%getReference('index'))
         pa => pTracer%getReference('index')
+! TODO : NAG error:
+! dereferenced or deallocated but not pointer-assigned or allocated
+        allocate(index)
         index = pa
         n = index
         sources => pTracer%surfaceSources
@@ -1288,12 +1289,17 @@ C**** set defaults for some precip/wet-dep related diags
 #endif
 
       k = 0
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
       pTracer => tracers%getReference('SO2')
-      SO2sources => pTracer%surfaceSources
+      SO2sources => pTracer%surfaceSources     
+#endif
+#ifdef TRACERS_TOMAS
       pTracer => tracers%getReference('AECOB_01')
       AECOB01sources => pTracer%surfaceSources
       pTracer => tracers%getReference('AOCOB_01')
       AOCOB01sources => pTracer%surfaceSources
+#endif
       do n=1,NTM
         pTracer => tracers%getReference(trname(n))
         sources => pTracer%surfaceSources
@@ -1929,6 +1935,8 @@ c stratiform cloud phase source of SO4
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 #endif
 c industrial source
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
         do kk=1,ntsurfsrc(n_SO2)
           k = k + 1
           jls_source(kk,n) = k
@@ -1940,6 +1948,7 @@ c industrial source
           jls_power(k) =0
           units_jls(k) = unit_string(jls_power(k),'kg/s')
         enddo
+#endif
 c gravitational settling of SO4
         k = k + 1
         jls_grav(n) = k
@@ -2242,6 +2251,8 @@ c biomass source of SO4
         jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 c industrial source
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
         do kk=1,ntsurfsrc(n_SO2)
           k = k + 1
           jls_source(kk,n) = k
@@ -2253,7 +2264,7 @@ c industrial source
           jls_power(k) =0
           units_jls(k) = unit_string(jls_power(k),'kg/s')
         enddo
-
+#endif
         case ('ANUM__01','ANUM__02','ANUM__03','ANUM__04','ANUM__05',
      *    'ANUM__06','ANUM__07','ANUM__08','ANUM__09','ANUM__10',
      *    'ANUM__11','ANUM__12','ANUM__13','ANUM__14','ANUM__15')
@@ -3008,13 +3019,17 @@ C**** Defaults for ijts (sources, sinks, etc.)
 #endif
 C**** This needs to be 'hand coded' depending on circumstances
       k = 0
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
       pTracer => tracers%getReference('SO2')
       SO2sources => pTracer%surfaceSources
+#endif
+#ifdef TRACERS_TOMAS 
       pTracer => tracers%getReference('AECOB_01')
       AECOB01sources => pTracer%surfaceSources
       pTracer => tracers%getReference('AOCOB_01')
       AOCOB01sources => pTracer%surfaceSources
-      
+#endif
       do n=1,NTM
         pTracer => tracers%getReference(trname(n))
         sources => pTracer%surfaceSources
@@ -4054,6 +4069,8 @@ c put in production of SO4 from gas phase
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 c SO4 from industrial emissions
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
         do kr=1,ntsurfsrc(n_SO2)
           k = k + 1
           ijts_source(kr,n) = k
@@ -4066,6 +4083,7 @@ c SO4 from industrial emissions
           units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
           scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         enddo
+#endif
 #ifdef TRACERS_AEROSOLS_Koch
 c put in source of SO4 from aqueous chem
         k = k + 1
@@ -4567,7 +4585,6 @@ c SO4 from industrial emissions
           units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
           scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         enddo
-
         case ('ANUM__01','ANUM__02','ANUM__03','ANUM__04','ANUM__05',
      *    'ANUM__06','ANUM__07','ANUM__08','ANUM__09','ANUM__10',
      *    'ANUM__11','ANUM__12','ANUM__13','ANUM__14','ANUM__15')
@@ -4656,6 +4673,8 @@ c SO4 from industrial emissions
      *    'AECOB_01','AECOB_02','AECOB_03','AECOB_04','AECOB_05',
      *    'AECOB_06','AECOB_07','AECOB_08','AECOB_09','AECOB_10',
      *    'AECOB_11','AECOB_12','AECOB_13','AECOB_14','AECOB_15')
+
+
         do kr=1,ntsurfsrc(n_AECOB(1))
           k = k + 1
           ijts_source(kr,n) = k
@@ -5632,12 +5651,6 @@ c SW forcing from albedo change
 #endif
 
 #ifdef TRACERS_AMP
-      pTracer => tracers%getReference('SO2')
-      SO2sources => pTracer%surfaceSources
-      pTracer => tracers%getReference('AECOB_01')
-      AECOB01sources => pTracer%surfaceSources
-      pTracer => tracers%getReference('AOCOB_01')
-      AOCOB01sources => pTracer%surfaceSources
       do n=1,NTM
         pTracer => tracers%getReference(trname(n))
         sources => pTracer%surfaceSources
@@ -5655,6 +5668,8 @@ c SW forcing from albedo change
           units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
           scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 c Surface industrial emissions
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
         do kr=1,ntsurfsrc(n_SO2)
           k = k + 1
             ijts_source(kr,n) = k
@@ -5667,6 +5682,7 @@ c Surface industrial emissions
             units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
             scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         enddo
+#endif
         case('M_BC1_BC','M_OCC_OC')
 c Surface industrial emissions
        do kr=1,ntsurfsrc(n)
@@ -6760,7 +6776,6 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       USE AMP_AEROSOL
 #endif
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_GASEXCH_ocean_CO2)
-      USE MODEL_COM, only : nstep=>itime
 #ifdef constCO2
       USE obio_forc, only : atmCO2
 #else
@@ -6954,8 +6969,11 @@ C**** ESMF: Each processor reads the global array: N2Oic
                  trm(i,j,l,n) = N2OICX(i,j,l)*ICfactor
                end do   ; end do   ; end do
              else
-               if(ghg_yr/=0)then; write(ghg_name,'(I4)') ghg_yr
-               else; write(ghg_name,'(I4)') modelEclock%getYear(); endif
+               if(ghg_yr/=0) then
+                 write(ghg_name,'(I4.4)') ghg_yr
+               else
+                 write(ghg_name,'(I4.4)') modelEclock%getYear()
+               endif
                ghg_file='GHG_IC_'//ghg_name
                call openunit(ghg_file,iu_data,.true.,.true.)
                do m=1,3
@@ -7053,8 +7071,11 @@ C**** Fill in the tracer; above 100 mb interpolate linearly with P to 0 at top
                  end do   ; end do   ; end do
                end select
              else
-               if(ghg_yr/=0)then; write(ghg_name,'(I4)') ghg_yr
-               else; write(ghg_name,'(I4)') modelEclock%getYear(); endif
+               if(ghg_yr/=0) then
+                 write(ghg_name,'(I4.4)') ghg_yr
+               else
+                 write(ghg_name,'(I4.4)') modelEclock%getYear()
+               endif
                ghg_file='GHG_IC_'//ghg_name
                call openunit(ghg_file,iu_data,.true.,.true.)
                do m=1,4
@@ -7498,8 +7519,8 @@ c**** earth
                trm(I,J,L,n) = CFCIC(I,J,L)*ICfactor
              end do   ; end do   ; end do
            else
-             if(ghg_yr/=0)then; write(ghg_name,'(I4)') ghg_yr
-             else; write(ghg_name,'(I4)') modelEclock%getYear(); endif
+             if(ghg_yr/=0)then; write(ghg_name,'(I4.4)') ghg_yr
+             else; write(ghg_name,'(I4.4)') modelEclock%getYear(); endif
              ghg_file='GHG_IC_'//ghg_name
              call openunit(ghg_file,iu_data,.true.,.true.)
              do m=1,5
@@ -7851,8 +7872,9 @@ C**** Note this routine must always exist (but can be a dummy routine)
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
       USE FLUXES, only: tr3Dsource
-      USE TRCHEM_Shindell_COM,only: PI_run, use_rad_ch4, rad_FL,
+      USE TRCHEM_Shindell_COM,only: PI_run, use_rad_ch4,
      & dms_offline,so2_offline,sulfate,fix_CH4_chemistry
+      use photolysis, only: rad_FL,read_FL
 #endif
 #ifdef TRACERS_COSMO
       USE COSMO_SOURCES, only : variable_phi
@@ -8395,6 +8417,9 @@ C**** All sources are saved as kg/s
         pTracer => iter%value()
 
         pa => pTracer%getReference('index')
+! TODO : NAG error:
+! dereferenced or deallocated but not pointer-assigned or allocated
+        allocate(index)
         index = pa
         n = index
 
@@ -10837,11 +10862,6 @@ C Greg: certain things now done outside the loops for speed:
      *     c= 1.155d-11,         ! 5.5d-20*0.21d0*1.d-11/aa
      *     d= 4.0d-11            ! 4.0d-20*1.d-11/aa
 
-#ifdef TRACERS_SPECIAL_Shindell
-!@var maxl chosen tropopause 0=LTROPO(I,J), 1=LS1-1
-      integer maxl
-#endif
-
       call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
@@ -10862,12 +10882,6 @@ C***4.SO2 + OH -> SO4 + HO2
       do l=1,LM
       do j=J_0,J_1
       do i=I_0,imaxj(j)
-c
-      maxl = ltropo(i,j)
-#ifdef TRACERS_SPECIAL_Shindell
-      if(which_trop.eq.1)maxl=ls1-1
-#endif
-      if(l.le.maxl) then
 
 C Calculate effective temperature
 
@@ -10891,8 +10905,6 @@ c DMM is number density of air in molecules/cm3
         ek4 = 1.d0/(1.d0 + (f*f))
 
         rsulf4(i,j,l) = (rk4/(1.d0 + 0.5d12*rk4  ))*(0.45d0**ek4)
-
-      endif
 
       end do
       end do

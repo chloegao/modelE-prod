@@ -22,7 +22,8 @@ Object modules: (in order of decreasing priority)
 #include "static_ocn_source_files"
 
 ATM_COM
-RES_F40                             ! horiz/vert resolution, 2x2.5, top at 0.1mb, 40 layers
+Atm144x90                         ! horizontal resolution is 144x90 -> 2x2.5deg
+AtmL40                             ! vertical resolution is 40 layers -> 0.1mb
 MODEL_COM                           ! model variables and geometry
 IO_DRV                              ! new i/o
 TRIDIAG                             ! tridiagonal matrix solver

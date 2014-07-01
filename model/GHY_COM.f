@@ -62,16 +62,10 @@ ccc the following arrays contain prognostic variables for the snow model
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: WSN_IJ
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: HSN_IJ
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)      :: FR_SNOW_IJ
-ccc FR_SNOW_RAD_IJ is snow fraction for albedo computations
-ccc actually it should be the same as FR_SNOW_IJ but currently the snow
-ccc model can't handle fractional cover for thick snow (will fix later)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)      :: FR_SNOW_RAD_IJ
 C**** replacements for GDATA
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: SNOWE
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: TEARTH
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: WEARTH
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: AIEARTH
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: SNOAGE
 
 C**** arrays needed to restart from a SOILIC file with intensive units.
 C**** Normally these are only needed during cold starts.
@@ -89,11 +83,6 @@ C**** used in init_land_surface, and deallocated after use.
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: GDEEP
 !@var GSAVEL indiv layers temp,water,ice (for diag exporting)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: GSAVEL
-
-!@dbparam snoage_def determines how snowage is calculated:
-!@+       = 0     independent of temperature
-!@+       = 1     only when max daily local temp. over type > 0
-      integer :: snoage_def = 0
 
 ccc topmodel input data and standard deviation of the elevation
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: TOP_INDEX_IJ, top_dev_ij
@@ -201,14 +190,12 @@ cddd     *         STAT=IER)
      *         STAT=IER)
 
       ALLOCATE(         FR_SNOW_IJ(2,I_0H:I_1H,J_0H:J_1H),
-     *              FR_SNOW_RAD_IJ(2,I_0H:I_1H,J_0H:J_1H),
      *         STAT=IER)
 
-      ALLOCATE(      SNOWE(  I_0H:I_1H,J_0H:J_1H),
+      ALLOCATE(
      *              TEARTH(  I_0H:I_1H,J_0H:J_1H),
      *              WEARTH(  I_0H:I_1H,J_0H:J_1H),
      *             AIEARTH(  I_0H:I_1H,J_0H:J_1H),
-     *              SNOAGE(3,I_0H:I_1H,J_0H:J_1H),
      *         STAT=IER)
 
       ALLOCATE(     GDEEP(I_0H:I_1H,J_0H:J_1H,3),
@@ -269,128 +256,128 @@ C**** Initialize to zero
 
       END SUBROUTINE ALLOC_GHY_COM
 
-      SUBROUTINE io_earth(kunit,iaction,ioerr)
-!@sum  io_earth reads and writes ground data to file
-!@auth Gavin Schmidt
-      USE MODEL_COM, only : ioread,iowrite,lhead
-      USE GHY_COM
-      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
-      USE DOMAIN_DECOMP_1D, only : PACK_DATA, PACK_COLUMN, AM_I_ROOT
-      USE DOMAIN_DECOMP_1D, only : UNPACK_DATA, UNPACK_COLUMN
-      IMPLICIT NONE
-
-      INTEGER kunit   !@var kunit unit number of read/write
-      INTEGER iaction !@var iaction flag for reading or writing to file
-!@var IOERR 1 (or -1) if there is (or is not) an error in i/o
-      INTEGER, INTENT(INOUT) :: IOERR
-!@var HEADER Character string label for individual records
-      CHARACTER*80 :: HEADER, MODULE_HEADER = "EARTH02"
-
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: SNOWE_glob, TEARTH_glob,
-     &     WEARTH_glob, AIEARTH_GLOB,evap_max_ij_glob, fr_sat_ij_glob,
-     &     qg_ij_glob
-      REAL*8, ALLOCATABLE :: SNOAGE_glob(:,:,:)
-      REAL*8, ALLOCATABLE :: tsns_ij_glob(:,:)
-
-      call allocate_me
-
-      MODULE_HEADER(lhead+1:80) =
-     *   'R8 dim(ijm) : SNOWe,Te,WTRe,ICEe, SNOage(3,.),evmax,fsat,gq'
-!     *     //',fe'
-
-      SELECT CASE (IACTION)
-      CASE (:IOWRITE)            ! output to standard restart file
-        CALL PACK_DATA(grid, SNOWE       , SNOWE_glob)
-        CALL PACK_DATA(grid, TEARTH      , TEARTH_glob)
-        CALL PACK_DATA(grid, WEARTH      , WEARTH_glob)
-        CALL PACK_DATA(grid, AIEARTH     , AIEARTH_GLOB)
-        CALL PACK_DATA(grid, evap_max_ij , evap_max_ij_glob)
-        CALL PACK_DATA(grid, fr_sat_ij   , fr_sat_ij_glob)
-        CALL PACK_DATA(grid, qg_ij       , qg_ij_glob)
-        CALL PACK_COLUMN(grid, SNOAGE    , SNOAGE_glob)
-        CALL PACK_DATA(grid, tsns_ij     , tsns_ij_glob)
-        IF (AM_I_ROOT())
-     *     WRITE (kunit,err=10) MODULE_HEADER,SNOWE_glob,TEARTH_glob
-     *       ,WEARTH_glob,AIEARTH_glob
-     *       ,SNOAGE_glob,evap_max_ij_glob,fr_sat_ij_glob,qg_ij_glob
-     &       ,tsns_ij_glob
-      CASE (IOREAD:)            ! input from restart file
-cgsfc        READ (kunit,err=10) HEADER,SNOWE,TEARTH,WEARTH,AIEARTH
-cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
-        if (AM_I_ROOT()) then
-          READ(kunit,err=10) HEADER
-          BACKSPACE kunit
-          if (HEADER(1:lhead) == "EARTH01" ) then ! hack to read old format
-              READ (kunit,err=10) HEADER,SNOWE_glob,TEARTH_glob
-     &         ,WEARTH_glob ,AIEARTH_glob,SNOAGE_glob
-     &         ,evap_max_ij_glob,fr_sat_ij_glob ,qg_ij_glob
-            tsns_ij_glob(:,:) = TEARTH_glob
-          else if (HEADER(1:lhead) == MODULE_HEADER(1:lhead)) then
-            READ(kunit,err=10) HEADER,SNOWE_glob,TEARTH_glob
-     &           ,WEARTH_glob ,AIEARTH_glob,SNOAGE_glob
-     &           ,evap_max_ij_glob,fr_sat_ij_glob ,qg_ij_glob
-     &           ,tsns_ij_glob
-          else
-            PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
-            GO TO 10
-          end if
-        endif ! I_AM_ROOT
-
-        CALL UNPACK_DATA(grid, SNOWE_glob       , SNOWE      )
-        CALL UNPACK_DATA(grid, TEARTH_glob      , TEARTH     )
-        CALL UNPACK_DATA(grid, WEARTH_glob      , WEARTH     )
-        CALL UNPACK_DATA(grid, AIEARTH_glob     , AIEARTH    )
-        CALL UNPACK_DATA(grid, evap_max_ij_glob , evap_max_ij)
-        CALL UNPACK_DATA(grid, fr_sat_ij_glob   , fr_sat_ij  )
-        CALL UNPACK_DATA(grid, qg_ij_glob       , qg_ij      )
-        CALL UNPACK_COLUMN(grid, SNOAGE_glob    , SNOAGE     )
-        CALL UNPACK_DATA(grid, tsns_ij_glob     , tsns_ij      )
-
-      END SELECT
-
-      call deallocate_me
-      RETURN
- 10   IOERR=1
-      call deallocate_me
-      RETURN
-
-      contains
-      subroutine allocate_me
-      integer :: img, jmg
-
-      if (AM_I_ROOT()) then
-         img = IM
-         jmg = JM
-      else ! MPI needs allocated arrays even for unused arguments
-         img = 1
-         jmg = 1
-      end if
-      ALLOCATE( SNOAGE_glob(3,img,jmg),
-     &     tsns_ij_glob(img,jmg),
-     &     SNOWE_glob(img,jmg),
-     &     TEARTH_glob(img,jmg),
-     &     WEARTH_glob(img,jmg),
-     &     AIEARTH_GLOB(img,jmg),
-     &     evap_max_ij_glob(img,jmg),
-     &     fr_sat_ij_glob(img,jmg),
-     &     qg_ij_glob(img,jmg) )
-      end subroutine allocate_me
-
-      subroutine deallocate_me
-
-        DEALLOCATE( SNOAGE_glob,
-     &       tsns_ij_glob,
-     &       SNOWE_glob,
-     &       TEARTH_glob,
-     &       WEARTH_glob,
-     &       AIEARTH_GLOB,
-     &       evap_max_ij_glob,
-     &       fr_sat_ij_glob,
-     &       qg_ij_glob )
-
-      end subroutine deallocate_me
-
-      END SUBROUTINE io_earth
+c      SUBROUTINE io_earth(kunit,iaction,ioerr)
+c!@sum  io_earth reads and writes ground data to file
+c!@auth Gavin Schmidt
+c      USE MODEL_COM, only : ioread,iowrite,lhead
+c      USE GHY_COM
+c      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
+c      USE DOMAIN_DECOMP_1D, only : PACK_DATA, PACK_COLUMN, AM_I_ROOT
+c      USE DOMAIN_DECOMP_1D, only : UNPACK_DATA, UNPACK_COLUMN
+c      IMPLICIT NONE
+c
+c      INTEGER kunit   !@var kunit unit number of read/write
+c      INTEGER iaction !@var iaction flag for reading or writing to file
+c!@var IOERR 1 (or -1) if there is (or is not) an error in i/o
+c      INTEGER, INTENT(INOUT) :: IOERR
+c!@var HEADER Character string label for individual records
+c      CHARACTER*80 :: HEADER, MODULE_HEADER = "EARTH02"
+c
+c      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: SNOWE_glob, TEARTH_glob,
+c     &     WEARTH_glob, AIEARTH_GLOB,evap_max_ij_glob, fr_sat_ij_glob,
+c     &     qg_ij_glob
+c      REAL*8, ALLOCATABLE :: SNOAGE_glob(:,:,:)
+c      REAL*8, ALLOCATABLE :: tsns_ij_glob(:,:)
+c
+c      call allocate_me
+c
+c      MODULE_HEADER(lhead+1:80) =
+c     *   'R8 dim(ijm) : SNOWe,Te,WTRe,ICEe, SNOage(3,.),evmax,fsat,gq'
+c!     *     //',fe'
+c
+c      SELECT CASE (IACTION)
+c      CASE (:IOWRITE)            ! output to standard restart file
+c        CALL PACK_DATA(grid, SNOWE       , SNOWE_glob)
+c        CALL PACK_DATA(grid, TEARTH      , TEARTH_glob)
+c        CALL PACK_DATA(grid, WEARTH      , WEARTH_glob)
+c        CALL PACK_DATA(grid, AIEARTH     , AIEARTH_GLOB)
+c        CALL PACK_DATA(grid, evap_max_ij , evap_max_ij_glob)
+c        CALL PACK_DATA(grid, fr_sat_ij   , fr_sat_ij_glob)
+c        CALL PACK_DATA(grid, qg_ij       , qg_ij_glob)
+c        CALL PACK_COLUMN(grid, SNOAGE    , SNOAGE_glob)
+c        CALL PACK_DATA(grid, tsns_ij     , tsns_ij_glob)
+c        IF (AM_I_ROOT())
+c     *     WRITE (kunit,err=10) MODULE_HEADER,SNOWE_glob,TEARTH_glob
+c     *       ,WEARTH_glob,AIEARTH_glob
+c     *       ,SNOAGE_glob,evap_max_ij_glob,fr_sat_ij_glob,qg_ij_glob
+c     &       ,tsns_ij_glob
+c      CASE (IOREAD:)            ! input from restart file
+ccgsfc        READ (kunit,err=10) HEADER,SNOWE,TEARTH,WEARTH,AIEARTH
+ccgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
+c        if (AM_I_ROOT()) then
+c          READ(kunit,err=10) HEADER
+c          BACKSPACE kunit
+c          if (HEADER(1:lhead) == "EARTH01" ) then ! hack to read old format
+c              READ (kunit,err=10) HEADER,SNOWE_glob,TEARTH_glob
+c     &         ,WEARTH_glob ,AIEARTH_glob,SNOAGE_glob
+c     &         ,evap_max_ij_glob,fr_sat_ij_glob ,qg_ij_glob
+c            tsns_ij_glob(:,:) = TEARTH_glob
+c          else if (HEADER(1:lhead) == MODULE_HEADER(1:lhead)) then
+c            READ(kunit,err=10) HEADER,SNOWE_glob,TEARTH_glob
+c     &           ,WEARTH_glob ,AIEARTH_glob,SNOAGE_glob
+c     &           ,evap_max_ij_glob,fr_sat_ij_glob ,qg_ij_glob
+c     &           ,tsns_ij_glob
+c          else
+c            PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
+c            GO TO 10
+c          end if
+c        endif ! I_AM_ROOT
+c
+c        CALL UNPACK_DATA(grid, SNOWE_glob       , SNOWE      )
+c        CALL UNPACK_DATA(grid, TEARTH_glob      , TEARTH     )
+c        CALL UNPACK_DATA(grid, WEARTH_glob      , WEARTH     )
+c        CALL UNPACK_DATA(grid, AIEARTH_glob     , AIEARTH    )
+c        CALL UNPACK_DATA(grid, evap_max_ij_glob , evap_max_ij)
+c        CALL UNPACK_DATA(grid, fr_sat_ij_glob   , fr_sat_ij  )
+c        CALL UNPACK_DATA(grid, qg_ij_glob       , qg_ij      )
+c        CALL UNPACK_COLUMN(grid, SNOAGE_glob    , SNOAGE     )
+c        CALL UNPACK_DATA(grid, tsns_ij_glob     , tsns_ij      )
+c
+c      END SELECT
+c
+c      call deallocate_me
+c      RETURN
+c 10   IOERR=1
+c      call deallocate_me
+c      RETURN
+c
+c      contains
+c      subroutine allocate_me
+c      integer :: img, jmg
+c
+c      if (AM_I_ROOT()) then
+c         img = IM
+c         jmg = JM
+c      else ! MPI needs allocated arrays even for unused arguments
+c         img = 1
+c         jmg = 1
+c      end if
+c      ALLOCATE( SNOAGE_glob(3,img,jmg),
+c     &     tsns_ij_glob(img,jmg),
+c     &     SNOWE_glob(img,jmg),
+c     &     TEARTH_glob(img,jmg),
+c     &     WEARTH_glob(img,jmg),
+c     &     AIEARTH_GLOB(img,jmg),
+c     &     evap_max_ij_glob(img,jmg),
+c     &     fr_sat_ij_glob(img,jmg),
+c     &     qg_ij_glob(img,jmg) )
+c      end subroutine allocate_me
+c
+c      subroutine deallocate_me
+c
+c        DEALLOCATE( SNOAGE_glob,
+c     &       tsns_ij_glob,
+c     &       SNOWE_glob,
+c     &       TEARTH_glob,
+c     &       WEARTH_glob,
+c     &       AIEARTH_GLOB,
+c     &       evap_max_ij_glob,
+c     &       fr_sat_ij_glob,
+c     &       qg_ij_glob )
+c
+c      end subroutine deallocate_me
+c
+c      END SUBROUTINE io_earth
 
 
       SUBROUTINE io_soils(kunit,iaction,ioerr)
@@ -751,10 +738,11 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
       use ghy_com
       use domain_decomp_atm, only : grid
       use pario, only : defvar
+      use fluxes, only : atmlnd
       implicit none
       integer fid   !@var fid file id
-      call defvar(grid,fid,snowe,'snowe(dist_im,dist_jm)')
       call defvar(grid,fid,tearth,'tearth(dist_im,dist_jm)')
+      call defvar(grid,fid,atmlnd%snowe,'snowe(dist_im,dist_jm)')
       call defvar(grid,fid,wearth,'wearth(dist_im,dist_jm)')
       call defvar(grid,fid,aiearth,'aiearth(dist_im,dist_jm)')
       call defvar(grid,fid,evap_max_ij,
@@ -763,7 +751,6 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
      &     'fr_sat_ij(dist_im,dist_jm)')
       call defvar(grid,fid,qg_ij,'qg_ij(dist_im,dist_jm)')
       call defvar(grid,fid,tsns_ij,'tsns_ij(dist_im,dist_jm)')
-      call defvar(grid,fid,snoage,'snoage(d3,dist_im,dist_jm)')
       return
       end subroutine def_rsf_earth
 
@@ -775,29 +762,28 @@ cgsfc     &       ,SNOAGE,evap_max_ij,fr_sat_ij,qg_ij
       use ghy_com
       use domain_decomp_atm, only : grid
       use pario, only : write_dist_data,read_dist_data
+      use fluxes, only : atmlnd
       implicit none
       integer fid   !@var fid unit number of read/write
       integer iaction !@var iaction flag for reading or writing to file
       select case (iaction)
       case (iowrite)            ! output to restart file
-        call write_dist_data(grid,fid,'snowe',snowe)
         call write_dist_data(grid,fid,'tearth',tearth)
+        call write_dist_data(grid,fid,'snowe',atmlnd%snowe)
         call write_dist_data(grid,fid,'wearth',wearth)
         call write_dist_data(grid,fid,'aiearth',aiearth)
         call write_dist_data(grid,fid,'evap_max_ij',evap_max_ij)
         call write_dist_data(grid,fid,'fr_sat_ij',fr_sat_ij)
         call write_dist_data(grid,fid,'qg_ij',qg_ij)
-        call write_dist_data(grid,fid,'snoage',snoage,jdim=3)
         call write_dist_data(grid,fid,'tsns_ij',tsns_ij)
       case (ioread)            ! input from restart file
-        call read_dist_data(grid,fid,'snowe',snowe)
         call read_dist_data(grid,fid,'tearth',tearth)
+        call read_dist_data(grid,fid,'snowe',atmlnd%snowe)
         call read_dist_data(grid,fid,'wearth',wearth)
         call read_dist_data(grid,fid,'aiearth',aiearth)
         call read_dist_data(grid,fid,'evap_max_ij',evap_max_ij)
         call read_dist_data(grid,fid,'fr_sat_ij',fr_sat_ij)
         call read_dist_data(grid,fid,'qg_ij',qg_ij)
-        call read_dist_data(grid,fid,'snoage',snoage,jdim=3)
         tsns_ij(:,:) = tearth(:,:) ! default if not in input file
         call read_dist_data(grid,fid,'tsns_ij',tsns_ij)
       end select

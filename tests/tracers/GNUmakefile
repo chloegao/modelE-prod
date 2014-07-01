@@ -17,7 +17,7 @@ testSuites.inc: $(SRCS)
 	python $(PFUNIT)/bin/pFUnitParser.py $<  $@
 
 %.o: %.F90
-	$(F90) -c $(F90FLAGS) $<
+	$(FC) -c $(FFLAGS) $<
 
 clean:
 	$(RM) *.o *.mod *.a

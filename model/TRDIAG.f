@@ -32,6 +32,7 @@
 #ifndef CUBED_SPHERE
      &     ,fim
 #endif
+      USE MDIAG_COM, only : make_timeaxis
       USE TRDIAG_COM, only : tajln, tajls, lname_jln, sname_jln,
      *     units_jln,  scale_jln, lname_jls, sname_jls, units_jls,
      *     scale_jls, jls_power, jls_ltop, ia_jls, jwt_jls, jgrid_jls,
@@ -62,6 +63,7 @@
       character(len=10) :: zstr
       character(len=3) :: ltopstr,powstr
       logical, dimension(ktajl_) :: per_area,output_vsum
+      logical :: set_miss
 
       if(.not. am_i_root()) return
 
@@ -587,10 +589,16 @@ c
         else
           zstr='ple'
         endif
+        set_miss = denom_tajl(k).ne.0
         call add_var(cdl_tajl,'float '//trim(sname_tajl(k))//'('//
      &       trim(zstr)//',lat_budg) ;',
      &       long_name=trim(lname_tajl(k)),
-     &       units=trim(units_tajl(k)) )
+     &       units=trim(units_tajl(k)),
+     &       auxvar_string=
+     &          'float '//trim(sname_tajl(k))//'_hemis('//
+     &          trim(zstr)//',shnhgm) ;',
+     &       set_miss=set_miss,
+     &       make_timeaxis=make_timeaxis)
         if(pow_tajl(k).ne.0) then
           write(powstr,'(i2)') pow_tajl(k)
           call add_varline(cdl_tajl,
@@ -601,12 +609,14 @@ c
           call add_varline(cdl_tajl,
      &         trim(sname_tajl(k))//':ltop = '//trim(ltopstr)//' ;')
         endif
-        call add_var(cdl_tajl,
-     &       'float '//trim(sname_tajl(k))//'_hemis('//
-     &       trim(zstr)//',shnhgm) ;')
         if(denom_tajl(k).gt.0 .or. output_vsum(k)) then
-          call add_var(cdl_tajl, 'float '//trim(sname_tajl(k))//
-     &         '_vmean(lat_budg_plus3) ;')
+          if(make_timeaxis) then ! hacky logic
+            call add_var(cdl_tajl, 'float '//trim(sname_tajl(k))//
+     &           '_vmean(time,lat_budg_plus3) ;')
+          else
+            call add_var(cdl_tajl, 'float '//trim(sname_tajl(k))//
+     &           '_vmean(lat_budg_plus3) ;')
+          endif
         endif
       enddo
 
@@ -621,7 +631,8 @@ c
       use OldTracer_mod, only: trname, trw0
       use tracer_com, only: ntm, n_water
       use diag_com
-      use mdiag_com, only : sname_strlen
+      use diag_com_rad, only : ij_cldcv
+      use mdiag_com, only : sname_strlen,make_timeaxis
       use trdiag_com, only : taijn=>taijn_loc, taijs=>taijs_loc,
      &     ktaij_,ktaij_out,taij=>taij_out,
      &     scale_taij,cdl_taij,cdl_taij_latlon,hemis_taij,
@@ -647,6 +658,7 @@ c
       character(len=16) :: ijstr
       real*8, dimension(:,:), allocatable :: shnh_loc,shnh
       character(len=sname_strlen), dimension(ktaij_) :: dname_taij
+      logical :: set_miss
 
       logical :: have_south_pole, have_north_pole
       call getDomainBounds(grid, have_south_pole = have_south_pole,
@@ -993,19 +1005,24 @@ c
 #endif
       do k=1,ktaij_out
         if(trim(sname_taij(k)).eq.'unused') cycle
+        set_miss = denom_taij(k).ne.0
         call add_var(cdl_taij,
      &       'float '//trim(sname_taij(k))//trim(ijstr),
      &       long_name=trim(lname_taij(k)),
-     &       units=trim(units_taij(k)) )
-        call add_var(cdl_taij,
-     &       'float '//trim(sname_taij(k))//'_hemis(shnhgm) ;')
+     &       auxvar_string=
+     &           'float '//trim(sname_taij(k))//'_hemis(shnhgm);',
+     &       units=trim(units_taij(k)),
+     &       set_miss=set_miss,
+     &       make_timeaxis=make_timeaxis)
 #ifdef CUBED_SPHERE
         call add_var(cdl_taij_latlon,
      &       'float '//trim(sname_taij(k))//'(lat,lon);',
      &       long_name=trim(lname_taij(k)),
-     &       units=trim(units_taij(k)) )
-        call add_var(cdl_taij_latlon,
-     &       'float '//trim(sname_taij(k))//'_hemis(shnhgm) ;')
+     &       auxvar_string=
+     &           'float '//trim(sname_taij(k))//'_hemis(shnhgm);',
+     &       units=trim(units_taij(k)),
+     &       set_miss=set_miss,
+     &       make_timeaxis=make_timeaxis)
 #endif
       enddo
 
@@ -1019,6 +1036,7 @@ c
       use OldTracer_mod, only: trw0
       use tracer_com, only: ntm, n_water
       use diag_com
+      use mdiag_com, only : make_timeaxis 
       use trdiag_com, only : taijln=>taijln_loc, taijls=>taijls_loc,
      &     ktaijl_,ktaijl_out,taijl=>taijl_out,scale_taijl,ir_taijl,
      &     ia_taijl,denom_taijl,lname_taijl,sname_taijl,units_taijl,
@@ -1039,7 +1057,7 @@ c
       integer :: i_0,i_1,j_0,j_1, i_0h,i_1h,j_0h,j_1h
       real*8, dimension(:,:,:,:), allocatable :: taijl_tmp
       character(len=16) :: zstr,hstr,tstr
-
+      logical :: set_miss
       logical :: have_south_pole, have_north_pole
       call getDomainBounds(grid, have_south_pole = have_south_pole,
      &     have_north_pole = have_north_pole)
@@ -1237,17 +1255,22 @@ c
       do k=1,ktaijl_out
         if(trim(sname_taijl(k)).eq.'unused') cycle
         zstr='level'
+        set_miss = denom_taijl(k).ne.0
         call add_var(cdl_taijl,
      &       'float '//trim(sname_taijl(k))//
      &       trim(tstr)//trim(zstr)//trim(hstr),
      &       long_name=trim(lname_taijl(k)),
-     &       units=trim(units_taijl(k)) )
+     &       units=trim(units_taijl(k)),
+     &       set_miss=set_miss,
+     &       make_timeaxis=make_timeaxis)
 #ifdef CUBED_SPHERE
         call add_var(cdl_taijl_latlon,
      &       'float '//trim(sname_taijl(k))//
      &       '('//trim(zstr)//',lat,lon);',
      &       long_name=trim(lname_taijl(k)),
-     &       units=trim(units_taijl(k)) )
+     &       units=trim(units_taijl(k)),
+     &       set_miss=set_miss,
+     &       make_timeaxis=make_timeaxis)
 #endif
       enddo
 

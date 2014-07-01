@@ -43,7 +43,7 @@
 #endif
 
 
-      integer, parameter :: nlt=33,   !number of spectral channels
+      integer, parameter :: 
      .                      nh=200,   !number of depths for mean irradiance
      .                      nch=48,   !number of chl values for mean irrad
      .                      ncd=41    !number of cdom values for mean irrad

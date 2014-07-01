@@ -24,7 +24,8 @@ End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
 
-RES_F40
+AtmL40 
+AtmRes
 
 SCM_COM
 SCM_DIAG
@@ -53,7 +54,7 @@ OCN_DRV OCEAN OCNML
 SEAICE SEAICE_DRV ICEDYN_DUM
 
 RAD_COM RADIATION RAD_DRV
-COSZ_2D RAD_UTILS ALBEDO READ_AERO
+COSZ_2D RAD_UTILS ALBEDO READ_AERO ocalbedo
 
 DIAG_COM DIAG DEFACC QUICKPRT
 
@@ -62,10 +63,13 @@ ATM_DRV ATMDYN_COM ATM_UTILS ATM_COM
 MODEL_COM
 IO_DRV
 MODELE
+MODELE_DRV
 
 QUS_COM QUSDEF
 
 FLUXES
+
+STRAT_DUM
 
 Components:
 shared MPI_Support solvers giss_LSM 
@@ -152,10 +156,10 @@ TAero_BCB=/path/to/user/directory/extractions/BCB_Koch2008_kg_m2_144x90x20_1890-
 ! modes of operation may also prescribe ocean surface conditions
 ! via mechanisms other than these files. SICE and ZSIFAC can be
 ! omitted if the simulation location is free of sea ice.
-OSST=/path/to/user/directory/extractions/OST_144x90.1996-2005avg.HadISST1.1.nc  ! SST
+!OSST=/path/to/user/directory/extractions/OST_144x90.1996-2005avg.HadISST1.1.nc  ! SST
 ! rsi var. in SICE is sea ice fraction, ZSIFAC var. dm is used to get ice thickness
-SICE=/path/to/user/directory/extractions/SICE_144x90.1996-2005avg.HadISST1.1.nc
-ZSIFAC=/path/to/user/directory/extractions/SICE_144x90.1996-2005avg.HadISST1.1.nc
+!SICE=/path/to/user/directory/extractions/SICE_144x90.1996-2005avg.HadISST1.1.nc
+!ZSIFAC=/path/to/user/directory/extractions/SICE_144x90.1996-2005avg.HadISST1.1.nc
 !OCNML=XXX ! see comment above regarding the OCNML source code.
 
 ! These land-surface files are only needed if the TOPO file for
@@ -290,7 +294,7 @@ variable_lk=1
 &&END_PARAMETERS
 
  &INPUTZ
- YEARI=2000,MONTHI=1,DATEI=4,HOURI=0, ! pick IYEAR1=YEARI (default) or < YEARI
- YEARE=2000,MONTHE=2,DATEE=1,HOURE=0,     KDIAG=12*0,9,
- ISTART=2,IRANDI=0, YEARE=2000,MONTHE=2,DATEE=1,HOURE=0,
+ YEARI=2005,MONTHI=1,DATEI=1,HOURI=0, ! pick IYEAR1=YEARI (default) or < YEARI
+ YEARE=2005,MONTHE=1,DATEE=31,HOURE=23,     KDIAG=12*0,9,
+ ISTART=2,IRANDI=0, YEARE=2005,MONTHE=1,DATEE=31,HOURE=23,
 /

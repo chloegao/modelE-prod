@@ -224,18 +224,19 @@
       Return
       EndSubroutine CALC_VERT_AMP
 
-
-      Subroutine READ_NMC
-!**** read atmospheric initial conditions file
+      Subroutine aic_part2
+!@sum aic_part2 Once the fundamental atm state variables have been read from
+!@+   the AIC file, this routine converts everything to ModelE form (units
+!@+   changes, auxiliary variables, etc.)
       Use CONSTANT,   Only: mb2kg,areag,rgas
       Use RESOLUTION, Only: IM,JM,LM, MTOP,MFIX,MFIXs,MFRAC, PSF,PTOP
       Use ATM_COM,    Only: MA,U,V,T,P,Q, PK,PMID,PEDN,UALIJ,VALIJ, ZATMO
+      Use ATM_COM,    Only: traditional_coldstart_aic
       Use DOMAIN_DECOMP_ATM, Only: GRID, GetDomainBounds, globalsum
-      use pario, only : par_open,par_close,read_dist_data
       use GEOM, only : axyp
       use Dictionary_mod
       Implicit none
-      Integer :: I,J,L,fid, I1,IN,J1,JN
+      Integer :: I,J,L, I1,IN,J1,JN
       Logical :: QSP,QNP
       Real*8  :: MVAR
       integer :: initial_psurf_from_topo=0
@@ -246,14 +247,7 @@
                                   HAVE_SOUTH_POLE=QSP, HAVE_NORTH_POLE=QNP)
 
 
-      fid = par_open(grid,'AIC','read')
-      call read_dist_data(grid,fid,'p',p)
-      call read_dist_data(grid,fid,'u',u)
-      call read_dist_data(grid,fid,'v',v)
-      call read_dist_data(grid,fid,'t',t)
-      call read_dist_data(grid,fid,'q',q)
-      call par_close(grid,fid)
-
+      if(traditional_coldstart_aic) then
       if(is_set_param('initial_psurf_from_topo')) &
            call get_param('initial_psurf_from_topo',initial_psurf_from_topo)
       if(initial_psurf_from_topo==1) then
@@ -279,6 +273,7 @@
         enddo
         enddo
         deallocate(expz,aexpz)
+      endif
       endif
 
       Do J=J1,JN
@@ -317,7 +312,7 @@
 #endif
 
       Return
-      EndSubroutine READ_NMC
+      EndSubroutine aic_part2
 
 
       Subroutine PERTURB_TEMPS
@@ -357,7 +352,7 @@
       Use DOMAIN_DECOMP_ATM, Only: AM_I_ROOT
       Use Dictionary_mod
       Implicit None
-      Integer :: L,LCSDRAG,nrtau
+      Integer :: L,LCSDRAG,nrtau,nvsdragl
       character(len=1) :: partype
 
       linear_sdrag = is_set_param('rtau')
@@ -378,8 +373,17 @@
         Call sync_param ("PP_SDRAG", PP_SDRAG )
         Call sync_param ("ANG_SDRAG",ANG_SDRAG )
         Call sync_param ("Wc_Jdrag", Wc_Jdrag )
-        Call sync_param ("VSDRAGL",  VSDRAGL, LM-LS1+1 )
         Call sync_param ("wmax",     WMAX )
+
+        if(is_set_param('VSDRAGL')) then
+          ! logic to allow rundecks to specify only the nonzero
+          ! elements of VSDRAGL near the model top
+          call query_param('VSDRAGL',nvsdragl,partype)
+          if(nvsdragl < lm-ls1+1) vsdragl(ls1:lm-nvsdragl) = 0.
+        else
+          nvsdragl = lm-ls1+1
+        endif
+        Call sync_param ("VSDRAGL",  VSDRAGL(lm-nvsdragl+1:lm), nvsdragl )
 
 !**** Calculate levels for application of SDRAG: LSDRAG,LPSDRAG->LM i.e.
 !**** all levels above and including P_SDRAG mb (PP_SDRAG near poles)
@@ -424,7 +428,7 @@
       Implicit None
       Logical,Intent(In) :: END_of_DAY
       Real*8  :: DELTAP,PBAR,SMASS, CMASS(GRID%I_STRT_HALO:GRID%I_STOP_HALO,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
-      Integer :: I,J,L, I1,IN,J1,JN
+      Integer :: I1,IN,J1,JN
       Logical :: QSP,QNP
 
       If (.not.(END_of_DAY .or. ITIME==ITIMEI))  Return

@@ -93,7 +93,6 @@ contains
     REAL*8,      INTENT(OUT)  :: AVAR(:,grd_dum%J_STRT_HALO:) !@var  AOUT real*8 array
     REAL*4 :: AIN(grd_dum%IM_WORLD,grd_dum%JM_WORLD)  !@var  AIN  real*4 array
     REAL*8 :: AOUT(grd_dum%IM_WORLD,grd_dum%JM_WORLD) !@var  AOUT real*8 array
-    INTEGER :: N                        !@var  N loop variable
     INTEGER :: IM,JM
     INTEGER :: rc
     ! now local
@@ -123,7 +122,6 @@ contains
     REAL*8,      INTENT(OUT)  :: AVAR(:,grd_dum%J_STRT_HALO:,:) !@var  AOUT real*8 array
     REAL*4 :: AIN(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3))  !@var  AIN  real*4 array
     REAL*8 :: AOUT(grd_dum%IM_WORLD,grd_dum%JM_WORLD,size(AVAR,3)) !@var  AOUT real*8 array
-    INTEGER :: N                        !@var  N loop variable
     INTEGER :: IM,JM,NM
     INTEGER :: rc 
     ! now local

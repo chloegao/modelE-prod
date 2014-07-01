@@ -1,61 +1,4 @@
 #include "rundeck_opts.h"
-      subroutine modelE_mainDriver()
-!@sum Acquire configuration options from the command line and pass to
-!@+ the model.
-!@auth T. Clune
-C**** Command line options
-      logical :: qcRestart=.false.
-      logical :: coldRestart=.false.
-      integer, parameter :: MAX_LEN_IFILE = 32
-      character(len=MAX_LEN_IFILE) :: iFile
-
-      call read_options(qcRestart, coldRestart, iFile )
-      call GISS_modelE(qcRestart, coldRestart, iFile)
-
-      contains
-
-      subroutine read_options(qcRestart, coldRestart, iFile )
-!@sum Reads options from the command line
-!@auth I. Aleinov
-      implicit none
-!@var qcRestart true if "-r" is present
-!@var iFile is name of the file containing run configuration data
-      logical, intent(inout) :: qcRestart
-      logical, intent(inout) :: coldRestart
-      character(*),intent(out)  :: ifile
-      integer, parameter :: MAX_LEN_ARG = 80
-      character(len=MAX_LEN_ARG) :: arg, value
-
-      iFile = "";
-      do
-        call nextarg( arg, 1 )
-        if ( arg == "" ) exit          ! end of args
-        select case (arg)
-        case ("-r")
-          qcRestart = .true.
-        case ("-cold-restart")
-          coldRestart = .true.
-        case ("-i")
-          call nextarg( value, 0 )
-          iFile=value
-        ! new options can be included here
-        case default
-          print *,'Unknown option specified: ', arg
-          print *,'Aborting...'
-          call stop_model("Unknown option on a command line",255)
-        end select
-      enddo
-
-      if (iFile == "") then
-        print*, 'No configuration file specified on command line: '
-        print*, 'Aborting ...'
-        call stop_model("No configuration file on command line.",255)
-      end if
-
-      return
-      end subroutine read_options
-
-      end subroutine modelE_mainDriver
 
       subroutine GISS_modelE(qcRestart, coldRestart, iFile)
 !@sum  MAIN GISS modelE main time-stepping routine
@@ -92,6 +35,10 @@ C**** Command line options
       use fluxes, only : atmocn,atmice     ! precip_oc calls are moved
       use CalendarMonth_mod, only: LEN_MONTH_ABBREVIATION
       use Constant, only: initializeConstants
+#ifdef CACHED_SUBDD
+      USE SUBDD_MOD, only : write_monthly_files,write_daily_files,
+     &     days_per_file,write_one_file
+#endif
       implicit none
 C**** Command line options
       logical, intent(in) :: qcRestart
@@ -108,7 +55,8 @@ C**** Command line options
       REAL*8 start,now, DTIME,TOTALT
 
       CHARACTER aDATE*14
-      CHARACTER*8 :: flg_go='___GO___'      ! green light
+      CHARACTER*8 :: string_go='___GO___'      ! green light
+      CHARACTER*8 :: str
       integer :: iflag=1
       external sig_stop_model
       logical :: start9
@@ -117,6 +65,10 @@ C**** Command line options
       real*8 :: tloopbegin, tloopend
       integer :: hour, month, day, date, year
       character(len=LEN_MONTH_ABBREVIATION) :: amon
+
+#ifdef CACHED_SUBDD
+      character(len=8) :: yyyymmdd
+#endif
 
 #ifdef USE_SYSUSAGE
       do i_su=0,max_su
@@ -146,7 +98,7 @@ C**** Set run_status to "run in progress"
 
       IF (AM_I_ROOT()) Then
          open(3,file='flagGoStop',form='FORMATTED',status='REPLACE')
-         write (3,'(A8)') flg_go
+         write (3,'(A8)') string_go
          close (3)
       END IF
       call sys_signal( 15, sig_stop_model )  ! works only on single CPU
@@ -188,6 +140,10 @@ C****
         call startNewDay()
       end if
 
+#ifdef CACHED_SUBDD
+      call set_subdd_period()
+#endif
+
       call atm_phase1
 
 C****
@@ -211,6 +167,20 @@ C**** also drives "surface" components that are on the atm grid)
 
 ! phase 2 changes surf pressure which affects the ocean
       call atm_phase2
+
+#ifdef CACHED_SUBDD
+      if(write_one_file .and. itime+1.eq.itimee) then ! run finished
+        filenm = 'allsteps.subdd'//XLABEL(1:LRUNID)
+      elseif(write_daily_files .and.
+     &     mod(itime+1,days_per_file*nday).eq.0) then
+        write(yyyymmdd,'(i4,i2.2,i2.2)') year,month,date
+        filenm=yyyymmdd//'.subdd'//XLABEL(1:LRUNID)
+      else
+        filenm = ''
+      endif
+      if(filenm.ne.'') call write_subdd_accfile (filenm)
+#endif
+
 C****
 C**** UPDATE Internal MODEL TIME AND CALL DAILY IF REQUIRED
 C****
@@ -271,6 +241,12 @@ C**** KCOPY > 0 : SAVE THE DIAGNOSTIC ACCUM ARRAYS IN SINGLE PRECISION
           end do
           filenm=aDATE(1:7)//'.acc'//XLABEL(1:LRUNID)
           call io_rsf (filenm,Itime,iowrite_single,ioerr)
+#ifdef CACHED_SUBDD
+          if(write_monthly_files) then
+            filenm=aDATE(1:7)//'.subdd'//XLABEL(1:LRUNID)
+            call write_subdd_accfile (filenm)
+          endif
+#endif
 C**** KCOPY > 1 : ALSO SAVE THE RESTART INFORMATION
           IF (KCOPY.GT.1) THEN
             CALL RFINAL (IRAND)
@@ -310,21 +286,21 @@ C**** CPU TIME FOR CALLING DIAGNOSTICS
 C**** TEST FOR TERMINATION OF RUN
       IF (MOD(Itime,Nssw).eq.0) then
        IF (AM_I_ROOT()) then
-        flg_go = '__STOP__'     ! stop if flagGoStop if missing
         iflag=0
-        open(3,file='flagGoStop',form='FORMATTED',status='OLD',err=210)
-        read (3,'(A8)',end=210) flg_go
-        close (3)
- 210    continue
-        IF (flg_go .eq. '___GO___') iflag=1
+        if ( .not. stop_on ) then
+          open(3,file='flagGoStop',form='FORMATTED',status='OLD'
+     &         ,err=210)
+          read (3,'(A8)',end=210) str
+          close (3)
+ 210      continue
+          IF (str .eq. string_go) iflag=1
+        endif
         call broadcast(iflag)
        else
         call broadcast(iflag)
-        if (iflag .eq. 1) flg_go = '___GO___'
-        if (iflag .eq. 0) flg_go = '__STOP__'
        end if
       endif
-      IF (flg_go.ne.'___GO___' .or. stop_on) THEN
+      IF ( iflag == 0 ) THEN
 C**** Flag to continue run has been turned off
          WRITE (6,'("0Flag to continue run has been turned off.")')
          EXIT main_loop
@@ -575,6 +551,8 @@ C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
       USE MODEL_COM, only : stop_on
       implicit none
       stop_on = .true.
+      print *,"got signal 15"
+      call sys_flush(6)
       end subroutine sig_stop_model
 
 
@@ -590,7 +568,11 @@ C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
      *     ,NMONAV,Ndisk,Nssw,KCOPY,KOCEAN,IRAND,ItimeI
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
       USE Dictionary_mod
+#ifdef NEW_IO
+      USE MDIAG_COM, only : make_timeaxis
+#endif
       implicit none
+      integer :: dummy_int
 
 C**** Rundeck parameters:
       call sync_param( "NMONAV", NMONAV )
@@ -600,6 +582,16 @@ C**** Rundeck parameters:
       call sync_param( "KCOPY", KCOPY )
       call sync_param( "KOCEAN", KOCEAN )
       call sync_param( "IRAND", IRAND )
+      if (is_set_param("master_yr")) then
+        call get_param( "master_yr", master_yr )
+      else
+        call stop_model('Please define master_yr in the rundeck.',255)
+      endif
+#ifdef NEW_IO
+      dummy_int = 0
+      call sync_param("make_timeaxis",dummy_int)
+      make_timeaxis = dummy_int==1
+#endif
       RETURN
 C****
       end subroutine init_Model
@@ -807,6 +799,10 @@ C****
 
           tmpTime = modelEtime0
           call tmpTime%add(calendar%getSecondsPerHour()*Ihrx)
+
+          modelEtimeI = modelEtime0
+          call modelEtimeI%add(calendar%getSecondsPerHour()*IhrI)
+
 C**** Check consistency of starting time
           IF( ((modelEtimeI%getDayOfYear()/=tmpTime%getDayOfYear()) .or.
      &      (modelEtimeI%getHour() /= tmpTime%getHour())) ) then
@@ -983,11 +979,9 @@ C**** Set date information
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
 C**** Initialise tracer parameters and diagnostics
 C**** MUST be before other init routines
-C**** TODO: split init_tracer into general definitions and
-C**** component-specific ops, folding the latter into component inits
-      if(istart.eq.2) call read_nmc()  ! hack, see TODO
-      CALL CALC_AMPK(LM)               ! hack
-      call init_tracer
+      call laterInitTracerMetadata()
+      call InitTracerDiagMetadata()
+      call InitTracerMetadataAtmOcnCpler()
 #endif
 #endif
 
@@ -1021,6 +1015,15 @@ C**** component-specific ops, folding the latter into component inits
          call print_param( 6 )
          WRITE (6,'(A7,12I6)') "IDACC=",(IDACC(I),I=1,12)
       end if
+
+#ifdef CACHED_SUBDD
+      ! Initialize subdaily diagnostics
+      call parse_subdd
+      call reset_cached_subdd
+      if(istart.ge.10) then
+        call read_subdd_rsf(trim(rsf_file_name(kdisk_restart))//'.nc')
+      endif
+#endif
 
 C****
       RETURN

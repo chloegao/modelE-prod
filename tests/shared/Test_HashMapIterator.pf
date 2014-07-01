@@ -4,6 +4,7 @@ module Test_HashMapIterator_mod
   use FooHashMap_mod
   implicit none
 
+  public :: Test_HashMapIterator
 
 @TestCase
   type, extends(TestCase) :: Test_HashMapIterator
@@ -14,7 +15,6 @@ module Test_HashMapIterator_mod
  end type Test_HashMapIterator
 
 contains
-
 
   subroutine setUp(this)
     class (Test_HashMapIterator), intent(inout) :: this

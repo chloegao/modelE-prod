@@ -3,10 +3,7 @@
       module veg_com
 !@sum  GHY_COM contains the areas used by the Ground Hydrology routines
 !@auth N. Kiang, I. Aleinov
-      use ghy_com, only : ngm,imt,nlsn
-#ifdef TRACERS_WATER
-      use tracer_com, only : ntm
-#endif
+      use ghy_com, only : ngm
       implicit none
       save
 

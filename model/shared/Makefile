@@ -35,7 +35,11 @@ F90SRCS  = AbstractAttribute.F90 \
 	System.F90 \
 	SystemTimers_mod.F90 \
 	TimeConstants.F90 \
-	Utilities.F90
+	Time.F90 \
+	Utilities.F90 \
+	SystemTools.F90
+
+CSRCS = system_tools.c
 
 # Time Management
 F90SRCS += KindParameters.F90 \

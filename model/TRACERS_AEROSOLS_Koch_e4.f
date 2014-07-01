@@ -892,12 +892,7 @@ C**** THIS LOOP SHOULD BE PARALLELISED
       do 21 j=j_0,j_1
       do 22 i=i_0,imaxj(j)
 C Initialise       
-c       maxl = ltropo(i,j)
         bdy = dclev(i,j) 
-#ifdef TRACERS_SPECIAL_Shindell
-        if(which_trop.eq.1)maxl=ls1-1
-#endif
-c     if(l.le.maxl) then
       ppres=pmid(l,i,j)*9.869d-4 !in atm
       te=pk(l,i,j)*t(i,j,l)
       mm = MA(l,i,j)*axyp(i,j)
@@ -1070,7 +1065,6 @@ c SO2 production from DMS
         end select
         
  23   CONTINUE ! ===== END OF CHEMISTRY OF Koch AEROSOLS ====
-c       endif
  22   CONTINUE
  21   CONTINUE
  20   CONTINUE
@@ -1078,12 +1072,6 @@ c       endif
       do 30 l=1,lm
       do 31 j=j_0,j_1
       do 32 i=i_0,imaxj(j)
-
-c     maxl = ltropo(i,j)
-#ifdef TRACERS_SPECIAL_Shindell
-      if(which_trop.eq.1)maxl=ls1-1
-#endif
-c     if(l.le.maxl) then
 
       ppres=pmid(l,i,j)*9.869d-4 !in atm
       te=pk(l,i,j)*t(i,j,l)
@@ -1218,7 +1206,6 @@ c H2O2 losses:5 and 6
 
  33   CONTINUE
 #endif
-c     endif
  32   CONTINUE
  31   CONTINUE
  30   CONTINUE
@@ -1713,7 +1700,7 @@ c
       USE CONSTANT, only: pi,gasc
       USE FLUXES, only: atmsrf
       use TimeConstants_mod, only: DAYS_PER_YEAR
-      USE GHY_COM, only: snoage
+      USE RAD_COM, only: snoage
       USE AEROSOL_SOURCES, only: snosiz
       IMPLICIT none
       REAL*8 E,A,age,r0,radmm,ert,

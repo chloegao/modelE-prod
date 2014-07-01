@@ -1,10 +1,9 @@
 module Test_TimerList_mod
-   use pFUnit_mod
    use TimerList_mod, only: start, stop, reset, getTimer, getNumTimers, isTimer, addTimer
    use TimerList_mod, only: initializeTimer=>initialize
    use TimerList_mod, only: finalizeTimer=>finalize
+   use pFUnit_mod
    implicit none
-
 
    integer, parameter :: dp = selected_real_kind(14)
 
@@ -107,7 +106,7 @@ contains
 #ifdef USE_PFUNIT
       call addTimer('timer')
       call start('timer')
-      call finalize()
+      call finalizeTimer()
       @assertTrue(catch('Unbalanced start/stop for timer <timer>.'))
       call reset('timer')
 #endif

@@ -27,10 +27,21 @@ C**** COSZS WORKS CORRECTLY ONLY IF ZERO1 >> 1.D-3
       logical :: lwrap
 
       real*8, dimension(:,:), allocatable :: duskij,sinlatij,coslatij
+
+      logical :: use_const_cosz
+      real*8 :: const_cosz
+
       contains
 
-      subroutine cosz_init
+      subroutine cosz_init(cosz_const)
       implicit none
+      real*8, optional :: cosz_const
+      if(present(cosz_const)) then
+        const_cosz = cosz_const
+        use_const_cosz = .true.
+      else
+        use_const_cosz = .false.
+      endif
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
       J_0 = grid%J_STRT
@@ -61,6 +72,11 @@ C****
       REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
      &                  grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      &     COSZ
+
+      if(use_const_cosz) then
+        cosz = const_cosz
+        return
+      endif
 
       DROT=ROT2-ROT1
 
@@ -121,6 +137,12 @@ C****
      &                  grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      &     COSZ,COSZA
       REAL*8 ECOSZ,ECOSQZ,ECOSZ1
+
+      if(use_const_cosz) then
+        cosz = const_cosz
+        cosza = const_cosz
+        return
+      endif
 
       DROT=ROT2-ROT1
 

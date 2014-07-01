@@ -53,7 +53,8 @@ End Preprocessor Options
 
 Object modules:
      ! resolution-specific source codes
-RES_stratF40                        ! horiz/vert resolution, 2x2.5, top at 0.1mb, 40 layers
+Atm144x90                  ! horizontal resolution is 144x90 -> 2x2.5deg
+AtmL40                      ! vertical resolution is 40 layers -> 0.1mb
 DIAG_RES_F                          ! diagnostics
 FFT144                              ! Fast Fourier Transform
 
@@ -71,9 +72,6 @@ TRDIAG                              ! new i/o
 !#include "tracer_shindell_source_files"
 !#include "tracer_aerosols_source_files"
 TRACERS_AEROSOLS_Koch_e4            ! BC/OC/sulfate/seasalt
-AmpTracersMetadata
-sharedTracersMetadata
-MiscTracersMetadata
 #include "tracer_AMP_source_files"
 TRAMP_eqsam_v03d
 

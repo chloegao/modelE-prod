@@ -6,6 +6,12 @@
 C**** TO DO:
 C****   i) A-grid <-> B-grid  should be done with indexes etc.
 
+      subroutine get_kep(kep)
+      implicit none
+      integer :: kep
+      kep = 21
+      end subroutine get_kep
+
       MODULE STRAT
 !@sum  STRAT local stratospheric variables for GW drag etc.
 !@auth Bob Suozzo/Jean Lerner
@@ -1321,7 +1327,7 @@ C****
       IMPLICIT NONE
       REAL*8, INTENT(INOUT),
      *     DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: U,V
-      Real*8,Intent(InOut):: MA(LM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
+      Real*8,Intent(In):: MA(LM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
 
       REAL*8, DIMENSION(IM) :: UDXS,DUMS1,DUMS2,DUMN1,DUMN2
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::

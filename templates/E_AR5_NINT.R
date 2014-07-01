@@ -2,7 +2,7 @@ E_AR5_NINT.R GISS Model E  1850 ocn/atm          Larissa        08/26/2010
 
 !! E_AR5_NINT is for NIsurf=2 with NetCDF output; 
                + WMUI_multiplier=2. (to adjust Planetary albedo close to 30%) 
-                 (U00a=0.54; U00b=1.0)
+                 (U00a=0.43; U00b=1.0)
 
 !! delete lines starting with '!!' unless E4F40 prepares a q-flux ocean run
 !! E4qsF40.R GISS Model E  1850 atm, ocn: q-flux 65m             rar 07/15/2009
@@ -26,7 +26,8 @@ End Preprocessor Options
 
 Object modules:
      ! resolution-specific source codes
-RES_stratF40                        ! horiz/vert resolution, 2x2.5, top at 0.1mb, 40 layers
+Atm144x90                         ! horizontal resolution is 144x90 -> 2x2.5deg
+AtmL40                             ! vertical resolution is 40 layers -> 0.1mb
 DIAG_RES_F                          ! diagnostics
 FFT144                              ! Fast Fourier Transform
 
@@ -38,7 +39,7 @@ QUS_DRV QUS3D                       ! advection of Q/tracers
 STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 
 #include "latlon_source_files"
-#include "modelE4_source_files"
+#include "modelE4_source_files" /* with ATURB instead of ATURB_E1 */
 #include "static_ocn_source_files"
 
 Components:
@@ -75,7 +76,7 @@ xCDpbl=1.
 cond_scheme=2   ! newer conductance scheme (N. Kiang) ! not used with Ent
 
 ! Increasing U00a decreases the high cloud cover; increasing U00b decreases net rad at TOA
-U00a=0.54      ! above 850mb w/o MC region; tune this first to get 30-35% high clouds
+U00a=0.43      ! above 850mb w/o MC region; tune this first to get 30-35% high clouds
 U00b=1.00      ! below 850mb and MC regions; then tune this to get rad.balance
 
 WMUI_multiplier = 2.

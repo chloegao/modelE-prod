@@ -3,8 +3,16 @@
 !@auth  Audrey Wolf
 !
 C--------------------------------------------------------------------------------
+
+      module HorizontalRes
+!@sum Trivial horizontal resolution definition for SCM
+      implicit none
+!@var IM,JM = longitudinal and latitudinal number of grid cells
+      integer, parameter :: IM=1,JM=1
+      end module HorizontalRes
+
       Module SCMCOM
-      USE RESOLUTION , ONLY : LM
+      use VerticalRes, only : LM
       IMPLICIT NONE
       SAVE
 
@@ -118,7 +126,8 @@ C SCM DATA as provided from ARM variational analysis
       INTEGER TAUARM
 !@var IKT index to arm data interpolated to time steps
       INTEGER IKT
-      INTEGER iu_scm_prt,iu_scm_diag,iu_scm_seed
+      INTEGER iu_scm_prt,iu_scm_seed
+      INTEGER :: iu_scm_diag=-999 ! neg. init value indicates need to open file
       INTEGER jrandscm    
 
 !@var IFLRESET,NRAMP,IRESET  used for doing updating with a ramp, then saving only

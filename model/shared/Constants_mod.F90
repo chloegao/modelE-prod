@@ -81,6 +81,9 @@ module constant
 !@param byshi 1/shi
   real*8,parameter :: byshi = 1d0/shi
 
+!@param fraction of O2 in the atmosphere (0-1)
+      real*8,parameter :: pO2 = 0.209476d0
+
   !**** RGAS = R/M_A = 1000* 8.314510 J/mol K /28.9655 g/mol
   !**** For values of CO2 much larger than present day (> 4x conc)
   !**** the molar mass of dry air M_A could change.
@@ -154,8 +157,8 @@ module constant
 !@var visc_wtr_kin kinematic viscosity of water (35 psu, 20 deg C) (m^2/s)
   real*8,parameter :: visc_wtr_kin = 1.05d-6
 
-!@var avog Avogadro's constant (atmos/mole)
-  real*8,parameter :: avog=6.023d23
+!@var avog Avogadro's constant (molecules/mole)
+  real*8,parameter :: avog=6.02214129d23
 
 !**** Astronomical constants
 !@param daysPerYear number of solar days per orbital period

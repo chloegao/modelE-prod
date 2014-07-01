@@ -5,7 +5,7 @@ c     save diagnostics for run of MODELE SCM
 
 
       USE RESOLUTION, only: LM
-      USE ATM_COM,    only: p,u,v,t,q,qcl,gz,pk
+      USE ATM_COM,    only: p,u,v,t,q,qcl,qci,gz,pk
       USE MODEL_COM , only: dtsrc
       USE DYNAMICS,   only: sige,sig
       USE CLOUDS_COM, only: SVLHX,SVLAT,RHSAV,CLDSAV,tauss,taumc,
@@ -77,7 +77,8 @@ C             GTEMP(1,4,itarg,jtarg) Tskin  -  Sking temperature (C)
 C             CLCVSS     (LM)     Cloud Cover SS (by area) 
 C             CLCVMC     (LM)     Cloud Cover MC 
 C             CLTHCK     (LM)     Cloud Thickness 
-C             WMCOl      (LM)     Cloud Water Content (Kg/Kg) 
+C             SCMQCL     (LM)     Cloud Liquid Water Content (Kg/Kg) 
+C             SCMQCI     (LM)     Cloud Ice Water Content (Kg/Kg)
 C             SVLHXCOL   (LM)     Liquid/Ice Flag (SS) save Latent Heats (j/Kg) 
 C             SVLATCOL   (LM)     Liquid/Ice Flag (MC) save Latent Heats (j/Kg)
 C             CSIZE      (LM,2)   Particle Size (10**-06m)     1=mc,2=ss 
@@ -193,7 +194,7 @@ C
 C--- Added by J.W. starting ---C
       real*8 GZPRT(LM)
 C--- Added by J.W. ending ---C
-      real*8 TPRT(LM), QPRT(LM) ,TSURF, TSKIN, WMCOL(LM)    
+      real*8 TPRT(LM),QPRT(LM),TSURF,TSKIN,SCMQCI(LM),SCMQCL(LM)
       real*8 TDIFF,QDIFF
       real*8 PCOL, SVLHXCOL(LM),SVLATCOL(LM)    
       real*8 CUMFLXCOL(LM),DWNFLXCOL(LM)
@@ -205,7 +206,7 @@ C--- Added by J.W. ending ---C
  
       DATA  daysec/86400./
 
-      if (NSTEPSCM.eq.0) then
+      if(iu_scm_diag.lt.0) then ! startup
           call openunit('scm.save.sige',iu,.true.,.false.)
           WRITE(iu) SIGE
           call closeunit(iu)
@@ -229,7 +230,9 @@ C--- Added by J.W. starting ---C
 C--- Added by J.W. ending ---C
          TPRT(L) = T(1,1,L)*PK(L,1,1) 
          QPRT(L) = Q(1,1,L)
-         WMCOL(L) = QCL(1,1,L)
+!        WMCOL(L) = WM(1,1,L)   replaced with QCI,QCL
+         SCMQCL(L) = QCL(1,1,L)
+         SCMQCI(L) = QCI(1,1,L)
          SVLHXCOL(L) = SVLHX(L,1,1)
          SVLATCOL(L) = SVLAT(L,1,1)
          CLCVSS(L) = CLDSS(L,1,1)
@@ -348,7 +351,7 @@ c     enddo
       enddo
 
       WRITE(iu_scm_diag) NSTEPSCM,PCOL,TPRT,QPRT,TSURF,TSKIN,CLCVSS,
-     *           CLCVMC,WMCOL,SVLHXCOL,SVLATCOL,CSIZE,EFFRAD,
+     *           CLCVMC,SCMQCL,SCMQCI,SVLHXCOL,SVLATCOL,CSIZE,EFFRAD,
      *           CUMFLXCOL,DWNFLXCOL,SRDFLBTOP,SRNFLBTOP,TRUFLBTOP,
      *           SRDFLBBOT,SRNFLBBOT,TRUFLBBOT,TRDFLBBOT,PRCSS,PRCMC,
      *           SCM_PBL_HGT,EVPFLX,SHFLX,SRFHRLCOL,
@@ -384,31 +387,13 @@ c
       IDEBUG = 0
       do L=1,LM
          write(iu_scm_prt,140) L,SG_P(L),TPRT(L),
-     +         QPRT(L)*1000.0,WMCOL(L)*1000.0,SCM_WM_MC(L)*1000.,
+     +         QPRT(L)*1000.0,SCMQCL(L)*1000.0,SCMQCI(L)*1000.,
      +         SCM_SVWMXL(L)*1000.0,TAUSSC(L),TAUMCC(L),
-     +                 CLCVSS(L)*100.,CLCVMC(L)*100.,SG_ARSCL(L)
- 140     format(1x,i2,f8.2,' T ',f7.2,' Q',f7.3,' WMss mc det',
+     +         CLCVSS(L)*100.,CLCVMC(L)*100.,SG_ARSCL(L)
+ 140     format(1x,i2,f8.2,' T ',f7.2,' Q',f7.3,' qcl qci det',
      +          3(f7.3),' tauss mc',2(f7.2),' cfss mc',
      +          2(f7.2),' cld',f5.1)
       enddo 
-
-c     do L=1,LM
-c        write(iu_scm_prt,140) L,SG_P(L),TPRT(L),ARMT(L),
-c    +                 QPRT(L)*1000.0,ARMQ(L)*1000.0,    
-c    +                 WMCOL(L)*1000.0,TAUSSC(L),TAUMCC(L),
-c    +                 CLCVSS(L)*100.,CLCVMC(L)*100.,SG_ARSCL(L)
-c140     format(1x,i3,f8.2,' T ',2(f7.2),'  Q ',2(f7.3),'  WM ',
-c    +          f7.4,'  tauss mc ',2(f8.3),'  camtss mc ',
-c    +          2(f7.3),' arscl ',f6.2)
-c     enddo 
-
-c     do L=1,LM
-c        write(iu_scm_prt,150) L,SG_P(L),TPRT(L),QPRT(L)*1000.0,
-c    +           WMCOL(L)*1000.0,SVLHXCOL(L),PRESAV(L)*1000.,LHPSAV(L),
-c    +           PREMC(L)*1000.0,LHPMC(L)
-c150     format(1x,i3,f8.2,f8.2,f8.4,f8.5,f12.0,f8.5,f12.0,f8.5,f12.0)
-c     enddo
-
 
       RETURN 
 

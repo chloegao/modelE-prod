@@ -766,6 +766,7 @@ c
       subroutine get_soil_C_total(ncasa, soil_C_total)
       use DOMAIN_DECOMP_ATM, only : GRID
       use pario, only : par_open,par_close,read_dist_data
+      use filemanager, only : file_exists
       implicit none
       integer, intent(in) :: ncasa
       real*8 :: !,intent(out) ::
@@ -773,9 +774,11 @@ c
      &     grid%J_STRT_HALO:grid%J_STOP_HALO)
       !---
       integer :: fid
-
-      fid = par_open(grid,'SOILCARB_global','read')
-      call read_dist_data(grid,fid,'soil_C_total',soil_C_total,jdim=3)
-      call par_close(grid,fid)
-      
+      if(file_exists('SOILCARB_global')) then
+        fid = par_open(grid,'SOILCARB_global','read')
+        call read_dist_data(grid,fid,'soil_C_total',soil_C_total,jdim=3)
+        call par_close(grid,fid)
+      else
+        soil_C_total = 0.
+      endif
       end subroutine get_soil_C_total

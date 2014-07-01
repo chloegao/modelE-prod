@@ -1631,7 +1631,7 @@ C****
       USE SCMCOM, only : SCM_SURFACE_FLAG,ATSKIN
 #endif
       USE SEAICE_COM, only : si_atm,si_ocn
-      USE SEAICE, only : ace1i,xsi,lmi,Ti
+      USE SEAICE, only : ace1i,xsi,lmi,Ti,rhoi,rhos
       USE EXCHANGE_TYPES, only : atmice_xchng_vars
       IMPLICIT NONE
       type(atmice_xchng_vars) :: atmice
@@ -1671,6 +1671,8 @@ C**** set GTEMP etc. array for ice
         atmice%GTEMP2(I,J)=Ti(si_atm%HSI(2,I,J)/(XSI(2)*MSI1),
      &                1d3*si_atm%SSI(2,I,J)/(XSI(2)*MSI1))
         atmice%GTEMPR(I,J) = atmice%GTEMP(I,J)+TF
+        atmice%ZSNOWI(I,J)=si_atm%SNOWI(I,J)/rhos
+        si_atm%ZSI(I,J)=(ace1i+si_atm%msi(i,j))/rhoi
 #ifdef SCM
         if (SCM_SURFACE_FLAG.ge.1) then
           atmice%GTEMP(I,J) = ATSKIN

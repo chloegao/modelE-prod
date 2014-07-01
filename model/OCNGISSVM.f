@@ -103,7 +103,7 @@ c     REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TRMO1,TXMO1,TYMO1
       ! local:
 
       integer j,k,l,iu_TIDES
-      real*8 tmpm(mt),tmpn(nt),rini,rend,ff,ri,rr
+      real*8 tmpm(mt),tmpn(nt),rini,rend,ff
 
       ! establish ri grids for look-up table
       ! the grids extend from -rend to rend, with more grids near zero
@@ -112,7 +112,7 @@ c     REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TRMO1,TXMO1,TYMO1
       rend=1d4
       ff=(mt0-1)/(dlog(rend/rini)/dlog(2.d0))
       do j=1,mt0-1
-         tmpm(j)=rini*2**(dfloat(j-1)/ff)
+         tmpm(j)=rini*2**(dble(j-1)/ff)
       end do
       tmpm(mt0)=rend
       do j=1,mt
@@ -130,7 +130,7 @@ c     REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TRMO1,TXMO1,TYMO1
       rend=1.-1d-2
       ff=(nt0-1)/(dlog(rend/rini)/dlog(2.d0))
       do k=1,nt0-1
-         tmpn(k)=rini*2**(dfloat(k-1)/ff)
+         tmpn(k)=rini*2**(dble(k-1)/ff)
       end do
       tmpn(nt0)=rend
       do k=1,nt
@@ -211,7 +211,7 @@ C**** initialize otke
       real*8 :: gm,sm,sh,ss,sc
       ! local:
       real*8 :: pi1,pi2,pi3,pi4,pi5,a3,a2,a1,a0,p1,p2
-      real*8 :: tmp,a,b,c,x
+      real*8 :: tmp,a,b,c
       real*8 :: x1r,x2r,x3r,x1i,x2i,x3i,omrr
       real*8 :: gh,gr,q,p,bygam,xx,am,ah,as,ac,ar,w2byk
       complex*16 x1,x2,x3
@@ -242,9 +242,9 @@ C**** initialize otke
          b=a1/a3
          c=a0/a3
          call cubic_r(a,b,c,x1,x2,x3)
-         x1r=dreal(x1); x1i=imag(x1);
-         x2r=dreal(x2); x2i=imag(x2);
-         x3r=dreal(x3); x3i=imag(x3);
+         x1r=dble(x1); x1i=aimag(x1);
+         x2r=dble(x2); x2i=aimag(x2);
+         x3r=dble(x3); x3i=aimag(x3);
          if(x1r.lt.0.) x1r=1d40
          if(x2r.lt.0.) x2r=2d40
          if(x3r.lt.0.) x3r=3d40

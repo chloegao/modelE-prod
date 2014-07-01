@@ -70,12 +70,6 @@ C**** this defines tracer parameters that are local to ocean code
 #endif
      .     /)
       REAL*8, DIMENSION(ntm) :: trw0=0, trdecay=0
-      REAL*8  :: obio_tr_mm(ntm)= (/ 14., 14., 28.055, 55.845, 1., 1., 
-     .     1., 1., 1., 14., 14., 28.055, 55.845, 12., 12.
-#ifdef TRACERS_Alkalinity
-     .     , 1.
-#endif
-     .     /)
 !@var ntrocn scaling exponent for tracers
       INTEGER, DIMENSION(ntm) :: ntrocn = (/ -4,-6,-4,-8,-8,-8,-8,-8,-8,
      .     -4,-6,-6,-10,-6,-3

@@ -2,6 +2,7 @@
 ## simple script to run the model
 
 OPTS=
+QS_OPT=
 
 if [ "$MODELERC"x = x ] ; then MODELERC=$HOME/.modelErc ; fi
 if [ -f $MODELERC ] ; then
@@ -21,8 +22,19 @@ if [ $# -le 0 ] ; then
 ## The first argument is RunID
 RUNID=$1; shift
 
-## The rest should be passed to "RunID" script
-OPTS=$@
+## Extract flags related to runE and pass the rest to "RunID" script
+while [ $# -ge 1 ] ; do
+    OPT=$1 ; shift
+    case $OPT in
+        -s)
+            QS_OPT=_"$1" ; shift
+            ;;
+         *)
+            OPTS="$OPTS $OPT"
+            ;;
+    esac
+done
+
 
 if [ ! -d $CMRUNDIR/$RUNID ] ; then
     echo "Run directory not found: $CMRUNDIR/$RUNID"
@@ -56,15 +68,18 @@ if [ -s $run_status_file ] ; then
     fi
 fi
 
-
+## form the "qsub" request here
+run_command=${RUNID}.qsub
 cd "$CMRUNDIR/$RUNID"
-echo "#!/bin/sh" > run_command
-echo "cd $CMRUNDIR/$RUNID" >> run_command
-echo "./$RUNID $OPTS" >> run_command
-chmod 755 run_command
+echo "#!/bin/sh" > $run_command
+echo "trap '' TERM" >> $run_command
+echo "cd $CMRUNDIR/$RUNID" >> $run_command
+echo "./$RUNID $OPTS" >> $run_command
+chmod 755 $run_command
 
-echo "submitting ./$RUNID $OPTS"
-$QSUB_STRING ./run_command
+QSUB_STRING_NAME=QSUB_STRING$QS_OPT
+echo "submitting: " ${!QSUB_STRING_NAME} " ./$RUNID $OPTS"
+${!QSUB_STRING_NAME} ./$run_command
 rc=`head -1 run_status`
 if [ $rc -ne 13 ] && [ $rc -ne 12 ] ; then
     echo " Problem encountered while running $RUID";

@@ -501,6 +501,7 @@ C                            -----------------------------------------
       INTEGER, intent(in)  :: NXF,              KXTRAP
       REAL*8 , intent(in)  :: X(NXF),F(NXF),XX, CUSPWM,CUSPWE
       REAL*8 , intent(out) :: FF
+      REAL*8 :: FFVEC(1)
 
 C---------------------------------------------------------------------
 C
@@ -541,7 +542,9 @@ C                        2    Linear Extrapolation using 2 edge points
 C
 C---------------------------------------------------------------------
 
-      call SPLINEVector(X,F,1,NXF,XX,FF,CUSPWM,CUSPWE,KXTRAP)
+      FFVEC(1)=FF
+      call SPLINEVector(X,F,1,NXF,XX,FFVEC,CUSPWM,CUSPWE,KXTRAP)
+      FF=FFVEC(1)
 
       RETURN
       END SUBROUTINE SPLINE

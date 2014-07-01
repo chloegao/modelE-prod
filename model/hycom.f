@@ -214,9 +214,7 @@ c
 #ifdef TRACERS_OceanBiology
       real*8, dimension(:,:,:), pointer :: TRGASEX_loc
 #endif
-#ifdef TRACERS_OceanBiology
       real*8, dimension(:,:), pointer :: cosz1_loc,wsavg_loc,achl_loc
-#endif
 #ifdef OBIO_RAD_coupling
       real*8, dimension(:,:), pointer ::
      &     dirvis_loc,difvis_loc,dirnir_loc,difnir_loc
@@ -268,11 +266,9 @@ c
 #ifdef TRACERS_OceanBiology
       TRGASEX_loc => atmocn%TRGASEX
 #endif
-#ifdef TRACERS_OceanBiology
       cosz1_loc => atmocn%cosz1
       wsavg_loc => atmocn%wsavg
       achl_loc => atmocn%chl
-#endif
 #ifdef OBIO_RAD_coupling
       dirvis_loc => atmocn%dirvis
       difvis_loc => atmocn%difvis
@@ -1224,7 +1220,7 @@ c
      .   ,'mxlayr',int(1000.*mxlayr_time)
      .   ,'hybgen',int(1000.*hybgen_time)
 c
-      if (mod(nstep,5).eq.0) call flush(lp)
+      if (mod(nstep,5).eq.0) call sys_flush(lp)
       end if  ! AM_I_ROOT
       !write(0,*) __FILE__,__LINE__
 
@@ -1464,10 +1460,11 @@ c --- with respect to the ice/openwater flux ratio?
       enddo
       deallocate(otrac_loc)
 #endif
-#ifdef TRACERS_OceanBiology
+      if (ocnatm%chl_defined) then
       !call ssto2a(tot_chlo_loc,achl_loc)
-      call ssto2a(ocnatm%chl,achl_loc)
-#endif
+        call ssto2a(ocnatm%chl,achl_loc)
+        atmocn%chl_defined=.true.
+      endif
 
 c
       call system_clock(afogcm)

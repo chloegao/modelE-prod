@@ -2534,9 +2534,12 @@ C**** AND ICE FRACTION CAN THEN STAY CONSTANT UNTIL END OF TIMESTEP
       use diag_com
       use pario, only : defvar,write_attr
       use cdl_mod, only : defvar_cdl
-      use geom, only : lon2d_dg,lat2d_dg,grid_nodup
+      use geom, only : lon2d_dg,lat2d_dg
       implicit none
       integer :: fid
+      real*8 :: r8dum
+      call defvar(grid,fid,r8dum,'time')
+      call write_attr(grid,fid,'time','reduction','avg')
       call defvar(grid_nodup,fid,lon2d_dg,'lon(im,dist_jm)')
       call defvar(grid_nodup,fid,lat2d_dg,'lat(im,dist_jm)')
       call write_attr(grid,fid,'aij','reduction','sum')
@@ -2554,9 +2557,13 @@ C**** AND ICE FRACTION CAN THEN STAY CONSTANT UNTIL END OF TIMESTEP
       use diag_com
       use pario, only : write_data,write_dist_data
       use cdl_mod, only : write_cdl
-      use geom, only : lon2d_dg,lat2d_dg,grid_nodup
+      use geom, only : lon2d_dg,lat2d_dg
+      use model_com, only : jyear0,jmon0
       implicit none
       integer :: fid
+      real*8 :: r8time
+      r8time = real(jyear0,kind=8)+(real(jmon0,kind=8)-.5)/12d0
+      call write_data(grid,fid,'time',r8time)
       call write_dist_data(grid_nodup,fid,'lon',lon2d_dg)
       call write_dist_data(grid_nodup,fid,'lat',lat2d_dg)
       call write_data(grid,fid,'ia_aij',ia_aij)

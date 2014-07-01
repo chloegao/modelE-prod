@@ -692,6 +692,17 @@ C**** Initialize constants
         DXCOSV(J) = DXV(J)*COSV(J)
       END DO
 
+      J = 1
+      DO L=1,LM
+        DUDS(J,L) = 0.
+        DMF(J,L) = 0.
+        DEF(J,L) = 0.
+        DMFR(J,L) = 0.
+        DEFR(J,L) = 0.
+        ER1(J,L) = 0.
+        ER2(J,L) = 0.
+      ENDDO
+
 c GISS-ESMF EXCEPTIONAL CASE: OK AS A CONSTANT ON EACH PE
       DO JL=1,JM+LM
         ONES(JL)=1.

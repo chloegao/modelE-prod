@@ -209,7 +209,8 @@ contains
     
   end subroutine testReadWriteUnformatted
 
-@Test
+! TODO: This test needs to be revisited
+!!!@Test
   subroutine testKeyNotFound()
     type (Dictionary) :: aDictionary
     integer :: i
@@ -330,6 +331,7 @@ contains
     call clean(aDictionary)
   end subroutine testGetKeys
 
+! TODO: This test needs to be revisited
 @Test
   subroutine testFailDuplicateKey()
     type (Dictionary) :: aDictionary
@@ -337,8 +339,7 @@ contains
     aDictionary = Dictionary()
     call aDictionary%insert('a', 1)
     call aDictionary%insert('a', 2)
-    @assertFailedAssert('Dictionary: duplicate key - <a>.', &
-         & 'Failed to diagnose duplicate key.')
+    @assertExceptionRaised('Dictionary: duplicate key - <a>.')
     call clean(aDictionary)
 #endif
   end subroutine testFailDuplicateKey

@@ -349,13 +349,6 @@ contains
     integer, intent(in) :: shp(:)
     integer, intent(in) :: dist_idx
     logical, optional, intent(in) :: local
-
-    integer :: shp_glob(size(shp))
-    integer :: new_type, localType
-    integer :: rc, ierr
-    integer :: p, rcount, offset, npes
-    integer, allocatable :: scounts(:), displs(:)
-    type (AxisIndex), pointer :: AI(:,:)
     logical :: local_
 
     local_ = .false.
@@ -376,13 +369,6 @@ contains
     integer, intent(in) :: shp(:)
     integer, intent(in) :: dist_idx
     logical, optional, intent(in) :: local
-
-    integer :: shp_glob(size(shp))
-    integer :: new_type, localType
-    integer :: rc, ierr
-    integer :: p, rcount, offset, npes
-    integer, allocatable :: scounts(:), displs(:)
-    type (AxisIndex), pointer :: AI(:,:)
     logical :: local_
 
     local_ = .false.
@@ -404,13 +390,6 @@ contains
     integer, intent(in) :: shp(:)
     integer, intent(in) :: dist_idx
     logical, optional, intent(in) :: local
-
-    integer :: shp_glob(size(shp))
-    integer :: new_type, localType
-    integer :: rc, ierr
-    integer :: p, rcount, offset, npes
-    integer, allocatable :: scounts(:), displs(:)
-    type (AxisIndex), pointer :: AI(:,:)
     logical :: local_
 
     local_ = .false.
@@ -810,7 +789,6 @@ contains
     type (dist_grid),  intent(in) :: grd_dum
     integer, intent(in) :: arr(:,:,grd_dum%j_strt_halo:)
     integer, intent(inout) :: arr_glob(:,:,:)
-    integer :: i, k
     
     call gatherInteger(grd_dum, arr, arr_glob, shape(arr), 3, all=.false.)
     

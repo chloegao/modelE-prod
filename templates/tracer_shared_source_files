@@ -7,3 +7,6 @@ initTracerMetadata		    ! misc initialization that used to be mixed in with meta
 TRACERS                             ! generic tracer code
 TRDRYDEP                            ! dry deposition of tracers
 TRDIAG_COM TRACER_PRT               ! tracer diagnostic printout
+MiscTracersMetadata
+sharedTracersMetadata
+

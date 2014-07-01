@@ -4,17 +4,17 @@ module Test_AssociativeArrayIterator_mod
   use FooAssociativeArray_mod
   implicit none
 
+  public :: Test_AssociativeArrayIterator
 
 @TestCase
    type, extends(TestCase) :: Test_AssociativeArrayIterator
-    type (FooAssociativeArray) :: dictionary
+     type (FooAssociativeArray) :: dictionary
    contains
-      procedure :: setUp     ! overides generic
-      procedure :: tearDown  ! overrides generic
+     procedure :: setUp     ! overides generic
+     procedure :: tearDown  ! overrides generic
   end type Test_AssociativeArrayIterator
 
 contains
-
 
   subroutine setUp(this)
     class (Test_AssociativeArrayIterator), intent(inout) :: this

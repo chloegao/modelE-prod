@@ -132,9 +132,9 @@ c  Initialize
           if(tracer(i,j,k,1).le.0.)tracer(i,j,k,1)=0.085d0
           if(tracer(i,j,k,3).le.0.)tracer(i,j,k,3)=0.297d0
           if (dic(i,j,k).le.0.) dic(i,j,k)=1837.d0
-          dic(i,j,k)=dmax1(dic(i,j,k),1837.d0)   !set minimum =1837
-          dicmin =dmin1(dicmin,dic(i,j,k))
-          dicmax =dmax1(dicmax,dic(i,j,k))
+          dic(i,j,k)=max(dic(i,j,k),1837.0)   !set minimum =1837
+          dicmin =min(dicmin,dic(i,j,k))
+          dicmax =max(dicmax,dic(i,j,k))
 !       if (k.eq.1)
 !    .  write(*,'(a,3i5,15e12.4)')'obio_bioinit4:',
 !    .  i,j,1,tracer(i,j,k,1),tracer(i,j,k,2),tracer(i,j,k,3),

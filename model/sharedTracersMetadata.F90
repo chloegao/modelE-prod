@@ -50,11 +50,9 @@ module sharedTracersMetadata_mod
   public N2O_setSpec
   public Rn222_setSpec
 
-#if (defined TRACERS_WATER) || (defined TRACERS_DRYDEP)
 !@param convert_HSTAR converts from mole/Joule to mole/(L*atm)
   real(8), parameter :: convert_HSTAR = 1.01325d2
   public convert_HSTAR
-#endif
 
   integer :: n ! class scoped temporary tracer index
 

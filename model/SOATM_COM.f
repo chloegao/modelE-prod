@@ -106,6 +106,7 @@
       character(len=units_strlen) :: units_aij_(kaij_max)
       character(len=lname_strlen) :: lname_aij_(kaij_max)
       character(len=20) :: ijstr
+      logical :: set_miss
 
       i_0h = grid%i_strt_halo
       i_1h = grid%i_stop_halo
@@ -271,14 +272,13 @@ c
 
       do k=1,kaij
         if(trim(sname_aij(k)).eq.'unused') cycle
+        set_miss = denom_aij(k).ne.0
         call add_var(cdl_aij,
      &       'float '//trim(sname_aij(k))//trim(ijstr),
      &       long_name=trim(lname_aij(k)),
-     &       units=trim(units_aij(k)) )
-        if(denom_aij(k) .ne. 0) then
-          call add_varline(cdl_aij,trim(sname_aij(k))//
-     &         ':missing_value = -1.e30f ;')
-        endif
+     &       units=trim(units_aij(k)),
+     &       set_miss=set_miss,
+     &       make_timeaxis=make_timeaxis)
         call add_varline(cdl_aij,trim(sname_aij(k))//
      &       ':coordinates = "lat lon" ;')
       enddo

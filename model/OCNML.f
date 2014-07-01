@@ -875,7 +875,7 @@ C****
       ENTRY diag_OCEAN
       ENTRY diag_OCEAN_prep
 
-      ENTRY init_ODEEP
+      ENTRY init_ODEEP(iniOCEAN)
       ENTRY alloc_ODEEP
 
       RETURN

@@ -26,7 +26,7 @@ c
       use TimeConstants_mod, only: HOURS_PER_DAY
       USE TRACER_COM, only  : ntm
       USE TRACER_COM, only  : COUPLED_CHEM
-      USE CONSTANT, only    : radian,gasc,mair,mb2kg,pi,avog,rgas,
+      USE CONSTANT, only    : radian,gasc,mair,mb2kg,pi,avog,rgas,pO2,
      &                        bygrav,lhe,undef
       USE ATM_COM, only     : pedn,LTROPO
       USE DYNAMICS, only    : sig
@@ -93,6 +93,7 @@ c
      &                       whichsoa,apartmolar,LM_soa
 #endif  /* TRACERS_AEROSOLS_SOA */
       use zonalmean_mod, only : zonalmean_ij2ij
+
       use TRACER_COM, only: nn_CH4,  nn_N2O, nn_Ox,   nn_NOx, 
      &      nn_N2O5,   nn_HNO3,  nn_H2O2,  nn_CH3OOH,   nn_HCHO, 
      &      nn_HO2NO2, nn_CO,    nn_PAN,   nn_H2O17,             
@@ -102,6 +103,15 @@ c
      &      nn_apinp1g,nn_apinp1a,nn_apinp2g,nn_apinp2a,         
      &      nn_ClOx,   nn_BrOx,  nn_HCl,   nn_HOCl,   nn_ClONO2,  
      &      nn_HBr,    nn_HOBr,  nn_BrONO2,nn_CFC,    nn_GLT
+
+c***#ifdef CACHED_SUBDD
+c***      use subdd_mod, only : subdd_groups,subdd_type,subdd_ngroups
+c***     &     ,inc_subdd,find_groups, LmaxSUBDD
+c***#endif
+      use photolysis, only: photoj,sza,szamax,tfastj,zj,o3_fastj,jppj
+     &                     ,pfastj2,miedx2,mxfastj,jpnl,naa,sf3_fact
+     &                     ,sf2_fact
+
       IMPLICIT NONE
 
 C**** Local parameters and variables and arguments:
@@ -290,8 +300,8 @@ C--------special section for ghg runs ---------
      &               byavog*axyp(i,j)*tr_mm(n_CFC)*fact_CFC ! i.e. in trm units now!
               enddo
             enddo 
-            if(ghg_yr/=0)then; write(ghg_name,'(I4)')ghg_yr
-            else; write(ghg_name,'(I4)')modelEclock%getYear(); endif
+            if(ghg_yr/=0)then; write(ghg_name,'(I4.4)')ghg_yr
+            else; write(ghg_name,'(I4.4)')modelEclock%getYear(); endif
             ghg_file='GHG_IC_'//ghg_name
             call openunit(ghg_file,iu,.true.,.false.)
             do m=1,5
@@ -480,7 +490,7 @@ c Save presure, temperature, thickness, rel. hum. in local arrays:
      & (rgas*bygrav*TX(i,j,L)*LOG(pedn(L,i,j)/pedn(L+1,i,j)))
 c Calculate M and set fixed ratios for O2 & H2:
        y(nM,L)=pres(L)/(ta(L)*cboltz)
-       y(nO2,L)=y(nM,L)*pfix_O2
+       y(nO2,L)=y(nM,L)*pO2
        if(pres2(l) > 20.d0)then
          y(nH2,L)=y(nM,L)*pfix_H2
        else
@@ -831,7 +841,7 @@ CCCCCCCCCCCCCCCCC NON-FAMILY CHEMISTRY CCCCCCCCCCCCCCCCCCCCCCCC
 
 C Save 3D radical arrays to pass to aerosol code:
       if(coupled_chem == 1) then
-        do l=1,maxl
+        do l=1,LM
           oh_live(i,j,l)=y(nOH,L)
           no3_live(i,j,l)=yNO3(i,j,l)
         end do

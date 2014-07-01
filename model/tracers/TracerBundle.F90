@@ -342,7 +342,6 @@ contains
   subroutine assertHasAttributes(this, attributes)
     type (Tracer), intent(in) :: this
     character(len=MAX_LEN_KEY), intent(in) :: attributes(:)
-    character(len=MAX_LEN_KEY) :: name
 
     integer :: i
 
@@ -395,7 +394,6 @@ contains
     character(len=*), intent(in) :: withAttribute
     type (TracerBundle) :: subset
 
-    integer :: i
     type (TracerIterator) :: iter
     class (Tracer), pointer :: t
 
@@ -492,7 +490,6 @@ contains
 
   subroutine cleanBundle(this)
     type (TracerBundle), intent(inout) :: this
-    integer :: i
 
     call clean(this%defaultValues)
     !    if (size(this%mandatoryAttributes)>0) then
@@ -525,8 +522,6 @@ contains
   subroutine insertGetName(this, value)
     class (TracerBundle), intent(inout) :: this
     class (Tracer) :: value ! tracer
-
-    class (Tracer), pointer :: p
 
     call this%insertEntry(getName(value), value)
 

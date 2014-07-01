@@ -114,6 +114,8 @@ module CLOUDS
 !@dbparam U00b tuning knob for U00 below 850 mb and in convective regions
   real*8 :: U00a = 0.55d0       ! default
   real*8 :: U00b = 1.00d0       ! default
+!@dbparam MAXCTOP max cloud top pressure
+  real*8 :: MAXCTOP =50.d0  ! default
 !@dbparam funio_denominator funio denominator
   real*8 :: funio_denominator=22.d0  ! default
 !@dbparam autoconv_multiplier autoconversion rate multiplier
@@ -240,9 +242,9 @@ module CLOUDS
 !@var TTOLDL previous potential temperature
 !@var CLDSAVL saved large-scale cloud cover
 #ifdef CLD_AER_CDNC
-  real*8, dimension(LM)::OLDCDL,OLDCDI
-!@var OLDCDL is saved CDNC
-!@var OLDCDI is saved ice crystal numbe
+  real*8, dimension(LM)::NCLL,NCIL
+!@var NCLL is saved CDNC
+!@var NCIL is saved ice crystal numbe
 #endif
   !**** new arrays must be set to model arrays in driver (after LSCOND)
   real*8, dimension(LM) :: SSHR,DCTEI,TAUSSL,CLDSSL
@@ -306,8 +308,8 @@ module CLOUDS
 #endif
 
 !@var KMAX index for surrounding velocity
-!@var LP50 50mb level
-  integer ::  KMAX,LP50
+!@var LMCLD max cloud top level
+  integer ::  KMAX,LMCLD
 !@var PEARTH fraction of land in grid box
 !@var TS average surface temperture (C)
 !@var RIS, RI1, RI2 Richardson numbers
@@ -3226,7 +3228,7 @@ contains
       trcond_ls=0.D0
     end if
 #endif
-    do L=1,LP50
+    do L=1,LMCLD
       CLEARA(L)=1.-CLDSAVL(L)
 !     if(WMX(L).le.0.) CLEARA(L)=1.
       IF(SVLHXL(L).EQ.LHE) THEN
@@ -3239,15 +3241,15 @@ contains
 #endif
     end do
     DQUP=0.
-    TOLDUP=TL(LP50)
-    PREICE(LP50+1)=0.
+    TOLDUP=TL(LMCLD)
+    PREICE(LMCLD+1)=0.
     WCONST=WMU*(1.-PEARTH)+WMUL*PEARTH
     SSHR=0.
     DCTEI=0.
     !****
     !**** MAIN L LOOP FOR LARGE-SCALE CONDENSATION, PRECIPITATION AND CLOUDS
     !****
-    do L=LP50,1,-1
+    do L=LMCLD,1,-1
       TOLD=TL(L)
       QOLD=QL(L)
       OLDLHX=SVLHXL(L)
@@ -3305,7 +3307,7 @@ contains
         end if
         if (debug) print*,"ls0",l,oldlhx,oldlat,lhx,lhp(l)
 
-        if (L.lt.LP50) then
+        if (L.lt.LMCLD) then
           !**** Decide whether precip initiates B-F process
           IF(OLDLHX.EQ.LHE) THEN
             PML=QCLX(L)*AIRM(L)*BYGRAV
@@ -3563,7 +3565,7 @@ contains
 #if (defined CLD_AER_CDNC) && (defined TRACERS_AEROSOLS_Koch)
       call GET_CDNC(L,LHX,WCONST,WMUI,AIRM(L),QCLX(L),DXYPIJ, &
            FCLD,CLEARA(L),CLDSAVL(L),DSS,PL(L),TL(L), &
-           OLDCDL(L),VVEL,SME(L),DSU,CDNL0,CDNL1)
+           NCLL(L),VVEL,SME(L),DSU,CDNL0,CDNL1)
       DSU_SV(:,L) = DSU(:) ! save for opt. depth calc.
       !     write(6,*)"Where is",DSU(L),l
       SNd=CDNL1
@@ -3604,13 +3606,13 @@ contains
       ! Set microphysics
       if(LHX.eq.LHE)  then
         mdrop=QCLX(L)            ! drop content, [kg water/kg air]
-        ndrop =OLDCDL(L)*1.d6   !convert from cm-3 to m-3
+        ndrop =NCLL(L)*1.d6   !convert from cm-3 to m-3
         if (QCLX(L).eq.0.) ndrop=0.d0
         ncrys=0.d0;mcrys=0.0d0
       else
         WMXICE(L) = QCIX(L)
         mcrys=WMXICE(L)         ! crys content, [kg water/kg air]
-        ncrys=OLDCDI(L)*1.d6     ! convert cm-3 to m-3; set at 0.1 l-1 = 1.d-4 cm-3
+        ncrys=NCIL(L)*1.d6     ! convert cm-3 to m-3; set at 0.1 l-1 = 1.d-4 cm-3
         if (QCIX(L).eq.0.) ncrys=0.d0
         ndrop=0.0d0;mdrop=0.0d0
       endif
@@ -4184,9 +4186,9 @@ contains
       if(CLDSAVL(L).eq.0.) then
         SNd=SNd
       elseif (DCLD(L).le.0.d0) then
-        SNd=OLDCDL(L)
+        SNd=NCLL(L)
       elseif(DCLD(L).gt.0.d0) then
-        SNd=( (OLDCDL(L)*CLDSAVL(L)) + (SNd*DCLD(L)) )/FCLD
+        SNd=( (NCLL(L)*CLDSAVL(L)) + (SNd*DCLD(L)) )/FCLD
       endif
       !* If using an alternate definition for QAUT
       rablk=execute_bulk2m_driver('get','mprc')
@@ -5034,7 +5036,7 @@ contains
     !****
     !**** CLOUD-TOP ENTRAINMENT INSTABILITY
     !****
-    do L=LP50-1,1,-1
+    do L=LMCLD-1,1,-1
       LHX=SVLHXL(L)
       SM(L)=TH(L)*AIRM(L)
       QM(L)=QL(L)*AIRM(L)
@@ -5275,7 +5277,7 @@ contains
     NLSI = 0
     CDNC_TOMAS=0.
 #endif
-    do L=1,LP50
+    do L=1,LMCLD
       FCLD=CLDSSL(L)+teeny
 !     WTEM=1.d5*WMX(L)*PL(L)/(FCLD*TL(L)*RGAS+teeny)
       LHX=SVLHXL(L)
@@ -5305,9 +5307,9 @@ contains
 !@auth Menon for CDNC prediction
 #ifdef TRACERS_AEROSOLS_Koch
       call GET_CDNC_UPD(L,LHX,WCONST,WMUI,QCLX(L),FCLD,NEWCLD, &
-           SAVCLD,VVEL,SME(L),DSU,OLDCDL(L), &
+           SAVCLD,VVEL,SME(L),DSU,NCLL(L), &
            CDNL0,CDNL1)
-      OLDCDL(L) = CDNL1
+      NCLL(L) = CDNL1
       SNd=CDNL1
       !** Pass old and new cloud droplet number
       NEWCDN=SNd
@@ -5315,12 +5317,12 @@ contains
       !     if (L.eq.1)write(6,*)"BLK_2M NUPD",NEWCDN,OLDCDN
 #endif
 #ifdef TRACERS_AMP
-      OLDCDL(L)=SNd
-      OLDCDI(L)=SNdi
+      NCLL(L)=SNd
+      NCIL(L)=SNdi
 #endif
 #ifdef TRACERS_TOMAS
-       OLDCDL(L)=SNd
-       OLDCDI(L)=SNdi
+       NCLL(L)=SNd
+       NCIL(L)=SNdi
 #endif
 #endif
 #if (defined CLD_AER_CDNC) || (defined BLK_2MOM)
@@ -5340,16 +5342,16 @@ contains
       !        ncrys=mcrys/mi0         ! crys concent, [No/m3]
       if(LHX.eq.LHE)  then
         mdrop =QCLX(L)
-        ndrop= OLDCDL(L)*1.d6  !mdrop/mw0         ! drop concent, [No/m3]
+        ndrop= NCLL(L)*1.d6  !mdrop/mw0         ! drop concent, [No/m3]
         if(QCLX(L).eq.0.) ndrop=0.0
       else
         mcrys =QCIX(L)
         WMXICE(L) = QCIX(L)
-        ncrys= OLDCDI(L)*1.d6  !mcrys/mi0         ! crystal concent, [No/m3]
+        ncrys= NCIL(L)*1.d6  !mcrys/mi0         ! crystal concent, [No/m3]
         if(QCIX(L).eq.0.) ncrys=0.0
       endif
       !      if(L.eq.1)write(6,*)"5th check BLK_2M",
-      !    *WMX(L),OLDCDL(L),OLDCDI(L)
+      !    *WMX(L),NCLL(L),NCIL(L)
       !
       ldummy=execute_bulk2m_driver('all' &
            ,ndrop,mdrop,ncrys,mcrys,'end')
@@ -5381,9 +5383,9 @@ contains
       if(SAVCLD.eq.0.) then
         SNd=SNd
       elseif (DCLD(L).le.0.d0) then
-        SNd=OLDCDL(L)
+        SNd=NCLL(L)
       elseif(DCLD(L).gt.0.d0) then
-        SNd=( (OLDCDL(L)*SAVCLD) + (SNd*DCLD(L)) )/NEWCLD
+        SNd=( (NCLL(L)*SAVCLD) + (SNd*DCLD(L)) )/NEWCLD
       endif
       rablk=execute_bulk2m_driver('get','value','ni') + ( &
                                 !       nnuccc             ! change n due to contact droplets freez
@@ -5401,8 +5403,8 @@ contains
       !      SNdI=rablk(mkx)*1.0d-6             ! from ncrys [No/m^3] to SNdI in [No/cc]
       SNdI = 0.06417127d0
       if(SNdI.gt.1.d0) SNdI=1.d0      !try to limit to 1000 /l
-      OLDCDL(L) = SNd
-      OLDCDI(L) = SNdI
+      NCLL(L) = SNd
+      NCIL(L) = SNdI
 #ifdef TRACERS_AMP
       nactc(l,1:nmodes) =  naero(mkx,1:nmodes)
       !      do nm=1,nmodes
@@ -5422,7 +5424,7 @@ contains
       !     If (SCDNCI.le.0.06d0) SCDNCI=0.06417127d0   !set min ice crystal
       if (SCDNCI.le.0.0d0) SCDNCI=teeny           !set min ice crystal
       if(SCDNCW.gt.1400.d0) SCDNCw=1400.d0
-      !     if (SCDNCW.gt.20.) write(6,*) "SCND CDNC",SCDNCW,OLDCDL(l),l
+      !     if (SCDNCW.gt.20.) write(6,*) "SCND CDNC",SCDNCW,NCLL(l),l
 #endif
 
       if(LHX.eq.LHE) then
@@ -5510,7 +5512,7 @@ contains
     end do
 
     !**** CALCULATE OPTICAL THICKNESS
-    do L=1,LP50
+    do L=1,LMCLD
       CLDSV1(L)=CLDSSL(L)
       LHX=SVLHXL(L)
 !     if(WMX(L).le.0.) SVLHXL(L)=0.
@@ -5549,7 +5551,7 @@ contains
 #if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
     !Save variables for 3 hrly diagnostics
     !     AAA=1
-    !     DO L=LP50,1,-1
+    !     DO L=LMCLD,1,-1
     !       if (CLDSSL(L).gt.0.d0.and.CLDMCL(L).gt.0.d0) then
     !        if (TAUSSL(L).gt.0.d0.and.TAUMCL(L).gt.0.d0) then
     !         if (CLDSSL(L).LE.randu(xx))GO TO 7
@@ -5576,7 +5578,7 @@ contains
     !       ENDIF
     !     ENDDO
 
-    do L=1,LP50
+    do L=1,LMCLD
       PRS = (PL(1)-PTOP)/SIG(1)
 
       if (L.ge.ls1) then

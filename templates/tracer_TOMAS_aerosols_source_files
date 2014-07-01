@@ -5,4 +5,5 @@ TOMAS_microphysics                  ! TOMAS_microphysics
 TOMAS_EMIS			    ! TOMAS emission tables
 TOMAS_rad	                    ! TOMAS aerosol radiation
 TOMAS_actv                          ! TOMAS indirect effect 
+TomasTracersMetadata
 ! ----------------------------------
