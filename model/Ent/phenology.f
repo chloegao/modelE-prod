@@ -1728,7 +1728,7 @@ cddd         write(901,*) "deltaC*n ", (tot_c - tot_c_old)*cop%n
       end if
 
       resp_growth_root = 0.16d0 * turn_froot + 0.16d0*turn_croot  
-      resp_growth = resp_growth_root + 0.14d0*turn_leaf+0.16d0*turn_hw  
+      resp_growth = 0.d0 !Turned off resp_growth_root + 0.14d0*turn_leaf+0.16d0*turn_hw  
 
       !* Calculate litter from turnover
       !* Change from senescence is calculated as max(0.d0, C_pool_old-C_pool).
@@ -2036,9 +2036,10 @@ cddd         write(901,*) "deltaC*n ", (tot_c - tot_c_old)*cop%n
       !* ### to dead heartwood.  For a hack, turn_hw is regrown as sapwood to
       !* ### maintain a carbon balance. 
       resp_turnover = 0.16d0*turn_froot + 0.014d0*turn_leaf !Coefficients from Amthor (2000) Table 3
-      resp_newgrowth = 0.16d0*max(0.d0,dC_froot) + 
-     &     0.14d0*(max(0.d0,dC_fol)+max(0.d0,dC_sw))
-     &     +0.16d0*(max(0.d0,turn_hw)+max(0.d0,turn_croot)) !##THIS IS RESPIRATION FOR REGROWTH OF SAPWOOD TO ACCOUNT FOR CONVERSION TO HEARTWOOD WITH CONSTANT PLANT STRUCTURE.
+      resp_newgrowth = 0.d0  !Turned off
+!      resp_newgrowth = 0.16d0*max(0.d0,dC_froot) + 
+!     &     0.14d0*(max(0.d0,dC_fol)+max(0.d0,dC_sw))
+!     &     +0.16d0*(max(0.d0,turn_hw)+max(0.d0,turn_croot)) !##THIS IS RESPIRATION FOR REGROWTH OF SAPWOOD TO ACCOUNT FOR CONVERSION TO HEARTWOOD WITH CONSTANT PLANT STRUCTURE.
 
       !* C_lab required for biomass growth or senescence (not turnover)
       dClab_dbiomass = -max(0.d0, dC_fol) - max(0.d0,dC_froot) !Growth of new tissue
@@ -2071,6 +2072,7 @@ c     &         + resp_turnover)
 c      else
 c        adj = 1.d0
 c      endif
+
 
       !* Adjust turnover losses to accommodate low C_lab. *!
       if (adj < 1.d0) then

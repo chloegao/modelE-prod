@@ -202,7 +202,7 @@
 !      GPPplant = facclim*0.5d0*pspar%Vcmax *0.012D-6*LAplant !kgC/s/plant
 !      Rgrowth = 0.012D-6*Rdark()*LAplant + 
 !     &     Resp_can_growth(pft,GPPplant,Rmaint,0.d0)
-!      Rgrowth = 0.d0  !Just do maintenance respiration requirement.
+      Rgrowth = 0.d0  !Just do maintenance respiration requirement.
 
       Rauto_day = (Rmaint + Rgrowth)*s2day
 

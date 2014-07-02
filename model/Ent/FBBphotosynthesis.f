@@ -741,7 +741,7 @@ cddd      end subroutine Ci_Js
 !     &        ,pspar%pft,pspar%m,rh,pspar%Vcmax,gb,ca,pspar%b,Rd
 !     &        ,K1,K2,K3,K4,X,Y,Z,pspar
          !call stop_model("Asnet_C4: negative operand for sqrt",255)
-         print *, "Asnet_C4: div0 or neg sqrt operand, 
+         !print *, "Asnet_C4: div0 or neg sqrt operand, 
      & pft,m,rh,X,b,K1,K2,K3", pspar%pft,pspar%m,rh, X, pspar%b,K1,K2,K3
          !Asnet = 0.8d0*ca*gb/1.37d0  !Set to upper limit
          Asnet = -Rd  !Stomatal shutdown caused by m=0, all ice.

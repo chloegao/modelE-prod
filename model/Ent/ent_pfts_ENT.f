@@ -1,6 +1,6 @@
       module ent_pfts
-!@sum Ent default supported 16 vegetation types (but early succ do
-!     not have cover and are not tested, yet).
+!@sum Parameter sets fo Ent default supported 16 plant functional types.
+!@+   (Early successional types do not have cover and are not tested, yet).
 
       !use ent_pftconst
       use ent_const
@@ -51,6 +51,33 @@
       !* 16 - crops broadleaf woody
       !SAND = 17
       !BDIRT = 18
+
+!*********************************************************************
+!* Ent PFTs
+!* 1.  evergreen broadleaf early successional (BROADEVERGRTREES1)
+!* 2.  evergreen broadleaf late successional  (BROADEVERGRTREES2)
+!* 3.  evergreen needleleaf early successional (NEEDLEEVERGRTREES1)
+!* 4.  evergreen needleleaf late successional  (NEEDLEEVERGRTREES2)
+!* 5.  cold deciduous broadleaf early successional (BROADCOLDDECIDTREES1)
+!* 6.  cold deciduous broadleaf late successional  (BROADCOLDDECIDTREES2)
+!* 7.  drought deciduous broadleaf	(BROADDRYDECIDTEE)
+!* 8.  decidous needleleaf	        (NEEDLEDECIDTREE)
+!* 9.  cold adapted shrub               (SHRUBCOLD)
+!* 10.  arid adapted shrub              (SHRUBARID)
+!* 11.  C3 grass - perennial            (GRASSC3PERENN)
+!* 12.  C4 grass - perennial            (GRASSC4PERENN)
+!* 13.  C3 grass - annual               (GRASSC3ANN)
+!* 14.  arctic C3 grass                 (GRASSC3ARCTIC)
+!* 15.  crops - C4 herbaceous           (CROPC4HERB)
+!* 16.  crops - broadleaf woody         (CROPTREE)
+
+
+!--- ever_ES_broad ever_LS_broad ever_ES_needle ever_LS_needle 
+!----cold_ES_broad cold_LS_broad drought_broad decid_needle shrub_cold 
+!----shrub_arid c3grass c4grass c3grass_ann c3grass_arctic 
+!----cropsc4 cropstree
+!----sand bdirt
+
 
       integer, parameter :: EVGRBROADEARLY = 1
       integer, parameter :: EVGRBROADLATE = 2
