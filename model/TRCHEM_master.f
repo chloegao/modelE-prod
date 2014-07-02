@@ -231,7 +231,7 @@ C**** Local parameters and variables and arguments:
       real*8 voc2nox_denom
 #endif  /* TRACERS_AEROSOLS_SOA */
 #ifdef TRACERS_TOMAS
-      integer :: k
+      integer :: nb,k
 #endif
       integer :: hour, idx
 

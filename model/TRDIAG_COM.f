@@ -293,7 +293,10 @@ C**** TAIJLS 3D special tracer diagnostics
       integer, allocatable :: ijlt_3Dtau(:)
 !@var ijlt_3Daaod 3D tracer independent array for hydrated absorption
       INTEGER, allocatable :: ijlt_3Daaod(:)
-
+#ifdef TRACERS_TOMAS
+!@var ijlt_ccn_01-ccn_03 CCN diagnostic
+      INTEGER :: ijlt_ccn_01,ijlt_ccn_02,ijlt_ccn_03
+#endif
 C**** TAJLN
 !@param ktajl,ktajlx number of TAJL tracer diagnostics;
 !@+          ktajlx includes composites

@@ -4,6 +4,9 @@ E4TctomasiF40ncep:  E4TctomasiF40 nudged with NCEP
 
 E4TctomasiF40: E4TcadiF40 with TOMAS aerosol microphysics
 E4TcadiF40: E4TcadF40 with computed aerosol indirect effect
+
+1% Primary sulfate/binary nucleation/coarse emission assumption/old DMS/SS 0.2% for all clouds
+
 E4TcadF40: E4F40 + Dust, Chemistry and aerosol tracers
 E4F40: modelE as frozen (or not yet) in July 2009
 modelE4 2x2.5 hor. grid with 40 lyrs, top at .1 mb (+ 3 rad.lyrs)
@@ -31,8 +34,13 @@ Preprocessor Options
 !  OFF #define AUXILIARY_OX_RADF ! radf diags for climatology or tracer Ozone
 #define TRACERS_TERP                ! include terpenes in gas-phase chemistry
 #define BIOGENIC_EMISSIONS       ! turns on interactive isoprene emissions
-#define TRACERS_TOMAS    ! TOMAS aerosol tracers (aerosols, etc)
-#define TOMAS_12_10NM    ! 12 BIN and 10nm size cutoff 
+#define TRACERS_TOMAS    	 ! TOMAS aerosol tracers (aerosols, etc)
+#define TOMAS_12_3NM   		  ! 15 bins and 3nm size cutoff
+#define One_percent_sulfate
+#define Old_DMS_emis
+#define TOMAS_COARSER_EMISSION     ! larger emission size
+!  OFF #define TRACERS_AEROSOLS_SOA     ! Secondary Organic Aerosols
+!  OFF #define SOA_DIAGS                ! Additional diagnostics for SOA
 !  OFF #define TRACERS_NITRATE
 !  OFF #define TRACERS_HETCHEM
 #define BC_ALB                    !optional tracer BC affects snow albedo

@@ -733,7 +733,7 @@ C**** for all dry deposited tracers
       call get_dep_vel(ilong,jlat,itype,lmonin,dbl,ustar,ts
      &     ,pbl_args%dep_vel,pbl_args%stomatal_dep_vel,trnmm
 #ifdef TRACERS_TOMAS
-     &     ,pbl_args%gs_vel
+     &     ,pbl_args%gs_vel,pbl_args%psurf
 #endif
      &     )
 #endif

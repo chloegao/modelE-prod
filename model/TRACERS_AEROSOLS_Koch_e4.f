@@ -494,9 +494,15 @@ c want kg DMS/m2/s
       use resolution, only: lm
       use model_com, only: modelEclock
       USE AEROSOL_SOURCES, only: DMSinput,DMS_AER
+#ifdef old_DMS_emis
+      USE FLUXES, only: GTEMP
+#endif
       implicit none
       integer jread
       REAL*8 akw,erate,SCH,SCHR !!! T,Tc
+#ifdef old_DMS_emis
+      real*8 Tc ! YHL - FOR another DMS source
+#endif
       real*8, PARAMETER :: E1=0.17d0
       real*8, PARAMETER :: E2=2.85d0
       real*8, PARAMETER :: E3=0.612d0
@@ -514,11 +520,34 @@ c want kg DMS/m2/s
         if (OFFLINE_DMS_SS.ne.1) then
         if (itype.eq.1) then
 c       if (lm.lt.40) then 
+#ifndef old_DMS_emis
 c Nightingale et al
         akw = 0.23d0*swind*swind + 0.1d0 * swind
         akw = akw * 0.24d0
         erate=akw*DMSinput(i,j,modelEclock%month())*1.d-9*62.d0 !*tr_mm(nt)
      *       /SECONDS_PER_DAY
+#endif
+
+#ifdef old_DMS_emis
+c YUNHA - Liss and Merlivat (1986) code is from GISS GCM II'. 
+c Liss and Merlivat (1986), use for > lm=40 to moderate DMS flux
+
+       Tc=GTEMP(1,1,I,J) ! YUNHA GTEMP is already Celcius. 
+
+       SCH=2674.d0-147.12d0*Tc+3.726d0*Tc*Tc-0.038d0*Tc*Tc*Tc
+       IF(Tc.gt.47.) print*,'BAD_TEMPERATURE_DMS',i,j,Tc,SCH
+       SCHR=SCHT/SCH
+       if (swind.lt.3.6) then
+        akw=0.041*(SCHR)**(2.d0/3.d0)*swind
+       else if (swind.lt.13.) then
+         akw=(0.68*SWIND - 2.31)*DSQRT(SCHR)
+       else
+       akw=(1.42*SWIND - 11.8)*DSQRT(SCHR)
+       endif  !swind
+       erate=akw*DMSinput(i,j,modelEclock%month())*1.d-9*62.d0/
+     *      SECONDS_PER_DAY     !not sure of units
+
+#endif
 c       if (lm.ge.40) erate=erate/5.d0   !I think there was an error in input files
 c       else
 c Liss and Merlivat (1986), use for > lm=40 to moderate DMS flux
@@ -1434,6 +1463,7 @@ c partial pressure of gas x henry's law coefficient
      *   tr_rkd(ih)*exp(-tr_dhd(ih)*tfac)
 c the following is from Phil:
 c      reduction in partial pressure as species dissolves
+c yhl - revisit the pph calculation in future - is "*clwc*gasc*temp" needed?
       henry_const(ih)=rkdm(ih)*exp(-tr_dhd(ih)*tfac)
       pph(ih)=pph(ih)/(1+(henry_const(ih)*clwc*gasc*temp))
 c all except tmcl(n)
@@ -1488,7 +1518,7 @@ c can't be more than moles going in:
           dso4d=trdmol(is)/(tmcl(ihx)*tmcl(isx))  !"trdr" is replaced by "tmcl" by YUNHA LEE.
         end if
       endif
-      dso4dt=dso4d*trdr(ih)*trdr(is)
+      dso4dt=dso4d*tmcl(ihx)*tmcl(isx) !"trdr" is replaced by "tmcl" by YUNHA LEE.
       if (dso4dt.gt.trdmol(ih)) then
         if(tmcl(ihx)==0. .or. tmcl(isx)==0.)then
           dso4d=0.d0
@@ -1511,6 +1541,7 @@ c can't be more than moles going in:
        case('SO2')
        is=ntix(n)
        isx=n
+
 ! is ih/ihx set here, then why isn't is/isx?
        sulfin(is)=-dso4g*tm(l,ihx)*tr_mm(is)/1000. !dimnless
        sulfinc(is)=-dso4d*tmcl(ihx)*tr_mm(is)/1000.

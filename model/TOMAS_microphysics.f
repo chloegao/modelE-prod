@@ -121,7 +121,7 @@ C Calculate air viscosity and mean free path
          mnacl=Mk(k,srtna)
          mno3=0.e0
          if ((mso4+mno3) .lt. 1.e-8) mso4=1.e-8
-         mnh4=0.1875*mso4  !assume ammonium bisulfate
+         mnh4=Mk(k,srtnh4) !0.1875*mso4  !assume ammonium bisulfate
          mecob=Mk(k,srtecob)
          mecil=Mk(k,srtecil)
          mocil=Mk(k,srtocil)
@@ -1406,7 +1406,7 @@ C     get size dependent values
             mnacl=Mko(k,srtna)
             mno3=0.e0
             if ((mso4+mno3) .lt. 1.e-8) mso4=1.e-8
-            mnh4=0.1875*mso4    !assume ammonium bisulfate
+            mnh4=Mko(k,srtnh4) !0.1875*mso4    !assume ammonium bisulfate
             mecob=Mko(k,srtecob)
             mecil=Mko(k,srtecil)
             mocil=Mko(k,srtocil)
@@ -1523,7 +1523,7 @@ C     get size dependent values
             mnacl=Mko(k,srtna)
             mno3=0.e0
             if ((mso4+mno3) .lt. 1.e-8) mso4=1.e-8
-            mnh4=0.1875*mso4    !assume ammonium bisulfate
+            mnh4=Mko(k,srtnh4)!0.1875*mso4    !assume ammonium bisulfate
             mecob=Mko(k,srtecob)
             mecil=Mko(k,srtecil)
             mocil=Mko(k,srtocil)
@@ -1628,7 +1628,7 @@ C Calculate particle sizes and diffusivities
             mnacl=Mko(k,srtna)
             mno3=0.e0
             if ((mso4+mno3) .lt. 1.e-8) mso4=1.e-8
-            mnh4=0.1875*mso4    !assume ammonium bisulfate
+            mnh4=Mko(k,srtnh4)!0.1875*mso4    !assume ammonium bisulfate
             mecob=Mko(k,srtecob)
             mecil=Mko(k,srtecil)
             mocil=Mko(k,srtocil)
@@ -2254,7 +2254,7 @@ C     and get the nucleation rate and critical cluster size
             mnacl=Mki(k,srtna)
             mno3=0.0
             if ((mso4+mno3) .lt. 1.e-8) mso4=1.e-8
-            mnh4=0.1875*mso4    !assume ammonium bisulfate
+            mnh4=Mki(k,srtnh4)!0.1875*mso4    !assume ammonium bisulfate
             mecob=Mki(k,srtecob)
             mecil=Mki(k,srtecil)
             mocil=Mki(k,srtocil)
@@ -3202,7 +3202,7 @@ c     Coefficients of total number of molecules in cluster
      $         0.000610065, 0.000135751 /
 
 
-      cna=cnai
+      cna=cnai/5.
 
 c     Respect the limits of the parameterization
       if (cna .lt. 1.d4) then ! limit sulf acid conc
@@ -4416,3 +4416,129 @@ c--------------------------------------------------------------------
 
 	return
 	End 
+
+C=======================================================================
+C
+C *** SUBROUTINE getCCN_kappa
+C *** WRITTEN BY Yunha Lee
+C *** Compute CCN at 0.1, 0.2, 0.3% 
+C
+C=======================================================================
+C
+      SUBROUTINE getCCN_kappa(I,J,L)
+C
+      USE TOMAS_AEROSOL  
+      USE TRACER_COM, only : ntm,trm,tr_mm
+     &     ,nbins,xk,trpdens,IDTECIL,
+     &       IDTOCIL,IDTOCOB,IDTSO4,IDTNA,IDTDUST,
+     &       IDTECOB
+      USE TRDIAG_COM, only: taijls=>taijls_loc,ijlt_ccn_01
+     &     ,ijlt_ccn_03,ijlt_ccn_02
+      USE CONSTANT, only: pi,gasc
+      implicit none 
+      REAL*8 SURT,DIAM(NBINS+1),Tvol,DENS(7),A
+c      REAL*8 Tp,BOXM,BOXV
+      integer i, j, l, si, n
+      integer k,kk,tracnum
+
+      
+!@var constants needed for CCN calculation 
+      real*8, parameter :: Mv=18.015d-3
+      real, parameter :: rhow= 1000.
+!@var temporal CCN 
+      real*8, dimension(nsmax) :: ccn_mod 
+!@var temporal Sc 
+      real*8 Scnew
+!@var Sc at each size boundary
+      real*8, dimension (nbins) :: Sc,kappa
+
+!@var CCN at 0.1/0.2/0.3%    (#/m3)
+c      real*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: CCN_TOMAS
+
+
+C initialize CCN_mod
+      CCN_mod(:)=0.
+C get density 
+
+      dens(1)=trpdens(IDTSO4)
+      dens(2)=trpdens(IDTNA)
+      dens(3)=trpdens(IDTECOB)
+      dens(4)=trpdens(IDTECIL)
+      dens(5)=trpdens(IDTOCOB)
+      dens(6)=trpdens(IDTOCIL)
+      dens(7)=trpdens(IDTDUST)
+
+C surface tension
+      SURT   = 0.0761-1.55E-4*(Temp-273.)
+
+      A = 4*Mv*SURT/(gasc*Temp*rhow)
+
+      DO N=1,NBINS+1 
+
+C Diameter in each size boundary with assuming density =1800 kg/m3. 
+        diam(n)= (xk(n)/1800.*6./pi)**0.333
+      ENDDO
+
+      DO N=1,NBINS
+
+        Tvol =Mk(N,1)/dens(1)+Mk(N,2)/dens(2)+Mk(N,3)/dens(3)+
+     &       Mk(N,4)/dens(4)+Mk(N,5)/dens(5)+Mk(N,6)/dens(6)
+     &       +Mk(N,7)/dens(7)   ! total vol. of species 
+
+        kappa(n)=(0.6*Mk(n,1)/dens(1)+1.28*Mk(n,2)/dens(2)
+     &       +0.227*Mk(n,6)/dens(6))/Tvol ! average kappa in a bin 
+C note that kappa is hard-coded here. 
+
+        Sc(n) = exp(sqrt(4.*A*A*A/27./Diam(n)/Diam(n)/Diam(n)/kappa(n)))
+
+        Sc(n)=(Sc(n)-1.)*100.
+
+c        print*,'debug_kappa',n,kappa(n),Sc(n)
+
+        if(Sc(n) .lt. 0.) Sc(n)=1.e-6
+      ENDDO
+
+      DO N=1,NBINS
+
+C compute CCN at various Smax
+ 
+        DO SI=1,nsmax 
+          IF(SC(N) .LE. SMAX(SI)) CCN_mod(SI)=CCN_mod(SI)
+     *         +Nk(n)/boxvol ! unit is cm-3 now 
+          
+C     INTERPOLATION :
+          if(N .LT. NBINS)THEN 
+            IF(SC(N+1) .lt. SMAX(si) .and. SC(N) .gt. SMAX(SI) ) THEN 
+C     compute new Sc (I+1) using the upper limit Dp to determine the activation fraction  
+              Scnew = exp(sqrt(4.*A*A*A/27./Diam(n+1)/Diam(n+1)/
+     &             Diam(n+1)/kappa(n)))
+              Scnew=(Scnew-1.)*100.
+
+              CCN_mod(SI)=CCN_mod(SI)+Nk(n)/boxvol*
+     &         (1/(dlog(100.+SMAX(SI)))**(2)-1/(dlog(100.+Scnew))**(2))/
+     &         (1/(dlog(100.+Sc(n)))**(2)-1/(dlog(100.+Scnew))**(2))
+              
+            ENDIF    
+          ENDIF
+          
+        ENDDO ! SMAX
+
+      ENDDO ! size bin
+C        PRINT*,'interpolate',i,j,l,si,CCN_mod(si) 
+C assing each CCN_mod to 3d array 
+
+      CCN_TOMAS(I,J,L,:)=CCN_mod(:) ! ; unit is not cm-3 yet 
+
+        taijls(i,j,l,ijlt_ccn_01)=taijls(i,j,l,ijlt_ccn_01)+
+     &   CCN_mod(1)
+
+       taijls(i,j,l,ijlt_ccn_02)=taijls(i,j,l,ijlt_ccn_02)+
+     &   CCN_mod(2)
+
+       taijls(i,j,l,ijlt_ccn_03)=taijls(i,j,l,ijlt_ccn_03)+
+     &   CCN_mod(3)
+
+
+
+      RETURN
+      END
