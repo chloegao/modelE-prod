@@ -46,9 +46,26 @@
       end subroutine read_entcell_struct
 
 !************************************************************************
-      
+     
+      subroutine read_patch_struct (iu_entstruct
+     &     , age, area, soil_type, Tpool)
+      use ent_prescribed_drv, only : read_soilcarbon_patch
+      implicit none
+      integer :: iu_entstruct
+      real*8, intent(out) :: age, area
+      integer, intent(out) :: soil_type      
+      real*8, intent(out) :: Tpool(PTRACE,NPOOLS-NLIVE
+     &     ,N_CASA_LAYERS)!prescribed soil pools, g/m2
 
-      subroutine read_patch_struct (pp,iu_entstruct )
+      call skipstar(iu_entstruct)
+      read(iu_entstruct,*) age, area, soil_type
+
+      call read_soilcarbon_patch(iu_entstruct,Tpool)
+      end subroutine read_patch_struct
+
+!************************************************************************
+
+      subroutine read_patch_struct_old (pp,iu_entstruct )
       type(patch) :: pp
       integer :: iu_entstruct
       !---
@@ -65,11 +82,60 @@
         read(iu_entstruct,*) pp%Tpool(CARBON,:,layer)
         read(iu_entstruct,*) pp%Tpool(NITROGEN,:,layer)
       end do
-      end subroutine read_patch_struct
+      end subroutine read_patch_struct_old
 
 !************************************************************************
 
-      subroutine read_cohort_struct ( cop, iu_entstruct )
+      subroutine get_patch_struct (iu_entstruct, option, ec)
+!@sum get_patch_struct  For mixed canopies, read csv file for initialization
+!@+      values for patch, insert patch, write intialization values.      
+      implicit none
+      integer :: iu_entstruct
+      integer :: option !1-overwrite first dummy patch ec%youngest=ec%oldest
+                        !2-insert new patch
+      type(entcelltype) :: ec
+      !---------------
+      real*8 :: age, area
+      integer :: soil_type 
+      real*8 :: Tpool_soil(PTRACE,NPOOLS-NLIVE
+     &     ,N_CASA_LAYERS)!prescribed soil pools, g/m2
+     
+      call read_patch_struct(iu_entstruct
+     &     , age, area, soil_type, Tpool_soil)
+
+      if (option.eq.1) then
+         ec%youngest%age = age
+         ec%youngest%area = area
+         ec%youngest%soil_type = soil_type
+         ec%youngest%Tpool(:,(NLIVE+1):NPOOLS,:) = Tpool_soil(:,:,:)
+      else
+         call insert_patch(ec, area, soil_type)
+         ec%youngest%Tpool(:,(NLIVE+1):NPOOLS,:) = Tpool_soil(:,:,:)
+      endif
+      write(*,*) 'patch age area soil_type Tpool'
+     &     ,age,area,soil_type,Tpool_soil
+      
+      end subroutine get_patch_struct
+
+!************************************************************************
+
+      subroutine read_cohort_struct ( iu_entstruct
+     o     , pft, LAImax, hm, LAIinit )
+      integer :: iu_entstruct
+      integer, intent(out) :: pft
+      real*8, intent(out) :: LAImax, hm, LAIinit
+      !---
+      
+      call skipstar(iu_entstruct)
+      read(iu_entstruct,*) pft
+      call skipstar(iu_entstruct)
+      read(iu_entstruct,*) LAImax,hm,LAIinit
+
+      end subroutine read_cohort_struct
+
+!************************************************************************
+
+      subroutine read_cohort_struct_old ( cop, iu_entstruct )
       type(cohort) :: cop
       integer :: iu_entstruct
       !---
@@ -86,10 +152,135 @@
 !     &     cop%C_hw,cop%N_hw,cop%C_lab,cop%N_lab,cop%
 !     &     C_froot,cop%N_froot,cop%C_croot,cop%N_croot
 
-      end subroutine read_cohort_struct
+      end subroutine read_cohort_struct_old
 
 !************************************************************************
-      subroutine calc_cohort_allometry(cop)
+
+      subroutine get_cohort_struct ( iu_entstruct, pp )
+!@sum get_cohort_struct  For mixed canpopes, read csv file for initialization
+!@+     of cohort structure, insert cohort, write initialization values.
+      use ent_prescribed_drv, only:  init_canopy_physical_single
+      implicit none
+      integer :: iu_entstruct
+      type(patch),pointer :: pp 
+      !-----------
+      integer :: pft
+      real*8 :: LAImax, hm, LAIinit
+      real*8 :: dbh,npop,cradx, crady
+      real*8 :: nm, fracroot(N_DEPTH)
+      real*8 :: cpool(N_BPOOLS) !g-C/pool/plant
+      real*8 :: Ci, GCOHORT
+      real*8 :: Tcan, Qf
+      real*8 :: albedo(N_BANDS)
+
+      if (.not.ASSOCIATED(pp)) then
+         call stop_model("ent_make_struct: null patch",255)
+      else
+         call read_cohort_struct( iu_entstruct, pft,LAImax,hm,LAIinit )
+
+         call calc_cohort_allometry_single (pft,LAImax,hm,LAIinit
+     o        ,dbh,npop,cradx,crady,cpool,nm,fracroot)
+
+         call init_canopy_physical_single(Ci, GCOHORT, Tcan, Qf)
+
+         call insert_cohort(pp,pft,npop, hm,
+     &        nm,LAIinit,
+     &        cradx, crady,dbh, 0.d0, 0.d0, 0.d0,fracroot,
+     &        cpool(FOL), 0.d0, cpool(SW), 0.d0, cpool(HW), 0.d0, 
+     &        cpool(LABILE), 0.d0,
+     &        cpool(FR), 0.d0, cpool(CR), 0.d0,
+     &        Ci, GCOHORT,0.d0, 0.d0, 0.d0, 0.d0, 
+     &        0.d0, 0.d0,
+              !phenofactor_c, phenofactor_d, phenofactor, phenostatus,
+     &        0.d0, 1.d0,0.d0,1.d0, !KIM - starting in the winter for cold-dec.
+     &        0.d0, 0.d0,       !betad_10d, CB_d
+     &        1.d0, -999.d0)    !turnover_amp, llspan
+
+         write(*,*) 'cohort pft, height',pft, hm 
+      endif
+
+      end subroutine get_cohort_struct
+
+!************************************************************************
+
+      subroutine calc_cohort_allometry_single (pft,LAImax,hinit,LAIinit
+     o     ,dbh,npop,cradx,crady,cpool,nm,fracroot)
+!@sum calc_cohort_allometry.  
+!+    Calculates cohort density, allometry and biomass pools.      
+      !use ent_prescr_veg, only :  popdensity
+      use ent_prescr_veg, only :  prescr_calc_rootprof
+      use allometryfn, only : height2dbh, Cfol_fn, nplant
+     &    , crown_radius_horiz_allom, crown_radius_vert
+     &    , allom_plant_cpools, init_Clab
+     &     ,Crown_rad_max_from_density, Crown_rad_allom
+      use ent_pfts, only : pfpar,COVEROFFSET,nmv,form
+      implicit none
+      integer, intent(in) :: pft
+      real*8, intent(in) :: LAImax, hinit, LAIinit
+      real*8, intent(out) :: dbh,npop,cradx, crady
+      real*8, intent(out) :: cpool(N_BPOOLS) !g-C/pool/plant
+      real*8, intent(out) :: nm, fracroot(N_DEPTH)
+      !---Local------
+      !real*8 :: albedo(N_BANDS)
+      real*8 :: LAmax, htop
+
+!!      !*Follows ent_prescribed_drv.f:prescr_get_ent_plant, non-Matthews, non-geo
+!!      dbh = height2dbh(pft,hm)
+!!      !cop%n = popdensity(pft,dbh,LAImax) !Used in prescr_calc_canopy_geometry Matthews
+!!      npop = nplant(pft,dbh,hm,LAImax)
+!!      !cop%dx = Crown_rad_max_from_density(n)  !This is used in prescr_calc_canopy_geometry Matthews
+!!      cradx = min(Crown_rad_max_from_density(npop)
+!!      ,Crown_rad_allom(cop%pft,hm))
+!!      !crady = crown_radius_vert(hm,cradx) !Not assigned in ent_prescribed_drv.f!
+!!      call allom_plant_cpools(pft,LAIinit,hm,dbh,npop,cpool(:))
+!!      call init_Clab(pft,dbh,hm,cpool(LABILE))
+
+      if (form(pft).eq.HERB) then
+         htop = 1.5d0 !Max height for grasses to calculate npop.
+                     !## When mortality/growth are run, then npop will be by
+                     !actual height and obey self-thinning law.
+                     !## Should eventually be pft-specific. Current Ent GVSD:
+                     !annual grass 0.5 m, C4 and perennial grass 1.5 m, crops
+                     !herb 0.5 m
+                     !Literature: wheat 2 m, corn 3+ m (record is 10 m).
+      else !tree and shrubs
+         htop = hinit
+      endif
+
+      !*Follows ent_prescribed_drv.f: prescr_vegdata, init_entvegdata_geo
+      if ((htop.gt.0.d0).and.(LAImax.gt.0.d0)) then
+        dbh = height2dbh(pft,htop)
+        LAmax =  0.001d0 * Cfol_fn(pft,dbh,htop) *pfpar(pft)%sla !gC to kgC for sla in m2/kgC
+        if (LAmax.gt.0.d0) then
+           npop = LAImax/LAmax
+        else
+           npop = 0.d0
+        endif
+        !cradx = min(Crown_rad_max_from_density(npop)
+        !   ,Crown_rad_allom(pft,hm))
+        write(*,*) 'Crown_rad_max_from dens,LAImax, LAmax'
+     &       ,Crown_rad_max_from_density(npop),LAImax, LAmax
+        write(*,*) 'Crown_rad_allom',Crown_rad_allom(pft,hinit)
+        cradx = crown_radius_horiz_allom(pft,hinit,npop)
+        crady = crown_radius_vert(pft,hinit,cradx)
+        call allom_plant_cpools(pft,LAIinit,hinit,dbh,npop,cpool)
+        call init_Clab(pft,dbh,hinit,cpool(LABILE))
+        nm = nmv(pft + COVEROFFSET)
+        call prescr_calc_rootprof(fracroot,pft + COVEROFFSET)
+      else 
+        dbh = 0.d0
+        npop = nplant(pft,dbh,htop,LAImax) !If no height, default.
+        cradx = 0.d0
+        crady = 0.d0
+        cpool(:) = 0.d0
+        nm = 0.d0
+        fracroot(:) = 0.d0
+      endif
+       !cop%LAI = No need to assign LAI here, because max is used for allometry.
+
+      end subroutine calc_cohort_allometry_single
+!************************************************************************
+      subroutine calc_cohort_allometry_old (cop)
 !@sum calc_cohort_allometry.  cop comes initialized with pft, n, h.
 !+    This subroutine calculates other allometry and biomass pools.      
       !use ent_prescr_veg, only : crown_radius_hw
@@ -121,7 +312,7 @@
       cop%C_froot = cpool(FR)
       cop%C_croot = cpool(CR)
       
-      end subroutine calc_cohort_allometry
+      end subroutine calc_cohort_allometry_old
 !************************************************************************
 
       subroutine ent_struct_readcsv (ec, iu_entstruct)
@@ -152,11 +343,14 @@
 !      call entcell_construct(ec)
 !      call zero_entcell( ec )
       !!call patch_construct(pp,null(),1.d0,2)!Blank patch to hold values.
-      call patch_construct(pp,ec,1.d0,2)!Blank patch to hold values.
-      call zero_patch(pp)
-      call cohort_construct(cop)
-      call zero_cohort(cop)
-          
+      !call patch_construct(pp,ec,1.d0,2)!Blank patch to hold values.
+      !call zero_patch(pp)
+      !call cohort_construct(cop)
+      !call zero_cohort(cop)
+      
+      nullify(pp)  !define init
+      nullify(cop) !define init
+    
       counter = 0
       pk = 0
       end_of_entcell = .false.
@@ -173,44 +367,23 @@
         else if (next.eq.'p') then !new patch
           write(*,*) 'p'
           pk = pk + 1
-          !!!call read_patch_struct(pp,iu_entstruct)
-          if (pk.gt.1) then !First patch overwrites any default initial dummy.
-             write(*,*) 'pk = ', pk
-             !!!call insert_patch(ec,pp%area,pp%soil_type) 
-             call insert_patch(ec,1.d0,2) 
+          write(*,*) 'pk = ', pk
+          if (pk.eq.1) then !First patch overwrites initial dummy.
+             write(*,*) 'ent_make_struct: first patch'
+             call get_patch_struct( iu_entstruct, 1, ec)
+          else !New patch
+             write(*,*) 'ent_make_struct: new patch'
+             call get_patch_struct( iu_entstruct, 2, ec)
              write(*,*) 'inserted patch'
           endif
+             !write(*,*) 'patch age area soil',pp%age,pp%area,pp%soil_type
           pp=>ec%youngest
-          call read_patch_struct(pp,iu_entstruct)
-          !!!call patch_copy(pp,ec%youngest) !Copy read-in patch data.
-
-          write(*,*) 'patch age area soil',pp%age,pp%area,pp%soil_type
         else if (next.eq.'c') then !new cohort
           write(*,*) 'c'
-          call read_cohort_struct(cop,iu_entstruct)
-          call calc_cohort_allometry(cop)
           !## Assumes last patch is youngest 
           !## (insert_patch does not currently sort by age).
-          call insert_cohort(ec%youngest,cop%pft,
-!     &         cop%n,cop%h,cop%nm,0.d0,cop%crown_dx,cop%crown_dy,
-     &         cop%n,cop%h,cop%nm,0.d0,cop%crown_dx,0.d0,
-     &         cop%dbh,0.d0,0.d0,0.d0,
-     &         cop%fracroot,cop%C_fol,0.d0,cop%C_sw,0.d0,cop%C_hw,
-     &         0.d0,cop%C_lab,0.d0,cop%C_froot,
-     &         0.d0,cop%C_croot,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,
-     &         0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0,0.d0)
-          tcp=>ec%oldest%tallest
-          do while (associated(tcp))
-!             write(*,*) '1 cohort: pft, h',tcp%pft,tcp%h
-             tcp=>tcp%shorter
-          enddo
-          
-          !Do pheno factors need to be initialized?  ##-NK
-!     &     phenofactor_c, phenofactor_d, phenofactor, phenostatus, 
-!     &     betad_10d, CB_d,
-!     &     turnover_amp, llspan
-
-          write(*,*) 'cohort pft height',cop%pft,cop%h
+          call get_cohort_struct( iu_entstruct, pp )
+          write(*,*) 'inserted cohort'
         end if
       end do
 

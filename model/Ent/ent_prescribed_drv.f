@@ -20,7 +20,7 @@
 
       public 
      &     ent_init_params,
-     &     init_canopy_physical,
+     &     init_canopy_physical, init_canopy_physical_single,
      &     prescr_vegdata,
      &     prescr_veg_albedodata
 
@@ -30,6 +30,7 @@
       public prescr_get_laidata,
      &     prescr_get_cropdata,
      &     prescr_get_soil_C_total
+     &     ,read_soilcarbon_patch
       public prescr_get_hdata
       public prescr_calc_canopy_geometry, prescr_get_carbonplant
       public prescr_get_pft_vars
@@ -64,14 +65,35 @@
 !@sum For old Friend & Kiang (2005) biophysics. Initialize LSM outputs.
       integer,intent(in) :: I0,I1,J0,J1
       real*8, DIMENSION(I0:I1,J0:J1) :: Ci_ini,CNC_ini,Tcan_ini,Qf_ini
+      !--------------
+      integer :: i, j
 
-      Ci_ini(:,:) = 0.0127d0
-      CNC_ini(:,:) = 0.d0
-      Tcan_ini(:,:) = 0.d0        !Should be a forcing from land surface model.
-      Qf_ini(:,:) = 0.d0          !Should be a forcing from land surface model.
+!!      Ci_ini(:,:) = 0.0127d0
+!!      CNC_ini(:,:) = 0.d0
+!!      Tcan_ini(:,:) = 0.d0        !Should be a forcing from land surface model.
+!!      Qf_ini(:,:) = 0.d0          !Should be a forcing from land surface model.
 
+      do i=I0,I1
+         do j=J0,J1
+             call init_canopy_physical_single(
+     &           Ci_ini(i,j), CNC_ini(i,j),Tcan_ini(i,j), Qf_ini(i,j) )
+         end do
+      end do
       end subroutine init_canopy_physical
-      
+     
+!***************************************************************************
+      subroutine init_canopy_physical_single(
+     &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini)
+!@sum For old Friend & Kiang (2005) biophysics. Initialize LSM outputs.
+      real*8  :: Ci_ini,CNC_ini,Tcan_ini,Qf_ini
+
+      Ci_ini = 0.0127d0
+      CNC_ini = 0.d0
+      Tcan_ini = 0.d0        !Should be a forcing from land surface model.
+      Qf_ini = 0.d0          !Should be a forcing from land surface model.
+
+      end subroutine init_canopy_physical_single
+ 
 !***************************************************************************
       subroutine prescr_get_soilpools(I0,I1,J0,J1,
      &     soil_C_total, Tpool_ini)
@@ -279,6 +301,43 @@ ccc#endif
       end do
       end subroutine read_soilcarbon_site
 !#endif
+
+      subroutine read_soilcarbon_patch(iu_patch,Tpool_ini)
+!@sum read_soilcarbon_patch (gC/m2 by soil layer) Read site values for soil 
+!@+     carbon pools from text file in iu.  Same procedure as read_soilcarbon_site.
+!External file should be named as below and should be organized as follows:
+!(1) there should be 1 or 2 columns (corresponding to each soil bgc layer);
+!(2) first non-header row should have total site-measured pool (in g/m2);
+!(3) 9 subsequent rows correspond to modeled 9 soil pool fractions
+      use FILEMANAGER, only : openunit,closeunit,nameunit
+
+      integer,intent(in) :: iu_patch !File ID passed in
+      real*8,intent(out) :: Tpool_ini(PTRACE,NPOOLS-NLIVE
+     &     ,N_CASA_LAYERS)!prescribed soil pools, g/m2
+      !---Local------------------------
+      !Site total measured soil C_org:
+      real*8, dimension(N_CASA_LAYERS) :: total_Cpool  !g-C/m^2
+      real*8, dimension(NPOOLS-NLIVE,N_CASA_LAYERS) :: Cpool_fracs_in !fraction
+
+      !Variables for calculating soil carbon pools
+      real*8, dimension(NPOOLS-NLIVE,N_CASA_LAYERS) :: Cpool_fracs !fraction
+      integer :: nn,n
+
+      !read(iu_patch,*)          !skip optional header row(s)
+      read(iu_patch,*) total_Cpool(:)
+      do nn=1,NPOOLS-NLIVE
+        read(iu_patch,*) Cpool_fracs_in(nn,:)
+      end do
+
+       do n=1,N_CASA_LAYERS
+        do nn=NLIVE+1,NPOOLS
+         Cpool_fracs(nn-NLIVE,n) = Cpool_fracs_in(nn-NLIVE,n)
+         Tpool_ini(CARBON,nn-NLIVE,n) =
+     &          Cpool_fracs(nn-NLIVE,n)*total_Cpool(n)
+        end do
+       end do
+
+      end subroutine read_soilcarbon_patch
 
 !***************************************************************************
       ! This module is not used for GCM runs, but only for standalone runs.

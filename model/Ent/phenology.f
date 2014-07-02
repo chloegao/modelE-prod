@@ -726,8 +726,10 @@
      &        /(Cfol_fn(pft,cop%dbh,cop%h)*1.d-3)
       else
          turnover_acclim = cop%lai/(pfpar(pft)%sla*cop%n)
-     &        /(Cfol_fn(pft,0.d0,5.d0)*1.d-3)
-
+     &        /(Cfol_fn(pft,0.d0,5.d0)*1.d-3)  !Yeonjoo 5.d0 hi value
+!!     &        /(Cfol_fn(pft,0.d0,1.5d0)*1.d-3)    !Ent GVSD perennial grass max height
+                                                 !## Need to replace with ent_pft pft parameter.
+                                                 !## Safest if hmax > hinit.
       endif
       end function turnover_acclim
 

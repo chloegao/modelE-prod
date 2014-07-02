@@ -181,7 +181,7 @@
      i    hdata,init)!,mixed_VEG)
 !@sum sets prescribed canopy height for entcell subgrid fractions.
       use ent_prescr_veg, only : popdensity
-      use allometryfn, only : crown_radius_horiz, crown_radius_vert
+      use allometryfn, only : crown_radius_horiz_allom,crown_radius_vert
      &     ,height2dbh, allom_plant_cpools
       use phenology, only : litter_growth_cohort, litter_patch
       use ent_pfts
@@ -229,8 +229,11 @@
 !            !density should not be updated, only plant geometry.
 !              cop%n = popdensity(cop%pft,cop%dbh,
 !     &              alamax(cop%PFT+COVEROFFSET))
-              cop%crown_dx = crown_radius_horiz(cop%pft,cop%dbh,cop%n)
-              cop%crown_dy = crown_radius_vert(cop%h,cop%crown_dx)
+!              cop%crown_dx = crown_radius_horiz_HF(cop%pft,cop%dbh,cop%n)
+              cop%crown_dx = crown_radius_horiz_allom(
+     &           cop%pft,cop%h,cop%n)
+              cop%crown_dy = crown_radius_vert(cop%pft
+     &             ,cop%h,cop%crown_dx)
 !            endif
 #ifdef ENT_STANDALONE_DIAG
             print *,'pft,n,h,dbh,crown_dx,crown_dy',

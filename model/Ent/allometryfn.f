@@ -22,6 +22,7 @@
       public dDBHdCdead, dDBHdCfol, dHdDBH
       public maxdbh, Cfol_fn, Csw_fn
       public Crown_rad_allom, Crown_rad_max_from_density
+      public crown_radius_horiz_allom, crown_radius_vert
       public allom_plant_cpools, init_Clab, nplant
 
       logical, save :: do_geo = .false.!Can change on initialization
@@ -488,18 +489,35 @@ c$$$      end if
       end function Crown_rad_max_from_density
 
 !*************************************************************************
-      real*8 function crown_radius_horiz(pft,dbh,popdensity)
+      real*8 function crown_radius_horiz_allom(pft,h,popdensity)
+!@sum Horizontal crown radius (m), minimum from allometry or max packing.
+      integer,intent(in) :: pft
+      real*8, intent(in) :: h  !m
+      real*8, intent(in) :: popdensity !#/m^2
+
+      if (pfpar(pft)%woody) then
+         crown_radius_horiz_allom = min(
+     &        Crown_rad_max_from_density(popdensity)
+     &        ,Crown_rad_allom(pft,h))
+      else !Herbs based on density
+         crown_radius_horiz_allom =
+     &        Crown_rad_max_from_density(popdensity)
+      endif
+
+      end function crown_radius_horiz_allom
+!*************************************************************************
+      real*8 function crown_radius_horiz_HF(pft,dbh,popdensity)
 !@sum Horizontal crown radius (m), minimum from allometry or max packing.
       integer,intent(in) :: pft
       real*8, intent(in) :: dbh !cm
       real*8, intent(in) :: popdensity !#/m^2
 
-      crown_radius_horiz = min(Crown_rad_max_from_density(popdensity)
-     &     ,crown_radius_pft(pft,dbh))
+      crown_radius_horiz_HF = min(Crown_rad_max_from_density(popdensity)
+     &     ,crown_radius_pft_HF(pft,dbh)) !!Yeonjoo Harvard Forest hack
 
-      end function crown_radius_horiz
+      end function crown_radius_horiz_HF
 !*************************************************************************
-      real*8 function crown_radius_pft(pft,dbh) Result(cradm)
+      real*8 function crown_radius_pft_HF(pft,dbh) Result(cradm)
 !@sum Horizontal crown radius from Harvard Forest late successional 
 !@+   hardwood allometry with mean conifer dbh_max limit.
 !@+   Coefficient 0.107 for late-succ hw is approx. mean for all types.
@@ -522,7 +540,7 @@ c$$$      end if
 
       cradm = .107d0 * min(dbh, dbh_max) 
 
-      end function crown_radius_pft
+      end function crown_radius_pft_HF
 !*************************************************************************
 !      real*8 function crown_radius_closed(popdensity) Result(cradm)
 !      !* Return plant crown radius (m).
@@ -533,11 +551,19 @@ c$$$      end if
 !      end function crown_radius_closed
 !*************************************************************************
 
-      real*8 function crown_radius_vert(h,crx)
+      real*8 function crown_radius_vert(pft, h,crx)
 !@sum Vertical crown radius (m) from allometry.
+!@+   Subject to change.  Currently allows tall ellipsoid to spherical but not
+!@+   oblate crowns. May want to allow oblate for understory crowns.
+      integer :: pft
       real*8 :: h, crx !Tree height, crown horizontal radius
-      !crown_radius_vert = min(0.45*h,crx*2.7d0)
-      crown_radius_vert = max(0.45*h,crx)  !##
+
+      if (form(pft).eq.HERB) then
+         crown_radius_vert = 0.5d0*h  !Entire height of plant
+      else !TREE, SHRUB
+         !crown_radius_vert = min(0.45*h,crx*2.7d0)
+         crown_radius_vert = max(0.45*h,crx) !##This does not allow oblate shape.
+      endif
       end function crown_radius_vert
 
 !*************************************************************************
@@ -629,7 +655,7 @@ c$$$      end if
       real*8, intent(in) :: h
       real*8, intent(in) :: laimax
 
-      if (.not.pfpar(pft)%woody) then !grasses/crops/non-woody
+      if (form(pft).eq.HERB) then !grasses/crops/non-woody 
 !         nplant = laimax/pfpar(pft)%sla/(height2Cfol(pft,h)/1000.0d0) !YK's
          nplant = laimax/pfpar(pft)%sla/(Cfol_fn(pft,0.d0,h)/1000.0d0) 
       else

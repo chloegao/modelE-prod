@@ -508,6 +508,7 @@ C NADINE - IS THIS CORRECT?
      i     reinitialize)
 !@sum Initializes an entcell assuming one cohort per patch.
       use patches, only : summarize_patch
+      use allometryfn, only : crown_radius_vert !Need to pass this in as array values
       type(entcelltype) :: ecp
       real*8,intent(in) :: vegdata(N_COVERTYPES) !Veg cover fractions.
       real*8,intent(in) :: popdens(N_COVERTYPES) !Veg population density
@@ -581,8 +582,9 @@ C NADINE - IS THIS CORRECT?
             call insert_cohort(pp,pft,popdens(ncov),hdata(ncov),
      &           nmdata(ncov),laidata(ncov),
      &           craddata(ncov), 
-     &           min(0.45*hdata(ncov),craddata(ncov)*2.7d0),
-!     &           crown_radius_vert(hdata(ncov),cradddata(ncov),!dependency NK
+!     &           min(0.45*hdata(ncov),craddata(ncov)*2.7d0), !old crad_dy vert NK
+     &           crown_radius_vert(pft
+     &             , hdata(ncov),craddata(ncov)), !dependency NK
      &           dbhdata(ncov),0.d0,0.d0, 
 !     &           craddata(ncov),0.d0,dbhdata(ncov),0.d0,0.d0,
      &           0.d0, fracrootdata(ncov,:),

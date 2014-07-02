@@ -90,6 +90,7 @@
      &          R_rootsum  !PK 5/15/07
       real*8 :: IPPsum
       real*8 :: molconc_to_umol
+      type(canraddrv) :: cradpar
 
 !#ifdef DEBUG
 !      print *,"Started photosynth_cond in FBB" ! with patch:"
@@ -243,11 +244,11 @@
           cop%Ci = EPS
           cop%GPP = 0.d0
           cop%IPP = 0.d0
-          if (cop%LAI.eq.0.d0) then 
-             TRANS_SW = 1.d0
-          else !(IPAR*4.05.lt.LOW_LIGHT_LIMIT)) then
-             TRANS_SW = 0.d0
-          endif
+!!          if (cop%LAI.eq.0.d0) then                   !TRANS_SW should be at patch level
+!!             TRANS_SW = 1.d0
+!!          else !(IPAR*4.05.lt.LOW_LIGHT_LIMIT)) then
+!!             TRANS_SW = 0.d0
+!!          endif
           Rd = Rdark(pspar%Vcmax)*cop%LAI 
        endif
         !* Update cohort respiration components, NPP, C_lab
@@ -297,8 +298,12 @@
       pp%NPP = NPPsum
       pp%R_auto = R_autosum
       pp%R_root = R_rootsum
-      pp%TRANS_SW = TRANS_SW ! looks like a hack which will not work for
-                             ! multiple cohorts...
+!!      pp%TRANS_SW = TRANS_SW ! looks like a hack which will not work for
+!!                             ! multiple cohorts...
+      call canopy_rad_setup(pp%tallest%pft,CosZen,fdir,IPAR, !!pft not needed but need cradpar
+     &     pp%LAI,pp%albedo(1),cradpar)
+      call canopy_transmittance(TRANS_SW,CosZen,fdir,cradpar)
+      pp%TRANS_SW = TRANS_SW
 
       !* Accumulate uptake. 
       !* Respiration should be from leaves and not draw down C_lab. ## Need to allocate respiration to leaves.##

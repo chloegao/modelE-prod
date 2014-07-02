@@ -241,8 +241,8 @@
 
          !* GEOMETRY - trees:  GORT ellipsoids, grasses:leaf only
          real*8 :: h              !* mean Height (m)
-         real*8 :: crown_dx       ! Crown horizontal axis length (m)
-         real*8 :: crown_dy       ! Crown vertical axis length (m)
+         real*8 :: crown_dx       ! Crown horizontal radius (m)
+         real*8 :: crown_dy       ! Crown vertical radius (m)
 !         real*8 :: dbh           ! Stem diameter at breast height (m)
 !         real*8 :: root_d         ! Root half spheroid diameter (m)
          real*8 :: clump          ! Leaf clumping parameter (TBA)
