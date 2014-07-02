@@ -67,6 +67,10 @@
 
       real*8, parameter :: temperature_istart1=250. ! not used
 
+! flag needed until surface components always obtain near-surface conditions
+! from the atm state rather than reading them directly from the AIC
+      logical :: traditional_coldstart_aic=.true.
+
 !**** Boundary condition arrays:
 !@var ZATMO: surface elevation (m)
       REAL*8, ALLOCATABLE, DIMENSION(:,:)   :: ZATMO
@@ -159,7 +163,7 @@ C**** module should own dynam variables used by other routines
       TYPE (DIST_GRID), INTENT(IN) :: grid
       INTEGER :: fid
       INTEGER :: I_0H, I_1H, J_1H, J_0H
-      INTEGER :: I, J, I_0, I_1, J_1, J_0
+      INTEGER :: I, I_0, I_1, J_1, J_0
       INTEGER :: IER
 
       I_0H = grid%I_STRT_HALO

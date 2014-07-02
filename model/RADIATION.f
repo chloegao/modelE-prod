@@ -166,6 +166,9 @@ C----------------
       REAL*8 :: VTAULAT(JM_DIAG)
 #endif
 
+      logical :: set_gases_internally = .true.,
+     &           set_aerosols_internally = .true.
+
 !@var U0GAS   reference gas amounts, 13 types  (cm atm)      (in setgas)
 C     array with local and global entries: repeat this section in driver
       REAL*8 U0GAS(LX,13)
@@ -196,7 +199,7 @@ C--------------------------------------------------------
 
       REAL*8 TRDFLB(LX+1),TRUFLB(LX+1),TRNFLB(LX+1), TRFCRL(LX)
       REAL*8 SRDFLB(LX+1),SRUFLB(LX+1),SRNFLB(LX+1), SRFHRL(LX)
-      REAL*8 chem_out(LX,5)
+      REAL*8 :: chem_out(LX,5)=0d0
       REAL*8 SRIVIS,SROVIS,PLAVIS,SRINIR,SRONIR,PLANIR,
      *       SRDVIS,SRUVIS,ALBVIS,SRDNIR,SRUNIR,ALBNIR,
      *       SRTVIS,SRRVIS,SRAVIS,SRTNIR,SRRNIR,SRANIR
@@ -891,6 +894,7 @@ C              ---------------------------------------------------------
       TRVALK(:,:) = 0  ;  TRCALK(:,:) = 0  ;  TRGXLK(:,:) = 0
        U0GAS(:,:) = 0  ;   ULGAS(:,:) = 0
       TRACER(:,:) = 0
+       EPLOW(:,:)  = 0 ;   EPMID(:,:) = 0  ;   EPHIG(:,:) = 0
 
       IF(LASTVC > 0) CALL SETATM
       IF(NL > LX)   call stop_model('rcomp1: increase LX',255)
@@ -1676,6 +1680,7 @@ C      -----------------------------------------------------------------
 
 
 C--------------------------------
+      if(set_gases_internally) then
 !!!                   CALL GETO3D(ILON,JLAT) ! may have to be changed ??
       if(use_o3_ref > 0 )then
         CALL REPART (O3JREF(1,IGCM,JGCM),PLBO3,NLO3+1, ! in
@@ -1694,10 +1699,14 @@ C--------------------------------
         endif
       endif
                       CALL GETGAS
+      else
+        CALL TAUGAS
+      endif
 C--------------------------------
 
 
 C--------------------------------
+      if(set_aerosols_internally) then
       SRBEXT=1.d-20 ; SRBSCT=0. ; SRBGCB=0. ; TRBALK=0.
       IF(MADBAK > 0) CALL GETBAK
 
@@ -1708,6 +1717,7 @@ C--------------------------------
       IF(MADVOL > 0) THEN ; CALL GETVOL
        ELSE ; SRVEXT=0.     ; SRVSCT=0. ; SRVGCB=0. ; TRVALK=0. ; END IF
       chem_out(:,2)=SRVEXT(:,6) ! save 3D aerosol extinction in SUB RADIA
+      endif
 C--------------------------------
 
 
@@ -6312,7 +6322,7 @@ C
       TAER=WSREXT(L,6)
       IPI0=WSRPI0(L,6)*1000.D0+1.D-05
       HLM=0.5D0*(HLB0(L+1)+HLB0(L))
-      TLAPS=(TLT(L)-TLB(L))/(HLB0(L+1)-HLB0(L))
+      TLAPS=(TLT(L)-TLB(L))/max(1d-3,HLB0(L+1)-HLB0(L))
       IRHL=RHL(L)*100.0
       IF(PL(L) < 1.D0) THEN
       WRITE(KW,6212) L,PL(L),HLM,TLM(L),TLAPS,SHL(L),IRHL

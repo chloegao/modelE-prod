@@ -79,7 +79,7 @@ sub compileRundeck
     my $dFlags;
     if ($compiler eq 'intel') { $dFlags="\"-O0 -g -traceback -CB -fpe0 -check uninit -ftrapuv\""; }
     elsif ($compiler eq 'gfortran') { $dFlags="\"-O0 -g -fbacktrace -fbounds-check -fcheck-array-temporaries -ffpe-trap=invalid,zero,overflow\""; }
-    elsif ($compiler eq 'nag') { $dFlags="\"-O0 -g -gline -C=all -gline\""; }
+    elsif ($compiler eq 'nag') { $dFlags="\"-O0 -g -gline -C=all\""; }
     $flags = "$extraFlags{$configuration} $extraFlags{$rundeck} $extraFlags{$compiler} EXTRA_FFLAGS=$dFlags";
   }
   $flags =~ s/(\$npes)/1/eeg;

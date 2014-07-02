@@ -874,6 +874,9 @@ C****
       USE MODEL_COM, only : dtsrc
       USE OCEAN, only : ze,dts,ndyno,olat_dg,olon_dg
       USE MDIAG_COM, only : ia_src=>ia_cpl
+#ifdef NEW_IO
+      USE MDIAG_COM, only : make_timeaxis
+#endif
       USE ODIAG
       use straits, only : lmst,nmst,name_st
 #ifdef TRACERS_OCEAN
@@ -888,6 +891,7 @@ c
       character(len=10) :: xstr,ystr,zstr
       character(len=20) :: xyzstr,unitstr
       real*8 :: byrho2,inst_sc,chng_sc
+      logical :: set_miss
 
 #ifndef STANDALONE_OCEAN
       call set_oj_budg(atmocn%jm_budg)
@@ -2049,7 +2053,8 @@ c
         call add_var(cdl_oij,
      &       'float '//trim(sname_oij(k))//trim(ystr)//trim(xstr),
      &       long_name=trim(lname_oij(k)),
-     &       units=trim(units_oij(k)) )
+     &       units=trim(units_oij(k)),
+     &       make_timeaxis=make_timeaxis)
       enddo
 
       do k=1,koijmm
@@ -2071,15 +2076,14 @@ c
         if(jgrid_oijl(k).eq.2) ystr='lato2,'
         zstr='(zoc,'
         if(lgrid_oijl(k).eq.2) zstr='(zoce,'
+        set_miss = denom_oijl(k).ne.0
         call add_var(cdl_oijl,
      &       'float '//trim(sname_oijl(k))//trim(zstr)//
      &       trim(ystr)//trim(xstr),
      &       long_name=trim(lname_oijl(k)),
-     &       units=trim(units_oijl(k)) )
-        if(denom_oijl(k) .ne. 0) then
-          call add_varline(cdl_oijl,trim(sname_oijl(k))//
-     &         ':missing_value = -1.e30f ;')
-        endif
+     &       units=trim(units_oijl(k)),
+     &       set_miss=set_miss,
+     &       make_timeaxis=make_timeaxis)
       enddo
 
       call merge_cdl(cdl_olats,cdl_odepths,cdl_ojl)
@@ -2090,12 +2094,13 @@ c
         if(jgrid_ojl(k).eq.2) ystr='lato2) ;'
         zstr='(zoc,'
         if(lgrid_ojl(k).eq.2) zstr='(zoce,'
+        set_miss = denom_ojl(k).ne.0
         call add_var(cdl_ojl,
      &       'float '//trim(sname_ojl(k))//trim(zstr)//trim(ystr),
      &       long_name=trim(lname_ojl(k)),
-     &       units=trim(units_ojl(k)) )
-        call add_varline(cdl_ojl,trim(sname_ojl(k))//
-     &       ':missing_value = -1.e30f ;')
+     &       units=trim(units_ojl(k)),
+     &       set_miss=set_miss,
+     &       make_timeaxis=make_timeaxis)
       enddo
 
       cdl_olnst = cdl_odepths
@@ -2115,7 +2120,8 @@ c
         call add_var(cdl_olnst,
      &       'float '//trim(sname_olnst(k))//'(nmst,'//trim(zstr),
      &       long_name=trim(lname_olnst(k)),
-     &       units=trim(units_olnst(k)) )
+     &       units=trim(units_olnst(k)),
+     &       make_timeaxis=make_timeaxis)
       enddo
 
       cdl_otj = cdl_olats
@@ -2124,7 +2130,8 @@ c
         call add_var(cdl_otj,
      &       'float '//trim(sname_otj(k))//'(lato2) ;',
      &       long_name=trim(lname_otj(k)),
-     &       units=trim(units_otj(k)) )
+     &       units=trim(units_otj(k)),
+     &       make_timeaxis=make_timeaxis)
       enddo
 
 #ifdef TRACERS_OCEAN 
@@ -2141,7 +2148,8 @@ c
       sname_toijl(kk) = 'mo' ! gridbox mass in kg
       call add_var(cdl_toijl,
      &     'float '//trim(sname_toijl(kk))//trim(xyzstr),
-     &     long_name='OCEAN GRIDBOX MASS', units='kg' )
+     &     long_name='OCEAN GRIDBOX MASS', units='kg',
+     &       make_timeaxis=make_timeaxis)
       kk_water = 0
       do nt=1,ntm
         kk = kk + 1
@@ -2156,12 +2164,14 @@ c
         else
           unitstr='kg/kg'
         endif
+        set_miss = denom_toijl(kk).ne.0
         call add_var(cdl_toijl,
      &       'float '//trim(sname_toijl(kk))//trim(xyzstr),
      &       long_name='OCEAN '//trim(trname(nt)),
-     &       units=trim(unitstr) )
-        call add_varline(cdl_toijl,trim(sname_toijl(kk))//
-     &       ':missing_value = -1.e30f ;')
+     &       units=trim(unitstr),
+     &       set_miss=set_miss,
+     &       make_timeaxis=make_timeaxis)
+
 c
 c metadata for vertical fluxes
 c
@@ -2174,7 +2184,8 @@ c
         call add_var(cdl_toijl,
      &       'float '//trim(sname_toijl(kk))//trim(xyzstr),
      &       long_name='VERT. ADV. FLUX '//trim(trname(nt)),
-     &       units=trim(unitstr) )
+     &       units=trim(unitstr),
+     &       make_timeaxis=make_timeaxis)
         kk = kk + 1
         sname_toijl(kk) = trim(trname(nt))//'_zflx_turb'
         divbya_toijl(kk) = .true.
@@ -2182,7 +2193,8 @@ c
         call add_var(cdl_toijl,
      &       'float '//trim(sname_toijl(kk))//trim(xyzstr),
      &       long_name='VERT. DIFF. FLUX '//trim(trname(nt)),
-     &       units=trim(unitstr) )
+     &       units=trim(unitstr),
+     &       make_timeaxis=make_timeaxis)
         kk = kk + 1
         sname_toijl(kk) = trim(trname(nt))//'_zflx_gm'
         divbya_toijl(kk) = .true.
@@ -2190,7 +2202,8 @@ c
         call add_var(cdl_toijl,
      &       'float '//trim(sname_toijl(kk))//trim(xyzstr),
      &       long_name='GM/EDDY VERT. FLUX '//trim(trname(nt)),
-     &       units=trim(unitstr) )
+     &       units=trim(unitstr),
+     &       make_timeaxis=make_timeaxis)
 
 c
 c metadata for E-W fluxes
@@ -2203,14 +2216,16 @@ c
         call add_var(cdl_toijl,
      &       'float '//trim(sname_toijl(kk))//trim(xyzstr),
      &       long_name='ADV. E-W FLUX '//trim(trname(nt)),
-     &       units=trim(unitstr) )
+     &       units=trim(unitstr),
+     &       make_timeaxis=make_timeaxis)
         kk = kk + 1
         sname_toijl(kk) = trim(trname(nt))//'_xflx_gm'
         kn_toijl(:,kk) = (/ toijl_gmfl+0, nt /)
         call add_var(cdl_toijl,
      &       'float '//trim(sname_toijl(kk))//trim(xyzstr),
      &       long_name='GM/EDDY E-W FLUX '//trim(trname(nt)),
-     &       units=trim(unitstr) )
+     &       units=trim(unitstr),
+     &       make_timeaxis=make_timeaxis)
 c
 c metadata for N-S fluxes
 c
@@ -2222,14 +2237,16 @@ c
         call add_var(cdl_toijl,
      &       'float '//trim(sname_toijl(kk))//trim(xyzstr),
      &       long_name='ADV. N-S FLUX '//trim(trname(nt)),
-     &       units=trim(unitstr) )
+     &       units=trim(unitstr),
+     &       make_timeaxis=make_timeaxis)
         kk = kk + 1
         sname_toijl(kk) = trim(trname(nt))//'_yflx_gm'
         kn_toijl(:,kk) = (/ toijl_gmfl+1, nt /)
         call add_var(cdl_toijl,
      &       'float '//trim(sname_toijl(kk))//trim(xyzstr),
      &       long_name='GM/EDDY N-S FLUX '//trim(trname(nt)),
-     &       units=trim(unitstr) )
+     &       units=trim(unitstr),
+     &       make_timeaxis=make_timeaxis)
 
       enddo
 ! set denom for per mil units

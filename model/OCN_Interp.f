@@ -488,25 +488,26 @@ C**** surface tracer concentration
       call ab_add( lstr, oTRAC, aTRAC, shape(oTRAC), 'ijk', 
      &     oWEIGHT1, aWEIGHT1) 
 
-#ifdef TRACERS_OceanBiology
+      if (ocnatm%chl_defined) then
 !total ocean chlorophyll. Units are kg,chlorophyll/m3 of seawater
 !tot_chlo is defined over all ocean points. Here only use open water
 !chorophyll, because that is what is seen by radiation
-      oWEIGHT2(:,:) = oFOCEAN_loc(:,:) * (1.d0 - oRSI(:,:))
-      call ab_add( lstr, oWEIGHT2, aWEIGHT2, shape(oWEIGHT2),'ij')
-      DO J=oJ_0,oJ_1
-        DO I=oI_0,oIMAXJ(J)
-          IF (oFOCEAN_loc(I,J).gt.0.) THEN
-            oTOT_CHLO_loc(I,J) = ocnatm%chl(i,j) !tot_chlo(I,J)
-          ELSE
-            oTOT_CHLO_loc(I,J)=0.
-          END IF
+        oWEIGHT2(:,:) = oFOCEAN_loc(:,:) * (1.d0 - oRSI(:,:))
+        call ab_add( lstr, oWEIGHT2, aWEIGHT2, shape(oWEIGHT2),'ij')
+        DO J=oJ_0,oJ_1
+          DO I=oI_0,oIMAXJ(J)
+            IF (oFOCEAN_loc(I,J).gt.0.) THEN
+              oTOT_CHLO_loc(I,J) = ocnatm%chl(i,j) !tot_chlo(I,J)
+            ELSE
+              oTOT_CHLO_loc(I,J)=0.
+            END IF
+          END DO
         END DO
-      END DO
 
-      call ab_add( lstr, oTOT_CHLO_loc, atm%CHL, 
+        call ab_add( lstr, oTOT_CHLO_loc, atm%CHL, 
      &     shape(oTOT_CHLO_loc), 'ij', oWEIGHT2, aWEIGHT2) 
-#endif
+        atm%chl_defined=.true.
+      endif
 
 #ifdef TRACERS_GASEXCH_ocean_CO2
 !partial CO2 pressure in seawater. Units are uatm.
@@ -893,22 +894,23 @@ C**** surface tracer concentration
       CALL INT_OG2AG(ocnatm%gtracer,atm%gtracer,oWEIGHT,NTM,atm%focean)
 #endif
 
-#ifdef TRACERS_OceanBiology
+      if (ocnatm%chl_defined) then
 !total ocean chlorophyll. Units are kg,chlorophyll/m3 of seawater
 !tot_chlo is defined over all ocean points. Here only use open water
 !chorophyll, because that is what is seen by radiation
-      DO J=oJ_0,oJ_1
-       oWEIGHT(:,J) = oFOCEAN_loc(:,J) * (1.d0 - oRSI(:,J))
-        DO I=oI_0,oIMAXJ(J)
-          IF (oFOCEAN_loc(I,J).gt.0.) THEN
-            oTOT_CHLO_loc(I,J) = ocnatm%chl(i,j) !tot_chlo(I,J)
-          ELSE
-            oTOT_CHLO_loc(I,J)=0.
-          END IF
+        DO J=oJ_0,oJ_1
+          oWEIGHT(:,J) = oFOCEAN_loc(:,J) * (1.d0 - oRSI(:,J))
+          DO I=oI_0,oIMAXJ(J)
+            IF (oFOCEAN_loc(I,J).gt.0.) THEN
+              oTOT_CHLO_loc(I,J) = ocnatm%chl(i,j) !tot_chlo(I,J)
+            ELSE
+              oTOT_CHLO_loc(I,J)=0.
+            END IF
+          END DO
         END DO
-      END DO
-      CALL INT_OG2AG(oTOT_CHLO_loc,atm%CHL, oWEIGHT, .FALSE.)
-#endif
+        CALL INT_OG2AG(oTOT_CHLO_loc,atm%CHL, oWEIGHT, .FALSE.)
+        atm%chl_defined=.true.
+      endif
 
 #ifdef TRACERS_GASEXCH_ocean_CO2
 !partial CO2 pressure in seawater. Units are uatm.

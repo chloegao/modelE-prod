@@ -129,9 +129,7 @@ sub runInBatch
   }
   else
   {
-    if    ($jobname =~ nonProduction || $jobname =~ C12) 
-    { $walltime = "00:30:00"; }
-    elsif ($jobname =~ M20) 
+    if ($jobname =~ M20 || $jobname =~ nonProduction || $jobname =~ C12) 
     { $walltime = "01:00:00"; }
     elsif ($jobname =~ obio) 
     { $walltime = "02:00:00"; }
@@ -157,11 +155,9 @@ sub runInBatch
 #!/bin/bash
 #PBS -l select=$nodes:mpiprocs=12
 #PBS -l walltime=$walltime
-#PBS -W group_list=s1001
 #PBS -N $validPBSname
-#PBS -j oe
 #PBS $queueString
-#PBS -V
+#SBATCH -A s1001
 
 cd \$PBS_O_WORKDIR
 
@@ -209,7 +205,7 @@ EOF
     elsif ($compiler eq "nag")  
     {
       $script .= <<EOF;
-module load comp/nag-5.3-907 other/mpi/mvapich2-1.8.1/nag-5.3-907
+module load comp/nag-5.3 other/mpi/openmpi/1.7.3-nag-5.3
 EOF
     }
     else 
@@ -295,7 +291,7 @@ sub setModuleEnvironment
       }
       elsif ($compiler eq "nag") 
       {
-        module (load, "comp/nag-5.3-907", "other/mpi/mvapich2-1.8.1/nag-5.3-907");
+        module (load, "comp/nag-5.3", "other/mpi/openmpi/1.7.3-nag-5.3");
       } 
       else 
       {

@@ -10,7 +10,8 @@ Preprocessor Options
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
-RES_M53                             ! horiz/vert resolution
+Atm72x46                   ! horizontal resolution is 72x46 -> 4x4.5deg
+AtmL53                      ! vertical resolution is 53 layers -> 0.1mb
 MODEL_COM GEOM_B IORSF              ! model variables and geometry
 TRIDIAG                             ! tridiagonal matrix solver
 MODELE                              ! Main and model overhead

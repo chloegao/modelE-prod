@@ -202,7 +202,7 @@ ccc extra stuff which was present in "earth" by default
       use TimeConstants_mod, only: SECONDS_PER_DAY
       USE model_com,ONLY : modelEclock
       USE geom,ONLY : axyp
-      USE ghy_com,ONLY : snowe,wearth,aiearth,wfcs
+      USE ghy_com,ONLY : wearth,aiearth,wfcs
       use tracers_dust,only : nAerocomDust,d_dust,ers_data
      &     ,dustSourceFunction,frclay,frsilt,dryhr,vtrsh
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
@@ -272,7 +272,7 @@ ccc tracers variables
     (defined TRACERS_TOMAS)
       ! todo: move (some of) this to subroutine dust_emission_prep
       call modelEclock%getDate(month=month, dayOfYear=dayOfYear)
-      pbl_args%snow=snowe(i,j)
+      pbl_args%snow=atmlnd%snowe(i,j)
       pbl_args%wearth=wearth(i,j)
       pbl_args%aiearth=aiearth(i,j)
       pbl_args%wfcs=wfcs(i,j)
@@ -765,8 +765,8 @@ c****
      *     ,precss,nisurf
       use ghy_com, only : snowbv, fearth,
      &     fr_snow_ij,
-     *     snowe,tearth,tsns_ij,wearth,aiearth,
-     &     evap_max_ij, fr_sat_ij, qg_ij, fr_snow_rad_ij,top_dev_ij,
+     *     tearth,tsns_ij,wearth,aiearth,
+     &     evap_max_ij, fr_sat_ij, qg_ij, top_dev_ij,
      &     soil_surf_moist
 #ifndef USE_ENT
       use vegetation, only :
@@ -1271,22 +1271,26 @@ c**** set snow fraction for albedo computation (used by RAD_DRV.f)
       if ( snow_cover_same_as_rad == 0 ) then
         ! recompute snow fraction using different formula
         do ibv=1,2
-          call snow_cover(fr_snow_rad_ij(ibv,i,j),
+          call snow_cover(atmlnd%fr_snow_rad(ibv,i,j),
      &         snowbv(ibv,i,j), top_dev_ij(i,j) )
-          fr_snow_rad_ij(ibv,i,j) = min (
-     &         fr_snow_rad_ij(ibv,i,j), fr_snow_ij(ibv, i, j) )
+          atmlnd%fr_snow_rad(ibv,i,j) = min (
+     &         atmlnd%fr_snow_rad(ibv,i,j), fr_snow_ij(ibv, i, j) )
         enddo
       else
         ! snow fraction same as in snow model
-        fr_snow_rad_ij(:,i,j) = fr_snow_ij(:, i, j)
+        atmlnd%fr_snow_rad(:,i,j) = fr_snow_ij(:, i, j)
       endif
 
 c**** snowe used in RADIATION
-      snowe(i,j)=1000.*(snowd(1)*fb+snowd(2)*fv)
-      atmlnd%snow(i,j) = snowe(i,j)
+c     snowe(i,j)=1000.*(snowd(1)*fb+snowd(2)*fv)
+c workaround for uninitialzed snowd multiply by zero
+      atmlnd%snowe(i,j)=1000.*
+     &     ( merge( snowd(1)*fb, 0d0, fb > 0 ) +
+     &       merge( snowd(2)*fv, 0d0, fv > 0 ) )
+      atmlnd%snow(i,j) = atmlnd%snowe(i,j)
       atmlnd%snowfr(i,j) =
-     *       ( fb*fr_snow_rad_ij(1,i,j)
-     *       + fv*fr_snow_rad_ij(2,i,j) )
+     *       ( fb*atmlnd%fr_snow_rad(1,i,j)
+     *       + fv*atmlnd%fr_snow_rad(2,i,j) )
       atmlnd%snowdp(i,j) =
      &       ( fb*fr_snow_ij(1,i,j)
      &           * sum( dzsn_ij(1:nsn_ij(1,i,j),1,i,j) )
@@ -1801,7 +1805,6 @@ c**** read rundeck parameters
 ! hack. snow_cover_coef should be moved to snow_drvm
       snow_cover_coef2 = snow_cover_coef
       call sync_param( "snow_cover_same_as_rad", snow_cover_same_as_rad)
-      call sync_param( "snoage_def", snoage_def )
       call sync_param( "wsn_max", wsn_max )
       call sync_param( "ghy_default_data", ghy_default_data )
       !call  get_param( "variable_lk", variable_lk )
@@ -1962,6 +1965,7 @@ c**** cosday, sinday should be defined (reset once a day in daily_earth)
       use veg_com, only:  avh !,afb
 #endif
 #endif
+      use rad_com, only : snoage
       implicit none
       integer, intent(in) :: istart
       logical, intent(in) :: redogh, inisnow, inilake
@@ -2032,7 +2036,7 @@ c**** recompute ground hydrology data if necessary (new soils data)
      &           q_ij(i,j,:,:), dz_ij(i,j,:)
      &           )
 
-            snowe(i,j) = 1000.*snowbv(1,i,j)
+            atmlnd%snowe(i,j) = 1000.*snowbv(1,i,j)
             tearth(i,j) = earth_tp(1,1,i,j)
             atmlnd%bare_soil_wetness(i,j) = earth_sat(1,1,i,j)
             aiearth(i,j) = 0. ! not used?
@@ -2195,15 +2199,15 @@ c**** (useful when changing land/vegetation mask)
       end if ! do_IC_fixups
 
 c**** set snow fraction for albedo computation (used by RAD_DRV.f)
-      fr_snow_rad_ij(:,:,:) = 0.d0
+      atmlnd%fr_snow_rad(:,:,:) = 0.d0
       do j=J_0,J_1
         do i=I_0,I_1
           if ( fearth(i,j) > 0.d0 ) then
             do ibv=1,2
-              call snow_cover(fr_snow_rad_ij(ibv,i,j),
+              call snow_cover(atmlnd%fr_snow_rad(ibv,i,j),
      &             snowbv(ibv,i,j), top_dev_ij(i,j) )
-              fr_snow_rad_ij(ibv,i,j) = min (
-     &             fr_snow_rad_ij(ibv,i,j), fr_snow_ij(ibv, i, j) )
+              atmlnd%fr_snow_rad(ibv,i,j) = min (
+     &             atmlnd%fr_snow_rad(ibv,i,j), fr_snow_ij(ibv,i,j) )
             enddo
           endif
         enddo
@@ -2225,10 +2229,10 @@ c**** set gtemp array
         do i=I_0,I_1
           if (fearth(i,j).gt.0) then
             call get_fb_fv( fb, fv, i, j )
-            atmlnd%snow(i,j)=snowe(i,j)
+            atmlnd%snow(i,j)=atmlnd%snowe(i,j)
             atmlnd%snowfr(i,j) =
-     *           ( fb*fr_snow_rad_ij(1,i,j)
-     *           + fv*fr_snow_rad_ij(2,i,j) )
+     *           ( fb*atmlnd%fr_snow_rad(1,i,j)
+     *           + fv*atmlnd%fr_snow_rad(2,i,j) )
             atmlnd%snowdp(i,j) =
      &       ( fb*fr_snow_ij(1,i,j)
      &           * sum( dzsn_ij(1:nsn_ij(1,i,j),1,i,j) )
@@ -2698,6 +2702,7 @@ ccc (to make the data compatible with snow model)
       subroutine reset_gh_to_defaults( reset_prognostic )
       !use model_com, only: vdata
       USE DOMAIN_DECOMP_ATM, ONLY : GRID, getDomainBounds
+      use fluxes, only : atmlnd
       use ghy_com
 #ifndef USE_ENT
       use veg_drv, only : reset_veg_to_defaults
@@ -2759,7 +2764,7 @@ ccc ugly, should fix later
 
       if ( .not. reset_prognostic ) cycle
 
-      snowe(i,j)= 0.65458111d-01
+      atmlnd%snowe(i,j)= 0.65458111d-01
       tearth(i,j)= -0.12476520d+00
       tsns_ij(i,j)= -0.12476520d+00
       wearth(i,j)=  0.29203081d+02
@@ -3115,7 +3120,8 @@ cddd      end subroutine retp2
       use geom, only : imaxj
       use constant, only : rhow
       !use veg_com, only : afb
-      use ghy_com, only : tearth,wearth,aiearth,snowe,w_ij,ht_ij
+      use fluxes, only : atmlnd
+      use ghy_com, only : tearth,wearth,aiearth,w_ij,ht_ij
      *     ,snowbv,ngm,fearth,wsn_ij,fr_snow_ij,nsn_ij,LS_NFRAC,wfcs
 #ifdef TRACERS_WATER
      &     ,tr_w_ij,tr_wsn_ij
@@ -3165,10 +3171,10 @@ c**** check for reasonable temperatures over earth
             wtrl=wearth(i,j)
             acel=aiearth(i,j)
             if ((tgl+60.)*(60.-tgl).le.0.) write (6,901) subr,i,j,itime
-     *           ,fearth(i,j),'tg1 off',snowe(i,j),tgl,wtrl,acel
+     *           ,fearth(i,j),'tg1 off',atmlnd%snowe(i,j),tgl,wtrl,acel
             if (wtrl.lt.0..or.acel.lt.0..or.(wtrl+acel).gt.x*wfcs(i
      *           ,j)) write(6,901) subr,i,j,itime,fearth(i,j),'wtr off'
-     *           ,snowe(i,j),tgl,wtrl,acel,wfcs(i,j)
+     *           ,atmlnd%snowe(i,j),tgl,wtrl,acel,wfcs(i,j)
           end if
         end do
       end do
@@ -3306,7 +3312,7 @@ cddd     &         *fr_snow_ij(2,imax,jmax)
       use diag_com, only : aij=>aij_loc
      *     ,tdiurn,ij_strngts,ij_dtgdts,ij_tmaxe,ij_tmaxc
      *     ,ij_tdsl,ij_tmnmx,ij_tdcomp, ij_dleaf
-      use ghy_com, only : snoage, snoage_def,fearth, wsn_max,
+      use ghy_com, only : fearth, wsn_max,
      &     q_ij,dz_ij,ngm,w_ij,wfcs
 #ifdef USE_ENT
      &     ,aalbveg
@@ -3495,26 +3501,6 @@ cddd            write(934,*) "wfcs", i,j,wfcs(i,j)
       if (end_of_day) then
         do j=J_0,J_1
         do i=I_0,imaxj(j)
-c****
-c**** increase snow age depending on snoage_def
-c****
-          if (snoage_def.eq.0) then ! update indep. of ts
-            do itype=1,3
-              snoage(itype,i,j)=1.+.98d0*snoage(itype,i,j)
-            end do
-          elseif (snoage_def.eq.1) then ! update if max T>0
-            if (tdiurn(i,j,7).gt.0) snoage(1,i,j)=1.+.98d0
-     *           *snoage(1,i,j) ! ocean ice (not currently used)
-            if (tdiurn(i,j,8).gt.0) snoage(2,i,j)=1.+.98d0
-     *           *snoage(2,i,j) ! land ice
-            if (tdiurn(i,j,2).gt.0) snoage(3,i,j)=1.+.98d0
-     *           *snoage(3,i,j) ! land
-          else
-            write(6,*) "This snoage_def is not defined: ",snoage_def
-            write(6,*) "Please use: 0 (update indep of T)"
-            write(6,*) "            1 (update if T>0)"
-            call stop_model('stopped in GHY_DRV.f',255)
-          end if
           tsavg=tdiurn(i,j,5)/(nday*nisurf)
           if(32.+1.8*tsavg.lt.65.)
      *         aij(i,j,ij_strngts)=aij(i,j,ij_strngts)+(33.-1.8*tsavg)
@@ -3600,8 +3586,8 @@ c     *       ( afb(i,j)*fr_snow_ij(1,i,j)
 c     *       + (1.-afb(i,j))*fr_snow_ij(2,i,j) )
 c**** the following computes the snow cover as it is used in RAD_DRV.f
 c        scove = pearth * atmlnd%snowfr(i,j)
-c     *       ( fb*fr_snow_rad_ij(1,i,j)
-c     *       + fv*fr_snow_rad_ij(2,i,j) )
+c     *       ( fb*atmlnd%fr_snow_rad(1,i,j)
+c     *       + fv*atmlnd%fr_snow_rad(2,i,j) )
 
         !if (snowe(i,j).gt.0.) scove=pearth
 
@@ -4375,7 +4361,7 @@ cddd      sinday=sin(twopi/EARTH_DAYS_PER_YEAR*jday)
       use TimeConstants_mod, only: EARTH_DAYS_PER_YEAR
       use ghy_com, only : ngm,imt,dz_ij,q_ij
      &     ,w_ij,ht_ij,fr_snow_ij,fearth
-     &     ,fr_snow_rad_ij,snowbv,top_dev_ij
+     &     ,snowbv,top_dev_ij
 #ifdef TRACERS_WATER
      &     ,tr_w_ij,tr_wsn_ij
       use TRACER_COM, only : NTM
@@ -4383,7 +4369,7 @@ cddd      sinday=sin(twopi/EARTH_DAYS_PER_YEAR*jday)
       !use veg_com, only : ala !,afb
       use LAKES_COM, only : flake, svflake
       use sle001, only : thm
-      use fluxes, only : focean,DMWLDF, DGML
+      use fluxes, only : atmlnd,focean,DMWLDF, DGML
 #ifdef TRACERS_WATER
      &     ,DTRL
 #endif
@@ -4622,14 +4608,14 @@ c**** Also reset snow fraction for albedo computation
           if ( snow_cover_same_as_rad == 0 ) then
             ! recompute snow fraction using different formula
             do ibv=1,2
-               call snow_cover(fr_snow_rad_ij(ibv,i,j),
+               call snow_cover(atmlnd%fr_snow_rad(ibv,i,j),
      &                snowbv(ibv,i,j), top_dev_ij(i,j) )
-               fr_snow_rad_ij(ibv,i,j) = min (
-     &            fr_snow_rad_ij(ibv,i,j), fr_snow_ij(ibv, i, j) )
+               atmlnd%fr_snow_rad(ibv,i,j) = min (
+     &            atmlnd%fr_snow_rad(ibv,i,j), fr_snow_ij(ibv,i,j) )
             enddo
           else
             ! snow fraction same as in snow model
-            fr_snow_rad_ij(:,i,j) = fr_snow_ij(:, i, j)
+            atmlnd%fr_snow_rad(:,i,j) = fr_snow_ij(:, i, j)
           endif
 
           call set_new_ghy_cells_outputs
@@ -4653,8 +4639,8 @@ c**** Also reset snow fraction for albedo computation
 !@sum set output data for newly created earth cells (when lake shrinks)
       use constant, only : rhow,tf,lhe,lhs
       use ghy_com, only : ngm,imt,dz_ij,q_ij
-     &     ,w_ij,ht_ij,fr_snow_ij,fearth,qg_ij,fr_snow_rad_ij
-     &     ,shc_soil_texture,snowe,tearth,wearth,aiearth
+     &     ,w_ij,ht_ij,fr_snow_ij,fearth,qg_ij
+     &     ,shc_soil_texture,tearth,wearth,aiearth
      &     ,tsns_ij
 #ifdef TRACERS_WATER
      &     ,tr_w_ij
@@ -4727,10 +4713,10 @@ c**** Also reset snow fraction for albedo computation
       ! ground humidity to be used on next time step
           qg_ij(i,j) = qsat(tg1+tf,elhx,ps) ! all saturated
       ! snow fraction same as in snow model
-          fr_snow_rad_ij(:,i,j) = 0.d0 ! no snow in new cell
+          atmlnd%fr_snow_rad(:,i,j) = 0.d0 ! no snow in new cell
 
 c**** snowe used in RADIATION
-          snowe(i,j) = 1000.*0.d0
+          atmlnd%snowe(i,j) = 1000.*0.d0
           atmlnd%snow(i,j) = 0.!snowe(i,j)
           atmlnd%snowfr(i,j) = 0d0
           atmlnd%snowdp(i,j) = 0d0
@@ -4908,3 +4894,45 @@ c     *         +flake(i,j)*sum(w_ij(0:ngm,3,i,j) )*rhow
 #endif
       end subroutine get_fb_fv
 
+#ifdef CACHED_SUBDD
+      subroutine gijlh_defs(arr,nmax,decl_count)
+c 3D outputs (model horizontal grid on soil layers).
+      use model_com, only : dtsrc,nday
+      use subdd_mod, only : info_type
+! info_type_ is a homemade structure constructor for older compilers
+      use subdd_mod, only : info_type_
+      implicit none
+      integer :: nmax,decl_count
+      type(info_type) :: arr(nmax)
+
+      decl_count = 0
+
+      arr(next()) = info_type_(
+     &  sname = 'GT',
+     &  lname = 'Soil Temperature Layers 1-6, Land',
+     &  units = 'C'
+     &     )
+c
+! This note copied from DIAG.f version:
+! 8/13/10: for RELATIVE wetness, edit giss_LSM/GHY.f
+! and activate the corresponding lines where wtr_L is set
+      arr(next()) = info_type_(
+     &  sname = 'GW',
+     &  lname = 'Ground Wetness Layers 1-6, Land',
+     &  units = 'm'
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'GI',
+     &  lname = 'Ground Ice Layers 1-6, Land',
+     &  units = 'liq. equiv. m'
+     &     )
+
+      return
+      contains
+      integer function next()
+      decl_count = decl_count + 1
+      next = decl_count
+      end function next
+      end subroutine gijlh_defs
+#endif /* CACHED_SUBDD */

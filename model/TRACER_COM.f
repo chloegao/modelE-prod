@@ -54,7 +54,7 @@ c
       IMPLICIT NONE
       SAVE
 
-      type (TracerBundle) :: tracers
+      type (TracerBundle), target :: tracers
       type (TracerBundle) :: shindellTracers
       type (TracerBundle) :: lernerTracers
       type (TracerBundle) :: tomasTracers

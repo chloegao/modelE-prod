@@ -9,7 +9,7 @@ LFLAGS =
 F90_VERSION = $(shell $(F90) --version | head -1)
 
 # option to treat default real as real*8
-R8 = -fdefault-real-8
+R8 = -fdefault-real-8 -fdefault-double-8
 EXTENDED_SOURCE = -ffixed-line-length-132
 
 #
@@ -40,5 +40,7 @@ endif
 ifeq ($(COMPILE_WITH_TRAPS),YES)
 FFLAGS += -fbounds-check -fcheck-array-temporaries -ffpe-trap=invalid,zero,overflow -fbacktrace
 F90FLAGS += -fbounds-check -fcheck-array-temporaries -ffpe-trap=invalid,zero,overflow -fbacktrace
+FFLAGS += -finit-real=snan
+F90LAGS += -finit-real=snan
 #LFLAGS += -lefence
 endif

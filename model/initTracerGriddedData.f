@@ -1,12 +1,10 @@
 #include "rundeck_opts.h"
       SUBROUTINE initTracerGriddedData()
-!@sum init_tracer initializes trace gas attributes and diagnostics
-!@vers 2013/03/26
-!@auth J. Lerner
+!@sum init_tracer initializes trace gas attributes
 !@calls sync_param, SET_TCON, RDLAND, RDDRYCF
       USE DOMAIN_DECOMP_ATM, only:GRID,getDomainBounds,AM_I_ROOT,
      &     write_parallel,readt8_parallel
-      USE CONSTANT, only: mair,mwat,pi
+      USE CONSTANT, only: mair,mwat
 #ifdef TRACERS_AEROSOLS_SOA
      &                   ,gasc
 #endif  /* TRACERS_AEROSOLS_SOA */
@@ -51,13 +49,14 @@
      &     OxICIN,OxIC,OxICINL,OxICL,
      &     fix_CH4_chemistry,which_trop,PI_run,PIratio_N,PIratio_CO_T,
      &     PIratio_CO_S,PIratio_other,allowSomeChemReinit,
-     &     CH4ICIN,CH4ICX,CH4ICINL,CH4ICL,rad_FL,use_rad_ch4,
+     &     CH4ICIN,CH4ICX,CH4ICINL,CH4ICL,use_rad_ch4,
      &     COICIN,COIC,COICINL,COICL,Lmax_rad_O3,Lmax_rad_CH4
      &     ,BrOxaltIN,ClOxaltIN,ClONO2altIN,HClaltIN,BrOxalt,
      &     ClOxalt,ClONO2alt,HClalt,N2OICIN,N2OICX,N2OICINL,N2OICL,
      &     CFCICIN,CFCIC,CFCICINL,CFCICL,PIratio_N2O,PIratio_CFC,
      &     use_rad_n2o,use_rad_cfc,cfc_rad95,PltOx,Tpsc_offset_N,
      &     Tpsc_offset_S
+      use photolysis, only: rad_FL
 #ifdef INTERACTIVE_WETLANDS_CH4
       USE TRACER_SOURCES, only:int_wet_dist,topo_lim,sat_lim,gw_ulim,
      &gw_llim,sw_lim,exclude_us_eu,nn_or_zon,ice_age,nday_ch4,max_days,
@@ -97,9 +96,6 @@
       USE AERO_NPF, only: SETUP_NPFMASS
       USE AERO_DIAM, only: SETUP_DIAM
 #endif
-#ifdef TRACERS_GASEXCH_ocean_CO2
-      USE obio_forc, only : atmCO2
-#endif
 #ifdef TRACERS_TOMAS
       use TOMAS_AEROSOL, only : binact10,binact02,
      &     fraction10,fraction02
@@ -117,9 +113,6 @@
       use OldTracer_mod, only: set_F0
       use OldTracer_mod, only: set_dodrydep
 
-#ifdef TRACERS_GASEXCH_ocean
-      use OldTracer_mod, only: vol2mass
-#endif
       use OldTracer_mod, only: dodrydep
       use OldTracer_mod, only: F0
       use OldTracer_mod, only: HSTAR
@@ -146,20 +139,6 @@
       use OldTracer_mod, only: set_trli0
       use OldTracer_mod, only: set_trsi0
 
-#if (defined TRACERS_OCEAN) && !defined(TRACERS_OCEAN_INDEP)
-! atmosphere copies atmosphere-declared tracer info to ocean
-! so that the ocean can "inherit" it without referencing atm. code
-      use ocn_tracer_com, only : 
-     &     n_Water_ocn      => n_Water,
-     &     itime_tr0_ocn    => itime_tr0,
-     &     ntrocn_ocn       => ntrocn,
-     &     to_per_mil_ocn   => to_per_mil,
-     &     t_qlimit_ocn     => t_qlimit,
-     &     conc_from_fw_ocn => conc_from_fw,
-     &     trdecay_ocn      => trdecay,
-     &     trw0_ocn         => trw0
-#endif
-      USE FLUXES, only : atmocn
       implicit none
       integer :: l,k,n,kr,m,ns
 #ifdef TRACERS_SPECIAL_O18
@@ -168,10 +147,6 @@
 #ifdef TRACERS_TOMAS
       integer :: bin
       real*8 :: TOMAS_dens,TOMAS_radius
-#endif
-#if (defined TRACERS_WATER) || (defined TRACERS_DRYDEP)
-!@param convert_HSTAR converts from mole/Joule to mole/(L*atm)
-      real*8, parameter :: convert_HSTAR = 1.01325d2
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
 !@var iu_data unit number
@@ -185,9 +160,6 @@
 
 #if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_GASEXCH_ocean_CFC)
       integer i, iu_data
-#endif
-#if (!defined(TRACERS_GASEXCH_ocean_CO2)) && defined(TRACERS_GASEXCH_land_CO2)
-      real*8 :: atmCO2 = 280.d0
 #endif
 
 ! temp storage for new tracer interfaces
@@ -331,23 +303,6 @@ c**** soil dust aerosol initializations
       call init_soildust
 #endif
 
-C**** DIAGNOSTIC DEFINTIONS
-
-C**** Set some diags that are the same regardless
-      call set_generic_tracer_diags
-
-C**** Zonal mean/height diags
-      call init_jls_diag
-
-C**** lat/lon tracer sources, sinks and specials
-      call init_ijts_diag
-
-C**** lat/lon/height tracer specials
-      call init_ijlts_diag
-
-C**** Initialize conservation diagnostics
-      call init_tracer_cons_diag
-
 C**** Miscellaneous initialisations
 
 #ifdef TRACERS_DRYDEP
@@ -388,10 +343,6 @@ C Read landuse parameters and coefficients for tracer dry deposition:
       call closeunit(iu_data)
 #endif
 
-#if defined(TRACERS_GASEXCH_ocean_CO2) || defined(TRACERS_GASEXCH_land_CO2)
-      call sync_param("atmCO2",atmCO2)
-#endif
-
 #ifdef TRACERS_AMP
       CALL SETUP_CONFIG
       CALL SETUP_SPECIES_MAPS
@@ -407,33 +358,6 @@ C Read landuse parameters and coefficients for tracer dry deposition:
       CALL SETUP_RAD
 #endif
 
-#if (defined TRACERS_OCEAN) && !defined(TRACERS_OCEAN_INDEP)
-! atmosphere copies atmosphere-declared tracer info to ocean module
-! so that the ocean can "inherit" it without referencing atm. code
-      n_Water_ocn = n_Water
-      do n=1,ntm
-        itime_tr0_ocn(n)    = itime_tr0(n)
-        ntrocn_ocn(n)       = ntrocn(n)
-        to_per_mil_ocn(n)   = to_per_mil(n)
-        t_qlimit_ocn(n)     = t_qlimit(n)
-        conc_from_fw_ocn(n) = conc_from_fw(n) 
-        trdecay_ocn(n)      = trdecay(n)
-        trw0_ocn(n)         = trw0(n)
-      enddo
-#endif
-
-! copy atmosphere-declared tracer info to atm-ocean coupler data
-! structure for uses within ocean codes
-      allocate(atmocn%trw0(ntm))
-      do n=1,ntm
-        atmocn%trw0(n) = trw0(n)
-      enddo
-#ifdef TRACERS_GASEXCH_ocean
-      allocate(atmocn%vol2mass(ntm))
-      do n=1,ntm
-        atmocn%vol2mass(n) = vol2mass(n)
-      enddo
-#endif
 
       return
       end subroutine initTracerGriddedData

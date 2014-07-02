@@ -26,7 +26,8 @@ Preprocessor Options
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
-RES_F40                             ! horiz/vert resolution, 2x2.5deg, 40 layers -> .1mb
+Atm144x90                  ! horizontal resolution is 144x90 -> 2x2.5deg
+AtmL40                      ! vertical resolution is 40 layers -> 0.1mb
 ORES_2Hx2_L32                       ! ocean horiz res 2x2.5deg, 32 vert layers
 MODEL_COM GEOM_B IORSF              ! model variables and geometry
 TRIDIAG                             ! tridiagonal matrix solver

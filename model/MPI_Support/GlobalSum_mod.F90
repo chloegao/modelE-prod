@@ -87,7 +87,7 @@ contains
     logical,optional,  intent(IN) :: all
     integer, optional, intent(IN) :: jband(2)
     
-    integer :: i_0, i_1, j_0, j_1, IM, JM, J, ierr
+    integer :: i_0, i_1, j_0, j_1, IM, JM, ierr
     real*8  :: garr(grd_dum%jm_world)
     logical :: istag_, iskip_
     
@@ -174,7 +174,7 @@ contains
     integer,OPTIONAL,  INTENT(IN) :: istag
     integer,OPTIONAL,  INTENT(IN) :: iskip
 
-    integer :: i_0, i_1, j_0, j_1, IM, JM, J,J_0STG, ierr, J_0S,J_1S
+    integer :: i_0, i_1, j_0, j_1, IM, JM, J_0STG, ierr, J_0S,J_1S
     real*8, allocatable  :: zon(:)
     real*8  :: garr(grd_dum%jm_world)
     logical :: istag_,iskip_
@@ -258,7 +258,6 @@ contains
          &                                       size(arr,3))
     integer,OPTIONAL,   INTENT(IN) :: istag,iskip
 
-    integer :: k
     integer :: i_0, i_1, j_0, j_1, j_0S, j_1S, IM, JM, j_0STG
     real*8  :: zon(grd_dum%j_strt:grd_dum%j_stop,size(arr,3))
     real*8  :: garr(grd_dum%jm_world,size(arr,3))
@@ -326,7 +325,6 @@ contains
     integer,           intent(IN) :: jband(2)
     logical,optional,   intent(IN) :: all
     
-    integer :: k
     integer :: i_0, i_1, j_0, j_1, IM, JM, jb1, jb2
     logical :: all_
     integer :: ierr
@@ -367,7 +365,6 @@ contains
     integer,            intent(IN) :: jband(2)
     logical,optional,   intent(IN) :: all
     
-    integer :: k
     integer :: i_0, i_1, j_0, j_1, IM, JM, jb1, jb2
     logical :: all_
     integer :: ierr
@@ -419,7 +416,7 @@ contains
     Integer :: scnts(0:npes_world-1), sdspl(0:npes_world-1)
     integer :: rcnts(0:npes_world-1), rdspl(0:npes_world-1)
     integer ::  dik_map(0:npes_world-1), dik, dik_sum
-    integer :: npes, nik, i,k,j,p, ik, ijk, iremain
+    integer :: npes, nik, i,k,j,p, ijk, iremain
     real*8, allocatable :: tsum(:)
     real*8, allocatable :: send_buf(:)
     real*8, allocatable :: recv_buf(:,:)
@@ -523,7 +520,6 @@ contains
     integer,optional,  intent(IN) :: istag
     logical,optional,  intent(IN) :: all
 
-    integer :: k
     integer :: ierr
     integer :: i_0, i_1, j_0, j_1, IM, JM
     real*8  :: garr(grd_dum%jm_world,size(arr,2))
@@ -581,11 +577,10 @@ contains
     real*8, intent(Out) :: gsum(:,:,:)
     logical, optional, intent(IN) :: all
     
-    integer :: k
     integer :: i_0, i_1, j_0, j_1, IM, JM
     real*8  :: garr(size(arr,1),size(arr,2),size(arr,3), &
          &     grd_dum%jm_world)
-    logical :: istag_,all_
+    logical :: all_
     
     i_0  = grd_dum%i_strt
     i_1  = grd_dum%i_stop
@@ -612,13 +607,12 @@ contains
     Real*8, INTENT(Out) :: gsum(:,:,:)
     Logical, Optional, INTENT(IN) :: all
 
-    integer :: k
     integer :: i_0, i_1, j_0, j_1, IM, JM
     real*8  :: garr(size(arr,1),size(arr,2),size(arr,3), &
          &     grd_dum%jm_world)
     real*8  :: larr(size(arr,1),size(arr,2),size(arr,3), &
          &     grd_dum%j_strt_halo:grd_dum%j_stop_halo)
-    logical :: istag_,all_
+    logical :: all_
 
     i_0  = grd_dum%i_strt
     i_1  = grd_dum%i_stop
@@ -649,14 +643,13 @@ contains
     logical, OPTIONAL, INTENT(IN) :: stgr
     logical, OPTIONAL, INTENT(IN) :: skip
 
-
+#ifdef DEBUG_DECOMP
     integer :: unit_
     real*8  :: asum, L1norm
     real*8  :: t_arr(grd_dum%j_strt_halo:grd_dum%j_stop_halo)
     integer :: J_0, J_1
     integer :: stgr_, skip_
 
-#ifdef DEBUG_DECOMP
     J_0 = grd_dum%J_STRT
     J_1 = grd_dum%J_STOP
 
@@ -698,10 +691,9 @@ contains
 
     integer :: unit_
     real*8  :: asum, L1norm
-    real*8  :: asum_glob, L1norm_glob
     real*8 :: &
          &  t_arr(size(arr,1),grd_dum%j_strt_halo:grd_dum%j_stop_halo)
-    integer :: J_0, J_1, I,J
+    integer :: J_0, J_1
     integer :: stgr_,skip_
 
     J_0 = grd_dum%J_STRT
@@ -794,7 +786,6 @@ contains
 
     integer :: unit_
     real*8  :: asum, L1norm
-    real*8  :: asum_glob, L1norm_glob
     real*8 :: &
          &  t_arr(size(arr,2),grd_dum%j_strt_halo:grd_dum%j_stop_halo)
     integer :: J_0, J_1
@@ -836,13 +827,11 @@ contains
     integer, OPTIONAL, INTENT(IN) :: unit
     logical, OPTIONAL, INTENT(IN) :: stgr
 
-
-    integer :: unit_
-    integer :: k
-    real*8, DIMENSION(Size(arr,3))  :: asum, L1norm
-
+    real*8, DIMENSION(Size(arr,1))  :: asum, L1norm
     real*8 :: &
          &  t_arr(size(arr,2),grd_dum%j_strt_halo:grd_dum%j_stop_halo)
+    integer :: unit_
+    integer :: k
     integer :: J_0, J_1
     Integer :: stgr_
 
@@ -879,11 +868,10 @@ contains
     integer, OPTIONAL, INTENT(IN) :: unit
     logical, OPTIONAL, INTENT(IN) :: stgr
 
-
     integer :: unit_
     integer :: k
-    real*8, DIMENSION(SIZE(arr,1))  :: asum, L1norm
     integer :: stgr_
+    real*8, DIMENSION(Size(arr,1))  :: asum, L1norm
 
     unit_ = checksum_UNIT ! default
     if (present(unit)) unit_ = unit
@@ -944,11 +932,6 @@ contains
     integer,           INTENT(IN) :: line
     character(LEN=*),  INTENT(IN) :: file
     integer, OPTIONAL, INTENT(IN) :: unit
-
-
-    integer :: unit_
-    integer :: k
-    real*8, DIMENSION(Size(arr,1))  :: asum, L1norm
 
     Call checksum_COLUMN(grd_dum, Real(arr,KIND=KIND(1.0D+0)), line, &
          &     file, unit)

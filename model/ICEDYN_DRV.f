@@ -1725,6 +1725,9 @@ c      iA=aA
 !@auth Gavin Schmidt
       USE MODEL_COM, only : dtsrc
       USE MDIAG_COM, only : ia_src=>ia_cpl
+#ifdef NEW_IO
+      USE MDIAG_COM, only : make_timeaxis
+#endif
       USE DOMAIN_DECOMP_1D, only : getDomainBounds,ICE_HALO=>HALO_UPDATE
       USE ICEDYN_COM, only : igice
      &     ,kicij,ia_icij,denom_icij,igrid_icij,jgrid_icij,lname_icij
@@ -1764,6 +1767,7 @@ c      USE FILEMANAGER, only : openunit,closeunit,nameunit
 c
       INTEGER i,j,k,kk,J_0,J_1,J_0H,J_1H,J_1S,im1
       character(len=10) :: xstr,ystr
+      logical :: set_miss
 #ifdef CUBED_SPHERE
       integer :: imin,imax,jmin,jmax,iu_mask
       real*8 :: lonb_tmp(imicdyn)
@@ -1988,10 +1992,13 @@ c
         if(igrid_icij(k).eq.2) xstr='lon2) ;'
         ystr='(lat,'
         if(jgrid_icij(k).eq.2) ystr='(lat2,'
+        set_miss = denom_icij(k).ne.0
         call add_var(cdl_icij,
      &       'float '//trim(sname_icij(k))//trim(ystr)//trim(xstr),
      &       units=trim(units_icij(k)),
-     &       long_name=trim(lname_icij(k)))
+     &       long_name=trim(lname_icij(k)),
+     &       set_miss=set_miss,
+     &       make_timeaxis=make_timeaxis)
       enddo
 #endif
 

@@ -5,3 +5,5 @@ TRACER_NITRATE_DRV | $(EXTENDED_SOURCE) |  ! Nitrate aerosol
 TRAMP_eqsam_v03d                           ! EQSAM module for inorganic aerosol thermodynamic equilibrium
 TRACER_HETCHEM                             ! Nitrate and Sulfate production on dust
 ! ----------------------------------
+KochTracersMetadata
+

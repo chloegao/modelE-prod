@@ -39,7 +39,10 @@ F90SRCS  = AbstractAttribute.F90 \
 	TimeAndCalendar.F90 \
 	TimeConstants.F90 \
 	Time.F90 \
-	Utilities.F90
+	Utilities.F90 \
+	SystemTools.F90
+
+CSRCS = system_tools.c
 
 ifndef GISSCLIM_DIR
        GISSCLIM_DIR := $(shell pwd)/../..

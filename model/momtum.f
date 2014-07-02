@@ -118,7 +118,7 @@ c
       vbot=vbavg(i,j,n)+vbavg(i,jb ,n)+util2(i,j)/thkbop
       botvel=.25*sqrt(ubot*ubot+vbot*vbot)+cbar
       ustarb(i,j)=sqrt(drcoef)*botvel
- 804  drag(i,j)=min(drcoef*botvel/thkbot,1./delt1)		! units: 1/s
+ 804  drag(i,j)=min(drcoef*botvel/thkbot,.5/delt1)      ! units: 1/s
 c
 c --- store r.h.s. of barotropic u/v eqn. in -ubrhs,vbrhs-
 c --- time-interpolate wind stress

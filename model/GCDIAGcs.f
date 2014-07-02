@@ -81,6 +81,7 @@
       real*8 :: dlon,dlat,sins,sinn
       character(len=10) :: ystr,zstr,powstr
       type(cdl_type) :: cdl_dum
+      logical :: set_miss
 
       dlon = 2.*pi/imlon
       dlat = pi/jmlat
@@ -550,22 +551,30 @@ c
         else
           zstr='(ple,'
         endif
+        set_miss = denom_gc(k).ne.0
         call add_var(cdl_gc,
      &       'float '//trim(sname_gc(k))//trim(zstr)//trim(ystr)//') ;',
      &       units=trim(units_gc(k)),
-     &       long_name=trim(lname_gc(k))
+     &       long_name=trim(lname_gc(k)),
+     &       auxvar_string=
+     &           'float '//trim(sname_gc(k))//'_hemis'//
+     &            trim(zstr)//'shnhgm) ;',
+     &       set_miss=set_miss,
+     &       make_timeaxis=make_timeaxis
      &       )
         if(pow_gc(k).ne.0) then
           write(powstr,'(i3)') pow_gc(k)
           call add_varline(cdl_gc,
      &         trim(sname_gc(k))//':prtpow = '//trim(powstr)//' ;')
         endif
-        call add_var(cdl_gc,
-     &       'float '//trim(sname_gc(k))//'_hemis'//
-     &       trim(zstr)//'shnhgm) ;')
         if(denom_gc(k).gt.0) then
-          call add_var(cdl_gc,'float '//trim(sname_gc(k))//
-     &         '_vmean('//trim(ystr)//'_plus3) ;')
+          if(make_timeaxis) then
+            call add_var(cdl_gc,'float '//trim(sname_gc(k))//
+     &           '_vmean(time,'//trim(ystr)//'_plus3) ;')
+          else
+            call add_var(cdl_gc,'float '//trim(sname_gc(k))//
+     &           '_vmean('//trim(ystr)//'_plus3) ;')
+          endif
         endif
       enddo
 

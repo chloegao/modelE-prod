@@ -119,7 +119,7 @@ C**** apply tracer source alterations if requested in rundeck:
 C**** calculate fractional loss and update tracer mass
 #ifdef TRACERS_TOMAS
           if(trm(i,j,l,n).gt.0.)then
-          fred(i) = max(0.,1.+min(0.,dtrm(i,j,l))/(trm(i,j,l,n)+eps))
+          fred(i)=max(0.d0,1.+min(0.d0,dtrm(i,j,l))/(trm(i,j,l,n)+eps))
           else
              fred(i)=100.  !It won't be used anyway (fred<1 to be used)
           endif
@@ -1310,7 +1310,7 @@ C**** check whether air mass is conserved
       USE TRACER_COM, only: ntm, nmom, no3_live, oh_live
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
-     &     yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss,JPPJ,ydms,yso2,sulfate
+     &     yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss,ydms,yso2,sulfate
      &     ,acetone, sOx_acc,sNOx_acc,sCO_acc,l1Ox_acc,l1NO2_acc
      &     ,SF3,SF2,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2
 #ifdef INTERACTIVE_WETLANDS_CH4 
@@ -1319,6 +1319,7 @@ C**** check whether air mass is conserved
      &     first_mod,max_days,nra_ncep,nra_ch4,maxHR_ch4,avg_model,
      &     avg_ncep
 #endif
+      use photolysis, only: jppj
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)

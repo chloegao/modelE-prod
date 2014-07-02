@@ -21,7 +21,8 @@ ICEDYN_DRV ICEDYN                   ! ice dynamics modules
 #include "hycom_source_files"
 
 MODEL_COM                           ! calendar, timing variables
-MODELE                              ! ModelE cap - initialization and main loop
+MODELE_DRV                          ! ModelE cap
+MODELE                              ! initialization and main loop
 FLUXES                              ! atm-ocean exchange variables
 SOATM_COM                           ! modelE atmosphere modules
 SOATM_DRV                           ! data-driven atm. with modelE procedure names

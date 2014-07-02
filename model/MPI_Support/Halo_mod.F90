@@ -411,11 +411,6 @@ contains
     Integer :: n, sz
     Logical :: bc_periodic
 
-    integer :: requests(2)
-    integer :: tagS, tagN
-    integer :: nSendMessages, nRecvMessages
-    integer :: index, i
-
     USABLE_FROM = usableFrom(from)
     bc_periodic = isPeriodic(bc_periodic_)
 

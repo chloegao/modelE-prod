@@ -545,10 +545,10 @@ contains
     if (.not. tracers_special_shindell) call  H2O2_s_setSpec('H2O2_s') ! duplicate with Koch
     call  NH3_setSpec('NH3')  ! duplicate with nitrate
     if (tracers_aerosols_koch) then
-      call stop_model('contradictory tracer specs')
+      call stop_model('contradictory tracer specs', 255)
     end if
     if (tracers_nitrate) then
-      call stop_model('contradictory tracer specs')
+      call stop_model('contradictory tracer specs', 255)
     end if
 
 !------------------------------------------------------------------------------

@@ -364,6 +364,7 @@ if ( $mpi ) {
 open RUNID, ">$runID" or die "can't open $runID for writing\n";
 print RUNID <<EOF;
 \#!/bin/sh
+    trap '' TERM
     PRTFILE=${runID}.PRT
     IFILE="I"
     NP="\$MP_SET_NUMTHREADS"
@@ -424,7 +425,7 @@ print RUNID <<EOF;
     rc=`head -1 run_status`
     ./${runID}uln
     rm -f lock
-    if [ \$touch_ifile -eq 1 ] ; then touch \$IFILE ; fi
+    if [ \$touch_ifile -eq 1 ] ; then sleep 1 ; touch \$IFILE ; fi
     exit \$rc
 EOF
 close RUNID;

@@ -27,7 +27,8 @@ End Preprocessor Options
 Object modules: (in order of decreasing priority)
 
      ! resolution-specific source codes
-RES_C32M20AT                        ! C32L20 resolution
+AtmCS32                           ! 32 Cube-Sphere Grid
+AtmL20 STRAT_DUM                 ! vertical resolution is 20 layers -> 0.1mb
 RES_5x4_L13                         ! ocean horiz res 4x5deg, 13 layers
 OFFT72E                             ! Fast Fourier Transform
 DIAG_RES_M                          ! diagnostics (resolution dependent)

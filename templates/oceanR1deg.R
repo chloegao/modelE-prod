@@ -23,7 +23,8 @@ ORES_1Qx1_L32 OFFT288E              ! res.-dependent codes
 OCN_Int_LATLON                      ! atm-ocn regrid routines
 
 MODEL_COM                           ! calendar, timing variables
-MODELE                              ! ModelE cap - initialization and main loop
+MODELE_DRV                          ! ModelE cap
+MODELE                              ! initialization and main loop
 FLUXES                              ! atm-ocean exchange variables
 SOATM_COM                           ! modelE atmosphere modules
 SOATM_DRV                           ! data-driven atm. with modelE procedure names

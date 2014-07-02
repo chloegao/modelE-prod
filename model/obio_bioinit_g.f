@@ -147,9 +147,9 @@ c  Initialize
          if(tracer(i,j,k,1).le.0.d0)tracer(i,j,k,1)=0.085d0
          if(tracer(i,j,k,3).le.0.d0)tracer(i,j,k,3)=0.297d0
           if (dic(i,j,k).le.0.d0) dic(i,j,k)=1837d0
-          dic(i,j,k)=dmax1(dic(i,j,k),1837d0)   !set minimum =1837
-          dicmin =dmin1(dicmin,dic(i,j,k))
-          dicmax =dmax1(dicmax,dic(i,j,k))
+          dic(i,j,k)=max(dic(i,j,k),1837.0)   !set minimum =1837
+          dicmin =min(dicmin,dic(i,j,k))
+          dicmax =max(dicmax,dic(i,j,k))
         enddo
        enddo
       enddo

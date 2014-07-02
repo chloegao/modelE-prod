@@ -163,7 +163,7 @@ c for the hourly diagnostic
       AERO(:)      = 0.d0
 ! meteo
       TK = pk(l,i,j)*t(i,j,l)           !should be in [K]
-      RH = MIN(1.,q(i,j,l)/QSAT(TK,lhe,pmid(l,i,j))) ! rH [0-1]
+      RH = MIN(1.d0,q(i,j,l)/QSAT(TK,lhe,pmid(l,i,j))) ! rH [0-1]
       PRES= pmid(l,i,j)*100.                  ! pmid in [hPa]
       TSTEP=dtsrc
       ZHEIGHT1 = GZ(i,j,l) /1000./9.81

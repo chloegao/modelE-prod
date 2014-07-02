@@ -106,6 +106,7 @@
      &     ,cmgs,chgs,cqgs
 !@var USTAR_pbl friction velocity (sqrt of srfc mom flux) (m/s)
      &     ,ustar_pbl
+     &     ,lmonin_pbl
 !@var WSAVG     SURFACE WIND MAGNITUDE (M/S)
 !@var TSAVG     SURFACE AIR TEMPERATURE (K)
 !@var QSAVG     SURFACE AIR SPECIFIC HUMIDITY (1)
@@ -360,11 +361,10 @@
          REAL*8, DIMENSION(:,:), POINTER ::
      &     DIRVIS,DIFVIS,DIRNIR,DIFNIR
 #endif
-#if (defined CHL_from_SeaWIFs) || (defined TRACERS_OceanBiology)
 C**** array of Chlorophyll data for use in ocean albedo calculation
 !@var CHL Chlorophyll concentration data (mgr/m**3)
          REAL*8, DIMENSION(:,:), POINTER :: CHL
-#endif
+         logical :: chl_defined ! df: temporary until ocalbedo is made more general
 
 !@var eflow_gl global integral of eflowo
          real*8 :: eflow_gl=0.
@@ -418,8 +418,8 @@ C**** array of Chlorophyll data for use in ocean albedo calculation
 !@+   after advsi (kg/m^2) (used for qflux model)
      &     ,FWSIM,MSICNV,HSICNV
 !@var RSI fraction of water area covered in ice
-!@var SNOWI snow amount on sea ice (kg/m^2)
-     &     ,RSI,SNOWI
+!@var SNOWI,ZSNOWI amount, thickness of snow on sea ice (kg/m^2, m)
+     &     ,RSI,SNOWI,ZSNOWI
 !@var USI,VSI ice velocities (m/s)
      &     ,USI,VSI ! temporary while ice still on atm grid
      &     ,SNOAGE ! really belongs to icestate
@@ -490,6 +490,13 @@ c         REAL*8, DIMENSION(:,:), POINTER :: SNOWLI,SNOWFR,SNOWDP
       type, extends(atmsrf_xchng_vars) :: atmlnd_xchng_vars
 !@var bare_soil_wetness bare_soil_wetness (1)
          REAL*8, DIMENSION(:,:), POINTER :: bare_soil_wetness
+!@var snowe snow amount seen by radiation
+         REAL*8, DIMENSION(:,:), POINTER :: snowe
+ccc FR_SNOW_RAD is snow fraction for albedo computations
+ccc actually it should be the same as FR_SNOW_IJ but currently the snow
+ccc model can't handle fractional cover for thick snow (will fix later)
+         REAL*8, DIMENSION(:,:,:), POINTER :: FR_SNOW_RAD
+
       end type atmlnd_xchng_vars
 
       type, extends(simple_bounds_type) :: iceocn_xchng_vars
@@ -630,7 +637,7 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
       TYPE(atmsrf_xchng_vars) :: THIS
       TYPE(atmsrf_xchng_vars), optional :: THAT
       INTEGER :: I_0H, I_1H, J_1H, J_0H
-      INTEGER :: K, IER
+      INTEGER :: IER
 #ifdef TRACERS_ON
       integer :: ntm
 #endif
@@ -822,6 +829,7 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
      &     ,this%chgs
      &     ,this%cqgs
      &     ,this%ustar_pbl
+     &     ,this%lmonin_pbl
      &     ,this%wspdf
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
@@ -1122,7 +1130,10 @@ c
         do j=grid%j_strt,grid%j_stop
         do i=grid%i_strt,grid%i_stop
           avg%srfstate_exports(i,j,l) = avg%srfstate_exports(i,j,l) +
-     &         patches(k)%srfstate_exports(i,j,l)*ftype(i,j,k)
+c    &         patches(k)%srfstate_exports(i,j,l)*ftype(i,j,k)
+c workaround for uninitialized patches%srfstate_exports multiply by zero
+     &    merge( patches(k)%srfstate_exports(i,j,l)*ftype(i,j,k),
+     &           0d0, ftype(i,j,k) > 0 )
         enddo
         enddo
         enddo
@@ -1204,9 +1215,7 @@ c
 #ifdef TRACERS_GASEXCH_ocean_CO2
      &          this % pCO2    ( I_0H:I_1H , J_0H:J_1H ),
 #endif
-#if (defined CHL_from_SeaWIFs) || (defined TRACERS_OceanBiology)
      &          this % CHL     ( I_0H:I_1H , J_0H:J_1H ),
-#endif
      &   STAT = IER)
 
       this % UOSURF = 0.
@@ -1223,9 +1232,8 @@ c
      &     'alloc_atmocn_xchng_vars: ntm /= ntm_gasexch',255)
 #endif
 
-#if (defined CHL_from_SeaWIFs) || (defined TRACERS_OceanBiology)
       this % CHL = 0.
-#endif
+      this%chl_defined=.false.
 
 #ifdef OBIO_RAD_coupling
       allocate(
@@ -1279,12 +1287,14 @@ c
      &          this % SUSI   ( I_0H:I_1H , J_0H:J_1H ),
      &          this % SVSI   ( I_0H:I_1H , J_0H:J_1H ),
      &          this % SNOAGE ( I_0H:I_1H , J_0H:J_1H ),
+     &          this % ZSNOWI ( I_0H:I_1H , J_0H:J_1H ),
      &   STAT = IER)
       this % UISURF = 0.
       this % VISURF = 0.
       this % MSICNV = 0.
       this % HSICNV = 0.
       this % SNOAGE = 0.
+      this % ZSNOWI = 0.
 
 #ifdef TRACERS_WATER
       ALLOCATE( this % TUSI   (I_0H:I_1H, J_0H:J_1H, NTM),
@@ -1381,8 +1391,12 @@ c
       I_1H = grd_dum%I_STOP_HALO
       J_0H = grd_dum%J_STRT_HALO
       J_1H = grd_dum%J_STOP_HALO
-      ALLOCATE( this % bare_soil_wetness ( I_0H:I_1H , J_0H:J_1H ),
+      ALLOCATE(
+     &     this % bare_soil_wetness ( I_0H:I_1H , J_0H:J_1H ),
+     &     this % snowe ( I_0H:I_1H , J_0H:J_1H ),
+     &     this % fr_snow_rad(2,i_0h:i_1h,j_0h:j_1h),
      &     STAT = IER)
+      this % snowe = 0.
       return
       end subroutine alloc_atmlnd_xchng_vars
 
@@ -2079,6 +2093,8 @@ C**** Ensure that no round off error effects land with ice and earth
         call defvar(grid,fid,asflx(ipatch)%ipbl,vname)
         vname = 'ustar_pbl'//dimstr
         call defvar(grid,fid,asflx(ipatch)%ustar_pbl,vname)
+        vname = 'lmonin_pbl'//dimstr
+        call defvar(grid,fid,asflx(ipatch)%lmonin_pbl,vname)
 #ifdef TRACERS_ON
         dimstr='_'//trim(asflx(ipatch)%surf_name)// 
      &       '(npbl,ntm,dist_im,dist_jm)'
@@ -2096,6 +2112,10 @@ c      call defvar(grid,fid,atmsrf%dclev,'dclev(dist_im,dist_jm)')
       call defvar(grid,fid,atmsrf%tauavg,'tauavg(dist_im,dist_jm)')
       call defvar(grid,fid,atmsrf%tgvavg,'tgvavg(dist_im,dist_jm)')
       call defvar(grid,fid,atmsrf%qgavg,'qgavg(dist_im,dist_jm)')
+      call defvar(grid,fid,atmsrf%ustar_pbl
+     &   ,'ustar_pbl(dist_im,dist_jm)')
+      call defvar(grid,fid,atmsrf%lmonin_pbl
+     &   ,'lmonin_pbl(dist_im,dist_jm)')
 
       return
       end subroutine def_rsf_fluxes
@@ -2160,6 +2180,9 @@ c      call defvar(grid,fid,atmsrf%dclev,'dclev(dist_im,dist_jm)')
           vname = 'ustar_pbl'//suffix
           call write_dist_data(grid, fid, trim(vname),
      &         asflx(ipatch)%ustar_pbl)
+          vname = 'lmonin_pbl'//suffix
+          call write_dist_data(grid, fid, trim(vname),
+     &         asflx(ipatch)%lmonin_pbl)
 #ifdef TRACERS_ON
           vname = 'trabl'//suffix
           call write_dist_data(grid, fid, trim(vname),
@@ -2176,6 +2199,8 @@ c        call write_dist_data(grid,fid,'dclev',atmsrf%dclev)
         call write_dist_data(grid,fid,'tauavg',atmsrf%tauavg)
         call write_dist_data(grid,fid,'tgvavg',atmsrf%tgvavg)
         call write_dist_data(grid,fid,'qgavg',atmsrf%qgavg)
+        call write_dist_data(grid,fid,'ustar_pbl',atmsrf%ustar_pbl)
+        call write_dist_data(grid,fid,'lmonin_pbl',atmsrf%lmonin_pbl)
 
       case (ioread)             ! input from restart file
         !call read_dist_data(grid,fid,'gtemp',atmocn%gtemp)
@@ -2220,6 +2245,9 @@ c        call write_dist_data(grid,fid,'dclev',atmsrf%dclev)
           vname = 'ustar_pbl'//suffix
           call read_dist_data(grid, fid, trim(vname),
      &         asflx(ipatch)%ustar_pbl)
+          vname = 'lmonin_pbl'//suffix
+          call read_dist_data(grid, fid, trim(vname),
+     &         asflx(ipatch)%lmonin_pbl)
 #ifdef TRACERS_ON
           vname = 'trabl'//suffix
           call read_dist_data(grid, fid, trim(vname),
@@ -2236,6 +2264,8 @@ c        call read_dist_data(grid,fid,'dclev',atmsrf%dclev)
         call read_dist_data(grid,fid,'tauavg',atmsrf%tauavg)
         call read_dist_data(grid,fid,'tgvavg',atmsrf%tgvavg)
         call read_dist_data(grid,fid,'qgavg',atmsrf%qgavg)
+        call read_dist_data(grid,fid,'ustar_pbl',atmsrf%ustar_pbl)
+        call read_dist_data(grid,fid,'lmonin_pbl',atmsrf%lmonin_pbl)
 
       end select
       return

@@ -69,11 +69,11 @@ subroutine sys_signal (sig, prog)
   || ( defined(MACHINE_MAC) && defined(COMPILER_ABSOFT) )
   call signal( sig, prog, -1 )
 #elif defined( MACHINE_IBM ) \
-  || ( defined(MACHINE_MAC) && defined(COMPILER_XLF) )
-  call signal( sig, prog )
-#elif ( defined(COMPILER_NAG) ) \
+  || ( defined(MACHINE_MAC) && defined(COMPILER_XLF) ) \
   || ( defined(MACHINE_Linux) && defined(COMPILER_G95) ) \
   || ( defined(MACHINE_MAC) && defined(COMPILER_G95) )
+  call signal( sig, prog )
+#elif ( defined(COMPILER_NAG) )
   ! do nothing if "signal" is not supported by NAG
 #else
   none of supported architectures was specified.

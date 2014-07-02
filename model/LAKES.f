@@ -411,6 +411,7 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
       USE RESOLUTION, only : im,jm
       USE MODEL_COM, only : dtsrc
       USE ATM_COM, only : zatmo
+      USE ATM_COM, only : traditional_coldstart_aic
 #ifdef SCM
       USE SCMCOM, only : SCM_SURFACE_FLAG,ATSKIN
 #endif
@@ -528,7 +529,9 @@ C**** Ensure that HLAKE is a minimum of 1m for FLAKE>0
 C**** Set lake variables from surface temperature
 C**** This is just an estimate for the initiallisation
         if(istart==2) then ! pbl has not been initialized yet
-          call read_pbl_tsurf_from_nmcfile
+          if(traditional_coldstart_aic)
+          ! todo: get this temperature via other means
+     &         call read_pbl_tsurf_from_nmcfile
         endif
         DO J=J_0, J_1
           DO I=I_0, I_1
@@ -796,6 +799,17 @@ C****
         END DO
       END DO
 
+      do j=j_0,j_1
+      do i=i_0,imaxj(j)
+        if(flake(i,j).gt.0.) then
+          DLAKE(I,J)=MWL(I,J)/(RHOW*FLAKE(I,J)*AXYP(I,J))
+          GLAKE(I,J)=GML(I,J)/(FLAKE(I,J)*AXYP(I,J))
+        else
+          DLAKE(I,J)=0.
+          GLAKE(I,J)=0.
+        endif
+      enddo
+      enddo
 
 C**** assume that at the start GHY is in balance with LAKES
       SVFLAKE = FLAKE
@@ -937,7 +951,7 @@ C****
       USE FLUXES, only : atmocn,focean,fland
       USE LAKES, only : kdirec,rate,iflow,jflow,river_fac,
      *     kd911,ifl911,jfl911,lake_rise_max
-      USE LAKES_COM, only : tlake,gml,mwl,mldlk,flake,hlake
+      USE LAKES_COM, only : tlake,gml,mwl,mldlk,flake,hlake,dlake,glake
       USE SEAICE_COM, only : lakeice=>si_atm
       Use TimerPackage_Mod, only: StartTimer=>Start,StopTimer=>Stop
 
@@ -1397,6 +1411,13 @@ C**** Set GTEMP array for lakes
 
       do j=j_0,j_1
       do i=i_0,imaxj(j)
+        if(flake(i,j).gt.0.) then
+          DLAKE(I,J)=MWL(I,J)/(RHOW*FLAKE(I,J)*AXYP(I,J))
+          GLAKE(I,J)=GML(I,J)/(FLAKE(I,J)*AXYP(I,J))
+        else
+          DLAKE(I,J)=0.
+          GLAKE(I,J)=0.
+        endif
         if(focean(i,j).gt.0.) then
           byoarea = 1.d0/(axyp(i,j)*focean(i,j))
           flowo(i,j) = flowo(i,j)*byoarea

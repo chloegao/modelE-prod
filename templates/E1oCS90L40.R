@@ -29,7 +29,9 @@ Preprocessor Options
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
-RES_CS90L40 FFTW_COM          
+AtmCS90                           ! 90 Cube-Sphere Grid
+AtmL40                             ! vertical resolution is 40 layers -> 0.1mb
+FFTW_COM          
 ORES_1Qx1_L32                       ! ocean vertical resolution, 13 layers  
 MODEL_COM GNOM_CS IO_DRV
 TRIDIAG                             ! tridiagonal matrix solver

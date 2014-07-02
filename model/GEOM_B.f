@@ -517,11 +517,12 @@ c daily-average cosz and the hour of dusk
       return
       end subroutine daily_cosz
 
-      subroutine cosz_init
+      subroutine cosz_init(cosz_const)
       use domain_decomp_atm, only : grid, hasSouthPole, hasNorthPole
       use constant, only : twopi
       use resolution, only : jm
       use geom, only : dlat
+      real*8, optional :: cosz_const ! for interface compatibility
       real*8 :: phis,cphis,sphis,phin,cphin,sphin,phim
       integer :: j_0,j_1,j_0s,j_1s,j_0h,j_1h,j
 

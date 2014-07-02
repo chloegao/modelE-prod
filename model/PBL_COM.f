@@ -14,7 +14,7 @@
 !@var ugeo,vgeo components of geostrophic wind at the top of the BL
 !@var bldep     boundary layer depth (m)
       REAL*8, allocatable, dimension(:,:) ::
-     &     dclev,ugeo,vgeo,bldep
+     &     dclev,pblht,pblptop,ugeo,vgeo,bldep
 
 !@var [tuv]1_after_aturb first-layer temp/winds after ATURB completes
 !@+   (used to compute tendencies seen by the PBL code)
@@ -333,6 +333,8 @@ c      END SUBROUTINE io_bldat
       implicit none
       integer fid   !@var fid file id
       call defvar(grid,fid,dclev,'dclev(dist_im,dist_jm)')
+      call defvar(grid,fid,pblht,'pblht(dist_im,dist_jm)')
+      call defvar(grid,fid,pblptop,'pblptop(dist_im,dist_jm)')
       call defvar(grid,fid,egcm,'egcm(lm,dist_im,dist_jm)')
       call defvar(grid,fid,w2gcm,'w2gcm(lm,dist_im,dist_jm)')
       return
@@ -352,10 +354,14 @@ c      END SUBROUTINE io_bldat
       select case (iaction)
       case (iowrite)            ! output to restart file
         call write_dist_data(grid,fid,'dclev',dclev)
+        call write_dist_data(grid,fid,'pblht',pblht)
+        call write_dist_data(grid,fid,'pblptop',pblptop)
         call write_dist_data(grid,fid,'egcm',egcm, jdim=3)
         call write_dist_data(grid,fid,'w2gcm',w2gcm, jdim=3)
       case (ioread)            ! input from restart file
         call read_dist_data(grid,fid,'dclev',dclev)
+        call read_dist_data(grid,fid,'pblht',pblht)
+        call read_dist_data(grid,fid,'pblptop',pblptop)
         call read_dist_data(grid,fid,'egcm',egcm, jdim=3)
         call read_dist_data(grid,fid,'w2gcm',w2gcm, jdim=3)
       end select
@@ -391,6 +397,8 @@ C****
 
       ALLOCATE(    roughl(I_0H:I_1H,J_0H:J_1H),
      *              dclev(I_0H:I_1H,J_0H:J_1H),
+     *              pblht(I_0H:I_1H,J_0H:J_1H),
+     *              pblptop(I_0H:I_1H,J_0H:J_1H),
      *         STAT=IER)
 
 C**** SET LAYER THROUGH WHICH DRY CONVECTION MIXES TO 1

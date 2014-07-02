@@ -8,7 +8,7 @@
       use oceanres,  only: idm=>imo,jdm=>jmo,kdm=>lmo
       use oceanr_dim, only : ogrid
       use obio_com, only: tracer => tracer_loc ! rename local
-      use ocn_tracer_com, only : ntrcr=>ntm, obio_tr_mm
+      use ocn_tracer_com, only : ntrcr=>ntm
       use model_com, only : nstep=>itime
       use ocean, only: trmo
       use ofluxes, only : ocnatm

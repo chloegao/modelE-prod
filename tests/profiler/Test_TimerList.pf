@@ -1,52 +1,21 @@
 module Test_TimerList_mod
-   use pFUnit_mod
    use TimerList_mod, only: start, stop, reset, getTimer, getNumTimers, isTimer, addTimer
    use TimerList_mod, only: initializeTimer=>initialize
    use TimerList_mod, only: finalizeTimer=>finalize
+   use pFUnit_mod
    implicit none
-   private
-
-   public :: setUp, tearDown
-   public :: Test_TimerList
-   interface Test_TimerList
-     module procedure newTest_TimerList
-   end interface Test_TimerList
-
-   public :: test_initialize
-   public :: test_addTimer
-   public :: test_getTimer
-   public :: test_startTimerNotFound
-   public :: test_stopTimerNotFound
-   public :: test_detectUnbalanced
 
    integer, parameter :: dp = selected_real_kind(14)
 
 @TestCase
    type, extends(TestCase) :: Test_TimerList
       integer :: iplace
-      procedure(runMethod), pointer :: userMethod => null()
    contains
       procedure :: setUp     ! overides generic
       procedure :: tearDown  ! overrides generic
-      procedure :: runMethod ! runs userMethod
    end type Test_TimerList
 
 contains
-
-   function newTest_TimerList(name, userMethod) result(test)
-     type (Test_TimerList) :: test
-     character(len=*), intent(in) :: name
-     procedure(runMethod) :: userMethod
-
-     call test%setName(name)
-     test%userMethod => userMethod
-   
-   end function newTest_TimerList
-
-   subroutine runMethod(this)
-     class (Test_TimerList), intent(inout) :: this
-     call this%userMethod()
-   end subroutine runMethod
 
    subroutine setUp(this)
       class (Test_TimerList), intent(inout) :: this
@@ -137,7 +106,7 @@ contains
 #ifdef USE_PFUNIT
       call addTimer('timer')
       call start('timer')
-      call finalize()
+      call finalizeTimer()
       @assertTrue(catch('Unbalanced start/stop for timer <timer>.'))
       call reset('timer')
 #endif

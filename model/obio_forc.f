@@ -8,6 +8,7 @@
       USE hycom_dim_glob
 #endif
       USE obio_dim
+      use ocalbedo_mod, only: nlt
 
 
       implicit none

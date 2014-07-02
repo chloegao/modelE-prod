@@ -29,7 +29,8 @@ End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
      ! resolution-specific source codes
-RES_stratF40                        ! horiz/vert resolution, 2x2.5, top at 0.1mb, 40 layers
+Atm144x90                  ! horizontal resolution is 144x90 -> 2x2.5deg
+AtmL40                      ! vertical resolution is 40 layers -> 0.1mb
 ORES_2Hx2_L32                       ! ocean horiz res 2x2.5deg, 32 vert layers
 DIAG_RES_F                          ! diagnostics (resolution dependent)
 FFT144 OFFT144E                     ! utilities
@@ -45,7 +46,6 @@ STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 #include "modelE4_source_files"
 #include "dynamic_ocn_source_files"
 #include "tracer_shared_source_files"
-MiscTracersMetadata
 OCN_Int_LATLON                      ! atm-ocn regrid routines
 
 #include "ocarbon_cycle_oR_files" ! both gas exch and ocean tracer oR model

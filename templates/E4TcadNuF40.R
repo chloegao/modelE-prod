@@ -49,7 +49,8 @@ End Preprocessor Options
 
 Object modules:
      ! resolution-specific source codes
-RES_stratF40                        ! horiz/vert resolution, 2x2.5, top at 0.1mb, 40 layers
+Atm144x90                  ! horizontal resolution is 144x90 -> 2x2.5deg
+AtmL40                      ! vertical resolution is 40 layers -> 0.1mb
 DIAG_RES_F                          ! diagnostics
 FFT144                              ! Fast Fourier Transform
 
@@ -64,10 +65,6 @@ QUS3D                               ! advection of Q and tracers
 TRDUST_COM TRDUST TRDUST_DRV        ! dust tracer specific code
 #include "tracer_shared_source_files"
 #include "tracer_shindell_source_files"
-ShindellTracersMetadata
-sharedTracersMetadata
-KochTracersMetadata
-MiscTracersMetadata
 #include "tracer_aerosols_source_files"
 TRDIAG
 

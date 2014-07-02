@@ -241,8 +241,8 @@ C--   Minimum value of 1 m2/s
       DO k=1,kdm
        DO j=j_0,j_1
          DO i=i_0,i_1
-           kappam3d(i,j,k)=min(kappam3d(i,j,k),15000.)
-           kappam3d(i,j,k)=max(kappam3d(i,j,k),1.)
+           kappam3d(i,j,k)=min(kappam3d(i,j,k),15000.d0)
+           kappam3d(i,j,k)=max(kappam3d(i,j,k),1.d0)
          ENDDO
        ENDDO
       ENDDO

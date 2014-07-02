@@ -135,7 +135,7 @@ c --- solve tridiagonal matrix.
         write(lp,*) '** bet=',bet,itest,jtest
         write(lp,*) '** k=',k,' tcc=',tcc(k),' tcu=',tcu(k),
      &              ' gam=',gam(k)
-        call flush(lp)
+        call sys_flush(lp)
         stop '(tridmat)'
 *       bet=1.E-12
       endif

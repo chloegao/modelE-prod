@@ -5,27 +5,18 @@ module Test_Halo_mod
     destroy_grid, getDomainBounds, NORTH, SOUTH
   use Halo_mod
   implicit none
-  private
 
-   public :: setUp
-   public :: tearDown
-
-   public :: Test_Halo
-   interface Test_Halo
-     module procedure newTest_Halo
-   end interface Test_Halo
+  public :: Test_Halo
 
 @TestCase
-   type, extends(MpiTestCase) :: Test_Halo
-      integer :: ibeg, iend, jbeg, jend      ! local dimensions
-      integer :: ibegh, iendh, jbegh, jendh  ! local dimensions + halo
-      type (DIST_GRID) :: distGrid
-      procedure(runMethod), pointer :: userMethod => null()
-   contains
-      procedure :: setUp     ! overides generic
-      procedure :: tearDown  ! overrides generic
-      procedure :: runMethod ! runs userMethod
-   end type Test_Halo
+  type, extends(MpiTestCase) :: Test_Halo
+    integer :: ibeg, iend, jbeg, jend      ! local dimensions
+    integer :: ibegh, iendh, jbegh, jendh  ! local dimensions + halo
+    type (DIST_GRID) :: distGrid
+  contains
+    procedure :: setUp     ! overides generic
+    procedure :: tearDown  ! overrides generic
+  end type Test_Halo
 
   public :: test_HaloUpdateSouthPole1D
   public :: test_HaloUpdateNorthPole1D
@@ -46,23 +37,6 @@ module Test_Halo_mod
   integer, parameter :: LM = 2
 
 contains
-
-   function newTest_Halo(name, userMethod, numProcesses) result(test)
-     type (Test_Halo) :: test
-     character(len=*), intent(in) :: name
-     integer, intent(in) :: numProcesses
-     procedure(runMethod) :: userMethod
-
-     call test%setName(name)
-     test%userMethod => userMethod
-     call test%setNumProcesses(numProcesses)
-   
-   end function newTest_Halo
-
-   subroutine runMethod(this)
-     class (Test_Halo), intent(inout) :: this
-     call this%userMethod()
-   end subroutine runMethod
 
   subroutine setUp(this)
     class (Test_Halo), intent(inout) :: this
