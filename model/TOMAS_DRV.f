@@ -1,5 +1,7 @@
 #include "rundeck_opts.h"
 
+! IMPORTANT NOTE = Binary nucleation is reduced (cnai/5.)
+
 !@sum  TOMAS_DRV: TwO-Moment Aerosol Sectional (TOMAS) microphysics driver 
 !@+     aerosol microphysics (nucleation,coagulation, condensation) and 
 !@+     SO4 formation from (clouds) aqueous chemistry. 
