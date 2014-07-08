@@ -5391,6 +5391,11 @@ C--------K=2-------CO2       DS0=.003
       TERMB=ULN*(PLN+803.9+2.477*ULN)-.09899*PLN
       TAU  =(TERMA/TERMB)*ULN
 
+C     -------------------------------------------------------------------
+C     fOnOff (default = 1.) scales SW long-path H2O absorption correction
+C            =1. fully turned on, =0. disables correction (older version)
+C            fOnOff is 'tunable' from 0. to 1. (introduced 7/3/2014)
+
       CASE (12)
       !ULN=ULGAS(N,1) ! not needed because uln set to this before select case
       ALPH=0.002d0
@@ -5400,11 +5405,6 @@ C--------K=2-------CO2       DS0=.003
       ROOT=SQRT(((PLN+50.0)/1000.0)**2+1000.0*BETA*ULN/(PLN+50.0))
       TAUK=ALPH*(ROOT-(PLN+50.0)/1000.0)
       TAU=TAUK*FACK12*fOnOff
-
-C     -------------------------------------------------------------------
-C     fOnOff (default = 1.) scales SW long-path H2O absorption correction
-C            =1. fully turned on, =0. disables correction (older version)
-C            fOnOff is 'tunable' from 0. to 1. (introduced 7/3/2014)
 
       CASE (13)
       !ULN=ULGAS(N,1) ! not needed because uln set to this before select case
