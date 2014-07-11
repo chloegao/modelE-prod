@@ -1974,13 +1974,15 @@ C**** Local parameters and variables and arguments:
       logical, intent(in) :: end_of_day
       character(len=300) :: out_line
       logical :: found1988, found1991
- 
+      integer :: year, dayOfYear
+
+      call modelEclock%get(year=year, dayOfYear=dayOfYear) 
       ! only for start of years and restarts:
-      if(.not. end_of_day .or. modelEclock%dayOfYear() == 1) then
+      if(.not. end_of_day .or. dayOfYear == 1) then
 
         ! set year we are looking for based on rad code s0_yr:
         if(s0_yr==0)then 
-          wantYear=modelEclock%year()
+          wantYear=year
         else
           wantYear=s0_yr
         end if

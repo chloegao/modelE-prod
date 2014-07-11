@@ -69,6 +69,7 @@ C****
      *     ,o2x,no2x,n2cx,yGHGx,so2x,CH4X_RADoverCHEM,snoage_def
      *     ,s0_yr,s0_day,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr
      *     ,H2ObyCH4,dH2O,h2ostratx,O3x,RHfix,CLDx,ref_mult,COSZ1
+     *     ,obliq,eccn,omegt,obliq_def,eccn_def,omegt_def
      *     ,CC_cdncx,OD_cdncx,cdncl,pcdnc,vcdnc
      *     ,cloud_rad_forc,aer_rad_forc
      *     ,PLB0,shl0  ! saved to avoid OMP-copyin of input arrays
@@ -281,7 +282,7 @@ C**** sync radiation parameters from input
 C**** Set orbital parameters appropriately
       select case (variable_orb_par)
       case(1) ! use parameters for model_year-orb_par_year_bp
-        pyear = modelEclock%year()-orb_par_year_bp ! bp=before present model year
+        pyear = modelEclock%getYear()-orb_par_year_bp ! bp=before present model year
         call orbpar(pyear,eccn, obliq, omegt)
         if (am_i_root()) then
           write(6,*) 'Variable orbital parameters, updated each year'

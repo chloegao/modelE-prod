@@ -1405,14 +1405,15 @@ C*** Unpack read global data into local distributed arrays
       allocate(ijlt_AMPm(2,ntm))
 #endif 
       allocate(ijlt_3Dtau(ntm))
+      ijlt_3Dtau = 0
       allocate(ijlt_3Daaod(ntm))
+      ijlt_3Daaod = 0
 
       allocate(sname_jln(ktajlx,ntm))
       allocate(lname_jln(ktajlx,ntm))
       lname_jln = 'unused'
       allocate(units_jln(ktajlx,ntm))
       allocate(scale_jln(ntm))
-
 
 
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)

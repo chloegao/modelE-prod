@@ -10,7 +10,10 @@ End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
      ! resolution-specific source codes
-RES_M20AT DIAG_RES_M               ! horiz/vert resolution, 4x5deg, 20 layers
+Atm72x46                   ! horizontal resolution is 72x46 -> 4x5deg
+AtmL20                     ! vertical resolution is 20 layers -> 0.1mb
+DIAG_RES_M
+STRAT_DUM
 FFT72                              ! Fast Fourier Transform
 IO_DRV                             ! new i/o
 
@@ -19,11 +22,13 @@ ATMDYN MOMEN2ND                     ! atmospheric dynamics
 QUS_DRV QUS3D                       ! advection of Q/tracers
 
     ! lat-lon grid specific source codes
+AtmRes
 GEOM_B                              ! model geometry
 DIAG_ZONAL GCDIAGb                  ! grid-dependent code for lat-circle diags
 DIAG_PRT POUT                       ! diagn/post-processing output
 MODEL_COM                           ! calendar, timing variables
-MODELE                              ! ModelE cap - initialization and main loop
+MODELE_DRV                          ! ModelE cap
+MODELE                              ! initialization and main loop
 ATM_COM                             ! main atmospheric variables
 ATM_DRV                             ! driver for atmosphere-grid components
 ATMDYN_COM                          ! atmospheric dynamics
@@ -42,7 +47,7 @@ SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_COM LANDICE_DRV     ! land ice modules
 ICEDYN_DRV ICEDYN                   ! ice dynamics modules
 RAD_COM RAD_DRV RADIATION           ! radiation modules
-RAD_UTILS ALBEDO READ_AERO          ! radiation and albedo
+RAD_UTILS ALBEDO READ_AERO ocalbedo ! radiation and albedo
 DIAG_COM DIAG DEFACC                ! diagnostics
 OCN_DRV                             ! driver for ocean-grid components
 OCEAN OCNML                         ! ocean modules
@@ -177,6 +182,9 @@ NIsurf=1        ! increase as layer 1 gets thinner
 ! Number of physics timesteps per radiation timestep.  Default is 5.
 nrad=1
 
+! save alternating checkpoint files every Ndisk physics timesteps
+Ndisk=1440
+
 ! KCOPY=1: save acc and alternating checkpoint files only.  KCOPY=2: save rsf also
 KCOPY=2
 
@@ -194,13 +202,11 @@ nssw=2          ! until diurnal diagn. are fixed, nssw should be even
 master_yr=1850
 KOCEAN=0
 
-! save alternating checkpoint files every Ndisk physics timesteps
-Ndisk=1440
-
 &&END_PARAMETERS
 
  &INPUTZ
-  YEARI=0000,MONTHI=12,DATEI=1,HOURI=0,
-  YEARE=0000,MONTHE=2,DATEE=49,HOURE=0,  KDIAG=12*0,9,
-  ISTART=2,IRANDI=0, YEARE=0000,MONTHE=12,DATEE=1,HOURE=1,
+ YEARI=0001,MONTHI=12,DATEI=1,HOURI=0, ! pick IYEAR1=YEARI (default) or < YEARI
+ YEARE=0001,MONTHE=12,DATEE=2,HOURE=0,     KDIAG=12*0,9,
+ ISTART=2,IRANDI=0, YEARE=0001,MONTHE=12,DATEE=1,HOURE=1,
 /
+
