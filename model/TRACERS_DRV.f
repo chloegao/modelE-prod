@@ -8379,6 +8379,7 @@ c      real*8 :: nlight, max_COSZ1, fact0
 #endif
       INTEGER I_0, I_1, J_0, J_1
       class (Tracer), pointer :: pTracer
+      integer :: index
       type (TracerSurfaceSource), pointer :: sources(:) 
 #ifdef TRACERS_TOMAS
       integer :: k, kn
@@ -8410,6 +8411,9 @@ C**** All sources are saved as kg/s
       iter = tracers%begin()
       do while (iter /= tracers%last())
         pTracer => iter%value()
+        pa => pTracer%getReference('index')
+        index = pa
+        n = index
         pTracer => tracers%getReference(trname(n))
         sources => pTracer%surfaceSources
       if (itime.lt.itime_tr0(n)) cycle
