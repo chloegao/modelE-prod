@@ -66,41 +66,40 @@ Data input files:
 ! Initial atmospheric temperature, specific humidity, wind, surface pressure.
 ! If rundeck parameter initial_psurf_from_topo=1, initial surface pressure is
 ! reset to be consistent with orography.
-AIC=/discover/nobackup/mkelley5/desert_world/AIC.coldmars.nc
+AIC=planet/Mars/AIC.coldmars.nc
 
 ! Initial soil temperature, relative wetness, and snow depth.
-SOILIC=/discover/nobackup/mkelley5/desert_world/drysoil.nc
+SOILIC=planet/desert_world/soilic_drysoil.nc
 
 ! This file contains Martian orography and defines the surface to be 100% land.
 ! Nominal longitudes might be shifted 180 degrees.
-!TOPO=/home/ialeinov/Mars/Data/marstopo.nc
-TOPO=/discover/nobackup/mway/marstopo_cap13K.nc
+!TOPO=planet/Mars/marstopo.nc
+TOPO=planet/Mars/marstopo_cap13K.nc
 
 ! If file ROUGHL is present, the variable top_dev in TOP_INDEX will only affect
 ! snow masking and its precise value is probably not crucial.
-TOP_INDEX=/discover/nobackup/mkelley5/desert_world/stdev_72x46_desertworld.nc
+TOP_INDEX=planet/desert_world/stdev_72x46_desertworld.nc
 
 ! The presence of this file causes the model to read roughness length from
 ! it rather than computing roughness from topographic standard deviation
 ! as in Model II.  This allows users to control this field directly.
 ! Units: meters.
-ROUGHL=/discover/nobackup/mkelley5/desert_world/z0m_72x46_desertworld.nc
+ROUGHL=planet/desert_world/z0m_72x46_desertworld.nc
 
 ! Soil textures file (array q).  Sand (imt=1) is a reasonable texture to start with.
 ! Arrays sl and qk do not matter for dry conditions.  dz is layer thickness.
-SOIL=/discover/nobackup/mkelley5/desert_world/allsand.nc
+SOIL=planet/desert_world/soil_allsand.nc
 
 ! In modelE, the percentages of bright and dark soil are read from
 ! the vegetation file.  The ratio of the two soils is chosen to give a
 ! surface albedo of roughly 15% for dry conditions.
-VEG=/discover/nobackup/mkelley5/desert_world/allsoil.nc
+VEG=planet/Mars/veg_allbare_alb15.nc
 
 ! N2O, CH4, and CFCs are set to zero in this file, which also has the
 ! preindustrial CO2 mixing ratio serving as the basis for adjusting
 ! CO2x.  Note that the absence of ozone and aerosol files in this
 ! rundeck implies that those species are also zero.
-!GHG=/discover/nobackup/mkelley5/desert_world/GHG.CO2only.txt
-GHG=/discover/nobackup/ialeinov/tmp/Mars/from_quark/Mars/GHG.CO2only.txt
+GHG=planet/desert_world/GHG.CO2only.txt
 
 ! radiation input files
 RADN1=sgpgxg.table8               ! rad.tables and history files
