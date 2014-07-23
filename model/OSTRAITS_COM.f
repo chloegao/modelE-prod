@@ -36,7 +36,7 @@
 !@param USIFAC ratio of strait sea ice velocity to current
 !@var TRMST,TXMST,TZMST tracer amount in strait (+ moments) (kg)
 !@var TRSIST tracer amount in with strait (kg)
-#ifdef OCN_GISSMIX
+#ifdef OCN_GISS_TURB
 !@var OTKEST turbulent kinetic energy in strait (m/s)^2
 #endif
 
@@ -62,7 +62,7 @@
      &  HSIST, !  LMI layers of heat content in strait (J)
      &  SSIST  !  LMI layers of salt in strait (kg)
 
-#ifdef OCN_GISSMIX
+#ifdef OCN_GISS_TURB
       real*8, dimension(:,:), allocatable ::
      &  OTKEST!  turbulent kinetic energy in strait (m/s)^2
 #endif
@@ -153,7 +153,7 @@
      &     MSIST(2,NMST),
      &     HSIST(LMI,NMST),
      &     SSIST(LMI,NMST),
-#ifdef OCN_GISSMIX
+#ifdef OCN_GISS_TURB
      &     OTKEST(LMO,NMST),
 #endif
      &     OPRESE(2,nmst),

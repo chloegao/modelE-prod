@@ -1157,7 +1157,7 @@ C**** S2X0...S2X3, S2Y0...S2Y3
       S2Y1(I,J,L) = AIY1ST * SIY1 * SIY1 * BYDYP(J) * DYVO(J)
       S2Y2(I,J,L) = AIY2ST * SIY2 * SIY2 * BYDYP(J) * DYVO(J-1)
       S2Y3(I,J,L) = AIY3ST * SIY3 * SIY3 * BYDYP(J) * DYVO(J-1)
-#ifdef OCN_Mesoscales
+#ifdef OCN_GISS_MESO
       AIX0(I,J,L) = ARIV(I,J,L)
       AIX2(I,J,L) = ARIV(I,J,L)
       AIY0(I,J,L) = ARIV(I,J,L)
@@ -1341,7 +1341,7 @@ C     *           (RHO(I,J,L) - RHO(IM1,J,L))*BYDXP(J)
           END DO
         END DO
       END DO
-#ifdef OCN_Mesoscales 
+#ifdef OCN_GISS_MESO 
       CALL OCN_mesosc(kappam3d)
 #endif
 C**** Calculate VMHS diffusion = amu* min(NH/f,equ.rad)^2 /Teady
@@ -1393,7 +1393,7 @@ C**** so keep at zero, and let KPP do the work.
 #ifdef USE_1D_DIFFUSIVITY
               ARIV(I,J,:) = k1d(:)
 #else
-#ifdef OCN_Mesoscales
+#ifdef OCN_GISS_MESO
               ARIV(I,J,:) = kappam3d(I,J,:)
 #else
               AN = SQRT(GRAV * ARHOZ / ARHO)
@@ -1446,7 +1446,7 @@ C**** so keep at zero, and let KPP do the work.
 #ifdef USE_1D_DIFFUSIVITY
             ARIV(1,JM,:) = k1d(:)
 #else
-#ifdef OCN_Mesoscales
+#ifdef OCN_GISS_MESO
             ARIV(1,JM,:) = kappam3d(1,JM,:)
 #else
             AN = SQRT(GRAV * ARHOZ / ARHO)
@@ -1502,7 +1502,7 @@ C**** so keep at zero, and let KPP do the work.
 #ifdef USE_1D_DIFFUSIVITY
             ARIV(1,1,:) = k1d(:)
 #else
-#ifdef OCN_Mesoscales
+#ifdef OCN_GISS_MESO
             ARIV(1,1,:) = kappam3d(1,1,:)
 #else
             AN = SQRT(GRAV * ARHOZ / ARHO)

@@ -338,14 +338,14 @@ C****
      *                   MOE, G0ME,GXME,GYME,GZME, S0ME,SXME,SYME,SZME,
      *                   kn2,zst,
      *                   HOCEANe,LMMe
-#ifdef OCN_GISSMIX
+#ifdef OCN_GISS_TURB
      *                   ,otkest
 #endif
       use domain_decomp_1d, only: am_i_root, getDomainBounds, 
      *                            getMpiCommunicator, broadcast
       USE OCEANR_DIM, only : grid=>ogrid
       Use SparseCommunicator_mod
-#ifdef OCN_GISSMIX
+#ifdef OCN_GISS_TURB
       USE GISSMIX_COM, Only: otke_init_max,emin,emax
 #endif
       IMPLICIT NONE
@@ -476,7 +476,7 @@ C****
       G0MST(L,N) = (G01+G02)*MMST(L,N)*.5
       GXMST(L,N) = (G02-G01)*MMST(L,N)*.5
       GZMST(L,N) = (GZ1+GZ2)*MMST(L,N)*.5
-#ifdef OCN_GISSMIX
+#ifdef OCN_GISS_TURB
       otkest(L,N) = min(max(otke_init_max/(float(l)**2),emin),emax)
 #endif
       S01 = (S0ME(1,N,L)+XST(N,1)*SXME(1,N,L)+YST(N,1)*SYME(1,N,L)) /
@@ -494,7 +494,7 @@ C****
       G0MST(L,N) = 0.
       GXMST(L,N) = 0.
       GZMST(L,N) = 0.
-#ifdef OCN_GISSMIX
+#ifdef OCN_GISS_TURB
       otkest(L,N) = 0.
 #endif
       S0MST(L,N) = 0.
@@ -817,7 +817,7 @@ C**** Check for NaN/INF in ocean data
       CALL CHECK3(G0MST,LMO,NMST,1,SUBR,'g0mst')
       CALL CHECK3(GXMST,LMO,NMST,1,SUBR,'gxmst')
       CALL CHECK3(GZMST,LMO,NMST,1,SUBR,'gzmst')
-#ifdef OCN_GISSMIX
+#ifdef OCN_GISS_TURB
       CALL CHECK3(otkest,LMO,NMST,1,SUBR,'otkest')
 #endif
       CALL CHECK3(S0MST,LMO,NMST,1,SUBR,'s0mst')
@@ -951,7 +951,7 @@ C****
         if (.not.am_i_root()) return
         WRITE (kunit,err=10) MODULE_HEADER,MUST,G0MST,GXMST,GZMST,S0MST
      *       ,SXMST,SZMST,RSIST,RSIXST,MSIST,HSIST,SSIST
-#ifdef OCN_GISSMIX
+#ifdef OCN_GISS_TURB
      *       ,otkest
 #endif
 #ifdef TRACERS_WATER
@@ -970,7 +970,7 @@ C****
          if (am_i_root()) then
           READ (kunit,err=10) HEADER,MUST,G0MST,GXMST,GZMST,S0MST
      *         ,SXMST,SZMST,RSIST,RSIXST,MSIST,HSIST,SSIST
-#ifdef OCN_GISSMIX
+#ifdef OCN_GISS_TURB
      *         ,otkest
 #endif
           IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
@@ -1001,7 +1001,7 @@ C****
         if (am_i_root()) then
           READ (kunit,err=10) HEADER,MUST,G0MST,GXMST,GZMST,S0MST
      *         ,SXMST,SZMST,RSIST,RSIXST,MSIST,HSIST,SSIST
-#ifdef OCN_GISSMIX
+#ifdef OCN_GISS_TURB
      *         ,otkest
 #endif
           IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
@@ -1030,7 +1030,7 @@ C****
       CALL broadcast(grid, G0MST)
       CALL broadcast(grid, GXMST)
       CALL broadcast(grid, GZMST)
-#ifdef OCN_GISSMIX
+#ifdef OCN_GISS_TURB
       CALL broadcast(grid, otkest)
 #endif
       CALL broadcast(grid, S0MST)

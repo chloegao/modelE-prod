@@ -8,5 +8,7 @@ ODIAG_PRT                              ! ocean diagnostic print out
 OCNFUNTAB                              ! ocean function look up table
 SparseCommunicator_mod                 ! sparse gather/scatter module
 OCNQUS                     ! QUS advection scheme
-OCNGISSVM                  ! GISS vertical mixing scheme
-OCN_mesosc                          ! Mesoscales model
+OCNGISS_TURB               ! GISS Turbulence mixing scheme
+OCNGISS_SM                 ! GISS Sub-Mesoscale mixing scheme
+OCNGISS_MESO               ! GISS Mesoscale mixing scheme
+
