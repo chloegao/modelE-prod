@@ -5,8 +5,8 @@ SHELL=/bin/sh
 
 NC=/usr/local/other/netcdf/3.6.2_intel-10.1.013
 
-LEVEL_OPT = -g -traceback -C
-LEVEL_OPT = -O2 
+LEVEL_OPT = -g  -traceback -C
+LEVEL_OPT = -O2 -traceback 
 
 FC=     ifort $(LEVEL_OPT)   -convert big_endian -openmp
 FC=     ifort $(LEVEL_OPT)   -convert big_endian

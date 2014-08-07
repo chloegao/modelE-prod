@@ -19,8 +19,8 @@ USAGE="$0  arg1 ..."
 
 #INPUT FILES:
 num_files=1
-pathname_1=/discover/nobackup/ntausnev/Z_Deleted_Files/Eh127f9c/OUT/avg_ov_Eh127f9c_2000-2005.txt
-pathname_2=/discover/nobackup/ntausnev/RUNS_ME/Eh113_06/z_hdiag/avg_ov_Eh113_06_2020-2029.txt
+pathname_1=/discover/nobackup/ntausnev/RUNS_ME/EhV2a/z_00HYC_diag/avg_ov_EhV2a_2100-2109.txt
+pathname_2=/discover/nobackup/ntausnev/RUNS_ME/EhV2bh/z_00HYC_diag/avg_ov_EhV2bh_2100-2109.txt
 
 pathname_3=/discover/nobackup/ntausnev/RUNS_ME/EhCld0/z_00HYC/avg_ov_EhCld0_239.txt
 pathname_4=/discover/nobackup/ntausnev/RUNS_ME/EhMay2/z_00HYC/avg_ov_EhMay2_239.txt
@@ -158,7 +158,7 @@ if n==1
   end
 %set(gca,'XTicklabel',['-60';'-40';'-20';'  0';' 20';' 40';'   '],'FontSize',8);
 %text(-67,kdm(3),'Atlantic','color','k','Fontsize',9)
-text(lat(ib(n))-20,kk/2+1,'\sigma_2', 'color','k','rotation',90,'fontsize',9);
+text(lat(ib(n))-20,kk/2+1,'\sigma', 'color','k','rotation',90,'fontsize',9);
   for i=1.5:kk-.5
   text(lat(ib(n))-12,i,num2str(sig(i-.5),'%5.2f'),'color','k','Fontsize',7)
   end
