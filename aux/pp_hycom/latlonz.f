@@ -152,13 +152,13 @@ c
       kij=0
       do 30 i=1,iia
       do 30 j=1,jja
-         if (depthij(i,j).le.0.) goto 32
+         if (depthij(i,j) <= 0.) goto 32
             do 31 k=2,k33
-               if (z33(k-1) <= depthij(i,j) .and 
-     &              .z33(k) > depthij(i,j)) then
+               if(z33(k-1) <= depthij(i,j) .and. 
+     &            z33(k)   >  depthij(i,j)) then
                   kij(i,j)=k-1
                   go to 32
-               elseif (z33(k33).le.depthij(i,j)) then
+               elseif (z33(k33) <= depthij(i,j)) then
                   kij(i,j)=k33
                   go to 32
                endif
