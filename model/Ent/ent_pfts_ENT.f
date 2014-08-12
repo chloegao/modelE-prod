@@ -1,6 +1,7 @@
+#include "rundeck_opts.h"
       module ent_pfts
-!@sum Parameter sets fo Ent default supported 16 plant functional types.
-!@+   (Early successional types do not have cover and are not tested, yet).
+!@sum Ent default supported 16 vegetation types (but early succ do
+!     not have cover and are not tested, yet).
 
       !use ent_pftconst
       use ent_const
@@ -52,33 +53,6 @@
       !SAND = 17
       !BDIRT = 18
 
-!*********************************************************************
-!* Ent PFTs
-!* 1.  evergreen broadleaf early successional (BROADEVERGRTREES1)
-!* 2.  evergreen broadleaf late successional  (BROADEVERGRTREES2)
-!* 3.  evergreen needleleaf early successional (NEEDLEEVERGRTREES1)
-!* 4.  evergreen needleleaf late successional  (NEEDLEEVERGRTREES2)
-!* 5.  cold deciduous broadleaf early successional (BROADCOLDDECIDTREES1)
-!* 6.  cold deciduous broadleaf late successional  (BROADCOLDDECIDTREES2)
-!* 7.  drought deciduous broadleaf	(BROADDRYDECIDTEE)
-!* 8.  decidous needleleaf	        (NEEDLEDECIDTREE)
-!* 9.  cold adapted shrub               (SHRUBCOLD)
-!* 10.  arid adapted shrub              (SHRUBARID)
-!* 11.  C3 grass - perennial            (GRASSC3PERENN)
-!* 12.  C4 grass - perennial            (GRASSC4PERENN)
-!* 13.  C3 grass - annual               (GRASSC3ANN)
-!* 14.  arctic C3 grass                 (GRASSC3ARCTIC)
-!* 15.  crops - C4 herbaceous           (CROPC4HERB)
-!* 16.  crops - broadleaf woody         (CROPTREE)
-
-
-!--- ever_ES_broad ever_LS_broad ever_ES_needle ever_LS_needle 
-!----cold_ES_broad cold_LS_broad drought_broad decid_needle shrub_cold 
-!----shrub_arid c3grass c4grass c3grass_ann c3grass_arctic 
-!----cropsc4 cropstree
-!----sand bdirt
-
-
       integer, parameter :: EVGRBROADEARLY = 1
       integer, parameter :: EVGRBROADLATE = 2
       integer, parameter :: EVGRNEEDLEEARLY = 3
@@ -98,12 +72,22 @@
       integer, parameter :: CROPSWOODY = 16
       integer, parameter :: SAND = 17
       integer, parameter :: BDIRT = 18
+
 !##### TEMPORARY HACK - YK #####
 !to avoid the conflict in ent_prescribed_drv.f90, using CROPS!
       integer, parameter :: CROPS = 15
 !##### END OF TEMPORARY HACK #####
       
-
+#ifdef ENT_COVER_NAMES_OLD_FORMAT
+      character(len=13), parameter :: ent_cover_names(N_COVERTYPES) = (/
+     &     'ever_bl_el   ','ever_bl_lt   ','ever_nl_el   ',
+     &     'ever_nl_lt   ','cold_bl_el   ','cold_bl_lt   ',
+     &     'drought_bl   ','decid_nl     ','cold_shrub   ',
+     &     'arid_shrub   ','c3_grass_per ','c4_grass     ',
+     &     'c3_grass_ann ','c3_grass_arct','crops_herb   ',
+     &     'crops_woody  ','bare_bright  ','bare_dark    '
+     &     /)
+#else
       character(len=13), parameter :: ent_cover_names(N_COVERTYPES) = (/
      &     "ever_br_early",
      &     "ever_br_late ",
@@ -124,7 +108,7 @@
      &     "bare_bright  ",
      &     "bare_dark    "
      &     /)
-
+#endif
 
       ! other parameters needed for Ent to compile
       integer, parameter :: COVEROFFSET = 0
@@ -217,7 +201,7 @@
      &     0.0240d0, 1.899d0, 0.1470d0, 2.238d0, 34.d0, -0.0388d0,
      &     0.d0),
      ! !* 9 - cold adapted shrub
-     &     pftype(1,.true.,1,-153.d0,.50d0, .30d0, 1.4d0, 10.0d0, 0.6d0, 
+     &     pftype(1,.true.,1,-153.d0,.50d0, .30d0, 1.4d0, 2.25d0, 0.6d0, 
      &     2.8d0, 5.5d0, 50.d0, 0.15d0, 1.40d0, 4,
      &     0.0800d0, 1.000d0, 0.00001d0, 1.000d0, 0.78d0, -0.75d0,
      &     0.d0),
@@ -344,79 +328,6 @@ C     (6)  >SRBALB(1) = NIR  (2200-4000 nm)    (ANIR*0.1)
      &     .032,.032,.032,.022,.500,.000
      *     /),(/N_COVERTYPES,4,6/) )
 
-      real*8, parameter :: rhol(N_PFT,N_BANDS) = RESHAPE( (/
-     1   0.07, 0.07, 0.07, 0.10, 0.10, 0.10, 
-     &   0.10, 0.10, 0.07, 0.10, 0.10, 0.11, 0.11, 0.11, 0.11, 0.11,
-     2   0.35, 0.35, 0.35, 0.45, 0.45, 0.45,
-     &   0.45, 0.45, 0.35, 0.45, 0.45, 0.58, 0.58, 0.58, 0.58, 0.58,
-     3   0.35, 0.35, 0.35, 0.45, 0.45, 0.45,
-     &   0.45, 0.45, 0.35, 0.45, 0.45, 0.58, 0.58, 0.58, 0.58, 0.58,
-     4   0.35, 0.35, 0.35, 0.45, 0.45, 0.45,
-     &   0.45, 0.45, 0.35, 0.45, 0.45, 0.58, 0.58, 0.58, 0.58, 0.58,
-     5   0.35, 0.35, 0.35, 0.45, 0.45, 0.45,
-     &   0.45, 0.45, 0.35, 0.45, 0.45, 0.58, 0.58, 0.58, 0.58, 0.58,
-     6   0.35, 0.35, 0.35, 0.45, 0.45, 0.55,
-     &   0.45, 0.45, 0.35, 0.45, 0.45, 0.58, 0.58, 0.58, 0.58, 0.58
-     *     /), (/N_PFT, N_BANDS/) )
-
-      real*8, parameter :: rhos(N_PFT,N_BANDS) = RESHAPE( (/
-     1    0.16, 0.16, 0.16, 0.16, 0.16, 0.16, 
-     &    0.16, 0.16, 0.16, 0.16, 0.16, 0.36, 0.36, 0.36, 0.36, 0.36,
-     2    0.39, 0.39, 0.39, 0.39, 0.39, 0.39,
-     &    0.39, 0.39, 0.39, 0.39, 0.39, 0.58, 0.58, 0.58, 0.58, 0.58,
-     3    0.39, 0.39, 0.39, 0.39, 0.39, 0.39,
-     &    0.39, 0.39, 0.39, 0.39, 0.39, 0.58, 0.58, 0.58, 0.58, 0.58,
-     4    0.39, 0.39, 0.39, 0.39, 0.39, 0.39,
-     &    0.39, 0.39, 0.39, 0.39, 0.39, 0.58, 0.58, 0.58, 0.58, 0.58,
-     5    0.39, 0.39, 0.39, 0.39, 0.39, 0.39,
-     &    0.39, 0.39, 0.39, 0.39, 0.39, 0.58, 0.58, 0.58, 0.58, 0.58,
-     6    0.39, 0.39, 0.39, 0.39, 0.39, 0.39,
-     &    0.39, 0.39, 0.39, 0.39, 0.39, 0.58, 0.58, 0.58, 0.58, 0.58
-     *     /), (/N_PFT, N_BANDS/) )
-
-      real*8, parameter :: taul(N_PFT,N_BANDS) = RESHAPE( (/
-     1   0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 
-     &   0.05, 0.05, 0.05, 0.05, 0.05, 0.07, 0.07, 0.07, 0.07, 0.07,
-     2   0.10, 0.10, 0.10, 0.25, 0.25, 0.25,
-     &   0.25, 0.25, 0.10, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25,
-     3   0.10, 0.10, 0.10, 0.25, 0.25, 0.25,
-     &   0.25, 0.25, 0.10, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25,
-     4   0.10, 0.10, 0.10, 0.25, 0.25, 0.25,
-     &   0.25, 0.25, 0.10, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25,
-     5   0.10, 0.10, 0.10, 0.25, 0.25, 0.25,
-     &   0.25, 0.25, 0.10, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25,
-     6   0.10, 0.10, 0.10, 0.25, 0.25, 0.25,
-     &   0.25, 0.25, 0.10, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25
-     *     /), (/N_PFT, N_BANDS/) )
-
-      real*8, parameter :: taus(N_PFT,N_BANDS) = RESHAPE( (/
-     1   0.001, 0.001, 0.001, 0.001, 0.001,
-     &   0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.220, 0.220,
-     &   0.220, 0.220, 0.220,
-     2   0.001, 0.001, 0.001, 0.001, 0.001,
-     &   0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.380, 0.380,
-     &   0.380, 0.380, 0.380,
-     3   0.001, 0.001, 0.001, 0.001, 0.001,
-     &   0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.380, 0.380,
-     &   0.380, 0.380, 0.380,
-     4   0.001, 0.001, 0.001, 0.001, 0.001,
-     &   0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.380, 0.380,
-     &   0.380, 0.380, 0.380,
-     5   0.001, 0.001, 0.001, 0.001, 0.001,
-     &   0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.380, 0.380,
-     &   0.380, 0.380, 0.380,
-     6   0.001, 0.001, 0.001, 0.001, 0.001,
-     &   0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.380, 0.380,
-     &   0.380, 0.380, 0.380
-     *     /), (/N_PFT, N_BANDS/) )
-
-
-      !***************************************************
-      !* ecophys const - leaf/stem orientation index
-      !***************************************************
-      real, parameter :: xl(N_PFT) =
-     &    (/0.01, 0.01, 0.01, 0.10, 0.10, 0.01, 0.25, 0.25,
-     &    0.01, 0.25, 0.25, -0.30, -0.30, -0.30, -0.30, -0.30/)
 
       !***************************************************
       !* PFT categories
