@@ -608,8 +608,8 @@ c
       close (304)
 
       stop '(normal finish of avg)'
-      end
 
+      contains
 
       subroutine get_time(flnm,year)
 
@@ -635,4 +635,5 @@ c
       end do
       print *,'julian day in input file:',year
       return
-      end
+      end subroutine get_time
+      end program  avg
