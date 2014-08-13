@@ -238,7 +238,8 @@
           cop%IPP = Iemis * 0.0600d-6 !umol m-2 s-1 to kg-C-isoprene/m2-ground/s
 
           ! UNCOMMENT BELOW if Anet or Rd are used -MJP
-          Anet = cop%GPP - Rd !Right now Rd and Respauto_NPP_Clabile are inconsistent-NK
+          !!! meaningless formula - different units
+          !!!Anet = cop%GPP - Rd !Right now Rd and Respauto_NPP_Clabile are inconsistent-NK
        else                     !Zero LAI or no light
           cop%GCANOPY=0.d0 !May want minimum conductance for stems.
           cop%Ci = EPS
@@ -249,6 +250,7 @@
 !!          else !(IPAR*4.05.lt.LOW_LIGHT_LIMIT)) then
 !!             TRANS_SW = 0.d0
 !!          endif
+!!! why not just zero ??? -IA
           Rd = Rdark(pspar%Vcmax)*cop%LAI 
        endif
         !* Update cohort respiration components, NPP, C_lab
@@ -274,9 +276,9 @@
 
         !set values for debugging
         ent_d%vf(cop%pft) = pp%area/(3600*24*1000.d0)
-        ent_d%Anet(cop%pft) = Anet
-        ent_d%Atot(cop%pft) = Atot
-        ent_d%Rd(cop%pft) = Rd
+        ent_d%Anet(cop%pft) = Anet * 0.012d-6
+        ent_d%Atot(cop%pft) = Atot * 0.012d-6
+        ent_d%Rd(cop%pft) = Rd * 0.012d-6
         ent_d%GCANOPY(cop%pft) = GCANOPY
         ent_d%TRANS_SW(cop%pft) = TRANS_SW/(3600*24*1000.d0)
         ent_d%LAI(cop%pft) = cop%LAI/(3600*24*1000.d0)
@@ -586,7 +588,9 @@
       C2N = 1/(pftpar(cop%pft)%Nleaf*1d-3*pfpar(cop%pft)%SLA)
 
       !* Maintenance respiration - leaf + sapwood + storage
-      Resp_fol = umols_to_kgCm2s * Rd !Von Caemmer version from qsimp
+      !!! Rd is already per unit area !
+      !!!Resp_fol = umols_to_kgCm2s * Rd !Von Caemmer version from qsimp
+      Resp_fol = 0.012D-6 * Rd
 !!      Resp_fol = Canopy_resp(vegpar%Ntot, TcanopyC+KELVIN) !Friend version
 !!      Resp_fol = Resp_cpool_maint(cop%pft, cop%C_fol,C2N,
 !!!     &     TcanopyK, TairK_10d, facclim)) !Generalized version
