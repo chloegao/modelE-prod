@@ -31,7 +31,7 @@ sub createTemporaryCopy
   my $referenceDir = shift;
   my $tempDir = shift;
   my $branch = shift;
-  my $commandString = "git clone -b $branch $referenceDir $tempDir  > /dev/null 2>&1 ";
+  my $commandString = "git clone $referenceDir $tempDir  > /dev/null 2>&1 ";
   print "createTemporaryCopy: $commandString \n" if $localDebug;
   return (CommandEntry -> new({COMMAND => $commandString}));
 }
