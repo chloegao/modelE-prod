@@ -2068,7 +2068,7 @@ c**** recompute ground hydrology data if necessary (new soils data)
           do i=I_0,I_1
             w_ij(:,:,i,j)=0.d0
             ht_ij(:,:,i,j)=0.d0
-            snowbv(:,i,j)=0.d0
+            !snowbv(:,i,j)=0.d0
             if ( focean(i,j) >= 1.d0 ) cycle
             if ( fearth(i,j) <= 0.d0 .and. variable_lk==0 ) cycle
 #ifdef USE_ENT
@@ -2528,15 +2528,7 @@ c initialize soil (w, ht) from earth_*
      &         earth_tp(k,ibv), earth_ice(k,ibv), w(k,ibv), shc(k,ibv) )
         enddo
 
-c initalize all cases to nsn=1
-        nsn(ibv)=1
-
-c start with no snow
-        dzsn(1,ibv)=0.d0
-        wsn(1,ibv)=0.d0
-        hsn(1,ibv)=0.d0
-        tsn1(ibv)=0.d0
-        fr_snow(ibv) = 0.d0
+        call reset_snow_to_zero
 
         if ( snowd(ibv) <= 0.d0 ) cycle
 
@@ -2557,6 +2549,12 @@ c use snow temperature to get the heat of the snow
 
         call snow_fraction(dzsn(:,ibv), nsn(ibv), 0.d0, 0.d0,
      &       1.d0, fr_snow(ibv) )
+
+        if ( fr_snow(ibv) == 0.d0 ) then
+          call reset_snow_to_zero
+          cycle
+        endif
+
         call snow_redistr(dzsn(:,ibv), wsn(:,ibv), hsn(:,ibv),
      &       nsn(ibv), 1.d0/fr_snow(ibv) )
 
@@ -2573,6 +2571,19 @@ c use snow temperature to get the heat of the snow
       enddo  ! ibv
 
       return
+
+      contains
+
+      subroutine reset_snow_to_zero
+      ! set one empty layer of som
+      nsn(ibv)=1
+      dzsn(1,ibv)=0.d0
+      wsn(1,ibv)=0.d0
+      hsn(1,ibv)=0.d0
+      tsn1(ibv)=0.d0
+      fr_snow(ibv) = 0.d0
+      end subroutine reset_snow_to_zero
+
       end subroutine tp_sat_2_ht_w
 
 
