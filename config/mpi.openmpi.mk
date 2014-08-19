@@ -34,7 +34,7 @@ CPPFLAGS += -DMPITYPE_LOOKUP_HACK
 VER := $(subst ., ,$(word 4,$(shell mpirun --version)))
 VER_MAJOR := $(word 1,$(VER))
 VER_MINOR := $(word 2,$(VER))
-ifeq ($(VER_MINOR),$(filter $(VER_MINOR),7 8))
+ifneq (,$(filter 7 8,$(VER_MINOR)))
 LIBS += -lmpi_usempi -lmpi_mpifh -lmpi -lstdc++
 else
 LIBS += -lmpi_f77 -lmpi -lmpi_cxx -lstdc++
