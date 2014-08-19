@@ -263,7 +263,7 @@ C**** (Simplified) Calendar Related Terms
      &     (1/p%getSiderealRotationPeriod() - 
      &     1/p%getSiderealOrbitalPeriod())
       secondsPerDay = TimeInterval( Rational(s, tolerance=1.d-6) )
-      daysPerYear = nint(secondsPerYear / secondsPerDay)
+      daysPerYear = max(1,nint(secondsPerYear / secondsPerDay))
       end associate
 
       if (AM_I_ROOT()) then

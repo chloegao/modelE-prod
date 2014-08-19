@@ -82,7 +82,7 @@ contains
     ! while preserving the length of the mean day.   Other conventions are possible.
     !--------------------------------------------------------------------------------------
     meanDay = 1/(1/siderealRotationPeriod - 1/siderealPeriod)
-    daysPerYear = nint(siderealPeriod / meanDay)
+    daysPerYear = max(1, nint(siderealPeriod / meanDay))
     q=Rational(meanDay, tolerance=1.d-6)
     meanDayInterval = TimeInterval(q)
     call orbit%setMeanDay(meanDayInterval)
