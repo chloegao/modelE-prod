@@ -298,7 +298,6 @@ C****
 !@auth Gary Russell/G. Schmidt
 !@calls ODFFUS
       USE FILEMANAGER
-      USE MODEL_COM, only : modelEclock
       USE CONSTANT, only : tf
       use TimeConstants_mod, only: SECONDS_PER_DAY, DAYS_PER_YEAR
       USE GEOM, only : imaxj

@@ -9,7 +9,6 @@
 !@+  to find the values of the various PBL variables at the surface.
 !@+  It contains the subroutine PBL.
 
-      USE CONSTANT, only : omega2
       use SOCPBL, only : t_pbl_args, xdelt
       use SOCPBL, only : alloc_pbl_args, dealloc_pbl_args
       implicit none
@@ -18,8 +17,7 @@
 
       public t_pbl_args, pbl, xdelt
       public alloc_pbl_args, dealloc_pbl_args
-      public coriol30,dbls0,slope0,dbl_max_stable
-      real*8, parameter :: coriol30=.5d0*omega2 ! at 30 degrees lat.
+      public dbls0,slope0,dbl_max_stable
       real*8, parameter :: dbls0=10.d0, slope0=0.5d0
       real*8, parameter :: dbl_max_stable=dbls0+slope0*500. ! meters
 
@@ -1251,7 +1249,7 @@ C**** initialise some pbl common variables
 !@sum
 !@+   called from SURFACE.f
       USE FLUXES, only : atmsrf,asflx
-      USE CONSTANT, only :  rgas,grav,omega2,deltx,teeny
+      USE CONSTANT, only :  rgas,grav,omega,omega2,deltx,teeny
       USE ATM_COM, only : t,q,ua=>ualij,va=>valij
       USE ATM_COM, only : pmid,pk
       use SOCPBL, only : zgs
@@ -1259,7 +1257,7 @@ C**** initialise some pbl common variables
       USE GEOM, only : imaxj,sinlat2d
       use PBL_DRV
       use domain_decomp_atm, only : grid
-      use PBL_DRV, only : coriol30,dbls0,slope0,dbl_max_stable
+      use PBL_DRV, only : dbls0,slope0,dbl_max_stable
       USE RESOLUTION, only : ls1
       implicit none
       integer :: i,j,l,ldbl,ldbls
@@ -1282,7 +1280,7 @@ C**** initialise some pbl common variables
       lmonin=atmsrf%lmonin_pbl(i,j)
       if(lmonin.gt.0.) then
         ! ATMOSPHERE IS STABLE WITH RESPECT TO THE GROUND
-        tmp=max(abs(coriol),coriol30)
+        tmp=max(abs(coriol),omega)
         dbls=dbls0+slope0*(abs(lmonin*ustar/tmp))**.5d0
         dbls=max(min(dbls,dbl_max_stable),zgs)
         if(dbls.le.ztop) then

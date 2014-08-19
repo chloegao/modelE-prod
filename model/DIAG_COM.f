@@ -991,7 +991,6 @@ c instances of arrays
 !@auth NCCS (Goddard) Development Team
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID,getDomainBounds,AM_I_ROOT
       USE RESOLUTION, ONLY : IM,LM
-      USE Calendar_mod, only: Calendar
       USE ATM_COM, ONLY : lm_req
       USE DIAG_COM, ONLY : KAJ,KCON,KAJL,KASJL,KAIJ,KAIJK,KAIJmm,
      &                   KGZ,KOA,KTSF,nwts_ij,KTD,NREG,KAIJL,JM_BUDG
@@ -1041,7 +1040,8 @@ c instances of arrays
       USE DIAG_COM, only : NDIUVAR, NDIUPT
       use Diag_com, only : HR_IN_MONTH
       use TimeConstants_mod, only: INT_MONTHS_PER_YEAR,INT_HOURS_PER_DAY
-      use Model_Com, only: calendr
+      use Model_Com, only: calendar
+      use CalendarMonth_mod
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
       INTEGER :: I_1H, I_0H, J_1H, J_0H
@@ -1049,6 +1049,8 @@ c instances of arrays
       LOGICAL, SAVE :: init = .false.
       integer :: j_0budg,j_1budg
       integer :: mnth
+      integer :: year
+      type (CalendarMonth) :: cMonth
 
       If (init) Then
          Return ! Only invoke once
@@ -1068,10 +1070,12 @@ c instances of arrays
 #endif
 
       hr_in_month = 0
+      year = 2000 ! arbitrary (leap days should not be in longest month!)
       do mnth = 1, INT_MONTHS_PER_YEAR
+         cMonth = calendar%getCalendarMonth(mnth, year)
          hr_in_month = 
      &        max(hr_in_month, 
-     &        INT_HOURS_PER_DAY*calendr%getDaysPerMonth(mnth))
+     &        INT_HOURS_PER_DAY*cMonth%daysInMonth)
       end do
 #ifndef NO_HDIURN
       allocate(

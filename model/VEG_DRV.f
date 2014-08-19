@@ -67,7 +67,7 @@
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      call modelEclock%getDate(year=jyear)
+      call modelEclock%get(year=jyear)
 
       call getDomainBounds(grid, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S,

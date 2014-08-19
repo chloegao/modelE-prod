@@ -237,7 +237,7 @@ c
       ! move to global atm grid
       call start('hycom')
 c
-      call modelEclock%getDate(year=year, month=month, date=date,
+      call modelEclock%get(year=year, month=month, date=date,
      .  hour=hour, dayOfYear=dayOfYear)
 
       call getdte(Itime,Nday,Iyear1,year,month,dayOfYear,date,hour,amon)

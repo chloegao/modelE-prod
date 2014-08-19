@@ -1,10 +1,11 @@
 module BaseTime_mod
-  use Rational_mod, only: Rational
+  use Rational_mod
   implicit none
   private
 
   public :: BaseTime
   public :: newBaseTime
+  public :: assignment(=)
 
   type, extends(Rational) :: BaseTime
   contains
@@ -13,6 +14,7 @@ module BaseTime_mod
     procedure, private :: set_i8
     procedure, private :: set_r8
     procedure, private :: add_dt
+
 !!$    procedure, private :: multiply_by_int4
 !!$    procedure, private :: divide_by_int4
 
@@ -23,12 +25,18 @@ module BaseTime_mod
 
   end type BaseTime
 
+  ! broken ifort 14.0.2 sigh (should be BaseTime, not newBaseTime)
   interface newBaseTime
     module procedure newBaseTime_int4
     module procedure newBaseTime_int8
     module procedure newBaseTime_r8
     module procedure newBaseTime_rational
-  end interface newBaseTime
+    module procedure newBaseTime_string
+  end interface NewBaseTime
+
+  interface assignment(=)
+     module procedure :: copyFromRational
+  end interface
 
   integer, parameter :: DEFAULT_INT = kind(1)
   integer, parameter :: LONG_INT = selected_int_kind(10)
@@ -59,6 +67,14 @@ contains
     type (Rational), intent(in) :: r
     t%Rational = r
   end function newBaseTime_rational
+
+
+  function newBaseTime_string(string) result(t)
+    type (BaseTime) :: t
+    character(len=*), intent(in) :: string
+    t%Rational = Rational(string)
+ end function newBaseTime_string
+
 
   subroutine set_rational(this, r)
     class (BaseTime), intent(inout) :: this
@@ -120,5 +136,13 @@ contains
     quotient%Rational = a / n
     
   end function divide_by_int4
+
+
+  subroutine copyFromRational(t, r)
+    type (BaseTime), intent(out) :: t
+    type (Rational), intent(in) :: r
+    t%Rational = r
+  end subroutine copyFromRational
+
   
 end module BaseTime_mod

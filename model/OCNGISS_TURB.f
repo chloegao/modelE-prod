@@ -11,7 +11,6 @@ C****
 c     USE OCN_TRACER_COM, only : ntm
 #endif
       USE OCEAN, only : im,jm,lmo
-      USE CONSTANT, only : omega,by3,grav
 
       IMPLICIT NONE
       SAVE
@@ -459,6 +458,7 @@ C**** initialize otke
 !@var exya internal tidal energy (w/m^2)
 !@var ut2a unresolved bottom shear squared (m/s)^2
 
+      USE CONSTANT, only : omega, by3
       USE GISS_OTURB
 !@ MODULE OTURB's variables will be used and/or updated
 !@ for example, taubx,tauby will be updated
@@ -515,16 +515,18 @@ C**** initialize otke
       ! for background diffusivities
       ! consts appeared in C2010, (65a)-(66)
       !@var f30 2*omega*sin(30 degrees)=omega
+      real*8 f30,bv0byf30, byden 
       real*8, parameter :: bv0=5.24d-3    ! (1/s), below (65b)
-     &   ,f30=omega                       ! (1/s), below (65b)
-     &   ,bv0byf30=bv0/f30                ! (1), (65b)
-     &   ,byden=1./(f30*acosh(bv0byf30))  ! (1), (65b)
      &   ,epsbyn2=.288d-4                 ! (m^2/s), (66)
      &   ,q=.7d0   ! fraction of baroclinic energy into creating mixing
      &   ,byzet=1./500.d0                 ! upward decaying factor (1/m)
       real*8 fbyden,afc,ltn,bvbyf,fac,kmbg,khbg,ksbg
       real*8 den,fz,epstd_byn2,kmtd,khtd,kstd
       real*8 phim2,zb,unr20
+
+      f30=omega                       ! (1/s), below (65b)
+      bv0byf30=bv0/f30                ! (1), (65b)
+      byden=1./(f30*acosh(bv0byf30))  ! (1), (65b)
 
       ! Vertical grid diagram
       !

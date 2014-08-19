@@ -1258,7 +1258,7 @@ C****
 !@auth Gavin Schmidt
       use domain_decomp_atm, only: getDomainBounds,grid,am_i_root
       USE RESOLUTION, only : im,jm,lm
-      USE MODEL_COM, only : modelEclock, calendr
+      USE MODEL_COM, only : modelEclock, calendar
       USE MODEL_COM, only : itime,itime0,nday,iyear1
      &     ,dtsrc,xlabel,lrunid
       use TimeConstants_mod, only: INT_DAYS_PER_YEAR
@@ -4380,7 +4380,7 @@ c time_subdd
       integer :: year, month, date
       type (BaseTime) :: t
 
-      call modelEclock%getDate(year=year, month=month,
+      call modelEclock%get(year=year, month=month,
      &       date=date)
       if (q24) then ! coordinate is #days
         t = newBaseTime(
@@ -4609,7 +4609,7 @@ c write_time_coord_subdd
 
       character(len=*),intent(out) :: calendarstring
 
-      call modelEclock%getDate(year=year, month=month, hour=hour,
+      call modelEclock%get(year=year, month=month, hour=hour,
      *     date=date)
       call write_data(grid,fid,'itime',itime+1,record=rec)
       call write_data(grid,fid,'time',time,record=rec)
@@ -5158,8 +5158,8 @@ C****
       END IF
 #endif
 
-      ih=modelEclock%hour()+1
-      ihm=ih+(modelEclock%date()-1)*24
+      ih=modelEclock%getHour()+1
+      ihm=ih+(modelEclock%getDate()-1)*24
       do j=j_0,j_1
       do i=I_0,imaxj(j)
       psk=pek(1,i,j)
@@ -5372,7 +5372,7 @@ c a parallelized i/o routine that understands it
       CHARACTER aDATE*14
       integer year, month, dayOfYear, hour, date
 
-      call modelEclock%getDate(year=year, month=month,
+      call modelEclock%get(year=year, month=month,
      *     dayOfYear=dayOfYear, date=date,
      *     hour=hour)
       atmocn%aij => aij_loc
@@ -5961,7 +5961,7 @@ C**** Set conservation diagnostics for ice mass, energy, salt
       INTEGER :: J_0, J_1, I_0,I_1
       integer year, month, dayOfYear
 
-      call modelEclock%getDate(year=year, month=month,
+      call modelEclock%get(year=year, month=month,
      &     dayOfYear=dayOfYear)
       call getDomainBounds(GRID,J_STRT=J_0,J_STOP=J_1)
       I_0 = GRID%I_STRT

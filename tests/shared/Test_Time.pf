@@ -6,19 +6,24 @@ module Test_Time_mod
 
 contains
 
-  @test
+@test
   subroutine test_copy()
+    use AbstractCalendar_mod
     use JulianCalendar_mod
     use BaseTime_mod
     use Rational_mod
 
     type (BaseTime) :: t
     type (Time) :: t1, t2
+    class (AbstractCalendar), allocatable :: calendar
 
-    t1 = newTime(makeJulianCalendar())
-    t2 = newTime(makeJulianCalendar())
+
+    allocate(calendar, source=JulianCalendar())
+
+    t1 = newTime(calendar)
+    t2 = newTime(JulianCalendar())
     t = newBaseTime(Rational(1,2,3))
-    t1%BaseTime = t
+    call t1%set(t)
     t2 = t1
     @assertTrue(t1 == t2)
 

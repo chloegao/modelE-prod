@@ -1,9 +1,10 @@
+
 #include "rundeck_opts.h"
 
       MODULE MESOML
 
       USE MODEL_COM,  only : nstep=>itime
-      USE CONSTANT,   only : grav,omega,sday
+      USE CONSTANT,   only : grav,omega
       USE OCEANR_DIM, only : ogrid
       USE OCEANRES,   only : idm=>imo,jdm=>jmo,kdm=>lmo,dzo
       USE OFLUXES,    only : oRSI,oAPRESS

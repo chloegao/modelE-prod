@@ -388,7 +388,7 @@ C**** Arrays needed for full output and pdE
       CHARACTER(len=units_strlen), DIMENSION(KTCON) :: UNITSO
       integer :: year, hour, date
 
-      call modelEclock%getDate(year=year, hour=hour, date=date)
+      call modelEclock%get(year=year, hour=hour, date=date)
 
       if (kdiag(8).ge.2) return
 C**** CALCULATE SCALING FACTORS
@@ -1101,7 +1101,7 @@ C****
       DATA CLAT/'LATITUDE'/,CPRES/'PRESSURE (MB)'/,CBLANK/' '/
       integer :: year, date
 
-      call modelEclock%getDate(year=year,date=date)
+      call modelEclock%get(year=year,date=date)
 
 C form title string
       title = trim(lname)//' ('//trim(units)//')'
@@ -1274,7 +1274,7 @@ C****
       REAL*8 :: DAYS,gm
       integer :: year, hour, date
 
-      call modelEclock%getDate(year=year, hour=hour, date=date)
+      call modelEclock%get(year=year, hour=hour, date=date)
 
       if (kdiag(8).ge.1) return
 
@@ -1651,7 +1651,7 @@ C****
       REAL*8 :: DAYS,gm
       integer :: year, hour, date
 
-      call modelEclock%getDate(year=year, hour=hour, date=date)
+      call modelEclock%get(year=year, hour=hour, date=date)
 
       if (kdiag(8).ge.1) return
 

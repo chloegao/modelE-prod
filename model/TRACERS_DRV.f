@@ -6716,7 +6716,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
 #ifdef GLINT2
       USE FLUXES, only : atmglas_hp
 #endif
-      USE CONSTANT, only: mair,rhow,sday,grav,tf,avog,rgas
+      USE CONSTANT, only: mair,rhow,grav,tf,avog,rgas
       use TimeConstants_mod, only: SECONDS_PER_DAY
       USE resolution,ONLY : Im,Jm,Lm,Ls1,ptop
       USE ATM_COM, only : q,qcl
@@ -6995,8 +6995,11 @@ C**** ESMF: Each processor reads the global array: N2Oic
                  trm(i,j,l,n) = N2OICX(i,j,l)*ICfactor
                end do   ; end do   ; end do
              else
-               if(ghg_yr/=0)then; write(ghg_name,'(I4.4)') ghg_yr
-               else; write(ghg_name,'(I4.4)') modelEclock%year(); endif
+               if(ghg_yr/=0) then
+                 write(ghg_name,'(I4.4)') ghg_yr
+               else
+                 write(ghg_name,'(I4.4)') modelEclock%getYear()
+               endif
                ghg_file='GHG_IC_'//ghg_name
                call openunit(ghg_file,iu_data,.true.,.true.)
                do m=1,3
@@ -7094,8 +7097,11 @@ C**** Fill in the tracer; above 100 mb interpolate linearly with P to 0 at top
                  end do   ; end do   ; end do
                end select
              else
-               if(ghg_yr/=0)then; write(ghg_name,'(I4.4)') ghg_yr
-               else; write(ghg_name,'(I4.4)') modelEclock%year(); endif
+               if(ghg_yr/=0) then
+                 write(ghg_name,'(I4.4)') ghg_yr
+               else
+                 write(ghg_name,'(I4.4)') modelEclock%getYear()
+               endif
                ghg_file='GHG_IC_'//ghg_name
                call openunit(ghg_file,iu_data,.true.,.true.)
                do m=1,4
@@ -7540,7 +7546,7 @@ c**** earth
              end do   ; end do   ; end do
            else
              if(ghg_yr/=0)then; write(ghg_name,'(I4.4)') ghg_yr
-             else; write(ghg_name,'(I4.4)') modelEclock%year(); endif
+             else; write(ghg_name,'(I4.4)') modelEclock%getYear(); endif
              ghg_file='GHG_IC_'//ghg_name
              call openunit(ghg_file,iu_data,.true.,.true.)
              do m=1,5
@@ -7924,7 +7930,7 @@ C****
       integer :: year, month, dayOfYear
       character(len=MAX_LEN_NAME) :: tmpString
 
-      call modelEclock%getDate(year=year, month=month, 
+      call modelEclock%get(year=year, month=month, 
      *     dayOfYear=dayOfYear)
 CC****
 C**** Extract useful local domain parameters from "grid"
@@ -7961,7 +7967,7 @@ C**** Initialize tables for Prather StratChem tracers
       end if  ! not end of day
 
 C**** Prather StratChem tracers and linoz tables change each month
-      IF (modelEclock%month().NE.last_month) THEN
+      IF (modelEclock%getMonth().NE.last_month) THEN
         do n=1,NTM
           if ((trname(n).eq."N2O" .or. trname(n).eq."CH4" .or.
      *         trname(n).eq."CFC11") .and. itime.ge.itime_tr0(n)) then
@@ -7975,7 +7981,7 @@ C**** Prather StratChem tracers and linoz tables change each month
             exit
           end if
         end do
-        last_month = modelEclock%month()
+        last_month = modelEclock%getMonth()
       END IF
 
 C**** Tracer specific call for CO2
@@ -8415,7 +8421,7 @@ c      real*8 :: nlight, max_COSZ1, fact0
       class (AbstractAttribute), pointer :: pa
       integer, pointer :: index
 
-      call modelEclock%getDate(year=year, month=month, 
+      call modelEclock%get(year=year, month=month, 
      *     dayOfYear=dayOfYear)
 C****
 C**** Extract useful local domain parameters from "grid"
@@ -9240,7 +9246,7 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 #endif
       integer :: year, dayOfYear
 
-      call modelEclock%getDate(year=year, dayOfYear=dayOfYear)
+      call modelEclock%get(year=year, dayOfYear=dayOfYear)
 C****
 C**** Extract useful local domain parameters from "grid"
 C****

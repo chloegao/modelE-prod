@@ -500,8 +500,8 @@ C     Interpolation in the vertical.
   
       call openunit(trim(fn),mon_units(nc),mon_bins(nc))
       call read_monthly_3Dsources(Lsulf,mon_units(nc),
-     &   src(:,:,:,nc),trans_emis,0,0,modelEclock%year(),
-     &   modelEclock%dayOfYear())
+     &   src(:,:,:,nc),trans_emis,0,0,modelEclock%getYear(),
+     &   modelEclock%getDayOfYear())
       call closeunit(mon_units(nc))
 C====
 C====   Place field onto model levels

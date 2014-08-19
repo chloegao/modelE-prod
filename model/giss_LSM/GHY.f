@@ -297,6 +297,15 @@ ccc be computed (i.e. f[bv] is not zero)
 ccc   external functions
       real*8, external :: qsat,dqsatdt
 
+! The following variables specify the permitted range of temperature for
+! surface soil and canopy.  If violated a message is generated and the
+! model will stop.  Default values can be overridden with rundeck params.
+!@var minGroundTemperature - minimum allowed temperature for ground
+!@var maxGroundTemperature - maximum allowed temperature for ground
+      real*8, public :: maxGroundTemperature = 130.d0 ! Celsius
+      real*8, public :: minGroundTemperature = -150.d0 ! Celsius
+
+
       contains
 
 !-----------------------------------------------------------------------
@@ -1784,16 +1793,24 @@ ccc should be removed when program is rewritten in a more clean way...
 !         endif
       enddo
 
-      if(tp(1,1).gt.130.d0.or.tp(0,2).gt.130.d0
-     &     .or. tp(1,1)<-150.d0 .or. tp(0,2)<-150.d0 )then
-        write(6,*)'retp tp bounds error'
-        write(6,*)'ijdebug',ijdebug
-        call reth
-        call hydra
-        call outw(1)
-        call stop_model(
-     &       'retp: tground > 130C - see soil_outw and fort.99',255)
+
+      ! Check bounds of ground/canopy
+      if(any([tp(1,1),tp(0,2)] > maxGroundTemperature) .or.
+     &   any([tp(1,1),tp(0,2)] < minGroundTemperature)) then
+
+         write(6,*)'retp(): bounds exceeded for ground/canopy temp.'
+         write(6,*)'Allowed range is (',minGroundTemperature,',',
+     &        maxGroundTemperature,').'
+         write(6,*)'ijdebug',ijdebug
+         call reth
+         call hydra
+         call outw(1)
+         call stop_model(
+     &        'retp(): bounds exceeded for ground/canopy temperature' //
+     &        '- see soil_outw and fort.99',255)
+
       endif
+      
       return
       end subroutine retp
 
