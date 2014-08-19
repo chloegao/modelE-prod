@@ -19,10 +19,10 @@ USAGE="$0  arg1 ..."
 ##########################################################
 
 
+name_script=$0
 # HARD CODING need change later 
 latlonz_exe=""
 make latlonz &&  latlonz_exe=./latlonz
-
 ##########################################################
 ############### DEFINE FUNCTIONS HERE ####################
 ##########################################################
@@ -34,10 +34,10 @@ function help_use
 #
 cat << ENDOFTEXT
 
-Dear $USER, the usage of the script $0 is as follows:
-usage:   $0 [-h]  [-o outFile  -t "title" -i file1 [ file2 [file*] ]
+Dear $USER, the usage of the script $name_script is as follows:
+usage: $name_script [-h]  [-o outFile  -t "title" -i file1 [ file2 [file*] ]
 example: ( input files can be zip files !!! )
-   $0 \\
+   latlonz.ksh \\
      -o /discover/nobackup/ntausnev/Z_Deleted_Files/JAN2280_82.zoutEhMay2 \\
      -t "RunId=EhMay2 Mon=JAN YEAR=2280-82" \\
      -i /discover/nobackup/ntausnev/RUNS_ME/EhMay2/00HYC/outEhMay2_2280-2289/JAN228[0-2].outEhMay2.gz

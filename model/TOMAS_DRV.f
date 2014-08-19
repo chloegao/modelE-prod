@@ -1,5 +1,7 @@
 #include "rundeck_opts.h"
 
+! IMPORTANT NOTE = Binary nucleation is reduced (cnai/5.)
+
 !@sum  TOMAS_DRV: TwO-Moment Aerosol Sectional (TOMAS) microphysics driver 
 !@+     aerosol microphysics (nucleation,coagulation, condensation) and 
 !@+     SO4 formation from (clouds) aqueous chemistry. 
@@ -66,7 +68,7 @@ C Physical properties of aerosol components
 
 !@param bin_nuc/tern_nuc/ion_nuc/actv_nuc : Flag for which nucleation parameterizations to use (1=on)
       integer bin_nuc, tern_nuc, ion_nuc, actv_nuc   
-      parameter(bin_nuc=1, tern_nuc=0, ion_nuc=0, actv_nuc=1) 
+      parameter(bin_nuc=1, tern_nuc=0, ion_nuc=0, actv_nuc=0) 
 
 !@var soa_amp : mass growth amplification factor (determined by the 
 !@+             amount of soa that needs to be condensed
@@ -101,7 +103,8 @@ C Physical properties of aerosol components
       real*8, ALLOCATABLE,DIMENSION(:,:,:,:,:,:)  :: M_subgridcg 
 !@var trm_emis : TRM before emission and used in subgridcoagualtion process 
       real*8, ALLOCATABLE,DIMENSION(:,:,:,:)  :: trm_emis
-
+!@var CCN_TOMAS [CM-3]
+      real*8, ALLOCATABLE,DIMENSION(:,:,:,:)  :: CCN_TOMAS
 !@var TOMAS_QEXT/TOMAS_QSCA/TOMAS_QABS/TOMAS_GSCA : size-dependant radiative properties 
 !@+      lookup tables based on Mie theory
       REAL*8, DIMENSION(124,101,91)      :: TOMAS_QEXT, TOMAS_QSCA,
@@ -113,6 +116,11 @@ C Physical properties of aerosol components
 !@+  TOMAS_DIAG_FC=2 is only available now.
 
       INTEGER                            :: TOMAS_DIAG_FC = 2 
+
+!@var number of supersaturations (0.1/0.2/0.3) 
+      integer, parameter :: nsmax=3
+      real*8, parameter :: Smax(nsmax)=(/0.1,0.2,0.3/)
+
   
 
       END MODULE TOMAS_AEROSOL
@@ -340,9 +348,11 @@ Cjrp  Initialize all components condensible gas values to zero
 Cjrp  Gc(srtso4) will remain zero until within cond_nuc where the
 Cjrp  pseudo steady state H2SO4 concentration will be put in this place.
 
-!               Gc(srtso4)=h2so4rate_o*adt ! this is for condensation diagnostics 
+               Gc(srtso4)=h2so4rate_o*adt ! this is for condensation diagnostics 
 
                call storenm()
+
+               Gc(srtso4)=0.
 
 C If any Nk are zero, then set them to a small value to avoid division by zero
                call cond_nuc(Nk,Mk,Gc,Nkout,Mkout,Gcout,fn,fn1,
@@ -352,7 +362,7 @@ C If any Nk are zero, then set them to a small value to avoid division by zero
                Mk(:,:)=Mknuc(:,:)
                Nk(:)=Nknuc(:)
 
-!               Gc(srtso4)=h2so4rate_o*adt !to make zero nucleation diag
+               Gc(srtso4)=h2so4rate_o*adt !to make zero nucleation diag
             
                mpnum=3 
                call aerodiag(mpnum,i,j,l)
@@ -376,8 +386,8 @@ C If any Nk are zero, then set them to a small value to avoid division by zero
                
                                 ! accumulate nucleation rate diagnostics
                                 ! first sum for JL
-               TSUM(1)=TSUM(1)+fn*boxvol*adt ! number of particles generated per kg of air in timestep
-               TSUM(2)=TSUM(2)+fn1*boxvol*adt
+!               TSUM(1)=TSUM(1)+fn*boxvol*adt ! number of particles generated per kg of air in timestep
+!               TSUM(2)=TSUM(2)+fn1*boxvol*adt
                                 ! IJ
 c$$$               T3DC(I,J,L,1)=T3DC(I,J,L,1)+fn*boxvol*adt
 c$$$               T3DC(I,J,L,2)=T3DC(I,J,L,2)+fn1*boxvol*adt      
@@ -454,6 +464,8 @@ C     ***********************
                endif
 
              enddo              ! timestep
+
+          call getCCN_kappa(i,j,l,Nk,Mk,Temp,boxmass,boxvol) 
               
 C     Check for negative tracer problems
                flag=0
@@ -513,9 +525,20 @@ C     Check for negative tracer problems
                enddo
                
 
-               tr3Dsource(i,j,l,nOther,n_H2SO4) =
-     *              (Gc(srtSO4)-INIT_H2SO4)/dtsrc
-               
+!               tr3Dsource(i,j,l,nOther,n_H2SO4) =
+!     *              (Gc(srtSO4)-INIT_H2SO4)/dtsrc
+               TRM(I,J,L,n_H2SO4)=Gc(srtso4)              
+                  do np=1,ptype
+                     if (ijts_TOMAS(np,n_H2SO4).gt.0) 
+     &                taijs(i,j,ijts_TOMAS(np,n_H2SO4)) 
+     &                    =taijs(i,j,ijts_TOMAS(np,n_H2SO4))
+     &                    +AEROD(i,j,l,n_H2SO4,np) ! /adt
+                     if (itcon_TOMAS(np,n_H2SO4).gt.0) 
+     &                    call inc_diagtcb(i,j,AEROD(i,j,l,n_H2SO4,np),
+     &                    itcon_TOMAS(np,n_H2SO4),n_H2SO4)
+                  enddo               
+
+
                tr3Dsource(i,j,l,nChemistry,n_NH3)=
      *              (Gc(srtNH4)-INIT_NH3)/dtsrc
 
@@ -643,7 +666,7 @@ C     Swap GCM variables into aerosol algorithm variables
          mnacl=Mk(k,srtna)
          mno3=0.e0
          if ((mso4+mno3) .lt. 1.e-8) mso4=1.e-8
-         mnh4=0.1875*mso4  !assume ammonium bisulfate
+         mnh4=0.1875*Mk(k,srtso4)  !assume ammonium bisulfate
          mecob=Mk(k,srtecob)
          mecil=Mk(k,srtecil)
          mocil=Mk(k,srtocil)
@@ -2264,6 +2287,8 @@ C     determine the mass added to each bin coagulation
      *     ICOMP-IDIAG,2))
      
       allocate(  TRM_EMIS(I_0H:I_1H,J_0H:J_1H,LM,NTM) )
+
+      allocate(  CCN_TOMAS(I_0H:I_1H,J_0H:J_1H,LM,NSMAX) )
 
       return
       end subroutine alloc_tracer_TOMAS_com

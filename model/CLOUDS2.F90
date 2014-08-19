@@ -219,7 +219,7 @@ module CLOUDS
 !@var ACDNWM,ACDNIM -CDNC - warm and cold moist cnv clouds (cm^-3)
   real*8, dimension(LM) :: ACDNWS,ACDNIS
 !@var ACDNWS,ACDNIS -CDNC - warm and cold large scale clouds (cm^-3)
-  real*8, dimension(LM) :: CDNC_NENES,CDNC_TOMAS
+  real*8, dimension(LM) :: CDNC_TOMAS
 !@var CDNC_TOMAS, CDNC_NENS -CDNC from Nenes and Seinfel parameterization- warm large scale clouds
 !(cm^-3)
   real*8, dimension(LM) :: AREWS,AREIS,AREWM,AREIM  ! for diag
@@ -3685,8 +3685,11 @@ contains
 
 !2. computed using EGCM
 ! TOMAS (Nov 2011) WPARC results in too high CDNC. So it reduced by 7 times (arbitrary)
-
-        WPARC=v0(mkx)/7. !wturb=sqrt(0.6667*EGCM(l,i,j))
+!        WPARC=v0(mkx)/7. !wturb=sqrt(0.6667*EGCM(l,i,j))
+! TOMAS (NOV 2013) WPARC now use large-scale vertical velocity (v0 is sub-grid scale velocity)
+         WPARC=(VVEL*1.d-02+v0(mkx))/7.           !wturb=sqrt(0.6667*EGCM(l,i,j))
+         WPARC=MAX(WPARC,0.0) ! make sure it is positive
+         WPARC=MIN(WPARC,0.4) ! arbituary max
 !End of updrate velocity option.
 
 
@@ -3709,9 +3712,11 @@ contains
             NACT = 1.0 !ndrop(mkx) ! 40.d6      ! Minimum droplet number [#/m3]
             SMAX = 0.0001    ! Minimum supersaturation
          ENDIF
-       NACTL(mkx)=NACT
-       CDNC_NENES(L)=NACT !FOR DIAGNOSTICS
+
        ENDIF
+
+       NACTL(mkx)=NACT
+       CDNC_TOMAS(L)=nactl(mkx)*1.e-6 !m-3 to cm-3  
 
        ldummy=execute_bulk2m_driver('all' &
             ,ndrop,mdrop,ncrys,mcrys,nactl,'end',qr0=mrain, &
@@ -5275,7 +5280,7 @@ contains
     ALWIS=0.
     NLSW = 0
     NLSI = 0
-    CDNC_TOMAS=0.
+!    CDNC_TOMAS=0.
 #endif
     do L=1,LMCLD
       FCLD=CLDSSL(L)+teeny
@@ -5474,9 +5479,6 @@ contains
         CDN3DL(L)=SCDNCW
         CRE3DL(L)=RCLDE
         NLSW  = NLSW + 1
-#ifdef TRACERS_TOMAS
-        CDNC_TOMAS(L)=CDNC_NENES(L)
-#endif
         !      if(ACDNWS(L).gt.20.d0) write(6,*)"INWCLD",ACDNWS(L),
         !    * SCDNCW,NLSW,AREWS(L),RCLDE,LHX
       elseif(FCLD.gt.1.d-5.and.LHX.eq.LHS) then

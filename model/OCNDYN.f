@@ -270,7 +270,7 @@
 !#endif
 !#endif
 !
-!#ifdef OCN_Mesoscales
+!#ifdef OCN_GISS_MESO
 !      CALL OCN_mesosc
 !#endif
 !
@@ -294,12 +294,14 @@
       USE MODEL_COM, only : dtsrc,kocean
       USE OCEAN, only : im,jm,lmo,focean,lmm
      *     ,lmu,lmv,hatmo,hocean,ze,mo,g0m,s0m,zmid,dzoe,bydzoe
-     *     ,uo,vo,uod,vod,dxypo,ogeoz
+     *     ,uo,vo,uod,vod,dxypo,ogeoz,kpl
      *     ,dts,dtolf,dto,dtofs,mdyno,msgso
      *     ,ndyno,imaxj,ogeoz_sv,bydts,lmo_min,j1o
      *     ,OBottom_drag,OCoastal_drag,oc_salt_mean
-#ifdef OCN_Mesoscales
-     *     ,auvel,avvel
+#ifdef OCN_GISS_MESO
+     *     ,auvel,avvel,kappam3d_sm
+     *     ,flux_x_sm,flux_y_sm,flux_z_sm
+     *     ,fluxA_x_sm,fluxA_y_sm,fluxA_z_sm
 #endif
       USE OCEAN, only : use_qus,
      *     GXMO,GYMO,GZMO, GXXMO,GYYMO,GZZMO, GXYMO,GYZMO,GZXMO,
@@ -328,8 +330,11 @@
       Use OCN_TRACER_COM, Only: ntm, need_ic
 #endif
       USE EXCHANGE_TYPES, only : atmocn_xchng_vars,iceocn_xchng_vars
-#ifdef OCN_GISSMIX
+#ifdef OCN_GISS_TURB
       USE GISS_OTURB, only : gissmix_init
+#endif
+#ifdef OCN_GISS_SM
+      USE GISS_SM, only : giss_sm_init
 #endif
       use pario, only : par_open,par_close,read_dist_data
       IMPLICIT NONE
@@ -695,8 +700,10 @@ C**** Multiply specific quantities by mass
 C**** Initiallise geopotential field (needed by KPP)
       OGEOZ = 0.
       OGEOZ_SV = 0.
+C**** Initiallise kpl
+      kpl=3
 
-      END IF
+      END IF ! end if(iniOCEAN)
 
 C**** Extend ocean data to added layers at bottom if necessary
       if (.not.postProc .and. lmo_min .gt. 1) then
@@ -771,9 +778,13 @@ C**** Initialize solar radiation penetration arrays
 C**** Initialize KPP mixing scheme
       call kmixinit(ZE)
 
-#ifdef OCN_GISSMIX
+#ifdef OCN_GISS_TURB
 C**** Initialize GISS mixing scheme
       call gissmix_init(iniOCEAN)
+#endif
+#ifdef OCN_GISS_SM
+C**** Initialize GISS SM mixing scheme
+      call giss_sm_init(iniOCEAN)
 #endif
 
 C***  Initialize ODIFF
@@ -1460,9 +1471,20 @@ C****
       call defvar(grid,fid,sxmo,'sxmo(dist_imo,dist_jmo,lmo)')
       call defvar(grid,fid,symo,'symo(dist_imo,dist_jmo,lmo)')
       call defvar(grid,fid,szmo,'szmo(dist_imo,dist_jmo,lmo)')
-#ifdef OCN_Mesoscales
+#ifdef OCN_GISS_MESO
       call defvar(grid,fid,auvel,'auvel(dist_imo,dist_jmo,lmo)')
       call defvar(grid,fid,avvel,'avvel(dist_imo,dist_jmo,lmo)')
+      call defvar(grid,fid,kappam3d_sm,
+     *            'kappam3d_sm(dist_imo,dist_jmo,lmo)')
+      call defvar(grid,fid,flux_x_sm,'flux_x_sm(dist_imo,dist_jmo,lmo)')
+      call defvar(grid,fid,flux_y_sm,'flux_y_sm(dist_imo,dist_jmo,lmo)')
+      call defvar(grid,fid,flux_z_sm,'flux_z_sm(dist_imo,dist_jmo,lmo)')
+      call defvar(grid,fid,fluxA_x_sm,
+     *            'fluxA_x_sm(dist_imo,dist_jmo,lmo)')
+      call defvar(grid,fid,fluxA_y_sm,
+     *            'fluxA_y_sm(dist_imo,dist_jmo,lmo)')
+      call defvar(grid,fid,fluxA_z_sm,
+     *            'fluxA_z_sm(dist_imo,dist_jmo,lmo)')
 #endif
       if(use_qus==1) then
       call defvar(grid,fid,gxxmo,'gxxmo(dist_imo,dist_jmo,lmo)')
@@ -1480,6 +1502,7 @@ C****
       endif
       call defvar(grid,fid,ogeoz,'ogeoz(dist_imo,dist_jmo)')
       call defvar(grid,fid,ogeoz_sv,'ogeoz_sv(dist_imo,dist_jmo)')
+      call defvar(grid,fid,kpl,'kpl(dist_imo,dist_jmo)')
 c straits arrays
       call defvar(grid,fid,must,'must(lmo,nmst)')
       call defvar(grid,fid,g0mst,'g0mst(lmo,nmst)')
@@ -1540,8 +1563,11 @@ c tracer arrays in straits
       call defvar(grid, fid, arrdum, 'sliqo(dist_imo,dist_jmo)')
       deallocate(arrdum)
 
-#ifdef OCN_GISSMIX
+#ifdef OCN_GISS_TURB
       call def_rsf_gissmix(fid)
+#endif
+#ifdef OCN_GISS_SM
+      call def_rsf_giss_sm(fid)
 #endif
 
       return
@@ -1582,9 +1608,16 @@ c tracer arrays in straits
         call write_dist_data(grid,fid,'sxmo',sxmo)
         call write_dist_data(grid,fid,'symo',symo)
         call write_dist_data(grid,fid,'szmo',szmo)
-#ifdef OCN_Mesoscales
+#ifdef OCN_GISS_MESO
         call write_dist_data(grid,fid,'auvel',auvel)
         call write_dist_data(grid,fid,'avvel',avvel)
+        call write_dist_data(grid,fid,'kappam3d_sm',kappam3d_sm)
+        call write_dist_data(grid,fid,'flux_x_sm',flux_x_sm)
+        call write_dist_data(grid,fid,'flux_y_sm',flux_y_sm)
+        call write_dist_data(grid,fid,'flux_z_sm',flux_z_sm)
+        call write_dist_data(grid,fid,'fluxA_x_sm',fluxA_x_sm)
+        call write_dist_data(grid,fid,'fluxA_y_sm',fluxA_y_sm)
+        call write_dist_data(grid,fid,'fluxA_z_sm',fluxA_z_sm)
 #endif
         if(use_qus==1) then
         call write_dist_data(grid,fid,'gxxmo',gxxmo)
@@ -1602,6 +1635,7 @@ c tracer arrays in straits
         endif
         call write_dist_data(grid,fid,'ogeoz',ogeoz)
         call write_dist_data(grid,fid,'ogeoz_sv',ogeoz_sv)
+        call write_dist_data(grid,fid,'kpl',kpl)
 c straits arrays
         call write_data(grid,fid,'must',must)
         call write_data(grid,fid,'g0mst',g0mst)
@@ -1675,9 +1709,16 @@ c tracer arrays in straits
         call read_dist_data(grid,fid,'sxmo',sxmo)
         call read_dist_data(grid,fid,'symo',symo)
         call read_dist_data(grid,fid,'szmo',szmo)
-#ifdef OCN_Mesoscales
+#ifdef OCN_GISS_MESO
         call read_dist_data(grid,fid,'auvel',auvel)
         call read_dist_data(grid,fid,'avvel',avvel)
+        call read_dist_data(grid,fid,'kappam3d_sm',kappam3d_sm)
+        call read_dist_data(grid,fid,'flux_x_sm',flux_x_sm)
+        call read_dist_data(grid,fid,'flux_y_sm',flux_y_sm)
+        call read_dist_data(grid,fid,'flux_z_sm',flux_z_sm)
+        call read_dist_data(grid,fid,'fluxA_x_sm',fluxA_x_sm)
+        call read_dist_data(grid,fid,'fluxA_y_sm',fluxA_y_sm)
+        call read_dist_data(grid,fid,'fluxA_z_sm',fluxA_z_sm)
 #endif
         if(use_qus==1) then
         call read_dist_data(grid,fid,'gxxmo',gxxmo)
@@ -1695,6 +1736,7 @@ c tracer arrays in straits
         endif
         call read_dist_data(grid,fid,'ogeoz',ogeoz)
         call read_dist_data(grid,fid,'ogeoz_sv',ogeoz_sv)
+        call read_dist_data(grid,fid,'kpl',kpl)
 c straits arrays
         call read_data(grid,fid,'must',must,bcast_all=.true.)
         call read_data(grid,fid,'g0mst',g0mst,bcast_all=.true.)
@@ -1748,8 +1790,11 @@ c tracer arrays in straits
       call new_io_obio(fid,iaction)
 #endif
 
-#ifdef OCN_GISSMIX
+#ifdef OCN_GISS_TURB
       call new_io_gissmix(fid,iaction)
+#endif
+#ifdef OCN_GISS_SM
+      call new_io_giss_sm(fid,iaction)
 #endif
 
       return
@@ -4186,7 +4231,7 @@ c      WRITE (6,*) 'C=',(L,C(L),L=0,LMIJ)
 
       Subroutine OBDRAG
 !@sum  OBDRAG exerts a drag on the Ocean Model's bottom layer
-!@+    define OCN_GISSMIX and idrag=1 in GISS_OTURB module to include tidal
+!@+    define OCN_GISS_TURB and idrag=1 in GISS_OTURB module to include tidal
 !@+    enhancement of bottom drag
 !@auth Gary Russell and Armando Howard
       Use OCEAN, Only: im,jm,lmo,IVNP,J1O, mo,uo,vo, lmu,lmv, dts,
@@ -4194,7 +4239,7 @@ c      WRITE (6,*) 'C=',(L,C(L),L=0,LMIJ)
       use domain_decomp_1d, only : getDomainBounds, halo_update, 
      *                             north, south
       USE OCEANR_DIM, only : grid=>ogrid
-#ifdef OCN_GISSMIX
+#ifdef OCN_GISS_TURB
       USE GISS_OTURB, only : taubx,tauby, ! x,y components of velocity flux (m/s)^2
      &                       rhobot       ! ocean bottom in-situ density (kg/m^3)
      &                      ,idrag        ! idrag=1: no explicit tides; 0: otherwise
@@ -4208,7 +4253,7 @@ c      WRITE (6,*) 'C=',(L,C(L),L=0,LMIJ)
 
       INTEGER :: J_0, J_0S,J_1S  ; logical :: have_north_pole
       REAL*8 bdragfac   !density times C_D (u^2 + u_t^2)^1/2 (kg/(m^2 s))
-#ifdef OCN_GISSMIX
+#ifdef OCN_GISS_TURB
       REAL*8 taub       !velocity flux (m/s)^2
       REAL*8 taubbyu    !velocity flux divided by velocity (m/s)
 #endif
@@ -4222,7 +4267,7 @@ C****
       call halo_update (grid, mo, FROM=NORTH)
       call halo_update (grid, uo, FROM=NORTH)
       call halo_update (grid, vo, FROM=SOUTH)
-#ifdef OCN_GISSMIX
+#ifdef OCN_GISS_TURB
       call halo_update (grid, taubx, FROM=NORTH)
       call halo_update (grid, tauby, FROM=SOUTH)
       call halo_update (grid, rhobot, FROM=NORTH)
@@ -4243,7 +4288,7 @@ C**** Bottom drag in the interior
       WSQ = UT(I,J,L)*UT(I,J,L) + 1d-20 +
      *  .25*(VT(I,J  ,L)*VT(I,J  ,L) + VT(IP1,J  ,L)*VT(IP1,J  ,L)
      *     + VT(I,J-1,L)*VT(I,J-1,L) + VT(IP1,J-1,L)*VT(IP1,J-1,L))
-#ifndef OCN_GISSMIX
+#ifndef OCN_GISS_TURB
         bdragfac=BDRAGX*SQRT(WSQ)
 #else
         if(idrag.eq.0) then
@@ -4268,7 +4313,7 @@ C     IF(LMU(1,1 or JM) <= 0)  GO TO
       if (have_north_pole) then
         L=LMU(1,JM)
         WSQ = UT(IM,JM,L)**2 + UT(IVNP,JM,L)**2 + 1d-20
-#ifndef OCN_GISSMIX
+#ifndef OCN_GISS_TURB
         bdragfac=BDRAGX*SQRT(WSQ)
 #else
         if(idrag.eq.0) then
@@ -4298,7 +4343,7 @@ C**** Bottom drag away from north pole
       WSQ = VT(I,J,L)*VT(I,J,L) + 1d-20 +
      *  .25*(UT(IM1,J+1,L)*UT(IM1,J+1,L) + UT(I,J+1,L)*UT(I,J+1,L)
      *     + UT(IM1,J  ,L)*UT(IM1,J  ,L) + UT(I,J  ,L)*UT(I,J  ,L))
-#ifndef OCN_GISSMIX
+#ifndef OCN_GISS_TURB
         bdragfac=BDRAGX*SQRT(WSQ)
 #else
         if(idrag.eq.0) then
@@ -4325,7 +4370,7 @@ C**** Bottom drag near north pole
       WSQ = VT(I,JM-1,L)*VT(I,JM-1,L) + 1d-20 +
      +   .5*(UT(IM,JM,L)*COSI(I) + UT(IVNP,JM,L)*SINI(I))**2 +
      +  .25*(UT(Im1,JM-1,L)*UT(Im1,JM-1,L) + UT(I,JM-1,L)*UT(I,JM-1,L))
-#ifndef OCN_GISSMIX
+#ifndef OCN_GISS_TURB
         bdragfac=BDRAGX*SQRT(WSQ)
 #else
         if(idrag.eq.0) then

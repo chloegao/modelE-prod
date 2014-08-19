@@ -293,7 +293,10 @@ C**** TAIJLS 3D special tracer diagnostics
       integer, allocatable :: ijlt_3Dtau(:)
 !@var ijlt_3Daaod 3D tracer independent array for hydrated absorption
       INTEGER, allocatable :: ijlt_3Daaod(:)
-
+#ifdef TRACERS_TOMAS
+!@var ijlt_ccn_01-ccn_03 CCN diagnostic
+      INTEGER :: ijlt_ccn_01,ijlt_ccn_02,ijlt_ccn_03
+#endif
 C**** TAJLN
 !@param ktajl,ktajlx number of TAJL tracer diagnostics;
 !@+          ktajlx includes composites
@@ -1378,7 +1381,9 @@ C*** Unpack read global data into local distributed arrays
       allocate(ijts_isrc(ntsurfsrcmax,ntm))
       allocate(ijts_aq(ntm))
       allocate(ijts_tau(2,ntm))
+      ijts_tau = 0
       allocate(ijts_tausub(2,Ntm,MaxSubCl))
+      ijts_tausub = 0
       allocate(ijts_sqex(2,6,Ntm))
       allocate(ijts_sqexsub(2,6,Ntm,MaxSubCl))
       allocate(ijts_sqsc(2,6,Ntm))
@@ -1408,7 +1413,6 @@ C*** Unpack read global data into local distributed arrays
       ijlt_3Dtau = 0
       allocate(ijlt_3Daaod(ntm))
       ijlt_3Daaod = 0
-
       allocate(sname_jln(ktajlx,ntm))
       allocate(lname_jln(ktajlx,ntm))
       lname_jln = 'unused'

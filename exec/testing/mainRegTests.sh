@@ -108,10 +108,10 @@ watchJob()
      echo "Run diffreport..."
      # Submit job to run diffreport.x
      if [ -z "$MOCKMODELE" ]; then
-       jobID=`qsub $MODELROOT/exec/testing/diffreport.j`
+       jobID=`qsub $MODELROOT/diffreport.j`
        watchJob $jobID
      else
-       $MODELROOT/exec/testing/diffreport.j > $CONFIG.diff
+       $MODELROOT/diffreport.j > $CONFIG.diff
      fi
    else
      echo "Skipped diffreport (CREATEDIFF=$CREATE_DIFF)"

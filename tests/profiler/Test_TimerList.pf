@@ -94,10 +94,8 @@ contains
    subroutine test_stopTimerNotFound(this)
       class (Test_TimerList), intent(inout) :: this
       character(len=*), parameter :: name = 'undeclared Timer'
-#ifdef USE_PFUNIT
       call stop(name)
       @assertTrue(catch('Timer <' // trim(name) // '> has not been declared prior to use.'))
-#endif
    end subroutine test_stopTimerNotFound
 
 @Test

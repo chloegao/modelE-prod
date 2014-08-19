@@ -6667,6 +6667,32 @@ C**** 3D tracer-related arrays but not attached to any one tracer
         scale_ijlt(k) = 10.**(-ijlt_power(k))
 #endif
 
+#ifdef TRACERS_TOMAS 
+
+      k = k + 1
+        ijlt_ccn_01=k
+        lname_ijlt(k) = 'CCN 0.1% '
+        sname_ijlt(k) = 'CCN_01_SS'
+        ijlt_power(k) = 0 ! to match ijts 2D
+        units_ijlt(k) = unit_string(ijlt_power(k),'cm-3')
+        scale_ijlt(k) = 10.**(-ijlt_power(k))
+      k = k + 1
+        ijlt_ccn_02=k
+        lname_ijlt(k) = 'CCN 0.2%'
+        sname_ijlt(k) = 'CCN_02_SS'
+        ijlt_power(k) = 0 ! to match ijts 2D
+        units_ijlt(k) = unit_string(ijlt_power(k),'cm-3')
+        scale_ijlt(k) = 10.**(-ijlt_power(k))
+      k = k + 1
+        ijlt_ccn_03=k
+        lname_ijlt(k) = 'CCN 0.3%'
+        sname_ijlt(k) = 'CCN_03_SS'
+        ijlt_power(k) = 0 ! to match ijts 2D
+        units_ijlt(k) = unit_string(ijlt_power(k),'cm-3')
+        scale_ijlt(k) = 10.**(-ijlt_power(k))
+
+#endif /* TRACERS_TOMAS */
+
       if (k .gt. ktaijl) then
        if (AM_I_ROOT())
      *       write (6,*)'ijlt_defs: Increase ktaijl=',ktaijl
@@ -8854,6 +8880,9 @@ C****
         src_fact=1.d0 ! factor to multiply emissions with
         src_index=n   ! index to be used for emissions
         select case (trim(getName(pTracer)))
+#ifndef One_percent_sulfate 
+! Yunha Lee added this (09/16/2001). 
+! Interested in using 1% SO2 emission for primary sulfate instead of 2.5%
         case ('SO2')
           src_fact=0.975d0 ! the rest goes to sulfate (SO4 or M_ACC_SU)
         case ('SO4','ASO4__01')
@@ -8871,6 +8900,27 @@ C****
      &            *0.01d0
           src_index=n_SO2
 #endif
+
+#else
+       case ('SO2')
+          src_fact=0.99d0 ! the rest goes to sulfate (SO4 or M_ACC_SU)
+        case ('SO4','ASO4__01')
+          src_fact=0.015d0 ! (1.-SO2 fraction)*tr_mm(n_SO4)/tr_mm(n_SO2)
+          src_index=n_SO2
+        case ('M_ACC_SU')
+          src_fact=0.015d0
+#ifndef TRACERS_AMP_M4
+     &            *0.99d0 ! the rest goes to M_AKK_SU
+#endif
+          src_index=n_SO2
+#ifndef TRACERS_AMP_M4
+        case ('M_AKK_SU')
+          src_fact=0.015d0
+     &            *0.01d0
+          src_index=n_SO2
+#endif
+#endif
+
         case ('OCII')
           src_fact=om2oc(n)
         case ('OCB', 'M_OCC_OC', 'M_BOC_OC','AOCOB_01')
@@ -9144,7 +9194,8 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
       USE TRDIAG_COM, only : taijs=>taijs_loc,ijts_TOMAS
       USE TOMAS_AEROSOL, only : TRM_EMIS,xk,icomp,idiag
       USE TOMAS_EMIS, only : scalesizeCARBO100,
-     &     scalesizeCARBO30, scalesizeSO4
+     &     scalesizeCARBO30, scalesizeSO4,
+     &     scalesizeSO4_vol,scalesizeSO4_bio
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: fix_CH4_chemistry,sOx_acc,sNOx_acc,
@@ -9258,6 +9309,10 @@ C****
           bb_fact=1.d0 ! factor to multiply biomass_burning emissions with
           src_index=n   ! index to be used for emissions
           select case (trname(n))
+#ifndef One_percent_sulfate 
+! Yunha Lee added this (09/16/2001). 
+! Interested in using 1% SO2 emission for primary sulfate instead of 2.5%
+
           case ('SO2')
             src_fact=0.975d0 ! the rest goes to sulfate (SO4 or M_ACC_SU)
           case ('SO4','ASO4__01')
@@ -9275,6 +9330,26 @@ C****
      &              *0.01d0
             src_index=n_SO2
 #endif
+#else
+       case ('SO2')
+          src_fact=0.99d0 ! the rest goes to sulfate (SO4 or M_ACC_SU)
+        case ('SO4','ASO4__01')
+          src_fact=0.015d0 ! (1.-SO2 fraction)*tr_mm(n_SO4)/tr_mm(n_SO2)
+          src_index=n_SO2
+        case ('M_ACC_SU')
+          src_fact=0.015d0
+#ifndef TRACERS_AMP_M4
+     &            *0.99d0 ! the rest goes to M_AKK_SU
+#endif
+          src_index=n_SO2
+#ifndef TRACERS_AMP_M4
+        case ('M_AKK_SU')
+          src_fact=0.015d0
+     &            *0.01d0
+          src_index=n_SO2
+#endif
+#endif
+
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_VBS)
           case ('OCII')
@@ -9346,12 +9421,12 @@ C**** 3D biomass source
        do kk=1,nbins
          TOMAS_bio(:,J_0:J_1,:,kk)=
      &        tr3Dsource(:,J_0:J_1,:,nBiomass,IDTSO4)
-     &        *scalesizeSO4(kk)
+     &        *scalesizeSO4_bio(kk)
        enddo
        
        do k=1,nbins
          tr3Dsource(:,J_0:J_1,:,nVolcanic,IDTSO4+k-1)=
-     &        so2_src_3d(:,J_0:J_1,:,1)*scalesizeSO4(k)*src_fact
+     &        so2_src_3d(:,J_0:J_1,:,1)*scalesizeSO4_vol(k)*src_fact
          
          tr3Dsource(:,J_0:J_1,:,nBiomass,IDTSO4+k-1)=
      *        TOMAS_bio(:,J_0:J_1,:,k)

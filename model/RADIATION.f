@@ -619,6 +619,9 @@ C     for setbak/getbak only   1      2      3       4       5
 !@var NORMS0 if =1, Incident (TOA) Solar flux is normalized to equal S0
       INTEGER :: NORMS0=1
 
+!@var fOnOff if =1 fully turns on SW long-path H2O absorption correction
+      REAL*8 :: fOnOff=1. ! if =0. disables SW-H2O correction (tunable)
+
 !@var KORDER,KWTRAB controls WRITER-output (Mie-scattering info)
       INTEGER :: KWTRAB=0, KORDER=0
 
@@ -5096,6 +5099,7 @@ C                            -------------------------------------------
      *     ,TRN2,TRN3,TAUG,TAU2,TAU3,S0VIS,S0NIR,SUMX,SUMD,SUMU,SUMN
      *     ,SUMH,SGPG
       INTEGER I,K,KK,L,M,N,NN,KLAM,NDBLS
+      REAL*8 :: ZWPATH,ALPH,BETA,FACK12,ROOT,TAUK,FACK13
 
       S0COSZ=S0 ; IF (NORMS0==0) S0COSZ=S0*COSZ
 
@@ -5266,6 +5270,8 @@ cc      ALLGCB(K)=SGPG
       ENDIF
    90 CONTINUE
 
+      ZWPATH = SUM(ULGAS(:,1))*(1d0/COSZ + 2d0*srbalb(6))
+
       K = 0
   300 CONTINUE    !   DO K=1,NKSLAM
       K = K+1
@@ -5298,8 +5304,10 @@ C     ------------------------------------------------------------------
 C--------K=6-------H2O       DS0=.01
       TERMA=(35.66+TLN*(.0416-.0004622*TLN+.001057*PLN))*(1.+.04286*PLN)
       TERMB=(1.+.00171*ULN)*(1.+PLN*(189.088+.1316*PLN))
+      IF(TERMB < 1000.) TERMB = 1000.
       TAU1 =TERMA/TERMB
-      IF(TAU1 > 0.02343) TAU1=0.02343
+      !IF(TAU1 > 0.02343) TAU1=0.02343
+      IF(TAU1 > .05) TAU1 = .05
       TAU=TAU1*ULN
 
       CASE (2)
@@ -5307,22 +5315,28 @@ C--------K=5-------H2O       DS0=.03
       TERMA=(2.792+TLN*(.0914-.0002848*TLN+.0003395*PLN))
      +     *(1.+.02964*PLN)
       TERMB=(1.0+.000657*ULN)*(1.+PLN*(240.70+.13847*PLN))
+      IF(TERMB < 1000.) TERMB = 1000.
       TAU1 =TERMA/TERMB
-      IF(TAU1 > 0.00520) TAU1=0.00520
+      !IF(TAU1 > 0.00520) TAU1=0.00520
+      IF(TAU1 > .01) TAU1 = .01
       TAU=TAU1*ULN
 
       CASE (3)
 C--------K=4-------H2O       DS0=.04
       TERMA=(.4768+.467E-04*PLN*TLN)*(1.+TLN*(.00191-.719E-05*TLN))
       TERMB=(1.+.717E-04*ULN)*(1.+PLN*(130.56+.0876*PLN))/(1.+.0266*PLN)
+      IF(TERMB < 1000.) TERMB = 1000.
       TAU1 =TERMA/TERMB
-      IF(TAU1 > 0.00150) TAU1=0.0015
+      !IF(TAU1 > 0.00150) TAU1=0.0015
+      IF(TAU1 > .01) TAU1 = .01
       TAU=TAU1*ULN
 
       CASE (4)
 C--------K=3-------H2O       DS0=.04
       TERMA=(.000247*TLN-.091+PLN*(.00035+.78E-06*TLN))*(1.+.2847*PLN)
       TERMB=(1.+.2066E-04*ULN)*(1.+PLN*(137.17+.16132*PLN))
+      IF(TERMA < 20.) TERMA = 20.
+      IF(TERMB < 1000.) TERMB = 1000.
       TAU  =(TERMA/TERMB)*ULN
 
       CASE (5)
@@ -5330,6 +5344,8 @@ C--------K=2-------H2O       DS0=.04
       TERMA=(PLN*(1.974/TLN+.0001117*TLN)-10.713)*(1.+.005788*TLN)
      +     *(1.+.001517*PLN)
       TERMB=(1.+.3218E-04*ULN)*(1.+PLN*(863.44+.2048*PLN))
+      IF(TERMA < 20.) TERMA = 20.
+      IF(TERMB < 1000.) TERMB = 1000.
       TAU  =(TERMA/TERMB)*ULN
 
       CASE (6)
@@ -5375,8 +5391,30 @@ C--------K=2-------CO2       DS0=.003
       TERMB=ULN*(PLN+803.9+2.477*ULN)-.09899*PLN
       TAU  =(TERMA/TERMB)*ULN
 
-      CASE (12,13)
-        TAU=0.D0
+C     -------------------------------------------------------------------
+C     fOnOff (default = 1.) scales SW long-path H2O absorption correction
+C            =1. fully turned on, =0. disables correction (older version)
+C            fOnOff is 'tunable' from 0. to 1. (introduced 7/3/2014)
+
+      CASE (12)
+      !ULN=ULGAS(N,1) ! not needed because uln set to this before select case
+      ALPH=0.002d0
+      BETA=0.200d0
+      !FACK12=1.05D-04*ZWPATH/(1.D0-1.D-05*ZWPATH)
+      FACK12=.525D-04*ZWPATH/(1.D0+2.73D-04*ZWPATH)
+      ROOT=SQRT(((PLN+50.0)/1000.0)**2+1000.0*BETA*ULN/(PLN+50.0))
+      TAUK=ALPH*(ROOT-(PLN+50.0)/1000.0)
+      TAU=TAUK*FACK12*fOnOff
+
+      CASE (13)
+      !ULN=ULGAS(N,1) ! not needed because uln set to this before select case
+      ALPH=0.004d0
+      BETA=0.200d0
+      !FACK13=1.05D-04*ZWPATH/(1.D0-1.D-05*ZWPATH)
+      FACK13=.525D-04*ZWPATH/(1.D0+2.73D-04*ZWPATH)
+      ROOT=SQRT(((PLN+50.0)/1000.0)**2+1000.0*BETA*ULN/(PLN+50.0))
+      TAUK=ALPH*(ROOT-(PLN+50.0)/1000.0)
+      TAU=TAUK*FACK13*fOnOff
 
       CASE (14)
         TAU=XCMNO2*ULGAS(N,5)+XCMO3*ULGAS(N,3)

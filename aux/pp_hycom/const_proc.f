@@ -35,8 +35,8 @@ c
       integer, parameter :: indoi=252,indoj1=118,indoj2=133 ! Indo Throughflow
      .  ,idrk1=323,jdrk1=292,idrk2=342,jdrk2=299            ! Drake Passage
      .  ,iberi=138, jberi=189                               ! Bering Strait
-     .  ,ikuro1=197, ikuro2=205, jkuro=129                  ! Kuroshio
-     .  ,igulf1=191, igulf2=200, jgulf=281                  ! Gulf Stream
+     .  ,ikuro1=197, ikuro2=198, jkuro=129                  ! Kuroshio
+     .  ,igulf1=202, igulf2=202, jgulf=281                  ! Gulf Stream
      .  ,imed1=189, imed2=191, jmed=356                     ! Med outflow
 c
       character(len=20) :: runid="Exxx"
