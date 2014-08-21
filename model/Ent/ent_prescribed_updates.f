@@ -1,3 +1,5 @@
+#define CHECK_CARBON_CONSERVATION
+
       module ent_prescribed_updates
 !@sum Routines for updating prescribed (Matthews) vegetation. 
 !@+   These routines work on the entcell level or lower.
