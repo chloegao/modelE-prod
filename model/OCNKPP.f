@@ -2172,7 +2172,6 @@ C**** GHAT terms must be zero for consistency with OSOURC
      *        TRML(1,:)*DELTAM*BYMML(1))*DXYPO(J)
 #else
          GHATT(L,:)=0.
-         DTP4TR(L,:)=0.
 c        GHATT(L,:)=GHATS(L)*(DELTATR(:)-TRML(1,:)*DELTAM*BYMML(1))
 c    &                      /(DELTAS-S0ML0(1)*BYMML(1)*DELTAM+1d-30)
 #endif
@@ -2193,6 +2192,9 @@ c    &                      /(DELTAS-S0ML0(1)*BYMML(1)*DELTAM+1d-30)
       AKVC3D(LMIJ,I,J) = AKVC3D(LMIJ-1,I,J)
 
       DTP4G=0.; DTP4S=0.; DTP4UV=0.
+#ifdef TRACERS_OCEAN
+      DTP4TR=0.
+#endif
 #ifdef OCN_GISS_SM
       ! at the layer middle:
       ! if j=jm, then i stays at 1
