@@ -173,6 +173,8 @@ cc    IF (JM.eq.24) DLAT_DG=180./REAL(JM-1)   ! 1/2 box at pole, orig 8x10
       COSP(JM) = 0.
       DXP(1)  = 0.
       DXP(JM) = 0.
+      DXV = 0.
+      COSV = 0.
       DO J=2,JM-1
         LAT(J)  = DLAT*(J-FJEQ)
         SINP(J) = SIN(LAT(J))
@@ -742,6 +744,8 @@ C****   NOON) AND THEIR SINES AND COSINES
 C****
 C**** CALCULATION FOR POLAR GRID BOXES
 C****
+      COSZ  = 0.0
+      COSZA = 0.0
       DO J=1,JM,JM-1
         IF(((J .EQ. 1) .AND. (hasSouthPole(grid))) .OR.
      *     ((J .EQ. JM) .AND. (hasNorthPole(grid)))) THEN

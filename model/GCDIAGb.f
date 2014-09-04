@@ -2903,6 +2903,7 @@ C**** VX = V-V* IS D/DP(SHETH)
 C****
       sheth = agc(:,:,jk_sheth)/(agc(:,:,jk_dpb)+teeny)
 
+      shethe = 0.
       DO J=2,JM
         SHETHE(J,LM)=SHETH(J,LM)
         DO L=1,LM-1
@@ -2914,6 +2915,7 @@ C****
       n = jk_psi_tem
       agc(:,:,n) = agc(:,:,jk_psi) + shethe
 
+      vx = 0.
       DO J=2,JM
         LDN=1
         DO L=1,LM

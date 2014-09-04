@@ -513,9 +513,7 @@ c temporarily empty.
       type(icestate) :: si_ocn
       SAVE
 C**** intermediate calculation for pressure gradient terms
-      REAL*8, DIMENSION(IMICDYN, 
-     &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO) ::
-     &                            PGFU,PGFV
+      REAL*8, allocatable, DIMENSION(:,:) :: pgfu, pgfv
 C****
       real*8, allocatable, dimension(:,:) ::
      &     aPtmp,iPtmp,iRSI,iMSI,iDMUA,iDMVA,iUI2rho,admu,admv
@@ -527,8 +525,8 @@ C****
 
       REAL*8, PARAMETER :: BYRHOI=1D0/RHOI
       REAL*8 :: hemi
-      INTEGER I,J,ip1,im1
-      REAL*8 USINP,DMUINP,duA,dvA,rsib
+      INTEGER :: I,J,ip1,im1
+      REAL*8 :: DMUINP,duA,dvA,rsib
       INTEGER :: aIM, aJM
       INTEGER :: iJ_1   , iJ_0
       INTEGER :: iJ_1S  , iJ_0S
@@ -570,6 +568,12 @@ C**** Get loop indices  corresponding to grid_ICDYN and atm. grid structures
       aIM = atmice%grid%im_world
       aJM = atmice%grid%jm_world
 
+      allocate(
+     &     pgfu(IMICDYN,
+     &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO),
+     &     pgfv(IMICDYN,    
+     &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO)
+     &     )
       allocate(
      &     aPtmp(aI_0H:aI_1H,aJ_0H:aJ_1H),
      &     iPtmp(1:IMICDYN,iJ_0H:iJ_1H),
@@ -1001,6 +1005,7 @@ C**** Set uisurf,visurf (on atm A grid) for use in atmos. drag calc.
 C**** uisurf/visurf are on atm grid but are latlon oriented
       call get_uisurf(usi,vsi,atmice)
 
+      deallocate(pgfu, pgfv)
       deallocate(aPtmp,iPtmp,iRSI,iMSI)
 
       call stopTimer('DYNSI()')
