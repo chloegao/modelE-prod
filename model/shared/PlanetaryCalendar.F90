@@ -114,6 +114,8 @@ contains
     call calendar%setSecondsPerDay(orbit%getMeanDay())
 
     daysPerYear = nint(orbit%getSiderealOrbitalPeriod()/orbit%getMeanDay())
+    ! Calendar does not care whether an orbit is retrograde.
+    daysPerYear = abs(daysPerYear)
 
     ! Require a minimum number of days per year. (Suggested by G. Schmidt.)
     if (daysPerYear < MIN_DAYS_PER_YEAR) then
