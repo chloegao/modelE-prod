@@ -1644,9 +1644,11 @@ ccc the following values are returned by PBL
       shdt=-ashg
       evhdt=-alhg
 
+#ifdef ENT_DEBUG_DIAGS
       aij(i,j, ij_ent_debug:ij_ent_debug+SIZE_ENT_DEBUG-1)=
      &     aij(i,j, ij_ent_debug:ij_ent_debug+SIZE_ENT_DEBUG-1)
      &     + ent_debug_buf(:)*ptype
+#endif
 
       aij(i,j,ij_psoil)=aij(i,j,ij_psoil)+ptype/nisurf
       aij(i,j,ij_fveg)=aij(i,j,ij_fveg)+fv/nisurf
