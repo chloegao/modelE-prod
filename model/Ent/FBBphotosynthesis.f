@@ -239,45 +239,44 @@ cddd      endif
 
       if (pfpar(pspar%pft)%pst.eq.C3) then
          !a1 = pspar%PARabsorb*IPAR*alpha
-         a1e = IPAR*alpha       !### HACK:  IPAR from canopyspitters.f is APAR.  When we switch to Wenze's canopyrad, then leaf PARabsorb will be used -NK ###
-         f1e = 2*pspar%Gammastar * 1.d06/Pa !Convert from Pa to umol/mol
+        a1e = IPAR*alpha        !### HACK:  IPAR from canopyspitters.f is APAR.  When we switch to Wenze's canopyrad, then leaf PARabsorb will be used -NK ###
+        f1e = 2*pspar%Gammastar * 1.d06/Pa !Convert from Pa to umol/mol
 
-         if ( a1e < a1c .or. 
-     &        f1e > f1c .or.
-     &        need_isoprene ) then
+        if ( a1e < a1c .or. 
+     &       f1e > f1c .or.
+     &       need_isoprene ) then
             !call ci_cubic (ca,rh,gb,Pa,Rd,a1e,f1e,pspar,Axxx)
-            call ci_cubic(ca,rh,gb,Pa,Rd,a1e,f1e,pspar,Ae)
+          call ci_cubic(ca,rh,gb,Pa,Rd,a1e,f1e,pspar,Ae)
             !write(888,*) "Ae", ca,rh,gb,Pa,Rd,a1,f1,pspar,Ae 
 cddd        call ci_cubic1(ca,rh,gb,Pa,Rd,a1,f1,pspar,Axxx)
 cddd        write(579,*) Ae, Axxx
 cddd        if ( Ae > 0.d0 ) write(578,*) Axxx - Ae
         !if ( Ae >= -Rd ) write(578,*) Axxx, Ae, Ae - Axxx
-         else
-            Ae = 1.d30
-         endif
-      else !C4 photosynthesis
-         Ae = IPAR*alpha - Rd
+        else
+          Ae = 1.d30
+        endif
+      else                      !C4 photosynthesis
+        Ae = IPAR*alpha - Rd
       endif
 
 
       !* Photosynthetic rate limited by utilization of photosynthetic products:
       !* (umol m-2 s-1)  Triosphosphate (TPU limitation for C3,
       !*                 PEP carboxylase limitation for C4.
-      if (pfpar(pspar%pft)%pst.eq.C3) then
+      if (pspar%first_call) then
+        if (pfpar(pspar%pft)%pst.eq.C3) then
            !call Ci_Js(ca,gb,rh,IPAR,Pa,pspar,Rd, cis, Js1)
            !Js_sucrose = pspar%Vcmax/2.d0
-            As = pspar%Vcmax/2.d0 - Rd  !Anet
-            pspar%As = As
+          As = pspar%Vcmax/2.d0 - Rd !Anet
            !write(888,*) "As", As
-      else  !C4 photosynthesis
+        else                    !C4 photosynthesis
             !As = 4000.d0*pspar%Vcmax*ci - Rd
-         if (pspar%first_call) then
-            call Asnet_C4(ca,rh,gb,Rd,pspar,As) !This is Anet
-            pspar%As = As
-         else
-            As = pspar%As
-            pspar%first_call = .false.
-         endif
+          call Asnet_C4(ca,rh,gb,Rd,pspar,As) !This is Anet
+        endif
+        pspar%As = As
+        pspar%first_call = .false.
+      else
+        As = pspar%As
       endif
 
       !Anet = min(Ae, Ac, As)
