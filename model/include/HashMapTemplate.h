@@ -53,6 +53,7 @@
 module MODULE_NAME
   use VALUE_MOD, only: TYPE_NAME
   use ASSOCIATIVE_ARRAY_MOD, only: Map => ASSOCIATIVE_ARRAY_TYPE
+  use ASSOCIATIVE_ARRAY_MOD, only: MAX_LEN_KEY
   use ASSOCIATIVE_ARRAY_MOD, only: MapIterator => ASSOCIATIVE_ARRAY_ITERATOR_TYPE
   use ASSOCIATIVE_ARRAY_MOD, only: MapConstructor => ASSOCIATIVE_ARRAY_CONSTRUCTOR
   use ASSOCIATIVE_ARRAY_MOD, only: operator(==), operator(/=)
@@ -68,7 +69,7 @@ module MODULE_NAME
    public :: clean
    public :: MAX_LEN_KEY
 
-  integer, parameter :: MAX_LEN_KEY = 32
+!!$  integer, parameter :: MAX_LEN_KEY = 32
   integer, parameter :: DONE = -1
 
   type HASH_TYPE
@@ -389,7 +390,9 @@ contains
   function key(this)
     class (ITERATOR_TYPE), target, intent(in) :: this
     character(len=MAX_LEN_KEY), pointer :: key
-    key => this%subIterator%key()
+    type (MapIterator), pointer :: iter
+    iter => this%subIterator
+    call iter%getKey(key)
   end function key
 
   function value(this)
