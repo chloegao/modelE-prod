@@ -2329,7 +2329,7 @@ C****  18  UNUSED
 C****  19  LAST KINETIC ENERGY
 C****  20  LAST POTENTIAL ENERGY
 C****
-      USE CONSTANT, only : sha
+      USE CONSTANT, only : sha, UNDEF_VAL
       USE RESOLUTION, only : ls1,psfmpt,ptop
       USE RESOLUTION, only : im,jm,lm
       USE MODEL_COM, only : IDACC,MDIAG
@@ -2385,6 +2385,9 @@ CMoved to DAGCOM so it could be declared allocatable      REAL*8, SAVE, DIMENSIO
 #ifdef SCM
       return
 #endif
+
+      TPE_psum([grid%J_STRT_HALO,grid%J_STOP_HALO]) = UNDEF_VAL
+      TPE = UNDEF_VAL
 
       call getDomainBounds(GRID, J_STRT_SKP=J_0S   , J_STOP_SKP=J_1S,
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,

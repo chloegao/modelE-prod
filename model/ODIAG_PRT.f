@@ -1249,6 +1249,7 @@ C****
 
       SUBROUTINE OBASIN
 !@sum  OBASIN Read in KBASIN: 0=continent,1=Atlantic,2=Pacific,3=Indian
+      USE Constant, only : UNDEF_VAL
       USE OCEAN, only : IM,JM,focean
       USE ODIAG, only : kbasin,kbasin_glob
       use pario, only : par_open,par_close,read_dist_data
@@ -1268,6 +1269,7 @@ C****
 
       fid = par_open(grid,'KBASIN','read')
       kbasin = 0
+      zeroone = UNDEF_VAL
       do k=1,3
         call read_dist_data(grid,fid,'mask_'//basins(k),zeroone)
         call halo_update(grid,zeroone)

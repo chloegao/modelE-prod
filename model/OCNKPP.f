@@ -1341,7 +1341,7 @@ C****
 !@auth Gavin Schmidt/Gary Russell
 !@ver  2009/08/25
 C****
-      USE CONSTANT, only : grav,omega
+      USE CONSTANT, only : grav,omega,UNDEF_VAL
       USE OCEAN, only : im,jm,lmo,g0m,s0m,gxmo,sxmo,symo,gymo,szmo,gzmo
      *     ,ogeoz,hocean,ze,bydxypo,mo,sinpo,dts,lmm,lmv,lmu,ramvs
      *     ,dxypo,cosic,sinic,uo,vo,uod,vod,ramvn,bydts, IVNP,kpl
@@ -1523,6 +1523,7 @@ c     REAL*8, PARAMETER :: wta1=exp(-1.d0/1440.d0) ! average over 30 days
 
 C**** initialise diagnostics saved over quarter boxes and longitude
       OLJ = 0.
+      OLtemp=0.d0
 C**** Load UO,VO into UT,VT.  UO,VO will be updated, while UT,VT
 C**** will be fixed during convection.
       call halo_update (grid, VO, from=south)
@@ -3269,7 +3270,6 @@ c     k02count=1.
      *           UO1(IM,J_0H:J_1H),     VO1(IM,J_0H:J_1H),
      *           UOD1(IM,J_0H:J_1H),    VOD1(IM,J_0H:J_1H),
      *   STAT = IER)
-
 #ifdef TRACERS_OCEAN
       ALLOCATE( TRMO1(NTM,IM,J_0H:J_1H),
      *          TXMO1(NTM,IM,J_0H:J_1H),

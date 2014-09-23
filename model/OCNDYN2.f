@@ -915,7 +915,7 @@ C**** Copy X to temporary array Y and filter X in place.
 
       Subroutine ODHORZ(MOH,UOH,VOH,UODH,VODH,OPBOTH,
      &                  MO ,UO ,VO ,UOD ,VOD ,OPBOT, DT,qeven)
-      Use CONSTANT, Only: GRAV,omega
+      Use CONSTANT, Only: GRAV,omega,UNDEF_VAL
       Use OCEAN, Only: IM,JM,LMO,
      *                 LMOM=>LMM,LMOU=>LMU,LMOV=>LMV,
      *                 mZSOLID=>HOCEAN,OGEOZ,
@@ -969,6 +969,15 @@ C****                          Band1  Band2  BandM
       else
         xeven = 0.
       endif
+
+      ZG(:,[GRID%J_STRT_HALO,GRID%J_STOP_HALO])=UNDEF_VAL
+      P(:,[GRID%J_STRT_HALO,GRID%J_STOP_HALO])=UNDEF_VAL
+      PDN(:,[GRID%J_STRT_HALO,GRID%J_STOP_HALO])=UNDEF_VAL
+      DH(:,[GRID%J_STRT_HALO,GRID%J_STOP_HALO])=UNDEF_VAL
+      USMOOTH(:,[GRID%J_STRT_HALO,GRID%J_STOP_HALO])=UNDEF_VAL
+      UA(:,[GRID%J_STRT_HALO,GRID%J_STOP_HALO])=UNDEF_VAL
+      VA(:,[GRID%J_STRT_HALO,GRID%J_STOP_HALO])=UNDEF_VAL
+      KE(:,[GRID%J_STRT_HALO,GRID%J_STOP_HALO])=UNDEF_VAL
 
 c
 c initialize pressure and geopotential at the ocean bottom

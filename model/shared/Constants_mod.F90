@@ -20,6 +20,9 @@ module constant
 
   !**** Numerical constants
 
+  real*8,parameter :: UNDEF_VAL=huge(1.d0)
+  integer,parameter :: IUNDEF_VAL=huge(1)
+
 !@param undef Missing value
   real*8,parameter :: undef=-1.d30
 !@param teeny  small positive value used in num/(den+teeny) to avoid 0/0

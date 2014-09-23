@@ -770,7 +770,7 @@ c These routines include the array ipbl which indicates if the
 c  computation for a particular ITYPE was done last time step.
 c -------------------------------------------------------------
       USE Dictionary_mod
-      USE CONSTANT, only : lhe,lhs,tf,omega2,deltx
+      USE CONSTANT, only : lhe,lhs,tf,omega2,deltx,UNDEF_VAL
       USE ATM_COM, only : u,v,p,t,q
       USE ATM_COM, only : traditional_coldstart_aic
       USE GEOM, only : imaxj,sinlat2d
@@ -854,6 +854,7 @@ C**** ignore ocean currents for initialisation.
 
         titrrr = "roughness length over land"
         rrr = 0.
+        tgvdat = UNDEF_VAL
 
 C****
 C**** Extract useful local domain parameters from "grid"
@@ -1248,7 +1249,7 @@ C**** initialise some pbl common variables
       subroutine get_dbl
 !@sum
 !@+   called from SURFACE.f
-      USE FLUXES, only : atmsrf,asflx
+      USE FLUXES, only : atmsrf
       USE CONSTANT, only :  rgas,grav,omega,omega2,deltx,teeny
       USE ATM_COM, only : t,q,ua=>ualij,va=>valij
       USE ATM_COM, only : pmid,pk

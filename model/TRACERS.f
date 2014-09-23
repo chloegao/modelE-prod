@@ -33,6 +33,7 @@
       CONTAINS
 
       SUBROUTINE apply_tracer_3Dsource( ns , n , momlog )
+      USE CONSTANT, only : UNDEF_VAL
 !@sum apply_tracer_3Dsource adds 3D sources to tracers
 !@auth Jean Lerner/Gavin Schmidt
 !@var MOM true (default) if moments are to be modified
@@ -112,6 +113,8 @@ C**** apply tracer source alterations if requested in rundeck:
       end if
 
       eps = tiny(trm(i_0,j_0,1,n))
+      fred = UNDEF_VAL
+      dtrm = UNDEF_VAL
       do l=1,lm
       do j=j_0,j_1
         do i=i_0,imaxj(j)
