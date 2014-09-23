@@ -4182,41 +4182,47 @@ c      end if
 !**** Interpolate correction factors to model grid: XTU/D=>XTRU/D
   180 CONTINUE
 
+      if(transmission_corrections) then
       ! note window region is position 1 in XTRU, XTRD
-      XTRU(:,1)=1.
-      XTRD(:,1)=1.
+        XTRU(:,1)=1.
+        XTRD(:,1)=1.
 
-      DO L=L1,min(NLPrat,NL-1)
-        LCF=LCFofL(L)
-        XTRU(L,2:NRCF+1)=
+        DO L=L1,min(NLPrat,NL-1)
+          LCF=LCFofL(L)
+          XTRU(L,2:NRCF+1)=
      *    1.-PRAT(L)*(1.-XTU(LCF-1,:)*WT(L)-XTU(LCF,:)*(1.-WT(L)))
-        XTRD(L,2:NRCF+1)=
+          XTRD(L,2:NRCF+1)=
      *    1.-PRAT(L)*(1.-XTD(LCF-1,:)*WT(L)-XTD(LCF,:)*(1.-WT(L)))
-      END DO
+        END DO
 
-      DO L=NLPrat+1,NL-1
-        XTRU(L,2:NRCF+1)=XTU(NLCF,:)
-        XTRD(L,2:NRCF+1)=XTD(NLCF,:)
-      END DO
+        DO L=NLPrat+1,NL-1
+          XTRU(L,2:NRCF+1)=XTU(NLCF,:)
+          XTRD(L,2:NRCF+1)=XTD(NLCF,:)
+        END DO
 
-      XTRU(NL,2:NRCF+1) = 1.
-      XTRD(NL,2:NRCF+1) = 1.
+        XTRU(NL,2:NRCF+1) = 1.
+        XTRD(NL,2:NRCF+1) = 1.
 
       ! correction for cases when water vapor mixing ratio increases upward
-      DO L=1,NL
-        DUDP(L)=ULGAS(L,1)/(PLB(L)-PLB(L+1))
-      ENDDO
-      DO L=2,NL-1
-        IF(PLB(L).LT.600.) EXIT
+        DO L=1,NL
+          DUDP(L)=ULGAS(L,1)/(PLB(L)-PLB(L+1))
+        ENDDO
+        DO L=2,NL-1
+          IF(PLB(L).LT.600.) EXIT
         !DDUDP=(DUDP(L)-DUDP(L+1))/(PLB(L)-PLB(L+1))
-        DDUDP=(DUDP(L-1)-DUDP(L))/(PL(L-1)-PL(L))
-        IF(DDUDP.GE.0.) CYCLE
-        IF(DDUDP .GT. -.00037D0) THEN ! avoid nonzero effect for DDUDP==0
-          XTRD(L,2) = XTRD(L,2) - 100d0*DDUDP
-        ELSE
-          XTRD(L,2) = XTRD(L,2) + (.035d0-5.25d0*DDUDP)
-        ENDIF
-      ENDDO
+          DDUDP=(DUDP(L-1)-DUDP(L))/(PL(L-1)-PL(L))
+          IF(DDUDP.GE.0.) CYCLE
+          IF(DDUDP .GT. -.00037D0) THEN ! avoid nonzero effect for DDUDP==0
+            XTRD(L,2) = XTRD(L,2) - 100d0*DDUDP
+          ELSE
+            XTRD(L,2) = XTRD(L,2) + (.035d0-5.25d0*DDUDP)
+          ENDIF
+        ENDDO
+
+      else
+        XTRU(:,:)=1.
+        XTRD(:,:)=1.
+      endif
 
 C**** Find TRGXLK
   200 TRGXLK(L1:NL,1:33)=0.D0
