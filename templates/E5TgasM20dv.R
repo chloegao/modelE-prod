@@ -109,7 +109,7 @@ RVR=RD4X525.RVR.1.bin                   ! river direction file
 RADN1=sgpgxg.table8               ! rad.tables and history files
 ! RADN2=radfil33k                   !     8/2003 version
 RADN2=LWTables33k.1a              ! rad.tables and history files
-RADN4=LWTables33k.1b
+RADN4=LWCorrTables33k
 RADN3=miescatpar.abcdv2
 RADN5=H2Ocont_MT_CKD  ! Mlawer/Tobin_Clough/Kneizys/Davies H2O continuum table
 ! RADNA,RADNB are no longer used

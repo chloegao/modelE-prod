@@ -205,7 +205,7 @@ RAD_UTILS ALBEDO READ_AERO          ! radiation and albedo
     input_files_text("""
 RADN1=sgpgxg.table8               ! rad.tables and history files
 RADN2=LWTables33k.1a              ! rad.tables and history files
-RADN4=LWTables33k.1b              ! rad.tables and history files
+RADN4=LWCorrTables33k              ! rad.tables and history files
 RADN5=H2Ocont_MT_CKD  ! Mlawer/Tobin_Clough/Kneizys/Davies H2O continuum table
 ! available H2O continuum tables:
 !    RADN5=H2Ocont_Ma_2000
