@@ -279,11 +279,17 @@ C            RADDAT_TR_SGP_TABLES          read from  radfile1, radfile2
       REAL*8  H2O(100),FCO2(100)
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: PLANCK!(124:373,33)
       REAL*8  XKCFC(12,8,17:20),ULOX(19,16),DUX(19,16), XTFAC(11,9)
-      REAL*8  XTU0(24,3),XTD0(24,3), XTRUP(24,15,3),XTRDN(24,15,3)
-      REAL*8, dimension(24,15,11,3) ::
-     *        DXUP2,DXUP3,DXUP6,DXUP7,DXUP8,DXUP9      ! dim(24,15,11,3)
-     *       ,DXDN2,DXDN3,DXDN6,DXDN7,DXDN8,DXDN9      ! dim(24,15,11,3)
-      REAL*8, dimension(24,15,3) :: DXUP13,DXDN13
+! Correction-factor lookup-table sizes
+! NLCF  : number of layers in ref. atm. used to compute the table
+! NWVCF : number of H2O vapor column amounts
+! NUCF  : number of column amounts for absorbers other than H2O
+! NRCF  : number of principal absorber regions (H2O, CO2, O3)
+      INTEGER, PARAMETER, PRIVATE :: NLCF=43,NWVCF=9,NUCF=7,NRCF=3
+      REAL*8, dimension(NLCF,NRCF) :: XTU0,XTD0
+      REAL*8, dimension(NLCF,NWVCF,NRCF) :: XTRUP,XTRDN,DXUP13,DXDN13
+      REAL*8, dimension(NLCF,NWVCF,NUCF,NRCF) ::
+     *        DXUP2,DXUP3,DXUP6,DXUP7,DXUP8,DXUP9
+     *       ,DXDN2,DXDN3,DXDN6,DXDN7,DXDN8,DXDN9
 c---------------------------------------------------------------------
 C         Default h2o continuum is Ma 2000.  Other options: Ma 2004
 C         Roberts, MT_CKD model (Mlawer/Tobin_Clough/Kneizys/Davies)
@@ -3831,40 +3837,145 @@ C     ----------------------------------------------------------
       INTEGER, PARAMETER :: IGUX(16) = (/ 0,300,408,480,588,660,720,760
      *     ,820,880,904,928,944,968,984,1008/)
 
+
+      REAL*8, PARAMETER :: XKH2OW(8) = (/
+     & .432D-5,.943D-5,.188D-4,.352D-4,.623D-4,.105D-3,.170D-3,.262D-3
+     &     /)
+
       REAL*8, PARAMETER ::  XKCFCW(8,2) = RESHAPE( (/
      + 11.0, 11.7, 11.5, 10.9, 10.3, 9.90, 9.90, 9.90,
      + 5.75, 5.72, 5.95, 5.95, 5.90, 6.51, 6.51, 6.51 /)
      *     , (/8,2/) )
 
-      REAL*8, PARAMETER ::  P24(24) = (/
-     $ .100D+04,.973D+03,.934D+03,.865D+03,.752D+03,.603D+03,
-     $ .439D+03,.283D+03,.156D+03,.754D+02,.350D+02,.162D+02,
-     $ .754D+01,.350D+01,.162D+01,.743D+00,.340D+00,.152D+00,
-     $ .701D-01,.347D-01,.159D-01,.750D-02,.350D-02,.100D-02/)
-      REAL*8, PARAMETER ::  DP24(24) = (/
-     $     24.4,32.0,46.6,89.8,136.8,162.0,165.4,146.9,106.5,55.2,25.6
-     *     ,11.9,5.52,2.56,1.20,.551,.256,.119,.0452,.0256,.0119,.005,
-     *     .003,.002/)
-      REAL*8, PARAMETER ::  DLSQ2 =.1505d0,  ULMNH2=2.060d0,
-     *     ULMNCH=-.8105d0, ULMNN2=-1.521d0, ULMNF1=-4.780d0,
-     *     ULMNO3=-1.393d0, ULMNCO= 1.529d0, ULMNF2=-4.524d0,
+      REAL*8, PARAMETER ::  PCF(NLCF) = (/
+     & 0.98981D+03,0.96840D+03,0.94446D+03,0.91796D+03,0.88891D+03,
+     & 0.85579D+03,0.81757D+03,0.77425D+03,0.72686D+03,0.67692D+03,
+     & 0.62545D+03,0.57296D+03,0.52098D+03,0.47104D+03,0.42365D+03,
+     & 0.37932D+03,0.33855D+03,0.30186D+03,0.26874D+03,0.23867D+03,
+     & 0.21115D+03,0.18567D+03,0.16172D+03,0.13900D+03,0.11800D+03,
+     & 0.99000D+02,0.81500D+02,0.65000D+02,0.50000D+02,0.37000D+02,
+     & 0.25500D+02,0.15000D+02,0.78100D+01,0.43900D+01,0.24700D+01,
+     & 0.13900D+01,0.78100D+00,0.43900D+00,0.24700D+00,0.13900D+00,
+     & 0.75000D-01,0.35000D-01,0.10000D-01/)
+
+      REAL*8, PARAMETER ::  DPCF(NLCF) = (/
+     & 0.20380D+02,0.22430D+02,0.25470D+02,0.27520D+02,0.30580D+02,
+     & 0.35670D+02,0.40770D+02,0.45860D+02,0.48920D+02,0.50960D+02,
+     & 0.51980D+02,0.53000D+02,0.50960D+02,0.48920D+02,0.45860D+02,
+     & 0.42810D+02,0.38720D+02,0.34660D+02,0.31590D+02,0.28540D+02,
+     & 0.26500D+02,0.24460D+02,0.23440D+02,0.22000D+02,0.20000D+02,
+     & 0.18000D+02,0.17000D+02,0.16000D+02,0.14000D+02,0.12000D+02,
+     & 0.11000D+02,0.10000D+02,0.43800D+01,0.24600D+01,0.13800D+01,
+     & 0.78000D+00,0.43800D+00,0.24600D+00,0.13800D+00,0.78000D-01,
+     & 0.50000D-01,0.30000D-01,0.20000D-01/)
+
+      REAL*8, PARAMETER ::  PLBCF(NLCF+1) = (/
+     & 0.10000D+04,0.97962D+03,0.95719D+03,0.93172D+03,0.90420D+03,
+     & 0.87362D+03,0.83795D+03,0.79718D+03,0.75132D+03,0.70240D+03,
+     & 0.65144D+03,0.59946D+03,0.54646D+03,0.49550D+03,0.44658D+03,
+     & 0.40072D+03,0.35791D+03,0.31919D+03,0.28453D+03,0.25294D+03,
+     & 0.22440D+03,0.19790D+03,0.17344D+03,0.15000D+03,0.12800D+03,
+     & 0.10800D+03,0.90000D+02,0.73000D+02,0.57000D+02,0.43000D+02,
+     & 0.31000D+02,0.20000D+02,0.10000D+02,0.56200D+01,0.31600D+01,
+     & 0.17800D+01,0.10000D+01,0.56200D+00,0.31600D+00,0.17800D+00,
+     & 0.10000D+00,0.50000D-01,0.20000D-01,0.00000D+00/)
+
+
+      REAL*8, PARAMETER ::  DLOG2 =.30103d0,  ULMNH2=1.85124d0,
+     *     ULMNCH=-.8160d0, ULMNN2=-1.527d0, ULMNF1=-4.780d0,
+     *     ULMNO3=-1.368d0, ULMNCO= 1.523d0, ULMNF2=-4.524d0,
      *     USO2S=.042d0
-      REAL*8 XTU(24,3),XTD(24,3),DXUP(24,15,3),DXDN(24,15,3),PRAT24(24)
+      REAL*8, DIMENSION(NLCF,NRCF) :: XTU,XTD
+      REAL*8, DIMENSION(NLCF,NWVCF,NRCF) :: DXUP,DXDN
+      REAL*8 PRATCF(NLCF)
       INTEGER MLGAS(21)
-      INTEGER I,IM,L,LL,L24,L24dn,L24up,NLPrat,IULOW,IU,IPX,IAA,ITX
+      INTEGER I,IM,L,LL,LCF,LCFdn,LCFup,NLPrat,IULOW,IU,IPX,IAA,ITX
      *     ,IGAS,NG,KK,IK1,IK2,IPU,IK,NU,IUA,nsum
      *     ,IUB,IH2O0,IG  ,ICDlow,ICO20, IUW,IU1,IU2
      *     ,i2u1,i2u2,i3u1,i3u2,i6u1,i6u2,i7u1,i7u2,i8u1,i8u2,i9u1,i9u2
 
-      REAL*8 UH2O, UH2OL,UCO2L,UO3LL,UCH4L,UN2OL,UCF1L,UCF2L,USO2
+      REAL*8 UH2O, UCO2L,UO3LL,UCH4L,UN2OL,UCF1L,UCF2L,USO2
      *     ,DUH2,DU1,DU2,DUCO,D2U1,D2U2,DUO3,D3U1,D3U2,DUCH,D7U1,D7U2
      *     ,DUN2,D6U1,D6U2,DUF1,D8U1,D8U2,DUF2,D9U1,D9U2,SUM1,SUM2,sumPR
      *     ,TAUT1,TAUT2,TAUHFB,TAUCF,TAUIPG,TAUSUM,TAU11,TAU12
-     *     ,QAA,QAB,QBA,QBB, PLL,FPL,PU2, U,UP,UGAS, FNU1, DSUM
+     *     ,QAA,QAB,QBA,QBB, PLL,FPL,PU2, U,UP,UGAS, FNU1
      *     ,UAA,UAB,UBA,UBB, WPB, WTB,WTPU, XA,XB,XK,XUA,XUB
      *     ,WAA,WAB,WBA,WBB,WAAA,WAAB,WABA,WABB,WBAA,WBAB,WBBA,WBBB
       REAL*8 PRAT(LX),WT(LX)
-      INTEGER L24ofL(LX)
+      INTEGER LCFofL(LX)
+
+      ! The variation of correction factors with the water vapor
+      ! profile is determined via a two-step procedure.
+      ! As for the other absorbers, a lookup-table dependence upon
+      ! total column absorber amount is constructed by multiplying
+      ! a reference vapor profile by a set of powers of 2 that index
+      ! the tables.
+      ! The actual shape of the water vapor profile for which fluxes
+      ! are being computed is then folded into this column-oriented
+      ! framework via per-layer interpolations for downward/upward flux
+      ! correction factors that select the reference profile having
+      ! the same column amount above/below each layer.
+      ! In rare cases for which water vapor mixing ratios increase upward
+      ! in the lower troposphere, an additional correction is performed.
+      ! Since the interpolations in absorber amount are performed
+      ! on the layers of the reference atmosphere, a call to REPART
+      ! is needed to regrid the GCM water vapor to the reference layers.
+
+      ! Interp. weights/indices and their prerequisites for downward-flux
+      ! correction factors
+      real*8, dimension(nlcf) :: qabove,uh2otl,duh2o1dn,duh2o2dn
+      integer, dimension(nlcf) :: iuh2o1dn,iuh2o2dn
+      REAL*8, PARAMETER ::  UCMRCF(NLCF) = (/
+     & 0.10000D+01,0.11031D+01,0.12329D+01,0.14042D+01,0.16222D+01,
+     & 0.19138D+01,0.23456D+01,0.29937D+01,0.40048D+01,0.55959D+01,
+     & 0.81519D+01,0.12375D+02,0.19808D+02,0.32524D+02,0.54780D+02,
+     & 0.93174D+02,0.15748D+03,0.25287D+03,0.37309D+03,0.50049D+03,
+     & 0.60868D+03,0.71320D+03,0.84524D+03,0.10234D+04,0.12685D+04,
+     & 0.16078D+04,0.20909D+04,0.28557D+04,0.41673D+04,0.66299D+04,
+     & 0.12554D+05,0.26315D+05,0.59589D+05,0.10604D+06,0.18859D+06,
+     & 0.33480D+06,0.59602D+06,0.10608D+07,0.18872D+07,0.33520D+07,
+     & 0.59729D+07,0.11972D+08,0.30143D+08/)
+
+
+      ! Interp. weights/indices and their prerequisites for upward-flux
+      ! correction factors
+      real*8, dimension(nlcf) :: qbelow,uh2oul,duh2o1up,duh2o2up
+      integer, dimension(nlcf) :: iuh2o1up,iuh2o2up
+      REAL*8, PARAMETER ::  UCMUCF(NLCF) = (/
+     & 0.10701D+02,0.52946D+01,0.34738D+01,0.26072D+01,0.20943D+01,
+     & 0.17432D+01,0.15016D+01,0.13328D+01,0.12176D+01,0.11398D+01,
+     & 0.10879D+01,0.10532D+01,0.10317D+01,0.10186D+01,0.10108D+01,
+     & 0.10064D+01,0.10040D+01,0.10027D+01,0.10020D+01,0.10016D+01,
+     & 0.10014D+01,0.10012D+01,0.10010D+01,0.10008D+01,0.10006D+01,
+     & 0.10005D+01,0.10004D+01,0.10002D+01,0.10002D+01,0.10001D+01,
+     & 0.10000D+01,0.10000D+01,0.10000D+01,0.10000D+01,0.10000D+01,
+     & 0.10000D+01,0.10000D+01,0.10000D+01,0.10000D+01,0.10000D+01,
+     & 0.10000D+01,0.10000D+01,0.10000D+01/)
+
+      real*8 :: dudp(lx),ddudp ! ddudp is vertical gradient of water vapor
+
+      ! compute QABOVE/QBELOW, the WV amount above/below each reference level
+      CALL REPART (ULGAS(1,1),PLB,  NL+1,
+     &             QABOVE,    PLBCF, NLCF+1)
+      QBELOW = QABOVE
+      DO L=2,NLCF
+        QBELOW(L) = QBELOW(L) + QBELOW(L-1)
+      ENDDO
+      DO L=NLCF-1,1,-1
+        QABOVE(L) = QABOVE(L) + QABOVE(L+1)
+      ENDDO
+      DO L=1,NLCF
+        IF(QABOVE(L).GT.0.) THEN
+          UH2OTL(L) = LOG10(UCMRCF(L)*QABOVE(L))
+        ELSE
+          UH2OTL(L) = 0. ! should not happen
+        ENDIF
+        IF(QBELOW(L).GT.0.) THEN
+          UH2OUL(L) = LOG10(UCMUCF(L)*QBELOW(L))
+        ELSE
+          UH2OUL(L) = 0. ! below ground
+        ENDIF
+      ENDDO
 
 C                          MLGAS DEF.
 C                          ----------
@@ -3878,35 +3989,35 @@ C              ---------------------------------------------------------
       IF(KWVCON < 1) MLGAS(21)=0
 
 C**** Find correction factors XTU and XTD
-!     Prepare interpolation from PL to P24 pressure levels
-      L24=2
+!     Prepare interpolation from PL to PCF pressure levels
+      LCF=2
       NLPrat = NL
       DO L=L1,NL
         PLL = PL(L)
-!       Find L24 s.t. PLLmid is between P24(L24) and P24(L24-1)
-        DO WHILE (PLL < P24(L24))
-          L24 = L24 + 1
-          IF (L24 > 24) THEN      ! PL-levels higher than P24_top
+!       Find LCF s.t. PLLmid is between PCF(LCF) and PCF(LCF-1)
+        DO WHILE (PLL < PCF(LCF))
+          LCF = LCF + 1
+          IF (LCF > NLCF) THEN      ! PL-levels higher than PCF_top
             NLPrat = L-1
             GO TO 100
           END IF
         END DO
-        L24ofL(L) = L24
-        WT(L) = (PLL - P24(L24))/(P24(L24-1) - P24(L24))
-        Prat(L) = DPL(L) / (DP24(L24-1)*WT(L) + DP24(L24)*(1-WT(L)))
+        LCFofL(L) = LCF
+        WT(L) = (PLL - PCF(LCF))/(PCF(LCF-1) - PCF(LCF))
+        WT(L) = MIN(WT(L), 1D0)
+        Prat(L) = DPL(L) / (DPCF(LCF-1)*WT(L) + DPCF(LCF)*(1-WT(L)))
       END DO
   100 CONTINUE
 
       UH2O = 1d-10 + SUM(ULGAS(L1:NL,1))
       IF (UH2O < 1.1d-10) THEN  ! low water vapor
         IUlow    = 1
-        XTU(:,:) = XTU0(:,:)                                  ! 1:24,1:3
-        XTD(:,:) = XTD0(:,:)                                  ! 1:24,1:3
+        XTU(:,:) = XTU0(:,:)                                  ! 1:NLCF,1:NRCF
+        XTD(:,:) = XTD0(:,:)                                  ! 1:NLCF,1:NRCF
         GO TO 180
       END IF
 
       IUlow = 0                 ! with water vapor
-      UH2OL = max( log10(UH2O) , log10(228d0) )
       UCO2L = LOG10 (1d-10 + SUM(ULGAS(L1:NL,2)))
       UO3LL = LOG10 (1d-10 + SUM(ULGAS(L1:NL,3)))
       UCH4L = LOG10 (1d-10 + SUM(ULGAS(L1:NL,7)))
@@ -3918,163 +4029,194 @@ C**** Find correction factors XTU and XTD
       ICDLOW=0
       if(UCO2L < -9.958607315d0) ICDlow = 1  ! if UCO2<1.1d-10 (low CO2)
 
-      DUH2=UH2OL-ULMNH2
-      IF(DUH2.LT.0.) DUH2=0.D0
-      IU1=DUH2/DLSQ2+1.D0
-      IF(IU1.LT.1) IU1=1
-      IF(IU1.GT.14) IU1=14
-!!!!  DUH2=max( UH2OL-ULMNH2 , 0.d0)
-!!!!  IU1=DUH2/DLSQ2+1 ; if(IU1 > 14) IU1=14
-      IU2=IU1+1
-      DU1=DUH2-(IU1-1)*DLSQ2
-      DU2=DLSQ2-DU1
-
       DUCO=UCO2L-ULMNCO
       IF(DUCO.LT.0.) DUCO=0.
-      I2U1=DUCO/DLSQ2+1
+      I2U1=DUCO/DLOG2+1
       IF(I2U1.LT.1) I2U1=1
-      IF(I2U1.GT.10) I2U1=10
+      IF(I2U1.GT.NUCF-1) I2U1=NUCF-1
       I2U2=I2U1+1
-      D2U1=DUCO-(I2U1-1)*DLSQ2
-      D2U2=DLSQ2-D2U1
+      D2U1=DUCO-(I2U1-1)*DLOG2
+      D2U2=DLOG2-D2U1
 
       DUO3=UO3LL-ULMNO3
       IF(DUO3.LT.0.) DUO3=0.
-      I3U1=DUO3/DLSQ2+1
+      I3U1=DUO3/DLOG2+1
       IF(I3U1.LT.1) I3U1=1
-      IF(I3U1.GT.10) I3U1=10
+      IF(I3U1.GT.NUCF-1) I3U1=NUCF-1
       I3U2=I3U1+1
-      D3U1=DUO3-(I3U1-1)*DLSQ2
-      D3U2=DLSQ2-D3U1
+      D3U1=DUO3-(I3U1-1)*DLOG2
+      D3U2=DLOG2-D3U1
 
       DUCH=UCH4L-ULMNCH
-      IF(DUCH.LT.0.) DUCH=DUCH*.57
-      IF(DUCH.LT.-.68) DUCH=-.68
-      I7U1=DUCH/DLSQ2+1
+      I7U1=DUCH/DLOG2+1
       IF(I7U1.LT.1) I7U1=1
-      IF(I7U1.GT.10) I7U1=10
+      IF(I7U1.GT.NUCF-1) I7U1=NUCF-1
       I7U2=I7U1+1
-      D7U1=DUCH-(I7U1-1)*DLSQ2
-      D7U2=DLSQ2-D7U1
+      D7U1=DUCH-(I7U1-1)*DLOG2
+      D7U2=DLOG2-D7U1
 
       DUN2=UN2OL-ULMNN2
       IF(DUN2.LT.0.) DUN2=DUN2*.5
       IF(DUN2.LT.-.56) DUN2=-.56
-      I6U1=DUN2/DLSQ2+1
+      I6U1=DUN2/DLOG2+1
       IF(I6U1.LT.1) I6U1=1
-      IF(I6U1.GT.10) I6U1=10
+      IF(I6U1.GT.NUCF-1) I6U1=NUCF-1
       I6U2=I6U1+1
-      D6U1=DUN2-(I6U1-1)*DLSQ2
-      D6U2=DLSQ2-D6U1
+      D6U1=DUN2-(I6U1-1)*DLOG2
+      D6U2=DLOG2-D6U1
 
       DUF1=UCF1L-ULMNF1
       IF(DUF1.LT.-.25) DUF1=-.25
-      I8U1=DUF1/DLSQ2+1
+      I8U1=DUF1/DLOG2+1
       IF(I8U1.LT.1) I8U1=1
-      IF(I8U1.GT.10) I8U1=10
+      IF(I8U1.GT.NUCF-1) I8U1=NUCF-1
       I8U2=I8U1+1
-      D8U1=DUF1-(I8U1-1)*DLSQ2
-      D8U2=DLSQ2-D8U1
+      D8U1=DUF1-(I8U1-1)*DLOG2
+      D8U2=DLOG2-D8U1
 
       DUF2=UCF2L-ULMNF2
       IF(DUF2.LT.-.2) DUF2=-.2
-      I9U1=DUF2/DLSQ2+1
+      I9U1=DUF2/DLOG2+1
       IF(I9U1.LT.1) I9U1=1
-      IF(I9U1.GT.9) THEN
-        I9U1=1
-        I9U2=2
-        D9U1=0.
-        D9U2=0.
-      else
-        I9U2=I9U1+1
-        D9U1=DUF2-(I9U1-1)*DLSQ2
-        D9U2=DLSQ2-D9U1
-      end if
+      IF(I9U1.GT.NUCF-1) I9U1=NUCF-1
+      I9U2=I9U1+1
+      D9U1=DUF2-(I9U1-1)*DLOG2
+      D9U2=DLOG2-D9U1
+c      IF(I9U1.GT.9xxxfixthis) THEN
+c        I9U1=1
+c        I9U2=2
+c        D9U1=0.
+c        D9U2=0.
+c      end if
 
-!     Find pressure ratios on P24 levels by averaging Prat
+!     Find pressure ratios on PCF levels by averaging Prat
 !     Fill missed layers copying from the nearest layer above
-      L24dn = 1                ! bottom of current segment
-      L24up = L24ofL(L1)       ! top of current segment
+      LCFdn = 1                ! bottom of current segment
+      LCFup = LCFofL(L1)       ! top of current segment
       sumPR = Prat(L1)
-      Prat24(L24dn:L24up) = sumPR
+      PratCF(LCFdn:LCFup) = sumPR
       nsum = 1
       DO L=L1+1,NLPrat
-        L24=L24ofL(L)
-        IF(L24 == L24up) THEN  ! update the current PratL24 segment
+        LCF=LCFofL(L)
+        IF(LCF == LCFup) THEN  ! update the current PratLCF segment
           sumPR=sumPR+Prat(L)
           NSUM=NSUM+1
-          DSUM=NSUM
-          Prat24(L24dn:L24up)=sumPR/DSUM
-        ELSE                   ! start next PratL24 segment
+          PratCF(LCFdn:LCFup)=sumPR/DFLOAT(NSUM)
+        ELSE                   ! start next PratLCF segment
           sumPR=Prat(L)
-          Prat24(L24up+1:L24)=sumPR
+          PratCF(LCFup+1:LCF)=sumPR
           NSUM=1
-          L24dn=L24up+1
-          L24up=L24
+          LCFdn=LCFup+1
+          LCFup=LCF
         END IF
       END DO
-      Prat24(L24up+1:24)=Prat24(L24up) ! at top fill from below
+      PratCF(LCFup+1:NLCF)=PratCF(LCFup) ! at top fill from below
 
-      DO 160 IM=1,3
-      DO 160 IUW=IU1,IU2
-      DO 160 I=1,24
+      DO IM=1,NRCF
+      DO I=1,NLCF
+
+      DUH2=UH2OUL(I)-ULMNH2
+      IF(DUH2.LT.0.) DUH2=0.
+      IU1=DUH2/DLOG2+1.
+      IF(IU1.LT.1) IU1=1
+      IF(IU1.GT.NWVCF-1) IU1=NWVCF-1
+      IU2=IU1+1
+      DUH2O1up(I)=DUH2-(IU1-1)*DLOG2
+      DUH2O2up(I)=DLOG2-DUH2O1up(I)
+      IUH2O1up(I)=IU1
+      IUH2O2up(I)=IU2
+      DO IUW=IU1,IU2
       SUM1=(DXUP2(I,IUW,I2U2,IM)*D2U1+DXUP2(I,IUW,I2U1,IM)*D2U2)+
      $     (DXUP3(I,IUW,I3U2,IM)*D3U1+DXUP3(I,IUW,I3U1,IM)*D3U2)+
 
-     $     Prat24(I)*(
+     $     PratCF(I)*(
      $     (DXUP7(I,IUW,I7U2,IM)*D7U1+DXUP7(I,IUW,I7U1,IM)*D7U2)+
-     $     (DXUP6(I,IUW,I6U2,IM)*D6U1+DXUP6(I,IUW,I6U1,IM)*D6U2) )+
+     $     (DXUP6(I,IUW,I6U2,IM)*D6U1+DXUP6(I,IUW,I6U1,IM)*D6U2) )
+     $    +(DXUP8(I,IUW,I8U2,IM)*D8U1+DXUP8(I,IUW,I8U1,IM)*D8U2)
+     $    +(DXUP9(I,IUW,I9U2,IM)*D9U1+DXUP9(I,IUW,I9U1,IM)*D9U2)
+      DXUP(I,IUW,IM)=SUM1/DLOG2+DXUP13(I,IUW,IM)*USO2/USO2S
+      ENDDO
 
-     $     (DXUP8(I,IUW,I8U2,IM)*D8U1+DXUP8(I,IUW,I8U1,IM)*D8U2)+
-     $     (DXUP9(I,IUW,I9U2,IM)*D9U1+DXUP9(I,IUW,I9U1,IM)*D9U2)
+      DUH2=UH2OTL(I)-ULMNH2
+      IF(DUH2.LT.0.) DUH2=0.
+      IU1=DUH2/DLOG2+1.
+      IF(IU1.LT.1) IU1=1
+      IF(IU1.GT.NWVCF-1) IU1=NWVCF-1
+      IU2=IU1+1
+      DUH2O1dn(I)=DUH2-(IU1-1)*DLOG2
+      DUH2O2dn(I)=DLOG2-DUH2O1dn(I)
+      IUH2O1dn(I)=IU1
+      IUH2O2dn(I)=IU2
+      DO IUW=IU1,IU2
       SUM2=(DXDN2(I,IUW,I2U2,IM)*D2U1+DXDN2(I,IUW,I2U1,IM)*D2U2)+
      $     (DXDN3(I,IUW,I3U2,IM)*D3U1+DXDN3(I,IUW,I3U1,IM)*D3U2)+
 
-     $     Prat24(I)*(
+     $     PratCF(I)*(
      $     (DXDN7(I,IUW,I7U2,IM)*D7U1+DXDN7(I,IUW,I7U1,IM)*D7U2)+
-     $     (DXDN6(I,IUW,I6U2,IM)*D6U1+DXDN6(I,IUW,I6U1,IM)*D6U2) )+
+     $     (DXDN6(I,IUW,I6U2,IM)*D6U1+DXDN6(I,IUW,I6U1,IM)*D6U2) )
+     $    +(DXDN8(I,IUW,I8U2,IM)*D8U1+DXDN8(I,IUW,I8U1,IM)*D8U2)
+     $    +(DXDN9(I,IUW,I9U2,IM)*D9U1+DXDN9(I,IUW,I9U1,IM)*D9U2)
+      DXDN(I,IUW,IM)=SUM2/DLOG2+DXDN13(I,IUW,IM)*USO2/USO2S
+      ENDDO
 
-     $     (DXDN8(I,IUW,I8U2,IM)*D8U1+DXDN8(I,IUW,I8U1,IM)*D8U2)+
-     $     (DXDN9(I,IUW,I9U2,IM)*D9U1+DXDN9(I,IUW,I9U1,IM)*D9U2)
+      ENDDO ! LAYER
+      ENDDO ! IM
 
-      DXUP(I,IUW,IM)=SUM1/DLSQ2+DXUP13(I,IUW,IM)*USO2/USO2S
-      DXDN(I,IUW,IM)=SUM2/DLSQ2+DXDN13(I,IUW,IM)*USO2/USO2S
-  160 CONTINUE
-
-      DO 170 IM=1,3
-      DO 170 I=1,24
+      DO IM=1,NRCF
+      DO I=1,NLCF
+      DU1=DUH2O1up(I)
+      DU2=DUH2O2up(I)
+      IU1=IUH2O1up(I)
+      IU2=IUH2O2up(I)
       XTU(I,IM)=((XTRUP(I,IU2,IM)+DXUP(I,IU2,IM))*DU1+
-     $           (XTRUP(I,IU1,IM)+DXUP(I,IU1,IM))*DU2)/DLSQ2
+     $           (XTRUP(I,IU1,IM)+DXUP(I,IU1,IM))*DU2)/DLOG2
+      DU1=DUH2O1dn(I)
+      DU2=DUH2O2dn(I)
+      IU1=IUH2O1dn(I)
+      IU2=IUH2O2dn(I)
       XTD(I,IM)=((XTRDN(I,IU2,IM)+DXDN(I,IU2,IM))*DU1+
-     $           (XTRDN(I,IU1,IM)+DXDN(I,IU1,IM))*DU2)/DLSQ2
-  170 CONTINUE
+     $           (XTRDN(I,IU1,IM)+DXDN(I,IU1,IM))*DU2)/DLOG2
+      ENDDO
+      ENDDO
 
 !**** Interpolate correction factors to model grid: XTU/D=>XTRU/D
   180 CONTINUE
 
-      if(transmission_corrections) then
-        XTRU(:,1)=1.
-        XTRD(:,1)=1.
+      ! note window region is position 1 in XTRU, XTRD
+      XTRU(:,1)=1.
+      XTRD(:,1)=1.
 
-        DO L=L1,min(NLPrat,NL-1)
-          L24=L24ofL(L)
-          XTRU(L,2:4)=
-     *     1.-PRAT(L)*(1.-XTU(L24-1,1:3)*WT(L)-XTU(L24,1:3)*(1.-WT(L)))
-          XTRD(L,2:4)=
-     *     1.-PRAT(L)*(1.-XTD(L24-1,1:3)*WT(L)-XTD(L24,1:3)*(1.-WT(L)))
-        END DO
+      DO L=L1,min(NLPrat,NL-1)
+        LCF=LCFofL(L)
+        XTRU(L,2:NRCF+1)=
+     *    1.-PRAT(L)*(1.-XTU(LCF-1,:)*WT(L)-XTU(LCF,:)*(1.-WT(L)))
+        XTRD(L,2:NRCF+1)=
+     *    1.-PRAT(L)*(1.-XTD(LCF-1,:)*WT(L)-XTD(LCF,:)*(1.-WT(L)))
+      END DO
 
-        DO L=NLPrat+1,NL-1
-          XTRU(L,2:4)=XTU(24,1:3)
-          XTRD(L,2:4)=XTD(24,1:3)
-        END DO
+      DO L=NLPrat+1,NL-1
+        XTRU(L,2:NRCF+1)=XTU(NLCF,:)
+        XTRD(L,2:NRCF+1)=XTD(NLCF,:)
+      END DO
 
-        XTRU(NL,2:4) = 1.
-        XTRD(NL,2:4) = 1.
-      else
-        XTRU(:,:)=1.
-        XTRD(:,:)=1.
-      endif
+      XTRU(NL,2:NRCF+1) = 1.
+      XTRD(NL,2:NRCF+1) = 1.
+
+      ! correction for cases when water vapor mixing ratio increases upward
+      DO L=1,NL
+        DUDP(L)=ULGAS(L,1)/(PLB(L)-PLB(L+1))
+      ENDDO
+      DO L=2,NL-1
+        IF(PLB(L).LT.600.) EXIT
+        !DDUDP=(DUDP(L)-DUDP(L+1))/(PLB(L)-PLB(L+1))
+        DDUDP=(DUDP(L-1)-DUDP(L))/(PL(L-1)-PL(L))
+        IF(DDUDP.GE.0.) CYCLE
+        IF(DDUDP .GT. -.00037D0) THEN ! avoid nonzero effect for DDUDP==0
+          XTRD(L,2) = XTRD(L,2) - 100d0*DDUDP
+        ELSE
+          XTRD(L,2) = XTRD(L,2) + (.035d0-5.25d0*DDUDP)
+        ENDIF
+      ENDDO
 
 C**** Find TRGXLK
   200 TRGXLK(L1:NL,1:33)=0.D0
@@ -4285,6 +4427,16 @@ C     IF(NU <= 1) then  ;  XUA = 0  ;  XUB = 0  ;  endif
       KK=KK+1
   430 CONTINUE
   500 CONTINUE
+
+
+C-------------------------------------------------------------------    
+C            H2O WINDOW ABSORPTION (2013)                   
+C-------------------------------------------------------------------    
+      IF(MLGAS(1) == 1) THEN
+        XK=WTB*(XKH2OW(ITX+1)-XKH2OW(ITX))+XKH2OW(ITX)
+        TRGXLK(L,1)=TRGXLK(L,1)+XK*ULGAS(L,1)
+      END IF 
+
 C                               CFC11 and CFC12 Window Absorption (1997)
 C                               ----------------------------------------
 

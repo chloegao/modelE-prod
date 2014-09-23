@@ -109,7 +109,7 @@ RADN3=miescatpar.abcdv2
 RH_QG_Mie=oct2003.relhum.nr.Q633G633.table
 RADNE=topcld.trscat8
 
-!RADN4=LWTables33k.1b ! correction factors for Earth conditions are not applicable
+!RADN4=LWCorrTables33k ! correction factors for Earth conditions are not applicable
 
 !Ent needs this
 SOILCARB_global=soilcarb_top30cm_4x5.nc

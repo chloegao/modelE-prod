@@ -67,7 +67,7 @@ NAMERVR=RD_modelE_M.names.txt     ! named river outlets
 ZVAR=ZVAR4X5.nc         ! topographic variation for gwdrag
 RADN1=sgpgxg.table8    ! rad.tables
 RADN2=LWTables33k.1a              ! rad.tables and history files
-RADN4=LWTables33k.1b              ! rad.tables and history files
+RADN4=LWCorrTables33k              ! rad.tables and history files
 RADN5=H2Ocont_MT_CKD  ! Mlawer/Tobin_Clough/Kneizys/Davies H2O continuum table
 ! other available H2O continuum tables:
 !    RADN5=H2Ocont_Ma_2000
