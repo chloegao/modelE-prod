@@ -65,7 +65,7 @@ Data input files:
 OIC=OIC4X5LD.Z12.gas1.CLEV94.DEC01.nc ! ocean initial conditions
 OFTAB=OFTABLE_NEW                    ! ocean function table
 KBASIN=KB4X513.OCN.gas1.nc           ! ocean basin designations
-TOPO=Z72X46N.cor4_nocasp.nc          ! topography
+TOPO=Z72X46N_gas.1_nocasp.nc
 TOPO_OC=OZ72X46N_gas.1_nocasp.nc     ! ocean bdy.cond
 OSTRAITS=OSTRAITS_72x46.nml          ! parameterized straits info
 
