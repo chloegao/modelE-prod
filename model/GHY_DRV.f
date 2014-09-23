@@ -3451,17 +3451,22 @@ c**** find leaf-area index & water field capacity for ground layer 1
      &             thets(1:,ibv), thetm(1:,ibv), shc(1:,ibv) )
             enddo
 
+            call get_fb_fv( fb, fv, i, j )
+
+            if ( fv > 0.d0 ) then
 #ifndef USE_ENT
-            call veg_set_cell(vegcell, i,j, 1.d0, 1.d0, .true.)
+              call veg_set_cell(vegcell, i,j, 1.d0, 1.d0, .true.)
             !call veg_set_cell(i,j, .true.)
 !!!            !ws_can = ws(0,2)
 !!!            ws_can = vegcell%ws_can
             !ws_can = ws(0,2)
-            ws_can = vegcell%ws_can
+              ws_can = vegcell%ws_can
 #else
-            call ent_get_exports( entcells(i,j),canopy_max_H2O=ws_can )
+              call ent_get_exports(entcells(i,j),canopy_max_H2O=ws_can)
 #endif
-            call get_fb_fv( fb, fv, i, j )
+            else
+              ws_can = 0.d0
+            endif
 !!!            wfc1=fb*ws(1,1)+fv*(ws_can+ws(1,2))
 cddd            wfc1=fb*thets(1,1)*dz_ij(i,j,1) +
 cddd     &           fv*( ws_can + thets(1,2)*dz_ij(i,j,1) )
