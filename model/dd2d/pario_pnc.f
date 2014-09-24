@@ -498,7 +498,7 @@ c
       integer :: jdim_
       arr = iarr
       jdim_ = 2
-      if(present(jdim\)) jdim_ = jdim
+      if(present(jdim)) jdim_ = jdim
       if(present(record)) then
         call write_dist_data(grid,fid,varname,arr,jdim=jdim_,
      &       record=record)
