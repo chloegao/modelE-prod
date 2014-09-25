@@ -4112,20 +4112,35 @@ c      end if
       END DO
       PratCF(LCFup+1:NLCF)=PratCF(LCFup) ! at top fill from below
 
+      DO I=1,NLCF
+        DUH2=UH2OUL(I)-ULMNH2
+        IF(DUH2.LT.0.) DUH2=0.
+        IU1=DUH2/DLOG2+1.
+        IF(IU1.LT.1) IU1=1
+        IF(IU1.GT.NWVCF-1) IU1=NWVCF-1
+        IU2=IU1+1
+        DUH2O1up(I)=DUH2-(IU1-1)*DLOG2
+        DUH2O2up(I)=DLOG2-DUH2O1up(I)
+        IUH2O1up(I)=IU1
+        IUH2O2up(I)=IU2
+      ENDDO
+
+      DO I=1,NLCF
+        DUH2=UH2OTL(I)-ULMNH2
+        IF(DUH2.LT.0.) DUH2=0.
+        IU1=DUH2/DLOG2+1.
+        IF(IU1.LT.1) IU1=1
+        IF(IU1.GT.NWVCF-1) IU1=NWVCF-1
+        IU2=IU1+1
+        DUH2O1dn(I)=DUH2-(IU1-1)*DLOG2
+        DUH2O2dn(I)=DLOG2-DUH2O1dn(I)
+        IUH2O1dn(I)=IU1
+        IUH2O2dn(I)=IU2
+      ENDDO
+
       DO IM=1,NRCF
       DO I=1,NLCF
-
-      DUH2=UH2OUL(I)-ULMNH2
-      IF(DUH2.LT.0.) DUH2=0.
-      IU1=DUH2/DLOG2+1.
-      IF(IU1.LT.1) IU1=1
-      IF(IU1.GT.NWVCF-1) IU1=NWVCF-1
-      IU2=IU1+1
-      DUH2O1up(I)=DUH2-(IU1-1)*DLOG2
-      DUH2O2up(I)=DLOG2-DUH2O1up(I)
-      IUH2O1up(I)=IU1
-      IUH2O2up(I)=IU2
-      DO IUW=IU1,IU2
+      DO IUW=IUH2O1up(I),IUH2O2up(I)
       SUM1=(DXUP2(I,IUW,I2U2,IM)*D2U1+DXUP2(I,IUW,I2U1,IM)*D2U2)+
      $     (DXUP3(I,IUW,I3U2,IM)*D3U1+DXUP3(I,IUW,I3U1,IM)*D3U2)+
 
@@ -4136,18 +4151,7 @@ c      end if
      $    +(DXUP9(I,IUW,I9U2,IM)*D9U1+DXUP9(I,IUW,I9U1,IM)*D9U2)
       DXUP(I,IUW,IM)=SUM1/DLOG2+DXUP13(I,IUW,IM)*USO2/USO2S
       ENDDO
-
-      DUH2=UH2OTL(I)-ULMNH2
-      IF(DUH2.LT.0.) DUH2=0.
-      IU1=DUH2/DLOG2+1.
-      IF(IU1.LT.1) IU1=1
-      IF(IU1.GT.NWVCF-1) IU1=NWVCF-1
-      IU2=IU1+1
-      DUH2O1dn(I)=DUH2-(IU1-1)*DLOG2
-      DUH2O2dn(I)=DLOG2-DUH2O1dn(I)
-      IUH2O1dn(I)=IU1
-      IUH2O2dn(I)=IU2
-      DO IUW=IU1,IU2
+      DO IUW=IUH2O1dn(I),IUH2O2dn(I)
       SUM2=(DXDN2(I,IUW,I2U2,IM)*D2U1+DXDN2(I,IUW,I2U1,IM)*D2U2)+
      $     (DXDN3(I,IUW,I3U2,IM)*D3U1+DXDN3(I,IUW,I3U1,IM)*D3U2)+
 
@@ -4158,7 +4162,6 @@ c      end if
      $    +(DXDN9(I,IUW,I9U2,IM)*D9U1+DXDN9(I,IUW,I9U1,IM)*D9U2)
       DXDN(I,IUW,IM)=SUM2/DLOG2+DXDN13(I,IUW,IM)*USO2/USO2S
       ENDDO
-
       ENDDO ! LAYER
       ENDDO ! IM
 
