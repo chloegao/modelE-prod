@@ -3402,7 +3402,7 @@ cddd     &         *fr_snow_ij(2,imax,jmax)
       use ent_mod, only : ent_get_exports
       use ent_drv, only : update_vegetation_data
 #else
-      use veg_drv, only : veg_set_cell
+      use veg_drv, only : veg_set_cell, updveg
       use vegetation, only : t_vegcell
 #endif
       !!use ent_com, only : entcells
