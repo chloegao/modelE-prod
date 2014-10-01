@@ -1,7 +1,14 @@
-.PHONY: tests all createTestSuites clean
+.PHONY: tests all clean
 .DEFAULT_GOAL = tests
 
 MODELERC ?= $(HOMEDIR)/.modelErc
+ifneq ($(MPI),YES)
+  USE_MPI=NO
+else
+  USE_MPI=YES
+endif
+FFLAGS = $(CPPFLAGS) $(F90FLAGS)
+
 ifeq ($(wildcard $(MODELERC)),)
    $(error $(MODELERC) not found.)
 endif
@@ -23,25 +30,28 @@ LIBS := $(foreach ITEM, $(COMPLIBS), $(SOURCE_DIR)/$(ITEM))
 
 # Determine modelE components to be tested based on availability
 ifeq ($(COMPONENTS),)
-TESTDIRS = shared profiler MPI_Support tracers
+  TESTDIRS = shared profiler
 else
-TESTDIRS := $(foreach ITEM, $(COMPONENTS), $(wildcard $(ITEM)))
+  TESTDIRS := $(foreach ITEM, $(COMPONENTS), $(wildcard $(ITEM)))
 endif
 
-ifeq ($(USEMPI),)
+# Exclude MPI_Support tests if not running MPI tests
+ifeq ($(USE_MPI),NO)
   TESTDIRS := $(filter-out MPI_Support,$(TESTDIRS))
 endif
 
 TESTLIBS := $(foreach ITEM, $(TESTDIRS), $(ITEM)/lib$(ITEM).a)
-# The inclue paths are different when compiling tests and executable
+# The include paths are different when compiling tests and executable
 TESTINCS := $(foreach ITEM, $(TESTDIRS), -I../$(SOURCE_DIR)/$(ITEM))
 EXEINCS := $(foreach ITEM, $(TESTDIRS), -I$(ITEM))
+FFLAGS += $(TESTINCS) -I$(PFUNIT)/mod
+EXEFLAGS += $(FFLAGS) $(EXEINCS)
 
+# Required libraries
 PFLIB = -L$(PFUNIT)/lib -lpfunit
 IOLIB += -L$(NETCDFHOME)/lib -lnetcdf 
 
-FFLAGS += -I$(PFUNIT)/mod -I$(PFUNIT)/include -I. $(TESTINCS)
-EXEFLAGS += -I$(PFUNIT)/mod -I$(PFUNIT)/include $(EXEINCS)
+# NAG note: PFUNIT must be compiled with -kind=byte
 ifeq ($(COMPILER),nag)
   FFLAGS += -kind=byte
 endif
@@ -49,12 +59,11 @@ endif
 ifeq ($(COMPILER),intel)
   FFLAGS += -assume realloc_lhs
   FFLAGS += -O0 -g -traceback -warn nousage -convert big_endian -assume protect_parens -ftz -fpp -DPROTECT_PARENS
-
 endif
 
-
-ifeq ($(USEMPI),YES)
-  FFLAGS += -DUSE_MPI
+# For MPI, use compiler wrapper and link to parallel-netcdf library
+ifeq ($(USE_MPI),YES)
+  FC = mpif90
   IOLIB += -L$(PNETCDFHOME)/lib -lpnetcdf
 endif
 
@@ -62,27 +71,22 @@ endif
 
 EXE = tests.x
 
-$(EXE): createTestSuites testSuites.inc SUT
-	$(FC) -I. -o $@ $(EXEFLAGS) $(FPPFLAGS) $(PFUNIT)/include/driver.F90 $(TESTLIBS) $(LIBS) $(PFLIB) $(IOLIB)
+MYLIBS = $(TESTLIBS) $(LIBS) $(PFLIB) $(IOLIB)
+$(EXE): testSuites.inc TESTS
+	$(FC) -o $@ $(EXEFLAGS) $(PFUNIT)/include/driver.F90 $(MYLIBS)
 
 all: $(EXE)
-ifeq ($(MPI),YES)
+ifeq ($(USE_MPI),YES)
 	mpirun -np 12 ./$(EXE)
 else
 	./$(EXE)
 endif
 
-SUT:
+TESTS:
 	@for dir in $(TESTDIRS); do \
 	make -C $$dir all; done
 
 tests: all
-
-createTestSuites:
-	rm -f testSuites.inc
-	@for f in ${TESTDIRS}; do \
-	echo \#include \"$${f}/testSuites.inc\" >> testSuites.inc; \
-	done;
 
 clean:
 	@for dir in $(TESTDIRS); do \
@@ -92,5 +96,4 @@ clean:
 export FC
 export MPIF90
 export FFLAGS
-export FPPLAGS
-export USEMPI
+export USE_MPI

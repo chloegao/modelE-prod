@@ -1,11 +1,11 @@
 .PHONY: clean all
 
 ALLFILES:=$(wildcard *.pf)
-# We need to exclude MPI test files whe running serial tests to 
+# We need to exclude MPI test files when running serial tests to 
 # avoid compilation errors.
 MPIFILES:=Test_TimerParallel.pf
 
-ifeq ($(USEMPI),YES)
+ifeq ($(USE_MPI),YES)
   SRCS := $(ALLFILES)
 else
   SRCS := $(filter-out $(MPIFILES),$(ALLFILES))
