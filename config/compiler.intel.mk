@@ -20,7 +20,7 @@ EXTENDED_SOURCE = -extend_source
 # flags needed for particular releases
 
 # default flags for latest releases (work for 12.*, 13.*):
-FFLAGS_RELEASE = -assume protect_parens -fp-model strict -warn nousage
+FFLAGS_RELEASE = -assume protect_parens -fp-model strict -warn nousage -assume realloc_lhs
 
 # if some releases require different flags enter them here
 ifeq ($(IFORT_RELEASE),11.1)
@@ -43,8 +43,8 @@ FFLAGS += $(FFLAGS_RELEASE)
 F90FLAGS += $(FFLAGS_RELEASE)
 
 ifeq ($(COMPILE_WITH_TRAPS),YES)
-FFLAGS += -CB -fpe0 -check uninit -ftrapuv -traceback
+FFLAGS += -CB -fpe0 -check uninit -ftrapuv -traceback -assume realloc_lhs
 LFLAGS += -CB -fpe0 -check uninit -ftrapuv -traceback
-F90FLAGS += -CB -fpe0 -check uninit -ftrapuv -traceback
+F90FLAGS += -CB -fpe0 -check uninit -ftrapuv -traceback  -assume realloc_lhs
 LFLAGSF += -CB -fpe0 -check uninit -ftrapuv -traceback
 endif

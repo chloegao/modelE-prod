@@ -25,7 +25,7 @@ module AttributeDictionary_mod
 
   public :: AttributeDictionary
   public :: newAttributeDictionary
-  public :: assignment(=), copyIt
+  public :: toPointer
   public :: clean
 
   type, extends(AttributeHashMap) :: AttributeDictionary
@@ -108,7 +108,9 @@ contains
     class (AttributeDictionary), intent(in) :: b
 
     type (AttributeHashMapIterator) :: iter
-    class (AbstractAttribute), pointer :: p1, p2
+    class (AbstractAttribute), pointer :: p1
+!!$    type (AbstractAttributeReference) :: p2
+    class (AbstractAttribute), pointer :: p2
 
     equals = .true.
     if (this%size() /= b%size()) then
@@ -129,6 +131,7 @@ contains
       p1 => iter%value()
       p2 => b%getReference(iter%key())
 
+!!$      if (.not. (p1%equals(p2%ptr))) then
       if (.not. (p1%equals(p2))) then
         equals = .false.
         print*,'different value for key <',trim(iter%key()),'>'

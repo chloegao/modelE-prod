@@ -3,9 +3,9 @@
 
 MODELERC ?= $(HOMEDIR)/.modelErc
 ifneq ($(MPI),YES)
-  USEMPI=NO
+  USE_MPI=NO
 else
-  USEMPI=YES
+  USE_MPI=YES
 endif
 FFLAGS = $(CPPFLAGS) $(F90FLAGS)
 
@@ -36,7 +36,7 @@ else
 endif
 
 # Exclude MPI_Support tests if not running MPI tests
-ifeq ($(USEMPI),NO)
+ifeq ($(USE_MPI),NO)
   TESTDIRS := $(filter-out MPI_Support,$(TESTDIRS))
 endif
 
@@ -44,20 +44,19 @@ TESTLIBS := $(foreach ITEM, $(TESTDIRS), $(ITEM)/lib$(ITEM).a)
 # The include paths are different when compiling tests and executable
 TESTINCS := $(foreach ITEM, $(TESTDIRS), -I../$(SOURCE_DIR)/$(ITEM))
 EXEINCS := $(foreach ITEM, $(TESTDIRS), -I$(ITEM))
-FFLAGS += $(TESTINCS)
+FFLAGS += $(TESTINCS) -I$(PFUNIT)/mod
 EXEFLAGS += $(FFLAGS) $(EXEINCS)
 
 # Required libraries
 PFLIB = -L$(PFUNIT)/lib -lpfunit
 IOLIB += -L$(NETCDFHOME)/lib -lnetcdf 
 
-# NAG note: PFUNIT must be compiled with -kind=byte
-ifeq ($(COMPILER),nag)
-  FFLAGS += -kind=byte
+ifeq ($(COMPILER),intel)
+  FFLAGS += -DPROTECT_PARENS
 endif
 
 # For MPI, use compiler wrapper and link to parallel-netcdf library
-ifeq ($(USEMPI),YES)
+ifeq ($(USE_MPI),YES)
   FC = mpif90
   IOLIB += -L$(PNETCDFHOME)/lib -lpnetcdf
 endif
@@ -71,7 +70,7 @@ $(EXE): testSuites.inc TESTS
 	$(FC) -o $@ $(EXEFLAGS) $(PFUNIT)/include/driver.F90 $(MYLIBS)
 
 all: $(EXE)
-ifeq ($(USEMPI),YES)
+ifeq ($(USE_MPI),YES)
 	mpirun -np 12 ./$(EXE)
 else
 	./$(EXE)
@@ -91,4 +90,4 @@ clean:
 export FC
 export MPIF90
 export FFLAGS
-export USEMPI
+export USE_MPI

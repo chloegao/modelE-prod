@@ -27,6 +27,7 @@ contains
       use TimeFormatUtilities_mod
       class (Test_TimerList), intent(inout) :: this
       type (Timer_type), pointer :: pTimer
+
       call finalizeTimer(mockTime = 10*3600._dp)
       pTimer => getTimer('main')
 
