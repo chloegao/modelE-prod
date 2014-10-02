@@ -40,7 +40,8 @@ contains
     eccentricity = 0.5d0
     TA = computeTrueAnomaly(x, eccentricity)
     @assertEqual(x, computeMeanAnomaly(TA, eccentricity), tolerance=epsilon(1.d0))
-    
+! Under gcc 4.9.1 the above assert fails:
+! difference: |+0.3330669E-15| > tolerance:+0.2220446E-15.    
   end subroutine testComputeMeanAnomaly
 
 

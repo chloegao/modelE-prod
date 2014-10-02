@@ -6,7 +6,6 @@ module Test_JulianCalendar_mod
   use BaseTime_mod
   use TimeInterval_mod
   use Time_mod, only: Time, newTime
-  use TimeConstants_mod
   implicit none
 
 contains
@@ -94,37 +93,45 @@ contains
    end subroutine testGetDaysInMonth
 
 
+! TODO
 @test
    subroutine testGetSecondsPerHour()
+     use TimeConstants_mod, only: SECONDS_PER_HOUR
      type (JulianCalendar) :: calendar
      type (TimeInterval) :: expected
 
      calendar = JulianCalendar()
-     expected = TimeInterval(SECONDS_PER_HOUR)
-     
+! If we use TimeConstants_mod, only: SECONDS_PER_HOUR, then under gcc
+! Error: Too many components in structure constructor at (1)
+     expected = TimeInterval(3600)
+!                            1     
      @assertTrue(calendar%getSecondsPerHour() == expected)
 
    end subroutine testGetSecondsPerHour
 
+! TODO
 @test
    subroutine testGetSecondsPerDay()
+     use TimeConstants_mod, only: SECONDS_PER_DAY
      type (JulianCalendar) :: calendar
      type (TimeInterval) :: expected
 
      calendar = JulianCalendar()
-     expected = TimeInterval(SECONDS_PER_DAY)
+     expected = TimeInterval(86400)
 
      @assertTrue(calendar%getSecondsPerDay() == expected)
 
    end subroutine testGetSecondsPerDay
 
+! TODO
 @test
    subroutine testGetSecondsPerYear()
+     use TimeConstants_mod, only: SECONDS_PER_YEAR
      type (JulianCalendar) :: calendar
      type (TimeInterval) :: expected
 
      calendar = JulianCalendar()
-     expected = TimeInterval(SECONDS_PER_YEAR)
+     expected = TimeInterval(31536000)
 
      @assertTrue(calendar%getSecondsInYear() == expected)
 
