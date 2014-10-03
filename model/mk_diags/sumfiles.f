@@ -6,7 +6,7 @@
       include 'netcdf.inc'
       integer :: status,ofid,ivarid,varid
       integer, dimension(:), allocatable :: fids
-      character(len=80) :: ifile,ofile
+      character(len=4096) :: ifile,ofile
       integer :: n,nfiles,nlast,iargc,nvars
       integer :: itbeg,itend,itnow,itime0,itime,nday,iyear1,accsize
       integer :: Jyear0,Jmon0,Jday0,Jdate0,Jhour0,
@@ -31,7 +31,7 @@ c
      &       'usage: sumfiles files_to_be_summed'
         write(6,*)
      &       '(works on modelE acc files, not on pdE outputs)'
-        stop
+        call exit(-1)
       endif
       allocate(fids(nfiles))
 
@@ -49,7 +49,7 @@ c
 c        status = nf__open(trim(ifile),nf_nowrite,chunksize,fids(n))
         if(status.ne.nf_noerr) then
           write(6,*) 'nonexistent/non-netcdf input file ',trim(ifile)
-          stop
+          call exit(-2)
         endif
         call get_var_int(fids(n),'itime0',itnow)
         itbeg = min(itnow,itbeg)
