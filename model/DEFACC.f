@@ -5436,9 +5436,9 @@ c
       denom_jl(k) = jk_dpwt
       sname_jl(k) = 'q' !'AJK05'
       lname_jl(k) = 'SPECIFIC HUMIDITY' !'Q*DP'
-      units_jl(k) = 'ppmv'
-      pow_jl(k) = -1
-      scale_jl(k) = 1.e6*bymrat
+      units_jl(k) = 'g/kg'
+      pow_jl(k) = -2
+      scale_jl(k) = 1.e3
       lgrid_jl(k) = ctr_cp
       ia_jl(k) = ia_dga
 c

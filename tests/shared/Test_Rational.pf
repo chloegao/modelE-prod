@@ -7,30 +7,30 @@ module Test_Rational_mod
 
 contains
 
-!@test
+@test
   subroutine test_add_integers()
     @assertTrue(Rational(2) == Rational(1) + Rational(1))
     @assertTrue(Rational(5) == Rational(2) + Rational(3))
   end subroutine test_add_integers
 
-!@test
+@test
   subroutine test_add_sameDenominator()
     @assertTrue(Rational(2,5) == Rational(1,5) + Rational(1,5))
   end subroutine test_add_sameDenominator
 
-!@test
+@test
   subroutine test_add_simplify()
     @assertTrue(Rational(1) == Rational(2,2))
     @assertTrue(Rational(1,1,2) == Rational(3,2))
   end subroutine test_add_simplify
 
-!@test
+@test
   subroutine test_add_mixed()
     @assertTrue(Rational(5,6) == Rational(1,2) + Rational(1,3))
     @assertTrue(Rational(2,1,12) == Rational(1,1,3) + Rational(0,3,4))
  end subroutine test_add_mixed
 
-!@test
+@test
   subroutine test_negative_numerator()
     @assertTrue(Rational(-1) == Rational(-2,2))
     @assertTrue(Rational(-1,2) == Rational(-1,1,2))
@@ -95,7 +95,21 @@ end subroutine test_convertHard
      @assertTrue(Rational(1,1) == Rational(2,1) / 2)
      @assertTrue(Rational(3,10) == Rational(6,5) / Rational(4,1))
 
+     @assertTrue(Rational(1,1) == 2 / Rational(2,1))
+
    end subroutine test_divide
+
+@test
+   subroutine test_divideReproducer()
+     type (Rational) :: t
+     type (Rational) :: years
+     
+     t = Rational(63072277784_8, 16035671_8, 50480931_8) ! should be year ~2000
+     years = t / (Rational(24*3600*365))
+
+     @assertEqual(2000, int(years%getWhole()))
+
+   end subroutine test_divideReproducer
 
 @test
    subroutine test_convert()
@@ -122,6 +136,7 @@ end subroutine test_convertHard
      @assertEqual(2, nint(Rational(3,2)))
 
      @assertEqual(-1, nint(Rational(-3,4)))
+     @assertEqual(-1, nint(Rational(-5,4)))
 
    end subroutine test_nint
 
@@ -170,5 +185,84 @@ end subroutine test_convertHard
      @assertFalse(Rational(-4,3) > Rational(+1,2))
 
    end subroutine test_greaterThan
+
+@test
+   subroutine test_floor()
+
+     @assertEqual(0, floor(Rational(0)))
+     @assertEqual(0, floor(Rational(1,2)))
+     @assertEqual(0, floor(Rational(1,3)))
+     @assertEqual(0, floor(Rational(2,3)))
+
+     @assertEqual(1, floor(Rational(1)))
+     @assertEqual(1, floor(Rational(1,1,2)))
+     @assertEqual(1, floor(Rational(1,9,10)))
+
+     @assertEqual(-1, floor(Rational(-1,100)))
+     @assertEqual(-1, floor(Rational(-1,2)))
+     @assertEqual(-1, floor(Rational(-1)))
+     
+   end subroutine test_floor
+
+@test
+   subroutine test_ceiling()
+
+     @assertEqual(0, ceiling(Rational(0)))
+     @assertEqual(1, ceiling(Rational(1,2)))
+     @assertEqual(1, ceiling(Rational(1,3)))
+     @assertEqual(1, ceiling(Rational(2,3)))
+
+     @assertEqual(1, ceiling(Rational(1)))
+     @assertEqual(2, ceiling(Rational(1,1,2)))
+     @assertEqual(2, ceiling(Rational(1,9,10)))
+
+     @assertEqual(0, ceiling(Rational(-1,100)))
+     @assertEqual(0, ceiling(Rational(-1,2)))
+     @assertEqual(-1, ceiling(Rational(-1)))
+     
+   end subroutine test_ceiling
+
+@test
+   subroutine test_modulo()
+
+     @assertTrue(modulo(Rational(0), Rational(1)) == Rational(0))
+     @assertTrue(modulo(Rational(1), Rational(1)) == Rational(0))
+     @assertTrue(modulo(Rational(5), Rational(1)) == Rational(0))
+     @assertTrue(modulo(Rational(-1), Rational(1)) == Rational(0))
+
+     @assertTrue(modulo(Rational(1,2), Rational(1)) == Rational(1,2))
+     @assertTrue(modulo(Rational(1,2), Rational(2)) == Rational(1,2))
+     @assertTrue(modulo(Rational(-1,2), Rational(2)) == Rational(3,2))
+     @assertTrue(modulo(Rational(-3,2), Rational(2)) == Rational(1,2))
+
+     @assertTrue(modulo(Rational(5,2), Rational(7,4)) == Rational(3,4))
+
+   end subroutine test_modulo
+
+@test
+   subroutine test_toString_whole()
+      type (Rational) :: r
+
+      r = Rational(1)
+      @assertTrue(r == Rational(r%toString()))
+
+      r = Rational(2)
+      @assertTrue(r == Rational(r%toString()))
+
+   end subroutine test_toString_whole
+
+
+@test
+   subroutine test_toString_all()
+      type (Rational) :: r
+
+      r = Rational(1,2,3)
+      @assertTrue(r == Rational(r%toString()))
+
+      r = Rational(-1,-2,3)
+      @assertTrue(r == Rational(r%toString()))
+
+   end subroutine test_toString_all
+
 
 end module Test_Rational_mod

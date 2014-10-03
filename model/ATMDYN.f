@@ -143,7 +143,7 @@ c      end subroutine setDtParam
 !@sum  DYNAM Integrate dynamic terms
 !@vers 2013/10/31
 !@auth Original development team
-      Use CONSTANT,   Only: by3,byGRAV,RGAS,SHA,kg2mb
+      Use CONSTANT,   Only: by3,byGRAV,RGAS,SHA,kg2mb,UNDEF_VAL
       Use RESOLUTION, Only: IM,JM,LM,LS1, MFIXs
       USE MODEL_COM, only : DTsrc
       Use ATM_COM,    Only: MA,U,V,T,Q,QCL,QCI,MASUM, MUs,MVs,MWs, GZ, P
@@ -175,6 +175,8 @@ c      end subroutine setDtParam
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0STG, J_1STG, J_0S, J_1S
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+
+      MSUMODD(:,[grid%J_STRT_HALO,grid%J_STOP_HALO])=UNDEF_VAL
 
       call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG,
@@ -3050,7 +3052,7 @@ c Switch the sign convention back to "positive downward".
          Eps = Eps + Bsum * dc(Ikh) * ( rhoe(IZ0(J)) * 100.0_r8 )
                                                     !!!100.0_r8 arises from the units of P and rho.
       end do
-      Eps = Bt(J,modelEclock%dayOfYear()) / Eps
+      Eps = Bt(J,modelEclock%getDayOfYear()) / Eps
       !...Calculating source spectra (function of azimuth, horizontal wave number)
       do IAZ = 1, N_Az
          Ugw_S = ue(IZ0(J))

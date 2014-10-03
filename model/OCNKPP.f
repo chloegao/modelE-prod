@@ -9,13 +9,10 @@ C****
 #ifdef TRACERS_OCEAN
       USE OCN_TRACER_COM, only : ntm
 #endif
-      USE OCEAN, only : im,jm,lmo
+      USE OCEAN, only : im,jm,lmo,kpl
       USE SW2OCEAN, only : lsrpd
       IMPLICIT NONE
       SAVE
-!@var KPL level to which mixed layer descends (1)
-      INTEGER, ALLOCATABLE, DIMENSION(:,:) :: KPL
-      INTEGER, DIMENSION(IM,JM) :: KPL_glob    ! for serial ocnGM ???
 
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) ::    G0M1
       REAL*8, ALLOCATABLE, DIMENSION(:,:) ::  MO1,GXM1,SXM1, UO1,UOD1
@@ -111,7 +108,7 @@ c     parameters for subroutine "bldepth"
 
 c to compute depth of boundary layer:
 c
-!@var  Ricr    = critical bulk Richardson Number            = 0.3
+!@var  Ricr    = critical bulk Richardson Number            = 0.3 or 1.
 !@var  cekman  = coefficient for ekman depth                = 0.7
 !@var  cmonob  = coefficient for Monin-Obukhov depth        = 1.0
 !@var  concv   = ratio of interior buoyancy frequency to
@@ -123,7 +120,12 @@ c               contributes to surface buoyancy forcing    = 1.0
 c               scale of turbulant velocity shear
 c               (=function of concv,concs,epsilon,vonk,Ricr)
 c
-      real*8, parameter :: Ricr= 0.3d0, cekman= 0.7d0, cmonob=1d0, concv
+#ifdef OCN_GISS_TURB
+      real*8, parameter :: Ricr=1.0d0
+#else
+      real*8, parameter :: Ricr=0.3d0
+#endif
+      real*8, parameter :: cekman= 0.7d0, cmonob=1d0, concv
      *     =1.8d0,hbf=1d0
       real*8 Vtc
 
@@ -1339,20 +1341,23 @@ C****
 !@auth Gavin Schmidt/Gary Russell
 !@ver  2009/08/25
 C****
-      USE CONSTANT, only : grav,omega
+      USE CONSTANT, only : grav,omega,UNDEF_VAL
       USE OCEAN, only : im,jm,lmo,g0m,s0m,gxmo,sxmo,symo,gymo,szmo,gzmo
      *     ,ogeoz,hocean,ze,bydxypo,mo,sinpo,dts,lmm,lmv,lmu,ramvs
-     *     ,dxypo,cosic,sinic,uo,vo,uod,vod,ramvn,bydts, IVNP
+     *     ,dxypo,cosic,sinic,uo,vo,uod,vod,ramvn,bydts, IVNP,kpl
       USE ODIAG, only : oijl=>oijl_loc,oij=>oij_loc,oijmm
      *     ,ij_hbl,ij_hblmax,ij_bo,ij_bosol,ij_ustar,ijl_kvm,ijl_kvg
      *     ,ijl_wgfl,ijl_wsfl,ol,l_rho,l_temp,l_salt  !ij_ogeoz
      *     ,ij_mld,ij_mldmax
-#ifdef OCN_GISSMIX
+#ifdef OCN_GISS_TURB
      *     ,ijl_ri,ijl_rrho,ijl_bv2,ijl_otke,ijl_kvs,ijl_kvc,ijl_buoy
 #endif
-      USE KPP_COM, only : g0m1,s0m1,mo1,gxm1,gym1,sxm1,sym1,uo1,vo1,kpl
+#ifdef OCN_GISS_SM
+     *     ,ijl_fvb
+#endif
+      USE KPP_COM, only : g0m1,s0m1,mo1,gxm1,gym1,sxm1,sym1,uo1,vo1
      &     ,uod1,vod1
-#ifdef OCN_GISSMIX
+#ifdef OCN_GISS_TURB
       USE GISSMIX_COM, only : otke,rhobot,exya,ut2a,taubx,tauby
 #endif
       USE OFLUXES, only : oRSI, oSOLARw,oSOLARi, oDMUA,oDMVA,oDMUI,oDMVI
@@ -1373,6 +1378,13 @@ C****
       Use ODIAG, Only: toijl=>toijl_loc,toijl_wtfl
       USE OCN_TRACER_COM, only : t_qlimit, ntm
 #endif
+#ifdef OCN_GISS_SM
+      use giss_sm_com, only : au_sm,av_sm,rx_sm,ry_sm
+     &                       ,gx_sm,gy_sm,sx_sm,sy_sm,fvb_sm
+     &                       ,p3d,rho3d
+     &                       ,rx,ry,gx,gy,sx,sy
+#endif
+
       IMPLICIT NONE
 
       LOGICAL*4 QPOLE
@@ -1386,9 +1398,13 @@ C****
      *      SXXML(LMO),SYYML(LMO),SXYML(LMO),SZZML(LMO),
      *      BYMML(LMO),DTBYDZ(LMO),BYDZ2(LMO),RAVM(IM+2),RAMV(IM+2),
      *      BYMML0(LMO),MMLT(LMO),BYMMLT(LMO),
-     *      AKVM(0:LMO+1),AKVG(0:LMO+1),AKVS(0:LMO+1),GHATM(LMO),
+     *      AKVM(0:LMO+1),AKVG(0:LMO+1),AKVS(0:LMO+1),GHATM(LMO,IM+2),
      *      GHATG(LMO),GHATS(LMO),FLG(LMO),FLS(LMO),TXY,
-     *      FLDUM(LMO),GHATDUM(LMO),AKVC(0:LMO+1),GHATC(LMO)
+     *      FLDUM(LMO),GHATDUM(LMO),AKVC(0:LMO+1),GHATC(LMO),
+     *      DTP4UV(LMO,IM+2),DTP4G(LMO),DTP4S(LMO)
+#ifdef OCN_GISS_SM
+      real*8, dimension(lmo) :: rxl,ryl,gxl,gyl,sxl,syl
+#endif
       INTEGER LMUV(IM+2)
 C**** CONV parameters: BETA controls degree of convection (default 0.5).
       REAL*8, PARAMETER :: BETA=5d-1, BYBETA=1d0/BETA
@@ -1407,6 +1423,9 @@ C**** KPP variables
      &     MA,KLEN,GSAVE3D,SSAVE3D
       REAL*8, DIMENSION(0:LMO,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      &     AKVG3D,AKVS3D,AKVC3D,FLG3D,FLS3D
+#ifdef OCN_GISS_SM
+     &    ,DTP4G3D,DTP4S3D
+#endif
       REAL*8, DIMENSION(LMO,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      &     DZ3D
 #ifdef TRACERS_OCEAN
@@ -1414,7 +1433,7 @@ C**** KPP variables
       REAL*8 TRSAVE3D(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LMO,NTM)
 #endif
 
-#ifdef OCN_GISSMIX
+#ifdef OCN_GISS_TURB
       LOGICAL, PARAMETER :: LDD = .true.
 #else
       LOGICAL, PARAMETER :: LDD = .false.
@@ -1435,7 +1454,7 @@ C**** KPP variables
      &     relax_subgrid_zprofile,
      &     extra_slope_limitations,
      &     mix_tripled_resolution
-#ifdef OCN_GISSMIX
+#ifdef OCN_GISS_TURB
       real*8, parameter :: cd=3.d-3 !@var cd dry drag coeff.
       REAL*8 bf          !@var bf surface buoyancy forcing
 c     REAL*8 omfrac      !@var omfrac 1 - fraction of Bosol penetrated
@@ -1452,8 +1471,8 @@ c     REAL*8 omfrac      !@var omfrac 1 - fraction of Bosol penetrated
       REAL*8 u2by        !@var u2b at v velocity point
       real*8 ut2x        !@var ut2x ut2 at the u velocity point
       real*8 ut2y        !@var ut2y ut2 at the v velocity point
-      real*8 unp,vnp
-      integer ier
+c     real*8 unp,vnp
+c     integer ier
 
       REAL*8 rib(lmo)    !@var rib bulk Richardson number
 c     REAL*8 wtnl(lmo)   !@var wtnl non-local term of wt
@@ -1468,23 +1487,43 @@ c     real*8 buoynl(lmo) !@var buoynl non-local part of buoyancy flux (m^2/s^3)
       REAL*8 e(lmo)        !@var e ocean turbulent kinetic energy (m/s)**2
       integer strait
 #endif
+#ifdef OCN_GISS_SM
+c     REAL*8 dfvgdz(lmo) !@var d(fvg)/dz, fvg the counter-gradient part of wg
+c     REAL*8 dfvsdz(lmo) !@var d(fvs)/dz, fvs the counter-gradient part of ws
+      REAL*8 fvb(0:lmo+1)    !@var fvb the counter-gradient part of wb
+      REAL*8 fvg(0:lmo+1)    !@var fvg the counter-gradient part of wg
+      REAL*8 fvs(0:lmo+1)    !@var fvs the counter-gradient part of ws
+      REAL*8 p4uv(lmo,2) !@var p4uv coeff P4 in the U,V eqn
+      REAL*8 uc(lmo)     !@var x-component of velocity at cell center
+      REAL*8 vc(lmo)     !@var y-component of velocity at cell center
+      REAL*8, PARAMETER :: wta=exp(-1.d0/240.d0) ! average over 5 days
+c     REAL*8, PARAMETER :: wta1=exp(-1.d0/1440.d0) ! average over 30 days
+      REAL*8 g1,s1,p1,bydz
+#endif
 #ifdef TRACERS_OCEAN
       Real*8 TRML(LMO,NTM),TRML1(NTM),TZML(LMO,NTM),TZZML(LMO,NTM),
-     *       DELTATR(NTM),GHATT(LMO,NTM),FLT(LMO,NTM)
+     *       DELTATR(NTM),GHATT(LMO,NTM),FLT(LMO,NTM),DTP4TR(LMO,NTM)
       REAL*8, DIMENSION(LMO) :: TXML,TYML,TXXML,TYYML,TXYML
       INTEGER NSIGT
       REAL*8 :: DFLUX,MINRAT ! for GHATT limits
 #endif
       real*8 ptdd,ptdm,ptd(lmo),mld
-      integer kmld,ip1
+      integer kmld,ip1,lmix
 
       call getDomainBounds(grid, j_strt=j_0, j_stop=j_1,
      &                j_strt_skp=j_0s, j_stop_skp=j_1s,
      * HAVE_SOUTH_POLE=HAVE_SOUTH_POLE, HAVE_NORTH_POLE=HAVE_NORTH_POLE)
       call getDomainBounds(grid,j_strt_halo=j_0h)
 
+      DTP4G=0.d0; DTP4S=0.d0; DTP4UV=0.d0;
+#ifdef OCN_GISS_SM
+      DTP4G3D=0.d0; DTP4S3D=0.d0
+#endif
+
+
 C**** initialise diagnostics saved over quarter boxes and longitude
       OLJ = 0.
+      OLtemp=0.d0
 C**** Load UO,VO into UT,VT.  UO,VO will be updated, while UT,VT
 C**** will be fixed during convection.
       call halo_update (grid, VO, from=south)
@@ -1554,10 +1593,60 @@ C****
      &     (1.325d-4-.75d-5)*(atan((ze(l)-2000d0)/200d0)/pi + 0.5d0)
         ! all options: subtract default background value
         kvextra(l) = kvextra(l) - fkph*1d-4
-#ifdef OCN_GISSMIX
+#ifdef OCN_GISS_TURB
         Untested.  Subtract something other than fkph.
 #endif
       enddo
+#endif
+
+#ifdef OCN_GISS_SM
+      call getdomainbounds(grid,
+     &     j_strt=j_0, j_stop=j_1,
+     &     j_strt_skp=j_0s, j_stop_skp=j_1s,
+     &     have_north_pole=have_north_pole)
+
+      p3d=0.d0
+      do l=1,lmo
+      do j=j_0,j_1
+      do n=1,nbyzm(j,l)
+      do i=i1yzm(n,j,l),i2yzm(n,j,l)
+        if(l.eq.1) then
+          p3d(i,j,l)=5d-1*MO(I,J,1)*GRAV
+        else
+          p3d(i,j,l)=p3d(i,j,l-1)+5d-1*GRAV*(MO(I,J,L-1)+MO(I,J,L))
+        endif
+      enddo
+      enddo
+      enddo
+      enddo
+      if(have_north_pole) then
+        do l=1,lmo
+          p3d(2:im,jm,l) = p3d(1,jm,l)
+        enddo
+      endif
+
+      ! find 3-d rho
+      rho3d=0.d0
+      do l=1,lmo
+      do j=j_0,j_1
+      do n=1,nbyzm(j,l)
+      do i=i1yzm(n,j,l),i2yzm(n,j,l)
+        g1=G0M(I,J,l)/(MO(I,J,l)*DXYPO(J))
+        s1=S0M(I,J,l)/(MO(I,J,l)*DXYPO(J))
+        p1=p3d(i,j,l)
+        rho3d(i,j,l)= 1.d0/volgsp(g1,s1,p1)
+      enddo
+      enddo
+      enddo
+      enddo
+      if(have_north_pole) then
+        do l=1,lmo
+          rho3d(2:im,jm,l) = rho3d(1,jm,l)
+        enddo
+      endif
+      call get_gradients0(mo,rho3d,0,rx,ry)
+      call get_gradients0(mo,g0m,1,gx,gy)
+      call get_gradients0(mo,s0m,1,sx,sy)
 #endif
 
 C****
@@ -1566,7 +1655,7 @@ C**** Processes are checked and applied on every horizontal quarter box.
 C****
       call halo_update (grid,   VO1, from=south)
       call halo_update (grid, oDMVI, from=south)
-#ifdef OCN_GISSMIX
+#ifdef OCN_GISS_TURB
       call halo_update (grid,  ut2a, from=north)
       taubx=0.d0; tauby=0.d0
 #endif
@@ -1927,7 +2016,7 @@ C**** betaDS   = mean sbeta  * delta(salt)  at interfaces (kg/m3)
         end do
       end if
 
-#ifndef OCN_GISSMIX
+#ifndef OCN_GISS_TURB
       CALL KPPMIX(LDD,ZE,zgrid,hwide,LMIJ,Shsq,dVsq,Ustar,Bo
      *     ,Bosol ,alphaDT,betaDS,dbloc,Ritop,Coriol,byhwide,
      *     AKVM,AKVS,AKVG,GHAT,HBL,KBL)
@@ -1992,6 +2081,63 @@ C ud is u interpolated to the v point and vd is v interpolated to the u point.
          buoy(l)=-(akvg(l)-rrho(l)*akvs(l))/(1-rrho(l))*bv2(l)
       end do
 #endif
+#ifdef OCN_GISS_SM
+C**** velocity at the cell center
+      uc=0.d0; vc=0.d0;
+      do l=1,lmij
+        if(j.lt.jm) then
+          uc(l)=.5d0*(ul(l,1)+ul(l,2))
+          vc(l)=.5d0*(ul(l,3)+ul(l,4))
+        else
+          uc(l)=ul(l,im+1)
+          vc(l)=ul(l,im+2)
+        endif
+      end do
+      if(j.lt.jm) then
+        rxl(:)=rx(i,j,:)
+        ryl(:)=ry(i,j,:)
+        gxl(:)=gx(i,j,:)
+        gyl(:)=gy(i,j,:)
+        sxl(:)=sx(i,j,:)
+        syl(:)=sy(i,j,:)
+      else
+        rxl(:)=rx(im,jm,:)
+        ryl(:)=rx(ivnp,jm,:)
+        gxl(:)=gx(im,jm,:)
+        gyl(:)=gx(ivnp,jm,:)
+        sxl(:)=sx(im,jm,:)
+        syl(:)=sx(ivnp,jm,:)
+      endif
+
+C-- time-averaging of u,v
+      au_sm(i,j,:)=wta*au_sm(i,j,:)+(1.d0-wta)*uc(:)
+      av_sm(i,j,:)=wta*av_sm(i,j,:)+(1.d0-wta)*vc(:)
+      rx_sm(i,j,:)=wta*rx_sm(i,j,:)+(1.d0-wta)*rxl(:)
+      ry_sm(i,j,:)=wta*ry_sm(i,j,:)+(1.d0-wta)*ryl(:)
+      gx_sm(i,j,:)=wta*gx_sm(i,j,:)+(1.d0-wta)*gxl(:)
+      gy_sm(i,j,:)=wta*gy_sm(i,j,:)+(1.d0-wta)*gyl(:)
+      sx_sm(i,j,:)=wta*sx_sm(i,j,:)+(1.d0-wta)*sxl(:)
+      sy_sm(i,j,:)=wta*sy_sm(i,j,:)+(1.d0-wta)*syl(:)
+      uc(:)=au_sm(i,j,:)
+      vc(:)=av_sm(i,j,:)
+      rxl(:)=rx_sm(i,j,:)
+      ryl(:)=ry_sm(i,j,:)
+      gxl(:)=gx_sm(i,j,:)
+      gyl(:)=gy_sm(i,j,:)
+      sxl(:)=sx_sm(i,j,:)
+      syl(:)=sy_sm(i,j,:)
+
+      lmix=kmld
+c     lmix=min(kmld,lmij-1)
+
+      call giss_sm_mix(
+      ! in:
+     &    ze,zgrid,dbloc,uc,vc,rxl,ryl,gxl,gyl,sxl,syl
+     &   ,grav,Coriol,lmix,lmij
+      ! out:
+     &   ,fvg,fvs,fvb,p4uv)
+
+#endif
 
 C**** Calculate non-local transport terms for each scalar
 C****        ghat[sg] = kv * ghat * <w[sg]0>   (J,kg)
@@ -2006,8 +2152,11 @@ C****                            ghat (s/m^2) => (s m^4/kg^2)
          klen(i,j,l) = akvs(l)
          R = 5d-1*(RHO(L)+RHO(L+1))
          R2 = R**2
-         GHATM(L) = 0.          ! no non-local momentum transport
-#ifndef OCN_GISSMIX
+c        GHATM(L) = 0.          ! no non-local momentum transport
+         DO K=1,KMUV
+           GHATM(L,K) = 0. ! no non-local momentum transport
+         END DO
+#ifndef OCN_GISS_TURB
 C**** GHAT terms must be zero for consistency with OSOURC
 ! why is AKV[GS]*GHAT  IF(AKVG(L)*GHAT(L) .GT. 1D0) GHAT(L)=1D0/AKVG(L)
 ! sometimes > 1?       IF(AKVS(L)*GHAT(L) .GT. 1D0) GHAT(L)=1D0/AKVS(L)
@@ -2019,7 +2168,7 @@ C**** GHAT terms must be zero for consistency with OSOURC
          GHATS(L)=0.d0
 #endif
 #ifdef TRACERS_OCEAN
-#ifndef OCN_GISSMIX
+#ifndef OCN_GISS_TURB
          GHATT(L,:)= AKVS(L)*GHAT(L)*(DELTATR(:)-
      *        TRML(1,:)*DELTAM*BYMML(1))*DXYPO(J)
 #else
@@ -2043,19 +2192,58 @@ c    &                      /(DELTAS-S0ML0(1)*BYMML(1)*DELTAM+1d-30)
       AKVS3D(LMIJ,I,J) = AKVS3D(LMIJ-1,I,J)
       AKVC3D(LMIJ,I,J) = AKVC3D(LMIJ-1,I,J)
 
+      DTP4G=0.; DTP4S=0.; DTP4UV=0.
+#ifdef TRACERS_OCEAN
+      DTP4TR=0.
+#endif
+#ifdef OCN_GISS_SM
+      ! at the layer middle:
+      ! if j=jm, then i stays at 1
+      DO L=1,LMIJ-1
+         bydz=DTS/(ze(l-1)-ze(l))*MML(L)
+         DTP4G(l)=(fvg(l-1)-fvg(l))*bydz
+         DTP4S(l)=(fvs(l-1)-fvs(l))*bydz
+c        DTP4G(l)=-DTS*dfvgdz(l)*MML(L)
+c        DTP4S(l)=-DTS*dfvsdz(l)*MML(L)
+c        DTP4G(l)=0.d0
+c        DTP4S(l)=0.d0
+c        DO K=1,KMUV
+c          DTP4UV(L,K) = 0.d0
+c        END DO
+         DTP4G3D(L,I,J) = DTP4G(L)
+         DTP4S3D(L,I,J) = DTP4S(L)
+      END DO
+      DTP4G3D(0,I,J) = DTP4G3D(1,I,J)
+      DTP4S3D(0,I,J) = DTP4S3D(1,I,J)
+      DTP4G3D(LMIJ,I,J) = DTP4G3D(LMIJ-1,I,J)
+      DTP4S3D(LMIJ,I,J) = DTP4S3D(LMIJ-1,I,J)
+      DO L=1,LMIJ
+         DO K=1,KMUV
+           if(j.lt.jm.and.k.le.2) then
+             DTP4UV(l,k)=DTS*p4uv(l,1)
+           else
+             DTP4UV(l,k)=DTS*p4uv(l,2)
+           endif
+         END DO
+      END DO
+#endif
+
 C**** For each field (U,G,S + TRACERS) call OVDIFF
 C**** Momentum
       DO K=1,KMUV
         IF(LMUV(K).GT.1) THEN
-          CALL OVDIFF(UL(1,K),AKVM(1),GHATM,DTBYDZ,BYDZ2
-     *         ,LMUV(K),UL0(1,K))
+c         CALL OVDIFF(UL(1,K),AKVM(1),GHATM,DTBYDZ,BYDZ2
+c    *         ,LMUV(K),UL0(1,K))
+          CALL OVDIFF(UL(1,K),AKVM(1),GHATM(1,K)
+     *        ,DTP4UV(1,K),ZE(1),ZGRID(1)
+     *        ,DTBYDZ,BYDZ2,LMUV(K),UL0(1,K))
         ENDIF
       END DO
 C**** Enthalpy
-      Call OVDIFFS (G0ML(1),AKVG(1),GHATG,DTBYDZ,BYDZ2,DTS,LMIJ,
+      Call OVDIFFS (G0ML(1),AKVG(1),GHATG,DTP4G,DTBYDZ,BYDZ2,DTS,LMIJ,
      *             G0ML0(1),FLG)
 C**** Salinity
-      Call OVDIFFS (S0ML(1),AKVS(1),GHATS,DTBYDZ,BYDZ2,DTS,LMIJ,
+      Call OVDIFFS (S0ML(1),AKVS(1),GHATS,DTP4S,DTBYDZ,BYDZ2,DTS,LMIJ,
      *              S0ML0(1),FLS)
       IF ((ITER.eq.1  .or. ABS(HBLP-HBL).gt.(ZE(KBL)-ZE(KBL-1))*0.25)
      *     .and. ITER.lt.4) GO TO 510
@@ -2063,8 +2251,9 @@ C**** D-grid velocities
       If (.not.QPOLE)  Then
         DO K=1,KMUV
           IF(LMUV(K).GT.1) THEN
-            CALL OVDIFF(ULD(1,K),AKVM(1),GHATM,DTBYDZ,BYDZ2
-     *           ,LMUV(K),ULD0(1,K))
+            CALL OVDIFF(ULD(1,K),AKVM(1),GHATM(1,K)
+     *       ,DTP4UV(1,K),ZE(1),ZGRID(1)
+     *       ,DTBYDZ,BYDZ2,LMUV(K),ULD0(1,K))
           ENDIF
         END DO
 
@@ -2072,6 +2261,7 @@ C**** D-grid velocities
 #ifdef TRACERS_OCEAN
 C**** Tracers are diffused after iteration and follow salinity
       GHATDUM(:) = 0.
+      DTP4S(:)   = 0.  ! ????
       DO N=1,NTM
         if(t_qlimit(n)) then
           ! Modify GHATT to prevent negative tracer.  Method: apply
@@ -2095,8 +2285,8 @@ C**** Tracers are diffused after iteration and follow salinity
           endif
         endif
         ! diffuse
-        Call OVDIFFS (TRML(1,N),AKVC(1),GHATT(1,N),DTBYDZ,BYDZ2,
-     *       DTS,LMIJ,TRML(1,N),FLT(1,N))
+        Call OVDIFFS (TRML(1,N),AKVC(1),GHATT(1,N),DTP4TR(1,N)
+     *       ,DTBYDZ,BYDZ2,DTS,LMIJ,TRML(1,N),FLT(1,N))
       END DO
 #endif
 
@@ -2120,7 +2310,7 @@ C**** Diagnostics for non-local transport and vertical diffusion
        DO L=1,LMIJ-1
          OIJL(I,J,L,IJL_KVM) = OIJL(I,J,L,IJL_KVM) + AKVM(L)
          OIJL(I,J,L,IJL_KVG) = OIJL(I,J,L,IJL_KVG) + AKVG(L)
-#ifdef OCN_GISSMIX
+#ifdef OCN_GISS_TURB
          OIJL(I,J,L,IJL_KVS) = OIJL(I,J,L,IJL_KVS) + AKVS(L)
          OIJL(I,J,L,IJL_KVC) = OIJL(I,J,L,IJL_KVC) + AKVC(L)
          OIJL(I,J,L,ijl_ri) = OIJL(I,J,L,ijl_ri) + ri(L) ! Richardson number
@@ -2129,10 +2319,11 @@ C**** Diagnostics for non-local transport and vertical diffusion
          OIJL(I,J,L,ijl_buoy)= OIJL(I,J,L,ijl_buoy) + buoy(L) ! buoyancy flux
          OIJL(I,J,L,ijl_otke)= OIJL(I,J,L,ijl_otke) + e(L) ! turbulent k.e.
 #endif
+#ifdef OCN_GISS_SM
+         OIJL(I,J,L,ijl_fvb)= OIJL(I,J,L,ijl_fvb) + fvb(L)
+#endif
          OIJL(I,J,L,IJL_WGFL)= OIJL(I,J,L,IJL_WGFL) + FLG(L) ! heat flux
          OIJL(I,J,L,IJL_WSFL)= OIJL(I,J,L,IJL_WSFL) + FLS(L) ! salt flux
-c         OIJL(I,J,L,IJL_KVGG) = OIJL(I,J,L,IJL_KVGG) + AKVG(L)*GHATG(L)
-c         OIJL(I,J,L,IJL_KVSG) = OIJL(I,J,L,IJL_KVSG) + AKVS(L)*GHATS(L)
 #ifdef TRACERS_OCEAN
 C**** vertical diffusive tracer flux
          TOIJL(I,J,L,TOIJL_WTFL,:)=TOIJL(I,J,L,TOIJL_WTFL,:)+FLT(L,:)
@@ -2241,7 +2432,7 @@ C****
 C**** End of outside J loop
   790 CONTINUE
 
-c#ifdef OCN_GISSMIX
+c#ifdef OCN_GISS_TURB
 c     if(have_north_pole) then
 c     ! for the north pole, in subroutine obdrag only (not active) 
 c       unp=0.d0
@@ -2438,18 +2629,24 @@ C****
         akvg(lmij) = 0.
         akvs(1:lmij-1) = akvs3d(1:lmij-1,i,j)
         akvs(lmij) = 0.
+#ifdef OCN_GISS_SM
+        DTP4G(1:lmij-1) = DTP4G3D(1:lmij-1,i,j)
+        DTP4G(lmij) = 0.
+        DTP4S(1:lmij-1) = DTP4S3D(1:lmij-1,i,j)
+        DTP4S(lmij) = 0.
+#endif
         gxml(1:lmij) = gxmo(i,j,1:lmij)
         gyml(1:lmij) = gymo(i,j,1:lmij)
         sxml(1:lmij) = sxmo(i,j,1:lmij)
         syml(1:lmij) = symo(i,j,1:lmij)
-        Call OVDIFFS (GXML(1),AKVG(1),GHATDUM,DTBYDZ,BYDZ2,DTS,LMIJ,
-     *                GXML(1),FLDUM)
-        Call OVDIFFS (GYML(1),AKVG(1),GHATDUM,DTBYDZ,BYDZ2,DTS,LMIJ,
-     *                GYML(1),FLDUM)
-        Call OVDIFFS (SXML(1),AKVS(1),GHATDUM,DTBYDZ,BYDZ2,DTS,LMIJ,
-     *                SXML(1),FLDUM)
-        Call OVDIFFS (SYML(1),AKVS(1),GHATDUM,DTBYDZ,BYDZ2,DTS,LMIJ,
-     *                SYML(1),FLDUM)
+        Call OVDIFFS (GXML(1),AKVG(1),GHATDUM,DTP4G,DTBYDZ,BYDZ2
+     *                ,DTS,LMIJ,GXML(1),FLDUM)
+        Call OVDIFFS (GYML(1),AKVG(1),GHATDUM,DTP4G,DTBYDZ,BYDZ2
+     *                ,DTS,LMIJ,GYML(1),FLDUM)
+        Call OVDIFFS (SXML(1),AKVS(1),GHATDUM,DTP4S,DTBYDZ,BYDZ2
+     *                ,DTS,LMIJ,SXML(1),FLDUM)
+        Call OVDIFFS (SYML(1),AKVS(1),GHATDUM,DTP4S,DTBYDZ,BYDZ2
+     *                ,DTS,LMIJ,SYML(1),FLDUM)
         gxmo(i,j,1:lmij) = gxml(1:lmij)
         gymo(i,j,1:lmij) = gyml(1:lmij)
         sxmo(i,j,1:lmij) = sxml(1:lmij)
@@ -2461,18 +2658,18 @@ C****
         sxxml(1:lmij) = sxxmo(i,j,1:lmij)
         syyml(1:lmij) = syymo(i,j,1:lmij)
         sxyml(1:lmij) = sxymo(i,j,1:lmij)
-        Call OVDIFFS (GXXML(1),AKVG(1),GHATDUM,DTBYDZ,BYDZ2,DTS,LMIJ,
-     *                GXXML(1),FLDUM)
-        Call OVDIFFS (GYYML(1),AKVG(1),GHATDUM,DTBYDZ,BYDZ2,DTS,LMIJ,
-     *                GYYML(1),FLDUM)
-        Call OVDIFFS (GXYML(1),AKVG(1),GHATDUM,DTBYDZ,BYDZ2,DTS,LMIJ,
-     *                GXYML(1),FLDUM)
-        Call OVDIFFS (SXXML(1),AKVS(1),GHATDUM,DTBYDZ,BYDZ2,DTS,LMIJ,
-     *                SXXML(1),FLDUM)
-        Call OVDIFFS (SYYML(1),AKVS(1),GHATDUM,DTBYDZ,BYDZ2,DTS,LMIJ,
-     *                SYYML(1),FLDUM)
-        Call OVDIFFS (SXYML(1),AKVS(1),GHATDUM,DTBYDZ,BYDZ2,DTS,LMIJ,
-     *                SXYML(1),FLDUM)
+        Call OVDIFFS (GXXML(1),AKVG(1),GHATDUM,DTP4G,DTBYDZ,BYDZ2
+     *                ,DTS,LMIJ,GXXML(1),FLDUM)
+        Call OVDIFFS (GYYML(1),AKVG(1),GHATDUM,DTP4G,DTBYDZ,BYDZ2
+     *                ,DTS,LMIJ,GYYML(1),FLDUM)
+        Call OVDIFFS (GXYML(1),AKVG(1),GHATDUM,DTP4G,DTBYDZ,BYDZ2
+     *                ,DTS,LMIJ,GXYML(1),FLDUM)
+        Call OVDIFFS (SXXML(1),AKVS(1),GHATDUM,DTP4S,DTBYDZ,BYDZ2
+     *                ,DTS,LMIJ,SXXML(1),FLDUM)
+        Call OVDIFFS (SYYML(1),AKVS(1),GHATDUM,DTP4S,DTBYDZ,BYDZ2
+     *                ,DTS,LMIJ,SYYML(1),FLDUM)
+        Call OVDIFFS (SXYML(1),AKVS(1),GHATDUM,DTP4S,DTBYDZ,BYDZ2
+     *                ,DTS,LMIJ,SXYML(1),FLDUM)
         gxxmo(i,j,1:lmij) = gxxml(1:lmij)
         gyymo(i,j,1:lmij) = gyyml(1:lmij)
         gxymo(i,j,1:lmij) = gxyml(1:lmij)
@@ -2486,9 +2683,9 @@ C****
         do n=1,ntm
           txml(1:lmij) = txmo(i,j,1:lmij,n)
           tyml(1:lmij) = tymo(i,j,1:lmij,n)
-          Call OVDIFFS ( TXML(1),AKVC(1),GHATDUM,DTBYDZ,BYDZ2,
+          Call OVDIFFS ( TXML(1),AKVC(1),GHATDUM,DTP4S,DTBYDZ,BYDZ2,
      *         DTS,LMIJ, TXML(1),FLDUM)
-          Call OVDIFFS ( TYML(1),AKVC(1),GHATDUM,DTBYDZ,BYDZ2,
+          Call OVDIFFS ( TYML(1),AKVC(1),GHATDUM,DTP4S,DTBYDZ,BYDZ2,
      *         DTS,LMIJ, TYML(1),FLDUM)
           txmo(i,j,1:lmij,n) = txml(1:lmij)
           tymo(i,j,1:lmij,n) = tyml(1:lmij)
@@ -2496,11 +2693,11 @@ C****
           txxml(1:lmij) = txxmo(i,j,1:lmij,n)
           tyyml(1:lmij) = tyymo(i,j,1:lmij,n)
           txyml(1:lmij) = txymo(i,j,1:lmij,n)
-          Call OVDIFFS (TXXML(1),AKVC(1),GHATDUM,DTBYDZ,BYDZ2,
+          Call OVDIFFS (TXXML(1),AKVC(1),GHATDUM,DTP4S,DTBYDZ,BYDZ2,
      *         DTS,LMIJ,TXXML(1),FLDUM)
-          Call OVDIFFS (TYYML(1),AKVC(1),GHATDUM,DTBYDZ,BYDZ2,
+          Call OVDIFFS (TYYML(1),AKVC(1),GHATDUM,DTP4S,DTBYDZ,BYDZ2,
      *         DTS,LMIJ,TYYML(1),FLDUM)
-          Call OVDIFFS (TXYML(1),AKVC(1),GHATDUM,DTBYDZ,BYDZ2,
+          Call OVDIFFS (TXYML(1),AKVC(1),GHATDUM,DTP4S,DTBYDZ,BYDZ2,
      *         DTS,LMIJ,TXYML(1),FLDUM)
           txxmo(i,j,1:lmij,n) = txxml(1:lmij)
           tyymo(i,j,1:lmij,n) = tyyml(1:lmij)
@@ -2575,14 +2772,14 @@ C****
       USE OCEAN,only : lmo,dts,ze,sinpo
       USE STRAITS, only : must,mmst,g0mst,gzmst,gxmst,s0mst,szmst,sxmst
      *     ,lmst,nmst,dist,wist,jst
-#ifdef OCN_GISSMIX
+#ifdef OCN_GISS_TURB
      *     ,otkest
 #endif
 #ifdef TRACERS_OCEAN
      *     ,trmst,txmst,tzmst
 #endif
       USE ODIAG, only : olnst,ln_kvm,ln_kvg,ln_wgfl,ln_wsfl
-#ifdef OCN_GISSMIX
+#ifdef OCN_GISS_TURB
      &     ,ln_ri,ln_rrho,ln_bv2,ln_otke,ln_buoy
       USE GISSMIX_COM, only : otke
 #endif
@@ -2591,17 +2788,18 @@ C****
       REAL*8, DIMENSION(LMO,2) :: UL,G0ML,S0ML,GZML,SZML
       REAL*8, DIMENSION(LMO) :: MML,BYMML,DTBYDZ,BYDZ2,UL0,G0ML0,S0ML0
       REAL*8, DIMENSION(0:LMO+1) :: AKVM,AKVG,AKVS,AKVC
-#ifdef OCN_GISSMIX
+#ifdef OCN_GISS_TURB
      &     ,ri1,rrho,bv2,buoy
 #endif
       REAL*8, DIMENSION(LMO) :: G,S,TO,BYRHO,RHO,PO,GHAT,FLG,FLS
+      REAL*8, DIMENSION(LMO) :: DTP4
 #ifdef TRACERS_OCEAN
       REAL*8 TRML(LMO,NTM,2),TZML(LMO,NTM,2),FLT(LMO,NTM)
       INTEGER ITR,NSIGT
 #endif
 C**** CONV parameters: BETA controls degree of convection (default 0.5).
       REAL*8, PARAMETER :: BETA=5d-1,BYBETA=1d0/BETA
-#ifdef OCN_GISSMIX
+#ifdef OCN_GISS_TURB
       LOGICAL, PARAMETER :: LDD = .true.
 #else
       LOGICAL, PARAMETER :: LDD = .false.
@@ -2616,7 +2814,7 @@ C**** CONV parameters: BETA controls degree of convection (default 0.5).
       REAL*8 VOLGSP,ALPHAGSP,BETAGSP,TEMGSP,SHCGS
       INTEGER, SAVE :: IFIRST = 1
       INTEGER I,L,N,LMIJ,IQ,ITER,NSIGG,NSIGS,KBL
-#ifdef OCN_GISSMIX
+#ifdef OCN_GISS_TURB
       REAL*8 rib(lmo),bf,ustarb2,exy
       INTEGER strait
 c     REAL*8 wtnl(lmo)   !@var wtnl non-local term of wt
@@ -2760,7 +2958,7 @@ C**** betaDS  = mean sbeta  * delta(salt)     at interfaces  (kg/m3)
         end do
       end if
 
-#ifndef OCN_GISSMIX
+#ifndef OCN_GISS_TURB
 C**** Get diffusivities for the whole column
       CALL KPPMIX(LDD,ZE,zgrid,hwide,LMIJ,Shsq,dVsq,Ustar,Bo
      *     ,Bosol ,alphaDT,betaDS,dbloc,Ritop,Coriol,byhwide,
@@ -2801,23 +2999,27 @@ C**** Correct units for diffusivities (m^2/s) => (kg^2/m^4 s)
          AKVS(L) = AKVS(L)*R2
          AKVC(L) = AKVC(L)*R2
          GHAT(L) = 0.  ! no non-local transports since no surface fluxes
+         DTP4(L) = 0.
       END DO
+      DTP4(LMIJ) = 0.
 
 C**** For each field (U,G,S + TRACERS) call OVDIFF
 C**** Momentum
-      CALL OVDIFF(UL(1,IQ),AKVM(1),GHAT,DTBYDZ,BYDZ2,LMIJ,UL0)
+      CALL OVDIFF(UL(1,IQ),AKVM(1),GHAT,DTP4
+     &     ,ZE(1),ZGRID(1),DTBYDZ,BYDZ2,LMIJ,UL0)
+
 C**** Enthalpy
-      CALL OVDIFFS(G0ML(1,IQ),AKVG(1),GHAT,DTBYDZ,BYDZ2,DTS
+      CALL OVDIFFS(G0ML(1,IQ),AKVG(1),GHAT,DTP4,DTBYDZ,BYDZ2,DTS
      *     ,LMIJ,G0ML0,FLG)
 C**** Salinity
-      CALL OVDIFFS(S0ML(1,IQ),AKVS(1),GHAT,DTBYDZ,BYDZ2,DTS
+      CALL OVDIFFS(S0ML(1,IQ),AKVS(1),GHAT,DTP4,DTBYDZ,BYDZ2,DTS
      *     ,LMIJ,S0ML0,FLS)
       IF ((ITER.eq.1  .or. ABS(HBLP-HBL).gt.(ZE(KBL)-ZE(KBL-1))*0.25)
      *     .and. ITER.lt.4) GO TO 510
 #ifdef TRACERS_OCEAN
 C**** Tracers are diffused after iteration (GHAT always zero)
       DO ITR = 1,NTM
-        CALL OVDIFFS(TRML(1,ITR,IQ),AKVC(1),GHAT,DTBYDZ,BYDZ2
+        CALL OVDIFFS(TRML(1,ITR,IQ),AKVC(1),GHAT,DTP4,DTBYDZ,BYDZ2
      *       ,DTS,LMIJ,TRML(1,ITR,IQ),FLT(1,ITR))
       END DO
 #endif
@@ -2853,7 +3055,7 @@ C****
       DO L=1,LMIJ-1
         OLNST(L,N,LN_KVG) = OLNST(L,N,LN_KVG) + AKVG(L)
         OLNST(L,N,LN_KVM) = OLNST(L,N,LN_KVM) + AKVM(L)
-#ifdef OCN_GISSMIX
+#ifdef OCN_GISS_TURB
         OLNST(L,N,ln_ri)  = OLNST(L,N,ln_ri)  + ri1(L)
         OLNST(L,N,ln_rrho)= OLNST(L,N,ln_rrho)+ rrho(L)
         OLNST(L,N,ln_bv2) = OLNST(L,N,ln_bv2) + bv2(L)
@@ -2913,17 +3115,20 @@ C**** End of outside loop over straits
       RETURN
       END SUBROUTINE STCONV
 
-      SUBROUTINE OVDIFF(U,K,GHAT,DTBYDZ,BYDZ2,LMIJ,U0)
+
+      SUBROUTINE OVDIFF(U,K,GHAT,DTP4,ZE,Z,DTBYDZ,BYDZ2,LMIJ,U0)
 !@sum  OVDIFF Implicit vertical diff + non local transport for velocity
 !@auth Gavin Schmidt
       USE OCEAN, only : LMO
       USE TRIDIAG_MOD, only : tridiag
       IMPLICIT NONE
       REAL*8, DIMENSION(LMO), INTENT(IN) :: U0,K,GHAT,DTBYDZ,BYDZ2
+     &                                     ,ZE,Z,DTP4 ! Z<0
       REAL*8, DIMENSION(LMO), INTENT(OUT) :: U
       INTEGER, INTENT(IN) :: LMIJ
       REAL*8, DIMENSION(LMO) :: A,B,C,R
       INTEGER L
+      REAL*8 tmp
 C****  U0,U  input and output field (velocity or concentration)
 C****     K  vertical diffusivity ((z)^2/ s)
 C****  GHAT  non local transport of scalar
@@ -2931,35 +3136,53 @@ C****           kv * ghats * surface flux
 C**** DTBYDZ  DT/DZ_L
 C**** BYDZ2  1d0/DZ_L+1/2
 C****    DT  timestep (s)
+C**** top boundary::
+C**** U(1)-U0(1)=-DTBYDZ(1)*(BYDZ2(1)*K(1)*(U(1)-U(2))-GHAT(1))+DTP4   
 C**** Boundary conditions assumed to be no-flux at Z=0, Z=Z(LMIJ)
 C**** Calculate operators for tridiagonal solver
       A(1) = 0
-      B(1) = 1d0   + DTBYDZ(1)*BYDZ2(1)*K(1)
+c     B(1) = 1d0   + DTBYDZ(1)*BYDZ2(1)*K(1)
+c     C(1) =       - DTBYDZ(1)*BYDZ2(1)*K(1)
       C(1) =       - DTBYDZ(1)*BYDZ2(1)*K(1)
-      R(1) = U0(1) - DTBYDZ(1)*GHAT(1)
+      B(1) = 1d0-C(1)   
+      
+      tmp  = U0(1)
+c     tmp  = .5d0*(U0(1)+U0(2))
+      R(1) = tmp - DTBYDZ(1)*GHAT(1) + DTP4(1)
+c     R(1) = tmp
       DO L=2,LMIJ-1
-        A(L) =       - DTBYDZ(L)* BYDZ2(L-1)*K(L-1)
+c       A(L) =       - DTBYDZ(L)* BYDZ2(L-1)*K(L-1)
+        A(L)=-DTBYDZ(L)*BYDZ2(L-1)*K(L-1)
+        C(L)=-DTBYDZ(L)*BYDZ2(L)*K(L)
+c       A(L)=-DTBYDZ(L)*BYDZ2(L-1)*K(L-1)
+c       C(L)=-DTBYDZ(L)*BYDZ2(L)*K(L)
+c       B(L)=1-(A(L)+C(L))
         B(L) = 1d0   + DTBYDZ(L)*(BYDZ2(L-1)*K(L-1)+BYDZ2(L)*K(L))
-        C(L) =       - DTBYDZ(L)*                   BYDZ2(L)*K(L)
-        R(L) = U0(L) + DTBYDZ(L)*(GHAT(L-1) - GHAT(L))
+c       C(L) =       - DTBYDZ(L)*                   BYDZ2(L)*K(L)
+        tmp  = U0(L)
+c       tmp  = .5d0*(U0(L-1)+U0(L+1))
+        R(L) = tmp + DTBYDZ(L)*(GHAT(L-1) - GHAT(L)) + DTP4(L)
       END DO
       A(LMIJ) =          - DTBYDZ(LMIJ)*BYDZ2(LMIJ-1)*K(LMIJ-1)
-      B(LMIJ) = 1d0      + DTBYDZ(LMIJ)*BYDZ2(LMIJ-1)*K(LMIJ-1)
+      B(LMIJ) = 1d0-A(LMIJ)      
       C(LMIJ) = 0
-      R(LMIJ) = U0(LMIJ) + DTBYDZ(LMIJ)*GHAT(LMIJ-1)
+      tmp  = U0(LMIJ)
+c     tmp  = .5d0*(U0(LMIJ-1)+U0(LMIJ))
+      R(LMIJ) = tmp + DTBYDZ(LMIJ)*GHAT(LMIJ-1) + DTP4(LMIJ)
+c     R(LMIJ) = tmp
 
       CALL TRIDIAG(A,B,C,R,U,LMIJ)
 
       RETURN
       END SUBROUTINE OVDIFF
 
-      SUBROUTINE OVDIFFS(U,K,GHAT,DTBYDZ,BYDZ2,DT,LMIJ,U0,FL)
+      SUBROUTINE OVDIFFS(U,K,GHAT,DTP4,DTBYDZ,BYDZ2,DT,LMIJ,U0,FL)
 !@sum  OVDIFFS Implicit vertical diff + non local transport for tracers
 !@auth Gavin Schmidt
       USE OCEAN, only : LMO
       USE TRIDIAG_MOD, only : tridiag
       IMPLICIT NONE
-      REAL*8, DIMENSION(LMO), INTENT(IN) :: U0,K,GHAT,DTBYDZ,BYDZ2
+      REAL*8, DIMENSION(LMO), INTENT(IN) :: U0,K,GHAT,DTP4,DTBYDZ,BYDZ2
       REAL*8, DIMENSION(LMO), INTENT(OUT) :: U,FL
       REAL*8, INTENT(IN) :: DT
       INTEGER, INTENT(IN) :: LMIJ
@@ -2978,17 +3201,17 @@ C**** Calculate operators for tridiagonal solver
       A(1) = 0
       B(1) = 1d0   + DTBYDZ(1)*BYDZ2(1)*K(1)
       C(1) =       - DTBYDZ(2)*BYDZ2(1)*K(1)
-      R(1) = U0(1) - DT * GHAT(1)
+      R(1) = U0(1) - DT * GHAT(1) + DTP4(1)
       DO L=2,LMIJ-1
         A(L) =       - DTBYDZ(L-1)* BYDZ2(L-1)*K(L-1)
         B(L) = 1d0   + DTBYDZ(L  )*(BYDZ2(L-1)*K(L-1)+BYDZ2(L)*K(L))
         C(L) =       - DTBYDZ(L+1)*                   BYDZ2(L)*K(L)
-        R(L) = U0(L) + DT * (GHAT(L-1) - GHAT(L))
+        R(L) = U0(L) + DT * (GHAT(L-1) - GHAT(L)) + DTP4(L)
       END DO
       A(LMIJ) =          - DTBYDZ(LMIJ-1)*BYDZ2(LMIJ-1)*K(LMIJ-1)
       B(LMIJ) = 1d0      + DTBYDZ(LMIJ  )*BYDZ2(LMIJ-1)*K(LMIJ-1)
       C(LMIJ) = 0
-      R(LMIJ) = U0(LMIJ) + DT * GHAT(LMIJ-1)
+      R(LMIJ) = U0(LMIJ) + DT * GHAT(LMIJ-1) + DTP4(LMIJ-1)
 
       CALL TRIDIAG(A,B,C,R,U,LMIJ)
 
@@ -3031,7 +3254,13 @@ C****
 
       call getDomainBounds(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
 
-      ALLOCATE(  KPL(IM,J_0H:J_1H)    , STAT = IER)
+c     ALLOCATE(  KPL(IM,J_0H:J_1H)    , STAT = IER)
+#ifdef OCN_GISS_SM
+c     ALLOCATE(  ktap(IM,J_0H:J_1H)    , STAT = IER)
+c     ALLOCATE(  k02count(IM,J_0H:J_1H), STAT = IER)
+c     ktap=1
+c     k02count=1.
+#endif
 
       ALLOCATE( G0M1(IM,J_0H:J_1H,LSRPD) , STAT = IER)
 
@@ -3041,7 +3270,6 @@ C****
      *           UO1(IM,J_0H:J_1H),     VO1(IM,J_0H:J_1H),
      *           UOD1(IM,J_0H:J_1H),    VOD1(IM,J_0H:J_1H),
      *   STAT = IER)
-
 #ifdef TRACERS_OCEAN
       ALLOCATE( TRMO1(NTM,IM,J_0H:J_1H),
      *          TXMO1(NTM,IM,J_0H:J_1H),
@@ -3050,3 +3278,123 @@ C****
 #endif
 
       END SUBROUTINE alloc_kpp_com
+
+      subroutine get_gradients0(mokgm2,q_in,flag,qx,qy)
+      use domain_decomp_1d, only :
+     &     getDomainBounds,halo_update,south,north
+      use oceanr_dim, only : grid=>ogrid
+      use ocean, only : dxpo,dyvo,dxypo
+      use ocean, only : lmu,lmm,
+     &     nbyzm,nbyzu,nbyzv, i1yzm,i2yzm, i1yzu,i2yzu, i1yzv,i2yzv
+      use ocean, only : im,jm,lmo,ivnp,sinic,cosic,sinu,cosu
+      implicit none
+      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,lmo) ::
+     &     mokgm2, ! units: kg/m2
+     &     q_in, ! extensive or intesive units
+     &     qx,qy ! outputs have intensive units
+      integer flag ! 1: q_in is extensive; 0: q_in is intensive
+
+      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,lmo) ::
+     &     q,qxe,qyn
+      integer :: i,j,l,n
+      integer :: j_0s,j_1s,j_0,j_1
+      logical :: have_north_pole
+      real*8 :: unp,vnp
+
+      call getdomainbounds(grid,
+     &     j_strt=j_0, j_stop=j_1,
+     &     j_strt_skp=j_0s, j_stop_skp=j_1s,
+     &     have_north_pole=have_north_pole)
+
+      if(flag.eq.1) then ! q_in is extensive
+        ! convert q to intensive units
+        do l=1,lmo
+        do j=j_0,j_1
+        do n=1,nbyzm(j,l)
+        do i=i1yzm(n,j,l),i2yzm(n,j,l)
+          q(i,j,l) = q_in(i,j,l)/(mokgm2(i,j,l)*dxypo(j))
+        enddo
+        enddo
+        enddo
+        enddo
+      else               ! q_in is intensive
+        q=q_in
+      endif
+
+      call halo_update(grid,q,from=north)
+
+      if(have_north_pole) then
+        do l=1,lmo
+          q(2:im,jm,l) = q(1,jm,l)
+        enddo
+      endif
+
+      ! compute gradients at cell edges.  gradients at coastlines
+      ! are zero
+      qxe = 0.
+      qyn = 0.
+      do l=1,lmo
+        do j=j_0s,j_1s
+          do n=1,nbyzu(j,l)
+          do i=i1yzu(n,j,l),min(im-1,i2yzu(n,j,l))
+            qxe(i,j,l) = (q(i+1,j,l)-q(i,j,l))/dxpo(j)
+          enddo
+          enddo
+          i=im
+          if(lmu(i,j).ge.l) then
+            qxe(i,j,l) = (q(1,j,l)-q(i,j,l))/dxpo(j)
+          endif
+          do n=1,nbyzv(j,l)
+          do i=i1yzv(n,j,l),i2yzv(n,j,l)
+            qyn(i,j,l) = (q(i,j+1,l)-q(i,j,l))/dyvo(j)
+          enddo
+          enddo
+        enddo
+      enddo
+
+      ! average cell-edge gradients to cell centers.
+      ! gradients in the north polar cap temporarily left at zero.
+      call halo_update(grid,qyn,from=south)
+
+      qx = 0.
+      qy = 0.
+      do l=1,lmo
+      do j=j_0s,j_1s
+        do n=1,nbyzm(j,l)
+        do i=max(2,i1yzm(n,j,l)),i2yzm(n,j,l)
+          qx(i,j,l) = .5*(qxe(i-1,j,l)+qxe(i,j,l))
+          qy(i,j,l) = .5*(qyn(i,j-1,l)+qyn(i,j,l))
+        enddo
+        enddo
+        i=1
+        if(lmm(i,j).ge.l) then
+          qx(i,j,l) = .5*(qxe(im,j,l)+qxe(i,j,l))
+          qy(i,j,l) = .5*(qyn(i,j-1,l)+qyn(i,j,l))
+        endif
+      enddo
+      enddo
+
+      if(have_north_pole) then
+c at the north pole
+        unp = 0.
+        vnp = 0.
+        j = jm-1
+        do l=1,lmo
+          do n=1,nbyzv(j,l)
+            do i=i1yzv(n,j,l),i2yzv(n,j,l)
+              unp = unp - sinic(i)*qyn(i,j,l)
+              vnp = vnp + cosic(i)*qyn(i,j,l)
+            enddo
+          enddo
+          unp = unp*2/im
+          vnp = vnp*2/im
+          do i=1,im
+            qx(i,jm,l) = unp*cosu(i)  + vnp*sinu(i)
+            qy(i,jm,l) = vnp*cosic(i) - unp*sinic(i)
+          enddo
+c         qx(im,jm,l) = unp   ! as a result of the above loop
+c         qx(ivnp,jm,l) = vnp ! as a result of the above loop
+        enddo
+      endif
+      return
+      end subroutine get_gradients0

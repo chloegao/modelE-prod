@@ -193,13 +193,13 @@ EOF
     if ($compiler eq "intel") 
     {
       $script .= <<EOF;
-module load comp/intel-13.1.3.192 mpi/impi-3.2.2.006
+module load comp/intel-14.0.3.174 mpi/impi-4.1.3.048
 EOF
-    } 
+    }
     elsif ($compiler eq "gfortran")  
     {
       $script .= <<EOF;
-module load other/comp/gcc-4.8.1 other/mpi/openmpi/1.7.2-gcc-4.8.1-shared
+module load other/comp/gcc-4.9.1 other/mpi/openmpi/1.8.1-gcc-4.9.1
 EOF
     }  
     elsif ($compiler eq "nag")  
@@ -259,7 +259,7 @@ sub setModuleEnvironment
     my $compiler = shift;
     my $branch = shift;
 
-    require $ENV{MODELROOT}."/exec/testing/perlreq";
+    require $ENV{MODELROOT}."/perlreq";
     print " setModuleEnvironment: COMPILER=$compiler, branch=$branch\n";
 
     module (purge);
@@ -283,11 +283,11 @@ sub setModuleEnvironment
 
       if ($compiler eq "intel")
       {
-        module (load, "comp/intel-13.1.3.192",  "mpi/impi-3.2.2.006");
+        module (load, "comp/intel-14.0.3.174", "mpi/impi-4.1.3.048");
       }
       elsif ($compiler eq "gfortran")
       {
-        module (load, "other/comp/gcc-4.8.1", "other/mpi/openmpi/1.7.2-gcc-4.8.1-shared");
+        module (load, "other/comp/gcc-4.9.1", "other/mpi/openmpi/1.8.1-gcc-4.9.1");
       }
       elsif ($compiler eq "nag") 
       {

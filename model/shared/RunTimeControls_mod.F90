@@ -174,6 +174,12 @@ module RunTimeControls_mod
   logical, parameter :: check_van2 = .false.
 #endif
 
+#if defined(CHL0)
+  logical, parameter :: chl0 = .true.
+#else
+  logical, parameter :: chl0 = .false.
+#endif
+
 #if defined(CHL_from_OBIO)
   logical, parameter :: chl_from_obio = .true.
 #else

@@ -77,8 +77,10 @@ c     REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TRMO1,TXMO1,TYMO1
 !@auth AHoward/YCheng
 
       USE GISSMIX_COM
-
       implicit none
+
+      ! Variables used for background diffusivities
+      real*8 :: bv0, f30, bv0byf30, byden, epsbyn2, q, byzet 
 
       CONTAINS
 
@@ -180,6 +182,14 @@ C**** initialize otke
             otke(l,:,:)=min(max(otke_init_max/(float(l)**2),emin),emax)
          end do
       endif
+
+      bv0 = 5.24d-3                     ! (1/s)
+      f30 = omega                       ! (1/s)
+      bv0byf30 = bv0/f30                ! (1)
+      byden = 1./(f30*acosh(bv0byf30))  ! (1)
+      epsbyn2 = .288d-4                 ! (m^2/s)
+      q = .7d0        ! fraction of baroclinic energy into creating mixing
+      byzet = 1./500.d0                 ! upward decaying factor (1/m)
 
       return
       end subroutine gissmix_init
@@ -510,18 +520,7 @@ C**** initialize otke
       integer l,jlo,jhi,klo,khi
       real*8 a1,a2,b1,b2,c1,c2,c3,c4
       real*8 ril,rrl,gm,sm,sh,ss,sc,kml,khl,ksl,kcl,lr,etau
-      real*8 l0,l1,l2,kz,zbyh,bydz,zl,tmp
-
-      ! for background diffusivities
-      ! consts appeared in C2010, (65a)-(66)
-      !@var f30 2*omega*sin(30 degrees)=omega
-      real*8, parameter :: bv0=5.24d-3    ! (1/s), below (65b)
-     &   ,f30=omega                       ! (1/s), below (65b)
-     &   ,bv0byf30=bv0/f30                ! (1), (65b)
-     &   ,byden=1./(f30*acosh(bv0byf30))  ! (1), (65b)
-     &   ,epsbyn2=.288d-4                 ! (m^2/s), (66)
-     &   ,q=.7d0   ! fraction of baroclinic energy into creating mixing
-     &   ,byzet=1./500.d0                 ! upward decaying factor (1/m)
+      real*8 l0,l1,l2,kz,zbyh,bydz,zl,tmp,tmp1
       real*8 fbyden,afc,ltn,bvbyf,fac,kmbg,khbg,ksbg
       real*8 den,fz,epstd_byn2,kmtd,khtd,kstd
       real*8 phim2,zb,unr20

@@ -8,6 +8,7 @@
       USE RESOLUTION, only : im,jm,lm
       USE ATM_COM, only : lm_req
       USE RADPAR, only : S0,ITRMAX
+      use AbstractOrbit_mod, only: AbstractOrbit
 !@var S0 solar 'constant' needs to be saved between calls to radiation
       IMPLICIT NONE
       SAVE
@@ -261,6 +262,14 @@ C**** Local variables initialised in init_RAD
 !@+       = 1     only when max daily local temp. over type > 0
       integer :: snoage_def = 0
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: SNOAGE
+      class (AbstractOrbit), allocatable :: orbit
+
+      contains
+
+      subroutine radiationSetOrbit(anOrbit)
+      class (AbstractOrbit), intent(in) :: anOrbit
+      allocate(orbit, source=anOrbit)
+      end subroutine radiationSetOrbit
 
       END MODULE RAD_COM
 

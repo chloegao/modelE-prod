@@ -1249,6 +1249,7 @@ C****
 
       SUBROUTINE OBASIN
 !@sum  OBASIN Read in KBASIN: 0=continent,1=Atlantic,2=Pacific,3=Indian
+      USE Constant, only : UNDEF_VAL
       USE OCEAN, only : IM,JM,focean
       USE ODIAG, only : kbasin,kbasin_glob
       use pario, only : par_open,par_close,read_dist_data
@@ -1268,6 +1269,7 @@ C****
 
       fid = par_open(grid,'KBASIN','read')
       kbasin = 0
+      zeroone = UNDEF_VAL
       do k=1,3
         call read_dist_data(grid,fid,'mask_'//basins(k),zeroone)
         call halo_update(grid,zeroone)
@@ -1741,10 +1743,13 @@ c
      &     ,ijl_wgfl,ijl_wsfl,ijl_kvm,ijl_kvg,ijl_gflx,ijl_sflx
      &     ,ijl_mfub,ijl_mfvb,ijl_mfwb
      &     ,oij=>oij_loc,ij_sf,olnst,ln_mflx
-#ifdef OCN_GISSMIX
+#ifdef OCN_GISS_TURB
      &     ,ijl_ri,ijl_rrho,ijl_bv2,ijl_otke,ijl_kvs,ijl_kvc,ijl_buoy
 #endif
-#ifdef OCN_Mesoscales
+#ifdef OCN_GISS_SM
+     &     ,ijl_fvb
+#endif
+#ifdef OCN_GISS_MESO
      &     ,ijl_ueddy,ijl_veddy,ijl_n2
 #endif
 #ifdef TRACERS_OCEAN
@@ -1783,7 +1788,7 @@ c
         oijl_out(i,j,l,ijl_g0m) = oijl(i,j,l,ijl_g0m)
         oijl_out(i,j,l,ijl_s0m) = oijl(i,j,l,ijl_s0m)
 
-#ifdef OCN_Mesoscales
+#ifdef OCN_GISS_MESO
         oijl_out(i,j,l,ijl_n2) = oijl(i,j,l,ijl_n2)
         oijl_out(i,j,l,ijl_ueddy) = oijl(i,j,l,ijl_ueddy)
         oijl_out(i,j,l,ijl_veddy) = oijl(i,j,l,ijl_veddy)
@@ -1820,7 +1825,7 @@ cnotyet        oijl_out(i,j,l,ijl_mfwb) = oijl(i,j,l,ijl_mfwb)
         oijl_out(i,j,l,ijl_kvg) = oijl(i,j,l,ijl_kvg)*dxypo(j)
         oijl_out(i,j,l,ijl_gflx+2) = oijl(i,j,l,ijl_gflx+2)
         oijl_out(i,j,l,ijl_sflx+2) = oijl(i,j,l,ijl_sflx+2)
-#ifdef OCN_GISSMIX
+#ifdef OCN_GISS_TURB
         oijl_out(i,j,l,ijl_kvs) = oijl(i,j,l,ijl_kvs)*dxypo(j)
         oijl_out(i,j,l,ijl_kvc) = oijl(i,j,l,ijl_kvc)*dxypo(j)
         oijl_out(i,j,l,ijl_ri) = oijl(i,j,l,ijl_ri)*dxypo(j)
@@ -1828,6 +1833,9 @@ cnotyet        oijl_out(i,j,l,ijl_mfwb) = oijl(i,j,l,ijl_mfwb)
         oijl_out(i,j,l,ijl_bv2) = oijl(i,j,l,ijl_bv2)*dxypo(j)
         oijl_out(i,j,l,ijl_buoy) = oijl(i,j,l,ijl_buoy)*dxypo(j)
         oijl_out(i,j,l,ijl_otke) = oijl(i,j,l,ijl_otke)*dxypo(j)
+#endif
+#ifdef OCN_GISS_SM
+        oijl_out(i,j,l,ijl_fvb) = oijl(i,j,l,ijl_fvb)*dxypo(j)
 #endif
       enddo
       enddo

@@ -63,7 +63,7 @@
       sumFlux=0.   ! no surface flux
 #endif
       !see obio_ptend notes on whether to include ice effect
-      ironFlux= areaIntegration(atmFe(:,:,modelEclock%month()))
+      ironFlux= areaIntegration(atmFe(:,:,modelEclock%getMonth()))
 #ifdef zero_ironflux
       ironFlux=0.d0
 #endif

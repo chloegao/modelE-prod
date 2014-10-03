@@ -216,7 +216,8 @@ c**** output
 !@var dep_vel turbulent deposition velocity = 1/bulk sfc. res. (m/s)
 !@var gs_vel gravitational settling velocity (m/s)
 !@var stomatal_dep_vel turbulent deposition velocity via stomata(m/s)
-        real*8, pointer, dimension(:) :: dep_vel,gs_vel
+        real*8, pointer, dimension(:) :: dep_vel=>null()
+        real*8, pointer, dimension(:) ::  gs_vel=>null()
         real*8 :: stomatal_dep_vel
 #endif
 
@@ -1136,10 +1137,10 @@ c**** copy output to pbl_args
 
 C**** tracer code output
 #ifdef TRACERS_ON
-      pbl_args%trs(1:NTM) = tr(1,1:NTM)
+      pbl_args%trs(1:pbl_args%ntx) = tr(1,1:pbl_args%ntx)
 
-      if (ddml_eq_1) pbl_args%trprime(1:NTM) = 
-     &     pbl_args%trdn1(1:NTM)-tr(1,1:NTM)
+      if (ddml_eq_1) pbl_args%trprime(1:pbl_args%ntx) = 
+     &     pbl_args%trdn1(1:pbl_args%ntx)-tr(1,1:pbl_args%ntx)
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
@@ -3360,6 +3361,7 @@ c       endif
       end subroutine find_dpsih
 
       subroutine alloc_pbl_args(pbl_args)
+      USE CONSTANT, only : IUNDEF_VAL, UNDEF_VAL
       type (t_pbl_args), intent(inout) :: pbl_args
 
 #ifdef TRACERS_ON
@@ -3371,16 +3373,28 @@ c       endif
       allocate(pbl_args%trprime(maxNTM))
       allocate(pbl_args%trgrnd2(maxNTM))
       allocate(pbl_args%ntix(maxNTM))
+      pbl_args%ntix = IUNDEF_VAL
+      pbl_args%trtop = UNDEF_VAL
+      pbl_args%trs = UNDEF_VAL
+      pbl_args%trsfac = UNDEF_VAL
+      pbl_args%trconstflx = UNDEF_VAL
+      pbl_args%trdn1 = UNDEF_VAL
+      pbl_args%trprime = UNDEF_VAL
+      pbl_args%trgrnd2 = UNDEF_VAL
 #ifdef TRACERS_SPECIAL_O18
       allocate(pbl_args%frack(maxNTM))
+      pbl_args%frack = UNDEF_VAL
 #endif
       
 #ifdef TRACERS_DRYDEP
-      allocate(pbl_args%dep_vel(maxntm))
-      allocate(pbl_args%gs_vel(maxntm))
+      allocate(pbl_args%dep_vel(maxNTM))
+      allocate(pbl_args%gs_vel(maxNTM))
+      pbl_args%dep_vel = 0.d0
+      pbl_args%gs_vel = 0.d0 
 #endif
 #ifdef TRACERS_WATER
-      allocate(pbl_args%tr_evap_max(maxntm))
+      allocate(pbl_args%tr_evap_max(maxNTM))
+      pbl_args%tr_evap_max = UNDEF_VAL
 #endif
 #endif
       end subroutine alloc_pbl_args

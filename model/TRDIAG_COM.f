@@ -1374,48 +1374,70 @@ C*** Unpack read global data into local distributed arrays
 
       allocate(scale_ijt(NTM))
       allocate(ijtc_power(NTM))
+      ijtc_power = 0
       allocate(ijtm_power(NTM))
-
+      ijtm_power = 0
       allocate(ijts_source(ntsurfsrcmax,ntm))
       ijts_source = 0
       allocate(ijts_isrc(ntsurfsrcmax,ntm))
+      ijts_isrc = 0
       allocate(ijts_aq(ntm))
+      ijts_aq = 0
       allocate(ijts_tau(2,ntm))
+      ijts_tau = 0
       allocate(ijts_tausub(2,Ntm,MaxSubCl))
+      ijts_tausub = 0
       allocate(ijts_sqex(2,6,Ntm))
+      ijts_sqex = 0
       allocate(ijts_sqexsub(2,6,Ntm,MaxSubCl))
+      ijts_sqexsub = 0
       allocate(ijts_sqsc(2,6,Ntm))
+      ijts_sqsc = 0
       allocate(ijts_sqscsub(2,6,Ntm,MaxSubCl))
+      ijts_sqscsub = 0
       allocate(ijts_sqcb(2,6,Ntm))
+      ijts_sqcb = 0
       allocate(ijts_sqcbsub(2,6,Ntm,MaxSubCl))
+      ijts_sqcbsub = 0
       allocate(ijts_fc(8,ntm))
+      ijts_fc = 0
       allocate(ijts_fcsub(8,Ntm,MaxSubCl))
+      ijts_fcsub = 0
       allocate(ijts_gasex(3,Ntm))
-
+      ijts_gasex = 0
       allocate(ijts_AMPe(Ntm))
+      ijts_AMPe = 0
       allocate(ijts_AMPp(7,Ntm))
+      ijts_AMPp = 0
 #ifdef TRACERS_TOMAS
       allocate(ijts_TOMAS(7,Ntm))
+      ijts_TOMAS = 0
       allocate(ijts_subcoag(Ntm))
+      ijts_subcoag = 0
 #endif
       allocate(ijts_trdpmc(MaxDMc,Ntm))
+      ijts_trdpmc = 0
       allocate(ijts_trdpls(MaxDLs,Ntm))
+      ijts_trdpls = 0
       allocate(ijts_wet(Ntm))
+      ijts_wet = 0
       allocate(ijts_3Dsource(nt3Dsrcmax,ntm))
+      ijts_3Dsource = 0
 #endif  /* TRACERS_ON */
 
 #ifdef TRACERS_AMP
       allocate(ijlt_AMPm(2,ntm))
+      ijlt_AMPm = 0
 #endif 
       allocate(ijlt_3Dtau(ntm))
+      ijlt_3Dtau = 0
       allocate(ijlt_3Daaod(ntm))
-
+      ijlt_3Daaod = 0
       allocate(sname_jln(ktajlx,ntm))
       allocate(lname_jln(ktajlx,ntm))
       lname_jln = 'unused'
       allocate(units_jln(ktajlx,ntm))
       allocate(scale_jln(ntm))
-
 
 
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
@@ -1436,8 +1458,11 @@ C**** include some extra troposphere only ones
       allocate(SCALE_TCON(ktcon,ntmxcon))
       allocate(TITLE_TCON(ktcon,ntmxcon))
       allocate(IA_TCON(ktcon,ntmxcon))
+      IA_TCON = 0
       allocate(NSUM_TCON(ktcon,ntmxcon))
+      NSUM_TCON = 0
       allocate(NOFMT(ktcon,ntmxcon))
+      NOFMT = 0
 
 #ifdef TRACERS_OCEAN
       atmocn%tconsrv => tconsrv_loc
@@ -1445,7 +1470,9 @@ C**** include some extra troposphere only ones
 #endif
 
       allocate(kt_power_inst(ntm))
+      kt_power_inst = 0
       allocate(kt_power_change(ntm))
+      kt_power_change = 0
       allocate(name_tconsrv(ktcon,ntmxcon))
       name_tconsrv='unused'
       allocate(units_tconsrv(ktcon,ntmxcon))
@@ -1454,20 +1481,31 @@ C**** include some extra troposphere only ones
       allocate(SCALE_INST(ntmxcon))
       allocate(SCALE_CHANGE(ntmxcon))
       allocate(itcon_surf(ntsurfsrcmax,ntmxcon))
+      itcon_surf = 0
       allocate(itcon_3Dsrc(nt3Dsrcmax,ntmxcon))
-
+      itcon_3Dsrc = 0
       allocate(itcon_decay(ntmxcon))
+      itcon_decay = 0
       allocate(itcon_mc(ntmxcon))
+      itcon_mc = 0
       allocate(itcon_ss(ntmxcon))
+      itcon_ss = 0
       allocate(itcon_amp(7,ntmxcon))
+      itcon_amp = 0
       allocate(itcon_ampm(2,ntmxcon))
+      itcon_ampm = 0
       allocate(itcon_ampe(ntmxcon))
+      itcon_ampe = 0
       allocate(itcon_dd(ntmxcon,2))
+      itcon_dd = 0
       allocate(itcon_wt(ntmxcon))
+      itcon_wt = 0
 
 #ifdef TRACERS_TOMAS
       allocate(itcon_TOMAS(7,ntmxcon))
+      itcon_TOMAS = 0
       allocate(itcon_subcoag(ntmxcon))
+      itcon_subcoag = 0
 #endif
 #endif  /* TRACERS_ON  or  TRACERS_OCEAN */
 
@@ -1479,8 +1517,11 @@ C**** include some extra troposphere only ones
 
 
       allocate(ir_taijl(ktaijl_))
+      ir_taijl = 0
       allocate(ia_taijl(ktaijl_))
+      ia_taijl = 0
       allocate(denom_taijl(ktaijl_))
+      denom_taijl = 0
       allocate(lname_taijl(ktaijl_))
       allocate(sname_taijl(ktaijl_))
       allocate(units_taijl(ktaijl_))
@@ -1495,11 +1536,17 @@ C**** include some extra troposphere only ones
 #endif
      &     )*3/2  ! make 50% larger for denoms and extra specials
       allocate(pow_tajl(ktajl_))
+      pow_tajl = 0
       allocate(ia_tajl(ktajl_))
+      ia_tajl = 0
       allocate(denom_tajl(ktajl_))
+      denom_tajl = 0
       allocate(jgrid_tajl(ktajl_))
+      jgrid_tajl = 0 
       allocate(lgrid_tajl(ktajl_))
+      lgrid_tajl = 0
       allocate(ltop_tajl(ktajl_))
+      ltop_tajl = 0
       allocate(lname_tajl(ktajl_))
       allocate(sname_tajl(ktajl_))
       allocate(units_tajl(ktajl_))

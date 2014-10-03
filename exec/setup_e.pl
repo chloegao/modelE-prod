@@ -372,7 +372,7 @@ print RUNID <<EOF;
     opts=
     touch_ifile=0
     if [ "\$NP"x = x ] ; then NP=1; fi
-    if [ "\$DEBUG_COMMAND"x = x ] ; then DEBUG_COMMAND="xterm -e gdb "; fi
+    if [ "\$DEBUG_COMMAND"x = x ] ; then DEBUG_COMMAND="xterm -e gdb --args"; fi
     while [ \$\# -ge 1 ] ; do
       OPT=\$1 ; shift
       case \$OPT in
@@ -417,7 +417,7 @@ print RUNID <<EOF;
     ./${runID}ln
     $mpi_start
     if [ \$debug -eq 1 ] ; then
-      $run_command \$DEBUG_COMMAND ./${runID}.exe
+      $run_command \$DEBUG_COMMAND ./${runID}.exe -i ./\$IFILE \$opts
     else
       $run_command ./${runID}.exe -i ./\$IFILE \$opts > \$PRTFILE
     fi

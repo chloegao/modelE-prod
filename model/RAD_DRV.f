@@ -13,19 +13,19 @@ C****
 !@sum calculate zenith angle for current time step
 !@auth Gavin Schmidt (from RADIA)
       USE CONSTANT, only : twopi
-      USE MODEL_COM, only : itime,nday,dtsrc, calendr
+      USE MODEL_COM, only : itime,nday,dtsrc, calendar
       use TimeConstants_mod, only: SECONDS_PER_DAY
       USE RAD_COM, only : cosz1
       USE RAD_COSZ0, only : coszt
-      USE BaseTime_mod
+      USE TimeInterval_mod
       IMPLICIT NONE
       INTEGER JTIME
       REAL*8 ROT1,ROT2
-      type (BaseTime) :: sPerDay
+      type (TimeInterval) :: sPerDay
 
       JTIME=MOD(ITIME,NDAY)
       ROT1=(TWOPI*JTIME)/NDAY
-      sPerDay = calendr%getSecondsPerDay()
+      sPerDay = calendar%getSecondsPerDay()
       ROT2=ROT1+TWOPI*DTsrc/sPerDay%convertToReal()
       CALL COSZT (ROT1,ROT2,COSZ1)
 
@@ -41,6 +41,7 @@ C****
       USE RESOLUTION, only : jm,lm,psf
       USE ATM_COM, only : t,pk,kradia,lm_req
       USE MODEL_COM, only : dtsrc,iyear1,modelEclock,master_yr
+      USE MODEL_COM, only: orbit
       USE ATM_COM, only : pednl00
       USE DOMAIN_DECOMP_ATM, only : grid, write_parallel, am_i_root
      &     ,readt_parallel, getDomainBounds
@@ -75,6 +76,7 @@ C****
      *     ,albsn_yr,dALBsnX,nradfrc
      *     ,rad_interact_aer,clim_interact_chem,rad_forc_lev,ntrix,wttr
      *     ,nrad_clay,variable_orb_par,orb_par_year_bp,orb_par,nrad
+     *     ,radiationSetOrbit
 #ifdef TRACERS_ON
      &     ,nTracerRadiaActive,tracerRadiaActiveFlag
 #endif
@@ -113,6 +115,7 @@ C****
       use AerParam_mod, only : aermix
       use AerParam_mod, only: depoBC,depoBC_1990
 
+      use AbstractOrbit_mod, only: AbstractOrbit
       ! begin section for radiation-only SCM
       use constant, only : gasc,tf,mair,mwat,pi,lhe,lhs,mb2kg,kapa
       use atm_com, only : q,p,pmid,pedn,pdsig,pek,ma,byma,ltropo
@@ -142,6 +145,7 @@ C****
       IMPLICIT NONE
 
       integer, intent(in) :: istart
+
       INTEGER L,LR,n1,n,nn,iu2 ! LONR,LATR
       REAL*8 PLBx(LM+1),pyear
 !@var NRFUN indices of unit numbers for radiation routines
@@ -278,7 +282,7 @@ C**** sync radiation parameters from input
 C**** Set orbital parameters appropriately
       select case (variable_orb_par)
       case(1) ! use parameters for model_year-orb_par_year_bp
-        pyear = modelEclock%year()-orb_par_year_bp ! bp=before present model year
+        pyear = modelEclock%getYear()-orb_par_year_bp ! bp=before present model year
         call orbpar(pyear,eccn, obliq, omegt)
         if (am_i_root()) then
           write(6,*) 'Variable orbital parameters, updated each year'
@@ -310,6 +314,7 @@ C**** Set orbital parameters appropriately
         eccn=eccn_def
       end select
 
+      call radiationSetOrbit(orbit)
 
       if(is_set_param('rad_scm')) then
         call get_param('rad_scm',rad_scm_int)
@@ -439,6 +444,7 @@ C**** SET RADIATION EQUILIBRIUM TEMPERATURES FROM LAYER LM TEMPERATURE
         ENDDO
         ENDDO
       endif
+
 
 C****
 C**** SET THE CONTROL PARAMETERS FOR THE RADIATION (need mean pressures)
@@ -1065,7 +1071,7 @@ c          call par_close(grid,fid)
       USE RAD_COM, only : co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx,h2ostratx
      *     ,o2x,no2x,n2cx,yghgx,so2x
      *     ,o3x,o3_yr,ghg_yr,co2ppm,Volc_yr,albsn_yr,dalbsnX
-     &     ,snoage,snoage_def
+     *     ,snoage,snoage_def
       use DIAG_COM, only : iwrite,jwrite,itwrite,tdiurn
       use runtimecontrols_mod, only: chl_from_seawifs
       use geom, only : imaxj
@@ -1074,7 +1080,7 @@ c          call par_close(grid,fid)
       integer :: year, dayOfYear
       integer :: i,j, i_0,i_1,j_0,j_1, itype
 
-      call modelEclock%getDate(year=year, dayOfYear=dayOfYear)
+      call modelEclock%get(year=year, dayOfYear=dayOfYear)
 
 C**** Update time dependent radiative parameters each day
 !     Get black carbon deposition data for the appropriate year
@@ -1178,17 +1184,17 @@ c****
      .     ,READT_PARALLEL, getDomainBounds
       USE FLUXES, only : focean,atmocn
       USE CONSTANT, only : by12
-      use model_com, only: modelEclock
+      use model_com, only: modelEclock, calendar
       USE RESOLUTION, only : im,jm
       USE FILEMANAGER, only : NAMEUNIT
       USE GEOM, only : imaxj
-      USE MODEL_COM, only : calendr
       USE filemanager, only: openunit
+      USE CalendarMonth_mod
       implicit none
 
       REAL*8 :: TEMP_LOCAL(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      .                     GRID%J_STRT_HALO:GRID%J_STOP_HALO,2)
-      integer :: month, date
+      integer :: month, date, year
       LOGICAL :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
       INTEGER :: LSTMON, I, J, J_0, J_1, I_0, I_1
       INTEGER, SAVE :: IMON0 = 0
@@ -1198,6 +1204,7 @@ c****
      .                   BCHL, CCHL
       REAL*8 :: TIME
       INTEGER :: I_0H, I_1H, J_0H, J_1H
+      type (CalendarMonth) :: cMonth
 
       I_0H = grid%I_STRT_HALO
       I_1H = grid%I_STOP_HALO
@@ -1211,7 +1218,7 @@ c****
      .           BCHL(I_0H:I_1H,J_0H:J_1H),
      .           CCHL(I_0H:I_1H,J_0H:J_1H))
       endif
-      call modelEclock%getDate(month=month, date=date)
+      call modelEclock%get(month=month, date=date)
       call getDomainBounds(GRID,J_STRT=J_0,J_STOP=J_1,
      .         HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
      .         HAVE_NORTH_POLE=HAVE_NORTH_POLE)
@@ -1248,7 +1255,8 @@ C**** FIND INTERPOLATION COEFFICIENTS (LINEAR/QUADRATIC FIT)
       END DO
       END IF
 C**** Calculate CHL for current day
-      TIME=(DATE-.5)/(calendr%getDaysPerMonth(month))-.5 ! -.5<TIME<.5
+      cMonth = calendar%getCalendarMonth(month, year)
+      TIME=(DATE-.5)/cMonth%daysinMonth -.5 ! -.5<TIME<.5
       DO J=J_0,J_1
         DO I=I_0,IMAXJ(J)
           IF (FOCEAN(I,J).gt.0) THEN
@@ -1277,16 +1285,21 @@ C**** REPLICATE VALUES AT POLE
 !@calls constant:orbit
       use model_com, only: modelEclock
       USE RAD_COM, only : RSDIST,COSD,SIND,COSZ_day,SUNSET,
-     *     omegt,obliq,eccn,omegt_def,obliq_def,eccn_def,
-     *     variable_orb_par,orb_par_year_bp
+     *     variable_orb_par,orb_par_year_bp, useOrbit => orbit
       USE DOMAIN_DECOMP_ATM, only : am_I_root
       use RAD_COSZ0, only : daily_cosz
+      use BaseTime_mod
+      use TimeInterval_mod
+      use Rational_mod
       IMPLICIT NONE
       REAL*8 :: SUNLON,SUNLAT,LAM,EDPY,VEDAY,PYEAR
       LOGICAL, INTENT(IN) :: end_of_day
       integer :: year, dayOfYear
+      type (BaseTime) :: t
+      real*8 :: declinationAngle
+      type (TimeInterval) :: halfDay
 
-      call modelEclock%getDate(year=year, dayOfYear=dayOfYear)
+      call modelEclock%get(year=year, dayOfYear=dayOfYear)
 
 C**** CALCULATE SOLAR ANGLES AND ORBIT POSITION
 C**** This is for noon (GMT) for new day.
@@ -1305,19 +1318,28 @@ C**** PMIP calculation (no leap, VE=Mar 21 hr 12)
 C**** Update orbital parameters at start of year
       if (variable_orb_par == 1.and.dayOfYear == 1) then
         pyear = YEAR - orb_par_year_bp ! bp=before present model year
-        call orbpar(pyear, eccn, obliq, omegt)
+        call useOrbit%setYear(pYear)
         if (am_I_root()) then
           write(6,*) 'Set orbital parameters for year ',pyear,' (CE)'
           if (orb_par_year_bp.ne.0) write(6,*) 'offset by',
      *      orb_par_year_bp,' years from model year'
-          write(6,*) "   Eccentricity: ",eccn
-          write(6,*) "   Obliquity (degs): ",obliq
-          write(6,*) "   Precession (degs from ve): ",omegt
+          write(6,*) "   Eccentricity: ", useOrbit%getEccentricity()
+          write(6,*) "   Obliquity (degs): ",useOrbit%getObliquity()
+          write(6,*) "   Precession (degs from ve): ",
+     *         useOrbit%getLongitudeAtPeriapsis()
         end if
       end if
 
-      CALL ORBIT (OBLIQ,ECCN,OMEGT,VEDAY,EDPY,REAL(dayOfYear,KIND=8)-.5
-     *     ,RSDIST,SIND,COSD,SUNLON,SUNLAT,LAM)
+      ! Use time for the _middle_ of the day to compute 
+      ! zenith angle:
+
+      halfDay = TimeInterval(useOrbit%getMeanDay() / 2)
+      t = newBaseTime(modelEClock%getCurrentTime() + halfDay)
+
+      sinD = useOrbit%getSinDeclinationAngle(t)
+      cosD = sqrt(1-sinD**2)
+      rsdist = useOrbit%getDistance(t)**2
+
       call daily_cosz(sind,cosd,cosz_day,sunset)
 
       RETURN
@@ -1355,7 +1377,7 @@ c**** Extract domain decomposition info
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
       integer :: year, month
 
-      call modelEclock%getDate(year=year, month=month)
+      call modelEclock%get(year=year, month=month)
 
       call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
      &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
@@ -1737,7 +1759,7 @@ c     INTEGER ICKERR,JCKERR,KCKERR
       LOGICAL, DIMENSION(:,:), POINTER :: FLAG_DSWS
       integer :: year, dayOfYear, hour, date
 
-      call modelEclock%getDate(year=year, dayOfYear=dayOfYear,
+      call modelEclock%get(year=year, dayOfYear=dayOfYear,
      *     hour=hour, date=date)
 
       RSI => SI_ATM%RSI
@@ -3735,8 +3757,8 @@ C****
       END DO
 
 C**** daily diagnostics
-      IH=1+modelEclock%hour()
-      IHM = IH+(modelEclock%date()-1)*24
+      IH=1+modelEclock%getHour()
+      IHM = IH+(modelEclock%getDate()-1)*24
       DO KR=1,NDIUPT
         I = IJDD(1,KR)
         J = IJDD(2,KR)
@@ -4897,38 +4919,38 @@ c
       USE MODEL_COM, only :
      *      nday,dtsrc,itime,itimei
      *     ,HOURI,DATEI,MONTHI,YEARI
-      use MODEL_COM, only: modelEclock, calendr, makeCalendar
-      use ModelClock_mod, only: ModelClock, newModelClock
-      use Time_mod, only: Time, newTime
-      use BaseTime_mod, only : baseTime,newBaseTime
-      use Rational_mod, only: nint
+      use MODEL_COM, only: modelEclock, calendar
+      use ModelClock_mod, only: ModelClock
+      use Time_mod 
+      use BaseTime_mod 
+      use Rational_mod 
+      use TimeInterval_mod
       implicit none
 
       type (Time) :: modelETime0
       type (Time) :: modelETime
       type (BaseTime) :: dtSrcUsed
-
-      calendr => makeCalendar()
+      type (TimeInterval) :: secsPerDay
 
 C**** Get those parameters which are needed in this subroutine
       call get_param( "DTsrc", DTsrc )
 
 !@var NDAY=(1 day)/DTsrc : even integer; adjust DTsrc to be commensurate
-      NDAY = 2*nint(calendr%getSecondsPerDay()/(DTsrc*2))
-
-      dtSrcUsed = newBaseTime(calendr%getSecondsPerDay() / NDAY)
+      secsPerDay = calendar%getSecondsPerDay()
+      NDAY = 2*nint((secsPerDay/(DTsrc*2)))
+      dtSrcUsed = newBaseTime(secsPerDay / NDAY)
       DTsrc = dtSrcUsed%convertToReal()
 
-      modelETime0 = newTime(calendr)
-      modelETime = newTime(calendr)
+      modelETime0 = newTime(calendar)
+      modelETime = newTime(calendar)
 
       call modelEtime%setByDate(yearI, monthI, dateI, hourI)
       call modelEtime0%setByDate(yearI, month=1, date=1, hour=0)
 
-      ITimeI = nint((modelEtime - modelEtime0)/ dtSrcUsed)
+      ITimeI = nint((modelEtime - modelEtime0) / dtSrcUsed)
       Itime = ItimeI
 
-      modelEclock = newModelClock(modelEtime,itime,Nday)
+      modelEclock = ModelClock(modelEtime,dtSrcUsed,itime)
 
       CALL DAILY_cal(.false.)   ! not end_of_day
 

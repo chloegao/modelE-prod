@@ -438,8 +438,8 @@ subroutine CONDSE
   TMC=T
   QMC=Q
   FSS=1.
-  IH=modelEclock%hour()+1
-  IHM = IH+(modelEclock%date()-1)*INT_HOURS_PER_DAY
+  IH=modelEclock%getHour()+1
+  IHM = IH+(modelEclock%getDate()-1)*INT_HOURS_PER_DAY
 #ifdef TRACERS_ON
   !**** Find the ntx active tracers ntix(1->ntx)
   nx = 0

@@ -79,6 +79,7 @@ module MODULE_NAME
     procedure :: hasNext
     procedure :: next
     procedure :: key
+    procedure :: getKey
     procedure :: value
   end type ITERATOR_TYPE
 
@@ -414,6 +415,16 @@ contains
     key => p%key
 !!$    key => this%reference%entries(this%iter)%key
   end function key
+
+  subroutine getKey(this, key)
+     class (ITERATOR_TYPE), target, intent(in) :: this
+     character(len=MAX_LEN_KEY), pointer :: key
+     type (KeyValue), pointer :: p
+     p => this%reference%entries(this%iter)
+     key => p%key
+!!$    key => this%reference%entries(this%iter)%key
+     
+  end subroutine getKey
 
   function value(this)
     class (ITERATOR_TYPE), target, intent(in) :: this

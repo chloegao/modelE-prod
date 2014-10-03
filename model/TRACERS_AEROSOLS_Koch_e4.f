@@ -196,7 +196,7 @@ c
      & tlca(:,:,:,k),tlcb(:,:,:,k),src(:,:,:,k),frac,imon(k))     
       call closeunit(mon_units(k))
       
-      jdlast = modelEclock%dayOfYear()
+      jdlast = modelEclock%getDayOfYear()
 
       if(levo3 /= LM) then ! might be ok, but you should check
         write(out_line,*)
@@ -253,7 +253,7 @@ c
 C
       if (jdlast == 0) then   ! NEED TO READ IN FIRST MONTH OF DATA
         imon=1                ! imon=January
-        if (modelEclock%dayOfYear() <= 16)  then ! DAYOFYEAR in Jan 1-15, first month is Dec
+        if (modelEclock%getDayOfYear() <= 16)  then ! DAYOFYEAR in Jan 1-15, first month is Dec
           do L=1,Ldim*11
             CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),dummy,1)
           end do
@@ -264,7 +264,7 @@ C
           CALL REWIND_PARALLEL( iu )
         else              ! DAYOFYEAR is in Jan 16 to Dec 16, get first month
   120     imon=imon+1
-          if (modelEclock%dayOfYear() > idofm(imon) .AND. 
+          if (modelEclock%getDayOfYear() > idofm(imon) .AND. 
      *      imon <= INT_MONTHS_PER_YEAR) go to 120
           do L=1,Ldim*(imon-2)
             CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),dummy,1)
@@ -276,18 +276,18 @@ C
           if (imon == 13)  CALL REWIND_PARALLEL( iu )
         end if
       else                         ! Do we need to read in second month?
-        if (modelEclock%dayOfYear() /= jdlast+1) then ! Check that data is read in daily
-          if (modelEclock%dayOfYear() /= 1 .OR. 
+        if (modelEclock%getDayOfYear() /= jdlast+1) then ! Check that data is read in daily
+          if (modelEclock%getDayOfYear() /= 1 .OR. 
      &      jdlast /= INT_DAYS_PER_YEAR) then
             write(out_line,*)'Bad day values in read_monthly_3Dsources'
-     &      //': JDAY,JDLAST=',modelEclock%dayOfYear(),JDLAST
+     &      //': JDAY,JDLAST=',modelEclock%getDayOfYear(),JDLAST
             call write_parallel(trim(out_line),crit=.true.)
             call stop_model('Bad values in read_monthly_3Dsources',255)
           end if
           imon=imon-INT_MONTHS_PER_YEAR             ! New year
           go to 130
         end if
-        if (modelEclock%dayOfYear() <= idofm(imon)) go to 130
+        if (modelEclock%getDayOfYear() <= idofm(imon)) go to 130
         imon=imon+1                ! read in new month of data
         if (imon == 13) then
           CALL REWIND_PARALLEL( iu  )
@@ -303,7 +303,7 @@ C
       END DO
  130  continue
 c**** Interpolate two months of data to current day
-      frac = float(idofm(imon)-modelEclock%dayOfYear())
+      frac = float(idofm(imon)-modelEclock%getDayOfYear())
      &     / (idofm(imon)-idofm(imon-1))
       data1(:,J_0:J_1,:) =
      &     tlca(:,J_0:J_1,:)*frac + tlcb(:,J_0:J_1,:)*(1.-frac)
@@ -343,10 +343,10 @@ c ----------------------------------------------------------------
         allocate( IN2(GRID%I_STRT_HALO:GRID%I_STOP_HALO
      *       ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,nlevnc) )
       endif
-      if (step_rea.ne.modelEclock%month()) then 
-        step_rea = modelEclock%month()
+      if (step_rea.ne.modelEclock%getMonth()) then 
+        step_rea = modelEclock%getMonth()
         if ( am_i_root() ) then
-          print*,'READING HNO3 OFFLINE ',modelEclock%month(), step_rea
+        print*,'READING HNO3 OFFLINE ',modelEclock%getMonth(), step_rea
         endif
 c -----------------------------------------------------------------
 c   Opening of the files to be read
@@ -384,8 +384,9 @@ c -----------------------------------------------------------------
 
       endif
 C-----------------------------------------------------------------
-      tau = (modelEclock%date()-.5)/(JDendOFM(modelEclock%month()) - 
-     &     JDendOFM(modelEclock%month()-1))
+      tau = 
+     & (modelEclock%getDate()-.5)/(JDendOFM(modelEclock%getMonth()) - 
+     &     JDendOFM(modelEclock%getMonth()-1))
          do l=1,lm
          OUT(:,:,l) = (1.-tau)*IN1(:,:,l)+tau*IN2(:,:,l)  
          enddo
@@ -427,10 +428,11 @@ c ----------------------------------------------------------------
         allocate( IN2_ss(GRID%I_STRT_HALO:GRID%I_STOP_HALO
      *       ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,nlevnc))
       endif
-      if (step_rea_ss.ne.modelEclock%month()) then 
-        step_rea_ss = modelEclock%month()
+      if (step_rea_ss.ne.modelEclock%getMonth()) then 
+        step_rea_ss = modelEclock%getMonth()
         if ( am_i_root() ) then
-          print*,'READING SEAS OFFLINE ',modelEclock%month(),step_rea_ss
+          print*,'READING SEAS OFFLINE ',
+     *          modelEclock%getMonth(),step_rea_ss
         endif
 c -----------------------------------------------------------------
 c   Opening of the files to be read
@@ -470,8 +472,8 @@ c -----------------------------------------------------------------
       endif
 
 C-----------------------------------------------------------------------
-      tau = (modelEclock%date()-.5)/(JDendOFM(modelEclock%month())
-     *     - JDendOFM(modelEclock%month()-1))
+      tau = (modelEclock%getDate()-.5)/(JDendOFM(modelEclock%getMonth())
+     *     - JDendOFM(modelEclock%getMonth()-1))
          do l=1,lm
          OUT(:,:,l) = (1.-tau)*IN1_ss(:,:,l)+tau*IN2_ss(:,:,l)  
          enddo
@@ -524,7 +526,7 @@ c       if (lm.lt.40) then
 c Nightingale et al
         akw = 0.23d0*swind*swind + 0.1d0 * swind
         akw = akw * 0.24d0
-        erate=akw*DMSinput(i,j,modelEclock%month())*1.d-9*62.d0 !*tr_mm(nt)
+        erate=akw*DMSinput(i,j,modelEclock%getMonth())*1.d-9*62.d0 !*tr_mm(nt)
      *       /SECONDS_PER_DAY
 #endif
 
@@ -567,9 +569,9 @@ c       endif ! lm
         endif !itype
         else !AEROCOM run, prescribed flux
 c if after Feb 28 skip the leapyear day
-         jread=modelEclock%dayOfYear()
-         if (modelEclock%dayOfYear().gt.59) 
-     *        jread=modelEclock%dayOfYear()+1
+         jread=modelEclock%getDayOfYear()
+         if (modelEclock%getDayOfYear().gt.59) 
+     *        jread=modelEclock%getDayOfYear()+1
 c         if (j.eq.1.or.j.eq.46) DMS_AER(i,j,jread)
 c     *      =DMS_AER(i,j,jread)*72.d0
          erate=DMS_AER(i,j,jread)/SECONDS_PER_DAY/axyp(i,j)*
@@ -643,9 +645,9 @@ c     units are kg salt/m2/s
         endif
       else
 c if after Feb 28 skip the leapyear day
-        jread=modelEclock%dayOfYear()
-        if (modelEclock%dayOfYear().gt.59) 
-     &       jread=modelEclock%dayOfYear()+1
+        jread=modelEclock%getDayOfYear()
+        if (modelEclock%getDayOfYear().gt.59) 
+     &       jread=modelEclock%getDayOfYear()+1
         if (ibin.eq.1) then
           ss=SS1_AER(i,j,jread)/(SECONDS_PER_DAY*axyp(i,j))
 #ifdef TRACERS_AEROSOLS_OCEAN
@@ -842,12 +844,12 @@ c Set h2o2_s =0 and use on-line h2o2 from chemistry
       if (coupled_chem.eq.0) then
 c Use this for chem inputs from B4360C0M23, from Drew
 c      if (ifirst) then
-        newMonth = jMonthCache /= modelEclock%month()
+        newMonth = jMonthCache /= modelEclock%getMonth()
         if (newMonth) then
-          jMonthCache = modelEclock%month()
+          jMonthCache = modelEclock%getMonth()
           call openunit('AER_CHEM',iuc,.true.)
           call DREAD8_PARALLEL(grid,iuc,nameunit(iuc),ohrCache,
-     &         recs_to_skip=5*(modelEclock%month()-1)+1)    ! 5 recs/month + ichemi for this month
+     &         recs_to_skip=5*(modelEclock%getMonth()-1)+1)    ! 5 recs/month + ichemi for this month
           call DREAD8_PARALLEL(grid,iuc,nameunit(iuc),dho2rCache)
           call DREAD8_PARALLEL(grid,iuc,nameunit(iuc),perjrCache)
           call DREAD8_PARALLEL(grid,iuc,nameunit(iuc),tno3rCache)
@@ -859,7 +861,7 @@ c      if (ifirst) then
         tno3r = tno3rCache
         if (im.eq.72) then
         call openunit('AER_OH_STRAT',iuc2,.true.)
-        nrecs_skip=lm*(modelEclock%month()-1) ! skip all the preceding months
+        nrecs_skip=lm*(modelEclock%getMonth()-1) ! skip all the preceding months
         do ll=1,lm
           call DREAD_PARALLEL(grid,iuc2,nameunit(iuc2),ohsr_in,
      &       recs_to_skip=nrecs_skip)
@@ -1810,7 +1812,7 @@ c melting snow
       integer :: J_0, J_1
       integer :: year, dayOfYear
 
-      call modelEclock%getDate(year=year, dayOfYear=dayOfYear)
+      call modelEclock%get(year=year, dayOfYear=dayOfYear)
       call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
 
 C No doubt this code can be combined/compressed, but I am going to

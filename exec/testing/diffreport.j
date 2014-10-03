@@ -190,7 +190,7 @@ deckDiff()
 
    # if deckArray is empty then there is nothing to do:
    if [ ${#deckArray[@]} -eq 0 ]; then return; fi
-   local baseline=$MODELEBASELINE/$comp
+   local baseline=$MODELEBASELINE/$comp/$branch
    declare -a deckResults
 
    for deck in "${deckArray[@]}"; do

@@ -5,7 +5,8 @@
 !@auth Original Development Team
       use ModelClock_mod
       use TimeConstants_mod, only: INT_MONTHS_PER_YEAR,INT_DAYS_PER_YEAR
-      use Calendar_mod, only: Calendar
+      use AbstractOrbit_mod, only: AbstractOrbit
+      use AbstractCalendar_mod, only: AbstractCalendar
       IMPLICIT NONE
       SAVE
 
@@ -50,7 +51,9 @@ C**** (Simplified) Calendar Related Terms
 !@nlparam IYEAR1  year 1 of internal clock (Itime=0 to 365*NDAY)
       INTEGER :: NDAY,IYEAR1=-1   !@var relate internal to calendar time
 
-      class (Calendar), pointer :: calendr
+      class (AbstractOrbit), allocatable :: orbit
+      class (AbstractCalendar), allocatable :: calendar
+
       type (ModelClock), public :: modelEClock
 !@var ITIME current time in ITUs (1 ITU = DTsrc sec, currently 1 hour)
       INTEGER :: Itime
@@ -119,72 +122,187 @@ C**** (Simplified) Calendar Related Terms
 
       contains
 
-      ! Use rundeck parameters to determine which calendar to use
-      function makeCalendar() result(calendr)
-      use Constant, only: pi, omega
-      use TimeConstants_mod, only: SECONDS_PER_DAY
-      use Calendar_mod
-      use JulianCalendar_mod
-      use PlanetCalendar_mod
-      USE Dictionary_mod, only: get_param, sync_param
-      use BaseTime_mod
-      use Rational_mod
+      ! Use rundeck parameters to determine which orbit to use
+      function makeOrbit() result(orbit)
+      use AbstractOrbit_mod
+      use Dictionary_mod
       use DOMAIN_DECOMP_1d, only: am_i_root
       implicit none
-      class (Calendar), pointer :: calendr
+      class (AbstractOrbit), allocatable :: orbit
 
-      character(len=80) :: calendarName
-      real*8 :: siderialRotationPeriod
-      real*8 :: orbitalPeriod
-      real*8 :: s
+      character(len=80) :: planetName
 
-      type (BaseTime) :: secondsPerDay, secondsPerYear
-      integer :: daysPerYear
-      type (Rational) :: r
+      planetName = 'Earth'       ! default
+      call sync_param('planetName', planetName)
 
-      calendarName = 'Julian' ! default
-      call sync_param('calendar', calendarName)
+      select case (planetName)
+      case ('Earth','earth','EARTH')
 
-      select case (calendarName)
+        if (AM_I_ROOT()) print*,'Using standard Earth orbit'
+        allocate(orbit, source=makeEarthOrbit())
 
-      case ('Julian','julian','JULIAN')
-        if (AM_I_ROOT()) print*,'Using Julian calendar'
-         calendr => makeJulianCalendar()
+      case default
 
-      case ('Planet','planet','PLANET')
-
-         call get_param('orbitalPeriod', orbitalPeriod)
-         call get_param('siderialRotationPeriod',siderialRotationPeriod)
-
-         secondsPerYear = newBaseTime(Rational(orbitalPeriod,
-     &        tolerance=1.d-6))
-         s = 1.d0 / (1/siderialRotationPeriod - 1/orbitalPeriod)
-         secondsPerDay = newBaseTime( Rational(s, tolerance=1.d-6) )
-         daysPerYear = nint(secondsPerYear / secondsPerDay)
-         if (AM_I_ROOT()) then
-           print*,'Using planetary calendar:', s
-           print*,'   Days per year: ', daysPerYear
-           print*,'   Seconds per day: ', secondsPerDay%convertToReal()
-         endif
-         calendr => makePlanetCalendar(secondsPerDay, daysPerYear)
+        allocate(orbit, source=makePlanetOrbit(planetName))
+         
       end select
 
-      end function makeCalendar
+      ! Send orbit description to stdout
+      if (am_i_root()) call orbit%print()
+
+      end function makeOrbit
+
+      function makeEarthOrbit() result(orbit)
+      use AbstractOrbit_mod
+      use Earth365DayOrbit_mod
+      use ParameterizedEarthOrbit_mod
+      use DOMAIN_DECOMP_1d, only: am_i_root
+      use Dictionary_mod
+      use Constant, only: planetParams
+      implicit none
+      class (AbstractOrbit), allocatable :: orbit
+
+      integer :: variable_orb_par
+      integer :: orb_par_year_bp
+      real*8 :: eccen
+      real*8 :: obliq
+      real*8 :: omegt
+
+      real*8 :: pYear
+      real*8 :: orb_par(3)
+
+      if (is_set_param("variable_orb_par")) then
+        call get_param( "variable_orb_par", variable_orb_par )
+      else
+        if (master_yr == 0) then
+          variable_orb_par=1
+        else
+          variable_orb_par=0
+        endif
+      endif
+
+      if (is_set_param("orb_par_year_bp")) then
+        call get_param( "orb_par_year_bp", orb_par_year_bp )
+      else
+        if (master_yr == 0) then
+          orb_par_year_bp=0
+        else
+          orb_par_year_bp=1950-master_yr
+        endif
+      endif
+
+      select case (variable_orb_par)
+      case (1) 
+        pYear = modelEclock%getYear()-orb_par_year_bp ! bp=before present model year
+        allocate(orbit, source=ParameterizedEarthOrbit(pYear))
+        eccen = orbit%getEccentricity()
+        obliq = orbit%getObliquity()
+        omegt = orbit%getLongitudeAtPeriapsis()
+        if (am_i_root()) then
+          write(6,*) 'Variable orbital parameters, updated each year.'
+          write(6,*) 'Current orbital parameters from year',pyear
+        end if
+
+      case (0)  ! orbital parameters fixed from year orb_par_year_bp
+        pyear=1950.-orb_par_year_bp ! here "present" means "1950"
+        allocate(orbit, source=Earth365DayOrbit(pYear))
+        call orbit%setYear(pYear)
+        if (am_i_root()) then
+          write(6,*) 'Fixed orbital parameters from year',pyear,' CE:'
+        end if
+      case (-1) ! orbital parameters fixed, directly set
+        eccen = planetParams%getEccentricity()
+        obliq = planetParams%getObliquity()
+        omegt = planetParams%getLongitudeAtPeriapsis()
+        allocate(orbit, source=Earth365DayOrbit(eccen, obliq, omegt))
+        if (am_i_root()) then
+          write(6,*) 'Orbital Parameters Specified:'
+        end if
+      case default  ! set from defaults (defined in CONSTANT module)
+        allocate(orbit, source=Earth365DayOrbit())
+      end select
+
+      if (am_i_root()) then
+        eccen = orbit%getEccentricity()
+        obliq = orbit%getObliquity()
+        omegt = orbit%getLongitudeAtPeriapsis()
+      end if
+      
+      end function makeEarthOrbit
+
+      function makePlanetOrbit(planetName) result(orbit)
+      use PlanetaryOrbit_mod, only: PlanetaryOrbit
+      use BaseTime_mod
+      use TimeInterval_mod
+      use Rational_mod
+      use DOMAIN_DECOMP_1d, only: am_i_root
+      use Dictionary_mod
+      use Constant, only: planetParams
+      type (PlanetaryOrbit) :: orbit
+      character(len=*), intent(in) :: planetName
+
+      real*8 :: eccentricity
+      real*8 :: obliquity ! in degrees
+      real*8 :: longitudeAtPeriapsis ! in degrees
+      real*8 :: orbitalPeriod ! in seconds
+      real*8 :: rotationPeriod ! in seconds
+      real*8 :: meanDistance ! in A.U.
+      real*8 :: s
+      type (TimeInterval) :: secondsPerDay
+      type (TimeInterval) :: secondsPerYear
+      type (TimeInterval) :: period
+      integer :: daysPerYear
+
+      associate (p => planetParams)
+
+      orbit = PlanetaryOrbit(p)
+
+      secondsPerYear = TimeInterval(
+     & Rational(p%getSiderealOrbitalPeriod(), tolerance=1.d-6))
+      s = 1.d0 / 
+     &     (1/p%getSiderealRotationPeriod() - 
+     &     1/p%getSiderealOrbitalPeriod())
+      secondsPerDay = TimeInterval( Rational(s, tolerance=1.d-6) )
+      daysPerYear = max(1,nint(secondsPerYear / secondsPerDay))
+      end associate
+
+      if (AM_I_ROOT()) then
+         write(*,*) 'Planet :: ' // trim(planetName)
+         write(*,*)'Using planetary calendar:', s
+         period = orbit%getSiderealRotationPeriod()
+         write(*,*)'siderealRotationPeriod: ', period%convertToReal()
+         period = orbit%getSiderealOrbitalPeriod()
+         write(*,*)'siderealOrbitalPeriod: ', period%convertToReal() 
+         write(*,*)'meanDistance: ', orbit%getMeanDistance()
+         write(*,*) '  Precession (degs from ve):',
+     &        orbit%getLongitudeAtPeriapsis()
+         write(*,*)'   Days per year: ', daysPerYear
+         write(*,*)'   Seconds per day: ', secondsPerDay%convertToReal()
+         write(*,*) '  Eccentricity:', orbit%getEccentricity()
+         write(*,*) '  Obliquity (degs):',orbit%getObliquity()
+      end if
+
+      end function makePlanetOrbit
 
 !TODO move to ModelClock class
       logical function isBeginningAccumPeriod(clock)
+      use CalendarMonth_mod
       type (ModelClock) :: clock
       integer :: months
+      type (CalendarMonth) :: cMonth
 
       integer :: month, day, year
-      month = clock%month()
-      day = clock%dayOfYear()
-      year = clock%year()
+      month = clock%getMonth()
+      day = clock%getDayOfYear()
+      year = clock%getYear()
       months=(year-Jyear0)*INT_MONTHS_PER_YEAR + month - JMON0
+
+      cMonth = calendar%getCalendarMonth(month-1, year)
+
       isBeginningAccumPeriod = 
      &     clock%isBeginningOfDay() .and. 
      &     months.ge.NMONAV .and. 
-     &     day.eq.1+calendr%getLastDayOfMonth(month-1)
+     &     day.eq.1+cmonth%lastDayInMonth
 
       end function isBeginningAccumPeriod
 
@@ -224,8 +342,8 @@ C**** Accumulating_period information
       idacc(1:12)=0
       idacc(12)=1
 
-      call modelEclock%getDate(jyear0, jmon0, jd0, jdate0, jhour0,
-     &     amon0)
+      call modelEclock%get(year=jyear0, month=jmon0, dayOfYear=jd0,
+     & date=jdate0, hour=jhour0, amn=amon0)
       itime0=itime
 
       return
@@ -419,19 +537,26 @@ C****
 !@sum  getdte gets julian calendar info from internal timing info
 !@auth Gavin Schmidt
       use TimeConstants_mod, only : HOURS_PER_DAY, INT_DAYS_PER_YEAR
-      USE MODEL_COM, only : amonth, calendr
+      USE MODEL_COM, only : amonth, calendar
+      use CalendarMonth_mod
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: It,Nday,Iyr0
       INTEGER, INTENT(OUT) :: Jyr,Jmn,Jd,Jdate,Jhour
       CHARACTER*4, INTENT(OUT) :: amn
+      type (CalendarMonth) :: cMonth
 
       Jyr=Iyr0+It/(Nday*INT_DAYS_PER_YEAR)
       Jd=1+It/Nday-(Jyr-Iyr0)*INT_DAYS_PER_YEAR
       Jmn=1
-      do while (Jd.GT.calendr%getLastDayOfMonth(Jmn))
+      cMonth = calendar%getCalendarMonth(Jmn, Jyr)
+
+      do while (Jd.GT.cMonth%lastDayinMonth)
         Jmn=Jmn+1
+        cMonth = calendar%getCalendarMonth(Jmn, Jyr)
       end do
-      Jdate=Jd-calendr%getLastDayOfMonth(Jmn-1)
+
+      cMonth = calendar%getCalendarMonth(Jmn-1, Jyr)
+      Jdate=Jd-cMonth%lastDayinMonth
       Jhour=mod(It*HOURS_PER_DAY/Nday,HOURS_PER_DAY)
       amn=amonth(Jmn)
 
@@ -452,7 +577,7 @@ C****
 C****
 C**** CALCULATE THE DAILY CALENDAR
 C****
-      call modelEclock%getDate(year=year, month=month, dayOfYear=day, 
+      call modelEclock%get(year=year, month=month, dayOfYear=day, 
      *     date=date, hour=hour, amn=amon)
 
       RETURN
@@ -462,7 +587,7 @@ C****
 !-------------------------------------------------------------------------------
       subroutine init_esmf_clock_for_modelE(interval, clock)
 !-------------------------------------------------------------------------------
-      use constant, only : hrday
+      use TimeConstants_mod, only: HOURS_PER_DAY
       use MODEL_COM, only : itimei,itimee,nday,iyear1
       use ESMF
       implicit none
@@ -481,9 +606,11 @@ C****
       CHARACTER*4 :: cmon
 
       call getdte(itimei,nday,iyear1,YEARI,MONTHI,jday,DATEI,HOURI,cmon)
-      MINTI = nint(mod( mod(Itimei*hrday/Nday,hrday) * 60d0, 60d0))
+      MINTI = nint(mod( 
+     &     mod(Itimei*HOURS_PER_DAY/Nday,HOURS_PER_DAY) * 60d0, 60d0))
       call getdte(itimee,nday,iyear1,YEARE,MONTHE,jday,DATEE,HOURE,cmon)
-      MINTE = nint(mod( mod(Itimee*hrday/Nday,hrday) * 60d0, 60d0))
+      MINTE = nint(mod( 
+     &     mod(Itimee*HOURS_PER_DAY/Nday,HOURS_PER_DAY) * 60d0, 60d0))
 
     ! initialize calendar to be Gregorian type
       gregorianCalendar = esmf_calendarcreate(ESMF_CALKIND_GREGORIAN,

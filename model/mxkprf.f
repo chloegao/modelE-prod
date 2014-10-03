@@ -751,7 +751,7 @@ c --- shortwave flux penetration depends on kpar or jerlov water type.
 c
       if     (jerlv0.eq.0) then
         beta_r = 2.0/onem
-        beta_b = akpar(i,j,modelEclock%month())/onem
+        beta_b = akpar(i,j,modelEclock%getMonth())/onem
         beta_b = max( betabl(1), beta_b)  !time interp. beta_b can be -ve
         frac_b = max( 0.27, 0.695 - 5.7*onem*beta_b )
         frac_r = 1.0 - frac_b
@@ -2094,7 +2094,7 @@ c --- shortwave flux penetration depends on kpar or jerlov water type.
 c
       if     (jerlv0.eq.0) then
         beta_r = 2.0/onem
-        beta_b = akpar(i,j,modelEclock%month())/onem
+        beta_b = akpar(i,j,modelEclock%getMonth())/onem
         beta_b = max( betabl(1), beta_b)  !time interp. beta_b can be -ve
         frac_b = max( 0.27, 0.695 - 5.7*onem*beta_b )
         frac_r = 1.0 - frac_b

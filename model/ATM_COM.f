@@ -199,6 +199,7 @@ C****
       P(:,:)=PSFMPT
       qcl(:,:,:)=0.
       qci(:,:,:)=0.
+      ZATMO(:,:)=0.
 #ifdef BLK_2MOM
 #endif
 

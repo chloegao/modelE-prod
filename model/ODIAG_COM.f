@@ -22,7 +22,7 @@
 #else
       INTEGER, PARAMETER :: KOIJ=71
 #endif
-      INTEGER, PARAMETER :: KOIJL=41,KOL=6,KOLNST=14,KOIJmm=11
+      INTEGER, PARAMETER :: KOIJL=42,KOL=6,KOLNST=14,KOIJmm=11
 !@var OIJ   lat-lon ocean diagnostics (on ocean grid)
 !@var OIJmm lat-lon ocean min/max diagnostics (on ocean grid)
 !@var OIJL  3-dimensional ocean diagnostics
@@ -42,7 +42,7 @@
       INTEGER IJ_HBL,IJ_BO,IJ_BOSOL,IJ_USTAR,IJ_SSH,IJ_PB,IJ_SF,
      *     IJ_SRHFLX,IJ_SRWFLX,IJ_SRHFLXI,IJ_SRWFLXI,IJ_SRSFLXI,IJ_ERVR
      *     ,IJ_MRVR,IJ_EICB,IJ_MICB,IJ_GMSC,ij_mld 
-#ifdef OCN_Mesoscales
+#ifdef OCN_GISS_MESO
      .     ,ij_eke,ij_rd
 #endif
 !@var lname_oij Long names for OIJ diagnostics
@@ -118,10 +118,13 @@
      *     ,IJL_MFW,IJL_GGMFL,IJL_SGMFL,IJL_KVM,IJL_KVG,IJL_WGFL
      *     ,IJL_WSFL,IJL_PTM,IJL_PDM,IJL_MOU,IJL_MOV,IJL_MFW2,IJL_AREA
      *     ,IJL_MFUB,IJL_MFVB,IJL_MFWB
-#ifdef OCN_GISSMIX
+#ifdef OCN_GISS_TURB
      *     ,ijl_ri,ijl_rrho,ijl_bv2,ijl_otke,ijl_kvs,ijl_kvc,ijl_buoy
 #endif
-#ifdef OCN_Mesoscales
+#ifdef OCN_GISS_SM
+     *     ,ijl_fvb
+#endif
+#ifdef OCN_GISS_MESO
      .     ,ijl_ueddy,ijl_veddy,ijl_n2
 #endif
 
@@ -143,7 +146,7 @@
 !@var LN_xxx Names for OLNST diagnostics
       INTEGER LN_KVM,LN_KVG,LN_WGFL,LN_WSFL,LN_MFLX,LN_GFLX,LN_SFLX
      *     ,LN_ICFL
-#ifdef OCN_GISSMIX
+#ifdef OCN_GISS_TURB
      *     ,ln_ri,ln_rrho,ln_bv2,ln_otke,ln_kvs,ln_buoy
 #endif
 !@var lname_olnst Long names for OLNST diagnostics
@@ -922,7 +925,7 @@ c
       k=k+1
       LN_KVG = k
 c
-#ifdef OCN_GISSMIX
+#ifdef OCN_GISS_TURB
       k=k+1
       ln_kvs = k
       k=k+1
@@ -1148,7 +1151,7 @@ c
       scale_oijl(k) = 1d4*byrho2
       lgrid_oijl(k) = 2
 c
-#ifdef OCN_GISSMIX
+#ifdef OCN_GISS_TURB
       k=k+1
       ijl_kvs = k
       denom_oijl(k) = IJL_AREA
@@ -1199,7 +1202,7 @@ c
       denom_oijl(k) = IJL_AREA
       sname_oijl(k) = 'buoy'
       units_oijl(k) = 'm**2/s**3'
-      lname_oijl(k) = 'Buoyancy flux'
+      lname_oijl(k) = 'Buoyancy flux due to turbulence'
       scale_oijl(k) = 1
       lgrid_oijl(k) = 2
 c
@@ -1209,6 +1212,17 @@ c
       sname_oijl(k) = 'otke'
       units_oijl(k) = '(m/s)^2'
       lname_oijl(k) = 'Ocean turbulent kinetic energy'
+      scale_oijl(k) = 1
+      lgrid_oijl(k) = 2
+#endif
+#ifdef OCN_GISS_SM
+c
+      k=k+1
+      ijl_fvb= k
+      denom_oijl(k) = IJL_AREA
+      sname_oijl(k) = 'fvb'
+      units_oijl(k) = 'm**2/s**3'
+      lname_oijl(k) = 'Buoyancy flux due to sub-mesoscales'
       scale_oijl(k) = 1
       lgrid_oijl(k) = 2
 #endif
@@ -1304,7 +1318,7 @@ c
       scale_oijl(k) = 1.
       lgrid_oijl(k) = 2
 c
-#ifdef OCN_Mesoscales
+#ifdef OCN_GISS_MESO
       k=k+1
       IJL_n2=k
       lname_oijl(k) = "Brunt Vaisala frequency sq"
@@ -1729,7 +1743,7 @@ c
 
 #endif
 
-#ifdef OCN_Mesoscales
+#ifdef OCN_GISS_MESO
       k=k+1
       IJ_rd=k
       lname_oij(k)="Rossby radius of deformation"

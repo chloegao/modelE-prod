@@ -73,9 +73,9 @@ sub getIntelEnvironment
   }
   else 
   {
+    $env->{NETCDFHOME}="/usr/local/other/netcdf/3.6.2_intel-14.0.3.174";
+    $env->{PNETCDFHOME}="/usr/local/other/pnetcdf/1.2.0_intel-14.0.3.174_impi-4.1.3.048";
     $env->{BASELIBDIR5}="/usr/local/other/esmf400rp1/intel12_impi32";
-    $env->{NETCDFHOME}="/usr/local/other/netcdf/3.6.2_intel-12.0.1.107";
-    $env->{PNETCDFHOME}="/usr/local/other/pnetcdf/intel12.0.1.107_impi3.2.2.006";
   }
   $env->{MODELERC}=$env->{SCRATCH_DIRECTORY} . "/intel/modelErc.intel";
   return $env;
@@ -99,11 +99,10 @@ sub getGfortranEnvironment
   else 
   {
     $env->{MPIDISTR}="openmpi";
-    #$env->{MPIDIR}="/usr/local/other/SLES11.1/openMpi/1.7.2/gcc-4.8.1-shared";
-    $env->{MPIDIR}="/gpfsm/dnb32/mbhat/TestSlurm/Installs/openmpi/1.7.2-gcc-4.8.1-shared";
+    $env->{MPIDIR}="/usr/local/other/SLES11.1/openMpi/1.8.1/gcc-4.9.1";
+    $env->{NETCDFHOME}="/usr/local/other/netcdf/3.6.2_gcc-4.9.1";
+    $env->{PNETCDFHOME}="/usr/local/other/pnetcdf/1.2.0_gcc-4.9.1_openmpi-1.8.1";
     $env->{BASELIBDIR5}="/usr/local/other/esmf400rp1/gcc4.7_openmpi-1.4.5";
-    $env->{PNETCDFHOME}="/usr/local/other/pnetcdf/gcc-4.8.1_openmpi-1.7.2";
-    $env->{NETCDFHOME}="/usr/local/other/netcdf/3.6.2_gcc4.8.1";
   }
   $env->{MODELERC} = $env->{SCRATCH_DIRECTORY} . "/gfortran/modelErc.gfortran";
   return $env;

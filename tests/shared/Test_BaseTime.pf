@@ -28,4 +28,32 @@ contains
 
   end subroutine test_assignment
 
+@test
+   subroutine test_toString_whole()
+     use Rational_mod
+     type (BaseTime) :: t
+
+      t = Rational(1,0,1)
+      @assertTrue(t == newBaseTime(t%toString()))
+
+      t = Rational(2,0,1)
+      @assertTrue(t == newBaseTime(t%toString()))
+
+   end subroutine test_toString_whole
+
+
+@test
+   subroutine test_toString_all()
+     use Rational_mod
+     type (BaseTime) :: t
+
+      t = Rational(1,2,3)
+      @assertTrue(t == newBaseTime(t%toString()))
+
+      t = Rational(-1,-2,3)
+      @assertTrue(t == newBaseTime(t%toString()))
+
+   end subroutine test_toString_all
+
+
 end module Test_BaseTime_mod

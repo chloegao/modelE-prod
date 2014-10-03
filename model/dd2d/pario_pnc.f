@@ -508,11 +508,13 @@ c
       end subroutine par_write_nc_4D_int
 
       subroutine par_read_nc_2D_logical(grid,fid,varname,larr)
+      USE CONSTANT, only : UNDEF_VAL
       integer :: fid
       character(len=*) :: varname
       type(dist_grid), intent(in) :: grid
       logical :: larr(:,:)
       real*8 :: arr(size(larr,1),size(larr,2))
+      arr = UNDEF_VAL
       call read_dist_data(grid,fid,varname,arr)
       larr = arr.eq.1d0
       end subroutine par_read_nc_2D_logical

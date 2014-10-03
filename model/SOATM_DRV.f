@@ -475,8 +475,8 @@ c      real*8, parameter :: c712=6d0/12d0,c112=0d0/12d0
       integer :: i_0,i_1, j_0,j_1
       integer :: jyear,jday
 
-      jyear = modelEclock%year()
-      jday  = modelEclock%dayOfYear()
+      jyear = modelEclock%getYear()
+      jday  = modelEclock%getDayOfYear()
 
       if(interannual_forcing==1) then
         if(jyear < iaf_year_start) then
@@ -2168,7 +2168,7 @@ C**** sync radiation parameters from input
 
 C**** Set orbital parameters appropriately
 
-      jyear = modelEclock%year()
+      jyear = modelEclock%getYear()
 
       if (calc_orb_par_year.ne.0) then ! calculate from paleo-year
         ! 0 BP is defined as 1950CE
@@ -2320,8 +2320,8 @@ c
       LOGICAL, INTENT(IN) :: end_of_day
       integer :: jday,jyear
 
-      jyear = modelEclock%year()
-      jday  = modelEclock%dayOfYear()
+      jyear = modelEclock%getYear()
+      jday  = modelEclock%getDayOfYear()
 
 C**** Tasks to be done at end of day and at each start or restart
 

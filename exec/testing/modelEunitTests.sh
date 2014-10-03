@@ -182,7 +182,7 @@ parseLog()
       echo " ### COMPILATION ERROR." >> $toEmail
     else
       msg=`grep SIGSEGV $testLog | grep SIGSEGV`
-      if [ $msg == "" ]; then
+      if [ "$msg" == "" ]; then
          echo " ### UNEXPECTED RUNTIME ERROR." >> $toEmail
       else
          echo " ### RUNTIME ERROR : $msg, segmentation fault occurred" >> $toEmail

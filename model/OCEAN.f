@@ -79,7 +79,7 @@
       endif
       cyclic = sst_yr /= 0 ! sst_yr==0 implies transient mode.
       sst_yr = abs(sst_yr)
-      call modelEclock%getDate(year=jyear, dayOfYear=jday)
+      call modelEclock%get(year=jyear, dayOfYear=jday)
       if(cyclic) jyear = sst_yr
       call init_stream(grid,SSTstream,'OSST','sst',-100d0,100d0,'ppm',
      &       jyear,jday,msk=atmocn%focean,cyclic=cyclic)
@@ -177,7 +177,7 @@ c
 
       if(.not.osst_exists) return
 
-      call modelEclock%getDate(year=jyear, dayOfYear=jday)
+      call modelEclock%get(year=jyear, dayOfYear=jday)
 
       call getDomainBounds(grid,
      &         i_strt=i_0,i_stop=i_1,j_strt=j_0,j_stop=j_1,

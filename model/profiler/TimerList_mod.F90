@@ -166,13 +166,8 @@ contains
             namedTimer => this%list(i)
             if (isActive(namedTimer%timer)) then
                message = 'Unbalanced start/stop for timer <'//trim(namedTimer%name)//'>.'
-#ifdef USE_PFUNIT
-               call throw(message)
-               stop
-#else
-               write(*,*) message
-#endif
-               exit
+               call throwException(message, 255)
+               return
             end if
          end do
       end subroutine checkTimerConsistenncy
@@ -313,13 +308,9 @@ contains
          call stop(this%list(index)%timer)
       else
          message = 'Timer <'//trim(name)//'> has not been declared prior to use.'
-#ifdef USE_PFUNIT
-         call throw(trim(message))
-         stop
-#else
-         write(*,*) trim(message)
-#endif
-      end if
+         call throwException(trim(message),255)
+         return
+     end if
 
    end subroutine stopByName
 

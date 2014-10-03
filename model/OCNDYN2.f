@@ -42,11 +42,14 @@ c
       Integer*4 I,J,L,N,NS,NST,NO,NEVEN ; real*8 now
       Real*8,Dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LMO) ::
      &     MO1,MO2, UO1,UO2,UOD1,UOD2, VO1,VO2,VOD1,VOD2
+     &    ,G0M0,GXMO0,GYMO0,S0M0,SXMO0,SYMO0
       Real*8,Dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      &     OPBOT1,OPBOT2
       real*8 :: relfac,dt_odiff
       real*8, parameter :: byno=1./nocean
       real*8 :: dtdum
+
+      INTEGER it,jt
 
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0H,J_1H, J_0S,J_1S
@@ -379,8 +382,22 @@ c      CALL CHECKO ('ODIFF0')
 
 C**** Apply GM + Redi tracer fluxes
       CALL GMKDIF(1d0)
+      G0M0=G0M; GXMO0=GXMO; GYMO0=GYMO
       CALL GMFEXP(G0M,GXMO,GYMO,GZMO,.FALSE.,OIJL(1,J_0H,1,IJL_GGMFL))
+      S0M0=S0M; SXMO0=SXMO; SYMO0=SYMO
       CALL GMFEXP(S0M,SXMO,SYMO,SZMO,.TRUE. ,OIJL(1,J_0H,1,IJL_SGMFL))
+
+#ifdef OCN_GISS_MESO
+c     CALL MESO_D(G0M0,GXMO0,GYMO0,G0M,GXMO,GYMO,GZMO)
+      CALL MESO_D(G0M0,GXMO0,GYMO0,GXMO,GYMO,GZMO)
+      G0M=G0M0
+c     CALL MESO_D_TEST(G0M0,G0M,GXMO0,GYMO0,GZMO)
+c     CALL MESO_D(S0M0,SXMO0,SYMO0,S0M,SXMO,SYMO,SZMO)
+
+      CALL MESO_A(G0M,GXMO,GYMO,GZMO)
+c     CALL MESO_A(S0M,SXMO,SYMO,SZMO)
+#endif
+
 #ifdef TRACERS_OCEAN
       DO N = 1,NTM
         CALL GMFEXP(TRMO(1,J_0H,1,N),TXMO(1,J_0H,1,N),TYMO(1,J_0H,1,N),
@@ -396,7 +413,7 @@ C**** Apply GM + Redi tracer fluxes
 #endif
 #endif
 
-C#ifdef OCN_Mesoscales
+C#ifdef OCN_GISS_MESO
 C      CALL OCN_mesosc
 C#endif
       CALL TIMER (NOW,MSGSO)
@@ -898,7 +915,7 @@ C**** Copy X to temporary array Y and filter X in place.
 
       Subroutine ODHORZ(MOH,UOH,VOH,UODH,VODH,OPBOTH,
      &                  MO ,UO ,VO ,UOD ,VOD ,OPBOT, DT,qeven)
-      Use CONSTANT, Only: GRAV,omega
+      Use CONSTANT, Only: GRAV,omega,UNDEF_VAL
       Use OCEAN, Only: IM,JM,LMO,
      *                 LMOM=>LMM,LMOU=>LMU,LMOV=>LMV,
      *                 mZSOLID=>HOCEAN,OGEOZ,
@@ -952,6 +969,15 @@ C****                          Band1  Band2  BandM
       else
         xeven = 0.
       endif
+
+      ZG(:,[GRID%J_STRT_HALO,GRID%J_STOP_HALO])=UNDEF_VAL
+      P(:,[GRID%J_STRT_HALO,GRID%J_STOP_HALO])=UNDEF_VAL
+      PDN(:,[GRID%J_STRT_HALO,GRID%J_STOP_HALO])=UNDEF_VAL
+      DH(:,[GRID%J_STRT_HALO,GRID%J_STOP_HALO])=UNDEF_VAL
+      USMOOTH(:,[GRID%J_STRT_HALO,GRID%J_STOP_HALO])=UNDEF_VAL
+      UA(:,[GRID%J_STRT_HALO,GRID%J_STOP_HALO])=UNDEF_VAL
+      VA(:,[GRID%J_STRT_HALO,GRID%J_STOP_HALO])=UNDEF_VAL
+      KE(:,[GRID%J_STRT_HALO,GRID%J_STOP_HALO])=UNDEF_VAL
 
 c
 c initialize pressure and geopotential at the ocean bottom
@@ -1198,7 +1224,7 @@ c
           opbot(i,j) = opbot(i,j) + convij*grav
           if(mo(i,j,l)*dxypo(j) < 0.75d0*mmi(i,j,l)) then
             write(6,*) 'small mo',i,j,l,
-     &           mo(i,j,l)*dxypo(j)/mmi(i,j,l)
+     &           mo(i,j,l)*dxypo(j)/mmi(i,j,l),lmom(i,j)
             smallmo_loc = 1
           endif
         endif
@@ -1209,7 +1235,7 @@ c
             opbot(i,j) = opbot(i,j) + convij*grav
             if(mo(i,j,l)*dxypo(j) < 0.75d0*mmi(i,j,l)) then
               write(6,*) 'small mo',i,j,l,
-     &             mo(i,j,l)*dxypo(j)/mmi(i,j,l)
+     &             mo(i,j,l)*dxypo(j)/mmi(i,j,l),lmom(i,j)
               smallmo_loc = 1
             endif
           enddo
@@ -2107,7 +2133,7 @@ C**** Surface stress is applied to V component at the North Pole
 
       Subroutine OBDRAG2
 !@sum  OBDRAG exerts a drag on the Ocean Model's bottom layer
-!@+    define OCN_GISSMIX and idrag=1 in GISS_OTURB module to include tidal
+!@+    define OCN_GISS_TURB and idrag=1 in GISS_OTURB module to include tidal
 !@+    enhancement of bottom drag
 !@auth Gary Russell and Armando Howard
 !@ver  2010/01/08, 2012/03/16
@@ -2115,7 +2141,7 @@ C**** Surface stress is applied to V component at the North Pole
      *                 DTS, COSI=>COSIC,SINI=>SINIC
       Use DOMAIN_DECOMP_1D, Only: HALO_UPDATE, SOUTH,NORTH
       Use OCEANR_DIM,       Only: oGRID
-#ifdef OCN_GISSMIX
+#ifdef OCN_GISS_TURB
       USE GISS_OTURB, only : taubx,tauby, ! x,y components of velocity flux (m/s)^2
      &                       rhobot       ! ocean bottom in-situ density (kg/m^3)
      &                      ,idrag        ! idrag=1: no explicit tides; 0: otherwise
@@ -2127,7 +2153,7 @@ C**** Surface stress is applied to V component at the North Pole
       Integer*4 I,IP1,J,L,J1,JN,JNP
       Real*8    WSQ
       REAL*8 bdragfac   !density times C_D (u^2 + u_t^2)^1/2 (kg/(m^2 s))
-#ifdef OCN_GISSMIX
+#ifdef OCN_GISS_TURB
       REAL*8 taubbyu    !magnitude of velocity flux divided by magnitude of velocity (m/s)
 #endif
 
@@ -2137,7 +2163,7 @@ C**** Define decomposition band parameters
       JNP = JN  ;  If(JN==JM) JNP = JM-1
       
       Call HALO_UPDATE (oGRID, MO, From=NORTH)
-#ifdef OCN_GISSMIX
+#ifdef OCN_GISS_TURB
       Call HALO_UPDATE (oGRID, rhobot, From=NORTH)
 #endif
 C****
@@ -2150,7 +2176,7 @@ C****
           IF(LMU(I,J) > 0) THEN
             L=LMU(I,J)
             WSQ = UO(I,J,L)**2 + VOD(I,J,L)**2 + 1d-20
-#ifndef OCN_GISSMIX
+#ifndef OCN_GISS_TURB
             bdragfac=BDRAGX*SQRT(WSQ)
 #else
             if(idrag.eq.0) then
@@ -2176,7 +2202,7 @@ C****
           IF(LMV(I,J) > 0) THEN
             L=LMV(I,J)   
             WSQ = VO(I,J,L)**2 + UOD(I,J,L)**2 + 1d-20
-#ifndef OCN_GISSMIX
+#ifndef OCN_GISS_TURB
             bdragfac=BDRAGX*SQRT(WSQ)
 #else
             if(idrag.eq.0) then

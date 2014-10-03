@@ -47,14 +47,19 @@ C**** atmosphere. However, we can redefine im,jm if necessary.
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: MO,UO,VO,UOD,VOD,
      *     G0M,S0M
 
-#ifdef OCN_Mesoscales
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: auvel,avvel
+#ifdef OCN_GISS_MESO
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: auvel,avvel,kappam3d_sm
+     * ,flux_x_sm,flux_y_sm,flux_z_sm
+     * ,fluxA_x_sm,fluxA_y_sm,fluxA_z_sm
 #endif
 
       INTEGER :: USE_QUS=0
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) ::
      *     GXMO,GYMO,GZMO, GXXMO,GYYMO,GZZMO, GXYMO,GYZMO,GZXMO,
      *     SXMO,SYMO,SZMO, SXXMO,SYYMO,SZZMO, SXYMO,SYZMO,SZXMO
+#ifdef OCN_GISS_SM
+     *    ,rx,ry,gx,gy,sx,sy
+#endif
 
       Real*8 UONP(LMO), !  U component at north pole, points down 90W
      *       VONP(LMO)  !  V component at north pole, points down 0 (GM)
@@ -110,6 +115,8 @@ C**** ocean related parameters
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: OPRESS ! (IM,JM)
 !@var OGEOZ ocean geopotential at surface (m^2/s^2)
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: OGEOZ,OGEOZ_SV
+!@var KPL level to which mixed layer descends (1)
+      integer, ALLOCATABLE, DIMENSION(:,:) :: kpl
 !@var OPBOT ocean bottom pressure (diagnostic only) (Pa)
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: OPBOT
 
@@ -416,13 +423,18 @@ C****
 
       USE OCEAN, only : MO,G0M,S0M
       USE OCEAN, only : UO,VO,UOD,VOD
-#ifdef OCN_Mesoscales
-      USE OCEAN, only : auvel,avvel
+#ifdef OCN_GISS_MESO
+      USE OCEAN, only : auvel,avvel,kappam3d_sm
+     * ,flux_x_sm,flux_y_sm,flux_z_sm
+     * ,fluxA_x_sm,fluxA_y_sm,fluxA_z_sm
 #endif
-      USE OCEAN, only : OPRESS,OPBOT, OGEOZ,OGEOZ_SV
+      USE OCEAN, only : OPRESS,OPBOT, OGEOZ,OGEOZ_SV,kpl
       USE OCEAN, only : use_qus,
      *     GXMO,GYMO,GZMO, GXXMO,GYYMO,GZZMO, GXYMO,GYZMO,GZXMO,
      *     SXMO,SYMO,SZMO, SXXMO,SYYMO,SZZMO, SXYMO,SYZMO,SZXMO
+#ifdef OCN_GISS_SM
+     *    ,rx,ry,gx,gy,sx,sy
+#endif
       USE OCEAN, only : OXYP,OLAT2D_DG,OJ_BUDG,OWTBUDG
       USE OCEAN, only : FOCEAN,HATMO,HOCEAN
       USE OCEAN, only : LMM,LMU,LMV
@@ -477,6 +489,15 @@ C****
       ALLOCATE( SYMO(IM,J_0H:J_1H,LMO), STAT = IER)
       ALLOCATE( SZMO(IM,J_0H:J_1H,LMO), STAT = IER)
 
+#ifdef OCN_GISS_SM
+      ALLOCATE( RX(IM,J_0H:J_1H,LMO), STAT = IER)
+      ALLOCATE( RY(IM,J_0H:J_1H,LMO), STAT = IER)
+      ALLOCATE( GX(IM,J_0H:J_1H,LMO), STAT = IER)
+      ALLOCATE( GY(IM,J_0H:J_1H,LMO), STAT = IER)
+      ALLOCATE( SX(IM,J_0H:J_1H,LMO), STAT = IER)
+      ALLOCATE( SY(IM,J_0H:J_1H,LMO), STAT = IER)
+#endif
+
       if(use_qus==1) then
       ALLOCATE( GXXMO(IM,J_0H:J_1H,LMO), STAT = IER)
       ALLOCATE( GYYMO(IM,J_0H:J_1H,LMO), STAT = IER)
@@ -494,10 +515,19 @@ C****
       sxxmo=0.; syymo=0.; szzmo=0.; sxymo=0.; syzmo=0.; szxmo=0.
       endif
 
-#ifdef OCN_Mesoscales
+#ifdef OCN_GISS_MESO
       ALLOCATE(   auvel(IM,J_0H:J_1H,LMO), STAT = IER)
       ALLOCATE(   avvel(IM,J_0H:J_1H,LMO), STAT = IER)
-      auvel=0.; avvel=0.
+      ALLOCATE(   kappam3d_sm(IM,J_0H:J_1H,LMO), STAT = IER)
+      ALLOCATE(   flux_x_sm(IM,J_0H:J_1H,LMO), STAT = IER)
+      ALLOCATE(   flux_y_sm(IM,J_0H:J_1H,LMO), STAT = IER)
+      ALLOCATE(   flux_z_sm(IM,J_0H:J_1H,LMO), STAT = IER)
+      ALLOCATE(   fluxA_x_sm(IM,J_0H:J_1H,LMO), STAT = IER)
+      ALLOCATE(   fluxA_y_sm(IM,J_0H:J_1H,LMO), STAT = IER)
+      ALLOCATE(   fluxA_z_sm(IM,J_0H:J_1H,LMO), STAT = IER)
+      auvel=0.; avvel=0.; kappam3d_sm=850.
+      flux_x_sm=0.; flux_y_sm=0.; flux_z_sm=0.
+      fluxA_x_sm=0.; fluxA_y_sm=0.; fluxA_z_sm=0.
 #endif
 
       if (am_i_root()) then
@@ -517,6 +547,7 @@ C****
       ALLOCATE( OPBOT (IM,J_0H:J_1H), STAT = IER)
       ALLOCATE( OGEOZ (IM,J_0H:J_1H), STAT = IER)
       ALLOCATE( OGEOZ_SV (IM,J_0H:J_1H), STAT = IER)
+      ALLOCATE( kpl   (IM,J_0H:J_1H), STAT = IER)
       ALLOCATE( OXYP  (IM,J_0H:J_1H), STAT = IER)
       ALLOCATE( OLAT2D_DG  (IM,J_0H:J_1H), STAT = IER)
       ALLOCATE( OJ_BUDG  (IM,J_0H:J_1H), STAT = IER)
@@ -543,7 +574,7 @@ C****
 C**** Necessary initiallisation?
       MU=0. ; MV=0. ; MW=0. ; CONV=0. ; MMI=0.
       UO=0. ; VO=0.
-      SMU=0.; SMV=0.; SMW=0.
+      SMU=0.; SMV=0.; SMW=0.; kpl=3
 
       ALLOCATE(NBYZM(J_0H:J_1H,LMO))
       ALLOCATE(NBYZU(J_0H:J_1H,LMO))
@@ -560,8 +591,11 @@ C**** Necessary initiallisation?
 
 c??   call ALLOC_GM_COM(agrid)
       call ALLOC_KPP_COM(ogrid)
-#ifdef OCN_GISSMIX
+#ifdef OCN_GISS_TURB
       call alloc_gissmix_com(ogrid)
+#endif
+#ifdef OCN_GISS_SM
+      call alloc_giss_sm_com(ogrid)
 #endif
       call alloc_odiag(ogrid)
       !call alloc_afluxes

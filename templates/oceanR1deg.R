@@ -7,8 +7,9 @@ Includes sea ice physics and transport
 Preprocessor Options
 #define NEW_IO
 #define STANDALONE_OCEAN
-!#define OCN_Mesoscales
-!#define OCN_GISSMIX
+!#define OCN_GISS_MESO
+!#define OCN_GISS_TURB
+!#define OCN_GISS_SM
 End Preprocessor Options
 
 Object modules:
@@ -85,11 +86,12 @@ DTO=112.5
 Ndisk=960
 KCOPY=2          ! saving acc + rsf
 Nssw=2           ! until diurnal diags are fixed, Nssw has to be even
+master_yr=1850
 
 &&END_PARAMETERS
 
  &INPUTZ
    YEARI=1900,MONTHI=12,DATEI=1,HOURI=0, ! pick IYEAR1=YEARI (default) or < YEARI
-   YEARE=1900,MONTHE=12,DATEE=1,HOURE=3, KDIAG=13*0,
+   YEARE=1901,MONTHE=1,DATEE=1,HOURE=3, KDIAG=13*0,
    ISTART=2,IRANDI=0, YEARE=1900,MONTHE=12,DATEE=2,HOURE=1
 /

@@ -33,6 +33,7 @@
       CONTAINS
 
       SUBROUTINE apply_tracer_3Dsource( ns , n , momlog )
+      USE CONSTANT, only : UNDEF_VAL
 !@sum apply_tracer_3Dsource adds 3D sources to tracers
 !@auth Jean Lerner/Gavin Schmidt
 !@var MOM true (default) if moments are to be modified
@@ -112,6 +113,8 @@ C**** apply tracer source alterations if requested in rundeck:
       end if
 
       eps = tiny(trm(i_0,j_0,1,n))
+      fred = UNDEF_VAL
+      dtrm = UNDEF_VAL
       do l=1,lm
       do j=j_0,j_1
         do i=i_0,imaxj(j)
@@ -1127,30 +1130,30 @@ C****
 
       if (jdlast.EQ.0) then ! NEED TO READ IN FIRST MONTH OF DATA
         imon=1          ! imon=January
-        if (modelEclock%dayOfYear().le.16)  then ! JDAY in Jan 1-15, first month is Dec
+        if (modelEclock%getDayOfYear().le.16)  then ! JDAY in Jan 1-15, first month is Dec
           CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),tlca,12)
           CALL REWIND_PARALLEL( iu )
         else            ! JDAY is in Jan 17 to Dec 16, get first month
   120     imon=imon+1
-          if (modelEclock%dayOfYear().gt.idofm(imon) 
+          if (modelEclock%getDayOfYear().gt.idofm(imon) 
      &        .AND. imon.le.INT_MONTHS_PER_YEAR)
      &        go to 120
           CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),tlca,imon-1)
           if (imon.eq.13)  CALL REWIND_PARALLEL( iu )
         end if
       else              ! Do we need to read in second month?
-        if (modelEclock%dayOfYear().ne.jdlast+1) then ! Check that data is read in daily
-          if (modelEclock%dayOfYear().ne.1 .OR. 
+        if (modelEclock%getDayOfYear().ne.jdlast+1) then ! Check that data is read in daily
+          if (modelEclock%getDayOfYear().ne.1 .OR. 
      *      jdlast.ne.INT_DAYS_PER_YEAR) then
             if (AM_I_ROOT()) write(6,*)
      *      'Incorrect values in Tracer Source:JDAY,JDLAST=',
-     *      MODELECLOCK%DAYOFYEAR(),JDLAST
+     *      modelEclock%getDayOfYear(),JDLAST
             call stop_model('stopped in TRACERS.f',255)
           end if
           imon=imon-INT_MONTHS_PER_YEAR  ! New year
           go to 130
         end if
-        if (modelEclock%dayOfYear().le.idofm(imon)) go to 130
+        if (modelEclock%getDayOfYear().le.idofm(imon)) go to 130
         imon=imon+1     ! read in new month of data
         tlca(I_0:I_1,J_0:J_1) = tlcb(I_0:I_1,J_0:J_1)
         if (imon.eq.13) CALL REWIND_PARALLEL( iu  )
@@ -1158,7 +1161,7 @@ C****
       CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),tlcb,1)
   130 continue
 c**** Interpolate two months of data to current day
-      frac = float(idofm(imon)-modelEclock%dayOfYear())
+      frac = float(idofm(imon)-modelEclock%getDayOfYear())
      & / (idofm(imon)-idofm(imon-1))
       data(I_0:I_1,J_0:J_1) = tlca(I_0:I_1,J_0:J_1)*frac + 
      & tlcb(I_0:I_1,J_0:J_1)*(1.-frac)
