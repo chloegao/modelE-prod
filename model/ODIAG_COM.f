@@ -117,7 +117,7 @@
       INTEGER IJL_MO,IJL_G0M,IJL_S0M,IJL_GFLX,IJL_SFLX,IJL_MFU,IJL_MFV
      *     ,IJL_MFW,IJL_GGMFL,IJL_SGMFL,IJL_KVM,IJL_KVG,IJL_WGFL
      *     ,IJL_WSFL,IJL_PTM,IJL_PDM,IJL_MOU,IJL_MOV,IJL_MFW2,IJL_AREA
-     *     ,IJL_MFUB,IJL_MFVB,IJL_MFWB
+     *     ,IJL_MFUB,IJL_MFVB,IJL_MFWB,IJL_ISDM
 #ifdef OCN_GISS_TURB
      *     ,ijl_ri,ijl_rrho,ijl_bv2,ijl_otke,ijl_kvs,ijl_kvc,ijl_buoy
 #endif
@@ -1308,6 +1308,13 @@ c
       sname_oijl(k) = 'pot_dens'
       units_oijl(k) = 'KG/M^3 - 1000'
       lname_oijl(k) = 'OCEAN POTENTIAL DENSITY (SIGMA_0)'
+c
+      k=k+1
+      IJL_ISDM = k
+      denom_oijl(k) = IJL_MO
+      sname_oijl(k) = 'dens'
+      units_oijl(k) = 'KG/M^3 - 1000'
+      lname_oijl(k) = 'OCEAN IN-SITU DENSITY'
 c
       k=k+1
       IJL_MFW2=k
