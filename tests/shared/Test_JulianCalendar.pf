@@ -80,7 +80,6 @@ contains
      @assertEqual(365, calendar%getDaysInYear(t))
    end subroutine testDaysInYear
 
-
 @test
    subroutine testGetDaysInMonth()
      type (JulianCalendar) :: calendar
@@ -92,46 +91,39 @@ contains
 
    end subroutine testGetDaysInMonth
 
-
-! TODO
 @test
    subroutine testGetSecondsPerHour()
-     use TimeConstants_mod, only: SECONDS_PER_HOUR
+     use TimeConstants_mod, only: INT_SECONDS_PER_HOUR
      type (JulianCalendar) :: calendar
      type (TimeInterval) :: expected
 
      calendar = JulianCalendar()
-! If we use TimeConstants_mod, only: SECONDS_PER_HOUR, then under gcc
-! Error: Too many components in structure constructor at (1)
-     expected = TimeInterval(3600)
-!                            1     
+     expected = TimeInterval(INT_SECONDS_PER_HOUR)
      @assertTrue(calendar%getSecondsPerHour() == expected)
 
    end subroutine testGetSecondsPerHour
 
-! TODO
 @test
    subroutine testGetSecondsPerDay()
-     use TimeConstants_mod, only: SECONDS_PER_DAY
+     use TimeConstants_mod, only: INT_SECONDS_PER_DAY
      type (JulianCalendar) :: calendar
      type (TimeInterval) :: expected
 
      calendar = JulianCalendar()
-     expected = TimeInterval(86400)
+     expected = TimeInterval(INT_SECONDS_PER_DAY)
 
      @assertTrue(calendar%getSecondsPerDay() == expected)
 
    end subroutine testGetSecondsPerDay
 
-! TODO
 @test
    subroutine testGetSecondsPerYear()
-     use TimeConstants_mod, only: SECONDS_PER_YEAR
+     use TimeConstants_mod, only: INT_SECONDS_PER_YEAR
      type (JulianCalendar) :: calendar
      type (TimeInterval) :: expected
 
      calendar = JulianCalendar()
-     expected = TimeInterval(31536000)
+     expected = TimeInterval(INT_SECONDS_PER_YEAR)
 
      @assertTrue(calendar%getSecondsInYear() == expected)
 
