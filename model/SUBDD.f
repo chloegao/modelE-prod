@@ -654,7 +654,7 @@ c
       integer :: ni,nj,sizes(3),dim,ip,idgrp,dsize
       integer :: i,j,l
       integer :: i_0h,j_0h,i_1h,j_1h
-      character(len=32) :: dimstr,dname
+      character(len=64) :: dimstr,dname
       character(len=8) :: cnperiod,cdsize
 c
       call find_solovar(vname,idgrp)
@@ -806,7 +806,7 @@ c
       integer :: ni,nj,sizes(4),dim,ip,idgrp,dsize
       integer :: i,j,k,l,m,kdim,ldim
       integer :: i_0h,j_0h,i_1h,j_1h
-      character(len=32) :: dimstr,dname,dname3,dname4,dname43
+      character(len=64) :: dimstr,dname,dname3,dname4,dname43
       character(len=8) :: cnperiod,cdsize
 c
       call find_solovar(vname,idgrp)

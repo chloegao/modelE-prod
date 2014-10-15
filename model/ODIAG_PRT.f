@@ -1741,7 +1741,7 @@ c
      &     ,ijl_mo,ijl_mou,ijl_mov,ijl_g0m,ijl_s0m,ijl_ptm,ijl_pdm
      &     ,ijl_mfu,ijl_mfv,ijl_mfw,ijl_mfw2,ijl_ggmfl,ijl_sgmfl
      &     ,ijl_wgfl,ijl_wsfl,ijl_kvm,ijl_kvg,ijl_gflx,ijl_sflx
-     &     ,ijl_mfub,ijl_mfvb,ijl_mfwb
+     &     ,ijl_mfub,ijl_mfvb,ijl_mfwb,ijl_isdm
      &     ,oij=>oij_loc,ij_sf,olnst,ln_mflx
 #ifdef OCN_GISS_TURB
      &     ,ijl_ri,ijl_rrho,ijl_bv2,ijl_otke,ijl_kvs,ijl_kvc,ijl_buoy
@@ -1752,6 +1752,7 @@ c
 #ifdef OCN_GISS_MESO
      &     ,ijl_ueddy,ijl_veddy,ijl_n2
 #endif
+      use odiag, only : ia_oijl
 #ifdef TRACERS_OCEAN
       use odiag, only :
      &     ktoijlx,toijl_out,divbya_toijl,kn_toijl,toijl_loc,toijl_conc
@@ -1762,11 +1763,13 @@ c
      &     ,pack_data,unpack_data ! for horz stream function
       use mdiag_com, only : ia_cpl
       use model_com, only : idacc
+      use constant, only : grav
       implicit none
       integer i,j,l,k,kk,n
-      real*8 mass,gos,sos,temgs,volgs,fac,facst
+      real*8 mass,gos,sos,temgs,volgs,volgsp,fac,facst,dpr
       integer :: j_0,j_1,j_0s,j_1s
-      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo) :: mfu
+      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo) ::
+     &     mfu,pres
       real*8, dimension(:,:), allocatable :: mfu_glob,sf_glob
 
       j_0 = grid%j_strt
@@ -1779,6 +1782,8 @@ c
 c
 c Cell-centered quantities. Some conversions to per square meter
 c
+      pres = 0. ! need to add atm + sea ice press, but this is a small
+                ! effect for typical uses of in-situ density diag
       do l=1,lmo
       do j=j_0,j_1
       do i=1,imaxj(j)
@@ -1795,12 +1800,17 @@ c
 #endif
 
 c
-c compute potential temperature and potential density
+c compute potential temperature, potential density, in-situ density
 c
+        dpr = grav*oijl(i,j,l,ijl_mo)/idacc(ia_oijl(ijl_mo))
+        pres(i,j) = pres(i,j) + .5d0*dpr
         gos = oijl(i,j,l,ijl_g0m) / mass
         sos = oijl(i,j,l,ijl_s0m) / mass
         oijl_out(i,j,l,ijl_ptm) = mass*temgs(gos,sos)
         oijl_out(i,j,l,ijl_pdm) = mass*(1d0/volgs(gos,sos)-1000d0)
+        oijl_out(i,j,l,ijl_isdm) =
+     &       mass*(1d0/volgsp(gos,sos,pres(i,j))-1000d0)
+        pres(i,j) = pres(i,j) + .5d0*dpr
       enddo
       enddo
       enddo
