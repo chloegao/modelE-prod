@@ -210,14 +210,23 @@ ccc extract data needed in driver from the pbl_args structure
       hemi = pbl_args%hemi
 c      pole = pbl_args%pole
 
+#ifdef USE_PBL_E1
+      pbl_args%ddml_eq_1=.false.
+#else
+      pbl_args%ddml_eq_1=DDML(i,j).eq.1
+#endif
       ! Redelsperger et al. 2000, eqn(13), J. Climate, 13, 402-421
       ! tprime,qprime are the pertubation of t and q due to gustiness
 
       ! pick up one of the following two expressions for gusti
 
       ! for down draft:
-      mdn=max(DDMS(i,j), -0.07d0)
-      pbl_args%gusti=log(1.-600.4d0*mdn-4375.*mdn*mdn)
+      if(pbl_args%ddml_eq_1) then
+        mdn=max(DDMS(i,j), -0.07d0)
+        pbl_args%gusti=log(1.-600.4d0*mdn-4375.*mdn*mdn)
+      else
+        pbl_args%gusti=0.
+      endif
 
       ! for up draft:
       ! mup=min(DDMS(i,j), 0.1d0)
@@ -297,12 +306,6 @@ c    &     pbl_args%TGV = 1.0001d0*pbl_args%TGV
       pbl_args%cm = cm
       pbl_args%ch = ch
       pbl_args%cq = cq
-
-#ifdef USE_PBL_E1
-      pbl_args%ddml_eq_1=.false.
-#else
-      pbl_args%ddml_eq_1=DDML(i,j).eq.1
-#endif
 
       ! if ddml_eq_1=.false.,
       ! i.e., either USE_PBL_E1 or DDML(i,j) is not 1,
