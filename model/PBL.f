@@ -574,8 +574,10 @@ c**** get input from pbl_args structure
       if(ddml_eq_1) then
         tdns=pbl_args%tdns
         qdns=pbl_args%qdns
-        tprime=tdns-t(1)/(1.+xdelt*q(1))
-        qprime=qdns-q(1)
+c       tprime=tdns-t(1)/(1.+xdelt*q(1))
+c       qprime=qdns-q(1)
+        tprime=tdns-ttop/(1.+xdelt*qtop)
+        qprime=qdns-qtop
       else ! either ddml(ilong,jlat).ne.1 or USE_PBL_E1
         tdns=0.d0
         qdns=0.d0
@@ -603,8 +605,8 @@ c estimate net flux and ustar_oc from current tg,qg etc.
             ts=t(1)/(1+q(1)*xdelt)
             rhosrf=100.*psurf/(rgas*t(1)) ! surface air density
             Qnet= (lhe+tgskin*shv)*cq*rhosrf*(ws*(q(1)-qgrnd)
-     &           +(ws-ws0)*qprime)        ! Latent
-     &           + sha*ch*rhosrf*(ws*(ts-tgskin)+(ws-ws0)*tprime) ! Sensible
+     &           +gusti*qprime)        ! Latent
+     &           + sha*ch*rhosrf*(ws*(ts-tgskin)+gusti*tprime) ! Sensible
      &           +trhr0-stbo*tgr4skin     ! LW
 
             ustar_oc=ustar*sqrt(rhosrf*byrhows)
@@ -638,12 +640,9 @@ c estimate net flux and ustar_oc from current tg,qg etc.
         if(tv(2).lt.tv(1)) then !convective
           wstar3=-dbl*grav*2.*(tv(2)-tv(1))*kh(1)/((tv(2)+tv(1))*dzh(1))
           wstar2h = wstar3**twoby3
-          ! Redelsperger et al. 2000, eqn(13), J. Climate, 13, 402-421
-          gusti=pbl_args%gusti ! defined in PBL_DRV.f
         else
           wstar3=0.
           wstar2h=0.
-          gusti=0.
         endif
 
         call e_eqn(esave,e,u,v,tv,km,kh,ke,lscale,dz,dzh,
@@ -653,17 +652,17 @@ ccc     call e_les(tstar,ustar,wstar3,dbl,lmonin,zhat,lscale,e,n)
 
         ! Inclusion of gustiness in surface fluxes
         ! Redelsperger et al. 2000, eqn(13), J. Climate, 13, 402-421
-
+        gusti=pbl_args%gusti ! defined in PBL_DRV.f
         ws02=(u(1)-uocean)**2+(v(1)-vocean)**2+wstar2h
         ws0=sqrt(ws02)
         ws=sqrt(ws02+gusti*gusti)
 
         call q_eqn(qsave,q,kq,dz,dzh,cq,ws,qgrnd_sat,qtop,dtime,n
-     &       ,evap_max,fr_sat,ws0,qprime,qdns,ddml_eq_1)
+     &       ,evap_max,fr_sat,ws0,gusti,qprime,qdns,ddml_eq_1)
 
         call t_eqn(u,v,tsave,t,q,z,kh,kq,dz,dzh
-     &       ,ch,ws,tgrnd,ttop,dtdt_gcm,dtime
-     &       ,n,dpdxr,dpdyr,dpdxr0,dpdyr0,ws0,tprime,tdns
+     &       ,ch,ws,tgrnd,ttop,qtop,dtdt_gcm,dtime
+     &       ,n,dpdxr,dpdyr,dpdxr0,dpdyr0,ws0,gusti,tprime,tdns
      &       ,qdns,ddml_eq_1)
 
         call uv_eqn(usave,vsave,u,v,z,km,dz,dzh
@@ -676,10 +675,10 @@ ccc     call e_les(tstar,ustar,wstar3,dbl,lmonin,zhat,lscale,e,n)
      &     call tfix(t,z,ttop,tgrnd
      &              ,lmonin_dry,tstar,ustar,kh(1),n)
 
-        if(ddml_eq_1) then
-          tprime=tdns-t(1)/(1.+xdelt*q(1))
-          qprime=qdns-q(1)
-        endif
+c       if(ddml_eq_1) then
+c         tprime=tdns-t(1)/(1.+xdelt*q(1))
+c         qprime=qdns-q(1)
+c       endif
 
         test=abs(2.*(ustar-ustar0)/(ustar+ustar0))
         if (test.lt.tol) exit
@@ -741,7 +740,7 @@ C**** First, define some useful quantities
       byrho=1d0/rhosrf
       tg1 = tgskin-tf ! re-calculate ground T (C)
       rh1=q(1)/qsat(ts,lhe,psurf) ! rel. hum. at surface (wrt water)
-      evap=cqsave*rhosrf*(ws*(qgrnd-q(1))-(ws-ws0)*qprime)  ! net evap
+      evap=cqsave*rhosrf*(ws*(qgrnd-q(1))-gusti*qprime)  ! net evap
 
 #ifdef TRACERS_DRYDEP
 C**** Get tracer deposition velocity (= 1 / bulk sfc resistance)
@@ -777,7 +776,7 @@ C**** Water tracers need to multiply trsfac/trconstflx by cq*Usurf
 C**** and qgrnd_sat (moved from driver routines to deal with skin effects)
         if (tr_wd_TYPE(pbl_args%ntix(itr)).eq.nWATER) then
           trcnst=cqsave*(pbl_args%trconstflx(itr)*ws*qgrnd_sat-
-     *         (ws-ws0)*pbl_args%trdn1(itr))
+     *         gusti*pbl_args%trdn1(itr))
           trc2=pbl_args%trconstflx(itr)
           if (ddml_eq_1) then   ! hmmm... gusti>0 even if ddml_eq_1=F
             trsf=pbl_args%trsfac(itr)*cqsave*ws0
@@ -789,7 +788,7 @@ C**** and qgrnd_sat (moved from driver routines to deal with skin effects)
               trc2 = (pbl_args%snow*pbl_args%trconstflx(itr)+(evap ! weighted mean tracer conc
      *             -pbl_args%snow)*pbl_args%trgrnd2(itr))/evap 
               trcnst=cqsave*(trc2*ws*qgrnd_sat-
-     *             (ws-ws0)*pbl_args%trdn1(itr))
+     *             gusti*pbl_args%trdn1(itr))
             end if
           end if
 #ifdef TRACERS_SPECIAL_O18
@@ -2026,8 +2025,8 @@ c       e(j)=ej
       end subroutine e_les
 
       subroutine t_eqn(u,v,t0,t,q,z,kh,kq,dz,dzh,ch,usurf,tgrnd
-     &     ,ttop,dtdt_gcm,dtime,n
-     &     ,dpdxr,dpdyr,dpdxr0,dpdyr0,usurf0,tprime,tdns
+     &     ,ttop,qtop,dtdt_gcm,dtime,n
+     &     ,dpdxr,dpdyr,dpdxr0,dpdyr0,usurf0,gusti,tprime,tdns
      &     ,qdns,ddml_eq_1)
 !@sum t_eqn integrates differential eqns for 
 !@+  the virtual potential temperature, T, using tridiagonal method 
@@ -2035,13 +2034,13 @@ c       e(j)=ej
 !@+  and the middle of the first GCM layer (sublayer npbl).
 !@+  The boundary condition at the bottom is:
 !@+   kh * dt/dz = ch * ( usurf*(t1 - tgrnd)
-!@+               +(1+xdelt*q1)*(usurf-usurf0)*tprime )
+!@+               +(1+xdelt*qtop)*gusti*tprime )
 !@+  which includes the effects on the surface flux
 !@+  due to the moist convection wind gustiness and the
 !@+  downdraft temperature perturbation
 !@+  (Redelsperger et al. 2000; Emanuel and Zivkovic 1999),
 !@+  where 
-!@+  tprime=tdns-t1/(1+xdelt*q1),
+!@+  tprime=tdns-ttop/(1+xdelt*qtop),
 !@+  t1, q1 are the T and Q at the surface, 
 !@+  and tdns is the downdraft temperature in K at (i,j), which is
 !@+  calculated in subroutines CONDSE (in CLOUDS2_DRV.f) and 
@@ -2081,12 +2080,12 @@ c       e(j)=ej
       real*8, dimension(n-1), intent(in) :: dzh,kh,kq
       real*8, dimension(n), intent(inout) :: t
       real*8, intent(in) :: ch,tgrnd
-      real*8, intent(in) :: ttop,dtdt_gcm,dtime,usurf
+      real*8, intent(in) :: ttop,qtop,dtdt_gcm,dtime,usurf
       real*8, intent(in) ::  dpdxr,dpdyr,dpdxr0,dpdyr0
-      real*8, intent(in) ::  usurf0,tprime,tdns,qdns
+      real*8, intent(in) ::  usurf0,gusti,tprime,tdns,qdns
       logical, intent(in) :: ddml_eq_1
 
-      real*8 :: facth,factx,facty,rat
+      real*8 :: facth0,facth,factx,facty
       integer :: i  !@var i loop variable
 
       do i=2,n-1
@@ -2116,14 +2115,20 @@ c       rhs(i)=t0(i)-dtime*t(i)*bygrav*(v(i)*facty+u(i)*factx)
       end do
 #endif
 
-      facth  = ch*usurf*dzh(1)/kh(1)
+      facth0  = ch*dzh(1)/kh(1)
+      facth  = usurf*facth0
       sup(1) = -1.
 
       if(ddml_eq_1) then
-         rat = usurf0/(usurf+teeny)
-         dia(1) = 1+facth*rat
+c        rat = usurf0/(usurf+teeny)
+         dia(1) = 1+facth
+c        dia(1) = 1+facth*rat
 !     &             +xdelt*kq(1)*(q(2)-q(1))/(kh(1)*(1.+xdelt*q(1)))
-         rhs(1) = facth*(tgrnd-(1.d0-rat)*(1.+xdelt*qdns)*tdns)
+c        rhs(1) = facth*(tgrnd-(1.d0-rat)*(1.+xdelt*qdns)*tdns)
+c        rhs(1) = facth*(tgrnd-gusti/(usurf+teeny)
+c    &            *((1.+xdelt*qtop)*tdns-ttop))
+         rhs(1) = facth0*(usurf*tgrnd
+     &            -gusti*((1.+xdelt*qtop)*tdns-ttop))
       else
          dia(1) = 1+facth
 !     &             +xdelt*kq(1)*(q(2)-q(1))/(kh(1)*(1.+xdelt*q(1)))
@@ -2140,22 +2145,22 @@ c       rhs(i)=t0(i)-dtime*t(i)*bygrav*(v(i)*facty+u(i)*factx)
       end subroutine t_eqn
 
       subroutine q_eqn(q0,q,kq,dz,dzh,cq,usurf,qgrnd,qtop,dtime,n
-     &     ,flux_max,fr_sat,usurf0,qprime,qdns,ddml_eq_1)
+     &     ,flux_max,fr_sat,usurf0,gusti,qprime,qdns,ddml_eq_1)
 !@sum q_eqn integrates differential eqns for
 !@+  the specific humidity, Q, using tridiagonal method over npbl(=8)
 !@+  sublayers between the surface (sublayer 1)
 !@+  and the middle of the first GCM layer (sublayer npbl).
 !@+  The boundary condition at the bottom is:
 !@+    kq * dq/dz = min ( cq * usurf * (q1 - qgrnd)
-!@+                     + cq * (usurf-usurf0) * qprime ,
+!@+                     + cq * gusti * qprime ,
 !@+            fr_sat * ( cq * usurf * (q1 - qgrnd)
-!@+                     + cq * (usurf-usurf0) * qprime )
+!@+                     + cq * gusti * qprime )
 !@+        - ( 1 - fr_sat ) * flux_max ),
 !@+  which includes the effects on the surface flux
 !@+  due to the moist convection wind gustiness and the
 !@+  downdraft specific humidity  perturbation
 !@+  (Redelsperger et al. 2000; Emanuel and Zivkovic 1999),
-!@+  where qprime=qdns-q1, q1 is Q at the surface
+!@+  where qprime=qdns-qtop, qtop is Q at the first layer
 !@+  and qdns is the downdraft humidity in kg/kg, (i,j), which is
 !@+  calculated in subroutines CONDSE (in CLOUDS2_DRV.f) 
 !@+  and PBL (in PBL_DRV.f).
@@ -2186,10 +2191,10 @@ c       rhs(i)=t0(i)-dtime*t(i)*bygrav*(v(i)*facty+u(i)*factx)
       real*8, dimension(n), intent(out) :: q
       real*8, intent(in) :: cq,qgrnd,qtop,dtime,usurf
       real*8, intent(in) :: flux_max,fr_sat
-      real*8, intent(in) :: usurf0,qprime,qdns
+      real*8, intent(in) :: usurf0,gusti,qprime,qdns
       logical, intent(in) :: ddml_eq_1
 
-      real*8 :: factq,rat
+      real*8 :: factq0,factq
       integer :: i  !@var i loop variable
 
       do i=2,n-1
@@ -2202,13 +2207,17 @@ c       rhs(i)=t0(i)-dtime*t(i)*bygrav*(v(i)*facty+u(i)*factx)
         rhs(i)=q0(i)
       end do
 
-      factq  = cq*usurf*dzh(1)/kq(1)
+      factq0  = cq*dzh(1)/kq(1)
+      factq  = usurf*factq0
       sup(1) = -1.
 
       if(ddml_eq_1) then
-         rat = usurf0/(usurf+teeny)
-         dia(1) = 1.+factq*rat
-         rhs(1)= factq*(qgrnd-(1.-rat)*qdns)
+c        rat = usurf0/(usurf+teeny)
+c        dia(1) = 1.+factq*rat
+c        rhs(1)= factq*(qgrnd-(1.-rat)*qdns)
+         dia(1) = 1.+factq
+c        rhs(1)= factq*(qgrnd-gusti/(usurf+teeny)*(qdns-qtop))
+         rhs(1)= factq0*(usurf*qgrnd-gusti*(qdns-qtop))
       else
          dia(1) = 1.+factq
          rhs(1) = factq*qgrnd
@@ -2224,19 +2233,25 @@ c**** Now let us check if the computed flux doesnt exceed the maximum
 c**** for unsaturated fraction
 
       if ( fr_sat .ge. 1. ) return   ! all soil is saturated
-      if ( cq * usurf * (qgrnd - q(1)) + cq * (usurf0-usurf) * qprime
+      if ( cq * usurf * (qgrnd - q(1)) - cq * gusti * qprime
      &   .le. flux_max ) return
 
 c**** Flux is too high, have to recompute with the following boundary
 c**** conditions at the bottom:
 c**** kq * dq/dz = fr_sat * ( cq * usurf * (q(1) - qgrnd)
-c****                       + cq * (usurf-usurf0) * qprime )
+c****                       + cq * gusti * qprime )
 c****             - ( 1 - fr_sat ) * flux_max
 
       if(ddml_eq_1) then
-         rat = usurf0/(usurf+teeny)
-         dia(1) = 1. + fr_sat*factq*rat
-         rhs(1)= fr_sat*factq*(qgrnd-(1.-rat)*qdns)
+c        rat = usurf0/(usurf+teeny)
+c        rat = -gusti/(usurf+teeny)
+c        dia(1) = 1. + fr_sat*factq*rat
+c        rhs(1)= fr_sat*factq*(qgrnd-(1.-rat)*qdns)
+c    &            + (1.-fr_sat)*flux_max*dzh(1)/kq(1)
+         dia(1) = 1. + fr_sat*factq
+c        rhs(1)= fr_sat*factq*(qgrnd-gusti/(usurf+teeny)*(qdns-qtop))
+c    &            + (1.-fr_sat)*flux_max*dzh(1)/kq(1)
+         rhs(1)= fr_sat*factq0*(usurf*qgrnd-gusti*(qdns-qtop))
      &            + (1.-fr_sat)*flux_max*dzh(1)/kq(1)
       else
          dia(1) = 1. + fr_sat*factq
