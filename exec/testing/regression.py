@@ -348,6 +348,9 @@ if __name__ == '__main__':
             except:
                 logger.error('  ... abandoning 1dy mpi test.')
 
+            for npes in npList:
+                compareRestart(exps[1], npes=npes)
+
             logger.info(rundeck + ' Testing complete.')
 
         except:
