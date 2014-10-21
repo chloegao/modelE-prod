@@ -349,11 +349,6 @@ if __name__ == '__main__':
             except:
                 logger.error(rundeck + ' run FAILED')
 
-
-            fileH.write('%20s' % (exp.results[0]))
-            fileH.write('%10s' % (exp.results[1]))
-            fileH.write('%8s'  % (exp.results[2]))
-
         for exp in exps:
             if exp.mode == 'serial':
                 compareBase(exp, '1hr')
@@ -376,11 +371,14 @@ if __name__ == '__main__':
 
             
         for exp in exps:
+            fileH.write('%20s' % (exp.results[0]))
+            fileH.write('%10s' % (exp.results[1]))
+            fileH.write('%8s'  % (exp.results[2]))
             for s in exp.results[3:]:
                 fileH.write(' '.center(3))
                 fileH.write(s.center(3))
+            fileH.write('\n')
 
-        fileH.write('\n')
         fileH.close()
 
     logger.info('Done')
