@@ -43,7 +43,7 @@ class configuration:
             self.opts += 'EXTRA_FFLAGS='+flags
         elif compOpts == 'traps':
             self.opts += 'COMPILE_WITH_TRAPS=YES'
-        self.results =  [runShort, comp, mode, '---', '---', '---', '---']
+        self.results =  [runShort, comp, mode, ' - ', ' - ', ' - ', ' - ']
 
 def readConfig(rundeck):
     global debug
@@ -86,10 +86,16 @@ def readConfig(rundeck):
     deck      = config.get('regSettings','rundeck')
     modelerc  = config.get('regSettings','modelerc')
     compiler  = config.get('regSettings','compiler')
+
     modes     = config.get('regSettings','modes')
     modeList = []
     for mode in modes.split(','):
-        modeList.append(mode)
+        if mode == 'serial' or mode == 'mpi':
+            modeList.append(mode)
+        else:
+            print ' *** Incorrect mode *** ' + mode
+            sys.exit(1)
+
     npes      = config.get('regSettings','nplist')
     npList = []
     for np in npes.split(','):
@@ -195,9 +201,9 @@ def build(exp):
         sysCmd('make --quiet clean')
         sysCmd('make rundeck ' + exp.runCmd + ' ' + exp.runSrcCmd)
         sysCmd('make -j4 gcm ' + exp.runCmd + ' ' + exp.modeCmd + ' ' + exp.opts)
-        exp.results[3] = 'OK'
+        exp.results[3] = '+'
     except:
-        exp.results[3] = 'bld'
+        exp.results[3] = 'F'
         logger.error('   Failed to build ' + exp.run)
         raise
 
@@ -211,15 +217,16 @@ def run1hr(exp, npes=1):
         sysCmd('../exec/runE ' + exp.run + ' -np ' + str(npes) + ' -cold-restart')
         sysCmd('cd '+exp.run+'; cp fort.2.nc '+checkpointName(exp, '1hr', npes))
     except:
-        exp.results[3] = '1hr'
+        exp.results[3] = 'F'
         message = '   Failed to run 1 hour test for ' + exp.run
         message += ' on ' + str(npes) + ' processors.'
         logger.error(message)
         raise
     
 #-------------------------------------------------------------------------------
-# Runs a 1dy (25hr) AND a 24hr restart simulation
-def run1dy(exp, npes=1):
+# Runs (N-M)+M hours AND N continuous hours
+# Default is to run 24+1 and 25-hour, i.e. N=25 M=1
+def runRestart(exp, npes=1, n=25, m=1):
     logger = logging.getLogger('RUN1DY  ')
     expectedRC = 13; # modelE convention
     restart = './'+exp.run
@@ -239,7 +246,7 @@ def run1dy(exp, npes=1):
         sysCmd('cd ' + exp.run + '; ' + restart + '; test `head -1 run_status` -eq ' + str(expectedRC))
         sysCmd('cd '+exp.run+';cp fort.2.nc '+checkpointName(exp, 'restart', npes))
     except:
-        exp.results[3] = '1dy'
+        exp.results[3] = 'F'
         message = '   Failed to run 1 day test for ' + exp.run
         message += ' on ' + str(npes) + ' processors.'
         logger.error(message)
@@ -256,10 +263,10 @@ def compareBase(exp, duration, npes=1):
     cmp ='diffreport.x ' + file1 + ' ' + file2
     rc = sysCall(cmp)
     if rc == '':
-        exp.results[4] = 'OK'
+        exp.results[4] = '+'
     else:
         logger.debug('   BASE and ' + file1 + ' differ')
-        exp.results[4] = 'bas'
+        exp.results[4] = 'F'
 
 #-------------------------------------------------------------------------------
 # Compare SERIAL vs MPI
@@ -273,10 +280,10 @@ def compareNPE(runA, runB, duration, npes):
     cmp ='diffreport.x ' + file1 + ' ' + file2
     rc = sysCall(cmp)
     if rc == '':
-        runB.results[6] = 'OK'
+        runB.results[6] = '+'
     else:
         logger.debug('   Files ' + file1 + ' and ' + file2 + ' differ')
-        runB.results[6] = 'npe'
+        runB.results[6] = 'F'
             
 #-------------------------------------------------------------------------------
 # Compare full-run (25hr) vs restart run
@@ -291,10 +298,10 @@ def compareRestart(exp, npes=1):
     cmp ='diffreport.x ' + file1 + ' ' + file2
     rc = sysCall(cmp)
     if rc == '':
-        exp.results[5] = 'OK'
+        exp.results[5] = '+'
     else:
         logger.debug('   Files ' + file1 + ' and ' + file2 + ' differ')
-        exp.results[5] = 'rst'
+        exp.results[5] = 'F'
         
 #-------------------------------------------------------------------------------
 # MAIN PROGRAM
@@ -315,58 +322,64 @@ if __name__ == '__main__':
         exps = []
         for mode in modeList:
             exps.append(configuration(rundeck, mode, compiler))
+            nmodes = len(exps)
+
+        for exp in exps:
+            try:
+                if exp.mode == 'serial':
+                    build(exp)
+                    run1hr(exp)
+                    runRestart(exp)
+                else:
+                    build(exp)
+                    try:
+                        for npes in npList:
+                            run1hr(exp, npes=npes)
+                    except:
+                        logger.error('  ... abandoning restart mpi run.')
+
+                    try:
+                        for npes in npList:
+                            runRestart(exp, npes=npes)
+                    except:
+                        logger.error('  ... abandoning restart mpi run.')
+
+                logger.info(rundeck + ' ' + exp.mode + ' runs complete.')
+                
+            except:
+                logger.error(rundeck + ' run FAILED')
+
+
+            fileH.write('%20s' % (exp.results[0]))
+            fileH.write('%10s' % (exp.results[1]))
+            fileH.write('%8s'  % (exp.results[2]))
+
+        for exp in exps:
+            if exp.mode == 'serial':
+                compareBase(exp, '1hr')
+                compareBase(exp, '1dy')
+                # And compare SERIAL checkpoint-restart 
+                compareRestart(exp)
+            else:
+                for npes in npList:
+                    # Compare runs with baseline
+                    compareBase(exp, '1hr', npes=npes)
+                    compareBase(exp, '1dy', npes=npes)
+                    compareRestart(exp, npes=npes)
+
+        for npes in npList:
+            # Compare 1hr run against serial
+            if nmodes > 1:
+                compareNPE(exps[0], exps[1], '1dy', npes)
+
+        logger.info(rundeck + ' comparison complete.')
+
             
-        try:
-            build(exps[0])
-            run1hr(exps[0])
-            run1dy(exps[0])
-            # Done with SERIAL runs - compare runs with baseline
-            compareBase(exps[0], '1hr')
-            compareBase(exps[0], '1dy')
-            # And compare SERIAL checkpoint-restart 
-            compareRestart(exps[0])
+        for exp in exps:
+            for s in exp.results[3:]:
+                fileH.write(' '.center(3))
+                fileH.write(s.center(3))
 
-            try:
-                build(exps[1])
-                for npes in npList:
-                    run1hr(exps[1], npes=npes)
-                    # Compare 1hr run against serial
-                    compareNPE(exps[0], exps[1], '1hr', npes)
-                    # Compare runs with baseline
-                    compareBase(exps[1], '1hr', npes=npes)
-            except:
-                logger.error('  ... abandoning 1hr mpi test.')
-
-            try:
-                build(exps[1])
-                for npes in npList:
-                    run1dy(exps[1], npes=npes)
-                    # Compare 1hr run against serial
-                    compareNPE(exps[0], exps[1], '1dy', npes)
-                    # Compare runs with baseline
-                    compareBase(exps[1], '1dy', npes=npes)
-            except:
-                logger.error('  ... abandoning 1dy mpi test.')
-
-            for npes in npList:
-                compareRestart(exps[1], npes=npes)
-
-            logger.info(rundeck + ' Testing complete.')
-
-        except:
-            logger.error(rundeck + ' verification FAILED')
-
-        fileH.write('%20s' % (exps[0].results[0]))
-        fileH.write('%10s' % (exps[0].results[1]))
-        fileH.write('%8s' % (exps[0].results[2]))
-        for s in exps[0].results[3:]:
-            fileH.write('%6s' % (s))
-        fileH.write('\n')
-        fileH.write('%20s' % (exps[1].results[0]))
-        fileH.write('%10s' % (exps[1].results[1]))
-        fileH.write('%8s' % (exps[1].results[2]))
-        for s in exps[1].results[3:]:
-            fileH.write('%6s' % (s))
         fileH.write('\n')
         fileH.close()
 
