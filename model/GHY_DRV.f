@@ -1219,6 +1219,7 @@ ccc stuff needed for dynamic vegetation
      &     q1*ma1,
      &     pbl_args%ws,
      &     pbl_args%ws0,
+     &     pbl_args%gusti,
      &     pbl_args%tprime,
      &     pbl_args%qprime,
      &     end_of_day_flag
