@@ -19,7 +19,7 @@
  
   This requires a configuration file name <runsource>.cfg for each runsource.
   In this case the script can be called from a higher level driver to execute
-  a more compilcated combination of experimentsas is done with the
+  a more compilcated combination of experiments as is done with the
   nightly regression tests.
  
   ENV Options:
@@ -118,7 +118,6 @@ def readConfig(rundeck):
         config.set('regSettings', 'decksdir'  ,'.')
 
     deck      = config.get('regSettings','rundeck')
-    modelerc  = config.get('regSettings','modelerc')
     compiler  = config.get('regSettings','compiler')
 
     modes     = config.get('regSettings','modes')
@@ -148,7 +147,11 @@ def readConfig(rundeck):
     if baseDir != '.':
         baseDir =  baseDir + '/' + branch + '/' + compiler
 
-    os.environ['MODELERC'] = modelerc
+    if os.environ.has_key('MODELERC'):
+        modelerc = os.environ['MODELERC']
+    else:
+        modelerc  = config.get('regSettings','modelerc')
+        os.environ['MODELERC'] = modelerc
 
     if os.environ.has_key('DEBUG'):
         debug = os.environ['DEBUG']
@@ -278,7 +281,7 @@ def run1hr(exp, npes=1):
 """
 def runRestart(exp, npes=1, n=25, m=1):
     logger = logging.getLogger('RUNRST  ')
-    expectedRC = 13; # modelE convention
+    expectedRC = 13; # modelE convention for successful runs
     restart = './'+exp.run
     if exp.mode == 'mpi':
         restart += ' -np ' + str(npes)
@@ -351,6 +354,9 @@ def compareNPE(runA, runB, duration, npes):
   Compare full-run (25hr) vs restart run
 """
 def compareRestart(exp, npes=1):
+    # Hack to skip SCM rundeck
+    if exp.run == 'SGP4TESTS':
+        return
     logger = logging.getLogger('COMPRST ')
     logger.info('Compare restart run: '+exp.run)
     prefix = exp.run + '/'
@@ -362,7 +368,11 @@ def compareRestart(exp, npes=1):
         exp.results[5] = successMark
     else:
         logger.warning('Files ' + file1 + ' and ' + file2 + ' differ')
-        exp.results[5] = failMark
+        # Hack to differentiate the restart errors in CAD rundecks:
+        if 'E4Tcad' in exp.run:
+            exp.results[5] = failMark+'*'
+        else:
+            exp.results[5] = failMark
         
 """
   MAIN PROGRAM
