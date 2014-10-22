@@ -1,18 +1,32 @@
-#-------------------------------------------------------------------------------
-# This script verifies that MPI and Serial builds produce identical results
-# for a specified set of rundecks.
-# Usage:
-#    From the decks subdirectory issue the command:
-#      ../exec/testing/regression.py  <runsource1> [<rundeck2> ...]
-#
-#    Requires a configuration file name <rundeckName>.cfg
-#
-#
-# ENV Options:
-#    * If the environment variable DEBUG is set, then the script will
-#      display all commands, but not actually execute them.
-#
-#-------------------------------------------------------------------------------
+"""
+  This script verifies that MPI and Serial builds produce identical
+  results. The script can be executed from the decks directory using
+  default options and without arguments as follows:
+ 
+      python  ../exec/testing/regression.py
+ 
+  In that case the script will run the nonProduction_E_AR5_C12 rundeck 
+  using the gfortran compiler and in serial and mpi modes. 
+  Alternatively one can use the default options with one argument:
+ 
+      python  ../exec/testing/regression.py <runsource>
+ 
+  and run the <runsource> rundeck.
+  Finally one can run a set of rundecks by specifying configuration
+  files for each runsource, i.e. from the decks subdirectory issue the command:
+ 
+      python  ../exec/testing/regression.py  <runsource1> [<runsource2> ...]
+ 
+  This requires a configuration file name <runsource>.cfg for each runsource.
+  In this case the script can be called from a higher level driver to execute
+  a more compilcated combination of experimentsas is done with the
+  nightly regression tests.
+ 
+  ENV Options:
+     * If the environment variable DEBUG is set, then the script will
+       display all commands, but not actually execute them.
+ 
+"""
 
 import sys
 import os
@@ -21,6 +35,10 @@ import subprocess
 import logging
 import ConfigParser
 
+"""
+  This class defines a configuration object for each modelE runSource.
+  The properties of this object are specified in the configuration options.
+"""
 class configuration:
     def __init__(self, runSrc, mode, comp):
         runShort = runSrc
@@ -45,6 +63,12 @@ class configuration:
             self.opts += 'COMPILE_WITH_TRAPS=YES'
         self.results =  [runShort, comp, mode, ' - ', ' - ', ' - ', ' - ']
 
+"""
+  Read options from a config file for each modelE runSource
+  configuration. If no file is available then use some sensible
+  defaults.
+  TODO: This should be a class, in order to avoid all the globals.
+"""
 def readConfig(rundeck):
     global debug
     global npList
@@ -55,33 +79,43 @@ def readConfig(rundeck):
     global resdir
     global deck
     global branch
-    global modeleDir
+    global decksDir
+    global updBase
+    global successMark
+    global failMark
 
-    if os.environ.has_key('DECKSDIR'):
-        decksdir = os.environ['DECKSDIR']
+    successMark = '+'
+    failMark    = 'F'
+
+    # Expect to find a configuration file MYCONFIGDIR directory
+    if os.environ.has_key('MYCONFIGDIR'):
+        myConfigDir = os.environ['MYCONFIGDIR']
     else:
-        decksdir = './'
+        myConfigDir = './'
 
-    subprocess.call(['pwd'])
-    configfile = decksdir + '/' + rundeck + '.cfg'
+    configfile = myConfigDir + '/' + rundeck + '.cfg'
     if os.path.isfile(configfile):
         config = ConfigParser.RawConfigParser()
         config.read(configfile)
+    # If there is no config file create default options
     else:
-        print 'Using default config options.'
-        config = ConfigParser.RawConfigParser(\
-            {'rundeck'   :'nonProduction_E_AR5_C12', \
-             'modelerc'  :'~/.modelErc', \
-             'compiler'  :'gfortran',    \
-             'modes'     :'serial,mpi',  \
-             'nplist'    :'1,4',         \
-             'compflags' :'default',     \
-             'branch':'master',      \
-             'basedir'   :'.',           \
-             'updatebase':'no',          \
-             'resultsdir':'.',           \
-             'modeledir' :'.'            \
-            })
+        config = ConfigParser.RawConfigParser()
+        config.add_section('regSettings')
+        if rundeck == 'nonProduction_E_AR5_C12':
+            config.set('regSettings', 'rundeck'   ,'nonProduction_E_AR5_C12')
+        else:
+            config.set('regSettings', 'rundeck'   ,rundeck)
+
+        config.set('regSettings', 'modelerc'  , os.environ['HOME']+'/.modelErc')
+        config.set('regSettings', 'compiler'  ,'gfortran')
+        config.set('regSettings', 'modes'     ,'serial,mpi')
+        config.set('regSettings', 'nplist'    ,'1,4')
+        config.set('regSettings', 'compflags' ,'debug')
+        config.set('regSettings', 'branch'    ,'master')
+        config.set('regSettings', 'basedir'   ,'.')
+        config.set('regSettings', 'updatebase','no')
+        config.set('regSettings', 'resultsdir','.')
+        config.set('regSettings', 'decksdir'  ,'.')
 
     deck      = config.get('regSettings','rundeck')
     modelerc  = config.get('regSettings','modelerc')
@@ -92,6 +126,7 @@ def readConfig(rundeck):
     for mode in modes.split(','):
         if mode == 'serial' or mode == 'mpi':
             modeList.append(mode)
+        # Terminate job if there is a non-permitted mode
         else:
             print ' *** Incorrect mode *** ' + mode
             sys.exit(1)
@@ -106,9 +141,13 @@ def readConfig(rundeck):
     branch    = config.get('regSettings','branch')
     updBase   = config.get('regSettings','updatebase')
     resdir    = config.get('regSettings','resultsdir')
-    modeleDir = config.get('regSettings','modeledir')
+    decksDir  = config.get('regSettings','decksdir')
 
-    baseDir =  baseDir + '/' + compiler + '/' + branch
+    # In order to avoid errors in compareBase() when running with
+    # default options:
+    if baseDir != '.':
+        baseDir =  baseDir + '/' + branch + '/' + compiler
+
     os.environ['MODELERC'] = modelerc
 
     if os.environ.has_key('DEBUG'):
@@ -116,8 +155,12 @@ def readConfig(rundeck):
     else:
         debug = False
 
-#-------------------------------------------------------------------------------
-def setuplogging():
+"""
+  Setup a logging object for each run. Note that the output file gets
+  all the logging output while STDOUT only gets logging INFO in order
+  to minimize verbosity.
+"""
+def setupLogging():
     logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
                     datefmt='%m-%d %H:%M',
@@ -130,8 +173,9 @@ def setuplogging():
     logger = logging.getLogger()
     logger.addHandler(stdoutLog)
 
-#-------------------------------------------------------------------------------
-# Define a subprocess call where we can capture/evaluate stderr output
+"""
+  Define a subprocess call where we can capture/evaluate stderr output
+"""
 def sysCall(cmd):
     logger = logging.getLogger('SYSTEM  ')
     if debug:
@@ -143,10 +187,11 @@ def sysCall(cmd):
         stdout, stderr =  p.communicate()
         return stdout
 
-#-------------------------------------------------------------------------------
-# A subprocess call that, upon failure rc<>=0, raises an exception
-# Subprocess call with shell argument:
-# expands environment variables and file globs 
+"""
+  A subprocess call that, upon failure rc<>=0, raises an exception
+  Subprocess call with shell argument:
+  expands environment variables and file globs 
+"""
 def sysCmd(commandString):
     logger = logging.getLogger('SYSTEM  ')
     if debug:
@@ -157,15 +202,16 @@ def sysCmd(commandString):
         with open(makeLog,'a') as f:
                 status = subprocess.call(commandString, \
                                          stdout=f, stderr=f, shell=True)
-        logger.debug('status: ' + str(status))
+        logger.debug('Return code: ' + str(status))
         if (status != 0):
             raise Exception('unix', commandString)
 
-#-------------------------------------------------------------------------------
-# !!! This is the function we should be using, rather than SysCmd !!!
-# A subprocess call that, upon failure rc<>=0, raises an exception
-# Subprocess call with shell argument:
-# expands environment variables and file globs 
+"""
+  TODO !!! This is the function we should be using, rather than SysCmd !!!
+  A subprocess call that, upon failure rc<>=0, raises an exception
+  Subprocess call with shell argument:
+  expands environment variables and file globs 
+"""
 def sysCmd0(commandString, rc=0, sh=False):
     logger = logging.getLogger('SYSTEM  ')
     if debug:
@@ -184,16 +230,18 @@ def sysCmd0(commandString, rc=0, sh=False):
         if (status != rc):
             raise Exception('unix', commandString)
 
-#-------------------------------------------------------------------------------
-# Retrun a checkpoint file name with various identifiers
+"""
+  Return a checkpoint file name with various identifiers
+"""
 def checkpointName(exp, duration, npes):
     if exp.mode == 'serial':
         return exp.run  + '.' + duration
     else:
         return exp.run + '.' + duration + '.np=' + str(npes)
 
-#-------------------------------------------------------------------------------
-# Build a configuration.
+"""
+  Build a configuration using GNU make
+"""
 def build(exp):
     logger = logging.getLogger('BUILD   ')
     logger.info(exp.run + ' ' + exp.modeCmd + ' ' + exp.opts)
@@ -201,39 +249,41 @@ def build(exp):
         sysCmd('make --quiet clean')
         sysCmd('make rundeck ' + exp.runCmd + ' ' + exp.runSrcCmd)
         sysCmd('make -j4 gcm ' + exp.runCmd + ' ' + exp.modeCmd + ' ' + exp.opts)
-        exp.results[3] = '+'
+        exp.results[3] = successMark
     except:
-        exp.results[3] = 'F'
-        logger.error('   Failed to build ' + exp.run)
+        exp.results[3] = failMark
+        logger.error(' *** Failed to build ' + exp.run)
         raise
 
-#-------------------------------------------------------------------------------
-# Runs a 1hr simulation
+"""
+  Sets up and runs a 1hr simulation
+"""
 def run1hr(exp, npes=1):
     logger = logging.getLogger('RUN1HR  ')
-    logger.info(exp.mode + ', npes=' + str(npes))
+    logger.info(exp.run + ', ' + exp.mode + ', npes=' + str(npes))
     try:
         sysCmd('make setup ' + exp.runCmd + ' ' + exp.modeCmd + ' ' + exp.opts)
         sysCmd('../exec/runE ' + exp.run + ' -np ' + str(npes) + ' -cold-restart')
         sysCmd('cd '+exp.run+'; cp fort.2.nc '+checkpointName(exp, '1hr', npes))
     except:
-        exp.results[3] = 'F'
-        message = '   Failed to run 1 hour test for ' + exp.run
+        exp.results[3] = failMark
+        message =  ' *** Failed to run 1 hour test for ' + exp.run
         message += ' on ' + str(npes) + ' processors.'
         logger.error(message)
         raise
     
-#-------------------------------------------------------------------------------
-# Runs (N-M)+M hours AND N continuous hours
-# Default is to run 24+1 and 25-hour, i.e. N=25 M=1
+"""
+  Runs (N-M)+M hours AND N continuous hours
+  Default is to run 24+1 and 25-hour, i.e. N=25 M=1
+"""
 def runRestart(exp, npes=1, n=25, m=1):
-    logger = logging.getLogger('RUN1DY  ')
+    logger = logging.getLogger('RUNRST  ')
     expectedRC = 13; # modelE convention
     restart = './'+exp.run
     if exp.mode == 'mpi':
         restart += ' -np ' + str(npes)
     
-    logger.info(exp.mode + ', npes=' + str(npes))
+    logger.info(exp.run + ', ' + exp.mode + ', npes=' + str(npes))
     try:
         sysCmd('../exec/editRundeck.sh ' + exp.run + ' 48 2 1')
         sysCmd('make setup ' + exp.runCmd + ' ' + exp.modeCmd + ' ' + exp.opts)
@@ -241,79 +291,96 @@ def runRestart(exp, npes=1, n=25, m=1):
         sysCmd('cd '+exp.run+'; cp fort.1.nc '+checkpointName(exp, '1dy', npes))
         sysCmd('cd ' + exp.run + '; cp fort.2.nc fort.1.nc')
         sysCmd('cd ' + exp.run + '; rm -f run_status')
-# Need to investigate why the following causes a NameError exception
-# Looks like there is an issue with variable/function/class names in SysCmd
+#  Need to investigate why the following causes a NameError exception
+#  Looks like there is an issue with variable/function/class names in SysCmd
         sysCmd('cd ' + exp.run + '; ' + restart + '; test `head -1 run_status` -eq ' + str(expectedRC))
         sysCmd('cd '+exp.run+';cp fort.2.nc '+checkpointName(exp, 'restart', npes))
     except:
-        exp.results[3] = 'F'
-        message = '   Failed to run 1 day test for ' + exp.run
+        exp.results[3] = failMark
+        message =  ' *** Failed to run 1 day test for ' + exp.run
         message += ' on ' + str(npes) + ' processors.'
         logger.error(message)
         raise
     
-#-------------------------------------------------------------------------------
-# Compare model results with baseline
+"""
+  Compare model results with those in the baseline location.
+  If no baseline location is specified then comparison will be skipped.
+"""
 def compareBase(exp, duration, npes=1):
+    # Skip if no location given
+    if baseDir == '.':
+        return
+
     logger = logging.getLogger('COMPBAS ')
+    logger.info('Compare base run: '+exp.run)
+
     prefix = exp.run + '/'
     file1 = prefix + checkpointName(exp, duration, npes)
     file2 = baseDir + '/' + checkpointName(exp, duration, npes)
-    logger.info(file1 + ' ' + file2)
     cmp ='diffreport.x ' + file1 + ' ' + file2
     rc = sysCall(cmp)
     if rc == '':
-        exp.results[4] = '+'
+        exp.results[4] = successMark
     else:
-        logger.debug('   BASE and ' + file1 + ' differ')
-        exp.results[4] = 'F'
+        logger.warning(file1 + ' and ' + file1 + ' differ')
+        if updBase == 'yes':
+            sysCmd('cp ' + file1 + ' ' + file2)
+            logger.info('Updated BASELINE')
+        exp.results[4] = failMark
 
-#-------------------------------------------------------------------------------
-# Compare SERIAL vs MPI
+"""
+  Compare SERIAL vs MPI
+"""
 def compareNPE(runA, runB, duration, npes):
     logger = logging.getLogger('COMPNPE ')
+    logger.info('Compare NPE runs: '+runA.run+' and '+runB.run)
+
     prefix1 = runA.run + '/'
     prefix2 = runB.run + '/'
     file1 = prefix1 + checkpointName(runA, duration, npes)
     file2 = prefix2 + checkpointName(runB, duration, npes)
-    logger.info(file1 + ' ' + file2)
     cmp ='diffreport.x ' + file1 + ' ' + file2
     rc = sysCall(cmp)
     if rc == '':
-        runB.results[6] = '+'
+        runB.results[6] = successMark
     else:
-        logger.debug('   Files ' + file1 + ' and ' + file2 + ' differ')
-        runB.results[6] = 'F'
+        logger.warning('Files ' + file1 + ' and ' + file2 + ' differ')
+        runB.results[6] = failMark
             
-#-------------------------------------------------------------------------------
-# Compare full-run (25hr) vs restart run
+"""
+  Compare full-run (25hr) vs restart run
+"""
 def compareRestart(exp, npes=1):
     logger = logging.getLogger('COMPRST ')
-    numLinesExpected = '0'
-#    numLinesExpected = '12' # E4TcadC12
+    logger.info('Compare restart run: '+exp.run)
     prefix = exp.run + '/'
     file1 = prefix + checkpointName(exp, '1dy', npes)
     file2 = prefix + checkpointName(exp, 'restart', npes)
-    logger.info(file1 + ' ' + file2)
     cmp ='diffreport.x ' + file1 + ' ' + file2
     rc = sysCall(cmp)
     if rc == '':
-        exp.results[5] = '+'
+        exp.results[5] = successMark
     else:
-        logger.debug('   Files ' + file1 + ' and ' + file2 + ' differ')
-        exp.results[5] = 'F'
+        logger.warning('Files ' + file1 + ' and ' + file2 + ' differ')
+        exp.results[5] = failMark
         
-#-------------------------------------------------------------------------------
-# MAIN PROGRAM
+"""
+  MAIN PROGRAM
+"""
 if __name__ == '__main__':
-    global resultTemplateS
-    global resultTemplateM
     
-    for rundeck in sys.argv[1:]:
+    runSources = []
+    if len(sys.argv) > 1:
+        for arg in sys.argv[1:]:
+            runSources.append(arg)
+    else:
+        runSources.append('nonProduction_E_AR5_C12')
+    
+    for rundeck in runSources:
 
         readConfig(rundeck)
-        setuplogging()
-        os.chdir(modeleDir)
+        setupLogging()
+        os.chdir(decksDir)
         logger = logging.getLogger('MAIN    ')
         diffFile = resdir + '/' + rundeck + '.diff'
         fileH = open(diffFile, 'w')
@@ -336,7 +403,7 @@ if __name__ == '__main__':
                         for npes in npList:
                             run1hr(exp, npes=npes)
                     except:
-                        logger.error('  ... abandoning restart mpi run.')
+                        logger.error('  ... abandoning 1hr mpi run.')
 
                     try:
                         for npes in npList:
@@ -347,7 +414,7 @@ if __name__ == '__main__':
                 logger.info(rundeck + ' ' + exp.mode + ' runs complete.')
                 
             except:
-                logger.error(rundeck + ' run FAILED')
+                logger.error(rundeck + ' ' + exp.mode + ' runs FAILED')
 
         for exp in exps:
             if exp.mode == 'serial':
@@ -367,7 +434,7 @@ if __name__ == '__main__':
             if nmodes > 1:
                 compareNPE(exps[0], exps[1], '1dy', npes)
 
-        logger.info(rundeck + ' comparison complete.')
+        logger.info(rundeck + ' comparisons complete.')
 
             
         for exp in exps:
@@ -381,7 +448,7 @@ if __name__ == '__main__':
 
         fileH.close()
 
-    logger.info('Done')
+    logger.info('Regression testing is done.')
             
                     
                     
