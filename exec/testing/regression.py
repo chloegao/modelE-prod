@@ -1,216 +1,454 @@
-#!/usr/bin/python
-import os
+"""
+  This script verifies that MPI and Serial builds produce identical
+  results. The script can be executed from the decks directory using
+  default options and without arguments as follows:
+ 
+      python  ../exec/testing/regression.py
+ 
+  In that case the script will run the nonProduction_E_AR5_C12 rundeck 
+  using the gfortran compiler and in serial and mpi modes. 
+  Alternatively one can use the default options with one argument:
+ 
+      python  ../exec/testing/regression.py <runsource>
+ 
+  and run the <runsource> rundeck.
+  Finally one can run a set of rundecks by specifying configuration
+  files for each runsource, i.e. from the decks subdirectory issue the command:
+ 
+      python  ../exec/testing/regression.py  <runsource1> [<runsource2> ...]
+ 
+  This requires a configuration file name <runsource>.cfg for each runsource.
+  In this case the script can be called from a higher level driver to execute
+  a more compilcated combination of experimentsas is done with the
+  nightly regression tests.
+ 
+  ENV Options:
+     * If the environment variable DEBUG is set, then the script will
+       display all commands, but not actually execute them.
+ 
+"""
+
 import sys
+import os
+import shlex
+import subprocess
+import logging
+import ConfigParser
 
+"""
+  This class defines a configuration object for each modelE runSource.
+  The properties of this object are specified in the configuration options.
+"""
+class configuration:
+    def __init__(self, runSrc, mode, comp):
+        runShort = runSrc
+        if 'nonProduction' in runSrc:
+            runShort = runSrc[14:]
+        run = runShort+'.'+ mode+'.'+ comp
+        self.run = run
+        self.runShort = runShort
+        self.mode = mode
+        if mode == 'serial':
+            self.modeCmd = 'MPI=NO'
+        else:
+            self.modeCmd = 'MPI=YES'
+        self.runSrc = runSrc
+        self.runCmd = 'RUN='+run
+        self.runSrcCmd = 'RUNSRC='+runSrc 
+        self.opts = ' '
+        if compOpts == 'debug':
+            flags='"-O0 -g"'
+            self.opts += 'EXTRA_FFLAGS='+flags
+        elif compOpts == 'traps':
+            self.opts += 'COMPILE_WITH_TRAPS=YES'
+        self.results =  [runShort, comp, mode, ' - ', ' - ', ' - ', ' - ']
 
-# This script verifies that MPI and Serial builds produce identical results
-# for a specified set of rundecks.
-# Usage:
-#    From the decks subdirectory issue the command:
-#      ../exec/regression.py  <runsource1> [<rundeck2> ...]
-#
-#    Note that you must issue the command from a batch process so that MPI can be
-#    used.
-#
-# Options:
-#    * If the environment variable VERBOSE is set to True, then the script
-#      will display all commands as they execute.
-#    * If the environment variable DEBUG is set to True, then the script will
-#      display all commands, but not actually execute them.
-#
-# Issues:
-#   1) The script currently leaves a fair bit of detritus lying around in the decks subdirectory.
-#      cleanup command should be added in the future.
-#   2) Currently the details of failures are sent to /dev/null.   An extra log file (or set of files) should
-#      eventually be managed to contain the details and leave STDOUT to handle the big picture items.
+"""
+  Read options from a config file for each modelE runSource
+  configuration. If no file is available then use some sensible
+  defaults.
+  TODO: This should be a class, in order to avoid all the globals.
+"""
+def readConfig(rundeck):
+    global debug
+    global npList
+    global modeList
+    global compiler
+    global compOpts
+    global baseDir
+    global resdir
+    global deck
+    global branch
+    global decksDir
+    global updBase
+    global successMark
+    global failMark
 
+    successMark = '+'
+    failMark    = 'F'
 
-# Issue a shell command and raise an exception if the result is not 0.
-# Environment variables:
-#     VERBOSE=True  displays commands in the log
-#     DEBUG=True    displays commands in the log, but does not actually
-#                   submit to system.
-def systemCommand(commandString):
+    # Expect to find a configuration file MYCONFIGDIR directory
+    if os.environ.has_key('MYCONFIGDIR'):
+        myConfigDir = os.environ['MYCONFIGDIR']
+    else:
+        myConfigDir = './'
+
+    configfile = myConfigDir + '/' + rundeck + '.cfg'
+    if os.path.isfile(configfile):
+        config = ConfigParser.RawConfigParser()
+        config.read(configfile)
+    # If there is no config file create default options
+    else:
+        config = ConfigParser.RawConfigParser()
+        config.add_section('regSettings')
+        if rundeck == 'nonProduction_E_AR5_C12':
+            config.set('regSettings', 'rundeck'   ,'nonProduction_E_AR5_C12')
+        else:
+            config.set('regSettings', 'rundeck'   ,rundeck)
+
+        config.set('regSettings', 'modelerc'  , os.environ['HOME']+'/.modelErc')
+        config.set('regSettings', 'compiler'  ,'gfortran')
+        config.set('regSettings', 'modes'     ,'serial,mpi')
+        config.set('regSettings', 'nplist'    ,'1,4')
+        config.set('regSettings', 'compflags' ,'debug')
+        config.set('regSettings', 'branch'    ,'master')
+        config.set('regSettings', 'basedir'   ,'.')
+        config.set('regSettings', 'updatebase','no')
+        config.set('regSettings', 'resultsdir','.')
+        config.set('regSettings', 'decksdir'  ,'.')
+
+    deck      = config.get('regSettings','rundeck')
+    modelerc  = config.get('regSettings','modelerc')
+    compiler  = config.get('regSettings','compiler')
+
+    modes     = config.get('regSettings','modes')
+    modeList = []
+    for mode in modes.split(','):
+        if mode == 'serial' or mode == 'mpi':
+            modeList.append(mode)
+        # Terminate job if there is a non-permitted mode
+        else:
+            print ' *** Incorrect mode *** ' + mode
+            sys.exit(1)
+
+    npes      = config.get('regSettings','nplist')
+    npList = []
+    for np in npes.split(','):
+        npList.append(np)
+    compOpts  = config.get('regSettings','compflags')
+    baseDir   = config.get('regSettings','basedir')
+    # branch is needed to select correct basedir files
+    branch    = config.get('regSettings','branch')
+    updBase   = config.get('regSettings','updatebase')
+    resdir    = config.get('regSettings','resultsdir')
+    decksDir  = config.get('regSettings','decksdir')
+
+    # In order to avoid errors in compareBase() when running with
+    # default options:
+    if baseDir != '.':
+        baseDir =  baseDir + '/' + branch + '/' + compiler
+
+    os.environ['MODELERC'] = modelerc
+
     if os.environ.has_key('DEBUG'):
         debug = os.environ['DEBUG']
     else:
         debug = False
-        
-        if debug:
-            os.system("echo "+commandString)
-        else:
-            if os.environ.has_key('VERBOSE') and os.environ['VERBOSE']:
-                print "   Command: " + commandString
 
-            status = os.system(commandString + " &> /dev/null")
-            if (status != 0):
-                raise Exception('unix', commandString)
+"""
+  Setup a logging object for each run. Note that the output file gets
+  all the logging output while STDOUT only gets logging INFO in order
+  to minimize verbosity.
+"""
+def setupLogging():
+    logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+                    datefmt='%m-%d %H:%M',
+                    filename=resdir+'/'+deck+'-regression.log',
+                    filemode='w')
+    stdoutLog = logging.StreamHandler(sys.stdout)
+    formatter = logging.Formatter('%(name)s : %(message)s')
+    stdoutLog.setFormatter(formatter)
+    stdoutLog.setLevel(logging.INFO)
+    logger = logging.getLogger()
+    logger.addHandler(stdoutLog)
 
-# This procedure returns a suitable rundeck name for
-# a given run source and mode (mpi,serial, openmp, hybrid).
-# Must be consistent across other procedures, but otherwise
-# is arbitrary.
-# For now it assumed to be specified by the user
-def rundeckName(runSource, mode):
-    return runSource
-
-def checkpointFileName(runCase, duration):
-    if runCase['mode'] == 'serial':
-        return runCase['rundeck'] + "_" + runCase['mode'] + "_" + duration
+"""
+  Define a subprocess call where we can capture/evaluate stderr output
+"""
+def sysCall(cmd):
+    logger = logging.getLogger('SYSTEM  ')
+    if debug:
+        logger.debug(cmd)
     else:
-        return runCase['rundeck'] + "_" + runCase['mode'] + "_" + duration + "_NPES=" + runCase['NPES']
+        logger.debug(cmd)
+        p = subprocess.Popen(shlex.split(cmd), \
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        stdout, stderr =  p.communicate()
+        return stdout
 
-# Return a dict that specifies the configuration under test
-def newConfiguration(runSource, mode):
-    return { 'runSource':runSource,
-             'mode':mode,
-             'rundeck':rundeckName(runSource,mode),
-             'RUN':"RUN="+rundeckName(runSource,mode)
-             }
-
-# Return a dict that specifies the configuration under test along
-# with the number of processors being executed.
-def newRunCase(configuration, npes):
-    configuration['NPES'] = str(npes)
-    return configuration
-
-# Return additional arguments to "make" needed for building non serial configurations.
-def getBuildOptions(configuration):
-    mode = configuration['mode']
-    if mode == 'serial':
-        return ""
-    elif mode == 'mpi':
-        return "ESMF=YES"
-    elif mode == 'openmp':
-        return "MP=YES"
-    
-# Return additional arguments to "make setup" needed for running non serial configurations.
-def getRunOptions(runCase):
-    mode = runCase['mode']
-    if mode == 'serial':
-        return ""
-    elif mode == 'mpi':
-        npes = runCase['NPES']
-        return "ESMF=YES NPES=" + npes
-    elif mode == 'openmp':
-        npes = runCase['NPES']
-        return "MP=YES NPROC=" + npes
-
-# For serial case we need to build "aux" to create the CMPE002 for comparing results.
-# Otherwise we just need gcm.
-def getBuildTargets(configuration):
-    mode = configuration['mode']
-    if mode == 'serial':
-        return "gcm aux"
+"""
+  A subprocess call that, upon failure rc<>=0, raises an exception
+  Subprocess call with shell argument:
+  expands environment variables and file globs 
+"""
+def sysCmd(commandString):
+    logger = logging.getLogger('SYSTEM  ')
+    if debug:
+        logger.debug(commandString)
     else:
-        return "gcm"
-    
-# Build a configuration.
-def build(configuration):
-    run = configuration['RUN']
-    options = getBuildOptions(configuration)
-    targets = getBuildTargets(configuration)
+        logger.debug(commandString)
+        makeLog = resdir + '/'  + deck + '-make.log'
+        with open(makeLog,'a') as f:
+                status = subprocess.call(commandString, \
+                                         stdout=f, stderr=f, shell=True)
+        logger.debug('Return code: ' + str(status))
+        if (status != 0):
+            raise Exception('unix', commandString)
+
+"""
+  TODO !!! This is the function we should be using, rather than SysCmd !!!
+  A subprocess call that, upon failure rc<>=0, raises an exception
+  Subprocess call with shell argument:
+  expands environment variables and file globs 
+"""
+def sysCmd0(commandString, rc=0, sh=False):
+    logger = logging.getLogger('SYSTEM  ')
+    if debug:
+        logger.debug(commandString)
+    else:
+        logger.debug(commandString)
+        makeLog = resdir + '/'  + deck + '-make.log'
+        with open(makeLog,'a') as f:
+            if sh:
+                status = subprocess.call(commandString, \
+                                         stdout=f, stderr=f, shell=sh)
+            else:
+                status = subprocess.call(shlex.split(commandString), \
+                                         stdout=f, stderr=f, shell=sh)
+        logger.debug('status: ' + str(status))
+        if (status != rc):
+            raise Exception('unix', commandString)
+
+"""
+  Return a checkpoint file name with various identifiers
+"""
+def checkpointName(exp, duration, npes):
+    if exp.mode == 'serial':
+        return exp.run  + '.' + duration
+    else:
+        return exp.run + '.' + duration + '.np=' + str(npes)
+
+"""
+  Build a configuration using GNU make
+"""
+def build(exp):
+    logger = logging.getLogger('BUILD   ')
+    logger.info(exp.run + ' ' + exp.modeCmd + ' ' + exp.opts)
     try:
-        systemCommand("make vclean")
-        systemCommand("make " + targets + " " + run + " " + options)
+        sysCmd('make --quiet clean')
+        sysCmd('make rundeck ' + exp.runCmd + ' ' + exp.runSrcCmd)
+        sysCmd('make -j4 gcm ' + exp.runCmd + ' ' + exp.modeCmd + ' ' + exp.opts)
+        exp.results[3] = successMark
     except:
-        print "   Failed to build " + configuration['rundeck']
+        exp.results[3] = failMark
+        logger.error(' *** Failed to build ' + exp.run)
+        raise
+
+"""
+  Sets up and runs a 1hr simulation
+"""
+def run1hr(exp, npes=1):
+    logger = logging.getLogger('RUN1HR  ')
+    logger.info(exp.run + ', ' + exp.mode + ', npes=' + str(npes))
+    try:
+        sysCmd('make setup ' + exp.runCmd + ' ' + exp.modeCmd + ' ' + exp.opts)
+        sysCmd('../exec/runE ' + exp.run + ' -np ' + str(npes) + ' -cold-restart')
+        sysCmd('cd '+exp.run+'; cp fort.2.nc '+checkpointName(exp, '1hr', npes))
+    except:
+        exp.results[3] = failMark
+        message =  ' *** Failed to run 1 hour test for ' + exp.run
+        message += ' on ' + str(npes) + ' processors.'
+        logger.error(message)
         raise
     
-def run1hr(runCase):
-    rundeck = runCase['rundeck']
-    options = getBuildOptions(runCase)
-    try:
-        systemCommand("make setup_nocomp " + runCase['RUN'] + " SETUP_FLAGS=-wait " + getRunOptions(runCase))
-        systemCommand("cd " + rundeck + "; cp fort.2 " + checkpointFileName(runCase, "1hr"))
-    except:
-        message = "   Failed to run 1 hour test for " + rundeck
-        if runCase.has_key('NPES'):
-            message += " on " + runcase['NPES'] + " processors."
-        print message
-        raise
-    
-def run1dy(runCase):
-    rundeck = runCase['rundeck']
-    options = getBuildOptions(runCase)
+"""
+  Runs (N-M)+M hours AND N continuous hours
+  Default is to run 24+1 and 25-hour, i.e. N=25 M=1
+"""
+def runRestart(exp, npes=1, n=25, m=1):
+    logger = logging.getLogger('RUNRST  ')
     expectedRC = 13; # modelE convention
-    restart = "./" + rundeck
-    if runCase['mode'] == 'mpi':
-        restart += " -np " + runCase['NPES']
-    restart += " -r"
+    restart = './'+exp.run
+    if exp.mode == 'mpi':
+        restart += ' -np ' + str(npes)
+    
+    logger.info(exp.run + ', ' + exp.mode + ', npes=' + str(npes))
     try:
-        systemCommand("cd " + rundeck + "; cp " + checkpointFileName(runCase, "1hr") + " fort.2")
-        systemCommand("cd " + rundeck + "; touch I; " + restart + "; test `head -1 run_status` -eq " + str(expectedRC))
-        systemCommand("cd " + rundeck + "; cp fort.2 " + checkpointFileName(runCase, "1dy"))
+        sysCmd('../exec/editRundeck.sh ' + exp.run + ' 48 2 1')
+        sysCmd('make setup ' + exp.runCmd + ' ' + exp.modeCmd + ' ' + exp.opts)
+        sysCmd('../exec/runE ' + exp.run + ' -np ' + str(npes) + ' -cold-restart')
+        sysCmd('cd '+exp.run+'; cp fort.1.nc '+checkpointName(exp, '1dy', npes))
+        sysCmd('cd ' + exp.run + '; cp fort.2.nc fort.1.nc')
+        sysCmd('cd ' + exp.run + '; rm -f run_status')
+#  Need to investigate why the following causes a NameError exception
+#  Looks like there is an issue with variable/function/class names in SysCmd
+        sysCmd('cd ' + exp.run + '; ' + restart + '; test `head -1 run_status` -eq ' + str(expectedRC))
+        sysCmd('cd '+exp.run+';cp fort.2.nc '+checkpointName(exp, 'restart', npes))
     except:
-        message = "  Failed to run 1 day continuation for " + rundeck
-        if runCase.has_key('NPES'):
-            message += " on " + runcase['NPES'] + " processors."
-        print message
+        exp.results[3] = failMark
+        message =  ' *** Failed to run 1 day test for ' + exp.run
+        message += ' on ' + str(npes) + ' processors.'
+        logger.error(message)
         raise
     
+"""
+  Compare model results with those in the baseline location.
+  If no baseline location is specified then comparison will be skipped.
+"""
+def compareBase(exp, duration, npes=1):
+    # Skip if no location given
+    if baseDir == '.':
+        return
 
-def compare(runA, runB, duration):
-    try:
-        rundeck = runA['rundeck']
-        numLinesExpected = "4"
-        serial = newConfiguration(runA['runSource'],'serial')
-        file1 = rundeck + "/" + checkpointFileName(runA, duration)
-        file2 = rundeck + "/" + checkpointFileName(runB, duration)
-        try:
-            cmp = serial['rundeck']+"_bin/CMPE002P " + file1 + " " + file2
-            systemCommand("numLines=`" + cmp + "| wc -l`; test " + numLinesExpected + " -eq $numLines")
-        except:
-            print "   Prognostics differ in " + file1 + " and " + file2
-            raise
-        try:
-            cmp = serial['rundeck']+"_bin/CMPE002 " + file1 + " " + file2
-            systemCommand("numLines=`" + cmp + "| wc -l`; test " + numLinesExpected + " -eq $numLines")
-        except:
-            print "   Diagnostics differ in " + file1 + " and " + file2 + " but prognostics agree. Continuing ..."
-    except:
-        print "   Comparison between " + file1 + " and " + file2 + " failed."
-        raise
-    
-for rundeck in sys.argv[1:]:
-    print "Verifying rundeck " + rundeck;
-    serialConfiguration = newConfiguration(rundeck, "serial")
-    mpiConfiguration = newConfiguration(rundeck,"mpi")
+    logger = logging.getLogger('COMPBAS ')
+    logger.info('Compare base run: '+exp.run)
 
-    if os.environ.has_key('NP_LIST'):
-        npList = os.environ['NP_LIST']
+    prefix = exp.run + '/'
+    file1 = prefix + checkpointName(exp, duration, npes)
+    file2 = baseDir + '/' + checkpointName(exp, duration, npes)
+    cmp ='diffreport.x ' + file1 + ' ' + file2
+    rc = sysCall(cmp)
+    if rc == '':
+        exp.results[4] = successMark
     else:
-        npList = [1, 4]
+        logger.warning(file1 + ' and ' + file1 + ' differ')
+        if updBase == 'yes':
+            sysCmd('cp ' + file1 + ' ' + file2)
+            logger.info('Updated BASELINE')
+        exp.results[4] = failMark
 
-    try:
-        build(serialConfiguration)
-        run1hr(serialConfiguration)
-        run1dy(serialConfiguration)
+"""
+  Compare SERIAL vs MPI
+"""
+def compareNPE(runA, runB, duration, npes):
+    logger = logging.getLogger('COMPNPE ')
+    logger.info('Compare NPE runs: '+runA.run+' and '+runB.run)
 
-        try:
-            build(mpiConfiguration)
-            for npes in npList:
-                runCase = newRunCase(mpiConfiguration, npes)
-                run1hr(runCase)
-                compare(serialConfiguration, runCase, '1hr')
-        except:
-            print "  ... abandoning mpi configuration."
+    prefix1 = runA.run + '/'
+    prefix2 = runB.run + '/'
+    file1 = prefix1 + checkpointName(runA, duration, npes)
+    file2 = prefix2 + checkpointName(runB, duration, npes)
+    cmp ='diffreport.x ' + file1 + ' ' + file2
+    rc = sysCall(cmp)
+    if rc == '':
+        runB.results[6] = successMark
+    else:
+        logger.warning('Files ' + file1 + ' and ' + file2 + ' differ')
+        runB.results[6] = failMark
+            
+"""
+  Compare full-run (25hr) vs restart run
+"""
+def compareRestart(exp, npes=1):
+    logger = logging.getLogger('COMPRST ')
+    logger.info('Compare restart run: '+exp.run)
+    prefix = exp.run + '/'
+    file1 = prefix + checkpointName(exp, '1dy', npes)
+    file2 = prefix + checkpointName(exp, 'restart', npes)
+    cmp ='diffreport.x ' + file1 + ' ' + file2
+    rc = sysCall(cmp)
+    if rc == '':
+        exp.results[5] = successMark
+    else:
+        logger.warning('Files ' + file1 + ' and ' + file2 + ' differ')
+        exp.results[5] = failMark
+        
+"""
+  MAIN PROGRAM
+"""
+if __name__ == '__main__':
+    
+    runSources = []
+    if len(sys.argv) > 1:
+        for arg in sys.argv[1:]:
+            runSources.append(arg)
+    else:
+        runSources.append('nonProduction_E_AR5_C12')
+    
+    for rundeck in runSources:
 
-        try:
-            for npes in npList:
-                runCase = newRunCase(mpiConfiguration, npes)
-                run1dy(runCase)
-                compare(serialConfiguration, runCase, '1dy')
-        except:
-            print "  ... abandoning 24 hr mpi runs."
-            raise
+        readConfig(rundeck)
+        setupLogging()
+        os.chdir(decksDir)
+        logger = logging.getLogger('MAIN    ')
+        diffFile = resdir + '/' + rundeck + '.diff'
+        fileH = open(diffFile, 'w')
+        logger.info('Testing ' + rundeck)
 
-        print "  ... verification complete."
+        exps = []
+        for mode in modeList:
+            exps.append(configuration(rundeck, mode, compiler))
+            nmodes = len(exps)
 
-    except:
-        print "  ... abandoning rundeck."
+        for exp in exps:
+            try:
+                if exp.mode == 'serial':
+                    build(exp)
+                    run1hr(exp)
+                    runRestart(exp)
+                else:
+                    build(exp)
+                    try:
+                        for npes in npList:
+                            run1hr(exp, npes=npes)
+                    except:
+                        logger.error('  ... abandoning 1hr mpi run.')
+
+                    try:
+                        for npes in npList:
+                            runRestart(exp, npes=npes)
+                    except:
+                        logger.error('  ... abandoning restart mpi run.')
+
+                logger.info(rundeck + ' ' + exp.mode + ' runs complete.')
+                
+            except:
+                logger.error(rundeck + ' ' + exp.mode + ' runs FAILED')
+
+        for exp in exps:
+            if exp.mode == 'serial':
+                compareBase(exp, '1hr')
+                compareBase(exp, '1dy')
+                # And compare SERIAL checkpoint-restart 
+                compareRestart(exp)
+            else:
+                for npes in npList:
+                    # Compare runs with baseline
+                    compareBase(exp, '1hr', npes=npes)
+                    compareBase(exp, '1dy', npes=npes)
+                    compareRestart(exp, npes=npes)
+
+        for npes in npList:
+            # Compare 1hr run against serial
+            if nmodes > 1:
+                compareNPE(exps[0], exps[1], '1dy', npes)
+
+        logger.info(rundeck + ' comparisons complete.')
 
             
-print "Done"
+        for exp in exps:
+            fileH.write('%20s' % (exp.results[0]))
+            fileH.write('%10s' % (exp.results[1]))
+            fileH.write('%8s'  % (exp.results[2]))
+            for s in exp.results[3:]:
+                fileH.write(' '.center(3))
+                fileH.write(s.center(3))
+            fileH.write('\n')
+
+        fileH.close()
+
+    logger.info('Regression testing is done.')
+            
                     
                     

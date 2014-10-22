@@ -81,7 +81,7 @@ C****
       REAL*8 DQSATDT,TR4
 c**** input/output for PBL
       type (t_pbl_args) pbl_args
-      real*8 qg_sat,qsrf,us,vs,ws,ws0
+      real*8 qg_sat,qsrf,us,vs,ws,ws0,gusti
 
       ! This is for making a correction to the surface wind stress
       ! (which is proportional to |u_air - u_ocean|, or  | u_air - u_seaice |)
@@ -357,6 +357,7 @@ C**** Call pbl to calculate near surface profile
       vs = pbl_args%vs
       ws = pbl_args%ws
       ws0 = pbl_args%ws0
+      gusti = pbl_args%gusti
       qsrf = pbl_args%qsrf
       CM = pbl_args%cm
       CH = pbl_args%ch
@@ -378,8 +379,10 @@ C**** CALCULATE RHOSRF*CM*WS AND RHOSRF*CH*WS
       RCDMWS=CM*WS*RHOSRF
       RCDHWS=CH*WS*RHOSRF
       RCDQWS=CQ*WS*RHOSRF
-      RCDHDWS=CH*(WS-WS0)*RHOSRF
-      RCDQDWS=CQ*(WS-WS0)*RHOSRF
+c     RCDHDWS=CH*(WS-WS0)*RHOSRF
+c     RCDQDWS=CQ*(WS-WS0)*RHOSRF
+      RCDHDWS=CH*gusti*RHOSRF
+      RCDQDWS=CQ*gusti*RHOSRF
 C**** CALCULATE FLUXES OF SENSIBLE HEAT, LATENT HEAT, THERMAL
 C****   RADIATION, AND CONDUCTION HEAT (WATTS/M**2) (positive down)
       ! Including gustiness in the sensible heat flux:
