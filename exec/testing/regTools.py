@@ -253,13 +253,28 @@ def sendDiffreport(config):
     fp.write('%20s%10s%8s%6s%6s%6s%6s\n' % \
         ('RUNDECK', 'COMPILER', 'MODE', 'RUN', 'BAS', 'RST', 'NPE'))
     fp.write('-'*62+'\n')
-    fp.close()
     for comp in compilers:
         diffs = glob.glob(resultsDir + '/' + comp + '/*.diff')
-        with open(diffFile, 'a') as out:
-            for f in diffs:
-                with open(f,'r') as inf:
-                    out.write(inf.read())
+        for f in diffs:
+            with open(f,'r') as inf:
+                fp.write(inf.read())
+    
+    fp.write('-'*62+'\n')
+    fp.write('Legend:\n')
+    fp.write('-'*7+'\n')
+    fp.write('+  : success\n')
+    fp.write('F  : failure\n')
+    fp.write('F* : expected failure\n')
+    fp.write('-  : not available\n')
+    fp.write('Notes:\n')
+    fp.write('-'*6+'\n')
+    compconfig = ConfigSectionMap(config, 'COMPCONFIG')
+    compVers =  compconfig['compiler_versions'].split(",")
+    i=0
+    for comp in compilers:
+        fp.write(comp+' compiler version: '+compVers[i]+'\n')
+        i+=1
+    fp.close()
 
     subject = '"modelE_RT (' + branch + ')" '
     cmd = '/usr/bin/mail -s ' + subject + mailto + ' < ' + diffFile
