@@ -1334,7 +1334,8 @@ C**** Update orbital parameters at start of year
       ! zenith angle:
 
       halfDay = TimeInterval(useOrbit%getMeanDay() / 2)
-      t = newBaseTime(modelEClock%getCurrentTime() + halfDay)
+      t = newBaseTime(modelEClock%getTimeAtBeginningOfCurrentDay() + 
+     *                halfDay)
 
       sinD = useOrbit%getSinDeclinationAngle(t)
       cosD = sqrt(1-sinD**2)
