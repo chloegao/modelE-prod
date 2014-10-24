@@ -2988,7 +2988,7 @@ c Oxidants
 #ifdef TRACERS_TOMAS
       USE TOMAS_AEROSOL, only: TOMAS_DIAG_FC
 #endif
-      use OldTracer_mod, only: trname, ntm_power
+      use OldTracer_mod, only: trname, ntm_power, dodrydep
       implicit none
       integer k,n,n1,kr,ktaijs_out
       character*50 :: unit_string
@@ -9154,6 +9154,9 @@ c$$$      use OldTracer_mod, only: tr_mm, nBBsources, mass2vol
 #ifdef TRACERS_AMP
       use TRACER_COM, only: n_H2SO4
       use TRACER_COM, only: ntmAMPi, ntmAMPe
+#endif
+#ifdef SHINDELL_STRAT_EXTRA
+      use TRACER_COM, only: n_GLT, n_stratOx
 #endif
       USE CONSTANT, only : mair, avog
       USE FLUXES, only: tr3Dsource

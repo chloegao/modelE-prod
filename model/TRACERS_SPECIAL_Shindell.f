@@ -166,6 +166,7 @@ C**** Right now, there is just one L=1 source that changes
 C**** linearly in time (at 1% increase per year)
       USE RESOLUTION, only : im,jm
       USE MODEL_COM, only: itime,itimei,DTsrc
+      use TimeConstants_mod, only: SECONDS_PER_YEAR
       USE GEOM, only: axyp,IMAXJ  
       USE ATM_COM, only: MA
       use OldTracer_mod, only: trname, vol2mass, itime_tr0

@@ -322,7 +322,7 @@
 #endif
 
       if (tracers_air .or. htap_like_diags) then
-        call  air_setSpec('air')
+        call  air_setSpec('Air')
       end if
 
 #ifdef TRACERS_AMP
