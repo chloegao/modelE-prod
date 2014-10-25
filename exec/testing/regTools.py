@@ -174,14 +174,6 @@ def setupModelEenv(config):
          mkdir_p(scratchDir + '/' + comp)
       writeModelErc(libsconfig, scratchDir, comp)
 
-# DISCOVER hack:
-# while discover git installation is too old...
-# or just load the git module
-   machine = os.getenv('HOST')
-   if machine == 'discover' or machine == 'borg':
-      os.environ["PATH"] += os.pathsep + \
-      '/usr/local/other/SLES11.1/git/1.8.5.2/libexec/git-core/git'
-
 #-------------------------------------------------------------------------------
 # Write a compiler-specific modelErc file
 def writeModelErc(cfg, scratchDir, compiler):
@@ -239,15 +231,17 @@ def writeModelErc(cfg, scratchDir, compiler):
 #-------------------------------------------------------------------------------
 # Create a diff report and notify via email
 def sendDiffreport(config):
-    sysconfig = ConfigSectionMap(config, 'SYSCONFIG')
-    branch =  sysconfig['repobranch']
+    sysconfig  = ConfigSectionMap(config, 'SYSCONFIG')
+    branch     = sysconfig['repobranch']
     resultsDir = sysconfig['scratchdir'] + '/regression_results/' + branch
-    mailto =  sysconfig['mailto']
-    compilers = getCompilers(config)
+    mailto     = sysconfig['mailto']
+    compflags  = sysconfig['compflags']
+    compilers  = getCompilers(config)
 
     diffFile = resultsDir + '/' + 'diffreport.txt'
     fp = open(diffFile, 'w')
-    fp.write('ModelE test results, branch=' + branch + '\n')
+    fp.write('ModelE test results, branch=' + branch + \
+        ', compiler flags=' + compflags + '\n')
     fp.write('-'*62+'\n')
     fp.write('%62s\n' % ('-REPRODUCIBILITY'))
     fp.write('%20s%10s%8s%6s%6s%6s%6s\n' % \
