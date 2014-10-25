@@ -110,7 +110,7 @@ def readConfig(rundeck):
         config.set('regSettings', 'compiler'  ,'gfortran')
         config.set('regSettings', 'modes'     ,'serial,mpi')
         config.set('regSettings', 'nplist'    ,'1,4')
-        config.set('regSettings', 'compflags' ,'debug')
+        config.set('regSettings', 'compflags' ,'default')
         config.set('regSettings', 'branch'    ,'master')
         config.set('regSettings', 'basedir'   ,'.')
         config.set('regSettings', 'updatebase','no')
@@ -254,7 +254,7 @@ def build(exp):
         sysCmd('make -j4 gcm ' + exp.runCmd + ' ' + exp.modeCmd + ' ' + exp.opts)
         exp.results[3] = successMark
     except:
-        exp.results[3] = failMark
+        exp.results[3] = failMark+'B'
         logger.error(' *** Failed to build ' + exp.run)
         raise
 
@@ -269,7 +269,7 @@ def run1hr(exp, npes=1):
         sysCmd('../exec/runE ' + exp.run + ' -np ' + str(npes) + ' -cold-restart')
         sysCmd('cd '+exp.run+'; cp fort.2.nc '+checkpointName(exp, '1hr', npes))
     except:
-        exp.results[3] = failMark
+        exp.results[3] = failMark+'1'
         message =  ' *** Failed to run 1 hour test for ' + exp.run
         message += ' on ' + str(npes) + ' processors.'
         logger.error(message)
@@ -299,7 +299,7 @@ def runRestart(exp, npes=1, n=25, m=1):
         sysCmd('cd ' + exp.run + '; ' + restart + '; test `head -1 run_status` -eq ' + str(expectedRC))
         sysCmd('cd '+exp.run+';cp fort.2.nc '+checkpointName(exp, 'restart', npes))
     except:
-        exp.results[3] = failMark
+        exp.results[3] = failMark+'R'
         message =  ' *** Failed to run 1 day test for ' + exp.run
         message += ' on ' + str(npes) + ' processors.'
         logger.error(message)
@@ -313,66 +313,84 @@ def compareBase(exp, duration, npes=1):
     # Skip if no location given
     if baseDir == '.':
         return
-
-    logger = logging.getLogger('COMPBAS ')
-    logger.info('Compare base run: '+exp.run)
-
-    prefix = exp.run + '/'
-    file1 = prefix + checkpointName(exp, duration, npes)
-    file2 = baseDir + '/' + checkpointName(exp, duration, npes)
-    cmp ='diffreport.x ' + file1 + ' ' + file2
-    rc = sysCall(cmp)
-    if rc == '':
-        exp.results[4] = successMark
-    else:
-        logger.warning(file1 + ' and ' + file1 + ' differ')
-        if updBase == 'yes':
-            sysCmd('cp ' + file1 + ' ' + file2)
-            logger.info('Updated BASELINE')
-        exp.results[4] = failMark
+    try:
+        logger = logging.getLogger('COMPBAS ')
+        logger.info('Compare base run: '+exp.run)
+        prefix = exp.run + '/'
+        file1 = prefix + checkpointName(exp, duration, npes)
+        file2 = baseDir + '/' + checkpointName(exp, duration, npes)
+        cmp ='diffreport.x ' + file1 + ' ' + file2
+        try:
+            rc = sysCall(cmp)
+            if rc == '':
+                exp.results[4] = successMark
+            else:
+                raise Exception(rc)
+        except Exception as inst:
+            logger.warning(file1+' and '+file2+' differ')
+            if 'error' in rc:
+                logger.warning(rc)
+            if updBase == 'yes':
+                sysCmd('cp ' + file1 + ' ' + file2)
+                logger.info('Updated BASELINE')
+            exp.results[4] = failMark   
+    except:
+        logger.warning('Comparison between '+file1+' and '+file2+' failed.')
 
 """
   Compare SERIAL vs MPI
 """
 def compareNPE(runA, runB, duration, npes):
-    logger = logging.getLogger('COMPNPE ')
-    logger.info('Compare NPE runs: '+runA.run+' and '+runB.run)
-
-    prefix1 = runA.run + '/'
-    prefix2 = runB.run + '/'
-    file1 = prefix1 + checkpointName(runA, duration, npes)
-    file2 = prefix2 + checkpointName(runB, duration, npes)
-    cmp ='diffreport.x ' + file1 + ' ' + file2
-    rc = sysCall(cmp)
-    if rc == '':
-        runB.results[6] = successMark
-    else:
-        logger.warning('Files ' + file1 + ' and ' + file2 + ' differ')
-        runB.results[6] = failMark
+    try:
+        logger = logging.getLogger('COMPNPE ')
+        logger.info('Compare NPE runs: '+runA.run+' and '+runB.run)
+        prefix1 = runA.run + '/'
+        prefix2 = runB.run + '/'
+        file1 = prefix1 + checkpointName(runA, duration, npes)
+        file2 = prefix2 + checkpointName(runB, duration, npes)
+        cmp ='diffreport.x ' + file1 + ' ' + file2
+        rc = sysCall(cmp)
+        try:
+            if rc == '':
+                runB.results[6] = successMark
+            else:
+                raise Exception(rc)
+        except Exception as inst:
+            logger.warning('Files '+ file1+' and '+file2+' differ')
+            if 'error' in rc:
+                logger.error(rc)
+            runB.results[6] = failMark
+    except:
+        logger.warning('Comparison between '+file1+' and '+file2+' failed.')
             
 """
   Compare full-run (25hr) vs restart run
 """
 def compareRestart(exp, npes=1):
-    # Hack to skip SCM rundeck
-    if exp.run == 'SGP4TESTS':
-        return
-    logger = logging.getLogger('COMPRST ')
-    logger.info('Compare restart run: '+exp.run)
-    prefix = exp.run + '/'
-    file1 = prefix + checkpointName(exp, '1dy', npes)
-    file2 = prefix + checkpointName(exp, 'restart', npes)
-    cmp ='diffreport.x ' + file1 + ' ' + file2
-    rc = sysCall(cmp)
-    if rc == '':
-        exp.results[5] = successMark
-    else:
-        logger.warning('Files ' + file1 + ' and ' + file2 + ' differ')
-        # Hack to differentiate the restart errors in CAD rundecks:
-        if 'E4Tcad' in exp.run:
-            exp.results[5] = failMark+'*'
-        else:
-            exp.results[5] = failMark
+    try:
+        logger = logging.getLogger('COMPRST ')
+        logger.info('Compare restart run: '+exp.run)
+        prefix = exp.run + '/'
+        file1 = prefix + checkpointName(exp, '1dy', npes)
+        file2 = prefix + checkpointName(exp, 'restart', npes)
+        cmp ='diffreport.x ' + file1 + ' ' + file2
+        rc = sysCall(cmp)
+        try:
+            if rc == '':
+                exp.results[5] = successMark
+            else:
+                raise Exception(rc)
+        except Exception as inst:
+            logger.warning('Files '+file1+' and '+file2+' differ')
+            if 'error' in rc:
+                logger.warning(rc)
+            # Hack to differentiate the restart errors in CAD/SCM rundecks:
+            if 'E4Tcad' in exp.run or 'SGP' in exp.run:
+                exp.results[5] = failMark+'*'
+            else:
+                exp.results[5] = failMark
+    except:
+        logger.warning('Comparison between '+file1+' and '+file2+' failed.')
         
 """
   MAIN PROGRAM
@@ -401,51 +419,59 @@ if __name__ == '__main__':
             exps.append(configuration(rundeck, mode, compiler))
             nmodes = len(exps)
 
-        for exp in exps:
-            try:
-                if exp.mode == 'serial':
-                    build(exp)
-                    run1hr(exp)
-                    runRestart(exp)
-                else:
-                    build(exp)
+        try:
+            for exp in exps:
+                try:
+                    if exp.mode == 'serial':
+                        build(exp)
+                        run1hr(exp)
+                        runRestart(exp)
+                    else:
+                        build(exp)
+                        try:
+                            for npes in npList:
+                                run1hr(exp, npes=npes)
+                        except:
+                            logger.error('...abandoning 1hr mpi run.')
+                            
+                        try:
+                            for npes in npList:
+                                runRestart(exp, npes=npes)
+                        except:
+                            logger.error('...abandoning restart mpi run.')
+                            raise
+
+                    logger.info(rundeck + ' ' + exp.mode + ' runs complete.')
                     try:
-                        for npes in npList:
-                            run1hr(exp, npes=npes)
+                        if exp.mode == 'serial':
+                            compareBase(exp, '1hr')
+                            compareBase(exp, '1dy')
+                            # And compare SERIAL checkpoint-restart 
+                            compareRestart(exp)
+                        else:
+                            for npes in npList:
+                                # Compare runs with baseline
+                                compareBase(exp, '1hr', npes=npes)
+                                compareBase(exp, '1dy', npes=npes)
+                                compareRestart(exp, npes=npes)
                     except:
-                        logger.error('  ... abandoning 1hr mpi run.')
+                        logger.error('...abandoning BAS/RST verification.')
 
                     try:
                         for npes in npList:
-                            runRestart(exp, npes=npes)
+                            # Compare 1hr run against serial
+                            if nmodes > 1:
+                                compareNPE(exps[0], exps[1], '1dy', npes)
                     except:
-                        logger.error('  ... abandoning restart mpi run.')
+                        logger.error('...abandoning NPE verification.')
 
-                logger.info(rundeck + ' ' + exp.mode + ' runs complete.')
+                    logger.info(rundeck + ' comparisons complete.')
                 
-            except:
-                logger.error(rundeck + ' ' + exp.mode + ' runs FAILED')
+                except:
+                    logger.error(rundeck + ' ' + exp.mode + ' runs FAILED')
 
-        for exp in exps:
-            if exp.mode == 'serial':
-                compareBase(exp, '1hr')
-                compareBase(exp, '1dy')
-                # And compare SERIAL checkpoint-restart 
-                compareRestart(exp)
-            else:
-                for npes in npList:
-                    # Compare runs with baseline
-                    compareBase(exp, '1hr', npes=npes)
-                    compareBase(exp, '1dy', npes=npes)
-                    compareRestart(exp, npes=npes)
-
-        for npes in npList:
-            # Compare 1hr run against serial
-            if nmodes > 1:
-                compareNPE(exps[0], exps[1], '1dy', npes)
-
-        logger.info(rundeck + ' comparisons complete.')
-
+        except:
+            logger.error('...abandoning rundeck '+rundeck)
             
         for exp in exps:
             fileH.write('%20s' % (exp.results[0]))
