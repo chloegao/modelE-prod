@@ -236,6 +236,7 @@ def sendDiffreport(config):
     resultsDir = sysconfig['scratchdir'] + '/regression_results/' + branch
     mailto     = sysconfig['mailto']
     compflags  = sysconfig['compflags']
+    sortdiff   = sysconfig['sortdiff']
     compilers  = getCompilers(config)
 
     diffFile = resultsDir + '/' + 'diffreport.txt'
@@ -247,11 +248,19 @@ def sendDiffreport(config):
     fp.write('%20s%10s%8s%6s%6s%6s%6s\n' % \
         ('RUNDECK', 'COMPILER', 'MODE', 'RUN', 'BAS', 'RST', 'NPE'))
     fp.write('-'*62+'\n')
-    for comp in compilers:
-        diffs = glob.glob(resultsDir + '/' + comp + '/*.diff')
-        for f in diffs:
-            with open(f,'r') as inf:
-                fp.write(inf.read())
+
+    if sortdiff == 'yes':
+	# sort mode column
+        subprocess.call('find '+resultsDir+' -name \*.diff -exec cat {} \; | sort -k 3,3 >' \
+            +resultsDir + '/' + 'alldiffs', shell=True)
+        with open(resultsDir + '/' + 'alldiffs','r') as inf:
+            fp.write(inf.read())
+    else:
+        for comp in compilers:
+            diffs = glob.glob(resultsDir + '/' + comp + '/*.diff')
+            for f in diffs:
+                with open(f,'r') as inf:
+                    fp.write(inf.read())
     
     fp.write('-'*62+'\n')
     fp.write('Legend:\n')
