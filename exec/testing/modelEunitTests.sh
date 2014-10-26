@@ -53,10 +53,12 @@ submitJob()
 
   cat << EOF > $jobScript
 #!/bin/bash
-#PBS -N mEunit
-#PBS -l select=1:mpiprocs=12
-#PBS -l walltime=0:05:00
-#SBATCH -A s1001
+#SBATCH --job-name=unitTest
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=12
+#SBATCH --partition=general
+#SBATCH --time=0:05:00
+#SBATCH --account=s1001
 
 # set up the modeling environment
 . /usr/share/modules/init/bash
@@ -66,13 +68,13 @@ EOF
   if [ "$compiler" == "intel" ]; then
 
     cat << EOF >> $jobScript
-module load comp/intel-14.0.3.174 mpi/impi-3.2.2.006 other/git-1.8.5.2
+module load comp/intel-14.0.3.174 mpi/impi-4.1.3.048 other/git-1.8.5.2
 EOF
    
   else
 
     cat << EOF >> $jobScript
-module load other/comp/gcc-4.9.0 other/mpi/openmpi/1.7.3-gcc-4.9.0 other/git-1.8.5.2
+module load other/comp/gcc-4.9.1 other/mpi/openmpi/1.8.1-gcc-4.9.1 other/git-1.8.5.2
 EOF
 
   fi
@@ -84,7 +86,7 @@ export MODELERC=$REGSCRATCH/${compiler}/modelErc.${compiler}
 
 cd $REGSCRATCH
 rm -rf ${deck}.${compiler}
-git clone /discover/nobackup/ccruz/devel/modelE.clones/master ${deck}.${compiler} > /dev/null 2>&1
+git clone /discover/nobackup/modele/clones/master ${deck}.${compiler} > /dev/null 2>&1
 
 cd $REGSCRATCH/${deck}.${compiler}/decks
 make rundeck RUN=$deck RUNSRC=$deck >> $MAKELOG 2>&1
@@ -117,7 +119,7 @@ EOF
   echo ""  >> $toEmail
   echo "RESULTS [$compiler MPI=$mpi]:" >> $toEmail
   echo ""  >> $toEmail
-  jobID=`qsub $jobScript`
+  jobID=`sbatch $jobScript | awk '{print $4}'`
   if [ -z "$jobID" ]; then
     echo "There was a queue submission problem" >> $toEmail
     echo ""  >> $toEmail
@@ -197,12 +199,12 @@ parseLog()
 # MAIN
 # ---------------------
 
-ROOT=$TESTD
+ROOT=/discover/nobackup/ccruz/devel/modelE.clones/master/exec/testing
+REGSCRATCH=/discover/nobackup/modele/regression_scratch/master
 cd $ROOT
-toEmail="$CONFIG.unit"
-rm -f $toEmail
+toEmail="master.unit"
+rm -f $toEmail slurm*out
 compilers=(intel gfortran)
-compilers=(intel)
 mpiMode=(YES NO)
 for mpi in "${mpiMode[@]}"; do
   echo " - MPI=$mpi"
@@ -215,5 +217,8 @@ for mpi in "${mpiMode[@]}"; do
     rm -f $job $log
   done
 done
+
+MAILTO="giss-modele-regression@lists.nasa.gov"
+/usr/bin/mail -s "modelE_RT (unit tests)" $MAILTO < $toEmail
 
 exit 0
