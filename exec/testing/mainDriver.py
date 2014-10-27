@@ -5,17 +5,23 @@ import regTools
 import regTasks
 import regPool
 import logging
+import os.path
 
 logger = logging.getLogger('main')
 
 #-------------------------------------------------------------------------------
 # MAIN DRIVER
 def main():
+    useMessage = 'Usage: python ' + sys.argv[0] + ' <configFileName> # no file extension'
     if len(sys.argv)==1:
-        print 'Usage: python ' + sys.argv[0] + ' <configFileName>'
+        print useMessage
         sys.exit()
     else:
         cfgfile = str(sys.argv[1]) + '.cfg'
+        if not os.path.isfile(cfgfile):
+            print 'Error: ' + cfgfile + ' : file does not exist'
+            print useMessage
+            sys.exit()
        
     logging.basicConfig(
         filename = str(sys.argv[1]) + '.LOG',
