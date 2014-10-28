@@ -47,8 +47,7 @@ submitJob()
 #!/bin/bash
 #SBATCH --job-name=unitTest
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=12
-#SBATCH --partition=general
+#SBATCH --ntasks-per-node=16
 #SBATCH --time=0:10:00
 #SBATCH --account=s1001
 

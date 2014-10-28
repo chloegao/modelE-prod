@@ -92,7 +92,7 @@ def createScriptTask(config, deck, comp):
     npes=1
     if useBatch == 'yes':
         nodes = 1
-        cores = 12
+        cores = 16
         walltime = '03:00:00'
         if re.search('C12', deckName):
             walltime = '00:30:00'
@@ -130,7 +130,6 @@ def createScriptTask(config, deck, comp):
         fileHandle.write ('#SBATCH --time='     + walltime + '\n')
         fileHandle.write ('#SBATCH --nodes='    + str(nodes) + '\n')
         fileHandle.write ('#SBATCH --ntasks-per-node=' + str(cores) + '\n')
-        fileHandle.write ('#SBATCH --partition=general' + '\n')
 
     # DISCOVER hack to deal with bash issues
     machine = subprocess.check_output(['uname','-n'])
