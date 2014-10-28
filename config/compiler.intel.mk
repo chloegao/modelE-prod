@@ -17,6 +17,18 @@ endif
 R8 = -r8
 EXTENDED_SOURCE = -extend_source
 
+SUPPORTED_RELEASES = 14.0 15.0
+
+ifneq ($(OVERWRITE),YES)
+ifeq ($(findstring $(IFORT_RELEASE),$(SUPPORTED_RELEASES)),)
+  $(error ifort version $(IFORT_RELEASE) is not supported by this code. \
+          Use one of: $(SUPPORTED_RELEASES) . \
+          If you insist on using an unsupported version, you can do it at your \
+          own risk by appending "OVERWRITE=YES" to the compilation command )
+endif
+endif
+
+
 # flags needed for particular releases
 
 # default flags for latest releases (work for 12.*, 13.*):
