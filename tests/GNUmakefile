@@ -43,9 +43,8 @@ endif
 TESTLIBS := $(foreach ITEM, $(TESTDIRS), $(ITEM)/lib$(ITEM).a)
 # The include paths are different when compiling tests and executable
 TESTINCS := $(foreach ITEM, $(TESTDIRS), -I../$(SOURCE_DIR)/$(ITEM))
-EXEINCS := $(foreach ITEM, $(TESTDIRS), -I$(ITEM))
 FFLAGS += $(TESTINCS) -I$(PFUNIT)/mod
-EXEFLAGS += $(FFLAGS) $(EXEINCS)
+EXEFLAGS += $(FFLAGS) -I.
 
 # Required libraries
 PFLIB = -L$(PFUNIT)/lib -lpfunit
