@@ -254,7 +254,7 @@ def build(exp):
         sysCmd('make -j4 gcm ' + exp.runCmd + ' ' + exp.modeCmd + ' ' + exp.opts)
         exp.results[3] = successMark
     except:
-        exp.results[3] = failMark+'B'
+        exp.results[3] = failMark+'b'
         logger.error(' *** Failed to build ' + exp.run)
         raise
 
@@ -299,7 +299,7 @@ def runRestart(exp, npes=1, n=25, m=1):
         sysCmd('cd ' + exp.run + '; ' + restart + '; test `head -1 run_status` -eq ' + str(expectedRC))
         sysCmd('cd '+exp.run+';cp fort.2.nc '+checkpointName(exp, 'restart', npes))
     except:
-        exp.results[3] = failMark+'R'
+        exp.results[3] = failMark+'r'
         message =  ' *** Failed to run 1 day test for ' + exp.run
         message += ' on ' + str(npes) + ' processors.'
         logger.error(message)
