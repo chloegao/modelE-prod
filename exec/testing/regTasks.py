@@ -76,6 +76,7 @@ def createScriptTask(config, deck, comp):
     branch     = sysconfig['repobranch']
     compopts   = sysconfig['compflags']
     debugReg   = sysconfig['debugscript']
+    scriptsDir = sysconfig['scriptsdir']
     useMods    = sysconfig['modules']
     resultsDir = sysconfig['scratchdir'] + '/regression_results/' + branch + '/' + comp
     scratchDir = sysconfig['scratchdir'] + '/regression_scratch/' + branch + '/' + comp
@@ -160,13 +161,13 @@ def createScriptTask(config, deck, comp):
 
     decksDir = scratchDir + '/' + jobName + '/decks/'
     fileHandle.write ('export DECKSDIR=' + decksDir + '\n')
-    # The following variable si (optionally) exported to regression.py
+    # The following variable is (optionally) exported to regression.py
     if debugReg == 'yes':
         fileHandle.write ('export DEBUG=1' + '\n')
 
     # cd to the working dir and run the script
     fileHandle.write ('cd ' + decksDir + '\n')
-    fileHandle.write ('python ../exec/testing/regression.py ' + deckName + '\n')
+    fileHandle.write ('python ' + scriptsDir + '/' + 'regression.py ' + deckName + '\n')
     fileHandle.write (' ' + '\n')
     fileHandle.close()
 
