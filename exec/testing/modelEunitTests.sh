@@ -47,8 +47,7 @@ submitJob()
 #!/bin/bash
 #SBATCH --job-name=unitTest
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=12
-#SBATCH --partition=general
+#SBATCH --ntasks-per-node=16
 #SBATCH --time=0:10:00
 #SBATCH --account=s1001
 
@@ -136,8 +135,6 @@ parseLog()
   # Find OK string
   local a=`grep -nw OK $testLog | head -1`
   lineNo=${a%%:*}
-  echo $a
-  echo $lineNo
   # tests ran and all was OK
   if [ ! -z $lineNo ]; then
     msg=$(head -$(( lineNo+1 )) $testLog | tail -1)
@@ -186,7 +183,6 @@ ROOT=`pwd`
 toEmail="master.unit"
 rm -f $toEmail slurm*out *.YES *.NO
 compilers=(intel gfortran)
-compilers=(gfortran)
 for compiler in "${compilers[@]}"; do 
   echo " -- COMPILER=$compiler"
   job=modelE.${compiler}.j
