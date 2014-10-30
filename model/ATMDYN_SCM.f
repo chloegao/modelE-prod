@@ -14,7 +14,6 @@
       USE SOMTQ_COM,  only: tmom,mz
       USE ATM_COM,    only: t,p,q,PMID,PEDN,MUs,MVs,MWs
       USE DOMAIN_DECOMP_ATM, only : grid
-      USE SCMDIAG, only : dTfrc,dqfrc,dTtot,dqtot
 
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) ::
      &     TZ,PIJL
@@ -22,19 +21,12 @@
       INTEGER L
 
       do L=1,LM
-         dTtot(L) = T(1,1,L)
-         dqtot(L) = Q(1,1,L)
-         dTfrc(L) = T(1,1,L)
-         dqfrc(L) = Q(1,1,L)
-      enddo
-
-      do L=1,LM
          MUs(:,:,L) = 0.
          MVs(:,:,L) = 0.
          MWs(:,:,L) = 0.
       ENDDO
 
-      call pass_SCMDATA
+      call update_SCM_inputs
 
       CALL CALC_PIJL(LM,P,PIJL)
       CALL CALC_AMPK(LM)
@@ -49,189 +41,219 @@
 
       CALL PGF_SCM(T,TZ,PIJL)
 
-      call FCONV
-c
-c     calculate change in T and Q due to large scale forcings
-      do L=1,LM
-         dTfrc(L) = T(1,1,L)-dTfrc(L)
-         dqfrc(L) = Q(1,1,L)-dqfrc(L)
-      enddo
-
       return
       END SUBROUTINE DYNAM
 
       SUBROUTINE SCM_FORCN
-c     apply advective forcings from ARM Variational analysis to T and Q
+c     apply large-scale forcings to T, Q, U, V
 
-      USE MODEL_COM,  only: DTSRC     
-      USE ATM_COM,    only: P,T,Q,PK
-      USE RESOLUTION, only: LM
+      USE MODEL_COM,  only: DTSRC
+      USE ATM_COM,    only: P,T,Q,PK,U,V,PMID
+      USE RESOLUTION, only: LM,PTOP
       USE DYNAMICS,   only: SIG
-      USE CONSTANT,   only: KAPA 
-      USE SCMCOM,     only: SCM_RELAX_FORCING_FLAG,SG_HOR_TMP_ADV,
-     &          SG_VER_S_ADV, SG_HOR_Q_ADV,SG_VER_Q_ADV,SG_T,SG_Q,
-     &          NSTEPSCM,SCM_DEL_T, SCM_DEL_Q,iu_scm_prt 
+      USE CONSTANT,   only: KAPA, OMEGA, GRAV, RGAS
+      USE GEOM, only : sinlat2d
+      USE SCM_COM,    only: SCMopt,SCMin
+#ifdef CACHED_SUBDD
+      USE DOMAIN_DECOMP_ATM, only : grid,getDomainBounds
+      use subdd_mod, only : subdd_groups,subdd_ngroups,subdd_type
+     &     ,inc_subdd,find_groups
+#endif
 
       IMPLICIT NONE
 
+      real*8, dimension(LM) :: Tabs(LM),
+     &                         SCM_ver_u_adv,SCM_ver_v_adv,
+     &                         SCM_nudge_T,SCM_nudge_Q,
+     &                         SCM_force_T,SCM_force_Q
+      real*8 f_cor
+
       INTEGER L
+#ifdef CACHED_SUBDD
+      integer :: igrp,ngroups,grpids(subdd_ngroups)
+      integer :: i,i_0,i_1,j,j_0,j_1,k
+      type(subdd_type), pointer :: subdd
+      REAL*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
+     &                  grid%j_strt_halo:grid%j_stop_halo,lm) ::
+     &                  sddarr3d
+      CALL getDomainBounds(grid,
+     &     I_STRT=I_0,I_STOP=I_1,J_STRT=J_0,J_STOP=J_1)
+#endif
 
-      REAL*8  dTdtls,dqdtls,tadv,dTrel,dqrel
-      real*8  deltnorel,tnorel
-c * * tadv = advective time scale for relaxation toward observed values
-c            run with  tadv = 3 hours  (in secs=10800)
-      parameter (tadv=10800)
-
-
+c     operate on absolute temperature
       do L = 1,LM
-         T(1,1,L) = T(1,1,L)*PK(L,1,1) 
+        Tabs(L) = T(1,1,L)*PK(L,1,1)
       enddo
 
-      if (SCM_RELAX_FORCING_FLAG.eq.0) then
-c         use forcings as given
-          do L=1,LM 
-             SCM_DEL_T(L)=SG_HOR_TMP_ADV(L)*DTSRC+SG_VER_S_ADV(L)*DTSRC   
-             T(1,1,L) = T(1,1,L) + SCM_DEL_T(L)
-c            write(iu_scm_prt,*) 'add tadv delT T ',L,SCM_DEL_T(L),
-c    &               T(I_TARG,J_TARG,L)    
-          enddo   
-      else
-c         use relaxation of forcings over time
-          do L = 1,LM
-             deltnorel = 0.0
-             Tnorel = 0.0
-c            write(iu_scm_prt,*) 'tadvs ',L,SG_HOR_TMP_ADV(L),
-c    *                       SG_VER_S_ADV(L)
-c            calculate delta T with relaxation toward observed value
-c            write(iu_scm_prt,109) L,SG_T(L),T(I_TARG,J_TARG,L)
- 109         format(1x,' before frc    L SGT Tmodel ',i5,2(f10.3))
-             dTdtls = SG_HOR_TMP_ADV(L)+SG_VER_S_ADV(L)
-             dTrel = (SG_T(L)-T(1,1,L))/tadv
-             SCM_DEL_T(L) = dTdtls + dTrel
-             SCM_DEL_T(L) = SCM_DEL_T(L)*DTSRC
-             deltnorel = dTdtls*DTSRC
-c            write(iu_scm_prt,110) dTdtls,dTrel
- 110         format(1x,'wth relaxed frcing dTdtls dTrel ',2(f12.8))
-             Tnorel = T(1,1,L) + deltnorel
-             T(1,1,L) = T(1,1,L) + SCM_DEL_T(L)
-c            write(iu_scm_prt,111) L,SCM_DEL_T(L),T(1,1,L),
-c    &                  deltnorel,Tnorel
- 111         format(1x,' after frc L delt Tmodel ',i5,2(f10.3),
-     &             ' deltnorel tnorel ',2(f10.3))
-          enddo
-      endif
+      SCM_force_T = 0.
+      SCM_force_Q = 0.
+      SCM_nudge_T = 0.
+      SCM_nudge_Q = 0.
 
-      if (SCM_RELAX_FORCING_FLAG.eq.0) then
-c         use forcings as given
-          do L = 1,LM
-c            write(iu_scm_prt,*) 'qadvs ',
-c    &              L,SG_HOR_Q_ADV(L),SG_VER_Q_ADV(L) 
-             SCM_DEL_Q(L)=SG_HOR_Q_ADV(L)*DTSRC+SG_VER_Q_ADV(L)*DTSRC    
-             Q(1,1,L) = Q(1,1,L) + SCM_DEL_Q(L)
-             if (Q(1,1,L).lt.0.0) then
-                write(99,51) NSTEPSCM,L,Q(1,1,L)
-  51            format(1x,'SCM_FORCN NSTEP  L Q ',
-     &                   2(i5),f10.7) 
-                SCM_DEL_Q(L) = -Q(1,1,L)
-                Q(1,1,L) = 0.0
-             endif
-          enddo
-      else
-          do L = 1,LM
-c            calculate delta q with relaxation toward oberved value
-             dqdtls = SG_HOR_Q_ADV(L)+SG_VER_Q_ADV(L)
-             dqrel = (SG_Q(L)-Q(1,1,L))/tadv
-             SCM_DEL_Q(L) = dqdtls + dqrel
-             SCM_DEL_Q(L) = SCM_DEL_Q(L)*DTSRC
-             Q(1,1,L) = Q(1,1,L) + SCM_DEL_Q(L)
-             if (Q(1,1,L).lt.0.0) then
-                write(99,151) NSTEPSCM,L,Q(1,1,L)
- 151            format(1x,'SCM_FORCN NSTEP  L Q ',
-     &                   2(i5),f10.7)
-                SCM_DEL_Q(L) = -Q(1,1,L)
-                Q(1,1,L) = 0.0
-             endif
-          enddo
-      endif
-    
       do L = 1,LM
-c        write(iu_scm_prt,*) 'FORCN - new tq  ',L,T(1,1,L),
-c    &               Q(1,1,L)*1000.0 
-         T(1,1,L) = T(1,1,L)/PK(L,1,1)    
+
+c       fix winds if specified and not geostrophic
+
+        if( SCMopt%wind .and. .not. SCMopt%geo )then
+          U(1,1,L) = SCMin%U(L)
+          V(1,1,L) = SCMin%V(L)
+        endif
+
+c       apply large-scale forcing terms
+
+        if( SCMopt%omega .or. SCMopt%w )then
+c       *** apply omega defined at layer bottom to upwind gradient
+
+          if ( L < LM ) then ! omega assumed zero at top of layer LM
+            if ( SCMin%Omega(L+1) > 0. ) then ! upwind gradient above
+              SCMin%SadvV(L) = -SCMin%Omega(L)*
+     &           (T(1,1,L+1)-T(1,1,L))*PK(L,1,1)/
+     &           (PMID(L+1,1,1)-PMID(L,1,1))
+              SCMin%QadvV(L) = -SCMin%Omega(L)*
+     &           (Q(1,1,L+1)-Q(1,1,L))/
+     &           (PMID(L+1,1,1)-PMID(L,1,1))
+            endif
+          endif
+
+          if ( L > 1 ) then ! no atmospheric gradient through surface
+            if ( SCMin%Omega(L) < 0. ) then ! upwind gradient below
+              SCMin%SadvV(L) = -SCMin%Omega(L)*
+     &           (T(1,1,L)-T(1,1,L-1))*PK(L,1,1)/
+     &           (PMID(L,1,1)-PMID(L-1,1,1))
+              SCMin%QadvV(L) = -SCMin%Omega(L)*
+     &           (Q(1,1,L)-Q(1,1,L-1))/
+     &           (PMID(L,1,1)-PMID(L-1,1,1))
+            endif
+          endif
+
+        else if( .not. SCMopt%ls_v )then
+c       *** otherwise no LS vertical flux divergence if not specified
+          SCMin%SadvV(L) = 0.
+          SCMin%QadvV(L) = 0.
+        endif
+
+        if( .not. SCMopt%ls_h )then
+c       *** no vertical forcings
+          SCMin%TadvH(L) = 0.
+          SCMin%QadvH(L) = 0.
+        endif
+
+        SCM_force_T(L) = (SCMin%TadvH(L)+SCMin%SadvV(L))*DTSRC
+        SCM_force_Q(L) = (SCMin%QadvH(L)+SCMin%QadvV(L))*DTSRC
+
+        Tabs(L) = Tabs(L) + SCM_force_T(L)
+        Q(1,1,L) = Q(1,1,L) + SCM_force_Q(L)
+
+        if( Q(1,1,L) < 0. )then
+          SCM_force_Q(L) = -Q(1,1,L)
+          Q(1,1,L) = 0.0
+        endif
+
+c       apply nudging terms
+
+        if( SCMopt%nudge )then
+c       *** calculate nudging toward observed profile
+
+          SCM_nudge_T(L) = (SCMin%T(L)-Tabs(L))/SCMopt%tau*DTSRC
+          SCM_nudge_Q(L) = (SCMin%Q(L)-Q(1,1,L))/SCMopt%tau*DTSRC
+
+          Tabs(L) = Tabs(L) + SCM_nudge_T(L)
+          Q(1,1,L) = Q(1,1,L) + SCM_nudge_Q(L)
+
+        endif
+
       enddo
 
-      RETURN
+c     *** apply changes to actual prognostic variable (potential temperature)
+      do L = 1,LM
+        T(1,1,L) = Tabs(L)/PK(L,1,1)
+      enddo
 
+#ifdef CACHED_SUBDD
+C****
+C**** Collect some high-frequency outputs
+C****
+      call find_groups('fijlh',grpids,ngroups)
+      do igrp=1,ngroups
+      subdd => subdd_groups(grpids(igrp))
+      do k=1,subdd%ndiags
+      select case (subdd%name(k))
+      case ('dq_ls')
+        do j=j_0,j_1; do i=i_0,i_1; do l=1,lm
+          sddarr3d(i,j,l) = SCM_force_Q(l)
+        enddo;        enddo;        enddo
+        call inc_subdd(subdd,k,sddarr3d)
+      case ('dth_ls')
+        do j=j_0,j_1; do i=i_0,i_1; do l=1,lm
+          sddarr3d(i,j,l) = SCM_force_T(l)/PK(l,1,1)
+        enddo;        enddo;        enddo
+        call inc_subdd(subdd,k,sddarr3d)
+      case ('dq_nudge')
+        do j=j_0,j_1; do i=i_0,i_1; do l=1,lm
+          sddarr3d(i,j,l) = SCM_nudge_Q(l)
+        enddo;        enddo;        enddo
+        call inc_subdd(subdd,k,sddarr3d)
+      case ('dth_nudge')
+        do j=j_0,j_1; do i=i_0,i_1; do l=1,lm
+          sddarr3d(i,j,l) = SCM_nudge_T(l)/PK(l,1,1)
+        enddo;        enddo;        enddo
+        call inc_subdd(subdd,k,sddarr3d)
+      end select
+      enddo
+      enddo
+#endif
+
+c     Coriolis wind forcing
+      if ( SCMopt%geo ) then
+
+        f_cor = 2.*omega*sinlat2d(1,1)
+
+        SCM_ver_u_adv = 0.
+        SCM_ver_v_adv = 0.
+
+        do L = 1,LM
+
+          if( SCMopt%omega .or. SCMopt%w )then
+c         *** compute momentum forcing from resolved vertical wind
+
+            if ( L < LM ) then ! omega assumed zero at top of layer LM
+              if ( SCMin%Omega(L+1) > 0. ) then ! upwind gradient above
+                 SCM_ver_u_adv(L) = -SCMin%Omega(L)*
+     &              (U(1,1,L+1)-U(1,1,L))/
+     &              (PMID(L+1,1,1)-PMID(L,1,1))
+                 SCM_ver_v_adv(L) = -SCMin%Omega(L)*
+     &              (V(1,1,L+1)-V(1,1,L))/
+     &              (PMID(L+1,1,1)-PMID(L,1,1))
+              endif
+            endif
+
+            if ( L > 1 ) then ! no atmospheric gradient through surface
+              if ( SCMin%Omega(L) < 0. ) then ! upwind gradient below
+                 SCM_ver_u_adv(L) = -SCMin%Omega(L)*
+     &              (U(1,1,L)-U(1,1,L-1))/
+     &              (PMID(L,1,1)-PMID(L-1,1,1))
+                 SCM_ver_v_adv(L) = -SCMin%Omega(L)*
+     &              (V(1,1,L)-V(1,1,L-1))/
+     &              (PMID(L,1,1)-PMID(L-1,1,1))
+              endif
+            endif
+          endif
+
+c         apply forcings, including Coriolis
+          U(1,1,L) = U(1,1,L) +
+     &      ( SCM_ver_u_adv(L) +
+     &        f_cor*(V(1,1,L)-SCMin%Vg(L)) )*dtsrc
+          V(1,1,L) = V(1,1,L) +
+     &      ( SCM_ver_v_adv(L) -
+     &        f_cor*(U(1,1,L)-SCMin%Ug(L)) )*dtsrc
+
+        enddo      ! L = 1,LM
+      endif        ! use Coriolis
+
+      return
       END SUBROUTINE SCM_FORCN 
 
   
-      SUBROUTINE FCONV
-C*****
-C     for single column model
-C     compute CONV=Horizontal Mass Convergence
-C     as filled in subroutine AFLUX in the GCM for use in
-C     the CONDSE and MSTCNV Subroutines
-C     Use the Wind Divergence from the ARM data
-C     CONV = Wind Divergence*dSigma*P*DelArea
-C
-C     NOTE:    Wind Divergence is calculated for the area of the
-C              ARM site. Therefore we need to take into account the
-C              difference between the GCM grid box area and the ARM
-C              Site.   Oklahoma site (SGP)  300 x 365 KM = 109500KM**2
-C                      GCM 2 x 2.5 degrees (smaller for SGP)
-C                          ~ 222.63 * 2223.42 = 49739.01 KM**2
-C                     SGP/GCM = 2.2
-C                     
-c              Note: for NSA  domain for the variational analysis
-c                    is  230KM (longitudinal) x 100KM (latitudinal)
-c                          230x100 = 23000
-c                    GCM 2x2.5 degree grid box ~ 21266
-c               area/box = (sin(q1)-sin(q2))*2(pi)R**2/144
-c                        72 degrees-71degrees
-c                    ARMFAC = NSA/GCM = 23000/21266 ~ 1.08
-c   
-c              What about for TWP site ? ? ?
-c
-c
-c
-  
-      USE RESOLUTION, only: LM
-      USE DYNAMICS,   only: DSIG
-      USE ATM_COM,    only: P
-      USE GEOM,       only: AXYP   
-      USE SCMCOM,     only: SG_WINDIV,SG_CONV,ARMFAC,iu_scm_prt
-   
-      IMPLICIT NONE
-
-      integer L,ifirst
-
-cccc  now set in SCM_COM.f  ALLOC_SCM()
-c     DATA ARMFAC/1.0/
-c     DATA ARMFAC/2.2/
-c     DATA ARMFAC/1.08/
- 
-      DATA ifirst/0/
-      
- 
-c     check grid box size
-      if (ifirst.eq.0) then
-          write(iu_scm_prt,100) AXYP(1,1),ARMFAC
- 100      format(1x,'for this latlon AXYP ARMFAC ',
-     &          f15.2,f10.4)
-          ifirst = 1
-      endif
-
-
-c     want to fill SD (IDUM,JDUM)  check out 
-      DO L=1,LM
-         SG_CONV(L) = SG_WINDIV(L)*DSIG(L)*P(1,1)
-     &                 *AXYP(1,1)*ARMFAC
-      ENDDO
-
-      return
-
-      end SUBROUTINE FCONV  
-
       SUBROUTINE SDRAG(DT1)
       REAL*8, INTENT(IN) :: DT1 
       return
@@ -246,7 +268,6 @@ c     want to fill SD (IDUM,JDUM)  check out
       USE CONSTANT,   only: grav,rgas,kapa,bykapa,bykapap1,bykapap2
       USE RESOLUTION, only: im,jm,lm,ls1,psfmpt,ptop
       USE ATM_COM,    only: zatmo, gz, phi
-      USE SCMCOM,     only: iu_scm_prt
       USE DYNAMICS,   only: sig,bydsig,do_polefix,
      *     dsig,sige,pu,spa
       IMPLICIT NONE
@@ -322,11 +343,7 @@ C**** CALULATE PHI AT LAYER TOP (EQUAL TO BOTTOM OF NEXT LAYER)
       DO L=1,LM
         GZ(:,:,L)=PHI(:,:,L)
       END DO
-c     do L=1,LM
-c        write(iu_scm_prt,*) 'PGF_SCM  L GZ ',L,GZ(1,1,L)
-c     enddo
-C****
-C
+
       RETURN
       END SUBROUTINE PGF_SCM
 
@@ -428,3 +445,59 @@ C****
       SUBROUTINE QDYNAM
       return
       END SUBROUTINE QDYNAM
+
+#ifdef CACHED_SUBDD
+      subroutine fijlh_defs(arr,nmax,decl_count)
+c
+c 3D outputs
+c
+      use subdd_mod, only : info_type
+! info_type_ is a homemade structure constructor for older compilers
+      use subdd_mod, only : info_type_
+      use model_com, only: dtsrc
+      use constant, only: kapa
+      use TimeConstants_mod, only: SECONDS_PER_DAY
+      implicit none
+      integer :: nmax,decl_count
+      type(info_type) :: arr(nmax)
+c
+c note: next() is a locally declared function to increment decl_count
+c
+      decl_count = 0
+c
+      arr(next()) = info_type_(
+     &  sname = 'dq_ls',
+     &  lname = 'moisture tendency from large-scale forcings',
+     &  units = 'kg/kg/day',
+     &  scale = SECONDS_PER_DAY/dtsrc
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'dth_ls',
+     &  lname = 'theta tendency from large-scale forcings',
+     &  units = 'K/day',
+     &  scale = 1000.**kapa/dtsrc*SECONDS_PER_DAY
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'dq_nudge',
+     &  lname = 'moisture tendency from nudging',
+     &  units = 'kg/kg/day',
+     &  scale = SECONDS_PER_DAY/dtsrc
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'dth_nudge',
+     &  lname = 'theta tendency from nudging',
+     &  units = 'K/day',
+     &  scale = 1000.**kapa/dtsrc*SECONDS_PER_DAY
+     &     )
+c
+      return
+      contains
+      integer function next()
+      decl_count = decl_count + 1
+      next = decl_count
+      end function next
+      end subroutine fijlh_defs
+#endif

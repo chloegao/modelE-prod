@@ -294,7 +294,7 @@
 
 !@param subdd_ngroups_max maximum number of output groups per run
 !@+     (increase as necessary)
-      integer, parameter :: subdd_ngroups_max=16
+      integer, parameter :: subdd_ngroups_max=30
 c SUSA only for MEEEEE
 c       integer, parameter :: subdd_ngroups_max=50
 c SUSA
@@ -1383,7 +1383,7 @@ c
 !@auth M. Kelley
       use model_com, only : dtsrc,nday,itime
       use resolution, only : lm
-      use constant, only : sday,kapa
+      use constant, only : kapa
       use diag_com, only : cdl_ij_template
       use cdl_mod, only : add_var,add_coord,add_varline,add_unlimdim
       use domain_decomp_atm, only : grid,get=>getdomainbounds
@@ -1435,7 +1435,7 @@ C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
       integer, dimension(8), parameter :: allowed_hrfreqs_timeavg=
      &     (/ 1, 2, 3, 4, 6, 8, 12, 24 /)
       integer, dimension(11) :: allowed_freqs_timeavg
-      integer, parameter :: nmax_possible=512,ncats_max=9
+      integer, parameter :: nmax_possible=512,ncats_max=10
       character(len=sname_strlen) :: catshape,grpname
       character(len=sname_strlen), dimension(ncats_max) ::
      &     catshapes,categories
@@ -1620,6 +1620,26 @@ c add (calls to) the analogs of ijh_defs et al.
       input_sizes3(k) = ngm
       call gijlh_defs(diaglists(1,k),nmax_possible,diaglens(k))
 
+      k = k + 1
+      catshapes(k) = 'aijlh'; categories(k) = 'rijlh'
+      input_sizes3(k) = lm
+      call rijlh_defs(diaglists(1,k),nmax_possible,diaglens(k))
+
+      k = k + 1
+      catshapes(k) = 'aijlh'; categories(k) = 'sijlh'
+      input_sizes3(k) = lm
+      call sijlh_defs(diaglists(1,k),nmax_possible,diaglens(k))
+
+      k = k + 1
+      catshapes(k) = 'aijlh'; categories(k) = 'cijlh'
+      input_sizes3(k) = lm
+      call cijlh_defs(diaglists(1,k),nmax_possible,diaglens(k))
+
+      k = k + 1
+      catshapes(k) = 'aijlh'; categories(k) = 'fijlh'
+      input_sizes3(k) = lm
+      call fijlh_defs(diaglists(1,k),nmax_possible,diaglens(k))
+
 #ifdef TRACERS_ON
       k = k + 1
       catshapes(k) = 'aijh'; categories(k) = 'taijh'
@@ -1697,7 +1717,8 @@ c
 c 2D outputs
 c
       use model_com, only : dtsrc,nday
-      use constant, only : sday,rhow
+      use constant, only : rhow
+      use TimeConstants_mod, only: SECONDS_PER_DAY
       use subdd_mod, only : info_type,sched_rad,reduc_min,reduc_max
 ! info_type_ is a homemade structure constructor for older compilers
       use subdd_mod, only : info_type_
@@ -1825,6 +1846,13 @@ c
      &     )
 c
       arr(next()) = info_type_(
+     &  sname = 'ssp',
+     &  lname = 'STRATIFORM PRECIPITATION',
+     &  units = 'mm/day',
+     &  scale = real(nday,kind=8)
+     &     )
+c
+      arr(next()) = info_type_(
      &  sname = 'qlat',
      &  lname = 'SURFACE LATENT HEAT FLUX',
      &  units = 'W/m^2'
@@ -1903,6 +1931,60 @@ c
      &     )
 c
       arr(next()) = info_type_(
+     &  sname = 'gtempr',
+     &  lname = 'SKIN TEMPERATURE',
+     &  units = 'K'
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'ustar',
+     &  lname = 'FRICTION VELOCITY',
+     &  units = 'm/s'
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'pblht',
+     &  lname = 'planetary boundary layer height',
+     &  units = 'm'
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'shflx',
+     &  lname = 'SENSIBLE HEAT FLUX',
+     &  units = 'W/m^2'
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'lhflx',
+     &  lname = 'LATENT HEAT FLUX',
+     &  units = 'W/m^2'
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'pwv',
+     &  lname = 'PRECIPITABLE WATER VAPOR',
+     &  units = 'kg/m^2'
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'lwp',
+     &  lname = 'LIQUID WATER PATH',
+     &  units = 'kg/m^2'
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'iwp',
+     &  lname = 'ICE WATER PATH',
+     &  units = 'kg/m^2'
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'snowdp',
+     &  lname = 'SNOW DEPTH',
+     &  units = 'mm'
+     &     )
+c
+      arr(next()) = info_type_(
      &  sname = 'c_iwp',
      &  lname = 'CLOUD ICE WATER PATH',
      &  units = 'kg/m^2'
@@ -1935,6 +2017,27 @@ c
      &     )
 c
       arr(next()) = info_type_(
+     &  sname = 'swd',
+     &  lname = 'SOLAR DOWNWARD FLUX at SURFACE',
+     &  units = 'W/m^2',
+     &  sched = sched_rad
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'swu',
+     &  lname = 'SOLAR UPWARD FLUX at SURFACE',
+     &  units = 'W/m^2',
+     &  sched = sched_rad
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'swdf',
+     &  lname = 'SOLAR DOWNWARD DIFFUSE FLUX at SURFACE',
+     &  units = 'W/m^2',
+     &  sched = sched_rad
+     &     )
+c
+      arr(next()) = info_type_(
      &  sname = 'lwd',
      &  lname = 'LONGWAVE DOWNWARD FLUX at SURFACE',
      &  units = 'W/m^2'
@@ -1956,6 +2059,14 @@ c
      &  sname = 'swt',
      &  lname = 'SOLAR NET FLUX AT TOA',
      &  units = 'W/m^2'
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'olrrad',
+     &  lname = 'OUTGOING LW RADIATION at TOA'//
+     &                 ' (via RADIA), same as AIC: trnf_toa',
+     &  units = 'W/m^2',
+     &  sched = sched_rad
      &     )
 c
       arr(next()) = info_type_(
@@ -1986,10 +2097,18 @@ c
      &     )
 c
       arr(next()) = info_type_(
+     &  sname = 'tcld',
+     &  lname = 'Total Cloud Cover (as seen by rad)',
+     &  units = '%',
+     &  scale = 1d2,
+     &  sched = sched_rad
+     &     )
+c
+      arr(next()) = info_type_(
      &  sname = 'rnft',
      &  lname = 'Total runoff',
      &  units = 'mm/day',
-     &  scale = sday/dtsrc
+     &  scale = SECONDS_PER_DAY/dtsrc
      &     )
 c
       arr(next()) = info_type_(
@@ -2014,6 +2133,30 @@ c
      &  sname = 'cdnc_RB',
      &  lname = 'CDNC large scale screened after Bennartz',
      &  units = '#/cm^3'
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'cod',
+     &  lname = 'Cloud optical depth warm clouds',
+     &  units = '-',
+     &  sched = sched_rad
+     &     )
+      arr(next()) = info_type_(
+     &  sname = 'cid',
+     &  lname = 'Cloud optical depth ice clouds',
+     &  units = '-',
+     &  sched = sched_rad
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'wtrcld',
+     &  lname = 'Water cloud frequency',
+     &  units = '-'
+     &     )
+      arr(next()) = info_type_(
+     &  sname = 'icecld',
+     &  lname = 'Ice cloud frequency',
+     &  units = '-'
      &     )
 c
       arr(next()) = info_type_(
@@ -2256,7 +2399,7 @@ c
       use subdd_mod, only : info_type,sched_rad
 ! info_type_ is a homemade structure constructor for older compilers
       use subdd_mod, only : info_type_
-      use constant, only : bygrav
+      use constant, only : bygrav,kapa
       implicit none
       integer :: nmax,decl_count
       type(info_type) :: arr(nmax)
@@ -2270,6 +2413,13 @@ c
      &  sname = 't',
      &  lname = 'TEMPERATURE',
      &  units = 'K'
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'th',
+     &  lname = 'potential temperature',
+     &  units = 'K',
+     &  scale = 1000.**kapa
      &     )
 c
       arr(next()) = info_type_(
@@ -2294,6 +2444,18 @@ c
      &  sname = 'qci',
      &  lname = 'cloud ice',
      &  units = 'kg/kg'
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'cldss',
+     &  lname = 'cloud fraction, stratiform',
+     &  units = '-'
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'cldmc',
+     &  lname = 'cloud fraction, convective',
+     &  units = '-'
      &     )
 c
       arr(next()) = info_type_(
@@ -2657,7 +2819,7 @@ c
           !istep = itime-itimei
           istep = itime-itimei_subdd
         elseif(write_monthly_files) then
-          call modelEclock%getDate(date=jdate)
+          call modelEclock%get(date=jdate)
           istep = (jdate-1)*nday + mod(itime,nday)
         else
           istep = mod(itime,days_per_file*nday)

@@ -1523,14 +1523,6 @@ C     OUTPUT DATA
       USE CLOUDS_COM, only : tauss,taumc,svlhx,rhsav,svlat,cldsav,
      *     cldmc,cldss,csizmc,csizss,llow,lmid,lhi,fss
      *    ,get_cld_overlap  !  subroutine
-#ifdef SCM
-      USE SCMCOM, only : SCM_SURF_ALBEDO_FLAG,iu_scm_prt
-      USE SCMDIAG, only : SRDFLBTOP,SRNFLBTOP,SRUFLBTOP,TRUFLBTOP,
-     &                    SRDFLBBOT,SRNFLBBOT,SRUFLBBOT,TRUFLBBOT,
-     &                    TRDFLBBOT,TRDFLBTOP,SRFHRLCOL,TRFCRLCOL,
-     &                    CSSRNTOP,CSTRUTOP,CSSRNBOT,CSTRNBOT,
-     &                    CSSRDBOT,TRNFLBBOT,dTradlw,dTradsw
-#endif
       USE DIAG_COM, only : ia_rad,jreg,aij=>aij_loc,aijl=>aijl_loc
      &     ,ntype,ftype,itocean,itlake,itearth,itlandi,itoice,itlkice
      *     ,adiurn=>adiurn_loc,ndiuvar,ia_rad_frc,
@@ -2700,13 +2692,6 @@ C**** Optional calculation of CRF using a clear sky calc.
      &     + PLICE*atmgla%GTEMPR(I,J)**4
      &     +PEARTH*atmlnd%GTEMPR(I,J)**4)
      &     -TRNFLB(1)
-#ifdef SCM
-          CSSRNTOP = SRNFLB(LM+LM_REQ+1)*COSZ2(I,J)
-          CSTRUTOP = TRUFLB(LM+LM_REQ+1)
-          CSSRNBOT = SRNFLB(1)*COSZ2(I,J)
-          CSTRNBOT = TRNFLB(1)
-          CSSRDBOT = SRDFLB(1)*COSZ2(I,J)
-#endif
 C         BEGIN AMIP
           AIJ(I,J,IJ_SWDCLS)=AIJ(I,J,IJ_SWDCLS)+SRDFLB(1)*COSZ2(I,J)
           AIJ(I,J,IJ_SWNCLS)=AIJ(I,J,IJ_SWNCLS)+SRNFLB(1)*COSZ2(I,J)
@@ -3053,23 +3038,6 @@ C**** Save fluxes at four levels surface, P0, P1, LTROPO
       TNFS(3,I,J)=TRNFLB(LM+LM_REQ+1)
       SNFS(4,I,J)=SRNFLB(LTROPO(I,J)) ! LTROPO
       TNFS(4,I,J)=TRNFLB(LTROPO(I,J))
-
-#ifdef SCM
-      do L=1,LM
-        SRFHRLCOL(L) = SRFHRL(L) * COSZ1(I,J)
-        TRFCRLCOL(L) = TRFCRL(L)
-      enddo
-      SRNFLBBOT = SRNFLB(1) * COSZ1(I,J)           ! Surface
-      SRNFLBTOP = SRNFLB(LM+LM_REQ+1) * COSZ1(I,J) ! P0 = TOA
-      SRDFLBBOT = SRDFLB(1) * COSZ1(I,J)
-      SRDFLBTOP = SRDFLB(LM+LM_REQ+1) * COSZ1(I,J)
-      SRUFLBBOT = SRUFLB(1) * COSZ1(I,J)
-      SRUFLBTOP = SRUFLB(LM+LM_REQ+1) * COSZ1(I,J)
-      TRUFLBTOP = TRUFLB(LM+LM_REQ+1)
-      TRDFLBTOP = TRDFLB(LM+LM_REQ+1)
-      TRUFLBBOT = TRUFLB(1)
-      TRDFLBBOT = TRDFLB(1)
-#endif
 
 C****
       TRINCG(I,J)=TRDFLB(1)
@@ -3707,24 +3675,31 @@ C****
       enddo
       enddo
 
-c      call find_groups('rijlh',grpids,ngroups)
-c      do igrp=1,ngroups
-c      subdd => subdd_groups(grpids(igrp))
-c      do k=1,subdd%ndiags
-c      select case (subdd%name(k))
-c      case ('swhr')
-c        do j=j_0,j_1; do i=i_0,imaxj(j); do l=1,lmaxsubdd
-c          sddarr3d(i,j,l) = SRHR(L,I,J)*bysha*byma(L,I,J)*COSZ2(I,J)
-c        enddo;                enddo;    enddo
-c        call inc_subdd(subdd,k,sddarr3d)
-c      case ('lwhr')
-c        do j=j_0,j_1; do i=i_0,imaxj(j); do l=1,lmaxsubdd
-c          sddarr3d(i,j,l) = TRHR(L,I,J)*bysha*byma(L,I,J)
-c        enddo;           enddo;         enddo
-c        call inc_subdd(subdd,k,sddarr3d)
-c      end select
-c      enddo
-c      enddo
+      call find_groups('rijlh',grpids,ngroups)
+      do igrp=1,ngroups
+      subdd => subdd_groups(grpids(igrp))
+      do k=1,subdd%ndiags
+      select case (subdd%name(k))
+      case ('dth_sw')
+        do j=j_0,j_1; do i=i_0,imaxj(j); do l=1,lmaxsubdd
+          sddarr3d(i,j,l) = SRHR(L,I,J)*bysha*byma(L,I,J)*COSZ2(I,J)/
+     &                      PK(L,I,J)
+        enddo;                enddo;    enddo
+        call inc_subdd(subdd,k,sddarr3d)
+      case ('dth_lw')
+        do j=j_0,j_1; do i=i_0,imaxj(j); do l=1,lmaxsubdd
+          sddarr3d(i,j,l) = TRHR(L,I,J)*bysha*byma(L,I,J)/PK(L,I,J)
+        enddo;           enddo;         enddo
+        call inc_subdd(subdd,k,sddarr3d)
+      case ('dth_rad')
+        do j=j_0,j_1; do i=i_0,imaxj(j); do l=1,lmaxsubdd
+          sddarr3d(i,j,l) = (SRHR(L,I,J)*COSZ2(I,J)+TRHR(L,I,J))*
+     &                      bysha*byma(L,I,J)/PK(L,I,J)
+        enddo;           enddo;         enddo
+        call inc_subdd(subdd,k,sddarr3d)
+      end select
+      enddo
+      enddo
 
 #endif  /* CACHED_SUBDD */
 
@@ -3747,11 +3722,6 @@ C****
           DO L=1,LM
             T(I,J,L)=T(I,J,L)+(SRHR(L,I,J)*COSZ1(I,J)+TRHR(L,I,J))*
      *           DTsrc*bysha*byMA(l,i,j)/PK(L,I,J)
-#ifdef SCM
-            dTradlw(L)=TRHR(L,I,J)*DTsrc*bysha*byMA(l,i,j)/PK(L,I,J)
-            dTradsw(L)=SRHR(L,I,J)*COSZ1(I,J)
-     &                *DTsrc*bysha*byMA(L,I,J)/PK(L,I,J)
-#endif
           END DO
           AIJ(I,J,IJ_SRINCP0)=AIJ(I,J,IJ_SRINCP0)+(S0*COSZ1(I,J))
         END DO
@@ -4695,7 +4665,6 @@ c
      &  sched = sched_rad
      &     )
 
-
       return
       contains
       integer function next()
@@ -4703,8 +4672,57 @@ c
       next = decl_count
       end function next
       end subroutine rijh_defs
-#endif
 
+      subroutine rijlh_defs(arr,nmax,decl_count)
+c
+c 3D outputs
+c
+      use subdd_mod, only : info_type,sched_rad
+! info_type_ is a homemade structure constructor for older compilers
+      use subdd_mod, only : info_type_
+      use constant, only : kapa
+      use TimeConstants_mod, only: SECONDS_PER_DAY
+      implicit none
+      integer :: nmax,decl_count
+      type(info_type) :: arr(nmax)
+c
+c note: next() is a locally declared function to increment decl_count
+c
+      decl_count = 0
+c
+      arr(next()) = info_type_(
+     &  sname = 'dth_sw',
+     &  lname = 'theta tendency from shortwave radiative heating',
+     &  units = 'K/day',
+     &  scale = 1000.**kapa*SECONDS_PER_DAY,
+     &  sched = sched_rad
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'dth_lw',
+     &  lname = 'theta tendency from longwave radiative heating',
+     &  units = 'K/day',
+     &  scale = 1000.**kapa*SECONDS_PER_DAY,
+     &  sched = sched_rad
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'dth_rad',
+     &  lname = 'theta tendency from radiative heating',
+     &  units = 'K/day',
+     &  scale = 1000.**kapa*SECONDS_PER_DAY,
+     &  sched = sched_rad
+     &     )
+c
+      return
+      contains
+      integer function next()
+      decl_count = decl_count + 1
+      next = decl_count
+      end function next
+      end subroutine rijlh_defs
+
+#endif
 
       subroutine readIFile(IFile)
 ! Consolidated duplicate of MODELE.f code snippets that read the
@@ -4807,6 +4825,7 @@ C****
 #ifdef CACHED_SUBDD
       use diag_com
       use geom, only : lon_dg,lat_dg
+      use cdl_mod
 #endif
       use TimerPackage_mod, only: initializeTimerPackage_mod=>initialize
       implicit none

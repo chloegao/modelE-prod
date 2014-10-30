@@ -6,7 +6,7 @@
       use resolution, only : im,jm,lm,ls1,ptop
       USE MODEL_COM
       USE ATM_COM, only : p,qcl,qci
-      USE ATM_COM, only : MUs,MVs,sd_clouds,ptold,ps,kea
+      USE ATM_COM, only : MUs,MVs,ptold,ps,kea
       Use DYNAMICS,   Only: nstep,nidyn,nfiltr,mfiltr,dt
       USE DOMAIN_DECOMP_ATM, only: grid
       use domain_decomp_atm, only: writei8_parallel
@@ -29,9 +29,7 @@
      &     ,COMPUTE_DYNAM_AIJ_DIAGNOSTICS
 #endif
 #ifdef SCM
-      USE ATM_COM, only : t,p,q
-      USE SCMCOM , only : SG_CONV,SCM_SAVE_T,SCM_SAVE_Q,
-     &    iu_scm_prt,iu_scm_diag,nstepscm
+      USE SCM_COM , only : nstepSCM
 #endif
 #ifdef TRACERS_TOMAS
       USE TRACER_COM, only : NBINS, IDTNUMD,IDTSO4,IDTECIL, IDTECOB,
@@ -85,20 +83,8 @@ C**** Initialise total energy (J/m^2)
       initialTotalEnergy = getTotalEnergy()
 
 #ifdef SCM
-      !NSTEPSCM = ITIME-ITIMEI
-      write(0,*) 'NSTEPSCM ',NSTEPSCM
-      do L=1,LM
-         SCM_SAVE_T(L) = T(1,1,L)
-         SCM_SAVE_Q(L) = Q(1,1,L)
-      enddo
-      NSTEPSCM = NSTEPSCM + 1
-c     do L=1,LM
-c        write(iu_scm_prt,'(a13,i3,4(f9.3))')
-c    &              'before dynam ',
-c    &               L,T(I_TARG,J_TARG,L)*PK(L,I_TARG,J_TARG),
-c    &               Q(I_TARG,J_TARG,L)*1000.0,
-c    &               U(I_TARG,J_TARG,L),V(I_TARG,J_TARG,L)
-c     enddo
+      nstepSCM = ITIME-ITIMEI
+      write(0,*) 'nstepSCM ',nstepSCM
 #endif
 
       call startTimer('Atm. Dynamics')
@@ -134,10 +120,6 @@ C**** Currently energy is put in uniformly weighted by mass
       call addEnergyAsDiffuseHeat(finalTotalEnergy - initialTotalEnergy)
 #ifndef CUBED_SPHERE
       call COMPUTE_DYNAM_AIJ_DIAGNOSTICS(MUs, MVs, DT)
-#endif
-
-#ifdef SCM
-      Do L=1,LM  ;  SD_CLOUDS(:,:,L) = SG_CONV(L)  ;  EndDo
 #endif
 
       call COMPUTE_WSAVE
@@ -418,10 +400,6 @@ c
       USE ATM_COM, only : P
       USE RESOLUTION, only : PTOP
 #endif
-#ifdef SCM
-      USE SCMCOM , only : SG_CONV,SCM_SAVE_T,SCM_SAVE_Q,
-     &    iu_scm_prt,iu_scm_diag
-#endif
       USE FLUXES, only : atmocn,atmice
       use TimerPackage_mod, only: startTimer => start
       use TimerPackage_mod, only: stopTimer => stop
@@ -501,11 +479,6 @@ C****
 #endif
 #ifdef TRACERS_DUST
       call ahourly
-#endif
-
-#ifdef SCM
-c*****call scm diagnostics every time step
-      call scm_diag
 #endif
 
 #ifndef SCM
@@ -670,9 +643,8 @@ C****
 #endif
 
 #ifdef SCM
-!      read scm data and initialize model
-!      note:  usavg,vsavg and wsavg filled from here
-       call init_scmdata
+!      read SCM data and initialize model
+       call init_SCM
 #endif
 
       CALL init_CLD(istart)
@@ -882,7 +854,7 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
 #endif
 
 #ifdef SCM
-      call alloc_scm_com()
+      call alloc_SCM_COM()
 #endif
 #ifndef CUBED_SPHERE
 #ifndef SCM
@@ -1014,10 +986,6 @@ C**** ZERO OUT INTEGRATED QUANTITIES
       USE FV_INTERFACE_MOD, only: fvstate
       USE FV_INTERFACE_MOD, only: Finalize
 #endif
-#ifdef SCM
-      USE FILEMANAGER, only : closeunit
-      USE SCMCOM , only : iu_scm_prt,iu_scm_diag
-#endif
       implicit none
 #ifdef USE_FVCORE
          call Finalize(fvstate, kdisk)
@@ -1028,10 +996,6 @@ C**** CLOSE SUBDAILY OUTPUT FILES
       CALL CLOSE_SUBDD
 #endif
 
-#ifdef SCM
-      call closeunit(iu_scm_prt)
-      call closeunit(iu_scm_diag)
-#endif
       return
       end subroutine finalize_atm
 
@@ -1190,6 +1154,16 @@ C**** check tracers
       integer :: j_0stg,j_1stg
 
       integer :: fid
+
+#ifdef SCM
+! initialize variables until SCM input file is used
+      uout = 1.
+      vout = 0.
+      tout = 273.
+      qout = 3d-6
+      psrf = 1000.
+      return
+#endif
 
       fid = par_open(grid,'AIC','read')
 
@@ -1518,13 +1492,14 @@ C**** interpolate to pressure levels and accumulate the subdd diagnostics
       use subdd_mod, only : aijph_l1,aijph_l2
      &      ,subdd_npres,subdd_pk, subdd_pres
       use subdd_mod, only : inc_subdd,find_groups
-      use atm_com, only : ualij,valij,gz,wsave,pk,pmid
+      use atm_com, only : ualij,valij,gz,wsave,pk,pmid,pdsig,qcl,qci
       use domain_decomp_atm, only : grid,get=>getdomainbounds
       use resolution, only : lm
       use atm_com, only: p,u,v,t,q,zatmo
       use resolution, only: ptop
       USE GEOM, only: imaxj
-      use fluxes, only : atmsrf
+      use fluxes, only : atmsrf,atmice
+      use model_com, only : dtsrc
       implicit none
       INTEGER :: LDN,LUP,I,J,L,k,igrp,ngroups,grpids(subdd_ngroups)
       INTEGER :: J_0, J_1, J_0H, J_1H, I_0,I_1
@@ -1556,6 +1531,44 @@ C
       case ('p_surf')
         sddarr2d = p(:,:) + ptop
         call inc_subdd(subdd,k,sddarr2d)
+C
+      case ('gtempr')
+        call inc_subdd(subdd,k,atmsrf%gtempr)
+C
+      case ('ustar')
+        call inc_subdd(subdd,k,atmice%ustar_pbl)
+C
+      case ('pblht')
+        call inc_subdd(subdd,k,atmsrf%dblavg)
+C
+      case ('shflx')
+        sddarr2d = atmsrf%sensht(:,:)/dtsrc
+        call inc_subdd(subdd,k,sddarr2d)
+C
+      case ('lhflx')
+        sddarr2d = atmsrf%latht(:,:)/dtsrc
+        call inc_subdd(subdd,k,sddarr2d)
+C
+      case ('pwv')
+        do j=j_0,j_1; do i=i_0,imaxj(j)
+          sddarr2d(i,j) = sum(q(i,j,1:LM)*pdsig(1:LM,i,j))*100.*bygrav
+        enddo;        enddo
+        call inc_subdd(subdd,k,sddarr2d)
+C
+      case ('lwp')
+        do j=j_0,j_1; do i=i_0,imaxj(j)
+          sddarr2d(i,j) = sum(qcl(i,j,1:LM)*pdsig(1:LM,i,j))*100.*bygrav
+        enddo;        enddo
+        call inc_subdd(subdd,k,sddarr2d)
+C
+      case ('iwp')
+        do j=j_0,j_1; do i=i_0,imaxj(j)
+          sddarr2d(i,j) = sum(qci(i,j,1:LM)*pdsig(1:LM,i,j))*100.*bygrav
+        enddo;        enddo
+        call inc_subdd(subdd,k,sddarr2d)
+C
+      case ('snowdp')
+        call inc_subdd(subdd,k,atmice%snowsave)
 C
       case ('slp')
         do j=j_0,j_1; do i=i_0,imaxj(j)
@@ -1639,6 +1652,8 @@ C**** cached_subdd on model levels
           sddarr(i,j,l) = t(i,j,l)*pk(l,i,j)
         enddo;              enddo;        enddo
         call inc_subdd(subdd,k,sddarr)
+      case ('th')
+        call inc_subdd(subdd,k,t)
       case ('q')
         call inc_subdd(subdd,k,q)
       case ('rh')
@@ -1649,6 +1664,8 @@ C**** cached_subdd on model levels
         call inc_subdd(subdd,k,sddarr)
       case ('z')
         call inc_subdd(subdd,k,gz)
+      case ('p_3d')
+        call inc_subdd(subdd,k,pmid,jdim=3)
       case ('u')
         call inc_subdd(subdd,k,ualij,jdim=3)
       case ('v')

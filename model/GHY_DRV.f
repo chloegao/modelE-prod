@@ -735,9 +735,7 @@ c****
       use model_com, only : modelEclock
       use model_com, only : dtsrc,nday,itime
 #ifdef SCM
-      use SCMCOM , only : SCM_SURFACE_FLAG,ASH,ALH,iu_scm_prt,
-     &                    ATSKIN,NSTEPSCM
-      use SCMDIAG, only : EVPFLX,SHFLX
+      use SCM_COM, only : SCMopt,SCMin,nstepSCM
 #endif
       use DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, AM_I_ROOT
       use geom, only : imaxj,lat2d
@@ -1322,9 +1320,9 @@ c**** wearth+aiearth are used in radiation only
      &     w(1,1) / ( thets(1,1)*dz_ij(i,j,1) )
 
 #ifdef SCM
-      if (SCM_SURFACE_FLAG.ge.1) then
-        atmlnd%gtemp(i,j) = ATSKIN
-        atmlnd%gtempr(i,j) = ATSKIN + tf
+      if( SCMopt%Tskin )then
+        atmlnd%gtemp(i,j) = SCMin%Tskin - tf
+        atmlnd%gtempr(i,j) = SCMin%Tskin
       endif
 #endif
 c**** calculate fluxes using implicit time step for non-ocean points
@@ -1339,26 +1337,16 @@ C**** calculate correction for different TG in radiation and surface
      &     (atmlnd%TRUP_in_rad(I,J) - STBO*(tearth(i,j)+TF)**4)
 
 #ifdef SCM
-c     if SCM use sensible and latent heat fluxes provided by ARM
-c        values
-      if (SCM_SURFACE_FLAG.eq.1) then
+c     may use specified sensible and latent heat fluxes
+      if( SCMopt%sflx )then
         atmlnd%dth1(i,j)=atmlnd%dth1(i,j)
-     &       +ash*pbl_args%dtsurf*ptype/(sha*ma1)
+     &       +SCMin%shf*pbl_args%dtsurf*ptype/(sha*ma1)
         atmlnd%dq1(i,j) =atmlnd%dq1(i,j)
-     &       +alh*pbl_args%dtsurf*ptype/(ma1*lhe)
-        EVPFLX = EVPFLX + ALH*ptype
-        SHFLX = SHFLX + ASH*ptype
-        write(iu_scm_prt,981) i,ptype,atmlnd%dth1(i,j),
-     &       atmlnd%dq1(i,j),
-     &       EVPFLX,SHFLX
- 981         format(1x,'EARTH ARM   i ptype dth1 dq1 evpflx shflx ',
-     &            i5,f9.4,f9.4,f9.5,f11.5,f11.5)
-      elseif (SCM_SURFACE_FLAG.eq.2) then
+     &       +SCMin%lhf*pbl_args%dtsurf*ptype/(ma1*lhe)
+      else
         atmlnd%dth1(i,j)=atmlnd%dth1(i,j)-(SHDT+dLWDT)*
      &       ptype/(sha*ma1)
         atmlnd%dq1(i,j) =atmlnd%dq1(i,j)+aevap*ptype/ma1
-c            write(iu_scm_prt,982) i,ptype,atmlnd%dth1(i,j),dq1(i,j)
-c982         format(1x,'EARTH GCM    i ptype dth1 dq1 ',i5,f9.4,f9.4,f9.5)
       endif
 #else
       atmlnd%dth1(i,j)=-(SHDT+dLWDT)/(sha*ma1)
@@ -1481,10 +1469,6 @@ c***********************************************************************
       use model_com, only : modelEclock
       use model_com, only : dtsrc,nday,itime
       use TimeConstants_mod, only: DAYS_PER_YEAR, INT_HOURS_PER_DAY
-#ifdef SCM
-      use SCMDIAG, only : EVPFLX,SHFLX
-      use SCMCOM, only : SCM_SURFACE_FLAG,iu_scm_prt,ATSKIN
-#endif
       use DOMAIN_DECOMP_ATM, only : grid
       use geom, only : axyp,lat2d
       use sle001, only :
@@ -1679,15 +1663,6 @@ c**** quantities accumulated for regions in diagj
       call inc_areg(i,j,jr,j_crops,CROPS_DIAG(i,j)*ptype)
 #endif
 
-#ifdef SCM
-      if (SCM_SURFACE_FLAG.eq.0.or.SCM_SURFACE_FLAG.eq.2) then
-        EVPFLX = EVPFLX + aevap*PTYPE*lhe/DTSURF
-        SHFLX  = SHFLX  - SHDT *PTYPE/DTSURF
-c             write(iu_scm_prt,*) 'ghy_drv  evpflx shflx ptype ',
-c    &                  EVPFLX,SHFLX,ptype
-      endif
-#endif
-
 c**** quantities accumulated for latitude-longitude maps in diagij
       aij(i,j,ij_beta)=aij(i,j,ij_beta)+(abetad/nisurf)*fv*ptype
 c      if ( moddsf == 0 ) then
@@ -1750,9 +1725,6 @@ c**** modifications needed for split of bare soils into 2 types
       use Dictionary_mod, only : sync_param, get_param
       use DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       use fluxes, only : focean
-#ifdef SCM
-      use SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
-#endif
       use diag_com, only : npts,icon_wtg,icon_htg,conpt0
       use sle001, only : hl0, dt, 
      &     minGroundTemperature,  maxGroundTemperature
@@ -1951,7 +1923,7 @@ c**** cosday, sinday should be defined (reset once a day in daily_earth)
       use ghy_com
       use model_com, only : itime
 #ifdef SCM
-      use SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
+      use SCM_COM, only : SCMopt,SCMin
 #endif
       use fluxes, only : atmlnd,focean, flice
 #ifdef USE_ENT
@@ -2247,9 +2219,9 @@ c**** set gtemp array
             atmlnd%gtemp(i,j)=tsns_ij(i,j)
             atmlnd%gtempr(i,j) =tearth(i,j)+tf
 #ifdef SCM
-            if (SCM_SURFACE_FLAG.ge.1) then
-              atmlnd%gtemp(i,j) = ATSKIN
-              atmlnd%gtempr(i,j) = ATSKIN + tf
+            if( SCMopt%Tskin )then
+              atmlnd%gtemp(i,j) = SCMin%Tskin - tf
+              atmlnd%gtempr(i,j) = SCMin%Tskin
             endif
 #endif
           end if
@@ -4660,7 +4632,7 @@ c**** Also reset snow fraction for albedo computation
       use model_com, only : itime
 #endif
 #ifdef SCM
-      use SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
+      use SCM_COM, only : SCMopt,SCMin
 #endif
       use FLUXES, only : atmlnd
       !use veg_com, only : afb
@@ -4742,9 +4714,9 @@ c**** wearth+aiearth are used in radiation only
           atmlnd%gtemp(i,j)=tsns_ij(i,j)
           atmlnd%gtempr(i,j) =tearth(i,j)+tf
 #ifdef SCM
-          if (SCM_SURFACE_FLAG.ge.1) then
-            atmlnd%gtemp(i,j) = ATSKIN
-            atmlnd%gtempr(i,j) = ATSKIN + tf
+          if( SCMopt%Tskin )then
+            atmlnd%gtemp(i,j) = SCMin%Tskin - tf
+            atmlnd%gtempr(i,j) = SCMin%Tskin
           endif
 #endif
 

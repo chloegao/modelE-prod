@@ -1377,6 +1377,9 @@ c**** To compute the drag coefficient,Stanton number and Dalton number
 !@var fac_cq_tr = ratio of cq for water isotopes = f(Sc_tr)
 
       USE CONSTANT, only : visc_air_kin
+#ifdef SCM
+      use SCM_COM, only : SCMopt,SCMin
+#endif
       implicit none
 
       real*8,  intent(in) :: lmonin,ustar0,vsurf,zgs,ts
@@ -1402,6 +1405,10 @@ c Compute roughness lengths using smooth/rough surface formulation:
 
 c       z0m=0.11d0*nu/ustar+0.011d0*ustar*ustar*bygrav ! COARE algorithm
         z0m=0.135d0*nu/ustar+0.018d0*ustar*ustar*bygrav ! Hartke and Rind (1996)
+
+#ifdef SCM
+        if( SCMopt%z0m ) z0m=SCMin%z0m ! specified roughness length
+#endif
 
         call getzhq(ustar,z0m,Pr,nu,1.4d-5,z0h)  ! heat
         call getzhq(ustar,z0m,Sc,nu,1.3d-4,z0q)  ! vapour
@@ -1453,10 +1460,18 @@ c *********************************************************************
 !@+  It is called from within subroutine dflux.
 !!*** remove z0min for original HR97 code
 
+#ifdef SCM
+      use SCM_COM, only : SCMopt,SCMin
+#endif
       implicit none
       real*8, intent(in) :: ustar,z0m,ScPr,z0min,nu
       real*8, intent(out) :: z0hq
       real*8 r0q,beta,fac_smooth_ScPr,fac_rough_ScPr
+
+#ifdef SCM
+      if( SCMopt%z0m ) z0hq=SCMin%z0m ! specified roughness length
+      return
+#endif
 
 C**** functional dependence on Sc,Pr for smooth, rough surfaces
       fac_smooth_ScPr = 30.*exp(-13.6d0*kappa*ScPr**twoby3)
@@ -2778,7 +2793,7 @@ ccc if running SCM then use ug and vg instead of dpdx,dpdy
 !@var  ilong  longitude identifier
 !@var  jlat  latitude identifier
 !@var  itype  surface type
-!@var  ug,vg  passed for scm
+!@var  ug,vg  passed for SCM
 
 !@var  iprint longitude for diagnostics
 !@var  jprint latitude for diagnostics
@@ -2809,7 +2824,7 @@ ccc if running SCM then use ug and vg instead of dpdx,dpdy
 
       real*8, dimension(n), intent(out) :: u,v,t,q
       real*8, dimension(n-1), intent(out) :: e
-c****  passed for scm
+c****  passed for SCM
       real*8  ug,vg
       real*8  dm
 
