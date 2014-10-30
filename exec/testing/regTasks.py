@@ -80,7 +80,7 @@ def createScriptTask(config, deck, comp):
     useMods    = sysconfig['modules']
     resultsDir = sysconfig['scratchdir'] + '/regression_results/' + branch + '/' + comp
     scratchDir = sysconfig['scratchdir'] + '/regression_scratch/' + branch + '/' + comp
-    sponsorID = 's1001'
+    sponsorID  = sysconfig['sponsorid']
 
     deckName = deck.name
     jobName = deckName
