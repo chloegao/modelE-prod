@@ -351,7 +351,7 @@ c     allocate temporary storage variables
       allocate(SCMreadX%hour(SCMreadX%ntime))
       allocate(SCMreadX%value(SCMreadX%ntime))
 
-c     read time variables and scalar time series
+c     read time variables (integer)
 
       stat = nf_inq_varid(ncid,'year',varid)
       if(stat.ne.NF_NOERR) call handle_err(stat,file_name,'id_year')
@@ -376,6 +376,8 @@ c     read time variables and scalar time series
       stat = nf_get_var_int(ncid,varid,read_intarray)
       if(stat.ne.NF_NOERR) call handle_err(stat,file_name,'hour')
       SCMreadX%hour = read_intarray
+
+c     read scalar time series (double precision)
 
       stat = nf_inq_varid(ncid,file_vname,varid)
       if(stat.ne.NF_NOERR) call handle_err(stat,file_name,file_vname)
@@ -482,8 +484,8 @@ C-------------------------------------------------------------------------------
       character(len=*), intent(in) :: file_name,model_vname
       character(len=80) file_vname
       type(SCMin_tProfile), intent(inout) :: SCMin_tP
-      integer, dimension(:), allocatable :: read_intarray,read_levarray
-      real*8, dimension(:), allocatable :: read_fltarray
+      integer, dimension(:), allocatable :: read_intarray
+      real*8, dimension(:), allocatable :: read_fltarray,read_levarray
       real*8, dimension(:,:), allocatable :: read_fltprofs
       integer ncid,dimid,varid,stat,Ldata,ivar
       real*8 factor_scale,factor_offset
@@ -533,6 +535,8 @@ c     read time variables and profile time series
 c     as a function of pressure (mb) or altitude (m)
 c     coordinates that do not change in time
 
+c     read time variables (integer)
+
       stat = nf_inq_varid(ncid,'year',varid)
       if(stat.ne.NF_NOERR) call handle_err(stat,file_name,'id_year')
       stat = nf_get_var_int(ncid,varid,read_intarray)
@@ -557,18 +561,20 @@ c     coordinates that do not change in time
       if(stat.ne.NF_NOERR) call handle_err(stat,file_name,'hour')
       SCMreadZ%hour = read_intarray
 
-c     read grid center points, check for progression from surface 
-c     upwards, and calculate edges for later use
+c     read pressure profile (double precision)
+
       stat = nf_inq_varid(ncid,'lev',varid)
       if(stat.ne.NF_NOERR) stat = nf_inq_varid(ncid,'P',varid)
       if(stat.ne.NF_NOERR) call handle_err(stat,file_name,'id_P')
-      stat = nf_get_var_int(ncid,varid,read_levarray)
+      stat = nf_get_var_double(ncid,varid,read_levarray)
       if(stat.ne.NF_NOERR) call handle_err(stat,file_name,'P')
       SCMreadZ%L = read_levarray
+      ! check for progression from surface upwards
       do Ldata = 2,SCMreadZ%nlev
         if( SCMreadZ%L(Ldata) > SCMreadZ%L(Ldata-1) ) call 
      &    stop_model('SCM: now requires decreasing P grid',255)
       enddo
+      ! calculate edges for later use
       SCMreadZ%Le(1) = SCMreadZ%L(1) +
      &  0.5*(SCMreadZ%L(1)-SCMreadZ%L(2))
       do Ldata = 2,SCMreadZ%nlev
@@ -578,13 +584,15 @@ c     upwards, and calculate edges for later use
       SCMreadZ%Le(SCMreadZ%nlev+1) = SCMreadZ%L(SCMreadZ%nlev) -
      &  0.5*(SCMreadZ%L(SCMreadZ%nlev-1)-SCMreadZ%L(SCMreadZ%nlev))
 
-c     read profile time series (align time, level indices)
+c     read profile time series (double precision)
+
       stat = nf_inq_varid(ncid,file_vname,varid)
       if(stat.ne.NF_NOERR) call handle_err(stat,file_name,file_vname)
       stat = nf_get_var_double(ncid,varid,read_fltprofs)
       if(stat.ne.NF_NOERR) call handle_err(stat,file_name,file_vname)
       read_fltprofs = read_fltprofs * factor_scale
       read_fltprofs = read_fltprofs + factor_offset
+      ! reorder time and level indices
       do Ldata = 1,SCMreadZ%nlev
         SCMreadZ%value(1:SCMreadZ%ntime,Ldata) = 
      &    read_fltprofs(Ldata,1:SCMreadZ%ntime)
@@ -804,13 +812,13 @@ c         variable-dependent treatment in GCM layers above
               ! potential temperature cannot decrease with height
               SCMinP(Lgcm) = max(SCMinP(Lgcm),SCMinP(Lgcm-1))
             endif
-            if( model_vname=='QadvV' ) SCMinP(Lgcm) = 0.
+            if( model_vname=='SadvV' ) SCMinP(Lgcm) = 0.
             if( model_vname=='QadvV' ) SCMinP(Lgcm) = 0.
             if( model_vname=='TadvH' ) SCMinP(Lgcm) = 0.
             if( model_vname=='QadvH' ) SCMinP(Lgcm) = 0.
           endif
 
-        endif ! interpolate to layer edge or center
+        endif ! linear or pressure-weighted interpolation
       enddo   ! loop over GCM pressure layers
 
       end subroutine interp_p_SCM_profile
