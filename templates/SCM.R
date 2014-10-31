@@ -3,18 +3,17 @@ SCM.R GISS Model E      M. Kelley 10/2013
 Initial framework for truly single-column mode for Model E.
 
 This is a functioning rundeck, not a template (excepting the lines
-containing /path/to/user/directory/extractions - see notes below)
+containing  /path/to/user/directory/extractions - see notes below)
 
 SCM-irrelevant codes and input files are excluded.
 Template #includes should be refactored so that this exclusion happens automatically.
 
 SCM case: SGP Jan 2005
 For other cases, change one or more of the following as necessary:
-(1) SCMDATA_SGPCONT to another case-specific code (until this aspect is generalized)
-(2) SCM-specific forcing files SCMSRF, SCMLAY et al.
-(3) lon_targ, lat_targ, and files extracted from gridded data at lon_targ, lat_targ
+(1) SCM input variable namelist (SCM_NML) and SCM input files (SCM_PS, SCM_SFLUX, etc.)
+(2) SCM parameters SCM_lon, SCM_lat, and files extracted from gridded data at SCM_lon, SCM_lat
     See notes in the input files section on a pre-scripted extraction procedure etc.
-    nominal_area may also be changed.
+    SCM_area and other SCM parameters may also be changed.
 
 Preprocessor Options
 #define SCM
@@ -27,12 +26,9 @@ Object modules: (in order of decreasing priority)
 AtmL40 
 AtmRes
 
-SCM_COM
-SCM_DIAG
-SCMDATA_SGPCONT 
+SCM_COM SCM
 ATMDYN_SCM
 ATMDYN_SCM_EXT
-SCM_DIAG_COM
 
 CLOUDS_COM CLOUDS2 CLOUDS2_DRV
 
@@ -82,9 +78,19 @@ OPTS_giss_LSM = USE_ENT=YES
 
 Data input files:
 
-! Forcing for SGP case
-SCMSRF=SGP.surface.0501.dat
-SCMLAY=SGP.layer.0501.dat
+! SCM input files
+SCM_NML=SCM_ARM.nml                                 ! input variable namelist with units
+SCM_PS=sgp60varanarucC1.c1.20050101.000000.cdf      ! surface pressure
+SCM_SFLUX=sgp60varanarucC1.c1.20050101.000000.cdf   ! surface heat fluxes
+SCM_TSKIN=sgp60varanarucC1.c1.20050101.000000.cdf   ! skin temperature
+! if horizontal and geostrophic wind profiles are specified, horizontal are initial
+SCM_WIND=sgp60varanarucC1.c1.20050101.000000.cdf    ! horizontal wind profiles
+!SCM_GEO=sgp60varanarucC1.c1.20050101.000000.cdf     ! geostrophic wind profiles
+SCM_TEMP=sgp60varanarucC1.c1.20050101.000000.cdf    ! temperature profile(s)
+SCM_WVMR=sgp60varanarucC1.c1.20050101.000000.cdf    ! water vapor mixing ratio profile(s)
+SCM_OMEGA=sgp60varanarucC1.c1.20050101.000000.cdf   ! large-scale vertical wind
+!SCM_LS_V=sgp60varanarucC1.c1.20050101.000000.cdf    ! large-scale vert adv flux div profile(s)
+SCM_LS_H=sgp60varanarucC1.c1.20050101.000000.cdf    ! large-scale horiz adv flux div profile(s)
 
 ! The set of forcings for a particular SCM test case typically does not include
 ! all of the data required to run Model E.  Each line below of the form
@@ -195,7 +201,7 @@ GIC=/path/to/user/directory/extractions/GIC.144X90.DEC01.1.ext_2.nc
 
 ! All input files below this line are location-independent.
 
-GHG=GHG.Mar2009.txt
+GHG=GHG.Mar2004.txt
 RADN1=sgpgxg.table8
 RADN2=LWTables33k.1a
 RADN4=LWCorrTables33k
@@ -216,13 +222,14 @@ SCM (documenting the Single Column Model)
 
 &&PARAMETERS
 
-! Southern Great Plains Target Coordinates (degrees E/N).
-! lon_targ and lat_targ only affect the solar zenith angle and
-! corolis parameter (the latter is used in PBL parameterizations).
-lon_targ=-96.25
-lat_targ=37. 
-! nominal gridbox area (m2) from a 144x90 lon-lat grid at lat_targ
-nominal_area=49370385348.1287
+! SCM parameters
+SCM_lon=-96.25             ! Southern Great Plains site longitude (deg)
+SCM_lat=37.                ! Southern Great Plains site latitude (deg)
+SCM_area=49370385348.1287  ! nominal grid box area (m2) from 144x90 grid
+SCM_sfc=1                  ! 1:land,2:ocean
+SCM_z0m=0.0005             ! surface roughness height (m)
+SCM_alb=0.3                ! mid-visible surface albedo (-)
+SCM_tau=10800.             ! nudging time constant
 
 DTsrc=1800.     ! Atm. physics timestep.
 NIsurf=1        ! Number of surface physics timesteps per atm. physics timestep.
