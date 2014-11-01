@@ -28,5 +28,6 @@ ifneq ($(MPILIBDIR),)
   LIBS += -L$(MPILIBDIR)
 endif
 
-LIBS += -lm -ldl -lpmpich  -lmpich -lstdc++
+#LIBS += -ldl -lpmpich  -lmpich -lstdc++
+LIBS += -lpmpich -lmpich -lopa -lmpl -lpthread
 

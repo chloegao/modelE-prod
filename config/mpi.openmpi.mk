@@ -35,9 +35,10 @@ VER := $(subst ., ,$(word 4,$(shell $(MPIDIR)/bin/mpirun --version)))
 VER_MAJOR := $(word 1,$(VER))
 VER_MINOR := $(word 2,$(VER))
 ifneq (,$(filter 7 8,$(VER_MINOR)))
-LIBS += -lmpi_usempi -lmpi_mpifh -lmpi -lstdc++
+LIBS += -lmpi_mpifh -lmpi 
 else
-LIBS += -lmpi_f77 -lmpi -lmpi_cxx -lstdc++
+LIBS += -lmpi_f77 -lmpi
+# -lmpi_cxx - this library may be needed for ESMF (?)
 endif
 
 ifneq ($(shell uname),Darwin)
