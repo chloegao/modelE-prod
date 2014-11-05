@@ -2387,7 +2387,7 @@ CMoved to DAGCOM so it could be declared allocatable      REAL*8, SAVE, DIMENSIO
 #endif
 
       TPE_psum([grid%J_STRT_HALO,grid%J_STOP_HALO]) = UNDEF_VAL
-      TPE = UNDEF_VAL
+      TPE = 0.0d0 
 
       call getDomainBounds(GRID, J_STRT_SKP=J_0S   , J_STOP_SKP=J_1S,
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
