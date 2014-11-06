@@ -604,6 +604,13 @@ C****   RADIATION, AND CONDUCTION HEAT (WATTS/M**2) (positive down)
       EVHEAT=(LHE+TG1*SHV)*(RCDQWS*(QSRF-QG_SAT)+
      *                      RCDQDWS*pbl_args%qprime)
       TRHEAT=TRHR(0,I,J)-STBO*TR4
+#ifdef SCM
+      if( SCMopt%sflx )then
+C**** apply specified surface heat fluxes
+        SHEAT  = SCMin%shf
+        EVHEAT = SCMin%lhf
+      endif
+#endif
 
 C**** CASE (1) ! FLUXES USING EXPLICIT TIME STEP FOR OCEAN POINTS
       if ( ITYPE == 1) then
@@ -732,15 +739,6 @@ C**** calculate correction for different TG in radiation and surface
       !dLWDT = DTSURF*(TRSURF(ITYPE,I,J)-TRHR(0,I,J))+TRHDT
       dLWDT = DTSURF*(asflx(itype)%TRUP_in_rad(I,J)-TRHR(0,I,J))+TRHDT
 C**** final fluxes
-#ifdef SCM
-      if( SCMopt%sflx )then
-C**** apply specified surface fluxes
-        asflx(itype)%DTH1(I,J)=asflx(itype)%DTH1(I,J) +
-     &       SCMin%shf*DTSURF*ptype/(SHA*MA1)
-        asflx(itype)%DQ1(I,J)=asflx(itype)%DQ1(I,J) +
-     &       SCMin%lhf*DTSURF*ptype/(MA1*LHE)
-      endif
-#endif
       asflx(itype)%DTH1(I,J)=-(SHDT+dLWDT)/(SHA*MA1) ! +ve up
       asflx(itype)%sensht(i,j) = asflx(itype)%sensht(i,j)+SHDT
       asflx(itype)%DQ1(I,J) = -DQ1X
