@@ -155,7 +155,7 @@ def createScriptTask(config, deck, comp):
                         fileHandle.write (cmd)
 
         # Need the following module on DISCOVER to get python 2.7.x
-            fileHandle.write ('module load other/SSSO_Ana-PyD/SApd_1.8.0' + '\n')
+            fileHandle.write ('module load other/SSSO_Ana-PyD/SApd_2.1.0' + '\n')
         else:
             logger.warning('No modules in '+machine)
 
