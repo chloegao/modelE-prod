@@ -160,11 +160,12 @@ contains
 !! Treat convective clouds as a single cloud with max. overlap
 !! (using the same random number for the whole column)
 
-   clearmc = 1.
-   do l=1,lmax
-      clearmc = min (clearmc, 1. - cldmcl(l))
-   end do
-   if (clearmc < 0) clearmc = 0.
+   if( present(cldmcl) )then
+     do l=1,lmax
+        clearmc = min (clearmc, 1. - cldmcl(l))
+     end do
+     if (clearmc < 0) clearmc = 0.
+   endif
 
  !! Use random overlap for MC and SS cloud
     CldTot = 1 - clearss*clearmc
