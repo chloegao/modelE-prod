@@ -23,9 +23,9 @@ C-------------------------------------------------------------------------------
 
 !@var SCMoptions type for SCM setup options
       type SCMoptions
-        logical :: sflx,Tskin,Ps,z0m,alb
+        logical :: sflx,Tskin,Ps,z0m,ustar,alb
         logical :: wind,geo,temp,theta,wvmr,rh
-        logical :: omega,w,ls_v,ls_h,nudge
+        logical :: omega,w,VadvHwind,ls_v,ls_h,Qrad,nudge
         real*8 :: lat,lon,area,tau
         integer :: sfc
       end type SCMoptions
@@ -34,17 +34,20 @@ C-------------------------------------------------------------------------------
 !@var SCMopt%Tskin = T:use prescribed skin T for radiation
 !@var SCMopt%Ps = T:use prescribed surface pressure
 !@var SCMopt%wind = T:specify winds
-!@var SCMopt%geo = T:use geostrophic winds
+!@var SCMopt%geo = T:use geostrophic winds for Coriolis forcing
 !@var SCMopt%temp = T:specify absolute temperature
 !@var SCMopt%theta = T:specify potential temperature with 1000-mb ref
 !@var SCMopt%wvmr = T:specify water vapor mixing ratio
 !@var SCMopt%rh = T:specify relative rather than specific humidity
 !@var SCMopt%z0m = T:specify surface roughness height
+!@var SCMopt%ustar = T:specify surface friction speed
 !@var SCMopt%alb = T:specify surface mid-visible albedo
 !@var SCMopt%omega = T:specify omega for qv, theta vertical forcings
 !@var SCMopt%w = T:specify large-scale vertical wind
+!@var SCMopt%VadvHwind = T:vertical forcing of vertical wind (using Omega or W)
 !@var SCMopt%ls_v = T:specify qv and dry static energy / Cp vert adv flux divergence
 !@var SCMopt%ls_h = T:specify qv and dry static energy / Cp horiz adv flux divergence
+!@var SCMopt%Qrad = T:specify fixed radiative heating profile
 !@var SCMopt%nudge = T:nudge qv and T with timescale tau
 !@var SCMopt%lat,SCMopt%lon = SCM latitude and longitude
 !@var SCMopt%area = SCM nominal area (m2)
@@ -56,7 +59,8 @@ C-------------------------------------------------------------------------------
         real*8 U(LM),V(LM),Ug(LM),Vg(LM)
         real*8 T(LM),TH(LM),Q(LM),Omega(LM),W(LM)
         real*8 SadvV(LM),QadvV(LM),TadvH(LM),QadvH(LM)
-        real*8 time,lhf,shf,Tskin,Ps,z0m,alb
+        real*8 Qrad(LM)
+        real*8 time,lhf,shf,Tskin,Ps,z0m,ustar,alb
       end type SCMinputs
       type(SCMinputs) SCMin
 !@var SCMin%U SCM input zonal wind at GCM sigma levels (m/s)
@@ -71,12 +75,14 @@ C-------------------------------------------------------------------------------
 !@var SCMin%QadvV input water vapor mixing ratio vertical flux div at GCM sigma levels (kg/kg/s)
 !@var SCMin%TadvH input absolute T horizontal flux div at GCM sigma levels (K/s)
 !@var SCMin%QadvH input water vapor mixing ratio horizontal flux div at GCM sigma levels (kg/kg/s)
+!@var SCMin%Qrad input radiative heating rate profile at GCM sigma levels (W/m2)
 !@var SCMin%time SCM input time (d)
 !@var SCMin%lhf SCM input surface turbulent latent heat flux (W/m2)
 !@var SCMin%shf SCM input surface turbulent sensible heat flux (W/m2)
 !@var SCMin%Tskin SCM input surface skin temperature (K)
 !@var SCMin%Ps SCM input surface pressure (mb)
 !@var SCMin%z0m SCM input surface roughness height (m)
+!@var SCMin%ustar SCM input surface friction speed (m/s)
 !@var SCMin%alb SCM input surface albedo (-)
 
       end module SCM_COM
@@ -100,32 +106,54 @@ c     optional inputs
 
       SCMopt%temp = file_exists('SCM_TEMP')
       SCMopt%theta = file_exists('SCM_THETA')
+
       if( SCMopt%temp .and. SCMopt%theta ) call stop_model(
      &    'alloc_SCM_COM: specify either T or theta',255)
 
       SCMopt%omega = file_exists('SCM_OMEGA')
       SCMopt%w = file_exists('SCM_W')
+
       if( SCMopt%omega .and. SCMopt%W ) call stop_model(
-     &    'alloc_SCM_COM: specify either omega or wind',255)
+     &    'alloc_SCM_COM: specify either omega or vertical wind',255)
 
       SCMopt%ls_h = file_exists('SCM_LS_H')
       SCMopt%ls_v = file_exists('SCM_LS_V')
+
       if( ( SCMopt%omega .or. SCMopt%w ) 
      &    .and. SCMopt%ls_v ) call stop_model(
      &    'alloc_SCM_COM: specify vertical wind or forcings',255)
 
+      SCMopt%Qrad = file_exists('SCM_QRAD')
+
 c     0(default): surface is set by GCM input files in run deck
       call get_param('SCM_sfc',SCMopt%sfc,default=0)
 
-c     optional nudging, roughness, albedo
+c     optional nudging
       SCMopt%nudge = is_set_param('SCM_tau')
       if( SCMopt%nudge ) call get_param('SCM_tau',SCMopt%tau)
-      SCMopt%z0m = is_set_param('SCM_z0m')
-      if( SCMopt%z0m ) call get_param('SCM_z0m',SCMin%z0m)
+
+c     optional (gray) surface albedo
       SCMopt%alb = is_set_param('SCM_alb')
       if( SCMopt%alb ) call get_param('SCM_alb',SCMin%alb)
 
-      return
+c     optional surface roughness length for momentum
+      SCMopt%z0m = is_set_param('SCM_z0m')
+      if( SCMopt%z0m ) call get_param('SCM_z0m',SCMin%z0m)
+
+c     optional surface friction speed
+      SCMopt%ustar = is_set_param('SCM_ustar')
+      if( SCMopt%ustar ) call get_param('SCM_ustar',SCMin%ustar)
+
+      if( SCMopt%z0m .and. SCMopt%ustar ) call stop_model(
+     &    'alloc_SCM_COM: at most one of z0m or ustar',255)
+
+c     optional vertical forcing of horizontal winds
+      SCMopt%VadvHwind = is_set_param('SCM_VadvHwind')
+
+      if( SCMopt%VadvHwind .and.
+     &    .not. ( SCMopt%geo .and. ( SCMopt%omega .or. SCMopt%w ) ) )
+     &  call stop_model('alloc_SCM_COM: SCM_VadvHwind makes no sense')
+        
       end subroutine alloc_SCM_COM
 
 C--------------------------------------------------------------------------------

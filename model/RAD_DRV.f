@@ -1610,6 +1610,10 @@ c          use TRACER_COM, only: SNFST0,TNFST0
       use subdd_mod, only : sched_rad, subdd_groups, subdd_type
      &     ,subdd_ngroups,inc_subdd,find_groups, lmaxsubdd
 #endif
+#ifdef SCM
+      use SCM_COM, only : SCMopt,SCMin
+      USE CONSTANT, only : SHA
+#endif
       IMPLICIT NONE
 C
 C     INPUT DATA   partly (i,j) dependent, partly global
@@ -3029,6 +3033,18 @@ C**** (some generalisation and coherence needed in the rad surf type calc)
         SRHRS(LR,I,J)= SRFHRL(LM+LR)
         TRHRS(LR,I,J)=-TRFCRL(LM+LR)
       END DO
+#ifdef SCM
+c**** possibly turn off radiative heating in atmosphere
+c**** and use specified profile for thermal heating rate
+c**** converting units from K/s to W/m2
+      if( SCMopt%Qrad )then
+        SRHR(1:LM,I,J)=0.
+        TRHR(1:LM,I,J)=0.
+        SRHRS(1:LM_REQ,I,J)=0.
+        TRHRS(1:LM_REQ,I,J)=0.
+        TRHR(1:LM,I,J)=SCMin%Qrad(1:LM)*SHA*MA(1:LM,I,J)
+      endif
+#endif
 C**** Save fluxes at four levels surface, P0, P1, LTROPO
       SNFS(1,I,J)=SRNFLB(1)     ! Surface
       TNFS(1,I,J)=TRNFLB(1)
@@ -3658,6 +3674,21 @@ C****
         call inc_subdd(subdd,k,sddarr)
       case ('totcld')
         call inc_subdd(subdd,k,cfrac)
+      case ('totcld_diag')
+        do j=j_0,j_1; do i=i_0,imaxj(j)
+          call get_cld_overlap(lmax=lm,
+     &                         cldssl=cldss(:,i,j),
+     &                         cldmcl=cldmc(:,i,j),
+     &                         CldTot=sddarr(i,j))
+        enddo;        enddo
+        call inc_subdd(subdd,k,sddarr)
+      case ('cldss_2d')
+        do j=j_0,j_1; do i=i_0,imaxj(j)
+          call get_cld_overlap(lmax=lm,
+     &                         cldssl=cldss(:,i,j),
+     &                         CldTot=sddarr(i,j))
+        enddo;        enddo
+        call inc_subdd(subdd,k,sddarr)
       case ('wtrcld')
         call inc_subdd(subdd,k,WTRCLD)
       case ('icecld')
@@ -4597,6 +4628,22 @@ c
       arr(next()) = info_type_(
      &  sname = 'totcld',
      &  lname = 'Total Cloud Cover (as seen by rad)',
+     &  units = '%',
+     &  scale = 1d2,
+     &  sched = sched_rad
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'totcld_diag',
+     &  lname = 'Total Cloud Cover (continuous, not seen by rad)',
+     &  units = '%',
+     &  scale = 1d2,
+     &  sched = sched_rad
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'cldss_2d',
+     &  lname = 'Stratiform Cloud Cover',
      &  units = '%',
      &  scale = 1d2,
      &  sched = sched_rad

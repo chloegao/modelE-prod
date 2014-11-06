@@ -92,14 +92,14 @@ c     operate on absolute temperature
 
       do L = 1,LM
 
-c       fix winds if specified and not geostrophic
+c       fix winds if specified and no Coriolis acceleration
 
         if( SCMopt%wind .and. .not. SCMopt%geo )then
           U(1,1,L) = SCMin%U(L)
           V(1,1,L) = SCMin%V(L)
         endif
 
-c       apply large-scale forcing terms
+c       large-scale forcings
 
         if( SCMopt%omega .or. SCMopt%w )then
 c       *** apply omega defined at layer bottom to upwind gradient
@@ -203,7 +203,9 @@ C****
       enddo
 #endif
 
-c     Coriolis wind forcing
+c     when Coriolis forcing used (computed from geostrophic winds),
+c     also possibly apply vertical advection to horizontal winds
+
       if ( SCMopt%geo ) then
 
         f_cor = 2.*omega*sinlat2d(1,1)
@@ -213,8 +215,8 @@ c     Coriolis wind forcing
 
         do L = 1,LM
 
-          if( SCMopt%omega .or. SCMopt%w )then
-c         *** compute momentum forcing from resolved vertical wind
+          if( SCMopt%VadvHwind )then
+c         *** apply omega defined at layer bottom to upwind gradient
 
             if ( L < LM ) then ! omega assumed zero at top of layer LM
               if ( SCMin%Omega(L+1) > 0. ) then ! upwind gradient above
@@ -239,7 +241,7 @@ c         *** compute momentum forcing from resolved vertical wind
             endif
           endif
 
-c         apply forcings, including Coriolis
+c         apply combined forcings to horizontal winds
           U(1,1,L) = U(1,1,L) +
      &      ( SCM_ver_u_adv(L) +
      &        f_cor*(V(1,1,L)-SCMin%Vg(L)) )*dtsrc
@@ -248,7 +250,7 @@ c         apply forcings, including Coriolis
      &        f_cor*(U(1,1,L)-SCMin%Ug(L)) )*dtsrc
 
         enddo      ! L = 1,LM
-      endif        ! use Coriolis
+      endif        ! use geostrophic winds for Coriolis forcing
 
       return
       END SUBROUTINE SCM_FORCN 

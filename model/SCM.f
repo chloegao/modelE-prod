@@ -26,6 +26,7 @@ C-------------------------------------------------------------------------------
       type(SCMin_tProfile) SCMin_tOmega,SCMin_tW
       type(SCMin_tProfile) SCMin_tSadvV,SCMin_tQadvV
       type(SCMin_tProfile) SCMin_tTadvH,SCMin_tQadvH
+      type(SCMin_tProfile) SCMin_tQrad
 
 !@var SCMin_tSscalar structured type for SCM input scalars
       type SCMin_tScalar
@@ -86,6 +87,15 @@ C-------------------------------------------------------------------------------
       end type SCMnml_type
       type(SCMnml_type), dimension(:), allocatable :: SCMreadNML
 
+! constant parameters used for SCM
+
+!@param SCMp_zero   set to zero above topmost input level
+!@param SCMp_const  extend upward using the topmost input level 
+!@param SCMp_append append McClatchey et al. (1972) above topmost input level
+      integer, parameter :: SCMp_zero   = 0,
+     &                      SCMp_const  = 1,
+     &                      SCMp_append = 2
+
       end module SCM_mod
 
 C-------------------------------------------------------------------------------
@@ -101,10 +111,9 @@ C-------------------------------------------------------------------------------
       use ghy_com, only : FEARTH
       use lakes_com, only : FLAKE
       use radpar, only : KEEPAL
-      use constant, only : LHE,TF
+      use constant, only : TF
       implicit none
       integer L
-      real*8, external :: QSAT
 
 c     report initialization
       write(6,*) 'SCM initializing ... '
@@ -175,7 +184,6 @@ C-------------------------------------------------------------------------------
 
       use SCM_com, only : SCMopt
       use SCM_mod
-      use constant, only : tf
       implicit none
 
 c     read variable namelist, which provides input file variable names
@@ -213,7 +221,7 @@ c     specified atmospheric water vapor (kg/kg)
         call read_SCM_profile('SCM_WVMR','Q',SCMin_tQ)
       endif
 
-c     specified horizontal winds and/or geostrophic winds (m/s)
+c     initial horizontal and geostrophic winds (m/s)
       if( SCMopt%wind )then
         call read_SCM_profile('SCM_WIND','U',SCMin_tU)
         call read_SCM_profile('SCM_WIND','V',SCMin_tV)
@@ -240,6 +248,11 @@ c     and water vapor (kg/kg/s)
       if( SCMopt%ls_h )then
         call read_SCM_profile('SCM_LS_H','TadvH',SCMin_tTadvH)
         call read_SCM_profile('SCM_LS_H','QadvH',SCMin_tQadvH)
+      endif
+
+c     specified radiative heating rate profile (K/s)
+      if( SCMopt%Qrad )then
+        call read_SCM_profile('SCM_QRAD','Qrad',SCMin_tQrad)
       endif
 
       end subroutine read_SCM_inputs
@@ -461,7 +474,7 @@ c     interpolate from read times to input times, extrapolate if needed
      &              (SCMread_time(it_read+1)-SCMread_time(it_read))
               ft1 = 1. - ft2
               SCMin_tS%value(it_SCM-1) = ft1*SCMreadXt%value(it_read) +
-     &                                 ft2*SCMreadXt%value(it_read+1)
+     &                                   ft2*SCMreadXt%value(it_read+1)
               exit
             endif
           enddo
@@ -700,24 +713,29 @@ c     interpolate from read times to input times, extrapolate if needed
 
 C-------------------------------------------------------------------------------
 
-      subroutine interp_p_SCM_profile(SCMin_tP,SCMinP,model_vname)
+      subroutine interp_p_SCM_profile(SCMin_tP,SCMinP,model_vname,
+     &                                i_above)
       ! interpolate from input profile grid to GCM vertical grid
-      ! (input profiles already interpolated to SCM time steps), and
-      ! append climatological values of water vapor and temperature
-      ! above top of input profiles but do not allow potential temperature
-      ! to decrease with height (or lapse rate to exceed dry adiabat)
+      ! (input profiles already interpolated to SCM time steps);
+      ! treatment above input grid depends on i_above;
+      ! force potential temperature to modestly increase with height 
       ! in the appended layers
 
-      use SCM_com, only : nstepSCM
+      use SCM_com, only : nstepSCM, SCMin
       use SCM_mod
+      use constant, only : LHE
       use resolution, only : LM
       use atm_com, only : PMID,PEDN,PK
       implicit none
       character(len=*), intent(in) :: model_vname
       type(SCMin_tProfile), intent(in) :: SCMin_tP
       real*8, intent(inout) :: SCMinP(LM)
+      integer, intent(in) :: i_above
       real*8 Pedge(LM+1),fp1,fp2,dPsum,dPadd,dPtot
+      real*8 rh_below,th_min
+      real*8, parameter :: stab_min = 0.02 ! minimum appended dth/dp (K/mb)
       integer Lgcm,Ldata,Lbot,Ltop,Ladd
+      real*8, external :: QSAT
 
 c     interpolate from pressure grid
 
@@ -734,8 +752,19 @@ c     loop over GCM pressure layers
           ! use lowest specfied value if GCM layer edge is lower
             SCMinP(Lgcm) = SCMin_tP%value(nstepSCM,1)
           else if( Pedge(Lgcm) < SCMin_tP%L(SCMin_tP%nlev) )then
-          ! set to zero if GCM layer edge is above specified inputs
-            SCMinP(Lgcm) = 0.
+          ! GCM layer top is at least partly above input data top
+          ! (neglect contribution from input data)
+          ! fill overlying data according to i_above
+            select case (i_above)
+            case (SCMp_zero) 
+              SCMinP(Lgcm) = 0.
+            case (SCMp_const)
+              SCMinP(Lgcm) = SCMinP(Lgcm-1)
+            case default
+              print*,'stop in interp_p_SCM_profile: invalid i_above=',
+     &                i_above
+              call stop_model('invalid i_above in append_SCM_profile')
+            end select
           else
           ! otherwise interpolate
             do Ldata = 1,SCMin_tP%nlev-1
@@ -779,47 +808,63 @@ c         variable-dependent treatment in GCM layers above
             do Ladd = Lbot,Ltop
               if( Ladd==Lbot )then
                 dPadd = Pedge(Lgcm) - SCMin_tP%Le(Ladd+1)
-                dPtot = dPtot + dPadd
-                dPsum = dPsum + dPadd*SCMin_tP%value(nstepSCM,Ladd)
               else if( Ladd==Ltop )then
                 dPadd = SCMin_tP%Le(Ladd) - Pedge(Lgcm+1)
-                dPtot = dPtot + dPadd
-                dPsum = dPsum + dPadd*SCMin_tP%value(nstepSCM,Ladd)
               else
                 dPadd = SCMin_tP%Le(Ladd) - SCMin_tP%Le(Ladd+1)
-                dPtot = dPtot + dPadd
-                dPsum = dPsum + dPadd*SCMin_tP%value(nstepSCM,Ladd)
               endif
+              dPtot = dPtot + dPadd
+              dPsum = dPsum + dPadd*SCMin_tP%value(nstepSCM,Ladd)
             enddo
             SCMinP(Lgcm) = dPsum/dPtot
           else
           ! GCM layer top is at least partly above input data top
           ! (neglect contribution from input data)
-            if( model_vname=='U' ) SCMinP(Lgcm) = SCMinP(Lgcm-1)
-            if( model_vname=='V' ) SCMinP(Lgcm) = SCMinP(Lgcm-1)
-            if( model_vname=='Q' )then
-              call append_SCM_profile(PMID(Lgcm,1,1),SCMinP(Lgcm),'Q')
-            endif
-            if( model_vname=='T' )then
-              call append_SCM_profile(PMID(Lgcm,1,1),SCMinP(Lgcm),'T')
-              ! potential temperature cannot decrease with height
-              SCMinP(Lgcm) = PK(Lgcm,1,1)*
-     &            max(SCMinP(Lgcm)  /PK(Lgcm,1,1),
-     &                SCMinP(Lgcm-1)/PK(Lgcm-1,1,1))
-            endif
-            if( model_vname=='TH' )then
-              call append_SCM_profile(PMID(Lgcm,1,1),SCMinP(Lgcm),'TH')
-              ! potential temperature cannot decrease with height
-              SCMinP(Lgcm) = max(SCMinP(Lgcm),SCMinP(Lgcm-1))
-            endif
-            if( model_vname=='SadvV' ) SCMinP(Lgcm) = 0.
-            if( model_vname=='QadvV' ) SCMinP(Lgcm) = 0.
-            if( model_vname=='TadvH' ) SCMinP(Lgcm) = 0.
-            if( model_vname=='QadvH' ) SCMinP(Lgcm) = 0.
-          endif
+          ! fill overlying data according to i_above
+            select case (i_above)
+            case (SCMp_zero) 
+              SCMinP(Lgcm) = 0.
+            case (SCMp_const)
+              SCMinP(Lgcm) = SCMinP(Lgcm-1)
+            case (SCMp_append)
+              call append_SCM_profile(PMID(Lgcm,1,1),SCMinP(Lgcm),
+     &                                model_vname)
+            case default
+              print*,'stop in interp_p_SCM_profile: no such i_above=',
+     &                i_above
+              call stop_model('bad i_above in append_SCM_profile')
+            end select
 
-        endif ! linear or pressure-weighted interpolation
-      enddo   ! loop over GCM pressure layers
+c          force potential temperature to modestly increase with height
+c          in an attempt to avoid triggering moist convection
+
+           if( model_vname=='T' )then
+             th_min = SCMinP(Lgcm-1)/PK(Lgcm-1,1,1) +
+     &                stab_min*(pmid(Lgcm-1,1,1)-pmid(Lgcm,1,1))
+             SCMinP(Lgcm) = PK(Lgcm,1,1)*
+     &          max(SCMinP(Lgcm)/PK(Lgcm,1,1),th_min)
+           endif
+           if( model_vname=='TH' )then
+             th_min = SCMinP(Lgcm-1) +
+     &                stab_min*(pmid(Lgcm-1,1,1)-pmid(Lgcm,1,1))
+             SCMinP(Lgcm) = max(SCMinP(Lgcm),th_min)
+           endif
+
+c          prevent relative humidity from increasing with height
+c          (requires this routine to be called for T before Q,
+c          for which there is no check)
+
+           if( model_vname=='Q' )then
+             rh_below = SCMinP(Lgcm-1)/
+     &          QSAT(SCMin%T(Lgcm-1),LHE,PMID(Lgcm-1,1,1))
+             SCMinP(Lgcm) = min( SCMinP(Lgcm),
+     &          rh_below*QSAT(SCMin%T(Lgcm),LHE,PMID(Lgcm,1,1)) )
+           endif
+
+          endif ! GCM layer top at least partly above input data top
+
+        endif   ! linear or pressure-weighted interpolation
+      enddo     ! loop over GCM pressure layers
 
       end subroutine interp_p_SCM_profile
 
@@ -864,9 +909,18 @@ c     find closest match from season and latitude options
 
       call PHATMO(P_layer,H,D,T,O,Q,S,OCM,WCM,NPHD,NATM)
 
-      if( model_vname .eq. 'Q' ) X_value = Q
-      if( model_vname .eq. 'T' ) X_value = T
-      if( model_vname .eq. 'TH' ) X_value = T/(P_layer/1000.)**KAPA
+      select case (model_vname)
+      case ('Q') 
+        X_value = Q
+      case ('T') 
+        X_value = T
+      case ('TH') 
+        X_value = T/(P_layer/1000.)**KAPA
+      case default
+        print*,'variable not available in append_SCM_profile:',
+     &          model_vname
+        call stop_model('no such variable in append_SCM_profile')
+      end select
 
       end subroutine append_SCM_profile
 
@@ -907,38 +961,39 @@ c     specified skin temperature
 
 c     specified temperature or potential temperature with 1000-mb ref
       if( SCMopt%temp )then
-        call interp_p_SCM_profile(SCMin_tT,SCMin%T,'T')
+        call interp_p_SCM_profile(SCMin_tT,SCMin%T,'T',SCMp_append)
       endif
       if( SCMopt%theta )then
-        call interp_p_SCM_profile(SCMin_tTH,SCMin%TH,'TH')
+        call interp_p_SCM_profile(SCMin_tTH,SCMin%TH,'TH',SCMp_append)
         do L = 1,LM
           SCMin%T(L) = SCMin%TH(L)*(PMID(L,1,1)/1000.)**KAPA
         enddo
       endif
 
 c     specified water vapor mixing ratio
+c     (this call needs SCMin%T to be current)
       if( SCMopt%wvmr )then
-        call interp_p_SCM_profile(SCMin_tQ,SCMin%Q,'Q')
+        call interp_p_SCM_profile(SCMin_tQ,SCMin%Q,'Q',SCMp_append)
       endif
 
-c     specified winds: if horizontal winds and geostrophic winds
-c     are both specified, former will be used only for initialization
+c     initial horizontal and geostrophic winds
       if( SCMopt%wind )then
-        call interp_p_SCM_profile(SCMin_tU,SCMin%U,'U')
-        call interp_p_SCM_profile(SCMin_tV,SCMin%V,'V')
+        call interp_p_SCM_profile(SCMin_tU,SCMin%U,'U',SCMp_const)
+        call interp_p_SCM_profile(SCMin_tV,SCMin%V,'V',SCMp_const)
       endif
       if( SCMopt%geo )then
-        call interp_p_SCM_profile(SCMin_tUg,SCMin%Ug,'Ug')
-        call interp_p_SCM_profile(SCMin_tVg,SCMin%Vg,'Vg')
+        call interp_p_SCM_profile(SCMin_tUg,SCMin%Ug,'Ug',SCMp_const)
+        call interp_p_SCM_profile(SCMin_tVg,SCMin%Vg,'Vg',SCMp_const)
       endif
 
 c     large-scale forcing terms
 c     vertical velocity always applied through omega, in pressure units (mb/s)
       if( SCMopt%omega )then
-        call interp_p_SCM_profile(SCMin_tOmega,SCMin%Omega,'Omega')
+        call interp_p_SCM_profile(SCMin_tOmega,SCMin%Omega,'Omega',
+     &                            SCMp_zero)
       endif
       if( SCMopt%w )then
-        call interp_p_SCM_profile(SCMin_tW,SCMin%W,'W')
+        call interp_p_SCM_profile(SCMin_tW,SCMin%W,'W',SCMp_zero)
         do L = 1,LM
           SCMin%Omega(L) = -SCMin%W(L)*GRAV*PMID(L,1,1)/
      &                      (RGAS*T(1,1,L)*PK(L,1,1))
@@ -946,15 +1001,20 @@ c     vertical velocity always applied through omega, in pressure units (mb/s)
       endif
       if( SCMopt%ls_v )then
         call interp_p_SCM_profile(SCMin_tSadvV,SCMin%SadvV,
-     &                           'SadvV')
+     &                           'SadvV',SCMp_zero)
         call interp_p_SCM_profile(SCMin_tQadvV,SCMin%QadvV,
-     &                           'QadvV')
+     &                           'QadvV',SCMp_zero)
       endif
       if( SCMopt%ls_h )then
         call interp_p_SCM_profile(SCMin_tTadvH,SCMin%TadvH,
-     &                           'T_adv_h')
+     &                           'T_adv_h',SCMp_zero)
         call interp_p_SCM_profile(SCMin_tQadvH,SCMin%QadvH,
-     &                           'QadvH')
+     &                           'QadvH',SCMp_zero)
+      endif
+
+      if( SCMopt%Qrad )then
+        call interp_p_SCM_profile(SCMin_tQrad,SCMin%Qrad,
+     &                           'Qrad',SCMp_zero)
       endif
 
       end subroutine update_SCM_inputs
