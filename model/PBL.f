@@ -1460,18 +1460,10 @@ c *********************************************************************
 !@+  It is called from within subroutine dflux.
 !!*** remove z0min for original HR97 code
 
-#ifdef SCM
-      use SCM_COM, only : SCMopt,SCMin
-#endif
       implicit none
       real*8, intent(in) :: ustar,z0m,ScPr,z0min,nu
       real*8, intent(out) :: z0hq
       real*8 r0q,beta,fac_smooth_ScPr,fac_rough_ScPr
-
-#ifdef SCM
-      if( SCMopt%z0m ) z0hq=SCMin%z0m ! specified roughness length
-      return
-#endif
 
 C**** functional dependence on Sc,Pr for smooth, rough surfaces
       fac_smooth_ScPr = 30.*exp(-13.6d0*kappa*ScPr**twoby3)
