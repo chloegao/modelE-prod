@@ -606,9 +606,9 @@ C****   RADIATION, AND CONDUCTION HEAT (WATTS/M**2) (positive down)
       TRHEAT=TRHR(0,I,J)-STBO*TR4
 #ifdef SCM
       if( SCMopt%sflx )then
-C**** apply specified surface heat fluxes
-        SHEAT  = SCMin%shf
-        EVHEAT = SCMin%lhf
+C**** impose specified surface heat fluxes
+        SHEAT  = -SCMin%shf
+        EVHEAT = -SCMin%lhf
       endif
 #endif
 
@@ -646,6 +646,15 @@ C**** CASE (2) ! FLUXES USING IMPLICIT TIME STEP FOR ICE POINTS
         SHDT  = DTSURF*(SHEAT +dTG*dSNdTG) ! sensible
         EVHDT = DTSURF*(EVHEAT+dTG*dEVdTG) ! latent
         TRHDT = DTSURF*(TRHEAT+dTG*dTRdTG) ! thermal flux (J/m^2)
+#ifdef SCM
+        if( SCMopt%sflx )then
+C****** impose specified surface heat fluxes (again)
+          SHEAT  = -SCMin%shf ! redundant
+          EVHEAT = -SCMin%lhf
+          SHDT   = DTSURF*SHEAT
+          EVHDT  = DTSURF*EVHEAT
+        endif
+#endif
         F1DT = DTSURF*(F1+(dTG*dF1dTG-dT2*dF1dTG))
         TG1 = TG1+dTG          ! first layer sea ice temperature (degC)
         TG2 = TG2+dT2          ! second layer sea ice temperature (degC)
