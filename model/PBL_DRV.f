@@ -65,6 +65,9 @@
       USE AMP_AEROSOL, only : DIAM, AMP_dens,AMP_TR_MM
       USE AERO_SETUP,  only : CONV_DPAM_TO_DGN
 #endif
+#ifdef SCM
+      USE SCM_COM, only : SCMopt,SCMin
+#endif
 
       use SOCPBL, only : npbl=>n, zgs, advanc
       USE PBLCOM
@@ -364,6 +367,14 @@ c    &     pbl_args%TGV = 1.0001d0*pbl_args%TGV
      &       (atm%dep_vel(n,i,j)+atm%gs_vel(n,i,j)) ! kg/m2
       enddo
 #endif
+#endif
+
+#ifdef SCM
+      if ( SCMopt%geo .and. SCMopt%ustar ) then
+c**** force friction speed and surface drag coefficient
+        pbl_args%ustar = SCMin%ustar
+        pbl_args%cm = (SCMin%ustar/pbl_args%ws)**2
+      endif
 #endif
 
       atm%cmgs(i,j)=pbl_args%cm
