@@ -455,6 +455,15 @@ c      F1DT=0.
         SHDT=DTSURF*(SHEAT+DTG*DSHDTG)
         EVHDT=DTSURF*(EVHEAT+DTG*DEVDTG)
         TRHDT=DTSURF*(TRHEAT+DTG*DTRDTG)
+#ifdef SCM
+        if( SCMopt%sflx )then
+C****** impose specified surface heat fluxes
+          SHEAT  = -SCMin%shf
+          EVHEAT = -SCMin%lhf
+          SHDT   = DTSURF*SHEAT
+          EVHDT  = DTSURF*EVHEAT
+        endif
+#endif
         F1DT=DTSURF*(TG1-CDTERM-(F0+DTG*DFDTG)*Z1BY6L)*CDENOM
         TG1=TG1+DTG
 
@@ -515,13 +524,6 @@ C**** ACCUMULATE SURFACE FLUXES AND PROGNOSTIC AND DIAGNOSTIC QUANTITIES
 C**** calculate correction for different TG in radiation and surface
       dLWDT = DTSURF*(igla%TRUP_in_rad(I,J)-igla%flong(I,J))+TRHDT
 C**** final fluxes
-#ifdef SCM
-      if( SCMopt%sflx )then
-c**** may apply specified SCM sensible and latent heat fluxes
-        igla%DTH1(I,J)=igla%DTH1(I,J)+SCMin%shf*DTSURF*ptype/(SHA*MA1)
-        igla%DQ1(I,J)=igla%DQ1(I,J)+SCMin%lhf*DTSURF*ptype/(MA1*LHE)
-      endif
-#endif
       igla%DTH1(I,J)=-(SHDT+dLWDT)/(SHA*MA1) ! +ve up
       igla%sensht(i,j) = igla%sensht(i,j)+SHDT
       igla%DQ1(I,J) = -DQ1X
