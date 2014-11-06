@@ -1321,8 +1321,15 @@ c**** wearth+aiearth are used in radiation only
 
 #ifdef SCM
       if( SCMopt%Tskin )then
+c**** force ground temperature
         atmlnd%gtemp(i,j) = SCMin%Tskin - tf
         atmlnd%gtempr(i,j) = SCMin%Tskin
+      endif
+      if( SCMopt%sflx )then
+C**** impose specified surface heat fluxes
+        ashg  = SCMin%shf*pbl_args%dtsurf
+        alhg  = SCMin%lhf*pbl_args%dtsurf
+        aevap = SCMin%lhf*pbl_args%dtsurf/lhe
       endif
 #endif
 c**** calculate fluxes using implicit time step for non-ocean points
@@ -1336,24 +1343,10 @@ C**** calculate correction for different TG in radiation and surface
       dLWDT = pbl_args%dtsurf*
      &     (atmlnd%TRUP_in_rad(I,J) - STBO*(tearth(i,j)+TF)**4)
 
-#ifdef SCM
-c     may use specified sensible and latent heat fluxes
-      if( SCMopt%sflx )then
-        atmlnd%dth1(i,j)=atmlnd%dth1(i,j)
-     &       +SCMin%shf*pbl_args%dtsurf*ptype/(sha*ma1)
-        atmlnd%dq1(i,j) =atmlnd%dq1(i,j)
-     &       +SCMin%lhf*pbl_args%dtsurf*ptype/(ma1*lhe)
-      else
-        atmlnd%dth1(i,j)=atmlnd%dth1(i,j)-(SHDT+dLWDT)*
-     &       ptype/(sha*ma1)
-        atmlnd%dq1(i,j) =atmlnd%dq1(i,j)+aevap*ptype/ma1
-      endif
-#else
       atmlnd%dth1(i,j)=-(SHDT+dLWDT)/(sha*ma1)
       atmlnd%dq1(i,j) = aevap/ma1
       atmlnd%sensht(i,j) = atmlnd%sensht(i,j)+SHDT
       atmlnd%latht(i,j) = atmlnd%latht(i,j) + EVHDT
-#endif
   !    qsavg(i,j)=qsavg(i,j)+qs*ptype
 
 c**** save runoff for addition to lake mass/energy resevoirs
