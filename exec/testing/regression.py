@@ -35,139 +35,161 @@ import subprocess
 import logging
 import ConfigParser
 
+""" 
+  This class assigns settings used to test a given rundeck 
 """
-  This class defines a configuration object for each modelE runSource.
-  The properties of this object are specified in the configuration options.
+class RunSourceProperties:
+    def __init__(self, sourceName='nonProduction_E_AR5_C12'):
+        # Initialize with defaults
+        if sourceName:
+            self.name      = sourceName
+        else:
+            self.name      = 'nonProduction_E_AR5_C12'
+        self.compiler      = 'gfortran'
+        self.compilerFlags = 'debug'
+        self.modes         = 'serial,mpi'
+        self.npes          = '1,4'
+        self.modeList      = []
+        self.npList        = []
+        self.branch        = 'master'
+        self.updateBase    = 'no'
+        self.modelerc      = os.environ['HOME']+'/.modelErc'
+        self.baseDir       = '.'
+        self.resultsDir    = '.'
+        self.decksDir      = '.'
+        # Now override defaults with values specified in config file
+        getConfigFile(self)
+
+        
 """
-class configuration:
-    def __init__(self, runSrc, mode, comp):
-        runShort = runSrc
-        if 'nonProduction' in runSrc:
-            runShort = runSrc[14:]
-        run = runShort+'.'+ mode+'.'+ comp
-        self.run = run
-        self.runShort = runShort
-        self.mode = mode
+  This class defines, among other things, a rundecks's run time options
+  passed to the the makefile.
+"""
+class Arun():
+    def __init__(self, rundeck, mode):
+        # Arun has-a rundeck
+        self.runsrc = rundeck
+        shortName = rundeck.name
+        if 'nonProduction' in rundeck.name:
+            shortName = rundeck.name[14:]
+        self.name = shortName+'.'+mode+'.'+rundeck.compiler
+        self.runCmd = 'RUN='+self.name
+        self.runSrcCmd = 'RUNSRC='+rundeck.name
         if mode == 'serial':
+            self.mode = 'serial'
             self.modeCmd = 'MPI=NO'
         else:
+            self.mode = 'mpi'
             self.modeCmd = 'MPI=YES'
-        self.runSrc = runSrc
-        self.runCmd = 'RUN='+run
-        self.runSrcCmd = 'RUNSRC='+runSrc 
-        self.opts = ' '
-        if compOpts == 'debug':
+        self.xflags = ' '
+        if rundeck.compilerFlags == 'debug':
             flags='"-O0 -g"'
-            self.opts += 'EXTRA_FFLAGS='+flags
-        elif compOpts == 'traps':
-            self.opts += 'COMPILE_WITH_TRAPS=YES'
-        self.results =  [runShort, comp, mode, ' - ', ' - ', ' - ', ' - ']
+            self.xflags += 'EXTRA_FFLAGS='+flags
+        elif rundeck.compilerFlags == 'traps':
+            self.xflags += 'COMPILE_WITH_TRAPS=YES'
+        self.results = [shortName, rundeck.compiler, mode, 
+                        ' - ', ' - ', ' - ', ' - ']
+        self.successMark   = '+'
+        self.failMark      = 'F'
+
+    # A subprocess call that, upon failure rc<>=0, raises an exception.
+    # Class membership for this function is one of convenience: need runSource 
+    # and Arun data (resultsDir and name)
+    def sysCmd(self, commandString):
+        logger = logging.getLogger('SYSTEM  ')
+        if debug:
+            logger.debug(commandString)
+        else:
+            logger.debug(commandString)
+            makeLog = self.runsrc.resultsDir + '/'  + self.name + '-make.log'            
+            with open(makeLog,'a') as f:
+                status = subprocess.call(commandString, \
+                                         stdout=f, stderr=f, shell=True)
+            logger.debug('Return code: ' + str(status))
+            if (status != 0):
+                raise Exception('unix', commandString)
+
 
 """
-  Read options from a config file for each modelE runSource
-  configuration. If no file is available then use some sensible
-  defaults.
-  TODO: This should be a class, in order to avoid all the globals.
+  Read options from a config file for each modelE rundeck configuration
+  If no file is available then use some reasonable defaults.
 """
-def readConfig(rundeck):
-    global debug
-    global npList
-    global modeList
-    global compiler
-    global compOpts
-    global baseDir
-    global resdir
-    global deck
-    global branch
-    global decksDir
-    global updBase
-    global successMark
-    global failMark
+def getConfigFile(rundeck):
 
-    successMark = '+'
-    failMark    = 'F'
-
-    # Expect to find a configuration file MYCONFIGDIR directory
+    # If MYCONFIGDIR is defined get configuration file from there
     if os.environ.has_key('MYCONFIGDIR'):
         myConfigDir = os.environ['MYCONFIGDIR']
-    else:
-        myConfigDir = './'
+    else: # it is in the current directory
+        myConfigDir = '.'
 
-    configfile = myConfigDir + '/' + rundeck + '.cfg'
+    configfile = myConfigDir + '/' + rundeck.name + '.cfg'
     if os.path.isfile(configfile):
         config = ConfigParser.RawConfigParser()
         config.read(configfile)
-    # If there is no config file create default options
-    else:
+        rundeck.name      = config.get('regSettings', 'rundeck')
+        rundeck.compiler  = config.get('regSettings', 'compiler')
+
+        rundeck.modes     = config.get('regSettings', 'modes')
+        rundeck.npes      = config.get('regSettings', 'nplist')
+        rundeck.compilerFlags  = config.get('regSettings', 'compflags')
+        rundeck.baseDir   = config.get('regSettings', 'basedir')
+        # branch is needed to select correct basedir files
+        rundeck.branch    = config.get('regSettings', 'branch')
+        rundeck.updateBase   = config.get('regSettings', 'updatebase')
+        rundeck.resultsDir    = config.get('regSettings', 'resultsdir')
+        rundeck.decksDir  = config.get('regSettings','decksdir')
+    
+    else: # There is no config file, so use default options
         config = ConfigParser.RawConfigParser()
         config.add_section('regSettings')
-        if rundeck == 'nonProduction_E_AR5_C12':
-            config.set('regSettings', 'rundeck'   ,'nonProduction_E_AR5_C12')
-        else:
-            config.set('regSettings', 'rundeck'   ,rundeck)
+        # Use defaults
+        config.set('regSettings', 'rundeck'   , rundeck.name)
+        config.set('regSettings', 'compiler'  , rundeck.compiler)
+        config.set('regSettings', 'modes'     , rundeck.modes)
+        config.set('regSettings', 'nplist'    , rundeck.npList)
+        config.set('regSettings', 'compflags' , rundeck.compilerFlags)
+        config.set('regSettings', 'branch'    , rundeck.branch)
+        config.set('regSettings', 'basedir'   , rundeck.baseDir)
+        config.set('regSettings', 'updatebase', rundeck.updateBase)
+        config.set('regSettings', 'resultsdir', rundeck.resultsDir)
+        config.set('regSettings', 'decksdir'  , rundeck.decksDir)
 
-        config.set('regSettings', 'modelerc'  , os.environ['HOME']+'/.modelErc')
-        config.set('regSettings', 'compiler'  ,'gfortran')
-        config.set('regSettings', 'modes'     ,'serial,mpi')
-        config.set('regSettings', 'nplist'    ,'1,4')
-        config.set('regSettings', 'compflags' ,'default')
-        config.set('regSettings', 'branch'    ,'master')
-        config.set('regSettings', 'basedir'   ,'.')
-        config.set('regSettings', 'updatebase','no')
-        config.set('regSettings', 'resultsdir','.')
-        config.set('regSettings', 'decksdir'  ,'.')
+    # If defined, use modelErc from environment
+    if os.environ.has_key('MODELERC'):
+        rundeck.modelerc = os.environ['MODELERC']
+    else:
+        os.environ['MODELERC'] = config.get('regSettings', 'modelerc')
 
-    deck      = config.get('regSettings','rundeck')
-    compiler  = config.get('regSettings','compiler')
-
-    modes     = config.get('regSettings','modes')
-    modeList = []
-    for mode in modes.split(','):
+    # Additional postprocessing
+    for mode in rundeck.modes.split(','):
         if mode == 'serial' or mode == 'mpi':
-            modeList.append(mode)
+            rundeck.modeList.append(mode)
         # Terminate job if there is a non-permitted mode
         else:
             print ' *** Incorrect mode *** ' + mode
             sys.exit(1)
 
-    npes      = config.get('regSettings','nplist')
-    npList = []
-    for np in npes.split(','):
-        npList.append(np)
-    compOpts  = config.get('regSettings','compflags')
-    baseDir   = config.get('regSettings','basedir')
-    # branch is needed to select correct basedir files
-    branch    = config.get('regSettings','branch')
-    updBase   = config.get('regSettings','updatebase')
-    resdir    = config.get('regSettings','resultsdir')
-    decksDir  = config.get('regSettings','decksdir')
+    for np in rundeck.npes.split(','):
+        rundeck.npList.append(np)
 
     # In order to avoid errors in compareBase() when running with
     # default options:
-    if baseDir != '.':
-        baseDir =  baseDir + '/' + branch + '/' + compiler
+    if rundeck.baseDir != '.':
+        rundeck.baseDir =  rundeck.baseDir + '/' + rundeck.branch + '/' \
+        + rundeck.compiler
 
-    if os.environ.has_key('MODELERC'):
-        modelerc = os.environ['MODELERC']
-    else:
-        modelerc  = config.get('regSettings','modelerc')
-        os.environ['MODELERC'] = modelerc
-
-    if os.environ.has_key('DEBUG'):
-        debug = os.environ['DEBUG']
-    else:
-        debug = False
-
+        
 """
-  Setup a logging object for each run. Note that the output file gets
-  all the logging output while STDOUT only gets logging INFO in order
-  to minimize verbosity.
+  Setup a logging object for each rundeck. Note that the output file gets
+  all the logging output while STDOUT only gets logging INFO in order to
+  minimize verbosity.
 """
-def setupLogging():
+def setupLogging(rundeck):
     logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
                     datefmt='%m-%d %H:%M',
-                    filename=resdir+'/'+deck+'-regression.log',
+                    filename=rundeck.resultsDir+'/'+rundeck.name
+                             +'-regression.log',
                     filemode='w')
     stdoutLog = logging.StreamHandler(sys.stdout)
     formatter = logging.Formatter('%(name)s : %(message)s')
@@ -177,103 +199,74 @@ def setupLogging():
     logger.addHandler(stdoutLog)
 
 """
-  Define a subprocess call where we can capture/evaluate stderr output
+  Test if an executable program exists in the path - like unix's which
 """
-def sysCall(cmd):
-    logger = logging.getLogger('SYSTEM  ')
-    if debug:
-        logger.debug(cmd)
-    else:
-        logger.debug(cmd)
-        p = subprocess.Popen(shlex.split(cmd), \
-            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        stdout, stderr =  p.communicate()
-        return stdout
+def which(program):
+    def is_exe(fpath):
+        return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
 
-"""
-  A subprocess call that, upon failure rc<>=0, raises an exception
-  Subprocess call with shell argument:
-  expands environment variables and file globs 
-"""
-def sysCmd(commandString):
-    logger = logging.getLogger('SYSTEM  ')
-    if debug:
-        logger.debug(commandString)
+    fpath, fname = os.path.split(program)
+    if fpath:
+        if is_exe(program):
+            return program
     else:
-        logger.debug(commandString)
-        makeLog = resdir + '/'  + deck + '-make.log'
-        with open(makeLog,'a') as f:
-                status = subprocess.call(commandString, \
-                                         stdout=f, stderr=f, shell=True)
-        logger.debug('Return code: ' + str(status))
-        if (status != 0):
-            raise Exception('unix', commandString)
+        for path in os.environ["PATH"].split(os.pathsep):
+            path = path.strip('"')
+            exe_file = os.path.join(path, program)
+            if is_exe(exe_file):
+                return exe_file
 
-"""
-  TODO !!! This is the function we should be using, rather than SysCmd !!!
-  A subprocess call that, upon failure rc<>=0, raises an exception
-  Subprocess call with shell argument:
-  expands environment variables and file globs 
-"""
-def sysCmd0(commandString, rc=0, sh=False):
-    logger = logging.getLogger('SYSTEM  ')
-    if debug:
-        logger.debug(commandString)
-    else:
-        logger.debug(commandString)
-        makeLog = resdir + '/'  + deck + '-make.log'
-        with open(makeLog,'a') as f:
-            if sh:
-                status = subprocess.call(commandString, \
-                                         stdout=f, stderr=f, shell=sh)
-            else:
-                status = subprocess.call(shlex.split(commandString), \
-                                         stdout=f, stderr=f, shell=sh)
-        logger.debug('status: ' + str(status))
-        if (status != rc):
-            raise Exception('unix', commandString)
-
+    return None
+   
+ 
 """
   Return a checkpoint file name with various identifiers
 """
 def checkpointName(exp, duration, npes):
     if exp.mode == 'serial':
-        return exp.run  + '.' + duration
+        return exp.name  + '.' + duration
     else:
-        return exp.run + '.' + duration + '.np=' + str(npes)
+        return exp.name + '.' + duration + '.np=' + str(npes)
 
+    
 """
   Build a configuration using GNU make
 """
 def build(exp):
     logger = logging.getLogger('BUILD   ')
-    logger.info(exp.run + ' ' + exp.modeCmd + ' ' + exp.opts)
+    logger.info(exp.name + ' ' + exp.modeCmd + ' ' + exp.xflags)
     try:
-        sysCmd('make --quiet clean')
-        sysCmd('make rundeck ' + exp.runCmd + ' ' + exp.runSrcCmd)
-        sysCmd('make -j4 gcm ' + exp.runCmd + ' ' + exp.modeCmd + ' ' + exp.opts)
-        exp.results[3] = successMark
+        exp.sysCmd('make --quiet clean')
+        exp.sysCmd('make rundeck ' + exp.runCmd + ' ' + exp.runSrcCmd)
+        exp.sysCmd('make -j4 gcm ' + exp.runCmd + ' ' + exp.modeCmd
+                   + ' ' + exp.xflags)
+        exp.results[3] = exp.successMark
     except:
-        exp.results[3] = failMark+'b'
-        logger.error(' *** Failed to build ' + exp.run)
+        exp.results[3] = exp.failMark+'b'
+        logger.error(' *** Failed to build ' + exp.name)
         raise
 
+    
 """
   Sets up and runs a 1hr simulation
 """
 def run1hr(exp, npes=1):
     logger = logging.getLogger('RUN1HR  ')
-    logger.info(exp.run + ', ' + exp.mode + ', npes=' + str(npes))
+    logger.info(exp.name + ', ' + exp.mode + ', npes=' + str(npes))
     try:
-        sysCmd('make setup ' + exp.runCmd + ' ' + exp.modeCmd + ' ' + exp.opts)
-        sysCmd('../exec/runE ' + exp.run + ' -np ' + str(npes) + ' -cold-restart')
-        sysCmd('cd '+exp.run+'; cp fort.2.nc '+checkpointName(exp, '1hr', npes))
+        exp.sysCmd('make setup ' + exp.runCmd + ' ' + exp.modeCmd + ' '
+                   + exp.xflags)
+        exp.sysCmd('../exec/runE ' + exp.name + ' -np ' + str(npes)
+                   + ' -cold-restart')
+        exp.sysCmd('cd ' + exp.name + '; cp fort.2.nc ' +
+                   checkpointName(exp, '1hr', npes))
     except:
-        exp.results[3] = failMark+'1'
-        message =  ' *** Failed to run 1 hour test for ' + exp.run
+        exp.results[3] = exp.failMark+'1'
+        message =  ' *** Failed to run 1 hour test for ' + exp.name
         message += ' on ' + str(npes) + ' processors.'
         logger.error(message)
         raise
+
     
 """
   Runs (N-M)+M hours AND N continuous hours
@@ -282,28 +275,34 @@ def run1hr(exp, npes=1):
 def runRestart(exp, npes=1, n=25, m=1):
     logger = logging.getLogger('RUNRST  ')
     expectedRC = 13; # modelE convention for successful runs
-    restart = './'+exp.run
+    restart = './'+exp.name
     if exp.mode == 'mpi':
         restart += ' -np ' + str(npes)
     
-    logger.info(exp.run + ', ' + exp.mode + ', npes=' + str(npes))
+    logger.info(exp.name + ', ' + exp.mode + ', npes=' + str(npes))
     try:
-        sysCmd('../exec/editRundeck.sh ' + exp.run + ' 48 2 1')
-        sysCmd('make setup ' + exp.runCmd + ' ' + exp.modeCmd + ' ' + exp.opts)
-        sysCmd('../exec/runE ' + exp.run + ' -np ' + str(npes) + ' -cold-restart')
-        sysCmd('cd '+exp.run+'; cp fort.1.nc '+checkpointName(exp, '1dy', npes))
-        sysCmd('cd ' + exp.run + '; cp fort.2.nc fort.1.nc')
-        sysCmd('cd ' + exp.run + '; rm -f run_status')
+        exp.sysCmd('../exec/editRundeck.sh ' + exp.name + ' 48 2 1')
+        exp.sysCmd('make setup ' + exp.runCmd + ' ' + exp.modeCmd + ' '
+                   + exp.xflags)
+        exp.sysCmd('../exec/runE ' + exp.name + ' -np ' + str(npes)
+                   + ' -cold-restart')
+        exp.sysCmd('cd ' + exp.name + '; cp fort.1.nc '
+                   + checkpointName(exp, '1dy', npes))
+        exp.sysCmd('cd ' + exp.name + '; cp fort.2.nc fort.1.nc')
+        exp.sysCmd('cd ' + exp.name + '; rm -f run_status')
 #  Need to investigate why the following causes a NameError exception
 #  Looks like there is an issue with variable/function/class names in SysCmd
-        sysCmd('cd ' + exp.run + '; ' + restart + '; test `head -1 run_status` -eq ' + str(expectedRC))
-        sysCmd('cd '+exp.run+';cp fort.2.nc '+checkpointName(exp, 'restart', npes))
+        exp.sysCmd('cd ' + exp.name + '; ' + restart
+                   + '; test `head -1 run_status` -eq ' + str(expectedRC))
+        exp.sysCmd('cd ' + exp.name + ';cp fort.2.nc '
+                   + checkpointName(exp, 'restart', npes))
     except:
-        exp.results[3] = failMark+'r'
-        message =  ' *** Failed to run 1 day test for ' + exp.run
+        exp.results[3] = exp.failMark+'r'
+        message =  ' *** Failed to run 1 day test for ' + exp.name
         message += ' on ' + str(npes) + ' processors.'
         logger.error(message)
         raise
+
     
 """
   Compare model results with those in the baseline location.
@@ -311,168 +310,146 @@ def runRestart(exp, npes=1, n=25, m=1):
 """
 def compareBase(exp, duration, npes=1):
     # Skip if no location given
-    if baseDir == '.':
+    if exp.runsrc.baseDir == '.':
         return
-    try:
-        logger = logging.getLogger('COMPBAS ')
-        logger.info('Compare base run: '+exp.run)
-        prefix = exp.run + '/'
-        file1 = prefix + checkpointName(exp, duration, npes)
-        file2 = baseDir + '/' + checkpointName(exp, duration, npes)
-        cmp ='diffreport.x ' + file1 + ' ' + file2
-        try:
-            rc = sysCall(cmp)
-            if rc == '':
-                exp.results[4] = successMark
-            else:
-                raise Exception(rc)
-        except Exception as inst:
-            logger.warning(file1+' and '+file2+' differ')
-            if 'error' in rc:
-                logger.warning(rc)
-            if updBase == 'yes':
-                sysCmd('cp ' + file1 + ' ' + file2)
-                logger.info('Updated BASELINE')
-            exp.results[4] = failMark   
-    except:
-        logger.warning('Comparison between '+file1+' and '+file2+' failed.')
+    logger = logging.getLogger('COMPBAS ')
+    logger.info('Compare base run: '+exp.name)
+    prefix = exp.name + '/'
+    file1 = prefix + checkpointName(exp, duration, npes)
+    file2 = exp.runsrc.baseDir + '/' + checkpointName(exp, duration, npes)
+    rc = subprocess.check_output([diffreportExe, file1, file2])
+    if rc == '':
+        exp.results[4] = exp.successMark
+    else:
+        exp.results[4] = exp.failMark   
+        if exp.runsrc.updateBase == 'yes':
+            exp.sysCmd('cp ' + file1 + ' ' + file2)
+            logger.info('Updated BASELINE')
+        logger.warning('Baseline reproducibility failed')
 
+        
 """
   Compare SERIAL vs MPI
 """
 def compareNPE(runA, runB, duration, npes):
-    try:
-        logger = logging.getLogger('COMPNPE ')
-        logger.info('Compare NPE runs: '+runA.run+' and '+runB.run)
-        prefix1 = runA.run + '/'
-        prefix2 = runB.run + '/'
-        file1 = prefix1 + checkpointName(runA, duration, npes)
-        file2 = prefix2 + checkpointName(runB, duration, npes)
-        cmp ='diffreport.x ' + file1 + ' ' + file2
-        rc = sysCall(cmp)
-        try:
-            if rc == '':
-                runB.results[6] = successMark
-            else:
-                raise Exception(rc)
-        except Exception as inst:
-            logger.warning('Files '+ file1+' and '+file2+' differ')
-            if 'error' in rc:
-                logger.error(rc)
-            runB.results[6] = failMark
-    except:
-        logger.warning('Comparison between '+file1+' and '+file2+' failed.')
-            
+    logger = logging.getLogger('COMPNPE ')
+    logger.info('Compare NPE runs: '+runA.mode+' and '+runB.mode)
+    prefix1 = runA.name + '/'
+    prefix2 = runB.name + '/'
+    file1 = prefix1 + checkpointName(runA, duration, npes)
+    file2 = prefix2 + checkpointName(runB, duration, npes)
+    rc = subprocess.check_output([diffreportExe, file1, file2])
+    if rc == '':
+        runB.results[6] = runB.successMark
+    else:
+        runB.results[6] = runB.failMark
+        logger.warning('NPE reproducibility failed')
+
+        
 """
   Compare full-run (25hr) vs restart run
 """
 def compareRestart(exp, npes=1):
-    try:
-        logger = logging.getLogger('COMPRST ')
-        logger.info('Compare restart run: '+exp.run)
-        prefix = exp.run + '/'
-        file1 = prefix + checkpointName(exp, '1dy', npes)
-        file2 = prefix + checkpointName(exp, 'restart', npes)
-        cmp ='diffreport.x ' + file1 + ' ' + file2
-        rc = sysCall(cmp)
-        try:
-            if rc == '':
-                exp.results[5] = successMark
-            else:
-                raise Exception(rc)
-        except Exception as inst:
-            logger.warning('Files '+file1+' and '+file2+' differ')
-            if 'error' in rc:
-                logger.warning(rc)
-            # Hack to differentiate the restart errors in CAD/SCM rundecks:
-            if 'E4Tcad' in exp.run or 'SGP' in exp.run:
-                exp.results[5] = failMark+'*'
-            else:
-                exp.results[5] = failMark
-    except:
-        logger.warning('Comparison between '+file1+' and '+file2+' failed.')
+    logger = logging.getLogger('COMPRST ')
+    logger.info('Compare restart run: '+exp.name)
+    prefix = exp.name + '/'
+    file1 = prefix + checkpointName(exp, '1dy', npes)
+    file2 = prefix + checkpointName(exp, 'restart', npes)
+    rc = subprocess.check_output([diffreportExe, file1, file2])
+    if rc == '':
+        exp.results[5] = exp.successMark
+    else:
+        # Hack to differentiate the restart errors in CAD/SCM rundecks:
+        if 'E4Tcad' in exp.name or 'SGP' in exp.name:
+            exp.results[5] = exp.failMark+'*'
+        else:
+            exp.results[5] = exp.failMark
+            logger.warning('Restart reproducibility failed')
+
         
 """
   MAIN PROGRAM
 """
 if __name__ == '__main__':
-    
+
+    global debug
+    if os.environ.has_key('DEBUG'):
+        debug = os.environ['DEBUG']
+    else:
+        debug = False
+
+    # This is needed to find diffreport.x, assumed to be in $HOME/bin
+    os.environ["PATH"] += os.pathsep + os.environ["HOME"] \
+      + '/bin'
+    diffreportExe = which('diffreport.x')
+    if diffreportExe is None:
+        logger.warning('No available diffreport.x. Will use diff')
+        diffreportExe = 'diff'
+
+    # List of runSources to verify specified on command line
     runSources = []
     if len(sys.argv) > 1:
         for arg in sys.argv[1:]:
             runSources.append(arg)
-    else:
+    else: # if none specified, use nonProduction_E_AR5_C12
         runSources.append('nonProduction_E_AR5_C12')
     
-    for rundeck in runSources:
+    # Loop over each run source in list
+    for source in runSources:
 
-        readConfig(rundeck)
-        setupLogging()
-        os.chdir(decksDir)
-        logger = logging.getLogger('MAIN    ')
-        diffFile = resdir + '/' + rundeck + '.diff'
-        fileH = open(diffFile, 'w')
-        logger.info('Testing ' + rundeck)
-
+        # Create rundeck object with default or config properties
+        rundeck = RunSourceProperties(source)
+        
+        # List of rundeck run configurations for each mode
         exps = []
-        for mode in modeList:
-            exps.append(configuration(rundeck, mode, compiler))
+        for mode in rundeck.modeList:
+            exps.append(Arun(rundeck,mode))
             nmodes = len(exps)
 
-        try:
-            for exp in exps:
-                try:
-                    if exp.mode == 'serial':
-                        build(exp)
-                        run1hr(exp)
-                        runRestart(exp)
-                    else:
-                        build(exp)
-                        try:
-                            for npes in npList:
-                                run1hr(exp, npes=npes)
-                        except:
-                            logger.error('...abandoning 1hr mpi run.')
-                            
-                        try:
-                            for npes in npList:
-                                runRestart(exp, npes=npes)
-                        except:
-                            logger.error('...abandoning restart mpi run.')
-                            raise
+        # Setup a logging stream
+        setupLogging(rundeck)
+        logger = logging.getLogger('MAIN    ')
+        # All the work is done from the modelE decks directory
+        os.chdir(rundeck.decksDir)
+        # For each rundeck create a diffFile with verification results
+        diffFile = rundeck.resultsDir + '/' + rundeck.name + '.diff'
+        fileH = open(diffFile, 'w')
 
-                    logger.info(rundeck + ' ' + exp.mode + ' runs complete.')
-                    try:
-                        if exp.mode == 'serial':
-                            compareBase(exp, '1hr')
-                            compareBase(exp, '1dy')
-                            # And compare SERIAL checkpoint-restart 
-                            compareRestart(exp)
-                        else:
-                            for npes in npList:
-                                # Compare runs with baseline
-                                compareBase(exp, '1hr', npes=npes)
-                                compareBase(exp, '1dy', npes=npes)
-                                compareRestart(exp, npes=npes)
-                    except:
-                        logger.error('...abandoning BAS/RST verification.')
+        logger.info('Testing ' + rundeck.name)
 
-                    try:
-                        for npes in npList:
-                            # Compare 1hr run against serial
-                            if nmodes > 1:
-                                compareNPE(exps[0], exps[1], '1dy', npes)
-                    except:
-                        logger.error('...abandoning NPE verification.')
-
-                    logger.info(rundeck + ' comparisons complete.')
+        for exp in exps:
                 
-                except:
-                    logger.error(rundeck + ' ' + exp.mode + ' runs FAILED')
+            if exp.mode == 'serial':
+                build(exp)
+                run1hr(exp)
+                runRestart(exp)
+                
+            else:
+                build(exp)
+                for npes in rundeck.npList:
+                    run1hr(exp, npes=npes)
+                    runRestart(exp, npes=npes)
+                                            
+            logger.info(rundeck.name + ' ' + exp.mode + ' runs complete.')
+                    
+            if exp.mode == 'serial':
+                compareBase(exp, '1hr')
+                compareBase(exp, '1dy')
+                # And compare SERIAL checkpoint-restart 
+                compareRestart(exp)
+            else:
+                for npes in rundeck.npList:
+                    # Compare runs with baseline
+                    compareBase(exp, '1hr', npes=npes)
+                    compareBase(exp, '1dy', npes=npes)
+                    compareRestart(exp, npes=npes)
+                for npes in rundeck.npList:
+                    # Compare 1hr run against serial
+                    if nmodes > 1:
+                        compareNPE(exps[0], exps[1], '1dy', npes)
 
-        except:
-            logger.error('...abandoning rundeck '+rundeck)
-            
+            logger.info(rundeck.name + ' comparisons complete.')
+                
         for exp in exps:
             fileH.write('%20s' % (exp.results[0]))
             fileH.write('%10s' % (exp.results[1]))
