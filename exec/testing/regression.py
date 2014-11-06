@@ -107,7 +107,7 @@ class Arun():
                                          stdout=f, stderr=f, shell=True)
             logger.debug('Return code: ' + str(status))
             if (status != 0):
-                raise Exception('unix', commandString)
+                logger.error(commandString+': FAILED')
 
 
 """
@@ -197,6 +197,7 @@ def setupLogging(rundeck):
     stdoutLog.setLevel(logging.INFO)
     logger = logging.getLogger()
     logger.addHandler(stdoutLog)
+
 
 """
   Test if an executable program exists in the path - like unix's which
@@ -296,6 +297,9 @@ def runRestart(exp, npes=1, n=25, m=1):
                    + '; test `head -1 run_status` -eq ' + str(expectedRC))
         exp.sysCmd('cd ' + exp.name + ';cp fort.2.nc '
                    + checkpointName(exp, 'restart', npes))
+# Reset rundeck settings for next MPI run
+        if npes > 1:
+            exp.sysCmd('make rundeck ' + exp.runCmd + ' ' + exp.runSrcCmd)
     except:
         exp.results[3] = exp.failMark+'r'
         message =  ' *** Failed to run 1 day test for ' + exp.name
@@ -309,23 +313,27 @@ def runRestart(exp, npes=1, n=25, m=1):
   If no baseline location is specified then comparison will be skipped.
 """
 def compareBase(exp, duration, npes=1):
-    # Skip if no location given
-    if exp.runsrc.baseDir == '.':
-        return
     logger = logging.getLogger('COMPBAS ')
+    # Skip comparison if no baseDir location is given
+    if exp.runsrc.baseDir == '.':
+        logger.info('No baseline directory - nothing to do')
+        return
     logger.info('Compare base run: '+exp.name)
     prefix = exp.name + '/'
     file1 = prefix + checkpointName(exp, duration, npes)
     file2 = exp.runsrc.baseDir + '/' + checkpointName(exp, duration, npes)
+    logger.debug(diffreportExe+' '+file1+' '+file2)
     rc = subprocess.check_output([diffreportExe, file1, file2])
     if rc == '':
         exp.results[4] = exp.successMark
     else:
         exp.results[4] = exp.failMark   
+        logger.warning('Baseline reproducibility failed')
         if exp.runsrc.updateBase == 'yes':
             exp.sysCmd('cp ' + file1 + ' ' + file2)
             logger.info('Updated BASELINE')
-        logger.warning('Baseline reproducibility failed')
+        else:
+            logger.info('Consider updating BASELINE')
 
         
 """
@@ -338,6 +346,7 @@ def compareNPE(runA, runB, duration, npes):
     prefix2 = runB.name + '/'
     file1 = prefix1 + checkpointName(runA, duration, npes)
     file2 = prefix2 + checkpointName(runB, duration, npes)
+    logger.debug(diffreportExe+' '+file1+' '+file2)
     rc = subprocess.check_output([diffreportExe, file1, file2])
     if rc == '':
         runB.results[6] = runB.successMark
@@ -355,6 +364,7 @@ def compareRestart(exp, npes=1):
     prefix = exp.name + '/'
     file1 = prefix + checkpointName(exp, '1dy', npes)
     file2 = prefix + checkpointName(exp, 'restart', npes)
+    logger.debug(diffreportExe+' '+file1+' '+file2)
     rc = subprocess.check_output([diffreportExe, file1, file2])
     if rc == '':
         exp.results[5] = exp.successMark
@@ -383,7 +393,7 @@ if __name__ == '__main__':
       + '/bin'
     diffreportExe = which('diffreport.x')
     if diffreportExe is None:
-        logger.warning('No available diffreport.x. Will use diff')
+        print 'No available diffreport.x. Will use diff'
         diffreportExe = 'diff'
 
     # List of runSources to verify specified on command line

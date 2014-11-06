@@ -35,6 +35,7 @@ def gitCloneCommand(config, deckname, compiler):
 # Only (0) is done here. The rest is done by regression.py
 def setupCloneTasks(config, decklist):
     sysconfig = regTools.ConfigSectionMap(config, 'SYSCONFIG')
+    compilers = regTools.getCompilers(config)
 
     cloneTasks = []
     for deck in decklist:
@@ -46,8 +47,11 @@ def setupCloneTasks(config, decklist):
             dName = deck.name[start:]
          
         for comp in deck.getOpt('compilers').split(','):
-            commandString = gitCloneCommand(config, dName, comp)
-            cloneTasks.append(commandString)
+            if comp in compilers:
+                commandString = gitCloneCommand(config, dName, comp)
+                cloneTasks.append(commandString)
+            else:
+                logger.error(comp+' is not defined in COMPCONFIG')
             
     for t in cloneTasks:
         logger.debug('CLONE TASK %s', t)
@@ -56,11 +60,16 @@ def setupCloneTasks(config, decklist):
 #-------------------------------------------------------------------------------
 # Return a command to submit/execute a [batch] job
 def setupScriptTasks(config, decklist):
+    compilers = regTools.getCompilers(config)
+
     scriptTasks = []
     for deck in decklist:
         for comp in deck.getOpt('compilers').split(','):
-            commandString = createScriptTask(config, deck, comp)
-            scriptTasks.append(commandString)
+            if comp in compilers:
+                commandString = createScriptTask(config, deck, comp)
+                scriptTasks.append(commandString)
+            else:
+                logger.error(comp+' is not defined in COMPCONFIG')
             
     for t in scriptTasks:
         logger.debug('SCRIPT TASK %s', t)
