@@ -99,36 +99,31 @@ def createScriptTask(config, deck, comp):
     filename = resultsDir + '/' + jobName + '.bash'
     fileHandle = open ( filename, 'w' ) 
 
-    npes=1
     if useBatch == 'yes':
         nodes = 1
         cores = 16
         walltime = '03:00:00'
         if re.search('C12', deckName):
             walltime = '00:30:00'
-            npes=4
         elif re.search('Mars', deckName):
             walltime = '00:30:00'
-            npes=4
         elif re.search('SGP', deckName):
             walltime = '00:30:00'
         elif re.search('M20', deckName):
             walltime = '00:30:00'
-            npes=4
         elif re.search('obio', deckName):
             walltime = '02:00:00'
-            npes=8
         elif re.search('cadi', deckName):
             walltime = '06:00:00'
-            npes=8
-        elif re.search('tomas', deckName) or re.search('amp', deckName):
+        elif re.search('tomas', deckName):
+            walltime = '02:00:00'
+            nodes = 6
+        elif re.search('amp', deckName):
             walltime = '02:00:00'
             nodes = 4
-            npes=44
         elif re.search('AR5_CAD', deckName):
             walltime = '01:00:00'
             nodes = 4
-            npes=44
     
         outname = resultsDir + '/' + jobName + '.' + comp + '.out'
         errname = resultsDir + '/' + jobName + '.' + comp + '.err'
