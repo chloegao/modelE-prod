@@ -37,8 +37,8 @@ inpdirs=`sed 's/\#.*//' ${rcfile} | grep 'GCMSEARCHPATH=' | sed 's/=/ /' | awk '
 # Obtain the desired lon/lat information from the rundeck.
 #
 
-lon_targ=`grep 'lon_targ=' $rundeck | sed 's/!.*//' | tail -1 | sed 's/=/ /' | awk '{print $2}'`
-lat_targ=`grep 'lat_targ=' $rundeck | sed 's/!.*//' | tail -1 | sed 's/=/ /' | awk '{print $2}'`
+lon_targ=`grep 'SCM_lon=' $rundeck | sed 's/!.*//' | tail -1 | sed 's/=/ /' | awk '{print $2}'`
+lat_targ=`grep 'SCM_lat=' $rundeck | sed 's/!.*//' | tail -1 | sed 's/=/ /' | awk '{print $2}'`
 
 if [[ $lon_targ == '' ]]; then echo "missing lon_targ"; exit; fi
 badlon=`echo $lon_targ | awk '$1<-180.||$1>180.{print "badlon"}'`
