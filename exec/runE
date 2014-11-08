@@ -80,12 +80,12 @@ chmod 755 $run_command
 echo "-99" > run_status
 echo "not started yet" >> run_status
 
-QSUB_STRING_NAME=QSUB_STRING$QS_OPT
-echo "submitting: " ${!QSUB_STRING_NAME} " ./$RUNID $OPTS"
-${!QSUB_STRING_NAME} ./$run_command
+eval QSUB_STRING_VALUE=\$QSUB_STRING$QS_OPT
+echo "submitting: " $QSUB_STRING_VALUE " ./$run_command"
+$QSUB_STRING_VALUE ./$run_command
 
 ## if the task is submitted as a SLURM batch job quit here
-if [[ "${!QSUB_STRING_NAME}" =~ .*sbatch.* ]] ; then
+if [[ "$QSUB_STRING_VALUE" =~ .*sbatch.* ]] ; then
     echo "Submitted as a batch job."
     echo "After it finishes, check "
     echo "  $CMRUNDIR/$RUNID/run_status"
