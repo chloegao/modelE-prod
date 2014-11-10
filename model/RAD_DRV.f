@@ -1613,9 +1613,13 @@ c          use TRACER_COM, only: SNFST0,TNFST0
 #ifdef SCM
       use SCM_COM, only : SCMopt,SCMin
       USE CONSTANT, only : SHA
+      USE ATM_COM, only : QCL
 #endif
       IMPLICIT NONE
 C
+#ifdef SCM
+      real*8 q_above(LM+1),q_below(LM+1),Frad(LM+1)
+#endif
 C     INPUT DATA   partly (i,j) dependent, partly global
       REAL*8 U0GAS,taulim, xdalbs,sumda,tauda,fsnow
       REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
@@ -3043,6 +3047,31 @@ c**** converting units from K/s to W/m2
         SRHRS(1:LM_REQ,I,J)=0.
         TRHRS(1:LM_REQ,I,J)=0.
         TRHR(1:LM,I,J)=SCMin%Qrad(1:LM)*SHA*MA(1:LM,I,J)
+      endif
+c**** possibly turn off radiative heating in atmosphere
+c**** and use Beers Law for thermal heating rate as
+c**** difference of net flux over layer
+      if( SCMopt%BeersLaw )then
+        SRHR(1:LM,I,J)=0.
+        TRHR(1:LM,I,J)=0.
+        SRHRS(1:LM_REQ,I,J)=0.
+        TRHRS(1:LM_REQ,I,J)=0.
+        ! cumulative cloud water paths * extinction coefficient
+        q_above(LM+1) = 0.
+        do L=LM,1,-1
+          q_above(L) = q_above(L+1) + 
+     &      SCMin%BeersLaw_kappa*MA(L,i,j)*QCL(i,j,L)
+        enddo
+        q_below(1) = 0.
+        do L=1,LM
+          q_below(L+1) = q_below(L) + 
+     &      SCMin%BeersLaw_kappa*MA(L,i,j)*QCL(i,j,L)
+        enddo
+        ! net upward radiative flux at layer edges
+        Frad(:) = SCMin%BeersLaw_f0*exp(-q_above(:)) +
+     &            SCMin%BeersLaw_f1*exp(-q_below(:))
+        ! radiative flux difference over each layer
+        TRHR(1:LM,I,J) = Frad(1:LM) - Frad(2:LM+1)
       endif
 #endif
 C**** Save fluxes at four levels surface, P0, P1, LTROPO

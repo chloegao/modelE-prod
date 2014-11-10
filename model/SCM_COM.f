@@ -21,11 +21,12 @@ C-------------------------------------------------------------------------------
 !@var nstepSCM current SCM time step
       integer :: nstepSCM=0
 
-!@var SCMoptions type for SCM setup options
+!@type SCMoptions type for SCM setup options
       type SCMoptions
         logical :: sflx,Tskin,Ps,z0m,ustar,alb
         logical :: wind,geo,temp,theta,wvmr,rh
         logical :: omega,w,VadvHwind,ls_v,ls_h,Qrad,nudge
+        logical :: BeersLaw
         real*8 :: lat,lon,area,tau
         integer :: sfc
       end type SCMoptions
@@ -53,6 +54,7 @@ C-------------------------------------------------------------------------------
 !@var SCMopt%area = SCM nominal area (m2)
 !@var SCMopt%tau = nudging time constant (s) for qv and T
 !@var SCMopt%sfc = 1:land, 2:ocean (defaults to land)
+!@var SCMopts%BeersLaw = T:use Beer's Law treatment (only) for radiative heating
 
 !@var SCMinputs type for SCM inputs at each time step
       type SCMinputs
@@ -61,6 +63,7 @@ C-------------------------------------------------------------------------------
         real*8 SadvV(LM),QadvV(LM),TadvH(LM),QadvH(LM)
         real*8 Qrad(LM)
         real*8 time,lhf,shf,Tskin,Ps,z0m,ustar,alb
+        real*8 BeersLaw_f0,BeersLaw_f1,BeersLaw_kappa
       end type SCMinputs
       type(SCMinputs) SCMin
 !@var SCMin%U SCM input zonal wind at GCM sigma levels (m/s)
@@ -84,6 +87,9 @@ C-------------------------------------------------------------------------------
 !@var SCMin%z0m SCM input surface roughness height (m)
 !@var SCMin%ustar SCM input surface friction speed (m/s)
 !@var SCMin%alb SCM input surface albedo (-)
+!@var SCMin%BeersLaw_f0 SCM input cloud-top longwave cooling asymptote (W/m2)
+!@var SCMin%BeersLaw_f1 SCM input cloud-base longwave heating asymptote (W/m2)
+!@var SCMin%BeersLaw_kapp SCM input longwave absorption coefficient (m2/kg)
 
       end module SCM_COM
 
@@ -94,6 +100,8 @@ C-------------------------------------------------------------------------------
       use filemanager, only : file_exists
       use Dictionary_mod, only : is_set_param,get_param
       use SCM_COM, only : SCMopt,SCMin
+      implicit none
+      real*8 dum_array(3)
 
 c     optional inputs
 
@@ -113,17 +121,29 @@ c     optional inputs
       SCMopt%omega = file_exists('SCM_OMEGA')
       SCMopt%w = file_exists('SCM_W')
 
-      if( SCMopt%omega .and. SCMopt%W ) call stop_model(
-     &    'alloc_SCM_COM: specify either omega or vertical wind',255)
+      if( SCMopt%omega .and. SCMopt%w ) call stop_model(
+     &    'alloc_SCM_COM: at most one of omega and w',255)
 
       SCMopt%ls_h = file_exists('SCM_LS_H')
       SCMopt%ls_v = file_exists('SCM_LS_V')
 
       if( ( SCMopt%omega .or. SCMopt%w ) 
      &    .and. SCMopt%ls_v ) call stop_model(
-     &    'alloc_SCM_COM: specify vertical wind or forcings',255)
+     &    'alloc_SCM_COM: at most one of w ,omega, or ls_v',255)
 
       SCMopt%Qrad = file_exists('SCM_QRAD')
+
+c     optional Beer's Law radiative heating
+      SCMopt%BeersLaw = is_set_param('SCM_BeersLaw')
+      if( SCMopt%BeersLaw )then
+        call get_param('SCM_BeersLaw',dum_array,3)
+        SCMin%BeersLaw_f0    = dum_array(1)
+        SCMin%BeersLaw_f1    = dum_array(2)
+        SCMin%BeersLaw_kappa = dum_array(3)
+      endif
+     
+      if( SCMopt%Qrad .and. SCMopt%BeersLaw ) call stop_model(
+     &    'alloc_SCM_COM: at most one of Qrad or BeersLaw',255)
 
 c     0(default): surface is set by GCM input files in run deck
       call get_param('SCM_sfc',SCMopt%sfc,default=0)
