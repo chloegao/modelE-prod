@@ -275,6 +275,14 @@ subroutine CONDSE
     integer LMIN
 #endif
 
+#ifdef CACHED_SUBDD
+   !  isccp diagnostics   save frequency histogram for subdd diagnostics
+   !@var save_fq_isccp
+    real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO, &
+           GRID%J_STRT_HALO:GRID%J_STOP_HALO,NTAU,NPRES) &
+           :: save_fq_isccp
+#endif
+
 !@param ENTCON fractional rate of entrainment (km**-1)
   real*8,  parameter :: ENTCON = .2d0
   real*8, parameter :: SLHE=LHE*BYSHA
@@ -443,6 +451,8 @@ subroutine CONDSE
       mc_m_p1=0.d0; mc_m_p2=0.d0; mc_det_p1=0.d0; mc_det_p2=0.d0
       mc_pl_max_p1=0.d0; mc_pl_max_p2=0.0; mc_pl_min_p1=0.d0; mc_pl_min_p2=0.d0
 #endif
+      ! isccp frequency diags
+      save_fq_isccp=0.d0
 #endif
 
   call recalc_agrid_uv ! may not be necessary - check later
@@ -986,6 +996,7 @@ subroutine CONDSE
           dth_ss(I,J,L) = T(I,J,L)
           dq_ss(I,J,L) = Q(I,J,L)
         enddo
+#ifdef SCM        
         ! plume diagnostics
         mc_mfu_p1(I,J,:,:) = CUMFLX(:,1,:)
         mc_mfu_p2(I,J,:,:) = CUMFLX(:,2,:)
@@ -1003,6 +1014,7 @@ subroutine CONDSE
         mc_pl_max_p2(I,J,:) = PLUME_MAX(2,:)
         mc_pl_min_p1(I,J,:) = PLUME_MIN(1,:)
         mc_pl_max_p2(I,J,:) = PLUME_MIN(2,:)
+#endif
 #endif
 
 #ifdef TRACERS_ON
@@ -1257,6 +1269,17 @@ subroutine CONDSE
 #endif
         !**** Calculate ISCCP cloud diagnostics if required
         if (isccp_diags.eq.1) then
+          fq_isccp = 0.d0
+          ctp(1) = 0.d0
+          tauopt(1) = 0.d0
+          boxtau = 0.d0
+          boxptop = 0.d0
+          saveCTPI(i,j)=0.d0
+          saveTAUI(i,j)=0.d0
+          saveLCLDI(i,j)=0.d0
+          saveMCLDI(i,j)=0.d0
+          saveHCLDI(i,j)=0.d0
+
           do l=1,lm
             cc(l)=cldmcl(LM+1-L)+cldssl(LM+1-L)
             if(cc(l) .gt. 1.) then
@@ -1323,6 +1346,7 @@ subroutine CONDSE
             saveLCLDI(i,j)=sum(fq_isccp(2:ntau,6:7)) ! saving just the
             saveMCLDI(i,j)=sum(fq_isccp(2:ntau,4:5)) ! current value for
             saveHCLDI(i,j)=sum(fq_isccp(2:ntau,1:3)) ! instant. SUBDDiags
+            save_fq_isccp(i,j,:,:) = fq_isccp(:,:)
             !**** Save area weighted isccp histograms
             n=isccp_reg2d(i,j)
             if (n.gt.0) AISCCP(:,:,n) = AISCCP(:,:,n) + &
@@ -1848,6 +1872,27 @@ subroutine CONDSE
   enddo
   enddo
 
+  call find_groups('cijh',grpids,ngroups)
+  do igrp=1,ngroups
+  subdd => subdd_groups(grpids(igrp))
+  do k=1,subdd%ndiags
+  select case (subdd%name(k))
+  case ('isccp_sunlit')
+    call inc_subdd(subdd,k,saveSCLDI)
+  case ('isccp_ctp')
+    call inc_subdd(subdd,k,saveCTPI)
+  case ('isccp_tau')
+    call inc_subdd(subdd,k,saveTAUI)
+  case ('isccp_lcld')
+    call inc_subdd(subdd,k,saveLCLDI)
+  case ('isccp_mcld')
+    call inc_subdd(subdd,k,saveMCLDI)
+  case ('isccp_hcld')
+    call inc_subdd(subdd,k,saveHCLDI)
+  end select
+  enddo
+  enddo
+
   call find_groups('cijlh',grpids,ngroups)
   do igrp=1,ngroups
   subdd => subdd_groups(grpids(igrp))
@@ -1874,6 +1919,11 @@ subroutine CONDSE
   end select
   enddo
   enddo
+  
+  if (isccp_diags.eq.1) then
+      call inc_subdd('isccp_fq',save_fq_isccp,1,.true.,units='fraction', &
+           long_name='Cld Fct by ISCCP CldTypes',dim3name='ntau',dim4name='npres')
+  endif
 
 #ifdef SCM
   ! plume diagnostics
@@ -2429,6 +2479,66 @@ contains
 end subroutine qmom_topo_adjustments
 
 #ifdef CACHED_SUBDD
+  subroutine cijh_defs(arr,nmax,decl_count)
+  !
+  ! 2D outputs
+  !
+  use subdd_mod, only : info_type
+  ! info_type_ is a homemade structure constructor for older compilers
+  use subdd_mod, only : info_type_
+  implicit none
+  integer :: nmax,decl_count
+  type(info_type) :: arr(nmax)
+  !
+  ! note: next() is a locally declared function to increment decl_count
+  !
+
+  decl_count = 0
+
+  arr(next()) = info_type_( &
+    sname = 'isccp_sunlit', &
+    lname = 'Flag for Day (1) or Night (0)', &
+    units = '-' &
+       )
+  
+  arr(next()) = info_type_( &
+    sname = 'isccp_ctp', &
+    lname = 'Mean Cloud Top Pressure', &
+    units = 'mb' &
+       )
+ 
+  arr(next()) = info_type_( &
+    sname = 'isccp_tau', &
+    lname = 'Mean Optical Thickness', &
+    units = '-' &
+       )
+ 
+ arr(next()) = info_type_( &
+    sname = 'isccp_lcld', &
+    lname = 'Low Cloud Fraction', &
+    units = 'fraction' &
+       )
+ 
+ arr(next()) = info_type_( &
+    sname = 'isccp_mcld', &
+    lname = 'Mid Level Cloud Fraction', &
+    units = 'fraction' &
+       )
+ 
+ arr(next()) = info_type_( &
+    sname = 'isccp_hcld', &
+    lname = 'High Cloud Fraction', &
+    units = 'fraction' &
+       ) 
+ 
+      return
+      contains
+      integer function next()
+      decl_count = decl_count + 1
+      next = decl_count
+      end function next
+      end subroutine cijh_defs
+
   subroutine cijlh_defs(arr,nmax,decl_count)
   !
   ! 3D outputs

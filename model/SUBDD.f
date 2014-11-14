@@ -1435,7 +1435,7 @@ C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
       integer, dimension(8), parameter :: allowed_hrfreqs_timeavg=
      &     (/ 1, 2, 3, 4, 6, 8, 12, 24 /)
       integer, dimension(11) :: allowed_freqs_timeavg
-      integer, parameter :: nmax_possible=512,ncats_max=10
+      integer, parameter :: nmax_possible=512,ncats_max=15
       character(len=sname_strlen) :: catshape,grpname
       character(len=sname_strlen), dimension(ncats_max) ::
      &     catshapes,categories
@@ -1629,6 +1629,11 @@ c add (calls to) the analogs of ijh_defs et al.
       catshapes(k) = 'aijlh'; categories(k) = 'sijlh'
       input_sizes3(k) = lm
       call sijlh_defs(diaglists(1,k),nmax_possible,diaglens(k))
+
+      k = k + 1
+      catshapes(k) = 'aijh'; categories(k) = 'cijh'
+      input_sizes3(k) = 0
+      call cijh_defs(diaglists(1,k),nmax_possible,diaglens(k))
 
       k = k + 1
       catshapes(k) = 'aijlh'; categories(k) = 'cijlh'

@@ -16,12 +16,15 @@ For other cases, change one or more of the following as necessary:
     SCM_area and other SCM parameters may also be changed.
 
 Preprocessor Options
+#define CACHED_SUBDD
 #define SCM
 #define USE_ENT
 #define NEW_IO
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
+
+SUBDD
 
 AtmL40 
 AtmRes
@@ -289,6 +292,16 @@ Nssw=2
 ! SCM-useful GCM-native subdaily diagnostics system not yet imported to master branch
 !SUBDD=' '        ! no sub-daily frequency diags
 !NSUBDD=0         ! saving sub-daily diags every NSUBDD-th physics time step (1/2 hr)
+
+SUBDD='u v t q rh z p_3d p_surf prec mcp ssp snowfall snowdp qcl qci'
+SUBDD1='cldss cldmc cldss_2d totcld totcld_diag'
+SUBDD2='gtempr shflx lhflx ustar pblht pwv lwp iwp tau_ss tau_mc'
+SUBDD3='olrrad olrcs lwds lwdscs lwus swds swus swdf'
+SUBDD4='dq_turb dth_turb dq_mc dth_mc dq_ss dth_ss dth_sw dth_lw dth_rad'
+SUBDD5='dq_ls dth_ls dq_nudge dth_nudge'
+SUBDD6='isccp_sunlit isccp_ctp isccp_tau isccp_lcld isccp_hcld'
+NSUBDD=1         ! saving sub-daily diags every NSUBDD-th physics time step (1/2 hr)
+WRITE_ONE_FILE=1 ! all outputs to a single file
 
 ! KOCEAN=0 means prescribed surface ocean conditions.  This parameter is currently
 ! mandatory even if ocean is absent at the SCM location.
