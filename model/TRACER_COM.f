@@ -50,6 +50,7 @@ C
 
       use TracerBundle_mod, only: TracerBundle, newTracerBundle
       use TracerSource_mod, only: N_MAX_SECT
+      use vector_integer_mod
 c     
       IMPLICIT NONE
       SAVE
@@ -73,6 +74,7 @@ C**** Each tracer has a variable name and a unique index
 #else
       integer, parameter :: ntm_o18=0
 #endif  /* TRACERS_SPECIAL_O18 */
+      type(vector_integer) :: ngx_index ! to be used in the future
 !@var ntm_gasexch: Number of TRACERS_GASEXCH_ocean tracers.
 #if defined(TRACERS_GASEXCH_ocean) || defined(TRACERS_GASEXCH_land)
       integer, parameter :: ntm_gasexch=1
