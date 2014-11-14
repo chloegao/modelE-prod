@@ -37,26 +37,19 @@ submitJob()
   local compiler=$1
   local jobScript=$2
   local testLog=$3
-  local mpi=$4
-
   local deck=E4TcadiF40
 
   MAKELOG=make.log.${compiler}
-  FAILLOG=${testLog}.FAILED
-  pfunitSuffix="-mpi"
-  if [ "$mpi" == "NO" ]; then
-    pfunitSuffix="-serial"
-    FAILLOG=${testLog}${pfunitSuffix}.FAILED
-  fi
 
 # CREATE JOB SCRIPT
 
   cat << EOF > $jobScript
 #!/bin/bash
-#PBS -N mEunit
-#PBS -l select=1:mpiprocs=12
-#PBS -l walltime=0:05:00
-#SBATCH -A s1001
+#SBATCH --job-name=unitTest
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=16
+#SBATCH --time=0:10:00
+#SBATCH --account=s1001
 
 # set up the modeling environment
 . /usr/share/modules/init/bash
@@ -66,58 +59,44 @@ EOF
   if [ "$compiler" == "intel" ]; then
 
     cat << EOF >> $jobScript
-module load comp/intel-14.0.3.174 mpi/impi-3.2.2.006 other/git-1.8.5.2
+module load comp/intel-14.0.3.174 mpi/impi-4.1.3.048 other/git-1.8.5.2
 EOF
-   
+
   else
 
     cat << EOF >> $jobScript
-module load other/comp/gcc-4.9.0 other/mpi/openmpi/1.7.3-gcc-4.9.0 other/git-1.8.5.2
+module load other/comp/gcc-4.9.1 other/mpi/openmpi/1.8.1-gcc-4.9.1 other/git-1.8.5.2
 EOF
 
   fi
 
   cat << EOF >> $jobScript
 
-export PFUNIT=/discover/nobackup/ccruz/Baselibs/pFUnit/${compiler}${pfunitSuffix}
 export MODELERC=$REGSCRATCH/${compiler}/modelErc.${compiler}
 
 cd $REGSCRATCH
 rm -rf ${deck}.${compiler}
-git clone /discover/nobackup/ccruz/devel/modelE.clones/master ${deck}.${compiler} > /dev/null 2>&1
+
+git clone /discover/nobackup/modele/clones/master ${deck}.${compiler} > /dev/null 2>&1
 
 cd $REGSCRATCH/${deck}.${compiler}/decks
 make rundeck RUN=$deck RUNSRC=$deck >> $MAKELOG 2>&1
-EOF
+# SERIAL RUN, MPI=NO
+export PFUNIT=/discover/nobackup/ccruz/Baselibs/pFUnit/${compiler}"-serial"
+make -j gcm RUN=$deck EXTRA_FFLAGS="-O0 -g" MPI=NO  >> $MAKELOG 2>&1
+make tests RUN=$deck MPI=NO > $testLog.NO 2>&1
+# MPI RUN, MPI=YES
+make --quiet clean
+export PFUNIT=/discover/nobackup/ccruz/Baselibs/pFUnit/${compiler}"-mpi"
+make -j gcm RUN=$deck EXTRA_FFLAGS="-O0 -g" MPI=YES  >> $MAKELOG 2>&1
+make tests RUN=$deck MPI=YES > $testLog.YES 2>&1
 
-  if [ "$compiler" == "intel" ]; then
-
-    cat << EOF >> $jobScript
-make -j gcm RUN=$deck EXTRA_FFLAGS="-O0 -g -traceback" MPI=$mpi >> $MAKELOG 2>&1
-wait
-EOF
-
-  else
-
-    cat << EOF >> $jobScript
-make -j gcm RUN=$deck EXTRA_FFLAGS="-O0 -g -fbacktrace" MPI=$mpi  >> $MAKELOG 2>&1
-wait
-EOF
-
-  fi
-
-  cat << EOF >> $jobScript
-make tests RUN=$deck MPI=$mpi > $testLog 2>&1
-wait
 EOF
   chmod +x $jobScript
 
 # SUBMIT JOB SCRIPT
 
-  echo ""  >> $toEmail
-  echo "RESULTS [$compiler MPI=$mpi]:" >> $toEmail
-  echo ""  >> $toEmail
-  jobID=`qsub $jobScript`
+  jobID=`sbatch $jobScript | awk '{print $4}'`
   if [ -z "$jobID" ]; then
     echo "There was a queue submission problem" >> $toEmail
     echo ""  >> $toEmail
@@ -127,11 +106,19 @@ EOF
   watchJob $jobID jobRan
 
   if [ $jobRan -eq 0 ]; then
-    cp $testLog $FAILLOG
     echo " ### jobID=$jobID wait time (3600 secs) expired." >> $toEmail
-    echo " ### Check $FAILLOG" >> $toEmail
     return
   fi  
+
+  # Parse log files to generate results for eMail
+  mpiMode=(YES NO)
+  for mpi in "${mpiMode[@]}"; do
+    echo " - MPI=$mpi"
+    echo ""  >> $toEmail
+    echo "RESULTS [$compiler MPI=$mpi]:" >> $toEmail
+    echo ""  >> $toEmail
+    parseLog "$testLog.$mpi"
+  done
 
 }
 
@@ -140,18 +127,13 @@ parseLog()
 # -------------------------------------------------------------------
 {
   local testLog=$1
-  FAILLOG=${testLog}.FAILED
-  pfunitSuffix="-mpi"
-  if [ "$mpi" == "NO" ]; then
-    pfunitSuffix="-serial"
-    FAILLOG=${testLog}${pfunitSuffix}.FAILED
-  fi
 
 # PARSE FOR SUCCESS
 
+  echo "Parsing $testLog..."
   local lineNo=0
-  local OK='OK'
-  local a=`grep -n $OK $testLog | head -1`
+  # Find OK string
+  local a=`grep -nw OK $testLog | head -1`
   lineNo=${a%%:*}
   # tests ran and all was OK
   if [ ! -z $lineNo ]; then
@@ -188,7 +170,6 @@ parseLog()
          echo " ### RUNTIME ERROR : $msg, segmentation fault occurred" >> $toEmail
       fi
     fi
-    echo " ### Check $FAILLOG" >> $toEmail
     echo ""  >> $toEmail
   fi
 }
@@ -197,23 +178,20 @@ parseLog()
 # MAIN
 # ---------------------
 
-ROOT=$TESTD
-cd $ROOT
-toEmail="$CONFIG.unit"
-rm -f $toEmail
+REGSCRATCH=/discover/nobackup/modele/regression_scratch/master
+ROOT=`pwd`
+toEmail="master.unit"
+rm -f $toEmail slurm*out *.YES *.NO
 compilers=(intel gfortran)
-compilers=(intel)
-mpiMode=(YES NO)
-for mpi in "${mpiMode[@]}"; do
-  echo " - MPI=$mpi"
-  for compiler in "${compilers[@]}"; do 
-    echo " -- COMPILER=$compiler"
-    job=modelE.${compiler}.j
-    log=${ROOT}"/"${compiler}".log"
-    submitJob "$compiler" "$job" "$log" "$mpi"
-    parseLog "$log"
-    rm -f $job $log
-  done
+for compiler in "${compilers[@]}"; do 
+  echo " -- COMPILER=$compiler"
+  job=modelE.${compiler}.j
+  log=${ROOT}"/"${compiler}".log"
+  submitJob "$compiler" "$job" "$log"
+  rm -f $job
 done
+
+MAILTO="giss-modele-regression@lists.nasa.gov"
+/usr/bin/mail -s "modelE_RT (unit tests)" $MAILTO < $toEmail
 
 exit 0

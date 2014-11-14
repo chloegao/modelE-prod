@@ -15,7 +15,7 @@ Object modules: (in order of decreasing priority)
 AtmL40
 AtmRes
 
-SCM_COM
+SCM_COM SCM
 SCM_DIAG
 SCMDATA_SGPCONT  !SCMDATA_TWPICE
 ATMDYN_SCM
@@ -61,6 +61,20 @@ Components:
 shared MPI_Support solvers giss_LSM dd2d
 
 Data input files:
+
+! SCM input files
+SCM_NML=SCM_ARM.nml                                 ! input variable namelist with units
+SCM_PS=sgp60varanarucC1.c1.20050101.000000.cdf      ! surface pressure
+SCM_SFLUX=sgp60varanarucC1.c1.20050101.000000.cdf   ! surface heat fluxes
+SCM_TSKIN=sgp60varanarucC1.c1.20050101.000000.cdf   ! skin temperature
+! if horizontal and geostrophic wind profiles are specified, horizontal are initial
+SCM_WIND=sgp60varanarucC1.c1.20050101.000000.cdf    ! horizontal wind profiles
+!SCM_GEO=sgp60varanarucC1.c1.20050101.000000.cdf     ! geostrophic wind profiles
+SCM_TEMP=sgp60varanarucC1.c1.20050101.000000.cdf    ! temperature profile(s)
+SCM_WVMR=sgp60varanarucC1.c1.20050101.000000.cdf    ! water vapor mixing ratio profile(s)
+SCM_OMEGA=sgp60varanarucC1.c1.20050101.000000.cdf   ! large-scale vertical wind
+!SCM_LS_V=sgp60varanarucC1.c1.20050101.000000.cdf    ! large-scale vert adv flux div profile(s)
+SCM_LS_H=sgp60varanarucC1.c1.20050101.000000.cdf    ! large-scale horiz adv flux div profile(s)
 
 ! Forcing for SGP case
 SCMSRF=SGP.surface.0501.dat
@@ -158,6 +172,15 @@ SGP4TESTS (SCM at SGP site for regression tests)
 
 
 &&PARAMETERS
+
+! SCM parameters
+SCM_lon=-96.25             ! Southern Great Plains site longitude (deg)
+SCM_lat=37.                ! Southern Great Plains site latitude (deg)
+SCM_area=49370385348.1287  ! nominal grid box area (m2) from 144x90 grid
+SCM_sfc=1                  ! 1:land,2:ocean
+SCM_z0m=0.0005             ! surface roughness height (m)
+SCM_alb=0.3                ! mid-visible surface albedo (-)
+SCM_tau=10800.             ! nudging time constant
 
 ! Southern Great Plains Target Coordinates (degrees E/N).
 ! lon_targ and lat_targ only affect the solar zenith angle and

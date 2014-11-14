@@ -17,7 +17,7 @@
       USE MODEL_COM, only : dtsrc
       USE FLUXES, only : flice,focean
 #ifdef SCM
-      USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
+      USE SCM_COM, only : SCMopt,SCMin
 #endif
       USE GEOM, only : axyp,imaxj,lat2d
       USE LANDICE, only: ace1li,ace2li,glmelt_on,glmelt_fac_nh
@@ -110,10 +110,10 @@ C**** set GTEMP array for landice
             ATMGLAX(ihc)%GTEMPR(I,J)=TLANDI(1,I,J,IHC)+TF
 
 #ifdef SCM
-            if (SCM_SURFACE_FLAG.ge.1) then
-              ATMGLAX(ihc)%GTEMP(I,J) = ATSKIN
-              ATMGLAX(ihc)%GTEMP2(I,J) = ATSKIN
-              ATMGLAX(ihc)%GTEMPR(I,J) = ATSKIN + TF
+            if( SCMopt%Tskin )then
+              ATMGLAX(ihc)%GTEMP(I,J) = SCMin%Tskin - TF
+              ATMGLAX(ihc)%GTEMP2(I,J) = SCMin%Tskin - TF
+              ATMGLAX(ihc)%GTEMPR(I,J) = SCMin%Tskin
             endif
 #endif
 #ifdef TRACERS_WATER
@@ -497,7 +497,7 @@ c
 !@auth Original Development team
 !@calls LANDICE:PRECLI
 #ifdef SCM
-      USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
+      USE SCM_COM, only : SCMopt,SCMin
 #endif
       USE CONSTANT, only : tf
       USE GEOM, only : imaxj
@@ -588,10 +588,10 @@ C**** RESAVE PROGNOSTIC QUANTITIES AND FLUXES
         atmgla%GTEMP2(I,J)=TLANDI(2,I,J,IHC)
         atmgla%GTEMPR(I,J)   =TLANDI(1,I,J,IHC)+TF
 #ifdef SCM
-        if (SCM_SURFACE_FLAG.ge.1) then
-          atmgla%GTEMP(I,J) = ATSKIN
-          atmgla%GTEMP2(I,J) = ATSKIN
-          atmgla%GTEMPR(I,J) = ATSKIN + TF
+        if( SCMopt%Tskin )then
+          atmgla%GTEMP(I,J) = SCMin%Tskin - TF
+          atmgla%GTEMP2(I,J) = SCMin%Tskin - TF
+          atmgla%GTEMPR(I,J) = SCMin%Tskin
         endif
 #endif
 #ifdef TRACERS_WATER
@@ -637,7 +637,7 @@ C**** ACCUMULATE DIAGNOSTICS
       USE CONSTANT, only : tf
       USE MODEL_COM, only : dtsrc
 #ifdef SCM
-      USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
+      USE SCM_COM, only : SCMopt,SCMin
 #endif
       USE GEOM, only : imaxj
       USE LANDICE, only : lndice,ace1li,ace2li,snmin
@@ -724,10 +724,10 @@ C**** RESAVE PROGNOSTIC QUANTITIES AND FLUXES
         atmgla%GTEMP2(I,J)=TLANDI(2,I,J,IHC)
         atmgla%GTEMPR(I,J)   =TLANDI(1,I,J,IHC)+TF
 #ifdef SCM
-        if (SCM_SURFACE_FLAG.ge.1) then
-          atmgla%GTEMP(I,J) = ATSKIN
-          atmgla%GTEMP2(I,J) = ATSKIN
-          atmgla%GTEMPR(I,J) = ATSKIN + TF
+        if( SCMopt%Tskin )then
+          atmgla%GTEMP(I,J) = SCMin%Tskin - TF
+          atmgla%GTEMP2(I,J) = SCMin%Tskin - TF
+          atmgla%GTEMPR(I,J) = SCMin%Tskin
         endif
 #endif
 #ifdef TRACERS_WATER

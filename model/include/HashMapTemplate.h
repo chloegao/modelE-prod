@@ -1,3 +1,8 @@
+!@sum This template produces a module that encapsulates a HashMap object.
+!@+ An HashMap object stores elements formed by a combination of a key
+!@+ value and a mapped value.
+!@auth NCCS ASTG
+
 #define IDENTITY(A) A
 #define CONCAT(A,B) IDENTITY(A)IDENTITY(B)
 
@@ -46,8 +51,14 @@
 #define TYPE_NAME VALUE_TYPE
 #endif
 
+#define STRINGIFY(str) '''str'''
+  
 #ifndef ITERATOR_TYPE
 #define ITERATOR_TYPE DEFAULT_ITERATOR_TYPE(HASH_TYPE)
+#endif
+
+#ifndef REFERENCE_TYPE
+#define REFERENCE_TYPE CONCAT(TYPE_NAME,Reference)
 #endif
 
 module MODULE_NAME
@@ -57,20 +68,32 @@ module MODULE_NAME
   use ASSOCIATIVE_ARRAY_MOD, only: MapIterator => ASSOCIATIVE_ARRAY_ITERATOR_TYPE
   use ASSOCIATIVE_ARRAY_MOD, only: MapConstructor => ASSOCIATIVE_ARRAY_CONSTRUCTOR
   use ASSOCIATIVE_ARRAY_MOD, only: operator(==), operator(/=)
+
+#ifdef WRAPPED_TYPE
+  use ASSOCIATIVE_ARRAY_MOD, only: REFERENCE_TYPE
+#endif
   implicit none
   private
 
-   public :: HASH_TYPE
-   public :: CONSTRUCTOR
-   public :: ITERATOR_TYPE
-   public :: assignment(=)
-   public :: operator(/=)
-   public :: operator(==)
-   public :: clean
-   public :: MAX_LEN_KEY
+  public :: HASH_TYPE
+  public :: CONSTRUCTOR
+  public :: ITERATOR_TYPE
+!  public :: assignment(=)
+  public :: operator(/=)
+  public :: operator(==)
+  public :: clean
+#ifdef WRAPPED_TYPE
+  public :: REFERENCE_TYPE
+#endif
+  public :: MAX_LEN_KEY
 
 !!$  integer, parameter :: MAX_LEN_KEY = 32
   integer, parameter :: DONE = -1
+
+! A hash map is an associative container that stores elements formed by a 
+! combination of a key value and a mapped value. The (key,value) structure
+! is managed by the AssociateArray object (Map type) and the actual mapped
+! value is implemented in a hashFunction
 
   type HASH_TYPE
 !!$    private
@@ -80,6 +103,7 @@ module MODULE_NAME
     procedure :: hashFunction
     procedure :: size => getSize
     procedure :: getReference
+    procedure :: setValue
     procedure :: insertEntry
     generic :: insert => insertEntry
     procedure :: merge
@@ -91,8 +115,9 @@ module MODULE_NAME
     procedure :: last
   end type HASH_TYPE
 
+! iterators are used to access the sequence of HashMap elements.
   type :: ITERATOR_TYPE
-    private
+!!$    private
     class (HASH_TYPE), pointer :: reference => null()
     integer :: hashValue = 0
     type (MapIterator) :: subIterator
@@ -101,17 +126,14 @@ module MODULE_NAME
     procedure :: next
     procedure :: key
     procedure :: value
+    procedure :: copyIter
+    generic, public :: assignment(=) => copyIter
   end type ITERATOR_TYPE
 
   interface clean
     module procedure clean_container
     module procedure clean_iterator
   end interface clean
-
-  interface assignment(=)
-    module procedure copy
-    module procedure copyIter
-  end interface assignment(=)
 
   interface operator(/=)
     module procedure notEqual
@@ -125,15 +147,14 @@ contains
 
   function CONSTRUCTOR(hashTableSize) result(dictionary)
     integer, optional :: hashTableSize
-    type (HASH_TYPE), pointer :: dictionary
+    type (HASH_TYPE) :: dictionary
 
     integer :: hashTableSize_
     integer :: i
 
     hashTableSize_ = DEFAULT_HASH_TABLE_SIZE
     if (present(hashTableSize)) hashTableSize_ = hashTableSize
-
-    allocate(dictionary)
+    
     allocate(dictionary%table(hashTableSize_))
     dictionary%tableSize = hashTableSize_
 
@@ -148,7 +169,9 @@ contains
     type (ITERATOR_TYPE), pointer :: iterator
 
     allocate(iterator)
-    allocate(iterator%reference, SOURCE=dictionary)
+    iterator%reference => dictionary
+    !The following makes a copy
+    !allocate(iterator%reference, SOURCE=dictionary)
   end function ITERATOR_CONSTRUCTOR
 
   integer function getSize(this) 
@@ -163,11 +186,25 @@ contains
 
   end function getSize
 
+  subroutine setValue(this, key, value)
+    use StringUtilities_mod, only: toLowerCase
+    class (HASH_TYPE), target, intent(inout) :: this
+    character(len=*), intent(in) :: key
+    class (TYPE_NAME) :: value
+
+    integer :: hashValue
+
+    hashValue = this%hashFunction(toLowerCase(key))
+    call this%table(hashValue)%insert(key, value)
+
+  end subroutine setValue
+
   subroutine insertEntry(this, key, value)
     use StringUtilities_mod, only: toLowerCase
     class (HASH_TYPE), target, intent(inout) :: this
     character(len=*), intent(in) :: key
     class (TYPE_NAME) :: value
+    class (TYPE_NAME), pointer :: p
 
     integer :: hashValue
 
@@ -188,10 +225,25 @@ contains
     hashValue = this%hashFunction(toLowerCase(key))
     m => this%table(hashValue)
     call m%insertReference(key, value)
-!!$    call this%table(hashValue)%insertReference(key, value)
 
   end subroutine insertReference
 
+#ifdef WRAPPED_TYPE
+  function getReference(this, key) result(ref)
+    use StringUtilities_mod, only: toLowerCase
+    class (HASH_TYPE), intent(in) :: this
+    character(len=*), intent(in) :: key
+    type (REFERENCE_TYPE) :: ref
+
+    integer :: hashValue
+    character(len=len(key)) lowerCaseKey
+
+    lowerCaseKey = trim(toLowerCase(key))
+    hashValue = this%hashFunction(lowerCaseKey)
+    ref = this%table(hashValue)%getReference(lowerCaseKey)
+
+  end function getReference
+#else
   function getReference(this, key) result(ptr)
     use StringUtilities_mod, only: toLowerCase
     class (HASH_TYPE), intent(in) :: this
@@ -206,6 +258,7 @@ contains
     ptr => this%table(hashValue)%getReference(lowerCaseKey)
 
   end function getReference
+#endif
 
   logical function hasIt(this, key)
     use StringUtilities_mod, only: toLowerCase
@@ -219,24 +272,11 @@ contains
 
   end function hasIt
 
-  subroutine copy(a, b)
-    type (HASH_TYPE), intent(out) :: a
-    type (HASH_TYPE), intent(in)  :: b
-
-    integer :: i
-
-    a%tableSize = b%tableSize
-    allocate(a%table(a%tableSize))
-
-    do i = 1, a%tableSize
-      a%table(i) = b%table(i)
-    end do
-
-  end subroutine copy
- 
-  subroutine copyIter(a, b)
-     type (ITERATOR_TYPE), intent(inout) :: a
-     type (ITERATOR_TYPE), intent(in) :: b
+ subroutine copyIter(a, b)
+     class (ITERATOR_TYPE), intent(inout) :: a
+     class (ITERATOR_TYPE), intent(in) :: b
+!     type (ITERATOR_TYPE), intent(inout) :: a
+!     type (ITERATOR_TYPE), intent(in) :: b
 
      a%reference => b%reference
      a%hashValue = b%hashValue
@@ -248,11 +288,13 @@ contains
     class (HASH_TYPE), intent(in) :: b
 
     type (ITERATOR_TYPE) :: iter
+    class (TYPE_NAME), pointer :: t
 
     iter = b%begin()
     do while (iter /= b%last())
        if (.not. this%has(iter%key())) then
-          call this%insert(iter%key(), iter%value())
+	 t => iter%value()
+          call this%insert(iter%key(), t)
        end if
       call iter%next()
     end do
@@ -269,7 +311,6 @@ contains
     print*,'--------------------------'
 
     iter = this%begin()
-    print*,__LINE__,__FILE__, iter%hashValue, iter%subIterator%iter, iter%subIterator%iterStop
     do while (iter /= this%last())
       print*,'   key: <',trim(iter%key()),'>'
 #ifdef HAS_PRINT
@@ -368,6 +409,7 @@ contains
 
     if (this%hashValue == DONE) then
       call throwException('Cannot call next() when hash has no remaining iterations.',14)
+      return
     end if
 
     if (this%subIterator%hasNext()) then

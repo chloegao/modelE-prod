@@ -1,6 +1,6 @@
 !     SCM_COM.f
-!@sum set up variables for SCM forcing data 
-!@auth  Audrey Wolf
+!@sum Declare SCM global variables and read SCM setup options
+!@auth Audrey Wolf (modifications by Fridlind)
 !
 C--------------------------------------------------------------------------------
 
@@ -11,248 +11,179 @@ C-------------------------------------------------------------------------------
       integer, parameter :: IM=1,JM=1
       end module HorizontalRes
 
-      Module SCMCOM
+C--------------------------------------------------------------------------------
+
+      module SCM_COM
       use VerticalRes, only : LM
-      IMPLICIT NONE
-      SAVE
+      implicit none
+      save
 
-C SCM DATA as provided from ARM variational analysis 
-!@var SG_P Pressure at GCM sigma levels (mb)
-      REAL*8 SG_P(LM)
-      REAL*8 SGE_P(LM+1)
-!@var SG_HGT Height of layer at GCM sigma levels (m)
-      REAL*8 SG_HGT(LM)
-!@var SG_T ARM Temperature at GCM sigma levels (K)
-      REAL*8 SG_T(LM)
-!@var SG_Q ARM Specific Humidity at GCM sigma levels (g/kg)
-      REAL*8 SG_Q(LM)
-!@var SG_U ARM U wind at GCM Sigma levels (m/s)
-      REAL*8 SG_U(LM)
-!@var SG_V ARM V wind at GCM sigma levels (m/s)
-      REAL*8 SG_V(LM)
-!@var SG_OMEGA ARM Omega at GCM sigma levels (mb/hr)
-      REAL*8 SG_OMEGA(LM)
-!@var SG_WINDIV ARM Wind Divergence at GCM sigma levels (1/s)
-      REAL*8 SG_WINDIV(LM)
-!@var SG_CONV   convergence as calculated in FCONV subr from windiv for clouds   
-      REAL*8 SG_CONV(LM)   
-!@var SG_HOR_TMP_ADV ARM Horizontal temperature advection at GCM sigma levels (K/s)
-      REAL*8 SG_HOR_TMP_ADV(LM)
-!@var SG_VER_S_ADV ARM Vertical S advection at GCM sigma levels (K/s)
-      REAL*8 SG_VER_S_ADV(LM)
-!@var SG_HOR_Q_ADV ARM Horizontal Q advection at GCM sigma levels( kg/kg/s)
-      REAL*8 SG_HOR_Q_ADV(LM)
-!@var SG_VER_Q_ADV ARM Vertical Q advection at GCM sigma levels (kg/kg/s) 
-      REAL*8 SG_VER_Q_ADV(LM)
-!@var SG_ARSCL ARSCL Cloud amounts at GCM sigma levels (%)
-      REAL*8 SG_ARSCL(LM)
-!@var ASTIME ARM TIME STAMP - surface data 
-      REAL*8 ASTIME
-!@var ALTIME ARM TIME STAMP - layer data
-      REAL*8 ALTIME
-!@var APREC ARM precipitation (mm/hour)
-      REAL*8 APREC
-!@var ALH Latent Heat Flux (W/m**2)
-      REAL*8 ALH
-!@var ASH Sensible Heat Flux (W/m**2)
-      REAL*8 ASH
-!@var AMEANPS ARM Mean Surface Pressure (mb) 
-      REAL*8 AMEANPS
-!@var ATSAIR ARM surface air temperature (C)
-      REAL*8 ATSAIR
-!@var ATSKIN surface skin temperature (C)
-      REAL*8 ATSKIN
-!@var ARHSAIR ARM Surface Air Relative Humidity (%)
-      REAL*8 ARHSAIR
-!@var ASWINDSPD 10m  wind speed (m/s)
-      REAL*8 ASWINDSPD
-!@var AQS 2m water vapor mixing ration(kg/kg)
-      REAL*8 AQS
-!@var AUS 10m u component (m/s)
-      REAL*8 AUS
-!@var AVS 10m v component (m/s)
-      REAL*8 AVS 
-!@var AUSRF surface u wind (m/s)
-      REAL*8 AUSRF
-!@var AVSRF surface v wind (m/s) 
-      REAL*8 AVSRF
-!@var ALWP  ARM MWR Cloud Liquid Water Path (cm)
-      REAL*8 ALWP
-!@var ADWDT ARM d(Column H20)/dt  (mm/hr)
-      REAL*8 ADWDT
-!@var ADWADV ARM Column_H20_Advection_ (mm/hr)
-      REAL*8 ADWADV
-!@var ATLWUP ARM TOA LW UP (W/m**2)
-      REAL*8 ATLWUP
-!@var ATSWDN ARM TOA SW DOWN (W/m**2)
-      REAL*8 ATSWDN
-!@var ATSWIN ARM TOA SW INS (W/m**2)
-      REAL*8 ATSWIN
-!@var ASRFALBEDO Surface Albedo (initless)
-      REAL*8 ASRFALBEDO
-!@var ARMDATE Julian day fraction from ARM
-      REAL*8 ARMDATE
+!@var nstepSCM current SCM time step
+      integer :: nstepSCM=0
 
+!@type SCMoptions type for SCM setup options
+      type SCMoptions
+        logical :: sflx,Tskin,Ps,z0m,ustar,alb
+        logical :: wind,geo,temp,theta,wvmr,rh
+        logical :: omega,w,VadvHwind,ls_v,ls_h,Qrad,nudge
+        logical :: BeersLaw
+        real*8 :: lat,lon,area,tau
+        integer :: sfc
+      end type SCMoptions
+      type(SCMoptions) SCMopt
+!@var SCMopt%sflx = T:use prescribed sensible and latent heat fluxes
+!@var SCMopt%Tskin = T:use prescribed skin T for radiation
+!@var SCMopt%Ps = T:use prescribed surface pressure
+!@var SCMopt%wind = T:specify winds
+!@var SCMopt%geo = T:use geostrophic winds for Coriolis forcing
+!@var SCMopt%temp = T:specify absolute temperature
+!@var SCMopt%theta = T:specify potential temperature with 1000-mb ref
+!@var SCMopt%wvmr = T:specify water vapor mixing ratio
+!@var SCMopt%rh = T:specify relative rather than specific humidity
+!@var SCMopt%z0m = T:specify surface roughness height
+!@var SCMopt%ustar = T:specify surface friction speed
+!@var SCMopt%alb = T:specify surface mid-visible albedo
+!@var SCMopt%omega = T:specify omega for qv, theta vertical forcings
+!@var SCMopt%w = T:specify large-scale vertical wind
+!@var SCMopt%VadvHwind = T:vertical forcing of vertical wind (using Omega or W)
+!@var SCMopt%ls_v = T:specify qv and dry static energy / Cp vert adv flux divergence
+!@var SCMopt%ls_h = T:specify qv and dry static energy / Cp horiz adv flux divergence
+!@var SCMopt%Qrad = T:specify fixed radiative heating profile
+!@var SCMopt%nudge = T:nudge qv and T with timescale tau
+!@var SCMopt%lat,SCMopt%lon = SCM latitude and longitude
+!@var SCMopt%area = SCM nominal area (m2)
+!@var SCMopt%tau = nudging time constant (s) for qv and T
+!@var SCMopt%sfc = 1:land, 2:ocean (defaults to land)
+!@var SCMopts%BeersLaw = T:use Beer's Law treatment (only) for radiative heating
 
+!@var SCMinputs type for SCM inputs at each time step
+      type SCMinputs
+        real*8 U(LM),V(LM),Ug(LM),Vg(LM)
+        real*8 T(LM),TH(LM),Q(LM),Omega(LM),W(LM)
+        real*8 SadvV(LM),QadvV(LM),TadvH(LM),QadvH(LM)
+        real*8 Qrad(LM)
+        real*8 time,lhf,shf,Tskin,Ps,z0m,ustar,alb
+        real*8 BeersLaw_f0,BeersLaw_f1,BeersLaw_kappa
+      end type SCMinputs
+      type(SCMinputs) SCMin
+!@var SCMin%U SCM input zonal wind at GCM sigma levels (m/s)
+!@var SCMin%V SCM input meridional wind at GCM sigma levels (m/s)
+!@var SCMin%Ug SCM input geostrophic zonal wind at GCM sigma levels (m/s)
+!@var SCMin%Vg SCM input geostrophic meridional wind at GCM sigma levels (m/s)
+!@var SCMin%T SCM input absolute T at GCM sigma levels (K)
+!@var SCMin%Q SCM input water vapor mixing ratio at GCM sigma levels (kg/kg)
+!@var SCMin%Omega SCM input pressure tendency at GCM sigmal levels (mb/s)
+!@var SCMin%W SCM input vertical wind at GCM sigmal levels (m/s)
+!@var SCMin%SadvV input vertical flux divergence of dry static energy / Cp (K/s)
+!@var SCMin%QadvV input water vapor mixing ratio vertical flux div at GCM sigma levels (kg/kg/s)
+!@var SCMin%TadvH input absolute T horizontal flux div at GCM sigma levels (K/s)
+!@var SCMin%QadvH input water vapor mixing ratio horizontal flux div at GCM sigma levels (kg/kg/s)
+!@var SCMin%Qrad input radiative heating rate profile at GCM sigma levels (W/m2)
+!@var SCMin%time SCM input time (d)
+!@var SCMin%lhf SCM input surface turbulent latent heat flux (W/m2)
+!@var SCMin%shf SCM input surface turbulent sensible heat flux (W/m2)
+!@var SCMin%Tskin SCM input surface skin temperature (K)
+!@var SCMin%Ps SCM input surface pressure (mb)
+!@var SCMin%z0m SCM input surface roughness height (m)
+!@var SCMin%ustar SCM input surface friction speed (m/s)
+!@var SCMin%alb SCM input surface albedo (-)
+!@var SCMin%BeersLaw_f0 SCM input cloud-top longwave cooling asymptote (W/m2)
+!@var SCMin%BeersLaw_f1 SCM input cloud-base longwave heating asymptote (W/m2)
+!@var SCMin%BeersLaw_kapp SCM input longwave absorption coefficient (m2/kg)
 
+      end module SCM_COM
 
-!@var ARMFAC   factor to take into consideration the difference in size 
-!              between the area of the ARM site and the GCM grid box area
-!              for the Wind Divergence    
-      REAL*8 ARMFAC
-!@var ARM_ELEV terrain hgt at ARM site in m
-      REAL*8 ARM_ELEV
-  
-!@var SCM_SURFACE_FLAG 0-use GCM calculated surface fluxes,
-!                      1-use SCM prescribed surface fluxes  
-!                      2-use SCM surf temps and GCM calculated surface fluxes
-      INTEGER SCM_SURFACE_FLAG
-!@var SCM_ATURB_FLAG   0-run with dry convection routine
-!                      1-run with aturb routine
-      INTEGER SCM_ATURB_FLAG
-!@var SCM_SURF_ALBEDO_FLAG    0-run with GCM calculated surface albedo
-!                             1-run with SCM ARM prescribed surface albedo
-      INTEGER SCM_SURF_ALBEDO_FLAG
-!@var SCM_RELAX_FORCING_FLAG  0 - run with ARM forcings as given
-!                             1 - run with a relaxing over time of the ARM forcings
-      INTEGER SCM_RELAX_FORCING_FLAG
+C--------------------------------------------------------------------------------
 
-
-!@var NARM #of GCM time steps per ARM time step
-      INTEGER NARM
-!@var NRINIT #of GCM time steps between reinitializing T,Q 
-      INTEGER NRINIT
-!@var TAUARM starting TAU of ARM DATA  (should this be starting date and time)
-      INTEGER TAUARM
-!@var IKT index to arm data interpolated to time steps
-      INTEGER IKT
-      INTEGER iu_scm_prt,iu_scm_seed
-      INTEGER :: iu_scm_diag=-999 ! neg. init value indicates need to open file
-      INTEGER jrandscm    
-
-!@var IFLRESET,NRAMP,IRESET  used for doing updating with a ramp, then saving only
-!     time steps after ramp, then backtracking and ramping again before the next saved
-!     time steps
-!     IFLRESET = flag
-!     NRAMP = length of ramp in time steps
-!     NRESET = length of ramp + buffer
-!     IRESET = index to output buffers
-      INTEGER IFLRESET,NRAMP,NRESET,IRESET
-
-      parameter (NRESET=72)
-
-!**** Target Coordinates for SCM
-      REAL*8 :: LON_TARG,LAT_TARG
-c      INTEGER*4 :: I_TARG,J_TARG   !TWP I=125,J=39  set targets in parameter list
-      INTEGER*4 :: NSTEPSCM=0      !Time step counter for SCM
+      subroutine alloc_SCM_COM()
    
-      
-      INTEGER MCT
-      INTEGER NTOTSCM
+      use filemanager, only : file_exists
+      use Dictionary_mod, only : is_set_param,get_param
+      use SCM_COM, only : SCMopt,SCMin
+      implicit none
+      real*8 dum_array(3)
 
-      parameter (MCT=3000)
+c     optional inputs
 
-      REAL*8 HTA_HR(LM,MCT)    
-      REAL*8 VSA_HR(LM,MCT)
-      REAL*8 HQA_HR(LM,MCT)
-      REAL*8 VQA_HR(LM,MCT)
-    
-      REAL*4 STMSTEP(MCT)
-      REAL*4 STMSTEPL(MCT)
-      REAL*4 AMPS(MCT)
-      REAL*4 ATSK(MCT)
-      REAL*4 ATSA(MCT)
-      REAL*4 ARHHR(MCT)
-      REAL*4 THR(LM,MCT)
-      REAL*4 QHR(LM,MCT)
-      REAL*4 APRCHR(MCT)
-      REAL*4 ALHHR(MCT)
-      REAL*4 ASHHR(MCT)
-      REAL*4 AWSHR(MCT)
-      REAL*4 AQSHR(MCT)
-      REAL*4 AUSHR(MCT)
-      REAL*4 AVSHR(MCT)
-      REAL*4 UHR(LM,MCT)
-      REAL*4 VHR(LM,MCT)
-      REAL*4 OMGHR(LM,MCT)
-      REAL*4 WDHR(LM,MCT)
-      REAL*4 ACLDHR(LM,MCT)
-      REAL*4 ALWPHR(MCT)
-      REAL*4 ADWDTHR(MCT)
-      REAL*4 ADWADVHR(MCT)
-      REAL*4 ATLWUPHR(MCT) 
-      REAL*4 ATSWDNHR(MCT)
-      REAL*4 ATSWINHR(MCT)
-      REAL*4 ASRFALBHR(MCT)
+      SCMopt%sflx = file_exists('SCM_SFLUX')
+      SCMopt%Tskin = file_exists('SCM_TSKIN')
+      SCMopt%Ps = file_exists('SCM_PS')
+      SCMopt%wind = file_exists('SCM_WIND')
+      SCMopt%geo = file_exists('SCM_GEO')
+      SCMopt%wvmr = file_exists('SCM_WVMR')
 
-      REAL*8 SCM_SAVE_T(LM),SCM_SAVE_Q(LM),SCM_DEL_T(LM),
-     &       SCM_DEL_Q(LM)
+      SCMopt%temp = file_exists('SCM_TEMP')
+      SCMopt%theta = file_exists('SCM_THETA')
 
-c
-c     add buffers for running ramp/reset to store cloud variables
-c
-      real*8 CBTTOLD(LM,0:MCT),CBQTOLD(LM,0:MCT),CBWM(LM,0:MCT),
-     *       CBPTOLD(0:MCT),CBSVLHX(LM,0:MCT),
-     *       CBRHSAV(LM,0:MCT),CBCLDSAV(LM,0:MCT),
-     *       CBCLDSAV1(LM,0:MCT)
+      if( SCMopt%temp .and. SCMopt%theta ) call stop_model(
+     &    'alloc_SCM_COM: specify either T or theta',255)
 
-      end module SCMCOM
-c
-c    
-      subroutine ALLOC_SCM_COM()
-   
-      USE SCMCOM, only : SCM_SURFACE_FLAG,SCM_ATURB_FLAG,
-     &            SCM_SURF_ALBEDO_FLAG,SCM_RELAX_FORCING_FLAG,
-     &            ARMFAC,ARM_ELEV,IFLRESET,IRESET,NRAMP,
-     &            iu_scm_prt
+      SCMopt%omega = file_exists('SCM_OMEGA')
+      SCMopt%w = file_exists('SCM_W')
 
+      if( SCMopt%omega .and. SCMopt%w ) call stop_model(
+     &    'alloc_SCM_COM: at most one of omega and w',255)
 
-!@var SCM_SURFACE FLAG   0-run with GCM calculated surface fluxes
-!                        1-run with ARM prescribed surface fluxes
-!                        2-RUN WITH ARM srf tmps and GCM calc srf fluxes
-      SCM_SURFACE_FLAG = 1     
+      SCMopt%ls_h = file_exists('SCM_LS_H')
+      SCMopt%ls_v = file_exists('SCM_LS_V')
 
-!@var SCM_ATURB_FLAG     0-run with DRYCNV dry convection routine 
-!                        1-run with ATURB turbulence routine    
-      SCM_ATURB_FLAG = 1
- 
-!@var SCM_SURF_ALBEDO_FLAG   0-run with GCM calculated surface albedo
-!                            1-run with SCM ARM prescribed surface albedo
-      SCM_SURF_ALBEDO_FLAG = 0
+      if( ( SCMopt%omega .or. SCMopt%w ) 
+     &    .and. SCMopt%ls_v ) call stop_model(
+     &    'alloc_SCM_COM: at most one of w ,omega, or ls_v',255)
 
-!@var SCM_RELAX_FORCING_FLAG   0-run with ARM forcings as given
-!                              1-run with relaxation of forcings
-      SCM_RELAX_FORCING_FLAG = 0
+      SCMopt%Qrad = file_exists('SCM_QRAD')
 
-!@var ARMFAC
-!     variable to scale windiv for difference in area of ARM site and
-!     GCM grid box    see subroutine FCONV in ATMDYN_SCM.f
-c     for now set ARMFAC TO 1.0   to be determined when setting up run.
-      ARMFAC=1.0
+c     optional Beer's Law radiative heating
+      SCMopt%BeersLaw = is_set_param('SCM_BeersLaw')
+      if( SCMopt%BeersLaw )then
+        call get_param('SCM_BeersLaw',dum_array,3)
+        SCMin%BeersLaw_f0    = dum_array(1)
+        SCMin%BeersLaw_f1    = dum_array(2)
+        SCMin%BeersLaw_kappa = dum_array(3)
+      endif
+     
+      if( SCMopt%Qrad .and. SCMopt%BeersLaw ) call stop_model(
+     &    'alloc_SCM_COM: at most one of Qrad or BeersLaw',255)
 
-!@var ARM_ELEV   set terrain hgt of ARM site in m
-!                SGP = 320.m
-      ARM_ELEV = 320.
+c     0(default): surface is set by GCM input files in run deck
+      call get_param('SCM_sfc',SCMopt%sfc,default=0)
 
+c     optional nudging
+      SCMopt%nudge = is_set_param('SCM_tau')
+      if( SCMopt%nudge ) call get_param('SCM_tau',SCMopt%tau)
 
-!@var  IFLRESET          0-run without ramp/reset/updating
-!                        1-run with ramp/reset/updating
-      IFLRESET = 0
-      NRAMP = 24
-      IRESET = 0
-      if (IFLRESET.eq.1) write(0,*) 'run with ramps iflreset nramp ',
-     &                   iflreset,nramp
+c     optional (gray) surface albedo
+      SCMopt%alb = is_set_param('SCM_alb')
+      if( SCMopt%alb ) call get_param('SCM_alb',SCMin%alb)
 
-      return
+c     optional surface roughness length for momentum
+      SCMopt%z0m = is_set_param('SCM_z0m')
+      if( SCMopt%z0m ) call get_param('SCM_z0m',SCMin%z0m)
 
-      end subroutine ALLOC_SCM_COM
+c     optional surface friction speed
+      SCMopt%ustar = is_set_param('SCM_ustar')
+      if( SCMopt%ustar ) call get_param('SCM_ustar',SCMin%ustar)
 
-      MODULE GEOM
+      if( SCMopt%z0m .and. SCMopt%ustar ) call stop_model(
+     &    'alloc_SCM_COM: at most one of z0m or ustar',255)
+
+c     optional vertical forcing of horizontal winds
+      SCMopt%VadvHwind = is_set_param('SCM_VadvHwind')
+
+      if( SCMopt%VadvHwind .and.
+     &    .not. ( SCMopt%geo .and. ( SCMopt%omega .or. SCMopt%w ) ) )
+     &  call stop_model('alloc_SCM_COM: SCM_VadvHwind makes no sense')
+        
+      end subroutine alloc_SCM_COM
+
+C--------------------------------------------------------------------------------
+
+      module GEOM
 !@sum  GEOM contains geometric variables and arrays
 !@auth M. Kelley
 
-      IMPLICIT NONE
-      SAVE
+      implicit none
+      save
 
       real*8, dimension(1,1) ::
 !@var  lat2d latitude of mid point of primary grid box (radians)
@@ -265,38 +196,34 @@ c     for now set ARMFAC TO 1.0   to be determined when setting up run.
      &     ,sinlat2d, coslat2d
 
 !@var  axyp,byaxyp area of grid box (+inverse) (m^2)
-!@+    Note these should not play any role in a single-column
-!@+    model. For clarity, references to them will be replaced
-!@+    by usage of axyp_nominal in parts of the model which
-!@+    apply a scale-aware parameterization approach.
-      real*8, dimension(1,1) :: axyp, byaxyp, axyp_nominal
+!@+    used for consistent conversion to and from extensive
+!@+    units and in scale-aware cloud parameterization elements
+!@+    (only the latter can influence SCM results).
+      real*8, dimension(1,1) :: axyp, byaxyp
 
       integer, dimension(1) :: imaxj
 
-      CONTAINS
+      contains
 
-      SUBROUTINE GEOM_ATM
-      USE CONSTANT, only : PI,TWOPI,radian
-      use Dictionary_mod, only : get_param,sync_param
-      use scmcom, only : lon_targ, lat_targ
+      subroutine GEOM_ATM
+      use CONSTANT, only : PI,TWOPI,radian
+      use Dictionary_mod, only : get_param
+      use scm_com, only : SCMopt
       implicit none
 
       ! mandatory rundeck parameters: lon and lat of target point
-      call get_param('lon_targ',lon_targ)
-      call get_param('lat_targ',lat_targ)
+      call get_param('SCM_lon',SCMopt%lon)
+      call get_param('SCM_lat',SCMopt%lat)
 
-      if(abs(lon_targ).gt.180d0 .or. abs(lat_targ).gt.90d0)
+      if(abs(SCMopt%lon).gt.180d0 .or. abs(SCMopt%lat).gt.90d0)
      &     call stop_model(
-     &       'geom_atm: invalid lon_targ,lat_targ in rundeck',255)
+     &       'geom_atm: invalid SCM_lon,SCM_lat in rundeck',255)
 
-      lon2d_dg(1,1) = lon_targ
-      lat2d_dg(1,1) = lat_targ
+      lon2d_dg(1,1) = SCMopt%lon
+      lat2d_dg(1,1) = SCMopt%lat
 
-      axyp_nominal(1,1) = 1.
-      call sync_param('nominal_area',axyp_nominal(1,1))
-
-      axyp(1,1) = axyp_nominal(1,1)
-
+      call get_param('SCM_area',SCMopt%area)
+      axyp(1,1) = SCMopt%area
       byaxyp(1,1) = 1d0/axyp(1,1)
 
       lon2d(1,1) = lon2d_dg(1,1)*radian
@@ -313,7 +240,7 @@ c     for now set ARMFAC TO 1.0   to be determined when setting up run.
       lat_dg = lat2d_dg
 
       return
-      END SUBROUTINE GEOM_ATM
+      end subroutine GEOM_ATM
 
       subroutine lonlat_to_ij(ll,ij)
       implicit none
@@ -323,4 +250,4 @@ c     for now set ARMFAC TO 1.0   to be determined when setting up run.
       return
       end subroutine lonlat_to_ij
 
-      END MODULE GEOM
+      end module GEOM

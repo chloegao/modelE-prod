@@ -296,6 +296,10 @@ C     -------------------
       use fluxes, only: atmocn
       use ocalbedo_mod, only: ocalbedo
 
+#ifdef SCM
+      USE SCM_COM, only : SCMopt,SCMin
+#endif
+
       implicit none
 
 !********* start  in/out *****************************
@@ -810,6 +814,16 @@ C**** calculate final variables always over 6-bands
           SRBALB(J)=BVNSUR(L)
           SRXALB(J)=XVNSUR(L)
         END DO
+#ifdef SCM
+      ELSE
+        DO J=1,6
+          L=7-J
+          if( SCMopt%alb )then
+            SRBALB(j)=SCMin%alb
+            SRXALB(j)=SCMin%alb
+          endif
+        END DO
+#endif
       ENDIF
 C
 C                     --------------------------------------------------

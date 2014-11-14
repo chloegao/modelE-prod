@@ -12,8 +12,6 @@ c
       USE obio_forc, only : ihra,atmFe_glob,atmFe,alk
 #ifdef OBIO_RAD_coupling
      .                      ,eda_frac,esa_frac
-#else
-     .                      ,Eda,Esa
 #endif
       USE obio_com, only : npst,npnd,WtoQ,obio_ws,P_tend,D_tend
      .                    ,C_tend,wsdet,gro,obio_deltath,obio_deltat 
@@ -477,29 +475,13 @@ c  Read in factors to compute average irradiance
       print*, '    '
       endif
 
-!!!! this part of the code is done only when reading OASIM data which
-!!!! is written in hycom format. Never use with gary's ocean. 
-!!!! till I say so!
-      ALLOCATE (Eda(idm,jdm,nlt,nhn,12),Esa(idm,jdm,nlt,nhn,12))
-
-      open(unit=iu_bio,file='oasimdirect'
-     . ,form='unformatted',status='old',access='direct' 
-     . ,recl=idm*jdm*8/4)
-      nrec=0
-      do imon=1,12
-      do ihr=1,nhn
-      do ichan=1,nlt
-        nrec=nrec+1
-        read (iu_bio,rec=nrec)
-     .       ((Eda(i,j,ichan,ihr,imon),i=1,idm),j=1,jdm)
-
-        nrec=nrec+1
-        read (iu_bio,rec=nrec)
-     .       ((Esa(i,j,ichan,ihr,imon),i=1,idm),j=1,jdm)
-      enddo
-      enddo
-      enddo
-      close(iu_bio)
+#ifdef OBIO_ON_GARYocean
+      filename1='oasimdirect1'
+      filename2='oasimdirect2'
+      call obio_edaesa_g(filename1,filename2)
+#else
+!       !eda and esa interpolate in HYCOMgrid
+#endif
 #endif  /*OBIO_RAD_coupling*/
 
 !read in atmospheric iron deposition (this will also be changed later...)
@@ -926,3 +908,68 @@ c
   
       end subroutine bio_inicond2D
 #endif
+
+#ifdef STANDALONE_OCEAN
+#ifdef OBIO_ON_GARYocean
+      subroutine obio_edaesa_g(filename1,filename2)
+!read in eda and esa
+!read in a field and convert to ocean grid (using Gary Russel's routine) 
+
+      USE FILEMANAGER, only: openunit,closeunit
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,unpack_data
+      USE OCEANR_DIM, only : ogrid
+
+      USE OCEANRES, only : imo,jmo,lmo
+      USE OCEAN, only : oDLATM=>DLATM,LMOM=>LMM,ZOE=>ZE,FOCEAN
+      USE obio_forc, only: Eda_glob, Esa_glob, Eda,Esa
+
+      implicit none
+
+
+      integer, parameter :: igrd=360,jgrd=180,kgrd=33
+      integer, parameter :: igrd2=288
+      integer, parameter :: nmo=12,nhr=12
+      integer i,j,k,l,n,lm
+      integer iu_file,lgth
+      real data1(igrd,jgrd)
+      real data2(igrd,jgrd)
+      real data_mask(igrd,jgrd)
+
+      integer imon,ihr
+
+      logical vrbos
+
+      character*80 filename1,filename2
+
+!--------------------------------------------------------------
+      if ( AM_I_ROOT() ) then
+      lgth=len_trim(filename1)
+      print*, 'obio-init: reading from file...',filename1(1:lgth)
+      call openunit(filename1,iu_file,.false.,.true.)
+
+      do imon=1,nmo; do ihr=1,nhr; do k=1,kgrd;
+          do i=1,igrd2; do j=1,jgrd
+          read(iu_file,'(e12.4)')Eda_glob(i,j,k,ihr,imon)
+          enddo; enddo    ! i,j-loop
+      enddo; enddo;enddo    ! k,imon
+      call closeunit(iu_file)
+      lgth=len_trim(filename2)
+      print*, 'obio-init: reading from file...',filename2(1:lgth)
+      call openunit(filename2,iu_file,.false.,.true.)
+
+      do imon=1,nmo; do ihr=1,nhr; do k=1,kgrd;
+          do i=1,igrd2; do j=1,jgrd
+          read(iu_file,'(e12.4)')Esa_glob(i,j,k,ihr,imon)
+          enddo; enddo    ! i,j-loop
+      enddo; enddo;enddo    ! k,imon
+      call closeunit(iu_file)
+      endif   !AM_I_ROOT
+!--------------------------------------------------------------
+
+      call unpack_data(ogrid, Eda_glob, Eda)
+      call unpack_data(ogrid, Esa_glob, Esa)
+
+      end subroutine obio_edaesa_g
+#endif /*  STANDALONE_OCEAN */
+#endif  /* Russell ocean */
+

@@ -1,6 +1,15 @@
+! Workaround for ifort bug with -assume protect_parens
+#ifdef PROTECT_PARENS
+#define ASSIGN_ATTR(a,b) call toType(a,b)
+#else
+#define ASSIGN_ATTR(a,b) a = b
+#endif
+
+
 module Test_AttributeDictionary_mod
   use pfunit_mod
   use AttributeDictionary_mod
+  use AbstractAttribute_mod
   use Attributes_mod
 
   implicit none
@@ -32,45 +41,44 @@ contains
   subroutine testInsertIntegerAttribute(this)
     class (Test_AttributeDictionary), intent(inout) :: this
     
-    integer, pointer :: pInteger
+    integer, pointer :: pInteger => null()
+    integer :: i
 
     call this%dictionary%insert('A', 1)
 
-    pInteger = this%dictionary%getReference('A')
-    @assertEqual(1, pInteger)
+    ASSIGN_ATTR(i, this%dictionary%getReference('A'))
+    @assertEqual(1, i)
 
+    pInteger => toPointer(this%dictionary%getReference('A'), pInteger)
+    @assertEqual(1, pInteger)
   end subroutine testInsertIntegerAttribute
 
 @Test  
   subroutine testAssignAttributeReference(this)
-    use AttributeReference_mod
-    use IntegerAttribute_mod, only: assignment(=)
+    use AttributeHashMap_mod
+    use IntegerAttribute_mod
     class (Test_AttributeDictionary), intent(inout) :: this
     
-    type (AttributeReference) :: scalar
     integer, pointer :: i => null()
 
-    type (IntegerAttribute) :: iAttr
+    type (IntegerAttribute), target :: iAttr
 
     iAttr = newAttribute(1)
-    
-    call scalar%set(iattr)
+    i => toPointer(iAttr, i)
 
-    i = scalar
     @assertEqual(1, i)
 
   end subroutine testAssignAttributeReference
 
-! TODO: This test needs to be revisited
-! i = vector => Error: Illegal conversion of IntegerAttribute
-!!!@Test
+@Test
   subroutine testAssignAttributeReferenceMulti(this)
     use AttributeReference_mod
+    use IntegerAttribute_mod
     class (Test_AttributeDictionary), intent(inout) :: this
     
-    type (AttributeReference), target :: vector(3)
-    integer, pointer :: i(:)
-    integer, pointer :: j
+    type (VectorAttribute) :: vector
+    type (AttributeReference) :: refs(3)
+    integer, allocatable :: i(:)
 
     type (IntegerAttribute) :: iAttr(3)
 
@@ -78,11 +86,13 @@ contains
     iAttr(2) = newAttribute(2)
     iAttr(3) = newAttribute(5)
 
-    call vector(1)%set(iAttr(1))
-    call vector(2)%set(iAttr(2))
-    call vector(3)%set(iAttr(3))
+    call refs(1)%set(iAttr(1))
+    call refs(2)%set(iAttr(2))
+    call refs(3)%set(iAttr(3))
+    vector = newVectorAttribute(refs)
+    
 
-    i = vector
+    ASSIGN_ATTR(i, vector)
 
     @assertEqual([1,2,5], i)
 
@@ -94,9 +104,14 @@ contains
     class (Test_AttributeDictionary), intent(inout) :: this
     
     integer, pointer :: pInteger(:)
+    integer, allocatable :: aInteger(:)
+
     call this%dictionary%insert('A', [1,2])
 
-    pInteger = this%dictionary%getReference('A')
+    ASSIGN_ATTR(aInteger, this%dictionary%getReference('A'))
+    @assertEqual([1,2], aInteger)
+
+    pInteger => toPointer( this%dictionary%getReference('A'), pInteger)
     @assertEqual([1,2], pInteger)
 
   end subroutine testInsertInteger1DAttribute
@@ -106,11 +121,11 @@ contains
   subroutine testInsertRealDPAttribute(this)
     class (Test_AttributeDictionary), intent(inout) :: this
     
-    real*8, pointer :: pRealDP
+    real*8 :: pRealDP
     real*8, parameter :: VALUE = 1.23d0
     call this%dictionary%insert('A', VALUE)
 
-    pRealDP = this%dictionary%getReference('A')
+    ASSIGN_ATTR(pRealDP, this%dictionary%getReference('A'))
     @assertEqual(VALUE, pRealDP)
 
   end subroutine testInsertRealDPAttribute
@@ -120,11 +135,11 @@ contains
   subroutine testInsertRealDP1DAttribute(this)
     class (Test_AttributeDictionary), intent(inout) :: this
     
-    real*8, pointer :: pRealDP(:)
+    real*8, allocatable :: pRealDP(:)
     real*8, parameter :: VALUES(3) = [1.2,3.4,5.6]
     call this%dictionary%insert('A', VALUES)
 
-    pRealDP = this%dictionary%getReference('A')
+    ASSIGN_ATTR(pRealDP, this%dictionary%getReference('A'))
     @assertEqual(VALUES, pRealDP)
 
   end subroutine testInsertRealDP1DAttribute
@@ -138,7 +153,7 @@ contains
 
     call this%dictionary%insert('A', 'foo')
 
-    pString = this%dictionary%getReference('A')
+    pString => toPointer(this%dictionary%getReference('A'), pString)
     @assertEqual('foo', pString)
 
   end subroutine testInsertStringAttribute
@@ -148,17 +163,17 @@ contains
   subroutine testInsertLogicalAttribute(this)
     class (Test_AttributeDictionary), intent(inout) :: this
     
-    logical, pointer :: pLogical
+    logical :: pLogical
     logical, parameter :: TRUE = .true.
     logical, parameter :: FALSE = .false.
 
     call this%dictionary%insert('A', TRUE)
     call this%dictionary%insert('B', FALSE)
 
-    pLogical = this%dictionary%getReference('A')
+    ASSIGN_ATTR(pLogical, this%dictionary%getReference('A'))
     @assertTrue(pLogical)
  
-    pLogical = this%dictionary%getReference('B')
+    ASSIGN_ATTR(pLogical, this%dictionary%getReference('B'))
     @assertFalse(pLogical)
 
   end subroutine testInsertLogicalAttribute
@@ -170,9 +185,9 @@ contains
 !!!@Test  
   subroutine testComplexCase(this)
     class (Test_AttributeDictionary), intent(inout) :: this
-    integer, pointer :: betaValue
-    real(kind=dp), pointer :: gammaValue
-    logical, pointer :: deltaValues(:)
+    integer :: betaValue
+    real(kind=dp) :: gammaValue
+    logical, allocatable :: deltaValues(:)
 
     call this%dictionary%insert('beta', 2)
     call this%dictionary%insert('gamma', 3.d0)
@@ -184,16 +199,16 @@ contains
     @assertTrue(this%dictionary%has('gamma'), 'There should be a "gamma".')
     @assertTrue(this%dictionary%has('delta'), 'There should be a "delta".')
 
-    betaValue = this%dictionary%getReference('beta')
+    ASSIGN_ATTR(betaValue, this%dictionary%getReference('beta'))
     @assertEqual(2, betaValue, 'Wrong value for "beta".')
 
-    gammaValue = this%dictionary%getReference('gamma')
+    ASSIGN_ATTR(gammaValue, this%dictionary%getReference('gamma'))
     @assertEqual(3.d+0, gammaValue, 'Wrong value for "gamma".')
 
-    gammaValue = this%dictionary%getReference('Gamma')
+    ASSIGN_ATTR(gammaValue, this%dictionary%getReference('Gamma'))
     @assertEqual(3.d+0, gammaValue, 'Wrong value for "Gamma".')
 
-    deltaValues = this%dictionary%getReference('delta')
+    ASSIGN_ATTR(deltaValues, this%dictionary%getReference('delta'))
     @assertTrue(all([.true.,.false.,.true.,.true.] .eqv. deltaValues), 'Wrong value for "delta".')
 
   end subroutine testComplexCase

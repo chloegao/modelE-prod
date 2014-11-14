@@ -12,10 +12,14 @@
 !@sum init_tracer_cons_diag Initialize tracer conservation diagnostics
 !@auth Gavin Schmidt
       use AbstractAttribute_mod, only: AbstractAttribute
-      use Attributes_mod, only: assignment(=), IntegerAttribute
+      use Attributes_mod, only: assignment(=)
+      use Attributes_mod, only: toPointer
+      use Tracer_mod
+      use TracerBundle_mod
+      use TracerHashMap_mod
+      use AttributeDictionary_mod, only: assignment(=)
       use TracerSurfaceSource_mod, only: TracerSurfaceSource
       USE TRACER_COM, only: ntm
-      use TracerHashMap_mod, only: TracerIterator, operator(/=)
       USE TRACER_COM, only: noverwrite
       USE TRACER_COM, only: nvolcanic
       USE TRACER_COM, only: nother
@@ -27,7 +31,7 @@
       use TRACER_COM, only: ntsurfsrc
       use TRACER_COM, only: tracers
       use TRACER_COM, only: n_SO2
-      use Tracer_mod, only: Tracer, getName
+      use Tracer_mod, only: Tracer
 #ifdef TRACERS_TOMAS
       use TRACER_COM, only: IDTNUMD, IDTH2O, n_AECOB, n_AOCOB, n_ANUM
       use TRACER_COM, only: N_AECOB, IDTSO4, xk
@@ -43,8 +47,8 @@
       logical :: qcon(KTCON-1), qsum(KTCON-1), T=.TRUE. , F=.FALSE.
       logical :: Qf
       integer n,k,g,kk
+      integer, pointer :: index=> null()
       class (AbstractAttribute), pointer :: pa
-      integer, pointer :: index
       class (Tracer), pointer :: pTracer
       type (TracerSurfaceSource), pointer :: sources(:) 
       type (TracerSurfaceSource), pointer :: SO2sources(:)
@@ -162,18 +166,12 @@ C**** set some defaults
       iter = tracers%begin()
       do while (iter /= tracers%last())
         pTracer => iter%value()
-
-! TODO: ifort needs to split this into two steps ???
-c$$$        index = (pTracer%getReference('index'))
-        pa => pTracer%getReference('index')
-! TODO : NAG error:
-! dereferenced or deallocated but not pointer-assigned or allocated
-        allocate(index)
-        index = pa
+        
+        index => toPointer(pTracer%getReference('index'), index)
         n = index
         sources => pTracer%surfaceSources
 
-        select case (trim(getName(pTracer)))
+        select case (trim(pTracer%getName()))
 
         case ('Air','CFCn', 'SF6', 'SF6_c')
                ! nothing to do: use defaults
@@ -322,7 +320,7 @@ c$$$        index = (pTracer%getReference('index'))
      *       ,'AlkylNit','ClOx','BrOx','HCl','HOCl','ClONO2','HBr'
      *       ,'HOBr','BrONO2','CFC','NOx','CO','Isoprene','Alkenes'
      *       ,'Paraffin','stratOx','Terpenes') ! N2O done above
-          select case (trim(getName(pTracer)))
+          select case (trim(pTracer%getName()))
             case ('N2O5','CH3OOH','HCHO','HO2NO2','PAN','AlkylNit','CFC'
      *           ,'ClOx','BrOx','HCl','HOCl','ClONO2','HBr','HOBr'
      *           ,'BrONO2','NOx')
@@ -342,7 +340,7 @@ c$$$        index = (pTracer%getReference('index'))
           qcon(itcon_3Dsrc(nOverwrite,N)) = .true.
           conpts(g-12)='Overwrite'
           qsum(itcon_3Dsrc(nOverwrite,N)) = .true.
-          select case(trim(getName(pTracer)))
+          select case(trim(pTracer%getName()))
             case ('NOx')
               g=g+1; itcon_3Dsrc(nOther,N) = g
               qcon(itcon_3Dsrc(nOther,N)) = .true.
@@ -353,14 +351,14 @@ c$$$        index = (pTracer%getReference('index'))
               conpts(g-12) = 'Aircraft'
               qsum(itcon_3Dsrc(nAircraft,N)) = .true.
           end select
-          select case(trim(getName(pTracer)))
+          select case(trim(pTracer%getName()))
             case('NOx','CO','Alkenes','Paraffin')
               g=g+1; itcon_3Dsrc(nBiomass,N) = g
               qcon(g) = .true.; conpts(g-12) = 'Biomass src'
               qsum(g) = .true.
           end select
 #ifdef TRACERS_NITRATE
-          select case (trim(getName(pTracer)))
+          select case (trim(pTracer%getName()))
             case ('HNO3')
               g=g+1; itcon_3Dsrc(3,N) = g
               qcon(g) = .true.; conpts(g-12)='Nitrate Chemistry'
@@ -555,7 +553,7 @@ c$$$        index = (pTracer%getReference('index'))
      &        'vbsAm2', 'vbsAm1', 'vbsAz',  'vbsAp1', 'vbsAp2',
      &        'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6')
           g=12
-          select case(trim(getName(pTracer)))
+          select case(trim(pTracer%getName()))
           case ('vbsGm2', 'vbsGm1', 'vbsGz',  'vbsGp1', 'vbsGp2',
      &          'vbsGp3', 'vbsGp4', 'vbsGp5', 'vbsGp6')
             g=g+1; itcon_3Dsrc(nChemistry,N) = g
@@ -595,7 +593,7 @@ c$$$        index = (pTracer%getReference('index'))
             g=g+1; itcon_3Dsrc(nChemistry,N) = g
             qcon(g) = .true.; conpts(g-12) = 'Aging source'
             qsum(g) = .true.
-            select case(trim(getName(pTracer)))
+            select case(trim(pTracer%getName()))
             case ('BCII')
               g=g+1; itcon_3Dsrc(nAircraft,N) = g
               qcon(g) = .true.; conpts(g-12) = 'Aircraft Source'
@@ -650,7 +648,7 @@ c$$$        index = (pTracer%getReference('index'))
           qcon(g) = .true.; conpts(g-12) = 'Gas phase change'
           qsum(g) = .true.
 #ifdef TRACERS_TOMAS
-          select case (trim(getName(pTracer)))
+          select case (trim(pTracer%getName()))
           case ('H2SO4')
             g=g+1; itcon_3Dsrc(nOther,N) = g
             qcon(g) = .true.; conpts(g-12) = 'Microphysics change'
@@ -658,7 +656,7 @@ c$$$        index = (pTracer%getReference('index'))
           end select
 #endif
           qsum(g) = .true.
-          select case (trim(getName(pTracer)))
+          select case (trim(pTracer%getName()))
           case ('NH3')
             g=g+1; itcon_3Dsrc(nBiomass,N) = g
             qcon(g) = .true.; conpts(g-12) = 'Biomass src'
@@ -734,7 +732,7 @@ c$$$        index = (pTracer%getReference('index'))
             qsum(itcon_dd(n,2)) = .false.
           end if
 #endif
-          if (trim(getName(pTracer)).eq."Be7") then
+          if (trim(pTracer%getName()).eq."Be7") then
             itcon_decay(n) = 18
             qcon(itcon_decay(n)) = .true.; conpts(6) = 'DECAY'
             qsum(itcon_decay(n)) = .true.
@@ -851,7 +849,7 @@ c- Species including AMP  emissions - 2D sources and 3D sources
           g=g+1; itcon_3Dsrc(nChemistry,n) = g
           qcon(g) = .true.; conpts(g-12) = 'AMP source'
           qsum(g) = .true.
-          select case (trim(getName(pTracer)))
+          select case (trim(pTracer%getName()))
             case ('M_SSA_SS','M_SSC_SS','M_SSS_SS','M_DD1_DU'
      *           ,'M_DD2_DU')
               g=g+1; itcon_surf(1,n) = g
@@ -859,7 +857,7 @@ c- Species including AMP  emissions - 2D sources and 3D sources
               qsum(g) = .true.
             case ('M_AKK_SU','M_ACC_SU',
      &            'M_BC1_BC','M_OCC_OC','M_BOC_BC','M_BOC_OC')
-              select case (trim(getName(pTracer)))
+              select case (trim(pTracer%getName()))
               case ('M_AKK_SU','M_ACC_SU')
                 do kk=1,ntsurfsrc(n_SO2)
                   g=g+1; itcon_surf(kk,N) = g
@@ -1062,7 +1060,7 @@ c     Processes TOMAS Budget
           end if
 #endif
 
-       select case (trim(getName(pTracer)))
+       select case (trim(pTracer%getName()))
 
          case ('ASO4__01','ASO4__02','ASO4__03','ASO4__04','ASO4__05',
      *        'ASO4__06','ASO4__07','ASO4__08','ASO4__09','ASO4__10',
@@ -1207,7 +1205,7 @@ c     - Species including TOMAS  emissions - 2D sources and 3D sources
         sum_unit(n)  = unit_string(kt_power_change(n),'kg/m^2 s)')
 #endif
 
-        CALL SET_TCON(QCON,GETNAME(PTRACER),QSUM,inst_unit(n),
+        CALL SET_TCON(QCON,pTracer%getName(),QSUM,inst_unit(n),
      *       sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
         qcon(13:) = .false.     ! reset to defaults for next tracer
         qsum(13:) = .false.     ! reset to defaults for next tracer
@@ -8300,7 +8298,10 @@ C**** at the start of any day
 !@auth Jean Lerner/Gavin Schmidt
       USE MODEL_COM, only: itime,dtsrc,nday
       use TracerSurfaceSource_mod, only: TracerSurfaceSource
-      use Tracer_mod, only: Tracer, getName
+      use Attributes_mod
+      use AttributeDictionary_mod
+      use TracerBundle_mod
+      use Tracer_mod, only: Tracer
       use model_com, only: modelEclock
       use RESOLUTION, only: im
       USE DOMAIN_DECOMP_ATM, only : GRID, GLOBALSUM,AM_I_ROOT
@@ -8370,7 +8371,7 @@ C**** at the start of any day
 #endif
       use TracerHashMap_mod, only:
      &     TracerIterator, operator(/=)
-      use Attributes_mod, only: assignment(=), IntegerAttribute
+      use Attributes_mod
       use AbstractAttribute_mod
       implicit none
       integer :: i,j,ns,ns_isop,l,ky,n,nsect,kreg
@@ -8409,6 +8410,7 @@ c      real*8 :: nlight, max_COSZ1, fact0
 #endif
       INTEGER I_0, I_1, J_0, J_1
       class (Tracer), pointer :: pTracer
+      integer :: index
       type (TracerSurfaceSource), pointer :: sources(:) 
 #ifdef TRACERS_TOMAS
       integer :: k, kn
@@ -8419,7 +8421,6 @@ c      real*8 :: nlight, max_COSZ1, fact0
 
       type (TracerIterator) :: iter
       class (AbstractAttribute), pointer :: pa
-      integer, pointer :: index
 
       call modelEclock%get(year=year, month=month, 
      *     dayOfYear=dayOfYear)
@@ -8441,21 +8442,16 @@ C**** All sources are saved as kg/s
       iter = tracers%begin()
       do while (iter /= tracers%last())
         pTracer => iter%value()
-
         pa => pTracer%getReference('index')
-! TODO : NAG error:
-! dereferenced or deallocated but not pointer-assigned or allocated
-        allocate(index)
         index = pa
         n = index
-
         pTracer => tracers%getReference(trname(n))
         sources => pTracer%surfaceSources
       if (itime.lt.itime_tr0(n)) cycle
-      select case (trim(getName(pTracer)))
+      select case (trim(pTracer%getName()))
 
       case default
-!     write(6,*) ' Sources for ',trim(getName(pTracer)),' are not in this routine'
+!     write(6,*) ' Sources for ',trim(pTracer%getName()),' are not in this routine'
 C****
 C**** Surface Sources of SF6 and CFCn (Same grid as CFC11)
 C****
@@ -8467,17 +8463,17 @@ C**** CFCn source increases each year so that the glbavg is from obs
 C**** CFC source is the same each year
 C**** Distribute source over ice-free land
         steppy = 1./(SECONDS_PER_DAY*INT_DAYS_PER_YEAR)
-        if (trim(getName(pTracer)).eq.'SF6' .or. 
-     *      trim(getName(pTracer)).eq.'CFCn' .or.
-     *      trim(getName(pTracer)).eq.'SF6_c') then
+        if (trim(pTracer%getName()).eq.'SF6' .or. 
+     *      trim(pTracer%getName()).eq.'CFCn' .or.
+     *      trim(pTracer%getName()).eq.'SF6_c') then
 C         Make sure index KY=1 in year that tracer turns on
           ky = 1 + (itime-itime_tr0(n))/(nday*INT_DAYS_PER_YEAR)
-          if (trim(getName(pTracer)).eq.'SF6_c') ky = 1
+          if (trim(pTracer%getName()).eq.'SF6_c') ky = 1
           base = (0.3d-12)*vol2mass(n) !pptm
           x = base*ky
           airm = (psf-pmtop)*100.*bygrav*AREAG !(kg/m**2 X m**2 = kg)
           anngas = x*airm
-        else if (trim(getName(pTracer)).eq.'CFC11') then
+        else if (trim(pTracer%getName()).eq.'CFC11') then
           anngas = 310.d6
         endif
 
@@ -8879,7 +8875,7 @@ C****
      &      'ASO4__01','AOCOB_01','AECOB_01')
         src_fact=1.d0 ! factor to multiply emissions with
         src_index=n   ! index to be used for emissions
-        select case (trim(getName(pTracer)))
+        select case (trim(pTracer%getName()))
 #ifndef One_percent_sulfate 
 ! Yunha Lee added this (09/16/2001). 
 ! Interested in using 1% SO2 emission for primary sulfate instead of 2.5%
@@ -8937,7 +8933,7 @@ C****
 #endif
 
 #ifndef TRACERS_AEROSOLS_SOA
-        select case (trim(getName(pTracer)))
+        select case (trim(pTracer%getName()))
         case ('OCII', 'M_OCC_OC')
           sfc_src(:,J_0:J_1,src_index,ntsurfsrc(n))=
      &      OCT_src(:,J_0:J_1,month)/axyp(:,J_0:J_1)/src_fact

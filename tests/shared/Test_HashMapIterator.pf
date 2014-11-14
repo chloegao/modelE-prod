@@ -8,7 +8,7 @@ module Test_HashMapIterator_mod
 
 @TestCase
   type, extends(TestCase) :: Test_HashMapIterator
-    type (FooHashMap), pointer :: dictionary
+    type (FooHashMap) :: dictionary
   contains
      procedure :: setUp     ! overides generic
      procedure :: tearDown  ! overrides generic
@@ -18,7 +18,7 @@ contains
 
   subroutine setUp(this)
     class (Test_HashMapIterator), intent(inout) :: this
-    this%dictionary => newFooHashMap()
+    this%dictionary = newFooHashMap()
     call this%dictionary%insert('A', Foo(1))
     call this%dictionary%insert('B', Foo(2))
     call this%dictionary%insert('C', Foo(3))
@@ -27,17 +27,16 @@ contains
   subroutine tearDown(this)
     class (Test_HashMapIterator), intent(inout) :: this
     call clean(this%dictionary)
-    deallocate(this%dictionary)
   end subroutine tearDown
   
   ! hasNext() returns false for empty associative array
 @Test  
   subroutine testIteratorHasNext_empty(this)
     class (Test_HashMapIterator), intent(inout) :: this
-    type (FooHashMap), pointer :: emptyDictionary
+    type (FooHashMap) :: emptyDictionary
     type (FooHashMapIterator) :: iterator
 
-    emptyDictionary => newFooHashMap()
+    emptyDictionary = newFooHashMap()
     iterator = emptyDictionary%begin()
 
     @assertFalse(iterator%hasNext())
@@ -51,10 +50,10 @@ contains
 @Test  
   subroutine testIteratorNotEqual_empty(this)
     class (Test_HashMapIterator), intent(inout) :: this
-    type (FooHashMap), pointer :: emptyDictionary
+    type (FooHashMap) :: emptyDictionary
     type (FooHashMapIterator) :: iterator
 
-    emptyDictionary => newFooHashMap()
+    emptyDictionary = newFooHashMap()
     iterator = emptyDictionary%begin()
 
     @assertFalse(iterator /= emptyDictionary%last())
@@ -119,6 +118,7 @@ contains
 
 @Test  
   subroutine testKeyValue(this)
+     use Attributes_mod
     class (Test_HashMapIterator), intent(inout) :: this
     type (FooHashMapIterator) :: iterator
     
@@ -126,9 +126,9 @@ contains
     logical :: foundB
     logical :: foundC
 
-    class (Foo), pointer :: valueA
-    class (Foo), pointer :: valueB
-    class (Foo), pointer :: valueC
+    class (Foo), pointer :: valueA => null()
+    class (Foo), pointer :: valueB => null()
+    class (Foo), pointer :: valueC => null()
 
     iterator = this%dictionary%begin()
 

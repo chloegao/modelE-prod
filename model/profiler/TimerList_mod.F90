@@ -155,9 +155,6 @@ contains
    contains
 
       subroutine checkTimerConsistenncy()
-#ifdef USE_PFUNIT
-         use pFUnit_mod, only: throw
-#endif
          use Timer_mod, only: isActive
          type (NamedTimer_type), pointer :: namedTimer
          integer :: i
@@ -166,7 +163,7 @@ contains
             namedTimer => this%list(i)
             if (isActive(namedTimer%timer)) then
                message = 'Unbalanced start/stop for timer <'//trim(namedTimer%name)//'>.'
-               call throwException(message, 255)
+               call throwException(message, 256)
                return
             end if
          end do
@@ -293,9 +290,6 @@ contains
    end subroutine startByNameAtTimeDefault
 
    subroutine stopByName(this, name)
-#ifdef USE_PFUNIT
-     use pFUnit_mod, only: throw
-#endif
       use Timer_mod, only: stop
       type (TimerList_type), intent(inOut) :: this
       character(len=*), intent(in) :: name
@@ -308,9 +302,9 @@ contains
          call stop(this%list(index)%timer)
       else
          message = 'Timer <'//trim(name)//'> has not been declared prior to use.'
-         call throwException(trim(message),255)
+         call throwException(message, 256)
          return
-     end if
+      end if
 
    end subroutine stopByName
 

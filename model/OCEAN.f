@@ -90,7 +90,7 @@
       use constant, only : tf
       use domain_decomp_atm, only : grid,getDomainBounds
 #ifdef SCM
-      USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
+      USE SCM_COM, only : SCMopt,SCMin
 #endif
       use exchange_types, only : atmocn_xchng_vars
       implicit none
@@ -106,11 +106,10 @@ c
           atmocn%gtemp2(i,j)=tocean_4io(2,i,j) ! to preserve identical diagnostics
           atmocn%gtempr(i,j) =sst(i,j)+tf
 #ifdef SCM
-c         keep ocean temp fixed for SCM case where surface
-c         temp is supplied
-          if (SCM_SURFACE_FLAG.ge.1) then
-            atmocn%GTEMP(I,J) = ATSKIN
-            atmocn%GTEMPR(I,J) = ATSKIN + TF
+c         may specify ocean temperature for SCM
+          if( SCMopt%Tskin )then
+            atmocn%gtemp(I,J) = SCMin%Tskin - TF
+            atmocn%gtempr(I,J) = SCMin%Tskin
           endif
 #endif
         endif

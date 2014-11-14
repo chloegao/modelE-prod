@@ -108,7 +108,7 @@ ccc   input fluxes
 !@var irrig flux of irrigation water (m/s)
       real*8 :: irrig(2), htirrig(2)
 ccc   input bc''s
-      real*8 :: ts,qs,pres,rho,ch,qm1,vs,vs0,tprime,qprime
+      real*8 :: ts,qs,pres,rho,ch,qm1,vs,vs0,gusti,tprime,qprime
       public ts,qs ! needed in ghy_diag
       public qm1 ! needed by tracers
 !@var dt earth time step (s)
@@ -813,7 +813,8 @@ c     Get canopy conductivity cnc and gpp
 !        pot_evap_can = betat*rho3*cna*(qsat(tp(0,2)+tfrz,lhe,pres) - qs)
         pot_evap_can = betat*rho3*ch*(
      &                 vs*(qsat(tp(0,2)+tfrz,lhe,pres) - qs)
-     &                 -(vs-vs0)*qprime)
+     &                 -gusti*qprime)
+c    &                 -(vs-vs0)*qprime)
         evap_max_dry(ibv) = 0.d0
 
 !       Condition to make sure that only available water is extracted 
@@ -884,7 +885,8 @@ c     epb  = rho3*cna*(qb-qs)
 c     epbs = rho3*cna*(qbs-qs)
 c     epv  = rho3*cna*(qv-qs)
 c     epvs = rho3*cna*(qvs-qs)
-      v_qprime=(vs-vs0)*qprime
+c     v_qprime=(vs-vs0)*qprime
+      v_qprime=gusti*qprime
       epb  = rho3*ch*( vs*(qb-qs) -v_qprime )
       epbs = rho3*ch*( vs*(qbs-qs)-v_qprime )
       epv  = rho3*ch*( vs*(qv-qs) -v_qprime )
@@ -1003,7 +1005,8 @@ c     snshs(2) = sha*rho*cna*(tsn1(2)-ts+tfrz)  ! canopy snow
 c     dsnsh_dt = sha*rho*cna  ! derivative is the same for all above
 
       cna=ch*vs
-      v_tprime=(vs-vs0)*tprime
+c     v_tprime=(vs-vs0)*tprime
+      v_tprime=gusti*tprime
       snsh(1)=sha*rho*ch*(vs*(tp(1,1)-ts+tfrz)-v_tprime)
                                                 ! bare soil
       snsh(2)=sha*rho*ch*(vs*(tp(0,2)-ts+tfrz)-v_tprime)
@@ -2016,7 +2019,7 @@ c****
      &     pr_in,htpr_in,prs_in,htprs_in,irrig_in,htirrig_in,
      &     srht_in,trht_in,     ! forcing fluxes
      &     ts_in,qs_in,pres_in,rho_in,ch_in,        ! forcing parameters
-     &     qm1_in,vs_in,vs0_in,tprime_in,qprime_in, ! forcing parameters
+     &     qm1_in,vs_in,vs0_in,gusti_in,tprime_in,qprime_in,
      &     end_of_day_flag
 #ifdef TRACERS_WATER
      &     ,ghy_tr
@@ -2072,7 +2075,7 @@ c**** soils28   common block     9/25/90
       real*8 :: pr_in,htpr_in,prs_in,htprs_in,irrig_in,htirrig_in
       real*8 :: srht_in,trht_in
       real*8 :: ts_in,qs_in,pres_in,rho_in,ch_in
-      real*8 :: qm1_in,vs_in,vs0_in,tprime_in,qprime_in
+      real*8 :: qm1_in,vs_in,vs0_in,gusti_in,tprime_in,qprime_in
       logical :: end_of_day_flag
 #ifdef TRACERS_WATER
       type (ghy_tr_str) :: ghy_tr
@@ -2136,6 +2139,7 @@ c**** soils28   common block     9/25/90
       qm1    = qm1_in   
       vs     = vs_in    
       vs0    = vs0_in   
+      gusti  = gusti_in   
       tprime = tprime_in
       qprime = qprime_in
 
@@ -2184,6 +2188,7 @@ c**** soils28   common block     9/25/90
        write(933,*) "qm1           ", qm1           
        write(933,*) "vs            ", vs            
        write(933,*) "vs0           ", vs0           
+       write(933,*) "gusti         ", gusti          
        write(933,*) "tprime        ", tprime        
        write(933,*) "qprime        ", qprime        
 #endif
@@ -2476,7 +2481,8 @@ cddd     &     tp(1,1),tp(2,1),tp(0,2),tp(1,2),tp(2,2)
 
 #ifdef USE_ENT
         !Qf=evap_tot(2)/(rho/rhow*ch*vsm)+qs ! - old
-        Qf=( evap_tot(2)/(rho/rhow*ch) + (vs-vs0)*qprime )/vs + qs
+        !Qf=( evap_tot(2)/(rho/rhow*ch) + (vs-vs0)*qprime )/vs + qs
+        Qf=( evap_tot(2)/(rho/rhow*ch) + gusti*qprime )/vs + qs
 ! the above formula is based on:
 !        pot_evap_can = betat*rho3*ch*(
 !     &                 vs*(qsat(tp(0,2)+tfrz,lhe,pres) - qs)
@@ -2563,6 +2569,7 @@ cddd        endif
        write(933,*) "qm1           ", qm1           
        write(933,*) "vs            ", vs            
        write(933,*) "vs0           ", vs0           
+       write(933,*) "gusti         ", gusti          
        write(933,*) "tprime        ", tprime        
        write(933,*) "qprime        ", qprime        
 #endif
@@ -2788,7 +2795,8 @@ ccc   h0=-thrm(2)+srht+trht
       dqdt = dqsatdt(ts,lhe)*qsats
       ! epen=(dqdt*h0+cpfac*(qsats-qs))/(el0*dqdt+sha)
       epen=(dqdt*h0+sha*rho*ch*
-     &      ( vs*(qsats-qs)-(vs-vs0)*qprime ))/(el0*dqdt+sha)
+c    &      ( vs*(qsats-qs)-(vs-vs0)*qprime ))/(el0*dqdt+sha)
+     &      ( vs*(qsats-qs)-gusti*qprime ))/(el0*dqdt+sha)
       aepp=epen*dt
       abetap=1.d0
       if (aepp.gt.0.d0) abetap=(aevapw+aevapd+aevapb)/aepp
@@ -2798,7 +2806,8 @@ ccc   computing surface temperature from thermal radiation fluxes
       tbcs = sqrt(sqrt( atrg/(dt*stbo) )) - tfrz
 ccc   computing surface temperature from sensible heat fluxes (inst.)
       tsns = ( ( snsh_tot(1)*fb + snsh_tot(2)*fv )
-     &     /(sha*rho*ch) + (vs-vs0)*tprime )/vs + ts - tfrz
+     &     /(sha*rho*ch) + gusti*tprime )/vs + ts - tfrz
+c    &     /(sha*rho*ch) + (vs-vs0)*tprime )/vs + ts - tfrz
 ccc   compute tg2av,wtr2av,ace2av formerly in retp2 (but differently)
       tg2av=0.d0
       wtr2av=0.d0
