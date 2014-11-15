@@ -58,6 +58,9 @@ module CLOUDS
   use AERO_CONFIG, only: NMODES
 #endif
 #endif
+#ifdef SCM
+  use SCM_COM, only : SCMopt
+#endif
   implicit none
   save
   !**** parameters and constants
@@ -767,11 +770,13 @@ contains
     VLAT=LHE
     LHP=0
 #ifdef SCM
+    if( SCMopt%PlumeDiag )then
     ! plume diagnostics
-    PLUME_MAX = 0.
-    PLUME_MIN = 0.
-    CUMFLX=0.
-    DWNFLX=0.
+      PLUME_MAX = 0.
+      PLUME_MIN = 0.
+      CUMFLX=0.
+      DWNFLX=0.
+    endif
 #endif
 #ifdef TRACERS_WATER
     trsvwml = 0.
@@ -1027,11 +1032,13 @@ contains
             ENT(L)=0.     ;  DET(L)=0.    ;    BUOY(L)=0.
             WCU(L)=0.     ; SMDNL(L)=0.   ;  QMDNL(L)=0.
 #ifdef SCM
+            if( SCMopt%PlumeDiag )then
             ! plume diagnostics
-            WCUALL(L,IC,LMIN) = 0.
-            MPLUMEALL(L,IC,LMIN) = 0.
-            ENTALL(L,IC,LMIN) = 0.
-            DETALL(L,IC,LMIN) = 0.
+              WCUALL(L,IC,LMIN) = 0.
+              MPLUMEALL(L,IC,LMIN) = 0.
+              ENTALL(L,IC,LMIN) = 0.
+              DETALL(L,IC,LMIN) = 0.
+            endif
 #endif
           end do
           SMOMDNL(:,:)=0.   ;  QMOMDNL(:,:)=0.
@@ -1597,8 +1604,10 @@ contains
                 DET(L)=.001d0*DELTA/GZL(L)
               end if
 #ifdef SCM
+              if( SCMopt%PlumeDiag )then
               ! plume diagnostics
-              DETALL(L,IC,LM) = DET(L)*100.*1000.
+                DETALL(L,IC,LM) = DET(L)*100.*1000.
+              endif
 #endif
               DM(L)=DM(L)+DELTA*MPLUME
               MPLUME=MPLUME*(1.D0-DELTA)
@@ -1717,10 +1726,12 @@ contains
             if (WCU(L).ge.0.D0) WCU(L)=min(50.D0,WCU(L))
             if (WCU(L).lt.0.D0) WCU(L)=max(-50.D0,WCU(L))
 #ifdef SCM
+            if( SCMopt%PlumeDiag )then
             ! plume diagnostics
-            WCUALL(L,IC,LMIN) = WCU(L)
-            MPLUMEALL(L,IC,LMIN) = CCM(L-1)
-            ENTALL(L,IC,LMIN) = 1000.D0*ENT(L)
+              WCUALL(L,IC,LMIN) = WCU(L)
+              MPLUMEALL(L,IC,LMIN) = CCM(L-1)
+              ENTALL(L,IC,LMIN) = 1000.D0*ENT(L)
+            endif
 #endif
             !**** UPDATE ALL QUANTITIES CARRIED BY THE PLUME
             !      SVLATL(L)=VLAT(L)
@@ -1826,9 +1837,11 @@ contains
         if(LMCMIN.eq.0) LMCMIN=LMIN
         if(LMCMAX.lt.MAXLVL) LMCMAX=MAXLVL
 #ifdef SCM
+        if( SCMopt%PlumeDiag )then
         ! plume diagnostics
-        PLUME_MAX(IC,LMIN) = PL(LMAX)
-        PLUME_MIN(IC,LMIN) = PL(LMIN)
+          PLUME_MAX(IC,LMIN) = PL(LMAX)
+          PLUME_MIN(IC,LMIN) = PL(LMIN)
+        endif
 #endif
         !****
         !**** DOWNDRAFT DESCENT AND TRANSPORT LOOP (4)
@@ -2253,9 +2266,11 @@ contains
           DTOTW(L)=DTOTW(L)+SLHE*(QM(L)-QMT(L)+COND(L))*FMC1
           DDMFLX(L)=DDMFLX(L)+DDM(L)*FMC1
 #ifdef SCM
+          if( SCMopt%PlumeDiag )then
           ! plume diagnostics
-          CUMFLX(L,IC,LMIN) = 100.*MCFLX(L)*bygrav/dtsrc
-          DWNFLX(L,IC,LMIN) = 100.*DDMFLX(L)*bygrav/dtsrc
+            CUMFLX(L,IC,LMIN) = 100.*MCFLX(L)*bygrav/dtsrc
+            DWNFLX(L,IC,LMIN) = 100.*DDMFLX(L)*bygrav/dtsrc
+          endif
 #endif
         end do
         !**** save new 'environment' profile for static stability calc.

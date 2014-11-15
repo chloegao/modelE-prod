@@ -237,6 +237,9 @@ subroutine CONDSE
       use subdd_mod, only : subdd_groups,subdd_type,subdd_ngroups, &
            inc_subdd,find_groups
 #endif
+#ifdef SCM
+  use SCM_COM, only : SCMopt
+#endif
   implicit none
 
 #ifdef TRACERS_ON
@@ -445,11 +448,13 @@ subroutine CONDSE
   ENTJ=0.
 #ifdef CACHED_SUBDD
 #ifdef SCM
+  if( SCMopt%PlumeDiag )then
       ! plume diagnostics
       mc_mfu_p1=0.d0; mc_mfu_p2=0.d0; mc_mfd_p1=0.d0; mc_mfd_p2=0.d0
       mc_w_p1=0.d0; mc_w_p2=0.d0; mc_ent_p1=0.d0; mc_ent_p2=0.d0
       mc_m_p1=0.d0; mc_m_p2=0.d0; mc_det_p1=0.d0; mc_det_p2=0.d0
       mc_pl_max_p1=0.d0; mc_pl_max_p2=0.0; mc_pl_min_p1=0.d0; mc_pl_min_p2=0.d0
+  endif
 #endif
       ! isccp frequency diags
       save_fq_isccp=0.d0
@@ -582,19 +587,21 @@ subroutine CONDSE
 !!!   DCL=NINT(DCLEV(I,J))   ! prevented by openMP bug
         DCL=int(DCLEV(I,J)+.5)
 #ifdef SCM
+        if( SCMopt%PlumeDiag )then
         ! plume diagnostics
-        do LL=1,LM
-          do L=1,LM
-            WCUALL(L,1,LL)=0.
-            WCUALL(L,2,LL)=0.
-            MPLUMEALL(L,1,LL)=0.
-            MPLUMEALL(L,2,LL)=0.
-            ENTALL(L,1,LL)=0.
-            ENTALL(L,2,LL)=0.
-            DETALL(L,1,LL)=0.
-            DETALL(L,2,LL)=0.
+          do LL=1,LM
+            do L=1,LM
+              WCUALL(L,1,LL)=0.
+              WCUALL(L,2,LL)=0.
+              MPLUMEALL(L,1,LL)=0.
+              MPLUMEALL(L,2,LL)=0.
+              ENTALL(L,1,LL)=0.
+              ENTALL(L,2,LL)=0.
+              DETALL(L,1,LL)=0.
+              DETALL(L,2,LL)=0.
+            enddo
           enddo
-        enddo
+        endif
 #endif
 #ifndef SCM
 #ifdef CUBED_SPHERE
@@ -997,23 +1004,25 @@ subroutine CONDSE
           dq_ss(I,J,L) = Q(I,J,L)
         enddo
 #ifdef SCM        
+        if( SCMopt%PlumeDiag )then
         ! plume diagnostics
-        mc_mfu_p1(I,J,:,:) = CUMFLX(:,1,:)
-        mc_mfu_p2(I,J,:,:) = CUMFLX(:,2,:)
-        mc_mfd_p1(I,J,:,:) = DWNFLX(:,1,:)
-        mc_mfd_p2(I,J,:,:) = DWNFLX(:,2,:)
-        mc_w_p1(I,J,:,:) = WCUALL(:,1,:)
-        mc_w_p2(I,J,:,:) = WCUALL(:,2,:)
-        mc_ent_p1(I,J,:,:) = ENTALL(:,1,:)
-        mc_ent_p2(I,J,:,:) = ENTALL(:,2,:)
-        mc_det_p1(I,J,:,:) = DETALL(:,1,:)
-        mc_det_p2(I,J,:,:) = DETALL(:,2,:)
-        mc_m_p1(I,J,:,:) = MPLUMEALL(:,1,:)
-        mc_m_p2(I,J,:,:) = MPLUMEALL(:,2,:)
-        mc_pl_max_p1(I,J,:) = PLUME_MAX(1,:)
-        mc_pl_max_p2(I,J,:) = PLUME_MAX(2,:)
-        mc_pl_min_p1(I,J,:) = PLUME_MIN(1,:)
-        mc_pl_max_p2(I,J,:) = PLUME_MIN(2,:)
+          mc_mfu_p1(I,J,:,:) = CUMFLX(:,1,:)
+          mc_mfu_p2(I,J,:,:) = CUMFLX(:,2,:)
+          mc_mfd_p1(I,J,:,:) = DWNFLX(:,1,:)
+          mc_mfd_p2(I,J,:,:) = DWNFLX(:,2,:)
+          mc_w_p1(I,J,:,:) = WCUALL(:,1,:)
+          mc_w_p2(I,J,:,:) = WCUALL(:,2,:)
+          mc_ent_p1(I,J,:,:) = ENTALL(:,1,:)
+          mc_ent_p2(I,J,:,:) = ENTALL(:,2,:)
+          mc_det_p1(I,J,:,:) = DETALL(:,1,:)
+          mc_det_p2(I,J,:,:) = DETALL(:,2,:)
+          mc_m_p1(I,J,:,:) = MPLUMEALL(:,1,:)
+          mc_m_p2(I,J,:,:) = MPLUMEALL(:,2,:)
+          mc_pl_max_p1(I,J,:) = PLUME_MAX(1,:)
+          mc_pl_max_p2(I,J,:) = PLUME_MAX(2,:)
+          mc_pl_min_p1(I,J,:) = PLUME_MIN(1,:)
+          mc_pl_max_p2(I,J,:) = PLUME_MIN(2,:)
+        endif
 #endif
 #endif
 
@@ -1926,39 +1935,41 @@ subroutine CONDSE
   endif
 
 #ifdef SCM
+  if( SCMopt%PlumeDiag )then
   ! plume diagnostics
-  call inc_subdd('mc_mfu_p1',mc_mfu_p1,1,.true.,units='kg/m2/s', &
-       long_name='Plume 1 mass flux',dim3name='level',dim4name='base_level')
-  call inc_subdd('mc_mfu_p2',mc_mfu_p2,1,.true.,units='kg/m2/s', &
-       long_name='Plume 2 mass flux',dim3name='level',dim4name='base_level')
-  call inc_subdd('mc_mfd_p1',mc_mfd_p1,1,.true.,units='kg/m2/s', &
-       long_name='Plume 1 downdraft mass flux',dim3name='level',dim4name='base_level')
-  call inc_subdd('mc_mfd_p2',mc_mfd_p2,1,.true.,units='kg/m2/s', &
-       long_name='Plume 2 downdraft mass flux',dim3name='level',dim4name='base_level')
-  call inc_subdd('mc_w_p1',mc_w_p1,1,.true.,units='m/s', &
-       long_name='Plume 1 updraft speed',dim3name='level',dim4name='base_level')
-  call inc_subdd('mc_w_p2',mc_w_p2,1,.true.,units='m/s', &
-       long_name='Plume 2 udraft speed',dim3name='level',dim4name='base_level')
-  call inc_subdd('mc_ent_p1',mc_ent_p1,1,.true.,units='%/km', &
-       long_name='Plume 1 entrainment rate',dim3name='level',dim4name='base_level')
-  call inc_subdd('mc_ent_p2',mc_ent_p2,1,.true.,units='%/km', &
-       long_name='Plume 2 entrainment rate',dim3name='level',dim4name='base_level')
-  call inc_subdd('mc_det_p1',mc_det_p1,1,.true.,units='%/km', &
-       long_name='Plume 1 detrainment rate',dim3name='level',dim4name='base_level')
-  call inc_subdd('mc_det_p2',mc_det_p2,1,.true.,units='%/km', &
-       long_name='Plume 2 detrainment rate',dim3name='level',dim4name='base_level')
-  call inc_subdd('mc_m_p1',mc_m_p1,1,.true.,units='mb', &
-       long_name='Plume 1 mass',dim3name='level',dim4name='base_level')
-  call inc_subdd('mc_m_p2',mc_m_p2,1,.true.,units='mb', &
-       long_name='Plume 2 mass',dim3name='level',dim4name='base_level')
-  call inc_subdd('mc_pl_max_p1',mc_pl_max_p1,1,.true.,units='mb', &
-       long_name='Plume 1 maximum level',dim3name='base_level')
-  call inc_subdd('mc_pl_max_p2',mc_pl_max_p2,1,.true.,units='mb', &
-       long_name='Plume 2 maximum level',dim3name='base_level')
-  call inc_subdd('mc_pl_min_p1',mc_pl_min_p1,1,.true.,units='mb', &
-       long_name='Plume 1 minimum level',dim3name='base_level')
-  call inc_subdd('mc_pl_min_p2',mc_pl_min_p2,1,.true.,units='mb', &
-       long_name='Plume 2 minimum level',dim3name='base_level')
+    call inc_subdd('mc_mfu_p1',mc_mfu_p1,1,.true.,units='kg/m2/s', &
+         long_name='Plume 1 mass flux',dim3name='level',dim4name='base_level')
+    call inc_subdd('mc_mfu_p2',mc_mfu_p2,1,.true.,units='kg/m2/s', &
+         long_name='Plume 2 mass flux',dim3name='level',dim4name='base_level')
+    call inc_subdd('mc_mfd_p1',mc_mfd_p1,1,.true.,units='kg/m2/s', &
+         long_name='Plume 1 downdraft mass flux',dim3name='level',dim4name='base_level')
+    call inc_subdd('mc_mfd_p2',mc_mfd_p2,1,.true.,units='kg/m2/s', &
+         long_name='Plume 2 downdraft mass flux',dim3name='level',dim4name='base_level')
+    call inc_subdd('mc_w_p1',mc_w_p1,1,.true.,units='m/s', &
+         long_name='Plume 1 updraft speed',dim3name='level',dim4name='base_level')
+    call inc_subdd('mc_w_p2',mc_w_p2,1,.true.,units='m/s', &
+         long_name='Plume 2 udraft speed',dim3name='level',dim4name='base_level')
+    call inc_subdd('mc_ent_p1',mc_ent_p1,1,.true.,units='%/km', &
+         long_name='Plume 1 entrainment rate',dim3name='level',dim4name='base_level')
+    call inc_subdd('mc_ent_p2',mc_ent_p2,1,.true.,units='%/km', &
+         long_name='Plume 2 entrainment rate',dim3name='level',dim4name='base_level')
+    call inc_subdd('mc_det_p1',mc_det_p1,1,.true.,units='%/km', &
+         long_name='Plume 1 detrainment rate',dim3name='level',dim4name='base_level')
+    call inc_subdd('mc_det_p2',mc_det_p2,1,.true.,units='%/km', &
+         long_name='Plume 2 detrainment rate',dim3name='level',dim4name='base_level')
+    call inc_subdd('mc_m_p1',mc_m_p1,1,.true.,units='mb', &
+         long_name='Plume 1 mass',dim3name='level',dim4name='base_level')
+    call inc_subdd('mc_m_p2',mc_m_p2,1,.true.,units='mb', &
+         long_name='Plume 2 mass',dim3name='level',dim4name='base_level')
+    call inc_subdd('mc_pl_max_p1',mc_pl_max_p1,1,.true.,units='mb', &
+         long_name='Plume 1 maximum level',dim3name='base_level')
+    call inc_subdd('mc_pl_max_p2',mc_pl_max_p2,1,.true.,units='mb', &
+         long_name='Plume 2 maximum level',dim3name='base_level')
+    call inc_subdd('mc_pl_min_p1',mc_pl_min_p1,1,.true.,units='mb', &
+         long_name='Plume 1 minimum level',dim3name='base_level')
+    call inc_subdd('mc_pl_min_p2',mc_pl_min_p2,1,.true.,units='mb', &
+         long_name='Plume 2 minimum level',dim3name='base_level')
+  endif
 #endif
 
 #endif
