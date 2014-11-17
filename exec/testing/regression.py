@@ -95,8 +95,9 @@ class Arun():
     # A subprocess call that, upon failure rc<>=0, raises an exception.
     # Class membership for this function is one of convenience: need runSource 
     # and Arun data (resultsDir and name)
-    def sysCmd(self, commandString):
+    def sysCmd(self, commandString, result, stage):
         logger = logging.getLogger('SYSTEM  ')
+        status = 0
         if debug:
             logger.debug(commandString)
         else:
@@ -106,8 +107,12 @@ class Arun():
                 status = subprocess.call(commandString, \
                                          stdout=f, stderr=f, shell=True)
             logger.debug('Return code: ' + str(status))
-            if (status != 0):
+            if (status == 0):
+                self.results[result] = self.successMark
+            else:
                 logger.error(commandString+': FAILED')
+                self.results[result] = self.failMark+stage
+        return status
 
 
 """
@@ -236,17 +241,12 @@ def checkpointName(exp, duration, npes):
 def build(exp):
     logger = logging.getLogger('BUILD   ')
     logger.info(exp.name + ' ' + exp.modeCmd + ' ' + exp.xflags)
-    try:
-        exp.sysCmd('make --quiet clean')
-        exp.sysCmd('make rundeck ' + exp.runCmd + ' ' + exp.runSrcCmd)
-        exp.sysCmd('make -j4 gcm ' + exp.runCmd + ' ' + exp.modeCmd
-                   + ' ' + exp.xflags)
-        exp.results[3] = exp.successMark
-    except:
-        exp.results[3] = exp.failMark+'b'
-        logger.error(' *** Failed to build ' + exp.name)
-        raise
-
+    status = exp.sysCmd('make --quiet clean', 3, 'b')
+    status = exp.sysCmd('make rundeck ' + exp.runCmd + ' ' + exp.runSrcCmd, 
+               3, 'b')
+    status = exp.sysCmd('make -j4 gcm ' + exp.runCmd + ' ' + exp.modeCmd
+               + ' ' + exp.xflags, 3, 'b')
+    return status
     
 """
   Sets up and runs a 1hr simulation
@@ -254,19 +254,12 @@ def build(exp):
 def run1hr(exp, npes=1):
     logger = logging.getLogger('RUN1HR  ')
     logger.info(exp.name + ', ' + exp.mode + ', npes=' + str(npes))
-    try:
-        exp.sysCmd('make setup ' + exp.runCmd + ' ' + exp.modeCmd + ' '
-                   + exp.xflags)
-        exp.sysCmd('../exec/runE ' + exp.name + ' -np ' + str(npes)
-                   + ' -cold-restart')
-        exp.sysCmd('cd ' + exp.name + '; cp fort.2.nc ' +
-                   checkpointName(exp, '1hr', npes))
-    except:
-        exp.results[3] = exp.failMark+'1'
-        message =  ' *** Failed to run 1 hour test for ' + exp.name
-        message += ' on ' + str(npes) + ' processors.'
-        logger.error(message)
-        raise
+    status = exp.sysCmd('make setup ' + exp.runCmd + ' ' + exp.modeCmd + ' '
+               + exp.xflags, 3, '1')
+    status = exp.sysCmd('../exec/runE ' + exp.name + ' -np ' + str(npes)
+               + ' -cold-restart', 3, '1')
+    status = exp.sysCmd('cd ' + exp.name + '; cp fort.2.nc ' +
+               checkpointName(exp, '1hr', npes), 3, '1')
 
     
 """
@@ -281,31 +274,27 @@ def runRestart(exp, npes=1, n=25, m=1):
         restart += ' -np ' + str(npes)
     
     logger.info(exp.name + ', ' + exp.mode + ', npes=' + str(npes))
-    try:
-        exp.sysCmd('../exec/editRundeck.sh ' + exp.name + ' 48 2 1')
-        exp.sysCmd('make setup ' + exp.runCmd + ' ' + exp.modeCmd + ' '
-                   + exp.xflags)
-        exp.sysCmd('../exec/runE ' + exp.name + ' -np ' + str(npes)
-                   + ' -cold-restart')
-        exp.sysCmd('cd ' + exp.name + '; cp fort.1.nc '
-                   + checkpointName(exp, '1dy', npes))
-        exp.sysCmd('cd ' + exp.name + '; cp fort.2.nc fort.1.nc')
-        exp.sysCmd('cd ' + exp.name + '; rm -f run_status')
+    status = exp.sysCmd('../exec/editRundeck.sh ' + exp.name + ' 48 2 1',
+               3, 'r')
+    status = exp.sysCmd('make setup ' + exp.runCmd + ' ' + exp.modeCmd + ' '
+               + exp.xflags, 3, 'r')
+    status = exp.sysCmd('../exec/runE ' + exp.name + ' -np ' + str(npes)
+               + ' -cold-restart', 3, 'r')
+    status = exp.sysCmd('cd ' + exp.name + '; cp fort.1.nc '
+               + checkpointName(exp, '1dy', npes), 3, 'r')
+    status = exp.sysCmd('cd ' + exp.name + '; cp fort.2.nc fort.1.nc', 3, 'r')
+    status = exp.sysCmd('cd ' + exp.name + '; rm -f run_status', 3, 'r')
 #  Need to investigate why the following causes a NameError exception
 #  Looks like there is an issue with variable/function/class names in SysCmd
-        exp.sysCmd('cd ' + exp.name + '; ' + restart
-                   + '; test `head -1 run_status` -eq ' + str(expectedRC))
-        exp.sysCmd('cd ' + exp.name + ';cp fort.2.nc '
-                   + checkpointName(exp, 'restart', npes))
+    status = exp.sysCmd('cd ' + exp.name + '; ' + restart
+               + '; test `head -1 run_status` -eq ' + str(expectedRC),
+               3, 'r')
+    status = exp.sysCmd('cd ' + exp.name + ';cp fort.2.nc '
+               + checkpointName(exp, 'restart', npes), 3, 'r')
 # Reset rundeck settings for next MPI run
-        if npes > 1:
-            exp.sysCmd('make rundeck ' + exp.runCmd + ' ' + exp.runSrcCmd)
-    except:
-        exp.results[3] = exp.failMark+'r'
-        message =  ' *** Failed to run 1 day test for ' + exp.name
-        message += ' on ' + str(npes) + ' processors.'
-        logger.error(message)
-        raise
+    if npes > 1:
+        status = exp.sysCmd('make rundeck ' + exp.runCmd + ' ' 
+                            + exp.runSrcCmd, 3, 'r')
 
     
 """
@@ -330,8 +319,10 @@ def compareBase(exp, duration, npes=1):
         exp.results[4] = exp.failMark   
         logger.warning('Baseline reproducibility failed')
         if exp.runsrc.updateBase == 'yes':
-            exp.sysCmd('cp ' + file1 + ' ' + file2)
-            logger.info('Updated BASELINE')
+            if subprocess.call(['cp', file1, file2]) == 0:
+                logger.info('Updated BASELINE')
+            else:
+                logger.error('Error in: cp '+file1+' ' +file2)
         else:
             logger.info('Consider updating BASELINE')
 
@@ -388,6 +379,9 @@ if __name__ == '__main__':
     else:
         debug = False
 
+    # System call return code
+    OK = 0
+
     # This is needed to find diffreport.x, assumed to be in $HOME/bin
     os.environ["PATH"] += os.pathsep + os.environ["HOME"] \
       + '/bin'
@@ -428,20 +422,24 @@ if __name__ == '__main__':
         logger.info('Testing ' + rundeck.name)
 
         for exp in exps:
-                
+
+            serBuildResult = OK
+            mpiBuildResult = OK
             if exp.mode == 'serial':
-                build(exp)
-                run1hr(exp)
-                runRestart(exp)
-                
+                serBuildResult = build(exp)
+                if serBuildResult == OK:
+                    run1hr(exp)
+                    runRestart(exp)               
             else:
-                build(exp)
-                for npes in rundeck.npList:
-                    run1hr(exp, npes=npes)
-                    runRestart(exp, npes=npes)
-                                            
+                mpiBuildResult = build(exp)
+                if mpiBuildResult == OK:
+                    for npes in rundeck.npList:
+                        run1hr(exp, npes=npes)
+                        runRestart(exp, npes=npes)         
             logger.info(rundeck.name + ' ' + exp.mode + ' runs complete.')
-                    
+            if serBuildResult != OK or mpiBuildResult != OK:
+                continue
+
             if exp.mode == 'serial':
                 compareBase(exp, '1hr')
                 compareBase(exp, '1dy')
@@ -457,7 +455,6 @@ if __name__ == '__main__':
                     # Compare 1hr run against serial
                     if nmodes > 1:
                         compareNPE(exps[0], exps[1], '1dy', npes)
-
             logger.info(rundeck.name + ' comparisons complete.')
                 
         for exp in exps:
@@ -468,7 +465,6 @@ if __name__ == '__main__':
                 fileH.write(' '.center(3))
                 fileH.write(s.center(3))
             fileH.write('\n')
-
         fileH.close()
 
     logger.info('Regression testing is done.')
