@@ -1355,7 +1355,9 @@ subroutine CONDSE
             saveLCLDI(i,j)=sum(fq_isccp(2:ntau,6:7)) ! saving just the
             saveMCLDI(i,j)=sum(fq_isccp(2:ntau,4:5)) ! current value for
             saveHCLDI(i,j)=sum(fq_isccp(2:ntau,1:3)) ! instant. SUBDDiags
+#ifdef CACHED_SUBDD
             save_fq_isccp(i,j,:,:) = fq_isccp(:,:)
+#endif
             !**** Save area weighted isccp histograms
             n=isccp_reg2d(i,j)
             if (n.gt.0) AISCCP(:,:,n) = AISCCP(:,:,n) + &
