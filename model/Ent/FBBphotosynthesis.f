@@ -279,9 +279,9 @@ cddd        if ( Ae > 0.d0 ) write(578,*) Axxx - Ae
         As = pspar%As
       endif
 
-      !Anet = min(Ae, Ac, As)
+      Anet = min(Ae, Ac, As)
       !Limit flux for numerical stability, keep cs>0.2*ca
-      Anet = min(Ae, Ac, As, 0.8d0*ca*gb/1.37d0) 
+      !Anet = min(Ae, Ac, As, 0.8d0*ca*gb/1.37d0) 
       Atot = Anet + Rd
       Aiso = Ae + Rd
 
@@ -1013,8 +1013,8 @@ cddd      !!print *,'QQQQ ',A,ci
 
       facclim = frost_hardiness(Sacclim)
      
-      fparlimit = par_phenology(pft,llspan)
-!      fparlimit = 1.d0
+!      fparlimit = par_phenology(pft,llspan)
+      fparlimit = 1.d0
 
 !!! this var is not reproducible on restart, please figure out why
 !      fparlimit = 1.d0 ! seems to be ok now
