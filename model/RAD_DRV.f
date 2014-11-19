@@ -3705,17 +3705,22 @@ C****
         call inc_subdd(subdd,k,cfrac)
       case ('totcld_diag')
         do j=j_0,j_1; do i=i_0,imaxj(j)
-          call get_cld_overlap(lmax=lm,
-     &                         cldssl=cldss(:,i,j),
+          call get_cld_overlap(lm,cldss(:,i,j),
      &                         cldmcl=cldmc(:,i,j),
      &                         CldTot=sddarr(i,j))
         enddo;        enddo
         call inc_subdd(subdd,k,sddarr)
       case ('cldss_2d')
         do j=j_0,j_1; do i=i_0,imaxj(j)
-          call get_cld_overlap(lmax=lm,
-     &                         cldssl=cldss(:,i,j),
-     &                         CldTot=sddarr(i,j))
+          call get_cld_overlap(lm,cldss(:,i,j),
+     &                         CldSS=sddarr(i,j))
+        enddo;        enddo
+        call inc_subdd(subdd,k,sddarr)
+      case ('cldmc_2d')
+        do j=j_0,j_1; do i=i_0,imaxj(j)
+          call get_cld_overlap(lm,cldss(:,i,j),
+     &                         cldmcl=cldmc(:,i,j),
+     &                         CldMC=sddarr(i,j))
         enddo;        enddo
         call inc_subdd(subdd,k,sddarr)
       case ('wtrcld')
@@ -4673,6 +4678,14 @@ c
       arr(next()) = info_type_(
      &  sname = 'cldss_2d',
      &  lname = 'Stratiform Cloud Cover',
+     &  units = '%',
+     &  scale = 1d2,
+     &  sched = sched_rad
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'cldmc_2d',
+     &  lname = 'Convective Cloud Cover',
      &  units = '%',
      &  scale = 1d2,
      &  sched = sched_rad
