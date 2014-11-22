@@ -29,7 +29,7 @@
       !PFT number
       integer, parameter :: TUNDRA = 1
       integer, parameter :: GRASSC3 = 2
-      integer, parameter :: SHRUB = 3
+      integer, parameter :: SHRUBGRASS = 3
       integer, parameter :: SAVANNA = 4
       integer, parameter :: DECIDFOREST = 5
       integer, parameter :: EVERGRNEEDLE = 6
@@ -44,13 +44,30 @@
       integer, parameter :: DROUGHTDECIDBROAD = 20
       integer, parameter :: GRASSC3ARCTIC = 21
 
-      character(len=15), parameter ::
-     &     ent_cover_names(N_COVERTYPES-N_OTHER) = (/
-     &     'brightsoil     ','tundra         ','grass          ',
-     &     'shrub_and_grass','tree_and_grass ','deciduous      ',
-     &     'evergreen      ','rainforest     ','cultivation    ',
-     &     'darksoil       '
+!      character(len=15), parameter ::
+!     &     ent_cover_names(N_COVERTYPES-N_OTHER) = (/
+!     &     'brightsoil     ','tundra         ','grass          ',
+!     &     'shrub_and_grass','tree_and_grass ','deciduous      ',
+!     &     'evergreen      ','rainforest     ','cultivation    ',
+!     &     'darksoil       '
+!     &     /)
+
+      !* netcdf names *!
+      character(len=13), parameter :: ent_cover_names(N_COVERTYPES) = (/
+     &     "BSAND        ",
+     &     "TNDRA        ",
+     &     "GRASS        ",
+     &     "SHRUBGRASS   ",
+     &     "SAVANNA      ",
+     &     "DECIDFOREST  ",
+     &     "EVERGRNEEDLE ",
+     &     "TROPRAINF    ",
+     &     "CROPS        ",
+     &     "BDIRT        ",
+     &     "ALGAE        ",
+     &     "GRAC4        "
      &     /)
+
 
 !##### TEMPORARY HACK - YK #####
       !*-----------------------------------------
@@ -307,6 +324,32 @@ C           TNDRA     SHRUB     DECID     RAINF     BDIRT     GRAC4
      &       0.009848682,0.014675189,0.692995043,0.184450822 /),
      &     ( /N_PFT,NPOOLS-NLIVE,1/ ) )
 !     &     ( /N_PFT,NPOOLS-NLIVE,N_CASA_LAYERS/ )
+
+
+
+       !***************************************************
+
+C        1    2    3    4    5    6    7    8    9   10   11    12
+C      BSAND     GRASS     TREES     EVERG     CROPS     ALGAE
+C           TNDRA     SHRUB     DECID     RAINF     BDIRT     GRAC4
+      real*8, DIMENSION(N_PFT), parameter :: wdens_g_cm3 =
+     &     (/ 0.6d0,undef,0.6d0,0.6d0,0.54d0,0.5d0,0.7d0,undef /)
+      real*8, DIMENSION(N_PFT), parameter :: a0h = !Later move to ent_pfts_ENT.f
+     &     (/ 1.3d0,undef,0.d0,0.d0,1.3d0,0.d0,0.d0,undef /)
+      real*8, DIMENSION(N_PFT), parameter :: acr =
+     &     (/ 0.500d0,undef,0.500d0,0.3868d0,0.2773d0
+     &        ,0.2570d0,0.1407d0,0.500d0 /)
+      real*8, DIMENSION(N_PFT), parameter :: bcr =
+     &     (/ 1.d0,undef,1.d0,1.d0,1.d0,1.d0,1.d0,undef /)
+      real*8, DIMENSION(N_PFT), parameter :: bR =
+     &     (/ 1.d0,40.d0,1.d0,0.75d0,1.0d0,2.0d0,1.5d0,10.0d0 /)
+      integer, DIMENSION(N_PFT), parameter  :: form =
+     &     (/ SHRUB,HERB,SHRUB,TREE,TREE,TREE,TREE,HERB /)
+      real*8, DIMENSION(N_PFT), parameter  :: DBHBAmax_cm =
+     &     (/ 10.d0,undef,10.d0,150.d0,150.d0,150.d0,150.d0,undef /)
+      logical, DIMENSION(N_PFT), parameter  :: crop =
+     &     (/ .false.,.false.,.false.,.false.
+     &       ,.false.,.false.,.false.,.true. /)
 
       !***************************************************
       !*         END - GISS VEGETATION TYPES             *

@@ -33,7 +33,7 @@
       use biophysics, only : photosynth_cond
       use soilbgc, only : soil_bgc
       use phenology, only : clim_stats, pheno_update, veg_update
-      use canopyrad, only : recalc_radpar
+!      use canopyrad, only : recalc_radpar
       use entcells, only : summarize_entcell, entcell_print
 
       implicit none
@@ -223,7 +223,7 @@ cddd#endif
 !@sum Ent ecosystem dynamics. UNDER DEVELOPMENT
 !@auth N.Y.Kiang
       use phenology
-      use canopyrad
+!      use canopyrad
       use disturbance
       use cohorts, only : reorganize_cohorts
       use patches, only : reorganize_patches, summarize_patch
@@ -251,7 +251,7 @@ cddd#endif
         if (STRUCT_FLAG(tt,ecp)) then
           call reorganize_cohorts(pp)
 !          call phenology_update (dtsec,tt, pp) !UPDATE LAI
-          call recalc_radpar (pp) !UPDATE canopy radiative transfer
+!          call recalc_radpar (pp) !UPDATE canopy radiative transfer
         end if
         call summarize_patch(pp)
       
@@ -262,7 +262,7 @@ cddd#endif
         !* Update phenology and disturbance
         !call phenology_update (dtsec,tt, pp) !UPDATE LAI - put in ent_integrate
           call fire_frequency_cell (dtsec,tt, ecp) !DUMMY
-          call recalc_radpar_cell (ecp) !
+!          call recalc_radpar_cell (ecp) !
           call reorganize_patches(ecp)
           call calc_cell_disturbance_rates(dtsec,tt,ecp)
         else
