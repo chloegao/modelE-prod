@@ -34,6 +34,7 @@ c
       USE RAD_COM, only     : COSZ1,alb,rcloudfj=>rcld,
      &                        rad_to_chem,chem_tracer_save,H2ObyCH4,
      &                        SRDN,rad_to_file,ghg_yr,clim_interact_chem
+     &                        ,maxNtraceFastj
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
      &                        ,stratO3_tracer_save
 #endif
@@ -109,7 +110,7 @@ c***      use subdd_mod, only : subdd_groups,subdd_type,subdd_ngroups
 c***     &     ,inc_subdd,find_groups, LmaxSUBDD
 c***#endif
       use photolysis, only: photoj,sza,szamax,tfastj,zj,o3_fastj,jppj
-     &                     ,pfastj2,miedx2,mxfastj,jpnl,naa,sf3_fact
+     &                     ,pfastj2,miedx2,jpnl,naa,sf3_fact,rhfastj
      &                     ,sf2_fact
 
       IMPLICIT NONE
@@ -629,8 +630,8 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
        if((ALB(I,J,1) /= 0.d0).AND.(sza < szamax))then
        
 c       define column temperatures to be sent to FASTJ:
-        TFASTJ = ta
-        RFASTJ = rh
+        tfastj = ta
+        rhfastj = rh
 
 c       Apostolos Voulgarakis (Feb 2010): Choose the indexes of the 
 c       aerosol types that we are going to use in Fast-J2 (indexes
@@ -656,46 +657,46 @@ c       16 = Liquid Clouds
 c       17 = Ice Clouds
 
         DO LL=1,LM 
-         if (RFASTJ(LL) .lt. 0.15) then
+         if (rhfastj(LL) .lt. 0.15) then
            MIEDX2(LL,:)=(/12,20,28,36,44,44,45,53,54,55,56,
      &                   57,58,59,60,7,11/)
-         else if ((RFASTJ(LL) .ge. 0.15) .and. (RFASTJ(LL) .lt. 
+         else if ((rhfastj(LL) .ge. 0.15) .and. (rhfastj(LL) .lt. 
      &   0.4)) then
            MIEDX2(LL,:)=(/13,21,29,37,44,44,46,53,54,55,56,
      &                   57,58,59,60,7,11/)
-         else if ((RFASTJ(LL) .ge. 0.4) .and. (RFASTJ(LL) .lt.
+         else if ((rhfastj(LL) .ge. 0.4) .and. (rhfastj(LL) .lt.
      &   0.6)) then
            MIEDX2(LL,:)=(/14,22,30,38,44,44,47,53,54,55,56,
      &                   57,58,59,60,7,11/)
-         else if ((RFASTJ(LL) .ge. 0.6) .and. (RFASTJ(LL) .lt.
+         else if ((rhfastj(LL) .ge. 0.6) .and. (rhfastj(LL) .lt.
      &   0.75)) then
            MIEDX2(LL,:)=(/15,23,31,39,44,44,48,53,54,55,56,
      &                   57,58,59,60,7,11/)
-         else if ((RFASTJ(LL) .ge. 0.75) .and. (RFASTJ(LL) .lt.
+         else if ((rhfastj(LL) .ge. 0.75) .and. (rhfastj(LL) .lt.
      &   0.85)) then
            MIEDX2(LL,:)=(/16,24,32,40,44,44,49,53,54,55,56,
      &                   57,58,59,60,7,11/)
-         else if ((RFASTJ(LL) .ge. 0.85) .and. (RFASTJ(LL) .lt.
+         else if ((rhfastj(LL) .ge. 0.85) .and. (rhfastj(LL) .lt.
      &   0.925)) then
            MIEDX2(LL,:)=(/17,25,33,41,44,44,50,53,54,55,56,
      &                   57,58,59,60,7,11/)
-         else if ((RFASTJ(LL) .ge. 0.925) .and. (RFASTJ(LL) .lt.
+         else if ((rhfastj(LL) .ge. 0.925) .and. (rhfastj(LL) .lt.
      &   0.97)) then
            MIEDX2(LL,:)=(/18,26,34,42,44,44,51,53,54,55,56,
      &                   57,58,59,60,7,11/)
-         else if (RFASTJ(LL) .ge. 0.97) then
+         else if (rhfastj(LL) .ge. 0.97) then
            MIEDX2(LL,:)=(/19,27,35,43,44,44,52,53,54,55,56,
      &                   57,58,59,60,7,11/)
          endif
         ENDDO 
 c Now force extra level (top of the atmosphere) used in Fast-J
 c to have the same MIEDX2 as the top model level
-        do ii=1,MXFASTJ 
+        do ii=1,maxNtraceFastj 
          MIEDX2(LM+1,ii)=MIEDX2(LM,ii)
         enddo
 c  Ensure all aerosol types are valid selections:
         do LL=1,LM+1
-         do ii=1,MXFASTJ
+         do ii=1,maxNtraceFastj
           if(MIEDX2(LL,ii) > NAA.or.MIEDX2(LL,ii) <= 0) then
             write(out_line,1201) MIEDX2(LL,ii),NAA
             call write_parallel(trim(out_line),crit=.true.)

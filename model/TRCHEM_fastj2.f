@@ -5,6 +5,9 @@
       USE DOMAIN_DECOMP_ATM, only: write_parallel 
       use RESOLUTION, only: lm
       use constant, only: pO2
+#ifdef TRACERS_ON
+      use RAD_COM, only: maxNtraceFastj
+#endif
       implicit none
 !@var j_iprn,j_jprn,j_prnrts for Shindell chemistry debugging
 !@var jppj number of chemical reactions in the currently active chemistry
@@ -28,7 +31,6 @@
 !@param nfastj number of quadrature points in OPMIE
 !@param mfastj lower limit of mfit?
 !@param mfit expansion of phase function in OPMIE
-!@param mxfastj Number of aerosol/cloud types supplied from CTM
 !@param nlfastj maximum number levels after inserting extra Mie levels
 !@param njval Number of species for which to calculate J-values
 !@param nwfastj maximum number of wavelength bins that can be used
@@ -43,7 +45,6 @@
      &                     ,nfastj=4
      &                     ,mfastj=1
      &                     ,mfit=2*M__
-     &                     ,mxfastj=17
      &                     ,nlfastj=1000 !increased Nov 2010
      &                     ,njval=27 !formerly read in from jv_spec00_15.dat
      &                     ,nwfastj=18
@@ -59,8 +60,15 @@
       character(len=20), dimension(np) :: title_aer_pf !formerly TITLEA( )
 !@var jndlev Levels at which we want J-values (centre of CTM levels)
       integer, dimension(lm) :: jndlev
+#ifdef TRACERS_ON
 !@param miedx2 choice of aerosol types for fastj2
-      integer, dimension(lm+1,mxfastj) :: miedx2
+      integer, dimension(lm+1,maxNtraceFastj) :: miedx2
+!@var aer2 fastj2 aerosol and cloud optical depth profiles. Aerosols are
+!@+   elements 1 to maxNtraceFastj-2, water clouds element maxNtraceFastj-1,
+!@+   and ice clouds element maxNtraceFastj. The water/ice threshold is
+!@+   defined at 233K.
+      real*8, dimension(maxNtraceFastj,nbfastj):: aer2
+#endif
 !@var jaddlv Additional levels associated with each level
 !@var jadsub ?
       integer, dimension(nlfastj) :: jaddlv,jadsub
@@ -140,8 +148,6 @@
 !@var bref2    fastj2 black carbon reference profile
       REAL*8, DIMENSION(51,18,12)       :: oref2,tref2 !XXXXXXXXXXXXXXXXXXXXXXXX
       REAL*8, DIMENSION(51)             :: bref2 !XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-!@var aer2 fastj2 aerosol profile?
-      real*8, dimension(mxfastj,nbfastj):: aer2
 !@var amf Air mass factor for slab between level and level above
       real*8, dimension(nbfastj,nbfastj):: amf
 !@var tj2 Temperature profile on fastj2 photolysis grid
@@ -151,8 +157,9 @@
 !@var dmfastj2 fastj2 Air column for each model level (molec/cm2)
       real*8, dimension(nbfastj) :: tj2,do32,dbc2,zfastj2,dmfastj2
 !@var tfastj temperature profile sent to FASTJ
+!@var rhfastj humidity profile used to choose scattering input for FASTJ2
 !@var odcol Optical depth at each model level
-      real*8, dimension(lm) :: tfastj,odcol
+      real*8, dimension(lm) :: tfastj,rhfastj,odcol
 !@var pfastj2 pressure at level boundaries, sent to FASTJ2
       real*8, dimension(lm+3) :: pfastj2
 !@var o3_fastj ozone sent to fastj
@@ -302,7 +309,9 @@ C**** GLOBAL parameters and variables:
       use model_com, only: modelEclock
       USE RAD_COM,only: ttausv_ntrace,ntrix
       USE RADPAR, only : NTRACE
+#ifdef TRACERS_ON
       use OldTracer_mod, only: trname
+#endif
 
       IMPLICIT NONE
 
@@ -317,7 +326,9 @@ C**** Local parameters and variables and arguments:
       real*8, dimension(52) :: pstd
       real*8, dimension(51) :: oref3, tref3
       real*8              :: ydgrd,f0,t0,b0,pb,pc,xc,scaleh
+#ifdef TRACERS_ON
       logical             :: skip_tracer
+#endif
 
 c  Set up cloud and surface properties
       call CLDSRF(NSLON,NSLAT)
@@ -377,19 +388,8 @@ c  Calculate effective altitudes using scale height at each level
 
 c  Add Aerosol Column - include aerosol (+cloud) types here. 
 
+#ifdef TRACERS_ON
       AER2(:,:)=0.d0
-
-c  LAST two are clouds (liquid or ice)
-c  Assume limiting temperature for ice of -40 deg C :
-      do i=1,LM
-        if(TFASTJ(I) > 233.d0) then
-          AER2(16,i) = odcol(i)
-          AER2(17,i) = 0.d0
-        else
-          AER2(16,i) = 0.d0
-          AER2(17,i) = odcol(i)
-        endif
-      enddo
 
 #ifndef TRACERS_TOMAS
 #ifndef TRACERS_AMP
@@ -427,8 +427,21 @@ c Now do the rest of the aerosols
 #endif
 #endif
 
+c  LAST two are clouds (liquid or ice)
+c  Assume limiting temperature for ice of -40 deg C :
+      do i=1,LM
+        if(TFASTJ(I) > 233.d0) then
+          AER2(16,i) = odcol(i)
+          AER2(17,i) = 0.d0
+        else
+          AER2(16,i) = 0.d0
+          AER2(17,i) = odcol(i)
+        endif
+      enddo
+
 c Top of the atmosphere
       AER2(:,LM+1) = 0.d0
+#endif
 
 c  Calculate column quantities for Fast-J2:
       do i=1,NBFASTJ
@@ -469,8 +482,10 @@ c Default lower photolysis boundary as bottom of level 1
 c Set and limit surface albedo
       RFLECT = max(0.d0,min(1.d0,(1.-ALB(NSLON,NSLAT,1))))
 
+#ifdef TRACERS_ON
 c Zero aerosol column
       AER2(:,:) = 0.d0
+#endif
 
 c Scale optical depths as appropriate - limit column to 'odmax'
       odsum = 0.d0
@@ -592,7 +607,9 @@ C**** Local parameters and variables and arguments:
       character(len=300)  :: out_line
       logical             :: jay
       REAL*8, DIMENSION(NBFASTJ)         :: COLO2,COLO3
-      REAL*8, DIMENSION(MXFASTJ,NBFASTJ) :: COLAX
+#ifdef TRACERS_ON
+      REAL*8, DIMENSION(maxNtraceFastj,NBFASTJ) :: COLAX
+#endif
       REAL*8, DIMENSION(9)               :: climat
       REAL*8                             :: ZKM,ZSTAR,PJC,ydgrd
      
@@ -601,29 +618,41 @@ C**** Local parameters and variables and arguments:
 C---Calculate columns, for diagnostic output only:
       COLO3(NBFASTJ) = DO32(NBFASTJ)
       COLO2(NBFASTJ) = DMFASTJ2(NBFASTJ)*pO2
+#ifdef TRACERS_ON
       COLAX(:,NBFASTJ) = AER2(:,NBFASTJ)
+#endif
       do I=NBFASTJ-1,1,-1
         COLO3(i) = COLO3(i+1)+DO32(i)
         COLO2(i) = COLO2(i+1)+DMFASTJ2(i)*pO2
+#ifdef TRACERS_ON
         COLAX(:,i) = COLAX(:,i+1)+AER2(:,i)
+#endif
       enddo
       write(out_line,1200) '  SZA=',sza
       call write_parallel(trim(out_line),crit=jay)
-      write(out_line,1200) ' O3-column(DU)=',COLO3(1)/2.687d16,
-     &'  column aerosol @1000nm=',(COLAX(K,1),K=1,MXFASTJ)
+      write(out_line,1200) ' O3-column(DU)=',COLO3(1)/2.687d16
       call write_parallel(trim(out_line),crit=jay)
+#ifdef TRACERS_ON
+      write(out_line,1200) 'column aerosol @1000nm=',
+     &                     (COLAX(K,1),K=1,maxNtraceFastj)
+      call write_parallel(trim(out_line),crit=jay)
+#endif
 
 C---Print out atmosphere:
       if(NFASTJq > 1) then
-        write(out_line,1000) (' AER-X ','col-AER',k=1,mxfastj)
+#ifdef TRACERS_ON
+        write(out_line,1000) (' AER-X ','col-AER',k=1,maxNtraceFastj)
         call write_parallel(trim(out_line),crit=jay)
+#endif
         do I=NBFASTJ,1,-1
           PJC = PFASTJ2(I)
           ZKM =1.d-5*ZFASTJ2(I)
           ZSTAR = 16.d0*DLOG10(1000.d0/PJC)
           write(out_line,1100) I,ZKM,ZSTAR,DMFASTJ2(I),DO32(I),
-     &    1.d6*DO32(I)/DMFASTJ2(I),TJ2(I),PJC,COLO3(I),COLO2(I),
-     &    (AER2(K,I),COLAX(K,I),K=1,MXFASTJ)    
+     &    1.d6*DO32(I)/DMFASTJ2(I),TJ2(I),PJC,COLO3(I),COLO2(I)
+#ifdef TRACERS_ON
+     &   ,(AER2(K,I),COLAX(K,I),K=1,maxNtraceFastj)
+#endif
           call write_parallel(trim(out_line),crit=jay)
         enddo
       endif            
@@ -660,7 +689,7 @@ C---Print out climatology:
  1000 format(5X,'Zkm',3X,'Z*',8X,'M',8X,'O3',6X,'f-O3',5X,'T',7X,'P',6x,
      &    'col-O3',3X,'col-O2',2X,10(a7,2x))
  1100 format(1X,I2,0P,2F6.2,1P,2E10.3,0P,F7.3,F8.2,F10.4,1P,10E9.2)
- 1200 format(A,F8.1,A,10(1pE10.3))
+ 1200 format(A,F8.1,A,20(1pE10.3))
       return
       end SUBROUTINE PRTATM
 
@@ -1003,11 +1032,13 @@ C**** Local parameters and variables and arguments:
       character(len=300) :: out_line
       REAL*8, DIMENSION(NBFASTJ) :: DTAUX,PIRAY2
       REAL*8, INTENT(IN), DIMENSION(NBFASTJ) :: XQO2_2,XQO3_2
-      REAL*8, DIMENSION(MXFASTJ,NBFASTJ) :: PIAER2
       REAL*8, DIMENSION(NCFASTJ2+1) :: TTAU,FTAU
       REAL*8, INTENT(OUT), DIMENSION(LM) :: FMEAN
-      REAL*8, DIMENSION(MXFASTJ,NBFASTJ) :: QXMIE,SSALB
-      REAL*8, DIMENSION(MXFASTJ) :: XLAER
+#ifdef TRACERS_ON
+      REAL*8, DIMENSION(maxNtraceFastj,NBFASTJ) :: PIAER2
+      REAL*8, DIMENSION(maxNtraceFastj,NBFASTJ) :: QXMIE,SSALB
+      REAL*8, DIMENSION(maxNtraceFastj) :: XLAER
+#endif
       REAL*8, INTENT(IN) :: WAVEL
       REAL*8, DIMENSION(2*M__) :: dpomega,dpomega2
       REAL*8 xlo2,xlo3,xlray,xltau2,zk,zk2,taudn,tauup,
@@ -1020,12 +1051,14 @@ C---Pick nearest Mie wavelength, no interpolation--------------
       if( WAVEL  >  800.d0 ) KM=4 
 
 C---For Mie code scale extinction at 1000 nm to wavelength WAVEL(QXMIE)
+#ifdef TRACERS_ON
       do j=1,NBFASTJ
-        QXMIE(1:MXFASTJ,j) =
-     &  QAAFASTJ(KM,MIEDX2(j,1:MXFASTJ))/
-     &  QAAFASTJ(4,MIEDX2(j,1:MXFASTJ))
-        SSALB(1:MXFASTJ,j) = SSA(KM,MIEDX2(j,1:MXFASTJ))
+        QXMIE(1:maxNtraceFastj,j) =
+     &  QAAFASTJ(KM,MIEDX2(j,1:maxNtraceFastj))/
+     &  QAAFASTJ(4,MIEDX2(j,1:maxNtraceFastj))
+        SSALB(1:maxNtraceFastj,j) = SSA(KM,MIEDX2(j,1:maxNtraceFastj))
       enddo
+#endif
 
 C---Reinitialize arrays: ! loop 1,NCFASTJ2+1
       ttau(:)=0.d0
@@ -1038,15 +1071,19 @@ C---Set up total optical depth over each CTM level, DTAUX:
         XLO2=DMFASTJ2(J)*XQO2_2(J)*pO2
         XLRAY=DMFASTJ2(J)*QRAYL(KW)
         if(WAVEL <= 291.d0) XLRAY=XLRAY * 0.57d0
-        XLAER(:)=AER2(:,J)*QXMIE(:,J) ! MXFASTJ
-c Total optical depth from all elements:
         DTAUX(J)=XLO3+XLO2+XLRAY
-        do I=1,MXFASTJ
+#ifdef TRACERS_ON
+        XLAER(:)=AER2(:,J)*QXMIE(:,J) ! maxNtraceFastj
+c Total optical depth from all elements:
+        do I=1,maxNtraceFastj
           DTAUX(J)=DTAUX(J)+XLAER(I)
         enddo
+#endif
 c Fractional extinction for Rayleigh scattering and each aerosol type:
         PIRAY2(J)=XLRAY/DTAUX(J)
-        PIAER2(:,J)=SSALB(:,J)*XLAER(:)/DTAUX(J) ! MXFASTJ
+#ifdef TRACERS_ON
+        PIAER2(:,J)=SSALB(:,J)*XLAER(:)/DTAUX(J) ! maxNtraceFastj
+#endif
       enddo ! J
 
 C---Calculate attenuated incident beam EXP(-TTAU/U0) & flux on surface:
@@ -1084,9 +1121,11 @@ C No. of quadrature pts fixed at 4 (M__), expansion of phase fn @ 8
        do j=j1,NBFASTJ
         do i=1,MFIT
          pomegaj(i,j) = PIRAY2(J)*PAA(i,KM,1)
-         do k=1,MXFASTJ
+#ifdef TRACERS_ON
+         do k=1,maxNtraceFastj
           pomegaj(i,j)=pomegaj(i,j)+PIAER2(K,j)*PAA(i,KM,MIEDX2(j,K))
          enddo
+#endif
         enddo
        enddo
         

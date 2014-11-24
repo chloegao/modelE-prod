@@ -865,8 +865,8 @@ C**** define weighting
 #endif
 
 #ifdef TRACERS_SPECIAL_Shindell
-      if(NTRACE > maxNtraceFastj)
-     &call stop_model("NTRACE > maxNtraceFastj in init_Rad",13)
+      if(NTRACE /= maxNtraceFastj)
+     &call stop_model("NTRACE /= maxNtraceFastj in init_Rad",13)
 #endif
 
       if (ktrend.ne.0) then
