@@ -44,29 +44,29 @@
       integer, parameter :: DROUGHTDECIDBROAD = 20
       integer, parameter :: GRASSC3ARCTIC = 21
 
-!      character(len=15), parameter ::
-!     &     ent_cover_names(N_COVERTYPES-N_OTHER) = (/
-!     &     'brightsoil     ','tundra         ','grass          ',
-!     &     'shrub_and_grass','tree_and_grass ','deciduous      ',
-!     &     'evergreen      ','rainforest     ','cultivation    ',
-!     &     'darksoil       '
-!     &     /)
-
-      !* netcdf names *!
-      character(len=13), parameter :: ent_cover_names(N_COVERTYPES) = (/
-     &     "BSAND        ",
-     &     "TNDRA        ",
-     &     "GRASS        ",
-     &     "SHRUBGRASS   ",
-     &     "SAVANNA      ",
-     &     "DECIDFOREST  ",
-     &     "EVERGRNEEDLE ",
-     &     "TROPRAINF    ",
-     &     "CROPS        ",
-     &     "BDIRT        ",
-     &     "ALGAE        ",
-     &     "GRAC4        "
+      character(len=15), parameter ::
+     &     ent_cover_names(N_COVERTYPES-N_OTHER) = (/
+     &     'brightsoil     ','tundra         ','grass          ',
+     &     'shrub_and_grass','tree_and_grass ','deciduous      ',
+     &     'evergreen      ','rainforest     ','cultivation    ',
+     &     'darksoil       '
      &     /)
+
+!      !* netcdf names *!
+!      character(len=13), parameter :: ent_cover_names(N_COVERTYPES) = (/
+!     &     "BSAND        ",
+!     &     "TNDRA        ",
+!     &     "GRASS        ",
+!     &     "SHRUBGRASS   ",
+!     &     "SAVANNA      ",
+!     &     "DECIDFOREST  ",
+!     &     "EVERGRNEEDLE ",
+!     &     "TROPRAINF    ",
+!     &     "CROPS        ",
+!     &     "BDIRT        ",
+!     &     "ALGAE        ",
+!     &     "GRAC4        "
+!     &     /)
 
 
 !##### TEMPORARY HACK - YK #####
@@ -126,7 +126,7 @@
      &     0.0800d0, 1.000d0, 0.00001d0, 1.000d0, 0.4778d0, -0.75d0),
      &     pftype(2,.true., 1,-2030.d0,  .65d0, .22d0,  1.3d0, !savanna
      &     5.1d0, 1.d0, 1.8d0, 25.d0, 50.0d0, 0.15d0,0.153d0,3,
-     &     0.0d0, 0.0d0, 0.0d0, 0.0d0, 0.0d0, 0.0d0),
+     &     0.0296d0, 1.560d0, 0.0621d0, 2.306d0, 27.d0, -0.0232d0),
      &     pftype(1,.true., 1,-500.d0,  .50d0, .29d0,  1.5d0, !decidforest
 !     &     8.3d0, 0.6d0, 1.2d0, 58.0d0, 50.0d0, 0.2d0,0.093,2, !SLA for Quercus ilex, Mediavilla & Escudero(2003)
      &     34.5d0, 0.6d0, 1.2d0, 58.0d0, 57.0d0, 0.2d0,0.093,2, !SLA for oak, Tatarinov & Cienciala (2006)
@@ -335,7 +335,7 @@ C           TNDRA     SHRUB     DECID     RAINF     BDIRT     GRAC4
       real*8, DIMENSION(N_PFT), parameter :: wdens_g_cm3 =
      &     (/ 0.6d0,undef,0.6d0,0.6d0,0.54d0,0.5d0,0.7d0,undef /)
       real*8, DIMENSION(N_PFT), parameter :: a0h = !Later move to ent_pfts_ENT.f
-     &     (/ 1.3d0,undef,0.d0,0.d0,1.3d0,0.d0,0.d0,undef /)
+     &     (/ 0.d0,undef,0.d0,0.d0,1.3d0,0.d0,0.d0,undef /)
       real*8, DIMENSION(N_PFT), parameter :: acr =
      &     (/ 0.500d0,undef,0.500d0,0.3868d0,0.2773d0
      &        ,0.2570d0,0.1407d0,0.500d0 /)
