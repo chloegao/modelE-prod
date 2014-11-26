@@ -26,7 +26,7 @@
 
 
 
-      subroutine init_module_ent(iniENT_in, Jday, Jyear, focean1)
+      subroutine init_module_ent(iniENT_in, Jday, Jyear)
 !@sum initializes vegetation
       use Dictionary_mod
       use ent_com, only : entcells,Cint,Qfol,cnc_ij,excess_C
@@ -36,7 +36,6 @@
       use DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       integer, intent(in) :: Jday, Jyear
       logical, intent(in) :: iniENT_in
-      real*8, intent(in) :: focean1(:,:)
       !---
       integer I_0, I_1, J_0, J_1, i, j
       ! the following are rundeck parameters which need to be

@@ -1877,7 +1877,6 @@ c**** check whether ground hydrology data exist at this point.
       use TimeConstants_mod, only: EARTH_DAYS_PER_YEAR
       use model_com, only : modelEclock
       use model_com, only : itime,nday
-      use fluxes, only : focean
 #ifdef USE_ENT
       use ent_drv, only : init_module_ent
 #else
@@ -1897,7 +1896,7 @@ c**** cosday, sinday should be defined (reset once a day in daily_earth)
 
 #ifdef USE_ENT
       call modelEclock%get(year=year, dayOfYear=dayOfYear)
-      CALL init_module_ent(istart.le.2, dayOfYear, year, FOCEAN)
+      CALL init_module_ent(istart.le.2, dayOfYear, year)
 #else
       cosday=cos(twopi/EARTH_DAYS_PER_YEAR*dayOfYear)
       sinday=sin(twopi/EARTH_DAYS_PER_YEAR*dayOfYear)
