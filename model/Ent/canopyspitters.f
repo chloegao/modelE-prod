@@ -241,6 +241,10 @@
           !!! meaningless formula - different units
           !!!Anet = cop%GPP - Rd !Right now Rd and Respauto_NPP_Clabile are inconsistent-NK
        else                     !Zero LAI or no light
+          GCANOPY = 0.d0
+          Anet = 0.d0
+          Atot = 0.d0
+          TRANS_SW = 1.d0
           cop%GCANOPY=0.d0 !May want minimum conductance for stems.
           cop%Ci = EPS
           cop%GPP = 0.d0
