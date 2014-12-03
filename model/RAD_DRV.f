@@ -613,6 +613,7 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
 !=======================================================================
       n=0
 !-----------------------------------------------------------------------
+#ifdef TRACERS_AEROSOLS_Koch
       if (nraero_koch > 0) then
         if (rad_interact_aer > 0) then  ! if BC's sol.effect are doubled:
           FS8OPX(1)=0.d0
@@ -661,7 +662,9 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
 #endif  /* SULF_ONLY_AEROSOLS */
       endif
       n=n+nraero_koch
+#endif  /* TRACERS_AEROSOLS_Koch */
 !-----------------------------------------------------------------------
+#ifdef TRACERS_NITRATE
       if (nraero_nitrate > 0) then
 #ifdef SULF_ONLY_AEROSOLS
         call stop_model('SULF_ONLY_AEROSOLS and TRACERS_NITRATE on',255)
@@ -675,7 +678,9 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
         itr(n+1:n+nraero_nitrate) = (/3/)
       endif
       n=n+nraero_nitrate
+#endif  /* TRACERS_NITRATE */
 !-----------------------------------------------------------------------
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       if (nraero_dust > 0) then
         if (rad_interact_aer > 0) then ! turn off default dust
           FS8OPX(7)=0.d0
@@ -826,8 +831,9 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
         krhtra(n+1:n+nraero_dust) = 0 ! no deliq for dust or minerals
       endif
       n=n+nraero_dust
+#endif  /* (defined TRACERS_DUST) || (defined TRACERS_MINERALS) */
 !-----------------------------------------------------------------------
-#ifdef TRACERS_AMP
+#if (defined TRACERS_AMP) || (defined TRACERS_AMP_M1)
       if (nraero_AMP > 0) then
         if (rad_interact_aer > 0) then
           FS8OPX(1:7)=0.d0
@@ -840,7 +846,7 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
      &       n_N_DBC_1, n_N_BOC_1, n_N_BCS_1, n_N_MXX_1/)
       endif
       n=n+nraero_AMP
-#endif  /* TRACERS_AMP */
+#endif  /* (defined TRACERS_AMP) || (defined TRACERS_AMP_M1) */
 !-----------------------------------------------------------------------
 #ifdef TRACERS_TOMAS
       if (nraero_TOMAS > 0) then
