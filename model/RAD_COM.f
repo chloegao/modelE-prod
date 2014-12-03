@@ -114,7 +114,7 @@ C**** does not produce exactly the same as the default values.
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: aerAbs6SaveInst
 #ifdef TRACERS_SPECIAL_Shindell
 !@var maxNtraceFastj max expected rad code tracers passed to photolysis
-!@var ttausv_ntrace Tracer optical thickness saved 1:NTRACE not 1:NTM
+!@var ttausv_ntrace Tracer optical thickness saved 1:nraero not 1:ntm
 !@+   This is so clays are separate. Only needed for chemistry on.
 !@+   Now also used for old parameter mxfastj: Number of aerosol/cloud
 !@+   types currently active in the model
@@ -245,9 +245,9 @@ C**** using the rad_forc_lev parameter.
 C**** Local variables initialised in init_RAD
 !@var PLB0,QL0 global parts of local arrays (to avoid OMP-copyin)
       REAL*8, DIMENSION(LM_REQ)       :: PLB0,SHL0
-!@var NTRIX Indexing array for optional aerosol interaction
+!@var NTRIX Indexing array for optional aerosol-radiation interactions
       INTEGER, DIMENSION(ITRMAX) :: NTRIX = 0
-!@var WTTR weighting array for optional aerosol interaction
+!@var WTTR weighting array for optional aerosol-ratiation interactions
       REAL*8, DIMENSION(ITRMAX) :: WTTR = 1.
 !@var nrad_clay index of clay in arrays for optional aerosol interaction
       INTEGER :: nrad_clay

@@ -308,7 +308,7 @@ C**** GLOBAL parameters and variables:
       USE GEOM, only: lat2d_dg
       use model_com, only: modelEclock
       USE RAD_COM,only: ttausv_ntrace,ntrix
-      USE RADPAR, only : NTRACE
+      USE RADPAR, only : nraero=>ntrace
 #ifdef TRACERS_ON
       use OldTracer_mod, only: trname
 #endif
@@ -395,7 +395,7 @@ c  Add Aerosol Column - include aerosol (+cloud) types here.
 #ifndef TRACERS_AMP
 c Now do the rest of the aerosols
       iclay=0  
-      do n=1,NTRACE
+      do n=1,nraero
         skip_tracer=.false.
         select case (trname(ntrix(n)))
         case ('SO4')      ; j=1 
