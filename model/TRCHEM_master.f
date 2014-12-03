@@ -34,7 +34,7 @@ c
       USE RAD_COM, only     : COSZ1,alb,rcloudfj=>rcld,
      &                        rad_to_chem,chem_tracer_save,H2ObyCH4,
      &                        SRDN,rad_to_file,ghg_yr,clim_interact_chem
-     &                        ,maxNtraceFastj
+     &                        ,njaero
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
      &                        ,stratO3_tracer_save
 #endif
@@ -691,12 +691,12 @@ c       17 = Ice Clouds
         ENDDO 
 c Now force extra level (top of the atmosphere) used in Fast-J
 c to have the same MIEDX2 as the top model level
-        do ii=1,maxNtraceFastj 
+        do ii=1,njaero 
          MIEDX2(LM+1,ii)=MIEDX2(LM,ii)
         enddo
 c  Ensure all aerosol types are valid selections:
         do LL=1,LM+1
-         do ii=1,maxNtraceFastj
+         do ii=1,njaero
           if(MIEDX2(LL,ii) > NAA.or.MIEDX2(LL,ii) <= 0) then
             write(out_line,1201) MIEDX2(LL,ii),NAA
             call write_parallel(trim(out_line),crit=.true.)

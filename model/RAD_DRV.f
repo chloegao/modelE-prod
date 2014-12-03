@@ -81,7 +81,7 @@ C****
      &     ,nTracerRadiaActive,tracerRadiaActiveFlag
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
-     *     ,maxNtraceFastj
+     *     ,njaero
 #endif
 #ifdef ALTER_RADF_BY_LAT
      *     ,FULGAS_lat,FS8OPX_lat,FT8OPX_lat
@@ -879,14 +879,14 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
 !-----------------------------------------------------------------------
 !-----------------------------------------------------------------------
 #ifdef TRACERS_SPECIAL_Shindell
-      if(nraero /= maxNtraceFastj) then
+      if(nraero /= njaero) then
         if (am_i_root()) then
           print*,nraero_koch,nraero_nitrate
      &          ,nraero_dust,nraero_AMP,nraero_TOMAS
      &          ,nraero_OM_SP
           print*,'nraero=',nraero
-          print*,'maxNtraceFastj=',maxNtraceFastj
-          call stop_model("nraero /= maxNtraceFastj in init_Rad",255)
+          print*,'njaero=',njaero
+          call stop_model("nraero /= njaero in init_Rad",255)
         endif
       endif
 #endif

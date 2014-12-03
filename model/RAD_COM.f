@@ -113,12 +113,12 @@ C**** does not produce exactly the same as the default values.
 !@+   saved for instantaneous SUBDDiag output
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: aerAbs6SaveInst
 #ifdef TRACERS_SPECIAL_Shindell
-!@var maxNtraceFastj max expected rad code tracers passed to photolysis
+!@var njaero max expected rad code tracers passed to photolysis
 !@var ttausv_ntrace Tracer optical thickness saved 1:nraero not 1:ntm
 !@+   This is so clays are separate. Only needed for chemistry on.
 !@+   Now also used for old parameter mxfastj: Number of aerosol/cloud
 !@+   types currently active in the model
-      integer, parameter :: maxNtraceFastj=17
+      integer, parameter :: njaero=17
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:,:) :: ttausv_ntrace
 #endif
 #endif
@@ -297,7 +297,7 @@ C**** Local variables initialised in init_RAD
      *     ,swu_avg,swu_cnt
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
-     *     ,ttausv_ntrace,maxNtraceFastj
+     *     ,ttausv_ntrace,njaero
 #endif
 #ifdef TRACERS_ON
      *     ,ttausv_sum,ttausv_sum_cs,ttausv_count,nTracerRadiaActive
@@ -370,7 +370,7 @@ C**** Local variables initialised in init_RAD
      &     aerAbs6SaveInst(I_0H:I_1H,J_0H:J_1H,Lm),
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
-     &     ttausv_ntrace(I_0H:I_1H,J_0H:J_1H,maxNtraceFastj,Lm),
+     &     ttausv_ntrace(I_0H:I_1H,J_0H:J_1H,njaero,Lm),
 #endif
      *     STAT=IER)
 
@@ -500,7 +500,7 @@ C**** Local variables initialised in init_RAD
 #ifdef TRACERS_SPECIAL_Shindell
       allocate(chem_tracer_save_GLOB(2,lmg, img,jmg))
       allocate(rad_to_chem_GLOB(5,lmg,img,jmg))
-      allocate(ttausv_ntrace_glob(img,jmg,maxNtraceFastj,lmg))
+      allocate(ttausv_ntrace_glob(img,jmg,njaero,lmg))
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
       allocate(stratO3_tracer_save_GLOB(lmg, img, jmg))
 #endif
@@ -785,7 +785,7 @@ C**** Local variables initialised in init_RAD
       call defvar(grid,fid,rad_to_chem,
      &     'rad_to_chem(five,lm,dist_im,dist_jm)')
       call defvar(grid,fid,ttausv_ntrace,
-     &     'ttausv_ntrace(dist_im,dist_jm,maxNtraceFastj,lm)')
+     &     'ttausv_ntrace(dist_im,dist_jm,njaero,lm)')
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
       call defvar(grid,fid,strato3_tracer_save,
      &     'strato3_tracer_save(lm,dist_im,dist_jm)')
