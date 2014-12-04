@@ -758,6 +758,8 @@ C**** Local variables initialised in init_RAD
      &     'chem_tracer_save(two,lm,dist_im,dist_jm)')
       call defvar(grid,fid,rad_to_chem,
      &     'rad_to_chem(five,lm,dist_im,dist_jm)')
+      call defvar(grid,fid,ttausv_nraero,
+     &     'ttausv_nraero(dist_im,dist_jm,lm,nraero)')
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
       call defvar(grid,fid,strato3_tracer_save,
      &     'strato3_tracer_save(lm,dist_im,dist_jm)')
@@ -841,6 +843,9 @@ C**** Local variables initialised in init_RAD
         call write_dist_data(grid,fid,'ttausv_sum_cs',ttausv_sum_cs)
         call write_dist_data(grid,fid,'aerAbs6SaveInst',aerAbs6SaveInst)
 #endif
+#ifdef TRACERS_SPECIAL_Shindell
+        call write_dist_data(grid,fid,'ttausv_nraero',ttausv_nraero)
+#endif
       case (ioread)
         call read_data(grid, fid,'s0', s0, bcast_all=.true.)
         call read_dist_data(grid, fid,'rqt',  rqt, jdim=3)
@@ -884,6 +889,9 @@ C**** Local variables initialised in init_RAD
         call read_dist_data(grid,fid,'ttausv_sum',ttausv_sum)
         call read_dist_data(grid,fid,'ttausv_sum_cs',ttausv_sum_cs)
         call read_dist_data(grid,fid,'aerAbs6SaveInst',aerAbs6SaveInst)
+#endif
+#ifdef TRACERS_SPECIAL_Shindell
+        call read_dist_data(grid,fid,'ttausv_nraero',ttausv_nraero)
 #endif
       end select
       return
