@@ -65,6 +65,9 @@ C****
 #ifdef ALTER_RADF_BY_LAT
      *     ,FS8OPX_orig,FT8OPX_orig
 #endif
+#ifdef TRACERS_SPECIAL_Shindell
+      use photolysis, only: aer2,miedx2,nbfastj
+#endif  /* TRACERS_SPECIAL_Shindell */
       USE RAD_COM, only : rqt, s0x, co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx
      *     ,o2x,no2x,n2cx,yGHGx,so2x,CH4X_RADoverCHEM,snoage_def
      *     ,s0_yr,s0_day,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr
@@ -81,8 +84,8 @@ C****
      &     ,nTracerRadiaActive,tracerRadiaActiveFlag
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
-     *     ,njaero
-#endif
+     *     ,njaero,ttausv_nraero
+#endif  /* TRACERS_SPECIAL_Shindell */
 #ifdef ALTER_RADF_BY_LAT
      *     ,FULGAS_lat,FS8OPX_lat,FT8OPX_lat
 #endif
@@ -606,6 +609,17 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
       nraero=nraero_koch+nraero_nitrate+nraero_dust
      &      +nraero_AMP+nraero_TOMAS+nraero_OM_SP
 
+      allocate(ntrix(nraero)) ; ntrix=0
+      allocate(wttr(nraero))  ; wttr=1.
+
+#ifdef TRACERS_SPECIAL_Shindell
+      allocate(ttausv_nraero(im,jm,lm,nraero))
+
+      njaero=nraero+2
+      allocate(miedx2(nbfastj,njaero))
+      allocate(aer2(nbfastj,njaero))
+#endif  /* TRACERS_SPECIAL_Shindell */
+
 #ifdef TRACERS_ON
 !=======================================================================
 ! Define indices to map model aerosol tracer arrays to radiation arrays
@@ -882,20 +896,6 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
         trrdry(n+1:n+nraero_OM_SP)=(/0.3d0/)
       endif
 #endif  /* TRACERS_OM_SP */
-!-----------------------------------------------------------------------
-!-----------------------------------------------------------------------
-#ifdef TRACERS_SPECIAL_Shindell
-      if(nraero /= njaero) then
-        if (am_i_root()) then
-          print*,nraero_koch,nraero_nitrate
-     &          ,nraero_dust,nraero_AMP,nraero_TOMAS
-     &          ,nraero_OM_SP
-          print*,'nraero=',nraero
-          print*,'njaero=',njaero
-          call stop_model("nraero /= njaero in init_Rad",255)
-        endif
-      endif
-#endif
 !=======================================================================
 !=======================================================================
 #endif  /* TRACERS_ON */
@@ -1546,7 +1546,7 @@ C     OUTPUT DATA
      &     ,ttausv_cs_save,aerAbs6SaveInst
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
-     &     ,ttausv_ntrace
+     &     ,ttausv_nraero
 #endif
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
      &     ,stratO3_tracer_save
@@ -2975,13 +2975,7 @@ c                 print*,'SUSA  diag',SUM(aesqex(1:Lm,kr,n))
         END DO
       END IF
 #ifdef TRACERS_SPECIAL_Shindell
-      do n=1,nraero
-        if(ntrix(n) > 0) then
-          do k=1,LM
-            ttausv_ntrace(i,j,n,k)=ttausv(k,n)
-          end do
-        end if
-      end do
+      ttausv_nraero(i,j,1:LM,:)=ttausv(1:LM,:)
 #endif
 #endif /* TRACERS_ON */
 
