@@ -191,6 +191,8 @@
 !@auth Kostas Tsigaridis (with content collected from TRCHEM_master.f)
 
       use atm_com, only: pedn,pmid
+      use rad_com, only: nraero_koch,nraero_nitrate,nraero_dust
+      use domain_decomp_1d, only: am_i_root
       implicit none
 
 !@var rh humidity profile used to choose scattering input for FASTJ2
@@ -198,7 +200,7 @@
       integer, intent(in) :: i, j ! current box horizontal indices
 
       character(len=300) :: out_line
-      integer :: LL,ii
+      integer :: LL,ii,irh,n
 
       tfastj=ta
 
@@ -206,73 +208,95 @@
 c       Apostolos Voulgarakis (Feb 2010): Choose the indexes of the 
 c       aerosol types that we are going to use in Fast-J2 (indexes
 c       in look-up table), taking humidity into account. The different 
-c       aerosols used are:
+c       aerosols used are in the same order with those in nraero list and
+c       based on the default CADI configuration are:
 c
 c        1 = Sulfate (n_SO4)
 c        2 = Sea-Salt (fine) (n_seasalt1)
 c        3 = Sea-Salt (coarse) (n_seasalt2)
-c        4 = Organic Carbon (n_OCIA AND n_OCB AND SOAs)
-c        5 = Black Carbon (aged) (n_BCIA)
-c        6 = Black Carbon (biomass burning) (n_BCB)
-c        7 = Nitrate (n_NO3p)
-c        8 = Dust (Clay, 1-st size bin) (n_clay)
-c        9 = Dust (Clay, 2-nd size bin) (n_clay)
-c       10 = Dust (Clay, 3-rd size bin) (n_clay)
-c       11 = Dust (Clay, 4-th size bin) (n_clay)
-c       12 = Dust (Clay, 1-st size bin) (n_silt1)
-c       13 = Dust (Clay, 2-nd size bin) (n_silt2)
-c       14 = Dust (Clay, 3-rd size bin) (n_silt3)
-c       15 = Dust (Clay, 4-rd size bin) (n_silt4)
-c       16 = Liquid Clouds
-c       17 = Ice Clouds
+c        4 = Primary organic aerosol (n_OCIA)
+c        5 = Primary organic aerosol (biomass burning ) (n_OCB)
+c        6 = Secondary organic aerosol (n_isopp1a)
+c        7 = Black Carbon (n_BCIA)
+c        8 = Black Carbon (biomass burning) (n_BCB)
+c        9 = Nitrate (n_NO3p)
+c       10 = Dust (Clay, 1-st size bin) (n_clay)
+c       11 = Dust (Clay, 2-nd size bin) (n_clay)
+c       12 = Dust (Clay, 3-rd size bin) (n_clay)
+c       13 = Dust (Clay, 4-th size bin) (n_clay)
+c       14 = Dust (Clay, 1-st size bin) (n_silt1)
+c       15 = Dust (Clay, 2-nd size bin) (n_silt2)
+c       16 = Dust (Clay, 3-rd size bin) (n_silt3)
+c       17 = Dust (Clay, 4-rd size bin) (n_silt4)
+c       18 = Liquid Clouds
+c       19 = Ice Clouds
 
-        DO LL=1,LM 
-         if (rh(LL) .lt. 0.15) then
-           MIEDX2(LL,:)=(/12,20,28,36,36,36,44,44,45,53,54,55,56,
-     &                   57,58,59,60,7,11/)
-         else if ((rh(LL) .ge. 0.15) .and. (rh(LL) .lt. 
-     &   0.4)) then
-           MIEDX2(LL,:)=(/13,21,29,37,37,37,44,44,46,53,54,55,56,
-     &                   57,58,59,60,7,11/)
-         else if ((rh(LL) .ge. 0.4) .and. (rh(LL) .lt.
-     &   0.6)) then
-           MIEDX2(LL,:)=(/14,22,30,38,38,38,44,44,47,53,54,55,56,
-     &                   57,58,59,60,7,11/)
-         else if ((rh(LL) .ge. 0.6) .and. (rh(LL) .lt.
-     &   0.75)) then
-           MIEDX2(LL,:)=(/15,23,31,39,39,39,44,44,48,53,54,55,56,
-     &                   57,58,59,60,7,11/)
-         else if ((rh(LL) .ge. 0.75) .and. (rh(LL) .lt.
-     &   0.85)) then
-           MIEDX2(LL,:)=(/16,24,32,40,40,40,44,44,49,53,54,55,56,
-     &                   57,58,59,60,7,11/)
-         else if ((rh(LL) .ge. 0.85) .and. (rh(LL) .lt.
-     &   0.925)) then
-           MIEDX2(LL,:)=(/17,25,33,41,41,41,44,44,50,53,54,55,56,
-     &                   57,58,59,60,7,11/)
-         else if ((rh(LL) .ge. 0.925) .and. (rh(LL) .lt.
-     &   0.97)) then
-           MIEDX2(LL,:)=(/18,26,34,42,42,42,44,44,51,53,54,55,56,
-     &                   57,58,59,60,7,11/)
-         else if (rh(LL) .ge. 0.97) then
-           MIEDX2(LL,:)=(/19,27,35,43,43,43,44,44,52,53,54,55,56,
-     &                   57,58,59,60,7,11/)
-         endif
-        ENDDO 
+        do LL=1,LM
+          if (rh(LL) .lt. 0.15) then
+            irh=0
+          else if ((rh(LL) .ge. 0.15) .and. (rh(LL) .lt. 0.4)) then
+            irh=1
+          else if ((rh(LL) .ge. 0.4) .and. (rh(LL) .lt. 0.6)) then
+            irh=2
+          else if ((rh(LL) .ge. 0.6) .and. (rh(LL) .lt. 0.75)) then
+            irh=3
+          else if ((rh(LL) .ge. 0.75) .and. (rh(LL) .lt. 0.85)) then
+            irh=4
+          else if ((rh(LL) .ge. 0.85) .and. (rh(LL) .lt. 0.925)) then
+            irh=5
+          else if ((rh(LL) .ge. 0.925) .and. (rh(LL) .lt. 0.97)) then
+            irh=6
+          else if (rh(LL) .ge. 0.97) then
+            irh=7
+          endif
+
+! in the lines below, +0 implies no humidity impact
+          n=0
+#ifdef TRACERS_AEROSOLS_Koch
+          MIEDX2(LL,n+1)=12+irh
+#ifndef SULF_ONLY_AEROSOLS
+          MIEDX2(LL,n+2:n+nraero_koch)=
+     &      (/20+irh,28+irh,36+irh,36+irh
+#ifdef TRACERS_AEROSOLS_SOA
+     &       ,36+irh
+#endif  /* TRACERS_AEROSOLS_SOA */
+     &       ,44+0,44+0/)
+#endif  /* SULF_ONLY_AEROSOLS */
+          n=n+nraero_koch
+#endif  /* TRACERS_AEROSOLS_Koch */
+
+#ifdef TRACERS_NITRATE
+          MIEDX2(LL,n+1:n+nraero_nitrate)=(/45+irh/)
+          n=n+nraero_nitrate
+#endif  /* TRACERS_NITRATE */
+
+#ifdef TRACERS_DUST
+          MIEDX2(LL,n+1:n+nraero_dust)=
+     &      (/53+0,54+0,55+0,56+0,57+0,58+0,59+0
+#ifdef TRACERS_DUST_Silt4
+     &       ,60+0
+#endif  /* TRACERS_DUST_Silt4 */
+     &       /)
+          n=n+nraero_dust
+#endif  /* TRACERS_DUST */
+
+          MIEDX2(LL,n+1:njaero)=(/7+0,11+0/)
+        enddo 
+
 c Now force extra level (top of the atmosphere) used in Fast-J
 c to have the same MIEDX2 as the top model level
-        do ii=1,njaero
-         MIEDX2(LM+1,ii)=MIEDX2(LM,ii)
-        enddo
+        MIEDX2(LM+1,1:njaero)=MIEDX2(LM,1:njaero)
 c  Ensure all aerosol types are valid selections:
         do LL=1,LM+1
-         do ii=1,njaero
-          if(MIEDX2(LL,ii)>NAA .or. MIEDX2(LL,ii)<=0) then
-            write(out_line,1201) MIEDX2(LL,ii),NAA
-            call write_parallel(trim(out_line),crit=.true.)
-            call stop_model('Problem with MIEDX2 aerosol types',13)
-          endif
-         enddo
+          do ii=1,njaero
+            if(MIEDX2(LL,ii)>NAA .or. MIEDX2(LL,ii)<=0) then
+              if (am_i_root()) then
+                write(out_line,1201) MIEDX2(LL,ii),NAA
+                call write_parallel(trim(out_line),crit=.true.)
+                call stop_model('Problem with MIEDX2 aerosol types',13)
+              endif
+            endif
+          enddo
         enddo
  1201 format('Aerosol type ',i2,' unsuitable; supplied values must be',
      &       ' between 1 and ',i2)
