@@ -68,6 +68,10 @@ C****
 #ifdef TRACERS_SPECIAL_Shindell
       use photolysis, only: aer2,miedx2,nbfastj
 #endif  /* TRACERS_SPECIAL_Shindell */
+#ifdef TRACERS_ON
+      use rad_com, only: nraero_koch,nraero_nitrate,nraero_dust,
+     *                   nraero_AMP,nraero_TOMAS,nraero_OM_SP
+#endif  /* TRACERS_ON */
       USE RAD_COM, only : rqt, s0x, co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx
      *     ,o2x,no2x,n2cx,yGHGx,so2x,CH4X_RADoverCHEM,snoage_def
      *     ,s0_yr,s0_day,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr
@@ -177,56 +181,6 @@ C****
 
       INTEGER :: I,J
       INTEGER :: I_0,I_1,J_0,J_1
-
-#ifdef TRACERS_AEROSOLS_Koch
-#ifdef SULF_ONLY_AEROSOLS
-      integer, parameter :: nraero_koch=1
-#else
-#ifdef TRACERS_AEROSOLS_SOA
-      integer, parameter :: nraero_koch=8
-#else
-      integer, parameter :: nraero_koch=7
-#endif  /* TRACERS_AEROSOLS_SOA */
-#endif  /* SULF_ONLY_AEROSOLS */
-#else
-      integer, parameter :: nraero_koch=0
-#endif  /* TRACERS_AEROSOLS_Koch */
-
-#ifdef TRACERS_NITRATE
-      integer, parameter :: nraero_nitrate=1
-#else
-      integer, parameter :: nraero_nitrate=0
-#endif  /* TRACERS_NITRATE */
-
-#ifdef TRACERS_DUST
-      integer, parameter :: nraero_dust=ntm_dust
-#ifdef TRACERS_MINERALS
-     &                     +45 ! 4 clays instead of 1, for 15 clay types
-#else
-     &                     +3 ! 4 clays instead of 1
-#endif  /* TRACERS_MINERALS */
-#else
-      integer, parameter :: nraero_dust=0
-#endif  /* TRACERS_DUST */
-
-#if (defined TRACERS_AMP) || (defined TRACERS_AMP_M1)
-      integer, parameter :: nraero_AMP=nmodes
-#else
-      integer, parameter :: nraero_AMP=0
-#endif  /* (defined TRACERS_AMP) || (defined TRACERS_AMP_M1) */
-
-#ifdef TRACERS_TOMAS
-!TOMAS does not include NO3 AND VOL, which use its default radiation. 
-      integer, parameter :: nraero_TOMAS=icomp-2
-#else
-      integer, parameter :: nraero_TOMAS=0
-#endif  /* TRACERS_TOMAS */
-
-#ifdef TRACERS_OM_SP
-      integer, parameter :: nraero_OM_SP=1
-#else
-      integer, parameter :: nraero_OM_SP=0
-#endif  /* TRACERS_OM_SP */
 
 C**** sync radiation parameters from input
       call sync_param( "NRAD", NRAD ) !!
@@ -606,6 +560,7 @@ caer   ITR = (/ 0,0,0,0, 0,0,0,0 /)
 caer   TRRDRY=(/ .1d0, .1d0, .1d0, .1d0, .1d0, .1d0, .1d0, .1d0/)
 caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
 
+#ifdef TRACERS_ON
       nraero=nraero_koch+nraero_nitrate+nraero_dust
      &      +nraero_AMP+nraero_TOMAS+nraero_OM_SP
 
@@ -620,7 +575,6 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
       allocate(aer2(nbfastj,njaero))
 #endif  /* TRACERS_SPECIAL_Shindell */
 
-#ifdef TRACERS_ON
 !=======================================================================
 ! Define indices to map model aerosol tracer arrays to radiation arrays
 ! and other radiation-related aerosol properties

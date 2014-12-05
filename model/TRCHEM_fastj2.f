@@ -202,6 +202,7 @@
 
       tfastj=ta
 
+#ifdef TRACERS_ON
 c       Apostolos Voulgarakis (Feb 2010): Choose the indexes of the 
 c       aerosol types that we are going to use in Fast-J2 (indexes
 c       in look-up table), taking humidity into account. The different 
@@ -275,6 +276,7 @@ c  Ensure all aerosol types are valid selections:
         enddo
  1201 format('Aerosol type ',i2,' unsuitable; supplied values must be',
      &       ' between 1 and ',i2)
+#endif  /* TRACERS_ON */
 
 c       define pressures to be sent to FASTJ (centers):
         PFASTJ2(1:LM)=PMID(1:LM,I,J)
@@ -712,12 +714,12 @@ C**** Local parameters and variables and arguments:
       REAL*8                             :: ZKM,ZSTAR,PJC,ydgrd
      
       if(NFASTJq == 0) return
-      allocate(colax(njaero,NBFASTJ))
 
 C---Calculate columns, for diagnostic output only:
       COLO3(NBFASTJ) = DO32(NBFASTJ)
       COLO2(NBFASTJ) = DMFASTJ2(NBFASTJ)*pO2
 #ifdef TRACERS_ON
+      allocate(colax(njaero,NBFASTJ))
       COLAX(:,NBFASTJ) = AER2(NBFASTJ,:)
 #endif
       do I=NBFASTJ-1,1,-1
@@ -1143,11 +1145,6 @@ C**** Local parameters and variables and arguments:
       REAL*8 xlo2,xlo3,xlray,xltau2,zk,zk2,taudn,tauup,
      & ftaulog,dttau,ftaulog2,dttau2
 
-      allocate(piaer2(njaero,NBFASTJ))
-      allocate(qxmie(njaero,NBFASTJ))
-      allocate(ssalb(njaero,NBFASTJ))
-      allocate(xlaer(njaero))
-
 C---Pick nearest Mie wavelength, no interpolation--------------
                              KM=1
       if( WAVEL  >  355.d0 ) KM=2
@@ -1156,6 +1153,10 @@ C---Pick nearest Mie wavelength, no interpolation--------------
 
 C---For Mie code scale extinction at 1000 nm to wavelength WAVEL(QXMIE)
 #ifdef TRACERS_ON
+      allocate(piaer2(njaero,NBFASTJ))
+      allocate(qxmie(njaero,NBFASTJ))
+      allocate(ssalb(njaero,NBFASTJ))
+      allocate(xlaer(njaero))
       do j=1,NBFASTJ
         QXMIE(:,j) = QAAFASTJ(KM,MIEDX2(j,:)) / QAAFASTJ(4,MIEDX2(j,:))
         SSALB(:,j) = SSA(KM,MIEDX2(j,:))

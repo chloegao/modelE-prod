@@ -9,6 +9,9 @@
       USE ATM_COM, only : lm_req
       USE RADPAR, only : S0
       use AbstractOrbit_mod, only: AbstractOrbit
+#ifdef TRACERS_ON
+      use tracer_com, only: ntm_dust
+#endif  /* TRACERS_ON */
 !@var S0 solar 'constant' needs to be saved between calls to radiation
       IMPLICIT NONE
       SAVE
@@ -112,6 +115,59 @@ C**** does not produce exactly the same as the default values.
 !@var aerAbs6SaveInst Band 6 sum over aerosols  of extinction-scattering,
 !@+   saved for instantaneous SUBDDiag output
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: aerAbs6SaveInst
+
+! nraero_xxxx are the aerosol-specific nraero (old ntrace) components of
+! aerosol-active species in radiation. nraero=sum(nraero_xxxx)
+#ifdef TRACERS_AEROSOLS_Koch
+#ifdef SULF_ONLY_AEROSOLS
+      integer, parameter :: nraero_koch=1
+#else
+#ifdef TRACERS_AEROSOLS_SOA
+      integer, parameter :: nraero_koch=8
+#else
+      integer, parameter :: nraero_koch=7
+#endif  /* TRACERS_AEROSOLS_SOA */
+#endif  /* SULF_ONLY_AEROSOLS */
+#else
+      integer, parameter :: nraero_koch=0
+#endif  /* TRACERS_AEROSOLS_Koch */
+
+#ifdef TRACERS_NITRATE
+      integer, parameter :: nraero_nitrate=1
+#else
+      integer, parameter :: nraero_nitrate=0
+#endif  /* TRACERS_NITRATE */
+
+#ifdef TRACERS_DUST
+      integer, parameter :: nraero_dust=ntm_dust
+#ifdef TRACERS_MINERALS
+     &                     +45 ! 4 clays instead of 1, for 15 clay types
+#else
+     &                     +3 ! 4 clays instead of 1
+#endif  /* TRACERS_MINERALS */
+#else
+      integer, parameter :: nraero_dust=0
+#endif  /* TRACERS_DUST */
+
+#if (defined TRACERS_AMP) || (defined TRACERS_AMP_M1)
+      integer, parameter :: nraero_AMP=nmodes
+#else
+      integer, parameter :: nraero_AMP=0
+#endif  /* (defined TRACERS_AMP) || (defined TRACERS_AMP_M1) */
+
+#ifdef TRACERS_TOMAS
+!TOMAS does not include NO3 AND VOL, which use its default radiation. 
+      integer, parameter :: nraero_TOMAS=icomp-2
+#else
+      integer, parameter :: nraero_TOMAS=0
+#endif  /* TRACERS_TOMAS */
+
+#ifdef TRACERS_OM_SP
+      integer, parameter :: nraero_OM_SP=1
+#else
+      integer, parameter :: nraero_OM_SP=0
+#endif  /* TRACERS_OM_SP */
+
 #ifdef TRACERS_SPECIAL_Shindell
 !@var njaero max expected rad code tracers passed to photolysis
 !@var ttausv_nraero Tracer optical thickness saved 1:nraero not 1:ntm
