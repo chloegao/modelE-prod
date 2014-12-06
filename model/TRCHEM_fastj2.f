@@ -36,7 +36,7 @@
 !@param nwfastj maximum number of wavelength bins that can be used
 !@param np maximum aerosol phase functions
 !@param n_bnd3 maximum number of spectral bands 3
-!@param nlevref number of reference levels for T/O3/BC profiles
+!@param nlevref number of reference levels for T/O3 profiles
       integer, parameter :: jpnl=lm
      &                     ,szamax=98.d0
      &                     ,ncfastj2=2*lm+2
@@ -147,17 +147,14 @@
       real*8, dimension(nwfastj,jpnl)  :: fff
 !@var oref2    fastj2 O3 reference profile
 !@var tref2    fastj2 temperature reference profile
-!@var bref2    fastj2 black carbon reference profile
       REAL*8, DIMENSION(nlevref,18,12)       :: oref2,tref2
-      REAL*8, DIMENSION(nlevref)             :: bref2
 !@var amf Air mass factor for slab between level and level above
       real*8, dimension(nbfastj,nbfastj):: amf
 !@var tj2 Temperature profile on fastj2 photolysis grid
 !@var do32 fastj2 Ozone number density at each pressure level (")
-!@var dbc2 fastj2 Mass of Black Carbon at each model level (g/cm-3)
 !@var zfastj2 Altitude of boundaries of model levels (cm) fastj2
 !@var dmfastj2 fastj2 Air column for each model level (molec/cm2)
-      real*8, dimension(nbfastj) :: tj2,do32,dbc2,zfastj2,dmfastj2
+      real*8, dimension(nbfastj) :: tj2,do32,zfastj2,dmfastj2
 !@var tfastj temperature profile sent to FASTJ
 !@var odcol Optical depth at each model level
       real*8, dimension(lm) :: tfastj,odcol
@@ -426,7 +423,7 @@ c
 !@+   pressure and z* altitude are defined, then O3 and T are taken
 !@+  from the supplied climatology and integrated to the CTM levels
 !@+  (may be overwritten with values directly from the CTM, if desired)
-!@+  and then black carbon and aerosol profiles are constructed.
+!@+  and then aerosol profiles are constructed.
 !@+  Oliver Wild (04/07/99)
 !@+  Modifications by Apostolos Voulgarakis (Feb 2010) to take aerosol
 !@+  tracers from the model into account.
@@ -455,7 +452,7 @@ C**** Local parameters and variables and arguments:
       integer             :: l, k, i, ii, m, j, iclay, n, LL
       real*8, dimension(nlevref+1) :: pstd
       real*8, dimension(nlevref) :: oref3, tref3
-      real*8              :: ydgrd,f0,t0,b0,pb,pc,xc,scaleh
+      real*8              :: ydgrd,f0,t0,pb,pc,xc,scaleh
 #ifdef TRACERS_ON
       logical             :: skip_tracer
 #endif
@@ -494,7 +491,7 @@ c  with mass (pressure) weighting, assuming constant mixing ratio and
 c  temperature half a layer on either side of the point supplied:
 
       do i = 1,NBFASTJ
-        F0 = 0.d0; T0 = 0.d0; B0 = 0.d0
+        F0 = 0.d0; T0 = 0.d0
         do k = 1,nlevref
           PC = min(PFASTJ2(i),pstd(k))
           PB = max(PFASTJ2(i+1),pstd(k+1))
@@ -502,12 +499,10 @@ c  temperature half a layer on either side of the point supplied:
             XC = (PC-PB)/(PFASTJ2(i)-PFASTJ2(i+1))
             F0 = F0 + oref3(k)*XC
             T0 = T0 + tref3(k)*XC
-            B0 = B0 + bref2(k)*XC
           endif
         end do
         TJ2(i) = T0
         DO32(i)= F0*1.d-6
-        DBC2(i)= B0
       end do
 
 c Overwrite O3 with GISS chemistry O3:
@@ -1991,7 +1986,7 @@ C Read in spectral data:
         READ(NJ1,102) (FL_DUMMY(IW),IW=1,NWWW)
       endif
       READ(NJ1,102) (QRAYL(IW),IW=1,NWWW)
-      READ(NJ1,102) (QBC(IW),IW=1,NWWW)   !From Liousse et al[JGR,96]
+      READ(NJ1,102) (QBC(IW),IW=1,NWWW)   !From Liousse et al[JGR,96] (not used)
 
 C Read O2 X-sects, O3 X-sects, O3=>O(1D) quant yields(each at 3 temps):
       DO K=1,3
@@ -2223,7 +2218,7 @@ C**** Local parameters and variables and arguments:
 
 
       SUBROUTINE rd_prof(nj2)
-!@sum rd_prof input T & O3 reference profiles, define Black Carbon prof.
+!@sum rd_prof input T & O3 reference profiles
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
 !@ver  1.0 (based on cheminit0C5_M23p & ds4p_chem_init_M23)
 
@@ -2260,12 +2255,6 @@ c Extend climatology to 100 km:
       do i=42,nlevref
         tref2(i,:,:)=tref2(41,:,:)
       enddo
-
-c Approximate Black Carbon up to 10 km; surface 200 ng/m3 (Liousse et
-c al) Scale: 1 ng/m3 = 1.0d-15 g/cm3 (1.0d-11 g/m2/cm as BREF is in
-c cm))
-      do i=1,6;       BREF2(i) =10.d0*1.0d-11; end do
-      do i=7,nlevref; BREF2(i) =0.d0         ; end do
 
       return
  201  format((3X,11F7.1)/(3X,11F7.1)/(3X,11F7.1)/(3X,8F7.1))
