@@ -36,6 +36,7 @@
 !@param nwfastj maximum number of wavelength bins that can be used
 !@param np maximum aerosol phase functions
 !@param n_bnd3 maximum number of spectral bands 3
+!@param nlevref number of reference levels for T/O3/BC profiles
       integer, parameter :: jpnl=lm
      &                     ,szamax=98.d0
      &                     ,ncfastj2=2*lm+2
@@ -50,6 +51,7 @@
      &                     ,nwfastj=18
      &                     ,np=60
      &                     ,n_bnd3=107
+     &                     ,nlevref=51
 !@var title0 blank title read in I think
       character(len=78) :: title0
 !@var lpdep Label for pressure dependence
@@ -146,8 +148,8 @@
 !@var oref2    fastj2 O3 reference profile
 !@var tref2    fastj2 temperature reference profile
 !@var bref2    fastj2 black carbon reference profile
-      REAL*8, DIMENSION(51,18,12)       :: oref2,tref2 !XXXXXXXXXXXXXXXXXXXXXXXX
-      REAL*8, DIMENSION(51)             :: bref2 !XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      REAL*8, DIMENSION(nlevref,18,12)       :: oref2,tref2
+      REAL*8, DIMENSION(nlevref)             :: bref2
 !@var amf Air mass factor for slab between level and level above
       real*8, dimension(nbfastj,nbfastj):: amf
 !@var tj2 Temperature profile on fastj2 photolysis grid
@@ -451,11 +453,16 @@ C**** Local parameters and variables and arguments:
 !@var skip_tracer logical to not define aer2 for a rad code tracer
       INTEGER, INTENT(IN) :: nslon, nslat
       integer             :: l, k, i, ii, m, j, iclay, n, LL
-      real*8, dimension(52) :: pstd
-      real*8, dimension(51) :: oref3, tref3
+      real*8, dimension(nlevref+1) :: pstd
+      real*8, dimension(nlevref) :: oref3, tref3
       real*8              :: ydgrd,f0,t0,b0,pb,pc,xc,scaleh
 #ifdef TRACERS_ON
       logical             :: skip_tracer
+#endif
+
+#ifdef TRACERS_ON
+c Zero aerosol and cloud column
+      AER2(:,:) = 0.d0
 #endif
 
 c  Set up cloud and surface properties
@@ -468,10 +475,10 @@ c  1000 mb are assumed to extend down to the actual P(nslon,nslat).
 
       pstd(1) = max(PFASTJ2(1),1000.d0)
       pstd(2) = 865.96432336006535d0 !1000.*10.**(-1/16)
-      do L=3,51
+      do L=3,nlevref
         pstd(L) = pstd(L-1)*dlogp
       enddo
-      pstd(52) = 0.d0
+      pstd(nlevref+1) = 0.d0
 
 c  Select appropriate monthly and latitudinal profiles:
       ydgrd=lat2d_dg(nslon,nslat)
@@ -479,8 +486,8 @@ c  Select appropriate monthly and latitudinal profiles:
       l = max(1,min(18,(int(ydgrd)+99)/10))
 
 c  Temporary arrays for climatology data
-      oref3(:)=oref2(:,l,m) ! 51
-      tref3(:)=tref2(:,l,m) ! 51
+      oref3(:)=oref2(:,l,m) ! nlevref
+      tref3(:)=tref2(:,l,m) ! nlevref
 
 c  Apportion O3 and T on supplied climatology z* levels onto CTM levels 
 c  with mass (pressure) weighting, assuming constant mixing ratio and
@@ -488,7 +495,7 @@ c  temperature half a layer on either side of the point supplied:
 
       do i = 1,NBFASTJ
         F0 = 0.d0; T0 = 0.d0; B0 = 0.d0
-        do k = 1,51
+        do k = 1,nlevref
           PC = min(PFASTJ2(i),pstd(k))
           PB = max(PFASTJ2(i+1),pstd(k+1))
           if(PC > PB) then
@@ -518,36 +525,11 @@ c  Calculate effective altitudes using scale height at each level
 c  Add Aerosol Column - include aerosol (+cloud) types here. 
 
 #ifdef TRACERS_ON
-      AER2(:,:)=0.d0
 
 #ifndef TRACERS_TOMAS
 #ifndef TRACERS_AMP
 c Now do the rest of the aerosols
-      iclay=0  
-      do n=1,nraero
-        skip_tracer=.false.
-        select case (trname(ntrix(n)))
-        case ('SO4')      ; j=1 
-        case ('seasalt1') ; j=2 
-        case ('seasalt2') ; j=3 
-        case ('OCIA', 'vbsAm2') ; j=4 ! multiple tracers 
-        case ('OCB')      ; j=5 
-        case ('isopp1a')  ; j=6 ! multiple tracers
-        case ('BCIA')     ; j=7 
-        case ('BCB')      ; j=8 
-        case ('NO3p')     ; j=9 
-        case ('Clay')     ; j=10+iclay ; iclay=iclay+1
-        case ('Silt1')    ; j=14
-        case ('Silt2')    ; j=15
-        case ('Silt3')    ; j=16
-        case ('Silt4')    ; j=17
-        case default      ; skip_tracer=.true.
-        end select
-        if(iclay>4)call stop_model("set_prof: too many clays",13)
-        if(.not.skip_tracer)then
-          AER2(1:LM,j)=ttausv_nraero(NSLON,NSLAT,1:LM,n)
-        endif
-      enddo
+      AER2(1:LM,1:nraero)=ttausv_nraero(NSLON,NSLAT,1:LM,1:nraero)
 #endif
 #endif
 
@@ -605,11 +587,6 @@ c Default lower photolysis boundary as bottom of level 1
 
 c Set and limit surface albedo
       RFLECT = max(0.d0,min(1.d0,(1.-ALB(NSLON,NSLAT,1))))
-
-#ifdef TRACERS_ON
-c Zero aerosol column
-      AER2(:,:) = 0.d0
-#endif
 
 c Scale optical depths as appropriate - limit column to 'odmax'
       odsum = 0.d0
@@ -792,7 +769,7 @@ C---Print out climatology:
         call write_parallel(trim(out_line),crit=jay)
         write(out_line,1000)
         call write_parallel(trim(out_line),crit=jay)
-        do i=51,1,-1
+        do i=nlevref,1,-1
           PJC = 1000.d0*dlogp2**(2*i-2)
           climat(1) = 16.d0*DLOG10(1000.D0/PJC)
           climat(2) = climat(1)
@@ -2008,13 +1985,13 @@ C Read in spectral data:
       READ(NJ1,102) (WBIN(IW),IW=1,NWWW)
       READ(NJ1,102) (WBIN(IW+1),IW=1,NWWW)
       READ(NJ1,102) (WL(IW),IW=1,NWWW)
-      if(rad_FL == 0)then
+      if(rad_FL == 0)then ! use offline photon flux values
         READ(NJ1,102) (FL(IW),IW=1,NWWW)
-      else
+      else                ! read offline values but don't use them
         READ(NJ1,102) (FL_DUMMY(IW),IW=1,NWWW)
       endif
       READ(NJ1,102) (QRAYL(IW),IW=1,NWWW)
-      READ(NJ1,102) (QBC(IW),IW=1,NWWW)   !From Loiusse et al[JGR,96]
+      READ(NJ1,102) (QBC(IW),IW=1,NWWW)   !From Liousse et al[JGR,96]
 
 C Read O2 X-sects, O3 X-sects, O3=>O(1D) quant yields(each at 3 temps):
       DO K=1,3
@@ -2084,7 +2061,7 @@ C Read aerosol phase functions:
       do j=1,NAA
         read(NJ1,110) title_aer_pf(j)
         do k=1,NK
-          read(NJ1,'(A5,F8.4,F7.3,F8.4,1x,8F6.3)') WAAFASTJ(k,j),
+          read(NJ1,106) WAAFASTJ(k,j),
      &    QAAFASTJ(k,j),RAA(k,j),SSA(k,j),(PAA(i,k,j),i=1,8)
         enddo
       enddo
@@ -2110,6 +2087,7 @@ C Read aerosol phase functions:
   103 FORMAT(A7,F3.0,6E10.3/(10X,6E10.3)/(10X,6E10.3))
   104 FORMAT(13x,i2)
   105 FORMAT(A7,3x,7E10.3)
+  106 FORMAT(f5.0,F8.4,F7.3,F8.4,1x,8F6.3)
   110 format(3x,a5)
   200 format(1x,' x-sect:',a10,3(3x,f6.2))
   201 format(1x,' pr.dep:',a10,7(1pE10.3))
@@ -2270,35 +2248,28 @@ C**** Local parameters and variables and arguments:
         READ(NJ2,'(1X,I3,3X,I2)') LAT, MON
         M = MIN(12, MAX(1, MON))
         L = MIN(18, MAX(1, (LAT+95)/10))
-        READ(NJ2,'(3X,11F7.1)') (TREF2(I,L,M), I=1,41)
-        READ(NJ2,'(3X,11F7.4)') (OREF2(I,L,M), I=1,31)
+        READ(NJ2,201) (TREF2(I,L,M), I=1,41)
+        READ(NJ2,202) (OREF2(I,L,M), I=1,31)
       ENDDO
   
 c Extend climatology to 100 km:
       ofac=exp(-2.d5/ZZHT)
-      do i=32,51
-        ofak=ofac**(i-31)
-        do m=1,ntmons
-          do l=1,ntlats
-            oref2(i,l,m)=oref2(31,l,m)*ofak
-          enddo
-        enddo
+      do i=32,nlevref
+        oref2(i,:,:)=oref2(31,:,:)*ofac**(i-31)
       enddo
-      do l=1,ntlats
-        do m=1,ntmons
-          do i=42,51
-            tref2(i,l,m)=tref2(41,l,m)
-          enddo
-        enddo
+      do i=42,nlevref
+        tref2(i,:,:)=tref2(41,:,:)
       enddo
 
 c Approximate Black Carbon up to 10 km; surface 200 ng/m3 (Liousse et
 c al) Scale: 1 ng/m3 = 1.0d-15 g/cm3 (1.0d-11 g/m2/cm as BREF is in
 c cm))
-      do i=1,6;  BREF2(i) =10.d0*1.0d-11; end do
-      do i=7,51; BREF2(i) =0.d0         ; end do
+      do i=1,6;       BREF2(i) =10.d0*1.0d-11; end do
+      do i=7,nlevref; BREF2(i) =0.d0         ; end do
 
       return
+ 201  format((3X,11F7.1)/(3X,11F7.1)/(3X,11F7.1)/(3X,8F7.1))
+ 202  format((3X,11F7.4)/(3X,11F7.4)/(3X,9F7.4))
  1000 format(1x,'Data: ',i3,' Lats x ',i2,' Months')
 
       end SUBROUTINE rd_prof
