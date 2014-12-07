@@ -591,7 +591,6 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
           FS8OPX(4:6)=0.d0
           FT8OPX(2)=0.d0
           FT8OPX(4:6)=0.d0
-          FT8OPX(7)=1.3d0 ! this will be overwritten if nraero_dust>0
 #endif
         end if
         ntrix(n+1)=n_SO4
@@ -849,6 +848,7 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
         ntrix(n+1:n+nraero_OM_SP)=(/n_OCA4/)
         trrdry(n+1:n+nraero_OM_SP)=(/0.3d0/)
       endif
+      n=n+nraero_OM_SP
 #endif  /* TRACERS_OM_SP */
 !=======================================================================
 !=======================================================================
