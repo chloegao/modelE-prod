@@ -118,13 +118,13 @@
      &     pftype(1,.true., 1,-153.d0,  .50d0, .30d0,  1.4d0, !tundra
      &     2.25d0, 0.6d0, 2.8d0, 5.5d0, 50.0d0,0.15d0,1.4d0,2,
      &     0.0800d0, 1.000d0, 0.00001d0, 1.000d0, 0.4778d0, -0.75d0),
-     &     pftype(2,.false., 3,-2030.d0,  .30d0, .10d0,  1.5d0, !grassC3 !hwilt=Vaira grassland final senescence soilmp layer2
+     &     pftype(1,.false., 3,-2030.d0,  .30d0, .10d0,  1.5d0, !grassC3 !hwilt=Vaira grassland final senescence soilmp layer2
      &     11.7d0, 1.2d0, 1.5d0, UNDEF, 50.0d0, 0.1d0,0.d0,4, ! Vaira SLA from adjustment for C_labile.
      &     0.0800d0, 1.000d0, 0.00001d0, 1.000d0, 0.4778d0, -0.75d0),
-     &     pftype(2,.true., 1,-153.d0,  .40d0, .22d0,  1.3d0, !shrub
+     &     pftype(1,.true., 1,-153.d0,  .40d0, .22d0,  1.3d0, !shrub
      &     3.25d0, 0.6d0, 1.0d0, 5.5d0, 57.5d0, 0.15d0,0.32d0,3,
      &     0.0800d0, 1.000d0, 0.00001d0, 1.000d0, 0.4778d0, -0.75d0),
-     &     pftype(2,.true., 1,-2030.d0,  .65d0, .22d0,  1.3d0, !savanna
+     &     pftype(1,.true., 1,-2030.d0,  .65d0, .22d0,  1.3d0, !savanna
      &     5.1d0, 1.d0, 1.8d0, 25.d0, 50.0d0, 0.15d0,0.153d0,3,
      &     0.0296d0, 1.560d0, 0.0621d0, 2.306d0, 27.d0, -0.0232d0),
      &     pftype(1,.true., 1,-500.d0,  .50d0, .29d0,  1.5d0, !decidforest
@@ -138,7 +138,7 @@
      &     pftype(1,.true., 1, -153.d0,  .60d0, .29d0,  1.1d0, !troprainf
      &     9.9d0, 0.5d0, 1.8d0, 41.0d0, 40.0d0, 0.2d0,0.075d0,1,
      &     0.0347d0, 1.560d0, 0.0816d0, 2.306d0, 34.62d0, -0.0232d0),
-     &     pftype(2,.false., 1,-153.d0,  .45d0, .27d0,  1.3d0, !crops
+     &     pftype(1,.false., 1,-153.d0,  .45d0, .27d0,  1.3d0, !crops
      &     6.36d0, 0.6d0, 1.1d0, UNDEF, 52.5d0, 0.16d0,0.0d0, 4,
      &     0.0800d0, 1.000d0, 0.00001d0, 1.000d0, 0.4778d0, -0.75d0)
 !     &     pftype(1,   -100.d0,  .50d0, .30d0,  0.76d0)&
