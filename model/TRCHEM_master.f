@@ -1190,6 +1190,7 @@ C -- HNO3 --  (HNO3 from gas and het phase rxns )
           changeHNO3=changeL(L,n_HNO3)*mass2vol(n_HNO3)*bypfactor
         END IF
 #ifdef TRACERS_HETCHEM
+#ifdef TRACERS_NITRATE
         changeL(L,n_N_d1)=changeN_d1*pfactor*vol2mass(n_N_d1)
         if(i==36.and.j==28.and.l==1) then
           write(out_line,*)'Mchange L 2 ', changeL(L,n_N_d1),changeN_d1
@@ -1209,7 +1210,8 @@ C -- HNO3 --  (HNO3 from gas and het phase rxns )
           changeL(l,n_N_d3) = 1.d0 - trm(i,j,l,n_N_d3)
           changeN_d3=changeL(L,n_N_d3)*mass2vol(n_N_d3)*bypfactor
         END IF
-#endif
+#endif  /* TRACERS_NITRATE */
+#endif  /* TRACERS_HETCHEM */
 C -- N2O5 --  (N2O5 from gas and het phase rxns)
         changeL(L,n_N2O5)=changeN2O5*pfactor*vol2mass(n_N2O5)
         IF((trm(i,j,l,n_N2O5)+changeL(l,n_N2O5)) < 1.d0) THEN
@@ -1608,10 +1610,12 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
         mNO2(i,j,L)=pNOx(i,j,L)*y(nn_NOx,L)/y(nM,L)
      
 #ifdef TRACERS_HETCHEM
+#ifdef TRACERS_NITRATE
         tr3Dsource(i,j,l,nChemistry,n_N_d1) = changeL(l,n_N_d1) *bydtsrc
         tr3Dsource(i,j,l,nChemistry,n_N_d2) = changeL(l,n_N_d2) *bydtsrc
         tr3Dsource(i,j,l,nChemistry,n_N_d3) = changeL(l,n_N_d3) *bydtsrc
-#endif
+#endif  /* TRACERS_NITRATE */
+#endif  /* TRACERS_HETCHEM */
 
       END DO ! end current altitude loop
 
