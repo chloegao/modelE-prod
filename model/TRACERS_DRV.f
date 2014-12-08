@@ -6879,8 +6879,9 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       real*8 :: volc_lons(360),volc_lats(180),
      &     volc_pup(360,180),volc_emiss(360,180)
 #else /* volc. emiss on model grid, 1 extra lat at SP */
-      real*8 :: volc_lons(Im),volc_lats(Jm+1),
-     &     volc_pup(Im,Jm+1),volc_emiss(Im,Jm+1)
+      real*8 :: volc_lons(Im)
+      real*8, allocatable, dimension(:)   ::volc_lats
+      real*8, allocatable, dimension(:,:) ::volc_pup, volc_emiss
 #endif
       real*8 :: x1d(lm),amref(lm),pednref(lm+1),amsum
       real*8, allocatable, dimension(:,:) :: psref
@@ -6889,11 +6890,11 @@ C**** 3D tracer-related arrays but not attached to any one tracer
 #ifdef TRACERS_TOMAS
       integer k
 #endif
-
       INTEGER J_0, J_1, I_0, I_1
       INTEGER J_0H, J_1H
       LOGICAL HAVE_SOUTH_POLE, HAVE_NORTH_POLE
       integer :: initial_GHG_setup
+      integer :: lat_val
 #endif /* TRACERS_ON */
 
 #ifdef TRACERS_ON
@@ -7769,6 +7770,12 @@ c NOTE: the input file specifies integrals over its gridboxes.
       status = nf_inq_varid(file_id,'lon',vid)
       status = nf_get_var_double(file_id,vid,volc_lons)
       status = nf_inq_varid(file_id,'lat',vid)
+#ifndef CUBED_SPHERE
+      status = nf_inq_dimlen(file_id,vid,lat_val)
+      allocate(volc_lats(lat_val))
+      allocate(volc_pup(im,lat_val))
+      allocate(volc_emiss(im,lat_val))
+#endif
       status = nf_get_var_double(file_id,vid,volc_lats)
       status = nf_inq_varid(file_id,'Pres_CONTmax',vid)
       status = nf_get_var_double(file_id,vid,volc_pup)
@@ -7797,6 +7804,9 @@ c NOTE: the input file specifies integrals over its gridboxes.
           enddo
         enddo
       enddo
+#ifndef CUBED_SPHERE
+      deallocate(volc_lats, volc_pup, volc_emiss)
+#endif
       deallocate(psref)
 #endif
 ! ---------------------------------------------------
