@@ -2929,7 +2929,7 @@ c                 print*,'SUSA  diag',SUM(aesqex(1:Lm,kr,n))
         END DO
       END IF
 #ifdef TRACERS_SPECIAL_Shindell
-      ttausv_nraero(i,j,1:nraero,:)=ttausv(1:nraero,:)
+      ttausv_nraero(i,j,1:LM,1:nraero)=ttausv(1:LM,1:nraero)
 #endif
 #endif /* TRACERS_ON */
 
