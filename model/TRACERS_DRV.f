@@ -8107,22 +8107,18 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
 !!!     &        .or. n==n_AECOB(1) .or. n==n_AOCOB(1)
 !!!#endif
 !!!     &        ) then
-#ifdef TRACERS_SPECIAL_Shindell
-            if (n>ntm_chem) then
-              if(aer_int_yr > 0) then
-                xyear=aer_int_yr
-              else
-                xyear=year
-              endif
-            end if
-#else
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
+#ifdef TRACERS_SPECIAL_Shindell
+            if (n>ntm_chem) then
+#endif
               if(aer_int_yr > 0) then
                 xyear=aer_int_yr
               else
                 xyear=year
               endif
+#ifdef TRACERS_SPECIAL_Shindell
+            end if
 #endif
 #endif
 !!!#endif /* (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) || (defined TRACERS_TOMAS) */
