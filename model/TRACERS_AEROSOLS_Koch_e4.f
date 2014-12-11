@@ -37,11 +37,8 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
 !@var OCT_src    OC Terpene source (kg/s/box)
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: OCT_src !(im,jm,12)
 #endif  /* TRACERS_AEROSOLS_SOA */
-!@var ss_src  Seasalt sources in 2 bins (kg/s/m2)
-      INTEGER, PARAMETER :: nsssrc = 2
-      real*8, ALLOCATABLE, DIMENSION(:,:,:) :: ss_src !(im,jm,nsssrc)
-      INTEGER, PARAMETER :: nso2src_3d  = 1
 !@var SO2_src_3D SO2 volcanic sources (and biomass) (kg/s)
+      INTEGER, PARAMETER :: nso2src_3d  = 1
       real*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: SO2_src_3D !(im,jm,lm,nso2src_3d)
 !@var PBLH boundary layer height
 !@var MDF is the mass of the downdraft flux
@@ -81,7 +78,7 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
 #ifdef TRACERS_AEROSOLS_OCEAN
      * OC_SS_enrich_fact,
 #endif  /* TRACERS_AEROSOLS_OCEAN */
-     * nsssrc,ss_src,nso2src_3d,SO2_src_3D,
+     * nso2src_3d,SO2_src_3D,
      * ohr,dho2r,perjr, tno3r, 
      * ohrCache, dho2rCache, perjrCache, tno3rCache,
      * oh,dho2,perj,tno3,ohsr
@@ -121,7 +118,6 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
 #ifndef TRACERS_AEROSOLS_SOA
       allocate( OCT_src(I_0H:I_1H,J_0H:J_1H,12) ,STAT=IER)
 #endif  /* TRACERS_AEROSOLS_SOA */
-      allocate( ss_src(I_0H:I_1H,J_0H:J_1H,nsssrc) ,STAT=IER)
       allocate( SO2_src_3D(I_0H:I_1H,J_0H:J_1H,lm,nso2src_3d),STAT=IER )
       allocate( oh(I_0H:I_1H,J_0H:J_1H,lm),dho2(I_0H:I_1H,J_0H:J_1H,lm),
      * perj(I_0H:I_1H,J_0H:J_1H,lm),tno3(I_0H:I_1H,J_0H:J_1H,lm)
