@@ -2712,10 +2712,10 @@ c Including turn off of aerosols and Ox during crf calc.+++++++++++++++++++
 #ifdef TRACERS_SPECIAL_Shindell
        use_o3_ref=1 ; use_tracer_chem(1)=0  !turns off ozone
 #endif
-       FSTOPX(:) = 1-onoff_aer !turns off aerosol tracer
-       FTTOPX(:) = 1-onoff_aer !
+       FSTOPX(:) = 0 !turns off aerosol tracers
+       FTTOPX(:) = 0
         CALL RCOMPX          ! cloud_rad_forc>0 : clr sky
-       FSTOPX(:) = onoff_aer !turns on aerosol tracer
+       FSTOPX(:) = onoff_aer !turns on aerosol tracers, if requested
        FTTOPX(:) = onoff_aer !
 #ifdef TRACERS_SPECIAL_Shindell
        use_o3_ref=0 ; use_tracer_chem(1)=onoff_chem*Lmax_rad_O3 ! turns on ozone tracers
