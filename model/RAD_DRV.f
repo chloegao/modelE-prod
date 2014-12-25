@@ -88,7 +88,7 @@ C****
      &     ,nTracerRadiaActive,tracerRadiaActiveFlag
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
-     *     ,njaero,ttausv_nraero
+     *     ,njaero,nraero_rsf,ttausv_nraero
 #endif  /* TRACERS_SPECIAL_Shindell */
 #ifdef ALTER_RADF_BY_LAT
      *     ,FULGAS_lat,FS8OPX_lat,FT8OPX_lat
@@ -563,12 +563,18 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
 #ifdef TRACERS_ON
       nraero=nraero_koch+nraero_nitrate+nraero_dust
      &      +nraero_AMP+nraero_TOMAS+nraero_OM_SP
+      if (nraero_rsf>0) then
+        if (nraero_rsf /= nraero) then
+          call stop_model('nraero_rsf /= nraero',255)
+        endif
+      endif
 
       allocate(ntrix(nraero)) ; ntrix=0
       allocate(wttr(nraero))  ; wttr=1.
 
 #ifdef TRACERS_SPECIAL_Shindell
-      allocate(ttausv_nraero(im,jm,lm,nraero))
+      if (.not.allocated(ttausv_nraero))
+     &  allocate(ttausv_nraero(im,jm,lm,nraero))
 
       njaero=nraero+2
       allocate(miedx2(nbfastj,njaero))

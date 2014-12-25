@@ -7,7 +7,7 @@
 !@auth Original Development Team
       USE RESOLUTION, only : im,jm,lm
       USE ATM_COM, only : lm_req
-      USE RADPAR, only : S0
+      USE RADPAR, only : S0,nraero=>NTRACE
       use AbstractOrbit_mod, only: AbstractOrbit
 #if (defined TRACERS_AMP) || (defined TRACERS_AMP_M1)
       USE AERO_CONFIG, ONLY: NMODES
@@ -176,11 +176,13 @@ C**** does not produce exactly the same as the default values.
 
 #ifdef TRACERS_SPECIAL_Shindell
 !@var njaero max expected rad code tracers passed to photolysis
+!@var nraero_rsf value of nraero found in the rsf file
 !@var ttausv_nraero Tracer optical thickness saved 1:nraero not 1:ntm
 !@+   This is so clays are separate. Only needed for chemistry on.
 !@+   Now also used for old parameter mxfastj: Number of aerosol/cloud
 !@+   types currently active in the model
       integer :: njaero ! nraero+2 cloud types (water/ice)
+      integer :: nraero_rsf=0
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:,:) :: ttausv_nraero
 #endif
 #endif
@@ -820,6 +822,7 @@ C**** Local variables initialised in init_RAD
      &     'chem_tracer_save(two,lm,dist_im,dist_jm)')
       call defvar(grid,fid,rad_to_chem,
      &     'rad_to_chem(five,lm,dist_im,dist_jm)')
+      call defvar(grid,fid,nraero,'nraero')
       call defvar(grid,fid,ttausv_nraero,
      &     'ttausv_nraero(dist_im,dist_jm,lm,nraero)')
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
@@ -906,6 +909,7 @@ C**** Local variables initialised in init_RAD
         call write_dist_data(grid,fid,'aerAbs6SaveInst',aerAbs6SaveInst)
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
+        call write_data(grid, fid,'nraero', nraero)
         call write_dist_data(grid,fid,'ttausv_nraero',ttausv_nraero)
 #endif
       case (ioread)
@@ -953,6 +957,10 @@ C**** Local variables initialised in init_RAD
         call read_dist_data(grid,fid,'aerAbs6SaveInst',aerAbs6SaveInst)
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
+        if (.not.allocated(ttausv_nraero)) then
+          call read_data(grid,fid,'nraero',nraero_rsf, bcast_all=.true.)
+          allocate(ttausv_nraero(im,jm,lm,nraero_rsf))
+        endif
         call read_dist_data(grid,fid,'ttausv_nraero',ttausv_nraero)
 #endif
       end select
