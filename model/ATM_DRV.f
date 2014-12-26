@@ -780,7 +780,7 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
      &    grid%i_strt, grid%i_stop, grid%j_strt, grid%j_stop,
      &    grid%j_strt_skp, grid%j_stop_skp,
      &    MPI_COMM_WORLD, ROOT_PROCESS)
-#endif  ! GLINT2
+#endif /* GLINT2 */
 
       call alloc_dynamics(grid)
       call alloc_atm_com(grid)
