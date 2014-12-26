@@ -289,11 +289,9 @@ c  Ensure all aerosol types are valid selections:
         do LL=1,LM+1
           do ii=1,njaero
             if(MIEDX2(LL,ii)>NAA .or. MIEDX2(LL,ii)<=0) then
-              if (am_i_root()) then
-                write(out_line,1201) MIEDX2(LL,ii),NAA
-                call write_parallel(trim(out_line),crit=.true.)
-                call stop_model('Problem with MIEDX2 aerosol types',13)
-              endif
+              write(out_line,1201) MIEDX2(LL,ii),NAA
+              call write_parallel(trim(out_line),crit=.true.)
+              call stop_model('Problem with MIEDX2 aerosol types',13)
             endif
           enddo
         enddo
