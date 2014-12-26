@@ -563,16 +563,17 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
 #ifdef TRACERS_ON
       nraero=nraero_koch+nraero_nitrate+nraero_dust
      &      +nraero_AMP+nraero_TOMAS+nraero_OM_SP
+
+      allocate(ntrix(nraero)) ; ntrix=0
+      allocate(wttr(nraero))  ; wttr=1.
+
+#ifdef TRACERS_SPECIAL_Shindell
       if (nraero_rsf>0) then
         if (nraero_rsf /= nraero) then
           call stop_model('nraero_rsf /= nraero',255)
         endif
       endif
 
-      allocate(ntrix(nraero)) ; ntrix=0
-      allocate(wttr(nraero))  ; wttr=1.
-
-#ifdef TRACERS_SPECIAL_Shindell
       if (.not.allocated(ttausv_nraero))
      &  allocate(ttausv_nraero(im,jm,lm,nraero))
 
