@@ -12,7 +12,8 @@ module CLOUDS
        ,by3,tf,bytf,rvap,bygrav,deltx,bymrat,teeny,gamd,rhow,twopi &
        ,mb2kg
   use RESOLUTION, only : lm
-  use MODEL_COM, only : dtsrc,itime
+  USE ATM_COM, only : pdsigl00
+  use MODEL_COM, only : dtsrc,itime  ! ,coupled_chem
   use TimeConstants_mod, only: SECONDS_PER_HOUR
 #if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
   use CONSTANT, only : kapa,mair,gasc
@@ -132,6 +133,17 @@ module CLOUDS
   real*8 :: RICldX=1.d0 , xRICld
 !@dbparam do_blU00 =1 if boundary layer U00 is treated differently
   integer :: do_blU00=0     ! default is to disable this
+
+! Switches to revert to old AR5 convective settings.
+! Default values correspond to AR5'.
+!@dbparam  MC_FDDRT frac of ddraft condensate avail for evp
+      REAL*8 :: MC_FDDRT=.5d0    ! Was 1.0 in AR5.
+!@dbparam MC_ENTR_MASS_LIM_PLUME 1 to limit entr. mass to that of plume, 0 for base layer
+      INTEGER :: MC_ENTR_MASS_LIM_PLUME=1 !
+!@dbparam MC_NEW_DDRFT_THETAV 1 to use new virt pot temp for ddraft buoy, 0 for old
+      INTEGER :: MC_NEW_DDRFT_THETAV=1
+!@dbparam MC_REVP_ABV_CLDBASE 1 to allow conv re-evap above the cld base, 0 for below only
+      INTEGER :: MC_REVP_ABV_CLDBASE=1
 
 #ifdef TRACERS_ON
 !@var ntx,NTIX: Number and Indices of active tracers used in convection
@@ -307,7 +319,10 @@ module CLOUDS
 !@var RIS, RI1, RI2 Richardson numbers
   real*8 :: PEARTH,TS,QS,US,VS,RIS,RI1,RI2,DXYPIJ,ROICE
 !@var DCL max level of planetary boundary layer
+!@var ZPBL PBL height (m)
+!@var PPBL pressure corresponding to ZPBL (mb)
   integer :: DCL
+  REAL*8 :: ZPBL,PPBL
 
   !**** output variables
   real*8 :: PRCPMC,PRCPSS,HCNDSS,WMSUM
@@ -537,7 +552,7 @@ contains
          PBLM,PRCP,PGRAD, &
          !
          QENV,QMO1,QMO2,QDN,QUP,QEDGE,QMN1,QMN2,QMP,QMDN,QMIX, &
-         QMPMAX,QMPT,QSATC,QSATMP, RCLD,RCLDE,RHO, &
+         QMPMAX,QMPT,QSATC,QSATMP,QSATRE, RCLD,RCLDE,RHO, &
          !
          SENV,SMO1,SMO2,SDN,SUP,SEDGE,SVDN,SVUP,SVEDG,SMN1,SMN2, &
          SMP,SLH,SMDN,SMIX,SMPMAX,SMPT,SUMAJ,SVMIX,SVM1,SUMDP, &
@@ -753,7 +768,11 @@ contains
     PGRAD = 0.7                  ! to maintain bit compatibility
     CONTCE1=entrainment_cont1
     CONTCE2=entrainment_cont2
-    FDDRT = .5d0
+
+!**** AR5 setting was 1.0, AR5' is 0.5
+    FDDRT = MC_FDDRT
+
+    QSATRE=QSAT(283.16d0,LHE,920.d0)             ! for cal U00L
     !**** initiallise arrays of computed output
     TAUMCL=0
     SVWMXL=0
@@ -864,12 +883,13 @@ contains
     !**** BASED ON SIEBESMA ET AL. (2003, JAS)
     do L=1,LM
       U00L(L)=0.
-      if(PL(L).ge.850.d0) then
+      IF(PL(L).GE.PL(DCL)) THEN            ! 850.d0
         LHX=LHE
         !         IF(TL(L).LT.TF) LHX=LHS ! use 10C
-        U00L(L)=1.d0-2.*(U00b*.001*.050*(HPBL/500.)* &
+        U00L(L)=1.d0-2.*(U00b*.001*.050*3.* &
              !    *         (.001*SQRT(DXYPIJ))**.33)/QSAT(TL(L),LHX,PL(L))
-             (.001*sqrt(DXYPIJ))**.33)/QSAT(283.16d0,LHX,PL(L))
+             !    *         (.001*sqrt(DXYPIJ))**.33)/QSAT(283.16d0,LHX,PL(L))
+             222.d0**.33)/QSATRE  ! fixed area, temperature and pressure
       end if
     end do
     !**** CALCULATE DEL WCU TO TRAVEL HALF LAYER THICKNESS IN ONE
@@ -1176,7 +1196,8 @@ contains
 
             !**** THRESHOLD RH FOR PBL STRATIFORM CLOUDS
             if(TL(L).ge.TF .and. U00L(L).ne.U00a) U00L(L)= &
-                 1.d0-2.*(U00b*2.d-4*MPLUME/QSATMP)
+               ! 1.d0-2.*(U00b*2.d-4*MPLUME/QSATMP)
+                 1.d0-2.*(U00b*2.d-4/QSATRE)
 
             MCCONT=MCCONT+1
             if(MCCONT.eq.1) MC1=.true.
@@ -1552,8 +1573,11 @@ contains
                 ETAL1=EPLUME/MPOLD
                 FENTR=ETAL1*FPOLD
                 ENT(L)=0.001d0*FENTR/(GZL(L)*FPOLD)
-                !     FPLUME=FPLUME+FENTR      ! to increase mass flux, remove this formula
-                FPLUME = MPLUME*BYAM(L) ! and use this instead
+                IF (MC_ENTR_MASS_LIM_PLUME.EQ.0) THEN
+                  FPLUME=FPLUME+FENTR      ! to increase mass flux, remove this formula
+                ELSE
+                  FPLUME = MPLUME*BYAM(L) ! and use this instead
+                END IF
                 FENTRA = EPLUME*BYAM(L)
                 DSMR(L)=DSMR(L)-EPLUME*SUP        ! = DSM(L)-SM(L)*FENTRA
                 DSMOMR(:,L)=DSMOMR(:,L)-SMOM(:,L)*FENTRA
@@ -1649,15 +1673,19 @@ contains
 
               SMIX=.5*(SUP+SMP/MPLUME)
               QMIX=.5*(QUP+QMP/MPLUME)
-              !     WMUP=WML(L)
-              !     WMDN=COND(L)/MPLUME
               WMIX=.5*(WMUP+COND(L)/MPLUME)
-              !     SVMIX=SMIX*(1.+DELTX*QMIX)
-              SVMIX=SMIX*(1.+DELTX*QMIX-WMIX)
-              !     SVUP=SUP*(1.+DELTX*QUP)
-              SVUP=SUP*(1.+DELTX*QUP-WMUP)
-              DMMIX=(SVUP-SVMIX)*PLK(L) &
+
+              IF (MC_NEW_DDRFT_THETAV.EQ.0) THEN
+                SVMIX=SMIX                    ! *(1.+DELTX*QMIX)
+                SVUP=SUP                      ! *(1.+DELTX*QUP)
+                DMMIX=(SVUP-SVMIX)*PLK(L)
+              ELSE
+                SVMIX=SMIX*(1.+DELTX*QMIX-WMIX)
+                SVUP=SUP*(1.+DELTX*QUP-WMUP)
+                DMMIX=(SVUP-SVMIX)*PLK(L) &
                    +SLHE*(QSAT(SUP*PLK(L),LHX,PL(L))-QMIX)
+              END IF
+
               if(DMMIX.lt.1d-10) CDHDRT=CDHDRT+CDHEAT(L)
 
               !**** NO DOWNDRAFT IF BUOYANT
@@ -1793,15 +1821,17 @@ contains
         !**** UPDATE CHANGES CARRIED BY THE PLUME IN THE TOP CLOUD LAYER
         TAUMCL(LMIN:LMAX)=TAUMCL(LMIN:LMAX)+TAUMC1(LMIN:LMAX)
 
-        if(PL(LMIN).lt.850.d0) then
-          LHX1=LHE
-          if(TL(LMIN).lt.TF) LHX1=LHS
-          U00L(LMIN)=1.d0-2.*(U00b*2.d-4/QSAT(TL(LMIN),LHX1,PL(LMIN)))
+        IF(PL(LMIN).LT.PL(DCL)) THEN            ! 850.d0
+        ! LHX1=LHE
+        ! if(TL(LMIN).lt.TF) LHX1=LHS
+        ! U00L(LMIN)=1.d0-2.*(U00b*2.d-4/QSAT(TL(LMIN),LHX1,PL(LMIN)))
+          U00L(LMIN)=1.d0-2.*(U00b*2.d-4/QSATRE)
         else
           do L=1,LMIN
-            LHX1=LHE
-            if(TL(L).lt.TF) LHX1=LHS
-            U00L(L)=1.d0-2.*(U00b*2.d-4/QSAT(TL(L),LHX1,PL(L)))
+        !   LHX1=LHE
+        !   if(TL(L).lt.TF) LHX1=LHS
+        !   U00L(L)=1.d0-2.*(U00b*2.d-4/QSAT(TL(L),LHX1,PL(L)))
+            U00L(L)=1.d0-2.*(U00b*2.d-4/QSATRE)
           end do
         end if
         if(TPSAV(LMAX).ge.TF) LFRZ=LMAX
@@ -1931,11 +1961,14 @@ contains
               SMIX=SMDN/(DDRUP+teeny)
               QMIX=QMDN/(DDRUP+teeny)
               WMIX=COND(L)/(DDRUP+teeny)
-              !       SVMIX=SMIX*PLK(L-1)*(1.+DELTX*QMIX)
-              SVMIX=SMIX*PLK(L-1)*(1.+DELTX*QMIX-WMIX)
-              !       SVM1=SM1(L-1)*BYAM(L-1)*PLK(L-1)*(1.+DELTX*QM1(L-1)*BYAM(L-1))
-              SVM1=SM1(L-1)*BYAM(L-1)*PLK(L-1)*(1.+DELTX*QM1(L-1)*BYAM(L-1) &
+              IF (MC_NEW_DDRFT_THETAV.EQ.0) THEN
+                SVMIX=SMIX*PLK(L-1)              ! *(1.+DELTX*QMIX)
+                SVM1=SM1(L-1)*BYAM(L-1)*PLK(L-1) ! *(1.+DELTX*QM1(L-1)*BYAM(L-1)
+              ELSE
+                SVMIX=SMIX*PLK(L-1)*(1.+DELTX*QMIX-WMIX)
+                SVM1=SM1(L-1)*BYAM(L-1)*PLK(L-1)*(1.+DELTX*QM1(L-1)*BYAM(L-1) &
                    -QCLL(L-1)-QCIL(L-1))
+              END IF
 
               if ((SVMIX-SVM1).ge.DTMIN1) then
                 DDRAFT=FDDET*DDRUP             ! detrain downdraft if buoyant
@@ -2628,7 +2661,7 @@ contains
     if(LMCMIN.gt.0) then
 
       !**** set fssl array
-      do L=1,LM
+      do L=1,LMCMAX
         FSSL(L)=1.-FMC1
       end do
 #if (defined TRACERS_WATER) && (defined TRDIAG_WETDEPO)
@@ -2778,7 +2811,7 @@ contains
 
     if(LMCMAX.le.1) then
       do L=1,LM
-        if(PL(L).lt.850.d0) U00L(L)=0.
+        IF(PL(L).LT.PL(DCL)) U00L(L)=0.     ! 850.d0
       end do
     end if
 
@@ -2931,7 +2964,7 @@ contains
          ,RHW,SEDGE,SIGK,SLH,SMN1,SMN2,SMO1,SMO2,TEM,TEMP,TEVAP,THT1 &
          ,THT2,TLT1,TNEW,TNEWU,TOLD,TOLDU,TOLDUP,VDEF,WCONST,WMN1,WMN2 &
          ,QCLNEW,QCINEW,WMO1,WMO2,WMT1,WMT2,WMX1,WTEM,VVEL,RCLD,FCOND &
-         ,PRATM,SMN12,SMO12,QF
+         ,PRATM,SMN12,SMO12,QF,FSSLRAT,SMOM2_sv(nmom),QMOM2_sv(nmom)
     real*8 SNdO,SNdL,SNdI,SCDNCW,SCDNCI
 #ifdef CLD_AER_CDNC
 !@auth Menon  - storing var for cloud droplet number
@@ -3174,7 +3207,7 @@ contains
     !****
     !**** MAIN L LOOP FOR LARGE-SCALE CONDENSATION, PRECIPITATION AND CLOUDS
     !****
-    do L=LMCLD,1,-1
+    CLOUD_FORMATION: do L=LMCLD,1,-1
       TOLD=TL(L)
       QOLD=QL(L)
       OLDLHX=SVLHXL(L)
@@ -3244,8 +3277,8 @@ contains
           !**** Calculate probability of ice precip seeding a water cloud
           if (LHX.eq.LHE.and.PMI.gt.0) then
             PRATIO=min(PMI/(PML+1.E-20),10d0)
-            CM00=3.d-5           ! reduced by a factor of 3
-            if(ROICE.gt..1d0) CM00=3.d-4
+            CM00=1.d-4       ! 3.d-5           ! reduced by a factor of 3
+          ! if(ROICE.gt..1d0) CM00=3.d-4
             CM0=CM00
             if(VDEF.gt.0.) CM0=CM00*10.**(-0.2*VDEF)
             CBFC0=.5*CM0*CBF*DTsrc
@@ -3266,8 +3299,8 @@ contains
       CM00=1.d-4
       if(LHX.eq.LHS.and.SVWMXL(L).le.0d0) CM00=1.d-3
       if(LHX.eq.LHE) then                 ! reduced by a factor of 3
-        CM00=3.d-5
-        if(ROICE.gt..1d0) CM00=3.d-4
+        CM00=1.d-4                        ! 3.d-5
+      ! if(ROICE.gt..1d0) CM00=3.d-4
       end if
       CM0=CM00
       if(VDEF.gt.0.) CM0=CM00*10.**(-0.2*VDEF)
@@ -3313,12 +3346,13 @@ contains
       RHI=QL(L)/QSAT(TL(L),LHS,PL(L))
       ! this formulation is used for consistency with current practice
       RH00(L)=U00a
-      if(PL(L).lt.850.d0) then
+      IF(PL(L).LT.PL(DCL)) THEN             ! 850.d0
 
-        RH00(L) = RH00(L)/(RH00(L) + (1.-RH00(L))*AIRM(L)/35.)
+      ! RH00(L) = RH00(L)/(RH00(L) + (1.-RH00(L))*AIRM(L)/35.)
+        RH00(L) = RH00(L)/(RH00(L) + (1.-RH00(L))*PDSIGL00(L)/35.)
 
-        if(VDEF.gt..2d0.and.LMCMAX.le.1) RH00(L)= &
-             RH00(L)*min(sqrt(.2d0/VDEF),.5d0) ! dependece on vertical velocity
+      ! if(VDEF.gt..2d0.and.LMCMAX.le.1) RH00(L)= &
+      !      RH00(L)*min(sqrt(.2d0/VDEF),.5d0) ! dependece on vertical velocity
       end if
       if(U00L(L).gt.RH00(L)) RH00(L)=U00L(L)
       !**** Option to treat boundary layer differently
@@ -3633,7 +3667,7 @@ contains
        ENDIF
 
        NACTL(mkx)=NACT
-       CDNC_TOMAS(L)=nactl(mkx)*1.e-6 !m-3 to cm-3  
+       CDNC_TOMAS(L)=nactl(mkx)*1.e-6 !m-3 to cm-3
 
        ldummy=execute_bulk2m_driver('all' &
             ,ndrop,mdrop,ncrys,mcrys,nactl,'end',qr0=mrain, &
@@ -4935,7 +4969,7 @@ contains
       HCNDSS=HCNDSS+FSSL(L)*(TL(L)-TOLD)*AIRM(L)
       SSHR(L)=SSHR(L)+FSSL(L)*(TL(L)-TOLD)*AIRM(L)
       DQLSC(L)=DQLSC(L)+FSSL(L)*(QL(L)-QOLD)
-    end do  ! end of loop over L
+    end do CLOUD_FORMATION ! end of loop over L
 
     PRCPSS=max(0d0,PREBAR(1)*GRAV*DTsrc) ! fix small round off err
 #ifdef TRACERS_WATER
@@ -4947,7 +4981,7 @@ contains
     !****
     !**** CLOUD-TOP ENTRAINMENT INSTABILITY
     !****
-    do L=LMCLD-1,1,-1
+    CLOUD_TOP_ENTRAINMENT: do L=LMCLD-1,1,-1
       LHX=SVLHXL(L)
       SM(L)=TH(L)*AIRM(L)
       QM(L)=QL(L)*AIRM(L)
@@ -5073,6 +5107,36 @@ contains
       ELSE
         QCIX(L)=WMN1*BYAM(L)
       END IF
+!@var fsslrat ratio of lower to upper layer potential SS cloud fraction
+      fsslrat = fssl(l)/fssl(l+1) ! assumption: fsslrat<1
+      if(fsslrat.ne.1.) then
+        ! Scale upper-layer tendencies to account for the
+        ! fact that only a fraction of the upper layer
+        ! exchanges mass with the lower layer.  This wrinkle
+        ! could be buried in CTMIX after harmonization of
+        ! the definition of CTMIX-ed variables (unlike S,Q,
+        ! tracer mass TM is currently pre-multiplied by FSSL).
+        ! The WM tendency does not need rescaling because
+        ! (1) CTEI only occurs when the initial WMX in
+        ! the upper layer is zero, and (2) unlike S,Q,
+        ! WMX is the average over the entire gridbox
+        SMN2 = SM(L+1) + (SMN2 - SM(L+1))*fsslrat
+        QMN2 = QM(L+1) + (QMN2 - QM(L+1))*fsslrat
+      ! WMN2 = WMXM(L+1) + (WMN2 - WMXM(L+1))*FSSL(L)/FSSL(L+1)
+!@var SMOM2_sv, QMOM2_sv pre-CTMIX upper-layer S,Q moments
+        SMOM2_sv = SMOM(:,L+1)
+        QMOM2_sv = QMOM(:,L+1)
+      endif
+      CALL CTMIX (SM(L),SMOM(1,L),FMASS*AIRMR,FMIX,FRAT)
+      CALL CTMIX (QM(L),QMOM(1,L),FMASS*AIRMR,FMIX,FRAT)
+      if(fsslrat.ne.1.) then
+        ! store the correct updated upper-layer values
+        SM(L+1) = SMN2
+        QM(L+1) = QMN2
+        ! rescale moment tendencies like S,Q
+        SMOM(:,L+1) = SMOM2_sv + (SMOM(:,L+1)-SMOM2_sv)*fsslrat
+        QMOM(:,L+1) = QMOM2_sv + (QMOM(:,L+1)-QMOM2_sv)*fsslrat
+      endif
       TH(L+1)=SMN2*BYAM(L+1)
       QL(L+1)=QMN2*BYAM(L+1)
 !     WMX(L+1)=WMN2*BYAM(L+1)
@@ -5081,8 +5145,8 @@ contains
       ELSE
         QCIX(L+1)=WMN2*BYAM(L+1)
       END IF
-      call CTMIX (SM(L),SMOM(1,L),FMASS*AIRMR,FMIX,FRAT)
-      call CTMIX (QM(L),QMOM(1,L),FMASS*AIRMR,FMIX,FRAT)
+!     call CTMIX (SM(L),SMOM(1,L),FMASS*AIRMR,FMIX,FRAT)
+!     call CTMIX (QM(L),QMOM(1,L),FMASS*AIRMR,FMIX,FRAT)
       !****
 #ifdef TRACERS_ON
       do N=1,NTX
@@ -5108,9 +5172,9 @@ contains
       !**** RE-EVAPORATION OF CLW IN THE UPPER LAYER
 !     QL(L+1)=QL(L+1)+WMX(L+1)/(FSSL(L)+teeny)
       IF(LHX.EQ.LHE) THEN
-        QL(L+1)=QL(L+1)+QCLX(L+1)/(FSSL(L)+teeny)
+        QL(L+1)=QL(L+1)+QCLX(L+1)/(FSSL(L+1)+teeny)
       ELSE
-        QL(L+1)=QL(L+1)+QCIX(L+1)/(FSSL(L)+teeny)
+        QL(L+1)=QL(L+1)+QCIX(L+1)/(FSSL(L+1)+teeny)
       END IF
 !     if (wmxm(l+1).gt.0. .and. svlhxl(l+1).gt.0 .and. svlhxl(l+1).ne. &
 !          svlhxl(l)) print*,"lsT",i_debug,j_debug,wmxm(l)*svlhxl(l) &
@@ -5119,15 +5183,15 @@ contains
       !**** assumes that wmx(l+1) is same phase as wmx(l)?
       !**** energy fix?
       TH(L+1)=TH(L+1)-((SVLHXL(L+1)-SVLHXL(L))*BYSHA)*WMXM(L+1)/AIRM(L &
-           +1)/(PLK(L+1)*FSSL(L)+teeny)
+           +1)/(PLK(L+1)*FSSL(L+1)+teeny)
 
 !     TH(L+1)=TH(L+1)-(LHX*BYSHA)*WMX(L+1)/(PLK(L+1)*FSSL(L)+teeny)
 !     if (debug) print*,"lsD",l+1,LHX*WMX(L+1)
       IF(LHX.EQ.LHE) THEN
-        TH(L+1)=TH(L+1)-(LHX*BYSHA)*QCLX(L+1)/(PLK(L+1)*FSSL(L)+teeny)
+        TH(L+1)=TH(L+1)-(LHX*BYSHA)*QCLX(L+1)/(PLK(L+1)*FSSL(L+1)+teeny)
         if (debug) print*,"lsD",l+1,LHX*QCLX(L+1)
       ELSE
-        TH(L+1)=TH(L+1)-(LHX*BYSHA)*QCIX(L+1)/(PLK(L+1)*FSSL(L)+teeny)
+        TH(L+1)=TH(L+1)-(LHX*BYSHA)*QCIX(L+1)/(PLK(L+1)*FSSL(L+1)+teeny)
         if (debug) print*,"lsD",l+1,LHX*QCIX(L+1)
       END IF
       TL(L+1)=TH(L+1)*PLK(L+1)
@@ -5169,7 +5233,7 @@ contains
       DQLSC(L+1)=DQLSC(L+1)+FSSL(L+1)*(QNEWU-QOLDU)
       DCTEI(L)=DCTEI(L)+FSSL(L)*(QNEW-QOLD)*AIRM(L)*LHX*BYSHA
       DCTEI(L+1)=DCTEI(L+1)+FSSL(L+1)*(QNEWU-QOLDU)*AIRM(L+1)*LHX*BYSHA
-    end do
+    end do CLOUD_TOP_ENTRAINMENT
 
     !**** COMPUTE CLOUD PARTICLE SIZE AND OPTICAL THICKNESS
     WMSUM=0.
@@ -5184,7 +5248,7 @@ contains
     NLSI = 0
 !    CDNC_TOMAS=0.
 #endif
-    do L=1,LMCLD
+    OPTICAL_THICKNESS: do L=1,LMCLD
       FCLD=CLDSSL(L)+teeny
 !     WTEM=1.d5*WMX(L)*PL(L)/(FCLD*TL(L)*RGAS+teeny)
       LHX=SVLHXL(L)
@@ -5409,7 +5473,7 @@ contains
 #ifdef CLD_AER_CDNC
       SMLWP=WMSUM
 #endif
-    end do
+    end do OPTICAL_THICKNESS
 
     !**** CALCULATE OPTICAL THICKNESS
     do L=1,LMCLD
@@ -5844,7 +5908,14 @@ contains
 
     !**** DETERMINE THE AIR MASS FOR RAIN EVAPORATION TO TAKE PLACE
     MCLOUD=0.
-    if(L.le.LMIN) MCLOUD=2.*FEVAP*AIRM
+!**** Option to revert to AR5 approach of only allowing re-evaporation
+!**** below cloud base.
+    IF (MC_REVP_ABV_CLDBASE.EQ.0) THEN
+      IF(L.LE.LMIN) MCLOUD=2.*FEVAP*AIRM
+    ELSE
+      MCLOUD=2.*FEVAP*AIRM
+    END IF
+!   if(L.le.LMIN) MCLOUD=2.*FEVAP*AIRM
     if(MCLOUD.gt.AIRM) MCLOUD=AIRM
     lhp=lhp1
 

@@ -74,6 +74,7 @@ subroutine CONDSE
        ,lh_diags,ijl_llh,ijl_mctlh,ijl_mcdlh,ijl_mcslh &
        ,ijl_ldry,ijl_tmcdry,ijl_dmcdry,ijl_smcdry &
        ,ijl_cldwtr,ijl_cldice,ijl_MCamFX ! ipcc 3-D model layer diagnostics
+!!     ,IJ_CONDLS,IJ_EVAPLS,IJ_CONDSINKMC
 #ifdef CLD_AER_CDNC
   use DIAG_COM, only : jl_cnumwm,jl_cnumws,jl_cnumim,jl_cnumis &
        ,ij_dzwm,ij_dzim,ij_dzws,ij_dzis &
@@ -168,8 +169,9 @@ subroutine CONDSE
        ,airm,byam,etal,sm,smom,qm,qmom,isc,dxypij,LMCLD,hcndss &
        ,tl,ris,ri1,ri2,mcflx,sshr,dgdsm,dphase,dtotw,dqcond,dctei &
 !      ,wml,sdl,u_0,v_0,um,vm,um1,vm1,qs,us,vs,dcl,airxl,prcpss &
-       ,qcil,qcll,sdl,u_0,v_0,um,vm,um1,vm1,qs,us,vs,dcl,airxl,prcpss &
+       ,qcil,qcll,sdl,u_0,v_0,um,vm,um1,vm1,qs,us,vs,airxl,prcpss &
        ,prcpmc,pearth,ts,taumcl,cldmcl,svwmxl,svlatl,svlhxl,dgdqm &
+       ,dcl,zpbl,ppbl &
        ,cldslwij,clddepij,csizel,precnvl,vsubl,lmcmax,lmcmin,wmsum &
 !      ,aq,dpdt,th,ql,wmx,ttoldl,rh,taussl,cldssl,cldsavl,rh1,roice &
        ,aq,dpdt,th,ql,qcix,qclx,ttoldl,rh,taussl,cldssl,cldsavl,rh1 &
@@ -198,7 +200,7 @@ subroutine CONDSE
   use CLOUDS, only : CUMFLX,DWNFLX,WCUALL,ENTALL,DETALL, &
        MPLUMEALL,PLUME_MAX,PLUME_MIN
 #endif
-  use PBLCOM, only : dclev,egcm,w2gcm
+  use PBLCOM, only : dclev,egcm,w2gcm,pblht,pblptop
   use ATM_COM, only : pk,pek,pmid,pedn,gz,ptold,pdsig,MWs, &
        ua=>ualij,va=>valij,ltropo
   use DYNAMICS, only : wcpsig,dsig,sig,bydsig
@@ -383,6 +385,44 @@ subroutine CONDSE
   integer :: n1,n_fidx
 #endif
 #endif
+#ifdef CACHED_SUBDD
+!@var MCPA moist convective precipitation;
+!@var LWPA cloud liquid water path
+!@var IWPA cloud ice water path
+      REAL*8, dimension(grid%i_strt_halo:grid%i_stop_halo, &
+              grid%j_strt_halo:grid%j_stop_halo) :: &
+              MCPA,LWPA,IWPA
+!@var DCNVF_IJ occurence of deep convecvtio; SCNVF_IJ for shallow.
+      REAL*8, dimension(grid%i_strt_halo:grid%i_stop_halo, &
+              grid%j_strt_halo:grid%j_stop_halo) :: &
+              DCNVF_IJ, SCNVF_IJ, SDDARR
+!@var Cloud_daily
+!     1:  cdnc Large Scale
+!     2:  cdnc Large Scale screened after Ralf Bennartz
+!     3:  ctp_mc Cloup top preassure convective clouds
+!     4:
+!     5:  cdnc conv clouds
+!     6:
+!     7:  lwp
+!     8:  convective lwp
+!     9:  reff_w_mc
+!     10: reff_w_ls
+!     11: reff_i_mc
+!     12: reff_i_ls
+!     13: dzwm
+!     14: dzws
+!     15: dzim
+!     16: dzis
+      REAL*8, dimension(grid%i_strt_halo:grid%i_stop_halo, &
+              grid%j_strt_halo:grid%j_stop_halo,16) :: &
+              Cloud_daily
+!@var Cloud_daily3d
+
+      REAL*8, dimension(grid%i_strt_halo:grid%i_stop_halo, &
+              grid%j_strt_halo:grid%j_stop_halo,LM,15) :: &
+              Cloud_daily3d
+#endif
+
 #ifdef CLD_AER_CDNC
   real*8 :: cldwt,cldwtdz
 #endif
@@ -576,7 +616,7 @@ subroutine CONDSE
         PEARTH=FEARTH(I,J)
         PLAND=FLAND(I,J)
         PWATER=1.-PLAND
-        ROICE=si_atm%RSI(I,J)
+        ROICE=si_atm%RSI(I,J)*PWATER
         TS=atmsrf%TSAVG(I,J)
         QS=atmsrf%QSAVG(I,J)
         US=atmsrf%USAVG(I,J)
@@ -584,8 +624,10 @@ subroutine CONDSE
         TGV=atmsrf%TGVAVG(I,J)
         QG=atmsrf%QGAVG(I,J)
         TSV=TS*(1+QS*DELTX)
-!!!   DCL=NINT(DCLEV(I,J))   ! prevented by openMP bug
+!!!     DCL=NINT(DCLEV(I,J))   ! prevented by openMP bug
         DCL=int(DCLEV(I,J)+.5)
+        ZPBL=PBLHT(I,J)
+        PPBL=PBLPTOP(I,J)
 #ifdef SCM
         if( SCMopt%PlumeDiag )then
         ! plume diagnostics
@@ -623,6 +665,11 @@ subroutine CONDSE
         AIRM(:)=PDSIG(:,I,J)
         BYAM(:)=1./AIRM(:)
         WTURB(:)=sqrt(.6666667*EGCM(:,I,J))
+#ifdef CACHED_SUBDD
+        Cloud_daily(I,J,:) = 0.d0
+        Cloud_daily3d(I,J,:,:) = 0.d0
+        Cloud_daily3d(I,J,:,13) = PL(:)
+#endif
 
         !**** other fields where L is the leading index
         SVLHXL(:)=SVLHX(:,I,J)
@@ -827,6 +874,11 @@ subroutine CONDSE
 #ifdef CLD_AER_CDNC
           AIJ(I,J,IJ_WMCLWP)=AIJ(I,J,IJ_WMCLWP)+WMCLWP
           AIJ(I,J,IJ_WMCTWP)=AIJ(I,J,IJ_WMCTWP)+WMCTWP
+#ifdef CACHED_SUBDD
+          Cloud_daily(I,J,7) = Cloud_daily(I,J,7)+ WMSUM
+          Cloud_daily(I,J,8) = WMCLWP
+          Cloud_daily(I,J,3) =  PLE(LMCMAX+1)*CLDMCL(LMCMAX)
+#endif
 #endif
           ! Also save instantaneous MC cloud top pressure for SUBDDiags:
           saveMCCLDTP(i,j)=PLE(LMCMAX+1)
@@ -910,6 +962,15 @@ subroutine CONDSE
               AIJ(I,J,IJ_3dNWM)=AIJ(I,J,IJ_3dNWM)+ACDNWM(L)*CLDWTDZ
               AIJ(I,J,IJ_3dRWM)=AIJ(I,J,IJ_3dRWM)+AREWM(L)*CLDWTDZ
               AIJ(I,J,IJ_3dLWM)=AIJ(I,J,IJ_3dLWM)+ALWWM(L)*CLDWTDZ
+#ifdef CACHED_SUBDD
+      Cloud_daily(I,J,5) =  Cloud_daily(I,J,5) + ACDNWM(L)*CLDWTDZ
+      Cloud_daily(I,J,9) = Cloud_daily(I,J,9)+AREWM(L)*CLDWTDZ
+      Cloud_daily(I,J,13) = Cloud_daily(I,J,13)+CLDWTDZ
+      Cloud_daily3d(I,J,L,2) = ACDNWM(L)*CLDWT
+      Cloud_daily3d(I,J,L,11) = CLDWT
+      Cloud_daily3d(I,J,L,4) = ALWWM(L)*CLDWT
+      Cloud_daily3d(I,J,L,7) = AREWM(L)*CLDWT
+#endif
             elseif(SVLATL(L).eq.LHS) then
               AIJL(I,J,L,IJL_CFIM)= AIJL(I,J,L,IJL_CFIM)+CLDWT
               AIJL(I,J,L,IJL_REIM)= AIJL(I,J,L,IJL_REIM)+AREIM(L)*CLDWT
@@ -919,6 +980,12 @@ subroutine CONDSE
               AIJ(I,J,IJ_3dNIM)=AIJ(I,J,IJ_3dNIM)+ACDNIM(L)*CLDWTDZ
               AIJ(I,J,IJ_3dRIM)=AIJ(I,J,IJ_3dRIM)+AREIM(L)*CLDWTDZ
               AIJ(I,J,IJ_3dLIM)=AIJ(I,J,IJ_3dLIM)+ALWIM(L)*CLDWTDZ
+#ifdef CACHED_SUBDD
+      Cloud_daily(I,J,11) =  Cloud_daily(I,J,11) + AREIM(L)*CLDWTDZ
+      Cloud_daily(I,J,15) =  Cloud_daily(I,J,15)+CLDWTDZ
+      Cloud_daily3d(I,J,l,5) = Cloud_daily3d(I,J,l,5)+ALWIM(L)*CLDWT
+      Cloud_daily3d(I,J,l,9) = AREIM(L)*CLDWT
+#endif
             endif
             if (NMCW.ge.1) then
               call inc_ajl(i,j,l,JL_CNUMWM,ACDNWM(L)*AIRM(L))
@@ -1003,7 +1070,7 @@ subroutine CONDSE
           dth_ss(I,J,L) = T(I,J,L)
           dq_ss(I,J,L) = Q(I,J,L)
         enddo
-#ifdef SCM        
+#ifdef SCM
         if( SCMopt%PlumeDiag )then
         ! plume diagnostics
           mc_mfu_p1(I,J,:,:) = CUMFLX(:,1,:)
@@ -1172,6 +1239,9 @@ subroutine CONDSE
 
         !**** Accumulate diagnostics of LSCOND
         AIJ(I,J,IJ_WMSUM)=AIJ(I,J,IJ_WMSUM)+WMSUM
+#ifdef CACHED_SUBDD
+      Cloud_daily(I,J,7) = Cloud_daily(I,J,7) + WMSUM
+#endif
         do IT=1,NTYPE
           call INC_AJ(I,J,IT,J_PRCPSS,PRCPSS*FTYPE(IT,I,J))
         end do
@@ -1239,6 +1309,12 @@ subroutine CONDSE
             SNOAGE(ITYPE,I,J)=SNOAGE(ITYPE,I,J)*exp(-PRCP)
           end do
         end if
+
+!**** LS condensation & evaporation diagnostics
+!!    AIJ(I,J,IJ_CONDLS)=AIJ(I,J,IJ_CONDLS) &
+!!           +SUM(CONDLS_SAVE(:))*100.*BYGRAV
+!!    AIJ(I,J,IJ_EVAPLS)=AIJ(I,J,IJ_EVAPLS) &
+!!           +SUM(EVAPLS_SAVE(:))*100.*BYGRAV
 
         !**** cloud water diagnostics
         WM1=0  ; WMI=0
@@ -1506,10 +1582,26 @@ subroutine CONDSE
             AIJL(I,J,L,IJL_CDTOMAS)= AIJL(I,J,L,IJL_CDTOMAS)+CDNC_TOMAS(L)*CLDWT
 #endif
             AIJL(I,J,L,IJL_CWWS)= AIJL(I,J,L,IJL_CWWS)+ALWWS(L)*CLDWT
+! standard cdnc
             AIJ(I,J,IJ_DZWS)=AIJ(I,J,IJ_DZWS)+CLDWTDZ
             AIJ(I,J,IJ_3dNWS)=AIJ(I,J,IJ_3dNWS)+ACDNWS(L)*CLDWTDZ
+! screened dcnc
+            AIJ(I,J,IJ_3dNWSS)=AIJ(I,J,IJ_3dNWSS)+ACDNWSS(L)*CLDWTDZ
+!
             AIJ(I,J,IJ_3dRWS)=AIJ(I,J,IJ_3dRWS)+AREWS(L)*CLDWTDZ
             AIJ(I,J,IJ_3dLWS)=AIJ(I,J,IJ_3dLWS)+ALWWS(L)*CLDWTDZ
+#ifdef CACHED_SUBDD
+      Cloud_daily(I,J,1) =  Cloud_daily(I,J,1)+ACDNWS(L)*CLDWTDZ
+      Cloud_daily(I,J,2) =  Cloud_daily(I,J,2)+ACDNWSS(L)*CLDWTDZ
+
+      Cloud_daily(I,J,10) = Cloud_daily(I,J,10) +AREWS(L)*CLDWTDZ
+      Cloud_daily(I,J,14) = Cloud_daily(I,J,14) +CLDWTDZ
+
+      Cloud_daily3d(i,j,l,1) = ACDNWS(L)*CLDWT
+      Cloud_daily3d(i,j,l,12) = CLDWT
+      Cloud_daily3d(i,j,l,3) = ALWWS(L)*CLDWT
+      Cloud_daily3d(i,j,l,8) = AREWS(L)*CLDWT
+#endif
           elseif(SVLHXL(L).eq.LHS) then
             AIJL(I,J,L,IJL_CFIS)= AIJL(I,J,L,IJL_CFIS)+CLDWT
             AIJL(I,J,L,IJL_REIS)= AIJL(I,J,L,IJL_REIS)+AREIS(L)*CLDWT
@@ -1519,6 +1611,13 @@ subroutine CONDSE
             AIJ(I,J,IJ_3dNIS)=AIJ(I,J,IJ_3dNIS)+ACDNIS(L)*CLDWTDZ
             AIJ(I,J,IJ_3dRIS)=AIJ(I,J,IJ_3dRIS)+AREIS(L)*CLDWTDZ
             AIJ(I,J,IJ_3dLIS)=AIJ(I,J,IJ_3dLIS)+ALWIS(L)*CLDWTDZ
+#ifdef CACHED_SUBDD
+      Cloud_daily(I,J,12) = Cloud_daily(I,J,12) +AREIS(L)*CLDWTDZ
+      Cloud_daily(I,J,16) = Cloud_daily(I,J,16) +CLDWTDZ
+
+      Cloud_daily3d(I,J,l,5) = Cloud_daily3d(I,J,l,5)+ALWIS(L)*CLDWT
+      Cloud_daily3d(I,J,l,10) = AREIS(L)*CLDWT
+#endif
           endif
           if (NLSW.ge.1) then
             call inc_ajl(i,j,l,JL_CNUMWS,ACDNWS(L)*AIRM(L))
@@ -1930,7 +2029,7 @@ subroutine CONDSE
   end select
   enddo
   enddo
-  
+
   if (isccp_diags.eq.1) then
       call inc_subdd('isccp_fq',save_fq_isccp,1,.true.,units='fraction', &
            long_name='Cld Fct by ISCCP CldTypes',dim3name='ntau',dim4name='npres')
@@ -2513,37 +2612,37 @@ end subroutine qmom_topo_adjustments
     lname = 'Flag for Day (1) or Night (0)', &
     units = '-' &
        )
-  
+
   arr(next()) = info_type_( &
     sname = 'isccp_ctp', &
     lname = 'Mean Cloud Top Pressure', &
     units = 'mb' &
        )
- 
+
   arr(next()) = info_type_( &
     sname = 'isccp_tau', &
     lname = 'Mean Optical Thickness', &
     units = '-' &
        )
- 
+
  arr(next()) = info_type_( &
     sname = 'isccp_lcld', &
     lname = 'Low Cloud Fraction', &
     units = 'fraction' &
        )
- 
+
  arr(next()) = info_type_( &
     sname = 'isccp_mcld', &
     lname = 'Mid Level Cloud Fraction', &
     units = 'fraction' &
        )
- 
+
  arr(next()) = info_type_( &
     sname = 'isccp_hcld', &
     lname = 'High Cloud Fraction', &
     units = 'fraction' &
-       ) 
- 
+       )
+
       return
       contains
       integer function next()
