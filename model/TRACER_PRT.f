@@ -28,6 +28,9 @@
       USE TRDIAG_COM, only : taijln => taijln_loc, taijn  => taijn_loc,
      *     tij_mass, tij_conc, jlnt_conc, jlnt_mass, tajln => tajln_loc,
      $     to_conc
+#ifdef SAVE_AEROSOL_3DMASS_FOR_NINT
+     *     , taijls => taijls_loc, ijlt_3Dmass
+#endif
 #ifdef TRACERS_WATER
      *     ,jlnt_cldh2o
 #endif
@@ -80,6 +83,18 @@ C**** Latitude-longitude by layer concentration
           taijln(:,J_0:J_1,l,n) = taijln(:,J_0:J_1,l,n) + trm(:,J_0:J_1
      $          ,l,n)*byMA(l,:,J_0:J_1)
         end do
+!$OMP END PARALLEL DO
+#ifdef SAVE_AEROSOL_3DMASS_FOR_NINT
+!$OMP PARALLEL DO PRIVATE (L)                                                                                                            
+      if (ijlt_3Dmass(n).gt.0) then ! Ron: 3D mass distribution 
+         do l=1,lm
+            taijls(:,J_0:J_1,l,ijlt_3Dmass(n)) =
+     *      taijls(:,J_0:J_1,l,ijlt_3Dmass(n)) +
+     *      trm   (:,J_0:J_1,l,            n )*byaxyp(:,J_0:J_1)
+           end do
+        endif
+!$OMP END PARALLEL DO                                                                                                            
+# endif /* accumulate aerosol 3Dmass (Ron) */
       end if
 C**** Average concentration; surface concentration; total mass
       do j=J_0,J_1

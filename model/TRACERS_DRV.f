@@ -6144,27 +6144,40 @@ C**** some tracer specific 3D arrays
       do n=1,NTM
         select case(trname(n))
 
+        CASE('Clay','Silt1','Silt2','Silt3','Silt4','Silt5', 'isopp1a'
+     $       ,'isopp2a','apinp1a','apinp2a','OCB','OCII','OCIA','BCB'
+     $       ,'BCII' ,'BCIA', 'SO4','MSA','NO3p','NH4','seasalt1'
+     $       ,'seasalt2','SO4_d1','SO4_d2','SO4_d3','N_d1','N_d2'
+     $       ,'N_d3')
+
+#ifdef SAVE_AEROSOL_3DMASS_FOR_NINT
+        k = k + 1
+        ijlt_3Dmass(n)=k
+        ia_ijlt(k) = ia_src     ! just guessing
+        lname_ijlt(k) = trim(trname(n))//' Mass'
+        sname_ijlt(k) = 'Mass_3D_'//trname(n)
+        ijlt_power(k) = -5
+        units_ijlt(k) = unit_string(ijlt_power(k),' kg/m^2')
+        scale_ijlt(k) = 10.**(-ijlt_power(k))
+#endif /* define io parameters for 3Dmass diagnostic (Ron) */
+
 #ifdef TRACERS_DUST
-      CASE('Clay','Silt1','Silt2','Silt3','Silt4')
-!     *     'isopp1a','isopp2a','apinp1a','apinp2a',
-!     *     'OCB','OCII','OCIA','OCocean','MSA','BCB','BCII','BCIA',
-!     *     'SO4','NO3p','NH4','seasalt1','seasalt2')
         k = k + 1
-         ijlt_3Dtau(n)=k
-         ia_ijlt(k) = ia_rad
-         lname_ijlt(k) = trim(trname(n))//' tau'
-         sname_ijlt(k) = 'tau_3D_'//trname(n)
-         ijlt_power(k) = -2
-         units_ijlt(k) = unit_string(ijlt_power(k),' ')
-         scale_ijlt(k) = 10.**(-ijlt_power(k))
+        ijlt_3Dtau(n)=k
+        ia_ijlt(k) = ia_rad
+        lname_ijlt(k) = trim(trname(n))//' tau'
+        sname_ijlt(k) = 'tau_3D_'//trname(n)
+        ijlt_power(k) = -2
+        units_ijlt(k) = unit_string(ijlt_power(k),' ')
+        scale_ijlt(k) = 10.**(-ijlt_power(k))
         k = k + 1
-         ijlt_3Daaod(n)=k
-         ia_ijlt(k) = ia_rad
-         lname_ijlt(k) = trim(trname(n))//' aaod'
-         sname_ijlt(k) = 'aaod_3D_'//trname(n)
-         ijlt_power(k) = -2
-         units_ijlt(k) = unit_string(ijlt_power(k),' ')
-         scale_ijlt(k) = 10.**(-ijlt_power(k))
+        ijlt_3Daaod(n)=k
+        ia_ijlt(k) = ia_rad
+        lname_ijlt(k) = trim(trname(n))//' aaod'
+        sname_ijlt(k) = 'aaod_3D_'//trname(n)
+        ijlt_power(k) = -2
+        units_ijlt(k) = unit_string(ijlt_power(k),' ')
+        scale_ijlt(k) = 10.**(-ijlt_power(k))
 #endif
 
 #ifdef TRACERS_AMP
