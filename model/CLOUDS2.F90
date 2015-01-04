@@ -674,13 +674,13 @@ contains
 !@var FPRCPT fraction of tracer that evaporates (in net re-evaporation)
 !@var FWASHT  fraction of tracer scavenged by below-cloud precipitation
     real*8 :: FQCONDT(NTM), FWASHT(NTM), FPRCPT(NTM), FQEVPT(NTM)
-!@var WMXTR available water mixing ratio for tracer condensation ( )?
+!@var WMXTR available water mixing ratio for tracer condensation (kg/kg)?
 !@var b_beta_DT precipitating gridbox fraction from lowest precipitating
 !@+   layer. The name was chosen to correspond to Koch et al. p. 23,802.
 !@var precip_mm precipitation (mm) from the grid box above for washout
     real*8 WMXTR, b_beta_DT, precip_mm
     ! for tracers in general, added by Koch
-    real*8, dimension(NTM) :: THLAW,THWASH,TR_LEF,TMFAC,TR_LEFT
+    real*8, dimension(NTM) :: THLAW,THWASH,TR_LEF,TMFAC
     real*8 CLDSAVT
     integer :: IGAS
 !@var TR_LEF limits precurser dissolution following sulfate formation
@@ -688,11 +688,10 @@ contains
 !@var TMFAC used to adjust tracer moments
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
-    real*8 TMP_SUL(LM,NTM)
     ! for sulfur chemistry
 !@var WA_VOL Cloud water volume (L). Used by GET_SULFATE.
     real*8 WA_VOL
-    real*8, dimension(NTM) ::SULFOUT,SULFIN,SULFINC
+    real*8, dimension(aqchem_count) ::SULFIN,SULFINC,SULFOUT,TR_LEFT
     integer :: IAQCH
 #endif
     real*8 HEFF
@@ -1470,25 +1469,15 @@ contains
     (defined TRACERS_TOMAS)
             WA_VOL=COND(L)*1.d2*BYGRAV*DXYPIJ
 
-            if (FPLUME.gt.teeny) then
-!YUNHA              TMP_SUL(L,aqchem_list)=TMP(aqchem_list)/FPLUME
-              TMP_SUL(L,aqchem_list)=TMP(aqchem_list)
-            else
-              TMP_SUL(L,aqchem_list)=0.
-            end if
-
-            call GET_SULFATE(L,TPOLD(L),FPLUME,WA_VOL,WMXTR,SULFIN, &
-                 SULFINC,SULFOUT,TR_LEFT,TMP_SUL,TRCOND(1,L), &
-                 AIRM,LHX,DT_SULF_MC(1,L),CLDSAVT,.false.)
+            call GET_SULFATE(PL(L),TPOLD(L),FPLUME,WA_VOL,WMXTR,SULFIN, &
+                 SULFINC,SULFOUT,TR_LEFT,TMP,TRCOND(:,L), &
+                 AIRM(L),LHX,DT_SULF_MC(:,L),CLDSAVT,.false.)
 
             do iaqch=1,aqchem_count
               n = aqchem_list(iaqch)
-              ! first apply chemistry
-              ! removal of precursers
-              TMP(N)=TMP(N)*(1.+SULFIN(N))
-              TMOMP(xymoms,N)= TMOMP(xymoms,N)*(1.+SULFIN(N))
-              ! formation of sulfate
-              TRCOND(N,L) = TRCOND(N,L)+SULFOUT(N)
+              TMP(N)=TMP(N)+SULFIN(iaqch)
+              TMOMP(xymoms,N)= TMOMP(xymoms,N)*(1.+SULFIN(iaqch)/TMP(N))
+              TRCOND(N,L) = TRCOND(N,L)+SULFOUT(iaqch)
             enddo
 
 #endif
@@ -1497,10 +1486,6 @@ contains
             ENDDO
 
             TM_dum(:) = TMP(:)
-            !     CALL GET_COND_FACTOR_array(
-            !    &      NTX,WMXTR,TPOLD(L),TPOLD(L-1),LHX,FPLUME
-            !    &     ,FQCOND,FQCONDT,.true.,TRCOND(:,L),TM_dum,THLAW,TR_LEF,PL(L)
-            !    &     ,ntix,CLDSAVT)
 !TOMAS DEBUG
             DO N=1,NTM
               if(TM_dum(n).lt.0.) print*,'TM_dum<0 1',TM_dum(n),trname(n)
@@ -2557,16 +2542,16 @@ contains
     (defined TRACERS_TOMAS)
               WA_VOL= precip_mm*DXYPIJ
 
-              call GET_SULFATE(L,TOLD,FPLUME,WA_VOL,WMXTR,SULFIN, &
-                   SULFINC,SULFOUT,TR_LEFT,TM,TRPRCP,AIRM,LHX, &
-                   DT_SULF_MC(1,L),CLDSAVT,.true.)
+              call GET_SULFATE(PL(L),TOLD,FPLUME,WA_VOL,WMXTR,SULFIN, &
+                   SULFINC,SULFOUT,TR_LEFT,TM(L,:),TRPRCP,AIRM(L),LHX, &
+                   DT_SULF_MC(:,L),CLDSAVT,.true.)
 
               do iaqch=1,aqchem_count
                 n = aqchem_list(iaqch)
-                TRPRCP(N)=TRPRCP(N)*(1.+SULFINC(N))
-                TM(L,N)=TM(L,N)*(1.+SULFIN(N))
-                TMOM(xymoms,L,N)=TMOM(xymoms,L,N) *(1.+SULFIN(N))
-                TRCOND(N,L) = TRCOND(N,L)+SULFOUT(N)
+                TM(L,N)=TM(L,N)+SULFIN(iaqch)
+                TMOM(xymoms,L,N)=TMOM(xymoms,L,N)*(1.+SULFIN(iaqch)/TM(L,N))
+                TRPRCP(N)=TRPRCP(N)+SULFINC(iaqch)
+                TRCOND(N,L) = TRCOND(N,L)+SULFOUT(iaqch)
               enddo
 #endif
 
@@ -2928,13 +2913,13 @@ contains
     logical BELOW_CLOUD,CLOUD_YET
 !@var FWASHT  fraction of tracer scavenged by below-cloud precipitation
     real*8 :: FWASHT(NTM),TM_dum(NTM), DTR(NTM)
-!@var WMXTR available water mixing ratio for tracer condensation ( )?
+!@var WMXTR available water mixing ratio for tracer condensation (kg/kg)?
 !@var b_beta_DT precipitating gridbox fraction from lowest precipitating
 !@+   layer. The name was chosen to correspond to Koch et al. p. 23,802.
 !@var precip_mm precipitation (mm) from the grid box above for washout
     real*8 WMXTR, b_beta_DT, precip_mm
     ! for tracers in general, added by Koch
-    real*8, dimension(ntm) :: THLAW,TR_LEF,TR_LEFT
+    real*8, dimension(ntm) :: THLAW,TR_LEF
     real*8 THWASH(NTM),TMFAC(NTM),TMFAC2(NTM),CLDSAVT
     integer :: IGAS
 !@var TR_LEF limits precurser dissolution following sulfate formation
@@ -2949,7 +2934,7 @@ contains
     ! for sulfur chemistry
 !@var WA_VOL Cloud water volume (L). Used by GET_SULFATE.
     real*8 WA_VOL
-    real*8, dimension(NTM) ::SULFOUT,SULFIN,SULFINC
+    real*8, dimension(aqchem_count) ::SULFIN,SULFINC,SULFOUT,TR_LEFT
     integer :: IAQCH
 #endif
 #endif
@@ -4558,21 +4543,21 @@ contains
         WA_VOL=precip_mm*DXYPIJ
       end if
 
-      call GET_SULFATE(L,TL(L),FCLD,WA_VOL &
-           ,WMXTR,SULFIN,SULFINC,SULFOUT,TR_LEFT,TM,TRWML(1,l),AIRM,LHX &
-           ,DT_SULF_SS(1,L),CLDSAVT,.true.)
+      call GET_SULFATE(PL(L),TL(L),FCLD,WA_VOL &
+           ,WMXTR,SULFIN,SULFINC,SULFOUT,TR_LEFT,TM(L,:),TRWML(:,L),AIRM(L) &
+           ,LHX,DT_SULF_SS(:,L),CLDSAVT,.true.)
 
       do iaqch=1,aqchem_count
         n = aqchem_list(iaqch)
-        TR_LEF(n)=TR_LEFT(N)
-        TRWML(N,L)=TRWML(N,L)*(1.+SULFINC(N))
-        TM(L,N)=TM(L,N)*(1.+SULFIN(N))
-        TMOM(:,L,N)  = TMOM(:,L,N)*(1. +SULFIN(N))
+        TM(L,N)=TM(L,N)+SULFIN(iaqch)
+        TMOM(:,L,N)=TMOM(:,L,N)*(1.+SULFIN(iaqch)/TM(L,N))
+        TRWML(N,L)=TRWML(N,L)+SULFINC(iaqch)
         if (QCLX(L).lt.teeny.and.BELOW_CLOUD) then
-          TRPRBAR(N,L+1)=TRPRBAR(N,L+1)+SULFOUT(N)
+          TRPRBAR(N,L+1)=TRPRBAR(N,L+1)+SULFOUT(iaqch)
         else
-          TRWML(N,L) = TRWML(N,L)+SULFOUT(N)
+          TRWML(N,L) = TRWML(N,L)+SULFOUT(iaqch)
         endif
+        TR_LEF(n)=TR_LEFT(iaqch)
       enddo
 
 #endif
@@ -4809,21 +4794,21 @@ contains
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
 
-          call GET_SULFATE(L,TL(L),FCLD,WA_VOL,WMXTR,SULFIN, &
-               SULFINC,SULFOUT,TR_LEFT,TM,TRWML(1,L),AIRM,LHX, &
-               DT_SULF_SS(1,L),CLDSAVT,.true.)
+          call GET_SULFATE(PL(L),TL(L),FCLD,WA_VOL,WMXTR,SULFIN, &
+               SULFINC,SULFOUT,TR_LEFT,TM(L,:),TRWML(:,L),AIRM(L),LHX, &
+               DT_SULF_SS(:,L),CLDSAVT,.true.)
 
           do iaqch=1,aqchem_count
             n = aqchem_list(iaqch)
-            TRWML(N,L)=TRWML(N,L)*(1.+SULFINC(N))
-            TM(L,N)=TM(L,N)*(1.+SULFIN(N))
-            TMOM(:,L,N) =TMOM(:,L,N)*(1.+SULFIN(N))
-            TRWML(N,L) = TRWML(N,L)+SULFOUT(N)
-            TR_LEF(N)=TR_LEFT(N)
+            TM(L,N)=TM(L,N)+SULFIN(iaqch)
+            TMOM(:,L,N) =TMOM(:,L,N)*(1.+SULFIN(iaqch)/TM(L,N))
+            TRWML(N,L)=TRWML(N,L)+SULFINC(iaqch)
+            TRWML(N,L) = TRWML(N,L)+SULFOUT(iaqch)
+            TR_LEF(N)=TR_LEFT(iaqch)
           enddo
 
 #endif
-          ! below TR_LEFT(N) limits the amount of available tracer in gridbox
+          ! below TR_LEFT(iaqch) limits the amount of available tracer in gridbox
           !dmkf and below, extra arguments for GET_COND, addition of THLAW
           TM_dum(:) = TM(L,:)
 !TOMAS DEBUG

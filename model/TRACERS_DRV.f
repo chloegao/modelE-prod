@@ -10234,7 +10234,7 @@ c
       SUBROUTINE GET_COND_FACTOR_array(
      &     NTX,WMXTR,TEMP,TEMP0,LHX,FCLOUD,
      &     FQ0,fq,TR_CONV,TRWML,TM,THLAW,TR_LEF,pl,ntix,CLDSAVT)
-!@sum  GET_COND_FACTOR calculation of condensate fraction for tracers
+!@sum  GET_COND_FACTOR_array calculation of condensate fraction for tracers
 !@+    within or below convective or large-scale clouds. Gas
 !@+    condensation uses Henry's Law if not freezing.
 !@auth Dorothy Koch (modelEifications by Greg Faluvegi)
@@ -10337,7 +10337,7 @@ c            fq(n) = min(1d0, fq0fac*ssfac(n) / (1d0 + ssfac(n)))
 c limit gas dissolution to incremental cloud change after cloud forms
 c   only apply to non-aqueous sulfur species since this is already
 c   done in GET_SULFATE
-c but H2O2 should be limited if not coupled with sulfate, haven't done this 
+c but H2O2 should be limited if not coupled with sulfate, have not done this 
 c           if (n.ne.n_h2O2.and.n.ne.n_so2.and.n.ne.n_h2O2_s) then
 c           if (FCLOUD.ne.0.) tr_lef(n)=cldinc
 c           endif
@@ -10502,7 +10502,7 @@ c with double dissolution if partially soluble
         else
           fq(aero_list) = fq_aer(aero_list)*0.12d0
         endif
-c this shouldn't work because cldinc should be fcld for
+c this should not work because cldinc should be fcld for
 c    when cloud first forms
       elseif(fq0.gt.0 .and. cldinc.gt.0.) then ! growing stratiform cloud
         if(lhx.eq.lhe) then
