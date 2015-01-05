@@ -54,8 +54,8 @@
       INTEGER, PARAMETER :: LOOP =  1    ! only a single time step done
       INTEGER, PARAMETER :: IMAX =  1    ! only a single time step done
 
-      REAL(8) :: YI(IMAX,NCA)            ! [umol/m^3] for chemical species - input
-      REAL(8) :: YO(IMAX,NCO)            ! [umol/m^3] for chemical species - output
+      REAL :: YI(IMAX,NCA)            ! [umol/m^3] for chemical species - input
+      REAL :: YO(IMAX,NCO)            ! [umol/m^3] for chemical species - output
 
       ! Parameters.
 
