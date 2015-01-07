@@ -395,7 +395,7 @@ subroutine CONDSE
 !@var DCNVF_IJ occurence of deep convecvtio; SCNVF_IJ for shallow.
       REAL*8, dimension(grid%i_strt_halo:grid%i_stop_halo, &
               grid%j_strt_halo:grid%j_stop_halo) :: &
-              DCNVF_IJ, SCNVF_IJ, SDDARR
+              DCNVF_IJ, SCNVF_IJ  ! , SDDARR
 !@var Cloud_daily
 !     1:  cdnc Large Scale
 !     2:  cdnc Large Scale screened after Ralf Bennartz
