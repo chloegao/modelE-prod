@@ -577,7 +577,11 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
       if (.not.allocated(ttausv_nraero))
      &  allocate(ttausv_nraero(im,jm,lm,nraero))
 
+#if (! defined(TRACERS_AMP)) && (! defined(TRACERS_TOMAS))
       njaero=nraero+2
+#else
+      njaero=2
+#endif
       allocate(miedx2(nbfastj,njaero))
       allocate(aer2(nbfastj,njaero))
 #endif  /* TRACERS_SPECIAL_Shindell */
