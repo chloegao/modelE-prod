@@ -10,7 +10,6 @@ module Tracer_mod
   public :: newTracer            ! constructor
   public :: clean
 
-  public :: getName
   public :: writeUnformatted
   public :: readUnformattedTracer
   public :: readOneTracer
@@ -18,7 +17,7 @@ module Tracer_mod
   public :: findSurfaceSources
   public :: addSurfaceSource
   public :: readSurfaceSources
-  public :: assignment(=)
+!!$  public :: assignment(=)
 
   public :: NTSURFSRCMAX
   public :: copyInto
@@ -32,6 +31,8 @@ module Tracer_mod
     integer :: ntSurfSrc = 0
     type (TracerSurfaceSource), allocatable, dimension(:) :: surfaceSources
     type (TracerSource3D), allocatable, dimension(:)  :: sources3D
+  contains
+    procedure :: getName
   end type Tracer
 
   interface newTracer
@@ -44,10 +45,10 @@ module Tracer_mod
     module procedure writeUnformatted_tracer
   end interface
 
-  interface assignment(=)
-    module procedure toTracer
-  end interface assignment(=)
-
+!!$  interface assignment(=)
+!!$    module procedure toTracer
+!!$  end interface assignment(=)
+!!$
   interface clean
     module procedure cleanTracer
   end interface
@@ -58,9 +59,8 @@ contains
   function newEmptyTracer() result(aTracer)
 !@sum Construct empty tracer    
     use Dictionary_mod, only: Dictionary
-    type (Tracer), pointer :: aTracer
+    type (Tracer) :: aTracer
 
-    allocate(aTracer)
     aTracer%AttributeDictionary = newAttributeDictionary()
     allocate(aTracer%surfaceSources(NTSURFSRCMAX))
     allocate(aTracer%sources3D(NT3DSRCMAX))
@@ -71,9 +71,9 @@ contains
 !@sum Construct named tracer
     use Dictionary_mod, only: Dictionary
     character(len=*), intent(in) :: name
-    type (Tracer), pointer :: aTracer
+    type (Tracer) :: aTracer
 
-    aTracer => newEmptyTracer()
+    aTracer = newEmptyTracer()
     call aTracer%insert('name', trim(name))
     aTracer%ntSurfsrc = 0
     
@@ -92,22 +92,15 @@ contains
   end function TracerCopy
 
   function getName(this) result (name)
-!    use StringAttribute_mod, only: assignment(=)
-    use AbstractAttribute_mod
-    use StringAttribute_mod, only: toType
-    type (Tracer), intent(in) :: this
+    use AbstractAttribute_mod, only: MAX_LEN_ATTRIBUTE_STRING
+    use AttributeHashMap_mod
+    use StringAttribute_mod, only: toPointer
+    class (Tracer), target, intent(in) :: this
     character(len=MAX_LEN_ATTRIBUTE_STRING), pointer :: name
-    class (AbstractAttribute), pointer :: p
+!    class (AbstractAttribute), pointer :: p
 
-    ! TODO Intel is now struggling with the line below - no idea why.  Worked before other changes.
-!    name = this%getReference('name')
-    p => this%getReference('name')
-! TODO: NAG error:
-! NAME dereferenced or deallocated but not pointer-assigned or allocated
-!    name = p
-! workaround:
-    call toType(name, p)
-    
+    name => toPointer(this%getReference('name'),name)
+
   end function getName
 
   subroutine writeUnformatted_tracer(this, unit)
@@ -135,7 +128,7 @@ contains
 
     integer, intent(in) :: unit
     integer, intent(out) :: status
-    type (Tracer), pointer :: aTracer
+    type (Tracer) :: aTracer
 
     type (Parser_type) :: parser
 
@@ -144,7 +137,7 @@ contains
     call setTokenSeparators(parser, '=,')
     call setCommentCharacters(parser, '!#')
 
-    aTracer => newEmptyTracer()
+    aTracer = newEmptyTracer()
     aTracer%AttributeDictionary = parse(parser, unit, status)
 
     if (status /= 0) return
@@ -188,9 +181,6 @@ contains
     ! been reached.
 
     nsrc=0
-    if (am_i_root()) &
-         &  print*,__LINE__,__FILE__,' tracer = ',  &
-         &     trim(getName(trcer)), nsrc, ntsurfsrcmax
 
     loop_n: do n = 1, ntsurfsrcmax
 

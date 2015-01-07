@@ -219,7 +219,7 @@ C**** Local parameters and variables and arguments:
       use TRCHEM_Shindell_COM, only: iprn,jprn,prnrts,JPPJ_shindell
      &                              ,p_1
       use photolysis, only: phtlst,inphot
-      use photolysis, only: j_iprn,j_jprn,j_prnrts,jpnl,jppj,jlabel
+     &                     ,j_iprn,j_jprn,j_prnrts,jpnl,jppj,jlabel
      &                     ,jind,ks,kss,jfacta,zj
       implicit none
 

@@ -406,20 +406,23 @@ cBond + Berstroem, all wavelength
          nAMP=n-ntmAMPi+1
            if(trname(n) .eq.'M_NO3') NO3 =trm(i,j,l,n)
            if(trname(n) .eq.'M_H2O') H2O =trm(i,j,l,n)
-          if(AMP_NUMB_MAP(nAMP).eq. 0) then  ! Volume fraction
-             select case (aerosolKind(trname(n)))
-             case ('SU')
-                VMass(AMP_MODES_MAP(nAMP),1) =trm(i,j,l,n)/DENS_SULF
-             case ('BC')
-                VMass(AMP_MODES_MAP(nAMP),1) =trm(i,j,l,n)/DENS_BCAR
-             case ('OC')
-                VMass(AMP_MODES_MAP(nAMP),1) =trm(i,j,l,n)/DENS_OCAR
-             case ('DU')
-                VMass(AMP_MODES_MAP(nAMP),1) =trm(i,j,l,n)/DENS_DUST
-             case ('SS')
-                VMass(AMP_MODES_MAP(nAMP),1) =trm(i,j,l,n)/DENS_SEAS
-             end select
-          else                           ! Number
+           if(AMP_NUMB_MAP(nAMP).eq. 0) then  ! Volume fraction
+             if (trname(n).ne.'M_NO3'.and.trname(n).ne.'M_H2O'.and.
+     &           trname(n).ne.'M_NH4') then
+               select case (aerosolKind(trname(n)))
+               case ('SU')
+                  VMass(AMP_MODES_MAP(nAMP),1) =trm(i,j,l,n)/DENS_SULF
+               case ('BC')
+                  VMass(AMP_MODES_MAP(nAMP),1) =trm(i,j,l,n)/DENS_BCAR
+               case ('OC')
+                  VMass(AMP_MODES_MAP(nAMP),1) =trm(i,j,l,n)/DENS_OCAR
+               case ('DU')
+                  VMass(AMP_MODES_MAP(nAMP),1) =trm(i,j,l,n)/DENS_DUST
+               case ('SS')
+                  VMass(AMP_MODES_MAP(nAMP),1) =trm(i,j,l,n)/DENS_SEAS
+               end select
+             endif
+           else                           ! Number
 !          [ - ]                        [#/gb]         [m-2]      
            NUMB_LEV(l,AMP_NUMB_MAP(nAMP)) =trm(i,j,l,n) * bydxyp(j)
           endif

@@ -37,11 +37,8 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
 !@var OCT_src    OC Terpene source (kg/s/box)
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: OCT_src !(im,jm,12)
 #endif  /* TRACERS_AEROSOLS_SOA */
-!@var ss_src  Seasalt sources in 2 bins (kg/s/m2)
-      INTEGER, PARAMETER :: nsssrc = 2
-      real*8, ALLOCATABLE, DIMENSION(:,:,:) :: ss_src !(im,jm,nsssrc)
-      INTEGER, PARAMETER :: nso2src_3d  = 1
 !@var SO2_src_3D SO2 volcanic sources (and biomass) (kg/s)
+      INTEGER, PARAMETER :: nso2src_3d  = 1
       real*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: SO2_src_3D !(im,jm,lm,nso2src_3d)
 !@var PBLH boundary layer height
 !@var MDF is the mass of the downdraft flux
@@ -81,7 +78,7 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
 #ifdef TRACERS_AEROSOLS_OCEAN
      * OC_SS_enrich_fact,
 #endif  /* TRACERS_AEROSOLS_OCEAN */
-     * nsssrc,ss_src,nso2src_3d,SO2_src_3D,
+     * nso2src_3d,SO2_src_3D,
      * ohr,dho2r,perjr, tno3r, 
      * ohrCache, dho2rCache, perjrCache, tno3rCache,
      * oh,dho2,perj,tno3,ohsr
@@ -121,7 +118,6 @@ c!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
 #ifndef TRACERS_AEROSOLS_SOA
       allocate( OCT_src(I_0H:I_1H,J_0H:J_1H,12) ,STAT=IER)
 #endif  /* TRACERS_AEROSOLS_SOA */
-      allocate( ss_src(I_0H:I_1H,J_0H:J_1H,nsssrc) ,STAT=IER)
       allocate( SO2_src_3D(I_0H:I_1H,J_0H:J_1H,lm,nso2src_3d),STAT=IER )
       allocate( oh(I_0H:I_1H,J_0H:J_1H,lm),dho2(I_0H:I_1H,J_0H:J_1H,lm),
      * perj(I_0H:I_1H,J_0H:J_1H,lm),tno3(I_0H:I_1H,J_0H:J_1H,lm)
@@ -760,7 +756,7 @@ c Aerosol chemistry
       real*8 bciage,ociage
       real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
      &                  grid%j_strt_halo:grid%j_stop_halo) :: ohsr_in
-      integer i,j,l,n,iuc,iun,itau,ixx1,ixx2,ichemi,itt,
+      integer i,j,l,n,iuc,iun,itau,ichemi,itt,
      * ittime,isp,iix,jjx,llx,ii,jj,ll,iuc2,it,najl,j_0,j_1,
      * j_0s,j_1s,mmm,J_0H,J_1H,I_0,I_1
 #ifdef TRACERS_SPECIAL_Shindell
@@ -1298,279 +1294,284 @@ c    *     'RRR SCALE ',stfac,cosz1(i,j),tczen(j),oh(i,j,l),ohr(i,j,l)
 
 
 
-      SUBROUTINE GET_SULFATE(L,temp_in,fcloud,
+      SUBROUTINE GET_SULFATE(pl,temp_in,fcloud,
      *  wa_vol,wmxtr,sulfin,sulfinc,sulfout,tr_left,
-     *  tm,tmcl,airm,LHX,dt_sulf,fcld0,no_plume)
+     *  tmg,tmd,airm,lhx,dt_sulf,fcld0,no_plume)
 
 !@sum  GET_SULFATE calculates formation of sulfate from SO2 and H2O2
 !@+    within or below convective or large-scale clouds. Gas
 !@+    condensation uses Henry's Law if not freezing.
 !@auth Dorothy Koch
-c
-C**** GLOBAL parameters and variables:
-      USE CONSTANT, only: BYGASC, MAIR,teeny,mb2kg,gasc,LHE
+
+!**** GLOBAL parameters and variables:
+      USE CONSTANT, only: bygasc, MAIR,teeny,mb2kg,gasc,lhe
       use OldTracer_mod, only: trname, mass2vol, tr_mm
       use OldTracer_mod, only: tr_RKD, tr_DHD
       USE TRACER_COM, only: n_H2O2_s,n_SO2
      *     ,NTM
      *     ,lm,n_SO4,n_H2O2,coupled_chem
-      USE CLOUDS, only: PL,NTIX,NTX,DXYPIJ
+      use tracer_com, only: aqchem_count,aqchem_list
+      USE CLOUDS, only: NTX,DXYPIJ
       USE MODEL_COM, only: dtsrc
-c
+
       IMPLICIT NONE
-c
-C**** Local parameters and variables and arguments:
-c
-!@param BY298K unknown meaning for now (assumed= 1./298K)
-!@var Ppas pressure at current altitude (in Pascal=kg/s2/m)
-!@var TFAC exponential coeffiecient of tracer condensation temperature
-!@+   dependence (mole/joule)
-!@var FCLOUD fraction of cloud available for tracer condensation
-!@var SSFAC dummy variable (assumed units= kg water?)
-!@var L index for altitude loop
-!@var N index for tracer number loop
-!@var RKD dummy variable (= tr_RKD*EXP[ ])
-!@var WA_VOL is the cloud water volume in L
-!@var WMX_INC is the change in cloud water ratio
-!@var CLWC is the cloud liquid water content: L water/L air
-!@var sulfin is the amount of SO2 and H2O2 used to make sulfate
-!@var sulfout is the amount of sulfate generated
-!@var tr_left is the amount of SO2 and H2O2 left after sulfate is made
-!@+    and is now available to condense
-!@var PPH is the partial pressure of the gas in M/kg
-!@var amass is airmass in kg airm(l)*mb2kg
-!@var trd is dissolved portion in moles/L
-!@var sulfinc is the change in dissolved SO2 and H2O2 as we use those
-!@+  to form sulfate (in addition to what is dissolved)
-      REAL*8, PARAMETER :: BY298K=3.3557D-3
-      REAL*8 Ppas, tfac, ssfac, RKD, Henry_const(ntm)
-      real*8 clwc,rk1f,rkdm(ntm),amass,trd(ntm),trdr(ntm),
-     * dso4g,dso4d,pph(ntm),trmol(ntm),trdmol(ntm),dso4gt,dso4dt
-      integer n,ih,is,is4,ihx,isx,is4x
-      real*8, parameter :: rk1=1.3d-2 !M
-      real*8, parameter :: dh1=-1.6736d4 !J/mol
-      real*8, parameter :: rk=6.357d14    !1/(M*M*s)
-      real*8, parameter :: ea=3.95d4 !J/mol
-      REAL*8,  INTENT(IN) :: fcloud,temp_in,wa_vol,wmxtr,LHX
-      real*8, dimension(lm,ntm) :: tm
-      real*8, dimension(ntm) :: tmcl,sulfin,sulfout,tr_left
-     *  ,sulfinc
-      real*8, dimension(lm) :: airm
-c     REAL*8,  INTENT(OUT)::
+
+!**** Local parameters and variables and arguments:
+
+!@var sulfin amount of precursor used to make product from the gas phase (kg)
+!@var sulfinc amount of precursor used to make product from the condensate (kg)
+!@var sulfout total amount of product generated (kg)
+!@var tr_left is the amount of precursor left after product is made
+!@+   and is now available to condense
+!@+   This is a very strange variable, probably wrong!!!
+      real*8, dimension(aqchem_count), intent(out) :: sulfin,sulfinc,
+     &                                                sulfout,tr_left
+!@var fcloud cloud fraction available for tracer condensation. fcloud=fplume
+!@+   for convective clouds, and fcloud=fcld for large-scale clouds
+!@var fcld0 updated cloud fraction, given the current state of large-scale
+!@+   clouds. fcld0=0.d0 for convective clouds.
+!@var lhx latent heat of evaporation or sublimation (J/Kg). When equal to lhe
+!@+   the cloud is in the ice phase.
+!@var finc XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+!@var no_plume true for convective plumes, false for convective precipitation
+!@+   and large-scale clouds/precipitation.
+      real*8, intent(in) :: fcloud,fcld0,lhx
+      real*8 :: finc
+      logical no_plume 
+!@var airm layer pressure depth (mb). Multiply by mb2kg to convert to air mass
+!@+   per m2, based on the hydrostatic pressure equation:
+!@+   pressure (Pa=kg/m/s2) = height (m) * density (kg/m3) * g (m/s2)
+!@var amass airmass in kg, calculated by airm*mb2kg*dxypij
+      real*8, intent(in) :: airm
+      real*8 :: amass
+
+!@var pl pressure at current altitude (mbar)
+!@var press pressure at current altitude (Pa)
+!@var temp temperature to be used (K), always greater than 230K
+!@var tfac exponent factor for temperature dependence calculations (mol/J).
+!@+   tfac = (1/temp - 1/298)/R; R=8.31451 J/mol/K
+!@var clwc cloud liquid water content (volume water/volume air)
+!@var temp_in temperature at current altitude (K)
+!@var wmxtr cloud water mixing ratio (kg water/kg air)
+      real*8 :: press, temp, tfac, clwc
+      real*8, intent(in) :: pl,temp_in,wmxtr
+
+!@param k1so2dissoc0 first dissociation rate of dissolved SO2 at 298K.
+!@+     SO2.H2O <--> H+ + HSO3-
+!@param dh1so2dissoc enthalpy of dissociation for the first dissociation rate
+!@+     of dissolved SO2
+!@var k1so2dissoc first dissociation rate of dissolved SO2 at current temp.
+      real*8, parameter :: k1so2dissoc0=1.3d-2 ! M (molar)
+      real*8, parameter :: dh1so2dissoc=-1.6736d4 !J/mol
+      real*8 :: k1so2dissoc ! M (molar)
+!@param Hplus concentration of H+ (molar) for pH=4.5
+!@var henry modified henry constant of the current tracer at current
+!@+   conditions, taking into account the current pH, if needed (moles/J).
+!@+   multiply with convert_HSTAR to convert to moles/liter/atm
+      real*8, parameter :: Hplus=10.d0**(-4.5d0)
+      real*8 :: henry
+!@param kso2h2o20 reaction rate of SO2 + H2O2 at 298K. SO2 + H2O2 --> SO3 + H2O
+!@param dhso2h2o2 enthalpy of reaction of SO2 + H2O2
+!@var kso2h2o2 reaction rate of SO2 + H2O2 at current temp.
+      real*8, parameter :: kso2h2o20=6.357d14    !1/(M*M*s)
+      real*8, parameter :: dhso2h2o2=3.95d4 !J/mol
+      real*8 :: kso2h2o2
+
+!@var ix index of current species
+!@var is index of current species in ntx array
+!@var ih index of current species in ntx array
+!@var isx index of SO2 species in aqchem_list array
+!@var ihx index of H2O2 species in aqchem_list array
+      integer :: ix,is,ih,isx,ihx
+
+!@var tmg amount of tracer in the gas phase (kg). Multiply by fcloud when
+!@+   no_plume is true, to get the amount of gas phase tracer in cloudy area.
+!@+   When no_plume is false, tmg is tmp already, so no multiplication needed.
+!@var tmd amount of tracer in the aqueous phase (kg).
+!@var tmgmol amount of gas phase tracer in cloudy area (moles)
+!@var tmdmol amount of gas phase tracer in cloudy area (moles)
+!@var tmgrate is the new concentration of species that resulted from the
+!@+   dissolution of its gas phase precursor species, on top of what was there
+!@+   from the previous timestep. The units are M/kg, meaning molarity
+!@+   produced per kilogram reacted.
+!@var tmdrate is the new concentration of species that resulted from the
+!@+   already dissolved precursor species, on top of what was there
+!@+   from the previous timestep. The units are M/kg, meaning molarity
+!@+   produced per kilogram reacted.
+      real*8, dimension(ntx), intent(in) :: tmg,tmd
+      real*8, dimension(aqchem_count) :: tmgmol,tmdmol,tmgrate,tmdrate
+
+!@var wa_vol cloud water volume (liters)
+!@var dso4g amount of sulfate produced from the gas phase (moles/kg/kg)
+!@var dso4d amount of sulfate produced from the condensate phase (moles/kg/kg)
+!@var dso4gt amount of sulfate produced from the gas phase (moles)
+!@var dso4dt amount of sulfate produced from the condensate phase (moles)
+      real*8,  intent(in) :: wa_vol
+      real*8 :: dso4g,dso4d,dso4gt,dso4dt
+
+!@var n index for tracer number loop
+      integer :: n
+
 !@var dt_sulf accumulated diagnostic of sulfate chemistry changes
-      real*8, dimension(ntm), intent(inout) :: dt_sulf
-      real*8 finc,fcld0,temp
-      INTEGER, INTENT(IN) :: L
-!@var NO_PLUME : false ==> TM is already TMP (TM in plume), so fcloud shouldn't 
-!@+   be applied tm (added by Yunha Lee, 2012)
-      LOGICAL NO_PLUME 
-      do n=1,ntx
-        sulfin(N)=0.
-        sulfinc(N)=0.
-        sulfout(N)=0.
-        tr_left(N)=1.
-      end do
-c is this needed?
-c#if (defined TRACERS_COSMO) || (defined TRACERS_
-c      do n=1,ntx
-c       select case (trname(ntix(n)))
-c       case ('Pb210   ','Be7     ','Be10    ','Rn222')
-c       go to 333
-c       end select
-c      end do
-C#endif
-c
-c
-C**** CALCULATE the fraction of tracer mass that becomes condensate:
-c
-      if (LHX.NE.LHE.or.fcloud.lt.teeny) go to 333
+      real*8, dimension(ntx), intent(inout) :: dt_sulf
+
+      sulfin(:)=0.d0
+      sulfinc(:)=0.d0
+      sulfout(:)=0.d0
+      tr_left(:)=1.d0
+
+! if no water clouds or no clouds at all, do nothing
+      if (lhx.ne.lhe.or.fcloud.lt.teeny.or.wmxtr.le.teeny) return
+
+! calculate the fraction of tracer mass that becomes condensate
       finc=(fcloud-fcld0)/fcloud
-      if (finc.lt.0d0) finc=0.d0
-c First allow for formation of sulfate from SO2 and H2O2. Then remaining
-c  gases may be allowed to dissolve (amount given by tr_left)
-C H2O2 + SO2 -> H2O + SO3 -> H2SO4
-      amass=airm(l)*mb2kg*DXYPIJ
-      Ppas = PL(L)*1.D2
-      ! calls to this subroutine are sometimes made at stages of
-      ! the cloud scheme at which some but not all tendencies have
-      ! been applied to temp_in, so we impose a lower limit
-      ! (liquid water is very unlikely to exist below 230 K)
-      temp = max(temp_in, 230d0) ! K
-      tfac = (1./temp - by298k)*bygasc  !mol/J
-c  cloud liquid water content
-      clwc=wmxtr*mair*ppas/temp*bygasc/1.D6/fcloud
-      rk1f=rk1*exp(-dh1*tfac)
+      if (finc.lt.0.d0) finc=0.d0
 
-      do n=1,ntx
-       select case (trname(ntix(n)))
-       case('SO2')
-       is=ntix(n)
-       isx=n
-c modified Henry's Law coefficient assuming pH of 4.5
-      rkdm(is)=tr_rkd(is)*(1.+ rk1f/3.2d-5)
-c mole of tracer, used to limit so4 production
-      if(no_plume)then
-        trmol(is)=1000.*tm(l,isx)/tr_mm(is)*fcloud
-      else
-        trmol(is)=1000.*tm(l,isx)/tr_mm(is)
-      endif
-c partial pressure of gas x henry's law coefficient
-      pph(is)=mass2vol(is)*1.d-3*ppas/amass*
-     *   tr_rkd(is)*exp(-tr_dhd(is)*tfac)
-c the following is from Phil:
-c      reduction in partial pressure as species dissolves
-      henry_const(is)=rkdm(is)*exp(-tr_dhd(is)*tfac)
-      pph(is)=pph(is)/(1+(henry_const(is)*clwc*gasc*temp))
-c again all except tmcl(n)
-      if(CLWC==0.)then
-        trdr(is)=0.d0
-      else
-        trdr(is)=mass2vol(is)*ppas/amass*bygasc
-     &  /temp*1.D-3/CLWC  !"CLWC" is newly added by Yunha Lee. This makes "mole/liter of cloud water/kg of tracer"  
-      end if
-c dissolved moles
-      trdmol(is)=tmcl(isx)*1000./tr_mm(is)  !trdr(is) is replaced with tmcl(isx) by Yunha Lee. This makes "trdmol" to be the amount of tracer already dissolved in the cloud water. 
+! calculate some variables for later
+      amass=airm*mb2kg*dxypij ! kg
+      press = pl*1.d2 ! Pa
+! comment from Dorothy Koch:
+! calls to this subroutine are sometimes made at stages of the cloud scheme
+! at which some but not all tendencies have been applied to temp_in, so we
+! impose a lower limit (liquid water is very unlikely to exist below 230 K)
+      temp = max(temp_in, 230.d0) ! K
+      tfac = (1.d0/temp - 1.d0/298.d0)*bygasc  ! mol/J
+! cloud liquid water content
+      clwc=wmxtr*mair*press/temp*bygasc/1.d6/fcloud ! volume water/volume air
 
-       case('H2O2','H2O2_s')
+      k1so2dissoc=k1so2dissoc0*exp(-dh1so2dissoc*tfac) ! SO2.H2O <--> H+ + HSO3-
+      kso2h2o2=kso2h2o20*exp(-dhso2h2o2/(gasc*temp)) ! SO2 + H2O2 --> SO3 + H2O
 
-         if (trname(ntix(n)).eq."H2O2" .and. coupled_chem.eq.0) goto 400
-         if (trname(ntix(n)).eq."H2O2_s" .and. coupled_chem.eq.1) goto
-     *        400
+! First allow for formation of sulfate from SO2 and H2O2. Then remaining
+! gases may be allowed to dissolve (amount given by tr_left)
+! H2O2 + SO2 -> H2O + SO3 -> H2SO4
+      do n=1,aqchem_count
+        ix=aqchem_list(n)
 
-       ih=ntix(n)
-       ihx=n
-c modified Henry's Law coefficient assuming pH of 4.5
-      rkdm(ih)=tr_rkd(ih)
-c mole of tracer, used to limit so4 production
-      if(no_plume)then
-      trmol(ih)=1000.*tm(l,ihx)/tr_mm(ih)*fcloud
-      else
-      trmol(ih)=1000.*tm(l,ihx)/tr_mm(ih)
-      endif
-c partial pressure of gas x henry's law coefficient
-      pph(ih)=mass2vol(ih)*1.D-3*ppas/amass*
-     *   tr_rkd(ih)*exp(-tr_dhd(ih)*tfac)
-c the following is from Phil:
-c      reduction in partial pressure as species dissolves
-c yhl - revisit the pph calculation in future - is "*clwc*gasc*temp" needed?
-      henry_const(ih)=rkdm(ih)*exp(-tr_dhd(ih)*tfac)
-      pph(ih)=pph(ih)/(1+(henry_const(ih)*clwc*gasc*temp))
-c all except tmcl(n)
-      if(CLWC==0.) then
-        trdr(ih)=0.d0
-      else
-        trdr(ih)=mass2vol(ih)*ppas/amass*bygasc/temp*1.D-3/CLWC  !"CLWC" is newly added by Yunha Lee. This makes "mole/liter of cloud water/kg of tracer"   !M/kg
-      end if
-c dissolved moles
-      trdmol(ih)=tmcl(ihx)*1000./tr_mm(ih)  !trdr(ih) is replaced with tmcl(ih) by Yunha Lee. This makes "trdmol" to be the amount of tracer already dissolved in the cloud water.
+        select case (trname(ix))
+        case('SO2', 'H2O2', 'H2O2_s')
 
- 400   CONTINUE
+! save some per-tracer values needed later
+          select case (trname(ix))
+          case('SO2')
+            is=ix
+            isx=n
+          case('H2O2','H2O2_s')
+            ih=ix
+            ihx=n
+            select case (trname(ix))
+            case('H2O2')
+              if (coupled_chem.eq.0) goto 400
+            case('H2O2_s')
+              if (coupled_chem.eq.1) goto 400
+            end select
+          end select
 
-      end select
-      end do
-      if (tm(l,ihx).lt.teeny.or.tm(l,isx).lt.teeny) then
-      dso4g=0.
-      go to 21
-      endif
-c this part from gas phase:moles/kg/kg
-      dso4g=rk*exp(-ea/(gasc*temp))*rk1f
-     *    *pph(ih)*pph(is)*dtsrc*wa_vol
-c dmk  incremental water volume
-      dso4g=dso4g*finc
-c should probably be (finc+tr_lef) but then tr_lef has to be saved   
-c check to make sure no overreaction: moles of production:
-      dso4gt=dso4g*tm(l,ihx)*tm(l,isx)
-c can't be more than moles going in:
-      if (dso4gt.gt.trmol(is)) then
-        dso4g=trmol(is)/(tm(l,ihx)*tm(l,isx))
-      endif
-      dso4gt=dso4g*tm(l,ihx)*tm(l,isx)
-      if (dso4gt.gt.trmol(ih)) then
-        dso4g=trmol(ih)/(tm(l,ihx)*tm(l,isx))
-      endif
-c this part from dissolved gases
- 21    dso4d=rk*exp(-ea/(gasc*temp))*rk1f
-     *    *trdr(ih)*trdr(is)*dtsrc*wa_vol  !mole/kg/kg
+! initial amount of species in the gas and aqueous phases
+          tmgmol(n)=1.d3*tmg(ix)/tr_mm(ix) ! gas-phase, in moles
+          if (no_plume) tmgmol(n)=tmgmol(n)*fcloud ! for gas phase only
+          tmdmol(n)=tmd(ix)*1.d3/tr_mm(ix) ! aqueous phase, in moles
 
-      if (tmcl(ihx).lt.teeny.or.tmcl(isx).lt.teeny) then   !"trdr" is replaced by "tmcl" by YUNHA LEE.
-      dso4d=0.
-      go to 22
+! henry coefficient
+          henry=tr_rkd(ix)*exp(-tr_dhd(ix)*tfac) ! moles/J
+
+! partial pressure of gas x henry's law coefficient
+          tmgrate(n)=mass2vol(ix)*1.d-3*press/amass*henry
+
+! modified Henry's Law coefficient assuming pH of 4.5
+          select case (trname(ix))
+          case('SO2')
+            henry=henry*(1.d0+ k1so2dissoc/Hplus)
+          end select
+
+! rate of production from gaseous and dissolved precursors.
+          tmgrate(n)=tmgrate(n)/(1.d0+henry*clwc*gasc*temp) ! dimless henry
+          tmdrate(n)=mass2vol(ix)*press/amass*bygasc/temp*1.d-3/clwc
+
+ 400      continue
+        end select
+      enddo
+
+! do not calculate dso4g if there is not enough gas phase to react
+      if (tmg(ih).lt.teeny.or.tmg(is).lt.teeny) then
+        dso4g=0.d0
+        dso4gt=0.d0
+        go to 21
       endif
 
-c check to make sure no overreaction: moles of production:
-      dso4dt=dso4d*tmcl(ihx)*tmcl(isx)  !"trdr [M/kg]" is replaced by "tmcl [kg]" by YUNHA LEE. This makes "dso4dt" to be "mole of SO4 formed". 
-c can't be more than moles going in:
-      if (dso4dt.gt.trdmol(is)) then
-        if(tmcl(ihx)==0. .or. tmcl(isx)==0.)then
-          dso4d=0.d0
-        else
-          dso4d=trdmol(is)/(tmcl(ihx)*tmcl(isx))  !"trdr" is replaced by "tmcl" by YUNHA LEE.
-        end if
+! production from the gas phase, moles/kg/kg
+      dso4g=kso2h2o2*k1so2dissoc*tmgrate(ihx)*tmgrate(isx)*dtsrc*wa_vol
+      dso4g=dso4g*finc ! increase production based on current cloud water volume
+      dso4gt=dso4g*tmg(ih)*tmg(is) ! moles
+
+! can't be more than the moles we started with
+      if (dso4gt.gt.tmgmol(isx)) then ! so2
+        dso4g=tmgmol(isx)/(tmg(ih)*tmg(is))
+        dso4gt=dso4g*tmg(ih)*tmg(is)
       endif
-      dso4dt=dso4d*tmcl(ihx)*tmcl(isx) !"trdr" is replaced by "tmcl" by YUNHA LEE.
-      if (dso4dt.gt.trdmol(ih)) then
-        if(tmcl(ihx)==0. .or. tmcl(isx)==0.)then
-          dso4d=0.d0
-        else
-          dso4d=trdmol(ih)/(tmcl(ihx)*tmcl(isx))   !"trdr" is replaced by "tmcl" by YUNHA LEE.
-        end if
+      if (dso4gt.gt.tmgmol(ihx)) then ! h2o2
+        dso4g=tmgmol(ihx)/(tmg(ih)*tmg(is))
+        dso4gt=dso4g*tmg(ih)*tmg(is)
+      endif
+ 21   continue
+
+! do not calculate dso4d if there is not enough dissolved phase to react
+      if (tmd(ih).lt.teeny.or.tmd(is).lt.teeny) then
+        dso4d=0.d0
+        dso4dt=0.d0
+        go to 22
       endif
 
+! production from the already-dissolved aqueous phase, moles/kg/kg
+      dso4d=kso2h2o2*k1so2dissoc*tmdrate(ihx)*tmdrate(isx)*dtsrc*wa_vol
+      dso4dt=dso4d*tmd(ih)*tmd(is) ! moles
+
+! can't be more than the moles we started with
+      if (dso4dt.gt.tmdmol(isx)) then
+        dso4d=tmdmol(isx)/(tmd(ih)*tmd(is))
+        dso4dt=dso4d*tmd(ih)*tmd(is)
+      endif
+      if (dso4dt.gt.tmdmol(ihx)) then
+        dso4d=tmdmol(ihx)/(tmd(ih)*tmd(is))
+        dso4dt=dso4d*tmd(ih)*tmd(is)
+      endif
  22   continue
-      do n=1,ntx
-       select case (trname(ntix(n)))
-       case('SO4','M_ACC_SU','ASO4__01')
-       is4=ntix(n)
 
-       sulfout(is4)=tr_mm(is4)/1000.*(dso4g*tm(l,isx)*tm(l,ihx)
-     *  +dso4d*tmcl(isx)*tmcl(ihx)) !kg
+! save final concentrations and diagnostics
+      do n=1,aqchem_count
+        ix=aqchem_list(n)
+        select case (trname(ix))
+        case('SO4','M_ACC_SU','ASO4__01')
+          sulfout(n)=tr_mm(ix)/1.d3*(dso4gt+dso4dt) ! kg
+          dt_sulf(ix) = dt_sulf(ix) + sulfout(n)
 
-       dt_sulf(is4) = dt_sulf(is4) + sulfout(is4)
+        case('SO2','H2O2','H2O2_s')
+          select case (trname(ix))
+          case('SO2')
+            sulfin(n)=-dso4g*tmg(ih)*tr_mm(ix)/1.d3*tmg(ix) ! kg
+            sulfinc(n)=-dso4d*tmd(ih)*tr_mm(ix)/1.d3*tmd(ix) ! kg
+          case('H2O2','H2O2_s')
+            select case (trname(ix))
+            case('H2O2')
+              if (coupled_chem.eq.0) goto 401
+            case('H2O2_s')
+              if (coupled_chem.eq.1) goto 401
+            end select
+            sulfin(n)=-dso4g*tmg(is)*tr_mm(ix)/1.d3*tmg(ix) ! kg
+            sulfinc(n)=-dso4d*tmd(is)*tr_mm(ix)/1.d3*tmd(ix) ! kg
+          end select
+          sulfin(n)=max(-tmg(ix),sulfin(n))
+          sulfinc(n)=max(-tmd(ix),sulfinc(n))
+          tr_left(n)=0.d0
+          if (fcloud.gt.abs(sulfin(n)/tmg(ix))) then
+            tr_left(n)=(fcloud+sulfin(n)/tmg(ix))
+          endif
+ 401      continue
+          dt_sulf(ix)=dt_sulf(ix)+sulfin(n)+sulfinc(n)
 
-       case('SO2')
-       is=ntix(n)
-       isx=n
+        end select
+      enddo
 
-! is ih/ihx set here, then why isn't is/isx?
-       sulfin(is)=-dso4g*tm(l,ihx)*tr_mm(is)/1000. !dimnless
-       sulfinc(is)=-dso4d*tmcl(ihx)*tr_mm(is)/1000.
-       sulfinc(is)=max(-1d0,sulfinc(is))
-       sulfin(is)=max(-1d0,sulfin(is))
-       tr_left(isx)=0.
-       if (fcloud.gt.abs(sulfin(is))) then
-         tr_left(isx)=(fcloud+sulfin(is))
-       endif
-
-       dt_sulf(is)=
-     & dt_sulf(is)+sulfin(is)*tm(l,isx)+sulfinc(is)*tmcl(isx) !trdr(is) is replaced by tmcl(isx) by YUNHA LEE. 
-
-       case('H2O2','H2O2_s')
-
-         if (trname(ntix(n)).eq."H2O2" .and. coupled_chem.eq.0) goto 401
-         if (trname(ntix(n)).eq."H2O2_s" .and. coupled_chem.eq.1) goto
-     *        401
-
-       ih=ntix(n)
-       ihx=n
-       sulfin(ih)=-dso4g*tm(l,isx)*tr_mm(ih)/1000.
-       sulfinc(ih)=-dso4d*tmcl(isx)*tr_mm(ih)/1000.
-       sulfinc(ih)=max(-1d0,sulfinc(ih))
-       sulfin(ih)=max(-1d0,sulfin(ih))
-       tr_left(ihx)=0.
-       if (fcloud.gt.abs(sulfin(ih))) then
-         tr_left(ihx)=fcloud+sulfin(ih)
-       endif
-
-
- 401   CONTINUE
-
-       dt_sulf(ih)=
-     & dt_sulf(ih)+sulfin(ih)*tm(l,ihx)+sulfinc(ih)*tmcl(ihx) !trdr(ih) is replaced by tmcl(isx) by YUNHA LEE.
-
-      end select
-      END DO
-
- 333  RETURN
       END SUBROUTINE GET_SULFATE
 
       SUBROUTINE GET_BC_DALBEDO(i,j,bc_dalb)

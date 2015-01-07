@@ -39,8 +39,7 @@ contains
     x = 1.d0
     eccentricity = 0.5d0
     TA = computeTrueAnomaly(x, eccentricity)
-    @assertEqual(x, computeMeanAnomaly(TA, eccentricity), tolerance=epsilon(1.d0))
-    
+    @assertEqual(x, computeMeanAnomaly(TA, eccentricity), tolerance=10*epsilon(1.d0))
   end subroutine testComputeMeanAnomaly
 
 

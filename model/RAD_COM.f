@@ -7,8 +7,17 @@
 !@auth Original Development Team
       USE RESOLUTION, only : im,jm,lm
       USE ATM_COM, only : lm_req
-      USE RADPAR, only : S0,ITRMAX
+      USE RADPAR, only : S0,nraero=>NTRACE
       use AbstractOrbit_mod, only: AbstractOrbit
+#if (defined TRACERS_AMP) || (defined TRACERS_AMP_M1)
+      USE AERO_CONFIG, ONLY: NMODES
+#endif
+#ifdef TRACERS_TOMAS
+      USE TOMAS_AEROSOL, only: icomp
+#endif
+#ifdef TRACERS_ON
+      use tracer_com, only: ntm_dust
+#endif  /* TRACERS_ON */
 !@var S0 solar 'constant' needs to be saved between calls to radiation
       IMPLICIT NONE
       SAVE
@@ -112,12 +121,69 @@ C**** does not produce exactly the same as the default values.
 !@var aerAbs6SaveInst Band 6 sum over aerosols  of extinction-scattering,
 !@+   saved for instantaneous SUBDDiag output
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: aerAbs6SaveInst
+
+! nraero_xxxx are the aerosol-specific nraero (old ntrace) components of
+! aerosol-active species in radiation. nraero=sum(nraero_xxxx)
+#ifdef TRACERS_AEROSOLS_Koch
+#ifdef SULF_ONLY_AEROSOLS
+      integer, parameter :: nraero_koch=1
+#else
+#ifdef TRACERS_AEROSOLS_SOA
+      integer, parameter :: nraero_koch=8
+#else
+      integer, parameter :: nraero_koch=7
+#endif  /* TRACERS_AEROSOLS_SOA */
+#endif  /* SULF_ONLY_AEROSOLS */
+#else
+      integer, parameter :: nraero_koch=0
+#endif  /* TRACERS_AEROSOLS_Koch */
+
+#ifdef TRACERS_NITRATE
+      integer, parameter :: nraero_nitrate=1
+#else
+      integer, parameter :: nraero_nitrate=0
+#endif  /* TRACERS_NITRATE */
+
+#ifdef TRACERS_DUST
+      integer, parameter :: nraero_dust=ntm_dust
+#ifdef TRACERS_MINERALS
+     &                     +45 ! 4 clays instead of 1, for 15 clay types
+#else
+     &                     +3 ! 4 clays instead of 1
+#endif  /* TRACERS_MINERALS */
+#else
+      integer, parameter :: nraero_dust=0
+#endif  /* TRACERS_DUST */
+
+#if (defined TRACERS_AMP) || (defined TRACERS_AMP_M1)
+      integer, parameter :: nraero_AMP=nmodes
+#else
+      integer, parameter :: nraero_AMP=0
+#endif  /* (defined TRACERS_AMP) || (defined TRACERS_AMP_M1) */
+
+#ifdef TRACERS_TOMAS
+!TOMAS does not include NO3 AND VOL, which use its default radiation. 
+      integer, parameter :: nraero_TOMAS=icomp-2
+#else
+      integer, parameter :: nraero_TOMAS=0
+#endif  /* TRACERS_TOMAS */
+
+#ifdef TRACERS_OM_SP
+      integer, parameter :: nraero_OM_SP=1
+#else
+      integer, parameter :: nraero_OM_SP=0
+#endif  /* TRACERS_OM_SP */
+
 #ifdef TRACERS_SPECIAL_Shindell
-!@var maxNtraceFastj max expected rad code tracers passed to photolysis
-!@var ttausv_ntrace Tracer optical thickness saved 1:NTRACE not 1:NTM
+!@var njaero max expected rad code tracers passed to photolysis
+!@var nraero_rsf value of nraero found in the rsf file
+!@var ttausv_nraero Tracer optical thickness saved 1:nraero not 1:ntm
 !@+   This is so clays are separate. Only needed for chemistry on.
-      integer, parameter :: maxNtraceFastj=17 
-      REAL*8,ALLOCATABLE,DIMENSION(:,:,:,:) :: ttausv_ntrace
+!@+   Now also used for old parameter mxfastj: Number of aerosol/cloud
+!@+   types currently active in the model
+      integer :: njaero ! nraero+2 cloud types (water/ice)
+      integer :: nraero_rsf=0
+      REAL*8,ALLOCATABLE,DIMENSION(:,:,:,:) :: ttausv_nraero
 #endif
 #endif
 !@var CFRAC Total cloud fraction as seen be radiation
@@ -243,10 +309,10 @@ C**** using the rad_forc_lev parameter.
 C**** Local variables initialised in init_RAD
 !@var PLB0,QL0 global parts of local arrays (to avoid OMP-copyin)
       REAL*8, DIMENSION(LM_REQ)       :: PLB0,SHL0
-!@var NTRIX Indexing array for optional aerosol interaction
-      INTEGER, DIMENSION(ITRMAX) :: NTRIX = 0
-!@var WTTR weighting array for optional aerosol interaction
-      REAL*8, DIMENSION(ITRMAX) :: WTTR = 1.
+!@var NTRIX Indexing array for optional aerosol-radiation interactions
+      INTEGER, allocatable, DIMENSION(:) :: NTRIX
+!@var WTTR weighting array for optional aerosol-ratiation interactions
+      REAL*8, allocatable, DIMENSION(:) :: WTTR
 !@var nrad_clay index of clay in arrays for optional aerosol interaction
       INTEGER :: nrad_clay
 
@@ -293,9 +359,6 @@ C**** Local variables initialised in init_RAD
 #ifdef mjo_subdd
      *     ,SWHR_cnt,LWHR_cnt,SWHR,LWHR,OLR_acc,OLR_cnt
      *     ,swu_avg,swu_cnt
-#endif
-#ifdef TRACERS_SPECIAL_Shindell
-     *     ,ttausv_ntrace,maxNtraceFastj
 #endif
 #ifdef TRACERS_ON
      *     ,ttausv_sum,ttausv_sum_cs,ttausv_count,nTracerRadiaActive
@@ -368,7 +431,6 @@ C**** Local variables initialised in init_RAD
      &     aerAbs6SaveInst(I_0H:I_1H,J_0H:J_1H,Lm),
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
-     &     ttausv_ntrace(I_0H:I_1H,J_0H:J_1H,maxNtraceFastj,Lm),
 #endif
      *     STAT=IER)
 
@@ -391,11 +453,6 @@ C**** Local variables initialised in init_RAD
 #ifdef TRACERS_ON
       nTracerRadiaActive=0
       tracerRadiaActiveFlag=.false.
-#ifdef TRACERS_SPECIAL_Shindell
-! Some rundecks do not initialize this variable which leads to
-! annoying issues with regression tests.
-      ttausv_ntrace = huge(1.d0)
-#endif
 #endif
       RETURN
       END SUBROUTINE ALLOC_RAD_COM
@@ -457,9 +514,6 @@ C**** Local variables initialised in init_RAD
 #endif
       REAL*8,DIMENSION(:,:,:,:), allocatable :: ! (Im,Jm,Ntm,Lm)
      &     ttausv_save_glob,ttausv_cs_save_glob
-#ifdef TRACERS_SPECIAL_Shindell
-      REAL*8,DIMENSION(:,:,:,:), allocatable :: ttausv_ntrace_glob
-#endif
       REAL*8,DIMENSION(:,:,:), allocatable ::   !(Im,Jm,Ntm)
      &     ttausv_sum_glob,ttausv_sum_cs_glob
 #endif
@@ -498,7 +552,6 @@ C**** Local variables initialised in init_RAD
 #ifdef TRACERS_SPECIAL_Shindell
       allocate(chem_tracer_save_GLOB(2,lmg, img,jmg))
       allocate(rad_to_chem_GLOB(5,lmg,img,jmg))
-      allocate(ttausv_ntrace_glob(img,jmg,maxNtraceFastj,lmg))
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
       allocate(stratO3_tracer_save_GLOB(lmg, img, jmg))
 #endif
@@ -584,9 +637,6 @@ C**** Local variables initialised in init_RAD
         CALL PACK_DATA(grid,ttausv_sum,ttausv_sum_glob)
         CALL PACK_DATA(grid,ttausv_sum_cs,ttausv_sum_cs_glob)
 #endif
-#ifdef TRACERS_SPECIAL_Shindell
-        CALL PACK_DATA(grid,ttausv_ntrace,ttausv_ntrace_glob)
-#endif
 
         IF (AM_I_ROOT())
      *     WRITE (kunit,err=10) MODULE_HEADER,RQT_GLOB,KLIQ_GLOB
@@ -607,9 +657,6 @@ C**** Local variables initialised in init_RAD
 #ifdef TRACERS_ON
      &      ,ttausv_sum_glob,ttausv_sum_cs_glob,ttausv_count
      &      ,ttausv_save_glob,ttausv_cs_save_glob,aerAbs6SaveInst_glob
-#endif
-#ifdef TRACERS_SPECIAL_Shindell
-     &      ,ttausv_ntrace_glob
 #endif
       CASE (IOREAD:)
         SELECT CASE  (IACTION)
@@ -634,9 +681,6 @@ C**** Local variables initialised in init_RAD
 #ifdef TRACERS_ON
      &       ,ttausv_sum_glob,ttausv_sum_cs_glob,ttausv_count
      &       ,ttausv_save_glob,ttausv_cs_save_glob,aerAbs6SaveInst_glob
-#endif
-#ifdef TRACERS_SPECIAL_Shindell
-     &       ,ttausv_ntrace_glob
 #endif
             IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
               PRINT*,"Discrepancy in module version ",HEADER,
@@ -686,9 +730,6 @@ C**** Local variables initialised in init_RAD
           CALL UNPACK_DATA(grid,ttausv_sum_cs_glob,ttausv_sum_cs)
           CALL UNPACK_DATA(grid,aerAbs6SaveInst_glob,aerAbs6SaveInst)
 #endif
-#ifdef TRACERS_SPECIAL_Shindell
-          CALL UNPACK_DATA(grid,ttausv_ntrace_glob,ttausv_ntrace)
-#endif
 
 
         CASE (IRSFIC,irsficnt,IRSFICNO)  ! restart file of prev. run
@@ -729,7 +770,6 @@ C**** Local variables initialised in init_RAD
 #ifdef TRACERS_SPECIAL_Shindell
       deallocate(chem_tracer_save_GLOB)
       deallocate(rad_to_chem_GLOB)
-      deallocate(ttausv_ntrace_glob)
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
       deallocate(stratO3_tracer_save_GLOB)
 #endif
@@ -782,8 +822,9 @@ C**** Local variables initialised in init_RAD
      &     'chem_tracer_save(two,lm,dist_im,dist_jm)')
       call defvar(grid,fid,rad_to_chem,
      &     'rad_to_chem(five,lm,dist_im,dist_jm)')
-      call defvar(grid,fid,ttausv_ntrace,
-     &     'ttausv_ntrace(dist_im,dist_jm,maxNtraceFastj,lm)')
+      call defvar(grid,fid,nraero,'nraero')
+      call defvar(grid,fid,ttausv_nraero,
+     &     'ttausv_nraero(dist_im,dist_jm,lm,nraero)')
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
       call defvar(grid,fid,strato3_tracer_save,
      &     'strato3_tracer_save(lm,dist_im,dist_jm)')
@@ -868,7 +909,8 @@ C**** Local variables initialised in init_RAD
         call write_dist_data(grid,fid,'aerAbs6SaveInst',aerAbs6SaveInst)
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
-        call write_dist_data(grid,fid,'ttausv_ntrace',ttausv_ntrace)
+        call write_data(grid, fid,'nraero', nraero)
+        call write_dist_data(grid,fid,'ttausv_nraero',ttausv_nraero)
 #endif
       case (ioread)
         call read_data(grid, fid,'s0', s0, bcast_all=.true.)
@@ -915,7 +957,11 @@ C**** Local variables initialised in init_RAD
         call read_dist_data(grid,fid,'aerAbs6SaveInst',aerAbs6SaveInst)
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
-        call read_dist_data(grid,fid,'ttausv_ntrace',ttausv_ntrace)
+        if (.not.allocated(ttausv_nraero)) then
+          call read_data(grid,fid,'nraero',nraero_rsf, bcast_all=.true.)
+          allocate(ttausv_nraero(im,jm,lm,nraero_rsf))
+        endif
+        call read_dist_data(grid,fid,'ttausv_nraero',ttausv_nraero)
 #endif
       end select
       return

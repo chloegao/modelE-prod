@@ -20,10 +20,6 @@ module Test_TracerIO_mod
       procedure :: tearDown  ! overrides generic
    end type Test_TracerIO
 
-  public :: testReadFromText
-  public :: testWriteFormatted
-  public :: testWriteUnformatted
-
 contains
 
   subroutine setUp(this)
@@ -80,13 +76,13 @@ contains
 @Test  
   subroutine testReadFromText(this)
     class (Test_TracerIO), intent(inout) :: this
+    type (TracerBundle) :: bundle
 
     integer :: iounit
 
     iounit = this%iounit
-    this%bundle = readFromText(iounit, this%newDefaultValues)
-
-    @assertEqual(this%numTracers, this%bundle%size(), 'Incorrect number of tracers found.')
+    bundle = readFromText(iounit, this%newDefaultValues)
+    @assertEqual(this%numTracers, bundle%size(), 'Incorrect number of tracers found.')
 
   end subroutine testReadFromText
 
@@ -102,8 +98,6 @@ contains
     class (Test_TracerIO), intent(inout) :: this
     type (TracerBundle) :: bundle
     integer :: iounit
-
-    call readTracers(this)
 
     call openUnit('testTracersOut.txt', iounit, qold=.false., qbin=.false.)
     call this%bundle%writeFormatted(iounit)
@@ -123,8 +117,6 @@ contains
     class (Test_TracerIO), intent(inout) :: this
     type (TracerBundle) :: bundle
     integer :: iounit
-
-    call readTracers(this)
 
     call openUnit('testTracersOut.bin', iounit, qold=.false., qbin=.true.)
     call this%bundle%writeUnformatted(iounit)

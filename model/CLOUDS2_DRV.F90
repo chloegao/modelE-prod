@@ -74,6 +74,7 @@ subroutine CONDSE
        ,lh_diags,ijl_llh,ijl_mctlh,ijl_mcdlh,ijl_mcslh &
        ,ijl_ldry,ijl_tmcdry,ijl_dmcdry,ijl_smcdry &
        ,ijl_cldwtr,ijl_cldice,ijl_MCamFX ! ipcc 3-D model layer diagnostics
+!!     ,IJ_CONDLS,IJ_EVAPLS,IJ_CONDSINKMC
 #ifdef CLD_AER_CDNC
   use DIAG_COM, only : jl_cnumwm,jl_cnumws,jl_cnumim,jl_cnumis &
        ,ij_dzwm,ij_dzim,ij_dzws,ij_dzis &
@@ -168,15 +169,16 @@ subroutine CONDSE
        ,airm,byam,etal,sm,smom,qm,qmom,isc,dxypij,LMCLD,hcndss &
        ,tl,ris,ri1,ri2,mcflx,sshr,dgdsm,dphase,dtotw,dqcond,dctei &
 !      ,wml,sdl,u_0,v_0,um,vm,um1,vm1,qs,us,vs,dcl,airxl,prcpss &
-       ,qcil,qcll,sdl,u_0,v_0,um,vm,um1,vm1,qs,us,vs,dcl,airxl,prcpss &
+       ,qcil,qcll,sdl,u_0,v_0,um,vm,um1,vm1,qs,us,vs,airxl,prcpss &
        ,prcpmc,pearth,ts,taumcl,cldmcl,svwmxl,svlatl,svlhxl,dgdqm &
+       ,dcl,zpbl,ppbl &
        ,cldslwij,clddepij,csizel,precnvl,vsubl,lmcmax,lmcmin,wmsum &
 !      ,aq,dpdt,th,ql,wmx,ttoldl,rh,taussl,cldssl,cldsavl,rh1,roice &
        ,aq,dpdt,th,ql,qcix,qclx,ttoldl,rh,taussl,cldssl,cldsavl,rh1 &
        ,roice &
        ,kmax,ra,pl,ple,plk,rndssl,lhp,debug,fssl,pland,cldsv1 &
        ,smommc,smomls,qmommc,qmomls,ddmflx,wturb &
-       ,tvl,w2l,gzl,savwl,savwl1,save1l,save2l &
+       ,tvl,w2l,gzl &
        ,dphashlw,dphadeep,dgshlw,dgdeep,tdnl,qdnl,prebar1 &
        ,DQMTOTAL,DQLSC &
        ,DQMSHLW,DQMDEEP,DQCTOTAL,DQCSHLW,DQCDEEP
@@ -193,17 +195,13 @@ subroutine CONDSE
 #endif
 
 #ifdef SCM
-  use SCMCOM , only : SCM_SAVE_Q,SCM_SAVE_T,SCM_DEL_Q,SCM_DEL_T, &
-       SCM_ATURB_FLAG,iu_scm_prt,NRINIT, NSTEPSCM
-  use SCMDIAG , only : WCUSCM,WCUALL,WCUDEEP,PRCCDEEP,NPRCCDEEP, &
-       MPLUMESCM,MPLUMEALL,MPLUMEDEEP,ENTSCM,ENTALL,ENTDEEP, &
-       DETRAINDEEP,TPALL,PRCSS,PRCMC,dTHmc,dqmc,dTHss,dqss, &
-       SCM_SVWMXL,isccp_sunlit,isccp_ctp,isccp_tauopt, &
-       isccp_lowcld,isccp_midcld,isccp_highcld,isccp_fq, &
-       isccp_totcldarea,isccp_boxtau,isccp_boxptop
+  use SCM_COM, only : SCMin
+  ! plume diagnostics
+  use CLOUDS, only : CUMFLX,DWNFLX,WCUALL,ENTALL,DETALL, &
+       MPLUMEALL,PLUME_MAX,PLUME_MIN
 #endif
-  use PBLCOM, only : dclev,egcm,w2gcm
-  use ATM_COM, only : pk,pek,pmid,pedn,sd_clouds,gz,ptold,pdsig,MWs, &
+  use PBLCOM, only : dclev,egcm,w2gcm,pblht,pblptop
+  use ATM_COM, only : pk,pek,pmid,pedn,gz,ptold,pdsig,MWs, &
        ua=>ualij,va=>valij,ltropo
   use DYNAMICS, only : wcpsig,dsig,sig,bydsig
   use SEAICE_COM, only : si_atm
@@ -241,6 +239,9 @@ subroutine CONDSE
       use subdd_mod, only : subdd_groups,subdd_type,subdd_ngroups, &
            inc_subdd,find_groups
 #endif
+#ifdef SCM
+  use SCM_COM, only : SCMopt
+#endif
   implicit none
 
 #ifdef TRACERS_ON
@@ -261,6 +262,31 @@ subroutine CONDSE
   real*8, dimension(LM,GRID%I_STRT_HALO:GRID%I_STOP_HALO, &
        GRID%J_STRT_HALO:GRID%J_STOP_HALO) &
        :: UASV              ! for U tendency diagnostic
+
+#ifdef SCM
+  !  moist convection plume diagnostics:
+  !  updraft mass flux, downdraft mass flux, updraft speed, entrainment rate,
+  !  detrainment rate, plume mass, plume maximum level, plume minimum level
+  !@var mc_mfu_p1,mc_mfu_p2,mc_mfd_p1,mc_mfd_p2,mc_w_p1,mc_w_p2,mc_ent_p1,
+  !     mc_ent_p2,mc_det_p1,mc_det_p2,mc_m_p1,mc_m_p2,mc_pl_max_p1,mc_pl_max_p2,
+  !     mc_pl_min_p1,mc_pl_min_p2
+    real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO, &
+            GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM,LM) &
+            :: mc_mfu_p1,mc_mfu_p2,mc_mfd_p1,mc_mfd_p2,mc_w_p1,mc_w_p2, &
+               mc_ent_p1,mc_ent_p2,mc_det_p1,mc_det_p2,mc_m_p1,mc_m_p2
+    real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO, &
+            GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) &
+            :: mc_pl_max_p1,mc_pl_max_p2, mc_pl_min_p1,mc_pl_min_p2
+    integer LMIN
+#endif
+
+#ifdef CACHED_SUBDD
+   !  isccp diagnostics   save frequency histogram for subdd diagnostics
+   !@var save_fq_isccp
+    real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO, &
+           GRID%J_STRT_HALO:GRID%J_STOP_HALO,NTAU,NPRES) &
+           :: save_fq_isccp
+#endif
 
 !@param ENTCON fractional rate of entrainment (km**-1)
   real*8,  parameter :: ENTCON = .2d0
@@ -332,14 +358,15 @@ subroutine CONDSE
   logical :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
 
 #ifdef CACHED_SUBDD
-      integer :: igrp,ngroups,grpids(subdd_ngroups)
-      type(subdd_type), pointer :: subdd
+  integer :: igrp,ngroups,grpids(subdd_ngroups)
+  type(subdd_type), pointer :: subdd
 !@var sddarr temporary array for passing reordered/derived fields
 !@+   to inc_subdd
-      real*8, dimension(grid%i_strt_halo:grid%i_stop_halo, &
-                        grid%j_strt_halo:grid%j_stop_halo) :: sddarr
-      real*8, dimension(grid%i_strt_halo:grid%i_stop_halo, &
-                        grid%j_strt_halo:grid%j_stop_halo,lm) :: sddarr3d
+  real*8, dimension(grid%i_strt_halo:grid%i_stop_halo, &
+                    grid%j_strt_halo:grid%j_stop_halo) :: sddarr
+  real*8, dimension(grid%i_strt_halo:grid%i_stop_halo, &
+                    grid%j_strt_halo:grid%j_stop_halo,lm) :: sddarr3d, &
+                    dth_mc,dq_mc,dth_ss,dq_ss
 #endif
 
   integer, parameter :: n_idx1 = 5
@@ -358,6 +385,44 @@ subroutine CONDSE
   integer :: n1,n_fidx
 #endif
 #endif
+#ifdef CACHED_SUBDD
+!@var MCPA moist convective precipitation;
+!@var LWPA cloud liquid water path
+!@var IWPA cloud ice water path
+      REAL*8, dimension(grid%i_strt_halo:grid%i_stop_halo, &
+              grid%j_strt_halo:grid%j_stop_halo) :: &
+              MCPA,LWPA,IWPA
+!@var DCNVF_IJ occurence of deep convecvtio; SCNVF_IJ for shallow.
+      REAL*8, dimension(grid%i_strt_halo:grid%i_stop_halo, &
+              grid%j_strt_halo:grid%j_stop_halo) :: &
+              DCNVF_IJ, SCNVF_IJ  ! , SDDARR
+!@var Cloud_daily
+!     1:  cdnc Large Scale
+!     2:  cdnc Large Scale screened after Ralf Bennartz
+!     3:  ctp_mc Cloup top preassure convective clouds
+!     4:
+!     5:  cdnc conv clouds
+!     6:
+!     7:  lwp
+!     8:  convective lwp
+!     9:  reff_w_mc
+!     10: reff_w_ls
+!     11: reff_i_mc
+!     12: reff_i_ls
+!     13: dzwm
+!     14: dzws
+!     15: dzim
+!     16: dzis
+      REAL*8, dimension(grid%i_strt_halo:grid%i_stop_halo, &
+              grid%j_strt_halo:grid%j_stop_halo,16) :: &
+              Cloud_daily
+!@var Cloud_daily3d
+
+      REAL*8, dimension(grid%i_strt_halo:grid%i_stop_halo, &
+              grid%j_strt_halo:grid%j_stop_halo,LM,15) :: &
+              Cloud_daily3d
+#endif
+
 #ifdef CLD_AER_CDNC
   real*8 :: cldwt,cldwtdz
 #endif
@@ -421,6 +486,19 @@ subroutine CONDSE
   SAVEN2=0.
   W500P1=0.
   ENTJ=0.
+#ifdef CACHED_SUBDD
+#ifdef SCM
+  if( SCMopt%PlumeDiag )then
+      ! plume diagnostics
+      mc_mfu_p1=0.d0; mc_mfu_p2=0.d0; mc_mfd_p1=0.d0; mc_mfd_p2=0.d0
+      mc_w_p1=0.d0; mc_w_p2=0.d0; mc_ent_p1=0.d0; mc_ent_p2=0.d0
+      mc_m_p1=0.d0; mc_m_p2=0.d0; mc_det_p1=0.d0; mc_det_p2=0.d0
+      mc_pl_max_p1=0.d0; mc_pl_max_p2=0.0; mc_pl_min_p1=0.d0; mc_pl_min_p2=0.d0
+  endif
+#endif
+      ! isccp frequency diags
+      save_fq_isccp=0.d0
+#endif
 
   call recalc_agrid_uv ! may not be necessary - check later
 
@@ -496,7 +574,7 @@ subroutine CONDSE
         do I=I_0thread,I_1thread
           GZIL(I,L) = GZ(I,J,L)
 #ifdef SCM
-          SD_CLDIL(I,L) = SD_CLOUDS(I,J,L)
+          SD_CLDIL(I,L) = SCMin%Omega(L)*AXYP(1,1)
 #else
           SD_CLDIL(I,L) = MWs(I,J,L)/DTsrc ! averaged SD
 #endif
@@ -538,7 +616,7 @@ subroutine CONDSE
         PEARTH=FEARTH(I,J)
         PLAND=FLAND(I,J)
         PWATER=1.-PLAND
-        ROICE=si_atm%RSI(I,J)
+        ROICE=si_atm%RSI(I,J)*PWATER
         TS=atmsrf%TSAVG(I,J)
         QS=atmsrf%QSAVG(I,J)
         US=atmsrf%USAVG(I,J)
@@ -546,35 +624,26 @@ subroutine CONDSE
         TGV=atmsrf%TGVAVG(I,J)
         QG=atmsrf%QGAVG(I,J)
         TSV=TS*(1+QS*DELTX)
-!!!   DCL=NINT(DCLEV(I,J))   ! prevented by openMP bug
+!!!     DCL=NINT(DCLEV(I,J))   ! prevented by openMP bug
         DCL=int(DCLEV(I,J)+.5)
+        ZPBL=PBLHT(I,J)
+        PPBL=PBLPTOP(I,J)
 #ifdef SCM
-        do LL=1,LM
-          do L=1,LM
-            WCUALL(L,1,LL)=0.
-            WCUALL(L,2,LL)=0.
-            MPLUMEALL(L,1,LL)=0.
-            MPLUMEALL(L,2,LL)=0.
-            ENTALL(L,1,LL)=0.
-            ENTALL(L,2,LL)=0.
-            DETRAINDEEP(L,1,LL) = 0.0
-            DETRAINDEEP(L,2,LL) = 0.0
-            TPALL(L,1,LL)=0.
-            TPALL(L,2,LL)=0.
-            PRCCDEEP(L,1,LL) = 0.0
-            PRCCDEEP(L,2,LL)  = 0.0
-            NPRCCDEEP(L,1,LL) = 0.0
-            NPRCCDEEP(L,2,LL) = 0.0
+        if( SCMopt%PlumeDiag )then
+        ! plume diagnostics
+          do LL=1,LM
+            do L=1,LM
+              WCUALL(L,1,LL)=0.
+              WCUALL(L,2,LL)=0.
+              MPLUMEALL(L,1,LL)=0.
+              MPLUMEALL(L,2,LL)=0.
+              ENTALL(L,1,LL)=0.
+              ENTALL(L,2,LL)=0.
+              DETALL(L,1,LL)=0.
+              DETALL(L,2,LL)=0.
+            enddo
           enddo
-        enddo
-        do L=1,LM
-          WCUDEEP(L,1) = 0.0
-          WCUDEEP(L,2) = 0.0
-          MPLUMEDEEP(L,1) = 0.0
-          MPLUMEDEEP(L,2) = 0.0
-          ENTDEEP(L,1) = 0.0
-          ENTDEEP(L,2) = 0.0
-        enddo
+        endif
 #endif
 #ifndef SCM
 #ifdef CUBED_SPHERE
@@ -596,14 +665,10 @@ subroutine CONDSE
         AIRM(:)=PDSIG(:,I,J)
         BYAM(:)=1./AIRM(:)
         WTURB(:)=sqrt(.6666667*EGCM(:,I,J))
-#ifdef SCM
-        if (SCM_ATURB_FLAG.eq.0) then
-          !****     for SCM run with DRY convection - zero out WTURB
-          WTURB(:) = 0.d0
-        else
-          !****     for SCM run with ATURB
-          WTURB(:)=sqrt(.6666667*EGCM(:,I,J))
-        endif
+#ifdef CACHED_SUBDD
+        Cloud_daily(I,J,:) = 0.d0
+        Cloud_daily3d(I,J,:,:) = 0.d0
+        Cloud_daily3d(I,J,:,13) = PL(:)
 #endif
 
         !**** other fields where L is the leading index
@@ -657,10 +722,6 @@ subroutine CONDSE
           SDL(L)=SD_CLDIL(I,L)*BYAXYP(I,J)
           TVL(L)=TL(L)*(1.+DELTX*QL(L))
           W2L(L)=W2GCM(L,I,J)
-          SAVWL(L)=0.
-          SAVWL1(L)=0.
-          SAVE1L(L)=0.
-          SAVE2L(L)=0.
           if(L.le.LM-2) &
                ETAL(L+1)=.5*ENTCON*(GZIL(I,L+2)-GZIL(I,L))*1.d-3*BYGRAV
           if(L.le.LM-2) GZL(L+1)=ETAL(L+1)/ENTCON
@@ -754,10 +815,12 @@ subroutine CONDSE
         !QCON q0 = sum(QM(:)+WML(:)*AIRM(:))*100.*BYGRAV
         !ECON  E = (sum(TL(:)*AIRM(:))*SHA + sum(QM(:))*LHE +sum(WML(:)*(LHE
         !ECON*     -SVLHXL(:))*AIRM(:)))*100.*BYGRAV
-#ifdef SCM
+
+#ifdef CACHED_SUBDD
+        !**** save initial values to calculate rates of change below
         do L=1,LM
-          dTHmc(L) = T(I,J,L)
-          dqmc(L) = Q(I,J,L)
+          dth_mc(I,J,L) = T(I,J,L)
+          dq_mc(I,J,L) = Q(I,J,L)
         enddo
 #endif
 
@@ -811,6 +874,11 @@ subroutine CONDSE
 #ifdef CLD_AER_CDNC
           AIJ(I,J,IJ_WMCLWP)=AIJ(I,J,IJ_WMCLWP)+WMCLWP
           AIJ(I,J,IJ_WMCTWP)=AIJ(I,J,IJ_WMCTWP)+WMCTWP
+#ifdef CACHED_SUBDD
+          Cloud_daily(I,J,7) = Cloud_daily(I,J,7)+ WMSUM
+          Cloud_daily(I,J,8) = WMCLWP
+          Cloud_daily(I,J,3) =  PLE(LMCMAX+1)*CLDMCL(LMCMAX)
+#endif
 #endif
           ! Also save instantaneous MC cloud top pressure for SUBDDiags:
           saveMCCLDTP(i,j)=PLE(LMCMAX+1)
@@ -894,6 +962,15 @@ subroutine CONDSE
               AIJ(I,J,IJ_3dNWM)=AIJ(I,J,IJ_3dNWM)+ACDNWM(L)*CLDWTDZ
               AIJ(I,J,IJ_3dRWM)=AIJ(I,J,IJ_3dRWM)+AREWM(L)*CLDWTDZ
               AIJ(I,J,IJ_3dLWM)=AIJ(I,J,IJ_3dLWM)+ALWWM(L)*CLDWTDZ
+#ifdef CACHED_SUBDD
+      Cloud_daily(I,J,5) =  Cloud_daily(I,J,5) + ACDNWM(L)*CLDWTDZ
+      Cloud_daily(I,J,9) = Cloud_daily(I,J,9)+AREWM(L)*CLDWTDZ
+      Cloud_daily(I,J,13) = Cloud_daily(I,J,13)+CLDWTDZ
+      Cloud_daily3d(I,J,L,2) = ACDNWM(L)*CLDWT
+      Cloud_daily3d(I,J,L,11) = CLDWT
+      Cloud_daily3d(I,J,L,4) = ALWWM(L)*CLDWT
+      Cloud_daily3d(I,J,L,7) = AREWM(L)*CLDWT
+#endif
             elseif(SVLATL(L).eq.LHS) then
               AIJL(I,J,L,IJL_CFIM)= AIJL(I,J,L,IJL_CFIM)+CLDWT
               AIJL(I,J,L,IJL_REIM)= AIJL(I,J,L,IJL_REIM)+AREIM(L)*CLDWT
@@ -903,6 +980,12 @@ subroutine CONDSE
               AIJ(I,J,IJ_3dNIM)=AIJ(I,J,IJ_3dNIM)+ACDNIM(L)*CLDWTDZ
               AIJ(I,J,IJ_3dRIM)=AIJ(I,J,IJ_3dRIM)+AREIM(L)*CLDWTDZ
               AIJ(I,J,IJ_3dLIM)=AIJ(I,J,IJ_3dLIM)+ALWIM(L)*CLDWTDZ
+#ifdef CACHED_SUBDD
+      Cloud_daily(I,J,11) =  Cloud_daily(I,J,11) + AREIM(L)*CLDWTDZ
+      Cloud_daily(I,J,15) =  Cloud_daily(I,J,15)+CLDWTDZ
+      Cloud_daily3d(I,J,l,5) = Cloud_daily3d(I,J,l,5)+ALWIM(L)*CLDWT
+      Cloud_daily3d(I,J,l,9) = AREIM(L)*CLDWT
+#endif
             endif
             if (NMCW.ge.1) then
               call inc_ajl(i,j,l,JL_CNUMWM,ACDNWM(L)*AIRM(L))
@@ -978,13 +1061,36 @@ subroutine CONDSE
           !**** level 1 downfdraft mass flux/rho (m/s)
           DDM1(I,J) = DDMFLX(1)*RGAS*TSV/(GRAV*PEDN(1,I,J)*DTSrc)
         end if
-#ifdef SCM
+
+#ifdef CACHED_SUBDD
+        ! calculate profile changes and save initial values again
         do L=1,LM
-          dTHmc(L) = T(I,J,L)-dTHmc(L)
-          dqmc(L) = Q(I,J,L)-dqmc(L)
-          dTHss(L) = T(I,J,L)
-          dqss(L) = Q(I,J,L)
+          dth_mc(I,J,L) = T(I,J,L)-dth_mc(I,J,L)
+          dq_mc(I,J,L) = Q(I,J,L)-dq_mc(I,J,L)
+          dth_ss(I,J,L) = T(I,J,L)
+          dq_ss(I,J,L) = Q(I,J,L)
         enddo
+#ifdef SCM
+        if( SCMopt%PlumeDiag )then
+        ! plume diagnostics
+          mc_mfu_p1(I,J,:,:) = CUMFLX(:,1,:)
+          mc_mfu_p2(I,J,:,:) = CUMFLX(:,2,:)
+          mc_mfd_p1(I,J,:,:) = DWNFLX(:,1,:)
+          mc_mfd_p2(I,J,:,:) = DWNFLX(:,2,:)
+          mc_w_p1(I,J,:,:) = WCUALL(:,1,:)
+          mc_w_p2(I,J,:,:) = WCUALL(:,2,:)
+          mc_ent_p1(I,J,:,:) = ENTALL(:,1,:)
+          mc_ent_p2(I,J,:,:) = ENTALL(:,2,:)
+          mc_det_p1(I,J,:,:) = DETALL(:,1,:)
+          mc_det_p2(I,J,:,:) = DETALL(:,2,:)
+          mc_m_p1(I,J,:,:) = MPLUMEALL(:,1,:)
+          mc_m_p2(I,J,:,:) = MPLUMEALL(:,2,:)
+          mc_pl_max_p1(I,J,:) = PLUME_MAX(1,:)
+          mc_pl_max_p2(I,J,:) = PLUME_MAX(2,:)
+          mc_pl_min_p1(I,J,:) = PLUME_MIN(1,:)
+          mc_pl_max_p2(I,J,:) = PLUME_MIN(2,:)
+        endif
+#endif
 #endif
 
 #ifdef TRACERS_ON
@@ -1034,9 +1140,6 @@ subroutine CONDSE
           SMOM(:,L)=SMOMLS(:,L)
           QMOM(:,L)=QMOMLS(:,L)
         end do
-#ifdef SCM
-        SCM_SVWMXL(:) = SVWMXL(:)
-#endif
 !       WMX(:)=WML(:)+SVWMXL(:)
         QCLX(:)=QCLL(:)
         QCIX(:)=QCIL(:)
@@ -1048,12 +1151,6 @@ subroutine CONDSE
          ENDIF
         END DO
         AQ(:)=(QL(:)-QTOLD(:,I,J))*BYDTsrc
-#ifdef SCM
-        if (NRINIT.ne.0) then
-          AQ(:) = ((SCM_SAVE_Q(:) &
-               +SCM_DEL_Q(:))-QTOLD(:,I,J))*BYDTsrc
-        endif
-#endif
         RNDSSL(:,1:LMCLD)=RNDSS(:,1:LMCLD,I,J)
         FSSL(:)=FSS(:,I,J)
         do L=1,LM
@@ -1142,6 +1239,9 @@ subroutine CONDSE
 
         !**** Accumulate diagnostics of LSCOND
         AIJ(I,J,IJ_WMSUM)=AIJ(I,J,IJ_WMSUM)+WMSUM
+#ifdef CACHED_SUBDD
+      Cloud_daily(I,J,7) = Cloud_daily(I,J,7) + WMSUM
+#endif
         do IT=1,NTYPE
           call INC_AJ(I,J,IT,J_PRCPSS,PRCPSS*FTYPE(IT,I,J))
         end do
@@ -1210,6 +1310,12 @@ subroutine CONDSE
           end do
         end if
 
+!**** LS condensation & evaporation diagnostics
+!!    AIJ(I,J,IJ_CONDLS)=AIJ(I,J,IJ_CONDLS) &
+!!           +SUM(CONDLS_SAVE(:))*100.*BYGRAV
+!!    AIJ(I,J,IJ_EVAPLS)=AIJ(I,J,IJ_EVAPLS) &
+!!           +SUM(EVAPLS_SAVE(:))*100.*BYGRAV
+
         !**** cloud water diagnostics
         WM1=0  ; WMI=0
         do L=1,LMCLD
@@ -1248,6 +1354,17 @@ subroutine CONDSE
 #endif
         !**** Calculate ISCCP cloud diagnostics if required
         if (isccp_diags.eq.1) then
+          fq_isccp = 0.d0
+          ctp(1) = 0.d0
+          tauopt(1) = 0.d0
+          boxtau = 0.d0
+          boxptop = 0.d0
+          saveCTPI(i,j)=0.d0
+          saveTAUI(i,j)=0.d0
+          saveLCLDI(i,j)=0.d0
+          saveMCLDI(i,j)=0.d0
+          saveHCLDI(i,j)=0.d0
+
           do l=1,lm
             cc(l)=cldmcl(LM+1-L)+cldssl(LM+1-L)
             if(cc(l) .gt. 1.) then
@@ -1314,24 +1431,15 @@ subroutine CONDSE
             saveLCLDI(i,j)=sum(fq_isccp(2:ntau,6:7)) ! saving just the
             saveMCLDI(i,j)=sum(fq_isccp(2:ntau,4:5)) ! current value for
             saveHCLDI(i,j)=sum(fq_isccp(2:ntau,1:3)) ! instant. SUBDDiags
+#ifdef CACHED_SUBDD
+            save_fq_isccp(i,j,:,:) = fq_isccp(:,:)
+#endif
             !**** Save area weighted isccp histograms
             n=isccp_reg2d(i,j)
             if (n.gt.0) AISCCP(:,:,n) = AISCCP(:,:,n) + &
                  fq_isccp(:,:)*axyp(i,j)
           end if
         end if
-        !     save isccp diagnostics for SCM
-#ifdef SCM
-        isccp_sunlit = sunlit
-        isccp_ctp = ctp(1)
-        isccp_tauopt = tauopt(1)
-        isccp_lowcld = sum(fq_isccp(2:ntau,6:7))
-        isccp_midcld = sum(fq_isccp(2:ntau,4:5))
-        isccp_highcld = sum(fq_isccp(2:ntau,1:3))
-        isccp_fq(:,:) = fq_isccp(:,:)
-        isccp_boxtau = boxtau
-        isccp_boxptop = boxptop
-#endif
 
         !**** Peak static stability diagnostic
         SSTAB=-1.d30
@@ -1388,11 +1496,6 @@ subroutine CONDSE
         !**** accumulate precip specially for SUBDD
         P_acc(I,J)=P_acc(I,J)+PRCP
         PM_acc(I,J)=PM_acc(I,J)+PRCP-PRECSS(I,J)
-#ifdef SCM
-        !**** save total precip for time step (in mm/hr) for SCM
-        PRCSS = PRECSS(I,J)*(SECONDS_PER_HOUR/DTsrc)
-        PRCMC = (PREC(I,J)-PRECSS(I,J))*(SECONDS_PER_HOUR/DTsrc)
-#endif
 
 #ifdef INTERACTIVE_WETLANDS_CH4
         !**** update running-average of precipitation (in mm/day):
@@ -1453,10 +1556,12 @@ subroutine CONDSE
             end do
           end if
         enddo
-#ifdef SCM
+
+#ifdef CACHED_SUBDD
+        !**** calculate change
         do L=1,LM
-          dTHss(L) = T(I,J,L) - dTHss(L)
-          dqss(L) = Q(I,J,L) - dqss(L)
+          dth_ss(I,J,L) = T(I,J,L)-dth_ss(I,J,L)
+          dq_ss(I,J,L) = Q(I,J,L)-dq_ss(I,J,L)
         enddo
 #endif
 
@@ -1477,10 +1582,26 @@ subroutine CONDSE
             AIJL(I,J,L,IJL_CDTOMAS)= AIJL(I,J,L,IJL_CDTOMAS)+CDNC_TOMAS(L)*CLDWT
 #endif
             AIJL(I,J,L,IJL_CWWS)= AIJL(I,J,L,IJL_CWWS)+ALWWS(L)*CLDWT
+! standard cdnc
             AIJ(I,J,IJ_DZWS)=AIJ(I,J,IJ_DZWS)+CLDWTDZ
             AIJ(I,J,IJ_3dNWS)=AIJ(I,J,IJ_3dNWS)+ACDNWS(L)*CLDWTDZ
+! screened dcnc
+!!          AIJ(I,J,IJ_3dNWSS)=AIJ(I,J,IJ_3dNWSS)+ACDNWSS(L)*CLDWTDZ
+!
             AIJ(I,J,IJ_3dRWS)=AIJ(I,J,IJ_3dRWS)+AREWS(L)*CLDWTDZ
             AIJ(I,J,IJ_3dLWS)=AIJ(I,J,IJ_3dLWS)+ALWWS(L)*CLDWTDZ
+#ifdef CACHED_SUBDD
+      Cloud_daily(I,J,1) =  Cloud_daily(I,J,1)+ACDNWS(L)*CLDWTDZ
+      Cloud_daily(I,J,2) =  Cloud_daily(I,J,2)+ACDNWSS(L)*CLDWTDZ
+
+      Cloud_daily(I,J,10) = Cloud_daily(I,J,10) +AREWS(L)*CLDWTDZ
+      Cloud_daily(I,J,14) = Cloud_daily(I,J,14) +CLDWTDZ
+
+      Cloud_daily3d(i,j,l,1) = ACDNWS(L)*CLDWT
+      Cloud_daily3d(i,j,l,12) = CLDWT
+      Cloud_daily3d(i,j,l,3) = ALWWS(L)*CLDWT
+      Cloud_daily3d(i,j,l,8) = AREWS(L)*CLDWT
+#endif
           elseif(SVLHXL(L).eq.LHS) then
             AIJL(I,J,L,IJL_CFIS)= AIJL(I,J,L,IJL_CFIS)+CLDWT
             AIJL(I,J,L,IJL_REIS)= AIJL(I,J,L,IJL_REIS)+AREIS(L)*CLDWT
@@ -1490,6 +1611,13 @@ subroutine CONDSE
             AIJ(I,J,IJ_3dNIS)=AIJ(I,J,IJ_3dNIS)+ACDNIS(L)*CLDWTDZ
             AIJ(I,J,IJ_3dRIS)=AIJ(I,J,IJ_3dRIS)+AREIS(L)*CLDWTDZ
             AIJ(I,J,IJ_3dLIS)=AIJ(I,J,IJ_3dLIS)+ALWIS(L)*CLDWTDZ
+#ifdef CACHED_SUBDD
+      Cloud_daily(I,J,12) = Cloud_daily(I,J,12) +AREIS(L)*CLDWTDZ
+      Cloud_daily(I,J,16) = Cloud_daily(I,J,16) +CLDWTDZ
+
+      Cloud_daily3d(I,J,l,5) = Cloud_daily3d(I,J,l,5)+ALWIS(L)*CLDWT
+      Cloud_daily3d(I,J,l,10) = AREIS(L)*CLDWT
+#endif
           endif
           if (NLSW.ge.1) then
             call inc_ajl(i,j,l,JL_CNUMWS,ACDNWS(L)*AIRM(L))
@@ -1817,38 +1945,134 @@ subroutine CONDSE
 !****
 !**** Collect some high-frequency outputs
 !****
-      call find_groups('aijh',grpids,ngroups)
-      do igrp=1,ngroups
-      subdd => subdd_groups(grpids(igrp))
-      do k=1,subdd%ndiags
-      select case (subdd%name(k))
-      case ('prec')
-        call inc_subdd(subdd,k,prec)
-      case ('snowfall')
-        do j=j_0,j_1; do i=i_0,imaxj(j)
-          if(eprec(i,j).ge.0.) then
-            sddarr(i,j) = 0.
-          else
-            sddarr(i,j) = prec(i,j)
-          endif
-        enddo;        enddo
-        call inc_subdd(subdd,k,sddarr)
-      end select
-      enddo
-      enddo
+  call find_groups('aijh',grpids,ngroups)
+  do igrp=1,ngroups
+  subdd => subdd_groups(grpids(igrp))
+  do k=1,subdd%ndiags
+  select case (subdd%name(k))
+  case ('prec')
+    call inc_subdd(subdd,k,prec)
+  case ('snowfall')
+    do j=j_0,j_1; do i=i_0,imaxj(j)
+      if(eprec(i,j).ge.0.) then
+        sddarr(i,j) = 0.
+      else
+        sddarr(i,j) = prec(i,j)
+      endif
+    enddo;        enddo
+    call inc_subdd(subdd,k,sddarr)
+  end select
+  enddo
+  enddo
 
-      call find_groups('aijlh',grpids,ngroups)
-      do igrp=1,ngroups
-      subdd => subdd_groups(grpids(igrp))
-      do k=1,subdd%ndiags
-      select case (subdd%name(k))
-      case ('qcl')
-        call inc_subdd(subdd,k,qcl)
-      case ('qci')
-        call inc_subdd(subdd,k,qci)
-      end select
-      enddo
-      enddo
+  call find_groups('aijlh',grpids,ngroups)
+  do igrp=1,ngroups
+  subdd => subdd_groups(grpids(igrp))
+  do k=1,subdd%ndiags
+  select case (subdd%name(k))
+  case ('qcl')
+    call inc_subdd(subdd,k,qcl)
+  case ('qci')
+    call inc_subdd(subdd,k,qci)
+  case ('cldss')
+    call inc_subdd(subdd,k,cldss,jdim=3)
+  case ('cldmc')
+    call inc_subdd(subdd,k,cldmc,jdim=3)
+  end select
+  enddo
+  enddo
+
+  call find_groups('cijh',grpids,ngroups)
+  do igrp=1,ngroups
+  subdd => subdd_groups(grpids(igrp))
+  do k=1,subdd%ndiags
+  select case (subdd%name(k))
+  case ('isccp_sunlit')
+    call inc_subdd(subdd,k,saveSCLDI)
+  case ('isccp_ctp')
+    call inc_subdd(subdd,k,saveCTPI)
+  case ('isccp_tau')
+    call inc_subdd(subdd,k,saveTAUI)
+  case ('isccp_lcld')
+    call inc_subdd(subdd,k,saveLCLDI)
+  case ('isccp_mcld')
+    call inc_subdd(subdd,k,saveMCLDI)
+  case ('isccp_hcld')
+    call inc_subdd(subdd,k,saveHCLDI)
+  end select
+  enddo
+  enddo
+
+  call find_groups('cijlh',grpids,ngroups)
+  do igrp=1,ngroups
+  subdd => subdd_groups(grpids(igrp))
+  do k=1,subdd%ndiags
+  select case (subdd%name(k))
+  case ('tau_ss')
+    do j=j_0,j_1; do i=i_0,i_1; do l=1,lm
+      sddarr3d(i,j,l) = tauss(l,i,j)
+    enddo;        enddo;        enddo
+    call inc_subdd(subdd,k,sddarr3d)
+  case ('tau_mc')
+    do j=j_0,j_1; do i=i_0,i_1; do l=1,lm
+      sddarr3d(i,j,l) = taumc(l,i,j)
+    enddo;        enddo;        enddo
+    call inc_subdd(subdd,k,sddarr3d)
+  case ('dq_mc')
+    call inc_subdd(subdd,k,dq_mc)
+  case ('dth_mc')
+    call inc_subdd(subdd,k,dth_mc)
+  case ('dq_ss')
+    call inc_subdd(subdd,k,dq_ss)
+  case ('dth_ss')
+    call inc_subdd(subdd,k,dth_ss)
+  end select
+  enddo
+  enddo
+
+  if (isccp_diags.eq.1) then
+      call inc_subdd('isccp_fq',save_fq_isccp,1,.true.,units='fraction', &
+           long_name='Cld Fct by ISCCP CldTypes',dim3name='ntau',dim4name='npres')
+  endif
+
+#ifdef SCM
+  if( SCMopt%PlumeDiag )then
+  ! plume diagnostics
+    call inc_subdd('mc_mfu_p1',mc_mfu_p1,1,.true.,units='kg/m2/s', &
+         long_name='Plume 1 mass flux',dim3name='level',dim4name='base_level')
+    call inc_subdd('mc_mfu_p2',mc_mfu_p2,1,.true.,units='kg/m2/s', &
+         long_name='Plume 2 mass flux',dim3name='level',dim4name='base_level')
+    call inc_subdd('mc_mfd_p1',mc_mfd_p1,1,.true.,units='kg/m2/s', &
+         long_name='Plume 1 downdraft mass flux',dim3name='level',dim4name='base_level')
+    call inc_subdd('mc_mfd_p2',mc_mfd_p2,1,.true.,units='kg/m2/s', &
+         long_name='Plume 2 downdraft mass flux',dim3name='level',dim4name='base_level')
+    call inc_subdd('mc_w_p1',mc_w_p1,1,.true.,units='m/s', &
+         long_name='Plume 1 updraft speed',dim3name='level',dim4name='base_level')
+    call inc_subdd('mc_w_p2',mc_w_p2,1,.true.,units='m/s', &
+         long_name='Plume 2 udraft speed',dim3name='level',dim4name='base_level')
+    call inc_subdd('mc_ent_p1',mc_ent_p1,1,.true.,units='%/km', &
+         long_name='Plume 1 entrainment rate',dim3name='level',dim4name='base_level')
+    call inc_subdd('mc_ent_p2',mc_ent_p2,1,.true.,units='%/km', &
+         long_name='Plume 2 entrainment rate',dim3name='level',dim4name='base_level')
+    call inc_subdd('mc_det_p1',mc_det_p1,1,.true.,units='%/km', &
+         long_name='Plume 1 detrainment rate',dim3name='level',dim4name='base_level')
+    call inc_subdd('mc_det_p2',mc_det_p2,1,.true.,units='%/km', &
+         long_name='Plume 2 detrainment rate',dim3name='level',dim4name='base_level')
+    call inc_subdd('mc_m_p1',mc_m_p1,1,.true.,units='mb', &
+         long_name='Plume 1 mass',dim3name='level',dim4name='base_level')
+    call inc_subdd('mc_m_p2',mc_m_p2,1,.true.,units='mb', &
+         long_name='Plume 2 mass',dim3name='level',dim4name='base_level')
+    call inc_subdd('mc_pl_max_p1',mc_pl_max_p1,1,.true.,units='mb', &
+         long_name='Plume 1 maximum level',dim3name='base_level')
+    call inc_subdd('mc_pl_max_p2',mc_pl_max_p2,1,.true.,units='mb', &
+         long_name='Plume 2 maximum level',dim3name='base_level')
+    call inc_subdd('mc_pl_min_p1',mc_pl_min_p1,1,.true.,units='mb', &
+         long_name='Plume 1 minimum level',dim3name='base_level')
+    call inc_subdd('mc_pl_min_p2',mc_pl_min_p2,1,.true.,units='mb', &
+         long_name='Plume 2 minimum level',dim3name='base_level')
+  endif
+#endif
+
 #endif
 
   call stopTimer('CONDSE()')
@@ -2365,3 +2589,132 @@ contains
   end subroutine moist_adiabat_tq
 
 end subroutine qmom_topo_adjustments
+
+#ifdef CACHED_SUBDD
+  subroutine cijh_defs(arr,nmax,decl_count)
+  !
+  ! 2D outputs
+  !
+  use subdd_mod, only : info_type
+  ! info_type_ is a homemade structure constructor for older compilers
+  use subdd_mod, only : info_type_
+  implicit none
+  integer :: nmax,decl_count
+  type(info_type) :: arr(nmax)
+  !
+  ! note: next() is a locally declared function to increment decl_count
+  !
+
+  decl_count = 0
+
+  arr(next()) = info_type_( &
+    sname = 'isccp_sunlit', &
+    lname = 'Flag for Day (1) or Night (0)', &
+    units = '-' &
+       )
+
+  arr(next()) = info_type_( &
+    sname = 'isccp_ctp', &
+    lname = 'Mean Cloud Top Pressure', &
+    units = 'mb' &
+       )
+
+  arr(next()) = info_type_( &
+    sname = 'isccp_tau', &
+    lname = 'Mean Optical Thickness', &
+    units = '-' &
+       )
+
+ arr(next()) = info_type_( &
+    sname = 'isccp_lcld', &
+    lname = 'Low Cloud Fraction', &
+    units = 'fraction' &
+       )
+
+ arr(next()) = info_type_( &
+    sname = 'isccp_mcld', &
+    lname = 'Mid Level Cloud Fraction', &
+    units = 'fraction' &
+       )
+
+ arr(next()) = info_type_( &
+    sname = 'isccp_hcld', &
+    lname = 'High Cloud Fraction', &
+    units = 'fraction' &
+       )
+
+      return
+      contains
+      integer function next()
+      decl_count = decl_count + 1
+      next = decl_count
+      end function next
+      end subroutine cijh_defs
+
+  subroutine cijlh_defs(arr,nmax,decl_count)
+  !
+  ! 3D outputs
+  !
+  use subdd_mod, only : info_type
+  ! info_type_ is a homemade structure constructor for older compilers
+  use subdd_mod, only : info_type_
+  use constant, only: kapa
+  use TimeConstants_mod, only: SECONDS_PER_DAY
+  use MODEL_COM, only : dtsrc
+  implicit none
+  integer :: nmax,decl_count
+  type(info_type) :: arr(nmax)
+  !
+  ! note: next() is a locally declared function to increment decl_count
+  !
+  decl_count = 0
+
+  arr(next()) = info_type_( &
+    sname = 'tau_ss', &
+    lname = 'optical depth of stratiform cloud', &
+    units = '-' &
+       )
+
+  arr(next()) = info_type_( &
+    sname = 'tau_mc', &
+    lname = 'optical depth of convective cloud', &
+    units = '-' &
+       )
+
+  arr(next()) = info_type_( &
+    sname = 'dq_mc', &
+    lname = 'moisture tendency from moist convection', &
+    units = 'kg/kg/day', &
+    scale = SECONDS_PER_DAY/dtsrc &
+       )
+
+  arr(next()) = info_type_( &
+    sname = 'dth_mc', &
+    lname = 'theta tendency from moist convection', &
+    units = 'K/day', &
+    scale = 1000.**kapa*SECONDS_PER_DAY/dtsrc &
+       )
+
+  arr(next()) = info_type_( &
+    sname = 'dq_ss', &
+    lname = 'moisture tendency from stratiform cloud', &
+    units = 'kg/kg/day', &
+    scale = SECONDS_PER_DAY/dtsrc &
+       )
+
+  arr(next()) = info_type_( &
+    sname = 'dth_ss', &
+    lname = 'theta tendency from stratiform cloud', &
+    units = 'K/day', &
+    scale = 1000.**kapa*SECONDS_PER_DAY/dtsrc &
+       )
+
+  return
+  contains
+  integer function next()
+  decl_count = decl_count + 1
+  next = decl_count
+  end function next
+  end subroutine cijlh_defs
+#endif
+

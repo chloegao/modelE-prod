@@ -4,14 +4,14 @@ include([m4Iteration.m4])dnl
 define([downcase], [translit([$*], [A-Z], [a-z])])dnl
 
 define([m4_KIND_TYPES],
- [(Integer,,1,),
-  (Integer,,0,),
-  (Logical,,1,),
-  (Logical,,0,),
-  (Real,(kind=DP),1,RealDP),
-  (Real,(kind=DP),0,RealDP),
-  (Character,(len=MAX_LEN_ATTRIBUTE_STRING),1,String),
-  (Character,(len=MAX_LEN_ATTRIBUTE_STRING),0,String)])dnl
+ [(integer,,0,),
+  (integer,,1,),
+  (logical,,0,),
+  (logical,,1,),
+  (real,(kind=DP),0,RealDP),
+  (real,(kind=DP),1,RealDP),
+  (character,(len=MAX_LEN_ATTRIBUTE_STRING),0,String),
+  (character,(len=MAX_LEN_ATTRIBUTE_STRING),1,String)])dnl
 
 define([m4_type], [$1])dnl
 define([m4_kind], [$2])dnl
@@ -25,6 +25,8 @@ define([m4_AttributeModule],
 [
 module m4_attributeType($1,$2,$3,$4)_mod
   use AbstractAttribute_mod
+  use AttributeReference_mod
+  ifelse($3,1,use m4_attributeType($1,$2,0,$4)_mod)
   implicit none
   private
 
@@ -32,9 +34,9 @@ module m4_attributeType($1,$2,$3,$4)_mod
 
   public :: TYPE
   public :: newAttribute
-  public :: assignment(=)
-  ifelse($3,0,public :: toTypeVector)
   public :: toType
+  public :: toPointer
+  public :: assignment(=)
 
   type, extends(AbstractAttribute) :: TYPE
     ifelse($3,0,
@@ -55,68 +57,63 @@ module m4_attributeType($1,$2,$3,$4)_mod
   end interface
 
   interface assignment(=)
-    module procedure toType
-    module procedure toTypeUnwrap
-    ifelse($3,0,module procedure toTypeVector)
+     module procedure toType_
   end interface
+
+  interface toType
+     module procedure toType_
+  end interface
+
+  interface toPointer
+     module procedure toPointerType
+  end interface toPointer
 
 contains
 
   function constructor(value) result(entry)
     type (TYPE) :: entry
-    downcase($1)[]ifelse($1,Character,(len=*),$2), intent(in) :: value m4_dimensions($3)
+    downcase($1)[]ifelse($1,character,(len=*),$2), intent(in) :: value m4_dimensions($3)
     ifelse($3,0,,allocate(entry%value m4_shape($3,value)))
+
     entry%value = value
+
   end function constructor
 
-  subroutine toType(value, entry)
-    downcase($1)[]$2, pointer, intent(inout) :: value m4_dimensions($3)
+  subroutine toType_(value, entry)
+     downcase($1)[]$2 ifelse($3,1,[,] allocatable), intent(inout) :: value m4_dimensions($3)
+    class (AbstractAttribute), intent(in) :: entry
+
+    integer :: i
+
+    select type (entry)
+    type is (TYPE)
+       value = entry%value
+ifelse($3,1,
+[
+    type is (VectorAttribute)
+       allocate(value(entry%size()))
+       do i = 1, entry%size()
+          value(i) = entry%items(i)%ptr
+       end do
+])
+    class default
+      call throwException('Illegal conversion of m4_attributeType($1,$2,$3,$4).',255)
+    end select
+  end subroutine toType_
+
+  function toPointerType(entry, cast) result(ptr)
+    downcase($1)[]$2, pointer :: ptr m4_dimensions($3)
     class (AbstractAttribute), target, intent(in) :: entry
+    downcase($1)[]$2 :: cast m4_dimensions($3)
 
     select type (q => entry)
     type is (m4_attributeType($1,$2,$3,$4))
-      value => q%value
+       ptr => q%value
     class default
-!!$      call entry%print()
-      call throwException('Illegal conversion of m4_attributeType($1,$2,$3,$4).',255)
+      call throwException('Illegal association of m4_attributeType($1,$2,$3,$4).',255)
     end select
-  end subroutine toType
+  end function toPointerType
 
-  subroutine toTypeUnwrap(value, reference)
-    use AttributeReference_mod
-    downcase($1)[]$2, pointer, intent(inout) :: value m4_dimensions($3)
-    type (AttributeReference), intent(in) :: reference
-
-    class (AbstractAttribute), pointer :: p
-
-    p => reference%get()
-    value = p
-
-  end subroutine toTypeUnwrap
-
-ifelse($3,0,
-[  subroutine toTypeVector(value, references)
-    use AttributeReference_mod
-    downcase($1)[]$2, pointer, intent(inout) :: value(:)
-    type (AttributeReference), intent(in) :: references(:)
-
-!!$    class (AbstractAttribute), pointer :: p
-    downcase($1)[]$2, pointer :: q
-    integer :: i, n
-
-    n = size(references)
-    allocate(value(n))
-    allocate(q)
-    do i = 1, n
-!!$      p => references(i)%get()
-      q = references(i)%get()
-      value(i) = q
-    end do
-    nullify(q)
-
-  end subroutine toTypeVector
-]
-)
 
   logical function equals(this, b)
     class (m4_attributeType($1,$2,$3,$4)), intent(in) :: this
@@ -124,7 +121,7 @@ ifelse($3,0,
 
     select type (p => b)
     class is (m4_attributeType($1,$2,$3,$4))
-      if (ifelse($3,0,,all)(this%value ifelse($1,Logical,.eqv.,==) p%value)) then
+      if (ifelse($3,0,,all)(this%value ifelse($1,logical,.eqv.,==) p%value)) then
         equals = .true.
       else
         equals = .false.
@@ -227,6 +224,9 @@ module Attributes_mod
 foreachq([case],[m4_KIND_TYPES],[  use _cat([m4_attributeType],case)_mod
 ])dnl
   implicit none
+
   public :: assignment(=)
+  public :: toPointer
+  public :: toType
 
 end module Attributes_mod  

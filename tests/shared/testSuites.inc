@@ -4,7 +4,6 @@ ADD_TEST_SUITE(Test_GenericType_mod_suite)
 ADD_TEST_SUITE(Test_Geometry_mod_suite)
 ADD_TEST_SUITE(Test_KeyValuePair_mod_suite)
 ADD_TEST_SUITE(Test_Random_mod_suite)
-ADD_TEST_SUITE(Test_Parser_mod_suite)
 ADD_TEST_SUITE(Test_HashMap_mod_suite)
 ADD_TEST_SUITE(Test_HashMapIterator_mod_suite)
 ADD_TEST_SUITE(Test_AttributeDictionary_mod_suite)
@@ -19,5 +18,5 @@ ADD_TEST_SUITE(Test_CalendarDateHashMap_mod_suite)
 ADD_TEST_SUITE(Test_JulianCalendar_mod_suite)
 
 ADD_TEST_SUITE(Test_OrbitUtilities_mod_suite)
-
+ADD_TEST_SUITE(Test_Parser_mod_suite)
 

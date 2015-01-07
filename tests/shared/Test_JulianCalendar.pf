@@ -6,7 +6,6 @@ module Test_JulianCalendar_mod
   use BaseTime_mod
   use TimeInterval_mod
   use Time_mod, only: Time, newTime
-  use TimeConstants_mod
   implicit none
 
 contains
@@ -81,7 +80,6 @@ contains
      @assertEqual(365, calendar%getDaysInYear(t))
    end subroutine testDaysInYear
 
-
 @test
    subroutine testGetDaysInMonth()
      type (JulianCalendar) :: calendar
@@ -93,26 +91,26 @@ contains
 
    end subroutine testGetDaysInMonth
 
-
 @test
    subroutine testGetSecondsPerHour()
+     use TimeConstants_mod, only: INT_SECONDS_PER_HOUR
      type (JulianCalendar) :: calendar
      type (TimeInterval) :: expected
 
      calendar = JulianCalendar()
-     expected = TimeInterval(SECONDS_PER_HOUR)
-     
+     expected = TimeInterval(INT_SECONDS_PER_HOUR)
      @assertTrue(calendar%getSecondsPerHour() == expected)
 
    end subroutine testGetSecondsPerHour
 
 @test
    subroutine testGetSecondsPerDay()
+     use TimeConstants_mod, only: INT_SECONDS_PER_DAY
      type (JulianCalendar) :: calendar
      type (TimeInterval) :: expected
 
      calendar = JulianCalendar()
-     expected = TimeInterval(SECONDS_PER_DAY)
+     expected = TimeInterval(INT_SECONDS_PER_DAY)
 
      @assertTrue(calendar%getSecondsPerDay() == expected)
 
@@ -120,11 +118,12 @@ contains
 
 @test
    subroutine testGetSecondsPerYear()
+     use TimeConstants_mod, only: INT_SECONDS_PER_YEAR
      type (JulianCalendar) :: calendar
      type (TimeInterval) :: expected
 
      calendar = JulianCalendar()
-     expected = TimeInterval(SECONDS_PER_YEAR)
+     expected = TimeInterval(INT_SECONDS_PER_YEAR)
 
      @assertTrue(calendar%getSecondsInYear() == expected)
 

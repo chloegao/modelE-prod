@@ -18,9 +18,7 @@ contains
 
   subroutine setUp(this)
     class (Test_AssociativeArray), intent(inout) :: this
-
     this%dictionary = newFooAssociativeArray()
-
   end subroutine setUp
 
   subroutine tearDown(this)
@@ -76,8 +74,10 @@ contains
   subroutine testGetReference_notFound(this)
     class (Test_AssociativeArray), intent(inout) :: this
     class (Foo), pointer :: p
+!    type (AbstractAttributeReference) :: attrRef
 
     call this%dictionary%insert('A', Foo(1))
+!    attrRef = this%dictionary%getReference('B')
     p => this%dictionary%getReference('B')
     @assertTrue(.not. associated(p))
 

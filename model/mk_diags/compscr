@@ -1,9 +1,20 @@
 fc="your_fortran_compiler_name" # e.g. ifort
-fcopts=""
-fccmd="${fc} ${fcopts}"
-nchome="directory_with_netcdf"
-nclib="-L${nchome}/lib -lnetcdf"
-ncinc="-I${nchome}/include"
+#fcopts=""
+#fccmd="${fc} ${fcopts}"
+#nchome="directory_with_netcdf"
+#nclib="-L${nchome}/lib -lnetcdf"
+#ncinc="-I${nchome}/include"
+
+fccmd=$1
+nclib=$2
+ncinc=""
+
+echo "executing compscr with arguments:"
+echo
+echo "fccmd= $fccmd"
+echo
+echo "nclib= $nclib"
+echo
 
 #
 # Loop over diagnostics categories and compile each Fortran print

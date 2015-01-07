@@ -51,7 +51,7 @@ C**** Command line options
       character(len=80) :: filenm
 
       REAL*8, DIMENSION(NTIMEMAX) :: PERCENT
-      REAL*8, DIMENSION(0:NTIMEMAX) ::TIMING_glob
+      REAL*8, DIMENSION(0:NTIMEMAX) ::TIMING_glob = 0.
       REAL*8 start,now, DTIME,TOTALT
 
       CHARACTER aDATE*14

@@ -101,7 +101,7 @@ module CLOUDS_COM
 #endif
 
 contains
-  subroutine get_cld_overlap (lmax, cldssl, cldmcl, CldTot, RandSS)
+  subroutine get_cld_overlap (lmax, cldssl, cldmcl, CldTot, CldSS, CldMC, RandSS)
 !@sum Defines the cloud overlap type and either adjusts the random numbers
 !@+    accordingly and/or finds the probability for the total cloud cover
 !@auth R.Ruedy
@@ -109,6 +109,10 @@ contains
   real*8,           intent(in)    :: cldssl(lmax)
   real*8, optional, intent(in)    :: cldmcl(lmax)
   real*8, optional, intent(out)   :: CldTot
+!@var CldSS stratiform cloud cover
+  real*8, optional, intent(out)   :: CldSS
+!@var CldMC convective cloud cover
+  real*8, optional, intent(out)   :: CldMC
   real*8, optional, intent(inout) :: RandSS(lmax)
   integer L
   logical same_cloud
@@ -141,7 +145,7 @@ contains
         end if
      end do
    end if
-   if (.not.present(CldTot)) return
+   if (.not.(present(CldTot).or.present(CldMC).or.present(CldSS))) return
 
    same_cloud = .false. ; clearss=1. ; clearss_part=1. ; clearmc=1.
    do L=1,lmax
@@ -156,21 +160,24 @@ contains
       end if
    end do
    clearss = clearss * clearss_part                 
+   if( present(CldSS) ) CldSS = 1.-clearss
 
 !! Treat convective clouds as a single cloud with max. overlap
 !! (using the same random number for the whole column)
 
-   clearmc = 1.
-   do l=1,lmax
-      clearmc = min (clearmc, 1. - cldmcl(l))
-   end do
-   if (clearmc < 0) clearmc = 0.
+   if( present(cldmcl) )then
+     do l=1,lmax
+        clearmc = min (clearmc, 1. - cldmcl(l))
+     end do
+     if (clearmc < 0) clearmc = 0.
+     if( present(CldMC) ) CldMC = 1.-clearmc
+   endif
 
- !! Use random overlap for MC and SS cloud
-    CldTot = 1 - clearss*clearmc
-    return
+!! Use random overlap for MC and SS cloud
+   if( present(CldTot) ) CldTot = 1 - clearss*clearmc
+   return
 
-    end subroutine get_cld_overlap
+   end subroutine get_cld_overlap
 
 end module CLOUDS_COM
 

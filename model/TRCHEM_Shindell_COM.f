@@ -320,7 +320,6 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var MODPHOT if MODPHOT=0 do photolysis, else skip it
 !@var TX temperature variable for master chem
 !@var ta, pres local arrays to hold temperature,pressure
-!@var RFASTJ humidity profile used to choose scattering input for FASTJ2
 !@var FASTJLAT,FASTJLON latitude & LONGITUDE (degrees) for use in fastj
 !@var sulfate N2O5 sulfate sink (formerly SRC(I,J,L,20) variable)   
 !@var dms_offline DMS concentration for HOx sink reactions
@@ -389,8 +388,7 @@ C**************  Not Latitude-Dependant ****************************
       REAL*8, DIMENSION(n_rx,LM)       :: rr
       REAL*8, DIMENSION(n_bi)          :: pe, ea
       REAL*8, DIMENSION(n_tri)         :: ro, r1, sn, sb
-      REAL*8, DIMENSION(LM)            :: odtmp,ta,pres,Jacet,
-     &                                    RFASTJ
+      REAL*8, DIMENSION(LM)            :: odtmp,ta,pres,Jacet
       REAL*8, DIMENSION(p_2,LM)        :: chemrate, photrate
       REAL*8, DIMENSION(ny,LM)         :: dest, prod
       REAL*8, DIMENSION(LCOalt)        :: COICINL,OxICINL,CH4ICINL

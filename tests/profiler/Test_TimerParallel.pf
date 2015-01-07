@@ -4,15 +4,20 @@ module Test_TimerParallel_mod
    implicit none
    private
 
-   public :: test_gather
+   public :: Test_TimerParallel
 
+@TestCase
+  type, extends(MpiTestCase) :: Test_TimerParallel
+  end type Test_TimerParallel
+
+   public :: test_gather
    integer, parameter :: dp = selected_real_kind(14)
 
 contains
 
 @mpiTest(npes=[2,3], ifdef=USE_MPI)
    subroutine test_gather(this)
-      class (MpiTestMethod) :: this
+    class (Test_TimerParallel), intent(inout) :: this
       type (Timer_type) :: localTimer
       type (Timer_type) :: globalTimer
       character(len=200) :: report, expected

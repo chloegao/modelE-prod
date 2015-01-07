@@ -35,8 +35,7 @@ C****
       USE MODEL_COM, only : dtsrc,idacc,nday,itime,qcheck
       use TimeConstants_mod, only: INT_HOURS_PER_DAY
 #ifdef SCM
-      USE SCMDIAG, only : EVPFLX,SHFLX
-      USE SCMCOM, only : iu_scm_prt, ALH, ASH, SCM_SURFACE_FLAG
+      USE SCM_COM, only : SCMopt,SCMin
 #endif
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, GLOBALSUM
       USE GEOM, only : axyp,imaxj,byaxyp
@@ -113,6 +112,12 @@ C****
       USE TimerList_mod, only: stopTimer => stop
       USE itype_enum     ! Surface Type enumeration: ITYPE_OCEAN, etc.
 
+#ifdef CACHED_SUBDD
+      use subdd_mod, only : subdd_groups,subdd_ngroups,subdd_type
+     &     ,inc_subdd,find_groups
+      use resolution, only : lm
+#endif
+
       IMPLICIT NONE
 
       ! ----------- For Debugging
@@ -151,7 +156,7 @@ C****
       REAL*8 QSAT,DQSATDT,TR4
 c**** input/output for PBL
       type (t_pbl_args) pbl_args
-      real*8 qg_sat,dtsurf,uocean,vocean,qsrf,us,vs,ws,ws0,
+      real*8 qg_sat,dtsurf,uocean,vocean,qsrf,us,vs,ws,ws0,gusti,
      &     dmua_ij,dmva_ij
 c
       logical :: lim_lake_evap,lim_dew ! for tracer convenience
@@ -175,6 +180,14 @@ C****
       REAL*8, DIMENSION(:,:,:), POINTER :: TRGASEX
 #endif
 
+#ifdef CACHED_SUBDD
+      integer :: igrp,ngroups,grpids(subdd_ngroups),l
+      type(subdd_type), pointer :: subdd
+      REAL*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
+     &                  grid%j_strt_halo:grid%j_stop_halo,lm) ::
+     &        T_i,Q_i,sddarr3d
+#endif
+
       type (Timer_type), pointer :: aTimer
 
       RSI => SI_ATM%RSI
@@ -196,6 +209,18 @@ C****
 C****
 
       call startTimer('SURFACE()')
+
+#ifdef CACHED_SUBDD
+c**** save initial values to calculate rates of change below
+      do J=J_0,J_1
+      do I=I_0,I_1
+      do L=1,LM
+        T_i(I,J,L) = T(I,J,L)
+        Q_i(I,J,L) = Q(I,J,L)
+      enddo
+      enddo
+      enddo
+#endif
 
       NSTEPS=NIsurf*ITime
       DTSURF=DTsrc/NIsurf
@@ -286,10 +311,7 @@ C**** Zero out fluxes summed over type and surface time step
       ! itype == 1, ocean; 2, ocean ice; 3, land ice; 4, land
 
       E1=0.
-#ifdef SCM
-      EVPFLX= 0.0d0
-      SHFLX = 0.0d0
-#endif
+
 #ifdef TRACERS_GASEXCH_ocean
       TRGASEX = 0.0d0
 #endif
@@ -550,6 +572,7 @@ c#endif
       vs = pbl_args%vs
       ws = pbl_args%ws
       ws0 = pbl_args%ws0
+      gusti = pbl_args%gusti
       qsrf = pbl_args%qsrf
       CM = pbl_args%cm
       CH = pbl_args%ch
@@ -569,8 +592,10 @@ C**** CALCULATE RHOSRF*CM*WS AND RHOSRF*CH*WS
       RCDMWS=CM*WS*RHOSRF
       RCDHWS=CH*WS*RHOSRF
       RCDQWS=CQ*WS*RHOSRF
-      RCDHDWS=CH*(WS-WS0)*RHOSRF
-      RCDQDWS=CQ*(WS-WS0)*RHOSRF
+c     RCDHDWS=CH*(WS-WS0)*RHOSRF
+c     RCDQDWS=CQ*(WS-WS0)*RHOSRF
+      RCDHDWS=CH*gusti*RHOSRF
+      RCDQDWS=CQ*gusti*RHOSRF
 C**** CALCULATE FLUXES OF SENSIBLE HEAT, LATENT HEAT, THERMAL
 C****   RADIATION, AND CONDUCTION HEAT (WATTS/M**2) (positive down)
       ! Including gustiness in the sensible heat flux:
@@ -579,6 +604,13 @@ C****   RADIATION, AND CONDUCTION HEAT (WATTS/M**2) (positive down)
       EVHEAT=(LHE+TG1*SHV)*(RCDQWS*(QSRF-QG_SAT)+
      *                      RCDQDWS*pbl_args%qprime)
       TRHEAT=TRHR(0,I,J)-STBO*TR4
+#ifdef SCM
+      if( SCMopt%sflx )then
+C**** impose specified surface heat fluxes
+        SHEAT  = -SCMin%shf
+        EVHEAT = -SCMin%lhf
+      endif
+#endif
 
 C**** CASE (1) ! FLUXES USING EXPLICIT TIME STEP FOR OCEAN POINTS
       if ( ITYPE == 1) then
@@ -614,6 +646,15 @@ C**** CASE (2) ! FLUXES USING IMPLICIT TIME STEP FOR ICE POINTS
         SHDT  = DTSURF*(SHEAT +dTG*dSNdTG) ! sensible
         EVHDT = DTSURF*(EVHEAT+dTG*dEVdTG) ! latent
         TRHDT = DTSURF*(TRHEAT+dTG*dTRdTG) ! thermal flux (J/m^2)
+#ifdef SCM
+        if( SCMopt%sflx )then
+C****** impose specified surface heat fluxes (again)
+          SHEAT  = -SCMin%shf ! redundant
+          EVHEAT = -SCMin%lhf
+          SHDT   = DTSURF*SHEAT
+          EVHDT  = DTSURF*EVHEAT
+        endif
+#endif
         F1DT = DTSURF*(F1+(dTG*dF1dTG-dT2*dF1dTG))
         TG1 = TG1+dTG          ! first layer sea ice temperature (degC)
         TG2 = TG2+dT2          ! second layer sea ice temperature (degC)
@@ -701,46 +742,15 @@ C**** Limit heat fluxes out of lakes if near minimum depth
       E1(ITYPE,I,J)=E1(ITYPE,I,J)+F1DT
       !EVAPOR(I,J,ITYPE)=EVAPOR(I,J,ITYPE)+EVAP
       asflx(itype)%EVAPOR(I,J)=asflx(itype)%EVAPOR(I,J)+EVAP
-#ifdef SCM
-      if (SCM_SURFACE_FLAG.eq.0.or.SCM_SURFACE_FLAG.eq.2) then
-        EVPFLX = EVPFLX -(DQ1X*MA1)*(PTYPE/DTSURF)*LHE
-        SHFLX = SHFLX - SHDT*PTYPE/DTSURF
-c             write(iu_scm_prt,*) 'srf  evpflx shflx ptype ',
-c    *                   EVPFLX,SHFLX,ptype
-      endif
-#endif
       TGRND(ITYPE,I,J)=TG1  ! includes skin effects
       TGR4(ITYPE,I,J) =TR4
 C**** calculate correction for different TG in radiation and surface
       !dLWDT = DTSURF*(TRSURF(ITYPE,I,J)-TRHR(0,I,J))+TRHDT
       dLWDT = DTSURF*(asflx(itype)%TRUP_in_rad(I,J)-TRHR(0,I,J))+TRHDT
 C**** final fluxes
-#ifdef SCM
-cccccc for SCM use ARM provided fluxes for designated box
-      if (SCM_SURFACE_FLAG.eq.1) then
-           asflx(itype)%DTH1(I,J)=asflx(itype)%DTH1(I,J) +
-     &        ash*DTSURF*ptype/(SHA*MA1)
-           asflx(itype)%DQ1(I,J)=asflx(itype)%DQ1(I,J) + 
-     &        ALH*DTSURF*ptype/(MA1*LHE)
-           SHFLX = SHFLX + ASH*ptype
-           EVPFLX = EVPFLX + ALH*ptype
-           write(iu_scm_prt,980) I,PTYPE,asflx(itype)%DTH1(I,J),
-     &           asflx(itype)%DQ1(I,J),
-     &           EVPFLX,SHFLX
- 980       format(1x,'SURFACE ARM   I PTYPE DTH1 DQ1 evpflx shflx',
-     &            i5,f9.4,f9.5,f9.6,f9.5,f9.5)
-      else
-#endif
       asflx(itype)%DTH1(I,J)=-(SHDT+dLWDT)/(SHA*MA1) ! +ve up
       asflx(itype)%sensht(i,j) = asflx(itype)%sensht(i,j)+SHDT
       asflx(itype)%DQ1(I,J) = -DQ1X
-#ifdef SCM
-      write(iu_scm_prt,988) I,PTYPE,asflx(itype)%DTH1(I,J),
-     &     asflx(itype)%DQ1(I,J),SHDT,dLWDT
- 988  format(1x,'988 SURFACE GCM  I PTYPE DTH1 DQ1 SHDT dLWDT ',
-     &           i5,f9.4,f9.5,f9.6,f12.4,f10.4)
-      endif
-#endif
       DMUA_IJ=RCDMWS*(US-UOCEAN)
       DMVA_IJ=RCDMWS*(VS-VOCEAN)
       asflx(itype)%DMUA(I,J) = asflx(itype)%DMUA(I,J) + DMUA_IJ*DTSURF
@@ -1040,6 +1050,30 @@ c calculate global integral of heat of river discharge
 
          CALL CHECKT ('SURFACE')
          IF (MODD5S.EQ.0) CALL DIAGCA (5)
+
+#ifdef CACHED_SUBDD
+C****
+C**** Collect some high-frequency outputs
+C****
+      call find_groups('sijlh',grpids,ngroups)
+      do igrp=1,ngroups
+      subdd => subdd_groups(grpids(igrp))
+      do k=1,subdd%ndiags
+      select case (subdd%name(k))
+      case ('dq_turb')
+        do j=j_0,j_1; do i=i_0,i_1; do l=1,lm
+          sddarr3d(i,j,l) = (Q(i,j,l)-Q_i(i,j,l))
+        enddo;        enddo;        enddo
+        call inc_subdd(subdd,k,sddarr3d)
+      case ('dth_turb')
+        do j=j_0,j_1; do i=i_0,i_1; do l=1,lm
+          sddarr3d(i,j,l) = (T(i,j,l)-T_i(i,j,l))
+        enddo;        enddo;        enddo
+        call inc_subdd(subdd,k,sddarr3d)
+      end select
+      enddo
+      enddo
+#endif
 
       call stopTimer('SURFACE()')
 
@@ -2266,3 +2300,45 @@ c      do n=1,ntm
       return
       end subroutine calc_gasexch
 #endif /* TRACERS_GASEXCH_ocean */
+
+#ifdef CACHED_SUBDD
+      subroutine sijlh_defs(arr,nmax,decl_count)
+c
+c 3D outputs
+c
+      use subdd_mod, only : info_type
+! info_type_ is a homemade structure constructor for older compilers
+      use subdd_mod, only : info_type_
+      use model_com, only: dtsrc
+      use constant, only: kapa
+      use TimeConstants_mod, only: SECONDS_PER_DAY
+      implicit none
+      integer :: nmax,decl_count
+      type(info_type) :: arr(nmax)
+c
+c note: next() is a locally declared function to increment decl_count
+c
+      decl_count = 0
+c
+      arr(next()) = info_type_(
+     &  sname = 'dq_turb',
+     &  lname = 'moisture tendency from surface fluxes and turbulence',
+     &  units = 'kg/kg/day',
+     &  scale = SECONDS_PER_DAY/dtsrc
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'dth_turb',
+     &  lname = 'theta tendency from surface fluxes and turbulence',
+     &  units = 'K/day',
+     &  scale = 1000.**kapa/dtsrc*SECONDS_PER_DAY
+     &     )
+c
+      return
+      contains
+      integer function next()
+      decl_count = decl_count + 1
+      next = decl_count
+      end function next
+      end subroutine sijlh_defs
+#endif

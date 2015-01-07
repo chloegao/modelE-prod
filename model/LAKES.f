@@ -413,7 +413,7 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
       USE ATM_COM, only : zatmo
       USE ATM_COM, only : traditional_coldstart_aic
 #ifdef SCM
-      USE SCMCOM, only : SCM_SURFACE_FLAG,ATSKIN
+      USE SCM_COM, only : SCMopt,SCMin
 #endif
       USE DOMAIN_DECOMP_ATM, only : GRID,WRITE_PARALLEL
       USE DOMAIN_DECOMP_ATM, only : getDomainBounds,HALO_UPDATE
@@ -610,9 +610,9 @@ C**** Set GTEMP arrays for lakes
             GTEMP(I,J)=TLAKE(I,J)
             GTEMPR(I,J) =TLAKE(I,J)+TF
 #ifdef SCM
-            if (SCM_SURFACE_FLAG.ge.1) then
-              GTEMP(I,J) = ATSKIN
-              GTEMPR(I,J) = ATSKIN + TF
+            if (SCMopt%Tskin) then
+              GTEMP(I,J) = SCMin%Tskin - TF
+              GTEMPR(I,J) = SCMin%Tskin
             endif
 #endif
             IF (MWL(I,J).gt.(1d-10+MLDLK(I,J))*RHOW*FLAKE(I,J)*
@@ -632,7 +632,7 @@ C**** If starting from a possibly corrupted rsf file, check Tlk2
               GTEMP2(I,J)=TLAKE(I,J)
             END IF
 #ifdef SCM
-            if (SCM_SURFACE_FLAG.ge.1) then
+            if (SCMopt%Tskin) then
               GTEMP2(I,J) = GTEMP(I,J)
             endif
 #endif
@@ -956,7 +956,7 @@ C****
       Use TimerPackage_Mod, only: StartTimer=>Start,StopTimer=>Stop
 
 #ifdef SCM
-      USE SCMCOM, only : SCM_SURFACE_FLAG,ATSKIN
+      USE SCM_COM, only : SCMopt,SCMin
 #endif
 #ifdef TRACERS_WATER
       USE TRDIAG_COM, only : taijn =>taijn_loc , tij_rvr, tij_rvro
@@ -1394,9 +1394,9 @@ C**** Set GTEMP array for lakes
             GTEMP(I,J)=TLAKE(I,J)
             GTEMPR(I,J) =TLAKE(I,J)+TF
 #ifdef SCM
-            if (SCM_SURFACE_FLAG.ge.1) then
-              GTEMP(I,J) = ATSKIN
-              GTEMPR(I,J) = ATSKIN + TF
+            if (SCMopt%Tskin) then
+              GTEMP(I,J) = SCMin%Tskin - TF
+              GTEMPR(I,J) = SCMin%Tskin
             endif
 #endif
 
@@ -1714,7 +1714,7 @@ C****
       USE CONSTANT, only : rhow,by3,pi,lhm,shi,shw,teeny,tf
       USE RESOLUTION, only : im
 #ifdef SCM
-      USE SCMCOM, only : SCM_SURFACE_FLAG,ATSKIN
+      USE SCM_COM, only : SCMopt,SCMin
 #endif
       USE LAKES, only : minmld,variable_lk,hlake_min
       USE LAKES_COM, only : mwl,flake,tanlk,mldlk,tlake,gml
@@ -2056,8 +2056,8 @@ C****
                   TLAKE(I,J)=GML(I,J)/(SHW*MWL(I,J)+teeny)
                   GTEMPR(I,J)=TF
 #ifdef SCM
-                  if (SCM_SURFACE_FLAG.ge.1) then
-                    GTEMPR(I,J) = ATSKIN + TF
+                  if (SCMopt%Tskin) then
+                    GTEMPR(I,J) = SCMin%Tskin
                   endif
 #endif
                   MLDLK(I,J)=MINMLD
@@ -2095,9 +2095,9 @@ C**** Set GTEMP array for lakes
             GTEMP(I,J)=TLAKE(I,J)
             GTEMPR(I,J) =TLAKE(I,J)+TF
 #ifdef SCM
-            if (SCM_SURFACE_FLAG.ge.1) then
-              GTEMP(I,J) = ATSKIN
-              GTEMPR(I,J) = ATSKIN + TF
+            if (SCMopt%Tskin) then
+              GTEMP(I,J) = SCMin%Tskin - TF
+              GTEMPR(I,J) = SCMin%Tskin
             endif
 #endif
 #ifdef TRACERS_WATER
@@ -2118,7 +2118,7 @@ C****
       USE CONSTANT, only : rhow,shw,teeny,tf
       USE RESOLUTION, only : im,jm
 #ifdef SCM
-      USE SCMCOM, only : SCM_SURFACE_FLAG,ATSKIN
+      USE SCM_COM, only : SCMopt,SCMin
 #endif
       USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds
       USE GEOM, only : imaxj,axyp,byaxyp
@@ -2208,9 +2208,9 @@ C**** simelt is given as kg/area
           GTEMP(I,J)=TLAKE(I,J)
           GTEMPR(I,J) =TLAKE(I,J)+TF
 #ifdef SCM
-          if (SCM_SURFACE_FLAG.ge.1) then
-            GTEMP(I,J) = ATSKIN
-            GTEMPR(I,J) = ATSKIN + TF
+          if (SCMopt%Tskin) then
+            GTEMP(I,J) = SCMin%Tskin - TF
+            GTEMPR(I,J) = SCMin%Tskin
           endif
 #endif
           IF (MWL(I,J).gt.(1d-10+MLDLK(I,J))*RHOW*FLAKE(I,J)*AXYP(I,J))
@@ -2222,7 +2222,7 @@ C**** simelt is given as kg/area
             GTEMP2(I,J)=TLAKE(I,J)
           END IF
 #ifdef SCM
-          if (SCM_SURFACE_FLAG.ge.1) then
+          if (SCMopt%Tskin) then
             GTEMP2(I,J) = GTEMP(I,J)
           endif
 #endif
@@ -2391,7 +2391,7 @@ C****
       USE RESOLUTION, only : im,jm
       USE MODEL_COM, only : dtsrc
 #ifdef SCM
-      USE SCMCOM, only : SCM_SURFACE_FLAG,ATSKIN
+      USE SCM_COM, only : SCMopt,SCMin
 #endif
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
 
@@ -2599,10 +2599,10 @@ C**** Resave prognostic variables
         GTEMP2(I,J)=TLK2       ! diagnostic only
         GTEMPR(I,J) =TLAKE(I,J)+TF
 #ifdef SCM
-        if (SCM_SURFACE_FLAG.ge.1) then
-          GTEMP(I,J) = ATSKIN
-          GTEMP2(I,J) = ATSKIN
-          GTEMPR(I,J) = ATSKIN + TF
+        if (SCMopt%Tskin) then
+          GTEMP(I,J) = SCMin%Tskin - TF
+          GTEMP2(I,J) = SCMin%Tskin - TF
+          GTEMPR(I,J) = SCMin%Tskin
         endif
 #endif
 C**** Open lake diagnostics

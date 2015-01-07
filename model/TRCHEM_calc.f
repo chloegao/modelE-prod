@@ -1376,13 +1376,15 @@ c          reduce NOx destruction to match N production:
 #ifdef TRACERS_HETCHEM
          changeL(L,n_HNO3)=changeL(L,n_HNO3)-(krate(i,j,l,1,1)
      &   *y(nn_HNO3,l)*dt2)*rMAbyM(L)*axyp(I,J)*vol2mass(n_HNO3)
+#ifdef TRACERS_NITRATE
          changeL(L,n_N_d1)=changeL(L,n_N_d1)+(krate(i,j,l,2,1)
      &   *y(nn_HNO3,l)*dt2)*rMAbyM(L)*axyp(I,J)*vol2mass(n_HNO3)
          changeL(L,n_N_d2)=changeL(L,n_N_d2)+(krate(i,j,l,3,1)
      &   *y(nn_HNO3,l)*dt2)*rMAbyM(L)*axyp(I,J)*vol2mass(n_HNO3)
          changeL(L,n_N_d3)=changeL(L,n_N_d3)+(krate(i,j,l,4,1)
      &   *y(nn_HNO3,l)*dt2)*rMAbyM(L)*axyp(I,J)*vol2mass(n_HNO3)
-#endif
+#endif  /* TRACERS_NITRATE */
+#endif  /* TRACERS_HETCHEM */
 
         end if ! skipped section above if ratio very close to one
 

@@ -17,10 +17,22 @@ endif
 R8 = -r8
 EXTENDED_SOURCE = -extend_source
 
+SUPPORTED_RELEASES = 14.0 15.0
+
+ifneq ($(OVERWRITE),YES)
+ifeq ($(findstring $(IFORT_RELEASE),$(SUPPORTED_RELEASES)),)
+  $(error ifort version $(IFORT_RELEASE) is not supported by this code. \
+          Use one of: $(SUPPORTED_RELEASES) . \
+          If you insist on using an unsupported version, you can do it at your \
+          own risk by appending "OVERWRITE=YES" to the compilation command )
+endif
+endif
+
+
 # flags needed for particular releases
 
 # default flags for latest releases (work for 12.*, 13.*):
-FFLAGS_RELEASE = -assume protect_parens -fp-model strict -warn nousage
+FFLAGS_RELEASE = -assume protect_parens -fp-model strict -warn nousage -assume realloc_lhs
 
 # if some releases require different flags enter them here
 ifeq ($(IFORT_RELEASE),11.1)
@@ -43,8 +55,8 @@ FFLAGS += $(FFLAGS_RELEASE)
 F90FLAGS += $(FFLAGS_RELEASE)
 
 ifeq ($(COMPILE_WITH_TRAPS),YES)
-FFLAGS += -CB -fpe0 -check uninit -ftrapuv -traceback
+FFLAGS += -CB -fpe0 -check uninit -ftrapuv -traceback -assume realloc_lhs
 LFLAGS += -CB -fpe0 -check uninit -ftrapuv -traceback
-F90FLAGS += -CB -fpe0 -check uninit -ftrapuv -traceback
+F90FLAGS += -CB -fpe0 -check uninit -ftrapuv -traceback  -assume realloc_lhs
 LFLAGSF += -CB -fpe0 -check uninit -ftrapuv -traceback
 endif

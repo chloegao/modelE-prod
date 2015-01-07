@@ -19,9 +19,6 @@
       USE RESOLUTION, only : psf,pmtop
       USE MODEL_COM, only : itime
       USE ATM_COM, only : u_3d=>u,v_3d=>v,t_3d=>t,q_3d=>q
-#ifdef SCM
-      USE SCMCOM, only : iu_scm_prt,NSTEPSCM
-#endif
 cc      USE QUSDEF, only : nmom,zmoms,xymoms
 cc      USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : imaxj,byaxyp,axyp
@@ -1243,6 +1240,7 @@ c       cgv1=7.2d0*wstar*(-vflx)/(wm1**2*dbl)
              w2j=tmp**(2.*by3)
              km(j)=min(max(km_n,kmmin),k_max)
              kh(j)=min(max(kh_n,khmin),k_max)
+             kq(j)=kh(j)
           else                 ! above the pbl
              w2j=by3*(2.*e(j)-tau*(s7*km(j)*as2(j)+s8*kh(j)*an2(j)))
           endif

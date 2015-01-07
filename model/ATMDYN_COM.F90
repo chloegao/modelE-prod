@@ -155,12 +155,12 @@
       Real*8  :: M
       Integer :: I,J,L, I1,IN,J1,JN
 
-#ifndef CUBED_SPHERE                                   !  Lat-Lon Grid
+#ifndef CUBED_SPHERE                                   /* Lat-Lon Grid */
       I1 = GRID%I_STRT_HALO  ;  IN = GRID%I_STOP_HALO  !  1:IM
       j1 = grid%j_strt_stgr - 1;  jn = grid%j_stop_stgr !  primary rows surrounding velocity rows
 #endif
 
-#ifdef CUBED_SPHERE                                    !  Cube-Sphere grid
+#ifdef CUBED_SPHERE                                    /* Cube-Sphere grid */
       I1 = GRID%I_STRT_HALO  ;  IN = GRID%I_STOP_HALO  !  haloed primary column limits
       J1 = GRID%J_STRT_HALO  ;  JN = GRID%J_STOP_HALO  !  haloed primary row limits
 #endif

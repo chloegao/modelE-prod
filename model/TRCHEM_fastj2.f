@@ -5,6 +5,9 @@
       USE DOMAIN_DECOMP_ATM, only: write_parallel 
       use RESOLUTION, only: lm
       use constant, only: pO2
+#ifdef TRACERS_ON
+      use RAD_COM, only: njaero
+#endif
       implicit none
 !@var j_iprn,j_jprn,j_prnrts for Shindell chemistry debugging
 !@var jppj number of chemical reactions in the currently active chemistry
@@ -28,12 +31,12 @@
 !@param nfastj number of quadrature points in OPMIE
 !@param mfastj lower limit of mfit?
 !@param mfit expansion of phase function in OPMIE
-!@param mxfastj Number of aerosol/cloud types supplied from CTM
 !@param nlfastj maximum number levels after inserting extra Mie levels
 !@param njval Number of species for which to calculate J-values
 !@param nwfastj maximum number of wavelength bins that can be used
 !@param np maximum aerosol phase functions
 !@param n_bnd3 maximum number of spectral bands 3
+!@param nlevref number of reference levels for T/O3 profiles
       integer, parameter :: jpnl=lm
      &                     ,szamax=98.d0
      &                     ,ncfastj2=2*lm+2
@@ -43,12 +46,12 @@
      &                     ,nfastj=4
      &                     ,mfastj=1
      &                     ,mfit=2*M__
-     &                     ,mxfastj=17
      &                     ,nlfastj=1000 !increased Nov 2010
      &                     ,njval=27 !formerly read in from jv_spec00_15.dat
      &                     ,nwfastj=18
      &                     ,np=60
      &                     ,n_bnd3=107
+     &                     ,nlevref=51
 !@var title0 blank title read in I think
       character(len=78) :: title0
 !@var lpdep Label for pressure dependence
@@ -59,8 +62,15 @@
       character(len=20), dimension(np) :: title_aer_pf !formerly TITLEA( )
 !@var jndlev Levels at which we want J-values (centre of CTM levels)
       integer, dimension(lm) :: jndlev
+#ifdef TRACERS_ON
 !@param miedx2 choice of aerosol types for fastj2
-      integer, dimension(lm+1,mxfastj) :: miedx2
+      integer, allocatable, dimension(:,:) :: miedx2
+!@var aer2 fastj2 aerosol and cloud optical depth profiles. Aerosols are
+!@+   elements 1 to njaero-2, water clouds element njaero-1,
+!@+   and ice clouds element njaero. The water/ice threshold is
+!@+   defined at 233K.
+      real*8, allocatable, dimension(:,:):: aer2
+#endif
 !@var jaddlv Additional levels associated with each level
 !@var jadsub ?
       integer, dimension(nlfastj) :: jaddlv,jadsub
@@ -137,19 +147,14 @@
       real*8, dimension(nwfastj,jpnl)  :: fff
 !@var oref2    fastj2 O3 reference profile
 !@var tref2    fastj2 temperature reference profile
-!@var bref2    fastj2 black carbon reference profile
-      REAL*8, DIMENSION(51,18,12)       :: oref2,tref2 !XXXXXXXXXXXXXXXXXXXXXXXX
-      REAL*8, DIMENSION(51)             :: bref2 !XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-!@var aer2 fastj2 aerosol profile?
-      real*8, dimension(mxfastj,nbfastj):: aer2
+      REAL*8, DIMENSION(nlevref,18,12)       :: oref2,tref2
 !@var amf Air mass factor for slab between level and level above
       real*8, dimension(nbfastj,nbfastj):: amf
 !@var tj2 Temperature profile on fastj2 photolysis grid
 !@var do32 fastj2 Ozone number density at each pressure level (")
-!@var dbc2 fastj2 Mass of Black Carbon at each model level (g/cm-3)
 !@var zfastj2 Altitude of boundaries of model levels (cm) fastj2
 !@var dmfastj2 fastj2 Air column for each model level (molec/cm2)
-      real*8, dimension(nbfastj) :: tj2,do32,dbc2,zfastj2,dmfastj2
+      real*8, dimension(nbfastj) :: tj2,do32,zfastj2,dmfastj2
 !@var tfastj temperature profile sent to FASTJ
 !@var odcol Optical depth at each model level
       real*8, dimension(lm) :: tfastj,odcol
@@ -175,6 +180,133 @@
       real*8, allocatable, dimension(:,:) :: zj
 
       contains
+
+
+
+      subroutine fastj2_drv(I, J, ta, rh)
+!@sum fastj2_drv driver for photolysis. This subroutine needs to be
+!@+   standalone, any chemical mechanism-related code should be present in
+!@+   the chemical mechanism files itself, not here.
+!@auth Kostas Tsigaridis (with content collected from TRCHEM_master.f)
+
+      use atm_com, only: pedn,pmid
+      use rad_com, only: nraero_koch,nraero_nitrate,nraero_dust
+      use domain_decomp_1d, only: am_i_root
+      implicit none
+
+!@var rh humidity profile used to choose scattering input for FASTJ2
+      real*8, dimension(lm), intent(in) :: ta,rh
+      integer, intent(in) :: i, j ! current box horizontal indices
+
+      character(len=300) :: out_line
+      integer :: LL,ii,irh,n
+
+      tfastj=ta
+
+#ifdef TRACERS_ON
+c       Apostolos Voulgarakis (Feb 2010): Choose the indexes of the 
+c       aerosol types that we are going to use in Fast-J2 (indexes
+c       in look-up table), taking humidity into account. The different 
+c       aerosols used are in the same order with those in nraero list and
+c       based on the default CADI configuration are:
+c
+c        1 = Sulfate (n_SO4)
+c        2 = Sea-Salt (fine) (n_seasalt1)
+c        3 = Sea-Salt (coarse) (n_seasalt2)
+c        4 = Primary organic aerosol (n_OCIA)
+c        5 = Primary organic aerosol (biomass burning ) (n_OCB)
+c        6 = Secondary organic aerosol (n_isopp1a)
+c        7 = Black Carbon (n_BCIA)
+c        8 = Black Carbon (biomass burning) (n_BCB)
+c        9 = Nitrate (n_NO3p)
+c       10 = Dust (Clay, 1-st size bin) (n_clay)
+c       11 = Dust (Clay, 2-nd size bin) (n_clay)
+c       12 = Dust (Clay, 3-rd size bin) (n_clay)
+c       13 = Dust (Clay, 4-th size bin) (n_clay)
+c       14 = Dust (Clay, 1-st size bin) (n_silt1)
+c       15 = Dust (Clay, 2-nd size bin) (n_silt2)
+c       16 = Dust (Clay, 3-rd size bin) (n_silt3)
+c       17 = Dust (Clay, 4-rd size bin) (n_silt4)
+c       18 = Liquid Clouds
+c       19 = Ice Clouds
+
+        do LL=1,LM
+          if (rh(LL) .lt. 0.15) then
+            irh=0
+          else if ((rh(LL) .ge. 0.15) .and. (rh(LL) .lt. 0.4)) then
+            irh=1
+          else if ((rh(LL) .ge. 0.4) .and. (rh(LL) .lt. 0.6)) then
+            irh=2
+          else if ((rh(LL) .ge. 0.6) .and. (rh(LL) .lt. 0.75)) then
+            irh=3
+          else if ((rh(LL) .ge. 0.75) .and. (rh(LL) .lt. 0.85)) then
+            irh=4
+          else if ((rh(LL) .ge. 0.85) .and. (rh(LL) .lt. 0.925)) then
+            irh=5
+          else if ((rh(LL) .ge. 0.925) .and. (rh(LL) .lt. 0.97)) then
+            irh=6
+          else if (rh(LL) .ge. 0.97) then
+            irh=7
+          endif
+
+! in the lines below, +0 implies no humidity impact
+          n=0
+#ifdef TRACERS_AEROSOLS_Koch
+          MIEDX2(LL,n+1)=12+irh
+#ifndef SULF_ONLY_AEROSOLS
+          MIEDX2(LL,n+2:n+nraero_koch)=
+     &      (/20+irh,28+irh,36+irh,36+irh
+#ifdef TRACERS_AEROSOLS_SOA
+     &       ,36+irh
+#endif  /* TRACERS_AEROSOLS_SOA */
+     &       ,44+0,44+0/)
+#endif  /* SULF_ONLY_AEROSOLS */
+          n=n+nraero_koch
+#endif  /* TRACERS_AEROSOLS_Koch */
+
+#ifdef TRACERS_NITRATE
+          MIEDX2(LL,n+1:n+nraero_nitrate)=(/45+irh/)
+          n=n+nraero_nitrate
+#endif  /* TRACERS_NITRATE */
+
+#ifdef TRACERS_DUST
+          MIEDX2(LL,n+1:n+nraero_dust)=
+     &      (/53+0,54+0,55+0,56+0,57+0,58+0,59+0
+#ifdef TRACERS_DUST_Silt4
+     &       ,60+0
+#endif  /* TRACERS_DUST_Silt4 */
+     &       /)
+          n=n+nraero_dust
+#endif  /* TRACERS_DUST */
+
+          MIEDX2(LL,n+1:njaero)=(/7+0,11+0/)
+        enddo 
+
+c Now force extra level (top of the atmosphere) used in Fast-J
+c to have the same MIEDX2 as the top model level
+        MIEDX2(LM+1,1:njaero)=MIEDX2(LM,1:njaero)
+c  Ensure all aerosol types are valid selections:
+        do LL=1,LM+1
+          do ii=1,njaero
+            if(MIEDX2(LL,ii)>NAA .or. MIEDX2(LL,ii)<=0) then
+              write(out_line,1201) MIEDX2(LL,ii),NAA
+              call write_parallel(trim(out_line),crit=.true.)
+              call stop_model('Problem with MIEDX2 aerosol types',13)
+            endif
+          enddo
+        enddo
+ 1201 format('Aerosol type ',i2,' unsuitable; supplied values must be',
+     &       ' between 1 and ',i2)
+#endif  /* TRACERS_ON */
+
+c       define pressures to be sent to FASTJ (centers):
+        PFASTJ2(1:LM)=PMID(1:LM,I,J)
+        PFASTJ2(LM+1)=PEDN(LM+1,I,J)       ! P at SIGE(LM+1)
+        PFASTJ2(LM+2)=PFASTJ2(LM+1)*0.2816 ! 0.00058d0/0.00206d0 ! fudge
+        PFASTJ2(LM+3)=PFASTJ2(LM+2)*0.4828 ! 0.00028d0/0.00058d0 ! fudge
+        
+        call photoj(I,J) ! CALL THE PHOTOLYSIS SCHEME
+      end subroutine fastj2_drv
 
 
 
@@ -289,7 +421,7 @@ c
 !@+   pressure and z* altitude are defined, then O3 and T are taken
 !@+  from the supplied climatology and integrated to the CTM levels
 !@+  (may be overwritten with values directly from the CTM, if desired)
-!@+  and then black carbon and aerosol profiles are constructed.
+!@+  and then aerosol profiles are constructed.
 !@+  Oliver Wild (04/07/99)
 !@+  Modifications by Apostolos Voulgarakis (Feb 2010) to take aerosol
 !@+  tracers from the model into account.
@@ -300,9 +432,11 @@ C**** GLOBAL parameters and variables:
       USE RESOLUTION, only  : JM,LM
       USE GEOM, only: lat2d_dg
       use model_com, only: modelEclock
-      USE RAD_COM,only: ttausv_ntrace,ntrix
-      USE RADPAR, only : NTRACE
+      USE RAD_COM,only: ttausv_nraero,ntrix
+      USE RADPAR, only : nraero=>ntrace
+#ifdef TRACERS_ON
       use OldTracer_mod, only: trname
+#endif
 
       IMPLICIT NONE
 
@@ -313,11 +447,18 @@ C**** Local parameters and variables and arguments:
 !@var pstd Approximate pressures of levels for supplied climatology
 !@var skip_tracer logical to not define aer2 for a rad code tracer
       INTEGER, INTENT(IN) :: nslon, nslat
-      integer             :: l, k, i, ii, m, j, iclay, n
-      real*8, dimension(52) :: pstd
-      real*8, dimension(51) :: oref3, tref3
-      real*8              :: ydgrd,f0,t0,b0,pb,pc,xc,scaleh
+      integer             :: l, k, i, ii, m, j, iclay, n, LL
+      real*8, dimension(nlevref+1) :: pstd
+      real*8, dimension(nlevref) :: oref3, tref3
+      real*8              :: ydgrd,f0,t0,pb,pc,xc,scaleh
+#ifdef TRACERS_ON
       logical             :: skip_tracer
+#endif
+
+#ifdef TRACERS_ON
+c Zero aerosol and cloud column
+      AER2(:,:) = 0.d0
+#endif
 
 c  Set up cloud and surface properties
       call CLDSRF(NSLON,NSLAT)
@@ -329,10 +470,10 @@ c  1000 mb are assumed to extend down to the actual P(nslon,nslat).
 
       pstd(1) = max(PFASTJ2(1),1000.d0)
       pstd(2) = 865.96432336006535d0 !1000.*10.**(-1/16)
-      do L=3,51
+      do L=3,nlevref
         pstd(L) = pstd(L-1)*dlogp
       enddo
-      pstd(52) = 0.d0
+      pstd(nlevref+1) = 0.d0
 
 c  Select appropriate monthly and latitudinal profiles:
       ydgrd=lat2d_dg(nslon,nslat)
@@ -340,28 +481,26 @@ c  Select appropriate monthly and latitudinal profiles:
       l = max(1,min(18,(int(ydgrd)+99)/10))
 
 c  Temporary arrays for climatology data
-      oref3(:)=oref2(:,l,m) ! 51
-      tref3(:)=tref2(:,l,m) ! 51
+      oref3(:)=oref2(:,l,m) ! nlevref
+      tref3(:)=tref2(:,l,m) ! nlevref
 
 c  Apportion O3 and T on supplied climatology z* levels onto CTM levels 
 c  with mass (pressure) weighting, assuming constant mixing ratio and
 c  temperature half a layer on either side of the point supplied:
 
       do i = 1,NBFASTJ
-        F0 = 0.d0; T0 = 0.d0; B0 = 0.d0
-        do k = 1,51
+        F0 = 0.d0; T0 = 0.d0
+        do k = 1,nlevref
           PC = min(PFASTJ2(i),pstd(k))
           PB = max(PFASTJ2(i+1),pstd(k+1))
           if(PC > PB) then
             XC = (PC-PB)/(PFASTJ2(i)-PFASTJ2(i+1))
             F0 = F0 + oref3(k)*XC
             T0 = T0 + tref3(k)*XC
-            B0 = B0 + bref2(k)*XC
           endif
         end do
         TJ2(i) = T0
         DO32(i)= F0*1.d-6
-        DBC2(i)= B0
       end do
 
 c Overwrite O3 with GISS chemistry O3:
@@ -370,65 +509,38 @@ c Overwrite O3 with GISS chemistry O3:
 
 c  Calculate effective altitudes using scale height at each level
       zfastj2(1) = 0.d0
-      do i=1,LM
-        scaleh=1.3806d-19*masfac*TFASTJ(i)
-        zfastj2(i+1) = zfastj2(i)-(log(PFASTJ2(i+1)/PFASTJ2(i))*scaleh)
+      do LL=1,LM
+        scaleh=1.3806d-19*masfac*TFASTJ(LL)
+        zfastj2(LL+1)=zfastj2(LL)-
+     &                (log(PFASTJ2(LL+1)/PFASTJ2(LL))*scaleh)
       enddo
 
 c  Add Aerosol Column - include aerosol (+cloud) types here. 
 
-      AER2(:,:)=0.d0
-
-c  LAST two are clouds (liquid or ice)
-c  Assume limiting temperature for ice of -40 deg C :
-      do i=1,LM
-        if(TFASTJ(I) > 233.d0) then
-          AER2(16,i) = odcol(i)
-          AER2(17,i) = 0.d0
-        else
-          AER2(16,i) = 0.d0
-          AER2(17,i) = odcol(i)
-        endif
-      enddo
+#ifdef TRACERS_ON
 
 #ifndef TRACERS_TOMAS
 #ifndef TRACERS_AMP
 c Now do the rest of the aerosols
-      iclay=0  
-      do n=1,NTRACE
-        skip_tracer=.false.
-        select case (trname(ntrix(n)))
-        case ('SO4')      ; j=1 
-        case ('seasalt1') ; j=2 
-        case ('seasalt2') ; j=3 
-        case ('OCIA', 'vbsAm2') ; j=4 ! multiple tracers 
-        case ('OCB')      ; j=4 
-        case ('isopp1a')  ; j=4 ! multiple tracers
-        case ('BCIA')     ; j=5 
-        case ('BCB')      ; j=6 
-        case ('NO3p')     ; j=7 
-        case ('Clay')     ; j=8+iclay ; iclay=iclay+1
-        case ('Silt1')    ; j=12
-        case ('Silt2')    ; j=13
-        case ('Silt3')    ; j=14
-        case ('Silt4')    ; j=15
-        case default      ; skip_tracer=.true.
-        end select
-        if(j>15 .or. n>17)
-     &  call stop_model("set_prof: too many opt depths",13)
-        if(iclay>4)call stop_model("set_prof: too many clays",13)
-        if(.not.skip_tracer)then
-          do i=1,LM
-            if(j.ne.4 .and. AER2(j,i).ne.0.)call stop_model('gsf',13)
-            AER2(j,i)=AER2(j,i)+ttausv_ntrace(NSLON,NSLAT,n,i)
-          enddo
-        endif
-      enddo
+      AER2(1:LM,1:nraero)=ttausv_nraero(NSLON,NSLAT,1:LM,1:nraero)
 #endif
 #endif
 
+c  LAST two are clouds (liquid or ice)
+c  Assume limiting temperature for ice of -40 deg C :
+      do LL=1,LM
+        if(TFASTJ(LL) > 233.d0) then
+          AER2(LL,njaero-1) = odcol(LL)
+          AER2(LL,njaero) = 0.d0
+        else
+          AER2(LL,njaero-1) = 0.d0
+          AER2(LL,njaero) = odcol(LL)
+        endif
+      enddo
+
 c Top of the atmosphere
-      AER2(:,LM+1) = 0.d0
+      AER2(LM+1,:) = 0.d0
+#endif
 
 c  Calculate column quantities for Fast-J2:
       do i=1,NBFASTJ
@@ -468,9 +580,6 @@ c Default lower photolysis boundary as bottom of level 1
 
 c Set and limit surface albedo
       RFLECT = max(0.d0,min(1.d0,(1.-ALB(NSLON,NSLAT,1))))
-
-c Zero aerosol column
-      AER2(:,:) = 0.d0
 
 c Scale optical depths as appropriate - limit column to 'odmax'
       odsum = 0.d0
@@ -592,7 +701,9 @@ C**** Local parameters and variables and arguments:
       character(len=300)  :: out_line
       logical             :: jay
       REAL*8, DIMENSION(NBFASTJ)         :: COLO2,COLO3
-      REAL*8, DIMENSION(MXFASTJ,NBFASTJ) :: COLAX
+#ifdef TRACERS_ON
+      REAL*8, allocatable, DIMENSION(:,:) :: COLAX
+#endif
       REAL*8, DIMENSION(9)               :: climat
       REAL*8                             :: ZKM,ZSTAR,PJC,ydgrd
      
@@ -601,29 +712,42 @@ C**** Local parameters and variables and arguments:
 C---Calculate columns, for diagnostic output only:
       COLO3(NBFASTJ) = DO32(NBFASTJ)
       COLO2(NBFASTJ) = DMFASTJ2(NBFASTJ)*pO2
-      COLAX(:,NBFASTJ) = AER2(:,NBFASTJ)
+#ifdef TRACERS_ON
+      allocate(colax(njaero,NBFASTJ))
+      COLAX(:,NBFASTJ) = AER2(NBFASTJ,:)
+#endif
       do I=NBFASTJ-1,1,-1
         COLO3(i) = COLO3(i+1)+DO32(i)
         COLO2(i) = COLO2(i+1)+DMFASTJ2(i)*pO2
-        COLAX(:,i) = COLAX(:,i+1)+AER2(:,i)
+#ifdef TRACERS_ON
+        COLAX(:,i) = COLAX(:,i+1)+AER2(i,:)
+#endif
       enddo
       write(out_line,1200) '  SZA=',sza
       call write_parallel(trim(out_line),crit=jay)
-      write(out_line,1200) ' O3-column(DU)=',COLO3(1)/2.687d16,
-     &'  column aerosol @1000nm=',(COLAX(K,1),K=1,MXFASTJ)
+      write(out_line,1200) ' O3-column(DU)=',COLO3(1)/2.687d16
       call write_parallel(trim(out_line),crit=jay)
+#ifdef TRACERS_ON
+      write(out_line,1200) 'column aerosol @1000nm=',
+     &                     (COLAX(K,1),K=1,njaero)
+      call write_parallel(trim(out_line),crit=jay)
+#endif
 
 C---Print out atmosphere:
       if(NFASTJq > 1) then
-        write(out_line,1000) (' AER-X ','col-AER',k=1,mxfastj)
+#ifdef TRACERS_ON
+        write(out_line,1000) (' AER-X ','col-AER',k=1,njaero)
         call write_parallel(trim(out_line),crit=jay)
+#endif
         do I=NBFASTJ,1,-1
           PJC = PFASTJ2(I)
           ZKM =1.d-5*ZFASTJ2(I)
           ZSTAR = 16.d0*DLOG10(1000.d0/PJC)
           write(out_line,1100) I,ZKM,ZSTAR,DMFASTJ2(I),DO32(I),
-     &    1.d6*DO32(I)/DMFASTJ2(I),TJ2(I),PJC,COLO3(I),COLO2(I),
-     &    (AER2(K,I),COLAX(K,I),K=1,MXFASTJ)    
+     &    1.d6*DO32(I)/DMFASTJ2(I),TJ2(I),PJC,COLO3(I),COLO2(I)
+#ifdef TRACERS_ON
+     &   ,(AER2(I,K),COLAX(K,I),K=1,njaero)
+#endif
           call write_parallel(trim(out_line),crit=jay)
         enddo
       endif            
@@ -638,7 +762,7 @@ C---Print out climatology:
         call write_parallel(trim(out_line),crit=jay)
         write(out_line,1000)
         call write_parallel(trim(out_line),crit=jay)
-        do i=51,1,-1
+        do i=nlevref,1,-1
           PJC = 1000.d0*dlogp2**(2*i-2)
           climat(1) = 16.d0*DLOG10(1000.D0/PJC)
           climat(2) = climat(1)
@@ -660,7 +784,7 @@ C---Print out climatology:
  1000 format(5X,'Zkm',3X,'Z*',8X,'M',8X,'O3',6X,'f-O3',5X,'T',7X,'P',6x,
      &    'col-O3',3X,'col-O2',2X,10(a7,2x))
  1100 format(1X,I2,0P,2F6.2,1P,2E10.3,0P,F7.3,F8.2,F10.4,1P,10E9.2)
- 1200 format(A,F8.1,A,10(1pE10.3))
+ 1200 format(A,F8.1,A,20(1pE10.3))
       return
       end SUBROUTINE PRTATM
 
@@ -904,7 +1028,7 @@ c Lowest level intersected by emergent beam;
 !@+ modelEifications: Greg Faluvegi
 c
 C Currently allow up to NP aerosol phase functions (at all altitudes)
-C to be associated with optical depth AER2(1:NC) = aerosol opt.depth
+C to be associated with optical depth AER2(L,1:NC) = aerosol opt.depth
 C @ 1000 nm
 C  
 C  Pick Mie-wavelength with phase function and Qext:
@@ -1003,11 +1127,13 @@ C**** Local parameters and variables and arguments:
       character(len=300) :: out_line
       REAL*8, DIMENSION(NBFASTJ) :: DTAUX,PIRAY2
       REAL*8, INTENT(IN), DIMENSION(NBFASTJ) :: XQO2_2,XQO3_2
-      REAL*8, DIMENSION(MXFASTJ,NBFASTJ) :: PIAER2
       REAL*8, DIMENSION(NCFASTJ2+1) :: TTAU,FTAU
       REAL*8, INTENT(OUT), DIMENSION(LM) :: FMEAN
-      REAL*8, DIMENSION(MXFASTJ,NBFASTJ) :: QXMIE,SSALB
-      REAL*8, DIMENSION(MXFASTJ) :: XLAER
+#ifdef TRACERS_ON
+      REAL*8, allocatable, DIMENSION(:,:) :: PIAER2
+      REAL*8, allocatable, DIMENSION(:,:) :: QXMIE,SSALB
+      REAL*8, allocatable, DIMENSION(:) :: XLAER
+#endif
       REAL*8, INTENT(IN) :: WAVEL
       REAL*8, DIMENSION(2*M__) :: dpomega,dpomega2
       REAL*8 xlo2,xlo3,xlray,xltau2,zk,zk2,taudn,tauup,
@@ -1020,12 +1146,16 @@ C---Pick nearest Mie wavelength, no interpolation--------------
       if( WAVEL  >  800.d0 ) KM=4 
 
 C---For Mie code scale extinction at 1000 nm to wavelength WAVEL(QXMIE)
+#ifdef TRACERS_ON
+      allocate(piaer2(njaero,NBFASTJ))
+      allocate(qxmie(njaero,NBFASTJ))
+      allocate(ssalb(njaero,NBFASTJ))
+      allocate(xlaer(njaero))
       do j=1,NBFASTJ
-        QXMIE(1:MXFASTJ,j) =
-     &  QAAFASTJ(KM,MIEDX2(j,1:MXFASTJ))/
-     &  QAAFASTJ(4,MIEDX2(j,1:MXFASTJ))
-        SSALB(1:MXFASTJ,j) = SSA(KM,MIEDX2(j,1:MXFASTJ))
+        QXMIE(:,j) = QAAFASTJ(KM,MIEDX2(j,:)) / QAAFASTJ(4,MIEDX2(j,:))
+        SSALB(:,j) = SSA(KM,MIEDX2(j,:))
       enddo
+#endif
 
 C---Reinitialize arrays: ! loop 1,NCFASTJ2+1
       ttau(:)=0.d0
@@ -1038,15 +1168,19 @@ C---Set up total optical depth over each CTM level, DTAUX:
         XLO2=DMFASTJ2(J)*XQO2_2(J)*pO2
         XLRAY=DMFASTJ2(J)*QRAYL(KW)
         if(WAVEL <= 291.d0) XLRAY=XLRAY * 0.57d0
-        XLAER(:)=AER2(:,J)*QXMIE(:,J) ! MXFASTJ
-c Total optical depth from all elements:
         DTAUX(J)=XLO3+XLO2+XLRAY
-        do I=1,MXFASTJ
+#ifdef TRACERS_ON
+        XLAER(:)=AER2(J,:)*QXMIE(:,J) ! njaero
+c Total optical depth from all elements:
+        do I=1,njaero
           DTAUX(J)=DTAUX(J)+XLAER(I)
         enddo
+#endif
 c Fractional extinction for Rayleigh scattering and each aerosol type:
         PIRAY2(J)=XLRAY/DTAUX(J)
-        PIAER2(:,J)=SSALB(:,J)*XLAER(:)/DTAUX(J) ! MXFASTJ
+#ifdef TRACERS_ON
+        PIAER2(:,J)=SSALB(:,J)*XLAER(:)/DTAUX(J) ! njaero
+#endif
       enddo ! J
 
 C---Calculate attenuated incident beam EXP(-TTAU/U0) & flux on surface:
@@ -1084,9 +1218,11 @@ C No. of quadrature pts fixed at 4 (M__), expansion of phase fn @ 8
        do j=j1,NBFASTJ
         do i=1,MFIT
          pomegaj(i,j) = PIRAY2(J)*PAA(i,KM,1)
-         do k=1,MXFASTJ
+#ifdef TRACERS_ON
+         do k=1,njaero
           pomegaj(i,j)=pomegaj(i,j)+PIAER2(K,j)*PAA(i,KM,MIEDX2(j,K))
          enddo
+#endif
         enddo
        enddo
         
@@ -1842,13 +1978,13 @@ C Read in spectral data:
       READ(NJ1,102) (WBIN(IW),IW=1,NWWW)
       READ(NJ1,102) (WBIN(IW+1),IW=1,NWWW)
       READ(NJ1,102) (WL(IW),IW=1,NWWW)
-      if(rad_FL == 0)then
+      if(rad_FL == 0)then ! use offline photon flux values
         READ(NJ1,102) (FL(IW),IW=1,NWWW)
-      else
+      else                ! read offline values but don't use them
         READ(NJ1,102) (FL_DUMMY(IW),IW=1,NWWW)
       endif
       READ(NJ1,102) (QRAYL(IW),IW=1,NWWW)
-      READ(NJ1,102) (QBC(IW),IW=1,NWWW)   !From Loiusse et al[JGR,96]
+      READ(NJ1,102) (QBC(IW),IW=1,NWWW)   !From Liousse et al[JGR,96] (not used)
 
 C Read O2 X-sects, O3 X-sects, O3=>O(1D) quant yields(each at 3 temps):
       DO K=1,3
@@ -1918,7 +2054,7 @@ C Read aerosol phase functions:
       do j=1,NAA
         read(NJ1,110) title_aer_pf(j)
         do k=1,NK
-          read(NJ1,'(A5,F8.4,F7.3,F8.4,1x,8F6.3)') WAAFASTJ(k,j),
+          read(NJ1,106) WAAFASTJ(k,j),
      &    QAAFASTJ(k,j),RAA(k,j),SSA(k,j),(PAA(i,k,j),i=1,8)
         enddo
       enddo
@@ -1944,6 +2080,7 @@ C Read aerosol phase functions:
   103 FORMAT(A7,F3.0,6E10.3/(10X,6E10.3)/(10X,6E10.3))
   104 FORMAT(13x,i2)
   105 FORMAT(A7,3x,7E10.3)
+  106 FORMAT(f5.0,F8.4,F7.3,F8.4,1x,8F6.3)
   110 format(3x,a5)
   200 format(1x,' x-sect:',a10,3(3x,f6.2))
   201 format(1x,' pr.dep:',a10,7(1pE10.3))
@@ -2079,7 +2216,7 @@ C**** Local parameters and variables and arguments:
 
 
       SUBROUTINE rd_prof(nj2)
-!@sum rd_prof input T & O3 reference profiles, define Black Carbon prof.
+!@sum rd_prof input T & O3 reference profiles
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
 !@ver  1.0 (based on cheminit0C5_M23p & ds4p_chem_init_M23)
 
@@ -2104,35 +2241,22 @@ C**** Local parameters and variables and arguments:
         READ(NJ2,'(1X,I3,3X,I2)') LAT, MON
         M = MIN(12, MAX(1, MON))
         L = MIN(18, MAX(1, (LAT+95)/10))
-        READ(NJ2,'(3X,11F7.1)') (TREF2(I,L,M), I=1,41)
-        READ(NJ2,'(3X,11F7.4)') (OREF2(I,L,M), I=1,31)
+        READ(NJ2,201) (TREF2(I,L,M), I=1,41)
+        READ(NJ2,202) (OREF2(I,L,M), I=1,31)
       ENDDO
   
 c Extend climatology to 100 km:
       ofac=exp(-2.d5/ZZHT)
-      do i=32,51
-        ofak=ofac**(i-31)
-        do m=1,ntmons
-          do l=1,ntlats
-            oref2(i,l,m)=oref2(31,l,m)*ofak
-          enddo
-        enddo
+      do i=32,nlevref
+        oref2(i,:,:)=oref2(31,:,:)*ofac**(i-31)
       enddo
-      do l=1,ntlats
-        do m=1,ntmons
-          do i=42,51
-            tref2(i,l,m)=tref2(41,l,m)
-          enddo
-        enddo
+      do i=42,nlevref
+        tref2(i,:,:)=tref2(41,:,:)
       enddo
-
-c Approximate Black Carbon up to 10 km; surface 200 ng/m3 (Liousse et
-c al) Scale: 1 ng/m3 = 1.0d-15 g/cm3 (1.0d-11 g/m2/cm as BREF is in
-c cm))
-      do i=1,6;  BREF2(i) =10.d0*1.0d-11; end do
-      do i=7,51; BREF2(i) =0.d0         ; end do
 
       return
+ 201  format((3X,11F7.1)/(3X,11F7.1)/(3X,11F7.1)/(3X,8F7.1))
+ 202  format((3X,11F7.4)/(3X,11F7.4)/(3X,9F7.4))
  1000 format(1x,'Data: ',i3,' Lats x ',i2,' Months')
 
       end SUBROUTINE rd_prof

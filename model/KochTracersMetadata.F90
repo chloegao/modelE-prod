@@ -64,7 +64,6 @@ module KochTracersMetadata_mod
       call  BCII_setSpec('BCII')
       call  BCIA_setSpec('BCIA')
       call  BCB_setSpec('BCB')
-    end if
 #ifdef TRACERS_AEROSOLS_VBS
       call  VBS_setSpec('vbsGm2', ivbs_m2,'igas')
       call  VBS_setSpec('vbsGm1', ivbs_m1,'igas')
@@ -90,6 +89,7 @@ module KochTracersMetadata_mod
       call  OCIA_setSpec('OCIA')   !Aged industrial organic mass
       call  OCB_setSpec('OCB')     !Biomass organic mass
 #endif /* TRACERS_AEROSOLS_VBS */
+    end if
      
 !------------------------------------------------------------------------------
   contains

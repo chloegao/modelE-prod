@@ -7,6 +7,7 @@ module AttributeReference_mod
   public :: VectorAttribute
   public :: newVectorAttribute
   public :: assignment(=)
+  public :: toPointer
   
   type AttributeReference
 !!$    private
@@ -18,7 +19,7 @@ module AttributeReference_mod
 
   type, extends(AbstractAttribute) :: VectorAttribute
 !!$    private
-    type (AttributeReference), pointer :: ptr(:)
+    type (AttributeReference), allocatable :: items(:)
   contains
     procedure :: equals
     procedure :: print
@@ -26,11 +27,19 @@ module AttributeReference_mod
     procedure :: writeUnformatted
     procedure :: readUnformatted
     procedure :: clean
+    procedure :: getReferenceScalar
+    procedure :: getReferenceVector
+    procedure :: size_
+    generic :: size => size_
   end type VectorAttribute
 
   interface assignment(=)
-    module procedure toType
+    module procedure toType_
   end interface assignment(=)
+
+  interface toPointer
+     module procedure toPointerType
+  end interface toPointer
 
 contains
 
@@ -58,30 +67,31 @@ contains
 
     n = size(b)
 
-    allocate(this%ptr(n))
+    allocate(this%items(n))
     do i = 1, n
-      this%ptr(i)%ptr => b(i)%ptr ! shallow copy - preserve references
+      this%items(i)%ptr => b(i)%ptr ! shallow copy - preserve references
     end do
 
-    
   end function newVectorAttribute
   
-  subroutine toType(a, b)
-    type (AttributeReference), pointer, intent(out) :: a(:)
+  subroutine toType_(a, b)
+    type (AttributeReference), allocatable, intent(out) :: a(:)
     class (AbstractAttribute), intent(in) :: b
 
     select type (p => b)
     type is (VectorAttribute)
-      a => p%ptr
+      a = p%items
     class default
       call throwException('Illegal conversion of VectorAttribute.',255)
     end select
 
-  end subroutine toType
+  end subroutine toType_
+
 
   logical function equals(this, b)
     class (VectorAttribute), intent(in) :: this
     class (AbstractAttribute), intent(in) :: b
+    equals = .true.
   end function Equals
 
   function toString(this) result(string)
@@ -108,6 +118,36 @@ contains
   subroutine clean(this)
     class (VectorAttribute), intent(inout) :: this
   end subroutine Clean
+
+  subroutine getReferenceScalar(this, reference)
+    class (VectorAttribute), target, intent(in) :: this
+    class (*), pointer, intent(out) :: reference
+    reference => null()
+  end subroutine getReferenceScalar
+
+  subroutine getReferenceVector(this, reference)
+    class (VectorAttribute), target, intent(in) :: this
+    class (*), pointer, intent(out) :: reference(:)
+    reference => null()
+  end subroutine getReferenceVector
+
+  function toPointerType(this, vector) result(ptr)
+     type (AttributeReference), pointer :: ptr(:)
+     class (AbstractAttribute), target, intent(in) :: this
+     type (AttributeReference), intent(in) :: vector(:)
+
+     select type (this)
+     class is (VectorAttribute)
+        ptr => this%items
+     end select
+
+  end function toPointerType
+
+  integer function size_(this)
+     class (VectorAttribute), intent(in) :: this
+     size_ = size(this%items)
+  end function size_
+  
 
 end module AttributeReference_mod
 

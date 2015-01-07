@@ -21,8 +21,7 @@ C****
       USE MODEL_COM, only : modelEclock
       USE MODEL_COM, only : itime
 #ifdef SCM
-      USE SCMDIAG, only : EVPFLX,SHFLX
-      USE SCMCOM, only : iu_scm_prt, ALH, ASH, SCM_SURFACE_FLAG
+      USE SCM_COM, only : SCMopt,SCMin
 #endif
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       USE GEOM, only : imaxj
@@ -81,7 +80,7 @@ C****
       REAL*8 DQSATDT,TR4
 c**** input/output for PBL
       type (t_pbl_args) pbl_args
-      real*8 qg_sat,qsrf,us,vs,ws,ws0
+      real*8 qg_sat,qsrf,us,vs,ws,ws0,gusti
 
       ! This is for making a correction to the surface wind stress
       ! (which is proportional to |u_air - u_ocean|, or  | u_air - u_seaice |)
@@ -146,12 +145,6 @@ c ---- Don't need this section, it's asflx is a global variable
 c and it's already zeroed out before outer loop
 
 !      igla%E1=0.    ! I don't think local var E1 is really used.  It is set, but not read.
-! /------------ All global variables, zeroed in SURFACE.f ------------\
-!#ifdef SCM
-!      EVPFLX= 0.0d0
-!      SHFLX = 0.0d0
-!#endif
-! \--------------------------------------------------------------------/
 ! Next in SURFACE.f comes outside loop over timesteps.
 
 ! ==============================================================
@@ -357,6 +350,7 @@ C**** Call pbl to calculate near surface profile
       vs = pbl_args%vs
       ws = pbl_args%ws
       ws0 = pbl_args%ws0
+      gusti = pbl_args%gusti
       qsrf = pbl_args%qsrf
       CM = pbl_args%cm
       CH = pbl_args%ch
@@ -378,8 +372,10 @@ C**** CALCULATE RHOSRF*CM*WS AND RHOSRF*CH*WS
       RCDMWS=CM*WS*RHOSRF
       RCDHWS=CH*WS*RHOSRF
       RCDQWS=CQ*WS*RHOSRF
-      RCDHDWS=CH*(WS-WS0)*RHOSRF
-      RCDQDWS=CQ*(WS-WS0)*RHOSRF
+c     RCDHDWS=CH*(WS-WS0)*RHOSRF
+c     RCDQDWS=CQ*(WS-WS0)*RHOSRF
+      RCDHDWS=CH*gusti*RHOSRF
+      RCDQDWS=CQ*gusti*RHOSRF
 C**** CALCULATE FLUXES OF SENSIBLE HEAT, LATENT HEAT, THERMAL
 C****   RADIATION, AND CONDUCTION HEAT (WATTS/M**2) (positive down)
       ! Including gustiness in the sensible heat flux:
@@ -459,6 +455,15 @@ c      F1DT=0.
         SHDT=DTSURF*(SHEAT+DTG*DSHDTG)
         EVHDT=DTSURF*(EVHEAT+DTG*DEVDTG)
         TRHDT=DTSURF*(TRHEAT+DTG*DTRDTG)
+#ifdef SCM
+        if( SCMopt%sflx )then
+C****** impose specified surface heat fluxes
+          SHEAT  = -SCMin%shf
+          EVHEAT = -SCMin%lhf
+          SHDT   = DTSURF*SHEAT
+          EVHDT  = DTSURF*EVHEAT
+        endif
+#endif
         F1DT=DTSURF*(TG1-CDTERM-(F0+DTG*DFDTG)*Z1BY6L)*CDENOM
         TG1=TG1+DTG
 
@@ -514,43 +519,15 @@ C**** ACCUMULATE SURFACE FLUXES AND PROGNOSTIC AND DIAGNOSTIC QUANTITIES
       igla%E1(I,J)=igla%E1(I,J)+F1DT
 
       igla%EVAPOR(I,J)=igla%EVAPOR(I,J)+EVAP
-#ifdef SCM
-      if (SCM_SURFACE_FLAG.eq.0.or.SCM_SURFACE_FLAG.eq.2) then
-        EVPFLX = EVPFLX -(DQ1X*MA1)*(PTYPE/DTSURF)*LHE
-        SHFLX = SHFLX - SHDT*PTYPE/DTSURF
-c             write(iu_scm_prt,*) 'srf  evpflx shflx ptype ',
-c    *                   EVPFLX,SHFLX,ptype
-      endif
-#endif
       igla%TGRND(I,J)=TG1  ! includes skin effects
       igla%TGR4(I,J) =TR4
 C**** calculate correction for different TG in radiation and surface
       dLWDT = DTSURF*(igla%TRUP_in_rad(I,J)-igla%flong(I,J))+TRHDT
 C**** final fluxes
-#ifdef SCM
-cccccc for SCM use ARM provided fluxes for designated box
-      if (SCM_SURFACE_FLAG.eq.1) then
-           igla%DTH1(I,J)=igla%DTH1(I,J)
-     &              +ash*DTSURF*ptype/(SHA*MA1)
-           igla%DQ1(I,J)=igla%DQ1(I,J) + ALH*DTSURF*ptype/(MA1*LHE)
-           SHFLX = SHFLX + ASH*ptype
-           EVPFLX = EVPFLX + ALH*ptype
-           write(iu_scm_prt,980) I,PTYPE,igla%DTH1(I,J),igla%DQ1(I,J),
-     &           EVPFLX,SHFLX
- 980       format(1x,'SURFACE ARM   I PTYPE DTH1 DQ1 evpflx shflx',
-     &            i5,f9.4,f9.5,f9.6,f9.5,f9.5)
-      else
-#endif
       igla%DTH1(I,J)=-(SHDT+dLWDT)/(SHA*MA1) ! +ve up
       igla%sensht(i,j) = igla%sensht(i,j)+SHDT
       igla%DQ1(I,J) = -DQ1X
-#ifdef SCM
-      write(iu_scm_prt,988) I,PTYPE,igla%DTH1(I,J),igla%DQ1(I,J),
-     &     SHDT,dLWDT
- 988  format(1x,'988 SURFACE GCM  I PTYPE DTH1 DQ1 SHDT dLWDT ',
-     &           i5,f9.4,f9.5,f9.6,f12.4,f10.4)
-      endif
-#endif
+
 !unused      DMUA_IJ=RCDMWS*US
 !unused      DMVA_IJ=RCDMWS*VS
 !unused      igla%DMUA(I,J) = igla%DMUA(I,J) + DMUA_IJ*DTSURF

@@ -1628,7 +1628,7 @@ C****
 !@auth Gavin Schmidt
       USE CONSTANT, only : tf
 #ifdef SCM
-      USE SCMCOM, only : SCM_SURFACE_FLAG,ATSKIN
+      USE SCM_COM, only : SCMopt,SCMin
 #endif
       USE SEAICE_COM, only : si_atm,si_ocn
       USE SEAICE, only : ace1i,xsi,lmi,Ti,rhoi,rhos
@@ -1674,10 +1674,10 @@ C**** set GTEMP etc. array for ice
         atmice%ZSNOWI(I,J)=si_atm%SNOWI(I,J)/rhos
         si_atm%ZSI(I,J)=(ace1i+si_atm%msi(i,j))/rhoi
 #ifdef SCM
-        if (SCM_SURFACE_FLAG.ge.1) then
-          atmice%GTEMP(I,J) = ATSKIN
-          atmice%GTEMP2(I,J) = ATSKIN
-          atmice%GTEMPR(I,J) = ATSKIN + TF
+        if( SCMopt%Tskin )then
+          atmice%GTEMP(I,J) = SCMin%Tskin - TF
+          atmice%GTEMP2(I,J) = SCMin%Tskin - TF
+          atmice%GTEMPR(I,J) = SCMin%Tskin
         endif
 #endif
 #ifdef TRACERS_WATER
@@ -1981,7 +1981,7 @@ C**** SET DEFAULTS IF NO OCEAN ICE
       USE SEAICE_COM, only : si_ocn
       USE SEAICE, only : tfrez
 #ifdef SCM
-      USE SCMCOM, only : iu_scm_prt,SCM_SURFACE_FLAG,ATSKIN
+      USE SCM_COM, only : SCMopt,SCMin
 #endif
       USE EXCHANGE_TYPES, only : atmocn_xchng_vars,atmice_xchng_vars
       IMPLICIT NONE
@@ -2002,9 +2002,9 @@ c
           atmice%GTEMP2(I,J)=TFO
           atmice%GTEMPR(I,J) = TFO+TF
 #ifdef SCM
-          if (SCM_SURFACE_FLAG.ge.1) then
-            atmice%GTEMP(I,J) = ATSKIN
-            atmice%GTEMPR(I,J) = ATSKIN + TF
+          if( SCMopt%Tskin )then
+            atmice%GTEMP(I,J) = SCMin%Tskin - TF
+            atmice%GTEMPR(I,J) = SCMin%Tskin
           endif
 #endif
         ENDIF

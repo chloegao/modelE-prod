@@ -15,6 +15,7 @@ module ModelClock_mod
     integer :: tick
 
   contains
+    procedure :: getTimeAtBeginningOfCurrentDay
     procedure :: getCurrentTime
     procedure :: getTimeInSecondsFromDate
     procedure :: getAbsoluteTimeInSeconds
@@ -117,13 +118,24 @@ contains
     secs = this%currentTime%getWhole()
   end function getAbsoluteTimeInSeconds
 
+  function getTimeAtBeginningOfCurrentDay(this) result(t)
+    type (Time) :: t
+    class (ModelClock), intent(in) :: this
+    integer :: year
+    integer :: month
+    integer :: date
+    t     = this%getCurrentTime()
+    year  = t%getYear()
+    month = t%getMonth()
+    date  = t%getDate()
+    call t%setByDate(year, month, date, 0)
+  end function getTimeAtBeginningOfCurrentDay
 
   function getCurrentTime(this) result(t)
     type (Time) :: t
     class (ModelClock), intent(in) :: this
     t = this%currentTime
   end function getCurrentTime
-
 
   function getTimeInSecondsFromDate(this, year, month, date, hour) result (seconds)
     use AbstractCalendar_mod, only: AbstractCalendar

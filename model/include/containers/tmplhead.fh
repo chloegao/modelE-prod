@@ -1,0 +1,11 @@
+#if (!defined _entryname) || (!defined _entry)
+#  ifdef _entryname
+#    define _entry type(_entryname)
+#  else
+#    define _entryname _entry
+#  endif
+#endif
+
+#define __QUOTE(x) x
+#define __TMPL(x) __QUOTE(x)__QUOTE(_)__QUOTE(_entryname)
+

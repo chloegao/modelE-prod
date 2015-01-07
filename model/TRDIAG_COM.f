@@ -293,6 +293,10 @@ C**** TAIJLS 3D special tracer diagnostics
       integer, allocatable :: ijlt_3Dtau(:)
 !@var ijlt_3Daaod 3D tracer independent array for hydrated absorption
       INTEGER, allocatable :: ijlt_3Daaod(:)
+#ifdef SAVE_AEROSOL_3DMASS_FOR_NINT
+!@var ijlt_3Dmass 3D tracer independent array for layer MASS (or load)
+      INTEGER, allocatable :: ijlt_3Dmass(:)
+#endif
 #ifdef TRACERS_TOMAS
 !@var ijlt_ccn_01-ccn_03 CCN diagnostic
       INTEGER :: ijlt_ccn_01,ijlt_ccn_02,ijlt_ccn_03
@@ -1433,6 +1437,10 @@ C*** Unpack read global data into local distributed arrays
       ijlt_3Dtau = 0
       allocate(ijlt_3Daaod(ntm))
       ijlt_3Daaod = 0
+#ifdef SAVE_AEROSOL_3DMASS_FOR_NINT
+      allocate(ijlt_3Dmass(ntm))
+      ijlt_3Dmass = 0
+#endif
       allocate(sname_jln(ktajlx,ntm))
       allocate(lname_jln(ktajlx,ntm))
       lname_jln = 'unused'

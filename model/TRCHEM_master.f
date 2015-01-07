@@ -3,7 +3,7 @@
 !@sum masterchem main chemistry routine
 !@vers 2013/03/26
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
-!@calls photoj,Crates,Oxinit,HOxfam,NOxfam,chemstep
+!@calls fastj2_drv,Crates,Oxinit,HOxfam,NOxfam,chemstep
 C
 C IF ALTERING THIS ROUTINE, PLEASE SEE THE WARNING ABOUT THE CHANGEL
 C VARIABLE IN THE STRATOSPHERIC OVERWRITE SECTION.
@@ -108,9 +108,8 @@ c***#ifdef CACHED_SUBDD
 c***      use subdd_mod, only : subdd_groups,subdd_type,subdd_ngroups
 c***     &     ,inc_subdd,find_groups, LmaxSUBDD
 c***#endif
-      use photolysis, only: photoj,sza,szamax,tfastj,zj,o3_fastj,jppj
-     &                     ,pfastj2,miedx2,mxfastj,jpnl,naa,sf3_fact
-     &                     ,sf2_fact
+      use photolysis, only: fastj2_drv,o3_fastj
+     &                     ,sza,szamax,zj,jppj,jpnl,sf3_fact,sf2_fact
 
       IMPLICIT NONE
 
@@ -197,7 +196,7 @@ C**** Local parameters and variables and arguments:
      & countTT,bHNO3,mHNO3,HNO3_thresh,Ttemp
       INTEGER, DIMENSION(LM)    :: aero
       INTEGER                   :: igas,LL,I,J,L,N,inss,Lqq,L2,n2,
-     &                          ierr,ierr_loc,Jqq,Iqq,maxl,iu,ii,
+     &                          ierr,ierr_loc,Jqq,Iqq,maxl,iu,
      &        ih1330e,ih1030e,ih1030,ih1330,m,istep,index1,index2
       LOGICAL                   :: error, jay
       CHARACTER*4               :: ghg_name
@@ -628,98 +627,15 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
        ! additional SUNLIGHT criterion (see also fam chem criterion):
        if((ALB(I,J,1) /= 0.d0).AND.(sza < szamax))then
        
-c       define column temperatures to be sent to FASTJ:
-        TFASTJ = ta
-        RFASTJ = rh
-
-c       Apostolos Voulgarakis (Feb 2010): Choose the indexes of the 
-c       aerosol types that we are going to use in Fast-J2 (indexes
-c       in look-up table), taking humidity into account. The different 
-c       aerosols used are:
-c
-c        1 = Sulfate (n_SO4)
-c        2 = Sea-Salt (fine) (n_seasalt1)
-c        3 = Sea-Salt (coarse) (n_seasalt2)
-c        4 = Organic Carbon (n_OCIA AND n_OCB AND SOAs)
-c        5 = Black Carbon (aged) (n_BCIA)
-c        6 = Black Carbon (biomass burning) (n_BCB)
-c        7 = Nitrate (n_NO3p)
-c        8 = Dust (Clay, 1-st size bin) (n_clay)
-c        9 = Dust (Clay, 2-nd size bin) (n_clay)
-c       10 = Dust (Clay, 3-rd size bin) (n_clay)
-c       11 = Dust (Clay, 4-th size bin) (n_clay)
-c       12 = Dust (Clay, 1-st size bin) (n_silt1)
-c       13 = Dust (Clay, 2-nd size bin) (n_silt2)
-c       14 = Dust (Clay, 3-rd size bin) (n_silt3)
-c       15 = Dust (Clay, 4-rd size bin) (n_silt4)
-c       16 = Liquid Clouds
-c       17 = Ice Clouds
-
-        DO LL=1,LM 
-         if (RFASTJ(LL) .lt. 0.15) then
-           MIEDX2(LL,:)=(/12,20,28,36,44,44,45,53,54,55,56,
-     &                   57,58,59,60,7,11/)
-         else if ((RFASTJ(LL) .ge. 0.15) .and. (RFASTJ(LL) .lt. 
-     &   0.4)) then
-           MIEDX2(LL,:)=(/13,21,29,37,44,44,46,53,54,55,56,
-     &                   57,58,59,60,7,11/)
-         else if ((RFASTJ(LL) .ge. 0.4) .and. (RFASTJ(LL) .lt.
-     &   0.6)) then
-           MIEDX2(LL,:)=(/14,22,30,38,44,44,47,53,54,55,56,
-     &                   57,58,59,60,7,11/)
-         else if ((RFASTJ(LL) .ge. 0.6) .and. (RFASTJ(LL) .lt.
-     &   0.75)) then
-           MIEDX2(LL,:)=(/15,23,31,39,44,44,48,53,54,55,56,
-     &                   57,58,59,60,7,11/)
-         else if ((RFASTJ(LL) .ge. 0.75) .and. (RFASTJ(LL) .lt.
-     &   0.85)) then
-           MIEDX2(LL,:)=(/16,24,32,40,44,44,49,53,54,55,56,
-     &                   57,58,59,60,7,11/)
-         else if ((RFASTJ(LL) .ge. 0.85) .and. (RFASTJ(LL) .lt.
-     &   0.925)) then
-           MIEDX2(LL,:)=(/17,25,33,41,44,44,50,53,54,55,56,
-     &                   57,58,59,60,7,11/)
-         else if ((RFASTJ(LL) .ge. 0.925) .and. (RFASTJ(LL) .lt.
-     &   0.97)) then
-           MIEDX2(LL,:)=(/18,26,34,42,44,44,51,53,54,55,56,
-     &                   57,58,59,60,7,11/)
-         else if (RFASTJ(LL) .ge. 0.97) then
-           MIEDX2(LL,:)=(/19,27,35,43,44,44,52,53,54,55,56,
-     &                   57,58,59,60,7,11/)
-         endif
-        ENDDO 
-c Now force extra level (top of the atmosphere) used in Fast-J
-c to have the same MIEDX2 as the top model level
-        do ii=1,MXFASTJ 
-         MIEDX2(LM+1,ii)=MIEDX2(LM,ii)
-        enddo
-c  Ensure all aerosol types are valid selections:
-        do LL=1,LM+1
-         do ii=1,MXFASTJ
-          if(MIEDX2(LL,ii) > NAA.or.MIEDX2(LL,ii) <= 0) then
-            write(out_line,1201) MIEDX2(LL,ii),NAA
-            call write_parallel(trim(out_line),crit=.true.)
-            call stop_model('Problem with MIEDX2 aerosol types',13)
-          endif
-         enddo
-        enddo
- 1201 format('Aerosol type ',i2,' unsuitable; supplied values must be',
-     &       ' between 1 and ',i2)
-
-c       define pressures to be sent to FASTJ (centers):
-        PFASTJ2(1:LM) = PMID(1:LM,I,J)
-        PFASTJ2(LM+1)=PEDN(LM+1,I,J)  ! P at SIGE(LM+1)
-        PFASTJ2(LM+2)=PFASTJ2(LM+1)*0.2816 ! 0.00058d0/0.00206d0 ! fudge
-        PFASTJ2(LM+3)=PFASTJ2(LM+2)*0.4828 ! 0.00028d0/0.00058d0 ! fudge
-
 c Pass O3 array (in ppmv) to fastj. Above these levels fastj2 uses
 C Nagatani climatological O3, read in by chem_init: 
         DO LL=1,LM
-          if(PFASTJ2(LL) <= 0.1d0) y(nO3,LL)=y(nn_Ox,LL)
+          if(PMID(LL,I,J)<=0.1d0) y(nO3,LL)=y(n_Ox,LL)
           O3_FASTJ(LL)=y(nO3,LL)/y(nM,LL)
         END DO
 
-        call photoj(I,J) ! CALL THE PHOTOLYSIS SCHEME
+! calculate photolysis rates
+        call fastj2_drv(I, J, ta, rh)
         call photo_acetone(I,J,sza*radian,Jacet) ! simpler calculation for acetone
 
 C Define and alter resulting photolysis coefficients (zj --> ss):
@@ -1274,6 +1190,7 @@ C -- HNO3 --  (HNO3 from gas and het phase rxns )
           changeHNO3=changeL(L,n_HNO3)*mass2vol(n_HNO3)*bypfactor
         END IF
 #ifdef TRACERS_HETCHEM
+#ifdef TRACERS_NITRATE
         changeL(L,n_N_d1)=changeN_d1*pfactor*vol2mass(n_N_d1)
         if(i==36.and.j==28.and.l==1) then
           write(out_line,*)'Mchange L 2 ', changeL(L,n_N_d1),changeN_d1
@@ -1293,7 +1210,8 @@ C -- HNO3 --  (HNO3 from gas and het phase rxns )
           changeL(l,n_N_d3) = 1.d0 - trm(i,j,l,n_N_d3)
           changeN_d3=changeL(L,n_N_d3)*mass2vol(n_N_d3)*bypfactor
         END IF
-#endif
+#endif  /* TRACERS_NITRATE */
+#endif  /* TRACERS_HETCHEM */
 C -- N2O5 --  (N2O5 from gas and het phase rxns)
         changeL(L,n_N2O5)=changeN2O5*pfactor*vol2mass(n_N2O5)
         IF((trm(i,j,l,n_N2O5)+changeL(l,n_N2O5)) < 1.d0) THEN
@@ -1692,10 +1610,12 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
         mNO2(i,j,L)=pNOx(i,j,L)*y(nn_NOx,L)/y(nM,L)
      
 #ifdef TRACERS_HETCHEM
+#ifdef TRACERS_NITRATE
         tr3Dsource(i,j,l,nChemistry,n_N_d1) = changeL(l,n_N_d1) *bydtsrc
         tr3Dsource(i,j,l,nChemistry,n_N_d2) = changeL(l,n_N_d2) *bydtsrc
         tr3Dsource(i,j,l,nChemistry,n_N_d3) = changeL(l,n_N_d3) *bydtsrc
-#endif
+#endif  /* TRACERS_NITRATE */
+#endif  /* TRACERS_HETCHEM */
 
       END DO ! end current altitude loop
 

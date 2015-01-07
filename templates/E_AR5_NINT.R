@@ -2,7 +2,7 @@ E_AR5_NINT.R GISS Model E  1850 ocn/atm          Larissa        08/26/2010
 
 !! E_AR5_NINT is for NIsurf=2 with NetCDF output; 
                + WMUI_multiplier=2. (to adjust Planetary albedo close to 30%) 
-                 (U00a=0.43; U00b=1.0)
+                 (U00a=0.45; U00b=1.0)
 
 !! delete lines starting with '!!' unless E4F40 prepares a q-flux ocean run
 !! E4qsF40.R GISS Model E  1850 atm, ocn: q-flux 65m             rar 07/15/2009
@@ -76,7 +76,7 @@ xCDpbl=1.
 cond_scheme=2   ! newer conductance scheme (N. Kiang) ! not used with Ent
 
 ! Increasing U00a decreases the high cloud cover; increasing U00b decreases net rad at TOA
-U00a=0.43      ! above 850mb w/o MC region; tune this first to get 30-35% high clouds
+U00a=0.57      ! above 850mb w/o MC region; tune this first to get 30-35% high clouds
 U00b=1.00      ! below 850mb and MC regions; then tune this to get rad.balance
 
 WMUI_multiplier = 2.

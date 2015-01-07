@@ -65,6 +65,9 @@
       USE AMP_AEROSOL, only : DIAM, AMP_dens,AMP_TR_MM
       USE AERO_SETUP,  only : CONV_DPAM_TO_DGN
 #endif
+#ifdef SCM
+      USE SCM_COM, only : SCMopt,SCMin
+#endif
 
       use SOCPBL, only : npbl=>n, zgs, advanc
       USE PBLCOM
@@ -210,14 +213,23 @@ ccc extract data needed in driver from the pbl_args structure
       hemi = pbl_args%hemi
 c      pole = pbl_args%pole
 
+#ifdef USE_PBL_E1
+      pbl_args%ddml_eq_1=.false.
+#else
+      pbl_args%ddml_eq_1=DDML(i,j).eq.1
+#endif
       ! Redelsperger et al. 2000, eqn(13), J. Climate, 13, 402-421
       ! tprime,qprime are the pertubation of t and q due to gustiness
 
       ! pick up one of the following two expressions for gusti
 
       ! for down draft:
-      mdn=max(DDMS(i,j), -0.07d0)
-      pbl_args%gusti=log(1.-600.4d0*mdn-4375.*mdn*mdn)
+      if(pbl_args%ddml_eq_1) then
+        mdn=max(DDMS(i,j), -0.07d0)
+        pbl_args%gusti=log(1.-600.4d0*mdn-4375.*mdn*mdn)
+      else
+        pbl_args%gusti=0.
+      endif
 
       ! for up draft:
       ! mup=min(DDMS(i,j), 0.1d0)
@@ -298,12 +310,6 @@ c    &     pbl_args%TGV = 1.0001d0*pbl_args%TGV
       pbl_args%ch = ch
       pbl_args%cq = cq
 
-#ifdef USE_PBL_E1
-      pbl_args%ddml_eq_1=.false.
-#else
-      pbl_args%ddml_eq_1=DDML(i,j).eq.1
-#endif
-
       ! if ddml_eq_1=.false.,
       ! i.e., either USE_PBL_E1 or DDML(i,j) is not 1,
       ! then tdns,qdns,tprime,qprime are not in use
@@ -361,6 +367,14 @@ c    &     pbl_args%TGV = 1.0001d0*pbl_args%TGV
      &       (atm%dep_vel(n,i,j)+atm%gs_vel(n,i,j)) ! kg/m2
       enddo
 #endif
+#endif
+
+#ifdef SCM
+      if ( SCMopt%geo .and. SCMopt%ustar ) then
+c**** force friction speed and surface drag coefficient
+        pbl_args%ustar = SCMin%ustar
+        pbl_args%cm = (SCMin%ustar/pbl_args%ws)**2
+      endif
 #endif
 
       atm%cmgs(i,j)=pbl_args%cm

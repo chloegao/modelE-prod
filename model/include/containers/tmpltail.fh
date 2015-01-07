@@ -1,0 +1,5 @@
+#undef _entry
+#undef _entryname
+#undef __QUOTE
+#undef __TMPL
+
