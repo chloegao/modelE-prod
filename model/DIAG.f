@@ -6246,6 +6246,7 @@ C****
       USE RESOLUTION, only : pmtop
       USE FLUXES, only : fearth0,flice,focean
       USE GEOM, only : imaxj,axyp,lat2d
+      USE RAD_COM, only: aer_rad_forc
       USE DIAG_COM, only : aij=>aij_loc,tsfrez=>tsfrez_loc,
      &     kaij,hemis_ij,jgrid_ij,
      &     aijl=>aijl_loc,ia_ij,ia_src,ia_inst,ia_dga,tf_last,tf_day1,
@@ -6347,6 +6348,7 @@ C****
         k = ij_tatm
         aij(i,j,k) = sum(aijl(i,j,:,ijk_tx))
 
+        if (aer_rad_forc.gt.0) then
         k = ij_swaerabs
         do n=1,8
         aij(i,j,k+n-1)=aij(i,j,ij_swaerrf+n-1)-aij(i,j,ij_swaersrf+n-1)
@@ -6362,6 +6364,7 @@ C****
 
         k = ij_lwaerabsnt
         aij(i,j,k) = aij(i,j,ij_lwaerrfnt)-aij(i,j,ij_lwaersrfnt)
+        endif
 
         k = ij_TminC
         aij(i,j,k) = aij(i,j,ij_TmaxC) - aij(i,j,ij_TDcomp)
