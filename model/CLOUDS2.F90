@@ -118,7 +118,7 @@ module CLOUDS
 !@dbparam wmui_multiplier critical ice cloud water multiplier
   real*8 :: wmui_multiplier=1.d0     ! default
 !@dbparam entrainment_cont1 constant for entrainment rate, plume 1
-  real*8 :: entrainment_cont1=.3d0   ! default
+  real*8 :: entrainment_cont1=.4d0   ! default
 !@dbparam entrainment_cont2 constant for entrainment rate, plume 2
   real*8 :: entrainment_cont2=.6d0   ! default
 !@dbparam HRMAX maximum distance an air parcel rises from surface
