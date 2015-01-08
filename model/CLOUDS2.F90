@@ -691,7 +691,8 @@ contains
     ! for sulfur chemistry
 !@var WA_VOL Cloud water volume (L). Used by GET_SULFATE.
     real*8 WA_VOL
-    real*8, dimension(aqchem_count) ::SULFIN,SULFINC,SULFOUT,TR_LEFT
+    real*8, dimension(aqchem_count) ::SULFIN,SULFINOM,SULFINC,&
+                                      SULFOUT,TR_LEFT
     integer :: IAQCH
 #endif
     real*8 HEFF
@@ -1470,14 +1471,13 @@ contains
             WA_VOL=COND(L)*1.d2*BYGRAV*DXYPIJ
 
             call GET_SULFATE(PL(L),TPOLD(L),FPLUME,WA_VOL,WMXTR,SULFIN, &
-                 SULFINC,SULFOUT,TR_LEFT,TMP,TRCOND(:,L), &
+                 SULFINOM,SULFINC,SULFOUT,TR_LEFT,TMP,TRCOND(:,L), &
                  AIRM(L),LHX,DT_SULF_MC(:,L),CLDSAVT,.false.)
 
             do iaqch=1,aqchem_count
               n = aqchem_list(iaqch)
               TMP(N)=TMP(N)+SULFIN(iaqch)
-              if (TMP(N) > 0.d0) &
-                TMOMP(xymoms,N)= TMOMP(xymoms,N)*(1.+SULFIN(iaqch)/TMP(N))
+              TMOMP(xymoms,N)= TMOMP(xymoms,N)*(1.+SULFINOM(iaqch))
               TRCOND(N,L) = TRCOND(N,L)+SULFOUT(iaqch)
             enddo
 
@@ -2543,15 +2543,14 @@ contains
     (defined TRACERS_TOMAS)
               WA_VOL= precip_mm*DXYPIJ
 
-              call GET_SULFATE(PL(L),TOLD,FPLUME,WA_VOL,WMXTR,SULFIN, &
+              call GET_SULFATE(PL(L),TOLD,FPLUME,WA_VOL,WMXTR,SULFIN,SULFINOM, &
                    SULFINC,SULFOUT,TR_LEFT,TM(L,:),TRPRCP,AIRM(L),LHX, &
                    DT_SULF_MC(:,L),CLDSAVT,.true.)
 
               do iaqch=1,aqchem_count
                 n = aqchem_list(iaqch)
                 TM(L,N)=TM(L,N)+SULFIN(iaqch)
-                if (TM(L,N) > 0.d0) &
-                  TMOM(xymoms,L,N)=TMOM(xymoms,L,N)*(1.+SULFIN(iaqch)/TM(L,N))
+                TMOM(xymoms,L,N)=TMOM(xymoms,L,N)*(1.+SULFINOM(iaqch))
                 TRPRCP(N)=TRPRCP(N)+SULFINC(iaqch)
                 TRCOND(N,L) = TRCOND(N,L)+SULFOUT(iaqch)
               enddo
@@ -2936,7 +2935,8 @@ contains
     ! for sulfur chemistry
 !@var WA_VOL Cloud water volume (L). Used by GET_SULFATE.
     real*8 WA_VOL
-    real*8, dimension(aqchem_count) ::SULFIN,SULFINC,SULFOUT,TR_LEFT
+    real*8, dimension(aqchem_count) ::SULFIN,SULFINOM,SULFINC,&
+                                      SULFOUT,TR_LEFT
     integer :: IAQCH
 #endif
 #endif
@@ -4545,15 +4545,14 @@ contains
         WA_VOL=precip_mm*DXYPIJ
       end if
 
-      call GET_SULFATE(PL(L),TL(L),FCLD,WA_VOL &
-           ,WMXTR,SULFIN,SULFINC,SULFOUT,TR_LEFT,TM(L,:),TRWML(:,L),AIRM(L) &
+      call GET_SULFATE(PL(L),TL(L),FCLD,WA_VOL,WMXTR,SULFIN,SULFINOM &
+           ,SULFINC,SULFOUT,TR_LEFT,TM(L,:),TRWML(:,L),AIRM(L) &
            ,LHX,DT_SULF_SS(:,L),CLDSAVT,.true.)
 
       do iaqch=1,aqchem_count
         n = aqchem_list(iaqch)
         TM(L,N)=TM(L,N)+SULFIN(iaqch)
-        if (TM(L,N) > 0.d0) &
-          TMOM(:,L,N)=TMOM(:,L,N)*(1.+SULFIN(iaqch)/TM(L,N))
+        TMOM(:,L,N)=TMOM(:,L,N)*(1.+SULFINOM(iaqch))
         TRWML(N,L)=TRWML(N,L)+SULFINC(iaqch)
         if (QCLX(L).lt.teeny.and.BELOW_CLOUD) then
           TRPRBAR(N,L+1)=TRPRBAR(N,L+1)+SULFOUT(iaqch)
@@ -4797,15 +4796,14 @@ contains
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
 
-          call GET_SULFATE(PL(L),TL(L),FCLD,WA_VOL,WMXTR,SULFIN, &
+          call GET_SULFATE(PL(L),TL(L),FCLD,WA_VOL,WMXTR,SULFIN,SULFINOM, &
                SULFINC,SULFOUT,TR_LEFT,TM(L,:),TRWML(:,L),AIRM(L),LHX, &
                DT_SULF_SS(:,L),CLDSAVT,.true.)
 
           do iaqch=1,aqchem_count
             n = aqchem_list(iaqch)
             TM(L,N)=TM(L,N)+SULFIN(iaqch)
-            if (TM(L,N) > 0.d0) &
-              TMOM(:,L,N) =TMOM(:,L,N)*(1.+SULFIN(iaqch)/TM(L,N))
+            TMOM(:,L,N) =TMOM(:,L,N)*(1.+SULFINOM(iaqch))
             TRWML(N,L)=TRWML(N,L)+SULFINC(iaqch)
             TRWML(N,L) = TRWML(N,L)+SULFOUT(iaqch)
             TR_LEF(N)=TR_LEFT(iaqch)
