@@ -3322,22 +3322,6 @@ C**** include CRF diags if requested
         lname_ij(ij_lwcrf)='unused'
       end if
 
-C**** include aerosol rad forc diags only if requested
-      if (aer_rad_forc.eq.0) then
-        lname_ij(ij_swaerrf:ij_swaerrf+7)='unused'
-        lname_ij(ij_lwaerrf:ij_lwaerrf+7)='unused'
-        lname_ij(ij_swaersrf:ij_swaersrf+7)='unused'
-        lname_ij(ij_lwaersrf:ij_lwaersrf+7)='unused'
-        lname_ij(ij_swaerabs:ij_swaerabs+7)='unused'
-        lname_ij(ij_lwaerabs:ij_lwaerabs+7)='unused'
-        lname_ij(ij_swaerrfnt)='unused'
-        lname_ij(ij_lwaerrfnt)='unused'
-        lname_ij(ij_swaersrfnt)='unused'
-        lname_ij(ij_lwaersrfnt)='unused'
-        lname_ij(ij_swaerabsnt)='unused'
-        lname_ij(ij_lwaerabsnt)='unused'
-      end if
-
 C**** Fill in maplet indices for gravity wave diagnostics
       do k=1,iDO_GWDRAG
         iord(k+kmaplets) = ij_gw1+k-1  !i.e. first entry is ij_gw1

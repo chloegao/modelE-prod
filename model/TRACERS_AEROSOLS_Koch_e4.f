@@ -1563,8 +1563,12 @@ c    *     'RRR SCALE ',stfac,cosz1(i,j),tczen(j),oh(i,j,l),ohr(i,j,l)
           sulfin(n)=max(-tmg(ix),sulfin(n))
           sulfinc(n)=max(-tmd(ix),sulfinc(n))
           tr_left(n)=0.d0
-          if (fcloud.gt.abs(sulfin(n)/tmg(ix))) then
-            tr_left(n)=(fcloud+sulfin(n)/tmg(ix))
+          if (tmg(ix) == 0.d0) then
+            tr_left(n)=fcloud
+          else
+            if (fcloud.gt.abs(sulfin(n)/tmg(ix))) then
+              tr_left(n)=(fcloud+sulfin(n)/tmg(ix))
+            endif
           endif
  401      continue
           dt_sulf(ix)=dt_sulf(ix)+sulfin(n)+sulfinc(n)
