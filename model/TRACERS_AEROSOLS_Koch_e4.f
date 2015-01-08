@@ -1295,7 +1295,7 @@ c    *     'RRR SCALE ',stfac,cosz1(i,j),tczen(j),oh(i,j,l),ohr(i,j,l)
 
 
       SUBROUTINE GET_SULFATE(pl,temp_in,fcloud,
-     *  wa_vol,wmxtr,sulfin,sulfinc,sulfout,tr_left,
+     *  wa_vol,wmxtr,sulfin,sulfinom,sulfinc,sulfout,tr_left,
      *  tmg,tmd,airm,lhx,dt_sulf,fcld0,no_plume)
 
 !@sum  GET_SULFATE calculates formation of sulfate from SO2 and H2O2
@@ -1319,13 +1319,15 @@ c    *     'RRR SCALE ',stfac,cosz1(i,j),tczen(j),oh(i,j,l),ohr(i,j,l)
 !**** Local parameters and variables and arguments:
 
 !@var sulfin amount of precursor used to make product from the gas phase (kg)
+!@var sulfinom sulfin=sulfinom*tmg, for avoiding divisions sulfinom=sulfin/tmg
+!@+   (dimensionless)
 !@var sulfinc amount of precursor used to make product from the condensate (kg)
 !@var sulfout total amount of product generated (kg)
 !@var tr_left is the amount of precursor left after product is made
 !@+   and is now available to condense
 !@+   This is a very strange variable, probably wrong!!!
-      real*8, dimension(aqchem_count), intent(out) :: sulfin,sulfinc,
-     &                                                sulfout,tr_left
+      real*8, dimension(aqchem_count), intent(out) :: sulfin,sulfinom,
+     &                                        sulfinc,sulfout,tr_left
 !@var fcloud cloud fraction available for tracer condensation. fcloud=fplume
 !@+   for convective clouds, and fcloud=fcld for large-scale clouds
 !@var fcld0 updated cloud fraction, given the current state of large-scale
@@ -1416,6 +1418,7 @@ c    *     'RRR SCALE ',stfac,cosz1(i,j),tczen(j),oh(i,j,l),ohr(i,j,l)
       real*8, dimension(ntx), intent(inout) :: dt_sulf
 
       sulfin(:)=0.d0
+      sulfinom(:)=0.d0
       sulfinc(:)=0.d0
       sulfout(:)=0.d0
       tr_left(:)=1.d0
@@ -1548,7 +1551,7 @@ c    *     'RRR SCALE ',stfac,cosz1(i,j),tczen(j),oh(i,j,l),ohr(i,j,l)
         case('SO2','H2O2','H2O2_s')
           select case (trname(ix))
           case('SO2')
-            sulfin(n)=-dso4g*tmg(ih)*tr_mm(ix)/1.d3*tmg(ix) ! kg
+            sulfinom(n)=-dso4g*tmg(ih)*tr_mm(ix)/1.d3 ! dimensionless
             sulfinc(n)=-dso4d*tmd(ih)*tr_mm(ix)/1.d3*tmd(ix) ! kg
           case('H2O2','H2O2_s')
             select case (trname(ix))
@@ -1557,18 +1560,17 @@ c    *     'RRR SCALE ',stfac,cosz1(i,j),tczen(j),oh(i,j,l),ohr(i,j,l)
             case('H2O2_s')
               if (coupled_chem.eq.1) goto 401
             end select
-            sulfin(n)=-dso4g*tmg(is)*tr_mm(ix)/1.d3*tmg(ix) ! kg
+            sulfinom(n)=-dso4g*tmg(is)*tr_mm(ix)/1.d3 ! dimensionless
             sulfinc(n)=-dso4d*tmd(is)*tr_mm(ix)/1.d3*tmd(ix) ! kg
           end select
+          sulfin(n)=sulfinom(n)*tmg(ix) ! kg
+
+          sulfinom(n)=max(-1.d0,sulfinom(n))
           sulfin(n)=max(-tmg(ix),sulfin(n))
           sulfinc(n)=max(-tmd(ix),sulfinc(n))
           tr_left(n)=0.d0
-          if (tmg(ix) == 0.d0) then
-            tr_left(n)=fcloud
-          else
-            if (fcloud.gt.abs(sulfin(n)/tmg(ix))) then
-              tr_left(n)=(fcloud+sulfin(n)/tmg(ix))
-            endif
+          if (fcloud.gt.abs(sulfinom(n))) then
+            tr_left(n)=fcloud+sulfinom(n)
           endif
  401      continue
           dt_sulf(ix)=dt_sulf(ix)+sulfin(n)+sulfinc(n)
