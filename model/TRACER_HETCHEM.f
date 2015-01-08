@@ -21,7 +21,7 @@
       USE ATM_COM,    only:  byMA ,pmid,pk   ! midpoint pressure in hPa (mb)
 c                                          and pk is t mess up factor
       USE CONSTANT,   only:  pi, avog, gasc
-      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
+      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, am_i_root
       use SpecialFunctions_mod, only: erf
       IMPLICIT NONE
 !-----------------------------------------------------------------------
@@ -95,7 +95,8 @@ C****
 
       if (.not. enteredb) then
       enteredb = .true.
-      PRINT*, 'CALCULATING LOOK UP TABLE FOR HETEROGENEOUS CHEMISTY'
+      if (am_i_root())
+     &  PRINT*, 'CALCULATING LOOK UP TABLE FOR HETEROGENEOUS CHEMISTY'
       DO i   = 2, ktoa
       rada(i) = rada(i-1) + drada
       END DO
@@ -271,7 +272,7 @@ c radii interpolation
       USE GEOM,       only:  byaxyp
       USE ATM_COM,    only:  byMA ,pmid,pk   ! midpoint pressure in hPa (mb)
       USE CONSTANT,   only:  pi, avog, gasc
-      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
+      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, am_i_root
       use SpecialFunctions_mod, only: erf
       IMPLICIT NONE
 !-----------------------------------------------------------------------
@@ -339,7 +340,8 @@ C****
 
       if (.not. entereda) then
       entereda = .true.
-      PRINT*, 'CALCULATING LOOK UP TABLE FOR HETEROGENEOUS CHEMISTY'
+      if (am_i_root())
+     &  PRINT*, 'CALCULATING LOOK UP TABLE FOR HETEROGENEOUS CHEMISTY'
       DO i   = 2, ktoa
       rada(i) = rada(i-1) + drada
       END DO
