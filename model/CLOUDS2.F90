@@ -1476,7 +1476,8 @@ contains
             do iaqch=1,aqchem_count
               n = aqchem_list(iaqch)
               TMP(N)=TMP(N)+SULFIN(iaqch)
-              TMOMP(xymoms,N)= TMOMP(xymoms,N)*(1.+SULFIN(iaqch)/TMP(N))
+              if (TMP(N) > 0.d0) &
+                TMOMP(xymoms,N)= TMOMP(xymoms,N)*(1.+SULFIN(iaqch)/TMP(N))
               TRCOND(N,L) = TRCOND(N,L)+SULFOUT(iaqch)
             enddo
 
@@ -2549,7 +2550,8 @@ contains
               do iaqch=1,aqchem_count
                 n = aqchem_list(iaqch)
                 TM(L,N)=TM(L,N)+SULFIN(iaqch)
-                TMOM(xymoms,L,N)=TMOM(xymoms,L,N)*(1.+SULFIN(iaqch)/TM(L,N))
+                if (TM(L,N) > 0.d0) &
+                  TMOM(xymoms,L,N)=TMOM(xymoms,L,N)*(1.+SULFIN(iaqch)/TM(L,N))
                 TRPRCP(N)=TRPRCP(N)+SULFINC(iaqch)
                 TRCOND(N,L) = TRCOND(N,L)+SULFOUT(iaqch)
               enddo
@@ -4550,7 +4552,8 @@ contains
       do iaqch=1,aqchem_count
         n = aqchem_list(iaqch)
         TM(L,N)=TM(L,N)+SULFIN(iaqch)
-        TMOM(:,L,N)=TMOM(:,L,N)*(1.+SULFIN(iaqch)/TM(L,N))
+        if (TM(L,N) > 0.d0) &
+          TMOM(:,L,N)=TMOM(:,L,N)*(1.+SULFIN(iaqch)/TM(L,N))
         TRWML(N,L)=TRWML(N,L)+SULFINC(iaqch)
         if (QCLX(L).lt.teeny.and.BELOW_CLOUD) then
           TRPRBAR(N,L+1)=TRPRBAR(N,L+1)+SULFOUT(iaqch)
@@ -4801,7 +4804,8 @@ contains
           do iaqch=1,aqchem_count
             n = aqchem_list(iaqch)
             TM(L,N)=TM(L,N)+SULFIN(iaqch)
-            TMOM(:,L,N) =TMOM(:,L,N)*(1.+SULFIN(iaqch)/TM(L,N))
+            if (TM(L,N) > 0.d0) &
+              TMOM(:,L,N) =TMOM(:,L,N)*(1.+SULFIN(iaqch)/TM(L,N))
             TRWML(N,L)=TRWML(N,L)+SULFINC(iaqch)
             TRWML(N,L) = TRWML(N,L)+SULFOUT(iaqch)
             TR_LEF(N)=TR_LEFT(iaqch)
