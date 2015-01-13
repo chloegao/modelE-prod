@@ -843,7 +843,7 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
      &     (/n_ASO4(1), n_ANACL(1), n_AECOB(1), n_AECIL(1),
      &       n_AOCOB(1), n_AOCIL(1), n_ADUST(1)/)
         itr(n+1:n+nraero_TOMAS) = (/1,2,6,5,4,4,7/)
-        krhtra(n+1:nraero_TOMAS)=0
+        krhtra(n+1:n+nraero_TOMAS)=0
       endif
       n=n+nraero_TOMAS
 #endif
