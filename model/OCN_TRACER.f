@@ -13,7 +13,7 @@
 !@auth Gavin Schmidt
 !@ver 1.0
       USE MODEL_COM, only: itime
-      USE OCN_TRACER_COM, only : itime_tr0, ntm, trname, trw0, n_age
+      USE OCN_TRACER_COM, only : tracerlist, ocn_tracer_entry, n_age
 #ifdef TRACERS_SPECIAL_O18
       USE OCN_TRACER_COM, only : water_tracer_ic
 #endif
@@ -53,6 +53,8 @@ c
       real*8, dimension(im,jm,lmo) :: mo_glob,s0m_glob,trmo_glob
       real*8 :: OTRACJ(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) 
       INTEGER :: J_0S, J_1S, J_0, J_1, J_0H, J_1H
+      type(ocn_tracer_entry), pointer :: entry
+
       call getDomainBounds(grid, J_STRT_SKP = J_0S, J_STOP_SKP = J_1S,
      *     J_STRT = J_0, J_STOP = J_1, 
      *     J_STRT_HALO = J_0H, J_STOP_HALO = J_1H)
@@ -70,12 +72,11 @@ C**** only TRACERS_WATER is true.
       call pack_data(grid,mo,mo_glob)
       call pack_data(grid,s0m,s0m_glob)
 
-      do n=1,ntm
-
-        if (trname(n).eq.'OceanAge') n_age=n
-
-        if (itime.eq.itime_tr0(n)) then
-        select case (trname(n)(1:6))
+      do n=1,tracerlist%getsize()
+        entry=>tracerlist%at(n)
+        if (entry%trname.eq.'OceanAge') n_age=n
+        if (itime.eq.entry%itime_tr0) then
+        select case (entry%trname(1:6))
 
         case default
 #ifdef TRACERS_OCEAN
@@ -103,7 +104,7 @@ C**** straits
 #if (defined TRACERS_OCEAN) && (defined TRACERS_ZEBRA)
         case ('zebraL')
 
-           read(trname(n)(7:8),'(I2)') ll ! gets level from name
+           read(entry%trname(7:8),'(I2)') ll ! gets level from name
            do l=1,lmo
              do j=J_0,J_1
                do i=1,im
@@ -151,10 +152,10 @@ C**** main ocean variabiles and gradients
           do j=J_0,J_1
           do i=1,im
             do l=1,lmm(i,j)
-              trmo(i,j,l,n)=trw0(n)*(mo(i,j,l)*dxypo(j)-s0m(i,j,l))
-              txmo(i,j,l,n)=-trw0(n)*sxmo(i,j,l)
-              tymo(i,j,l,n)=-trw0(n)*symo(i,j,l)
-              tzmo(i,j,l,n)=-trw0(n)*szmo(i,j,l)
+              trmo(i,j,l,n)=entry%trw0*(mo(i,j,l)*dxypo(j)-s0m(i,j,l))
+              txmo(i,j,l,n)=-entry%trw0*sxmo(i,j,l)
+              tymo(i,j,l,n)=-entry%trw0*symo(i,j,l)
+              tzmo(i,j,l,n)=-entry%trw0*szmo(i,j,l)
             end do
           end do
           end do
@@ -166,7 +167,7 @@ C**** data are now in 'per mil'
           if(water_tracer_ic.eq.1) then
             rewind (iu_O18ic)
  10         read  (iu_O18ic,err=800,end=810) title,t0m4,tzm4
-            if (index(title,trim(trname(n))).eq.0) goto 10
+            if (index(title,trim(entry%trname)).eq.0) goto 10
             write (6,*) 'Read from H2O18ic: ',title
             call closeunit(iu_O18ic)
           else
@@ -176,8 +177,8 @@ c            if(n.eq.n_Water) t0m4(:,:,:)=1.
           endif
 
 C**** Turn per mil data into mass ratios (using current standard)
-          t0m4(:,:,:)=(t0m4(:,:,:)*1d-3+1.)*trw0(n)
-          tzm4(:,:,:)=0.    ! tzm4(:,:,:)*1d-3*trw0(n) corrupted?
+          t0m4(:,:,:)=(t0m4(:,:,:)*1d-3+1.)*entry%trw0
+          tzm4(:,:,:)=0.    ! tzm4(:,:,:)*1d-3*entry%trw0 corrupted?
 C****
           do l=1,lmo
             txmo(:,J_0:J_1,l,n) = 0.
@@ -266,9 +267,9 @@ C**** Initiallise strait values based on adjacent ocean boxes
               tzmst(l,nst,n) = 0.
             end do
 #ifdef TRACERS_WATER
-            trsist(n,1:2,nst) = trw0(n)*(msist(1,nst)*xsi(1:2)
+            trsist(n,1:2,nst) = entry%trw0*(msist(1,nst)*xsi(1:2)
      *           -ssist(1:2,nst))
-            trsist(n,3:lmi,nst)=trw0(n)*(msist(2,nst)*xsi(3:lmi)
+            trsist(n,3:lmi,nst)=entry%trw0*(msist(2,nst)*xsi(3:lmi)
      *           -ssist(3:lmi,nst))
 #endif
           end do
@@ -284,18 +285,18 @@ C**** or oc_tracer_mean
 
           if (AM_I_ROOT()) then
             if (oc_tracer_mean(n).ne.-999.) then
-              tratio=trw0(n)*(oc_tracer_mean(n)*1d-3+1.)
+              tratio=entry%trw0*(oc_tracer_mean(n)*1d-3+1.)
             else
-              tratio=trw0(n)
+              tratio=entry%trw0
             end if
             
-            if (trname(n).eq.'Water') then
+            if (entry%trname.eq.'Water') then
               wsum = trsum
               frac_tr = -999.
             else
               frac_tr = tratio/(trsum/wsum)
               write(6,*) "Average oceanic tracer concentration ",
-     *             trname(n),(trsum/(wsum*trw0(n))-1d0)*1d3,frac_tr
+     *           entry%trname,(trsum/(wsum*entry%trw0)-1d0)*1d3,frac_tr
             end if
           end if
           call broadcast(grid,  frac_tr)
@@ -334,7 +335,7 @@ C**** Check
             CALL GLOBALSUM(grid, OTRACJ, trsum, ALL=.true.)
 
             if (AM_I_ROOT()) then
-              tratio=(trsum/(wsum*trw0(n))-1.)*1000.
+              tratio=(trsum/(wsum*entry%trw0)-1.)*1000.
               write(6,*) "New ocean tracer mean: ",tratio
      *             ,oc_tracer_mean(n)
             end if
@@ -342,7 +343,7 @@ C**** Check
 #endif
 C****
         end select
-        write(6,*) trname(n)," tracer initialised in ocean"
+        write(6,*) entry%trname," tracer initialised in ocean"
         end if
       end do
 
@@ -353,7 +354,7 @@ C**** ensure that atmospheric arrays are properly updated (i.e. gtracer)
       return
  800  write(6,*) "Error reading input file H2O18ic"
       call stop_model('stopped in OCN_TRACER.f',255)
- 810  write(6,*) "Tracer ",trname(n)," not found in file H2O18ic"
+ 810  write(6,*) "Tracer ",entry%trname," not found in file H2O18ic"
       call stop_model('stopped in OCN_TRACER.f',255)
       end subroutine tracer_ic_ocean
 #endif
@@ -363,14 +364,16 @@ C**** ensure that atmospheric arrays are properly updated (i.e. gtracer)
 !@sum OC_TDECAY decays radioactive tracers in ocean
 !@auth Gavin Schmidt/Jean Lerner
       USE MODEL_COM, only : itime
-      USE OCN_TRACER_COM, only : ntm,trdecay,itime_tr0,expDecayRate
+      USE OCN_TRACER_COM, only:tracerlist, ocn_tracer_entry,expDecayRate
       USE OCEAN, only : trmo,txmo,tymo,tzmo
       IMPLICIT NONE
       real*8, intent(in) :: dts
       integer n
+      type(ocn_tracer_entry), pointer :: entry
 
-      do n=1,ntm
-        if (trdecay(n).gt.0. .and. itime.ge.itime_tr0(n)) then
+      do n=1,tracerlist%getsize()
+        entry=>tracerlist%at(n)
+        if (entry%trdecay.gt.0. .and. itime.ge.entry%itime_tr0) then
 C**** Oceanic decay
           trmo(:,:,:,n)   = expDecayRate(n)*trmo(:,:,:,n)
           txmo(:,:,:,n)   = expDecayRate(n)*txmo(:,:,:,n)

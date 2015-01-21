@@ -660,8 +660,7 @@ c
       USE QUSDEF, only : mz,mzz
       USE TRACER_COM, only : NTM,ntsurfsrc
 #ifdef TRACERS_TOMAS
-     &     ,IDTSO4,IDTNA,IDTECOB,IDTECIL,IDTOCOB,
-     &     IDTOCIL,IDTDUST,IDTNUMD,n_SO2,IDTH2O
+     &     ,n_ASO4,n_ANACL,n_AECOB,n_AOCOB,n_ADUST,n_SO2
 #endif
       USE FLUXES, only : trsource,trflux1,atmsrf
       USE TRDIAG_COM, only : taijs=>taijs_loc
@@ -692,9 +691,12 @@ C**** in ATURB or explicitly in 'apply_fluxes_to_atm' call in SURFACE.
         tomas_ntsurf = ntsurfsrc(n) 
 
 ! Overwrite with first bin 
-       if(n.ge.IDTSO4.and.n.lt.IDTNA) tomas_ntsurf=ntsurfsrc(n_SO2) !so4
-       if(n.ge.IDTECOB.and.n.lt.IDTOCOB) tomas_ntsurf=ntsurfsrc(IDTECOB) !ecob
-       if(n.ge.IDTOCOB.and.n.lt.IDTDUST) tomas_ntsurf=ntsurfsrc(IDTOCOB) !ocob + ocil
+       if(n.ge.n_ASO4(1).and.n.lt.n_ANACL(1))
+     .               tomas_ntsurf=ntsurfsrc(n_SO2) !so4
+       if(n.ge.n_AECOB(1).and.n.lt.n_AOCOB(1))
+     .               tomas_ntsurf=ntsurfsrc(n_AECOB(1)) !ecob
+       if(n.ge.n_AOCOB(1).and.n.lt.n_ADUST(1))
+     .               tomas_ntsurf=ntsurfsrc(n_AOCOB(1)) !ocob + ocil
        do ns=1,tomas_ntsurf
 #else
 C**** Non-interactive sources
@@ -903,9 +905,7 @@ C****
       USE AERO_SETUP,  only : CONV_DPAM_TO_DGN
 #endif
 #ifdef TRACERS_TOMAS
-      USE TRACER_COM, only : nbins,IDTSO4,IDTNA,IDTECIL,
-     &     IDTECOB,IDTOCIL,IDTOCOB,IDTDUST,IDTH2O,
-     &     IDTNUMD,xk
+      USE TRACER_COM, only : nbins,n_ASO4,xk
       USE CONSTANT,   only : pi 
 #endif
       USE TRDIAG_COM, only : jls_grav
@@ -1004,14 +1004,14 @@ C**** and slip correction factor)
      *               ,tr_dens,visc(i,j,l),hydrate)
 #else 
        
-       if(n.lt.IDTSO4)then
+       if(n.lt.n_ASO4(1))then
 !     no size resolved aerosol tracer (e.g. NH4)
           stokevdt=dtsrc*vgs(airden(i,j,l),rh(i,j,l),tr_radius
      *         ,tr_dens,visc(i,j,l),hydrate)
           
-       elseif(n.ge.IDTSO4) then
+       elseif(n.ge.n_ASO4(1)) then
 
-         if(n.eq.IDTSO4)THEN
+         if(n.eq.n_ASO4(1))THEN
 C 02/20/2012 - TOMAS trgrav is modified to be able to reproduce the model output
             call dep_getdp(i,j,l,Dp_gr,density_gr) 
             do k=1,nbins
@@ -1019,7 +1019,7 @@ C 02/20/2012 - TOMAS trgrav is modified to be able to reproduce the model output
      *             /18.d0/visc(i,j,l) 
             enddo
           endif
-          binnum=mod(N-IDTSO4+1,NBINS)
+          binnum=mod(N-n_ASO4(1)+1,NBINS)
           if (binnum.eq.0) binnum=NBINS          
           stokevdt=dtsrc*vs(i,j,l,binnum) !grav. settling velocity for TOMAS model
        endif !size-resolved aerosols
@@ -2061,12 +2061,6 @@ c daily_z is currently only needed for CS
       call defvar(grid,fid,snosiz,'snosiz(dist_im,dist_jm)')
 #endif
 
-#ifndef OBIO_ON_GARYocean
-#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
-      ! called atrac for historical reasons
-      call defvar(grid,fid,atmocn%gtracer,'atrac(ntm,dist_im,dist_jm)')
-#endif
-#endif
       return
       end subroutine def_rsf_tracer
 
@@ -2213,12 +2207,6 @@ c daily_z is currently only needed for CS
         call write_dist_data(grid,fid,'snosiz',snosiz)
 #endif
 
-#ifndef OBIO_ON_GARYocean
-#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
-        call write_dist_data(grid,fid,'atrac',atmocn%gtracer,jdim=3)
-#endif
-#endif
-
       case (ioread)            ! input from restart file
         do n=1,NTM
           call read_dist_data(grid,fid, 'trm_'//trim(trname(n)),
@@ -2316,12 +2304,6 @@ c daily_z is currently only needed for CS
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_TOMAS)
         call read_dist_data(grid,fid,'snosiz',snosiz)
-#endif
-
-#ifndef OBIO_ON_GARYocean
-#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
-        call read_dist_data(grid,fid,'atrac',atmocn%gtracer,jdim=3)
-#endif
 #endif
 
       end select

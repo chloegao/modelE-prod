@@ -192,8 +192,7 @@ C
      & DRYCOEFF,IJUSE,NTYPE,IDEP,IRI,IRLU,IRAC,IRGSS,IRGSO,
      & IRCLS,IRCLO,IVSMAX
 #ifdef TRACERS_TOMAS 
-      USE TRACER_COM, only : NBS, NBINS, IDTSO4, IDTH2O
-     &     ,IDTNUMD,IDTOCIL,IDTECOB,IDTECIL,IDTOCOB,IDTDUST,IDTNA
+      USE TRACER_COM, only : NBS, NBINS, n_ASO4
 #endif
       IMPLICIT NONE
 c
@@ -534,11 +533,11 @@ C* Set max, min for bulk surface (and stomatal portion) resistances:
 
               RSURFACE(K,LDT)=MAX(1.d0, MIN(RSURFACE(K,LDT), 9999.d0))
 #ifdef TRACERS_TOMAS
-              if(k.ge.IDTSO4)THEN 
+              if(k.ge.n_ASO4(1))THEN 
 !     for size-resolved aerosol model
 !use this formula for size-resolved aerosols
 !Seinfeld & Pandis, eqn 19.7
-                binnum=mod(K-IDTSO4+1,NBINS)
+                binnum=mod(K-n_ASO4(1)+1,NBINS)
                 if (binnum.eq.0) binnum=NBINS
                 VDS=1.d0/rb(binnum)
                 gs_vel(k)=vs(binnum) !grav. settling velocity for TOMAS model
@@ -656,11 +655,11 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
           END IF ! tracer type
           dep_vel(K)=1.d0/MAX(1.d0, MIN(RSURFACE(K,LDT), 9999.d0))
 #ifdef TRACERS_TOMAS
-            if(k.ge.IDTSO4)THEN 
+            if(k.ge.n_ASO4(1))THEN 
 !     for size-resolved aerosol model
 !     use this formula for size-resolved aerosols
 !     Seinfeld & Pandis, eqn 19.7
-              binnum=mod(K-IDTSO4+1,NBINS)
+              binnum=mod(K-n_ASO4(1)+1,NBINS)
               if (binnum.eq.0) binnum=NBINS
               VDS=1.d0/rb(binnum)
               gs_vel(k)=vs(binnum) !grav. settling velocity for TOMAS model

@@ -1,39 +1,14 @@
-      MODULE TRACER_GASEXCH_COM
-
-      USE TRACER_COM, only : ntm    !tracers in air-sea gas exch
-
-      implicit none
-
-      SAVE
-
-
-
-#include "dimensions.h"
-#include "dimension2.h"
-
-
-      SAVE
-
-      real*8 atracflx(iia,jja,ntm),atrac(iia,jja,ntm)
-      real   tracflx(idm,jdm,ntm)     !  tracer flux at air-sea intfc
-
-      END MODULE TRACER_GASEXCH_COM
-
-c ---------------------------------------------------------------------
-c ---------------------------------------------------------------------
-
       SUBROUTINE TRACERS_GASEXCH_ocean_CFC_PBL(tg1,ws,
-     . alati,psurf,itr,trconstflx,byrho,Kw_gas,alpha_gas,
+     . alati,psurf,trmm,trconstflx,byrho,Kw_gas,alpha_gas,
      . beta_gas,trsf,trcnst,ilong,jlat)
 
       USE CONSTANT, only:    rhows,mair
-      USE TRACER_COM, only : ntm,trname,tr_mm
       
       implicit none
 
-      integer :: ilong,jlat,itr
-      real*8  :: tg1,ws,psurf,trconstflx,byrho,trsf,trcnst
-      real*8  :: alati,Kw_gas,alpha_gas,beta_gas
+      integer, intent(in) :: ilong,jlat
+      real*8, intent(in)  :: trmm,tg1,ws,alati, psurf, trconstflx, byrho
+      real*8, intent(out) :: Kw_gas, alpha_gas, beta_gas, trsf, trcnst
       real*8  :: Sc_gas
       real*8, external :: sc_cfc,sol_cfc
       
@@ -88,7 +63,7 @@ c ---------------------------------------------------------------------
       !---------------------------------------------------------------
       !alpha --solubility of CFC (11 or 12) in seawater
       !in mol/m^3/picoatm
-       alpha_gas=sol_cfc(tg1,sss_loc,11)
+       alpha_gas=sol_cfc(tg1,alati,11)
       !convert to mol/m^3/atm
        alpha_gas=alpha_gas*1.e+12
 
@@ -96,14 +71,14 @@ c ---------------------------------------------------------------------
       !psurf is in mb. multiply with 10.197e-4 to get atm
       !include molecular weights for air and CFC-11
        beta_gas=alpha_gas*(psurf*10.197e-4)*mair*1.e-3
-     &                   /(tr_mm(itr)*1.e-3)
-!!!    beta_gas = beta_gas * tr_mm(itr)*1.e-3/rhows
+     &                   /(trmm*1.e-3)
+!!!    beta_gas = beta_gas * trmm*1.e-3/rhows
 
       !trsf is really sfac = Kw_gas * beta_gas
       !units are such that flux comes out to (m/s)(kg/kg)
        trsf = Kw_gas * beta_gas
 
-       trcnst = Kw_gas * trconstflx(itr)*byrho ! convert to (conc * m/s)
+       trcnst = Kw_gas * trconstflx*byrho ! convert to (conc * m/s)
 
       RETURN
       END SUBROUTINE TRACERS_GASEXCH_ocean_CFC_PBL
@@ -181,11 +156,11 @@ c     --------------------------------------------------
 
       END
 
-      REAL*8 FUNCTION alpha_gas2(pt,ps)
+      REAL*8 FUNCTION alpha_gas2_cfc(pt,ps)
 !@sum helper function for SURFACE calculation
-      real*8,pt,ps,sol_cfc
+      real*8 :: pt,ps,sol_cfc
 
-      alpha_gas2=1e12*sol_cfc(pt,ps,11) !convert to mol/m^3/atm
+      alpha_gas2_cfc=1e12*sol_cfc(pt,ps,11) !convert to mol/m^3/atm
 
       return
       end

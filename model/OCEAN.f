@@ -221,6 +221,11 @@ c**** replicate values at pole
       end subroutine read_sst
 
 
+      subroutine setup_ocean
+      return
+      end subroutine setup_ocean
+
+
       subroutine init_ocean(iniocean,istart,atmocn,dynsice)
 !@sum init_OCEAN initializes ocean variables
 !@auth Original Development Team
@@ -485,12 +490,11 @@ C****
 !@auth Gavin Schmidt
       USE MODEL_COM, only : itime
       USE OldTracer_mod, only : trw0,itime_tr0
-      use TRACER_COM, only: NTM
       USE EXCHANGE_TYPES, only : atmocn_xchng_vars
       IMPLICIT NONE
       type(atmocn_xchng_vars) :: atmocn
       INTEGER i,j,n
-      do n=1,ntm
+      do n=1,atmocn%ntm
         if (itime.eq.itime_tr0(n)) then
           do j=atmocn%j_0,atmocn%j_1
           do i=atmocn%i_0,atmocn%imaxj(j)

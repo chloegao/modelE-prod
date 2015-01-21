@@ -208,10 +208,6 @@ ccc extra stuff which was present in "earth" by default
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
      &     ,mineralFractions
 #endif
-#ifdef TRACERS_TOMAS
-      USE TRACER_COM, only :IDTSO4,IDTNA,IDTECOB,IDTECIL,IDTOCOB,
-     &     IDTOCIL,IDTDUST,IDTNUMD,n_SO2,IDTH2O
-#endif
 #endif
 #ifdef TRACERS_WATER
       use fluxes, only : atmlnd
@@ -313,7 +309,7 @@ c**** prescribed dust emission
 #endif
       USE TRACER_COM, only: ntm
 #ifdef TRACERS_TOMAS
-      USE TRACER_COM, only: IDTNUMD, IDTH2O, xk, nbins
+      USE TRACER_COM, only: n_ANUM, n_AH2O, xk, nbins
       USE TOMAS_EMIS 
 #endif
  !     use socpbl, only : dtsurf
@@ -487,12 +483,12 @@ C**** fixed datasets are used, it can happen over land as well.
      &       trc_flux*axyp(i,j)*ptype*dtsurf
         end if
 #else
-        if(n.lt.IDTNUMD.or.n.ge.IDTH2O)THEN !for dust and other?
+        if(n.lt.n_ANUM(1).or.n.ge.n_AH2O(1))THEN !for dust and other?
            if (ijts_isrc(1,n)>0) then
               taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n)) +
      &             trc_flux*axyp(i,j)*ptype*dtsurf
            end if
-        elseif(n.ge.IDTNUMD.and. n.lt.IDTH2O)THEN
+        elseif(n.ge.n_ANUM(1).and. n.lt.n_AH2O(1))THEN
 !ijts_isrc(2,n) for number: DUST number emission
            if (ijts_isrc(2,n)>0) then
               taijs(i,j,ijts_isrc(2,n))=taijs(i,j,ijts_isrc(2,n)) +
@@ -506,13 +502,13 @@ C**** fixed datasets are used, it can happen over land as well.
      *       trc_flux*axyp(i,j)*ptype*dtsurf,itcon_surf(1,n),n)
 #else
 #ifdef TRACERS_TOMAS
-        if(n.lt.IDTNUMD.or.n.ge.IDTH2O)THEN !for dust and other?
+        if(n.lt.n_ANUM(1).or.n.ge.n_AH2O(1))THEN !for dust and other?
            if(jls_isrc(1,n)>0)  call inc_tajls(i,j,1,jls_isrc(1,n),
      *          trc_flux*axyp(i,j)*ptype*dtsurf) ! why not for all aerosols?
            if (itcon_surf(1,n).gt.0) call inc_diagtcb(i,j,
      *       trc_flux*axyp(i,j)*ptype*dtsurf,itcon_surf(1,n),n)
 
-        elseif(n.ge.IDTNUMD.and. n.lt.IDTH2O)THEN
+        elseif(n.ge.n_ANUM(1).and. n.lt.n_AH2O(1))THEN
 !jls_isrc(2,n) for number: DUST number emission
            if(jls_isrc(2,n)>0)  call inc_tajls(i,j,1,jls_isrc(2,n),
      *          trc_flux*axyp(i,j)*ptype*dtsurf) ! why not for all aerosols?

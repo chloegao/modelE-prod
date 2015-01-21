@@ -5,7 +5,7 @@
 !@contains routines for calculating cloud droplet number (cm-3) for convective clouds
 !@this is called in CLOUDS2_E1 if MATRIX is used to set aerosols
       USE CLOUDS_COM
-      USE TRACER_COM, only: ntm, ntm_ococean, ntm_soa
+      USE TRACER_COM, only: ntm_ococean, ntm_soa
       USE CONSTANT,only:mb2kg,by3 ,avog,bygasc,RGAS
       IMPLICIT NONE
       real*8 AIRM,EXPL,EXPO,WCDNO,WCDNL,rho
@@ -126,7 +126,7 @@ c
 !@Use for calculating cloud droplet number for convective clouds
 !@when using mass based aerosols
       USE CLOUDS_COM
-      USE TRACER_COM, only: ntm, n_seasalt1, n_seasalt2, ntm_ococean
+      USE TRACER_COM, only: n_seasalt1, n_seasalt2, ntm_ococean
       use TRACER_COM, only: ntm_soa
       use OldTracer_mod, only: fq_aer
       USE CONSTANT,only:mb2kg,by3 ,avog,bygasc,RGAS
@@ -229,7 +229,7 @@ c
 !@Use for calculating cloud droplet number for convective clouds
 !@when using mass based aerosols
       USE CLOUDS_COM
-      USE TRACER_COM, only: ntm, nbins
+      USE TRACER_COM, only: nbins
       USE CONSTANT,only:mb2kg,by3 ,avog,bygasc,RGAS
       IMPLICIT NONE
       real*8 AIRM,EXPL,EXPO,WCDNO,WCDNL,rho
@@ -250,27 +250,27 @@ C*** DSS/amass is mass mixing ratio of aerosol (kg/kg)
       tams=1.d0/amass*rho
 
 c TOMAS: aerosol number is for all aerosol. 
-c SSMAL (Land number, cm-3) = trm(idtnumd-1+k)/mtot*(mtot-nacl)/boxvol
-c SSMAO (Ocean number, cm-3) = trm(idtnumd-1+k)/boxvol
+c SSMAL (Land number, cm-3) = trm(n_anum(1)-1+k)/mtot*(mtot-nacl)/boxvol
+c SSMAO (Ocean number, cm-3) = trm(n_anum(1)-1+k)/boxvol
 c
 C** Land Na (cm-3)  for all 
 C** Ocean Na (cm-3)  for all aerosol number
 c
 ! YUNHA Lee (Dec 2011) Turn off the below part due to very high CDNC 
 c$$$      DO K=1,NBINS
-c$$$        mtot(k)=trm(i,j,l,idtso4-1+k)+ 
-c$$$     *       trm(i,j,l,idtna-1+k)+ trm(i,j,l,idtecob-1+k)+ 
-c$$$     *       trm(i,j,l,idtecil-1+k)+ trm(i,j,l,idtocob-1+k)+ 
-c$$$     *       trm(i,j,l,idtocil-1+k)+ trm(i,j,l,idtdust-1+k)
+c$$$        mtot(k)=trm(i,j,l,n_aso4(1)-1+k)+ 
+c$$$     *       trm(i,j,l,n_anacl(1)-1+k)+ trm(i,j,l,n_aecob(1)-1+k)+ 
+c$$$     *       trm(i,j,l,n_aecil(1)-1+k)+ trm(i,j,l,n_aocob(1)-1+k)+ 
+c$$$     *       trm(i,j,l,n_aocil(1)-1+k)+ trm(i,j,l,n_adust(1)-1+k)
 c$$$        if(mtot(k).gt.0.)then     ! due to mtot can be zero. 
-c$$$          SSMAO=TRM(i,j,l,idtnumd-1+k)+SSMAO     
+c$$$          SSMAO=TRM(i,j,l,n_anum(1)-1+k)+SSMAO     
 c$$$        endif    
 c$$$      ENDDO
 c$$$      
 c$$$      DO K=1,NBINS
 c$$$        if(mtot(k).gt.0.)then ! due to mtot can be zero. 
-c$$$          SSMAL=(TRM(i,j,l,idtnumd-1+k)/mtot(k)
-c$$$     &         *(mtot(k)-trm(i,j,l,idtna-1+k)))+SSMAL 
+c$$$          SSMAL=(TRM(i,j,l,n_anum(1)-1+k)/mtot(k)
+c$$$     &         *(mtot(k)-trm(i,j,l,n_anacl(1)-1+k)))+SSMAL 
 c$$$        endif
 c$$$      ENDDO
 ! YUNHA Lee (Dec 2011) 
@@ -302,7 +302,7 @@ C*******************************************************************************
 !@input is mostly aerosol mass and a few cloud properties 
       USE CLOUDS_COM
       use OldTracer_mod, only: fq_aer
-      USE TRACER_COM, only: ntm, ntm_ococean, ntm_soa, n_seasalt1
+      USE TRACER_COM, only: ntm_ococean, ntm_soa, n_seasalt1
       USE CONSTANT,only:mb2kg,LHE,LHS,RGAS
       IMPLICIT NONE
       real*8 CAREA,CLDSAVL,AIRM,WMX,OLDCDL,VVEL  ! VVEL is in cm/s
@@ -453,7 +453,6 @@ C**************************************************************************
 !@auth Surabi Menon 
 !@contains various routines that may be used to get autoconversion that depends on cloud droplet number or size
 !@when using mass based aerosols
-      USE TRACER_COM, only: ntm
       USE CONSTANT,only:TWOPI,GRAV,by6,by3,RGAS
       IMPLICIT NONE
       real*8 TL,WMX,SCDNCW,QAUT,RHOW,FCLD,RCLD,rho,r3c
@@ -518,7 +517,7 @@ C**************************************************************************
       USE CLOUDS_COM
       USE CONSTANT,only:LHE,LHS
       use OldTracer_mod, only: fq_aer
-      USE TRACER_COM, only: ntm, ntm_soa, ntm_ococean, n_seasalt1
+      USE TRACER_COM, only: ntm_soa, ntm_ococean, n_seasalt1
       IMPLICIT NONE
       real*8 ::CLDSSL,CLDSAVL,WMX
      *,OLDCDL,VVEL,SME,WTURB

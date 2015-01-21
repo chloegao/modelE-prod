@@ -450,6 +450,7 @@ ccc put drive output data to pbl_args structure
       use geom, only : byaxyp
       use OldTracer_mod, only :
      &     dodrydep,tr_wd_type,nWATER,nPART,nGAS
+      use tracer_com, only: n_co2n
       implicit none
       integer, intent(in) :: i,j,itype  !@var itype surface type
       type (t_pbl_args) :: pbl_args
@@ -503,18 +504,17 @@ C**** Now send kg/m^2/s to PBL, and divided by rho there.
           endif
 #endif
 
-#ifdef TRACERS_GASEXCH_ocean_CO2
+          if (n==n_co2n) then
 ! transplanted from SURFACE.f:
-          IF (pbl_args%ocean) THEN ! OCEAN
-            !trgrnd(nx)=atm%gtracer(n,i,j)
-            pbl_args%trsfac(nx)=1.
-            pbl_args%trconstflx(nx)=atm%gtracer(n,i,j)
-          END IF
+            IF (pbl_args%ocean) THEN ! OCEAN
+              !trgrnd(nx)=atm%gtracer(n,i,j)
+              pbl_args%trsfac(nx)=1.
+            END IF
         !need to redo this here because the previous line has changed trconstflx to zero.
         !because we have no sources. is there a better way to do this?
           !call stop_model('why 1/area in the following line?',255)
-          pbl_args%trconstflx(nx)=atm%gtracer(n,i,j) * byaxyp(i,j) !kg,co2/kg,air/m2
-#endif
+            pbl_args%trconstflx(nx)=atm%gtracer(n,i,j) * byaxyp(i,j) !kg,co2/kg,air/m2
+          endif
 
         end do
       else

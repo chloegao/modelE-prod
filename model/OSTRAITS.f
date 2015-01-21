@@ -79,7 +79,7 @@ C****
       USE ODIAG, only : olnst,ln_mflx,ln_gflx,ln_sflx
 
 #ifdef TRACERS_OCEAN
-      USE OCN_TRACER_COM, only : ntm,t_qlimit
+      USE OCN_TRACER_COM, only : tracerlist, ocn_tracer_entry
       Use STRAITS, Only: TRMST,TXMST,TZMST, TRME,TXME,TYME,TZME
       Use ODIAG, Only: tlnst
 #endif
@@ -89,6 +89,9 @@ C****
       INTEGER I1,J1,I2,J2,N,L,ITR,K,KK,NN
       REAL*8, INTENT(IN) :: DTS
       REAL*8 MM1,MM2,AM
+#ifdef TRACERS_OCEAN
+      type(ocn_tracer_entry), pointer :: entry
+#endif
 C****
       DO N=1,NMST
       I1=IST(N,1)
@@ -104,11 +107,12 @@ C****
       CALL STADVT (N,L,AM,MM1,MM2,S0MST(L,N),SXMST(L,N),SZMST(L,N),
      *             S0ME,SXME,SYME,SZME,OLNST(L,N,LN_SFLX),.True.)
 #ifdef TRACERS_OCEAN
-      DO ITR = 1,NTM
+      DO ITR = 1,tracerlist%getsize()
+        entry=>tracerlist%at(itr)
         CALL STADVT (N,L,AM,MM1,MM2,TRMST(L,N,ITR),TXMST(L,N,ITR),
      *               TZMST(L,N,ITR),TRME(1,1,1,ITR),TXME(1,1,1,ITR),
      *               TYME(1,1,1,ITR),TZME(1,1,1,ITR),
-     *               TLNST(L,N,1,ITR),T_QLIMIT(ITR))  ;  EndDo
+     *               TLNST(L,N,1,ITR),entry%T_QLIMIT)  ;  EndDo
 #endif /* def TRACERS_OCEAN */
       MOE(1,N,L) = MOE(1,N,L) - AM*byDXYPO(J1)
       MOE(2,N,L) = MOE(2,N,L) + AM*byDXYPO(J2)
@@ -148,7 +152,7 @@ c Copy updated values to the arrays for a neighboring strait if one exists
             szme(kk,nn,l) = szme(k,n,l)
           enddo
 #ifdef TRACERS_OCEAN
-          do itr = 1,ntm
+          do itr = 1,tracerlist%getsize()
           do l=1,lmst(n)
             trme(kk,nn,l,itr) = trme(k,n,l,itr)
             txme(kk,nn,l,itr) = txme(k,n,l,itr)
@@ -803,7 +807,7 @@ c      END
       USE SEAICE, only : xsi,lmi
       USE STRAITS
 #ifdef TRACERS_OCEAN
-      USE OCN_TRACER_COM, only : ntm, trname
+      USE OCN_TRACER_COM, only : tracerlist, ocn_tracer_entry
 #endif
       IMPLICIT NONE
 
@@ -811,6 +815,9 @@ c      END
       INTEGER L,n,ns,nmax,lmax
 !@var SUBR identifies where CHECK was called from
       CHARACTER*6, INTENT(IN) :: SUBR
+#ifdef TRACERS_OCEAN
+      type(ocn_tracer_entry), pointer :: entry
+#endif
 
 C**** Check for NaN/INF in ocean data
       IF (QCHECK) THEN
@@ -830,9 +837,9 @@ C**** Check for NaN/INF in ocean data
       CALL CHECK3(RSIST,NMST,1,1,SUBR,'rsist')
       CALL CHECK3(RSIXST,NMST,1,1,SUBR,'rsxst')
 #ifdef TRACERS_OCEAN
-      CALL CHECK3(TRMST,LMO,NMST,NTM,SUBR,'trmst')
-      CALL CHECK3(TXMST,LMO,NMST,NTM,SUBR,'txmst')
-      CALL CHECK3(TZMST,LMO,NMST,NTM,SUBR,'tzmst')
+      CALL CHECK3(TRMST,LMO,NMST,tracerlist%getsize(),SUBR,'trmst')
+      CALL CHECK3(TXMST,LMO,NMST,tracerlist%getsize(),SUBR,'txmst')
+      CALL CHECK3(TZMST,LMO,NMST,tracerlist%getsize(),SUBR,'tzmst')
 c      CALL CHECK3(TRSIST,NTM_ATM,LMI,NMST,SUBR,'trist')
 #endif /* def TRACERS_OCEAN */
 
@@ -847,8 +854,9 @@ c      CALL CHECK3(TRSIST,NTM_ATM,LMI,NMST,SUBR,'trist')
 
 #ifdef TRACERS_OCEAN
 C**** Check conservation of water tracers in straits
-      do n=1,ntm
-        if (trname(n).eq.'Water') then
+      do n=1,tracerlist%getsize()
+        entry=>tracerlist%at(n)
+        if (entry%trname.eq.'Water') then
           errmax = 0. ; nmax=1 ; lmax=1
           do ns=1,nmst
           do l=1,lmst(ns)
@@ -905,7 +913,7 @@ C****
       use domain_decomp_1d, only : am_i_root
       USE OCEANR_DIM, only : grid=>ogrid
 #ifdef TRACERS_OCEAN
-      USE OCN_TRACER_COM, only : ntm
+      USE OCN_TRACER_COM, only : tracerlist
 #endif
       IMPLICIT NONE
 
@@ -930,14 +938,14 @@ C****
 #  else /* ndef TRACERS_OCEAN */
       write (TRMODULE_HEADER(lhead+1:80)
      *     ,'(a10,i3,a1,i3,a1,i3,a6,i3,a1,i3,a1,i3,a)') 'R8 TRSIST(',
-     *     ntm_atm,',',lmi,',',nmst,') dim(',lmo,',',nmst,',',NTM
-     *     ,'):TRMST,TXMST,TZMST'
+     *     ntm_atm,',',lmi,',',nmst,') dim(',lmo,',',nmst,',',
+     *     tracerlist%getsize(),'):TRMST,TXMST,TZMST'
 #  endif /* ndef TRACERS_OCEAN */
 #else /* def TRACERS_WATER */
 #  ifdef TRACERS_OCEAN
       write (TRMODULE_HEADER(lhead+1:80)
      *     ,'(a7,i3,a1,i3,a1,i3,a)') 'R8 dim('
-     *     ,lmo,',',nmst,',',NTM
+     *     ,lmo,',',nmst,',',tracerlist%getsize()
      *     ,'):TRMST,TXMST,TZMST'
 #  endif /* def TRACERS_OCEAN */
 #endif /* def TRACERS_WATER */
@@ -1058,7 +1066,7 @@ C****
       USE STRAITS
       USE OCEAN
 #ifdef TRACERS_OCEAN
-      USE OCN_TRACER_COM, only : ntm
+      USE OCN_TRACER_COM, only : tracerlist
 #endif
       implicit none
 
@@ -1077,10 +1085,10 @@ C****
       call gather_straits_pairs(OPRESS,OPRESe, 1)
 
 #ifdef TRACERS_OCEAN
-      call gather_straits_pairs(TRMO,TRMe, lmo*ntm)
-      call gather_straits_pairs(TXMO,TXMe, lmo*ntm)
-      call gather_straits_pairs(TYMO,TYMe, lmo*ntm)
-      call gather_straits_pairs(TZMO,TZMe, lmo*ntm)
+      call gather_straits_pairs(TRMO,TRMe, lmo*tracerlist%getsize())
+      call gather_straits_pairs(TXMO,TXMe, lmo*tracerlist%getsize())
+      call gather_straits_pairs(TYMO,TYMe, lmo*tracerlist%getsize())
+      call gather_straits_pairs(TZMO,TZMe, lmo*tracerlist%getsize())
 #endif
 
       return
@@ -1105,7 +1113,7 @@ c dimensioned as (2*nmst,:) rather than (2,nmst,:)
       USE STRAITS
       USE OCEAN
 #ifdef TRACERS_OCEAN
-      USE OCN_TRACER_COM, only : ntm
+      USE OCN_TRACER_COM, only : tracerlist
 #endif
       implicit none
 
@@ -1125,10 +1133,10 @@ c is this needed? opress not updated by straits routines
 c      call scatter_straits_pairs(OPRESe,OPRESS, 1)
 
 #ifdef TRACERS_OCEAN
-      call scatter_straits_pairs(TRMe,TRMO, lmo*ntm)
-      call scatter_straits_pairs(TXMe,TXMO, lmo*ntm)
-      call scatter_straits_pairs(TYMe,TYMO, lmo*ntm)
-      call scatter_straits_pairs(TZMe,TZMO, lmo*ntm)
+      call scatter_straits_pairs(TRMe,TRMO, lmo*tracerlist%getsize())
+      call scatter_straits_pairs(TXMe,TXMO, lmo*tracerlist%getsize())
+      call scatter_straits_pairs(TYMe,TYMO, lmo*tracerlist%getsize())
+      call scatter_straits_pairs(TZMe,TZMO, lmo*tracerlist%getsize())
 #endif
 
       return

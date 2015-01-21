@@ -33,8 +33,8 @@
       use TRACER_COM, only: n_SO2
       use Tracer_mod, only: Tracer
 #ifdef TRACERS_TOMAS
-      use TRACER_COM, only: IDTNUMD, IDTH2O, n_AECOB, n_AOCOB, n_ANUM
-      use TRACER_COM, only: N_AECOB, IDTSO4, xk
+      use TRACER_COM, only: n_AH2O, n_AECOB, n_AOCOB, n_ANUM
+      use TRACER_COM, only: N_AECOB, n_ASO4, xk
 #endif
 #ifdef TRACERS_ON
       USE TRDIAG_COM
@@ -1193,7 +1193,7 @@ c     - Species including TOMAS  emissions - 2D sources and 3D sources
         scale_inst(n)   = 10d0**(-kt_power_inst(n))
         scale_change(n) = 10d0**(-kt_power_change(n))
 #ifdef TRACERS_TOMAS
-        if(n.ge.IDTNUMD.and.n.lt.IDTH2O)THEN
+        if(n.ge.n_ANUM(1).and.n.lt.n_AH2O(1))THEN
         inst_unit(n) = unit_string(kt_power_inst(n),  '#/m^2)')
         sum_unit(n)  = unit_string(kt_power_change(n),'#/m^2 s)')
         else
@@ -6715,6 +6715,26 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       return
       end subroutine init_ijlts_diag
 
+      function get_atmco2()
+      USE RADPAR, only : xnow
+      use runtimecontrols_mod, only: constco2
+      use dictionary_mod, only: sync_param
+      implicit none
+      real*8 :: get_atmco2
+      real*8, save :: atmco2=-1.
+
+      if (constco2) then
+        if (atmco2<0.) then    ! uninitialized
+          atmco2=280.
+          call sync_param("atmCO2", atmco2)
+        endif
+        get_atmco2=atmco2
+      else
+        get_atmco2=xnow(1)
+      endif
+      return
+      end function get_atmco2
+
       SUBROUTINE tracer_IC
 !@sum tracer_IC initializes tracers when they are first switched on
 !@vers 2013/03/27
@@ -6746,7 +6766,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
      *     n_SO2,OFFLINE_DMS_SS,OFFLINE_SS
 #ifdef TRACERS_TOMAS
       USE TRACER_COM, only:
-     *     n_ASO4,n_AOCOB,IDTSO4,IDTNUMD,xk,nbins
+     *     n_ASO4,n_AOCOB,n_ASO4,n_ANUM,xk,nbins
 #endif
 #endif
 #ifdef TRACERS_WATER
@@ -6812,16 +6832,6 @@ C**** 3D tracer-related arrays but not attached to any one tracer
 #ifdef TRACERS_AMP
       USE AMP_AEROSOL
 #endif
-#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_GASEXCH_ocean_CO2)
-#ifdef constCO2
-      USE obio_forc, only : atmCO2
-#else
-      USE RADPAR, only : xnow
-#endif
-#endif
-#if (!defined(TRACERS_GASEXCH_ocean_CO2)) && defined(TRACERS_GASEXCH_land_CO2)
-      USE RADPAR, only : xnow
-#endif
       use OldTracer_mod, only: trli0
 #ifdef TRACERS_AMP
       use TRACER_COM, only:n_M_OCC_OC  
@@ -6857,9 +6867,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
      &                  GRID%J_STRT:GRID%J_STOP,366) ::
      &     DMS_AER_nohalo, SS1_AER_nohalo, SS2_AER_nohalo
 #endif
-#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_GASEXCH_ocean_CFC)
-      REAL*8 :: dummy
-#endif
+      real*8 :: get_atmco2
 
 !@param bymair 1/molecular wt. of air = 1/mair
 !@param byjm 1./JM
@@ -7503,28 +7511,16 @@ c**** earth
           end do; end do; end do
 #endif /* TRACERS_SPECIAL_Shindell */
 
-#if defined(TRACERS_GASEXCH_ocean_CO2) || defined(TRACERS_GASEXCH_land_CO2)
         case ('CO2n')
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
              !units: [am]=kg_air/m2, [axyp]=m2, [tr_mm]=kg_CO2,
              !       [bymair]=1/kg_air, [atmCO2]=ppmv=10^(-6)kg_CO2/kg_air
              !       [vol2mass]=(gr,CO2/moleCO2)/(gr,air/mole air)
-#ifdef constCO2
              trm(i,j,l,n) = MA(l,i,j)*axyp(i,j)*vol2mass(n)
-     .                    * atmCO2*1.d-6
-             !!!!trmom(:,i,j,l,n)=0.d0
+     .                    * get_atmCO2()*1.d-6
              atmocn%gtracer(n,i,j) = vol2mass(n)
-     .                    * atmCO2 * 1.d-6      !initialize gtracer
-#else
-             trm(i,j,l,n) = MA(l,i,j)*axyp(i,j)*vol2mass(n)
-     .                    * xnow(1) * 1.d-6
-             atmocn%gtracer(n,i,j) = vol2mass(n)
-     .                    * xnow(1) * 1.d-6      !initialize gtracer
-#endif
+     .                    * get_atmCO2() * 1.d-6      !initialize gtracer
           end do; end do; end do
-#endif
-
-#ifdef TRACERS_GASEXCH_ocean_CFC
         case ('CFCn')
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
             if(l.ge.LS1) then
@@ -7533,7 +7529,6 @@ c**** earth
               trm(i,j,l,n) = MA(l,i,j)*axyp(i,j)*vol2mass(n)*1.d-13
             end if
           end do; end do; end do
-#endif
 
 #ifdef TRACERS_SPECIAL_Shindell
         case ('CFC')
@@ -7661,7 +7656,7 @@ c**** earth
      *    'ANUM__06','ANUM__07','ANUM__08','ANUM__09','ANUM__10',
      *    'ANUM__11','ANUM__12','ANUM__13','ANUM__14','ANUM__15')
 
-           k=n-IDTNUMD+1
+           k=n-n_ANUM(1)+1
 
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
                 trm(i,j,l,n) =MA(l,i,j)*axyp(i,j)*7.d-20
@@ -7874,7 +7869,7 @@ C**** Note this routine must always exist (but can be a dummy routine)
       USE FLUXES, only : fearth0,focean,flake0
       USE SOMTQ_COM, only : tmom,mz
       USE DOMAIN_DECOMP_ATM, only : grid, getDomainBounds,
-     & write_parallel, am_i_root
+     & write_parallel
       USE RAD_COM, only: o3_yr
 #ifdef TRACERS_COSMO
       USE COSMO_SOURCES, only : variable_phi
@@ -7884,7 +7879,7 @@ C**** Note this routine must always exist (but can be a dummy routine)
       use OldTracer_mod, only: nBBsources, do_fire, vol2mass
       use TRACER_COM, only: tracers, set_ntsurfsrc
       USE TRACER_COM, only: coupled_chem,daily_z
-      USE TRACER_COM, only: trm,trmom,n_CO2n
+      USE TRACER_COM, only: n_CO2n
       USE TRACER_COM, only: NTM,nOther,nAircraft,
      & n_CH4,n_Isoprene,n_codirect,sfc_src,ntsurfsrc,
      & trans_emis_overr_yr,trans_emis_overr_day
@@ -7899,18 +7894,7 @@ C**** Note this routine must always exist (but can be a dummy routine)
      * ,n_M_BOC_OC
 #ifdef TRACERS_TOMAS
       use TRACER_COM, only:
-     * n_AECOB,n_AOCOB,n_ASO4,nbins,IDTECOB,IDTDUST
-#endif
-#endif
-#ifdef TRACERS_GASEXCH_ocean_CO2
-      USE resolution,ONLY : lm,psf
-      USE GEOM, only: axyp
-      USE DOMAIN_DECOMP_ATM, only: GRID,GLOBALSUM
-      USE MODEL_COM, only : nday,nstep=>itime
-#ifdef constCO2
-      USE obio_forc, only : atmCO2
-#else
-      USE RADPAR, only : xnow
+     * n_AECOB,n_AOCOB,n_ASO4,nbins,n_AECOB,n_ADUST
 #endif
 #endif
 #ifdef TRACERS_SPECIAL_Lerner
@@ -7930,13 +7914,6 @@ C**** Note this routine must always exist (but can be a dummy routine)
       IMPLICIT NONE
       INTEGER n,last_month,kk,nread,xday,xyear,ns
       LOGICAL, INTENT(IN) :: end_of_day
-#ifdef TRACERS_GASEXCH_ocean_CO2
-      integer i,j,l
-      real*8 :: sarea,
-     &          trm_vert(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
-     &                   GRID%J_STRT_HALO:GRID%J_STOP_HALO),
-     &          trm_glbavg,factor,atm_glbavg
-#endif
       real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
      &     :: daily_gz
@@ -8248,67 +8225,73 @@ C**** at the start of any day
       call tracer_IC
 
 
+      if ((n_co2n>0).and.end_of_day) call adjust_co2
+
+      return
+      end subroutine daily_tracer
+
 !gas exchange CO2 case reset trm here
 !for the constCO2 case just reset to atmCO2 which is defined in the rundeck
 !for the variable case (presently default) reset to the value scaled by
 !the xnow value.
-#ifdef TRACERS_GASEXCH_ocean_CO2
+      subroutine adjust_co2
+      use resolution, only : lm, psf
+      use domain_decomp_atm, only : grid, globalsum, am_i_root
+      use tracer_com, only: trm, trmom, n_co2n
+      use oldtracer_mod, only: vol2mass
+      use geom, only: axyp
+      use constant, only: grav
+      use model_com, only : nstep=>itime
+      implicit none
 
-      if (end_of_day) then ! only at end of day
-         n=n_CO2n
+      integer i,j,l,i_0, i_1, j_0, j_1, n
+      real*8 :: sarea,
+     &          trm_vert(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                   GRID%J_STRT_HALO:GRID%J_STOP_HALO),
+     &          trm_glbavg,factor,atm_glbavg
+      real*8 :: get_atmco2
+
+      n=n_CO2n
+      i_0=grid%i_strt
+      i_1=grid%i_stop
+      j_0=grid%j_strt
+      j_1=grid%j_stop
 
          !area weighted tracer global average
-         do j=J_0,J_1 ; do i=I_0,I_1
-             trm_vert(i,j) = sum(trm(i,j,1:lm,n))
-         enddo; enddo
+      do j=J_0,J_1 ; do i=I_0,I_1
+        trm_vert(i,j) = sum(trm(i,j,1:lm,n))
+      enddo; enddo
 
-         CALL GLOBALSUM(grid,axyp,    sarea,     all=.true.)
-         CALL GLOBALSUM(grid,trm_vert,trm_glbavg,all=.true.)
+      CALL GLOBALSUM(grid,axyp,    sarea,     all=.true.)
+      CALL GLOBALSUM(grid,trm_vert,trm_glbavg,all=.true.)
 
          !total atm mass
-         atm_glbavg = PSF*sarea*100.d0/grav
+      atm_glbavg = PSF*sarea*100.d0/grav
 
-#ifdef constCO2
          !current concentration to new concentration
-         factor = atmCO2*atm_glbavg/trm_glbavg *vol2mass(n)*1.d-6
-
-         if(AM_I_ROOT( ))then
-         write(*,'(a,i5,8e12.4)')
+      factor = get_atmCO2()*atm_glbavg/trm_glbavg *vol2mass(n)*1.d-6
+      if(AM_I_ROOT( ))then
+        write(*,'(a,i5,8e12.4)')
      .           "TRACER_DRV, factor", nstep,factor,
      .            atm_glbavg,vol2mass(n),
-     .            atmCO2,sarea,
+     .            get_atmCO2(),sarea,
      .            PSF,grav,
      .            trm_glbavg/(atm_glbavg*vol2mass(n)*1.d-6)
-         endif
-#else
-         !current concentration to new concentration
-         factor = xnow(1)*atm_glbavg/trm_glbavg *vol2mass(n)*1.d-6
+      endif
+      do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
+        trm(i,j,l,n) = factor*trm(i,j,l,n)
+      enddo; enddo; enddo
 
-         if(AM_I_ROOT( ))then
-         write(*,'(a,i5,8e12.4)')
-     .           "TRACER_DRV, factor", nstep,factor,
-     .            atm_glbavg,vol2mass(n),
-     .            xnow(1),sarea,
-     .            PSF,grav,
-     .            trm_glbavg/(atm_glbavg*vol2mass(n)*1.d-6)
-         endif
-#endif
-         do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
-             trm(i,j,l,n) = factor*trm(i,j,l,n)
-         enddo; enddo; enddo
-
-         if (factor .lt. 1.d0) then ! adjust moments
-           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
-             trmom(:,i,j,l,n)=factor*trmom(:,i,j,l,n)
+      if (factor .lt. 1.d0) then ! adjust moments
+        do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
+          trmom(:,i,j,l,n)=factor*trmom(:,i,j,l,n)
              !?? do we need trmom=0 for the atmco2 case?
-           enddo; end do; end do
-         end if
-
-      endif  ! end_of_day
-#endif
+        enddo; end do; end do
+      end if
 
       return
-      end subroutine daily_tracer
+      end subroutine adjust_co2
+
 
 #ifdef TRACERS_ON
       SUBROUTINE set_tracer_2Dsource
@@ -8351,9 +8334,9 @@ C**** at the start of any day
       use TRACER_COM, only: tracers, num_regions, reg_E, ef_FACT
       use OldTracer_mod, only: itime_tr0, vol2mass, trname
 #ifdef TRACERS_TOMAS
-      use TRACER_COM, only: IDTH2O, IDTNUMD, n_AECOB, n_AOCOB
-      use TRACER_COM, only: n_ANUM, IDTECIL, IDTOCIL, IDTECOB, IDTOCOB
-      use TRACER_COM, only: nbins, n_ASO4, xk, IDTSO4
+      use TRACER_COM, only: n_AH2O, n_AECOB
+      use TRACER_COM, only: n_ANUM, n_AECIL, n_AOCIL, n_AOCOB
+      use TRACER_COM, only: nbins, n_ASO4, xk
 #endif
 #if (defined INTERACTIVE_WETLANDS_CH4) && (defined TRACERS_SPECIAL_Shindell)
       USE TRACER_SOURCES, only: ns_wet,add_wet_src
@@ -8392,6 +8375,7 @@ C**** at the start of any day
      &     TracerIterator, operator(/=)
       use Attributes_mod
       use AbstractAttribute_mod
+      USE FILEMANAGER, only: openunit,closeunit
       implicit none
       integer :: i,j,ns,ns_isop,l,ky,n,nsect,kreg
       REAL*8 :: source,sarea,steppy,base,steppd,x,airm,anngas,
@@ -8420,13 +8404,16 @@ c      real*8 :: nlight, max_COSZ1, fact0
       real*8, parameter :: orvoc_fact=0.32d0
       real*8 :: max_isop_flux
 #endif  /* TRACERS_TERP */
-#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_GASEXCH_ocean_CFC)
-      integer :: i_ocmip,imax
+      integer :: i_ocmip, iu_data
       real*8  :: factor
       real*8  :: trsource_prt(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                        GRID%J_STRT_HALO:GRID%J_STOP_HALO)
       real*8, dimension(NTM) :: trsource_glbavg
-#endif
+!@var ocmip_cfc: CFC-11 emissions estimated from OCMIP surf.conc.
+      !60years (1939--1998) OCMIP surfc. concentr. converted to
+      !global averaged emission rates
+      !each value corresponds to the annual value
+      REAL*8, DIMENSION(:), allocatable, save :: ocmip_cfc
       INTEGER I_0, I_1, J_0, J_1
       class (Tracer), pointer :: pTracer
       integer :: index
@@ -8452,9 +8439,9 @@ C****
       bydt = 1./DTsrc
 #ifdef TRACERS_TOMAS
         do k=1,nbins
-           trsource(:,J_0:J_1,1,IDTNUMD+k-1)=0.
-           trsource(:,J_0:J_1,2,IDTNUMD+k-1)=0.
-           trsource(:,J_0:J_1,3,IDTNUMD+k-1)=0.
+           trsource(:,J_0:J_1,1,n_ANUM(1)+k-1)=0.
+           trsource(:,J_0:J_1,2,n_ANUM(1)+k-1)=0.
+           trsource(:,J_0:J_1,3,n_ANUM(1)+k-1)=0.
         enddo
 #endif
 C**** All sources are saved as kg/s
@@ -8606,76 +8593,78 @@ C**** Source over Australia and New Zealand
      &         source*sarea_prt(i,j)/sarea
         enddo; enddo
 
-#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_GASEXCH_ocean_CFC)
-        !print out global average for each time step before weighing
-        !in the OCMIP values
-        sarea  = 0.
-        trsource_glbavg(n)=0.
-        sarea_prt(:,:)  = 0.
-        trsource_prt(:,:) = 0.
-        do j=J_0,J_1
-         imax=72
-         if (j .eq. 1 .or. j .eq. 46) imax=1
-          do i=I_0,I_1
-           factor = axyp(i,j)*fearth(i,j)
-           sarea_prt(i,j)= FACTOR
-           trsource_prt(i,j) = trsource(i,j,1,n)*FACTOR
+        if (trim(pTracer%getName()).eq.'CFCn') then
+          !print out global average for each time step before weighing
+          !in the OCMIP values
+          sarea  = 0.
+          trsource_glbavg(n)=0.
+          sarea_prt(:,:)  = 0.
+          trsource_prt(:,:) = 0.
+          do j=J_0,J_1
+            do i=I_0,I_1
+             factor = axyp(i,j)*fearth(i,j)
+             sarea_prt(i,j)= FACTOR
+             trsource_prt(i,j) = trsource(i,j,1,n)*FACTOR
+            enddo
           enddo
-        enddo
 
-        CALL GLOBALSUM(grid, sarea_prt,    sarea, all=.true.)
-        CALL GLOBALSUM(grid,trsource_prt,trsource_glbavg(n),all=.true.)
+          CALL GLOBALSUM(grid, sarea_prt,    sarea, all=.true.)
+          CALL GLOBALSUM(grid,trsource_prt,trsource_glbavg(n),
+     &                                                all=.true.)
 
-        trsource_glbavg(n)=trsource_glbavg(n)/sarea
+          trsource_glbavg(n)=trsource_glbavg(n)/sarea
 
-        !weight trsource by ocmip_cfc global average
-        !number of steps/year=INT_DAYS_PER_YEAR*SECONDS_PER_DAY/dtsrc
-        !                    =365*86400/1800 =17520
-        i_ocmip=(itime-itime_tr0(n))/INT_DAYS_PER_YEAR/
-     &          int(SECONDS_PER_DAY/dtsrc)+1
-        if (mod(itime,INT_DAYS_PER_YEAR*int(SECONDS_PER_DAY/dtsrc)) 
-     &      .eq. 0.) then
-          write(6,'(a,2i5)'),'TRACERS_DRV, new year: itime, i_ocmip=',
-     &                       itime,i_ocmip
-        endif
-        do j=J_0,J_1 ! TNL
-          do i=1,72
-
-cdiag     write(6,'(a,2i5,2e12.4,i5,4e12.4)')'TRACERS_DRV '
-cdiag.         ,i,j,trsource(i,j,1,n),ocmip_cfc(i_ocmip,n),
-cdiag.          JDperY,HOURS_PER_DAY,dtsrc,3600,trsource_glbavg(n)
-
-             trsource(i,j,1,n) = trsource(i,j,1,n)* 
-     &         (ocmip_cfc(i_ocmip,n)/(INT_DAYS_PER_YEAR*
-     &         SECONDS_PER_DAY/dtsrc)) / trsource_glbavg(n)
+          !weight trsource by ocmip_cfc global average
+          !number of steps/year=INT_DAYS_PER_YEAR*SECONDS_PER_DAY/dtsrc
+          !                    =365*86400/1800 =17520
+          if (.not.allocated(ocmip_cfc)) then
+            !read in OCMIP based CFC-11 global emissions
+            !=sum(dC/dt) for each hemisphere
+            !these are *annual global averages* and need to be
+            !converted to our timestep value
+            allocate(ocmip_cfc(67))
+            print*, 'opening file=OCMIP_cfc.dat'
+            call openunit('OCMIP_cfc',iu_data,.false.,.true.)
+            do i=1,67
+              read(iu_data,'(5x,e12.4)')ocmip_cfc(i)
+            enddo
+            call closeunit(iu_data)
+          endif
+          i_ocmip=(itime-itime_tr0(n))/INT_DAYS_PER_YEAR/
+     &            int(SECONDS_PER_DAY/dtsrc)+1
+          if (mod(itime,INT_DAYS_PER_YEAR*int(SECONDS_PER_DAY/dtsrc)) 
+     &        .eq. 0.) then
+            write(6,'(a,2i5)'),'TRACERS_DRV, new year: itime, i_ocmip=',
+     &                         itime,i_ocmip
+          endif
+          do j=J_0,J_1 ! TNL
+            do i=1,72
+               trsource(i,j,1,n) = trsource(i,j,1,n)* 
+     &           (ocmip_cfc(i_ocmip)/(INT_DAYS_PER_YEAR*
+     &           SECONDS_PER_DAY/dtsrc)) / trsource_glbavg(n)
+            enddo
           enddo
-        enddo
 
-        write(6,'(a,3i5,3e12.4)')'TRACERS_DRV, CFC source at pt(15,33)'
-     .               ,15,33,i_ocmip,trsource(15,33,1,n)
-     .               ,ocmip_cfc(i_ocmip,n),trsource_glbavg(n)
-
-        !recompute global average after weighting in OCMIP
-        sarea  = 0.
-        trsource_glbavg(n)=0.
-        sarea_prt(:,:)  = 0.
-        trsource_prt(:,:) = 0.
-        do j=J_0,J_1
-         imax=72
-         if (j .eq. 1 .or. j .eq. 46) imax=1
-          do i=I_0,I_1
-           factor = axyp(i,j)*fearth(i,j)
-           sarea_prt(i,j)= FACTOR
-           trsource_prt(i,j) = trsource(i,j,1,n)*FACTOR
+          !recompute global average after weighting in OCMIP
+          sarea  = 0.
+          trsource_glbavg(n)=0.
+          sarea_prt(:,:)  = 0.
+          trsource_prt(:,:) = 0.
+          do j=J_0,J_1
+            do i=I_0,I_1
+             factor = axyp(i,j)*fearth(i,j)
+             sarea_prt(i,j)= FACTOR
+             trsource_prt(i,j) = trsource(i,j,1,n)*FACTOR
+            enddo
           enddo
-        enddo
 
-        CALL GLOBALSUM(grid, sarea_prt,    sarea, all=.true.)
-        CALL GLOBALSUM(grid,trsource_prt,trsource_glbavg(n),all=.true.)
+          CALL GLOBALSUM(grid, sarea_prt,    sarea, all=.true.)
+          CALL GLOBALSUM(grid,trsource_prt,trsource_glbavg(n),
+     &                                                 all=.true.)
 
-        trsource_glbavg(n)=trsource_glbavg(n)/sarea
+          trsource_glbavg(n)=trsource_glbavg(n)/sarea
 
-#endif
+        endif  ! pTracer==CFCn
 
 C****
 C**** Surface Sources for Radon-222
@@ -8972,51 +8961,51 @@ C****
 !     ns=3 : OC number 
         tot_emis(:,J_0:J_1)=0.0
           if(n.eq.n_ASO4(1))then 
-             tot_emis(:,J_0:J_1)= trsource(:,J_0:J_1,ns,IDTSO4)
+             tot_emis(:,J_0:J_1)= trsource(:,J_0:J_1,ns,n_ASO4(1))
              
              do k=1,nbins
-                trsource(:,J_0:J_1,ns,IDTSO4+k-1)=
+                trsource(:,J_0:J_1,ns,n_ASO4(1)+k-1)=
      &              tot_emis(:,J_0:J_1)*scalesizeSO4(k)
                
-                trsource(:,J_0:J_1,1,IDTNUMD+k-1)=
-     &           trsource(:,J_0:J_1,1,IDTNUMD+k-1) +
-     &               trsource(:,J_0:J_1,ns,IDTSO4+k-1)
+                trsource(:,J_0:J_1,1,n_ANUM(1)+k-1)=
+     &           trsource(:,J_0:J_1,1,n_ANUM(1)+k-1) +
+     &               trsource(:,J_0:J_1,ns,n_ASO4(1)+k-1)
      &               /sqrt(xk(k)*xk(k+1))    
               enddo
 
 
           elseif(n.eq.n_AECOB(1))then
 
-             tot_emis(:,J_0:J_1)= trsource(:,J_0:J_1,ns,IDTECOB)
+             tot_emis(:,J_0:J_1)= trsource(:,J_0:J_1,ns,n_AECOB(1))
 
              do k=1,nbins
-                trsource(:,J_0:J_1,ns,IDTECOB+k-1)=
+                trsource(:,J_0:J_1,ns,n_AECOB(1)+k-1)=
      &               tot_emis(:,J_0:J_1)*scalesizeCARBO30(k)*0.8
 
-                trsource(:,J_0:J_1,ns,IDTECIL+k-1)=
+                trsource(:,J_0:J_1,ns,n_AECIL(1)+k-1)=
      &               tot_emis(:,J_0:J_1)*scalesizeCARBO30(k)*0.2
 
-                trsource(:,J_0:J_1,2,IDTNUMD+k-1)=
-     &           trsource(:,J_0:J_1,2,IDTNUMD+k-1) +
-     &             ( trsource(:,J_0:J_1,ns,IDTECOB+k-1)+
-     &                 trsource(:,J_0:J_1,ns,IDTECIL+k-1))
+                trsource(:,J_0:J_1,2,n_ANUM(1)+k-1)=
+     &           trsource(:,J_0:J_1,2,n_ANUM(1)+k-1) +
+     &             ( trsource(:,J_0:J_1,ns,n_AECOB(1)+k-1)+
+     &                 trsource(:,J_0:J_1,ns,n_AECIL(1)+k-1))
      &             /sqrt(xk(k)*xk(k+1))  
              enddo
           elseif(n.eq.n_AOCOB(1))then
 
-             tot_emis(:,J_0:J_1)= trsource(:,J_0:J_1,ns,IDTOCOB)
+             tot_emis(:,J_0:J_1)= trsource(:,J_0:J_1,ns,n_AOCOB(1))
 
              do k=1,nbins
-                trsource(:,J_0:J_1,ns,IDTOCOB+k-1)=
+                trsource(:,J_0:J_1,ns,n_AOCOB(1)+k-1)=
      &               tot_emis(:,J_0:J_1)*scalesizeCARBO30(k)*0.5
 
-                trsource(:,J_0:J_1,ns,IDTOCIL+k-1)=
+                trsource(:,J_0:J_1,ns,n_AOCIL(1)+k-1)=
      &               tot_emis(:,J_0:J_1)*scalesizeCARBO30(k)*0.5
 
-                trsource(:,J_0:J_1,3,IDTNUMD+k-1)=
-     &           trsource(:,J_0:J_1,3,IDTNUMD+k-1) +
-     &              ( trsource(:,J_0:J_1,ns,IDTOCOB+k-1)+
-     &                trsource(:,J_0:J_1,ns,IDTOCIL+k-1))
+                trsource(:,J_0:J_1,3,n_ANUM(1)+k-1)=
+     &           trsource(:,J_0:J_1,3,n_ANUM(1)+k-1) +
+     &              ( trsource(:,J_0:J_1,ns,n_AOCOB(1)+k-1)+
+     &                trsource(:,J_0:J_1,ns,n_AOCIL(1)+k-1))
      &            /sqrt(xk(k)*xk(k+1))  
              enddo
           endif
@@ -9161,10 +9150,10 @@ c$$$      use OldTracer_mod, only: tr_mm, nBBsources, mass2vol
       use TRACER_COM, only: nVolcanic, nOverwrite, nChemloss, nOther
       use TRACER_COM, only:  trans_emis_overr_day, trans_emis_overr_yr
 #ifdef TRACERS_TOMAS
-      use TRACER_COM, only: nbins, n_AECOB, n_AOCIL, IDTH2O
-      use TRACER_COM, only: IDTOCIL, IDTNUMD, IDTNA, IDTECIL, IDTDUST
-      use TRACER_COM, only: IDTECOB, IDTOCOB, IDTSO4, n_H2SO4, n_SOAGAS
-      use TRACER_COM, only: nChemistry, n_AOCOB, n_AECIL, ntm_tomas
+      use TRACER_COM, only: nbins, n_AH2O
+      use TRACER_COM, only: n_AOCIL, n_ANUM, n_ANACL, n_ADUST
+      use TRACER_COM, only: n_AECOB, n_AOCOB, n_ASO4, n_H2SO4, n_SOAGAS
+      use TRACER_COM, only: nChemistry, n_AECIL, ntm_tomas
 #endif
 #ifdef TRACERS_AMP
       use TRACER_COM, only: n_H2SO4
@@ -9423,7 +9412,7 @@ C**** 3D biomass source
 #endif
 
 #ifdef TRACERS_TOMAS
-        if(n<IDTSO4) call apply_tracer_3Dsource(nBiomass,n)
+        if(n<n_ASO4(1)) call apply_tracer_3Dsource(nBiomass,n)
 
 !Initialize 
        TOMAS_bio(:,J_0:J_1,:,:)=0.0
@@ -9435,20 +9424,20 @@ C**** 3D biomass source
 
        do kk=1,nbins
          TOMAS_bio(:,J_0:J_1,:,kk)=
-     &        tr3Dsource(:,J_0:J_1,:,nBiomass,IDTSO4)
+     &        tr3Dsource(:,J_0:J_1,:,nBiomass,n_ASO4(1))
      &        *scalesizeSO4_bio(kk)
        enddo
        
        do k=1,nbins
-         tr3Dsource(:,J_0:J_1,:,nVolcanic,IDTSO4+k-1)=
+         tr3Dsource(:,J_0:J_1,:,nVolcanic,n_ASO4(1)+k-1)=
      &        so2_src_3d(:,J_0:J_1,:,1)*scalesizeSO4_vol(k)*src_fact
          
-         tr3Dsource(:,J_0:J_1,:,nBiomass,IDTSO4+k-1)=
+         tr3Dsource(:,J_0:J_1,:,nBiomass,n_ASO4(1)+k-1)=
      *        TOMAS_bio(:,J_0:J_1,:,k)
          
-         tr3Dsource(:,J_0:J_1,:,1,IDTNUMD+k-1)=
-     &        (tr3Dsource(:,J_0:J_1,:,nVolcanic,IDTSO4+k-1)
-     &        +tr3Dsource(:,J_0:J_1,:,nBiomass,IDTSO4+k-1))
+         tr3Dsource(:,J_0:J_1,:,1,n_ANUM(1)+k-1)=
+     &        (tr3Dsource(:,J_0:J_1,:,nVolcanic,n_ASO4(1)+k-1)
+     &        +tr3Dsource(:,J_0:J_1,:,nBiomass,n_ASO4(1)+k-1))
      &        /(sqrt(xk(k)*xk(k+1)))  
           
        enddo
@@ -9583,7 +9572,7 @@ C**** Allow overriding of transient emissions date:
       tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_BCIA)  = 0.
 #endif
 #ifdef TRACERS_TOMAS
-      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,IDTECOB)  = 0.
+      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_AECOB(1))  = 0.
 #endif
 !#ifdef TRACERS_AMP
 !      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_M_BC1_BC)  = 0.
@@ -9691,40 +9680,40 @@ C**** Apply chemistry and overwrite changes:
        
        do kk=1,nbins
          TOMAS_bio(:,J_0:J_1,:,kk)=
-     &        tr3Dsource(:,J_0:J_1,:,nBiomass,IDTECOB)
+     &        tr3Dsource(:,J_0:J_1,:,nBiomass,n_AECOB(1))
      &        *scalesizeCARBO100(kk)
 c$$$  
          TOMAS_air(:,J_0:J_1,:,kk)=
-     &        tr3Dsource(:,J_0:J_1,:,nAircraft,IDTECOB)
+     &        tr3Dsource(:,J_0:J_1,:,nAircraft,n_AECOB(1))
      &        *scalesizeCARBO30(kk)            
        enddo
        
        do k=1,nbins
          
-         tr3Dsource(:,J_0:J_1,:,nBiomass,IDTECOB+k-1)=
+         tr3Dsource(:,J_0:J_1,:,nBiomass,n_AECOB(1)+k-1)=
      *        TOMAS_bio(:,J_0:J_1,:,k)*0.8
-         tr3Dsource(:,J_0:J_1,:,nBiomass,IDTECIL+k-1)=
+         tr3Dsource(:,J_0:J_1,:,nBiomass,n_AECIL(1)+k-1)=
      *        TOMAS_bio(:,J_0:J_1,:,k)*0.2
          
-         tr3Dsource(:,J_0:J_1,:,nAircraft,IDTECOB+k-1)=
+         tr3Dsource(:,J_0:J_1,:,nAircraft,n_AECOB(1)+k-1)=
      *        TOMAS_air(:,J_0:J_1,:,k)*0.8
          
-         tr3Dsource(:,J_0:J_1,:,nAircraft,IDTECIL+k-1)=
+         tr3Dsource(:,J_0:J_1,:,nAircraft,n_AECIL(1)+k-1)=
      *        TOMAS_air(:,J_0:J_1,:,k)*0.2
          
-         tr3Dsource(:,J_0:J_1,:,2,IDTNUMD+k-1)=
+         tr3Dsource(:,J_0:J_1,:,2,n_ANUM(1)+k-1)=
      &        (TOMAS_bio(:,J_0:J_1,:,k)+TOMAS_air(:,J_0:J_1,:,k))
      &        /(sqrt(xk(k)*xk(k+1)))  
          
-         call apply_tracer_3Dsource(nBiomass, IDTECOB+k-1)
-         call apply_tracer_3Dsource(nAircraft,IDTECOB+k-1)
-         call apply_tracer_3Dsource(nBiomass, IDTECIL+k-1)
-         call apply_tracer_3Dsource(nAircraft,IDTECIL+k-1)
-         call apply_tracer_3Dsource(2,       IDTNUMD+k-1)
+         call apply_tracer_3Dsource(nBiomass, n_AECOB(1)+k-1)
+         call apply_tracer_3Dsource(nAircraft,n_AECOB(1)+k-1)
+         call apply_tracer_3Dsource(nBiomass, n_AECIL(1)+k-1)
+         call apply_tracer_3Dsource(nAircraft,n_AECIL(1)+k-1)
+         call apply_tracer_3Dsource(2,       n_ANUM(1)+k-1)
 
-         call apply_tracer_3Dsource(nVolcanic,IDTSO4+k-1)
-         call apply_tracer_3Dsource(nBiomass, IDTSO4+k-1)
-         call apply_tracer_3Dsource(1,       IDTNUMD+k-1) 
+         call apply_tracer_3Dsource(nVolcanic,n_ASO4(1)+k-1)
+         call apply_tracer_3Dsource(nBiomass, n_ASO4(1)+k-1)
+         call apply_tracer_3Dsource(1,       n_ANUM(1)+k-1) 
 
        enddo
 
@@ -9733,26 +9722,26 @@ c$$$
 
        do kk=1,nbins
          TOMAS_bio(:,J_0:J_1,:,kk)=
-     &        tr3Dsource(:,J_0:J_1,:,nBiomass,IDTOCOB)
+     &        tr3Dsource(:,J_0:J_1,:,nBiomass,n_AOCOB(1))
      &        *scalesizeCARBO100(kk)      
        enddo
        
        do k=1,nbins
          
-         tr3Dsource(:,J_0:J_1,:,nBiomass,IDTOCOB+k-1)=
+         tr3Dsource(:,J_0:J_1,:,nBiomass,n_AOCOB(1)+k-1)=
      *        TOMAS_bio(:,J_0:J_1,:,k)*0.5
-         tr3Dsource(:,J_0:J_1,:,nBiomass,IDTOCIL+k-1)=
+         tr3Dsource(:,J_0:J_1,:,nBiomass,n_AOCIL(1)+k-1)=
      *        TOMAS_bio(:,J_0:J_1,:,k)*0.5
          
-         tr3Dsource(:,J_0:J_1,:,4,IDTNUMD+k-1)=
+         tr3Dsource(:,J_0:J_1,:,4,n_ANUM(1)+k-1)=
      &        (TOMAS_bio(:,J_0:J_1,:,k)
      &        )/(sqrt(xk(k)*xk(k+1)))  
          
          
-         call apply_tracer_3Dsource(nBiomass, IDTOCOB+k-1)
-         call apply_tracer_3Dsource(nBiomass, IDTOCIL+k-1)
+         call apply_tracer_3Dsource(nBiomass, n_AOCOB(1)+k-1)
+         call apply_tracer_3Dsource(nBiomass, n_AOCIL(1)+k-1)
 !     ntsurfsrc(n=3) is used for microphysics, so it is 4. 
-         call apply_tracer_3Dsource(4,       IDTNUMD+k-1)
+         call apply_tracer_3Dsource(4,       n_ANUM(1)+k-1)
          
        enddo
        
@@ -9762,8 +9751,8 @@ c$$$
 !       end do; end do; end do
          
       DO n=1,ntm_TOMAS
-!         if(am_i_root()) print*,'tr3dsource',trname(IDTSO4+n-1)
-        tr3Dsource(I_0:I_1,J_0:J_1,:,nOther,IDTSO4+n-1) = 0.d0! Aerosol Mirophysics
+!         if(am_i_root()) print*,'tr3dsource',trname(n_ASO4(1)+n-1)
+        tr3Dsource(I_0:I_1,J_0:J_1,:,nOther,n_ASO4(1)+n-1) = 0.d0! Aerosol Mirophysics
       ENDDO
         tr3Dsource(I_0:I_1,J_0:J_1,:,nOther,n_H2SO4) = 0.d0! Aerosol Mirophysics
         tr3Dsource(I_0:I_1,J_0:J_1,:,nChemistry,n_NH3) = 0.d0! Aerosol Mirophysics
@@ -9777,7 +9766,7 @@ c$$$#endif
         if(am_i_root()) print*,'exit TOMAS DRV'
 
       DO n=1,ntm_TOMAS-nbins ! exclude h2o
-        call apply_tracer_3Dsource(nOther,IDTSO4+n-1)! Aerosol Mirophysics
+        call apply_tracer_3Dsource(nOther,n_ASO4(1)+n-1)! Aerosol Mirophysics
       ENDDO
 
       call apply_tracer_3Dsource(nChemistry,n_NH3)  !simple equilibrium model in TOMAS
@@ -9903,16 +9892,16 @@ C       stop
 
         do k=1,nbins
 
-          mso4=trcsurf(i,j,idtso4+k-1) !kg/kg
-          mnacl=trcsurf(i,j,idtna+k-1)
+          mso4=trcsurf(i,j,n_aso4(1)+k-1) !kg/kg
+          mnacl=trcsurf(i,j,n_anacl(1)+k-1)
           mno3=0.e0
           mnh4=0.1875*mso4      !assume ammonium bisulfate
-          mecob=trcsurf(i,j,idtecob+k-1)
-          mecil=trcsurf(i,j,idtecil+k-1)
-          mocil=trcsurf(i,j,idtocil+k-1)
-          mocob=trcsurf(i,j,idtocob+k-1)
-          mdust=trcsurf(i,j,idtdust+k-1)
-          mh2o=trcsurf(i,j,idth2o+k-1)
+          mecob=trcsurf(i,j,n_aecob(1)+k-1)
+          mecil=trcsurf(i,j,n_aecil(1)+k-1)
+          mocil=trcsurf(i,j,n_aocil(1)+k-1)
+          mocob=trcsurf(i,j,n_aocob(1)+k-1)
+          mdust=trcsurf(i,j,n_adust(1)+k-1)
+          mh2o=trcsurf(i,j,n_ah2o(1)+k-1)
          if ((mso4+mno3) .lt. 1.e-8) mso4=1.e-8  ! to prevent error in aerodens
 !Normally TRM is passing to aerodens, but this time is for surface concentration. 
          density=aerodens(mso4,mno3,mnh4 !mno3 taken off!
@@ -9922,7 +9911,7 @@ C       stop
          mp_PM2p5=density*pi/6.d0*(2.5e-6)**(3.d0) !particle mass for PM2.5 
 
          do jc=1,icomp-idiag !mass tracers
-           tracnum=IDTSO4-1+k+nbins*(jc-1) !ntm
+           tracnum=n_ASO4(1)-1+k+nbins*(jc-1) !ntm
          
          if(xk(k+1).lt.mp_PM2p5) then
 !all mass goes to PM2.5 and PM10
@@ -10258,8 +10247,8 @@ C**** GLOBAL parameters and variables:
 #endif
 #ifdef TRACERS_TOMAS
       USE TRACER_COM, only: NBS,NBINS
-     &     ,IDTNUMD,IDTSO4,IDTNA,IDTECIL,IDTECOB
-     &     ,IDTOCIL,IDTOCOB,IDTDUST,IDTH2O
+     &     ,n_ANUM,n_ASO4,n_ANACL,n_AECIL,n_AECOB
+     &     ,n_AOCIL,n_AOCOB,n_ADUST,n_AH2O
 #endif
 #ifdef TRACERS_HETCHEM
       USE TRACER_COM, only: trm ,n_SO4_d1, n_SO4_d2, n_SO4_d3,n_SO4
@@ -10475,15 +10464,15 @@ c     if (FCLOUD.lt.1.D-16 .or. fq0.eq.0.) then
       
       do k=1,nbins
 
-        call set_fq_aer(ntix(IDTNUMD+k-1),fraction(k))
-        call set_fq_aer(ntix(IDTSO4+k-1), fraction(k))
-        call set_fq_aer(ntix(IDTNA+k-1),  fraction(k))
-        call set_fq_aer(ntix(IDTECIL+k-1),fraction(k))
-        call set_fq_aer(ntix(IDTECOB+k-1),fraction(k))
-        call set_fq_aer(ntix(IDTOCIL+k-1),fraction(k))
-        call set_fq_aer(ntix(IDTOCOB+k-1),fraction(k))
-        call set_fq_aer(ntix(IDTDUST+k-1),fraction(k))
-        call set_fq_aer(ntix(IDTH2O+k-1), fraction(k))
+        call set_fq_aer(ntix(n_ANUM(1)+k-1),fraction(k))
+        call set_fq_aer(ntix(n_ASO4(1)+k-1), fraction(k))
+        call set_fq_aer(ntix(n_ANACL(1)+k-1),  fraction(k))
+        call set_fq_aer(ntix(n_AECIL(1)+k-1),fraction(k))
+        call set_fq_aer(ntix(n_AECOB(1)+k-1),fraction(k))
+        call set_fq_aer(ntix(n_AOCIL(1)+k-1),fraction(k))
+        call set_fq_aer(ntix(n_AOCOB(1)+k-1),fraction(k))
+        call set_fq_aer(ntix(n_ADUST(1)+k-1),fraction(k))
+        call set_fq_aer(ntix(n_AH2O(1)+k-1), fraction(k))
 
          if (fraction(k).gt.1.or.fraction(k).lt.0) then
             print*,'fraction>1 or fraction<0'
@@ -10677,9 +10666,8 @@ c     USE PBLCOM, only: wsavg
      &     gases_list,aero_list,water_list,hlawt_list
 #ifdef TRACERS_TOMAS 
       USE TRACER_COM, only :
-     &     NBS,NBINS,IDTNUMD,IDTSO4,IDTNA,xk
-     &    ,IDTOCOB,IDTECIL,IDTECOB,IDTOCIL,IDTDUST,IDTH2O
-     &     ,non_aerosol
+     &     NBS,NBINS,n_ANUM,n_ASO4,n_ANACL,xk
+     &    ,n_AOCOB,n_AECIL,n_AECOB,n_AOCIL,n_ADUST,n_AH2O
       use OldTracer_mod, only: set_rc_washt
 c
 #endif
@@ -10751,15 +10739,15 @@ c      fq(gases_list) = 0.D0
          do k=1,nbins               
             dpaero=getdp(k)
             scavr=stratscav(dpaero)  
-            call set_rc_washt(ntix(IDTSO4+k-1), scavr)
-            call set_rc_washt(ntix(IDTNA+k-1),  scavr)
-            call set_rc_washt(ntix(IDTECOB+k-1),scavr)
-            call set_rc_washt(ntix(IDTECIL+k-1),scavr)
-            call set_rc_washt(ntix(IDTOCOB+k-1),scavr)
-            call set_rc_washt(ntix(IDTOCIL+k-1),scavr)
-            call set_rc_washt(ntix(IDTDUST+k-1),scavr)
-            call set_rc_washt(ntix(IDTH2O+k-1), scavr)
-            call set_rc_washt(ntix(IDTNUMD+k-1),scavr)
+            call set_rc_washt(ntix(n_ASO4(1)+k-1), scavr)
+            call set_rc_washt(ntix(n_ANACL(1)+k-1),  scavr)
+            call set_rc_washt(ntix(n_AECOB(1)+k-1),scavr)
+            call set_rc_washt(ntix(n_AECIL(1)+k-1),scavr)
+            call set_rc_washt(ntix(n_AOCOB(1)+k-1),scavr)
+            call set_rc_washt(ntix(n_AOCIL(1)+k-1),scavr)
+            call set_rc_washt(ntix(n_ADUST(1)+k-1),scavr)
+            call set_rc_washt(ntix(n_AH2O(1)+k-1), scavr)
+            call set_rc_washt(ntix(n_ANUM(1)+k-1),scavr)
          enddo
          
       endif

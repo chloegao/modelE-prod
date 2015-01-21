@@ -6,9 +6,6 @@ C****
       MODULE KPP_COM
 !@sum  KPP_COM holds variables related to the KPP mixing scheme
 !@auth Gavin Schmidt
-#ifdef TRACERS_OCEAN
-      USE OCN_TRACER_COM, only : ntm
-#endif
       USE OCEAN, only : im,jm,lmo,kpl
       USE SW2OCEAN, only : lsrpd
       IMPLICIT NONE
@@ -1376,7 +1373,7 @@ C****
       USE OCEAN, only : txxmo,tyymo,tzzmo,txymo
       Use KPP_COM, Only: trmo1,txmo1,tymo1
       Use ODIAG, Only: toijl=>toijl_loc,toijl_wtfl
-      USE OCN_TRACER_COM, only : t_qlimit, ntm
+      USE OCN_TRACER_COM, only : tracerlist, ocn_tracer_entry
 #endif
 #ifdef OCN_GISS_SM
       use giss_sm_com, only : au_sm,av_sm,rx_sm,ry_sm
@@ -1429,8 +1426,10 @@ C**** KPP variables
       REAL*8, DIMENSION(LMO,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      &     DZ3D
 #ifdef TRACERS_OCEAN
-      REAL*8 FLT3D(0:LMO,NTM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO)
-      REAL*8 TRSAVE3D(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LMO,NTM)
+      REAL*8 FLT3D(0:LMO,tracerlist%getsize(),IM,
+     &                  grid%J_STRT_HALO:grid%J_STOP_HALO)
+      REAL*8 TRSAVE3D(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LMO,
+     &                  tracerlist%getsize())
 #endif
 
 #ifdef OCN_GISS_TURB
@@ -1501,8 +1500,11 @@ c     REAL*8, PARAMETER :: wta1=exp(-1.d0/1440.d0) ! average over 30 days
       REAL*8 g1,s1,p1,bydz
 #endif
 #ifdef TRACERS_OCEAN
-      Real*8 TRML(LMO,NTM),TRML1(NTM),TZML(LMO,NTM),TZZML(LMO,NTM),
-     *       DELTATR(NTM),GHATT(LMO,NTM),FLT(LMO,NTM),DTP4TR(LMO,NTM)
+      Real*8 TRML(LMO,tracerlist%getsize()),TRML1(tracerlist%getsize()),
+     &   TZML(LMO,tracerlist%getsize()),TZZML(LMO,tracerlist%getsize()),
+     &   DELTATR(tracerlist%getsize()),GHATT(LMO,tracerlist%getsize()),
+     *   FLT(LMO,tracerlist%getsize()),DTP4TR(LMO,tracerlist%getsize())
+      type(ocn_tracer_entry), pointer :: entry
       REAL*8, DIMENSION(LMO) :: TXML,TYML,TXXML,TYYML,TXYML
       INTEGER NSIGT
       REAL*8 :: DFLUX,MINRAT ! for GHATT limits
@@ -1572,8 +1574,9 @@ C**** will be fixed during convection.
           if ( abs(SZMO(I,J,L)) > S0M(I,J,L) )
      *         SZMO(I,J,L) = sign(S0M(I,J,L),SZMO(I,J,L)+0d0)
 #ifdef TRACERS_OCEAN
-          DO N = 1,NTM
-            if (t_qlimit(n)) then
+          DO N = 1,tracerlist%getsize()
+            entry=>tracerlist%at(n)
+            if (entry%t_qlimit) then
               if ( abs(TZMO(I,J,L,N)) > TRMO(I,J,L,N) )
      *             TZMO(I,J,L,N) = sign(TRMO(I,J,L,N),TZMO(I,J,L,N))
             end if
@@ -1862,12 +1865,13 @@ C**** Calculate surface mass flux and Solar forcing
       DO L=LSRPD+1,LMIJ
         G0ML(L) = G0ML0(L)  ;  END DO
 #ifdef TRACERS_OCEAN
-      DO N=1,NTM
+      DO N=1,tracerlist%getsize()
+        entry=>tracerlist%at(n)
         TRML1(N) = TRMO1(N,I,J)
         DO L=1,LMIJ
           TRML(L,N) = TRMO(I,J,L,N)
 C****
-          if (t_qlimit(N)) then
+          if (entry%t_qlimit) then
             TRML(L,N) = Max (0d0,TRML(L,N))
           end if
         END DO
@@ -2262,8 +2266,9 @@ C**** D-grid velocities
 C**** Tracers are diffused after iteration and follow salinity
       GHATDUM(:) = 0.
       DTP4S(:)   = 0.  ! ????
-      DO N=1,NTM
-        if(t_qlimit(n)) then
+      DO N=1,tracerlist%getsize()
+        entry=>tracerlist%at(n)
+        if(entry%t_qlimit) then
           ! Modify GHATT to prevent negative tracer.  Method: apply
           ! a single multiplicative factor to the GHATT profile.
           ! Might switch to alternative method (local flux adjustments).
@@ -2407,7 +2412,7 @@ CCC      END IF
         S0M(I,J,L) = S0ML(L)
       END DO
 #ifdef TRACERS_OCEAN
-      DO N = 1,NTM
+      DO N = 1,tracerlist%getsize()
       DO L = 1,LMIJ
         TRMO(I,J,L,N) = TRML(L,N)
       ENDDO
@@ -2572,7 +2577,7 @@ C**** Note that FL[GS] are upward fluxes.
         call relax_zmoms(ma,g0m,klen,gzmo,gzzmo)
         call relax_zmoms(ma,s0m,klen,szmo,szzmo)
 #ifdef TRACERS_OCEAN
-        do n=1,ntm
+        do n=1,tracerlist%getsize()
           call relax_zmoms(ma,trmo(1,j_0h,1,n),
      &         klen,tzmo(1,j_0h,1,n),tzzmo(1,j_0h,1,n))
         enddo
@@ -2600,7 +2605,7 @@ c
           szmo(i,j,1:lmij) = szml(1:lmij)*mml(1:lmij)
           szzmo(i,j,1:lmij) = szzml(1:lmij)*mml(1:lmij)
 #ifdef TRACERS_OCEAN
-          do n=1,ntm
+          do n=1,tracerlist%getsize()
             trml(1:lmij,1) = trsave3d(i,j,1:lmij,n)/mml(1:lmij)
             tzml(1:lmij,1) = tzmo(i,j,1:lmij,n)/mml(1:lmij)
             tzzml(1:lmij,1) = tzzmo(i,j,1:lmij,n)/mml(1:lmij)
@@ -2680,7 +2685,7 @@ C****
 #ifdef TRACERS_OCEAN
         akvc(1:lmij-1) = akvc3d(1:lmij-1,i,j)
         akvc(lmij) = 0.
-        do n=1,ntm
+        do n=1,tracerlist%getsize()
           txml(1:lmij) = txmo(i,j,1:lmij,n)
           tyml(1:lmij) = tymo(i,j,1:lmij,n)
           Call OVDIFFS ( TXML(1),AKVC(1),GHATDUM,DTP4S,DTBYDZ,BYDZ2,
@@ -2733,12 +2738,13 @@ C**** limit salinity gradients
           if ( abs(SZMO(I,J,L)) > S0M(I,J,L) )
      *         SZMO(I,J,L) = sign(S0M(I,J,L),SZMO(I,J,L)+0d0)
 #ifdef TRACERS_OCEAN
-          DO N = 1,NTM
+          DO N = 1,tracerlist%getsize()
+            entry=>tracerlist%at(n)
             NSIGT = EXPONENT(TRMO(I,J,L,N)) - 2 - 42
             CALL REDUCE_FIG(NSIGT,TXMO(I,J,L,N))
             CALL REDUCE_FIG(NSIGT,TYMO(I,J,L,N))
 C****
-            if (t_qlimit(n)) then ! limit gradients
+            if (entry%t_qlimit) then ! limit gradients
               TXY = abs(TXMO(I,J,L,N)) + abs(TYMO(I,J,L,N))
               if ( TXY > TRMO(I,J,L,N) ) then
                 TXMO(I,J,L,N) = TXMO(I,J,L,N)
@@ -2767,7 +2773,7 @@ C****
 !@auth Gavin Schmidt/Gary Russell
       USE CONSTANT, only : grav,omega
 #ifdef TRACERS_OCEAN
-      USE OCN_TRACER_COM, only : ntm,t_qlimit
+      USE OCN_TRACER_COM, only : tracerlist, ocn_tracer_entry
 #endif
       USE OCEAN,only : lmo,dts,ze,sinpo
       USE STRAITS, only : must,mmst,g0mst,gzmst,gxmst,s0mst,szmst,sxmst
@@ -2794,7 +2800,9 @@ C****
       REAL*8, DIMENSION(LMO) :: G,S,TO,BYRHO,RHO,PO,GHAT,FLG,FLS
       REAL*8, DIMENSION(LMO) :: DTP4
 #ifdef TRACERS_OCEAN
-      REAL*8 TRML(LMO,NTM,2),TZML(LMO,NTM,2),FLT(LMO,NTM)
+      REAL*8 TRML(LMO,tracerlist%getsize(),2),
+     &  TZML(LMO,tracerlist%getsize(),2),FLT(LMO,tracerlist%getsize())
+      type(ocn_tracer_entry), pointer :: entry
       INTEGER ITR,NSIGT
 #endif
 C**** CONV parameters: BETA controls degree of convection (default 0.5).
@@ -3018,7 +3026,7 @@ C**** Salinity
      *     .and. ITER.lt.4) GO TO 510
 #ifdef TRACERS_OCEAN
 C**** Tracers are diffused after iteration (GHAT always zero)
-      DO ITR = 1,NTM
+      DO ITR = 1,tracerlist%getsize()
         CALL OVDIFFS(TRML(1,ITR,IQ),AKVC(1),GHAT,DTP4,DTBYDZ,BYDZ2
      *       ,DTS,LMIJ,TRML(1,ITR,IQ),FLT(1,ITR))
       END DO
@@ -3093,14 +3101,15 @@ C****  limit salinity gradients
      *     SZMST(L,N) = sign(S0MST(L,N),SZMST(L,N))
 C****
 #ifdef TRACERS_OCEAN
-      DO ITR=1,NTM
+      DO ITR=1,tracerlist%getsize()
+        entry=>tracerlist%at(itr)
         TRMST(L,N,ITR) = TRML(L,ITR,2) + TRML(L,ITR,1)
         NSIGT = EXPONENT(TRMST(L,N,ITR)) -1 - 42
         TXMST(L,N,ITR) =(TRML(L,ITR,2) - TRML(L,ITR,1))*BYBETA
         CALL REDUCE_FIG(NSIGT,TXMST(L,N,ITR))
         TZMST(L,N,ITR) = TZML(L,ITR,2) + TZML(L,ITR,1)
 C****
-        if (t_qlimit(itr)) then  ! limit gradients
+        if (entry%t_qlimit) then  ! limit gradients
           if ( abs(TXMST(L,N,ITR)) > TRMST(L,N,ITR) )
      *         TXMST(L,N,ITR) = sign(TRMST(L,N,ITR),TXMST(L,N,ITR))
           if ( abs(TZMST(L,N,ITR)) > TRMST(L,N,ITR) )
@@ -3245,7 +3254,9 @@ C****
 !      USE OCEANR_DIM
 
       USE KPP_COM
-
+#ifdef TRACERS_OCEAN
+      use ocn_tracer_com, only: tracerlist
+#endif
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
 
@@ -3271,9 +3282,9 @@ c     k02count=1.
      *           UOD1(IM,J_0H:J_1H),    VOD1(IM,J_0H:J_1H),
      *   STAT = IER)
 #ifdef TRACERS_OCEAN
-      ALLOCATE( TRMO1(NTM,IM,J_0H:J_1H),
-     *          TXMO1(NTM,IM,J_0H:J_1H),
-     *          TYMO1(NTM,IM,J_0H:J_1H),
+      ALLOCATE( TRMO1(tracerlist%getsize(),IM,J_0H:J_1H),
+     *          TXMO1(tracerlist%getsize(),IM,J_0H:J_1H),
+     *          TYMO1(tracerlist%getsize(),IM,J_0H:J_1H),
      *   STAT = IER)
 #endif
 

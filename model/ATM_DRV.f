@@ -32,8 +32,8 @@
       USE SCM_COM , only : nstepSCM
 #endif
 #ifdef TRACERS_TOMAS
-      USE TRACER_COM, only : NBINS, IDTNUMD,IDTSO4,IDTECIL, IDTECOB,
-     &     IDTOCIL, IDTOCOB,IDTDUST,IDTH2O,IDTNA
+      USE TRACER_COM, only : NBINS, n_ANUM,n_ASO4,n_AECIL, n_AECOB,
+     &     n_AOCIL, n_AOCOB,n_ADUST,n_AH2O,n_ANACL
 #endif
       use TimerPackage_mod, only: startTimer => start
       use TimerPackage_mod, only: stopTimer => stop
@@ -142,14 +142,14 @@ C**** Scale WM mixing ratios to conserve liquid water
 !       aerosol mass to those of aerosol number so the distributions of
 !       aerosol mass and number within a grid cell are consistent
       do n=1,NBINS
-         call momentfix(IDTNUMD-1+n, IDTSO4-1+n)  !sulfate mass
-         call momentfix(IDTNUMD-1+n, IDTNA -1+n)  !na+ mass
-         call momentfix(IDTNUMD-1+n, IDTECOB-1+n) !hydrophobic EC
-         call momentfix(IDTNUMD-1+n, IDTECIL-1+n)
-         call momentfix(IDTNUMD-1+n, IDTOCOB-1+n)
-         call momentfix(IDTNUMD-1+n, IDTOCIL-1+n)
-         call momentfix(IDTNUMD-1+n, IDTDUST-1+n)
-         call momentfix(IDTNUMD-1+n, IDTH2O-1+n)  !water mass
+         call momentfix(n_ANUM(1)-1+n, n_ASO4(1)-1+n)  !sulfate mass
+         call momentfix(n_ANUM(1)-1+n, n_ANACL(1) -1+n)  !na+ mass
+         call momentfix(n_ANUM(1)-1+n, n_AECOB(1)-1+n) !hydrophobic EC
+         call momentfix(n_ANUM(1)-1+n, n_AECIL(1)-1+n)
+         call momentfix(n_ANUM(1)-1+n, n_AOCOB(1)-1+n)
+         call momentfix(n_ANUM(1)-1+n, n_AOCIL(1)-1+n)
+         call momentfix(n_ANUM(1)-1+n, n_ADUST(1)-1+n)
+         call momentfix(n_ANUM(1)-1+n, n_AH2O(1)-1+n)  !water mass
       enddo
 #endif
 #ifdef TRAC_ADV_CPU

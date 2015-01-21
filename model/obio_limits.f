@@ -10,7 +10,7 @@
 #ifdef OBIO_ON_GARYocean
       USE OCEANRES,       only : idm=>imo,jdm=>jmo,kdm=>lmo
       USE OCN_TRACER_COM, only : ntrcr=>ntm
-      USE OCEAN,          only : focean
+      USE OCEAN,          only : ip=>focean
       USE obio_com,       only : tracer,tracer_glob
 #else
       USE hycom_dim_glob, only : kdm,jj,isp,ifp,ilp,ip,ntrcr,idm,jdm
@@ -43,21 +43,13 @@
          do k=1,kdm
          do 1000 j=1,jdm
          do 1000 i=1,idm
-#ifdef OBIO_ON_GARYocean
-         if (focean(i,j).gt.0.and.tracer(i,j,k,nt).le.tracer_min)then
-#else
          if (ip(i,j).gt.0 .and. tracer(i,j,k,nt).le.tracer_min) then
-#endif
              tracer_min = tracer(i,j,k,nt)
              ineg1=i
              jneg1=j
              kneg1=k
          endif
-#ifdef OBIO_ON_GARYocean
-         if (focean(i,j).gt.0.and.tracer(i,j,k,nt).ge.tracer_max)then
-#else
          if (ip(i,j).gt.0 .and. tracer(i,j,k,nt).ge.tracer_max) then
-#endif
              tracer_max = tracer(i,j,k,nt)
              ipos1=i
              jpos1=j

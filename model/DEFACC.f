@@ -1126,6 +1126,10 @@ c
       use DIAG_COM_RAD
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       use fluxes, only : nisurf,atmice
+#ifdef TRACERS_ON
+      use TRACER_COM, only: gasex_index
+      use oldtracer_mod, only: trname
+#endif
 #ifdef NEW_IO
       use cdl_mod
       use MDIAG_COM, only : make_timeaxis
@@ -1133,7 +1137,7 @@ c
       use geom
       use dynamics, only : do_gwdrag,ido_gwdrag
       implicit none
-      integer :: i,k,kk,k1,l,n
+      integer :: i,k,kk,k1,l,n,ngx
       character(len=16) :: ijstr
       real*8 x_dummy(im)
       logical :: set_miss
@@ -2591,36 +2595,42 @@ c
 #endif /* #ifdef CHL_DIAGNOSTIC */
 c
 
-#ifdef TRACERS_GASEXCH_ocean
-      k=k+1
-      IJ_Kw = k
-      lname_ij(k) = 'Transfer Velocity'
-      units_ij(k) = 'm/s'
-      scale_ij(k) = 1.
-      name_ij(k) = 'Kw_gas'
-      ia_ij(k) = ia_srf
-      scale_ij(k) = 1.
-      denom_ij(k) = IJ_POCEAN
+#ifdef TRACERS_ON
+      allocate(ij_kw(gasex_index%getsize()))
+      allocate(ij_alpha(gasex_index%getsize()))
+      allocate(ij_gasx(gasex_index%getsize()))
+      do ngx=1, gasex_index%getsize()
+        n=gasex_index%at(ngx)
+        k=k+1
+        IJ_Kw(ngx) = k
+        lname_ij(k) = 'Transfer Velocity '//trname(n)
+        units_ij(k) = 'm/s'
+        scale_ij(k) = 1.
+        name_ij(k) = 'Kw_gas_'//trname(n)
+        ia_ij(k) = ia_srf
+        scale_ij(k) = 1.
+        denom_ij(k) = IJ_POCEAN
 
-      k=k+1
-      IJ_alpha = k
-      lname_ij(k) = 'Solubility'
-      units_ij(k) = 'mol/m3/uatm'
-      scale_ij(k) = 1.
-      name_ij(k) = 'alpha_gas'
-      ia_ij(k) = ia_srf
-      scale_ij(k) = 1.
-      denom_ij(k) = IJ_POCEAN
+        k=k+1
+        IJ_alpha(ngx) = k
+        lname_ij(k) = 'Solubility '//trname(n)
+        units_ij(k) = 'mol/m3/uatm'
+        scale_ij(k) = 1.
+        name_ij(k) = 'alpha_gas_'//trname(n)
+        ia_ij(k) = ia_srf
+        scale_ij(k) = 1.
+        denom_ij(k) = IJ_POCEAN
 
-      k=k+1
-      IJ_gasx = k
-      lname_ij(k) = 'Gas Exchange Flux'
-      units_ij(k) = 'mol/m2/yr'
-      scale_ij(k) = 1.
-      name_ij(k) = 'trgasex'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.
-      denom_ij(k) = IJ_POCEAN
+        k=k+1
+        IJ_gasx(ngx) = k
+        lname_ij(k) = 'Gas Exchange Flux '//trname(n)
+        units_ij(k) = 'mol/m2/yr'
+        scale_ij(k) = 1.
+        name_ij(k) = 'trgasex_'//trname(n)
+        ia_ij(k) = ia_src
+        scale_ij(k) = 1.
+        denom_ij(k) = IJ_POCEAN
+      end do
 #endif
 
 #ifdef TRACERS_OBIO_RIVERS

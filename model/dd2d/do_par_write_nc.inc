@@ -122,6 +122,8 @@ c      endif
         srt(jd)   = grid%j_strt
         rc = nf_put_vara_double(fid,vid,srt,cnt,arr)
       else
-        call stop_model('unrecognized jdim size in do_par_write_nc',255)
+        call stop_model('unrecognized jdim size in do_par_write_nc, '//
+     &             'try setting jdim in call to write_dist_data for '//
+     &             trim(varname),255)
       endif
 #endif

@@ -39,19 +39,16 @@
 !#endif
 !
 !#ifdef TRACERS_OCEAN
-!      USE OCN_TRACER_COM, only : t_qlimit,ntm
-!#endif
-!#ifdef TRACERS_OceanBiology
-!      USE obio_com, only: gather_chl
-!#endif
-!#ifdef TRACERS_GASEXCH_ocean_CO2
-!     *,  gather_pCO2
+!      USE OCN_TRACER_COM, only : tracerlist, ocn_tracer_entry
 !#endif
 !
 !      IMPLICIT NONE
 !      Integer*4 I,J,L,N,NS,NO  ; real*8 now
 !      Real*8,Dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LMO) ::
 !     *       MM0,MM1, UM0,UM1, VM0,VM1
+!#ifdef TRACERS_OCEAN
+!      type(ocn_tracer_entry), pointer :: entry
+!#endif
 !
 !c**** Extract domain decomposition info
 !      INTEGER :: J_0, J_1, J_0H
@@ -86,10 +83,6 @@
 !C**** Add ocean biology
 !#ifdef TRACERS_OceanBiology
 !      call obio_model
-!      call gather_chl
-!#ifdef TRACERS_GASEXCH_ocean
-!      call gather_pco2
-!#endif
 !      IF (MODD5S.EQ.0) CALL DIAGCO (5)
 !#endif
 !
@@ -181,9 +174,10 @@
 !     *        ,OIJL(1,J_0H,1,IJL_SFLX))
 !
 !#ifdef TRACERS_OCEAN
-!      DO N=1,NTM
+!      DO N=1,tracerlist%getsize() 
+!        entry=>tracerlist%at(n)
 !        CALL OADVT(TRMO(1,J_0H,1,N),TXMO(1,J_0H,1,N)
-!     *       ,TYMO(1,J_0H,1,N),TZMO(1,J_0H,1,N),DTOLF,t_qlimit(n)
+!     *       ,TYMO(1,J_0H,1,N),TZMO(1,J_0H,1,N),DTOLF,entry%t_qlimit
 !     *       ,TOIJL(1,J_0H,1,TOIJL_TFLX,N))
 !      END DO
 !#endif
@@ -209,7 +203,7 @@
 !        END DO
 !
 !#ifdef TRACERS_OCEAN
-!        DO N=1,NTM
+!        DO N=1,tracerlist%getsize()
 !          DO L=1,LMO
 !            TOIJL(:,:,L,TOIJL_CONC,N)=TOIJL(:,:,L,TOIJL_CONC,N)
 !     *           +TRMO(:,:,L,N)
@@ -251,9 +245,10 @@
 !      CALL GMFEXP(G0M,GXMO,GYMO,GZMO,.FALSE.,OIJL(1,J_0H,1,IJL_GGMFL))
 !      CALL GMFEXP(S0M,SXMO,SYMO,SZMO,.TRUE. ,OIJL(1,J_0H,1,IJL_SGMFL))
 !#ifdef TRACERS_OCEAN
-!      DO N = 1,NTM
+!      DO N = 1,tracerlist%getsize()
+!        entry=>tracerlist%at(n)
 !        CALL GMFEXP(TRMO(1,J_0H,1,N),TXMO(1,J_0H,1,N),TYMO(1,J_0H,1,N),
-!     *    TZMO(1,J_0H,1,N),t_qlimit(n),TOIJL(1,J_0H,1,TOIJL_GMFL,N))
+!     *    TZMO(1,J_0H,1,N),entry%t_qlimit,TOIJL(1,J_0H,1,TOIJL_GMFL,N))
 !      END DO
 !#endif
 !      CALL CHECKO ('GMDIFF')
@@ -284,6 +279,45 @@
 !
 !      RETURN
 !      END SUBROUTINE OCEANS_old
+
+      subroutine setup_ocean
+#if (defined TRACERS_OCEAN) || (defined TRACERS_WATER)
+      use ocn_tracer_com, only: add_ocn_tracer
+#endif
+      implicit none
+
+#if (defined TRACERS_OCEAN) || (defined TRACERS_WATER)
+#ifdef TRACERS_AGE_OCEAN
+      call add_ocn_tracer('Age       ')
+#endif
+#ifdef TRACERS_ZEBRA
+      call add_ocn_tracer('zebraL06  ')
+      call add_ocn_tracer('zebraL07  ')
+      call add_ocn_tracer('zebraL08  ')
+      call add_ocn_tracer('zebraL09  ')
+      call add_ocn_tracer('zebraL10  ')
+      call add_ocn_tracer('zebraL11  ')
+      call add_ocn_tracer('zebraL12  ')
+      call add_ocn_tracer('zebraL13  ')
+      call add_ocn_tracer('zebraL14  ')
+      call add_ocn_tracer('zebraL15  ')
+      call add_ocn_tracer('zebraL16  ')
+      call add_ocn_tracer('zebraL17  ')
+      call add_ocn_tracer('zebraL18  ')
+      call add_ocn_tracer('zebraL19  ')
+      call add_ocn_tracer('zebraL20  ')
+      call add_ocn_tracer('zebraL21  ')
+      call add_ocn_tracer('zebraL22  ')
+      call add_ocn_tracer('zebraL23  ')
+      call add_ocn_tracer('zebraL24  ')
+      call add_ocn_tracer('zebraL26  ')
+#endif   /* #ifdef TRACERS_ZEBRA */
+!      call add_ocn_tracer('Water     ', i_trw0=1, i_ntrocn=2,
+!     .                                               i_conc=.true.)
+#endif   /* #if (defined TRACERS_OCEAN) || (defined TRACERS_WATER) */
+      return
+      end subroutine setup_ocean
+
 
       SUBROUTINE init_OCEAN(iniOCEAN,istart,atmocn,dynsice)
 !@sum init_OCEAN initializes ocean variables
@@ -327,7 +361,7 @@
 #endif
 #ifdef TRACERS_OCEAN
       Use OCEAN, Only: oc_tracer_mean
-      Use OCN_TRACER_COM, Only: ntm, need_ic
+      Use OCN_TRACER_COM, Only: tracerlist, ocn_tracer_entry
 #endif
       USE EXCHANGE_TYPES, only : atmocn_xchng_vars,iceocn_xchng_vars
 #ifdef OCN_GISS_TURB
@@ -358,6 +392,9 @@ c**** Extract domain decomposition info
       LOGICAL :: HAVE_NORTH_POLE
 
       INTEGER, DIMENSION(IM,JM) :: LMM_glob
+#ifdef TRACERS_OCEAN
+      type(ocn_tracer_entry), pointer :: entry
+#endif
 
       call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1
      *      ,J_STRT_SKP  = J_0S, J_STOP_SKP  = J_1S
@@ -388,18 +425,11 @@ C****
 C**** define initial condition options for global mean
       call sync_param("oc_salt_mean",oc_salt_mean)
 #ifdef TRACERS_OCEAN
-      call sync_param("oc_tracer_mean",oc_tracer_mean,ntm)
+      call sync_param("oc_tracer_mean",oc_tracer_mean,
+     &            tracerlist%getsize())
 #endif
 
-      call alloc_ofluxes(atmocn)
-
-#ifdef TRACERS_OceanBiology
-#ifdef TRACERS_GASEXCH_ocean_CO2
-      call obio_exports_init()
-#endif
-      call obio_forc_init()
-#endif
-
+      call alloc_ofluxes(atmocn)     ! should be moved back to alloc_ocean
 
 C****
 C**** set up time steps from atmospheric model
@@ -791,8 +821,9 @@ C***  Initialize ODIFF
       call init_ODIFF(grid)
 
 #ifdef TRACERS_OCEAN
-      do nt=1,ntm
-      if (need_ic(nt)) then
+      do nt=1,tracerlist%getsize()
+      entry=>tracerlist%at(nt)
+      if (entry%need_ic) then
       call tracer_ic_ocean(atmocn)
       endif
       enddo
@@ -1147,7 +1178,7 @@ C****
 !     *      OGEOZ_glob, OGEOZ_SV_glob,
 !     *      S0M_glob, gather_ocean
 !#ifdef TRACERS_OCEAN
-!     *      ,TRMO_glob, TXMO_glob, TYMO_glob, TZMO_glob, ntm
+!     *      ,TRMO_glob, TXMO_glob, TYMO_glob, TZMO_glob, tracerlist
 !#endif
 !      USE MODEL_COM, only : ioread,iowrite,irsficno,irsfic
 !     *     ,irsficnt,irerun,lhead
@@ -1156,7 +1187,6 @@ C****
 !      USE Dictionary_mod, only: get_param
 !      USE OCEANRES, only : idm=>imo,jdm=>jmo,kdm=>lmo
 !      USE OCEANR_DIM, only : ogrid
-!      USE obio_dim, only: ntrac
 !      USE obio_forc, only : avgq,tirrq3d,ihra
 !      USE obio_com, only : itest,jtest,gcmax,nstep0
 !     *                    ,tracer=>tracer_loc,tracer_glob=>tracer
@@ -1201,7 +1231,7 @@ C****
 !      CHARACTER*80 :: TRHEADER, TRMODULE_HEADER = "TROCDYN02"
 !
 !      write (TRMODULE_HEADER(lhead+1:80),'(a13,i3,a1,i3,a)')
-!     *     'R8 dim(im,jm,',LMO,',',NTM,'):TRMO,TX,TY,TZ'
+!     *     'R8 dim(im,jm,',LMO,',',tracerlist%getsize(),'):TRMO,TX,TY,TZ'
 !#endif
 !#ifdef TRACERS_OceanBiology
 !      if (AM_I_ROOT()) then
@@ -1223,14 +1253,14 @@ C****
 !
 !#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
 !      write (TRNMODULE_HEADER(lhead+1:80),'(a13,i3,a1,i3,a)')
-!     * 'R8 dim(im,jm,',LMO,',',NTM,'):
+!     * 'R8 dim(im,jm,',LMO,',',tracerlist%getsize(),'):
 !     * nstep0,avgq,gcmax,tirrq,ihra,tracer,gasx'
 !      write (TRN2MODULE_HEADER(lhead+1:80),'(a)')
 !     * 'R8 dim(im,jm):  nstep0,pp2tot_day'
 !#else
 !#ifdef TRACERS_OceanBiology
 !      write (TRNMODULE_HEADER(lhead+1:80),'(a13,i3,a1,i3,a)')
-!     * 'R8 dim(im,jm,',LMO,',',NTM,'):
+!     * 'R8 dim(im,jm,',LMO,',',tracerlist%getsize(),'):
 !     * nstep0,avgq,gcmax,tirrq,ihra,tracer'
 !c      write (TRN2MODULE_HEADER(lhead+1:80),'(a)')
 !c     * 'R8 dim(im,jm):  nstep0,pp2tot_day'
@@ -1449,7 +1479,7 @@ C****
       use straits
       USE OCEANR_DIM, only : grid=>ogrid
 #ifdef TRACERS_OCEAN
-      Use OCN_TRACER_COM, Only : ntm,trname
+      Use OCN_TRACER_COM, Only : tracerlist, ocn_tracer_entry
 #endif
       use pario, only : defvar
       use domain_decomp_1d, only : getDomainBounds
@@ -1458,6 +1488,10 @@ C****
       integer :: n
       integer :: i_0h,i_1h, j_0h,j_1h
       real*8, dimension(:,:), allocatable :: arrdum
+#ifdef TRACERS_OCEAN
+      type(ocn_tracer_entry), pointer :: entry
+#endif
+
       call defvar(grid,fid,mo,'mo(dist_imo,dist_jmo,lmo)')
       call defvar(grid,fid,uo,'uo(dist_imo,dist_jmo,lmo)')
       call defvar(grid,fid,vo,'vo(dist_imo,dist_jmo,lmo)')
@@ -1518,28 +1552,29 @@ c straits arrays
       call defvar(grid,fid,ssist,'ssist(lmi,nmst)')
 #ifdef TRACERS_OCEAN
 c tracer arrays
-      do n=1,ntm
+      do n=1,tracerlist%getsize()
+        entry=>tracerlist%at(n)
         call defvar(grid,fid,trmo(:,:,:,n),
-     &       'trmo_'//trim(trname(n))//'(dist_imo,dist_jmo,lmo)')
+     &       'trmo_'//trim(entry%trname)//'(dist_imo,dist_jmo,lmo)')
         call defvar(grid,fid,txmo(:,:,:,n),
-     &       'txmo_'//trim(trname(n))//'(dist_imo,dist_jmo,lmo)')
+     &       'txmo_'//trim(entry%trname)//'(dist_imo,dist_jmo,lmo)')
         call defvar(grid,fid,tymo(:,:,:,n),
-     &       'tymo_'//trim(trname(n))//'(dist_imo,dist_jmo,lmo)')
+     &       'tymo_'//trim(entry%trname)//'(dist_imo,dist_jmo,lmo)')
         call defvar(grid,fid,tzmo(:,:,:,n),
-     &       'tzmo_'//trim(trname(n))//'(dist_imo,dist_jmo,lmo)')
+     &       'tzmo_'//trim(entry%trname)//'(dist_imo,dist_jmo,lmo)')
         if(use_qus==1) then
         call defvar(grid,fid,txxmo(:,:,:,n),
-     &       'txxmo_'//trim(trname(n))//'(dist_imo,dist_jmo,lmo)')
+     &       'txxmo_'//trim(entry%trname)//'(dist_imo,dist_jmo,lmo)')
         call defvar(grid,fid,tyymo(:,:,:,n),
-     &       'tyymo_'//trim(trname(n))//'(dist_imo,dist_jmo,lmo)')
+     &       'tyymo_'//trim(entry%trname)//'(dist_imo,dist_jmo,lmo)')
         call defvar(grid,fid,tzzmo(:,:,:,n),
-     &       'tzzmo_'//trim(trname(n))//'(dist_imo,dist_jmo,lmo)')
+     &       'tzzmo_'//trim(entry%trname)//'(dist_imo,dist_jmo,lmo)')
         call defvar(grid,fid,txymo(:,:,:,n),
-     &       'txymo_'//trim(trname(n))//'(dist_imo,dist_jmo,lmo)')
+     &       'txymo_'//trim(entry%trname)//'(dist_imo,dist_jmo,lmo)')
         call defvar(grid,fid,tyzmo(:,:,:,n),
-     &       'tyzmo_'//trim(trname(n))//'(dist_imo,dist_jmo,lmo)')
+     &       'tyzmo_'//trim(entry%trname)//'(dist_imo,dist_jmo,lmo)')
         call defvar(grid,fid,tzxmo(:,:,:,n),
-     &       'tzxmo_'//trim(trname(n))//'(dist_imo,dist_jmo,lmo)')
+     &       'tzxmo_'//trim(entry%trname)//'(dist_imo,dist_jmo,lmo)')
         endif
       enddo
 c tracer arrays in straits
@@ -1584,7 +1619,7 @@ c tracer arrays in straits
       use pario, only : write_dist_data,read_dist_data,
      &     write_data,read_data
 #ifdef TRACERS_OCEAN
-      Use OCN_TRACER_COM, Only : ntm,trname
+      Use OCN_TRACER_COM, Only : tracerlist, ocn_tracer_entry
 #endif
       use domain_decomp_1d, only : getDomainBounds
       implicit none
@@ -1593,6 +1628,10 @@ c tracer arrays in straits
       integer :: n
       integer :: i_0h,i_1h, j_0h,j_1h
       real*8, dimension(:,:), allocatable :: arrdum
+#ifdef TRACERS_OCEAN
+      type(ocn_tracer_entry), pointer :: entry
+#endif
+
       select case (iaction)
       case (iowrite)            ! output to restart file
         call write_dist_data(grid,fid,'mo',mo)
@@ -1651,27 +1690,28 @@ c straits arrays
         call write_data(grid,fid,'ssist',ssist)
 #ifdef TRACERS_OCEAN
 c tracer arrays
-        do n=1,ntm
-          call write_dist_data(grid,fid,'trmo_'//trim(trname(n)),
+        do n=1,tracerlist%getsize()
+          entry=>tracerlist%at(n)
+          call write_dist_data(grid,fid,'trmo_'//trim(entry%trname),
      &         trmo(:,:,:,n))
-          call write_dist_data(grid,fid,'txmo_'//trim(trname(n)),
+          call write_dist_data(grid,fid,'txmo_'//trim(entry%trname),
      &         txmo(:,:,:,n))
-          call write_dist_data(grid,fid,'tymo_'//trim(trname(n)),
+          call write_dist_data(grid,fid,'tymo_'//trim(entry%trname),
      &         tymo(:,:,:,n))
-          call write_dist_data(grid,fid,'tzmo_'//trim(trname(n)),
+          call write_dist_data(grid,fid,'tzmo_'//trim(entry%trname),
      &         tzmo(:,:,:,n))
           if(use_qus==1) then
-          call write_dist_data(grid,fid,'txxmo_'//trim(trname(n)),
+          call write_dist_data(grid,fid,'txxmo_'//trim(entry%trname),
      &           txxmo(:,:,:,n))
-          call write_dist_data(grid,fid,'tyymo_'//trim(trname(n)),
+          call write_dist_data(grid,fid,'tyymo_'//trim(entry%trname),
      &           tyymo(:,:,:,n))
-          call write_dist_data(grid,fid,'tzzmo_'//trim(trname(n)),
+          call write_dist_data(grid,fid,'tzzmo_'//trim(entry%trname),
      &           tzzmo(:,:,:,n))
-          call write_dist_data(grid,fid,'txymo_'//trim(trname(n)),
+          call write_dist_data(grid,fid,'txymo_'//trim(entry%trname),
      &           txymo(:,:,:,n))
-          call write_dist_data(grid,fid,'tyzmo_'//trim(trname(n)),
+          call write_dist_data(grid,fid,'tyzmo_'//trim(entry%trname),
      &           tyzmo(:,:,:,n))
-          call write_dist_data(grid,fid,'tzxmo_'//trim(trname(n)),
+          call write_dist_data(grid,fid,'tzxmo_'//trim(entry%trname),
      &           tzxmo(:,:,:,n))
           endif
         enddo
@@ -1752,27 +1792,28 @@ c straits arrays
         call read_data(grid,fid,'ssist',ssist,bcast_all=.true.)
 #ifdef TRACERS_OCEAN
 c tracer arrays
-        do n=1,ntm
-          call read_dist_data(grid,fid,'trmo_'//trim(trname(n)),
+        do n=1,tracerlist%getsize()
+          entry=>tracerlist%at(n)
+          call read_dist_data(grid,fid,'trmo_'//trim(entry%trname),
      &         trmo(:,:,:,n))
-          call read_dist_data(grid,fid,'txmo_'//trim(trname(n)),
+          call read_dist_data(grid,fid,'txmo_'//trim(entry%trname),
      &         txmo(:,:,:,n))
-          call read_dist_data(grid,fid,'tymo_'//trim(trname(n)),
+          call read_dist_data(grid,fid,'tymo_'//trim(entry%trname),
      &         tymo(:,:,:,n))
-          call read_dist_data(grid,fid,'tzmo_'//trim(trname(n)),
+          call read_dist_data(grid,fid,'tzmo_'//trim(entry%trname),
      &         tzmo(:,:,:,n))
           if(use_qus==1) then
-          call read_dist_data(grid,fid,'txxmo_'//trim(trname(n)),
+          call read_dist_data(grid,fid,'txxmo_'//trim(entry%trname),
      &         txxmo(:,:,:,n))
-          call read_dist_data(grid,fid,'tyymo_'//trim(trname(n)),
+          call read_dist_data(grid,fid,'tyymo_'//trim(entry%trname),
      &         tyymo(:,:,:,n))
-          call read_dist_data(grid,fid,'tzzmo_'//trim(trname(n)),
+          call read_dist_data(grid,fid,'tzzmo_'//trim(entry%trname),
      &         tzzmo(:,:,:,n))
-          call read_dist_data(grid,fid,'txymo_'//trim(trname(n)),
+          call read_dist_data(grid,fid,'txymo_'//trim(entry%trname),
      &         txymo(:,:,:,n))
-          call read_dist_data(grid,fid,'tyzmo_'//trim(trname(n)),
+          call read_dist_data(grid,fid,'tyzmo_'//trim(entry%trname),
      &         tyzmo(:,:,:,n))
-          call read_dist_data(grid,fid,'tzxmo_'//trim(trname(n)),
+          call read_dist_data(grid,fid,'tzxmo_'//trim(entry%trname),
      &         tzxmo(:,:,:,n))
           endif
         enddo
@@ -1807,7 +1848,7 @@ c tracer arrays in straits
       USE CONSTANT, only : byrt3,teeny
       USE MODEL_COM, only : qcheck
 #ifdef TRACERS_OCEAN
-      USE OCN_TRACER_COM, only : ntm, trname, t_qlimit
+      USE OCN_TRACER_COM, only : tracerlist, ocn_tracer_entry
 #endif
       USE OCEAN, only : im,jm,lmo,dxypo,focean,
      *     imaxj, lmm
@@ -1830,6 +1871,9 @@ c     *   tzmo=>tzmo_glob
 !@var SUBR identifies where CHECK was called from
       CHARACTER*6, INTENT(IN) :: SUBR
       integer :: njpol
+#ifdef TRACERS_OCEAN
+      type(ocn_tracer_entry), pointer :: entry
+#endif
 
       njpol = 1
 C**** Check for NaN/INF in ocean data
@@ -1846,7 +1890,8 @@ C**** Check for NaN/INF in ocean data
       CALL CHECK3B(UO  ,1,IM,1,JM,NJPOL,LMO,SUBR,'uo ')
       CALL CHECK3B(VO  ,1,IM,1,JM,NJPOL,LMO,SUBR,'vo ')
 #ifdef TRACERS_OCEAN
-      CALL CHECK4B(TRMO,1,IM,1,JM,NJPOL,LMO,NTM,SUBR,'tzm')
+      CALL CHECK4B(TRMO,1,IM,1,JM,NJPOL,LMO,tracerlist%getsize(),
+     &                                                SUBR,'tzm')
 #endif
 
 C**** Check for variables out of bounds
@@ -1902,16 +1947,17 @@ C                                                         n Gulf   !.048
       END DO
 
 #ifdef TRACERS_OCEAN
-      do n=1,ntm
+      do n=1,tracerlist%getsize()
+        entry=>tracerlist%at(n)
 C**** Check for negative tracers
-        if (t_qlimit(n)) then
+        if (entry%t_qlimit) then
         do l=1,lmo
         do j=1,jm
         do i=1,imaxj(j)
           if (l.le.lmm(i,j)) then
             if (trmo(i,j,l,n).lt.0) then
               write(6,*) "Neg Tracer in ocean after ",subr,i,j,l,
-     *             trname(n),trmo(i,j,l,n)
+     *             entry%trname,trmo(i,j,l,n)
               QCHECKO=.true.
             end if
           end if
@@ -1920,7 +1966,7 @@ C**** Check for negative tracers
         end do
         end if
 C**** Check conservation of water tracers in ocean
-        if (trname(n) == 'Water') then
+        if (entry%trname == 'Water') then
           errmax = 0. ; imax=1 ; jmax=1 ; lmax=1
           do l=1,lmo
           do j=1,jm
@@ -1964,7 +2010,7 @@ C****
       USE CONSTANT, only : byrt3,teeny
       USE MODEL_COM, only : qcheck
 #ifdef TRACERS_OCEAN
-      USE OCN_TRACER_COM, only : ntm, trname, t_qlimit
+      USE OCN_TRACER_COM, only : tracerlist, ocn_tracer_entry
 #endif
       USE OCEAN
       USE DOMAIN_DECOMP_1D, only : GETDomainBounds, AM_I_ROOT
@@ -1980,6 +2026,10 @@ C****
 c**** Extract domain decomposition info
       INTEGER :: J_0S, J_0, J_1, J_0H, J_1H, JM_loc, njpol
       INTEGER :: J_0STG,J_1STG
+#ifdef TRACERS_OCEAN
+      type(ocn_tracer_entry), pointer :: entry
+#endif
+
       call getDomainBounds(grid, J_STRT_SKP=J_0S, 
      *   J_STRT=J_0, J_STOP=J_1,
      *   J_STRT_HALO = J_0H, J_STOP_HALO = J_1H)
@@ -2013,14 +2063,14 @@ C**** Check for NaN/INF in ocean data
       CALL CHECK3B(VO(:,J_0STG:J_1STG,:),1,IM,J_0STG,J_1STG,0,LMO,
      &     SUBR,'vo ')
 #ifdef TRACERS_OCEAN
-      CALL CHECK4B(TRMO(:,J_0:J_1,:,:),1,IM,J_0,J_1,NJPOL,LMO,NTM,
-     &     SUBR,'trm')
-      CALL CHECK4B(TXMO(:,J_0:J_1,:,:),1,IM,J_0,J_1,NJPOL,LMO,NTM,
-     &     SUBR,'txm')
-      CALL CHECK4B(TYMO(:,J_0:J_1,:,:),1,IM,J_0,J_1,NJPOL,LMO,NTM,
-     &     SUBR,'tym')
-      CALL CHECK4B(TZMO(:,J_0:J_1,:,:),1,IM,J_0,J_1,NJPOL,LMO,NTM,
-     &     SUBR,'tzm')
+      CALL CHECK4B(TRMO(:,J_0:J_1,:,:),1,IM,J_0,J_1,NJPOL,LMO,
+     &     tracerlist%getsize(), SUBR,'trm')
+      CALL CHECK4B(TXMO(:,J_0:J_1,:,:),1,IM,J_0,J_1,NJPOL,LMO,
+     &     tracerlist%getsize(), SUBR,'txm')
+      CALL CHECK4B(TYMO(:,J_0:J_1,:,:),1,IM,J_0,J_1,NJPOL,LMO,
+     &     tracerlist%getsize(), SUBR,'tym')
+      CALL CHECK4B(TZMO(:,J_0:J_1,:,:),1,IM,J_0,J_1,NJPOL,LMO,
+     &     tracerlist%getsize(), SUBR,'tzm')
 #endif
 
 C**** Check for variables out of bounds
@@ -2076,16 +2126,17 @@ C**** Check ocean salinity in each eighth box for the first layer
       END DO
 
 #ifdef TRACERS_OCEAN
-      do n=1,ntm
+      do n=1,tracerlist%getsize()
+        entry=>tracerlist%at(n)
 C**** Check for negative tracers
-        if (t_qlimit(n)) then
+        if (entry%t_qlimit) then
         do l=1,lmo
         do j=j_0,j_1
         do i=1,imaxj(j)
           if (l.le.lmm(i,j)) then
             if (trmo(i,j,l,n).lt.0) then
               write(6,*) "Neg Tracer in ocean after ",subr,i,j,l,
-     *             trname(n),trmo(i,j,l,n)
+     *             entry%trname,trmo(i,j,l,n)
               QCHECKO=.true.
             end if
           end if
@@ -2094,7 +2145,7 @@ C**** Check for negative tracers
         end do
         end if
 C**** Check conservation of water tracers in ocean
-        if (trname(n) == 'Water') then
+        if (entry%trname == 'Water') then
           errmax = 0. ; imax=1 ; jmax=J_0 ; lmax=1
           do l=1,lmo
           do j=j_0,j_1
@@ -4401,7 +4452,7 @@ C****
       USE OCEAN, only : im,jm,dts,lmm,gxmo,gymo,sxmo,symo
 #ifdef TRACERS_OCEAN
      *     ,txmo,tymo
-      Use OCN_TRACER_COM, Only: ntm
+      Use OCN_TRACER_COM, Only: tracerlist
 #endif
 !      use domain_decomp_1d, only : grid, get
       use domain_decomp_1d, only : getDomainBounds
@@ -4427,7 +4478,7 @@ C**** Reduce West-East gradient of tracers
         GXMO(I,J,L) = GXMO(I,J,L)*REDUCE
         SXMO(I,J,L) = SXMO(I,J,L)*REDUCE
 #ifdef TRACERS_OCEAN
-        DO N = 1,NTM
+        DO N = 1,tracerlist%getsize()
           TXMO(I,J,L,N) = TXMO(I,J,L,N) *REDUCE
         END DO
 #endif
@@ -4442,7 +4493,7 @@ C**** Reduce South-North gradient of tracers
         GYMO(I,J,L) = GYMO(I,J,L)*REDUCE
         SYMO(I,J,L) = SYMO(I,J,L)*REDUCE
 #ifdef TRACERS_OCEAN
-        DO N = 1,NTM
+        DO N = 1,tracerlist%getsize()
           TYMO(I,J,L,N) = TYMO(I,J,L,N) *REDUCE
         END DO
 #endif
@@ -4544,7 +4595,7 @@ C**** Surface stress is applied to V component at the North Pole
       USE ODIAG, only : oij=>oij_loc,ij_srhflx,ij_srwflx,ij_srhflxi
      *     ,ij_srwflxi,ij_srsflxi,ij_ervr,ij_mrvr 
 #ifdef TRACERS_OCEAN
-      USE OCN_TRACER_COM, only : ntm,trw0
+      USE OCN_TRACER_COM, only : tracerlist, ocn_tracer_entry
       Use OCEAN, Only: TRMO
 #endif
 #ifdef TRACERS_OCEAN
@@ -4567,8 +4618,9 @@ C**** Surface stress is applied to V component at the North Pole
      *     ,DSOI,POCEAN,POICE,P0L,S0L,G0L,TF0,SI0,EI0,DM0(LMO),DE0(LMO)
      *     ,DS0(LMO),GF0,GFREZS,TFREZS,TEMGSP,SHCGS,GF00
 #ifdef TRACERS_OCEAN
-      REAL*8, DIMENSION(NTM) :: TRUNO,TRUNI,DTROO,DTROI,TRO1,FRAC
-      REAL*8, DIMENSION(NTM,LMO) :: DTR0
+      REAL*8, DIMENSION(tracerlist%getsize()) :: TRUNO,TRUNI,DTROO,
+     &              DTROI,TRO1,FRAC
+      REAL*8, DIMENSION(tracerlist%getsize(),LMO) :: DTR0
 #ifdef TRACERS_SPECIAL_O18
       real*8 fracls
 #endif
@@ -4576,19 +4628,27 @@ C**** Surface stress is applied to V component at the North Pole
 
       integer ::  J_1, J_0
       logical :: have_south_pole, have_north_pole
+#ifdef TRACERS_OCEAN
+      type(ocn_tracer_entry), dimension(:), pointer :: tlist
+      type(ocn_tracer_entry), pointer :: entry
+#endif
 
+#ifdef TRACERS_OCEAN
+      tlist=>tracerlist%getdata()
+#endif
       call getDomainBounds(ogrid, J_STOP=J_1, J_STRT=J_0,
      *                have_north_pole=have_north_pole,
      *                have_south_pole=have_south_pole)
 
 #ifdef TRACERS_OCEAN
 C**** define tracer behaviour for ice formation
-        do n=1,ntm
+        do n=1,tracerlist%getsize()
 #ifdef TRACERS_WATER
 #ifdef TRACERS_SPECIAL_O18
           FRAC(n)=fracls(n)
 #else
-          FRAC(n)=trw0(n)       ! removal based on default conc.
+          entry=>tracerlist%at(n)
+          FRAC(n)=entry%trw0    ! removal based on default conc.
 #endif
 #else
           FRAC(n)=0.            ! no removal of non-water tracers
@@ -4631,13 +4691,8 @@ C**** set mass & energy fluxes (incl. river/sea ice runoff + basal flux)
         TRUNI(:)=oTRFLOWO(:,I,J)+ oTRMELTI(:,I,J) + oTRUNOSI(:,I,J)
 #else
 ! default freshwater tracer
-        TRUNO(:)=trw0(:)*(RUNO-SRUNO)
-        TRUNI(:)=trw0(:)*(RUNI-SRUNI)
-#endif
-#ifdef TRACERS_GASEXCH_ocean
-! note: TRGASEX is added in obio rather than here
-! not yet flux from river runoff -- to be implemented soon
-        TRUNO(:) = 0.  ; TRUNI(:) = 0.
+        TRUNO(:)=tlist%trw0*(RUNO-SRUNO)
+        TRUNI(:)=tlist%trw0*(RUNI-SRUNI)
 #endif
 #endif
 
@@ -4645,6 +4700,7 @@ C**** set mass & energy fluxes (incl. river/sea ice runoff + basal flux)
      *         ,RUNI,ERUNO,ERUNI,SRUNO,SRUNI,SROX,
 #ifdef TRACERS_OCEAN
      *         TRO1,TRUNO,TRUNI,DTROO,DTROI,FRAC,
+     &         tracerlist%getsize(),
 #endif
      *         DMOO,DEOO,DMOI,DEOI,DSOO,DSOI)
 
@@ -4699,7 +4755,7 @@ c        write(*,*) "store fluxes"
         oDSSI(2,I,J)=DSOI+SUM(DS0)  !  kg/m^2
 
 #ifdef TRACERS_OCEAN
-        if(ocnice%ntm == ntm) then
+        if(ocnice%ntm == tracerlist%getsize()) then
           oDTRSI(:,1,I,J)=DTROO(:)+SUM(DTR0(:,:),DIM=2)
           oDTRSI(:,2,I,J)=DTROI(:)+SUM(DTR0(:,:),DIM=2)
         endif
@@ -4751,6 +4807,7 @@ C**** This includes atm/oc + si/oc, rivers + icebergs are separate
      *     ,RUNI,ERUNO,ERUNI,SRUNO,SRUNI,SROX,
 #ifdef TRACERS_OCEAN
      *     TROM,TRUNO,TRUNI,DTROO,DTROI,FRAC,
+     &     numtracers,    !df: due to bug in gfortran 4.8.3 and earlier
 #endif
      *     DMOO,DEOO,DMOI,DEOI,DSOO,DSOI)
 !@sum  OSOURC applies fluxes to ocean in ice-covered and ice-free areas
@@ -4760,7 +4817,7 @@ C**** This includes atm/oc + si/oc, rivers + icebergs are separate
       USE SEAICE, only : fsss, Ei
 
 #ifdef TRACERS_OCEAN
-      USE OCN_TRACER_COM, only : ntm,trname
+      USE OCN_TRACER_COM, only : tracerlist
 #endif
 
       IMPLICIT NONE
@@ -4775,10 +4832,11 @@ C**** This includes atm/oc + si/oc, rivers + icebergs are separate
       INTEGER L,LSR,N
 
 #ifdef TRACERS_OCEAN
-      REAL*8, DIMENSION(NTM), INTENT(INOUT) :: TROM,FRAC
-      REAL*8, DIMENSION(NTM), INTENT(IN) :: TRUNO,TRUNI
-      REAL*8, DIMENSION(NTM), INTENT(OUT) :: DTROO,DTROI
-      REAL*8, DIMENSION(NTM) :: TMOO,TMOI
+      integer, intent(in) :: numtracers
+      REAL*8, DIMENSION(numtracers), INTENT(INOUT) :: TROM,FRAC
+      REAL*8, DIMENSION(numtracers), INTENT(IN) :: TRUNO,TRUNI
+      REAL*8, DIMENSION(numtracers), INTENT(OUT) :: DTROO,DTROI
+      REAL*8, DIMENSION(tracerlist%getsize()) :: TMOO,TMOI
 #endif
 
       DMOO=0. ; DEOO=0. ; DMOI=0. ; DEOI=0. ; DSOO=0. ; DSOI=0.
@@ -4875,7 +4933,7 @@ C****
      *     , mo,g0m,s0m,focean,imaxj,dxypo
 #ifdef TRACERS_OCEAN
      *     , trmo
-      USE OCN_TRACER_COM, only : trw0
+      USE OCN_TRACER_COM, only : tracerlist, ocn_tracer_entry
 #endif
       USE DOMAIN_DECOMP_1D, only : getDomainBounds
       USE OCEANR_DIM, only : oGRID
@@ -4891,7 +4949,13 @@ C****
 c
       INTEGER I,J
       integer :: J_0, J_1
+#ifdef TRACERS_OCEAN
+      type(ocn_tracer_entry), dimension(:), pointer :: tlist
+#endif
 
+#ifdef TRACERS_OCEAN
+      tlist=>tracerlist%getdata()
+#endif
       call getDomainBounds(ogrid, J_STRT=J_0, J_STOP=J_1)
 
 C**** save surface variables before any fluxes are added
@@ -4918,8 +4982,8 @@ C****
      &           +oRSI(I,J)*(oTRUNPSI(:,I,J)*dxypo(j)))*FOCEAN(I,J)
 #else
 #ifndef TRACERS_OceanBiology
-            TRMO(I,J,1,:)=TRMO(I,J,1,:)+trw0(:)*((1d0-oRSI(I,J))*oPREC(I
-     $           ,J)+oRSI(I,J)*oRUNPSI(I,J))*FOCEAN(I,J)*DXYPO(J)
+            TRMO(I,J,1,:)=TRMO(I,J,1,:)+tlist%trw0*((1d0-oRSI(I,J))*
+     .         oPREC(I,J)+oRSI(I,J)*oRUNPSI(I,J))*FOCEAN(I,J)*DXYPO(J)
 #endif
 #endif
 #endif

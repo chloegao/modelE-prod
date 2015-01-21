@@ -19,9 +19,7 @@
      .     ,austar_loc,aswflx_loc
      .     ,admui_loc,admvi_loc
 
-#ifdef TRACERS_GASEXCH_ocean
       public atracflx_loc
-#endif
 #ifdef TRACERS_OceanBiology
       public asolz_loc
       public awind_loc
@@ -41,9 +39,7 @@
      .     ,austar_loc,aswflx_loc
      .     ,admui_loc,admvi_loc ! == dmui_loc,dmvi_loc on atm. domain
 
-#ifdef TRACERS_GASEXCH_ocean
       real, ALLOCATABLE, DIMENSION(:,:,:) :: atracflx_loc
-#endif
 #ifdef TRACERS_OceanBiology
       real, ALLOCATABLE, DIMENSION(:,:)    :: asolz_loc
 !wind speed from modelE (see hycom2.f)
@@ -64,10 +60,8 @@
 
       type(atmocn_xchng_vars) :: atmocn
 
-#ifdef TRACERS_GASEXCH_ocean
       ocnatm % ntm = atmocn % ntm
       ocnatm % ntm_gasexch = atmocn % ntm_gasexch
-#endif
       call alloc_xchng_vars(ogrid,ocnatm)
 
       ALLOCATE(
@@ -83,9 +77,7 @@
      &     admvi_loc(aI_0H:aI_1H,aJ_0H:aJ_1H)  ! temporary
      &     )
 
-#ifdef TRACERS_GASEXCH_ocean
       ALLOCATE(atracflx_loc(aI_0H:aI_1H,aJ_0H:aJ_1H,atmocn%ntm_gasexch))
-#endif
 #ifdef TRACERS_OceanBiology
       ALLOCATE(asolz_loc(aI_0H:aI_1H,aJ_0H:aJ_1H))
       ALLOCATE(awind_loc(aI_0H:aI_1H,aJ_0H:aJ_1H))

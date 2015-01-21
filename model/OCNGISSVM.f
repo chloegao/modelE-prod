@@ -8,7 +8,7 @@ C****
 !@ref Canuto et al. 2010, Ocean Modelling, 34, 70-91 (C2010)
 !@auth AHoward/YCheng
 #ifdef TRACERS_OCEAN
-c     USE OCN_TRACER_COM, only : ntm
+c     USE OCN_TRACER_COM, only : tracerlist
 #endif
       USE OCEAN, only : im,jm,lmo
       USE CONSTANT, only : omega,by3,grav
@@ -752,9 +752,9 @@ C**** initialize otke
       ALLOCATE( ut2a(IM,J_0H:J_1H) , STAT = IER)
 
 #ifdef TRACERS_OCEAN
-c     ALLOCATE( TRMO1(NTM,IM,J_0H:J_1H),
-c    *          TXMO1(NTM,IM,J_0H:J_1H),
-c    *          TYMO1(NTM,IM,J_0H:J_1H),
+c     ALLOCATE( TRMO1(tracerlist%getsize(),IM,J_0H:J_1H),
+c    *          TXMO1(tracerlist%getsize(),IM,J_0H:J_1H),
+c    *          TYMO1(tracerlist%getsize(),IM,J_0H:J_1H),
 c    *   STAT = IER)
 #endif
 
