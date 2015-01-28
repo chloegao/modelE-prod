@@ -103,24 +103,23 @@ c set-up for MPI implementation
 #endif
 #endif
 #if (defined TRACERS_OCEAN) && !defined(TRACERS_OCEAN_INDEP)
-      USE TRACER_COM, only : trname
-      USE OCN_TRACER_COM, only :
-     &     ntm_ocn    => ntm,
-     &     trname_ocn => trname
+      USE oldtracer_mod, only : trname
+      USE OCN_TRACER_COM, only : add_ocn_tracer
 #endif
 #if (defined TRACERS_WATER)
       USE SEAICE, only : ntm_si=>ntm
 #endif
       IMPLICIT NONE
+      integer :: i
 
 #if (defined TRACERS_OCEAN) && !defined(TRACERS_OCEAN_INDEP)
 ! copy atmosphere-declared tracer info to ocean so that the ocean
 ! can "inherit" it without referencing atm. code
-      ntm_ocn = ntm
+      do i=1, ntm
+        call add_ocn_tracer(trname(i))
+      end do
 ! trname is copied here rather than in init_tracer since it is
 ! needed immediately when reading checkpoint files
-      allocate(trname_ocn(ntm))
-      trname_ocn(:) = trname(:)
 #endif
 
 #if (defined TRACERS_WATER)

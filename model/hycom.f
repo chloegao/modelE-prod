@@ -109,10 +109,6 @@ c
       use TimeConstants_mod, only: INT_HOURS_PER_DAY, SECONDS_PER_HOUR,
      &      INT_DAYS_PER_YEAR, INT_SECONDS_PER_HOUR, INT_SECONDS_PER_DAY
      &      ,SECONDS_PER_DAY, DAYS_PER_YEAR
-#if (defined TRACERS_OceanBiology) && (defined TRACERS_GASEXCH_ocean_CO2)
-      !USE obio_dim
-      !USE obio_com, only: dobio
-#endif 
       USE HYCOM_DIM_GLOB
       USE HYCOM_DIM, only : aJ_0, aJ_1, aJ_0H, aJ_1H,
      &                      aI_0, aI_1, aI_0H, aI_1H,
@@ -126,12 +122,10 @@ c
       USE KPRF_ARRAYS
       USE HYCOM_CPLER
       USE HYCOM_DYNSI_CPLER
-#ifdef TRACERS_GASEXCH_ocean_CO2
-      use obio_diffmod
-#endif
       use TimerPackage_mod
       USE EXCHANGE_TYPES, only : atmocn_xchng_vars,iceocn_xchng_vars
       USE Dictionary_mod, only : get_param
+      use tracer_com, only: gasex_index !cdf: temp
       implicit none
       type(atmocn_xchng_vars) :: atmocn
       type(iceocn_xchng_vars) :: iceocn
@@ -197,9 +191,7 @@ c
       real, dimension(idm,J_0H:J_1H) :: tauxi_loc,tauyi_loc,ustari_loc
       real osst_loc(idm,J_0H:J_1H),osss_loc(idm,J_0H:J_1H),
      &    osiav_loc(idm,J_0H:J_1H), oogeoza_loc(idm,J_0H:J_1H)
-#ifdef TRACERS_GASEXCH_ocean
       real, allocatable :: otrac_loc(:,:,:) !(idm,J_0H:J_1H,ntm)
-#endif
 
 #include "state_eqn.h"
 
@@ -211,17 +203,12 @@ c
      &     runpsi_loc,erunpsi_loc,srunpsi_loc,mlhc_loc,
      &     sss_loc,ogeoza_loc,uosurf_loc,vosurf_loc,gtemp_loc,gtempr_loc
       real*8, dimension(:,:,:), pointer :: dmsi_loc,dhsi_loc,dssi_loc
-#ifdef TRACERS_OceanBiology
-      real*8, dimension(:,:,:), pointer :: TRGASEX_loc
-#endif
       real*8, dimension(:,:), pointer :: cosz1_loc,wsavg_loc,achl_loc
 #ifdef OBIO_RAD_coupling
       real*8, dimension(:,:), pointer ::
      &     dirvis_loc,difvis_loc,dirnir_loc,difnir_loc
 #endif
-#ifdef TRACERS_GASEXCH_ocean
       real*8, dimension(:,:,:), pointer :: GTRACER_loc
-#endif
 c
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c --- initiate named-pipe comparison utility
@@ -263,9 +250,6 @@ c
       melti_loc => iceocn%melti
       emelti_loc => iceocn%emelti
       smelti_loc => iceocn%smelti
-#ifdef TRACERS_OceanBiology
-      TRGASEX_loc => atmocn%TRGASEX
-#endif
       cosz1_loc => atmocn%cosz1
       wsavg_loc => atmocn%wsavg
       achl_loc => atmocn%chl
@@ -283,13 +267,12 @@ c
       uosurf_loc => atmocn%uosurf
       vosurf_loc => atmocn%vosurf
         mlhc_loc => atmocn%mlhc
-#ifdef TRACERS_GASEXCH_ocean
       gtracer_loc => atmocn%gtracer
-#endif
       dmsi_loc => iceocn%dmsi
       dhsi_loc => iceocn%dhsi
       dssi_loc => iceocn%dssi
 
+      if (atmocn%ntm_gasexch>0) trcout=.true.
 #ifdef STANDALONE_OCEAN
       ! arrays for salinity restoring
       ! to get the restoring timescales (days) specified in the rundeck:
@@ -312,11 +295,9 @@ c
            aice_loc(ia,ja)=0.
          austar_loc(ia,ja)=0.
          aswflx_loc(ia,ja)=0.
-#ifdef TRACERS_GASEXCH_ocean
         do nt=1,atmocn%ntm_gasexch
-        atracflx_loc(ia,ja,nt)=0.
+          atracflx_loc(ia,ja,nt)=0.
         enddo
-#endif
 #ifdef TRACERS_OceanBiology
           awind_loc(ia,ja)=0.
           asolz_loc(ia,ja)=0.
@@ -404,19 +385,17 @@ c --- dmua on A-grid, admui on C-grid
      .                         (1.-rsi_loc(ia,ja))                       !J/m*m=>W/m*m
      .                         +iceocn%solar(ia,ja)*rsi_loc(ia,ja))
      .                         /(SECONDS_PER_HOUR*real(nhr))
-#ifdef TRACERS_GASEXCH_ocean
-            do nt=1,atmocn%ntm_gasexch
-              atracflx_loc(ia,ja,nt)= atracflx_loc(ia,ja,nt)
-     .             + TRGASEX_loc(nt,ia,ja) ! in mol/m2/s
-     .             * dtsrc/(real(nhr)*SECONDS_PER_HOUR)
+      do nt=1,atmocn%ntm_gasexch
+        atracflx_loc(ia,ja,nt)=atracflx_loc(ia,ja,nt)
+     .       + atmocn%TRGASEX(nt,ia,ja) ! in mol/m2/s
+     .       * dtsrc/(real(nhr)*SECONDS_PER_HOUR)
 
-              if (ia == itest .and. ja == jtest) then
-                write(*,'(a,4i5,2e12.4)')'hycom, atracflx: ',
-     .          itime,hour,ia,ja,TRGASEX_loc(nt,ia,ja),
+        if (ia == itest .and. ja == jtest) then
+          write(*,'(a,4i5,2e12.4)')'hycom, atracflx: ',
+     .          itime,hour,ia,ja,atmocn%TRGASEX(nt,ia,ja),
      .                       atracflx_loc(ia,ja,nt)
-              end if
-            enddo
-#endif
+        end if
+      enddo
 #ifdef TRACERS_OceanBiology
             asolz_loc(ia,ja)=asolz_loc(ia,ja) !
      .           +COSZ1_loc(ia,ja)*dtsrc/(SECONDS_PER_HOUR*real(nhr)) !
@@ -470,13 +449,11 @@ c combine wind and ice stresses after regridding
         enddo
       enddo
 #endif
-#ifdef TRACERS_GASEXCH_ocean
       do nt=1,atmocn%ntm_gasexch
         !call flxa2o(atracflx_loc(:,:,nt),tracflx_loc(:,:,nt)) !tracer flux
         call flxa2o(atracflx_loc(:,:,nt),ocnatm%work1)
         ocnatm%trgasex(nt,:,:) = ocnatm%work1(:,:)
       enddo
-#endif
 #ifdef TRACERS_OceanBiology
       call flxa2o(asolz_loc,ocnatm%cosz1)
       call flxa2o(awind_loc,ocnatm%wsavg)
@@ -680,10 +657,8 @@ c
      &           (abs(corio_loc(i,j  ))+abs(corio_loc(i+1,j  ))+
      &            abs(corio_loc(i,jb ))+abs(corio_loc(i+1,jb )))
  202  continue
-#ifdef TRACERS_GASEXCH_ocean
       allocate(otrac_loc(idm,J_0H:J_1H,atmocn%ntm_gasexch))
       otrac_loc(:,:,:) = 0.d0
-#endif
 c
 c --- ---------------------
 c --- sub loop starts here
@@ -807,7 +782,6 @@ c
           !call obio_listDifferences('obio_model', 'before')
         call obio_model(nn,mm,ocnatm)
           !call obio_listDifferences('obio_model', 'after')
-        !call gather_pCO2
 c
 c      endif
 #endif
@@ -839,13 +813,7 @@ c
         before = after
 c --- long time step tracer advection: build up mass flux time integral
         if (n.eq.oddev) then
-#ifdef TRACERS_GASEXCH_ocean_CO2
-          !call obio_listDifferences('tradv1','before')
-#endif
           call tradv1(n,nn)
-#ifdef TRACERS_GASEXCH_ocean_CO2
-          !call obio_listDifferences('tradv1','after')
-#endif
         endif
 c
         if (mod(nstep,trcfrq).eq.0) then
@@ -854,13 +822,7 @@ c
      .    write (lp,'(a)') 'start tracer advection/turb.mixing cycle'
           before = after
 c --- tracer transport:
-#ifdef TRACERS_GASEXCH_ocean_CO2
-          !call obio_listDifferences('tradv2','before')
-#endif
           call tradv2(n,nn)
-#ifdef TRACERS_GASEXCH_ocean_CO2
-          !call obio_listDifferences('tradv2','after')
-#endif
         end if
         trcadv_time = trcadv_time + real(after-before)/real(rate)
       end if !trcout
@@ -912,14 +874,8 @@ ccc      write (string,'(a12,i8)') 'barotp, step',nstep
 ccc      call comparall(m,n,mm,nn,string)
 c
       before = after
-#ifdef TRACERS_GASEXCH_ocean_CO2
-          !call obio_listDifferences('convec', 'before')
-#endif
 c     if (iocnmx.eq.0.or.iocnmx.eq.2.or.iocnmx.eq.6) 
       call convec(m,n,mm,nn,k1m,k1n)
-#ifdef TRACERS_GASEXCH_ocean_CO2
-          !call obio_listDifferences('convec', 'after')
-#endif
 c
       call system_clock(after)
       convec_time = real(after-before)/real(rate)
@@ -938,15 +894,9 @@ ccc      call comparall(m,n,mm,nn,string)
 c
 c     before = after
 
-#ifdef TRACERS_GASEXCH_ocean_CO2
-          !call obio_listDifferences('diapfl', 'before')
-#endif
       if ((iocnmx.eq.0.or.iocnmx.eq.2.or.iocnmx.eq.6) .and.
      .    nstep*baclin.ge.12.*INT_SECONDS_PER_HOUR) 
      .    call diapfl(m,n,mm,nn,k1m,k1n)
-#ifdef TRACERS_GASEXCH_ocean_CO2
-          !call obio_listDifferences('diapfl', 'after')
-#endif
 c
 c     call system_clock(after)
 c     diapfl_time = real(after-before)/real(rate)
@@ -974,13 +924,7 @@ c
 c     if (nstep*baclin.le.12.*3600) then
 c       call mxlayr(m,n,mm,nn,k1m,k1n)
 c     else
-#ifdef TRACERS_GASEXCH_ocean_CO2
-          !call obio_listDifferences('mxkprf', 'before')
-#endif
          call mxkprf(m,n,mm,nn,k1m,k1n) !aft 12 hrs
-#ifdef TRACERS_GASEXCH_ocean_CO2
-          !call obio_listDifferences('mxkprf', 'after')
-#endif
 c     end if
 c     if (AM_I_ROOT())  print *,'passed mxkprf'
 c
@@ -1004,13 +948,7 @@ c
       end if ! AM_I_ROOT
       before = after
 
-#ifdef TRACERS_GASEXCH_ocean_CO2
-          !call obio_listDifferences('hybgen', 'before')
-#endif
       call hybgen(m,n,mm,nn,k1m,k1n)
-#ifdef TRACERS_GASEXCH_ocean_CO2
-          !call obio_listDifferences('hybgen', 'after')
-#endif
 
       call system_clock(after)
       hybgen_time = real(after-before)/real(rate)
@@ -1335,31 +1273,20 @@ c --- accumulate fields for agcm
 
  201  continue
 
-#ifdef TRACERS_GASEXCH_ocean
       ! may need the next line for TRACERS_GASEXCH_ocean_CFC
       !call gather_tracer
       do j=J_0,J_1
       do l=1,isp_loc(j)
       do i=ifp_loc(j,l),ilp_loc(j,l)
       !define the tracer that participates in the gas exchange flux.
-#ifdef TRACERS_GASEXCH_ocean_CFC
-            do nt=1,atmocn%ntm_gasexch
-              otrac_loc(i,j,nt)=otrac_loc(i,j,nt)  
-     .             +tracer_loc(i,j,1,nt)
-     .             *baclin/(SECONDS_PER_HOUR*real(nhr))
-            enddo
-#endif
-#ifdef TRACERS_GASEXCH_ocean_CO2
-            do nt=1,atmocn%ntm_gasexch
-              otrac_loc(i,j,nt)= otrac_loc(i,j,nt)
-     .             + ocnatm%pCO2(i,j) !pCO2_loc(i,j)  !pCO2 is in ppmv(uatm)
+        do nt=1,atmocn%ntm_gasexch
+          otrac_loc(i,j,nt)=otrac_loc(i,j,nt)
+     .             + ocnatm%gtracer(gasex_index%at(nt),i,j) !pCO2_loc(i,j)  !pCO2 is in ppmv(uatm)
      .             * baclin/(SECONDS_PER_HOUR*real(nhr))
             enddo
-#endif
       enddo
       enddo
       enddo
-#endif
 
 c
       nsaveo=nsaveo+1
@@ -1445,7 +1372,6 @@ c --- with respect to the ice/openwater flux ratio?
       endif
  204  continue
 
-#ifdef TRACERS_GASEXCH_ocean
       do nt=1,atmocn%ntm_gasexch
          call ssto2a(otrac_loc(:,:,nt),atmocn%work1)
          do ja=aJ_0,aJ_1
@@ -1459,7 +1385,6 @@ c --- with respect to the ice/openwater flux ratio?
          enddo
       enddo
       deallocate(otrac_loc)
-#endif
       if (ocnatm%chl_defined) then
       !call ssto2a(tot_chlo_loc,achl_loc)
         call ssto2a(ocnatm%chl,achl_loc)

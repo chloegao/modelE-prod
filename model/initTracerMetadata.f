@@ -239,14 +239,14 @@
         end if
 #endif
 
-      if (tracers_gasexch_ocean_cfc) then
-        call  CFCn_setSpec('CFCn')
-      end if
-
       if (tracers_gasexch_ocean_co2 .or. tracers_gasexch_land_co2) then
         call  CO2n_setSpec('CO2n')
       end if
       
+      if (tracers_gasexch_ocean_cfc) then
+        call  CFCn_setSpec('CFCn')
+      end if
+
 #ifdef TRACERS_SPECIAL_LERNER
       if (tracers_special_lerner) then
         call Lerner_InitMetadata(pTracer, 2)
@@ -652,33 +652,21 @@ C**** get rundeck parameter for cosmogenic source factor
 #if (defined TRACERS_OCEAN) && !defined(TRACERS_OCEAN_INDEP)
 ! atmosphere copies atmosphere-declared tracer info to ocean
 ! so that the ocean can "inherit" it without referencing atm. code
-      use ocn_tracer_com, only : 
-     &     n_Water_ocn      => n_Water,
-     &     itime_tr0_ocn    => itime_tr0,
-     &     ntrocn_ocn       => ntrocn,
-     &     to_per_mil_ocn   => to_per_mil,
-     &     t_qlimit_ocn     => t_qlimit,
-     &     conc_from_fw_ocn => conc_from_fw,
-     &     trdecay_ocn      => trdecay,
-     &     trw0_ocn         => trw0
+      use ocn_tracer_com, only : tracerlist, ocn_tracer_entry,
+     &     n_Water_ocn      => n_Water
+      use oldtracer_mod, only: itime_tr0, ntrocn, t_qlimit,
+     &            conc_from_fw, trdecay, vol2mass
+      use tracer_com, only: n_water
+      use trdiag_com, only: to_per_mil
 #endif
       USE FLUXES, only : atmocn
-#ifdef TRACERS_GASEXCH_ocean
       use OldTracer_mod, only: vol2mass
-#endif
-      USE TRACER_COM, only: ntm
+      USE TRACER_COM, only: ntm, gasex_index
       use OldTracer_mod, only: trw0
-#ifdef TRACERS_GASEXCH_ocean_CO2
-      USE obio_forc, only : atmCO2
-#endif
       implicit none
-#if (!defined(TRACERS_GASEXCH_ocean_CO2)) && defined(TRACERS_GASEXCH_land_CO2)
-      real*8 :: atmCO2 = 280.d0
-#endif
       integer :: n
-
-#if defined(TRACERS_GASEXCH_ocean_CO2) || defined(TRACERS_GASEXCH_land_CO2)
-      call sync_param("atmCO2",atmCO2)
+#if (defined TRACERS_OCEAN) && !defined(TRACERS_OCEAN_INDEP)
+      type(ocn_tracer_entry), pointer :: entry
 #endif
 
 #if (defined TRACERS_OCEAN) && !defined(TRACERS_OCEAN_INDEP)
@@ -686,13 +674,14 @@ C**** get rundeck parameter for cosmogenic source factor
 ! so that the ocean can "inherit" it without referencing atm. code
       n_Water_ocn = n_Water
       do n=1,ntm
-        itime_tr0_ocn(n)    = itime_tr0(n)
-        ntrocn_ocn(n)       = ntrocn(n)
-        to_per_mil_ocn(n)   = to_per_mil(n)
-        t_qlimit_ocn(n)     = t_qlimit(n)
-        conc_from_fw_ocn(n) = conc_from_fw(n) 
-        trdecay_ocn(n)      = trdecay(n)
-        trw0_ocn(n)         = trw0(n)
+        entry=>tracerlist%at(n)
+        entry%itime_tr0    = itime_tr0(n)
+        entry%ntrocn       = ntrocn(n)
+        entry%to_per_mil   = to_per_mil(n)
+        entry%t_qlimit     = t_qlimit(n)
+        entry%conc_from_fw = conc_from_fw(n) 
+        entry%trdecay      = trdecay(n)
+        entry%trw0         = trw0(n)
       enddo
 #endif
 
@@ -702,12 +691,10 @@ C**** get rundeck parameter for cosmogenic source factor
       do n=1,ntm
         atmocn%trw0(n) = trw0(n)
       enddo
-#ifdef TRACERS_GASEXCH_ocean
-      allocate(atmocn%vol2mass(ntm))
-      do n=1,ntm
-        atmocn%vol2mass(n) = vol2mass(n)
+      allocate(atmocn%vol2mass(gasex_index%getsize()))
+      do n=1,gasex_index%getsize()
+        atmocn%vol2mass(n) = vol2mass(gasex_index%at(n))
       enddo
-#endif
 
       end subroutine InitTracerMetadataAtmOcnCpler
 

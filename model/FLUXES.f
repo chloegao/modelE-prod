@@ -316,6 +316,7 @@
       end type atmsrf_xchng_vars
 
       type, extends(atmsrf_xchng_vars) :: atmocn_xchng_vars
+         logical :: updated=.false. ! indicates that values have been updated by relevant component
          REAL*8, DIMENSION(:,:), POINTER ::
 !@var FOCEAN ocean fraction
      &      FOCEAN
@@ -350,13 +351,8 @@
          REAL*8, DIMENSION(:,:,:), POINTER :: TRGMELT
 #endif
 #endif
-#ifdef TRACERS_GASEXCH_ocean
 !@var TRGASEX  tracer gas exchange (mol,CO2/m^2/s)
          REAL*8, DIMENSION(:,:,:), POINTER :: TRGASEX
-#endif
-#ifdef TRACERS_GASEXCH_ocean_CO2
-         REAL*8, DIMENSION(:,:), POINTER :: pCO2
-#endif
 #ifdef OBIO_RAD_coupling
          REAL*8, DIMENSION(:,:), POINTER ::
      &     DIRVIS,DIFVIS,DIRNIR,DIFNIR
@@ -378,15 +374,11 @@ C**** array of Chlorophyll data for use in ocean albedo calculation
          real*8, dimension(:,:), pointer :: consrv
          integer, dimension(:,:), pointer :: nofm
 
-#ifdef TRACERS_ON
 ! Some atmosphere-declared tracer info for uses within ocean codes.
 ! See TRACER_COM.f
          real*8, dimension(:), pointer :: trw0
-#ifdef TRACERS_GASEXCH_ocean
          integer :: ntm_gasexch=0
-         real*8, dimension(:), pointer :: vol2mass
-#endif
-#endif
+         real*8, dimension(:), allocatable :: vol2mass
 
 #ifdef TRACERS_OCEAN
 !@var natmtrcons,tconsrv,nofmt
@@ -1169,18 +1161,11 @@ c workaround for uninitialized patches%srfstate_exports multiply by zero
 #ifdef TRACERS_ON
       integer :: ntm
 #endif
-#ifdef TRACERS_GASEXCH_ocean
-      integer :: ntm_gasexch
-#endif
 
       this%itype4 = 1
 
 #ifdef TRACERS_ON
       ntm = this%ntm
-#endif
-
-#ifdef TRACERS_GASEXCH_ocean
-      ntm_gasexch = this%ntm_gasexch
 #endif
 
       call alloc_atmsrf_xchng_vars(grd_dum,this%atmsrf_xchng_vars)
@@ -1209,12 +1194,7 @@ c workaround for uninitialized patches%srfstate_exports multiply by zero
      &          this % TRGMELT ( NTM , I_0H:I_1H , J_0H:J_1H ),
 #endif
 #endif
-#ifdef TRACERS_GASEXCH_ocean
-     &          this % TRGASEX ( NTM_gasexch , I_0H:I_1H , J_0H:J_1H ),
-#endif
-#ifdef TRACERS_GASEXCH_ocean_CO2
-     &          this % pCO2    ( I_0H:I_1H , J_0H:J_1H ),
-#endif
+     &          this%TRGASEX(this%NTM_gasexch , I_0H:I_1H , J_0H:J_1H ),
      &          this % CHL     ( I_0H:I_1H , J_0H:J_1H ),
      &   STAT = IER)
 
@@ -1223,14 +1203,10 @@ c workaround for uninitialized patches%srfstate_exports multiply by zero
       this % OGEOZA = 0.
       this % MLHC = 0.
 
-#ifdef TRACERS_GASEXCH_ocean
       this % TRGASEX = 0.
 ! I dimensioned trgasex by ntm_gasexch to avoid confusion elsewhere
 ! in the code.  If ntm differs from ntm_gasexch, fluxes need to be
 ! stored in the appropriate positions in trgasex or this%trgasex.  - MK
-      if(ntm /= ntm_gasexch) call stop_model(
-     &     'alloc_atmocn_xchng_vars: ntm /= ntm_gasexch',255)
-#endif
 
       this % CHL = 0.
       this%chl_defined=.false.
@@ -1489,9 +1465,8 @@ c workaround for uninitialized patches%srfstate_exports multiply by zero
       USE EXCHANGE_TYPES, only : atmocn_xchng_vars,atmice_xchng_vars,
      &     atmsrf_xchng_vars,atmlnd_xchng_vars,atmgla_xchng_vars
 #ifdef TRACERS_ON
-      USE TRACER_COM, only: NTM
 #ifndef SKIP_TRACER_SRCS
-     *     ,ntsurfsrcmax,nt3Dsrcmax
+      USE TRACER_COM, only: ntsurfsrcmax,nt3Dsrcmax
 #endif
 #endif
       use Dictionary_mod, only : sync_param, get_param
@@ -1733,9 +1708,7 @@ C**** fluxes associated with variable lake fractions
     (defined TRACERS_TOMAS)
      &     ,Ntm_dust
 #endif
-#ifdef TRACERS_GASEXCH_ocean
-      use tracer_com, only : ntm_gasexch
-#endif
+      use tracer_com, only : gasex_index
 #endif
       USE ATM_COM, only : temperature_istart1
       USE Dictionary_mod
@@ -1926,9 +1899,7 @@ C**** Ensure that no round off error effects land with ice and earth
         atmocns(k)%surf_name = 'ocn'//c2
 #ifdef TRACERS_ON
         atmocns(k)%ntm = ntm
-#endif
-#ifdef TRACERS_GASEXCH_ocean
-        atmocns(k)%ntm_gasexch = ntm_gasexch
+        atmocns(k)%ntm_gasexch = gasex_index%getsize()
 #endif
         call alloc_xchng_vars(grid,atmocns(k))
         atmocns(k)%grid => grd_dum
@@ -2068,6 +2039,10 @@ C**** Ensure that no round off error effects land with ice and earth
       call defvar(grid,fid,atmocn%uosurf,'uosurf'//ijstr)
       call defvar(grid,fid,atmocn%vosurf,'vosurf'//ijstr)
       call defvar(grid,fid,atmocn%mlhc,'mlhc'//ijstr)
+#ifdef TRACERS_ON
+      call defvar(grid,fid,atmocn%gtracer,
+     &                     'gtracer(ntm,dist_im,dist_jm)')
+#endif
 
       do ipatch = 1,size(asflx)
         dimstr='_'//trim(asflx(ipatch)%surf_name)// 
@@ -2146,7 +2121,9 @@ c      call defvar(grid,fid,atmsrf%dclev,'dclev(dist_im,dist_jm)')
         call write_dist_data(grid,fid,'uosurf',atmocn%uosurf)
         call write_dist_data(grid,fid,'vosurf',atmocn%vosurf)
         call write_dist_data(grid,fid,'mlhc',atmocn%mlhc)
-
+#ifdef TRACERS_ON
+        call write_dist_data(grid,fid,'gtracer',atmocn%gtracer, jdim=3)
+#endif
 
         do ipatch = 1,size(asflx)
           suffix = '_'//asflx(ipatch)%surf_name
@@ -2212,7 +2189,9 @@ c        call write_dist_data(grid,fid,'dclev',atmsrf%dclev)
         call read_dist_data(grid,fid,'uosurf',atmocn%uosurf)
         call read_dist_data(grid,fid,'vosurf',atmocn%vosurf)
         call read_dist_data(grid,fid,'mlhc',atmocn%mlhc)
-
+#ifdef TRACERS_ON
+        call read_dist_data(grid,fid,'gtracer',atmocn%gtracer, jdim=3)
+#endif
         do ipatch = 1,size(asflx)
           suffix = '_'//asflx(ipatch)%surf_name
           vname = 'uabl'//suffix

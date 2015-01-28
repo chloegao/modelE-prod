@@ -579,8 +579,7 @@ C****      names, indices, units, idacc-numbers, etc.
      *     ,ij_swaerabsnt
      *     ,ij_lwaerabsnt,ij_evapsn,ij_irrW,ij_irrE,ij_irrW_tot
      *     ,ij_mwl,ij_gml,ij_mwlir,ij_gmlir,ij_irrgw,ij_irrgwE
-     *     ,ij_kw, ij_alpha, ij_gasx, ij_rvrflo
-     *     ,ij_sisnd
+     *     ,ij_rvrflo ,ij_sisnd
      *     ,ij_silwd,ij_silwu,ij_sish
      *     ,ij_impmli,ij_imphli,ij_eicb,ij_micb, IJ_ERVRO, IJ_MRVRO
      *     ,IJ_IMPMGR,IJ_IMPHGR,IJ_IMPMKI,IJ_IMPHKI
@@ -589,6 +588,8 @@ C****      names, indices, units, idacc-numbers, etc.
 #ifdef HEALY_LM_DIAGS
      &     ,IJ_CROPS
 #endif
+      integer, dimension(:), allocatable, public ::
+     &      ij_kw, ij_alpha, ij_gasx
 !@var IJ_Gxx names for old AIJG arrays
       INTEGER, public ::
      *     ij_gbsw, ij_gbsbet, ij_gbetpen, ij_gvsw, ij_gbvswt,

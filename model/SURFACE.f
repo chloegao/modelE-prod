@@ -117,6 +117,9 @@ C****
      &     ,inc_subdd,find_groups
       use resolution, only : lm
 #endif
+#ifdef TRACERS_ON
+      USE TRACER_COM, only: gasex_index
+#endif
 
       IMPLICIT NONE
 
@@ -176,9 +179,6 @@ C****
 
       REAL*8, DIMENSION(:,:), POINTER :: RSI,MSI,SNOWI,SSS
       REAL*8, DIMENSION(:,:,:), POINTER :: SSI
-#ifdef TRACERS_GASEXCH_ocean
-      REAL*8, DIMENSION(:,:,:), POINTER :: TRGASEX
-#endif
 
 #ifdef CACHED_SUBDD
       integer :: igrp,ngroups,grpids(subdd_ngroups),l
@@ -195,9 +195,6 @@ C****
       SNOWI => SI_ATM%SNOWI
       SSI => SI_ATM%SSI
       SSS => atmocn%SSS
-#ifdef TRACERS_GASEXCH_ocean
-      TRGASEX => atmocn%TRGASEX
-#endif
 
 C****
 C**** Extract useful local domain parameters from "grid"
@@ -312,9 +309,7 @@ C**** Zero out fluxes summed over type and surface time step
 
       E1=0.
 
-#ifdef TRACERS_GASEXCH_ocean
-      TRGASEX = 0.0d0
-#endif
+      atmocn%TRGASEX = 0.0d0
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) 
@@ -703,16 +698,17 @@ C**** Limit evaporation if lake mass is at minimum
       END DO
 #endif
 
-#ifdef TRACERS_ON
-
 #ifdef TRACERS_GASEXCH_ocean
+      if (gasex_index%getsize()>0) call calc_gasexch(i,j,itype,ns,
+     &     moddsf,ptype,pocean,rsi(i,j),rhosrf,tgo,dtsurf,pbl_args)
+#else
+#ifdef TRACERS_ON
+      if (gasex_index%getsize()>0)
+     &                call stop_model('gas exchange code missing', 255)
+#endif
+#endif
 
-      call calc_gasexch(i,j,itype,ns,moddsf,
-     &     ptype,pocean,rsi(i,j),rhosrf,tgo,
-     &     dtsurf,pbl_args)
-
-#endif /* TRACERS_GASEXCH_ocean */
-
+#ifdef TRACERS_ON
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
 
@@ -2150,21 +2146,25 @@ C****
       use model_com, only : itime,dtsrc
       use diag_com, only : aij=>aij_loc,ij_gasx,ij_kw,ij_alpha
       use OldTracer_mod, only: vol2mass, tr_mm, itime_tr0
-      USE TRACER_COM, only: n_co2n,n_cfcn
-#ifdef OBIO_ON_GARYocean
-      USE MODEL_COM, only: nstep=>itime
-#else
-      USE HYCOM_SCALARS, only: nstep
-#endif
+      USE TRACER_COM, only: n_co2n,n_cfcn,gasex_index
       implicit none
       integer, intent(in) :: i,j,itype,ns,moddsf
       real*8, intent(in) :: ptype,pocean,rsi,rhosrf,tgo,dtsurf
-      type (t_pbl_args) :: pbl_args
+      type (t_pbl_args), intent(in) :: pbl_args
 c
-      real*8 :: trgrnd,alpha_gas2,trs
+      real*8 :: trgrnd,trs
+      real*8, external ::  alpha_gas2_co2, alpha_gas2_cfc
       real*8, dimension(:,:,:), pointer :: TRGASEX
-      integer :: n,nx
+      integer :: n,nx,ngx
 
+      abstract interface
+        function alpha_gas2_func(pt, ps)
+          real*8, intent(in) :: pt, ps
+          real*8 :: alpha_gas2_func
+        end function alpha_gas2_func
+      end interface
+
+      procedure(alpha_gas2_func), pointer :: alpha_gas2=>null()
 
       TRGASEX => atmocn%TRGASEX
 
@@ -2176,62 +2176,54 @@ C****
           N=pbl_args%NTIX(NX)
           trgrnd=atmocn%gtracer(n,i,j)
           trs=pbl_args%trs(nx)
-#ifdef TRACERS_GASEXCH_ocean_CFC
-          TRGASEX(n,I,J) = TRGASEX(n,I,J) +
-     .        pbl_args%Kw_gas * (pbl_args%beta_gas*trs-trgrnd)
-          atmocn%trsrfflx(n,i,j) = atmocn%trsrfflx(n,i,j)
-     .         -pbl_args%Kw_gas * (pbl_args%beta_gas*trs-trgrnd)
-          taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n))
-     .         -pbl_args%Kw_gas * (pbl_args%beta_gas*trs-trgrnd)
+          ngx=gasex_index%getindex(n)
+          if (n==n_cfcn) then
+            TRGASEX(ngx,I,J) = TRGASEX(ngx,I,J) +
+     .        pbl_args%Kw_gas(ngx) * (pbl_args%beta_gas(ngx)*trs-trgrnd)
+            atmocn%trsrfflx(n,i,j) = atmocn%trsrfflx(n,i,j)
+     .         -pbl_args%Kw_gas(ngx)*(pbl_args%beta_gas(ngx)*trs-trgrnd)
+            taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n))
+     .         -pbl_args%Kw_gas(ngx)*(pbl_args%beta_gas(ngx)*trs-trgrnd)
      .               * axyp(i,j)*ptype*dtsurf
-#endif
-#ifdef TRACERS_GASEXCH_ocean_CO2
+          else if (n==n_co2n) then
 ! TRGASEX is the gas exchange flux btw ocean and atmosphere.
 ! Its sign is positive for flux entering the ocean (positive down)
 ! because obio_carbon needs such. Units mol,CO2/m2/s (accumulated over itype)
 
-          TRGASEX(n,I,J) = TRGASEX(n,I,J) +
-     .          pbl_args%Kw_gas * ( pbl_args%beta_gas  * trs 
-     .         - pbl_args%alpha_gas * trgrnd ) 
+            TRGASEX(ngx,I,J) = TRGASEX(ngx,I,J) +
+     .          pbl_args%Kw_gas(ngx) * ( pbl_args%beta_gas(ngx)  * trs 
+     .         - pbl_args%alpha_gas(ngx) * trgrnd ) 
      .         * 1d6/vol2mass(n)
      .         * dtsurf/dtsrc      !in order to accumulate properly over time
      .         * (1.d0-RSI)   !units mol,co2/m2/s
 
-          if (nstep.eq.48)
-     .         write(*,'(a,3i5,6e12.4)')'SURFACE: test carbon flux: ',
-     .         nstep,i,j,
-     .         pbl_args%Kw_gas * ( pbl_args%beta_gas  * trs
-     .         - pbl_args%alpha_gas * trgrnd )
-     .         * 1d6/vol2mass(n),
-     .         dtsurf,dtsrc,1.d0-RSI,TRGASEX(n,I,J),
-     .         focean(i,j)
-
 ! trsrfflx is positive up 
 ! units are kg,CO2/s
-          atmocn%trsrfflx(n,i,j)=atmocn%trsrfflx(n,i,j)
-     .         - pbl_args%Kw_gas * ( pbl_args%beta_gas  * trs 
-     .         - pbl_args%alpha_gas * trgrnd )
+            atmocn%trsrfflx(n,i,j)=atmocn%trsrfflx(n,i,j)
+     .         - pbl_args%Kw_gas(ngx) * ( pbl_args%beta_gas(ngx)  * trs 
+     .         - pbl_args%alpha_gas(ngx) * trgrnd )
      .         * 1.0d6/vol2mass(n) 
      .         * tr_mm(n)*1.0d-3        !units kg,co2/m2/s
 
 !units are kg,co2
-          taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n))-
-     $         pbl_args%Kw_gas * (pbl_args%beta_gas* trs-
-     $         pbl_args%alpha_gas * trgrnd )* 1.0d6/vol2mass(n)
+            taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n))-
+     $         pbl_args%Kw_gas(ngx) * (pbl_args%beta_gas(ngx)* trs-
+     $         pbl_args%alpha_gas(ngx) * trgrnd )* 1.0d6/vol2mass(n)
      $         * tr_mm(n)*1.0d-3* ptype* axyp(i,j) * dtsurf
 
-          if(i.eq.1 .and. j.eq.45) then
-            write(*,'(a,3i5,11e12.4)')'SURFACE, trgasex:',
+            if(i.eq.1 .and. j.eq.45) then
+              write(*,'(a,2i5,11e12.4)')'SURFACE, trgasex:',
 !     write(*,'(a,3i5,11e12.4)')'22222222222222222',
-     .           nstep,i,j,pbl_args%Kw_gas,pbl_args%beta_gas,trs,
-     .           pbl_args%alpha_gas,trgrnd,TRGASEX(n,I,J),
-     .      pbl_args%Kw_gas * pbl_args%beta_gas*trs*1.d6/vol2mass(n)
+     .           i,j,pbl_args%Kw_gas(ngx),pbl_args%beta_gas(ngx),trs,
+     .           pbl_args%alpha_gas(ngx),trgrnd,TRGASEX(ngx,I,J),
+     .        pbl_args%Kw_gas(ngx) * pbl_args%beta_gas(ngx)
+     .                                        *trs*1.d6/vol2mass(n)
      .           *ptype,
-     .           pbl_args%Kw_gas * pbl_args%alpha_gas * trgrnd 
+     .           pbl_args%Kw_gas(ngx) * pbl_args%alpha_gas(ngx) * trgrnd 
      .           * 1.0d6/vol2mass(n) * ptype,
      .           atmocn%trsrfflx(n,i,j),rhosrf,taijs(i,j,ijts_isrc(1,n))
+            endif
           endif
-#endif
         END DO
       END IF
 
@@ -2239,61 +2231,68 @@ C****
         n=pbl_args%ntix(nx)
         trgrnd=atmocn%gtracer(n,i,j)
         trs=pbl_args%trs(nx)
-c      do n=1,ntm
+        ngx=gasex_index%getindex(n)
+        if (n==n_co2n) then
+          alpha_gas2=>alpha_gas2_co2
+        else if (n==n_cfcn) then
+          alpha_gas2=>alpha_gas2_cfc
+        else
+          cycle
+        endif
         if (itime_tr0(n).le.itime) then
           if (n.eq.n_CO2n .or. n.eq.n_CFCn) then
-          if (focean(i,j).gt.0) then
+            if (focean(i,j).gt.0) then
 
 ! original versions
-             if (POCEAN.gt.0) then ! original coding
-               if (MODDSF.EQ.0) THEN
-                 AIJ(i,j,ij_kw) = AIJ(i,j,ij_kw)  
-     .            + pbl_args%Kw_gas * focean(i,j) ! m/s
-     .            * (1.d0 - RSI) ! only over open water
-                 AIJ(i,j,ij_alpha) = AIJ(i,j,ij_alpha) 
-     .           + pbl_args%alpha_gas * focean(i,j) ! mol,CO2/m3/uatm
-     .           * (1.d0 - RSI) ! only over open water
-               endif
-               if(NS==NIsurf .and. itype==1) then
-                 AIJ(i,j,ij_gasx) = AIJ(i,j,ij_gasx) 
-     .                + TRGASEX(n,I,J) * focean(i,j)
+              if (POCEAN.gt.0) then ! original coding
+                if (MODDSF.EQ.0) THEN
+                  AIJ(i,j,ij_kw(ngx)) = AIJ(i,j,ij_kw(ngx))  
+     .             + pbl_args%Kw_gas(ngx) * focean(i,j) ! m/s
+     .             * (1.d0 - RSI) ! only over open water
+                  AIJ(i,j,ij_alpha(ngx)) = AIJ(i,j,ij_alpha(ngx)) 
+     .             + pbl_args%alpha_gas(ngx) * focean(i,j) ! mol,CO2/m3/uatm
+     .             * (1.d0 - RSI) ! only over open water
+                endif
+                if(NS==NIsurf .and. itype==1) then
+                  AIJ(i,j,ij_gasx(ngx)) = AIJ(i,j,ij_gasx(ngx)) 
+     .                + TRGASEX(ngx,I,J) * focean(i,j)
      .                * SECONDS_PER_YEAR    ! mol,CO2/m2/yr
      .                * (1.d0 - RSI) ! only over open water
-               endif
-            end if
+                endif
+              end if
 ! tracer diag versions
-            if (ITYPE.eq.1) then 
+              if (ITYPE.eq.1) then 
 ! gas exchange
-            taijs(i,j,ijts_gasex(3,n)) = taijs(i,j,ijts_gasex(3,n)) 
-     .           + pbl_args%Kw_gas * ( pbl_args%beta_gas  * trs 
-     .         - pbl_args%alpha_gas * trgrnd ) 
-     .         * 1d6/vol2mass(n)
-     .         * dtsurf/dtsrc   !in order to accumulate properly over time
-     .         * ptype * SECONDS_PER_YEAR        ! mol/m2/yr
+                taijs(i,j,ijts_gasex(3,n)) = taijs(i,j,ijts_gasex(3,n)) 
+     .             + pbl_args%Kw_gas(ngx) * ( pbl_args%beta_gas(ngx)*trs 
+     .           - pbl_args%alpha_gas(ngx) * trgrnd ) 
+     .           * 1d6/vol2mass(n)
+     .           * dtsurf/dtsrc   !in order to accumulate properly over time
+     .           * ptype * SECONDS_PER_YEAR        ! mol/m2/yr
 
 ! zonal mean diag accumulates kgCO2
-            if (jls_isrc(1,n)>0) call inc_tajls(i,j,1,jls_isrc(1,n),
-     *           - pbl_args%Kw_gas * ( pbl_args%beta_gas  * trs 
-     .         - pbl_args%alpha_gas * trgrnd ) 
-     .         * 1d6/vol2mass(n) * dtsurf  
-     .         * ptype*tr_mm(n)*1d-3*axyp(i,j))
+                if (jls_isrc(1,n)>0) call inc_tajls(i,j,1,jls_isrc(1,n),
+     *             - pbl_args%Kw_gas(ngx) * ( pbl_args%beta_gas(ngx)*trs 
+     .           - pbl_args%alpha_gas(ngx) * trgrnd ) 
+     .           * 1d6/vol2mass(n) * dtsurf  
+     .           * ptype*tr_mm(n)*1d-3*axyp(i,j))
 
-              if (MODDSF.EQ.0) THEN
+                if (MODDSF.EQ.0) THEN
 ! piston velocity
-                taijs(i,j,ijts_gasex(1,n)) = taijs(i,j,ijts_gasex(1,n)) 
-     .                + pbl_args%Kw_gas * pocean ! m/s only over open water
+                  taijs(i,j,ijts_gasex(1,n))=taijs(i,j,ijts_gasex(1,n)) 
+     .                + pbl_args%Kw_gas(ngx) * pocean ! m/s only over open water
 ! solubility mol/m3/uatm
-                taijs(i,j,ijts_gasex(2,n)) = taijs(i,j,ijts_gasex(2,n)) 
-     .               + pbl_args%alpha_gas * focean(i,j) 
-              endif
+                  taijs(i,j,ijts_gasex(2,n))=taijs(i,j,ijts_gasex(2,n)) 
+     .               + pbl_args%alpha_gas(ngx) * focean(i,j) 
+                endif
 
-            elseif (POCEAN.eq.0) then  ! ITYPE=2 and all ice covered
+              elseif (POCEAN.eq.0) then  ! ITYPE=2 and all ice covered
 ! solubility mol/m3/uatm ice covered area
-               if (MODDSF.EQ.0) taijs(i,j,ijts_gasex(2,n)) = taijs(i,j
-     $              ,ijts_gasex(2,n))+ alpha_gas2(tgo,pbl_args%sss_loc)
+                if (MODDSF.EQ.0) taijs(i,j,ijts_gasex(2,n)) = taijs(i,j
+     $           ,ijts_gasex(2,n))+ alpha_gas2(tgo,pbl_args%sss_loc)
      $              * focean(i,j) 
-            endif                ! itype
-          endif                  !focean
+              endif                ! itype
+            endif                  !focean
           endif                  !gasexch tracers
         end if
       end do 

@@ -1,54 +1,26 @@
 #include "rundeck_opts.h"
-!@sum  TRACERS_GASEXCH_COM: module for ocean-atmosphere gas exchange
-!@+    special case for CO2
-!@auth Natassa Romanou
 
-      MODULE TRACER_GASEXCH_COM
-
-      USE TRACER_COM, only : ntm=>ntm_gasexch    !tracers in air-sea gas exch
-
-      implicit none
-
-#include "dimension2.h"
-
-      private
-
-      real*8, public :: tracflx1d(ntm)
-
-      END MODULE TRACER_GASEXCH_COM
-
-c ---------------------------------------------------------------------
-
-! change ws to wspdf to see whether co2 fluxes improve
-
-#ifdef OBIO_WSPDF
-      SUBROUTINE TRACERS_GASEXCH_ocean_CO2_PBL(tg1,wspdf,
-     . alati,psurf,itr,trconstflx,byrho,Kw_gas,alpha_gas,
-     . beta_gas,trsf,trcnst,ilong,jlat)
-#else
       SUBROUTINE TRACERS_GASEXCH_ocean_CO2_PBL(tg1,ws,
-     . alati,psurf,itr,trconstflx,byrho,Kw_gas,alpha_gas,
+     . alati,psurf,trmm,trconstflx,byrho,Kw_gas,alpha_gas,
      . beta_gas,trsf,trcnst,ilong,jlat)
-#endif                
 
-      USE CONSTANT, only:    rhows,mair
+      USE CONSTANT, only:    rhows
       use OldTracer_mod, only: vol2mass
 
-      USE TRACER_COM, only : ntm_gasexch
-      USE obio_incom, only : awan
-#ifdef OBIO_ON_GARYocean
-      USE MODEL_COM,  only : nstep=>itime
-#else
-      USE HYCOM_SCALARS, only : nstep
-#endif
+      USE TRACER_COM, only : gasex_index, n_co2n
       
       implicit none
 
-      integer :: ilong,jlat,itr
-      real*8  :: tg1,ws,wspdf,psurf,trconstflx,byrho,trsf,trcnst
-      real*8  :: alati,Kw_gas,alpha_gas,beta_gas
+      real*8, parameter :: awan=0.337d0/(3.6d5) !piston vel coeff., from
+                                                !Wanninkof 1992, but adjusted
+                                                !by OCMIP, and converted from
+                                                !cm/hr to m/s
+      integer, intent(in) :: ilong,jlat
+      real*8, intent(in)  :: trmm,tg1,ws,alati, psurf, trconstflx, byrho
+      real*8, intent(out) :: Kw_gas, alpha_gas, beta_gas, trsf, trcnst
       real*8  :: Sc_gas
       real*8, external :: sc_co2,sol_co2
+      integer :: idx
 
 !@var  psurf surface pressure
 !@var  alati SSS at i,j
@@ -60,6 +32,7 @@ c ---------------------------------------------------------------------
 
 !routine for PBL calculations of CO2 gas exchange
 
+      idx=gasex_index%getindex(n_co2n)
       !---------------------------------------------------------------
       !TRANSFER VELOCITY
       !---------------------------------------------------------------
@@ -74,11 +47,7 @@ c ---------------------------------------------------------------------
      .          ', Sc_gas,temp_c=',Sc_gas,tg1
          Kw_gas=1.e-10
       else
-#ifdef OBIO_WSPDF
-         Kw_gas=(Sc_gas/660.d0)**(-0.5d0) * wspdf * wspdf * awan !units of m/s
-#else         
          Kw_gas=(Sc_gas/660.d0)**(-0.5d0) * ws * ws * awan !units of m/s
-#endif
       endif
 
       !---------------------------------------------------------------
@@ -93,30 +62,21 @@ c ---------------------------------------------------------------------
       beta_gas = alpha_gas * psurf/1013.25      !stdslp and psurf in mb, no need to change units
 
       !trsf is really sfac = Kw_gas * beta_gas
-      !the term 1.0d6 / vol2mass(ntm_gasexch) is needed to convert uatm -> kg,co2/kg,air 
+      !the term 1.0d6 / vol2mass(idx) is needed to convert uatm -> kg,co2/kg,air 
       !in the denominator of alpha
-      trsf = Kw_gas * beta_gas * 1.0d6 / vol2mass(ntm_gasexch)
+      trsf = Kw_gas * beta_gas * 1.0d6 / vol2mass(idx)
 
       !trconstflx comes in from SURFACE.f and has units kg,co2/kg,air/m2
       !therefore trcnst needs to be multiplied by byrho before it is sent to  PBL.f
       trcnst = Kw_gas * alpha_gas * trconstflx * byrho     
-     .                * 1.0d6 / vol2mass(ntm_gasexch)    
+     .                * 1.0d6 / vol2mass(idx)    
 
-#ifdef OBIO_WSPDF
         if (ilong.eq.1. .and. jlat.eq.45) then
-        write(*,'(a,3i7,11e12.4)')'PBL, TRACER_GASEXCH_CO2 wspdf:',
-!       write(*,'(a,3i7,11e12.4)')'44444444444444444444444',
-     .   nstep,ilong,jlat,tg1,(Sc_gas/660.d0)**(-0.5d0),wspdf*wspdf,
+        write(*,'(a,2i7,11e12.4)')'PBL, TRACER_GASEXCH_CO2 ws:',
+!       write(*,'(a,2i7,11e12.4)')'44444444444444444444444',  
+     .   ilong,jlat,tg1,(Sc_gas/660.d0)**(-0.5d0),ws*ws,
      .   Kw_gas,alpha_gas,beta_gas,trsf,trcnst,trconstflx,byrho,rhows
         endif
-#else
-        if (ilong.eq.1. .and. jlat.eq.45) then
-        write(*,'(a,3i7,11e12.4)')'PBL, TRACER_GASEXCH_CO2 ws:',
-!       write(*,'(a,3i7,11e12.4)')'44444444444444444444444',  
-     .   nstep,ilong,jlat,tg1,(Sc_gas/660.d0)**(-0.5d0),ws*ws,
-     .   Kw_gas,alpha_gas,beta_gas,trsf,trcnst,trconstflx,byrho,rhows
-        endif
-#endif                                  
 
       RETURN
       END SUBROUTINE TRACERS_GASEXCH_ocean_CO2_PBL
@@ -151,7 +111,7 @@ c-------------------------------------------------------------------
 
       END
 
-      REAL*8 FUNCTION alpha_gas2(pt,ps)
+      REAL*8 FUNCTION alpha_gas2_co2(pt,ps)
 c-------------------------------------------------------------------
 c
 c     CO2 Solubility in seawater
@@ -166,7 +126,7 @@ c-------------------------------------------------------------------
 
       REAL*8    pt,ps,sol_CO2
 
-      alpha_gas2=sol_CO2(pt,ps) * 1.d-6 * 1024.5  !mol,CO2/m3/uatm
+      alpha_gas2_co2=sol_CO2(pt,ps) * 1.d-6 * 1024.5  !mol,CO2/m3/uatm
       
       END
 

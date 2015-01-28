@@ -6,7 +6,7 @@
 
       subroutine tracer_ic_ocean(atmocn)
       use model_com, only: itime,itimei
-      use ocn_tracer_com, only : ntm, trname
+      use ocn_tracer_com, only : tracerlist, ocn_tracer_entry
       use ocean, only : im,jm,lmo
       use ocean, only : dxypo,mo
       use ocean, only : trmo
@@ -24,6 +24,7 @@ c
      &     tr_ic
       integer n,i,j,l,nt,fid
       integer :: j_0s, j_1s, j_0, j_1
+      type(ocn_tracer_entry), pointer :: entry
 
       if(itime.ne.itimei) return
 
@@ -34,8 +35,9 @@ c
 
 ! Loop over tracers, read the IC for each, convert to extensive units (kg).
 ! straits IC not an option yet.
-      do nt=1,ntm
-        call read_dist_data(grid,fid,trim(trname(nt)),tr_ic)
+      do nt=1,tracerlist%getsize()
+        entry=>tracerlist%at(nt)
+        call read_dist_data(grid,fid,trim(entry%trname),tr_ic)
         do l=1,lmo
         do j=j_0,j_1
         trmo(:,j,l,nt) = 0.

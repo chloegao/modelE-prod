@@ -83,6 +83,11 @@ C****
       call parse_params(iu_IFILE)
       call closeunit(iu_IFILE)
 
+      call setup_ocean()
+#ifdef TRACERS_OceanBiology
+      call setup_obio()
+#endif
+
       call initializeModelE()
 
 C****
@@ -145,6 +150,7 @@ C****
 #endif
 
       call atm_phase1
+      atmocn%updated=.true.
 
 C****
 C**** SURFACE INTERACTION AND GROUND CALCULATION
@@ -1042,6 +1048,10 @@ C****
 !@sum prints preprocessor options in english and checks some
 !@+  interdependencies. (moved from subroutine INPUT).
 !@+  Called by root thread only.
+      use runtimecontrols_mod, only: tracers_gasexch_ocean,
+     &   tracers_oceanbiology, tracers_gasexch_ocean_cfc,
+     &   tracers_gasexch_ocean_co2
+      implicit none
 
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       write(6,*) 'This program includes tracer code'
@@ -1066,20 +1076,18 @@ C****
 #ifdef TRACERS_SPECIAL_Lerner
       write(6,*) '...and Jean/David tracers and chemistry'
 #endif
-#ifdef TRACERS_GASEXCH_ocean
-      write(6,*) '          '
-      write(6,*) '...and Natassa Romanou air-sea GAS EXCHANGE'
-#ifdef TRACERS_OceanBiology
-      write(6,*) '          '
-      write(6,*) '...and Natassa Romanou/Watson Gregg ocean biology '
-#endif
-#ifdef TRACERS_GASEXCH_ocean_CFC
-      write(6,*) '****CFC flux across air/sea interface****'
-#endif
-#ifdef TRACERS_GASEXCH_ocean_CO2
-      write(6,*) '****CO2 flux across air/sea interface****'
-#endif
-#endif
+      if (tracers_gasexch_ocean) then
+        write(6,*) '          '
+        write(6,*) '...and Natassa Romanou air-sea GAS EXCHANGE'
+        if (tracers_oceanbiology) then
+          write(6,*) '          '
+          write(6,*)'...and Natassa Romanou/Watson Gregg ocean biology '
+        endif
+        if (tracers_gasexch_ocean_cfc)
+     &           write(6,*) '****CFC flux across air/sea interface****'
+        if (tracers_gasexch_ocean_co2)
+     &           write(6,*) '****CO2 flux across air/sea interface****'
+      endif
 #ifdef TRACERS_SPECIAL_Shindell
       write(6,*) '...and Drew Shindell tracers and chemistry'
 #endif

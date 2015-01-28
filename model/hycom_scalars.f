@@ -218,7 +218,6 @@ c --- windf       use wind stress forcing function
 c --- relax       activate lateral boundary nudging
 c
 #if (defined TRACERS_HYCOM_Ventilation) \
- || (defined TRACERS_GASEXCH_ocean) \
  || (defined TRACERS_OceanBiology) \
  || (defined TRACERS_AGE_OCEAN) \
  || (defined TRACERS_OCEAN_WATER_MASSES) \

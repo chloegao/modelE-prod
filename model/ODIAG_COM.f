@@ -3,9 +3,6 @@
       MODULE ODIAG
 !@sum  ODIAG ocean diagnostic arrays (incl. dynamic sea ice)
 !@auth Gary Russell/Gavin Schmidt
-#ifdef TRACERS_OCEAN
-      USE OCN_TRACER_COM, only : ntm
-#endif
 #ifdef TRACERS_OceanBiology
       USE obio_dim, only:  ntrac
 #endif
@@ -72,9 +69,7 @@
      .           ,ij_lim(4,5),ilim,ij_ndet,ij_xchl   
      .           ,ij_pp1,ij_pp2,ij_pp3,ij_pp4
      .           ,ij_rhs(ntrac-1,17),ll
-#ifdef TRACERS_Alkalinity
      .           ,ij_fca
-#endif
 
 #ifdef OBIO_RUNOFF
 #ifdef NITR_RUNOFF
@@ -765,7 +760,7 @@ c instances of the arrays containing derived quantities
       USE ODIAG, only : icon_OCE,icon_OKE,icon_OMS,icon_OSL,icon_OAM
       USE OCEANR_DIM, only : oGRID
 #ifdef TRACERS_OCEAN
-      USE OCN_TRACER_COM, only : ntm
+      USE OCN_TRACER_COM, only : tracerlist
 #endif
       USE EXCHANGE_TYPES, only : atmocn_xchng_vars
       IMPLICIT NONE
@@ -800,7 +795,7 @@ C****
 
 #ifdef TRACERS_OCEAN
 C**** Tracer calls are dealt with separately
-      do nt=1,ntm
+      do nt=1,tracerlist%getsize()
         CALL DIAGTCO(M,NT,atmocn)
       end do
 #endif
@@ -883,12 +878,16 @@ C****
       USE ODIAG
       use straits, only : lmst,nmst,name_st
 #ifdef TRACERS_OCEAN
-      USE OCN_TRACER_COM, only : ntrocn,trname,n_Water,to_per_mil
+      USE OCN_TRACER_COM, only : n_Water, tracerlist, ocn_tracer_entry
 #endif
       USE EXCHANGE_TYPES, only : atmocn_xchng_vars
+      use runtimecontrols_mod, only: tracers_alkalinity
       IMPLICIT NONE
       type(atmocn_xchng_vars) :: atmocn
 c
+#ifdef TRACERS_OCEAN
+      type(ocn_tracer_entry), pointer :: entry
+#endif
       CHARACTER UNITS*20,UNITS_INST*20,unit_string*50
       INTEGER k,kb,kq,kc,kk,n,nt,ndel,kk_Water
       character(len=10) :: xstr,ystr,zstr
@@ -1583,15 +1582,15 @@ c
       ia_oij(k)=ia_src
       scale_oij(k)=1
 
-#ifdef TRACERS_Alkalinity
-      k=k+1
-      IJ_fca=k
-      lname_oij(k)="CaCO3 export flux at compensation depth"
-      sname_oij(k)="oij_fca"
-      units_oij(k)="mili-g,C/m2/hr"
-      ia_oij(k)=ia_src
-      scale_oij(k)=1
-#endif
+      if (tracers_alkalinity) then
+        k=k+1
+        IJ_fca=k
+        lname_oij(k)="CaCO3 export flux at compensation depth"
+        sname_oij(k)="oij_fca"
+        units_oij(k)="mili-g,C/m2/hr"
+        ia_oij(k)=ia_src
+        scale_oij(k)=1
+      endif
 
 #ifdef OBIO_RUNOFF
 #ifdef NITR_RUNOFF
@@ -1923,13 +1922,14 @@ C**** Oceanic tracers
 #else
       ndel=10
 #endif
-      do nt=1,ntm
-        UNITS_INST="("//trim(unit_string(ntrocn(nt),'kg/m^2'))//")"
-        UNITS="("//trim(unit_string(ntrocn(nt)-ndel,'kg/m^2/s'))//")"
-        INST_SC=10.**(-ntrocn(nt))
-        CHNG_SC=10.**(-ntrocn(nt)+ndel)
-        CALL SET_TCONO(trname(nt)(1:8),UNITS_INST,UNITS,INST_SC,CHNG_SC,
-     &       nt)
+      do nt=1,tracerlist%getsize()
+        entry=>tracerlist%at(nt)
+        UNITS_INST="("//trim(unit_string(entry%ntrocn,'kg/m^2'))//")"
+        UNITS="("//trim(unit_string(entry%ntrocn-ndel,'kg/m^2/s'))//")"
+        INST_SC=10.**(-entry%ntrocn)
+        CHNG_SC=10.**(-entry%ntrocn+ndel)
+        CALL SET_TCONO(entry%trname(1:8),UNITS_INST,UNITS,
+     &            INST_SC,CHNG_SC, nt)
       end do
 #endif
 #endif /* STANDALONE_OCEAN */
@@ -2172,14 +2172,15 @@ c
      &     long_name='OCEAN GRIDBOX MASS', units='kg',
      &       make_timeaxis=make_timeaxis)
       kk_water = 0
-      do nt=1,ntm
+      do nt=1,tracerlist%getsize()
+        entry=>tracerlist%at(nt)
         kk = kk + 1
         if(nt.eq.n_Water) kk_Water = kk
         xyzstr='(zoc,lato,lono) ;'
-        sname_toijl(kk) = trim(trname(nt))
+        sname_toijl(kk) = trim(entry%trname)
         denom_toijl(kk) = 1 ! mo index == 1
         kn_toijl(:,kk) = (/ toijl_conc, nt /)
-        if(to_per_mil(nt).gt.0 .and. nt.ne.n_Water) then
+        if(entry%to_per_mil.gt.0 .and. nt.ne.n_Water) then
           unitstr='per mil'
           denom_toijl(kk) = -1   ! flag to be used below
         else
@@ -2188,7 +2189,7 @@ c
         set_miss = denom_toijl(kk).ne.0
         call add_var(cdl_toijl,
      &       'float '//trim(sname_toijl(kk))//trim(xyzstr),
-     &       long_name='OCEAN '//trim(trname(nt)),
+     &       long_name='OCEAN '//trim(entry%trname),
      &       units=trim(unitstr),
      &       set_miss=set_miss,
      &       make_timeaxis=make_timeaxis)
@@ -2199,30 +2200,30 @@ c
         xyzstr='(zoce,lato,lono) ;'
         unitstr='kg/m^2/s'
         kk = kk + 1
-        sname_toijl(kk) = trim(trname(nt))//'_zflx_adv'
+        sname_toijl(kk) = trim(entry%trname)//'_zflx_adv'
         divbya_toijl(kk) = .true.
         kn_toijl(:,kk) = (/ toijl_tflx+2, nt /)
         call add_var(cdl_toijl,
      &       'float '//trim(sname_toijl(kk))//trim(xyzstr),
-     &       long_name='VERT. ADV. FLUX '//trim(trname(nt)),
+     &       long_name='VERT. ADV. FLUX '//trim(entry%trname),
      &       units=trim(unitstr),
      &       make_timeaxis=make_timeaxis)
         kk = kk + 1
-        sname_toijl(kk) = trim(trname(nt))//'_zflx_turb'
+        sname_toijl(kk) = trim(entry%trname)//'_zflx_turb'
         divbya_toijl(kk) = .true.
         kn_toijl(:,kk) = (/ toijl_wtfl, nt /)
         call add_var(cdl_toijl,
      &       'float '//trim(sname_toijl(kk))//trim(xyzstr),
-     &       long_name='VERT. DIFF. FLUX '//trim(trname(nt)),
+     &       long_name='VERT. DIFF. FLUX '//trim(entry%trname),
      &       units=trim(unitstr),
      &       make_timeaxis=make_timeaxis)
         kk = kk + 1
-        sname_toijl(kk) = trim(trname(nt))//'_zflx_gm'
+        sname_toijl(kk) = trim(entry%trname)//'_zflx_gm'
         divbya_toijl(kk) = .true.
         kn_toijl(:,kk) = (/ toijl_gmfl+2, nt /)
         call add_var(cdl_toijl,
      &       'float '//trim(sname_toijl(kk))//trim(xyzstr),
-     &       long_name='GM/EDDY VERT. FLUX '//trim(trname(nt)),
+     &       long_name='GM/EDDY VERT. FLUX '//trim(entry%trname),
      &       units=trim(unitstr),
      &       make_timeaxis=make_timeaxis)
 
@@ -2232,19 +2233,19 @@ c
         xyzstr='(zoc,lato,lono2) ;'
         unitstr='kg/s'
         kk = kk + 1
-        sname_toijl(kk) = trim(trname(nt))//'_xflx_adv'
+        sname_toijl(kk) = trim(entry%trname)//'_xflx_adv'
         kn_toijl(:,kk) = (/ toijl_tflx+0, nt /)
         call add_var(cdl_toijl,
      &       'float '//trim(sname_toijl(kk))//trim(xyzstr),
-     &       long_name='ADV. E-W FLUX '//trim(trname(nt)),
+     &       long_name='ADV. E-W FLUX '//trim(entry%trname),
      &       units=trim(unitstr),
      &       make_timeaxis=make_timeaxis)
         kk = kk + 1
-        sname_toijl(kk) = trim(trname(nt))//'_xflx_gm'
+        sname_toijl(kk) = trim(entry%trname)//'_xflx_gm'
         kn_toijl(:,kk) = (/ toijl_gmfl+0, nt /)
         call add_var(cdl_toijl,
      &       'float '//trim(sname_toijl(kk))//trim(xyzstr),
-     &       long_name='GM/EDDY E-W FLUX '//trim(trname(nt)),
+     &       long_name='GM/EDDY E-W FLUX '//trim(entry%trname),
      &       units=trim(unitstr),
      &       make_timeaxis=make_timeaxis)
 c
@@ -2253,19 +2254,19 @@ c
         xyzstr='(zoc,lato2,lono) ;'
         unitstr='kg/s'
         kk = kk + 1
-        sname_toijl(kk) = trim(trname(nt))//'_yflx_adv'
+        sname_toijl(kk) = trim(entry%trname)//'_yflx_adv'
         kn_toijl(:,kk) = (/ toijl_tflx+1, nt /)
         call add_var(cdl_toijl,
      &       'float '//trim(sname_toijl(kk))//trim(xyzstr),
-     &       long_name='ADV. N-S FLUX '//trim(trname(nt)),
+     &       long_name='ADV. N-S FLUX '//trim(entry%trname),
      &       units=trim(unitstr),
      &       make_timeaxis=make_timeaxis)
         kk = kk + 1
-        sname_toijl(kk) = trim(trname(nt))//'_yflx_gm'
+        sname_toijl(kk) = trim(entry%trname)//'_yflx_gm'
         kn_toijl(:,kk) = (/ toijl_gmfl+1, nt /)
         call add_var(cdl_toijl,
      &       'float '//trim(sname_toijl(kk))//trim(xyzstr),
-     &       long_name='GM/EDDY N-S FLUX '//trim(trname(nt)),
+     &       long_name='GM/EDDY N-S FLUX '//trim(entry%trname),
      &       units=trim(unitstr),
      &       make_timeaxis=make_timeaxis)
 
@@ -2310,6 +2311,9 @@ c
 !@auth Reto Ruedy
       USE DOMAIN_DECOMP_1D, only : dist_grid,getDomainBounds,am_i_root
       USE ODIAG
+#ifdef TRACERS_OCEAN
+      USE OCN_TRACER_COM, only : tracerlist
+#endif
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
 
@@ -2317,8 +2321,8 @@ c
       INTEGER :: IER
 
 #ifdef TRACERS_OCEAN
-      ALLOCATE(TLNST(LMO,NMST,KOLNST,NTM))
-      KTOIJLx = ntm*8 + 1 ! +1 for mo used as denom
+      ALLOCATE(TLNST(LMO,NMST,KOLNST,tracerlist%getsize()))
+      KTOIJLx = tracerlist%getsize()*8 + 1 ! +1 for mo used as denom
       ALLOCATE(DIVBYA_TOIJL(KTOIJLx),KN_TOIJL(2,KTOIJLx))
       ALLOCATE(IA_TOIJL(KTOIJLx),DENOM_TOIJL(KTOIJLx),
      &     SCALE_TOIJL(KTOIJLx), SNAME_TOIJL(KTOIJLx))
@@ -2332,7 +2336,8 @@ c
       ALLOCATE(       OIJL_loc (IM,J_0H:J_1H,LMO,KOIJL), STAT=IER )
       ALLOCATE(       OIJL_out (IM,J_0H:J_1H,LMO,KOIJL), STAT=IER )
 #ifdef TRACERS_OCEAN
-      ALLOCATE(      TOIJL_loc (IM,J_0H:J_1H,LMO,KTOIJL,NTM), STAT=IER )
+      ALLOCATE(TOIJL_loc (IM,J_0H:J_1H,LMO,KTOIJL,tracerlist%getsize()),
+     &    STAT=IER )
 #ifdef NEW_IO
       ALLOCATE(      TOIJL_out (IM,J_0H:J_1H,LMO,KTOIJLx), STAT=IER )
 #endif

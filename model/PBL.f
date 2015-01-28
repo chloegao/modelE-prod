@@ -227,9 +227,7 @@ c**** output
 #endif
 
 
-#ifdef TRACERS_GASEXCH_ocean
-        real*8  :: Kw_gas,alpha_gas,beta_gas
-#endif
+        real*8, dimension(:), allocatable  :: Kw_gas,alpha_gas,beta_gas
 #endif
 
 
@@ -422,9 +420,14 @@ c  internals:
 #ifdef TRACERS_TOMAS
       USE TOMAS_EMIS
 #endif 
+#if defined(TRACERS_ON)
+      use tracer_com, only: tr_mm, gasex_index, n_co2n, n_cfcn
+#endif
 
 !@var tdns downdraft temperature in K, (i,j)
 !@var qdns downdraft humidity in kg/kg, (i,j)
+
+      use runtimecontrols_mod, only: obio_wspdf
 
       implicit none
 
@@ -458,6 +461,7 @@ c**** local vars for input from pbl_args
 c**** local vars for output to pbl_args
       real*8 :: us,vs,ws,tsv,qsrf,khs,dskin,ustar,cm,ch,cq,wsgcm,wspdf
       real*8 :: ws0,lmonin
+      real*8 :: ws_select
 c**** other local vars
       real*8 :: qsat,deltaSST,tgskin,qnet,ts,rhosrf,qgrnd,delt
       real*8 :: tstar,qstar,ustar0,test,wstar3,wstar2h,tgrnd,ustar_oc
@@ -478,7 +482,7 @@ C****
       real*8, dimension(n,NTM) :: trsave
       real*8 trcnst,trsf,cqsave,byrho,rh1,evap,visc
       real*8, dimension(n-1) :: kqsave
-      integer itr
+      integer itr, ngx
 #ifdef TRACERS_WATER
       real*8 :: trc2         ! could be passed out....
 #ifdef TRACERS_SPECIAL_O18
@@ -1010,45 +1014,48 @@ ccc dust emission from earth
         END SELECT
 #endif
 
-#ifdef TRACERS_GASEXCH_ocean
-#ifdef TRACERS_GASEXCH_ocean_CO2
-       IF (ocean) THEN  ! OCEAN only
+        ngx=gasex_index%getindex(pbl_args%ntix(itr))
+        if (pbl_args%ntix(itr)==n_co2n) then
+          IF (ocean) THEN  ! OCEAN only
           !note trcnst is already multiplied by byrho in TRACERS_GASEXCH_ocean_CO2_PBL
 
-#ifdef OBIO_WSPDF
-
-          call TRACERS_GASEXCH_ocean_CO2_PBL(tg1,wspdf,
-     .          pbl_args%sss_loc,psurf,itr,pbl_args%trconstflx(itr),
-     .          byrho,pbl_args%Kw_gas,pbl_args%alpha_gas,
-     .          pbl_args%beta_gas,trsf,trcnst,ilong,jlat)
-                         
+            if (obio_wspdf) then
+              ws_select=wspdf
+            else
+              ws_select=ws
+            endif
+#ifdef TRACERS_GASEXCH_ocean
+            call TRACERS_GASEXCH_ocean_CO2_PBL(tg1,ws_select,
+     .          pbl_args%sss_loc,psurf,tr_mm(pbl_args%ntix(itr)),
+     .          pbl_args%trconstflx(itr),
+     .          byrho,pbl_args%Kw_gas(ngx),pbl_args%alpha_gas(ngx),
+     .          pbl_args%beta_gas(ngx),trsf,trcnst,ilong,jlat)
 #else
-          call TRACERS_GASEXCH_ocean_CO2_PBL(tg1,ws,
-     .          pbl_args%sss_loc,psurf,itr,pbl_args%trconstflx(itr),
-     .          byrho,pbl_args%Kw_gas,pbl_args%alpha_gas,
-     .          pbl_args%beta_gas,trsf,trcnst,ilong,jlat)
-#endif
+            call stop_model('gas exchange code missing', 255)
+#endif                         
 
 !     write(*,'(a,2i5,4e12.4,i5,7e12.4)')'PBL:', 
 !    .  ilong,jlat,tg1,ws,pbl_args%sss_loc,psurf,itr,
 !    .             pbl_args%trconstflx(itr),
-!    .          byrho,pbl_args%Kw_gas,pbl_args%alpha_gas,
-!    .          pbl_args%beta_gas,trsf,trcnst
-       ELSE
-        trsf = 0.d0
-        trcnst = 0.d0
-       ENDIF
-#endif   /* TRACERS_GASEXCH_ocean_CO2 */
-
-#ifdef TRACERS_GASEXCH_ocean_CFC
-      IF (ocean) THEN  ! OCEAN only
-       call TRACERS_GASEXCH_ocean_CFC_PBL(tg1,ws,
-     .          pbl_args%sss_loc,psurf,itr,pbl_args%trconstflx(itr),
-     .          byrho,pbl_args%Kw_gas,pbl_args%alpha_gas,
-     .          pbl_args%beta_gas,trsf,trcnst,ilong,jlat)
-      ENDIF
-#endif /* TRACERS_GASEXCH_ocean_CFC */
-#endif /* TRACERS_GASEXCH_ocean */
+!    .          byrho,pbl_args%Kw_gas(ngx),pbl_args%alpha_gas(ngx),
+!    .          pbl_args%beta_gas(ngx),trsf,trcnst
+          ELSE
+            trsf = 0.d0
+            trcnst = 0.d0
+          ENDIF
+        else if (pbl_args%ntix(itr)==n_cfcn) then
+          IF (ocean) THEN  ! OCEAN only
+#ifdef TRACERS_GASEXCH_ocean
+            call TRACERS_GASEXCH_ocean_CFC_PBL(tg1,ws,
+     .          pbl_args%sss_loc,psurf,tr_mm(pbl_args%ntix(itr)),
+     .          pbl_args%trconstflx(itr),
+     .          byrho,pbl_args%Kw_gas(ngx),pbl_args%alpha_gas(ngx),
+     .          pbl_args%beta_gas(ngx),trsf,trcnst,ilong,jlat)
+#else
+            call stop_model('gas exchange code missing', 255)
+#endif
+          ENDIF
+        endif
 
 C**** solve tracer transport equation
         call tr_eqn(trsave(1,itr),tr(1,itr),kqsave,dz,dzh,trsf
@@ -3384,6 +3391,10 @@ c       endif
 
       subroutine alloc_pbl_args(pbl_args)
       USE CONSTANT, only : IUNDEF_VAL, UNDEF_VAL
+#ifdef TRACERS_ON
+      use tracer_com, only: gasex_index
+#endif
+      implicit none
       type (t_pbl_args), intent(inout) :: pbl_args
 
 #ifdef TRACERS_ON
@@ -3418,6 +3429,9 @@ c       endif
       allocate(pbl_args%tr_evap_max(maxNTM))
       pbl_args%tr_evap_max = UNDEF_VAL
 #endif
+      allocate(pbl_args%kw_gas(gasex_index%getsize()))
+      allocate(pbl_args%alpha_gas(gasex_index%getsize()))
+      allocate(pbl_args%beta_gas(gasex_index%getsize()))
 #endif
       end subroutine alloc_pbl_args
 

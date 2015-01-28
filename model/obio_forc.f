@@ -42,7 +42,6 @@
       real tirrq(kdm)         !total mean irradiance in quanta
       real, parameter ::  tirrq_critical=10. !in quanta threshold at compensation depth
       real rmud               !downwelling irradiance average cosine
-      real atmCO2
       real rhosrf             !surface air density which comes from PBL.f
 
       END MODULE obio_forc
@@ -81,19 +80,3 @@
 #endif
 
       end subroutine alloc_obio_forc
-
-      subroutine obio_forc_init
-      use obio_forc, only : atmco2
-      use dictionary_mod
-      implicit none
-#ifdef constCO2
-      call get_param("atmCO2",atmCO2)   !need to do this here also
-#ifdef OBIO_ON_GARYocean
-      print*, 'OCNDYN, atmco2=',atmCO2
-#else
-      print*, 'OCEAN_hycom, atmco2=',atmCO2
-#endif
-#else
-      atmCO2=0.  !progn. atmCO2, set here to zero, dummy anyway
-#endif
-      end subroutine obio_forc_init

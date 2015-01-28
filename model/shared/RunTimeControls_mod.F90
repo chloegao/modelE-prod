@@ -1326,6 +1326,12 @@ module RunTimeControls_mod
   logical, parameter :: pco2_online = .false.
 #endif
 
+#if defined(OBIO_WSPDF)
+  logical, parameter :: obio_wspdf = .true.
+#else
+  logical, parameter :: obio_wspdf = .false.
+#endif
+
 
 
   contains

@@ -8,7 +8,7 @@
       use oceanres,  only: idm=>imo,jdm=>jmo,kdm=>lmo
       use oceanr_dim, only : ogrid
       use obio_com, only: tracer => tracer_loc ! rename local
-      use ocn_tracer_com, only : ntrcr=>ntm
+      use ocn_tracer_com, only : tracerlist
       use model_com, only : nstep=>itime
       use ocean, only: trmo
       use ofluxes, only : ocnatm
@@ -24,6 +24,7 @@
       USE obio_forc, only: atmFe
       USE obio_com,   only: carb_old,obio_deltath,iron_old,p1d
       use domain_decomp_1d, only: am_i_root, globalsum, getDomainBounds
+      use tracer_com, only: gasex_index, n_co2n
 
       implicit none
 
@@ -37,7 +38,14 @@
 
       real*8, allocatable :: summ(:)
       real*8 :: sumFlux(1)
+      integer :: idx_co2
+#ifdef OBIO_ON_GARYocean
+      integer :: ntrcr
+#endif
 
+#ifdef OBIO_ON_GARYocean
+      ntrcr=tracerlist%getsize()
+#endif
       call getDomainBounds(ogrid, j_strt = j_0, j_stop = j_1,
      &     j_strt_halo = j_0h, j_stop_halo = j_1h)
 
@@ -49,19 +57,16 @@
       allocate(summ(ntrcr))
       summ = volumeIntegration(tracer)
 
-#ifdef TRACERS_GASEXCH_ocean
-      !integrate flux
-      ! using resize to force tracflx to act as 4D array with
-      ! size 1 in the uninteresting directions to match
-      ! expected interface.
-#ifdef OBIO_ON_GARYocean
-      sumFlux= areaIntegration(ocnatm%trgasex(1,:,:)) !tracflx(:,:,1))
-#else
-      sumFlux= areaIntegration(ocnatm%trgasex(1,:,:)) !tracflx(:,:,1))
-#endif
-#else
-      sumFlux=0.   ! no surface flux
-#endif
+      idx_co2=gasex_index%getindex(n_co2n)
+      if (idx_co2>0) then
+         !integrate flux
+         ! using resize to force tracflx to act as 4D array with
+         ! size 1 in the uninteresting directions to match
+         ! expected interface.
+        sumFlux= areaIntegration(ocnatm%trgasex(idx_co2,:,:)) !tracflx(:,:,1))
+      else
+        sumFlux=0.   ! no surface flux
+      endif
       !see obio_ptend notes on whether to include ice effect
       ironFlux= areaIntegration(atmFe(:,:,modelEclock%getMonth()))
 #ifdef zero_ironflux

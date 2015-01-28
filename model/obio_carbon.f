@@ -13,10 +13,10 @@ c
 
       USE obio_dim
       USE obio_incom, only : cnratio,rlamdoc,rkdoc1,rkdoc2
-     .                      ,rlampoc,uMtomgm3,Pzo,awan,stdslp
+     .                      ,rlampoc,uMtomgm3,Pzo,stdslp
      .                      ,excz,resz,remin,excp,resp,bn,cchlratio
      .                      ,mgchltouMC,bf
-      USE obio_forc, only: wind,atmCO2,tirrq
+      USE obio_forc, only: wind,tirrq
       USE obio_com, only : C_tend,obio_P,P_tend,car
      .                    ,tfac,det,D_tend,tzoo,pnoice,pCO2_ij
      .                    ,temp1d,saln1d,dp1d,rhs,alk1d
@@ -30,15 +30,11 @@ c
 #endif
 #endif
 
+      use obio_com, only: co2flux
+
       use TimeConstants_mod, only: SECONDS_PER_HOUR, DAYS_PER_YEAR,
      &                             HOURS_PER_DAY
       
-#ifndef TRACERS_GASEXCH_ocean_CO2
-#ifdef TRACERS_OceanBiology
-     .                    ,ao_co2flux
-#endif
-#endif
-
 #ifdef OBIO_ON_GARYocean
       USE MODEL_COM, only : nstep=>itime
       USE OCEANRES, only : kdm=>lmo
@@ -51,16 +47,17 @@ c
       USE OFLUXES, only:  oFLOWO
 #endif
 
-#ifdef TRACERS_GASEXCH_ocean_CO2
-      use OldTracer_mod, only: tr_mm
-      USE TRACER_COM, only : NTM    !tracers involved in air-sea gas exch
-      USE TRACER_GASEXCH_COM, only : tracflx1d
-#endif
-      
+      use runtimecontrols_mod, only: constco2, pco2_online
+      use dictionary_mod, only: get_param
+      use tracer_com, only: n_co2n
 
       implicit none
 
 
+      real, parameter :: awan=0.337d0/(3.6d5) !piston vel coeff., from
+                                              !Wanninkof 1992, but adjusted
+                                              !by OCMIP, and converted from
+                                              !cm/hr to m/s
       integer :: i,j,k
 
       integer :: nt,kmax
@@ -72,6 +69,7 @@ c
       real  :: pHsfc
       real term
       real bs
+      real, save :: atmco2=-1.
 
       logical vrbos
 
@@ -282,11 +280,19 @@ cdiag if (vrbos) write(*,'(a,i7,e12.4)')
 cdiag.    'obio_carbon2: ', nstep,C_tend(1,2)
 
 c pCO2
-#ifdef pCO2_ONLINE
+      if (pco2_online) then
       !this ppco2 routine comes from OCMIP. I am not using psurf
       !and thus not compute dtco2 because these are computed in PBL
       !for the case of gasexch and progn. atmco2, atmco2=dummy
-      call ppco2(temp1d(1),saln1d(1),car(1,2),alk1d(1),
+        if (atmco2<0.) then    ! uninitialized
+          if (constco2) then
+            call get_param("atmCO2", atmco2)
+            print*, 'atmCO2=', atmco2
+          else
+            atmco2=0.
+          endif
+        endif
+        call ppco2(temp1d(1),saln1d(1),car(1,2),alk1d(1),
      .           obio_P(1,1),obio_P(1,3),atmCO2,
      .           pCO2_ij,pHsfc)
 
@@ -297,117 +303,108 @@ c pCO2
 !     !limits on pco2 ---more work needed
 ! ppco2 does not handle well the extreme salinity cases, such as
 ! when ice melts/forms, in river outflows.
-      if (saln1d(1).ge.40. .and. pCO2_ij.lt.100.)pCO2_ij=100.
-      if (saln1d(1).le.31. .and. pCO2_ij.gt.800.)pCO2_ij=800.
-      if (pCO2_ij .lt. 100.) pCO2_ij=100.
-      if (pCO2_ij .gt.1000.) pCO2_ij=1000.
+        if (saln1d(1).ge.40. .and. pCO2_ij.lt.100.)pCO2_ij=100.
+        if (saln1d(1).le.31. .and. pCO2_ij.gt.800.)pCO2_ij=800.
+        if (pCO2_ij .lt. 100.) pCO2_ij=100.
+        if (pCO2_ij .gt.1000.) pCO2_ij=1000.
 
-      if(vrbos)then
-        write(*,'(a,3i5,9e12.4)')
-     .    'carbon: ONLINE',nstep,i,j,temp1d(1),saln1d(1),
-!    .    '66666666666666',nstep,i,j,temp1d(1),saln1d(1),
-     .               car(1,2),alk1d(1),
-     .               obio_P(1,1),obio_P(1,3),pCO2_ij,
-     .               pHsfc,pnoice(1)
+        if(vrbos)then
+          write(*,'(a,3i5,9e12.4)')
+     .      'carbon: ONLINE',nstep,i,j,temp1d(1),saln1d(1),
+!    .      '66666666666666',nstep,i,j,temp1d(1),saln1d(1),
+     .                 car(1,2),alk1d(1),
+     .                 obio_P(1,1),obio_P(1,3),pCO2_ij,
+     .                 pHsfc,pnoice(1)
+        endif
+
+      else
+
+        call ppco2tab(temp1d(1),saln1d(1),car(1,2),alk1d(1),pCO2_ij)
+        if (vrbos) then
+           write(*,'(a,3i5,6e12.4)')
+     .      'carbon: OFFLINE',nstep,i,j,temp1d(1),saln1d(1),
+     .                        car(1,2),alk1d(1),pCO2_ij,pHsfc
+        endif
       endif
-
-#else
-
-      call ppco2tab(temp1d(1),saln1d(1),car(1,2),alk1d(1),pCO2_ij)
-      if (vrbos) then
-         write(*,'(a,3i5,6e12.4)')
-     .    'carbon: OFFLINE',nstep,i,j,temp1d(1),saln1d(1),
-     .                      car(1,2),alk1d(1),pCO2_ij,pHsfc
-      endif
-#endif
 
 c Update DIC for sea-air flux of CO2
 
 !this is for gas exchange + ocean biology
-#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_GASEXCH_ocean_CO2)
-      k = 1
-      do nt=1,ntm
-      term = tracflx1d(nt)           ! mol/m2/s
+      if (n_co2n>0) then
+        k = 1
+        term = co2flux               ! mol/m2/s
      .     * SECONDS_PER_HOUR        ! mol/m2/hr
      .     /dp1d(k)                  ! mol/m3/hr
      .     * 1000.D0                 !units of uM/hr (=mili-mol/m3/hr)
                                      !do not mulitply by pnoice here, 
                                      !this is done in SURFACE.f (ptype)
-      rhs(k,14,16) = term
-      C_tend(k,2) = C_tend(k,2) + term
+        rhs(k,14,16) = term
+        C_tend(k,2) = C_tend(k,2) + term
 #ifdef noBIO
-      C_tend(k,2) = term
+        C_tend(k,2) = term
 #endif
-         if (vrbos) then
-         write(*,'(a,3i7,i3,4e12.4)')
-     .     'obio_carbon (coupled):',
-     .     nstep,i,j,nt,tr_mm(nt),dp1d(1),tracflx1d(nt),term     !this flux should be mol,co2/m2/s
-         endif
-
-      enddo
-
-#else
+        if (vrbos) then
+          write(*,'(a,3i7,3e12.4)')
+     .      'obio_carbon (coupled):',
+     .      nstep,i,j,dp1d(1),co2flux,term     !this flux should be mol,co2/m2/s
+        endif
+      else
 
 !this is for only ocean biology but no gas exchange: 
-#ifdef TRACERS_OceanBiology
       !when ocean biology but no CO2 gas exch
       !atmco2 is set to constant
-      k = 1
-      Ts = temp1d(k)
-      scco2 = 2073.1 - 125.62*Ts + 3.6276*Ts**2 - 0.043219*Ts**3
-      wssq = wind*wind
-      if (scco2.lt.0.) then
-        scco2arg=1.d-10
-        rkwco2=1.d-10
-      else
-        scco2arg = (scco2/660.D0)**(-0.5)      !Schmidt number
-        rkwco2 = awan*wssq*scco2arg           !transfer coeff (units of m/s)
-      endif
-      tk = 273.15+Ts
-      tk100 = tk*0.01
-      tk1002 = tk100*tk100
-      ff = exp(-162.8301 + 218.2968/tk100  +       !solub in mol/kg/picoatm
+        k = 1
+        Ts = temp1d(k)
+        scco2 = 2073.1 - 125.62*Ts + 3.6276*Ts**2 - 0.043219*Ts**3
+        wssq = wind*wind
+        if (scco2.lt.0.) then
+          scco2arg=1.d-10
+          rkwco2=1.d-10
+        else
+          scco2arg = (scco2/660.D0)**(-0.5)      !Schmidt number
+          rkwco2 = awan*wssq*scco2arg           !transfer coeff (units of m/s)
+        endif
+        tk = 273.15+Ts
+        tk100 = tk*0.01
+        tk1002 = tk100*tk100
+        ff = exp(-162.8301 + 218.2968/tk100  +       !solub in mol/kg/picoatm
      .         90.9241*log(tk100) - 1.47696*tk1002 +
      .         saln1d(k) * (.025695 - .025225*tk100 +
      .         0.0049867*tk1002))
 
-      xco2 = atmCO2*1013.D0/stdslp
-      deltco2 = (xco2-pCO2_ij)*ff*1024.5*1d-6 !convert ff mol/m3/uatm
-      flxmolm3 = (rkwco2*deltco2/dp1d(k))   !units of mol/m3/s
-      flxmolm3h = flxmolm3*SECONDS_PER_HOUR !units of mol/m3/hr
-      term = flxmolm3h*1000.D0*pnoice(k)    !units of uM/hr (=mili-mol/m^3/hr)
-      rhs(k,14,16) = term
-      C_tend(k,2) = C_tend(k,2) + term
+        xco2 = atmCO2*1013.D0/stdslp
+        deltco2 = (xco2-pCO2_ij)*ff*1024.5*1d-6 !convert ff mol/m3/uatm
+        flxmolm3 = (rkwco2*deltco2/dp1d(k))   !units of mol/m3/s
+        flxmolm3h = flxmolm3*SECONDS_PER_HOUR !units of mol/m3/hr
+        term = flxmolm3h*1000.D0*pnoice(k)    !units of uM/hr (=mili-mol/m^3/hr)
+        rhs(k,14,16) = term
+        C_tend(k,2) = C_tend(k,2) + term
 #ifdef noBIO
-      C_tend(k,2) = term
+        C_tend(k,2) = term
 #endif
 
       !flux sign is (atmos-ocean)>0, i.e. positive flux is INTO the ocean
-      ao_co2flux= rkwco2*(xco2-pCO2_ij)*ff*1.0245D-3*pnoice(k)  ! air-sea co2 flux
+        co2flux= rkwco2*(xco2-pCO2_ij)*ff*1.0245D-3*pnoice(k)! air-sea co2 flux
      .            *SECONDS_PER_HOUR                             ! mol/m2/hr
      .            *44.d0*HOURS_PER_DAY*DAYS_PER_YEAR            ! grC/m2/yr
-      if (vrbos) then
+        if (vrbos) then
             write(*,'(a,3i5,11e12.4)')'obio_carbon, fluxdiag:',
      .      nstep,i,j,dp1d(k),Ts,saln1d(k),scco2arg,wssq,rkwco2,
-     .      xco2,pCO2_ij,ff,flxmolm3,ao_co2flux
+     .      xco2,pCO2_ij,ff,flxmolm3,co2flux
+        endif
+
+        if (vrbos) then
+          write(6,'(a,3i7,9e12.4)')'obio_carbon(watson):',
+!          write(6,'(a,3i7,9e12.4)')'99999999999999999999',
+     .      nstep,i,j,Ts,scco2arg,wssq,rkwco2,ff,xco2,pCO2_ij,
+     .      rkwco2*(xco2-pCO2_ij)*ff*1.0245D-3,term     !this flux should have units mol,co2/m2/s
+        endif
       endif
-
-      if (vrbos) then
-       write(6,'(a,3i7,9e12.4)')'obio_carbon(watson):',
-!      write(6,'(a,3i7,9e12.4)')'99999999999999999999',
-     .   nstep,i,j,Ts,scco2arg,wssq,rkwco2,ff,xco2,pCO2_ij,
-     .   rkwco2*(xco2-pCO2_ij)*ff*1.0245D-3,term     !this flux should have units mol,co2/m2/s
-      endif
-
-#endif
-
-#endif
 
       return
-      end
+      end subroutine obio_carbon
 
 c ---------------------------------------------------------------------------
-#ifndef pCO2_ONLINE
       subroutine ppco2tab(T,S,car1D,TA,pco21D)
  
 c  Computes pCO2 in the surface layer and delta pCO2 with the
@@ -421,17 +418,49 @@ c  TA   2000    2500    2
 c
 
       USE obio_dim, only: ALK_CLIM
-      USE obio_incom, only : it0inc,idicinc,itainc,pco2tab
-     .                      ,nt0,nsal,ndic,nta
+      use domain_decomp_1d, only: am_i_root
+      use filemanager, only: openunit, closeunit
 
       implicit none
 
+      real, intent(in) :: T, S, car1D
+      real, intent(inout):: TA
+      real, intent(out):: pco21D
       integer  :: it0,isal,idic,ita
 
+      real, allocatable, dimension(:,:,:,:), save :: pco2tab
+!save from moved ifst parts
+      integer, parameter :: it0inc=1,nt0=80/it0inc,nsal=20
+      integer, parameter :: idicinc=2,ndic=(650+idicinc)/idicinc
+      integer, parameter :: itainc=2,nta=(500+itainc)/itainc
       real, parameter :: tabar=2310.0 !mean total alkalinity uE/kg; OCMIP
       real, parameter :: Sbar=34.836  !global mean annual salinity (area-wt)
-      real :: T,S,car1D,pco21D,Tsfc,sal,DIC,TA
+      real :: Tsfc,sal,DIC
+      integer :: iu_bio, i, j, k, nl
 
+      if (.not.allocated(pco2tab)) then
+        allocate(pco2tab(nt0, nsal, ndic, nta))
+        call openunit('pco2table',iu_bio)
+        if (AM_I_ROOT()) then
+          print*, '    '
+          print*, 'obio_init, pco2tbl: ',nta,ndic,nsal,nt0
+        endif
+        do nl=1,nta
+          do k=1,ndic
+            do j=1,nsal
+              do i=1,nt0
+                read(iu_bio,'(e12.4)')pco2tab(i,j,k,nl)
+              enddo
+            enddo
+          enddo
+        enddo
+        call closeunit(iu_bio)
+        if (AM_I_ROOT()) then
+          print*,'BIO: read pCO2 table: ',
+     .        pco2tab(1,1,1,1),pco2tab(50,10,100,100)
+          print*, '    '
+        endif
+      endif
 c Get pco2
       pco21D = 0.0
        Tsfc = T
@@ -477,7 +506,6 @@ c    .             'correction in ppco2tab, ita =',ita,nta,TA
 
       return
       end
-#endif
 
 c ---------------------------------------------------------------------------
       subroutine ppco2(T,S,car1D,TA,nitr,silic,atmCO2,
@@ -488,10 +516,10 @@ c  atmosphere using OCMIP protocols.
 c
 
       USE obio_dim, only: ALK_CLIM
-      USE obio_incom, only: pHmin,pHmax
 
       implicit none
 
+      real, parameter :: phmin=7.5, phmax=8.6 ! min/max pH for iteration
       real*8, parameter :: tabar=2310.0D0    !mean total alkalinity uE/kg; OCMIP
       real*8, parameter :: stdslp=1013.25D0  !standard sea level pressure in mb
       real*8, parameter :: Sbar=34.836D0     !global mean annual salinity (area-wt)

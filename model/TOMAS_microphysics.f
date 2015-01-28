@@ -4429,9 +4429,9 @@ C
 C
       USE TOMAS_AEROSOL  
       USE TRACER_COM, only : ntm,trm,tr_mm
-     &     ,nbins,xk,trpdens,IDTECIL,
-     &       IDTOCIL,IDTOCOB,IDTSO4,IDTNA,IDTDUST,
-     &       IDTECOB
+     &     ,nbins,xk,trpdens,n_AECIL,
+     &       n_AOCIL,n_AOCOB,n_ASO4,n_ANACL,n_ADUST,
+     &       n_AECOB
       USE TRDIAG_COM, only: taijls=>taijls_loc,ijlt_ccn_01
      &     ,ijlt_ccn_03,ijlt_ccn_02
       USE CONSTANT, only: pi,gasc
@@ -4460,13 +4460,13 @@ C initialize CCN_mod
       CCN_mod(:)=0.
 C get density 
 
-      dens(1)=trpdens(IDTSO4)
-      dens(2)=trpdens(IDTNA)
-      dens(3)=trpdens(IDTECOB)
-      dens(4)=trpdens(IDTECIL)
-      dens(5)=trpdens(IDTOCOB)
-      dens(6)=trpdens(IDTOCIL)
-      dens(7)=trpdens(IDTDUST)
+      dens(1)=trpdens(n_ASO4(1))
+      dens(2)=trpdens(n_ANACL(1))
+      dens(3)=trpdens(n_AECOB(1))
+      dens(4)=trpdens(n_AECIL(1))
+      dens(5)=trpdens(n_AOCOB(1))
+      dens(6)=trpdens(n_AOCIL(1))
+      dens(7)=trpdens(n_ADUST(1))
 
 C surface tension
       SURT   = 0.0761-1.55E-4*(Temp-273.)

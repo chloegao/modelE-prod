@@ -5,6 +5,10 @@
 #define USE_ATM_GLOBAL_ARRAYS
 #endif
 
+      subroutine setup_ocean
+      return
+      end subroutine setup_ocean
+
       SUBROUTINE init_OCEAN(iniOCEAN,istart,atmocn,dynsice)
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,broadcast
       USE SEAICE, only : osurf_tilt
@@ -73,10 +77,6 @@ C**** (hycom ocean dynamics does not feel the weight of sea ice).
       call sync_param("bolus_laplc_constant",   bolus_laplc_constant)
       call sync_param("bolus_laplc_exponential",bolus_laplc_exponential)
 
-#ifdef TRACERS_OceanBiology
-      call obio_forc_init
-#endif
-c
       if (iocnmx.ge.0.and.iocnmx.le.2 .or. iocnmx.eq.5 .or. iocnmx.eq.6) 
      .                                                              then
         call inikpp
@@ -852,7 +852,7 @@ c
       str3d ='(idm,dist_jdm,kdm)'
       str3d2='(idm,dist_jdm,kdmx2)'
 
-#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
+#if defined(TRACERS_OceanBiology)
       call def_rsf_obio(fid)
 #endif
 
@@ -875,10 +875,7 @@ c
       call defvar(grid,fid,uflxav,'uflxav'//str3d)
       call defvar(grid,fid,vflxav,'vflxav'//str3d)
       call defvar(grid,fid,diaflx,'diaflx'//str3d)
-#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
-#else
       call defvar(grid,fid,tracer,'tracer(idm,dist_jdm,kdm,ntrcr)')
-#endif
       call defvar(grid,fid,dpinit,'dpinit'//str3d)
       call defvar(grid,fid,oddev,'oddev')
       call defvar(grid,fid,uav,'uav'//str3d)
@@ -937,7 +934,7 @@ c     . ,asst,atempr,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi  ! agcm grid
       integer fid   !@var fid unit number of read/write
       integer iaction !@var iaction flag for reading or writing to file
       integer :: n
-#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
+#if defined(TRACERS_OceanBiology)
         call new_io_obio(fid,iaction)
 #endif
       select case (iaction)
@@ -960,11 +957,7 @@ c     . ,asst,atempr,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi  ! agcm grid
         call write_dist_data(grid,fid,'uflxav',uflxav)
         call write_dist_data(grid,fid,'vflxav',vflxav)
         call write_dist_data(grid,fid,'diaflx',diaflx)
-#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
-        ! will be written by obio routine
-#else
         call write_dist_data(grid,fid,'tracer',tracer)
-#endif
         call write_dist_data(grid,fid,'dpinit',dpinit)
         call write_data(grid,fid,'oddev',oddev)
         call write_dist_data(grid,fid,'uav',uav)
@@ -1011,11 +1004,7 @@ c     . ,asst,atempr,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi  ! agcm grid
         call read_dist_data(grid,fid,'uflxav',uflxav)
         call read_dist_data(grid,fid,'vflxav',vflxav)
         call read_dist_data(grid,fid,'diaflx',diaflx)
-#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_OceanBiology)
-        ! will be read by obio routine
-#else
         call read_dist_data(grid,fid,'tracer',tracer)
-#endif
         call read_dist_data(grid,fid,'dpinit',dpinit)
         call read_data(grid,fid,'oddev',oddev,bcast_all=.true.)
         call read_dist_data(grid,fid,'uav',uav)

@@ -137,26 +137,30 @@ contains
 #endif
 
   subroutine CFCn_setSpec(name)
+    use tracer_com, only: gasex_index
     character(len=*), intent(in) :: name
 
     n = oldAddTracer(name)
     n_CFCn = n
+    call gasex_index%push_back(n_CFCn)
     call set_ntm_power(n, -12)
     call set_tr_mm(n, 137.37d0) !note units are in gr
-    call set_ntsurfsrc(n,  1)
+    call set_ntsurfsrc(n,  0)
     call set_needtrs(n, .true.)
 
   end subroutine CFCn_setSpec
 
   subroutine CO2n_setSpec(name)
+    use tracer_com, only: gasex_index
     character(len=*), intent(in) :: name
 
     n = oldAddTracer(name)
     n_CO2n = n
+    call gasex_index%push_back(n_CO2n)
     call set_ntm_power(n, -6)
     call set_tr_mm(n, 44.d0)  !grams
     call set_t_qlimit(n,  .false.)
-    call set_ntsurfsrc(n,  1)
+    call set_ntsurfsrc(n,  0)
     call set_needtrs(n, .true.)
 
   end subroutine CO2n_setSpec

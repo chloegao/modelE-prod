@@ -232,7 +232,7 @@ C we change that.)
       use TRACER_COM, only: n_BCIA
 #endif
 #ifdef TRACERS_TOMAS
-      use TRACER_COM, only: IDTECOB
+      use TRACER_COM, only: n_AECOB
 #endif
 !#ifdef TRACERS_AMP
 !          use TRACER_COM, only: n_M_BC1_BC
@@ -310,7 +310,7 @@ C we change that.)
       mon_tracers(2)=n_BCIA
 #elif (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_TOMAS)
       mon_tracers(1)=n_NOx
-      mon_tracers(2)=IDTECOB
+      mon_tracers(2)=n_AECOB(1)
 !#elif (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AMP)
 !      mon_tracers(1)=n_NOx
 !      mon_tracers(2)=n_M_BC1_BC
@@ -319,7 +319,7 @@ C we change that.)
 #elif (defined TRACERS_AEROSOLS_Koch)
       mon_tracers(1)=n_BCIA
 #elif (defined TRACERS_TOMAS)
-      mon_tracers(1)=IDTECOB
+      mon_tracers(1)=n_AECOB(1)
 #else
       mon_tracers(1)=n_M_BC1_BC
 #endif

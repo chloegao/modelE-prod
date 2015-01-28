@@ -42,10 +42,6 @@ module CLOUDS
     (defined TRACERS_TOMAS)
   use TRACER_COM, only: aqchem_list,aqchem_count
 #endif
-#ifdef TRACERS_TOMAS
-  use TRACER_COM, only: IDTNUMD,IDTSO4,IDTNA,IDTECOB,IDTECIL,IDTOCOB,IDTOCIL,  &
-        IDTDUST,IDTH2O,NBINS
-#endif
 #else
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||    (defined TRACERS_QUARZHEM)
   use TRACER_COM, only: Ntm_dust
