@@ -17,6 +17,7 @@
 #else
       use domain_decomp_1d, only : band_pack_type
 #endif
+      use vector_integer_mod
       IMPLICIT NONE
 
       type simple_bounds_type ! todo: move to another module
@@ -377,7 +378,8 @@ C**** array of Chlorophyll data for use in ocean albedo calculation
 ! Some atmosphere-declared tracer info for uses within ocean codes.
 ! See TRACER_COM.f
          real*8, dimension(:), pointer :: trw0
-         integer :: ntm_gasexch=0
+         type(vector_integer) :: gasex_index
+         integer :: n_co2n=0
          real*8, dimension(:), allocatable :: vol2mass
 
 #ifdef TRACERS_OCEAN
@@ -1194,7 +1196,8 @@ c workaround for uninitialized patches%srfstate_exports multiply by zero
      &          this % TRGMELT ( NTM , I_0H:I_1H , J_0H:J_1H ),
 #endif
 #endif
-     &          this%TRGASEX(this%NTM_gasexch , I_0H:I_1H , J_0H:J_1H ),
+     &          this%TRGASEX(this%gasex_index%getsize() ,
+     &                                 I_0H:I_1H , J_0H:J_1H ),
      &          this % CHL     ( I_0H:I_1H , J_0H:J_1H ),
      &   STAT = IER)
 
@@ -1708,7 +1711,7 @@ C**** fluxes associated with variable lake fractions
     (defined TRACERS_TOMAS)
      &     ,Ntm_dust
 #endif
-      use tracer_com, only : gasex_index
+      use tracer_com, only : gasex_index, n_co2n
 #endif
       USE ATM_COM, only : temperature_istart1
       USE Dictionary_mod
@@ -1899,7 +1902,8 @@ C**** Ensure that no round off error effects land with ice and earth
         atmocns(k)%surf_name = 'ocn'//c2
 #ifdef TRACERS_ON
         atmocns(k)%ntm = ntm
-        atmocns(k)%ntm_gasexch = gasex_index%getsize()
+        atmocns(k)%gasex_index = gasex_index
+        atmocns(k)%n_co2n = n_co2n
 #endif
         call alloc_xchng_vars(grid,atmocns(k))
         atmocns(k)%grid => grd_dum
