@@ -125,7 +125,6 @@ c
       use TimerPackage_mod
       USE EXCHANGE_TYPES, only : atmocn_xchng_vars,iceocn_xchng_vars
       USE Dictionary_mod, only : get_param
-      use tracer_com, only: gasex_index !cdf: temp
       implicit none
       type(atmocn_xchng_vars) :: atmocn
       type(iceocn_xchng_vars) :: iceocn
@@ -272,7 +271,7 @@ c
       dhsi_loc => iceocn%dhsi
       dssi_loc => iceocn%dssi
 
-      if (atmocn%ntm_gasexch>0) trcout=.true.
+      if (atmocn%gasex_index%getsize()>0) trcout=.true.
 #ifdef STANDALONE_OCEAN
       ! arrays for salinity restoring
       ! to get the restoring timescales (days) specified in the rundeck:
@@ -295,7 +294,7 @@ c
            aice_loc(ia,ja)=0.
          austar_loc(ia,ja)=0.
          aswflx_loc(ia,ja)=0.
-        do nt=1,atmocn%ntm_gasexch
+        do nt=1,atmocn%gasex_index%getsize()
           atracflx_loc(ia,ja,nt)=0.
         enddo
 #ifdef TRACERS_OceanBiology
@@ -385,7 +384,7 @@ c --- dmua on A-grid, admui on C-grid
      .                         (1.-rsi_loc(ia,ja))                       !J/m*m=>W/m*m
      .                         +iceocn%solar(ia,ja)*rsi_loc(ia,ja))
      .                         /(SECONDS_PER_HOUR*real(nhr))
-      do nt=1,atmocn%ntm_gasexch
+      do nt=1,atmocn%gasex_index%getsize()
         atracflx_loc(ia,ja,nt)=atracflx_loc(ia,ja,nt)
      .       + atmocn%TRGASEX(nt,ia,ja) ! in mol/m2/s
      .       * dtsrc/(real(nhr)*SECONDS_PER_HOUR)
@@ -449,7 +448,7 @@ c combine wind and ice stresses after regridding
         enddo
       enddo
 #endif
-      do nt=1,atmocn%ntm_gasexch
+      do nt=1,atmocn%gasex_index%getsize()
         !call flxa2o(atracflx_loc(:,:,nt),tracflx_loc(:,:,nt)) !tracer flux
         call flxa2o(atracflx_loc(:,:,nt),ocnatm%work1)
         ocnatm%trgasex(nt,:,:) = ocnatm%work1(:,:)
@@ -657,7 +656,7 @@ c
      &           (abs(corio_loc(i,j  ))+abs(corio_loc(i+1,j  ))+
      &            abs(corio_loc(i,jb ))+abs(corio_loc(i+1,jb )))
  202  continue
-      allocate(otrac_loc(idm,J_0H:J_1H,atmocn%ntm_gasexch))
+      allocate(otrac_loc(idm,J_0H:J_1H,atmocn%gasex_index%getsize()))
       otrac_loc(:,:,:) = 0.d0
 c
 c --- ---------------------
@@ -1279,9 +1278,9 @@ c --- accumulate fields for agcm
       do l=1,isp_loc(j)
       do i=ifp_loc(j,l),ilp_loc(j,l)
       !define the tracer that participates in the gas exchange flux.
-        do nt=1,atmocn%ntm_gasexch
+        do nt=1,atmocn%gasex_index%getsize()
           otrac_loc(i,j,nt)=otrac_loc(i,j,nt)
-     .             + ocnatm%gtracer(gasex_index%at(nt),i,j) !pCO2_loc(i,j)  !pCO2 is in ppmv(uatm)
+     .             + ocnatm%gtracer(ocnatm%gasex_index%at(nt),i,j) !pCO2_loc(i,j)  !pCO2 is in ppmv(uatm)
      .             * baclin/(SECONDS_PER_HOUR*real(nhr))
             enddo
       enddo
@@ -1372,7 +1371,7 @@ c --- with respect to the ice/openwater flux ratio?
       endif
  204  continue
 
-      do nt=1,atmocn%ntm_gasexch
+      do nt=1,atmocn%gasex_index%getsize()
          call ssto2a(otrac_loc(:,:,nt),atmocn%work1)
          do ja=aJ_0,aJ_1
          do ia=aI_0,aI_1

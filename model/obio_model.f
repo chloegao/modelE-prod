@@ -114,7 +114,6 @@
       USE FILEMANAGER, only: openunit,closeunit,file_exists
 
       USE obio_com, only : co2flux
-      use tracer_com, only: n_co2n
 
 
 #ifdef OBIO_ON_GARYocean
@@ -366,7 +365,7 @@ cdiag.          olon_dg(i,1),olat_dg(j,1)
        !!covice_ij=covice(i,j)  !for standalone hycom
        covice_ij=oice(i,j)      !for modelE-hycom
 #endif
-       pCO2_ij=atm%gtracer(n_co2n,i,j)
+       pCO2_ij=atm%gtracer(atm%n_co2n,i,j)
      
 #ifdef OBIO_ON_GARYocean
        pres = oAPRESS(i,j)    !surface atm. pressure
@@ -582,7 +581,7 @@ cdiag write(*,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
      .   nstep,i,j,solz,sunz,wind,atmFe_ij
        endif
 
-       if (n_co2n>0) co2flux=atm%trgasex(n_co2n, i, j)
+       if (atm%n_co2n>0) co2flux=atm%trgasex(atm%n_co2n, i, j)
 
        !------------------------------------------------------------
        !at the beginning of each day only
@@ -1099,7 +1098,7 @@ cdiag     endif
 
        !update pCO2 array
        pCO2(i,j)=pCO2_ij
-       atm%gtracer(n_co2n, i,j)=pCO2_ij
+       atm%gtracer(atm%n_co2n, i,j)=pCO2_ij
 
 #ifndef OBIO_ON_GARYocean     /* NOT for Russell ocean */
        !update cexp array

@@ -24,7 +24,6 @@
       USE obio_forc, only: atmFe
       USE obio_com,   only: carb_old,obio_deltath,iron_old,p1d
       use domain_decomp_1d, only: am_i_root, globalsum, getDomainBounds
-      use tracer_com, only: gasex_index, n_co2n
 
       implicit none
 
@@ -57,7 +56,7 @@
       allocate(summ(ntrcr))
       summ = volumeIntegration(tracer)
 
-      idx_co2=gasex_index%getindex(n_co2n)
+      idx_co2=ocnatm%gasex_index%getindex(ocnatm%n_co2n)
       if (idx_co2>0) then
          !integrate flux
          ! using resize to force tracflx to act as 4D array with
