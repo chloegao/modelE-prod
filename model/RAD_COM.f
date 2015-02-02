@@ -9,7 +9,7 @@
       USE ATM_COM, only : lm_req
       USE RADPAR, only : S0,nraero=>NTRACE
       use AbstractOrbit_mod, only: AbstractOrbit
-#if (defined TRACERS_AMP) || (defined TRACERS_AMP_M1)
+#ifdef TRACERS_AMP
       USE AERO_CONFIG, ONLY: NMODES
 #endif
 #ifdef TRACERS_TOMAS
