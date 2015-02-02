@@ -74,13 +74,7 @@ C**** Each tracer has a variable name and a unique index
 #else
       integer, parameter :: ntm_o18=0
 #endif  /* TRACERS_SPECIAL_O18 */
-      type(vector_integer) :: ngx_index ! to be used in the future
-!@var ntm_gasexch: Number of TRACERS_GASEXCH_ocean tracers.
-#if defined(TRACERS_GASEXCH_ocean) || defined(TRACERS_GASEXCH_land)
-      integer, parameter :: ntm_gasexch=1
-#else
-      integer, parameter :: ntm_gasexch=0
-#endif  /* TRACERS_GASEXCH_ocean */
+      type(vector_integer) :: gasex_index
 !@var ntm_lerner: Number of TRACERS_SPECIAL_Lerner tracers.
 #ifdef TRACERS_SPECIAL_Lerner
       integer, parameter :: ntm_lerner=9
@@ -325,27 +319,8 @@ C**** Each tracer has a variable name and a unique index
       integer, parameter :: NBS=7,NAP=7, NAD=1 !, NXP=7, NCR=2, 
       integer, parameter :: ntm_tomas=NBINS*(NAP+NAD+1)
 
-      integer, parameter :: non_aerosol=ntm_O18+ntm_gasexch+ntm_lerner+
-     *                          ntm_water+ntm_koch+ntm_vbs+ntm_het+  !exclude ntm_dust! 
-     *                          ntm_nitrate+ntm_cosmo+
-     *                          ntm_ocean+ntm_air+ntm_chem+
-     *                          ntm_shindell_extra+ntm_ococean+NBS
-
-      integer, parameter :: 
-     *     IDTSO4  = non_aerosol+1, !36;NBINS for sulfate mass dist.
-     &     IDTNA   = IDTSO4 +NBINS, !66;
-     &     IDTECOB = IDTNA+NBINS, !126; NBINS for Hydrophobic EC
-     &     IDTECIL = IDTECOB + NBINS, !96; NBINS for Hydrophillic EC
-     &     IDTOCOB = IDTECIL+NBINS, !186
-     &     IDTOCIL = IDTOCOB+NBINS, !156; OC
-     &     IDTDUST = IDTOCIL+NBINS, !216
-     &     IDTNUMD = IDTDUST+NBINS,
-     &     IDTH2O  = IDTNUMD+NBINS  !246
       real*8, dimension(nbins+1) :: xk
-!      integer, parameter :: oldNTM=ntm_tomas
-      integer, parameter :: oldNTM=non_aerosol+ntm_tomas !ntm_dust is excluded.      
 
-#else
 #endif  /* TRACERS_TOMAS */
 #endif
 
@@ -564,16 +539,6 @@ C**** arrays that could be general, but are only used by chemistry
       INTEGER, PARAMETER :: nChemistry = 1, nOverwrite = 2,
      &     nOther = 3, nAircraft = 4, nBiomass = 5,
      &     nVolcanic = 6, nChemloss = 7
-
-#ifdef TRACERS_GASEXCH_ocean
-#ifdef TRACERS_GASEXCH_ocean_CFC
-!@var ocmip_cfc: CFC-11 emissions estimated from OCMIP surf.conc.
-      !60years (1939--1998) OCMIP surfc. concentr. converted to
-      !global averaged emission rates
-      !each value corresponds to the annual value
-      REAL*8, DIMENSION(67,NTM) :: ocmip_cfc
-#endif
-#endif
 
 #if (defined TRACERS_HETCHEM) || (defined TRACERS_NITRATE)
       integer, parameter :: rhet=3

@@ -120,7 +120,7 @@ C****
       USE MODEL_COM, only : xlabel,lrunid,jmon0,jyear0,idacc,jdate0
      *     ,amon0,amon,modelEclock
 #ifdef TRACERS_OCEAN
-      USE OCN_TRACER_COM, only : ntm,trw0,trname,ntrocn,n_water,n_obio
+      USE OCN_TRACER_COM,only:n_water,n_obio,tracerlist,ocn_tracer_entry
 #endif
       USE OCEAN, only: im,jm,lmo,focean,dxypo,dts,imaxj,lmm,ze,dxvo,dypo
       USE DIAG_COM, only : qdiag
@@ -131,9 +131,6 @@ C****
       USE OCEAN, only : oDLAT_DG, oLAT_DG, oLON_DG
 
       USE ODIAG
-#ifdef TRACERS_OCEAN
-      USE OCN_TRACER_COM, only : to_per_mil
-#endif
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,JM) :: Q,SFIJ,QS,QS700
       REAL*8, DIMENSION(IM,JM,LMO) :: Q3
@@ -152,6 +149,7 @@ c for now we are assuming that igrid=jgrid in arguments to pout_ij
       character*50 :: unit_string
       character(len=2), dimension(lmo) :: levstr
       real*8 :: scale_jm2
+      type(ocn_tracer_entry), pointer :: entry
 
       QJ=0.
       QSUM=0.
@@ -253,12 +251,13 @@ C**** Loop over layers
 C****
 C**** Ocean Tracers
 C****
-      DO N=1,NTM
-      LNAME="OCEAN "//trname(n)
-      if (to_per_mil(n).gt.0) THEN
+      DO N=1,tracerlist%getsize()
+      entry=>tracerlist%at(n)
+      LNAME="OCEAN "//entry%trname
+      if (entry%to_per_mil.gt.0) THEN
         UNITS="per mil"
       ELSE
-        UNITS=unit_string(ntrocn(n),'kg/kg')
+        UNITS=unit_string(entry%ntrocn,'kg/kg')
       END IF
       TITLE=TRIM(LNAME)//" ("//TRIM(UNITS)//")"
       TITLE(51:80)=XLB
@@ -268,14 +267,14 @@ C**** Loop over layers
       DO I=1,IMAXJ(J)
         Q(I,J) = UNDEF
         IF(FOCEAN(I,J).gt..5 .and. OIJL(I,J,L,IJL_MO).gt.0.) THEN
-          if (to_per_mil(n).gt.0 .and. TOIJL(I,J,L,TOIJL_CONC
+          if (entry%to_per_mil.gt.0 .and. TOIJL(I,J,L,TOIJL_CONC
      *         ,n_water).gt.0) THEN
             Q(I,J)=1d3*(TOIJL(I,J,L,TOIJL_CONC,N)/(TOIJL(I,J,L
-     *           ,TOIJL_CONC,n_water)*trw0(n))-1.)
+     *           ,TOIJL_CONC,n_water)*entry%trw0)-1.)
 c          Q(I,J)=1d3*(TOIJL(I,J,L,TOIJL_CONC,N)/((OIJL(I,J,L,IJL_MO)
-c     *         *DXYPO(J)-OIJL(I,J,L,IJL_S0M))*trw0(n))-1.)
+c     *         *DXYPO(J)-OIJL(I,J,L,IJL_S0M))*entry%trw0)-1.)
           else
-            Q(I,J)=10.**(-ntrocn(n))*TOIJL(I,J,L,TOIJL_CONC,N)/
+            Q(I,J)=10.**(-entry%ntrocn)*TOIJL(I,J,L,TOIJL_CONC,N)/
      *           (OIJL(I,J,L,IJL_MO)*DXYPO(J))
           end if
         END IF
@@ -285,7 +284,7 @@ c     *         *DXYPO(J)-OIJL(I,J,L,IJL_S0M))*trw0(n))-1.)
       Q(2:IM,1)=Q(1,1)
       WRITE (LNAME(40:47),'(A5,I3)') 'Level',L
       WRITE (TITLE(40:47),'(A5,I3)') 'Level',L
-      SNAME='oc_'//trim(trname(n))//'_L'//LEVSTR(L)
+      SNAME='oc_'//trim(entry%trname)//'_L'//LEVSTR(L)
       CALL POUT_IJ(TITLE,SNAME,LNAME,UNITS,Q,QJ,QSUM,IJGRID,IJGRID)
       END DO
       END DO
@@ -638,22 +637,23 @@ C****
 C****
 C**** Gent-McWilliams Tracer Fluxes
 C****
-      do n=1,ntm
+      do n=1,tracerlist%getsize()
+      entry=>tracerlist%at(n)
       DO KK=0,2
         DO L=1,lmo
           SELECT CASE (KK)
           CASE (0)      ! E-W fluxes
-            LNAME="GM/EDDY E-W FLUX "//trname(n)
-            UNITS=unit_string(ntrocn(n),'kg/s')
-            SNAME="oc_gm_ewflx"//trim(trname(n))//"_L"//LEVSTR(L)
+            LNAME="GM/EDDY E-W FLUX "//entry%trname
+            UNITS=unit_string(entry%ntrocn,'kg/s')
+            SNAME="oc_gm_ewflx"//trim(entry%trname)//"_L"//LEVSTR(L)
           CASE (1)  ! N-S fluxes
-            LNAME="GM/EDDY N-S FLUX "//trname(n)
-            UNITS=unit_string(ntrocn(n),'kg/s')
-            SNAME="oc_gm_nstflx"//trim(trname(n))//"_L"//LEVSTR(L)
+            LNAME="GM/EDDY N-S FLUX "//entry%trname
+            UNITS=unit_string(entry%ntrocn,'kg/s')
+            SNAME="oc_gm_nstflx"//trim(entry%trname)//"_L"//LEVSTR(L)
           CASE (2)    !  Vertical fluxes
-            LNAME="GM/EDDY VERT. FLUX "//trname(n)
-            UNITS=unit_string(ntrocn(n)-6,'kg/m^2 s')
-            SNAME="gm_vt_tflx"//trim(trname(n))//"_L"//LEVSTR(L)
+            LNAME="GM/EDDY VERT. FLUX "//entry%trname
+            UNITS=unit_string(entry%ntrocn-6,'kg/m^2 s')
+            SNAME="gm_vt_tflx"//trim(entry%trname)//"_L"//LEVSTR(L)
           END SELECT
           if (KK.EQ.3) THEN     ! vert fluxes, scale/divide by area
 
@@ -662,7 +662,7 @@ C****
               IF(FOCEAN(I,J).gt..5 .and. OIJL(I,J,L,IJL_MO).gt.0.)
      *             THEN
                 if (TOIJL(I,J,L,TOIJL_CONC,N).gt.0) Q(I,J)=10.**
-     *                (6-ntrocn(n))*TOIJL(I,J,L,KK+TOIJL_GMFL,N)/
+     *                (6-entry%ntrocn)*TOIJL(I,J,L,KK+TOIJL_GMFL,N)/
      *                (IDACC(1)*DTS*DXYPO(J))
               ENDIF
             END DO
@@ -675,7 +675,7 @@ C****
               IF(FOCEAN(I,J).gt..5 .and. OIJL(I,J,L,IJL_MO).gt.0.)
      *             THEN
                 if (TOIJL(I,J,L,TOIJL_CONC,N).gt.0) Q(I,J)=10.**
-     *               (-ntrocn(n))*TOIJL(I,J,L,KK+TOIJL_GMFL,N)/(IDACC(1)
+     *            (-entry%ntrocn)*TOIJL(I,J,L,KK+TOIJL_GMFL,N)/(IDACC(1)
      *               *DTS)
               ENDIF
             END DO
@@ -781,16 +781,17 @@ C****
       END DO
 
 #ifdef TRACERS_OCEAN
-      do n=1,ntm
+      do n=1,tracerlist%getsize()
+      entry=>tracerlist%at(n)
       DO L=1,lmo-1
-        LNAME="VERT. DIFF. FLUX "//trname(n)
-        UNITS=unit_string(ntrocn(n)-6,'kg/m^2 s')
-        SNAME="wtfltr"//trim(trname(n))//"_L"//LEVSTR(L)
+        LNAME="VERT. DIFF. FLUX "//entry%trname
+        UNITS=unit_string(entry%ntrocn-6,'kg/m^2 s')
+        SNAME="wtfltr"//trim(entry%trname)//"_L"//LEVSTR(L)
         Q=UNDEF
         DO J=1,JM
         DO I=1,IMAXJ(J)
           IF((OIJL(I,J,L+1,IJL_MO).gt.0).and.(TOIJL(I,J,L,TOIJL_CONC
-     *         ,N).gt.0)) Q(I,J)=10.**(6-ntrocn(n))*TOIJL(I,J,L
+     *         ,N).gt.0)) Q(I,J)=10.**(6-entry%ntrocn)*TOIJL(I,J,L
      *         ,TOIJL_wtfl,N)/(IDACC(1)*DTS*DXYPO(J))
         END DO
         END DO
@@ -1074,7 +1075,7 @@ C****
         if (n.eq.LN_MFLX .or. n.eq.LN_GFLX.or. n.eq.LN_SFLX.or. n.eq
      *       .LN_KVM.or. n.eq.LN_ICFL) THEN
           AS = 0.
-          TITLE(1:40) = TRIM(LNAME_OLNST(N))//' ('//
+          TITLE(1:40) = TRIM(LNAME_OLNST(n))//' ('//
      &         TRIM(UNITS_OLNST(N))//')'
           DO NS=1,NMST
             DO L=1,LMST(NS)
@@ -1347,7 +1348,7 @@ C****
       USE CONSTANT, only : undef,teeny
       USE MODEL_COM, only : idacc
 #ifdef TRACERS_OCEAN
-      USE OCN_TRACER_COM, only : ntm,trw0,trname,ntrocn,n_water
+      USE OCN_TRACER_COM, only : n_waterm tracerlist, ocn_tracer_entry
 #endif
       USE OCEAN, only : im,jm,lmo,ze,imaxj,focean,dypo,dts,dxvo
      *     ,dxypo, oDLAT_DG, oDLON_DG
@@ -1355,15 +1356,13 @@ C****
       USE MDIAG_COM, only :
      &     sname_strlen,units_strlen,lname_strlen
       USE ODIAG
-#ifdef TRACERS_OCEAN
-      USE OCN_TRACER_COM, only : to_per_mil
-#endif
       IMPLICIT NONE
       REAL*8, DIMENSION(JM+3,LMO+1) :: XJL
       REAL*8 XB0(JM,LMO,NBAS),X0(IM,LMO+1),XS(IM,LMO+1),
      *     XBG(JM,LMO,NBAS),XBS(JM,LMO,NBAS),XG(IM,LMO+1)
 #ifdef TRACERS_OCEAN
-      REAL*8 XBT(JM,LMO,NBAS,NTM),XT(IM,LMO+1,NTM),XBTW(JM,LMO,NBAS)
+      REAL*8 XBT(JM,LMO,NBAS,tracerlist%getsize()),
+     &   XT(IM,LMO+1,tracerlist%getsize()),XBTW(JM,LMO,NBAS)
 #endif
       CHARACTER TITLE*80,EW*1,NS*1
       CHARACTER(len=lname_strlen) :: lname
@@ -1373,6 +1372,7 @@ C****
       character*50 :: unit_string
       INTEGER I,J,L,KB,ISEC,II,ILON,JLAT,N,I1
       REAL*8 GOS,SOS,TEMGS,ASUM(IM),GSUM,ZONAL(LMO)
+      type(ocn_tracer_entry), pointer :: entry
 
       IF (QDIAG) then
       XJL=0.
@@ -1408,18 +1408,19 @@ C****
           DO L=1,LMO
             IF (XB0(J,L,KB).ne.0) THEN
 #ifdef TRACERS_OCEAN
-              do n=1,ntm
-              if (to_per_mil(n).gt.0) then
+              do n=1,tracerlist%getsize()
+              entry=>tracerlist%at(n)
+              if (entry%to_per_mil.gt.0) then
                 if (XBTW(j,l,kb).gt.0) then
                   XBT(j,l,kb,n)= 1d3*(XBT(j,l,kb,n)/
-     *                 (XBTW(j,l,kb)*trw0(n))-1.)
+     *                 (XBTW(j,l,kb)*entry%trw0)-1.)
                 else
                   XBT(j,l,kb,n)=undef
                 end if
 c                XBT(j,l,kb,n)= 1d3*(XBT(j,l,kb,n)/
-c     *               ((XB0(J,L,KB)-XBS(J,L,KB))*trw0(n))-1.)
+c     *               ((XB0(J,L,KB)-XBS(J,L,KB))*entry%trw0)-1.)
               else
-                XBT(j,l,kb,n)= 10.**(-ntrocn(n))*XBT(j,l,kb,n)/
+                XBT(j,l,kb,n)= 10.**(-entry%ntrocn)*XBT(j,l,kb,n)/
      *               (XB0(J,L,KB))
               end if
               end do
@@ -1458,15 +1459,16 @@ c     *               ((XB0(J,L,KB)-XBS(J,L,KB))*trw0(n))-1.)
         CALL POUT_JL(TITLE,LNAME,SNAME,UNITS,1,LMO,XJL,ZOC
      *       ,"Latitude","Depth (m)")
 #ifdef TRACERS_OCEAN
-        DO N=1,NTM
-          if (to_per_mil(n).gt.0) then
+        DO N=1,tracerlist%getsize()
+          entry=>tracerlist%at(n)
+          if (entry%to_per_mil.gt.0) then
             UNITS="permil"
           else
-            UNITS=unit_string(ntrocn(n),'kg/kg')
+            UNITS=unit_string(entry%ntrocn,'kg/kg')
           end if
-          TITLE(1:20)=trim(trname(n))//" ("//trim(UNITS)//")"
-          LNAME(1:20)=trim(trname(n))
-          SNAME(1:4)=trname(n)(1:4)
+          TITLE(1:20)=trim(entry%trname)//" ("//trim(UNITS)//")"
+          LNAME(1:20)=trim(entry%trname)
+          SNAME(1:4)=entry%trname(1:4)
           XJL(1:JM,1:LMO)=XBT(1:JM,1:LMO,KB,N)
           CALL POUT_JL(TITLE,LNAME,SNAME,UNITS,1,LMO,XJL,ZOC
      *         ,"Latitude","Depth (m)")
@@ -1496,15 +1498,16 @@ C****
                 XBG(J,L,1)= TEMGS(GOS,SOS)
                 XBS(J,L,1)= 1d3*SOS
 #ifdef TRACERS_OCEAN
-                do n=1,ntm
-                  if (to_per_mil(n).gt.0) then
+                do n=1,tracerlist%getsize()
+                  entry=>tracerlist%at(n)
+                  if (entry%to_per_mil.gt.0) then
                     XBT(j,l,1,n)=1d3*(TOIJL(I,J,L,TOIJL_CONC,n)/
-     *              (TOIJL(I,J,L,TOIJL_CONC,n_water)*trw0(n))-1.)
+     *              (TOIJL(I,J,L,TOIJL_CONC,n_water)*entry%trw0)-1.)
 c                    XBT(j,l,1,n)=1d3*(TOIJL(I,J,L,TOIJL_CONC,n)/
 c     *              ((OIJL(I,J,L,IJL_MO)*DXYPO(J)-OIJL(I,J,L,IJL_S0M))
-c     *                   *trw0(n))-1.)
+c     *                   *entry%trw0)-1.)
                   else
-                    XBT(j,l,1,n)= 10.**(-ntrocn(n))*TOIJL(I,J,L
+                    XBT(j,l,1,n)= 10.**(-entry%ntrocn)*TOIJL(I,J,L
      *                   ,TOIJL_CONC,n)/(OIJL(I,J,L,IJL_MO)*DXYPO(J))
                   end if
                 end do
@@ -1536,16 +1539,18 @@ c     *                   *trw0(n))-1.)
           CALL POUT_JL(TITLE,LNAME,SNAME,UNITS,1,LMO,XJL,ZOC
      *         ,"Latitude","Depth (m)")
 #ifdef TRACERS_OCEAN
-          DO N=1,NTM
-          if (to_per_mil(n).gt.0) then
+          DO N=1,tracerlist%getsize()
+          entry=>tracerlist%at(n)
+          if (entry%to_per_mil.gt.0) then
             UNITS="permil"
           else
-            UNITS=unit_string(ntrocn(n),'kg/kg')
+            UNITS=unit_string(entry%ntrocn,'kg/kg')
           end if
-          TITLE(1:50)=trname(n)//" Section          ("//TRIM(UNITS)//")"
+          TITLE(1:50)=entry%trname
+     &              //" Section          ("//TRIM(UNITS)//")"
           WRITE(TITLE(21:25),'(I3,A1)') ILON,EW
           LNAME(1:25)=TITLE(1:25)
-          SNAME=trim(trname(n))//"_"//adjustl(labi)
+          SNAME=trim(entry%trname)//"_"//adjustl(labi)
           XJL(1:JM,1:LMO)=XBT(1:JM,1:LMO,1,N)
           CALL POUT_JL(TITLE,LNAME,SNAME,UNITS,1,LMO,XJL,ZOC
      *         ,"Latitude","Depth (m)")
@@ -1629,17 +1634,18 @@ C**** Define starting point for wrap (~20W) (to avoid splitting pacific)
                 XG(II,L)= TEMGS(GOS,SOS)
                 XS(II,L)= 1d3*SOS
 #ifdef TRACERS_OCEAN
-                do n=1,ntm
-                  if (to_per_mil(n).gt.0.and.TOIJL(I,J,L,TOIJL_CONC
+                do n=1,tracerlist%getsize()
+                  entry=>tracerlist%at(n)
+                  if (entry%to_per_mil.gt.0.and.TOIJL(I,J,L,TOIJL_CONC
      *                 ,n_water).gt.0) then
                     XT(II,l,n)= 1d3*(TOIJL(I,J,L,TOIJL_CONC,n)/
-     *              (TOIJL(I,J,L,TOIJL_CONC,n_water)*trw0(n))-1.)
+     *              (TOIJL(I,J,L,TOIJL_CONC,n_water)*entry%trw0)-1.)
 c                    XT(II,l,n)= 1d3*(TOIJL(I,J,L,TOIJL_CONC,n)/
 c     *              ((OIJL(I,J,L,IJL_MO)*DXYPO(J)-OIJL(I,J,L,IJL_S0M))
-c     *                   *trw0(n))-1.)
+c     *                   *entry%trw0)-1.)
                   else
-                    XT(II,l,n)= 10.**(-ntrocn(n))*TOIJL(I,J,L,TOIJL_CONC
-     *                   ,n)/(OIJL(I,J,L,IJL_MO)*DXYPO(J))
+                    XT(II,l,n)= 10.**(-entry%ntrocn)*TOIJL(I,J,L,
+     &                   TOIJL_CONC,n)/(OIJL(I,J,L,IJL_MO)*DXYPO(J))
                   end if
                 end do
 #endif
@@ -1668,16 +1674,18 @@ c     *                   *trw0(n))-1.)
           CALL POUT_IL(TITLE,sname,lname,units,I1,1,LMO,XS
      *         ,ZOC,"Longitude","Depth (m)",ASUM,GSUM,ZONAL)
 #ifdef TRACERS_OCEAN
-          DO N=1,NTM
-          if (to_per_mil(n).gt.0) then
+          DO N=1,tracerlist%getsize()
+          entry=>tracerlist%at(n)
+          if (entry%to_per_mil.gt.0) then
             UNITS="permil"
           else
-            UNITS=unit_string(ntrocn(n),'kg/kg')
+            UNITS=unit_string(entry%ntrocn,'kg/kg')
           end if
-          TITLE(1:50)=trname(n)//" Section          ("//TRIM(UNITS)//")"
+          TITLE(1:50)=entry%trname
+     &         //" Section          ("//TRIM(UNITS)//")"
           WRITE(TITLE(21:25),'(I3,A1)') JLAT,NS
           LNAME(1:25)=TITLE(1:25)
-          SNAME=trim(trname(n))//"_"//adjustl(labj)
+          SNAME=trim(entry%trname)//"_"//adjustl(labj)
           CALL POUT_IL(TITLE,sname,lname,units,I1,1,LMO,XT(1,1,N)
      *         ,ZOC,"Longitude","Depth (m)",ASUM,GSUM,ZONAL)
           END DO
@@ -1756,7 +1764,7 @@ c
 #ifdef TRACERS_OCEAN
       use odiag, only :
      &     ktoijlx,toijl_out,divbya_toijl,kn_toijl,toijl_loc,toijl_conc
-      USE OCN_TRACER_COM, only : trw0,n_Water,to_per_mil
+      USE OCN_TRACER_COM, only : n_Water, tracerlist, ocn_tracer_entry
 #endif
       use oceanr_dim, only : grid=>ogrid
       use domain_decomp_1d, only : am_i_root,halo_update,south
@@ -1771,6 +1779,9 @@ c
       real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo) ::
      &     mfu,pres
       real*8, dimension(:,:), allocatable :: mfu_glob,sf_glob
+#ifdef TRACERS_OCEAN
+      type(ocn_tracer_entry), pointer :: entry
+#endif
 
       j_0 = grid%j_strt
       j_1 = grid%j_stop
@@ -1924,6 +1935,7 @@ C****
       do kk=2,ktoijlx
         k = kn_toijl(1,kk)
         n = kn_toijl(2,kk)
+        entry=>tracerlist%at(n)
         if(k.le.0 .or. n.le.0) cycle
         toijl_out(:,:,:,kk) = toijl_loc(:,:,:,k,n)
         if(divbya_toijl(kk)) then
@@ -1931,8 +1943,8 @@ C****
             toijl_out(:,j,l,kk) = toijl_out(:,j,l,kk)/dxypo(j)
           enddo; enddo
         endif
-        if(to_per_mil(n)>0 .and. n.ne.n_Water) then
-          toijl_out(:,:,:,kk) = 1d3*(toijl_out(:,:,:,kk)/trw0(n)
+        if(entry%to_per_mil>0 .and. n.ne.n_Water) then
+          toijl_out(:,:,:,kk) = 1d3*(toijl_out(:,:,:,kk)/entry%trw0
      &         -toijl_loc(:,:,:,TOIJL_conc,n_water))
         endif
       enddo

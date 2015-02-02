@@ -116,10 +116,6 @@ subroutine CONDSE
   use TRACER_COM, only: imDust
 #endif
 #endif
-#ifdef TRACERS_TOMAS
-  use TRACER_COM, only: IDTNUMD,IDTSO4,IDTNA,IDTECOB,IDTECIL,IDTOCOB,IDTOCIL, &
-       IDTDUST,IDTH2O,NBINS
-#endif
 #ifdef TRACERS_COSMO
   use COSMO_SOURCES, only : BE7W_acc
 #endif

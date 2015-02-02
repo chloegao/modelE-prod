@@ -158,10 +158,6 @@
       integer :: temp_year
 #endif /* TRACERS_SPECIAL_Shindell */
 
-#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_GASEXCH_ocean_CFC)
-      integer i, iu_data
-#endif
-
 ! temp storage for new tracer interfaces
       integer :: values(ntm)
       integer :: val
@@ -327,21 +323,6 @@ C Read landuse parameters and coefficients for tracer dry deposition:
       end do
 #endif
 #endif /* TRACERS_ON */
-
-#if defined(TRACERS_GASEXCH_ocean) && defined(TRACERS_GASEXCH_ocean_CFC)
-      !read in OCMIP based CFC-11 global emissions
-      !=sum(dC/dt) for each hemisphere
-      !these are *annual global averages* and need to be
-      !converted to our timestep value
-      print*, 'opening file=OCMIP_cfc.dat'
-      call openunit('OCMIP_cfc',iu_data,.false.,.true.)
-      do n=1,ntm
-        do i=1,67
-          read(iu_data,'(5x,e12.4)')ocmip_cfc(i,n)
-        enddo
-      enddo
-      call closeunit(iu_data)
-#endif
 
 #ifdef TRACERS_AMP
       CALL SETUP_CONFIG

@@ -136,9 +136,9 @@ C-----INCLUDE FILES--------------------------------------------------
       USE TRACER_COM, only: ntm, trm, nbins, xk
       use TRACER_COM, only: n_H2SO4, n_NH3, n_NH4, n_SOAgas, nOther
       use TRACER_COM, only: nChemistry
-      USE TRACER_COM, only : IDTSO4,IDTNA,IDTECIL,
-     &     IDTECOB,IDTOCIL,IDTOCOB,IDTDUST,IDTH2O,
-     &     IDTNUMD
+      USE TRACER_COM, only : n_ASO4,n_ANACL,n_AECIL,
+     &     n_AECOB,n_AOCIL,n_AOCOB,n_ADUST,n_AH2O,
+     &     n_ANUM
       USE TRDIAG_COM, only : taijs=>taijs_loc,taijls=>taijls_loc
      *     ,ijts_TOMAS,itcon_TOMAS
 !      USE AEROSOL_SOURCES, only: off_HNO3
@@ -227,15 +227,15 @@ Cjrp  pseudo steady state H2SO4 concentration will be put in this place.
 C     Swap T0M into Nk, Mk, Gc arrays
 
                do n=1,ibins
-                  Nk(n)=TRM(i,j,l,IDTNUMD-1+n)
-                  Mk(n,srtso4)=TRM(i,j,l,IDTSO4-1+n)
-                  Mk(n,srtna) =TRM(i,j,l,IDTNA -1+n)
-                  MK(n,srtecob)=TRM(i,j,l,IDTECOB -1+n)
-                  MK(n,srtecil)=TRM(i,j,l,IDTECIL -1+n)
-                  MK(n,srtocob)=TRM(i,j,l,IDTOCOB -1+n)
-                  MK(n,srtocil)=TRM(i,j,l,IDTOCIL -1+n)      
-                  Mk(n,srtdust)=TRM(i,j,l,IDTDUST -1+n)            
-                  Mk(n,srth2o)=TRM(i,j,l,IDTH2O-1+n)
+                  Nk(n)=TRM(i,j,l,n_ANUM(1)-1+n)
+                  Mk(n,srtso4)=TRM(i,j,l,n_ASO4(1)-1+n)
+                  Mk(n,srtna) =TRM(i,j,l,n_ANACL(1) -1+n)
+                  MK(n,srtecob)=TRM(i,j,l,n_AECOB(1) -1+n)
+                  MK(n,srtecil)=TRM(i,j,l,n_AECIL(1) -1+n)
+                  MK(n,srtocob)=TRM(i,j,l,n_AOCOB(1) -1+n)
+                  MK(n,srtocil)=TRM(i,j,l,n_AOCIL(1) -1+n)      
+                  Mk(n,srtdust)=TRM(i,j,l,n_ADUST(1) -1+n)            
+                  Mk(n,srth2o)=TRM(i,j,l,n_AH2O(1)-1+n)
                   Mk(n,srtnh4)=0.
                enddo
 
@@ -487,7 +487,7 @@ C     Check for negative tracer problems
 !Save diagnostics! 
                do n=1,ibins       
 !     Aerosol number             
-                  tracnum=IDTNUMD-1+n 
+                  tracnum=n_ANUM(1)-1+n 
                   tr3Dsource(i,j,l,nOther,tracnum)=
      &                 (NK(N)-INIT_NK(N))/dtsrc
                   
@@ -502,7 +502,7 @@ C     Check for negative tracer problems
                   enddo
 
                   do jc=1,icomp-idiag
-                     tracnum=IDTSO4-1+n+ibins*(jc-1)
+                     tracnum=n_ASO4(1)-1+n+ibins*(jc-1)
                      tr3Dsource(i,j,l,nOther,tracnum)=
      &                    (MK(n,jc)-INIT_Mk(n,jc))/dtsrc
 
@@ -519,7 +519,7 @@ C     Check for negative tracer problems
 
                   enddo  
                  
-                  tracnum=IDTH2O-1+n 
+                  tracnum=n_AH2O(1)-1+n 
                   tr3Dsource(i,j,l,nOther,tracnum)=
      &                 (MK(N,SRTH2O)-INIT_MK(N,SRTH2O))/dtsrc
                enddo
@@ -597,9 +597,9 @@ c$$$            enddo
 !@ver   1.0
 
       subroutine dep_getdp(i,j,l,getdp,size_density)                                            
-      USE TRACER_COM, only : nbins,IDTSO4,IDTNA,IDTECIL,
-     &     IDTECOB,IDTOCIL,IDTOCOB,IDTDUST,IDTH2O,
-     &     IDTNUMD,ntm,xk,trm
+      USE TRACER_COM, only : nbins,n_ASO4,n_ANACL,n_AECIL,
+     &     n_AECOB,n_AOCIL,n_AOCOB,n_ADUST,n_AH2O,
+     &     n_ANUM,ntm,xk,trm
       USE CONSTANT,   only : pi,lhe,mair,gasc  
       USE ATM_COM, only :   t            ! potential temperature (C)
      $     ,q                   ! saturated pressure
@@ -631,16 +631,16 @@ C-----CODE-----------------------------------------------------------
       do k=1,nbins
 
 C     Swap GCM variables into aerosol algorithm variables
-        Nk(k)=trm(i,j,l,IDTNUMD-1+k)
-        Mk(k,srtso4)=trm(i,j,l,IDTSO4-1+k)
-        Mk(k,srtna )=trm(i,j,l,IDTNA -1+k)
-        Mk(k,srtnh4)=0.1875*Mk(k,srtso4) ! artificial for now.. 0.0!t0m(i,j,l,IDTNH4-1+n)
-        MK(k,srtecob)=trm(i,j,l,IDTECOB -1+k)
-        MK(k,srtecil)=trm(i,j,l,IDTECIL -1+k)
-        MK(k,srtocob)=trm(i,j,l,IDTOCOB -1+k)
-        MK(k,srtocil)=trm(i,j,l,IDTOCIL -1+k) 
-        MK(k,srtdust)=trm(i,j,l,IDTDUST -1+k) 
-        Mk(k,srth2o)= trm(i,j,l,IDTH2O-1+k) !I don't think this is necessary!
+        Nk(k)=trm(i,j,l,n_ANUM(1)-1+k)
+        Mk(k,srtso4)=trm(i,j,l,n_ASO4(1)-1+k)
+        Mk(k,srtna )=trm(i,j,l,n_ANACL(1) -1+k)
+        Mk(k,srtnh4)=0.1875*Mk(k,srtso4) ! artificial for now.. 0.0!t0m(i,j,l,n_ANH4(1)-1+n)
+        MK(k,srtecob)=trm(i,j,l,n_AECOB(1) -1+k)
+        MK(k,srtecil)=trm(i,j,l,n_AECIL(1) -1+k)
+        MK(k,srtocob)=trm(i,j,l,n_AOCOB(1) -1+k)
+        MK(k,srtocil)=trm(i,j,l,n_AOCIL(1) -1+k) 
+        MK(k,srtdust)=trm(i,j,l,n_ADUST(1) -1+k) 
+        Mk(k,srth2o)= trm(i,j,l,n_AH2O(1)-1+k) !I don't think this is necessary!
       enddo
 
       temp = pk(l,i,j)*t(i,j,l) !should be in [K]
@@ -808,9 +808,9 @@ C     Swap GCM variables into aerosol algorithm variables
       subroutine getfraction(tr_conv,tm,fract)
       USE TOMAS_AEROSOL, ONLY : binact02,binact10,
      &     fraction02,fraction10 
-      USE TRACER_COM, only : nbins,ntm,IDTECIL,
-     &     IDTOCIL,IDTOCOB,IDTSO4,IDTNA,IDTDUST,
-     &     IDTECOB
+      USE TRACER_COM, only : nbins,ntm,n_AECIL,
+     &     n_AOCIL,n_AOCOB,n_ASO4,n_ANACL,n_ADUST,
+     &     n_AECOB
 
       IMPLICIT NONE
       
@@ -823,12 +823,12 @@ C     Swap GCM variables into aerosol algorithm variables
       LOGICAL TR_CONV
       
       do k=1, nbins
-        mecil=TM(IDTECIL-1+k)
-	mocil=TM(IDTOCIL-1+k)
-	mocob=TM(IDTOCOB-1+k)
-	mso4=TM(IDTSO4-1+k)*1.2 !account for ammonium sulfate
-	mnacl=TM(IDTNA-1+k)
-	mdust=TM(IDTDUST-1+k)
+        mecil=TM(n_AECIL(1)-1+k)
+	mocil=TM(n_AOCIL(1)-1+k)
+	mocob=TM(n_AOCOB(1)-1+k)
+	mso4=TM(n_ASO4(1)-1+k)*1.2 !account for ammonium sulfate
+	mnacl=TM(n_ANACL(1)-1+k)
+	mdust=TM(n_ADUST(1)-1+k)
 	mtot=mecil+mocil+mocob+mso4+mnacl+mdust+1.e-20
 	xocil=mocil/mtot
 	xso4=mso4/mtot
@@ -908,9 +908,9 @@ C-----OUTPUTS-----------------------------------------------------------
 C-----INCLUDE FILES-----------------------------------------------------
 
       USE TOMAS_AEROSOL
-      USE TRACER_COM, only : ntm, IDTECIL,
-     &       IDTOCIL,IDTOCOB,IDTSO4,IDTNA,IDTDUST,
-     &       IDTECOB,IDTH2O,xk,nbins
+      USE TRACER_COM, only : ntm, n_AECIL,
+     &       n_AOCIL,n_AOCOB,n_ASO4,n_ANACL,n_ADUST,
+     &       n_AECOB,n_AH2O,xk,nbins
 
       IMPLICIT NONE
 C-----VARIABLE DECLARATIONS---------------------------------------------
@@ -951,10 +951,10 @@ C-----CODE--------------------------------------------------------------
 !only mass needed for getfraction
       do n=1,IBINS
          do jc=1,icomp-idiag
-            tracnum=IDTSO4-1+n+ibins*(jc-1)
+            tracnum=n_ASO4(1)-1+n+ibins*(jc-1)
             TM(tracnum)=Mk(n,jc)               
          enddo
-         tracnum=IDTH2O-1+n
+         tracnum=n_AH2O(1)-1+n
          TM(tracnum)=Mk(n,srth2o)
       enddo
 
@@ -1043,7 +1043,7 @@ Ckpc  Jan.,2002 - extended to include carbonaceous aerosols
      & mecob,mocil,mocob,mdust,mh2o)
 
       USE OldTracer_mod, only : trpdens
-      USE TRACER_COM, only : IDTECOB,IDTOCOB,IDTDUST,N_AECOB
+      USE TRACER_COM, only : n_AECOB,n_AOCOB,n_ADUST,n_AECOB
       IMPLICIT NONE
 !@var mso4, mno3, mnh4, mh2o, mnacl - These are the masses of each aerosol
 !@+   component.  Since the density is an intensive property,
@@ -1059,8 +1059,8 @@ Ckpc  Jan.,2002 - extended to include carbonaceous aerosols
       aerodens=(idensity*(mso4+mno3+mnh4+mnacl+mh2o) !mno3 taken out! 
 !!     &  +dec*(mecil+mecob)+doc*(mocil+mocob)
 !!     &     +ddust*mdust)
-     &  +trpdens(idtecob)*(mecil+mecob)+trpdens(idtocob)*(mocil+mocob)
-     &     +trpdens(idtdust)*mdust)
+     &  +trpdens(n_aecob(1))*(mecil+mecob)+
+     &      trpdens(n_aocob(1))*(mocil+mocob)+trpdens(n_adust(1))*mdust)
      &  /(mso4+mno3+mnh4+mnacl+mh2o+mecil+mecob+mocil+mdust+mocob)
 
       RETURN
@@ -1522,8 +1522,8 @@ cyhl Dick et al 2000 figure 5.(High organic,density=1400g/cm3)
       USE TOMAS_AEROSOL 
       USE GEOM, only: imaxj
       use OldTracer_mod, only: trName
-      USE TRACER_COM, only : IDTSO4, IDTNA, IDTOCIL,IDTH2O,NBINS
-     &     ,trm,IDTECOB,IDTECIL,IDTOCOB,IDTDUST,IDTNUMD
+      USE TRACER_COM, only : n_ASO4, n_ANACL, n_AOCIL,n_AH2O,NBINS
+     &     ,trm,n_AECOB,n_AECIL,n_AOCOB,n_ADUST,n_ANUM
      *     ,ntm,ntm_TOMAS
 
       USE TRDIAG_COM, only : taijs=>taijs_loc !,taijls=>taijls_loc
@@ -1562,16 +1562,16 @@ C     Loop over all grid cells
         rh = MIN(1.d0,q(i,j,l)/QSAT(temp,lhe,pmid(l,i,j))) ! rH [0-100%]
 C     Swap GCM variables into aerosol algorithm variables
         do n=1,NBINS
-          Nk(n)=trm(i,j,l,IDTNUMD-1+n)
-          Mk(n,srtso4)=trm(i,j,l,IDTSO4-1+n)
-          Mk(n,srtna )=trm(i,j,l,IDTNA -1+n)
-          Mk(n,srtnh4)=0.1875*Mk(n,srtso4) ! artificial for now.. 0.0!t0m(i,j,l,IDTNH4-1+n)
-          MK(n,srtecob)=trm(i,j,l,IDTECOB -1+n)
-          MK(n,srtecil)=trm(i,j,l,IDTECIL -1+n)
-          MK(n,srtocob)=trm(i,j,l,IDTOCOB -1+n)
-          MK(n,srtocil)=trm(i,j,l,IDTOCIL -1+n) 
-          MK(n,srtdust)=trm(i,j,l,IDTDUST -1+n) 
-          Mk(n,srth2o)= trm(i,j,l,IDTH2O-1+n) !I don't think this is necessary!
+          Nk(n)=trm(i,j,l,n_ANUM(1)-1+n)
+          Mk(n,srtso4)=trm(i,j,l,n_ASO4(1)-1+n)
+          Mk(n,srtna )=trm(i,j,l,n_ANACL(1) -1+n)
+          Mk(n,srtnh4)=0.1875*Mk(n,srtso4) ! artificial for now.. 0.0!t0m(i,j,l,n_ANH4(1)-1+n)
+          MK(n,srtecob)=trm(i,j,l,n_AECOB(1) -1+n)
+          MK(n,srtecil)=trm(i,j,l,n_AECIL(1) -1+n)
+          MK(n,srtocob)=trm(i,j,l,n_AOCOB(1) -1+n)
+          MK(n,srtocil)=trm(i,j,l,n_AOCIL(1) -1+n) 
+          MK(n,srtdust)=trm(i,j,l,n_ADUST(1) -1+n) 
+          Mk(n,srth2o)= trm(i,j,l,n_AH2O(1)-1+n) !I don't think this is necessary!
         enddo
 
 !     Do water eqm at appropriate times
@@ -1584,7 +1584,7 @@ C     Swap GCM variables into aerosol algorithm variables
         
 C     Swap Nk, Mk, and Gc arrays back to T0M
         do n=1,NBINS
-          tracnum=IDTNUMD-1+n
+          tracnum=n_ANUM(1)-1+n
           if (Nk(n) .ge. TRM(i,j,l,tracnum)) then
             TRM(i,j,l,tracnum)=Nk(n)
           else
@@ -1592,7 +1592,7 @@ C     Swap Nk, Mk, and Gc arrays back to T0M
             call scalemom(i,j,l,tracnum,frac)
           endif
           do jc=1,icomp-idiag
-            tracnum=IDTSO4-1+n+ibins*(jc-1)
+            tracnum=n_ASO4(1)-1+n+ibins*(jc-1)
             if (Mk(n,jc) .ge. TRM(i,j,l,tracnum)) then
               TRM(i,j,l,tracnum)=Mk(n,jc)
             else
@@ -1600,7 +1600,7 @@ C     Swap Nk, Mk, and Gc arrays back to T0M
               call scalemom(i,j,l,tracnum,frac)
             endif
           enddo
-          tracnum=IDTH2O-1+n
+          tracnum=n_AH2O(1)-1+n
           if (Mk(n,srth2o) .ge. TRM(i,j,l,tracnum)) then
             TRM(i,j,l,tracnum)=Mk(n,srth2o)
           else
@@ -1611,16 +1611,16 @@ C     Swap Nk, Mk, and Gc arrays back to T0M
         
 C     Check for negative tracer problems
         do n=1,ntm_TOMAS
-          if (TRM(i,j,l,IDTSO4+n-1) .lt. 0.0) then
-            if (abs(TRM(i,j,l,IDTSO4+n-1)) .gt. 1.e-10) then
+          if (TRM(i,j,l,n_ASO4(1)+n-1) .lt. 0.0) then
+            if (abs(TRM(i,j,l,n_ASO4(1)+n-1)) .gt. 1.e-10) then
                !serious problem - report error
-               write(*,*) 'ERROR: Tracer ',trname(IDTSO4+n-1),
-     &              trm(i,j,l,IDTSO4+n-1)
+               write(*,*) 'ERROR: Tracer ',trname(n_ASO4(1)+n-1),
+     &              trm(i,j,l,n_ASO4(1)+n-1)
                write(*,*) ' < 0 in box ', i,j,l
                call stop_model('TRM<0 in aeroupdate',255)
 !            else
 !               !numerical problem - set to zero
-!               TRM(i,j,l,IDTSO4+n-1)=0.0!1.d-42 !5??
+!               TRM(i,j,l,n_ASO4(1)+n-1)=0.0!1.d-42 !5??
             endif
           endif
         enddo
@@ -1686,7 +1686,7 @@ C     Check for negative tracer problems
       SUBROUTINE aerodiag(pt,i,j,l)
 
       USE TOMAS_AEROSOL
-      USE TRACER_COM, only : IDTSO4,IDTNUMD,n_H2SO4
+      USE TRACER_COM, only : n_ASO4,n_ANUM,n_H2SO4
 
       implicit none 
       integer pt, i, j, l, jc, n
@@ -1700,12 +1700,12 @@ C     Bulk species
         do n=1,ibins       
           
 !     Aerosol number
-          tracnum=IDTNUMD-1+n
+          tracnum=n_ANUM(1)-1+n
           AEROD(i,j,l,tracnum,pt)= 
      &         (Nk(n)-Nkd(n))
 !     Aerosol mass
           do jc=1,icomp-idiag
-            tracnum=IDTSO4-1+n+ibins*(jc-1)
+            tracnum=n_ASO4(1)-1+n+ibins*(jc-1)
             AEROD(i,j,l,tracnum,pt)= 
      &           (Mk(n,jc)-Mkd(n,jc))
             
@@ -1720,7 +1720,7 @@ C Bulk species
         
         do n=1,ibins  
 !     Aerosol number
-          tracnum=IDTNUMD-1+n
+          tracnum=n_ANUM(1)-1+n
           
           AEROD(i,j,l,tracnum,pt)= 
      &         AEROD(i,j,l,tracnum,pt) 
@@ -1728,7 +1728,7 @@ C Bulk species
           
 !     Aerosol mass
           do jc=1,icomp-idiag
-            tracnum=IDTSO4-1+n+ibins*(jc-1)
+            tracnum=n_ASO4(1)-1+n+ibins*(jc-1)
             AEROD(i,j,l,tracnum,pt)= 
      &           AEROD(i,j,l,tracnum,pt) 
      &           + (Mk(n,jc)-Mkd(n,jc))
@@ -1763,8 +1763,8 @@ C Bulk species
       USE CONSTANT, ONLY : pi,gasc,mair 
 
       USE TRACER_COM, only : nbins,xk,ntm,trm,trmom,ntsurfsrc,
-     &     IDTSO4,IDTNA,IDTECOB,IDTECIL,IDTOCOB,
-     &     IDTOCIL,IDTDUST,IDTNUMD,n_SO2,IDTH2O
+     &     n_ASO4,n_ANACL,n_AECOB,n_AECIL,n_AOCOB,
+     &     n_AOCIL,n_ADUST,n_ANUM,n_SO2,n_AH2O
  
       IMPLICIT NONE
 
@@ -1792,10 +1792,10 @@ c$$$        IF(I.EQ.25.AND.J.EQ.62)THEN
 c$$$          open (1044,file='debug_coag.dat',access='append',
 c$$$     &         status='unknown')
 c$$$          do k=1,nbins
-c$$$            write(1044,*)'begin',l,trm_emis(i,j,l,idtecob+k-1)
-c$$$     $           ,trm_emis(i,j,l,idtnumd+k-1),
-c$$$     $   trm(i,j,l,idtecob+k-1),trm(i,j,l,idtnumd+k-1),
-c$$$     $           taijs(i,j,ijts_subcoag(IDTECOB+k-1))
+c$$$            write(1044,*)'begin',l,trm_emis(i,j,l,n_aecob(1)+k-1)
+c$$$     $           ,trm_emis(i,j,l,n_anum(1)+k-1),
+c$$$     $   trm(i,j,l,n_aecob(1)+k-1),trm(i,j,l,n_anum(1)+k-1),
+c$$$     $           taijs(i,j,ijts_subcoag(n_AECOB(1)+k-1))
 c$$$            enddo
 c$$$      ENDIF
 
@@ -1806,12 +1806,12 @@ c$$$      ENDIF
      &     *gasc*temp/pres*1e6  !cm3
 
       do k=1,nbins
-        ndist0(k)=TRM_EMIS(I,J,L,IDTNUMD+k-1)
+        ndist0(k)=TRM_EMIS(I,J,L,n_ANUM(1)+k-1)
         do c=1,icomp-idiag
-          mdist0(k,c)=TRM_EMIS(I,J,L,IDTSO4+(c-1)*nbins+k-1)
+          mdist0(k,c)=TRM_EMIS(I,J,L,n_ASO4(1)+(c-1)*nbins+k-1)
         enddo
         mdist0(k,srtnh4)=0.0
-        mdist0(k,srth2o)=TRM_EMIS(I,J,L,IDTH2O+k-1)
+        mdist0(k,srth2o)=TRM_EMIS(I,J,L,n_AH2O(1)+k-1)
         ndistfinal(k)=0
         maddfinal(k)=0
       enddo
@@ -1824,9 +1824,9 @@ c$$$      ENDIF
 
          do k=1,nbins
             if(ns.lt.3) 
-     &           ndistinit(k)=tr3Dsource(i,j,l,ns,IDTNUMD+K-1)*dtstep
+     &           ndistinit(k)=tr3Dsource(i,j,l,ns,n_ANUM(1)+K-1)*dtstep
             if(ns.eq.3) 
-     &           ndistinit(k)=tr3Dsource(i,j,l,ns+1,IDTNUMD+K-1)*dtstep 
+     &          ndistinit(k)=tr3Dsource(i,j,l,ns+1,n_ANUM(1)+K-1)*dtstep 
           enddo
 
           if(sum(ndistinit(1:nbins)).gt.0.)then
@@ -1894,7 +1894,7 @@ c$$$      ENDIF
         
         do k=1,nbins  
           
-          tracnum=IDTNUMD-1+k  
+          tracnum=n_ANUM(1)-1+k  
           N_subgridcg(i,j,l,k,2)=(ndist2(k)- !this is emission after subgrid
      &         trm(i,j,l,tracnum)) 
 
@@ -1913,7 +1913,7 @@ c$$$      ENDIF
      &         itcon_subcoag(tracnum),tracnum)
           
           do c=1,icomp-idiag            
-            tracnum=IDTSO4-1+k+nbins*(c-1) 
+            tracnum=n_ASO4(1)-1+k+nbins*(c-1) 
             M_subgridcg(i,j,l,k,c,2)=mdist2(k,c)- !trm + emission after subgrid 
      &           trm(i,j,l,tracnum) !trm + emission before subgrid (which is computed in apply_tracer3d)
 
@@ -1937,10 +1937,10 @@ c$$$      ENDIF
 c$$$        IF(I.EQ.25.AND.J.EQ.62)THEN
 c$$$          do k=1,nbins
 c$$$            
-c$$$        write(1044,*) 'subcoag result',l,trm_emis(i,j,l,idtecob+k-1),
-c$$$     $       trm(i,j,l,idtecob+3),M_subgridcg(i,j,l,k,3,2),
+c$$$        write(1044,*) 'subcoag result',l,trm_emis(i,j,l,n_aecob(1)+k-1),
+c$$$     $       trm(i,j,l,n_aecob(1)+3),M_subgridcg(i,j,l,k,3,2),
 c$$$     $           N_subgridcg(i,j,l,k,2),
-c$$$     $       taijs(i,j,ijts_subcoag(IDTECOB+k-1))
+c$$$     $       taijs(i,j,ijts_subcoag(n_AECOB(1)+k-1))
 c$$$      enddo 
 c$$$
 c$$$      ENDIF
@@ -1979,8 +1979,8 @@ C-----INCLUDE FILES--------------------------------------------------
       USE CONSTANT, ONLY : pi,gasc,mair 
 
       USE TRACER_COM, only : nbins,xk,ntm,trm,trmom,ntsurfsrc,
-     &     IDTSO4,IDTNA,IDTECOB,IDTECIL,IDTOCOB,
-     &     IDTOCIL,IDTDUST,IDTNUMD,n_SO2,IDTH2O
+     &     n_ASO4,n_ANACL,n_AECOB,n_AECIL,n_AOCOB,
+     &     n_AOCIL,n_ADUST,n_ANUM,n_SO2,n_AH2O
  
       IMPLICIT NONE
 
@@ -2016,12 +2016,12 @@ C-----VARIABLE DECLARATIONS-----------------------------------
         
 !     Amount of tracer before emission is applied.         
         do k=1,nbins
-          ndist0(k)=TRM(I,J,L,IDTNUMD+k-1)
+          ndist0(k)=TRM(I,J,L,n_ANUM(1)+k-1)
           do c=1,icomp-idiag
-            mdist0(k,c)=TRM(I,J,L,IDTSO4+(c-1)*nbins+k-1)
+            mdist0(k,c)=TRM(I,J,L,n_ASO4(1)+(c-1)*nbins+k-1)
           enddo
           mdist0(k,srtnh4)=0.0
-          mdist0(k,srth2o)=TRM(I,J,L,IDTH2O+k-1)
+          mdist0(k,srth2o)=TRM(I,J,L,n_AH2O(1)+k-1)
           ndistfinal(k)=0
           maddfinal(k)=0
         enddo
@@ -2032,13 +2032,13 @@ C-----VARIABLE DECLARATIONS-----------------------------------
         mdist(:,:)=0.
         ndistinit(:)=0.
                 
-        DO ns=1,ntsurfsrc(idtnumd)
-!          print*,'subcoag 2d',ns,ntsurfsrc(idtnumd),dtstep
+        DO ns=1,ntsurfsrc(n_anum(1))
+!          print*,'subcoag 2d',ns,ntsurfsrc(n_anum(1)),dtstep
 !     ns=1 for so4; ns=2 for ec; ns=3 for oc
           
           do k=1,nbins
             
-            ndistinit(k)=trsource(i,j,NS,IDTNUMD+K-1)*dtstep
+            ndistinit(k)=trsource(i,j,NS,n_ANUM(1)+K-1)*dtstep
           
             tot_ndistinit(k)=tot_ndistinit(k)+ndistinit(k) !sum of number emission for SO4, EC, and OC
           enddo
@@ -2083,7 +2083,7 @@ C-----VARIABLE DECLARATIONS-----------------------------------
         
 !     DIAGNOSTICS!       
         do k=1,nbins            
-          tracnum=IDTNUMD-1+k           
+          tracnum=n_ANUM(1)-1+k           
           N_subgridcg(i,j,l,k,1)=N_subgridcg(i,j,l,k,1)+ndist(k)- ! emission after subgrid
      &         tot_ndistinit(k) ! emission before subgrid
           
@@ -2094,14 +2094,14 @@ C-----VARIABLE DECLARATIONS-----------------------------------
           atmsrf%trflux_prescr(tracnum,i,j)= ndist(k)/dtstep*byaxyp(i,j) ! kg/s to kg/m2/s
           
           do c=1,icomp-idiag            
-            tracnum=IDTSO4-1+k+nbins*(c-1)
+            tracnum=n_ASO4(1)-1+k+nbins*(c-1)
             
             if(c.eq.2.or.c.eq.7)then !no subgrid coagulation
               M_subgridcg(i,j,l,k,c,1) =0.
             else              
               if(c.eq.1) tomas_ntsurf=ntsurfsrc(n_SO2)
-              if(c.eq.3.or.c.eq.4) tomas_ntsurf=ntsurfsrc(IDTECOB) !ecob
-              if(c.eq.5.or.c.eq.6)  tomas_ntsurf=ntsurfsrc(IDTOCOB) !ecob              
+              if(c.eq.3.or.c.eq.4) tomas_ntsurf=ntsurfsrc(n_AECOB(1)) !ecob
+              if(c.eq.5.or.c.eq.6)  tomas_ntsurf=ntsurfsrc(n_AOCOB(1)) !ecob              
               M_subgridcg(i,j,l,k,c,1)=M_subgridcg(i,j,l,k,c,1)
      &             + mdist(k,c)-
      &             atmsrf%trflux_prescr(tracnum,i,j)/byaxyp(i,j)*dtstep
@@ -2124,8 +2124,8 @@ C-----VARIABLE DECLARATIONS-----------------------------------
       enddo
 
 !      if(M_subgridcg(i,j,l,4,3,1).gt.0.) 
-!     $     print*,'subcoag 2D result',trsource(i,j,2,IDTNUMD+3),
-!     $       trm(i,j,1,idtecob+3),M_subgridcg(i,j,l,4,3,1)
+!     $     print*,'subcoag 2D result',trsource(i,j,2,n_ANUM(1)+3),
+!     $       trm(i,j,1,n_aecob(1)+3),M_subgridcg(i,j,l,4,3,1)
       
       enddo ! i,j
       

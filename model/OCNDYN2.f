@@ -27,7 +27,7 @@ C****
      *    ijl_mfu,ijl_mfv,ijl_mfw, ijl_ggmfl,ijl_sgmfl,ij_ssh,ij_pb
       USE OFLUXES, only : ocnatm
 #ifdef TRACERS_OCEAN
-      USE OCN_TRACER_COM, only : t_qlimit,ntm
+      USE OCN_TRACER_COM, only : tracerlist, ocn_tracer_entry
       USE OCEAN, only : trmo,
      &     txmo,tymo,tzmo,txxmo,tyymo,tzzmo,txymo,tyzmo,tzxmo
       Use ODIAG, Only: toijl=>toijl_loc,
@@ -53,6 +53,11 @@ c
 
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0H,J_1H, J_0S,J_1S
+#ifdef TRACERS_OCEAN
+      type(ocn_tracer_entry), pointer :: entry
+#endif
+
+      ocnatm%updated=.true.
       call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
      &     J_STRT_SKP = J_0S, J_STOP_SKP = J_1S,
      &     J_STRT_HALO = J_0H, J_STOP_HALO = J_1H)
@@ -92,10 +97,6 @@ C**** Apply bottom and coastal drags
 C**** Add ocean biology
 #ifdef TRACERS_OceanBiology
       call obio_model(ocnatm)
-      call gather_chl
-#ifdef TRACERS_GASEXCH_ocean
-      call gather_pco2
-#endif
       IF (ATMOCN%MODD5S.EQ.0) CALL DIAGCO (5,atmocn)
 #endif
 
@@ -273,17 +274,19 @@ c
       endif
 #ifdef TRACERS_OCEAN
       if(use_qus==1) then
-        DO N=1,NTM
+        DO N=1,tracerlist%getsize()
+          entry=>tracerlist%at(n)
           CALL OADVT3(TRMO(1,J_0H,1,N),
      &       TXMO (1,J_0H,1,N),TYMO (1,J_0H,1,N),TZMO (1,J_0H,1,N),
      &       TXXMO(1,J_0H,1,N),TYYMO(1,J_0H,1,N),TZZMO(1,J_0H,1,N),
      &       TXYMO(1,J_0H,1,N),TYZMO(1,J_0H,1,N),TZXMO(1,J_0H,1,N),
-     &       dtdum,t_qlimit(n),TOIJL(1,J_0H,1,TOIJL_TFLX,N))
+     &       dtdum,entry%t_qlimit,TOIJL(1,J_0H,1,TOIJL_TFLX,N))
         ENDDO
       else
-        DO N=1,NTM
+        DO N=1,tracerlist%getsize()
+          entry=>tracerlist%at(n)
           CALL OADVT2(TRMO(1,J_0H,1,N),TXMO(1,J_0H,1,N)
-     *       ,TYMO(1,J_0H,1,N),TZMO(1,J_0H,1,N),dtdum,t_qlimit(n)
+     *       ,TYMO(1,J_0H,1,N),TZMO(1,J_0H,1,N),dtdum,entry%t_qlimit
      *       ,TOIJL(1,J_0H,1,TOIJL_TFLX,N))
         ENDDO
       endif
@@ -334,7 +337,7 @@ c
       enddo
 
 #ifdef TRACERS_OCEAN
-        DO N=1,NTM
+        DO N=1,tracerlist%getsize()
           DO L=1,LMO
             TOIJL(:,:,L,TOIJL_CONC,N)=TOIJL(:,:,L,TOIJL_CONC,N)
      *           +TRMO(:,:,L,N)*byno
@@ -399,9 +402,10 @@ c     CALL MESO_A(S0M,SXMO,SYMO,SZMO)
 #endif
 
 #ifdef TRACERS_OCEAN
-      DO N = 1,NTM
+      DO N = 1,tracerlist%getsize()
+        entry=>tracerlist%at(n)
         CALL GMFEXP(TRMO(1,J_0H,1,N),TXMO(1,J_0H,1,N),TYMO(1,J_0H,1,N),
-     *    TZMO(1,J_0H,1,N),t_qlimit(n),TOIJL(1,J_0H,1,TOIJL_GMFL,N))
+     *    TZMO(1,J_0H,1,N),entry%t_qlimit,TOIJL(1,J_0H,1,TOIJL_GMFL,N))
       END DO
 #endif
       CALL CHECKO ('GMDIFF')

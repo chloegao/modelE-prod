@@ -124,8 +124,6 @@ c  Degrees to radians conversion
        rkf(nt) = 0.0
       enddo
       pHsfc = 8.0
-      pHmin = 7.5
-      pHmax = 8.6
 c
 c  Phytoplankton group parameters
       do nt = 1,nchl
@@ -425,37 +423,6 @@ c  Read in factors to compute average irradiance
         wsdet(kdm+1,nt) = 0.0
        enddo
  
-#ifndef pCO2_ONLINE
-#ifndef OBIO_SPEED_HACKS
-!ifst part from ppco2tab.f
-       ALLOCATE (pco2tab(nt0,nsal,ndic,nta))
-
-!      open(4,file='/explore/nobackup/aromanou/pco2.tbl.asc'
-!    .       ,status='old')
-
-      call openunit('pco2table',iu_bio)
-      if (AM_I_ROOT()) then
-      print*, '    '
-       print*, 'obio_init, pco2tbl: ',nta,ndic,nsal,nt0
-      endif
-       do nl=1,nta
-        do k=1,ndic
-         do j=1,nsal
-          do i=1,nt0
-           read(iu_bio,'(e12.4)')pco2tab(i,j,k,nl)
-          enddo
-         enddo
-        enddo
-       enddo
-       call closeunit(iu_bio)
-      if (AM_I_ROOT()) then
-       print*,'BIO: read pCO2 table: ',
-     .        pco2tab(1,1,1,1),pco2tab(50,10,100,100)
-      print*, '    '
-      endif
-#endif
-#endif
-
 #ifdef OBIO_RAD_coupling
       if (AM_I_ROOT()) then
       print*, '    '
@@ -973,3 +940,32 @@ c
 #endif /*  STANDALONE_OCEAN */
 #endif  /* Russell ocean */
 
+      subroutine setup_obio
+#ifdef OBIO_ON_GARYocean
+      use ocn_tracer_com, only: add_ocn_tracer
+      use runtimecontrols_mod, only: tracers_alkalinity
+#endif
+      implicit none
+
+#ifdef OBIO_ON_GARYocean
+      call add_ocn_tracer('Nitr      ', i_ntrocn=-4)
+      call add_ocn_tracer('Ammo      ', i_ntrocn=-6)
+      call add_ocn_tracer('Sili      ', i_ntrocn=-4)
+      call add_ocn_tracer('Iron      ', i_ntrocn=-8)
+      call add_ocn_tracer('Diat      ', i_ntrocn=-8)
+      call add_ocn_tracer('Chlo      ', i_ntrocn=-8)
+      call add_ocn_tracer('Cyan      ', i_ntrocn=-8)
+      call add_ocn_tracer('Cocc      ', i_ntrocn=-8)
+      call add_ocn_tracer('Herb      ', i_ntrocn=-8)
+      call add_ocn_tracer('Inert     ', i_ntrocn=-4)
+      call add_ocn_tracer('N_det     ', i_ntrocn=-6)
+      call add_ocn_tracer('S_det     ', i_ntrocn=-6)
+      call add_ocn_tracer('I_det     ', i_ntrocn=-10)
+      call add_ocn_tracer('DOC       ', i_ntrocn=-6)
+      call add_ocn_tracer('DIC       ', i_ntrocn=-3)
+      if (tracers_alkalinity)
+     &             call add_ocn_tracer('Alk       ', i_ntrocn=-6)
+#endif   /* #ifdef OBIO_ON_GARYocean */
+
+      return
+      end subroutine setup_obio

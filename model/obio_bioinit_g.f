@@ -42,9 +42,6 @@ c  Carbon type 2    = DIC
       USE obio_incom
       USE obio_forc, only: avgq
       USE obio_com, only: gcmax,tracer_loc,tracer
-#ifdef TRACERS_Alkalinity
-      USE obio_forc, only: alk => alk_glob
-#endif
 
       USE OCEANRES, only : idm=>imo,jdm=>jmo,kdm=>lmo,dzo
       USE OCEAN, only : ZOE=>ZE,hocean
@@ -113,7 +110,7 @@ c  Initialize
 #ifdef TRACERS_Alkalinity
       filename='alk_inicond'
       call bio_inicond_g(filename,fldo2,fldoz)
-      alk(:,:,:)=fldo2
+      tracer(:,:,:,ntrac)=fldo2
      
       !remove negative values
       !negs are over land or under ice due to GLODAP missing values in the Arctic Ocean
@@ -122,15 +119,15 @@ c  Initialize
       do j=1,jdm
       do i=1,idm
       do k=1,kdm
-       if (alk(i,j,k).lt.0.) then
-          if (zoe(k).le.150.) alk(i,j,k)=2172.      !init neg might be under ice,
-          if (zoe(k).gt.150. .and. zoe(k).lt.1200.) alk(i,j,k)=2200. 
-          if (zoe(k).ge.1200.) alk(i,j,k)=2300.      
+       if (tracer(i,j,k,ntrac).lt.0.) then
+          if (zoe(k).le.150.) tracer(i,j,k,ntrac)=2172.      !init neg might be under ice,
+          if (zoe(k).gt.150. .and. zoe(k).lt.1200.)
+     &                           tracer(i,j,k,ntrac)=2200. 
+          if (zoe(k).ge.1200.) tracer(i,j,k,ntrac)=2300.      
        endif
       enddo
       enddo
       enddo
-      tracer(:,:,:,ntrac)=alk       !because ntrac is alkalinity
 #endif
 
 !!these rno3 and so2_init fields are not correct. There are void points due to
@@ -261,12 +258,6 @@ c          tracer(i,j,k,nt) = 0.05*50.0  !in C units mg/m3
           dic(i,j,k)=dmax1(1837d0,1.002*dic(i,j,k))  !!! g6hh3
 #endif
           dicmod(i,j,k)=dic(i,j,k)
-
-#ifdef TRACERS_Alkalinity
-          do nt = ntyp+n_inert+ndet+ncar,ntyp+n_inert+ndet+ncar+nalk
-           tracer(i,j,k,nt) = alk(i,j,k)
-          enddo
-#endif
 
  1000 continue
 

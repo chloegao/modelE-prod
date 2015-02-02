@@ -16,7 +16,7 @@
       use oceanres,  only: idm=>imo, kdm=>lmo
       use oceanr_dim, only : ogrid
       use obio_com, only: tracers => tracer_loc
-      use ocn_tracer_com, only : numTracers => ntm
+      use ocn_tracer_com, only : tracerlist
        USE MODEL_COM,  only : nstep=>itime
 #else
       use hycom_dim_glob, only : idm, kdm
@@ -38,7 +38,13 @@
       integer :: j_0, j_1, j_0h, j_1h
       integer :: iTracer
       character(len=50) :: name
+#ifdef OBIO_ON_GARYocean
+      integer :: numtracers
+#endif
 
+#ifdef OBIO_ON_GARYocean
+      numtracers=tracerlist%getsize()
+#endif
       call getDomainBounds(ogrid, j_strt = j_0, j_stop = j_1,
      &     j_strt_halo=j_0h, j_stop_halo = j_1h)
 

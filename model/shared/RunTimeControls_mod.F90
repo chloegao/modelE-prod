@@ -174,12 +174,6 @@ module RunTimeControls_mod
   logical, parameter :: check_van2 = .false.
 #endif
 
-#if defined(CHL0)
-  logical, parameter :: chl0 = .true.
-#else
-  logical, parameter :: chl0 = .false.
-#endif
-
 #if defined(CHL_from_OBIO)
   logical, parameter :: chl_from_obio = .true.
 #else
@@ -1324,6 +1318,12 @@ module RunTimeControls_mod
   logical, parameter :: pco2_online = .true.
 #else
   logical, parameter :: pco2_online = .false.
+#endif
+
+#if defined(OBIO_WSPDF)
+  logical, parameter :: obio_wspdf = .true.
+#else
+  logical, parameter :: obio_wspdf = .false.
 #endif
 
 

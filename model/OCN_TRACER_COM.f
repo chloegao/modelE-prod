@@ -7,9 +7,25 @@
 #define TRACERS_OCEAN_INDEP_HARDCODED
 #endif
 
+      module ocn_tracer_entry_mod
+      implicit none
+      type ocn_tracer_entry
+       character*10 :: trname
+       integer :: trw0=0, trdecay=0, ntrocn=0, to_per_mil=0
+       integer :: itime_tr0=0
+       logical :: conc_from_fw=.false., t_qlimit=.true., need_ic=.false.
+      end type ocn_tracer_entry
+      end module ocn_tracer_entry_mod
+
+      module ocn_tracer_vector_mod
+      use ocn_tracer_entry_mod
+#define _entryname ocn_tracer_entry
+#include "containers/vector.fh"
+      end module ocn_tracer_vector_mod
+
 #if (defined TRACERS_OCEAN) || (defined TRACERS_WATER)
       MODULE OCN_TRACER_COM
-      SAVE
+
 !@sum OCN_TRACER_COM: sets up tracer quantities for ocean tracers
 !@+   This information can either be set up directly from the AGCM
 !@+   or can be indpendently defined here.
@@ -27,76 +43,11 @@
 !@dbparam to_per_mil For printout of tracer concentration in permil
 
 
-#ifdef TRACERS_OCEAN_INDEP_HARDCODED
-C**** this defines tracer parameters that are local to ocean code
-
-
-#ifdef TRACERS_AGE_OCEAN
-      INTEGER, PARAMETER :: ntm=1
-      CHARACTER*10 :: trname(ntm) = (/ 'Age       '/)
-      REAL*8, DIMENSION(ntm) :: trw0=0, trdecay=0
-      INTEGER, DIMENSION(ntm) :: ntrocn=0
-      LOGICAL, DIMENSION(NTM) :: conc_from_fw = .false.
-      INTEGER, DIMENSION(NTM) :: to_per_mil = 0
-#endif  /*TRACERS_AGE_OCEAN */
-
-#ifdef TRACERS_ZEBRA
-      INTEGER, PARAMETER ::  ntm=20
-      CHARACTER*10 :: trname(ntm) =   (/ 'zebraL06   ', 'zebraL07   ',
-     .     'zebraL08   ', 'zebraL09   ', 'zebraL10   ', 'zebraL11   ',
-     .     'zebraL12   ', 'zebraL13   ', 'zebraL14   ', 'zebraL15   ',
-     .     'zebraL16   ', 'zebraL17   ', 'zebraL18   ', 'zebraL19   ',
-     .     'zebraL20   ', 'zebraL21   ', 'zebraL22   ', 'zebraL23   ',
-     .     'zebraL24   ', 'zebraL26   '/)
-      REAL*8, DIMENSION(ntm) :: trw0=0, trdecay=0
-      INTEGER, DIMENSION(ntm) :: ntrocn=0
-      LOGICAL, DIMENSION(NTM) :: conc_from_fw = .false.
-      INTEGER, DIMENSION(NTM) :: to_per_mil = 0
-#endif    /*zebra*/
-
-#ifdef TRACERS_OceanBiology
-#ifdef TRACERS_Alkalinity
-      INTEGER, PARAMETER :: ntm=16
-#else
-      INTEGER, PARAMETER :: ntm=15
-#endif
-      CHARACTER*10 :: trname(ntm) = (/ 'Nitr      ', 'Ammo      ', 
-     .     'Sili      ', 'Iron      ', 'Diat      ', 'Chlo      ', 
-     .     'Cyan      ', 'Cocc      ', 'Herb      ', 'Inert     ',
-     .     'N_det     ', 'S_det     ', 'I_det     ', 'DOC       ',
-     .     'DIC       '
-#ifdef TRACERS_Alkalinity
-     .     ,'Alk       '
-#endif
-     .     /)
-      REAL*8, DIMENSION(ntm) :: trw0=0, trdecay=0
-!@var ntrocn scaling exponent for tracers
-      INTEGER, DIMENSION(ntm) :: ntrocn = (/ -4,-6,-4,-8,-8,-8,-8,-8,-8,
-     .     -4,-6,-6,-10,-6,-3
-#ifdef TRACERS_Alkalinity
-     .     ,-6
-#endif
-     .     /)
-      INTEGER, DIMENSION(NTM) :: to_per_mil = 0
-      LOGICAL, DIMENSION(NTM) :: conc_from_fw = .false.
-#endif  /* TRACERS_OceanBiology */
-
-C**** a default tracer if nothing else is defined
-#if ! (defined TRACERS_OceanBiology || defined TRACERS_AGE_OCEAN || defined TRACERS_ZEBRA)
-      INTEGER, PARAMETER :: ntm=1
-      CHARACTER*10 :: trname(ntm) = (/ 'Water     '/)
-      REAL*8, DIMENSION(ntm) :: trw0=1d0, trdecay=0
-      INTEGER, DIMENSION(ntm) :: ntrocn=2
-      LOGICAL, DIMENSION(NTM) :: conc_from_fw = .true.
-#endif
-
-      LOGICAL, DIMENSION(ntm) :: t_qlimit=.true. 
-      LOGICAL, DIMENSION(ntm) :: need_ic=.false.
-      INTEGER, DIMENSION(ntm) :: itime_tr0 = 0
-      INTEGER :: n_water = 0
-
-#else   /* not TRACERS_OCEAN_INDEP_HARDCODED */
-
+      use ocn_tracer_entry_mod
+      use ocn_tracer_vector_mod
+      SAVE
+      type(vector_ocn_tracer_entry) :: tracerlist
+#ifndef TRACERS_OCEAN_INDEP_HARDCODED
 C**** These arrays are allocated/intialized in one of two ways:
 C**** (1) by the AGCM, which copies its data into them
 C**** (2) if RUNTIME_NTM_OCEAN is defined, the allocation/initialization
@@ -107,17 +58,9 @@ C****     a given number of tracers, whose ICs will be read
 C****     from the file OCN_TRACER_CONFIG.  This approach is
 C****     still being tailored to handle all cases for which
 C****     it will prove useful.
-      INTEGER :: ntm, n_water
-      INTEGER, DIMENSION(:), ALLOCATABLE ::
-     &     itime_tr0, ntrocn, to_per_mil
-      LOGICAL, DIMENSION(:), ALLOCATABLE ::
-     &     t_qlimit, conc_from_fw, need_ic
-      REAL*8, DIMENSION(:), ALLOCATABLE ::
-     &     trdecay, trw0
-      CHARACTER(LEN=10), DIMENSION(:), ALLOCATABLE ::
-     &     trname
-
 #endif
+
+      integer :: n_water
       INTEGER :: n_age=0, n_obio=0, n_vent=0, n_wms1=0, n_wms2=0
      .          ,n_wms3=0,n_dets,n_cfc,n_dic
 
@@ -129,17 +72,27 @@ C****     it will prove useful.
       integer :: water_tracer_ic=1 ! Read water tracers ic from H2O18ic (=1) or set all to SMOW (=0)
 #endif
 
+      contains
+
+      subroutine add_ocn_tracer(i_trname, i_trw0, i_ntrocn, i_conc)
+      use ocn_tracer_entry_mod
+      implicit none
+      character(len=*), intent(in) :: i_trname
+      integer, intent(in), optional :: i_trw0, i_ntrocn
+      logical, intent(in), optional :: i_conc
+      type(ocn_tracer_entry) :: entry
+
+      entry%trname=i_trname
+      if (present(i_trw0)) entry%trw0=i_trw0
+      if (present(i_ntrocn)) entry%ntrocn=i_ntrocn
+      if (present(i_conc)) entry%conc_from_fw=i_conc
+      call tracerlist%push_back(entry)
+      return
+      end subroutine add_ocn_tracer
+
+
       END MODULE OCN_TRACER_COM
 
-      SUBROUTINE initOcnTracerCom(DTS)
-      use ocn_tracer_com, only: ntm, expDecayRate, trdecay
-      real*8, intent(in) :: dts 
-      integer n
-      allocate(expDecayRate(ntm))
-      do n=1,ntm
-        if (trdecay(n).gt.0.0) expDecayRate(n)=exp(-trdecay(n)*dts)
-      end do
-      END SUBROUTINE initOcnTracerCom
 
       subroutine alloc_ocn_tracer_com
       USE DOMAIN_DECOMP_1D, only : am_i_root
@@ -165,9 +118,11 @@ C****     it will prove useful.
 #endif
       implicit none
       character(len=128) :: trname_list
-      character(len=10) :: trname_(50)
       integer :: i,ier
       integer :: img, jmg, lmg, n
+      integer :: numtracers
+      type(ocn_tracer_entry), pointer :: entry
+
       if (am_i_root()) then
         img = im
         jmg = jm
@@ -182,43 +137,26 @@ C****     it will prove useful.
         trname_list=''
         call get_param("ocean_trname",trname_list)
         trname_list=adjustl(trname_list)
-        ntm=0
         do while(len_trim(trname_list).gt.0)
           i=index(trname_list,' ')
-          ntm = ntm + 1
-          trname_(ntm) = trname_list(1:i-1)
+          add_ocn_tracer(trname_list(1:i-1))
           trname_list = adjustl(trname_list(i:128))
         enddo
-        allocate(trname(ntm)); trname(:) = trname_(1:ntm)
-        ! RUNTIME_NTM_OCEAN is currently only being used for
-        ! a few simple tracers, so just set defaults for those.
-        allocate(trw0(ntm)); trw0(:) = 0.
-        allocate(trdecay(ntm)); trdecay(:) = 0.
-        allocate(to_per_mil(ntm)); to_per_mil = 0
-        allocate(t_qlimit(ntm)); t_qlimit=.true.
-        allocate(conc_from_fw(ntm)); conc_from_fw=.false.
-        allocate(need_ic(ntm)); need_ic=.false.
       else
         call stop_model('RUNTIME_NTM_OCEAN needs ocean_trname',255)
       endif
 #endif
-#ifndef TRACERS_OCEAN_INDEP
-      allocate(
-     &     itime_tr0(ntm), ntrocn(ntm), to_per_mil(ntm),
-     &     t_qlimit(ntm), conc_from_fw(ntm),
-     &     trdecay(ntm), trw0(ntm)
-     &     )
-#endif
-      allocate(oc_tracer_mean(ntm)) 
+      numtracers=tracerlist%getsize()
+      allocate(oc_tracer_mean(numtracers)) 
       oc_tracer_mean(:) = -999.
 
-      ALLOCATE(TRMST(LMO,NMST,NTM),
-     &         TXMST(LMO,NMST,NTM),
-     &         TZMST(LMO,NMST,NTM),
-     &         TRME(2,NMST,LMO,NTM),
-     &         TXME(2,NMST,LMO,NTM),
-     &         TYME(2,NMST,LMO,NTM),
-     &         TZME(2,NMST,LMO,NTM)
+      ALLOCATE(TRMST(LMO,NMST,numtracers),
+     &         TXMST(LMO,NMST,numtracers),
+     &         TZMST(LMO,NMST,numtracers),
+     &         TRME(2,NMST,LMO,numtracers),
+     &         TXME(2,NMST,LMO,numtracers),
+     &         TYME(2,NMST,LMO,numtracers),
+     &         TZME(2,NMST,LMO,numtracers)
      &        )
       trmst = 0.
       txmst = 0.
@@ -228,44 +166,44 @@ C****     it will prove useful.
       tyme = 0.
       tzme = 0.
 #ifdef TRACERS_WATER
-      ALLOCATE(TRSIST(NTM,LMI,NMST))
+      ALLOCATE(TRSIST(numtracers,LMI,NMST))
       trsist = 0.
 #endif
 
-      ALLOCATE( TRMO(IM,J_0H:J_1H,LMO,NTM), STAT = IER)
-      ALLOCATE( TXMO(IM,J_0H:J_1H,LMO,NTM), STAT = IER)
-      ALLOCATE( TYMO(IM,J_0H:J_1H,LMO,NTM), STAT = IER)
-      ALLOCATE( TZMO(IM,J_0H:J_1H,LMO,NTM), STAT = IER)
+      ALLOCATE( TRMO(IM,J_0H:J_1H,LMO,numtracers), STAT = IER)
+      ALLOCATE( TXMO(IM,J_0H:J_1H,LMO,numtracers), STAT = IER)
+      ALLOCATE( TYMO(IM,J_0H:J_1H,LMO,numtracers), STAT = IER)
+      ALLOCATE( TZMO(IM,J_0H:J_1H,LMO,numtracers), STAT = IER)
       trmo = 0.
       txmo = 0.
       tymo = 0.
       tzmo = 0.
 
       if(use_qus==1) then
-      ALLOCATE( TXXMO(IM,J_0H:J_1H,LMO,NTM), STAT = IER)
-      ALLOCATE( TYYMO(IM,J_0H:J_1H,LMO,NTM), STAT = IER)
-      ALLOCATE( TZZMO(IM,J_0H:J_1H,LMO,NTM), STAT = IER)
-      ALLOCATE( TXYMO(IM,J_0H:J_1H,LMO,NTM), STAT = IER)
-      ALLOCATE( TYZMO(IM,J_0H:J_1H,LMO,NTM), STAT = IER)
-      ALLOCATE( TZXMO(IM,J_0H:J_1H,LMO,NTM), STAT = IER)
+      ALLOCATE( TXXMO(IM,J_0H:J_1H,LMO,numtracers), STAT = IER)
+      ALLOCATE( TYYMO(IM,J_0H:J_1H,LMO,numtracers), STAT = IER)
+      ALLOCATE( TZZMO(IM,J_0H:J_1H,LMO,numtracers), STAT = IER)
+      ALLOCATE( TXYMO(IM,J_0H:J_1H,LMO,numtracers), STAT = IER)
+      ALLOCATE( TYZMO(IM,J_0H:J_1H,LMO,numtracers), STAT = IER)
+      ALLOCATE( TZXMO(IM,J_0H:J_1H,LMO,numtracers), STAT = IER)
       txxmo=0.; tyymo=0.; tzzmo=0.; txymo=0.; tyzmo=0.; tzxmo=0.
       endif
 
-      do n=1,ntm
-       if (trname(n).eq.'OceanAge') n_age = n
-       if (trname(n).eq.'Ventilatn') n_vent = n
-       if (trname(n).eq.'WatrMass1') n_wms1 = n
-       if (trname(n).eq.'WatrMass2') n_wms2 = n
-       if (trname(n).eq.'WatrMass3') n_wms3 = n
-       if (trname(n).eq.'DetSet') n_dets = n
-       if (trname(n).eq.'CFC') n_cfc = n
-       if (trname(n).eq.'DIConly') then
-                  n_dic = n
-                 need_ic(n_dic)=.true.
+      do n=1,numtracers
+       entry=>tracerlist%at(n_dic)
+       if (entry%trname.eq.'OceanAge') n_age = n
+       if (entry%trname.eq.'Ventilatn') n_vent = n
+       if (entry%trname.eq.'WatrMass1') n_wms1 = n
+       if (entry%trname.eq.'WatrMass2') n_wms2 = n
+       if (entry%trname.eq.'WatrMass3') n_wms3 = n
+       if (entry%trname.eq.'DetSet') n_dets = n
+       if (entry%trname.eq.'CFC') n_cfc = n
+       if (entry%trname.eq.'DIConly') then
+         n_dic = n
+         entry%need_ic=.true.
        endif
       enddo
 
       return
       end subroutine alloc_ocn_tracer_com
-
 #endif

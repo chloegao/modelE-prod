@@ -67,9 +67,8 @@
 
 #ifdef TRACERS_ON
       ocnatm % ntm = atmocn % ntm
-#endif
-#ifdef TRACERS_GASEXCH_ocean
-      ocnatm % ntm_gasexch = atmocn % ntm_gasexch
+      ocnatm % gasex_index = atmocn % gasex_index
+      ocnatm % n_co2n = atmocn % n_co2n
 #endif
       call alloc_xchng_vars(grd_dum,ocnatm)
 

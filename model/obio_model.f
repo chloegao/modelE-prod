@@ -18,10 +18,10 @@
      .                    ,alk
      .                    ,tirrq3d
 #ifdef OBIO_RAD_coupling
-     .                    ,eda_frac,esa_frac
+      use obio_forc, only: eda_frac,esa_frac
      .                    ,ovisdir_ij,ovisdif_ij,onirdir_ij,onirdif_ij
 #else
-     .                    ,Eda,Esa,Eda2,Esa2
+      use obio_forc, only: Eda,Esa,Eda2,Esa2
 #endif
       USE obio_com,  only: dobio,gcmax,day_of_month,hour_of_day
      .                    ,temp1d,dp1d,obio_P,det,car,avgq1d
@@ -32,62 +32,48 @@
      .                    ,tzoo,tfac,rmuplsr,rikd,wshc,Fescav
      .                    ,tzoo2d,tfac3d,rmuplsr3d,rikd3d
      .                    ,wshc3d,Fescav3d 
-     .                    ,acdom,pp2_1d,pp2tot_day,pp2tot_day_glob
-     .                    ,tot_chlo,acdom3d,tot_chlo_glob
+     .                    ,acdom,pp2_1d,pp2tot_day
+     .                    ,tot_chlo,acdom3d
      .                    ,itest,jtest
      .                    ,obio_ws
      .                    ,cexp,flimit,kzc
      .                    ,rhs_obio,chng_by
-#ifndef TRACERS_GASEXCH_ocean_CO2
-#ifdef TRACERS_OceanBiology
-     .                    ,ao_co2flux
-#endif
-#endif
-#ifdef TRACERS_Alkalinity
-     .                    ,caexp
-#endif
+      use obio_com, only: caexp
 
 #ifdef OBIO_RUNOFF
 #ifdef NITR_RUNOFF
-!     .                    ,rnitrmflo_loc
-     .                    ,rnitrconc_loc
+!      use obio_com, only: rnitrmflo_loc
+      use obio_com, only: rnitrconc_loc
 #endif
 #ifdef DIC_RUNOFF
-     .                    ,rdicconc_loc
+      use obio_com, only: rdicconc_loc
 #endif
 #ifdef DOC_RUNOFF
-     .                    ,rdocconc_loc
+      use obio_com, only: rdocconc_loc
 #endif
 #ifdef SILI_RUNOFF
-     .                    ,rsiliconc_loc
+      use obio_com, only: rsiliconc_loc
 #endif
 #ifdef IRON_RUNOFF
-     .                    ,rironconc_loc
+      use obio_com, only: rironconc_loc
 #endif
 #ifdef POC_RUNOFF
-     .                    ,rpocconc_loc
+      use obio_com, only: rpocconc_loc
 #endif
 #ifdef ALK_RUNOFF
-     .                    ,ralkconc_loc
+      use obio_com, only: ralkconc_loc
 #endif
 #endif
 
 #ifdef OBIO_ON_GARYocean
-     .                    ,obio_deltat,nstep0
+      use obio_com, only: obio_deltat,nstep0
      .                    ,tracer =>tracer_loc        
       USE ODIAG, only : ij_pCO2,ij_dic,ij_nitr,ij_diat
      .                 ,ij_amm,ij_sil,ij_chlo,ij_cyan,ij_cocc,ij_herb
      .                 ,ij_doc,ij_iron,ij_alk,ij_Ed,ij_Es,ij_pp
      .                 ,ij_cexp,ij_lim,ij_wsd,ij_ndet,ij_xchl
-     .                 ,ij_rhs
-#ifndef TRACERS_GASEXCH_ocean_CO2
-#ifdef TRACERS_OceanBiology
-     .                 ,ij_flux
-#endif
-#endif
-#ifdef TRACERS_Alkalinity
-      USE ODIAG, only: ij_fca
-#endif
+     .                 ,ij_rhs,ij_flux,ij_fca
+      use runtimecontrols_mod, only: tracers_alkalinity
 
 #ifdef OBIO_RUNOFF
 #ifdef NITR_RUNOFF
@@ -117,19 +103,6 @@
 
       USE ODIAG, only : oij=>oij_loc
 #endif
-#ifndef OBIO_ON_GARYocean    /* HYCOM only */
-     .    ,tracav_loc,ao_co2flux_loc,ao_co2fluxav_loc
-     .    ,diag_counter,plevav,plevav_loc
-     .    ,cexp_loc=>cexpij
-     .    ,pp2tot_day_loc=>pp2tot_day, pCO2_loc=>pCO2
-     .    ,pCO2av_loc, pp2tot_dayav_loc, cexpav_loc
-#ifdef TRACERS_Alkalinity
-     .    ,caexp_loc=>caexpij,caexpav_loc
-#endif
-#ifdef OBIO_RUNOFF
-! will have something here
-#endif
-#endif
       use ocalbedo_mod, only: ocalbedo
 
       USE MODEL_COM, only: modelEclock
@@ -140,10 +113,7 @@
 
       USE FILEMANAGER, only: openunit,closeunit,file_exists
 
-#ifdef TRACERS_GASEXCH_ocean_CO2
-      USE TRACER_COM, only : NTM    !tracers involved in air-sea gas exch
-      USE TRACER_GASEXCH_COM, only : tracflx1d !,tracflx
-#endif
+      USE obio_com, only : co2flux
 
 
 #ifdef OBIO_ON_GARYocean
@@ -163,10 +133,13 @@
       USE  hycom_arrays_glob, only: latij_glob=>latij,lonij_glob=>lonij
       USE hycom_scalars, only: trcout,nstep,onem,nstep0
      .                        ,time,lp,baclin,huge
-      USE obio_com, only: ao_co2flux_loc,tracav_loc,
-     .     pCO2av,plevav_loc, ao_co2fluxav_loc,
+      USE obio_com, only: ao_co2flux_loc,tracav,
+     .     pCO2av,plevav, ao_co2fluxav_loc,
      .     cexpav,caexpav,pp2tot_dayav,cexpij,
      .     pCO2av_loc,pp2tot_dayav_loc,cexpav_loc,caexpav_loc
+      USE obio_com, only: diag_counter,cexp_loc=>cexpij
+     .    ,pp2tot_day_loc=>pp2tot_day, pCO2_loc=>pCO2
+     .    ,caexp_loc=>caexpij
 #endif
 
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,pack_data,unpack_data
@@ -263,8 +236,8 @@ c
         call obio_bioinit_g
       endif
 #else
-      tracav_loc = 0.
-      plevav_loc=0.
+      tracav = 0.
+      plevav=0.
       ao_co2fluxav_loc  = 0.
       pCO2av_loc = 0
       pp2tot_dayav_loc = 0
@@ -392,7 +365,7 @@ cdiag.          olon_dg(i,1),olat_dg(j,1)
        !!covice_ij=covice(i,j)  !for standalone hycom
        covice_ij=oice(i,j)      !for modelE-hycom
 #endif
-       pCO2_ij=pCO2(i,j)
+       pCO2_ij=atm%gtracer(atm%n_co2n,i,j)
      
 #ifdef OBIO_ON_GARYocean
        pres = oAPRESS(i,j)    !surface atm. pressure
@@ -608,13 +581,7 @@ cdiag write(*,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
      .   nstep,i,j,solz,sunz,wind,atmFe_ij
        endif
 
-#ifdef TRACERS_GASEXCH_ocean_CO2
-       do nt=1,ntm
-          tracflx1d(nt) = atm%trgasex(nt,i,j) !tracflx(i,j,nt)
-!         write(*,'(/,a,3i5,2e12.4)')'obio_model, tracflx:',
-!    .        nstep,i,j,tracflx(i,j,nt),tracflx1d(nt)
-       enddo
-#endif
+       if (atm%n_co2n>0) co2flux=atm%trgasex(atm%n_co2n, i, j)
 
        !------------------------------------------------------------
        !at the beginning of each day only
@@ -1131,18 +1098,13 @@ cdiag     endif
 
        !update pCO2 array
        pCO2(i,j)=pCO2_ij
-       atm%pCO2(i,j)=pCO2_ij
+       atm%gtracer(atm%n_co2n, i,j)=pCO2_ij
 
 #ifndef OBIO_ON_GARYocean     /* NOT for Russell ocean */
        !update cexp array
        cexpij(i,j) = cexp
 
-#ifdef TRACERS_GASEXCH_ocean_CO2    
-       ao_co2flux_loc(i,j)=tracflx1d(1)
-#else
-       !get ao_co2flux_glob array to save in archive
-       ao_co2flux_loc(i,j)=ao_co2flux 
-#endif
+       ao_co2flux_loc(i,j)=co2flux 
 #endif
 
 !diagnostics
@@ -1181,13 +1143,7 @@ cdiag     endif
        enddo
        enddo
 
-#ifndef TRACERS_GASEXCH_ocean_CO2    
-! NOT FOR GASEXCH EXPERIMENTS
-! NOT FOR HYCOM
-#ifdef TRACERS_OceanBiology
-       OIJ(I,J,IJ_flux) = OIJ(I,J,IJ_flux) + ao_co2flux      !air-sea CO2 flux(watson)
-#endif
-#endif
+       OIJ(I,J,IJ_flux) = OIJ(I,J,IJ_flux) + co2flux      !air-sea CO2 flux(watson)
 
 #ifdef OBIO_RUNOFF
 #ifdef NITR_RUNOFF
@@ -1214,12 +1170,12 @@ cdiag     endif
 #endif
 #endif
 
-#ifdef TRACERS_Alkalinity
-       OIJ(I,J,IJ_alk) = OIJ(I,J,IJ_alk) + tracer(i,j,1,16)    ! surf ocean alkalinity
-       OIJ(I,J,IJ_fca) = OIJ(I,J,IJ_fca) + caexp               ! carbonate export
-#else
-       OIJ(I,J,IJ_alk) = OIJ(I,J,IJ_alk) + alk(i,j,1)          ! surf ocean alkalinity
-#endif
+       if (tracers_alkalinity) then
+         OIJ(I,J,IJ_alk) = OIJ(I,J,IJ_alk) + tracer(i,j,1,16)    ! surf ocean alkalinity
+         OIJ(I,J,IJ_fca) = OIJ(I,J,IJ_fca) + caexp               ! carbonate export
+       else
+         OIJ(I,J,IJ_alk) = OIJ(I,J,IJ_alk) + alk(i,j,1)          ! surf ocean alkalinity
+       endif
 
 #else    /* HYCOM ACCUMULATED DIAGNOSTICS */
       ao_co2fluxav_loc(i,j)=ao_co2fluxav_loc(i,j) + ao_co2flux_loc(i,j)
@@ -1230,10 +1186,10 @@ cdiag     endif
       do k=1,kk
         plev = max(0.,dpinit(i,j,k))
         if (plev.lt.1.e30) then
-          plevav_loc(i,j,k) = plevav_loc(i,j,k) + plev
+          plevav(i,j,k) = plevav(i,j,k) + plev
 
           do nt=1,ntrcr
-            tracav_loc(i,j,k,nt) = tracav_loc(i,j,k,nt) +
+            tracav(i,j,k,nt) = tracav(i,j,k,nt) +
      .           tracer(i,j,k,nt)*plev
           enddo !nt
 
@@ -1259,10 +1215,6 @@ cdiag     endif
 
  1000 continue
       call stop('  obio main loop')
-
-      call start('  obio gather')
-      call pack_data( ogrid,  tot_chlo,   tot_chlo_glob )
-      call stop('  obio gather')
 
       call start('   obio_trint')
       call obio_trint(1)

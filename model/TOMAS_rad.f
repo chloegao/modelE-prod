@@ -15,8 +15,7 @@ C
       USE RESOLUTION,  only: lm
       USE MODEL_COM,   only: itime,itimeI
       use OldTracer_mod, only: trName, TRPDENS
-      USE TRACER_COM,  only: TRM,NBINS,IDTSO4,IDTNA,
-     &     IDTOCIL,IDTNUMD,IDTH2O,xk
+      USE TRACER_COM,  only: TRM,NBINS,n_ASO4,n_ANUM,xk
       USE RADPAR,      only: TTAUSV,aesqex,aesqsc,aesqcb,FSTOPX,FTTOPX !Diagnostics
       USE ATM_COM, only : t            ! potential temperature (C)
      $                     ,q            ! saturated pressure
@@ -114,7 +113,7 @@ C*********************************************************************
       do K=1,NBINS 
         mtot=0.d0
         do c=1,icomp-2
-          trnum=idtso4-1+k+nbins*(c-1)
+          trnum=n_aso4(1)-1+k+nbins*(c-1)
           m_spec(c)=trm(i,j,l,trnum) !aerosol mass in a size bin [kg]
           
           if(c.eq.1) then  !Sulfate water uptake
@@ -134,13 +133,13 @@ C*********************************************************************
         enddo
         
 !Negligible number and mass ==> zero AOD
-        if(trm(i,j,l,idtnumd-1+k).lt.1.d-5
+        if(trm(i,j,l,n_anum(1)-1+k).lt.1.d-5
      &       .or.mtot.le.0.) goto 500
 
-        mp=mtot/trm(i,j,l,idtnumd-1+k) ! dry particle diameter [kg/a particle]
+        mp=mtot/trm(i,j,l,n_anum(1)-1+k) ! dry particle diameter [kg/a particle]
         
         if(mp.gt.1000.*xk(nbins+1).or.mp.lt.xk(1)/10.)then
-          print*,'mp is out of range',mp,k,rhe,c,trnum,idtso4
+          print*,'mp is out of range',mp,k,rhe,c,trnum,n_aso4(1)
         endif
         
         ntot=0.d0

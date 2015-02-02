@@ -11,9 +11,6 @@
 
       integer, ALLOCATABLE, DIMENSION(:,:)   :: ir
       real,    ALLOCATABLE, DIMENSION(:,:,:) :: Fer,dicmod,dic
-#ifndef pCO2_ONLINE
-      real,    ALLOCATABLE, DIMENSION(:,:,:,:):: pco2tab
-#endif
 
       real :: rmumax(nchl)          !max phyto growth rate at 20oC, d/
       real :: rik(3,nchl)           !light saturation parameter umol quanta/m2/s
@@ -26,8 +23,7 @@
 
       real rad, pi2
 
-      real :: pHsfc,pHmin,pHmax   !pH at surface,minimun for iteration,
-                                  !max for iteration
+      real :: pHsfc               !pH at surface
       real Pdeep(ntyp)            !deep BC
       real detdeep(ndet)          !detrital deep BC
       real cardeep(ncar)          !carbon deep BC
@@ -65,10 +61,6 @@ C if CARBON == 1
       real, parameter :: Pzo=1.0*uMtomgm3/50.0 !zoopl half-sat for
                                                !DOC excretion mg/m3(chl,assuming
                                                !C:chl ratio of 50))
-      real, parameter :: awan=0.337/(3.6E+5)   !piston vel coeff., from
-                                               !Wanninkof 1992, but adjusted
-                                               !by OCMIP, and converted from
-                                               !cm/hr to m/s
       real, parameter :: stdslp=1013.25        !standard sea level pressure in mb
 
       real, parameter :: Rm=1.20/24.0          !max zoopl. growth rate/hr
@@ -91,16 +83,6 @@ c     parameter(bn=0.5,bs=0.5)        !N/chl and Si/chl ratios
       
       real bn,bf,cchlratio
 
-!save from moved ifst parts
-       integer, parameter :: it0inc=1,nt0=80/it0inc,isalinc=1,nsal=20
-       integer, parameter :: idicinc=2,ndic=(650+idicinc)/idicinc
-       integer, parameter :: itainc=2,nta=(500+itainc)/itainc
-
-
-#ifndef pCO2_ONLINE
-       !real pco2tab
-       !common /bpco2tab/pco2tab(nt0,nsal,ndic,nta)
-#endif
 
       integer nl450
 
