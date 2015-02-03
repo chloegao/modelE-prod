@@ -69,7 +69,8 @@ C****
       use photolysis, only: aer2,miedx2,nbfastj
 #endif  /* TRACERS_SPECIAL_Shindell */
 #ifdef TRACERS_ON
-      use rad_com, only: nraero_koch,nraero_nitrate,nraero_dust,
+      use rad_com, only: nraero_seasalt,
+     *                   nraero_koch,nraero_nitrate,nraero_dust,
      *                   nraero_AMP,nraero_TOMAS,nraero_OM_SP
 #endif  /* TRACERS_ON */
       USE RAD_COM, only : rqt, s0x, co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx
@@ -561,7 +562,7 @@ caer   TRRDRY=(/ .1d0, .1d0, .1d0, .1d0, .1d0, .1d0, .1d0, .1d0/)
 caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
 
 #ifdef TRACERS_ON
-      nraero=nraero_koch+nraero_nitrate+nraero_dust
+      nraero=nraero_seasalt+nraero_koch+nraero_nitrate+nraero_dust
      &      +nraero_AMP+nraero_TOMAS+nraero_OM_SP
 
       allocate(ntrix(nraero)) ; ntrix=0
@@ -592,15 +593,26 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
 !=======================================================================
       n=0
 !-----------------------------------------------------------------------
+#ifdef TRACERS_AEROSOLS_SEASALT
+      if (nraero_seasalt > 0) then
+        if (rad_interact_aer > 0) then
+          FS8OPX(2)=0.d0
+          FT8OPX(2)=0.d0
+        end if
+        ntrix(n+1:n+nraero_seasalt)=(/n_seasalt1,n_seasalt2/)
+        trrdry(n+1:n+nraero_seasalt)=(/0.44d0,1.7d0/)
+        itr(n+1:n+nraero_seasalt)=(/2,2/)
+      endif
+      n=n+nraero_seasalt
+#endif  /* TRACERS_AEROSOLS_SEASALT */
+!-----------------------------------------------------------------------
 #ifdef TRACERS_AEROSOLS_Koch
       if (nraero_koch > 0) then
         if (rad_interact_aer > 0) then  ! if BC's sol.effect are doubled:
           FS8OPX(1)=0.d0
           FT8OPX(1)=0.d0
 #ifndef SULF_ONLY_AEROSOLS
-          FS8OPX(2)=0.d0
           FS8OPX(4:6)=0.d0
-          FT8OPX(2)=0.d0
           FT8OPX(4:6)=0.d0
 #endif
         end if
@@ -608,35 +620,32 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
         trrdry(n+1)=0.15d0
         itr(n+1)=1
 #ifndef SULF_ONLY_AEROSOLS
-        ntrix(n+2:n+nraero_koch)=
-     &      (/n_seasalt1,n_seasalt2,n_OCIA,n_OCB
+        ntrix(n+2:n+nraero_koch)=(/n_OCIA,n_OCB
 #ifdef TRACERS_AEROSOLS_SOA
-     &       ,n_isopp1a
+     &                            ,n_isopp1a
 #endif  /* TRACERS_AEROSOLS_SOA */
-     &       ,n_BCIA,n_BCB/)
-        trrdry(n+2:n+nraero_koch)=
-     &      (/0.44d0,1.7d0,0.2d0,0.2d0
+     &                            ,n_BCIA,n_BCB/)
+        trrdry(n+2:n+nraero_koch)=(/0.2d0,0.2d0
 #ifdef TRACERS_AEROSOLS_SOA
-     &       ,0.2d0
+     &                             ,0.2d0
 #endif  /* TRACERS_AEROSOLS_SOA */
-     &       ,0.08d0,0.08d0/)
-        itr(n+2:n+nraero_koch)=(/2,2,4,4
+     &                             ,0.08d0,0.08d0/)
+        itr(n+2:n+nraero_koch)=(/4,4
 #ifdef TRACERS_AEROSOLS_SOA
      &                          ,4
 #endif  /* TRACERS_AEROSOLS_SOA */
      &                          ,5,6/)
-        krhtra(n+2:n+nraero_koch)=(/1,1,1,1
+        krhtra(n+2:n+nraero_koch)=(/1,1
 #ifdef TRACERS_AEROSOLS_SOA
      &                             ,1
 #endif  /* TRACERS_AEROSOLS_SOA */
      &                             ,0,0/)
 ! augment BC by 50%
-        fstasc(n+2:n+nraero_koch)=
-     &        (/1.d0,1.d0,1.d0,1.d0
+        fstasc(n+2:n+nraero_koch)=(/1.d0,1.d0
 #ifdef TRACERS_AEROSOLS_SOA
-     &         ,1.d0
+     &                             ,1.d0
 #endif  /* TRACERS_AEROSOLS_SOA */
-     &         ,1.5d0,1.5d0/)
+     &                             ,1.5d0,1.5d0/)
 #endif  /* SULF_ONLY_AEROSOLS */
       endif
       n=n+nraero_koch
@@ -2279,7 +2288,8 @@ C**** For up to nraero aerosols, define the aerosol amount to
 C**** be used (kg/m^2)
 C**** Only define TRACER is individual tracer is actually defined.
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
+    (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM) ||\
+    (defined TRACERS_AEROSOLS_SEASALT)
 C**** loop over tracers that are passed to radiation.
 C**** Some special cases for black carbon, organic carbon, SOAs where
 C**** more than one tracer is lumped together for radiation purposes
@@ -2341,7 +2351,7 @@ C**** more than one tracer is lumped together for radiation purposes
           end select
         end if
       end do
-#endif /* TRACERS_AEROSOLS_Koch/DUST/MINERALS/QUARZHEM/OM_SP */
+#endif /* TRACERS_AEROSOLS_Koch/DUST/MINERALS/QUARZHEM/OM_SP/SEASALT */
 
 #ifdef TRACERS_AMP
       CALL SETAMP_LEV(i,j,l)
@@ -2489,7 +2499,8 @@ C**** Ozone and Methane:
 #endif /* TRACERS_SPECIAL_Shindell */
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
+    (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM) ||\
+    (defined TRACERS_AEROSOLS_SEASALT)
 C**** Aerosols incl. Dust:        set up for radiative forcing diagnostics
       if (nraero>0 .and. moddrf==0) then
         set_clayilli=.FALSE.
@@ -2531,7 +2542,7 @@ C**** Assumes that 4 clay tracers are adjacent in nraero array
               set_clayquar=.true.
             END SELECT
             kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
-            CALL RCOMPX  ! tr.aero.Koch/dust/miner./quarz/om_sp
+            CALL RCOMPX  ! tr.aero.Koch/dust/miner./quarz/om_sp/seasalt
             SNFST(1,n,I,J)=SRNFLB(1) ! surface forcing
             TNFST(1,n,I,J)=TRNFLB(1)
             SNFST(2,n,I,J)=SRNFLB(LFRC)
@@ -2548,7 +2559,7 @@ C**** Assumes that 4 clay tracers are adjacent in nraero array
           END IF
         end do
       end if
-#endif /* TRACERS_AEROSOLS_Koch/DUST/MINERALS/QUARZHEM/OM_SP */
+#endif /* TRACERS_AEROSOLS_Koch/DUST/MINERALS/QUARZHEM/OM_SP/SEASALT */
 
       if (moddrf==0) then
 #ifdef TRACERS_SPECIAL_Shindell
@@ -2776,7 +2787,8 @@ C*****************************************************
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
     (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM) ||\
-    (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
+    (defined TRACERS_AMP) || (defined TRACERS_TOMAS) ||\
+    (defined TRACERS_AEROSOLS_SEASALT)
 
 #ifdef TRACERS_AMP
       nraero = nmodes
@@ -3353,7 +3365,7 @@ C**** AERRF diags if required
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
     (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
 C**** Generic diagnostics for radiative forcing calculations
 C**** Depending on whether tracers radiative interaction is turned on,
 C**** diagnostic sign changes (for aerosols)

@@ -129,9 +129,9 @@ C**** does not produce exactly the same as the default values.
       integer, parameter :: nraero_koch=1
 #else
 #ifdef TRACERS_AEROSOLS_SOA
-      integer, parameter :: nraero_koch=8
+      integer, parameter :: nraero_koch=6
 #else
-      integer, parameter :: nraero_koch=7
+      integer, parameter :: nraero_koch=5
 #endif  /* TRACERS_AEROSOLS_SOA */
 #endif  /* SULF_ONLY_AEROSOLS */
 #else
@@ -173,6 +173,12 @@ C**** does not produce exactly the same as the default values.
 #else
       integer, parameter :: nraero_OM_SP=0
 #endif  /* TRACERS_OM_SP */
+
+#ifdef TRACERS_AEROSOLS_SEASALT
+      integer, parameter :: nraero_seasalt=2
+#else
+      integer, parameter :: nraero_seasalt=0
+#endif  /* TRACERS_AEROSOLS_SEASALT */
 
 #ifdef TRACERS_SPECIAL_Shindell
 !@var njaero max expected rad code tracers passed to photolysis

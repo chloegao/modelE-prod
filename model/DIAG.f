@@ -1298,7 +1298,7 @@ C****
      &     ,trcSurfByVol_acc
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
      &     ,sPM2p5_acc,sPM10_acc,l1PM2p5_acc,l1PM10_acc
      &     ,csPM2p5_acc,csPM10_acc
 #endif
@@ -2454,7 +2454,7 @@ C**** accumulating/averaging mode ***
           long_name = 'Cloud to Ground Lightning Flash Rate'
 #endif /* TRACERS_SPECIAL_Shindell or CALCULATE_LIGHTNING*/
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
         case ("PM2p5") ! Nsubdd-step avg SFC PM2.5 (ppmm)
            datar8=sPM2p5_acc/real(Nsubdd)
            sPM2p5_acc=0.
@@ -2491,7 +2491,7 @@ C**** accumulating/averaging mode ***
           units_of_data = 'kg/m^3'
           long_name = 'Surface Particulate Matter <= 10 um'
           qinstant = .false.
-#endif /* (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)  || (defined TRACERS_TOMAS) */
+#endif /* (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)  || (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT) */
 
 #ifdef TRACERS_AEROSOLS_Koch
         case ("SO4")      ! sulfate in L=1

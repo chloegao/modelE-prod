@@ -18,13 +18,8 @@ module KochTracersMetadata_mod
   use OldTracer_mod, only: set_tr_RKD
   use OldTracer_mod, only: set_tr_DHD
   use OldTracer_mod, only: tr_RKD 
-  use OldTracer_mod, only: set_ntisurfsrc
-  use OldTracer_mod, only: set_needtrs
-  use TRACER_COM, only:  n_MSA, n_SO2,  n_SO4, n_DMS, n_seasalt1,  n_seasalt2, &
+  use TRACER_COM, only:  n_MSA, n_SO2,  n_SO4, n_DMS, &
     n_BCII,  n_BCIA,  n_BCB, n_OCII,  n_OCIA,  n_OCB, n_H2O2_s
-  use TRACER_COM, only: aer_int_yr
-  use TRACER_COM, only: offline_dms_ss, offline_ss
-  use TRACER_COM, only: set_ntsurfsrc
   use Dictionary_mod, only: sync_param
   use RunTimeControls_mod, only: tracers_drydep
   use RunTimeControls_mod, only: sulf_only_aerosols
@@ -59,8 +54,6 @@ module KochTracersMetadata_mod
       call  H2O2_s_setSpec('H2O2_s')
     end if
     if (.not. sulf_only_aerosols) then
-      call  seasalt1_setSpec('seasalt1')
-      call  seasalt2_setSpec('seasalt2')
       call  BCII_setSpec('BCII')
       call  BCIA_setSpec('BCIA')
       call  BCB_setSpec('BCB')
@@ -118,37 +111,6 @@ module KochTracersMetadata_mod
       call set_fq_aer(n, 1.d0   ) !fraction of aerosol that dissolves
       call set_tr_wd_type(n, npart)
     end subroutine SO4_setSpec
-
-    subroutine seasalt1_setSpec(name)
-      character(len=*), intent(in) :: name
-      n = oldAddTracer(name)
-      n_seasalt1 = n
-      call set_ntsurfsrc(n,  0) ! ocean bubbles
-      call set_ntisurfsrc(n, 1)
-      call set_ntm_power(n, -10)
-      call set_tr_mm(n, 75.d0)  !Na x 3.256
-      call set_trpdens(n, 2.2d3) !kg/m3 This is for non-hydrated
-      call set_trradius(n, 4.4d-7 ) ! This is non-hydrated
-      call set_fq_aer(n, 1.0d0   ) !fraction of aerosol that dissolves
-      call set_tr_wd_type(n, npart)
-    end subroutine seasalt1_setSpec
-
-    subroutine seasalt2_setSpec(name)
-      character(len=*), intent(in) :: name
-      n = oldAddTracer(name)
-      n_seasalt2 = n
-      call set_ntsurfsrc(n,  0) ! ocean bubbles
-      call set_ntisurfsrc(n, 1)
-      call set_ntm_power(n, -9)
-      call set_tr_mm(n, 75.d0)  !Na x 3.256
-      call set_trpdens(n, 2.2d3) !kg/m3 This is for non-hydrated
-      call set_trradius(n, 5.0d-6) ! This is non-hydrated
-      if (OFFLINE_DMS_SS.ne.1 .and. OFFLINE_SS.ne.1) then
-        call set_trradius(n, 1.7d-6 ) ! This is non-hydrated
-      end if
-      call set_fq_aer(n, 1.0d0   ) !fraction of aerosol that dissolves
-      call set_tr_wd_type(n, npart)
-    end subroutine seasalt2_setSpec
 
     subroutine BCII_setSpec(name)
       character(len=*), intent(in) :: name

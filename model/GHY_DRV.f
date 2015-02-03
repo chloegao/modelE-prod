@@ -349,7 +349,7 @@ cddd#endif
       real*8 tdryd,tdd,td1,rtsdt,rts,depvel,gsvel
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)  ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
       real*8 trc_flux
 #endif
 #ifdef INTERACTIVE_WETLANDS_CH4
@@ -419,19 +419,21 @@ ccc accumulate tracer evaporation and runoff
         n=ntix(nx)
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)  ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
 C**** technicallly some of these are ocean emissions, but if
 C**** fixed datasets are used, it can happen over land as well.
 
         select case (trname(n))
         case ('DMS')
           trc_flux=pbl_args%DMS_flux
+#if (defined TRACERS_AEROSOLS_SEASALT) || (defined TRACERS_AMP)
         case ('seasalt1', 'M_SSA_SS')
           trc_flux=pbl_args%ss1_flux
         case ('seasalt2', 'M_SSC_SS')
           trc_flux=pbl_args%ss2_flux
         case ('M_SSS_SS')
           trc_flux=(pbl_args%ss1_flux+pbl_args%ss2_flux)
+#endif  /* TRACERS_AEROSOLS_SEASALT || TRACERS_AMP */
 #ifdef TRACERS_AEROSOLS_OCEAN
         case ('OCocean')
           trc_flux=pbl_args%OCocean_flux
