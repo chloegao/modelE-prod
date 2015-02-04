@@ -710,7 +710,7 @@ C**** Limit evaporation if lake mass is at minimum
 
 #ifdef TRACERS_ON
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
 
       call collect_ocean_emissions(i,j,ptype,dtsurf,pbl_args)
 
@@ -1984,7 +1984,7 @@ c     &       WRITE(99,*) "LIMITING TRDEW",I,J,N,TDP,TRM(I,J,1,n),TDT1
 
 #ifdef TRACERS_ON
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
       subroutine collect_ocean_emissions(i,j,ptype,dtsurf,pbl_args)
       use OldTracer_mod, only : trname
       use fluxes, only : atmocn
@@ -2020,17 +2020,19 @@ C**** Loop over tracers
         N=pbl_args%NTIX(NX)
 
 C****
-C**** Calculate Aersosol Exchange
+C**** Calculate Aerosol Exchange
 C****
         select case (trname(n))
         case ('DMS')
           trc_flux=pbl_args%DMS_flux
+#if (defined TRACERS_AEROSOLS_SEASALT) || (defined TRACERS_AMP)
         case ('seasalt1', 'M_SSA_SS')
           trc_flux=pbl_args%ss1_flux
         case ('seasalt2', 'M_SSC_SS')
           trc_flux=pbl_args%ss2_flux
         case ('M_SSS_SS')
           trc_flux=(pbl_args%ss1_flux+pbl_args%ss2_flux)
+#endif  /* TRACERS_AEROSOLS_SEASALT || TRACERS_AMP */
 #ifdef TRACERS_AEROSOLS_OCEAN
         case ('OCocean')
           trc_flux=pbl_args%OCocean_flux

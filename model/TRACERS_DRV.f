@@ -4925,7 +4925,7 @@ c source of Pb210 from Rn222 decay
         ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-#ifdef TRACERS_AEROSOLS_Koch
+#ifdef TRACERS_AEROSOLS_SEASALT
         select case (trname(n))
         case ('seasalt1', 'seasalt2')
           call set_diag_rad(n,k)
@@ -6761,7 +6761,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       use OldTracer_mod, only: set_itime_tr0
       USE TRACER_COM, only: NTM, trm, trmom, rnsrc, tracers
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
       USE TRACER_COM, only:
      *     n_SO2,OFFLINE_DMS_SS,OFFLINE_SS
 #ifdef TRACERS_TOMAS
@@ -6808,17 +6808,17 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       USE TRACER_SOURCES, only:GLTic
 #endif
 #endif /* TRACERS_SPECIAL_Shindell */
+#if (defined TRACERS_AEROSOLS_SEASALT) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
+      use tracers_seasalt, only: SS1_AER,SS2_AER
+#endif  /* TRACERS_AEROSOLS_SEASALT || TRACERS_AMP || TRACERS_TOMAS */
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
-      USE AEROSOL_SOURCES, only: DMSinput,
-     * om2oc
+      USE AEROSOL_SOURCES, only: DMSinput,om2oc
 #ifndef TRACERS_AEROSOLS_SOA
-      USE AEROSOL_SOURCES, only:
-     * OCT_src
+      USE AEROSOL_SOURCES, only: OCT_src
 #endif  /* TRACERS_AEROSOLS_SOA */
-      USE AEROSOL_SOURCES, only:
-     * DMS_AER,SS1_AER,SS2_AER,
-     * SO2_src_3D
+      USE AEROSOL_SOURCES, only: DMS_AER,SO2_src_3D
 #endif
 #ifdef TRACERS_RADON
        USE AEROSOL_SOURCES, only: rn_src
@@ -6862,7 +6862,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       REAL*8 stratm,xlat,pdn,pup
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)  ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
       REAL*4, DIMENSION(GRID%I_STRT:GRID%I_STOP,
      &                  GRID%J_STRT:GRID%J_STOP,366) ::
      &     DMS_AER_nohalo, SS1_AER_nohalo, SS2_AER_nohalo
@@ -6885,14 +6885,17 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       REAL*8, DIMENSION(LM) :: PRES
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)  ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
       include 'netcdf.inc'
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)  ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
       integer start(3),count(3),status,ncidu,id1
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)  ||\
+    (defined TRACERS_TOMAS)
       INTEGER ii,jj,ir,mm,iuc,mmm,ll,iudms
       INTEGER iuc2,lmax
+#endif
 #endif
 #if defined (TRACERS_AEROSOLS_Koch) || defined (TRACERS_AMP) ||\
     defined (TRACERS_TOMAS)
@@ -7736,32 +7739,6 @@ c will call read_dist_data for cubed sphere compatibility
         DMS_AER(I_0:I_1,J_0:J_1,:) = DMS_AER_nohalo(I_0:I_1,J_0:J_1,:)
       endif
  901  FORMAT(3X,3(I4),E11.3)
-c read in AEROCOM seasalt
-      if (OFFLINE_DMS_SS.eq.1.or.OFFLINE_SS.eq.1) then
-        status=NF_OPEN('SALT1',NCNOWRIT,ncidu)
-        status=NF_INQ_VARID(ncidu,'salt',id1)
-        start(1)=i_0
-        start(2)=j_0
-        start(3)=1
-        count(1)=1+(i_1-i_0)
-        count(2)=1+(j_1-j_0)
-        count(3)=366
-        status=NF_GET_VARA_REAL(ncidu,id1,start,count,SS1_AER_nohalo)
-        status=NF_CLOSE(ncidu)
-        SS1_AER(I_0:I_1,J_0:J_1,:) = SS1_AER_nohalo(I_0:I_1,J_0:J_1,:)
-
-        status=NF_OPEN('SALT2',NCNOWRIT,ncidu)
-        status=NF_INQ_VARID(ncidu,'salt',id1)
-        start(1)=i_0
-        start(2)=j_0
-        start(3)=1
-        count(1)=1+(i_1-i_0)
-        count(2)=1+(j_1-j_0)
-        count(3)=366
-        status=NF_GET_VARA_REAL(ncidu,id1,start,count,SS2_AER_nohalo)
-        status=NF_CLOSE(ncidu)
-        SS2_AER(I_0:I_1,J_0:J_1,:) = SS2_AER_nohalo(I_0:I_1,J_0:J_1,:)
-      endif
 
 c read in SO2 emissions
 c volcano - continuous
@@ -7816,6 +7793,36 @@ c NOTE: the input file specifies integrals over its gridboxes.
       deallocate(volc_lats, volc_pup, volc_emiss)
 #endif
       deallocate(psref)
+#endif
+#if (defined TRACERS_AEROSOLS_SEASALT) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
+c read in DMS source
+c read in AEROCOM seasalt
+      if (OFFLINE_DMS_SS.eq.1.or.OFFLINE_SS.eq.1) then
+        status=NF_OPEN('SALT1',NCNOWRIT,ncidu)
+        status=NF_INQ_VARID(ncidu,'salt',id1)
+        start(1)=i_0
+        start(2)=j_0
+        start(3)=1
+        count(1)=1+(i_1-i_0)
+        count(2)=1+(j_1-j_0)
+        count(3)=366
+        status=NF_GET_VARA_REAL(ncidu,id1,start,count,SS1_AER_nohalo)
+        status=NF_CLOSE(ncidu)
+        SS1_AER(I_0:I_1,J_0:J_1,:) = SS1_AER_nohalo(I_0:I_1,J_0:J_1,:)
+
+        status=NF_OPEN('SALT2',NCNOWRIT,ncidu)
+        status=NF_INQ_VARID(ncidu,'salt',id1)
+        start(1)=i_0
+        start(2)=j_0
+        start(3)=1
+        count(1)=1+(i_1-i_0)
+        count(2)=1+(j_1-j_0)
+        count(3)=366
+        status=NF_GET_VARA_REAL(ncidu,id1,start,count,SS2_AER_nohalo)
+        status=NF_CLOSE(ncidu)
+        SS2_AER(I_0:I_1,J_0:J_1,:) = SS2_AER_nohalo(I_0:I_1,J_0:J_1,:)
+      endif
 #endif
 ! ---------------------------------------------------
 #ifndef TRACERS_AEROSOLS_SOA
@@ -9206,7 +9213,7 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
      & sCO_acc,l1Ox_acc,l1NO2_acc,mNO2
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
       USE TRDIAG_COM, only: sPM2p5_acc,sPM10_acc,l1PM2p5_acc,l1PM10_acc,
      &                      csPM2p5_acc,csPM10_acc
 #endif
@@ -9813,14 +9820,14 @@ C       stop
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
     (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_SOA) ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
 ! This section is to accumulate/aggregate certain tracers' SURFACE and
 ! L=1 values into particulate matter PM2.5 and PM10 for use in the sub-
 ! daily diags. Saved in ppmm or kg/m3. Also save Ox and NO2 in ppmv:
       do n=1,NTM
         select case (trname(n))
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_AEROSOLS_SOA)
+    (defined TRACERS_AEROSOLS_SOA) || (defined TRACERS_AEROSOLS_SEASALT)
 ! 100% of these: <-----------------------------------------------------
         case('BCII','BCIA','BCB','OCII','OCIA','OCB','SO4','NO3p',
      &       'NH4','MSA',
@@ -10131,7 +10138,7 @@ C**** this is a parameterisation from Georg Hoffmann
           fq = 0.D0                           ! defaults to zero.
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_COSMO) ||\
     (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) ||\
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AEROSOLS_SEASALT) ||\
     (defined TRACERS_AMP) || (defined TRACERS_RADON)
 c only dissolve if the cloud has grown
 #if (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_DUST) &&\
@@ -10394,7 +10401,7 @@ C**** this is a parameterisation from Georg Hoffmann
     (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) ||\
     (defined TRACERS_AMP) || (defined TRACERS_RADON) ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
 
 c
 c aerosols
@@ -10561,7 +10568,7 @@ C**** GLOBAL parameters and variables:
       use OldTracer_mod, only: tr_RKD, tr_DHD, rc_washt
       USE TRACER_COM, only: 
      * LM,NTM
-#ifdef TRACERS_AEROSOLS_Koch
+#ifdef TRACERS_AEROSOLS_SEASALT
      * ,n_seasalt1,n_seasalt2
       use OldTracer_mod, only: trname
 c     USE PBLCOM, only: wsavg
@@ -10617,7 +10624,7 @@ c            ssfac=RKD*WMXTR*MAIR*1.D-6*Ppas/(FCLOUD+teeny)
     (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) ||\
     (defined SHINDELL_STRAT_EXTRA) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_RADON)
+    (defined TRACERS_RADON) || (defined TRACERS_AEROSOLS_SEASALT)
           fq = -b_beta_DT*(EXP(-PREC*rc_washt(ntix(n)))-1.D0)
           if (FCLOUD.lt.1.D-16) fq=0.d0
           if (fq.lt.0.) fq=0.d0
@@ -10655,7 +10662,7 @@ C**** GLOBAL parameters and variables:
       use OldTracer_mod, only: tr_RKD, tr_DHD, rc_washt, trname
       USE TRACER_COM, only: 
      * NTM
-#ifdef TRACERS_AEROSOLS_Koch
+#ifdef TRACERS_AEROSOLS_SEASALT
 c     * n_seasalt1,n_seasalt2
 c     USE PBLCOM, only: wsavg
 #endif
@@ -10760,7 +10767,7 @@ c      fq(water_list) = 0d0
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_COSMO) ||\
     (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) ||\
+    (defined TRACERS_QUARZHEM) || (defined TRACERS_AEROSOLS_SEASALT) ||\
     (defined SHINDELL_STRAT_EXTRA) || (defined TRACERS_AMP) ||\
     (defined TRACERS_RADON) || (defined TRACERS_TOMAS)
 c

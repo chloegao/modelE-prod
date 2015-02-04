@@ -1277,7 +1277,8 @@ contains
             FLAMG=(400.d0*PI*CN0G/(CONDMU+teeny))**.25
             FLAMI=(100.d0*PI*CN0I/(CONDMU+teeny))**.25
 
-#if (defined CLD_AER_CDNC) && (defined TRACERS_AEROSOLS_Koch)
+#if (defined CLD_AER_CDNC) && \
+    ((defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AEROSOLS_SEASALT))
 !@auth Menon  saving aerosols mass for CDNC prediction
             do N=1,SNTM
               DSS(N)=1.d-10
@@ -1297,18 +1298,21 @@ contains
 #endif
 #endif
             !**** Here we change convective precip due to aerosols
-#if (defined CLD_AER_CDNC) && (defined TRACERS_AEROSOLS_Koch)
+#if (defined CLD_AER_CDNC) && \
+    ((defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AEROSOLS_SEASALT))
             do N=1,NTX
               select case (trname(ntix(n)))
               case('SO4')
                 DSGL(L,1)=tm_cdnc(n)     !n=19
                 DSS(1) = DSGL(L,1)
+#ifdef TRACERS_AEROSOLS_SEASALT
               case('seasalt1')
                 DSGL(L,2)=tm_cdnc(n)     !n=21
                 DSS(2) = DSGL(L,2)
               case('seasalt2')
                 DSGL(L,3)=tm_cdnc(n)     !n=22
                 DSS(3) = DSGL(L,3)
+#endif  /* TRACERS_AEROSOLS_SEASALT */
               case('OCIA')
                 DSGL(L,4)=tm_cdnc(n)     !n=27
                 DSS(4) = DSGL(L,4)
@@ -1410,7 +1414,7 @@ contains
 #endif  /* TRACERS_AEROSOLS_VBS */
               end select
             end do      !end of n loop for tracers
-#endif  /* (TRACERS_AEROSOLS_Koch) and (CLD_AER_CDNC) */
+#endif  /* (TRACERS_AEROSOLS_Koch or TRACERS_AEROSOLS_SEASALT) and (CLD_AER_CDNC) */
             !** Use MATRIX AMP_actv to decide what the aerosol number conc. is
 #if (defined CLD_AER_CDNC) || (defined BLK_2MOM)
 #ifndef TRACERS_TOMAS
@@ -3369,7 +3373,8 @@ contains
       if (LHP(L+1).eq.LHS .and. &
            TL(L).lt.TF+DTsrc*LHM*PREICE(L+1)*GRAV*BYAM(L)*BYSHA) &
            LHP(L)=LHP(L+1)
-#if (defined CLD_AER_CDNC) && (defined TRACERS_AEROSOLS_Koch)
+#if (defined CLD_AER_CDNC) && \
+    ((defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AEROSOLS_SEASALT))
 !@auth Menon  saving aerosols mass for CDNC prediction
       do N=1,SNTM
         DSS(N)=1.d-10
@@ -3380,12 +3385,14 @@ contains
         case('SO4')
           DSGL(L,1)=tm(l,n)     !n=4
           DSS(1) = DSGL(L,1)
+#ifdef TRACERS_AEROSOLS_SEASALT
         case('seasalt1')
           DSGL(L,2)=tm(l,n)     !n=6
           DSS(2) = DSGL(L,2)
         case('seasalt2')
           DSGL(L,3)=tm(l,n)     !n=7
           DSS(3) = DSGL(L,3)
+#endif  /* TRACERS_AEROSOLS_SEASALT */
         case('OCIA')
           DSGL(L,4)=tm(l,n)     !n=12
           DSS(4) = DSGL(L,4)
@@ -3496,7 +3503,8 @@ contains
       SCDNCI=SNdI
       WMUI=WMUIX*.001         ! .0001
       WMUSI=0.1
-#if (defined CLD_AER_CDNC) && (defined TRACERS_AEROSOLS_Koch)
+#if (defined CLD_AER_CDNC) && \
+    ((defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AEROSOLS_SEASALT))
       call GET_CDNC(L,LHX,WCONST,WMUI,AIRM(L),QCLX(L),DXYPIJ, &
            FCLD,CLEARA(L),CLDSAVL(L),DSS,PL(L),TL(L), &
            NCLL(L),VVEL,SME(L),DSU,CDNL0,CDNL1)
@@ -3657,7 +3665,7 @@ contains
            nr0=nrain)
 
 #endif
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AEROSOLS_SEASALT)
       ldummy=execute_bulk2m_driver('all' &
            ,ndrop,mdrop,ncrys,mcrys,'end',qr0=mrain,nr0=nrain)
 #endif
@@ -3670,7 +3678,7 @@ contains
       !       ldummy=execute_bulk2m_driver('hugh','drop_nucl',dtB2M,mkx)
 
       !*** Use this if using the Lohmann or Gultepe scheme  for mass to number
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AEROSOLS_SEASALT)
       OLDCDNC=OLDCDN*1.d6  !convert from cm-3 to m-3
       NEWCDNC=NEWCDN*1.d6  !convert from cm-3 to m-3
       ldummy=execute_bulk2m_driver('gult','drop_nucl',dtB2M,mkx, &
@@ -5259,7 +5267,7 @@ contains
       SAVCLD = CLDSAVL(L) ! = (1-CLEARA)      (already updated)
 #endif
 !@auth Menon for CDNC prediction
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AEROSOLS_SEASALT)
       call GET_CDNC_UPD(L,LHX,WCONST,WMUI,QCLX(L),FCLD,NEWCLD, &
            SAVCLD,VVEL,SME(L),DSU,NCLL(L), &
            CDNL0,CDNL1)
@@ -5311,7 +5319,7 @@ contains
            ,ndrop,mdrop,ncrys,mcrys,'end')
       ! Get new drop & crys concentration
       !     ldummy=execute_bulk2m_driver('surabi','GET_CDNC_UPD',dtB2M,mkx)
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AEROSOLS_SEASALT)
       !*** Call Lohmann's or Gultepe's scheme for CDNC
       OLDCDNC=OLDCDN*1.d6  !convert from cm-3 to m-3
       NEWCDNC=NEWCDN*1.d6  !convert from cm-3 to m-3

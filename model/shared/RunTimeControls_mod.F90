@@ -882,6 +882,12 @@ module RunTimeControls_mod
   logical, parameter :: tracers_aerosols_soa = .false.
 #endif
 
+#if defined(TRACERS_AEROSOLS_SEASALT)
+  logical, parameter :: tracers_aerosols_seasalt = .true.
+#else
+  logical, parameter :: tracers_aerosols_seasalt = .false.
+#endif
+
 #if defined(TRACERS_AEROSOLS_VBS)
   logical, parameter :: tracers_aerosols_vbs = .true.
 #else

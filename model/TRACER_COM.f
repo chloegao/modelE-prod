@@ -124,16 +124,16 @@ C**** Each tracer has a variable name and a unique index
       integer, parameter :: ntm_vbs=0
 #elif (defined TRACERS_AEROSOLS_VBS)
 #ifdef TRACERS_SPECIAL_Shindell
-      integer, parameter :: ntm_koch=9
+      integer, parameter :: ntm_koch=7
 #else
-      integer, parameter :: ntm_koch=10
+      integer, parameter :: ntm_koch=8
 #endif  /* TRACERS_SPECIAL_Shindell */
       integer, parameter :: ntm_vbs=2*vbs_bins
 #else
 #ifdef TRACERS_SPECIAL_Shindell
-      integer, parameter :: ntm_koch=12
+      integer, parameter :: ntm_koch=10
 #else
-      integer, parameter :: ntm_koch=13
+      integer, parameter :: ntm_koch=11
 #endif  /* TRACERS_SPECIAL_Shindell */
       integer, parameter :: ntm_vbs=0
 #endif  /* SULF_ONLY_AEROSOLS or TRACERS_AEROSOLS_VBS */
@@ -141,6 +141,12 @@ C**** Each tracer has a variable name and a unique index
       integer, parameter :: ntm_koch=0
       integer, parameter :: ntm_vbs=0
 #endif  /* TRACERS_AEROSOLS_Koch */
+!@var ntm_ss: Number of TRACERS_AEROSOLS_SEASALT tracers.
+#ifdef TRACERS_AEROSOLS_SEASALT
+      integer, parameter :: ntm_ss=2
+#else
+      integer, parameter :: ntm_ss=0
+#endif
 !@var ntm_ococean: Number of TRACERS_AEROSOLS_OCEAN tracers.
 #ifdef TRACERS_AEROSOLS_OCEAN
       integer, parameter :: ntm_ococean=1
@@ -479,7 +485,7 @@ c for gas phase sulfur chemistry used by aerosol and chemistry models
 #endif
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS) 
+    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
 C**** Aerosol specific switches and arrays
 
 !!@dbparam OFFLINE_DMS_SS is 0 for standard case, 1 for offline dms, seasalt emission
