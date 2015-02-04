@@ -1818,8 +1818,8 @@ C**** The ice dynamics land mask is that of the atmosphere
 
       icedyn_processors_only: if(grid_ICDYN%have_domain) then
         call ICE_HALO(grid_ICDYN, iFOCEAN)
-        call ICDYN_MASKS()
       endif icedyn_processors_only
+        call ICDYN_MASKS()
 
       bydts = 1./dtsrc
 
