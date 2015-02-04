@@ -111,6 +111,7 @@ C****
 #endif
 #ifdef TRACERS_AMP
       USE AERO_CONFIG, only: nmodes
+      USE AMP_AEROSOL, only: AMP_DIAG_FC
       USE TRACER_COM, only:
      *     n_N_AKK_1 ,n_N_ACC_1 ,n_N_DD1_1 ,n_N_DS1_1 ,n_N_DD2_1,
      *     n_N_DS2_1, n_N_SSA_1, n_N_SSC_1, n_N_OCC_1, n_N_BC1_1,
@@ -561,6 +562,27 @@ caer   ITR = (/ 0,0,0,0, 0,0,0,0 /)
 caer   TRRDRY=(/ .1d0, .1d0, .1d0, .1d0, .1d0, .1d0, .1d0, .1d0/)
 caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
 
+#ifdef  TRACERS_AMP
+         IF (AMP_DIAG_FC == 2) THEN
+            nraero_AMP=nmodes
+         ELSE
+            nraero_AMP=n_N_AKK_1
+         ENDIF
+#endif /* TRACERS_AMP */
+
+#ifdef  TRACERS_TOMAS
+         IF (TOMAS_DIAG_FC == 2) THEN
+!TOMAS does not include NO3 AND VOL, which use its default radiation. 
+#ifndef TRACERS_NITRATE
+            nraero_TOMAS=icomp-2
+#else
+            nraero_TOMAS=icomp-1
+#endif
+         ELSE
+            nraero_TOMAS=n_ANUM(1)
+         ENDIF
+#endif /* TRACERS_TOMAS */
+
 #ifdef TRACERS_ON
       nraero=nraero_seasalt+nraero_koch+nraero_nitrate+nraero_dust
      &      +nraero_AMP+nraero_TOMAS+nraero_OM_SP
@@ -826,11 +848,15 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
           FS8OPX(1:7)=0.d0
           FT8OPX(1:7)=0.d0
         endif
-        ntrix(n+1:n+nraero_AMP)=
-     &     (/n_N_AKK_1 ,n_N_ACC_1 ,n_N_DD1_1 ,n_N_DS1_1 ,n_N_DD2_1,
-     &       n_N_DS2_1, n_N_SSA_1, n_N_SSC_1, n_N_OCC_1, n_N_BC1_1,
-     &       n_N_BC2_1 ,n_N_BC3_1,
-     &       n_N_DBC_1, n_N_BOC_1, n_N_BCS_1, n_N_MXX_1/)
+        if (AMP_DIAG_FC == 2) then
+          ntrix(n+1:n+nraero_AMP)=
+     &       (/n_N_AKK_1 ,n_N_ACC_1 ,n_N_DD1_1 ,n_N_DS1_1 ,n_N_DD2_1,
+     &         n_N_DS2_1, n_N_SSA_1, n_N_SSC_1, n_N_OCC_1, n_N_BC1_1,
+     &         n_N_BC2_1 ,n_N_BC3_1,
+     &         n_N_DBC_1, n_N_BOC_1, n_N_BCS_1, n_N_MXX_1/)
+        else
+          ntrix(n+1)=n_N_AKK_1
+        endif
       endif
       n=n+nraero_AMP
 #endif  /* (defined TRACERS_AMP) || (defined TRACERS_AMP_M1) */
@@ -847,12 +873,17 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
           FT8OPX(3)=0.d0
 #endif  /* TRACERS_NITRATE */
         endif
+
+        if (TOMAS_DIAG_FC == 2) then
 ! ANUM(1) for internal-mixing case. Others(ncomp-1) for external-mixing case.
-        ntrix(n+1:n+nraero_TOMAS)=
-     &     (/n_ASO4(1), n_ANACL(1), n_AECOB(1), n_AECIL(1),
-     &       n_AOCOB(1), n_AOCIL(1), n_ADUST(1)/)
-        itr(n+1:n+nraero_TOMAS) = (/1,2,6,5,4,4,7/)
-        krhtra(n+1:n+nraero_TOMAS)=0
+          ntrix(n+1:n+nraero_TOMAS)=
+     &       (/n_ASO4(1), n_ANACL(1), n_AECOB(1), n_AECIL(1),
+     &         n_AOCOB(1), n_AOCIL(1), n_ADUST(1)/)
+          itr(n+1:n+nraero_TOMAS) = (/1,2,6,5,4,4,7/)
+          krhtra(n+1:n+nraero_TOMAS)=0
+        else
+          ntrix(n+1)=n_ANUM(1)
+        endif
       endif
       n=n+nraero_TOMAS
 #endif
@@ -1600,10 +1631,6 @@ c          use TRACER_COM, only: SNFST0,TNFST0
       USE TRCHEM_Shindell_COM, only: Lmax_rad_O3,Lmax_rad_CH4
 #endif /* TRACERS_SPECIAL_Shindell */
 #endif /* TRACERS_ON */
-#ifdef TRACERS_AMP
-      USE AERO_CONFIG, only: nmodes
-      USE AMP_AEROSOL, only: AMP_DIAG_FC
-#endif
 #ifdef TRACERS_TOMAS
       USE TOMAS_AEROSOL, only: icomp,TOMAS_DIAG_FC
       USE TRACER_COM, only : n_ANUM
@@ -2640,24 +2667,9 @@ c set for BC-albedo effect
         dALBsn=dALBsn1
 #endif
 #ifdef TRACERS_AMP
-        IF (AMP_DIAG_FC == 2) THEN
-          Do n = 1,nmodes
-            FSTOPX(n) = 1-onoff_aer !turns off online tracer
-            FTTOPX(n) = 1-onoff_aer !
-            if (n.eq.1) FSTOPX(:) = 1-onoff_aer
-            if (n.eq.1) FTTOPX(:) = 1-onoff_aer
-            CALL RCOMPX
-            SNFST(1,n,I,J)=SRNFLB(1) ! surface forcing
-            TNFST(1,n,I,J)=TRNFLB(1)
-            SNFST(2,n,I,J)=SRNFLB(LFRC) ! Tropopause forcing
-            TNFST(2,n,I,J)=TRNFLB(LFRC)
-            FSTOPX(:) = onoff_aer !turns on online tracer
-            FTTOPX(:) = onoff_aer !
-          ENDDO
-        ELSE
-           n = 1
-          FSTOPX(:) = 1-onoff_aer !turns off online tracer
-          FTTOPX(:) = 1-onoff_aer !
+        DO n = 1,nraero
+          FSTOPX(n) = 1-onoff_aer !turns off online tracer
+          FTTOPX(n) = 1-onoff_aer !
           CALL RCOMPX
           SNFST(1,n,I,J)=SRNFLB(1) ! surface forcing
           TNFST(1,n,I,J)=TRNFLB(1)
@@ -2665,7 +2677,7 @@ c set for BC-albedo effect
           TNFST(2,n,I,J)=TRNFLB(LFRC)
           FSTOPX(:) = onoff_aer !turns on online tracer
           FTTOPX(:) = onoff_aer !
-        ENDIF
+        ENDDO
 #endif
 #ifdef TRACERS_TOMAS
         IF (TOMAS_DIAG_FC == 2) THEN
@@ -2790,12 +2802,6 @@ C*****************************************************
     (defined TRACERS_AMP) || (defined TRACERS_TOMAS) ||\
     (defined TRACERS_AEROSOLS_SEASALT)
 
-#ifdef TRACERS_AMP
-      nraero = nmodes
-#endif
-#ifdef TRACERS_TOMAS
-      nraero = icomp-2
-#endif
 C**** Save optical depth diags
       do n=1,nraero
         IF (ntrix(n) > 0) THEN
@@ -3374,22 +3380,6 @@ C**** diagnostic sign changes (for aerosols)
 C**** define SNFS/TNFS level (TOA/TROPO) for calculating forcing
          LFRC=3                 ! TOA
          if (rad_forc_lev.gt.0) LFRC=4 ! TROPOPAUSE
-#ifdef  TRACERS_AMP
-         IF (AMP_DIAG_FC == 2) THEN
-            nraero = nmodes
-         ELSE
-            nraero = 1
-            NTRIX(1) = 1
-         ENDIF
-#endif /* TRACERS_AMP */
-#ifdef  TRACERS_TOMAS
-         IF (TOMAS_DIAG_FC == 2) THEN
-            nraero = icomp-2
-         ELSE
-            nraero = 1
-            NTRIX(1) = 1
-         ENDIF
-#endif /* TRACERS_TOMAS */
          if (nraero > 0) then
 #ifdef BC_ALB
       if (ijts_alb(1).gt.0)
@@ -3527,19 +3517,6 @@ c longwave forcing at surface clear sky (if required)
      &                -rsign_aer*(TNFST(1,N,I,J)-TNFS(1,I,J))
      &                *(1.d0-CFRAC(I,J))
                END SELECT
-#ifdef  TRACERS_AMP
-         IF (AMP_DIAG_FC == 2) THEN
-         ELSE
-         NTRIX(1)=  n_N_AKK_1
-         ENDIF
-#endif /* TRACERS_AMP */
-#ifdef  TRACERS_TOMAS
-!I don't know why this is used..
-         IF (TOMAS_DIAG_FC == 2) THEN
-         ELSE
-         NTRIX(1)=  n_ANUM(1)
-         ENDIF
-#endif /* TRACERS_TOMAS */
 #ifdef TRACERS_AEROSOLS_Koch
 c              SNFST0(1,ntrix(n),I,J)=SNFST0(1,ntrix(n),I,J)
 c    &              +rsign_aer*(SNFST(2,n,I,J)-SNFS(LFRC,I,J))*CSZ2
