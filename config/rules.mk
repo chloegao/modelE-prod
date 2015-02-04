@@ -405,7 +405,9 @@ ifneq ($(MACHINE),IRIX64)
 	m4 $*.m4f > $*.f
 
 %.F90: %.m4F90
+	rm -f $*.F90
 	m4 $*.m4F90 > $*.F90
+	chmod -w $*.F90
 endif
 
 
