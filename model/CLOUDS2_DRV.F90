@@ -112,9 +112,6 @@ subroutine CONDSE
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||    (defined TRACERS_QUARZHEM)
   use TRACER_COM, only: Ntm_dust
 #endif
-#ifdef TRACERS_DUST
-  use TRACER_COM, only: imDust
-#endif
 #endif
 #ifdef TRACERS_COSMO
   use COSMO_SOURCES, only : BE7W_acc

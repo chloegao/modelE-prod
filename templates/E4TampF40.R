@@ -68,14 +68,10 @@ STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 QUS3D                               ! advection of Q and tracers
 TRDUST_COM TRDUST TRDUST_DRV        ! dust tracer specific code
 #include "tracer_shared_source_files"
-SeasaltTracersMetadata
 TRDIAG                              ! new i/o
 !#include "tracer_shindell_source_files"
 !#include "tracer_aerosols_source_files"
-TRACERS_AEROSOLS_SEASALT            ! seasalt
-TRACERS_AEROSOLS_Koch_e4            ! BC/OC/sulfate
 #include "tracer_AMP_source_files"
-TRAMP_eqsam_v03d
 
 #include "latlon_source_files"
 #include "modelE4_source_files"
