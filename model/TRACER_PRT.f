@@ -715,14 +715,15 @@ C**** Note permil concentrations REQUIRE trw0 and n_water to be defined!
       end if
 #endif
 
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_SPECIAL_Shindell)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_SPECIAL_Shindell) ||\
+    (defined TRACERS_AEROSOLS_SEASALT)
 C****
 C**** Mass diagnostic (this is saved for everyone, but only output
 C**** for Dorothy and Drew for the time being)
 C****
       k=jlnt_mass
       scalet = scale_jlq(k)/idacc(ia_jlq(k))
-#ifdef TRACERS_AEROSOLS_Koch
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AEROSOLS_SEASALT)
       jtpow = ntm_power(n)+jlq_power(k)+13
       scalet = scalet*10.**(-jtpow)
       CALL JLMAP_t (lname_jln(k,n),sname_jln(k,n),units_jln(k,n),

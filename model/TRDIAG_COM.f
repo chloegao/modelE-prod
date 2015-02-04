@@ -464,7 +464,7 @@ C**** TCONSRV
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: TRP_acc,TRE_acc
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-      (defined TRACERS_TOMAS)
+      (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
 !@var PM2p5_acc, PM10_acc accumulation arrays for some SUBDD diags
 !@+ s prefix means SFC and l1 means L=1 accumulations. c prefix means
 !@+ concentration units (kg/m3) rather than the mass mixing ratio
@@ -1295,7 +1295,7 @@ C*** Unpack read global data into local distributed arrays
       ALLOCATE ( TRE_acc(ntm,I_0H:I_1H,J_0H:J_1H),stat=status)
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
       ALLOCATE (  sPM2p5_acc(I_0H:I_1H,J_0H:J_1H),stat=status)
       ALLOCATE (   sPM10_acc(I_0H:I_1H,J_0H:J_1H),stat=status)
       ALLOCATE ( csPM2p5_acc(I_0H:I_1H,J_0H:J_1H),stat=status)

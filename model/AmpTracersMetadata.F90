@@ -38,7 +38,7 @@ module AmpTracersMetadata_mod
     n_H2SO4, n_N_SSA_1, n_N_SSC_1,               &  
     n_H2O2, n_NH3,  n_NH4, n_H2SO4, n_DMS, n_SO2, n_H2O2_s
   use RunTimeControls_mod, only: &
-    tracers_nitrate, tracers_aerosols_koch, &
+    tracers_nitrate, tracers_aerosols_koch, tracers_aerosols_seasalt, &
     tracers_amp_m1, tracers_amp_m2,         &
     tracers_amp_m3, tracers_amp_m4,         &
     tracers_amp_m5, tracers_amp_m6,         &
@@ -544,7 +544,7 @@ contains
     call  SO2_setSpec('SO2')  ! duplicate with Koch
     if (.not. tracers_special_shindell) call  H2O2_s_setSpec('H2O2_s') ! duplicate with Koch
     call  NH3_setSpec('NH3')  ! duplicate with nitrate
-    if (tracers_aerosols_koch) then
+    if (tracers_aerosols_koch.or.tracers_aerosols_seasalt) then
       call stop_model('contradictory tracer specs', 255)
     end if
     if (tracers_nitrate) then

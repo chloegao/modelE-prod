@@ -121,8 +121,8 @@ def createScriptTask(config, deck, comp):
         elif re.search('amp', deckName):
             walltime = '02:00:00'
             nodes = 4
-        elif re.search('AR5_CAD', deckName):
-            walltime = '01:00:00'
+        elif re.search('E_AR5_V2', deckName):
+            walltime = '02:00:00'
             nodes = 4
     
         outname = resultsDir + '/' + jobName + '.' + comp + '.out'

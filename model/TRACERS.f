@@ -247,7 +247,7 @@ C**** Tracer mass
         jlq_power(k) = 4
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
         units_jln(k,n) = unit_string(ntm_power(n)+jlq_power(k)+13
      *       ,'kg')
 #else
@@ -1337,7 +1337,7 @@ C**** check whether air mass is conserved
       USE Dictionary_mod, only : sync_param
       use trdiag_com, only: trcSurfMixR_acc,trcSurfByVol_acc
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
      &     ,sPM2p5_acc,sPM10_acc,l1PM2p5_acc,l1PM10_acc
      &     ,csPM2p5_acc,csPM10_acc
 #endif
@@ -1381,7 +1381,7 @@ C**** check whether air mass is conserved
       real(kind=8),allocatable,dimension(:,:,:) :: trcSurfMixR_acc_glob
      &     ,trcSurfByVol_acc_glob
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
       real(kind=8),allocatable,dimension(:,:) :: sPM2p5_acc_glob
      &     ,sPM10_acc_glob,l1PM2p5_acc_glob,l1PM10_acc_glob
      &     ,csPM2p5_acc_glob,csPM10_acc_glob
@@ -1452,7 +1452,7 @@ C**** check whether air mass is conserved
       allocate(trcSurfMixR_acc_glob(im,jm,NTM)
      &        ,trcSurfByVol_acc_glob(im,jm,NTM))
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
       allocate(sPM2p5_acc_glob(im,jm)
      &        ,sPM10_acc_glob(im,jm)
      &        ,l1PM2p5_acc_glob(im,jm)
@@ -1656,7 +1656,7 @@ c not yet        if(am_i_root()) write(kunit,err=10) header,aijl_glob
        call pack_data(grid,trcSurfMixR_acc,trcSurfMixR_acc_glob)
        call pack_data(grid,trcSurfByVol_acc,trcSurfByVol_acc_glob)
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
        call pack_data(grid,sPM2p5_acc,sPM2p5_acc_glob)
        call pack_data(grid,sPM10_acc,sPM10_acc_glob)
        call pack_data(grid,l1PM2p5_acc,l1PM2p5_acc_glob)
@@ -1668,7 +1668,7 @@ c not yet        if(am_i_root()) write(kunit,err=10) header,aijl_glob
        if (am_i_root()) write(kunit,err=10) header,trcSurfMixR_acc_glob
      &      ,trcSurfByVol_acc_glob
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
      &      ,sPM2p5_acc_glob,sPM10_acc_glob,l1PM2p5_acc_glob
      &      ,l1PM10_acc_glob,csPM2p5_acc_glob,csPM10_acc_glob
 #endif
@@ -1823,7 +1823,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
           if (am_i_root()) read(kunit,err=10) header
      &         ,trcSurfMixR_acc_glob,trcSurfByVol_acc_glob
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
      &         ,sPM2p5_acc_glob,sPM10_acc_glob,l1PM2p5_acc_glob
      &         ,l1PM10_acc_glob,csPM2p5_acc_glob,csPM10_acc_glob
 #endif
@@ -1835,7 +1835,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
           call unpack_data(grid,trcSurfMixR_acc_glob,trcSurfMixR_acc)
           call unpack_data(grid,trcSurfByVol_acc_glob,trcSurfByVol_acc)
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
           call unpack_data(grid,sPM2p5_acc_glob,sPM2p5_acc)
           call unpack_data(grid,sPM10_acc_glob,sPM10_acc)
           call unpack_data(grid,l1PM2p5_acc_glob,l1PM2p5_acc)
@@ -1880,7 +1880,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 #endif
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
       deallocate(sPM2p5_acc_glob, sPM10_acc_glob, l1PM2p5_acc_glob,
      & l1PM10_acc_glob, csPM2p5_acc_glob, csPM10_acc_glob)
 #endif
@@ -1936,7 +1936,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 #endif
       use trdiag_com, only: trcSurfMixR_acc,trcSurfByVol_acc
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
      &     ,sPM2p5_acc,sPM10_acc,l1PM2p5_acc,l1PM10_acc
      &     ,csPM2p5_acc,csPM10_acc
 #endif
@@ -2038,7 +2038,7 @@ c daily_z is currently only needed for CS
       call defvar(grid,fid,trcSurfByVol_acc
      &     ,'trcSurfByVol_acc(dist_im,dist_jm,Ntm)')
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
       call defvar(grid,fid,sPM2p5_acc,'sPM2p5_acc(dist_im,dist_jm)')
       call defvar(grid,fid,sPM10_acc,'sPM10_acc(dist_im,dist_jm)')
       call defvar(grid,fid,l1PM2p5_acc,'l1PM2p5_acc(dist_im,dist_jm)')
@@ -2095,7 +2095,7 @@ c daily_z is currently only needed for CS
 #endif
       use trdiag_com, only: trcSurfMixR_acc,trcSurfByVol_acc
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
      &     ,sPM2p5_acc,sPM10_acc,l1PM2p5_acc,l1PM10_acc
      &     ,csPM2p5_acc,csPM10_acc
 #endif
@@ -2186,7 +2186,7 @@ c daily_z is currently only needed for CS
         call write_dist_data(grid,fid,'trcSurfByVol_acc'
      &       ,trcSurfByVol_acc)
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
         call write_dist_data(grid,fid,'sPM2p5_acc',sPM2p5_acc)
         call write_dist_data(grid,fid,'sPM10_acc',sPM10_acc)
         call write_dist_data(grid,fid,'l1PM2p5_acc',l1PM2p5_acc)
@@ -2285,7 +2285,7 @@ c daily_z is currently only needed for CS
         call read_dist_data(grid,fid,'trcSurfByVol_acc'
      &       ,trcSurfByVol_acc)
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
         call read_dist_data(grid,fid,'sPM2p5_acc',sPM2p5_acc)
         call read_dist_data(grid,fid,'sPM10_acc',sPM10_acc)
         call read_dist_data(grid,fid,'l1PM2p5_acc',l1PM2p5_acc)

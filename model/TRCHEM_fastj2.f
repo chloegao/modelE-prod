@@ -190,7 +190,8 @@
 !@auth Kostas Tsigaridis (with content collected from TRCHEM_master.f)
 
       use atm_com, only: pedn,pmid
-      use rad_com, only: nraero_koch,nraero_nitrate,nraero_dust
+      use rad_com, only: nraero_koch,nraero_nitrate,nraero_dust,
+     &                   nraero_seasalt
       use domain_decomp_1d, only: am_i_root
       implicit none
 
@@ -251,11 +252,16 @@ c       19 = Ice Clouds
 
 ! in the lines below, +0 implies no humidity impact
           n=0
+#ifdef TRACERS_AEROSOLS_SEASALT
+          MIEDX2(LL,n+1:n+nraero_seasalt)=(/20+irh,28+irh/)
+          n=n+nraero_seasalt
+#endif  /* TRACERS_AEROSOLS_SEASALT */
+
 #ifdef TRACERS_AEROSOLS_Koch
           MIEDX2(LL,n+1)=12+irh
 #ifndef SULF_ONLY_AEROSOLS
           MIEDX2(LL,n+2:n+nraero_koch)=
-     &      (/20+irh,28+irh,36+irh,36+irh
+     &      (/36+irh,36+irh
 #ifdef TRACERS_AEROSOLS_SOA
      &       ,36+irh
 #endif  /* TRACERS_AEROSOLS_SOA */
