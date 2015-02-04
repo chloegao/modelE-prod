@@ -464,7 +464,7 @@ c****
       USE atm_com,ONLY : zatmo,gz
       USE fluxes,ONLY : prec
       USE clouds,ONLY : tm_dust,tmom_dust,trprc_dust
-      USE tracer_com,ONLY : Ntm_dust,trname
+      USE tracer_com,ONLY : Ntm_dust
       USE tracers_dust,ONLY : prelay
 
       IMPLICIT NONE
