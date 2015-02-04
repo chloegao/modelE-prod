@@ -201,9 +201,13 @@ c**** output
         integer :: moddd,ih,ihm
 #endif
 
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)  ||\
+#if (defined TRACERS_AEROSOLS_SEASALT) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
-        real*8 :: DMS_flux,ss1_flux,ss2_flux
+        real*8 :: ss1_flux,ss2_flux
+#endif  /* TRACERS_AEROSOLS_SEASALT || TRACERS_AMP || TRACERS_TOMAS */
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)  ||\
+    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
+        real*8 :: DMS_flux
 #ifdef TRACERS_TOMAS
 !@var tomas_ss_flux : sea-salt emission fraction at each size bin
         real*8,dimension(nbins)::  tomas_ss_flux
@@ -417,6 +421,10 @@ c  internals:
 !@var  ke    transport coefficient for the turbulent kinetic energy.
 !@var  tv    local virtual potential temperature
 
+#if (defined TRACERS_AEROSOLS_SEASALT) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
+      use tracers_seasalt, only: read_seasalt_sources
+#endif  /* TRACERS_AEROSOLS_SEASALT || TRACERS_AMP || TRACERS_TOMAS */
 #ifdef TRACERS_TOMAS
       USE TOMAS_EMIS
 #endif 
@@ -839,11 +847,17 @@ C**** need to hydrate the sea salt before determining settling
 
 C****   4) tracers with interactive sources
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)  ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
         select case (trname(pbl_args%ntix(itr)))
+
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)  ||\
+    (defined TRACERS_TOMAS)
         case ('DMS')
           call read_DMS_sources(ws,itype,ilong,jlat,pbl_args%DMS_flux)
           trcnst=pbl_args%DMS_flux*byrho
+#endif
+
+#if (defined TRACERS_AEROSOLS_SEASALT) || (defined TRACERS_AMP)
         case ('seasalt1', 'M_SSA_SS')
           call read_seasalt_sources(ws,itype,1,ilong,jlat
      &         ,pbl_args%ss1_flux,trname(pbl_args%ntix(itr)))
@@ -858,6 +872,7 @@ C****   4) tracers with interactive sources
           call read_seasalt_sources(ws,itype,2,ilong,jlat
      &         ,pbl_args%ss2_flux,trname(pbl_args%ntix(itr)))
           trcnst=(pbl_args%ss2_flux + pbl_args%ss1_flux)*byrho
+#endif  /* TRACERS_AEROSOLS_SEASALT || TRACERS_AMP */
 
 #ifdef TRACERS_AEROSOLS_OCEAN
         case ('OCocean')
@@ -882,7 +897,7 @@ C****   4) tracers with interactive sources
         pbl_args%tomas_ss_flux(ss_bin)=ss_emis
         trcnst=pbl_args%tomas_ss_flux(ss_bin)*byrho
         ss_num(ss_bin)=trcnst/sqrt(xk(ss_bin)*xk(ss_bin+1)) 
-#endif 
+#endif  /* TRACERS_TOMAS */
         end select
 #endif
 

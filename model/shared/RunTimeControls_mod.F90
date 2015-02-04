@@ -174,12 +174,6 @@ module RunTimeControls_mod
   logical, parameter :: check_van2 = .false.
 #endif
 
-#if defined(CHL0)
-  logical, parameter :: chl0 = .true.
-#else
-  logical, parameter :: chl0 = .false.
-#endif
-
 #if defined(CHL_from_OBIO)
   logical, parameter :: chl_from_obio = .true.
 #else
@@ -886,6 +880,12 @@ module RunTimeControls_mod
   logical, parameter :: tracers_aerosols_soa = .true.
 #else
   logical, parameter :: tracers_aerosols_soa = .false.
+#endif
+
+#if defined(TRACERS_AEROSOLS_SEASALT)
+  logical, parameter :: tracers_aerosols_seasalt = .true.
+#else
+  logical, parameter :: tracers_aerosols_seasalt = .false.
 #endif
 
 #if defined(TRACERS_AEROSOLS_VBS)

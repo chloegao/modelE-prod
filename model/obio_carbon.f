@@ -38,9 +38,11 @@ c
 #ifdef OBIO_ON_GARYocean
       USE MODEL_COM, only : nstep=>itime
       USE OCEANRES, only : kdm=>lmo
+      use ofluxes, only : ocnatm
 #else
       USE hycom_dim_glob, only : kdm
       USE hycom_scalars, only : nstep
+      use hycom_atm, only : ocnatm
 #endif
 
 #ifdef OBIO_RUNOFF
@@ -49,7 +51,6 @@ c
 
       use runtimecontrols_mod, only: constco2, pco2_online
       use dictionary_mod, only: get_param
-      use tracer_com, only: n_co2n
 
       implicit none
 
@@ -330,7 +331,7 @@ c pCO2
 c Update DIC for sea-air flux of CO2
 
 !this is for gas exchange + ocean biology
-      if (n_co2n>0) then
+      if (ocnatm%n_co2n>0) then
         k = 1
         term = co2flux               ! mol/m2/s
      .     * SECONDS_PER_HOUR        ! mol/m2/hr

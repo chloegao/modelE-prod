@@ -758,6 +758,9 @@ c set-up for MPI implementation
       use TRACER_COM, only: initTracerCom, alloc_tracer_com
       use ghy_tracers, only: initGhyTracers
 #endif
+#ifdef TRACERS_AEROSOLS_SEASALT
+      use tracers_seasalt, only: alloc_seasalt_sources
+#endif  /* TRACERS_AEROSOLS_SEASALT */
       IMPLICIT NONE
 #ifdef GLINT2
       include 'mpif.h'      ! Needed for GLINT2
@@ -818,6 +821,9 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
       call alloc_tracer_sources(grid)
       call alloc_lightning(grid)
 #endif
+#ifdef TRACERS_AEROSOLS_SEASALT
+      call alloc_seasalt_sources()
+#endif  /* TRACERS_AEROSOLS_SEASALT */
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
       call alloc_aerosol_sources(grid)

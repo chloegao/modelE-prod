@@ -61,7 +61,8 @@
       type(atmocn_xchng_vars) :: atmocn
 
       ocnatm % ntm = atmocn % ntm
-      ocnatm % ntm_gasexch = atmocn % ntm_gasexch
+      ocnatm%gasex_index=atmocn%gasex_index
+      ocnatm%n_co2n=atmocn%n_co2n
       call alloc_xchng_vars(ogrid,ocnatm)
 
       ALLOCATE(
@@ -77,7 +78,8 @@
      &     admvi_loc(aI_0H:aI_1H,aJ_0H:aJ_1H)  ! temporary
      &     )
 
-      ALLOCATE(atracflx_loc(aI_0H:aI_1H,aJ_0H:aJ_1H,atmocn%ntm_gasexch))
+      ALLOCATE(atracflx_loc(aI_0H:aI_1H,aJ_0H:aJ_1H,
+     &                          atmocn%gasex_index%getsize()))
 #ifdef TRACERS_OceanBiology
       ALLOCATE(asolz_loc(aI_0H:aI_1H,aJ_0H:aJ_1H))
       ALLOCATE(awind_loc(aI_0H:aI_1H,aJ_0H:aJ_1H))

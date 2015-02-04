@@ -137,6 +137,7 @@
       use RunTimeControls_mod, only: tracers_gasexch_land_co2
       use RunTimeControls_mod, only: tracers_special_lerner
       use RunTimeControls_mod, only: tracers_aerosols_koch
+      use RunTimeControls_mod, only: tracers_aerosols_seasalt
       use RunTimeControls_mod, only: tracers_aerosols_ocean
       use RunTimeControls_mod, only: tracers_nitrate
       use RunTimeControls_mod, only: cpp_tracers_dust => tracers_dust
@@ -180,6 +181,9 @@
 #ifdef TRACERS_AEROSOLS_Koch
       use KochTracersMetadata_mod
 #endif   
+#ifdef TRACERS_AEROSOLS_SEASALT
+      use SeasaltTracersMetadata_mod
+#endif   
 #ifdef TRACERS_NITRATE
       use sharedTracersMetadata_mod, only:
      &  NH3_setSpec, NH4_setSpec
@@ -188,7 +192,7 @@
       use sharedTracersMetadata_mod, only: Rn222_setSpec
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS) 
+    (defined TRACERS_TOMAS)  || (defined TRACERS_AEROSOLS_SEASALT)
       use TRACER_COM, only: aer_int_yr
       USE TRACER_COM, only: offline_dms_ss, offline_ss
 #endif
@@ -207,7 +211,7 @@
       call initializeOldTracers(tracers, setDefaultSpec)
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
-      (defined TRACERS_TOMAS)
+      (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
 !**** DMS, seasalt from offline fields
       call sync_param("OFFLINE_DMS_SS",OFFLINE_DMS_SS)
 !**** seasalt from offline fields
@@ -252,6 +256,12 @@
         call Lerner_InitMetadata(pTracer, 2)
         if (tracers_special_shindell) 
      &    call stop_model('contradictory tracer specs')
+      end if
+#endif
+
+#ifdef TRACERS_AEROSOLS_SEASALT
+      if (tracers_aerosols_seasalt) then
+        call Seasalt_InitMetadata(pTracer)
       end if
 #endif
 
@@ -425,9 +435,12 @@
 #ifdef TRACERS_WATER
       use TRDIAG_com, only: to_per_mil
 #endif
+#ifdef TRACERS_AEROSOLS_SEASALT
+      use tracers_seasalt, only: tune_ss1, tune_ss2
+#endif  /* TRACERS_AEROSOLS_SEASALT */
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
       (defined TRACERS_TOMAS)
-      USE AEROSOL_SOURCES, only: tune_ss1, tune_ss2, BBinc
+      USE AEROSOL_SOURCES, only: BBinc
 #endif
       use TRDIAG_COM, only: diag_rad
       use TRACER_COM, only: ntm ! should be available by this procedure call
@@ -462,7 +475,7 @@
 #endif
 #endif /* TRACERS_SPECIAL_Shindell */
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS) 
+    (defined TRACERS_TOMAS)  || (defined TRACERS_AEROSOLS_SEASALT)
       use TRACER_COM, only: aer_int_yr
       USE TRACER_COM, only: offline_dms_ss, offline_ss
 #endif
@@ -518,11 +531,16 @@ C**** Synchronise tracer related parameters from rundeck
 C**** Decide on water tracer conc. units from rundeck if it exists
       call sync_param("to_per_mil",to_per_mil,ntm)
 #endif
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
-      (defined TRACERS_TOMAS)
+#ifdef TRACERS_AEROSOLS_SEASALT
       call sync_param("tune_ss1",tune_ss1)
       call sync_param("tune_ss2",tune_ss2)
+#endif  /* TRACERS_AEROSOLS_SEASALT */
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+      (defined TRACERS_TOMAS)
       call sync_param("BBinc",BBinc)
+#endif
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+      (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
 C**** determine year of emissions
       if (is_set_param("aer_int_yr")) then
         call get_param("aer_int_yr",aer_int_yr)

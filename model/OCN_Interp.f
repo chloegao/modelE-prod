@@ -419,7 +419,7 @@ c
      *  (oTOT_CHLO_loc(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO)
      * , STAT = IER)
       ALLOCATE(opgas_loc(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO,
-     &                    ocnatm%ntm_gasexch) ,STAT = IER)
+     &                    ocnatm%gasex_index%getsize()) ,STAT = IER)
 
 
       allocate(oMOtmp(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO,2),
@@ -511,8 +511,8 @@ C**** surface tracer concentration
 !defined only over open ocean cells, because this is what is
 !involved in gas exchage with the atmosphere.
       if (ocnatm%updated) then
-        DO NT = 1,atm%ntm_gasexch
-          l=gasex_index%at(nt)
+        DO NT = 1,atm%gasex_index%getsize()
+          l=atm%gasex_index%at(nt)
           oWEIGHT3(:,:) = oFOCEAN_loc(:,:)*(1.d0-oRSI(:,:))
           call ab_add( lstr, oWEIGHT3, aWEIGHT3, shape(oWEIGHT3),'ij')
           DO J=oJ_0,oJ_1
@@ -538,8 +538,8 @@ C**** surface tracer concentration
 #ifdef TRACERS_OCEAN
 
       if (ocnatm%updated) then
-        DO NT = 1,atm%ntm_gasexch
-          l=gasex_index%at(nt)
+        DO NT = 1,atm%gasex_index%getsize()
+          l=atm%gasex_index%at(nt)
           aTRAC(:,:,l) = aTRAC(:,:,l)*atm%vol2mass(nt)*1.d-6 ! ppmv (uatm) -> kg,CO2/kg,air
           if (nstep.eq.0) aTRAC(:,:,l) = atm%gtracer(l,:,:)
         enddo
@@ -706,7 +706,6 @@ C**** do poles
       USE OFLUXES, only : oRSI
 #ifdef TRACERS_OCEAN
       USE OCN_TRACER_COM, only: tracerlist
-      use tracer_com, only: gasex_index
 #ifdef TRACERS_WATER
       USE OCN_TRACER_COM, only: ocn_tracer_entry
 #endif
@@ -919,14 +918,15 @@ C**** surface tracer concentration
       if (ocnatm%updated) then
         ALLOCATE
      *    (opgas_loc(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO) ,STAT=IER)
-        do nt=1, atm%ntm_gasexch
+        do nt=1, atm%gasex_index%getsize()
           DO J=oJ_0,oJ_1
             oWEIGHT(:,J) = oFOCEAN_loc(:,J)*(1.d0-oRSI(:,J))
             DO I=oI_0,oIMAXJ(J)
               IF (oFOCEAN_loc(I,J).gt.0.) THEN
                 !pco2 is in uatm, convert to kg,CO2/kg,air
-                opgas_loc(I,J) = ocnatm%gtracer(gasex_index%at(nt), I,J)
-     .              * atm%vol2mass(nt)* 1.d-6 ! ppmv (uatm) -> kg,CO2/kg,air
+                opgas_loc(I,J)=
+     &                  ocnatm%gtracer(atm%gasex_index%at(nt),I,J)
+     .                * atm%vol2mass(nt)* 1.d-6 ! ppmv (uatm) -> kg,CO2/kg,air
               ELSE
                 opgas_loc(I,J)=0.
               END IF
@@ -939,7 +939,8 @@ C**** surface tracer concentration
          !Therefore in timesetep 0 (cold start) pco2 has not yet been defined
          !and atrac has to be hard coded in here, so that we do not have
          !urealistic tracer flux at the air-sea interface during step0.
-          if (nstep.ne.0) atm%gtracer(gasex_index%at(nt),:,:)=atm%work1
+          if (nstep.ne.0)
+     &          atm%gtracer(atm%gasex_index%at(nt),:,:)=atm%work1
         end do
 
         deallocate(opgas_loc)
@@ -1515,7 +1516,7 @@ c*
 #ifdef TRACERS_OCEAN
       aWEIGHT(:,:) = 1.d0
       CALL INT_AG2OG(atm%TRGASEX,ocnatm%TRGASEX, aWEIGHT,
-     &     atm%ntm_gasexch)
+     &     atm%gasex_index%getsize())
 #endif
 
 #ifdef OBIO_RAD_coupling

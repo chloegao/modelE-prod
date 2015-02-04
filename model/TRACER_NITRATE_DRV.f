@@ -28,7 +28,9 @@
 !----------------------------------------------------------------------------------------------------------------------
       USE TRACER_COM, only: ntm, trm
       use TRACER_COM, only: n_Clay, n_HNO3, n_NH3, n_NH4, n_NO3p
+#ifdef TRACERS_AEROSOLS_SEASALT
       use TRACER_COM, only: n_seasalt1, n_seasalt2
+#endif  /* TRACERS_AEROSOLS_SEASALT */
       use TRACER_COM, only: n_Silt1, n_Silt2, n_Silt3
       use TRACER_COM, only: n_SO4, n_SO4_d1, n_SO4_d2, n_SO4_d3
       USE AEROSOL_SOURCES, only: off_HNO3, off_SS
@@ -70,7 +72,7 @@
       REAL(8) :: GNH3      ! gas-phase ammonia     [ugNH4/m^3] as ammonium (MW)
       REAL(8) :: GHNO3     ! gas-phase nitric acid [ugNO3/m^3] as nitrate  (MW)
       REAL(8) :: TOT_DUST  ! total dust(sol+insol) [ug/m^3]
-      REAL(8) :: TOT_SALT  ! total salt(sol+insol) [ug/m^3]
+      REAL(8) :: TOT_SALT=0.d0 ! total salt(sol+insol) [ug/m^3]
       REAL(8) :: TK        ! absolute temperature  [K]          
       REAL(8) :: RH        ! relative humidity     [0-1]
       REAL(8) :: RHD       ! RH of deliquescence   [0-1]
@@ -156,8 +158,10 @@ c avol [m3/gb] mass of air pro m3
       TOT_DUST =(trm(i,j,l,n_Clay)+trm(i,j,l,n_Silt1)+trm(i,j,l,n_Silt2)+trm(i,j,l,n_Silt3)) 
      *           *1.d9 /AVOL
 #endif
+#ifdef TRACERS_AEROSOLS_SEASALT
       TOT_SALT  =(trm(i,j,l,n_seasalt1)+ trm(i,j,l,n_seasalt2))
      *           *1.d9 /AVOL
+#endif  /* TRACERS_AEROSOLS_SEASALT */
 
 
 ! Mass balance check:
@@ -243,7 +247,9 @@ c avol [m3/gb] mass of air pro m3
 !----------------------------------------------------------------------------------------------------------------------
       USE TRACER_COM, only: ntm, trm
       use TRACER_COM, only: n_Clay, n_HNO3, n_NH3, n_NH4, n_NO3p
+#ifdef TRACERS_AEROSOLS_SEASALT
       use TRACER_COM, only: n_seasalt1, n_seasalt2
+#endif  /* TRACERS_AEROSOLS_SEASALT */
       use TRACER_COM, only: n_Silt1, n_Silt2, n_Silt3
       use TRACER_COM, only: n_SO4, n_SO4_d1, n_SO4_d2, n_SO4_d3
       USE AEROSOL_SOURCES, only: off_HNO3,off_SS
