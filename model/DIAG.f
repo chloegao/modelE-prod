@@ -5300,7 +5300,7 @@ c**** find MSU channel 2,3,4 temperatures
       USE LAKES_COM, only : flake
       USE ATM_COM, only : pednl00,pmidl00
 #ifndef SCM
-      USE GC_COM, only : PSPEC,NSPHER,KLAYER,ISTRAT
+      USE GC_COM, only : PSPEC,NSPHER,KLAYER,ISTRAT,LMAX_SPECA
 #endif
       USE DIAG_COM, only : aij_loc
       USE DIAG_COM, only : kvflxo
@@ -5713,6 +5713,7 @@ C**** add in epsilon=1d-5 to avoid roundoff mistakes
           KL=KL+1
         END IF
         KLAYER(L)=4*(KL-1)+1
+        lmax_speca(kl) = l
       END DO
       IF (KL*4 .gt. NSPHER) THEN
         CALL WRITE_PARALLEL("Inconsistent definitions of stratosphere:"
@@ -6540,16 +6541,16 @@ c
       subroutine diagjl_prep
       use resolution, only : lm
       use atm_com, only : lm_req
-      use dynamics, only : do_gwdrag
+      use dynamics, only : do_gwdrag,dsig
       use domain_decomp_atm, only : am_i_root
       use diag_com, only : kajl,jm_budg,
-     &     ajl,asjl,jl_rad_cool,
+     &     ajl,asjl,jl_rad_cool,jk_tx,
      &     jl_sumdrg,jl_dumtndrg,jl_dushrdrg,
      &     jl_mcdrgpm10,jl_dumcdrgm10,jl_dumcdrgp10,
      &     jl_mcdrgpm20,jl_dumcdrgm20,jl_dumcdrgp20,
      &     jl_mcdrgpm40,jl_dumcdrgm40,jl_dumcdrgp40,
      &     jl_dudfmdrg,jl_dudtsdif,
-     &     dxyp_budg,hemis_jl,vmean_jl
+     &     dxyp_budg,hemis_jl,vmean_jl,force_jl_vmean
       use diag_com_rad
       implicit none
       integer :: j,j1,j2,l,k,lr,n
@@ -6560,6 +6561,10 @@ c
       do j=1,jm_budg
         do lr=1,lm_req
           asjl(j,lr,5)=asjl(j,lr,3)+asjl(j,lr,4)
+          ajl(j,lr,jk_tx+1) = asjl(j,lr,1)
+          ajl(j,lr,jl_srhr+1) = asjl(j,lr,3)
+          ajl(j,lr,jl_trcr+1) = asjl(j,lr,4)
+          ajl(j,lr,jl_rad_cool+1) = asjl(j,lr,3)+asjl(j,lr,4)
         enddo
         do l=1,lm
           ajl(j,l,jl_rad_cool)=ajl(j,l,jl_srhr)+ajl(j,l,jl_trcr)
@@ -6595,8 +6600,20 @@ c
           hemis_jl(2,l,k) = hemfac*sum(ajl(j1:j2,l,k)*dxyp_budg(j1:j2))
           hemis_jl(3,l,k) = .5*(hemis_jl(1,l,k)+hemis_jl(2,l,k))
         enddo
-        vmean_jl(1:jm_budg,1,k) = sum(ajl(:,:,k),dim=2)
-        vmean_jl(jm_budg+1:jm_budg+3,1,k) = sum(hemis_jl(:,:,k),dim=2)
+        if(force_jl_vmean(k)) then
+          ! Note dsig is the wrong weight for layer-edge qtys.
+          ! It is used for the time being to match the behavior of JLMAP.
+          do j=1,jm_budg
+            vmean_jl(j,1,k) = sum(dsig(:)*ajl(j,:,k))/sum(dsig)
+          enddo
+          do j=jm_budg+1,jm_budg+3
+            vmean_jl(j,1,k) =
+     &           sum(dsig(:)*hemis_jl(j-jm_budg,:,k))/sum(dsig)
+          enddo
+        else
+          vmean_jl(1:jm_budg,1,k) = sum(ajl(:,:,k),dim=2)
+          vmean_jl(jm_budg+1:jm_budg+3,1,k) = sum(hemis_jl(:,:,k),dim=2)
+        endif
       enddo
 #endif
 
@@ -6697,6 +6714,7 @@ C****
       call diagjl_prep
 #ifndef SCM
       call diaggc_prep
+      call speca_prep
 #endif
       call diag_river_prep
       if(isccp_diags.eq.1) call diag_isccp_prep
