@@ -940,7 +940,8 @@ c
 
       do_yr_interp = multiple_yrs .and. jyear.lt.tstream%year_sv2
 
-      do_yrp1_interp = do_yr_interp .and. continuous
+      !do_yrp1_interp = do_yr_interp .and. continuous
+      do_yrp1_interp = continuous .and. (do_yr_interp .or. year_reset)
 
       if(continuous .and. jyear.eq.tstream%year_sv2) then
         ! flag that we need to read first part of next available year
@@ -1017,7 +1018,7 @@ c
         if(k.eq.3 .and. do_yrp1_interp) then
           call check_alloc(tstream)
           do i=1,npad
-            tstream%qty1(:,:,:,i) = tstream%qty(:,:,:,i)
+!deferred copy  tstream%qty1(:,:,:,i) = tstream%qty(:,:,:,i)
             tstream%qty2(:,:,:,i) = tstream%qty(:,:,:,m2r+i)
           enddo
         endif
@@ -1035,6 +1036,13 @@ c
           tstream%qty(:,:,:,i) =
      &         wtln*tstream%qty1(:,:,:,m2r+i)
      &        +wtrn*tstream%qty(:,:,:,m2r+i)
+        enddo
+      endif
+
+      ! deferred copy
+      if(do_yrp1_interp .and. len_trim(fnames(3)).ne.0) then
+        do i=1,npad
+          tstream%qty1(:,:,:,i) = tstream%qty(:,:,:,i)
         enddo
       endif
 

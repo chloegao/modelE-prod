@@ -105,7 +105,7 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
       logical, public :: write_regions
 
 !@param KAJL number of AJL diagnostics
-      INTEGER, PARAMETER, public :: KAJL=77
+      INTEGER, PARAMETER, public :: KAJL=81
 !@var AJL latitude/height diagnostics
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: AJL,AJL_loc
 
@@ -767,6 +767,10 @@ c derived/composite diagnostics
 !@+   vertical grids
       integer, parameter, public :: ctr_ml=1,edg_ml=2,ctr_cp=3,edg_cp=4
 
+!@var force_jl_vmean a mechanism to force vertical averaging for qtys
+!@+   at layer edges or that otherwise lack layer weighting info.
+      logical, dimension(kajl), public :: force_jl_vmean
+
 !@var NAME_SJL Names of radiative-layer-only SJL diagnostics
       character(len=sname_strlen), dimension(kasjl), public :: name_sjl
 !@var LNAME_SJL,UNITS_SJL Descriptions/Units of SJL diagnostics
@@ -1276,6 +1280,7 @@ C NEHIST=(TROPO/L STRAT/M STRAT/U STRAT)X(ZKE/EKE/SEKE/ZPE/EPE)X(SH/NH)
       INTEGER, PARAMETER, public :: NSPHER=4*(2+ISTRAT)
 !@var SPECA spectral diagnostics
       REAL*8, DIMENSION((IMLONH+1),KSPECA,NSPHER), public :: SPECA
+     &     ,SPECA_OUT
 !@var KLAYER index for dividing up atmosphere into layers for spec.anal.
       INTEGER, DIMENSION(LM), public :: KLAYER
 !@param PSPEC pressure levels at which layers are seperated and defined
@@ -1283,12 +1288,14 @@ C**** 1000 - 150: troposphere           150 - 10 : low strat.
 C****   10 - 1: mid strat               1 and up : upp strat.
       REAL*8, DIMENSION(4), PARAMETER, public ::
      &     PSPEC = (/ 150., 10., 1., 0. /)
+!@var LMAX_SPECA upper layer index of each of the SPECA height zones
+      INTEGER, PUBLIC :: LMAX_SPECA(2+ISTRAT)
 
 !@param KTPE number of spectral diagnostics for pot. enthalpy
       INTEGER, PARAMETER, public :: KTPE=8
       integer, parameter, public :: NHEMI=2
 !@var ATPE pot. enthalpy spectral diagnostics
-      REAL*8, DIMENSION(KTPE,NHEMI), public :: ATPE
+      REAL*8, DIMENSION(KTPE,NHEMI), public :: ATPE,ATPE_out
 
 !@param NWAV_DAG number of components in spectral diagnostics
       INTEGER, PARAMETER, public :: NWAV_DAG=min(9,imlonh)
@@ -1331,6 +1338,12 @@ C****   10 - 1: mid strat               1 and up : upp strat.
       target :: agc,agc_out
       REAL*8, dimension(:,:,:), public, pointer ::
      &     AGC_ioptr
+
+      target :: speca,speca_out,atpe,atpe_out
+      REAL*8, dimension(:,:), public, pointer ::
+     &     ATPE_ioptr
+      REAL*8, dimension(:,:,:), public, pointer ::
+     &     SPECA_ioptr
 
       end module gc_com
 
@@ -2099,7 +2112,8 @@ c temporary variant of inc_ajl without any weighting
       use diag_com, only :  hdiurn
 #endif
 #ifndef SCM
-      use gc_com, only : agc=>agc_ioptr,speca,atpe,energy,wave
+      use gc_com, only : agc=>agc_ioptr,energy,wave,
+     &     speca=>speca_ioptr,atpe=>atpe_ioptr
 #endif
       use domain_decomp_atm, only : grid
       use pario, only : defvar,write_attr
@@ -2217,7 +2231,8 @@ c    extended/rescaled instances of arrays when writing acc files
       use diag_com, only :  hdiurn
 #endif
 #ifndef SCM
-      use gc_com, only : agc=>agc_ioptr,speca,atpe,energy,wave
+      use gc_com, only : agc=>agc_ioptr,energy,wave,
+     &     speca=>speca_ioptr,atpe=>atpe_ioptr
 #endif
       use domain_decomp_atm, only : grid
       use domain_decomp_1d, only : hasNorthPole, hasSouthPole
@@ -2451,7 +2466,7 @@ c new_io_subdd
      &     write_regions
 #ifndef SCM
       use gc_com, only : kagc,ia_gc,sname_gc,cdl_gc,hemis_gc,
-     &     vmean_gc,scale_gc,denom_gc
+     &     vmean_gc,scale_gc,denom_gc,lmax_speca
 #endif
       use geom, only : axyp
 #ifdef CUBED_SPHERE
@@ -2632,6 +2647,12 @@ c new_io_subdd
       call def_meta_trdiag(fid)
 #endif
 
+#ifndef SCM
+      call write_attr(grid,fid,'speca','reduction','sum')
+      call defvar(grid,fid,lmax_speca,'lmax_speca(nlspeca)')
+      call write_attr(grid,fid,'atpe','reduction','sum')
+#endif
+
       return
       end subroutine def_meta_atmacc
 
@@ -2658,7 +2679,7 @@ c new_io_subdd
      &     write_regions
 #ifndef SCM
       use gc_com, only : kagc,ia_gc,sname_gc,cdl_gc,hemis_gc,
-     &     vmean_gc,scale_gc,denom_gc
+     &     vmean_gc,scale_gc,denom_gc,lmax_speca
 #endif
       use geom, only : axyp
 #ifdef CUBED_SPHERE
@@ -2801,6 +2822,10 @@ c new_io_subdd
       call write_meta_trdiag(fid)
 #endif
 
+#ifndef SCM
+      call write_data(grid,fid,'lmax_speca',lmax_speca)
+#endif
+
       return
       end subroutine write_meta_atmacc
 
@@ -2816,6 +2841,8 @@ c instances of the arrays used during normal operation.
       areg_ioptr   => areg
 #ifndef SCM
       agc_ioptr    => agc
+      speca_ioptr  => speca
+      atpe_ioptr   => atpe
 #endif
       return
       end subroutine set_ioptrs_atmacc_default
@@ -2832,6 +2859,8 @@ c instances of the arrays containing derived outputs
       areg_ioptr   => areg_out
 #ifndef SCM
       agc_ioptr    => agc_out
+      speca_ioptr  => speca_out
+      atpe_ioptr   => atpe_out
 #endif
       return
       end subroutine set_ioptrs_atmacc_extended

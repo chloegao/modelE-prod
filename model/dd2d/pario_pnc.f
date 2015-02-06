@@ -1027,10 +1027,14 @@ c        if(do_enddef) rc2 = nfmpi_enddef(fid)
       subroutine read_attr_text(grid,fid,varname,attname,attlen,
      &     attval,attnum)
       character(len=*) :: attval
+      integer :: kpos
 #include "setup_attget_pnc.inc"
       attval=''
       rc = nfmpi_get_att_text(fid,vid,trim(attname),attval)
       call stoprc(rc,nf_noerr)
+      do kpos=1,len_trim(attval) ! remove extra NULL characters
+        if(iachar(attval(kpos:kpos)).eq.0) attval(kpos:kpos)=' '
+      enddo
       return
       end subroutine read_attr_text
       subroutine read_attr_0D_int(grid,fid,varname,attname,attlen,

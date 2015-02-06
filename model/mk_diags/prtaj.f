@@ -16,6 +16,7 @@
       character(len=40) :: vname,vname_hemis
       real*4 :: fglob,fnh,fsh
       integer :: j,jm,inc,nt,ntype,lstr
+      integer :: srt(7),cnt(7)
 c
 c Various string formats
 c
@@ -78,9 +79,11 @@ c
           fmt = ''
           status = nf_get_att_text(fid,varid,'fmt',fmt)
           if(status.ne.nf_noerr) cycle
-          status = nf_get_vara_real(fid,varid_hemis,(/1,nt/),(/3,1/),
-     &         xj_hemis)
-          status = nf_get_vara_real(fid,varid,(/1,nt/),(/jm,1/),xj)
+          srt(1:3) = (/ 1,nt,1 /)
+          cnt(1:3) = (/ 3,1,1 /)
+          status = nf_get_vara_real(fid,varid_hemis,srt,cnt,xj_hemis)
+          cnt(1:3) = (/ jm,1,1 /)
+          status = nf_get_vara_real(fid,varid,srt,cnt,xj)
           where(xj.eq.-1.e30) xj=0.
           where(xj_hemis.eq.-1.e30) xj_hemis=0.
           fsh  = xj_hemis(1)

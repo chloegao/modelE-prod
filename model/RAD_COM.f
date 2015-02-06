@@ -155,18 +155,9 @@ C**** does not produce exactly the same as the default values.
       integer, parameter :: nraero_dust=0
 #endif  /* TRACERS_DUST */
 
-#if (defined TRACERS_AMP) || (defined TRACERS_AMP_M1)
-      integer, parameter :: nraero_AMP=nmodes
-#else
-      integer, parameter :: nraero_AMP=0
-#endif  /* (defined TRACERS_AMP) || (defined TRACERS_AMP_M1) */
-
-#ifdef TRACERS_TOMAS
-!TOMAS does not include NO3 AND VOL, which use its default radiation. 
-      integer, parameter :: nraero_TOMAS=icomp-2
-#else
-      integer, parameter :: nraero_TOMAS=0
-#endif  /* TRACERS_TOMAS */
+! AMP and TOMAS will define their values later
+      integer :: nraero_AMP
+      integer :: nraero_TOMAS
 
 #ifdef TRACERS_OM_SP
       integer, parameter :: nraero_OM_SP=1

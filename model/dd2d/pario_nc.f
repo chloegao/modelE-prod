@@ -956,9 +956,13 @@ c        if(do_enddef) rc2 = nf_enddef(fid)
       subroutine read_attr_text(grid,fid,varname,attname,attlen,
      &         attval,attnum)
       character(len=*) :: attval
+      integer :: kpos
 #include "setup_attget.inc"
       if(grid%am_i_globalroot) then
         rc = nf_get_att_text(fid,vid,trim(attname),tmpstr)
+        do kpos=1,attlen ! remove extra NULL characters
+          if(iachar(tmpstr(kpos)).eq.0) tmpstr(kpos)=' '
+        enddo
       endif
       call stoprc(rc,nf_noerr)
 #ifndef SERIAL_MODE

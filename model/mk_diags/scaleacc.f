@@ -24,14 +24,16 @@ c
       real*4, dimension(:,:,:,:), allocatable :: xll
       real*4, dimension(:), allocatable :: xout_hemis,xden_hemis
       real*4, dimension(:), allocatable :: xout_vmean,xden_vmean
+      real*4, dimension(:), allocatable :: xout_all,xout_hemis_all
+     &     ,xout_vmean_all
       integer :: idacc(12)
       integer :: n,k,kd,kacc,arrsize,arrsize_out,ndims,ndimsh,sdim,jdim,
      &     kk
       integer, dimension(7) :: srt,cnt,dimids,
      &     accsizes,shpout,hemi_sizes,vmean_sizes
       integer, dimension(7) :: cnt_hemis,cnt_vmean
-      integer :: fid,status,ofid,accid,varid,accid_hemis,
-     &     jdimid,accid_vmean,nvars,ndims_out
+      integer :: fid,status,ofid,accid,varid,varid_vmean,varid_hemis,
+     &     accid_hemis,jdimid,accid_vmean,nvars,ndims_out
       real*4, parameter :: undef=-1.e30
       character(len=132) :: xlabel
       character(len=100) :: fromto
@@ -39,6 +41,8 @@ c
       integer :: remap_fid,jmdid,nl,nk,imlon,jmlat,im,order
       logical :: remap_output
       integer :: tile_dim_out,d1,d2,d3
+      integer :: slices_remaining,slices_total,arrsize_out_all
+      integer :: n1,n2,n1_hemis,n2_hemis,n1_vmean,n2_vmean
 
       fid = fids(1)
       remap_fid = fids(2)
@@ -267,9 +271,39 @@ c
 c
 c loop over outputs
 c
+      slices_remaining = 0
       do k=1,kacc
-        status = nf_inq_varid(ofid,trim(sname_acc(k)),varid)
-        if(status.ne.nf_noerr) cycle ! this output was not requested
+        if(slices_remaining.eq.0) then
+          status = nf_inq_varid(ofid,trim(sname_acc(k)),varid)
+          if(status.ne.nf_noerr) cycle ! this output was not requested
+          call get_varsize(ofid,trim(sname_acc(k)),arrsize_out_all)
+          slices_total = arrsize_out_all/arrsize_out
+          if(arrsize_out_all.ne.arrsize_out*slices_total) then
+            write(6,*) 'scaleacc: size mismatch'
+            stop
+          endif
+          slices_remaining = slices_total
+          allocate(xout_all(arrsize_out_all))
+          n1 = 1
+          if(do_hemis) then
+            status = nf_inq_varid(ofid,
+     &           trim(sname_acc(k))//'_hemis',varid_hemis)
+            allocate(xout_hemis_all(size(xout_hemis)*slices_total))
+            n1_hemis = 1
+          endif
+          if(do_vmean) then
+            status = nf_inq_varid(ofid,trim(sname_acc(k))//'_vmean',
+     &           varid_vmean)
+            if(status.eq.nf_noerr) then
+              allocate(
+     &             xout_vmean_all(size(xout_vmean)*slices_total))
+            else
+              varid_vmean = -99
+            endif
+            n1_vmean = 1
+          endif
+        endif
+        slices_remaining = slices_remaining - 1
 
 c
 c scale this field
@@ -325,8 +359,13 @@ c
 c
 c write this field to the output file
 c
-        call put_var_real(ofid,sname_acc(k),xout)
-
+        n2 = n1 + arrsize_out - 1
+        xout_all(n1:n2) = xout
+        n1 = n2 + 1
+        if(slices_remaining.eq.0) then
+          status = nf_put_var_real(ofid,varid,xout_all)
+          deallocate(xout_all)
+        endif
 
 c
 c scale/write the hemispheric/global means of this field if present
@@ -356,14 +395,20 @@ c
               xout_hemis = undef
             end where
           endif
-          call put_var_real(ofid,trim(sname_acc(k))//'_hemis',
-     &         xout_hemis)
+
+          n2_hemis = n1_hemis + size(xout_hemis) - 1
+          xout_hemis_all(n1_hemis:n2_hemis) = xout_hemis
+          n1_hemis = n2_hemis + 1
+          if(slices_remaining.eq.0) then
+            status = nf_put_var_real(ofid,varid_hemis,xout_hemis_all)
+            deallocate(xout_hemis_all)
+          endif
         endif
 
 c
 c scale/write the vertical means of this field if present
 c
-        if(do_vmean) then
+        if(do_vmean .and. varid_vmean.gt.0) then
           srt(sdim) = k
 #ifdef HIMEM
           call get_slice_real(accarr_vmean,3,
@@ -388,9 +433,15 @@ c
               xout_vmean = undef
             end where
           endif
-          status = nf_inq_varid(ofid,trim(sname_acc(k))//'_vmean',varid)
-          if(status.eq.nf_noerr) status=nf_put_var_real(ofid,varid,
-     &         xout_vmean)
+
+          n2_vmean = n1_vmean + size(xout_vmean) - 1
+          xout_vmean_all(n1_vmean:n2_vmean) = xout_vmean
+          n1_vmean = n2_vmean + 1
+          if(slices_remaining.eq.0) then
+            status = nf_put_var_real(ofid,varid_vmean,xout_vmean_all)
+            deallocate(xout_vmean_all)
+          endif
+
         endif
       enddo
 
