@@ -55,7 +55,7 @@ c
 #endif  /* TRACERS_TERP */
 #endif  /* TRACERS_AEROSOLS_SOA */
 #ifdef TRACERS_AEROSOLS_Koch
-     &                        n_SO4,
+     &                        ,n_SO4
 #endif
 #ifdef TRACERS_AMP
       USE TRACER_COM, only  : n_M_AKK_SU,n_M_ACC_SU,n_M_DD1_SU,
