@@ -119,7 +119,8 @@ C****
      *     n_N_DBC_1, n_N_BOC_1, n_N_BCS_1, n_N_MXX_1
 #endif
 #ifdef TRACERS_TOMAS
-      USE TOMAS_AEROSOL, only: icomp
+      USE TOMAS_AEROSOL, only: icomp,TOMAS_DIAG_FC
+      USE TRACER_COM, only : n_ANUM
 #endif
       use AerParam_mod, only : aermix
       use AerParam_mod, only: depoBC,depoBC_1990
