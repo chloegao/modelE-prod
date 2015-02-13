@@ -2357,6 +2357,7 @@ C                -----------------------------------------------------
         IF(K==10) GO TO 251
         DO 250 L=1,NL0
         U0GAS(L,K)=PPMV80(K)*0.8D0*(PLB0(L)-PLB0(L+1))/P0
+        IF(PLB0(1) >= PTRO) THEN ! safety check until P,H hard-coding removed
         ZT=(HLB0(L+1)-Z0LAT)/ZH(K)           ! orig. hlb not hlb0
         IF(ZT <= 0.D0) GO TO 250
         ZB=(HLB0(L)-Z0LAT)/ZH(K)             ! orig. hlb not hlb0
@@ -2364,6 +2365,7 @@ C                -----------------------------------------------------
         EXPZB=EXP(-ZB)
         IF(ZB < 0.D0) EXPZB=1.D0-ZB
         U0GAS(L,K)=U0GAS(L,K)*(EXPZB-EXPZT)/max(ZT-ZB,1d-6)
+        ENDIF                    ! safety check
   250   CONTINUE
   251   CONTINUE
       ENDIF
