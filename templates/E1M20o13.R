@@ -45,7 +45,7 @@ SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_COM LANDICE_DRV                 ! land ice modules
 ICEDYN_DRV ICEDYN                   ! ice dynamics modules
 ODIAG_COM OCEAN_COM OSTRAITS_COM OGEOM   ! dynamic ocean modules
-OCNDYN OCNDYN2                           ! dynamic ocean routines
+OCNDYN  OCNDYN2  OTIDELL                 ! dynamic ocean routines
 OCN_Interp OCN_Int_LATLON                ! dynamic ocean routines
 OSTRAITS OCNGM OCNKPP                    ! dynamic ocean routines
 OCEANR_DIM AFLUXES OFLUXES
@@ -115,6 +115,7 @@ DTFIX=300
 &&PARAMETERS
 ! parameters set for coupled ocean runs:
 KOCEAN=1        ! ocn is prognostic
+OTIDE = 0       !  Ocean tides are not used
 
 ! parameters usually not changed when switching to coupled ocean:
 
