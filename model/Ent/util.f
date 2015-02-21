@@ -1,8 +1,6 @@
       module util
 !@sum Utility routines
-      use TimeConstants_mod, only: INT_SECONDS_PER_DAY, 
-     &                      INT_SECONDS_PER_HOUR, INT_SECONDS_PER_MINUTE
-      
+
       implicit none
       private
       save
@@ -12,16 +10,13 @@
       contains
 
       integer function YEARSEC(year) result(seconds_in_year)
-! Hopefully the result of this function wasn't in use anywhere, 
-! since it returned a value 24 times too large. Corrected 27Jul2012.
           integer :: year
+          integer, parameter :: sday = 86400 !second in a day
 
           if (IsLeapYear(year)) then
-!            seconds_in_year = 366*24*sday
-            seconds_in_year = 366*INT_SECONDS_PER_DAY
+            seconds_in_year = 366*24*sday
           else
-!            seconds_in_year = 365*24*sday
-            seconds_in_year = 365*INT_SECONDS_PER_DAY
+            seconds_in_year = 365*24*sday
           end if
       end function YEARSEC
 
@@ -109,19 +104,19 @@
 
       type(timestruct), intent(in) :: time, prevtime
       integer :: jday, jdayprev, hoursec, hoursecprev
+      integer, parameter :: sday = 86400  !seconds in a day
 
       jday = JulianDay(time)
       jdayprev = JulianDay(prevtime)
-      hoursec = time%hour*INT_SECONDS_PER_HOUR + 
-     &          time%minute*INT_SECONDS_PER_MINUTE + time%seconds
-      hoursecprev = prevtime%hour*INT_SECONDS_PER_HOUR +
-     &         prevtime%minute*INT_SECONDS_PER_MINUTE + prevtime%seconds
+      hoursec = time%hour*3600 + time%minute*60.0 + time%seconds
+      hoursecprev = prevtime%hour*3600 + prevtime%minute*60.0
+     &     + prevtime%seconds
       
       if (prevtime%year.le.time%year) then
-        dtsec = (jday-jdayprev)*INT_SECONDS_PER_DAY +hoursec-hoursecprev
+        dtsec = (jday-jdayprev)*sday + hoursec - hoursecprev
       else
-        dtsec = (jdayprev*INT_SECONDS_PER_DAY + YEARSEC(prevtime%year))-
-     &           jday*INT_SECONDS_PER_DAY + hoursec - hoursecprev
+        dtsec = (jdayprev*sday + YEARSEC(prevtime%year))-jday*sday 
+     &       + hoursec - hoursecprev
       end if
       end function TimeDiff
 

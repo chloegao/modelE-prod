@@ -401,7 +401,7 @@ C NADINE - IS THIS CORRECT?
      ireinitialize)
       !@sum Initializes an entcell assuming one cohort per patch.
       use patches, only : summarize_patch
-      type(entcelltype), target :: ecp
+      type(entcelltype) :: ecp
       real*8,intent(in) :: vegdata(N_COVERTYPES) !Veg cover fractions.
       real*8,intent(in) :: popdens(N_COVERTYPES) !Veg population density
       real*8,intent(in) :: laidata(N_COVERTYPES) !LAI

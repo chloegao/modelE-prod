@@ -3,6 +3,7 @@
 !@sum  These are constants that would be common to the GCM/EWB, so should
 !@sum  have the GCM/EWB constants substituted in for coupled runs.
 !@auth N.Kiang
+!@ver  1.0
 
       !* COUPLED RUNS - Replace with values from GCM constants*!
       !use Name_of_GCM_constants_module  
@@ -75,7 +76,7 @@
 
       !************************************************************************
        !* ASTRONOMICAL CONSTANTS
-!      real*8,parameter :: sday = 86400.d0 ! sec per day - Now set in TimeConstants
+      real*8,parameter :: sday = 86400.d0! sec per day (s)
       real*8,parameter :: SECPY = 31536000.d0  ! sec per year (s)
 
       !************************************************************************

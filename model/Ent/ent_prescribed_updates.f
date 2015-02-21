@@ -543,7 +543,6 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
 !@sum pools, litter, senescefrac. - NYK
       use phenology, only : litter_cohort
       use ent_prescr_veg, only :prescr_plant_cpools
-      use TimeConstants_mod, only: SECONDS_PER_DAY
       implicit none
       type(cohort),pointer :: cop
       real*8,intent(in) :: lai_new
@@ -582,7 +581,7 @@ cddd      entcell%heat_capacity=GISS_calc_shc(vdata)
 
       !* Update litter, C_lab, senescefrac
       if (.not.init) then
-        call litter_cohort(SECONDS_PER_DAY,
+        call litter_cohort(SDAY,
      i       C_fol_old,C_froot_old,C_hw_old,C_sw_old,C_croot_old,
      &       cop,Clossacc)
 !        write(992,*)C_fol_old,C_froot_old,C_hw_old,C_sw_old,C_croot_old,

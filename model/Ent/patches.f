@@ -12,7 +12,7 @@
       !* Insert patch at youngest end of patch list. *!
       !* Blank patch with no cohorts.
       implicit none
-      type(entcelltype),target :: gp
+      type(entcelltype) :: gp
       real*8, intent(in) :: area
       integer, intent(in) :: soil_type
       !---
