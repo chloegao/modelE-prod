@@ -432,6 +432,9 @@
       USE TRACER_COM, only: NTM, tracers, syncProperty
       use TRACER_COM, only: coupled_chem
       use Dictionary_mod, only: sync_param,is_set_param,get_param
+#ifdef TRACERS_SPECIAL_O18
+      use tracer_com, only: supsatfac
+#endif
 #ifdef TRACERS_WATER
       use TRDIAG_com, only: to_per_mil
 #endif

@@ -123,7 +123,9 @@ subroutine CONDSE
   use TRDIAG_COM, only: jlnt_mc,jlnt_lscond,itcon_mc &
        ,itcon_ss,taijn=>taijn_loc,taijs=>taijs_loc
 #ifdef TRACERS_WATER
+#ifndef SKIP_TRACER_DIAGS
   use TRDIAG_COM, only: jls_prec,tij_prec,trp_acc
+#endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
   use TRDIAG_COM, only: jls_incloud,ijts_aq
@@ -1676,7 +1678,9 @@ subroutine CONDSE
           end do
 #ifdef TRACERS_WATER
           trprec(n,i,j) = (trprec(n,i,j)+trprss(nx))*byaxyp(i,j)
+#ifndef SKIP_TRACER_DIAGS
           TRP_acc(n,I,J)=TRP_acc(n,I,J)+trprec(n,i,j)
+#endif
           !        if (i.eq.64.and.j.eq.7) write(6,'(2i3,a,3f12.2)')
           !     .    n,ntm, ' TRP1::ACC:',trp_acc(n,i,j)*byaxyp(i,j),
           !     .    trprec(n,i,j),trprss(nx)
@@ -1900,7 +1904,7 @@ subroutine CONDSE
     call stop_model('ISCCP CLOUD TYPING ERROR',255)
   end if
 
-#ifdef SKIP_TRACER_DIAGS
+#ifdef TRACERS_WSD
 #ifdef TRACERS_WATER
   call trac_accum_clouds
 #endif

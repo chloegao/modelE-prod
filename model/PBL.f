@@ -1464,7 +1464,8 @@ c *********************************************************************
 #ifdef TRACERS_SPECIAL_O18
       do itr=1,NTM
         if (tr_wd_TYPE(itr).eq.nWater)
-     *       call getchq(zgs,z0m,lmonin,dm,z0q_tr(itr),cq_tr(itr),dum)
+!     *       call getchq(zgs,z0m,lmonin,dm,z0q_tr(itr),cq_tr(itr),dum)
+     *       call getchq(zgs,z0m,lmonin,dm,dpsim,cq_tr(itr))
       end do
       do itr=1,NTM
         if (tr_wd_TYPE(itr).eq.nWater)

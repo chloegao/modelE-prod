@@ -38,7 +38,9 @@ C****
       USE LANDICE, only : z1e,z2li,hc1li,hc2li,ace1li,ace2li,snmin   ! Constants
       USE LANDICE_COM, only : snowli
 #ifdef TRACERS_WATER
+#ifndef TRACERS_ATM_ONLY
       USE LANDICE_COM, only : trlndi
+#endif
 #endif
 
       USE LANDICE_COM, only : ijhc,ijhc_tsurf,ijhc_tsli
@@ -281,10 +283,12 @@ C****
 
 c      uocean = 0. ; vocean = 0. ! no land ice velocity
 #ifdef TRACERS_WATER
+#ifndef TRACERS_ATM_ONLY
       do nx=1,ntx
         trgrnd2(nx)=TRLNDI(ntix(nx),I,J,IHC)/(ACE1LI+ACE2LI)
       end do
       pbl_args%trgrnd2(1:ntm) = trgrnd2(1:ntm)
+#endif
 #endif
 ! END ---------------------------------------------------------
 
@@ -494,9 +498,8 @@ C**** CALCULATE EVAPORATION
      &         tg1, rcdqws, rcdqdws, evap, snow, qg_sat, qsrf,
      &         .false., 0d0, 0d0, ! arguments for lakes only
      &         lim_dew, dtsurf,
-     &         igla%TRM1(n,I,J), pbl_args%trs(nx),
+     &         igla%TRM1(n,I,J), pbl_args, nx,
      &         igla%gtracer(n,i,j), trgrnd2(nx),
-     &         pbl_args%trprime(nx),
      &         igla%trsrfflx(n,i,j), igla%trevapor(n,i,j)
      &     )
         END IF

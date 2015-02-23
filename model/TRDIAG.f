@@ -631,6 +631,9 @@ c
       use OldTracer_mod, only: dodrydep, dowetdep
       use OldTracer_mod, only: trname, trw0
       use tracer_com, only: ntm, n_water
+#ifdef TRACERS_SPECIAL_O18
+      use tracer_com, only: n_h2o18, n_hdo, n_h2o17
+#endif
       use diag_com
       use diag_com_rad, only : ij_cldcv
       use mdiag_com, only : sname_strlen,make_timeaxis
@@ -1036,6 +1039,9 @@ c
       use model_com, only: idacc
       use OldTracer_mod, only: trw0
       use tracer_com, only: ntm, n_water
+#ifdef TRACERS_SPECIAL_O18
+      use tracer_com, only: n_h2o18, n_hdo, n_h2o17
+#endif
       use diag_com
       use mdiag_com, only : make_timeaxis 
       use trdiag_com, only : taijln=>taijln_loc, taijls=>taijls_loc,

@@ -52,7 +52,11 @@ contains
 
 #ifdef TRACERS_SPECIAL_O18
   subroutine H2O18_setSpec(name)
+    use tracerconstants_mod, only: h2o18
+    use oldtracer_mod, only : set_iso_index, trw0
+    implicit none
     character(len=*), intent(in) :: name
+    real*8 :: fracls
 
     n = oldAddTracer(name)
     n_H2O18 = n
@@ -60,7 +64,7 @@ contains
     call set_tr_mm(n, H2O18%molMass)
     call set_needtrs(n,  .true.)
     call set_tr_wd_type(n, nwater)
-    iso_index(n) = 2          ! indexing for isotopic fractionation calcs
+    call set_iso_index(n, 2)          ! indexing for isotopic fractionation calcs
     call set_trw0(n, 2.228d-3   ) ! SMOW mass ratio of water molecules
     call set_trli0(n, 0.980d0*trw0(n)  ) ! d=-20
     call set_trsi0(n, fracls(n)*trw0(n))
@@ -73,7 +77,10 @@ contains
   end subroutine H2O18_setSpec
 
   subroutine HDO_setSpec(name)
+    use oldtracer_mod, only : set_iso_index, trw0
+    implicit none
     character(len=*), intent(in) :: name
+    real*8 :: fracls
 
     n = oldAddTracer(name)
     n_HDO = n
@@ -81,7 +88,7 @@ contains
     call set_tr_mm(n, 19d0)
     call set_needtrs(n,  .true.)
     call set_tr_wd_type(n, nwater)
-    iso_index(n) = 3          ! indexing for isotopic fractionation calcs
+    call set_iso_index(n, 3)          ! indexing for isotopic fractionation calcs
     call set_trw0(n, 3.29d-4    ) ! SMOW mass ratio of water molecules
     call set_trli0(n, 0.830d0*trw0(n)  ) ! d=-170
     call set_trsi0(n, fracls(n)*trw0(n))
@@ -94,6 +101,8 @@ contains
   end subroutine HDO_setSpec
 
   subroutine HTO_setSpec(name)
+    use oldtracer_mod, only : set_iso_index
+    implicit none
     character(len=*), intent(in) :: name
 
     n = oldAddTracer(name)
@@ -102,7 +111,7 @@ contains
     call set_tr_mm(n, 20d0)
     call set_needtrs(n,  .true.)
     call set_tr_wd_type(n, nwater)
-    iso_index(n) = 4          ! indexing for isotopic fractionation calcs
+    call set_iso_index(n, 4)          ! indexing for isotopic fractionation calcs
     call set_trw0(n, 0d0)     !2.22d-18   ) ! SMOW mass ratio of water molecules
     call set_trli0(n, 0d0)
     call set_trsi0(n, 0d0)
@@ -115,7 +124,11 @@ contains
   end subroutine HTO_setSpec
 
   subroutine H2O17_setSpec(name)
+    use tracer_com, only: n_h2o17
+    use oldtracer_mod, only : set_iso_index, trw0
+    implicit none
     character(len=*), intent(in) :: name
+    real*8 :: fracls
 
     n = oldAddTracer(name)
     n_H2O17 = n
@@ -123,7 +136,7 @@ contains
     call set_tr_mm(n, 19d0)
     call set_needtrs(n,  .true.)
     call set_tr_wd_type(n, nwater)
-    iso_index(n) = 5          ! indexing for isotopic fractionation calcs
+    call set_iso_index(n, 5)          ! indexing for isotopic fractionation calcs
     call set_trw0(n, 4.020d-5   ) ! SMOW mass ratio of water molecules
     call set_trli0(n, 0.98937d0*trw0(n)  ) ! d=-10.63 D17O=0
     call set_trsi0(n, fracls(n)*trw0(n))
@@ -138,6 +151,7 @@ contains
 
   subroutine CFCn_setSpec(name)
     use tracer_com, only: gasex_index
+    implicit none
     character(len=*), intent(in) :: name
 
     n = oldAddTracer(name)
@@ -152,6 +166,7 @@ contains
 
   subroutine CO2n_setSpec(name)
     use tracer_com, only: gasex_index
+    implicit none
     character(len=*), intent(in) :: name
 
     n = oldAddTracer(name)
@@ -166,6 +181,7 @@ contains
   end subroutine CO2n_setSpec
 
   subroutine OCocean_setSpec(name)
+    implicit none
     character(len=*), intent(in) :: name
 
     n = oldAddTracer(name)
@@ -180,6 +196,7 @@ contains
   end subroutine OCocean_setSpec
 
   subroutine Clay_setSpec(name)
+    implicit none
     character(len=*), intent(in) :: name
 
     n = oldAddTracer(name)
@@ -196,6 +213,7 @@ contains
   end subroutine Clay_setSpec
 
   subroutine Silt1_setSpec(name)
+    implicit none
     character(len=*), intent(in) :: name
     n = oldAddTracer(name)
     n_Silt1=n
@@ -210,6 +228,7 @@ contains
   end subroutine Silt1_setSpec
 
   subroutine Silt2_setSpec(name)
+    implicit none
     character(len=*), intent(in) :: name
 
     n = oldAddTracer(name)
@@ -226,6 +245,7 @@ contains
   end subroutine Silt2_setSpec
 
   subroutine Silt3_setSpec(name)
+    implicit none
     character(len=*), intent(in) :: name
     n = oldAddTracer(name)
     n_Silt3 = n
@@ -240,6 +260,7 @@ contains
   end subroutine Silt3_setSpec
 
   subroutine Silt4_setSpec(name)
+    implicit none
     character(len=*), intent(in) :: name
 
     n = oldAddTracer(name)
@@ -256,6 +277,7 @@ contains
   end subroutine Silt4_setSpec
 
   subroutine NO3p_setSpec(name)
+    implicit none
     character(len=*), intent(in) :: name
     n = oldAddTracer(name)
     n_NO3p = n
@@ -269,6 +291,7 @@ contains
   end subroutine NO3p_setSpec
 
   subroutine SO4_d1_setSpec(name)
+    implicit none
     character(len=*), intent(in) :: name
 
     n = oldAddTracer(name)
@@ -284,6 +307,7 @@ contains
   end subroutine SO4_d1_setSpec
 
   subroutine SO4_d2_setSpec(name)
+    implicit none
     character(len=*), intent(in) :: name
 
     n = oldAddTracer(name)
@@ -299,6 +323,7 @@ contains
   end subroutine SO4_d2_setSpec
 
   subroutine SO4_d3_setSpec(name)
+    implicit none
     character(len=*), intent(in) :: name
 
     n = oldAddTracer(name)
@@ -314,6 +339,7 @@ contains
   end subroutine SO4_d3_setSpec
 
   subroutine N_d1_setSpec(name)
+    implicit none
     character(len=*), intent(in) :: name
     n = oldAddTracer(name)
     n_N_d1 = n
@@ -327,6 +353,7 @@ contains
   end subroutine N_d1_setSpec
 
   subroutine N_d2_setSpec(name)
+    implicit none
     character(len=*), intent(in) :: name
 
     n = oldAddTracer(name)
@@ -342,6 +369,7 @@ contains
   end subroutine N_d2_setSpec
 
   subroutine N_d3_setSpec(name)
+    implicit none
     character(len=*), intent(in) :: name
 
     n = oldAddTracer(name)
@@ -357,6 +385,7 @@ contains
   end subroutine N_d3_setSpec
 
   subroutine Pb210_setSpec(name)
+    implicit none
     character(len=*), intent(in) :: name
 
     n = oldAddTracer(name)
@@ -372,6 +401,7 @@ contains
   end subroutine Pb210_setSpec
 
   subroutine Be7_setSpec(name)
+    implicit none
     character(len=*), intent(in) :: name
 
     n = oldAddTracer(name)
@@ -387,6 +417,7 @@ contains
   end subroutine Be7_setSpec
 
   subroutine Be10_setSpec(name)
+    implicit none
     character(len=*), intent(in) :: name
 
     n = oldAddTracer(name)
@@ -402,6 +433,7 @@ contains
 
 
   subroutine Air_setSpec(name)
+    implicit none
     character(len=*), intent(in) :: name
 
     n = oldAddTracer(name)
@@ -412,6 +444,9 @@ contains
   end subroutine Air_setSpec
 
   subroutine Water_setSpec(name)
+    use oldtracer_mod, only : set_iso_index
+    use RunTimeControls_mod, only: tracers_special_o18
+    implicit none
     character(len=*), intent(in) :: name
 
     n = oldAddTracer(name)
@@ -431,7 +466,7 @@ contains
     end if
     if (tracers_ocean) call set_trglac(n, 1.d+0)
 #ifdef TRACERS_SPECIAL_O18
-    if (tracers_special_o18) iso_index(n) = 1 ! indexing for isotopic fractionation calcs
+    if (tracers_special_o18) call set_iso_index(n, 1) ! indexing for isotopic fractionation calcs
 #endif
   end subroutine Water_setSpec
 
