@@ -157,6 +157,11 @@ c       *** calculate nudging toward observed profile
           SCM_nudge_T(L) = (SCMin%T(L)-Tabs(L))/SCMopt%tau*DTSRC
           SCM_nudge_Q(L) = (SCMin%Q(L)-Q(1,1,L))/SCMopt%tau*DTSRC
 
+          if( SCMopt%Fnudge )then
+            SCM_nudge_T(L) = SCM_nudge_T(L)*SCMin%Fnudge(L)
+            SCM_nudge_Q(L) = SCM_nudge_Q(L)*SCMin%Fnudge(L)
+          endif
+
           Tabs(L) = Tabs(L) + SCM_nudge_T(L)
           Q(1,1,L) = Q(1,1,L) + SCM_nudge_Q(L)
 
