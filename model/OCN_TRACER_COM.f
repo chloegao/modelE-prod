@@ -139,7 +139,7 @@ C****     it will prove useful.
         trname_list=adjustl(trname_list)
         do while(len_trim(trname_list).gt.0)
           i=index(trname_list,' ')
-          add_ocn_tracer(trname_list(1:i-1))
+          call add_ocn_tracer(trname_list(1:i-1))
           trname_list = adjustl(trname_list(i:128))
         enddo
       else
