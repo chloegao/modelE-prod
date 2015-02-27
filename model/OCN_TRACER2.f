@@ -12,7 +12,7 @@
       use ocean, only : trmo
       use ocean, only : txmo,tymo,tzmo
       use ocean, only : nbyzm,i1yzm,i2yzm
-      use domain_decomp_1d, only : get, am_i_root
+      use domain_decomp_1d, only : getDomainBounds, am_i_root
       use oceanr_dim, only : grid=>ogrid
       use exchange_types, only : atmocn_xchng_vars
       use dictionary_mod
@@ -70,7 +70,7 @@ c
       USE OCEAN, only : trmo,txmo,tymo,tzmo, oxyp, mo, imaxj, focean,
      *     lmm, lmo
 
-      USE DOMAIN_DECOMP_1D, only : get
+      USE DOMAIN_DECOMP_1D, only : getDomainBounds
       USE OCEANR_DIM, only : grid=>ogrid
 
       IMPLICIT NONE
@@ -113,7 +113,7 @@ C****
       USE OCEAN, only : trmo,txmo,tymo,tzmo, oxyp, mo, imaxj, focean,
      *     lmm, lmo
 
-      USE DOMAIN_DECOMP_1D, only : get
+      USE DOMAIN_DECOMP_1D, only : getDomainBounds
       USE OCEANR_DIM, only : grid=>ogrid
 
       IMPLICIT NONE
@@ -156,7 +156,7 @@ C****
      *     lmm, lmo, oLON_DG,oLAT_DG,ZOE=>ZE
 
 
-      USE DOMAIN_DECOMP_1D, only : get
+      USE DOMAIN_DECOMP_1D, only : getDomainBounds
       USE OCEANR_DIM, only : grid=>ogrid
 
       IMPLICIT NONE
@@ -246,7 +246,7 @@ C****
      *     lmm, lmo,g0m,s0m,dxypo
       USE OFLUXES,    only : oAPRESS
 
-      USE DOMAIN_DECOMP_1D, only : get
+      USE DOMAIN_DECOMP_1D, only : getDomainBounds
       USE OCEANR_DIM, only : grid=>ogrid
 
       IMPLICIT NONE
@@ -343,7 +343,7 @@ c**** Extract domain decomposition info
       USE OCEAN, only : trmo,txmo,tymo,tzmo, oxyp, mo, imaxj, focean,
      *     lmm, lmo
 
-      USE DOMAIN_DECOMP_1D, only : get
+      USE DOMAIN_DECOMP_1D, only : getDomainBounds
       USE OCEANR_DIM, only : grid=>ogrid
 
       IMPLICIT NONE
