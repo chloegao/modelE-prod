@@ -21,6 +21,8 @@
 #define INTERCEPT_TEMPORAL
 #define LARGE_SCALE_PRECIP_INTERCEPT
 !#define DO_TOPMODEL_RUNOFF
+
+#define CHECK_CARBON_CONSERVATION
 !-----------------------------------------------------------------------
 
       module sle001
@@ -32,6 +34,8 @@
 #ifdef TRACERS_WATER
       use GHY_h, only : ghy_tr_str
 #endif
+
+      use ent_debug_mod
 
       implicit none
       save
@@ -296,6 +300,9 @@ ccc be computed (i.e. f[bv] is not zero)
 
 ccc   external functions
       real*8, external :: qsat,dqsatdt
+
+ccc   debugging Ent
+      real*8, public :: ent_debug_buf(SIZE_ENT_DEBUG)
 
 ! The following variables specify the permitted range of temperature for
 ! surface soil and canopy.  If violated a message is generated and the
@@ -696,6 +703,8 @@ ccc   local variables
       real*8 :: r_litter
 !     Effective leaf litter area index
       real*8 :: llai_eff
+!     Parameter for pore size distribution (b parameter)
+      real*8 :: b_param
 #endif
 
 #endif
@@ -909,9 +918,10 @@ c     v_qprime=(vs-vs0)*qprime
 
 #ifdef EVAP_VEG_GROUND_NEW
 !     1) Soil resistance computed according to the formulation of
-!        Sakaguchi and Zeng (2009)
+!        Sakaguchi and Zeng (2009) 
+      b_param= b_poresize_param( q(3,1),q(1,1), thets(1,2)  )
       D_vapor = D0*(thets(1,2)**2.d0)*
-     &               (1.d0-thetm(1,2)/thets(1,2))**(2.d0+3.d0*5.d0)
+     &               (1.d0-thetm(1,2)/thets(1,2))**(2.d0+3.d0*b_param)
       L_dry = dz(1)*(exp((1.d0-theta(1,2)/thets(1,2))**5.d0)-1.d0)
      &             /(exp(1.d0)                              -1.d0)
       r_soil = L_dry / D_vapor
@@ -1097,7 +1107,11 @@ c     snowfs is the large scale snow fall.
 !       Potential new water content of canopy
         wc_new = w(0,2) + min(pr_dry*dts,wc_add)
 !       Update wet and dry canopy fractions
-        fw_new=(wc_new/ws(0,2))**(2.d0/3.d0)
+        if ( ws(0,2) > 1.d-12 ) then
+          fw_new=(wc_new/ws(0,2))**(2.d0/3.d0)
+        else
+          fw_new=0.d0
+        endif
         fd_new=1.d0-fw_new
         dr_scale = ptmps - (wc_new - w(0,2))/dts
 
@@ -2002,6 +2016,43 @@ c****
       alb = fr_sn*alb_sn + (1.d0-fr_sn)*(albedo_6b(1)+albedo_6b(2))*.5d0
       end function ghy_albedo
 
+
+!-----------------------------------------------------------------------
+
+      function b_poresize_param( clay,sand,poros ) result(b_param)
+!@var Percent of clay and sand in the soil 
+      real*8 :: clay, sand
+!@var Porosity of the soil
+      real*8 :: poros
+      real*8 :: b_param, lambda, temp
+
+      temp = - 0.7842831d0 
+     &       + 0.0177544d0 *(sand)
+     &       - 1.062498d0  *(poros)
+     &       - 0.00005304d0*(sand*sand)
+     &       - 0.00273493d0*(clay*clay)
+     &       + 1.11134946d0*(poros*poros)
+     &       - 0.03088295d0*(sand*poros)
+     &       + 0.00026587d0*(sand*sand*poros*poros)
+     &       - 0.00610522d0*(clay*clay*poros*poros)
+     &       - 0.00000235d0*(sand*sand*clay)
+     &       + 0.00798746d0*(clay*clay*poros)
+     &       - 0.00674491d0*(poros*poros*clay)
+      lambda = exp(temp)
+
+      if (lambda<0.01d0)then
+         lambda = 0.01d0
+         write(6,*) "Warning in soil evap, lambda <0.01"
+      elseif (lambda > 3.d0) then
+         lambda = 3.d0
+         write(6,*) "Warning in soil evap, lambda > 3"
+      endif
+
+      b_param = 1.d0 / lambda
+
+
+      end function b_poresize_param
+
 !-----------------------------------------------------------------------
 
       subroutine advnc(
@@ -2056,6 +2107,7 @@ c**** soils28   common block     9/25/90
 #ifdef USE_ENT
       use ent_mod, only: entcelltype_public, ent_set_forcings,
      &     ent_get_exports, ent_fast_processes, ent_run
+     &     ,ent_update_veg_structure, ent_cell_print
 !@var longi,latj corresponding coordinate of the cell
       type(entcelltype_public) entcell
       real*8, intent(in) :: Ca, cosz1, vis_rad, direct_vis_rad
@@ -2086,12 +2138,15 @@ c**** soils28   common block     9/25/90
       integer limit,nit
       real*8 dum1, dum2, dumrad
       real*8 :: no_data(1) = -1.d30
-      real*8 :: sbgc_temp(1), sbgc_moist(1)
+      real*8 :: sbgc_temp(ngm), sbgc_moist(ngm)
       real*8 :: height_can
       real*8 :: albedo_6b(6)
 #ifdef TRACERS_WATER
       real*8 tr_evap(ghy_tr%ntg,2),tr_rnff(ghy_tr%ntg,2)
 #endif
+      real*8 :: C_before, C_after
+      integer :: iu_debug
+      real*8, pointer :: ent_debug_ptr(:)
 
       ! get stuff from vegcell
 #ifndef USE_ENT
@@ -2193,6 +2248,8 @@ c**** soils28   common block     9/25/90
        write(933,*) "qprime        ", qprime        
 #endif
 
+       ent_debug_buf(:) = 0.d0
+
 
       limit=300   ! 200 increase to avoid a few more stops
       nit=0
@@ -2224,6 +2281,9 @@ ccc make sure there are no round-off errors in fractions
       ws(0,2) = ws_can
       shc(0,2) = shc_can
       ! snowm = 0.d0 !!!! wrong !!! but leave it for testing
+
+      ! get pointer to derived type structure with Ent diags
+      call get_ent_debug_ptr( ent_debug_ptr )
 #endif
 
 
@@ -2294,9 +2354,12 @@ ccc accm0 was not called here in older version - check
 
         if ( process_vege ) then
 
-          sbgc_temp(1) = (tp(1,2)*dz(1) + tp(2,2)*dz(2))/(dz(1) + dz(2))
-          sbgc_moist(1) = (w(1,2)       + w(2,2)       )/(dz(1) + dz(2))
-
+          !sbgc_temp(1) = (tp(1,2)*dz(1) + tp(2,2)*dz(2))/(dz(1) + dz(2))
+          !sbgc_moist(1) = (w(1,2)       + w(2,2)       )/(dz(1) + dz(2))
+          sbgc_temp(1:ngm)  = tp(1:ngm,2)
+          sbgc_moist(1:ngm) = 0.d0
+          where( ws(1:ngm,2) > 0.d0 )
+     &         sbgc_moist(1:ngm) =  w(1:ngm,2)/ws(1:ngm,2)
 
           !Qf = 0.d0
 cddd          write(933,*) "ent_forcings",ts-tfrz,tp(0,2),Qf,pres,Ca,ch,vs,
@@ -2307,8 +2370,11 @@ cddd     &         h(1:ngm,2),fice(1:ngm,2)
      &         canopy_temperature=tp(0,2),
      &         canopy_air_humidity=Qf,  ! qsat(tp(0,2),lhe,pres),
      &         surf_pressure=pres,
-!     &         surf_CO2=Ca, ! fol_CO2=1.d30,
+#ifdef OFFLINE_RUN
+     &         surf_CO2=Ca, ! fol_CO2=1.d30,
+#else
      &         surf_CO2=Ca*(1.0D-06)*pres*100.0/gasc/(tp(0,2)+tfrz),
+#endif
  !    &       precip=pr,
      &         heat_transfer_coef=ch,
      &         wind_speed=vs,
@@ -2326,8 +2392,22 @@ cddd     &         h(1:ngm,2),fice(1:ngm,2)
 !!!! dt is not correct at the moment !!
 !!! should eventualy call gdtm(dtm) first ...
           !!! call ent_fast_processes( entcell, dt )
-          call ent_run( entcell, dts, end_of_day_flag.and.nit==1 ) 
 
+          !ent_dl(:) = 0.d0
+          ent_debug_ptr(:) = 0.d0
+
+cddd          if( ijdebug == 46031 ) then
+cddd            write(910,*) "before ", end_of_day_flag.and.nit==1 
+cddd            call ent_cell_print(910, entcell)
+cddd          endif
+          call ent_run( entcell, dts, end_of_day_flag.and.nit==1 ) 
+cddd          if( ijdebug == 46031 ) then
+cddd            write(910,*) "after "
+cddd            call ent_cell_print(910, entcell)
+cddd          endif
+
+          !ent_debug_buf(:) = ent_debug_buf(:) + ent_dl(:)*dts
+          ent_debug_buf(:) = ent_debug_buf(:) + ent_debug_ptr(:)*dts
 ccc unpack necessary data
           call ent_get_exports( entcell,
      &         canopy_conductance=cnc,
@@ -2845,7 +2925,8 @@ ccc   compute tg2av,wtr2av,ace2av formerly in retp2 (but differently)
       if ( process_vege ) then
         dC = C_entcell-C_entcell_start-agpp+arauto+asoilresp
         if ( abs(dC) > 1.d-13 ) then
-          write(700+mod(ijdebug,100),*) "dC", ijdebug, dC
+          write(700+mod(ijdebug,100),*) "dC", ijdebug, dC,
+     &         C_entcell,C_entcell_start,agpp,arauto,asoilresp
         endif
       endif
 #endif
