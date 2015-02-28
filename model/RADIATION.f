@@ -119,7 +119,8 @@ C----------------
       INTEGER :: KSIALB=0
 !@var PVT           frac. of surf.type (bareWhite+veg*8+bareDark+ocn)(1)
 !@var AGESN 1-3     age of snow    (over soil,oice,land ice) (days)
-!@var SNOWE,SNOWLI  amount of snow (over soil,land ice)   (kg/m^2)
+!@var SNOWLI  amount of snow (over land ice)   (kg/m^2)
+!@var SNOWD  amount of snow (over soil)   (m)
 !@var SNOWOI        amount of snow (over ocean/lake ice)  (kg/m^2)
 !@var WEARTH        soil wetness (1)
 !@var WMAG          wind speed (m/s)
@@ -131,7 +132,7 @@ C----------------
 !@var TGO           top layer water temperature (K) of ocean/lake
 !@var TGE,TGOI,TGLI top layer ground temperature (K) soil,seaice,landice
 !@var TSL           surface air temperature (K)
-      REAL*8 PVT(12),AGESN(3),SNOWE,SNOWOI,SNOWLI,WEARTH,WMAG,POCEAN
+      REAL*8 PVT(12),AGESN(3),SNOWD(2),SNOWOI,SNOWLI,WEARTH,WMAG,POCEAN
      *     ,PEARTH,POICE,PLICE,PLAKE,TGO,TGE,TGOI,TGLI,TSL
 !@var KZSNOW        =1 for snow/ice albedo zenith angle dependence
       INTEGER :: KZSNOW=1
@@ -1738,7 +1739,7 @@ C--------------------------------  (GETSUR sets albedo needed by GETCLD)
      i     ILON,JLAT,
      i     AGESN,POCEAN,POICE,PEARTH,PLICE,PLAKE,zlake,
      i     TGO,TGOI,TGE,TGLI,ZOICE,FMP,ZSNWOI,zmp,
-     i     SNOWOI,SNOWE,SNOWLI,SNOW_FRAC,WEARTH,WMAG,PVT,dalbsn,
+     i     SNOWOI,SNOWD,SNOWLI,SNOW_FRAC,WEARTH,WMAG,PVT,dalbsn,
      i     flags,LOC_CHL,
      o     BXA,PRNB,PRNX,SRBALB,SRXALB,TRGALB,
      o     BGFEMD,BGFEMT,
@@ -6569,7 +6570,7 @@ C
      +               ,SUM0(10),SUM0(11),SUM0(12)
       WRITE(KW,6204) POCEAN,TGO,PLAKE,zlake,SUM0(13),JYEAR
      +             ,BXA(4:5),LASTVC
-      WRITE(KW,6205) PEARTH,TGE,SNOWE,ZSNWOI,SUM0(14),JDAY,BXA(6:7)
+      WRITE(KW,6205) PEARTH,TGE,SNOWD,ZSNWOI,SUM0(14),JDAY,BXA(6:7)
       WRITE(KW,6206) POICE,TGOI,SNOWOI,ZOICE,SUM0(15),JLAT
      +             ,(SRBALB(I),I=1,6)
       WRITE(KW,6207) PLICE,TGLI,SNOWLI,zmp,SUM0(16),ILON
@@ -6600,7 +6601,7 @@ C
  6204 FORMAT( 1X,'PWATER=',F6.4,'    TGO=' ,F6.2,1X,' PLAKE=',F6.3
      +      , 1X,' ZLAKE=',F6.3,' TRACER 1=',F5.3,' JYEAR=',I4
      +      , 3X,'BSNVIS=',F6.4,' BSNNIR=' ,F6.4,7X,'LASTVC=',I7)
- 6205 FORMAT(    ' PEARTH=',F6.4,'    TGE=',F6.2,'  SNOWE=',F6.3
+ 6205 FORMAT(    ' PEARTH=',F6.4,'    TGE=',F6.2,'  SNOWD=',2F6.3
      +      ,    '  ZSNOW=',F6.3,'  Sums: 2=',F5.3
      +      ,     '  JDAY=',I4  ,2X,' XSNVIS=',F6.4,' XSNNIR=',F6.4
      +      , 8X,'NIRALB VISALB')

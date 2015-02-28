@@ -763,7 +763,7 @@ c****
      &     fr_snow_ij,
      *     tearth,tsns_ij,wearth,aiearth,
      &     evap_max_ij, fr_sat_ij, qg_ij, top_dev_ij,
-     &     soil_surf_moist
+     &     soil_surf_moist, snowd_ij=>snowd
 #ifndef USE_ENT
       use vegetation, only :
      &    veg_srht=>srht,veg_pres=>pres,veg_ch=>ch,veg_ws=>vsm, !ia
@@ -1291,6 +1291,14 @@ c workaround for uninitialzed snowd multiply by zero
      &           * sum( dzsn_ij(1:nsn_ij(1,i,j),1,i,j) )
      &       + fv*fr_snow_ij(2,i,j)
      &           * sum( dzsn_ij(1:nsn_ij(2,i,j),2,i,j) ) )
+
+      do ibv=1,2
+        if ( fr_snow_ij(ibv, i, j) > 0.001d0 ) then
+          snowd_ij(ibv,i,j) = sum(dzsn_ij(1:nsn_ij(ibv,i,j), ibv, i, j))
+        else
+          snowd_ij(ibv,i,j) = 0.d0
+        endif
+      enddo
 
 cddd      if (i==23 .and. j==10) then
 cddd        write(755,*) "counter", counter
@@ -3725,7 +3733,7 @@ c****
       use filemanager, only : file_exists
       implicit none
 #ifdef USE_ENT
-      real*8,dimension(N_COVERTYPES) :: fr_cover0
+      real*8,dimension(N_COVERTYPES) :: fr_cover0, h_cover0
 #endif
       real*8 :: fr_cover(12), z0_veg
 !     original Model II (1983) values (except crops)
@@ -3782,8 +3790,9 @@ c****
           if ( focean(i,j) >= 1.d0 ) cycle
 #ifdef USE_ENT
           call ent_get_exports( entcells(i,j),
-     &         vegetation_fractions=fr_cover0 )
-          call map_ent2giss(fr_cover0,fr_cover) !temp hack: ent pfts->giss veg
+     &         vegetation_fractions=fr_cover0,
+     &         vegetation_heights=h_cover0 )
+          call map_ent2giss(fr_cover0,h_cover0,fr_cover) !temp hack: ent pfts->giss veg
           vvv(i,j,:) = fr_cover(1:10)
 #else
           fr_cover(:) = vdata(i,j,:)

@@ -1509,7 +1509,7 @@ C     INPUT DATA  (i,j) dependent
      &             ,ltopcl,TAUWC ,TAUIC ,SIZEWC ,SIZEIC, kdeliq
      &             ,POCEAN,PEARTH,POICE,PLICE,PLAKE,COSZ,PVT
      &             ,TGO,TGE,TGOI,TGLI,TSL,WMAG,WEARTH
-     &             ,AGESN,SNOWE,SNOWOI,SNOWLI,dALBsn, ZSNWOI,ZOICE
+     &             ,AGESN,SNOWD,SNOWOI,SNOWLI,dALBsn, ZSNWOI,ZOICE
      &             ,zmp,fmp,flags,LS1_loc,snow_frac,zlake
      *             ,TRACER,FSTOPX,FTTOPX,chem_IN
      &             ,nraero=>NTRACE
@@ -1576,7 +1576,7 @@ C     OUTPUT DATA
 #endif
       USE ATM_COM, only : pk,pedn,pmid,pdsig,ltropo,MA,byMA
       USE SEAICE_COM, only : si_atm
-      USE GHY_COM, only : fearth
+      USE GHY_COM, only : fearth,snowd_ij=>snowd
 #ifdef USE_ENT
       use ent_com, only : entcells
       use ent_mod, only : ent_get_exports
@@ -1781,7 +1781,7 @@ c     INTEGER ICKERR,JCKERR,KCKERR
       integer :: initial_GHG_setup
 
 #ifdef USE_ENT
-      real*8 :: PVT0(N_COVERTYPES)
+      real*8 :: PVT0(N_COVERTYPES), HVT0(N_COVERTYPES)
 #endif
 #ifdef TRACERS_NITRATE
       real*8 :: nh4_on_no3
@@ -2425,7 +2425,8 @@ C**** Zenith angle and GROUND/SURFACE parameters
       TSL=atmsrf%TSAVG(I,J)
       SNOWOI=SNOWI(I,J)
       SNOWLI=atmgla%SNOW(I,J)
-      SNOWE=atmlnd%SNOWE(I,J)                    ! snow depth (kg/m**2)
+      !SNOWE=atmlnd%SNOWE(I,J)                    ! snow depth (kg/m**2)
+      SNOWD(:)=snowd_ij(:,I,J)
       snow_frac(:) = atmlnd%fr_snow_rad(:,i,j)    ! snow cover (1)
       AGESN(1)=SNOAGE(3,I,J)    ! land         ! ? why are these numbers
       AGESN(2)=SNOAGE(1,I,J)    ! ocean ice        so confusing ?
@@ -2475,8 +2476,9 @@ C****
 #ifdef USE_ENT
       if ( fearth(i,j) > 0.d0 ) then
         call ent_get_exports( entcells(i,j),
-     &       vegetation_fractions=PVT0 )
-        call map_ent2giss(PVT0,PVT) !temp hack: ent pfts->giss veg
+     &       vegetation_fractions=PVT0,
+     &       vegetation_heights=HVT0 )
+        call map_ent2giss(PVT0,HVT0,PVT) !temp hack: ent pfts->giss veg
       else
         PVT(:) = 0.d0  ! actually PVT is not supposed to be used in this case
       endif

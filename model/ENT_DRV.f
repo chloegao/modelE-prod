@@ -515,9 +515,10 @@ cddd     &       cropsdata=cropdata_H(I0:I1,J0:J1) )
 
       end subroutine update_vegetation_data
 
-      subroutine map_ent2giss(v_ent,v_giss)
+      subroutine map_ent2giss(v_ent,h_ent,v_giss)
       implicit none
       real*8, dimension(:), intent(in) :: v_ent
+      real*8, dimension(:), intent(in) :: h_ent
       real*8, dimension(:), intent(out) :: v_giss
 
       if (N_COVERTYPES == 12) then
@@ -525,10 +526,10 @@ cddd     &       cropsdata=cropdata_H(I0:I1,J0:J1) )
       else if (N_COVERTYPES == 18) then
         !18->12
         v_giss(1) = v_ent(17)   !sand
-        v_giss(2) = v_ent(9)    !tundra
+        v_giss(2) = 0.d0 ! v_ent(9)    !tundra
         v_giss(3) = v_ent(11) + v_ent(12) 
      &          + v_ent(13) + v_ent(14) !grass
-        v_giss(4) = v_ent(10)   !shrub
+        v_giss(4) = v_ent(10) !!+ v_ent(9)  !shrub
         v_giss(5) = 0.d0        !tress
         v_giss(6) = v_ent(5) + v_ent(6) 
      &          + v_ent(7) + v_ent(8)
@@ -539,6 +540,11 @@ cddd     &       cropsdata=cropdata_H(I0:I1,J0:J1) )
         v_giss(10)= v_ent(18)   !dirt
         v_giss(11)= 0.d0
         v_giss(12)= 0.d0
+        if ( h_ent(9) > .5d0 ) then
+          v_giss(4) = v_giss(4) + v_ent(9)
+        else
+          v_giss(2) = v_giss(2) + v_ent(9)
+        endif
       else
         call stop_model("map_ent2giss: unsupported N_COVERTYPES",255)
       endif

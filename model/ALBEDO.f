@@ -80,12 +80,13 @@ C           TNDRA     SHRUB     DECID     RAINF     BDIRT     GRAC4
      4 .500,.026,.032,.033,.020,.022,.018,.018,.032,.000,.200,.032
      *     /),(/NV,4,6/) )
 C
-!@var VTMASK vegetation depth mask by type (kg/m^2)
+!@var VTMASK vegetation depth mask by type (m)
       REAL*8, PARAMETER :: VTMASK(NV) = (/
 C        1    2    3    4    5    6    7    8    9   10   11    12
 C      BSAND     GRASS     TREES     EVERG     CROPS     ALGAE
 C           TNDRA     SHRUB     DECID     RAINF     BDIRT     GRAC4
-     * 1d1, 2d1, 2d1, 5d1, 2d2, 5d2, 1d3, 25d2,2d1, 1d1,.001d0,2d1
+!!!  * 1d1, 2d1, 2d1, 5d1, 2d2, 5d2, 1d3, 25d2,2d1, 1d1,.001d0,2d1 ! (kg/m^2)
+     * .1d0,.2d0,.2d0,.5d0,2d0, 5d0, 10d0,25d0,.2d0,.1d0,1d-5,.2d0
      *     /)
 
 !@var ASHZOI,ANHZOI hemisph.Ice Albedo half-max depth (m) (orig.version)
@@ -284,7 +285,7 @@ C     -------------------
      i     ILON,JLAT,
      i     AGESN,POCEAN,POICE,PEARTH,PLICE,PLAKE,ZLAKE,
      i     TGO,TGOI,TGE,TGLI,ZOICE,FMP,ZSNWOI,ZMP,
-     i     SNOWOI,SNOWE,SNOWLI,SNOW_FRAC,WEARTH,WMAG,PVT,dalbsn,
+     i     SNOWOI,SNOWD,SNOWLI,SNOW_FRAC,WEARTH,WMAG,PVT,dalbsn,
      i     FLAGS,LOC_CHL,
      o     BXA,PRNB,PRNX,SRBALB,SRXALB,TRGALB,
      o     BGFEMD,BGFEMT,
@@ -313,7 +314,7 @@ C**** input from driver
       INTEGER ILON,JLAT
       REAL*8 AGESN(3),POCEAN,POICE,PEARTH,PLICE,PLAKE,ZLAKE,
      *     TGO,TGOI,TGE,TGLI,ZOICE,FMP,ZSNWOI,ZMP,
-     *     SNOWOI,SNOWE,SNOWLI,SNOW_FRAC(2),WEARTH,WMAG,PVT(12),
+     *     SNOWOI,SNOWD(2),SNOWLI,SNOW_FRAC(2),WEARTH,WMAG,PVT(12),
      &     dalbsn,LOC_CHL
       LOGICAL*4 :: FLAGS
 C**** output
@@ -508,7 +509,7 @@ c**** The final snow cover is minimum of snow_frac and the snow fraction
 c**** obtained using the vegetation masking.
       DSFRAC=PVT(1)+PVT(10)
       VGFRAC=1.D0-DSFRAC
-      IF(SNOWE  <= 1.D-04) THEN
+      IF(SNOWD(1)+SNOWD(2)  <= 1.D-04 * 10.d0) THEN
         DO L=1,6
           BEAVN(L)=PVT(1)*ALBVNH(1,L,JH)*(1.D0-0.5D0*WEARTH*WETSRA)
         END DO
@@ -529,16 +530,19 @@ c**** obtained using the vegetation masking.
 !nu       BNVEGE=(BEAVN(2)-BNSOIL*DSFRAC)/VGFRAC
 !nu     ENDIF
       ELSE
-        VTFRAC=PVT(1)*MAX((1.d0-snow_frac(1)),EXP(-SNOWE/VTMASK(1)))
+        VTFRAC=PVT(1)*( 1.d0
+     &       - snow_frac(1)*( 1.d0 - EXP(-SNOWD(1)/VTMASK(1)) ) )
         EXPSNE=VTFRAC +
-     &       PVT(10)*MAX((1.d0-snow_frac(1)),EXP(-SNOWE/VTMASK(10)))
+     &       PVT(10)*( 1.d0
+     &       - snow_frac(1)*( 1.d0 - EXP(-SNOWD(1)/VTMASK(10)) ) )
         DSFRAC=EXPSNE
         DO L=1,6
           BEAVN(L)=VTFRAC*ALBVNH(1,L,JH)*(1.D0-0.5D0*WEARTH*WETSRA)
         END DO
         DO K=2,NV
           if ( k==10 .or. k==11 ) cycle
-          VTFRAC=PVT(K)*MAX((1.d0-snow_frac(2)),EXP(-SNOWE/VTMASK(K)))
+          VTFRAC=PVT(K)*( 1.d0
+     &         - snow_frac(2)*( 1.d0 - EXP(-SNOWD(2)/VTMASK(K)) ) )
           DO L=1,6
             BEAVN(L)=BEAVN(L)+VTFRAC*ALBVNH(K,L,JH)
           END DO
