@@ -882,7 +882,7 @@ C****
       USE OCN_TRACER_COM, only : n_Water, tracerlist, ocn_tracer_entry
 #endif
       USE EXCHANGE_TYPES, only : atmocn_xchng_vars
-      use runtimecontrols_mod, only: tracers_alkalinity
+      use runtimecontrols_mod, only: tracers_alkalinity, ocn_cfc
       IMPLICIT NONE
       type(atmocn_xchng_vars) :: atmocn
 c
@@ -1406,39 +1406,39 @@ c
       ia_oij(k)=ia_src
       scale_oij(k) = 1
 
-#ifdef OCN_CFC
-      k=k+1
-      IJ_cfcair=k
-      lname_oij(k)="CFC concentration ATM"
-      sname_oij(k)="oij_cfcair"
-      units_oij(k)="uatm"
-      ia_oij(k)=ia_src
-      scale_oij(k)=1
+      if (ocn_cfc) then
+        k=k+1
+        IJ_cfcair=k
+        lname_oij(k)="CFC concentration ATM"
+        sname_oij(k)="oij_cfcair"
+        units_oij(k)="uatm"
+        ia_oij(k)=ia_src
+        scale_oij(k)=1
 
-      k=k+1
-      IJ_kw=k
-      lname_oij(k)="CFC piston velocity"
-      sname_oij(k)="oij_kw"
-      units_oij(k)="m/s"
-      ia_oij(k)=ia_src
-      scale_oij(k)=1
+        k=k+1
+        IJ_kw=k
+        lname_oij(k)="CFC piston velocity"
+        sname_oij(k)="oij_kw"
+        units_oij(k)="m/s"
+        ia_oij(k)=ia_src
+        scale_oij(k)=1
 
-      k=k+1
-      IJ_csat=k
-      lname_oij(k)="CFC Csat=CFCair*solub"
-      sname_oij(k)="oij_csat"
-      units_oij(k)="mol/m3"
-      ia_oij(k)=ia_src
-      scale_oij(k)=1
+        k=k+1
+        IJ_csat=k
+        lname_oij(k)="CFC Csat=CFCair*solub"
+        sname_oij(k)="oij_csat"
+        units_oij(k)="mol/m3"
+        ia_oij(k)=ia_src
+        scale_oij(k)=1
 
-      k=k+1
-      IJ_cfcflux=k
-      lname_oij(k)="CFC Flux into ocean"
-      sname_oij(k)="oij_cfcflux"
-      units_oij(k)="mol/m2/s"
-      ia_oij(k)=ia_src
-      scale_oij(k)=1
-#endif /* OCN_CFCdiags */
+        k=k+1
+        IJ_cfcflux=k
+        lname_oij(k)="CFC Flux into ocean"
+        sname_oij(k)="oij_cfcflux"
+        units_oij(k)="mol/m2/s"
+        ia_oij(k)=ia_src
+        scale_oij(k)=1
+      endif
 
 #ifdef TRACERS_OceanBiology
       k=k+1

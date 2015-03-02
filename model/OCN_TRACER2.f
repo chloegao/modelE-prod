@@ -117,11 +117,9 @@ C****
       USE OFLUXES,    only : oRSI,oAPRESS,ocnatm
       USE DOMAIN_DECOMP_1D, only : getDomainBounds
       USE OCEANR_DIM, only : grid=>ogrid
-#ifdef OCN_CFC
       USE ODIAG, only : ij_cfcair,ij_kw,ij_csat,ij_cfcflux,oij=>oij_loc
-#endif /* OCN_CFC */
       use model_com, only: modeleclock
-
+      use runtimecontrols_mod, only: ocn_cfc
 
       IMPLICIT NONE
       real*8, intent(in) :: dts
@@ -235,12 +233,12 @@ C**** at each time step set surface tracer conc=1+flux from atmos
 !     TXMO(I,J,1,n_cfc)=0
 !     TYMO(I,J,1,n_cfc)=0 ; TZMO(I,J,1,n_cfc)=0
 
-#ifdef OCN_CFC
-       OIJ(I,J,IJ_cfcair) = OIJ(I,J,IJ_cfcair) + cfcair
-       OIJ(I,J,IJ_kw) = OIJ(I,J,IJ_kw) +  kw
-       OIJ(I,J,IJ_csat) = OIJ(I,J,IJ_csat) +  csat
-       OIJ(I,J,IJ_cfcflux) = OIJ(I,J,IJ_cfcflux) +  flux
-#endif
+       if (ocn_cfc) then
+         OIJ(I,J,IJ_cfcair) = OIJ(I,J,IJ_cfcair) + cfcair
+         OIJ(I,J,IJ_kw) = OIJ(I,J,IJ_kw) +  kw
+         OIJ(I,J,IJ_csat) = OIJ(I,J,IJ_csat) +  csat
+         OIJ(I,J,IJ_cfcflux) = OIJ(I,J,IJ_cfcflux) +  flux
+      endif
       ENDIF
       ENDDO
       ENDDO

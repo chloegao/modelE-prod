@@ -1332,6 +1332,12 @@ module RunTimeControls_mod
   logical, parameter :: obio_wspdf = .false.
 #endif
 
+#if defined(OCN_CFC)
+  logical, parameter :: ocn_cfc = .true.
+#else
+  logical, parameter :: ocn_cfc = .false.
+#endif
+
 
 
   contains
