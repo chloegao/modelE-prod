@@ -190,7 +190,7 @@ C****     it will prove useful.
       endif
 
       do n=1,numtracers
-       entry=>tracerlist%at(n_dic)
+       entry=>tracerlist%at(n)
        if (entry%trname.eq.'OceanAge') n_age = n
        if (entry%trname.eq.'Ventilatn') n_vent = n
        if (entry%trname.eq.'WatrMass1') n_wms1 = n
