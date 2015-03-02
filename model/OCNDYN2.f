@@ -27,7 +27,8 @@ C****
      *    ijl_mfu,ijl_mfv,ijl_mfw, ijl_ggmfl,ijl_sgmfl,ij_ssh,ij_pb
       USE OFLUXES, only : ocnatm
 #ifdef TRACERS_OCEAN
-      USE OCN_TRACER_COM, only : tracerlist, ocn_tracer_entry
+      USE OCN_TRACER_COM, only : tracerlist, ocn_tracer_entry,n_age,
+     &          n_vent,n_gasx,n_wms1,n_wms2,n_wms3,n_dets,n_cfc,n_dic
       USE OCEAN, only : trmo,
      &     txmo,tymo,tzmo,txxmo,tyymo,tzzmo,txymo,tyzmo,tzxmo
       Use ODIAG, Only: toijl=>toijl_loc,
@@ -432,8 +433,17 @@ c     CALL MESO_A(S0M,SXMO,SYMO,SZMO)
 
 #ifdef TRACERS_OCEAN
       CALL OC_TDECAY(DTS)
+      if (n_age.gt.0) CALL OCN_TR_AGE(DTS)
+      if (n_vent.gt.0) CALL OCN_TR_VENT(DTS)
+      if (n_gasx.gt.0) CALL OCN_TR_GASX(DTS)
+      if (n_wms1.gt.0) CALL OCN_TR_WaterMass(DTS)
+      if (n_wms2.gt.0) CALL OCN_TR_WaterMass(DTS)
+      if (n_wms3.gt.0) CALL OCN_TR_WaterMass(DTS)
+      if (n_cfc.gt.0) CALL OCN_TR_CFC(DTS)   !note n_cfc used by other parts of$
+!     if (n_dets.gt.0) CALL OCN_TR_DetrSettl(DTS)
+!     if (n_dic.gt.0) CALL OCN_TR_DIC(DTS)
 #ifdef TRACERS_AGE_OCEAN
-      CALL OCN_TR_AGE(DTS)
+      if (n_age.gt.0) CALL OCN_TR_AGE(DTS)
 #endif
 #endif
 

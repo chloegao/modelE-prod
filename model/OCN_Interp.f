@@ -1241,7 +1241,7 @@ c
      &     aOCNwt,oOCNwt)
 #endif
 
-#ifdef TRACERS_OceanBiology
+#if (defined TRACERS_OceanBiology) || (defined OCN_CFC)
       call ab_add( lstr,atm%COSZ1,ocnatm%COSZ1,shape(atm%COSZ1),'ij',
      &     aOCNwt,oOCNwt)
       call ab_add( lstr,atm%WSAVG,ocnatm%WSAVG,shape(atm%WSAVG),'ij',
@@ -1527,7 +1527,7 @@ c*
       CALL INT_AG2OG(atm%DIFNIR,ocnatm%DIFNIR, aWEIGHT)
 #endif
 
-#ifdef TRACERS_OceanBiology
+#if (defined TRACERS_OceanBiology) || (defined OCN_CFC)
       aWEIGHT(:,:) = atm%FOCEAN(:,:)
       CALL INT_AG2OG(atm%COSZ1,ocnatm%COSZ1, aWEIGHT)
       CALL INT_AG2OG(atm%WSAVG,ocnatm%WSAVG, aWEIGHT)
