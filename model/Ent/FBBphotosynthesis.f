@@ -815,7 +815,7 @@ cddd      Z= a1/e1 -Rd
       X= -a1 * (gamol+f1)
       Z= a1 -Rd
 
-      if ( Z > 0.d0 ) then
+      if ( Z + X/(Ca+Y) > 0.d0 ) then
         ! Farquhar curve is above zero. May have solution A > 0
         c = -(b*Ca*(X + (Ca + Y)*Z))
         c1 = Ca*Z - K*(X + Ca*Z + Y*Z) + 

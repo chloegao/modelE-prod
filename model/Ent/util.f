@@ -12,8 +12,9 @@
 
       integer function YEARSEC(year) result(seconds_in_year)
 !@sum YEARSEC  Seconds in a year for leap and non-leap years.
+      use ent_const, only : sday
           integer :: year
-          integer, parameter :: sday = 86400 !second in a day
+          !integer, parameter :: sday = 86400 !second in a day
 
           if (IsLeapYear(year)) then
             seconds_in_year = 366*24*sday
