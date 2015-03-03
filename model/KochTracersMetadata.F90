@@ -1,3 +1,4 @@
+#include "rundeck_opts.h"
 !------------------------------------------------------------------------------
 module KochTracersMetadata_mod
 !------------------------------------------------------------------------------
@@ -157,22 +158,20 @@ module KochTracersMetadata_mod
     end subroutine BCB_setSpec
 
 #ifdef TRACERS_AEROSOLS_VBS
-    subroutine VBS_setSpec(name, n, index, type) result(label)
+    subroutine VBS_setSpec(name, index, type)
+      use tracers_vbs, only: vbs_tr
+      implicit none
       character(len=*), intent(in) :: name
       integer, intent(in) :: index
       character(len=4), intent(in) :: type
 
-      character(len=*), intent(in) :: name
       n = oldAddTracer(name)
-      label = n
 
       select case (type)
       case ('igas')
         vbs_tr%igas(index) = n
-        call num_srf_sources(n,.false.)
       case ('iaer')
         vbs_tr%iaer(index) = n
-        call num_srf_sources(n,.true.)
       end select
 
       call set_ntm_power(n, -11)
@@ -183,8 +182,8 @@ module KochTracersMetadata_mod
         call set_tr_wd_type(n, ngas)
         call set_tr_RKD(n, 1.d4 / convert_HSTAR ) !Henry; from mole/(L atm) to mole/J
       if (tracers_drydep) call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
-      case ('vbsAm2', 'vbsAm1', 'vbsAz',  'vbsAp1', 'vbsAp2', ! VBS aerosol-phase
-        &      'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6')
+      case ('vbsAm2', 'vbsAm1', 'vbsAz',  'vbsAp1', 'vbsAp2', &! VBS aerosol-phase
+            'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6')
 #ifdef DYNAMIC_BIOMASS_BURNING
         ! 12 below are the 12 VDATA veg types or Ent remapped to them,
         ! from Olga Pechony's AR5_EPFC_factors_incl_SO2.xlsx file.
