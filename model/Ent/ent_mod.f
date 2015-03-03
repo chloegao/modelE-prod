@@ -2029,9 +2029,10 @@ cddd      end interface ent_cell_update
       integer :: np              !@var np number of patches in the cell
       integer :: nc(MAX_PATCHES) !@var nc number of cohorts in the patch
       integer :: dc, ndbuf, nn
-      real*8, pointer :: NUL(:) !@var NULL dummy pointer
+      real*8 :: dummy(0)
+      !real*8, pointer :: NUL(:) !@var NULL dummy pointer
 
-      nullify(NUL)
+      !nullify(NUL)
 
       ! return "-1" for not associated cells
       if ( .not. associated(entcell%entcell) ) then
@@ -2047,14 +2048,14 @@ cddd      end interface ent_cell_update
       ! for optimization ...
       ! also count the number of real*8 values to be saved
       ndbuf = 0
-      call copy_cell_vars(NUL, nn, ecp, 0); ndbuf = ndbuf + nn
+      call copy_cell_vars(dummy, nn, ecp, 0); ndbuf = ndbuf + nn
       np = 0
       p => entcell%entcell%oldest      
       do while ( associated(p) )
         np = np + 1
         if ( np > MAX_PATCHES )
      &       call stop_model("ent_cell_pack: too many patches",255)
-        call copy_patch_vars(NUL, nn, p, 0); ndbuf = ndbuf + nn
+        call copy_patch_vars(dummy, nn, p, 0); ndbuf = ndbuf + nn
         nc(np) = 0
         c => p%tallest
         do while ( associated(c) )
@@ -2063,7 +2064,7 @@ cddd      end interface ent_cell_update
      &         call stop_model("ent_cell_pack: too many cohorts",255)
           !save cohort
           !dbuf(dc) = c%_any_value_ ; dc = dc + 1
-          call copy_cohort_vars(NUL, nn, c, 0); ndbuf = ndbuf + nn
+          call copy_cohort_vars(dummy, nn, c, 0); ndbuf = ndbuf + nn
           c => c%shorter
         enddo
         p => p%younger
