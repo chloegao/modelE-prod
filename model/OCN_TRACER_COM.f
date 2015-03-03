@@ -66,8 +66,6 @@ C****     it will prove useful.
 
 
       REAL*8, allocatable, DIMENSION(:) :: expDecayRate
-      REAL*8, allocatable, DIMENSION(:) :: cfc11nh,cfc11sh
-      INTEGER, allocatable, DIMENSION(:) :: icfcyear
 
 #ifdef TRACERS_SPECIAL_O18
       ! could be made a local var in tracer_ic_ocean?

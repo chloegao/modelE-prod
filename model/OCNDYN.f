@@ -826,7 +826,6 @@ C***  Initialize ODIFF
       do nt=1,tracerlist%getsize()
         entry=>tracerlist%at(nt)
         if (entry%need_ic) call tracer_ic_ocean(atmocn)
-        if (entry%trname.eq.'aoCFC') call read_atmcfc
       enddo
 #endif
 

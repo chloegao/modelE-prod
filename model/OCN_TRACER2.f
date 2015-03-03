@@ -111,7 +111,7 @@ C****
       USE Dictionary_mod, only : get_param
       USE MODEL_COM, only : itime,modelEclock
       USE CONSTANT,   only : grav
-      USE OCN_TRACER_COM, only : n_cfc,icfcyear,cfc11nh,cfc11sh
+      USE OCN_TRACER_COM, only : n_cfc
       USE OCEAN, only : trmo,txmo,tymo,tzmo, oxyp, mo, imaxj, focean,
      *     lmm, lmo,dxypo,g0m,s0m,olat=>olat2d_dg ! 2D array containing lat at each i,j
       USE OFLUXES,    only : oRSI,oAPRESS,ocnatm
@@ -122,6 +122,14 @@ C****
       use runtimecontrols_mod, only: ocn_cfc
 
       IMPLICIT NONE
+      interface
+        subroutine read_atmcfc(iyear,nh,sh)
+          real*8, allocatable, dimension(:), intent(out) :: nh, sh
+          integer, allocatable, dimension(:), intent(out) :: iyear
+        end subroutine read_atmcfc
+      end interface
+      real*8, allocatable, dimension(:), save :: cfc11nh,cfc11sh
+      integer, allocatable, dimension(:), save :: icfcyear
       real*8, intent(in) :: dts
       real*8 :: cfc_inc, Xconv,a,pres,g,s,sst,sss,temgsp,wind,pnoice,Xkw
      .              ,solub,solub_cfc,schmidtno_cfc,Sc,kw,cfcair,csat
@@ -135,6 +143,10 @@ C****
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1,year, month, dayOfYear, date
       real*8 :: cfc_conc_const
+
+      if (.not.allocated(icfcyear)) then
+        call read_atmcfc(icfcyear,cfc11nh,cfc11sh)
+      end if
 
       call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1)
 
@@ -246,12 +258,13 @@ C**** at each time step set surface tracer conc=1+flux from atmos
       end SUBROUTINE OCN_TR_CFC
 
 
-      SUBROUTINE read_atmcfc
+      SUBROUTINE read_atmcfc(icfcyear,cfc11nh,cfc11sh)
   
       USE FILEMANAGER, only: openunit,closeunit
-      use ocn_tracer_com, only: icfcyear,cfc11nh,cfc11sh
 
       implicit none
+      real*8, allocatable, dimension(:), intent(out) :: cfc11nh, cfc11sh
+      integer, allocatable, dimension(:), intent(out) :: icfcyear
       integer iu_file,i
       character(len=80) :: first_line_dummy
 
