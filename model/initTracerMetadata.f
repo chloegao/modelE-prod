@@ -35,7 +35,7 @@
 !     source name (ssame-->{sname,lname,etc.}. ntsurfsrc(n)
 !     get set to zero if those files aren't found:
 !     (I can enclose this in an ifdef if it causes problems
-!     for people). num_srf_sources routine also assigns
+!     for people). findSurfaceSources routine also assigns
 !     sources to sectors, if desired:
 !     general case:
 
