@@ -1,6 +1,5 @@
 #include "rundeck_opts.h"
 
-#ifndef USE_ENT
 
       module veg_drv
 !@sum veg_drv contains variables and routines for vegetation driver
@@ -10,14 +9,18 @@
       private
       save
 
+      public get_vdata, get_cropdata, get_laimaxdata, get_soil_C_total
+
+#ifndef USE_ENT
       public init_vegetation,reset_veg_to_defaults
-     &     ,veg_set_cell, veg_save_cell,upd_gh
+     &     ,veg_set_cell, veg_save_cell,upd_gh, updveg
 
       real*8,public :: cosday,sinday
-
+#endif
       contains
 
 
+#ifndef USE_ENT
 
       subroutine init_vegetation(redogh,istart)
 !@sum initializes vegetation
@@ -80,7 +83,7 @@ C****
       I_1H = grid%I_STOP_HALO
 
 
-      call get_vdata(vdata)
+      call get_vdata(vdata, (/""/))
 c**** read rundeck parameters
       call sync_param( "read_c4_grass", read_c4_grass)
       call  get_param( "variable_lk", variable_lk )
@@ -567,7 +570,7 @@ c shc(0,2) is the heat capacity of the canopy
 
 
 
-      end module veg_drv
+      ! end module veg_drv
 
 !***********************************************************************
 
@@ -577,7 +580,7 @@ c shc(0,2) is the heat capacity of the canopy
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, AM_I_ROOT
       use veg_com, only : vdata
       USE GEOM, only : imaxj
-      use veg_drv, only : upd_gh
+      !use veg_drv, only : upd_gh
       implicit none
       integer, intent(in) :: year
       logical, intent(in) :: reset_veg
@@ -601,7 +604,7 @@ C****
 c**** check whether update is needed
       if (year.eq.year_old) return
 
-      call get_vdata(vdata)
+      call get_vdata(vdata, (/""/))
 
 c****     check whether a no-crops vege-file was used
       if( maxval( vdata(I_0:I_1, J_0:J_1,9) ) > 0.d0)
@@ -635,7 +638,7 @@ c**** Modify the vegetation fractions
 #endif
 
 
-      subroutine get_vdata(vdata)
+      subroutine get_vdata(vdata, vegnames)
       use DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds!, AM_I_ROOT
       use pario, only : par_open,par_close,read_dist_data
       use filemanager, only : file_exists
@@ -654,11 +657,12 @@ c**** Modify the vegetation fractions
 #endif
       real*8, intent(out) :: vdata(grid%I_STRT_HALO:grid%I_STOP_HALO,
      &     grid%J_STRT_HALO:grid%J_STOP_HALO,N_COVERTYPES)
+      character(len=*) :: vegnames(:)
       !---
       INTEGER :: J_1, J_0, J_1H, J_0H, I_1H, I_0H, I_1, I_0
       integer :: i, j, k, fid
       real*8 :: s
-      character(len=32) :: vegnames(N_COVERTYPES-N_OTHER)
+      !character(len=32) :: vegnames(N_COVERTYPES-N_OTHER)
       call getDomainBounds(grid, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
       I_0 = grid%I_STRT
@@ -669,12 +673,12 @@ c**** Modify the vegetation fractions
 c**** read land surface parameters or use defaults
       ! vegnames should be set elsewhere.  Do this once the model
       ! actually uses Ent vegetation types as input.
-      vegnames = (/
-     &     'brightsoil     ','tundra         ','grass          ',
-     &     'shrub_and_grass','tree_and_grass ','deciduous      ',
-     &     'evergreen      ','rainforest     ','cultivation    ',
-     &     'darksoil       '
-     &     /)
+cddd      vegnames = (/
+cddd     &     'brightsoil     ','tundra         ','grass          ',
+cddd     &     'shrub_and_grass','tree_and_grass ','deciduous      ',
+cddd     &     'evergreen      ','rainforest     ','cultivation    ',
+cddd     &     'darksoil       '
+cddd     &     /)
 
       if(file_exists('VEG')) then
         fid = par_open(grid,'VEG','read')
@@ -685,7 +689,7 @@ c**** read land surface parameters or use defaults
         call par_close(grid,fid)
       else
         vdata(:,:,:) = 0.
-        vdata(:,:,1) = 1. ! all bare soil if no input data available
+        vdata(:,:,1) = COVER_SAND ! all bare soil if no input data available
       endif
 
 c**** zero-out vdata(11) until it is properly read in
@@ -719,21 +723,21 @@ c**** zero-out vdata(11) until it is properly read in
 
       end subroutine get_vdata
 
-      module cropdata_mod
-      use timestream_mod, only : timestream
-      implicit none
-!@var CROPstream interface for reading and time-interpolating the crop file
-!@+   See usage notes in timestream_mod
-      type(timestream) :: CROPstream
-      logical :: have_crops_file
-      end module cropdata_mod
+cddd      module cropdata_mod
+cddd      use timestream_mod, only : timestream
+cddd      implicit none
+cddd!@var CROPstream interface for reading and time-interpolating the crop file
+cddd!@+   See usage notes in timestream_mod
+cddd      type(timestream) :: CROPstream
+cddd      logical :: have_crops_file
+cddd      end module cropdata_mod
       subroutine get_cropdata(year, cropdata)
 !@sum get_cropdata reads timeseries file for crop fraction and
 !@+   interpolates to requested year.
 
       use domain_decomp_atm, only : grid
-      use timestream_mod, only : init_stream,read_stream
-      use cropdata_mod
+      use timestream_mod, only : init_stream,read_stream,timestream
+      !use cropdata_mod
       use filemanager, only : file_exists
       implicit none
       integer, intent(in) :: year
@@ -742,6 +746,8 @@ c**** zero-out vdata(11) until it is properly read in
 c
       logical, save :: init = .false.
       integer :: day
+      type(timestream), save :: CROPstream
+      logical, save :: have_crops_file
 
       day = 1 ! to pass a required argument
 
@@ -763,6 +769,56 @@ c
 
       end subroutine get_cropdata
 
+
+
+      subroutine get_laimaxdata(laimaxdata)
+      use DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds!, AM_I_ROOT
+      use DOMAIN_DECOMP_ATM, only : READT_PARALLEL
+      use filemanager
+      !use vegetation, only : cond_scheme,vegCO2X_off,crops_yr
+      !use veg_com
+      !use model_com, only : jyear,focean
+      !use ghy_com, only : fearth
+#ifdef USE_ENT
+      use ent_mod, only: N_COVERTYPES, N_OTHER,COVER_SAND !ykim - use ent_const to accomodate GISS and Ent PFTs.
+#endif
+      implicit none
+#ifndef USE_ENT
+      integer, parameter :: N_COVERTYPES = 12
+      integer, parameter :: N_OTHER = 2
+      integer, parameter :: COVER_SAND = 1
+#endif
+      real*8, intent(out) :: laimaxdata(
+     &     grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &     grid%J_STRT_HALO:grid%J_STOP_HALO,N_COVERTYPES)
+      !---
+      INTEGER :: J_1, J_0, J_1H, J_0H, I_1H, I_0H, I_1, I_0
+      integer :: i, j, k, iu_laimax
+      real*8 :: s
+
+      CALL getDomainBounds(grid, J_STRT     =J_0,    J_STOP     =J_1,
+     &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+      I_0H = grid%I_STRT_HALO
+      I_1H = grid%I_STOP_HALO
+
+c**** read land surface parameters or use defaults
+      call openunit("LAImax",iu_LAIMAX,.true.,.true.)
+      do k=1,N_COVERTYPES-N_OTHER
+        CALL READT_PARALLEL
+     *    (grid,iu_LAIMAX,NAMEUNIT(iu_LAIMAX),laimaxdata(:,:,K),1)
+      end do
+c**** zero-out laimaxdata(11) until it is properly read in
+      do k=N_COVERTYPES-N_OTHER+1, N_COVERTYPES
+        laimaxdata(:,:,k) = 0.
+      end do
+      call closeunit(iu_LAIMAX)
+
+      end subroutine get_laimaxdata
+
+
+
       subroutine get_soil_C_total(ncasa, soil_C_total)
       use DOMAIN_DECOMP_ATM, only : GRID
       use pario, only : par_open,par_close,read_dist_data
@@ -782,3 +838,5 @@ c
         soil_C_total = 0.
       endif
       end subroutine get_soil_C_total
+
+      end module veg_drv

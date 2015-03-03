@@ -1432,7 +1432,7 @@ c another surface type
 
 
       subroutine dump_ent_C_diags
-      USE DOMAIN_DECOMP_ATM, only : GRID, GET, READT_PARALLEL
+      USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds,READT_PARALLEL
       USE DOMAIN_DECOMP_1D, only : WRITET_PARALLEL
       use ent_mod, only: entcelltype_public, debug_carbon
       use ent_com, only : entcells
@@ -1449,7 +1449,7 @@ c another surface type
       integer :: I_1, I_0, J_1, J_0
       integer :: I_1H, I_0H, J_1H, J_0H
 
-      CALL GET(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
+      CALL getDomainBounds(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
      *               J_STRT=J_0,       J_STOP=J_1)
 
       I_0 = grid%I_STRT
@@ -1540,7 +1540,9 @@ c***********************************************************************
      &     ,ij_aflmlt,ij_aeruns,ij_aerunu,ij_fveg
      &     ,ij_htsoil,ij_htsnow,ij_aintrcp
      &     ,ij_evapsn,ij_irrW, ij_irrE
+#ifdef ENT_DEBUG_DIAGS
      &     ,ij_ent_debug
+#endif
 #if (defined HEALY_LM_DIAGS) && (defined USE_ENT) 
      &     ,ij_crops,j_crops,CROPS_DIAG
 #endif
@@ -1768,7 +1770,7 @@ c**** quantities accumulated for surface type tables in diagj
 #endif
 
 c**** quantities accumulated for subdd
-      R_acc(I,J)=R_acc(I,J)+(aruns+arunu)*ptype
+      !R_acc(I,J)=R_acc(I,J)+(aruns+arunu)*ptype
 
       end subroutine ghy_diag
 

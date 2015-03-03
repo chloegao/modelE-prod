@@ -556,7 +556,7 @@ cddd     &       cropsdata=cropdata_H(I0:I1,J0:J1) )
       subroutine read_laimax(I0,I1,J0,J1, laimax)
 !@sum read maximum LAI from a file, 
 !@+   return array with or without halo depending on I0,I1,J0,J1
-      use domain_decomp_atm, only : grid, get
+      use domain_decomp_atm, only : grid
       use pario, only : par_open,par_close,read_dist_data
       integer, intent(in) :: I0,I1,J0,J1
       real*8, intent(out) :: laimax(:, I0:, J0:)
@@ -597,7 +597,7 @@ cddd     &               I_STRT     =I_0,    I_STOP     =I_1)
       subroutine read_height(I0,I1,J0,J1, height)
 !@sum read height of vegetation  from a file, 
 !@+   return array with or without halo depending on I0,I1,J0,J1
-      use domain_decomp_atm, only : grid, get
+      use domain_decomp_atm, only : grid
       use pario, only : par_open,par_close,read_dist_data
       integer, intent(in) :: I0,I1,J0,J1
       real*8, intent(out) :: height(:, I0:, J0:)
