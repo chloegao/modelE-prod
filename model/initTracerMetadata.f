@@ -493,7 +493,7 @@
 #endif
 #ifdef TRACERS_AEROSOLS_VBS
       USE AEROSOL_SOURCES, only: VBSemifact
-      USE TRACERS_VBS, only: vbs_tr,vbs_init
+      USE TRACERS_VBS, only: vbs_tr
 #endif  /* TRACERS_AEROSOLS_VBS */
 #ifdef TRACER_SPECIAL_Lerner
       use LernerTracersMetadata_mod

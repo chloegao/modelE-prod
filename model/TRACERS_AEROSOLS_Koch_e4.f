@@ -569,7 +569,11 @@ c
       use TRACER_COM, only: rsulf1, rsulf2, rsulf3, rsulf4
       use TRACER_COM, only: n_MSA, N_OCII, n_OX, n_SO2, n_OCIA
       use TRACER_COM, only: n_SO4, n_SO4_d1, n_SO4_d2, n_SO4_d3
-      use TRACER_COM, only: nChemistry, nChemLoss
+#ifdef TRACERS_AEROSOLS_VBS
+      use TRACER_COM, only: n_BCB, n_isopp1a, n_isopp2a, n_apinp1a,
+     &                      n_apinp2a, n_NH4, n_NO3p
+#endif  /* TRACERS_AEROSOLS_VBS */
+      use TRACER_COM, only: nChemistry, nChemLoss, nOther
 #if (defined TRACERS_HETCHEM) || (defined TRACERS_NITRATE)
       use TRACER_COM, only: rxts1, rxts2, rxts3
 #endif

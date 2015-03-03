@@ -70,8 +70,7 @@
       USE TRACERS_SOA, only: n_soa_i,n_soa_e,soa_init
 #endif  /* TRACERS_AEROSOLS_SOA */
 #ifdef TRACERS_AEROSOLS_VBS
-      USE AEROSOL_SOURCES, only: VBSemifact
-      USE TRACERS_VBS, only: vbs_tr,vbs_init
+      USE TRACERS_VBS, only: vbs_init
 #endif  /* TRACERS_AEROSOLS_VBS */
 #if (defined TRACERS_COSMO)
       USE COSMO_SOURCES, only: be7_src_param
