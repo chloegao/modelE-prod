@@ -8154,6 +8154,12 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
             end select
 
 #ifndef TRACERS_AEROSOLS_SOA
+#ifdef TRACERS_AEROSOLS_Koch
+            select case (trname(n))
+            case ('OCII')
+              nread=nread-1
+            end select
+#endif
 #ifdef TRACERS_AMP
             select case (trname(n))
             case ('M_OCC_OC')
