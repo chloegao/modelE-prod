@@ -1,5 +1,5 @@
 C****   
-C**** OCEAN_COM.f    Module Variables for Ocean    2007/01/12
+C**** OCEAN_COM.f    Module Variables for Ocean    2015/02/18
 C****
 #include "rundeck_opts.h"
 
@@ -24,9 +24,11 @@ C**** atmosphere. However, we can redefine im,jm if necessary.
 
 !@dbparam OBottom_drag use ocean bottom drag routine (default=1)
 !@dbparam OCoastal_drag use ocean coastal drag routine (default=1)
+!@dbparam OTIDE: Lunar,Solar tides accelerate UO,VO,UOD,VOD (default=0)
       Integer*4 ::
      *     OBottom_drag = 1,    
-     *     OCoastal_drag = 1
+     *     OCoastal_drag = 1,
+     *     OTIDE = 0
 
 !@dbparam oc_mean_salinity define mean salinity of ocean (if set)
 !@dbparam oc_tracer_mean mean tracer ratio of ocean 

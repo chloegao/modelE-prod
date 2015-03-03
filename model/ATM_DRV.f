@@ -756,7 +756,9 @@ c set-up for MPI implementation
 #endif
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       use TRACER_COM, only: initTracerCom, alloc_tracer_com
+#ifndef TRACERS_ATM_ONLY
       use ghy_tracers, only: initGhyTracers
+#endif
 #endif
 #ifdef TRACERS_AEROSOLS_SEASALT
       use tracers_seasalt, only: alloc_seasalt_sources
@@ -772,7 +774,9 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
 
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       call initTracerCom
+#ifndef TRACERS_ATM_ONLY
       call initGhyTracers
+#endif
 #endif
 
 #ifdef GLINT2

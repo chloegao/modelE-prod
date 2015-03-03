@@ -7,7 +7,7 @@
 !@sum FRACVL Calculate vapor-->liquid equilibrium fractionation factor
 !@auth Gavin Schmidt
       USE CONSTANT, only : tf
-      use tracer_com, only : iso_index
+      use oldtracer_mod, only : iso_index
       IMPLICIT NONE
 !@var TEMP  temperature (deg C)
       REAL*8, INTENT(IN) :: TEMP
@@ -40,7 +40,7 @@ C****
 !@sum FRACVS Calculate vapour --> solid (ice) equil. fractionation fact.
 !@auth Gavin Schmidt
       USE CONSTANT, only : tf
-      use tracer_com, only : iso_index
+      use oldtracer_mod, only : iso_index
       IMPLICIT NONE
 !@var TEMP  temperature (deg C)
       REAL*8, INTENT(IN) :: TEMP
@@ -72,7 +72,7 @@ C****
       FUNCTION FRACLS(itr)
 !@sum FRACLS Calculate liquid --> solid equilibrium fractionation factor
 !@auth Gavin Schmidt
-      use tracer_com, only : iso_index
+      use oldtracer_mod, only : iso_index
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: itr ! actual tracer number
       INTEGER, PARAMETER :: NTSPM=5
@@ -91,7 +91,7 @@ C****
 !@sum FRACLK calculates the liquid/vapor kinetic fractionation factor
 !@+          from either (Merlivat and Jouzel,1979) or as a constant
 !@auth Gavin Schmidt
-      use tracer_com, only : iso_index
+      use oldtracer_mod, only : iso_index
       IMPLICIT NONE
 !@var WS surface wind speed (m/s)
       REAL*8, INTENT(IN) :: WS
@@ -181,7 +181,7 @@ C****
 !@+   undersaturated environment
 !@auth Gavin Schmidt/Georg Hoffmann
       USE CONSTANT, only : tf
-      use tracer_com, only : iso_index
+      use oldtracer_mod, only : iso_index
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: itr ! actual tracer index
 !@var HEFF effective relative humidity from cloud scheme
@@ -269,7 +269,7 @@ C**** land surface tracers have correct values already
       end subroutine get_frac
 
       real*8 function get_diff_rel(itr)
-      use tracer_com, only : iso_index
+      use oldtracer_mod, only : iso_index
       implicit none
       integer, intent(in) :: itr  ! tracer index
 

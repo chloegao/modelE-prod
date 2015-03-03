@@ -62,10 +62,12 @@ C****     it will prove useful.
 
       integer :: n_water
       INTEGER :: n_age=0, n_obio=0, n_vent=0, n_wms1=0, n_wms2=0
-     .          ,n_wms3=0,n_dets,n_cfc,n_dic
+     .          ,n_wms3=0,n_dets,n_cfc,n_dic,n_gasx
 
 
       REAL*8, allocatable, DIMENSION(:) :: expDecayRate
+      REAL*8, allocatable, DIMENSION(:) :: cfc11nh,cfc11sh
+      INTEGER, allocatable, DIMENSION(:) :: icfcyear
 
 #ifdef TRACERS_SPECIAL_O18
       ! could be made a local var in tracer_ic_ocean?
@@ -139,7 +141,7 @@ C****     it will prove useful.
         trname_list=adjustl(trname_list)
         do while(len_trim(trname_list).gt.0)
           i=index(trname_list,' ')
-          add_ocn_tracer(trname_list(1:i-1))
+          call add_ocn_tracer(trname_list(1:i-1))
           trname_list = adjustl(trname_list(i:128))
         enddo
       else
@@ -190,18 +192,19 @@ C****     it will prove useful.
       endif
 
       do n=1,numtracers
-       entry=>tracerlist%at(n_dic)
+       entry=>tracerlist%at(n)
        if (entry%trname.eq.'OceanAge') n_age = n
        if (entry%trname.eq.'Ventilatn') n_vent = n
+       if (entry%trname.eq.'GASX') n_gasx = n
        if (entry%trname.eq.'WatrMass1') n_wms1 = n
        if (entry%trname.eq.'WatrMass2') n_wms2 = n
        if (entry%trname.eq.'WatrMass3') n_wms3 = n
        if (entry%trname.eq.'DetSet') n_dets = n
-       if (entry%trname.eq.'CFC') n_cfc = n
-       if (entry%trname.eq.'DIConly') then
-         n_dic = n
-         entry%need_ic=.true.
-       endif
+       if (entry%trname.eq.'aoCFC') n_cfc = n
+!       if (entry%trname.eq.'DIConly') then
+!         n_dic = n
+!         entry%need_ic=.true.
+!       endif
       enddo
 
       return

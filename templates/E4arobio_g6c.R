@@ -162,6 +162,7 @@ QGWCNV=0 ! convective drag OFF
 
 OBottom_drag=1      !  Drags at the ocean bottom (NO drags -> OBottom_drag=0)
 OCoastal_drag=1     !  Drags at the ocean coasts (NO drags -> OCoastal_drag=0)
+OTIDE = 0           !  Ocean tides are not used
 
 PTLISO=15.  ! press(mb) above which rad. assumes isothermal layers
 

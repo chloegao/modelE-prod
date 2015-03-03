@@ -107,7 +107,9 @@ c set-up for MPI implementation
       USE OCN_TRACER_COM, only : add_ocn_tracer
 #endif
 #if (defined TRACERS_WATER)
+#ifndef TRACERS_ATM_ONLY
       USE SEAICE, only : ntm_si=>ntm
+#endif
 #endif
       IMPLICIT NONE
       integer :: i
@@ -125,8 +127,10 @@ c set-up for MPI implementation
 #if (defined TRACERS_WATER)
 ! copy atmosphere-declared tracer info to seaice so that the seaice
 ! can "inherit" it without referencing atm. code
+#ifndef TRACERS_ATM_ONLY
       ntm_si = ntm
       si_ocn % ntm = ntm
+#endif
 #endif
 
 #ifndef STANDALONE_HYCOM

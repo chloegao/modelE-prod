@@ -331,7 +331,7 @@
      *     ,uo,vo,uod,vod,dxypo,ogeoz,kpl
      *     ,dts,dtolf,dto,dtofs,mdyno,msgso
      *     ,ndyno,imaxj,ogeoz_sv,bydts,lmo_min,j1o
-     *     ,OBottom_drag,OCoastal_drag,oc_salt_mean
+     *     ,OBottom_drag,OCoastal_drag,OTIDE,oc_salt_mean
 #ifdef OCN_GISS_MESO
      *     ,auvel,avvel,kappam3d_sm
      *     ,flux_x_sm,flux_y_sm,flux_z_sm
@@ -417,10 +417,11 @@ C****
      &       "Must have KOCEAN > 0 for interactive ocean runs",255)
       END IF
 C****
-C**** Select drag options
+C**** Select drag options and ocean tides
 C****
       call sync_param("OBottom_drag",OBottom_drag)
       call sync_param("OCoastal_drag",OCoastal_drag)
+      Call SYNC_PARAM ("OTIDE",OTIDE)
 
 C**** define initial condition options for global mean
       call sync_param("oc_salt_mean",oc_salt_mean)
@@ -485,6 +486,7 @@ c Begin ocean-processors-only code region
 c-------------------------------------------------------------------
 
       CALL OFFT0(IM)
+      If (OTIDE > 0)  Call OTIDE0
 
 C**** Calculate J1O = least J with some ocean
       j1o_loc = huge(j1o_loc)
@@ -822,10 +824,9 @@ C***  Initialize ODIFF
 
 #ifdef TRACERS_OCEAN
       do nt=1,tracerlist%getsize()
-      entry=>tracerlist%at(nt)
-      if (entry%need_ic) then
-      call tracer_ic_ocean(atmocn)
-      endif
+        entry=>tracerlist%at(nt)
+        if (entry%need_ic) call tracer_ic_ocean(atmocn)
+        if (entry%trname.eq.'aoCFC') call read_atmcfc
       enddo
 #endif
 
