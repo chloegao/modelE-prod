@@ -22,7 +22,7 @@
 #define LARGE_SCALE_PRECIP_INTERCEPT
 !#define DO_TOPMODEL_RUNOFF
 
-#define CHECK_CARBON_CONSERVATION
+!#define CHECK_CARBON_CONSERVATION
 !-----------------------------------------------------------------------
 
       module sle001
