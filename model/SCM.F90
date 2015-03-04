@@ -26,7 +26,7 @@
   type(SCMin_tProfile) SCMin_tOmega,SCMin_tW
   type(SCMin_tProfile) SCMin_tSadvV,SCMin_tQadvV
   type(SCMin_tProfile) SCMin_tTadvH,SCMin_tQadvH
-  type(SCMin_tProfile) SCMin_tQrad
+  type(SCMin_tProfile) SCMin_tQrad,SCMin_tFnudge
 
 !@type SCMin_tSscalar structured type for SCM input scalars
   type SCMin_tScalar
@@ -89,11 +89,13 @@
 ! constant parameters used for SCM
 
 !@param SCMp_zero   set to zero above topmost input level
+!@param SCMp_one    set to one above topmost input level
 !@param SCMp_const  extend upward using the topmost input level 
 !@param SCMp_append append McClatchey et al. (1972) above topmost input level
   integer, parameter :: SCMp_zero   = 0, &
-                        SCMp_const  = 1, &
-                        SCMp_append = 2
+                        SCMp_one    = 1, &
+                        SCMp_const  = 2, &
+                        SCMp_append = 3
 
   end module SCM_mod
 
@@ -252,6 +254,11 @@
   ! specified radiative heating rate profile (K/s)
   if( SCMopt%Qrad )then
     call read_SCM_profile('SCM_QRAD','Qrad',SCMin_tQrad)
+  endif
+
+  ! specified thermodynamic nudging scale factor profile (-)
+  if( SCMopt%Fnudge )then
+    call read_SCM_profile('SCM_FNUDGE','Fnudge',SCMin_tFnudge)
   endif
 
   end subroutine read_SCM_inputs
@@ -743,6 +750,8 @@
         select case (i_above)
         case (SCMp_zero) 
           SCMinP(Lgcm) = 0.
+        case (SCMp_one) 
+          SCMinP(Lgcm) = 1.
         case (SCMp_const)
           SCMinP(Lgcm) = SCMinP(Lgcm-1)
         case default
@@ -808,6 +817,8 @@
         select case (i_above)
         case (SCMp_zero) 
           SCMinP(Lgcm) = 0.
+        case (SCMp_one) 
+          SCMinP(Lgcm) = 1.
         case (SCMp_const)
           SCMinP(Lgcm) = SCMinP(Lgcm-1)
         case (SCMp_append)
@@ -985,6 +996,11 @@
   ! specified radiative heating profile
   if( SCMopt%Qrad )then
     call interp_p_SCM_profile(SCMin_tQrad,SCMin%Qrad,'Qrad',SCMp_zero)
+  endif
+
+  ! specified thermodynamic nudging scale factor profile
+  if( SCMopt%Fnudge )then
+    call interp_p_SCM_profile(SCMin_tFnudge,SCMin%Fnudge,'Fnudge',SCMp_one)
   endif
 
   end subroutine update_SCM_inputs

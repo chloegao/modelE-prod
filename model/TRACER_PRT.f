@@ -592,6 +592,9 @@ C****
       USE GEOM, only: bydxyp,dxyp,lat_dg
       use OldTracer_mod, only: ntm_power, dowetdep, trw0
       USE TRACER_COM, only: ntm, n_water
+#ifdef TRACERS_SPECIAL_O18
+      use tracer_com, only: n_h2o18, n_hdo, n_h2o17
+#endif
       USE DIAG_COM, only: linect,plm,qdiag,lm_req,ia_dga,ajl
      *     ,jl_dpa,jl_dpasrc,jl_dwasrc,fim
       USE MDIAG_COM, only: acc_period
@@ -1241,6 +1244,9 @@ C****
      *     ,jyear0,nday,itime,itime0,xlabel,lrunid,idacc
       use OldTracer_mod, only: dodrydep, dowetdep, trname, trw0
       USE TRACER_COM, only: ntm, n_water
+#ifdef TRACERS_SPECIAL_O18
+      use tracer_com, only: n_h2o18, n_hdo, n_h2o17
+#endif
       USE DIAG_COM
       USE DIAG_COM_RAD, only : ij_cldcv
       USE TRDIAG_COM, only : taijn, taijs, sname_tij, lname_tij,
@@ -1613,6 +1619,9 @@ C****
      *     ,jyear0,nday,itime,itime0,xlabel,lrunid,idacc
       use OldTracer_mod, only: trw0
       USE TRACER_COM, only: ntm, n_water
+#ifdef TRACERS_SPECIAL_O18
+      use tracer_com, only: n_h2o18, n_hdo, n_h2o17
+#endif
 
       USE TRDIAG_COM, only : taijln, taijls, sname_ijlt, lname_ijlt,
      *     units_ijlt, sname_ijt, lname_ijt, units_ijt, scale_ijt,

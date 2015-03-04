@@ -203,7 +203,7 @@ contains
     inquire(file=fname,exist=fileExists)
 
     if (fileExists) then
-      write(out_line,*)'problem with num_srf_sources.', &
+      write(out_line,*)'problem in findSurfaceSources.', &
            &        ' Possibly missing source? n=',n-1
       call write_parallel(trim(out_line))
       call stop_model(trim(out_line),255)

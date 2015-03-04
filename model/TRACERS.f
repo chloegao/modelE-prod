@@ -22,7 +22,9 @@
       USE MODEL_COM, only : dtsrc
       USE GEOM, only : imaxj,byaxyp,lat2d_dg,lon2d_dg
       USE QUSDEF, only: nmom
+#ifndef SKIP_TRACER_SRCS
       USE FLUXES, only : tr3Dsource
+#endif
       USE TRDIAG_COM, only : jls_3Dsource,itcon_3Dsrc
      *     ,ijts_3Dsource,taijs=>taijs_loc
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, am_i_root
@@ -98,6 +100,7 @@ C**** apply tracer source alterations if requested in rundeck:
      &                   (1-mask(i,j))
                  end do
               end do
+#ifndef SKIP_TRACER_SRCS
               do l = 1, lm
                 do j = j_0, j_1
                   do i = i_0, imaxj(j)
@@ -107,6 +110,7 @@ C**** apply tracer source alterations if requested in rundeck:
                   end do
                 end do
               end do
+#endif
             end if
           end do
         end do
@@ -118,7 +122,9 @@ C**** apply tracer source alterations if requested in rundeck:
       do l=1,lm
       do j=j_0,j_1
         do i=i_0,imaxj(j)
+#ifndef SKIP_TRACER_SRCS
           dtrm(i,j,l) = tr3Dsource(i,j,l,ns,n)*dtsrc
+#endif
 C**** calculate fractional loss and update tracer mass
 #ifdef TRACERS_TOMAS
           if(trm(i,j,l,n).gt.0.)then
@@ -662,7 +668,10 @@ c
 #ifdef TRACERS_TOMAS
      &     ,n_ASO4,n_ANACL,n_AECOB,n_AOCOB,n_ADUST,n_SO2
 #endif
-      USE FLUXES, only : trsource,trflux1,atmsrf
+#ifndef SKIP_TRACER_SRCS
+      USE FLUXES, only : trsource
+#endif
+      USE FLUXES, only : trflux1,atmsrf
       USE TRDIAG_COM, only : taijs=>taijs_loc
       USE TRDIAG_COM, only : ijts_source,jls_source,itcon_surf
       USE DOMAIN_DECOMP_ATM, ONLY : GRID, getDomainBounds
@@ -705,9 +714,12 @@ C**** Non-interactive sources
 C**** diagnostics
           naij = ijts_source(ns,n)
           IF (naij > 0) THEN
+#ifndef SKIP_TRACER_SRCS
           taijs(:,:,naij) = taijs(:,:,naij) + trsource(:,:,ns,n)*dtstep
+#endif
           ENDIF
           najl = jls_source(ns,n)
+#ifndef SKIP_TRACER_SRCS
           IF (najl > 0) THEN
             DO J=J_0,J_1
               DO I=I_0,imaxj(j)
@@ -720,10 +732,13 @@ C**** diagnostics
               dtracer(i,j)=trsource(i,j,ns,n)*dtstep
             end do
           end do
+#endif
           if (itcon_surf(ns,n).gt.0)
      *         call DIAGTCB(dtracer,itcon_surf(ns,n),n)
 C**** trflux1 is total flux into first layer
+#ifndef SKIP_TRACER_SRCS
           trflux1(:,:,n) = trflux1(:,:,n)+trsource(:,:,ns,n)*byaxyp(:,:)
+#endif
         end do
         atmsrf%trflux_prescr(n,:,:) = trflux1(:,:,n)
       end do
@@ -794,7 +809,9 @@ C****
 !@auth Gavin Schmidt/Jean Lerner
       USE RESOLUTION, only: im,jm,lm
       USE MODEL_COM, only : itime,dtsrc
+#ifndef SKIP_TRACER_SRCS
       USE FLUXES, only : tr3Dsource
+#endif
       USE GEOM, only : imaxj
       use OldTracer_mod, only: itime_tr0, trname, trdecay
       USE TRACER_COM, only : NTM
@@ -802,9 +819,11 @@ C****
 #ifdef TRACERS_WATER
      *     ,trwm
       USE SEAICE_COM, only : si_atm,si_ocn
+#ifndef TRACERS_ATM_ONLY
       USE LAKES_COM, only : trlake
       USE LANDICE_COM, only : trlndi,trsnowli
       USE GHY_COM, only : tr_w_ij,tr_wsn_ij
+#endif
 #endif
       USE TRDIAG_COM, only : jls_decay,itcon_decay
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
@@ -838,10 +857,12 @@ C**** Atmospheric decay
      *               +trwm(:,:,:,n)
           trwm(:,:,:,n)   = expdec(n)*trwm(:,:,:,n)
 #endif
+#ifndef SKIP_TRACER_SRCS
           if (trname(n) .eq. "Rn222" .and. n_Pb210.gt.0) then
             tr3Dsource(:,:,:,1,n_Pb210)= trm(:,:,:,n)*(1-expdec(n))*210.
      *           /222./dtsrc
           end if
+#endif
 
           trm(:,:,:,n)    = expdec(n)*trm(:,:,:,n)
           trmom(:,:,:,:,n)= expdec(n)*trmom(:,:,:,:,n)
@@ -849,12 +870,15 @@ C**** Atmospheric decay
 #ifdef TRACERS_WATER
 C**** Note that ocean tracers are dealt with by separate ocean code.
 C**** Decay sea ice tracers
+#ifndef TRACERS_ATM_ONLY
           si_atm%trsi(n,:,:,:)   = expdec(n)*si_atm%trsi(n,:,:,:)
+#endif
           if(si_atm%grid%im_world .ne. si_ocn%grid%im_world) then
             call stop_model(
      &           'TDECAY: tracers in sea ice are no longer on the '//
      &           'atm. grid - please move the next line',255)
           endif
+#ifndef TRACERS_ATM_ONLY
           si_ocn%trsi(n,:,:,:)   = expdec(n)*si_ocn%trsi(n,:,:,:)
 C**** ...lake tracers
           trlake(n,:,:,:) = expdec(n)*trlake(n,:,:,:)
@@ -863,6 +887,7 @@ C**** ...land surface tracers
           tr_wsn_ij(n,:,:,:,:)= expdec(n)*tr_wsn_ij(n,:,:,:,:)
           trsnowli(n,:,:,:) = expdec(n)*trsnowli(n,:,:,:)
           trlndi(n,:,:,:)   = expdec(n)*trlndi(n,:,:,:)
+#endif
 #endif
 C**** atmospheric diagnostics
           najl = jls_decay(n)

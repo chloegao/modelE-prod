@@ -97,6 +97,7 @@
 #endif
 
 #endif
+      integer :: ij_cfcair, ij_kw, ij_csat, ij_cfcflux
 
 !@var IJ_xxx Names for OIJmm diagnostics
       INTEGER IJ_HBLmax,ij_mldmax
@@ -112,7 +113,7 @@
       INTEGER IJL_MO,IJL_G0M,IJL_S0M,IJL_GFLX,IJL_SFLX,IJL_MFU,IJL_MFV
      *     ,IJL_MFW,IJL_GGMFL,IJL_SGMFL,IJL_KVM,IJL_KVG,IJL_WGFL
      *     ,IJL_WSFL,IJL_PTM,IJL_PDM,IJL_MOU,IJL_MOV,IJL_MFW2,IJL_AREA
-     *     ,IJL_MFUB,IJL_MFVB,IJL_MFWB,IJL_ISDM
+     *     ,IJL_MFUB,IJL_MFVB,IJL_MFWB,IJL_ISDM,IJL_PDM2
 #ifdef OCN_GISS_TURB
      *     ,ijl_ri,ijl_rrho,ijl_bv2,ijl_otke,ijl_kvs,ijl_kvc,ijl_buoy
 #endif
@@ -881,7 +882,7 @@ C****
       USE OCN_TRACER_COM, only : n_Water, tracerlist, ocn_tracer_entry
 #endif
       USE EXCHANGE_TYPES, only : atmocn_xchng_vars
-      use runtimecontrols_mod, only: tracers_alkalinity
+      use runtimecontrols_mod, only: tracers_alkalinity, ocn_cfc
       IMPLICIT NONE
       type(atmocn_xchng_vars) :: atmocn
 c
@@ -1309,6 +1310,13 @@ c
       lname_oijl(k) = 'OCEAN POTENTIAL DENSITY (SIGMA_0)'
 c
       k=k+1
+      IJL_PDM2 = k
+      denom_oijl(k) = IJL_MO
+      sname_oijl(k) = 'pot_dens2000'
+      units_oijl(k) = 'KG/M^3 - 1000'
+      lname_oijl(k) = 'OCEAN POTENTIAL DENSITY (SIGMA_2)'
+c
+      k=k+1
       IJL_ISDM = k
       denom_oijl(k) = IJL_MO
       sname_oijl(k) = 'dens'
@@ -1397,6 +1405,40 @@ c
       units_oij(k)="m/s"
       ia_oij(k)=ia_src
       scale_oij(k) = 1
+
+      if (ocn_cfc) then
+        k=k+1
+        IJ_cfcair=k
+        lname_oij(k)="CFC concentration ATM"
+        sname_oij(k)="oij_cfcair"
+        units_oij(k)="uatm"
+        ia_oij(k)=ia_src
+        scale_oij(k)=1
+
+        k=k+1
+        IJ_kw=k
+        lname_oij(k)="CFC piston velocity"
+        sname_oij(k)="oij_kw"
+        units_oij(k)="m/s"
+        ia_oij(k)=ia_src
+        scale_oij(k)=1
+
+        k=k+1
+        IJ_csat=k
+        lname_oij(k)="CFC Csat=CFCair*solub"
+        sname_oij(k)="oij_csat"
+        units_oij(k)="mol/m3"
+        ia_oij(k)=ia_src
+        scale_oij(k)=1
+
+        k=k+1
+        IJ_cfcflux=k
+        lname_oij(k)="CFC Flux into ocean"
+        sname_oij(k)="oij_cfcflux"
+        units_oij(k)="mol/m2/s"
+        ia_oij(k)=ia_src
+        scale_oij(k)=1
+      endif
 
 #ifdef TRACERS_OceanBiology
       k=k+1

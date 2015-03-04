@@ -35,7 +35,7 @@
 !     source name (ssame-->{sname,lname,etc.}. ntsurfsrc(n)
 !     get set to zero if those files aren't found:
 !     (I can enclose this in an ifdef if it causes problems
-!     for people). num_srf_sources routine also assigns
+!     for people). findSurfaceSources routine also assigns
 !     sources to sectors, if desired:
 !     general case:
 
@@ -432,6 +432,9 @@
       USE TRACER_COM, only: NTM, tracers, syncProperty
       use TRACER_COM, only: coupled_chem
       use Dictionary_mod, only: sync_param,is_set_param,get_param
+#ifdef TRACERS_SPECIAL_O18
+      use tracer_com, only: supsatfac
+#endif
 #ifdef TRACERS_WATER
       use TRDIAG_com, only: to_per_mil
 #endif
@@ -493,7 +496,7 @@
 #endif
 #ifdef TRACERS_AEROSOLS_VBS
       USE AEROSOL_SOURCES, only: VBSemifact
-      USE TRACERS_VBS, only: vbs_tr,vbs_init
+      USE TRACERS_VBS, only: vbs_tr
 #endif  /* TRACERS_AEROSOLS_VBS */
 #ifdef TRACER_SPECIAL_Lerner
       use LernerTracersMetadata_mod

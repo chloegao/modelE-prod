@@ -6773,11 +6773,15 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       use OldTracer_mod, only: trw0, tr_wd_type, nWATER
       USE TRACER_COM,only: trwm,n_HDO,n_H2O18, n_OCII
       USE LANDICE, only : ace1li,ace2li
-      USE LANDICE_COM, only : trsnowli,trlndi,snowli
+#ifndef TRACERS_ATM_ONLY
+      USE LANDICE_COM, only : trsnowli,trlndi
+      USE LAKES_COM, only : trlake
+      USE GHY_COM, only : tr_w_ij,tr_wsn_ij
+#endif
+      USE LANDICE_COM, only : snowli
       USE SEAICE_COM, only : si_atm,si_ocn
-      USE LAKES_COM, only : trlake,mwl,mldlk,flake
-      USE GHY_COM, only : tr_w_ij,tr_wsn_ij,w_ij
-     &     ,wsn_ij,nsn_ij,fr_snow_ij,fearth
+      USE LAKES_COM, only : mwl,mldlk,flake
+      USE GHY_COM, only : w_ij,wsn_ij,nsn_ij,fr_snow_ij,fearth
       USE FLUXES, only : flice,focean
 #endif
       USE GEOM, only: axyp,byaxyp,lat2d_dg,lonlat_to_ij
@@ -6945,18 +6949,22 @@ C**** set some defaults for air mass tracers
 #ifdef TRACERS_WATER
 C**** set some defaults for water tracers
       trwm(:,J_0:J_1,:,n)=0. ! cloud liquid water
+#ifndef TRACERS_ATM_ONLY
       trlake(n,:,:,J_0:J_1)=0.
       si_atm%trsi(n,:,:,J_0:J_1)=0.
+#endif
       if(si_ocn%grid%im_world .ne. im) then
         call stop_model(
      &       'TRACER_IC: tracers in sea ice are no longer on the '//
      &       'atm. grid - please move the si_ocn references',255)
       endif
+#ifndef TRACERS_ATM_ONLY
       si_ocn%trsi(n,:,:,J_0:J_1)=0.
       trlndi(n,:,J_0:J_1,:)=0.
       trsnowli(n,:,J_0:J_1,:)=0.
       tr_w_ij(n,:,:,:,J_0:J_1)=0.
       tr_wsn_ij(n,:,:,:,J_0:J_1)=0.
+#endif
 #endif
       select case (trname(n))
 
@@ -7234,8 +7242,10 @@ c     tmominit = 0.
           end do
         end if
 
+#ifndef TRACERS_ATM_ONLY
         call init_single_seaice_tracer(si_atm,n,trsi0(n))
         call init_single_seaice_tracer(si_ocn,n,trsi0(n))
+#endif
 
         do j=J_0,J_1
           do i=I_0,I_1
@@ -7249,6 +7259,7 @@ c Define a simple d18O based on Tsurf for GIC, put dD on meteoric water line
 #endif
 C**** lakes
             if (flake(i,j).gt.0) then
+#ifndef TRACERS_ATM_ONLY
               trlake(n,1,i,j)=tracerTs*mldlk(i,j)*rhow*flake(i,j)
      *             *axyp(i,j)
               if (mwl(i,j)-mldlk(i,j)*rhow*flake(i,j)*axyp(i,j).gt.1d-10
@@ -7257,12 +7268,15 @@ C**** lakes
               else
                 trlake(n,2,i,j)=0.
               end if
+#endif
               atmocn%gtracer(n,i,j)=trw0(n)
             else !if (focean(i,j).eq.0) then
+#ifndef TRACERS_ATM_ONLY
               trlake(n,1,i,j)=trw0(n)*mwl(i,j)
               trlake(n,2,i,j)=0.
 c            else
 c              trlake(n,1:2,i,j)=0.
+#endif
             end if
 c**** ice
             if (si_atm%msi(i,j).gt.0) then
@@ -7270,8 +7284,10 @@ c**** ice
             end if
 c**** landice
             if (flice(i,j).gt.0) then
+#ifndef TRACERS_ATM_ONLY
               trlndi(n,i,j,:)=trli0(n)*(ace1li+ace2li)	! calls trli0_s()
               trsnowli(n,i,j,:)=trli0(n)*snowli(i,j,:)
+#endif
               do ipatch=1,ubound(atmglas,1)
 #ifdef GLINT2
                 atmglas_hp(ipatch)%gtracer(n,i,j)=trli0(n)
@@ -7279,8 +7295,10 @@ c**** landice
                 atmglas(ipatch)%gtracer(n,i,j)=trli0(n)
               enddo
             else
+#ifndef TRACERS_ATM_ONLY
               trlndi(n,i,j,:)=0.
               trsnowli(n,i,j,:)=0.
+#endif
               do ipatch=1,ubound(atmglas,1)
 #ifdef GLINT2
                 atmglas_hp(ipatch)%gtracer(n,i,j)=0.
@@ -7292,6 +7310,7 @@ c**** earth
             !!!if (fearth(i,j).gt.0) then
             if (focean(i,j) < 1.d0) then
               conv=rhow         ! convert from m to kg/m^2
+#ifndef TRACERS_ATM_ONLY
               tr_w_ij  (n,:,:,i,j)=tracerTs*w_ij (:,:,i,j)*conv
               tr_wsn_ij(n,1:nsn_ij(1,i,j),1,i,j)=
      &             tracerTs*wsn_ij(1:nsn_ij(1,i,j),1,i,j)
@@ -7300,10 +7319,13 @@ c**** earth
      &             tracerTs*wsn_ij(1:nsn_ij(2,i,j),2,i,j)
      &             *fr_snow_ij(2,i,j)*conv
               !trsnowbv(n,2,i,j)=trw0(n)*snowbv(2,i,j)*conv
+#endif
               atmlnd%gtracer (n,i,j)=trw0(n)
             else
+#ifndef TRACERS_ATM_ONLY
               tr_w_ij  (n,:,:,i,j)=0.
               tr_wsn_ij(n,:,:,i,j)=0.
+#endif
               !trsnowbv(n,1,i,j)=0.
               !trsnowbv(n,2,i,j)=0.
               atmlnd%gtracer(n,i,j)=0.
@@ -8132,6 +8154,12 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
             end select
 
 #ifndef TRACERS_AEROSOLS_SOA
+#ifdef TRACERS_AEROSOLS_Koch
+            select case (trname(n))
+            case ('OCII')
+              nread=nread-1
+            end select
+#endif
 #ifdef TRACERS_AMP
             select case (trname(n))
             case ('M_OCC_OC')
@@ -8327,7 +8355,9 @@ C**** at the start of any day
      &                             HOURS_PER_DAY, INT_MONTHS_PER_YEAR
       USE ATM_COM, only: MA  ! Air mass of each box (kg/m^2)
       USE TRACER_COM, only: ntm
+#ifndef SKIP_TRACER_SRCS
       USE FLUXES, only: trsource
+#endif
       use TRACER_COM, only: tracers
       use TRACER_COM, only: num_regions
       use TRACER_COM, only: reg_E, ef_FACT
@@ -8469,7 +8499,9 @@ C****
 C**** Surface Sources of SF6 and CFCn (Same grid as CFC11)
 C****
       case ('SF6','CFC11','CFCn','SF6_c')
+#ifndef SKIP_TRACER_SRCS
         trsource(:,:,:,n)=0
+#endif
 C**** SF6 source increases each year by .3pptv/year
 C**** SF6_c source is constant, same as first year SF6, but always
 C**** CFCn source increases each year so that the glbavg is from obs
@@ -8505,10 +8537,12 @@ C**** Source over United States and Canada
             sarea_prt(i,j) = sarea_prt(i,j)*axyp(i,j)*fearth(i,j)
         enddo; enddo
         call globalsum(grid, sarea_prt, sarea, all=.true.)
+#ifndef SKIP_TRACER_SRCS
         do j=j_0,j_1; do i=i_0,i_1
             trsource(i,j,1,n) = trsource(i,j,1,n) +
      &         source*sarea_prt(i,j)/sarea
         enddo; enddo
+#endif
 C**** Source over Europe and Russia
         source = .37d0*anngas*steppy
         lon_e =  45.d0
@@ -8520,10 +8554,12 @@ C**** Source over Europe and Russia
             sarea_prt(i,j) = sarea_prt(i,j)*axyp(i,j)*fearth(i,j)
         enddo; enddo
         call globalsum(grid, sarea_prt, sarea, all=.true.)
+#ifndef SKIP_TRACER_SRCS
         do j=j_0,j_1; do i=i_0,i_1
             trsource(i,j,1,n) = trsource(i,j,1,n) +
      &         source*sarea_prt(i,j)/sarea
         enddo; enddo
+#endif
 C**** Source over Far East
         source = .13d0*anngas*steppy
         lon_e = 150.d0
@@ -8535,10 +8571,12 @@ C**** Source over Far East
             sarea_prt(i,j) = sarea_prt(i,j)*axyp(i,j)*fearth(i,j)
         enddo; enddo
         call globalsum(grid, sarea_prt, sarea, all=.true.)
+#ifndef SKIP_TRACER_SRCS
         do j=j_0,j_1; do i=i_0,i_1
             trsource(i,j,1,n) = trsource(i,j,1,n) +
      &         source*sarea_prt(i,j)/sarea
         enddo; enddo
+#endif
 C**** Source over Middle East
         source = .05d0*anngas*steppy
         lon_e = 75.d0
@@ -8550,10 +8588,12 @@ C**** Source over Middle East
             sarea_prt(i,j) = sarea_prt(i,j)*axyp(i,j)*fearth(i,j)
         enddo; enddo
         call globalsum(grid, sarea_prt, sarea, all=.true.)
+#ifndef SKIP_TRACER_SRCS
         do j=j_0,j_1; do i=i_0,i_1
             trsource(i,j,1,n) = trsource(i,j,1,n) +
      &         source*sarea_prt(i,j)/sarea
         enddo; enddo
+#endif
 C**** Source over South America
         source = .04d0*anngas*steppy
         lon_e = -40.d0
@@ -8565,10 +8605,12 @@ C**** Source over South America
             sarea_prt(i,j) = sarea_prt(i,j)*axyp(i,j)*fearth(i,j)
         enddo; enddo
         call globalsum(grid, sarea_prt, sarea, all=.true.)
+#ifndef SKIP_TRACER_SRCS
         do j=j_0,j_1; do i=i_0,i_1
             trsource(i,j,1,n) = trsource(i,j,1,n) +
      &         source*sarea_prt(i,j)/sarea
         enddo; enddo
+#endif
 C**** Source over South Africa
         source = .02d0*anngas*steppy
         lat_n = -24.d0
@@ -8580,10 +8622,12 @@ C**** Source over South Africa
             sarea_prt(i,j) = sarea_prt(i,j)*axyp(i,j)*fearth(i,j)
         enddo; enddo
         call globalsum(grid, sarea_prt, sarea, all=.true.)
+#ifndef SKIP_TRACER_SRCS
         do j=j_0,j_1; do i=i_0,i_1
             trsource(i,j,1,n) = trsource(i,j,1,n) +
      &         source*sarea_prt(i,j)/sarea
         enddo; enddo
+#endif
 C**** Source over Australia and New Zealand
         source = .02d0*anngas*steppy
         lat_n = -33.5d0
@@ -8595,10 +8639,12 @@ C**** Source over Australia and New Zealand
             sarea_prt(i,j) = sarea_prt(i,j)*axyp(i,j)*fearth(i,j)
         enddo; enddo
         call globalsum(grid, sarea_prt, sarea, all=.true.)
+#ifndef SKIP_TRACER_SRCS
         do j=j_0,j_1; do i=i_0,i_1
             trsource(i,j,1,n) = trsource(i,j,1,n) +
      &         source*sarea_prt(i,j)/sarea
         enddo; enddo
+#endif
 
         if (trim(pTracer%getName()).eq.'CFCn') then
           !print out global average for each time step before weighing
@@ -8611,7 +8657,9 @@ C**** Source over Australia and New Zealand
             do i=I_0,I_1
              factor = axyp(i,j)*fearth(i,j)
              sarea_prt(i,j)= FACTOR
+#ifndef SKIP_TRACER_SRCS
              trsource_prt(i,j) = trsource(i,j,1,n)*FACTOR
+#endif
             enddo
           enddo
 
@@ -8644,6 +8692,7 @@ C**** Source over Australia and New Zealand
             write(6,'(a,2i5)'),'TRACERS_DRV, new year: itime, i_ocmip=',
      &                         itime,i_ocmip
           endif
+#ifndef SKIP_TRACER_SRCS
           do j=J_0,J_1 ! TNL
             do i=1,72
                trsource(i,j,1,n) = trsource(i,j,1,n)* 
@@ -8651,6 +8700,7 @@ C**** Source over Australia and New Zealand
      &           SECONDS_PER_DAY/dtsrc)) / trsource_glbavg(n)
             enddo
           enddo
+#endif
 
           !recompute global average after weighting in OCMIP
           sarea  = 0.
@@ -8661,7 +8711,9 @@ C**** Source over Australia and New Zealand
             do i=I_0,I_1
              factor = axyp(i,j)*fearth(i,j)
              sarea_prt(i,j)= FACTOR
+#ifndef SKIP_TRACER_SRCS
              trsource_prt(i,j) = trsource(i,j,1,n)*FACTOR
+#endif
             enddo
           enddo
 
@@ -8677,6 +8729,7 @@ C****
 C**** Surface Sources for Radon-222
 C****
       case ('Rn222')
+#ifndef SKIP_TRACER_SRCS
         trsource(:,J_0:J_1,:,n)=0
 C**** ground source
         steppd = 1./SECONDS_PER_DAY
@@ -8713,6 +8766,7 @@ C**** source from ice-free ocean
           endif
           enddo                 !i
         enddo                   !j
+#endif
 
 #ifdef TRACERS_SPECIAL_Lerner
 C****
@@ -8757,6 +8811,7 @@ C**** The tracer is reset to specific values in layer 1 only if
 C****   this results in a sink
 C****
       case ('14CO2')
+#ifndef SKIP_TRACER_SRCS
       tmon = (itime-itime_tr0(n))*INT_MONTHS_PER_YEAR/
      &       (nday*INT_DAYS_PER_YEAR)
       trsource(:,J_0:J_1,1,n) = 0.
@@ -8777,12 +8832,15 @@ C****
          endif
       end do
       end do
+#endif
 
 C****
 C**** No non-interactive surface sources of Water
 C****
       case ('Water')
+#ifndef SKIP_TRACER_SRCS
         trsource(:,J_0:J_1,:,n)=0.d0
+#endif
 
 #ifdef TRACERS_SPECIAL_Shindell
       case ('Ox','NOx','ClOx','BrOx','N2O5','HNO3','H2O2','CH3OOH',
@@ -9030,6 +9088,7 @@ c$$$        call emissionScenario%scaleSource(trsource(:,:,ns,n),
 c$$$     &       sources(ns)%trsect_index(1:sources(nn)%num_tr_sectors))
 c$$$      end do
 
+#ifndef SKIP_TRACER_SRCS
       if(alter_sources)then               ! if altering requested
         do ns=1,ntsurfsrc(n)              ! loop over source
           do nsect=1,sources(ns)%num_tr_sectors ! and sectors for that source
@@ -9059,6 +9118,7 @@ c$$$      end do
           enddo
         enddo
       endif
+#endif
 
       call iter%next()
       end do ! n - main tracer loop
@@ -9167,7 +9227,9 @@ c$$$      use OldTracer_mod, only: tr_mm, nBBsources, mass2vol
       use TRACER_COM, only: ntmAMPi, ntmAMPe
 #endif
       USE CONSTANT, only : mair, avog
+#ifndef SKIP_TRACER_SRCS
       USE FLUXES, only: tr3Dsource
+#endif
       use model_com, only: modelEclock
       USE MODEL_COM, only: itime,dtsrc,itimeI
       USE ATM_COM, only: MA,byMA ! Air mass of each box (kg/m^2)

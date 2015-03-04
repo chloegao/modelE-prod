@@ -1068,6 +1068,7 @@ C**** do poles
       USE ArrayBundle_mod
 
       USE EXCHANGE_TYPES, only : atmocn_xchng_vars,iceocn_xchng_vars
+      use runtimecontrols_mod, only: ocn_cfc, tracers_oceanbiology
       IMPLICIT NONE
       type(atmocn_xchng_vars) :: atm
       type(iceocn_xchng_vars) :: ice
@@ -1241,12 +1242,12 @@ c
      &     aOCNwt,oOCNwt)
 #endif
 
-#ifdef TRACERS_OceanBiology
-      call ab_add( lstr,atm%COSZ1,ocnatm%COSZ1,shape(atm%COSZ1),'ij',
+      if (tracers_oceanbiology.or.ocn_cfc) then
+        call ab_add( lstr,atm%COSZ1,ocnatm%COSZ1,shape(atm%COSZ1),'ij',
      &     aOCNwt,oOCNwt)
-      call ab_add( lstr,atm%WSAVG,ocnatm%WSAVG,shape(atm%WSAVG),'ij',
+        call ab_add( lstr,atm%WSAVG,ocnatm%WSAVG,shape(atm%WSAVG),'ij',
      &     aOCNwt,oOCNwt)
-#endif
+      endif
 
 c*   actual interpolation here
       call bundle_interpolation(lstr,remap_A2O,copy_np,do_np_avg)
@@ -1379,6 +1380,7 @@ c*
       USE INT_AG2OG_MOD, only : INT_AG2OG
 
       USE EXCHANGE_TYPES, only : atmocn_xchng_vars,iceocn_xchng_vars
+      use runtimecontrols_mod, only: ocn_cfc, tracers_oceanbiology
       IMPLICIT NONE
       type(atmocn_xchng_vars) :: atm
       type(iceocn_xchng_vars) :: ice
@@ -1527,11 +1529,11 @@ c*
       CALL INT_AG2OG(atm%DIFNIR,ocnatm%DIFNIR, aWEIGHT)
 #endif
 
-#ifdef TRACERS_OceanBiology
-      aWEIGHT(:,:) = atm%FOCEAN(:,:)
-      CALL INT_AG2OG(atm%COSZ1,ocnatm%COSZ1, aWEIGHT)
-      CALL INT_AG2OG(atm%WSAVG,ocnatm%WSAVG, aWEIGHT)
-#endif
+      if (tracers_oceanbiology.or.ocn_cfc) then
+        aWEIGHT(:,:) = atm%FOCEAN(:,:)
+        CALL INT_AG2OG(atm%COSZ1,ocnatm%COSZ1, aWEIGHT)
+        CALL INT_AG2OG(atm%WSAVG,ocnatm%WSAVG, aWEIGHT)
+      endif
 
       aWEIGHT(:,:) = 1.d0 - ice%RSI(:,:)      
       CALL INT_AG2OG(atm%DMUA,atm%DMVA,

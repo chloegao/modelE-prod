@@ -689,9 +689,8 @@ C**** Limit evaporation if lake mass is at minimum
      &         tg1, rcdqws, rcdqdws, evap, snow, qg_sat, qsrf,
      &         lim_lake_evap, flake(i,j), tevaplim(nx), ! arguments for lakes only
      &         lim_dew, dtsurf,
-     &         asflx(itype)%TRM1(n,I,J), pbl_args%trs(nx),
+     &         asflx(itype)%TRM1(n,I,J), pbl_args, nx,
      &         asflx(itype)%gtracer(n,i,j), trgrnd2(nx),
-     &         pbl_args%trprime(nx),
      &         asflx(itype)%trsrfflx(n,i,j),asflx(itype)%trevapor(n,i,j)
      &     )
         END IF
@@ -1809,7 +1808,9 @@ C**** For distributed implementation - ensure point is on local process.
       USE FLUXES, only : flice,atmgla,atmlnd,asflx4,atmsrf
       USE LANDICE_COM, only : mdwnimp,edwnimp
 #ifdef TRACERS_WATER
+#ifndef TRACERS_ATM_ONLY
      &     ,trdwnimp
+#endif
 #endif
       implicit none
       integer :: jr
@@ -1848,8 +1849,10 @@ C**** accumulate implicit fluxes for setting ocean balance
         MDWNIMP(I,J)=MDWNIMP(I,J)+atmgla%IMPLM(I,J)*PLICE*AXYP(I,J)
         EDWNIMP(I,J)=EDWNIMP(I,J)+atmgla%IMPLH(I,J)*PLICE*AXYP(I,J)
 #ifdef TRACERS_WATER
+#ifndef TRACERS_ATM_ONLY
         TRDWNIMP(:,I,J)=TRDWNIMP(:,I,J)+
      &       atmgla%IMPLT(:,I,J)*PLICE*AXYP(I,J)
+#endif
 #endif
 
       ENDDO
@@ -1885,11 +1888,12 @@ C**** accumulate implicit fluxes for setting ocean balance
      &     tg1, rcdqws, rcdqdws, evap, snow, qg_sat, qsrf,
      &     lim_lake_evap, flake, tevaplim,
      &     lim_dew, dtsurf,
-     &     trm1, trs, trgrnd, trgrnd2, trprime,
+     &     trm1, pbl_args, nx, trgrnd, trgrnd2,
      &     trsrfflx, trevapor
      &     )
       use constant, only : teeny
       use landice, only : snmin
+      use pbl_drv, only : t_pbl_args
       implicit none
       integer :: itype,i,j,n
       real*8 :: tg1
@@ -1909,6 +1913,8 @@ C**** accumulate implicit fluxes for setting ocean balance
       real*8 :: tevaplim
       real*8, intent(out) :: trsrfflx	! comes from atmgla%
       real*8, intent(out) :: trevapor	! comes from atmgla%
+      type (t_pbl_args), intent(in) :: pbl_args
+      integer, intent(in) :: nx
 
 
       logical :: lim_lake_evap, lim_dew
@@ -1919,6 +1925,8 @@ c
      *     ,FRACVL,FRACVS,frac
 #endif
 
+      trs=pbl_args%trs(nx)
+      trprime=pbl_args%trprime(nx)
 C****
 C**** Calculate Water Tracer Evaporation
 C****

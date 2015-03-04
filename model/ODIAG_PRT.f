@@ -1749,7 +1749,7 @@ c
      &     ,ijl_mo,ijl_mou,ijl_mov,ijl_g0m,ijl_s0m,ijl_ptm,ijl_pdm
      &     ,ijl_mfu,ijl_mfv,ijl_mfw,ijl_mfw2,ijl_ggmfl,ijl_sgmfl
      &     ,ijl_wgfl,ijl_wsfl,ijl_kvm,ijl_kvg,ijl_gflx,ijl_sflx
-     &     ,ijl_mfub,ijl_mfvb,ijl_mfwb,ijl_isdm
+     &     ,ijl_mfub,ijl_mfvb,ijl_mfwb,ijl_isdm,ijl_pdm2
      &     ,oij=>oij_loc,ij_sf,olnst,ln_mflx
 #ifdef OCN_GISS_TURB
      &     ,ijl_ri,ijl_rrho,ijl_bv2,ijl_otke,ijl_kvs,ijl_kvc,ijl_buoy
@@ -1818,7 +1818,8 @@ c
         gos = oijl(i,j,l,ijl_g0m) / mass
         sos = oijl(i,j,l,ijl_s0m) / mass
         oijl_out(i,j,l,ijl_ptm) = mass*temgs(gos,sos)
-        oijl_out(i,j,l,ijl_pdm) = mass*(1d0/volgs(gos,sos)-1000d0)
+        oijl_out(i,j,l,ijl_pdm) = mass*(1d0/volgs(gos,sos)-1000d0) !sigma0
+        oijl_out(i,j,l,ijl_pdm2)= mass*(1d0/volgsp(gos,sos,2d7)-1d3) !sigma2
         oijl_out(i,j,l,ijl_isdm) =
      &       mass*(1d0/volgsp(gos,sos,pres(i,j))-1000d0)
         pres(i,j) = pres(i,j) + .5d0*dpr
