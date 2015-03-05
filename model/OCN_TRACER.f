@@ -77,8 +77,9 @@ C**** only TRACERS_WATER is true.
 
       do n=1,tracerlist%getsize()
         entry=>tracerlist%at(n)
-        if (.not.entry%need_ic.or.(itime.ne.itimei)) cycle
+        if (.not.entry%need_ic) cycle
         if (entry%from_file) then
+          if (itime.ne.itimei) cycle
           if (fid<0) fid=par_open(grid,'OCN_TRACER_IC','read')
           call read_dist_data(grid,fid,trim(entry%trname),tr_ic)
           do l=1,lmo
