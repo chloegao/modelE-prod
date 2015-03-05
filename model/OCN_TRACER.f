@@ -12,8 +12,8 @@
 !@sum tracer_ic_ocean initialise ocean tracers
 !@auth Gavin Schmidt
 !@ver 1.0
-      USE MODEL_COM, only: itime
-      USE OCN_TRACER_COM, only : tracerlist, ocn_tracer_entry, n_age
+      USE MODEL_COM, only: itime,itimei
+      USE OCN_TRACER_COM, only : tracerlist, ocn_tracer_entry
 #ifdef TRACERS_SPECIAL_O18
       USE OCN_TRACER_COM, only : water_tracer_ic
 #endif
@@ -22,6 +22,7 @@
 #ifdef TRACERS_OCEAN
      *     ,trmo,txmo,tymo,tzmo,mo,s0m,sxmo,symo,szmo,oc_tracer_mean
 #endif
+      use ocean, only : nbyzm,i1yzm,i2yzm
       USE SEAICE, only : xsi,lmi
       USE STRAITS, only : nmst,msist,ssist
 #ifdef TRACERS_OCEAN
@@ -39,7 +40,10 @@
       !USE OCEAN, only : gather_ocean
       USE EXCHANGE_TYPES, only : atmocn_xchng_vars
       USE Dictionary_mod
+      use pario, only : read_dist_data,par_open,par_close
       IMPLICIT NONE
+      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,lmo) ::
+     &     tr_ic
       type(atmocn_xchng_vars) :: atmocn
 c
       integer n,i,j,l,nst,i1,j1,i2,j2,ll
@@ -54,6 +58,8 @@ c
       real*8 :: OTRACJ(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) 
       INTEGER :: J_0S, J_1S, J_0, J_1, J_0H, J_1H
       type(ocn_tracer_entry), pointer :: entry
+      logical :: glob_used=.false.
+      integer :: fid=-1, nn
 
       call getDomainBounds(grid, J_STRT_SKP = J_0S, J_STOP_SKP = J_1S,
      *     J_STRT = J_0, J_STOP = J_1, 
@@ -69,12 +75,24 @@ c
 C**** Note that only sea ice related arrays are initialised if
 C**** only TRACERS_WATER is true.
 
-      call pack_data(grid,mo,mo_glob)
-      call pack_data(grid,s0m,s0m_glob)
-
       do n=1,tracerlist%getsize()
         entry=>tracerlist%at(n)
-        if (entry%trname.eq.'OceanAge') n_age=n
+        if (.not.entry%need_ic.or.(itime.ne.itimei)) cycle
+        if (entry%from_file) then
+          if (fid<0) fid=par_open(grid,'OCN_TRACER_IC','read')
+          call read_dist_data(grid,fid,trim(entry%trname),tr_ic)
+          do l=1,lmo
+            do j=j_0,j_1
+              trmo(:,j,l,n) = 0.
+              do nn=1,nbyzm(j,l)
+                do i=i1yzm(nn,j,l),i2yzm(nn,j,l)
+                  trmo(i,j,l,n) = tr_ic(i,j,l)*mo(i,j,l)*dxypo(j)
+                enddo
+              enddo
+            enddo
+          enddo
+          cycle
+        endif
         if (itime.eq.entry%itime_tr0) then
         select case (entry%trname(1:6))
 
@@ -244,9 +262,13 @@ C**** Multiply ratios by freshwater mass
 C**** Initiallise strait values based on adjacent ocean boxes
           !call gather_ocean(1)  ! mo,g0m,gx-zmo,s0m,sx-zmo,trmo,tx-zmo
 
-          call pack_data(grid,trmo(:,:,:,n),trmo_glob)
-
           if(am_I_root()) then
+          call pack_data(grid,trmo(:,:,:,n),trmo_glob)
+          if (.not.glob_used) then
+            call pack_data(grid,mo,mo_glob)
+            call pack_data(grid,s0m,s0m_glob)
+            glob_used=.true.
+          endif
           do nst=1,nmst
             i1=ist(nst,1)
             j1=jst(nst,1)
@@ -351,6 +373,7 @@ C**** ensure that atmospheric arrays are properly updated (i.e. gtracer)
       ! call now made at higher level
       !CALL TOC2SST(atmocn)
 
+      if (fid>=0) call par_close(grid,fid)
       return
  800  write(6,*) "Error reading input file H2O18ic"
       call stop_model('stopped in OCN_TRACER.f',255)
@@ -373,6 +396,7 @@ C**** ensure that atmospheric arrays are properly updated (i.e. gtracer)
 
       do n=1,tracerlist%getsize()
         entry=>tracerlist%at(n)
+        if (entry%from_file) cycle
         if (entry%trdecay.gt.0. .and. itime.ge.entry%itime_tr0) then
 C**** Oceanic decay
           trmo(:,:,:,n)   = expDecayRate(n)*trmo(:,:,:,n)

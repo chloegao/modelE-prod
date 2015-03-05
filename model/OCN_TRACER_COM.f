@@ -14,6 +14,7 @@
        integer :: trw0=0, trdecay=0, ntrocn=0, to_per_mil=0
        integer :: itime_tr0=0
        logical :: conc_from_fw=.false., t_qlimit=.true., need_ic=.false.
+       logical :: from_file=.false.
       end type ocn_tracer_entry
       end module ocn_tracer_entry_mod
 
@@ -74,18 +75,20 @@ C****     it will prove useful.
 
       contains
 
-      subroutine add_ocn_tracer(i_trname, i_trw0, i_ntrocn, i_conc)
+      subroutine add_ocn_tracer(i_trname, i_trw0, i_ntrocn, i_conc,
+     &                                                  i_from_file)
       use ocn_tracer_entry_mod
       implicit none
       character(len=*), intent(in) :: i_trname
       integer, intent(in), optional :: i_trw0, i_ntrocn
-      logical, intent(in), optional :: i_conc
+      logical, intent(in), optional :: i_conc, i_from_file
       type(ocn_tracer_entry) :: entry
 
       entry%trname=i_trname
       if (present(i_trw0)) entry%trw0=i_trw0
       if (present(i_ntrocn)) entry%ntrocn=i_ntrocn
       if (present(i_conc)) entry%conc_from_fw=i_conc
+      if (present(i_from_file)) entry%from_file=i_from_file
       call tracerlist%push_back(entry)
       return
       end subroutine add_ocn_tracer
@@ -139,7 +142,7 @@ C****     it will prove useful.
         trname_list=adjustl(trname_list)
         do while(len_trim(trname_list).gt.0)
           i=index(trname_list,' ')
-          call add_ocn_tracer(trname_list(1:i-1))
+          call add_ocn_tracer(trname_list(1:i-1), i_from_file=.true.)
           trname_list = adjustl(trname_list(i:128))
         enddo
       else

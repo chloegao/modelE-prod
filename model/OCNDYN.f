@@ -392,9 +392,6 @@ c**** Extract domain decomposition info
       LOGICAL :: HAVE_NORTH_POLE
 
       INTEGER, DIMENSION(IM,JM) :: LMM_glob
-#ifdef TRACERS_OCEAN
-      type(ocn_tracer_entry), pointer :: entry
-#endif
 
       call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1
      *      ,J_STRT_SKP  = J_0S, J_STOP_SKP  = J_1S
@@ -823,10 +820,7 @@ C***  Initialize ODIFF
       call init_ODIFF(grid)
 
 #ifdef TRACERS_OCEAN
-      do nt=1,tracerlist%getsize()
-        entry=>tracerlist%at(nt)
-        if (entry%need_ic) call tracer_ic_ocean(atmocn)
-      enddo
+      call tracer_ic_ocean(atmocn)
 #endif
 
 c-------------------------------------------------------------------
