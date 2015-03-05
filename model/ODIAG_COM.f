@@ -798,7 +798,7 @@ C****
 #ifdef TRACERS_OCEAN
 C**** Tracer calls are dealt with separately
       do nt=1,tracerlist%getsize()
-        entry=tracerlist%at(nt)
+        entry=>tracerlist%at(nt)
         if (.not.entry%from_file) CALL DIAGTCO(M,NT,atmocn)
       end do
 #endif
