@@ -2901,10 +2901,11 @@ ccc   compute tg2av,wtr2av,ace2av formerly in retp2 (but differently)
       tg_L(1)=tg_L(1) + (fb*tp(1,1)+fv*tp(1,2))
       wtr_L(1)=wtr_L(1) + (fb*w(1,1)*(1.d0-fice(1,1))
      &                    +fv*w(1,2)*(1.d0-fice(1,2)))
-     &     *1.d3             ! conversion to meters
+     &     *rhow             ! conversion to kg/m^2
 !     &     /(fb*ws(1,1)+fv*ws(1,2)+1d-20) ! or, to relative wetness
-      ace_L(1)=ace_L(1) + 1.d3*(fb*w(1,1)*fice(1,1)
+      ace_L(1)=ace_L(1) + (fb*w(1,1)*fice(1,1)
      &     + fv*w(1,2)*fice(1,2))
+     &     *rhow
       do k=2,n
         tg2av = tg2av + (fb*tp(k,1) + fv*tp(k,2))*dz(k)
         wtr2av = wtr2av + fb*w(k,1)*(1.d0-fice(k,1))
@@ -2914,10 +2915,11 @@ ccc   compute tg2av,wtr2av,ace2av formerly in retp2 (but differently)
         tg_L(k)=tg_L(k) + (fb*tp(k,1)+fv*tp(k,2))
         wtr_L(k)=wtr_L(k) + (fb*w(k,1)*(1.d0-fice(k,1))
      &                      +fv*w(k,2)*(1.d0-fice(k,2)))
-     &     *1.d3             ! conversion to meters
+     &     *rhow             ! conversion to kg/m^2
 !     &     /(fb*ws(k,1)+fv*ws(k,2)+1d-20) ! or, to relative wetness
-        ace_L(k)=ace_L(k) + 1.d3*(fb*w(k,1)*fice(k,1)
+        ace_L(k)=ace_L(k) + (fb*w(k,1)*fice(k,1)
      &       + fv*w(k,2)*fice(k,2))
+     &       *rhow
       enddo
       tg2av = tg2av/sum(dz(2:n))
       ! convert to kg/m^2
