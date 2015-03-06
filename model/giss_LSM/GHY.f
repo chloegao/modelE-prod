@@ -35,7 +35,9 @@
       use GHY_h, only : ghy_tr_str
 #endif
 
+#ifdef USE_ENT
       use ent_debug_mod
+#endif
 
       implicit none
       save
@@ -287,6 +289,9 @@ ccc tracers output:
 ccc the following variables are needed for the interface with 
 ccc dynamic vegetation module, i.e. Ent
       real*8, public :: Ci,cnc,lai
+
+ccc   debugging Ent
+      real*8, public :: ent_debug_buf(SIZE_ENT_DEBUG)
 #endif
 
 ccc the data below this line is not in GHYTPC yet !
@@ -300,9 +305,6 @@ ccc be computed (i.e. f[bv] is not zero)
 
 ccc   external functions
       real*8, external :: qsat,dqsatdt
-
-ccc   debugging Ent
-      real*8, public :: ent_debug_buf(SIZE_ENT_DEBUG)
 
 ! The following variables specify the permitted range of temperature for
 ! surface soil and canopy.  If violated a message is generated and the
@@ -2146,7 +2148,9 @@ c**** soils28   common block     9/25/90
 #endif
       real*8 :: C_before, C_after
       integer :: iu_debug
+#ifdef USE_ENT
       real*8, pointer :: ent_debug_ptr(:)
+#endif
 
       ! get stuff from vegcell
 #ifndef USE_ENT
@@ -2248,8 +2252,6 @@ c**** soils28   common block     9/25/90
        write(933,*) "qprime        ", qprime        
 #endif
 
-       ent_debug_buf(:) = 0.d0
-
 
       limit=300   ! 200 increase to avoid a few more stops
       nit=0
@@ -2282,6 +2284,7 @@ ccc make sure there are no round-off errors in fractions
       shc(0,2) = shc_can
       ! snowm = 0.d0 !!!! wrong !!! but leave it for testing
 
+       ent_debug_buf(:) = 0.d0
       ! get pointer to derived type structure with Ent diags
       call get_ent_debug_ptr( ent_debug_ptr )
 #endif

@@ -1430,7 +1430,7 @@ c another surface type
       return
       end subroutine earth
 
-
+#ifdef USE_ENT
       subroutine dump_ent_C_diags
       USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds,READT_PARALLEL
       USE DOMAIN_DECOMP_1D, only : WRITET_PARALLEL
@@ -1512,7 +1512,7 @@ c another surface type
       counter = counter + 1
 
       end subroutine dump_ent_C_diags
-
+#endif
 
 c***********************************************************************
 c***********************************************************************
@@ -1540,9 +1540,6 @@ c***********************************************************************
      &     ,ij_aflmlt,ij_aeruns,ij_aerunu,ij_fveg
      &     ,ij_htsoil,ij_htsnow,ij_aintrcp
      &     ,ij_evapsn,ij_irrW, ij_irrE
-#ifdef ENT_DEBUG_DIAGS
-     &     ,ij_ent_debug
-#endif
 #if (defined HEALY_LM_DIAGS) && (defined USE_ENT) 
      &     ,ij_crops,j_crops,CROPS_DIAG
 #endif
@@ -1568,9 +1565,8 @@ c***********************************************************************
      &    ,qs,ts,ngr=>n,ht,hsn,fr_snow,nsn
      &    ,tg2av,wtr2av,ace2av
      &    ,tg_L,wtr_L,ace_L
-     &    ,airrig,aeirrig,ent_debug_buf
+     &    ,airrig,aeirrig
 
-      use ent_debug_mod, only : SIZE_ENT_DEBUG
       use ghy_com, only : gdeep, gsaveL, fearth
       USE CLOUDS_COM, only : DDMS
 
@@ -1582,6 +1578,13 @@ c***********************************************************************
       use OldTracer_mod, only: dodrydep
 #endif
 #endif
+
+#ifdef ENT_DEBUG_DIAGS
+      use diag_com , only : ij_ent_debug
+      use sle001, only : ent_debug_buf
+      use ent_debug_mod, only : SIZE_ENT
+#endif
+
 
       implicit none
       integer, intent(in) :: i,j,ns,moddsf
