@@ -761,7 +761,7 @@ c instances of the arrays containing derived quantities
       USE ODIAG, only : icon_OCE,icon_OKE,icon_OMS,icon_OSL,icon_OAM
       USE OCEANR_DIM, only : oGRID
 #ifdef TRACERS_OCEAN
-      USE OCN_TRACER_COM, only : tracerlist
+      USE OCN_TRACER_COM, only : tracerlist, ocn_tracer_entry
 #endif
       USE EXCHANGE_TYPES, only : atmocn_xchng_vars
       IMPLICIT NONE
@@ -773,6 +773,7 @@ c
      *     ,conserv_OSL,conserv_OAM
 #ifdef TRACERS_OCEAN
       INTEGER NT
+      type(ocn_tracer_entry), pointer :: entry
 #endif
 
 
@@ -797,7 +798,8 @@ C****
 #ifdef TRACERS_OCEAN
 C**** Tracer calls are dealt with separately
       do nt=1,tracerlist%getsize()
-        CALL DIAGTCO(M,NT,atmocn)
+        entry=>tracerlist%at(nt)
+        if (.not.entry%from_file) CALL DIAGTCO(M,NT,atmocn)
       end do
 #endif
 

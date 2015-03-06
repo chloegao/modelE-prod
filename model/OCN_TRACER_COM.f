@@ -1,12 +1,5 @@
 #include "rundeck_opts.h"
 
-#if defined(TRACERS_OCEAN_INDEP) && !defined(RUNTIME_NTM_OCEAN)
-/* TRACERS_OCEAN_INDEP enables the correct behaviors elsewhere */
-/* in the model, but here we want to avoid the hard-coded */
-/* specification of tracer names etc. if RUNTIME_NTM_OCEAN is set */
-#define TRACERS_OCEAN_INDEP_HARDCODED
-#endif
-
       module ocn_tracer_entry_mod
       implicit none
       type ocn_tracer_entry
@@ -14,6 +7,7 @@
        integer :: trw0=0, trdecay=0, ntrocn=0, to_per_mil=0
        integer :: itime_tr0=0
        logical :: conc_from_fw=.false., t_qlimit=.true., need_ic=.false.
+       logical :: from_file=.false.
       end type ocn_tracer_entry
       end module ocn_tracer_entry_mod
 
@@ -47,18 +41,6 @@
       use ocn_tracer_vector_mod
       SAVE
       type(vector_ocn_tracer_entry) :: tracerlist
-#ifndef TRACERS_OCEAN_INDEP_HARDCODED
-C**** These arrays are allocated/intialized in one of two ways:
-C**** (1) by the AGCM, which copies its data into them
-C**** (2) if RUNTIME_NTM_OCEAN is defined, the allocation/initialization
-C****     of these arrays happens in alloc_ocn_tracer_com() using
-C****     information from the rundeck and/or other config files.
-C****     Set ocean_trname='name1 name2 ...' to instantiate
-C****     a given number of tracers, whose ICs will be read
-C****     from the file OCN_TRACER_CONFIG.  This approach is
-C****     still being tailored to handle all cases for which
-C****     it will prove useful.
-#endif
 
       integer :: n_water
       INTEGER :: n_age=0, n_obio=0, n_vent=0, n_wms1=0, n_wms2=0
@@ -74,18 +56,20 @@ C****     it will prove useful.
 
       contains
 
-      subroutine add_ocn_tracer(i_trname, i_trw0, i_ntrocn, i_conc)
+      subroutine add_ocn_tracer(i_trname, i_trw0, i_ntrocn, i_conc,
+     &                                                  i_from_file)
       use ocn_tracer_entry_mod
       implicit none
       character(len=*), intent(in) :: i_trname
       integer, intent(in), optional :: i_trw0, i_ntrocn
-      logical, intent(in), optional :: i_conc
+      logical, intent(in), optional :: i_conc, i_from_file
       type(ocn_tracer_entry) :: entry
 
       entry%trname=i_trname
       if (present(i_trw0)) entry%trw0=i_trw0
       if (present(i_ntrocn)) entry%ntrocn=i_ntrocn
       if (present(i_conc)) entry%conc_from_fw=i_conc
+      if (present(i_from_file)) entry%from_file=i_from_file
       call tracerlist%push_back(entry)
       return
       end subroutine add_ocn_tracer
@@ -132,20 +116,16 @@ C****     it will prove useful.
         jmg = 1
         lmg = 1
       end if
-#ifdef RUNTIME_NTM_OCEAN
       if(is_set_param("ocean_trname")) then
         trname_list=''
         call get_param("ocean_trname",trname_list)
         trname_list=adjustl(trname_list)
         do while(len_trim(trname_list).gt.0)
           i=index(trname_list,' ')
-          call add_ocn_tracer(trname_list(1:i-1))
+          call add_ocn_tracer(trname_list(1:i-1), i_from_file=.true.)
           trname_list = adjustl(trname_list(i:128))
         enddo
-      else
-        call stop_model('RUNTIME_NTM_OCEAN needs ocean_trname',255)
       endif
-#endif
       numtracers=tracerlist%getsize()
       allocate(oc_tracer_mean(numtracers)) 
       oc_tracer_mean(:) = -999.
