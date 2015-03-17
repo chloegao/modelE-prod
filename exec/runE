@@ -3,6 +3,8 @@
 
 OPTS=
 QS_OPT=
+np=1
+t=0:10:00
 
 if [ "$MODELERC"x = x ] ; then MODELERC=$HOME/.modelErc ; fi
 if [ -f $MODELERC ] ; then
@@ -28,12 +30,22 @@ while [ $# -ge 1 ] ; do
     case $OPT in
         -s)
             QS_OPT=_"$1" ; shift
+            continue
+            ;;
+        -t)
+            t="$1" ; shift
+            continue
+            ;;
+         -np)
+            np="$1"
             ;;
          *)
-            OPTS="$OPTS $OPT"
             ;;
     esac
+    OPTS="$OPTS $OPT"
 done
+
+echo "will use OPTS: "$OPTS
 
 
 if [ ! -d $CMRUNDIR/$RUNID ] ; then
@@ -80,8 +92,15 @@ chmod 755 $run_command
 echo "-99" > run_status
 echo "not started yet" >> run_status
 
-eval QSUB_STRING_VALUE=\$QSUB_STRING$QS_OPT
+# get full name (including -s suffix) of  QSUB_STRING
+eval QSUB_STRING_VAL_0=\$QSUB_STRING$QS_OPT
+# expand variables (like %np, %t) in QSUB_STRING
+# (the following line can be used to expand \$xyz variables)
+#eval QSUB_STRING_VALUE=\"$QSUB_STRING_VAL_0\"
+QSUB_STRING_VAL_1=${QSUB_STRING_VAL_0/\%np/$np}
+QSUB_STRING_VALUE=${QSUB_STRING_VAL_1/\%t/$t}
 echo "submitting: " $QSUB_STRING_VALUE " ./$run_command"
+
 $QSUB_STRING_VALUE ./$run_command
 
 ## if the task is submitted as a SLURM batch job quit here
