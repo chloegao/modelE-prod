@@ -1675,7 +1675,7 @@ C**** check T to make sure it stayed within physical bounds
      *    ' SDRAG:',itime,i,j,l,'  T,U,V=',TL,U(I,J,L),V(I,J,L)
           call stop_model('Stopped in ATMDYN::SDRAG',11)
         end if
-        RHO=PEDN(L+1,I,J)/(RGAS*TL)   ! not quite correct - should be on UV grid
+        RHO=100.*PEDN(L+1,I,J)/(RGAS*TL)   ! not quite correct - should be on UV grid
         WL=SQRT(U(I,J,L)*U(I,J,L)+V(I,J,L)*V(I,J,L))
         xjud=1.
         if(Wc_JDRAG.gt.0.) xjud=(Wc_JDRAG/(Wc_JDRAG+min(WL,wmaxj)))**2
@@ -1686,7 +1686,7 @@ C**** then finding the drag and applying it to the reduced winds
         IF (cd_lin) CDN=(X_SDRAG(1)+X_SDRAG(2)*min(WL,wmaxj))*xjud
          MAUV = (MA(L,Ip1,J-1)+MA(L,I,J-1))*RAPVN(J-1) +
      +          (MA(L,Ip1,J  )+MA(L,I,J  ))*RAPVS(J)
-         X = DT1*RHO*CDN*Min(WL,WMAXJ)*GRAV*VSDRAGL(L) / MAUV
+         X = DT1*RHO*CDN*Min(WL,WMAXJ)*VSDRAGL(L) / MAUV
         if (wl.gt.wmaxj) X = 1. - (1.-X)*wmaxj/wl
 C**** adjust diags for possible difference between DT1 and DTSRC
 c        call inc_ajl(i,j,l,JL_DUDTSDRG,-U(I,J,L)*X) ! for a-grid only
