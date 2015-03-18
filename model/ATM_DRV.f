@@ -900,7 +900,7 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
       call def_rsf_flammability(fid)
 #endif
 #ifdef TRACERS_ON
-      call def_rsf_tracer (fid)
+      call tracerIO(fid, 'define')
 #endif
       call def_rsf_subdd  (fid)
       call def_rsf_fluxes (fid)
@@ -908,6 +908,7 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
       end subroutine def_rsf_atmvars
 
       subroutine new_io_atmvars(fid,iorw)
+      use model_com, only: ioread, iowrite
       implicit none
       integer, intent(in) :: fid,iorw
       call new_io_atm    (fid,iorw)
@@ -934,7 +935,13 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
       call new_io_flammability(fid,iorw)
 #endif
 #ifdef TRACERS_ON
-      call new_io_tracer (fid,iorw)
+      select case (iorw)
+      case (ioread)
+         call tracerIO(fid, 'read_dist')
+      case (iowrite)
+         call tracerIO(fid, 'write_dist')
+      end select
+
 #endif
       call new_io_subdd  (fid,iorw)
       call new_io_fluxes (fid,iorw)

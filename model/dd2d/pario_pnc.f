@@ -413,23 +413,31 @@ c
 #include "do_par_read_pnc.inc"
       end subroutine par_read_nc_5D
 
-      subroutine par_read_nc_2D_int(grid,fid,varname,iarr)
+      subroutine par_read_nc_2D_int(grid,fid,varname,iarr,
+     &  jdim, no_xdim, record, record1)
       integer :: fid
       character(len=*) :: varname
       type(dist_grid), intent(in) :: grid
       integer :: iarr(:,:)
       real*8 :: arr(size(iarr,1),size(iarr,2))
+      integer, intent(in), optional :: jdim
+      logical, intent(in), optional :: no_xdim
+      integer, intent(in), optional :: record,record1
       arr = impossible_int
       call read_dist_data(grid,fid,varname,arr)
       where(arr.ne.impossible_int) iarr = arr
       end subroutine par_read_nc_2D_int
-      subroutine par_read_nc_3D_int(grid,fid,varname,iarr,jdim)
+
+      subroutine par_read_nc_3D_int(grid,fid,varname,iarr,jdim,
+     &     no_xdim, record, record1)
       integer :: fid
       character(len=*) :: varname
       type(dist_grid), intent(in) :: grid
       integer :: iarr(:,:,:)
       integer, intent(in), optional :: jdim
       real*8 :: arr(size(iarr,1),size(iarr,2),size(iarr,3))
+      logical, intent(in), optional :: no_xdim
+      integer, intent(in), optional :: record,record1
       arr = impossible_int
       if(present(jdim)) then
         call read_dist_data(grid,fid,varname,arr,jdim=jdim)
@@ -438,13 +446,16 @@ c
       endif
       where(arr.ne.impossible_int) iarr = arr
       end subroutine par_read_nc_3D_int
-      subroutine par_read_nc_4D_int(grid,fid,varname,iarr,jdim)
+      subroutine par_read_nc_4D_int(grid,fid,varname,iarr,jdim,
+     &     no_xdim, record, record1)
       integer :: fid
       character(len=*) :: varname
       type(dist_grid), intent(in) :: grid
       integer :: iarr(:,:,:,:)
       integer, intent(in), optional :: jdim
       real*8 :: arr(size(iarr,1),size(iarr,2),size(iarr,3),size(iarr,4))
+      logical, intent(in), optional :: no_xdim
+      integer, intent(in), optional :: record,record1
       arr = impossible_int
       if(present(jdim)) then
         call read_dist_data(grid,fid,varname,arr,jdim=jdim)
@@ -454,13 +465,16 @@ c
       where(arr.ne.impossible_int) iarr = arr
       end subroutine par_read_nc_4D_int
 
-      subroutine par_write_nc_2D_int(grid,fid,varname,iarr,record)
+      subroutine par_write_nc_2D_int(grid,fid,varname,iarr,record,
+     &     jdim, no_xdim)
       integer :: fid
       character(len=*) :: varname
       type(dist_grid), intent(in) :: grid
       integer :: iarr(:,:)
       integer, intent(in), optional :: record
       real*8 :: arr(size(iarr,1),size(iarr,2))
+      integer, optional, intent(in) :: jdim
+      logical, optional, intent(in) :: no_xdim
       arr = iarr
       if(present(record)) then
         call write_dist_data(grid,fid,varname,arr,record=record)
@@ -468,7 +482,8 @@ c
         call write_dist_data(grid,fid,varname,arr)
       endif
       end subroutine par_write_nc_2D_int
-      subroutine par_write_nc_3D_int(grid,fid,varname,iarr,jdim,record)
+      subroutine par_write_nc_3D_int(grid,fid,varname,iarr,jdim,record,
+     &     no_xdim)
       integer :: fid
       character(len=*) :: varname
       type(dist_grid), intent(in) :: grid
@@ -476,6 +491,7 @@ c
       integer, intent(in), optional :: jdim
       integer, intent(in), optional :: record
       real*8 :: arr(size(iarr,1),size(iarr,2),size(iarr,3))
+      logical, optional, intent(in) :: no_xdim
       integer :: jdim_
       arr = iarr
       jdim_ = 2
@@ -487,7 +503,8 @@ c
         call write_dist_data(grid,fid,varname,arr,jdim=jdim_)
       endif
       end subroutine par_write_nc_3D_int
-      subroutine par_write_nc_4D_int(grid,fid,varname,iarr,jdim,record)
+      subroutine par_write_nc_4D_int(grid,fid,varname,iarr,jdim,record,
+     &     no_xdim)
       integer :: fid
       character(len=*) :: varname
       type(dist_grid), intent(in) :: grid
@@ -495,6 +512,7 @@ c
       integer, intent(in), optional :: jdim
       integer, intent(in), optional :: record
       real*8 :: arr(size(iarr,1),size(iarr,2),size(iarr,3),size(iarr,4))
+      logical, optional, intent(in) :: no_xdim
       integer :: jdim_
       arr = iarr
       jdim_ = 2
@@ -507,13 +525,16 @@ c
       endif
       end subroutine par_write_nc_4D_int
 
-      subroutine par_read_nc_2D_logical(grid,fid,varname,larr)
+      subroutine par_read_nc_2D_logical(grid,fid,varname,larr,
+     &     jdim, no_xdim)
       USE CONSTANT, only : UNDEF_VAL
       integer :: fid
       character(len=*) :: varname
       type(dist_grid), intent(in) :: grid
       logical :: larr(:,:)
       real*8 :: arr(size(larr,1),size(larr,2))
+      integer, optional, intent(in) :: jdim
+      logical, intent(in), optional :: no_xdim
       arr = UNDEF_VAL
       call read_dist_data(grid,fid,varname,arr)
       larr = arr.eq.1d0
