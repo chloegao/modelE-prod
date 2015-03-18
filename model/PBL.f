@@ -28,9 +28,6 @@
       USE SEAICE, only : tfrez
       USE LANDICE, only : snmin
 #ifdef TRACERS_ON
-#ifdef WATER_PROPORTIONAL
-      USE TRACER_COM, only : force_limit=>force_limit_pbl
-#endif
       use OldTracer_mod, only: trName, nWATER, tr_wd_TYPE
       USE TRACER_COM, only: NTM
 #ifdef TRACERS_SPECIAL_O18
@@ -298,6 +295,9 @@ CCC      real*8 :: bgrid
 !@+       wind speed from PDF of velocities
       integer :: calc_wspdf=0
 
+#ifdef WATER_PROPORTIONAL
+      logical :: force_limit
+#endif
       CONTAINS
 
       subroutine advanc(pbl_args,coriol,utop,vtop,qtop,ztop,mdf
