@@ -758,7 +758,7 @@ c****
       use veg_drv, only: veg_save_cell,veg_set_cell
 #endif
       use fluxes, only : atmlnd,prec,eprec
-     *     ,precss,nisurf
+     *     ,precss,nisurf, asflx
       use ghy_com, only : snowbv, fearth,
      &     fr_snow_ij,
      *     tearth,tsns_ij,wearth,aiearth,
@@ -782,7 +782,6 @@ c****
 #ifdef WATER_PROPORTIONAL
       use tracer_com, only : NTM,trm
       use geom, only : axyp
-      use pblcom, only : qabl,trabl
 #endif
 #ifdef USE_ENT
       use ent_com, only : entcells
@@ -1402,7 +1401,8 @@ c as a PBL diagnostic.
 c fill in pbl profile in case it is used to initialize
 c another surface type
         do lpbl=1,npbl
-          trabl(lpbl,itr,itype,i,j)=conc1(itr)*qabl(lpbl,itype,i,j)
+          asflx(itype)%trabl(lpbl,itr,i,j)=
+     &              conc1(itr)*asflx(itype)%qabl(lpbl,i,j)
         enddo
       enddo ! itr
 #endif
