@@ -8475,11 +8475,13 @@ C****
 
       bydt = 1./DTsrc
 #ifdef TRACERS_TOMAS
+#ifndef SKIP_TRACER_SRCS
         do k=1,nbins
            trsource(:,J_0:J_1,1,n_ANUM(1)+k-1)=0.
            trsource(:,J_0:J_1,2,n_ANUM(1)+k-1)=0.
            trsource(:,J_0:J_1,3,n_ANUM(1)+k-1)=0.
         enddo
+#endif
 #endif
 C**** All sources are saved as kg/s
       iter = tracers%begin()

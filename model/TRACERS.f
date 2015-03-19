@@ -63,6 +63,7 @@ C**** Ensure that this is a valid tracer and source
       if (n.eq.0 .or. ns.eq.0) then
          return
       end if
+#ifndef SKIP_TRACER_SRCS
 C**** parse options
       domom=.true.
       if( present(momlog) ) then
@@ -100,7 +101,6 @@ C**** apply tracer source alterations if requested in rundeck:
      &                   (1-mask(i,j))
                  end do
               end do
-#ifndef SKIP_TRACER_SRCS
               do l = 1, lm
                 do j = j_0, j_1
                   do i = i_0, imaxj(j)
@@ -110,7 +110,6 @@ C**** apply tracer source alterations if requested in rundeck:
                   end do
                 end do
               end do
-#endif
             end if
           end do
         end do
@@ -122,9 +121,7 @@ C**** apply tracer source alterations if requested in rundeck:
       do l=1,lm
       do j=j_0,j_1
         do i=i_0,imaxj(j)
-#ifndef SKIP_TRACER_SRCS
           dtrm(i,j,l) = tr3Dsource(i,j,l,ns,n)*dtsrc
-#endif
 C**** calculate fractional loss and update tracer mass
 #ifdef TRACERS_TOMAS
           if(trm(i,j,l,n).gt.0.)then
@@ -162,6 +159,7 @@ C**** calculate fractional loss and update tracer mass
           enddo
         enddo
       endif
+#endif
 
       if (itcon_3Dsrc(ns,n).gt.0)
      *  call DIAGTCA(itcon_3Dsrc(ns,n),n)
@@ -682,9 +680,8 @@ c
      *     ,grid%J_STRT_HALO:grid%J_STOP_HALO) :: dtracer
 
       INTEGER :: J_0, J_1, I_0, I_1
-#ifdef TRACERS_TOMAS
-      INTEGER tomas_ntsurf !same as ntsurfsrc
-#endif
+      INTEGER ntsurf !same as ntsurfsrc
+
       call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
@@ -696,30 +693,25 @@ C**** in ATURB or explicitly in 'apply_fluxes_to_atm' call in SURFACE.
 
       do n=1,ntm
         trflux1(:,:,n) = 0.
+        ntsurf = ntsurfsrc(n) 
 #ifdef TRACERS_TOMAS
-        tomas_ntsurf = ntsurfsrc(n) 
 
 ! Overwrite with first bin 
        if(n.ge.n_ASO4(1).and.n.lt.n_ANACL(1))
-     .               tomas_ntsurf=ntsurfsrc(n_SO2) !so4
+     .               ntsurf=ntsurfsrc(n_SO2) !so4
        if(n.ge.n_AECOB(1).and.n.lt.n_AOCOB(1))
-     .               tomas_ntsurf=ntsurfsrc(n_AECOB(1)) !ecob
+     .               ntsurf=ntsurfsrc(n_AECOB(1)) !ecob
        if(n.ge.n_AOCOB(1).and.n.lt.n_ADUST(1))
-     .               tomas_ntsurf=ntsurfsrc(n_AOCOB(1)) !ocob + ocil
-       do ns=1,tomas_ntsurf
-#else
-C**** Non-interactive sources
-        do ns=1,ntsurfsrc(n)
+     .               ntsurf=ntsurfsrc(n_AOCOB(1)) !ocob + ocil
 #endif
+#ifndef SKIP_TRACER_SRCS
+        do ns=1,ntsurf
 C**** diagnostics
           naij = ijts_source(ns,n)
           IF (naij > 0) THEN
-#ifndef SKIP_TRACER_SRCS
           taijs(:,:,naij) = taijs(:,:,naij) + trsource(:,:,ns,n)*dtstep
-#endif
           ENDIF
           najl = jls_source(ns,n)
-#ifndef SKIP_TRACER_SRCS
           IF (najl > 0) THEN
             DO J=J_0,J_1
               DO I=I_0,imaxj(j)
@@ -732,14 +724,12 @@ C**** diagnostics
               dtracer(i,j)=trsource(i,j,ns,n)*dtstep
             end do
           end do
-#endif
           if (itcon_surf(ns,n).gt.0)
      *         call DIAGTCB(dtracer,itcon_surf(ns,n),n)
 C**** trflux1 is total flux into first layer
-#ifndef SKIP_TRACER_SRCS
           trflux1(:,:,n) = trflux1(:,:,n)+trsource(:,:,ns,n)*byaxyp(:,:)
-#endif
         end do
+#endif
         atmsrf%trflux_prescr(n,:,:) = trflux1(:,:,n)
       end do
       RETURN

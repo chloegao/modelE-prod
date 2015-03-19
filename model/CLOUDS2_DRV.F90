@@ -119,13 +119,12 @@ subroutine CONDSE
 #ifdef TRACERS_SPECIAL_Shindell
   use LIGHTNING, only : RNOx_lgt,saveLightning,saveC2gLightning
 #endif
+  use trdiag_com, only: taijn=>taijn_loc, tij_prec
 #ifndef SKIP_TRACER_DIAGS
   use TRDIAG_COM, only: jlnt_mc,jlnt_lscond,itcon_mc &
-       ,itcon_ss,taijn=>taijn_loc,taijs=>taijs_loc
+       ,itcon_ss,taijs=>taijs_loc
 #ifdef TRACERS_WATER
-#ifndef SKIP_TRACER_DIAGS
-  use TRDIAG_COM, only: jls_prec,tij_prec,trp_acc
-#endif
+  use TRDIAG_COM, only: jls_prec,trp_acc
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
   use TRDIAG_COM, only: jls_incloud,ijts_aq
@@ -1686,13 +1685,13 @@ subroutine CONDSE
           !     .    trprec(n,i,j),trprss(nx)
           !**** diagnostics
           if (dowetdep(n)) then
+            taijn(i,j,tij_prec,n) =taijn(i,j,tij_prec,n) + &
+                 trprec(n,i,j)
 #ifndef SKIP_TRACER_DIAGS
             if (jls_prec(1,n).gt.0) call inc_tajls2(i,j,1,jls_prec(1,n), &
                  trprec(n,i,j))
             if (jls_prec(2,n).gt.0) call inc_tajls2(i,j,1,jls_prec(2,n), &
                  trprec(n,i,j)*focean(i,j))
-            taijn(i,j,tij_prec,n) =taijn(i,j,tij_prec,n) + &
-                 trprec(n,i,j)
 #ifdef TRACERS_COSMO
             if (n .eq. n_Be7) BE7W_acc(i,j)=BE7W_acc(i,j)+ &
                  trprec(n,i,j)
