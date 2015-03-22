@@ -30,6 +30,7 @@ module AbstractCalendar_mod
      private
 
      type (AbstractTimeStampHashMap) :: transitionDates
+     logical :: verbose
 
    contains
 
@@ -76,6 +77,9 @@ module AbstractCalendar_mod
      procedure, nopass :: getHoursPerDay
      procedure(getConstInterval), deferred :: getSecondsPerDay
      procedure(getConstInterval), deferred :: getSecondsPerHour
+
+    procedure :: setVerbose
+    procedure :: getVerbose
 
   end type AbstractCalendar
 
@@ -361,6 +365,22 @@ contains
        
     
   end subroutine printTransitionDates
+
+
+  subroutine setVerbose(this, verbose)
+     class (AbstractCalendar), intent(inout) :: this
+     logical, intent(in) :: verbose
+
+     this%verbose = verbose
+
+  end subroutine setVerbose
+
+  logical function getVerbose(this)
+     class (AbstractCalendar), intent(in) :: this
+     
+     getVerbose = this%verbose
+
+  end function getVerbose
 
 
 end module AbstractCalendar_mod

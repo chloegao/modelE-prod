@@ -1353,18 +1353,8 @@ c      EDPY=365d0 ; VEDAY=79d0           ! Generic year
 C**** PMIP calculation (no leap, VE=Mar 21 hr 12)
       EDPY=365d0 ; VEDAY=79.5d0           ! Generic year
 C**** Update orbital parameters at start of year
-      if (variable_orb_par == 1.and.dayOfYear == 1) then
-        pyear = YEAR - orb_par_year_bp ! bp=before present model year
-        call useOrbit%setYear(pYear)
-        if (am_I_root()) then
-          write(6,*) 'Set orbital parameters for year ',pyear,' (CE)'
-          if (orb_par_year_bp.ne.0) write(6,*) 'offset by',
-     *      orb_par_year_bp,' years from model year'
-          write(6,*) "   Eccentricity: ", useOrbit%getEccentricity()
-          write(6,*) "   Obliquity (degs): ",useOrbit%getObliquity()
-          write(6,*) "   Precession (degs from ve): ",
-     *         useOrbit%getLongitudeAtPeriapsis()
-        end if
+      if (dayOfYear == 1) then
+         call useOrbit%setYear(real(year,kind=8))
       end if
 
       ! Use time for the _middle_ of the day to compute 

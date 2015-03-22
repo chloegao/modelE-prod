@@ -383,7 +383,10 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
       endif
 
       allocate(orbit, source=makeOrbit())
+      call orbit%setVerbose(am_I_root())
+
       allocate(calendar, source=orbit%makeCalendar())
+      call calendar%setVerbose(am_I_root())
 
       if (am_i_root()) call calendar%print(2000)
 
@@ -635,7 +638,7 @@ C****
      &                              INT_DAYS_PER_YEAR
       use ModelClock_mod, only: ModelClock
       use Time_mod, only: Time, newTime
-      use MODEL_COM, only: calendar
+      use MODEL_COM, only: calendar, orbit
       use CalendarMonth_mod, only: LEN_MONTH_ABBREVIATION
       use BaseTime_mod
       use Rational_mod, only: nint
@@ -1030,6 +1033,12 @@ C**** MUST be before other init routines
         call read_subdd_rsf(trim(rsf_file_name(kdisk_restart))//'.nc')
       endif
 #endif
+
+      ! In the case of parameterized orbits, the year must now be set.
+      ! Unfortunately, year is not available when orbit and calendar are
+      ! established.
+      year = modelEclock%getYear()
+      call orbit%setYear(real(year,kind=8))
 
 C****
       RETURN
