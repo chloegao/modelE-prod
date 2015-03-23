@@ -359,19 +359,23 @@ c
       return
       end subroutine get_dimlens
 
-      subroutine par_write_nc_2D(grid,fid,varname,arr,jdim,record)
+      subroutine par_write_nc_2D(grid,fid,varname,arr,jdim,record,
+     &     no_xdim)
       real*8 :: arr(:,:)
 #include "do_par_write_pnc.inc"
       end subroutine par_write_nc_2D
-      subroutine par_write_nc_3D(grid,fid,varname,arr,jdim,record)
+      subroutine par_write_nc_3D(grid,fid,varname,arr,jdim,record,
+     &     no_xdim)
       real*8 :: arr(:,:,:)
 #include "do_par_write_pnc.inc"
       end subroutine par_write_nc_3D
-      subroutine par_write_nc_4D(grid,fid,varname,arr,jdim,record)
+      subroutine par_write_nc_4D(grid,fid,varname,arr,jdim,record,
+     &     no_xdim)
       real*8 :: arr(:,:,:,:)
 #include "do_par_write_pnc.inc"
       end subroutine par_write_nc_4D
-      subroutine par_write_nc_5D(grid,fid,varname,arr,jdim,record)
+      subroutine par_write_nc_5D(grid,fid,varname,arr,jdim,record,
+     &     no_xdim)
       real*8 :: arr(:,:,:,:,:)
 #include "do_par_write_pnc.inc"
       end subroutine par_write_nc_5D
@@ -393,28 +397,28 @@ c
       end subroutine par_write_nc_5D_bundle
 
       subroutine par_read_nc_2D(grid,fid,varname,arr,jdim,
-     &     record,record1)
+     &     record,record1,no_xdim)
       real*8 :: arr(:,:)
 #include "do_par_read_pnc.inc"
       end subroutine par_read_nc_2D
       subroutine par_read_nc_3D(grid,fid,varname,arr,jdim,
-     &     record,record1)
+     &     record,record1,no_xdim)
       real*8 :: arr(:,:,:)
 #include "do_par_read_pnc.inc"
       end subroutine par_read_nc_3D
       subroutine par_read_nc_4D(grid,fid,varname,arr,jdim,
-     &     record,record1)
+     &     record,record1,no_xdim)
       real*8 :: arr(:,:,:,:)
 #include "do_par_read_pnc.inc"
       end subroutine par_read_nc_4D
       subroutine par_read_nc_5D(grid,fid,varname,arr,jdim,
-     &     record,record1)
+     &     record,record1,no_xdim)
       real*8 :: arr(:,:,:,:,:)
 #include "do_par_read_pnc.inc"
       end subroutine par_read_nc_5D
 
       subroutine par_read_nc_2D_int(grid,fid,varname,iarr,
-     &  jdim, no_xdim, record, record1)
+     &  no_xdim, jdim, record, record1)
       integer :: fid
       character(len=*) :: varname
       type(dist_grid), intent(in) :: grid
@@ -526,7 +530,7 @@ c
       end subroutine par_write_nc_4D_int
 
       subroutine par_read_nc_2D_logical(grid,fid,varname,larr,
-     &     jdim, no_xdim)
+     &     jdim, no_xdim, record, record1)
       USE CONSTANT, only : UNDEF_VAL
       integer :: fid
       character(len=*) :: varname
@@ -535,15 +539,20 @@ c
       real*8 :: arr(size(larr,1),size(larr,2))
       integer, optional, intent(in) :: jdim
       logical, intent(in), optional :: no_xdim
+      integer, optional, intent(in) :: record, record1
       arr = UNDEF_VAL
       call read_dist_data(grid,fid,varname,arr)
       larr = arr.eq.1d0
       end subroutine par_read_nc_2D_logical
-      subroutine par_write_nc_2D_logical(grid,fid,varname,larr)
+
+      subroutine par_write_nc_2D_logical(grid,fid,varname,larr, jdim,
+     &     no_xdim)
       integer :: fid
       character(len=*) :: varname
       type(dist_grid), intent(in) :: grid
       logical :: larr(:,:)
+      integer, optional, intent(in) :: jdim
+      logical, intent(in), optional :: no_xdim
       real*8 :: arr(size(larr,1),size(larr,2))
       where(larr)
         arr = 1d0

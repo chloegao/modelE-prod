@@ -3,6 +3,7 @@
       type(dist_grid), intent(in) :: grid
       integer, intent(in), optional :: jdim
       integer, intent(in), optional :: record
+      logical, intent(in), optional :: no_xdim
 #ifndef SERIAL_MODE
       real*8, dimension(:), allocatable :: arr_nohalo
       integer :: nl,nk,jd,nd,ierr,vid,did,rc,arrsize,td,rd

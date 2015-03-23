@@ -420,9 +420,9 @@ contains
 !    t => newTracer(name)
 !    call tracerReference%insert(name, t)
     t => tracerReference%getReference(name)
-    if (present(initname)) it=>tracerreference%getreference(name)
+    if (present(initname)) it=>tracerreference%getreference(initname)
     if (associated(it)) then
-      call copyinto(it, t)
+      call copyinto(t, it)
     else
       call defaultSpec(numTracers, t)
     endif
