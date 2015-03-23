@@ -982,6 +982,12 @@ C**** Set date information
       tmpStr = modelEclock%toString()
       modelEclock = ModelClock(tmpStr, calendar, dtSrcUsed)
 
+      ! In the case of parameterized orbits, the year must now be set.
+      ! Unfortunately, year is not available when orbit and calendar are
+      ! established.
+      year = modelEclock%getYear()
+      call orbit%setYear(real(year,kind=8))
+
       CALL DAILY_cal(.false.)                  ! not end_of_day
 
 #ifndef STANDALONE_OCEAN
@@ -1033,12 +1039,6 @@ C**** MUST be before other init routines
         call read_subdd_rsf(trim(rsf_file_name(kdisk_restart))//'.nc')
       endif
 #endif
-
-      ! In the case of parameterized orbits, the year must now be set.
-      ! Unfortunately, year is not available when orbit and calendar are
-      ! established.
-      year = modelEclock%getYear()
-      call orbit%setYear(real(year,kind=8))
 
 C****
       RETURN

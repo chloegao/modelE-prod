@@ -61,6 +61,7 @@ contains
       integer, intent(in) :: yearBeforePresent
       
 
+      call orbit%setMeanDistance(1.0_WP) ! 1 A.U.
       orbit%timeAtVernalEquinox = newBaseTime(Rational(79*24+12)*3600)
       call orbit%setTimeAtPeriapsis(newBaseTime(Rational(2*24+5)*3600))
 
