@@ -39,10 +39,10 @@
          end if
       case ('read_dist')
          call read_dist_data(handle%grid, handle%fileId, variableName, arr, &
-              & jdim, no_xdim, record, record1)
+              & jdim=jdim, no_xdim=no_xdim, record=record, record1=record1)
       case ('write_dist')
          call write_dist_data(handle%grid, handle%fileId, variableName, &
-              & arr, jdim, no_xdim)
+              & arr, jdim=jdim, no_xdim=no_xdim)
       case ('default')
          call stop_model('NetCdFHandle::do() unsupported option for iAction.')
       end select
