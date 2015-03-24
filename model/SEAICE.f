@@ -12,6 +12,10 @@
       use TimeConstants_mod, only: SECONDS_PER_DAY
       IMPLICIT NONE
       SAVE
+
+!@param dtdp Clausius-Clapeyron Constant (dT/dp of ice) (units K Pa-1)
+      real*8, parameter :: dtdp = -7.5d-8
+
 #ifdef TRACERS_WATER
       INTEGER :: ntm
 #endif
@@ -1609,7 +1613,6 @@ c****
       real*8, intent(in), optional :: press
 !@var tfrez approx. freezing point of sea water (C)
       real*8 tfrez,pr
-      real*8, parameter :: dtdp = -7.5d-8
       real*8 :: a01 = -.0575d0, a02 = -2.154996d-4, a03 =1.710523d-3
 
       pr=0.
