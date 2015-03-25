@@ -568,7 +568,12 @@ subroutine CONDSE
         do I=I_0thread,I_1thread
           GZIL(I,L) = GZ(I,J,L)
 #ifdef SCM
-          SD_CLDIL(I,L) = SCMin%Omega(L)*AXYP(1,1)
+          ! apply large-scale divergence if specified
+          if( SCMopt%omega .or. SCMopt%w )then
+            SD_CLDIL(I,L) = SCMin%Omega(L)*AXYP(1,1)
+          else
+            SD_CLDIL(I,L) = 0.
+          endif
 #else
           SD_CLDIL(I,L) = MWs(I,J,L)/DTsrc ! averaged SD
 #endif

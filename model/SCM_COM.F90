@@ -134,8 +134,8 @@
   SCMopt%ls_v = file_exists('SCM_LS_V')
   if( SCMopt%omega .and. SCMopt%w ) &
     call stop_model('alloc_SCM_COM: at most one of omega and w',255)
-  if( ( SCMopt%omega .or. SCMopt%w ) .and. SCMopt%ls_v ) &
-    call stop_model( 'alloc_SCM_COM: at most one of w ,omega, or ls_v',255)
+  if( SCMopt%ls_v .and. .not. SCMopt%omega ) &
+    call stop_model( 'alloc_SCM_COM: omega needed for convergence',255)
 
   SCMopt%ls_h = file_exists('SCM_LS_H')
   SCMopt%Qrad = file_exists('SCM_QRAD')
