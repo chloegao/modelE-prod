@@ -1953,6 +1953,13 @@ subroutine CONDSE
   select case (subdd%name(k))
   case ('prec')
     call inc_subdd(subdd,k,prec)
+  case ('ssp')
+    call inc_subdd(subdd,k,precss)
+  case ('mcp')
+    do j=j_0,j_1; do i=i_0,imaxj(j)
+      sddarr(i,j) = max(0.,prec(i,j)-precss(i,j))
+    enddo;        enddo
+    call inc_subdd(subdd,k,sddarr)
   case ('snowfall')
     do j=j_0,j_1; do i=i_0,imaxj(j)
       if(eprec(i,j).ge.0.) then
