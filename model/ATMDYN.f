@@ -333,7 +333,6 @@ c apply north-south filter to U and V once per physics timestep
       call fltry2(v,1d0) ! 2nd arg could be set using DT_YVfilter
       call conserv_amb_ext(u,am2) ! calculate ang. mom. after filter
       am2(:,j_0stg:j_1stg) = am1(:,j_0stg:j_1stg)-am2(:,j_0stg:j_1stg)
-      if(have_south_pole) am2(:,1) = 0.
       call globalsum(grid,am2,damsum,all=.true.)
       call add_am_as_solidbody_rotation(u,damsum) ! maintain global ang. mom.
 
@@ -1741,103 +1740,73 @@ C**** (technically we should use U,V from before but this is ok)
 
       end module ATMDYN
 
-      subroutine add_am_as_solidbody_rotation(u,dam)
-      use constant, only : radius,mb2kg
-      use resolution, only : pstrat
-      use resolution, only : im,jm,lm
-      use atm_com, only : p
-      use geom, only : cosv,dxyn,dxys,fim
-      USE DOMAIN_DECOMP_ATM, only: grid, getDomainBounds
-      use domain_decomp_1d, only : globalsum
-      implicit none
-      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,lm) :: u
-      real*8 :: dam
-      integer :: j,l
-      real*8 :: u0,xintsum
-      real*8, dimension(grid%j_strt_halo:grid%j_stop_halo) ::
-     &     psumj,xintj
-      integer :: j_0stg, j_1stg, j_0, j_1
-      logical :: have_south_pole, have_north_pole
 
-      call getDomainBounds(grid, j_strt=j_0, j_stop=j_1,
-     &               j_strt_stgr=j_0stg, j_stop_stgr=j_1stg,
-     &               have_south_pole=have_south_pole,
-     &               have_north_pole=have_north_pole)
+      Subroutine ADD_AM_AS_SOLIDBODY_ROTATION (U,dAM)
+!**** Input and Output: U (m/s) = eastward velocity
+!**** Output: dAM (kg m^2/s) = change in global total angular momentum
+      Use RESOLUTION, Only: IM,LM
+      Use CONSTANT,   Only: RADIUS
+      Use GEOM,       Only: COSV,DXYS,DXYN
+      Use ATM_COM,    Only: MASUM
+      Use DOMAIN_DECOMP_ATM, Only: GRID
+      Use DOMAIN_DECOMP_1D,  Only: GLOBALSUM
+      Implicit None
+      Real*8  :: U(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM), dAM
+      Integer :: J,L, J1,JN,J1V
+      Real*8  :: dUEQ,XGLOB
+      Real*8,Dimension(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: MASUMJ,XJ
 
-      do j=j_0stg-1,j_1
-        psumj(j) = sum(p(:,j))+fim*pstrat
-      enddo
-      do j=j_0stg,j_1stg
-        xintj(j) = cosv(j)*cosv(j)*
-     &       (psumj(j-1)*dxyn(j-1)+psumj(j)*dxys(j))
-      enddo
-      if(have_south_pole) xintj(1)=0.
-      call globalsum(grid,xintj,xintsum,all=.true.)
-      u0 = dam/(radius*mb2kg*xintsum)
-      do l=1,lm
-      do j=j_0stg,j_1stg
-        u(:,j,l) = u(:,j,l) + u0*cosv(j)
-      enddo
-      enddo
-      return
-      end subroutine add_am_as_solidbody_rotation
+!**** Domain decomposition variables
+      J1 = GRID%J_STRT  ;  J1V = Max(J1,2)
+      JN = GRID%J_STOP
+!     Call HALO_UPDATE (GRID, MASUM, From=SOUTH)  !  haloed in ADVECM
 
-      SUBROUTINE conserv_AMB_ext(U,AM)
-      USE CONSTANT, only : omega,radius,mb2kg
-      USE RESOLUTION, only : ls1,psfmpt,pstrat
-      USE RESOLUTION, only : im,jm,lm
-      USE ATM_COM, only : p
-      USE DYNAMICS, only : dsig
-      USE GEOM, only : cosv,dxyn,dxys,dxyv,byaxyp
-      USE DOMAIN_DECOMP_ATM, only: grid
-      USE DOMAIN_DECOMP_1D, only : getDomainBounds, SOUTH, HALO_UPDATE
-      USE DOMAIN_DECOMP_1D, only : CHECKSUM
-      IMPLICIT NONE
-      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: U
-      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: AM
-      INTEGER :: I,IP1,J,L
-      REAL*8 :: PSJ,PSIJ,UE,UEDMS,FACJ
-
-      INTEGER :: J_0S, J_1S, J_0STG, J_1STG, J_0, J_1, I_0, I_1
-      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-
-      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1,
-     *               I_STRT=I_0, I_STOP=I_1,
-     *               J_STRT_SKP=J_0S,    J_STOP_SKP=J_1S,
-     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
-     &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
-     &               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
+!**** Add dUEQ*COSV(J) to U for each grid cell
+      Do J=J1V-1,JN
+         MASUMJ(J) = Sum (MASUM(:,J))  ;  EndDo
+      Do J=J1V,JN
+         XJ(J) = COSV(J)**2 * (MASUMJ(J-1)*DXYN(J-1)+MASUMJ(J)*DXYS(J))
+         EndDo
+      If (J1==1)  XJ(1) = 0
+      Call GLOBALSUM (GRID,XJ,XGLOB,All=.True.)
+      dUEQ = dAM / (RADIUS*XGLOB)
+      Do L=1,LM  ;  Do J=J1V,JN
+         U(:,J,L) = U(:,J,L) + dUEQ*COSV(J)  ;  EndDo  ;  EndDo
+      Return
+      EndSubroutine ADD_AM_AS_SOLIDBODY_ROTATION
 
 
-C****
-C**** ANGULAR MOMENTUM ON B GRID
-C****
-      CALL HALO_UPDATE(grid, P, FROM=SOUTH)
+      Subroutine CONSERV_AMB_EXT (U,AM)
+!**** Input: U (m/s) = eastward velocity
+!**** Output: AM (kg m^2/s) = column integrated total angular momentum on B grid
+      Use RESOLUTION, Only: IM,LM
+      Use CONSTANT,   Only: RADIUS,OMEGA
+      Use GEOM,       Only: COSV,DXYS,DXYN
+      Use ATM_COM,    Only: MA
+      Use DOMAIN_DECOMP_ATM, Only: GRID
+      Implicit None
+      Real*8  :: U(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),
+     *          AM(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
+      Integer :: I,J,Ip1, J1,JN,J1V
 
-      DO J=J_0STG,J_1STG
-      PSJ=(2.*PSFMPT*DXYV(J))
-      UE=RADIUS*OMEGA*COSV(J)
-      UEDMS=2.*UE*PSTRAT*DXYV(J)
-      FACJ=.5*COSV(J)*RADIUS*mb2kg
-      I=IM
-      DO IP1=1,IM
-        PSIJ=(P(I,J-1)+P(IP1,J-1))*DXYN(J-1)+(P(I,J)+P(IP1,J))*DXYS(J)
-        AM(I,J)=0.
-        DO L=1,LS1-1
-          AM(I,J)=AM(I,J)+U(I,J,L)*DSIG(L)
-        END DO
-        AM(I,J)=AM(I,J)*PSIJ
-        DO L=LS1,LM
-          AM(I,J)=AM(I,J)+U(I,J,L)*PSJ*DSIG(L)
-        END DO
-        AM(I,J)=(UEDMS+UE*PSIJ+AM(I,J))*FACJ
-        I=IP1
-      END DO
-      END DO
+!**** Domain decomposition variables
+      J1 = GRID%J_STRT  ;  J1V = Max(J1,2)
+      JN = GRID%J_STOP
+!     Call HALO_UPDATE_COLUMN (GRID, MA, From=SOUTH)  !  haloed in ADVECM
 
-      RETURN
-C****
-      END SUBROUTINE conserv_AMB_ext
+!**** Angular Momentum on B grid (kg m^2/s)
+      Do J=J1V,JN
+         I=IM
+         Do Ip1=1,IM
+            AM(I,J) = Sum (((MA(:,I,J-1) + MA(:,Ip1,J-1))*DXYN(J-1) +
+     +                      (MA(:,I,J  ) + MA(:,Ip1,J  ))*DXYS(J)) *
+     *                     (U(I,J,:) + COSV(J)*RADIUS*OMEGA))
+            AM(I,J) = AM(I,J)*.5*COSV(J)*RADIUS
+            I=Ip1  ;  EndDo  ;  EndDo
+      If (J1==1)  AM(:,1) = 0
+      Return
+      EndSubroutine CONSERV_AMB_EXT
+
 
       SUBROUTINE conserv_AM(AM)
 !@sum  conserv_AM calculates A-grid column-sum atmospheric angular momentum,
@@ -1875,68 +1844,40 @@ c scale by area
 C****
       END SUBROUTINE conserv_AM
 
-      SUBROUTINE conserv_KE(RKE)
-!@sum  conserv_KE calculates A-grid column-sum atmospheric kinetic energy,
-!@sum  (J/m2)
-!@auth Gary Russell/Gavin Schmidt
-      USE CONSTANT, only : mb2kg
-      USE RESOLUTION, only : ls1,psfmpt
-      USE RESOLUTION, only : im,jm,lm
-      USE ATM_COM, only : p,u,v
-      USE DYNAMICS, only : dsig
-      USE GEOM, only : dxyn,dxys,dxyv,byaxyp
-      USE DOMAIN_DECOMP_ATM, only: grid, getDomainBounds
-      USE DOMAIN_DECOMP_1D, only : CHECKSUM, HALO_UPDATE
-      USE DOMAIN_DECOMP_1D, only : SOUTH
-      IMPLICIT NONE
 
-      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: RKE
-      INTEGER :: I,IP1,J,L
-      INTEGER :: J_0STG,J_1STG, J_0, J_1, I_0, I_1
-      REAL*8 :: PSJ,PSIJ
+      Subroutine CONSERV_KE (RKE)
+!**** Output: RKE (J/m^2) = column summed kinetic energy on A grid
+      Use RESOLUTION, Only: IM,JM,LM
+      Use ATM_COM,    Only: MA,U,V
+      Use GEOM,       Only: DXYS,DXYN,byAXYP
+      Use DOMAIN_DECOMP_ATM, Only: GRID
+      Implicit None
+      Real*8  :: RKE(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
+      Integer :: I,J,Ip1, J1,JN,J1V
 
-      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1,
-     *               I_STRT=I_0, I_STOP=I_1,
-     *               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG)
+!**** Domain decomposition variables
+      J1 = GRID%J_STRT  ;  J1V = Max(J1,2)
+      JN = GRID%J_STOP
+!     Call HALO_UPDATE_COLUMN (GRID, MA, From=SOUTH)  !  already haloed
 
-C****
-C**** KINETIC ENERGY ON B GRID
-C****
+!**** Kinetic Energy on B grid (J)
+      Do J=J1V,JN
+         I=IM
+         Do Ip1=1,IM
+            RKE(I,J) = Sum (((MA(:,I,J-1) + MA(:,Ip1,J-1))*DXYN(J-1) +
+     +                       (MA(:,I,J  ) + MA(:,Ip1,J  ))*DXYS(J)) *
+     *                      (U(I,J,:)**2 + V(I,J,:)**2)) * .25
+            I=Ip1  ;  EndDo  ;  EndDo
 
-      CALL HALO_UPDATE(grid, P, FROM=SOUTH)
-      DO J=J_0STG,J_1STG
-      PSJ=(2.*PSFMPT*DXYV(J))
-      I=IM
-      DO IP1=1,IM
-        PSIJ=(P(I,J-1)+P(IP1,J-1))*DXYN(J-1)+(P(I,J)+P(IP1,J))*DXYS(J)
-        RKE(I,J)=0.
-        DO L=1,LS1-1
-          RKE(I,J)=RKE(I,J)+
-     &         (U(I,J,L)*U(I,J,L)+V(I,J,L)*V(I,J,L))*DSIG(L)
-        END DO
-        RKE(I,J)=RKE(I,J)*PSIJ
-        DO L=LS1,LM
-          RKE(I,J)=RKE(I,J)+
-     &         (U(I,J,L)*U(I,J,L)+V(I,J,L)*V(I,J,L))*DSIG(L)*PSJ
-        END DO
-        RKE(I,J)=0.25*RKE(I,J)*mb2kg
-        I=IP1
-      END DO
-      END DO
+!**** Convert RKE from B grid to A grid
+      Call REGRID_BtoA_EXT (RKE)
 
-c move to A grid
-      call regrid_btoa_ext(rke)
+!**** Convert kinetic energy (J) to specific kinetic energy (J/m^2)
+      Do J=J1,JN  ;  Do I=1,IM
+         RKE(I,J) = RKE(I,J)*byAXYP(I,J)  ;  EndDo  ;  EndDo
+      Return
+      EndSubroutine CONSERV_KE
 
-c scale by area
-      DO J=J_0,J_1
-        DO I=I_0,I_1
-          rke(I,J)=rke(I,J)*BYAXYP(I,J)
-        END DO
-      END DO
-
-      RETURN
-C****
-      END SUBROUTINE conserv_KE
 
       SUBROUTINE calc_kea_3d(kea)
 !@sum  calc_kea_3d calculates square of wind speed on the A grid
