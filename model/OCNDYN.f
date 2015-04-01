@@ -5133,7 +5133,7 @@ C**** Need dv/dy,tv,dv/dx for u equation, du/dy,tu,du/dx for v equation
       FVX=0             ! flux in V equation at the x_+ boundary
       FVY=0             ! flux in V equation at the y_+ boundary
       DO J=J_0, J_1S
-        IM1=IM-1
+        IM1=IM
         DO I=1,IM
           UT=0          ! mean u*tan on x_+ boundary for V equation
           UY=0          ! mean du/dx on y_+ boundary for V equation
@@ -5357,26 +5357,10 @@ C**** Calculate fluxes (including FSLIP condition)
 C**** Calculate tridiagonal matrix for second semi-implicit step (in y)
 C**** Minor complication due to singular nature of polar box
 
+      IM1=IM-1
+      I=IM
       DO IP1=1,IM
         DO J=J_0S,J_1S
-          !put following later into a subroutine
-          if(ip1.eq.1) then
-            if(J.eq.2) then
-              IM1=IM-1; I=IM;
-            elseif(J.eq.3) then
-              IM1=IM; I=IP1;
-            else
-              IM1=IP1; I=IP1;
-            endif
-          endif
-          if(ip1.gt.1) then
-            if(j.eq.2) then
-              IM1=IP1-1; I=IP1-1;
-            else
-              IM1=IP1; I=IP1;
-            endif
-          endif
-
           BU3D(I,J,L) = 1d0
           BV3D(I,J,L) = 1d0
           IF (L.LE.LMU(I,J)) THEN
@@ -5410,9 +5394,9 @@ C**** Add Wasjowicz cross-terms to RV + second metric term
      *           + DXPO(J)*FVY(I,J-1) - DXPO(J+1)*FVY(I,J))*BYDXYV(J)
      *           + 0.5*(TANP(J-1)*FVY(I,J-1) + TANP(J)*FVY(I,J)))
           END IF
-          IM1=I
-          I=IP1
         END DO
+        IM1=I
+        I=IP1
       END DO
 C**** At North Pole (do partly explicitly) no metric terms
 c     BU3D(IIP) = 1d0
