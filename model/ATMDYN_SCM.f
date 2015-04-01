@@ -10,14 +10,12 @@
       end SUBROUTINE init_ATMDYN
 
       SUBROUTINE DYNAM
-      USE RESOLUTION, only: im,lm,ls1
+      Use RESOLUTION, Only: IM,JM
       USE SOMTQ_COM,  only: tmom,mz
-      USE ATM_COM,    only: t,p,q,PMID,PEDN,MUs,MVs,MWs
+      USE ATM_COM,    only: MA,t,q,PMID,PEDN,MUs,MVs,MWs
       USE DOMAIN_DECOMP_ATM, only : grid
 
-      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) ::
-     &     TZ,PIJL
-
+      Real*8 :: TZ(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM)
       INTEGER L
 
       do L=1,LM
@@ -28,7 +26,6 @@
 
       call update_SCM_inputs
 
-      CALL CALC_PIJL(LM,P,PIJL)
       CALL CALC_AMPK(LM)
 
       call SCM_FORCN
@@ -39,18 +36,19 @@
          TZ(:,:,L)  = TMOM(MZ,:,:,L)
       ENDDO
 
-      CALL PGF_SCM(T,TZ,PIJL)
+      Call PGF_SCM (T,TZ,MA)
+!     Call PGF_SCM_NEW (T,TZ,MA)  !  consistent with atmospheric PGF
 
       return
       END SUBROUTINE DYNAM
+
 
       SUBROUTINE SCM_FORCN
 c     apply large-scale forcings to T, Q, U, V
 
       USE MODEL_COM,  only: DTSRC
       USE ATM_COM,    only: P,T,Q,PK,U,V,PMID
-      USE RESOLUTION, only: LM,PTOP
-      USE DYNAMICS,   only: SIG
+      USE RESOLUTION, only: LM
       USE CONSTANT,   only: KAPA, OMEGA, GRAV, RGAS
       USE GEOM, only : sinlat2d
       USE SCM_COM,    only: SCMopt,SCMin
@@ -267,73 +265,40 @@ c         apply combined forcings to horizontal winds
       END SUBROUTINE SDRAG 
 
 
-      SUBROUTINE PGF_SCM (T,SZ,P)
+      SUBROUTINE PGF_SCM (T,SZ,MA)
 !@SCM-version    For SCM need to calculate geopotential height. 
 !                Remove other calculations.
 !@sum  PGF Adds pressure gradient forces to momentum
 !@auth Original development team
-      USE CONSTANT,   only: grav,rgas,kapa,bykapa,bykapap1,bykapap2
-      USE RESOLUTION, only: im,jm,lm,ls1,psfmpt,ptop
+      Use CONSTANT,   Only: RGAS,KAPA,byKAPA,byKAPAp1,byKAPAp2,KG2MB
+      Use RESOLUTION, Only: IM,JM,LM, MTOP
       USE ATM_COM,    only: zatmo, gz, phi
-      USE DYNAMICS,   only: sig,bydsig,do_polefix,
-     *     dsig,sige,pu,spa
       IMPLICIT NONE
 
-      REAL*8, DIMENSION(1,1,LM):: T
-      REAL*8, DIMENSION(1,1,LM) :: P, SZ
-
-      REAL*8 PKE(LS1:LM+1)
-      REAL*8 PIJ,PDN,PKDN,PKPDN,PKPPDN,PUP,PKUP,PKPUP,PKPPUP,DP,P0,X
-     *     ,BYDP
-      REAL*8 TZBYDP,FLUX,FDNP,FDSP,RFDU,PHIDN,FACTOR
-      INTEGER I,J,L,IM1,IP1,IPOLE  !@var I,J,IP1,IM1,L,IPOLE loop variab.
-
-C****
-      DO L=LS1,LM+1
-        PKE(L)=(PSFMPT*SIGE(L)+PTOP)**KAPA
-      END DO
-C****
-C**** VERTICAL DIFFERENCING
-C****
-      DO L=LS1,LM
-      SPA(:,:,L)=0.
-      END DO
+      Real*8,Dimension(1,1,LM) :: T,SZ
+      Real*8,Dimension(LM,1,1) :: MA
+      Real*8  :: PDN,PKDN,PHIDN,PKPDN,PKPPDN,DP,byDP,P0,TZbyDP,X,
+     *           PUP,PKUP,PKPUP,PKPPUP
+      Integer :: I,J,L
 
       DO J=1,1
       DO I=1,1
-        PIJ=P(I,J,1)
-        PDN=PIJ+PTOP
+        PDN = (Sum(MA(:,I,J)) + MTOP) * KG2MB
         PKDN=PDN**KAPA
         PHIDN=ZATMO(I,J)
 C**** LOOP OVER THE LAYERS
         DO L=1,LM
           PKPDN=PKDN*PDN
           PKPPDN=PKPDN*PDN
-          IF(L.GE.LS1) THEN
-            DP=DSIG(L)*PSFMPT
+            DP = MA(L,I,J)*KG2MB
             BYDP=1./DP
-            P0=SIG(L)*PSFMPT+PTOP
+            P0 = PDN - .5*MA(L,I,J)*KG2MB
             TZBYDP=2.*SZ(I,J,L)*BYDP
             X=T(I,J,L)+TZBYDP*P0
-            PUP=SIGE(L+1)*PSFMPT+PTOP
-            PKUP=PKE(L+1)
-            PKPUP=PKUP*PUP
-            PKPPUP=PKPUP*PUP
-          ELSE
-            DP=DSIG(L)*PIJ
-            BYDP=1./DP
-            P0=SIG(L)*PIJ+PTOP
-            TZBYDP=2.*SZ(I,J,L)*BYDP
-            X=T(I,J,L)+TZBYDP*P0
-            PUP=SIGE(L+1)*PIJ+PTOP
+            PUP = PDN - MA(L,I,J)*KG2MB
             PKUP=PUP**KAPA
             PKPUP=PKUP*PUP
             PKPPUP=PKPUP*PUP
-C****   CALCULATE SPA, MASS WEIGHTED THROUGHOUT THE LAYER
-            SPA(I,J,L)=RGAS*((X+TZBYDP*PTOP)*(PKPDN-PKPUP)*BYKAPAP1
-     *      -X*PTOP*(PKDN-PKUP)*BYKAPA-TZBYDP*(PKPPDN-PKPPUP)*BYKAPAP2)
-     *      *BYDP
-          END IF
 C**** CALCULATE PHI, MASS WEIGHTED THROUGHOUT THE LAYER
           PHI(I,J,L)=PHIDN+RGAS*(X*PKDN*BYKAPA-TZBYDP*PKPDN*BYKAPAP1
      *      -(X*(PKPDN-PKPUP)*BYKAPA-TZBYDP*(PKPPDN-PKPPUP)*BYKAPAP2)
@@ -355,8 +320,93 @@ C**** CALULATE PHI AT LAYER TOP (EQUAL TO BOTTOM OF NEXT LAYER)
       END SUBROUTINE PGF_SCM
 
 
-c     SUBROUTINE AFLUX (U,V,PIJL)
-c     END SUBROUTINE AFLUX
+      Subroutine PGF_SCM_NEW (S0,SZ,MAM)
+!@SCM-version   Computes geopotential consistent with PGF 
+!**** Input: MAM = mean mass distribution during time step (kg/m^2)
+!****      S0,SZ = potential temperature and vertical gradient (K)
+!**** Output: GZ = PHI (m^2/s^2) = atmospheric geopotential
+
+!**** R (J/kg*C) = gas constant = 287 for dry air
+!**** K          = exponent of exner function = R/SHA
+!**** M (kg/m^2) = vertical coordinate = air mass above the level
+!**** DM(kg/m^2) = layer mass difference = MAM
+!**** P (Pa)     = pressure = M*GRAV
+!**** DP(Pa)     = layer pressure difference = PD - PU
+!**** A (m^3/kg) = specific volume = R*T / P
+!**** S (K)      = potential temperature = S0 - SZ*2*(M-M0)/(MD-MU) =
+!****            = S0 - SZ*2*(P-P0)/(PD-PU) = S0 - SZ*2*(P-P0)/DP =
+!****            = S0+SZ*2*P0/DP - SZ*2*P/DP
+!**** T (K)      = temperature = S * P(mb)^K = S*.01^K * P^K =
+!****            = [(S0+SZ*2*P0/DP)*.01^K - P*(SZ*2/DP)*.01^K]*P^K =
+!****            = (X - P*Y)*P^K = X*P^K - Y*P^(K+1)
+
+!**** Integral of A*dM from MU to MD (from top to bottom of layer)
+!**** Int[A*dM] = Int[R*T*dP/P*G] = R*Int{[X*P^(K-1) - Y*P^K]*dP}/G =
+!**** = R*{X*P^K/K - Y*P^(K+1)/(K+1)}/G from PU to PD =
+!**** = R*{X*(PD^K-PU^K)/K - Y*[PD^(K+1)-PU^(K+1)]/(K+1)}/G
+
+!**** Compute DGZ thickness everwhere in a layer from layer bottom
+!**** G*dZ = - A*dP = - (R*T/P)*dP = - R*[X*P^(K-1) - Y*P^K]*dP 
+!**** DGZ = - Int{R*[X*P^(K-1) - Y*P^K]*dP} from PD to P =
+!****     = - R*{X*(P^K-PD^K)/K - Y*[P^(K+1)-PD^(K+1)]/(K+1)}
+!****     = R*{X*(PD^K-P^K)/K - Y*[PD^(K+1)-P^(K+1)]/(K+1)}
+
+!**** DGZup = R*{X*(PD^K-PU^K)/K - Y*[PD^(K+1)-PU^(K+1)]/(K+1)}
+!**** Int[A*dM] = DGZup/G
+
+!**** Compute mass weighted average value of DGZ in a layer
+!**** DGZave = Int{DGZ*dP}/DP from PD to PU =
+!**** = R*Int({X*(PD^K-P^K)/K - Y*[PD^(K+1)-P^(K+1)]/(K+1)}*dP)/DP =
+!**** = R*{X*[P*PD^K - P^(K+1)/(K+1)]/K -
+!****    - Y*[P*PD^(K+1) - P^(K+2)/(K+2)]/(K+1)}/DP =
+!**** = R*(X*{(PD-PU)*PD^K - [PD^(K+1)-PU^(K+1)]/(K+1)}/K -
+!****    - Y*{(PD-PU)*PD^(K+1) - [PD^(K+2)-PU^(K+2)]/(K+2)}/(K+1))/DP =
+!**** = R*(X*{DP*PD^K - [PD^(K+1)-PU^(K+1)]/(K+1)}/K -
+!****    - Y*{DP*PD^(K+1) - [PD^(K+2)-PU^(K+2)]/(K+2)}/(K+1))/DP =
+
+!**** GZave(L) = GZATMO + Sum[DGZup(1:L-1)] + DGZave(L)  
+
+      Use CONSTANT,   Only: GRAV,RGAS,KAPA,byGRAV,
+     *                      zK=>byKAPA,zKp1=>byKAPAp1,zKp2=>byKAPAp2
+      Use RESOLUTION, Only: IM,JM,LM, MTOP
+      Use ATM_COM,    Only: ZATMO, GZ,PHI
+      Implicit None
+      Real*8,Dimension(1,1,LM) :: S0,SZ,MAM
+!**** Local variables
+      Real*8  :: DGZU(LM),DGZA(LM),
+     *           M,PU,PKU,PKPU,PKPPU,DP,zDP,X,Y,PD,PKD,PKPD,PKPPD,GZD,
+     *           HUNDREDTHeKAPA
+      Integer :: I,J,L
+
+      HUNDREDTHeKAPA = .01d0**KAPA
+      I=1  ;  J=1
+!**** Integrate pressures from the top down
+      M   = MTOP
+      PU  = M*GRAV
+      PKU = PU**KAPA  ;  PKPU = PKU*PU  ;  PKPPU = PKPU*PU       
+      Do L=LM,1,-1
+         DP  = MAM(L,I,J)*GRAV
+         zDP = 1 / DP
+         Y   = SZ(I,J,L)*2*zDP*HUNDREDTHeKAPA
+         X   = S0(I,J,L)*HUNDREDTHeKAPA + Y*(PU+.5*DP)
+         PD  = PU + DP
+         PKD = PD**KAPA  ;  PKPD = PKD*PD  ;  PKPPD = PKPD*PD
+!        AdM = RGAS*(X*(PKD-PKU)*zK - Y*(PKPD-PKPU)*zKp1)/GRAV
+         DGZU(L) = RGAS*(X*(PKD-PKU)*zK - Y*(PKPD-PKPU)*zKp1)
+         DGZA(L) = RGAS*(X*(DP*PKD - (PKPD-PKPU)*zKp1)*zK -
+     -                   Y*(DP*PKPD - (PKPPD-PKPPU)*zKp2)*zKp1)*zDP
+         M   = M + MAM(L,I,J)
+         PU  = PD
+         PKU = PKD  ;  PKPU = PKPD  ;  PKPPU=PKPPD  ;  EndDo     
+!**** Integrate altitude from the bottom up
+      GZD = ZATMO(I,J)
+      Do L=1,LM
+         GZ(I,J,L) = GZD + DGZA(L)
+         GZD = GZD + DGZU(L)  ;  EndDo
+
+      PHI(:,:,:) = GZ(:,:,:)
+      Return
+      EndSubroutine PGF_SCM_NEW
 
 
 C**** Dummy routines
