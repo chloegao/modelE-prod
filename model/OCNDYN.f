@@ -957,6 +957,7 @@ c    .      nstep,j,dxpo(j),dypo(j),dxypo(j)
         BYDXV(1)=1D0/DXVO(1)
         BYDYV(1)=1D0/DYVO(1)
         BYDYP(1)=1D0/DYPO(1)
+        TANP(1) = 0
 c       write(*,'(a,2i5,3e12.4)')'for samar, dx,dy:',
 c    .       nstep,1,dxpo(1),dypo(1),dxypo(1)
       endif
