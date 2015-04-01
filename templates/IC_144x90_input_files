@@ -4,4 +4,5 @@
 
     ! start from observed conditions AIC(,OIC), model ground data GIC   ISTART=2
 AIC=AIC.RES_F40.D771201.nc      ! observed init cond (atm. only)
+!AIC=NCARIC.144x90.D7712010_ext.nc ! AIC for automatic relayering to model vertical grid
 GIC=GIC.144X90.DEC01.1.ext_1.nc ! initial ground conditions
