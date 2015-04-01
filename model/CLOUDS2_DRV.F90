@@ -8,9 +8,8 @@ subroutine CONDSE
        ,teeny,undef,bysha
   use TimeConstants_mod, only: SECONDS_PER_DAY, INT_HOURS_PER_DAY, &
                                SECONDS_PER_HOUR
-  use RESOLUTION, only : ls1,psf,ptop
   use RESOLUTION, only : im,jm,lm
-  use ATM_COM, only : p,u,v,t,q,qcl,qci
+  use ATM_COM, only : u,v,t,q,qcl,qci
   use DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds,AM_I_ROOT
   use MODEL_COM, only : DTsrc,itime,modelEclock
   use DOMAIN_DECOMP_ATM, only : GLOBALSUM
@@ -195,9 +194,9 @@ subroutine CONDSE
        MPLUMEALL,PLUME_MAX,PLUME_MIN
 #endif
   use PBLCOM, only : dclev,egcm,w2gcm,pblht,pblptop
-  use ATM_COM, only : pk,pek,pmid,pedn,gz,ptold,pdsig,MWs, &
+  use ATM_COM, only : pk,pek,pmid,pedn,gz,PMIDOLD,pdsig,MWs, &
        ua=>ualij,va=>valij,ltropo
-  use DYNAMICS, only : wcpsig,dsig,sig,bydsig
+  use DYNAMICS, only : wcpsig,bydsig
   use SEAICE_COM, only : si_atm
   use GHY_COM, only : fearth
   use RAD_COM, only : snoage
@@ -700,8 +699,7 @@ subroutine CONDSE
 #endif
 #endif
         FSSL(:)=FSS(:,I,J)
-        DPDT(1:LS1-1)=SIG(1:LS1-1)*(P(I,J)-PTOLD(I,J))*BYDTsrc
-        DPDT(LS1:LM)=0.
+        DPDT(:) = (PMID(:,I,J)-PMIDOLD(:,I,J))*BYDTsrc
         do L=1,LM
           !**** TEMPERATURES
           SM(L)  =T(I,J,L)*AIRM(L)

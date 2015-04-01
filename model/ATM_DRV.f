@@ -4,9 +4,10 @@
       USE TIMINGS, only : ntimemax,ntimeacc,timing,timestr
       USE Dictionary_mod
       use resolution, only : im,jm,lm,ls1,ptop
+      Use ATM_COM,    Only: MA,MAOLD,PMID,PMIDOLD
       USE MODEL_COM
       USE ATM_COM, only : p,qcl,qci
-      USE ATM_COM, only : MUs,MVs,ptold,ps,kea
+      USE ATM_COM, only : MUs,MVs,ps,kea
       Use DYNAMICS,   Only: nstep,nidyn,nfiltr,mfiltr,dt
       USE DOMAIN_DECOMP_ATM, only: grid
       use domain_decomp_atm, only: writei8_parallel
@@ -75,8 +76,9 @@ C****
 #endif
          IF (MODD5D.EQ.0) CALL DIAGCA (1)
 
-      PTOLD = P ! save for clouds
-C**** Initialize pressure for mass fluxes used by tracers and Q
+C**** Save MA and PMID before dynamics for Q advection and clouds
+        MAOLD(:,:,:) =   MA(:,:,:)
+      PMIDOLD(:,:,:) = PMID(:,:,:)
       PS (:,:)   = P(:,:)
 
 C**** Initialise total energy (J/m^2)
@@ -124,13 +126,11 @@ C**** Currently energy is put in uniformly weighted by mass
 
       call COMPUTE_WSAVE
 C**** Scale WM mixing ratios to conserve liquid water
-      DO L=1,LS1-1
       DO J=J_0,J_1
       DO I=I_0,I_1
-!       WM(I,J,L)=WM(I,J,L)* (PTOLD(I,J)/P(I,J))
-        QCL(I,J,L)=QCL(I,J,L)* (PTOLD(I,J)/P(I,J))
-        QCI(I,J,L)=QCI(I,J,L)* (PTOLD(I,J)/P(I,J))
-      END DO
+!         WM(I,J,:) =  WM(I,J,;) * (MAOLD(:,I,J) / MA(:,I,J))
+         QCL(I,J,:) = QCL(I,J,:) * (MAOLD(:,I,J) / MA(:,I,J))
+         QCI(I,J,:) = QCI(I,J,:) * (MAOLD(:,I,J) / MA(:,I,J))
       END DO
       END DO
       CALL QDYNAM  ! Advection of Q by integrated fluxes
