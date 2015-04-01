@@ -10,7 +10,7 @@
       end SUBROUTINE init_ATMDYN
 
       SUBROUTINE DYNAM
-      Use RESOLUTION, Only: IM,JM
+      Use RESOLUTION, Only: IM,JM,LM
       USE SOMTQ_COM,  only: tmom,mz
       USE ATM_COM,    only: MA,t,q,PMID,PEDN,MUs,MVs,MWs
       USE DOMAIN_DECOMP_ATM, only : grid
@@ -37,7 +37,6 @@
       ENDDO
 
       Call PGF_SCM (T,TZ,MA)
-!     Call PGF_SCM_NEW (T,TZ,MA)  !  consistent with atmospheric PGF
 
       return
       END SUBROUTINE DYNAM
@@ -265,62 +264,7 @@ c         apply combined forcings to horizontal winds
       END SUBROUTINE SDRAG 
 
 
-      SUBROUTINE PGF_SCM (T,SZ,MA)
-!@SCM-version    For SCM need to calculate geopotential height. 
-!                Remove other calculations.
-!@sum  PGF Adds pressure gradient forces to momentum
-!@auth Original development team
-      Use CONSTANT,   Only: RGAS,KAPA,byKAPA,byKAPAp1,byKAPAp2,KG2MB
-      Use RESOLUTION, Only: IM,JM,LM, MTOP
-      USE ATM_COM,    only: zatmo, gz, phi
-      IMPLICIT NONE
-
-      Real*8,Dimension(1,1,LM) :: T,SZ
-      Real*8,Dimension(LM,1,1) :: MA
-      Real*8  :: PDN,PKDN,PHIDN,PKPDN,PKPPDN,DP,byDP,P0,TZbyDP,X,
-     *           PUP,PKUP,PKPUP,PKPPUP
-      Integer :: I,J,L
-
-      DO J=1,1
-      DO I=1,1
-        PDN = (Sum(MA(:,I,J)) + MTOP) * KG2MB
-        PKDN=PDN**KAPA
-        PHIDN=ZATMO(I,J)
-C**** LOOP OVER THE LAYERS
-        DO L=1,LM
-          PKPDN=PKDN*PDN
-          PKPPDN=PKPDN*PDN
-            DP = MA(L,I,J)*KG2MB
-            BYDP=1./DP
-            P0 = PDN - .5*MA(L,I,J)*KG2MB
-            TZBYDP=2.*SZ(I,J,L)*BYDP
-            X=T(I,J,L)+TZBYDP*P0
-            PUP = PDN - MA(L,I,J)*KG2MB
-            PKUP=PUP**KAPA
-            PKPUP=PKUP*PUP
-            PKPPUP=PKPUP*PUP
-C**** CALCULATE PHI, MASS WEIGHTED THROUGHOUT THE LAYER
-          PHI(I,J,L)=PHIDN+RGAS*(X*PKDN*BYKAPA-TZBYDP*PKPDN*BYKAPAP1
-     *      -(X*(PKPDN-PKPUP)*BYKAPA-TZBYDP*(PKPPDN-PKPPUP)*BYKAPAP2)
-     *      *BYDP*BYKAPAP1)
-C**** CALULATE PHI AT LAYER TOP (EQUAL TO BOTTOM OF NEXT LAYER)
-          PHIDN=PHIDN+RGAS*(X*(PKDN-PKUP)*BYKAPA-TZBYDP*(PKPDN-PKPUP)
-     *     *BYKAPAP1)
-          PDN=PUP
-          PKDN=PKUP
-        END DO
-      END DO
-      END DO
-
-      DO L=1,LM
-        GZ(:,:,L)=PHI(:,:,L)
-      END DO
-
-      RETURN
-      END SUBROUTINE PGF_SCM
-
-
-      Subroutine PGF_SCM_NEW (S0,SZ,MAM)
+      Subroutine PGF_SCM (S0,SZ,MAM)
 !@SCM-version   Computes geopotential consistent with PGF 
 !**** Input: MAM = mean mass distribution during time step (kg/m^2)
 !****      S0,SZ = potential temperature and vertical gradient (K)
