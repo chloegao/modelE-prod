@@ -42,28 +42,17 @@
 
 !**** Main atmospheric prognostic variables
 !@var MA = Air mass per unit area of each layer (kg/m^2)
+!@var MAOLD = MA before dynamics used by advection and condensation
 !@var U,V east-west, and north-south velocities (m/s)
 !@var T potential temperature (referenced to 1 mb) (K)
 !@var Q specific humidity (kg water vapor/kg air)
 !@var qcl cloud liquid water amount (kg water/kg air)
 !@var qci cloud ice water amount (kg water/kg air)
-#ifdef BLK_2MOM
-!@var WMICE cloud ice amount (kg water/kg air)
-#endif
-      Real*8,Allocatable,Dimension(:,:,:) :: MA  !  PLIJ*DSIG(L)*mb2kg
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: U
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: V
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: T
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: Q
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: qcl
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: qci
-#ifdef BLK_2MOM
-#endif
+      Real*8,Allocatable,Dimension(:,:,:) :: MA,MAOLD,U,V,T,Q,QCL,QCI
 
 !@var MASUM (kg/m^2) = [column mass per unit area] - MTOP
 !@var P surface pressure (hecto-Pascals - PTOP)
-      Real*8,Allocatable,Dimension(:,:) :: MASUM
-      REAL*8, ALLOCATABLE, DIMENSION(:,:)   :: P
+      Real*8,Allocatable,Dimension(:,:) :: MASUM,P
 
       real*8, parameter :: temperature_istart1=250. ! not used
 
@@ -90,6 +79,7 @@ C**** Some helpful arrays (arrays should be L first)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PDSIG
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: byMA
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PMID    ! SIG(L)*PLIJ+PTOP
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PMIDOLD
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PK
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PEDN  ! SIGE(L)*PLIJ+PTOP
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PEK
@@ -102,12 +92,10 @@ C**** Some helpful arrays (arrays should be L first)
 #endif
 
 C**** module should own dynam variables used by other routines
-!@var PTOLD pressure at beginning of dynamic time step (for clouds)
 !@var SD_CLOUDS vert. integrated horizontal convergence (for clouds)
 !@var GZ geopotential height (for Clouds and Diagnostics)
 !@var DPDX_BY_RHO,DPDY_BY_RHO (pressure gradients)/density at L=1
 !@var DPDX_BY_RHO_0,DPDY_BY_RHO_0 surface (pressure gradients)/density
-      REAL*8, ALLOCATABLE, DIMENSION(:,:)    :: PTOLD
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: SD_CLOUDS
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: GZ
       REAL*8, ALLOCATABLE, DIMENSION(:,:)  :: DPDX_BY_RHO,DPDY_BY_RHO
@@ -143,21 +131,19 @@ C**** module should own dynam variables used by other routines
       USE RESOLUTION, ONLY : IM,JM,LM,PSFMPT
       USE ATM_COM, ONLY : temperature_istart1
       USE ATM_COM, ONLY : ZATMO,P,U,V,T,Q,qcl,qci
-#ifdef BLK_2MOM
-#endif
       USE ATM_COM, ONLY :
-     &     PLIJ,PDSIG,MA,byMA,PMID,PK,
+     &     PLIJ,PDSIG,MA,MAOLD,byMA,PMID,PMIDOLD,PK,
      &     PEDN,PEK,SD_CLOUDS,GZ,PHI,
      &     MUs,MVs,MWs,MB,MMA,DKE,KEA,
      &     UALIJ,VALIJ,WSAVE,
-     &     SQRTP,MASUM,PTROPO,LTROPO,PS,PTOLD,
-#ifdef etc_subdd
-     &     TTROPO,
-#endif
+     &     SQRTP,MASUM,PTROPO,LTROPO,PS,
      &     DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
       use GEOM, only : geom_atm
       use pario, only : par_open,par_close,read_dist_data
       use Dictionary_mod, only : sync_param, get_param
+#ifdef etc_subdd
+         Use ATM_COM, Only: TTROPO
+#endif
 
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
@@ -189,8 +175,6 @@ C****
       ALLOCATE(Q(I_0H:I_1H,J_0H:J_1H,LM), STAT = IER)
       ALLOCATE(qcl(I_0H:I_1H,J_0H:J_1H,LM), STAT = IER)
       ALLOCATE(qci(I_0H:I_1H,J_0H:J_1H,LM), STAT = IER)
-#ifdef BLK_2MOM
-#endif
 
       U(:,:,:)=0.
       V(:,:,:)=0.
@@ -200,8 +184,6 @@ C****
       qcl(:,:,:)=0.
       qci(:,:,:)=0.
       ZATMO(:,:)=0.
-#ifdef BLK_2MOM
-#endif
 
       fid = par_open(grid,'TOPO','read')
       call read_dist_data(grid,fid,'zatmo',zatmo)
@@ -229,18 +211,20 @@ C**** Check polar uniformity
         end do
       end if
 
-      ! K-I-J arrays
+!**** Allocate space for (L,I,J) arrays
       ALLOCATE ( PLIJ(LM,I_0H:I_1H,J_0H:J_1H),
      $          PDSIG(LM,I_0H:I_1H,J_0H:J_1H),
      $             MA(LM,I_0H:I_1H,J_0H:J_1H),
+     $          MAOLD(LM,I_0H:I_1H,J_0H:J_1H),
      $           byMA(LM,I_0H:I_1H,J_0H:J_1H),
      $           PMID(LM,I_0H:I_1H,J_0H:J_1H),
+     $        PMIDOLD(LM,I_0H:I_1H,J_0H:J_1H),
      $             PK(LM,I_0H:I_1H,J_0H:J_1H),
      $         PEDN(LM+1,I_0H:I_1H,J_0H:J_1H),
      $          PEK(LM+1,I_0H:I_1H,J_0H:J_1H),
      $   STAT = IER)
 
-      ! I-J-K arrays
+!**** Allocate space for (I,J,L) arrays
       ALLOCATE( SD_CLOUDS(I_0H:I_1H,J_0H:J_1H,LM),
      $                 GZ(I_0H:I_1H,J_0H:J_1H,LM),
      $                PHI(I_0H:I_1H,J_0H:J_1H,LM),
@@ -256,7 +240,7 @@ C**** Check polar uniformity
      $              WSAVE(I_0H:I_1H,J_0H:J_1H,LM-1),
      $   STAT = IER)
 
-      ! I-J arrays
+!**** Allocate space for (I,J) arrays
       ALLOCATE(  SQRTP(I_0H:I_1H,J_0H:J_1H),
      $           MASUM(I_0H:I_1H,J_0H:J_1H),
      $          PTROPO(I_0H:I_1H,J_0H:J_1H),
@@ -264,7 +248,6 @@ C**** Check polar uniformity
 #ifdef etc_subdd
      $          TTROPO(I_0H:I_1H,J_0H:J_1H),   ! extra subdaily
 #endif
-     $           PTOLD(I_0H:I_1H,J_0H:J_1H),
      $     DPDX_BY_RHO(I_0H:I_1H,J_0H:J_1H),
      $     DPDY_BY_RHO(I_0H:I_1H,J_0H:J_1H),
      $   DPDX_BY_RHO_0(I_0H:I_1H,J_0H:J_1H),

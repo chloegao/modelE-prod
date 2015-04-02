@@ -166,7 +166,7 @@ c      end subroutine setDtParam
      &   MMA,TZ,        !  even leap frog arrays
      &   UT,VT,TT,TZT,  !  odd leap frog arrays
      &   UX,VX,         !  initial forward step arrays
-     &   PIJL, UNRDRAG_x,UNRDRAG_y
+     &   UNRDRAG_x,UNRDRAG_y
 
       REAL*8 DTFS,DTLF, DAMSUM
       INTEGER I,J,L,IP1,IM1   !@var I,J,L,IP1,IM1  loop variables
@@ -212,7 +212,6 @@ C**** Leap-frog re-initialization: IF (NS.LT.NIdyn)
       Call VDIFF  (DTFS, U,V,       UX,VX,MODD3, T)
       Call ADVECV (DTFS, U,V,MA, MA,UX,VX,MODD3)
       Call PGF    (DTFS, U,V,MA,    UX,VX,MODD3, T,TZ)
-       CALL CALC_PIJL (LM,P,PIJL)
        PU(:,:,:) = MU(:,:,:)*kg2mb
        PV(:,:,:) = MV(:,:,:)*kg2mb
        SD(:,:,:) = MW(:,:,:)*kg2mb
@@ -230,7 +229,6 @@ C**** Leap-frog re-initialization: IF (NS.LT.NIdyn)
       Call VDIFF  (DT, UX,VX,          UT,VT,MODD1, T)
       Call ADVECV (DT, UX,VX,MODD3, MA,UT,VT,MODD1)
       Call PGF    (DT, UX,VX,MODD3,    UT,VT,MODD1, T,TZ)
-       CALL CALC_PIJL (LS1-1,PB,PIJL)
        PU(:,:,:) = MU(:,:,:)*kg2mb
        PV(:,:,:) = MV(:,:,:)*kg2mb
        SD(:,:,:) = MW(:,:,:)*kg2mb
@@ -249,7 +247,6 @@ C**** Leap-frog re-initialization: IF (NS.LT.NIdyn)
       Call VDIFF  (DTLF, U,V,          UT,VT,MODD3, T)
       Call ADVECV (DTLF, U,V,MA, MODD1,UT,VT,MODD3)
       Call PGF    (DTLF, U,V,MA,       UT,VT,MODD3, T,TZ)
-       CALL CALC_PIJL (LS1-1,P,PIJL)
        PU(:,:,:) = MU(:,:,:)*kg2mb
        PV(:,:,:) = MV(:,:,:)*kg2mb
        SD(:,:,:) = MW(:,:,:)*kg2mb
@@ -272,7 +269,6 @@ C**** Leap-frog re-initialization: IF (NS.LT.NIdyn)
       Call GWDRAG (DTLF, UT,VT,             U,V,MA, T,TZ, .False.)
       Call VDIFF  (DTLF, UT,VT,             U,V,MA, T)
       Call ADVECV (DTLF, UT,VT,MODD1, MEVEN,U,V,MA)
-       CALL CALC_PIJL (LS1-1,PA,PIJL)
        PU(:,:,:) = MU(:,:,:)*kg2mb
        PV(:,:,:) = MV(:,:,:)*kg2mb
        SD(:,:,:) = MW(:,:,:)*kg2mb
@@ -295,12 +291,8 @@ C**** ADVECT Q AND T
        TT(:,:,:) = .5*( T(:,:,:)+ TT(:,:,:))
       TZT(:,:,:) = .5*(TZ(:,:,:)+TZT(:,:,:))
 
-      CALL CALC_PIJL(LS1-1,PC,PIJL)
-c      CALL CALC_PIJL(LS1-1,PA,PIJL) ! true leapfrog
       Call PGF    (DTLF, UT,VT,MODD1,       U,V,MA, TT,TZT)
-
       Call COMPUTE_MASS_FLUX_DIAGS (GZ, MU,MV, DT)
-
       CALL CALC_AMPK(LS1-1)
       call isotropuv(u,v,COS_LIMIT)
       if (USE_UNR_DRAG==0) CALL SDRAG (DTLF)
