@@ -32,7 +32,7 @@ endif
 # flags needed for particular releases
 
 # default flags for latest releases (work for 12.*, 13.*):
-FFLAGS_RELEASE = -assume protect_parens -fp-model strict -warn nousage -assume realloc_lhs
+FFLAGS_RELEASE = -assume protect_parens -fp-model strict -warn nousage
 
 # if some releases require different flags enter them here
 ifeq ($(IFORT_RELEASE),11.1)
@@ -55,8 +55,8 @@ FFLAGS += $(FFLAGS_RELEASE)
 F90FLAGS += $(FFLAGS_RELEASE)
 
 ifeq ($(COMPILE_WITH_TRAPS),YES)
-FFLAGS += -CB -fpe0 -check uninit -ftrapuv -traceback -assume realloc_lhs
+FFLAGS += -CB -fpe0 -check uninit -ftrapuv -traceback
 LFLAGS += -CB -fpe0 -check uninit -ftrapuv -traceback
-F90FLAGS += -CB -fpe0 -check uninit -ftrapuv -traceback  -assume realloc_lhs
+F90FLAGS += -CB -fpe0 -check uninit -ftrapuv -traceback
 LFLAGSF += -CB -fpe0 -check uninit -ftrapuv -traceback
 endif
