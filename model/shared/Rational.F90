@@ -73,6 +73,7 @@ module Rational_mod
     procedure, pass(b) :: equals_int2
     procedure :: lessThan_fraction
     procedure :: greaterThan_fraction
+    procedure :: greaterThanOrEqualTo_fraction
     procedure :: convertToReal
 
     generic :: operator(+) => add_fraction
@@ -84,6 +85,7 @@ module Rational_mod
     generic :: operator(==) => equals_fraction, equals_int, equals_int2
     generic :: operator(<) => lessThan_fraction
     generic :: operator(>) => greaterThan_fraction
+    generic :: operator(>=) => greaterThanOrEqualTo_fraction
 !!$    generic :: assignment(=) => toReal_sp, toReal_dp
 
     procedure, private :: reduce ! put in canonical form
@@ -565,6 +567,25 @@ contains
     end if
 
   end function greaterThan_fraction
+
+
+  logical function greaterThanOrEqualTo_fraction(r1, r2) result(greaterThanOrEqualTo)
+    class (Rational), intent(in) :: r1
+    class (Rational), intent(in) :: r2
+
+    if (r1%whole > r2%whole) then
+      greaterThanOrEqualTo = .true.
+    else if (r1%whole < r2%whole) then
+      greaterThanOrEqualTo = .false.
+    else
+      if (r1%numerator*r2%denominator >= r2%numerator*r1%denominator) then
+        greaterThanOrEqualTo = .true.
+      else
+        greaterThanOrEqualTo = .false.
+      end if
+    end if
+
+ end function greaterThanOrEqualTo_fraction
 
   !
   ! Reduce rational number to standard form:

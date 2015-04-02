@@ -504,7 +504,7 @@ C****
       USE RESOLUTION, only : im,jm,lm
       USE MODEL_COM, only :
      *      irand,idacc ,nday,dtsrc ,iyear1,itime,itimei,itimee
-     *     ,mdyn,mcnds,mrad,msurf,mdiag
+     *     ,mdyn,mcnds,mrad,msurf,mdiag, calendar
 #ifndef SCM
       USE DIAG_ZONAL, only : imlon
 #endif
@@ -536,6 +536,7 @@ C****
 #ifdef USE_FVCORE
       USE FV_INTERFACE_MOD, only: fvstate,initialize
 #endif
+      use UNRDRAG_COM, only: init_UNRDRAG
       IMPLICIT NONE
 !@var istart start(1-8)/restart(>8)  option
       integer :: istart,istart_fixup,do_IC_fixups
@@ -638,7 +639,7 @@ C****
       call sync_param( "USE_UNR_DRAG", USE_UNR_DRAG )
 #ifndef SCM
 #ifndef CUBED_SPHERE
-      if (USE_UNR_DRAG==1) CALL init_UNRDRAG
+      if (USE_UNR_DRAG==1) CALL init_UNRDRAG(calendar)
 #endif
 #endif
 
@@ -743,6 +744,7 @@ C****
 c Driver to allocate arrays that become dynamic as a result of
 c set-up for MPI implementation
       USE DOMAIN_DECOMP_ATM, ONLY : grid,init_grid
+      use MODEL_COM, only: calendar
 #ifdef GLINT2
       USE DOMAIN_DECOMP_ATM, ONLY : glint2
       use MpiSupport_mod, only: ROOT_PROCESS

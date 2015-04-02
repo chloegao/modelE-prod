@@ -1,25 +1,25 @@
-! These constants are used by Clock/Calendar to manage time within the model.
-! For the moment, legacy names are preserved until the model is adapted to the newer
-! names.
+! These constants are used by Clock/Calendar to manage time within the
+! model.  For the moment, legacy names are preserved until the model
+! is adapted to the newer names.
 ! 
-! Note that many of these "constants" are actually dependent on choice of calendar.  E.g. 
-! Number of days per year.   The constants placed here correspond to the Julian calendar
-! that is the primary case for the model.
+! Note that many of these "constants" are actually dependent on choice
+! of calendar.  E.g.  Number of days per year.  The constants placed
+! here correspond to the Julian (no leap) calendar that is the default/primary case for
+! the model.
 !
 
 module TimeConstants_mod
   implicit none
   public  ! just a bunch of named constants
 
-  ! Constants that are assumed for _all_ planets
+  ! Calendar invariant constants: (subject to change)
   integer, parameter :: INT_HOURS_PER_DAY = 24
   integer, parameter :: INT_MONTHS_PER_YEAR = 12
-
-  ! Earth specific values (Julian calendar)
   integer, parameter :: INT_SECONDS_PER_MINUTE = 60
   integer, parameter :: INT_MINUTES_PER_HOUR = 60
-  integer, parameter :: INT_DAYS_PER_YEAR = 365
 
+  ! Julian specific choices
+  integer, parameter :: INT_DAYS_PER_YEAR = 365
   integer, parameter :: INT_SECONDS_PER_HOUR = INT_SECONDS_PER_MINUTE * INT_MINUTES_PER_HOUR
   integer, parameter :: INT_SECONDS_PER_DAY = INT_SECONDS_PER_HOUR * INT_HOURS_PER_DAY
   integer, parameter :: INT_MINUTES_PER_DAY = INT_MINUTES_PER_HOUR * INT_HOURS_PER_DAY

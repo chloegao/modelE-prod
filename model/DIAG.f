@@ -1261,7 +1261,6 @@ C****
       USE MODEL_COM, only : modelEclock, calendar
       USE MODEL_COM, only : itime,itime0,nday,iyear1
      &     ,dtsrc,xlabel,lrunid
-      use TimeConstants_mod, only: INT_DAYS_PER_YEAR
       USE FILEMANAGER, only : openunit, closeunit, nameunit
       use ghy_com, only: gdeep,gsaveL,ngm
       USE DIAG_COM, only : kgz_max,pmname,P_acc,PM_acc
@@ -5959,9 +5958,8 @@ C**** Set conservation diagnostics for ice mass, energy, salt
       USE CONSTANT, only : undef
       USE RESOLUTION, only : im,jm
       USE MODEL_COM, only : aMON,Jmon0,Jyear0,NMONAV,
-     &                      modelEclock
-      use TimeConstants_mod, only: DAYS_PER_YEAR, INT_DAYS_PER_YEAR,
-     &                             INT_MONTHS_PER_YEAR
+     &                      modelEclock, calendar
+      use TimeConstants_mod, only: INT_MONTHS_PER_YEAR
       USE ATM_COM, only : kradia,iu_rad
       USE FLUXES, only : focean
       USE GEOM, only : imaxj,lat2d
@@ -5988,6 +5986,7 @@ C**** Set conservation diagnostics for ice mass, energy, salt
       INTEGER I,J
       INTEGER :: J_0, J_1, I_0,I_1
       integer year, month, dayOfYear
+      integer :: maxDaysInYear
 
       call modelEclock%get(year=year, month=month,
      &     dayOfYear=dayOfYear)
@@ -6018,6 +6017,7 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
 C**** set and initiallise freezing diagnostics
 C**** Note that TSFREZ saves the last day of no-ice and some-ice.
 C**** The AIJ diagnostics are set once a year (zero otherwise)
+      maxDaysInYear = calendar%getMaxDaysInYear()
       DO J=J_0,J_1
         DO I=I_0,IMAXJ(J)
           if(lat2d(i,j).lt.0.) then
@@ -6026,9 +6026,9 @@ C**** initialize/save South. Hemi. on Feb 28
      *            THEN
               AIJ(I,J,IJ_LKICE)=1.
               AIJ(I,J,IJ_LKON) =MOD(NINT(TSFREZ(I,J,TF_LKON)) +307,
-     &                              INT_DAYS_PER_YEAR)
+     &                              maxDaysInYear)
               AIJ(I,J,IJ_LKOFF)=MOD(NINT(TSFREZ(I,J,TF_LKOFF))+306,
-     &                              INT_DAYS_PER_YEAR)+1
+     &                              maxDaysInYear)+1
               IF (si_atm%rsi(I,J).gt.0) THEN
                 TSFREZ(I,J,TF_LKON) = dayOfYear-1
               ELSE
@@ -6043,9 +6043,9 @@ C**** are counted from Sep 1 (NH only).
      *            THEN
               AIJ(I,J,IJ_LKICE)=1.
               AIJ(I,J,IJ_LKON) =MOD(NINT(TSFREZ(I,J,TF_LKON)) +123,
-     &                              INT_DAYS_PER_YEAR)
+     &                              maxDaysInYear)
               AIJ(I,J,IJ_LKOFF)=MOD(NINT(TSFREZ(I,J,TF_LKOFF))+122,
-     &                              INT_DAYS_PER_YEAR)+1
+     &                              maxDaysInYear)+1
               IF (si_atm%rsi(I,J).gt.0) THEN
                 TSFREZ(I,J,TF_LKON) = dayOfYear-1
               ELSE
@@ -6063,6 +6063,7 @@ C**** set ice on/off days
       END DO
 
 C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
+      maxDaysInYear = calendar%getMaxDaysInYear()
       DO J=J_0,J_1
          DO I=I_0,I_1
             TDIURN(I,J,1)= 1000.
@@ -6075,8 +6076,8 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
             TDIURN(I,J,8)=-1000.
             TDIURN(I,J,9)= 1000.
             IF (FEARTH(I,J).LE.0.) THEN
-               TSFREZ(I,J,TF_DAY1)=DAYS_PER_YEAR
-               TSFREZ(I,J,TF_LAST)=DAYS_PER_YEAR
+               TSFREZ(I,J,TF_DAY1)=maxDaysInYear
+               TSFREZ(I,J,TF_LAST)=maxDaysInYear
             END IF
 #ifdef TRACERS_ON
 #ifndef SKIP_TRACERS_RAD
@@ -6094,6 +6095,7 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
 
 C**** THINGS THAT GET DONE AT THE BEGINNING OF EVERY MONTH
       if ( newmonth ) then
+         maxDaysInYear = calendar%getMaxDaysInYear()
         write(aDATE(1:7),'(a3,I4.4)') aMON(1:3),year
         if (Kradia.ne.0 .and. Kradia<10) then
           if (Kradia.gt.0) aDATE(4:7)='    '
@@ -6101,7 +6103,7 @@ C**** THINGS THAT GET DONE AT THE BEGINNING OF EVERY MONTH
           call openunit(trim('RAD'//aDATE(1:7)),iu_RAD,.true.,.false.)
         end if
 C**** THINGS THAT GET DONE AT THE BEGINNING OF EVERY ACC.PERIOD
-        months=(year-Jyear0)*INT_DAYS_PER_YEAR + month-JMON0
+        months=(year-Jyear0)*maxDaysInYear + month-JMON0
         if ( months.ge.NMONAV ) then
           call reset_ADIAG(0)
           if (Kvflxo.ne.0) then

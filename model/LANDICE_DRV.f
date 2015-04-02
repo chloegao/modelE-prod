@@ -963,7 +963,8 @@ C**** array HICB(I,J) acording to FSHGLM and FNHGLM
 !@ver  2010/10/13
       USE CONSTANT, only : lhm,shi
       USE RESOLUTION, only : im,jm
-      USE MODEL_COM, only : dtsrc, modelEclock, itime, itimei, nday
+      USE MODEL_COM, only : dtsrc, modelEclock, modelEclockI
+     &     , itime, itimei, nday, calendar
       use TimeConstants_mod, only: SECONDS_PER_DAY, EARTH_DAYS_PER_YEAR,
      &                             INT_DAYS_PER_YEAR
       USE GEOM, only : axyp,imaxj,lat2d
@@ -987,6 +988,9 @@ C**** array HICB(I,J) acording to FSHGLM and FNHGLM
       USE Dictionary_mod
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, 
      &     GLOBALSUM, AM_I_ROOT
+      use Time_mod, only: Time
+      use Rational_mod
+
       IMPLICIT NONE
 !@var gm_relax Glacial Melt relaxation parameter (1/year)
       REAL*8, PARAMETER :: gm_relax = 0.1d0  ! 10 year relaxation
@@ -1000,6 +1004,9 @@ C**** array HICB(I,J) acording to FSHGLM and FNHGLM
      &     grid%J_STRT_HALO:grid%J_STOP_HALO) :: mask_s,arr_s,arr_n
       INTEGER :: J_0,J_1,I_0,I_1,I,J,ITM
       LOGICAL :: HAVE_SOUTH_POLE,HAVE_NORTH_POLE
+      type (Time) :: now, startTime
+      type (Rational) :: oneYear
+      logical :: atLeastOneYearHasPassed
 
       call getDomainBounds(GRID,J_STRT=J_0,J_STOP=J_1,
      &         HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
@@ -1070,8 +1077,13 @@ C    +                      (/ TRDWNIMP_SH(:), TRDWNIMP_NH(:) /)
 #endif
 
 ! only adjust after at least one full year
-        if (ITIME >= ITIMEI+INT_DAYS_PER_YEAR*NDAY .and. GLMELT_ON==1)  
-     &      then
+        now = modelEclock%getCurrentTime()
+        startTime = modelEclockI%getCurrentTime()
+        oneYear = 
+     &       calendar%getSecondsPerDay() * calendar%getMaxDaysInYear()
+        atLeastOneYearHasPassed = (now >= startTime + oneYear)
+
+        if (atLeastOneYearHasPassed .and. GLMELT_ON==1) then
                                                         !  EndIf at 400
 C*** prevent iceberg sucking
           if(mdwnimp_NH.lt.0) then

@@ -8,7 +8,8 @@
       USE TIMINGS, only : ntimemax,ntimeacc,timing,timestr
       USE Dictionary_mod
       Use Parser_mod
-      USE MODEL_COM, only: modelEclock, ItimeI, Itime, Ndisk
+      USE MODEL_COM, only: modelEclock
+     &     , ItimeI, Itime, Ndisk
      &     , Jyear0, JMON0, Iyear1, ItimeE, Itime0
      &     , NIPRNT, XLABEL, LRUNID, MELSE, Nssw, stop_on
      &     , iowrite_single, isBeginningAccumPeriod
@@ -619,7 +620,7 @@ C****
      *      xlabel,lrunid,nmonav,qcheck,irand
      *     ,nday,dtsrc,kdisk,jmon0,jyear0
      *     ,iyear1,itime,itimei,itimee
-     *     ,idacc,modelEclock
+     *     ,idacc,modelEclock, modelEclockI
      *     ,aMONTH,aMON0
      *     ,ioread,irerun,irsfic
      *     ,melse,Itime0,Jdate0
@@ -634,8 +635,7 @@ C****
 #endif
 #endif
 
-      use TimeConstants_mod, only : SECONDS_PER_DAY, INT_HOURS_PER_DAY, 
-     &                              INT_DAYS_PER_YEAR
+      use TimeConstants_mod, only: INT_HOURS_PER_DAY
       use ModelClock_mod, only: ModelClock
       use Time_mod, only: Time, newTime
       use MODEL_COM, only: calendar, orbit
@@ -968,6 +968,7 @@ C**** Set date information
 
       modelETime = newTime(calendar)
       call modelEtime%setByDate(yearI, monthI, dateI, hourI)
+      modelEclockI = ModelClock(modelETime, dtSrcUsed, itimeI)
       call modelETime%add( dtSrcUsed * (itime-itimei) )
 
       year = modelEtime%getYear()

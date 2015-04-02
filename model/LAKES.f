@@ -1449,9 +1449,8 @@ C****
       USE RESOLUTION, only : im,jm
       USE MODEL_COM, only : modelEclock
       USE MODEL_COM, only : jyear0,amon0,jdate0,jhour0,amon
-     *     ,itime,dtsrc,idacc,itime0,nday
-      use TimeConstants_mod, only: INT_DAYS_PER_YEAR, SECONDS_PER_DAY,
-     &                             INT_MONTHS_PER_YEAR
+     *     ,itime,dtsrc,idacc,itime0,nday, calendar
+      use TimeConstants_mod, only: INT_MONTHS_PER_YEAR
       USE DOMAIN_DECOMP_ATM, only : GRID,WRITE_PARALLEL,
      $     AM_I_ROOT, getDomainBounds, sumxpe
       USE GEOM, only : byaxyp
@@ -1463,6 +1462,9 @@ C****
       USE TRDIAG_COM, only : tij_rvr,to_per_mil,units_tij,scale_tij
 #endif
       USE LAKES_COM, only : irvrmth,jrvrmth,namervr,nrvr
+      use TimeInterval_mod
+      use Rational_mod
+
       IMPLICIT NONE
       REAL*8 RVROUT(NRVR), RVROUT_root(NRVR), scalervr, days
       INTEGER INM,I,N,J
@@ -1474,6 +1476,7 @@ C****
       character(len=300) :: out_line
       integer :: I_0, I_1, J_0, J_1
       integer :: year, hour, date
+      type (Rational) :: secondsPerYear
 
       call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
@@ -1485,7 +1488,9 @@ C****
      *      HOUR,ITIME,DAYS
       IF (AM_I_ROOT()) CALL WRITE_PARALLEL(trim(out_line), UNIT=6)
 C**** convert kg/(source time step) to km^3/mon
-      SCALERVR = 1d-9*SECONDS_PER_DAY*INT_DAYS_PER_YEAR/
+      secondsPerYear = 
+     &     calendar%getMaxDaysInYear() * calendar%getSecondsPerDay()
+      SCALERVR = 1d-9*secondsPerYear%convertToReal()/
      &          (INT_MONTHS_PER_YEAR*RHOW*DTSRC)
 
       RVROUT(:)=0
@@ -2799,22 +2804,27 @@ c     *         +ZATMO(I,J)*MWL(I,J)
       use constant, only : rhow
       use domain_decomp_atm, only : grid,getDomainBounds,sumxpe
       use constant, only : rhow
-      use model_com, only : dtsrc
-      use TimeConstants_mod, only: SECONDS_PER_DAY, INT_MONTHS_PER_YEAR,
-     &                             INT_DAYS_PER_YEAR
+      use model_com, only : dtsrc, calendar
+      use TimeConstants_mod, only: INT_MONTHS_PER_YEAR
       use diag_com, only : aij=>aij_loc,ij_mrvr
       use lakes_com, only : irvrmth,jrvrmth,nrvrmx,nrvr,rvrout
+      use Rational_mod
       implicit none
       real*8 rvrout_loc(nrvrmx), scalervr
       integer inm,i,j
       integer :: i_0, i_1, j_0, j_1
+      type (Rational) :: secondsPerYear
+
       if(nrvr.lt.1) return
       call getDomainBounds(grid, j_strt=j_0, j_stop=j_1)
       i_0 = grid%i_strt
       i_1 = grid%i_stop
 c**** convert kg/(source time step) to km^3/mon
-      scalervr = 1d-9*SECONDS_PER_DAY*INT_DAYS_PER_YEAR/
-     &          (INT_MONTHS_PER_YEAR*rhow*dtsrc)
+      secondsPerYear = 
+     &     calendar%getMaxDaysInYear() * calendar%getSecondsPerDay()
+      SCALERVR = 1d-9*secondsPerYear%convertToReal()/
+     &          (INT_MONTHS_PER_YEAR*RHOW*DTSRC)
+
 c**** fill in the river discharges in the local domain
       rvrout_loc(:)=0
       do j=j_0,j_1

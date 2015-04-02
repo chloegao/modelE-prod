@@ -2764,7 +2764,6 @@ c Switch the sign convention back to "positive downward".
       module UNRDRAG_COM
       !@sum  UNRDRAG_COM model variables for (alternative) gravity wave drag
       !@auth Tiehan Zhou / Marvin A. Geller
-      use TimeConstants_mod, only: INT_DAYS_PER_YEAR
       USE RESOLUTION, only: IM, JM
       implicit none
       save
@@ -2787,7 +2786,7 @@ c Switch the sign convention back to "positive downward".
       !@+   flag = 0 for B2 ( peak flux at ci = 0 )
             integer, parameter :: flag = 0
       !@var Bt: sum of |momentum flux| for all +/-c (kg/m/s^2)
-            real(r8) :: Bt(JM,INT_DAYS_PER_YEAR)
+            real(r8), allocatable :: Bt(:,:)   ! JM by days per year
       !@var N_Kh: number of horizontal wavenumbers
             integer, parameter :: N_Kh = 1
       !@var Bm: amplitude for the spectrum (m^2/s^2) ~ u'w'
@@ -2821,7 +2820,94 @@ c Switch the sign convention back to "positive downward".
             real(r8), parameter :: aLn2 = 0.69314718055994529_r8
       !@var L_min:
             integer :: L_min
+
+
+      contains
+
+      subroutine init_UNRDRAG(calendar)
+      !@sum  init_UNRDRAG initializes parameters for (alternative) gravity wave drag
+      !@auth Tiehan Zhou / Marvin A. Geller
+      USE RESOLUTION, only: JM, LM, PLbot
+      USE CONSTANT, only : pi, twopi
+      USE GEOM, only: LAT_DG
+      USE FILEMANAGER, only: openunit, closeunit
+      use AbstractCalendar_mod
+      implicit none
+      class (AbstractCalendar), intent(in) :: calendar
+
+      integer :: iu_Z4var, I, IAZ, J, IT
+      real(r8) :: x, Phi
+      real(r8) :: Bt_Smax, Bt_Nmax
+      real(r8) :: Bt_Tmax
+      character(Len=80) :: Title
+      integer :: maxDaysInYear
+
+      maxDaysInYear = calendar%getMaxDaysInYear()
+
+      if (maxDaysInYear == 0) then ! tidally locked
+         call stop_model(
+     &        'init_UNRDRAG() - tidally locked not supported.', 255)
+      end if
+      allocate( Bt(JM,maxDaysInYear) )
+
+      call openunit("Z4var", iu_Z4var, .true., .true.)
+      read(iu_Z4var) Title, Z4var
+      call closeunit(iu_Z4var)
+
+      Bt_Smax = 6.0_r8 * 0.001_r8
+      Bt_Nmax = 0.5_r8 * 0.001_r8
+      do IT = 1, maxDaysInYear
+         x = cos(twopi * real(IT-16, r8) / real(maxDaysInYear, r8))
+         do J = 1, JM
+            if ( LAT_DG(J,2) <= 1.0E-8 .and. x <= 0.0_r8 ) then
+               Bt(J,IT) = -Bt_Smax *
+     *          exp(-((LAT_DG(J,2) + 60.0_r8)/15.0_r8)**2 * aLn2 ) * x
+            elseif ( LAT_DG(J,2) > 1.0E-8 .and. x >= 0.0_r8 ) then
+               Bt(J,IT) =  Bt_Nmax *
+     *          exp(-((LAT_DG(J,2) - 60.0_r8)/15.0_r8)**2 * aLn2 ) * x
+            else
+               Bt(J,IT) = 0.0_r8
+            end if
+         end do
+      end do
+
+      Bt_Tmax = 0.5_r8 * 0.001_r8
+      do IT = 1, maxDaysInYear
+         x = cos(twopi * real(IT-16, r8) / real(maxDaysInYear))
+         Phi = -10.0_r8 * x
+         do J = 1, JM
+            Bt(J,IT) = Bt(J,IT) + Bt_Tmax *
+     *          exp(-( (LAT_DG(J,2) - Phi)/5.0_r8 )**2 * aLn2 ) *
+     *          0.25_r8 * ( 3.0_r8 - x )
+         end do
+      end do
+
+      Bt = Bt + 1.0_r8 * 0.001_r8
+
+      do I = 1, N_C
+         C(I, :) = C_inf(:) + real(I - 1, r8) * dc(:)
+      end do
+      do I = 1, N_Kh
+      Kh(I) = twopi / (Wavelenth(I) * 1000.0_r8)
+                            !!!Factor 1000.0 arises from the unit of Wavelenth.
+      end do
+      do IAZ = 1, N_Az
+      x = twopi / real(N_Az, r8) * real(IAZ - 1, r8)
+      Ah1(IAZ) = cos(x)
+      Ah2(IAZ) = sin(x)
+      end do
+      I = 1
+      do while ( PLbot(I) >= 100.0_r8 )
+         I = I + 1
+         if ( I == LM + 2 ) exit
+      end do
+         IZ0(:) = I - 1
+      L_min = minval(IZ0)
+      end subroutine init_UNRDRAG
+
+
       end module UNRDRAG_COM
+
       subroutine UNRDRAG (PB,U,V,T,SZ,UNRDRAG_x,UNRDRAG_y)
       !@sum  UNRDRAG is the driver for (alternative) gravity wave drag
       !@auth Tiehan Zhou / Marvin A. Geller
@@ -3051,78 +3137,6 @@ c Switch the sign convention back to "positive downward".
       end do Longitude
       end do Latitude
       end subroutine UNRDRAG
-
-      subroutine init_UNRDRAG
-      !@sum  init_UNRDRAG initializes parameters for (alternative) gravity wave drag
-      !@auth Tiehan Zhou / Marvin A. Geller
-      USE RESOLUTION, only: JM, LM, PLbot
-      USE CONSTANT, only : pi, twopi
-      USE GEOM, only: LAT_DG
-      use TimeConstants_mod, only: INT_DAYS_PER_YEAR
-      USE UNRDRAG_COM, only: Z4var, Bt
-      USE UNRDRAG_COM, only: r8, N_C, C_inf, dc, C, IZ0, N_Kh, Wavelenth
-      USE UNRDRAG_COM, only: Kh, Ah1, Ah2, N_Az, aLn2, L_min
-      USE FILEMANAGER, only: openunit, closeunit
-      implicit none
-      integer :: iu_Z4var, I, IAZ, J, IT
-      real(r8) :: x, Phi
-      real(r8) :: Bt_Smax, Bt_Nmax
-      real(r8) :: Bt_Tmax
-      character(Len=80) :: Title
-      call openunit("Z4var", iu_Z4var, .true., .true.)
-      read(iu_Z4var) Title, Z4var
-      call closeunit(iu_Z4var)
-
-      Bt_Smax = 6.0_r8 * 0.001_r8
-      Bt_Nmax = 0.5_r8 * 0.001_r8
-      do IT = 1, INT_DAYS_PER_YEAR
-         x = cos(twopi * real(IT-16, r8) / real(INT_DAYS_PER_YEAR, r8))
-         do J = 1, JM
-            if ( LAT_DG(J,2) <= 1.0E-8 .and. x <= 0.0_r8 ) then
-               Bt(J,IT) = -Bt_Smax *
-     *          exp(-((LAT_DG(J,2) + 60.0_r8)/15.0_r8)**2 * aLn2 ) * x
-            elseif ( LAT_DG(J,2) > 1.0E-8 .and. x >= 0.0_r8 ) then
-               Bt(J,IT) =  Bt_Nmax *
-     *          exp(-((LAT_DG(J,2) - 60.0_r8)/15.0_r8)**2 * aLn2 ) * x
-            else
-               Bt(J,IT) = 0.0_r8
-            end if
-         end do
-      end do
-
-      Bt_Tmax = 0.5_r8 * 0.001_r8
-      do IT = 1, INT_DAYS_PER_YEAR
-         x = cos(twopi * real(IT-16, r8) / real(INT_DAYS_PER_YEAR, r8))
-         Phi = -10.0_r8 * x
-         do J = 1, JM
-            Bt(J,IT) = Bt(J,IT) + Bt_Tmax *
-     *          exp(-( (LAT_DG(J,2) - Phi)/5.0_r8 )**2 * aLn2 ) *
-     *          0.25_r8 * ( 3.0_r8 - x )
-         end do
-      end do
-
-      Bt = Bt + 1.0_r8 * 0.001_r8
-
-      do I = 1, N_C
-         C(I, :) = C_inf(:) + real(I - 1, r8) * dc(:)
-      end do
-      do I = 1, N_Kh
-      Kh(I) = twopi / (Wavelenth(I) * 1000.0_r8)
-                            !!!Factor 1000.0 arises from the unit of Wavelenth.
-      end do
-      do IAZ = 1, N_Az
-      x = twopi / real(N_Az, r8) * real(IAZ - 1, r8)
-      Ah1(IAZ) = cos(x)
-      Ah2(IAZ) = sin(x)
-      end do
-      I = 1
-      do while ( PLbot(I) >= 100.0_r8 )
-         I = I + 1
-         if ( I == LM + 2 ) exit
-      end do
-         IZ0(:) = I - 1
-      L_min = minval(IZ0)
-      end subroutine init_UNRDRAG
 
       subroutine orographic_drag (u,v,rho, bvf,h_4sq,coef,drag_x,drag_y)
       !@sum   orographic_drag

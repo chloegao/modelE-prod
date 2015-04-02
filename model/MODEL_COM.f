@@ -54,7 +54,11 @@ C**** (Simplified) Calendar Related Terms
       class (AbstractOrbit), allocatable :: orbit
       class (AbstractCalendar), allocatable :: calendar
 
+!@var modelEclock encapsulates current time with reference to a calendar
       type (ModelClock), public :: modelEClock
+!@var modelEclockI encapsulates start time of model run
+      type (ModelClock), public :: modelEClockI
+
 !@var ITIME current time in ITUs (1 ITU = DTsrc sec, currently 1 hour)
       INTEGER :: Itime
 !@var ItimeI,ItimeE   time at start,end of run

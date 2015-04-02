@@ -248,6 +248,7 @@ c**** Variables for specific subdaily soil dust aerosol diagnostics
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
+
       SUBROUTINE alloc_dust(grid)
 !@sum  alloc_dust allocates dust/mineral tracer arrays
 !@auth Jan Perlwitz
@@ -256,8 +257,9 @@ c**** Variables for specific subdaily soil dust aerosol diagnostics
       USE resolution,ONLY : Lm
       USE tracer_com,ONLY : Ntm_dust
       use tracers_dust
-      use TimeConstants_mod, only: INT_MONTHS_PER_YEAR,INT_DAYS_PER_YEAR
-
+      use TimeConstants_mod, only: INT_MONTHS_PER_YEAR
+      use AbstractCalendar_mod
+      use MODEL_COM, only: calendar
       IMPLICIT NONE
 
       TYPE(DIST_GRID),INTENT(IN) :: grid
@@ -265,6 +267,7 @@ c**** Variables for specific subdaily soil dust aerosol diagnostics
       INTEGER :: i_0h,i_1h,j_1h,j_0h
       INTEGER :: ier
       LOGICAL,SAVE :: qfirst=.TRUE.
+      integer :: maxDaysInYear
 
       IF (.NOT. qfirst) RETURN
       qfirst=.FALSE.
@@ -276,6 +279,8 @@ c**** Variables for specific subdaily soil dust aerosol diagnostics
 
       allocate(dust_names(ntm_dust))
 
+      maxDaysInYear = calendar%getMaxDaysInYear()
+
       ALLOCATE(hbaij(i_0h:i_1h,j_0h:j_1h),ricntd(i_0h:i_1h,j_0h:j_1h),
      &     dryhr(i_0h:i_1h,j_0h:j_1h),frclay(i_0h:i_1h,j_0h:j_1h),
      &     frsilt(i_0h:i_1h,j_0h:j_1h),vtrsh(i_0h:i_1h,j_0h:j_1h),
@@ -285,7 +290,7 @@ c**** Variables for specific subdaily soil dust aerosol diagnostics
      &     wsubwd_com(i_0h:i_1h,j_0h:j_1h),
      &     wsubwm_com(i_0h:i_1h,j_0h:j_1h),
      &     prelay(i_0h:i_1h,j_0h:j_1h,LM),
-     &     d_dust(i_0h:i_1h,j_0h:j_1h,nAerocomDust,INT_DAYS_PER_YEAR),
+     &     d_dust(i_0h:i_1h,j_0h:j_1h,nAerocomDust,maxDaysInYear),
 #if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
      &     minfr(i_0h:i_1h,j_0h:j_1h,Mtrac),
      &     mineralFractions( i_0h:i_1h, j_0h:j_1h, ntm_dust ),
