@@ -1085,7 +1085,7 @@ subroutine CONDSE
           mc_pl_max_p1(I,J,:) = PLUME_MAX(1,:)
           mc_pl_max_p2(I,J,:) = PLUME_MAX(2,:)
           mc_pl_min_p1(I,J,:) = PLUME_MIN(1,:)
-          mc_pl_max_p2(I,J,:) = PLUME_MIN(2,:)
+          mc_pl_min_p2(I,J,:) = PLUME_MIN(2,:)
         endif
 #endif
 #endif
