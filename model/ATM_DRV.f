@@ -536,7 +536,11 @@ C****
 #ifdef USE_FVCORE
       USE FV_INTERFACE_MOD, only: fvstate,initialize
 #endif
+#ifndef SCM
+#ifndef CUBED_SPHERE
       use UNRDRAG_COM, only: init_UNRDRAG
+#endif
+#endif
       IMPLICIT NONE
 !@var istart start(1-8)/restart(>8)  option
       integer :: istart,istart_fixup,do_IC_fixups

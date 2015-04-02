@@ -350,7 +350,7 @@ c         apply combined forcings to horizontal winds
 
       PHI(:,:,:) = GZ(:,:,:)
       Return
-      EndSubroutine PGF_SCM_NEW
+      End Subroutine PGF_SCM
 
 
 C**** Dummy routines
