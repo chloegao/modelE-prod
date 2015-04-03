@@ -93,14 +93,14 @@ C**** Some local constants
       RETURN
       END SUBROUTINE ALLOC_DIAG_LOC
 
+
       SUBROUTINE DIAGA
 !@sum  DIAGA accumulate various diagnostics during dynamics
 !@vers 2013/03/26
 !@auth Original Development Team
       USE CONSTANT, only : grav,rgas,kapa,lhe,lhs,sha,bygrav,tf
      *     ,rvap,gamd,teeny,undef,radius,omega,kg2mb,mair
-      USE RESOLUTION, only : ls1,ptop,pmtop,psfmpt
-      USE RESOLUTION, only : im,jm,lm
+      Use Resolution, Only: IM,JM,LM, LS1
       USE MODEL_COM, only : idacc
      *     ,mdyn,mdiag
       USE ATM_COM, only : zatmo,QCL,QCI,u,v,t,p,q,lm_req,req_fac_m
@@ -142,9 +142,9 @@ C**** Some local constants
       use OldTracer_mod, only: mass2vol
       USE TRCHEM_Shindell_COM, only : mNO2
 #endif
-      USE ATM_COM, only : pk,pek,phi,pmid,pdsig,plij,pedn,MA
+      USE ATM_COM, only : pk,pek,phi,pmid,pdsig,pedn,MA,MASUM
      &     ,ua=>ualij,va=>valij
-      USE DYNAMICS, only : SD,wcp,sig,sige,dsig
+      USE DYNAMICS, only : SD,wcp
       USE CLOUDS_COM, only : svlhx
       USE DIAG_LOC, only : w,tx,jet
       USE DOMAIN_DECOMP_ATM, only : getDomainBounds, GRID, HALO_UPDATE
@@ -161,11 +161,11 @@ C**** Some local constants
      &     IP1,LR,IT
       REAL*8 THBAR ! external
       REAL*8 ::
-     &     BBYGV,BYSDSG,DLNP01,DLNP12,DLNP23,DBYSD,
+     &     BBYGV,DLNP01,DLNP12,DLNP23,MAzMASUM,
      &     DXYPJ,
      *     ESEPS,GAMC,GAMM,GAMX,
-     &     PDN,PE,PHI_REQ,PIJ,pfact,chemL,chemLm1,
-     *     PKE,PL,PRT,W2MAX,RICHN,
+     &     PDN,PE,PHI_REQ,pfact,chemL,chemLm1,
+     *     PL,PRT,W2MAX,RICHN,
      *     ROSSN,ROSSL,BYFCOR,BYBETA,BYBETAFAC,NH,SS,THETA,
      *     TZL,X,TIJK,QIJK,DTXDY
       LOGICAL qpress,qabove
@@ -204,7 +204,6 @@ c
 
       IDACC(ia_dga)=IDACC(ia_dga)+1
 
-      BYSDSG=1./(1.-SIGE(LM+1))
       DLNP01=LOG(pmidl00(lm)/PLM(LM+1))
       DLNP12=LOG(REQ_FAC_M(1)/REQ_FAC_M(2))  ! LOG(.75/.35)
       DLNP23=LOG(REQ_FAC_M(2)/REQ_FAC_M(3))  ! LOG(.35/.1)
@@ -268,7 +267,7 @@ C**** NUMBERS ACCUMULATED FOR A SINGLE LEVEL
             CALL INC_AJ(I,J,IT,J_TX1,(TX(I,J,1)-TF)*FTYPE(IT,I,J))
           END DO
           CALL INC_AREG(I,J,JR,J_TX1,(TX(I,J,1)-TF))
-          PS=P(I,J)+PTOP
+          PS = PEDN(1,I,J)
           ZS=BYGRAV*ZATMO(I,J)
           AIJ(I,J,IJ_PRES)=AIJ(I,J,IJ_PRES)+ PS
 #ifdef SLP_FROM_T1
@@ -440,12 +439,11 @@ C****
             GO TO 174
           END IF
 C**** BEGIN AMIP
-          IF((P(I,J)+PTOP).LT.1000.)AIJ(I,J,IJ_P1000)=
-     *      AIJ(I,J,IJ_P1000)+1.
-          IF((P(I,J)+PTOP).LT.925.)AIJ(I,J,IJ_P925)=AIJ(I,J,IJ_P925)+1.
-          IF((P(I,J)+PTOP).LT.700.)AIJ(I,J,IJ_P700)=AIJ(I,J,IJ_P700)+1.
-          IF((P(I,J)+PTOP).LT.600.)AIJ(I,J,IJ_P600)=AIJ(I,J,IJ_P600)+1.
-          IF((P(I,J)+PTOP).LT.500.)AIJ(I,J,IJ_P500)=AIJ(I,J,IJ_P500)+1.
+          If (PEDN(1,I,J) <1000) AIJ(I,J,IJ_P1000)= AIJ(I,J,IJ_P1000)+ 1
+          If (PEDN(1,I,J) < 925) AIJ(I,J,IJ_P925) = AIJ(I,J,IJ_P925) + 1
+          If (PEDN(1,I,J) < 700) AIJ(I,J,IJ_P700) = AIJ(I,J,IJ_P700) + 1
+          If (PEDN(1,I,J) < 600) AIJ(I,J,IJ_P600) = AIJ(I,J,IJ_P600) + 1
+          If (PEDN(1,I,J) < 500) AIJ(I,J,IJ_P500) = AIJ(I,J,IJ_P500) + 1
 C**** END AMIP
         END DO
       END DO
@@ -453,11 +451,10 @@ C**** END AMIP
 C**** ACCUMULATION OF TEMP., POTENTIAL TEMP., Q, AND RH
       DO J=J_0,J_1
         DO L=1,LM
-          DBYSD=DSIG(L)*BYSDSG
+          MAzMASUM = MA(L,I,J) / MASUM(I,J)
           DO I=I_0,IMAXJ(J)
             DXYPJ=AXYP(I,J)
             JR=JREG(I,J)
-            PIJ=PLIJ(L,I,J)
             aijl(i,j,l,ijl_dp) = aijl(i,j,l,ijl_dp) + pdsig(l,i,j)
             call inc_ajl(i,j,l,jl_dpa,pdsig(l,i,j))
 c ajl(jl_dtdyn) was incremented by -t(i,j,l) before dynamics
@@ -472,13 +469,13 @@ c ajl(jl_dtdyn) was incremented by -t(i,j,l) before dynamics
             aijl(i,j,L,ijl_zL)=aijl(i,j,L,ijl_zL)+phi(i,j,l)/grav
             DO IT=1,NTYPE
               CALL INC_AJ(I,J,IT,J_TX,(TX(I,J,L)-TF)*FTYPE(IT,I,J)*
-     *             DBYSD)
+     *             MAzMASUM)
               CALL INC_AJ(I,J,IT,J_QP,(Q(I,J,L)+QCL(I,J,L)+QCI(I,J,L))*
-     *             PIJ*DSIG(L)*FTYPE(IT,I,J))
+     *             PDSIG(L,I,J)*FTYPE(IT,I,J))
             END DO
             CALL INC_AREG(I,J,JR,J_QP,(Q(I,J,L)+QCL(I,J,L)+QCI(I,J,L))
-     *                    *PIJ*DSIG(L))
-            CALL INC_AREG(I,J,JR,J_TX,(TX(I,J,L)-TF)*DBYSD)
+     *                    *PDSIG(L,I,J))
+            CALL INC_AREG(I,J,JR,J_TX,(TX(I,J,L)-TF)*MAzMASUM)
           END DO
         END DO
       END DO
@@ -572,10 +569,11 @@ c lapse rates
         gamm=0.
         do l=1,ls1-1
           tzl=tx(i,j,l)
-          prt=(sig(l)*p(i,j)+ptop)*rgas*tzl
+          PRT = PMID(L,I,J)*RGAS*TZL
           eseps=qsat(tzl,lhe,one)
-          gamm=gamm+dsig(l)*(prt+lhe*eseps)/(prt+x*eseps/tzl)
+          GAMM = GAMM + PDSIG(L,I,J)*(prt+lhe*eseps)/(prt+x*eseps/tzl)
         end do
+        GAMM = GAMM / (PEDN(1,I,J) - PEDN(LS1,I,J))
 
         do it=1,ntype
           call inc_aj(i,j,it,j_rostr,rossn*ftype(it,i,j))
@@ -609,28 +607,10 @@ C**** GAMC, THE DYNAMICALLY DETERMINED LAPSE RATE IN THE EXTRATROPICS
 C****
       do j=j_0,j_1
       do i=i_0,i_1
-        tx_trop(i,j) = 0.
-        tx_strat(i,j) = 0.
-      enddo
-      enddo
-      do l=1,ls1-1
-      do j=j_0,j_1
-      do i=i_0,i_1
-        tx_trop(i,j) = tx_trop(i,j) + tx(i,j,l)*dsig(l)
-      enddo
-      enddo
-      enddo
-      do l=ls1,lstr
-      do j=j_0,j_1
-      do i=i_0,i_1
-        tx_strat(i,j) = tx_strat(i,j) + tx(i,j,l)*dsig(l)
-      enddo
-      enddo
-      enddo
-      do j=j_0,j_1
-      do i=i_0,i_1
-        tx_trop(i,j) = tx_trop(i,j)/(SIGE(1)-SIGE(LS1))
-        tx_strat(i,j) = tx_strat(i,j)/(SIGE(LS1)-SIGE(LSTR+1)+1d-12)
+         TX_TROP(I,J) = Sum(TX(I,J,1:LS1-1) * PDSIG(1:LS1-1,I,J)) /
+     /                  (PEDN(1,I,J) - PEDN(LS1,I,J))
+        TX_STRAT(I,J) = Sum(TX(I,J,LS1:LSTR) * PDSIG(LS1:LSTR,I,J)) /
+     /                  (PEDN(LS1,I,J) - PEDN(LSTR+1,I,J) + 1d-8)
       enddo
       enddo
 
@@ -679,11 +659,8 @@ C****
       DO L=1,LM-1
       DO J=J_0,J_1
       DO I=I_0,IMAXJ(J)
-        PIJ=PLIJ(L,I,J)
-        PE=SIGE(L+1)*PIJ+PTOP
-        PKE=PE**KAPA
         THETA=THBAR(T(I,J,L+1),T(I,J,L))
-        W(I,J,L)=SD(I,J,L)*THETA*PKE/PE
+        W(I,J,L) = SD(I,J,L)*THETA*PEK(L+1,I,J) / PEDN(L+1,I,J)
       END DO
        if(have_south_pole .and. J==1) W(2:IM,J,L) = W(1,J,L)
        if(have_north_pole .and. J==JM) W(2:IM,J,L) = W(1,J,L)
@@ -1081,12 +1058,10 @@ C****
       SUBROUTINE conserv_PE(TPE)
 !@sum  conserv_TPE calculates total atmospheric potential energy
 !@auth Gary Russell/Gavin Schmidt
-      USE CONSTANT, only : sha,mb2kg
-      USE RESOLUTION, only : ptop
-      USE RESOLUTION, only : im,jm,lm
-      USE ATM_COM, only : t,p,zatmo
+      USE CONSTANT, only : sha
+      Use Resolution, Only: IM,JM, MTOP
+      Use ATM_COM,    Only: MA,MASUM,PK,T,ZATMO
       USE GEOM, only : imaxj
-      USE ATM_COM, only : pk,pdsig
       USE DOMAIN_DECOMP_ATM, only : getDomainBounds,GRID
       IMPLICIT NONE
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
@@ -1106,11 +1081,8 @@ C**** TOTAL POTENTIAL ENERGY (J/m^2)
 C****
       DO J=J_0,J_1
       DO I=I_0,IMAXJ(J)
-        TPE(I,J)=0.
-        DO L=1,LM
-          TPE(I,J)=TPE(I,J)+T(I,J,L)*PK(L,I,J)*PDSIG(L,I,J)
-        ENDDO
-        TPE(I,J)=(TPE(I,J)*SHA+ZATMO(I,J)*(P(I,J)+PTOP))*mb2kg
+         TPE(I,J) = ZATMO(I,J)*(MASUM(I,J)+MTOP) +
+     +              SHA * Sum(T(I,J,:)*PK(:,I,J)*MA(:,I,J))
       ENDDO
       ENDDO
       IF(HAVE_SOUTH_POLE) TPE(2:im,1) =TPE(1,1)
@@ -1118,6 +1090,7 @@ C****
       RETURN
 C****
       END SUBROUTINE conserv_PE
+
 
       SUBROUTINE conserv_WM(WATER)
 !@sum  conserv_WM calculates total atmospheric water mass
@@ -1727,7 +1700,7 @@ c get_subdd
       use TimeConstants_mod, only: SECONDS_PER_DAY
       USE RESOLUTION, only : ptop
       USE RESOLUTION, only : lm
-      USE ATM_COM, only : p,zatmo,u,v,t,q
+      Use ATM_COM,    Only: p,PEDN,zatmo,u,v,t,q
       USE GEOM, only : imaxj,axyp,byaxyp
 #ifdef ttc_subdd
      *                ,cosu,sinu,dxv,dyp,bydxyp
@@ -1864,17 +1837,16 @@ C**** depending on namedd string choose what variables to output
 C**** simple diags (one record per file)
         select case (namedd(k))
         case ("SLP")            ! sea level pressure (mb)
+          units_of_data = '10^2 Pa'
+          long_name = 'Sea Level Pressure'
           do j=J_0,J_1
           do i=I_0,imaxj(j)
-            ps=(p(i,j)+ptop)
-            zs=bygrav*zatmo(i,j)
-            datar8(i,j)=slp(ps,atmsrf%tsavg(i,j),zs)
-            units_of_data = '10^2 Pa'
-            long_name = 'Sea Level Pressure'
+            DATAR8(I,J) = SLP(PEDN(1,I,J), ATMSRF%TSAVG(I,J),
+     *                         ZATMO(I,J)*byGRAV)
           end do
           end do
         case ("PS")             ! surface pressure (mb)
-          datar8=p+ptop
+          DATAR8(:,:) = PEDN(1,:,:)
 #ifdef mjo_subdd
 C**** accumulating/averaging mode ***
           datar8=p_avg/Nsubdd+ptop ! average over subdaily period
@@ -2025,7 +1997,7 @@ C**** accumulating/averaging mode ***
           do j=J_0,J_1
             do i=I_0,imaxj(j)
               datar8(i,j)=atmsrf%qsavg(i,j)/
-     &             qsat(atmsrf%tsavg(i,j),lhe,p(i,j)+ptop)
+     &             qsat(atmsrf%tsavg(i,j),lhe,PEDN(1,I,J))
      &             *100.d0
             enddo
           enddo
@@ -5121,15 +5093,13 @@ c write physical variable
 !@+   for diurnal cycle diagnostics
 !@vers 2013/03/27
 !@auth Reha Cakmur/Jan Perlwitz
-      USE RESOLUTION, only : ptop
       USE MODEL_COM, only : modelEclock
       USE ATM_COM, only : u,v,t,p,q
       USE CONSTANT, only : bygrav
       USE domain_decomp_atm, ONLY : am_i_root,getDomainBounds
       USE domain_decomp_atm, ONLY : globalsum,grid
       USE GEOM, only : imaxj,axyp,byaxyp
-      USE ATM_COM, only : phi,wsave,pek,byMA
-      USE DYNAMICS, only : sig
+      USE ATM_COM, only : PMID,phi,wsave,pek,byMA
       USE rad_com,ONLY : cosz1,srnflb_save,trnflb_save,ttausv_save,
      &     ttausv_cs_save
       USE diag_com,ONLY : adiurn_dust,ndiupt,ndiuvar,lmax_dd2,ijdd
@@ -5199,7 +5169,7 @@ C****
      *           ,j,1:lmax_dd2)+v(i,j,1:lmax_dd2)*v(i,j,1:lmax_dd2))
             tmp(idd_t1:idd_t1+lmax_dd2-1)=t(i,j,1:lmax_dd2)*psk
             tmp(idd_qq1:idd_qq1+lmax_dd2-1)=q(i,j,1:lmax_dd2)
-            tmp(idd_p1:idd_p1+lmax_dd2-1)=p(i,j)*sig(1:lmax_dd2)+ptop
+            tmp(idd_p1:idd_p1+lmax_dd2-1) = PMID(1:LMAX_DD2)
             tmp(idd_w1:idd_w1+lmax_dd2-1)=wsave(i,j,1:lmax_dd2)
             tmp(idd_phi1:idd_phi1+lmax_dd2-1)=phi(i,j,1:lmax_dd2)*bygrav
             tmp(idd_sr1:idd_sr1+lmax_dd2-1)=srnflb_save(i,j,1:lmax_dd2)
@@ -6571,14 +6541,15 @@ c
       RETURN
       END SUBROUTINE DIAGJ_PREP
 
+
       subroutine diagjl_prep
       use resolution, only : lm
       use atm_com, only : lm_req
-      use dynamics, only : do_gwdrag,dsig
+      use dynamics, only : do_gwdrag
       use domain_decomp_atm, only : am_i_root
       use diag_com, only : kajl,jm_budg,
      &     ajl,asjl,jl_rad_cool,jk_tx,
-     &     jl_sumdrg,jl_dumtndrg,jl_dushrdrg,
+     &     JL_DPA, jl_sumdrg,jl_dumtndrg,jl_dushrdrg,
      &     jl_mcdrgpm10,jl_dumcdrgm10,jl_dumcdrgp10,
      &     jl_mcdrgpm20,jl_dumcdrgm20,jl_dumcdrgp20,
      &     jl_mcdrgpm40,jl_dumcdrgm40,jl_dumcdrgp40,
@@ -6586,8 +6557,8 @@ c
      &     dxyp_budg,hemis_jl,vmean_jl,force_jl_vmean
       use diag_com_rad
       implicit none
-      integer :: j,j1,j2,l,k,lr,n
-      real*8 :: hemfac
+      Integer :: j,l,k,lr,n, J1,J2,J3,J4
+      Real*8  :: HEMFAC, MSH,MNH, ASH,ANH
 
       if(.not.am_i_root()) return
 
@@ -6620,38 +6591,51 @@ c
      &       /)              ), dim=3)
       endif
 
-c
-c compute hemispheric/global means and vertical sums
-c
 #ifndef SCM
+!**** Compute vertical, hemispheric, and global means or sums
       hemfac = 2./sum(dxyp_budg)
-      do k=1,kajl
-        do l=1,lm
+      do k=1,kajl  ;  do l=1,lm 
           j1 = 1; j2 = jm_budg/2
           hemis_jl(1,l,k) = hemfac*sum(ajl(j1:j2,l,k)*dxyp_budg(j1:j2))
           j1 = jm_budg/2+1; j2 = jm_budg
           hemis_jl(2,l,k) = hemfac*sum(ajl(j1:j2,l,k)*dxyp_budg(j1:j2))
           hemis_jl(3,l,k) = .5*(hemis_jl(1,l,k)+hemis_jl(2,l,k))
-        enddo
-        if(force_jl_vmean(k)) then
-          ! Note dsig is the wrong weight for layer-edge qtys.
-          ! It is used for the time being to match the behavior of JLMAP.
-          do j=1,jm_budg
-            vmean_jl(j,1,k) = sum(dsig(:)*ajl(j,:,k))/sum(dsig)
-          enddo
-          do j=jm_budg+1,jm_budg+3
-            vmean_jl(j,1,k) =
-     &           sum(dsig(:)*hemis_jl(j-jm_budg,:,k))/sum(dsig)
-          enddo
-        else
-          vmean_jl(1:jm_budg,1,k) = sum(ajl(:,:,k),dim=2)
-          vmean_jl(jm_budg+1:jm_budg+3,1,k) = sum(hemis_jl(:,:,k),dim=2)
-        endif
-      enddo
+          enddo  ;  enddo
+      Do K=1,KAJL
+      If (FORCE_JL_VMEAN(K))
+     *   Then  ;  Do J=1,JM_BUDG
+                  VMEAN_JL(J,1,K) = Sum(AJL(J,:,JL_DPA)*AJL(J,:,K)) /
+     /                              Sum(AJL(J,:,JL_DPA))  ;  EndDo
+         Else  ;  Do J=1,JM_BUDG
+                  VMEAN_JL(J,1,K) = Sum(AJL(J,:,K))  ;  EndDo
+         EndIf  ;  EndDo
+      J1=1  ;  J2=JM_BUDG/2  ;  J3=J2+1  ;  J4=JM_BUDG
+      MSH = Sum (DXYP_BUDG(J1:J2) * VMEAN_JL(J1:J2,1,JL_DPA))
+      MNH = Sum (DXYP_BUDG(J3:J4) * VMEAN_JL(J3:J4,1,JL_DPA))
+      ASH = Sum (DXYP_BUDG(J1:J2))
+      ANH = Sum (DXYP_BUDG(J3:J4))
+      Do K=1,KAJL
+      If (FORCE_JL_VMEAN(K))
+     *   Then  ;  VMEAN_JL(J4+1,1,K) = Sum (VMEAN_JL(J1:J2,1,JL_DPA) *
+     *                   DXYP_BUDG(J1:J2) * VMEAN_JL(J1:J2,1,K)) / MSH
+                  VMEAN_JL(J4+2,1,K) = Sum (VMEAN_JL(J3:J4,1,JL_DPA) *
+     *                   DXYP_BUDG(J3:J4) * VMEAN_JL(J3:J4,1,K)) / MNH
+                  VMEAN_JL(J4+3,1,K) =
+     =               (MSH*VMEAN_JL(J4+1,1,K) + MNH*VMEAN_JL(J4+2,1,K)) /  
+     /               (MSH + MNH)
+         Else  ;  VMEAN_JL(J4+1,1,K) =
+     =               Sum(DXYP_BUDG(J1:J2) * VMEAN_JL(J1:J2,1,K)) / ASH
+                  VMEAN_JL(J4+2,1,K) =
+     =               Sum(DXYP_BUDG(J3:J4) * VMEAN_JL(J3:J4,1,K)) / ANH
+                  VMEAN_JL(J4+3,1,K) =
+     =               (ASH*VMEAN_JL(J4+1,1,K) + ANH*VMEAN_JL(J4+2,1,K)) /  
+     /               (ASH + ANH)
+         EndIf  ;  EndDo
 #endif
 
       return
       end subroutine diagjl_prep
+
 
       subroutine diag_isccp_prep
 c calculates the denominator array for ISCCP histograms
