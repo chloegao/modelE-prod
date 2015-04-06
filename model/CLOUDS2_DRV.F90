@@ -274,11 +274,13 @@ subroutine CONDSE
 #endif
 
 #ifdef CACHED_SUBDD
+#ifdef SCM
    !  isccp diagnostics   save frequency histogram for subdd diagnostics
    !@var save_fq_isccp
     real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO, &
            GRID%J_STRT_HALO:GRID%J_STOP_HALO,NTAU,NPRES) &
            :: save_fq_isccp
+#endif
 #endif
 
 !@param ENTCON fractional rate of entrainment (km**-1)
@@ -488,9 +490,9 @@ subroutine CONDSE
       mc_m_p1=0.d0; mc_m_p2=0.d0; mc_det_p1=0.d0; mc_det_p2=0.d0
       mc_pl_max_p1=0.d0; mc_pl_max_p2=0.0; mc_pl_min_p1=0.d0; mc_pl_min_p2=0.d0
   endif
-#endif
       ! isccp frequency diags
       save_fq_isccp=0.d0
+#endif
 #endif
 
   call recalc_agrid_uv ! may not be necessary - check later
@@ -1429,7 +1431,9 @@ subroutine CONDSE
             saveMCLDI(i,j)=sum(fq_isccp(2:ntau,4:5)) ! current value for
             saveHCLDI(i,j)=sum(fq_isccp(2:ntau,1:3)) ! instant. SUBDDiags
 #ifdef CACHED_SUBDD
+#ifdef SCM
             save_fq_isccp(i,j,:,:) = fq_isccp(:,:)
+#endif
 #endif
             !**** Save area weighted isccp histograms
             n=isccp_reg2d(i,j)
@@ -2036,12 +2040,12 @@ subroutine CONDSE
   enddo
   enddo
 
+#ifdef SCM
   if (isccp_diags.eq.1) then
       call inc_subdd('isccp_fq',save_fq_isccp,1,.true.,units='fraction', &
            long_name='Cld Fct by ISCCP CldTypes',dim3name='ntau',dim4name='npres')
   endif
 
-#ifdef SCM
   if( SCMopt%PlumeDiag )then
   ! plume diagnostics
     call inc_subdd('mc_mfu_p1',mc_mfu_p1,1,.true.,units='kg/m2/s', &
