@@ -451,8 +451,8 @@ C**** END AMIP
 C**** ACCUMULATION OF TEMP., POTENTIAL TEMP., Q, AND RH
       DO J=J_0,J_1
         DO L=1,LM
-          MAzMASUM = MA(L,I,J) / MASUM(I,J)
           DO I=I_0,IMAXJ(J)
+            MAzMASUM = MA(L,I,J) / MASUM(I,J)
             DXYPJ=AXYP(I,J)
             JR=JREG(I,J)
             aijl(i,j,l,ijl_dp) = aijl(i,j,l,ijl_dp) + pdsig(l,i,j)
