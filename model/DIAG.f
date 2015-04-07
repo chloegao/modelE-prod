@@ -559,7 +559,7 @@ c troposphere
         w2max = maxval(ua(1:ls1-1,i,j)**2+va(1:ls1-1,i,j)**2)+teeny
         rossn = sqrt(w2max)*byfcor
         nh = sqrt((phi(i,j,ls1-1)-phi(i,j,1))*
-     &       log(t(i,j,ls1-1)/t(i,j,1)))
+     &       log(max(t(i,j,ls1-1)/t(i,j,1),1d0)))
         rossl = min(nh*byfcor,sqrt(nh*bybeta))
         richn = 99d0 ! for now
 
