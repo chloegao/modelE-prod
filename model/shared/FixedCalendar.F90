@@ -232,7 +232,6 @@ contains
 
   integer function getMaxDaysInYear(this) result(numDays)
     class (FixedCalendar), intent(in) :: this
-    print*,__LINE__,__FILE__
     numDays = this%daysPerYear
   end function getMaxDaysInYear
 
