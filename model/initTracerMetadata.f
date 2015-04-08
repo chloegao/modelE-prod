@@ -140,7 +140,7 @@
       use RunTimeControls_mod, only: tracers_aerosols_seasalt
       use RunTimeControls_mod, only: tracers_aerosols_ocean
       use RunTimeControls_mod, only: tracers_nitrate
-      use RunTimeControls_mod, only: cpp_tracers_dust => tracers_dust
+      use RunTimeControls_mod, only: tracers_dust
       use RunTimeControls_mod, only: tracers_dust_silt4
       use RunTimeControls_mod, only: tracers_hetchem
       use RunTimeControls_mod, only: tracers_cosmo
@@ -275,7 +275,7 @@
         call  OCocean_setSpec('OCocean') !Insoluble oceanic organic mass
       end if
 
-      if (cpp_tracers_dust) then
+      if (tracers_dust) then
         call  clay_setSpec('Clay')
         call  Silt1_setSpec('Silt1')
         call  Silt2_setSpec('Silt2')
