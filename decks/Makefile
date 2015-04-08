@@ -230,7 +230,8 @@ aux rvr csrvr CMPE002: depend $(BIN_DIR)
 auxinput: aux
 	$(MAKE) input -C $(AUX_DIR) RUN=$(RUN) DECKS_DIR=$(DECKS_DIR) $(OPTS_MAIN)
 
-auxqflux: aux
+auxqflux:
+	$(MAKE) -C $(MODEL_DIR) gcmlib RUN=$(RUN) DECKS_DIR=$(DECKS_DIR) $(OPTS_MAIN)
 	$(MAKE) qflux -C $(AUX_DIR) RUN=$(RUN) DECKS_DIR=$(DECKS_DIR) $(OPTS_MAIN)
 
 auxdeep: aux
