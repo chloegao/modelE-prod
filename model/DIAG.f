@@ -5099,7 +5099,11 @@ c write physical variable
       USE domain_decomp_atm, ONLY : am_i_root,getDomainBounds
       USE domain_decomp_atm, ONLY : globalsum,grid
       USE GEOM, only : imaxj,axyp,byaxyp
-      USE ATM_COM, only : PMID,phi,wsave,pek,byMA
+#ifdef TRACERS_DUST
+      use dynamics, only: sig
+      use resolution, only: ptop
+#endif
+      USE ATM_COM, only : phi,wsave,pek,byMA
       USE rad_com,ONLY : cosz1,srnflb_save,trnflb_save,ttausv_save,
      &     ttausv_cs_save
       USE diag_com,ONLY : adiurn_dust,ndiupt,ndiuvar,lmax_dd2,ijdd
@@ -5169,7 +5173,7 @@ C****
      *           ,j,1:lmax_dd2)+v(i,j,1:lmax_dd2)*v(i,j,1:lmax_dd2))
             tmp(idd_t1:idd_t1+lmax_dd2-1)=t(i,j,1:lmax_dd2)*psk
             tmp(idd_qq1:idd_qq1+lmax_dd2-1)=q(i,j,1:lmax_dd2)
-            tmp(idd_p1:idd_p1+lmax_dd2-1) = PMID(1:LMAX_DD2)
+            tmp(idd_p1:idd_p1+lmax_dd2-1) = p(i,j)*sig(1:lmax_dd2)+ptop
             tmp(idd_w1:idd_w1+lmax_dd2-1)=wsave(i,j,1:lmax_dd2)
             tmp(idd_phi1:idd_phi1+lmax_dd2-1)=phi(i,j,1:lmax_dd2)*bygrav
             tmp(idd_sr1:idd_sr1+lmax_dd2-1)=srnflb_save(i,j,1:lmax_dd2)
