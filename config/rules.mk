@@ -110,6 +110,11 @@ ifneq ($(COMPILER),)
   include $(CONFIG_DIR)/compiler.$(COMPILER).mk
 endif
 
+### HACK !! - add source dir to CPPFLAGS
+CPPFLAGS += -I$(SRC_DIR)
+
+
+
 ifeq ($(MPI),YES)
   CPPFLAGS += -DUSE_MPI
 endif
@@ -343,7 +348,7 @@ endif
 ifeq ($(EXTERNAL_CPP),YES)
 %.o: %.f.cpp.f
 else
-%.o: %.f
+%.o: $(SRC_DIR)/%.f
 endif
 	@echo $(ECHO_FLAGS)  compiling $< ... $(MSG) \\c
 	$(F90) -c -o $@ $(FFLAGS_ALL) $(RFLAGS) $< $(COMP_OUTPUT)
@@ -362,7 +367,7 @@ endif
 ifeq ($(EXTERNAL_CPP),YES)
 %.o: %.F90.cpp.F90
 else
-%.o: %.F90
+%.o: $(SRC_DIR)/%.F90
 endif
 	@echo $(ECHO_FLAGS)  compiling $< ... $(MSG) \\c
 	$(F90) -c -o $@ $(F90FLAGS_ALL) $(RFLAGS) $< $(COMP_OUTPUT)
@@ -396,17 +401,17 @@ endif
 	 @echo preprocessing $<  $(MSG)
 	 $(CPP) $(CPPFLAGS) $*.F90 > $*.F90.cpp
 
-%.o: %.c
-	cc -c -O2 -m64 $*.c
+%.o: $(SRC_DIR)/%.c
+	cc -c -O2 -m64 $<
 
 ifneq ($(MACHINE),IRIX64)
 
 %.f: %.m4f
-	m4 $*.m4f > $*.f
+	m4 -I$(SRC_DIR) $*.m4f > $*.f
 
 %.F90: %.m4F90
 	rm -f $*.F90
-	m4 $*.m4F90 > $*.F90
+	m4 -I$(SRC_DIR) $*.m4F90 > $*.F90
 	chmod -w $*.F90
 endif
 

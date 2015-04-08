@@ -4,7 +4,9 @@
 SUPPORTED_OPTIONS = ESMF
 
 FSRCS = 
-F90SRCS = $(wildcard *.F90)
+#F90SRCS = $(wildcard *.F90)
+F90SRCS= ProfileReport_mod.F90  TimeFormatUtilities_mod.F90  Timer_mod.F90 \
+ReportColumn_mod.F90   TimerList_mod.F90            TimerPackage_mod.F90
 F90OBJS = $(F90SRCS:%.F90=%.o)
 
 ifeq ($(ESMF),YES)

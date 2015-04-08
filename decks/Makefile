@@ -2,8 +2,13 @@
 .PHONY: force rundeck depend gcm setup clean vclean newstart exe cmp .R htmldoc setup_script setup_nocomp tests check_vars
 
 # modelE directory structure
-MODEL_E_ROOT = ..
-MODEL_DIR = $(MODEL_E_ROOT)/model
+MODEL_E_ROOT ?= $(shell pwd)/..
+ifeq ($(BUILD_OUT_OF_SOURCE),YES)
+  MODEL_E_BUILD_DIR = $(RUN)_obj
+else
+  MODEL_E_BUILD_DIR = $(MODEL_E_ROOT)
+endif
+MODEL_DIR = $(MODEL_E_BUILD_DIR)/model
 AUX_DIR = $(MODEL_E_ROOT)/aux
 SCRIPTS_DIR = $(MODEL_E_ROOT)/exec
 DECKS_DIR = $(shell pwd)
@@ -46,6 +51,11 @@ export NETCDFHOME
 # For unit tests
 export F90FLAGS
 export CPPFLAGS
+
+# export for build process
+export MODEL_E_ROOT
+export CONFIG_DIR
+export SCRIPTS_DIR
 
 V =
 
@@ -97,9 +107,16 @@ rundeck: linkNonProduction
 	@echo '### Information below describes your run. Do not delete! ###'\
 	    >> $(DECKS_REPOSITORY)/$(RUN).R
 
-depend: $(RUN).mk
+depend: $(RUN).mk $(MODEL_DIR)/Makefile
 	$(MAKE) check_sanity RUN=$(RUN)
 	$(MAKE) -C $(MODEL_DIR) depend_all RUN=$(RUN) DECKS_DIR=$(DECKS_DIR) $(OPTS_MAIN)
+
+ifeq ($(BUILD_OUT_OF_SOURCE),YES)
+$(MODEL_DIR)/Makefile: $(MODEL_E_ROOT)/model/Makefile
+	if [ ! -d $(MODEL_E_BUILD_DIR) ] ; then  mkdir $(MODEL_E_BUILD_DIR) ; fi
+	if [ ! -d $(MODEL_DIR) ] ; then  mkdir $(MODEL_DIR) ; fi
+	cp $(MODEL_E_ROOT)/model/Makefile $(MODEL_DIR)/Makefile
+endif
 
 
 gcm $(BIN_DIR)/$(RUN).exe: $(RUN).mk $(BIN_DIR) depend check_vars
@@ -219,6 +236,10 @@ auxqflux: aux
 auxdeep: aux
 	$(MAKE) odeep -C $(AUX_DIR) RUN=$(RUN) DECKS_DIR=$(DECKS_DIR) $(OPTS_MAIN)
 
+ifeq ($(BUILD_OUT_OF_SOURCE),YES)
+clean: check_RUN
+endif
+
 clean vclean clean_all:
 	$(MAKE) -C $(MODEL_DIR) $@ $(OPTS_MAIN)
 ifneq ($(PFUNIT),)
@@ -320,7 +341,7 @@ src_cpp_dir:
 etags:
 	$(MAKE) -C $(MODEL_DIR) $@ RUN=$(RUN) DECKS_DIR=$(DECKS_DIR) $(OPTS_MAIN)
 
-$(RUN).mk: $(RUN).R $(SCRIPTS_DIR)/r_to_mk.pl
+$(RUN).mk: $(DECKS_DIR)/$(RUN).R $(SCRIPTS_DIR)/r_to_mk.pl
 	@if [ -z "$(RUN)" ]; then echo "Please specify RUN name"; exit 1; fi
 	$(SCRIPTS_DIR)/r_to_mk.pl $< > $@
 
@@ -339,6 +360,12 @@ check_sanity:
 	@if [ "$(COMPONENTS)"xx = xx ] ; then \
 	  echo "Your rundeck contains no Components" ; \
 	  echo "Old style rundeck ?  ... aborting ..." ; \
+	  exit 1 ; fi
+
+check_RUN:
+	@if [ "$(RUN)"xx = xx ] ; then \
+	  echo "Your have to specify rundeck name with RUN=..." ; \
+	  echo "... aborting ..." ; \
 	  exit 1 ; fi
 
 check_vars:
