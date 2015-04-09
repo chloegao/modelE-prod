@@ -1,6 +1,24 @@
 .SUFFIXES:
 .PHONY: force rundeck depend gcm setup clean vclean newstart exe cmp .R htmldoc setup_script setup_nocomp tests check_vars
 
+# main definitions
+USER = $(shell whoami)
+HOMEDIR = $(wildcard ~)
+MODELERC ?= $(HOMEDIR)/.modelErc
+#default number of processors for setup
+NPROC = 1
+NPES = 1
+# configuration file with user-defined options:
+ifeq ($(findstring $(MAKECMDGOALS),config configure),)
+  ifeq ($(wildcard $(MODELERC)),)
+    $(error $(MODELERC) not found. Was "make config" done for this account?)
+  endif
+  include $(MODELERC)
+  ifeq ($(COMPILER),)
+    $(error you need to specify COMPILER in your ~.modelErc)
+  endif
+endif
+
 # modelE directory structure
 MODEL_E_ROOT ?= $(shell pwd)/..
 ifeq ($(BUILD_OUT_OF_SOURCE),YES)
@@ -26,22 +44,6 @@ RUNDECKSRC = $(TEMPLATES_DIR)/$(RUNSRC).R
 PRUNDECKSRC = $(TEMPLATES_DIR)/$(RUNSRC).py
 RUNDECK = $(DECKS_DIR)/$(RUN).R
 
-USER = $(shell whoami)
-HOMEDIR = $(wildcard ~)
-MODELERC ?= $(HOMEDIR)/.modelErc
-#default number of processors for setup
-NPROC = 1
-NPES = 1
-# configuration file with user-defined options:
-ifeq ($(findstring $(MAKECMDGOALS),config configure),)
-  ifeq ($(wildcard $(MODELERC)),)
-    $(error $(MODELERC) not found. Was "make config" done for this account?)
-  endif
-  include $(MODELERC)
-  ifeq ($(COMPILER),)
-    $(error you need to specify COMPILER in your ~.modelErc)
-  endif
-endif
 export COMPILER
 export MODELERC
 export MPI
@@ -53,6 +55,7 @@ export F90FLAGS
 export CPPFLAGS
 
 # export for build process
+export BUILD_OUT_OF_SOURCE
 export MODEL_E_ROOT
 export CONFIG_DIR
 export SCRIPTS_DIR
