@@ -31,7 +31,7 @@ endif
 # try to work around memory leak
 CPPFLAGS += -DMPITYPE_LOOKUP_HACK
 
-VER := $(subst ., ,$(word 4,$(shell $(MPIDIR)/bin/mpirun --version)))
+VER := $(subst ., ,$(word 4,$(shell $(MPIDIR)/bin/mpirun --version 2>&1)))
 VER_MAJOR := $(word 1,$(VER))
 VER_MINOR := $(word 2,$(VER))
 ifneq (,$(filter 7 8,$(VER_MINOR)))

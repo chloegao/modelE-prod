@@ -350,7 +350,7 @@ ifeq ($(EXTERNAL_CPP),YES)
 else
 %.o: $(SRC_DIR)/%.f
 endif
-	@echo $(ECHO_FLAGS)  compiling $< ... $(MSG) \\c
+	@echo $(ECHO_FLAGS)  compiling `basename $<` ... $(MSG) \\c
 	$(F90) -c -o $@ $(FFLAGS_ALL) $(RFLAGS) $< $(COMP_OUTPUT)
 	@if [ -s $(DEPENDFILE) ] ; then \
 	for i in \
@@ -369,7 +369,7 @@ ifeq ($(EXTERNAL_CPP),YES)
 else
 %.o: $(SRC_DIR)/%.F90
 endif
-	@echo $(ECHO_FLAGS)  compiling $< ... $(MSG) \\c
+	@echo $(ECHO_FLAGS)  compiling `basename $<` ... $(MSG) \\c
 	$(F90) -c -o $@ $(F90FLAGS_ALL) $(RFLAGS) $< $(COMP_OUTPUT)
 	@if [ -s $(DEPENDFILE) ] ; then \
 	for i in \
