@@ -5094,15 +5094,11 @@ c write physical variable
 !@vers 2013/03/27
 !@auth Reha Cakmur/Jan Perlwitz
       USE MODEL_COM, only : modelEclock
-      USE ATM_COM, only : u,v,t,p,q
+      Use ATM_COM,   Only: P,U,V,T,Q,PMID
       USE CONSTANT, only : bygrav
       USE domain_decomp_atm, ONLY : am_i_root,getDomainBounds
       USE domain_decomp_atm, ONLY : globalsum,grid
       USE GEOM, only : imaxj,axyp,byaxyp
-#ifdef TRACERS_DUST
-      use dynamics, only: sig
-      use resolution, only: ptop
-#endif
       USE ATM_COM, only : phi,wsave,pek,byMA
       USE rad_com,ONLY : cosz1,srnflb_save,trnflb_save,ttausv_save,
      &     ttausv_cs_save
@@ -5173,7 +5169,7 @@ C****
      *           ,j,1:lmax_dd2)+v(i,j,1:lmax_dd2)*v(i,j,1:lmax_dd2))
             tmp(idd_t1:idd_t1+lmax_dd2-1)=t(i,j,1:lmax_dd2)*psk
             tmp(idd_qq1:idd_qq1+lmax_dd2-1)=q(i,j,1:lmax_dd2)
-            tmp(idd_p1:idd_p1+lmax_dd2-1) = p(i,j)*sig(1:lmax_dd2)+ptop
+            tmp(idd_p1:idd_p1+lmax_dd2-1) = PMID(1:LMAX_DD2,I,J)
             tmp(idd_w1:idd_w1+lmax_dd2-1)=wsave(i,j,1:lmax_dd2)
             tmp(idd_phi1:idd_phi1+lmax_dd2-1)=phi(i,j,1:lmax_dd2)*bygrav
             tmp(idd_sr1:idd_sr1+lmax_dd2-1)=srnflb_save(i,j,1:lmax_dd2)
@@ -6561,8 +6557,8 @@ c
      &     dxyp_budg,hemis_jl,vmean_jl,force_jl_vmean
       use diag_com_rad
       implicit none
-      Integer :: j,l,k,lr,n, J1,J2,J3,J4
-      Real*8  :: HEMFAC, MSH,MNH, ASH,ANH
+      integer :: j,j1,j2,l,k,lr,n
+      Real*8  :: hemfac,NUMER(JM_BUDG+3),DENOM(JM_BUDG+3)
 
       if(.not.am_i_root()) return
 
@@ -6595,46 +6591,42 @@ c
      &       /)              ), dim=3)
       endif
 
+c
+c compute hemispheric/global means and vertical sums
+c
 #ifndef SCM
-!**** Compute vertical, hemispheric, and global means or sums
       hemfac = 2./sum(dxyp_budg)
-      do k=1,kajl  ;  do l=1,lm 
+      do k=1,kajl
+        do l=1,lm
           j1 = 1; j2 = jm_budg/2
           hemis_jl(1,l,k) = hemfac*sum(ajl(j1:j2,l,k)*dxyp_budg(j1:j2))
           j1 = jm_budg/2+1; j2 = jm_budg
           hemis_jl(2,l,k) = hemfac*sum(ajl(j1:j2,l,k)*dxyp_budg(j1:j2))
           hemis_jl(3,l,k) = .5*(hemis_jl(1,l,k)+hemis_jl(2,l,k))
-          enddo  ;  enddo
-      Do K=1,KAJL
-      If (FORCE_JL_VMEAN(K))
-     *   Then  ;  Do J=1,JM_BUDG
-                  VMEAN_JL(J,1,K) = Sum(AJL(J,:,JL_DPA)*AJL(J,:,K)) /
-     /                              Sum(AJL(J,:,JL_DPA))  ;  EndDo
-         Else  ;  Do J=1,JM_BUDG
-                  VMEAN_JL(J,1,K) = Sum(AJL(J,:,K))  ;  EndDo
-         EndIf  ;  EndDo
-      J1=1  ;  J2=JM_BUDG/2  ;  J3=J2+1  ;  J4=JM_BUDG
-      MSH = Sum (DXYP_BUDG(J1:J2) * VMEAN_JL(J1:J2,1,JL_DPA))
-      MNH = Sum (DXYP_BUDG(J3:J4) * VMEAN_JL(J3:J4,1,JL_DPA))
-      ASH = Sum (DXYP_BUDG(J1:J2))
-      ANH = Sum (DXYP_BUDG(J3:J4))
-      Do K=1,KAJL
-      If (FORCE_JL_VMEAN(K))
-     *   Then  ;  VMEAN_JL(J4+1,1,K) = Sum (VMEAN_JL(J1:J2,1,JL_DPA) *
-     *                   DXYP_BUDG(J1:J2) * VMEAN_JL(J1:J2,1,K)) / MSH
-                  VMEAN_JL(J4+2,1,K) = Sum (VMEAN_JL(J3:J4,1,JL_DPA) *
-     *                   DXYP_BUDG(J3:J4) * VMEAN_JL(J3:J4,1,K)) / MNH
-                  VMEAN_JL(J4+3,1,K) =
-     =               (MSH*VMEAN_JL(J4+1,1,K) + MNH*VMEAN_JL(J4+2,1,K)) /  
-     /               (MSH + MNH)
-         Else  ;  VMEAN_JL(J4+1,1,K) =
-     =               Sum(DXYP_BUDG(J1:J2) * VMEAN_JL(J1:J2,1,K)) / ASH
-                  VMEAN_JL(J4+2,1,K) =
-     =               Sum(DXYP_BUDG(J3:J4) * VMEAN_JL(J3:J4,1,K)) / ANH
-                  VMEAN_JL(J4+3,1,K) =
-     =               (ASH*VMEAN_JL(J4+1,1,K) + ANH*VMEAN_JL(J4+2,1,K)) /  
-     /               (ASH + ANH)
-         EndIf  ;  EndDo
+        enddo
+        if(force_jl_vmean(k)) then
+          ! Note AJL(JL_DPA) is the wrong weight for layer-edge qtys.
+          ! It is used for the time being to match the behavior of JLMAP.
+          do j=1,jm_budg
+             NUMER(J) = Sum (AJL(J,:,JL_DPA) * AJL(J,:,K))
+             DENOM(J) = Sum (AJL(J,:,JL_DPA))
+             VMEAN_JL(J,1,K) = NUMER(J) / DENOM(J)
+          enddo
+          J1=1  ;  J2=JM_BUDG/2
+          NUMER(JM_BUDG+1) = Sum (NUMER(J1:J2) * DXYP_BUDG(J1:J2))
+          DENOM(JM_BUDG+1) = Sum (DENOM(J1:J2) * DXYP_BUDG(J1:J2))
+          J1=JM_BUDG/2+1  ;  J2=JM_BUDG
+          NUMER(JM_BUDG+2) = Sum (NUMER(J1:J2) * DXYP_BUDG(J1:J2))
+          DENOM(JM_BUDG+2) = Sum (DENOM(J1:J2) * DXYP_BUDG(J1:J2))
+          VMEAN_JL(JM_BUDG+1,1,K) =  NUMER(JM_BUDG+1) / DENOM(JM_BUDG+1)
+          VMEAN_JL(JM_BUDG+2,1,K) =  NUMER(JM_BUDG+2) / DENOM(JM_BUDG+2)
+          VMEAN_JL(JM_BUDG+3,1,K) = (NUMER(JM_BUDG+1)+NUMER(JM_BUDG+2))/
+     /                              (DENOM(JM_BUDG+1)+DENOM(JM_BUDG+2))
+        else
+          vmean_jl(1:jm_budg,1,k) = sum(ajl(:,:,k),dim=2)
+          vmean_jl(jm_budg+1:jm_budg+3,1,k) = sum(hemis_jl(:,:,k),dim=2)
+        endif
+      enddo
 #endif
 
       return

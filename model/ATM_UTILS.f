@@ -176,12 +176,12 @@ C**** to be used in the PBL, at the primary grids
 
       SUBROUTINE CALC_AMPK(LMAX)
 !@sum  CALC_AMPK calculate air mass and pressure arrays
-!@vers 2013/03/27
+!@vers 2014/04/09
 !@auth Jean Lerner/Gavin Schmidt
       USE CONSTANT, only : bygrav,kapa
       USE RESOLUTION, only : ls1,ptop
       USE RESOLUTION, only : im,jm,lm
-      USE ATM_COM, only : p
+      USE ATM_COM, only : p,MASUM
       USE ATM_COM, only : plij,pdsig,pmid,pk,pedn,pek,sqrtp,MA,byMA
       USE DOMAIN_DECOMP_ATM, Only : grid, getDomainBounds, HALO_UPDATE
       USE FLUXES, only : atmsrf,asflx4
@@ -228,6 +228,7 @@ C**** Fill in polar boxes
             PEK  (L,I,J) = PEDNL (L)**KAPA
             byMA (L,I,J) = 1 / MA(L,I,J)
           END DO
+          MASUM(I,J) = Sum (MA(:,I,J))
           atmsrf%P1(I,J) = PMID(1,I,J)
           atmsrf%SRFPK(I,J) = PEK(1,I,J)
           atmsrf%AM1(I,J)   =   MA(1,I,J)
