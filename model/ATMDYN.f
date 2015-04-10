@@ -194,8 +194,8 @@ C**** Leap-frog re-initialization: IF (NS.LT.NIdyn)
   300 CONTINUE
       Do J=J_0,J_1  ;  Do I=1,IM
          MASUM(I,J) = Sum (MA(:,I,J))  ;  EndDo  ;  EndDo
-      Call HALO_UPDATE_COLUMN (GRID, MA,    From=SOUTH)
-      Call HALO_UPDATE        (GRID, MASUM, From=SOUTH)
+!     Call HALO_UPDATE_COLUMN (GRID, MA,    From=SOUTH)
+!     Call HALO_UPDATE        (GRID, MASUM, From=SOUTH)
       UX(:,:,:) = U(:,:,:)  ;  UT(:,:,:) = U(:,:,:)
       VX(:,:,:) = V(:,:,:)  ;  VT(:,:,:) = V(:,:,:)
       TZ(:,:,:) = TMOM(MZ,:,:,:)
@@ -272,7 +272,7 @@ C**** Leap-frog re-initialization: IF (NS.LT.NIdyn)
        PU(:,:,:) = MU(:,:,:)*kg2mb
        PV(:,:,:) = MV(:,:,:)*kg2mb
        SD(:,:,:) = MW(:,:,:)*kg2mb
-        P(:,:)   = (MASUM(:,:) - MFIXs)*kg2mb
+!       P(:,:)   = (MASUM(:,:) - MFIXs)*kg2mb
             MODDA = Mod (NSTEP+4-NS + NDAA*NIDYN, NDAA*NIDYN+2)  ! strat
          IF(MODDA.LT.MRCH) CALL DIAGA0   ! strat
 C**** ACCUMULATE MASS FLUXES FOR TRACERS and Q
@@ -710,9 +710,9 @@ C**** Compute MW (kg/s) = downward vertical mass flux
             MNEW(:,I,JM) = MNEW(:,1,JM)
             MSUM(I,JM)   = MSUM(1,JM)  ;  EndDo  ;  EndIf
 
-      Call HALO_UPDATE_COLUMN (GRID, MNEW, From=SOUTH)
-      Call HALO_UPDATE        (GRID, MSUM, From=SOUTH)
-      Call MAtoP (MNEW)
+      Call HALO_UPDATE_COLUMN (GRID, MNEW, From=SOUTH+NORTH)
+      Call HALO_UPDATE        (GRID, MSUM, From=SOUTH+NORTH)
+      Call MAtoP (MNEW,MSUM)
       Return
   990 Format (/'0PRESSURE DIAGNOSTIC  I,J,MRCH,ZATMO,DT=',3I4,2F10.2/
      *  '  L     U(I-1,J)     U(I,J)   U(I-1,J+1)    U(I,J+1)',
@@ -1031,6 +1031,7 @@ C****
       RETURN
       END SUBROUTINE AVRX
 
+
       SUBROUTINE FILTER
 !@sum  FILTER Performs 8-th order shapiro filter in zonal direction
 !@auth Original development team
@@ -1055,7 +1056,8 @@ C****
 #endif
       USE FLUXES, only : atmsrf
       USE DOMAIN_DECOMP_ATM, only: grid
-      USE DOMAIN_DECOMP_1D, Only : getDomainBounds, GLOBALSUM
+      Use DOMAIN_DECOMP_1D,  Only: getDomainBounds, GLOBALSUM,
+     *                             HALO_UPDATE
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) :: X,Y
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
@@ -1064,21 +1066,22 @@ C****
       REAL*8, EXTERNAL :: SLP
       INTEGER I,J,L,N  !@var I,J,L  loop variables
       REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO) :: KEJ,PEJ
-c**** Extract domain decomposition info
-      INTEGER :: J_0, J_1, J_0S, J_1S
+      Integer :: J1P,JNP, J_0, J_1, J_0S, J_1S
       REAL*8 initialTotalEnergy, finalTotalEnergy
       real*8 getTotalEnergy ! external for now
       real*8, dimension(im) :: rhosrf,pgfx
 
+!**** Extract domain decomposition info
       call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S)
+      J1P = Max(J_0,2)  ;  JNP = Min(J_1,JM-1)  !  exclude poles
 
       IF (MOD(MFILTR,2).NE.1) GO TO 200
 C**** Initialise total energy (J/m^2)
       initialTotalEnergy = getTotalEnergy()
 
-      ! Save old pressure
-      do j=j_0s,j_1s
+!**** Save old pressure
+      Do J=J1P,JNP
         pold(:,j)=p(:,j)
       enddo
 
@@ -1086,7 +1089,7 @@ C**** Initialise total energy (J/m^2)
 C****
 C**** SEA LEVEL PRESSURE FILTER ON P
 C****
-      DO J=J_0S,J_1S
+      Do J=J1P,JNP
         DO I=1,IM
           PS=P(I,J)+PTOP
           ZS=ZATMO(I,J)*BYGRAV
@@ -1096,7 +1099,7 @@ C****
       END DO
       CALL SHAP1D (8,X)
       call isotropslp(x,COS_LIMIT)
-      DO J=J_0S,J_1S
+      Do J=J1P,JNP
         PSUMO=0.
         PSUMN=0.
         DO I=1,IM
@@ -1111,6 +1114,7 @@ C**** reduce large variations (mainly due to topography)
           P(I,J)=P(I,J)-PDIF
         END DO
       END DO
+      Call HALO_UPDATE (GRID, P)
 
       else
 
@@ -2624,6 +2628,7 @@ C****
 
       RETURN
       END SUBROUTINE DIAG5F
+
 
       SUBROUTINE QDYNAM
 !@sum  QDYNAM is the driver to integrate dynamic terms by the method

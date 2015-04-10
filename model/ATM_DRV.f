@@ -610,7 +610,7 @@ C****        tropospheric temperatures are changed by at most 1 degree C
      *       WRITE(6,*) 'Initial conditions were perturbed !!',IRANDI
       END IF
 
-      CALL CALC_AMPK(LM)
+      Call CALC_AMPK (LM+1)
 
 #ifdef TRACERS_ON
       if(istart.le.2) then

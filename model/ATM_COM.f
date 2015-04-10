@@ -452,10 +452,12 @@ ccc was not sure where to dump these routines ... IA
       return
       end subroutine def_rsf_atm
 
+
       subroutine new_io_atm(fid,iaction)
 !@sum  new_io_model read/write U,V,T,P,Q,qcl arrays from/to restart files
 !@auth M. Kelley
 !@ver  beta new_ prefix avoids name clash with the default version
+      use resolution, only: lm
       use model_com, only : iowrite,ioread
       use atm_com
       use domain_decomp_atm, only: grid
@@ -488,6 +490,7 @@ ccc was not sure where to dump these routines ... IA
         call read_dist_data(grid, fid, 'q', q)
         call read_dist_data(grid, fid, 'qcl', qcl)
         call read_dist_data(grid, fid, 'qci', qci)
+        call calc_ampk (lm+1)
 #ifdef BLK_2MOM
 #endif
       end select
