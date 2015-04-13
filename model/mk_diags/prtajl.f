@@ -16,11 +16,11 @@
       character(len=80) :: lname,title,outfile
       character(len=40) :: vname,vname_hemis,vname_vmean
       character(len=8) :: tpow
-      character(len=4) :: dash='----'
+      character(len=4) :: dash='----',blank4
       character(len=20) :: latname
       real*4 :: prtfac,fglob,fnh,fsh
       integer :: j,l,jm,lm,kgz,km,inc,lstr,prtpow,linect,nargs,
-     &     k1,k2,lunit
+     &     k1,k2,lunit,prtpow_vmean
       integer :: lats_per_zone,j1,j2,zone,nzones,lats_this_zone
       integer :: minj,maxj
       logical :: do_giss,all_lats,has_radonly
@@ -159,6 +159,8 @@ c
         status = nf_get_att_text(fid,varid,'long_name',lname)
         prtpow = 0
         status = nf_get_att_int(fid,varid,'prtpow',prtpow)
+        prtpow_vmean = 0
+        status = nf_get_att_int(fid,varid,'prtpow_vmean',prtpow_vmean)
         xjl_hemis = missing
         status = nf_get_var_real(fid,varid_hemis,xjl_hemis)
         vmean = missing
@@ -173,17 +175,23 @@ c
 c
 c form title string and rescale fields for ASCII output
 c
+        blank4 = '    '
         if(prtpow.ne.0) then
           prtfac = 10.**(-prtpow)
           where(xjl.ne.missing) xjl = xjl*prtfac
           where(xjl_hemis.ne.missing) xjl_hemis = xjl_hemis*prtfac
-          where(vmean.ne.missing) vmean = vmean*prtfac
           write (tpow, '(i3)') prtpow
           tpow='10**'//trim(adjustl(tpow))
           units = trim(tpow)//' '//trim(units)
           if(has_radonly) then
             xjl_radonly = xjl_radonly*prtfac
             xjl_radonly_hemis = xjl_radonly_hemis*prtfac
+          endif
+          where(vmean.ne.missing) vmean = vmean*prtfac
+          if(prtpow_vmean.eq.prtpow-1 .and. prtpow_vmean.ne.0) then
+            ! could be made general, but GCM only uses a factor of 10
+            where(vmean.ne.missing) vmean = vmean*10.
+            blank4 = '.1* '
           endif
         endif
         title = trim(lname)//' ('//trim(units)//')'
@@ -268,7 +276,7 @@ c
           fsh  =vmean(jm+1)
           fnh  =vmean(jm+2)
           fglob=vmean(jm+3)
-          write(6,903) '    ',fglob,fnh,fsh,
+          write(6,903) blank4,fglob,fnh,fsh,
      &         (nint(vmean(j)),j=j2,j1,-inc)
         enddo
       enddo
