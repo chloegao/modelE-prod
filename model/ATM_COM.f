@@ -490,7 +490,7 @@ ccc was not sure where to dump these routines ... IA
         call read_dist_data(grid, fid, 'q', q)
         call read_dist_data(grid, fid, 'qcl', qcl)
         call read_dist_data(grid, fid, 'qci', qci)
-        call calc_ampk (lm+1)
+        call calc_ampk (lm)
 #ifdef BLK_2MOM
 #endif
       end select
