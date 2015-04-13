@@ -2558,7 +2558,7 @@ C****
             THGM_part(J,L) = THGM_part(J,L) +T(I,J,L)*Sqrt(PDSIG(L,I,J))
             GMEAN_part(J,L)=GMEAN_part(J,L)+
      +                           PMID(L,I,J)*(T(I,J,LUP)-T(I,J,LDN)) /
-     /                        (PDSIG(L,I,J)*PK(L,I,J))
+     /                         (PK(L,I,J)*(PMID(LDN,I,J)-PMID(LUP,I,J)))
           ENDDO
           GMEAN_part(J,L)=GMEAN_part(J,L)*DXYP(J)
           THGM_part(J,L)=THGM_part(J,L)*DXYP(J)
@@ -2576,12 +2576,8 @@ C****
       CALL GLOBALSUM(grid,THGM_part(:,1:LM),THGM(1:LM),ALL=.TRUE.)
       THGM=THGM/AREAG
       CALL GLOBALSUM(grid,GMEAN_part(:,1:LM),GMEAN(1:LM),ALL=.TRUE.)
-      DO L=1,LM
-        LDN=LDNA(L)
-        LUP=LUPA(L)
-        GMEAN(L) = AREAG*(.5*PDSIG(LDN,I,J) + .5*PDSIG(LUP,I,J) +
-     +                    Sum(PDSIG(LDN+1:LUP-1,I,J))) / GMEAN(L)
-      ENDDO
+
+      GMEAN(1:LM) = AREAG / (GMEAN(1:LM) + 1d-20)
 
       APE(:,:)=0.
 
