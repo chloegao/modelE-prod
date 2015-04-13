@@ -183,6 +183,7 @@ c
       scale_gc(k) = 1.
       jgrid_gc(k) = 1
       denom_gc(k) = jk_dpa
+      pow_gc_vmean(k) = -1
 c
       k=k+1
       jk_theta = k
@@ -219,6 +220,7 @@ c
       lname_gc(k) = 'MERIDIONAL WIND (V COMPONENT)' !'V*DP4  (UV GRID)'
       units_gc(k) = 'm/s' !'100 PA*m/s'
       pow_gc(k) = -2
+      pow_gc_vmean(k) = -3
       scale_gc(k) = 1.
       jgrid_gc(k) = 2
       denom_gc(k) = jk_dpb
@@ -268,6 +270,7 @@ c
       units_gc(k) = 'W/mb'
       scale_gc(k) = XWON*FIM*1d2*BYGRAV
       pow_gc(k) = 12
+      pow_gc_vmean(k) = 11
       jgrid_gc(k) = 2
       denom_gc(k) = jk_dpb
 c
@@ -786,6 +789,7 @@ c      pow_gc(k) = -2
       units_gc(k) = 'W/mb'
       scale_gc(k) = XWON*FIM*1d2*BYGRAV
       pow_gc(k) = 12
+      pow_gc_vmean(k) = 11
       denom_gc(k) = jk_dpb
       k = k + 1
       jk_we_flx_nor = k                       ; jgrid_gc(k) = 2
@@ -1071,6 +1075,11 @@ c
           write(powstr,'(i3)') pow_gc(k)
           call add_varline(cdl_gc,
      &         trim(sname_gc(k))//':prtpow = '//trim(powstr)//' ;')
+        endif
+        if(pow_gc_vmean(k).ne.0) then
+          write(powstr,'(i3)') pow_gc_vmean(k)
+          call add_varline(cdl_gc,
+     &        trim(sname_gc(k))//':prtpow_vmean = '//trim(powstr)//' ;')
         endif
         if(denom_gc(k).gt.0 .or. force_gc_vmean(k)) then
           if(make_timeaxis) then ! hacky logic

@@ -5568,6 +5568,7 @@ c
       lname_jl(k) = 'DU/DT BY STRAT MTN DRAG'
       units_jl(k) = 'm/s^2'
       pow_jl(k) = -6
+      pow_jl_vmean(k) = -7
       scale_jl(k) = 1./DTsrc
       ia_jl(k) = ia_src
       jgrid_jl(k) = jgrid_u
@@ -5797,6 +5798,11 @@ c        call get_zstr(lgrid_jl(k),zstr)
           write(powstr,'(i2)') pow_jl(k)
           call add_varline(cdl_jl,
      &         trim(sname_jl(k))//':prtpow = '//trim(powstr)//' ;')
+        endif
+        if(pow_jl_vmean(k).ne.0) then
+          write(powstr,'(i2)') pow_jl_vmean(k)
+          call add_varline(cdl_jl,
+     &        trim(sname_jl(k))//':prtpow_vmean = '//trim(powstr)//' ;')
         endif
 #ifndef SCM
         if(denom_jl(k).gt.0 .or. force_jl_vmean(k)) then

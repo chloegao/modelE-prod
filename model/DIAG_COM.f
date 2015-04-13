@@ -757,7 +757,7 @@ c derived/composite diagnostics
 !@var IA_JL,JGRID_JL,LGRID_JL idacc-numbers,gridtypes for JL diagnostics
       integer, dimension(kajl), public :: ia_jl,jgrid_jl,lgrid_jl
 !@var POW_JL printed output scaled by 10**(-pow_jl)
-      integer, dimension(kajl), public :: pow_jl
+      integer, dimension(kajl), public :: pow_jl,pow_jl_vmean
 !@var DENOM_JL index of AJL element to use as weight
       integer, dimension(kajl), public :: denom_jl
 !@var HEMIS_JL hemispheric/global averages of AJL
@@ -1325,7 +1325,7 @@ C****   10 - 1: mid strat               1 and up : upp strat.
 !@var DENOM_GC index of AGC element to use as weight
       integer, dimension(kagcx), public :: denom_gc
 !@var POW_GC printed output scaled by 10**(-pow_gc)
-      integer, dimension(kagcx), public :: pow_gc
+      integer, dimension(kagcx), public :: pow_gc,pow_gc_vmean
 !@var HEMIS_GC hemispheric/global averages of AGC
 !@var VMEAN_GC vertical sums of AGC
       real*8, dimension(:,:,:), allocatable, public :: hemis_gc,vmean_gc
