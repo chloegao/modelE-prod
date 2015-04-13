@@ -6,7 +6,7 @@ module CLOUDS
 
 !@sum  CLOUDS column physics of moist conv. and large-scale condensation
 !@auth M.S.Yao/A. Del Genio (modifications by Gavin Schmidt)
-!@cont MSTCNV,LSCOND,ANVIL_OPTICAL_THICKNESS,MC_CLOUD_FRACTION,
+!@cont MSTCNV,LSCOND,ANVIL_OPTICAL_THICKNESS,MC_CLOUD_FRACTION,COLD_POOL
 !@+    CONVECTIVE_MICROPHYSICS,MC_PRECIP_PHASE,MASS_FLUX,PRECIP_MP
   use CONSTANT, only : rgas,grav,lhe,lhs,lhm,sha,bysha,pi,by6 &
        ,by3,tf,bytf,rvap,bygrav,deltx,bymrat,teeny,gamd,rhow,twopi &
@@ -114,7 +114,7 @@ module CLOUDS
 !@dbparam wmui_multiplier critical ice cloud water multiplier
   real*8 :: wmui_multiplier=1.d0     ! default
 !@dbparam entrainment_cont1 constant for entrainment rate, plume 1
-  real*8 :: entrainment_cont1=.4d0   ! default
+  real*8 :: entrainment_cont1=.2d0   ! default
 !@dbparam entrainment_cont2 constant for entrainment rate, plume 2
   real*8 :: entrainment_cont2=.6d0   ! default
 !@dbparam HRMAX maximum distance an air parcel rises from surface
@@ -314,6 +314,9 @@ module CLOUDS
 !@var TS average surface temperture (C)
 !@var RIS, RI1, RI2 Richardson numbers
   real*8 :: PEARTH,TS,QS,US,VS,RIS,RI1,RI2,DXYPIJ,ROICE
+!@var RDD,RDDOLD ratio of downdraft mass to airmass
+  REAL*8 RDD(2),RDDOLD(2),THCP,QCP,ACP,DPCP,VTHUN,VQUN,FQCP,DZCP &
+    ,DTHCP,DQCP,FQDDR
 !@var DCL max level of planetary boundary layer
 !@var ZPBL PBL height (m)
 !@var PPBL pressure corresponding to ZPBL (mb)
@@ -375,7 +378,7 @@ contains
 !@sum  MSTCNV moist convective processes (precip, convective clouds,...)
 !@auth M.S.Yao/A. Del Genio (modularisation by Gavin Schmidt)
 !@calls adv1d,QSAT,DQSATDT,THBAR, MASS_FLUX, CONVECTIVE_MICROPHYSICS, PRECIP_MP,
-!@+     MC_PRECIP_PHASE, MC_CLOUD_FRACTION, ANVIL_OPTICAL_THICKNESS
+!@+     MC_PRECIP_PHASE, MC_CLOUD_FRACTION, ANVIL_OPTICAL_THICKNESS,COLD_POOL
 
     !**** FREE PARAMETERS THAT USERS MIGHT WANT TO VARY INCLUDE
     !****    (1) ADJUSTMENT TIME FOR STABILIZATION OF CLOUD BASE BY CUMULUS MASS
@@ -393,6 +396,7 @@ contains
     !**** SHOULD NOT BE USED TO ADJUST THE MODEL TO RADIATION BALANCE
     !****
 
+    USE CONSTANT, only : kapa
     implicit none
     !
     !****
@@ -465,7 +469,8 @@ contains
          DQM,  DSM,    DQMR,  DSMR, DET,   DM,     DMR,   DDM,    DDR, &
          !cc  *   ENT,  F,      HEAT1, LHP,  ML,    QM1,    QMT,   QMDNL,  QMOLD,
          ENT,  F,      HEAT1,       ML,    QM1,    QMT,   QMDNL,  QMOLD, &
-         SM1,  SMT,    SMDNL, SMOLD,TPSAV, TAUMC1, WCU,   WCU2
+         SM1,  SMT,    SMDNL, SMOLD,TPSAV, TAUMC1, WCU,   WCU2,  &
+         TLDN, QLDN,   THDN,  RDDL, THUN,  QUN,    DPCPL
     !
     real*8, dimension(KMAX) :: &
          SUMU,SUMV,SUMU1,SUMV1,UMP,VMP,UMDN,VMDN
@@ -492,13 +497,20 @@ contains
 !@var DQM,DSM,DQMR,DSMR Vertical profiles of T/Q and changes
 !@var DDM           downdraft mass (mb)
 !@var DM, DMR       change in air mass
+!@var DPCPL cold pool depth in each layer
 !@var ENT
 !@var F
 !@var HEAT1         heating needed for phase change
 !@var ML            layer air mass (mb)
+!@var QLDN downdraft specific humidity
+!@var QUN specific humidity of undisturbed air
+!@var RDDL ratio of downdraft to air mass
 !@var SM1, QM1, SMT, QMT dummy variables
 !@var SMOLD,QMOLD   profiles prior to any moist convection
 !@var SMDNL
+!@var THDN downdraft potential temperature
+!@var THUN potential temperature of undisturbed air
+!@var TLDN downdraft temperature
 !@var TPSAV         array to save plume temperature (set once) (K)
 !@var TAUMC1
 !@var WCU,  WCU2
@@ -524,7 +536,7 @@ contains
     logical  BELOW_CLOUD, MC1
     integer, intent(IN)  :: I_DEBUG, J_DEBUG
     integer, intent(OUT) :: IERR,LERR
-    integer  IC, ITER, ITYPE, IERRT, K, KSUB, &
+    integer  IC, ITER, ITYPE, IERRT, K, KSUB, L2, &
          L, LLMIN, LFRZ,  LERRT, LDRAFT, LMIN, LMAX, LDMIN, LM1, &
          MCCONT, MAXLVL, MINLVL, N, NPPL, NSUB
 
@@ -532,30 +544,31 @@ contains
          ALPHA,ALPHAU, BETA,BETAU,BYKSUB,BYPBLM, &
          CDHM,CDHSUM,CLDM,CLDREF,CDHSUM1,CONTCE,CDHDRT,CONDMU, &
          !
-         DCW,DCG,DCI,DWCU,DMSE,DFP,DQSUM,DMMIX,DQ,DMSE1,DQSUM1, &
-         DDRAFT,DELTA,DQEVP,DDRUP,DDROLD, &
+         DCW,DCG,DCI,DWCU,DMSE,DFP,DQSUM,DMMIX,DMMIXO,DQ,DMSE1,DQSUM1, &
+         DDRAFT,DELTA,DQEVP,DDRUP,DDROLD,DELP,DCOND,DFENV,DDRAFT1, &
          EPLUME,ETADN,ETAL1,EVPSUM,EDRAFT, &
          !
-         FLAMW,FLAMG,FLAMI,FG,FI,FMC1,FCLW, &
+         FLAMW,FLAMG,FLAMI,FG,FI,FMC1,FCLW,FENV,FPLU, &
          FMP0,FPLUME,FMP2,FRAT1,FRAT2,FCTYPE,FQCOND1,FPOLD, &
          FDDRT,FCDH,FCDH1,FCLD,FCLOUD,FDDL,FDDP,FENTR,FENTRA, &
          FEVAP,FLEFT,FQCOND,FQCONDV,FQEVP,FPRCP,FSEVP,FSSUM, &
          FCONV_tmp,FSUB_tmp,FSSL_tmp, &
          !
          GAMA, HDEP,HPBL, LHX,LHX1, &
-         MPLUME,MPLUM1,MCLOUD,MPMAX,MPOLD, &
+         MPLUME,MPLUM1,MCLOUD,MPMAX,MPOLD,MC1FQ,MCTFQ, &
          MNdO,MNdL,MNdI,MCDNCW,MCDNCI,      & ! Menon
          PBLM,PRCP,PGRAD, &
          !
-         QENV,QMO1,QMO2,QDN,QUP,QEDGE,QMN1,QMN2,QMP,QMDN,QMIX, &
-         QMPMAX,QMPT,QSATC,QSATMP,QSATRE, RCLD,RCLDE,RHO, &
+         QENV,QMO1,QMO2,QDN,QUP,QEDGE,QMN1,QMN2,QMP,QMDN,QMIX,QLDN1, &
+         QMPMAX,QMPT,QSATC,QSATMP,QSATRE, RCLD,RCLDE,RHO,QMO3,SMO3, &
          !
          SENV,SMO1,SMO2,SDN,SUP,SEDGE,SVDN,SVUP,SVEDG,SMN1,SMN2, &
          SMP,SLH,SMDN,SMIX,SMPMAX,SMPT,SUMAJ,SVMIX,SVM1,SUMDP, &
          !
-         TADJ,TEMWM,TEM,TIG,TNX1,TP,TVP,TOLD,TOLD1,TTURB,TRATIO, &
-         UMTEMP,VMTEMP,VT, &
-         WMDN,WMUP,WMEDG,WMIX,W2TEM,WTEM,WCONST,WCUFRZ,WORK,WMAX,WV
+         TADJ,TEMWM,TEM,TIG,TNX1,TP,TVP,TOLD,TOLD1,TTURB,TRATIO,THDN1, &
+         UMTEMP,VMTEMP,VT,WMUP3,WMEDG3, &
+         WMDN,WMUP,WMEDG,WMIX,W2TEM,WTEM,WCONST,WCUFRZ,WORK,WMAX,WV &
+         ,MCP,VCP,DDR1,DPCP1
     !
     !
     !            *********   SCALAR DEFINITIONS   *********
@@ -593,15 +606,19 @@ contains
 !@var       TEMWM,TEM,TIG,TNX,TTURB,TRATIO,  WTEM,WCONST,WMDN,WMUP,WMEDG
     !
 !@var     REAL*8 Variables
+!@var ACP cold pool area (m**2)
 !@var CONDMU        convective condensate in Kg/m^3
 !@var CLDM          subsidence due to convection (mb)
 !@var CONTCE        scaling factor for entrainment strength
+!@var DCOND         condensate for downdrafts to evaporate
 !@var DCW,DCG,DCI   critical cloud particle sizes for onset of precip
+!@var DFENV         increment for calculating downdraft mix fraction
 !@var DMSE, DMSE1   difference in moist static energy
 !@var DFP           an iterative increment
-!@var DMMIX
+!@var DMMIX, DMMIXO
 !@var DDRAFT        downdraft mass (mb)
 !@var DELTA         fraction of plume that stays in the layer
+!@var DPCP cold pool pressure depth (mb)
 !@var DQEVP         amount of condensate that evaporates in downdrafts
 !@var EPLUME        mass of entrained air (mb)
 !@var ETADN         initial downdraft mass / updraft mass
@@ -617,6 +634,8 @@ contains
 !@var FDDRT         fraction of precipitating condensate avaliable for re-evaporation
 !@var FENTR         entrained mass / convective mass
 !@var FENTRA        entrained mass / layer mass
+!@var FENV          mix fraction from environment
+!@var FPLU          mix fraction from plume
 !@var FEVAP         fraction of layer mass available for precip evaporation
 !@var FLEFT         fraction of plume after removing downdraft mass
 !@var FQCOND        fraction of water vapor that condenses in plume
@@ -628,22 +647,27 @@ contains
 !@var HDEP
 !@var HPBL, PBLM    PBL height (m) and air mass in PBL (mb)
 !@var LHX           latent heat of evaporation or sublimation (J/Kg)
+!@var MCP cold pool air mass
 !@var MPLUME,MPLUM1 mass of convective plume (mb)
 !@var MCLOUD        air mass available for re-evaporation of precip (mb)
 !@var MPMAX         mass of convective plume at the detrainment level (mb)
 !@var MPOLD
 !@var MNdO,MNdL,MNdI,MCDNCW,MCDNCI      Menon Stuff
+!@var QCP cold pool specific humidity
 !@var QMPMAX,SMPMAX values of QMP, SMP in detrained air
 !@var QSATC         saturation vapor mixing ratio
 !@var QSATMP        plume's saturation vapor mixing ratio
 !@var RCLD,RCLDE    cloud particle radius, effective radius (microns)
+!@var RCP cold pool radius (m)
 !@var RHO           air density
 !@var SMP, QMP      plume's SM, QM
 !@var SLH           LHX/SHA
 !@var TADJ          adjustment time for stablization of cloud base by cumulus mass flux
+!@var THCP cold pool potential temperature
 !@var TP            plume's temperature (K)
 !@var TVP
 !@var TOLD,TOLD1    old temperatures
+!@var VCP cold pool spread speed
 !@var VT            precip terminal velocity (m/s)
 !@var WMIX
 !@var W2TEM
@@ -783,7 +807,8 @@ contains
     TPSAV=0
     CSIZEL=RWCLDOX*10.*(1.-PEARTH)+10.*PEARTH ! droplet rad in stem
     VLAT=LHE
-    LHP=0
+    LHP=0.
+    RDD=0.
 #ifdef SCM
     if( SCMopt%PlumeDiag )then
     ! plume diagnostics
@@ -830,9 +855,24 @@ contains
     DDMFLX=0.
     TDNL=0.
     QDNL=0.
+    VTHUN=0.
+    VQUN=0.
+    DZCP=0.
+    FQCP=0.
+    DTHCP=0.
+    DQCP=0.
+    DDRAFT1=0.
+    THDN1=0.
+    QLDN1=0.
+    FQDDR=0.
     !**** save initial values (which will be updated after subsid)
     SM1=SM
     QM1=QM
+    THUN(:)=SM(:)*BYAM(:)
+    QUN(:)=QM(:)*BYAM(:)
+    THDN(:)=THUN(:)
+    QLDN(:)=QUN(:)
+    DPCPL(:)=0d0
 #ifdef TRACERS_ON
     TM1(:,1:NTX) = TM(:,1:NTX)
     TRDNL = 0.
@@ -897,6 +937,32 @@ contains
     end do
     DWCU=0.5*DWCU*BYDTsrc/real(LMCM)
 
+!**** CALCULATE COLD POOL DEPTH IN EACH LAYER                     !!!
+      SUMDP=0d0
+      DO L=1,LMCM
+        SUMDP=SUMDP+AIRM(L)
+        IF(DPCP.GE.SUMDP) THEN
+          DPCPL(L)=AIRM(L)
+        ELSE
+          DPCPL(L)=AIRM(L)-(SUMDP-DPCP)
+          EXIT
+        END IF
+      END DO
+!     IF(DPCPL(1).LE.teeny.AND.DPCP.GT.teeny) THEN
+!       WRITE(6,*) 'ITM I J IC AC DPCP1 DPCP AIRM1=',
+!    *   ITIME,I_debug,J_debug,IC,ACP/DXYPIJ,DPCPL(1),DPCP,AIRM(1)
+!      END IF
+
+!**** CALCULATE PROPERTIES OF UNDISTURBED AIR (1st estimate)      !!!
+      DO L=1,LMCM
+        THUN(L)=((1d0-CLDMIN)*DXYPIJ*SM(L)-DPCPL(L)*ACP*THCP) &
+!    *          /(AIRM(L)*DXYPIJ*((1d0-CLDMIN)-ACP/DXYPIJ)+teeny)
+                /(AIRM(L)*DXYPIJ*(1d0-CLDMIN)-ACP*DPCPL(L)+teeny)
+        QUN(L)=((1d0-CLDMIN)*DXYPIJ*QM(L)-DPCPL(L)*ACP*QCP) &
+!    *         /(AIRM(L)*DXYPIJ*((1d0-CLDMIN)-ACP/DXYPIJ)+teeny)
+               /(AIRM(L)*DXYPIJ*(1d0-CLDMIN)-ACP*DPCPL(L)+teeny)
+      END DO
+
 #ifdef CLD_AER_CDNC
     MNdO_max(:)=teeny
     MNdL_max(:)=teeny
@@ -921,42 +987,75 @@ contains
 
       !**** COMPUTE THE CONVECTIVE MASS OF THE LESS ENTRAINING PART BASED ON THE
       !**** LARGE-SCALE VERTICAL VELOCITY AT CLOUD BASE
-      FMP0=-10.*CK1*SDL(LMIN+1)*BYGRAV*XMASS
-      if(FMP0.le.0.) FMP0=0.
+!     FMP0=-10.*CK1*SDL(LMIN+1)*BYGRAV*XMASS
+!     if(FMP0.le.0.) FMP0=0.
+      FMP0=0.
+      IF(RDDOLD(1).GE.0.05d0.OR.RDDOLD(2).GE.0.05d0) THEN
+        FMP0=AIRM(LMIN)*MAX(RDDOLD(1),RDDOLD(2))
+        FMP0=MIN(FMP0,AIRM(LMIN))
+      END IF
 
       !**** CREATE A PLUME IN THE BOTTOM LAYER
       !****
       !**** DETERMINE IF CLOUD BASE LEVEL IS UNSTABLE
       !**** ITERATION TO FIND FPLUME WHICH RESTORES CLOUD BASE TO NEUTRAL STATE
       !****
+      SUMDP=0d0
+      DO L=1,LMIN
+        IF(L.EQ.LMIN) THEN
+          SUMDP=SUMDP+0.5*AIRM(L)
+        ELSE
+          SUMDP=SUMDP+AIRM(L)
+        END IF
+      END DO
+      DELP=DTsrc*WTURB(LMIN)*PL(LMIN)*GRAV/(RGAS*TL(LMIN))
+      IF(DPCP-SUMDP.GT.DELP) THEN
+        DELP=5.*DTsrc*PL(LMIN)*GRAV/(RGAS*TL(LMIN))
+      END IF
+      DELP=MIN(DELP,250.d0)
+      DO L=LMIN+1,LM  ! to find out the initial level for checking stability
+        L2=L
+        IF(PL(LMIN)-PL(L).GE.DELP) EXIT
+      END DO
+!     IF(L2-LMIN.GT.20) WRITE(6,*) 'L2  LMIN W DELP',L2,LMIN, &
+!       WTURB(LMIN),DELP
+      L2=L2-LMIN
       SMO1=SM(LMIN)
       QMO1=QM(LMIN)
+      IF(DPCPL(LMIN).GT.0d0) THEN
+        SMO1=THUN(LMIN)*AIRM(LMIN)
+        QMO1=QUN(LMIN)*AIRM(LMIN)
+      END IF
       SMO2=SM(LMIN+1)
       QMO2=QM(LMIN+1)
+      SMO3=SM(LMIN+L2)
+      QMO3=QM(LMIN+L2)
       SDN=SMO1*BYAM(LMIN)
-      SUP=SMO2*BYAM(LMIN+1)
+      SUP=SMO2*BYAM(LMIN+L2)
       SEDGE=THBAR(SUP,SDN)
       QDN=QMO1*BYAM(LMIN)
-      QUP=QMO2*BYAM(LMIN+1)
+      QUP=QMO2*BYAM(LMIN+L2)
       WMDN=QCLL(LMIN)+QCIL(LMIN)
       WMUP=QCLL(LMIN+1)+QCIL(LMIN+1)
+      WMUP3=QCLL(LMIN+L2)+QCIL(LMIN+L2)
       SVDN=SDN*(1.+DELTX*QDN-WMDN)
-      SVUP=SUP*(1.+DELTX*QUP-WMUP)
+      SVUP=SUP*(1.+DELTX*QUP-WMUP3)
       QEDGE=.5*(QUP+QDN)
       WMEDG=.5*(WMUP+WMDN)
-      SVEDG=SEDGE*(1.+DELTX*QEDGE-WMEDG)
+      WMEDG3=.5*(WMUP3+WMDN)
+      SVEDG=SEDGE*(1.+DELTX*QEDGE-WMEDG3)
       LHX=LHE
       SLH=LHX*BYSHA
-      DMSE=(SVUP-SVEDG)*PLK(LMIN+1)+(SVEDG-SVDN)*PLK(LMIN)+ &
-           SLHE*(QSAT(SUP*PLK(LMIN+1),LHX,PL(LMIN+1))-QDN)
+      DMSE=(SVUP-SVEDG)*PLK(LMIN+L2)+(SVEDG-SVDN)*PLK(LMIN)+ &
+           SLHE*(QSAT(SUP*PLK(LMIN+L2),LHX,PL(LMIN+L2))-QDN)
       if(DMSE.gt.-1d-10) cycle  ! try next level
 
       !**** MASS_FLUX PERFORMS THE ITERATIONS
       !**** COMPUTES FPLUME, FMP2
-      call MASS_FLUX (FPLUME, FMP2, DQSUM, LMIN, &
+      call MASS_FLUX (FPLUME, FMP2, DQSUM, LMIN, L2, &
            LHX, QMO1, QMO2, SLH, SMO1, SMO2, WMDN, WMUP, WMEDG)
 
-      if(FPLUME.le..001) cycle ! try next level
+      if(FPLUME.le..0005) cycle ! try next level
 
       !****
       !**** BEGIN LOOP (2) THROUGH CLOUD TYPES OF DIFFERENT ENTRAINMENT RATE
@@ -981,8 +1080,10 @@ contains
         if(ITYPE.eq.2) then     ! cal. MPLUME for 1st plume and 2nd plume
           FCTYPE=1.
           if(MPLUME.gt.FMP0) FCTYPE=FMP0/MPLUME
+          IF(FMP0.EQ.0d0.AND.DPCPL(LMIN).GT.0d0) FCTYPE=0.05  ! allow 1st plume to exist
+!         IF(DPCPL(LMIN).LE.0d0) FCTYPE=0.   ! no plume 1 if no cold pool
           if(IC.eq.2) FCTYPE=1.-FCTYPE
-          if(FCTYPE.lt.0.001) cycle CLOUD_TYPES
+          if(FCTYPE.lt.0.0005) cycle CLOUD_TYPES
         end if
         MPLUM1=MPLUME
 
@@ -1033,11 +1134,28 @@ contains
 
             FMC1=(1.d0-FSSL_tmp)+teeny
           end if
+          IF(ACP/DXYPIJ.GT.FMC1) THEN
+            FMC1=ACP/DXYPIJ+0.10d0          ! +0.05d0
+!           WRITE(6,*) 'ACP ACP/DXY FMC1=',ACP,ACP/DXYPIJ,FMC1
+          END IF
+          FMC1=MIN(1d0-CLDMIN,FMC1)
 
           !**** guard against possibility of too big a plume
           if (MC1 .or. MCCONT.gt.0) then
             MPLUME=min(0.95d0*AIRM(LMIN)*FMC1,MPLUME)
           end if
+          IF(ACP.GT.0d0) THEN                ! limit to the undisturbed area
+            MPLUME=MIN((FMC1-ACP/DXYPIJ)*AIRM(LMIN),MPLUME)
+            MPLUME=MAX(MPLUME,0d0)           ! avoid negative plume
+          END IF
+
+!**** CALCULATE PROPERTIES OF UNDISTURBED AIR (updated)
+      DO L=1,LMCM
+        THUN(L)=(FMC1*DXYPIJ*SM(L)-DPCPL(L)*ACP*THCP) &
+                /(AIRM(L)*DXYPIJ*FMC1-ACP*DPCPL(L)+teeny)
+        QUN(L)=(FMC1*DXYPIJ*QM(L)-DPCPL(L)*ACP*QCP) &
+               /(AIRM(L)*DXYPIJ*FMC1-ACP*DPCPL(L)+teeny)
+      END DO
 
           do L=1,LM
             COND(L)=0.    ;    CDHEAT(L)=0. !;  VLAT(L)=LHE
@@ -1047,6 +1165,7 @@ contains
             CCM(L)=0.     ;  DDM(L)=0.    ;    TAUMC1(L)=0.
             ENT(L)=0.     ;  DET(L)=0.    ;    BUOY(L)=0.
             WCU(L)=0.     ; SMDNL(L)=0.   ;  QMDNL(L)=0.
+            TLDN(L)=0.    ;  RDDL(L)=0.
 #ifdef SCM
             if( SCMopt%PlumeDiag )then
             ! plume diagnostics
@@ -1079,12 +1198,16 @@ contains
           !**** (i.e. MPLUME is now a greater fraction of the relevant airmass.
           MPLUME=min( MPLUME/FMC1, &
                AIRM(LMIN)*0.95d0*QM(LMIN)/(QMOLD(LMIN) + teeny) )
-          if(MPLUME.le..001*AIRM(LMIN)) cycle CLOUD_TYPES
+          if(MPLUME.le..0005*AIRM(LMIN)) cycle CLOUD_TYPES
           FPLUME=MPLUME*BYAM(LMIN)
           SMP  =  SMOLD(LMIN)*FPLUME
           SMOMP(xymoms)=SMOMOLD(xymoms,LMIN)*FPLUME
           QMP  =  QMOLD(LMIN)*FPLUME
           QMOMP(xymoms)=QMOMOLD(xymoms,LMIN)*FPLUME
+          IF(DPCPL(LMIN).GT.0d0) THEN
+            SMP  =  THUN(LMIN)*MPLUME
+            QMP  =  QUN(LMIN)*MPLUME
+          END IF
           if (TPSAV(LMIN).eq.0) TPSAV(LMIN)=SMP*PLK(LMIN)/MPLUME
           DMR(LMIN)=-MPLUME
           DSMR(LMIN)=-SMP
@@ -1127,6 +1250,7 @@ contains
           CDHSUM1=0.
           CDHDRT=0.
           ETADN=0.
+          DCOND=0.
           LDRAFT=LM
           EVPSUM=0.
           DDRAFT=0.
@@ -1138,8 +1262,20 @@ contains
           !**** THE LARGER OF 0.5 M/S OR THE TURBULENT VERTICAL VELOCITY FOR
           !**** THE MORE ENTRAINING PLUME; THE LARGER OF 0.5 M/S OR TWICE THE
           !**** TURBULENT VERTICAL VELOCITY FOR THE LESS ENTRAINING PLUME
+          SUMDP=0d0
+          DO L=1,LMIN
+            IF(L.EQ.LMIN) THEN
+              SUMDP=SUMDP+0.5*AIRM(L)
+            ELSE
+              SUMDP=SUMDP+AIRM(L)
+            END IF
+          END DO
+          DELP=DTsrc*WTURB(LMIN)*PL(LMIN)*GRAV/(RGAS*TL(LMIN))
           WCU(LMIN)=max(.5D0,WTURB(LMIN))
-          if(IC.eq.1) WCU(LMIN)=max(.5D0,2.D0*WTURB(LMIN))
+          if(IC.eq.1) THEN
+            WCU(LMIN)=MAX(.5D0,2.D0*WTURB(LMIN))
+            IF(DPCP-SUMDP.GT.DELP) WCU(LMIN)=5.d0
+          END IF
           WCU2(LMIN)=WCU(LMIN)*WCU(LMIN)
 
           !****
@@ -1154,7 +1290,7 @@ contains
 
             !**** (1) TEST WHETHER MASS OF AIR REQUIRED TO STABILIZE CLOUD BASE
             !**** LARGE ENOUGH TO WARRANT PERFORMING CALCULATIONS
-            if(MPLUME.le..001*AIRM(L)) exit CLOUD_TOP
+            if(MPLUME.le..0005*AIRM(L)) exit CLOUD_TOP
 
             !**** (2) TEST WHETHER VIRTUAL MOIST STATIC ENERGY OF PARCEL LIFTED
             !**** TO NEXT LEVEL EXCEEDS THAT OF ENVIRONMENT AT THAT LEVEL, I.E.,
@@ -1657,20 +1793,32 @@ contains
             !****
             if(L-LMIN.gt.1) then
 
-              SMIX=.5*(SUP+SMP/MPLUME)
-              QMIX=.5*(QUP+QMP/MPLUME)
-              WMIX=.5*(WMUP+COND(L)/MPLUME)
+              FENV=0d0
+              DFENV=0.1d0
+              DMMIXO=0d0
+              DO ITER=1,9   ! iteration to find out the best mix fractions
+                FENV=FENV+DFENV
+                FPLU=1d0-FENV
+                SMIX=FENV*SUP+FPLU*SMP/MPLUME
+                QMIX=FENV*QUP+FPLU*QMP/MPLUME
+                WMIX=FENV*WMUP+FPLU*COND(L)/MPLUME
 
-              IF (MC_NEW_DDRFT_THETAV.EQ.0) THEN
-                SVMIX=SMIX                    ! *(1.+DELTX*QMIX)
-                SVUP=SUP                      ! *(1.+DELTX*QUP)
-                DMMIX=(SVUP-SVMIX)*PLK(L)
-              ELSE
-                SVMIX=SMIX*(1.+DELTX*QMIX-WMIX)
-                SVUP=SUP*(1.+DELTX*QUP-WMUP)
-                DMMIX=(SVUP-SVMIX)*PLK(L) &
+                IF (MC_NEW_DDRFT_THETAV.EQ.0) THEN
+                 SVMIX=SMIX                    ! *(1.+DELTX*QMIX)
+                 SVUP=SUP                      ! *(1.+DELTX*QUP)
+                 DMMIX=(SVUP-SVMIX)*PLK(L)
+                ELSE
+                 SVMIX=SMIX*(1.+DELTX*QMIX-WMIX)
+                 SVUP=SUP*(1.+DELTX*QUP-WMUP)
+                 DMMIX=(SVUP-SVMIX)*PLK(L) &
                    +SLHE*(QSAT(SUP*PLK(L),LHX,PL(L))-QMIX)
-              END IF
+                END IF
+                IF(DMMIX.LT.DMMIXO) THEN
+                 DMMIX=DMMIXO
+                 EXIT
+                END IF
+                DMMIXO=DMMIX
+              END DO
 
               if(DMMIX.lt.1d-10) CDHDRT=CDHDRT+CDHEAT(L)
 
@@ -1684,14 +1832,15 @@ contains
                 !**** To test with code with no downdrafts, set etadn=0. here
                 !**** etadn=0.  ! test
 
-                FLEFT=1.-.5*ETADN
+                FLEFT=1.d0-FPLU*ETADN
                 DDRAFT=ETADN*MPLUME
+                IF(DDRAFT.GT.teeny) FQDDR=1d0
                 DDR(L)=DDRAFT
-                CDHSUM1=CDHSUM1+CDHDRT*.5*ETADN      ! calculate before CDHDRT
-                CDHDRT=CDHDRT-CDHDRT*.5*ETADN+CDHEAT(L)    ! SLH*COND(L)
-                FDDP = .5*DDRAFT ! split command as a workaround for NAG 5.3 on OS X
+                CDHSUM1=CDHSUM1+CDHDRT*FPLU*ETADN      ! calculate before CDHDRT
+                CDHDRT=CDHDRT-CDHDRT*FPLU*ETADN+CDHEAT(L)    ! SLH*COND(L)
+                FDDP = FPLU*DDRAFT ! split command as a workaround for NAG 5.3 on OS X
                 FDDP = FDDP / MPLUME
-                FDDL = .5*DDRAFT*BYAM(L)
+                FDDL = FENV*DDRAFT*BYAM(L)
                 MPLUME=FLEFT*MPLUME
                 SMDNL(L)=DDRAFT*SMIX
                 SMOMDNL(xymoms,L)=SMOM(xymoms,L)*FDDL +  SMOMP(xymoms)*FDDP
@@ -1701,10 +1850,10 @@ contains
                 QMOMDNL(xymoms,L)=QMOM(xymoms,L)*FDDL +  QMOMP(xymoms)*FDDP
                 QMP=FLEFT*QMP
                 QMOMP(xymoms)= QMOMP(xymoms)*FLEFT
-                DMR(L) = DMR(L)-.5*DDRAFT
-                DSMR(L)=DSMR(L)-.5*DDRAFT*SUP        ! = DSM(L)-SM(L)*FDDL
+                DMR(L) = DMR(L)-FENV*DDRAFT
+                DSMR(L)=DSMR(L)-FENV*DDRAFT*SUP      ! = DSM(L)-SM(L)*FDDL
                 DSMOMR(:,L)=DSMOMR(:,L) - SMOM(:,L)*FDDL
-                DQMR(L)=DQMR(L)-.5*DDRAFT*QUP        ! = DQM(L)-QM(L)*FDDL
+                DQMR(L)=DQMR(L)-FENV*DDRAFT*QUP      ! = DQM(L)-QM(L)*FDDL
                 DQMOMR(:,L)=DQMOMR(:,L) - QMOM(:,L)*FDDL
 #ifdef TRACERS_ON
                 Tmdnl(l,1:NTX) = tm(l,1:NTX)*fddl+Tmp(1:NTX)*fddp
@@ -1716,12 +1865,12 @@ contains
                 tmomp(xymoms,1:NTX) = tmomp(xymoms,1:NTX)*fleft
 #endif
                 do K=1,KMAX
-                  UMDNL(K,L)=.5*(ETADN*UMP(K)+DDRAFT*U_0(K,L))
+                  UMDNL(K,L)=FPLU*ETADN*UMP(K)+FENV*DDRAFT*U_0(K,L)
                   UMP(K)=UMP(K)*FLEFT
-                  DUM(K,L)=DUM(K,L)-.5*DDRAFT*U_0(K,L)
-                  VMDNL(K,L)=.5*(ETADN*VMP(K)+DDRAFT*V_0(K,L))
+                  DUM(K,L)=DUM(K,L)-FENV*DDRAFT*U_0(K,L)
+                  VMDNL(K,L)=FPLU*ETADN*VMP(K)+FENV*DDRAFT*V_0(K,L)
                   VMP(K)=VMP(K)*FLEFT
-                  DVM(K,L)=DVM(K,L)-.5*DDRAFT*V_0(K,L)
+                  DVM(K,L)=DVM(K,L)-FENV*DDRAFT*V_0(K,L)
                 end do
 
               end if    !   Buoyancy Test
@@ -1884,9 +2033,24 @@ contains
           TMOMDN(xymoms,:)=TMOMDNL(xymoms,LDRAFT,:)
 #endif
 
+!**** ACCUMULATE FDDRT*COND FOR RAIN EVAPOATION IN DOWNDRAFTS
+          DCOND=FDDRT*COND(LDRAFT+1)            !!! starts at LDRAFT+1
+          COND(LDRAFT+1)=COND(LDRAFT+1)-FDDRT*COND(LDRAFT+1)
+
           !**** LOOP FROM TOP DOWN OVER POSSIBLE DOWNDRAFTS
           !****
           DOWNDRAFT: do L=LDRAFT,1,-1
+            IF(SVLATL(L).EQ.0d0) THEN
+              SVLATL(L)=LHE
+              IF ((TPSAV(L).gt.0. .and. TPSAV(L).LT.TF) .or. &
+                (TPSAV(L).eq.0. .and. TL(L).lt.TF)) SVLATL(L)=LHS
+            END IF
+            IF (SVLATL(L+1).ne.SVLATL(L)) THEN       ! phase change
+              FSSUM=0.
+              FSSUM=-(SVLATL(L+1)-SVLATL(L))*DCOND*BYSHA/(PLK(L)*SM(L))
+              SM(L)=SM(L)-(SVLATL(L+1)-SVLATL(L))*DCOND*BYSHA/PLK(L)
+              SMOM(:,L) =  SMOM(:,L)*(1.-FSSUM)
+            END IF
             LHX=VLAT(L)               ! LHX consistency
             SLH=LHX*BYSHA
             TNX1=SMDN*PLK(L)/DDRAFT   ! save for tracers
@@ -1897,10 +2061,13 @@ contains
             !**** EVAPORATE CONVECTIVE CONDENSATE IN DOWNDRAFT AND UPDATE DOWNDRAFT
             !**** TEMPERATURE AND HUMIDITY; CURRENTLY ALL CONDENSATE IS ALLOWED TO
             !**** EVAPORATE IF POSSIBLE (FDDRT = 1)
-            DQEVP=FDDRT*COND(L)       ! limit evap from condensate to fddrt of amount
+!           DQEVP=FDDRT*COND(L)       ! limit evap from condensate to fddrt of amount
+            DQEVP=0.5*DCOND       ! DCOND ! use accumulated falling rain
             if(DQEVP.gt.DQSUM) DQEVP=DQSUM           ! limit evaporation
-            if(DQEVP.gt.SMDN*PLK(L)/SLH) DQEVP=SMDN*PLK(L)/SLH
-            if (L.lt.LMIN) DQEVP=0.
+!           if(DQEVP.gt.SMDN*PLK(L)/SLH) DQEVP=SMDN*PLK(L)/SLH
+            IF(DQEVP.GT.0.9*SMDN*PLK(L)/SLH) DQEVP=0.9*SMDN*PLK(L)/SLH
+!           if (L.lt.LMIN) DQEVP=0.
+            DCOND=DCOND-DQEVP
 
             FSEVP = 0
             if (PLK(L)*SMDN.gt.teeny) FSEVP = SLH*DQEVP/(PLK(L)*SMDN)
@@ -1912,10 +2079,12 @@ contains
             QMDN=QMDN+DQEVP
 
             !**** REMOVE EVAPORATED WATER FROM CONVECTIVE CONDENSATE AMOUNT
-            COND(L)=COND(L)-DQEVP
+!           COND(L)=COND(L)-DQEVP
             TAUMCL(L)=TAUMCL(L)-DQEVP*FMC1
             CDHEAT(L)=CDHEAT(L)-DQEVP*SLH
             EVPSUM=EVPSUM+DQEVP*SLH
+            DCOND=DCOND+FDDRT*COND(L)    ! accumulate rain
+            COND(L)=COND(L)-FDDRT*COND(L)
 
 #ifdef TRACERS_WATER
             !**** RE-EVAPORATION OF TRACERS IN DOWNDRAFTS
@@ -2038,12 +2207,32 @@ contains
               !       SVM1=SM1(L-1)*BYAM(L-1)*PLK(L-1)*(1.+DELTX*QM1(L-1)*BYAM(L-1))
               SVM1=SM1(L-1)*BYAM(L-1)*PLK(L-1)*(1.+DELTX*QM1(L-1)*BYAM(L-1) &
                    -QCLL(L-1)-QCIL(L-1))
+              TLDN(L)=SMDN*PLK(L)/(DDRAFT+teeny)
+              THDN(L)=SMDN/(DDRAFT+teeny)
+              QLDN(L)=QMDN/(DDRAFT+teeny)
+              RDDL(L)=DDRAFT*BYAM(L)
+              IF(RDDL(L).GT..05d0) THEN
+!               WRITE(6,*) 'ITIME I J L IC RDD TL TLDN', &
+!                 ITIME,I_debug,J_debug,L,IC,RDDL(L),TL(L),TLDN(L)
+                IF (L.EQ.DCL.AND.TLDN(L)-TL(L).LE.-0.5d0) THEN
+                  RDD(IC)=RDDL(L)
+                END IF
+              END IF
               if (L.le.LMIN.and.SVMIX.ge.SVM1) exit
               DDM(L-1)=DDRAFT
               DDROLD=DDRAFT
               DDRAFT=DDRAFT+DDR(L-1)    ! add in downdraft one layer below
               SMDN=SMDN+SMDNL(L-1)
               QMDN=QMDN+QMDNL(L-1)
+              TLDN(L-1)=SMDN*PLK(L-1)/(DDRAFT+teeny)
+              THDN(L-1)=SMDN/(DDRAFT+teeny)
+              QLDN(L-1)=QMDN/(DDRAFT+teeny)
+              RDDL(L-1)=DDRAFT*BYAM(L-1)
+              IF(RDDL(L-1).GT..05d0) THEN
+                IF (L-1.EQ.DCL.AND.TLDN(L-1)-TL(L-1).LE.-0.5d0) THEN
+                  RDD(IC)=RDDL(L-1)
+                END IF
+              END IF
               SMOMDN(xymoms)=SMOMDN(xymoms)+SMOMDNL(xymoms,L-1)
               QMOMDN(xymoms)=QMOMDN(xymoms)+QMOMDNL(xymoms,L-1)
               do K=1,KMAX
@@ -2081,6 +2270,12 @@ contains
           end do
           DM(LDMIN)=DM(LDMIN)+DDRAFT
         end if
+!     accumulating dwondrafts reaching layer 1
+        IF(LDMIN.EQ.1) THEN
+          DDRAFT1=DDRAFT1+DDRAFT
+          THDN1=THDN1+DDRAFT*THDN(1)
+          QLDN1=QLDN1+DDRAFT*QLDN(1)
+        END IF
 
         !****
         !**** SUBSIDENCE AND MIXING LOOP (5)
@@ -2421,6 +2616,17 @@ contains
                LHP(L+1),PRCP,TOLD,TOLD1,VLAT(L),COND(L),LMIN, &
                LHP(L),MCLOUD,HEAT1(L))
 
+!         phase difference between DCOND and LHP
+          IF(L.EQ.LDMIN.AND.LHP(L).NE.SVLATL(L)) THEN
+            FSSUM = 0
+            IF (ABS(PLK(LDMIN)*SM(LDMIN)).gt.teeny .and. ((lhp(ldmin)- &
+              svlatl(ldmin))*DCOND*BYSHA).lt.0) &
+              FSSUM = -(lhp(ldmin)-svlatl(ldmin))*DCOND &
+                *BYSHA/(PLK(LDMIN)*SM(LDMIN))
+            SM(LDMIN)=SM(LDMIN)+(lhp(ldmin)-svlatl(ldmin))*DCOND*BYSHA &
+                      /PLK(LDMIN)
+            SMOM(:,LDMIN) =  SMOM(:,LDMIN)*(1.-FSSUM)
+          END IF
           !**** set phase of precip based on local environment temperature
           LHX=LHP(L)
 
@@ -2595,6 +2801,7 @@ contains
           PRHEAT=CDHEAT(L)+SLH*PRCP
           if (debug) print*,"cnv5",l,prcp,cond(l)
           PRCP=PRCP+COND(L)
+          IF(L.EQ.LDMIN) PRCP=PRCP+DCOND   ! add in rain not evaporated by downdrafts
 #ifdef TRACERS_WATER
           TRPRCP(1:NTX) = TRPRCP(1:NTX) + TRCOND(1:NTX,L)
 #ifdef TRDIAG_WETDEPO
@@ -2794,6 +3001,72 @@ contains
       end if
       if(TAUMCL(L).lt.0..and.CLDMCL(L).le.0.) TAUMCL(L)=0.
     end do OPTICAL_THICKNESS
+
+!****
+!**** call COLD_POOL and save cold pool properties
+!****
+
+!**** CALCULATE COLD POOL DEPTH IN EACH LAYER                     !!!
+      DPCPL(:)=0d0
+      SUMDP=0d0
+      DO L=1,LMCM
+        SUMDP=SUMDP+AIRM(L)
+        IF(DPCP.GE.SUMDP) THEN
+          DPCPL(L)=AIRM(L)
+        ELSE
+          DPCPL(L)=AIRM(L)-(SUMDP-DPCP)
+          EXIT
+        END IF
+      END DO
+!     IF(DPCPL(1).LE.teeny.AND.DPCP.GT.teeny) THEN
+!       WRITE(6,*) 'ITM I J IC AC DPCP1 DPCP AIRM1=',
+!    *   ITIME,I_debug,J_debug,IC,ACP/DXYPIJ,DPCPL(1),DPCP,AIRM(1)
+!      END IF
+
+      IF(ACP.GT.teeny.AND.DPCPL(1).GT.teeny) THEN  ! to save cold pool properties
+        DZCP=0d0                           ! begin calculate cold pool properties
+        VTHUN=0d0
+        VQUN=0d0
+        FQCP=1d0                            ! cold pool frequency
+        SUMDP=0d0
+!         IF(DPCPL(1).LT.teeny) THEN
+!           WRITE(6,*) 'ITIME I J IC DPCP1 AIRM1 DPCP THCP QCP THU QU=',
+!    *        ITIME,I_debug,J_debug,IC,DPCPL(1),AIRM(1),DPCP,THCP,QCP,
+!    *        THUN(1),QUN(1)
+!         END IF
+        DO L=1,LMCM
+          IF(DPCPL(L).LE.0d0) EXIT
+          VTHUN=VTHUN+THUN(L)*DPCPL(L)
+          VQUN=VQUN+QUN(L)*DPCPL(L)
+          DZCP=DZCP+DPCPL(L)*THCP*PLK(L)*RGAS/(PL(L)*GRAV+teeny) ! CP height
+          SUMDP=SUMDP+DPCPL(L)
+        END DO
+        VTHUN=VTHUN/(SUMDP+teeny)
+        VQUN=VQUN/(SUMDP+teeny)
+        DTHCP=(THCP-VTHUN)*1000.d0**KAPA           ! theta deficit
+        DQCP=1000.*(QCP-VQUN)                      ! moisture perturbation
+!       IF(DTHCP.LT.-0.5d0) WRITE(6,*) 'IT I J DTH THCP VTH DP DZ SUM=',
+!    *    ITIME,I_debug,J_debug,DTHCP,THCP,VTHUN,DPCP,DZCP,SUMDP
+      END IF
+
+!     IF(LDMIN.EQ.1.OR.DPCP.GT.0d0) THEN
+      IF(DDRAFT1.GT.0d0.OR.DPCP.GT.0d0) THEN
+
+        DZCP=0d0
+        DO L=1,LMCM                           ! calculate cold pool height
+          IF(DPCPL(L).LE.0d0) EXIT
+          DZCP=DZCP+DPCPL(L)*THCP*PLK(L)*RGAS/(PL(L)*GRAV+teeny) ! CP height
+        END DO
+
+        DDR1=0d0               ! initialization
+        DPCP1=0d0              ! initialization
+        THDN1=THDN1/(DDRAFT1+teeny)
+        QLDN1=QLDN1/(DDRAFT1+teeny)
+
+        CALL COLD_POOL (PLAND,FMC1,AIRM(1),BYAM(1),DXYPIJ,LDMIN,DDRAFT1, & ! DDRAFT,
+          PBLM,THDN1,QLDN1,THUN(1),QUN(1),DZCP,THCP,QCP,DPCP,ACP,DDR1)
+
+      END IF
 
     if(LMCMAX.le.1) then
       do L=1,LM
@@ -5464,7 +5737,7 @@ contains
 #ifdef CLD_AER_CDNC
       SMLWP=WMSUM
 #endif
-    end do OPTICAL_THICKNESS
+    end do OPTICAL_THICKNESS      ! large-scale clouds
 
     !**** CALCULATE OPTICAL THICKNESS
     do L=1,LMCLD
@@ -5962,7 +6235,7 @@ contains
 
   !***************************************************************************************
 
-  subroutine MASS_FLUX ( FPLUME, FMP2, DQSUM, LMIN, &
+  subroutine MASS_FLUX ( FPLUME, FMP2, DQSUM, LMIN, L2, &
        LHX, QMO1, QMO2, SLH, SMO1, SMO2, WMDN, WMUP, WMEDG )
     !
     use CONSTANT, only : deltx
@@ -5985,10 +6258,12 @@ contains
     !             PLK                         PL**KAPA
     !             SM,QM                       Vertical profiles of T/Q
     integer &
-         LMIN                     !  base layer of a convective event
+         LMIN                   & !  base layer of a convective event
+         ,L,L2
     real*8 &
          LHX,                     & !  latent heat of evaporation (J/Kg)
          QMO1,QMO2, SMO1,SMO2,    & !  LMIN & LMIN+1 elements of QM & SM
+         QMO3,SMO3,               & !  LMIN+2 elements of QM & SM
          SLH,                     & !  LHX/SHA
          WMDN,WMUP,WMEDG          !  LMIN & LMIN+1 elements of WML & middle
     !
@@ -6039,10 +6314,18 @@ contains
       QMN2=QMO2*(1.-FRAT1)+FRAT2*QM(LMIN+2)
       SMP=SMO1*FPLUME
       QMP=QMO1*FPLUME
-      TP=SMO1*PLK(LMIN+1)*BYAM(LMIN)
-      QSATMP=FMP2*QSAT(TP,LHX,PL(LMIN+1))
-      GAMA=SLH*QSATMP*DQSATDT(TP,LHX)/FMP2
-      DQSUM=(QMP-QSATMP)/(1.+GAMA)
+      DQSUM=0d0
+
+      DO L=1,L2
+        TP=SMP*PLK(LMIN+L)*BYAM(LMIN)/FPLUME
+        QSATMP=FMP2*QSAT(TP,LHX,PL(LMIN+L))
+        GAMA=SLH*QSATMP*DQSATDT(TP,LHX)/FMP2
+        DQ=(QMP-QSATMP)/(1.+GAMA)
+        SMP=SMP+SLH*DQ/PLK(LMIN+L)
+        QMP=QMP-DQ
+        DQSUM=DQSUM+DQ
+      END DO
+
       if(DQSUM.gt.0.)  then
         FEVAP=.5*FPLUME
         MCLOUD=FEVAP*AIRM(LMIN+1)
@@ -6085,7 +6368,117 @@ contains
     !
   end subroutine MASS_FLUX
 
-  !****************************************************************************************
+!****************************************************************************************
+
+      SUBROUTINE COLD_POOL(PLAND,FMC1,AIRM1,BYAM1,DXYPIJ,LDMIN,DDRAFT, &
+        PBLM,THDN1,QLDN1,THUN1,QUN1,DZCP, &
+        THCP,QCP,DPCP,ACP,DDR1)                                          ! output
+
+!@SUM COLD_POOL parameterization of cold pool created by cool downdrafts
+!@author M.S. Yao
+      USE CONSTANT, only : grav,bygrav,pi,kapa &
+        ,deltx,teeny,twopi
+      USE MODEL_COM, only : dtsrc
+
+      IMPLICIT NONE
+
+      REAL*8 TAUCP,THVCP,THVUN,DZCP,THCP,QCP,DPCP,ACP,RCP,MCP,VCP,DACP
+!@var TAUCP relaxation time in computing THCP and QCP
+!@var THVCP cold pool virtual potential temperature
+!@var THVUN virtual potential temperature in undisturbed air
+!@var THCP cold pool potential temperature
+!@var QCP cold pool specific humidity (kg/kg)
+!@var DPCP cold pool pressure depth (mb)
+!@var ACP cold pool area (m**2)
+!@var RCP cold pool radius (m)
+!@var MCP cold pool air mass
+!@var VCP cold pool spread velocity
+!@var DACP cold area change
+
+      REAL*8 THUN1,QUN1,THVDN,THDN1,TLDN1,QLDN1,DDR1,PBLM
+!@var THUN1 potential temperature in undisturbed layer 1
+!@var QUN1 specific humidity in undisturbed layer 1
+!@var THVDN1 virtual potential temperature in downdraft entering layer 1
+!@var THDN1 potential temperature in downdraft entering layer 1
+!@var TLDN1 temperature in downdraft entering layer 1
+!@var QLDN1 specif humidity in downdraft entering layer 1
+!@var PBLM PBL depth (mb)
+
+      REAL*8 PLAND,FMC1,AIRM0,AIRM1,BYAM1,DDRAFT,MDRAFT,DXYPIJ,PK1000
+!@var PLAND land fraction
+!@var FMC1 fractionl area partition for moist convection
+!@var AIRM1 layer 1 air mass (mb)
+!@var AIRM0 initial cold pool depth when created
+!@var BYAM1 1.0/AIRM1
+!@var DDRAFT downdraft mass (mb)
+!@var MDRAFT downdraft mass
+!@var DXYPIJ grid box area
+!@var PK1000 1000.**kapa
+
+      INTEGER LDMIN
+!@var LDMIN the lowest layer the downdraft entering into
+
+      AIRM0=PBLM                     ! 100.d0
+      PK1000=1000.d0**KAPA
+      MDRAFT=DDRAFT*DXYPIJ*BYGRAV*FMC1
+!     IF(LDMIN.NE.1) MDRAFT=0d0            ! follow A66
+      TAUCP=12.*3600.d0               ! relaxation time over land
+      IF(PLAND.LT.0.5d0) TAUCP=3.*3600.d0
+      THVCP=PK1000*THCP*(1d0+DELTX*QCP)
+      THVUN=PK1000*THUN1*(1d0+DELTX*QUN1)
+      THVDN=PK1000*THDN1*(1d0+DELTX*QLDN1)
+      MCP=DPCP*ACP*BYGRAV
+
+      IF(ACP.LE.0d0) THEN
+!       IF(THVDN-THVUN.LE.-0.5d0) THEN ! create cold pool
+        IF(THVDN-THVUN.LE.-0.5d0.AND.DDRAFT*BYAM1.GE.0.05d0) THEN
+          THCP=THDN1   ! downdraft potential temperature at L=1
+          QCP=QLDN1    ! downdraft specific humidity at L=1
+          DPCP=AIRM0   ! AIRM1   ! cold pool depth set to AIRM(1)
+          ACP=DDRAFT*DXYPIJ*FMC1/AIRM0
+          MCP=DPCP*ACP*BYGRAV
+          RCP=SQRT(ACP/PI)
+          VCP=0d0      ! no velocity when cold pool created
+          DDR1=DDRAFT  ! save DDRAFT
+        END IF
+      ELSE                        ! ACP greater than 0
+        IF(THVCP-THVUN.GT.-0.5d0) THEN   ! terminate cold pool
+          THCP=0d0
+          QCP=0d0
+          DPCP=0d0
+          ACP=0d0
+          DDR1=0d0     ! save DDRAFT
+!         MCP=0d0
+!         RCP=0d0
+          VCP=0d0
+        ELSE                      ! calculate cold pool variables
+          VCP=0.5*SQRT(GRAV*DZCP*(THVUN-THVCP)/THVUN) ! iternal Froude number KFR=0.5
+          RCP=SQRT(ACP/PI)
+          DACP=TWOPI*RCP*VCP*DTsrc                  ! delta(ACP)
+          THCP=(MCP*THCP+MDRAFT*THDN1)/(MCP+MDRAFT+teeny) &
+               -(THCP-THUN1)*DTsrc/TAUCP
+          QCP=(MCP*QCP+MDRAFT*QLDN1)/(MCP+MDRAFT+teeny) &
+              -(QCP-QUN1)*DTsrc/TAUCP
+!         DPCP=DPCP+(MDRAFT-DPCP*DACP*BYGRAV)*(GRAV/ACP)
+          DPCP=DPCP+MDRAFT*GRAV/(ACP+teeny)
+          DPCP=DPCP*ACP/(ACP+DACP+teeny)
+          ACP=ACP+DACP                              ! TWOPI*RCP*VCP*DTsrc
+          MCP=DPCP*ACP*BYGRAV
+          DDR1=DDRAFT  ! save DDRAFT
+        END IF
+      END IF
+      IF(DPCP.LE.1d0.OR.DPCP.GT.1000.d0.OR.ACP.LE.teeny &
+        .OR.ACP.GE.FMC1*DXYPIJ) THEN
+        THCP=0d0
+        QCP=0d0
+        DPCP=0d0
+        ACP=0d0
+        VCP=0d0
+        DDR1=0d0     ! save DDRAFT
+      END IF
+
+      RETURN
+      END SUBROUTINE COLD_POOL
 
 end module CLOUDS
 

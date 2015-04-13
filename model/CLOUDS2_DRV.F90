@@ -40,8 +40,8 @@ subroutine CONDSE
 #endif
 #endif
   use CLOUDS_COM, only : tauss,taumc,cldss,cldmc,csizmc,csizss,fss,cldsav1 &
-       ,tls,qls,tmc,qmc,ddm1,airx,lmc &
-       ,ddms,tdn1,qdn1,ddml
+       ,tls,qls,tmc,qmc,ddm1,airx,lmc,rddmc1,rddmc2 &
+       ,ddms,tdn1,qdn1,ddml,thcpij,qcpij,acpij,dpcpij  ! last 4 for cold pool
 #if (defined mjo_subdd) || (defined etc_subdd)
   use CLOUDS_COM, only : CLWC3D,CIWC3D,TLH3D,LLH3D,SLH3D,DLH3D
 #endif
@@ -171,10 +171,11 @@ subroutine CONDSE
        ,roice &
        ,kmax,ra,pl,ple,plk,rndssl,lhp,debug,fssl,pland,cldsv1 &
        ,smommc,smomls,qmommc,qmomls,ddmflx,wturb &
-       ,tvl,w2l,gzl &
+!      ,tvl,w2l,gzl,savwl,savwl1,save1l,save2l,dthcp,dqcp,dzcp,fqcp &
+       ,tvl,w2l,gzl,dthcp,dqcp,dzcp,fqcp &
        ,dphashlw,dphadeep,dgshlw,dgdeep,tdnl,qdnl,prebar1 &
-       ,DQMTOTAL,DQLSC &
-       ,DQMSHLW,DQMDEEP,DQCTOTAL,DQCSHLW,DQCDEEP
+       ,DQMTOTAL,DQLSC,RDD,RDDOLD,THCP,QCP,ACP,DPCP & ! last 4 for cold pool
+       ,DQMSHLW,DQMDEEP,DQCTOTAL,DQCSHLW,DQCDEEP,FQDDR
 #ifdef CLD_AER_CDNC
        use CLOUDS, only : acdnwm,acdnim,acdnws,acdnis,arews,arewm,areis,areim &
        ,alwim,alwis,alwwm,alwws,nlsw,nlsi,nmcw,nmci &
@@ -283,7 +284,7 @@ subroutine CONDSE
 #endif
 #endif
 
-!@param ENTCON fractional rate of entrainment (km**-1)
+!@param ENTCON fractional rate of entrainment for downdraft (km**-1)
   real*8,  parameter :: ENTCON = .2d0
   real*8, parameter :: SLHE=LHE*BYSHA
 
@@ -623,6 +624,15 @@ subroutine CONDSE
         VS=atmsrf%VSAVG(I,J)
         TGV=atmsrf%TGVAVG(I,J)
         QG=atmsrf%QGAVG(I,J)
+        RDDOLD(1)=RDDMC1(I,J)
+        RDDOLD(2)=RDDMC2(I,J)
+        THCP=THCPIJ(I,J)        ! pick up cold pool variables
+        QCP=QCPIJ(I,J)
+        ACP=ACPIJ(I,J)
+        DPCP=DPCPIJ(I,J)
+      ! IF(RDDOLD(1).GT.0.05d0.OR.RDDOLD(2).GT.0.05d0) &
+      !   WRITE(6,*) '---ITIME I J RDDOL1 RDDOL2', &
+      !     ITIME,I,J,RDDOLD
         TSV=TS*(1+QS*DELTX)
 !!!     DCL=NINT(DCLEV(I,J))   ! prevented by openMP bug
         DCL=int(DCLEV(I,J)+.5)
@@ -855,6 +865,10 @@ subroutine CONDSE
         endif
 #endif
 
+        THCPIJ(I,J)=THCP
+        QCPIJ(I,J)=QCP
+        ACPIJ(I,J)=ACP
+        DPCPIJ(I,J)=DPCP
         !**** ACCUMULATE MOIST CONVECTION DIAGNOSTICS
         if (LMCMIN.gt.0) then
           AIJ(I,J,IJ_PSCLD)=AIJ(I,J,IJ_PSCLD)+CLDSLWIJ
@@ -1044,6 +1058,11 @@ subroutine CONDSE
           CSIZMC(1:LMCMAX,I,J)=CSIZEL(1:LMCMAX)
           FSS(:,I,J)=FSSL(:)
           AIRX(I,J) = AIRXL*AXYP(I,J)
+          RDDMC1(I,J)=RDD(1)
+          RDDMC2(I,J)=RDD(2)
+        ! IF(RDD(1).GT.0.05d0.OR.RDD(2).GT.0.05d0) &
+        !  WRITE(6,*) '---ITIME I J RDDMC1 RDDMC2', &
+        !    ITIME,I,J,RDD
           do L=1,DCL
             DDML(I,J)=L                    ! the lowest downdraft layer
             if(DDMFLX(L).gt.0.d0) exit
