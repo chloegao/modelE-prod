@@ -7,12 +7,12 @@ c Will add more documentation if this version becomes the modelE default.
       SUBROUTINE OCEANS(atmocn,iceocn,dynsice)
 C****
       USE CONSTANT, only : rhows,grav
-      USE MODEL_COM, only : msurf,itime
+      USE MODEL_COM, only : msurf,itime,DTSRC
       USE OCEANRES, only : NOCEAN
       USE OCEAN, only : im,jm,lmo,ndyno,mo,g0m,s0m,
      *    dts,dtofs,dto,dtolf,mdyno,msgso,
      *    ogeoz,ogeoz_sv,opbot,ze,lmm,imaxj, UO,VO,VONP,IVNP, ! VOSP,IVSP,
-     *    OBottom_drag,OCoastal_drag,uod,vod,lmu,lmv
+     *    OBottom_drag,OCoastal_drag,OTIDE,uod,vod,lmu,lmv
       USE OCEAN, only : use_qus,
      *     GXMO,GYMO,GZMO, GXXMO,GYYMO,GZZMO, GXYMO,GYZMO,GZXMO,
      *     SXMO,SYMO,SZMO, SXXMO,SYYMO,SZZMO, SXYMO,SYZMO,SZXMO
@@ -27,7 +27,8 @@ C****
      *    ijl_mfu,ijl_mfv,ijl_mfw, ijl_ggmfl,ijl_sgmfl,ij_ssh,ij_pb
       USE OFLUXES, only : ocnatm
 #ifdef TRACERS_OCEAN
-      USE OCN_TRACER_COM, only : tracerlist, ocn_tracer_entry
+      USE OCN_TRACER_COM, only : tracerlist, ocn_tracer_entry,n_age,
+     &          n_vent,n_gasx,n_wms1,n_wms2,n_wms3,n_dets,n_cfc,n_dic
       USE OCEAN, only : trmo,
      &     txmo,tymo,tzmo,txxmo,tyymo,tzzmo,txymo,tyzmo,tzxmo
       Use ODIAG, Only: toijl=>toijl_loc,
@@ -45,7 +46,7 @@ c
      &    ,G0M0,GXMO0,GYMO0,S0M0,SXMO0,SYMO0
       Real*8,Dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      &     OPBOT1,OPBOT2
-      real*8 :: relfac,dt_odiff
+      real*8 :: relfac,dt_odiff,TIME
       real*8, parameter :: byno=1./nocean
       real*8 :: dtdum
 
@@ -231,18 +232,38 @@ c
 c advance the short-timestep horizontal dynamics
 c
 c initialize the odd state
+      If (OTIDE > 0)  Then
+         TIME = DTSRC*ITIME + .5*DTOFS  !  seconds since 2000/01/01/00
+     +        + DTO*((NO-1)*NDYNO/NOCEAN)
+         Call OTIDEW (TIME)
+         Call OTIDEV (.False.,DTOFS, UO2,VO2,UOD2,VOD2)  ;  EndIf
       Call ODHORZ(MO ,UO ,VO ,UOD ,VOD ,OPBOT ,
      &            MO2,UO2,VO2,UOD2,VOD2,OPBOT2, DTOFS,.false.)
+      If (OTIDE > 0)  Then
+         TIME = DTSRC*ITIME + .5*DTO
+     +        + DTO*((NO-1)*NDYNO/NOCEAN)
+         Call OTIDEW (TIME)
+         Call OTIDEV (.False.,DTO, UO1,VO1,UOD1,VOD1)  ;  EndIf
       Call ODHORZ(MO2,UO2,VO2,UOD2,VOD2,OPBOT2,
      &            MO1,UO1,VO1,UOD1,VOD1,OPBOT1, DTO,.false.)
 c loop over the leapfrog steps
       neven = NDYNO / (2*NOCEAN)
       do n=1,neven
-c update the even state
+c update the even state         
+        If (OTIDE > 0)  Then
+           TIME = DTSRC*ITIME + .5*DTOLF
+     +          + DTO*((NO-1)*NDYNO/NOCEAN + 2*N-2)
+           Call OTIDEW (TIME)
+           Call OTIDEV (.True.,DTOLF, UO,VO,UOD,VOD)  ;  EndIf
         Call ODHORZ(MO1,UO1,VO1,UOD1,VOD1,OPBOT1,
      &              MO ,UO ,VO ,UOD ,VOD ,OPBOT , DTOLF,.true.)
         if(n == neven) exit ! no need to further update the odd state
 c update the odd state
+        If (OTIDE > 0)  Then
+           TIME = DTSRC*ITIME + .5*DTOLF
+     +          + DTO*((NO-1)*NDYNO/NOCEAN + 2*N-1)
+           Call OTIDEW (TIME)
+           Call OTIDEV (.False.,DTOLF, UO1,VO1,UOD1,VOD1)  ;  EndIf
         Call ODHORZ(MO ,UO ,VO ,UOD ,VOD ,OPBOT ,
      &              MO1,UO1,VO1,UOD1,VOD1,OPBOT1, DTOLF,.false.)
       enddo
@@ -412,8 +433,17 @@ c     CALL MESO_A(S0M,SXMO,SYMO,SZMO)
 
 #ifdef TRACERS_OCEAN
       CALL OC_TDECAY(DTS)
+      if (n_age.gt.0) CALL OCN_TR_AGE(DTS)
+      if (n_vent.gt.0) CALL OCN_TR_VENT(DTS)
+      if (n_gasx.gt.0) CALL OCN_TR_GASX(DTS)
+      if (n_wms1.gt.0) CALL OCN_TR_WaterMass(DTS)
+      if (n_wms2.gt.0) CALL OCN_TR_WaterMass(DTS)
+      if (n_wms3.gt.0) CALL OCN_TR_WaterMass(DTS)
+      if (n_cfc.gt.0) CALL OCN_TR_CFC(DTS)   !note n_cfc used by other parts of$
+!     if (n_dets.gt.0) CALL OCN_TR_DetrSettl(DTS)
+!     if (n_dic.gt.0) CALL OCN_TR_DIC(DTS)
 #ifdef TRACERS_AGE_OCEAN
-      CALL OCN_TR_AGE(DTS)
+      if (n_age.gt.0) CALL OCN_TR_AGE(DTS)
 #endif
 #endif
 

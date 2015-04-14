@@ -331,7 +331,7 @@
      *     ,uo,vo,uod,vod,dxypo,ogeoz,kpl
      *     ,dts,dtolf,dto,dtofs,mdyno,msgso
      *     ,ndyno,imaxj,ogeoz_sv,bydts,lmo_min,j1o
-     *     ,OBottom_drag,OCoastal_drag,oc_salt_mean
+     *     ,OBottom_drag,OCoastal_drag,OTIDE,oc_salt_mean
 #ifdef OCN_GISS_MESO
      *     ,auvel,avvel,kappam3d_sm
      *     ,flux_x_sm,flux_y_sm,flux_z_sm
@@ -392,9 +392,6 @@ c**** Extract domain decomposition info
       LOGICAL :: HAVE_NORTH_POLE
 
       INTEGER, DIMENSION(IM,JM) :: LMM_glob
-#ifdef TRACERS_OCEAN
-      type(ocn_tracer_entry), pointer :: entry
-#endif
 
       call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1
      *      ,J_STRT_SKP  = J_0S, J_STOP_SKP  = J_1S
@@ -417,10 +414,11 @@ C****
      &       "Must have KOCEAN > 0 for interactive ocean runs",255)
       END IF
 C****
-C**** Select drag options
+C**** Select drag options and ocean tides
 C****
       call sync_param("OBottom_drag",OBottom_drag)
       call sync_param("OCoastal_drag",OCoastal_drag)
+      Call SYNC_PARAM ("OTIDE",OTIDE)
 
 C**** define initial condition options for global mean
       call sync_param("oc_salt_mean",oc_salt_mean)
@@ -485,6 +483,7 @@ c Begin ocean-processors-only code region
 c-------------------------------------------------------------------
 
       CALL OFFT0(IM)
+      If (OTIDE > 0)  Call OTIDE0
 
 C**** Calculate J1O = least J with some ocean
       j1o_loc = huge(j1o_loc)
@@ -821,12 +820,7 @@ C***  Initialize ODIFF
       call init_ODIFF(grid)
 
 #ifdef TRACERS_OCEAN
-      do nt=1,tracerlist%getsize()
-      entry=>tracerlist%at(nt)
-      if (entry%need_ic) then
       call tracer_ic_ocean(atmocn)
-      endif
-      enddo
 #endif
 
 c-------------------------------------------------------------------
@@ -963,6 +957,7 @@ c    .      nstep,j,dxpo(j),dypo(j),dxypo(j)
         BYDXV(1)=1D0/DXVO(1)
         BYDYV(1)=1D0/DYVO(1)
         BYDYP(1)=1D0/DYPO(1)
+        TANP(1) = 0
 c       write(*,'(a,2i5,3e12.4)')'for samar, dx,dy:',
 c    .       nstep,1,dxpo(1),dypo(1),dxypo(1)
       endif
@@ -5139,7 +5134,7 @@ C**** Need dv/dy,tv,dv/dx for u equation, du/dy,tu,du/dx for v equation
       FVX=0             ! flux in V equation at the x_+ boundary
       FVY=0             ! flux in V equation at the y_+ boundary
       DO J=J_0, J_1S
-        IM1=IM-1
+        IM1=IM
         DO I=1,IM
           UT=0          ! mean u*tan on x_+ boundary for V equation
           UY=0          ! mean du/dx on y_+ boundary for V equation
@@ -5363,26 +5358,10 @@ C**** Calculate fluxes (including FSLIP condition)
 C**** Calculate tridiagonal matrix for second semi-implicit step (in y)
 C**** Minor complication due to singular nature of polar box
 
+      IM1=IM-1
+      I=IM
       DO IP1=1,IM
         DO J=J_0S,J_1S
-          !put following later into a subroutine
-          if(ip1.eq.1) then
-            if(J.eq.2) then
-              IM1=IM-1; I=IM;
-            elseif(J.eq.3) then
-              IM1=IM; I=IP1;
-            else
-              IM1=IP1; I=IP1;
-            endif
-          endif
-          if(ip1.gt.1) then
-            if(j.eq.2) then
-              IM1=IP1-1; I=IP1-1;
-            else
-              IM1=IP1; I=IP1;
-            endif
-          endif
-
           BU3D(I,J,L) = 1d0
           BV3D(I,J,L) = 1d0
           IF (L.LE.LMU(I,J)) THEN
@@ -5416,9 +5395,9 @@ C**** Add Wasjowicz cross-terms to RV + second metric term
      *           + DXPO(J)*FVY(I,J-1) - DXPO(J+1)*FVY(I,J))*BYDXYV(J)
      *           + 0.5*(TANP(J-1)*FVY(I,J-1) + TANP(J)*FVY(I,J)))
           END IF
-          IM1=I
-          I=IP1
         END DO
+        IM1=I
+        I=IP1
       END DO
 C**** At North Pole (do partly explicitly) no metric terms
 c     BU3D(IIP) = 1d0

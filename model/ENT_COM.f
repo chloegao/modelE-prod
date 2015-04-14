@@ -30,7 +30,7 @@
 
 !---  for I/O
       CHARACTER*80, parameter :: ENT_HEADER = "ENT01"
-      integer, parameter :: ENT_IO_MAXBUF = 575
+      integer, parameter :: ENT_IO_MAXBUF = 1023 !1023 after NK !924 ! 575
 
 
       contains

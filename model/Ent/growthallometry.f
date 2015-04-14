@@ -1,6 +1,7 @@
       module growthallometry
 !@sum Routines to calculate uptake and allocation of nutrients within an
 !@sum individual plant, growth, and allometry.
+!@sum WILL BE DELETING THIS MODULE.  REPLACED WITH allometryfn.f - NYK
 
       use ent_types
       use ent_const
@@ -23,19 +24,5 @@
       end subroutine uptake_N
       !*********************************************************************
 
-      subroutine init_rootdistr(fracroot, pft)
-      !use ent_GISSveg, only : GISS_calc_fracroot
-      real*8 :: fracroot(N_DEPTH)
-      integer :: pft
 
-      !GISS TEMPORARY - prescribed roots should be passed in
-!      call GISS_calc_fracroot(fracroot, pft)
-
-      ! at least set it to zero, since it is called in zero_cohort...
-      fracroot(:) = 0.d0
-
-      !* Prognostic roots calculated here *!.
-
-      end subroutine init_rootdistr
-      !*********************************************************************
       end module growthallometry

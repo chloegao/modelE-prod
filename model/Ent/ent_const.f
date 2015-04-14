@@ -3,10 +3,12 @@
 !@sum  These are constants that would be common to the GCM/EWB, so should
 !@sum  have the GCM/EWB constants substituted in for coupled runs.
 !@auth N.Kiang
+!@ver  1.0
 
       !* COUPLED RUNS - Replace with values from GCM constants*!
       !use Name_of_GCM_constants_module  
 
+      use TimeConstants_mod, only: sday=>SECONDS_PER_DAY
       implicit none
       save
 
@@ -75,7 +77,7 @@
 
       !************************************************************************
        !* ASTRONOMICAL CONSTANTS
-!      real*8,parameter :: sday = 86400.d0 ! sec per day - Now set in TimeConstants
+      ! real*8,parameter :: sday = 86400.d0! sec per day (s)
       real*8,parameter :: SECPY = 31536000.d0  ! sec per year (s)
 
       !************************************************************************
@@ -83,8 +85,9 @@
       !* SOIL / HYDROLOGY *
       !********************
 !      integer :: N_DEPTH        !Number of soil layers.  SET IN ENT_INIT
-      !!! setting it to constant for the time being to simplify the compilation
-      integer, parameter :: N_DEPTH = 6
+      integer, parameter :: N_DEPTH = 6 !Number of soil layers. SET AS PAR BUT LATER CAN BE VARIABLE.
+      real*8, parameter :: SOILDEPTH_m(N_DEPTH) = !Bottom depths of soil layers (m)
+     &     (/ 0.1,0.27,0.57,1.08,1.97,3.5 /) !GISS GCM
 
       !**********************
       !* RADIATIVE TRANSFER *
@@ -96,7 +99,9 @@
       !* ECOLOGICAL DYNAMICS *
       !***********************
       integer,parameter :: N_DIST_TYPES = 2 !Number of disturbance types
+      real*8,parameter :: LOW_PAR_LIMIT = 2.5d0 !umol m-2 s-1.  Nobel 1999, lower light limit for green plants is 0.7 W m-2 ~ 3 umol m-2 s-1.
 
+!#define PFT_MODEL_ENT
 #ifdef PFT_MODEL_ENT
       !************************************************
       !*  ENT PLANT FUNCTIONAL TYPE CONSTANTS         *
@@ -117,6 +122,10 @@
       !************************************************
       !* GENERIC VEGETATION CONSTANTS                 *
       !************************************************
+      !* photosynthetic pathway type pst in pftype
+      integer,parameter :: C3 = 1
+      integer,parameter :: C4 = 2
+
       !* leaftype in pftype *!
       integer,parameter :: BROADLEAF = 1
       integer,parameter :: NEEDLELEAF = 2
@@ -128,9 +137,17 @@
       integer,parameter :: DROUGHTDECID = 3
       integer,parameter :: COLDDROUGHTDECID = 4
       integer,parameter :: ANNUAL = 5 
-    
+
+      !* growth form *!
+      integer, parameter :: GRASS = 1
+      integer, parameter :: HERB = 2
+      integer, parameter :: SHRUB = 3
+      integer, parameter :: TREE = 4
+      integer, parameter :: BARE = 5
+
+
       !************************************************
-      !*  GISS SOIL CONSTANTS                         *
+      !*  COVER SUMMARY CONSTANTS                     *
       !************************************************
 
       integer,parameter :: N_SOILCOV = 2 !2-light sand, dark dirt (GISS) 
@@ -168,7 +185,7 @@
       integer,parameter :: Carbon = 1
       integer,parameter :: Nitrogen = 2
 !      integer,parameter :: ptrace = 2  !num. nutrient pools used in CASA resp. routine -PK
-      integer,parameter :: nresp_pools = 14  !num. pools used in CASA resp. routine -PK
+      integer,parameter :: NRESP_PATHS = 14  !num. pathways between pools in CASA soil respiration.
       real*8,parameter :: Q10 = 2.d0        !Q10 used in belowground calculations --> value from lit -PK 5/25/06
 
       !* Live pool array indices
@@ -209,6 +226,17 @@
       real*8,dimension(N_PFT) :: structurallignin !fraction of structural C from lignin -PK 7/5/06 
       real*8,dimension(N_PFT) :: lignineffect !effect of lignin on decomp -PK 7/5/06
       real*8,parameter :: woodligninfract = 0.40 !amt lignin in wood C -PK 7/5/06
+      !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+            character*13, parameter :: Ent_cpool_title(N_BPOOLS) =
+     &     (/
+     &     'FOLIAGE      '
+     &     ,'SAPWOOD      '
+     &     ,'HARDWOOD     '
+     &     ,'LABILE       '
+     &     ,'FINE ROOT    '
+     &     ,'COARSE ROOT  '
+     &     ,'REPRODUCTION '
+     &     /)
 
       !************************************************************************
       end module ent_const

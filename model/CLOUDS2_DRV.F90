@@ -8,9 +8,8 @@ subroutine CONDSE
        ,teeny,undef,bysha
   use TimeConstants_mod, only: SECONDS_PER_DAY, INT_HOURS_PER_DAY, &
                                SECONDS_PER_HOUR
-  use RESOLUTION, only : ls1,psf,ptop
   use RESOLUTION, only : im,jm,lm
-  use ATM_COM, only : p,u,v,t,q,qcl,qci
+  use ATM_COM, only : u,v,t,q,qcl,qci
   use DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds,AM_I_ROOT
   use MODEL_COM, only : DTsrc,itime,modelEclock
   use DOMAIN_DECOMP_ATM, only : GLOBALSUM
@@ -41,8 +40,8 @@ subroutine CONDSE
 #endif
 #endif
   use CLOUDS_COM, only : tauss,taumc,cldss,cldmc,csizmc,csizss,fss,cldsav1 &
-       ,tls,qls,tmc,qmc,ddm1,airx,lmc &
-       ,ddms,tdn1,qdn1,ddml
+       ,tls,qls,tmc,qmc,ddm1,airx,lmc,rddmc1,rddmc2 &
+       ,ddms,tdn1,qdn1,ddml,thcpij,qcpij,acpij,dpcpij  ! last 4 for cold pool
 #if (defined mjo_subdd) || (defined etc_subdd)
   use CLOUDS_COM, only : CLWC3D,CIWC3D,TLH3D,LLH3D,SLH3D,DLH3D
 #endif
@@ -119,11 +118,12 @@ subroutine CONDSE
 #ifdef TRACERS_SPECIAL_Shindell
   use LIGHTNING, only : RNOx_lgt,saveLightning,saveC2gLightning
 #endif
+  use trdiag_com, only: taijn=>taijn_loc, tij_prec
 #ifndef SKIP_TRACER_DIAGS
   use TRDIAG_COM, only: jlnt_mc,jlnt_lscond,itcon_mc &
-       ,itcon_ss,taijn=>taijn_loc,taijs=>taijs_loc
+       ,itcon_ss,taijs=>taijs_loc
 #ifdef TRACERS_WATER
-  use TRDIAG_COM, only: jls_prec,tij_prec,trp_acc
+  use TRDIAG_COM, only: jls_prec,trp_acc
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
   use TRDIAG_COM, only: jls_incloud,ijts_aq
@@ -171,10 +171,11 @@ subroutine CONDSE
        ,roice &
        ,kmax,ra,pl,ple,plk,rndssl,lhp,debug,fssl,pland,cldsv1 &
        ,smommc,smomls,qmommc,qmomls,ddmflx,wturb &
-       ,tvl,w2l,gzl &
+!      ,tvl,w2l,gzl,savwl,savwl1,save1l,save2l,dthcp,dqcp,dzcp,fqcp &
+       ,tvl,w2l,gzl,dthcp,dqcp,dzcp,fqcp &
        ,dphashlw,dphadeep,dgshlw,dgdeep,tdnl,qdnl,prebar1 &
-       ,DQMTOTAL,DQLSC &
-       ,DQMSHLW,DQMDEEP,DQCTOTAL,DQCSHLW,DQCDEEP
+       ,DQMTOTAL,DQLSC,RDD,RDDOLD,THCP,QCP,ACP,DPCP & ! last 4 for cold pool
+       ,DQMSHLW,DQMDEEP,DQCTOTAL,DQCSHLW,DQCDEEP,FQDDR
 #ifdef CLD_AER_CDNC
        use CLOUDS, only : acdnwm,acdnim,acdnws,acdnis,arews,arewm,areis,areim &
        ,alwim,alwis,alwwm,alwws,nlsw,nlsi,nmcw,nmci &
@@ -194,9 +195,9 @@ subroutine CONDSE
        MPLUMEALL,PLUME_MAX,PLUME_MIN
 #endif
   use PBLCOM, only : dclev,egcm,w2gcm,pblht,pblptop
-  use ATM_COM, only : pk,pek,pmid,pedn,gz,ptold,pdsig,MWs, &
+  use ATM_COM, only : pk,pek,pmid,pedn,gz,PMIDOLD,pdsig,MWs, &
        ua=>ualij,va=>valij,ltropo
-  use DYNAMICS, only : wcpsig,dsig,sig,bydsig
+  use DYNAMICS, only : wcpsig,bydsig
   use SEAICE_COM, only : si_atm
   use GHY_COM, only : fearth
   use RAD_COM, only : snoage
@@ -274,14 +275,16 @@ subroutine CONDSE
 #endif
 
 #ifdef CACHED_SUBDD
+#ifdef SCM
    !  isccp diagnostics   save frequency histogram for subdd diagnostics
    !@var save_fq_isccp
     real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO, &
            GRID%J_STRT_HALO:GRID%J_STOP_HALO,NTAU,NPRES) &
            :: save_fq_isccp
 #endif
+#endif
 
-!@param ENTCON fractional rate of entrainment (km**-1)
+!@param ENTCON fractional rate of entrainment for downdraft (km**-1)
   real*8,  parameter :: ENTCON = .2d0
   real*8, parameter :: SLHE=LHE*BYSHA
 
@@ -488,9 +491,9 @@ subroutine CONDSE
       mc_m_p1=0.d0; mc_m_p2=0.d0; mc_det_p1=0.d0; mc_det_p2=0.d0
       mc_pl_max_p1=0.d0; mc_pl_max_p2=0.0; mc_pl_min_p1=0.d0; mc_pl_min_p2=0.d0
   endif
-#endif
       ! isccp frequency diags
       save_fq_isccp=0.d0
+#endif
 #endif
 
   call recalc_agrid_uv ! may not be necessary - check later
@@ -567,7 +570,12 @@ subroutine CONDSE
         do I=I_0thread,I_1thread
           GZIL(I,L) = GZ(I,J,L)
 #ifdef SCM
-          SD_CLDIL(I,L) = SCMin%Omega(L)*AXYP(1,1)
+          ! apply large-scale divergence if specified
+          if( SCMopt%omega .or. SCMopt%w )then
+            SD_CLDIL(I,L) = SCMin%Omega(L)*AXYP(1,1)
+          else
+            SD_CLDIL(I,L) = 0.
+          endif
 #else
           SD_CLDIL(I,L) = MWs(I,J,L)/DTsrc ! averaged SD
 #endif
@@ -616,6 +624,15 @@ subroutine CONDSE
         VS=atmsrf%VSAVG(I,J)
         TGV=atmsrf%TGVAVG(I,J)
         QG=atmsrf%QGAVG(I,J)
+        RDDOLD(1)=RDDMC1(I,J)
+        RDDOLD(2)=RDDMC2(I,J)
+        THCP=THCPIJ(I,J)        ! pick up cold pool variables
+        QCP=QCPIJ(I,J)
+        ACP=ACPIJ(I,J)
+        DPCP=DPCPIJ(I,J)
+      ! IF(RDDOLD(1).GT.0.05d0.OR.RDDOLD(2).GT.0.05d0) &
+      !   WRITE(6,*) '---ITIME I J RDDOL1 RDDOL2', &
+      !     ITIME,I,J,RDDOLD
         TSV=TS*(1+QS*DELTX)
 !!!     DCL=NINT(DCLEV(I,J))   ! prevented by openMP bug
         DCL=int(DCLEV(I,J)+.5)
@@ -694,8 +711,7 @@ subroutine CONDSE
 #endif
 #endif
         FSSL(:)=FSS(:,I,J)
-        DPDT(1:LS1-1)=SIG(1:LS1-1)*(P(I,J)-PTOLD(I,J))*BYDTsrc
-        DPDT(LS1:LM)=0.
+        DPDT(:) = (PMID(:,I,J)-PMIDOLD(:,I,J))*BYDTsrc
         do L=1,LM
           !**** TEMPERATURES
           SM(L)  =T(I,J,L)*AIRM(L)
@@ -849,6 +865,10 @@ subroutine CONDSE
         endif
 #endif
 
+        THCPIJ(I,J)=THCP
+        QCPIJ(I,J)=QCP
+        ACPIJ(I,J)=ACP
+        DPCPIJ(I,J)=DPCP
         !**** ACCUMULATE MOIST CONVECTION DIAGNOSTICS
         if (LMCMIN.gt.0) then
           AIJ(I,J,IJ_PSCLD)=AIJ(I,J,IJ_PSCLD)+CLDSLWIJ
@@ -1038,6 +1058,11 @@ subroutine CONDSE
           CSIZMC(1:LMCMAX,I,J)=CSIZEL(1:LMCMAX)
           FSS(:,I,J)=FSSL(:)
           AIRX(I,J) = AIRXL*AXYP(I,J)
+          RDDMC1(I,J)=RDD(1)
+          RDDMC2(I,J)=RDD(2)
+        ! IF(RDD(1).GT.0.05d0.OR.RDD(2).GT.0.05d0) &
+        !  WRITE(6,*) '---ITIME I J RDDMC1 RDDMC2', &
+        !    ITIME,I,J,RDD
           do L=1,DCL
             DDML(I,J)=L                    ! the lowest downdraft layer
             if(DDMFLX(L).gt.0.d0) exit
@@ -1081,7 +1106,7 @@ subroutine CONDSE
           mc_pl_max_p1(I,J,:) = PLUME_MAX(1,:)
           mc_pl_max_p2(I,J,:) = PLUME_MAX(2,:)
           mc_pl_min_p1(I,J,:) = PLUME_MIN(1,:)
-          mc_pl_max_p2(I,J,:) = PLUME_MIN(2,:)
+          mc_pl_min_p2(I,J,:) = PLUME_MIN(2,:)
         endif
 #endif
 #endif
@@ -1425,7 +1450,9 @@ subroutine CONDSE
             saveMCLDI(i,j)=sum(fq_isccp(2:ntau,4:5)) ! current value for
             saveHCLDI(i,j)=sum(fq_isccp(2:ntau,1:3)) ! instant. SUBDDiags
 #ifdef CACHED_SUBDD
+#ifdef SCM
             save_fq_isccp(i,j,:,:) = fq_isccp(:,:)
+#endif
 #endif
             !**** Save area weighted isccp histograms
             n=isccp_reg2d(i,j)
@@ -1676,19 +1703,21 @@ subroutine CONDSE
           end do
 #ifdef TRACERS_WATER
           trprec(n,i,j) = (trprec(n,i,j)+trprss(nx))*byaxyp(i,j)
+#ifndef SKIP_TRACER_DIAGS
           TRP_acc(n,I,J)=TRP_acc(n,I,J)+trprec(n,i,j)
+#endif
           !        if (i.eq.64.and.j.eq.7) write(6,'(2i3,a,3f12.2)')
           !     .    n,ntm, ' TRP1::ACC:',trp_acc(n,i,j)*byaxyp(i,j),
           !     .    trprec(n,i,j),trprss(nx)
           !**** diagnostics
           if (dowetdep(n)) then
+            taijn(i,j,tij_prec,n) =taijn(i,j,tij_prec,n) + &
+                 trprec(n,i,j)
 #ifndef SKIP_TRACER_DIAGS
             if (jls_prec(1,n).gt.0) call inc_tajls2(i,j,1,jls_prec(1,n), &
                  trprec(n,i,j))
             if (jls_prec(2,n).gt.0) call inc_tajls2(i,j,1,jls_prec(2,n), &
                  trprec(n,i,j)*focean(i,j))
-            taijn(i,j,tij_prec,n) =taijn(i,j,tij_prec,n) + &
-                 trprec(n,i,j)
 #ifdef TRACERS_COSMO
             if (n .eq. n_Be7) BE7W_acc(i,j)=BE7W_acc(i,j)+ &
                  trprec(n,i,j)
@@ -1900,7 +1929,7 @@ subroutine CONDSE
     call stop_model('ISCCP CLOUD TYPING ERROR',255)
   end if
 
-#ifdef SKIP_TRACER_DIAGS
+#ifdef TRACERS_WSD
 #ifdef TRACERS_WATER
   call trac_accum_clouds
 #endif
@@ -1945,6 +1974,13 @@ subroutine CONDSE
   select case (subdd%name(k))
   case ('prec')
     call inc_subdd(subdd,k,prec)
+  case ('ssp')
+    call inc_subdd(subdd,k,precss)
+  case ('mcp')
+    do j=j_0,j_1; do i=i_0,imaxj(j)
+      sddarr(i,j) = max(0.,prec(i,j)-precss(i,j))
+    enddo;        enddo
+    call inc_subdd(subdd,k,sddarr)
   case ('snowfall')
     do j=j_0,j_1; do i=i_0,imaxj(j)
       if(eprec(i,j).ge.0.) then
@@ -2023,12 +2059,12 @@ subroutine CONDSE
   enddo
   enddo
 
+#ifdef SCM
   if (isccp_diags.eq.1) then
       call inc_subdd('isccp_fq',save_fq_isccp,1,.true.,units='fraction', &
            long_name='Cld Fct by ISCCP CldTypes',dim3name='ntau',dim4name='npres')
   endif
 
-#ifdef SCM
   if( SCMopt%PlumeDiag )then
   ! plume diagnostics
     call inc_subdd('mc_mfu_p1',mc_mfu_p1,1,.true.,units='kg/m2/s', &

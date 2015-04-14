@@ -71,11 +71,7 @@ C**** SPA and PU directly from the dynamics. (Future work).
       USE CONSTANT, only : rgas
       USE RESOLUTION, only : im,jm
       USE ATM_COM, only : t,p,zatmo
-#ifdef CUBED_SPHERE
-      USE GEOM, only : cosip,sinip
-#else
       USE GEOM, only : bydyp,bydxp,cosip,sinip
-#endif
       USE ATM_COM, only : phi,dpdy_by_rho,dpdy_by_rho_0,dpdx_by_rho
      *     ,dpdx_by_rho_0,pmid,pk
       USE DYNAMICS, only : sig
@@ -108,12 +104,10 @@ C**** to be used in the PBL, at the primary grids
       DO I=1,IM
         DO J=J_0S,J_1S
           by_rho1=(rgas*t(I,J,1)*pk(1,I,J))/(100.*pmid(1,I,J))
-#ifndef CUBED_SPHERE  /* bydyp on cubed sphere? */
           DPDY_BY_RHO(I,J)=(100.*(P(I,J+1)-P(I,J-1))*SIG(1)*by_rho1
      2         +PHI(I,J+1,1)-PHI(I,J-1,1))*BYDYP(J)*.5d0
           DPDY_BY_RHO_0(I,J)=(100.*(P(I,J+1)-P(I,J-1))*by_rho1
      2         +ZATMO(I,J+1)-ZATMO(I,J-1))*BYDYP(J)*.5d0
-#endif
         END DO
       END DO
 
@@ -124,12 +118,10 @@ C**** to be used in the PBL, at the primary grids
         I=IM
         DO IP1=1,IM
           by_rho1=(rgas*t(I,J,1)*pk(1,I,J))/(100.*pmid(1,I,J))
-#ifndef CUBED_SPHERE  /* bydxp on cubed sphere? */
           DPDX_BY_RHO(I,J)=(100.*(P(IP1,J)-P(IM1,J))*SIG(1)*by_rho1
      2         +PHI(IP1,J,1)-PHI(IM1,J,1))*BYDXP(J)*.5d0
           DPDX_BY_RHO_0(I,J)=(100.*(P(IP1,J)-P(IM1,J))*by_rho1
      2         +ZATMO(IP1,J)-ZATMO(IM1,J))*BYDXP(J)*.5d0
-#endif
           IM1=I
           I=IP1
         END DO
@@ -181,37 +173,15 @@ C**** to be used in the PBL, at the primary grids
 #endif
 #endif
 
-      SUBROUTINE CALC_PIJL(lmax,p,pijl)
-!@sum  CALC_PIJL Fills in P as 3-D
-!@auth Jean Lerner
-      USE RESOLUTION, only : ls1,psfmpt
-      USE RESOLUTION, only : lm
-C****
-      USE DOMAIN_DECOMP_ATM, Only : grid, getDomainBounds
-      implicit none
-      REAL*8, dimension(grid%I_STRT_HALO:grid%I_STOP_HALO,
-     &                  grid%J_STRT_HALO:grid%J_STOP_HALO) :: p
-      REAL*8, dimension(grid%I_STRT_HALO:grid%I_STOP_HALO,
-     &                  grid%J_STRT_HALO:grid%J_STOP_HALO,lm) :: pijl
-      integer :: l,lmax
-
-      do l=1,ls1-1
-        pijl(:,:,l) = p(:,:)
-      enddo
-      do l=ls1,lmax
-        pijl(:,:,l) = PSFMPT
-      enddo
-      return
-      end subroutine calc_pijl
 
       SUBROUTINE CALC_AMPK(LMAX)
 !@sum  CALC_AMPK calculate air mass and pressure arrays
-!@vers 2013/03/27
+!@vers 2014/04/09
 !@auth Jean Lerner/Gavin Schmidt
       USE CONSTANT, only : bygrav,kapa
       USE RESOLUTION, only : ls1,ptop
       USE RESOLUTION, only : im,jm,lm
-      USE ATM_COM, only : p
+      USE ATM_COM, only : p,MASUM
       USE ATM_COM, only : plij,pdsig,pmid,pk,pedn,pek,sqrtp,MA,byMA
       USE DOMAIN_DECOMP_ATM, Only : grid, getDomainBounds, HALO_UPDATE
       USE FLUXES, only : atmsrf,asflx4
@@ -258,6 +228,7 @@ C**** Fill in polar boxes
             PEK  (L,I,J) = PEDNL (L)**KAPA
             byMA (L,I,J) = 1 / MA(L,I,J)
           END DO
+          MASUM(I,J) = Sum (MA(:,I,J))
           atmsrf%P1(I,J) = PMID(1,I,J)
           atmsrf%SRFPK(I,J) = PEK(1,I,J)
           atmsrf%AM1(I,J)   =   MA(1,I,J)

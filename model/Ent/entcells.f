@@ -15,8 +15,11 @@
       save
 
       public zero_entcell, summarize_entcell, entcell_print
+      public entcell_print_diag
+      public assign_entcell, assign_entcell_soilcarbon
       public init_simple_entcell, entcell_construct, entcell_destruct
-      public entcell_extract_pfts, entcell_carbon
+      public entcell_extract_pfts, entcell_extract_heights
+      public entcell_carbon
 
       contains
 !**************************************************************************
@@ -87,14 +90,13 @@
 !**************************************************************************
 
       subroutine zero_entcell(ecp)
-      !@sum Zeros import/export variables of entdata type
+!@sum Zeros import/export variables of entdata type
       implicit none
       type(entcelltype) :: ecp
 
-      ecp%area = 0.0
-      
+      ecp%area = 0.d0
+
       call zero_entcell_patchsum(ecp)
-      
       
       !VEGETATION - EXPORT STATE
       ecp%fv = 0.d0
@@ -139,12 +141,14 @@
       ecp%par_10d = 100.d0
       ecp%gdd = 0.0d0 !growing degree day
       ecp%ncd = 0.0d0 !number of chilling day
-      ecp%ld = 0.0d0  !day length (min)
-      ecp%light = 0.0d0
-      ecp%fall = .true. 
+      ecp%sgdd = 0.d0
+      ecp%daylength(:) = 0.0d0  !day length (min)
+      ecp%fall = 1 !KIM- now it's integer...true. !KIM - starting in the winter
+!      ecp%fall = .false. !KIM - starting in the middle of growing season
 
       ecp%C_total = 0.d0
       ecp%C_growth = 0.d0
+      ecp%Soilmp(:) = 0.d0
 
       end subroutine zero_entcell
 !**************************************************************************
@@ -164,9 +168,8 @@
       integer :: ip             !#patches
       integer :: ia             !counter variable
       real*8 :: fa, laifa, laifasum
-!      real*8 ::  vdata(N_COVERTYPES) ! needed for a hack to compute canopy
+!      real*8 ::  vfraction(N_COVERTYPES) ! needed for a hack to compute canopy
                                  ! heat capacity exactly as in GISS GCM
-
 
       ecp%fv = 0.d0
       call zero_entcell_patchsum(ecp)
@@ -188,8 +191,10 @@
         ecp%nm = ecp%nm + pp%nm * laifa !wtd avg by LAI
         ecp%Ntot = ecp%Ntot + pp%Ntot * pp%area !wtd avg by area
         ecp%LMA = ecp%LMA + ecp%LMA * laifa !wtd avg by LAI
+
+        ecp%LAI = ecp%LAI + pp%LAI*pp%area
         do ia=1,N_COVERTYPES
-          ecp%LAI = ecp%LAI + pp%LAIpft(ia) * pp%area !wtd avg by area
+!          ecp%LAI = ecp%LAI + pp%LAIpft(ia) * pp%area !wtd avg by area
           ecp%LAIpft(ia) = ecp%LAIpft(ia) + pp%LAIpft(ia) * pp%area !wtd avg by area
         end do
 
@@ -240,7 +245,7 @@
         ecp%CO2flux = ecp%CO2flux + pp%CO2flux*pp%area
         
         !* DIAGNOSTICS
-        ecp%Soil_resp = ecp%Soil_resp + pp%Soil_resp*pp%area     !added soil resp (umolC/m2/s) -PK 6/14/06
+        ecp%Soil_resp = ecp%Soil_resp + pp%Soil_resp*pp%area   
         ecp%Tpool(:,:,:) = ecp%Tpool(:,:,:) + pp%Tpool(:,:,:)*pp%area                                                
 
         !* IMPORT Variables calculated by GCM/EWB - downscaled from grid cell
@@ -275,31 +280,40 @@
       
 !!!!
     !!! hack to avoid divizion by zero
-      laifasum = max( laifasum, 1.d-10 )
+      !laifasum = max( laifasum, 1.d-10 )
       !------DO AVERAGES-------------------------------------------------
       !!!CHECK IF ECP%AREA IS ZERO!
       if (ASSOCIATED(ecp%oldest)) then
         !- - - - Cohort - - - - - - - - - - - - - - - - - - - - - - - - - 
-        ecp%nm = ecp%nm/laifasum
-        ecp%Ntot = ecp%Ntot/fa
-        ecp%LMA = ecp%LMA/laifasum
-        ecp%LAI = ecp%LAI/fa
-        do ia=1,N_COVERTYPES
-          ecp%LAIpft(ia) = ecp%LAIpft(ia)/fa
-        end do
+        !laifasum weighting
+         if (laifasum.gt.0.) then
+            ecp%nm = ecp%nm/laifasum
+            ecp%LMA = ecp%LMA/laifasum
+            ecp%h = ecp%h/laifasum
+         else
+            ecp%nm = 0.d0
+            ecp%LMA = 0.d0
+            ecp%h = 0.d0
+         endif
 
-        ecp%h = ecp%h/laifasum
-        ecp%fracroot = ecp%fracroot/fa
-        ecp%C_fol = ecp%C_fol/fa
-        ecp%N_fol = ecp%N_fol/fa
-        ecp%C_w = ecp%C_w/fa
-        ecp%N_w = ecp%N_w/fa
-        ecp%C_lab = ecp%C_lab/fa
-        ecp%N_lab = ecp%N_lab/fa
-        ecp%C_froot = ecp%C_froot/fa
-        ecp%N_froot = ecp%N_froot/fa
-        ecp%C_root = ecp%C_root/fa
-        ecp%N_root = ecp%N_root/fa
+         ecp%Ntot = ecp%Ntot/fa
+         ecp%LAI = ecp%LAI/fa
+         
+         do ia=1,N_COVERTYPES
+            ecp%LAIpft(ia) = ecp%LAIpft(ia)/fa
+         end do
+
+         ecp%fracroot = ecp%fracroot/fa
+         ecp%C_fol = ecp%C_fol/fa
+         ecp%N_fol = ecp%N_fol/fa
+         ecp%C_w = ecp%C_w/fa
+         ecp%N_w = ecp%N_w/fa
+         ecp%C_lab = ecp%C_lab/fa
+         ecp%N_lab = ecp%N_lab/fa
+         ecp%C_froot = ecp%C_froot/fa
+         ecp%N_froot = ecp%N_froot/fa
+         ecp%C_root = ecp%C_root/fa
+         ecp%N_root = ecp%N_root/fa
 
         !* Flux variables for GCM/EWB - patch total wtd averages
         ecp%Ci = ecp%Ci/fa
@@ -321,7 +335,7 @@ C NADINE - IS THIS CORRECT?
         ecp%betad = ecp%betad/fa
         ecp%TRANS_SW = ecp%TRANS_SW/fa !Area-weighted average
         ecp%CO2flux = ecp%CO2flux/fa
-        ecp%Soil_resp = ecp%Soil_resp/fa     !added soil resp (umolC/m2/s) -PK 6/14/06
+        ecp%Soil_resp = ecp%Soil_resp/fa  
         ecp%Tpool(:,:,:) = ecp%Tpool(:,:,:)/fa       
         
         !* Variables calculated by GCM/EWB - up/downscaled to/from grid cell
@@ -342,24 +356,117 @@ C NADINE - IS THIS CORRECT?
         !ecp%heat_capacity = !Currently imported
         !ecp%fv = no averaging needed
 
+        ecp%area = fa !## NK used in ent_diag.
       end if
 
       ! use original formula for canopy heat cpacity
       !lai = ecp%LAI
       !ecp%heat_capacity=(.010d0+.002d0*lai+.001d0*lai**2)*shw*rhow
-      !extract vdata exactly like in GISS GCM
-      !!vdata(:) = 0.d0
-      !!call entcell_extract_pfts(ecp, vdata(2:) )
-      !!ecp%heat_capacity=GISS_calc_shc(vdata)
+      !extract vfraction exactly like in GISS GCM
+      !!vfraction(:) = 0.d0
+      !!call entcell_extract_pfts(ecp, vfraction(2:) )
+      !!ecp%heat_capacity=GISS_calc_shc(vfraction)
+
+#ifndef MIXED_CANOPY
+      call entcell_update_shc_mosaicveg(ecp)
+#else
+      call entcell_update_shc(ecp)
+#endif
 
       end subroutine summarize_entcell
 !**************************************************************************
+
+      subroutine entcell_update_shc( ecp )
+!@sum entcell_update_shc. 
+!     Mixed canopies calculation of shc, or generic any veg structure.
+!     Old GISS GCM version: shc(avg(lai*vfraction)).
+!     Correct version: avg(shc(lai)*vfraction).
+      use patches, only : shc_patch
+!      use ent_prescr_veg, only : GISS_shc
+      implicit none
+      type(entcelltype) :: ecp
+      !-----Local---------
+      type(patch),pointer :: pp
+      real*8 :: shc, pfrac
+
+      shc = 0.d0
+      pfrac = 0.d0
+      pp => ecp%oldest
+      do while (associated(pp))
+         shc = shc + shc_patch(pp)*pp%area
+         pfrac = pfrac + pp%area
+         pp=>pp%younger
+      enddo
+
+      if (pfrac>EPS) then 
+         shc = shc/pfrac        !Correct way.
+      else
+         !shc = GISS_shc(0.d0)  !Non-zero shc for zero lai from zero patch area.
+         shc = 0.d0
+      endif
+
+      ecp%heat_capacity = shc
+      end subroutine entcell_update_shc
+!******************************************************************
+
+      subroutine entcell_update_shc_mosaicveg( ecp )
+!@sum Returns GISS GCM specific heat capacity for entcell.
+!     This version preserves old, slightly incorrect lai averaging.
+!     shc_entcell = shc(mean lai*vfraction)
+!Old entcell_update_shc      
+      use ent_const
+      use ent_pfts, only: COVEROFFSET, alamax, alamin
+      use allometryfn, only: do_geo,GISS_shc
+      type(entcelltype) :: ecp
+      !-----Local---------
+      real*8 vfraction(N_COVERTYPES) ! needed for a hack to compute canopy
+      type(patch),pointer :: pp      
+      real*8 lai, fsum  !lai is mean annual entcell lai.
+      integer pft, anum
+
+      lai = 0.d0
+      fsum = 0.d0
+      vfraction(:) = 0.d0
+
+      !Cover-weighted average
+      if (.not.do_geo) then
+         !Matthews mean annual LAI
+         call entcell_extract_pfts( ecp, vfraction )
+         do pft=1,N_PFT
+            anum = pft+COVEROFFSET
+            lai = lai + .5d0*(alamax(anum) 
+     &           + alamin(anum))*vfraction(anum)
+            fsum = fsum + vfraction(anum)
+         enddo
+      else
+         !Geographic LAI - NYK
+         !This calculation is just to preserve stability with R&A shc scheme.
+         !Eventually, shc should be based on canopy biomass and water, not LAI.
+         pp = ecp%oldest
+         do while (ASSOCIATED(pp))
+            lai = lai + laimean_annual_patch(pp)*pp%area
+            fsum = fsum + pp%area
+            pp => pp%younger
+         enddo
+      endif
+      if ( fsum > EPS ) then 
+         lai = lai/fsum
+      else
+         lai = 0.d0
+      endif
+         
+      !shc = (.010d0+.002d0*lai+.001d0*lai**2)*shw*rhow
+      
+      ecp%heat_capacity=GISS_shc(lai)
+
+      end subroutine entcell_update_shc_mosaicveg
+
 !**************************************************************************
 
 #ifdef SUMROOTSCELL
       subroutine sum_roots_patches2cell(ecp)
-      !@sum Calculate grid-averaged depth-, mass-, and cover-weighted average
-      !@sum of fine roots.
+!@sum Calculate grid-averaged depth-, mass-, and cover-weighted average
+!@sum of fine roots.
       type(entcelltype),pointer :: ecp
       !-----Local variables-------
       type(patch),pointer :: pp
@@ -394,13 +501,14 @@ C NADINE - IS THIS CORRECT?
 
 !*************************************************************************
       subroutine init_simple_entcell( ecp,
-     ivegdata,popdens,laidata,hdata,dbhdata,craddata,
-     icpooldata,nmdata,
-     ifracrootdata,soildata,albedodata,soil_texture,
-     iCi_ini, CNC_ini, Tcan_ini, Qf_ini, Tpool_ini,  !added Tpool_ini for prescribed soil C, N pools -PK
-     ireinitialize)
-      !@sum Initializes an entcell assuming one cohort per patch.
+     i     vegdata,popdens,laidata,hdata,dbhdata,craddata,
+     i     cpooldata,nmdata,
+     i     fracrootdata,soildata,albedodata,soil_texture,
+     i     Ci_ini, CNC_ini, Tcan_ini, Qf_ini, Tpool_ini,
+     i     reinitialize)
+!@sum Initializes an entcell assuming one cohort per patch.
       use patches, only : summarize_patch
+      use allometryfn, only : crown_radius_vert !Need to pass this in as array values
       type(entcelltype), target :: ecp
       real*8,intent(in) :: vegdata(N_COVERTYPES) !Veg cover fractions.
       real*8,intent(in) :: popdens(N_COVERTYPES) !Veg population density
@@ -422,7 +530,6 @@ C NADINE - IS THIS CORRECT?
       integer :: ncov, pft
       type(patch),pointer :: pp, pp_tmp, pp_ncov
       real*8 :: sandfrac,clayfrac,smpsat,bch,watsat,watdry
-
 
       if ( reinitialize ) then
         ! destroy all existing patches since we are going to 
@@ -461,10 +568,9 @@ C NADINE - IS THIS CORRECT?
          !call insert_patch(ecp,GCMgridareas(j)*vegdata(pnum))
           call insert_patch(ecp,vegdata(ncov),soildata(ncov))
           pp => ecp%youngest
-          !! seems like assign_patch is needed only for vegetated patches
-          !! - moving it below ( popdens(ncov) > EPS )
-          !!call assign_patch(pp,Ci_ini, CNC_ini, pft, Tpool_ini)  !added pft here -PK 1/23/08
+
           !## Supply also geometry, clumping index
+
           ! insert cohort only if population density > 0 (i.e. skip bare soil)
           if ( popdens(ncov) > EPS ) then 
             if ( pft < 1 .or. pft > N_PFT ) then
@@ -475,7 +581,12 @@ C NADINE - IS THIS CORRECT?
             call assign_patch(pp,Ci_ini, CNC_ini, pft, Tpool_ini)
             call insert_cohort(pp,pft,popdens(ncov),hdata(ncov),
      &           nmdata(ncov),laidata(ncov),
-     &           craddata(ncov),0.d0,dbhdata(ncov),0.d0,0.d0,
+     &           craddata(ncov), 
+!     &           min(0.45*hdata(ncov),craddata(ncov)*2.7d0), !old crad_dy vert NK
+     &           crown_radius_vert(pft
+     &             , hdata(ncov),craddata(ncov)), !dependency NK
+     &           dbhdata(ncov),0.d0,0.d0, 
+!     &           craddata(ncov),0.d0,dbhdata(ncov),0.d0,0.d0,
      &           0.d0, fracrootdata(ncov,:),
      &           cpooldata(ncov,FOL),0.d0,cpooldata(ncov,SW),0.d0,
      &           cpooldata(ncov,HW),0.d0,
@@ -483,7 +594,8 @@ C NADINE - IS THIS CORRECT?
      &           cpooldata(ncov,FR),0.d0,cpooldata(ncov,CR),0.d0,
      &           Ci_ini, CNC_ini,0.d0,0.d0,0.d0,0.d0, !added last 0 for R_root -PK 5/15/07
      &           0.d0, 0.d0, 
-     &           1.d0, 1.d0,1.d0,1,
+     &           0.d0, 1.d0,0.d0,1.d0, !KIM - starting in the winter for cold-dec.
+!     &           1.d0, 1.d0,1.d0,3.d0, !KIM - starting in the middle of growing season
      &           1.d0, 0.d0,
      &           1.d0, -999.d0) !KIM-added for phenology/growth
           endif
@@ -533,14 +645,123 @@ C NADINE - IS THIS CORRECT?
 
       call summarize_entcell(ecp)
 
+      
       !print *,"leaving init_simple_entcell:"
       !call entcell_print(6,ecp)
 
       end subroutine init_simple_entcell
 
- !*********************************************************************
+!*************************************************************************
+      subroutine assign_entcell( ecp,
+     i     soil_texture,        !soil_type,
+!     i     albedodata,
+     i     Ci_ini, CNC_ini, Tcan_ini, Qf_ini, Tpool_ini, 
+     i     reinitialize)
+!@sum assign_entcell. Assigns entcell level values as passed in parameters.
+!+    NOTE:  soil_type is a patch-level variable by cover type in Matthews for
+!+     the purpose of calculating albedo, whereas soil_texture is an 
+!+     entcell-level variable. 
+
+      use patches, only : summarize_patch
+      implicit none
+      type(entcelltype) :: ecp
+      real*8,intent(in) :: soil_texture(N_SOIL_TEXTURES)!soil texture fractions.
+!      real*8,intent(in) :: albedodata(N_BANDS,N_COVERTYPES) !#patch, NOTE:snow
+!      integer,intent(in) :: soil_type(N_COVERTYPES) !#patch, from file or by vegtype.
+
+      real*8 :: Ci_ini, CNC_ini, Tcan_ini, Qf_ini
+      real*8,intent(in) ::
+     &      Tpool_ini(N_PFT,PTRACE,NPOOLS-NLIVE,N_CASA_LAYERS)  
+      logical,intent(in) :: reinitialize
+      !-----Local---------
+      integer :: ncov, pft
+      type(patch),pointer :: pp, pp_tmp, pp_ncov
+      real*8 :: sandfrac,clayfrac,smpsat,bch,watsat,watdry
+
+      !Assign patch values.
+!      pp => ecp%oldest      
+!      do while ( associated(pp) )
+!         pp%area = 0.d0
+!         call assign_patch(pp,Ci_ini, CNC_ini, pft, Tpool_ini)
+!         call summarize_patch(pp) 
+
+         !CALL CALC_ALBEDO HERE 
+!        !*GISS HACK VERSION for initialization.
+         !* These values should get overwritten by prognostic 
+         !* canopy radiative transfer. This provides non-zero default values.
+!         if (associated(pp%tallest)) then
+!            ncov = pp%tallest%pft + COVEROFFSET
+!         else  !Bare soil type needed to be assigned from struct csv file.
+!            ncov = SAND  !##HACK - NK - NEED TO ASSIGN FROM FILE.
+!         endif
+!        pp%albedo = ALBVND(ncov,1,:) !Winter albedo default. Should check hemi.
+         !* Prognostic canopy radiation requires solar zenith angle
+         !call get_patchalbedo(pp) !Currently dummy routine.  Use Two-stream.
+!    
+!      pp => pp%younger
+!      enddo
+
+      !Assign entcell variables.
+      ecp%TcanopyC = Tcan_ini
+      ecp%Qf = Qf_ini
+
+      ! soil textures for CASA
+      ecp%soil_texture(:) = soil_texture(:)
+
+      !Soil porosity and wilting? hygroscopic? point for water stress2 calculation. From soilbgc.f.
+!??      sandfrac = pp%cellptr%soil_texture(1)
+!??      clayfrac = pp%cellptr%soil_texture(3)
+! is it supposed to be
+      sandfrac = soil_texture(1)
+      clayfrac = soil_texture(3)
+
+      watsat =  0.489d0 - 0.00126d0*sandfrac !porosity, saturated soil fraction
+      smpsat = -10.d0*(10.d0**(1.88d0-0.0131d0*sandfrac))
+      bch = 2.91d0 + 0.159d0*clayfrac
+      watdry = watsat * (-316230.d0/smpsat) ** (-1.d0/bch)
+!      watopt = watsat * (-158490.d0/smpsat) ** (-1.d0/bch)
+
+      ecp%soil_Phi = watsat
+      ecp%soil_dry = watdry
+
+
+#ifdef OFFLINE
+      write(*,*) "soil_Phi, soil_dry",ecp%soil_Phi, ecp%soil_dry
+#endif
+
+      call summarize_entcell(ecp)
+
+      !print *,"leaving assign_entcell"
+      !call entcell_print(6,ecp)
+
+      end subroutine assign_entcell
+
+  !*********************************************************************
+      subroutine assign_entcell_soilcarbon(ecp,Tpools)
+!@sum Distribute entcell grid soil carbon (e.g. from file) to subgrid pathes.
+      use patches, only : assign_patch, summarize_patch
+      implicit none
+      type(entcelltype) :: ecp
+      real*8,intent(in) ::
+     &      Tpools(N_PFT,PTRACE,NPOOLS-NLIVE,N_CASA_LAYERS)  
+      !--- Local ---
+      type(patch),pointer :: pp
+
+      pp => ecp%oldest      
+      do while ( associated(pp) )
+         pp%Tpool(NITROGEN,(NLIVE+1):NPOOLS,:) = 0.d0 !## HACK WHILE NO PROGNOSTIC N #
+            if (ASSOCIATED(pp%tallest)) then
+                call assign_patch_soilcarbon(pp,pp%tallest%pft,Tpools)
+                call summarize_patch(pp) 
+            endif
+          pp => pp%younger
+      enddo
+
+      end subroutine assign_entcell_soilcarbon
+  !*********************************************************************
 
       subroutine entcell_construct(ecp)
+!@sum entcell_construct  Allocate memory for an entcell and nullify pointers.
       implicit none
       type(entcelltype), pointer :: ecp
 
@@ -561,13 +782,14 @@ C NADINE - IS THIS CORRECT?
 
       ! maybe the following is not needed, but I guess we wanted
       ! to initialize the cells by default to bare soil (sand)
-      call insert_patch(ecp,1.d0,1)
+      call insert_patch(ecp,1.d0, soil_color_prescribed(SAND))
 
       end subroutine entcell_construct
 
  !*********************************************************************
 
       subroutine entcell_destruct(ecp)
+!@sum entcell_destruct  Deallocate memory for an entcell.
       implicit none
       type(entcelltype), pointer :: ecp
       !---
@@ -590,6 +812,7 @@ C NADINE - IS THIS CORRECT?
  !*********************************************************************
       
       subroutine entcell_print(iu, ecp)
+!@sum entcell_print  Print contents of an entcell.
       use patches, only : patch_print
       integer, intent(in) :: iu
       type(entcelltype), intent(in) :: ecp
@@ -601,15 +824,95 @@ C NADINE - IS THIS CORRECT?
 
       write(iu, '(a,"entcell:")') prefix
       !print '(a," = ",f10.7)',"GCANOPY ",ecp%GCANOPY
-      write(iu, '(a,a," = ",f10.7)') prefix,"soiltemp_10d",
+      write(iu, 1) prefix,"soiltemp_10d",
      &     ecp%soiltemp_10d
-      write(iu, '(a,a," = ",f10.7)') prefix,"airtemp_10d",
+      write(iu, 1) prefix,"airtemp_10d",
      &     ecp%airtemp_10d
-      write(iu, '(a,a," = ",f10.7)') prefix,"paw_10d", ecp%paw_10d
-      write(iu, '(a,a," = ",f10.7)') prefix,"par_10d", ecp%par_10d
-      write(iu, '(a,a," = ",f10.7)') prefix,"gdd", ecp%gdd
-      write(iu, '(a,a," = ",f10.7)') prefix,"ncd", ecp%ncd
-      write(iu, '(a,a," = ",f10.7)') prefix,"ld", ecp%ld
+      write(iu, 1) prefix,"paw_10d", ecp%paw_10d
+      write(iu, 1) prefix,"par_10d", ecp%par_10d
+      write(iu, 1) prefix,"gdd", ecp%gdd
+      write(iu, 1) prefix,"ncd", ecp%ncd
+      write(iu, 1) prefix,"ld", ecp%daylength(:)
+
+
+      write(iu, '(a,a," = ",i7)') prefix,"fall", ecp%fall
+      write(iu, 1) prefix,"nm	", ecp%nm	    
+      write(iu, 1) prefix,"Ntot	", ecp%Ntot	    
+      write(iu, 1) prefix,"LMA	", ecp%LMA	    
+      write(iu, 1) prefix,"LAI      ", ecp%LAI      
+      write(iu, 1) prefix,"h        ", ecp%h        
+      write(iu, 1) prefix,"C_fol    ", ecp%C_fol    
+      write(iu, 1) prefix,"N_fol    ", ecp%N_fol    
+      write(iu, 1) prefix,"C_w      ", ecp%C_w      
+      write(iu, 1) prefix,"N_w      ", ecp%N_w      
+      write(iu, 1) prefix,"C_lab    ", ecp%C_lab    
+      write(iu, 1) prefix,"N_lab    ", ecp%N_lab    
+      write(iu, 1) prefix,"C_froot  ", ecp%C_froot  
+      write(iu, 1) prefix,"N_froot  ", ecp%N_froot  
+      write(iu, 1) prefix,"C_root   ", ecp%C_root   
+      write(iu, 1) prefix,"N_root   ", ecp%N_root   
+      write(iu, 1) prefix,"Ci       ", ecp%Ci       
+      write(iu, 1) prefix,"GCANOPY  ", ecp%GCANOPY  
+      write(iu, 1) prefix,"GPP      ", ecp%GPP      
+      write(iu, 1) prefix,"IPP      ", ecp%IPP      
+      write(iu, 1) prefix,"NPP      ", ecp%NPP      
+      write(iu, 1) prefix,"R_auto   ", ecp%R_auto   
+      write(iu, 1) prefix,"R_root   ", ecp%R_root   
+      write(iu, 1) prefix,"N_up     ", ecp%N_up     
+      write(iu, 1) prefix,"z0       ", ecp%z0       
+      write(iu, 1) prefix,"albedo   ", ecp%albedo(:)
+      write(iu, 1) prefix,"betad    ", ecp%betad    
+      write(iu, 1) prefix,"TRANS_SW ", ecp%TRANS_SW 
+      write(iu, 1) prefix,"CO2flux  ", ecp%CO2flux  
+      write(iu, 1) prefix,"Soil_resp", ecp%Soil_resp
+      write(iu, 1) prefix,"Tpool    ", ecp%Tpool
+      write(iu, 1) prefix,"fuel	", ecp%fuel	    
+      write(iu, 1) prefix,"ignit", ecp%ignition_rate
+      write(iu, 1) prefix,"lambda1  ",ecp%lambda1(:)
+      write(iu, 1) prefix,"dis",ecp%disturbance_rate
+      write(iu, 1) prefix,"fv       ", ecp%fv       
+      write(iu, 1) prefix,"heat_", ecp%heat_capacity
+      write(iu, 1) prefix,"fwet_ca", ecp%fwet_canopy
+      write(iu, 1) prefix,"soil_Phi ", ecp%soil_Phi 
+      write(iu, 1) prefix,"soil_dry ", ecp%soil_dry 
+      write(iu, 1) prefix,"soildepth", ecp%soildepth
+      write(iu, 1) prefix,"theta_max", ecp%theta_max
+      write(iu, 1) prefix,"k_sat    ", ecp%k_sat    
+      write(iu, 1) prefix,"root_Phi ", ecp%root_Phi 
+      write(iu, 1) prefix,"soil_t", ecp%soil_texture
+      write(iu, 1) prefix,"TairC ! A", ecp%TairC
+      write(iu, 1) prefix,"TcanopyC ", ecp%TcanopyC 
+      write(iu, 1) prefix,"Qf       ", ecp%Qf       
+      write(iu, 1) prefix,"P_mbar   ", ecp%P_mbar   
+      write(iu, 1) prefix,"Ca       ", ecp%Ca       
+      write(iu, 1) prefix,"Soilmoist", ecp%Soilmoist
+      write(iu, 1) prefix,"Soiltem", ecp%Soiltemp(:)
+      write(iu, 1) prefix,"Ch       ", ecp%Ch       
+      write(iu, 1) prefix,"U        ", ecp%U        
+      write(iu, 1) prefix,"IPARdir  ", ecp%IPARdir  
+      write(iu, 1) prefix,"IPARdif  ", ecp%IPARdif  
+      write(iu, 1) prefix,"CosZen   ", ecp%CosZen   
+      write(iu, 1) prefix,"soilte", ecp%soiltemp_10d
+      write(iu, 1) prefix,"airtemp", ecp%airtemp_10d
+      write(iu, 1) prefix,"paw_10d  ", ecp%paw_10d  
+      write(iu, 1) prefix,"par_10d  ", ecp%par_10d  
+      write(iu, 1) prefix,"gdd      ", ecp%gdd	    
+      write(iu, 1) prefix,"ncd	", ecp%ncd	    
+      write(iu, 1) prefix,"daylength", ecp%daylength
+      write(iu, 1) prefix,"C_total  ", ecp%C_total  
+      write(iu, 1) prefix,"C_growth ", ecp%C_growth 
+
+      if ( associated(ecp%LAIpft) )
+     & write(iu,1) prefix,"LAIpft",ecp%LAIpft
+      if ( associated(ecp%fracroot) )
+     & write(iu,1) prefix,"fracroot",ecp%fracroot
+      if ( associated(ecp%betadl) )
+     & write(iu,1) prefix,"betadl",ecp%betadl
+      if ( associated(ecp%Soilmp) )
+     & write(iu,1) prefix,"Soilmp",ecp%Soilmp
+      if ( associated(ecp%fice) )
+     & write(iu,1) prefix,"fice",ecp%fice
+
 
       write(iu, '(a,"patches:")') prefix
       pp => ecp%oldest
@@ -621,22 +924,72 @@ C NADINE - IS THIS CORRECT?
         pp => pp%younger
       enddo
 
+ 1    format(a,a," = ",99e23.16)  ! e12.5
+
       end subroutine entcell_print
+
+
+ !*********************************************************************
+      subroutine entcell_print_diag(iu, ecp)
+!@sum Prints out other calculated diagnostics not printed by entcell_print
+!@auth - NK
+      use patches, only : patch_print_diag
+      integer, intent(in) :: iu
+      type(entcelltype), intent(in) :: ecp
+      !---
+      type(patch), pointer :: pp
+      character*1 :: prefix=" "
+      character*8 prefix_p
+      integer np
+
+      write(iu, '(a,"entcell:")') prefix
+
+      write(iu, 1) prefix,"LMA	", ecp%LMA	    
+      write(iu, 1) prefix,"LAI      ", ecp%LAI      
+      write(iu, 1) prefix,"h        ", ecp%h        
+      write(iu, 1) prefix,"C_fol    ", ecp%C_fol    
+      write(iu, 1) prefix,"C_w      ", ecp%C_w      
+      write(iu, 1) prefix,"C_lab    ", ecp%C_lab    
+      write(iu, 1) prefix,"C_froot  ", ecp%C_froot  
+      write(iu, 1) prefix,"C_root   ", ecp%C_root   
+      write(iu, 1) prefix,"albedo   ", ecp%albedo(:)
+      write(iu, 1) prefix,"Tpool    ", ecp%Tpool
+      write(iu, 1) prefix,"fv       ", ecp%fv       
+      write(iu, 1) prefix,"C_total  ", ecp%C_total  
+      write(iu, 1) prefix,"C_growth ", ecp%C_growth 
+
+      if ( associated(ecp%LAIpft) )
+     & write(iu,1) prefix,"LAIpft",ecp%LAIpft
+
+      write(iu, '(a,"patches:")') prefix
+      pp => ecp%oldest
+      np = 0
+      do while( associated(pp) )
+        np = np + 1
+        write( prefix_p, '(i2,"      ")' ) np
+        call patch_print_diag(iu, pp, prefix//prefix_p)
+        pp => pp%younger
+      enddo
+
+ 1    format(a,a," = ",99e23.16)  ! e12.5
+
+      end subroutine entcell_print_diag
 
  !*********************************************************************
 
-      subroutine entcell_extract_pfts(ecp, vdata)
+      subroutine entcell_extract_pfts(ecp, vfraction)
+!@sum entcell_extract_pfts Extract cover fraction of subgrid patches.
       type(entcelltype) :: ecp
-      real*8 :: vdata(:)
+      real*8 :: vfraction(:)
       !---
       type(patch), pointer :: pp
-      real*8 :: vdata_patch(size(vdata))
+      real*8 :: vfraction_patch(size(vfraction))
 
-      vdata(:) = 0.d0
+      vfraction(:) = 0.d0
       pp => ecp%oldest
       do while( associated(pp) )
-        call patch_extract_pfts(pp, vdata_patch)
-        vdata(:) = vdata(:) + vdata_patch(:)*pp%area
+        call patch_extract_pfts(pp, vfraction_patch)
+        vfraction(:) = vfraction(:) + vfraction_patch(:)*pp%area
         pp => pp%younger
       enddo
 
@@ -644,7 +997,30 @@ C NADINE - IS THIS CORRECT?
 
  !*********************************************************************
 
+      subroutine entcell_extract_heights(ecp, h)
+!@sum return maximum height per pft
+      type(entcelltype) :: ecp
+      real*8 :: h(:)
+      !---
+      type(patch), pointer :: pp
+      type(cohort),pointer :: cop
+
+      h(:) = 0.d0
+      pp => ecp%oldest
+      do while( associated(pp) )
+        cop => pp%tallest
+        if( associated(cop) ) then
+          h(cop%pft + COVEROFFSET) = max(h(cop%pft + COVEROFFSET),cop%h)
+        endif
+        pp => pp%younger
+      enddo
+
+      end subroutine entcell_extract_heights
+
+ !*********************************************************************
+
       subroutine get_patch_by_cover(ecp, ncov, pp_ncov)
+!@sum Point to a patch of a given cover type in the given entcell.
       type(entcelltype) :: ecp
       integer :: ncov
       type(patch), pointer :: pp_ncov
@@ -686,7 +1062,7 @@ C NADINE - IS THIS CORRECT?
 !@sum entcell_carbon (kg-C m-2). Return total carbon in entcell per land
 !@+       area (exclude any water area in entcell grid).  
 !@+       Optionally return component carbon pools.
-      type(entcelltype),pointer :: ecp
+      type(entcelltype) :: ecp
       real*8, optional :: ecp_Cfol
       real*8, optional :: ecp_Cstem
       real*8, optional :: ecp_Croot

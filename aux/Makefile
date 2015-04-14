@@ -65,7 +65,7 @@ else
   ifeq ($(COMPILER),gfortran)
   FFLAGS += -fconvert=big-endian
   F90FLAGS += -fconvert=big-endian
-  EXTRA_LFLAGS += -fconvert=big_endian
+#  EXTRA_LFLAGS += -fconvert=big_endian
   endif
 endif
 

@@ -4,6 +4,7 @@
 SUPPORTED_OPTIONS = ESMF NC_IO
 
 FSRCS = cdl_mod.f timestream_mod.f
+F90SRCS = ParallelIo.F90
 
 ifeq ($(NC_IO),PNETCDF)
 ifeq ($(MPI),YES)
@@ -14,6 +15,7 @@ endif
 else
 FSRCS += pario_nc.f
 endif
+
 
 ifndef GISSCLIM_DIR
        GISSCLIM_DIR := $(shell pwd)/../..

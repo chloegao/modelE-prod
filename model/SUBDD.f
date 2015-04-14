@@ -1640,10 +1640,12 @@ c add (calls to) the analogs of ijh_defs et al.
       input_sizes3(k) = lm
       call cijlh_defs(diaglists(1,k),nmax_possible,diaglens(k))
 
+#ifdef SCM
       k = k + 1
       catshapes(k) = 'aijlh'; categories(k) = 'fijlh'
       input_sizes3(k) = lm
       call fijlh_defs(diaglists(1,k),nmax_possible,diaglens(k))
+#endif
 
 #ifdef TRACERS_ON
       k = k + 1

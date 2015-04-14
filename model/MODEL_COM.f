@@ -54,7 +54,11 @@ C**** (Simplified) Calendar Related Terms
       class (AbstractOrbit), allocatable :: orbit
       class (AbstractCalendar), allocatable :: calendar
 
+!@var modelEclock encapsulates current time with reference to a calendar
       type (ModelClock), public :: modelEClock
+!@var modelEclockI encapsulates start time of model run
+      type (ModelClock), public :: modelEClockI
+
 !@var ITIME current time in ITUs (1 ITU = DTsrc sec, currently 1 hour)
       INTEGER :: Itime
 !@var ItimeI,ItimeE   time at start,end of run
@@ -169,7 +173,6 @@ C**** (Simplified) Calendar Related Terms
       real*8 :: omegt
 
       real*8 :: pYear
-      real*8 :: orb_par(3)
 
       if (is_set_param("variable_orb_par")) then
         call get_param( "variable_orb_par", variable_orb_par )
@@ -193,20 +196,13 @@ C**** (Simplified) Calendar Related Terms
 
       select case (variable_orb_par)
       case (1) 
-        pYear = modelEclock%getYear()-orb_par_year_bp ! bp=before present model year
-        allocate(orbit, source=ParameterizedEarthOrbit(pYear))
-        eccen = orbit%getEccentricity()
-        obliq = orbit%getObliquity()
-        omegt = orbit%getLongitudeAtPeriapsis()
-        if (am_i_root()) then
-          write(6,*) 'Variable orbital parameters, updated each year.'
-          write(6,*) 'Current orbital parameters from year',pyear
-        end if
+        allocate(orbit, 
+     &        source=newParameterizedEarthOrbit(orb_par_year_bp))
+
 
       case (0)  ! orbital parameters fixed from year orb_par_year_bp
         pyear=1950.-orb_par_year_bp ! here "present" means "1950"
         allocate(orbit, source=Earth365DayOrbit(pYear))
-        call orbit%setYear(pYear)
         if (am_i_root()) then
           write(6,*) 'Fixed orbital parameters from year',pyear,' CE:'
         end if

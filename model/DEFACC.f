@@ -4961,6 +4961,7 @@ c
       use TimeConstants_mod, only: SECONDS_PER_DAY
       use MODEL_COM, only : dtsrc,qcheck
       use DYNAMICS, only : nidyn,do_gwdrag
+      USE ATM_COM, only : pmidl00,lm_req
       use DIAG_COM
       use DIAG_COM_RAD
 #ifdef CUBED_SPHERE
@@ -5001,8 +5002,8 @@ c
       k=k+1
       jl_dpasrc = k
       sname_jl(k) = 'jl_dpasrc'
-      lname_jl(k) = 'MASS AT PRIMARY GRID CELLS (SRC TIME)' ! not printed
-      units_jl(k) = 'kg/m2'
+c      lname_jl(k) = 'MASS AT PRIMARY GRID CELLS (SRC TIME)' ! not printed
+c      units_jl(k) = 'kg/m2'
 c
       k=k+1
       jl_mcmflx = k
@@ -5033,6 +5034,15 @@ c
       ia_jl(k) = ia_rad
 c
       k=k+1
+      !jl_srhr_radonly = k
+      sname_jl(k) = 'srad_heat_radonly' !
+      lname_jl(k) = 'SOLAR RADIATION HEATING IN RADIATION-ONLY LAYERS'
+      units_jl(k) = 'K/DAY'
+      pow_jl(k) = -2
+      scale_jl(k) = 1.D-2*GRAV*SECONDS_PER_DAY/SHA
+      ia_jl(k) = ia_rad
+c
+      k=k+1
       jl_trcr = k
       denom_jl(k) = jl_dpa
       sname_jl(k) = 'trad_cool' !
@@ -5042,11 +5052,29 @@ c
       scale_jl(k) = -1.D-2*GRAV*SECONDS_PER_DAY/SHA
       ia_jl(k) = ia_rad
 c
+      k=k+1
+      !jl_trcr_radonly = k
+      sname_jl(k) = 'trad_cool_radonly' !
+      lname_jl(k) = 'THERMAL RADIATION COOLING IN RADIATION-ONLY LAYERS'
+      units_jl(k) = 'K/DAY'
+      pow_jl(k) = -2
+      scale_jl(k) = -1.D-2*GRAV*SECONDS_PER_DAY/SHA
+      ia_jl(k) = ia_rad
+c
       k = k + 1
       jl_rad_cool = k ! not accumulated
       denom_jl(k) = jl_dpa
       sname_jl(k) = 'rad_cool'
       lname_jl(k) = 'TOTAL RADIATION COOLING RATE'
+      units_jl(k) = 'W/(m^2*mb)'
+      scale_jl(k) = -1.
+      ia_jl(k) = ia_rad
+      pow_jl(k) = -2
+c
+      k = k + 1
+      !jl_rad_cool_radonly = k ! not accumulated
+      sname_jl(k) = 'rad_cool_radonly'
+      lname_jl(k) = 'TOTAL COOLING RATE, RADIATION-ONLY LAYERS'
       units_jl(k) = 'W/(m^2*mb)'
       scale_jl(k) = -1.
       ia_jl(k) = ia_rad
@@ -5087,6 +5115,7 @@ c
       units_jl(k) = '%'
       scale_jl(k) = 100.
       ia_jl(k) = ia_rad
+      force_jl_vmean(k) = .true. ! b/c no denom
 c
       k=k+1
       jl_sscld = k
@@ -5095,6 +5124,7 @@ c
       units_jl(k) = '%'
       scale_jl(k) = 100.
       ia_jl(k) = ia_rad
+      force_jl_vmean(k) = .true. ! b/c no denom
 c
       k=k+1
       jl_mccld = k
@@ -5103,6 +5133,7 @@ c
       units_jl(k) = '%'
       scale_jl(k) = 100.
       ia_jl(k) = ia_rad
+      force_jl_vmean(k) = .true. ! b/c no denom
 c
       k=k+1
       jl_dtdtsdrg = k
@@ -5222,6 +5253,7 @@ c
       sname_jl(k) = 'tke' !
       lname_jl(k) = 'TURBULENT KINETIC ENERGY'
       units_jl(k) = 'm^2/s^2'
+      force_jl_vmean(k) = .true. ! b/c no denom
 c
       k=k+1
       jl_trbdlht = k
@@ -5274,6 +5306,7 @@ c
       lname_jl(k) = 'EFFECTIVE RELATIVE HUMIDITY' ! from cloud scheme
       units_jl(k) = '%'
       scale_jl(k) = 100.
+      force_jl_vmean(k) = .true. ! b/c no denom
 c
       k=k+1
       jl_cldmc= k
@@ -5344,6 +5377,7 @@ c
       units_jl(k) = '%'
       scale_jl(k) = 100.
       ia_jl(k) = ia_rad
+      force_jl_vmean(k) = .true. ! b/c no denom
 c
       k=k+1
       jl_icld = k
@@ -5352,6 +5386,7 @@ c
       units_jl(k) = '%'
       scale_jl(k) = 100.
       ia_jl(k) = ia_rad
+      force_jl_vmean(k) = .true. ! b/c no denom
 c
       k=k+1
       jl_wcldwt = k
@@ -5431,6 +5466,14 @@ c
       ia_jl(k) = ia_dga
 c
       k=k+1
+      !jk_tx_rqt = k
+      sname_jl(k) = 'tx_radonly' !'AJK03'
+      lname_jl(k) = 'TEMPERATURE IN RADIATION-ONLY LAYERS'
+      units_jl(k) = 'C'
+c      lgrid_jl(k) = ctr_cp
+      ia_jl(k) = ia_dga
+c
+      k=k+1
       jk_hght = k
       denom_jl(k) = jk_dpwt
       sname_jl(k) = 'height' !'AJK04'
@@ -5498,6 +5541,7 @@ c      denom_jl(k) = jl_xxx
       sname_jl(k) = 'AJL13'
       lname_jl(k) = 'DT(MC)*P  DRY HEATING'
       units_jl(k) = '100 PA*K'
+      force_jl_vmean(k) = .true. ! b/c no denom
 c
       k=k+1
       jl_mchphas = k
@@ -5505,6 +5549,7 @@ c      denom_jl(k) = jl_xxx
       sname_jl(k) = 'AJL50'
       lname_jl(k) = 'DT(MC)*P  CHANGE OF PHASE'
       units_jl(k) = '100 PA*K'
+      force_jl_vmean(k) = .true. ! b/c no denom
 c
       k=k+1
       jl_mcdtotw = k
@@ -5512,7 +5557,7 @@ c      denom_jl(k) = jl_xxx
       sname_jl(k) = 'mc_del_tot_wat' !'CLHE*DQ(MC BEFORE COND)*P'
       lname_jl(k) = 'CHANGE IN TOTAL WATER BY MOIST CONV'
       units_jl(k) = '100 PA*K'
-
+      force_jl_vmean(k) = .true. ! b/c no denom
 c
       if (DO_GWDRAG) then
 
@@ -5523,9 +5568,11 @@ c
       lname_jl(k) = 'DU/DT BY STRAT MTN DRAG'
       units_jl(k) = 'm/s^2'
       pow_jl(k) = -6
+      pow_jl_vmean(k) = -7
       scale_jl(k) = 1./DTsrc
       ia_jl(k) = ia_src
       jgrid_jl(k) = jgrid_u
+      force_jl_vmean(k) = .true. ! b/c no denom
 c
       k=k+1
       jl_dushrdrg = k
@@ -5536,6 +5583,7 @@ c
       scale_jl(k) = 1./DTsrc
       ia_jl(k) = ia_src
       jgrid_jl(k) = jgrid_u
+      force_jl_vmean(k) = .true. ! b/c no denom
 c
       k=k+1
       jl_dumcdrgm10 = k
@@ -5546,6 +5594,7 @@ c
       scale_jl(k) = 1./DTsrc
       ia_jl(k) = ia_src
       jgrid_jl(k) = jgrid_u
+      force_jl_vmean(k) = .true. ! b/c no denom
 c
       k=k+1
       jl_dumcdrgp10 = k
@@ -5556,6 +5605,7 @@ c
       scale_jl(k) = 1./DTsrc
       ia_jl(k) = ia_src
       jgrid_jl(k) = jgrid_u
+      force_jl_vmean(k) = .true. ! b/c no denom
 c
       k=k+1
       jl_dumcdrgm40 = k
@@ -5566,6 +5616,7 @@ c
       scale_jl(k) = 1./DTsrc
       ia_jl(k) = ia_src
       jgrid_jl(k) = jgrid_u
+      force_jl_vmean(k) = .true. ! b/c no denom
 c
       k=k+1
       jl_dumcdrgp40 = k
@@ -5576,6 +5627,7 @@ c
       scale_jl(k) = 1./DTsrc
       ia_jl(k) = ia_src
       jgrid_jl(k) = jgrid_u
+      force_jl_vmean(k) = .true. ! b/c no denom
 c
       k=k+1
       jl_dumcdrgm20 = k
@@ -5586,6 +5638,7 @@ c
       scale_jl(k) = 1./DTsrc
       ia_jl(k) = ia_src
       jgrid_jl(k) = jgrid_u
+      force_jl_vmean(k) = .true. ! b/c no denom
 c
       k=k+1
       jl_dumcdrgp20 = k
@@ -5596,6 +5649,7 @@ c
       scale_jl(k) = 1./DTsrc
       ia_jl(k) = ia_src
       jgrid_jl(k) = jgrid_u
+      force_jl_vmean(k) = .true. ! b/c no denom
 c Last of the Gravity Wave JL's
       k=k+1
       jl_dudfmdrg = k
@@ -5606,6 +5660,7 @@ c Last of the Gravity Wave JL's
       scale_jl(k) = 1./DTsrc
       ia_jl(k) = ia_src
       jgrid_jl(k) = jgrid_u
+      force_jl_vmean(k) = .true. ! b/c no denom
 
 C**** Some extra GWDRAG related diags
 c
@@ -5614,6 +5669,7 @@ c
       sname_jl(k) = 'strat_diff_coeff' !
       lname_jl(k) = 'STRAT. DIFFUSION COEFF'
       units_jl(k) = 'm^2/s'
+      force_jl_vmean(k) = .true. ! b/c no denom
 c
       k=k+1
       jl_dudtsdif = k
@@ -5623,6 +5679,7 @@ c
       pow_jl(k) = -6
       scale_jl(k) = 1./DTsrc
       jgrid_jl(k) = jgrid_u
+      force_jl_vmean(k) = .true. ! b/c no denom
 c
       k=k+1
       jl_dudtvdif = k
@@ -5632,6 +5689,7 @@ c
       pow_jl(k) = -6
       scale_jl(k) = 1./DTsrc
       jgrid_jl(k) = jgrid_u
+      force_jl_vmean(k) = .true. ! b/c no denom
 
 c combination GWDRAG diags
       k = k + 1
@@ -5642,6 +5700,7 @@ c combination GWDRAG diags
       pow_jl(k) = -6
       scale_jl(k) = 1./DTsrc
       jgrid_jl(k) = jgrid_u
+      force_jl_vmean(k) = .true. ! b/c no denom
 c
       k = k + 1
       jl_mcdrgpm40 = k
@@ -5651,6 +5710,7 @@ c
       pow_jl(k) = -6
       scale_jl(k) = 1./DTsrc
       jgrid_jl(k) = jgrid_u
+      force_jl_vmean(k) = .true. ! b/c no denom
 c
       k = k + 1
       jl_mcdrgpm20 = k
@@ -5660,6 +5720,7 @@ c
       pow_jl(k) = -6
       scale_jl(k) = 1./DTsrc
       jgrid_jl(k) = jgrid_u
+      force_jl_vmean(k) = .true. ! b/c no denom
 c
       k = k + 1
       jl_sumdrg = k
@@ -5669,6 +5730,7 @@ c
       pow_jl(k) = -6
       scale_jl(k) = 1./DTsrc
       jgrid_jl(k) = jgrid_u
+      force_jl_vmean(k) = .true. ! b/c no denom
 
       end if
 
@@ -5685,6 +5747,11 @@ c
            end do
          endif
       end if
+
+      do k=1,kajl
+        if(denom_jl(k).ne.0) cycle ! already set
+        if(lgrid_jl(k).eq.edg_ml) force_jl_vmean(k) = .true.
+      enddo
 
 #ifdef NEW_IO
 c
@@ -5705,6 +5772,10 @@ c
       call merge_cdl(cdl_latbudg,cdl_heights,cdl_jl_template)
 
       cdl_jl = cdl_jl_template ! invoke a copy method later
+
+      call add_coord(cdl_jl,'p_radonly',lm_req,units='mb',
+     &     coordvalues=pmidl00(lm+1:lm+lm_req))
+
       do k=1,kajl
         if(trim(units_jl(k)).eq.'unused') cycle
 c        call get_zstr(lgrid_jl(k),zstr)
@@ -5728,8 +5799,13 @@ c        call get_zstr(lgrid_jl(k),zstr)
           call add_varline(cdl_jl,
      &         trim(sname_jl(k))//':prtpow = '//trim(powstr)//' ;')
         endif
+        if(pow_jl_vmean(k).ne.0) then
+          write(powstr,'(i2)') pow_jl_vmean(k)
+          call add_varline(cdl_jl,
+     &        trim(sname_jl(k))//':prtpow_vmean = '//trim(powstr)//' ;')
+        endif
 #ifndef SCM
-        if(denom_jl(k).gt.0) then
+        if(denom_jl(k).gt.0 .or. force_jl_vmean(k)) then
           if(make_timeaxis) then ! hacky logic
             call add_var(cdl_jl, 'float '//trim(sname_jl(k))//
      &           '_vmean(time,lat_budg_plus3) ;')

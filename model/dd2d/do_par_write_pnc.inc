@@ -3,6 +3,7 @@
       type(dist_grid), intent(in) :: grid
       integer, intent(in), optional :: jdim
       integer, intent(in), optional :: record
+      logical, intent(in), optional :: no_xdim
 #ifndef SERIAL_MODE
       real*8, dimension(:), allocatable :: arr_nohalo
       integer :: nl,nk,jd,nd,ierr,vid,did,rc,arrsize,td,rd
@@ -45,15 +46,19 @@
       else
         srt=1; cnt=0   ! empty domain
       endif
-      arrsize = product(cnt(1:nd))
-      allocate(arr_nohalo(arrsize))
-      if(arrsize.gt.0) then
-        call copy_to_1D( arr,arr_nohalo,nl,nk,
-     &       grid%isd,grid%ied,grid%jsd,grid%jed,
-     &       grid%is,grid%ie,grid%js,grid%je )
+      if(size(arr,jd).ne.cnt(jd)) then ! halo present
+        arrsize = product(cnt(1:nd))
+        allocate(arr_nohalo(arrsize))
+        if(arrsize.gt.0) then
+          call copy_to_1D( arr,arr_nohalo,nl,nk,
+     &         grid%isd,grid%ied,grid%jsd,grid%jed,
+     &         grid%is,grid%ie,grid%js,grid%je )
+        endif
+        rc = nfmpi_put_vara_double_all(fid,vid,srt,cnt,arr_nohalo)
+        deallocate(arr_nohalo)
+      else
+        rc = nfmpi_put_vara_double_all(fid,vid,srt,cnt,arr)
       endif
-      rc = nfmpi_put_vara_double_all(fid,vid,srt,cnt,arr_nohalo)
-      deallocate(arr_nohalo)
 #else
 c call write_data when in serial mode
       call write_data(grid,fid,varname,arr)

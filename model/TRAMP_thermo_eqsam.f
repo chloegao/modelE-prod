@@ -48,7 +48,7 @@
       ! Call parameters for the EQSAM thermodynamic model. 
 
       INTEGER, PARAMETER :: NCA  = 11    ! fixed number of input variables
-      INTEGER, PARAMETER :: NCO  = 36    ! fixed number of output variables
+      INTEGER, PARAMETER :: NCO  = 37    ! fixed number of output variables
       INTEGER, PARAMETER :: IOPT =  1    ! =1 selects the metastable (wet) state and history
 !     INTEGER, PARAMETER :: IOPT =  2    ! =2 selects the solid      (dry) state and history
       INTEGER, PARAMETER :: LOOP =  1    ! only a single time step done

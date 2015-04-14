@@ -19,8 +19,8 @@
      &    ,JK_vtameddy ,JK_totvtam ,JK_sheth ,JK_dudtmadv
      &    ,JK_dtdtmadv ,JK_dudttem ,JK_dtdttem ,JK_epflxncp
      &    ,JK_epflxvcp ,JK_uinst ,JK_totdudt ,JK_tinst
-     &    ,JK_totdtdt ,JK_eddvtpt, JK_rhoe
-     &    ,JK_psi
+     &    ,JK_totdtdt ,JK_eddvtpt, JK_rhoedz
+     &    ,JK_psi, JK_dpb2
       INTEGER :: jk_dudt_econv,
      *  jk_dudt_epdiv,jk_stdev_dp,
      *  jk_dtempdt_econv,jl_phi_amp_wave1,jl_phi_phase_wave1,
@@ -48,6 +48,11 @@
      &     IJK_UV, IJK_VQ, IJK_VT, IJK_UU, IJK_VV, IJK_TT, IJK_PHI,
      &     IJK_BAREKEGEN
 
+
+!@var force_gc_vmean a mechanism to force vertical averaging for qtys
+!@+   at layer edges or that otherwise lack layer weighting info.
+      logical, dimension(:), allocatable :: force_gc_vmean
+
       end module gcdiag
 
 
@@ -74,6 +79,8 @@
 #endif
       logical :: set_miss
 c
+      allocate(force_gc_vmean(kagcx))
+      force_gc_vmean = .false.
       do k=1,kagcx
          write(sname_gc(k),'(a3,i3.3)') 'AGC',k
          lname_gc(k) = 'unused'
@@ -129,10 +136,10 @@ c      units_gc(k) = 'mb'
       jgrid_gc(k) = 2
 c
       k=k+1
-      jk_rhoe = k ! only used as a denominator
-      sname_gc(k) = 'rhoe'
-c      lname_gc(k) = 'LAYER EDGE DENSITY'
-c      units_gc(k) = 'kg/m3'
+      jk_rhoedz = k ! only used as a denominator
+      sname_gc(k) = 'rhoedz'
+      lname_gc(k) = 'LAYER EDGE DENSITY * G * DZ'
+      units_gc(k) = 'mb'
       scale_gc(k) = 1
       jgrid_gc(k) = 1
       lgrid_gc(k) = edg_cp
@@ -155,9 +162,18 @@ c
       k=k+1
       jk_dpsqr = k
       sname_gc(k) = 'dp_sqr' !'AJK23'
-      lname_gc(k) = 'SQUARE OF PRESSURE DIFFERENCES'
-      units_gc(k) = 'unknown'
+      lname_gc(k) = 'SQUARE OF PRESSURE THICK. FOR EXISTING UV POINTS'
+      units_gc(k) = 'mb*mb'
       jgrid_gc(k) = 2
+      denom_gc(k) = jk_nptsavg
+c
+      k=k+1
+      jk_dpb2 = k
+      sname_gc(k) = 'dp_cp_existing'
+      lname_gc(k) = 'PRESSURE THICK. FOR EXISTING CP,UV POINTS'
+      units_gc(k) = 'mb'
+      jgrid_gc(k) = 2
+      denom_gc(k) = jk_nptsavg
 c
       k=k+1
       jk_temp = k
@@ -167,6 +183,7 @@ c
       scale_gc(k) = 1.
       jgrid_gc(k) = 1
       denom_gc(k) = jk_dpa
+      pow_gc_vmean(k) = -1
 c
       k=k+1
       jk_theta = k
@@ -185,6 +202,7 @@ c
       pow_gc(k) = -6
       scale_gc(k) = byim*p1000k
       jgrid_gc(k) = 1
+      force_gc_vmean(k) = .true. ! b/c no denom
 c
       k=k+1
       jk_u = k
@@ -202,6 +220,7 @@ c
       lname_gc(k) = 'MERIDIONAL WIND (V COMPONENT)' !'V*DP4  (UV GRID)'
       units_gc(k) = 'm/s' !'100 PA*m/s'
       pow_gc(k) = -2
+      pow_gc_vmean(k) = -3
       scale_gc(k) = 1.
       jgrid_gc(k) = 2
       denom_gc(k) = jk_dpb
@@ -251,6 +270,7 @@ c
       units_gc(k) = 'W/mb'
       scale_gc(k) = XWON*FIM*1d2*BYGRAV
       pow_gc(k) = 12
+      pow_gc_vmean(k) = 11
       jgrid_gc(k) = 2
       denom_gc(k) = jk_dpb
 c
@@ -309,8 +329,7 @@ c
       scale_gc(k) = .5*1d2*BYGRAV/DT
       jgrid_gc(k) = 2
       pow_gc(k) = -4
-
-
+      denom_gc(k) = jk_dpb
 c
       k=k+1
       jk_vvel = k
@@ -379,6 +398,7 @@ c
       pow_gc(k) = -4
       jgrid_gc(k) = 1
       lgrid_gc(k) = ctr_cp ! according to print routine
+      denom_gc(k) = jk_dpb
 c
       k=k+1
       jk_vtpv = k
@@ -419,7 +439,7 @@ c
       scale_gc(k) = -100.*BYGRAV*BYIM
       jgrid_gc(k) = 2
       lgrid_gc(k) = edg_cp
-      denom_gc(k) = jk_rhoe
+      denom_gc(k) = jk_rhoedz
 c
       k=k+1
       jk_totvtam = k
@@ -430,13 +450,13 @@ c
       scale_gc(k) = -100.*BYGRAV*BYIM
       jgrid_gc(k) = 2
       lgrid_gc(k) = edg_cp
-      denom_gc(k) = jk_rhoe
+      denom_gc(k) = jk_rhoedz
 c
       k=k+1
       jk_sheth = k
       sname_gc(k) = 'sheth' !'AJK39'
-      lname_gc(k) = 'unknown'
-      units_gc(k) = 'unknown'
+c      lname_gc(k) = 'unknown'
+c      units_gc(k) = 'unknown'
 c
       k=k+1
       jk_dudtmadv = k
@@ -446,6 +466,7 @@ c
       pow_gc(k) = -6
       scale_gc(k) = 1.
       jgrid_gc(k) = 2
+      force_gc_vmean(k) = .true. ! b/c no denom
 c
       k=k+1
       jk_dtdtmadv = k
@@ -455,6 +476,7 @@ c
       pow_gc(k) = -1
       scale_gc(k) = SECONDS_PER_DAY
       jgrid_gc(k) = 1
+      force_gc_vmean(k) = .true. ! b/c no denom
 c
       k=k+1
       jk_dudttem = k
@@ -464,6 +486,7 @@ c
       pow_gc(k) = -6
       scale_gc(k) = 1.
       jgrid_gc(k) = 2
+      force_gc_vmean(k) = .true. ! b/c no denom
 c
       k=k+1
       jk_dtdttem = k
@@ -473,21 +496,22 @@ c
       pow_gc(k) = -1
       scale_gc(k) = SECONDS_PER_DAY
       jgrid_gc(k) = 1
+      force_gc_vmean(k) = .true. ! b/c no denom
 c
       k=k+1
       jk_epflxncp = k
       sname_gc(k) = 'epflx_north_cp' !'AJK44'
-      lname_gc(k) = 'NORTHWARD COMP. OF ELIASSEN-PALM FLUX (CP)'
-      units_gc(k) = 'unknown'
-      jgrid_gc(k) = 2
+c      lname_gc(k) = 'NORTHWARD COMP. OF ELIASSEN-PALM FLUX (CP)'
+c      units_gc(k) = 'unknown'
+c      jgrid_gc(k) = 2
 c
       k=k+1
       jk_epflxvcp = k
       sname_gc(k) = 'epflx_vert_cp' !'AJK45'
-      lname_gc(k) = 'VERTICAL COMP. OF ELIASSEN-PALM FLUX (CP)'
-      units_gc(k) = 'unknown'
-      jgrid_gc(k) = 1
-      lgrid_gc(k) = edg_cp
+c      lname_gc(k) = 'VERTICAL COMP. OF ELIASSEN-PALM FLUX (CP)'
+c      units_gc(k) = 'unknown'
+c      jgrid_gc(k) = 1
+c      lgrid_gc(k) = edg_cp
 c
       k=k+1
       jk_uinst = k
@@ -495,6 +519,7 @@ c
       lname_gc(k) = 'INSTANTANEOUS ZONAL AVERAGE OF ZONAL WIND'
       units_gc(k) = 'm/s'
       jgrid_gc(k) = 1
+      force_gc_vmean(k) = .true. ! b/c no denom
 c
       k=k+1
       jk_totdudt = k
@@ -503,6 +528,7 @@ c
       units_gc(k) = 'm/s^2'
       pow_gc(k) = -6
       jgrid_gc(k) = 2
+      force_gc_vmean(k) = .true. ! b/c no denom
 c
       k=k+1
       jk_tinst = k
@@ -510,6 +536,7 @@ c
       lname_gc(k) = 'INSTANTANEOUS ZONAL AVERAGE OF TEMPERATURE'
       units_gc(k) = 'K'
       jgrid_gc(k) = 1
+      force_gc_vmean(k) = .true. ! b/c no denom
 c
       k=k+1
       jk_totdtdt = k
@@ -519,14 +546,15 @@ c
       pow_gc(k) = -1
       jgrid_gc(k) = 1
       scale_gc(k) = SECONDS_PER_DAY
+      force_gc_vmean(k) = .true. ! b/c no denom
 c
       k=k+1
       jk_eddvtpt = k
       sname_gc(k) = 'edd_vt_pt'
-      lname_gc(k) = 'EDDY VERTICAL TRANSPORT OF POT. TEMP.'
-      units_gc(k) = 'unknown'
-      jgrid_gc(k) = 1
-      lgrid_gc(k) = edg_cp
+c      lname_gc(k) = 'EDDY VERTICAL TRANSPORT OF POT. TEMP.'
+c      units_gc(k) = 'unknown'
+c      jgrid_gc(k) = 1
+c      lgrid_gc(k) = edg_cp
 c
       k=k+1
       jl_ape = k
@@ -547,7 +575,7 @@ c
       scale_gc(k) = .5*100.*BYGRAV*BYIM
       jgrid_gc(k) = 1
       lgrid_gc(k) = edg_cp
-      denom_gc(k) = jk_rhoe ! should be jl_rhoe instead
+      denom_gc(k) = jk_rhoedz ! should be jl_rhoe instead
 c
       k=k+1
       jl_epflxn = k
@@ -561,14 +589,14 @@ c
       k=k+1
       jl_zmfntmom = k
       sname_gc(k) = 'zmf_nt_mom' !
-      lname_gc(k) = 'NORTH TRANS ZON. MOM. BY ZON. MEAN FLOW'
-      units_gc(k) = 'unknown'
+c      lname_gc(k) = 'NORTH TRANS ZON. MOM. BY ZON. MEAN FLOW'
+c      units_gc(k) = 'unknown'
 c
       k=k+1
       jl_totntmom = k
       sname_gc(k) = 'tot_nt_mom' !
-      lname_gc(k) = 'TOTAL NORTH TRANS ZON. MOM.'
-      units_gc(k) = 'unknown'
+c      lname_gc(k) = 'TOTAL NORTH TRANS ZON. MOM.'
+c      units_gc(k) = 'unknown'
 c
       k=k+1
       jl_zmfntlh = k
@@ -600,6 +628,7 @@ c
       scale_gc(k) = 100.*BYGRAV*LHE*XWON*byim/DTsrc
       ia_gc(k) = ia_src
       jgrid_gc(k) = 1
+      lgrid_gc(k) = edg_ml
 c
       k=k+1
       jl_totvtlh = k
@@ -609,6 +638,7 @@ c
       scale_gc(k) = 100.*BYGRAV*LHE*XWON*byim/DTsrc
       ia_gc(k) = ia_src
       jgrid_gc(k) = 1
+      lgrid_gc(k) = edg_ml
 c
       k=k+1
       jl_47 = k
@@ -653,6 +683,7 @@ c
       scale_gc(k) = 100.*bygrav*xwon*lhe*byim/DTsrc
       pow_gc(k) = 0
       ia_gc(k) = ia_src
+      lgrid_gc(k) = edg_ml
 c
       k = k + 1
       jk_dudt_econv = k                       ; jgrid_gc(k) = jgrid_u
@@ -668,6 +699,7 @@ c
       units_gc(k) = 'm/s^2'
       pow_gc(k) = -6
       scale_gc(k) = 1.
+      force_gc_vmean(k) = .true. ! b/c no denom
       k = k + 1
       jk_dtempdt_econv = k                    ; jgrid_gc(k) = 1
       sname_gc(k) = 'dtempdt_eddy_conv'
@@ -683,6 +715,7 @@ c
       units_gc(k) = 'W/m^2'
       scale_gc(k) = -100.*BYGRAV*BYIM
       ia_gc(k) = ia_dga
+      lgrid_gc(k) = edg_cp
       k = k + 1
       jk_tot_vt_se = k                        ; jgrid_gc(k) = 1
       sname_gc(k) = 'tot_vt_se'
@@ -692,6 +725,7 @@ c
       scale_gc(k) = -100.*BYGRAV*BYIM
       pow_gc(k) = 1
       ia_gc(k) = ia_dga
+      lgrid_gc(k) = edg_cp
       k = k + 1
       jk_psi_tem = k                          ; jgrid_gc(k) = 2
       sname_gc(k) = 'psi_tem'
@@ -723,6 +757,7 @@ c      pow_gc(k) = -2
       units_gc(k) = 'W/(m^2*mb)'
       scale_gc(k) = 1d2*BYGRAV
       pow_gc(k) = -4
+      denom_gc(k) = jk_dpa
       k = k + 1
       jk_dyn_conv_dse = k                     ; jgrid_gc(k) = 1
       sname_gc(k) = 'dyn_conv_dse'
@@ -730,6 +765,7 @@ c      pow_gc(k) = -2
       units_gc(k) = 'W/(m^2*mb)'
       scale_gc(k) = 1d2*BYGRAV
       pow_gc(k) = -2
+      denom_gc(k) = jk_dpa
       k = k + 1
       jk_nt_dse_e = k                         ; jgrid_gc(k) = 2
       sname_gc(k) = 'nt_dse_eddy'
@@ -737,6 +773,7 @@ c      pow_gc(k) = -2
       units_gc(k) = 'W/mb'
       scale_gc(k) = XWON*FIM*1d2*BYGRAV
       pow_gc(k) = 11
+      denom_gc(k) = jk_dpb
       k = k + 1
       jk_nt_see = k                           ; jgrid_gc(k) = 2
       sname_gc(k) = 'nt_se_eddy'
@@ -744,6 +781,7 @@ c      pow_gc(k) = -2
       units_gc(k) = 'W/mb'
       scale_gc(k) = XWON*FIM*1d2*BYGRAV
       pow_gc(k) = 11
+      denom_gc(k) = jk_dpb
       k = k + 1
       jk_tot_nt_se = k                        ; jgrid_gc(k) = 2
       sname_gc(k) = 'tot_nt_se'
@@ -751,6 +789,8 @@ c      pow_gc(k) = -2
       units_gc(k) = 'W/mb'
       scale_gc(k) = XWON*FIM*1d2*BYGRAV
       pow_gc(k) = 12
+      pow_gc_vmean(k) = 11
+      denom_gc(k) = jk_dpb
       k = k + 1
       jk_we_flx_nor = k                       ; jgrid_gc(k) = 2
       sname_gc(k) = 'we_flx_nor'
@@ -772,6 +812,7 @@ c      units_gc(k) = '10**11 JOULES/METER/UNIT SIGMA'
       units_gc(k) = '1/(m*s)'
       scale_gc(k) = 1.
       pow_gc(k) = -12
+      force_gc_vmean(k) = .true. ! b/c no denom
       k = k + 1
       jk_wstar = k                            ; jgrid_gc(k) = 1
       sname_gc(k) = 'wstar'
@@ -796,6 +837,7 @@ c      units_gc(k) = '10**11 JOULES/METER/UNIT SIGMA'
       units_gc(k) = 'm/s^2'
       jgrid_gc(k) = 2
       pow_gc(k) = -6
+      force_gc_vmean(k) = .true. ! b/c no denom
       k = k + 1
       jk_dudt_meanadv = k
       sname_gc(k) = 'dudt_meanadv'
@@ -803,6 +845,7 @@ c      units_gc(k) = '10**11 JOULES/METER/UNIT SIGMA'
       units_gc(k) = 'm/s^2'
       jgrid_gc(k) = 2
       pow_gc(k) = -6
+      force_gc_vmean(k) = .true. ! b/c no denom
       k = k + 1
       jk_dudt_eddycnv = k
       sname_gc(k) = 'dudt_eddycnv'
@@ -810,6 +853,7 @@ c      units_gc(k) = '10**11 JOULES/METER/UNIT SIGMA'
       units_gc(k) = 'm/s^2'
       jgrid_gc(k) = 2
       pow_gc(k) = -6
+      force_gc_vmean(k) = .true. ! b/c no denom
       k = k + 1
       jk_dudt_trnsadv = k
       sname_gc(k) = 'dudt_trnsadv'
@@ -817,6 +861,7 @@ c      units_gc(k) = '10**11 JOULES/METER/UNIT SIGMA'
       units_gc(k) = 'm/s^2'
       jgrid_gc(k) = 2
       pow_gc(k) = -6
+      force_gc_vmean(k) = .true. ! b/c no denom
       k = k + 1
       jk_dudt_epflxdiv = k
       sname_gc(k) = 'dudt_epflxdiv'
@@ -824,6 +869,7 @@ c      units_gc(k) = '10**11 JOULES/METER/UNIT SIGMA'
       units_gc(k) = 'm/s^2'
       jgrid_gc(k) = 2
       pow_gc(k) = -6
+      force_gc_vmean(k) = .true. ! b/c no denom
       k = k + 1
       jk_dudt_fderr1 = k
       sname_gc(k) = 'dudt_fderr1'
@@ -831,6 +877,7 @@ c      units_gc(k) = '10**11 JOULES/METER/UNIT SIGMA'
       units_gc(k) = 'm/s^2'
       jgrid_gc(k) = 2
       pow_gc(k) = -6
+      force_gc_vmean(k) = .true. ! b/c no denom
       k = k + 1
       jk_dudt_fderr2 = k
       sname_gc(k) = 'dudt_fderr2'
@@ -838,6 +885,7 @@ c      units_gc(k) = '10**11 JOULES/METER/UNIT SIGMA'
       units_gc(k) = 'm/s^2'
       jgrid_gc(k) = 2
       pow_gc(k) = -6
+      force_gc_vmean(k) = .true. ! b/c no denom
       endif ! kep.gt.0
 
       if(k.gt.kagc) then
@@ -858,6 +906,7 @@ c
       lname_gc(k) = 'STANDING EDDY KINETIC ENERGY'
       units_gc(k) = 'm^2/s^2'
       scale_gc(k) = .5
+      force_gc_vmean(k) = .true. ! b/c no denom
       k = k + 1
       jk_nt_dse_se = k                        ; jgrid_gc(k) = 2
       sname_gc(k) = 'nt_dse_stand_eddy'
@@ -865,6 +914,7 @@ c
       units_gc(k) = 'W/mb'
       scale_gc(k) = XWON*FIM*1d2*BYGRAV
       pow_gc(k) = 11
+      force_gc_vmean(k) = .true. ! b/c no denom
       k = k + 1
       jk_nt_lh_se = k
       sname_gc(k) = 'nt_lh_stand_eddy'        ; jgrid_gc(k) = 2
@@ -872,38 +922,45 @@ c
       units_gc(k) = 'W/mb'
       scale_gc(k) = lhe*XWON*FIM*1d2*BYGRAV
       pow_gc(k) = 9
+      force_gc_vmean(k) = .true. ! b/c no denom
       k = k + 1
       jk_nt_am_stand_eddy = k                 ; jgrid_gc(k) = 2
       sname_gc(k) = 'nt_u_stand_eddy'
       lname_gc(k) = 'NORTH. TRANS. ZONAL MOM. BY STAND. EDDIES'
       units_gc(k) = 'm^2/s^2'
       scale_gc(k) = 1.
+      force_gc_vmean(k) = .true. ! b/c no denom
       k = k + 1
       jk_refr_ind_wave1 = k  !!!!! Refraction Inicies must be in order
       jgrid_gc(k) = 2
       sname_gc(k) = 'refr_ind_wave1'
       lname_gc(k) = 'REFRACTION INDEX FOR WAVE NUMBER 1'
       units_gc(k) = '10**-8 m^-2'
+      force_gc_vmean(k) = .true. ! b/c no denom
       k = k + 1
       jgrid_gc(k) = 2
       sname_gc(k) = 'refr_ind_wave2'
       lname_gc(k) = 'REFRACTION INDEX FOR WAVE NUMBER 2'
       units_gc(k) = '10**-8 m^-2'
+      force_gc_vmean(k) = .true. ! b/c no denom
       k = k + 1
       jgrid_gc(k) = 2
       sname_gc(k) = 'refr_ind_wave3'
       lname_gc(k) = 'REFRACTION INDEX FOR WAVE NUMBER 3'
       units_gc(k) = '10**-8 m^-2'
+      force_gc_vmean(k) = .true. ! b/c no denom
       k = k + 1
       jgrid_gc(k) = 2
       sname_gc(k) = 'refr_ind_wave6'
       lname_gc(k) = 'REFRACTION INDEX FOR WAVE NUMBER 6'
       units_gc(k) = '10**-8 m^-2'
+      force_gc_vmean(k) = .true. ! b/c no denom
       k = k + 1
       jgrid_gc(k) = 2
       sname_gc(k) = 'refr_ind_wave9'
       lname_gc(k) = 'REFRACTION INDEX FOR WAVE NUMBER 9'
       units_gc(k) = '10**-8 m^-2'
+      force_gc_vmean(k) = .true. ! b/c no denom
       k = k + 1
       jl_phi_amp_wave1 = k                    ; jgrid_gc(k) = 1
       sname_gc(k) = 'phi_amp_wave1'
@@ -950,6 +1007,11 @@ c Check the count
         call stop_model('JK_TITLES: KAGCx too small',255)
       end if
 
+      do k=1,kagcx
+        if(denom_gc(k).ne.0) cycle ! already set
+        if(lgrid_gc(k).eq.edg_cp) force_gc_vmean(k)=.true.
+        if(lgrid_gc(k).eq.edg_ml) force_gc_vmean(k)=.true.
+      enddo
 
 c
       if (AM_I_ROOT()) then
@@ -1014,7 +1076,12 @@ c
           call add_varline(cdl_gc,
      &         trim(sname_gc(k))//':prtpow = '//trim(powstr)//' ;')
         endif
-        if(denom_gc(k).gt.0) then
+        if(pow_gc_vmean(k).ne.0) then
+          write(powstr,'(i3)') pow_gc_vmean(k)
+          call add_varline(cdl_gc,
+     &        trim(sname_gc(k))//':prtpow_vmean = '//trim(powstr)//' ;')
+        endif
+        if(denom_gc(k).gt.0 .or. force_gc_vmean(k)) then
           if(make_timeaxis) then ! hacky logic
             call add_var(cdl_gc,'float '//trim(sname_gc(k))//
      &           '_vmean(time,'//trim(ystr)//'_plus3) ;')
@@ -1025,6 +1092,9 @@ c
         endif
       enddo
 #endif
+
+! exceptions to forced vertical averaging for layer-edge quantities
+      force_gc_vmean(jk_rhoedz) = .false. ! this is a denom: want sum instead
 
       return
       end subroutine gc_defs
@@ -1247,6 +1317,7 @@ c
       return
       end subroutine ijk_defs
 
+
       SUBROUTINE DIAGB
 !@sum DIAGB calculate constant pressure diagnostics from within DYNAM
 C****
@@ -1260,7 +1331,7 @@ C****
       USE RESOLUTION, only : ls1,psfmpt,ptop
       USE RESOLUTION, only : im,jm,lm
       USE MODEL_COM, only : idacc,mdyn,mdiag
-      Use ATM_COM,    Only: MA,u,v,t,p,q,qcl,qci
+      Use ATM_COM,    Only: PHI,MA,PDSIG,PMID,PEDN,U,V,T,P,Q,QCL,QCI
       USE GEOM, only : bydxyp,bydxyv,rapvs,rapvn,
      &     COSV,DXV,DXYN,DXYP,DXYS,DXYV,DYP,DYV,FCOR,IMAXJ
       USE DIAG_COM, only : imh,fim,byim,ia_dga,ndaa
@@ -1271,8 +1342,7 @@ C****
       USE GCDIAG
       USE GC_COM, only : jeq,
      &    agc=>agc_loc,speca,nspher,klayer,nwav_dag
-      USE ATM_COM, only : phi,plij,pmid,pedn
-      Use DYNAMICS,  Only: CONV,dut,dvt,SD,sig,sige,dsig
+      Use DYNAMICS,  Only: CONV,dut,dvt,SD
       USE DIAG_LOC, only : w,tx,pm,pl,pmo,plo
      &     ,ldna,lupa
       USE DOMAIN_DECOMP_ATM, only : GRID
@@ -1309,9 +1379,10 @@ C****
      &     PUVI,PV2,PV2I,PVI,PVK,PWWI,PWWVI,PY,PZ4I,PZ4K,
      &     PZV4I,QK,QKI,SDK,
      &     SMALL,SP,SQRTDP,THK,THKI,THPI,TK,TKI,TPI,
-     &     UDUTI,    UEARTH,UK,UKI,UY,VDVTI,VK,VSTAR,W2,W2I,W4,
-     &     W4I,WI,WKE4I,WNP,WPA2I,WPV4I,WQI,WSP,WSTAR,WTHI,
-     &     WTI,WU4I,WUP,WZI,ZK,ZKI
+     &     UDUTI,    UEARTH,UK,UY,VDVTI,VK,VSTAR,W2,W2I,W4,
+     &     WI,WNP,WPA2I,WPV4I,WQI,WSP,WSTAR,WTHI,
+     &     WTI,WUP,WZI,ZK,ZKI,
+     &     FIMIofK(LM),UKIofK(LM),W4IofK(LM),WKE4IofK(LM),WU4IofK(LM)
      &     ,AMRHT,AMRHQ,AMUV,AMVQ,AMVT,AMUU,AMVV,AMTT
 
 c local vars for transplanted DIAGA calculations
@@ -1335,68 +1406,51 @@ c local vars for transplanted DIAGA calculations
      &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
 
-
-
       CALL HALO_UPDATE(grid, P, FROM=SOUTH)
       call halo_update(grid, tx)
-
 
 C****
 C**** EASTWARD TRANSPORTS (TRANSPLANTED FROM DIAGA)
 C****
-
       CALL HALO_UPDATE(grid, U, FROM=NORTH)
-
       DO L=1,LM
       DO J=J_0S,J_1S
       I=IM
       DO IP1=1,IM
-        AIJ(I,J,IJ_PUQ)=AIJ(I,J,IJ_PUQ)+(PLIJ(L,I,J)+PLIJ(L,IP1,J))*
-     *       (U(I,J,L)+U(I,J+1,L))*(Q(I,J,L)+Q(IP1,J,L))*DSIG(L)*.125
+        AIJ(I,J,IJ_PUQ) = AIJ(I,J,IJ_PUQ)+(PDSIG(L,I,J)+PDSIG(L,IP1,J))*
+     *       (U(I,J,L)+U(I,J+1,L))*(Q(I,J,L)+Q(IP1,J,L))*.125
         I=IP1
       END DO
       END DO
       END DO
-
 C****
 C**** NORTHWARD TRANSPORTS (TRANSPLANTED FROM DIAGA)
 C****
-
-      CALL HALO_UPDATE_COLUMN(grid, PLIJ, FROM=SOUTH)
       CALL HALO_UPDATE(grid, PHI, FROM=SOUTH)
       CALL HALO_UPDATE(grid, Q, FROM=SOUTH)
 
       DO J=J_0STG,J_1STG
-      P4I=0.
-      I=IM
-      DO IP1=1,IM
-        P4=P(I,J-1)+P(IP1,J-1)+P(I,J)+P(IP1,J)
-        P4I=P4I+P4
-        I=IP1
-      END DO
-c      APJ(J,2)=APJ(J,2)+P4I*.25
-      AGC(J,1:LS1-1,JL_DPB) = AGC(J,1:LS1-1,JL_DPB) +
-     &     DSIG(1:LS1-1)*P4I*.25
-      AGC(J,LS1:LM,JL_DPB) = AGC(J,LS1:LM,JL_DPB) +
-     &     DSIG(LS1:LM)*PSFMPT*FIM
+         Do L=1,LM
+            AGC(J,L,JL_DPB) = AGC(J,L,JL_DPB) +
+     +         .5 * Sum(PDSIG(L,:,J-1) + PDSIG(L,:,J))  ;  EndDo
       DO L=1,LM
         PU4I=0.
         PV4I=0.
-        PUV4I=0.
+        PUV4I = 0  ;  P4I = 0 
         I=IM
         DO IP1=1,IM
-          P4=PLIJ(L,I,J-1)+PLIJ(L,IP1,J-1)+PLIJ(L,I,J)+PLIJ(L,IP1,J)
-          IF(L.EQ.LS1) P4I=FIM*P4
+          P4=PDSIG(L,I,J-1)+PDSIG(L,IP1,J-1)+PDSIG(L,I,J)+PDSIG(L,IP1,J)
+          P4I = P4I + P4
           PU4I=PU4I+P4*U(I,J,L)
           PV4I=PV4I+P4*V(I,J,L)
           PUV4I=PUV4I+P4*U(I,J,L)*V(I,J,L)
           T4=TX(I,J-1,L)+TX(IP1,J-1,L)+TX(I,J,L)+TX(IP1,J,L)
           Z4=PHI(I,J-1,L)+PHI(IP1,J-1,L)+PHI(I,J,L)+PHI(IP1,J,L)
           AIJ(I,J,IJ_DSEV)=AIJ(I,J,IJ_DSEV)+P4*(SHA*T4+Z4)*V(I,J,L)
-     *         *DSIG(L)*DXV(J)*0.0625d0
-          SP2=PLIJ(L,IP1,J-1)+PLIJ(L,IP1,J)
+     *       *DXV(J)*0.0625d0
+          SP2 = PDSIG(L,IP1,J-1) + PDSIG(L,IP1,J)
           AIJ(IP1,J,IJ_PVQ)=AIJ(IP1,J,IJ_PVQ)+.125*SP2
-     *         *(V(I,J,L)+V(IP1,J,L))*(Q(IP1,J-1,L)+Q(IP1,J,L))*DSIG(L)
+     *       *(V(I,J,L)+V(IP1,J,L))*(Q(IP1,J-1,L)+Q(IP1,J,L))
           I=IP1
         END DO
         AGC(J,L,JL_ZMFNTMOM)=AGC(J,L,JL_ZMFNTMOM)+.25*PU4I*PV4I/P4I
@@ -1489,34 +1543,31 @@ C****
       FIMI=0.
       DO 160 I=1,IMAXJ(J)
 C**** FIND L=L(K) AND LUP=L(K+1) S.T. P(LUP).GT.P(K+1)
-      SP=PLIJ(K,I,J)
-      call calc_vert_amp(SP,LM,P00,AML,PDSIGL,PEDNL,PMIDL)
-
-      PS=SP+PTOP
+      PS = PEDN(1,I,J)
       IF (PM(K+1).GE.PS) GO TO 160
       L=1
       PDN=PS
       IF (PM(K).GE.PS) GO TO 120
       PDN=PM(K)
-  110 IF (PM(K).GT.PEDNL(L+1)) GO TO 120
+  110 If (PM(K) > PEDN(L+1,I,J))  GoTo 120
       L=L+1
       GO TO 110
   120 LUP=L
-  130 IF (PM(K+1).GE.PEDNL(LUP+1)) GO TO 140
+  130 If (PM(K+1) >= PEDN(LUP+1,I,J))  GoTo 140
       LUP=LUP+1
       GO TO 130
   140 CONTINUE
 C**** ACCUMULATE HERE
       DPI=DPI+PDN-PM(K+1)
       FIMI=FIMI+1.
-  150 PUP=PEDNL(L+1)
+  150 PUP=PEDN(L+1,I,J)
       IF (LUP.EQ.L) PUP=PM(K+1)
       DP=PDN-PUP
       TPI=TPI+(TX(I,J,L)-TF)*DP
       THPI=THPI+T(I,J,L)*DP
       IF (L.EQ.LUP) GO TO 160
       L=L+1
-      PDN=PEDNL(L)
+      PDN = PEDN(L,I,J)
       GO TO 150
   160 CONTINUE
       AGC(J,K,JK_NPTSAVG1)=AGC(J,K,JK_NPTSAVG1)+FIMI
@@ -1533,12 +1584,8 @@ C****
       DO 230 J=J_0,J_1
       I=IMAXJ(J)
       DO 230 IP1=1,IMAXJ(J)
-      SP=.5*(P(I,J)+P(IP1,J))
-      call calc_vert_amp(SP,LS1-1,P00,AML,PDSIGL,PEDNL,PMIDL)
-
-      DO 175 L=1,LS1-1
-      PLO(L)=PMIDL(L)
-  175 PL(L)=PEDNL(L)
+      PLO(:) = .5*(PMID(:,I,J) + PMID(:,Ip1,J))
+       PL(:) = .5*(PEDN(:,I,J) + PEDN(:,Ip1,J))
       DO 180 L=1,LM-1
       DTH(L)=(T(I,J,L)+T(IP1,J,L)-T(I,J,L+1)-T(IP1,J,L+1))/
      *  (2.*(PLO(L)-PLO(L+1)))
@@ -1547,7 +1594,7 @@ C****
       STB(I,J,K)=0.
       IF (PM(K+1).GE.PL(1)) GO TO 220
       PMK=PMO(K)
-      IF (PM(K).GT.PL(1)) PMK=.5*(SP+PTOP+PM(K+1))
+      If (PM(K) > PL(1))  PMK = .5*(PL(1) + PM(K+1))
       L=2
       IF (PMK.GE.PL(2)) GO TO 210
   190 LUP=L+1
@@ -1570,7 +1617,7 @@ C**** CALCULATE STJK; THE MEAN STATIC STABILITY
       DPJK(J,K)=0.
       I=IMAXJ(J)
       DO 250 IP1=1,IMAXJ(J)
-      PS=.5*(P(I,J)+P(IP1,J))+PTOP
+      PS = .5*(PEDN(1,I,J) + PEDN(1,Ip1,J))
       IF (PM(K+1).GT.PS) GO TO 250
       STJK(J,K)=STJK(J,K)+STB(I,J,K)
       DPJK(J,K)=DPJK(J,K)+1.
@@ -1606,23 +1653,13 @@ c***      END DO
       DO 390 J=J_0STG,J_1STG
       I=IM
       DO 280 IP1=1,IM
-      PSEC(I)=(P(I,J  )+P(IP1,J  ))*RAPVS(J)+
-     *        (P(I,J-1)+P(IP1,J-1))*RAPVN(J-1)
-      call calc_vert_amp(PSEC(I),LM,P00,AML,PDSIGL,PEDNL,PMIDL)
-
-      DO  K=1,KM
-        UDX(I,J,K)=0.
-      END DO
+      UDX(I,J,1:KM) = 0
       DO L=1,LM
+        PDSIGL(L) = (PDSIG(L,I,J  ) + PDSIG(L,IP1,J  ))*RAPVS(J) +
+     +              (PDSIG(L,I,J-1) + PDSIG(L,IP1,J-1))*RAPVN(J-1)
         DUT(I,J,L)=DUT(I,J,L)/(PDSIGL(L)*DXYV(J))
         DVT(I,J,L)=DVT(I,J,L)/(PDSIGL(L)*DXYV(J))
       END DO
-c      DO 275 L=1,LS1-1
-c      DUT(I,J,L)=DUT(I,J,L)/(PSEC(I)*DXYV(J)*DSIG(L))
-c  275 DVT(I,J,L)=DVT(I,J,L)/(PSEC(I)*DXYV(J)*DSIG(L))
-c      DO 276 L=LS1,LM
-c      DUT(I,J,L)=DUT(I,J,L)/(PSFMPT*DXYV(J)*DSIG(L))
-c  276 DVT(I,J,L)=DVT(I,J,L)/(PSFMPT*DXYV(J)*DSIG(L))
   280 I=IP1
       DO 350 K=1,KM
       DPI=0.
@@ -1647,7 +1684,8 @@ c  276 DVT(I,J,L)=DVT(I,J,L)/(PSFMPT*DXYV(J)*DSIG(L))
       PSV4I=0.
       I=IM
       DO 340 IP1=1,IM
-      SP=PSEC(I)
+      SP = (P(I,J  ) + P(IP1,J  ))*RAPVS(J)+
+     +     (P(I,J-1) + P(IP1,J-1))*RAPVN(J-1)
       call calc_vert_amp(SP,LM,P00,AML,PDSIGL,PEDNL,PMIDL)
       PS=SP+PTOP
       DO 286 L=1,LS1-1
@@ -1844,7 +1882,7 @@ C**** INTERPOLATE HERE
             IF (LUP.EQ.L) GO TO 860
             L=L+1
             PDN=PL(L)
-            GO TO 850
+            If (L >= LM)  GoTo 850
  860        CONTINUE
 C**** ACCUMULATE HERE (SHOULD I ACCUMULATE A WEIGHTING FUNCTION?)
             W(I,J,K)=0.
@@ -2043,22 +2081,19 @@ C P already halo'ed; no need     CALL HALO_UPDATE(grid, P, FROM=SOUTH)
 
       DO 710 J=J_0STG,J_1STG
       UEARTH=RADIUS*OMEGA*COSV(J)
-      I=IM
-      DO 650 IP1=1,IM
-      PSEC(I)=.25*(P(I,J-1)+P(IP1,J-1)+P(I,J)+P(IP1,J))
-  650 I=IP1
-      DO 710 K=2,KM
-      W4I=0.
-      UKI=0.
-      WU4I=0.
-      WKE4I=0.
-      FIMI=0.
+        W4IofK(:) = 0
+        UKIofK(:) = 0
+       WU4IofK(:) = 0
+      WKE4IofK(:) = 0
+       FIMIofK(:) = 0
       I=IM
       DO 700 IP1=1,IM
-      SP=PSEC(I)
       DO 660 L=1,LS1-1
-  660 PLO(L)=SP*SIG(L)+PTOP
-      IF (PM(K).GE.SP+PTOP) GO TO 700
+  660 PLO(L) = .25*(PMID(L,I,J-1) + PMID(L,Ip1,J-1) +
+     +              PMID(L,I,J)   + PMID(L,Ip1,J))
+      Do 695 K=2,KM
+      IF (PM(K) >= .25*(PEDN(1,I,J-1) + PEDN(1,Ip1,J-1) +
+     +                  PEDN(1,I,J)   + PEDN(1,Ip1,J)))  GoTo 695
       L=1
       IF (PM(K).GE.PLO(1)) GO TO 680
   670 LUP=L+1
@@ -2077,17 +2112,20 @@ C**** SPECIAL CASES;  L=1,L=LM
       VK=V(I,J,L)
 C**** MERIDIONAL AVERAGING
   690 W4=.25*(W(I,J-1,K)+W(IP1,J-1,K)+W(I,J,K)+W(IP1,J,K))
-      W4I=W4I+W4
-      UKI=UKI+UK
-      WU4I=WU4I+W4*UK
-      WKE4I=WKE4I+W4*(UK*UK+VK*VK)
-      FIMI=FIMI+1.
+        W4IofK(K) =   W4Iofk(K) + W4
+        UKIofK(K) =   UKIofk(K) + UK
+       WU4IofK(K) =  WU4Iofk(K) + W4*UK
+      WKE4IofK(K) = WKE4Iofk(K) + W4*(UK*UK + VK*VK)
+       FIMIofK(K) =  FIMIofk(K) + 1
+  695 Continue
   700 I=IP1
-      BYFIM=1./(FIMI+teeny)
-         WUJK(J,K)=(WU4I-W4I*UKI*BYFIM)*BYFIM
-      AGC(J,K-1,JK_TOTVTKE)=AGC(J,K-1,JK_TOTVTKE)+WKE4I
-      AGC(J,K-1,JK_VTAMEDDY)=AGC(J,K-1,JK_VTAMEDDY)+WU4I-BYFIM*W4I*UKI
-  710 AGC(J,K-1,JK_TOTVTAM)=AGC(J,K-1,JK_TOTVTAM)+WU4I   !+W4I*UEARTH
+      Do 710 K=2,KM
+      byFIM = 1 / (FIMIofK(K)+teeny)
+      WUJK(J,K) = (WU4IofK(K) - W4IofK(K)*UKIofK(K)*byFIM)*byFIM
+      AGC(J,K-1,JK_TOTVTKE)  = AGC(J,K-1,JK_TOTVTKE)  + WKE4IofK(K)
+      AGC(J,K-1,JK_VTAMEDDY) = AGC(J,K-1,JK_VTAMEDDY) +
+     +                         WU4IofK(K) - byFIM*W4IofK(K)*UKIofK(K)
+  710 AGC(J,K-1,JK_TOTVTAM)  = AGC(J,K-1,JK_TOTVTAM)  + WU4IofK(K)  !  + W4I*UEARTH
 C****
 C**** POTENTIAL VORTICITY AND VERTICAL TRANSPORT OF POT. VORT.
 C****
@@ -2300,6 +2338,7 @@ C**** ACCUMULATE TIME USED IN DIAGA
       RETURN
       END SUBROUTINE DIAGB
 
+
       SUBROUTINE DIAG5A (M5,NDT)
 C****
 C**** THIS DIAGNOSTICS ROUTINE PRODUCES A SPECTRAL ANALYSIS OF KINETIC
@@ -2330,10 +2369,9 @@ C****  19  LAST KINETIC ENERGY
 C****  20  LAST POTENTIAL ENERGY
 C****
       USE CONSTANT, only : sha, UNDEF_VAL
-      USE RESOLUTION, only : ls1,psfmpt,ptop
-      USE RESOLUTION, only : im,jm,lm
+      Use RESOLUTION, Only: IM,JM,LM,PSFmPT
       USE MODEL_COM, only : IDACC,MDIAG
-      USE ATM_COM, only : P,T,U,V,ZATMO
+      Use ATM_COM,    Only: PMID,PEDN,PDSIG,PK,T,U,V,ZATMO
       USE GEOM, only : AREAG,DXYN,DXYP,DXYS,imaxj
       USE GC_COM, only : speca,atpe,nspher,kspeca,klayer,agc=>agc_loc
      &     ,jeq
@@ -2341,8 +2379,6 @@ C****
       USE DIAG_COM, only : imh,fim,byim
       USE GCDIAG, only : jl_ape
       USE DIAG_LOC, only : lupa,ldna
-      USE ATM_COM, only : sqrtp,pk
-      USE DYNAMICS, only : sig,dsig
       USE DOMAIN_DECOMP_ATM, only : GRID
       USE DOMAIN_DECOMP_1D, only : getDomainBounds
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, AM_I_ROOT
@@ -2351,6 +2387,8 @@ C****
       USE PRECISION_MOD
       IMPLICIT NONE
       INTEGER :: M5,NDT
+
+!**** Local variables
       REAL*8, DIMENSION(IM) :: X, Xtmp
       REAL*8, DIMENSION(IMH+1,NSPHER) :: KE,KE_jsum,APE
       REAL*8, DIMENSION
@@ -2431,16 +2469,6 @@ C****  910 FORMAT ('0INCORRECT VALUE OF M5 WHEN CALLING DIAG5A.  M5=',I5)
 C**** MASS FOR KINETIC ENERGY
   200 CONTINUE
 
-      I=IM
-      CALL HALO_UPDATE(grid, P, FROM=SOUTH)
-      DO J=J_0STG,J_1STG
-        DO  IP1=1,IM
-          SQRTM(I,J)=SQRT(.5*((P(I,J)+P(IP1,J))*DXYS(J)+(P(I,J-1)+
-     *         P(IP1,J-1))*DXYN(J-1)))
-          I=IP1
-        END DO
-      END DO
-
 C****
   205 CONTINUE
 
@@ -2450,6 +2478,12 @@ C****
 C**** CURRENT KINETIC ENERGY
       DO L=1,LM
         DO J=J_0STG,J_1STG
+          I=IM
+          Do Ip1=1,IM
+             SQRTM(I,J) =
+     =          Sqrt(.5*((PDSIG(L,I,J  )+PDSIG(L,Ip1,J  ))*DXYS(J) +
+     +                   (PDSIG(L,I,J-1)+PDSIG(L,Ip1,J-1))*DXYN(J-1)))
+             I=Ip1  ;  EndDo
           IF (J <= JEQ) THEN
             KSPHER=KLAYER(L)
           ELSE
@@ -2462,21 +2496,18 @@ C**** CURRENT KINETIC ENERGY
             X=Xtmp
             IF (J.EQ.JEQ) THEN
               DO N=1,NM
-                KE_part(N,J,KSPHER+2)=KE_part(N,J,KSPHER+2)+X(N)*DSIG(L)
-                KE_part(N,J,KSPHER  )=KE_part(N,J,KSPHER  )+
-     &                                .5D0*X(N)*DSIG(L)
-                KE_part(N,J,KSPHER+1)=KE_part(N,J,KSPHER+1)+
-     &                                .5D0*X(N)*DSIG(L)
+                KE_part(N,J,KSPHER+2) = KE_part(N,J,KSPHER+2) + X(N)
+                KE_part(N,J,KSPHER  ) = KE_part(N,J,KSPHER  ) + X(N)*.5
+                KE_part(N,J,KSPHER+1) = KE_part(N,J,KSPHER+1) + X(N)*.5
               ENDDO
 cgsfc              IF(K.EQ.LM)KSPHER=KSPHER+1
             ELSE
               DO N=1,NM
-                KE_part(N,J,KSPHER)=KE_part(N,J,KSPHER)+X(N)*DSIG(L)
+                KE_part(N,J,KSPHER) = KE_part(N,J,KSPHER) + X(N)
               ENDDO
               IF (J.EQ.J45N) THEN
                 DO N=1,NM
-                  KE_part(N,J,KSPHER+2)=KE_part(N,J,KSPHER+2)+
-     &                                X(N)*DSIG(L)
+                  KE_part(N,J,KSPHER+2) = KE_part(N,J,KSPHER+2) + X(N)
                 ENDDO
               ENDIF
             ENDIF
@@ -2524,10 +2555,10 @@ C****
           GMEAN_part(J,L)=0.
           THGM_part(J,L)=0.
           DO I=1,IMAXJ(J)
-            THGM_part(J,L)=THGM_part(J,L)+T(I,J,L)*SQRTP(I,J)
+            THGM_part(J,L) = THGM_part(J,L) +T(I,J,L)*Sqrt(PDSIG(L,I,J))
             GMEAN_part(J,L)=GMEAN_part(J,L)+
-     *           (P(I,J)*SIG(L)+PTOP)*(T(I,J,LUP)-T(I,J,LDN))
-     *           /(P(I,J)*PK(L,I,J))
+     +                           PMID(L,I,J)*(T(I,J,LUP)-T(I,J,LDN)) /
+     /                         (PK(L,I,J)*(PMID(LDN,I,J)-PMID(LUP,I,J)))
           ENDDO
           GMEAN_part(J,L)=GMEAN_part(J,L)*DXYP(J)
           THGM_part(J,L)=THGM_part(J,L)*DXYP(J)
@@ -2545,11 +2576,8 @@ C****
       CALL GLOBALSUM(grid,THGM_part(:,1:LM),THGM(1:LM),ALL=.TRUE.)
       THGM=THGM/AREAG
       CALL GLOBALSUM(grid,GMEAN_part(:,1:LM),GMEAN(1:LM),ALL=.TRUE.)
-      DO L=1,LM
-        LDN=LDNA(L)
-        LUP=LUPA(L)
-        GMEAN(L)=AREAG*(SIG(LDN)-SIG(LUP))/GMEAN(L)
-      ENDDO
+
+      GMEAN(1:LM) = AREAG / (GMEAN(1:LM) + 1d-20)
 
       APE(:,:)=0.
 
@@ -2568,7 +2596,7 @@ C**** SPECTRAL ANALYSIS OF AVAILABLE POTENTIAL ENERGY
           END IF
 
           DO I=1,IM
-            X(I)=T(I,J,L)*SQRTP(I,J)-THGM(L)
+             X(I) = T(I,J,L)*Sqrt(PDSIG(L,I,J)) - THGM(L)
           END DO
 
           if(m5.eq.7) then
@@ -2597,7 +2625,6 @@ c      CALL GLOBALSUM(grid, VAR_part, VAR) ! not parallelized
 
       IF (AM_I_ROOT()) THEN
         DO L = 1, LM
-          GMEAN(L)=DSIG(L)*GMEAN(L)
           KS=KLAYER(L)
           DO JHEMI=1,4
             DO N=1,NM
@@ -2615,30 +2642,19 @@ C**** CURRENT TOTAL POTENTIAL ENERGY
 
       IF (HAVE_SOUTH_POLE) THEN
         J=1
-        SUMT=0
-        DO L=1, LM
-          SUMT=SUMT + T(1,J,L)*PK(L,1,J)*DSIG(L)
-        END DO
-        TPE_psum(J)=FIM*DXYP(J)*(ZATMO(1,J)*(P(1,J)+PTOP)+
-     *       SUMT*SHA*P(1,J))
+        SUMT = Sum(T(1,J,:)*PK(:,1,J)*PDSIG(:,1,J))
+        TPE_psum(J) = FIM*DXYP(J)*(ZATMO(1,J)*PEDN(1,1,J) + SUMT*SHA)
       END IF
       IF (HAVE_NORTH_POLE) THEN
         J=JM
-        SUMT=0
-        DO L=1, LM
-          SUMT=SUMT + T(1,J,L)*PK(L,1,J)*DSIG(L)
-        END DO
-        TPE_psum(J)=FIM*DXYP(J)*(ZATMO(1,J)*(P(1,J)+PTOP)+
-     *       SUMT*SHA*P(1,J))
+        SUMT = Sum(T(1,J,:)*PK(:,1,J)*PDSIG(:,1,J))
+        TPE_psum(J) = FIM*DXYP(J)*(ZATMO(1,J)*PEDN(1,1,J) + SUMT*SHA)
       END IF
       DO J=J_0S, J_1S
         SUMI=0
         DO I=1,IM
-          SUMT=0
-          DO L=1,LM
-            SUMT=SUMT + T(I,J,L)*PK(L,I,J)*DSIG(L)
-          END DO
-          SUMI=SUMI+ZATMO(I,J)*(P(I,J)+PTOP)+SUMT*SHA*P(I,J)
+          SUMT = Sum(T(I,J,:)*PK(:,I,J)*PDSIG(:,I,J))
+          SUMI = SUMI + ZATMO(I,J)*PEDN(1,I,J) + SUMT*SHA
         END DO
         TPE_psum(J) = SUMI*DXYP(J)
       END DO
@@ -2680,6 +2696,7 @@ C**** ACCUMULATE MEAN KINETIC ENERGY AND MEAN POTENTIAL ENERGY
       CALL TIMER (NOW,MDIAG)
       RETURN
       END SUBROUTINE DIAG5A
+
 
       SUBROUTINE DIAG7A
 C****
@@ -2789,6 +2806,61 @@ C**** ASSUME THAT PHI IS LINEAR IN LOG P
       RETURN
       END SUBROUTINE DIAG7A
 
+
+      subroutine speca_prep
+!@sum speca_prep apply scale factors to SPECA and ATPE accumulations
+!@+   to promote model independence of offline ASCII-table printer routines.
+!@+   Accumulations are also rescaled by the number of physics timesteps
+!@+   to avoid passing detailed idacc-info ( ia_d5[dfs], ia_filt, ia_12hr )
+      use constant, only : grav,rgas,teeny
+      use dynamics, only : dt
+      use model_com, only : idacc
+      use gc_com, only : speca,speca_out,kspeca
+     &     ,atpe,atpe_out,ktpe
+      use diag_com, only :
+     &     ia_src,ia_d5s,ia_filt,ia_12hr,ia_d5f,ia_d5d,ia_dga,ia_inst
+      implicit none
+      integer :: m,hemis
+      real*8, dimension(kspeca) :: scalet
+      integer, dimension(ktpe), parameter ::
+     &     mapeof=(/3,8,10,11,13,15,17,20/)
+
+
+      ! todo: remove powers of 10 from the scale factors
+      IF (IDACC(ia_inst).LT.1) IDACC(ia_inst)=1
+      SCALET(1)=100.D-17/(GRAV*IDACC(ia_dga)+teeny)
+      SCALET(19)=100.D-17/(GRAV*IDACC(ia_inst))
+      SCALET(20)=SCALET(19)*RGAS
+      SCALET(2)=SCALET(19)*IDACC(ia_inst)/(IDACC(ia_d5d)+teeny)
+      SCALET(3)=SCALET(2)*RGAS
+      SCALET(4)=100.D-12/(GRAV*DT*IDACC(ia_d5f)+teeny)
+      SCALET(5)=SCALET(4)
+      SCALET(6)=SCALET(4)
+      SCALET(7)=100.D-12/(GRAV*DT*(IDACC(ia_d5d)+teeny))
+      SCALET(8)=SCALET(7)*RGAS
+      SCALET(9)=100.D-12/(GRAV*DT*(IDACC(ia_d5s)+teeny))
+      SCALET(10)=SCALET(9)*RGAS
+      SCALET(11)=SCALET(10)
+      SCALET(12)=SCALET(9)
+      SCALET(13)=SCALET(10)
+      SCALET(14)=100.D-12/(GRAV*DT*(IDACC(ia_filt)+teeny))
+      SCALET(15)=SCALET(14)*RGAS
+      SCALET(16)=100.D-12/(GRAV*DT*(.5*IDACC(ia_12hr)+teeny))
+      SCALET(17)=SCALET(16)*RGAS
+      SCALET(18)=100.D-17/(GRAV*IDACC(ia_dga)+teeny)
+
+      do m=1,kspeca
+        speca_out(:,m,:) = speca(:,m,:) * scalet(m) * idacc(ia_src)
+      enddo
+
+      do hemis=1,2
+        atpe_out(:,hemis) = atpe(:,hemis)*(scalet(mapeof(:))/rgas)
+     &       * idacc(ia_src)
+      enddo
+
+      end subroutine speca_prep
+
+
       subroutine diaggc_prep
 c Calculate derived GC outputs
       use constant, only : kapa,lhe,sha,radius,omega,rgas,tf,teeny
@@ -2800,17 +2872,17 @@ c Calculate derived GC outputs
       use diag_com, only : kdiag, ia_dga,ndaa,
      &     plm, pme=>ple_dn, ple, byim
       use gc_com, only : kagc,jgrid_gc,hemis_gc,vmean_gc,
-     &     agc_in=>agc, agc=>agc_out, kep
+     &     agc_in=>agc, agc=>agc_out, kep, kagcx, denom_gc
       use gcdiag
       use geom, only : dxyp,dxyv,dxv,bydxyp,cosv,cosp,imaxj,fcor
       implicit none
-      integer :: j,j1,j2,k,l,jg,ind,n,ldn,lup
+      integer :: j,j1,j2,k,l,jg,ind,n,ldn,lup,kk
       real*8, dimension(jm,2) :: wtj
       integer, dimension(20) :: inds
       real*8, dimension(jm) :: bydapo,dxcosv
       real*8, dimension(lm) :: pkm
       real*8, dimension(jm,lm) :: temp,vx,sheth,shethe
-      real*8 :: wtup,tedge
+      real*8 :: wtup,tedge,rhoe,delpe
       REAL*8, DIMENSION(JM,LM) :: ! outputs of EPFLXP
      &     DUDS,DMF,DEF,DMFR,DEFR,ER1,ER2
 
@@ -2880,21 +2952,6 @@ c
         agc(j,1:ls1-1,n) = sum(agc(j,1:ls1-1,jl_dpb))
         agc(j,ls1:lm,n) = idacc(ia_dga)*im*psfmpt
       enddo
-
-C****
-C**** Calculate a density field on tracer grid, edge pressure
-C****     (not quite ok if K-1 is underground?)
-c NOTE: THIS IS AT LAYER BOTTOM, NOT LAYER TOP.
-      temp(:,:) = tf + agc(:,:,jk_temp)/(agc(:,:,jk_dpa)+teeny)
-      do l=2,lm
-        do j=1,jm
-          wtup = (plm(l-1)-pme(l))/(plm(l-1)-plm(l))
-          tedge = (1.-wtup)*temp(j,l-1) + wtup*temp(j,l)
-          agc(j,l,jk_rhoe) = idacc(ia_dga)*100.*pme(l)/(rgas*tedge)
-        enddo
-      enddo
-      l = 1
-      agc(:,l,jk_rhoe) = idacc(ia_dga)*100.*pme(l)/(rgas*temp(:,l))
 
 c
 c Transformed Eulerian Mean diagnostics
@@ -3103,6 +3160,44 @@ C     agc(1,l,jk_dyn_conv_eddy_geop)=-(AGC(2,l,JK_EDDNTGEO))
         enddo
       ENDDO
 
+C****
+C**** Calculate a density field on tracer grid, edge pressure
+C****     (not quite ok if K-1 is underground?)
+c NOTE: THIS IS AT LAYER BOTTOM, NOT LAYER TOP.
+
+      kk = 0
+      do k=1,kagcx
+        if(denom_gc(k)==jk_rhoedz) then
+          kk = kk + 1
+          inds(kk) = k
+        endif
+      enddo
+
+      temp(:,:) = tf + agc(:,:,jk_temp)/(agc(:,:,jk_dpa)+teeny)
+      do l=2,lm
+        do j=1,jm
+          wtup = (plm(l-1)-pme(l))/(plm(l-1)-plm(l))
+          tedge = (1.-wtup)*temp(j,l-1) + wtup*temp(j,l)
+          rhoe = 100.*pme(l)/(rgas*tedge)
+          delpe = wtup*(pme(l)-ple(l))
+     &     + (1.-wtup)*(pme(l-1)-pme(l))
+          agc(j,l,jk_rhoedz) = idacc(ia_dga)*delpe
+          agc(j,l,inds(1:kk)) = agc(j,l,inds(1:kk))*(delpe/rhoe)
+        enddo
+      enddo
+      l = 1
+      do j=1,jm
+        rhoe = 100.*pme(l)/(rgas*temp(j,l))
+        delpe = .5d0*(pme(l)-pme(l+1))
+        agc(j,l,jk_rhoedz) = idacc(ia_dga)*delpe
+        agc(j,l,inds(1:kk)) = agc(j,l,inds(1:kk))*(delpe/rhoe)
+      enddo
+
+c
+c copy pressure thickness to conditionally averaged output instance
+c
+      agc(:,:,jk_dpb2) = agc(:,:,jk_dpb)
+
 c
 c compute hemispheric/global means and vertical sums
 c
@@ -3118,8 +3213,19 @@ c
           hemis_gc(2,l,k) = sum(agc(j1:j2,l,k)*wtj(j1:j2,jg))
           hemis_gc(3,l,k) = .5*(hemis_gc(1,l,k)+hemis_gc(2,l,k))
         enddo
-        vmean_gc(jg:jm,1,k) = sum(agc(jg:jm,:,k),dim=2)
-        vmean_gc(jm+1:jm+3,1,k) = sum(hemis_gc(:,:,k),dim=2)
+        if(force_gc_vmean(k)) then
+          ! Note dsig is the wrong weight for layer-edge qtys.
+          ! It is used for the time being to match the behavior of JLMAP.
+          do j=jg,jm
+            vmean_gc(j,1,k) = sum(dsig(:)*agc(j,:,k))/sum(dsig)
+          enddo
+          do j=jm+1,jm+3
+            vmean_gc(j,1,k) = sum(dsig(:)*hemis_gc(j-jm,:,k))/sum(dsig)
+          enddo
+        else
+          vmean_gc(jg:jm,1,k) = sum(agc(jg:jm,:,k),dim=2)
+          vmean_gc(jm+1:jm+3,1,k) = sum(hemis_gc(:,:,k),dim=2)
+        endif
       enddo
       return
       end subroutine diaggc_prep

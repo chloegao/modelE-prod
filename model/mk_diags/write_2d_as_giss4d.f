@@ -129,9 +129,17 @@ c
 
         lname = vname
         status = nf_get_att_text(fid,varid,'long_name',lname)
+        do k=1,len_trim(lname)  ! remove extra NULL characters
+          if(iachar(lname(k:k)).eq.0) lname(k:k)=' '
+        enddo
         units = ''
         status = nf_get_att_text(fid,varid,'units',units)
-        if(status.eq.nf_noerr) units = ' ('//trim(units)//') '
+        if(status.eq.nf_noerr) then
+          do k=1,len_trim(units) ! remove extra NULL characters
+            if(iachar(units(k:k)).eq.0) units(k:k)=' '
+          enddo
+          units = ' ('//trim(units)//') '
+        endif
         title = trim(lname)//units
         status = nf_get_var_real(fid,varid,xout)
 c look for horizontal and vertical means

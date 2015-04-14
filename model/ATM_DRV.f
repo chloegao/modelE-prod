@@ -4,9 +4,10 @@
       USE TIMINGS, only : ntimemax,ntimeacc,timing,timestr
       USE Dictionary_mod
       use resolution, only : im,jm,lm,ls1,ptop
+      Use ATM_COM,    Only: MA,MAOLD,PMID,PMIDOLD
       USE MODEL_COM
       USE ATM_COM, only : p,qcl,qci
-      USE ATM_COM, only : MUs,MVs,ptold,ps,kea
+      USE ATM_COM, only : MUs,MVs,ps,kea
       Use DYNAMICS,   Only: nstep,nidyn,nfiltr,mfiltr,dt
       USE DOMAIN_DECOMP_ATM, only: grid
       use domain_decomp_atm, only: writei8_parallel
@@ -75,8 +76,9 @@ C****
 #endif
          IF (MODD5D.EQ.0) CALL DIAGCA (1)
 
-      PTOLD = P ! save for clouds
-C**** Initialize pressure for mass fluxes used by tracers and Q
+C**** Save MA and PMID before dynamics for Q advection and clouds
+        MAOLD(:,:,:) =   MA(:,:,:)
+      PMIDOLD(:,:,:) = PMID(:,:,:)
       PS (:,:)   = P(:,:)
 
 C**** Initialise total energy (J/m^2)
@@ -124,13 +126,11 @@ C**** Currently energy is put in uniformly weighted by mass
 
       call COMPUTE_WSAVE
 C**** Scale WM mixing ratios to conserve liquid water
-      DO L=1,LS1-1
       DO J=J_0,J_1
       DO I=I_0,I_1
-!       WM(I,J,L)=WM(I,J,L)* (PTOLD(I,J)/P(I,J))
-        QCL(I,J,L)=QCL(I,J,L)* (PTOLD(I,J)/P(I,J))
-        QCI(I,J,L)=QCI(I,J,L)* (PTOLD(I,J)/P(I,J))
-      END DO
+!         WM(I,J,:) =  WM(I,J,;) * (MAOLD(:,I,J) / MA(:,I,J))
+         QCL(I,J,:) = QCL(I,J,:) * (MAOLD(:,I,J) / MA(:,I,J))
+         QCI(I,J,:) = QCI(I,J,:) * (MAOLD(:,I,J) / MA(:,I,J))
       END DO
       END DO
       CALL QDYNAM  ! Advection of Q by integrated fluxes
@@ -504,7 +504,7 @@ C****
       USE RESOLUTION, only : im,jm,lm
       USE MODEL_COM, only :
      *      irand,idacc ,nday,dtsrc ,iyear1,itime,itimei,itimee
-     *     ,mdyn,mcnds,mrad,msurf,mdiag
+     *     ,mdyn,mcnds,mrad,msurf,mdiag, calendar
 #ifndef SCM
       USE DIAG_ZONAL, only : imlon
 #endif
@@ -535,6 +535,11 @@ C****
 #endif
 #ifdef USE_FVCORE
       USE FV_INTERFACE_MOD, only: fvstate,initialize
+#endif
+#ifndef SCM
+#ifndef CUBED_SPHERE
+      use UNRDRAG_COM, only: init_UNRDRAG
+#endif
 #endif
       IMPLICIT NONE
 !@var istart start(1-8)/restart(>8)  option
@@ -605,7 +610,7 @@ C****        tropospheric temperatures are changed by at most 1 degree C
      *       WRITE(6,*) 'Initial conditions were perturbed !!',IRANDI
       END IF
 
-      CALL CALC_AMPK(LM)
+      Call CALC_AMPK (LM)
 
 #ifdef TRACERS_ON
       if(istart.le.2) then
@@ -638,7 +643,7 @@ C****
       call sync_param( "USE_UNR_DRAG", USE_UNR_DRAG )
 #ifndef SCM
 #ifndef CUBED_SPHERE
-      if (USE_UNR_DRAG==1) CALL init_UNRDRAG
+      if (USE_UNR_DRAG==1) CALL init_UNRDRAG(calendar)
 #endif
 #endif
 
@@ -743,6 +748,7 @@ C****
 c Driver to allocate arrays that become dynamic as a result of
 c set-up for MPI implementation
       USE DOMAIN_DECOMP_ATM, ONLY : grid,init_grid
+      use MODEL_COM, only: calendar
 #ifdef GLINT2
       USE DOMAIN_DECOMP_ATM, ONLY : glint2
       use MpiSupport_mod, only: ROOT_PROCESS
@@ -756,7 +762,9 @@ c set-up for MPI implementation
 #endif
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       use TRACER_COM, only: initTracerCom, alloc_tracer_com
+#ifndef TRACERS_ATM_ONLY
       use ghy_tracers, only: initGhyTracers
+#endif
 #endif
 #ifdef TRACERS_AEROSOLS_SEASALT
       use tracers_seasalt, only: alloc_seasalt_sources
@@ -772,7 +780,9 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
 
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       call initTracerCom
+#ifndef TRACERS_ATM_ONLY
       call initGhyTracers
+#endif
 #endif
 
 #ifdef GLINT2
@@ -896,7 +906,7 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
       call def_rsf_flammability(fid)
 #endif
 #ifdef TRACERS_ON
-      call def_rsf_tracer (fid)
+      call tracerIO(fid, 'define')
 #endif
       call def_rsf_subdd  (fid)
       call def_rsf_fluxes (fid)
@@ -904,6 +914,7 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
       end subroutine def_rsf_atmvars
 
       subroutine new_io_atmvars(fid,iorw)
+      use model_com, only: ioread, iowrite
       implicit none
       integer, intent(in) :: fid,iorw
       call new_io_atm    (fid,iorw)
@@ -930,7 +941,13 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
       call new_io_flammability(fid,iorw)
 #endif
 #ifdef TRACERS_ON
-      call new_io_tracer (fid,iorw)
+      select case (iorw)
+      case (ioread)
+         call tracerIO(fid, 'read_dist')
+      case (iowrite)
+         call tracerIO(fid, 'write_dist')
+      end select
+
 #endif
       call new_io_subdd  (fid,iorw)
       call new_io_fluxes (fid,iorw)

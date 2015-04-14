@@ -864,6 +864,12 @@ module RunTimeControls_mod
   logical, parameter :: this_part_is_not_ready = .false.
 #endif
 
+#if defined(TRACERS_AEROSOLS_SEASALT)
+  logical, parameter :: tracers_aerosols_seasalt = .true.
+#else
+  logical, parameter :: tracers_aerosols_seasalt = .false.
+#endif
+
 #if defined(TRACERS_AEROSOLS_Koch)
   logical, parameter :: tracers_aerosols_koch = .true.
 #else
@@ -880,12 +886,6 @@ module RunTimeControls_mod
   logical, parameter :: tracers_aerosols_soa = .true.
 #else
   logical, parameter :: tracers_aerosols_soa = .false.
-#endif
-
-#if defined(TRACERS_AEROSOLS_SEASALT)
-  logical, parameter :: tracers_aerosols_seasalt = .true.
-#else
-  logical, parameter :: tracers_aerosols_seasalt = .false.
 #endif
 
 #if defined(TRACERS_AEROSOLS_VBS)
@@ -1330,6 +1330,12 @@ module RunTimeControls_mod
   logical, parameter :: obio_wspdf = .true.
 #else
   logical, parameter :: obio_wspdf = .false.
+#endif
+
+#if defined(OCN_CFC)
+  logical, parameter :: ocn_cfc = .true.
+#else
+  logical, parameter :: ocn_cfc = .false.
 #endif
 
 

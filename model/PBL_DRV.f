@@ -891,12 +891,10 @@ C****
 
         DO J=J_0,J_1
         DO I=I_0,I_1
-#ifndef SCM /* scm set these already */
           atmsrf%usavg(i,j) = ua(1,i,j)
           atmsrf%vsavg(i,j) = va(1,i,j)
           atmsrf%wsavg(i,j) =
      &         sqrt(atmsrf%usavg(i,j)**2 + atmsrf%vsavg(i,j)**2)
-#endif
 C**** SET SURFACE MOMENTUM TRANSFER TAU0
           atmsrf%TAUAVG(I,J)=1.*CDM*atmsrf%WSAVG(I,J)**2  ! air density = 1 kg/m3
 C**** Initialize surface friction velocity

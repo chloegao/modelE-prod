@@ -11,12 +11,13 @@ module ParameterizedEarthOrbit_mod
   private
 
   public :: ParameterizedEarthOrbit
+  public :: newParameterizedEarthOrbit
 
   type, extends(AbstractOrbit) :: ParameterizedEarthOrbit
     private
     class (AbstractCalendar), allocatable :: calendar
 
-    integer :: offsetYear = -1
+    integer :: yearBeforePresent = -1
 
     type (BaseTime) :: timeAtPeriapsis    ! seconds
     type (BaseTime) :: timeAtVernalEquinox
@@ -52,19 +53,22 @@ module ParameterizedEarthOrbit_mod
 
 contains
 
-   function newParameterizedEarthOrbit(referenceYear) result(orbit)
+   function newParameterizedEarthOrbit(yearBeforePresent) result(orbit)
       use BaseTime_mod
       use TimeInterval_mod
       use Rational_mod
       type (ParameterizedEarthOrbit) :: orbit
-      real*8, intent(in) :: referenceYear
+      integer, intent(in) :: yearBeforePresent
+      
 
+      call orbit%setMeanDistance(1.0_WP) ! 1 A.U.
       orbit%timeAtVernalEquinox = newBaseTime(Rational(79*24+12)*3600)
       call orbit%setTimeAtPeriapsis(newBaseTime(Rational(2*24+5)*3600))
 
       call orbit%setSiderealOrbitalPeriod(TimeInterval(Rational(365*24*3600)))
       call orbit%setSiderealRotationPeriod(TimeInterval(Rational(24*3600 * 365,366)))
-      call orbit%setYear(referenceYear) ! default
+
+      orbit%yearBeforePresent = yearBeforePresent
 
    end function newParameterizedEarthOrbit
 
@@ -73,7 +77,20 @@ contains
     class (ParameterizedEarthOrbit), intent(inout) :: this
     real(kind=WP), intent(in) :: year
 
-    call orbpar(year, this%eccentricity, this%obliquity, this%longitudeAtPeriapsis)
+    real(kind=WP) :: pYear
+
+    pYear = year - this%yearBeforePresent
+    call orbpar(pYear, this%eccentricity, this%obliquity, this%longitudeAtPeriapsis)
+
+    if (this%getVerbose()) then
+       write(6,*) 'Set orbital parameters for year ',pyear,' (CE)'
+       if (this%yearBeforePresent /= 0) write(6,*) 'offset by', &
+            &  this%yearBeforePresent,' years from model year'
+       write(6,*) "   Eccentricity: ", this%getEccentricity()
+       write(6,*) "   Obliquity (degs): ",this%getObliquity()
+       write(6,*) "   Precession (degs from ve): ", &
+            &         this%getLongitudeAtPeriapsis()
+    end if
 
   end subroutine setYear
   

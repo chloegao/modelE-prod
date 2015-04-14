@@ -1,5 +1,10 @@
+!This file contains two modules, qsort_c_module and canopyrad.
+
       module qsort_c_module
-!@sum Sort a serie in descending order
+!@sum Module with routines to sort a series in descending order
+!@auth W.Yang
+
+#define DEBUG
 
       implicit none
       public :: QsortC
@@ -58,8 +63,11 @@
       end module qsort_c_module
 
       module canopyrad
-!@sum Routines for calculating canopy radiation and albedo.
+!@sum Routines for calculating canopy radiation and albedo with the
+!@+   Analytical Clumped Two-Stream (ACTS) model (Ni-Meister et al. 2010).
+!@+   Is called by canopygort module to provide light for photosynthesis.
 !@auth W.Ni-Meister
+!@+   UNDER DEVELOPMENT
 
       !Ent MODULES TO USE
       use ent_const
@@ -69,7 +77,7 @@
       private
       save
 
-      public recalc_radpar_cell, get_patchalbedo, recalc_radpar
+      public recalc_radpar_cell, recalc_radpar
       public get_canopy_rad, GORT_clumping, TwoStream       
       public :: gort_input
       public :: pft_pstate_type
@@ -101,77 +109,38 @@
       ! pft physical state variables structure
       !----------------------------------------------------
       type pft_pstate_type
-        real*8, pointer :: albd(:,:)    !surface albedo (direct)                       (numrad)
-        real*8, pointer :: albi(:,:)    !surface albedo (indirect)                     (numrad)
-        real*8, pointer :: fabd(:,:)    !flux absorbed by veg per unit direct flux     (numrad)
-        real*8, pointer :: fabi(:,:)    !flux absorbed by veg per unit diffuse flux    (numrad)
-        real*8, pointer :: ftdd(:,:)    !down direct flux below veg per unit dir flx   (numrad)
-        real*8, pointer :: ftid(:,:)    !down diffuse flux below veg per unit dir flx  (numrad)
-        real*8, pointer :: ftii(:,:)    !down diffuse flux below veg per unit dif flx  (numrad)
-        real*8, pointer :: frid(:,:)    !up diffuse flux below veg per unit dir flx    (numrad)
-        real*8, pointer :: frii(:,:)    !up diffuse flux below veg per unit dif flx    (numrad) 
+        real*8, pointer :: albd(:,:)    !surface albedo (direct)                       (N_BANDS)
+        real*8, pointer :: albi(:,:)    !surface albedo (indirect)                     (N_BANDS)
+        real*8, pointer :: fabd(:,:)    !flux absorbed by veg per unit direct flux     (N_BANDS)
+        real*8, pointer :: fabi(:,:)    !flux absorbed by veg per unit diffuse flux    (N_BANDS)
+        real*8, pointer :: ftdd(:,:)    !down direct flux below veg per unit dir flx   (N_BANDS)
+        real*8, pointer :: ftid(:,:)    !down diffuse flux below veg per unit dir flx  (N_BANDS)
+        real*8, pointer :: ftii(:,:)    !down diffuse flux below veg per unit dif flx  (N_BANDS)
+        real*8, pointer :: frid(:,:)    !up diffuse flux below veg per unit dir flx    (N_BANDS)
+        real*8, pointer :: frii(:,:)    !up diffuse flux below veg per unit dif flx    (N_BANDS) 
         real*8, pointer :: gdir(:)      !leaf projection in solar direction (0 to 1)
         real*8, pointer :: omega(:,:)   !fraction of intercepted radiation that is scattered (0 to 1)
-        real*8, pointer :: isha(:,:)    !shaded flux per unit incident flux            (numrad)         
-        real*8, pointer :: isun(:,:)    !sunlit flux per unit incident flux            (numrad)         
+        real*8, pointer :: isha(:,:)    !shaded flux per unit incident flux            (N_BANDS)         
+        real*8, pointer :: isun(:,:)    !sunlit flux per unit incident flux            (N_BANDS)         
       end type pft_pstate_type
 
       real*8 :: K
       !real*8, parameter :: PI=3.14159265
       real*8, parameter :: ang_dif = 1.0071   ! 57.7 deg in rad
-      integer, parameter :: numrad      =   2   ! number of solar radiation bands: vis, nir
+      real*8, parameter :: dz_gin = 0.1       ! init delta z for profile
+      real*8, parameter :: lai_thres = 0.001    ! don't calculate if lower
+      ! integer, parameter :: N_BANDS      =   2   ! number of solar radiation bands: vis, nir
       integer, parameter :: lbp = 1
-      integer, parameter :: ubp = 1
-      integer, parameter :: num_vegsol = ubp - lbp + 1
-      integer, parameter :: num_pft = 16
+      integer :: ubp 
+      integer :: num_vegsol 
+      ! integer, parameter :: N_PFT = 16
  
       contains
       !*********************************************************************
       
-      subroutine get_patchalbedo(pp)
-!@sum !* Return albedo for patch.
-      !* This version reads in vegetation structure from GISS data set.
-      !use ent_GISSveg, only : GISS_veg_albedo
-      implicit none
-!!!       integer :: jday  !Day of year. - not needed for real simulation
-      !type(timestruct) :: tt
-      type(patch),pointer :: pp
-      !------
-
-      !---------------------------------------------------------------
-      !* GISS version for calculating seasonal aalbveg.
-      !* Assumes each GISS grid cell vegetation fraction corresponds to
-      !* one patch, which contains one cohort, which gives the albedo.
-      !  Should be same as assigning
-      !  pp%albedo = aalbveg(i,j)
-      !---------------------------------------------------------------
-
-      !* Prescribed albedo is passed in.
- !     call GISS_veg_albedo(pp%cellptr%latj,pp%tallest%pft,
- !    &     jday, pp%albedo)
-
-
-      !* Prognostic albedo is calculated here.
-      !---------------------------------------------------------------
-      !* Ent template for GORT clumping index canopy radiative transfer.
-      !---------------------------------------------------------------
-!      do cop=pp%tallest
-        !Get albedo of cop%pft for given tt
-        !   - Summarize foliage density in layers
-        !* CALCULATE PATCH ALBEDO USING GORT CLUMPING INDEX
-!        cop = cop%shorter
-!        if (.NOT.ASSOCIATED(cop)) then exit
-!      end do
-
-      end subroutine get_patchalbedo
-
-
-      !*********************************************************************
-
-
       subroutine recalc_radpar_cell(pptr)
 !@sum Calculate canopy radiation geometrical parameters following structural
-!@sum changes.  At patch level.
+!@sum changes.  At patch level.  PLACE HOLDER.
 
       type(entcelltype) :: pptr
 
@@ -242,143 +211,259 @@
       end subroutine calc_canopy_rad
       
       !*********************************************************************
-      subroutine get_canopy_rad(pptr)
-
+      subroutine get_canopy_rad(pptr, IPAR, Id)
+      !ACTS canopy radiation.
+      !UNDER DEVELOPMENT
+      use ent_pfts, only : rhol, taul, rhos, taus
       type(patch),pointer :: pptr
       ! real*8 :: h               !Height in canopy
       
+      real*8 :: IPAR, tempCos 
       real*8 :: Id, Ii
+      real*8 :: dz
+      real*8, parameter :: mpe = 1.e-06     ! prevents overflow for division by zero
+
+      integer :: i, n_height_level, N2
+      integer :: fp,g,c,p                ! indices
+      integer :: ib                      ! band index
+      integer :: len
+
+!      real*8 :: rhol(N_PFT,N_BANDS), taul(N_PFT,N_BANDS) 
+!      real*8 :: rhos(N_PFT,N_BANDS), taus(N_PFT,N_BANDS)
+      real*8 :: tran(2)
+
       real*8, dimension(:), pointer :: ffp, rdfp, rifp, sunlit, shaded
       real*8, dimension(:), pointer :: height_levels, vz, crad_heights
       real*8, dimension(:), pointer :: T_sun, T_sha, I_sun, I_sha
-      integer :: i, n_height_level, N2
+      real*8, dimension(:), pointer :: h_coh
       
-      integer :: filter_vegsol(num_vegsol), ivt(num_vegsol) 
-      integer :: pcolumn(num_vegsol)
-      real*8 :: vai(num_vegsol) 
-      real*8 :: rho(num_vegsol,numrad), tau(num_vegsol,numrad)
-      real*8 :: coszen(num_vegsol), esai(num_vegsol), elai(num_vegsol)
-      real*8 :: rhol(num_pft,numrad), taul(num_pft,numrad) 
-      real*8 :: rhos(num_pft,numrad), taus(num_pft,numrad)
+      real*8, dimension(:), pointer :: vai, coszen, esai, elai, wl, ws
+      real*8, dimension(:,:), pointer :: rho, tau
+      integer, dimension(:), pointer :: filter_vegsol, ivt, pcolumn
+
+!      integer :: filter_vegsol(num_vegsol), ivt(num_vegsol) 
+!      integer :: pcolumn(num_vegsol)
+!      real*8 :: vai(num_vegsol) 
+!      real*8 :: rho(num_vegsol,N_BANDS), tau(num_vegsol,N_BANDS)
+!      real*8 :: coszen(num_vegsol), esai(num_vegsol), elai(num_vegsol)    
+!      real*8 :: wl(lbp:ubp)                 ! fraction of LAI+SAI that is LAI
+!      real*8 :: ws(lbp:ubp)                 ! fraction of LAI+SAI that is SAI
 
       type(pft_pstate_type) :: sout
+      type(gort_input), dimension(:), pointer :: gin
     
-      integer  :: fp,g,c,p                ! indices
-      integer  :: ib                      ! band index
-      integer  :: len
-      real*8, parameter :: mpe = 1.e-06     ! prevents overflow for division by zero
-      real*8 :: wl(lbp:ubp)                 ! fraction of LAI+SAI that is LAI
-      real*8 :: ws(lbp:ubp)                 ! fraction of LAI+SAI that is SAI
-      real*8 :: itot(2)                     ! red and nir
-      real*8 :: reflect(2), tran(2), summ(2)
-      real*8 :: dz
-    
-      data (ivt(i),i=1,num_vegsol) /1/
-      data (pcolumn(i),i=1,num_vegsol) /num_vegsol*1/    ! 1-soil 2-snow
-      data (elai(i),i=1,num_vegsol) /num_vegsol*1.2/
-      data (esai(i),i=1,num_vegsol) /num_vegsol*1/
-      data (rhol(i,1),i=1,16) /0.07, 0.07, 0.07, 0.10, 0.10, 0.10, 
-     &   0.10, 0.10, 0.07, 0.10, 0.10, 0.11, 0.11, 0.11, 0.11, 0.11/
-      data (rhol(i,2),i=1,16) /0.35, 0.35, 0.35, 0.45, 0.45, 0.45,
-     &   0.45, 0.45, 0.35, 0.45, 0.45, 0.58, 0.58, 0.58, 0.58, 0.58/
-      data (rhos(i,1),i=1,16) /0.16, 0.16, 0.16, 0.16, 0.16, 0.16, 
-     &    0.16, 0.16, 0.16, 0.16, 0.16, 0.36, 0.36, 0.36, 0.36, 0.36/
-      data (rhos(i,2),i=1,16) /0.39, 0.39, 0.39, 0.39, 0.39, 0.39, 
-     &    0.39, 0.39, 0.39, 0.39, 0.39, 0.58, 0.58, 0.58, 0.58, 0.58/
-      data (taul(i,1),i=1,16) /0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 
-     &   0.05, 0.05, 0.05, 0.05, 0.05, 0.07, 0.07, 0.07, 0.07, 0.07/
-      data (taul(i,2),i=1,16) /0.10, 0.10, 0.10, 0.25, 0.25, 0.25,  
-     &   0.25, 0.25, 0.10, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25/
-      data (taus(i,1),i=1,16) /0.001, 0.001, 0.001, 0.001, 0.001, 
-     &   0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.220, 0.220, 
-     &   0.220, 0.220, 0.220/
-      data (taus(i,2),i=1,16) /0.001, 0.001, 0.001, 0.001, 0.001, 
-     &   0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.380, 0.380, 
-     &   0.380, 0.380, 0.380/
+!      data (ivt(i),i=1,num_vegsol) /1/
+!      data (pcolumn(i),i=1,num_vegsol) /num_vegsol*1/    ! 1-soil 2-snow
+!      data (elai(i),i=1,num_vegsol) /num_vegsol*1.2/
+!      data (esai(i),i=1,num_vegsol) /num_vegsol*1/
 
-      Id = 1.0
+!      if (.NOT.ASSOCIATED(pptr)) then
+!         print *,'In GORT_clumping: pptr=NULL'
+!         stop
+!      endif
+
       Ii = 1 - Id
-      call GORT_clumping(pptr, height_levels, ffp, rdfp, rifp, sunlit, 
-     &    shaded, vz)
-    
-      ! Weight reflectance/transmittance by lai and sai
-      ! Only perform on vegetated pfts where coszen > 0
+      if (Ii .eq. 1.d0) then
+         tempCos = pptr%cellptr%CosZen !Save input CosZen
+         pptr%cellptr%CosZen = 0.5343  !Substitute diffusive angle
+      end if 
+      if (IPAR.ge.LOW_PAR_LIMIT) then  !Only adjust CosZen here
+         !Only call canopy rad if there's light.
+         !Check for horizon or night, and set bound, because clumping 
+         !calculation uses tan(zenith). Only near-horizon times can pose
+         !a problem if there is light when the sun is at or below the horizon.
+         !Otherwise, should check for zenith>=PI/2 and zenith<=1.5PI.
+      ! More operations are as below
+         if (pptr%cellptr%CosZen.lt.0.001d0) then
+            pptr%cellptr%CosZen = 0.001d0  
+         endif
+      endif
 
+      call geo_to_gin(pptr, gin, h_coh)
+      if (.NOT.ASSOCIATED(gin)) then ! bare soil or LAI=0
+          !print *, 'lai zero'
+         call stop_model('GORT_clumping: Bare soil',255)
+      endif 
+
+      ubp = size(gin)
+      num_vegsol = ubp - lbp + 1
+
+      allocate(filter_vegsol(num_vegsol))
+      allocate(ivt(num_vegsol)) 
+      allocate(pcolumn(num_vegsol))
+      allocate(vai(num_vegsol)) 
+      allocate(rho(num_vegsol,N_BANDS))
+      allocate(tau(num_vegsol,N_BANDS))
+      allocate(coszen(num_vegsol))
+      allocate(esai(num_vegsol))
+      allocate(elai(num_vegsol))
+      allocate(wl(num_vegsol))                 ! fraction of LAI+SAI that is LAI
+      allocate(ws(num_vegsol))                 ! fraction of LAI+SAI that is SAI
+ 
+      ! need further update of elai, esai, pcolumn
       do i=1, num_vegsol
-         filter_vegsol(i) = i
-         coszen(i) = pptr%cellptr%CosZen
+         ivt(i) = gin(i)%pft
+         pcolumn(i) = 1
+         elai(i) = 1.2
+         esai(i) = 1
       end do
 
-      do fp = 1,num_vegsol
-         p = filter_vegsol(fp)
-         vai(p) = elai(p) + esai(p)
-         wl(p) = elai(p) / max( vai(p), mpe )
-         ws(p) = esai(p) / max( vai(p), mpe )
-      end do
+      ! print *, 'before GORT_clumping...'
+      if (IPAR.ge.LOW_PAR_LIMIT) then  !Only call canopy rad if there's light.
+         !Check for horizon or night, and set bound, because clumping 
+         !calculation uses tan(zenith). Only near-horizon times can pose
+         !a problem if there is light when the sun is at or below the horizon.
+         !Otherwise, should check for zenith>=PI/2 and zenith<=1.5PI.
+         call GORT_clumping(pptr, height_levels, ffp, rdfp, rifp
+     &        , sunlit, shaded, vz, gin, h_coh)
+         if (.NOT.ASSOCIATED(height_levels)) then ! bare soil or LAI=0
+            call stop_model( 'LAI=0',255)  !Trunks
+         endif 
+         ! print *, 'after GORT_clumping...'
 
-      do ib = 1, numrad
-         do fp = 1,num_vegsol
-            p = filter_vegsol(fp)
-            rho(p,ib) = max( rhol(ivt(p),ib)*wl(p) + 
-     &        rhos(ivt(p),ib)*ws(p), mpe )
-            tau(p,ib) = max( taul(ivt(p),ib)*wl(p) + 
-     &        taus(ivt(p),ib)*ws(p), mpe )
+         ! Weight reflectance/transmittance by lai and sai
+         ! Only perform on vegetated pfts where coszen > 0
+
+         do i=1, num_vegsol
+            filter_vegsol(i) = i
+            coszen(i) = pptr%cellptr%CosZen
+            p = filter_vegsol(i)
+            vai(p) = elai(p) + esai(p)
+            wl(p) = elai(p) / max( vai(p), mpe )
+            ws(p) = esai(p) / max( vai(p), mpe )
          end do
-      end do
 
-      call TwoStream(lbp, ubp, filter_vegsol, num_vegsol, pcolumn, 
-     &    coszen, Id, height_levels, rdfp, rifp, rho, tau, sout)
+         do ib = 1, N_BANDS
+            do fp = 1,num_vegsol
+               p = filter_vegsol(fp)
+               rho(p,ib) = max( rhol(ivt(p),ib)*wl(p) + 
+     &              rhos(ivt(p),ib)*ws(p), mpe )
+               tau(p,ib) = max( taul(ivt(p),ib)*wl(p) + 
+     &              taus(ivt(p),ib)*ws(p), mpe )
+            end do
+         end do
+
+#ifdef ENT_STANDALONE_DIAG
+         write(1079,*) lbp,ubp,filter_vegsol(1),num_vegsol,pcolumn(1)
+     &        ,coszen(1),Id,size(height_levels),rho(1,1),tau(1,1)
+#endif
+
+         call TwoStream(lbp, ubp, filter_vegsol, num_vegsol, ivt, 
+     &        pcolumn, coszen, Id, height_levels, rdfp, rifp, rho, tau,
+     &        sout)
+         
+         N2 = size(height_levels)
+         do ib = 1, N_BANDS
+            pptr%albedo(ib) = Id * sout%albd(1,ib) 
+     &           + Ii * sout%albi(1,ib)
+         end do
+         
+         tran(1) = Id * (sout%ftdd(N2,1) + sout%ftid(N2,1))
+     &        + Ii * sout%ftii(N2,1)
+         tran(2) = Id * (sout%ftdd(N2,2) + sout%ftid(N2,2))
+     &        + Ii * sout%ftii(1,2)
+         ! pptr%TRANS_SW = tran(1)
+         pptr%TRANS_SW = tran(1) * exp(-1 * vz(1))
+         pptr%crad%LAI => ffp
+         allocate(T_sun(N2))
+         allocate(T_sha(N2))
+         allocate(I_sun(N2))
+         allocate(I_sha(N2))
+         
+         do i = 1, N2
+            T_sun(i) = IPAR*(sout%ftdd(i,1) + sout%ftid(i,1))
+            T_sha(i) = IPAR*sout%ftii(i,1)
+            I_sun(i) = IPAR*sout%isun(i,1)
+            I_sha(i) = IPAR*sout%isha(i,1)
+         end do
+
+      else  !IPAR is less than LOW_LIGHT_LIMIT
+         sunlit = 0.d0
+         shaded = 0.d0
+         N2 = 1
+         do ib = 1, N_BANDS
+            pptr%albedo(ib) = 0.d0
+         end do
+         pptr%TRANS_SW = tran(1) * exp(-1 * vz(1))
+         pptr%crad%LAI => ffp
+         allocate(T_sun(N2))
+         allocate(T_sha(N2))
+         allocate(I_sun(N2))
+         allocate(I_sha(N2))
+         do i = 1, N2
+            T_sun(i) = 0.d0
+            T_sha(i) = 0.d0
+            I_sun(i) = 0.d0
+            I_sha(i) = 0.d0
+         end do
+      endif !if IPAR.ge.LOW_LIGHT_LIMIT
+
+#ifdef ENT_STANDALONE_DIAG
+      write(1080,*) Id,Ii,pptr%albedo(1),pptr%albedo(2),
+     & tran(1),tran(2),I_sun(1),I_sha(1)
+      write(1081,*) 'T_sun', T_sun
+      write(1081,*) 'T_sha', T_sha
+#endif
       
- 	N2 = size(crad_heights)
-      do ib = 1, numrad
-         pptr%albedo(ib) = Id * sout%albd(N2,ib) + Ii * sout%albi(N2,ib)
-      end do
-      
-      tran(1) = Id * (sout%ftdd(1,1) + sout%ftid(1,1)) + Ii 
-     &    * sout%ftii(1,1)
-      tran(2) = Id * (sout%ftdd(1,2) + sout%ftid(1,2)) + Ii 
-     &    * sout%ftii(1,2)
-      pptr%TRANS_SW = 0.5 * tran(1) + 0.5 * tran(2)
-      pptr%TRANS_SW = pptr%TRANS_SW * exp(-1 * vz(1))
+      pptr%crad%f_sun => sunlit
+      pptr%crad%f_sha => shaded
+      pptr%crad%T_sun => T_sun
+      pptr%crad%T_sha => T_sha
+      pptr%crad%I_sun => I_sun
+      pptr%crad%I_sha => I_sha
 
-      pptr%crad%LAI = ffp
-      allocate(T_sun(N2))
-      allocate(T_sha(N2))
-      allocate(I_sun(N2))
-      allocate(I_sha(N2))
+      !deallocate(T_sun)
+      !deallocate(T_sha)
+      !deallocate(I_sun)
+      !deallocate(I_sha)
+      !deallocate(sunlit)
+      !deallocate(shaded)
+      !deallocate(ffp)
+      !deallocate(rdfp)
+      !deallocate(rifp)
+      !deallocate(height_levels)
+      !deallocate(vz)
+      !deallocate(crad_heights)
+#ifdef ENT_STANDALONE_DIAG
+      write(1081,*) 'crad%T_sun', pptr%crad%T_sun
+      write(1081,*) 'crad%T_sha', pptr%crad%T_sha
+#endif
 
-      do i = 1, N2
-         T_sun(i) = sout%ftdd(i,1) + sout%ftid(i,1)
-         T_sha(i) = sout%ftii(i,1)
-         I_sun(i) = sout%isun(i,1)
-         I_sha(i) = sout%isha(i,1)
-      end do
 
-      pptr%crad%T_sun = T_sun
-      pptr%crad%T_sha = T_sha
-      pptr%crad%I_sun = I_sun
-      pptr%crad%I_sha = I_sha
-
-      deallocate(T_sun)
-      deallocate(T_sha)
-      deallocate(I_sun)
-      deallocate(I_sha)
+      if (Ii .eq. 1.d0) then
+         pptr%cellptr%CosZen = tempCos
+      end if
 
       end subroutine get_canopy_rad
 
       !*********************************************************************
       subroutine GORT_clumping(pptr, height_levels, ffp, rdfp, rifp, 
-     &   sunlit, shaded, vz)
+     &   sunlit, shaded, vz, gin, h_coh)
 !@sum Calculate the GORT clumping index in canopy layers and save into
 !@sum variable ppt%crad
+!@sum Requirements:  pptr cannot be NULL or bare soil -- check before call.
       type(patch), pointer :: pptr
+      real*8, dimension(:), pointer :: height_levels
+      real*8, dimension(:), pointer :: ffp, rdfp, rifp
+      real*8, dimension(:), pointer :: sunlit, shaded, vz 
+      !--- Local -------
       type(gort_input) ::  gin1  ! input structure for gort model
       type(gort_input), dimension(:), pointer :: gin
+      real*8, dimension(:), pointer :: h_coh
       integer :: num_profiles
-      real*8, dimension(:), pointer :: height_levels, ffp, rdfp, rifp
-      real*8, dimension(:), pointer :: sunlit, shaded, vz 
       
-      call geo_to_gin(pptr, gin)
+!      if (.NOT.ASSOCIATED(pptr)) then
+!         print *,'In GORT_clumping: pptr=NULL'
+!         stop
+!      endif
+
+      ! moved to get_canopy_rad()
+!      call geo_to_gin(pptr, gin, h_coh)
+!      if (.NOT.ASSOCIATED(gin)) then ! bare soil or LAI=0
+!          !print *, 'lai zero'
+!         call stop_model('GORT_clumping: Bare soil',255)
+!      endif 
+
       num_profiles = size(gin)
       if (num_profiles .eq. 1.d0) then
           gin1%dens_tree = gin(1)%dens_tree
@@ -392,75 +477,104 @@
           gin1%pft = gin(1)%pft
           gin1%LAI = gin(1)%LAI
           gin1%dbh = gin(1)%dbh
+          ! print *, 'before run_single_gort ...'
+          ! print *, "gin(1)%dens_foliage is ", gin(1)%dens_foliage 
           call run_single_gort(gin1, pptr, height_levels, ffp, rdfp, 
-     &        rifp, sunlit, shaded, vz)
+     &        rifp, sunlit, shaded, vz, h_coh)
       else
+          ! print *, 'before run_conveolute_gort ...'
           call run_convolute_gort(gin, pptr, height_levels, ffp, rdfp, 
-     &        rifp, sunlit, shaded, vz)
+     &        rifp, sunlit, shaded, vz, h_coh)
       endif
       
-      height_levels = pptr%crad%heights
+      ! height_levels = pptr%crad%heights
+      ! deallocate(h_coh)
       
       end subroutine GORT_clumping
 
       !*********************************************************************
 
-      subroutine run_single_gort(gin, pptr, height_levels, fp, rdfp, 
-     &    rifp, sunlit, shaded, vz)
-!      subroutine run_single_gort(gin, direct_light_ratio, ivt, height_levels,        &
-!            fp, rdfp, rifp, transmit, sunlit, shaded)
+      subroutine run_single_gort(gin, pptr, crad_heights, fp, rdfp, 
+     &    rifp, sunlit, shaded, vz, h_coh)
+!      subroutine run_single_gort(gin, direct_light_ratio, ivt, height_levels,
+!     &        fp, rdfp, rifp, transmit, sunlit, shaded)
 
+      use ent_pfts, only : pfpar
       ! Input
       type(gort_input) ::  gin  ! input structure for gort model
       type(patch), pointer :: pptr
+      ! Output
+      real*8, dimension(:), pointer :: crad_heights 
+      real*8, dimension(:), pointer :: fp, rdfp, rifp
+      real*8, dimension(:), pointer :: sunlit     ! sunlit leaf area fraction
+      real*8, dimension(:), pointer :: shaded     ! shaded leaf area fraction
+      real*8, dimension(:), pointer :: vz
+      real*8, dimension(:), pointer :: h_coh
+      !---- Local ---
+      real*8, dimension(:), pointer :: efp
 
       integer :: N_height_level, N2
       integer :: ilevel, jlevel, tmpl
       real*8 :: clumpd, clumpi
-      real*8, dimension(:), pointer :: fp, rdfp, rifp, efp, vz, fpt
-      real*8, dimension(:), pointer :: height_levels, crad_heights, vzt 
-      real*8, dimension(:), pointer :: sunlit     ! sunlit leaf area fraction
-      real*8, dimension(:), pointer :: shaded     ! shaded leaf area fraction
+      real*8, dimension(:), pointer :: height_levels
+      real*8, dimension(:), pointer :: fpt, vzt
       real*8 :: tmp_zenith
+      type(cohort),pointer :: cop
 
       ! ----------------------------------------------------------
       ! DEBUG
-      ! print *, 'I am in run_single_gort ..........'
+      !print *, 'I am in run_single_gort ..........'
    
-     
+      cop => pptr%tallest
       K = get_K(cos(gin%zenith),gin%pft)
 
       ! Check the validity of the inputs
-      call check_inputs(gin)
+      if (pfpar(gin%pft)%woody) then  !## NEED TO CHECK FOR NON-WOODY, TOO
+         call check_inputs(gin)
+      endif
 
       ! define the vertical layers, 
       ! first at interval of 1m, then rescale to input height level 
       call get_height_level(gin, height_levels)
       N_height_level = size(height_levels)
       allocate(fpt(N_height_level))
+      allocate(vzt(N_height_level)) 
+      !print *, 'before foliage profile' 
       call get_foliage_profile(gin,height_levels,fpt,vzt)
-      call layering(pptr,height_levels,fpt, gin%delta_z)
-
+      call layering(pptr%crad,height_levels,fpt,gin%delta_z,h_coh,
+     &               N2)
+#ifdef ENT_STANDALONE_DIAG
+      print *, 'N2=', N2
+#endif
+      ! N2 = size(pptr%crad%heights)
+      !print *, 'before allocat crad'
+      allocate(crad_heights(N2))
+      !print *, 'after allocat crad'
       crad_heights = pptr%crad%heights
-      N2 = size(crad_heights)
+      ! N2 = size(crad_heights)
+      !print *, 'after set crad'
 
       ! get intermediate variables, clump and fp
       allocate(fp(N2))
       allocate(rdfp(N2))
       allocate(rifp(N2))
       allocate(efp(N2))
-	allocate(vz(N2))
-      
+      allocate(vz(N2))
+      !print *, 'after allocat vz'
+ 
       ! rescale to input height level
       do ilevel = 1, N2
          do jlevel = 1, N_height_level
-            if (crad_heights(ilevel) .ge. height_levels(jlevel)) then
+            if (crad_heights(ilevel) .le. height_levels(jlevel)) then
                tmpl = jlevel
-	    end if
-	 end do
-	 fp(ilevel) = sum(fpt(tmpl:N_height_level))*gin%delta_z
-       vz(ilevel) = vzt(tmpl)
+               !print *, 'jlevel=', jlevel
+               exit
+            end if
+         end do
+         fp(ilevel) = sum(fpt(tmpl:N_height_level))*gin%delta_z
+         vz(ilevel) = vzt(tmpl)
       end do
+      !print *, 'N_height_level=', N_height_level
       clumpd = get_analytical_clump(gin)
       tmp_zenith=gin%zenith
       gin%zenith = ang_dif
@@ -471,68 +585,81 @@
       efp = K * clumpd * fp
       rdfp = clumpd * fp
       rifp = clumpi * fp
-      
+
       allocate(sunlit(N2))
       allocate(shaded(N2))
       sunlit = T(efp, gin%zenith)
       shaded = 1 - sunlit
+#ifdef ENT_STANDALONE_DIAG
+      write(1078,*) "heights",size(crad_heights),crad_heights
+      write(1078,*) "ffp", size(fp), fp
+      write(1078,*) "K,clump=",K,clumpd,clumpi
+      write(1078,*) "rdfp", size(rdfp),rdfp
+      write(1078,*) "efp", size(efp),efp
+      write(1078,*) "sunlit", size(sunlit),sunlit
+#endif
             
       pptr%crad%GORTclump = clumpd
+      cop%height => crad_heights
+      cop%fp => fp
 
       end subroutine run_single_gort
 
       !*********************************************************************
 
-      subroutine run_convolute_gort (gin, pptr, height_levels, fp, rdfp, 
-     &    rifp, sunlit, shaded, vz)            ! convoluted profile values
+      subroutine run_convolute_gort (gin, pptr, crad_heights, fp, rdfp, 
+     &    rifp, sunlit, shaded, vz, h_coh)         ! convoluted profile values
 !      subroutine run_convolute_gort (gin, direct_light_ratio, ivt,     &   ! All inputs for gort
 !          height_levels, fp, rdfp, rifp, transmit, sunlit, shaded)            ! convoluted profile values
 
+      use ent_pfts, only : pfpar
       ! Input
       type(gort_input), dimension(:), pointer :: gin
       type(patch), pointer :: pptr
 
-
       ! Output
+      real*8, dimension(:), pointer   :: crad_heights
+      real*8, dimension(:), pointer   :: fp
       real*8, dimension(:), pointer   :: rdfp       ! clumping factor * foliage profile
       real*8, dimension(:), pointer   :: rifp       ! clumping factor * foliage profile
       real*8, dimension(:), pointer   :: sunlit     ! sunlit leaf area fraction
       real*8, dimension(:), pointer   :: shaded     ! shaded leaf area fraction
-      real*8, dimension(:), pointer   :: vz	    ! trunk volumn
-      real*8, dimension(:), pointer   :: height_levels  ! Convolute profile height levels
-
+      real*8, dimension(:), pointer   :: vz         ! trunk volumn
+      real*8, dimension(:), pointer   :: h_coh
 
       ! local variables
+      real*8, dimension(:), pointer   :: height_levels  ! Convolute profile height levels
       integer :: num_profiles, iprofile, N_height_level, N2, i
       integer :: ilevel, jlevel, tmpl, iszn
       real*8    :: szn, delta_z, dszn
       real*8    :: tmp_zenith
       real*8    :: clumpd, clumpi
       type(profile_params), dimension(:), pointer :: all_convolute_input
-      real*8, dimension(:), pointer   :: fp, efp  
+      real*8, dimension(:), pointer   :: efp  
       real*8, dimension(:), pointer   :: fpt, rdfpt, rifpt, efpt, vzt
       real*8, dimension(:), pointer   :: tmp_fp, tmp_rdfp, tmp_rifp  
       real*8, dimension(:), pointer   :: tmp_height_levels, tmp_efp
-      real*8, dimension(:), pointer   :: crad_heights, tmp_vz
+      real*8, dimension(:), pointer   :: tmp_vz
 
       real*8, dimension(:), pointer   :: d_fp, d_rdfp, d_rifp, d_efp
       real*8, dimension(:), pointer   :: d_height_levels, d_vz 
       real*8, dimension(:,:), pointer :: convoluted_szn_transmit
+      type(cohort),pointer :: cop
       !-----------------------------------------------------------------
 
       ! DEBUG
-      print *, 'I am in run_convolute_gort.........'
-      K = get_K2(gin)
+      ! print *, 'I am in run_convolute_gort.........'
       num_profiles = size(gin)
+      K = get_K2(gin)
+      ! print *, 'K = ', K
 
 
       ! check to verify that all profiles in all_gort_in have the same zenith angle
       szn = gin(1)%zenith
       do iprofile=2, num_profiles
         if (gin(iprofile)%zenith .ne. szn) then
-          print *, 'The sun zenith angle of all the participating 
-     &	     profiles should be the same. Exit.....'
-          exit
+          call stop_model( 'The sun zenith angle of all
+     &	     profiles should be the same. Exit.....',255)
         end if
       end do
 
@@ -546,18 +673,23 @@
 
       do iprofile=1, num_profiles
 
-        call check_inputs(gin(iprofile))
+        if (pfpar(gin(iprofile)%pft)%woody) then   !## NEED TO CHECK FOR NON-WOODY, TOO
+           call check_inputs(gin(iprofile))
+        endif
 
+        ! print *, iprofile, 'iprof after check inputs' 
         ! define the vertical layers
         call get_height_level(gin(iprofile), tmp_height_levels) !tmp_height_levels is allocated in the subroutine
         N_height_level = size(tmp_height_levels)
+        !print *, 'N_height_level = ', N_height_level
+        !print *, tmp_height_levels
 
         ! get intermediate variables, clump and fp
         allocate(tmp_fp(N_height_level))
         allocate(tmp_rdfp(N_height_level))
         allocate(tmp_rifp(N_height_level))
         allocate(tmp_efp(N_height_level))
-  	  allocate(tmp_vz(N_height_level))
+        allocate(tmp_vz(N_height_level))
    
         ! consider putting the following two subroutines as function instead
         call get_foliage_profile(gin(iprofile), tmp_height_levels, 
@@ -598,38 +730,74 @@
         nullify(tmp_height_levels)
 
       end do
+      ! print *, '2 fp: ', all_convolute_input(2)%fp
+      ! print *, '1 height_levles: ', all_convolute_input(1)%height_levels
+      ! print *, '2 height_levels: ', all_convolute_input(2)%height_levels
 
 
       ! Convolute fp, efp by calling convolute, but here only fp is final output for run_gort
       ! efp will be used for getting transmittance for direct light
+      ! intermediate results will be recorded in cohort series
 
       ! print *, 'Calling convolute ......' 
-      call convolute(all_convolute_input,       ! input
+      call convolute(all_convolute_input, pptr,      ! input
      &   fpt, rdfpt, rifpt, efpt, vzt, height_levels)    ! convoluted and run_gort output
+      ! print *, 'c height_levels: ', height_levels
 
-      call layering(pptr,height_levels,fpt, gin(1)%delta_z)
+      ! print *, 'Calling layering ......' 
+      call layering(pptr%crad,height_levels,fpt, gin(1)%delta_z,h_coh,
+     &              N2)
       N_height_level = size(height_levels)
 
+      allocate(crad_heights(N2))
       crad_heights = pptr%crad%heights
-      N2 = size(crad_heights)
+      ! N2 = size(crad_heights)
       allocate(fp(N2))
       allocate(rdfp(N2))
       allocate(rifp(N2))
       allocate(efp(N2))
-	allocate(vz(N2))
-      ! rescale to input height level
+      allocate(vz(N2))
+      ! print *, 'After allocating fp, rdfp .... N2 =', N2 
+
+      ! rescale to input height level for each cohort
+      cop => pptr%tallest
+      do while (ASSOCIATED(cop))
+
+      ! print *, 'crad_heights: ', crad_heights
+      ! print *, 'height_levels: ', height_levels
+      ! print *, 'cop%fp_dz: ', cop%fp_dz
       do ilevel = 1, N2
          do jlevel = 1, N_height_level
-	    if (crad_heights(ilevel) .ge. height_levels(jlevel)) then
-	       tmpl = jlevel
-	    end if
-	 end do
-	 fp(ilevel) = sum(fpt(tmpl:N_height_level))*gin(1)%delta_z
-	 rdfp(ilevel) = sum(rdfpt(tmpl:N_height_level))*gin(1)%delta_z
-	 rifp(ilevel) = sum(rifpt(tmpl:N_height_level))*gin(1)%delta_z
-	 efp(ilevel) = sum(efpt(tmpl:N_height_level))*gin(1)%delta_z
-       vz(ilevel) = vzt(tmpl)
+            if (crad_heights(ilevel) .le. height_levels(jlevel)) then
+              tmpl = jlevel
+              exit
+            end if
+         end do
+         fp(ilevel) = sum(cop%fp_dz(tmpl:N_height_level))*gin(1)%delta_z
       end do
+      ! print *, 'After associate cohort ......' 
+ 
+        cop%height => crad_heights
+        cop%fp => fp
+        cop => cop%shorter
+      end do
+      ! print *, 'After associate cop ......' 
+
+      ! rescale to input height level for whole patch
+      do ilevel = 1, N2
+         do jlevel = 1, N_height_level
+            if (crad_heights(ilevel) .le. height_levels(jlevel)) then
+               tmpl = jlevel
+               exit
+            end if
+         end do
+         fp(ilevel) = sum(fpt(tmpl:N_height_level))*gin(1)%delta_z
+         rdfp(ilevel) = sum(rdfpt(tmpl:N_height_level))*gin(1)%delta_z
+         rifp(ilevel) = sum(rifpt(tmpl:N_height_level))*gin(1)%delta_z
+         efp(ilevel) = sum(efpt(tmpl:N_height_level))*gin(1)%delta_z
+         vz(ilevel) = vzt(tmpl)
+      end do
+      ! print *, 'After rescale ......' 
 
 
       ! Compute the transmit, sunlit, shaded from efp
@@ -659,10 +827,10 @@
 
       !*********************************************************************
 
-      subroutine TwoStream(lbp, ubp, filter_vegsol, num_vegsol, pcolumn, 
-     &    coszen, Id, height_levels, rdfp, rifp, rho, tau, sout)
-!      subroutine TwoStream (lbp, ubp, filter_vegsol, num_vegsol, ivt, pcolumn, &
-!                         coszen, Id, height_levels, rdfp, rifp, rho, tau, sout)
+!      subroutine TwoStream(lbp, ubp, filter_vegsol, num_vegsol, pcolumn, 
+!     &    coszen, Id, height_levels, rdfp, rifp, rho, tau, sout)
+      subroutine TwoStream (lbp, ubp, filter_vegsol, num_vegsol, ivt, 
+     &   pcolumn, coszen, Id, height_levels, rdfp, rifp, rho, tau, sout)
 !
 ! !DESCRIPTION:
 ! Two-stream fluxes for canopy radiative transfer
@@ -674,49 +842,55 @@
 !
 ! !USES:
 !    use clmtype
-!    use clm_varpar, only : numrad
+!    use clm_varpar, only : N_BANDS
 !    use clm_varcon, only : omegas, tfrz, betads, betais
 !
 ! !ARGUMENTS:
 !    implicit none
+      use ent_pfts, only : xl
       type(patch),pointer :: pptr
       integer , intent(in)  :: lbp, ubp                 ! pft bounds
       integer , intent(in)  :: filter_vegsol(ubp-lbp+1) ! filter for vegetated pfts with coszen>0
       integer , intent(in)  :: num_vegsol               ! number of vegetated pfts where coszen>0
 
-!      integer , intent(in)  :: ivt(lbp:ubp)             ! pft vegetation type
+      integer :: ivt(num_vegsol)
+      ! integer , intent(in)  :: ivt(lbp:ubp)             ! pft vegetation type
       integer :: pcolumn(num_vegsol)
       ! integer , intent(in)  :: pcolumn(lbp:ubp)         ! column of corresponding pft
 
-      real*8 :: coszen(num_vegsol)
-      ! real*8, intent(in)  :: coszen(lbp:ubp)        ! cosine solar zenith angle for next time step
+      ! real*8 :: coszen(num_vegsol)
+      real*8, intent(in), dimension(:)  :: coszen        ! cosine solar zenith angle for next time step
       real*8, intent(in)  :: Id                       ! direct light ratio, used for isha and isun
       real*8, intent(in), dimension(:)  :: height_levels
       real*8, intent(in), dimension(:)  :: rdfp, rifp
-      real*8, intent(in)  :: rho(lbp:ubp,numrad)    ! leaf/stem refl weighted by fraction LAI and SAI
-      real*8, intent(in)  :: tau(lbp:ubp,numrad)    ! leaf/stem tran weighted by fraction LAI and SAI
+      real*8, intent(in)  :: rho(lbp:ubp,N_BANDS)    ! leaf/stem refl weighted by fraction LAI and SAI
+      real*8, intent(in)  :: tau(lbp:ubp,N_BANDS)    ! leaf/stem tran weighted by fraction LAI and SAI
 
       type(pft_pstate_type) :: sout    ! output structure for 2stream model
 
 ! !Constant from CLM code to avoid using 'use' model    
       real*8, parameter :: betads  = 0.5            ! two-stream parameter betad for snow
       real*8, parameter :: betais  = 0.5            ! two-stream parameter betai for snow
-      real*8 :: omegas(numrad)           ! two-stream parameter omega for snow by band
-      integer i
-      data (omegas(i),i=1,numrad) /0.8, 0.4/
+      real*8 :: omegas(N_BANDS)           ! two-stream parameter omega for snow by band
+      integer :: i
+      data (omegas(i),i=1,N_BANDS) /0.8, 0.4, 0.4, 0.4, 0.4, 0.4/
       real*8, parameter :: SHR_CONST_TKFRZ   = 273.15       ! freezing T of fresh water          ~ K 
       real*8, parameter :: tfrz   = SHR_CONST_TKFRZ !freezing temperature [K]
 
-!      integer, parameter :: numpft      =   16   ! number of plant function types
-!      real :: xl(numpft)         ! ecophys const - leaf/stem orientation index
-!      data (xl(i),i=1,numpft) /0.01, 0.01, 0.01, 0.10, 0.10, 0.01, 0.25, &
-!                 0.25, 0.01, 0.25, 0.25, -0.30, -0.30, -0.30, -0.30, -0.30/
-      real*8 :: albgrd(2,numrad)   ! ground albedo (direct) (column-level)
-      real*8 :: albgri(2,numrad)   ! ground albedo (diffuse)(column-level)
-      data (albgrd(1,i),i=1,numrad) /0.075, 0.314/
-      data (albgri(1,i),i=1,numrad) /0.075, 0.314/
-      data (albgrd(2,i),i=1,numrad) /0.939, 0.787/
-      data (albgri(2,i),i=1,numrad) /0.939, 0.787/
+      ! integer, parameter :: N_PFT      =   16   ! number of plant function types
+C      real :: xl(N_PFT)         ! ecophys const - leaf/stem orientation index
+C      data (xl(i),i=1,N_PFT) /0.01, 0.01, 0.01, 0.10, 0.10, 0.01, 0.25, 
+C     &    0.25, 0.01, 0.25, 0.25, -0.30, -0.30, -0.30, -0.30, -0.30/
+      real*8 :: albgrd(2,N_BANDS)   ! ground albedo (direct) (column-level)
+      real*8 :: albgri(2,N_BANDS)   ! ground albedo (diffuse)(column-level)
+      data (albgrd(1,i),i=1,N_BANDS) /0.075, 0.314, 0.314, 0.314, 0.314,
+     &    0.314/
+      data (albgri(1,i),i=1,N_BANDS) /0.075, 0.314, 0.314, 0.314, 0.314,
+     &    0.314/
+      data (albgrd(2,i),i=1,N_BANDS) /0.939, 0.787, 0.787, 0.787, 0.787,
+     &    0.787/
+      data (albgri(2,i),i=1,N_BANDS) /0.939, 0.787, 0.787, 0.787, 0.787,
+     &    0.787/
       real*8 :: Ii                 !diffuse light ratio
 !
 ! !CALLED FROM:
@@ -759,9 +933,9 @@
 !
 ! !OTHER LOCAL VARIABLES:
 !
-      integer  :: fp,p,c         ! array indices
+      integer  :: fp, p, c         ! array indices
       !integer  :: ic               ! 0=unit incoming direct; 1=unit incoming diffuse
-      integer  :: ib             ! waveband number
+      integer  :: ib !, i          ! waveband number !Have to move declaration of i to above.
       real*8 :: cosz             ! 0.001 <= coszen <= 1.000
       real*8 :: asu              ! single scattering albedo
       real*8 :: chil(lbp:ubp)    ! -0.4 <= xl <= 0.6
@@ -787,24 +961,27 @@
 !-----------------------------------------------------------------------
       N_height_level = size(height_levels)
       Ii = 1 - Id
+#ifdef ENT_STANDALONE_DIAG
+      print *, "N_height_level, Ii=", N_height_level, Ii
+#endif
 
 !    if (ubp-lbp > 0) then 
 !       allocate(vai(lbp:ubp))
 !    end if
       allocate(evai(N_height_level))
-      allocate(sout%albd(lbp:ubp,numrad))
-      allocate(sout%albi(lbp:ubp,numrad))
-      allocate(sout%fabd(N_height_level,numrad))
-      allocate(sout%fabi(N_height_level,numrad))
-      allocate(sout%ftdd(N_height_level,numrad))
-      allocate(sout%ftid(N_height_level,numrad))
-      allocate(sout%ftii(N_height_level,numrad))
-      allocate(sout%frid(N_height_level,numrad))
-      allocate(sout%frii(N_height_level,numrad))
+      allocate(sout%albd(lbp:ubp,N_BANDS))
+      allocate(sout%albi(lbp:ubp,N_BANDS))
+      allocate(sout%fabd(N_height_level,N_BANDS))
+      allocate(sout%fabi(N_height_level,N_BANDS))
+      allocate(sout%ftdd(N_height_level,N_BANDS))
+      allocate(sout%ftid(N_height_level,N_BANDS))
+      allocate(sout%ftii(N_height_level,N_BANDS))
+      allocate(sout%frid(N_height_level,N_BANDS))
+      allocate(sout%frii(N_height_level,N_BANDS))
       allocate(sout%gdir(lbp:ubp))
-      allocate(sout%omega(lbp:ubp,numrad))
-      allocate(sout%isha(N_height_level,numrad))
-      allocate(sout%isun(N_height_level,numrad))
+      allocate(sout%omega(lbp:ubp,N_BANDS))
+      allocate(sout%isha(N_height_level,N_BANDS))
+      allocate(sout%isun(N_height_level,N_BANDS))
 
     ! Assign local pointers to derived subtypes components (column-level)
 
@@ -846,25 +1023,25 @@
          ! note that the following limit only acts on cosz values > 0 and less than 
          ! 0.001, not on values cosz = 0, since these zero have already been filtered
          ! out in filter_vegsol
-         ! cosz = max(0.001, coszen(p))
+         cosz = max(0.001, coszen(p))
        
-         ! chil(p) = min( max(xl(ivt(p)), -0.4), 0.6 )
-         ! if (abs(chil(p)) <= 0.01) chil(p) = 0.01
-         ! phi1 = 0.5 - 0.633*chil(p) - 0.330*chil(p)*chil(p)
-         ! phi2 = 0.877 * (1.-2.*phi1)
+         chil(p) = min( max(xl(ivt(p)), -0.4), 0.6 )
+         if (abs(chil(p)) <= 0.01) chil(p) = 0.01
+         phi1 = 0.5 - 0.633*chil(p) - 0.330*chil(p)*chil(p)
+         phi2 = 0.877 * (1.-2.*phi1)
          ! gdir(p) = phi1 + phi2*cosz
          ! twostext(p) = gdir(p)/cosz
          gdir(p) = K
          twostext(p) = gdir(p)/cosz
 	 
-         ! print *, 'coszen=', coszen(p)
+         !write(1076,*) 'size(cosz),p,cosz,K=',size(coszen),p,cosz,K
          avmu(p) = (1. - phi1/phi2 * log((phi1+phi2)/phi1) ) / phi2
          temp0(p) = gdir(p) + phi2*cosz
          temp1 = phi1*cosz
          temp2(p) = (1. - temp1/temp0(p) * log((temp1+temp0(p))/temp1))
       end do
 
-      do ib = 1, numrad
+      do ib = 1, N_BANDS
          do fp = 1,num_vegsol
             p = filter_vegsol(fp)
             c = pcolumn(p)
@@ -927,7 +1104,8 @@
             tmp8 = h4/sigma
 
             ! delta_z = height_levels(2)-height_levels(1)
-            vai(p) = rdfp(1)
+            vai(p) = rdfp(N_height_level)
+            ! vai(p) = rdfp(1)
             ! PET, 3/1/04: added this test to avoid floating point errors in exp()
             t1 = min(h*vai(p), 40.d0)
             s1 = exp(-t1)
@@ -964,7 +1142,6 @@
                ftdd(ilevel,ib) = s2
                ftid(ilevel,ib) = h4*s2/sigma + h5*s1 + h6/s1
                frid(ilevel,ib) = h1*s2/sigma + h2*s1 + h3/s1
-
                ! Flux absorbed by vegetation (ic = 0)
 
                fabd(ilevel,ib) = 1. - albd(p,ib) 
@@ -990,7 +1167,8 @@
             h4 = -f*p3 - c1*d
             tmp8 = h4/sigma
 
-            vai(p) = rifp(1)
+            vai(p) = rifp(N_height_level)
+            ! vai(p) = rifp(1)
             t1 = min(h*vai(p), 40.d0)
             s1 = exp(-t1)
             t1 = min(twostext(p)*vai(p), 40.d0)
@@ -1066,7 +1244,7 @@
       end function 
 ! ----------------------------------------------------------
       subroutine check_inputs(gin)
-
+      implicit none
       ! check the validity of inputs
       type(gort_input) :: gin                  ! gort input
 
@@ -1086,41 +1264,45 @@
       horz_radius = gin%horz_radius
       vert_radius = gin%vert_radius
       zenith = gin%zenith
-
+#ifdef ENT_STANDALONE_DIAG
+      print *,"dens_tree,dens_fol,h1,h2,dz,hrad,vertrad,zenith=",
+     &     dens_tree,dens_foliage,h1,h2,delta_z,horz_radius,vert_radius,
+     &     zenith
+#endif      
       ! check density
-      if ( (dens_tree <= 0.) .or. (dens_foliage <= 0.)) then
-        write(*,*) 'Density must be greater than 0. STOPPING ...'
-        stop
+      !if ( (dens_tree <= 0.) .or. (dens_foliage <= 0.)) then
+      if ( (dens_tree <= 0.) ) then
+        !write(*,*) 'Density must be greater than 0. STOPPING ...' !WZ
+         call stop_model('Bare soil, check before canrad',255) !NK
+         !This check should have been done before calling canopy radiation.-NK
       end if
 
       ! check the height
       if ((h1 <= 0.) .or. (h2 <= 0.)) then
-        write(*,*) 'Center of crown height must be greater than 0. 
-     & 	     STOPPING ...'
-        stop
+        call stop_model('Center of crown height must be >0.',255)
       end if
 
       if (h1 > h2) then
-        write(*,*) 'h2 must be no less than h1. STOPPING  ...'
-        stop
+        call stop_model('h2 must be no less than h1.',255)
       end if
 
       if ( h1 < vert_radius ) then
-        write(*,*) 'h1 must be greater than vert_radius. STOPPING...'
-        stop
+        write(*,*) 'canopyradiation.f: dens_tree, dens_foliage,
+     & h1, h2, delta_z, horz_radius, vert_radius, zenith',
+     &    dens_tree, dens_foliage, h1, h2, delta_z, 
+     &    horz_radius, vert_radius, zenith
+       call stop_model('h1 must be greater than vert_radius.',255)
       end if
 
       ! check radius
       if ((horz_radius <= 0.) .or. (vert_radius <= 0.)) then
-        write(*,*) 'Radius must be greater than 0. STOPPING ...'
-        stop
+        call stop_model('Radius must be greater than 0.',255)
       end if
 
       ! check angle
-      if ((zenith < 0.) .or. (zenith > 1.)) then
-        write (*,*) 'Solar zenith angle, zenith, is in radius, and must 
-     &	     be within [0.,1.]. STOPPING ...'
-        stop
+      if ((zenith < 0.) .or. (zenith > PI/2.)) then
+      !if ((zenith.ge.0.5*PI).and.(zenith.le.1.5*PI)) !Night
+        !call stop_model('Solar zenith angle must be within [0.,1.]. CONTINUING ...'
       end if
 
       end subroutine check_inputs
@@ -1179,6 +1361,7 @@
 
       subroutine get_foliage_profile(gin, height_levels, fp, vz)
 
+      use ent_pfts, only : pfpar
       type(gort_input) :: gin
       real*8, dimension(:), intent(in) :: height_levels
       real*8, dimension(:), intent(inout) :: fp, vz
@@ -1192,26 +1375,38 @@
       real*8, dimension(:), allocatable :: xx
 
       ! ---------------------------------
+      ! print *, 'entering get_foliage_profile...'
+      n_levels = size(height_levels)
+      allocate(xx(n_levels))
 
+      if (pfpar(gin%pft)%woody) then
       h1 = gin%h1
       h2 = gin%h2
       vert_radius = gin%vert_radius
 
       tmp=gin%dens_tree * gin%dens_foliage * PI * (gin%horz_radius ** 2)
-
+#ifdef ENT_STANDALONE_DIAG
+      write(1077,*) "LAI, dbh, lumda, fa, R, b:", gin%LAI, gin%dbh,
+     &  gin%dens_tree, gin%dens_foliage,
+     &  gin%horz_radius, gin%vert_radius
+#endif
       jh11 = h1 - vert_radius
       jh12 = h1 + vert_radius
       jh21 = h2 - vert_radius
       jh22 = h2 + vert_radius
       hdif = h2 - h1
 
-      n_levels = size(height_levels)
-      allocate(xx(n_levels))
-
+      ! allocate(vz(n_levels))
+      ! allocate(fp(n_levels))
+      ! print *, 'n_levels=', n_levels
       ! define xx based on the location of each height level
       do i = 1, n_levels
 
         z = height_levels(i)
+        if (hdif < gin%delta_z) then
+           if ((z >= jh21) .and. (z <= jh22))
+     &         xx(i) = 1.0 - ((z-h2) / vert_radius) ** 2
+        else ! (h1 != h2) 
         if (jh12 < jh21) then
            if ((z >= jh11) .and. (z <= jh12))   
      &         xx(i) = height_function1(z, h1, vert_radius, hdif)
@@ -1227,15 +1422,16 @@
            if ((z > jh12) .and. (z <= jh22))   
      &         xx(i) = height_function2(z, h2, vert_radius, hdif)
         end if
+        end if
 
         fp(i) = tmp * xx(i)
         
-        vz(i) = 0.0
+        xx(i) = 0.0
 
         if (hdif < gin%delta_z) then
           maxv = h2 - z
           if (maxv < 0) maxv = 0
-          vz(i) = gin%dbh * gin%dens_tree * tan(gin%zenith) * maxv
+          xx(i) = gin%dbh * gin%dens_tree * tan(gin%zenith) * maxv
         else
           tmpv = gin%dbh * gin%dens_tree * tan(gin%zenith) / hdif
           iz =gin%h1 + gin%delta_z/2 
@@ -1243,22 +1439,32 @@
           ! do iz = gin%h1 + gin%delta_z/2, gin%h2, gin%delta_z
              maxv = iz - z
              if (maxv < 0) maxv = 0
-             vz(i) = vz(i) + gin%delta_z * maxv
+             xx(i) = xx(i) + gin%delta_z * maxv
              ! vz(i) = vz(i) + gin%delta_z * (z2/2-min(z,iz))
              iz = iz + gin%delta_z 
           end do
-          vz(i) = vz(i) * tmpv
+          xx(i) = xx(i) * tmpv
         end if
-
+        ! print *, 'xx(i)=', xx(i) 
+        ! vz(i) = xx(i)
       end do
 
-      deallocate(xx)
+      vz = xx
+
+      else  ! herbacious
+        do i = 1, n_levels
+           fp(i) = gin%LAI / (n_levels * gin%delta_z)
+           vz(i) = 0
+        end do 
+      endif
+
+      ! deallocate(xx)
 
       end subroutine get_foliage_profile
 
 ! ----------------------------------------------------
  
-      subroutine convolute(all_convolute_input,      ! input
+      subroutine convolute(all_convolute_input, pptr,     ! input
      &   fp, rdfp, rifp, efp, vz, height_levelC)         ! convoluted output
 
 
@@ -1277,6 +1483,7 @@
 
       ! Input
       type(profile_params), dimension(:), pointer :: all_convolute_input
+      type(patch),pointer :: pptr
 
 
       ! Output
@@ -1293,15 +1500,16 @@
       real*8 :: hc_low, hc_high, delta_z
       integer :: n_profiles, iprofile, n_convolute_levels
       type(profile_params), pointer :: interpolate_out
+      type(cohort),pointer :: cop
 
       !---------------------------------------------------------------------
 
-      print *, 'I am in convolute now....'
+      ! print *, 'I am in convolute now....'
 
       n_profiles = size(all_convolute_input)
 
-      print *, all_convolute_input(1)%fp(10)
-      print *, all_convolute_input(2)%fp(10)
+      ! print *, all_convolute_input(1)%fp(10)
+      ! print *, all_convolute_input(2)%fp(10)
 
 
       ! Get the height levels for the convoluted profile
@@ -1314,32 +1522,32 @@
 
       do iprofile = 1, n_profiles
         arrthl(iprofile) = minval(
-     &	    all_convolute_input(iprofile)%height_levels)
+     &      all_convolute_input(iprofile)%height_levels)
         arrthh(iprofile) = maxval(
-     &	    all_convolute_input(iprofile)%height_levels)
+     &      all_convolute_input(iprofile)%height_levels)
         arrdz(iprofile) = all_convolute_input(iprofile)%height_levels(2) 
-     &	    - all_convolute_input(iprofile)%height_levels(1)
+     &      - all_convolute_input(iprofile)%height_levels(1)
       end do
 
-      print *, arrthl
-      print *, arrthh
-      print *, arrdz
+      ! print *, arrthl
+      ! print *, arrthh
+      ! print *, arrdz
 
       hc_low=minval(arrthl)
       hc_high=maxval(arrthh)
-      delta_z=minval(arrdz)
-      print *,hc_low, hc_high, delta_z
+      delta_z=maxval(arrdz)
+      ! print *, 'hc_low, hc_high, delta_z = ', hc_low, hc_high, delta_z
 
       deallocate(arrthl, arrthh, arrdz)
 
-      print *, 'Getting convolute height levels ...'
+      ! print *, 'Getting convolute height levels ...'
       call get_convolute_height_level(hc_low, hc_high, delta_z,
      &   height_levelC)
       n_convolute_levels=size(height_levelC)
 
 
       ! allocate output variables
-      print *, 'Allocating for the convoluted outputs ....'
+      ! print *, 'Allocating for the convoluted outputs ....'
 
       allocate(fp(n_convolute_levels))
       allocate(rdfp(n_convolute_levels))
@@ -1348,7 +1556,7 @@
       allocate(vz(n_convolute_levels))
 
       ! allocate temporary interpolate_out
-      print *, 'Allocating for the interpolation output ....'
+      ! print *, 'Allocating for the interpolation output ....'
       allocate(interpolate_out)
       allocate(interpolate_out%fp(n_convolute_levels))
       allocate(interpolate_out%rdfp(n_convolute_levels))
@@ -1363,16 +1571,17 @@
       ! interpolate profiles to the convoluted height level
       !---------------------------------------------------------
 
+      cop => pptr%tallest
       ! interpolate profile1 to the convoluted height levels
       do iprofile = 1, n_profiles
 
 
-         print *, 'Interpolating for profile No. ', iprofile
+         ! print *, 'Interpolating for profile No. ', iprofile
          call interpolate_profile (all_convolute_input(iprofile),   
      &      interpolate_out)
-         print *, interpolate_out%fp(10)
+         ! print *, interpolate_out%fp(10)
 
-         print *, 'Reassign or convolute the output'
+         ! print *, 'Reassign or convolute the output'
 
          if (iprofile == 1) then
             fp = interpolate_out%fp
@@ -1387,17 +1596,24 @@
             efp = efp + interpolate_out%efp
             vz = vz + interpolate_out%vz
          end if
-            print *, fp(10)
+
+         cop%height_dz => height_levelC
+         cop%fp_dz => interpolate_out%fp
+         cop => cop%shorter 
+C      print *, iprofile, 'convolute input fp ', 
+C     &        all_convolute_input(iprofile)%fp
+C      print *, iprofile, 'convolute output fp ', 
+C     &        interpolate_out%fp 
 
       end do
 
-      deallocate(interpolate_out%fp)
-      deallocate(interpolate_out%rdfp)
-      deallocate(interpolate_out%rifp)
-      deallocate(interpolate_out%efp)
-      deallocate(interpolate_out%vz)
-      deallocate(interpolate_out%height_levels)
-      deallocate(interpolate_out)
+      !deallocate(interpolate_out%fp)
+      !deallocate(interpolate_out%rdfp)
+      !deallocate(interpolate_out%rifp)
+      !deallocate(interpolate_out%efp)
+      !deallocate(interpolate_out%vz)
+      !deallocate(interpolate_out%height_levels)
+      !deallocate(interpolate_out)
 
 
       return
@@ -1426,7 +1642,7 @@
       real*8, dimension(:), pointer :: diff
 
       ! ---------------------------------------
-      print *, interpolate_in%fp(10)
+      ! print *, interpolate_in%fp(10)
 
       height_in => interpolate_in%height_levels
       height_out => interpolate_out%height_levels
@@ -1445,7 +1661,7 @@
 
         h = height_out(i)
 
-        if ( (h > hin_low) .and. (h < hin_high)) then
+        if ( (h >= hin_low) .and. (h <= hin_high)) then
 
           ! find the closest two height level
           do j=1, nlevel_in
@@ -1464,43 +1680,61 @@
        
 
           interpolate_out%fp(i) = interpolate_in%fp(id1) + (h - 
-     & 	     height_in(id1)) * (interpolate_in%fp(id2) - 
+     &       height_in(id1)) * (interpolate_in%fp(id2) - 
      &       interpolate_in%fp(id1)) / (height_in(id2) - height_in(id1))
           interpolate_out%rdfp(i) = interpolate_in%rdfp(id1) + (h - 
-     &	     height_in(id1)) * (interpolate_in%rdfp(id2) -  
+     &       height_in(id1)) * (interpolate_in%rdfp(id2) -  
      &       interpolate_in%rdfp(id1)) / (height_in(id2) - 
      &       height_in(id1))
           interpolate_out%rifp(i) = interpolate_in%rifp(id1) + (h - 
-     &	     height_in(id1)) * (interpolate_in%rifp(id2) -
+     &       height_in(id1)) * (interpolate_in%rifp(id2) -
      &       interpolate_in%rifp(id1)) / (height_in(id2) - 
      &       height_in(id1))
           interpolate_out%efp(i) = interpolate_in%efp(id1) + (h - 
-     &	     height_in(id1)) * (interpolate_in%efp(id2) -   
+     &       height_in(id1)) * (interpolate_in%efp(id2) -   
      &       interpolate_in%efp(id1)) /(height_in(id2) - height_in(id1))
           interpolate_out%vz(i) = interpolate_in%vz(id1) + (h - 
-     &	     height_in(id1)) * (interpolate_in%vz(id2) -   
+     &       height_in(id1)) * (interpolate_in%vz(id2) -   
      &       interpolate_in%vz(id1)) /(height_in(id2) - height_in(id1))
        
 
         else
 
+          ! just fill in the output profile with 0
+
+          if (h < hin_low) then
+            interpolate_out%fp(i) = 0
+            interpolate_out%rdfp(i) = 0
+            interpolate_out%rifp(i) = 0
+            interpolate_out%efp(i) = 0
+            interpolate_out%vz(i) = 0
+          end if
+
+          if (h > hin_high) then
+            interpolate_out%fp(i) = 0
+            interpolate_out%rdfp(i) = 0
+            interpolate_out%rifp(i) = 0
+            interpolate_out%efp(i) = 0
+            interpolate_out%vz(i) = 0
+          end if
+
           ! just fill in the output profile with the ceiling or bottom value
 
-          if (h <= hin_low) then
-            interpolate_out%fp(i) = interpolate_in%fp(1)
-            interpolate_out%rdfp(i) = interpolate_in%rdfp(1)
-            interpolate_out%rifp(i) = interpolate_in%rifp(1)
-            interpolate_out%efp(i) = interpolate_in%efp(1)
-            interpolate_out%vz(i) = interpolate_in%vz(1)
-          end if
+          !if (h <= hin_low) then
+          !  interpolate_out%fp(i) = interpolate_in%fp(1)
+          !  interpolate_out%rdfp(i) = interpolate_in%rdfp(1)
+          !  interpolate_out%rifp(i) = interpolate_in%rifp(1)
+          !  interpolate_out%efp(i) = interpolate_in%efp(1)
+          !  interpolate_out%vz(i) = interpolate_in%vz(1)
+          !end if
 
-          if (h >= hin_high) then
-            interpolate_out%fp(i) = interpolate_in%fp(nlevel_in)
-            interpolate_out%rdfp(i) = interpolate_in%rdfp(nlevel_in)
-            interpolate_out%rifp(i) = interpolate_in%rifp(nlevel_in)
-            interpolate_out%efp(i) = interpolate_in%efp(nlevel_in)
-            interpolate_out%vz(i) = interpolate_in%vz(nlevel_in)
-          end if
+          !if (h >= hin_high) then
+          !  interpolate_out%fp(i) = interpolate_in%fp(nlevel_in)
+          !  interpolate_out%rdfp(i) = interpolate_in%rdfp(nlevel_in)
+          !  interpolate_out%rifp(i) = interpolate_in%rifp(nlevel_in)
+          !  interpolate_out%efp(i) = interpolate_in%efp(nlevel_in)
+          !  interpolate_out%vz(i) = interpolate_in%vz(nlevel_in)
+          !end if
 
         end if
 
@@ -1553,132 +1787,167 @@
         height_levels(i) = h1 + delta_z * (i-1)
       end do
 
-        height_levels(n_levels) = h2
-
+      height_levels(n_levels) = h2
+    
       end subroutine get_convolute_height_level
 
 ! ----------------------------------------------------
 
-      subroutine geo_to_gin(pp, gin)
-!@sum calculate gin from Ent input, get mean patch geometry from cohort value,
+      subroutine geo_to_gin(pp, gin, h_coh)
+!@sum Calculate gin from Ent input, get mean patch geometry from cohort value,
 !@sum then get the gort input at patch level, note the whole Entcell share the 
-!@sum same input radiation  
-!@sum note in calculating clumping indices, dbh is not needed
+!@sum same input radiation.
+!@sum Note in calculating clumping indices, dbh is not needed
+!@sum Required inputs:  Check for bare soil before calling this routine.
       
+      use ent_pfts, only : pfpar
       type(patch),pointer :: pp
       type(gort_input),dimension(:),pointer :: gin
-
+      real*8,pointer :: h_coh(:)
       !----Local----------------!
       type(cohort),pointer :: cop
       integer :: count, i
       real*8 :: vc
-      
-#ifdef DEBUG
-      print *,"Started geo_to_gin" ! with patch:"
+ 
+#ifdef ENT_STANDALONE_DIAG
+      print *,'Started geo_to_gin' ! with patch
 #endif
 
-      if ( .NOT.ASSOCIATED(pp%tallest)) then ! bare soil
-        pp%crad%heights = 0.d0
-        pp%crad%LAI = 0.d0
-        pp%crad%GORTclump = 0.d0
-        return
-      endif
+!      if ( .NOT.ASSOCIATED(pp%tallest)) then ! bare soil
+!        pp%crad%heights = 0.d0
+!        pp%crad%LAI = 0.d0
+!        pp%crad%GORTclump = 0.d0
+!     return
+!      endif
 
       if (( pp%tallest%pft.eq.0).or.(pp%tallest%pft > N_PFT)) then
-        print *,"GORT_clumping: wrong pft = ", pp%tallest%pft
+        print *, 'GORT_clumping: wrong pft = ', pp%tallest%pft
         call patch_print(6,pp,"ERROR ")
         call stop_model("GORT_clumping: wrong pft",255)
       endif
-      
+
       !* LOOP THROUGH COHORTS *!
+      count = 0
       cop => pp%tallest
       do while (ASSOCIATED(cop))
         !* Assign vegpar
+         if (cop%n.gt.0.d0) then
+         !if (cop%LAI.gt.lai_thres) then
+         ! if (cop%LAI.gt.0.d0) then
+            count = count + 1
+         endif
 
-        if (cop%LAI.gt.0.d0) then
-	  count = count + 1
-        endif
-
-        cop => cop%shorter
+         cop => cop%shorter
       end do
-      
+
+    !  if (count == 0) then
+    !     print *, 'no vegetation,L,b=', cop%LAI,
+    ! & cop%crown_dy
+    !     pp%crad%heights = 0.d0
+    !     pp%crad%LAI = 0.d0
+    !     pp%crad%GORTclump = 0.d0
+    !     return
+    !  endif
+ 
       if (count.gt.0.d0) then
-	if (count.eq.1.d0) then ! single cohort
-          allocate(gin(1))   
+        if (count.eq.1.d0) then ! single cohort
+          allocate(gin(1))
+          allocate(h_coh(1))   
           cop => pp%tallest
-      
           gin(1)%dens_tree = cop%n
-          gin(1)%h1 = cop%h - cop%crown_dy
+          gin(1)%vert_radius = cop%crown_dy  ! debugging
+          gin(1)%h1 = cop%h - gin(1)%vert_radius
           gin(1)%h2 = gin(1)%h1
           gin(1)%horz_radius = cop%crown_dx
-          gin(1)%vert_radius = cop%crown_dy
+          !print *, 'r,b=',cop%crown_dx, cop%crown_dy
           gin(1)%zenith = acos(pp%cellptr%CosZen)
-          gin(1)%delta_z = 1.0
-          vc = 1.33333 * PI * gin(1)%horz_radius ** 2 * 
-     &	     gin(1)%vert_radius
-          gin(1)%dens_foliage = cop%LAI / (vc * gin(1)%dens_tree)
+          gin(1)%delta_z = dz_gin
+!          vc = 1.33333 * PI * gin(1)%horz_radius ** 2 * 
+!     &      gin(1)%vert_radius
+          if (pfpar(cop%pft)%woody) then
+          vc = (4.d0/3.d0) * PI * (gin(1)%horz_radius ** 2) * 
+     &      gin(1)%vert_radius
+          gin(1)%dens_foliage = cop%LAI / (vc * 
+     &      gin(1)%dens_tree)
+          else
+            gin(1)%dens_foliage = cop%LAI
+          endif
           gin(1)%pft = cop%pft
           gin(1)%LAI = cop%LAI
           gin(1)%dbh = cop%dbh
-          pp%crad%h_coh(1)=cop%h
-	else ! multi cohort
+          h_coh(1) = cop%h 
+        else ! multi cohort
           allocate(gin(count)) 
-	    
+          allocate(h_coh(count))
+  
           !* LOOP THROUGH COHORTS *!
           cop => pp%tallest
           i = 0;
           do while (ASSOCIATED(cop))
-      
-            if (cop%LAI.gt.0.d0) then
-	      i = i + 1
+            if (cop%n.gt.0.d0) then
+            ! if (cop%LAI.gt.lai_thres) then
+            ! if (cop%LAI.gt.0.d0) then
+              i = i + 1
               gin(i)%dens_tree = cop%n
               gin(i)%h1 = cop%h - cop%crown_dy
               gin(i)%h2 = gin(i)%h1
               gin(i)%horz_radius = cop%crown_dx
               gin(i)%vert_radius = cop%crown_dy
               gin(i)%zenith = acos(pp%cellptr%CosZen)
-              gin(i)%delta_z = 1.0
+              gin(i)%delta_z = dz_gin
+
+              if (pfpar(cop%pft)%woody) then
               vc = 1.33333 * PI * gin(i)%horz_radius ** 2 * 
-     &	         gin(i)%vert_radius
+     &           gin(i)%vert_radius
               gin(i)%dens_foliage = cop%LAI / (vc * gin(i)%dens_tree)
+              else
+                 gin(i)%dens_foliage = cop%LAI
+              endif
               gin(i)%pft = cop%pft
-	        gin(i)%LAI = cop%LAI
+              gin(i)%LAI = cop%LAI
               gin(i)%dbh = cop%dbh
-              pp%crad%h_coh(i)=cop%h
+              h_coh(i) = cop%h 
             endif 
 	
             cop => cop%shorter
           end do
-	endif
-	
+        endif
       else
-        print *,"GORT_clumping: no vagetation "
-        call patch_print(6,pp,"ERROR ")
-        call stop_model("GORT_clumping: no vagetation",255)
+         !* This should never be called, as check for bare soil should
+         !* have been done outside of this module.
+        !print *,'no vegetation,L,b='!, cop%LAI, cop%crown_dy
+         print *,'GORT: No vegetation, bare soil'
+        !call patch_print(6,pp,"ERROR ")
+        !call stop_model("GORT_clumping: no vegetation",255)
       endif
-      
+ 
       end subroutine geo_to_gin
 
 ! ----------------------------------------------------
       function get_analytical_clump(gin)
 !@sum calculate clumping index from canopy geometry 
 
+      use ent_pfts, only : pfpar
       type(gort_input),intent(in) :: gin
       real*8 :: get_analytical_clump
 
       ! local variables:
       real*8 :: tr, a, b, c, d, G
 
-      a = (tan(gin%zenith)) ** 2
-      b = (gin%vert_radius/gin%horz_radius) ** 2
-      c = sqrt((1+a)/(1+a*b))
-      G = get_K(cos(gin%zenith),gin%pft)
-      tr = G * gin%dens_foliage * gin%horz_radius * c
+      if (.not. pfpar(gin%pft)%woody .or. 
+     &      gin%dens_foliage.lt.lai_thres) then
+         get_analytical_clump = 1.d0 !No foliage clumping, no foliage -NK
+      else
+         a = (tan(gin%zenith)) ** 2
+         b = (gin%vert_radius/gin%horz_radius) ** 2
+         c = sqrt((1+a)/(1+a*b))
+         G = get_K(cos(gin%zenith),gin%pft)
+         tr = G * gin%dens_foliage * gin%horz_radius * c
 
-      d = (1 - (2*tr+1) * exp(-2*tr)) / (2*tr*tr)
-
-      get_analytical_clump = 3*(1-d)/(4*tr)
-
+         d = (1 - (2*tr+1) * exp(-2*tr)) / (2*tr*tr)
+         
+         get_analytical_clump = 3*(1-d)/(4*tr)
+      endif
       end function get_analytical_clump
 
 ! ------------------------------------------------------
@@ -1734,15 +2003,16 @@
 !@sum get_K here is actually G, following the definition of Li et al., 1995
 !@sum G function comes from Sellers, 1985 
 
+      use ent_pfts, only : xl
       real*8,intent(in) :: CosZen
       integer,intent(in) :: pft
       real*8 :: get_K
 
-      integer, parameter :: numpft = 16   ! number of plant function types
+      ! integer, parameter :: N_PFT = 16   ! number of plant function types
       integer :: i 
-      real*8 :: xl(numpft)       ! ecophys const - leaf/stem orientation index
-      data (xl(i),i=1,numpft) /0.01, 0.01, 0.01, 0.10, 0.10, 0.01, 0.25, 
-     &    0.25, 0.01, 0.25, 0.25, -0.30, -0.30, -0.30, -0.30, -0.30/
+C      real*8 :: xl(N_PFT)       ! ecophys const - leaf/stem orientation index
+C      data (xl(i),i=1,N_PFT) /0.01, 0.01, 0.01, 0.10, 0.10, 0.01, 0.25, 
+C     &    0.25, 0.01, 0.25, 0.25, -0.30, -0.30, -0.30, -0.30, -0.30/
       real*8 :: phi1,phi2,chil   
                                     
       chil = min( max(xl(pft), -0.4d0), 0.6d0 )
@@ -1776,37 +2046,53 @@
       
       do iprofile = 1, num_profiles
          szn = gin(iprofile)%zenith
+C         print *, 'dens_foliage, pft = ', gin(iprofile)%dens_foliage, 
+C     &         gin(iprofile)%pft
          G(iprofile) = get_K(cos(szn),gin(iprofile)%pft)
          clump(iprofile) = get_analytical_clump(gin(iprofile))
+         !print *, 'G, clump =', G(iprofile), clump(iprofile)
          eLAI = eLAI + clump(iprofile) * G(iprofile) * gin(iprofile)%LAI
          rLAI = rLAI + clump(iprofile) * gin(iprofile)%LAI
       end do
-      get_K2 = eLAI / rLAI
+
+      !print *, 'eLAI, rLAI = ', eLAI, rLAI
+      if (rLAI .eq. 0.d0) then
+         get_K2 = 0.5
+      else
+         get_K2 = eLAI / rLAI
+      endif
+
+      deallocate(clump)
+      deallocate(G)
 
       end function get_K2
 
-      subroutine layering(pptr, height_levels, fpt, dz)
+      subroutine layering(crad, height_levels, fpt, dz, h_coh,
+     &                    n2)
 !@sum Calculate the needed height levels according to LAI profile and 
 !@sum cohort heights, and save to variable ppt%crad
 
       use qsort_c_module
 
-      type(patch), pointer :: pptr
+      !type(patch), pointer :: pptr
+      type(canradtype) :: crad
       real*8, dimension(:), pointer :: height_levels, fpt
       real*8 :: dz
       real*8, dimension(:), pointer :: h_tmp, ha 
-      real*8, dimension(:), pointer :: dlai, clai, tdlai, lai_bound 
-      integer :: len_h, len_l, i, j, len
+      real*8, dimension(:), pointer :: dlai, clai, tdlai 
+      real*8, dimension(:), pointer :: h_coh, lai_bound
+      integer :: len_h, len_l, i, j, len, n2
       integer, dimension(:), pointer :: index
 
       ! need to put height and foliage profile upside down
+
       len = size(height_levels)
       allocate(h_tmp(len))
       allocate(dlai(len))
       allocate(clai(len))
       allocate(tdlai(len))
 
-      do i=1,len
+      do i=1,len ! need to reverse heights, so h(1)=top
          h_tmp(len+1-i)=height_levels(i)
          dlai(len+1-i)=fpt(i)
       end do
@@ -1818,11 +2104,16 @@
       end do
       clai = clai * dz
 
+      !write(1077,*) "h_coh in layering:", h_coh
+      ! write(1077,*) "pptr%crad%h_coh", pptr%crad%h_coh
       len_h = ceiling(clai(len))+3             ! add 0, 0.5, 1.5
-      len_l = size(pptr%crad%h_coh)-1          ! don't count the tallest cohort
+      len_l = size(h_coh)-1
+      !len_l = size(pptr%crad%h_coh)-1          ! don't count the tallest cohort
+
       allocate(lai_bound(len_h))
       allocate(index(len_h)) 
       allocate(ha(len_h+len_l))
+      n2 = len_h+len_l
 
       do i=1,len_h
          if (i .le. 4) then
@@ -1835,17 +2126,35 @@
             tdlai(j) = abs(tdlai(j))
          end do
          index(i) = minloc(tdlai,dim=1)
-         ha(i) = height_levels(index(i))
+         ha(i) = h_tmp(index(i))
       end do
-      pptr%crad%h_lai = height_levels(index)
+ 
+      crad%h_lai => ha
    
-      do i=len_h, len_h+len_l
-         ha(i)=pptr%crad%h_coh(i-len_h+1)
+      if (len_l.gt.0) then  ! multiple cohorts
+      do i=len_h+1, len_h+len_l
+         ha(i)=h_coh(i-len_h+1)
+         ! ha(i)=pptr%crad%h_coh(i-len_h+1)
       end do
+      endif
 
       call QsortC(ha)
 
-      pptr%crad%heights = ha
+      !write(1077,*) "ha before", ha
+      !ha(1) = height_levels(len)
+      !write(1077,*) "ha after", ha
+
+      crad%heights => ha
+
+      deallocate(h_tmp)
+      deallocate(dlai)
+      deallocate(clai)
+      deallocate(tdlai)
+      deallocate(lai_bound)
+      deallocate(index)
+      !deallocate(ha)
+      !write(1077,*) "crad%heights", crad%heights
+
       end subroutine layering
 
       end module canopyrad

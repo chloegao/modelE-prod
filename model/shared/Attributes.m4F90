@@ -87,7 +87,17 @@ contains
 
     select type (entry)
     type is (TYPE)
-       value = entry%value
+ifelse($3,1,
+[
+#ifdef __GFORTRAN__
+        value = entry%value
+#else
+        allocate(value, source=entry%value)
+#endif
+],
+[        value = entry%value]
+)
+
 ifelse($3,1,
 [
     type is (VectorAttribute)

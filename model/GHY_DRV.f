@@ -758,12 +758,12 @@ c****
       use veg_drv, only: veg_save_cell,veg_set_cell
 #endif
       use fluxes, only : atmlnd,prec,eprec
-     *     ,precss,nisurf
+     *     ,precss,nisurf, asflx
       use ghy_com, only : snowbv, fearth,
      &     fr_snow_ij,
      *     tearth,tsns_ij,wearth,aiearth,
      &     evap_max_ij, fr_sat_ij, qg_ij, top_dev_ij,
-     &     soil_surf_moist
+     &     soil_surf_moist, snowd_ij=>snowd
 #ifndef USE_ENT
       use vegetation, only :
      &    veg_srht=>srht,veg_pres=>pres,veg_ch=>ch,veg_ws=>vsm, !ia
@@ -782,7 +782,6 @@ c****
 #ifdef WATER_PROPORTIONAL
       use tracer_com, only : NTM,trm
       use geom, only : axyp
-      use pblcom, only : qabl,trabl
 #endif
 #ifdef USE_ENT
       use ent_com, only : entcells
@@ -1225,8 +1224,6 @@ ccc stuff needed for dynamic vegetation
      &     )
 
 
-
-
       call evap_limits(
 #ifndef USE_ENT
      &     vegcell,
@@ -1293,6 +1290,14 @@ c workaround for uninitialzed snowd multiply by zero
      &           * sum( dzsn_ij(1:nsn_ij(1,i,j),1,i,j) )
      &       + fv*fr_snow_ij(2,i,j)
      &           * sum( dzsn_ij(1:nsn_ij(2,i,j),2,i,j) ) )
+
+      do ibv=1,2
+        if ( fr_snow_ij(ibv, i, j) > 0.001d0 ) then
+          snowd_ij(ibv,i,j) = sum(dzsn_ij(1:nsn_ij(ibv,i,j), ibv, i, j))
+        else
+          snowd_ij(ibv,i,j) = 0.d0
+        endif
+      enddo
 
 cddd      if (i==23 .and. j==10) then
 cddd        write(755,*) "counter", counter
@@ -1396,7 +1401,8 @@ c as a PBL diagnostic.
 c fill in pbl profile in case it is used to initialize
 c another surface type
         do lpbl=1,npbl
-          trabl(lpbl,itr,itype,i,j)=conc1(itr)*qabl(lpbl,itype,i,j)
+          asflx(itype)%trabl(lpbl,itr,i,j)=
+     &              conc1(itr)*asflx(itype)%qabl(lpbl,i,j)
         enddo
       enddo ! itr
 #endif
@@ -1405,6 +1411,7 @@ c another surface type
       end do loop_j
 
       call dealloc_pbl_args(pbl_args)
+      !call dump_ent_C_diags
 
       ! land water deficit for changing lake fractions
       !!! not working with Ent
@@ -1422,6 +1429,90 @@ c another surface type
 
       return
       end subroutine earth
+
+#ifdef USE_ENT
+      subroutine dump_ent_C_diags
+      USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds,READT_PARALLEL
+      USE DOMAIN_DECOMP_1D, only : WRITET_PARALLEL
+      use ent_mod, only: entcelltype_public, debug_carbon
+      use ent_com, only : entcells
+      !---
+      real*8, dimension(16,im,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
+     &     total,
+     &          C_lab, C_fol, C_sw, C_hw, C_froot, C_croot, C_soil
+      real*8, dimension(im,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
+     &     total_sum, C_soil_sum, C_lab_sum, C_fol_sum
+      integer, save :: counter = 0
+      integer, save :: fc = 1000
+      character*80 :: title
+      integer :: k, i, j
+      integer :: I_1, I_0, J_1, J_0
+      integer :: I_1H, I_0H, J_1H, J_0H
+
+      CALL getDomainBounds(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
+     *               J_STRT=J_0,       J_STOP=J_1)
+
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+      I_0H = grid%I_STRT_HALO
+ 
+
+      if ( mod(counter,48*30) == 0 ) then
+
+        fc = fc + 1
+        do j=J_0,J_1
+          do i=I_0,I_1
+            call debug_carbon(entcells(i,j), total(:,i,j),
+     &           C_lab(:,i,j), C_fol(:,i,j), C_sw(:,i,j), C_hw(:,i,j),
+     &           C_froot(:,i,j), C_croot(:,i,j), C_soil(:,i,j))
+          enddo
+        enddo
+
+        do k=1,16
+          write(title,*) "total ",k
+          call WRITET_PARALLEL(grid,fc,"foo",total(k,:,:),title)
+          write(title,*) "C_lab ",k
+          call WRITET_PARALLEL(grid,fc,"foo",C_lab(k,:,:),title)
+          write(title,*) "C_fol ",k
+          call WRITET_PARALLEL(grid,fc,"foo",C_fol(k,:,:),title)
+          write(title,*) "C_sw ",k
+          call WRITET_PARALLEL(grid,fc,"foo",C_sw(k,:,:),title)
+          write(title,*) "C_hw ",k
+          call WRITET_PARALLEL(grid,fc,"foo",C_hw(k,:,:),title)
+          write(title,*) "C_froot ",k
+          call WRITET_PARALLEL(grid,fc,"foo",C_froot(k,:,:),title)
+          write(title,*) "C_croot ",k
+          call WRITET_PARALLEL(grid,fc,"foo",C_croot(k,:,:),title)
+          write(title,*) "C_soil ",k
+          call WRITET_PARALLEL(grid,fc,"foo",C_soil(k,:,:),title)
+         enddo
+
+         total_sum = 0.d0
+         C_soil_sum = 0.d0
+         C_lab_sum = 0.d0
+         C_fol_sum = 0.d0
+         do k=1,16
+           total_sum(:,:) = total_sum(:,:) + total(k,:,:)
+           C_soil_sum(:,:) = C_soil_sum(:,:) + C_soil(k,:,:)
+           C_lab_sum(:,:) = C_lab_sum(:,:) + C_lab(k,:,:)
+           C_fol_sum(:,:) = C_fol_sum(:,:) + C_fol(k,:,:)
+         enddo
+
+         write(title,*) "total sum"
+         call WRITET_PARALLEL(grid,fc,"foo",total_sum(:,:),title)
+         write(title,*) "C_soil sum"
+         call WRITET_PARALLEL(grid,fc,"foo",C_soil_sum(:,:),title)
+         write(title,*) "C_lab sum"
+         call WRITET_PARALLEL(grid,fc,"foo",C_lab_sum(:,:),title)
+         write(title,*) "C_fol sum"
+         call WRITET_PARALLEL(grid,fc,"foo",C_fol_sum(:,:),title)
+
+      endif
+
+      counter = counter + 1
+
+      end subroutine dump_ent_C_diags
+#endif
 
 c***********************************************************************
 c***********************************************************************
@@ -1487,6 +1578,13 @@ c***********************************************************************
       use OldTracer_mod, only: dodrydep
 #endif
 #endif
+
+#ifdef ENT_DEBUG_DIAGS
+      use diag_com , only : ij_ent_debug
+      use sle001, only : ent_debug_buf
+      use ent_debug_mod, only : SIZE_ENT
+#endif
+
 
       implicit none
       integer, intent(in) :: i,j,ns,moddsf
@@ -1558,6 +1656,12 @@ ccc the following values are returned by PBL
       tg1=tsns
       shdt=-ashg
       evhdt=-alhg
+
+#ifdef ENT_DEBUG_DIAGS
+      aij(i,j, ij_ent_debug:ij_ent_debug+SIZE_ENT_DEBUG-1)=
+     &     aij(i,j, ij_ent_debug:ij_ent_debug+SIZE_ENT_DEBUG-1)
+     &     + ent_debug_buf(:)*ptype
+#endif
 
       aij(i,j,ij_psoil)=aij(i,j,ij_psoil)+ptype/nisurf
       aij(i,j,ij_fveg)=aij(i,j,ij_fveg)+fv/nisurf
@@ -1667,6 +1771,9 @@ c**** quantities accumulated for surface type tables in diagj
 #ifdef HEALY_LM_DIAGS
       call inc_aj(i,j,itearth,j_crops  ,  CROPS_DIAG(i,j)*ptype)
 #endif
+
+c**** quantities accumulated for subdd
+      !R_acc(I,J)=R_acc(I,J)+(aruns+arunu)*ptype
 
       end subroutine ghy_diag
 
@@ -1976,7 +2083,7 @@ c**** recompute ground hydrology data if necessary (new soils data)
           do i=I_0,I_1
             w_ij(:,:,i,j)=0.d0
             ht_ij(:,:,i,j)=0.d0
-            snowbv(:,i,j)=0.d0
+            !snowbv(:,i,j)=0.d0
             if ( focean(i,j) >= 1.d0 ) cycle
             if ( fearth(i,j) <= 0.d0 .and. variable_lk==0 ) cycle
 #ifdef USE_ENT
@@ -2436,15 +2543,7 @@ c initialize soil (w, ht) from earth_*
      &         earth_tp(k,ibv), earth_ice(k,ibv), w(k,ibv), shc(k,ibv) )
         enddo
 
-c initalize all cases to nsn=1
-        nsn(ibv)=1
-
-c start with no snow
-        dzsn(1,ibv)=0.d0
-        wsn(1,ibv)=0.d0
-        hsn(1,ibv)=0.d0
-        tsn1(ibv)=0.d0
-        fr_snow(ibv) = 0.d0
+        call reset_snow_to_zero
 
         if ( snowd(ibv) <= 0.d0 ) cycle
 
@@ -2465,6 +2564,12 @@ c use snow temperature to get the heat of the snow
 
         call snow_fraction(dzsn(:,ibv), nsn(ibv), 0.d0, 0.d0,
      &       1.d0, fr_snow(ibv) )
+
+        if ( fr_snow(ibv) == 0.d0 ) then
+          call reset_snow_to_zero
+          cycle
+        endif
+
         call snow_redistr(dzsn(:,ibv), wsn(:,ibv), hsn(:,ibv),
      &       nsn(ibv), 1.d0/fr_snow(ibv) )
 
@@ -2481,6 +2586,19 @@ c use snow temperature to get the heat of the snow
       enddo  ! ibv
 
       return
+
+      contains
+
+      subroutine reset_snow_to_zero
+      ! set one empty layer of som
+      nsn(ibv)=1
+      dzsn(1,ibv)=0.d0
+      wsn(1,ibv)=0.d0
+      hsn(1,ibv)=0.d0
+      tsn1(ibv)=0.d0
+      fr_snow(ibv) = 0.d0
+      end subroutine reset_snow_to_zero
+
       end subroutine tp_sat_2_ht_w
 
 
@@ -3297,7 +3415,7 @@ cddd     &         *fr_snow_ij(2,imax,jmax)
       use ent_mod, only : ent_get_exports
       use ent_drv, only : update_vegetation_data
 #else
-      use veg_drv, only : veg_set_cell
+      use veg_drv, only : veg_set_cell, updveg
       use vegetation, only : t_vegcell
 #endif
       !!use ent_com, only : entcells
@@ -3620,7 +3738,7 @@ c****
       use filemanager, only : file_exists
       implicit none
 #ifdef USE_ENT
-      real*8,dimension(N_COVERTYPES) :: fr_cover0
+      real*8,dimension(N_COVERTYPES) :: fr_cover0, h_cover0
 #endif
       real*8 :: fr_cover(12), z0_veg
 !     original Model II (1983) values (except crops)
@@ -3677,8 +3795,9 @@ c****
           if ( focean(i,j) >= 1.d0 ) cycle
 #ifdef USE_ENT
           call ent_get_exports( entcells(i,j),
-     &         vegetation_fractions=fr_cover0 )
-          call map_ent2giss(fr_cover0,fr_cover) !temp hack: ent pfts->giss veg
+     &         vegetation_fractions=fr_cover0,
+     &         vegetation_heights=h_cover0 )
+          call map_ent2giss(fr_cover0,h_cover0,fr_cover) !temp hack: ent pfts->giss veg
           vvv(i,j,:) = fr_cover(1:10)
 #else
           fr_cover(:) = vdata(i,j,:)

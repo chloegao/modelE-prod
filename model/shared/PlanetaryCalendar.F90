@@ -119,12 +119,14 @@ contains
 
     ! Require a minimum number of days per year. (Suggested by G. Schmidt.)
     if (daysPerYear < MIN_DAYS_PER_YEAR) then
-      write(*,*) '***********************************************************'
-      write(*,*) '* Warning calendar days do not correspond to solar days.  *'
-      write(*,*) '* Hourly diagnostics should not be used.                  *'
-      write(*,*) '***********************************************************'
-      daysPerYear = MIN_DAYS_PER_YEAR
-      call calendar%setSecondsPerDay( &
+       if (calendar%getVerbose()) then
+          write(*,*) '***********************************************************'
+          write(*,*) '* Warning calendar days do not correspond to solar days.  *'
+          write(*,*) '* Hourly diagnostics should not be used.                  *'
+          write(*,*) '***********************************************************'
+       end if
+       daysPerYear = MIN_DAYS_PER_YEAR
+       call calendar%setSecondsPerDay( &
            & TimeInterval( orbit%getSiderealOrbitalPeriod() / daysPerYear ))
     end if
     

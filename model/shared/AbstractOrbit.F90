@@ -52,6 +52,7 @@ module AbstractOrbit_mod
     type (TimeInterval) :: siderealRotationPeriod ! seconds
     type (TimeInterval) :: meanDay        ! seconds
     real(kind=WP) :: meanDistance  ! in astronomical units (AU's)
+    logical :: verbose = .false.
 
   contains
 
@@ -88,6 +89,9 @@ module AbstractOrbit_mod
     generic :: print => print_unit, print_stdout
 
     procedure :: rotate
+
+    procedure :: setVerbose
+    procedure :: getVerbose
 
   end type AbstractOrbit
 
@@ -330,6 +334,22 @@ contains
     tOrbit = this%getSiderealOrbitalPeriod()
     newT = newBaseTime(t + Rational((M1-M0)/(2*PI) * tOrbit%convertToReal(), 1.d-6))
   end function rotate
+
+
+  subroutine setVerbose(this, verbose)
+     class (AbstractOrbit), intent(inout) :: this
+     logical, intent(in) :: verbose
+
+     this%verbose = verbose
+
+  end subroutine setVerbose
+
+  logical function getVerbose(this)
+     class (AbstractOrbit), intent(in) :: this
+     
+     getVerbose = this%verbose
+
+  end function getVerbose
 
 
 end module AbstractOrbit_mod

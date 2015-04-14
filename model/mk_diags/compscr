@@ -128,7 +128,7 @@ rm -f driver.f
 #
 # Compile miscellaneous routines
 #
-for progname in agcstat sumfiles write_giss2d write_2d_as_giss4d diffreport prtostat
+for progname in agcstat sumfiles write_giss2d write_2d_as_giss4d diffreport prtostat prtspeca fuse_ajlagc
 do
   cmpcmd="${fccmd} miscnc.f ${progname}.f -o ${progname} ${ncinc} ${nclib}"
   echo $cmpcmd

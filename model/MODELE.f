@@ -8,7 +8,8 @@
       USE TIMINGS, only : ntimemax,ntimeacc,timing,timestr
       USE Dictionary_mod
       Use Parser_mod
-      USE MODEL_COM, only: modelEclock, ItimeI, Itime, Ndisk
+      USE MODEL_COM, only: modelEclock
+     &     , ItimeI, Itime, Ndisk
      &     , Jyear0, JMON0, Iyear1, ItimeE, Itime0
      &     , NIPRNT, XLABEL, LRUNID, MELSE, Nssw, stop_on
      &     , iowrite_single, isBeginningAccumPeriod
@@ -383,7 +384,10 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
       endif
 
       allocate(orbit, source=makeOrbit())
+      call orbit%setVerbose(am_I_root())
+
       allocate(calendar, source=orbit%makeCalendar())
+      call calendar%setVerbose(am_I_root())
 
       if (am_i_root()) call calendar%print(2000)
 
@@ -616,7 +620,7 @@ C****
      *      xlabel,lrunid,nmonav,qcheck,irand
      *     ,nday,dtsrc,kdisk,jmon0,jyear0
      *     ,iyear1,itime,itimei,itimee
-     *     ,idacc,modelEclock
+     *     ,idacc,modelEclock, modelEclockI
      *     ,aMONTH,aMON0
      *     ,ioread,irerun,irsfic
      *     ,melse,Itime0,Jdate0
@@ -631,11 +635,10 @@ C****
 #endif
 #endif
 
-      use TimeConstants_mod, only : SECONDS_PER_DAY, INT_HOURS_PER_DAY, 
-     &                              INT_DAYS_PER_YEAR
+      use TimeConstants_mod, only: INT_HOURS_PER_DAY
       use ModelClock_mod, only: ModelClock
       use Time_mod, only: Time, newTime
-      use MODEL_COM, only: calendar
+      use MODEL_COM, only: calendar, orbit
       use CalendarMonth_mod, only: LEN_MONTH_ABBREVIATION
       use BaseTime_mod
       use Rational_mod, only: nint
@@ -965,6 +968,7 @@ C**** Set date information
 
       modelETime = newTime(calendar)
       call modelEtime%setByDate(yearI, monthI, dateI, hourI)
+      modelEclockI = ModelClock(modelETime, dtSrcUsed, itimeI)
       call modelETime%add( dtSrcUsed * (itime-itimei) )
 
       year = modelEtime%getYear()
@@ -978,6 +982,12 @@ C**** Set date information
 
       tmpStr = modelEclock%toString()
       modelEclock = ModelClock(tmpStr, calendar, dtSrcUsed)
+
+      ! In the case of parameterized orbits, the year must now be set.
+      ! Unfortunately, year is not available when orbit and calendar are
+      ! established.
+      year = modelEclock%getYear()
+      call orbit%setYear(real(year,kind=8))
 
       CALL DAILY_cal(.false.)                  ! not end_of_day
 
@@ -1110,7 +1120,7 @@ C****
 #ifdef TRACERS_AEROSOLS_Koch
       write(6,*) '...and Dorothy Koch aerosols'
 #ifdef TRACERS_AEROSOLS_VBS
-      write(6,*) '   with VBS organics'
+      write(6,*) '...and VBS organics'
 #endif
 #endif
 #ifdef TRACERS_AEROSOLS_SEASALT

@@ -40,6 +40,7 @@ module FixedCalendar_mod
      procedure :: getDaysInYear_year
      procedure :: getDaysInYear_constant
      generic :: getDaysInYear => getDaysInYear_constant
+     procedure :: getMaxDaysInYear
 
      procedure :: getDaysInMonth_monthAndYear
      procedure :: getDaysInMonth_month
@@ -227,6 +228,12 @@ contains
     class (FixedCalendar), intent(in) :: this
     numDays = this%daysPerYear
   end function getDaysInYear_constant
+
+
+  integer function getMaxDaysInYear(this) result(numDays)
+    class (FixedCalendar), intent(in) :: this
+    numDays = this%daysPerYear
+  end function getMaxDaysInYear
 
 
   integer function getDaysInMonth_month(this, month) result(numDays)

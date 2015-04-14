@@ -61,7 +61,7 @@
 
 ! PFT-specific Isoprene Paramaters
 
-         real*8 :: Y_eps    ! PFT-specific fraction of electrons to make isoprene
+!!         real*8 :: Y_eps    ! PFT-specific fraction of electrons to make isoprene
 
       end type pftype
 !****************************************************************************
@@ -116,26 +116,31 @@
 
          !* NITROGEN status */
          !@var nm   Mean cohort nitrogen (g/m2[leaf]) over whole grid cell
-         real*8 :: nm
+         real*8 :: nm                   
          !@var Ntot Total cohort nitrogen (g/m[ground]2).
-         real*8 Ntot
+         real*8 :: Ntot                 
          !@var LAI Total cohort leaf area index (m2[leaf]/m2[ground])
-         real*8 LAI               !*
+         real*8 :: LAI               !* 
          !@var LMA Leaf mass per leaf area (gC/m2)
-         real*8 LMA
+         real*8 :: LMA                  
          !real*8 :: LA            ! Leaf area (m2[leaf]/individual)
-
+                                                           
          !* ALL QUANTITIES BELOW ARE FOR AN INDIVIDUAL *!
-
+                                                           
          !* GEOMETRY - trees:  GORT ellipsoids, grasses:leaf only
          real*8 :: h              !* Height (m)
-         real*8 :: crown_dx       ! Crown horizontal axis length (m)
-         real*8 :: crown_dy       ! Crown vertical axis length (m)
+         real*8 :: crown_dx       ! Crown horizontal radius (m)
+         real*8 :: crown_dy       ! Crown vertical radius (m)
          real*8 :: dbh            ! Stem diameter at breast height (m)
          real*8 :: root_d         ! Root half spheroid diameter (m)
          real*8 :: clump          ! Leaf clumping parameter (TBA)
          real*8,pointer :: fracroot(:) => null() ! Fraction of roots in soil layer
 
+         real*8,pointer :: height_dz(:) => null() ! height levels, equal dz
+         real*8,pointer :: fp_dz(:) => null()     ! foliage profile, equal dz (could be empty)
+         real*8,pointer :: height(:) => null()    ! height levels, same as patch
+         real*8,pointer :: fp(:) => null()        ! Cumulative foliage profile at height (could be zero); 0 at top of canopy.
+                                                           
          !* BIOMASS POOLS (g-C/single plant)
          real*8 :: C_fol          ! Foliage carbon 
          real*8 :: N_fol          ! Foliage nitrogen 
@@ -150,7 +155,7 @@
          real*8 :: C_croot        ! Coarse root carbon
          real*8 :: N_croot        ! Coarse root nitrogen
          !real*8,pointer :: Bpool(PTRACE,NBpools) !Single plant pools of C and N. Replace previous non-array vars - NYK
-
+                                                           
          !* FLUXES (for whole cohort over area cover)
          real*8 :: Ci             !*Internal foliage CO2 (mol/m3) !!Cohort level
          real*8 :: gcanopy        ! Conductance of water vapor/cohort (m/s)
@@ -164,25 +169,27 @@
 !         real*8 :: C_litter       ! C in litterfall
 !         real*8 :: N_litter       ! N in litterfall
          real*8 :: C_to_Nfix      ! Carbon flux to N fixers symbionts
-
-         !* PHENOLOGY - KIM
+                                                           
+         !* PHENOLOGY - KIM             
          real*8 :: phenofactor   !phenofactor_c * phenofactor_d
          real*8 :: phenofactor_c !Cold deciduousness
          real*8 :: phenofactor_d !Drought deciduousness
-         integer :: phenostatus
+         real*8 :: phenostatus          
          real*8 :: betad_10d ! 10-day running average of betad
          real*8 :: CB_d !daily carbon balance
-         real*8 :: turnover_amp
-         real*8 :: llspan
+         real*8 :: turnover_amp         
+         real*8 :: llspan               
          real*8 :: Sacclim ! state of acclimation/frost hardiness [deg C]
-
+                                                           
          !* PHYSIOLOGICAL STATUS *!  !NYK
          real*8 :: stressH2O !* fraction stress factor, 0=stressed, 1=no stress
          real*8,pointer :: stressH2Ol(:) => null() !Water stress in layers.
          real*8 :: senescefrac  !Net fraction of foliage that is litterfall.
-         !* Additional C accounting
-         real*8 :: C_growth  !* Daily tissue growth respiration (kg-C/m2/day)
+         !* Additional C accounting     
+         real*8 :: C_growth  !* Daily tissue growth respiration (kg-C/m2-cohort/day)
                              !*  Save C_growth to restart to distribute flux over the day.
+                             ! - this is remainig respiration carbon 
+         real*8 :: C_growth_flux ! respiration flux due to C_growth
          real*8 :: C_total   !* Hack to check for C balance.
       end type cohort
 
@@ -193,6 +200,8 @@
          real*8,pointer :: h_coh(:)  => null()  !(m) height levels acoording to cohorts 
          real*8,pointer :: heights(:) => null() !(m) height levels at canopy layer boundaries (#layers+1)
          real*8,pointer :: LAI(:) => null()     !LAI within height level
+         real*8,pointer :: f_sun(:) => null() !sunlit fraction profile
+         real*8,pointer :: f_sha(:) => null() !shaded fraction profile
          real*8,pointer :: T_sun(:) => null() !sunlit PAR transmittance profile
          real*8,pointer :: T_sha(:) => null() !shaded PAR transmittance profile
          real*8,pointer :: I_sun(:) => null() !sunlit PAR absorbance profile
@@ -232,8 +241,8 @@
 
          !* GEOMETRY - trees:  GORT ellipsoids, grasses:leaf only
          real*8 :: h              !* mean Height (m)
-         real*8 :: crown_dx       ! Crown horizontal axis length (m)
-         real*8 :: crown_dy       ! Crown vertical axis length (m)
+         real*8 :: crown_dx       ! Crown horizontal radius (m)
+         real*8 :: crown_dy       ! Crown vertical radius (m)
 !         real*8 :: dbh           ! Stem diameter at breast height (m)
 !         real*8 :: root_d         ! Root half spheroid diameter (m)
          real*8 :: clump          ! Leaf clumping parameter (TBA)
@@ -286,7 +295,8 @@
       !use soil moisture (and temperature) for 2 CASA layers:    -PK 
       !0-30 cm, 30-100 cm (second might change to 30-200 cm)
       !**might change this and soiltemp to dynamically allocated arrays** -PK 7/07 
-         real*8 :: Soilmoist(N_CASA_LAYERS) !Soil moisture (volumetric fraction)   
+!         real*8 :: Soilmoist(N_CASA_LAYERS) !Soil moisture (volumetric fraction)   
+         real*8 :: Soilmoist(N_DEPTH) !Soil moisture (rel. sat. vol. fraction) 
 
 !         real*8 :: N_deposit    !N deposition (kgN/m2)
 
@@ -344,19 +354,19 @@
          !@var nm   Mean leaf nitrogen (g/m2[leaf]).
          real*8 :: nm
          !@var Ntot Total cohort nitrogen (g/m[ground]2) for vegetated patches only.
-         real*8 Ntot
+         real*8 :: Ntot
          !@var LMA Leaf mass per leaf area (gC/m2)
-         real*8 LMA
+         real*8 :: LMA
          !@var LAI Leaf area index (m2[leaf]/m2[ground]) for vegetated patches only.
-         real*8 LAI               
+         real*8 :: LAI               
          !@var LAIpft LAI by cover type.
          real*8,pointer :: LAIpft(:) => null()!(N_COVERTYPES)
          !real*8 :: LA            ! Leaf area (m2[leaf]/individual)
 
          !* IMPORT-PRESCRIBED, EXPORT-SIMULATED - GEOMETRY - trees:  GORT ellipsoids, grasses:leaf only
          real*8 :: h              !* mean Height (m)
-!         real*8 :: crown_dx       ! Crown horizontal axis length (m)
-!         real*8 :: crown_dy       ! Crown vertical axis length (m)
+!         real*8 :: crown_dx       ! Crown horizontal radius (m)
+!         real*8 :: crown_dy       ! Crown vertical radius (m)
 !         real*8 :: dbh            ! Stem diameter at breast height (m)
 !         real*8 :: root_d         ! Root half spheroid diameter (m)
 !         real*8 :: clump          ! Leaf clumping parameter (TBA)
@@ -436,9 +446,11 @@
          real*8 :: P_mbar       !Atmospheric pressure (mb)
          real*8 :: Ca           !@Atmos CO2 conc at surface height (mol/m3).
          !next two now explicitly depth-structured (see above) -PK
-         real*8 :: Soilmoist(N_CASA_LAYERS) !Soil moisture (volumetric fraction)
-         real*8 :: Soiltemp(N_CASA_LAYERS)  !Soil temperature (Celsius)
-         real*8,pointer :: Soilmp(:) => null()!Soil matric potential (m)
+!         real*8 :: Soilmoist(N_CASA_LAYERS) !Soil moisture (volumetric fraction)
+!         real*8 :: Soiltemp(N_CASA_LAYERS)  !Soil temperature (Celsius)
+         real*8 :: Soilmoist(N_DEPTH) !Soil moisture (volumetric fraction)
+         real*8 :: Soiltemp(N_DEPTH)  !Soil temperature (Celsius)
+         real*8,pointer :: Soilmp(:) => null() !Soil matric potential (m)
          real*8,pointer :: fice(:) => null() !Fraction of soil layer that is ice
          real*8 :: Ch           !Ground to surface heat transfer coefficient 
          real*8 :: U            !Surface layer wind speed (m s-1)
@@ -461,13 +473,17 @@
          real*8 :: par_10d
          real*8 :: gdd
          real*8 :: ncd
-         real*8 :: ld
-         real*8 :: light
-         logical :: fall
+         real*8 :: sgdd
+         real*8 :: daylength(2) !previous & present day 
+         integer :: fall
 
          ! diags and hacks
          real*8 :: C_total
          real*8 :: C_growth
+
+!!! hack !!! - just to try master phenology
+         real*8 :: ld
+         real*8 :: light
       end type entcelltype
 
 
@@ -489,6 +505,8 @@
         logical do_structuralgrowth
         logical do_frost_hardiness
         logical do_patchdynamics
+        logical do_init_geo
+!        logical mixed_veg
       end type ent_config
 
 

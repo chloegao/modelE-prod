@@ -1,7 +1,9 @@
       module FarquharBBpspar
-      !@sum pfts  Plant functional type parameters for
-      !Farqhuar-von Caemmerer (1982) photosynthesis and 
-      !Ball-Berry (1985) stomatal conductance.
+!@sum Module Ent plant functional type (PFT) parameters for Ent 16 PFTs tailored to
+!@+   Fluxnet sites in Ent_standalone runs.
+!@+   for Farqhuar-von Caemmerer (1982) photosynthesis and 
+!@+   Ball-Berry (1985) stomatal conductance.
+
       use ent_const, only : N_PFT
 
       implicit none
@@ -111,7 +113,7 @@
      &     pspartype(1          !6. COLD DECIDUOUS BROADLEAF LATE SUCCESSIONAL
      &     ,.90d0               !from leaf VIS 1-albedo,CLM BDT temperate, Table 3.1 (Oleson, et al 2004)
 !     &     ,51.d0               !Vmax25, CLM BDT boreal, Table 8.2 (Oleson, et al 2004). Wilson et al (2001) Walker Branch species average to 51.
-     &     ,40.d0               !Vmax25, tuned to MMSF
+     &     ,40.d0               !Vmax25, tuned to MMSF, was 40.0; changed to 39.0 8/9/11-NK
      &     ,9.d0                !m, CLM
      &     ,.002d0              !b, CLM
 !     &     ,6.7d0                !Nleaf (gN/m2-leaf). Est. from Reich 1997 (big range).

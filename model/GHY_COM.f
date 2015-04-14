@@ -94,6 +94,8 @@ ccc evaporation limits from previous time step
 !@var tsns_ij surface temperature corresponding to sensible heat flux (C)
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: tsns_ij
 
+!@var SNOWD snow depth (m) over bare and vegetated soil
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: SNOWD
 
 #ifdef TRACERS_WATER_OLD
 !@var TRBARE,TRVEGE tracers in bare and veg. soil fraction (kg/m^2)
@@ -212,6 +214,9 @@ cddd     *         STAT=IER)
       ALLOCATE(     tsns_ij(I_0H:I_1H,J_0H:J_1H),
      *         STAT=IER)
 
+      ALLOCATE(      SNOWD(2,I_0H:I_1H,J_0H:J_1H),
+     *         STAT=IER)
+
 #ifdef USE_ENT
       ALLOCATE(     aalbveg(I_0H:I_1H,J_0H:J_1H),
      *              Ci_ij(I_0H:I_1H,J_0H:J_1H),
@@ -231,6 +236,9 @@ ccc init snow arrays to prevent addressing uninitialized vars
       dzsn_ij (:,:,:,J_0H:J_1H)=0.
       hsn_ij  (:,:,:,J_0H:J_1H)=0.
       wsn_ij  (:,:,:,J_0H:J_1H)=0.
+
+ccc make sure SNOWD is initialized
+      SNOWD(:,:,:) = 0.d0
 
 #ifdef TRACERS_WATER_OLD
       ALLOCATE(     TRBARE(NTM,  NGM,I_0H:I_1H,J_0H:J_1H),
@@ -751,6 +759,7 @@ c      END SUBROUTINE io_earth
      &     'fr_sat_ij(dist_im,dist_jm)')
       call defvar(grid,fid,qg_ij,'qg_ij(dist_im,dist_jm)')
       call defvar(grid,fid,tsns_ij,'tsns_ij(dist_im,dist_jm)')
+      call defvar(grid,fid,snowd,'snowd(bv,dist_im,dist_jm)')
       return
       end subroutine def_rsf_earth
 
@@ -776,6 +785,7 @@ c      END SUBROUTINE io_earth
         call write_dist_data(grid,fid,'fr_sat_ij',fr_sat_ij)
         call write_dist_data(grid,fid,'qg_ij',qg_ij)
         call write_dist_data(grid,fid,'tsns_ij',tsns_ij)
+        call write_dist_data(grid,fid,'snowd',snowd,jdim=3)
       case (ioread)            ! input from restart file
         call read_dist_data(grid,fid,'tearth',tearth)
         call read_dist_data(grid,fid,'snowe',atmlnd%snowe)
@@ -786,6 +796,7 @@ c      END SUBROUTINE io_earth
         call read_dist_data(grid,fid,'qg_ij',qg_ij)
         tsns_ij(:,:) = tearth(:,:) ! default if not in input file
         call read_dist_data(grid,fid,'tsns_ij',tsns_ij)
+        call read_dist_data(grid,fid,'snowd',snowd,jdim=3)
       end select
       return
       end subroutine new_io_earth

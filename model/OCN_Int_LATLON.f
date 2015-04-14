@@ -124,7 +124,7 @@ C***  Gather the requisite atm latitude bands
 
 C***  Interpolate aA from atmospheric grid to ocean grid 
       do n=1,NT
-        aA2d = aA_band(n,:,:)
+        aA2d(:,:) = aA_band(n,:,:)
         !if(hasNorthPole(aGRID)) then
         if(jmax==aJM) then
           aA2D(2:aIM,aJM) = aA2D(1,aJM)
@@ -410,7 +410,7 @@ C***  Gather the requisite ocean latitude bands
 
 C***  Interpolate oA from ocean grid to atmospheric grid 
       do n=1,NT
-        oA2d = oA_band(n,:,:)
+        oA2d(:,:) = oA_band(n,:,:)
         if(hasNorthPole(oGRID)) then
           oA2D(2:oIM,oJM) = oA2D(1,oJM)
         endif

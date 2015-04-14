@@ -80,7 +80,9 @@ contains
 
     select type (entry)
     type is (TYPE)
-       value = entry%value
+        value = entry%value
+
+
 
     class default
       call throwException('Illegal conversion of integerAttribute.',255)
@@ -252,7 +254,14 @@ contains
 
     select type (entry)
     type is (TYPE)
-       value = entry%value
+
+#ifdef __GFORTRAN__
+        value = entry%value
+#else
+        allocate(value, source=entry%value)
+#endif
+
+
 
     type is (VectorAttribute)
        allocate(value(entry%size()))
@@ -433,7 +442,9 @@ contains
 
     select type (entry)
     type is (TYPE)
-       value = entry%value
+        value = entry%value
+
+
 
     class default
       call throwException('Illegal conversion of logicalAttribute.',255)
@@ -605,7 +616,14 @@ contains
 
     select type (entry)
     type is (TYPE)
-       value = entry%value
+
+#ifdef __GFORTRAN__
+        value = entry%value
+#else
+        allocate(value, source=entry%value)
+#endif
+
+
 
     type is (VectorAttribute)
        allocate(value(entry%size()))
@@ -786,7 +804,9 @@ contains
 
     select type (entry)
     type is (TYPE)
-       value = entry%value
+        value = entry%value
+
+
 
     class default
       call throwException('Illegal conversion of RealDPAttribute.',255)
@@ -958,7 +978,14 @@ contains
 
     select type (entry)
     type is (TYPE)
-       value = entry%value
+
+#ifdef __GFORTRAN__
+        value = entry%value
+#else
+        allocate(value, source=entry%value)
+#endif
+
+
 
     type is (VectorAttribute)
        allocate(value(entry%size()))
@@ -1139,7 +1166,9 @@ contains
 
     select type (entry)
     type is (TYPE)
-       value = entry%value
+        value = entry%value
+
+
 
     class default
       call throwException('Illegal conversion of StringAttribute.',255)
@@ -1311,7 +1340,14 @@ contains
 
     select type (entry)
     type is (TYPE)
-       value = entry%value
+
+#ifdef __GFORTRAN__
+        value = entry%value
+#else
+        allocate(value, source=entry%value)
+#endif
+
+
 
     type is (VectorAttribute)
        allocate(value(entry%size()))

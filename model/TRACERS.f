@@ -22,7 +22,9 @@
       USE MODEL_COM, only : dtsrc
       USE GEOM, only : imaxj,byaxyp,lat2d_dg,lon2d_dg
       USE QUSDEF, only: nmom
+#ifndef SKIP_TRACER_SRCS
       USE FLUXES, only : tr3Dsource
+#endif
       USE TRDIAG_COM, only : jls_3Dsource,itcon_3Dsrc
      *     ,ijts_3Dsource,taijs=>taijs_loc
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, am_i_root
@@ -61,6 +63,7 @@ C**** Ensure that this is a valid tracer and source
       if (n.eq.0 .or. ns.eq.0) then
          return
       end if
+#ifndef SKIP_TRACER_SRCS
 C**** parse options
       domom=.true.
       if( present(momlog) ) then
@@ -156,6 +159,7 @@ C**** calculate fractional loss and update tracer mass
           enddo
         enddo
       endif
+#endif
 
       if (itcon_3Dsrc(ns,n).gt.0)
      *  call DIAGTCA(itcon_3Dsrc(ns,n),n)
@@ -662,7 +666,10 @@ c
 #ifdef TRACERS_TOMAS
      &     ,n_ASO4,n_ANACL,n_AECOB,n_AOCOB,n_ADUST,n_SO2
 #endif
-      USE FLUXES, only : trsource,trflux1,atmsrf
+#ifndef SKIP_TRACER_SRCS
+      USE FLUXES, only : trsource
+#endif
+      USE FLUXES, only : trflux1,atmsrf
       USE TRDIAG_COM, only : taijs=>taijs_loc
       USE TRDIAG_COM, only : ijts_source,jls_source,itcon_surf
       USE DOMAIN_DECOMP_ATM, ONLY : GRID, getDomainBounds
@@ -673,9 +680,8 @@ c
      *     ,grid%J_STRT_HALO:grid%J_STOP_HALO) :: dtracer
 
       INTEGER :: J_0, J_1, I_0, I_1
-#ifdef TRACERS_TOMAS
-      INTEGER tomas_ntsurf !same as ntsurfsrc
-#endif
+      INTEGER ntsurf !same as ntsurfsrc
+
       call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
@@ -687,21 +693,19 @@ C**** in ATURB or explicitly in 'apply_fluxes_to_atm' call in SURFACE.
 
       do n=1,ntm
         trflux1(:,:,n) = 0.
+        ntsurf = ntsurfsrc(n) 
 #ifdef TRACERS_TOMAS
-        tomas_ntsurf = ntsurfsrc(n) 
 
 ! Overwrite with first bin 
        if(n.ge.n_ASO4(1).and.n.lt.n_ANACL(1))
-     .               tomas_ntsurf=ntsurfsrc(n_SO2) !so4
+     .               ntsurf=ntsurfsrc(n_SO2) !so4
        if(n.ge.n_AECOB(1).and.n.lt.n_AOCOB(1))
-     .               tomas_ntsurf=ntsurfsrc(n_AECOB(1)) !ecob
+     .               ntsurf=ntsurfsrc(n_AECOB(1)) !ecob
        if(n.ge.n_AOCOB(1).and.n.lt.n_ADUST(1))
-     .               tomas_ntsurf=ntsurfsrc(n_AOCOB(1)) !ocob + ocil
-       do ns=1,tomas_ntsurf
-#else
-C**** Non-interactive sources
-        do ns=1,ntsurfsrc(n)
+     .               ntsurf=ntsurfsrc(n_AOCOB(1)) !ocob + ocil
 #endif
+#ifndef SKIP_TRACER_SRCS
+        do ns=1,ntsurf
 C**** diagnostics
           naij = ijts_source(ns,n)
           IF (naij > 0) THEN
@@ -725,6 +729,7 @@ C**** diagnostics
 C**** trflux1 is total flux into first layer
           trflux1(:,:,n) = trflux1(:,:,n)+trsource(:,:,ns,n)*byaxyp(:,:)
         end do
+#endif
         atmsrf%trflux_prescr(n,:,:) = trflux1(:,:,n)
       end do
       RETURN
@@ -794,7 +799,9 @@ C****
 !@auth Gavin Schmidt/Jean Lerner
       USE RESOLUTION, only: im,jm,lm
       USE MODEL_COM, only : itime,dtsrc
+#ifndef SKIP_TRACER_SRCS
       USE FLUXES, only : tr3Dsource
+#endif
       USE GEOM, only : imaxj
       use OldTracer_mod, only: itime_tr0, trname, trdecay
       USE TRACER_COM, only : NTM
@@ -802,9 +809,11 @@ C****
 #ifdef TRACERS_WATER
      *     ,trwm
       USE SEAICE_COM, only : si_atm,si_ocn
+#ifndef TRACERS_ATM_ONLY
       USE LAKES_COM, only : trlake
       USE LANDICE_COM, only : trlndi,trsnowli
       USE GHY_COM, only : tr_w_ij,tr_wsn_ij
+#endif
 #endif
       USE TRDIAG_COM, only : jls_decay,itcon_decay
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
@@ -838,10 +847,12 @@ C**** Atmospheric decay
      *               +trwm(:,:,:,n)
           trwm(:,:,:,n)   = expdec(n)*trwm(:,:,:,n)
 #endif
+#ifndef SKIP_TRACER_SRCS
           if (trname(n) .eq. "Rn222" .and. n_Pb210.gt.0) then
             tr3Dsource(:,:,:,1,n_Pb210)= trm(:,:,:,n)*(1-expdec(n))*210.
      *           /222./dtsrc
           end if
+#endif
 
           trm(:,:,:,n)    = expdec(n)*trm(:,:,:,n)
           trmom(:,:,:,:,n)= expdec(n)*trmom(:,:,:,:,n)
@@ -849,12 +860,15 @@ C**** Atmospheric decay
 #ifdef TRACERS_WATER
 C**** Note that ocean tracers are dealt with by separate ocean code.
 C**** Decay sea ice tracers
+#ifndef TRACERS_ATM_ONLY
           si_atm%trsi(n,:,:,:)   = expdec(n)*si_atm%trsi(n,:,:,:)
+#endif
           if(si_atm%grid%im_world .ne. si_ocn%grid%im_world) then
             call stop_model(
      &           'TDECAY: tracers in sea ice are no longer on the '//
      &           'atm. grid - please move the next line',255)
           endif
+#ifndef TRACERS_ATM_ONLY
           si_ocn%trsi(n,:,:,:)   = expdec(n)*si_ocn%trsi(n,:,:,:)
 C**** ...lake tracers
           trlake(n,:,:,:) = expdec(n)*trlake(n,:,:,:)
@@ -863,6 +877,7 @@ C**** ...land surface tracers
           tr_wsn_ij(n,:,:,:,:)= expdec(n)*tr_wsn_ij(n,:,:,:,:)
           trsnowli(n,:,:,:) = expdec(n)*trsnowli(n,:,:,:)
           trlndi(n,:,:,:)   = expdec(n)*trlndi(n,:,:,:)
+#endif
 #endif
 C**** atmospheric diagnostics
           najl = jls_decay(n)
@@ -1899,424 +1914,6 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 #endif
       END SUBROUTINE io_tracer
 
-#ifdef NEW_IO
-#ifdef TRACERS_ON /* only declare NEW_IO routines when needed */
-      subroutine def_rsf_tracer(fid)
-!@sum  def_rsf_tracer defines tracer array structure in restart files
-!@auth M. Kelley
-!@ver  beta
-      use OldTracer_mod, only: trName
-      use tracer_com, only: ntm, trm, trmom, coupled_chem
-#ifdef TRACERS_WATER
-      USE TRACER_COM, only: trwm
-#endif
-      use tracer_com, only: no3_live, oh_live
-      use domain_decomp_atm, only : grid
-      use pario, only : defvar
-      use fluxes, only : atmocn
-#ifdef TRACERS_SPECIAL_Shindell
-      USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
-     &yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss,ydms,yso2,sulfate
-     &,acetone,sOx_acc,sNOx_acc,sCO_acc,l1Ox_acc,l1NO2_acc
-     &,SF3,SF2,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2
-#ifdef INTERACTIVE_WETLANDS_CH4 
-      use TRACER_SOURCES, only: day_ncep,DRA_ch4,sum_ncep,PRS_ch4,
-     & HRA_ch4,iday_ncep,i0_ncep,iHch4,iDch4,i0ch4,first_ncep,first_mod,
-     & avg_model,avg_ncep
-#endif
-#endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-      USE fluxes,ONLY : pprec,pevap
-      USE tracers_dust,ONLY : hbaij,ricntd
-      use trdust_drv, only: def_rsf_trdust
-#endif
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_TOMAS)
-      USE AEROSOL_SOURCES, only : snosiz
-#endif
-      use trdiag_com, only: trcSurfMixR_acc,trcSurfByVol_acc
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
-     &     ,sPM2p5_acc,sPM10_acc,l1PM2p5_acc,l1PM10_acc
-     &     ,csPM2p5_acc,csPM10_acc
-#endif
-      implicit none
-      integer fid   !@var fid file id
-      integer :: n
-      character(len=80) :: compstr
-      character(len=20) :: ijldims
-      ijldims='(dist_im,dist_jm,lm)' 
-      do n=1,NTM
-        call defvar(grid,fid,trm(:,:,:,n),
-     &       'trm_'//trim(trname(n))//ijldims)
-        call defvar(grid,fid,trmom(:,:,:,:,n),
-     &       'trmom_'//trim(trname(n))//'(nmom,dist_im,dist_jm,lm)')
-#ifdef TRACERS_WATER
-        call defvar(grid,fid,trwm(:,:,:,n),
-     &       'trwm_'//trim(trname(n))//ijldims)
-#endif
-      enddo
-
-#ifdef CUBED_SPHERE
-c daily_z is currently only needed for CS
-      call defvar(grid,fid,daily_z,'daily_z'//ijldims)
-#endif
-
-#ifdef TRACERS_SPECIAL_Shindell       
-      compstr='TRACERS_SPECIAL_Shindell'
-      call defvar(grid,fid,ss,'ss(JPPJ,lm,dist_im,dist_jm)'
-     &     ,defby=compstr)
-      call defvar(grid,fid,yNO3,'yNO3'//ijldims,defby=compstr)
-      call defvar(grid,fid,pHOx,'pHOx'//ijldims,defby=compstr)
-      call defvar(grid,fid,pNOx,'pNOx'//ijldims,defby=compstr)
-      call defvar(grid,fid,pOx ,'pOx'//ijldims,defby=compstr)
-      call defvar(grid,fid,yCH3O2,'yCH3O2'//ijldims,defby=compstr)
-      call defvar(grid,fid,yC2O3,'yC2O3'//ijldims,defby=compstr)
-      call defvar(grid,fid,yROR,'yROR'//ijldims,defby=compstr)
-      call defvar(grid,fid,yXO2,'yXO2'//ijldims,defby=compstr)
-      call defvar(grid,fid,yXO2N,'yXO2N'//ijldims,defby=compstr)
-      call defvar(grid,fid,yAldehyde,'yAldehyde'//ijldims,
-     &     defby=compstr)
-      call defvar(grid,fid,yRXPAR,'yRXPAR'//ijldims,defby=compstr)
-      call defvar(grid,fid,ydms,'ydms'//ijldims,defby=compstr)
-      call defvar(grid,fid,ySO2,'ySO2'//ijldims,defby=compstr)
-      call defvar(grid,fid,sulfate,'sulfate'//ijldims,
-     &     defby=compstr)
-      call defvar(grid,fid,acetone,'acetone'//ijldims,
-     &     defby=compstr)
-      if(coupled_chem == 1) then
-        call defvar(grid,fid,oh_live,'oh_live'//ijldims,
-     &       defby=compstr)
-        call defvar(grid,fid,no3_live,'no3_live'//ijldims,
-     &       defby=compstr)
-      endif
-      call defvar(grid,fid,SF3,'SF3'//ijldims,defby=compstr)
-      call defvar(grid,fid,SF2,'SF2'//ijldims,defby=compstr)
-      call defvar(grid,fid,pClOx,'pClOx'//ijldims,defby=compstr)
-      call defvar(grid,fid,pClx,'pClx'//ijldims,defby=compstr)
-      call defvar(grid,fid,pOClOx,'pOClOx'//ijldims,defby=compstr)
-      call defvar(grid,fid,pBrOx,'pBrOx'//ijldims,defby=compstr)
-      call defvar(grid,fid,yCl2,'yCl2'//ijldims,defby=compstr)
-      call defvar(grid,fid,yCl2O2,'yCl2O2'//ijldims,defby=compstr)
-#ifdef INTERACTIVE_WETLANDS_CH4 
-      compstr='INTERACTIVE_WETLANDS_CH4'
-      call defvar(grid,fid,day_ncep,
-     &     'day_ncep(dist_im,dist_jm,max_days,nra_ncep)')
-      call defvar(grid,fid,dra_ch4,
-     &     'dra_ch4(dist_im,dist_jm,max_days,nra_ch4)')
-      call defvar(grid,fid,sum_ncep,
-     &     'sum_ncep(dist_im,dist_jm,nra_ncep)')
-      call defvar(grid,fid,prs_ch4,
-     &     'prs_ch4(dist_im,dist_jm,nra_ch4)')
-      call defvar(grid,fid,HRA_ch4,
-     &     'HRA_ch4(dist_im,dist_jm,maxHR_ch4,nra_ch4)')
-      call defvar(grid,fid,i0ch4,
-     &     'i0ch4(dist_im,dist_jm,nra_ch4)')
-      call defvar(grid,fid,iDch4,
-     &     'iDch4(dist_im,dist_jm,nra_ch4)')
-      call defvar(grid,fid,iHch4,
-     &     'iHch4(dist_im,dist_jm,nra_ch4)')
-      call defvar(grid,fid,first_mod,
-     &     'first_mod(dist_im,dist_jm,nra_ch4)')
-      call defvar(grid,fid,avg_model,
-     &     'avg_model(dist_im,dist_jm,nra_ch4)')
-      call defvar(grid,fid,avg_ncep, 
-     &     'avg_ncep(dist_im,dist_jm,nra_ncep)')
-      call defvar(grid,fid,iday_ncep,'iday_ncep(nra_ncep)')
-      call defvar(grid,fid,i0_ncep,'i0_ncep(nra_ncep)')
-      call defvar(grid,fid,first_ncep,'first_ncep(nra_ncep)')
-#endif /* INTERACTIVE_WETLANDS_CH4 */
-      call defvar(grid,fid,sOx_acc,'sOx_acc(dist_im,dist_jm)')
-      call defvar(grid,fid,sNOx_acc,'sNOx_acc(dist_im,dist_jm)')
-      call defvar(grid,fid,sCO_acc,'sCO_acc(dist_im,dist_jm)')
-      call defvar(grid,fid,l1Ox_acc,'l1Ox_acc(dist_im,dist_jm)')
-      call defvar(grid,fid,l1NO2_acc,'l1NO2_acc(dist_im,dist_jm)')
-#endif /* TRACERS_SPECIAL_Shindell */
-
-      call defvar(grid,fid,trcSurfMixR_acc
-     &     ,'trcSurfMixR_acc(dist_im,dist_jm,Ntm)')
-      call defvar(grid,fid,trcSurfByVol_acc
-     &     ,'trcSurfByVol_acc(dist_im,dist_jm,Ntm)')
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
-      call defvar(grid,fid,sPM2p5_acc,'sPM2p5_acc(dist_im,dist_jm)')
-      call defvar(grid,fid,sPM10_acc,'sPM10_acc(dist_im,dist_jm)')
-      call defvar(grid,fid,l1PM2p5_acc,'l1PM2p5_acc(dist_im,dist_jm)')
-      call defvar(grid,fid,l1PM10_acc,'l1PM10_acc(dist_im,dist_jm)')
-      call defvar(grid,fid,csPM2p5_acc,'csPM2p5_acc(dist_im,dist_jm)')
-      call defvar(grid,fid,csPM10_acc,'csPM10_acc(dist_im,dist_jm)')
-#endif
-
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-      compstr='TRACERS_DUST||TRACERS_MINERALS||TRACERS_QUARZHEM'
-      call defvar(grid,fid,hbaij,'hbaij(dist_im,dist_jm)')
-      call defvar(grid,fid,ricntd,'ricntd(dist_im,dist_jm)')
-      call defvar(grid,fid,pprec,'pprec(dist_im,dist_jm)')
-      call defvar(grid,fid,pevap,'pevap(dist_im,dist_jm)')
-      call def_rsf_trdust(fid)
-#endif
-
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_TOMAS)
-      call defvar(grid,fid,snosiz,'snosiz(dist_im,dist_jm)')
-#endif
-
-      return
-      end subroutine def_rsf_tracer
-
-      subroutine new_io_tracer(fid,iaction)
-!@sum  new_io_tracer read/write tracer arrays from/to restart files
-!@auth M. Kelley
-!@ver  beta new_ prefix avoids name clash with the default version
-      use model_com, only : ioread,iowrite
-      use OldTracer_mod, only: trName
-      use TRACER_COM, only: ntm, trm, trmom, coupled_chem
-#ifdef TRACERS_WATER
-      USE TRACER_COM, only: trwm
-#endif
-      use TRACER_COM, only: oh_live, no3_live
-      use fluxes, only : atmocn
-#ifdef TRACERS_SPECIAL_Shindell
-      USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
-     &yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss,ydms,yso2,sulfate
-     &,acetone,sOx_acc,sNOx_acc,sCO_acc,l1Ox_acc,l1NO2_acc
-     &,SF3,SF2,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2
-#ifdef INTERACTIVE_WETLANDS_CH4 
-      use TRACER_SOURCES, only: day_ncep,DRA_ch4,sum_ncep,PRS_ch4,
-     & HRA_ch4,iday_ncep,i0_ncep,iHch4,iDch4,i0ch4,first_ncep,first_mod,
-     & avg_model,avg_ncep
-#endif
-#endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-      USE fluxes,ONLY : pprec,pevap
-      USE tracers_dust,ONLY : hbaij,ricntd
-      use trdust_drv, only: new_io_trdust
-#endif
-      use trdiag_com, only: trcSurfMixR_acc,trcSurfByVol_acc
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
-     &     ,sPM2p5_acc,sPM10_acc,l1PM2p5_acc,l1PM10_acc
-     &     ,csPM2p5_acc,csPM10_acc
-#endif
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_TOMAS)
-      USE AEROSOL_SOURCES, only : snosiz
-#endif
-      use domain_decomp_atm, only : grid
-      use pario, only : write_dist_data,read_dist_data,read_data,
-     & write_data
-      USE Dictionary_mod
-
-      implicit none
-      integer fid   !@var fid unit number of read/write
-      integer iaction !@var iaction flag for reading or writing to file
-      integer :: n
-
-      select case (iaction)
-      case (iowrite)            ! output to restart file
-        do n=1,NTM
-          call write_dist_data(grid,fid, 'trm_'//trim(trname(n)),
-     &         trm(:,:,:,n))
-          call write_dist_data(grid,fid, 'trmom_'//trim(trname(n)),
-     &         trmom(:,:,:,:,n), jdim=3)
-#ifdef TRACERS_WATER
-          call write_dist_data(grid,fid, 'trwm_'//trim(trname(n)),
-     &         trwm(:,:,:,n))
-#endif
-        enddo
-
-#ifdef CUBED_SPHERE
-c daily_z is currently only needed for CS
-        call write_dist_data(grid,fid,'daily_z',daily_z)
-#endif
-
-#ifdef TRACERS_SPECIAL_Shindell       
-        call write_dist_data(grid,fid,'ss',ss,jdim=4)
-        call write_dist_data(grid,fid,'yNO3',yNO3)
-        call write_dist_data(grid,fid,'pHOx',pHOx)
-        call write_dist_data(grid,fid,'pNOx',pNOx)
-        call write_dist_data(grid,fid,'pOx ',pOx)
-        call write_dist_data(grid,fid,'yCH3O2',yCH3O2)
-        call write_dist_data(grid,fid,'yC2O3',yC2O3)
-        call write_dist_data(grid,fid,'yROR',yROR)
-        call write_dist_data(grid,fid,'yXO2',yXO2)
-        call write_dist_data(grid,fid,'yXO2N',yXO2N)
-        call write_dist_data(grid,fid,'yAldehyde',yAldehyde)
-        call write_dist_data(grid,fid,'yRXPAR',yRXPAR)
-        call write_dist_data(grid,fid,'ydms',ydms)
-        call write_dist_data(grid,fid,'ySO2',ySO2)
-        call write_dist_data(grid,fid,'sulfate',sulfate)
-        call write_dist_data(grid,fid,'acetone',acetone)
-        if(coupled_chem == 1) then
-          call write_dist_data(grid,fid,'oh_live',oh_live)
-          call write_dist_data(grid,fid,'no3_live',no3_live)
-        endif
-        call write_dist_data(grid,fid,'SF3',SF3)
-        call write_dist_data(grid,fid,'SF2',SF2)
-        call write_dist_data(grid,fid,'pClOx',pClOx)
-        call write_dist_data(grid,fid,'pClx',pClx)
-        call write_dist_data(grid,fid,'pOClOx',pOClOx)
-        call write_dist_data(grid,fid,'pBrOx',pBrOx)
-        call write_dist_data(grid,fid,'yCl2',yCl2)
-        call write_dist_data(grid,fid,'yCl2O2',yCl2O2)
-#ifdef INTERACTIVE_WETLANDS_CH4 
-        call write_dist_data(grid,fid,'day_ncep',day_ncep)
-        call write_dist_data(grid,fid,'dra_ch4',dra_ch4)
-        call write_dist_data(grid,fid,'sum_ncep',sum_ncep)
-        call write_dist_data(grid,fid,'prs_ch4',prs_ch4)
-        call write_dist_data(grid,fid,'HRA_ch4',HRA_ch4)
-        call write_dist_data(grid,fid,'i0ch4',i0ch4)
-        call write_dist_data(grid,fid,'iDch4',iDch4)
-        call write_dist_data(grid,fid,'iHch4',iHch4)
-        call write_dist_data(grid,fid,'first_mod',first_mod)
-        call write_dist_data(grid,fid,'avg_model',avg_model)
-        call write_dist_data(grid,fid,'avg_ncep',avg_ncep)
-        call write_data(grid,fid,'iday_ncep',iday_ncep)
-        call write_data(grid,fid,'i0_ncep',i0_ncep)
-        call write_data(grid,fid,'first_ncep',first_ncep)
-#endif /* INTERACTIVE_WETLANDS_CH4 */
-        call write_dist_data(grid,fid,'sOx_acc',sOx_acc)
-        call write_dist_data(grid,fid,'sNOx_acc',sNOx_acc)
-        call write_dist_data(grid,fid,'sCO_acc',sCO_acc)
-        call write_dist_data(grid,fid,'l1Ox_acc',l1Ox_acc)
-        call write_dist_data(grid,fid,'l1NO2_acc',l1NO2_acc)
-#endif /* TRACERS_SPECIAL_Shindell */
-
-        call write_dist_data(grid,fid,'trcSurfMixR_acc',trcSurfMixR_acc)
-        call write_dist_data(grid,fid,'trcSurfByVol_acc'
-     &       ,trcSurfByVol_acc)
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
-        call write_dist_data(grid,fid,'sPM2p5_acc',sPM2p5_acc)
-        call write_dist_data(grid,fid,'sPM10_acc',sPM10_acc)
-        call write_dist_data(grid,fid,'l1PM2p5_acc',l1PM2p5_acc)
-        call write_dist_data(grid,fid,'l1PM10_acc',l1PM10_acc)
-        call write_dist_data(grid,fid,'csPM2p5_acc',csPM2p5_acc)
-        call write_dist_data(grid,fid,'csPM10_acc',csPM10_acc)
-#endif
-
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-        call write_dist_data(grid,fid,'hbaij',hbaij)
-        call write_dist_data(grid,fid,'ricntd',ricntd)
-        call write_dist_data(grid,fid,'pprec',pprec)
-        call write_dist_data(grid,fid,'pevap',pevap)
-#endif
-
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_TOMAS)
-        call write_dist_data(grid,fid,'snosiz',snosiz)
-#endif
-
-      case (ioread)            ! input from restart file
-        do n=1,NTM
-          call read_dist_data(grid,fid, 'trm_'//trim(trname(n)),
-     &         trm(:,:,:,n))
-          call read_dist_data(grid,fid, 'trmom_'//trim(trname(n)),
-     &         trmom(:,:,:,:,n), jdim=3)
-#ifdef TRACERS_WATER
-          call read_dist_data(grid,fid, 'trwm_'//trim(trname(n)),
-     &         trwm(:,:,:,n))
-#endif
-        enddo
-
-#ifdef CUBED_SPHERE
-c daily_z is currently only needed for CS
-        call read_dist_data(grid,fid,'daily_z',daily_z)
-#endif
-
-#ifdef TRACERS_SPECIAL_Shindell       
-        call read_dist_data(grid,fid,'ss',ss,jdim=4)
-        call read_dist_data(grid,fid,'yNO3',yNO3)
-        call read_dist_data(grid,fid,'pHOx',pHOx)
-        call read_dist_data(grid,fid,'pNOx',pNOx)
-        call read_dist_data(grid,fid,'pOx ',pOx)
-        call read_dist_data(grid,fid,'yCH3O2',yCH3O2)
-        call read_dist_data(grid,fid,'yC2O3',yC2O3)
-        call read_dist_data(grid,fid,'yROR',yROR)
-        call read_dist_data(grid,fid,'yXO2',yXO2)
-        call read_dist_data(grid,fid,'yXO2N',yXO2N)
-        call read_dist_data(grid,fid,'yAldehyde',yAldehyde)
-        call read_dist_data(grid,fid,'yRXPAR',yRXPAR)
-        call read_dist_data(grid,fid,'ydms',ydms)
-        call read_dist_data(grid,fid,'ySO2',ySO2)
-        call read_dist_data(grid,fid,'sulfate',sulfate)
-        call read_dist_data(grid,fid,'acetone',acetone)
-        if(is_set_param("coupled_chem"))
-     &       call get_param( "coupled_chem", coupled_chem )
-        if(coupled_chem == 1) then
-          call read_dist_data(grid,fid,'oh_live',oh_live)
-          call read_dist_data(grid,fid,'no3_live',no3_live)
-        endif
-        call read_dist_data(grid,fid,'SF3',SF3)
-        call read_dist_data(grid,fid,'SF2',SF2)
-        call read_dist_data(grid,fid,'pClOx',pClOx)
-        call read_dist_data(grid,fid,'pClx',pClx)
-        call read_dist_data(grid,fid,'pOClOx',pOClOx)
-        call read_dist_data(grid,fid,'pBrOx',pBrOx)
-        call read_dist_data(grid,fid,'yCl2',yCl2)
-        call read_dist_data(grid,fid,'yCl2O2',yCl2O2)
-#ifdef INTERACTIVE_WETLANDS_CH4 
-        call read_dist_data(grid,fid,'day_ncep',day_ncep)
-        call read_dist_data(grid,fid,'dra_ch4',dra_ch4)
-        call read_dist_data(grid,fid,'sum_ncep',sum_ncep)
-        call read_dist_data(grid,fid,'prs_ch4',prs_ch4)
-        call read_dist_data(grid,fid,'HRA_ch4',HRA_ch4)
-        call read_dist_data(grid,fid,'i0ch4',i0ch4)
-        call read_dist_data(grid,fid,'iDch4',iDch4)
-        call read_dist_data(grid,fid,'iHch4',iHch4)
-        call read_dist_data(grid,fid,'first_mod',first_mod)
-        call read_dist_data(grid,fid,'avg_model',avg_model)
-        call read_dist_data(grid,fid,'avg_ncep',avg_ncep)
-        call read_data(grid,fid,'iday_ncep',iday_ncep,
-     &       bcast_all=.true.)
-        call read_data(grid,fid,'i0_ncep',i0_ncep,
-     &       bcast_all=.true.)
-        call read_data(grid,fid,'first_ncep',first_ncep,
-     &       bcast_all=.true.)
-#endif /* INTERACTIVE_WETLANDS_CH4 */
-        call read_dist_data(grid,fid,'sOx_acc',sOx_acc)
-        call read_dist_data(grid,fid,'sNOx_acc',sNOx_acc)
-        call read_dist_data(grid,fid,'sCO_acc',sCO_acc)
-        call read_dist_data(grid,fid,'l1Ox_acc',l1Ox_acc)
-        call read_dist_data(grid,fid,'l1NO2_acc',l1NO2_acc)
-#endif /* TRACERS_SPECIAL_Shindell */
-
-        call read_dist_data(grid,fid,'trcSurfMixR_acc',trcSurfMixR_acc)
-        call read_dist_data(grid,fid,'trcSurfByVol_acc'
-     &       ,trcSurfByVol_acc)
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
-        call read_dist_data(grid,fid,'sPM2p5_acc',sPM2p5_acc)
-        call read_dist_data(grid,fid,'sPM10_acc',sPM10_acc)
-        call read_dist_data(grid,fid,'l1PM2p5_acc',l1PM2p5_acc)
-        call read_dist_data(grid,fid,'l1PM10_acc',l1PM10_acc)
-        call read_dist_data(grid,fid,'csPM2p5_acc',csPM2p5_acc)
-        call read_dist_data(grid,fid,'csPM10_acc',csPM10_acc)
-#endif
-
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-        call read_dist_data(grid,fid,'hbaij',hbaij)
-        call read_dist_data(grid,fid,'ricntd',ricntd)
-        call read_dist_data(grid,fid,'pprec',pprec)
-        call read_dist_data(grid,fid,'pevap',pevap)
-#endif
-
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_TOMAS)
-        call read_dist_data(grid,fid,'snosiz',snosiz)
-#endif
-
-      end select
-
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-      call new_io_trdust(fid,iaction)
-#endif
-
-      return
-      end subroutine new_io_tracer
-#endif /* TRACERS_ON */
-#endif /* NEW_IO */
 
 
       subroutine setup_emis_sectors_regions
@@ -2405,3 +2002,187 @@ c daily_z is currently only needed for CS
 
       end subroutine setup_emis_sectors_regions
 
+      subroutine tracerIO(fid, action)
+!@sum tracerIO() provides a generic interface for IO actions
+!@+   on the full list of tracers.
+!@auth T. Clune
+      use ParallelIo_mod
+      use domain_decomp_atm, only : grid
+
+      USE TRACER_COM, only: ntm, TRmom, TRM, coupled_chem
+      USE TRACER_COM, only: ntm, nmom, no3_live, oh_live
+#ifdef TRACERS_SPECIAL_Shindell
+      USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
+     &yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss,ydms,yso2,sulfate
+     &,acetone,sOx_acc,sNOx_acc,sCO_acc,l1Ox_acc,l1NO2_acc
+     &,SF3,SF2,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2
+#ifdef INTERACTIVE_WETLANDS_CH4 
+      use TRACER_SOURCES, only: day_ncep,DRA_ch4,sum_ncep,PRS_ch4,
+     & HRA_ch4,iday_ncep,i0_ncep,iHch4,iDch4,i0ch4,first_ncep,first_mod,
+     & avg_model,avg_ncep
+#endif
+#endif
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_TOMAS) 
+      USE AEROSOL_SOURCES, only : snosiz
+#endif
+      use trdiag_com, only: trcSurfMixR_acc,trcSurfByVol_acc
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
+    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
+     &     ,sPM2p5_acc,sPM10_acc,l1PM2p5_acc,l1PM10_acc
+     &     ,csPM2p5_acc,csPM10_acc
+#endif
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      USE fluxes,ONLY : pprec,pevap
+      USE tracers_dust,ONLY : hbaij,ricntd
+      use trdust_drv, only: io_trDust
+      use trdust_drv, only: def_rsf_trdust
+      use trdust_drv, only: new_io_trdust
+#endif
+#ifdef TRACERS_WATER
+      USE TRACER_COM, only: trwm
+#endif
+      use OldTracer_mod, only: trName
+      use model_com, only : ioread,iowrite
+
+      implicit none
+
+      integer, intent(in) :: fid
+      character(len=*), intent(in) :: action
+
+      type (ParallelIo) :: handle
+      character(len=:), allocatable :: ijldims
+      integer :: n
+
+      ijldims='(dist_im,dist_jm,lm)' 
+      handle = ParallelIo(grid, fid)
+
+      do n=1,NTM
+        call doVar(handle,action,trm(:,:,:,n),
+     &        'trm_'//trim(trname(n))//ijldims)
+        call doVar(handle,action,trmom(:,:,:,:,n),
+     &       'trmom_'//trim(trname(n))//'(nmom,dist_im,dist_jm,lm)',
+     &       jdim=3)
+#ifdef TRACERS_WATER
+        call doVar(handle,action,trwm(:,:,:,n),
+     &       'trwm_'//trim(trname(n))//ijldims)
+#endif
+      enddo
+
+#ifdef CUBED_SPHERE
+c daily_z is currently only needed for CS
+      call doVar(handle,daily_z,'daily_z'//ijldims)
+#endif
+
+#ifdef TRACERS_SPECIAL_Shindell       
+
+      handle = ParallelIo(grid, fid, 'TRACERS_SPECIAL_Shindell')
+
+      call doVar(handle,action,ss,'ss(JPPJ,lm,dist_im,dist_jm)',jdim=4)
+      call doVar(handle,action,yNO3,'yNO3'//ijldims)
+      call doVar(handle,action,pHOx,'pHOx'//ijldims)
+      call doVar(handle,action,pNOx,'pNOx'//ijldims)
+      call doVar(handle,action,pOx ,'pOx'//ijldims)
+      call doVar(handle,action,yCH3O2,'yCH3O2'//ijldims)
+      call doVar(handle,action,yC2O3,'yC2O3'//ijldims)
+      call doVar(handle,action,yROR,'yROR'//ijldims)
+      call doVar(handle,action,yXO2,'yXO2'//ijldims)
+      call doVar(handle,action,yXO2N,'yXO2N'//ijldims)
+      call doVar(handle,action,yAldehyde,'yAldehyde'//ijldims)
+      call doVar(handle,action,yRXPAR,'yRXPAR'//ijldims)
+      call doVar(handle,action,ydms,'ydms'//ijldims)
+      call doVar(handle,action,ySO2,'ySO2'//ijldims)
+      call doVar(handle,action,sulfate,'sulfate'//ijldims)
+      call doVar(handle,action,acetone,'acetone'//ijldims)
+      if(coupled_chem == 1) then
+        call doVar(handle,action,oh_live,'oh_live'//ijldims)
+        call doVar(handle,action,no3_live,'no3_live'//ijldims)
+      endif
+      call doVar(handle,action,SF3,'SF3'//ijldims)
+      call doVar(handle,action,SF2,'SF2'//ijldims)
+      call doVar(handle,action,pClOx,'pClOx'//ijldims)
+      call doVar(handle,action,pClx,'pClx'//ijldims)
+      call doVar(handle,action,pOClOx,'pOClOx'//ijldims)
+      call doVar(handle,action,pBrOx,'pBrOx'//ijldims)
+      call doVar(handle,action,yCl2,'yCl2'//ijldims)
+      call doVar(handle,action,yCl2O2,'yCl2O2'//ijldims)
+
+#ifdef INTERACTIVE_WETLANDS_CH4 
+      handle = ParallelIo(grid, fid, 'INTERACTIVE_WETLANDS_CH4')
+
+      call doVar(handle,action,day_ncep,
+     &     'day_ncep(dist_im,dist_jm,max_days,nra_ncep)')
+      call doVar(handle,action,dra_ch4,
+     &     'dra_ch4(dist_im,dist_jm,max_days,nra_ch4)')
+      call doVar(handle,action,sum_ncep,
+     &     'sum_ncep(dist_im,dist_jm,nra_ncep)')
+      call doVar(handle,action,prs_ch4,
+     &     'prs_ch4(dist_im,dist_jm,nra_ch4)')
+      call doVar(handle,action,HRA_ch4,
+     &     'HRA_ch4(dist_im,dist_jm,maxHR_ch4,nra_ch4)')
+      call doVar(handle,action,i0ch4,
+     &     'i0ch4(dist_im,dist_jm,nra_ch4)')
+      call doVar(handle,action,iDch4,
+     &     'iDch4(dist_im,dist_jm,nra_ch4)')
+      call doVar(handle,action,iHch4,
+     &     'iHch4(dist_im,dist_jm,nra_ch4)')
+      call doVar(handle,action,first_mod,
+     &     'first_mod(dist_im,dist_jm,nra_ch4)')
+      call doVar(handle,action,avg_model,
+     &     'avg_model(dist_im,dist_jm,nra_ch4)')
+      call doVar(handle,action,avg_ncep, 
+     &     'avg_ncep(dist_im,dist_jm,nra_ncep)')
+      call doVar(handle,action,iday_ncep,'iday_ncep(nra_ncep)')
+      call doVar(handle,action,i0_ncep,'i0_ncep(nra_ncep)')
+      call doVar(handle,action,first_ncep,'first_ncep(nra_ncep)')
+#endif /* INTERACTIVE_WETLANDS_CH4 */
+      call doVar(handle,action,sOx_acc,'sOx_acc(dist_im,dist_jm)')
+      call doVar(handle,action,sNOx_acc,'sNOx_acc(dist_im,dist_jm)')
+      call doVar(handle,action,sCO_acc,'sCO_acc(dist_im,dist_jm)')
+      call doVar(handle,action,l1Ox_acc,'l1Ox_acc(dist_im,dist_jm)')
+      call doVar(handle,action,l1NO2_acc,'l1NO2_acc(dist_im,dist_jm)')
+#endif /* TRACERS_SPECIAL_Shindell */
+
+      call doVar(handle,action,trcSurfMixR_acc
+     &     ,'trcSurfMixR_acc(dist_im,dist_jm,Ntm)')
+      call doVar(handle,action,trcSurfByVol_acc
+     &     ,'trcSurfByVol_acc(dist_im,dist_jm,Ntm)')
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
+    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
+      call doVar(handle,action,sPM2p5_acc,'sPM2p5_acc(dist_im,dist_jm)')
+      call doVar(handle,action,sPM10_acc,'sPM10_acc(dist_im,dist_jm)')
+      call doVar(handle,action,l1PM2p5_acc,
+     *     'l1PM2p5_acc(dist_im,dist_jm)')
+      call doVar(handle,action,l1PM10_acc,'l1PM10_acc(dist_im,dist_jm)')
+      call doVar(handle,action,csPM2p5_acc,
+     *     'csPM2p5_acc(dist_im,dist_jm)')
+      call doVar(handle,action,csPM10_acc,'csPM10_acc(dist_im,dist_jm)')
+#endif
+
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_QUARZHEM)
+      handle = ParallelIo(grid, fid,
+     &   'TRACERS_DUST||TRACERS_MINERALS||TRACERS_QUARZHEM')
+      call doVar(handle,action,hbaij,'hbaij(dist_im,dist_jm)')
+      call doVar(handle,action,ricntd,'ricntd(dist_im,dist_jm)')
+      call doVar(handle,action,pprec,'pprec(dist_im,dist_jm)')
+      call doVar(handle,action,pevap,'pevap(dist_im,dist_jm)')
+
+      select case (action)
+      case ('define')
+         call def_rsf_trdust(fid)
+      case ('read_dist')
+         call new_io_trdust(fid,ioread)
+      case ('write_dist')
+         call new_io_trdust(fid,iowrite)
+      end select
+
+#endif
+
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_TOMAS)
+      call doVar(handle,action,snosiz,'snosiz(dist_im,dist_jm)')
+#endif
+
+      return
+      end subroutine tracerIo
+     

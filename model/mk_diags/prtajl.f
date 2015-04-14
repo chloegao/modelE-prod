@@ -9,19 +9,21 @@
       integer :: fid                 ! input file ID
       character(len=160) :: progargs ! options string
       real*4, dimension(:), allocatable :: lat_dg,vmean,plm,ple,pgz,pm
-      real*4, dimension(:,:), allocatable :: xjl,xjl_hemis,lats_dg
+      real*4 :: p_radonly(3)
+      real*4, dimension(:,:), allocatable :: xjl,xjl_hemis,lats_dg,
+     &     xjl_radonly,xjl_radonly_hemis
       character(len=30) :: units
       character(len=80) :: lname,title,outfile
       character(len=40) :: vname,vname_hemis,vname_vmean
       character(len=8) :: tpow
-      character(len=4) :: dash='----'
+      character(len=4) :: dash='----',blank4
       character(len=20) :: latname
       real*4 :: prtfac,fglob,fnh,fsh
       integer :: j,l,jm,lm,kgz,km,inc,lstr,prtpow,linect,nargs,
-     &     k1,k2,lunit
+     &     k1,k2,lunit,prtpow_vmean
       integer :: lats_per_zone,j1,j2,zone,nzones,lats_this_zone
       integer :: minj,maxj
-      logical :: do_giss,all_lats
+      logical :: do_giss,all_lats,has_radonly
       real*4, parameter :: missing=-1.e30
       integer :: vid
 
@@ -31,7 +33,8 @@ c
       character(len=80), parameter :: fmtlat =
      &     "('  P(MB)   MEAN G      NH      SH  ',32I4)"
       integer :: status,varid,varid_hemis,varid_vmean,nvars,dimids(2),
-     &     plm_dimid,ple_dimid, lat_dimid,lat2_dimid,pgz_dimid
+     &     plm_dimid,ple_dimid, lat_dimid,lat2_dimid,pgz_dimid,
+     &     varid_radonly,varid_radonly_hemis
       character(len=132) :: xlabel
       character(len=100) :: fromto
 
@@ -81,6 +84,7 @@ c allocate workspace
 c
       allocate(lat_dg(jm),lats_dg(jm,2),
      &     vmean(jm+3),xjl(jm,lm),xjl_hemis(3,lm))
+      allocate(xjl_radonly(jm,lm),xjl_radonly_hemis(3,lm))
       allocate(plm(lm),ple(lm),pm(lm))
 
 c
@@ -100,6 +104,10 @@ c
         allocate(pgz(kgz))
         call get_var_real(fid,'pgz',pgz)
       endif
+      if(nf_inq_varid(fid,'p_radonly',vid).eq.nf_noerr) then
+        status = nf_get_var_real(fid,vid,p_radonly)
+      endif
+
 c
 c get the number of quantities in the file
 c
@@ -132,6 +140,16 @@ c
         if(vname_hemis(lstr-5:lstr).ne.'_hemis') cycle
         vname = vname_hemis(1:lstr-6)
         vname_vmean = trim(vname)//'_vmean'
+        if(index(trim(vname),'_radonly').gt.0) cycle ! print on top of reg. domain
+        has_radonly = nf_noerr.eq.
+     &       nf_inq_varid(fid,trim(vname)//'_radonly',varid_radonly)
+        if(has_radonly) then
+          status = nf_get_var_real(fid,varid_radonly,xjl_radonly)
+          status = nf_inq_varid(fid,trim(vname)//'_radonly_hemis',
+     &         varid_radonly_hemis)
+          status = nf_get_var_real(fid,varid_radonly_hemis,
+     &         xjl_radonly_hemis)
+        endif
         status = nf_inq_varid(fid,trim(vname),varid)
         status = nf_inq_varid(fid,trim(vname_vmean),varid_vmean)
         units = ''
@@ -141,6 +159,8 @@ c
         status = nf_get_att_text(fid,varid,'long_name',lname)
         prtpow = 0
         status = nf_get_att_int(fid,varid,'prtpow',prtpow)
+        prtpow_vmean = 0
+        status = nf_get_att_int(fid,varid,'prtpow_vmean',prtpow_vmean)
         xjl_hemis = missing
         status = nf_get_var_real(fid,varid_hemis,xjl_hemis)
         vmean = missing
@@ -155,14 +175,24 @@ c
 c
 c form title string and rescale fields for ASCII output
 c
+        blank4 = '    '
         if(prtpow.ne.0) then
           prtfac = 10.**(-prtpow)
           where(xjl.ne.missing) xjl = xjl*prtfac
           where(xjl_hemis.ne.missing) xjl_hemis = xjl_hemis*prtfac
-          where(vmean.ne.missing) vmean = vmean*prtfac
           write (tpow, '(i3)') prtpow
           tpow='10**'//trim(adjustl(tpow))
           units = trim(tpow)//' '//trim(units)
+          if(has_radonly) then
+            xjl_radonly = xjl_radonly*prtfac
+            xjl_radonly_hemis = xjl_radonly_hemis*prtfac
+          endif
+          where(vmean.ne.missing) vmean = vmean*prtfac
+          if(prtpow_vmean.eq.prtpow-1 .and. prtpow_vmean.ne.0) then
+            ! could be made general, but GCM only uses a factor of 10
+            where(vmean.ne.missing) vmean = vmean*10.
+            blank4 = '.1* '
+          endif
         endif
         title = trim(lname)//' ('//trim(units)//')'
 
@@ -226,6 +256,15 @@ c
           call prtdashes(lats_this_zone)
           write(6,fmtlat) int(lat_dg(j2:j1:-inc))
           call prtdashes(lats_this_zone)
+          if(has_radonly) then
+            do l=3,1,-1
+              fsh  = xjl_radonly_hemis(1,l)
+              fnh  = xjl_radonly_hemis(2,l)
+              fglob= xjl_radonly_hemis(3,l)
+              write(6,902) p_radonly(l),fglob,fnh,fsh,
+     &             (nint(xjl_radonly(j,l)),j=j2,j1,-inc)
+            enddo
+          endif
           do l=km,1,-1
             fsh  = xjl_hemis(1,l)
             fnh  = xjl_hemis(2,l)
@@ -237,7 +276,7 @@ c
           fsh  =vmean(jm+1)
           fnh  =vmean(jm+2)
           fglob=vmean(jm+3)
-          write(6,903) '    ',fglob,fnh,fsh,
+          write(6,903) blank4,fglob,fnh,fsh,
      &         (nint(vmean(j)),j=j2,j1,-inc)
         enddo
       enddo

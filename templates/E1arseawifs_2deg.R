@@ -49,7 +49,7 @@ SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_COM LANDICE_DRV                 ! land ice modules
 ICEDYN_DRV ICEDYN                   ! ice dynamics modules
 ODIAG_COM OCEAN_COM OSTRAITS_COM OGEOM ! dynamic ocean modules
-OCNDYN OCNDYN2                           ! dynamic ocean routines
+OCNDYN  OCNDYN2  OTIDELL                 ! dynamic ocean routines
 OCN_Interp OCN_Int_LATLON                ! dynamic ocean routines
 OSTRAITS OCNGM OCNKPP                    ! dynamic ocean routines
 OCEANR_DIM AFLUXES OFLUXES
@@ -188,6 +188,7 @@ ANG_SDRAG=1         ! conserve ang. mom.
 
 OBottom_drag=1      !  Drags at the ocean bottom (NO drags -> OBottom_drag=0)
 OCoastal_drag=1     !  Drags at the ocean coasts (NO drags -> OCoastal_drag=0)
+OTIDE = 0           !  Ocean tides are not used
 
 PTLISO=15.  ! press(mb) above which rad. assumes isothermal layers
 

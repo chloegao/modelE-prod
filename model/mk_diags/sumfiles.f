@@ -20,11 +20,12 @@
       integer, dimension(12) :: monacc,monacc1
       real*8, dimension(:), allocatable :: acc,acc_part
       integer :: chunksize
-
+      real*8 :: bynfiles
 c
 c get the number of input files
 c
       nfiles = iargc()
+      bynfiles = 1d0/real(nfiles,kind=8)
 
       if(nfiles.le.1) then
         write(6,*)
@@ -126,6 +127,8 @@ c
             acc = min(acc,acc_part)
           case ('max')
             acc = max(acc,acc_part)
+          case ('avg')
+            acc = acc + acc_part*bynfiles
           case default
             acc = acc + acc_part
           end select

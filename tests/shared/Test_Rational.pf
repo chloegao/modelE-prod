@@ -187,6 +187,23 @@ end subroutine test_convertHard
    end subroutine test_greaterThan
 
 @test
+   subroutine test_greaterThanOrEqualTo()
+
+     @assertFalse(Rational(1) >= Rational(2))
+     @assertTrue(Rational(1) >= Rational(1))
+     @assertTrue(Rational(2) >= Rational(1))
+
+     @assertFalse(Rational(3,4) >= Rational(4,5))
+     @assertTrue(Rational(4,5) >= Rational(3,4))
+
+     @assertFalse(Rational(-1) >= Rational(0))
+
+     @assertFalse(Rational(-4,3) >= Rational(-1,2))
+     @assertFalse(Rational(-4,3) >= Rational(+1,2))
+
+   end subroutine test_greaterThanOrEqualTo
+
+@test
    subroutine test_floor()
 
      @assertEqual(0, floor(Rational(0)))

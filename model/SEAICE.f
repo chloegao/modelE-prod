@@ -12,6 +12,10 @@
       use TimeConstants_mod, only: SECONDS_PER_DAY
       IMPLICIT NONE
       SAVE
+
+!@param dtdp Clausius-Clapeyron Constant (dT/dp of ice) (units K Pa-1)
+      real*8, parameter :: dtdp = -7.5d-8
+
 #ifdef TRACERS_WATER
       INTEGER :: ntm
 #endif
@@ -38,12 +42,15 @@ C**** snow/ice thermal diffusivity (Pringle et al, 2007)
       real*8, parameter :: alamdS=0.09d0, alamdT=-0.011d0
 !@param RHOS density of snow (kg/m^3)
       REAL*8, PARAMETER :: RHOS = 300.0
-!@var FLEADOC lead fraction for ocean ice (%)
+!@var FLEADOC lead fraction for ocean ice (1) for mean ice thickness of 1 m
       REAL*8, PARAMETER :: FLEADOC = 0.06d0
 !@var FLEADLK lead fraction for lakes (%)
       REAL*8, PARAMETER :: FLEADLK = 0.
 !@var FLEADMX maximum thickness for lead fraction (m)
       REAL*8, PARAMETER :: FLEADMX = 5.
+!@param BYHREF (1/m) reciprocal of scale depth for calculating open water
+!@+     fraction as a function of mean ice thickness
+      REAL*8, PARAMETER :: BYHREF = 1.1d0
 !@param BYRLS reciprocal of snow density*lambda
       REAL*8, PARAMETER :: BYRLS = 1./(RHOS*ALAMS)
 !@param MU coefficient of seawater freezing point w.r.t. salinity
@@ -668,14 +675,15 @@ c    *                     BYZICX=1./(Z1I+Z2OIX)
 !@var DTRIMP implicit tracer flux required to maintain minimum ice
 !@+   thickness if ice fraction is fixed
       REAL*8, INTENT(OUT), DIMENSION(NTM) :: DTRIMP
-      REAL*8, DIMENSION(NTM) :: FTRSI3,FTRSI4
+      REAL*8, DIMENSION(NTM) :: FTRSI1,FTRSI2,FTRSI3,FTRSI4
       REAL*8 :: TRSNOW(NTM,2),TRICE(NTM,LMI)
       INTEGER N
 #endif
       REAL*8, DIMENSION(LMI) :: FRI
-      REAL*8 FMSI4, FHSI3, FHSI4, FSSI3, FSSI4 ! HSNOW, HICE, SICE
+      REAL*8 FMSI1,FMSI2,FMSI3,FMSI4, FHSI1,FHSI2,FHSI3,FHSI4,
+     &       FSSI1,FSSI2,FSSI3,FSSI4
       REAL*8 HSNOW(2),SNOWL(2),TSNW(2),HICE(LMI),SICE(LMI),MICE(LMI)
-      REAL*8 ROICEN, OPNOCN, DRSI, MSI1
+      REAL*8 ROICEN, OPNOCN, DRSI, MSI1, MSI2xx, HAVG
       integer l
 
       DMIMP=0. ; DHIMP=0. ; DSIMP=0.
@@ -808,39 +816,77 @@ C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
       END IF
 
 C**** COMPRESS THE ICE HORIZONTALLY IF TOO THIN OR LEAD FRAC. TOO SMALL
-      OPNOCN=MIN(0.1d0,FLEAD*RHOI/(ROICE*(ACE1I+MSI2)))
+      HAVG = ROICE*(ACE1I+MSI2)/RHOI ! average ice thickness in meters
+      ! using exp() form to reduce wintertime open ocean heat loss in the
+      ! presence of thick ice, keeping same lead fraction at 1 m thickness
+      !OPNOCN=MIN(0.1d0,FLEAD/HAVG)
+      OPNOCN=MIN(0.1D0,FLEAD*EXP(-BYHREF*(HAVG-1D0)))
       IF ((ROICE*(ACE1I+MSI2)).gt.FLEADMX*RHOI) OPNOCN=0. ! no leads for h>mx
       IF (MSI2.LT.AC2OIM .or. ROICE.GT.1.-OPNOCN) THEN
-      ROICEN = MIN(ROICE*(ACE1I+MSI2)/(ACE1I+AC2OIM),1.-OPNOCN)
-      DRSI = ROICEN-ROICE ! < 0. compressed ice concentration
-CC    FMSI3 = XSI(3)*FMSI4 ! < 0. upward ice mass flux into layer 3
-      FMSI4 = (MSI1+MSI2)*(DRSI/ROICEN) ! upward ice mass into layer 4
-      FHSI3 = HSIL(4)*FMSI4*(XSI(3)/XSI(4))/MSI2 ! upward heat flux
-      FHSI4 = (HSIL(1)+HSIL(2)+HSIL(3)+HSIL(4))*(DRSI/ROICEN)
-      HSIL(3) = HSIL(3)-FHSI3
-      HSIL(4) = HSIL(4)+(FHSI3-FHSI4)
-      FSSI3 = SSIL(4)*FMSI4*(XSI(3)/XSI(4))/MSI2 ! upward salt flux
-      FSSI4 = (SSIL(1)+SSIL(2)+SSIL(3)+SSIL(4))*(DRSI/ROICEN)
-      SSIL(3) = SSIL(3)-FSSI3
-      SSIL(4) = SSIL(4)+(FSSI3-FSSI4)
+
+C**** separate out snow and ice components
+      call get_snow_ice_layer(SNOW,MSI2,HSIL,SSIL,
 #ifdef TRACERS_WATER
-      FTRSI3(:) = TRSIL(:,4)*FMSI4*(XSI(3)/XSI(4))/MSI2
-      FTRSI4(:) = (TRSIL(:,1)+TRSIL(:,2)+TRSIL(:,3)+TRSIL(:,4))*(DRSI
-     *     /ROICEN)
-      TRSIL(:,3) = TRSIL(:,3) - FTRSI3(:)
-      TRSIL(:,4) = TRSIL(:,4) +(FTRSI3(:)-FTRSI4(:))
+     *       TRSIL,TRSNOW,TRICE, 
+#endif 
+     *       SNOWL,HSNOW,HICE,SICE,TSNW,TSIL,MICE,.false.)
+
+      ROICEN = MIN(ROICE*(ACE1I+MSI2)/(ACE1I+AC2OIM), 1.-OPNOCN)
+      DRSI  = ROICEN - ROICE ! < 0 compressed ice concentration
+      FMSI1 = - MICE(1) * DRSI / ROICEN
+      FMSI2 = - (MICE(1)+MICE(2)) * DRSI / ROICEN
+      FMSI3 = FMSI2 * XSI(4)
+C     FMSI4 = 0
+      FHSI1 = HICE(1) * FMSI1 / (MICE(1) + 1d-30)
+      FHSI2 = HICE(2) * FMSI2 /  MICE(2)
+      FHSI3 = HICE(3) * FMSI3 / (MSI2*XSI(3))
+      FSSI1 = SICE(1) * FMSI1 / (MICE(1) + 1d-30)
+      FSSI2 = SICE(2) * FMSI2 /  MICE(2)
+      FSSI3 = SICE(3) * FMSI3 / (MSI2*XSI(3))
+      HICE(2) = HICE(2)*ROICE/ROICEN + FHSI1-FHSI2
+      HICE(3) = HICE(3)*ROICE/ROICEN + FHSI2-FHSI3
+      HICE(4) = HICE(4)*ROICE/ROICEN + FHSI3
+      SICE(2) = SICE(2)*ROICE/ROICEN + FSSI1-FSSI2
+      SICE(3) = SICE(3)*ROICE/ROICEN + FSSI2-FSSI3
+      SICE(4) = SICE(4)*ROICE/ROICEN + FSSI3
+#ifdef TRACERS_WATER
+      FTRSI1(:) = TRICE(:,1) * FMSI1 / (MICE(1) + 1d-30)
+      FTRSI2(:) = TRICE(:,2) * FMSI2 /  MICE(2)
+      FTRSI3(:) = TRICE(:,3) * FMSI3 / (MSI2*XSI(3))
+      TRICE(:,2) = TRICE(:,2)*ROICE/ROICEN + FTRSI1(:)-FTRSI2(:)
+      TRICE(:,3) = TRICE(:,3)*ROICE/ROICEN + FTRSI2(:)-FTRSI3(:)
+      TRICE(:,4) = TRICE(:,4)*ROICE/ROICEN + FTRSI3(:)
+      TRSNOW(:,:) = TRSNOW(:,:)*ROICE/ROICEN
 #endif
-      MSI2 = MSI2-FMSI4 ! new ice mass of second physical layer
-CC    SNOW = SNOW   ! snow thickness is conserved
+      MSI2 = MSI2*ROICE/ROICEN + FMSI2
+C     SNOW*ROICEN = SNOW*roice  ! snow mass (kg) is conserved
+      SNOWL(:) = SNOWL(:)*ROICE/ROICEN
+      HSNOW(:) = HSNOW(:)*ROICE/ROICEN
       ROICE = ROICEN
-C****
+
+C**** relayer upper two layers
+        call relayer_12(HSNOW,HICE,SICE,MICE,SNOWL
+#ifdef TRACERS_WATER
+     *       ,TRSNOW,TRICE 
+#endif 
+     *       )
+
+C**** reconstitute snow and ice layers
+      call set_snow_ice_layer(HSNOW,HICE,SICE,MICE,SNOWL,
+#ifdef TRACERS_WATER
+     *       TRSNOW,TRICE,TRSIL, 
+#endif 
+     *       SNOW,MSI1,MSI2xx,HSIL,SSIL)
+
       END IF
 C****
       END IF
 
 C**** Clean up ice fraction (if rsi>(1-OPNOCN)-1d-3) => rsi=(1-OPNOCN))
       IF (ROICE.gt.0) THEN
-      OPNOCN=MIN(0.1d0,FLEAD*RHOI/(ROICE*(ACE1I+MSI2)))    ! -BYZICX)
+      HAVG = ROICE*(ACE1I+MSI2)/RHOI ! average ice thickness in meters
+      !OPNOCN=MIN(0.1d0,FLEAD/HAVG)
+      OPNOCN=MIN(0.1D0,FLEAD*EXP(-BYHREF*(HAVG-1D0)))
       IF ((ROICE*(ACE1I+MSI2)).gt.FLEADMX*RHOI) OPNOCN=0.  ! no leads for h>mx
       IF (ROICE.gt.(1.-OPNOCN)-1d-3) THEN
         ROICEN = 1.-OPNOCN
@@ -858,7 +904,7 @@ C**** Clean up ice fraction (if rsi>(1-OPNOCN)-1d-3) => rsi=(1-OPNOCN))
         MSI2=MSI2-FMSI4         ! new ice mass of second physical layer
         FRI(1:2)=XSI(1:2)*ACE1I/(ACE1I+MSI2)
         FRI(3:4)=XSI(3:4)*MSI2/(ACE1I+MSI2)
-
+        
 C**** separate out snow and ice components
         call get_snow_ice_layer(SNOW,MSI2,HSIL,SSIL,
 #ifdef TRACERS_WATER
@@ -1567,7 +1613,6 @@ c****
       real*8, intent(in), optional :: press
 !@var tfrez approx. freezing point of sea water (C)
       real*8 tfrez,pr
-      real*8, parameter :: dtdp = -7.5d-8
       real*8 :: a01 = -.0575d0, a02 = -2.154996d-4, a03 =1.710523d-3
 
       pr=0.

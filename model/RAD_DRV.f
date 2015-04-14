@@ -111,6 +111,7 @@ C****
 #endif
 #ifdef TRACERS_AMP
       USE AERO_CONFIG, only: nmodes
+      USE AMP_AEROSOL, only: AMP_DIAG_FC
       USE TRACER_COM, only:
      *     n_N_AKK_1 ,n_N_ACC_1 ,n_N_DD1_1 ,n_N_DS1_1 ,n_N_DD2_1,
      *     n_N_DS2_1, n_N_SSA_1, n_N_SSC_1, n_N_OCC_1, n_N_BC1_1,
@@ -118,7 +119,8 @@ C****
      *     n_N_DBC_1, n_N_BOC_1, n_N_BCS_1, n_N_MXX_1
 #endif
 #ifdef TRACERS_TOMAS
-      USE TOMAS_AEROSOL, only: icomp
+      USE TOMAS_AEROSOL, only: icomp,TOMAS_DIAG_FC
+      USE TRACER_COM, only : n_ANUM
 #endif
       use AerParam_mod, only : aermix
       use AerParam_mod, only: depoBC,depoBC_1990
@@ -561,6 +563,27 @@ caer   ITR = (/ 0,0,0,0, 0,0,0,0 /)
 caer   TRRDRY=(/ .1d0, .1d0, .1d0, .1d0, .1d0, .1d0, .1d0, .1d0/)
 caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
 
+#ifdef  TRACERS_AMP
+         IF (AMP_DIAG_FC == 2) THEN
+            nraero_AMP=nmodes
+         ELSE
+            nraero_AMP=n_N_AKK_1
+         ENDIF
+#endif /* TRACERS_AMP */
+
+#ifdef  TRACERS_TOMAS
+         IF (TOMAS_DIAG_FC == 2) THEN
+!TOMAS does not include NO3 AND VOL, which use its default radiation. 
+#ifndef TRACERS_NITRATE
+            nraero_TOMAS=icomp-2
+#else
+            nraero_TOMAS=icomp-1
+#endif
+         ELSE
+            nraero_TOMAS=n_ANUM(1)
+         ENDIF
+#endif /* TRACERS_TOMAS */
+
 #ifdef TRACERS_ON
       nraero=nraero_seasalt+nraero_koch+nraero_nitrate+nraero_dust
      &      +nraero_AMP+nraero_TOMAS+nraero_OM_SP
@@ -826,11 +849,15 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
           FS8OPX(1:7)=0.d0
           FT8OPX(1:7)=0.d0
         endif
-        ntrix(n+1:n+nraero_AMP)=
-     &     (/n_N_AKK_1 ,n_N_ACC_1 ,n_N_DD1_1 ,n_N_DS1_1 ,n_N_DD2_1,
-     &       n_N_DS2_1, n_N_SSA_1, n_N_SSC_1, n_N_OCC_1, n_N_BC1_1,
-     &       n_N_BC2_1 ,n_N_BC3_1,
-     &       n_N_DBC_1, n_N_BOC_1, n_N_BCS_1, n_N_MXX_1/)
+        if (AMP_DIAG_FC == 2) then
+          ntrix(n+1:n+nraero_AMP)=
+     &       (/n_N_AKK_1 ,n_N_ACC_1 ,n_N_DD1_1 ,n_N_DS1_1 ,n_N_DD2_1,
+     &         n_N_DS2_1, n_N_SSA_1, n_N_SSC_1, n_N_OCC_1, n_N_BC1_1,
+     &         n_N_BC2_1 ,n_N_BC3_1,
+     &         n_N_DBC_1, n_N_BOC_1, n_N_BCS_1, n_N_MXX_1/)
+        else
+          ntrix(n+1)=n_N_AKK_1
+        endif
       endif
       n=n+nraero_AMP
 #endif  /* (defined TRACERS_AMP) || (defined TRACERS_AMP_M1) */
@@ -847,12 +874,17 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
           FT8OPX(3)=0.d0
 #endif  /* TRACERS_NITRATE */
         endif
+
+        if (TOMAS_DIAG_FC == 2) then
 ! ANUM(1) for internal-mixing case. Others(ncomp-1) for external-mixing case.
-        ntrix(n+1:n+nraero_TOMAS)=
-     &     (/n_ASO4(1), n_ANACL(1), n_AECOB(1), n_AECIL(1),
-     &       n_AOCOB(1), n_AOCIL(1), n_ADUST(1)/)
-        itr(n+1:n+nraero_TOMAS) = (/1,2,6,5,4,4,7/)
-        krhtra(n+1:n+nraero_TOMAS)=0
+          ntrix(n+1:n+nraero_TOMAS)=
+     &       (/n_ASO4(1), n_ANACL(1), n_AECOB(1), n_AECIL(1),
+     &         n_AOCOB(1), n_AOCIL(1), n_ADUST(1)/)
+          itr(n+1:n+nraero_TOMAS) = (/1,2,6,5,4,4,7/)
+          krhtra(n+1:n+nraero_TOMAS)=0
+        else
+          ntrix(n+1)=n_ANUM(1)
+        endif
       endif
       n=n+nraero_TOMAS
 #endif
@@ -1321,18 +1353,8 @@ c      EDPY=365d0 ; VEDAY=79d0           ! Generic year
 C**** PMIP calculation (no leap, VE=Mar 21 hr 12)
       EDPY=365d0 ; VEDAY=79.5d0           ! Generic year
 C**** Update orbital parameters at start of year
-      if (variable_orb_par == 1.and.dayOfYear == 1) then
-        pyear = YEAR - orb_par_year_bp ! bp=before present model year
-        call useOrbit%setYear(pYear)
-        if (am_I_root()) then
-          write(6,*) 'Set orbital parameters for year ',pyear,' (CE)'
-          if (orb_par_year_bp.ne.0) write(6,*) 'offset by',
-     *      orb_par_year_bp,' years from model year'
-          write(6,*) "   Eccentricity: ", useOrbit%getEccentricity()
-          write(6,*) "   Obliquity (degs): ",useOrbit%getObliquity()
-          write(6,*) "   Precession (degs from ve): ",
-     *         useOrbit%getLongitudeAtPeriapsis()
-        end if
+      if (dayOfYear == 1) then
+         call useOrbit%setYear(real(year,kind=8))
       end if
 
       ! Use time for the _middle_ of the day to compute 
@@ -1477,7 +1499,7 @@ C     INPUT DATA  (i,j) dependent
      &             ,ltopcl,TAUWC ,TAUIC ,SIZEWC ,SIZEIC, kdeliq
      &             ,POCEAN,PEARTH,POICE,PLICE,PLAKE,COSZ,PVT
      &             ,TGO,TGE,TGOI,TGLI,TSL,WMAG,WEARTH
-     &             ,AGESN,SNOWE,SNOWOI,SNOWLI,dALBsn, ZSNWOI,ZOICE
+     &             ,AGESN,SNOWD,SNOWOI,SNOWLI,dALBsn, ZSNWOI,ZOICE
      &             ,zmp,fmp,flags,LS1_loc,snow_frac,zlake
      *             ,TRACER,FSTOPX,FTTOPX,chem_IN
      &             ,nraero=>NTRACE
@@ -1544,7 +1566,7 @@ C     OUTPUT DATA
 #endif
       USE ATM_COM, only : pk,pedn,pmid,pdsig,ltropo,MA,byMA
       USE SEAICE_COM, only : si_atm
-      USE GHY_COM, only : fearth
+      USE GHY_COM, only : fearth,snowd_ij=>snowd
 #ifdef USE_ENT
       use ent_com, only : entcells
       use ent_mod, only : ent_get_exports
@@ -1600,10 +1622,6 @@ c          use TRACER_COM, only: SNFST0,TNFST0
       USE TRCHEM_Shindell_COM, only: Lmax_rad_O3,Lmax_rad_CH4
 #endif /* TRACERS_SPECIAL_Shindell */
 #endif /* TRACERS_ON */
-#ifdef TRACERS_AMP
-      USE AERO_CONFIG, only: nmodes
-      USE AMP_AEROSOL, only: AMP_DIAG_FC
-#endif
 #ifdef TRACERS_TOMAS
       USE TOMAS_AEROSOL, only: icomp,TOMAS_DIAG_FC
       USE TRACER_COM, only : n_ANUM
@@ -1753,7 +1771,7 @@ c     INTEGER ICKERR,JCKERR,KCKERR
       integer :: initial_GHG_setup
 
 #ifdef USE_ENT
-      real*8 :: PVT0(N_COVERTYPES)
+      real*8 :: PVT0(N_COVERTYPES), HVT0(N_COVERTYPES)
 #endif
 #ifdef TRACERS_NITRATE
       real*8 :: nh4_on_no3
@@ -2397,7 +2415,8 @@ C**** Zenith angle and GROUND/SURFACE parameters
       TSL=atmsrf%TSAVG(I,J)
       SNOWOI=SNOWI(I,J)
       SNOWLI=atmgla%SNOW(I,J)
-      SNOWE=atmlnd%SNOWE(I,J)                    ! snow depth (kg/m**2)
+      !SNOWE=atmlnd%SNOWE(I,J)                    ! snow depth (kg/m**2)
+      SNOWD(:)=snowd_ij(:,I,J)
       snow_frac(:) = atmlnd%fr_snow_rad(:,i,j)    ! snow cover (1)
       AGESN(1)=SNOAGE(3,I,J)    ! land         ! ? why are these numbers
       AGESN(2)=SNOAGE(1,I,J)    ! ocean ice        so confusing ?
@@ -2447,8 +2466,9 @@ C****
 #ifdef USE_ENT
       if ( fearth(i,j) > 0.d0 ) then
         call ent_get_exports( entcells(i,j),
-     &       vegetation_fractions=PVT0 )
-        call map_ent2giss(PVT0,PVT) !temp hack: ent pfts->giss veg
+     &       vegetation_fractions=PVT0,
+     &       vegetation_heights=HVT0 )
+        call map_ent2giss(PVT0,HVT0,PVT) !temp hack: ent pfts->giss veg
       else
         PVT(:) = 0.d0  ! actually PVT is not supposed to be used in this case
       endif
@@ -2640,24 +2660,9 @@ c set for BC-albedo effect
         dALBsn=dALBsn1
 #endif
 #ifdef TRACERS_AMP
-        IF (AMP_DIAG_FC == 2) THEN
-          Do n = 1,nmodes
-            FSTOPX(n) = 1-onoff_aer !turns off online tracer
-            FTTOPX(n) = 1-onoff_aer !
-            if (n.eq.1) FSTOPX(:) = 1-onoff_aer
-            if (n.eq.1) FTTOPX(:) = 1-onoff_aer
-            CALL RCOMPX
-            SNFST(1,n,I,J)=SRNFLB(1) ! surface forcing
-            TNFST(1,n,I,J)=TRNFLB(1)
-            SNFST(2,n,I,J)=SRNFLB(LFRC) ! Tropopause forcing
-            TNFST(2,n,I,J)=TRNFLB(LFRC)
-            FSTOPX(:) = onoff_aer !turns on online tracer
-            FTTOPX(:) = onoff_aer !
-          ENDDO
-        ELSE
-           n = 1
-          FSTOPX(:) = 1-onoff_aer !turns off online tracer
-          FTTOPX(:) = 1-onoff_aer !
+        DO n = 1,nraero
+          FSTOPX(n) = 1-onoff_aer !turns off online tracer
+          FTTOPX(n) = 1-onoff_aer !
           CALL RCOMPX
           SNFST(1,n,I,J)=SRNFLB(1) ! surface forcing
           TNFST(1,n,I,J)=TRNFLB(1)
@@ -2665,7 +2670,7 @@ c set for BC-albedo effect
           TNFST(2,n,I,J)=TRNFLB(LFRC)
           FSTOPX(:) = onoff_aer !turns on online tracer
           FTTOPX(:) = onoff_aer !
-        ENDIF
+        ENDDO
 #endif
 #ifdef TRACERS_TOMAS
         IF (TOMAS_DIAG_FC == 2) THEN
@@ -2790,12 +2795,6 @@ C*****************************************************
     (defined TRACERS_AMP) || (defined TRACERS_TOMAS) ||\
     (defined TRACERS_AEROSOLS_SEASALT)
 
-#ifdef TRACERS_AMP
-      nraero = nmodes
-#endif
-#ifdef TRACERS_TOMAS
-      nraero = icomp-2
-#endif
 C**** Save optical depth diags
       do n=1,nraero
         IF (ntrix(n) > 0) THEN
@@ -3374,22 +3373,6 @@ C**** diagnostic sign changes (for aerosols)
 C**** define SNFS/TNFS level (TOA/TROPO) for calculating forcing
          LFRC=3                 ! TOA
          if (rad_forc_lev.gt.0) LFRC=4 ! TROPOPAUSE
-#ifdef  TRACERS_AMP
-         IF (AMP_DIAG_FC == 2) THEN
-            nraero = nmodes
-         ELSE
-            nraero = 1
-            NTRIX(1) = 1
-         ENDIF
-#endif /* TRACERS_AMP */
-#ifdef  TRACERS_TOMAS
-         IF (TOMAS_DIAG_FC == 2) THEN
-            nraero = icomp-2
-         ELSE
-            nraero = 1
-            NTRIX(1) = 1
-         ENDIF
-#endif /* TRACERS_TOMAS */
          if (nraero > 0) then
 #ifdef BC_ALB
       if (ijts_alb(1).gt.0)
@@ -3527,19 +3510,6 @@ c longwave forcing at surface clear sky (if required)
      &                -rsign_aer*(TNFST(1,N,I,J)-TNFS(1,I,J))
      &                *(1.d0-CFRAC(I,J))
                END SELECT
-#ifdef  TRACERS_AMP
-         IF (AMP_DIAG_FC == 2) THEN
-         ELSE
-         NTRIX(1)=  n_N_AKK_1
-         ENDIF
-#endif /* TRACERS_AMP */
-#ifdef  TRACERS_TOMAS
-!I don't know why this is used..
-         IF (TOMAS_DIAG_FC == 2) THEN
-         ELSE
-         NTRIX(1)=  n_ANUM(1)
-         ENDIF
-#endif /* TRACERS_TOMAS */
 #ifdef TRACERS_AEROSOLS_Koch
 c              SNFST0(1,ntrix(n),I,J)=SNFST0(1,ntrix(n),I,J)
 c    &              +rsign_aer*(SNFST(2,n,I,J)-SNFS(LFRC,I,J))*CSZ2

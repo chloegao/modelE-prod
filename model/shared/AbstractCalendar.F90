@@ -30,6 +30,7 @@ module AbstractCalendar_mod
      private
 
      type (AbstractTimeStampHashMap) :: transitionDates
+     logical :: verbose
 
    contains
 
@@ -61,6 +62,7 @@ module AbstractCalendar_mod
      ! Things that one might think are time independent but are not:
      procedure(getDaysInYear_year), deferred :: getDaysInYear_year
      procedure :: getDaysInYear_time
+     procedure(getMaxDaysInYear), deferred :: getMaxDaysInYear
      generic :: getDaysInYear => getDaysInYear_year, getDaysInYear_time
 
      procedure(getDaysInMonth_monthAndYear), deferred :: getDaysInMonth_monthAndYear
@@ -76,6 +78,9 @@ module AbstractCalendar_mod
      procedure, nopass :: getHoursPerDay
      procedure(getConstInterval), deferred :: getSecondsPerDay
      procedure(getConstInterval), deferred :: getSecondsPerHour
+
+    procedure :: setVerbose
+    procedure :: getVerbose
 
   end type AbstractCalendar
 
@@ -131,6 +136,7 @@ module AbstractCalendar_mod
        integer, intent(in) :: year
      end function getDaysInMonth_monthAndYear
 
+
      function getSecondsInYear_year(this, year) result(secondsInYear)
        use TimeInterval_mod, only: TimeInterval
        import AbstractCalendar
@@ -141,6 +147,12 @@ module AbstractCalendar_mod
      end function getSecondsInYear_year
 
      
+     integer function getMaxDaysInYear(this) result(daysInYear)
+       import AbstractCalendar
+       class (AbstractCalendar), intent(in) :: this
+     end function getMaxDaysInYear
+
+
      function getConstInterval(this) result(interval)
        use TimeInterval_mod
        import AbstractCalendar
@@ -213,6 +225,7 @@ contains
     daysInYear = this%getDaysInYear(year)
 
   end function getDaysInYear_time
+
 
   ! Determine month and year from time. Pass those to per-calendar function.
   integer function getDaysInMonth_time(this, t) result(daysInMonth)
@@ -361,6 +374,22 @@ contains
        
     
   end subroutine printTransitionDates
+
+
+  subroutine setVerbose(this, verbose)
+     class (AbstractCalendar), intent(inout) :: this
+     logical, intent(in) :: verbose
+
+     this%verbose = verbose
+
+  end subroutine setVerbose
+
+  logical function getVerbose(this)
+     class (AbstractCalendar), intent(in) :: this
+     
+     getVerbose = this%verbose
+
+  end function getVerbose
 
 
 end module AbstractCalendar_mod

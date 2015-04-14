@@ -166,7 +166,7 @@ c      end subroutine setDtParam
      &   MMA,TZ,        !  even leap frog arrays
      &   UT,VT,TT,TZT,  !  odd leap frog arrays
      &   UX,VX,         !  initial forward step arrays
-     &   PIJL, UNRDRAG_x,UNRDRAG_y
+     &   UNRDRAG_x,UNRDRAG_y
 
       REAL*8 DTFS,DTLF, DAMSUM
       INTEGER I,J,L,IP1,IM1   !@var I,J,L,IP1,IM1  loop variables
@@ -194,8 +194,8 @@ C**** Leap-frog re-initialization: IF (NS.LT.NIdyn)
   300 CONTINUE
       Do J=J_0,J_1  ;  Do I=1,IM
          MASUM(I,J) = Sum (MA(:,I,J))  ;  EndDo  ;  EndDo
-      Call HALO_UPDATE_COLUMN (GRID, MA,    From=SOUTH)
-      Call HALO_UPDATE        (GRID, MASUM, From=SOUTH)
+!     Call HALO_UPDATE_COLUMN (GRID, MA,    From=SOUTH)
+!     Call HALO_UPDATE        (GRID, MASUM, From=SOUTH)
       UX(:,:,:) = U(:,:,:)  ;  UT(:,:,:) = U(:,:,:)
       VX(:,:,:) = V(:,:,:)  ;  VT(:,:,:) = V(:,:,:)
       TZ(:,:,:) = TMOM(MZ,:,:,:)
@@ -212,7 +212,6 @@ C**** Leap-frog re-initialization: IF (NS.LT.NIdyn)
       Call VDIFF  (DTFS, U,V,       UX,VX,MODD3, T)
       Call ADVECV (DTFS, U,V,MA, MA,UX,VX,MODD3)
       Call PGF    (DTFS, U,V,MA,    UX,VX,MODD3, T,TZ)
-       CALL CALC_PIJL (LM,P,PIJL)
        PU(:,:,:) = MU(:,:,:)*kg2mb
        PV(:,:,:) = MV(:,:,:)*kg2mb
        SD(:,:,:) = MW(:,:,:)*kg2mb
@@ -230,7 +229,6 @@ C**** Leap-frog re-initialization: IF (NS.LT.NIdyn)
       Call VDIFF  (DT, UX,VX,          UT,VT,MODD1, T)
       Call ADVECV (DT, UX,VX,MODD3, MA,UT,VT,MODD1)
       Call PGF    (DT, UX,VX,MODD3,    UT,VT,MODD1, T,TZ)
-       CALL CALC_PIJL (LS1-1,PB,PIJL)
        PU(:,:,:) = MU(:,:,:)*kg2mb
        PV(:,:,:) = MV(:,:,:)*kg2mb
        SD(:,:,:) = MW(:,:,:)*kg2mb
@@ -249,7 +247,6 @@ C**** Leap-frog re-initialization: IF (NS.LT.NIdyn)
       Call VDIFF  (DTLF, U,V,          UT,VT,MODD3, T)
       Call ADVECV (DTLF, U,V,MA, MODD1,UT,VT,MODD3)
       Call PGF    (DTLF, U,V,MA,       UT,VT,MODD3, T,TZ)
-       CALL CALC_PIJL (LS1-1,P,PIJL)
        PU(:,:,:) = MU(:,:,:)*kg2mb
        PV(:,:,:) = MV(:,:,:)*kg2mb
        SD(:,:,:) = MW(:,:,:)*kg2mb
@@ -272,11 +269,10 @@ C**** Leap-frog re-initialization: IF (NS.LT.NIdyn)
       Call GWDRAG (DTLF, UT,VT,             U,V,MA, T,TZ, .False.)
       Call VDIFF  (DTLF, UT,VT,             U,V,MA, T)
       Call ADVECV (DTLF, UT,VT,MODD1, MEVEN,U,V,MA)
-       CALL CALC_PIJL (LS1-1,PA,PIJL)
        PU(:,:,:) = MU(:,:,:)*kg2mb
        PV(:,:,:) = MV(:,:,:)*kg2mb
        SD(:,:,:) = MW(:,:,:)*kg2mb
-        P(:,:)   = (MASUM(:,:) - MFIXs)*kg2mb
+!       P(:,:)   = (MASUM(:,:) - MFIXs)*kg2mb
             MODDA = Mod (NSTEP+4-NS + NDAA*NIDYN, NDAA*NIDYN+2)  ! strat
          IF(MODDA.LT.MRCH) CALL DIAGA0   ! strat
 C**** ACCUMULATE MASS FLUXES FOR TRACERS and Q
@@ -295,12 +291,8 @@ C**** ADVECT Q AND T
        TT(:,:,:) = .5*( T(:,:,:)+ TT(:,:,:))
       TZT(:,:,:) = .5*(TZ(:,:,:)+TZT(:,:,:))
 
-      CALL CALC_PIJL(LS1-1,PC,PIJL)
-c      CALL CALC_PIJL(LS1-1,PA,PIJL) ! true leapfrog
       Call PGF    (DTLF, UT,VT,MODD1,       U,V,MA, TT,TZT)
-
       Call COMPUTE_MASS_FLUX_DIAGS (GZ, MU,MV, DT)
-
       CALL CALC_AMPK(LS1-1)
       call isotropuv(u,v,COS_LIMIT)
       if (USE_UNR_DRAG==0) CALL SDRAG (DTLF)
@@ -333,7 +325,6 @@ c apply north-south filter to U and V once per physics timestep
       call fltry2(v,1d0) ! 2nd arg could be set using DT_YVfilter
       call conserv_amb_ext(u,am2) ! calculate ang. mom. after filter
       am2(:,j_0stg:j_1stg) = am1(:,j_0stg:j_1stg)-am2(:,j_0stg:j_1stg)
-      if(have_south_pole) am2(:,1) = 0.
       call globalsum(grid,am2,damsum,all=.true.)
       call add_am_as_solidbody_rotation(u,damsum) ! maintain global ang. mom.
 
@@ -719,9 +710,9 @@ C**** Compute MW (kg/s) = downward vertical mass flux
             MNEW(:,I,JM) = MNEW(:,1,JM)
             MSUM(I,JM)   = MSUM(1,JM)  ;  EndDo  ;  EndIf
 
-      Call HALO_UPDATE_COLUMN (GRID, MNEW, From=SOUTH)
-      Call HALO_UPDATE        (GRID, MSUM, From=SOUTH)
-      Call MAtoP (MNEW)
+      Call HALO_UPDATE_COLUMN (GRID, MNEW, From=SOUTH+NORTH)
+      Call HALO_UPDATE        (GRID, MSUM, From=SOUTH+NORTH)
+      Call MAtoP (MNEW,MSUM)
       Return
   990 Format (/'0PRESSURE DIAGNOSTIC  I,J,MRCH,ZATMO,DT=',3I4,2F10.2/
      *  '  L     U(I-1,J)     U(I,J)   U(I-1,J+1)    U(I,J+1)',
@@ -1040,6 +1031,7 @@ C****
       RETURN
       END SUBROUTINE AVRX
 
+
       SUBROUTINE FILTER
 !@sum  FILTER Performs 8-th order shapiro filter in zonal direction
 !@auth Original development team
@@ -1064,7 +1056,8 @@ C****
 #endif
       USE FLUXES, only : atmsrf
       USE DOMAIN_DECOMP_ATM, only: grid
-      USE DOMAIN_DECOMP_1D, Only : getDomainBounds, GLOBALSUM
+      Use DOMAIN_DECOMP_1D,  Only: getDomainBounds, GLOBALSUM,
+     *                             HALO_UPDATE
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) :: X,Y
       REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
@@ -1073,21 +1066,22 @@ C****
       REAL*8, EXTERNAL :: SLP
       INTEGER I,J,L,N  !@var I,J,L  loop variables
       REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO) :: KEJ,PEJ
-c**** Extract domain decomposition info
-      INTEGER :: J_0, J_1, J_0S, J_1S
+      Integer :: J1P,JNP, J_0, J_1, J_0S, J_1S
       REAL*8 initialTotalEnergy, finalTotalEnergy
       real*8 getTotalEnergy ! external for now
       real*8, dimension(im) :: rhosrf,pgfx
 
+!**** Extract domain decomposition info
       call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S)
+      J1P = Max(J_0,2)  ;  JNP = Min(J_1,JM-1)  !  exclude poles
 
       IF (MOD(MFILTR,2).NE.1) GO TO 200
 C**** Initialise total energy (J/m^2)
       initialTotalEnergy = getTotalEnergy()
 
-      ! Save old pressure
-      do j=j_0s,j_1s
+!**** Save old pressure
+      Do J=J1P,JNP
         pold(:,j)=p(:,j)
       enddo
 
@@ -1095,7 +1089,7 @@ C**** Initialise total energy (J/m^2)
 C****
 C**** SEA LEVEL PRESSURE FILTER ON P
 C****
-      DO J=J_0S,J_1S
+      Do J=J1P,JNP
         DO I=1,IM
           PS=P(I,J)+PTOP
           ZS=ZATMO(I,J)*BYGRAV
@@ -1105,7 +1099,7 @@ C****
       END DO
       CALL SHAP1D (8,X)
       call isotropslp(x,COS_LIMIT)
-      DO J=J_0S,J_1S
+      Do J=J1P,JNP
         PSUMO=0.
         PSUMN=0.
         DO I=1,IM
@@ -1120,6 +1114,7 @@ C**** reduce large variations (mainly due to topography)
           P(I,J)=P(I,J)-PDIF
         END DO
       END DO
+      Call HALO_UPDATE (GRID, P)
 
       else
 
@@ -1675,7 +1670,7 @@ C**** check T to make sure it stayed within physical bounds
      *    ' SDRAG:',itime,i,j,l,'  T,U,V=',TL,U(I,J,L),V(I,J,L)
           call stop_model('Stopped in ATMDYN::SDRAG',11)
         end if
-        RHO=PEDN(L+1,I,J)/(RGAS*TL)   ! not quite correct - should be on UV grid
+        RHO=100.*PEDN(L+1,I,J)/(RGAS*TL)   ! not quite correct - should be on UV grid
         WL=SQRT(U(I,J,L)*U(I,J,L)+V(I,J,L)*V(I,J,L))
         xjud=1.
         if(Wc_JDRAG.gt.0.) xjud=(Wc_JDRAG/(Wc_JDRAG+min(WL,wmaxj)))**2
@@ -1686,11 +1681,11 @@ C**** then finding the drag and applying it to the reduced winds
         IF (cd_lin) CDN=(X_SDRAG(1)+X_SDRAG(2)*min(WL,wmaxj))*xjud
          MAUV = (MA(L,Ip1,J-1)+MA(L,I,J-1))*RAPVN(J-1) +
      +          (MA(L,Ip1,J  )+MA(L,I,J  ))*RAPVS(J)
-         X = DT1*RHO*CDN*Min(WL,WMAXJ)*GRAV*VSDRAGL(L) / MAUV
+         X = DT1*RHO*CDN*Min(WL,WMAXJ)*VSDRAGL(L) / MAUV
         if (wl.gt.wmaxj) X = 1. - (1.-X)*wmaxj/wl
 C**** adjust diags for possible difference between DT1 and DTSRC
 c        call inc_ajl(i,j,l,JL_DUDTSDRG,-U(I,J,L)*X) ! for a-grid only
-        ajl(j,l,jl_dudtsdrg) = ajl(j,l,jl_dudtsdrg) -u(i,j,l)*x
+        ajl(j,l,jl_dudtsdrg) = ajl(j,l,jl_dudtsdrg) -u(i,j,l)*x*byim
          DUT(I,J,L) = - X*MAUV*DXYV(J)*U(I,J,L)
          DVT(I,J,L) = - X*MAUV*DXYV(J)*V(I,J,L)
          ANG_MOM(I,J) = ANG_MOM(I,J) -DUT(I,J,L)
@@ -1724,7 +1719,7 @@ C*
             DU = ANG_MOM(I,J) / SUM_MMUV(I,J)
             DUT(I,J,L) = DUT(I,J,L) + DU*MMUV(L)
 c            call inc_ajl(i,j,l,JL_DUDTSDRG,du) ! for a-grid only
-            ajl(j,l,jl_dudtsdrg) = ajl(j,l,jl_dudtsdrg) +du
+            ajl(j,l,jl_dudtsdrg) = ajl(j,l,jl_dudtsdrg) +du*byim
             U(I,J,L)=U(I,J,L) + du
           end do
           I=IP1
@@ -1741,103 +1736,73 @@ C**** (technically we should use U,V from before but this is ok)
 
       end module ATMDYN
 
-      subroutine add_am_as_solidbody_rotation(u,dam)
-      use constant, only : radius,mb2kg
-      use resolution, only : pstrat
-      use resolution, only : im,jm,lm
-      use atm_com, only : p
-      use geom, only : cosv,dxyn,dxys,fim
-      USE DOMAIN_DECOMP_ATM, only: grid, getDomainBounds
-      use domain_decomp_1d, only : globalsum
-      implicit none
-      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,lm) :: u
-      real*8 :: dam
-      integer :: j,l
-      real*8 :: u0,xintsum
-      real*8, dimension(grid%j_strt_halo:grid%j_stop_halo) ::
-     &     psumj,xintj
-      integer :: j_0stg, j_1stg, j_0, j_1
-      logical :: have_south_pole, have_north_pole
 
-      call getDomainBounds(grid, j_strt=j_0, j_stop=j_1,
-     &               j_strt_stgr=j_0stg, j_stop_stgr=j_1stg,
-     &               have_south_pole=have_south_pole,
-     &               have_north_pole=have_north_pole)
+      Subroutine ADD_AM_AS_SOLIDBODY_ROTATION (U,dAM)
+!**** Input and Output: U (m/s) = eastward velocity
+!**** Output: dAM (kg m^2/s) = change in global total angular momentum
+      Use RESOLUTION, Only: IM,LM
+      Use CONSTANT,   Only: RADIUS
+      Use GEOM,       Only: COSV,DXYS,DXYN
+      Use ATM_COM,    Only: MASUM
+      Use DOMAIN_DECOMP_ATM, Only: GRID
+      Use DOMAIN_DECOMP_1D,  Only: GLOBALSUM
+      Implicit None
+      Real*8  :: U(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM), dAM
+      Integer :: J,L, J1,JN,J1V
+      Real*8  :: dUEQ,XGLOB
+      Real*8,Dimension(GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: MASUMJ,XJ
 
-      do j=j_0stg-1,j_1
-        psumj(j) = sum(p(:,j))+fim*pstrat
-      enddo
-      do j=j_0stg,j_1stg
-        xintj(j) = cosv(j)*cosv(j)*
-     &       (psumj(j-1)*dxyn(j-1)+psumj(j)*dxys(j))
-      enddo
-      if(have_south_pole) xintj(1)=0.
-      call globalsum(grid,xintj,xintsum,all=.true.)
-      u0 = dam/(radius*mb2kg*xintsum)
-      do l=1,lm
-      do j=j_0stg,j_1stg
-        u(:,j,l) = u(:,j,l) + u0*cosv(j)
-      enddo
-      enddo
-      return
-      end subroutine add_am_as_solidbody_rotation
+!**** Domain decomposition variables
+      J1 = GRID%J_STRT  ;  J1V = Max(J1,2)
+      JN = GRID%J_STOP
+!     Call HALO_UPDATE (GRID, MASUM, From=SOUTH)  !  haloed in ADVECM
 
-      SUBROUTINE conserv_AMB_ext(U,AM)
-      USE CONSTANT, only : omega,radius,mb2kg
-      USE RESOLUTION, only : ls1,psfmpt,pstrat
-      USE RESOLUTION, only : im,jm,lm
-      USE ATM_COM, only : p
-      USE DYNAMICS, only : dsig
-      USE GEOM, only : cosv,dxyn,dxys,dxyv,byaxyp
-      USE DOMAIN_DECOMP_ATM, only: grid
-      USE DOMAIN_DECOMP_1D, only : getDomainBounds, SOUTH, HALO_UPDATE
-      USE DOMAIN_DECOMP_1D, only : CHECKSUM
-      IMPLICIT NONE
-      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: U
-      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: AM
-      INTEGER :: I,IP1,J,L
-      REAL*8 :: PSJ,PSIJ,UE,UEDMS,FACJ
-
-      INTEGER :: J_0S, J_1S, J_0STG, J_1STG, J_0, J_1, I_0, I_1
-      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-
-      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1,
-     *               I_STRT=I_0, I_STOP=I_1,
-     *               J_STRT_SKP=J_0S,    J_STOP_SKP=J_1S,
-     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
-     &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
-     &               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
+!**** Add dUEQ*COSV(J) to U for each grid cell
+      Do J=J1V-1,JN
+         MASUMJ(J) = Sum (MASUM(:,J))  ;  EndDo
+      Do J=J1V,JN
+         XJ(J) = COSV(J)**2 * (MASUMJ(J-1)*DXYN(J-1)+MASUMJ(J)*DXYS(J))
+         EndDo
+      If (J1==1)  XJ(1) = 0
+      Call GLOBALSUM (GRID,XJ,XGLOB,All=.True.)
+      dUEQ = dAM / (RADIUS*XGLOB)
+      Do L=1,LM  ;  Do J=J1V,JN
+         U(:,J,L) = U(:,J,L) + dUEQ*COSV(J)  ;  EndDo  ;  EndDo
+      Return
+      EndSubroutine ADD_AM_AS_SOLIDBODY_ROTATION
 
 
-C****
-C**** ANGULAR MOMENTUM ON B GRID
-C****
-      CALL HALO_UPDATE(grid, P, FROM=SOUTH)
+      Subroutine CONSERV_AMB_EXT (U,AM)
+!**** Input: U (m/s) = eastward velocity
+!**** Output: AM (kg m^2/s) = column integrated total angular momentum on B grid
+      Use RESOLUTION, Only: IM,LM
+      Use CONSTANT,   Only: RADIUS,OMEGA
+      Use GEOM,       Only: COSV,DXYS,DXYN
+      Use ATM_COM,    Only: MA
+      Use DOMAIN_DECOMP_ATM, Only: GRID
+      Implicit None
+      Real*8  :: U(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),
+     *          AM(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
+      Integer :: I,J,Ip1, J1,JN,J1V
 
-      DO J=J_0STG,J_1STG
-      PSJ=(2.*PSFMPT*DXYV(J))
-      UE=RADIUS*OMEGA*COSV(J)
-      UEDMS=2.*UE*PSTRAT*DXYV(J)
-      FACJ=.5*COSV(J)*RADIUS*mb2kg
-      I=IM
-      DO IP1=1,IM
-        PSIJ=(P(I,J-1)+P(IP1,J-1))*DXYN(J-1)+(P(I,J)+P(IP1,J))*DXYS(J)
-        AM(I,J)=0.
-        DO L=1,LS1-1
-          AM(I,J)=AM(I,J)+U(I,J,L)*DSIG(L)
-        END DO
-        AM(I,J)=AM(I,J)*PSIJ
-        DO L=LS1,LM
-          AM(I,J)=AM(I,J)+U(I,J,L)*PSJ*DSIG(L)
-        END DO
-        AM(I,J)=(UEDMS+UE*PSIJ+AM(I,J))*FACJ
-        I=IP1
-      END DO
-      END DO
+!**** Domain decomposition variables
+      J1 = GRID%J_STRT  ;  J1V = Max(J1,2)
+      JN = GRID%J_STOP
+!     Call HALO_UPDATE_COLUMN (GRID, MA, From=SOUTH)  !  haloed in ADVECM
 
-      RETURN
-C****
-      END SUBROUTINE conserv_AMB_ext
+!**** Angular Momentum on B grid (kg m^2/s)
+      Do J=J1V,JN
+         I=IM
+         Do Ip1=1,IM
+            AM(I,J) = Sum (((MA(:,I,J-1) + MA(:,Ip1,J-1))*DXYN(J-1) +
+     +                      (MA(:,I,J  ) + MA(:,Ip1,J  ))*DXYS(J)) *
+     *                     (U(I,J,:) + COSV(J)*RADIUS*OMEGA))
+            AM(I,J) = AM(I,J)*.5*COSV(J)*RADIUS
+            I=Ip1  ;  EndDo  ;  EndDo
+      If (J1==1)  AM(:,1) = 0
+      Return
+      EndSubroutine CONSERV_AMB_EXT
+
 
       SUBROUTINE conserv_AM(AM)
 !@sum  conserv_AM calculates A-grid column-sum atmospheric angular momentum,
@@ -1875,68 +1840,40 @@ c scale by area
 C****
       END SUBROUTINE conserv_AM
 
-      SUBROUTINE conserv_KE(RKE)
-!@sum  conserv_KE calculates A-grid column-sum atmospheric kinetic energy,
-!@sum  (J/m2)
-!@auth Gary Russell/Gavin Schmidt
-      USE CONSTANT, only : mb2kg
-      USE RESOLUTION, only : ls1,psfmpt
-      USE RESOLUTION, only : im,jm,lm
-      USE ATM_COM, only : p,u,v
-      USE DYNAMICS, only : dsig
-      USE GEOM, only : dxyn,dxys,dxyv,byaxyp
-      USE DOMAIN_DECOMP_ATM, only: grid, getDomainBounds
-      USE DOMAIN_DECOMP_1D, only : CHECKSUM, HALO_UPDATE
-      USE DOMAIN_DECOMP_1D, only : SOUTH
-      IMPLICIT NONE
 
-      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: RKE
-      INTEGER :: I,IP1,J,L
-      INTEGER :: J_0STG,J_1STG, J_0, J_1, I_0, I_1
-      REAL*8 :: PSJ,PSIJ
+      Subroutine CONSERV_KE (RKE)
+!**** Output: RKE (J/m^2) = column summed kinetic energy on A grid
+      Use RESOLUTION, Only: IM,JM,LM
+      Use ATM_COM,    Only: MA,U,V
+      Use GEOM,       Only: DXYS,DXYN,byAXYP
+      Use DOMAIN_DECOMP_ATM, Only: GRID
+      Implicit None
+      Real*8  :: RKE(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
+      Integer :: I,J,Ip1, J1,JN,J1V
 
-      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1,
-     *               I_STRT=I_0, I_STOP=I_1,
-     *               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG)
+!**** Domain decomposition variables
+      J1 = GRID%J_STRT  ;  J1V = Max(J1,2)
+      JN = GRID%J_STOP
+!     Call HALO_UPDATE_COLUMN (GRID, MA, From=SOUTH)  !  already haloed
 
-C****
-C**** KINETIC ENERGY ON B GRID
-C****
+!**** Kinetic Energy on B grid (J)
+      Do J=J1V,JN
+         I=IM
+         Do Ip1=1,IM
+            RKE(I,J) = Sum (((MA(:,I,J-1) + MA(:,Ip1,J-1))*DXYN(J-1) +
+     +                       (MA(:,I,J  ) + MA(:,Ip1,J  ))*DXYS(J)) *
+     *                      (U(I,J,:)**2 + V(I,J,:)**2)) * .25
+            I=Ip1  ;  EndDo  ;  EndDo
 
-      CALL HALO_UPDATE(grid, P, FROM=SOUTH)
-      DO J=J_0STG,J_1STG
-      PSJ=(2.*PSFMPT*DXYV(J))
-      I=IM
-      DO IP1=1,IM
-        PSIJ=(P(I,J-1)+P(IP1,J-1))*DXYN(J-1)+(P(I,J)+P(IP1,J))*DXYS(J)
-        RKE(I,J)=0.
-        DO L=1,LS1-1
-          RKE(I,J)=RKE(I,J)+
-     &         (U(I,J,L)*U(I,J,L)+V(I,J,L)*V(I,J,L))*DSIG(L)
-        END DO
-        RKE(I,J)=RKE(I,J)*PSIJ
-        DO L=LS1,LM
-          RKE(I,J)=RKE(I,J)+
-     &         (U(I,J,L)*U(I,J,L)+V(I,J,L)*V(I,J,L))*DSIG(L)*PSJ
-        END DO
-        RKE(I,J)=0.25*RKE(I,J)*mb2kg
-        I=IP1
-      END DO
-      END DO
+!**** Convert RKE from B grid to A grid
+      Call REGRID_BtoA_EXT (RKE)
 
-c move to A grid
-      call regrid_btoa_ext(rke)
+!**** Convert kinetic energy (J) to specific kinetic energy (J/m^2)
+      Do J=J1,JN  ;  Do I=1,IM
+         RKE(I,J) = RKE(I,J)*byAXYP(I,J)  ;  EndDo  ;  EndDo
+      Return
+      EndSubroutine CONSERV_KE
 
-c scale by area
-      DO J=J_0,J_1
-        DO I=I_0,I_1
-          rke(I,J)=rke(I,J)*BYAXYP(I,J)
-        END DO
-      END DO
-
-      RETURN
-C****
-      END SUBROUTINE conserv_KE
 
       SUBROUTINE calc_kea_3d(kea)
 !@sum  calc_kea_3d calculates square of wind speed on the A grid
@@ -2692,6 +2629,7 @@ C****
       RETURN
       END SUBROUTINE DIAG5F
 
+
       SUBROUTINE QDYNAM
 !@sum  QDYNAM is the driver to integrate dynamic terms by the method
 !@+          of pre-computing Courant limits using mean fluxes
@@ -2823,7 +2761,6 @@ c Switch the sign convention back to "positive downward".
       module UNRDRAG_COM
       !@sum  UNRDRAG_COM model variables for (alternative) gravity wave drag
       !@auth Tiehan Zhou / Marvin A. Geller
-      use TimeConstants_mod, only: INT_DAYS_PER_YEAR
       USE RESOLUTION, only: IM, JM
       implicit none
       save
@@ -2846,7 +2783,7 @@ c Switch the sign convention back to "positive downward".
       !@+   flag = 0 for B2 ( peak flux at ci = 0 )
             integer, parameter :: flag = 0
       !@var Bt: sum of |momentum flux| for all +/-c (kg/m/s^2)
-            real(r8) :: Bt(JM,INT_DAYS_PER_YEAR)
+            real(r8), allocatable :: Bt(:,:)   ! JM by days per year
       !@var N_Kh: number of horizontal wavenumbers
             integer, parameter :: N_Kh = 1
       !@var Bm: amplitude for the spectrum (m^2/s^2) ~ u'w'
@@ -2880,7 +2817,94 @@ c Switch the sign convention back to "positive downward".
             real(r8), parameter :: aLn2 = 0.69314718055994529_r8
       !@var L_min:
             integer :: L_min
+
+
+      contains
+
+      subroutine init_UNRDRAG(calendar)
+      !@sum  init_UNRDRAG initializes parameters for (alternative) gravity wave drag
+      !@auth Tiehan Zhou / Marvin A. Geller
+      USE RESOLUTION, only: JM, LM, PLbot
+      USE CONSTANT, only : pi, twopi
+      USE GEOM, only: LAT_DG
+      USE FILEMANAGER, only: openunit, closeunit
+      use AbstractCalendar_mod
+      implicit none
+      class (AbstractCalendar), intent(in) :: calendar
+
+      integer :: iu_Z4var, I, IAZ, J, IT
+      real(r8) :: x, Phi
+      real(r8) :: Bt_Smax, Bt_Nmax
+      real(r8) :: Bt_Tmax
+      character(Len=80) :: Title
+      integer :: maxDaysInYear
+
+      maxDaysInYear = calendar%getMaxDaysInYear()
+
+      if (maxDaysInYear == 0) then ! tidally locked
+         call stop_model(
+     &        'init_UNRDRAG() - tidally locked not supported.', 255)
+      end if
+      allocate( Bt(JM,maxDaysInYear) )
+
+      call openunit("Z4var", iu_Z4var, .true., .true.)
+      read(iu_Z4var) Title, Z4var
+      call closeunit(iu_Z4var)
+
+      Bt_Smax = 6.0_r8 * 0.001_r8
+      Bt_Nmax = 0.5_r8 * 0.001_r8
+      do IT = 1, maxDaysInYear
+         x = cos(twopi * real(IT-16, r8) / real(maxDaysInYear, r8))
+         do J = 1, JM
+            if ( LAT_DG(J,2) <= 1.0E-8 .and. x <= 0.0_r8 ) then
+               Bt(J,IT) = -Bt_Smax *
+     *          exp(-((LAT_DG(J,2) + 60.0_r8)/15.0_r8)**2 * aLn2 ) * x
+            elseif ( LAT_DG(J,2) > 1.0E-8 .and. x >= 0.0_r8 ) then
+               Bt(J,IT) =  Bt_Nmax *
+     *          exp(-((LAT_DG(J,2) - 60.0_r8)/15.0_r8)**2 * aLn2 ) * x
+            else
+               Bt(J,IT) = 0.0_r8
+            end if
+         end do
+      end do
+
+      Bt_Tmax = 0.5_r8 * 0.001_r8
+      do IT = 1, maxDaysInYear
+         x = cos(twopi * real(IT-16, r8) / real(maxDaysInYear))
+         Phi = -10.0_r8 * x
+         do J = 1, JM
+            Bt(J,IT) = Bt(J,IT) + Bt_Tmax *
+     *          exp(-( (LAT_DG(J,2) - Phi)/5.0_r8 )**2 * aLn2 ) *
+     *          0.25_r8 * ( 3.0_r8 - x )
+         end do
+      end do
+
+      Bt = Bt + 1.0_r8 * 0.001_r8
+
+      do I = 1, N_C
+         C(I, :) = C_inf(:) + real(I - 1, r8) * dc(:)
+      end do
+      do I = 1, N_Kh
+      Kh(I) = twopi / (Wavelenth(I) * 1000.0_r8)
+                            !!!Factor 1000.0 arises from the unit of Wavelenth.
+      end do
+      do IAZ = 1, N_Az
+      x = twopi / real(N_Az, r8) * real(IAZ - 1, r8)
+      Ah1(IAZ) = cos(x)
+      Ah2(IAZ) = sin(x)
+      end do
+      I = 1
+      do while ( PLbot(I) >= 100.0_r8 )
+         I = I + 1
+         if ( I == LM + 2 ) exit
+      end do
+         IZ0(:) = I - 1
+      L_min = minval(IZ0)
+      end subroutine init_UNRDRAG
+
+
       end module UNRDRAG_COM
+
       subroutine UNRDRAG (PB,U,V,T,SZ,UNRDRAG_x,UNRDRAG_y)
       !@sum  UNRDRAG is the driver for (alternative) gravity wave drag
       !@auth Tiehan Zhou / Marvin A. Geller
@@ -3110,78 +3134,6 @@ c Switch the sign convention back to "positive downward".
       end do Longitude
       end do Latitude
       end subroutine UNRDRAG
-
-      subroutine init_UNRDRAG
-      !@sum  init_UNRDRAG initializes parameters for (alternative) gravity wave drag
-      !@auth Tiehan Zhou / Marvin A. Geller
-      USE RESOLUTION, only: JM, LM, PLbot
-      USE CONSTANT, only : pi, twopi
-      USE GEOM, only: LAT_DG
-      use TimeConstants_mod, only: INT_DAYS_PER_YEAR
-      USE UNRDRAG_COM, only: Z4var, Bt
-      USE UNRDRAG_COM, only: r8, N_C, C_inf, dc, C, IZ0, N_Kh, Wavelenth
-      USE UNRDRAG_COM, only: Kh, Ah1, Ah2, N_Az, aLn2, L_min
-      USE FILEMANAGER, only: openunit, closeunit
-      implicit none
-      integer :: iu_Z4var, I, IAZ, J, IT
-      real(r8) :: x, Phi
-      real(r8) :: Bt_Smax, Bt_Nmax
-      real(r8) :: Bt_Tmax
-      character(Len=80) :: Title
-      call openunit("Z4var", iu_Z4var, .true., .true.)
-      read(iu_Z4var) Title, Z4var
-      call closeunit(iu_Z4var)
-
-      Bt_Smax = 6.0_r8 * 0.001_r8
-      Bt_Nmax = 0.5_r8 * 0.001_r8
-      do IT = 1, INT_DAYS_PER_YEAR
-         x = cos(twopi * real(IT-16, r8) / real(INT_DAYS_PER_YEAR, r8))
-         do J = 1, JM
-            if ( LAT_DG(J,2) <= 1.0E-8 .and. x <= 0.0_r8 ) then
-               Bt(J,IT) = -Bt_Smax *
-     *          exp(-((LAT_DG(J,2) + 60.0_r8)/15.0_r8)**2 * aLn2 ) * x
-            elseif ( LAT_DG(J,2) > 1.0E-8 .and. x >= 0.0_r8 ) then
-               Bt(J,IT) =  Bt_Nmax *
-     *          exp(-((LAT_DG(J,2) - 60.0_r8)/15.0_r8)**2 * aLn2 ) * x
-            else
-               Bt(J,IT) = 0.0_r8
-            end if
-         end do
-      end do
-
-      Bt_Tmax = 0.5_r8 * 0.001_r8
-      do IT = 1, INT_DAYS_PER_YEAR
-         x = cos(twopi * real(IT-16, r8) / real(INT_DAYS_PER_YEAR, r8))
-         Phi = -10.0_r8 * x
-         do J = 1, JM
-            Bt(J,IT) = Bt(J,IT) + Bt_Tmax *
-     *          exp(-( (LAT_DG(J,2) - Phi)/5.0_r8 )**2 * aLn2 ) *
-     *          0.25_r8 * ( 3.0_r8 - x )
-         end do
-      end do
-
-      Bt = Bt + 1.0_r8 * 0.001_r8
-
-      do I = 1, N_C
-         C(I, :) = C_inf(:) + real(I - 1, r8) * dc(:)
-      end do
-      do I = 1, N_Kh
-      Kh(I) = twopi / (Wavelenth(I) * 1000.0_r8)
-                            !!!Factor 1000.0 arises from the unit of Wavelenth.
-      end do
-      do IAZ = 1, N_Az
-      x = twopi / real(N_Az, r8) * real(IAZ - 1, r8)
-      Ah1(IAZ) = cos(x)
-      Ah2(IAZ) = sin(x)
-      end do
-      I = 1
-      do while ( PLbot(I) >= 100.0_r8 )
-         I = I + 1
-         if ( I == LM + 2 ) exit
-      end do
-         IZ0(:) = I - 1
-      L_min = minval(IZ0)
-      end subroutine init_UNRDRAG
 
       subroutine orographic_drag (u,v,rho, bvf,h_4sq,coef,drag_x,drag_y)
       !@sum   orographic_drag

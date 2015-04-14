@@ -25,7 +25,8 @@
   type SCMoptions
     logical :: sflx,Tskin,Ps,z0m,ustar,alb
     logical :: wind,geo,temp,theta,wvmr,rh
-    logical :: omega,w,VadvHwind,ls_v,ls_h,Qrad,nudge
+    logical :: omega,w,VadvHwind,ls_v,ls_h,Qrad
+    logical :: nudge,Fnudge
     logical :: BeersLaw,PlumeDiag
     real*8 :: lat,lon,area,tau
     integer :: sfc
@@ -50,6 +51,7 @@
 !@var SCMopt%ls_h = T:specify qv and dry static energy / Cp horiz adv flux divergence
 !@var SCMopt%Qrad = T:specify fixed radiative heating profile
 !@var SCMopt%nudge = T:nudge qv and T with timescale tau
+!@var SCMopt%Fnudge = T:apply scale factor profile to qv and T nudging
 !@var SCMopt%lat,SCMopt%lon = SCM latitude and longitude
 !@var SCMopt%area = SCM nominal area (m2)
 !@var SCMopt%tau = nudging time constant (s) for qv and T
@@ -62,7 +64,7 @@
     real*8 U(LM),V(LM),Ug(LM),Vg(LM)
     real*8 T(LM),TH(LM),Q(LM),Omega(LM),W(LM)
     real*8 SadvV(LM),QadvV(LM),TadvH(LM),QadvH(LM)
-    real*8 Qrad(LM)
+    real*8 Qrad(LM), Fnudge(LM)
     real*8 time,lhf,shf,Tskin,Ps,z0m,ustar,alb
     real*8 BeersLaw_f0,BeersLaw_f1,BeersLaw_kappa
   end type SCMinputs
@@ -80,6 +82,7 @@
 !@var SCMin%TadvH input absolute T horizontal flux div at GCM sigma levels (K/s)
 !@var SCMin%QadvH input water vapor mixing ratio horizontal flux div at GCM sigma levels (kg/kg/s)
 !@var SCMin%Qrad input radiative heating rate profile at GCM sigma levels (W/m2)
+!@var SCMin%Fnudge input nudging scale factor profile for qv and T (-)
 !@var SCMin%time SCM input time (d)
 !@var SCMin%lhf SCM input surface turbulent latent heat flux (W/m2)
 !@var SCMin%shf SCM input surface turbulent sensible heat flux (W/m2)
@@ -105,34 +108,38 @@
   real*8 dum_array(3)
   integer idum
 
-  ! optional inputs
+  ! required and optional inputs
 
-  SCMopt%sflx = file_exists('SCM_SFLUX')
-  SCMopt%Tskin = file_exists('SCM_TSKIN')
   SCMopt%Ps = file_exists('SCM_PS')
-  SCMopt%wind = file_exists('SCM_WIND')
-  SCMopt%geo = file_exists('SCM_GEO')
+  if( .not. SCMopt%Ps ) &
+    call stop_model('alloc_SCM_COM: surface pressure required',255)
+
   SCMopt%wvmr = file_exists('SCM_WVMR')
+  if( .not. SCMopt%wvmr ) &
+    call stop_model('alloc_SCM_COM: WVMR profile required',255)
 
   SCMopt%temp = file_exists('SCM_TEMP')
   SCMopt%theta = file_exists('SCM_THETA')
+  if( ( .not. SCMopt%temp .and. .not. SCMopt%theta ) .or. &
+      ( SCMopt%temp .and. SCMopt%theta ) ) &
+    call stop_model('alloc_SCM_COM: either T or theta required',255)
 
-  if( SCMopt%temp .and. SCMopt%theta ) &
-    call stop_model('alloc_SCM_COM: specify either T or theta',255)
+  SCMopt%Tskin = file_exists('SCM_TSKIN')
+  SCMopt%sflx = file_exists('SCM_SFLUX')
+  SCMopt%wind = file_exists('SCM_WIND')
+  SCMopt%geo = file_exists('SCM_GEO')
 
   SCMopt%omega = file_exists('SCM_OMEGA')
   SCMopt%w = file_exists('SCM_W')
-
+  SCMopt%ls_v = file_exists('SCM_LS_V')
   if( SCMopt%omega .and. SCMopt%w ) &
     call stop_model('alloc_SCM_COM: at most one of omega and w',255)
+  if( SCMopt%ls_v .and. .not. SCMopt%omega ) &
+    call stop_model( 'alloc_SCM_COM: omega needed for convergence',255)
 
   SCMopt%ls_h = file_exists('SCM_LS_H')
-  SCMopt%ls_v = file_exists('SCM_LS_V')
-
-  if( ( SCMopt%omega .or. SCMopt%w ) .and. SCMopt%ls_v ) &
-    call stop_model( 'alloc_SCM_COM: at most one of w ,omega, or ls_v',255)
-
   SCMopt%Qrad = file_exists('SCM_QRAD')
+  SCMopt%Fnudge = file_exists('SCM_FNUDGE')
 
   ! optional Beer's Law radiative heating
   SCMopt%BeersLaw = is_set_param('SCM_BeersLaw')

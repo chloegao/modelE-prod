@@ -1228,6 +1228,7 @@ c****    frHemaInQuarAggr.
 !@auth jan perlwitz
 
       implicit none
+      include 'netcdf.inc'
 
       integer, intent(in) :: status
       character(len=*), intent(in) :: infostring

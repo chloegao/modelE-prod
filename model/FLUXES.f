@@ -864,36 +864,16 @@ c      class(atmsrf_xchng_vars) :: patches(:),avg
       logical, intent(in), optional :: rel
 c
       integer :: i,j,k,l,np
-      real*8, dimension(:,:,:), allocatable :: ftype
+      real*8 :: ft
       logical :: rel_
 c
 
       np = size(patches)
       if(np == 1) return
 
-      allocate(
-     &     ftype(grid%i_strt:grid%i_stop,grid%j_strt:grid%j_stop,np))
-
       rel_ = .false.
       if(present(rel)) then
         rel_ = rel
-      endif
-      if(rel_) then
-        do k=1,np
-        do j=grid%j_strt,grid%j_stop
-        do i=grid%i_strt,grid%i_stop
-          ftype(i,j,k) = patches(k)%fhc(i,j)
-        enddo
-        enddo
-        enddo
-      else
-        do k=1,np
-        do j=grid%j_strt,grid%j_stop
-        do i=grid%i_strt,grid%i_stop
-          ftype(i,j,k) = patches(k)%ftype(i,j)
-        enddo
-        enddo
-        enddo
       endif
 
       do l=1,size(avg%pbl_exports,3)
@@ -901,8 +881,13 @@ c
         do k=1,np
         do j=grid%j_strt,grid%j_stop
         do i=grid%i_strt,grid%i_stop
+          if (rel_) then
+            ft = patches(k)%fhc(i,j)
+          else
+            ft = patches(k)%ftype(i,j)
+          end if
           avg%pbl_exports(i,j,l) = avg%pbl_exports(i,j,l) +
-     &         patches(k)%pbl_exports(i,j,l)*ftype(i,j,k)
+     &         patches(k)%pbl_exports(i,j,l)*ft
         enddo
         enddo
         enddo
@@ -914,15 +899,18 @@ c
         do k=1,np
         do j=grid%j_strt,grid%j_stop
         do i=grid%i_strt,grid%i_stop
+          if (rel_) then
+            ft = patches(k)%fhc(i,j)
+          else
+            ft = patches(k)%ftype(i,j)
+          end if
           avg%trpbl_exports(:,i,j,l) = avg%trpbl_exports(:,i,j,l) +
-     &         patches(k)%trpbl_exports(:,i,j,l)*ftype(i,j,k)
+     &         patches(k)%trpbl_exports(:,i,j,l)*ft
         enddo
         enddo
         enddo
       enddo
 #endif
-
-      deallocate(ftype)
 
       return
       end subroutine avg_patches_pbl_exports

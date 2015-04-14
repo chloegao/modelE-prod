@@ -36,6 +36,7 @@ module OldTracer_mod
   public :: OldTracer_type
   public :: initializeOldTracers
   public :: oldAddTracer
+  public :: findtracer
 !!$  public :: internalTracers
   public :: trName
   public :: MAX_LEN_NAME
@@ -386,11 +387,13 @@ contains
     
   end subroutine initializeOldTracers
 
-  integer function oldAddTracer(name) result(n)
+  integer function oldAddTracer(name, initname) result(n)
      use Attributes_mod, only: assignment(=)
     character(len=*), intent(in) :: name
+    character(len=*), intent(in), optional :: initname
     type (OldTracer_type), allocatable :: tmp(:)
-    class (Tracer), pointer :: t
+    class (Tracer), pointer :: t, it=>null()
+    integer :: i
 
     allocate(tmp(numTracers))
     tmp = internalTracers
@@ -400,6 +403,15 @@ contains
     internalTracers(1:numTracers) = tmp
     deallocate(tmp)
 
+    if (present(initname)) then
+      do i=1, numtracers
+        if (internaltracers(i)%name==initname) then
+          internaltracers(numtracers+1)=internaltracers(i)
+          exit
+        endif
+      end do
+    endif
+
     numTracers = numTracers + 1
     internalTracers(numTracers)%name = trim(name)
 
@@ -408,11 +420,39 @@ contains
 !    t => newTracer(name)
 !    call tracerReference%insert(name, t)
     t => tracerReference%getReference(name)
+    if (present(initname)) it=>tracerreference%getreference(initname)
+    if (associated(it)) then
+      call copyinto(t, it)
+    else
+      call defaultSpec(numTracers, t)
+    endif
     call t%insert('index', numTracers)
-    call defaultSpec(numTracers, t)
     n = numTracers
 
   end function oldAddTracer
+
+  function findtracer(name)
+  implicit none
+  character(len=*), intent(in) :: name
+  integer :: findtracer, i
+
+#ifdef NEW_TRACER_PROPERTIES
+  findtracer=tracerreference%getproperty(name, 'index')
+#else
+  findtracer=0
+  do i=1, numtracers
+#ifdef MIXED_TRACER_PROPERTIES
+    if (tracerreference%internaltracers(i)%getproperty('name')==name) then
+#else
+    if (internaltracers(i)%name==name) then
+#endif
+#endif
+      findtracer=i
+      exit
+    endif
+  end do
+  return
+  end function findtracer
 
     subroutine set_tr_mm(oldIndex, value)
    use Attributes_mod

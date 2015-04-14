@@ -1503,6 +1503,11 @@ c
       return
       end subroutine diag7a
 
+      subroutine speca_prep
+      implicit none
+
+      end subroutine speca_prep
+
       subroutine diaggc_prep
       use resolution, only : lm
       use model_com, only : idacc

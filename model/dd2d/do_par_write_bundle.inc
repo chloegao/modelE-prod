@@ -9,6 +9,7 @@
       integer, dimension(:), allocatable :: write_reqs,statuses
       integer*8, dimension(7) :: srt,cnt
       integer*8 :: nrecs8,m,arrsize
+      integer :: isd,ied,jsd,jed
       nd = size(shape(arr))
       cnt(1:nd) = shape(arr)
       nb = cnt(nd)
@@ -51,8 +52,13 @@
       arrsize = nb*product(cnt(1:nd))
       allocate(arr_nohalo(arrsize))
       if(arrsize.gt.0) then
+        if(size(arr,jd).ne.cnt(jd)) then ! halo present
+          isd=grid%isd; ied=grid%ied; jsd=grid%jsd; jed=grid%jed
+        else
+          isd=grid%is; ied=grid%ie; jsd=grid%js; jed=grid%je
+        endif
         call copy_to_1D( arr,arr_nohalo,nl,nk,
-     &       grid%isd,grid%ied,grid%jsd,grid%jed,
+     &       isd,ied,jsd,jed,
      &       grid%is,grid%ie,grid%js,grid%je )
       endif
       allocate(write_reqs(nb),statuses(nb))
