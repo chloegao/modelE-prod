@@ -1882,7 +1882,7 @@ C**** INTERPOLATE HERE
             IF (LUP.EQ.L) GO TO 860
             L=L+1
             PDN=PL(L)
-            GO TO 850
+            If (L >= LM)  GoTo 850
  860        CONTINUE
 C**** ACCUMULATE HERE (SHOULD I ACCUMULATE A WEIGHTING FUNCTION?)
             W(I,J,K)=0.
