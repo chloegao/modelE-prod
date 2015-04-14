@@ -146,7 +146,7 @@
       Subroutine MAtoP (MA,MASUM)                                        
 !@sum MAtoP calculates haloed pressure arrays PEDN, PMID, PDSIG and PK from haloed air mass MA
       Use CONSTANT,   Only: kg2mb,KAPA
-      Use RESOLUTION, Only: LM, MTOP,MFIXS
+      Use RESOLUTION, Only: JM,LM, MTOP,MFIXS
       Use ATM_COM,    Only: PEDN,PMID,PDSIG,PK,P
       Use DOMAIN_DECOMP_ATM, Only: GRID
       Use DOMAIN_DECOMP_1D,  Only: GetDomainBounds, HALO_UPDATE_COLUMN, SOUTH
@@ -156,8 +156,19 @@
       Real*8  :: M
       Integer :: I,J,L, I1,IN,J1,JN
 
+#ifndef CUBED_SPHERE                                   /* Lat-Lon Grid */
+      I1 =      GRID%I_STRT_HALO      ;  IN =      GRID%I_STOP_HALO       !  1:IM
+      J1 = Max (GRID%J_STRT_HALO, 1)  ;  JN = Min (GRID%J_STOP_HALO, JM)  !  haloed primary row limits
+#endif
+
+#ifdef CUBED_SPHERE                                    /* Cube-Sphere grid */
       I1 = GRID%I_STRT_HALO  ;  IN = GRID%I_STOP_HALO  !  haloed primary column limits
       J1 = GRID%J_STRT_HALO  ;  JN = GRID%J_STOP_HALO  !  haloed primary row limits
+#endif
+
+!!!!! coding below does not work because J1 may be 0 and JN may be JM+1; less elegant coding above is used
+!     I1 = GRID%I_STRT_HALO  ;  IN = GRID%I_STOP_HALO  !  haloed primary column limits
+!     J1 = GRID%J_STRT_HALO  ;  JN = GRID%J_STOP_HALO  !  haloed primary row limits
 
       Do J=J1,JN  ;  Do I=I1,IN
 !        P(I,J) = kg2mb * (MASUM(I,J) + MTOP) - PTOP
