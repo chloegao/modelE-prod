@@ -2938,6 +2938,7 @@ contains
     real*8, dimension(aqchem_count) ::SULFIN,SULFINOM,SULFINC,&
                                       SULFOUT,TR_LEFT
     integer :: IAQCH
+    real*8 :: LHX_WA
 #endif
 #endif
 
@@ -4541,17 +4542,19 @@ contains
         WA_VOL=QCLNEW*AIRM(L)*1.D2*BYGRAV*DXYPIJ
       end if
       WMXTR = QCLX(L)
+      LHX_WA = LHX
       if (BELOW_CLOUD.and.QCLX(L).lt.teeny) then
         precip_mm = PREBAR(L+1)*100.*DTsrc
         if (precip_mm.lt.0.) precip_mm=0.
         WMXTR = PREBAR(L+1)*grav*BYAM(L)*dtsrc
         if (wmxtr.lt.0.) wmxtr=0.
         WA_VOL=precip_mm*DXYPIJ
+        LHX_WA = LHP(L)
       end if
 
       call GET_SULFATE(PL(L),TL(L),FCLD,WA_VOL,WMXTR,SULFIN,SULFINOM &
            ,SULFINC,SULFOUT,TR_LEFT,TM(L,:),TRWML(:,L),AIRM(L) &
-           ,LHX,DT_SULF_SS(:,L),CLDSAVT,.true.)
+           ,LHX_WA,DT_SULF_SS(:,L),CLDSAVT,.true.)
 
       do iaqch=1,aqchem_count
         n = aqchem_list(iaqch)
@@ -4574,7 +4577,7 @@ contains
 
       if(fer.ne.0.) then
         call GET_EVAP_FACTOR_array( &
-             NTX,TL(L),LHX,.false.,1d0,FER,FERT,ntix)
+             NTX,TL(L),LHP(L),.false.,1d0,FER,FERT,ntix)
         DTERT(1:NTX) = FERT(1:NTX)  *TRPRBAR(1:NTX,L+1)
       else
         FERT(1:NTX) = 0.
@@ -4610,7 +4613,7 @@ contains
         if (precip_mm.lt.0.) precip_mm=0.
         if (wmxtr.lt.0.) wmxtr=0.
         call GET_WASH_FACTOR_array(NTX,b_beta_DT,precip_mm,FWASHT, &
-             tl(l),LHX,WMXTR,cldprec,TM_dum,TRPRBAR(:,l), &
+             tl(l),LHP(L),WMXTR,cldprec,TM_dum,TRPRBAR(:,l), &
              THWASH,pl(l),ntix,.true. &
 #ifdef TRACERS_TOMAS
        ,i_debug,j_debug,L &
@@ -4661,7 +4664,7 @@ contains
         if (precip_mm.lt.0.) precip_mm=0.
         if (wmxtr.lt.0.) wmxtr=0.
         call GET_WASH_FACTOR_array(NTX,b_beta_DT,precip_mm,FWASHT, &
-             tl(l),LHX,WMXTR,cldprec,TM_dum,TRPRBAR(:,l), &
+             tl(l),LHP(L),WMXTR,cldprec,TM_dum,TRPRBAR(:,l), &
              THWASH,pl(l),ntix,.true. &
 #ifdef TRACERS_TOMAS
        ,i_debug,j_debug,L &
