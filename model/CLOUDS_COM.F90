@@ -77,9 +77,6 @@ module CLOUDS_COM
   real*8, allocatable, dimension(:,:) :: AIRX
 !@var LMC max layer of mc convective mass flux.
   integer, allocatable, dimension(:,:,:) :: LMC
-!@var RDDMC ratio of downdraft mass to air mass
-  REAL*8, ALLOCATABLE, DIMENSION(:,:) :: RDDMC1,RDDMC2, &
-          THCPIJ,QCPIJ,ACPIJ,DPCPIJ          ! for cold pool
 
 !@var LLOW,LMID,LHI max levels for low, mid and high clouds
   integer LLOW,LMID,LHI
@@ -134,7 +131,7 @@ contains
 !          overlap schemes are already realized by having picked a single MC
 !          random number for the whole column in addition to the ones for SS
 !          (That block was added to avoid unneeded computations in long runs)
-!  Note 2: Reverse looping over L was only kept for bit-wise consistency
+!  Note 2: Reverse looping over L was only kept for bit-wise consistency 
 !          with the previous version of the code.
 
    if(present(RandSS)) then
@@ -142,9 +139,9 @@ contains
      do L=lmax,1,-1       ! better:  1,lmax  (and replace L+1 by L-1 below)
         if( cldssl(L) > 0 ) then
           if(same_cloud) RandSS(L) = RandSS(L+1)        ! use same random #
-          same_cloud = .true.
+          same_cloud = .true.                           
         else
-          same_cloud = .false.
+          same_cloud = .false.                          
         end if
      end do
    end if
@@ -155,14 +152,14 @@ contains
       if( cldssl(L) > 0 ) then
 !!      if(same_cloud) RandSS(L) = RandSS(L-1)            ! use same random #
         clearss_part = min( clearss_part, 1-cldssl(L) )   ! total overlap
-        same_cloud = .true.
+        same_cloud = .true.                               
       else                                                ! clear sky layer
-        same_cloud = .false.
+        same_cloud = .false.                         
         clearss = clearss * clearss_part                  ! random overlap
         clearss_part = 1.                                 ! reset for next cloud
       end if
    end do
-   clearss = clearss * clearss_part
+   clearss = clearss * clearss_part                 
    if( present(CldSS) ) CldSS = 1.-clearss
 
 !! Treat convective clouds as a single cloud with max. overlap
@@ -195,8 +192,7 @@ subroutine ALLOC_CLOUDS_COM(grid)
   use AERO_CONFIG, only: NMODES
 #endif
 #endif
-  use CLOUDS_COM, only : TTOLD,QTOLD,SVLHX,SVLAT,RHSAV,CLDSAV,CLDSAV1,FSS &
-      ,RDDMC1,RDDMC2,THCPIJ,QCPIJ,ACPIJ,DPCPIJ  ! last 4 variables for cold pool
+  use CLOUDS_COM, only : TTOLD,QTOLD,SVLHX,SVLAT,RHSAV,CLDSAV,CLDSAV1,FSS
 #if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
   use CLOUDS_COM, only : CL3D,CI3D,CD3D,CTEM
 #endif
@@ -204,8 +200,7 @@ subroutine ALLOC_CLOUDS_COM(grid)
   use CLOUDS_COM, only :  NCL,NCI, CDN3D,CRE3D,CLWP
 #endif
   use CLOUDS_COM, only : TAUSS,TAUMC, CLDSS,CLDMC,CSIZMC,CSIZSS, &
-       ULS,VLS,UMC,VMC,TLS,QLS,RDDMC1,RDDMC2, &
-       THCPIJ,QCPIJ,ACPIJ,DPCPIJ, &           ! for cold pool
+       ULS,VLS,UMC,VMC,TLS,QLS, &
        TMC,QMC,DDM1,AIRX,LMC,DDMS,TDN1,QDN1,DDML
 #if (defined mjo_subdd) || (defined etc_subdd)
   use CLOUDS_COM, only : CLWC3D,CIWC3D,TLH3D,SLH3D,DLH3D,LLH3D
@@ -297,12 +292,6 @@ subroutine ALLOC_CLOUDS_COM(grid)
   RHSAV (:,:,:)=.85d0
   CLDSAV(:,:,:)=0.
   SVLHX (:,:,:)=0.
-  RDDMC1 (:,:)=0d0
-  RDDMC2 (:,:)=0d0
-  THCPIJ(:,:)=0d0             ! for cold pool
-  QCPIJ(:,:)=0d0
-  ACPIJ(:,:)=0d0
-  DPCPIJ(:,:)=0d0
 
   allocate(     ULS(I_0H:I_1H,J_0H:J_1H,LM), &
        VLS(I_0H:I_1H,J_0H:J_1H,LM), &
@@ -333,12 +322,6 @@ subroutine ALLOC_CLOUDS_COM(grid)
        STAT=IER)
 
   allocate(     LMC(2,I_0H:I_1H,J_0H:J_1H), &
-                RDDMC1(I_0H:I_1H,J_0H:J_1H), &
-                RDDMC2(I_0H:I_1H,J_0H:J_1H), &
-                THCPIJ(I_0H:I_1H,J_0H:J_1H), &
-                QCPIJ(I_0H:I_1H,J_0H:J_1H), &
-                ACPIJ(I_0H:I_1H,J_0H:J_1H), &
-                DPCPIJ(I_0H:I_1H,J_0H:J_1H), &
        STAT=IER)
 
   !**** Initialise some output used in dynamics
@@ -371,8 +354,6 @@ subroutine io_clouds(kunit,iaction,ioerr)
   integer, intent(INOUT) :: IOERR
 !@var HEADER Character string label for individual records
   character*80 :: HEADER, MODULE_HEADER = "CLD01"
-  REAL*8, ALLOCATABLE,  DIMENSION(:,:) :: RDDMC1_glob,RDDMC2_glob, &
-          THCPIJ_glob,QCPIJ_glob,ACPIJ_glob,DPCPIJ_glob
   real*8, allocatable,  dimension(:,:,:) :: TTOLD_glob,QTOLD_glob &
        ,SVLHX_glob,RHSAV_glob,CLDSAV_glob
 #ifdef CLD_AER_CDNC
@@ -390,12 +371,6 @@ subroutine io_clouds(kunit,iaction,ioerr)
     call PACK_COLUMN(grid, SVLHX,  SVLHX_glob)
     call PACK_COLUMN(grid, RHSAV,  RHSAV_glob)
     call PACK_COLUMN(grid, CLDSAV, CLDSAV_glob)
-    CALL PACK_COLUMN(grid, RDDMC1,  RDDMC1_glob)
-    CALL PACK_COLUMN(grid, RDDMC2,  RDDMC2_glob)
-    CALL PACK_COLUMN(grid, THCPIJ,  THCPIJ_glob)
-    CALL PACK_COLUMN(grid, QCPIJ,  QCPIJ_glob)
-    CALL PACK_COLUMN(grid, ACPIJ,  ACPIJ_glob)
-    CALL PACK_COLUMN(grid, DPCPIJ,  DPCPIJ_glob)
 #ifdef CLD_AER_CDNC
     call PACK_COLUMN(grid, NCL, NCL_glob)
     call PACK_COLUMN(grid, NCI, NCI_glob)
@@ -432,12 +407,6 @@ subroutine io_clouds(kunit,iaction,ioerr)
     call UNPACK_COLUMN(grid, SVLHX_glob , SVLHX)
     call UNPACK_COLUMN(grid, RHSAV_glob , RHSAV)
     call UNPACK_COLUMN(grid, CLDSAV_glob, CLDSAV)
-    CALL UNPACK_COLUMN(grid, RDDMC1_glob, RDDMC1)
-    CALL UNPACK_COLUMN(grid, RDDMC2_glob, RDDMC2)
-    CALL UNPACK_COLUMN(grid, THCPIJ_glob,  THCPIJ)
-    CALL UNPACK_COLUMN(grid, QCPIJ_glob,  QCPIJ)
-    CALL UNPACK_COLUMN(grid, ACPIJ_glob,  ACPIJ)
-    CALL UNPACK_COLUMN(grid, DPCPIJ_glob,  DPCPIJ)
 #ifdef CLD_AER_CDNC
     call UNPACK_COLUMN(grid, NCL_glob , NCL)
     call UNPACK_COLUMN(grid, NCI_glob , NCI)
@@ -466,13 +435,7 @@ contains
          QTOLD_glob(lmg,img,jmg), &
          SVLHX_glob(lmg,img,jmg), &
          RHSAV_glob(lmg,img,jmg), &
-         CLDSAV_glob(lmg,img,jmg) &
-         ,RDDMC1_glob(img,jmg) &
-         ,RDDMC2_glob(img,jmg) &
-         ,THCPIJ_glob(img,jmg) &
-         ,QCPIJ_glob(img,jmg) &
-         ,ACPIJ_glob(img,jmg) &
-         ,DPCPIJ_glob(img,jmg))
+         CLDSAV_glob(lmg,img,jmg))
 #ifdef CLD_AER_CDNC
     allocate( NCL_glob(lmg,img,jmg) &
          ,NCI_glob(lmg,img,jmg))
@@ -483,13 +446,7 @@ contains
          QTOLD_glob, &
          SVLHX_glob, &
          RHSAV_glob, &
-         CLDSAV_glob &
-         ,RDDMC1_glob &
-         ,RDDMC2_glob &
-         ,THCPIJ_glob &
-         ,QCPIJ_glob &
-         ,ACPIJ_glob &
-         ,DPCPIJ_glob)
+         CLDSAV_glob)
 #ifdef CLD_AER_CDNC
     deallocate( NCL_glob &
          ,NCI_glob)
@@ -514,12 +471,6 @@ subroutine def_rsf_clouds(fid)
   call defvar(grid,fid,svlhx,'svlhx'//lijstr)
   call defvar(grid,fid,rhsav,'rhsav'//lijstr)
   call defvar(grid,fid,cldsav,'cldsav'//lijstr)
-  call defvar(grid,fid,rddmc1,'rddmc1(dist_im,dist_jm)')
-  call defvar(grid,fid,rddmc2,'rddmc2(dist_im,dist_jm)')
-  call defvar(grid,fid,thcpij,'thcpij(dist_im,dist_jm)')
-  call defvar(grid,fid,qcpij,'qcpij(dist_im,dist_jm)')
-  call defvar(grid,fid,acpij,'acpij(dist_im,dist_jm)')
-  call defvar(grid,fid,dpcpij,'dpcpij(dist_im,dist_jm)')
 #ifdef CLD_AER_CDNC
   call defvar(grid,fid,ncl,'ncl'//lijstr)
   call defvar(grid,fid,nci,'nci'//lijstr)
@@ -547,12 +498,6 @@ subroutine new_io_clouds(fid,iaction)
     call write_dist_data(grid, fid, 'svlhx', svlhx, jdim=3)
     call write_dist_data(grid, fid, 'rhsav', rhsav, jdim=3)
     call write_dist_data(grid, fid, 'cldsav', cldsav, jdim=3)
-    call write_dist_data(grid, fid, 'rddmc1', rddmc1)
-    call write_dist_data(grid, fid, 'rddmc2', rddmc2)
-    call write_dist_data(grid, fid, 'thcpij', thcpij)
-    call write_dist_data(grid, fid, 'qcpij', qcpij)
-    call write_dist_data(grid, fid, 'acpij', acpij)
-    call write_dist_data(grid, fid, 'dpcpij', dpcpij)
 #ifdef CLD_AER_CDNC
     call write_dist_data(grid, fid, 'ncl', ncl, jdim=3)
     call write_dist_data(grid, fid, 'nci', nci, jdim=3)
@@ -565,12 +510,6 @@ subroutine new_io_clouds(fid,iaction)
     call read_dist_data(grid, fid, 'svlhx', svlhx, jdim=3)
     call read_dist_data(grid, fid, 'rhsav', rhsav, jdim=3)
     call read_dist_data(grid, fid, 'cldsav', cldsav, jdim=3)
-    call read_dist_data(grid, fid, 'rddmc2', rddmc2)
-    call read_dist_data(grid, fid, 'rddmc1', rddmc1)
-    call read_dist_data(grid, fid, 'thcpij', thcpij)
-    call read_dist_data(grid, fid, 'qcpij', qcpij)
-    call read_dist_data(grid, fid, 'acpij', acpij)
-    call read_dist_data(grid, fid, 'dpcpij', dpcpij)
 #ifdef CLD_AER_CDNC
     call read_dist_data(grid, fid, 'ncl', ncl, jdim=3)
     call read_dist_data(grid, fid, 'nci', nci, jdim=3)
