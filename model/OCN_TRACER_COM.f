@@ -14,7 +14,7 @@
       module ocn_tracer_vector_mod
       use ocn_tracer_entry_mod
 #define _entryname ocn_tracer_entry
-#include "shared/containers/vector.fh"
+#include "containers/vector.fh"
       end module ocn_tracer_vector_mod
 
 #if (defined TRACERS_OCEAN) || (defined TRACERS_WATER)

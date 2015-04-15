@@ -5,9 +5,10 @@
 
 AVAILABLE_COMPONENTS = profiler MPI_Support Ent giss_LSM shared solvers dd2d tracers CS_Support
 
-export MOD_DIR := $(shell pwd)/mod
-export INCLUDE_DIR := $(shell pwd)/include
-#export GISSCLIM_DIR := $(shell pwd)/..
+export MODEL_DIR := $(shell pwd)
+export MOD_DIR := $(MODEL_DIR)/mod
+export INCLUDE_DIR := $(MODEL_DIR)/include
+#export GISSCLIM_DIR := $(MODEL_DIR)/..
 export GISSCLIM_DIR := $(MODEL_E_ROOT)
 #export CONFIG_DIR := $(GISSCLIM_DIR)/config
 #export SCRIPTS_DIR := $(GISSCLIM_DIR)/exec
@@ -80,7 +81,7 @@ F90SRCS = $(filter $(FORTSRCS_PRESENT), $(F90SRCS_TMP))
 include $(CONFIG_DIR)/base.mk
 #sinclude $(DEPENDFILE)
 include $(CONFIG_DIR)/rules.mk
-
+INCS += -I$(MODEL_DIR)/shared
 
 #include $(GISSCLIM_DIR)/config/rules.mk
 #COMPLIBS = $(patsubst %, %/lib.a, $(COMPONENTS))
