@@ -857,6 +857,10 @@ DO JL=L,L
 30 continue
   write(out_line,"('WARNING: Too many iteration steps. SOA forced to previous values. M0=',1pe9.2,' PCP=',1pe9.2)") M0,PCP
   call write_parallel(trim(out_line),crit=.true.)
+  ! During some testing, when the model got to this section of code (too many
+  ! interations), NCCS compute nodes started to run out of memory, so there
+  ! is a model stop for now:
+  call stop_model(255,'soa_aerosolphase: stop to prevent memory issue')
   goto 60
 !
 ! Found solution for M0

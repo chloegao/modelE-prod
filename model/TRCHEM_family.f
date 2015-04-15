@@ -3,8 +3,8 @@ c Family chemistry calculations: Equilibrium values are production/loss
 c from reactions *within* family only:
 
 
-      SUBROUTINE Oxinit(lmax,I,J)
-!@sum Oxinit Find O,O1D & Ox initial conc assuming equilibrium with O3
+      SUBROUTINE Oxfam(lmax,I,J)
+!@sum Oxfam Find O,O1D & Ox initial conc assuming equilibrium with O3
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
 
 C**** GLOBAL parameters and variables:
@@ -37,17 +37,18 @@ C**** Local parameters and variables and arguments:
 #endif  /* TRACERS_TERP */
 
       do L=1,lmax
-c       for concentration of O:
-        az=(ss(2,L,I,J)+ss(3,L,I,J))/(rr(iO3form,L)*y(nO2,L))
 c       for concentration of O(1D):
         bz=ss(2,L,I,J)/(rr(8,L)*y(nO2,L)+rr(9,L)*y(nM,L)+
      &  rr(10,L)*y(nH2O,L)+rr(11,L)*y(nn_CH4,L))
-        if(PRES(L) < 50.) then
-          bz=bz*2.5d0
-!test   else if(PRES(L) > 100.) then
-!test     bz=bz*0.9d0
-        endif
-        P1=1.d0/(1.d0+az+bz)
+        ! here we USED TO tune bz with a pressure criterion
+c       for concentration of O:
+        if (y(nO2,L) > 0.d0) then
+          az=(ss(2,L,I,J)+ss(3,L,I,J))/(rr(iO3form,L)*y(nO2,L))
+          P1=1.d0/(1.d0+az+bz)
+        else
+          az=0.d0 ! actually az=infinite but multiplied by P1(=0) below:
+          P1=0.d0
+        end if
         y(nO,L)=P1*az*y(nn_Ox,L)
         y(nO1D,L)=P1*bz*y(nn_Ox,L)
         y(nO3,L)=y(nn_Ox,L)-y(nO,L)-y(nO1D,L)
@@ -59,7 +60,7 @@ c       for concentration of O(1D):
       enddo
 c
       return
-      END SUBROUTINE OXinit
+      END SUBROUTINE Oxfam
 
 
 
@@ -73,9 +74,9 @@ C**** GLOBAL parameters and variables:
 
       USE RESOLUTION, only         : LS1
       USE ATM_COM, only            : LTROPO
-      USE TRACER_COM, only         : n_NOx, nn_NOx
+      USE TRACER_COM, only         : n_NOx,nn_NOx,n_Alkenes,nn_Alkenes
       USE TRCHEM_Shindell_COM, only:rr,y,yNO3,nO3,nHO2,yCH3O2,nO,nC2O3,
-     &                  ta,nXO2,ss,nNO,nNO2,pNOx,nNO3,nHONO,which_trop
+     &             pNO3,ta,nXO2,ss,nNO,nNO2,pNOx,nNO3,nHONO,which_trop
      &                  ,nClO,nOClO,nBrO
 
       IMPLICIT NONE
@@ -89,7 +90,7 @@ C**** Local parameters and variables and arguments:
 !@var maxl LTROPO(I,J) or LS1-1, depending upon what_trop variable
       integer             :: L,iNO2form,maxl
       integer, intent(IN) :: lmax,I,J
-      real*8              :: b,c,p1,p2
+      real*8              :: b,c,p1,p2,d
       
 #ifdef TRACERS_TERP
       iNO2form=99
@@ -104,8 +105,7 @@ C**** Local parameters and variables and arguments:
       end select
 
       do L=1,lmax
-c       If dawn then set NO3 back to zero:
-        IF(yNO3(I,J,L) > 0.) yNO3(I,J,L)=0.d0
+        ! here we USED TO set NO3 back to zero at dawn.
 c       B is for NO->NO2 reactions :
         B=rr(5,L)*y(nO3,L)+rr(6,L)*y(nHO2,L)+rr(iNO2form,L)*y(nO,L)
 
@@ -119,18 +119,28 @@ c       B is for NO->NO2 reactions :
 
 C       C is for NO2->NO reactions :
         C=ss(1,L,I,J)+rr(26,L)*y(nO,L)
-        !forms NO3, assume some goes to NO:
-        if(l <= maxl) C = C + rr(7,L)*y(nO3,L)*0.25d0 
+        ! below forms NO3, assume some goes to NO:
+        C = C + rr(7,L)*y(nO3,L)*ss(5,L,I,J)/(ss(5,L,I,J)+ss(6,L,I,J))
         p2=B/(B+C)
         p1=1-p2
-        y(nNO,L)= p1*y(nn_NOx,L)
-        y(nNO2,L)=p2*y(nn_NOx,L)
+
+C       Set NO3: D is loss rxns NO3->NO2 or NO
+        D=ss(5,L,I,J)+ss(6,L,I,J)+rr(17,L)*p1*y(nn_NOx,L)
+     &    +rr(24,L)*p2*y(nn_NOx,L)+rr(25,L)*yNO3(I,J,L)
+     &    +rr(36,L)*y(nn_Alkenes,L)
+        yNO3(I,J,L)=((rr(7,L)*y(nO3,L)*p2*y(nn_NOx,L))/D)
+        if(yNO3(I,J,L).ge.1.d-1*y(nn_NOx,L))
+     &    yNO3(I,J,L)=1.d-1*y(nn_NOx,L)
+        y(nNO,L)= p1*(y(nn_NOx,L)-yNO3(I,J,L))
+        y(nNO2,L)=p2*(y(nn_NOx,L)-yNO3(I,J,L))
+
 C       Set limits on NO, NO2, NOx:
         if(y(nNO,L)   < 1.)   y(nNO,L) = 1.d0
         if(y(nNO2,L)  < 1.)  y(nNO2,L) = 1.d0
         if(y(nn_NOx,L) < 1.) y(nn_NOx,L) = 1.d0
         pNOx(I,J,L)=y(nNO2,L)/y(nn_NOx,L)
-        y(nNO3,L) =1.d0
+        pNO3(I,J,L)=yNO3(I,J,L)/y(nn_NOx,L)
+        y(nNO3,L)=yNO3(I,J,L)
         y(nHONO,L)=1.d0
       enddo
 
@@ -153,25 +163,19 @@ C**** GLOBAL parameters and variables:
 
       USE TRACER_COM, only : n_CH4,n_HNO3,n_CH3OOH,n_H2O2,n_HCHO,n_CO,
      &                       n_Paraffin,n_Alkenes,n_Isoprene,n_AlkylNit,
-#ifdef TRACERS_TERP
-     &                       n_Terpenes,
-     &                       nn_Terpenes,
-#endif  /* TRACERS_TERP */
+     &                       n_Terpenes,nn_Terpenes,
      &                       rsulf1,rsulf2,rsulf4,n_SO2,n_DMS,
      &                       n_HBr,n_HOCl,n_HCl
 
       USE TRACER_COM, only : nn_CH4,nn_HNO3,nn_CH3OOH,nn_H2O2,nn_HCHO,
      &                       nn_CO,nn_Paraffin,nn_Alkenes,nn_Isoprene,
-     &                       nn_AlkylNit,
-#ifdef TRACERS_TERP
-     &                       nn_Terpenes,
-#endif  /* TRACERS_TERP */
+     &                       nn_AlkylNit,nn_Terpenes,
      &                       nn_HBr,nn_HOCl,nn_HCl
 
       USE TRCHEM_Shindell_COM, only:pHOx,rr,y,nNO2,nNO,yCH3O2,nH2O,nO3,
      &                        nO2,nM,nHO2,nOH,nH2,nAldehyde,nXO2,nXO2N,
-     &                        ta,ss,nC2O3,nROR,yso2,ydms,which_trop
-     &                        ,nBrO,nClO,nOClO,nBr,nCl,SF3,nO,nCH3O2
+     &                        ta,ss,nC2O3,nROR,yso2,ydms,which_trop,nO1D
+     &         ,OxlossbyH,dt2,nBrO,nClO,nOClO,nBr,nCl,SF3,nO,nCH3O2
 
       IMPLICIT NONE
 
@@ -196,7 +200,8 @@ C**** Local parameters and variables and arguments:
       integer             :: L, maxl 
       integer, intent(IN) :: lmax,I,J
       real*8              :: aqqz, bqqz, cqqz, cz, dz, sqroot, 
-     &   temp_yHOx,rcqqz,ratio,rHprod,rHspecloss,rkzero,rktot
+     &   temp_yHOx,rcqqz,ratio,rHprod,rHspecloss,rkzero,rktot,
+     &   yAtomicH
       REAL*8, DIMENSION(LM) :: PRES
 
       PRES(1:LM)=SIG(1:LM)*(PSF-PTOP)+PTOP
@@ -239,11 +244,10 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
      & +(rr(20,L)*y(nNO,L)+0.66d0*(rr(27,L)*yCH3O2(I,J,L)))
      & *yCH3O2(I,J,L))
 
+       ! 1.66/1.31 accounts for HOx production via O(1D)+CH4-->CH3O path:
        cqqz=cqqz+
-     & ((2.d0*(rr(10,L)*y(nH2O,L))+rr(11,L)*y(nn_CH4,L))*
-     & ss(2,L,I,J)*y(nO3,L))/
-     & (rr(8,L)*y(nO2,L)+rr(9,L)*y(nM,L)+
-     & rr(10,L)*y(nH2O,L)+rr(11,L)*y(nn_CH4,L))
+     & ((2.d0*rr(10,L)*y(nH2O,L)+(1.66d0/1.31d0)*rr(11,L)*y(nn_CH4,L))*
+     & y(nO1D,L))
      & +ss(16,L,I,J)*y(nAldehyde,L)*2.d0+(rr(39,L)*y(nNO,L)
      & +rr(40,L)*y(nC2O3,L)*2.d0)*y(nC2O3,L)
      & +(rr(42,L)*0.94d0+1.6d3)*y(nROR,L)+rr(35,L)*y(nn_Alkenes,L)
@@ -280,12 +284,7 @@ c which also produces HO2 and R15 then S4/(S4+S14) fraction.
        if(cz+dz > 0.)then
          y(nOH,L)=(dz/(cz+dz))*temp_yHOx
          if(y(nOH,L) > temp_yHOx) y(nOH,L)=temp_yHOx-1.d0
-c---->   warning: OH caps follow   <----
-!4x5hard if(j <= 3 .and. y(nOH,L) >= 3.d5) y(nOH,L)=3.d5
-!4x5hard if(j >= 44 .and. y(nOH,L) >= 3.d5)y(nOH,L)=3.d5
-         if(lat2d_dg(i,j) <= -80. .or. lat2d_dg(i,j) >= 80.)then
-           y(nOH,L)=min(y(nOH,L),3.d5)
-         endif
+         ! here we USED TO cap OH as a function of latitude
        else
          y(nOH,L)=1.d0
        endif
@@ -332,24 +331,29 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
        ! water vapor photolysis in SRBs:
        if(PRES(L) < 10.) cqqz = cqqz + 0.5d0*SF3(I,J,L)*y(nH2O,L) 
 
-       ! production from O1D limited to O1D amount:
-       rcqqz=rr(8,L)*y(nO2,L)+rr(9,L)*y(nM,L)+
-     & rr(10,L)*y(nH2O,L)+rr(11,L)*y(nn_CH4,L)
-       if(rcqqz > 1)then
-         ratio=1.d0/rcqqz
-       else
-         ratio=1.d0
-       endif
-       cqqz=cqqz+ratio*        
-     & ((2.d0*rr(10,L)*y(nH2O,L)+rr(11,L)*y(nn_CH4,L))*
-     & ss(2,L,I,J)*y(nO3,L))/
-     & (rr(8,L)*y(nO2,L)+rr(9,L)*y(nM,L)+
-     & rr(10,L)*y(nH2O,L)+rr(11,L)*y(nn_CH4,L))
+       ! production from O1D NO LONGER limited to O1D amount or
+       ! O1D fraction via r10,11,s2:
+       cqqz=cqqz+(2.d0*rr(10,L)*y(nH2O,L)+(1.66d0/1.31d0)*rr(11,L)*
+     & y(nn_CH4,L))*y(nO1D,L)  
 
        sqroot=sqrt(bqqz*bqqz+4.d0*aqqz*cqqz)
        y(nHO2,L)=(sqroot-bqqz)/(2.d0*aqqz)
        y(nOH,L)=pHOx(I,J,L)*y(nHO2,L)
        temp_yHOx=y(nOH,L)+y(nHO2,L)
+
+c Include loss of OH into atomic H using production
+c via OH + O -> O2 + H, loss via H + O3 -> OH + O2 and
+c H + O2 + M -> HO2 + M , and affects on OH/HO2 and Ox
+       rHprod=rr(89,L)*y(nOH,L)*y(nO,L)
+       rHspecloss=y(nO3,L)*1.4d-10*exp(-470./ta(L))
+       rkzero=y(nM,L)*4.4d-32*((ta(L)/300.d0)**(-1.3))
+       rktot=(rkzero/(1+(rkzero/(7.5d-11*(ta(L)/300.d0)**0.2))))
+       rktot=y(nO2,L)*rktot
+       rHspecloss=rHspecloss+rktot
+       if(rHspecloss==0. .or. rHspecloss+rktot==0.)
+     & call stop_model('rHspecloss or rHspecloss+rktot=0.',255)
+       yAtomicH=rHprod/rHspecloss
+       OxlossbyH(L)= yAtomicH*rHspecloss*dt2
 
 c Now partition HOx into OH and HO2:
 c CZ: OH->HO2 reactions :
@@ -357,6 +361,7 @@ c CZ: OH->HO2 reactions :
      & +rr(14,L)*y(nn_H2O2,L)+rr(19,L)*y(nH2,L)
      & +rr(21,L)*y(nn_HCHO,L)
      & +rr(61,L)*y(nClO,L)+rr(80,L)*y(nBrO,L)
+     & +rr(89,L)*y(nO,L)*rktot/(rHspecloss+rktot)
        ! SO2 oxidation: 
      & + rsulf4(i,j,l)*yso2(i,j,l)
 
@@ -364,24 +369,12 @@ c CZ: OH->HO2 reactions :
      & +rr(60,L)*y(nCl,L)+rr(90,L)*y(nO,L)
 
        if(cz+dz > 0)then
-         y(nOH,L)=(dz/(cz+dz))*temp_yHOx
+         y(nOH,L)=(dz/(cz+dz))*temp_yHOx-yAtomicH
          if(y(nOH,L) > temp_yHOx)y(nOH,L)=temp_yHOx-1.d0
        else
          y(nOH,L)=1.d0
        endif
        y(nHO2,L)=(temp_yHOx-y(nOH,L))
-
-c At low pressures, include loss of OH into atomic H using production
-c via OH + O -> O2 + H, loss via H + O3 -> OH + O2 and
-c H + O2 + M -> HO2 + M :
-       if(PRES(L) < 2.d0)then
-         rHprod=rr(89,L)*y(nOH,L)*y(nO,L)
-         rHspecloss=y(nO3,L)*1.4d-10*exp(-470./ta(L))
-         rkzero=y(nM,L)*5.7d-32*((ta(L)/300.d0)**(-1.6))
-         rktot=(rkzero/(1+(rkzero/7.5d-11)))
-         rHspecloss=rHspecloss+y(nO2,L)*rktot
-         y(nOH,L)=y(nOH,L)-rHprod/rHspecloss
-       endif
 
        if(y(nOH,L)  < 1)   y(nOH,L)  = 1.d0
        if(y(nHO2,L) < 1)   y(nHO2,L) = 1.d0

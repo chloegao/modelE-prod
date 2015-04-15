@@ -13,7 +13,7 @@ C**** GLOBAL parameters and variables:
      &    ndnr,kps,kds,kpnr,kdnr,nnr,nr,npnr,nr2,nr3,nmm,nhet,
      &    prnls,prnrts,prnchg,lprn,jprn,iprn,ay,pHOx,pOx,pNOx,
      &    yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yNO3,yRXPAR,yXO2N,acetone,
-     &    allowSomeChemReinit
+     &    allowSomeChemReinit,pNO3
      &    ,pCLOx,pCLx,pOClOx,pBrOx,yCl2,yCl2O2
 
       IMPLICIT NONE
@@ -51,6 +51,7 @@ C Initialize a few (IM,JM,LM) arrays, first hour only:
         pHOx(I_0:I_1,J_0:J_1,:)     =1.d0
         pOx(I_0:I_1,J_0:J_1,:)      =1.d0
         pNOx(I_0:I_1,J_0:J_1,:)     =1.d0
+        pNO3(I_0:I_1,J_0:J_1,:)     =0.d0
         yCH3O2(I_0:I_1,J_0:J_1,:)   =1.d0 ! 1.d5 ??
         yC2O3(I_0:I_1,J_0:J_1,:)    =0.d0
         yROR(I_0:I_1,J_0:J_1,:)     =0.d0

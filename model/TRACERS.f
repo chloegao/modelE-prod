@@ -1329,8 +1329,8 @@ C**** check whether air mass is conserved
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
      &     yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss,ydms,yso2,sulfate
-     &     ,acetone, sOx_acc,sNOx_acc,sCO_acc,l1Ox_acc,l1NO2_acc
-     &     ,SF3,SF2,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2
+     &     ,acetone, sOx_acc,sNOx_acc,sCO_acc,l1Ox_acc,l1NO2_acc,pNO3
+     &     ,SF3,SF2,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2,pNO3
 #ifdef INTERACTIVE_WETLANDS_CH4 
       use TRACER_SOURCES, only: day_ncep,DRA_ch4,sum_ncep,PRS_ch4,
      &     HRA_ch4,iday_ncep,i0_ncep,iHch4,iDch4,i0ch4,first_ncep,
@@ -1535,6 +1535,9 @@ c not yet        if(am_i_root()) write(kunit,err=10) header,aijl_glob
         if(am_i_root())write(kunit,err=10)header,Aijl_glob
        header='TRACERS_SPECIAL_Shindell: pNOx(i,j,l)'
         call pack_data(grid,pNOx,Aijl_glob)
+        if(am_i_root())write(kunit,err=10)header,Aijl_glob
+       header='TRACERS_SPECIAL_Shindell: pNO3(i,j,l)'
+        call pack_data(grid,pNO3,Aijl_glob)
         if(am_i_root())write(kunit,err=10)header,Aijl_glob
        header='TRACERS_SPECIAL_Shindell: pOx(i,j,l)'
         call pack_data(grid,pOx,Aijl_glob)
@@ -1744,6 +1747,8 @@ c not yet          call unpack_data(grid,aijl_glob,daily_z)
           if(am_i_root())read(kunit,err=10)header,Aijl_glob
           call unpack_data(grid,Aijl_glob,pNOx)
           if(am_i_root())read(kunit,err=10)header,Aijl_glob
+          call unpack_data(grid,Aijl_glob,pNO3)
+          if(am_i_root())read(kunit,err=10)header,Aijl_glob
           call unpack_data(grid,Aijl_glob,pOx)
           if(am_i_root())read(kunit,err=10)header,Aijl_glob
           call unpack_data(grid,Aijl_glob,yCH3O2)
@@ -1915,7 +1920,6 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       END SUBROUTINE io_tracer
 
 
-
       subroutine setup_emis_sectors_regions
 !@sum setup_emis_sectors_regions reads from the rundeck the 
 !@+ geographic regions and sectors associated with tracer
@@ -2015,7 +2019,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
      &yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss,ydms,yso2,sulfate
      &,acetone,sOx_acc,sNOx_acc,sCO_acc,l1Ox_acc,l1NO2_acc
-     &,SF3,SF2,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2
+     &,SF3,SF2,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2,pNO3
 #ifdef INTERACTIVE_WETLANDS_CH4 
       use TRACER_SOURCES, only: day_ncep,DRA_ch4,sum_ncep,PRS_ch4,
      & HRA_ch4,iday_ncep,i0_ncep,iHch4,iDch4,i0ch4,first_ncep,first_mod,
@@ -2082,6 +2086,7 @@ c daily_z is currently only needed for CS
       call doVar(handle,action,yNO3,'yNO3'//ijldims)
       call doVar(handle,action,pHOx,'pHOx'//ijldims)
       call doVar(handle,action,pNOx,'pNOx'//ijldims)
+      call doVar(handle,action,pNO3,'pNO3'//ijldims)
       call doVar(handle,action,pOx ,'pOx'//ijldims)
       call doVar(handle,action,yCH3O2,'yCH3O2'//ijldims)
       call doVar(handle,action,yC2O3,'yC2O3'//ijldims)

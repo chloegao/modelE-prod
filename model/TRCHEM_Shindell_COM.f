@@ -61,6 +61,7 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
 !@+     radiation's 1995 L=1 CFC11+CFC12 value.
 !@param PSClatS SH latitude limit for PSCs
 !@param PSClatN NH latitude limit for PSCs
+!@param minKG minimum kg for trm before we set to this after change
       INTEGER, PARAMETER ::
      & LCOalt =   23,
      & LCH4alt=    6,
@@ -147,6 +148,7 @@ C ----------------------------------------------
      &                      CMEQ1        = 0.25d0,
      &                      byradian     = 1.d0/radian,
      &                      cpd          = 1.d6/avog
+     &                     ,minKG        = 0.d0
      &                     ,cfc_pppv     = 1722.d-12
      &                     ,n2o_pppv     = 316.3d-9
      &                     ,cfc_rad95    = 794.d-12 
@@ -183,6 +185,10 @@ c$$$#endif
      
 !@dbparam Tpsc_offset_N NH offset for the above T_thresh
 !@dbparam Tpsc_offset_S SH offset for the above T_thresh
+!@dbparam preslimitO2photCorrection pressue above which ss(27) should
+!@+ get the spherical correction (on top of linear) (hPa)
+!@dbparam windowO2corr linear correction to ss(27) O2 in window region
+!@dbparam windowN2Ocorr linear correction to ss(28) N2O in window region
 !@dbparam ch4_init_sh,ch4_init_nh initial methane conc. (ppmv) 
 !@+       defaults are for 1990
 !@dbparam allowSomeChemReinit (1=YES) to allow some chemistry variables
@@ -207,10 +213,7 @@ c$$$#endif
 !@dbparam PIratio_CO_T to scale tropospheric CO IC and overwrite
 !@dbparam PIratio_CO_S to scale stratospheric CO IC and overwrite
 !@dbparam PIratio_other to scale PAN,Isoprene,AlkyNit,Alkenes,Paraffin
-#ifdef TRACERS_TERP
-!@+       ,Terpenes
-#endif  /* TRACERS_TERP */
-!@+       initial conditions and stratospheric overwriting.
+!@+       ,Terpenes initial conditions and stratospheric overwriting.
 !@dbparam PIratio_N2O preindustrial ratio for N2O ICs and L=1 overwrite
 !@dbparam PIratio_CFC preindustrial ratio for CFC ICs and L=1 overwrite
 !@+       with model time (JYEAR, JMON, JDAY) 
@@ -237,8 +240,11 @@ c$$$#endif
      &                     ,PltOx         = 0.100d0
      &                     ,Tpsc_offset_N = 0.d0
      &                     ,Tpsc_offset_S = 0.d0
-     &                     ,PSClatS       = -30.d0
-     &                     ,PSClatN       =  30.d0
+     &                     ,preslimitO2photCorrection = 20.d0
+     &                     ,windowN2Ocorr = 0.6d0
+     &                     ,windowO2corr  = 0.6d0
+     &                     ,PSClatS       = -50.d0
+     &                     ,PSClatN       =  50.d0
 
       LOGICAL, PARAMETER :: luselb            = .false.
 
@@ -373,7 +379,7 @@ C**************  Latitude-Dependant (allocatable) *******************
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: ss
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)   :: yNO3,pHOx,pNOx,pOx,
      & yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yXO2N,yRXPAR,TX,sulfate,OxIC,
-     & CH4ICX,dms_offline,so2_offline,yso2,ydms,mNO2,COIC
+     & CH4ICX,dms_offline,so2_offline,yso2,ydms,mNO2,COIC,pNO3
      & ,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2,N2OICX,CFCIC,SF3,SF2
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: COICIN,OxICIN,CH4ICIN
      &                                       ,N2OICIN,CFCICIN
@@ -395,7 +401,7 @@ C**************  Not Latitude-Dependant ****************************
      &                                   ,N2OICINL,CFCICINL
       REAL*8, DIMENSION(LM)  :: CH4altT,CH4altX,COICL,OxICL,CH4ICL
      &                        ,BrOxalt,ClOxalt,ClONO2alt,HClalt
-     &                        ,N2OICL,CFCICL
+     &                        ,N2OICL,CFCICL,OxlossbyH
 
       LOGICAL                      :: fam,prnrts,prnchg,prnls      
       LOGICAL, DIMENSION(LM)       :: pscX
@@ -414,7 +420,7 @@ C**************  Not Latitude-Dependant ****************************
      & pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yXO2N,yRXPAR,
      & TX,sulfate,COIC,OxIC,CH4ICX,dms_offline,so2_offline,yso2,ydms,
      & COICIN,OxICIN,CH4ICIN,JPPJ_Shindell,LCOalt,acetone,mNO2,
-     & l1NO2_acc,sNOx_acc,sCO_acc,save_NO2column
+     & l1NO2_acc,sNOx_acc,sCO_acc,save_NO2column,pNO3
      & ,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2,N2OICX,CFCIC,SF3,SF2,
      & N2OICIN,CFCICIN
 
@@ -437,6 +443,7 @@ C**************  Not Latitude-Dependant ****************************
       allocate(        mNO2(I_0H:I_1H,J_0H:J_1H,LM)      )
       allocate(        pHOx(I_0H:I_1H,J_0H:J_1H,LM)      )
       allocate(        pNOx(I_0H:I_1H,J_0H:J_1H,LM)      )
+      allocate(        pNO3(I_0H:I_1H,J_0H:J_1H,LM)      )
       allocate(         pOx(I_0H:I_1H,J_0H:J_1H,LM)      )
       allocate(      yCH3O2(I_0H:I_1H,J_0H:J_1H,LM)      )
       allocate(       yC2O3(I_0H:I_1H,J_0H:J_1H,LM)      )

@@ -35,8 +35,8 @@ tune_lt_sea= 33.852d0 ! =3.9d0*2.17d0 roughX4
 ! layer model) won't choose any 40-layer model levels):
 PltOx=0.2
 
-Tpsc_offset_N=0.d0 ! pol.strat.cloud temperature offset NH
-Tpsc_offset_S=0.d0 ! pol.strat.cloud temperature offset SH
+Tpsc_offset_N=-10.d0 ! pol.strat.cloud temperature offset NH
+Tpsc_offset_S=-7.5d0 ! pol.strat.cloud temperature offset SH
 
 COUPLED_CHEM=1     ! to couple chemistry and aerosols
 use_sol_Ox_cycle=0 ! (=1) apply ozone changes in radiation, based on solar cycle

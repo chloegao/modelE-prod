@@ -8248,7 +8248,7 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
       pTracer => tracers%getReference(trname(n_codirect))
       call readSurfaceSources(pTracer,n_codirect,
      &     ntsurfsrc(n_codirect),xyear,
-     & xday,.true.,itime,itime_tr0(n),sfc_src)
+     & xday,.true.,itime,itime_tr0(n_codirect),sfc_src)
 #endif
 
 #endif /* TRACERS_SPECIAL_Shindell || TRACERS_AEROSOLS_Koch || TRACERS_AMP || TRACERS_TOMAS */
