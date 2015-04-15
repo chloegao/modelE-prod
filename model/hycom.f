@@ -1077,8 +1077,6 @@ c --- compute sea surface height (m)
          call GLOBALSUM(ogrid,sumicej,sumice, all=.true.)
          call GLOBALSUM(ogrid,sumj,sum_, all=.true.)
 
-      !write(0,*) __FILE__,__LINE__
-
         if (AM_I_ROOT())
      .  write (lp,'(i9,'' mean sea srf.hgt. (mm):'',f9.2,f12.0)')nstep,
      .  sum_*1.e3/area,sumice*1.e-6
@@ -1143,7 +1141,6 @@ c
      .   +mxlayr_time
      .   +hybgen_time
 
-      !write(0,*) __FILE__,__LINE__
       if (AM_I_ROOT()) then
       write (lp,99009) ogcm_time,' sec for OGCM   at ocn step ',nstep
       write (lp,'(a/(5(4x,a,i5)))') 'timing (msec) by routine:'
@@ -1159,7 +1156,6 @@ c
 c
       if (mod(nstep,5).eq.0) call sys_flush(lp)
       end if  ! AM_I_ROOT
-      !write(0,*) __FILE__,__LINE__
 
 #ifdef TRACERS_OceanBiology
 !     if (AM_I_ROOT()) then
@@ -1562,388 +1558,388 @@ c------------------------------------------------------------------
       integer :: iarraySum
 
       call GLOBALSUM( ogrid, sum(u,dim=3), arraySum )  !sum(u(:,:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, sum(v,dim=3), arraySum )  !sum(v(:,:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, sum(dp,dim=3), arraySum ) !sum(dp(:,:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, sum(dpold,dim=3), arraySum ) !sum(dpold(:,:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, sum(dpu,dim=3), arraySum )   !sum(dpu(:,:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, sum(dpv,dim=3), arraySum )   !sum(dpv(:,:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, sum(p,dim=3), arraySum )   ! sum(p(:,:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, sum(pu,dim=3), arraySum )   ! sum(pu(:,:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, sum(pv,dim=3), arraySum )   ! sum(pv(:,:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, sum(latij,dim=3), arraySum )   ! sum(latij(:,:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, sum(lonij,dim=3), arraySum )   ! sum(lonij(:,:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, corio, arraySum )  ! sum(corio(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, potvor, arraySum )   ! sum(potvor(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, sum(temp,dim=3), arraySum )   ! sum(temp(:,:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, sum(saln,dim=3), arraySum )   ! sum(saln(:,:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, sum(th3d,dim=3), arraySum )   ! sum(th3d(:,:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, sum(thstar,dim=3), arraySum )   ! sum(thstar(:,:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, psikk, arraySum )   ! sum(psikk(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, thkk, arraySum )   ! sum(thkk(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, sum(dpmixl,dim=3), arraySum )   ! sum(dpmixl(:,:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, srfhgt, arraySum )   ! sum(srfhgt(:,:)) 
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, sum(montg,dim=3), arraySum )   ! sum(montg(:,:,:)) 
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, defor1, arraySum )   ! sum(defor1(:,:)) 
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, defor2, arraySum )   ! sum(defor2(:,:)) 
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, sum(ubavg,dim=3), arraySum )   ! sum(ubavg(:,:,:)) 
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, sum(vbavg,dim=3), arraySum )   ! sum(vbavg(:,:,:)) 
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, sum(pbavg,dim=3), arraySum )   ! sum(pbavg(:,:,:)) 
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, ubrhs, arraySum )   ! sum(ubrhs(:,:)) 
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, vbrhs, arraySum )   ! sum(vbrhs(:,:)) 
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, utotm, arraySum )   ! sum(utotm(:,:)) 
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, vtotm, arraySum )   ! sum(vtotm(:,:)) 
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, utotn, arraySum )   ! sum(utotn(:,:)) 
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, vtotn, arraySum )   ! sum(vtotn(:,:)) 
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, uflux, arraySum )   ! sum(uflux(:,:)) 
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, vflux, arraysum )   ! sum(vflux(:,:)) 
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, uflux1, arraysum )   ! sum(uflux1(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, vflux1, arraysum )   ! sum(vflux1(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, uflux2, arraysum )   ! sum(uflux2(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, vflux2, arraysum )   ! sum(vflux2(:,:)) 
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, uflux3, arraysum )   ! sum(uflux3(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, vflux3, arraysum )   ! sum(vflux3(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, sum(uflx,dim=3), arraySum )   ! sum(uflx(:,:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, sum(vflx,dim=3), arraySum )   ! sum(vflx(:,:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, sum(bolusu,dim=3), arraySum )   ! sum(bolusu(:,:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, sum(bolusv,dim=3), arraySum ) !sum(bolusv(:,:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 c
       call GLOBALSUM( ogrid, sum(uav,dim=3), arraySum ) !sum(uav(:,:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, sum(vav,dim=3), arraySum ) !sum(vav(:,:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, sum(dpuav,dim=3), arraySum ) !sum(dpuav(:,:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, sum(dpvav,dim=3), arraySum ) !sum(dpvav(:,:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, sum(temav,dim=3), arraySum ) !sum(temav(:,:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, sum(salav,dim=3), arraySum ) !sum(salav(:,:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, sum(th3av,dim=3), arraySum ) !sum(th3av(:,:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, sum(dpav,dim=3), arraySum ) !sum(dpav(:,:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, ubavav, arraysum )   ! sum(ubavav(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, vbavav, arraysum )   ! sum(vbavav(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, pbavav, arraysum )   ! sum(pbavav(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, sfhtav, arraysum )   ! sum(sfhtav(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, sum(uflxav,dim=3), arraySum ) !sum(uflxav(:,:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, sum(vflxav,dim=3), arraySum ) !sum(vflxav(:,:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, sum(diaflx,dim=3), arraySum ) !sum(diaflx(:,:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, salflav, arraysum )   ! sum(salflav(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, brineav, arraysum )   ! sum(brineav(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, eminpav, arraysum )   ! sum(eminpav(:,:)) 
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, surflav, arraysum )   ! sum(surflav(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, tauxav, arraysum )   ! sum(tauxav(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, tauyav, arraysum )   ! sum(tauyav(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, sum(ufxcum,dim=3), arraySum ) !sum(ufxcum(:,:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, sum(vfxcum,dim=3), arraySum ) !sum(vfxcum(:,:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, sum(dpinit,dim=3), arraySum ) !sum(dpinit(:,:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, dpmxav, arraysum )   ! sum(dpmxav(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, oiceav, arraysum )   ! sum(oiceav(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 c
 
       call GLOBALSUM( ogrid, util1, arraysum )   ! sum(util1(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, util2, arraysum )   ! sum(util2(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, util3, arraysum )   ! sum(util3(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, util4, arraysum )   ! sum(util4(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 c
 
       call GLOBALSUM( ogrid, scpx, arraysum )   ! sum(scpx(:,:)) 
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, scpy, arraysum )   ! sum(scpy(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, scux, arraysum )   ! sum(scux(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, scuy, arraysum )   ! sum(scuy(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, scvx, arraysum )   ! sum(scvx(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, scvy, arraysum )   ! sum(scvy(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, scqx, arraysum )   ! sum(scqx(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, scqy, arraysum )   ! sum(scqy(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, scu2, arraysum )   ! sum(scu2(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, scv2, arraysum )   ! sum(scv2(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, scp2, arraysum )   ! sum(scp2(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, scq2, arraysum )   ! sum(scq2(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, scuxi, arraysum )   ! sum(scuxi(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, scvyi, arraysum )   ! sum(scvyi(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, scp2i, arraysum )   ! sum(scp2i(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, scq2i, arraysum )   ! sum(scq2i(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 c
 
       call GLOBALSUM( ogrid, pgfx, arraysum )   ! sum(pgfx(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, pgfy, arraysum )   ! sum(pgfy(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, gradx, arraysum )   ! sum(gradx(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, grady, arraysum )   ! sum(grady(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, depthu, arraysum )   ! sum(depthu(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, depthv, arraysum )   ! sum(depthv(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, pvtrop, arraysum )   ! sum(pvtrop(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, depths, arraysum )   ! sum(depths(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, drag, arraysum )   ! sum(drag(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, glue, arraysum )   ! sum(glue(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, dampu, arraysum )   ! sum(dampu(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, dampv, arraysum )   ! sum(dampv(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 c
 
       call GLOBALSUM( ogrid, uja, arraysum )   ! sum(uja(:,:)) 
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, ujb, arraysum )   ! sum(ujb(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, via, arraysum )   !  sum(via(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, vib, arraysum )   ! sum(vib(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, pbot, arraysum )   ! sum(pbot(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, sum(sum(tracer,3),3), arraysum ) !sum(tracer(:,:,:,:)) 
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, tprime, arraysum )   ! sum(tprime(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, sum(sgain(:,:))
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, sum(sgain(:,:))
 
       call GLOBALSUM( ogrid, surflx, arraysum )   ! sum(surflx(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, salflx, arraysum )   ! sum(salflx(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, odmsi, arraysum )   ! sum(odmsi(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, dmfz, arraysum )   ! sum(dmfz(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 c
 
-      ! write(801,*) __FILE__,__LINE__,sum(klist(:,:))
+      ! write(801,*) 'hycom.f ',__LINE__,sum(klist(:,:))
       call GLOBALSUM( ogrid, sum(klist(:,J_0:J_1)),iarraySum )! sum(klist(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, iarraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, iarraySum
 c
 
       call GLOBALSUM( ogrid, taux, arraysum )   ! sum(taux(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, tauy, arraysum )   ! sum(tauy(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, oemnp, arraysum )   ! sum(oemnp(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, oflxa2o, arraysum )   ! sum(oflxa2o(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, oice, arraysum )   ! sum(oice(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, ustar, arraysum )   ! sum(ustar(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, ustarb, arraysum )   ! sum(ustarb(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, osalt, arraysum )   ! sum(osalt(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 c
       call GLOBALSUM( ogrid, freshw, arraysum )   ! sum(freshw(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, diafor, arraysum )   ! sum(diafor(:,:))
-      if(AM_I_ROOT()) write(801,*) __FILE__,__LINE__, arraySum
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       end subroutine hycom_arrays_checksum
 c------------------------------------------------------------------
