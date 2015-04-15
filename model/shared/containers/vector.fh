@@ -1,4 +1,4 @@
-#include "containers/tmplhead.fh"
+#include "tmplhead.fh"
 
       implicit none
 
@@ -304,4 +304,4 @@
       return
       end subroutine swap
 
-#include "containers/tmpltail.fh"
+#include "tmpltail.fh"
