@@ -40,7 +40,7 @@ subroutine CONDSE
 #endif
 #endif
   use CLOUDS_COM, only : tauss,taumc,cldss,cldmc,csizmc,csizss,fss,cldsav1 &
-       ,tls,qls,tmc,qmc,ddm1,airx,lmc &
+       ,tls,qls,tmc,qmc,ddm1,airx,lmc,taussip,csizssip &
        ,ddms,tdn1,qdn1,ddml
 #if (defined mjo_subdd) || (defined etc_subdd)
   use CLOUDS_COM, only : CLWC3D,CIWC3D,TLH3D,LLH3D,SLH3D,DLH3D
@@ -174,7 +174,8 @@ subroutine CONDSE
        ,tvl,w2l,gzl &
        ,dphashlw,dphadeep,dgshlw,dgdeep,tdnl,qdnl,prebar1 &
        ,DQMTOTAL,DQLSC &
-       ,DQMSHLW,DQMDEEP,DQCTOTAL,DQCSHLW,DQCDEEP
+       ,DQMSHLW,DQMDEEP,DQCTOTAL,DQCSHLW,DQCDEEP &
+       ,use_vmp,wmpr,tausslip,csizelip
 #ifdef CLD_AER_CDNC
        use CLOUDS, only : acdnwm,acdnim,acdnws,acdnis,arews,arewm,areis,areim &
        ,alwim,alwis,alwwm,alwws,nlsw,nlsi,nmcw,nmci &
@@ -1342,6 +1343,14 @@ subroutine CONDSE
           endif
           WM1=WM1+(QCLX(L)+QCIX(L))*AIRM(L)
           if (SVLHXL(L).eq.LHS) WMI=WMI+QCIX(L)*AIRM(L)
+          IF (USE_VMP .AND. LHP(L).eq.LHS) then
+           ! Count ice precip generated this timestep as part of IWP.
+           ! Todo: diagnose IWP both with and without ice precip and report
+           ! the one appropriate for the context.
+           ! Todo 2: for timestep independence, introduce a time constant.
+            WMI=WMI+WMPR(L)*AIRM(L)
+            aijl(i,j,l,ijl_cldice)=aijl(i,j,l,ijl_cldice)+WMPR(L)*AIRM(L)
+          ENDIF
         end do
         AIJ(I,J,IJ_CLDW)=AIJ(I,J,IJ_CLDW)+WM1*100.*BYGRAV   ! all condensate
         AIJ(I,J,IJ_CLDI)=AIJ(I,J,IJ_CLDI)+WMI*100.*BYGRAV   ! ice only
@@ -1463,6 +1472,11 @@ subroutine CONDSE
         CLDSAV1(:,I,J)=CLDSV1(:)
         SVLHX(:,I,J)=SVLHXL(:)
         CSIZSS(:,I,J)=CSIZEL(:)
+
+        IF(USE_VMP) THEN
+          TAUSSIP(:,I,J)=TAUSSLIP(:)
+          CSIZSSIP(:,I,J)=CSIZELIP(:)
+        ENDIF
 
         RHSAV(:,I,J)=RH(:)
 #if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
@@ -2136,6 +2150,7 @@ subroutine init_CLD(istart)
 
   use CLOUDS_COM, only : llow,lmid,lhi &
        ,isccp_reg2d,UKM,VKM,ttold,qtold
+  use CLOUDS, only : use_vmp
   use DIAG_COM, only : nisccp,isccp_late &
        ,isccp_diags,ntau,npres
   use ATM_COM, only : pednl00 ! use plbot instead of pednl00
@@ -2292,6 +2307,10 @@ subroutine init_CLD(istart)
 
   if(LMCM.lt.0) LMCM = LS1-1
   call set_param( "LMCM", LMCM, 'o' )
+
+  i = 0
+  call sync_param('use_vmp',i)
+  use_vmp = i==1
 
   BYDTsrc=1./DTsrc
   XMASS=0.1d0*DTsrc*GRAV
