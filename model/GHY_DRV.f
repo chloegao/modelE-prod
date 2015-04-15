@@ -55,7 +55,7 @@ c******************   TRACERS             ******************************
      *     ,tij_soil,tij_snow,tre_acc
 #endif
 #ifdef TRACERS_DRYDEP
-     *     ,tij_drydep,tij_gsdep,itcon_dd,ijts_Sdrydep
+     *     ,tij_drydep,tij_gsdep,itcon_dd
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_QUARZHEM)
@@ -595,17 +595,6 @@ c     &    aipp*axyp(i,j)*ptype*dtsurf
 
         end select
 #endif
-
-#ifdef TRACERS_DRYDEP
-#ifdef ACCMIP_LIKE_DIAGS
-! estimate stomatal tracer flux:
-        if(dodrydep(n) .and. trname(n)=='Ox')
-     &    taijs(i,j,ijts_Sdrydep)=taijs(i,j,ijts_Sdrydep)+ptype*
-     &         rtsdt*(pbl_args%stomatal_dep_vel)
-
-#endif
-#endif
-
       end do
 
 ccc not sure about the code below. hopefully that''s what is meant above

@@ -44,7 +44,7 @@ C****
       USE RAD_COM, only : trhr,fsf,cosz1,trsurf
 #ifdef TRACERS_ON
       use OldTracer_mod, only: itime_tr0, needtrs
-      USE TRACER_COM, only : NTM,trm,trmom,
+      USE TRACER_COM, only : NTM,trm,trmom,n_Ox,
      *     n_Be7, n_Be10
 #ifdef TRACERS_DRYDEP
       use OldTracer_mod, only: dodrydep
@@ -96,8 +96,8 @@ C****
 #endif
 #ifndef SKIP_TRACER_DIAGS
 #ifdef TRACERS_DRYDEP
-      USE TRDIAG_COM, only : taijn=>taijn_loc,
-     *      tij_drydep, tij_gsdep, itcon_dd
+      USE TRDIAG_COM, only : taijn=>taijn_loc, taijs=>taijs_loc,
+     *      tij_drydep, tij_gsdep, itcon_dd, ijts_Sdrydep
 #endif
 #endif /*SKIP_TRACER_DIAGS*/
 #ifdef TRACERS_ON
@@ -851,6 +851,12 @@ C****
      &         ptype*rtsdt*depvel
           taijn(i,j,tij_gsdep ,n)=taijn(i,j,tij_gsdep ,n) +
      &         ptype*rtsdt* gsvel
+#ifdef ACCMIP_LIKE_DIAGS
+! estimate stomatal tracer flux:
+          if(n .eq. n_Ox)
+     &    taijs(i,j,ijts_Sdrydep)=taijs(i,j,ijts_Sdrydep)+ptype*
+     &         rtsdt*(pbl_args%stomatal_dep_vel)
+#endif
 #ifdef TRACERS_COSMO
           if (n .eq. n_Be7) BE7D_acc(i,j)=BE7D_acc(i,j)+ptype*rtsdt
      *         *depvel+ptype*rtsdt* gsvel
