@@ -184,6 +184,8 @@ C****
 
       INTEGER :: I,J
       INTEGER :: I_0,I_1,J_0,J_1
+      integer :: I_0H, I_1H
+      integer :: J_0H, J_1H
 
 C**** sync radiation parameters from input
       call sync_param( "NRAD", NRAD ) !!
@@ -288,6 +290,9 @@ C**** sync radiation parameters from input
 
       call getDomainBounds(grid,
      &     I_STRT=I_0,I_STOP=I_1,J_STRT=J_0,J_STOP=J_1)
+      call getDomainBounds(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      I_0H = grid%I_STRT_HALO
+      I_1H = grid%I_STOP_HALO
 
 C**** Set orbital parameters appropriately
       select case (variable_orb_par)
@@ -598,9 +603,10 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
         endif
       endif
 
-      if (.not.allocated(ttausv_nraero))
-     &  allocate(ttausv_nraero(im,jm,lm,nraero))
-
+      if (.not.allocated(ttausv_nraero)) then
+        allocate(ttausv_nraero(I_0H:I_1H,J_0H:J_1H,lm,nraero))
+        ttausv_nraero = 0
+      end if
 #if (! defined(TRACERS_AMP)) && (! defined(TRACERS_TOMAS))
       njaero=nraero+2
 #else
