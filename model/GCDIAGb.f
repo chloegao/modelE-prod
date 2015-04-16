@@ -1377,7 +1377,7 @@ C****
      &     PAI,PAK,PDN,PMK,PQ4I,PQ4K,PQV4I,PS,PS4I,
      &     PS4K,PSIY,PSV4I,PT4I,PT4K,PTK,PTV4I,PUI,PUK,PUP,
      &     PUVI,PV2,PV2I,PVI,PVK,PWWI,PWWVI,PY,PZ4I,PZ4K,
-     &     PZV4I,QK,QKI,SDK,
+     &     PZV4I,QK,QKI, SDL,SDLm1,
      &     SMALL,SP,SQRTDP,THK,THKI,THPI,TK,TKI,TPI,
      &     UDUTI,    UEARTH,UK,UY,VDVTI,VK,VSTAR,W2,W2I,W4,
      &     WI,WNP,WPA2I,WPV4I,WQI,WSP,WSTAR,WTHI,
@@ -1847,53 +1847,26 @@ c****
 C****
 C**** alternate vertical mass flux diagnostic (from SD)
 C****
-      DO J=J_0,J_1
-        W(:,J,:)=0.
-      END DO
-C**** interpolate SD to constant pressure
-      DO J=J_0,J_1
-        I=IM
-        DO IP1=1,IM
-          DO K=1,KM-1
-            DPK=0.
-            SDK=0.
-            SP=P(I,J)
-            DO L=1,LS1-1
-              PL(L)=PEDN(L,I,J)   ! SP*SIGE(L)+PTOP
-            END DO
-            IF (PM(K+1).GE.SP+PTOP) GO TO 860
-            L=1
-            PDN=SP+PTOP
-            IF (PM(K).GE.SP+PTOP) GO TO 820
-            PDN=PM(K)
- 810        IF (PM(K).GT.PL(L+1)) GO TO 820
-            L=L+1
-            GO TO 810
- 820        LUP=L
- 830        IF (PM(K+1).GE.PL(LUP+1)) GO TO 840
-            LUP=LUP+1
-            GO TO 830
- 840        CONTINUE
-C**** INTERPOLATE HERE
- 850        PUP=PL(L+1)
-            IF (LUP.EQ.L) PUP=PM(K+1)
-            DPK=DPK+(PDN-PUP)
-            SDK=SDK+(PDN-PUP)*SD(I,J,L)
-            IF (LUP.EQ.L) GO TO 860
-            L=L+1
-            PDN=PL(L)
-            If (L >= LM)  GoTo 850
- 860        CONTINUE
-C**** ACCUMULATE HERE (SHOULD I ACCUMULATE A WEIGHTING FUNCTION?)
-            W(I,J,K)=0.
-            IF (DPK.gt.0) THEN
-              W(I,J,K)=SDK*BYDXYP(J)/DPK
-              AIJK(I,J,K,IJK_W)=AIJK(I,J,K,IJK_W)+W(I,J,K)
-            END IF
-          END DO
-          I=IP1
-        END DO
-      END DO
+!**** Linearly interpolate SD to constant pressure coordinates between
+!**** model layer edges, assumes SD = 0 at top and bottom of column.
+!**** For LM-1 model edges: PM(2:LM),PEDN(2:LM),SD(1:LM-1),W(1:LM-1)  
+      Do J=J_0,J_1  ;  Do I=1,IM
+      W(I,J,KM) = 0
+      K = KM-1  ;  L = LM  ;  SDL = 0  ;  SDLm1 = SD(I,J,LM-1)
+  410 If (PM(K+1) <= PEDN(L,I,J))
+     *   Then  ;  W(I,J,K) = ((PEDN(L,I,J)-PM(K+1))*SDL +
+     +                        (PM(K+1)-PEDN(L+1,I,J))*SDLm1) /
+     /                       ((PEDN(L,I,J)-PEDN(L+1,I,J)) * DXYP(J))
+                  AIJK(I,J,K,IJK_W) = AIJK(I,J,K,IJK_W) + W(I,J,K)
+                  If (K==1) Cycle
+                  K = K-1  ;  GoTo 410
+         Else  ;  L = L-1  ;  SDL = SDLm1
+                  If (L > 1)
+     *               Then  ;  SDLm1 = SD(I,J,L-1)  ;  GoTo 410  ;  EndIf
+                  If (L == 1)
+     *               Then  ;  SDLm1 = 0  ;  GoTo 410
+                     Else  ;  W(I,J,1:K) = 0  ;  Cycle  ;  EndIf
+         EndIf  ;  EndDo  ;  EndDo
 
 C**** ACCUMULATE ALL VERTICAL WINDS
 !!    DO 558 J=J_0,J_1
