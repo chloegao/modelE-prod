@@ -1549,7 +1549,7 @@ C     OUTPUT DATA
 #endif
       USE RANDOM
       USE CLOUDS_COM, only : tauss,taumc,svlhx,rhsav,svlat,cldsav,
-     *     cldmc,cldss,csizmc,csizss,llow,lmid,lhi,fss
+     *     cldmc,cldss,csizmc,csizss,llow,lmid,lhi,fss,taussip,csizssip
      *    ,get_cld_overlap  !  subroutine
       USE DIAG_COM, only : ia_rad,jreg,aij=>aij_loc,aijl=>aijl_loc
      &     ,ntype,ftype,itocean,itlake,itearth,itlandi,itoice,itlkice
@@ -1727,7 +1727,7 @@ C  GHG Effective forcing relative to 1850
       REAL*8, DIMENSION(LM) :: TOTCLD,dcc_cdncl,dod_cdncl
       INTEGER I,J,L,K,KR,LR,JR,IH,IHM,INCH,JK,IT,iy,iend,N,onoff_aer
      *     ,onoff_chem,LFRC,JTIME,n1,moddrf
-      REAL*8 ROT1,ROT2,PLAND,CSS,CMC,DEPTH,QSS,TAUSSL
+      REAL*8 ROT1,ROT2,PLAND,CSS,CMC,DEPTH,QSS,TAUSSL,TAUSSLIP
      *     ,TAUMCL,ELHX,CLDCV,X,OPNSKY,CSZ2,tauup,taudn,ptype4(4)
      *     ,taucl,wtlin,MSTRAT,STRATQ,STRJ,MSTJ,optdw,optdi,rsign_aer
      *     ,rsign_chem,tauex5,tauex6,tausct,taugcb,dcdnc
@@ -2136,6 +2136,7 @@ C**** Adjust RDSS for semi-random overlap
      /              (1.-FSS(L,I,J)*CLDSAV(L,I,J))
         TLm(L)=T(I,J,L)*PK(L,I,J)
         TAUSSL=0.
+        TAUSSLIP=0.
         TAUMCL=0.
         TAUWC(L)=0.
         TAUIC(L)=0.
@@ -2145,6 +2146,8 @@ C**** Adjust RDSS for semi-random overlap
 C**** Determine large scale and moist convective cloud cover for radia
         IF (CLDSS(L,I,J)*(1.+dcc_cdncl(l)).GT.RDSS(L,I,J)) THEN
           TAUSSL=TAUSS(L,I,J)*(1.+dod_cdncl(l))
+          ! tausslip is tau of ice precip in a supercooled water cloud
+          TAUSSLIP=TAUSSIP(L,I,J)*(1.+dod_cdncl(l))
           shl(L)=QSS
           CSS=1.
           call inc_ajl(i,j,l,jl_sscld,css)
@@ -2153,20 +2156,20 @@ C**** Determine large scale and moist convective cloud cover for radia
           CMC=1.
           call inc_ajl(i,j,l,jl_mccld,cmc)
           DEPTH=DEPTH+PDSIG(L,I,J)
-          IF(TAUMC(L,I,J).GT.TAUSSL) THEN
+          IF(TAUMC(L,I,J).GT.TAUSSL+TAUSSLIP) THEN
             TAUMCL=TAUMC(L,I,J)
             ELHX=LHE
             IF(TLm(L).LE.TF) ELHX=LHS
             shl(L)=QSAT(TLm(L),ELHX,PMID(L,I,J))
           END IF
         END IF
-        IF(TAUSSL+TAUMCL.GT.0.) THEN
+        IF(TAUSSL+TAUSSLIP+TAUMCL.GT.0.) THEN
              CLDCV=1.
           TOTCLD(L)=1.
           call inc_ajl(i,j,l,jl_totcld,1d0)
 C**** save 3D cloud fraction as seen by radiation
           if(cldx>0) AIJL(I,J,L,IJL_CF)=AIJL(I,J,L,IJL_CF)+1.
-          IF(TAUMCL.GT.TAUSSL) THEN
+          IF(TAUMCL.GT.TAUSSL+TAUSSLIP) THEN
             SIZEWC(L)=CSIZMC(L,I,J)
             SIZEIC(L)=CSIZMC(L,I,J)
             IF(SVLAT(L,I,J).EQ.LHE) THEN
@@ -2188,6 +2191,13 @@ C**** save 3D cloud fraction as seen by radiation
               OPTDW=OPTDW+TAUWC(L)
               call inc_ajl(i,j,l,jl_wcld,1d0)
               call inc_ajl(i,j,l,jl_wcldwt,pdsig(l,i,j))
+              if(tausslip.gt.0.) then
+                SIZEIC(L)=CSIZSSIP(L,I,J)
+                TAUIC(L)=cldx*TAUSSLIP
+                OPTDI=OPTDI+TAUIC(L)
+                call inc_ajl(i,j,l,jl_icld,1d0)
+                call inc_ajl(i,j,l,jl_icldwt,pdsig(l,i,j))
+              endif
             ELSE
               TAUIC(L)=cldx*TAUSSL
               OPTDI=OPTDI+TAUIC(L)

@@ -68,7 +68,6 @@ module CLOUDS
   real*8, parameter :: WMUL=.5       !@param WMUL WMU over land
   !     REAL*8, PARAMETER :: WMUI=.1d0     !@param WMUI WMU for ice clouds
   real*8 WMUI                          !@param WMUI WMU for ice clouds
-  real*8 WMUSI        !@param WMUSI WMU for liquid clouds over sea-ice
   real*8, parameter :: BRCLD=.2d0    !@param BRCLD for cal. BYBR
   real*8, parameter :: FDDET=.25d0 !@param FDDET remainder of downdraft
   real*8, parameter :: DTMIN1=1.d0 !@param DTMIN1 min DT to stop downdraft drop
@@ -176,6 +175,12 @@ module CLOUDS
 #endif
   real*8, dimension(LM) :: DQMTOTAL,DQMSHLW,DQMDEEP &
        ,DQCTOTAL,DQCSHLW,DQCDEEP,DQLSC
+
+!@dbparam use_vmp whether to use VMP option
+      logical :: use_vmp=.false.
+!@var wmpr precipitation mixing ratio (kg/kg)
+      real*8, dimension(lm) :: wmpr
+
 !@var PL layer pressure (mb)
 !@var PLK PL**KAPA
 !@var AIRM the layer's pressure depth (mb)
@@ -212,8 +217,9 @@ module CLOUDS
 !@var CLDMCL convective cloud cover
 !@var SVLHXL saved LHX for large-scale cloud
 !@var SVWMXL saved detrained convective cloud water
-  real*8, dimension(LM) :: CSIZEL
+  real*8, dimension(LM) :: CSIZEL,CSIZELIP
 !@var CSIZEL cloud particle radius (micron)
+!@var CSIZELIP counterpart to CSIZEL for ice precip in supercooled water clouds
 #ifdef CLD_AER_CDNC
   real*8, dimension(LM) :: ACDNWM,ACDNIM
 !@var ACDNWM,ACDNIM -CDNC - warm and cold moist cnv clouds (cm^-3)
@@ -247,7 +253,8 @@ module CLOUDS
 !@var NCIL is saved ice crystal numbe
 #endif
   !**** new arrays must be set to model arrays in driver (after LSCOND)
-  real*8, dimension(LM) :: SSHR,DCTEI,TAUSSL,CLDSSL
+  real*8, dimension(LM) :: SSHR,DCTEI,TAUSSL,CLDSSL,TAUSSLIP
+!@var TAUSSLIP counterpart to TAUSSL for ice precip in supercooled water clouds
 !@var SSHR,DCTEI height diagnostics of dry and latent heating by MC
 !@var TAUSSL large-scale cloud optical thickness
 !@var CLDSSL large-scale cloud cover
@@ -2840,6 +2847,17 @@ contains
 !@calls CTMIX,QSAT,DQSATDT,THBAR
     implicit none
 
+!@param tmax_ice maximum temperature for virtual mixed phase (VMP) microphysics
+!@param tmin_water minimum temperature for VMP
+!@param cm00liq, cm00ice autoconv. rates (1/s) for water, ice when using VMP
+    real*8, parameter :: &
+           tmax_ice   = tf-5d0 &
+          ,tmin_water = tf-35d0 &! make consistent with hardcoded 238.1x instances
+          ,cm00liq = 1d-4 & ! todo: merge with non-VMP counterpart
+          ,cm00ice = 3d-4   ! ""
+!@var wtliq VMP temperature interp. weight
+    real*8 :: wtliq
+
 !@var IERR,WMERR,LERR error reporting
     integer, intent(OUT) :: IERR,LERR
     real*8, intent(OUT) :: WMERR
@@ -2872,8 +2890,8 @@ contains
     real*8, dimension(KMAX) :: VMO1,VMO2,VMN1,VMN2 !@var dummy variables
 !@var Miscellaneous vertical arrays
     real*8, dimension(LM) :: &
-!        QSATL,RHF,ATH,SQ,ER,QHEAT,WMPR, &
-         QSATL,RHF,ATH,SQ,ER,QHEAT,QHEATL,QHEATI,WMPR, &
+!        QSATL,RHF,ATH,SQ,ER,QHEAT &
+         QSATL,RHF,ATH,SQ,ER,QHEAT,QHEATL,QHEATI, &
          CLEARA,PREP,RH00,EC,WMXM
 !@var QSATL saturation water vapor mixing ratio
 !@var RHF environmental relative humidity
@@ -2952,7 +2970,7 @@ contains
          ,RHW,SEDGE,SIGK,SLH,SMN1,SMN2,SMO1,SMO2,TEM,TEMP,TEVAP,THT1 &
          ,THT2,TLT1,TNEW,TNEWU,TOLD,TOLDU,TOLDUP,VDEF,WCONST,WMN1,WMN2 &
          ,QCLNEW,QCINEW,WMO1,WMO2,WMT1,WMT2,WMX1,WTEM,VVEL,RCLD,FCOND &
-         ,PRATM,SMN12,SMO12,QF,FSSLRAT,SMOM2_sv(nmom),QMOM2_sv(nmom)
+         ,PRATM,SMN12,SMO12,QF,FSSLRAT,SMOM2_sv(nmom),QMOM2_sv(nmom),QCX
     real*8 SNdO,SNdL,SNdI,SCDNCW,SCDNCI
 #ifdef CLD_AER_CDNC
 !@auth Menon  - storing var for cloud droplet number
@@ -3114,6 +3132,18 @@ contains
     RTEMP=funio_denominator
     CMX=autoconv_multiplier
     WMUIX=wmui_multiplier
+
+    WCONST=WMU*(1.-PEARTH)+WMUL*PEARTH
+    WMUI=WMUIX*.001         ! .0001
+
+    !***Setting constant values of CDNC over land and ocean to get RCLD=f(CDNC,LWC)
+    SNdO = 59.68d0/(RWCLDOX**3)
+    SNdL = 174.d0
+    SNdI = 0.06417127d0
+    SCDNCW=SNdO*(1.-PEARTH)+SNdL*PEARTH
+    SCDNCI=SNdI
+
+
     !**** initialise vertical arrays
     ER=0.
     EC=0.
@@ -3189,7 +3219,6 @@ contains
     DQUP=0.
     TOLDUP=TL(LMCLD)
     PREICE(LMCLD+1)=0.
-    WCONST=WMU*(1.-PEARTH)+WMUL*PEARTH
     SSHR=0.
     DCTEI=0.
     !****
@@ -3215,6 +3244,44 @@ contains
 #endif
 
       FCLD=(1.-CLEARA(L))*FSSL(L)+teeny
+      !**** COMPUTE RH IN THE CLOUD-FREE AREA, RHF
+      ! this formulation is used for consistency with current practice
+      RH00(L)=U00a
+      IF(PL(L).LT.PL(DCL)) THEN             ! 850.d0
+
+      ! RH00(L) = RH00(L)/(RH00(L) + (1.-RH00(L))*AIRM(L)/35.)
+        RH00(L) = RH00(L)/(RH00(L) + (1.-RH00(L))*PDSIGL00(L)/35.)
+
+      ! if(VDEF.gt..2d0.and.LMCMAX.le.1) RH00(L)= &
+      !      RH00(L)*min(sqrt(.2d0/VDEF),.5d0) ! dependece on vertical velocity
+      end if
+      if(U00L(L).gt.RH00(L)) RH00(L)=U00L(L)
+      !**** Option to treat boundary layer differently
+      if (do_blU00.eq.1) then
+        if (L.le.DCL) then      ! boundary layer clouds
+          !**** calculate total pbl depth
+          HPBL=0.
+          do LN=1,DCL
+            HPBL=HPBL+AIRM(LN)*TL(LN)*RGAS/(GRAV*PL(LN))
+          end do
+          !**** Scale HPBL by HRMAX to provide tuning control for PBL clouds
+          HDEP = min(HPBL,HRMAX*(1.-exp(-HPBL/HEFOLD)))
+          !**** Special conditions for boundary layer contained wholly in layer 1
+          if (DCL.le.1) then
+            if (RIS.gt.1.) HDEP=10d0
+            if (RIS.le.1..and.RI1.gt.1.) HDEP=50d0
+            if (RIS.le.1..and.RI1.le.1..and.RI2.gt.1.) HDEP=100d0
+          end if
+          !**** Estimate critical rel. hum. based on parcel lifting argument
+          RH00(L)=1.-GAMD*LHE*HDEP/(RVAP*TS*TS)
+          if(RH00(L).lt.0.) RH00(L)=0.
+        end if
+      end if
+      !****
+      if(RH00(L).lt.0.) RH00(L)=0.
+      if(RH00(L).gt.1.) RH00(L)=1.
+      RHF(L)=RH00(L)+(1.-CLEARA(L))*(1.-RH00(L))
+
 
       !**** COMPUTE THE PROBABILITY OF ICE FORMATION, FUNI, AND
       !**** THE PROBABLITY OF GLACIATION OF SUPER-COOLED WATER, PFR
@@ -3222,76 +3289,83 @@ contains
       !**** DETERMINE THE POSSIBILITY OF B-F PROCESS
       BANDF=.false.
       LHX=LHE
-      CBF=1. + exp(-((TL(L)-258.16d0)/10.)**2)
 
-      if (TL(L).le.238.16) then     ! below -35C: force ice
-        LHX=LHS
-      elseif (TL(L).ge.TF) then ! above freezing: force water
-        LHX=LHE
-      else                      ! in between: compute probability
-        if(TL(L).gt.269.16) then ! OC/SI/LI clouds: water above -4
-          FUNIO=0.
-        else
-          FUNIO=1.-exp(-((TL(L)-269.16d0)/RTEMP)**4)
-        end if
-        if(TL(L).gt.263.16) then ! land clouds water: above -10
-          FUNIL=0.
-        else
-          FUNIL=1.-exp(-((TL(L)-263.16d0)/RTEMP)**4)
-        end if
-        FUNI=FUNIO*(1.-PEARTH)+FUNIL*PEARTH
-        RANDNO=RNDSSL(1,L)       !  RANDNO=RANDU(XY)
-        if(RANDNO.lt.FUNI) LHX=LHS
+      if(use_vmp) then
 
-        if (OLDLHX.eq.LHS.and.TL(L).lt.TF) LHX=LHS   ! keep old phase
-        if (OLDLHX.eq.LHE.and.TL(L).gt.269.16d0) LHX=LHE ! keep old phase
+        if (tl(l).le.tmin_water) then ! below -35C: force ice
+          lhx=lhs
+          lhp(l)=lhs
+        else
+          lhx=lhe
+          lhp(l)=lhe
+          if(tl(l).lt.tf) lhp(l)=lhs
+        endif
+        cbf = 1.
+
+      else
+
+        CBF=1. + exp(-((TL(L)-258.16d0)/10.)**2)
+
+        if (TL(L).le.238.16) then     ! below -35C: force ice
+          LHX=LHS
+        elseif (TL(L).ge.TF) then ! above freezing: force water
+          LHX=LHE
+        else                      ! in between: compute probability
+          if(TL(L).gt.269.16) then ! OC/SI/LI clouds: water above -4
+            FUNIO=0.
+          else
+            FUNIO=1.-exp(-((TL(L)-269.16d0)/RTEMP)**4)
+          end if
+          if(TL(L).gt.263.16) then ! land clouds water: above -10
+            FUNIL=0.
+          else
+            FUNIL=1.-exp(-((TL(L)-263.16d0)/RTEMP)**4)
+          end if
+          FUNI=FUNIO*(1.-PEARTH)+FUNIL*PEARTH
+          RANDNO=RNDSSL(1,L)       !  RANDNO=RANDU(XY)
+          if(RANDNO.lt.FUNI) LHX=LHS
+
+          if (OLDLHX.eq.LHS.and.TL(L).lt.TF) LHX=LHS   ! keep old phase
+          if (OLDLHX.eq.LHE.and.TL(L).gt.269.16d0) LHX=LHE ! keep old phase
         !**** special case 1) if ice previously then stay as ice (if T<Tf)
         !       IF((OLDLHX.EQ.LHS.OR.OLDLAT.EQ.LHS).AND.TL(L).LT.TF) THEN
-        if(OLDLAT.eq.LHS.and.TL(L).lt.TF.and.SVLAT1(L).gt.0.) then
-          if(LHX.eq.LHE) BANDF=.true.
-          LHX=LHS
-        end if
-        if (debug) print*,"ls0",l,oldlhx,oldlat,lhx,lhp(l)
-
-        if (L.lt.LMCLD) then
-          !**** Decide whether precip initiates B-F process
-          IF(OLDLHX.EQ.LHE) THEN
-            PML=QCLX(L)*AIRM(L)*BYGRAV
-          ELSE
-            PML=QCIX(L)*AIRM(L)*BYGRAV
-          END IF
-          PMI=PREICE(L+1)*DTsrc
-          RANDNO=RNDSSL(2,L)     !  RANDNO=RANDU(XY)
-          !**** Calculate probability of ice precip seeding a water cloud
-          if (LHX.eq.LHE.and.PMI.gt.0) then
-            PRATIO=min(PMI/(PML+1.E-20),10d0)
-            CM00=1.d-4       ! 3.d-5           ! reduced by a factor of 3
-          ! if(ROICE.gt..1d0) CM00=3.d-4
-            CM0=CM00
-            if(VDEF.gt.0.) CM0=CM00*10.**(-0.2*VDEF)
-            CBFC0=.5*CM0*CBF*DTsrc
-            PFR=(1.-exp(-(PRATIO*PRATIO)))*(1.-exp(-(CBFC0*CBFC0)))
-            if(PFR.gt.RANDNO) then
-              BANDF=.true.
-              LHX=LHS
-            end if
+          if(OLDLAT.eq.LHS.and.TL(L).lt.TF.and.SVLAT1(L).gt.0.) then
+            if(LHX.eq.LHE) BANDF=.true.
+            LHX=LHS
           end if
-          !**** If liquid rain falls into an ice cloud, B-F must occur
-          if (LHP(L+1).eq.LHE .and. LHX.eq.LHS .and. PML.gt.0.) &
-               BANDF=.true.
-        end if
-      end if
-      if(LHX.eq.LHS .and. (OLDLHX.eq.LHE.or.OLDLAT.eq.LHE)) BANDF=.true.
+          if (debug) print*,"ls0",l,oldlhx,oldlat,lhx,lhp(l)
 
-      !**** COMPUTE THE LIMITING AUTOCONVERSION RATE FOR CLOUD WATER CONTENT
-      CM00=1.d-4
-      if(LHX.eq.LHS.and.SVWMXL(L).le.0d0) CM00=1.d-3
-      if(LHX.eq.LHE) then                 ! reduced by a factor of 3
-        CM00=1.d-4                        ! 3.d-5
-      ! if(ROICE.gt..1d0) CM00=3.d-4
-      end if
-      CM0=CM00
-      if(VDEF.gt.0.) CM0=CM00*10.**(-0.2*VDEF)
+          if (L.lt.LMCLD) then
+          !**** Decide whether precip initiates B-F process
+            IF(OLDLHX.EQ.LHE) THEN
+              PML=QCLX(L)*AIRM(L)*BYGRAV
+            ELSE
+              PML=QCIX(L)*AIRM(L)*BYGRAV
+            END IF
+            PMI=PREICE(L+1)*DTsrc
+            RANDNO=RNDSSL(2,L)     !  RANDNO=RANDU(XY)
+          !**** Calculate probability of ice precip seeding a water cloud
+            if (LHX.eq.LHE.and.PMI.gt.0) then
+              PRATIO=min(PMI/(PML+1.E-20),10d0)
+              CM00=1.d-4       ! 3.d-5           ! reduced by a factor of 3
+          ! if(ROICE.gt..1d0) CM00=3.d-4
+              CM0=CM00
+              if(VDEF.gt.0.) CM0=CM00*10.**(-0.2*VDEF)
+              CBFC0=.5*CM0*CBF*DTsrc
+              PFR=(1.-exp(-(PRATIO*PRATIO)))*(1.-exp(-(CBFC0*CBFC0)))
+              if(PFR.gt.RANDNO) then
+                BANDF=.true.
+                LHX=LHS
+              end if
+            end if
+          !**** If liquid rain falls into an ice cloud, B-F must occur
+            if (LHP(L+1).eq.LHE .and. LHX.eq.LHS .and. PML.gt.0.) &
+                 BANDF=.true.
+          end if
+        end if
+        if(LHX.eq.LHS .and. (OLDLHX.eq.LHE.or.OLDLAT.eq.LHE)) BANDF=.true.
+
+      endif ! use_vmp or not
 
       !**** COMPUTE RELATIVE HUMIDITY
       QSATL(L)=QSAT(TL(L),LHX,PL(L))
@@ -3329,51 +3403,19 @@ contains
       TL(L)=TL(L)+HCHANG/(SHA*FSSL(L)+teeny)
       TH(L)=TL(L)/PLK(L)
 
-      ATH(L)=(TH(L)-TTOLDL(L))*BYDTsrc
-      !**** COMPUTE RH IN THE CLOUD-FREE AREA, RHF
       RHI=QL(L)/QSAT(TL(L),LHS,PL(L))
-      ! this formulation is used for consistency with current practice
-      RH00(L)=U00a
-      IF(PL(L).LT.PL(DCL)) THEN             ! 850.d0
 
-      ! RH00(L) = RH00(L)/(RH00(L) + (1.-RH00(L))*AIRM(L)/35.)
-        RH00(L) = RH00(L)/(RH00(L) + (1.-RH00(L))*PDSIGL00(L)/35.)
-
-      ! if(VDEF.gt..2d0.and.LMCMAX.le.1) RH00(L)= &
-      !      RH00(L)*min(sqrt(.2d0/VDEF),.5d0) ! dependece on vertical velocity
-      end if
-      if(U00L(L).gt.RH00(L)) RH00(L)=U00L(L)
-      !**** Option to treat boundary layer differently
-      if (do_blU00.eq.1) then
-        if (L.le.DCL) then      ! boundary layer clouds
-          !**** calculate total pbl depth
-          HPBL=0.
-          do LN=1,DCL
-            HPBL=HPBL+AIRM(LN)*TL(LN)*RGAS/(GRAV*PL(LN))
-          end do
-          !**** Scale HPBL by HRMAX to provide tuning control for PBL clouds
-          HDEP = min(HPBL,HRMAX*(1.-exp(-HPBL/HEFOLD)))
-          !**** Special conditions for boundary layer contained wholly in layer 1
-          if (DCL.le.1) then
-            if (RIS.gt.1.) HDEP=10d0
-            if (RIS.le.1..and.RI1.gt.1.) HDEP=50d0
-            if (RIS.le.1..and.RI1.le.1..and.RI2.gt.1.) HDEP=100d0
-          end if
-          !**** Estimate critical rel. hum. based on parcel lifting argument
-          RH00(L)=1.-GAMD*LHE*HDEP/(RVAP*TS*TS)
-          if(RH00(L).lt.0.) RH00(L)=0.
-        end if
-      end if
-      !****
-      if(RH00(L).lt.0.) RH00(L)=0.
-      if(RH00(L).gt.1.) RH00(L)=1.
-      RHF(L)=RH00(L)+(1.-CLEARA(L))*(1.-RH00(L))
       !**** Set precip phase to be the same as the cloud, unless precip above
       !**** is ice and temperatures after ice melt would still be below TFrez
       LHP(L)=LHX
       if (LHP(L+1).eq.LHS .and. &
-           TL(L).lt.TF+DTsrc*LHM*PREICE(L+1)*GRAV*BYAM(L)*BYSHA) &
-           LHP(L)=LHP(L+1)
+           TL(L).lt.TF+DTsrc*LHM*PREICE(L+1)*GRAV*BYAM(L)*BYSHA) then
+        if(use_vmp) then
+          LHP(L)=LHS
+        else
+          LHP(L)=LHP(L+1)
+        endif
+      endif
 #if (defined CLD_AER_CDNC) && \
     ((defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AEROSOLS_SEASALT))
 !@auth Menon  saving aerosols mass for CDNC prediction
@@ -3496,14 +3538,7 @@ contains
         end select
       end do      !end of n loop for tracers
 #endif   /* tracerpart and cld-aer part */
-      !***Setting constant values of CDNC over land and ocean to get RCLD=f(CDNC,LWC)
-      SNdO = 59.68d0/(RWCLDOX**3)
-      SNdL = 174.d0
-      SNdI = 0.06417127d0
-      SCDNCW=SNdO*(1.-PEARTH)+SNdL*PEARTH
-      SCDNCI=SNdI
-      WMUI=WMUIX*.001         ! .0001
-      WMUSI=0.1
+
 #if (defined CLD_AER_CDNC) && \
     ((defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AEROSOLS_SEASALT))
       call GET_CDNC(L,LHX,WCONST,WMUI,AIRM(L),QCLX(L),DXYPIJ, &
@@ -4152,21 +4187,42 @@ contains
       !     if (SNd.gt.20.) write(6,*)"CDNC LSS",SCDNCW,SNd,L
 #endif
       !**** COMPUTE THE AUTOCONVERSION RATE OF CLOUD WATER TO PRECIPITATION
+
       if(QCLX(L)+QCIX(L).gt.0.) then
-       if(LHX.EQ.LHE.AND.QCLX(L).gt.0.) then
+
         RHO=1d5*PL(L)/(RGAS*TL(L))
-        TEM=RHO*QCLX(L)/(WCONST*FCLD+teeny)
-!       if(LHX.eq.LHS ) TEM=RHO*QCLX(L)/(WMUI*FCLD+teeny)
-        !       IF(LHX.EQ.LHE.AND.ROICE.GT..1d0) TEM=RHO*WMX(L)
-        !    *    /(WMUSI*FCLD+teeny)
-        TEM=TEM*TEM
-        if(TEM.gt.10.) TEM=10.
-        if(VDEF.gt.0..and.RHO*QCLX(L).ge.10.0d0) CM0=CM00
-        CM1=CM0
-        if(BANDF) CM1=CM0*CBF    ! only for liquid clouds ?
-!       if(LHX.eq.LHS) CM1=CM0
-        CM=CM1*(1.-1./exp(TEM*TEM))+100.*(PREBAR(L+1)+ &
-             PRECNVL(L+1)*BYDTsrc)
+        qcx = 0.
+
+        if(use_vmp) then
+          if(tl(l) .gt. tmax_ice) then
+            wtliq = 1d0
+          elseif(tl(l) .lt. tmin_water) then
+            wtliq = 0d0
+          else
+            ! Temperature interp. currently takes the simplest possible form: linear.
+            ! Todo: try structure corresponding to Bergeron-Findeisen etc.
+            ! Todo 2: try functional form having zero deriv. w.r.t. temperature
+            ! at the temperature endpoints.
+            wtliq = (tl(l)-tmin_water)/(tmax_ice-tmin_water)
+          endif
+          if(oldlat.eq.lhs .and. svwmxl(l).gt.0d0) then
+            ! Convection detrained ice.
+            ! LHX=LHS is not currently imposed, but the pure-ice autoconversion rate is.
+            ! Precip will be ice.
+            wtliq=0d0
+          endif
+          ! Interpolation is applied separately to both the limiting autoconversion rate
+          ! and critical water content, as opposed to a single interpolation of the final
+          ! reciprocal time constant CM.  Todo: try single interp.
+          tem =  wconst*wtliq +    wmui*(1d0-wtliq)
+          cm0 = cm00liq*wtliq + cm00ice*(1d0-wtliq)
+        else
+
+          if(LHX.EQ.LHE.AND.QCLX(L).gt.0.) then
+            QCX = QCLX(L)
+            TEM = WCONST
+            CM00=1.d-4    ! 3.d-5
+
         !C#ifdef CLD_AER_CDNC
         !** Choice of 2 different routines to get the autoconversion rate
         !C#ifdef BLK_2MOM
@@ -4205,38 +4261,52 @@ contains
         !** end routine for QAUT as a function of N,LWC
         !C#endif
         !C#endif
-        CM=CM*CMX
-        if(CM.gt.BYDTsrc) CM=BYDTsrc
-        PREP(L)=QCLX(L)*CM       ! precip from liquid clouds
-       end if
-       if(LHX.EQ.LHS.AND.QCIX(L).gt.0.) then
-        RHO=1d5*PL(L)/(RGAS*TL(L))
-        TEM=RHO*QCIX(L)/(WCONST*FCLD+teeny)
-!       if(LHX.eq.LHS ) TEM=RHO*QCIX(L)/(WMUI*FCLD+teeny)
-        TEM=RHO*QCIX(L)/(WMUI*FCLD+teeny)
-        !       IF(LHX.EQ.LHE.AND.ROICE.GT..1d0) TEM=RHO*WMX(L)
-        !    *    /(WMUSI*FCLD+teeny)
-        TEM=TEM*TEM
-        if(TEM.gt.10.) TEM=10.
-        if(VDEF.gt.0..and.RHO*QCIX(L).ge.10.0d0) CM0=CM00
-        CM1=CM0
-        if(BANDF) CM1=CM0*CBF      ! only for liquid clouds?
-        if(LHX.eq.LHS) CM1=CM0     ! already LHX.eq.LHS
-!       CM1=CM0
-        CM=CM1*(1.-1./exp(TEM*TEM))+100.*(PREBAR(L+1)+ &
-             PRECNVL(L+1)*BYDTsrc)
-        CM=CM*CMX
-        if(CM.gt.BYDTsrc) CM=BYDTsrc
-        PREP(L)=QCIX(L)*CM ! PREP(L)+ precip from ice clouds
-       end if
-        if(TL(L).lt.TF.and.LHX.eq.LHE) then ! check snowing pdf
-          PRATM=1d5*COEFM*QCLX(L)*PL(L)/(WCONST*FCLD*TL(L)*RGAS+teeny)
-          PRATM=min(PRATM,1d0)*(1.-exp(max(-1d2,(TL(L)-TF)/COEFT)))
-          if(PRATM.gt.RNDSSL(3,L)) LHP(L)=LHS
-        end if
+          end if
+          if(LHX.EQ.LHS.AND.QCIX(L).gt.0.) then
+            QCX = QCIX(L)
+            TEM = WMUI
+            if(SVWMXL(L).le.0d0) then
+              CM00=1.d-3
+            else
+              CM00=1.d-4
+            endif
+          end if
+          ! limiting autoconversion rate
+          if(qcx.gt.0.) CM0=CM00
+
+          if(TL(L).lt.TF.and.LHX.eq.LHE) then ! check snowing pdf
+            PRATM=1d5*COEFM*QCLX(L)*PL(L)/(WCONST*FCLD*TL(L)*RGAS+teeny)
+            PRATM=min(PRATM,1d0)*(1.-exp(max(-1d2,(TL(L)-TF)/COEFT)))
+            if(PRATM.gt.RNDSSL(3,L)) LHP(L)=LHS
+          end if
+        endif ! use_vmp or not
+
+        if(qcx.gt.0.) then
+
+          if(vdef.gt.0. .and. rho*qcx.lt.10.0d0) then
+            cm0=cm0*10.**(-0.2*vdef)
+          endif
+
+          TEM=RHO*QCX/(TEM*FCLD+teeny)
+          TEM=TEM*TEM
+          if(TEM.gt.10.) TEM=10.
+          if(VDEF.gt.0..and.RHO*QCX.ge.10.0d0) CM0=CM00
+          CM1=CM0
+          if(BANDF) CM1=CM0*CBF      ! only for liquid clouds?
+          if(LHX.eq.LHS) CM1=CM0     ! already LHX.eq.LHS
+        !       CM1=CM0
+          CM=CM1*(1.-1./exp(TEM*TEM))+100.*(PREBAR(L+1)+ &
+               PRECNVL(L+1)*BYDTsrc)
+          CM=CM*CMX
+          if(CM.gt.BYDTsrc) CM=BYDTsrc
+          PREP(L)=QCX*CM ! PREP(L)+ precip from clouds
+        endif
+
       else
         CM=0.
       end if
+
+
       !**** DECIDE WHETHER TO FORM CLOUDS
       !**** FORM CLOUDS ONLY IF RH GT RH00
       if (RH1(L).lt.RH00(L)) then
@@ -4244,6 +4314,7 @@ contains
       else   ! COMPUTE THE CONVERGENCE OF AVAILABLE LATENT HEAT
         SQ(L)=LHX*QSATL(L)*DQSATDT(TL(L),LHX)*BYSHA
         TEM=-LHX*DPDT(L)/PL(L)
+        ATH(L)=(TH(L)-TTOLDL(L))*BYDTsrc
         QCONV=LHX*AQ(L)-RH(L)*SQ(L)*SHA*PLK(L)*ATH(L) &
              -TEM*QSATL(L)*RH(L)
         IF(LHX.EQ.LHE) THEN
@@ -5399,6 +5470,12 @@ contains
         QHEATC=(QHEATL(L)+FSSL(L)*CLEARA(L)*(EC(L)+ER(L)))/LHX
         if(RCLD.gt.RWMAX.and.PREP(L).gt.QHEATC) RCLD=RWMAX
         RCLDE=RCLD/BYBR
+        RCLDE1 = RCLDE
+        if(use_vmp .and. lhp(l).eq.lhs) then
+          RCLDE1 = 1.d5*WMPR(L)*PL(L)/(FCLD*TL(L)*RGAS+teeny)
+          RCLDE1 =RCLDX*100.d0*(RCLDE1/(2.d0*BY3*TWOPI*SCDNCI))**BY3
+          RCLDE1 = MIN(RCLDE1,RIMAX)/BYBR
+        endif
 #ifdef CLD_AER_CDNC
         !** Using the Liu and Daum paramet
         !** for spectral dispersion effects on droplet size distribution
@@ -5407,6 +5484,7 @@ contains
         Rbeta=(((1.d0+2.d0*Repsis)**0.667d0))/((1.d0+Repsis)**0.333d0)
         !     write(6,*)"RCLD",Rbeta,RCLD,SCDNCW,Repsis
         RCLDE=RCLD*Rbeta
+        RCLDE1 = RCLDE
 !@auth Menon    end of addition  comment out the RCLDE definition below
 #endif
 #ifdef BLK_2MOM
@@ -5421,6 +5499,8 @@ contains
         RCLD=RCLDX*100.d0*(WTEM/(2.d0*BY3*TWOPI*SCDNCI))**BY3
         RCLD=min(RCLD,RIMAX)
         RCLDE=RCLD/BYBR
+        RCLDE1 = RCLDE
+        if(use_vmp .and. cldssl(l).gt.0) CSIZELIP(L)=RCLDE1
 #ifdef BLK_2MOM
         !       if(L.eq.1)  write(6,*)"9th check BLK_2M",RCLDE
         !        rablk=execute_bulk2m_driver('get','value','ei')  ! [micron]
@@ -5428,7 +5508,7 @@ contains
         !        if(l.eq.1) write(6,*)"10th check BLK_2M",RCLDE
 #endif
       end if
-      RCLDE1=5.*RCLDE          ! for precip optical thickness
+      RCLDE1=5.*RCLDE1         ! for precip optical thickness
       CSIZEL(L)=RCLDE
       IF(FCLD.LE.teeny.AND.CSIZEL(L).GT.25.d0) CSIZEL(L)=25.d0
 #ifdef CLD_AER_CDNC  /* save for diag purposesi */
@@ -5460,7 +5540,21 @@ contains
       END IF
       TAUSSL(L)=1.5d3*TEM/(FCLD*RCLDE+teeny)
       TEM1=AIRM(L)*WMPR(L)*1.d2*BYGRAV      ! precip contribution
-      TAUSSL(L)=TAUSSL(L)+1.5d3*TEM1/(FCLD*RCLDE1+teeny)
+      TEM1 = 1.5d3*TEM1/(FCLD*RCLDE1+teeny)
+      IF(USE_VMP) THEN
+        if(lhp(l).eq.lhx) then
+          TAUSSL(L) = TAUSSL(L) + TEM1
+          TAUSSLIP(L) = 0.
+        elseif(lhp(l).eq.lhe) then
+          call stop_model('VMP: should not be here',255)
+        else
+          TAUSSLIP(L) = TEM1
+          IF(TAUSSLIP(L).GT.100.) TAUSSLIP(L)=100.
+          IF(FCLD.LE.teeny) TAUSSLIP(L)=0.
+        endif
+      ELSE
+        TAUSSL(L)=TAUSSL(L)+TEM1
+      ENDIF
       if(FCLD.le.teeny) TAUSSL(L)=0.
       if(TAUSSL(L).gt.100.) TAUSSL(L)=100.
       if(LHX.eq.LHE) WMSUM=WMSUM+TEM      ! pick up water path
@@ -5485,11 +5579,14 @@ contains
         if(L.eq.1.or.L.le.DCL) then
           CLDSSL(L)=min(CLDSSL(L)+(BMAX-CLDSSL(L))*CKIJ,FSSL(L))
           TAUSSL(L)=TAUSSL(L)*CLDSV1(L)/(CLDSSL(L)+teeny)
+          IF(USE_VMP) &
+               TAUSSLIP(L)=TAUSSLIP(L)*CLDSV1(L)/(CLDSSL(L)+teeny)
         end if
         if(TAUSSL(L).le.0.) CLDSSL(L)=0.
         if(L.gt.DCL .and. TAUMCL(L).le.0.) then
           CLDSSL(L)=min(CLDSSL(L)**(2.*BY3),FSSL(L))
           TAUSSL(L)=TAUSSL(L)*CLDSV1(L)**BY3
+          IF(USE_VMP) TAUSSLIP(L)=TAUSSLIP(L)*CLDSV1(L)**BY3
         end if
       end if
       if(TAUSSL(L).lt.0.) then
@@ -5503,6 +5600,7 @@ contains
           QCIX(L)=0.
         END IF
       end if
+      IF(USE_VMP .AND. TAUSSLIP(L).LT.0.) TAUSSLIP(L)=0.
     end do
 
 

@@ -53,7 +53,8 @@ module CLOUDS_COM
 
   !**** variables saved for radiation calculations
 !@var TAUSS optical depth from super-saturated clouds
-  real*8, allocatable, dimension(:,:,:) :: TAUSS
+!@var TAUSSIP counterpart to TAUSS for ice precip in stratiform (ss) liquid clouds
+  real*8, allocatable, dimension(:,:,:) :: TAUSS,TAUSSIP
 !@var TAUMC optical depth from moist-convective clouds
   real*8, allocatable, dimension(:,:,:) :: TAUMC
 !@var CLDSS super-saturated cloud cover area (percent)
@@ -61,7 +62,8 @@ module CLOUDS_COM
 !@var CLDMC moist convective cloud cover area (percent)
   real*8, allocatable, dimension(:,:,:) :: CLDMC
 !@var CSIZMC,CSIZSS mc,ss effective cloud droplet radius (microns)
-  real*8, allocatable, dimension(:,:,:) :: CSIZMC,CSIZSS
+!@var CSIZSSIP counterpart to CSIZSS for ice precip in stratiform liquid clouds
+  real*8, allocatable, dimension(:,:,:) :: CSIZMC,CSIZSS,CSIZSSIP
 
   !**** variables saved for surface wind spectrum calculations
 !@var DDM1 downdraft mass flux / rho at lowest level (m/s)
@@ -200,7 +202,7 @@ subroutine ALLOC_CLOUDS_COM(grid)
   use CLOUDS_COM, only :  NCL,NCI, CDN3D,CRE3D,CLWP
 #endif
   use CLOUDS_COM, only : TAUSS,TAUMC, CLDSS,CLDMC,CSIZMC,CSIZSS, &
-       ULS,VLS,UMC,VMC,TLS,QLS, &
+       ULS,VLS,UMC,VMC,TLS,QLS,TAUSSIP,CSIZSSIP, &
        TMC,QMC,DDM1,AIRX,LMC,DDMS,TDN1,QDN1,DDML
 #if (defined mjo_subdd) || (defined etc_subdd)
   use CLOUDS_COM, only : CLWC3D,CIWC3D,TLH3D,SLH3D,DLH3D,LLH3D
@@ -257,11 +259,13 @@ subroutine ALLOC_CLOUDS_COM(grid)
 #endif
   allocate( &
        TAUSS(LM,I_0H:I_1H,J_0H:J_1H), &
+       TAUSSIP(LM,I_0H:I_1H,J_0H:J_1H), &
        TAUMC(LM,I_0H:I_1H,J_0H:J_1H), &
        CLDSS(LM,I_0H:I_1H,J_0H:J_1H), &
        CLDMC(LM,I_0H:I_1H,J_0H:J_1H), &
        CSIZMC(LM,I_0H:I_1H,J_0H:J_1H), &
        CSIZSS(LM,I_0H:I_1H,J_0H:J_1H), &
+       CSIZSSIP(LM,I_0H:I_1H,J_0H:J_1H), &
        STAT=IER)
 #ifdef mjo_subdd
   allocate( &
@@ -306,6 +310,8 @@ subroutine ALLOC_CLOUDS_COM(grid)
 
 !@var FSS initialized to 1.
   FSS = 1.
+  TAUSS = 0.
+  TAUSSIP = 0.
 #ifdef CLD_AER_CDNC
 !@var NCL is initialized to 10.0 cm-3
 !@var NCI is initialised to 0.1 l^-1 or 10^-4 cm-3
