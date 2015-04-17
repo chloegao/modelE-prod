@@ -1,9 +1,10 @@
 module TimeInterval_mod
-  use BaseTime_mod, only: BaseTime
+  use BaseTime_mod, only: BaseTime, real
   implicit none
   private
 
   public :: TimeInterval
+  public :: real ! from BaseTime and Rational
 
   type, extends(BaseTime) :: TimeInterval
   end type TimeInterval

@@ -132,7 +132,7 @@ contains
     fraction = modulo(t,P) - modulo(this%timeAtPeriapsis,P)
     fraction = fraction / P
 
-    meanAnomaly = fraction%convertToReal() * (2*PI)
+    meanAnomaly = real(fraction) * (2*PI)
 
   end function getMeanAnomaly
 
