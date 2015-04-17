@@ -149,9 +149,7 @@ c
 #ifdef USE_ATM_GLOBAL_ARRAYS
       integer ipa(iia,jja)
 #endif
-#ifdef TRACERS_HYCOM_Ventilation
       integer nt
-#endif
 #ifdef TRACERS_OceanBiology
       integer nt
       integer ihr,ichan,hour_of_day,day_of_month,iyear
@@ -266,7 +264,9 @@ c
       uosurf_loc => atmocn%uosurf
       vosurf_loc => atmocn%vosurf
         mlhc_loc => atmocn%mlhc
+#ifdef TRACERS_ON
       gtracer_loc => atmocn%gtracer
+#endif
       dmsi_loc => iceocn%dmsi
       dhsi_loc => iceocn%dhsi
       dssi_loc => iceocn%dssi
@@ -1270,6 +1270,7 @@ c --- accumulate fields for agcm
 
       ! may need the next line for TRACERS_GASEXCH_ocean_CFC
       !call gather_tracer
+#ifdef TRACERS_ON
       do j=J_0,J_1
       do l=1,isp_loc(j)
       do i=ifp_loc(j,l),ilp_loc(j,l)
@@ -1282,7 +1283,7 @@ c --- accumulate fields for agcm
       enddo
       enddo
       enddo
-
+#endif
 c
       nsaveo=nsaveo+1
 
