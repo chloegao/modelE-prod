@@ -48,8 +48,8 @@ module Rational_mod
     integer(kind=LONG) :: denominator = 1 ! always positive
   contains
     procedure :: getWhole
-    procedure, pass(this) :: toReal_sp
-    procedure, pass(this) :: toReal_dp
+!!$    procedure, pass(this) :: toReal_sp
+!!$    procedure, pass(this) :: toReal_dp
 
     ! Arithmetic operations
     procedure :: add_fraction
@@ -87,7 +87,6 @@ module Rational_mod
     generic :: operator(>) => greaterThan_fraction
     generic :: operator(>=) => greaterThanOrEqualTo_fraction
 !!$    generic :: assignment(=) => toReal_sp, toReal_dp
-    generic :: assignment(=) => toReal_dp
 
     procedure, private :: reduce ! put in canonical form
     procedure :: print
@@ -144,19 +143,18 @@ contains
     real(kind=SP), intent(out) :: x
     class (Rational), intent(in) :: this
 
-    real (kind=DP) :: x_dp
+    real(kind=DP) :: x_dp
 
-    x_dp = this%convertToReal() 
-    x = x_dp ! convert dp to sp
+    x_dp = this%convertToReal()
+    x = x_dp
 
   end subroutine toReal_sp
 
   subroutine toReal_dp(x, this)
-    real(kind=DP), intent(out) :: x
+    real(kind=dp), intent(out) :: x
     class (Rational), intent(in) :: this
 
-    x = this%convertToReal()
-
+    x = this%whole + real(this%numerator,kind=dp)/this%denominator
   end subroutine toReal_dp
 
   ! Return the nearest integer
