@@ -1607,7 +1607,7 @@ subroutine CONDSE
             AIJ(I,J,IJ_3dLWS)=AIJ(I,J,IJ_3dLWS)+ALWWS(L)*CLDWTDZ
 #ifdef CACHED_SUBDD
       Cloud_daily(I,J,1) =  Cloud_daily(I,J,1)+ACDNWS(L)*CLDWTDZ
-      Cloud_daily(I,J,2) =  Cloud_daily(I,J,2)+ACDNWSS(L)*CLDWTDZ
+!!    Cloud_daily(I,J,2) =  Cloud_daily(I,J,2)+ACDNWSS(L)*CLDWTDZ
 
       Cloud_daily(I,J,10) = Cloud_daily(I,J,10) +AREWS(L)*CLDWTDZ
       Cloud_daily(I,J,14) = Cloud_daily(I,J,14) +CLDWTDZ

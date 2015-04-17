@@ -10030,6 +10030,15 @@ C       stop
         end select
       enddo
 #endif
+
+#ifdef CACHED_SUBDD
+      ! Accumulate the tracer-related subdaily diagnostics
+      ! (seems like a reasonable place to put this, as tracer_3Dsource
+      ! is called each time step, and here chemistry has been done, etc.,
+      ! but we could move it):
+      call accumCachedTracerSUBDDs
+#endif
+
       return
 
 #ifdef TRACERS_SPECIAL_Shindell

@@ -60,7 +60,9 @@
 
       type(atmocn_xchng_vars) :: atmocn
 
+#ifdef TRACERS_ON
       ocnatm % ntm = atmocn % ntm
+#endif
       ocnatm%gasex_index=atmocn%gasex_index
       ocnatm%n_co2n=atmocn%n_co2n
       call alloc_xchng_vars(ogrid,ocnatm)

@@ -2191,3 +2191,235 @@ c daily_z is currently only needed for CS
       return
       end subroutine tracerIo
      
+
+#ifdef CACHED_SUBDD
+      subroutine tijh_defs(arr,nmax,decl_count)
+! 2D tracer outputs (model horizontal grid).
+! Each tracer output must be declared separately (no bundling).
+      use model_com, only : dtsrc,nday
+      use subdd_mod, only : info_type
+! info_type_ is a homemade structure constructor for older compilers
+      use subdd_mod, only : info_type_
+      implicit none
+      integer :: nmax,decl_count
+      type(info_type) :: arr(nmax)
+
+      decl_count = 0
+
+! NONE AT THE MOMENT:
+!     arr(next()) = info_type_(
+!    &  sname = 'someName',
+!    &  lname = 'some tracer output field',
+!    &  units = 'kg/m2'
+!    &     )
+!
+      return
+      contains
+      integer function next()
+      decl_count = decl_count + 1
+      next = decl_count
+      end function next
+      end subroutine tijh_defs
+
+      subroutine tijlh_defs(arr,nmax,decl_count)
+! 3D tracer outputs (model horizontal grid and layers).
+! Each tracer output must be declared separately (no bundling).
+      use model_com, only : dtsrc,nday
+      use subdd_mod, only : info_type
+! info_type_ is a homemade structure constructor for older compilers
+      use subdd_mod, only : info_type_
+      use tracer_com, only : ntm
+      use OldTracer_mod, only: trname
+      use trdiag_com, only : to_volume_MixRat
+      implicit none
+      integer :: nmax,decl_count
+      integer :: n
+      character*80 :: unitString
+      type(info_type) :: arr(nmax)
+
+      decl_count = 0
+
+      ! First, diagnostics available for all tracers:
+      do n=1,ntm
+
+        ! 3D mixing ratios (SUBDD string is just tracer name):
+        if (to_volume_MixRat(n) .eq.1) then
+          unitString='mole species / mole air'
+        else
+          unitString='kg species / kg air'
+        endif
+        arr(next()) = info_type_(
+     &    sname = trim(trname(n)),
+     &    lname = trim(trname(n))//' mixing ratio',
+     &    units = trim(unitString)
+     &    )
+
+      end do ! tracers loop
+
+      ! Other tracer diags on model levels:
+
+#ifdef TRACERS_SPECIAL_Shindell
+      arr(next()) = info_type_(
+     &  sname = 'MRNO2', ! because not a tracer
+     &  lname = 'NO2 mixing ratio',
+     &  units = 'mole species / mole air'
+     &  )
+C
+      arr(next()) = info_type_(
+     &  sname = 'MRNO', ! because not a tracer
+     &  lname = 'NO mixing ratio',
+     &  units = 'mole species / mole air'
+     &  )
+#endif /* TRACERS_SPECIAL_Shindell */
+
+      return
+      contains
+      integer function next()
+      decl_count = decl_count + 1
+      next = decl_count
+      end function next
+      end subroutine tijlh_defs
+
+
+      subroutine tijph_defs(arr,nmax,decl_count)
+! 3D tracer outputs (model horizontal grid and constant pressure levels)
+! Each tracer output must be declared separately (no bundling).
+      use model_com, only : dtsrc,nday
+      use subdd_mod, only : info_type
+! info_type_ is a homemade structure constructor for older compilers
+      use subdd_mod, only : info_type_
+      use tracer_com, only : ntm
+      use OldTracer_mod, only: trname
+      use trdiag_com, only : to_volume_MixRat
+      implicit none
+      integer :: nmax,decl_count
+      integer :: n
+      character*80 :: unitString
+      type(info_type) :: arr(nmax)
+
+      decl_count = 0
+
+      ! First, diagnostics available for all tracers:
+      do n=1,ntm
+
+        ! 3D mixing ratios (SUBDD string is just tracer name with cp
+        ! appended):
+        if (to_volume_MixRat(n) .eq.1) then
+          unitString='mole species / mole air'
+        else
+          unitString='kg species / kg air'
+        endif
+        arr(next()) = info_type_(
+     &    sname = trim(trname(n))//'cp',
+     &    lname = trim(trname(n))//' mixing ratio',
+     &    units = trim(unitString)
+     &    )
+
+      end do ! tracers loop
+
+      ! Other tracer diags on constant pressure levels:
+
+#ifdef TRACERS_SPECIAL_Shindell
+      arr(next()) = info_type_(
+     &  sname = 'MRNO2cp', ! because not a tracer
+     &  lname = 'NO2 mixing ratio',
+     &  units = 'mole species / mole air'
+     &  )
+C
+      arr(next()) = info_type_(
+     &  sname = 'MRNOcp', ! because not a tracer
+     &  lname = 'NO mixing ratio',
+     &  units = 'mole species / mole air'
+     &  )
+#endif /* TRACERS_SPECIAL_Shindell */
+
+      return
+      contains
+      integer function next()
+      decl_count = decl_count + 1
+      next = decl_count
+      end function next
+      end subroutine tijph_defs
+
+
+      subroutine accumCachedTracerSUBDDs
+
+      use domain_decomp_atm, only : grid
+      USE resolution, only: LM
+      use geom, only : byaxyp
+      use atm_com, only    : byma
+      use tracer_com, only : ntm,trm,mass2vol
+      use OldTracer_mod, only: trname
+      use trdiag_com, only : to_volume_MixRat
+      use subdd_mod, only : subdd_groups,subdd_type,subdd_ngroups
+     &     ,inc_subdd,find_groups, LmaxSUBDD
+      integer :: igrp,ngroups,grpids(subdd_ngroups)
+      type(subdd_type), pointer :: subdd
+      integer :: L, n, k
+!     real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
+!    &                  grid%j_strt_halo:grid%j_stop_halo) :: sddarr2d
+      real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
+     &                  grid%j_strt_halo:grid%j_stop_halo,
+     &                  LM                               ) :: sddarr3d
+      real*8 :: convert
+
+      call find_groups('taijlh',grpids,ngroups)
+      do igrp=1,ngroups
+        subdd => subdd_groups(grpids(igrp))
+        do k=1,subdd%ndiags
+          ntm_loop: do n=1,ntm
+            ! tracer 3D mixing ratios (SUBDD names are just tracer name):
+            if(trim(trname(n)).eq.trim(subdd%name(k))) then
+              if (to_volume_MixRat(n) .eq.1) then
+                convert=mass2vol(n)
+              else
+                convert=1.d0
+              endif
+              do L=1,LmaxSUBDD
+                sddarr3d(:,:,L) = 
+     &          trm(:,:,L,n)*convert*byaxyp(:,:)*byma(L,:,:)
+              end do
+              call inc_subdd(subdd,k,sddarr3d)
+              exit ntm_loop
+            end if
+         end do ntm_loop
+        enddo ! k
+      enddo ! igroup
+
+      call find_groups('taijph',grpids,ngroups)
+      do igrp=1,ngroups
+        subdd => subdd_groups(grpids(igrp))
+        do k=1,subdd%ndiags
+          ntm_loop2: do n=1,ntm
+            ! tracer 3D mixing ratios (SUBDD names are tracer name with cp appended):
+            if(trim(trname(n))//'cp'.eq.trim(subdd%name(k))) then
+              if (to_volume_MixRat(n) .eq.1) then
+                convert=mass2vol(n)
+              else
+                convert=1.d0
+              endif
+              do L=1,LM ! not LmaxSUBDD in case pressure requested above that
+                sddarr3d(:,:,L) =
+     &          trm(:,:,L,n)*convert*byaxyp(:,:)*byma(L,:,:)
+              end do
+              call inc_subdd(subdd,k,sddarr3d)
+              exit ntm_loop2
+            end if
+         end do ntm_loop2
+        enddo ! k
+      enddo ! igroup
+
+      ! Eventual 2D diags can go below (uncomment sddarr2d declaration
+      ! above, if needed)...
+!     call find_groups('taijh',grpids,ngroups)
+!     do igrp=1,ngroups
+!     subdd => subdd_groups(grpids(igrp))
+!     do k=1,subdd%ndiags
+!     select case (subdd%name(k))
+!      ...
+!     end select
+!     enddo ! k
+!     enddo ! igroup
+
+      end subroutine accumCachedTracerSUBDDs
+#endif /* CACHED_SUBDD */

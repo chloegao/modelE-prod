@@ -753,6 +753,10 @@ c****
      *     tearth,tsns_ij,wearth,aiearth,
      &     evap_max_ij, fr_sat_ij, qg_ij, top_dev_ij,
      &     soil_surf_moist, snowd_ij=>snowd
+#ifdef CACHED_SUBDD
+      use ghy_com, only : gsaveL
+      use constant, only : undef
+#endif
 #ifndef USE_ENT
       use vegetation, only :
      &    veg_srht=>srht,veg_pres=>pres,veg_ch=>ch,veg_ws=>vsm, !ia
@@ -763,6 +767,12 @@ c****
 
       use snow_drvm, only : snow_cover_same_as_rad
       use snow_model, only : i_earth,j_earth
+
+
+#ifdef CACHED_SUBDD
+      use subdd_mod, only : subdd_groups,subdd_type,subdd_ngroups
+     &     ,inc_subdd,find_groups
+#endif
 
 #ifdef TRACERS_ON
       use ghy_tracers, only : ghy_tracers_set_step,ghy_tracers_set_cell,
@@ -805,7 +815,7 @@ c****
       implicit none
 
       integer, intent(in) :: ns,moddsf,moddd
-      integer i,j,itype,ibv
+      integer i,j,k,itype,ibv
       real*8 shdt,evhdt,rcdmws,rcdhws
      *     ,cdq,cdm,cdh,elhx,tg,srheat,tg1,ptype,trheat    !,dhgs
      *     ,rhosrf,ma1,tfs,th1,thv1,psk,ps
@@ -865,6 +875,16 @@ c**** input/output for PBL
 #endif
 #ifdef TRACERS_WATER
       type (ghy_tr_str) :: ghy_tr
+#endif
+
+#ifdef CACHED_SUBDD
+      integer :: igrp,ngroups,grpids(subdd_ngroups)
+      type(subdd_type), pointer :: subdd
+      real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
+     &                  grid%j_strt_halo:grid%j_stop_halo) :: sddarr2d
+      real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
+     &                  grid%j_strt_halo:grid%j_stop_halo,
+     &                  ngm                              ) :: sddarr3d
 #endif
 
 C****   define local grid
@@ -1414,6 +1434,54 @@ c another surface type
      &     ghy_tr
 #endif
      &     )
+#endif
+
+#ifdef CACHED_SUBDD
+C****
+C**** Collect high-frequency outputs
+C****
+      if(ns.eq.nisurf) then ! do only once per physics timestep
+C
+C
+      call find_groups('gijlh',grpids,ngroups)
+      do igrp=1,ngroups
+      subdd => subdd_groups(grpids(igrp))
+      do k=1,subdd%ndiags
+      select case (subdd%name(k))
+      case ('GT')
+        do j=j_0,j_1; do i=i_0,imaxj(j)
+          if(fearth(i,j).gt.0.) then
+            sddarr3d(i,j,1:ngm) = gsaveL(i,j,1:ngm,1)
+          else
+            sddarr3d(i,j,1:ngm) = undef
+          end if
+        enddo;         enddo
+        call inc_subdd(subdd,k,sddarr3d)
+C
+      case ('GW')
+        do j=j_0,j_1; do i=i_0,imaxj(j)
+          if(fearth(i,j).gt.0.) then
+            sddarr3d(i,j,1:ngm) = gsaveL(i,j,1:ngm,2)
+          else
+            sddarr3d(i,j,1:ngm) = undef
+          end if
+        enddo;         enddo
+        call inc_subdd(subdd,k,sddarr3d)
+C
+      case ('GI')
+        do j=j_0,j_1; do i=i_0,imaxj(j)
+          if(fearth(i,j).gt.0.) then
+            sddarr3d(i,j,1:ngm) = gsaveL(i,j,1:ngm,3)
+          else
+            sddarr3d(i,j,1:ngm) = undef
+          end if
+        enddo;         enddo
+        call inc_subdd(subdd,k,sddarr3d)
+      end select
+      enddo
+      enddo
+
+      endif ! once per physics timestep
 #endif
 
       return
