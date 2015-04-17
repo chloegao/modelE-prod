@@ -94,16 +94,22 @@ c
      &      nn_apinp1g,nn_apinp1a,nn_apinp2g,nn_apinp2a,         
      &      nn_ClOx,   nn_BrOx,  nn_HCl,   nn_HOCl,   nn_ClONO2,  
      &      nn_HBr,    nn_HOBr,  nn_BrONO2,nn_CFC,    nn_GLT
-
-c***#ifdef CACHED_SUBDD
-c***      use subdd_mod, only : subdd_groups,subdd_type,subdd_ngroups
-c***     &     ,inc_subdd,find_groups, LmaxSUBDD
-c***#endif
+#ifdef CACHED_SUBDD
+      use subdd_mod, only : subdd_groups,subdd_type,subdd_ngroups
+     &     ,inc_subdd,find_groups, LmaxSUBDD
+#endif
       use photolysis, only: fastj2_drv,o3_fastj
      &                     ,sza,szamax,zj,jppj,jpnl,sf3_fact,sf2_fact
 
       IMPLICIT NONE
 
+#ifdef CACHED_SUBDD
+      integer :: igrp,ngroups,grpids(subdd_ngroups),k
+      type(subdd_type), pointer :: subdd
+      real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
+     &                  grid%j_strt_halo:grid%j_stop_halo,
+     &                  LM) :: mrno,mrno2
+#endif
 C**** Local parameters and variables and arguments:
 !@param by35 1/35 used for spherical geometry constant
       REAL*8, PARAMETER  :: by35=1.d0/35.d0
@@ -1650,7 +1656,14 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 #endif
 
        ! save NO2 volume mixing ratio for sub-daily diagnosic:
-        mNO2(i,j,L)=pNOx(i,j,L)*y(nn_NOx,L)/y(nM,L)
+       ! Note that for a long time the NON-Cached version of this used to
+       ! neglect +tempChangeNOx. That term is needed to match the
+       ! NOx tracer values:
+        mNO2(i,j,L)=pNOx(i,j,L)*(y(nn_NOx,L)+tempChangeNOx)/y(nM,L)
+#ifdef CACHED_SUBDD
+        mrno2(i,j,L)=pNOx(i,j,L)*(y(nn_NOx,L)+tempChangeNOx)/y(nM,L)
+        mrno(i,j,L)=(1d0-pNOx(i,j,L))*(y(n_NOx,L)+tempChangeNOx)/y(nM,L)
+#endif
      
 #ifdef TRACERS_HETCHEM
 #ifdef TRACERS_NITRATE
@@ -1661,6 +1674,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 #endif  /* TRACERS_HETCHEM */
 
       END DO ! end current altitude loop
+
 
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       END DO i_loop ! ===> MAIN I LOOP ENDS <===
@@ -1679,6 +1693,34 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
         if(am_i_root()) write(6,*) 'chemstep Oxcorr fault'  
         call stop_model('chemstep Oxcorr fault',255)
       endif
+
+#ifdef CACHED_SUBDD
+      call find_groups('taijlh',grpids,ngroups)
+      do igrp=1,ngroups
+        subdd => subdd_groups(grpids(igrp))
+        do k=1,subdd%ndiags
+          select case (subdd%name(k))
+          case ('MRNO2')
+            call inc_subdd(subdd,k,mrno2)
+          case ('MRNO')
+            call inc_subdd(subdd,k,mrno)
+          end select
+        enddo ! k
+      enddo ! igroup
+
+      call find_groups('taijph',grpids,ngroups)
+      do igrp=1,ngroups
+        subdd => subdd_groups(grpids(igrp))
+        do k=1,subdd%ndiags
+          select case (subdd%name(k))
+          case ('MRNO2cp')
+            call inc_subdd(subdd,k,mrno2)
+          case ('MRNOcp')
+            call inc_subdd(subdd,k,mrno)
+          end select
+        enddo ! k
+      enddo ! igroup
+#endif
 
 CCCCCCCCCCCCCCCCCC END CHEMISTRY SECTION CCCCCCCCCCCCCCCCCCCCCCCCC
 
