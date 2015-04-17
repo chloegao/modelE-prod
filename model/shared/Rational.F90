@@ -42,7 +42,7 @@ module Rational_mod
 
   ! Numerical value is whole + numerator/denominator
   type Rational
-     private
+    private
     integer(kind=LONG) :: whole       = 0
     integer(kind=LONG) :: numerator   = 0 
     integer(kind=LONG) :: denominator = 1 ! always positive

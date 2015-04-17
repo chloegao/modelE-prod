@@ -517,6 +517,7 @@ C**** Local variables initialised in init_RAD
       INTEGER :: J_0,J_1
       integer :: img, jmg, lmg
 
+
       call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
 
       if(am_i_root()) then
@@ -857,12 +858,20 @@ C**** Local variables initialised in init_RAD
       USE tracer_com , only : NTM
 #endif
       use rad_com
-      use domain_decomp_atm, only : grid
+      use domain_decomp_atm, only : grid, getDomainBounds
       use pario, only : write_dist_data,read_dist_data,
      &     write_data,read_data
       implicit none
       integer fid   !@var fid unit number of read/write
       integer iaction !@var iaction flag for reading or writing to file
+
+      integer :: I_0H, I_1H
+      integer :: J_0H, J_1H
+
+      call getDomainBounds(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      I_0H = grid%I_STRT_HALO
+      I_1H = grid%I_STOP_HALO
+
       select case (iaction)
       case (iowrite)            ! output to restart file
         call write_data(grid, fid,'s0', s0)
@@ -956,7 +965,7 @@ C**** Local variables initialised in init_RAD
 #ifdef TRACERS_SPECIAL_Shindell
         if (.not.allocated(ttausv_nraero)) then
           call read_data(grid,fid,'nraero',nraero_rsf, bcast_all=.true.)
-          allocate(ttausv_nraero(im,jm,lm,nraero_rsf))
+          allocate(ttausv_nraero(I_0H:I_1H,J_0H:J_1H,lm,nraero_rsf))
         endif
         call read_dist_data(grid,fid,'ttausv_nraero',ttausv_nraero)
 #endif
