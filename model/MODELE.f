@@ -640,7 +640,7 @@ C****
       use Time_mod, only: Time, newTime
       use MODEL_COM, only: calendar, orbit
       use CalendarMonth_mod, only: LEN_MONTH_ABBREVIATION
-      use BaseTime_mod
+      use TimeInterval_mod
       use Rational_mod, only: nint
 
       IMPLICIT NONE
@@ -686,7 +686,7 @@ C****    List of parameters that are disregarded at restarts
 
       character(len=80) :: tmpStr
       character(len=LEN_MONTH_ABBREVIATION) :: amon
-      type (BaseTime) :: dtSrcUsed
+      type (TimeInterval) :: dtSrcUsed
       type (TimeInterval) :: secsPerDay
 
 C****
@@ -760,8 +760,8 @@ C**** Set quantities that are derived from the namelist parameters
 C**** 
 !@var NDAY=(1 day)/DTsrc : even integer; adjust DTsrc to be commensurate
         NDAY = 2*nint(calendar%getSecondsPerDay()/(DTsrc*2))
-        dtSrcUsed = newBaseTime(calendar%getSecondsPerDay() / NDAY)
-        DTsrc = dtSrcUsed%convertToReal()
+        dtSrcUsed = TimeInterval(calendar%getSecondsPerDay() / NDAY)
+        DTsrc = real(dtSrcUsed)
         call set_param( "DTsrc", DTsrc, 'o')
 
 C**** Get Start Time; at least YearI HAS to be specified in the rundeck
@@ -909,8 +909,10 @@ C****
       modelETime0 = newTime(calendar)
       call modelEtime0%setByDate(iyear1, month=1, date=1, hour=0)
 
-      dtSrcUsed = newBaseTime(calendar%getSecondsPerDay() / NDAY)                       
-      DTsrc = dtSrcUsed%convertToReal()
+      ! dtSrcUsed is of type TimeInterval to guarantee exact arithmetic
+      ! use real(...) to convert for convenience in other calculations.
+      dtSrcUsed = TimeInterval(calendar%getSecondsPerDay() / NDAY)                       
+      DTsrc = real(dtSrcUsed)
 
       modelETimeE = newTime(calendar)
       if (timee .lt. 0) then
@@ -929,12 +931,10 @@ C**** Check consistency of DTsrc with NDAY
         if (AM_I_ROOT()) then
           secsPerDay = calendar%getSecondsPerDay()
           write(6,*) 'DTsrc=',DTsrc,' has to stay at/be set to', 
-     &               secsPerDay%convertToReal()/NDAY
+     &               real(secsPerDay / NDAY)
         end if
         call stop_model('INPUT: DTsrc inappropriately set',255)
       end if
-      DTsrcUsed = newBaseTime(calendar%getSecondsPerDay() / NDAY)
-      DTsrc = DTsrcUsed%convertToReal()
       call set_param( "DTsrc", DTsrc, 'o' )   ! copy DTsrc into DB
 
 C**** NMONAV has to be 1(default),2,3,4,6,12, i.e. a factor of 12
@@ -971,15 +971,11 @@ C**** Set date information
       modelEclockI = ModelClock(modelETime, dtSrcUsed, itimeI)
       call modelETime%add( dtSrcUsed * (itime-itimei) )
 
-      year = modelEtime%getYear()
-      month = modelEtime%getMonth()
-      day = modelEtime%getDayOfYear()
-      date = modelEtime%getDate()
-      hour = modelEtime%getHour()
-      amon = modelEtime%getAbbreviation()
+      modelEclock = ModelClock(modelEtime, dtSrcUsed, itime)
 
-      modelEclock = ModelClock(modelEtime,dtSrcUsed,itime)
-
+      ! These next two lines are not necessary - but act as 
+      ! a (poor) test that the alternate constructor for clocks
+      ! is working.
       tmpStr = modelEclock%toString()
       modelEclock = ModelClock(tmpStr, calendar, dtSrcUsed)
 

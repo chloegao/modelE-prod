@@ -127,7 +127,7 @@ c      real(8) :: tOld
 c
 c      tOld = tParam
 c      call get_param(tName, tParam)
-c      tParam = dtSrc%convertToReal()/nint(dtSrc%convertToReal()/tParam)
+c      tParam = dtSrc%convertToReal()/nint(dtSrc%toReal()/tParam)
 c      call set_param( tName, tParam, 'o' )
 c
 c      if (abs(tParam-tOld) .gt. 1.0e-15) then

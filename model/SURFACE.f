@@ -113,6 +113,7 @@ C****
       USE itype_enum     ! Surface Type enumeration: ITYPE_OCEAN, etc.
 
 #ifdef CACHED_SUBDD
+      use constant, only : undef
       use subdd_mod, only : subdd_groups,subdd_ngroups,subdd_type
      &     ,inc_subdd,find_groups
       use resolution, only : lm
@@ -186,9 +187,12 @@ C****
       REAL*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
      &                  grid%j_strt_halo:grid%j_stop_halo,lm) ::
      &        T_i,Q_i,sddarr3d
+      real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
+     &                  grid%j_strt_halo:grid%j_stop_halo) :: sddarr2d
+      real*8 :: XSUBDD
 #endif
-
       type (Timer_type), pointer :: aTimer
+
 
       RSI => SI_ATM%RSI
       MSI => SI_ATM%MSI
@@ -1074,6 +1078,123 @@ C****
       end select
       enddo
       enddo
+C
+C
+      call find_groups('aijh',grpids,ngroups)
+      do igrp=1,ngroups
+      subdd => subdd_groups(grpids(igrp))
+      do k=1,subdd%ndiags
+      select case (subdd%name(k))
+C
+      case ('tsavg')
+        sddarr2d = atmsrf%tsavg(:,:)-tf
+        call inc_subdd(subdd,k,sddarr2d)
+C
+      case ('us')
+        sddarr2d = atmsrf%usavg
+        call inc_subdd(subdd,k,sddarr2d)
+C
+      case ('vs')
+        sddarr2d = atmsrf%vsavg
+        call inc_subdd(subdd,k,sddarr2d)
+C
+      case ('rs')
+        do j=j_0,j_1; do i=i_0,imaxj(j)
+          sddarr2d(i,j) = atmsrf%qsavg(i,j)/
+     &    qsat(atmsrf%tsavg(i,j),lhe,pedn(1,I,J))
+        enddo;        enddo
+        call inc_subdd(subdd,k,sddarr2d)
+C
+      case ('sst')
+        do j=j_0,j_1; do i=i_0,imaxj(j)
+           if (FOCEAN(i,j)+FLAKE(i,j).gt.0) then
+              sddarr2d(i,j)=atmocn%GTEMP(i,j)
+           else
+              sddarr2d(i,j)=undef
+           endif
+        enddo;        enddo
+        call inc_subdd(subdd,k,sddarr2d)
+C
+      case ('LIT')
+        do j=j_0,j_1; do i=i_0,imaxj(j)
+           if (FLICE(i,j).gt.0) then
+              sddarr2d(i,j)=atmgla%GTEMP(i,j)
+           else
+              sddarr2d(i,j)=undef
+           endif
+        enddo;        enddo
+        call inc_subdd(subdd,k,sddarr2d)
+C
+      case ('SIT')
+        do j=j_0,j_1; do i=i_0,imaxj(j)
+           if (RSI(I,J)*(FOCEAN(I,J)+FLAKE(I,J)).gt.0) then
+              sddarr2d(i,j)=atmice%GTEMP(i,j)
+           else
+              sddarr2d(i,j)=undef
+           endif
+        enddo;        enddo
+        call inc_subdd(subdd,k,sddarr2d)
+C
+      case ('GT1')
+        do j=j_0,j_1; do i=i_0,imaxj(j)
+           if (FEARTH(I,J).gt.0) then
+              sddarr2d(i,j)=atmlnd%gtemp(i,j) 
+           else
+              sddarr2d(i,j)=undef
+           endif
+        enddo;        enddo
+        call inc_subdd(subdd,k,sddarr2d)
+C
+      case ('FOICE')
+        sddarr2d(:,:)=RSI(:,:)*FOCEAN(:,:)
+        call inc_subdd(subdd,k,sddarr2d)
+C
+      case ('FOOPN')
+        sddarr2d(:,:)=(1.d0-RSI(:,:))*FOCEAN(:,:)
+        call inc_subdd(subdd,k,sddarr2d)
+C
+      case ('FLKICE')
+        sddarr2d(:,:)=RSI(:,:)*FLAKE(:,:)
+        call inc_subdd(subdd,k,sddarr2d)
+C
+      case ('FLKOPN')
+        sddarr2d(:,:)=(1.d0-RSI(:,:))*FLAKE(:,:)
+        call inc_subdd(subdd,k,sddarr2d)
+C
+      case ('FLICE')
+        call inc_subdd(subdd,k,FLICE)
+C
+      case ('FLOPN')
+        call inc_subdd(subdd,k,FEARTH)
+C
+      case ('snowc')
+         do j=j_0,j_1; do i=i_0,imaxj(j)
+          xsubdd = 0.
+          if(snowi(i,j) > 0.)
+     &          xsubdd = xsubdd+rsi(i,j)*(focean(i,j)+flake(i,j))
+          if(atmlnd%SNOWE(i,j) > 0.)
+     &          xsubdd = xsubdd+fearth(i,j)
+          if(atmgla%SNOW(i,j) > 0.)
+     &          xsubdd = xsubdd+flice(i,j)
+          xsubdd = min(1.0,xsubdd)
+          sddarr2d(i,j) = xsubdd
+         enddo;        enddo
+         call inc_subdd(subdd,k,sddarr2d)
+C
+      case ('snowd')
+         do j=j_0,j_1; do i=i_0,imaxj(j)
+            sddarr2d(i,j) =  ( 1.d3/RHOW ) * (
+     &               snowi(i,j)*rsi(i,j)*(focean(i,j)+flake(i,j))
+     &       + atmgla%SNOW(i,j)*flice(i,j)
+     &      + atmlnd%SNOWE(i,j)*fearth(i,j)  )
+         enddo;        enddo
+        call inc_subdd(subdd,k,sddarr2d)
+C
+C
+      end select
+      enddo
+      enddo
+
 #endif
 
       call stopTimer('SURFACE()')

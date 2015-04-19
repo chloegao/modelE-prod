@@ -1455,7 +1455,7 @@ C**** include some extra troposphere only ones
       ntmxcon = ntm + 3
 #else 
 #ifdef TRACERS_OCEAN
-      ntmxcon = ntm + 20 ! arbitrary increase, may change
+      ntmxcon = ntm + 21 ! arbitrary increase, may change
 #else
       ntmxcon = ntm
 #endif

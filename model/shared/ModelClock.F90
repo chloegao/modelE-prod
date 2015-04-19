@@ -1,5 +1,6 @@
 module ModelClock_mod
   use BaseTime_mod
+  use TimeInterval_mod
   use Time_mod
   implicit none
   private
@@ -9,7 +10,7 @@ module ModelClock_mod
   type :: ModelClock
 !!$    private
     type (Time) :: currentTime
-    type (BaseTime) :: dt
+    type (TimeInterval) :: dt
 
     ! modelE legacy representation
     integer :: tick
@@ -49,7 +50,7 @@ contains
     use AbstractCalendar_mod
     type (ModelClock) :: clock
     type (Time), intent(in) :: startTime
-    type (BaseTime), intent(in) :: dt
+    type (TimeInterval), intent(in) :: dt
     integer, intent(in) :: startTick
 
     clock%currentTime = startTime
@@ -66,7 +67,7 @@ contains
      type (ModelClock) :: clock
      character(len=*), intent(in) :: string
      class (AbstractCalendar), intent(in) :: calendar
-     type (BaseTime), intent(in) :: dt
+     type (TimeInterval), intent(in) :: dt
 
      type (Time) :: t
      integer :: startTick
@@ -95,7 +96,7 @@ contains
     getTimeTick = this%tick
   end function getTimeTick
 
-  type (BaseTime) function getDt(this) result(dt)
+  type (TimeInterval) function getDt(this) result(dt)
     class (ModelClock), intent(in) :: this
     dt = this%dt
   end function getDt

@@ -1490,7 +1490,7 @@ C****
 C**** convert kg/(source time step) to km^3/mon
       secondsPerYear = 
      &     calendar%getMaxDaysInYear() * calendar%getSecondsPerDay()
-      SCALERVR = 1d-9*secondsPerYear%convertToReal()/
+      SCALERVR = 1d-9*real(secondsPerYear)/
      &          (INT_MONTHS_PER_YEAR*RHOW*DTSRC)
 
       RVROUT(:)=0
@@ -2822,7 +2822,7 @@ c     *         +ZATMO(I,J)*MWL(I,J)
 c**** convert kg/(source time step) to km^3/mon
       secondsPerYear = 
      &     calendar%getMaxDaysInYear() * calendar%getSecondsPerDay()
-      SCALERVR = 1d-9*secondsPerYear%convertToReal()/
+      SCALERVR = 1d-9*real(secondsPerYear)/
      &          (INT_MONTHS_PER_YEAR*RHOW*DTSRC)
 
 c**** fill in the river discharges in the local domain
