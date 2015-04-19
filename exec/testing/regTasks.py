@@ -87,8 +87,10 @@ def createScriptTask(config, deck, comp):
     debugReg   = sysconfig['debugscript']
     scriptsDir = sysconfig['scriptsdir']
     useMods    = sysconfig['modules']
-    resultsDir = sysconfig['scratchdir'] + '/regression_results/' + branch + '/' + comp
-    scratchDir = sysconfig['scratchdir'] + '/regression_scratch/' + branch + '/' + comp
+    resultsDir = sysconfig['scratchdir'] + '/regression_results/' + \
+                 branch + '/' + comp
+    scratchDir = sysconfig['scratchdir'] + '/regression_scratch/' + \
+                 branch + '/' + comp
     sponsorID  = sysconfig['sponsorid']
 
     deckName = deck.name
@@ -100,8 +102,21 @@ def createScriptTask(config, deck, comp):
     fileHandle = open ( filename, 'w' ) 
 
     if useBatch == 'yes':
-        nodes = 1
-        cores = 16
+        # Set number of cores (tasks)
+        if 'MPI' in deckName:
+            cores = 8
+            if re.search('tomas', deckName):
+                cores = 88
+            elif re.search('amp', deckName):
+                cores = 44
+            elif re.search('E_AR5_V2', deckName):
+                if re.search('NINT', deckName):
+                    cores = 8
+                else: # CADI and CAMP
+                    cores = 44
+        else:
+            cores = 1
+        # Set the walltime
         walltime = '03:00:00'
         if re.search('C12', deckName):
             walltime = '00:30:00'
@@ -114,17 +129,24 @@ def createScriptTask(config, deck, comp):
         elif re.search('obio', deckName):
             walltime = '02:00:00'
         elif re.search('cadi', deckName):
-            walltime = '06:00:00'
+            walltime = '03:00:00'
         elif re.search('tomas', deckName):
-            walltime = '02:00:00'
-            nodes = 6
+            logger.error('This rundeck will not run in SERIAL:', deckName)
+            sys.exit()
         elif re.search('amp', deckName):
-            walltime = '02:00:00'
-            nodes = 4
+            logger.error('This rundeck will not run in SERIAL:', deckName)
+            sys.exit()
         elif re.search('E_AR5_V2', deckName):
-            walltime = '02:00:00'
-            nodes = 4
-    
+            if re.search('NINT', deckName):
+                walltime = '00:30:00'
+            else: # CADI and CAMP
+                logger.error('This rundeck will not run in SERIAL:', deckName)
+                sys.exit()
+
+        # Redine wall-time if compileOnly test
+        if deck.getOpt('testlevel')=='compileOnly':
+            walltime = '00:30:00'
+
         outname = resultsDir + '/' + jobName + '.' + comp + '.out'
         errname = resultsDir + '/' + jobName + '.' + comp + '.err'
         fileHandle.write ('#!/bin/bash' + '\n')
@@ -133,35 +155,38 @@ def createScriptTask(config, deck, comp):
         fileHandle.write ('#SBATCH --account='  + sponsorID + '\n')
         fileHandle.write ('#SBATCH --job-name=' + jobName + '\n')
         fileHandle.write ('#SBATCH --time='     + walltime + '\n')
-        fileHandle.write ('#SBATCH --nodes='    + str(nodes) + '\n')
-        fileHandle.write ('#SBATCH --ntasks-per-node=' + str(cores) + '\n')
+        fileHandle.write ('#SBATCH --ntasks=' + str(cores) + '\n')
+        # Use Haswell NODES
+        fileHandle.write ('#SBATCH --constraint=hasw\n')
 
-    # DISCOVER hack to deal with bash issues
-    machine = subprocess.check_output(['uname','-n'])
-    if 'borg' in machine or 'discover' in machine or 'dali' in machine:
-        fileHandle.write ('. /etc/bash.bashrc' + '\n')
+    # ELSE create rest of scriptfor batch AND interactive job:
 
+    # Do we have modules to 'load'?
     if modules == 'yes':
+        machine = subprocess.check_output(['uname','-n'])
         if 'borg' in machine or 'discover' in machine or 'dali' in machine:
             fileHandle.write ('. /usr/share/modules/init/bash' + '\n')
             fileHandle.write ('module purge' + '\n')
-
-            # Using different naming convention for module names
-            compvendor = comp
-            if comp == 'gfortran':
-                compvendor = 'gcc'
-
-            modsconfig = regTools.ConfigSectionMap(config, 'COMPCONFIG')
-            for mod in modsconfig['modulelist'].split(','):
-                if re.search(compvendor, mod):
-                    for mm in modsconfig[mod].split(','):
-                        cmd = 'module load ' + mm +'\n'
-                        fileHandle.write (cmd)
-
         # Need the following module on DISCOVER to get python 2.7.x
             fileHandle.write ('module load other/SSSO_Ana-PyD/SApd_2.1.0' + '\n')
+        # If not on DISCOVER
         else:
-            logger.warning('No modules in '+machine)
+            fileHandle.write ('#!/bin/bash' + '\n')
+            # This is not portable...just my MAC so far
+            fileHandle.write ('. /opt/local/share/Modules/3.2.10/init' + '\n')
+            fileHandle.write ('module purge' + '\n')
+
+        # Using different naming convention for module names
+        compvendor = comp
+        if comp == 'gfortran':
+            compvendor = 'gcc'
+
+        modsconfig = regTools.ConfigSectionMap(config, 'COMPCONFIG')
+        for mod in modsconfig['modulelist'].split(','):
+            if re.search(compvendor, mod):
+                for mm in modsconfig[mod].split(','):
+                    cmd = 'module load ' + mm +'\n'
+                    fileHandle.write (cmd)
 
     decksDir = scratchDir + '/' + jobName + '/decks/'
     fileHandle.write ('export DECKSDIR=' + decksDir + '\n')
@@ -186,7 +211,8 @@ def createScriptTask(config, deck, comp):
     return commandString
 
 #-------------------------------------------------------------------------------
-# Create a config file for regression script
+# Create a config file for regression.py script. 
+# Note: there is one config file for each rundeck/compiler/mode combination
 def createRegConfig(config, deck, modelerc, comp, jobName):
     cfg  = regTools.ConfigSectionMap(config, 'SYSCONFIG')
     branch     = cfg['repobranch']
@@ -195,17 +221,27 @@ def createRegConfig(config, deck, modelerc, comp, jobName):
         branch + '/' + comp + '/' + jobName + '/decks/'
     resultsDir = cfg['scratchdir'] + '/regression_results/' + branch + '/' + comp
 
+    if 'MPI' in jobName:
+        mode = 'mpi'
+        npes = deck.npes
+    else:
+        mode = 'serial'
+        npes = 1
+
     regconfig.add_section('regSettings')
     regconfig.set('regSettings', 'rundeck', deck.name)
     regconfig.set('regSettings', 'modelerc', modelerc)
     regconfig.set('regSettings', 'compiler', comp)
-    regconfig.set('regSettings', 'modes', deck.modes)
-    regconfig.set('regSettings', 'nplist', deck.npes)
+    regconfig.set('regSettings', 'modes', mode)
+    regconfig.set('regSettings', 'testlevel', deck.getOpt('testlevel'))
+    regconfig.set('regSettings', 'endtime', deck.getOpt('endtime'))
+    regconfig.set('regSettings', 'nplist', npes)
     regconfig.set('regSettings', 'compflags', cfg['compflags'])
     regconfig.set('regSettings', 'repository', cfg['repository'])
     regconfig.set('regSettings', 'branch', cfg['repobranch'])
     regconfig.set('regSettings', 'basedir', cfg['basedir'])
     regconfig.set('regSettings', 'updatebase', cfg['updatebase'])
+    regconfig.set('regSettings', 'systemtests', cfg['systemtests'])
     regconfig.set('regSettings', 'resultsdir', resultsDir)
     regconfig.set('regSettings', 'decksdir', decksDir)
 
