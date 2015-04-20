@@ -217,13 +217,13 @@ contains
     use AbstractAttribute_mod
     class (TestTracerBundleSubset), intent(inout) :: this
     class (Tracer), pointer :: tp
-    character(len=MAX_LEN_ATTRIBUTE_STRING), pointer :: name
+    character(len=MAX_LEN_ATTRIBUTE_STRING) :: name
 
     tp => this%subsetOdd%getReference('strange')
 ! Merge even and odd subsets
     call this%subsetEven%merge(this%subsetOdd)
     tp => this%subsetEven%getReference('strange')
-    name => tp%getName()
+    name = tp%getName()
     @assertEqual('strange', name)
 
   end subroutine testMergeSubset
