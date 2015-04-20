@@ -1025,17 +1025,21 @@ C**** and slip correction factor)
      *         ,tr_dens,visc(i,j,l),hydrate)
           
        elseif(n.ge.n_ASO4(1)) then
-
          if(n.eq.n_ASO4(1))THEN
-C 02/20/2012 - TOMAS trgrav is modified to be able to reproduce the model output
-            call dep_getdp(i,j,l,Dp_gr,density_gr) 
-            do k=1,nbins
-              vs(I,J,L,k)=density_gr(k)*(Dp_gr(k)**2)*grav
-     *             /18.d0/visc(i,j,l) 
-            enddo
-          endif
+C     02/20/2012 - TOMAS trgrav is modified to be able to reproduce the model output
+           call dep_getdp(i,j,l,Dp_gr,density_gr) 
+           do k=1,nbins
+C     APR 2015 - FIX vs with slip correction factor (use vgs now)
+             
+cyhl              vs(I,J,L,k)=density_gr(k)*(Dp_gr(k)**2)*grav
+cyhl     *             /18.d0/visc(i,j,l) 
+
+             vs(I,J,L,k)=vgs(airden(i,j,l),0.,Dp_gr(k)/2.,density_gr(k)
+     *           ,visc(i,j,l),hydrate) 
+           enddo
+         endif
           binnum=mod(N-n_ASO4(1)+1,NBINS)
-          if (binnum.eq.0) binnum=NBINS          
+          if (binnum.eq.0) binnum=NBINS
           stokevdt=dtsrc*vs(i,j,l,binnum) !grav. settling velocity for TOMAS model
        endif !size-resolved aerosols
 
@@ -1073,7 +1077,12 @@ C****
       USE CONSTANT, only : by3,pi,gasc,avog,rt2,deltx
      *     ,mair,grav
       IMPLICIT NONE
+#ifdef TRACERS_TOMAS
+      real*8, intent(in) ::  airden,rh1,visc
+      real, intent(in) ::  tr_radius,tr_dens
+#else
       real*8, intent(in) ::  airden,rh1,tr_radius,tr_dens,visc
+#endif
       logical, intent(in) :: hydrate
       real*8  wmf,frpath
       real*8, parameter :: dair=3.65d-10 !m diameter of air molecule
