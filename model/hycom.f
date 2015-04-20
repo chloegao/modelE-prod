@@ -151,7 +151,6 @@ c
 #endif
       integer nt
 #ifdef TRACERS_OceanBiology
-      integer nt
       integer ihr,ichan,hour_of_day,day_of_month,iyear
       integer bef,aft                   !  bio routine timing variables
       real plev
@@ -160,7 +159,6 @@ c
       || (defined TRACERS_OCEAN_WATER_MASSES) \
       || (defined TRACERS_ZEBRA)
       real plev
-      integer nt
 #endif
       external rename
       logical master,slave,diag_ape

@@ -11,7 +11,7 @@
  
       python  ../exec/testing/regression.py <runsource>
  
-  and run the <runsource> rundeck.
+  and use the <runsource> rundeck.
   Finally one can run a set of rundecks by specifying configuration
   files for each runsource, i.e. from the decks subdirectory issue the command:
  
@@ -19,7 +19,7 @@
  
   This requires a configuration file name <runsource>.cfg for each runsource.
   In this case the script can be called from a higher level driver to execute
-  a more compilcated combination of experiments as is done with the
+  a more complicated combination of experiments as is done with the
   nightly regression tests.
  
   ENV Options:
@@ -48,11 +48,14 @@ class RunSourceProperties:
         self.compiler      = 'gfortran'
         self.compilerFlags = 'debug'
         self.modes         = 'serial,mpi'
+        self.testLevel     = 'full'
+        self.endtime       = 25
         self.npes          = '1,4'
         self.modeList      = []
         self.npList        = []
         self.branch        = 'master'
         self.updateBase    = 'no'
+        self.systemTests   = 'no'
         self.modelerc      = os.environ['HOME']+'/.modelErc'
         self.baseDir       = '.'
         self.resultsDir    = '.'
@@ -91,6 +94,7 @@ class Arun():
                         ' - ', ' - ', ' - ', ' - ']
         self.successMark   = '+'
         self.failMark      = 'F'
+        self.etSuffix      = str(rundeck.endtime) + 'hr'
 
     # A subprocess call that, upon failure rc<>=0, raises an exception.
     # Class membership for this function is one of convenience: need runSource 
@@ -135,6 +139,8 @@ def getConfigFile(rundeck):
         rundeck.compiler  = config.get('regSettings', 'compiler')
 
         rundeck.modes     = config.get('regSettings', 'modes')
+        rundeck.testLevel = config.get('regSettings', 'testlevel')
+        rundeck.endtime   = config.getint('regSettings', 'endtime')
         rundeck.npes      = config.get('regSettings', 'nplist')
         rundeck.compilerFlags  = config.get('regSettings', 'compflags')
         rundeck.baseDir   = config.get('regSettings', 'basedir')
@@ -143,6 +149,7 @@ def getConfigFile(rundeck):
         rundeck.updateBase   = config.get('regSettings', 'updatebase')
         rundeck.resultsDir    = config.get('regSettings', 'resultsdir')
         rundeck.decksDir  = config.get('regSettings','decksdir')
+        rundeck.systemTests = config.get('regSettings', 'systemtests')
     
     else: # There is no config file, so use default options
         config = ConfigParser.RawConfigParser()
@@ -151,6 +158,8 @@ def getConfigFile(rundeck):
         config.set('regSettings', 'rundeck'   , rundeck.name)
         config.set('regSettings', 'compiler'  , rundeck.compiler)
         config.set('regSettings', 'modes'     , rundeck.modes)
+        config.set('regSettings', 'testlevel' , rundeck.testLevel)
+        config.set('regSettings', 'endtime'   , rundeck.endtime)
         config.set('regSettings', 'nplist'    , rundeck.npList)
         config.set('regSettings', 'compflags' , rundeck.compilerFlags)
         config.set('regSettings', 'branch'    , rundeck.branch)
@@ -158,6 +167,7 @@ def getConfigFile(rundeck):
         config.set('regSettings', 'updatebase', rundeck.updateBase)
         config.set('regSettings', 'resultsdir', rundeck.resultsDir)
         config.set('regSettings', 'decksdir'  , rundeck.decksDir)
+        config.set('regSettings', 'systemtests', rundeck.systemTests)
 
     # If defined, use modelErc from environment
     if os.environ.has_key('MODELERC'):
@@ -263,27 +273,35 @@ def run1hr(exp, npes=1):
 
     
 """
-  Runs (N-M)+M hours AND N continuous hours
-  Default is to run 24+1 and 25-hour, i.e. N=25 M=1
+  Run up to ENDTIME hrs with checkpoint at ENDTIME-1 hrs
 """
-def runRestart(exp, npes=1, n=25, m=1):
+def runRestart(exp, npes=1, endtime=25):
     logger = logging.getLogger('RUNRST  ')
     expectedRC = 13; # modelE convention for successful runs
     restart = './'+exp.name
     if exp.mode == 'mpi':
         restart += ' -np ' + str(npes)
-    
-    logger.info(exp.name + ', ' + exp.mode + ', npes=' + str(npes))
-    status = exp.sysCmd('../exec/editRundeck.sh ' + exp.name + ' 48 2 1',
+
+    logger.info(exp.name + ', ' + exp.mode + ', npes=' + str(npes) \
+                    + ', endtime=' + exp.etSuffix)
+
+    checkPt = endtime - 1
+    ndisk = checkPt * 2
+    if endtime > 24:
+        newTime = ' ' + str(ndisk) + ' 2 1'
+    else:
+        newTime = ' ' +  str(ndisk) + ' 1 ' + str(endtime)
+
+    status = exp.sysCmd('../exec/editRundeck.sh ' + exp.name + newTime,
                3, 'r')
     status = exp.sysCmd('make setup ' + exp.runCmd + ' ' + exp.modeCmd + ' '
                + exp.xflags, 3, 'r')
     status = exp.sysCmd('../exec/runE ' + exp.name + ' -np ' + str(npes)
                + ' -cold-restart', 3, 'r')
     status = exp.sysCmd('cd ' + exp.name + '; cp fort.1.nc '
-               + checkpointName(exp, '1dy', npes), 3, 'r')
+               + checkpointName(exp, exp.etSuffix, npes), 3, 'r')
     status = exp.sysCmd('cd ' + exp.name + '; cp fort.2.nc fort.1.nc', 3, 'r')
-    status = exp.sysCmd('cd ' + exp.name + '; rm -f run_status', 3, 'r')
+    status = exp.sysCmd('cd ' + exp.name + '; rm -f run_status lock', 3, 'r')
 #  Need to investigate why the following causes a NameError exception
 #  Looks like there is an issue with variable/function/class names in SysCmd
     status = exp.sysCmd('cd ' + exp.name + '; ' + restart
@@ -427,35 +445,40 @@ if __name__ == '__main__':
             mpiBuildResult = OK
             if exp.mode == 'serial':
                 serBuildResult = build(exp)
-                if serBuildResult == OK:
-                    run1hr(exp)
-                    runRestart(exp)               
+                if rundeck.testLevel != 'compileOnly':
+                    if serBuildResult == OK:
+                        run1hr(exp)
+                        if rundeck.testLevel != 'run1hr':
+                            runRestart(exp, endtime=rundeck.endtime)
             else:
                 mpiBuildResult = build(exp)
-                if mpiBuildResult == OK:
-                    for npes in rundeck.npList:
-                        run1hr(exp, npes=npes)
-                        runRestart(exp, npes=npes)         
+                if rundeck.testLevel != 'compileOnly':
+                    if mpiBuildResult == OK:
+                        for npes in rundeck.npList:
+                            run1hr(exp, npes=npes)
+                            if rundeck.testLevel != 'run1hr':
+                                runRestart(exp, npes=npes, endtime=rundeck.endtime)
             logger.info(rundeck.name + ' ' + exp.mode + ' runs complete.')
             if serBuildResult != OK or mpiBuildResult != OK:
                 continue
 
-            if exp.mode == 'serial':
-                compareBase(exp, '1hr')
-                compareBase(exp, '1dy')
+            if rundeck.testLevel != 'compileOnly':
+                if exp.mode == 'serial':
+                    compareBase(exp, '1hr')
+                    compareBase(exp, '1dy')
                 # And compare SERIAL checkpoint-restart 
-                compareRestart(exp)
-            else:
-                for npes in rundeck.npList:
+                    compareRestart(exp)
+                else:
+                    for npes in rundeck.npList:
                     # Compare runs with baseline
-                    compareBase(exp, '1hr', npes=npes)
-                    compareBase(exp, '1dy', npes=npes)
-                    compareRestart(exp, npes=npes)
-                for npes in rundeck.npList:
+                        compareBase(exp, '1hr', npes=npes)
+                        compareBase(exp, '1dy', npes=npes)
+                        compareRestart(exp, npes=npes)
+                        for npes in rundeck.npList:
                     # Compare 1hr run against serial
-                    if nmodes > 1:
-                        compareNPE(exps[0], exps[1], '1dy', npes)
-            logger.info(rundeck.name + ' comparisons complete.')
+                            if nmodes > 1:
+                                compareNPE(exps[0], exps[1], '1dy', npes)
+                logger.info(rundeck.name + ' comparisons complete.')
                 
         for exp in exps:
             fileH.write('%20s' % (exp.results[0]))
