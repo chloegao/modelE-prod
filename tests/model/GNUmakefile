@@ -1,17 +1,9 @@
 .PHONY: clean all
 
-ifeq ($(USE_MPI),YES)
-SRCS = Test_DistGrid.pf \
-	Test_GatherScatter.pf \
-	Test_GlobalSum.pf \
-	Test_Halo.pf
-else
-SRCS = Test_Placeholder.pf
-endif
+SRCS := Test_Placeholder.pf Test_Geom_B.pf
+OBJS := $(SRCS:.pf=.o)
 
-OBJS = $(SRCS:.pf=.o)
-
-LIB = libMPI_Support.a
+LIB = libmodel.a
 
 $(LIB): $(OBJS)
 	ar -r $@ $?
