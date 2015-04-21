@@ -1,3 +1,4 @@
+print-%: ; @echo $*=$($*)
 .PHONY: tests all clean
 .DEFAULT_GOAL = tests
 
@@ -27,23 +28,22 @@ endif
 
 COMPLIBS = $(shell perl -e 'print reverse <>;' < $(SOURCE_DIR)/.liblist)
 LIBS := $(foreach ITEM, $(COMPLIBS), $(SOURCE_DIR)/$(ITEM))
+LIBS += $(SOURCE_DIR)/libmodel.a
 
 # Determine modelE components to be tested based on availability
 ifeq ($(COMPONENTS),)
-  TESTDIRS = shared profiler
+  TESTDIRS = shared profiler MPI_Support
 else
   TESTDIRS := $(foreach ITEM, $(COMPONENTS), $(wildcard $(ITEM)))
 endif
 
-# Exclude MPI_Support tests if not running MPI tests
-ifeq ($(USE_MPI),NO)
-  TESTDIRS := $(filter-out MPI_Support,$(TESTDIRS))
-endif
-
 TESTLIBS := $(foreach ITEM, $(TESTDIRS), $(ITEM)/lib$(ITEM).a)
+TESTLIBS += model/libmodel.a
 # The include paths are different when compiling tests and executable
 TESTINCS := $(foreach ITEM, $(TESTDIRS), -I../$(SOURCE_DIR)/$(ITEM))
-FFLAGS += $(TESTINCS) -I$(PFUNIT)/mod
+TESTINCS += -I../../model
+
+FFLAGS += $(TESTINCS) -I$(PFUNIT)/mod -I$(SOURCE_DIR)
 EXEFLAGS += $(FFLAGS) -I.
 
 # Required libraries
@@ -79,11 +79,13 @@ endif
 TESTS:
 	@for dir in $(TESTDIRS); do \
 	make -C $$dir all; done
+	make -C model all
 
 tests: all
 
+ALLDIRS = profiler shared MPI_Support tracers model
 clean:
-	@for dir in $(TESTDIRS); do \
+	@for dir in $(ALLDIRS); do \
 	make -C $$dir clean; done
 	$(RM) tests.x
 

@@ -95,6 +95,8 @@ do_components: $(COMPONENTS:=_dir)
 main.o: $(SRC_DIR)/main.F90
 
 do_main $(RUN).bin: main.o  $(OBJS) #  $(COMPONENTS:=_dir)
+	-rm -f libmodel.a
+	ar rcs libmodel.a $(OBJS)
 	@echo "===> linking"
 	$(F90) main.o $(LFLAGS) $(EXTRA_LFLAGS) $(OBJS) $(F90OBJS) $(ESMF_OBJS) \
 	  $(COMPLIBS) $(LIBS) -o $(RUN).bin  $(LINK_OUTPUT)
