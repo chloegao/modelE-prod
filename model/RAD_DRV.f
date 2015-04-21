@@ -26,7 +26,7 @@ C****
       JTIME=MOD(ITIME,NDAY)
       ROT1=(TWOPI*JTIME)/NDAY
       sPerDay = calendar%getSecondsPerDay()
-      ROT2=ROT1+TWOPI*DTsrc/sPerDay%convertToReal()
+      ROT2=ROT1+TWOPI*DTsrc/real(sPerDay)
       CALL COSZT (ROT1,ROT2,COSZ1)
 
       END SUBROUTINE CALC_ZENITH_ANGLE
@@ -5027,7 +5027,7 @@ c
 
       type (Time) :: modelETime0
       type (Time) :: modelETime
-      type (BaseTime) :: dtSrcUsed
+      type (TimeInterval) :: dtSrcUsed
       type (TimeInterval) :: secsPerDay
 
 C**** Get those parameters which are needed in this subroutine
@@ -5036,8 +5036,8 @@ C**** Get those parameters which are needed in this subroutine
 !@var NDAY=(1 day)/DTsrc : even integer; adjust DTsrc to be commensurate
       secsPerDay = calendar%getSecondsPerDay()
       NDAY = 2*nint((secsPerDay/(DTsrc*2)))
-      dtSrcUsed = newBaseTime(secsPerDay / NDAY)
-      DTsrc = dtSrcUsed%convertToReal()
+      dtSrcUsed = TimeInterval(secsPerDay / NDAY)
+      DTsrc = real(dtSrcUsed)
 
       modelETime0 = newTime(calendar)
       modelETime = newTime(calendar)

@@ -214,7 +214,7 @@ contains
 
     days = (t-t0) / this%getMeanDay()
 
-    meanHourAngle = 2*PI*(days%convertToReal() - floor(days))
+    meanHourAngle = 2*PI*(real(days) - floor(days))
 
     TA = this%getTrueAnomaly(t)
     MA = this%getMeanAnomaly(t)
@@ -332,7 +332,7 @@ contains
     M1 = computeMeanAnomaly(trueAnomaly + angle, this%getEccentricity())
     
     tOrbit = this%getSiderealOrbitalPeriod()
-    newT = newBaseTime(t + Rational((M1-M0)/(2*PI) * tOrbit%convertToReal(), 1.d-6))
+    newT = newBaseTime(t + Rational((M1-M0)/(2*PI) * real(tOrbit), 1.d-6))
   end function rotate
 
 

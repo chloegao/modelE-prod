@@ -266,14 +266,14 @@ C**** (Simplified) Calendar Related Terms
          write(*,*) 'Planet :: ' // trim(planetName)
          write(*,*)'Using planetary calendar:', s
          period = orbit%getSiderealRotationPeriod()
-         write(*,*)'siderealRotationPeriod: ', period%convertToReal()
+         write(*,*)'siderealRotationPeriod: ', real(period)
          period = orbit%getSiderealOrbitalPeriod()
-         write(*,*)'siderealOrbitalPeriod: ', period%convertToReal() 
+         write(*,*)'siderealOrbitalPeriod: ', real(period)
          write(*,*)'meanDistance: ', orbit%getMeanDistance()
          write(*,*) '  Precession (degs from ve):',
      &        orbit%getLongitudeAtPeriapsis()
          write(*,*)'   Days per year: ', daysPerYear
-         write(*,*)'   Seconds per day: ', secondsPerDay%convertToReal()
+         write(*,*)'   Seconds per day: ', real(secondsPerDay)
          write(*,*) '  Eccentricity:', orbit%getEccentricity()
          write(*,*) '  Obliquity (degs):',orbit%getObliquity()
       end if

@@ -33,6 +33,7 @@ module Rational_mod
   public :: nint
   public :: floor
   public :: ceiling
+  public :: real
 
   ! modulo(q) returns   q - floor(q)
   public :: modulo
@@ -48,49 +49,54 @@ module Rational_mod
     integer(kind=LONG) :: denominator = 1 ! always positive
   contains
     procedure :: getWhole
-!!$    procedure, pass(this) :: toReal_sp
-!!$    procedure, pass(this) :: toReal_dp
 
     ! Arithmetic operations
-    procedure :: add_fraction
-    procedure :: subtract_fraction
-
-    procedure :: multiply_fraction
-    procedure, pass(a) :: multiply_intLeft
-    procedure, pass(a) :: multiply_intRight
-    procedure, pass(a) :: multiply_longLeft
-    procedure, pass(a) :: multiply_longRight
-
-    procedure :: divide_fraction
-    procedure, pass(a) :: divide_realdp
-    procedure, pass(a) :: divide_byInt4
-    procedure, pass(a) :: divide_byInt8
-    procedure, pass(a) :: divide_intoInt4
-
-    ! Comparison operators
-    procedure :: equals_fraction
-    procedure, pass(a) :: equals_int
-    procedure, pass(b) :: equals_int2
-    procedure :: lessThan_fraction
-    procedure :: greaterThan_fraction
-    procedure :: greaterThanOrEqualTo_fraction
-    procedure :: convertToReal
-
     generic :: operator(+) => add_fraction
     generic :: operator(-) => subtract_fraction
-    generic :: operator(*) => multiply_fraction, multiply_intLeft, multiply_intRight, &
+    generic :: operator(*) => multiply_fraction, &
+         & multiply_intLeft, multiply_intRight, &
          & multiply_longLeft, multiply_longRight
-    generic :: operator(/) => divide_fraction, divide_realDP, &
-         &  divide_byInt4, divide_byInt8, divide_intoInt4
-    generic :: operator(==) => equals_fraction, equals_int, equals_int2
+    generic :: operator(/) => divide_fraction, &
+         &  divide_realDP, &
+         &  divide_byInt4, divide_byInt8, &
+         & divide_intoInt4, divide_intoInt8
+
+    ! Comparison operators
+    generic :: operator(==) => equals_fraction, equals_intLeft, equals_intRight
     generic :: operator(<) => lessThan_fraction
     generic :: operator(>) => greaterThan_fraction
     generic :: operator(>=) => greaterThanOrEqualTo_fraction
-!!$    generic :: assignment(=) => toReal_sp, toReal_dp
 
-    procedure, private :: reduce ! put in canonical form
-    procedure :: print
+    procedure :: add_fraction       ! r = p + q
+    procedure :: subtract_fraction  ! r = p - q
+
+    procedure :: multiply_fraction  ! r = p * q
+    procedure, pass(a) :: multiply_intLeft  ! r = i * p 
+    procedure, pass(a) :: multiply_intRight ! r = p * i
+    procedure, pass(a) :: multiply_longLeft ! r = i_8 * p
+    procedure, pass(a) :: multiply_longRight ! r = p * i_8
+
+    procedure :: divide_fraction   ! r = p / q
+    procedure, pass(a) :: divide_realdp  ! r = p / x
+    procedure, pass(a) :: divide_byInt4  ! r = p / i
+    procedure, pass(a) :: divide_byInt8  ! r = p / i8
+    procedure, pass(a) :: divide_intoInt4 ! r = i4 / p
+    procedure, pass(a) :: divide_intoInt8 ! r = i8 / p
+
+    ! Comparison operators
+    procedure :: equals_fraction   ! r == p
+    procedure, pass(a) :: equals_intRight  ! r == i
+    procedure, pass(b) :: equals_intLeft   ! i == r
+    procedure :: lessThan_fraction !  r < p
+    procedure :: greaterThan_fraction ! r > p
+    procedure :: greaterThanOrEqualTo_fraction ! r >= p
+
+    ! conversion
+    procedure :: toReal
     procedure :: toString
+
+    ! internal use only
+    procedure, private :: reduce ! put in canonical form
 
   end type Rational
 
@@ -121,6 +127,10 @@ module Rational_mod
     module procedure ceilingRational
   end interface ceiling
 
+  interface real
+     module procedure real_rational
+  end interface real
+
   interface modulo
     module procedure moduloRational
  end interface modulo
@@ -132,30 +142,23 @@ contains
     whole = this%whole
   end function getWhole
 
-  function convertToReal(this) result(x)
+
+  function toReal(this) result(x)
     real(kind=DP) :: x
     class(Rational), intent(in) :: this
     x = real(this%numerator,kind=DP) / real(this%denominator,kind=DP)
     x = x + this%whole
-  end function convertToReal
+  end function toReal
 
-  subroutine toReal_sp(x, this)
-    real(kind=SP), intent(out) :: x
+
+  function real_rational(this) result(x)
+    use iso_fortran_env, only: REAL64
+    real(kind=REAL64) :: x
     class (Rational), intent(in) :: this
 
-    real(kind=DP) :: x_dp
-
-    x_dp = this%convertToReal()
-    x = x_dp
-
-  end subroutine toReal_sp
-
-  subroutine toReal_dp(x, this)
-    real(kind=dp), intent(out) :: x
-    class (Rational), intent(in) :: this
-
-    x = this%whole + real(this%numerator,kind=dp)/this%denominator
-  end subroutine toReal_dp
+    x = this%toReal()
+    
+  end function real_rational
 
   ! Return the nearest integer
   ! Rounds to even for r = n + m/2
@@ -233,6 +236,7 @@ contains
     call r%reduce()
 
   end function newRational_default_n_over_d
+
 
   function newRational_default(whole, numerator, denominator) result(r)
     type (Rational) :: r
@@ -495,6 +499,19 @@ contains
 
   end function divide_intoInt4
 
+
+! Divide integer by a fraction
+  function divide_intoInt8(i, a) result(c)
+    integer(kind=LONG), intent(in) :: i
+    class (Rational), intent(in) :: a
+    type (Rational) :: c
+
+    c = Rational(i) / a
+    call c%reduce()
+
+  end function divide_intoInt8
+
+
 ! Divide fractions by an integer and reduce
   function divide_byInt8(a, i) result(c)
     class (Rational), intent(in) :: a
@@ -516,21 +533,21 @@ contains
 
   end function equals_fraction
 
-  logical function equals_int(a, b) result(equals)
+  logical function equals_intRight(a, b) result(equals)
     class (Rational), intent(in) :: a
     integer, intent(in) :: b
 
     equals = (a%whole == b) .and. (a%numerator == 0)
 
-  end function equals_int
+  end function equals_intRight
 
-  logical function equals_int2(a, b) result(equals)
+  logical function equals_intLeft(a, b) result(equals)
     integer, intent(in) :: a
     class (Rational), intent(in) :: b
 
     equals = (b%whole == a) .and. (b%numerator == 0)
 
-  end function equals_int2
+  end function equals_intLeft
 
   logical function lessThan_fraction(r1, r2) result(lessThan)
     class (Rational), intent(in) :: r1
@@ -653,12 +670,6 @@ contains
      factor = ib
 
   end function greatestCommonFactor
-
-  subroutine print(this)
-     class (Rational), intent(in) :: this
-     write(*,'(a,i0," + ",i0,"/",i0)') 'Rational: ',this%whole, this%numerator, this%denominator
-  end subroutine print
-
 
   ! Used for checkpointing.
   function toString(this) result(string)

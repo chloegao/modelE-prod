@@ -20,10 +20,10 @@ contains
 
     t = newBaseTime(Rational(1,1,2))
 
-    x_sp = t%convertToReal()
+    x_sp = t%toReal()
     @assertEqual(1.5, x_sp)
 
-    x_dp = t%convertToReal()
+    x_dp = t%toReal()
     @assertEqual(1.5, x_dp)
 
   end subroutine test_assignment

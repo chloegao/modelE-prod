@@ -1,4 +1,5 @@
-# This is the main driver for the modelE regression tests
+# This is the main driver for the modelE regression tests. To run the scripts:
+#    python mainDriver.py [configuration file]
 import time
 import sys
 import regTools

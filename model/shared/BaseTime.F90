@@ -6,6 +6,7 @@ module BaseTime_mod
   public :: BaseTime
   public :: newBaseTime
   public :: assignment(=)
+  public :: real ! from Rational
 
   type, extends(Rational) :: BaseTime
   contains

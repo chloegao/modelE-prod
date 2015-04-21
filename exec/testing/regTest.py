@@ -6,7 +6,9 @@ class regTest:
         self.compilers = ['gfortran']
         self.compflags = 'default'
         self.npes = [8]
-        self.duration = 1 # 1 hour run
+        self.testLevel = 'full'
+        self.duration = 1
+        self.endtime = 25
         # SYSCONFIG options 
         self.useBatch = 'no'
         self.modules = 'no'
@@ -22,6 +24,10 @@ class regTest:
                         self.modes = vv
                     elif kk=='compilers':
                         self.compilers = vv
+                    elif kk=='endtime':
+                        self.endtime = vv
+                    elif kk=='testlevel':
+                        self.testLevel = vv
                     elif kk=='npes':
                         self.npes = vv
                     elif kk=='compflags':
@@ -45,6 +51,10 @@ class regTest:
             return self.npes
         elif opt=='duration':
             return self.duration
+        elif opt=='testlevel':
+            return self.testLevel
+        elif opt=='endtime':
+            return self.endtime
         elif opt=='nsteps':
             return self.nsteps
         elif opt=='usebatch':
