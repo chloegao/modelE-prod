@@ -41,6 +41,8 @@
 
       if (tracers_amp .or. tracers_tomas) then
          checkSourceName = .false.
+      else if (trname(n) == 'codirect') then 
+         checkSourceName = .false.
       else
          checkSourceName = .true.
       end if
@@ -69,7 +71,7 @@
 !     allow some tracers to have biomass burning sources that mix over
 !     PBL layers (these become 3D sources no longer within ntsurfsrc(n)):
         select case (trname(n))
-          case ('Alkenes', 'CO', 'NOx', 'Paraffin',
+          case ('Alkenes', 'CO', 'NOx', 'Paraffin', 'codirect',
 #ifdef TRACERS_SPECIAL_Shindell
      &         'CH4',           ! in here to avoid potential Lerner tracers conflict
 #endif

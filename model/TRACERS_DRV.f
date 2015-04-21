@@ -391,6 +391,9 @@ C**** set some defaults
           qcon(itcon_decay(n)) = .true.
           conpts(g-12) = 'DECAY'
           qsum(itcon_decay(n)) = .true.
+          g=g+1; itcon_3Dsrc(nBiomass,N) = g
+          qcon(g) = .true.; conpts(g-12) = 'Biomass src'
+          qsum(g) = .true.
           do kk=1,ntsurfsrc(n)
             g=g+1; itcon_surf(kk,n) = g
             qcon(itcon_surf(kk,n))=.true.
@@ -1606,6 +1609,13 @@ C**** special one unique to HTO
         lname_jls(k) = 'LOSS OF '//trim(trname(n))//' BY DECAY'
         jls_ltop(k) = LM
         jls_power(k) = 0
+        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        k = k + 1
+        jls_3Dsource(nBiomass,n) = k
+        sname_jls(k) = 'Biomass_src_of_'//trim(trname(n))
+        lname_jls(k) = trim(trname(n))//' biomass source'
+        jls_ltop(k) = LM
+        jls_power(k) = -2
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 
       case ('HCl','HOCl','ClONO2','HBr','HOBr','BrONO2','CFC',
@@ -3291,6 +3301,14 @@ C**** This needs to be 'hand coded' depending on circumstances
           units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
           scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         end do
+        k = k + 1
+        ijts_3Dsource(nBiomass,n) = k
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = trim(trname(n))//' Biomass source'
+        sname_ijts(k) = trim(trname(n))//'_Biomass_source'
+        ijts_power(k) = -12
+        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
       case ('NOx','CO','Isoprene','Alkenes','Paraffin',
      &'ClOx','BrOx','HCl','HOCl','ClONO2','HBr','HOBr','BrONO2',
@@ -8247,8 +8265,8 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
       pTracer => tracers%getReference(trname(n_codirect))
       call readSurfaceSources(pTracer,n_codirect,
-     &     ntsurfsrc(n_codirect),xyear,
-     & xday,.true.,itime,itime_tr0(n_codirect),sfc_src)
+     &     ntsurfsrc(n_codirect)+nBBsources(n_codirect),xyear,
+     & xday,.false.,itime,itime_tr0(n_codirect),sfc_src)
 #endif
 
 #endif /* TRACERS_SPECIAL_Shindell || TRACERS_AEROSOLS_Koch || TRACERS_AMP || TRACERS_TOMAS */
@@ -9376,7 +9394,7 @@ C****
 ! -----------
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_TOMAS)
-      case ('Alkenes', 'CO', 'NOx', 'Paraffin','CH4',
+      case ('Alkenes', 'CO', 'NOx', 'Paraffin','CH4','codirect',
      &      'NH3', 'SO2', 'SO4', 'BCII', 'BCB', 'OCII', 'OCB',
      &      'vbsAm2', 'vbsAm1', 'vbsAz',  'vbsAp1', 'vbsAp2',
      &      'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6',

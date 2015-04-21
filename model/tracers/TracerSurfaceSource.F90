@@ -176,6 +176,7 @@ contains
       else
         if (mod((this%yearEnd-this%yearStart), this%yearStep) /=0. ) &
            & error=11
+      endif
     endif
 
   end subroutine parseHeader
@@ -529,7 +530,7 @@ contains
     USE DOMAIN_DECOMP_ATM, only: GRID,  readt_parallel, write_parallel
     use Domain_decomp_atm, only: getDomainBounds
     USE FILEMANAGER, only: openunit,closeunit, nameunit,is_fbsa
-    USE CONSTANT, only: EDPERY
+    use TimeConstants_mod, only: EARTH_DAYS_PER_YEAR
     use timestream_mod, only : init_stream,read_stream
     use dictionary_mod, only : get_param
     type (TracerSurfaceSource), intent(inout) :: this
@@ -588,12 +589,12 @@ contains
         call readMonthly(this,iu,sfc_src(:,:), xyear,xday, grid)
       case ('d')        ! daily file, don't interpolate
         if(xyear < this%yearStart .or. xyear > this%yearEnd)then
-          write(out_line,*)'Year ',xyear,' out of range of daily '
+          write(out_line,*)'Year ',xyear,' out of range of daily ', &
      &    'tracer source file years: ',this%yearStart,this%yearEnd,'.'
           call write_parallel(trim(out_line))
           call stop_model('xyear bad for daily emis reading',255)
         endif
-        iposDay=NINT(EDPERY*(xyear-this%yearStart)+xday)
+        iposDay=NINT(EARTH_DAYS_PER_YEAR*(xyear-this%yearStart)+xday)
         call readt_parallel(grid,iu,fname,sfc_src(:,:),iposDay)
       end select
 
@@ -615,8 +616,8 @@ contains
           if(xyear>k .or. (xyear==k.and.xday>=183)) then
             if(xyear<k+kstep.or.(xyear==k+kstep.and.xday<183))then
               ipos=1+(k-this%yearStart)/kstep ! (integer artithmatic)
-              alpha=(EDPERY*(0.5+real(xyear-1-k))+xday) /  &
-                   &      (EDPERY*real(kstep))
+              alpha=(EARTH_DAYS_PER_YEAR*(0.5+real(xyear-1-k))+xday) / &
+                   &      (EARTH_DAYS_PER_YEAR*real(kstep))
 !              alpha = real(365*(xyear-k) + xday-183,kind=8) / real(365*kstep,kind=8)
               kx=k
               exit
