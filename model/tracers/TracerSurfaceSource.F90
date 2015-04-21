@@ -18,10 +18,10 @@ module TracerSurfaceSource_mod
 
   type, extends(TracerSource) :: TracerSurfaceSource
     character(len=30) :: sourceName ! holds source name, read from file header, e.g. to be
+    ! placed into lname and sname arrays.
 !@var EMstream interface for reading and time-interpolating emissions file if it is netcdf.
 !@+   See usage notes in timestream_mod.
     type (timestream) :: EMstream
-    ! placed into lname and sname arrays.
     character(len=10) :: tracerName ! tracer name read from emis file header (should match trname)
     character(len=1) :: frequency ! (annual 'a' or monthly 'm') read from emis file header
     character(len=1) :: resolution ! horiz. resolution (C? M? F?) read from emis file header
@@ -127,7 +127,7 @@ contains
     integer :: rc
     character(len=9) :: years
 
-    rc = parseField(str, 'freq', this%frequency, ['a','m'])
+    rc = parseField(str, 'freq', this%frequency, ['a','m','d'])
     call checkRc(rc, 2, 3, error)
 
     rc = parseField(str, 'name', this%tracerName, [name])
@@ -157,14 +157,24 @@ contains
       endif
     endif
 
-    this%yearStep = 10 ! default=decades for backwards compatability
+    if(this%frequency == 'd')then
+      ! daily files, while non-transient, must have years defined:
+      if(this%yearStart==0 .or. this%yearEnd==0)error=12
+      this%yearStep=1  ! default= 1-day steps
+    else
+      this%yearStep=10 ! default=decades for backwards compatability
+    endif
+
     rc = parseField(str, 'del', yearStepStr)
     if (rc /= PARSE_MISSING_FIELD) read(yearStepStr,*) this%yearStep
     if(this%yearStep == 0) then
       error=10
     else
       ! check for integer number of slices:
-      if (mod((this%yearEnd-this%yearStart), this%yearStep) /=0. ) &
+      if(this%frequency == 'd')then
+        if (this%yearStep /= 1) error=13
+      else
+        if (mod((this%yearEnd-this%yearStart), this%yearStep) /=0. ) &
            & error=11
     endif
 
@@ -245,7 +255,7 @@ contains
     case default ! nothing
     case(1) ; message='readEmissionHeader: missing header'
     case(2) ; message='readEmissionHeader: problem with freq'
-    case(3) ; message='readEmissionHeader: a and m are choices for freq'
+    case(3) ; message='readEmissionHeader: a,m,d are choices for freq'
     case(4) ; message='readEmissionHeader: problem with tracer name'
     case(5) ; message='readEmissionHeader: tracer name mismatch'
     case(6) ; message='readEmissionHeader: problem with source'
@@ -254,6 +264,8 @@ contains
     case(9) ; message='readEmissionHeader: transient years seem wrong'
     case(10); message='readEmissionHeader: yearStep(e.g. kstep) is zero'
     case(11); message='readEmissionHeader: trans yrs step/years suspect'
+    case(12); message='readEmissionHeader: daily emis years undefined'
+    case(13); message='readEmissionHeader: 1-day steps expected for now'
     end select
     if(error > 0) then
       if(error == 5 .and. .not. checkname)then
@@ -517,6 +529,7 @@ contains
     USE DOMAIN_DECOMP_ATM, only: GRID,  readt_parallel, write_parallel
     use Domain_decomp_atm, only: getDomainBounds
     USE FILEMANAGER, only: openunit,closeunit, nameunit,is_fbsa
+    USE CONSTANT, only: EDPERY
     use timestream_mod, only : init_stream,read_stream
     use dictionary_mod, only : get_param
     type (TracerSurfaceSource), intent(inout) :: this
@@ -525,7 +538,7 @@ contains
     real*8, intent(inout) :: sfc_src(grid%i_strt_halo:,grid%j_strt_halo:)
     integer, intent(in) :: xyear, xday
 
-    integer :: iu,k,ipos,kx,kstep=10
+    integer :: iu,k,ipos,kx,iposDay,kstep=10
     character(len=300) :: out_line
     real*8 :: alpha
     real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO, &
@@ -559,7 +572,7 @@ contains
     ! now read the data: (should be in kg/m2/s please)
 
     ! -------------- non-transient emissions ----------------------------!
-    if (this%yearStart==this%yearEnd) then 
+    if (this%yearStart==this%yearEnd.or.this%frequency=='d') then 
 
       select case (this%frequency)
       case ('a')        ! annual file, only read first time
@@ -573,6 +586,15 @@ contains
         endif
       case ('m')        ! monthly file, interpolate to now
         call readMonthly(this,iu,sfc_src(:,:), xyear,xday, grid)
+      case ('d')        ! daily file, don't interpolate
+        if(xyear < this%yearStart .or. xyear > this%yearEnd)then
+          write(out_line,*)'Year ',xyear,' out of range of daily '
+     &    'tracer source file years: ',this%yearStart,this%yearEnd,'.'
+          call write_parallel(trim(out_line))
+          call stop_model('xyear bad for daily emis reading',255)
+        endif
+        iposDay=NINT(EDPERY*(xyear-this%yearStart)+xday)
+        call readt_parallel(grid,iu,fname,sfc_src(:,:),iposDay)
       end select
 
       ! --------------- transient emissions -------------------------------!
@@ -593,8 +615,8 @@ contains
           if(xyear>k .or. (xyear==k.and.xday>=183)) then
             if(xyear<k+kstep.or.(xyear==k+kstep.and.xday<183))then
               ipos=1+(k-this%yearStart)/kstep ! (integer artithmatic)
-              alpha=(365.d0*(0.5+real(xyear-1-k))+xday) /  &
-                   &                  (365.d0*real(kstep))
+              alpha=(EDPERY*(0.5+real(xyear-1-k))+xday) /  &
+                   &      (EDPERY*real(kstep))
 !              alpha = real(365*(xyear-k) + xday-183,kind=8) / real(365*kstep,kind=8)
               kx=k
               exit
@@ -616,6 +638,8 @@ contains
 
       case ('m')        ! monthly file, interpolate to now
         call readMonthly(this,iu,sfc_src(:,:),xyear,xday, grid)
+      case ('d')
+        call stop_model('Transient, daily tracer src not allowed.',255)
       end select
 
     endif
