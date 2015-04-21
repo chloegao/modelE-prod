@@ -58,6 +58,7 @@ endif
 ifeq ($(USE_MPI),YES)
   FC = mpif90
   IOLIB += -L$(PNETCDFHOME)/lib -lpnetcdf
+  EXEFLAGS += -DUSE_MPI
 endif
 
 # Targets:
