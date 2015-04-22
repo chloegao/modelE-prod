@@ -447,6 +447,15 @@ C**** TCONSRV
       INTEGER, ALLOCATABLE, DIMENSION(:) :: itcon_wt
 !@var natmtrcons, nocntrcons number of atmospheric/ocean tcon diags
       INTEGER :: natmtrcons=0, nocntrcons=0
+#ifdef TRACERS_SPECIAL_Shindell
+      integer, parameter :: maxntmocn=3
+#else 
+#ifdef TRACERS_OCEAN
+      integer, parameter :: maxntmocn=21
+#else
+      integer, parameter :: maxntmocn=0
+#endif
+#endif
 #ifdef TRACERS_TOMAS
 !@var itcon_TOMAS Index array for microphysical processes diags
       INTEGER, ALLOCATABLE, DIMENSION(:,:) :: itcon_TOMAS
@@ -699,7 +708,7 @@ C****
       USE DIAG_COM, only: npts,ia_d5s,ia_12hr,ia_src,conpt0
       USE TRDIAG_COM, only: ktcon,title_tcon,scale_tcon,nsum_tcon
      *     ,nofmt,ia_tcon,name_tconsrv,lname_tconsrv,units_tconsrv
-     *     ,natmtrcons,nocntrcons
+     *     ,natmtrcons,nocntrcons,maxntmocn
       IMPLICIT NONE
 !@var NAME_CON name of conservation quantity
       CHARACTER*8, INTENT(IN) :: NAME_CON
@@ -728,6 +737,8 @@ C****
       INTEGER NI,NM,NS,N,k,itr
       LOGICAL, PARAMETER :: T=.true., F=.false.
 
+      if (itr0>maxntmocn) call
+     &     stop_model('trdiag_com: increase maxntmocn', 255)
       nocntrcons=max(nocntrcons,itr0)
       CONPT=CONPT0
       CONPT(8)="OCN PHYS"
@@ -1450,16 +1461,7 @@ C*** Unpack read global data into local distributed arrays
 
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
 
-#ifdef TRACERS_SPECIAL_Shindell
-C**** include some extra troposphere only ones
-      ntmxcon = ntm + 3
-#else 
-#ifdef TRACERS_OCEAN
-      ntmxcon = ntm + 21 ! arbitrary increase, may change
-#else
-      ntmxcon = ntm
-#endif
-#endif
+      ntmxcon = ntm + maxntmocn
       allocate(TCONSRV(JM_BUDG,ktcon,ntmxcon))
       allocate(TCONSRV_loc(JM_BUDG,ktcon,ntmxcon))
 
