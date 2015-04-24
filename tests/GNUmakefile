@@ -51,7 +51,9 @@ PFLIB = -L$(PFUNIT)/lib -lpfunit
 IOLIB += -L$(NETCDFHOME)/lib -lnetcdf 
 
 ifeq ($(COMPILER),intel)
-  FFLAGS += -DPROTECT_PARENS
+  FFLAGS += -DPROTECT_PARENS -O0 -g -traceback
+else
+  FFLAGS += -DPROTECT_PARENS -O0 -g -fbacktrace 
 endif
 
 # For MPI, use compiler wrapper and link to parallel-netcdf library
