@@ -311,7 +311,6 @@ C Read landuse parameters and coefficients for tracer dry deposition:
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
       call cheminit ! **** Initialize the chemistry ****
-      call special_layers_init
 #endif
 #ifdef TRACERS_COSMO
       do n=1,ntm

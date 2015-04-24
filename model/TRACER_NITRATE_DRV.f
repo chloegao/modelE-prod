@@ -1,5 +1,5 @@
 #include "rundeck_opts.h"
-      SUBROUTINE EQSAM_DRV
+      SUBROUTINE EQSAM_DRV(LTOP)
 !@sum
 !@+     This routine sets up for and calls the thermodynamic module for aerosol
 !@+     gas-particle partitioning.
@@ -49,7 +49,7 @@
 
       IMPLICIT NONE
 
-      INTEGER:: j,l,i,J_0, J_1,n,I_0,I_1
+      INTEGER:: j,l,i,J_0, J_1,n,I_0,I_1,LTOP
       ! Call parameters for the EQSAM thermodynamic model. 
 
       INTEGER, PARAMETER :: NCA  = 11    ! fixed number of input variables
@@ -135,7 +135,7 @@
       YI(1,:) = 0.d0
       YO(1,:) = 0.d0
 
-      DO L=1,LM                            
+      DO L=1,LTOP
       DO J=J_0,J_1                               
       DO I=I_0,I_1
 ! meteo
@@ -226,6 +226,19 @@ c avol [m3/gb] mass of air pro m3
       ENDDO
       ENDDO
       ENDDO
+
+! Set source to zero above the chemistry:
+      DO L=LTOP+1,LM
+      DO J=J_0,J_1
+      DO I=I_0,I_1
+      tr3Dsource(i,j,l,1,n_NO3p)= 0.d0
+      tr3Dsource(i,j,l,3,n_HNO3)= 0.d0
+      tr3Dsource(i,j,l,1,n_NH3)= 0.d0
+      tr3Dsource(i,j,l,1,n_NH4)= 0.d0
+      ENDDO
+      ENDDO
+      ENDDO
+
 
       END SUBROUTINE EQSAM_DRV
 

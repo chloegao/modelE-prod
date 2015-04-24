@@ -442,7 +442,7 @@ implicit none
 !@var y_mw =y/tr_mm*mw
 real*8,dimension(ntm)                    :: y0_ug,y_ug,y_mw
 real*8, intent(in)                       :: bypfactor
-real*8, dimension(LM,ntm), intent(inout) :: changeL
+real*8, intent(inout) :: changeL(:,:) ! automatic
 !@var jl looping index
 integer                                  :: jl
 integer, intent(in)                      :: III,JJJ,L
@@ -496,7 +496,7 @@ logical, parameter :: NH4part=.false.
 !@var SOAevap set to true if SOA can evaporate after condensation
 logical, parameter :: SOAevap=.true.
 
-!DO JL=1,LM
+!DO JL=1,LM ! if this gets put back in, use size( ) to get changeL L-dim instead of LM!
 DO JL=L,L
 
 !
@@ -860,7 +860,7 @@ DO JL=L,L
   ! During some testing, when the model got to this section of code (too many
   ! interations), NCCS compute nodes started to run out of memory, so there
   ! is a model stop for now:
-  call stop_model(255,'soa_aerosolphase: stop to prevent memory issue')
+  call stop_model('soa_aerosolphase: stop to prevent memory issue',255)
   goto 60
 !
 ! Found solution for M0

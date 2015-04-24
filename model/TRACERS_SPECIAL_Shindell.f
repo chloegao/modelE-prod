@@ -78,8 +78,7 @@
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)  :: avg_model,PRS_ch4
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)  :: avg_ncep,sum_ncep
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:):: HRA_ch4
-      integer, dimension(nra_ncep)           :: iday_ncep, i0_ncep,
-     &                                          first_ncep
+      integer, dimension(nra_ncep) :: iday_ncep=0,i0_ncep=0,first_ncep=1
       INTEGER, ALLOCATABLE, DIMENSION(:,:,:) :: iHch4,iDch4,i0ch4,
      &                                          first_mod
       real*8, allocatable, dimension(:,:,:) ::  PTBA,PTBA1,PTBA2
@@ -150,6 +149,22 @@
       allocate( PTBA1(I_0H:I_1H,J_0H:J_1H,nncep) )
       allocate( PTBA2(I_0H:I_1H,J_0H:J_1H,nncep) )
       allocate( add_wet_src(I_0H:I_1H,J_0H:J_1H) )
+
+      first_mod(:,:,:) = 1  
+      iHch4(:,:,:) = 0
+      iDch4(:,:,:) = 0
+      i0ch4(:,:,:) = 0   
+      day_ncep(:,:,:,:) =  0.d0
+      DRA_ch4(:,:,:,:) =  0.d0 
+      avg_model(:,:,:) = 0.d0 
+      PRS_ch4(:,:,:) = 0.d0
+      avg_ncep(:,:,:) = 0.d0
+      sum_ncep(:,:,:) = 0.d0
+      HRA_ch4(:,:,:,:) = 0.d0
+      PTBA(:,:,:) = 0.d0
+      PTBA1(:,:,:) = 0.d0
+      PTBA2(:,:,:) = 0.d0
+      add_wet_src(:,:) = 0.d0
 #endif      
       
       return
@@ -191,7 +206,6 @@ C**** linearly in time (at 1% increase per year)
       I_1 = grid%I_STOP
 
       bydtsrc=1.d0/DTsrc
-      !by_s_in_yr = 1.d0/(365.d0*24.d0*60.d0*60.d0)
       by_s_in_yr = 1.d0/SECONDS_PER_YEAR
 
 C initial source is an overwriting of GLTic pppv, then add
@@ -201,7 +215,7 @@ C we change that.)
       new_mr = GLTic * (1.d0 +
      &(Itime-ItimeI-itime_tr0(n_GLT))*DTsrc*by_s_in_yr*1.d-2) !pppv
       do j=J_0,J_1; do i=I_0,imaxj(j)
-        new_mass = new_mr*vol2mass(n_GLT)*MA(1,i,j)*AXYP(i,j) ! kg
+        new_mass=new_mr*vol2mass(n_GLT)*MA(1,i,j)*AXYP(i,j) ! kg
         tr3Dsource(i,j,1,1,n_GLT)=(new_mass-trm(i,j,1,n_GLT))*bydtsrc
         !i.e. tr3Dsource in kg/s 
       end do   ; end do
@@ -922,52 +936,6 @@ C
       RETURN
       END SUBROUTINE LOGPINT
  
- 
-#ifdef TRACERS_ON
-      SUBROUTINE special_layers_init
-!@sum special_layers_init determined special altitude levels that
-!@+ are important to Drew Shindell's tracer code.  This is done to
-!@+ so that hardcoded levels are not needed when switching
-!@+ vertical resolutions.
-!@auth Greg Faluvegi
-      USE RESOLUTION, only : ptop,psf
-      USE RESOLUTION, only : LM
-      USE DYNAMICS, only : sig
-      USE TRCHEM_Shindell_COM, only: L75P,L75M,F75P,F75M, ! FACT1
-     &                           L569P,L569M,F569P,F569M  ! CH4
- 
-      IMPLICIT NONE
-
-!@var natural log of nominal pressure for verticle interpolations
-!@var log75 natural log of 75 hPa
-!@var log569 natural log of 569 hPa
-      REAL*8 log75,log569
-      REAL*8, DIMENSION(LM) :: LOGP
-      INTEGER L
-       
-      LOGP(:)=LOG(SIG(:)*(PSF-PTOP)+PTOP)
-      log75=LOG(75.d0)
-      log569=LOG(569.d0)
-  
-      DO L=1,LM-1
-        IF(LOGP(L) > log75 .and. LOGP(L+1) < log75) THEN
-          L75P=L+1 ! these are for FACT1 variable in strat overwrite
-          L75M=L   ! hence effects several tracers
-          F75P=(log75-LOGP(L75M))/(LOGP(L75P)-LOGP(L75M))
-          F75M=(LOGP(L75P)-log75)/(LOGP(L75P)-LOGP(L75M))
-        END IF
-        IF(LOGP(L) > log569 .and. LOGP(L+1) < log569) THEN
-          L569P=L+1 ! these are for the CH4 strat overwrite
-          L569M=L
-          F569P=(log569-LOGP(L569M))/(LOGP(L569P)-LOGP(L569M))
-          F569M=(LOGP(L569P)-log569)/(LOGP(L569P)-LOGP(L569M))
-        END IF
-      END DO
-       
-      RETURN
-      END SUBROUTINE special_layers_init
-#endif
-
 
 #ifdef INTERACTIVE_WETLANDS_CH4
       subroutine running_average(var_in,I,J,nicall,m)

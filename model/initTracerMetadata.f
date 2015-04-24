@@ -150,7 +150,7 @@
       use RunTimeControls_mod, only: tracers_minerals
       use RunTimeControls_mod, only: tracers_quarzhem
       use RunTimeControls_mod, only: tracers_on
-      use RunTimeControls_mod, only: htap_like_diags
+      use RunTimeControls_mod, only: accmip_like_diags
       use RunTimeControls_mod, only: tracers_air
       use RunTimeControls_mod, only: tracers_amp
       use OldTracer_mod, only: HSTAR
@@ -333,7 +333,7 @@
       end if
 #endif
 
-      if (tracers_air .or. htap_like_diags) then
+      if (tracers_air .or. accmip_like_diags) then
         call  air_setSpec('Air')
       end if
 

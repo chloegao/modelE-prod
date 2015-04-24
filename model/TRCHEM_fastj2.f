@@ -3,7 +3,6 @@
       module photolysis
 
       USE DOMAIN_DECOMP_ATM, only: write_parallel 
-      use RESOLUTION, only: lm
       use constant, only: pO2
 #ifdef TRACERS_ON
       use RAD_COM, only: njaero
@@ -25,7 +24,7 @@
 !@param jpnl number of photolysis levels
 !@param szamax max Zenith Angle(98 deg at 63 km;99 degrees at 80 km)
 !@param ncfastj2 number of levels in the fastj2 atmosphere
-!@param nbfastj number of boundaries for fastj2 (=lm+1)
+!@param nbfastj number of boundaries for fastj2 (e.g. jpnl+1...)
 !@param N__ Number of levels in Mie grid: 2*(2*lpar+2+jaddto(1))+3
 !@param M__ Number of Gauss points used
 !@param nfastj number of quadrature points in OPMIE
@@ -37,10 +36,8 @@
 !@param np maximum aerosol phase functions
 !@param n_bnd3 maximum number of spectral bands 3
 !@param nlevref number of reference levels for T/O3 profiles
-      integer, parameter :: jpnl=lm
-     &                     ,szamax=98.d0
-     &                     ,ncfastj2=2*lm+2
-     &                     ,nbfastj=lm+1
+      integer, parameter :: 
+     &                      szamax=98.d0
      &                     ,N__=1800 !jan00, was 450, then 900 in Nov99
      &                     ,M__=4
      &                     ,nfastj=4
@@ -52,6 +49,12 @@
      &                     ,np=60
      &                     ,n_bnd3=107
      &                     ,nlevref=51
+     &                     ,maxLQQ=3
+      integer :: ! these formerly parameters
+     & jpnl,ncfastj2,nbfastj
+!@var NLGCM is a replacement of LM for the number of layers of the GCM that 
+!@+ fastj knows about.
+      integer :: NLGCM
 !@var title0 blank title read in I think
       character(len=78) :: title0
 !@var lpdep Label for pressure dependence
@@ -61,7 +64,7 @@
 !@var title_aer_pf titles read from aerosol phase function file
       character(len=20), dimension(np) :: title_aer_pf !formerly TITLEA( )
 !@var jndlev Levels at which we want J-values (centre of CTM levels)
-      integer, dimension(lm) :: jndlev
+      integer, allocatable, dimension(:) :: jndlev
 #ifdef TRACERS_ON
 !@param miedx2 choice of aerosol types for fastj2
       integer, allocatable, dimension(:,:) :: miedx2
@@ -120,9 +123,18 @@
 !@var pomega Scattering phase function
       real*8, dimension(2*M__,N__)     :: pomega
 !@var pomegaj Scattering phase function. the 2nd dimension on pomegaj
-      real*8, dimension(2*M__,2*LM+2+1):: pomegaj
+!@+   is level-dependent so make this allocatable.
+      real*8, allocatable, dimension(:,:):: pomegaj
+#ifndef AR5_FASTJ_XSECS /* NOT */
+!@var lqq number of xsections for this specie
+      integer, dimension(njval-3)      :: lqq
+#endif
 !@var tqq Temperature for supplied cross sections
+#ifndef AR5_FASTJ_XSECS /* NOT */
+      real*8, dimension(maxLQQ,njval)  :: tqq
+#else
       real*8, dimension(3,njval)       :: tqq
+#endif
 !@var qaafastj Aerosol scattering phase functions
 !@var waafastj Wavelengths for the NK supplied phase functions
       real*8, dimension(4,np)          :: qaafastj,waafastj
@@ -142,26 +154,30 @@
       real*8, dimension(nwfastj,3)     :: qo2,qo3,q1d,zpdep !XXX zpdep XXXXXXXXX
 !@var qqq Supplied cross sections in each wavelength bin (cm2),
 !@+       read in in RD_TJPL
+#ifndef AR5_FASTJ_XSECS /* NOT */
+      real*8, dimension(nwfastj,maxLQQ,njval-3):: qqq
+#else
       real*8, dimension(nwfastj,2,njval-3):: qqq
+#endif
 !@var fff Actinic flux at each level for each wavelength bin and level
-      real*8, dimension(nwfastj,jpnl)  :: fff
+      real*8, allocatable, dimension(:,:)  :: fff
 !@var oref2    fastj2 O3 reference profile
 !@var tref2    fastj2 temperature reference profile
       REAL*8, DIMENSION(nlevref,18,12)       :: oref2,tref2
 !@var amf Air mass factor for slab between level and level above
-      real*8, dimension(nbfastj,nbfastj):: amf
+      real*8, allocatable, dimension(:,:):: amf
 !@var tj2 Temperature profile on fastj2 photolysis grid
 !@var do32 fastj2 Ozone number density at each pressure level (")
 !@var zfastj2 Altitude of boundaries of model levels (cm) fastj2
 !@var dmfastj2 fastj2 Air column for each model level (molec/cm2)
-      real*8, dimension(nbfastj) :: tj2,do32,zfastj2,dmfastj2
+      real*8, allocatable, dimension(:) :: tj2,do32,zfastj2,dmfastj2
 !@var tfastj temperature profile sent to FASTJ
 !@var odcol Optical depth at each model level
-      real*8, dimension(lm) :: tfastj,odcol
+      real*8, allocatable, dimension(:) :: tfastj,odcol
 !@var pfastj2 pressure at level boundaries, sent to FASTJ2
-      real*8, dimension(lm+3) :: pfastj2
+      real*8, allocatable, dimension(:) :: pfastj2
 !@var o3_fastj ozone sent to fastj
-      real*8, dimension(2*lm) :: o3_fastj
+      real*8, allocatable, dimension(:) :: o3_fastj
 !@var ssa single scattering albedo ?
 !@var raa ?
       real*8, dimension(4,np) :: ssa,raa
@@ -196,11 +212,20 @@
       implicit none
 
 !@var rh humidity profile used to choose scattering input for FASTJ2
-      real*8, dimension(lm), intent(in) :: ta,rh
+      real*8, intent(in) :: ta(:)
+      real*8, intent(in) :: rh(:)
       integer, intent(in) :: i, j ! current box horizontal indices
 
       character(len=300) :: out_line
       integer :: LL,ii,irh,n
+
+      ! Check on the size of the temperature and relative humidity 
+      ! columns that were passed in. Used later in this routine to define
+      !  the fastj pressures too.
+      if(size(ta) /= NLGCM)
+     & call stop_model('ta size wrong in fastj2_drv',255)
+      if(size(rh) /= NLGCM)
+     & call stop_model('rh size wrong in fastj2_drv',255)
 
       tfastj=ta
 
@@ -231,7 +256,7 @@ c       17 = Dust (Clay, 4-rd size bin) (n_silt4)
 c       18 = Liquid Clouds
 c       19 = Ice Clouds
 
-        do LL=1,LM
+        do LL=1,NLGCM
           if (rh(LL) .lt. 0.15) then
             irh=0
           else if ((rh(LL) .ge. 0.15) .and. (rh(LL) .lt. 0.4)) then
@@ -290,9 +315,9 @@ c       19 = Ice Clouds
 
 c Now force extra level (top of the atmosphere) used in Fast-J
 c to have the same MIEDX2 as the top model level
-        MIEDX2(LM+1,1:njaero)=MIEDX2(LM,1:njaero)
+        MIEDX2(NLGCM+1,1:njaero)=MIEDX2(NLGCM,1:njaero)
 c  Ensure all aerosol types are valid selections:
-        do LL=1,LM+1
+        do LL=1,NLGCM+1
           do ii=1,njaero
             if(MIEDX2(LL,ii)>NAA .or. MIEDX2(LL,ii)<=0) then
               write(out_line,1201) MIEDX2(LL,ii),NAA
@@ -306,10 +331,10 @@ c  Ensure all aerosol types are valid selections:
 #endif  /* TRACERS_ON */
 
 c       define pressures to be sent to FASTJ (centers):
-        PFASTJ2(1:LM)=PMID(1:LM,I,J)
-        PFASTJ2(LM+1)=PEDN(LM+1,I,J)       ! P at SIGE(LM+1)
-        PFASTJ2(LM+2)=PFASTJ2(LM+1)*0.2816 ! 0.00058d0/0.00206d0 ! fudge
-        PFASTJ2(LM+3)=PFASTJ2(LM+2)*0.4828 ! 0.00028d0/0.00058d0 ! fudge
+        PFASTJ2(1:NLGCM)=PMID(1:NLGCM,I,J)
+        PFASTJ2(NLGCM+1)=PEDN(NLGCM+1,I,J)  ! P at SIGE(NLGCM+1)
+        PFASTJ2(NLGCM+2)=PFASTJ2(NLGCM+1)*0.2816 ! 0.00058d0/0.00206d0 ! fudge
+        PFASTJ2(NLGCM+3)=PFASTJ2(NLGCM+2)*0.4828 ! 0.00028d0/0.00058d0 ! fudge
         
         call photoj(I,J) ! CALL THE PHOTOLYSIS SCHEME
       end subroutine fastj2_drv
@@ -510,12 +535,12 @@ c  temperature half a layer on either side of the point supplied:
       end do
 
 c Overwrite O3 with GISS chemistry O3:
-      DO32(1:LM)=O3_FASTJ(1:LM)
-      TJ2(1:LM) =TFASTJ(1:LM)
+      DO32(1:NLGCM)=O3_FASTJ(1:NLGCM)
+      TJ2(1:NLGCM) =TFASTJ(1:NLGCM)
 
 c  Calculate effective altitudes using scale height at each level
       zfastj2(1) = 0.d0
-      do LL=1,LM
+      do LL=1,NLGCM
         scaleh=1.3806d-19*masfac*TFASTJ(LL)
         zfastj2(LL+1)=zfastj2(LL)-
      &                (log(PFASTJ2(LL+1)/PFASTJ2(LL))*scaleh)
@@ -528,13 +553,14 @@ c  Add Aerosol Column - include aerosol (+cloud) types here.
 #ifndef TRACERS_TOMAS
 #ifndef TRACERS_AMP
 c Now do the rest of the aerosols
-      AER2(1:LM,1:nraero)=ttausv_nraero(NSLON,NSLAT,1:LM,1:nraero)
+      AER2(1:NLGCM,1:nraero)=
+     & ttausv_nraero(NSLON,NSLAT,1:NLGCM,1:nraero)
 #endif
 #endif
 
 c  LAST two are clouds (liquid or ice)
 c  Assume limiting temperature for ice of -40 deg C :
-      do LL=1,LM
+      do LL=1,NLGCM
         if(TFASTJ(LL) > 233.d0) then
           AER2(LL,njaero-1) = odcol(LL)
           AER2(LL,njaero) = 0.d0
@@ -544,8 +570,8 @@ c  Assume limiting temperature for ice of -40 deg C :
         endif
       enddo
 
-c Top of the atmosphere
-      AER2(LM+1,:) = 0.d0
+c Top of the part of atmosphere passed to Fast-J2:
+      AER2(NLGCM+1,:) = 0.d0
 #endif
 
 c  Calculate column quantities for Fast-J2:
@@ -589,7 +615,7 @@ c Set and limit surface albedo
 
 c Scale optical depths as appropriate - limit column to 'odmax'
       odsum = 0.d0
-      do L=1,LM
+      do L=1,NLGCM
         odcol(L) = RCLOUDFJ(L,nslon,nslat)
         odsum = odsum + odcol(L)
       enddo
@@ -645,35 +671,65 @@ c                      1.0-(0.034*cos(real(iday-172)*2.0*pi/365.))
       integer :: i, j, k, l, nslon, nslat,jgas
       real*8  :: qo2tot, qo3tot, qo31d, qo33p, qqqt,
      &           solf, tfact
-      real*8, dimension(LM) :: Tx
       REAL*8, DIMENSION(NJVAL) :: VALJ
-
-      Tx(1:LM)=TFASTJ(1:LM)
+    
+      if (jpnl > NLGCM)
+     & call stop_model("JRATET unprepared for jpnl > NLGCM",255)
 
       DO I=1,jpnl 
         VALJ(1) = 0.d0
         VALJ(2) = 0.d0
         VALJ(3) = 0.d0
         DO K=NW1,NW2
-          QO2TOT= XSECO2(K,Tx(I))
+          QO2TOT= XSECO2(K,TFASTJ(I))
           VALJ(1) = VALJ(1) + QO2TOT*FFF(K,I)
-          QO3TOT= XSECO3(K,Tx(I))
-          QO31D = XSEC1D(K,Tx(I))*QO3TOT
+          QO3TOT= XSECO3(K,TFASTJ(I))
+          QO31D = XSEC1D(K,TFASTJ(I))*QO3TOT
           QO33P = QO3TOT - QO31D
           VALJ(2) = VALJ(2) + QO33P*FFF(K,I)
           VALJ(3) = VALJ(3) + QO31D*FFF(K,I)
         ENDDO
 C------ Calculate remaining J-values with T-dep X-sections
+#ifndef AR5_FASTJ_XSECS /* NOT */
+        ! This one allows option for 1 or 3 X-sections (not just 2):
+        do j=4,njval
+          valj(j) = 0.d0
+          select case(lqq(j-3))
+          case(1)
+            tfact = 0.d0
+          case(2)
+            tfact = DMAX1(0.d0,DMIN1(1.d0,
+     &              (TFASTJ(i)-tqq(1,j))/(tqq(2,j)-tqq(1,j)) ))
+          case(3)
+            if(TFASTJ(I) <= tqq(2,j))then
+              tfact = DMAX1(0.d0,DMIN1(1.d0,
+     &                (TFASTJ(i)-tqq(1,j))/(tqq(2,j)-tqq(1,j)) ))
+            else
+              tfact = DMAX1(0.d0,DMIN1(1.d0,
+     &                (TFASTJ(i)-tqq(2,j))/(tqq(3,j)-tqq(2,j)) ))
+            end if
+          end select
+          do k=nw1,nw2
+            if((lqq(j-3) == 3).and.(TFASTJ(i)>tqq(2,j))) then
+              qqqt = qqq(k,2,j-3) + (qqq(k,3,j-3) - qqq(k,2,j-3))*tfact
+            else
+              qqqt = qqq(k,1,j-3) + (qqq(k,2,j-3) - qqq(k,1,j-3))*tfact
+            end if
+            valj(j) = valj(j) + qqqt*fff(k,i)
+          end do
+        end do
+#else
         DO J=4,NJVAL !was NJVAL, add -2 for CFC & O2, ds4
           VALJ(J) = 0.d0
           TFACT = 0.d0
           IF(TQQ(2,J) > TQQ(1,J)) TFACT = DMAX1(0.D0,DMIN1(1.D0,
-     &    (Tx(I)-TQQ(1,J))/(TQQ(2,J)-TQQ(1,J)) ))
+     &    (TFASTJ(I)-TQQ(1,J))/(TQQ(2,J)-TQQ(1,J)) ))
           DO K=NW1,NW2
             QQQT = QQQ(K,1,J-3) + (QQQ(K,2,J-3) - QQQ(K,1,J-3))*TFACT 
             VALJ(J) = VALJ(J) + QQQT*FFF(K,I)
           ENDDO
         ENDDO
+#endif
 
         zj(i,1:jppj)=VALJ(jind(1:jppj))*jfacta(1:jppj)*solf
         
@@ -706,7 +762,7 @@ C**** Local parameters and variables and arguments:
       INTEGER             :: I, K, M, L
       character(len=300)  :: out_line
       logical             :: jay
-      REAL*8, DIMENSION(NBFASTJ)         :: COLO2,COLO3
+      REAL*8, allocatable, dimension(:)   :: COLO2,COLO3
 #ifdef TRACERS_ON
       REAL*8, allocatable, DIMENSION(:,:) :: COLAX
 #endif
@@ -716,6 +772,8 @@ C**** Local parameters and variables and arguments:
       if(NFASTJq == 0) return
 
 C---Calculate columns, for diagnostic output only:
+      allocate( COLO2(NBFASTJ) )
+      allocate( COLO3(NBFASTJ) )
       COLO3(NBFASTJ) = DO32(NBFASTJ)
       COLO2(NBFASTJ) = DMFASTJ2(NBFASTJ)*pO2
 #ifdef TRACERS_ON
@@ -787,6 +845,12 @@ C---Print out climatology:
         call write_parallel(trim(out_line),crit=jay)
       endif
       
+      deallocate( COLO2 )
+      deallocate( COLO3 )
+#ifdef TRACERS_ON
+      deallocate( colax )
+#endif
+
  1000 format(5X,'Zkm',3X,'Z*',8X,'M',8X,'O3',6X,'f-O3',5X,'T',7X,'P',6x,
      &    'col-O3',3X,'col-O2',2X,10(a7,2x))
  1100 format(1X,I2,0P,2F6.2,1P,2E10.3,0P,F7.3,F8.2,F10.4,1P,10E9.2)
@@ -811,9 +875,13 @@ C**** Local parameters and variables and arguments:
 !@var AVGF Attenuation of beam at each level for each wavelength
       INTEGER                    :: K,J
       INTEGER, INTENT(IN)        :: NSLON, NSLAT
-      REAL*8, DIMENSION(NBFASTJ) :: XQO3_2, XQO2_2
-      REAL*8, DIMENSION(JPNL)    :: AVGF
+      REAL*8, ALLOCATABLE, DIMENSION(:) :: XQO3_2, XQO2_2
+      REAL*8, ALLOCATABLE, DIMENSION(:) :: AVGF
       REAL*8                     :: WAVE
+
+      allocate( XQO3_2(NBFASTJ) )
+      allocate( XQO2_2(NBFASTJ) )
+      allocate( AVGF(JPNL) )
 
       AVGF(:) = 0.d0   ! JPNL
       FFF(NW1:NW2,:) = 0.d0 ! JPNL
@@ -831,6 +899,10 @@ C---Loop over all wavelength bins:
         CALL OPMIE(K,WAVE,XQO2_2,XQO3_2,AVGF)
         FFF(K,:) = FFF(K,:) + FL(K)*AVGF(:) ! 1,JPNL
       END DO
+
+      deallocate( XQO3_2 )
+      deallocate( XQO2_2 )
+      deallocate( AVGF   )
 
       RETURN
       END SUBROUTINE JVALUE
@@ -960,11 +1032,15 @@ C**** Local parameters and variables and arguments:
       INTEGER :: II, I, J, K
       REAL*8  :: Ux, Htemp, AIRMAS, GMU, ZBYR, xmu1, xmu2, xl, DIFF
      &          ,tanht
-      REAL*8, DIMENSION(NBFASTJ) :: RZ, RQ
+      REAL*8, ALLOCATABLE, DIMENSION(:) :: RZ, RQ
   
+      ! this dude is a function:
       AIRMAS(Ux,Htemp) = (1.0d0+Htemp)/SQRT(Ux*Ux+2.0d0*Htemp*(1.0d0-
      & 0.6817d0*EXP(-57.3d0*ABS(Ux)/SQRT(1.0d0+5500.d0*Htemp))/
      & (1.0d0+0.625d0*Htemp)))
+
+      allocate( RZ(NBFASTJ) )
+      allocate( RQ(NBFASTJ) )
 
       GMU = U0
       RZ(1)=radius+ZFASTJ2(1)
@@ -989,7 +1065,7 @@ c Air Mass Factors all zero if below the tangent height:
 
 c Ascend from layer J calculating Air Mass Factors (AMFs): 
         XMU1=ABS(GMU)
-        DO I=J,LM
+        DO I=J,NLGCM
           XMU2=DSQRT(1.0d0-RQ(I)*(1.0d0-XMU1**2))
           XL=RZ(I+1)*XMU2-RZ(I)*XMU1
           AMF(I,J)=XL/(RZ(I+1)-RZ(I))
@@ -1022,6 +1098,10 @@ c Lowest level intersected by emergent beam;
         END DO
 
       END DO
+
+      deallocate( RZ )
+      deallocate( RQ )
+
       RETURN
       END SUBROUTINE SPHERE
 
@@ -1131,10 +1211,11 @@ C**** Local parameters and variables and arguments:
 
       integer :: KW,km,i,j,k,l,ix,j1,ND
       character(len=300) :: out_line
-      REAL*8, DIMENSION(NBFASTJ) :: DTAUX,PIRAY2
-      REAL*8, INTENT(IN), DIMENSION(NBFASTJ) :: XQO2_2,XQO3_2
-      REAL*8, DIMENSION(NCFASTJ2+1) :: TTAU,FTAU
-      REAL*8, INTENT(OUT), DIMENSION(LM) :: FMEAN
+      REAL*8, ALLOCATABLE, DIMENSION(:) :: DTAUX,PIRAY2
+      REAL*8, INTENT(IN) :: XQO2_2(:)
+      REAL*8, INTENT(IN) :: XQO3_2(:)
+      REAL*8, ALLOCATABLE, DIMENSION(:) :: TTAU,FTAU
+      REAL*8, INTENT(OUT) :: FMEAN(:)
 #ifdef TRACERS_ON
       REAL*8, allocatable, DIMENSION(:,:) :: PIAER2
       REAL*8, allocatable, DIMENSION(:,:) :: QXMIE,SSALB
@@ -1145,6 +1226,11 @@ C**** Local parameters and variables and arguments:
       REAL*8 xlo2,xlo3,xlray,xltau2,zk,zk2,taudn,tauup,
      & ftaulog,dttau,ftaulog2,dttau2
 
+      allocate( DTAUX(NBFASTJ) )
+      allocate( PIRAY2(NBFASTJ) )
+      allocate( TTAU(NCFASTJ2+1) )
+      allocate( FTAU(NCFASTJ2+1) )
+    
 C---Pick nearest Mie wavelength, no interpolation--------------
                              KM=1
       if( WAVEL  >  355.d0 ) KM=2
@@ -1209,14 +1295,14 @@ C---Calculate attenuated incident beam EXP(-TTAU/U0) & flux on surface:
 C---in UV region, use pseudo-Rayleigh absorption instead of scattering:
       if (WAVEL <= 291.d0) then
 C---Accumulate attenuation for level centers:
-        do j=1,LM
+        do j=1,NLGCM
           if (j < J1) then
             FMEAN(J) = 0.d0
           else
             FMEAN(J) = sqrt(FTAU(J)*FTAU(J+1))
           endif
         enddo
-        return
+        GOTO 999 ! was return which prevented deallocation
 C---In visible region, consider scattering. Define the scattering
 C---phase function with mix of Rayleigh(1) & Mie(MIEDX2).
 C No. of quadrature pts fixed at 4 (M__), expansion of phase fn @ 8
@@ -1241,7 +1327,7 @@ C--------------------------------------------------------------------
 
 c Set lower boundary and levels to calculate J-values at: 
         J1=2*J1-1
-        do j=1,LM
+        do j=1,NLGCM
           jndlev(j)=2*j
         enddo
 
@@ -1316,7 +1402,7 @@ c Reinitialize level arrays:
      &    But for other years, please check
      &    for possible issues.',255)
         endif
-        jndlev(:)=jndlev(:)+jaddto(jndlev(:)-1) ! LM
+        jndlev(:)=jndlev(:)+jaddto(jndlev(:)-1) ! NLGCM
         jaddto(NCFASTJ2)=jaddlv(NCFASTJ2)
         do j=NCFASTJ2-1,J1,-1
           jaddto(j)=jaddto(j+1)+jaddlv(j)
@@ -1439,7 +1525,7 @@ C-----------------------------------------
 
 c Accumulate attenuation for selected levels:
         l=2*(NCFASTJ2+jaddto(J1))+3
-        do j=1,LM
+        do j=1,NLGCM
           k=l-(2*jndlev(j))
           if(k > ND-2) then
             FMEAN(j) = 0.d0
@@ -1449,6 +1535,18 @@ c Accumulate attenuation for selected levels:
         enddo
 
       endif ! WAVEL
+
+  999 continue
+      deallocate( DTAUX )
+      deallocate( PIRAY2 )
+      deallocate( TTAU )
+      deallocate( FTAU )
+#ifdef TRACERS_ON
+      deallocate( piaer2 )
+      deallocate( qxmie )
+      deallocate( ssalb )
+      deallocate( xlaer )
+#endif
 
       return
  1000 format(1x,i3,3(2x,1pe11.4),1x,i3)
@@ -1949,6 +2047,8 @@ c Read in T & O3 climatology:
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
 !@ver  1.0 (based on cheminit0C5_M23p & ds4p_chem_init_M23)
 
+      USE constant, only: undef 
+
       IMPLICIT NONE
 
 C**** Local parameters and variables and arguments:
@@ -1960,6 +2060,8 @@ C**** Local parameters and variables and arguments:
       INTEGER, INTENT(IN) :: NJ1
       INTEGER             :: i,j,k,iw,jj,nqqq,NJVAL2
       character(len=300)  :: out_line
+      character*20 :: titlex
+      integer :: lq
 
       TQQ = 0.d0
 
@@ -1981,8 +2083,10 @@ C Read in spectral data:
         call stop_model('NJVAL problem in RD_TJPL',255)
       END IF
       NQQQ = NJVAL-3
+#ifdef AR5_FASTJ_XSECS /* YES */
       READ(NJ1,102) (WBIN(IW),IW=1,NWWW)
       READ(NJ1,102) (WBIN(IW+1),IW=1,NWWW)
+#endif
       READ(NJ1,102) (WL(IW),IW=1,NWWW)
       if(rad_FL == 0)then ! use offline photon flux values
         READ(NJ1,102) (FL(IW),IW=1,NWWW)
@@ -2007,6 +2111,52 @@ C Read O2 X-sects, O3 X-sects, O3=>O(1D) quant yields(each at 3 temps):
         call write_parallel(trim(out_line))
       enddo
 
+#ifndef AR5_FASTJ_XSECS /* NOT */
+! really the #else section could have been incorporated as a subset
+! of this, but I wanted to keep it strictly separate for the moment...
+! Be careful if you implement full fastj-X, because looks like TQQ,
+! QQQ, and LQQ have same J dimension (e.g. not J vs. J-3 as here).
+! Here I made LQQ follow QQQ not TQQ. Also worth noting that no
+! provision is put in yet for pressure-interpolated X-sections. 
+!
+C Read remaining species:  X-sections at 1 2 or 3 T's :
+      loop_nqqq: do J=1,NQQQ
+        LQQ(J)=1
+        read(NJ1,103) TITLEJ(LQQ(J),J+3),TQQ(LQQ(J),J+3),
+     &                (QQQ(IW,LQQ(J),J),IW=1,NWWW)
+        loop_lq: do LQ=2,maxLQQ
+          read(NJ1,1031) TITLEX ; backspace(NJ1)
+          if(TITLEX == TITLEJ(LQQ(J),J+3)) then
+            LQQ(J)=LQ
+            read(NJ1,103)TITLEJ(LQQ(J),J+3),TQQ(LQQ(J),J+3),
+     &                (QQQ(IW,LQQ(J),J),IW=1,NWWW)
+            cycle loop_lq
+          else ! done with this specie
+            if(LQQ(J) < maxLQQ)then
+              ! fill in rest with undefined for a little more safety:
+              titlej(LQQ(J)+1:maxLQQ,J+3)='undefined'
+              TQQ(LQQ(J)+1:maxLQQ,J+3)=undef
+              QQQ(1:NWWW,LQQ(J)+1:maxLQQ,J)=undef
+            else if(LQQ(J) > maxLQQ) then
+              write(out_line,*)'Unexpected LQQ(',J,') value of ',LQQ(J)
+              call write_parallel(trim(out_line),crit=.true.)
+              call stop_model('Photolysis: Unexpected LQQ.',255)
+            end if
+            exit loop_lq ! specie ready; move on
+          end if
+        end do loop_lq
+        write(out_line,200) titlej(1,J+3),(TQQ(i,J+3),i=1,LQQ(J))
+        call write_parallel(trim(out_line))
+        ! check monotonically increasing T's:
+        do LQ=2,LQQ(J)
+          if(TQQ(LQ-1,J+3) > TQQ(LQ,J+3))then
+            write(out_line,*)'TQQ order bad:',TQQ(LQ-1,J+3),TQQ(LQ,J+3)
+            call write_parallel(trim(out_line),crit=.true.)
+            call stop_model('Photolysis: TQQ out of order',255)
+          end if
+        end do
+      end do loop_nqqq
+#else /* I.e. newer coding: */
 C Read remaining species:  X-sections at 2 T's :
       DO J=1,NQQQ
         READ(NJ1,103) TITLEJ(1,J+3),TQQ(1,J+3),(QQQ(IW,1,J),IW=1,NWWW)
@@ -2014,6 +2164,7 @@ C Read remaining species:  X-sections at 2 T's :
         write(out_line,200) titlej(1,j+3),(tqq(i,j+3),i=1,2)
         call write_parallel(trim(out_line))
       ENDDO
+#endif
       READ(NJ1,'(A)') TITLE0
 
 C (Don't) read pressure dependencies:
@@ -2084,6 +2235,7 @@ C Read aerosol phase functions:
   101 FORMAT(8E10.3)
   102 FORMAT((10X,6E10.3)/(10X,6E10.3)/(10X,6E10.3))
   103 FORMAT(A7,F3.0,6E10.3/(10X,6E10.3)/(10X,6E10.3))
+ 1031 FORMAT(A7)
   104 FORMAT(13x,i2)
   105 FORMAT(A7,3x,7E10.3)
   106 FORMAT(f5.0,F8.4,F7.3,F8.4,1x,8F6.3)

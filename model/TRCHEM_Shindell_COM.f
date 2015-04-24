@@ -11,7 +11,7 @@ c
       USE ATM_COM, only    : MA, byMA, PMID, PK
       USE TRACER_COM, only : NTM, trm, ntm_soa, ntm_terp
       use OldTracer_mod, only: TR_MM
-      USE TRACER_COM, only : ntm, trm, TR_MM, ntm_soa, ntm_terp
+      USE TRACER_COM, only : ntm, trm, ntm_soa, ntm_terp
 
       IMPLICIT NONE
       SAVE
@@ -65,8 +65,7 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
       INTEGER, PARAMETER ::
      & LCOalt =   23,
      & LCH4alt=    6,
-     & p_1   =     2 
-      INTEGER, PARAMETER ::
+     & p_1   =     2, 
      & p_2   =   209,
      & p_3   =   500,
      & p_4   =   209,
@@ -111,9 +110,9 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
      & nO2=       52+ntm_terp+ntm_soa,
      & nM=        53+ntm_terp+ntm_soa,     !you must always put nM last (highest number)
      & JPPJ_Shindell = 28,
-     & n_fam =     5
-      INTEGER, PARAMETER ::
+     & n_fam =     5,
      & p_5   =    14,
+     & n_phot=     2  
 C ----------------------------------------------     
 c     & n_Ox=        1,    ! note, these
 c     & n_NOx=       2,    ! first 15 species are
@@ -132,9 +131,6 @@ c     & n_Alkenes=  14,    !  S
 c     & n_Paraffin= 15,    !
 c     & n_Terpenes= 16,    ! ---------------
 C ----------------------------------------------   
-     & n_phot=     2  
-      INTEGER, PARAMETER, DIMENSION(12) :: MDOFM =
-     & (/31,59,90,120,151,181,212,243,273,304,334,365/)
      
       REAL*8, PARAMETER ::  O3MULT       = 2.14d-2,
      &                      BYO3MULT     = 1./O3MULT,
@@ -147,13 +143,12 @@ C ----------------------------------------------
      &                      zlbatm       = 4.d0,
      &                      CMEQ1        = 0.25d0,
      &                      byradian     = 1.d0/radian,
-     &                      cpd          = 1.d6/avog
-     &                     ,minKG        = 0.d0
-     &                     ,cfc_pppv     = 1722.d-12
-     &                     ,n2o_pppv     = 316.3d-9
-     &                     ,cfc_rad95    = 794.d-12 
-     &                     ,fact_cfc     = cfc_pppv/cfc_rad95
-
+     &                      cpd          = 1.d6/avog,
+     &                      minKG        = 0.d0,
+     &                      cfc_pppv     = 1722.d-12,
+     &                      n2o_pppv     = 316.3d-9,
+     &                      cfc_rad95    = 794.d-12, 
+     &                      fact_cfc     = cfc_pppv/cfc_rad95
 C Please note: since PCOalt is essentially the nominal 
 C pressures for the 23-level GCM, I'm going to use it
 C to define BrOx,ClOx,ClONOs,HCL,COIC,OxIC,CFCIC,N2OICX,CH4ICX too:
@@ -176,7 +171,6 @@ C to define BrOx,ClOx,ClONOs,HCL,COIC,OxIC,CFCIC,N2OICX,CH4ICX too:
      &     ,HClaltIN = (/1.d0,1.d0,1.d0,1.d0,1.d0,1.d0,1.d0,1.d0,1.d0,
      &     1.d0,1.d0,2.5d1,4.0d1,9.0d1,1.7d2,1.9d2,2.5d2,2.5d2,2.5d2,
      &     2.5d2,2.5d2,2.5d2,2.5d2/)
-c$$$#endif
       REAL*8, PARAMETER, DIMENSION(LCH4alt) :: PCH4alt = 
      &                     (/569d0, 150d0, 100d0, 32d0, 3.2d0, 0.23d0/)
       REAL*8, PARAMETER, DIMENSION(LCH4alt) ::   
@@ -213,7 +207,8 @@ c$$$#endif
 !@dbparam PIratio_CO_T to scale tropospheric CO IC and overwrite
 !@dbparam PIratio_CO_S to scale stratospheric CO IC and overwrite
 !@dbparam PIratio_other to scale PAN,Isoprene,AlkyNit,Alkenes,Paraffin
-!@+       ,Terpenes initial conditions and stratospheric overwriting.
+!@+       ,Terpenes
+!@+       initial conditions and stratospheric overwriting.
 !@dbparam PIratio_N2O preindustrial ratio for N2O ICs and L=1 overwrite
 !@dbparam PIratio_CFC preindustrial ratio for CFC ICs and L=1 overwrite
 !@+       with model time (JYEAR, JMON, JDAY) 
@@ -225,16 +220,16 @@ c$$$#endif
      &                 ,use_rad_ch4       = 0
      &                 ,use_rad_n2o       = 0
      &                 ,use_rad_cfc       = 0
-     &                 ,Lmax_rad_O3       = LM
-     &                 ,Lmax_rad_CH4      = LM
+     &                 ,Lmax_rad_O3       = LM ! not topLevelOfChemistry
+     &                 ,Lmax_rad_CH4      = LM ! not topLevelOfChemistry
      &                 ,allowSomeChemReinit = 1
-      REAL*8 ::             ch4_init_sh   = 1.750d0,
-     &                      ch4_init_nh   = 1.855d0,
-     &                      scale_ch4_IC_file= 1.d0, 
-     &                      PIratio_N     = 0.667d0,
-     &                      PIratio_CO_T  = 0.667d0,
-     &                      PIratio_CO_S  = 0.500d0,
-     &                      PIratio_other = 0.500d0
+      REAL*8 ::             ch4_init_sh   = 1.750d0
+     &                     ,ch4_init_nh   = 1.855d0
+     &                     ,scale_ch4_IC_file= 1.d0 
+     &                     ,PIratio_N     = 0.667d0
+     &                     ,PIratio_CO_T  = 0.667d0
+     &                     ,PIratio_CO_S  = 0.500d0
+     &                     ,PIratio_other = 0.500d0
      &                     ,PIratio_N2O   = 0.896d0
      &                     ,PIratio_CFC   = 0.000d0
      &                     ,PltOx         = 0.100d0
@@ -249,6 +244,7 @@ c$$$#endif
       LOGICAL, PARAMETER :: luselb            = .false.
 
 C**************  V  A  R  I  A  B  L  E  S *******************  
+!@var topLevelOfChemistry the model level above which no chemistry is done
 !@var nn reactant's number in mol list, first index reactant 1 or 2,
 !@+      second - reaction number
 !@var nnr reaction product's number in mol list, indicies like nn
@@ -325,7 +321,8 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var BYFJM = 1/JM
 !@var MODPHOT if MODPHOT=0 do photolysis, else skip it
 !@var TX temperature variable for master chem
-!@var ta, pres local arrays to hold temperature,pressure
+!@var ta local array to hold temperature
+!@var rh local array to hold relative humidity
 !@var FASTJLAT,FASTJLON latitude & LONGITUDE (degrees) for use in fastj
 !@var sulfate N2O5 sulfate sink (formerly SRC(I,J,L,20) variable)   
 !@var dms_offline DMS concentration for HOx sink reactions
@@ -341,7 +338,6 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var ratioNs,ratioN2,rNO2frac,rNOfrac,rNOdenom variables for nitrogen
 !@+   conservation (strat)
 !@var chemrate,photrate ?   
-!@var MDOFM cumulative days at end of each month
 !@var L75P first model level above nominal 75 hPa
 !@var L75M first model level below nominal 75 hPa
 !@var F75P interpolation coeff. of higher altitude value (units ln(P))
@@ -363,8 +359,14 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var l1NO2_acc accumulated L=1 NO2 (special for SUBDD)
 !@var save_NO2column instantaneous NO2 column (for SUBDD exporting)
 !@var RGAMMASULF N2O5-->HNO3 conversion on aerosols?
+!@var changeL 2D array holds the local change due to chem until
+!@+   adding to tr3Dsource
+!@var bythick recipricol thickness of each layer (1/m) saved on
+!@+ model layers.
+!@var ClOx_old total ClOx at start of chemical timestep
+!@var aero yes(1) or no(0) tag of non-zero rkext from Crates
       INTEGER :: nr,nr2,nr3,nmm,nhet,MODPHOT,L75P,L75M,L569P,L569M,
-     &lprn,jprn,iprn,MIEDX,NCFASTJ
+     &lprn,jprn,iprn,MIEDX,NCFASTJ,topLevelOfChemistry
       INTEGER, DIMENSION(n_fam)        :: nfam = 
      &     (/37+ntm_terp+ntm_soa,40+ntm_terp+ntm_soa,
      &       44+ntm_terp+ntm_soa,50+ntm_terp+ntm_soa,0/)
@@ -372,6 +374,7 @@ C**************  V  A  R  I  A  B  L  E  S *******************
       INTEGER, DIMENSION(p_3)          :: nps, nds, npnr, ndnr
       INTEGER, DIMENSION(p_4)          :: kps, kds, kpnr, kdnr
       INTEGER, DIMENSION(n_nst)        :: nst
+      INTEGER, ALLOCATABLE, DIMENSION(:) :: aero
 
 C**************  Latitude-Dependant (allocatable) *******************
       REAL*8, ALLOCATABLE, DIMENSION(:)       :: DU_O3
@@ -390,45 +393,54 @@ C**************  Not Latitude-Dependant ****************************
       REAL*8 :: XLTAU,BYFJM,
      & FASTJLAT,FASTJLON,DT2,F75P,F75M,F569P,F569M,RGAMMASULF
      & ,ratioNs,ratioN2,rNO2frac,rNOfrac,rNOdenom
-      REAL*8, DIMENSION(nc,LM)         :: y
-      REAL*8, DIMENSION(n_rx,LM)       :: rr
-      REAL*8, DIMENSION(n_bi)          :: pe, ea
-      REAL*8, DIMENSION(n_tri)         :: ro, r1, sn, sb
-      REAL*8, DIMENSION(LM)            :: odtmp,ta,pres,Jacet
-      REAL*8, DIMENSION(p_2,LM)        :: chemrate, photrate
-      REAL*8, DIMENSION(ny,LM)         :: dest, prod
-      REAL*8, DIMENSION(LCOalt)        :: COICINL,OxICINL,CH4ICINL
-     &                                   ,N2OICINL,CFCICINL
-      REAL*8, DIMENSION(LM)  :: CH4altT,CH4altX,COICL,OxICL,CH4ICL
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: y
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: rr
+      REAL*8, ALLOCATABLE, DIMENSION(:)   :: odtmp,ta,Jacet,rh,bythick
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: chemrate, photrate
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: dest, prod
+      REAL*8, ALLOCATABLE, DIMENSION(:)   :: OxlossbyH, ClOx_old
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: changeL
+      REAL*8, DIMENSION(n_bi)             :: pe, ea
+      REAL*8, DIMENSION(n_tri)            :: ro, r1, sn, sb
+      REAL*8, DIMENSION(LCOalt)           :: COICINL,OxICINL,CH4ICINL
+     &                                       ,N2OICINL,CFCICINL
+      REAL*8, DIMENSION(LM)  :: CH4altT,CH4altX,COICL,OxICL,CH4ICL ! stays LM
      &                        ,BrOxalt,ClOxalt,ClONO2alt,HClalt
-     &                        ,N2OICL,CFCICL,OxlossbyH
+     &                        ,N2OICL,CFCICL  
 
-      LOGICAL                      :: fam,prnrts,prnchg,prnls      
-      LOGICAL, DIMENSION(LM)       :: pscX
+      LOGICAL                             :: fam,prnrts,prnchg,prnls
+      LOGICAL, ALLOCATABLE, DIMENSION(:)  :: pscX
 
-      CHARACTER*8, DIMENSION(nc)   :: ay
-
+      CHARACTER*8, DIMENSION(nc)          :: ay
+      
       END MODULE TRCHEM_Shindell_COM
-
+      
+      
+      
       subroutine alloc_trchem_shindell_com(grid)
 !@SUM  To allocate arrays whose sizes now need to be determined
 !@+    at run-time
 !@auth G.Faluvegi
-      use domain_decomp_atm, only : dist_grid, getDomainBounds
-      use resolution, only     : im,lm
+      use domain_decomp_atm, only: dist_grid, getDomainBounds
+      use resolution, only: im,lm,Plbot
+      use tracer_com, only: ntm
       use TRCHEM_Shindell_COM, only: DU_O3,ss,yNO3,sOx_acc,l1Ox_acc,
      & pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yXO2N,yRXPAR,
      & TX,sulfate,COIC,OxIC,CH4ICX,dms_offline,so2_offline,yso2,ydms,
      & COICIN,OxICIN,CH4ICIN,JPPJ_Shindell,LCOalt,acetone,mNO2,
      & l1NO2_acc,sNOx_acc,sCO_acc,save_NO2column,pNO3
      & ,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2,N2OICX,CFCIC,SF3,SF2,
-     & N2OICIN,CFCICIN
+     & N2OICIN,CFCICIN,y,rr,odtmp,ta,Jacet,chemrate,photrate,dest,prod,
+     & OxlossbyH,pscX,nc,n_rx,p_2,ny,changeL,rh,bythick,ClOx_old,aero
+
+      use TRCHEM_Shindell_COM, only: topLevelOfChemistry ! define here
 
       IMPLICIT NONE
 
       type (dist_grid), intent(in) :: grid
-      integer :: ier, J_1H, J_0H, I_1H, I_0H
+      integer :: ier, J_1H, J_0H, I_1H, I_0H, L
       logical :: init = .false.
+      real*8  :: x
 
       if(init)return
       init=.true.
@@ -436,56 +448,101 @@ C**************  Not Latitude-Dependant ****************************
       call getDomainBounds( grid , J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
       I_0H=GRID%I_STRT_HALO
       I_1H=GRID%I_STOP_HALO
- 
-      allocate(          ss(JPPJ_Shindell,LM,I_0H:I_1H,J_0H:J_1H) )
-      allocate(     acetone(I_0H:I_1H,J_0H:J_1H,LM)      )
-      allocate(        yNO3(I_0H:I_1H,J_0H:J_1H,LM)      )
-      allocate(        mNO2(I_0H:I_1H,J_0H:J_1H,LM)      )
-      allocate(        pHOx(I_0H:I_1H,J_0H:J_1H,LM)      )
-      allocate(        pNOx(I_0H:I_1H,J_0H:J_1H,LM)      )
-      allocate(        pNO3(I_0H:I_1H,J_0H:J_1H,LM)      )
-      allocate(         pOx(I_0H:I_1H,J_0H:J_1H,LM)      )
-      allocate(      yCH3O2(I_0H:I_1H,J_0H:J_1H,LM)      )
-      allocate(       yC2O3(I_0H:I_1H,J_0H:J_1H,LM)      )
-      allocate(        yROR(I_0H:I_1H,J_0H:J_1H,LM)      )
-      allocate(        yXO2(I_0H:I_1H,J_0H:J_1H,LM)      )
-      allocate(   yAldehyde(I_0H:I_1H,J_0H:J_1H,LM)      )
-      allocate(       yXO2N(I_0H:I_1H,J_0H:J_1H,LM)      )
-      allocate(      yRXPAR(I_0H:I_1H,J_0H:J_1H,LM)      )
-      allocate(          TX(I_0H:I_1H,J_0H:J_1H,LM)      )
-      allocate(     sulfate(I_0H:I_1H,J_0H:J_1H,LM)      )
-      allocate(        OxIC(I_0H:I_1H,J_0H:J_1H,LM)      )
-      allocate(        COIC(I_0H:I_1H,J_0H:J_1H,LM)      )
-      allocate(      CH4ICX(I_0H:I_1H,J_0H:J_1H,LM)      )
-      allocate( dms_offline(I_0H:I_1H,J_0H:J_1H,LM)      )
-      allocate( so2_offline(I_0H:I_1H,J_0H:J_1H,LM)      )
-      allocate(        yso2(I_0H:I_1H,J_0H:J_1H,LM)      )
-      allocate(        ydms(I_0H:I_1H,J_0H:J_1H,LM)      )
+
+      ! First, determine the number of layers where we'll do
+      ! chemistry. (Currently, this includes photolysis, as
+      ! topLevelOfChemistry sets NLGCM). The value here is
+      ! set based on a pressure criterion. Note that this is
+      ! with respect to PLbot array only, as sigmas were not
+      ! yet defined at this point in the model. The 0.1 is 
+      ! chosen below such that chemistry will use all levels of
+      ! e.g. the traditional AR5 40-layer model:
+  
+      topLevelOfChemistry=0
+      do L=1,LM
+        ! next line tries to prevent picking wrong number of
+        ! layers when e.g. the model top is 0.01=0.0099999993423432
+        ! because of representation errror: 
+        x=nint(PLbot(L+1) * 1.E3)*1.E-3 
+        if(x>=0.1d0)topLevelOfChemistry=L
+      end do
+      if(topLevelOfChemistry == 0 .or. topLevelOfChemistry>LM)
+     & call stop_model(
+     & 'topLevelOfChemistry not determined.',255)
+      ! Think about whether you want to also set
+      ! Lmax_rad_O3 and Lmax_rad_CH4 to topLevelOfChemistry
+      ! here. At the moment, I think no.
+
+      ! Things allocatable *because* of above-chemistry model layers:
+      allocate(        y(nc,   topLevelOfChemistry) )
+      allocate(       rr(n_rx, topLevelOfChemistry) )
+      allocate(    odtmp(      topLevelOfChemistry) )
+      allocate(       ta(      topLevelOfChemistry) )
+      allocate(       rh(      topLevelOfChemistry) )
+      allocate(  bythick(      topLevelOfChemistry) )
+      allocate( ClOx_old(      topLevelOfChemistry) )
+      allocate(    Jacet(      topLevelOfChemistry) )
+      allocate(     aero(      topLevelOfChemistry) )
+      allocate(     pscX(      topLevelOfChemistry) )
+      allocate( chemrate(p_2,  topLevelOfChemistry) )
+      allocate( photrate(p_2,  topLevelOfChemistry) )
+      allocate(     dest(ny,   topLevelOfChemistry) )
+      allocate(     prod(ny,   topLevelOfChemistry) )
+      allocate(OxlossbyH(      topLevelOfChemistry) )
+      allocate(  changeL(      topLevelOfChemistry, ntm) )
+
+      ! Normally allocated things:
+      allocate(save_NO2column(I_0H:I_1H,J_0H:J_1H) )
+      allocate(         DU_O3(          J_0H:J_1H) )
+      allocate(ss(JPPJ_Shindell,topLevelOfChemistry,
+     &                      I_0H:I_1H,J_0H:J_1H) )
+      allocate(     acetone(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
+      allocate(        yNO3(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
+      allocate(        pHOx(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
+      allocate(        pNOx(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
+      allocate(        pNO3(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
+      allocate(         pOx(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
+      allocate(      yCH3O2(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
+      allocate(       yC2O3(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
+      allocate(        yROR(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
+      allocate(        yXO2(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
+      allocate(   yAldehyde(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
+      allocate(       yXO2N(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
+      allocate(      yRXPAR(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
+      allocate(        yso2(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
+      allocate(        ydms(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
+      allocate(       pClOx(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
+      allocate(        pClx(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
+      allocate(      pOClOx(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) ) 
+      allocate(       pBrOx(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
+      allocate(        yCl2(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) ) 
+      allocate(      yCl2O2(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
+      allocate(         SF3(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
+      allocate(         SF2(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
+      allocate(        mNO2(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) ) ! set to undef above chem in DIAG.f
       allocate(      OxICIN(I_0H:I_1H,J_0H:J_1H,LCOalt)  )
       allocate(      COICIN(I_0H:I_1H,J_0H:J_1H,LCOalt)  )
-      allocate(     CH4ICIN(I_0H:I_1H,J_0H:J_1H,LCOalt)  )
-      allocate(     sOx_acc(I_0H:I_1H,J_0H:J_1H)         )
-      allocate(     sNOx_acc(I_0H:I_1H,J_0H:J_1H)        )
-      allocate(     sCO_acc(I_0H:I_1H,J_0H:J_1H)         )
-      allocate(    l1Ox_acc(I_0H:I_1H,J_0H:J_1H)         )
-      allocate(    l1NO2_acc(I_0H:I_1H,J_0H:J_1H)        )
-      allocate(save_NO2column(I_0H:I_1H,J_0H:J_1H)       )
-
-      sOx_acc=0.; sNOx_acc=0.; sCO_acc=0.; l1Ox_acc=0. ; l1NO2_acc=0.
-
-      allocate(       DU_O3(J_0H:J_1H)                   )
-      allocate(       pClOx(I_0H:I_1H,J_0H:J_1H,LM)      )
-      allocate(        pClx(I_0H:I_1H,J_0H:J_1H,LM)      )
-      allocate(      pOClOx(I_0H:I_1H,J_0H:J_1H,LM)      ) 
-      allocate(       pBrOx(I_0H:I_1H,J_0H:J_1H,LM)      )
-      allocate(        yCl2(I_0H:I_1H,J_0H:J_1H,LM)      ) 
-      allocate(      yCl2O2(I_0H:I_1H,J_0H:J_1H,LM)      )
-      allocate(      N2OICX(I_0H:I_1H,J_0H:J_1H,LM)      )
-      allocate(       CFCIC(I_0H:I_1H,J_0H:J_1H,LM)      )
-      allocate(         SF3(I_0H:I_1H,J_0H:J_1H,LM)      )
-      allocate(         SF2(I_0H:I_1H,J_0H:J_1H,LM)      )
       allocate(     N2OICIN(I_0H:I_1H,J_0H:J_1H,LCOalt)  )
       allocate(     CFCICIN(I_0H:I_1H,J_0H:J_1H,LCOalt)  )
+      allocate(     CH4ICIN(I_0H:I_1H,J_0H:J_1H,LCOalt)  )
+      allocate(        OxIC(I_0H:I_1H,J_0H:J_1H,LM)      )
+      allocate(        COIC(I_0H:I_1H,J_0H:J_1H,LM)      )
+      allocate(       CFCIC(I_0H:I_1H,J_0H:J_1H,LM)      )
+      allocate(      CH4ICX(I_0H:I_1H,J_0H:J_1H,LM)      )
+      allocate(      N2OICX(I_0H:I_1H,J_0H:J_1H,LM)      )
+      allocate(          TX(I_0H:I_1H,J_0H:J_1H,LM)      ) 
+      allocate( dms_offline(I_0H:I_1H,J_0H:J_1H,LM)      )
+      allocate( so2_offline(I_0H:I_1H,J_0H:J_1H,LM)      )
+      allocate(     sulfate(I_0H:I_1H,J_0H:J_1H,LM)      ) ! could be read from 3D file
+
+      ! SUBDD accumulators; initialize them.
+      allocate(     sOx_acc(I_0H:I_1H,J_0H:J_1H)         )
+      allocate(    sNOx_acc(I_0H:I_1H,J_0H:J_1H)         )
+      allocate(     sCO_acc(I_0H:I_1H,J_0H:J_1H)         )
+      allocate(    l1Ox_acc(I_0H:I_1H,J_0H:J_1H)         )
+      allocate(   l1NO2_acc(I_0H:I_1H,J_0H:J_1H)         )
+
+      sOx_acc=0.; sNOx_acc=0.; sCO_acc=0.; l1Ox_acc=0. ; l1NO2_acc=0.
       
       return
       end subroutine alloc_trchem_shindell_com

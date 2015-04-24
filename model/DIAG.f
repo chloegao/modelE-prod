@@ -140,7 +140,7 @@ C**** Some local constants
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRACER_COM, only: trm,n_CO,n_Ox,n_NOx
       use OldTracer_mod, only: mass2vol
-      USE TRCHEM_Shindell_COM, only : mNO2
+      USE TRCHEM_Shindell_COM, only : mNO2,topLevelOfChemistry
 #endif
       USE ATM_COM, only : pk,pek,phi,pmid,pdsig,pedn,MA,MASUM
      &     ,ua=>ualij,va=>valij
@@ -325,9 +325,22 @@ C**** Follows logic for geopotential section following this...
               chemLm1=1.d6*trm(i,j,L-1,n_NOx)*mass2vol(n_NOx)/
      &        (MA(L-1,i,j)*axyp(i,j))
             x_more(K,I,J)= chemL+(chemLm1-chemL)*pfact
-              chemL=1.d6*mNO2(i,j,L)
-              chemLm1=1.d6*mNO2(i,j,L-1)
-            n_more(K,I,J)= chemL+(chemLm1-chemL)*pfact
+              ! NO2 is not defined above chemistry top (NOx is):
+              if(L > topLevelOfChemistry) then 
+                chemL=undef
+              else
+                chemL=1.d6*mNO2(i,j,L)
+              end if
+              if(L-1 > topLevelOfChemistry) then 
+                chemLm1=undef
+              else
+                chemLm1=1.d6*mNO2(i,j,L-1)
+              end if
+            if(chemLm1==undef.or.chemL==undef)then
+              n_more(K,I,J)=undef
+            else
+              n_more(K,I,J)= chemL+(chemLm1-chemL)*pfact
+            end if
               chemL=1.d6*trm(i,j,L,n_CO)*mass2vol(n_CO)/
      &        (MA(L,i,j)*axyp(i,j))
               chemLm1=1.d6*trm(i,j,L-1,n_CO)*mass2vol(n_CO)/
@@ -413,9 +426,23 @@ C**** calculate geopotential heights + temperatures
               chemLm1=1.d6*trm(i,j,L-1,n_NOx)*mass2vol(n_NOx)/
      &        (MA(L-1,i,j)*axyp(i,j))
             x_inst(K,I,J)= chemL+(chemLm1-chemL)*pfact
-              chemL=1.d6*mNO2(i,j,L)
-              chemLm1=1.d6*mNO2(i,j,L-1)
+
+! NO2 is not defined above chemistry top (NOx is):
+              if(L > topLevelOfChemistry) then
+                chemL=undef
+              else
+                chemL=1.d6*mNO2(i,j,L)
+              end if
+              if(L-1 > topLevelOfChemistry) then
+                chemLm1=undef
+              else
+                chemLm1=1.d6*mNO2(i,j,L-1)
+              end if
+              if(chemLm1==undef.or.chemL==undef)then
+            n_inst(K,I,J)=undef
+              else
             n_inst(K,I,J)= chemL+(chemLm1-chemL)*pfact
+              end if
               chemL=1.d6*trm(i,j,L,n_CO)*mass2vol(n_CO)/
      &        (MA(L,i,j)*axyp(i,j))
               chemLm1=1.d6*trm(i,j,L-1,n_CO)*mass2vol(n_CO)/
@@ -462,7 +489,7 @@ c ajl(jl_dtdyn) was incremented by -t(i,j,l) before dynamics
             AIJ(I,J,IJ_QM) = AIJ(I,J,IJ_QM) + Q(I,J,L)*MA(L,I,J)
             aijl(i,j,L,ijl_tempL)=aijl(i,j,L,ijl_tempL)+TX(i,j,L)
             aijl(i,j,L,ijl_husL)=aijl(i,j,L,ijl_husL)+Q(i,j,L)
-#ifdef HTAP_LIKE_DIAGS
+#ifdef ACCMIP_LIKE_DIAGS
             aijl(i,j,L,ijl_gridH)=aijl(i,j,L,ijl_gridH)+
      &      rgas/grav*TX(i,j,L)*log(pedn(l,i,j)/pedn(L+1,i,j))
 #endif

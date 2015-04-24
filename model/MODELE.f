@@ -1163,18 +1163,11 @@ C****
       write(6,*) '   WITH MERRA WINDS.'
 #endif
 #endif
-#ifdef HTAP_LIKE_DIAGS
-      write(6,*) '...and HTAP set of diagnostics'
-#endif
 #ifdef ACCMIP_LIKE_DIAGS
       write(6,*) '...and ACCMIP set of diagnostics'
 #ifndef SHINDELL_STRAT_EXTRA
       call stop_model
      & ('SHINDELL_STRAT_EXTRA should be on for ACCMIP_LIKE_DIAGS',255)
-#endif
-#ifndef HTAP_LIKE_DIAGS
-      call stop_model
-     & ('HTAP_LIKE_DIAGS should be on for ACCMIP_LIKE_DIAGS',255)
 #endif
 #endif /* ACCMIP_LIKE_DIAGS */
 

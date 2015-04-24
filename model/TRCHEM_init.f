@@ -13,7 +13,7 @@ C**** GLOBAL parameters and variables:
      &    ndnr,kps,kds,kpnr,kdnr,nnr,nr,npnr,nr2,nr3,nmm,nhet,
      &    prnls,prnrts,prnchg,lprn,jprn,iprn,ay,pHOx,pOx,pNOx,
      &    yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yNO3,yRXPAR,yXO2N,acetone,
-     &    allowSomeChemReinit,pNO3
+     &    allowSomeChemReinit,pNO3,topLevelOfChemistry
      &    ,pCLOx,pCLx,pOClOx,pBrOx,yCl2,yCl2O2
 
       IMPLICIT NONE
@@ -21,13 +21,16 @@ C**** GLOBAL parameters and variables:
 C**** Local parameters and variables and arguments:
 !@var iu_data temporary unit number
 !@var i,l loop dummy
-      integer :: iu_data,i,l,j
+      integer :: iu_data,i,L,j
       integer :: J_0,J_1,J_0S,J_1S,J_1H,J_0H,I_0,I_1
          
       call getDomainBounds(grid, J_STRT    =J_0,  J_STOP    =J_1,
      &               I_STRT    =I_0,  I_STOP    =I_1,
      &               J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
      &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+
+      ! Note that topLevelOfChemistry is set in 
+      ! alloc_trchem_shindell_com routine
 
 C Read chem diagnostics parameters and molecule names
 C from MOLEC file:
@@ -45,7 +48,7 @@ C Read JPL chemical reactions/rates from unit JPLRX:
 c Set up arrays of reaction numbers involving each molecule:
       call reactn
 
-C Initialize a few (IM,JM,LM) arrays, first hour only:
+C Initialize a few (IM,JM,topLevelOfChemistry) arrays, first hour only:
       IF(Itime == ItimeI .and. allowSomeChemReinit == 1) THEN
         ! allowSomeChemReinit condition b/c these are in RSF files:
         pHOx(I_0:I_1,J_0:J_1,:)     =1.d0
@@ -218,17 +221,40 @@ C**** Local parameters and variables and arguments:
 !@auth Kostas Tsigaridis
 
       use TRCHEM_Shindell_COM, only: iprn,jprn,prnrts,JPPJ_shindell
-     &                              ,p_1
+     &                              ,p_1,topLevelOfChemistry
       use photolysis, only: phtlst,inphot
-     &                     ,j_iprn,j_jprn,j_prnrts,jpnl,jppj,jlabel
-     &                     ,jind,ks,kss,jfacta,zj
-      implicit none
+     &                     ,j_iprn,j_jprn,j_prnrts,jppj,jlabel
+     &                     ,jind,ks,kss,jfacta,zj 
+      ! also get things that are now allocatable based on top layer
+      ! of chemistry and define here:
+       use photolysis, only: NLGCM,ncfastj2,nbfastj,jpnl,jndlev,
+     & pomegaj,fff,amf,tj2,do32,zfastj2,dmfastj2,tfastj,odcol,
+     & pfastj2,o3_fastj,M__,nwfastj
 
+      implicit none 
+
+      NLGCM=topLevelOfChemistry
+
+      jpnl=NLGCM
+      ncfastj2=2*NLGCM+2
+      nbfastj=NLGCM+1
       j_iprn=iprn
       j_jprn=jprn
       j_prnrts=prnrts
       jppj=jppj_shindell
-
+ 
+      allocate(jndlev(NLGCM))
+      allocate(pomegaj(2*M__,2*NLGCM+2+1))
+      allocate(fff(nwfastj,jpnl))
+      allocate(amf(nbfastj,nbfastj))
+      allocate(tj2(nbfastj))
+      allocate(do32(nbfastj))
+      allocate(zfastj2(nbfastj))
+      allocate(dmfastj2(nbfastj))
+      allocate(tfastj(NLGCM))
+      allocate(odcol(NLGCM))
+      allocate(pfastj2(NLGCM+3))
+      allocate(o3_fastj(NLGCM)) ! until recently was 2*NLGCM
       allocate(jlabel(jppj))
       allocate(jind(jppj))
       allocate(ks(jppj))
@@ -385,7 +411,7 @@ c           check that reaction is intrafamily
      &        then
                  ndr(k)=i
                  k=k+1
-                 goto100
+                 goto 100
               endif
             enddo
  100  continue

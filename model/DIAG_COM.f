@@ -138,7 +138,7 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
 #ifdef CLD_AER_CDNC
      &                                  + 16
 #endif
-#ifdef HTAP_LIKE_DIAGS
+#ifdef ACCMIP_LIKE_DIAGS
      &                                  +  1
 #endif
 !@var IJL_xxx,IJK_xxx AIJL diagnostic indices

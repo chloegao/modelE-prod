@@ -24,6 +24,7 @@ Preprocessor Options
 #define TRDIAG_WETDEPO              ! additional wet deposition diags for tracers
 #define NO_HDIURN                   ! exclude hdiurn diagnostics
 #define TRACERS_SPECIAL_Shindell    ! includes drew's chemical tracers
+#define AR5_FASTJ_XSECS ! to avoid using updated fastj cross sections introduced april 2015
 #define RAD_O3_2010              ! 2010 ozone dataset
 !  OFF #define AUXILIARY_OX_RADF    ! radf diags for climatology or tracer Ozone
 #define TRACERS_TERP                ! include terpenes in gas-phase chemistry
@@ -44,7 +45,6 @@ Preprocessor Options
 !  OFF #define SHINDELL_STRAT_EXTRA     ! non-chemistry stratospheric tracers
 !  OFF #define INTERACTIVE_WETLANDS_CH4 ! turns on interactive CH4 wetland source
 !  OFF #define NUDGE_ON                 ! nudge the meteorology
-!  OFF #define HTAP_LIKE_DIAGS    ! adds many diags, changes OH diag, adds Air tracer
 !  OFF #define ACCMIP_LIKE_DIAGS  ! adds many diags as defined by ACCMIP project
 End Preprocessor Options
 

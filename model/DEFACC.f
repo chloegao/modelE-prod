@@ -6250,7 +6250,7 @@ c
       scale_ijl(k) = 1.
       ia_ijl(k)    = ia_dga
       lgrid_ijl(k) = ctr_ml
-#ifdef HTAP_LIKE_DIAGS
+#ifdef ACCMIP_LIKE_DIAGS
 c
       k=k+1        ! grid box geometric thickness (model layers)
       ijl_gridh    = k

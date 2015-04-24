@@ -6136,7 +6136,7 @@ c clear sky scattering asymmetry factor in six solar bands
 #ifdef TRACERS_ON
       USE TRDIAG_COM
 #endif /* TRACERS_ON */
-#if (defined HTAP_LIKE_DIAGS) || (defined ACCMIP_LIKE_DIAGS)
+#ifdef ACCMIP_LIKE_DIAGS
       USE MODEL_COM, only: dtsrc
 #endif
       USE DIAG_COM
@@ -6241,7 +6241,7 @@ c- 3D diagnostic per mode
 C**** 3D tracer-related arrays but not attached to any one tracer
 
 #ifdef TRACERS_SPECIAL_Shindell
-#ifdef HTAP_LIKE_DIAGS
+#ifdef ACCMIP_LIKE_DIAGS
       k = k + 1
         ijlt_OH=k
         lname_ijlt(k) = 'OH mixing ratio'
@@ -6293,7 +6293,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
         ijlt_power(k) = 2
         units_ijlt(k) = unit_string(ijlt_power(k),'s-1')
         scale_ijlt(k) = 10.**(-ijlt_power(k))
-#ifdef HTAP_LIKE_DIAGS
+#ifdef ACCMIP_LIKE_DIAGS
       k = k + 1
         ijlt_COp=k
         lname_ijlt(k) = 'CO production rate'
@@ -6329,8 +6329,6 @@ C**** 3D tracer-related arrays but not attached to any one tracer
         ijlt_power(k) = 0
         units_ijlt(k) = unit_string(ijlt_power(k),'mole m-3 s-1')
         scale_ijlt(k) = 10.**(-ijlt_power(k))/DTsrc
-#endif /* HTAP_LIKE_DIAGS */
-#ifdef ACCMIP_LIKE_DIAGS
       k = k + 1
         ijlt_OxpHO2=k
         lname_ijlt(k) = 'Ox prod rate via HO2+NO'
@@ -6813,10 +6811,9 @@ C**** 3D tracer-related arrays but not attached to any one tracer
 #ifdef TRACERS_SPECIAL_Shindell
       USE RAD_COM, only : chem_tracer_save,rad_to_file,ghg_yr
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
-      USE RAD_COM, only:
-     &  stratO3_tracer_save
+      USE RAD_COM, only: stratO3_tracer_save
 #endif
-      USE TRCHEM_Shindell_COM,only:O3MULT,MDOFM,ch4icx,
+      USE TRCHEM_Shindell_COM,only:O3MULT,ch4icx,
      &  OxIC,COIC,byO3MULT,PI_run,fix_CH4_chemistry,
      &  PIratio_N,PIratio_CO_T,PIratio_CO_S,PIratio_other
      &  ,use_rad_n2o,use_rad_cfc,use_rad_ch4
@@ -9263,7 +9260,6 @@ c$$$      use OldTracer_mod, only: tr_mm, nBBsources, mass2vol
       USE Dictionary_mod, only : get_param, is_set_param
       use trdiag_com, only : trcsurf,trcSurfByVol,taijls=>taijls_loc,
      & ijlt_prodSO4gs
-CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 #if (defined TRACERS_COSMO)
       USE COSMO_SOURCES, only: be7_src_3d, be10_src_3d, be7_src_param
 #endif
@@ -9306,7 +9302,7 @@ CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 #ifdef TRACERS_SPECIAL_Shindell
       use RAD_COM, only: rad_to_chem
       use TRCHEM_Shindell_COM, only: fact_cfc, 
-     &     use_rad_n2o, use_rad_ch4, use_rad_cfc
+     &     use_rad_n2o, use_rad_ch4, use_rad_cfc, topLevelOfChemistry
 #endif
 
       implicit none
@@ -9538,7 +9534,6 @@ C**** 3D biomass source
 
 #endif /* TRACERS_AEROSOLS_Koch || TRACERS_AMP || TRACERS_SPECIAL_Shindell || TRACERS_TOMAS*/
 
-CCC#if (defined TRACERS_COSMO) || (defined SHINDELL_STRAT_EXTRA)
 #if (defined TRACERS_COSMO)
 C****
       case ('Be7')
@@ -9692,6 +9687,8 @@ C**** Allow overriding of transient emissions date:
       call apply_tracer_3Dsource(nOther,n_NOx)
 
 C**** Make sure that these 3D sources for all chem tracers start at 0.:
+      ! I think this zeroing is more important, now that the chemistry 
+      ! may not reach the top model layers:
       tr3Dsource(I_0:I_1,J_0:J_1,:,nChemistry,ntm_chem_beg:ntm_chem_end)
      &  = 0.d0
       tr3Dsource(I_0:I_1,J_0:J_1,:,nOverwrite,ntm_chem_beg:ntm_chem_end)
@@ -9749,7 +9746,11 @@ C**** Apply chemistry and overwrite changes:
        tr3Dsource(I_0:I_1,J_0:J_1,:,1,n_NH4)  = 0.d0
        tr3Dsource(I_0:I_1,J_0:J_1,:,nChemistry,n_NH3)  = 0.d0
 
-       call EQSAM_DRV
+#ifdef TRACERS_SPECIAL_Shindell
+       call EQSAM_DRV(topLevelOfChemistry)
+#else
+       call EQSAM_DRV(LM)
+#endif
 
 #ifdef TRACERS_SPECIAL_Shindell
        call apply_tracer_3Dsource(3,n_HNO3) ! NO3 chem prod
