@@ -2156,7 +2156,7 @@ C Read remaining species:  X-sections at 1 2 or 3 T's :
           end if
         end do
       end do loop_nqqq
-#else /* I.e. newer coding: */
+#else /* I.e. below is older coding: */
 C Read remaining species:  X-sections at 2 T's :
       DO J=1,NQQQ
         READ(NJ1,103) TITLEJ(1,J+3),TQQ(1,J+3),(QQQ(IW,1,J),IW=1,NWWW)

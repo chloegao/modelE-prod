@@ -225,7 +225,7 @@ c B: loss rxns linear in HOx
 c C: prod equations
 c all: in terms of HO2 (so *pHOx when OH is reactant)
 
-        aqqz=2.d0*(pHOx(I,J,L)*rr(1,L) + pHOx(I,J,L)*pHOx(I,J,L)*
+        aqqz=2.d0*(pHOx(I,J,L)*rr(1,L) + (pHOx(I,J,L)*pHOx(I,J,L))*
      &  (rr(3,L)+rr(iH2O2form,L)) + rr(15,L))
 
         bqqz=pHOx(I,J,L)*(rr(12,L)*y(nn_CH4,L)+rr(16,L)*
@@ -250,10 +250,10 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
      &  (rr(20,L)*y(nNO,L)+0.66d0*rr(27,L)*yCH3O2(I,J,L))
      &  *yCH3O2(I,J,L))
 #else
-        cqqz=2.d0*ss(4,L,I,J)*y(nn_H2O2,L)+ss(9,L,I,J)*y(nn_HNO3,L)+
-     &  2.d0*ss(13,L,I,J)*y(nn_HCHO,L)+2.d0*ss(14,L,I,J)*y(nn_CH3OOH,L)
-     &  +(rr(20,L)*y(nNO,L)+0.66d0*rr(27,L)*yCH3O2(I,J,L))
-     &  *yCH3O2(I,J,L)
+        cqqz=(2.d0*(ss(4,L,I,J)*y(nn_H2O2,L))+ss(9,L,I,J)*y(nn_HNO3,L)+
+     &  2.d0*(ss(13,L,I,J)*y(nn_HCHO,L))+2.d0*ss(14,L,I,J)*
+     &  y(nn_CH3OOH,L)+(rr(20,L)*y(nNO,L)+0.66d0*(rr(27,L)*
+     &  yCH3O2(I,J,L)))*yCH3O2(I,J,L))
 #endif
 
         ! 1.66/1.31 accounts for HOx production via O(1D)+CH4-->CH3O path:
@@ -277,11 +277,11 @@ c Now partition HOx into OH and HO2:
         ! CZ: OH->HO2 reactions :
         cz=rr(2,L)*y(nO3,L)+rr(13,L)*y(nn_CO,L)
      &  +rr(14,L)*y(nn_H2O2,L)+rr(19,L)*y(nH2,L)
-!! #ifdef V2_BUGS_TEMPORARY
-!!      &  +rr(21,L)*y(nn_HCHO,L)+rr(37,L)*y(nn_Paraffin,L)*
-!! #else
+#ifdef V2_BUGS_TEMPORARY
+     &  +rr(21,L)*y(nn_HCHO,L)+rr(37,L)*y(nn_Paraffin,L)*
+#else
      &  +rr(21,L)*y(nn_HCHO,L)+rr(37,L)*y(nn_Paraffin,L)
-!! #endif
+#endif
      &  *0.11d0+rr(30,L)*y(nn_Isoprene,L)*0.85d0
 #ifdef TRACERS_TERP
      &  +rr(iTerpenesOH,L)*y(nn_Terpenes,L)*0.85d0
@@ -292,7 +292,7 @@ c Now partition HOx into OH and HO2:
 
         ! DZ: HO2->OH reactions :
         dz=rr(4,L)*y(nO3,L)+rr(6,L)*y(nNO,L)
-     &  +rr(41,L)*0.79d0*y(nC2O3,L)
+     &  +rr(41,L)*(0.79d0*y(nC2O3,L))
 c Previous few lines represent additional OH production via reaction 41
 c which also produces HO2 and R15 then S4/(S4+S14) fraction.
 
