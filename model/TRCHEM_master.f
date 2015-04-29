@@ -200,6 +200,9 @@ C**** Local parameters and variables and arguments:
       integer :: initial_GHG_setup
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE     
       real*8 :: qsat ! this is a function in UTILDBL.f
+#ifdef TRACERS_TOMAS
+      integer :: k
+#endif
       integer :: hour, idx
 
       call modelEclock%get(hour=hour)
@@ -2179,12 +2182,12 @@ C**** GLOBAL parameters and variables:
      &                     ,n_M_BC2_SU,n_M_BC3_SU,n_M_DBC_SU
      &                     ,n_M_BOC_SU,n_M_BCS_SU,n_M_MXX_SU
 #endif
-#ifdef TRACERS_TOMAS
-     &                     ,n_ASO4,nbins
-#endif
       USE TRACERS_SOA, only: KpCALC,kpart,kpart_ref,kpart_temp_ref,
      &                       whichsoa,dH_isoprene,dH_apinene
 #endif  /* TRACERS_AEROSOLS_SOA */
+#ifdef TRACERS_TOMAS
+      USE TRACER_COM, only: n_ASO4,nbins
+#endif
       USE GEOM, only : lat2d_dg,byaxyp,axyp
 
       IMPLICIT NONE
