@@ -254,7 +254,7 @@ def build(exp):
     status = exp.sysCmd('make --quiet clean', 3, 'b')
     status = exp.sysCmd('make rundeck ' + exp.runCmd + ' ' + exp.runSrcCmd, 
                3, 'b')
-    status = exp.sysCmd('make -j4 gcm ' + exp.runCmd + ' ' + exp.modeCmd
+    status = exp.sysCmd('make -j gcm ' + exp.runCmd + ' ' + exp.modeCmd
                + ' ' + exp.xflags, 3, 'b')
     return status
     
@@ -302,8 +302,6 @@ def runRestart(exp, npes=1, endtime=25):
                + checkpointName(exp, exp.etSuffix, npes), 3, 'r')
     status = exp.sysCmd('cd ' + exp.name + '; cp fort.2.nc fort.1.nc', 3, 'r')
     status = exp.sysCmd('cd ' + exp.name + '; rm -f run_status lock', 3, 'r')
-#  Need to investigate why the following causes a NameError exception
-#  Looks like there is an issue with variable/function/class names in SysCmd
     status = exp.sysCmd('cd ' + exp.name + '; ' + restart
                + '; test `head -1 run_status` -eq ' + str(expectedRC),
                3, 'r')
@@ -365,13 +363,13 @@ def compareNPE(runA, runB, duration, npes):
 
         
 """
-  Compare full-run (25hr) vs restart run
+  Compare continuous-run vs restart run
 """
 def compareRestart(exp, npes=1):
     logger = logging.getLogger('COMPRST ')
     logger.info('Compare restart run: '+exp.name)
     prefix = exp.name + '/'
-    file1 = prefix + checkpointName(exp, '1dy', npes)
+    file1 = prefix + checkpointName(exp, exp.etSuffix, npes)
     file2 = prefix + checkpointName(exp, 'restart', npes)
     logger.debug(diffreportExe+' '+file1+' '+file2)
     rc = subprocess.check_output([diffreportExe, file1, file2])
@@ -465,19 +463,19 @@ if __name__ == '__main__':
             if rundeck.testLevel != 'compileOnly':
                 if exp.mode == 'serial':
                     compareBase(exp, '1hr')
-                    compareBase(exp, '1dy')
+                    compareBase(exp, exp.etSuffix)
                 # And compare SERIAL checkpoint-restart 
                     compareRestart(exp)
                 else:
                     for npes in rundeck.npList:
                     # Compare runs with baseline
                         compareBase(exp, '1hr', npes=npes)
-                        compareBase(exp, '1dy', npes=npes)
+                        compareBase(exp, exp.etSuffix, npes=npes)
                         compareRestart(exp, npes=npes)
                         for npes in rundeck.npList:
                     # Compare 1hr run against serial
                             if nmodes > 1:
-                                compareNPE(exps[0], exps[1], '1dy', npes)
+                                compareNPE(exps[0], exps[1], exp.etSuffix, npes)
                 logger.info(rundeck.name + ' comparisons complete.')
                 
         for exp in exps:

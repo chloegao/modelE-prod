@@ -34,8 +34,8 @@ def readConfig(cfgfile):
 
 #-------------------------------------------------------------------------------
 # Get a list of compilers used
-def getCompilers(config):
-   compconfig = ConfigSectionMap(config, 'COMPCONFIG')
+def getCompilers(cfg):
+   compconfig = ConfigSectionMap(cfg, 'COMPCONFIG')
    compilers = compconfig['compilers'].split(",")
    return compilers
 
@@ -79,6 +79,10 @@ def getModelConfigurations(config):
     sections = config.sections()
     modelConfig = {}
 
+# For convenience divide the sections in the configuration file into
+# two types: CONFIG and RUNDECKS. The former have CONFIG in their names.
+# Thus, if a section name does NOT have CONFIG in its name then it is
+# a rundeck configuration:
     for sect in sections:
         match = not re.search("CONFIG",sect)
         # get all rundeck sections from config file
@@ -86,14 +90,13 @@ def getModelConfigurations(config):
             modelConfig[sect] = ConfigSectionMap(config, sect)
 
 # map modelConfig to a more manageable list
-# first extract names
     runList = []
     for name,options in modelConfig.items():
        runList.append(regTest(name))
-# then specified options
-    sysconfig = ConfigSectionMap(config, 'SYSCONFIG')
+# Each item in runList (each rundeck) also needs user-defined options
+    userconfig = ConfigSectionMap(config, 'USERCONFIG')
     for d in runList:
-       d.setOpts(sysconfig, modelConfig)
+       d.setOpts(userconfig, modelConfig)
         
     return runList
 
@@ -102,31 +105,31 @@ def getModelConfigurations(config):
 # 1) Create working directories
 # 2) Clone model from git repository and...
 # 3) Perform additional model "specific" setup
-def setupEnv(config):
-   sysconfig = ConfigSectionMap(config, 'SYSCONFIG')
-   branch =  sysconfig['repobranch']
-   resultsDir = sysconfig['scratchdir'] + '/regression_results/' + branch
-   scratchDir = sysconfig['scratchdir'] + '/regression_scratch/' + branch
+def setupEnv(config, bpconfig):
+   userconfig = ConfigSectionMap(config, 'USERCONFIG')
+   branch =  userconfig['repobranch']
+   resultsDir = userconfig['scratchdir'] + '/regression_results/' + branch
+   scratchDir = userconfig['scratchdir'] + '/regression_scratch/' + branch
 
    if not os.path.exists(resultsDir):
       mkdir_p(resultsDir)    
       mkdir_p(scratchDir)
    else:
-      if sysconfig['cleanscratch'] == 'yes':
+      if userconfig['cleanscratch'] == 'yes':
          cleanDir(scratchDir)
          cleanDir(resultsDir)
 
-   setupModelEenv(config)
+   setupModelEenv(config, bpconfig)
    gitCloneRepository(config)
 
 
 #-------------------------------------------------------------------------------
 # Clone the model from the user-specified git repository
 def gitCloneRepository(config):
-   sysconfig = ConfigSectionMap(config, 'SYSCONFIG')
-   scratch = sysconfig['scratchdir']
-   repo = sysconfig['repository']
-   branch =  sysconfig['repobranch']
+   userconfig = ConfigSectionMap(config, 'USERCONFIG')
+   scratch = userconfig['scratchdir']
+   repo = userconfig['repository']
+   branch =  userconfig['repobranch']
    clone = scratch + '/regression_scratch/' + branch + '/' + branch
    logger.debug('Clone repository %s',clone)
 
@@ -151,11 +154,11 @@ def gitCloneRepository(config):
 
 #-------------------------------------------------------------------------------
 # ModelE specific setup
-def setupModelEenv(config):
-   sysconfig = ConfigSectionMap(config, 'SYSCONFIG')
-   branch =  sysconfig['repobranch']
-   resultsDir = sysconfig['scratchdir'] + '/regression_results/' + branch
-   scratchDir = sysconfig['scratchdir'] + '/regression_scratch/' + branch
+def setupModelEenv(config, bpconfig):
+   userconfig = ConfigSectionMap(config, 'USERCONFIG')
+   branch =  userconfig['repobranch']
+   resultsDir = userconfig['scratchdir'] + '/regression_results/' + branch
+   scratchDir = userconfig['scratchdir'] + '/regression_scratch/' + branch
 
 # the following directories are modelE specific:
    mkdir_p(scratchDir+'/decks_repository')
@@ -164,8 +167,8 @@ def setupModelEenv(config):
    mkdir_p(scratchDir+'/savedisk')
 
 # We need to get a list of compilers...
-   compilers = getCompilers(config)
-   libsconfig = ConfigSectionMap(config, 'LIBSCONFIG')
+   compilers = getCompilers(bpconfig)
+   libsconfig = ConfigSectionMap(bpconfig, 'COMPCONFIG')
 
 # ... to create modelErc file(s)
    for comp in compilers:
@@ -212,6 +215,15 @@ def writeModelErc(cfg, scratchDir, compiler):
                               nd=cfg['intelnetcdf'],\
                               pd=cfg['intelpnetcdf'],\
                               bd=cfg['intelesmf'])
+   elif compiler == 'nag':
+      modelErc = s.substitute(cm=compiler,\
+                              scr=scratchDir,\
+                              datadir=cfg['modeldatadir'],\
+                              mn=cfg['nagmpi'],\
+                              md=cfg['nagmpidir'],\
+                              nd=cfg['nagnetcdf'],\
+                              pd=cfg['nagpnetcdf'],\
+                              bd=cfg['nagesmf'])
    else:
       modelErc = s.substitute(cm=compiler,\
                               scr=scratchDir,\
@@ -230,14 +242,14 @@ def writeModelErc(cfg, scratchDir, compiler):
 
 #-------------------------------------------------------------------------------
 # Create a diff report and notify via email
-def sendDiffreport(config):
-    sysconfig  = ConfigSectionMap(config, 'SYSCONFIG')
-    branch     = sysconfig['repobranch']
-    resultsDir = sysconfig['scratchdir'] + '/regression_results/' + branch
-    mailto     = sysconfig['mailto']
-    compflags  = sysconfig['compflags']
-    sortdiff   = sysconfig['sortdiff']
-    compilers  = getCompilers(config)
+def sendDiffreport(config, bpconfig):
+    userconfig  = ConfigSectionMap(config, 'USERCONFIG')
+    mailto     = userconfig['mailto']
+    branch     = userconfig['repobranch']
+    resultsDir = userconfig['scratchdir'] + '/regression_results/' + branch
+    compflags  = userconfig['compflags']
+    sortdiff   = userconfig['sortdiff']
+    compilers  = getCompilers(bpconfig)
 
     diffFile = resultsDir + '/' + 'diffreport.txt'
     fp = open(diffFile, 'w')
@@ -274,7 +286,7 @@ def sendDiffreport(config):
     fp.write('-  : not available\n')
     fp.write('Notes:\n')
     fp.write('-'*6+'\n')
-    compconfig = ConfigSectionMap(config, 'COMPCONFIG')
+    compconfig = ConfigSectionMap(bpconfig, 'COMPCONFIG')
     compVers =  compconfig['compiler_versions'].split(",")
     i=0
     for comp in compilers:

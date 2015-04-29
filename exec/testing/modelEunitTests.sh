@@ -46,8 +46,8 @@ submitJob()
   cat << EOF > $jobScript
 #!/bin/bash
 #SBATCH --job-name=unitTest
-#SBATCH --nodes=1
-#SBATCH --ntasks-per-node=16
+#SBATCH --ntasks=16
+#sbatch --constraint=hasw
 #SBATCH --time=0:10:00
 #SBATCH --account=s1001
 
@@ -59,13 +59,13 @@ EOF
   if [ "$compiler" == "intel" ]; then
 
     cat << EOF >> $jobScript
-module load comp/intel-14.0.3.174 mpi/impi-4.1.3.048 other/git-1.8.5.2
+module load comp/intel-14.0.3.174 mpi/impi-4.1.3.048 other/git-2.3.1
 EOF
 
   else
 
     cat << EOF >> $jobScript
-module load other/comp/gcc-4.9.1 other/mpi/openmpi/1.8.1-gcc-4.9.1 other/git-1.8.5.2
+module load other/comp/gcc-4.9.1 other/mpi/openmpi/1.8.2-gcc-4.9.1 other/git-2.3.1
 EOF
 
   fi

@@ -15,9 +15,9 @@ logger = logging.getLogger('regTasks')
 #-------------------------------------------------------------------------------
 # Return a command that creates a clone of the reference clone
 def gitCloneCommand(config, deckname, compiler):
-    sysconfig = regTools.ConfigSectionMap(config, 'SYSCONFIG')
-    branch    = sysconfig['repobranch']
-    scratch   = sysconfig['scratchdir'] + '/regression_scratch/' + branch + '/'
+    userconfig = regTools.ConfigSectionMap(config, 'USERCONFIG')
+    branch    = userconfig['repobranch']
+    scratch   = userconfig['scratchdir'] + '/regression_scratch/' + branch + '/'
     reference = scratch + '/' + branch
     clone     = scratch + '/' + compiler + '/' + deckname
 # if clone does not exist then create it
@@ -33,9 +33,9 @@ def gitCloneCommand(config, deckname, compiler):
 # 3) run the model for the specified duration
 # 4) verification of model results
 # Only (0) is done here. The rest is done by regression.py
-def setupCloneTasks(config, decklist):
-    sysconfig = regTools.ConfigSectionMap(config, 'SYSCONFIG')
-    compilers = regTools.getCompilers(config)
+def setupCloneTasks(config, bpconfig, decklist):
+    userconfig = regTools.ConfigSectionMap(config, 'USERCONFIG')
+    compilers = regTools.getCompilers(bpconfig)
 
     cloneTasks = []
     for deck in decklist:
@@ -59,14 +59,14 @@ def setupCloneTasks(config, decklist):
 
 #-------------------------------------------------------------------------------
 # Return a command to submit/execute a [batch] job
-def setupScriptTasks(config, decklist):
-    compilers = regTools.getCompilers(config)
+def setupScriptTasks(config, bpconfig, decklist):
+    compilers = regTools.getCompilers(bpconfig)
 
     scriptTasks = []
     for deck in decklist:
         for comp in deck.getOpt('compilers').split(','):
             if comp in compilers:
-                commandString = createScriptTask(config, deck, comp)
+                commandString = createScriptTask(config, bpconfig, deck, comp)
                 scriptTasks.append(commandString)
             else:
                 logger.error(comp+' is not defined in COMPCONFIG')
@@ -78,20 +78,20 @@ def setupScriptTasks(config, decklist):
 #-------------------------------------------------------------------------------
 # Creates script to be submitted to batch system OR to be executed interactively
 # Note that there are (still)) several hardwired batch parameters.
-def createScriptTask(config, deck, comp):
-    sysconfig  = regTools.ConfigSectionMap(config, 'SYSCONFIG')
-    modules    = sysconfig['modules']
-    useBatch   = sysconfig['usebatch']
-    branch     = sysconfig['repobranch']
-    compopts   = sysconfig['compflags']
-    debugReg   = sysconfig['debugscript']
-    scriptsDir = sysconfig['scriptsdir']
-    useMods    = sysconfig['modules']
-    resultsDir = sysconfig['scratchdir'] + '/regression_results/' + \
+def createScriptTask(config, bpconfig, deck, comp):
+    userconfig  = regTools.ConfigSectionMap(config, 'USERCONFIG')
+    modules    = userconfig['modules']
+    useBatch   = userconfig['usebatch']
+    branch     = userconfig['repobranch']
+    compopts   = userconfig['compflags']
+    debugReg   = userconfig['debugscript']
+    scriptsDir = userconfig['scriptsdir'] + '/exec/testing/'
+    useMods    = userconfig['modules']
+    resultsDir = userconfig['scratchdir'] + '/regression_results/' + \
                  branch + '/' + comp
-    scratchDir = sysconfig['scratchdir'] + '/regression_scratch/' + \
+    scratchDir = userconfig['scratchdir'] + '/regression_scratch/' + \
                  branch + '/' + comp
-    sponsorID  = sysconfig['sponsorid']
+    sponsorID  = userconfig['sponsorid']
 
     deckName = deck.name
     jobName = deckName
@@ -102,50 +102,53 @@ def createScriptTask(config, deck, comp):
     fileHandle = open ( filename, 'w' ) 
 
     if useBatch == 'yes':
-        # Set number of cores (tasks)
-        if 'MPI' in deckName:
-            cores = 8
-            if re.search('tomas', deckName):
-                cores = 88
-            elif re.search('amp', deckName):
-                cores = 44
-            elif re.search('E_AR5_V2', deckName):
-                if re.search('NINT', deckName):
-                    cores = 8
-                else: # CADI and CAMP
-                    cores = 44
-        else:
+        # If we are just compiling this rundeck
+        if deck.getOpt('testlevel') == 'compileOnly':
             cores = 1
-        # Set the walltime
-        walltime = '03:00:00'
-        if re.search('C12', deckName):
             walltime = '00:30:00'
-        elif re.search('Mars', deckName):
-            walltime = '00:30:00'
-        elif re.search('SGP', deckName):
-            walltime = '00:30:00'
-        elif re.search('M20', deckName):
-            walltime = '00:30:00'
-        elif re.search('obio', deckName):
-            walltime = '02:00:00'
-        elif re.search('cadi', deckName):
-            walltime = '03:00:00'
-        elif re.search('tomas', deckName):
-            logger.error('This rundeck will not run in SERIAL:', deckName)
-            sys.exit()
-        elif re.search('amp', deckName):
-            logger.error('This rundeck will not run in SERIAL:', deckName)
-            sys.exit()
-        elif re.search('E_AR5_V2', deckName):
-            if re.search('NINT', deckName):
-                walltime = '00:30:00'
-            else: # CADI and CAMP
-                logger.error('This rundeck will not run in SERIAL:', deckName)
-                sys.exit()
+        else:               
+            # Set number of cores (tasks)
+            if 'mpi' in deck.modes: 
+                cores = 8
+                walltime = '01:00:00'
+                if re.search('tomas', deckName):
+                    cores = 88
+                elif re.search('amp', deckName):
+                    cores = 44
+                elif re.search('cadi', deckName):
+                    cores = 44
+                elif re.search('E_AR5_V2', deckName):
+                    if re.search('NINT', deckName):
+                        cores = 8
+                    else: # CADI and CAMP
+                        cores = 44 
+            else:
+                cores = 1
+                walltime = '03:00:00'
+                if re.search('obio', deckName):
+                    walltime = '01:30:00'
+                elif re.search('tomas', deckName):
+                    logger.error('This rundeck will not run in SERIAL:', deckName)
+                    sys.exit()
+                elif re.search('amp', deckName):
+                    logger.error('This rundeck will not run in SERIAL:', deckName)
+                    sys.exit()
+                elif re.search('E_AR5_V2', deckName):
+                    if re.search('NINT', deckName):
+                        walltime = '01:00:00'
+                    else: # CADI and CAMP
+                        logger.error('This rundeck will not run in SERIAL:', deckName)
+                        sys.exit()
 
-        # Redine wall-time if compileOnly test
-        if deck.getOpt('testlevel')=='compileOnly':
-            walltime = '00:30:00'
+            # Adjust the walltime for some rundecks
+            if re.search('C12', deckName):
+                walltime = '00:30:00'
+            elif re.search('Mars', deckName):
+                walltime = '00:30:00'
+            elif re.search('SGP', deckName):
+                walltime = '00:10:00'
+            elif re.search('M20', deckName):
+                walltime = '00:30:00'
 
         outname = resultsDir + '/' + jobName + '.' + comp + '.out'
         errname = resultsDir + '/' + jobName + '.' + comp + '.err'
@@ -159,7 +162,7 @@ def createScriptTask(config, deck, comp):
         # Use Haswell NODES
         fileHandle.write ('#SBATCH --constraint=hasw\n')
 
-    # ELSE create rest of scriptfor batch AND interactive job:
+    # ELSE create rest of script for batch AND interactive job:
 
     # Do we have modules to 'load'?
     if modules == 'yes':
@@ -181,7 +184,7 @@ def createScriptTask(config, deck, comp):
         if comp == 'gfortran':
             compvendor = 'gcc'
 
-        modsconfig = regTools.ConfigSectionMap(config, 'COMPCONFIG')
+        modsconfig = regTools.ConfigSectionMap(bpconfig, 'COMPCONFIG')
         for mod in modsconfig['modulelist'].split(','):
             if re.search(compvendor, mod):
                 for mm in modsconfig[mod].split(','):
@@ -214,28 +217,21 @@ def createScriptTask(config, deck, comp):
 # Create a config file for regression.py script. 
 # Note: there is one config file for each rundeck/compiler/mode combination
 def createRegConfig(config, deck, modelerc, comp, jobName):
-    cfg  = regTools.ConfigSectionMap(config, 'SYSCONFIG')
+    cfg  = regTools.ConfigSectionMap(config, 'USERCONFIG')
     branch     = cfg['repobranch']
     regconfig = ConfigParser.RawConfigParser()
     decksDir = cfg['scratchdir'] + '/regression_scratch/' + \
         branch + '/' + comp + '/' + jobName + '/decks/'
     resultsDir = cfg['scratchdir'] + '/regression_results/' + branch + '/' + comp
 
-    if 'MPI' in jobName:
-        mode = 'mpi'
-        npes = deck.npes
-    else:
-        mode = 'serial'
-        npes = 1
-
     regconfig.add_section('regSettings')
     regconfig.set('regSettings', 'rundeck', deck.name)
     regconfig.set('regSettings', 'modelerc', modelerc)
     regconfig.set('regSettings', 'compiler', comp)
-    regconfig.set('regSettings', 'modes', mode)
+    regconfig.set('regSettings', 'modes', deck.getOpt('modes'))
     regconfig.set('regSettings', 'testlevel', deck.getOpt('testlevel'))
     regconfig.set('regSettings', 'endtime', deck.getOpt('endtime'))
-    regconfig.set('regSettings', 'nplist', npes)
+    regconfig.set('regSettings', 'nplist', deck.getOpt('npes'))
     regconfig.set('regSettings', 'compflags', cfg['compflags'])
     regconfig.set('regSettings', 'repository', cfg['repository'])
     regconfig.set('regSettings', 'branch', cfg['repobranch'])
