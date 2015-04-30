@@ -356,7 +356,13 @@ endif
 	for i in \
 	`perl -e 'while(<>){ if(/(\S+)\.mod: *(\w+\@$*\.smod)/){print " $$1";} }' $(DEPENDFILE)` ; \
 	do \
+	   cmp $$i.mod $$i\@$*\.smod > /dev/null 2>&1 ; if [ $$? -ne 0 ] ; then \
+	    echo "$$i.mod updated" ; \
 	    cp -f $$i.mod $$i\@$*\.smod ; cp $$i\@$*\.smod $$i.mod ; \
+	   else \
+	    echo "$$i.mod not changed - will skip recompilations" ; \
+	    touch -r $$i\@$*\.smod $$i.mod ; \
+	   fi ; \
 	done ; \
 	fi
 	@if [ -s $*.ERR ] ; then echo $(MSG); else echo Done $(MSG); fi
@@ -375,7 +381,13 @@ endif
 	for i in \
 	`perl -e 'while(<>){ if(/(\S+)\.mod: *(\w+\@$*\.smod)/){print " $$1";} }' $(DEPENDFILE)` ; \
 	do \
+	   cmp $$i.mod $$i\@$*\.smod > /dev/null 2>&1 ; if [ $$? -ne 0 ] ; then \
+	    echo "$$i.mod updated" ; \
 	    cp -f $$i.mod $$i\@$*\.smod ; touch $$i.mod ; \
+	   else \
+	    echo "$$i.mod not changed - will skip recompilations" ; \
+	    touch -r $$i\@$*\.smod $$i.mod ; \
+	   fi ; \
 	done ; \
 	fi
 	@if [ -s $*.ERR ] ; then echo $(MSG); else echo Done $(MSG); fi
