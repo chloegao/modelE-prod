@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 ## simple script to run the model
 
 OPTS=
@@ -99,6 +99,10 @@ eval QSUB_STRING_VAL_0=\$QSUB_STRING$QS_OPT
 #eval QSUB_STRING_VALUE=\"$QSUB_STRING_VAL_0\"
 QSUB_STRING_VAL_1=${QSUB_STRING_VAL_0/\%np/$np}
 QSUB_STRING_VALUE=${QSUB_STRING_VAL_1/\%t/$t}
+# POSIX-compatible version:
+#QSUB_STRING_VAL_1=$(echo $QSUB_STRING_VAL_0 | sed "s/\%np/$np/;")
+#QSUB_STRING_VALUE=$(echo $QSUB_STRING_VAL_1 | sed "s/\%t/$t/;")
+
 echo "submitting: " $QSUB_STRING_VALUE " ./$run_command"
 
 $QSUB_STRING_VALUE ./$run_command
