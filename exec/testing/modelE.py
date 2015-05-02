@@ -263,12 +263,15 @@ def sendDiffreport(config, bpconfig):
     resultsDir = userconfig['scratchdir'] + '/regression_results/' + branch
     compflags  = userconfig['compflags']
     sortdiff   = userconfig['sortdiff']
+    testType   = userconfig['testtype']
     compilers  = regUtils.getCompilers(bpconfig)
 
     diffFile = resultsDir + '/' + 'diffreport.txt'
     fp = open(diffFile, 'w')
-    fp.write('ModelE test results, branch=' + branch + \
-        ', compiler flags=' + compflags + '\n')
+    fp.write('ModelE test results \n')
+    fp.write('-'*20+'\n')
+    fp.write('Branch:' + branch + ',  Compiler flags:' + compflags + \
+        ',  Test type:' + testType + '\n')
     fp.write('-'*62+'\n')
     fp.write('%62s\n' % ('-REPRODUCIBILITY'))
     fp.write('%20s%10s%8s%6s%6s%6s%6s\n' % \
@@ -412,7 +415,7 @@ def createScriptTask(config, bpconfig, deck, comp):
                 walltime = '0:30:00'
             else:
                 cores = 44
-                walltime = '00:30:00'
+                walltime = '1:00:00'
             
         else:               
             if 'mpi' in deck.modes: 
