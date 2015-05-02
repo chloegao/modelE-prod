@@ -13,7 +13,27 @@ editRundeck()
 
   echo $deck
   ndisk_line="ndisk=$ndisk"
-  end_hour_line=" DATEE=$datee, HOURE=$houre,"
+# If there is no fifth argument (default) then:
+  if [ -z "$5" ]; then
+    end_hour_line=" DATEE=$datee, HOURE=$houre,"
+# else modify MONTHE (and potentially YEARE):
+  else
+    # exclude commented (!) lines, get first match, print year value
+    year=`grep  "^[^\!]" $deck | grep -m1 YEARE | awk -F= '{print $2}' | awk -F, '{print $1}'`
+    # exclude commented (!) lines, get first match, print month value
+    month=`grep "^[^\!]" $deck | grep -m1 YEARE | awk -F= '{print $3}' | awk -F, '{print $1}'`
+    if [ $month -ge 11 ]; then
+      let "year=year+1"
+      if [ $month -eq 12 ]; then
+        let "month=2"
+      else
+        let "month=1"
+      fi
+    else
+      let "month=month+2"
+    fi
+    end_hour_line=" YEARE=$year, MONTHE=$month, DATEE=$datee, HOURE=$houre,"
+  fi
   eof1='&&END_PARAMETERS'
   eof2='/'
 
@@ -29,4 +49,4 @@ editRundeck()
   tail +${n2} templ                         >> ${deck}
 }
 
-editRundeck $1 $2 $3 $4;
+editRundeck $1 $2 $3 $4 $5
