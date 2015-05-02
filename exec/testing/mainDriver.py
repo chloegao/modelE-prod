@@ -1,12 +1,12 @@
 # This is the main driver for the modelE regression tests. To run the scripts:
-#    python mainDriver.py [configuration file]
+# python mainDriver.py [configuration file]
 import time
 import sys
-import regTools
-import regTasks
-import regPool
-import logging
 import os.path
+import regUtils
+import regPool
+import modelE
+import logging
 
 logger = logging.getLogger('main')
 
@@ -32,36 +32,37 @@ def main():
     )
 
 # Read user-defined config file and store in a config object
-    config = regTools.readConfig(cfgfile)
+    config = regUtils.readConfig(cfgfile)
 # Get default COMP options from a config file
     if not config.has_section("COMPCONFIG"):
-        bpconfig = regTools.readConfig('system.cfg')
+        bpconfig = regUtils.readConfig('system.cfg')
     else:
         bpconfig = config
 
 # config file contains a list of model configurations. In modelE these
 # configurations are called rundecks. For convenience store that information in 
 # a separate list:
-    runList = regTools.getModelConfigurations(config)
+    runList = modelE.getModelConfigurations(config)
 
 # Let's setup the testing environment:
-    regTools.setupEnv(config, bpconfig)
+    modelE.setupEnv(config, bpconfig)
 
 # Create gitTasks
-    gitTasks = regTasks.setupCloneTasks(config, bpconfig, runList)
+    gitTasks = modelE.setupCloneTasks(config, bpconfig, runList)
 # ... and execute them
     regPool.runCommands(gitTasks, 'no')
 
 # Create scripts
-    scriptTasks = regTasks.setupScriptTasks(config, bpconfig, runList)
+    scriptTasks = modelE.setupScriptTasks(config, bpconfig, runList)
 # ... and run them
-    userconfig = regTools.ConfigSectionMap(config, 'USERCONFIG')
+    userconfig = regUtils.ConfigSectionMap(config, 'USERCONFIG')
     useBatch = userconfig['usebatch']
     regPool.runCommands(scriptTasks, useBatch)
 
 # Gather results and notify
     if userconfig['diffreport'] == 'yes':
-        regTools.sendDiffreport(config, bpconfig)
+#        modelE.createDiffreport(config, runList)
+        modelE.sendDiffreport(config, bpconfig)
 
 #-------------------------------------------------------------------------------
 # MAIN PROGRAM 
