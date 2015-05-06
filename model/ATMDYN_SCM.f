@@ -315,7 +315,8 @@ c         apply combined forcings to horizontal winds
       Use RESOLUTION, Only: IM,JM,LM, MTOP
       Use ATM_COM,    Only: ZATMO, GZ,PHI
       Implicit None
-      Real*8,Dimension(1,1,LM) :: S0,SZ,MAM
+      Real*8,Dimension(1,1,LM) :: S0,SZ
+      Real*8,Dimension(LM,1,1) :: MAM
 !**** Local variables
       Real*8  :: DGZU(LM),DGZA(LM),
      *           M,PU,PKU,PKPU,PKPPU,DP,zDP,X,Y,PD,PKD,PKPD,PKPPD,GZD,
