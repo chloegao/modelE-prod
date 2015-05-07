@@ -13,6 +13,7 @@ logger = logging.getLogger('main')
 #-------------------------------------------------------------------------------
 # MAIN DRIVER
 def main():
+    starttime = time.time()
     useMessage = 'Usage: python ' + sys.argv[0] + ' <configFileName> # no file extension'
     if len(sys.argv)==1:
         print useMessage
@@ -59,15 +60,15 @@ def main():
     useBatch = userconfig['usebatch']
     regPool.runCommands(scriptTasks, useBatch)
 
+    eTime =  time.time()-starttime
 # Gather results and notify
     if userconfig['diffreport'] == 'yes':
 #        modelE.createDiffreport(config, runList)
-        modelE.sendDiffreport(config, bpconfig)
+        modelE.sendDiffreport(config, bpconfig, eTime)
+    logger.info('Time taken = %f' %(eTime))
 
 #-------------------------------------------------------------------------------
 # MAIN PROGRAM 
 if __name__ == "__main__":
-    starttime = time.time()
     main()
     logger.info('Regression tests are done!')
-    logger.info('Time taken = %f' %(time.time()-starttime))

@@ -256,7 +256,7 @@ def createDiffreport(config, runSources):
 
 #-------------------------------------------------------------------------------
 # Create a diff report and notify via email
-def sendDiffreport(config, bpconfig):
+def sendDiffreport(config, bpconfig, eTime):
     userconfig  = regUtils.ConfigSectionMap(config, 'USERCONFIG')
     mailto     = userconfig['mailto']
     branch     = userconfig['repobranch']
@@ -291,6 +291,8 @@ def sendDiffreport(config, bpconfig):
                 with open(f,'r') as inf:
                     fp.write(inf.read())
     
+    fp.write('-'*62+'\n')
+    fp.write('Time taken = %10.2f seconds\n' %(eTime))
     fp.write('-'*62+'\n')
     fp.write('Legend:\n')
     fp.write('-'*7+'\n')
