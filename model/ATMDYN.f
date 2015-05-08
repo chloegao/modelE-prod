@@ -141,7 +141,7 @@ c      end subroutine setDtParam
 
       SUBROUTINE DYNAM
 !@sum  DYNAM Integrate dynamic terms
-!@vers 2013/10/31
+!@vers 2015/05/08
 !@auth Original development team
       Use CONSTANT,   Only: by3,byGRAV,RGAS,SHA,kg2mb,UNDEF_VAL
       Use RESOLUTION, Only: IM,JM,LM,LS1, MFIXs
@@ -161,7 +161,7 @@ c      end subroutine setDtParam
       Real*8,Dimension (LM, IM, GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      &   MEVEN,MODD1,MODD3
       Real*8,Dimension (IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
-     &   MSUMODD, PA,PB,PC, FPEU,FPEV, AM1,AM2
+     &   MSUMODD, FPEU,FPEV, AM1,AM2
       Real*8,Dimension (IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) ::
      &   MMA,TZ,        !  even leap frog arrays
      &   UT,VT,TT,TZT,  !  odd leap frog arrays
@@ -215,7 +215,6 @@ C**** Leap-frog re-initialization: IF (NS.LT.NIdyn)
        PU(:,:,:) = MU(:,:,:)*kg2mb
        PV(:,:,:) = MV(:,:,:)*kg2mb
        SD(:,:,:) = MW(:,:,:)*kg2mb
-       PB(:,:)   = (MSUMODD(:,:) - MFIXs)*kg2mb
       call isotropuv(ux,vx,COS_LIMIT)
 
 !**** Initial backward step:  MODD1 = MA + DT*F(UX,VX,MODD3)
@@ -232,7 +231,6 @@ C**** Leap-frog re-initialization: IF (NS.LT.NIdyn)
        PU(:,:,:) = MU(:,:,:)*kg2mb
        PV(:,:,:) = MV(:,:,:)*kg2mb
        SD(:,:,:) = MW(:,:,:)*kg2mb
-       PA(:,:)   = (MSUMODD(:,:) - MFIXs)*kg2mb
       call isotropuv(ut,vt,COS_LIMIT)
       GO TO 360
 
@@ -250,9 +248,7 @@ C**** Leap-frog re-initialization: IF (NS.LT.NIdyn)
        PU(:,:,:) = MU(:,:,:)*kg2mb
        PV(:,:,:) = MV(:,:,:)*kg2mb
        SD(:,:,:) = MW(:,:,:)*kg2mb
-       PB(:,:)   = (MSUMODD(:,:) - MFIXs)*kg2mb
       call isotropuv(ut,vt,COS_LIMIT)
-      PA(:,:) = PB(:,:)     ! LOAD PB TO PA
       MODD1(:,:,:) = MODD3(:,:,:)
       NS = NS - 1
 
@@ -260,7 +256,6 @@ C**** Leap-frog re-initialization: IF (NS.LT.NIdyn)
   360      MODD5K = Mod (NSTEP+4-NS + NDA5K*NIDYN, NDA5K*NIDYN+2)
       MRCH=2
       MEVEN(:,:,:) = MA(:,:,:)
-       PC(:,:) = P(:,:)      ! LOAD P TO PC
 #          ifdef NUDGE_ON
            Call NUDGE (U,V,DTLF)
 #          endif
@@ -287,7 +282,6 @@ C**** ADVECT Q AND T
       Call AADVT (DTLF, MMA,T,TMOM, .False., FPEU,FPEV)
 !     save z-moment of temperature in contiguous memory for later
       TZ(:,:,:) = TMOM(MZ,:,:,:)
-       PC(:,:)   = .5*( P(:,:)  + PC(:,:))
        TT(:,:,:) = .5*( T(:,:,:)+ TT(:,:,:))
       TZT(:,:,:) = .5*(TZ(:,:,:)+TZT(:,:,:))
 
