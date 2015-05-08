@@ -3,8 +3,9 @@
 #
 
 .PHONY:
+VPATH = $(SRC_DIR)
 ifdef MOD_DIR
-  VPATH = $(MOD_DIR)
+  VPATH += $(MOD_DIR)
 endif
 
 ######  Some user customizable settings:   ########
@@ -348,7 +349,7 @@ endif
 ifeq ($(EXTERNAL_CPP),YES)
 %.o: %.f.cpp.f
 else
-%.o: $(SRC_DIR)/%.f
+%.o: %.f
 endif
 	@echo $(ECHO_FLAGS)  compiling `basename $<` ... $(MSG) \\c
 	$(F90) -c -o $@ $(FFLAGS_ALL) $(RFLAGS) $< $(COMP_OUTPUT)
@@ -373,7 +374,7 @@ endif
 ifeq ($(EXTERNAL_CPP),YES)
 %.o: %.F90.cpp.F90
 else
-%.o: $(SRC_DIR)/%.F90
+%.o: %.F90
 endif
 	@echo $(ECHO_FLAGS)  compiling `basename $<` ... $(MSG) \\c
 	$(F90) -c -o $@ $(F90FLAGS_ALL) $(RFLAGS) $< $(COMP_OUTPUT)
@@ -413,7 +414,7 @@ endif
 	 @echo preprocessing $<  $(MSG)
 	 $(CPP) $(CPPFLAGS) $*.F90 > $*.F90.cpp
 
-%.o: $(SRC_DIR)/%.c
+%.o: %.c
 	cc -c -O2 -m64 $<
 
 ifneq ($(MACHINE),IRIX64)

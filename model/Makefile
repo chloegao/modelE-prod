@@ -31,12 +31,12 @@ define PROGRAM_template
 $(1)_dir: $$($(1)_OBJS) $$($(1)_LIBS:%=-l%)
 	@echo
 	@echo "===> building component $(1)"
-	$(MAKE) -C $(1) $(OPTS_$(1))
+	$(MAKE) -C $(1) $(OPTS_$(notdir $(1)))
 #	mv -f .liblist .liblist_tmp
 	if [ -f $(1)/liblist ] ; then \
-	  cat $(1)/liblist | sed 's/\blib/$(1)\/lib/g' >> .liblist ; \
+	  cat $(1)/liblist | sed 's,\blib,$(1)/lib,g' >> .liblist ; \
 	else \
-	  echo $(1)/lib$(1).a >> .liblist ; \
+	  echo $(1)/lib$(notdir $(1)).a >> .liblist ; \
 	fi
 #	cat .liblist_tmp >> .liblist
 #	rm -f .liblist_tmp
@@ -48,10 +48,10 @@ ifeq ($(BUILD_OUT_OF_SOURCE),YES)
 	if [ ! -d $(1) ] ; then  mkdir $(1) ; fi
 	cp $(MODEL_E_ROOT)/model/$(1)/Makefile $(1)
 endif
-	$(MAKE) -C $(1) depend $(OPTS_$(1))
+	$(MAKE) -C $(1) depend $(OPTS_$(notdir $(1)))
 
 $(1)_htmldoc:
-	$(MAKE) -C $(1) htmldoc $(OPTS_$(1))
+	$(MAKE) -C $(1) htmldoc $(OPTS_$(notdir $(1)))
 
 endef
 
