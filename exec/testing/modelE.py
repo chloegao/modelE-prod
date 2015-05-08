@@ -9,6 +9,7 @@ import shutil
 import subprocess
 import glob
 import logging
+import time
 import regUtils
 from regTest import *
 from regFuncs import *
@@ -292,7 +293,8 @@ def sendDiffreport(config, bpconfig, eTime):
                     fp.write(inf.read())
     
     fp.write('-'*62+'\n')
-    fp.write('Time taken = %10.2f seconds\n' %(eTime))
+    hhmmss = time.strftime('%H:%M:%S', time.gmtime(eTime))
+    fp.write('Time taken = %s seconds\n' %(hhmmss))
     fp.write('-'*62+'\n')
     fp.write('Legend:\n')
     fp.write('-'*7+'\n')
