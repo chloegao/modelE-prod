@@ -918,6 +918,7 @@ C**** surface tracer concentration
       if (ocnatm%updated) then
         ALLOCATE
      *    (opgas_loc(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO) ,STAT=IER)
+        opgas_loc = 0 ! ensure "unused" values at poles don't pollute results.
         do nt=1, atm%gasex_index%getsize()
           DO J=oJ_0,oJ_1
             oWEIGHT(:,J) = oFOCEAN_loc(:,J)*(1.d0-oRSI(:,J))
