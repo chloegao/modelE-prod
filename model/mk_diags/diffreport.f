@@ -116,22 +116,30 @@ c if array sizes do not match, skip
 c read arrays
         status = nf_get_var_double(fid1,varid1,arr1)
         status = nf_get_var_double(fid2,varid2,arr2)
+        if(any(arr1.ne.arr1)) then
+          write(6,*) 'NaNs in file1 array '//trim(vname)
+        endif
+        if(any(arr2.ne.arr2)) then
+          write(6,*) 'NaNs in file2 array '//trim(vname)
+        endif
 c check for differences
-        if(any(arr1.ne.arr2)) then
+        if(any(arr1.ne.arr2.and.
+     &      .not.arr1.ne.arr1.and.
+     &      .not.arr2.ne.arr2)) then
           write(6,*) trim(vname)//' max diffs:'
           call get_vdimsizes(fid1,vname,ndims,dsizes)
           allocate(arrdiff(arrsize1))
 c absolute
-          arrdiff = abs(arr1-arr2)
+          where(arr1.eq.arr1) arrdiff = abs(arr1-arr2)
           max_abs = maxval(arrdiff)
           nmax_abs = maxloc(arrdiff)
-          call get_pos_str(nmax_abs,ndims,dsizes,pos_str)
+          call get_pos_str(nmax_abs(1),ndims,dsizes,pos_str)
           write(6,*) '          abs: ',max_abs,trim(pos_str)
 c relative
-          arrdiff = arrdiff/max(abs(arr1),abs(arr2))
+          where(arr1.eq.arr1) arrdiff = arrdiff/max(abs(arr1),abs(arr2))
           max_rel = maxval(arrdiff)
           nmax_rel = maxloc(arrdiff)
-          call get_pos_str(nmax_rel,ndims,dsizes,pos_str)
+          call get_pos_str(nmax_rel(1),ndims,dsizes,pos_str)
           write(6,*) '          rel: ',max_rel,trim(pos_str)
           deallocate(arrdiff)
 c fraction of differences containing more than 8 bits of information

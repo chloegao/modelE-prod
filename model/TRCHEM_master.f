@@ -2175,16 +2175,16 @@ C**** GLOBAL parameters and variables:
 #ifdef TRACERS_AEROSOLS_Koch
      &                     ,n_SO4
 #endif
+      USE TRACERS_SOA, only: KpCALC,kpart,kpart_ref,kpart_temp_ref,
+     &                       whichsoa,dH_isoprene,dH_apinene
+#endif  /* TRACERS_AEROSOLS_SOA */
 #ifdef TRACERS_AMP
-     &                     ,n_M_AKK_SU,n_M_ACC_SU,n_M_DD1_SU
+      USE TRACER_COM, only: n_M_AKK_SU,n_M_ACC_SU,n_M_DD1_SU
      &                     ,n_M_DS1_SU,n_M_DD2_SU,n_M_DS2_SU
      &                     ,n_M_SSA_SU,n_M_OCC_SU,n_M_BC1_SU
      &                     ,n_M_BC2_SU,n_M_BC3_SU,n_M_DBC_SU
      &                     ,n_M_BOC_SU,n_M_BCS_SU,n_M_MXX_SU
 #endif
-      USE TRACERS_SOA, only: KpCALC,kpart,kpart_ref,kpart_temp_ref,
-     &                       whichsoa,dH_isoprene,dH_apinene
-#endif  /* TRACERS_AEROSOLS_SOA */
 #ifdef TRACERS_TOMAS
       USE TRACER_COM, only: n_ASO4,nbins
 #endif
