@@ -1688,7 +1688,7 @@ c***      END DO
      +     (P(I,J-1) + P(IP1,J-1))*RAPVN(J-1)
       call calc_vert_amp(SP,LM,P00,AML,PDSIGL,PEDNL,PMIDL)
       PS=SP+PTOP
-      DO 286 L=1,LS1-1
+      DO 286 L=1,LM+1
   286 PL(L)=PEDNL(L)
       IF (PM(K+1).GE.PS) THEN
         pm_ge_ps(i,j,k) = 1.
@@ -1919,7 +1919,7 @@ C****
       FIMI=0.
       DO 600 I=1,IMAXJ(J)
       SP=P(I,J)
-      DO 569 L=1,LS1-1
+      DO 569 L=1,LM
   569 PLO(L)=PMID(L,I,J)    ! SP*SIG(L)+PTOP
       IF (PM(K).GE.SP+PTOP) GO TO 600
       L=1
@@ -1981,7 +1981,7 @@ C****
       WPA2I=0.
       DO 626 I=1,IMAXJ(J)
       SP=P(I,J)
-      DO 611 L=1,LS1-1
+      DO 611 L=1,LM
   611 PL(L)=PEDN(L,I,J)    ! SP*SIGE(L)+PTOP
       PS=SP+PTOP
       IF (PM(K+1).GE.PS) GO TO 626
@@ -2061,7 +2061,7 @@ C P already halo'ed; no need     CALL HALO_UPDATE(grid, P, FROM=SOUTH)
        FIMIofK(:) = 0
       I=IM
       DO 700 IP1=1,IM
-      DO 660 L=1,LS1-1
+      DO 660 L=1,LM
   660 PLO(L) = .25*(PMID(L,I,J-1) + PMID(L,Ip1,J-1) +
      +              PMID(L,I,J)   + PMID(L,Ip1,J))
       Do 695 K=2,KM
@@ -2237,7 +2237,7 @@ C P already halo'ed; no need     CALL HALO_UPDATE(grid, P, FROM=SOUTH)
               DPUV=0.
               SP=PSEC(I)
               call calc_vert_amp(SP,LM,P00,AML,PDSIGL,PEDNL,PMIDL)
-              DO 2025 L=1,LS1-1
+              DO 2025 L=1,LM
               PLO(L)=PMIDL(L)   !SP*SIG(L)+PTOP                       ! PL or PLO ??
  2025         PL(L)=PEDNL(L)    !SP*SIGE(L)+PTOP                       ! PLE or PL ??
               PS=SP+PTOP
