@@ -3163,6 +3163,9 @@ C     functions
 !@var O3stream interface for reading and time-interpolating O3 files
 !@+   See usage notes in timestream_mod
       type(timestream) :: O3stream,delta_O3stream
+#ifdef HIGH_FREQUENCY_O3_INPUT
+      type(timestream) :: OxHFstream,PSFforO3stream
+#endif
 
 !@dbparam use_sol_Ox_cycle if =1, a cycle of ozone is appled to
 !@+ o3year, as a function of the solar constant cycle.
@@ -3223,8 +3226,10 @@ C     functions
      &                       grid%j_strt:grid%j_stop))
         o3jref = 0.
 
-! what was this doing in the original updo3d ??
-! psf==plb0(1)
+! The next line is brought over from the original UPDO3D. I think
+! it is to prevent "losing" some ozone in the REPART interpolation
+! if the (fixed) lowest O3 level pressure is at lower pressure than
+! the the (fixed) lowest nominal model pressure:
         if(plbo3(1) < psf) plbo3(1) = psf 
 
         cyclic = jyearo < 0
@@ -3267,6 +3272,144 @@ C     functions
 
       return
       end subroutine UPDO3D
+
+
+#ifdef HIGH_FREQUENCY_O3_INPUT
+      subroutine UPDO3D_highFrequency(JYEARO,JJDAYO,
+     & o3jday_HF_modelLevels)
+      use resolution, only : psf, LS1, psfmpt, ptop, LM
+      use domain_decomp_atm, only: grid, getdomainbounds
+      use timestream_mod, only : init_stream,read_stream
+      use pario, only : par_open,par_close,read_dist_data
+      use filemanager, only : file_exists
+      use atm_com, only: pedn
+      use dynamics, only : dsig,sige
+      use constant, only : bygrav,tf,rgas
+      implicit none
+      integer, intent(in) :: JYEARO,JJDAYO
+      real*8, dimension(:,:,:), pointer :: o3jday_HF_modelLevels
+
+      integer :: i,j,l,jyearx,fid
+      logical, save :: init = .false.
+      logical :: cyclic,exists
+      real*8, allocatable :: OxHFarr(:,:,:)
+      real*8, allocatable :: psf4o3arr(:,:)
+      real*8, dimension(LM):: OxHFarr_Interpolated, OxHFarr_Converted,
+     &                        airmass
+      real*8, dimension(LM+1)::modelPressureBottoms, filePressureBottoms
+      real*8 :: numerator, denominator
+
+      integer :: j_0, j_1, i_0, i_1
+
+      call getdomainbounds(grid, j_strt=j_0,j_stop=j_1,
+     &                           i_strt=i_0,i_stop=i_1)
+
+      allocate(OxHFarr(  grid%i_strt_halo:grid%i_stop_halo,
+     &                   grid%j_strt_halo:grid%j_stop_halo,LM))
+      allocate(psf4o3arr(grid%i_strt_halo:grid%i_stop_halo,
+     &                   grid%j_strt_halo:grid%j_stop_halo))
+
+      jyearx = abs(jyearo)
+
+      if (.not. init) then
+        init = .true.
+        allocate(o3jday_HF_modelLevels(LM,grid%i_strt:grid%i_stop,
+     &                                    grid%j_strt:grid%j_stop))
+        o3jday_HF_modelLevels = 0.
+
+        cyclic = jyearo < 0
+
+        call init_stream(grid,OxHFstream,'OxHFfile','Ox',
+     &        0d0,1d30,'none',jyearx,jjdayo,cyclic=cyclic)
+        call init_stream(grid,PSFforO3stream,'OxHFfile','p_surf',
+     &        0d0,1d30,'none',jyearx,jjdayo,cyclic=cyclic)
+
+      endif  ! end init
+
+      call read_stream(grid,OxHFstream,jyearx,jjdayo,OxHFarr)
+      call read_stream(grid,PSFforO3stream,jyearx,jjdayo,psf4o3arr)
+
+      do j=j_0,j_1
+      do i=i_0,i_1
+        modelPressureBottoms(:)=pedn(:,i,j)
+        filePressureBottoms(1:LS1-1)=
+     &                  sige(1:LS1-1)*(psf4o3arr(i,j)-ptop)+ptop
+        filePressureBottoms(LS1:LM+1)=sige(LS1:LM+1)*psfmpt+ptop
+        ! approximate the air mass concurrent with ozone input:
+        airmass(1:LS1-1)=
+     &   (psf4o3arr(i,j)-ptop)*dsig(1:LS1-1)*1.d2*bygrav
+        airmass(LS1:LM)=psfmpt*dsig(LS1:LM)*1.d2*bygrav
+
+        ! to avoid potentially losing some of the column ozone, adjust
+        ! bottom level edge (similar to how routine UPDO3D does:
+        ! if(plbo3(1) < psf) plbo3(1) = psf ) Though we are not altering
+        ! the airmass at the same time. Should we?
+        filePressureBottoms(1)=
+     &   max(filePressureBottoms(1),modelPressureBottoms(1))
+
+        ! Convert units from pppv (volume mixing ratio input) to atm-cm.
+        ! For now using the approx. input file air mass, but this could
+        ! be changed such that the vmr is the fundamental quantity and
+        ! the mass is based on current model air mass...
+        !
+        ! Explanation of conversion:
+        ! Get "numerator" which is the amount of ozone we are inputting
+        ! in a given layer in units of kg(O3)/m2, where m2 is horizontal
+        ! surface area. Then get a "denominator" that is the density of
+        ! ozone at standard atmospheric pressure and 0 deg C in units of
+        ! kg(O3)/m3. This is a constant.
+        ! Then the num/den ratio has units of {kg/m2} / {kg/m3} = m and
+        ! represents "how much" ozone you would have if it were at those
+        ! pressure and temperature conditions, expressed as a thickness.
+        ! Call that an "atm-m". Then in the end conversion to atm-cm or
+        ! Dobson Unit are just powers of 10.
+        !
+        ! The numerator is obtained starting with read-in mole fraction
+        ! and denote a mole as n, our starting units are: n(O3)/n(air).
+        ! n(O3)/n(air) * [ratio of molecular weights, ozone to air] is:
+        ! n(O3)/n(air) * [48. g(O3)/n(O3)  /  28.9655d g(air)/n(air)]
+        !  --> g(O3)/g(air) = kg(O3)/kg(air). So now we have a mass
+        ! mixing ratio. Then multiply by the air mass in kg/m2:
+        ! kg(O3)/kg(air) * [kg(air)/m2] --> kg(O3)/m2.
+        !
+        ! The demoninator is obtained starting with the density of ozone
+        ! at 1 atmosphere and 0 deg C. At those conditions, air density
+        ! is p/RT. I.e. p, R, T are constants here and reference Earth's
+        ! atmosphere: p=101325 Pa, R=rgas in J kg-1 K-1, T=tf in K,
+        ! so units work out to kg(air)/m3. Convert from air to ozone
+        ! again using the ratio of molecular weights, e.g. on Earth:
+        ! 1.2922 kg(air)/m3 * [48. g(O3)/n(O3) / 28.9655d g(air)/n(air)]
+        ! --> 2.1415 kg(O3)/m3. Note that this ratio of molecular weights
+        ! appears in the numerator and denominator so is skipped below.
+        !
+        ! Now do numerator/denominator and obtain atm-m units, and
+        ! multiply by 100 to get the desired atm-cm units. This is the
+        ! cm thickness of O3 one would have under those those specific
+        ! atmoserpheric conditions. All that results in just:
+
+        do L=1,LM
+          numerator=OxHFarr(i,j,L)*airmass(L) ! kg O3 / m2 we have
+          denominator=101325.d0/(rgas*tf)     ! kg O3 / m3 @ 1 atm and 0 deg C
+          OxHFarr_Converted(L)=1.d2*numerator/denominator
+        enddo
+
+        ! Now, interpolate vertically, but this interpolation is not onto
+        ! the rad code O3 levels, it is just an adjustment over the same
+        ! LM levels but allowing for different surface pressure than was
+        ! concurrent when this model input was saved from a previous run:
+        call repart(OxHFarr_Converted, filePressureBottoms,  LM+1,   ! IN
+     &           OxHFarr_Interpolated, modelPressureBottoms, LM+1)   ! OUT
+        ! save for use in rad code proper:
+        o3jday_HF_modelLevels(:,i,j)=OxHFarr_Interpolated(:)
+      enddo
+      enddo
+
+      deallocate(OxHFarr, psf4o3arr)
+
+      return
+      end subroutine UPDO3D_highFrequency
+#endif /* HIGH_FREQUENCY_O3_INPUT */
+
 
       SUBROUTINE UPDO3D_solar(jjdayo,S0,o3jday)
 !@sum UPDO3D_solar adds solar cycle variability to O3JDAY
