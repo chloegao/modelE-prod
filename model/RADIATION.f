@@ -371,6 +371,9 @@ C--------------------------------------   have to handle 1 point in time
      *          ,KYEARV=0,KJDAYV=0, KYEARE=0,KJDAYE=0, KYEARR=0,KJDAYR=0
 
       REAL*8, dimension(:,:,:), pointer :: o3jday,o3jref
+#ifdef HIGH_FREQUENCY_O3_INPUT
+      REAL*8, dimension(:,:,:), pointer :: o3jday_HF_modelLevels
+#endif
 
 !@var PLBA21 Vert. Layering for tropospheric aerosols (reference)
       REAL*8, PARAMETER :: PLBA20(21)=(/
@@ -1534,6 +1537,9 @@ C--------------------------------
       use SURF_ALBEDO, only : UPDSUR
       use AerParam_mod, only : updateAerosol,updateAerosol2
       use O3mod, only : updO3d,updO3d_solar,plbo3,nlo3
+#ifdef HIGH_FREQUENCY_O3_INPUT
+      use O3mod, only : UPDO3D_highFrequency
+#endif
       IMPLICIT NONE
 C-----------------------------------------------------------------------
 C
@@ -1603,6 +1609,9 @@ C----------------------------------------------
       IF(KYEARO.ne.0)             JYEARO=KYEARO
 C----------------------------------------------
       CALL UPDO3D(JYEARO,JJDAYO,O3JDAY,O3JREF)
+#ifdef HIGH_FREQUENCY_O3_INPUT
+      CALL UPDO3D_highFrequency(JYEARO,JJDAYO,O3JDAY_HF_modelLevels)
+#endif
       CALL UPDO3D_solar(JJDAYO,S00WM2*RATLS0,O3JDAY)
 C----------------------------------------------
 
@@ -1699,6 +1708,12 @@ C--------------------------------
       else
         CALL REPART (O3JDAY(1,IGCM,JGCM),PLBO3,NLO3+1, ! in
      *                        U0GAS(1,3),PLB0, NL+1)   ! out, ok if L1>1 ?
+#ifdef HIGH_FREQUENCY_O3_INPUT
+        ! Overwrite the lm_gcm levels with higher frequency ozone, leaving
+        ! climatology above those levels:
+        U0GAS(1:lm_gcm,3)=O3JDAY_HF_modelLevels(1:lm_gcm,IGCM,JGCM)
+        FULGAS(3)=1.d0
+#endif
         ! considering this move to here from setgas:
         ! chem_out(:,1)=U0GAS(:,3)*FULGAS(3) ! save climatology O3 for chem
         ! and might then need something like:
@@ -7878,6 +7893,9 @@ C
       SUBROUTINE WRITET(KWRU,INDEX,JYRREF,JYRNOW,JMONTH,KLIMIT)
       use AerParam_mod, only : updateAerosol,updateAerosol2
       use O3mod, only : updO3d,updO3d_solar,plbo3,nlo3
+#ifdef HIGH_FREQUENCY_O3_INPUT
+      use O3mod, only : UPDO3D_highFrequency
+#endif
       IMPLICIT NONE
 C
 C
@@ -8129,6 +8147,9 @@ C
       JJDAYO=JMONTH*30-15
       IF(JMONTH < 1) JJDAYO=JDAY
       CALL UPDO3D(JYRREF,JJDAYO,O3JDAY,O3JREF)
+#ifdef HIGH_FREQUENCY_O3_INPUT
+      CALL UPDO3D_highFrequency(JYRREF,JJDAYO,O3JDAY_HF_modelLevels)
+#endif
       CALL UPDO3D_solar(JJDAYO,S00WM2*RATLS0,O3JDAY)
       DO 450 J=1,46
       DO 410 L=1,NL
@@ -8208,6 +8229,9 @@ C
       JJDAYO=JMONTH*30-15
       IF(JMONTH < 1) JJDAYO=JDAY
       CALL UPDO3D(JYRREF,JJDAYO,O3JDAY,O3JREF)
+#ifdef HIGH_FREQUENCY_O3_INPUT
+      CALL UPDO3D_highFrequency(JYRREF,JJDAYO,O3JDAY_HF_modelLevels)
+#endif
       CALL UPDO3D_solar(JJDAYO,S00WM2*RATLS0,O3JDAY)
       DO 590 N=1,3
       N1=1

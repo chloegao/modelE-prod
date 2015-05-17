@@ -1924,12 +1924,6 @@ subroutine CONDSE
     call stop_model('ISCCP CLOUD TYPING ERROR',255)
   end if
 
-#ifdef TRACERS_WSD
-#ifdef TRACERS_WATER
-  call trac_accum_clouds
-#endif
-#endif
-
 #ifdef TRACERS_TOMAS
 !C     To fix inconsistent aerosol size distribution and water eqm.
       CALL aeroupdate
