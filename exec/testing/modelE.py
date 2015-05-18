@@ -294,7 +294,7 @@ def sendDiffreport(config, bpconfig, eTime):
     
     fp.write('-'*62+'\n')
     hhmmss = time.strftime('%H:%M:%S', time.gmtime(eTime))
-    fp.write('Time taken = %s seconds\n' %(hhmmss))
+    fp.write('Time taken = %s \n' %(hhmmss))
     fp.write('-'*62+'\n')
     fp.write('Legend:\n')
     fp.write('-'*7+'\n')

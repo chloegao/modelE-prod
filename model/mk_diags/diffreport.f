@@ -4,7 +4,7 @@
       implicit none
       include 'netcdf.inc'
       integer :: status,vtype,varid1,varid2,fid1,fid2,yesno_vid,nargs
-      character(len=80) :: file1,file2
+      character(len=256) :: file1,file2
       character(len=40) :: vname,pos_str,yesno,attname,yesno_list
       integer :: iargc,nvars,ndims,dsizes(7),iatt,natts,n,cnt0,cntn
       integer :: arrsize1,arrsize2
