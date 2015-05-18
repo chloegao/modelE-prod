@@ -992,7 +992,6 @@ C**** Set date information
 C**** Initialise tracer parameters and diagnostics
 C**** MUST be before other init routines
       call laterInitTracerMetadata()
-      call InitTracerDiagMetadata()
       call InitTracerMetadataAtmOcnCpler()
 #endif
 #endif
