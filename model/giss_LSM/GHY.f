@@ -1311,6 +1311,7 @@ c**** bare soil fluxes
         ! canopy
         fch(0) = -htpr +
      &       (evapvw*elh*fw + snsh(2) + thrm_can
+     &       + evapvg*elh  ! flux soil evap thru canopy
 #ifdef RAD_VEG_GROUND
      &       * (1.d0-trans_sw)
      &       - (1.d0 - trans_sw)*(srht + trht)
@@ -1319,12 +1320,17 @@ c**** bare soil fluxes
 #endif
      &       + evapvd*elh*fd)
      &       *(1.d0-fm*fr_snow(2))
-        fch(1) = -(thrm_can - thrm_soil(2))
+        fch(1) = -(thrm_can - thrm_soil(2)
+     &       - evapvg*elh  ! flux soil evap thru canopy
+     &            )
 #ifdef RAD_VEG_GROUND
      &       *(1.d0 - trans_sw)
 #endif
      &       *(1.d0-fr_snow(2)) !rad soil
-     &       - (thrm_can - thrmsn(2))*fr_snow(2)*(1.d0-fm)    !rad snow
+     &       - (thrm_can - thrmsn(2)
+     &       - evapvg*elh  ! flux soil evap thru canopy
+     &         )
+     &       *fr_snow(2)*(1.d0-fm) !rad snow
 #ifdef RAD_VEG_GROUND
      &       *(1.d0 - trans_sw)
 #endif
