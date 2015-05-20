@@ -6,7 +6,7 @@ SRCS = Test_DistGrid.pf \
 	Test_GlobalSum.pf \
 	Test_Halo.pf
 else
-SRCS = Test_Placeholder.pf
+SRCS = Test_MPIPlaceholder.pf
 endif
 
 OBJS = $(SRCS:.pf=.o)

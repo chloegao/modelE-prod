@@ -28,6 +28,12 @@ c      call il_defs
 #endif
       call diurn_defs
       call ijhc_defs
+
+#ifndef STANDALONE_OCEAN
+#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
+      call InitTracerDiagMetadata()
+#endif
+#endif
       return
       end subroutine def_acc
 
@@ -1136,6 +1142,7 @@ c
 #endif
       use geom
       use dynamics, only : do_gwdrag,ido_gwdrag
+      use rad_com, only: nradfrc
       implicit none
       integer :: i,k,kk,k1,l,n,ngx
       character(len=16) :: ijstr
@@ -1973,144 +1980,146 @@ c
       scale_ij(k) = 1.
       ir_ij(k) = ir_0_710
 c
-      k=k+1 !
-      IJ_SWCRF = k ! SW cloud radiative forcing (W/m**2)      2 RD
-      lname_ij(k) = 'SW CLOUD RADIATIVE FORCING, TOA'
-      units_ij(k) = 'W/m^2'
-      name_ij(k) = 'swcrf_toa'
-      ia_ij(k) = ia_rad_frc
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m265_95
+      if (nradfrc>0) then
+        k=k+1 !
+        IJ_SWCRF = k ! SW cloud radiative forcing (W/m**2)      2 RD
+        lname_ij(k) = 'SW CLOUD RADIATIVE FORCING, TOA'
+        units_ij(k) = 'W/m^2'
+        name_ij(k) = 'swcrf_toa'
+        ia_ij(k) = ia_rad_frc
+        scale_ij(k) = 1.
+        ir_ij(k) = ir_m265_95
 c
-      k=k+1 !
-      IJ_LWCRF = k ! LW cloud radiative forcing (W/m**2)      2 RD
-      lname_ij(k) = 'LW CLOUD RADIATIVE FORCING, TOA'
-      units_ij(k) = 'W/m^2'
-      name_ij(k) = 'lwcrf_toa'
-      ia_ij(k) = ia_rad_frc
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m95_265
+        k=k+1 !
+        IJ_LWCRF = k ! LW cloud radiative forcing (W/m**2)      2 RD
+        lname_ij(k) = 'LW CLOUD RADIATIVE FORCING, TOA'
+        units_ij(k) = 'W/m^2'
+        name_ij(k) = 'lwcrf_toa'
+        ia_ij(k) = ia_rad_frc
+        scale_ij(k) = 1.
+        ir_ij(k) = ir_m95_265
 c
-      k=k+1 !
-      IJ_SWCRF2 = k ! SW cloud radiative forcing (W/m**2) without aerosols and Ozone
-      lname_ij(k) = 'SW CLOUD RF NO AER NO OX, TOA'
-      units_ij(k) = 'W/m^2'
-      name_ij(k) = 'swcrf_toa2'
-      ia_ij(k) = ia_rad_frc
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m265_95
+        k=k+1 !
+        IJ_SWCRF2 = k ! SW cloud radiative forcing (W/m**2) without aerosols and Ozone
+        lname_ij(k) = 'SW CLOUD RF NO AER NO OX, TOA'
+        units_ij(k) = 'W/m^2'
+        name_ij(k) = 'swcrf_toa2'
+        ia_ij(k) = ia_rad_frc
+        scale_ij(k) = 1.
+        ir_ij(k) = ir_m265_95
 c
-      k=k+1 !
-      IJ_LWCRF2 = k ! LW cloud radiative forcing (W/m**2) without aerosols and Ozone
-      lname_ij(k) = 'LW CLOUD RF NO AER NO Ox, TOA'
-      units_ij(k) = 'W/m^2'
-      name_ij(k) = 'lwcrf_toa2'
-      ia_ij(k) = ia_rad_frc
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m95_265
+        k=k+1 !
+        IJ_LWCRF2 = k ! LW cloud radiative forcing (W/m**2) without aerosols and Ozone
+        lname_ij(k) = 'LW CLOUD RF NO AER NO Ox, TOA'
+        units_ij(k) = 'W/m^2'
+        name_ij(k) = 'lwcrf_toa2'
+        ia_ij(k) = ia_rad_frc
+        scale_ij(k) = 1.
+        ir_ij(k) = ir_m95_265
 
 c
-      IJ_SWAERRF = k+1   ! TOA SW aerosol rad forcing (W/m**2)
-      DO N=1,8
+        IJ_SWAERRF = k+1   ! TOA SW aerosol rad forcing (W/m**2)
+        DO N=1,8
+          k=k+1
+          lname_ij(k) = 'SW AER RADIATIVE FORCING, TOA N='//char(N+48)
+          units_ij(k) = 'W/m^2'
+          name_ij(k) = 'swaerrf_toa_'//char(n+48)
+          ia_ij(k) = ia_rad_frc
+          scale_ij(k) = 1.
+          ir_ij(k) = ir_m95_265
+        END DO
+c
+        IJ_LWAERRF = k+1   ! TOA LW aerosol rad forcing (W/m**2)
+        DO N=1,8
+          k=k+1
+          lname_ij(k) = 'LW AER RADIATIVE FORCING, TOA N='//char(N+48)
+          units_ij(k) = 'W/m^2'
+          name_ij(k) = 'lwaerrf_toa_'//char(n+48)
+          ia_ij(k) = ia_rad_frc
+          scale_ij(k) = 1.
+          ir_ij(k) = ir_m95_265
+        END DO
+c
+        IJ_SWAERSRF = k+1   ! Surf SW aerosol rad forcing (W/m**2)
+        DO N=1,8
+          k=k+1
+          lname_ij(k) = 'SW AER RADIATIVE FORCING, SURF N='//char(N+48)
+          units_ij(k) = 'W/m^2'
+          name_ij(k) = 'swaerrf_surf_'//char(n+48)
+          ia_ij(k) = ia_rad_frc
+          scale_ij(k) = 1.
+          ir_ij(k) = ir_m95_265
+        END DO
+c
+        IJ_LWAERSRF = k+1   ! Surf LW aerosol rad forcing (W/m**2)
+        DO N=1,8
+          k=k+1
+          lname_ij(k) = 'LW AER RADIATIVE FORCING, SURF N='//char(N+48)
+          units_ij(k) = 'W/m^2'
+          name_ij(k) = 'lwaerrf_surf_'//char(n+48)
+          ia_ij(k) = ia_rad_frc
+          scale_ij(k) = 1.
+          ir_ij(k) = ir_m95_265
+        END DO
+c
+        IJ_SWAERABS = k+1   ! Atm. abs. by aerosol (W/m**2)
+        DO N=1,8
+          k=k+1
+          lname_ij(k) = 'SW AER ATMOS. ABSORPTION N='//char(N+48)
+          units_ij(k) = 'W/m^2'
+          name_ij(k) = 'swaeraa_toa_'//char(n+48)
+          ia_ij(k) = ia_rad_frc
+          scale_ij(k) = 1.
+          ir_ij(k) = ir_m95_265
+        END DO
+c
+        IJ_LWAERABS = k+1   ! Atm. abs. by aerosol (W/m**2)
+        DO N=1,8
+          k=k+1
+          lname_ij(k) = 'LW AER ATMOS. ABSORPTION N='//char(N+48)
+          units_ij(k) = 'W/m^2'
+          name_ij(k) = 'lwaeraa_toa_'//char(n+48)
+          ia_ij(k) = ia_rad_frc
+          scale_ij(k) = 1.
+          ir_ij(k) = ir_m95_265
+        END DO
+c
         k=k+1
-        lname_ij(k) = 'SW AER RADIATIVE FORCING, TOA N='//char(N+48)
+        IJ_SWAERRFNT = k   ! NET TOA SW aerosol rad forcing (W/m**2)
+        lname_ij(k) = 'SW AER RADIATIVE FORCING, TOA NET'
         units_ij(k) = 'W/m^2'
-        name_ij(k) = 'swaerrf_toa_'//char(n+48)
+        name_ij(k) = 'swaerrf_toa_net'
         ia_ij(k) = ia_rad_frc
         scale_ij(k) = 1.
         ir_ij(k) = ir_m95_265
-      END DO
 c
-      IJ_LWAERRF = k+1   ! TOA LW aerosol rad forcing (W/m**2)
-      DO N=1,8
         k=k+1
-        lname_ij(k) = 'LW AER RADIATIVE FORCING, TOA N='//char(N+48)
+        IJ_LWAERRFNT = k   ! NET TOA LW aerosol rad forcing (W/m**2)
+        lname_ij(k) = 'LW AER RADIATIVE FORCING, TOA NET'
         units_ij(k) = 'W/m^2'
-        name_ij(k) = 'lwaerrf_toa_'//char(n+48)
+        name_ij(k) = 'lwaerrf_toa_net'
         ia_ij(k) = ia_rad_frc
         scale_ij(k) = 1.
         ir_ij(k) = ir_m95_265
-      END DO
 c
-      IJ_SWAERSRF = k+1   ! Surf SW aerosol rad forcing (W/m**2)
-      DO N=1,8
         k=k+1
-        lname_ij(k) = 'SW AER RADIATIVE FORCING, SURF N='//char(N+48)
+        IJ_SWAERSRFNT = k   ! NET Surf SW aerosol rad forcing (W/m**2)
+        lname_ij(k) = 'SW AER RADIATIVE FORCING, SURF NET'
         units_ij(k) = 'W/m^2'
-        name_ij(k) = 'swaerrf_surf_'//char(n+48)
+        name_ij(k) = 'swaerrf_surf_net'
         ia_ij(k) = ia_rad_frc
         scale_ij(k) = 1.
         ir_ij(k) = ir_m95_265
-      END DO
 c
-      IJ_LWAERSRF = k+1   ! Surf LW aerosol rad forcing (W/m**2)
-      DO N=1,8
         k=k+1
-        lname_ij(k) = 'LW AER RADIATIVE FORCING, SURF N='//char(N+48)
+        IJ_LWAERSRFNT = k   ! NET Surf LW aerosol rad forcing (W/m**2)
+        lname_ij(k) = 'LW AER RADIATIVE FORCING, SURF NET'
         units_ij(k) = 'W/m^2'
-        name_ij(k) = 'lwaerrf_surf_'//char(n+48)
+        name_ij(k) = 'lwaerrf_surf_net'
         ia_ij(k) = ia_rad_frc
         scale_ij(k) = 1.
         ir_ij(k) = ir_m95_265
-      END DO
-c
-      IJ_SWAERABS = k+1   ! Atm. abs. by aerosol (W/m**2)
-      DO N=1,8
-        k=k+1
-        lname_ij(k) = 'SW AER ATMOS. ABSORPTION N='//char(N+48)
-        units_ij(k) = 'W/m^2'
-        name_ij(k) = 'swaeraa_toa_'//char(n+48)
-        ia_ij(k) = ia_rad_frc
-        scale_ij(k) = 1.
-        ir_ij(k) = ir_m95_265
-      END DO
-c
-      IJ_LWAERABS = k+1   ! Atm. abs. by aerosol (W/m**2)
-      DO N=1,8
-        k=k+1
-        lname_ij(k) = 'LW AER ATMOS. ABSORPTION N='//char(N+48)
-        units_ij(k) = 'W/m^2'
-        name_ij(k) = 'lwaeraa_toa_'//char(n+48)
-        ia_ij(k) = ia_rad_frc
-        scale_ij(k) = 1.
-        ir_ij(k) = ir_m95_265
-      END DO
-c
-      k=k+1
-      IJ_SWAERRFNT = k   ! NET TOA SW aerosol rad forcing (W/m**2)
-      lname_ij(k) = 'SW AER RADIATIVE FORCING, TOA NET'
-      units_ij(k) = 'W/m^2'
-      name_ij(k) = 'swaerrf_toa_net'
-      ia_ij(k) = ia_rad_frc
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m95_265
-c
-      k=k+1
-      IJ_LWAERRFNT = k   ! NET TOA LW aerosol rad forcing (W/m**2)
-      lname_ij(k) = 'LW AER RADIATIVE FORCING, TOA NET'
-      units_ij(k) = 'W/m^2'
-      name_ij(k) = 'lwaerrf_toa_net'
-      ia_ij(k) = ia_rad_frc
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m95_265
-c
-      k=k+1
-      IJ_SWAERSRFNT = k   ! NET Surf SW aerosol rad forcing (W/m**2)
-      lname_ij(k) = 'SW AER RADIATIVE FORCING, SURF NET'
-      units_ij(k) = 'W/m^2'
-      name_ij(k) = 'swaerrf_surf_net'
-      ia_ij(k) = ia_rad_frc
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m95_265
-c
-      k=k+1
-      IJ_LWAERSRFNT = k   ! NET Surf LW aerosol rad forcing (W/m**2)
-      lname_ij(k) = 'LW AER RADIATIVE FORCING, SURF NET'
-      units_ij(k) = 'W/m^2'
-      name_ij(k) = 'lwaerrf_surf_net'
-      ia_ij(k) = ia_rad_frc
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m95_265
+      endif
 c
       k=k+1               ! unused ????
       IJ_SWAERABSNT = k   ! NET Atm. abs. by aerosol (W/m**2)
@@ -4312,50 +4321,52 @@ c
       scale_ij(k) = 1.
       ir_ij(k) = ir_0_3550
 c
-      k=k+1 !
-      IJ_SWDCLS = k ! SW clear-sky down radiation surf (W/m**2) 2 RD
-      lname_ij(k) = 'SW CLR-SKY DOWNWARD RADIATION, SURFACE METHOD 2'
-      units_ij(k) = 'W/m^2'
-      name_ij(k) = 'swdcls'
-      ia_ij(k) = ia_rad_frc
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m95_265
+      if (nradfrc>0) then
+        k=k+1 !
+        IJ_SWDCLS = k ! SW clear-sky down radiation surf (W/m**2) 2 RD
+        lname_ij(k) = 'SW CLR-SKY DOWNWARD RADIATION, SURFACE METHOD 2'
+        units_ij(k) = 'W/m^2'
+        name_ij(k) = 'swdcls'
+        ia_ij(k) = ia_rad_frc
+        scale_ij(k) = 1.
+        ir_ij(k) = ir_m95_265
 c
-      k=k+1 !
-      IJ_SWNCLS = k ! SW clear-sky net radiation surf (W/m**2) 2 RD
-      lname_ij(k) = 'SW CLR-SKY NET RADIATION, SURFACE METHOD 2'
-      units_ij(k) = 'W/m^2'
-      name_ij(k) = 'swncls'
-      ia_ij(k) = ia_rad_frc
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m95_265
+        k=k+1 !
+        IJ_SWNCLS = k ! SW clear-sky net radiation surf (W/m**2) 2 RD
+        lname_ij(k) = 'SW CLR-SKY NET RADIATION, SURFACE METHOD 2'
+        units_ij(k) = 'W/m^2'
+        name_ij(k) = 'swncls'
+        ia_ij(k) = ia_rad_frc
+        scale_ij(k) = 1.
+        ir_ij(k) = ir_m95_265
 c
-      k=k+1 !
-      IJ_LWDCLS = k ! LW clear-sky down radiation surf (W/m**2) 2 RD
-      lname_ij(k) = 'LW CLR-SKY DOWNWARD RADIATION SURFACE METHOD 2'
-      units_ij(k) = 'W/m^2'
-      name_ij(k) = 'lwdcls'
-      ia_ij(k) = ia_rad_frc
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m95_265
+        k=k+1 !
+        IJ_LWDCLS = k ! LW clear-sky down radiation surf (W/m**2) 2 RD
+        lname_ij(k) = 'LW CLR-SKY DOWNWARD RADIATION SURFACE METHOD 2'
+        units_ij(k) = 'W/m^2'
+        name_ij(k) = 'lwdcls'
+        ia_ij(k) = ia_rad_frc
+        scale_ij(k) = 1.
+        ir_ij(k) = ir_m95_265
 c
-      k=k+1 !
-      IJ_SWNCLT = k ! SW clear-sky net radiation TOA (W/m**2) 2 RD
-      lname_ij(k) = 'SW CLR-SKY NET RADIATION TOA METHOD 2'
-      units_ij(k) = 'W/m^2'
-      name_ij(k) = 'swnclt'
-      ia_ij(k) = ia_rad_frc
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m95_265
+        k=k+1 !
+        IJ_SWNCLT = k ! SW clear-sky net radiation TOA (W/m**2) 2 RD
+        lname_ij(k) = 'SW CLR-SKY NET RADIATION TOA METHOD 2'
+        units_ij(k) = 'W/m^2'
+        name_ij(k) = 'swnclt'
+        ia_ij(k) = ia_rad_frc
+        scale_ij(k) = 1.
+        ir_ij(k) = ir_m95_265
 c
-      k=k+1 !
-      IJ_LWNCLT = k ! LW clear-sky net radiation TOA (W/m**2) 2 RD
-      lname_ij(k) = 'LW CLR-SKY NET RADIATION TOA METHOD 2'
-      units_ij(k) = 'W/m^2'
-      name_ij(k) = 'lwnclt'
-      ia_ij(k) = ia_rad_frc
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m95_265
+        k=k+1 !
+        IJ_LWNCLT = k ! LW clear-sky net radiation TOA (W/m**2) 2 RD
+        lname_ij(k) = 'LW CLR-SKY NET RADIATION TOA METHOD 2'
+        units_ij(k) = 'W/m^2'
+        name_ij(k) = 'lwnclt'
+        ia_ij(k) = ia_rad_frc
+        scale_ij(k) = 1.
+        ir_ij(k) = ir_m95_265
+      endif
 c
       k=k+1 !
       IJ_DSKIN   = k !

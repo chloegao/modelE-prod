@@ -19,10 +19,14 @@ sinclude $(MODELERC)
 THIS := $(shell basename `pwd`)
 LIB  = lib$(THIS).a
 
+ifeq ($(BUILD_OUT_OF_SOURCE),YES)
 ifneq ($(THIS),model)
   SRC_DIR=$(MODEL_E_ROOT)/model/$(THIS)
 else
   SRC_DIR=$(MODEL_E_ROOT)/model
+endif
+else
+  SRC_DIR=.
 endif
 
 # directory for html documents
