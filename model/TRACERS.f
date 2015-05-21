@@ -2156,9 +2156,25 @@ c daily_z is currently only needed for CS
      &     'avg_model(dist_im,dist_jm,nra_ch4)')
       call doVar(handle,action,avg_ncep, 
      &     'avg_ncep(dist_im,dist_jm,nra_ncep)')
-      call doVar(handle,action,iday_ncep,'iday_ncep(nra_ncep)')
-      call doVar(handle,action,i0_ncep,'i0_ncep(nra_ncep)')
-      call doVar(handle,action,first_ncep,'first_ncep(nra_ncep)')
+      select case (action)
+        case('define')
+          call defvar(grid,fid,iday_ncep,'iday_ncep(nra_ncep)')
+          call defvar(grid,fid,i0_ncep,'i0_ncep(nra_ncep)')
+          call defvar(grid,fid,first_ncep,'first_ncep(nra_ncep)')
+        case('read_dist')
+          call read_data(grid,fid,'iday_ncep',iday_ncep,
+     &       bcast_all=.true.)
+          call read_data(grid,fid,'i0_ncep',i0_ncep,
+     &       bcast_all=.true.)
+          call read_data(grid,fid,'first_ncep',first_ncep,
+        case ('write_dist')
+          call write_data(grid,fid,'iday_ncep',iday_ncep)
+          call write_data(grid,fid,'i0_ncep',i0_ncep)
+          call write_data(grid,fid,'first_ncep',first_ncep)
+      end select
+!        call doVar(handle,action,iday_ncep,'iday_ncep(nra_ncep)')
+!        call doVar(handle,action,i0_ncep,'i0_ncep(nra_ncep)')
+!        call doVar(handle,action,first_ncep,'first_ncep(nra_ncep)')
 #endif /* INTERACTIVE_WETLANDS_CH4 */
       call doVar(handle,action,sOx_acc,'sOx_acc(dist_im,dist_jm)')
       call doVar(handle,action,sNOx_acc,'sNOx_acc(dist_im,dist_jm)')
