@@ -1889,7 +1889,7 @@ C**** Routines associated with the budget grid
 !@auth Gavin Schmidt
       USE GEOM, only : lat2d_dg
       USE DIAG_COM, only : jm_budg,j_budg,j_0b,j_1b
-      USE DOMAIN_DECOMP_ATM, only :GRID,getDomainBounds
+      USE DOMAIN_DECOMP_ATM, only :GRID,getDomainBounds, halo_update
       IMPLICIT NONE
 !@var I,J are atm grid point values for the accumulation
       INTEGER :: I,J,J_0,J_1,I_0,I_1,J_0H,J_1H,I_0H,I_1H
@@ -1905,11 +1905,13 @@ C**** define atmospheric grid
 
 C**** Define mapping from actual lon/lat point to budget grid
 C**** this should be valid for all grids (lat/lon, cubed sphere,...)
-      DO J=J_0H,J_1H
+      DO J=J_0,J_1
         DO I=I_0,I_1
            J_BUDG(I,J)=NINT(1+(lat2d_dg(I,J)+90)*(JM_BUDG-1)/180.)
         END DO
       END DO
+
+      call halo_update(grid, J_BUDG)
 
 C**** define limits on budget indices for each processor
       j_0b=MINVAL( J_BUDG(I_0:I_1,J_0:J_1) )
