@@ -2024,7 +2024,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 !@auth T. Clune
       use ParallelIo_mod
       use domain_decomp_atm, only : grid
-
+      USE Dictionary_mod
       USE TRACER_COM, only: ntm, TRmom, TRM, coupled_chem
       USE TRACER_COM, only: ntm, nmom, no3_live, oh_live
 #ifdef TRACERS_SPECIAL_Shindell
@@ -2118,6 +2118,11 @@ c daily_z is currently only needed for CS
       call doVar(handle,action,ySO2,'ySO2'//ijcdims)
       call doVar(handle,action,sulfate,'sulfate'//ijldims) ! stays ijldims
       call doVar(handle,action,acetone,'acetone'//ijcdims)
+      if(trim(action) == 'read_dist') then
+           ! read_dist is a badly chosen synonym for read
+        if(is_set_param("coupled_chem"))
+     &       call get_param( "coupled_chem", coupled_chem )
+      endif
       if(coupled_chem == 1) then
         call doVar(handle,action,oh_live,'oh_live'//ijldims)   ! stays ijldims
         call doVar(handle,action,no3_live,'no3_live'//ijldims) ! stays ijldims
