@@ -17,7 +17,7 @@
 #else
       use domain_decomp_1d, only : band_pack_type
 #endif
-      use vector_integer_mod
+      use vector_integer_mod, only: vector_integer=>vector
       IMPLICIT NONE
 
       type simple_bounds_type ! todo: move to another module
