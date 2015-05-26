@@ -128,7 +128,7 @@
       implicit none
       class(map), intent(in) :: this
       _trgkey, target, intent(in) :: key
-      _ptrvalue, pointer, intent(out) :: value
+      _trgvalue, target, intent(out) :: value
       logical :: res
       type(pair) :: p
       type(iter) :: it
@@ -136,7 +136,7 @@
       __KEYSET(p%key, key)
       it=this%data%find(p)
       res=it/=this%data%iend()
-      if (res) value=>it%node%value%value
+      if (res) __VALSET(value,it%node%value%value)
       return
       end function get
 
