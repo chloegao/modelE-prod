@@ -253,6 +253,49 @@ C**** Fill in polar boxes
       RETURN
       END SUBROUTINE CALC_AMPK
 
+
+      Subroutine MAtoPMB
+!@sum  Compute P (mb) arrays from HALOed MA (kg/m^2)
+!@vers 2015/05/19
+      Use CONSTANT,   Only: KAPA,KG2MB
+      Use RESOLUTION, Only: LM, MTOP,MFIXs, PTOP
+      Use ATM_COM,    Only: MA,MASUM,byMA,
+     *                      PDSIG,PMID,PEDN,PK,PEK,P,SQRTP
+      Use FLUXES,     Only: ATMSRF,ASFLX4
+      Use DOMAIN_DECOMP_ATM, Only :GRID, HALO_UPDATE_COLUMN
+      Implicit None
+      Integer :: L,ITYPE
+
+      Call HALO_UPDATE_COLUMN (GRID, MA)
+
+          MASUM(:,:) = 0
+      PEDN(LM+1,:,:) = MTOP*KG2MB
+       PEK(LM+1,:,:) = PEDN(LM+1,:,:)**KAPA
+      Do L=LM,1,-1
+!        PLIJ(L,:,:) = used only in defunct subroutine DRYCNV
+          MASUM(:,:) = MA(L,:,:) + MASUM(:,:)
+        PDSIG(L,:,:) = MA(L,:,:)*KG2MB
+         PMID(L,:,:) = PEDN(L+1,:,:) + PDSIG(L,:,:)*.5
+         PEDN(L,:,:) = PEDN(L+1,:,:) + PDSIG(L,:,:)
+           PK(L,:,:) = PMID(L,:,:)**KAPA
+          PEK(L,:,:) = PEDN(L,:,:)**KAPA
+         byMA(L,:,:) = 1 / MA(L,:,:)  ;  EndDo
+
+          P(:,:) = (MASUM(:,:) - MFIXs)*KG2MB
+      SQRTP(:,:) = Sqrt(P(:,:))
+
+      ATMSRF%   P1(:,:) = PMID(1,:,:)
+      ATMSRF%SRFPK(:,:) =  PEK(1,:,:)
+      ATMSRF%  AM1(:,:) =   MA(1,:,:)
+      ATMSRF%byAM1(:,:) = byMA(1,:,:)
+      ATMSRF% SRFP(:,:) = P(:,:) + PTOP
+
+      Do ITYPE=1,4
+         ASFLX4(ITYPE)%SRFP(:,:) = ATMSRF%SRFP(:,:)  ;  EndDo
+      Return
+      EndSubroutine MAtoPMB
+
+
       SUBROUTINE CALC_AMP(p,amp)
 !@sum  CALC_AMP Calc. AMP: kg air*grav/100, incl. const. pressure strat
 !@auth Jean Lerner/Max Kelley

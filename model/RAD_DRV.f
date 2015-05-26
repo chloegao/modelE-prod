@@ -1869,8 +1869,6 @@ C****   total: dimrad_sv= IM*JM*(7*LM + 3*LM_REQ + 24 (+4)) => RAD_COM.f
           call write_parallel(trim(out_line),unit=6)
           call stop_model('RADIA: input file bad or too short',255)
         end if
-C****   Find arrays derived from P : PEdn and PK (forcing experiments)
-        call calc_ampk(lm)
       end if
 
       IF (MODRD.NE.0) GO TO 900

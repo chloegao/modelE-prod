@@ -59,8 +59,6 @@
       I_0 = GRID%I_STRT; I_1 = GRID%I_STOP
       J_0 = GRID%J_STRT; J_1 = GRID%J_STOP
 
-      Call CALC_AMPK (LM)  !  delete when MA replaces P on restart file
-
 C**** INITIALIZE TIME PARAMETERS
       NSTEP=(Itime-ItimeI)*NIdyn
 
@@ -255,6 +253,7 @@ C****
       return
       end subroutine atm_phase1
 
+
       subroutine atm_phase1_exports
 ! Copies fields calculated by the atmosphere into the data structures
 ! seen by physics of the surface components (ocean, ice, land).
@@ -265,7 +264,7 @@ C****
 ! Some fields have already been stored in atmsrf%xxx and are not
 ! referenced here in Step 1.  For temporary convenience,
 ! fields depending on surface pressure are being copied into the
-! per-surface-type structures by CALC_AMPK because subroutine FILTER
+! per-surface-type structures by MAtoPMB because subroutine FILTER
 ! is currently being called after the main surface physics, but
 ! before special "daily" surface coding which sometimes requires
 ! surface pressure - once FILTER is absorbed into DYNAM this hack
@@ -319,6 +318,7 @@ C****
 
       return
       end subroutine atm_phase1_exports
+
 
       subroutine atm_exports_phasesrf
 ! Copies fields calculated by the atmosphere into the data structures
@@ -490,6 +490,7 @@ C****
       return
       end subroutine atm_phase2
 
+
       SUBROUTINE INPUT_atm (istart,istart_fixup,do_IC_fixups,
      &     is_coldstart,KDISK_restart,IRANDI)
 
@@ -579,7 +580,6 @@ c     *    TIMEE=-1,HOURE=0 , DATEE=1, MONTHE=1, YEARE=-1, IHOURE=-1
       CALL SET_TIMER("   CHEMISTRY",MCHEM)
 #endif
 
-
       call sync_param( "ij_debug",ij_debug , 2)
 
 C****
@@ -609,8 +609,6 @@ C****        tropospheric temperatures are changed by at most 1 degree C
         IF (AM_I_ROOT())
      *       WRITE(6,*) 'Initial conditions were perturbed !!',IRANDI
       END IF
-
-      Call CALC_AMPK (LM)
 
 #ifdef TRACERS_ON
       if(istart.le.2) then

@@ -128,7 +128,7 @@ C**** module should own dynam variables used by other routines
       USE CONSTANT, only : GRAV
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID,HALO_UPDATE
      &     ,hassouthpole,hasnorthpole
-      USE RESOLUTION, ONLY : IM,JM,LM,PSFMPT
+      Use RESOLUTION, Only: IM,JM,LM, MDRYA, PSFMPT
       USE ATM_COM, ONLY : temperature_istart1
       USE ATM_COM, ONLY : ZATMO,P,U,V,T,Q,qcl,qci
       USE ATM_COM, ONLY :
@@ -224,6 +224,8 @@ C**** Check polar uniformity
      $          PEK(LM+1,I_0H:I_1H,J_0H:J_1H),
      $   STAT = IER)
 
+      MA(:,:,:) = MDRYA  !  needed for undefined halo cells
+
 !**** Allocate space for (I,J,L) arrays
       ALLOCATE( SD_CLOUDS(I_0H:I_1H,J_0H:J_1H,LM),
      $                 GZ(I_0H:I_1H,J_0H:J_1H,LM),
@@ -267,6 +269,7 @@ C**** Check polar uniformity
 
       END SUBROUTINE ALLOC_ATM_COM
 
+
       SUBROUTINE io_atm(kunit,iaction,ioerr)
 !@sum  io_model reads and writes model variables to file
 !@auth Gavin Schmidt
@@ -274,7 +277,8 @@ C**** Check polar uniformity
       USE RESOLUTION, only : IM,JM,LM
       USE MODEL_COM, only : IOWRITE,IOREAD,LHEAD
       USE DOMAIN_DECOMP_ATM, only: grid
-      USE DOMAIN_DECOMP_1D, only: PACK_DATA,UNPACK_DATA,AM_I_ROOT
+      Use DOMAIN_DECOMP_1D,  Only: PACK_DATA,UNPACK_DATA,AM_I_ROOT,
+     *                             PACK_COLUMN,UNPACK_COLUMN
       IMPLICIT NONE
 
       INTEGER kunit   !@var kunit unit number of read/write
@@ -293,7 +297,7 @@ C**** Check polar uniformity
 #endif
 !@var P_glob Work array for parallel I/O
       REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: !(IM,JM,LM)
-     &     U_glob,V_glob,T_glob,Q_glob,qcl_glob
+     &   MA_GLOB, U_glob,V_glob,T_glob,Q_glob,qcl_glob
      &     ,qci_glob
 #ifdef BLK_2MOM
 #endif
@@ -312,6 +316,7 @@ C**** Check polar uniformity
          jmg = 1
          lmg = 1
       end if
+      Allocate (MA_GLOB(LMG,IMG,JMG))
       allocate(U_glob(img,jmg,lmg))
       allocate(V_glob(img,jmg,lmg))
       allocate(T_glob(img,jmg,lmg))
@@ -324,6 +329,7 @@ C**** Check polar uniformity
 
       SELECT CASE (IACTION)
       CASE (:IOWRITE) ! output to end-of-month restart file
+         Call PACK_COLUMN (GRID, MA, MA_GLOB)
         CALL PACK_DATA(grid, U, U_GLOB)
         CALL PACK_DATA(grid, V, V_GLOB)
         CALL PACK_DATA(grid, T, T_GLOB)
@@ -351,6 +357,7 @@ C**** Check polar uniformity
             GO TO 10
           END IF
         end if
+         Call UNPACK_COLUMN (GRID, MA_GLOB, MA)     
         CALL UNPACK_DATA(grid, U_GLOB, U)
         CALL UNPACK_DATA(grid, V_GLOB, V)
         CALL UNPACK_DATA(grid, T_GLOB, T)
@@ -367,7 +374,10 @@ C**** Check polar uniformity
       call freemem
       RETURN
       contains
+
+
       subroutine freemem
+      Deallocate (MA_GLOB)
         deallocate(U_glob)
         deallocate(V_glob)
         deallocate(T_glob)
@@ -379,6 +389,7 @@ C**** Check polar uniformity
 #endif
       end subroutine freemem
       END SUBROUTINE io_atm
+
 
 #ifdef NEW_IO
 ccc was not sure where to dump these routines ... IA
@@ -424,6 +435,7 @@ ccc was not sure where to dump these routines ... IA
 
       end module conserv_diags
 
+
       subroutine def_rsf_atm(fid)
 !@sum  def_rsf_model defines U,V,T,P,Q,qcl array structure in restart files
 !@auth M. Kelley
@@ -443,6 +455,7 @@ ccc was not sure where to dump these routines ... IA
       call defvar(grid,fid,qcl,'qcl'//ijlstr)
       call defvar(grid,fid,qci,'qci'//ijlstr)
       call defvar(grid,fid,p,'p(dist_im,dist_jm)')
+      call defvar(grid,fid,ma,'ma(lm,dist_im,dist_jm)')
 #ifdef BLK_2MOM
 #endif
       call declare_conserv_diags( grid, fid, 'watmo(dist_im,dist_jm)' )
@@ -457,18 +470,19 @@ ccc was not sure where to dump these routines ... IA
 !@sum  new_io_model read/write U,V,T,P,Q,qcl arrays from/to restart files
 !@auth M. Kelley
 !@ver  beta new_ prefix avoids name clash with the default version
-      use resolution, only: lm
       use model_com, only : iowrite,ioread
       use atm_com
-      use domain_decomp_atm, only: grid
+      use domain_decomp_atm, only: grid, HALO_UPDATE_COLUMN
       use pario, only : write_dist_data,read_dist_data
       use conserv_diags
       implicit none
       integer fid   !@var fid unit number of read/write
       integer iaction !@var iaction flag for reading or writing to file
       external conserv_WM, conserv_KE, conserv_PE, conserv_EWM
+
       select case (iaction)
       case (iowrite)            ! output to restart file
+        call write_dist_data(grid, fid, 'ma', ma, jdim=3)
         call write_dist_data(grid, fid, 'u', u)
         call write_dist_data(grid, fid, 'v', v)
         call write_dist_data(grid, fid, 't', t)
@@ -483,6 +497,7 @@ ccc was not sure where to dump these routines ... IA
         call dump_conserv_diags( grid, fid, 'epatmo', conserv_PE )
         call dump_conserv_diags( grid, fid, 'ewatmo', conserv_EWM  )
       case (ioread)             ! input from restart file
+        call read_dist_data(grid, fid, 'ma', ma, jdim=3)
         call read_dist_data(grid, fid, 'u', u)
         call read_dist_data(grid, fid, 'v', v)
         call read_dist_data(grid, fid, 't', t)
@@ -490,7 +505,8 @@ ccc was not sure where to dump these routines ... IA
         call read_dist_data(grid, fid, 'q', q)
         call read_dist_data(grid, fid, 'qcl', qcl)
         call read_dist_data(grid, fid, 'qci', qci)
-        call calc_ampk (lm)
+        Call HALO_UPDATE_COLUMN (GRID, MA)
+        Call MAtoPMB
 #ifdef BLK_2MOM
 #endif
       end select

@@ -1553,7 +1553,7 @@ C**** FIND L=L(K) AND LUP=L(K+1) S.T. P(LUP).GT.P(K+1)
       L=L+1
       GO TO 110
   120 LUP=L
-  130 If (PM(K+1) >= PEDN(LUP+1,I,J))  GoTo 140
+  130 If (PM(K+1) >= PEDN(LUP+1,I,J) .or. LUP == LM)  GoTo 140
       LUP=LUP+1
       GO TO 130
   140 CONTINUE
