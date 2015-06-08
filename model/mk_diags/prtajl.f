@@ -9,8 +9,10 @@
       integer :: fid                 ! input file ID
       character(len=160) :: progargs ! options string
       real*4, dimension(:), allocatable :: lat_dg,vmean,plm,ple,pgz,pm
+      real*4, dimension(:), allocatable ::
+     &     lat_budg_dg,lat_agc_dg,lat2_agc_dg
       real*4 :: p_radonly(3)
-      real*4, dimension(:,:), allocatable :: xjl,xjl_hemis,lats_dg,
+      real*4, dimension(:,:), allocatable :: xjl,xjl_hemis,
      &     xjl_radonly,xjl_radonly_hemis
       character(len=30) :: units
       character(len=80) :: lname,title,outfile
@@ -19,8 +21,8 @@
       character(len=4) :: dash='----',blank4
       character(len=20) :: latname
       real*4 :: prtfac,fglob,fnh,fsh
-      integer :: j,l,jm,lm,kgz,km,inc,lstr,prtpow,linect,nargs,
-     &     k1,k2,lunit,prtpow_vmean
+      integer :: j,l,jm,jm_budg,jm_agc,lm,kgz,km,inc,lstr,prtpow,linect,
+     &     nargs,k1,k2,lunit,prtpow_vmean
       integer :: lats_per_zone,j1,j2,zone,nzones,lats_this_zone
       integer :: minj,maxj
       logical :: do_giss,all_lats,has_radonly
@@ -33,7 +35,8 @@ c
       character(len=80), parameter :: fmtlat =
      &     "('  P(MB)   MEAN G      NH      SH  ',32I4)"
       integer :: status,varid,varid_hemis,varid_vmean,nvars,dimids(2),
-     &     plm_dimid,ple_dimid, lat_dimid,lat2_dimid,pgz_dimid,
+     &     plm_dimid,ple_dimid,pgz_dimid,
+     &     lat_agc_dimid,lat2_agc_dimid,lat_budg_dimid,
      &     varid_radonly,varid_radonly_hemis
       character(len=132) :: xlabel
       character(len=100) :: fromto
@@ -69,31 +72,51 @@ c
       status = nf_get_att_text(fid,nf_global,'fromto',fromto)
 
       latname = 'lat_budg'
-      lat2_dimid = -99
-      if(nf_inq_dimid(fid,trim(latname),lat_dimid) .ne. nf_noerr) then
-        latname = 'lat'
-        status = nf_inq_dimid(fid,trim(latname),lat_dimid)
-        status = nf_inq_dimid(fid,'lat2',lat2_dimid)
+      if(nf_inq_dimid(fid,trim(latname),lat_budg_dimid)==nf_noerr) then
+        call get_dimsize(fid,trim(latname),jm_budg)
+      else
+        jm_budg = 0
+        lat_budg_dimid = -99
       endif
-      call get_dimsize(fid,trim(latname),jm)
-      call get_dimsize(fid,'plm',lm)
 
+      latname = 'lat'
+      if(nf_inq_dimid(fid,trim(latname),lat_agc_dimid)==nf_noerr) then
+        call get_dimsize(fid,trim(latname),jm_agc)
+        status = nf_inq_dimid(fid,'lat2',lat2_agc_dimid)
+      else
+        jm_agc = 0
+        lat_agc_dimid = -99
+        lat2_agc_dimid = -99
+      endif
+
+      call get_dimsize(fid,'plm',lm)
 
 c
 c allocate workspace
 c
-      allocate(lat_dg(jm),lats_dg(jm,2),
-     &     vmean(jm+3),xjl(jm,lm),xjl_hemis(3,lm))
-      allocate(xjl_radonly(jm,lm),xjl_radonly_hemis(3,lm))
+      allocate(lat_budg_dg(jm_budg))
+      allocate(lat_agc_dg(jm_agc))
+      allocate(lat2_agc_dg(jm_agc))
+
+      jm = max(jm_agc,jm_budg)
+      allocate(lat_dg(jm),vmean(jm+3))
+      allocate(xjl_hemis(3,lm))
+      allocate(xjl_radonly(jm_budg,lm),xjl_radonly_hemis(3,lm))
       allocate(plm(lm),ple(lm),pm(lm))
 
 c
 c read geometry
 c
-      call get_var_real(fid,trim(latname),lats_dg(1,1))
-      if(lat2_dimid.gt.0) then ! get secondary lats
-        call get_var_real(fid,'lat2',lats_dg(1,2))
+      if(lat_agc_dimid.gt.0) then ! primary agc lats
+        call get_var_real(fid,'lat',lat_agc_dg)
       endif
+      if(lat2_agc_dimid.gt.0) then ! secondary agc lats
+        call get_var_real(fid,'lat2',lat2_agc_dg)
+      endif
+      if(lat_budg_dimid.gt.0) then ! budg lats
+        call get_var_real(fid,'lat_budg',lat_budg_dg)
+      endif
+
       call get_var_real(fid,'plm',plm)
       call get_var_real(fid,'ple',ple)
       status = nf_inq_dimid(fid,'plm',plm_dimid)
@@ -118,19 +141,6 @@ c Loop over quantities.  An array xyz is printed if there also
 c exists an array xyz_hemis containing hemispheric/global averages
 c for that quantity.
 c
-      nzones = 1
-      lats_per_zone = jm
-      if(all_lats) then
-        do while(lats_per_zone .gt. 32)
-          nzones = nzones + 1
-          lats_per_zone = jm/nzones
-        enddo
-        if(lats_per_zone*nzones.ne.jm) stop 'factoring error'
-        inc=1
-      else
-        inc=1+(jm-1)/24
-      endif
-
       linect=65
 
       do varid_hemis=1,nvars
@@ -161,15 +171,64 @@ c
         status = nf_get_att_int(fid,varid,'prtpow',prtpow)
         prtpow_vmean = 0
         status = nf_get_att_int(fid,varid,'prtpow_vmean',prtpow_vmean)
+
+
+c
+c retrieve horizontal and vertical coordinate info
+c
+        status = nf_inq_vardimid(fid,varid,dimids)
+        if(dimids(1).eq.lat_agc_dimid) then
+          jm = jm_agc
+          lat_dg(1:jm) = lat_agc_dg(1:jm)
+          minj = 1; maxj = jm
+        elseif(dimids(1).eq.lat2_agc_dimid) then
+          jm = jm_agc
+          lat_dg(1:jm) = lat2_agc_dg(1:jm)
+          if(lat_dg(1).le.-90.) then
+            minj = 2; maxj = jm
+          else
+            minj = 1; maxj = jm-1
+          endif
+        elseif(dimids(1).eq.lat_budg_dimid) then
+          jm = jm_budg
+          lat_dg(1:jm) = lat_budg_dg(1:jm)
+          minj = 1; maxj = jm
+        endif
+        km = lm
+        if(dimids(2).eq.plm_dimid) then
+          pm(:) = plm(:)
+        elseif(dimids(2).eq.ple_dimid) then
+          pm(:) = ple(:)
+        elseif(dimids(2).eq.pgz_dimid) then
+          km = kgz
+          pm(1:kgz) = pgz(1:kgz)
+        endif
+
+
         xjl_hemis = missing
         status = nf_get_var_real(fid,varid_hemis,xjl_hemis)
         vmean = missing
         status = nf_get_var_real(fid,varid_vmean,vmean)
+        if(allocated(xjl)) deallocate(xjl)
+        allocate(xjl(jm,lm))
         status = nf_get_var_real(fid,varid,xjl)
         if(any(xjl.eq.nf_fill_real)) then
           write(6,*) 'undefined output: ',trim(vname)
           write(6,*) 'run agcstat first'
           cycle
+        endif
+
+        nzones = 1
+        lats_per_zone = jm
+        if(all_lats) then
+          do while(lats_per_zone .gt. 32)
+            nzones = nzones + 1
+            lats_per_zone = jm/nzones
+          enddo
+          if(lats_per_zone*nzones.ne.jm) stop 'factoring error'
+          inc=1
+        else
+          inc=1+(jm-1)/24
         endif
 
 c
@@ -195,31 +254,6 @@ c
           endif
         endif
         title = trim(lname)//' ('//trim(units)//')'
-
-c
-c retrieve horizontal and vertical coordinate info
-c
-        status = nf_inq_vardimid(fid,varid,dimids)
-        if(dimids(1).eq.lat_dimid) then
-          lat_dg(:) = lats_dg(:,1)
-          minj = 1; maxj = jm
-        else
-          lat_dg(:) = lats_dg(:,2)
-          if(lat_dg(1).le.-90.) then
-            minj = 2; maxj = jm
-          else
-            minj = 1; maxj = jm-1
-          endif
-        endif
-        km = lm
-        if(dimids(2).eq.plm_dimid) then
-          pm(:) = plm(:)
-        elseif(dimids(2).eq.ple_dimid) then
-          pm(:) = ple(:)
-        elseif(dimids(2).eq.pgz_dimid) then
-          km = kgz
-          pm(1:kgz) = pgz(1:kgz)
-        endif
 
 c
 c write binary output
@@ -284,7 +318,8 @@ c
 c
 c deallocate workspace
 c
-      deallocate(lat_dg,lats_dg,vmean,xjl,xjl_hemis)
+      deallocate(lat_dg,vmean,xjl,xjl_hemis)
+      deallocate(lat_budg_dg,lat_agc_dg,lat2_agc_dg)
       deallocate(plm,ple,pm)
       if(allocated(pgz)) deallocate(pgz)
 
