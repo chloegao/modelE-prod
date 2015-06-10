@@ -120,8 +120,8 @@ subroutine CONDSE
 #endif
   use trdiag_com, only: taijn=>taijn_loc, tij_prec
 #ifndef SKIP_TRACER_DIAGS
-  use TRDIAG_COM, only: jlnt_mc,jlnt_lscond,itcon_mc &
-       ,itcon_ss,taijs=>taijs_loc
+  use TRDIAG_COM, only: jlnt_mc,jlnt_lscond,itcon_mc,ijlt_prodSO4aq &
+       ,itcon_ss,taijs=>taijs_loc,taijls=>taijls_loc
 #ifdef TRACERS_WATER
   use TRDIAG_COM, only: jls_prec,trp_acc
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
@@ -1683,7 +1683,12 @@ subroutine CONDSE
                      dt_sulf_mc(n,l)*(1.-fssl(l))+dt_sulf_ss(n,l)
               endif
             end if
-#endif
+#ifdef ACCMIP_LIKE_DIAGS
+            if(trname(n).eq."SO4".and.ijlt_prodSO4aq.gt.0) &
+            taijls(i,j,l,ijlt_prodSO4aq)=taijls(i,j,l,ijlt_prodSO4aq)+ &
+            (dt_sulf_mc(n,l)*(1.-fssl(l))+dt_sulf_ss(n,l))*byaxyp(i,j)
+#endif /* ACCMIP_LIKE_DIAGS */
+#endif /* TRACERS_AEROSOLS_Koch or TRACERS_AMP or TRACERS_TOMAS */
 #ifdef TRACERS_AMP
             if (trname(n).eq."M_ACC_SU") then
               AQsulfRATE(i,j,l)=dt_sulf_mc(n,l)*(1.-fssl(l))+dt_sulf_ss(n,l)
