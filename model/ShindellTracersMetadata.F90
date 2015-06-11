@@ -545,7 +545,7 @@ contains
       call set_ntm_power(n, -8)
       call set_tr_mm(n, 48.d0)
       if (tracers_drydep) then
-        call set_F0(n,  1.0d0)
+        call set_F0(n,  1.4d0)
         call set_HSTAR(n,  1.d-2)
       end if
     end subroutine stratOx_setSpec

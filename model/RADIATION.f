@@ -1705,6 +1705,11 @@ C--------------------------------
       if(use_o3_ref > 0 )then
         CALL REPART (O3JREF(1,IGCM,JGCM),PLBO3,NLO3+1, ! in
      *                        U0GAS(1,3),PLB0, NL+1)   ! out, ok if L1>1 ?
+        ! next block may seem weird but it is here to allow RCOMPX calls with 
+        ! reference ozone in part of the atmosphere and tracer below:
+        if(use_tracer_chem(1) > 0) then
+          U0GAS(1:use_tracer_chem(1),3)=chem_IN(1,1:use_tracer_chem(1))
+        endif
         FULGAS(3)=1.d0
       else
         CALL REPART (O3JDAY(1,IGCM,JGCM),PLBO3,NLO3+1, ! in
