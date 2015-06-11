@@ -106,7 +106,6 @@ E001r (ModelE1 (3.0) inst.forcing run - control)
 &&PARAMETERS
 KOCEAN=0        ! ocn is prescribed
 Kvflxo=0        ! don't touch this line
-ocn_cycl=1      ! =0 if ocean varies from year to year
 
 CO2X=1.
 H2OstratX=1.

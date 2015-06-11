@@ -97,7 +97,6 @@ DTFIX=300
 ! parameters set for prescribed ocean runs:
 KOCEAN=0 ! 0 or 1 , use =0 if ocn is prescribed, use =1 if ocn is predicted
 Kvflxo=0 ! use 1 ONLY to save VFLXO daily to prepare for q-flux run ?
-ocn_cycl=1  ! ? use =0 if prescribed ocean varies from year to year
 
 variable_lk=1 ! let lakes grow or shrink in horizontal extent
 wsn_max=2.   ! restrict snow depth to 2 m-h2o (if 0. snow depth is NOT restricted)
@@ -197,7 +196,7 @@ nssw=2          ! until diurnal diagn. are fixed, nssw should be even
 !     replace in "Data input files:" OSST/SICE by (e.g.)
 ! OSST=OST4X5.B.1871.M02.Hadl1.1  ! ocean data   Feb 1871 - present
 ! SICE=SICE4X5.B.1871.M02.Hadl1.1 ! ocean data   Feb 1871 - present
-!     set in &&PARAMETERS : ocn_cycl=0 , Kvflxo=0
+!     set in &&PARAMETERS : Kvflxo=0
 !     set in &INPUTZ : IYEAR1=1871 (i.e. the year mentioned in OSST/SICE)
 
 ! q-flux run based on E1M20 with 65m ocn (sensitivity runs) E1M20 -> E1qsM20
