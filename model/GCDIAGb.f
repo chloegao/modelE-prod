@@ -1690,11 +1690,11 @@ c***      END DO
         PDN=PM(K)
   290   IF (PM(K).GT.PL(L+1)) GO TO 300
         L=L+1
-        GO TO 290
+        If (L <= LM)  GoTo 290
   300   LUP=L
   310   IF (PM(K+1).GE.PL(LUP+1)) GO TO 320
         LUP=LUP+1
-        GO TO 310
+        If (LUP <= LM)  GoTo 310
   320   CONTINUE
         DPK=PDN-PM(K+1)
         PUK=0.
@@ -1740,7 +1740,7 @@ C**** END AMIP
       IF (LUP.EQ.L) GO TO 332
       L=L+1
       PDN=PL(L)
-      GO TO 330
+      If (L <= LM)  GoTo 330
 C**** ACCUMULATE HERE
   332 FIMI=FIMI+1.
       DPI=DPI+DPK
@@ -1978,11 +1978,11 @@ C****
       PDN=PM(K)
   612 IF (PM(K).GT.PL(L+1)) GO TO 614
       L=L+1
-      GO TO 612
+      If (L <= LM)  GoTo 612
   614 LUP=L
   616 IF (PM(K+1).GE.PL(LUP+1)) GO TO 618
       LUP=LUP+1
-      GO TO 616
+      If (LUP <= LM)  GoTo 616
   618 CONTINUE
       PTK=0.
 C**** INTERPOLATE HERE
@@ -1993,7 +1993,7 @@ C**** INTERPOLATE HERE
       IF (LUP.EQ.L) GO TO 622
       L=L+1
       PDN=PL(L)
-      GO TO 620
+      If (L <= LM)  GoTo 620
 C**** ACCUMULATE HERE
   622 FIMI=FIMI+1.
       WUP=0.
@@ -2228,11 +2228,11 @@ C P already halo'ed; no need     CALL HALO_UPDATE(grid, P, FROM=SOUTH)
               PDN=PM(K)
  2030         IF (PM(K).GT.PL(L+1)) GO TO 2040
               L=L+1
-              GO TO 2030
+              If (L <= LM)  GoTo 2030
  2040         LUP=L
  2050         IF (PM(K+1).GE.PL(LUP+1)) GO TO 2060
               LUP=LUP+1
-              GO TO 2050
+              If (LUP <= LM)  GoTo 2050
  2060         CONTINUE
 C**** ACCUMULATE HERE
               SQRTDP=SQRT(PDN-PM(K+1))
@@ -2244,7 +2244,7 @@ C**** ACCUMULATE HERE
               IF (LUP.EQ.L) GO TO 2080
               L=L+1
               PDN=PL(L)
-              GO TO 2070
+              If (L <= LM)  GoTo 2070
  2080         IF (SQRTDP.EQ.0.) SQRTDP=teeny
               DPUV=DPUV/SQRTDP
  2090         X1(I)=DPUV
