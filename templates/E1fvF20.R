@@ -106,7 +106,6 @@ DTFIX=180.
 ! parameters set for prescribed ocean runs:
 KOCEAN=0        ! ocn is prescribed
 Kvflxo=0        ! use =1 to save VFLXO daily ONLY to prepare for q-flux runs
-ocn_cycl=1      ! =0 if ocean varies from year to year
 
 ! drag params if grav.wave drag is not used and top is at .01mb
 X_SDRAG=.002,.0002  ! used above P(P)_sdrag mb (and in top layer)

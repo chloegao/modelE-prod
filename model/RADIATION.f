@@ -4,6 +4,7 @@
 !@sum radiation module based originally on rad00b.radcode1.F
 !@auth A. Lacis/V. Oinas/R. Ruedy
 #ifndef USE_RAD_OFFLINE
+      use constant, only: pO2
       use atm_com, only : lm_req
       use resolution, only : lm_gcm=>lm
 #endif
@@ -742,7 +743,7 @@ C-----------------------------------------------------------------------
       REAL*8, dimension(13) ::
 C     GAS NUMBER    1         2    3      4    5         6           7
 C                 H2O       CO2   O3     O2  NO2       N2O         CH4
-     *   PPMV80=(/0d0, 337.90d0, 0d0,  21d4, 0d0,  .3012d0,   1.5470d0
+     *   PPMV80=(/0d0, 337.90d0, 0d0,pO2*1.d6,0d0,  .3012d0,   1.5470d0
      *     ,.1666d-03,.3003d-03, 0d0,   .978D-04,  .0010D-10,  .0420d0/)
 C              CCL3F1    CCL2F2   N2     CFC-Y       CFC-Z         SO2
 C     GAS NUMBER    8         9   10        11          12          13
@@ -1704,6 +1705,11 @@ C--------------------------------
       if(use_o3_ref > 0 )then
         CALL REPART (O3JREF(1,IGCM,JGCM),PLBO3,NLO3+1, ! in
      *                        U0GAS(1,3),PLB0, NL+1)   ! out, ok if L1>1 ?
+        ! next block may seem weird but it is here to allow RCOMPX calls with 
+        ! reference ozone in part of the atmosphere and tracer below:
+        if(use_tracer_chem(1) > 0) then
+          U0GAS(1:use_tracer_chem(1),3)=chem_IN(1,1:use_tracer_chem(1))
+        endif
         FULGAS(3)=1.d0
       else
         CALL REPART (O3JDAY(1,IGCM,JGCM),PLBO3,NLO3+1, ! in

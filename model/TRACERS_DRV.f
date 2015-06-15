@@ -3404,6 +3404,12 @@ C**** This needs to be 'hand coded' depending on circumstances
             units_ijts(k) = unit_string(ijts_power(k),'W/m2')
             scale_ijts(k) = 10.**(-ijts_power(k))
             ijts_HasArea(k) = .false.
+#ifdef AUX_OX_RADF_TROP
+#ifndef AUXILIARY_OX_RADF
+            call stop_model
+     &      ('AUX_OX_RADF_TROP needs AUXILIARY_OX_RADF',255)
+#endif
+#endif
 #ifdef AUXILIARY_OX_RADF
             if(trname(n)=='Ox')then
               k = k + 1

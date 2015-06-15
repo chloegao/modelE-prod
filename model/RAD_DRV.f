@@ -1481,6 +1481,9 @@ C**** Add water to relevant tracers as well
      *     ,bysha,pi,radian,areag
       USE RESOLUTION, only : pmtop
       USE RESOLUTION, only : im,jm,lm
+#ifdef TRACERS_SPECIAL_Shindell
+      USE RESOLUTION, only : LS1 
+#endif
       USE ATM_COM, only : kradia,lm_req,p,t,q,iu_rad,req_fac_d
       USE MODEL_COM
       use TimeConstants_mod, only: SECONDS_PER_DAY, INT_DAYS_PER_YEAR
@@ -1710,8 +1713,8 @@ C  GHG Effective forcing relative to 1850
 !@var SNFST_o3ref,TNFST_o3ref like snfst,tnfst for special case ozone for
 !@+   which nraero fields are not defined. Indicies are :
 !@+   1=LTROPO,reference, 2=TOA,reference; not saving surface forcing.
-!@+   3=LTROPO,auxiliary, 4=TOA,auxiliary; not saving surface forcing.
-      REAL*8,DIMENSION(4,grid%I_STRT_HALO:grid%I_STOP_HALO,
+!@+   3=LTROPO or LS1-1,auxiliary, 4=TOA,auxiliary; 5=LS1-1,reference
+      REAL*8,DIMENSION(5,grid%I_STRT_HALO:grid%I_STOP_HALO,
      &                   grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      &     SNFST_o3ref,TNFST_o3ref
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
@@ -2603,22 +2606,35 @@ C**** Ozone:
         use_o3_ref=1 ; use_tracer_chem(1)=0
         kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
         CALL RCOMPX        ! tr_Shindell Ox tracer
-        SNFST_o3ref(1,I,J)=SRNFLB(LTROPO(I,J)) ! tropopause
+        SNFST_o3ref(1,I,J)=SRNFLB(LTROPO(I,J)) ! meteorological tropopause
         TNFST_o3ref(1,I,J)=TRNFLB(LTROPO(I,J))
         SNFST_o3ref(2,I,J)=SRNFLB(LM+LM_REQ+1) ! T.O.A.
         TNFST_o3ref(2,I,J)=TRNFLB(LM+LM_REQ+1)
+        SNFST_o3ref(5,I,J)=SRNFLB(LS1-1) ! fixed tropopause
+        TNFST_o3ref(5,I,J)=TRNFLB(LS1-1)
 #ifdef AUXILIARY_OX_RADF
 ! if needed, also save the auxiliary ozone field (i.e. climatology
 ! if tracer is used in final call, tracers if climatology is used.)
+#ifdef AUX_OX_RADF_TROP
+        ! forces use of tracer from L=1,LS1-1 and reference above that:
+        use_o3_ref=1 ; use_tracer_chem(1)=LS1-1
+#else
+        ! use tracer or climatology, whichever won't be used in final call:
         use_o3_ref=0 ; use_tracer_chem(1)=(1-onoff_chem)*Lmax_rad_O3
+#endif
         kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
         CALL RCOMPX        ! tr_Shindell Ox tracer
-        SNFST_o3ref(3,I,J)=SRNFLB(LTROPO(I,J)) ! tropopause
+#ifdef AUX_OX_RADF_TROP
+        SNFST_o3ref(3,I,J)=SRNFLB(LS1-1)       ! fixed tropopause
+        TNFST_o3ref(3,I,J)=TRNFLB(LS1-1)
+#else
+        SNFST_o3ref(3,I,J)=SRNFLB(LTROPO(I,J)) ! meteorological tropopause
         TNFST_o3ref(3,I,J)=TRNFLB(LTROPO(I,J))
+#endif
         SNFST_o3ref(4,I,J)=SRNFLB(LM+LM_REQ+1) ! T.O.A.
         TNFST_o3ref(4,I,J)=TRNFLB(LM+LM_REQ+1)
-#endif
-! ... after which it can use either climatological or tracer O3:
+#endif /* AUXILIARY_OX_RADF */
+! After AUX call, use either climatological or tracer O3:
         use_o3_ref=0 ; use_tracer_chem(1)=onoff_chem*Lmax_rad_O3
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
 ! Optional intermediate call with stratOx tracer:
@@ -3565,11 +3581,19 @@ c longwave forcing at TOA
 c shortwave forcing at tropopause
          if (ijts_auxfc(1)>0)
      &   taijs(i,j,ijts_auxfc(1))=taijs(i,j,ijts_auxfc(1))
+#ifdef AUX_OX_RADF_TROP
+     &   +rsign_chem*(SNFST_o3ref(5,I,J)-SNFST_o3ref(3,I,J))*CSZ2
+#else
      &   +rsign_chem*(SNFST_o3ref(1,I,J)-SNFST_o3ref(3,I,J))*CSZ2
+#endif
 c longwave forcing at tropopause
          if (ijts_auxfc(2)>0)
      &   taijs(i,j,ijts_auxfc(2))=taijs(i,j,ijts_auxfc(2))
+#ifdef AUX_OX_RADF_TROP
+     &   -rsign_chem*(TNFST_o3ref(5,I,J)-TNFST_o3ref(3,I,J))
+#else
      &   -rsign_chem*(TNFST_o3ref(1,I,J)-TNFST_o3ref(3,I,J))
+#endif
 c shortwave forcing at TOA
          if (ijts_auxfc(3)>0)
      &   taijs(i,j,ijts_auxfc(3))=taijs(i,j,ijts_auxfc(3))
