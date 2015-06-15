@@ -1328,10 +1328,9 @@ C**** CONTENTS OF AIJK(I,J,K,N)   (SUM OVER TIME OF)
 C****   See ijks_defs for contents
 C****
       Use CONSTANT,   Only: kg2mb,lhe,omega,sha,tf,teeny, radius
-      USE RESOLUTION, only : ls1,psfmpt,ptop
       USE RESOLUTION, only : im,jm,lm
       USE MODEL_COM, only : idacc,mdyn,mdiag
-      Use ATM_COM,    Only: PHI,MA,PDSIG,PMID,PEDN,U,V,T,P,Q,QCL,QCI
+      Use ATM_COM,    Only: PHI,MA,PDSIG,PMID,PEDN,U,V,T,Q,QCL,QCI
       USE GEOM, only : bydxyp,bydxyv,rapvs,rapvn,
      &     COSV,DXV,DXYN,DXYP,DXYS,DXYV,DYP,DYV,FCOR,IMAXJ
       USE DIAG_COM, only : imh,fim,byim,ia_dga,ndaa
@@ -1362,8 +1361,8 @@ C****
       REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
      &     STJK,DPJK,UJK,VJK,WJK,TJK,
      &     PSIJK,UP,TY,PSIP,WTJK,UVJK,WUJK
-      REAL*8, DIMENSION(IM) :: PSEC,X1,X1tmp,WPA2_of_lon
-      REAL*8, DIMENSION(LM) :: SHETH,DPM,DTH,P00,AML,PDSIGL,PMIDL
+      REAL*8, DIMENSION(IM) :: X1,X1tmp,WPA2_of_lon
+      REAL*8, DIMENSION(LM) :: SHETH,DPM,DTH,PDSIGL
       REAL*8, DIMENSION(LM+1) :: PEDNL
 
       INTEGER ::
@@ -1374,11 +1373,12 @@ C****
       REAL*8 ::
      &     begin, BYDP,BYFIM,DP,DPDN,DP4,
      &     DPE,DPI,DPK,DPSQI,DPUP,DPUV,DUTI,DUTK,DVTI,DVTK,FIMI,
-     &     PAI,PAK,PDN,PMK,PQ4I,PQ4K,PQV4I,PS,PS4I,
+     &     MAUV,
+     &     PAI,PAK,PDN,PMK,PQ4I,PQ4K,PQV4I,PS4I,
      &     PS4K,PSIY,PSV4I,PT4I,PT4K,PTK,PTV4I,PUI,PUK,PUP,
      &     PUVI,PV2,PV2I,PVI,PVK,PWWI,PWWVI,PY,PZ4I,PZ4K,
      &     PZV4I,QK,QKI, SDL,SDLm1,
-     &     SMALL,SP,SQRTDP,THK,THKI,THPI,TK,TKI,TPI,
+     &     SMALL,SQRTDP,THK,THKI,THPI,TK,TKI,TPI,
      &     UDUTI,    UEARTH,UK,UY,VDVTI,VK,VSTAR,W2,W2I,W4,
      &     WI,WNP,WPA2I,WPV4I,WQI,WSP,WSTAR,WTHI,
      &     WTI,WUP,WZI,ZK,ZKI,
@@ -1406,7 +1406,6 @@ c local vars for transplanted DIAGA calculations
      &               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
      &               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
 
-      CALL HALO_UPDATE(grid, P, FROM=SOUTH)
       call halo_update(grid, tx)
 
 C****
@@ -1465,11 +1464,6 @@ C**** NORTHWARD COMPONENT
       CALL HALO_UPDATE(grid, T, FROM=SOUTH)
 
       DO 868 J=J_0STG,J_1STG
-      I=IM
-      DO 862 IP1=1,IM
-      PSEC(I)=(P(I,J  )+P(IP1,J  ))*RAPVS(J)+
-     *        (P(I,J-1)+P(IP1,J-1))*RAPVN(J-1)
-  862 I=IP1
       DO 868 L=1,LM
       DUDP=0.
       DTHDP=0.
@@ -1491,11 +1485,13 @@ C**** NORTHWARD COMPONENT
       SMALL=.0002d0*FIM*T(1,J,L)
 c      IF (DTHDP.LT.SMALL) WRITE (6,999) J,L,DTHDP,SMALL
       IF (DTHDP.LT.SMALL) DTHDP=SMALL
-      DO 866 I=1,IM
-      SP=PSEC(I)
-      IF(L.GE.LS1) SP=PSFMPT
-  866 FPHI=FPHI+SP*V(I,J,L)*(.5*(THSEC(I)-THMN)*DUDP/DTHDP
+      I=IM
+      DO 866 Ip1=1,IM
+      MAUV = (MA(L,I,J  ) + MA(L,Ip1,J  )) * RAPVS(J)+
+     *       (MA(L,I,J-1) + MA(L,Ip1,J-1)) * RAPVN(J-1)
+      FPHI = FPHI + MAUV*V(I,J,L)*(.5*(THSEC(I)-THMN)*DUDP/DTHDP
      *   -U(I,J,L)+UMN)
+  866 I=Ip1
   868 AGC(J,L,JL_EPFLXN)=AGC(J,L,JL_EPFLXN)+FPHI
 
 C**** VERTICAL COMPONENT
@@ -1543,11 +1539,10 @@ C****
       FIMI=0.
       DO 160 I=1,IMAXJ(J)
 C**** FIND L=L(K) AND LUP=L(K+1) S.T. P(LUP).GT.P(K+1)
-      PS = PEDN(1,I,J)
-      IF (PM(K+1).GE.PS) GO TO 160
+      If (PM(K+1) >= PEDN(1,I,J))  GoTo 160
       L=1
-      PDN=PS
-      IF (PM(K).GE.PS) GO TO 120
+      PDN = PEDN(1,I,J)
+      If (PM(K) >= PEDN(1,I,J))  GoTo 120
       PDN=PM(K)
   110 If (PM(K) > PEDN(L+1,I,J))  GoTo 120
       L=L+1
@@ -1617,8 +1612,7 @@ C**** CALCULATE STJK; THE MEAN STATIC STABILITY
       DPJK(J,K)=0.
       I=IMAXJ(J)
       DO 250 IP1=1,IMAXJ(J)
-      PS = .5*(PEDN(1,I,J) + PEDN(1,Ip1,J))
-      IF (PM(K+1).GT.PS) GO TO 250
+      If (PM(K+1) > .5*(PEDN(1,I,J) + PEDN(1,Ip1,J)))  GoTo 250
       STJK(J,K)=STJK(J,K)+STB(I,J,K)
       DPJK(J,K)=DPJK(J,K)+1.
   250 I=IP1
@@ -1640,7 +1634,6 @@ C and since DIAGB is called immediately after DIAGA
 C there may not be a need for these calls if
 C the concerned arrays have not been updated
 C from the previous halo call.
-c      CALL HALO_UPDATE(grid, P, FROM=SOUTH)
 c      CALL HALO_UPDATE(grid, TX, FROM=SOUTH)
 c      CALL HALO_UPDATE(grid, PHI, FROM=SOUTH)
 c      CALL HALO_UPDATE(grid, Q, FROM=SOUTH)
@@ -1684,19 +1677,16 @@ c***      END DO
       PSV4I=0.
       I=IM
       DO 340 IP1=1,IM
-      SP = (P(I,J  ) + P(IP1,J  ))*RAPVS(J)+
-     +     (P(I,J-1) + P(IP1,J-1))*RAPVN(J-1)
-      call calc_vert_amp(SP,LM,P00,AML,PDSIGL,PEDNL,PMIDL)
-      PS=SP+PTOP
       DO 286 L=1,LM+1
-  286 PL(L)=PEDNL(L)
-      IF (PM(K+1).GE.PS) THEN
+  286 PL(L) = (PEDN(L,I,J  ) + PEDN(L,Ip1,J  )) * RAPVS(J)+
+     +        (PEDN(L,I,J-1) + PEDN(L,Ip1,J-1)) * RAPVN(J-1)
+      If (PM(K+1) >= PL(1)) Then
         pm_ge_ps(i,j,k) = 1.
         UDX(I,J,K)=BIG
       ELSE
         L=1
-        PDN=PS
-        IF (PM(K).GE.PS) GO TO 300
+        PDN = PL(1)
+        If (PM(K) >= PL(1))  GoTo 300
         PDN=PM(K)
   290   IF (PM(K).GT.PL(L+1)) GO TO 300
         L=L+1
@@ -1918,10 +1908,9 @@ C****
          WTHI=0.
       FIMI=0.
       DO 600 I=1,IMAXJ(J)
-      SP=P(I,J)
       DO 569 L=1,LM
-  569 PLO(L)=PMID(L,I,J)    ! SP*SIG(L)+PTOP
-      IF (PM(K).GE.SP+PTOP) GO TO 600
+  569 PLO(L) = PMID(L,I,J)
+      If (PM(K) >= PEDN(1,I,J))  GoTo 600
       L=1
       IF (PM(K).GE.PLO(1)) GO TO 580
   570 LUP=L+1
@@ -1980,14 +1969,12 @@ C****
       PAI=0.
       WPA2I=0.
       DO 626 I=1,IMAXJ(J)
-      SP=P(I,J)
       DO 611 L=1,LM
-  611 PL(L)=PEDN(L,I,J)    ! SP*SIGE(L)+PTOP
-      PS=SP+PTOP
-      IF (PM(K+1).GE.PS) GO TO 626
+  611 PL(L) = PEDN(L,I,J)
+      If (PM(K+1) >= PEDN(1,I,J))  GoTo 626
       L=1
-      PDN=PS
-      IF (PM(K).GE.PS) GO TO 614
+      PDN = PEDN(1,I,J)
+      If (PM(K) >= PEDN(1,I,J))  GoTo 614
       PDN=PM(K)
   612 IF (PM(K).GT.PL(L+1)) GO TO 614
       L=L+1
@@ -2013,7 +2000,7 @@ C**** ACCUMULATE HERE
       IF (K.LT.KM) WUP=W(I,J,K+1)
       W2I=W2I+W(I,J,K)+WUP
       PY=PMO(K)
-      IF (PM(K).GE.PS) PY=.5*(PS+PM(K+1))
+      If (PM(K) >= PL(1))  PY = .5*(PL(1) + PM(K+1))
       PAK=PTK/PY
       PAI=PAI+PAK
       WPA2I=WPA2I+(W(I,J,K)+WUP)*PAK
@@ -2022,7 +2009,7 @@ C**** ACCUMULATE HERE
       AGC(J,K,JK_BAREKEGEN)=AGC(J,K,JK_BAREKEGEN)-
      &     (WPA2I-W2I*PAI/(FIMI+teeny))
       DO I=1,IMAXJ(J)
-        IF (PM(K+1).LT.P(I,J)+PTOP) THEN
+        If (PM(K+1) < PEDN(1,I,J))  Then
           AIJK(I,J,K,IJK_BAREKEGEN)=AIJK(I,J,K,IJK_BAREKEGEN)-
      &         (WPA2_of_lon(I)-W2I*PAI/(FIMI*FIMI+teeny))
         ENDIF
@@ -2118,8 +2105,7 @@ C****
       FIMI=0.
       I=IM
       DO 740 IP1=1,IM
-      PS=.5*(P(I,J)+P(IP1,J))+PTOP
-      IF (PM(K).GE.PS) GO TO 740
+      If (PM(K) >= .5*(PEDN(1,I,J)+PEDN(1,Ip1,J)))  GoTo 740
       W2=.5*(W(I,J,K)+W(IP1,J,K))
       W2I=W2I+W2
       PV2=.5*(DUT(I,J,K-1)+DUT(I,J,K))
@@ -2223,27 +2209,21 @@ C P already halo'ed; no need      CALL CHECKSUM(grid, P, __LINE__, __FILE__)
 C P already halo'ed; no need     CALL HALO_UPDATE(grid, P, FROM=SOUTH)
 
       DO J=J_0STG,J_1STG
-        I=IM
-        DO IP1=1,IM
-          PSEC(I)=(P(I,J  )+P(IP1,J  ))*RAPVS(J)+
-     *            (P(I,J-1)+P(IP1,J-1))*RAPVN(J-1)
-          I=IP1
-        ENDDO
         DO K=1,KM
           KSPHER=KLAYER(K)
           IF (J.GT.JEQ) KSPHER=KSPHER+1
           DO KX=IZERO,LM,LM
             DO I=1,IM
+              Ip1=I+1  ;  If(I==IM) Ip1=1
               DPUV=0.
-              SP=PSEC(I)
-              call calc_vert_amp(SP,LM,P00,AML,PDSIGL,PEDNL,PMIDL)
               DO 2025 L=1,LM
-              PLO(L)=PMIDL(L)   !SP*SIG(L)+PTOP                       ! PL or PLO ??
- 2025         PL(L)=PEDNL(L)    !SP*SIGE(L)+PTOP                       ! PLE or PL ??
-              PS=SP+PTOP
+              PLO(L) = (PMID(L,I,J  ) + PMID(L,Ip1,J  ))*RAPVS(J) +
+     *                 (PMID(L,I,J-1) + PMID(L,Ip1,J-1))*RAPVN(J-1)
+ 2025         PL(L)  = (PEDN(L,I,J  ) + PEDN(L,Ip1,J  ))*RAPVS(J) +
+     *                 (PEDN(L,I,J-1) + PEDN(L,Ip1,J-1))*RAPVN(J-1)
               IF (PM(K+1).GE.PLO(1)) GO TO 2090           ! really ?? not PL?
               L=1
-              PDN=PS
+              PDN = PL(1)
               IF (PM(K).GE.PLO(1)) GO TO 2040             ! really ?? not PL?
               PDN=PM(K)
  2030         IF (PM(K).GT.PL(L+1)) GO TO 2040
@@ -2342,7 +2322,7 @@ C****  19  LAST KINETIC ENERGY
 C****  20  LAST POTENTIAL ENERGY
 C****
       USE CONSTANT, only : sha, UNDEF_VAL
-      Use RESOLUTION, Only: IM,JM,LM,PSFmPT
+      Use RESOLUTION, Only: IM,JM,LM
       USE MODEL_COM, only : IDACC,MDIAG
       Use ATM_COM,    Only: PMID,PEDN,PDSIG,PK,T,U,V,ZATMO
       USE GEOM, only : AREAG,DXYN,DXYP,DXYS,imaxj
@@ -2384,7 +2364,7 @@ CMoved to DAGCOM so it could be declared allocatable      REAL*8, SAVE, DIMENSIO
       INTEGER :: I,IJL2,IP1,J,J45N,JH,JHEMI,JP,K,KS,KSPHER,L,LDN,
      &     LUP,MAPE,MKE,MTPE,N,NM
 
-      REAL*8 :: SQRTPG,SUMI,SUMT,NOW
+      REAL*8 :: SUMI,SUMT,NOW
       REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO,LM) ::
      &     GMEAN_part
       REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
@@ -2407,7 +2387,6 @@ CMoved to DAGCOM so it could be declared allocatable      REAL*8, SAVE, DIMENSIO
       J_0=GRID%J_STRT
       J_1=GRID%J_STOP
 
-      SQRTPG = SQRT(PSFMPT)
       NM=1+IM/2
       J45N=2.+.75*(JM-1.)
       IJL2=IM*JM*LM*2
@@ -2679,7 +2658,7 @@ C****
       USE CONSTANT, only : grav,bygrav
       USE RESOLUTION, only : im,jm,lm
       USE MODEL_COM, only : IDACC,MDIAG
-      USE ATM_COM, only : P,U,V,PHI
+      USE ATM_COM, only : PMID,U,V,PHI
       USE GC_COM, only : nwav_dag,wave,max12hr_sequ,kwp,re_and_im
      &     ,jeq,j50n
       USE DIAG_COM, only : ia_12hr,imh
@@ -2696,8 +2675,6 @@ C****
       REAL*8, DIMENSION(KM), PARAMETER ::
      &     PMB=(/922.,700.,500.,300.,100.,10./),
      &     GHT=(/500.,2600.,5100.,8500.,15400.,30000./)
-      REAL*8, DIMENSION(LM) :: P00,AML,PDSIGL,PMIDL
-      REAL*8, DIMENSION(LM+1) :: PEDNL
       REAL*8 :: PIJ50N,PL,PLM1,SLOPE,NOW
       INTEGER I,IDACC9,K,KQ,L,N
       INTEGER :: J_0, J_1
@@ -2740,15 +2717,12 @@ C****
 
       IF(J_0 <= J50N .and. J50N <= J_1) THEN
         DO 150 I=1,IM
-          PIJ50N=P(I,J50N)
-          call calc_vert_amp(PIJ50N,LM,P00,AML,PDSIGL,PEDNL,PMIDL)
           K=1
           L=1
-          PL=PMIDL(1)    ! SIG(1)*P(I,J50N)+PTOP
+          PL = PMID(1,I,J50N)
  130      L=L+1
-c          IF(L.GE.LS1) PIJ50N=PSFMPT
           PLM1=PL
-          PL=PMIDL(L)    ! SIG(L)*PIJ50N+PTOP
+          PL = PMID(L,I,J50N)
           IF (PMB(K).LT.PL.AND.L.LT.LM) GO TO 130
 C**** ASSUME THAT PHI IS LINEAR IN LOG P
           SLOPE=(PHI(I,J50N,L-1)-PHI(I,J50N,L))/LOG(PLM1/PL)
@@ -2837,7 +2811,6 @@ C**** ASSUME THAT PHI IS LINEAR IN LOG P
       subroutine diaggc_prep
 c Calculate derived GC outputs
       use constant, only : kapa,lhe,sha,radius,omega,rgas,tf,teeny
-      use resolution, only : ls1,psfmpt
       use resolution, only : im,jm,lm
       use model_com, only : idacc,dtsrc
       use dynamics, only : dt,dsig
@@ -2919,11 +2892,9 @@ c Denominators which are zonally integrated p(:,:)-ptop (or psf-ptop)
 c
       do j=1,jm
         n = jl_dpsig
-        agc(j,1:ls1-1,n) = sum(agc(j,1:ls1-1,jk_dpa))/imaxj(j)
-        agc(j,ls1:lm,n) = idacc(ia_dga)*psfmpt
+        agc(j,:,n) = sum(agc(j,:,jk_dpa))/imaxj(j)
         n = jl_dpsigv
-        agc(j,1:ls1-1,n) = sum(agc(j,1:ls1-1,jl_dpb))
-        agc(j,ls1:lm,n) = idacc(ia_dga)*im*psfmpt
+        agc(j,:,n) = sum(agc(j,:,jl_dpb))
       enddo
 
 c
