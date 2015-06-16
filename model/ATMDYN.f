@@ -58,8 +58,8 @@ c      call setDtParam('dt', dt, dtSrcUsed)
       !          (leaving enough for the variable-mass layers)
       ! maximum: a multiple of global mean column mass
       ! the following ratios were taken from the older version of ADVECM
-      mincolmass = mfixs*(350d0/150d0)
-      maxcolmass = mdrya*(1160d0/984d0)
+      MINCOLMASS = MDRYA * 0.35d0
+      MAXCOLMASS = MDRYA * 1.15d0
       if(is_set_param('mincolmass'))
      &     call get_param('mincolmass',mincolmass)
       if(is_set_param('maxcolmass'))
@@ -1056,7 +1056,7 @@ C****
       Real*8,Dimension(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      *   PEDNOLD,X,Y
       Real*8,Dimension(1:LS1-1,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
-     *   MAOLD,PKOLD
+     *   MABEF,PKOLD
       Real*8 :: PSUMO,PSUMN,PDIF,AKAP,ZS, MVAR,MRAT,zMRAT
       REAL*8, EXTERNAL :: SLP
       INTEGER I,J,L,N  !@var I,J,L  loop variables
@@ -1075,8 +1075,8 @@ C****
 C**** Initialise total energy (J/m^2)
       initialTotalEnergy = getTotalEnergy()
 
-!**** Save old MA, PK, and PEDN(1)
-      MAOLD(1:LS1-1,:,J1P:JNP) = MA(1:LS1-1,:,J1P:JNP)
+!**** Save MABEF, PKOLD, and PEDNOLD before FILTERing
+      MABEF(1:LS1-1,:,J1P:JNP) = MA(1:LS1-1,:,J1P:JNP)
       PKOLD(1:LS1-1,:,J1P:JNP) = PK(1:LS1-1,:,J1P:JNP)
       PEDNOLD(      :,J1P:JNP) = PEDN(1    ,:,J1P:JNP)
 
@@ -1154,7 +1154,7 @@ C**** Scale mixing ratios (incl moments) to conserve mass/heat
       DO L=1,LS1-1
       DO J=J_0S,J_1S
       DO I=1,IM
-         zMRAT = MAOLD(L,I,J) / MA(L,I,J)
+         zMRAT = MABEF(L,I,J) / MA(L,I,J)
 c adjust pot. temp. to maintain unchanged absolute temp.
            T(I,J,L) =   T(I,J,L) * PKOLD(L,I,J)/PK(L,I,J)
            Q(I,J,L) =   Q(I,J,L) * zMRAT
@@ -1178,7 +1178,7 @@ C**** But if n_air=0 this will cause problems...
       DO L=1,LS1-1
         DO J=J_0S,J_1S
           DO I=1,IM
-         MRAT = MA(L,I,J) / MAOLD(L,I,J)
+         MRAT = MA(L,I,J) / MABEF(L,I,J)
          TRM(I,J,L,N) = TRM(I,J,L,N) * MRAT
          TRMOM(:,I,J,L,N) = TRMOM(:,I,J,L,N) * MRAT
       end do; end do; end do
@@ -2642,7 +2642,9 @@ C****
       USE DIAG_COM, only: byim
       USE GC_COM, only: agc=>agc_loc
       USE GCDIAG, only : jl_totntlh,jl_zmfntlh,jl_totvtlh,jl_zmfvtlh
-      Use ATM_COM, Only: PS,MB,MMA,MWs
+      Use CONSTANT,   Only: KG2MB
+      Use ATM_COM,    Only: MAOLD, MMA,MMB=>MB, MWs
+      Use GEOM,       Only: AXYP
       USE TRACER_ADV, only:
      *    AADVQ,AADVQ0,sbf,sbm,sfbm,scf,scm,sfcm,ncyc
       USE DOMAIN_DECOMP_ATM, only: grid, getDomainBounds
@@ -2656,18 +2658,19 @@ c**** Extract domain decomposition info
       call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG)
 
-
-      CALL CALC_AMP(PS,MB)
-      CALL HALO_UPDATE(grid, MB, FROM=SOUTH+NORTH) ! for convenience later
+      Do L=1,LM
+         MMB(:,:,L) = MAOLD(L,:,:)*KG2MB*AXYP(:,:)  ;  EndDo
       CALL AADVQ0 (1._8)  ! uses the fluxes MUs,MVs,MWs from DYNAM
 C****
 C**** convert from concentration to mass units
 C****
       DO L=1,LM
       DO J=J_0,J_1
+!         IF(J==1.AND.L==1) WRITE (6,*) 'QDYNAM:',Q(1,1,1),MMB(1,1,1),
+!     *      AXYP(1,1)
       DO I=1,IM
-        Q(I,J,L)=Q(I,J,L)*MB(I,J,L)
-        QMOM(:,I,J,L)=QMOM(:,I,J,L)*MB(I,J,L)
+         Q(I,J,L) = Q(I,J,L)*MMB(I,J,L)
+         QMOM(:,I,J,L) = QMOM(:,I,J,L)*MMB(I,J,L)
       enddo; enddo; enddo
 C**** ADVECT
         sfbm = 0.; sbm = 0.; sbf = 0.
@@ -2689,7 +2692,9 @@ C****
         byMMA = 1 / MMA(I,J,L)
         Q(I,J,L) = Q(I,J,L)*byMMA
         QMOM(:,I,J,L) = QMOM(:,I,J,L)*byMMA
-      enddo; enddo; enddo
+      enddo; 
+!         IF(J==1.AND.L==1) WRITE (6,*) 'QDYNAM:',Q(1,1,1),MMA(1,1,1)
+      enddo; enddo
 
 #ifndef TRACERS_ON
 c Unscale the vertical mass flux accumulation for use by column physics.
@@ -2701,7 +2706,7 @@ c TRDYNAM will do the unscaling
 
       RETURN
       END SUBROUTINE QDYNAM
-c      end module ATMDYN_QDYNAM
+
 
 #ifdef TRACERS_ON
       SUBROUTINE TrDYNAM

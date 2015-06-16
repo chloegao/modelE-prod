@@ -72,7 +72,6 @@ C**** Some helpful arrays (arrays should be L first)
 !@var  PK   PMID**KAPA
 !@var  PEDN  Pressure at lower edge of box (incl. surface) (mb)
 !@var  PEK  PEDN**KAPA
-!@var  SQRTP  square root of P (used in diagnostics)
 !@var  PTROPO  Pressure at mid point of tropopause level (mb)
 !@var  LTROPO  Tropopause layer
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PLIJ
@@ -83,7 +82,6 @@ C**** Some helpful arrays (arrays should be L first)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PK
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PEDN  ! SIGE(L)*PLIJ+PTOP
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PEK
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: SQRTP
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: PTROPO
       INTEGER, ALLOCATABLE, DIMENSION(:,:) :: LTROPO
 #ifdef etc_subdd
@@ -136,7 +134,7 @@ C**** module should own dynam variables used by other routines
      &     PEDN,PEK,SD_CLOUDS,GZ,PHI,
      &     MUs,MVs,MWs,MB,MMA,DKE,KEA,
      &     UALIJ,VALIJ,WSAVE,
-     &     SQRTP,MASUM,PTROPO,LTROPO,PS,
+     &     MASUM,PTROPO,LTROPO,PS,
      &     DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
       use GEOM, only : geom_atm
       use pario, only : par_open,par_close,read_dist_data
@@ -243,8 +241,7 @@ C**** Check polar uniformity
      $   STAT = IER)
 
 !**** Allocate space for (I,J) arrays
-      ALLOCATE(  SQRTP(I_0H:I_1H,J_0H:J_1H),
-     $           MASUM(I_0H:I_1H,J_0H:J_1H),
+      Allocate (MASUM(I_0H:I_1H,J_0H:J_1H),
      $          PTROPO(I_0H:I_1H,J_0H:J_1H),
      $          LTROPO(I_0H:I_1H,J_0H:J_1H),
 #ifdef etc_subdd

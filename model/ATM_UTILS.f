@@ -182,7 +182,7 @@ C**** to be used in the PBL, at the primary grids
       USE RESOLUTION, only : ls1,ptop
       USE RESOLUTION, only : im,jm,lm
       USE ATM_COM, only : p,MASUM
-      USE ATM_COM, only : plij,pdsig,pmid,pk,pedn,pek,sqrtp,MA,byMA
+      USE ATM_COM, only : plij,pdsig,pmid,pk,pedn,pek,MA,byMA
       USE DOMAIN_DECOMP_ATM, Only : grid, getDomainBounds, HALO_UPDATE
       USE FLUXES, only : atmsrf,asflx4
       IMPLICIT NONE
@@ -240,11 +240,6 @@ C**** Fill in polar boxes
           END IF
         END DO
       END DO
-      DO J=J_0,J_1
-        DO I=I_0H,I_1H
-          SQRTP(I,J) = SQRT(P(I,J))
-        END DO
-      END DO
 
       atmsrf%SRFP = P+PTOP
       do it=1,4
@@ -259,8 +254,7 @@ C**** Fill in polar boxes
 !@vers 2015/05/19
       Use CONSTANT,   Only: KAPA,KG2MB
       Use RESOLUTION, Only: LM, MTOP,MFIXs, PTOP
-      Use ATM_COM,    Only: MA,MASUM,byMA,
-     *                      PDSIG,PMID,PEDN,PK,PEK,P,SQRTP
+      Use ATM_COM,    Only: MA,MASUM,byMA, PDSIG,PMID,PEDN,PK,PEK,P
       Use FLUXES,     Only: ATMSRF,ASFLX4
       Use DOMAIN_DECOMP_ATM, Only :GRID, HALO_UPDATE_COLUMN
       Implicit None
@@ -282,7 +276,6 @@ C**** Fill in polar boxes
          byMA(L,:,:) = 1 / MA(L,:,:)  ;  EndDo
 
           P(:,:) = (MASUM(:,:) - MFIXs)*KG2MB
-      SQRTP(:,:) = Sqrt(P(:,:))
 
       ATMSRF%   P1(:,:) = PMID(1,:,:)
       ATMSRF%SRFPK(:,:) =  PEK(1,:,:)

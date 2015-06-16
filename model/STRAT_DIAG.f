@@ -608,6 +608,7 @@ C****
       end subroutine epflxi
 #endif
 
+
       SUBROUTINE EPFLXP(do_print,DUDS,DMF,DEF,DMFR,DEFR,ER1,ER2)
 !@sum  EPFLXP prints out diagnostics of E-P Fluxes
 !@auth B. Suozzo/J. Lerner
@@ -629,7 +630,6 @@ C****        COR(j,l),CORR(j,l) - same as above   m3 s-2
 C****        ER1,ER2 - error terms 1 and 2   m s-2
 C****   DUD(j,l),DUR - Delta U by Eulerian and transf. circulation  m s-2
 C****
-      USE RESOLUTION, only : ls1
       USE RESOLUTION, only : lm
       USE MODEL_COM, only : dtsrce=>dtsrc,idacc
       USE DYNAMICS, only : dsig
@@ -708,22 +708,17 @@ c GISS-ESMF EXCEPTIONAL CASE: OK AS A CONSTANT ON EACH PE
         ONES(JL)=1.
       END DO
       DO L=1,LM
-        DP(L)  = PDSIGL00(L) ! PSFMPT*DSIG(L)
-        PMO(L) = PMIDL00(L)  ! PSFMPT*SIG(L)+PTOP
+        DP(L)  = PDSIGL00(L)
+        PMO(L) = PMIDL00(L)
       END DO
 !     do j=2,jm
 !       ap=0.25*APJ(J,2)/(FIM*IDACC(4)+teeny)
 !       call calc_vert_amp(ap,lm,PL,AML,PDSIGL,PEDNL,PMIDL)
 !       BYDPJL(J,1:LM)=1./PDSIGL(1:LM)
 !     end do
-      DO L=1,LS1-1
+      DO L=1,LM
       DO J=2,JM
         BYDPJL(J,L)=(FIM*IDACC(4))/(AGC(J,L,JL_DPB)+1.D-20)
-      END DO
-      END DO
-      DO L=LS1,LM
-      DO J=2,JM
-        BYDPJL(J,L)=1./DP(L)
       END DO
       END DO
 C**** Normalize AEP
