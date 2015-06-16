@@ -84,7 +84,8 @@ ccc   main accumulators
       real*8, public ::  tbcs, tsns
 
 ccc   diagnostics accumulatars
-      real*8, public :: aevapw,aevapd,aevapb,aepc,aepb,aepp,af0dt,af1dt
+!@var ae0 accumulated flux of total energy from atmosphere to surface (J/m^2)
+      real*8, public :: aevapw,aevapd,aevapb,aepc,aepb,aepp,ae0
      &     ,agpp,arauto,aclab,asoilresp,asoilCpoolsum  !Ent DGVM accumulators
      &     ,aflmlt,aintercep,aevapvg,aevapvs,aevapbs
      &     ,asrht,atrht,aalbedo
@@ -107,7 +108,7 @@ ccc   output from former retp2
       real*8, public :: zw(2)
 
 ccc   private accumulators:
-      real*8 aedifs
+      real*8 aedifs,af1dt
 
 ccc   input fluxes
       real*8 :: pr,htpr,prs,htprs,srht,trht
@@ -1311,7 +1312,6 @@ c**** bare soil fluxes
         ! canopy
         fch(0) = -htpr +
      &       (evapvw*elh*fw + snsh(2) + thrm_can
-     &       + evapvg*elh  ! flux soil evap thru canopy
 #ifdef RAD_VEG_GROUND
      &       * (1.d0-trans_sw)
      &       - (1.d0 - trans_sw)*(srht + trht)
@@ -1320,17 +1320,12 @@ c**** bare soil fluxes
 #endif
      &       + evapvd*elh*fd)
      &       *(1.d0-fm*fr_snow(2))
-        fch(1) = -(thrm_can - thrm_soil(2)
-     &       - evapvg*elh  ! flux soil evap thru canopy
-     &            )
+        fch(1) = -(thrm_can - thrm_soil(2))
 #ifdef RAD_VEG_GROUND
      &       *(1.d0 - trans_sw)
 #endif
      &       *(1.d0-fr_snow(2)) !rad soil
-     &       - (thrm_can - thrmsn(2)
-     &       - evapvg*elh  ! flux soil evap thru canopy
-     &         )
-     &       *fr_snow(2)*(1.d0-fm) !rad snow
+     &       - (thrm_can - thrmsn(2))*fr_snow(2)*(1.d0-fm)    !rad snow
 #ifdef RAD_VEG_GROUND
      &       *(1.d0 - trans_sw)
 #endif
@@ -2822,7 +2817,15 @@ ccc   max in the following expression removes extra drip because of dew
       dedifs=f(2,2)*tp(2,2)
       if(f(2,2).lt.0.d0) dedifs=f(2,2)*tp(1,2)
       aedifs=aedifs-dts*shw*dedifs*fv          ! not used ?
-      af0dt=af0dt-dts*(fb*fh(1,1)+fv*fch(0)+htpr)  ! E0 excludes htpr?
+!      af0dt=af0dt-dts*(fb*fh(1,1)
+!     &     +fv*(fch(0)+evapvg*elh*(1.d0-fr_snow(2)))+htpr) ! E0 excludes htpr?
+!!!   ae0 doesn't include heat of irrigation and runoff
+      ae0=ae0 - dts*(
+     &     - srht - trht - htpr
+     &     + (thrm_tot(1)+snsh_tot(1)+elh*evap_tot(1))*fb
+     &     + (thrm_tot(2)+snsh_tot(2)+elh*evap_tot(2))*fv
+     &     )
+
       af1dt=af1dt-dts*(fb*fh(2,1)+fv*fh(2,2))
 #ifdef TRACERS_WATER
 ccc   accumulate tracer fluxes
@@ -2983,7 +2986,7 @@ c zero out accumulations
       aepc=0.d0                ! potential evap from canopy
       aepb=0.d0                ! potential evap from bare soil (no snow)
       aedifs=0.d0              ! heat transport by water
-      af0dt=0.d0               ! heat from ground - htpr
+      ae0=0.d0               ! heat from ground - htpr
       af1dt=0.d0               ! heat from 2-nd soil layer
       asrht=0.d0
       atrht=0.d0
@@ -3169,9 +3172,9 @@ cc    write(ichn,1021)
       write(ichn,1055)
  1055 format(1x,3x,9x,'   kgm-2',2x,9x,'    kgm-2',3x,9x,'   kgm-2',
      *     4x,9x,'1e6jm-2',3x,9x,'1e6jm-2')
-      write(ichn,1060) aruns,aevapw,aepc,0.d0,af0dt
+      write(ichn,1060) aruns,aevapw,aepc,0.d0,ae0
  1060 format(1x,3x,'aruns = ',f9.4,2x,'aevapw = ',0pf9.4,4x,'aepc = ',
-     *     0pf9.4,4x,'afhg = ',-6pf9.4,2x,'af0dt = ',-6pf9.4)
+     *     0pf9.4,4x,'afhg = ',-6pf9.4,2x,'ae0   = ',-6pf9.4)
       write(ichn,1065) arunu,aevapd,aepb,atrg,htpr*dts
  1065 format(1x,3x,'arunu = ',f9.4,2x,'aevapd = ',0pf9.4,4x,'aepb = ',
      *     0pf9.4,4x,'atrg = ',-6pf9.4,2x,'aphdt = ',-6pf9.4)
