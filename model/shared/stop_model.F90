@@ -1,5 +1,24 @@
 #include "rundeck_opts.h"
-subroutine stop_model( message, retcode )
+
+module stop_model_mod
+
+	implicit none
+
+	interface
+		subroutine stop_model_cb(message, retcode)
+			implicit none
+			!@var message an error message (reason to stop)
+			character*(*), intent (in) :: message
+			!@var retcode return code to be passed to the calling script
+			integer, intent(in) :: retcode
+		end subroutine stop_model_cb
+	end interface
+
+	procedure(stop_model_cb), pointer :: stop_model_ptr => stop_model_default
+
+CONTAINS
+
+subroutine stop_model_default( message, retcode )
 !@sum Aborts the execution of the program. Passes an error message and
 !@+ a return code to the calling script. Should be used instead of STOP
   use Dictionary_mod
@@ -54,6 +73,40 @@ subroutine stop_model( message, retcode )
     call exit_rc (0)
   endif
 
+    end subroutine stop_model_default
+
+
+#ifdef USE_FEXCEPTION
+	subroutine stop_model_fexception(message, retcode)
+		use fexception_mod
+
+		!@var message an error message (reason to stop)
+		character*(*), intent (in) :: message
+		!@var retcode return code to be passed to the calling script
+		integer, intent(in) :: retcode
+
+		call throw(message, retcode)
+
+	end subroutine stop_model_fexception
+#endif
+
+end module stop_model_mod
+
+! =====================================================================
+
+! A stub outside a module, to call the pointer.  If everywhere that used stop_model
+! were willing to import stop_model_mod, then this would not be needd at all.
+subroutine stop_model( message, retcode )
+!@sum Aborts the execution of the program. Passes an error message and
+!@+ a return code to the calling script. Should be used instead of STOP
+	use stop_model_mod
+implicit none
+	!@var message an error message (reason to stop)
+	character*(*), intent (in) :: message
+	!@var retcode return code to be passed to the calling script
+	integer, intent(in) :: retcode
+
+	call stop_model_ptr(message, retcode)
 end subroutine stop_model
 
 subroutine throwException(message, retcode)
@@ -72,3 +125,25 @@ subroutine throwException(message, retcode)
   call stop_model(message, retcode)
 #endif
 end subroutine throwException
+
+subroutine exit_rc (code)
+!@sum  exit_rc stops the run and sets a return code
+!@auth Reto A Ruedy
+#if ( defined(COMPILER_NAG) )
+  use f90_unix_proc
+#endif
+  implicit none
+  integer, intent(IN) :: code !@var code return code set by user
+#if defined(MACHINE_SGI) || defined(MACHINE_Linux) || defined(MACHINE_DEC) \
+  || ( defined(MACHINE_MAC) && ! defined(COMPILER_XLF) )
+       call exit(code) !!! should check if it works for Absoft and DEC
+#elif defined( MACHINE_IBM ) \
+  || ( defined(MACHINE_MAC) && defined(COMPILER_XLF) )
+  call exit_(code)
+#else
+  none of supported architectures was specified.
+  This will crash the compiling process.
+#endif
+  return
+end subroutine exit_rc
+

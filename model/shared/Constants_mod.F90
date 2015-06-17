@@ -17,6 +17,12 @@ module constant
   implicit none
   save
   !**** Conventions: 'by' implies reciprocal, 'rt' implies square root
+  ! The script exec/write_constant_set.py reads this file and parses
+  ! the !@param lines as: !@param <names> <description> (units <units>)
+  ! Lines with these three components are transferred to ConstantSet_mod.F90,
+  ! where they are used to export the given constant(s) to an external module
+  ! (eg an ice model).
+  ! NOTE: <units> must be a udunits2-compatible string!
 
   !**** Numerical constants
 
@@ -37,7 +43,7 @@ module constant
 
   !**** Physical constants
 
-!@param stbo Stefan-Boltzmann constant (W/m^2 K^4)
+!@param stbo Stefan-Boltzmann constant (units W m-2 K-4)
   real*8,parameter :: stbo =5.67051d-8 !current best estimate
 
   !**** Latent heats:
@@ -49,39 +55,39 @@ module constant
   !**** lhe(T) = lhe(0) + (shv-shw) T (in C)
   !**** lhm(T) = lhm(0) + (shw-shi) T (in C)
   !**** lhs(T) = lhs(0) + (shv-shi) T (in C)
-!@param lhe   latent heat of evap at 0 C (2.5008d6 J/kg)
+!@param lhe   latent heat of evap at 0 C 2.5008d6 (units J kg-1)
   real*8,parameter :: lhe = 2.5d6
-!@param lhm   latent heat of melt at 0 C (334590 J/kg)
+!@param lhm   latent heat of melt at 0 C 334590 (units J kg-1)
   real*8,parameter :: lhm = 3.34d5
-!@param bylhm  1/lhm
+!@param bylhm  1/lhm (units kg J-1)
   real*8,parameter :: bylhm = 1./lhm
-!@param lhs  latent heat of sublimation at 0 C (J/kg)
+!@param lhs  latent heat of sublimation at 0 C (units J kg-1)
   real*8,parameter :: lhs = lhe+lhm
 
-!@param rhow density of pure water (1000 kg/m^3)
+!@param rhow density of pure water (units kg m-3)
   real*8,parameter :: rhow = 1d3
-!@param rhows density of average sea water (1030 kg/m^3)
+!@param rhows density of average sea water (units kg m-3)
   real*8,parameter :: rhows = 1030d0
-!@param byrhows recip. density of average sea water (1/1030 m^3/kg)
+!@param byrhows recip. density of average sea water (units m^3 kg-1)
   real*8,parameter :: byrhows = 1d0/rhows
-!@param rhoi density of pure ice (916.6 kg/m^3)
+!@param rhoi density of pure ice (units kg m-3)
   real*8,parameter :: rhoi = 916.6d0
-!@param byrhoi 1/rhoi (m^3/kg)
+!@param byrhoi 1/rhoi (units m^3 kg-1)
   real*8,parameter :: byrhoi = 1d0/rhoi
 
-!@param tf freezing point of water at 1 atm (273.16 K)
-  real*8,parameter :: tf = 273.16d0
-!@param bytf 1/tf (K^-1)
+!@param tf freezing point of water at 1 atm (units K)
+  real*8,parameter :: tf = 273.15d0
+!@param bytf 1/tf (units K-1)
   real*8,parameter :: bytf = 1d0/tf
 
-!@param shw heat capacity of water (at 20 C) (4185 J/kg C)
+!@param shw heat capacity of water (at 20 C) (units J kg-1 K-1)
   real*8,parameter :: shw  = 4185.
-!@param byshw 1/shw
+!@param byshw 1/shw (units kg K J-1)
   real*8,parameter :: byshw = 1d0/shw
 
-!@param shi heat capacity of pure ice (at 0 C) (2060 J/kg C)
+!@param shi heat capacity of pure ice (at 0 C) (units J kg-1 K-1)
   real*8,parameter :: shi  = 2060.
-!@param byshi 1/shi
+!@param byshi 1/shi (units kg K J-1)
   real*8,parameter :: byshi = 1d0/shi
 
 !@param fraction of O2 in the atmosphere (0-1)
@@ -96,9 +102,9 @@ module constant
   !**** where n is multiple of present day CO2 conc (350 ppm)
   !**** For 4xCO2  M_A = 28.9813  => rgas = 286.89
   !**** For 10xCO2 M_A = 29.0129  => rgas = 286.58
-!@param gasc  gas constant (8.314510 J/mol K)
+!@param gasc  gas constant (units J K-1 mol-1)
   real*8,parameter :: gasc = 8.314510d0
-!@param bygasc  1/gasc
+!@param bygasc  1/gasc (units K mol J-1)
   real*8,parameter :: bygasc = 1./gasc
 !@param mair molar mass of dry air (28.9655 g/mol)
 #ifdef PLANET_PARAMS
@@ -109,17 +115,17 @@ module constant
 !@param rgas gas constant (287.05 J/K kg)
   real*8,parameter :: rgas = 1d3 * gasc / mair ! = 287.05...
 
-!@param mwat molar mass of water vapour
+!@param mwat molar mass of water vapour (units g mol-1)
   real*8,parameter :: mwat = 18.015d0
-!@param rvap  gas constant for water vapour (461.5 J/K kg)
+!@param rvap  gas constant for water vapour (461.5) (units J K-1 kg-1)
   !**** defined as R/M_W = 1000* 8.314510 J/mol K /18.015 g/mol
   real*8,parameter :: rvap = 1d3 * gasc / mwat ! = 461.5...
 
-!@param mrat  mass ratio of air to water vapour (0.62197)
+!@param mrat  mass ratio of air to water vapour (0.62197) (units 1)
   real*8,parameter :: mrat = mwat/mair    ! = 0.62197....
-!@param bymrat 1/mrat (1.6078)
+!@param bymrat 1/mrat (1.6078) (units 1)
   real*8,parameter :: bymrat = 1./mrat    ! = 1.6078....
-!@param deltx coeff. of humidity in virtual temperature defn. (0.6078)
+!@param deltx coeff. of humidity in virtual temperature defn. (0.6078) (units 1)
   real*8,parameter :: deltx = bymrat-1.   ! = 0.6078....
 
 !@param srat ratio of specific heats at const. press. and vol. (=1.401)
@@ -131,17 +137,17 @@ module constant
 !@param kapa ideal gas law exponent for dry air (.2862)
   !**** kapa = (g-1)/g where g=1.401 = c_p/c_v
   real*8,parameter :: kapa = (srat - 1.)/srat  ! =.2862....
-!@param bykapa,bykapap1,bykapap2 various useful reciprocals of kapa
+!@param bykapa,bykapap1,bykapap2 various useful reciprocals of kapa (units 1)
   real*8,parameter :: bykapa = 1./kapa
   real*8,parameter :: bykapap1 = 1./(kapa+1.)
   real*8,parameter :: bykapap2 = 1./(kapa+2.)
 
-!@param sha specific heat of dry air (const. pres.) (rgas/kapa J/kg C)
+!@param sha specific heat of dry air (const. pres.) (rgas/kapa) (units J kg-1 K-1)
   real*8,parameter :: sha = rgas/kapa
-!@param bysha 1/sha
+!@param bysha 1/sha (units kg K J-1)
   real*8,parameter :: bysha = 1./sha
 
-!@param shv specific heat of water vapour (const. pres.) (J/kg C)
+!@param shv specific heat of water vapour (const. pres.) (units J kg-1 K-1)
   !**** shv is currently assumed to be zero to aid energy conservation in
   !**** the atmosphere. Once the heat content associated with water
   !**** vapour is included, this can be set to the standard value
@@ -151,13 +157,13 @@ module constant
   real*8,parameter :: shv = 0.
 
   !**** air viscosity - temperature independent
-!@var visc_air0 dynamic viscosity of air (kg/m s)
+!@var visc_air0 dynamic viscosity of air (units kg m-1 s-1)
   real*8,parameter :: visc_air0 = 1.7d-5
 
-!@var visc_air_kin0 kinematic viscosity of air (1 bar 15 deg C) (m^2/s)
+!@var visc_air_kin0 kinematic viscosity of air (1 bar 15 deg C) (units m^2 s-1)
   real*8,parameter :: visc_air_kin0 = 1.46d-5
 
-!@var visc_wtr_kin kinematic viscosity of water (35 psu, 20 deg C) (m^2/s)
+!@var visc_wtr_kin kinematic viscosity of water (35 psu, 20 deg C) (units m^2 s-1)
   real*8,parameter :: visc_wtr_kin = 1.05d-6
 
 !@var avog Avogadro's constant (molecules/mole)
@@ -180,7 +186,7 @@ module constant
 !@param areag surface area of the earth (m^2)
   real*8,parameter :: areag = 4.*pi*radius*radius
 
-!@param grav gravitaional accelaration (9.80665 m/s^2)
+!@param grav gravitaional accelaration (9.80665) (units m s-2)
   !**** SI reference gravity (at 45 deg) = 9.80665
 #ifdef PLANET_PARAMS
   real*8,parameter :: grav = exoPlanetParams%grav
@@ -191,20 +197,22 @@ module constant
   real*8,parameter :: bygrav = 1d0/grav
 
   !**** lapse rate related variables
-!@param GAMD dry adiabatic lapse rate (=0.0098 K/m)
+!@param GAMD dry adiabatic lapse rate (0.0098) (units K m-1)
   real*8, parameter :: gamd = grav*kapa/rgas
-!@param BMOIST moist adiabatic lapse rate (K/m)
+!@param BMOIST moist adiabatic lapse rate (units K m-1)
   real*8, parameter :: bmoist = 0.0065d0
-!@param BBYG moist adiabatic lapse rate divided by grav
+!@param BBYG moist adiabatic lapse rate divided by grav (units K s^2 m-2)
   real*8, parameter :: bbyg = bmoist*bygrav
-!@param GBYRB grav divided by rgas and bmoist
+!@param GBYRB grav divided by rgas and bmoist (units kg m^2 s-1 J-1)
   real*8, parameter :: gbyrb = grav/(rgas*bmoist)
 
   !**** Useful conversion factors
 
-!@param kg2mb,mb2kg conversion from milli-bars to kg/m^2
+!@param kg2mb conversion from kg/m^2 to milli-bars (units mbar m^2 kg-1)
+!@param mb2kg conversion from milli-bars to kg/m^2 (units kg m-2 mbar-2)
   real*8,parameter :: kg2mb = 1d-2*grav, mb2kg = 1d2*bygrav
-!@param kgpa2mm,mm2kgpa conversion from kg/m^2 water to mm
+!@param kgpa2mm conversion from kg/m^2 water to mm (units mm m^2 kg-1)
+!@param mm2kgpa conversion from mm water to kg/m^2 (units kg mm-1 m-2)
   real*8,parameter :: kgpa2mm = 1d0, mm2kgpa = 1d0
 
 #ifdef PLANET_PARAMS
