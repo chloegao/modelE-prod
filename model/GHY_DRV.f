@@ -738,7 +738,7 @@ c****
      &    ashg,alhg, !fv,fb,
      &    aevap,abetad,
      &    aruns,arunu,aeruns,aerunu,
-     &    tbcs,tsns,af0dt,af1dt,ijdebug,thets
+     &    tbcs,tsns,ae0,ijdebug,thets
 !     &     ,ghy_counter=>counter
 !!!     &    qm1,qs,
 !!!     &    pres,rho,ts,ch,srht,trht
@@ -1365,7 +1365,7 @@ c**** save runoff for addition to lake mass/energy resevoirs
       atmlnd%runo (i,j)= atmlnd%runo (i,j)+ aruns+ arunu
       atmlnd%eruno(i,j)= atmlnd%eruno(i,j)+aeruns+aerunu
 c****
-      atmlnd%e0(i,j)=atmlnd%e0(i,j)+af0dt
+      atmlnd%e0(i,j)=atmlnd%e0(i,j) + ae0 - eprec(i,j)
       !e1(i,j,4)=e1(i,j,4)+af1dt
 
       call ghy_diag(i,j,jr,kr,ns,moddsf
@@ -3692,8 +3692,8 @@ cddd            write(934,*) "wfcs", i,j,wfcs(i,j)
      *     ,ij_gbssnd,ij_gvssnd,ij_gbsw,ij_gvsw
       use fluxes, only : atmlnd,eprec
       implicit none
-
-      real*8 snow,f0dt,f1dt,evap,wtr1,wtr2,ace1,ace2
+!@var ae0_ep total heat from atm. to land surface withoot eprec (J/m^2)
+      real*8 snow,ae0_ep,evap,wtr1,wtr2,ace1,ace2
      *     ,pearth,enrgp,fb,fv
       integer i,j,jr,k
 
@@ -3721,8 +3721,7 @@ C****
         !tg2=gdeep(i,j,1)
         wtr2=gdeep(i,j,2)
         ace2=gdeep(i,j,3)
-        f0dt=atmlnd%e0(i,j)
-        !f1dt=e1(i,j,4)
+        ae0_ep=atmlnd%e0(i,j)
         evap=atmlnd%evapor(i,j)
         enrgp=eprec(i,j)      ! including latent heat
         call get_fb_fv( fb, fv, i, j )
@@ -3749,7 +3748,7 @@ c     *       + fv*atmlnd%fr_snow_rad(2,i,j) )
         call inc_areg(i,j,jr,j_wtr2,wtr2*pearth)
         call inc_areg(i,j,jr,j_ace2,ace2*pearth)
 
-        aij(i,j,ij_f0e)  =aij(i,j,ij_f0e)  +(f0dt+enrgp)*pearth
+        aij(i,j,ij_f0e)  =aij(i,j,ij_f0e)  +(ae0_ep+enrgp)*pearth
         aij(i,j,ij_gwtr) =aij(i,j,ij_gwtr)+(wtr1+ace1+wtr2+ace2)*pearth
         aij(i,j,ij_gwtr1) =aij(i,j,ij_gwtr1)+(wtr1+ace1)*pearth
         aij(i,j,ij_gice) =aij(i,j,ij_gice)+(ace1+ace2)*pearth

@@ -2829,7 +2829,7 @@ c
 c
       k=k+1 !
       IJ_F0E  = k ! F0DT, NET HEAT AT Z0 OVER EARTH  (J/m**2) 1 GD
-      lname_ij(k) = 'NET HEAT INTO SOIL'
+      lname_ij(k) = 'NET HEAT INTO LAND SURFACE'
       units_ij(k) = 'W/m^2'
       name_ij(k) = 'netht_land'
       ia_ij(k) = ia_src
