@@ -65,7 +65,6 @@
       REAL*8, ALLOCATABLE, DIMENSION(:,:)   :: ZATMO
 
 C**** Some helpful arrays (arrays should be L first)
-!@var  PLIJ  Surface pressure: P(I,J) or PSF-PTOP (mb)
 !@var  PDSIG  Surface pressure * DSIG(L) (mb)
 !@var  byMA = 1/MA (m^2/kg)
 !@var  PMID  Pressure at mid point of box (mb)
@@ -74,13 +73,12 @@ C**** Some helpful arrays (arrays should be L first)
 !@var  PEK  PEDN**KAPA
 !@var  PTROPO  Pressure at mid point of tropopause level (mb)
 !@var  LTROPO  Tropopause layer
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PLIJ
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PDSIG
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: byMA
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PMID    ! SIG(L)*PLIJ+PTOP
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PMID
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PMIDOLD
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PK
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PEDN  ! SIGE(L)*PLIJ+PTOP
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PEDN
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PEK
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: PTROPO
       INTEGER, ALLOCATABLE, DIMENSION(:,:) :: LTROPO
@@ -130,7 +128,7 @@ C**** module should own dynam variables used by other routines
       USE ATM_COM, ONLY : temperature_istart1
       USE ATM_COM, ONLY : ZATMO,P,U,V,T,Q,qcl,qci
       USE ATM_COM, ONLY :
-     &     PLIJ,PDSIG,MA,MAOLD,byMA,PMID,PMIDOLD,PK,
+     &     PDSIG,MA,MAOLD,byMA,PMID,PMIDOLD,PK,
      &     PEDN,PEK,SD_CLOUDS,GZ,PHI,
      &     MUs,MVs,MWs,MB,MMA,DKE,KEA,
      &     UALIJ,VALIJ,WSAVE,
@@ -210,8 +208,7 @@ C**** Check polar uniformity
       end if
 
 !**** Allocate space for (L,I,J) arrays
-      ALLOCATE ( PLIJ(LM,I_0H:I_1H,J_0H:J_1H),
-     $          PDSIG(LM,I_0H:I_1H,J_0H:J_1H),
+      ALLOCATE (PDSIG(LM,I_0H:I_1H,J_0H:J_1H),
      $             MA(LM,I_0H:I_1H,J_0H:J_1H),
      $          MAOLD(LM,I_0H:I_1H,J_0H:J_1H),
      $           byMA(LM,I_0H:I_1H,J_0H:J_1H),

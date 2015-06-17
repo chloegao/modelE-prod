@@ -182,7 +182,7 @@ C**** to be used in the PBL, at the primary grids
       USE RESOLUTION, only : ls1,ptop
       USE RESOLUTION, only : im,jm,lm
       USE ATM_COM, only : p,MASUM
-      USE ATM_COM, only : plij,pdsig,pmid,pk,pedn,pek,MA,byMA
+      USE ATM_COM, only : pdsig,pmid,pk,pedn,pek,MA,byMA
       USE DOMAIN_DECOMP_ATM, Only : grid, getDomainBounds, HALO_UPDATE
       USE FLUXES, only : atmsrf,asflx4
       IMPLICIT NONE
@@ -219,7 +219,6 @@ C**** Fill in polar boxes
           CALL CALC_VERT_AMP(P(I,J),LMAX,PL,AML,PDSIGL,PEDNL,PMIDL)
 
           DO L=1,MIN(LMAX,LM)
-            PLIJ (L,I,J) = PL    (L)
             PDSIG(L,I,J) = PDSIGL(L)
             PMID (L,I,J) = PMIDL (L)
             PEDN (L,I,J) = PEDNL (L)
@@ -266,7 +265,6 @@ C**** Fill in polar boxes
       PEDN(LM+1,:,:) = MTOP*KG2MB
        PEK(LM+1,:,:) = PEDN(LM+1,:,:)**KAPA
       Do L=LM,1,-1
-!        PLIJ(L,:,:) = used only in defunct subroutine DRYCNV
           MASUM(:,:) = MA(L,:,:) + MASUM(:,:)
         PDSIG(L,:,:) = MA(L,:,:)*KG2MB
          PMID(L,:,:) = PEDN(L+1,:,:) + PDSIG(L,:,:)*.5
@@ -277,11 +275,12 @@ C**** Fill in polar boxes
 
           P(:,:) = (MASUM(:,:) - MFIXs)*KG2MB
 
-      ATMSRF%   P1(:,:) = PMID(1,:,:)
-      ATMSRF%SRFPK(:,:) =  PEK(1,:,:)
       ATMSRF%  AM1(:,:) =   MA(1,:,:)
       ATMSRF%byAM1(:,:) = byMA(1,:,:)
+      ATMSRF%   P1(:,:) = PMID(1,:,:)
+!     ATMSRF% SRFP(:,:) = PEDN(1,:,:)
       ATMSRF% SRFP(:,:) = P(:,:) + PTOP
+      ATMSRF%SRFPK(:,:) =  PEK(1,:,:)
 
       Do ITYPE=1,4
          ASFLX4(ITYPE)%SRFP(:,:) = ATMSRF%SRFP(:,:)  ;  EndDo
@@ -719,119 +718,70 @@ C**** and convert to WSAVE, units of m/s):
 
       end subroutine COMPUTE_WSAVE
 
-      SUBROUTINE COMPUTE_GZ(p,t,tz,gz)
-!@sum  COMPUTE_GZ calculates geopotential on model levels.
-!@auth Original development team
-      USE RESOLUTION, only : ls1, ptop, psfmpt
-      USE RESOLUTION, only : im,jm,lm
-      USE atm_com, only : zatmo
-      USE DYNAMICS, only : dsig,sige,sig
-      USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds
-      USE CONSTANT, only : grav,rgas,kapa,bykapa,bykapap1,bykapap2
-      USE GEOM, only : imaxj
-      IMPLICIT NONE
-      INTEGER I,J,L
-      REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
-     &                  grid%J_STRT_HALO:grid%J_STOP_HALO) ::
-     &     p
-      REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
-     &                  grid%J_STRT_HALO:grid%J_STOP_HALO,LM) ::
-     &     t,tz,gz
-      REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
-     &                  grid%J_STRT_HALO:grid%J_STOP_HALO) ::
-     &     phidn,pkdn
-      REAL*8 PKE(LS1:LM+1)
-      REAL*8 PDN,PKPDN,PKPPDN,PUP,PKUP,PKPUP,PKPPUP,DP,P0,
-     &     BYDP,pkdnl,TZBYDP,dpk,dpkp,dpkpp,
-     &     dphidt,dphidtz,dphimdt,dphimdtz
 
-c**** Extract domain decomposition info
-      INTEGER :: I_0, I_1, J_0, J_1
-      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-      call getDomainBounds(grid,
-     &     I_STRT=I_0, I_STOP=I_1,
-     &     J_STRT=J_0, J_STOP=J_1,
-     &     HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
-     &     HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+      Subroutine COMPUTE_GZ (MAM,S0,SZ, GZ)
+!**** Input: MAM = mean mass distribution during time step (kg/m^2)
+!****      S0,SZ = potential temperature and vertical gradient (K)
+!**** Output: GZ = mean geopotential of layers (m^2/s^2)
+      Use CONSTANT,   Only: GRAV,RGAS,KAPA,
+     *                      zK=>byKAPA,zKp1=>byKAPAp1,zKp2=>byKAPAp2
+      Use RESOLUTION, Only: IM,JM,LM, MTOP
+      Use ATM_COM,    Only: ZATMO
+      Use GEOM,       Only: IMAXJ
+      Use DOMAIN_DECOMP_ATM, Only: GRID, GetDomainBounds
+      Implicit None
 
-      DO L=LS1,LM+1
-        PKE(L)=(PSFMPT*SIGE(L)+PTOP)**KAPA
-      END DO
+      Integer :: I,J,L, I1,IN,J1,JN
+      Logical :: QSP,QNP  
+      Real*8,Dimension(LM,GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     *                    GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: MAM
+      Real*8,Dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     *                 GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: S0,SZ,GZ
+      Real*8 :: HUNDREDTHeKAPA, M,PU,PKU,PKPU,PKPPU,DP,zDP,Y,X,
+     *          DGZU(LM),DGZA(LM),PD,PKD,PKPD,PKPPD,GZD
 
-      DO J=J_0,J_1
-        DO I=I_0,IMAXJ(J)
-          pkdn(i,j)=(p(i,j)+ptop)**kapa
-          phidn(i,j)=zatmo(i,j)
-        ENDDO
-      ENDDO
+      I1 = GRID%I_STRT  ;  IN = GRID%I_STOP
+      J1 = GRID%J_STRT  ;  JN = GRID%J_STOP
+      Call GetDomainBounds (GRID, HAVE_SOUTH_POLE = QSP,
+     *                            HAVE_NORTH_POLE = QNP)
+      HUNDREDTHeKAPA = .01d0**KAPA
 
-      do l=1,ls1-1 ! sigma levels
-        DO J=J_0,J_1
-          DO I=I_0,IMAXJ(J)
-            pdn=sige(l)*p(i,j)+ptop
-            pup=sige(l+1)*p(i,j)+ptop
-            pkpdn=pkdn(i,j)*pdn
-            dp=dsig(l)*p(i,j)
-            bydp=1./dp
-            p0=sig(l)*p(i,j)+ptop
-            pkup=pup**kapa
-            pkpup=pkup*pup
-            dpk = (pkdn(i,j)-pkup)*bykapa
-            dpkp = (pkpdn-pkpup)*bykapap1
-            dpkpp = (pkpdn*pdn-pkpup*pup)*bykapap2
-            dphidt = dpk
-            dphimdt = bykapa*(pkdn(i,j)-dpkp*bydp)
-            dphidtz = dphidt*p0 -dpkp
-            dphimdtz = dphimdt*p0 +bykapap1*(bydp*dpkpp-pkpdn)
-            tzbydp = 2.*tz(i,j,l)*bydp
-!**** CALCULATE PHI, MASS WEIGHTED THROUGHOUT THE LAYER
-            gz(i,j,l) = phidn(i,j)
-     &           +rgas*(dphimdt*t(i,j,l)+dphimdtz*tzbydp)
-!**** CALCULATE PHI AT LAYER TOP (EQUAL TO BOTTOM OF NEXT LAYER)
-            phidn(i,j) = phidn(i,j)
-     &           +rgas*(dphidt*t(i,j,l)+dphidtz*tzbydp)
-            pkdn(i,j) = pkup
-          ENDDO
-        ENDDO
-        IF (have_south_pole) GZ(2:IM, 1,L)=GZ(1, 1,L)
-        IF (have_north_pole) GZ(2:IM,JM,L)=GZ(1,JM,L)
-      enddo
+      Do J=J1,JN  ;  Do I=I1,IMAXJ(J)
+!**** Integrate pressures from the top down
+         M   = MTOP
+         PU  = M*GRAV
+         PKU = PU**KAPA  ;  PKPU = PKU*PU  ;  PKPPU = PKPU*PU
+         Do L=LM,1,-1
+            DP  = MAM(L,I,J)*GRAV
+            zDP = 1 / DP
+            Y   = SZ(I,J,L)*2*zDP*HUNDREDTHeKAPA
+            X   = S0(I,J,L)*HUNDREDTHeKAPA + Y*(PU+.5*DP)
+            PD  = PU + DP
+            PKD = PD**KAPA  ;  PKPD = PKD*PD  ;  PKPPD = PKPD*PD   
+!           AdM = RGAS*(X*(PKD-PKU)*zK - Y*(PKPD-PKPU)*zKp1)/GRAV
+            DGZU(L) = RGAS*(X*(PKD-PKU)*zK - Y*(PKPD-PKPU)*zKp1)
+            DGZA(L) = RGAS*(X*(DP*PKD - (PKPD-PKPU)*zKp1)*zK -
+     -                Y*(DP*PKPD - (PKPPD-PKPPU)*zKp2)*zKp1)*zDP
+!           AdM(I,J,L) = DGZU(L)*byGRAV
+!             P(I,J,L) = GRAV*(M + .5*MAM(L,I,J))
+            M   = M + MAM(L,I,J)
+            PU  = PD
+            PKU = PKD  ;  PKPU = PKPD  ;  PKPPU=PKPPD  ;  EndDo
+!**** Integrate altitude from the bottom up
+         GZD = ZATMO(I,J)
+         Do L=1,LM
+            GZ(I,J,L) = GZD + DGZA(L)
+      IF(J==1.OR.J==JM) WRITE (6,*) 'COMP_GZ:',J,L,GZD,GZ(I,J,L)
+            GZD = GZD + DGZU(L)  ;  EndDo  ;  EndDo  ;  EndDo
 
-      DO L=LS1,LM ! constant-pressure levels
-        pdn=sige(l)*psfmpt+ptop
-        pup=sige(l+1)*psfmpt+ptop
-        pkdnl=pke(l)
-        pkup=pke(l+1)
-        pkpdn=pkdnl*pdn
-        dp=dsig(l)*psfmpt
-        bydp=1./dp
-        p0=sig(l)*psfmpt+ptop
-        pkpup=pkup*pup
-        dpk = (pkdnl-pkup)*bykapa
-        dpkp = (pkpdn-pkpup)*bykapap1
-        dpkpp = (pkpdn*pdn-pkpup*pup)*bykapap2
-        dphidt = dpk
-        dphimdt = bykapa*(pkdnl-dpkp*bydp)
-        dphidtz = (dphidt*p0 -dpkp)*2.*bydp
-        dphimdtz = (dphimdt*p0 +bykapap1*(bydp*dpkpp-pkpdn))*2.*bydp
-        dphidt = dphidt*rgas
-        dphimdt = dphimdt*rgas
-        dphidtz = dphidtz*rgas
-        dphimdtz = dphimdtz*rgas
-        do j=j_0,j_1
-          do i=i_0,imaxj(j)
-            gz(i,j,l) = phidn(i,j)
-     &           +dphimdt*t(i,j,l) + dphimdtz*tz(i,j,l)
-            phidn(i,j) = phidn(i,j)
-     &           +dphidt *t(i,j,l) + dphidtz *tz(i,j,l)
-          enddo
-        enddo
-        IF (have_south_pole) GZ(2:IM, 1,L)=GZ(1, 1,L)
-        IF (have_north_pole) GZ(2:IM,JM,L)=GZ(1,JM,L)
-      ENDDO
-
-      RETURN
-      END SUBROUTINE compute_gz
+      If (QSP)  Then
+         Do L=1,LM
+            GZ(2:IM,1,L) = GZ(1,1,L)  ;  EndDo  ;  EndIf
+      If (QNP)  Then
+         Do L=1,LM
+            GZ(2:IM,JM,L) = GZ(1,JM,L)  ;  EndDo  ;  EndIf
+      Return
+      EndSubroutine COMPUTE_GZ
 
 
 !if running SCM end

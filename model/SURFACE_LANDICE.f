@@ -686,7 +686,6 @@ c
       use constant, only : kapa, Grav
       use atm_com, only : zatmo
       USE GEOM, only : imaxj
-      USE RESOLUTION, only : ptop
       USE CONSTANT, only : LHS
 
       implicit none

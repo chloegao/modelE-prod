@@ -60,7 +60,7 @@ C**** momentum passes through model top.
 !@dbparam QGWCNV =1 turns on GW Convective drag terms
       INTEGER :: QGWMTN = 1, QGWSHR = 1, QGWDEF = 1, QGWCNV = 1
 
-!@dbparam ang_gwd =1 ang mom. lost by GWDRAG is added in below PTOP
+!@dbparam ang_gwd =1 ang mom. lost by GWDRAG is added in troposphere
       INTEGER :: ang_gwd = 1 ! default: GWDRAG does conserve AM
 
 !@param NM number of gravity wave drag sources
@@ -582,8 +582,8 @@ C**** Calculate levels for deformation etc.
 C**** Note: these levels work for the 23 layer model, but may
 C**** need testing for other resolutions
       DO L=1,LM
-        PLEV =PMIDL00(L)  ! PSFMPT*SIG(L)+PTOP
-        PLEVE=PEDNL00(L) ! PSFMPT*SIGE(L)+PTOP
+        PLEV  = PMIDL00(L)
+        PLEVE = PEDNL00(L)
         IF (PLEV.GE.700) LDEF=L
         IF (PLEVE.GE.PBREAK) LBREAK=L+1
         IF (PLEVE.GE.300.) LSHR=L
@@ -674,8 +674,7 @@ C**** Uses TRIDIAG for implicit scheme (MU=1) as in diffuse53.
 C**** This version only does diffusion for lowest LDIFM layers.
 C****
       Use CONSTANT,   Only: RGAS,GRAV,TWOPI,KAPA,SHA,kg2mb
-      USE RESOLUTION, only : ptop,ls1
-      USE RESOLUTION, only : im,jm,lm
+      Use RESOLUTION, Only: IM,JM,LM,LS1
       Use ATM_COM,    Only: PEDN,PMID,PK
       USE DYNAMICS, only : mrch
       USE DOMAIN_DECOMP_ATM, only: grid, getDomainBounds
@@ -687,6 +686,7 @@ C****
       Use STRAT,      Only: DEFRM,ANG_GWD
       USE TRIDIAG_MOD, only :  TRIDIAG
       IMPLICIT NONE
+
       INTEGER, PARAMETER :: LDIFM=LM
       REAL*8, PARAMETER :: BYRGAS = 1./RGAS
       REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM+1) ::

@@ -1231,6 +1231,7 @@ C****
       return
       end subroutine surface_diag_post_precip_li
 
+
 #ifdef mjo_subdd
       subroutine surface_diag_mjo
       USE CONSTANT, only : undef
@@ -1245,7 +1246,7 @@ C****   longwave upward flux lwu_avg,surface pres p_avg, sst sst_avg
       DO J=J_0,J_1
       DO I=I_0,IMAXJ(J)
         PW_acc(I,J) = PW_acc(I,J) + Sum(Q(I,J,:)*MA(:,I,J))
-        p_avg(I,J)=p_avg(I,J)+P(I,J)
+        P_AVG(I,J) = P_AVG(I,J) + PEDN(1,I,J)
         if (FOCEAN(I,J).gt.0) then
           sst_avg(i,j)=sst_avg(i,j)+atmocn%GTEMP(i,j)
         else
@@ -1280,6 +1281,7 @@ C**** Accumulate 3D subdaily quantities
       return
       end subroutine surface_diag_mjo
 #endif
+
 
       subroutine surface_diag0(moddd,ih,ihm)
       USE ATM_COM, only : t,q,pek,pedn

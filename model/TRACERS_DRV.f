@@ -7942,6 +7942,7 @@ c **** reads in files for dust/mineral tracers
 
       end subroutine tracer_IC
 
+
       subroutine daily_tracer(end_of_day)
 !@sum daily_tracer is called once a day for tracers
 !@+   SUBROUTINE tracer_IC is called from daily_tracer to allow for
@@ -7949,7 +7950,7 @@ c **** reads in files for dust/mineral tracers
 !@auth Jean Lerner
 C**** Note this routine must always exist (but can be a dummy routine)
       USE RESOLUTION, only : lm
-      USE ATM_COM, only : p,t
+      Use ATM_COM,    Only: MA,T
       use model_com, only: modelEclock
       USE MODEL_COM, only:itime
       USE FLUXES, only : fearth0,focean,flake0
@@ -8027,7 +8028,7 @@ C****
       I_1 = grid%I_STOP
 
       if(end_of_day) then
-        call COMPUTE_GZ(p,t,tmom(mz,:,:,:),daily_z)
+         Call COMPUTE_GZ (MA,T,TMOM(MZ,:,:,:), DAILY_Z)
         daily_z = daily_z/grav
       endif
       daily_gz = grav*daily_z

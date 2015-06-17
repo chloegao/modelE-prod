@@ -22,7 +22,7 @@
 cc      USE QUSDEF, only : nmom,zmoms,xymoms
 cc      USE SOMTQ_COM, only : tmom,qmom
       USE GEOM, only : imaxj,byaxyp,axyp
-      USE ATM_COM, only : pk,pdsig,plij,pek,byMA,MA,pmid
+      Use ATM_COM,    Only: MA,byMA, PDSIG,PMID,PEDN,PK,PEK
      &     ,u_3d_agrid=>ualij,v_3d_agrid=>valij
       USE DOMAIN_DECOMP_ATM, ONLY : grid, getDomainBounds, halo_update
       USE DIAG_COM, only : jl_trbhr,jl_damdc,jl_trbke,jl_trbdlht
