@@ -3,7 +3,7 @@
       subroutine atm_phase1
       USE TIMINGS, only : ntimemax,ntimeacc,timing,timestr
       USE Dictionary_mod
-      use resolution, only : im,jm,lm,ls1,ptop
+      Use RESOLUTION, Only: IM,JM,LM
       Use ATM_COM,    Only: MA,MAOLD,PMID,PMIDOLD
       USE MODEL_COM
       USE ATM_COM, only : p,qcl,qci
@@ -379,6 +379,7 @@ c
 #endif
       end subroutine get_atm_layer1
 
+
       subroutine atm_phase2
       USE TIMINGS, only : ntimemax,ntimeacc,timing,timestr
       use resolution, only : lm
@@ -397,8 +398,6 @@ c
 #ifndef SCM
       USE ATMDYN, only : FILTER
 #endif
-      USE ATM_COM, only : P
-      USE RESOLUTION, only : PTOP
 #endif
       USE FLUXES, only : atmocn,atmice
       use TimerPackage_mod, only: startTimer => start
@@ -612,7 +611,7 @@ C****        tropospheric temperatures are changed by at most 1 degree C
 
 #ifdef TRACERS_ON
       if(istart.le.2) then
-        call COMPUTE_GZ(p,t,tmom(mz,:,:,:),daily_z)
+         Call COMPUTE_GZ (MA,T,TMOM(MZ,:,:,:), DAILY_Z)
         daily_z = daily_z/grav
       endif
       call initTracerGriddedData()
@@ -1504,6 +1503,7 @@ C****
 
       end subroutine read_aic
 
+
 #ifdef CACHED_SUBDD
       subroutine accum_subdd_atm
 C**** interpolate to pressure levels and accumulate the subdd diagnostics
@@ -1513,15 +1513,15 @@ C**** interpolate to pressure levels and accumulate the subdd diagnostics
       use subdd_mod, only : aijph_l1,aijph_l2
      &      ,subdd_npres,subdd_pk, subdd_pres
       use subdd_mod, only : inc_subdd,find_groups
-      use atm_com, only : ualij,valij,gz,wsave,pk,pmid,pdsig,qcl,qci
+      use atm_com,    only: u,v,t,q,qcl,qci, pdsig,pmid,pedn,pk,
+     &                      ualij,valij, zatmo,gz, wsave
       use domain_decomp_atm, only : grid,get=>getdomainbounds
       use resolution, only : lm
-      use atm_com, only: p,u,v,t,q,zatmo
-      use resolution, only: ptop
       USE GEOM, only: imaxj
       use fluxes, only : atmsrf,atmice
       use model_com, only : dtsrc
       implicit none
+
       INTEGER :: LDN,LUP,I,J,L,k,igrp,ngroups,grpids(subdd_ngroups)
       INTEGER :: J_0, J_1, J_0H, J_1H, I_0,I_1
       type(subdd_type), pointer :: subdd
@@ -1550,7 +1550,7 @@ C**** interpolate to pressure levels and accumulate the subdd diagnostics
       select case (subdd%name(k))
 C
       case ('p_surf')
-        sddarr2d = p(:,:) + ptop
+        sddarr2d = pedn(1,:,:)
         call inc_subdd(subdd,k,sddarr2d)
 C
       case ('gtempr')
@@ -1595,7 +1595,7 @@ C
         do j=j_0,j_1; do i=i_0,imaxj(j)
           !ts = t(i,j,1)*pek(1,i,j)
           sddarr2d(i,j) =
-     &         slp(p(i,j)+ptop,atmsrf%tsavg(i,j),bygrav*zatmo(i,j))
+     &         slp(pedn(1,i,j),atmsrf%tsavg(i,j),bygrav*zatmo(i,j))
         enddo;        enddo
         call inc_subdd(subdd,k,sddarr2d)
       end select
