@@ -93,33 +93,70 @@ if (${CMAKE_Fortran_COMPILER_ID} STREQUAL "Intel")
    set(EXTENDED_SOURCE "-extend_source")
 
 
-# GNU compiler flags
+# ===================================== GNU compiler flags
 elseif(${CMAKE_Fortran_COMPILER_ID} STREQUAL GNU)
 
    set (CPP ${CMAKE_C_COMPILER} -E)
 
+   # Base compiler
+   set (CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -g -fbacktrace -DCOMPILER_G95")
    if (CMAKE_SYSTEM_NAME MATCHES Linux)
-      set (CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -g -DCOMPILER_G95 -DMACHINE_Linux")
+      set (CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -DMACHINE_Linux")
    else()
-      set (CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -g -DCOMPILER_G95 -DMACHINE_MAC")
+      set (CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -DMACHINE_MAC")
    endif()
 
-   # Base flags
-   # https://gcc.gnu.org/onlinedocs/gfortran/Code-Gen-Options.html
+   # ----------------- Base Flags
+   # -fno-range-check:
+   #    Disable range checking on results of simplification
+   #    of constant expressions during compilation. For example, GNU
+   #    Fortran will give an error at compile time when simplifying a =
+   #    1. / 0. With this option, no error will be given and a will be
+   #    assigned the value +Infinity. If an expression evaluates to a value
+   #    outside of the relevant range of [-HUGE():HUGE()], then the
+   #    expression will be replaced by -Inf or +Inf as
+   #    appropriate. Similarly, DATA i/Z'FFFFFFFF'/ will result in an
+   #    integer overflow on most systems, but with -fno-range-check the
+   #    value will “wrap around” and i will be initialized to -1 instead.
+   #  -fconvert=conversion
+   #     Specify the representation of data for unformatted files. Valid
+   #     values for conversion are: ‘native’, the default; ‘swap’, swap
+   #     between big- and little-endian; ‘big-endian’, use big-endian
+   #     representation for unformatted files; ‘little-endian’, use
+   #     little-endian representation for unformatted files.
+   #     This option has an effect only when used in the main program. The
+   #     CONVERT specifier and the GFORTRAN_CONVERT_UNIT environment
+   #     variable override the default specified by -fconvert.
+
+   #  -cpp
+   #     Enable preprocessing. The preprocessor is automatically invoked if
+   #     the file extension is .fpp, .FPP, .F, .FOR, .FTN, .F90, .F95, .F03
+   #     or .F08. Use this option to manually enable preprocessing of any
+   #     kind of Fortran file.
+
+   #     The preprocessor is run in traditional mode. Any restrictions of
+   #     the file-format, especially the limits on line length, apply for
+   #     preprocessed output as well, so it might be advisable to use the
+   #     -ffree-line-length-none or -ffixed-line-length-none options.
    set(CMAKE_Fortran_FLAGS 
-      "${CMAKE_Fortran_FLAGS} -g -cpp -fconvert=big-endian -O2 -fno-range-check"
+      "${CMAKE_Fortran_FLAGS} -cpp -fconvert=big-endian -fno-range-check -ffree-line-length-none -DUSE_MPI -DMPITYPE_LOOKUP_HACK"
    )
 
+
+
+
+   # https://gcc.gnu.org/onlinedocs/gfortran/Code-Gen-Options.html#Code-Gen-Options
    if ("${COMPILE_WITH_DEBUG}" STREQUAL "YES")
-      set(CMAKE_Fortran_FLAGS 
-      "${CMAKE_Fortran_FLAGS} -g -cpp -fconvert=big-endian -O1 -fcheck=mem -fcheck=pointer -fcheck=bounds -fno-range-check"
-      )
+      # set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -O1 -fcheck=all")
+      set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -O1 -fcheck=bounds -fcheck=array-temps -fcheck=do -fcheck=mem -fcheck=recursion")
+      # ModelE crashes under: -fcheck=pointer
+   else()
+      set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -O2")
    endif()
 
    if ("${COMPILE_WITH_TRAPS}" STREQUAL "YES")
-      set(CMAKE_Fortran_FLAGS 
-         "${CMAKE_Fortran_FLAGS} -fbounds-check -fcheck-array-temporaries -ffpe-trap=invalid,zero,overflow -finit-real=snan -fbacktrace"
-      )
+      set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -ffpe-trap=invalid,zero,overflow")
+      # ModelE crashes under: -finit-real=snan 
    endif()
   
    set(R8 "-fdefault-real-8 -fdefault-double-8")
