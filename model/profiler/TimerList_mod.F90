@@ -163,7 +163,7 @@ contains
             namedTimer => this%list(i)
             if (isActive(namedTimer%timer)) then
                message = 'Unbalanced start/stop for timer <'//trim(namedTimer%name)//'>.'
-               call throwException(message, 256)
+               call stop_model(message, 256)
                return
             end if
          end do
@@ -302,7 +302,7 @@ contains
          call stop(this%list(index)%timer)
       else
          message = 'Timer <'//trim(name)//'> has not been declared prior to use.'
-         call throwException(message, 256)
+         call stop_model(message, 256)
          return
       end if
 

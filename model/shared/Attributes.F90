@@ -85,7 +85,7 @@ contains
 
 
     class default
-      call throwException('Illegal conversion of integerAttribute.',255)
+      call stop_model('Illegal conversion of integerAttribute.',255)
     end select
   end subroutine toType_
 
@@ -98,7 +98,7 @@ contains
     type is (integerAttribute)
        ptr => q%value
     class default
-      call throwException('Illegal association of integerAttribute.',255)
+      call stop_model('Illegal association of integerAttribute.',255)
     end select
   end function toPointerType
 
@@ -270,7 +270,7 @@ contains
        end do
 
     class default
-      call throwException('Illegal conversion of integer1dAttribute.',255)
+      call stop_model('Illegal conversion of integer1dAttribute.',255)
     end select
   end subroutine toType_
 
@@ -283,7 +283,7 @@ contains
     type is (integer1dAttribute)
        ptr => q%value
     class default
-      call throwException('Illegal association of integer1dAttribute.',255)
+      call stop_model('Illegal association of integer1dAttribute.',255)
     end select
   end function toPointerType
 
@@ -447,7 +447,7 @@ contains
 
 
     class default
-      call throwException('Illegal conversion of logicalAttribute.',255)
+      call stop_model('Illegal conversion of logicalAttribute.',255)
     end select
   end subroutine toType_
 
@@ -460,7 +460,7 @@ contains
     type is (logicalAttribute)
        ptr => q%value
     class default
-      call throwException('Illegal association of logicalAttribute.',255)
+      call stop_model('Illegal association of logicalAttribute.',255)
     end select
   end function toPointerType
 
@@ -632,7 +632,7 @@ contains
        end do
 
     class default
-      call throwException('Illegal conversion of logical1dAttribute.',255)
+      call stop_model('Illegal conversion of logical1dAttribute.',255)
     end select
   end subroutine toType_
 
@@ -645,7 +645,7 @@ contains
     type is (logical1dAttribute)
        ptr => q%value
     class default
-      call throwException('Illegal association of logical1dAttribute.',255)
+      call stop_model('Illegal association of logical1dAttribute.',255)
     end select
   end function toPointerType
 
@@ -809,7 +809,7 @@ contains
 
 
     class default
-      call throwException('Illegal conversion of RealDPAttribute.',255)
+      call stop_model('Illegal conversion of RealDPAttribute.',255)
     end select
   end subroutine toType_
 
@@ -822,7 +822,7 @@ contains
     type is (RealDPAttribute)
        ptr => q%value
     class default
-      call throwException('Illegal association of RealDPAttribute.',255)
+      call stop_model('Illegal association of RealDPAttribute.',255)
     end select
   end function toPointerType
 
@@ -994,7 +994,7 @@ contains
        end do
 
     class default
-      call throwException('Illegal conversion of RealDP1dAttribute.',255)
+      call stop_model('Illegal conversion of RealDP1dAttribute.',255)
     end select
   end subroutine toType_
 
@@ -1007,7 +1007,7 @@ contains
     type is (RealDP1dAttribute)
        ptr => q%value
     class default
-      call throwException('Illegal association of RealDP1dAttribute.',255)
+      call stop_model('Illegal association of RealDP1dAttribute.',255)
     end select
   end function toPointerType
 
@@ -1171,7 +1171,7 @@ contains
 
 
     class default
-      call throwException('Illegal conversion of StringAttribute.',255)
+      call stop_model('Illegal conversion of StringAttribute.',255)
     end select
   end subroutine toType_
 
@@ -1184,7 +1184,7 @@ contains
     type is (StringAttribute)
        ptr => q%value
     class default
-      call throwException('Illegal association of StringAttribute.',255)
+      call stop_model('Illegal association of StringAttribute.',255)
     end select
   end function toPointerType
 
@@ -1356,7 +1356,7 @@ contains
        end do
 
     class default
-      call throwException('Illegal conversion of String1dAttribute.',255)
+      call stop_model('Illegal conversion of String1dAttribute.',255)
     end select
   end subroutine toType_
 
@@ -1369,7 +1369,7 @@ contains
     type is (String1dAttribute)
        ptr => q%value
     class default
-      call throwException('Illegal association of String1dAttribute.',255)
+      call stop_model('Illegal association of String1dAttribute.',255)
     end select
   end function toPointerType
 

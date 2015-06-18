@@ -1064,7 +1064,7 @@ contains
     integer :: numEntries
 
     if (this%hasKey(key)) then
-      call throwException('Dictionary: duplicate key - <'//trim(key)//'>.',14)
+      call stop_model('Dictionary: duplicate key - <'//trim(key)//'>.',14)
       return
     end if
 
@@ -1488,7 +1488,7 @@ contains
     else
       ! need to allocate something to prevent a crash
       allocate(values(0))
-      call throwException('Key not found: <'//trim(key)//'>.', 14)
+      call stop_model('Key not found: <'//trim(key)//'>.', 14)
     end if
 
   end function lookup

@@ -133,7 +133,7 @@ contains
     call calendar%setDaysPerYear(daysPerYear)
 
     if (size(monthLongitudes) /= MONTHS_PER_YEAR) then
-       call throwException('PlanetaryCalendar assumes 12 month years.')
+       call stop_model('PlanetaryCalendar assumes 12 month years.')
        return
     end if
 

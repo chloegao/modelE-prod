@@ -114,8 +114,6 @@ endif
 ### HACK !! - add source dir to CPPFLAGS
 CPPFLAGS += -I$(SRC_DIR)
 
-
-
 ifeq ($(MPI),YES)
   CPPFLAGS += -DUSE_MPI
 endif
@@ -123,11 +121,6 @@ endif
 # include ESMF library if necessary (sets CPPFLAGS appropriately)
 ifeq ($(ESMF),YES)
   include $(CONFIG_DIR)/ESMF.default.mk
-endif
-
-
-ifdef PFUNIT
-  include $(CONFIG_DIR)/pFUnit.default.mk
 endif
 
 ifeq ($(FVCUBED),YES)

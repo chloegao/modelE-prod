@@ -1,4 +1,0 @@
-
-CPPFLAGS += -DUSE_PFUNIT
-F90FLAGS += -I$(PFUNIT)/mod
-LIBS += -L$(PFUNIT)/lib -lpfunit

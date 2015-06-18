@@ -145,8 +145,7 @@ endif
 
 tests:
 ifeq ($(PFUNIT),)
-	@echo '--- Need to set PFUNIT environment variable.    ---'
-	@echo '--- Then build gcm and finally build/run tests. ---'
+	@echo '--- To run tests set PFUNIT environment variable.    ---'
 else
 	$(MAKE) -C $(TESTS_DIR) all RUN=$(RUN)
 endif
