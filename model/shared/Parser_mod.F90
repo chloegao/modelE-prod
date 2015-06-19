@@ -219,7 +219,7 @@ contains
 
     tokens => splitTokens(this, line)
     if (size(tokens) < 2) then
-      call throwException('Parser_mod: syntax error in input unit.', 14)
+      call stop_model('Parser_mod: syntax error in input unit.', 14)
       return
     end if
 
@@ -459,7 +459,7 @@ contains
 
     if (numTokens >= 1) then
       if (scan(trim(tokens(1)), ' ') /= 0) then
-        call throwException('Parser_mod: Illegal syntax.  "=" not first separator.', 14)
+        call stop_model('Parser_mod: Illegal syntax.  "=" not first separator.', 14)
       end if
     end if
 

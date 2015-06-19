@@ -138,7 +138,7 @@ contains
     integer, intent(in) :: ith
     type (GenericType_type), pointer :: value
     if (ith < 0 .or. ith > getNumValues(this)) then
-      call throwException('KeyValuePair_mod::getValue() - argument "ith" out of range.',14)
+      call stop_model('KeyValuePair_mod::getValue() - argument "ith" out of range.',14)
     end if
     value => this%values(ith)
   end function getValue_i
@@ -193,14 +193,14 @@ contains
 
     check = all(getType(this%values) == valueType)
     if (.not. check) then
-      call throwException('Incorrect type for specified key: <' &
+      call stop_model('Incorrect type for specified key: <' &
            & // trim(this%key) // '>', 14)
       return
     end if
 
     check = (numValues == size(this%values))
     if (.not. check) then
-      call throwException('Incorrect number of elements for specified key: <' &
+      call stop_model('Incorrect number of elements for specified key: <' &
            & // trim(this%key) // '>', 14)
       return
     end if

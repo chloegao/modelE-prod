@@ -205,7 +205,7 @@ foreachq([case],[m4_KIND_TYPES],[_cat([m4_insert],case)])
         end if
       end do
       
-      call throwException('No prototype for attribute in AttributeDictionary writeUnformatted.',255)
+      call stop_model('No prototype for attribute in AttributeDictionary writeUnformatted.',255)
 
     end function getAttributeType
 

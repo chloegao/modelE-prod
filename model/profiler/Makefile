@@ -13,10 +13,6 @@ ifeq ($(ESMF),YES)
 $(F90OBJS) : F90FLAGS+=-DUSE_MPI
 endif
 
-ifeq ($(USE_PFUNIT),YES)
-$(F90OBJS) : F90FLAGS+=-DUSE_PFUNIT -I$(PFUNIT)/mod
-endif
-
 ifndef GISSCLIM_DIR
        GISSCLIM_DIR := $(shell pwd)/../..
 endif

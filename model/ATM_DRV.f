@@ -513,7 +513,7 @@ C****
       USE ATM_COM, only : ij_debug
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       USE SOMTQ_COM, only : mz,tmom
-      USE ATM_COM, only : p,t
+      USE ATM_COM, only : ma,t
       USE TRACER_COM,only: MTRACE,daily_z
 #ifdef TRACERS_SPECIAL_Shindell
      *     ,mchem

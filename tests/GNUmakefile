@@ -44,7 +44,8 @@ TESTINCS := $(foreach ITEM, $(TESTDIRS), -I../$(SOURCE_DIR)/$(ITEM))
 TESTINCS += -I../../model
 
 FFLAGS += $(TESTINCS) -I$(PFUNIT)/mod -I$(SOURCE_DIR)
-EXEFLAGS += $(FFLAGS) -I.
+EXEFLAGS += $(FFLAGS) -I. -I../model/shared
+EXEFLAGS += -DPFUNIT_EXTRA_INITIALIZE=initModelEtests
 
 # Required libraries
 PFLIB = -L$(PFUNIT)/lib -lpfunit
@@ -69,7 +70,8 @@ EXE = tests.x
 
 MYLIBS = $(TESTLIBS) $(LIBS) $(PFLIB) $(IOLIB)
 $(EXE): testSuites.inc TESTS
-	$(FC) -o $@ $(EXEFLAGS) $(PFUNIT)/include/driver.F90 $(MYLIBS)
+	$(FC) -o $@ initModelEtests.F90 $(EXEFLAGS) \
+	$(PFUNIT)/include/driver.F90 $(MYLIBS)
 
 all: $(EXE)
 ifeq ($(USE_MPI),YES)

@@ -408,7 +408,7 @@ contains
     integer :: i
 
     if (this%hashValue == DONE) then
-      call throwException('Cannot call next() when hash has no remaining iterations.',14)
+      call stop_model('Cannot call next() when hash has no remaining iterations.',14)
       return
     end if
 

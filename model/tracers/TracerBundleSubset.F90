@@ -124,7 +124,7 @@ contains
 !!$       if (.not. this%has(iter%key())) then
 !!$          call this%AttributeDictionary%insert(iter%key(), iter%value())
 !!$       else
-!!$          call throwException('AssociativeArray::merge() failed due to duplicate keys: <' &
+!!$          call stop_model('AssociativeArray::merge() failed due to duplicate keys: <' &
 !!$               & // trim(iter%key()) // '>.', 255)
 !!$       end if
 !!$      call iter%next()
@@ -277,7 +277,7 @@ contains
 !!$        end if
 !!$      end do
 !!$      
-!!$      call throwException('No prototype for attribute in AttributeDictionary writeUnformatted.',255)
+!!$      call stop_model('No prototype for attribute in AttributeDictionary writeUnformatted.',255)
 !!$
 !!$    end function getAttributeType
 !!$
@@ -481,7 +481,7 @@ contains
         end select
       end do
       class default
-        call throwException("Wrong type for contained object",1)
+        call stop_model("Wrong type for contained object",1)
     end select
    
   end function getReference

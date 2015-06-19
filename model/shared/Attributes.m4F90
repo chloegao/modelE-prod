@@ -107,7 +107,7 @@ ifelse($3,1,
        end do
 ])
     class default
-      call throwException('Illegal conversion of m4_attributeType($1,$2,$3,$4).',255)
+      call stop_model('Illegal conversion of m4_attributeType($1,$2,$3,$4).',255)
     end select
   end subroutine toType_
 
@@ -120,7 +120,7 @@ ifelse($3,1,
     type is (m4_attributeType($1,$2,$3,$4))
        ptr => q%value
     class default
-      call throwException('Illegal association of m4_attributeType($1,$2,$3,$4).',255)
+      call stop_model('Illegal association of m4_attributeType($1,$2,$3,$4).',255)
     end select
   end function toPointerType
 
