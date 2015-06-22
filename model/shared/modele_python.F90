@@ -12,7 +12,7 @@ subroutine init_for_python()
 	use stop_model_mod
 
 #ifdef USE_FEXCEPTION
-	stop_model_ptr => stop_model_fexception
+	call set_stop_model_ptr(stop_model_fexception)
 #endif
 end subroutine init_for_python
 ! ------------------------------------------
