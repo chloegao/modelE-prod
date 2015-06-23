@@ -5,7 +5,7 @@ module stop_model_mod
   implicit none
   private
   public :: set_stop_model_ptr
-  public :: stop_model_generic
+  public :: stop_model_generic, stop_model_fexception, stop_model_default, stop_model_segfault
 
   interface
     subroutine stop_model_cb(message, retcode)
@@ -94,8 +94,41 @@ contains
 #endif
       call exit_rc (0)
   endif
-
   end subroutine stop_model_default
+
+
+  subroutine stop_model_segfault( message, retcode )
+!@sum Aborts the execution of the program. Passes an error message and
+!@+ a return code to the calling script. Should be used instead of STOP
+    use Dictionary_mod
+!@var message an error message (reason to stop)
+    character*(*), intent (in) :: message
+!@var retcode return code to be passed to the calling script
+    integer, intent(in) :: retcode
+    integer :: rank
+    integer, pointer :: crash_me
+
+  ! skip writing status file for retcode<0
+    if ( retcode >= 0 ) call write_run_status( message, retcode )
+    if (rank == 0) then
+      write (6,'(//2(" ",132("*")/))')
+      write (6,*) ' Program terminated due to the following reason:'
+      write (6,*) ' >>  ', message, '  <<'
+      write (6,'(/2(" ",132("*")/))')
+    endif
+
+    call sys_flush(6)
+
+    if ( retcode > 13 ) then
+      write (0,*) 'Model crashed due to ',message
+    endif
+
+    ! Cause a segfault, which will produce a stack trace
+    nullify(crash_me)
+    crash_me = 17
+
+  end subroutine stop_model_segfault
+
 
 #ifdef USE_FEXCEPTION
   subroutine stop_model_fexception(message, retcode)
