@@ -5440,9 +5440,108 @@ C****
       USE EXCHANGE_TYPES, only : atmocn_xchng_vars
       IMPLICIT NONE
       type(atmocn_xchng_vars) :: atmocn
+      call get_exports_layer1
       call OG2AG_TOC2SST(atmocn)
       RETURN
       END SUBROUTINE TOC2SST
+
+      subroutine get_exports_layer1
+      use ofluxes, only : ocnatm
+      use oceanr_dim, only : grid=>ogrid
+      use domain_decomp_1d, only : getDomainBounds
+      use domain_decomp_1d, only : hasSouthPole,hasNorthPole
+      use domain_decomp_1d, only : halo_update,south
+      use ocean, only : nbyzm,i1yzm,i2yzm
+      use ocean, only : mo,g0m,s0m
+      use ocean, only : uo,vo
+      use ocean, only : ogeoz,ogeoz_sv
+      use ocean, only : im,jm,oxyp,sinpo,sinvo
+      USE OCEAN, only :
+     &                oCOSI=>COSIC,oSINI=>SINIC
+     &               ,IVSPO=>IVSP,IVNPO=>IVNP
+
+#ifdef TRACERS_OCEAN
+#ifdef TRACERS_WATER
+      use ocean, only : trmo
+      use ocn_tracer_com, only: tracerlist
+      use ocn_tracer_com, only: ocn_tracer_entry
+#endif
+#endif
+      implicit none
+      real*8 temgs,shcgs  ! funcs
+      real*8 :: g,s
+      real*8 :: awt1,awt2
+      integer :: i,j,l,n,nt
+      integer :: j_0,j_1,j_0s,j_1s
+
+      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1)
+      call getDomainBounds(grid, J_STRT_SKP = J_0S, J_STOP_SKP = J_1S)
+
+      do j=j_0,j_1
+      do n=1,nbyzm(j,1)
+      do i=i1yzm(n,j,1),i2yzm(n,j,1)
+        l = 1
+        g = g0m(i,j,l)/(mo(i,j,l)*oxyp(i,j))
+        s = s0m(i,j,l)/(mo(i,j,l)*oxyp(i,j))
+        ocnatm%gtemp(i,j) = temgs(g,s)
+        ocnatm%sss(i,j) = 1d3*s
+        ocnatm%mlhc(i,j) = mo(i,j,1)*shcgs(g,s)
+        l = 2
+        g = g0m(i,j,l)/(mo(i,j,l)*oxyp(i,j))
+        s = s0m(i,j,l)/(mo(i,j,l)*oxyp(i,j))
+        ocnatm%gtemp2(i,j) = temgs(g,s) ! layer 2 for GCM diagnostics only
+        ocnatm%ogeoza(i,j) = 0.5d0*(ogeoz(i,j)+ogeoz_sv(i,j))
+#ifdef TRACERS_OCEAN
+#ifdef TRACERS_WATER
+C**** surface tracer concentration
+        do nt=1,tracerlist%getsize()
+          entry=>tracerlist%at(nt)
+          if (entry%conc_from_fw) then ! define conc from fresh water
+            ocnatm%gtracer(NT,I,J)=TRMO(I,J,1,NT)/
+     &           (MO(I,J,1)*OXYP(I,J)-S0M(I,J,1))
+          else                  ! define conc from total sea water mass
+            ocnatm%gtracer(NT,I,J)=TRMO(I,J,1,NT)/
+     &           (MO(I,J,1)*OXYP(I,J))
+          endif
+        enddo
+#endif
+#endif
+
+      enddo
+      enddo
+      enddo
+
+c
+c ocean C-grid -> atm A-grid method requiring fewer INT_OG2AG variants:
+c ocean C -> ocean A followed by ocean A -> atm A via INT_OG2AG
+c
+      call halo_update(grid,vo(:,:,1),from=south)
+
+      do j=j_0s,j_1s
+c area weights that would have been used by HNTRP for ocean C -> ocean A
+        awt1 = (sinpo(j)-sinvo(j-1))/(sinvo(j)-sinvo(j-1))
+        awt2 = 1.-awt1
+        i=1
+          ocnatm%uosurf(i,j) = .5*(UO(i,j,1)+UO(im,j,1))
+          ocnatm%vosurf(i,j) = VO(i,j-1,1)*awt1+VO(i,j,1)*awt2
+        do i=2,im
+          ocnatm%uosurf(i,j) = .5*(UO(i,j,1)+UO(i-1,j,1))
+          ocnatm%vosurf(i,j) = VO(i,j-1,1)*awt1+VO(i,j,1)*awt2
+        enddo
+      enddo
+      if(hasSouthPole(GRID)) then
+        ocnatm%uosurf(:,1) = 0.
+        ocnatm%vosurf(:,1) = 0.
+      endif
+      if(hasNorthPole(grid)) then ! NP U,V from prognostic polar U,V
+        ocnatm%uosurf(:,jm) =
+     &       UO(im,jm,1)*oCOSI(:) + UO(IVNPO,jm,1)*oSINI(:)
+! ocnatm%vosurf currently has no effect when atm is lat-lon
+        ocnatm%vosurf(:,jm) =
+     &       UO(IVNPO,jm,1)*oCOSI(:) - UO(im,jm,1)*oSINI(:)
+      endif
+
+      end subroutine get_exports_layer1
 
       SUBROUTINE io_oda(kunit,it,iaction,ioerr)
 !@sum  io_oda dummy routine for consistency with uncoupled model
