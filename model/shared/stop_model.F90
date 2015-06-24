@@ -5,7 +5,10 @@ module stop_model_mod
   implicit none
   private
   public :: set_stop_model_ptr
-  public :: stop_model_generic, stop_model_fexception, stop_model_default, stop_model_segfault
+  public :: stop_model_generic, stop_model_default, stop_model_segfault
+#ifdef USE_FEXCEPTION
+  public :: stop_model_fexception
+#endif
 
   interface
     subroutine stop_model_cb(message, retcode)
