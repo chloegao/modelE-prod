@@ -679,7 +679,7 @@ cXXXXX DSOL NOT USED XXXXX
       USE RESOLUTION, only: im,jm,lm
       USE MODEL_COM, only: itime,dtsrc
       USE DOMAIN_DECOMP_ATM, only: GRID, getDomainBounds
-      USE ATM_COM, only: t,pk,MA,ltropo   ! Air mass of each box (kg/m^2)
+      USE ATM_COM, only: t,pk,MA! Air mass of each box (kg/m^2)
       USE GEOM, only: imaxj,axyp
       USE TRACER_COM
       USE PRATHER_CHEM_COM, only: nstrtc
