@@ -2161,7 +2161,7 @@ C**** GLOBAL parameters and variables:
       USE OldTracer_mod, only: vol2mass
       USE RAD_COM, only  : rad_to_chem
       USE CONSTANT, only : PI
-      USE ATM_COM, only : LTROPO,MA
+      USE ATM_COM, only : MA
       USE DYNAMICS, only : sig
       USE TRCHEM_Shindell_COM, only: nr2,nr3,nmm,nhet,ta,ea,rr,pe,
      & cboltz,r1,sb,nst,y,nM,nH2O,ro,sn,which_trop,sulfate,RKBYPIM,dt2,
@@ -2326,6 +2326,8 @@ C Aerosols (14-33 km) & PSCs 14-22 km.
 C
 c Aerosol profiles and latitudinal distribution of extinction 
 c coefficients(in km**-1) are from SAGE II data on GISS web site:
+        pfactor=axyp(I,J)*MA(L,I,J)/y(nM,L)
+        bypfactor=1.d0/pfactor
 
         if(pres(L) >= 245.d0 .or. pres(L) <= 5.d0)then 
           do jj=nr2+nr3+2,nr2+nr3+nhet
@@ -2370,8 +2372,6 @@ c coefficients(in km**-1) are from SAGE II data on GISS web site:
             if(L>topLevelOfChemistry)sulfate(i,j,L)=0.d0
           end if
 
-          pfactor=axyp(I,J)*MA(L,I,J)/y(nM,L)
-          bypfactor=1.d0/pfactor
           RVELN2O5=SQRT(ta(L)*RKBYPIM)*100.d0
 C         Calculate sulfate sink, and cap it at 20% of N2O5:
 c         in troposphere loss is rxn on sulfate, in strat rxn w PSC or sulfate
