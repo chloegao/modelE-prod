@@ -364,18 +364,24 @@ c**** Extract domain decomposition info
           ptropo(i,j) = pmid(lm-1,i,j)
         enddo
         enddo
-        return
-      endif
+      else
 
 C**** Find WMO Definition of Tropopause to Nearest L
+        do j=J_0,J_1
+        do i=I_0,imaxj(j)
+          do l=1,lm
+            TL(L)=T(I,J,L)*PK(L,I,J)
+          end do
+          CALL TROPWMO(TL,PMID(1,I,J),PK(1,I,J),PTROPO(I,J),LTROPO(I,J)
+     *         ,IERR)
+          IF (IERR.gt.0) print*,"TROPWMO error: ",i,j
+        end do
+        end do
+      endif
+
+! diagnostics
       do j=J_0,J_1
       do i=I_0,imaxj(j)
-        do l=1,lm
-          TL(L)=T(I,J,L)*PK(L,I,J)
-        end do
-        CALL TROPWMO(TL,PMID(1,I,J),PK(1,I,J),PTROPO(I,J),LTROPO(I,J)
-     *       ,IERR)
-        IF (IERR.gt.0) print*,"TROPWMO error: ",i,j
         AIJ(I,J,IJ_PTROP)=AIJ(I,J,IJ_PTROP)+PTROPO(I,J)
         AIJ(I,J,IJ_TTROP)=AIJ(I,J,IJ_TTROP)+TL(LTROPO(I,J))
 #ifdef etc_subdd
@@ -383,6 +389,7 @@ C**** Find WMO Definition of Tropopause to Nearest L
 #endif
       end do
       end do
+
       IF (have_south_pole) THEN
 #ifdef etc_subdd
         TTROPO(2:IM,1) = TTROPO(1,1)  ! extra subdaily

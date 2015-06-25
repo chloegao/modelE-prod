@@ -191,7 +191,7 @@
 !@sum  get_lightning_NOx to define the 3D source of NOx from lightning
 !@auth Colin Price / Greg Faluvegi
  
-      use geom, only       : lat2d_dg,byaxyp
+      use geom, only       : lat2d_dg,byaxyp,imaxj
       use fluxes, only     : tr3Dsource,fland
       use tracer_com, only : n_NOx,nOther
       use lightning, only  : HGT_lgt,JSlight,JNlight,srclight,RNOx_lgt
@@ -224,7 +224,7 @@
       I_1 = grid%I_STOP; J_1 = grid%J_STOP
  
       do j=J_0,J_1
-      do i=I_0,I_1
+      do i=I_0,imaxj(j)
 ! Lightning source function altitude dependence:
 ! Determine if latitude is tropical:
          latindx=2
