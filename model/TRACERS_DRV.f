@@ -11052,7 +11052,7 @@ C**** no fractionation for ice evap
       USE RESOLUTION, only : im,jm,lm
       USE ATM_COM, only: t
       USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds,write_parallel
-      USE ATM_COM, only: pmid,MA,pk,LTROPO
+      USE ATM_COM, only: pmid,MA,pk
       USE GEOM, only: axyp,imaxj
       USE TRACER_COM, only: rsulf1,rsulf2,rsulf3,rsulf4
 #ifdef TRACERS_SPECIAL_Shindell
