@@ -275,7 +275,7 @@ contains
         end if
       end do
       
-      call throwException('No prototype for attribute in AttributeDictionary writeUnformatted.',255)
+      call stop_model('No prototype for attribute in AttributeDictionary writeUnformatted.',255)
 
     end function getAttributeType
 

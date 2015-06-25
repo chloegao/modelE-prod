@@ -1723,7 +1723,7 @@ C****
 #endif
       USE LAKES, only : minmld,variable_lk,hlake_min
       USE LAKES_COM, only : mwl,flake,tanlk,mldlk,tlake,gml
-     &     ,svflake,hlake
+     &     ,svflake,hlake,dlake,glake
 #ifdef TRACERS_WATER
      *     ,trlake,ntm
 #endif
@@ -2097,6 +2097,8 @@ C**** Set GTEMP array for lakes
       DO J=J_0, J_1
         DO I=I_0,IMAXJ(J)
           IF (FLAKE(I,J).gt.0) THEN
+            DLAKE(I,J)=MWL(I,J)/(RHOW*FLAKE(I,J)*AXYP(I,J))
+            GLAKE(I,J)=GML(I,J)/(FLAKE(I,J)*AXYP(I,J))
             GTEMP(I,J)=TLAKE(I,J)
             GTEMPR(I,J) =TLAKE(I,J)+TF
 #ifdef SCM
@@ -2110,6 +2112,9 @@ C**** Set GTEMP array for lakes
      *           *AXYP(I,J))
 #endif
             atmocn%MLHC(I,J) = SHW*MLDLK(I,J)*RHOW
+          ELSE
+            DLAKE(I,J)=0.
+            GLAKE(I,J)=0.
           END IF
         END DO
       END DO

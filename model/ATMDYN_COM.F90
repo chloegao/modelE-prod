@@ -231,15 +231,16 @@
       Return
       EndSubroutine CALC_VERT_AMP
 
+
       Subroutine aic_part2
 !@sum aic_part2 Once the fundamental atm state variables have been read from
 !@+   the AIC file, this routine converts everything to ModelE form (units
 !@+   changes, auxiliary variables, etc.)
       Use CONSTANT,   Only: mb2kg,areag,rgas
-      Use RESOLUTION, Only: IM,JM,LM, MTOP,MFIX,MFIXs,MFRAC, PSF,PTOP
+      Use RESOLUTION, Only: IM,JM,LM, MTOP,MFIX,MFIXs,MFRAC,MDRYA, PSF
       Use ATM_COM,    Only: MA,U,V,T,P,Q, PK,PMID,PEDN,UALIJ,VALIJ, ZATMO
       Use ATM_COM,    Only: traditional_coldstart_aic
-      Use DOMAIN_DECOMP_ATM, Only: GRID, GetDomainBounds, globalsum
+      Use DOMAIN_DECOMP_ATM, Only: GRID, GetDomainBounds, GLOBALSUM, HALO_UPDATE_COLUMN
       use GEOM, only : axyp
       use Dictionary_mod
       Implicit none
@@ -252,7 +253,6 @@
 
       Call GetDomainBounds (GRID, I_STRT=I1, I_STOP=IN, J_STRT=J1, J_STOP=JN, &
                                   HAVE_SOUTH_POLE=QSP, HAVE_NORTH_POLE=QNP)
-
 
       if(traditional_coldstart_aic) then
       if(is_set_param('initial_psurf_from_topo')) &
@@ -276,21 +276,19 @@
         call globalsum(grid,aexpz,aexpz_sum,all=.true.)
         do J=J1,JN
         do I=I1,IN
-          p(i,j) = psf*expz(i,j)/(aexpz_sum/areag)
+          p(i,j) = psf*expz(i,j)/(aexpz_sum/areag)  !  = surface pressure (mb)
         enddo
         enddo
         deallocate(expz,aexpz)
       endif
       endif
 
-      Do J=J1,JN
-      Do I=I1,IN
-         MVAR = P(I,J)*mb2kg - MFIXs - MTOP
-         MA(:,I,J) = MFIX(:) + MVAR*MFRAC(:)
-         P(I,J) = P(I,J) - PTOP  !  Psurf -> P
-      EndDo
-      EndDo
-      Call CALC_AMPK (LM)
+!**** Compute MA from PSURF; halo MA; call MAtoPMB
+      Do J=J1,JN  ;  Do I=I1,IN
+         MVAR = P(I,J)*MB2KG - MFIXs - MTOP  !  P = surface pressure (mb)
+         MA(:,I,J) = MFIX(:) + MVAR*MFRAC(:)  ;  EndDo  ;  EndDo
+      Call HALO_UPDATE_COLUMN (GRID, MA)
+      Call MAtoPMB
 
 !**** Convert Temperature to Potential Temperature
       Do L=1,LM
@@ -324,7 +322,7 @@
 
       Subroutine PERTURB_TEMPS
 !**** Perturb tropospheric temperatures by at most 1 degree C
-      Use RESOLUTION, Only: LM,LS1
+      Use RESOLUTION, Only: LS1
       Use ATM_COM,    Only: T,PK
       Use RANDOM
       Use domain_decomp_atm, only : grid,getDomainBounds
@@ -335,7 +333,6 @@
 
       Call GetDomainBounds (GRID, I_STRT=I1, I_STOP=IN, J_STRT=J1, J_STOP=JN)
 
-      Call CALC_AMPK (LM)
       Do L=1,LS1-1
          Call BURN_RANDOM (nij_before_j0(J1))
          Do J=J1,JN
@@ -417,51 +414,42 @@
       Return
       EndSubroutine INIT_SDRAG
 
+
 #ifdef SCM
       Subroutine DAILY_ATMDYN (end_of_day)
         logical :: end_of_day
       end Subroutine DAILY_ATMDYN
 #else
-      Subroutine DAILY_ATMDYN (end_of_day)
-!@sum  DAILY performs daily tasks at end-of-day and maybe at (re)starts
-!@auth Original Development Team
-!@calls constant:orbit, calc_ampk
-      Use RESOLUTION, Only: IM,JM,LM,LS1, PTOP,PSF
-      Use ATM_COM,    Only: P
+
+
+      Subroutine DAILY_ATMDYN (END_of_DAY)
+!@sum DAILY_ATMDYN performs daily tasks at END-of-DAY and maybe at (re)starts
+      Use RESOLUTION, Only: LS1, MTOP,MDRYA, MFRAC
+      Use ATM_COM,    Only: MA,MASUM
       Use MODEL_COM,  Only: ITIME,ITIMEI
       Use GEOM,       Only: AREAG,AXYP
-      Use DOMAIN_DECOMP_ATM, Only: GRID, GetDomainBounds, GLOBALSUM, AM_I_ROOT
-!      USE ATMDYN, only : CALC_AMPK
+      Use DOMAIN_DECOMP_ATM, Only: GRID, GLOBALSUM, AM_I_ROOT
       Implicit None
       Logical,Intent(In) :: END_of_DAY
-      Real*8  :: DELTAP,PBAR,SMASS, CMASS(GRID%I_STRT_HALO:GRID%I_STOP_HALO,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
-      Integer :: I1,IN,J1,JN
-      Logical :: QSP,QNP
+      Integer :: L, I1,IN,J1,JN
+      Real*8  :: SMASS,MDRYANOW,DELTAM, CMASS(GRID%I_STRT_HALO:GRID%I_STOP_HALO,GRID%J_STRT_HALO:GRID%J_STOP_HALO)
 
       If (.not.(END_of_DAY .or. ITIME==ITIMEI))  Return
-      Call GetDomainBounds (GRID, I_STRT=I1, I_STOP=IN, J_STRT=J1, J_STOP=JN, &
-                                  HAVE_SOUTH_POLE=QSP, HAVE_NORTH_POLE=QNP)
-
 !**** Tasks to be done at end of day and at initial starts only
-!****
-!**** THE GLOBAL MEAN PRESSURE IS KEPT CONSTANT AT PSF MILLIBARS
-!****
-!**** CALCULATE THE CURRENT GLOBAL MEAN PRESSURE
-      CMASS(I1:IN,J1:JN) = P(I1:IN,J1:JN) * AXYP(I1:IN,J1:JN)
-      If (QSP)  CMASS(2:IM,1)  = CMASS(1,1)
-      If (QNP)  CMASS(2:IM,JM) = CMASS(1,JM)
+      I1 = GRID%I_STRT  ;  IN = GRID%I_STOP  ;  J1 = GRID%J_STRT  ;  JN = GRID%J_STOP
+
+!**** Global mean dry atmospheric mass is kept constant at MDRYA (kg/m^2)
+!**** Compute present global mean dry atmospheric mass
+      CMASS(I1:IN,J1:JN) = MASUM(I1:IN,J1:JN) * AXYP(I1:IN,J1:JN)
       Call GLOBALSUM (GRID, CMASS, SMASS, ALL=.TRUE.)
-      PBAR = SMASS/AREAG + PTOP
-!**** CORRECT PRESSURE FIELD FOR ANY LOSS OF MASS BY TRUNCATION ERROR
-!****   except if it was just done (restart from itime=itimei)
-      DELTAP = PSF-PBAR
-      If (ITIME==ITIMEI .and. Abs(DELTAP) < 1d-10)  Return
-      P(:,:) = P(:,:) + DELTAP
-      Call CALC_AMPK (LS1-1)
-
-      If (AM_I_ROOT() .and. Abs(DELTAP) > 1d-6) &
-         Write (6,'(A25,F10.6/)') '0PRESSURE ADDED IN GMP IS',DELTAP
-
+      MDRYANOW = SMASS/AREAG + MTOP
+!**** Correct air mass caused by computer truncation
+      DELTAM = MDRYA - MDRYANOW
+      If (ITIME==ITIMEI .and. Abs(DELTAM) < 1d-9)  Return
+      Do L=1,LS1-1
+         MA(L,:,:) = MA(L,:,:) + DELTAM*MFRAC(L)  ;  EndDo
+      Call MAtoPMB
+      If (AM_I_ROOT())  Write (6,*) 'Atmospheric mass added in DAILY_ATMDYN is =',DELTAM
       Return
       EndSubroutine DAILY_ATMDYN
 #endif

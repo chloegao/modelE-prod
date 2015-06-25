@@ -129,6 +129,7 @@ c copy all output variables
       NEXT_ = 'agc:stdev_dp'
 
       NEXT_ = 'ajl:tx'
+      NEXT_ = 'ajl:tx_radonly'
       NEXT_ = 'ajl:height'
       NEXT_ = 'ajl:q'
       NEXT_ = 'ajl:rh'
@@ -257,8 +258,11 @@ c copy all output variables
       NEXT_ = 'ajl:mc_dflx'
 
       NEXT_ = 'ajl:srad_heat'
+      NEXT_ = 'ajl:srad_heat_radonly'
       NEXT_ = 'ajl:trad_cool'
+      NEXT_ = 'ajl:trad_cool_radonly'
       NEXT_ = 'ajl:rad_cool'
+      NEXT_ = 'ajl:rad_cool_radonly'
 
       NEXT_ = 'ajl:totcld'
       NEXT_ = 'ajl:sscld'

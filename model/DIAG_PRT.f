@@ -705,6 +705,13 @@ C****
         n_out = 0
         DO N=1,kaj
           if(trim(stitle_j(n)).eq.'no output') cycle
+          if(IDACC(IA_J(N)).eq.0) then
+            ! may happen for ia_j == ia_12hr when starting
+            ! at a time not divisible by 12 hrs
+            write(6,*) 'skipping '//trim(NAME_J(N))//
+     &           ' output due to insufficient accumulation steps'
+            cycle
+          endif
           n_out = n_out + 1
           FLAT(:)=AJ(:,N,M)*SCALE_J(N)/IDACC(IA_J(N))
           HSUMJ(:)=FLAT(:)*DXYP_BUDG(:)
@@ -3776,6 +3783,10 @@ C**** LOOP BACKWARDS SO THAT INITIALISATION IS DONE BEFORE SUMMATION!
         DO N=KCMX,1,-1
           IF (NSUM_CON(N).eq.0) THEN
             CONSRV(J,N)=0.
+          ELSEIF(IDACC(IA_CON(N)).eq.0) then
+            ! may happen for ia_con == ia_12hr when starting
+            ! at a time not divisible by 12 hrs
+            CONSRV(J,N)=0.
           ELSEIF (NSUM_CON(N).gt.0) THEN
             CONSRV(J,NSUM_CON(N))=CONSRV(J,NSUM_CON(N))+CONSRV(J,N)
      *           *SCALE_CON(N)*IDACC(ia_inst)/(IDACC(IA_CON(N))+1d-20)
@@ -3784,14 +3795,21 @@ C**** LOOP BACKWARDS SO THAT INITIALISATION IS DONE BEFORE SUMMATION!
       END DO
 
 C**** CALCULATE ALL CONSERVED QUANTITIES ON TRACER GRID
+      cnslat = 0.
+      csj = 0.
       N1=1
       DO N=N1,KCMX
-         DO J=1,JM
-            CSJ(J,N)    = CONSRV(J,N)*SCALE_CON(N)/
+        if(IDACC(IA_CON(N)).eq.0) then
+          ! may happen for ia_con == ia_12hr when starting
+          ! at a time not divisible by 12 hrs
+          cycle
+        endif
+        DO J=1,JM
+          CSJ(J,N)    = CONSRV(J,N)*SCALE_CON(N)/
      &                           (IDACC(IA_CON(N))+1d-20)
-            CNSLAT(J,N) = CSJ(J,N)
-            CSJ(J,N)    = CSJ(J,N)*DXYP_BUDG(J)
-         END DO
+          CNSLAT(J,N) = CSJ(J,N)
+          CSJ(J,N)    = CSJ(J,N)*DXYP_BUDG(J)
+        END DO
       END DO
       CALL GLOBALSUM(GRID, CSJ(:,N1:KCMX),
      &                     FGLOB(N1:KCMX), FHEM(:,N1:KCMX))
@@ -3953,7 +3971,12 @@ C****
       SCALET(13)=SCALET(10)
       SCALET(14)=100.D-12/(GRAV*DT*(IDACC(ia_filt)+teeny))
       SCALET(15)=SCALET(14)*RGAS
-      SCALET(16)=100.D-12/(GRAV*DT*(.5*IDACC(ia_12hr)+teeny))
+      if(IDACC(ia_12hr).eq.0) then
+        ! may happen when starting at a time not divisible by 12 hrs
+        SCALET(16)=0.
+      else
+        SCALET(16)=100.D-12/(GRAV*DT*(.5*IDACC(ia_12hr)+teeny))
+      endif
       SCALET(17)=SCALET(16)*RGAS
       SCALET(18)=100.D-17/(GRAV*IDACC(ia_dga)+teeny)
       DO 605 K=1,KSPECA

@@ -2404,6 +2404,13 @@ contains
                PLE(L+2),PLE(LMAX+1),CCM(LMIN),WCU(LMIN),LMIN,LMAX, &
                CCMUL,CCMUL2,FCLOUD)
 
+          !**** stop if FCLOUD negative
+          IF(FCLOUD.lt.0d0) THEN
+            WRITE(6,*) 'negative cloud cover',I_debug,J_debug, &
+              L,CCM(L),WCU(L),TL(L),FCLOUD
+            call stop_model("MSTCNV: negative cloud cover", 255)
+          END IF
+
           !**** PRECIPITATION IS ALLOWED TO EVAPORATE FULLY INTO A FRACTION OF
           !**** THE GRIDBOX HALF AS LARGE AS THE FRACTION OF GRIDBOX MASS THAT
           !**** CONVECTS

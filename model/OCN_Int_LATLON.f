@@ -283,7 +283,7 @@ c      call INT_AG2OG(aVtmp,oV(:,:),aWEIGHT,copypole=.false.)
 c _par are parallelized versions
       Module Procedure INT_OG2AG_2Da_par
       Module Procedure INT_OG2AG_3Da_par
-      Module Procedure INT_OG2AG_3Db_par
+      !Module Procedure INT_OG2AG_3Db_par
 
       End Interface
 
@@ -434,64 +434,64 @@ C***  Interpolate oA from ocean grid to atmospheric grid
       RETURN
       END SUBROUTINE INT_OG2AG_3Da_par
 
-      SUBROUTINE INT_OG2AG_3Db_par(oA,aA,oWEIGHT,  oN,aN, CopyPole)
-!@sum INT_OG2AG_3Db_par parallel version of INT_OG2AG_3Db
-!@auth M. Kelley
-      USE OCEAN,      only : oIM=>im,oJM=>jm
-
-      USE DOMAIN_DECOMP_1D, only : hasNorthPole, hasSouthPole
-      Use OCEANR_DIM,       only : oGRID
-      USE OCEAN, only : hntrp_o2a => remap_o2a
-      IMPLICIT NONE
-
-      INTEGER, INTENT(IN) :: oN,aN
-      LOGICAL, INTENT(IN) :: CopyPole
-
-      real*8, dimension(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO,oN),
-     &     intent(in)  :: oA
-      real*8, dimension(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO),
-     &     intent(in)  :: oWEIGHT
-      real*8, dimension(hntrp_o2a%imb,
-     &     hntrp_o2a%J1B_HALO:hntrp_o2a%JNB_HALO,aN),
-     &     intent(out)  :: aA
-
-      real*8, dimension(:,:,:), allocatable :: oA_band
-      real*8, dimension(:,:), allocatable :: oWEIGHT_band
-      integer :: n, jmin,jmax
-      integer :: aIM,aJM
-
-      aIM = hntrp_o2a%imb
-      aJM = hntrp_o2a%jmb_full
-
-      if (oIM .eq. aIM .and. oJM .eq. aJM) then   
-        aA(:,:,1:aN) = oA(:aIM,:,1:aN)
-        return
-      endif
-
-      jmin = hntrp_o2a%bpack%jband_strt
-      jmax = hntrp_o2a%bpack%jband_stop
-      ALLOCATE(oA_band(oIM,jmin:jmax,aN),oWEIGHT_band(oIM,jmin:jmax))
-
-C***  Gather the requisite ocean latitude bands
-      CALL BAND_PACK (hntrp_o2a%bpack, oA(:,:,1:aN), oA_band)
-      CALL BAND_PACK (hntrp_o2a%bpack, oWEIGHT, oWEIGHT_band)
-      if(CopyPole .and. hasNorthPole(oGRID)) then
-        oWEIGHT_band(2:oIM,oJM) = oWEIGHT_band(1,oJM)
-      endif
-
-C***  Interpolate oA from ocean grid to atmospheric grid 
-      do n=1,aN
-        if(hasNorthPole(oGRID)) then
-          oA_band(2:oIM,oJM,n) = oA_band(1,oJM,n)
-        endif
-        call HNTR8P_band(oWEIGHT_band,oA_band(:,:,n),hntrp_o2a,
-     &       aA(:,:,n))
-      enddo
-
-      DEALLOCATE(oA_band, oWEIGHT_band)
-
-      RETURN
-      END SUBROUTINE INT_OG2AG_3Db_par
+!      SUBROUTINE INT_OG2AG_3Db_par(oA,aA,oWEIGHT,  oN,aN, CopyPole)
+!!@sum INT_OG2AG_3Db_par parallel version of INT_OG2AG_3Db
+!!@auth M. Kelley
+!      USE OCEAN,      only : oIM=>im,oJM=>jm
+!
+!      USE DOMAIN_DECOMP_1D, only : hasNorthPole, hasSouthPole
+!      Use OCEANR_DIM,       only : oGRID
+!      USE OCEAN, only : hntrp_o2a => remap_o2a
+!      IMPLICIT NONE
+!
+!      INTEGER, INTENT(IN) :: oN,aN
+!      LOGICAL, INTENT(IN) :: CopyPole
+!
+!      real*8, dimension(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO,oN),
+!     &     intent(in)  :: oA
+!      real*8, dimension(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO),
+!     &     intent(in)  :: oWEIGHT
+!      real*8, dimension(hntrp_o2a%imb,
+!     &     hntrp_o2a%J1B_HALO:hntrp_o2a%JNB_HALO,aN),
+!     &     intent(out)  :: aA
+!
+!      real*8, dimension(:,:,:), allocatable :: oA_band
+!      real*8, dimension(:,:), allocatable :: oWEIGHT_band
+!      integer :: n, jmin,jmax
+!      integer :: aIM,aJM
+!
+!      aIM = hntrp_o2a%imb
+!      aJM = hntrp_o2a%jmb_full
+!
+!      if (oIM .eq. aIM .and. oJM .eq. aJM) then   
+!        aA(:,:,1:aN) = oA(:aIM,:,1:aN)
+!        return
+!      endif
+!
+!      jmin = hntrp_o2a%bpack%jband_strt
+!      jmax = hntrp_o2a%bpack%jband_stop
+!      ALLOCATE(oA_band(oIM,jmin:jmax,aN),oWEIGHT_band(oIM,jmin:jmax))
+!
+!C***  Gather the requisite ocean latitude bands
+!      CALL BAND_PACK (hntrp_o2a%bpack, oA(:,:,1:aN), oA_band)
+!      CALL BAND_PACK (hntrp_o2a%bpack, oWEIGHT, oWEIGHT_band)
+!      if(CopyPole .and. hasNorthPole(oGRID)) then
+!        oWEIGHT_band(2:oIM,oJM) = oWEIGHT_band(1,oJM)
+!      endif
+!
+!C***  Interpolate oA from ocean grid to atmospheric grid 
+!      do n=1,aN
+!        if(hasNorthPole(oGRID)) then
+!          oA_band(2:oIM,oJM,n) = oA_band(1,oJM,n)
+!        endif
+!        call HNTR8P_band(oWEIGHT_band,oA_band(:,:,n),hntrp_o2a,
+!     &       aA(:,:,n))
+!      enddo
+!
+!      DEALLOCATE(oA_band, oWEIGHT_band)
+!
+!      RETURN
+!      END SUBROUTINE INT_OG2AG_3Db_par
 
       END MODULE INT_OG2AG_MOD
 

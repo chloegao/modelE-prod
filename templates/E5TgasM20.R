@@ -135,7 +135,6 @@ DTFIX=300
 ! parameters set for prescribed ocean runs:
 KOCEAN=0        ! ocn is prescribed
 Kvflxo=0        ! do NOT save VFLXO (daily) (use 1 to prepare for q-flux run)
-ocn_cycl=1      ! =0 if ocean varies from year to year
  
 ! parameters usually not changed when switching to q-flux ocean:
  

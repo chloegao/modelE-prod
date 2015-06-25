@@ -58,8 +58,8 @@ c      call setDtParam('dt', dt, dtSrcUsed)
       !          (leaving enough for the variable-mass layers)
       ! maximum: a multiple of global mean column mass
       ! the following ratios were taken from the older version of ADVECM
-      mincolmass = mfixs*(350d0/150d0)
-      maxcolmass = mdrya*(1160d0/984d0)
+      MINCOLMASS = MDRYA * 0.35d0
+      MAXCOLMASS = MDRYA * 1.15d0
       if(is_set_param('mincolmass'))
      &     call get_param('mincolmass',mincolmass)
       if(is_set_param('maxcolmass'))
@@ -167,10 +167,8 @@ c      end subroutine setDtParam
      &   UT,VT,TT,TZT,  !  odd leap frog arrays
      &   UX,VX,         !  initial forward step arrays
      &   UNRDRAG_x,UNRDRAG_y
-
+      Integer :: I,J,L, NS,NSOLD, MODDA
       REAL*8 DTFS,DTLF, DAMSUM
-      INTEGER I,J,L,IP1,IM1   !@var I,J,L,IP1,IM1  loop variables
-      INTEGER NS, NSOLD,MODDA    !? ,NIdynO
 
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0STG, J_1STG, J_0S, J_1S
@@ -287,10 +285,10 @@ C**** ADVECT Q AND T
 
       Call PGF    (DTLF, UT,VT,MODD1,       U,V,MA, TT,TZT)
       Call COMPUTE_MASS_FLUX_DIAGS (GZ, MU,MV, DT)
-      CALL CALC_AMPK(LS1-1)
       call isotropuv(u,v,COS_LIMIT)
       if (USE_UNR_DRAG==0) CALL SDRAG (DTLF)
-         If (Mod(NSTEP+4-NS+NDAA*NIDYN,NDAA*NIDYN+2) < MRCH)  Then
+         If (MODDA < 2)  Then
+            Call MAtoPMB
            CALL DIAGA
            CALL DIAGB
            CALL EPFLUX (U,V,T,P)
@@ -300,6 +298,8 @@ C**** Restart after 8 steps due to divergence of solutions
       If (NSOLD-NS < 8 .and. NS > 1)  GoTo 340
       NSOLD=NS
       If (NS > 1)  GoTo 300
+
+      If (MODDA >= 2)  Call MAtoPMB
 
       if (USE_UNR_DRAG==1) then
          Call UNRDRAG (P,U,V,T,TZ,UNRDRAG_x,UNRDRAG_y)
@@ -652,15 +652,16 @@ C**** Compute MW (kg/s) = downward vertical mass flux
       n_exception = 0
       Do J=J1,JN
       Do I=1,IMAXJ(J)
-         MNEW(1,I,J) = MOLD(1,I,J) +
-     +      DT1*(CONV(I,J,1) + MW(I,J,1))*byDXYP(J)
-         Do L=2,LM-1
-            MNEW(L,I,J) = MOLD(L,I,J) +
-     +         DT1*(CONV(I,J,L) + MW(I,J,L) - MW(I,J,L-1))*byDXYP(J)
-            EndDo
          MNEW(LM,I,J) = MOLD(LM,I,J) +
      +         DT1*(CONV(I,J,LM) - MW(I,J,LM-1))*byDXYP(J)
-         MSUM(I,J) = Sum (MNEW(:,I,J))
+         MSUM(I,J) = MNEW(LM,I,J)
+         Do L=LM-1,2,-1
+            MNEW(L,I,J) = MOLD(L,I,J) +
+     +         DT1*(CONV(I,J,L) + MW(I,J,L) - MW(I,J,L-1))*byDXYP(J)
+            MSUM(I,J) = MSUM(I,J) + MNEW(L,I,J)  ;  EndDo
+         MNEW(1,I,J) = MOLD(1,I,J) +
+     +      DT1*(CONV(I,J,1) + MW(I,J,1))*byDXYP(J)
+         MSUM(I,J) = MSUM(I,J) + MNEW(1,I,J)
          if(MSUM(I,J)+MTOP > MAXCOLMASS .or.
      &      MSUM(I,J)+MTOP < MINCOLMASS) then
            n_exception = 1
@@ -1035,14 +1036,13 @@ C**** MFILTR=1  SMOOTH P USING SEA LEVEL PRESSURE FILTER
 C****        2  SMOOTH T USING TROPOSPHERIC STRATIFICATION OF TEMPER
 C****        3  SMOOTH P AND T
 C****
-      Use CONSTANT,   Only: byGRAV,RGAS,SHA,KAPA
-      USE RESOLUTION, only : ls1,ptop,psf,pmtop
-      USE RESOLUTION, only : im,jm,lm
+      Use CONSTANT,   Only: byGRAV,RGAS,SHA,KAPA,MB2KG
+      Use RESOLUTION, Only: IM,JM,LM,LS1, MTOP,MFIXs, MFIX,MFRAC
+      USE RESOLUTION, ONLY: PTOP
       USE MODEL_COM, only : itime
-      USE ATM_COM, only : t,p,q,qcl,qci,zatmo
+      Use ATM_COM,    Only: ZATMO, MA, T,Q,QCL,QCI, PEDN,PMID,PK
       USE GEOM, only : areag,dxyp,byim
       USE SOMTQ_COM, only : tmom,qmom
-      USE ATM_COM, only : pk
       USE DYNAMICS, only : COS_LIMIT,mfiltr,sig
 #ifdef TRACERS_ON
       USE TRACER_COM, only: NTM,trm,trmom
@@ -1050,13 +1050,14 @@ C****
 #endif
       USE FLUXES, only : atmsrf
       USE DOMAIN_DECOMP_ATM, only: grid
-      Use DOMAIN_DECOMP_1D,  Only: getDomainBounds, GLOBALSUM,
-     *                             HALO_UPDATE
+      Use DOMAIN_DECOMP_1D,  Only: getDomainBounds
       IMPLICIT NONE
-      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) :: X,Y
-      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
-     *        POLD, PRAT
-      REAL*8 PSUMO,PSUMN,PDIF,AKAP,PS,ZS
+
+      Real*8,Dimension(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
+     *   PEDNOLD,X,Y
+      Real*8,Dimension(1:LS1-1,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
+     *   MABEF,PKOLD
+      Real*8 :: PSUMO,PSUMN,PDIF,AKAP,ZS, MVAR,MRAT,zMRAT
       REAL*8, EXTERNAL :: SLP
       INTEGER I,J,L,N  !@var I,J,L  loop variables
       REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO) :: KEJ,PEJ
@@ -1074,10 +1075,10 @@ C****
 C**** Initialise total energy (J/m^2)
       initialTotalEnergy = getTotalEnergy()
 
-!**** Save old pressure
-      Do J=J1P,JNP
-        pold(:,j)=p(:,j)
-      enddo
+!**** Save MABEF, PKOLD, and PEDNOLD before FILTERing
+      MABEF(1:LS1-1,:,J1P:JNP) = MA(1:LS1-1,:,J1P:JNP)
+      PKOLD(1:LS1-1,:,J1P:JNP) = PK(1:LS1-1,:,J1P:JNP)
+      PEDNOLD(      :,J1P:JNP) = PEDN(1    ,:,J1P:JNP)
 
       if(pfilter_using_slp) then
 C****
@@ -1085,10 +1086,9 @@ C**** SEA LEVEL PRESSURE FILTER ON P
 C****
       Do J=J1P,JNP
         DO I=1,IM
-          PS=P(I,J)+PTOP
           ZS=ZATMO(I,J)*BYGRAV
-          X(I,J)=SLP(PS,atmsrf%TSAVG(I,J),ZS)
-          Y(I,J)=X(I,J)/PS
+          X(I,J) = SLP (PEDNOLD(I,J), ATMSRF%TSAVG(I,J), ZS)
+          Y(I,J) = X(I,J) / PEDNOLD(I,J)
         END DO
       END DO
       CALL SHAP1D (8,X)
@@ -1097,18 +1097,21 @@ C****
         PSUMO=0.
         PSUMN=0.
         DO I=1,IM
-          PSUMO=PSUMO+P(I,J)
-          P(I,J)=X(I,J)/Y(I,J)-PTOP
+          PSUMO = PSUMO + PEDNOLD(I,J)
+          PEDN(1,I,J) = X(I,J) / Y(I,J)
 C**** reduce large variations (mainly due to topography)
-          P(I,J)=MIN(MAX(P(I,J),0.99d0*POLD(I,J)),1.01d0*POLD(I,J))
-          PSUMN=PSUMN+P(I,J)
+!         PEDN(1,I,J) = Max (PEDN(1,I,J), 0.9882d0*PEDNOLD(I,J))
+!         PEDN(1,I,J) = Min (PEDN(1,I,J), 1.0118d0*PEDNOLD(I,J))
+          PEDN(1,I,J) = PTOP + 
+     +       Max (PEDN(1,I,J)-PTOP, 0.99d0*(PEDNOLD(I,J)-PTOP))
+          PEDN(1,I,J) = PTOP +
+     +       Min (PEDN(1,I,J)-PTOP, 1.01d0*(PEDNOLD(I,J)-PTOP))
+          PSUMN = PSUMN + PEDN(1,I,J)
         END DO
+!**** Conserve column mass for present J latitude row
         PDIF=(PSUMN-PSUMO)*BYIM
-        DO I=1,IM
-          P(I,J)=P(I,J)-PDIF
-        END DO
+        PEDN(1,:,J) = PEDN(1,:,J) - PDIF
       END DO
-      Call HALO_UPDATE (GRID, P)
 
       else
 
@@ -1116,14 +1119,14 @@ C**** reduce large variations (mainly due to topography)
         ! This code is from ATMDYN2.f.
         do j=j_0s,j_1s
           do i=1,im
-            rhosrf(i) = ((p(i,j)+ptop)**(1.-kapa))/(rgas*t(i,j,1))
+            rhosrf(i) = PEDNOLD(I,J)**(1.-kapa) / (rgas*t(i,j,1))
           enddo
           do i=1,im-1
-            pgfx(i) = (p(i+1,j)-p(i,j))+
+            pgfx(i) = PEDNOLD(I+1,J) - PEDNOLD(I,J) +
      &           .5*(rhosrf(i+1)+rhosrf(i))*(zatmo(i+1,j)-zatmo(i,j))
           enddo
           i=im
-             pgfx(i) = (p(1,j)-p(i,j))+
+             pgfx(i) = PEDNOLD(1,J) - PEDNOLD(I,J) +
      &           .5*(rhosrf(1)+rhosrf(i))*(zatmo(1,j)-zatmo(i,j))
           pgfx = pgfx - sum(pgfx)*byim
           x(1,j) = 0.
@@ -1135,28 +1138,30 @@ C**** reduce large variations (mainly due to topography)
         call shap1d (8,x)
         call isotropslp(x,COS_LIMIT)
         do j=j_0s,j_1s
-          p(:,j) = p(:,j) + (x(:,j)-y(:,j))
+           PEDN(1,:,J) = PEDNOLD(:,J) + (x(:,j)-y(:,j))
         enddo
 
       endif ! slp-based filter or not
 
+!**** Compute new MA from filtered PEDN(1) array
+      Do J=J1P,JNP  ;  Do I=1,IM
+         MVAR = PEDN(1,I,J)*MB2KG - MFIXs - MTOP
+         MA(1:LS1-1,I,J) = MFIX(1:LS1-1) + MVAR*MFRAC(1:LS1-1)
+         EndDo  ;  EndDo
+      Call MAtoPMB
+
 C**** Scale mixing ratios (incl moments) to conserve mass/heat
-      DO J=J_0S,J_1S
-        DO I=1,IM
-          PRAT(I,J)=POLD(I,J)/P(I,J)
-        END DO
-      END DO
       DO L=1,LS1-1
       DO J=J_0S,J_1S
       DO I=1,IM
+         zMRAT = MABEF(L,I,J) / MA(L,I,J)
 c adjust pot. temp. to maintain unchanged absolute temp.
-        T(I,J,L)= T(I,J,L)*
-     &       ((POLD(I,J)*SIG(L)+PTOP)/(P(I,J)*SIG(L)+PTOP))**KAPA
-        Q(I,J,L)= Q(I,J,L)*PRAT(I,J)
-!       WM(I,J,L)=WM(I,J,L)*PRAT(I,J)
-        QCL(I,J,L)=QCL(I,J,L)*PRAT(I,J)
-        QCI(I,J,L)=QCI(I,J,L)*PRAT(I,J)
-        QMOM(:,I,J,L)=QMOM(:,I,J,L)*PRAT(I,J)
+           T(I,J,L) =   T(I,J,L) * PKOLD(L,I,J)/PK(L,I,J)
+           Q(I,J,L) =   Q(I,J,L) * zMRAT
+!         WM(I,J,L) =  WM(I,J,L) * zMRAT
+         QCL(I,J,L) = QCL(I,J,L) * zMRAT
+         QCI(I,J,L) = QCI(I,J,L) * zMRAT
+         QMOM(:,I,J,L) = QMOM(:,I,J,L) * zMRAT
       END DO
       END DO
       END DO
@@ -1173,12 +1178,12 @@ C**** But if n_air=0 this will cause problems...
       DO L=1,LS1-1
         DO J=J_0S,J_1S
           DO I=1,IM
-             trm(I,J,L,n)=  trm(I,J,L,n)/PRAT(I,J)
-             trmom(:,I,J,L,n)=trmom(:,I,J,L,n)/PRAT(I,J)
+         MRAT = MA(L,I,J) / MABEF(L,I,J)
+         TRM(I,J,L,N) = TRM(I,J,L,N) * MRAT
+         TRMOM(:,I,J,L,N) = TRMOM(:,I,J,L,N) * MRAT
       end do; end do; end do
       end do
 #endif
-      CALL CALC_AMPK(LS1-1)
 
 C**** This fix adjusts thermal energy to conserve total energy TE=KE+PE
       finalTotalEnergy = getTotalEnergy()
@@ -1192,7 +1197,7 @@ C****
       DO L=1,LM
         IF(L.LT.LS1) THEN
           DO J=J_0S,J_1S
-            Y(:,J)=(SIG(L)*P(:,J)+PTOP)**AKAP
+            Y(:,J) = PMID(L,:,J)**AKAP
             X(:,J)=T(:,J,L)*Y(:,J)
           END DO
           CALL SHAP1D (8,X)
@@ -1212,6 +1217,7 @@ C****
 C
       RETURN
       END SUBROUTINE FILTER
+
 
       subroutine fltry2(q3d,strength)
 !@sum  fltry2 noise reduction filter for a velocity-type field
@@ -2636,7 +2642,9 @@ C****
       USE DIAG_COM, only: byim
       USE GC_COM, only: agc=>agc_loc
       USE GCDIAG, only : jl_totntlh,jl_zmfntlh,jl_totvtlh,jl_zmfvtlh
-      Use ATM_COM, Only: PS,MB,MMA,MWs
+      Use CONSTANT,   Only: KG2MB
+      Use ATM_COM,    Only: MAOLD, MMA,MMB=>MB, MWs
+      Use GEOM,       Only: AXYP
       USE TRACER_ADV, only:
      *    AADVQ,AADVQ0,sbf,sbm,sfbm,scf,scm,sfcm,ncyc
       USE DOMAIN_DECOMP_ATM, only: grid, getDomainBounds
@@ -2650,18 +2658,19 @@ c**** Extract domain decomposition info
       call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG)
 
-
-      CALL CALC_AMP(PS,MB)
-      CALL HALO_UPDATE(grid, MB, FROM=SOUTH+NORTH) ! for convenience later
+      Do L=1,LM
+         MMB(:,:,L) = MAOLD(L,:,:)*KG2MB*AXYP(:,:)  ;  EndDo
       CALL AADVQ0 (1._8)  ! uses the fluxes MUs,MVs,MWs from DYNAM
 C****
 C**** convert from concentration to mass units
 C****
       DO L=1,LM
       DO J=J_0,J_1
+!         IF(J==1.AND.L==1) WRITE (6,*) 'QDYNAM:',Q(1,1,1),MMB(1,1,1),
+!     *      AXYP(1,1)
       DO I=1,IM
-        Q(I,J,L)=Q(I,J,L)*MB(I,J,L)
-        QMOM(:,I,J,L)=QMOM(:,I,J,L)*MB(I,J,L)
+         Q(I,J,L) = Q(I,J,L)*MMB(I,J,L)
+         QMOM(:,I,J,L) = QMOM(:,I,J,L)*MMB(I,J,L)
       enddo; enddo; enddo
 C**** ADVECT
         sfbm = 0.; sbm = 0.; sbf = 0.
@@ -2683,7 +2692,9 @@ C****
         byMMA = 1 / MMA(I,J,L)
         Q(I,J,L) = Q(I,J,L)*byMMA
         QMOM(:,I,J,L) = QMOM(:,I,J,L)*byMMA
-      enddo; enddo; enddo
+      enddo; 
+!         IF(J==1.AND.L==1) WRITE (6,*) 'QDYNAM:',Q(1,1,1),MMA(1,1,1)
+      enddo; enddo
 
 #ifndef TRACERS_ON
 c Unscale the vertical mass flux accumulation for use by column physics.
@@ -2695,7 +2706,7 @@ c TRDYNAM will do the unscaling
 
       RETURN
       END SUBROUTINE QDYNAM
-c      end module ATMDYN_QDYNAM
+
 
 #ifdef TRACERS_ON
       SUBROUTINE TrDYNAM

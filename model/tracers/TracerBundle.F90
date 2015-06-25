@@ -234,11 +234,11 @@ contains
     read(header, '(a,11x,i10.0)') tag, oldVersion
 
     if (tag /= DESCRIPTION) then
-      call throwException(DESCRIPTION // '::readUnformatted() - incorrect header.', 14)
+      call stop_model(DESCRIPTION // '::readUnformatted() - incorrect header.', 14)
     end if
 
     if (oldVersion /= VERSION) then
-      call throwException(DESCRIPTION // '::readUnformatted() - unsupported format.', 14)
+      call stop_model(DESCRIPTION // '::readUnformatted() - unsupported format.', 14)
     end if
       
     read(unit) n
@@ -348,7 +348,7 @@ contains
     assertHasAttribute = .true.
     if (.not. this%has(attribute)) then
       name = this%getName()
-      call throwException("TracerBundle_mod - species '" // trim(name) // &
+      call stop_model("TracerBundle_mod - species '" // trim(name) // &
         & "' is missing mandatory attribute '" // trim(attribute) // "'.", 14)
       assertHasAttribute = .false.
     end if
@@ -443,7 +443,7 @@ contains
     do while (iter /= this%last())
       t => iter%value()
       if (.not. t%has(attributeName)) then
-        call throwException('All tracers must have specified attribute to use getAttributeVector() method.',14)
+        call stop_model('All tracers must have specified attribute to use getAttributeVector() method.',14)
         return
       end if
       attribute => t%getReference(attributeName)
@@ -505,7 +505,7 @@ contains
 !    type(TRACERreference) :: ref
 
     if (this%locked) then
-      call throwException("TracerBundle_mod - cannot insert new tracer into subset. " // &
+      call stop_model("TracerBundle_mod - cannot insert new tracer into subset. " // &
            & "Subsets are locked from modification.",14)
     end if
 

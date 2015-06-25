@@ -82,7 +82,7 @@ contains
     type is (VectorAttribute)
       a = p%items
     class default
-      call throwException('Illegal conversion of VectorAttribute.',255)
+      call stop_model('Illegal conversion of VectorAttribute.',255)
     end select
 
   end subroutine toType_

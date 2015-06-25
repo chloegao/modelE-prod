@@ -40,7 +40,7 @@ F90SRCS  = AbstractAttribute.F90 \
 	SystemTools.F90 \
 	dast.F90
 
-CSRCS = system_tools.c
+CSRCS = system_tools.c libmodele_refaddr.c
 
 # Time Management
 F90SRCS += KindParameters.F90 \
@@ -73,8 +73,4 @@ endif
 
 include $(CONFIG_DIR)/base.mk
 include $(CONFIG_DIR)/rules.mk
-
-ifeq ($(USE_PFUNIT),YES)
-$(OBJS): F90FLAGS+=-DUSE_PFUNIT -I$(PFUNIT)/mod
-endif
 

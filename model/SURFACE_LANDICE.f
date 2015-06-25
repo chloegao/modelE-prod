@@ -564,7 +564,7 @@ C****
 C****
       END SUBROUTINE SURFACE_LANDICE
 
-! -----------------------------------------------------------------------
+
       subroutine downscale_pressure_li
 ! create patch-specific values of inputs to the land ice model from
 ! grid-mean values and patch-specific physical parameters (elevation etc.)
@@ -582,12 +582,10 @@ C****
 
       ! Stuff needed for downscaling
       use landice_com, only : elevhp, HC_T_LAPSE_RATE
-      use constant, only : kapa, Grav
+      Use RESOLUTION,  Only: MTOP,MFIX,MFRAC,MFIXs
+      Use CONSTANT,    Only: GRAV,KAPA,LHS,MB2KG,KG2MB
       use atm_com, only : zatmo
       USE GEOM, only : imaxj
-      USE RESOLUTION, only : ptop
-      USE DYNAMICS, only : dsig
-      USE CONSTANT, only : LHS
 
       implicit none
       real*8, external :: QSAT      ! Import function from Utilities.F90
@@ -642,11 +640,12 @@ c
 
             ! Set other things that rely on downscaling
             igla%SRFPK(i,j) = igla%SRFP(i,j) ** kapa
-            AM1_hPa = (igla%SRFP(i,j) - ptop) * dsig(1)
 
             ! Pa = kg / (m s^2)
             ! Grav = m/s^2
-            igla%AM1(i,j) = AM1_hPA * (100d0 / Grav)      ! kg/m^2
+            IGLA%AM1(I,J) = MFIX(1) +
+     +         (IGLA%SRFP(I,J)*MB2KG - MFIXs - MTOP)*MFRAC(1)  !  kg/m^2
+            AM1_hPa = IGLA%AM1(I,J)*KG2MB
 
             ! Center pressure of first layer
             igla%P1(i,j) = igla%SRFP(i,j) - .5*AM1_hPA
@@ -663,6 +662,8 @@ c
         enddo	! ipatch
 #undef ATMGLAX
       end subroutine downscale_pressure_li
+
+
 ! -----------------------------------------------------------------------
       subroutine downscale_temperature_li
 ! create patch-specific values of inputs to the land ice model from
@@ -685,8 +686,6 @@ c
       use constant, only : kapa, Grav
       use atm_com, only : zatmo
       USE GEOM, only : imaxj
-      USE RESOLUTION, only : ptop
-      USE DYNAMICS, only : dsig
       USE CONSTANT, only : LHS
 
       implicit none

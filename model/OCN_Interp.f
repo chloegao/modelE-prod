@@ -81,6 +81,9 @@ c
           buf_band(:,i,jm) = buf_band(:,1,jm)
         enddo
       endif
+! unbundle uses not-zero crit. for wts, so init buf_d to 0
+! to avoid fpe probs over land points
+      buf_d = 0.
       call hntr8_band_lij(buf_band, htype, buf_d)
       deallocate(buf_band)
       if(do_np_avg>0) then
@@ -292,34 +295,18 @@ c*   actual interpolation here
 !@auth Larissa Nazarenko, Denis Gueyffier
       USE CONSTANT, only : tf
       USE RESOLUTION, only : aIM=>IM, aJM=>JM
-
-      USE OCEAN, only : oIM=>IM, oJM=>JM, oLM=>LMO
+      USE OCEAN, only : oIM=>IM, oJM=>JM
      *                , oFOCEAN_loc=>FOCEAN
-     *                , OXYP, oIMAXJ=>IMAXJ
-     *                , oCOSI=>COSIC,oSINI=>SINIC
-     *                , IVSPO=>IVSP,IVNPO=>IVNP
-     *                , sinpo, sinvo
+     *                , oIMAXJ=>IMAXJ
 #ifndef CUBED_SPHERE
       Use GEOM,  only : aCOSI=>COSIP,aSINI=>SINIP
 #endif
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid
-      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE,SOUTH,
-     &     hasNorthPole, hasSouthPole
+      USE DOMAIN_DECOMP_1D, only : hasNorthPole, hasSouthPole
       USE OCEANR_DIM, only : ogrid
 
-      USE OCEAN, only : MO, UO,VO, G0M
-     *     , S0M, OGEOZ,OGEOZ_SV
-#ifdef TRACERS_OCEAN
-     *     , TRMO
-#endif
-#ifdef TRACERS_OCEAN
-      USE AFLUXES, only : aTRAC
-#endif
       USE OFLUXES, only : oRSI,ocnatm
 
-#ifdef TRACERS_OCEAN
-      USE OCN_TRACER_COM, only: tracerlist, ocn_tracer_entry
-#endif
       USE MODEL_COM, only: nstep=>itime
       use ocean, only : remap_O2A
       USE ArrayBundle_mod
@@ -327,30 +314,22 @@ c*   actual interpolation here
       USE EXCHANGE_TYPES, only : atmocn_xchng_vars
       IMPLICIT NONE
       type(atmocn_xchng_vars) :: atm
-#ifdef TRACERS_OCEAN
-      type(ocn_tracer_entry), pointer :: entry
-#endif
 c
       INTEGER N
       INTEGER IER, I,J,K,L, NT
       INTEGER oJ_0,oJ_1, oI_0,oI_1, oJ_0S,oJ_1S
       INTEGER :: aI_0H,aI_1H, aJ_0H,aJ_1H
       INTEGER :: I_0,I_1, J_0,J_1
-      REAL*8 :: UNP,VNP,AWT1,AWT2
-      REAL*8, ALLOCATABLE :: oG0(:,:,:), oS0(:,:,:)
-     *                     , oUO1(:,:), oVO1(:,:), oTRAC(:,:,:)
-     *                     , oTOT_CHLO_loc(:,:),opgas_loc(:,:,:)
-     *                     , oMOtmp(:,:,:),OGEOZtmp(:,:)
-     *                     , OGEOZ_SVtmp(:,:)
-     *                     , aOGEOZ(:,:), aOGEOZ_sv(:,:)
+      REAL*8 :: UNP,VNP
+      REAL*8, ALLOCATABLE :: oTOT_CHLO_loc(:,:)
       REAL*8, allocatable :: aWEIGHT(:,:),oWEIGHT(:,:)
-      REAL*8, allocatable :: aWEIGHT1(:,:),oWEIGHT1(:,:)
       REAL*8, allocatable :: aWEIGHT2(:,:),oWEIGHT2(:,:)
-      REAL*8, allocatable :: aWEIGHT3(:,:),oWEIGHT3(:,:)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: aMO, aG0, aS0
+
+      real*8, dimension(:,:), allocatable :: agtemp,agtemp2,asss,amlhc
+      real*8, dimension(:,:,:), allocatable :: opgas_loc,apgas_loc
+
       type (lookup_str) :: lstr,lstr_uv
       integer :: copy_np,do_np_avg
-      REAL*8 TEMGS,shcgs,TO
 
       if(hasNorthPole(ogrid)) then
         copy_np = oJM
@@ -366,27 +345,18 @@ c
       aI_0H = atm%i_0h; aI_1H = atm%i_1h
       aJ_0H = atm%j_0h; aJ_1H = atm%j_1h
 
-      ALLOCATE( aMO (aI_0H:aI_1H,aJ_0H:aJ_1H,2))
-      ALLOCATE( aG0 (aI_0H:aI_1H,aJ_0H:aJ_1H,2))
-      ALLOCATE( aS0 (aI_0H:aI_1H,aJ_0H:aJ_1H,2))
-      ALLOCATE( aOGEOZ     (aI_0H:aI_1H, aJ_0H:aJ_1H),
-     &          aOGEOZ_SV  (aI_0H:aI_1H, aJ_0H:aJ_1H) )
-      aOGEOZ = 0.; aOGEOZ_sv = 0.
+      allocate(agtemp(aI_0H:aI_1H,aJ_0H:aJ_1H)); agtemp = 0.
+      allocate(agtemp2(aI_0H:aI_1H,aJ_0H:aJ_1H)); agtemp2 = 0.
+      allocate(asss(aI_0H:aI_1H,aJ_0H:aJ_1H)); asss = 0.
+      allocate(amlhc(aI_0H:aI_1H,aJ_0H:aJ_1H)); amlhc = 0.
 
+      !-- need to allocate separate array for different weights
       allocate(aweight(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
      &                ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO))
       allocate(oweight(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO))
-
-      !-- need to allocate separate array for different weights
-      allocate(aweight1(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
-     &                 ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO))
-      allocate(oweight1(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO))
       allocate(aweight2(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
      &                 ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO))
       allocate(oweight2(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO))
-      allocate(aweight3(aGRID%I_STRT_HALO:aGRID%I_STOP_HALO
-     &                 ,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO))
-      allocate(oweight3(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO))
 
 
       !-- initializing "lstr"
@@ -407,91 +377,52 @@ c
       oJ_1S = oGRID%j_STOP_SKP
 
       ALLOCATE
-     *  (oG0(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO,2), STAT = IER)
-      ALLOCATE
-     *  (oS0(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO,2), STAT = IER)
-#ifdef TRACERS_OCEAN
-      ALLOCATE
-     *  (oTRAC(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO,
-     &                    tracerlist%getsize()), STAT = IER)
-#endif
-      ALLOCATE
      *  (oTOT_CHLO_loc(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO)
      * , STAT = IER)
+
+      nt = ocnatm%gasex_index%getsize()
       ALLOCATE(opgas_loc(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO,
-     &                    ocnatm%gasex_index%getsize()) ,STAT = IER)
-
-
-      allocate(oMOtmp(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO,2),
-     &     OGEOZtmp(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO),
-     &     OGEOZ_SVtmp(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO))
+     &                    nt) ,STAT = IER)
+      opgas_loc = 0.
+      ALLOCATE(apgas_loc(
+     &     aGRID%I_STRT_HALO:aGRID%I_STOP_HALO,
+     &     aGRID%J_STRT_HALO:aGRID%J_STOP_HALO,nt) ,STAT = IER)
+      apgas_loc = 0.
 
       oWEIGHT(:,:) = oFOCEAN_loc(:,:)
-      call ab_add( lstr, oWEIGHT, aWEIGHT, shape(oWEIGHT),'ij')
+      oweight(:,oGRID%J_STRT_HALO) = 0.
+      oweight(:,oGRID%J_STOP_HALO) = 0.
+      call ab_add(lstr, oWEIGHT, aWEIGHT, shape(oWEIGHT),'ij')
 
-      do L=1,2
-      oMOtmp(:,:,L) = MO(:,:,L)
-      enddo
-      call ab_add( lstr, oMOtmp, aMO, shape(oMOtmp), 
-     &     'ijk', oWEIGHT, aWEIGHT) 
+      oWEIGHT2(:,:) = oFOCEAN_loc(:,:) * (1.d0 - oRSI(:,:))
+      oweight2(:,oGRID%J_STRT_HALO) = 0.
+      oweight2(:,oGRID%J_STOP_HALO) = 0.
+      call ab_add( lstr, oWEIGHT2, aWEIGHT2, shape(oWEIGHT2),'ij')
 
-      OGEOZtmp=OGEOZ
-      call ab_add( lstr, OGEOZtmp, aOGEOZ, shape(OGEOZtmp),'ij',
-     &     oWEIGHT, aWEIGHT)
-
-      OGEOZ_SVtmp=OGEOZ_SV
-      call ab_add( lstr, OGEOZ_SVtmp, aOGEOZ_SV, shape(OGEOZ_SVtmp),
-     &     'ij',oWEIGHT, aWEIGHT)
-
-      oWEIGHT1(:,:) = MO(:,:,1)*oFOCEAN_loc(:,:)
-      call ab_add( lstr, oWEIGHT1, aWEIGHT1, shape(oWEIGHT1),'ij')
-
-      oG0(:,:,:) = 0.d0
-      oS0(:,:,:) = 0.d0
-      DO L = 1,2
-        DO J=oJ_0,oJ_1
-          DO I=oI_0,oIMAXJ(J)
-            IF (oFOCEAN_loc(I,J).gt.0.) THEN
-              oG0(I,J,L) = G0M(I,J,L)/(MO(I,J,L)*OXYP(I,J))
-              oS0(I,J,L) = S0M(I,J,L)/(MO(I,J,L)*OXYP(I,J))
-            END IF
-          END DO
-        END DO
-      END DO
-      call ab_add( lstr, oG0, aG0, shape(oG0), 'ijk', 
-     &     oWEIGHT1, aWEIGHT1) 
-      call ab_add( lstr, oS0, aS0, shape(oS0), 'ijk',
-     &     oWEIGHT1, aWEIGHT1) 
+      call ab_add(lstr, ocnatm%gtemp, agtemp, shape(ocnatm%gtemp), 
+     &     'ij', oWEIGHT, aWEIGHT)
+      call ab_add(lstr, ocnatm%gtemp2, agtemp2, shape(ocnatm%gtemp2), 
+     &     'ij', oWEIGHT, aWEIGHT)
+      call ab_add(lstr, ocnatm%sss, asss, shape(ocnatm%sss), 
+     &     'ij', oWEIGHT, aWEIGHT)
+      call ab_add(lstr, ocnatm%mlhc, amlhc, shape(ocnatm%mlhc), 
+     &     'ij', oWEIGHT, aWEIGHT)
+      call ab_add(lstr, ocnatm%ogeoza, atm%ogeoza, shape(ocnatm%ogeoza), 
+     &     'ij', oWEIGHT, aWEIGHT)
 
 #ifdef TRACERS_OCEAN
 C**** surface tracer concentration
-      DO NT = 1,tracerlist%getsize()
-        entry=>tracerlist%at(nt)
-        DO J=oJ_0,oJ_1
-          DO I=oI_0,oIMAXJ(J)
-            IF (oFOCEAN_loc(I,J).gt.0.) THEN
-              if (entry%conc_from_fw) then  ! define conc from fresh water
-                oTRAC(I,J,NT)=TRMO(I,J,1,NT)/(MO(I,J,1)*OXYP(I,J)
-     *             -S0M(I,J,1))
-              else  ! define conc from total sea water mass
-                oTRAC(I,J,NT)=TRMO(I,J,1,NT)/(MO(I,J,1)*OXYP(I,J))
-              end if
-            ELSE
-              oTRAC(I,J,NT)=0.
-            END IF
-          END DO
-        END DO
-      END DO
 
-      call ab_add( lstr, oTRAC, aTRAC, shape(oTRAC), 'ijk', 
-     &     oWEIGHT1, aWEIGHT1) 
+#ifdef TRACERS_WATER
+      call ab_add( lstr, ocnatm%gtracer, atm%gtracer,
+     &     shape(ocnatm%gtracer), 'lij', oWEIGHT, aWEIGHT)
+#endif
 
       if (ocnatm%chl_defined) then
 !total ocean chlorophyll. Units are kg,chlorophyll/m3 of seawater
 !tot_chlo is defined over all ocean points. Here only use open water
 !chorophyll, because that is what is seen by radiation
-        oWEIGHT2(:,:) = oFOCEAN_loc(:,:) * (1.d0 - oRSI(:,:))
-        call ab_add( lstr, oWEIGHT2, aWEIGHT2, shape(oWEIGHT2),'ij')
+
         DO J=oJ_0,oJ_1
           DO I=oI_0,oIMAXJ(J)
             IF (oFOCEAN_loc(I,J).gt.0.) THEN
@@ -513,8 +444,6 @@ C**** surface tracer concentration
       if (ocnatm%updated) then
         DO NT = 1,atm%gasex_index%getsize()
           l=atm%gasex_index%at(nt)
-          oWEIGHT3(:,:) = oFOCEAN_loc(:,:)*(1.d0-oRSI(:,:))
-          call ab_add( lstr, oWEIGHT3, aWEIGHT3, shape(oWEIGHT3),'ij')
           DO J=oJ_0,oJ_1
             DO I=oI_0,oIMAXJ(J)
               IF (oFOCEAN_loc(I,J).gt.0.) THEN
@@ -526,36 +455,36 @@ C**** surface tracer concentration
               END IF
             END DO
           END DO
-
-          call ab_add( lstr, opgas_loc(:,:,nt), aTRAC(:,:,NT), 
-     &          shape(opgas_loc(:,:,nt)), 'ij', oWEIGHT2, aWEIGHT2) 
         END DO
+        call ab_add( lstr, opgas_loc, apgas_loc, 
+     &       shape(opgas_loc), 'ijk', oWEIGHT2, aWEIGHT2) 
       endif
 #endif
 
       call bundle_interpolation(lstr,remap_O2A,copy_np,do_np_avg)
 
-#ifdef TRACERS_OCEAN
+      where(atm%focean.gt.0.)
+        atm%gtemp = agtemp
+        atm%gtempr = agtemp + tf
+      end where
+      where(atm%focean.gt.0.) atm%gtemp2 = agtemp2
+      atm%sss = 0.
+      where(atm%focean.gt.0.) atm%sss = asss
+      where(atm%focean.gt.0.) atm%mlhc = amlhc
 
-      if (ocnatm%updated) then
-        DO NT = 1,atm%gasex_index%getsize()
-          l=atm%gasex_index%at(nt)
-          aTRAC(:,:,l) = aTRAC(:,:,l)*atm%vol2mass(nt)*1.d-6 ! ppmv (uatm) -> kg,CO2/kg,air
-          if (nstep.eq.0) aTRAC(:,:,l) = atm%gtracer(l,:,:)
-        enddo
+#ifdef TRACERS_OCEAN
+      if (ocnatm%updated .and. nstep.ne.0) then
+        do nt=1,atm%gasex_index%getsize()
+         !gtracer is first set in TRACER_DRV, then atrac is interpolated
+         !here from pco2 in the ocean and later OCNDYN sets gtracer=atrac
+         !Therefore in timesetep 0 (cold start) pco2 has not yet been defined
+         !and atrac has to be hard coded in here, so that we do not have
+         !urealistic tracer flux at the air-sea interface during step0.
+          atm%gtracer(atm%gasex_index%at(nt),:,:) = apgas_loc(:,:,nt)
+        end do
       endif
-      DEALLOCATE(oTRAC)
 #endif
 
-      ! interpolating both OGEOZ and OGEOZ_sv is silly.
-      ! take the time average _before_ interpolating
-      atm%ogeoza(:,:) = 0.5d0*(aOGEOZ(:,:)+aOGEOZ_sv(:,:))
-
-
-      ALLOCATE
-     *  (oUO1(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO), STAT = IER)
-      ALLOCATE
-     *  (oVO1(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO), STAT = IER)
 
 c Discontinued method for ocean C-grid -> atm A-grid:
 c use a variant of INT_OG2AG aware of C-grid staggering.
@@ -570,32 +499,11 @@ c
 c ocean C-grid -> atm A-grid method requiring fewer INT_OG2AG variants:
 c ocean C -> ocean A followed by ocean A -> atm A via INT_OG2AG
 c
-      ocean_processors_only: if(oGRID%have_domain) then
-        call halo_update(ogrid,vo(:,:,1),from=south)
-      endif ocean_processors_only
-      do j=oJ_0S,oJ_1S
-c area weights that would have been used by HNTRP for ocean C -> ocean A
-        awt1 = (sinpo(j)-sinvo(j-1))/(sinvo(j)-sinvo(j-1))
-        awt2 = 1.-awt1
-        i=1
-          oUO1(i,j) = .5*(UO(i,j,1)+UO(oIM,j,1))
-          oVO1(i,j) = VO(i,j-1,1)*awt1+VO(i,j,1)*awt2
-        do i=2,oIM
-          oUO1(i,j) = .5*(UO(i,j,1)+UO(i-1,j,1))
-          oVO1(i,j) = VO(i,j-1,1)*awt1+VO(i,j,1)*awt2
-        enddo
-      enddo
-      if(hasSouthPole(oGRID)) then
-        oUO1(:,1) = 0.; oVO1(:,1) = 0.
-      endif
-      if(hasNorthPole(oGRID)) then ! NP U,V from prognostic polar U,V
-        oUO1(:,oJM) = UO(oIM,oJM,1)*oCOSI(:) + UO(IVNPO,oJM,1)*oSINI(:)
-! oVO1 currently has no effect when atm is lat-lon
-        oVO1(:,oJM) = UO(IVNPO,oJM,1)*oCOSI(:) - UO(oIM,oJM,1)*oSINI(:)
-      endif
+      call ab_add(lstr_uv, ocnatm%UOSURF, atm%UOSURF,
+     &     shape(ocnatm%UOSURF),'ij')
+      call ab_add(lstr_uv, ocnatm%VOSURF, atm%VOSURF,
+     &     shape(ocnatm%VOSURF),'ij')
 
-      call ab_add(lstr_uv, oUO1, atm%UOSURF, shape(oUO1),'ij')
-      call ab_add(lstr_uv, oVO1, atm%VOSURF, shape(oVO1),'ij')
       call bundle_interpolation(lstr_uv,remap_O2A,0,0)
 
 #ifndef CUBED_SPHERE
@@ -607,37 +515,26 @@ c area weights that would have been used by HNTRP for ocean C -> ocean A
       endif
 #endif
 
-      DEALLOCATE(oG0, oS0, oUO1,oVO1, oTOT_CHLO_loc, opgas_loc)
+      DEALLOCATE(oTOT_CHLO_loc, opgas_loc)
 
-      deallocate(oweight,aweight,oweight1,aweight1,
-     &     oweight2,aweight2,oweight3,aweight3,
-     &     oMOtmp,OGEOZtmp,OGEOZ_SVtmp)
+      deallocate(oweight,aweight,oweight2,aweight2)
 
       I_0 = atm%I_0
       I_1 = atm%I_1
       J_0 = atm%J_0
       J_1 = atm%J_1
 
-      atm%SSS(:,:)=0.
+#ifdef TRACERS_WATER
+#ifndef TRACERS_OCEAN
       DO J=J_0,J_1
         DO I=I_0,atm%IMAXJ(J)
           IF (atm%FOCEAN(I,J).gt.0.) THEN
-            TO = TEMGS(aG0(I,J,1),aS0(I,J,1))
-            atm%GTEMP(I,J) = TO
-            atm%GTEMPR(I,J)  = TO+TF
-            atm%SSS(I,J) = 1d3*aS0(I,J,1)
-            atm%MLHC(I,J) = aMO(I,J,1)*SHCGS(aG0(I,J,1),aS0(I,J,1))
-            atm%GTEMP2(I,J)= TEMGS(aG0(I,J,2),aS0(I,J,2))
-#ifdef TRACERS_OCEAN
-            atm%GTRACER(:,I,J)=aTRAC(I,J,:)
-#else
-#ifdef TRACERS_WATER
             atm%GTRACER(:,I,J)=atm%trw0(:)
-#endif
-#endif
           END IF
         END DO
       END DO
+#endif
+#endif
 
 C**** do poles
       if (atm%HAVE_NORTH_POLE) then
@@ -676,8 +573,6 @@ C**** do poles
       END IF
       end if
 
-      deallocate(aMO,aG0,aS0,aOGEOZ,aOGEOZ_sv)
-
       RETURN
       END SUBROUTINE OG2AG_TOC2SST
 
@@ -688,30 +583,16 @@ C**** do poles
 !!      on the atm. grid
 !@auth Larissa Nazarenko
       USE CONSTANT, only : tf
-      USE OCEAN, only : oIM=>IM, oJM=>JM, oLM=>LMO
+      USE OCEAN, only : oIM=>IM, oJM=>JM
      *                , oFOCEAN_loc=>FOCEAN
-     *                , OXYP, oIMAXJ=>IMAXJ
-     *                , oCOSI=>COSIC,oSINI=>SINIC
-     *                , IVSPO=>IVSP,IVNPO=>IVNP
-     *                , sinpo, sinvo
-      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE,SOUTH,
-     &     hasNorthPole, hasSouthPole
+     *                , oIMAXJ=>IMAXJ
       USE OCEANR_DIM, only : ogrid
       USE OFLUXES, only : ocnatm
-      USE OCEAN, only : MO, UO,VO, G0M
-     *     , S0M, OGEOZ,OGEOZ_SV
-#ifdef TRACERS_OCEAN
-     *     , TRMO
-#endif
       USE OFLUXES, only : oRSI
 #ifdef TRACERS_OCEAN
       USE OCN_TRACER_COM, only: tracerlist
-#ifdef TRACERS_WATER
-      USE OCN_TRACER_COM, only: ocn_tracer_entry
-#endif
 #endif
       USE MODEL_COM, only: nstep=>itime
-
       USE INT_OG2AG_MOD, only : INT_OG2AG
 
       USE EXCHANGE_TYPES, only : atmocn_xchng_vars
@@ -723,18 +604,9 @@ C**** do poles
       INTEGER oJ_0,oJ_1, oI_0,oI_1, oJ_0S,oJ_1S, oJ_0H,oJ_1H
       integer :: j_0,j_1,i_0,i_1
       REAL*8, allocatable :: oWEIGHT(:,:)
-      REAL*8 :: UNP,VNP,AWT1,AWT2
-      REAL*8, ALLOCATABLE :: oG0(:,:,:), oS0(:,:,:)
-     *                     , oUO1(:,:), oVO1(:,:)
-     *                     , oTOT_CHLO_loc(:,:),opgas_loc(:,:)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:)  :: aOGEOZ,aOGEOZ_SV
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: aMO, aG0, aS0
-      REAL*8 TEMGS,shcgs,TO
-#ifdef TRACERS_OCEAN
-#ifdef TRACERS_WATER
-      type(ocn_tracer_entry), pointer :: entry
-#endif
-#endif
+      REAL*8, ALLOCATABLE :: oTOT_CHLO_loc(:,:),opgas_loc(:,:)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:)  :: awksp
+      real*8 :: unp,vnp
 
       oI_0 = oGRID%I_STRT
       oI_1 = oGRID%I_STOP
@@ -749,67 +621,15 @@ C**** do poles
       aJ_0H = atm%j_0h; aJ_1H = atm%j_1h
 
       ALLOCATE
-     *  (oG0(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO,2), STAT = IER)
-      ALLOCATE
-     *  (oS0(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO,2), STAT = IER)
-      ALLOCATE
-     *  (oUO1(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO), STAT = IER)
-      ALLOCATE
-     *  (oVO1(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO), STAT = IER)
-      ALLOCATE
      *  (oTOT_CHLO_loc(oIM,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO)
      * , STAT = IER)
 
       allocate(oWEIGHT(oIM, oGRID%J_STRT_HALO:oGRID%J_STOP_HALO) )
 
 
-      ALLOCATE( aMO (aI_0H:aI_1H,aJ_0H:aJ_1H,2))
-      ALLOCATE( aG0 (aI_0H:aI_1H,aJ_0H:aJ_1H,2))
-      ALLOCATE( aS0 (aI_0H:aI_1H,aJ_0H:aJ_1H,2))
-      ALLOCATE( aOGEOZ     (aI_0H:aI_1H, aJ_0H:aJ_1H),
-     &          aOGEOZ_SV  (aI_0H:aI_1H, aJ_0H:aJ_1H) )
-      aOGEOZ = 0.; aOGEOZ_sv = 0.
-
-
       oWEIGHT(:,:) = oFOCEAN_loc(:,:)
-      CALL INT_OG2AG(MO,aMO,oWEIGHT,oLM,2,.FALSE.)
+      CALL INT_OG2AG(ocnatm%ogeoza, atm%ogeoza, oWEIGHT, .FALSE.)
 
-      oG0(:,:,:) = 0.d0
-      DO j=max(1,oJ_0H),min(oJM,oJ_1H)
-        oWEIGHT(:,j) = MO(:,j,1)*oFOCEAN_loc(:,j)
-      END DO
-      DO L = 1,2
-        DO J=oJ_0,oJ_1
-          DO I=oI_0,oIMAXJ(J)
-            IF (oFOCEAN_loc(I,J).gt.0.) THEN
-              oG0(I,J,L) = G0M(I,J,L)/(MO(I,J,L)*OXYP(I,J))
-            END IF
-          END DO
-        END DO
-      END DO
-      CALL INT_OG2AG(oG0,aG0, oWEIGHT, 2,2,.TRUE.)
-
-      oS0(:,:,:) = 0.d0
-      DO L = 1,2
-        DO J=oJ_0,oJ_1
-          DO I=oI_0,oIMAXJ(J)
-            IF (oFOCEAN_loc(I,J).gt.0.) THEN
-              oS0(I,J,L) = S0M(I,J,L)/(MO(I,J,L)*OXYP(I,J))
-            END IF
-          END DO
-        END DO
-      END DO
-      CALL INT_OG2AG(oS0,aS0, oWEIGHT, 2,2,.TRUE.)
-
-      ! interpolating both OGEOZ and OGEOZ_sv is silly.
-      ! take the time average _before_ interpolating
-
-      oWEIGHT(:,:) = oFOCEAN_loc(:,:)
-      CALL INT_OG2AG(OGEOZ,aOGEOZ, oWEIGHT, .FALSE.)
-
-      CALL INT_OG2AG(OGEOZ_SV,aOGEOZ_SV, oWEIGHT, .FALSE.)
-
-      atm%ogeoza(:,:) = 0.5d0*(aOGEOZ(:,:)+aOGEOZ_sv(:,:))
 
 c Discontinued method for ocean C-grid -> atm A-grid:
 c use a variant of INT_OG2AG aware of C-grid staggering.
@@ -824,34 +644,13 @@ c
 c ocean C-grid -> atm A-grid method requiring fewer INT_OG2AG variants:
 c ocean C -> ocean A followed by ocean A -> atm A via INT_OG2AG
 c
-      call halo_update(ogrid,vo(:,:,1),from=south)
-      do j=oJ_0S,oJ_1S
-c area weights that would have been used by HNTRP for ocean C -> ocean A
-        awt1 = (sinpo(j)-sinvo(j-1))/(sinvo(j)-sinvo(j-1))
-        awt2 = 1.-awt1
-        i=1
-          oUO1(i,j) = .5*(UO(i,j,1)+UO(oIM,j,1))
-          oVO1(i,j) = VO(i,j-1,1)*awt1+VO(i,j,1)*awt2
-        do i=2,oIM
-          oUO1(i,j) = .5*(UO(i,j,1)+UO(i-1,j,1))
-          oVO1(i,j) = VO(i,j-1,1)*awt1+VO(i,j,1)*awt2
-        enddo
-      enddo
-      if(hasSouthPole(oGRID)) then
-        oUO1(:,1) = 0.; oVO1(:,1) = 0.
-      endif
-      if(hasNorthPole(oGRID)) then ! NP U,V from prognostic polar U,V
-        oUO1(:,oJM) = UO(oIM,oJM,1)*oCOSI(:) + UO(IVNPO,oJM,1)*oSINI(:)
-! oVO1 currently has no effect when atm is lat-lon
-        oVO1(:,oJM) = UO(IVNPO,oJM,1)*oCOSI(:) - UO(oIM,oJM,1)*oSINI(:)
-      endif
       oWEIGHT(:,:) = 1.d0
-      !CALL INT_OG2AG(oUO1, aUO1, oWEIGHT, .FALSE., AvgPole=.FALSE.)
-      !CALL INT_OG2AG(oVO1, aVO1, oWEIGHT, .FALSE., AvgPole=.FALSE.)
-      CALL INT_OG2AG(oUO1, atm%UOSURF, oWEIGHT, .FALSE.,
+
+      CALL INT_OG2AG(ocnatm%UOSURF, atm%UOSURF, oWEIGHT, .FALSE.,
      &     AvgPole=.FALSE.)
-      CALL INT_OG2AG(oVO1, atm%VOSURF, oWEIGHT, .FALSE.,
+      CALL INT_OG2AG(ocnatm%VOSURF, atm%VOSURF, oWEIGHT, .FALSE.,
      &     AvgPole=.FALSE.)
+
 #ifndef CUBED_SPHERE
       if(atm%have_north_pole) then ! latlon atm needs single polar vector
         aIM = atm%I_1
@@ -871,25 +670,8 @@ c area weights that would have been used by HNTRP for ocean C -> ocean A
 
 #ifdef TRACERS_WATER
 C**** surface tracer concentration
-      oWEIGHT(:,:) = MO(:,:,1)*oFOCEAN_loc(:,:)
-      DO J=oJ_0,oJ_1
-      DO I=oI_0,oIMAXJ(J)
-        IF (oFOCEAN_loc(I,J).gt.0.) THEN
-          do nt=1,tracerlist%getsize()
-            entry=>tracerlist%at(nt)
-            if (entry%conc_from_fw) then ! define conc from fresh water
-              ocnatm%gtracer(NT,I,J)=TRMO(I,J,1,NT)/
-     &             (MO(I,J,1)*OXYP(I,J)-S0M(I,J,1))
-            else       ! define conc from total sea water mass
-              ocnatm%gtracer(NT,I,J)=TRMO(I,J,1,NT)/
-     &             (MO(I,J,1)*OXYP(I,J))
-            endif
-          enddo
-        ELSE
-          ocnatm%gtracer(:,i,j) = 0.
-        ENDIF
-      ENDDO
-      ENDDO
+      !oWEIGHT(:,:) = MO(:,:,1)*oFOCEAN_loc(:,:)
+      oWEIGHT(:,:) = oFOCEAN_loc(:,:)
       CALL INT_OG2AG(ocnatm%gtracer,atm%gtracer,oWEIGHT,
      &                         tracerlist%getsize(),atm%focean)
 #endif
@@ -948,33 +730,45 @@ C**** surface tracer concentration
       endif
 #endif
 
-      DEALLOCATE(oG0, oS0, oUO1,oVO1, oTOT_CHLO_loc)
-
-      deallocate(oweight)
+      DEALLOCATE(oTOT_CHLO_loc)
 
       I_0 = atm%I_0
       I_1 = atm%I_1
       J_0 = atm%J_0
       J_1 = atm%J_1
 
-      atm%SSS(:,:)=0.
+#ifdef TRACERS_WATER
+#ifndef TRACERS_OCEAN
       DO J=J_0,J_1
         DO I=I_0,atm%IMAXJ(J)
           IF (atm%FOCEAN(I,J).gt.0.) THEN
-            TO = TEMGS(aG0(I,J,1),aS0(I,J,1))
-            atm%GTEMP(I,J) = TO
-            atm%GTEMPR(I,J)  = TO+TF
-            atm%SSS(I,J) = 1d3*aS0(I,J,1)
-            atm%MLHC(I,J) = aMO(I,J,1)*SHCGS(aG0(I,J,1),aS0(I,J,1))
-            atm%GTEMP2(I,J)= TEMGS(aG0(I,J,2),aS0(I,J,2))
-#ifdef TRACERS_WATER
-#ifndef TRACERS_OCEAN
             atm%GTRACER(:,I,J)=atm%trw0(:)
-#endif
-#endif
           END IF
         END DO
       END DO
+#endif
+#endif
+
+      allocate(awksp(aI_0H:aI_1H, aJ_0H:aJ_1H))
+      awksp = 0.
+
+      oWEIGHT(:,:) = oFOCEAN_loc(:,:)
+      atm%SSS(:,:)=0.
+      CALL INT_OG2AG(ocnatm%gtemp ,awksp, oWEIGHT, .FALSE.)
+      where(atm%focean.gt.0.)
+        atm%gtemp = awksp
+        atm%gtempr = awksp + tf
+      end where
+      CALL INT_OG2AG(ocnatm%gtemp2,awksp, oWEIGHT, .FALSE.)
+      where(atm%focean.gt.0.) atm%gtemp2 = awksp
+      CALL INT_OG2AG(ocnatm%sss   ,awksp, oWEIGHT, .FALSE.)
+      where(atm%focean.gt.0.) atm%sss = awksp
+      CALL INT_OG2AG(ocnatm%mlhc  ,awksp, oWEIGHT, .FALSE.)
+      where(atm%focean.gt.0.) atm%mlhc = awksp
+
+      deallocate(awksp)
+
+      deallocate(oweight)
 
 C**** do poles
       if (atm%HAVE_NORTH_POLE) then
@@ -1013,8 +807,6 @@ C**** do poles
       END IF
       end if
 
-      deallocate(aMO,aG0,aS0,aOGEOZ,aOGEOZ_sv)
-
       RETURN
       END SUBROUTINE OG2AG_TOC2SST
 
@@ -1039,7 +831,7 @@ C**** do poles
       USE DOMAIN_DECOMP_ATM, only : agrid=>grid
       use domain_decomp_1d, only: hasNorthPole, hasSouthPole
       USE OCEANR_DIM, only : ogrid
-
+      use ofluxes, only : ocnatm
       USE OFLUXES, only : oRSI, oSOLARw, oSOLARi, oE0, oEVAPOR
      *     , oRUNOSI, oERUNOSI, oSRUNOSI
      *     , oFLOWO, oEFLOWO, oAPRESS
@@ -1055,9 +847,6 @@ C**** do poles
      *     , oTRDRYDEP
 #endif
 #endif
-#endif
-#ifdef TRACERS_OCEAN
-      USE OFLUXES, only : oTRGASEX
 #endif
       Use GEOM,  only : aIMAXJ=>IMAXJ
       use domain_decomp_1d, only: hasNorthPole, hasSouthPole
@@ -1229,7 +1018,8 @@ c
 #endif
 #endif
 #ifdef TRACERS_OCEAN
-      call ab_add(lstr,atm%TRGASEX,oTRGASEX,shape(atm%TRGASEX),'lij')
+      call ab_add(lstr,atm%TRGASEX,ocnatm%TRGASEX,
+     &     shape(atm%TRGASEX),'lij')
 #endif
 
 #ifdef OBIO_RAD_coupling
@@ -1320,8 +1110,10 @@ c*
       enddo
 #endif /* not CUBED_SPHERE */
 
-      call ab_add(lstr_uv, aDMUA1tmp, oDMUA, shape(aDMUA1tmp), 'ij')
-      call ab_add(lstr_uv, aDMVA1tmp, oDMVA, shape(aDMVA1tmp), 'ij')
+      call ab_add(lstr_uv, aDMUA1tmp, oDMUA, shape(aDMUA1tmp), 'ij',
+     &     aROCwt, oROCwt)
+      call ab_add(lstr_uv, aDMVA1tmp, oDMVA, shape(aDMVA1tmp), 'ij',
+     &     aROCwt, oROCwt)
       call bundle_interpolation(lstr_uv,remap_A2O,0,0)
 
 #ifdef CUBED_SPHERE
@@ -1355,6 +1147,10 @@ c*
 
       endif
 #endif
+
+      ! ocean model still wants ice-masked wind stress
+      oDMUA = oDMUA*oROCwt
+      oDMVA = oDMVA*oROCwt
 
       deallocate(aRSIwt,oRSIwt,aROCwt,oROCwt,aOCNwt,oOCNwt)
 

@@ -3404,6 +3404,12 @@ C**** This needs to be 'hand coded' depending on circumstances
             units_ijts(k) = unit_string(ijts_power(k),'W/m2')
             scale_ijts(k) = 10.**(-ijts_power(k))
             ijts_HasArea(k) = .false.
+#ifdef AUX_OX_RADF_TROP
+#ifndef AUXILIARY_OX_RADF
+            call stop_model
+     &      ('AUX_OX_RADF_TROP needs AUXILIARY_OX_RADF',255)
+#endif
+#endif
 #ifdef AUXILIARY_OX_RADF
             if(trname(n)=='Ox')then
               k = k + 1
@@ -5726,7 +5732,7 @@ c Surface industrial emissions
 #endif
         case('M_BC1_BC','M_OCC_OC')
 c Surface industrial emissions
-       do kr=1,ntsurfsrc(n)
+        do kr=1,ntsurfsrc(n)
         k = k + 1
         ijts_source(kr,n) = k  
         ia_ijts(k) = ia_src
@@ -5739,8 +5745,19 @@ c Surface industrial emissions
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         end do
+        select case(trname(n))
+        case('M_BC1_BC')
+          k = k + 1
+          ijts_3Dsource(nAircraft,n) = k
+          ia_ijts(k) = ia_src
+          lname_ijts(k) = trim(trname(n))//' Aircraft Source'
+          sname_ijts(k) = trim(trname(n))//'_aircraft'
+          ijts_power(k) = -12
+          units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+          scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         end select
-      k = k + 1
+        end select
+        k = k + 1
         ijts_3Dsource(nBiomass,n)=k
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'Emission biomass '//trim(trname(n))
@@ -7925,6 +7942,7 @@ c **** reads in files for dust/mineral tracers
 
       end subroutine tracer_IC
 
+
       subroutine daily_tracer(end_of_day)
 !@sum daily_tracer is called once a day for tracers
 !@+   SUBROUTINE tracer_IC is called from daily_tracer to allow for
@@ -7932,7 +7950,7 @@ c **** reads in files for dust/mineral tracers
 !@auth Jean Lerner
 C**** Note this routine must always exist (but can be a dummy routine)
       USE RESOLUTION, only : lm
-      USE ATM_COM, only : p,t
+      Use ATM_COM,    Only: MA,T
       use model_com, only: modelEclock
       USE MODEL_COM, only:itime
       USE FLUXES, only : fearth0,focean,flake0
@@ -8010,7 +8028,7 @@ C****
       I_1 = grid%I_STOP
 
       if(end_of_day) then
-        call COMPUTE_GZ(p,t,tmom(mz,:,:,:),daily_z)
+         Call COMPUTE_GZ (MA,T,TMOM(MZ,:,:,:), DAILY_Z)
         daily_z = daily_z/grav
       endif
       daily_gz = grav*daily_z
@@ -9246,7 +9264,6 @@ c$$$      use OldTracer_mod, only: itime_tr0, do_fire, trname
 c$$$      use OldTracer_mod, only: tr_mm, nBBsources, mass2vol
       use OldTracer_mod
       USE TRACER_COM, only: ntm, sfc_src, trm
-      use TRACER_COM, only: mchem, mtrace, n_BCIA , n_BCII
       use TRACER_COM, only: mchem, mtrace, n_BCIA, n_BCII, n_CFC, n_CH4
       use TRACER_COM, only: n_DMS, n_H2O2_s, n_HNO3, n_MSA, N_N2O
       use TRACER_COM, only: n_N_d1, n_N_d2, n_N_d3, n_NH3, n_NH4
@@ -9265,7 +9282,7 @@ c$$$      use OldTracer_mod, only: tr_mm, nBBsources, mass2vol
       use TRACER_COM, only: nChemistry, n_AECIL, ntm_tomas
 #endif
 #ifdef TRACERS_AMP
-      use TRACER_COM, only: n_H2SO4
+      use TRACER_COM, only: n_H2SO4,n_M_BC1_BC
       use TRACER_COM, only: ntmAMPi, ntmAMPe
 #endif
 #ifdef SHINDELL_STRAT_EXTRA
@@ -9686,13 +9703,11 @@ C**** Allow overriding of transient emissions date:
 #ifdef TRACERS_TOMAS
       tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_AECOB(1))  = 0.
 #endif
-!#ifdef TRACERS_AMP
-!      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_M_BC1_BC)  = 0.
-!#endif
+#ifdef TRACERS_AMP
+      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_M_BC1_BC)  = 0.
+#endif
 #if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch) ||\
-    (defined TRACERS_TOMAS) 
-!#if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch) ||\
-!    (defined TRACERS_AMP)
+    (defined TRACERS_AMP) || (defined TRACERS_TOMAS) 
 #ifdef CUBED_SPHERE
       call get_aircraft_tracer(xyear,xday,dummy3d,.false.)
 #else
@@ -9702,9 +9717,9 @@ C**** Allow overriding of transient emissions date:
 #ifdef TRACERS_AEROSOLS_Koch
       call apply_tracer_3Dsource(nAircraft,n_BCIA)
 #endif
-!#ifdef TRACERS_AMP
-!      call apply_tracer_3Dsource(nAircraft,n_M_BC1_BC)
-!#endif
+#ifdef TRACERS_AMP
+      call apply_tracer_3Dsource(nAircraft,n_M_BC1_BC)
+#endif
 #ifdef TRACERS_SPECIAL_Shindell
       call apply_tracer_3Dsource(nAircraft,n_NOx)
       tr3Dsource(I_0:I_1,J_0:J_1,:,nOther,n_NOx) = 0.d0

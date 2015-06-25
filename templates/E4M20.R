@@ -108,7 +108,6 @@ E4M20 (ModelE1 4x5, 20 lyrs, 1850 atm/ocn)
 KOCEAN=0 ! ocn is prescribed
 !! KOCEAN=1 ! ocn is computed
 Kvflxo=0 ! set =1 after spinup to prepare for q-flux run (edit "I")
-ocn_cycl=1  ! ? use =0 if prescribed ocean varies from year to year
 
 variable_lk=1 ! let lakes grow or shrink in horizontal extent
 wsn_max=2.   ! restrict snow depth to 2 m-h2o (if 0. snow depth is NOT restricted)

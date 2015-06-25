@@ -50,7 +50,7 @@ C
 
       use TracerBundle_mod, only: TracerBundle, newTracerBundle
       use TracerSource_mod, only: N_MAX_SECT
-      use vector_integer_mod
+      use vector_integer_mod, only: vector_integer=>vector
 c     
       IMPLICIT NONE
       SAVE

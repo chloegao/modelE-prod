@@ -242,7 +242,6 @@ KOCEAN=0        ! ocean is prescribed
 !! KOCEAN=1        ! ocean is computed
 Kvflxo=0        ! usually set to 1 only during a prescr.ocn run by editing "I"
 !  Kvflxo=1     ! saves VFLXO files to prepare for q-flux runs (mkOTSPEC)
-ocn_cycl=1      ! =0 if ocean varies from year to year
 
 variable_lk=1   ! variable lakes
 

@@ -134,6 +134,19 @@ FFT72: Suitable for IM=72 models
 FFT144: Suitable for IM=144 models
 </pre>
 
+<li>General diagnostics<P>
+
+<pre>
+nradfrc=0: No radiative forcing diagnostics are printed in the output, saving
+           many radiation calls (thus CPU time). These are mostly tracer and 
+           cloud related diagnostics. For optical depth, no band[1-6] are
+           generated, saving further radiation calls, but only band6 is saved
+           in the output (and is named tau).
+nradfrc=1 (default): Radiation diagnostics are saved for both tracers and
+                     clouds, as well as band[1-6] diagnostics. Essentially any
+                     value nradfrc>1 falls in the nradfrc=1 group.
+</pre>
+
 <li> Tracers <P>
 
 <ul> 

@@ -1659,6 +1659,7 @@ c accSubdd
       return
       end subroutine accSubdd
 
+
 c get_subdd
       subroutine get_subdd
 !@sum get_SUBDD saves variables at sub-daily frequency
@@ -1725,7 +1726,6 @@ c get_subdd
       USE CONSTANT, only : grav,rgas,bygrav,bbyg,gbyrb,tf,mair,sha
      *     ,lhe,rhow,undef,stbo,bysha
       use TimeConstants_mod, only: SECONDS_PER_DAY
-      USE RESOLUTION, only : ptop
       USE RESOLUTION, only : lm
       Use ATM_COM,    Only: p,PEDN,zatmo,u,v,t,q
       USE GEOM, only : imaxj,axyp,byaxyp
@@ -1876,7 +1876,7 @@ C**** simple diags (one record per file)
           DATAR8(:,:) = PEDN(1,:,:)
 #ifdef mjo_subdd
 C**** accumulating/averaging mode ***
-          datar8=p_avg/Nsubdd+ptop ! average over subdaily period
+          datar8 = p_avg / Nsubdd  !  average over subdaily period
           p_avg=0.
           qinstant = .false.
 #endif
@@ -3982,7 +3982,7 @@ c****
 #ifdef etc_subdd
       USE RESOLUTION, only : PLbot
 #endif
-      USE RESOLUTION, only : jm,lm,ptop
+      Use RESOLUTION, Only: JM,LM
       USE ATM_COM, only : p,u,v
       USE GEOM, only : imaxj
 #if (defined etc_subdd) || (defined ttc_subdd)
@@ -4078,17 +4078,17 @@ C**** interpolate u,v onto fixed pressure level
  1741     continue
           qabove = pmb(k).le.pedn(l-1,i,j)
           pfact=(PMB(K)-PL)/(PDN-PL)
-          if (PMB(K).GT.pmid(1,I,J).AND.PMB(K).LT.(p(I,J)+ptop)) then
+          If (PMB(K) > PMID(1,I,J) .and. PMB(K) < PEDN(1,I,J))  Then
            if (j.eq.1.or.j.eq.jm) then
            u_inst(K,1,J)=u_pg(1,J,1)-(u_pg(1,J,1)-usavg(1,J))*
-     *               (PMB(K)-pmid(1,1,J))/(p(1,J)+ptop-pmid(1,1,J))
+     *               (PMB(K)-PMID(1,1,J)) / (PEDN(1,1,J)-PMID(1,1,J))
            v_inst(K,1,J)=v_pg(1,J,1)-(v_pg(1,J,1)-vsavg(1,J))*
-     *               (PMB(K)-pmid(1,1,J))/(p(1,J)+ptop-pmid(1,1,J))
+     *               (PMB(K)-PMID(1,1,J)) / (PEDN(1,1,J)-PMID(1,1,J))
            else
            u_inst(K,I,J)=u_pg(I,J,1)-(u_pg(I,J,1)-usavg(I,J))*
-     *               (PMB(K)-pmid(1,I,J))/(p(I,J)+ptop-pmid(1,I,J))
+     *               (PMB(K)-PMID(1,I,J)) / (PEDN(1,I,J)-PMID(1,I,J))
            v_inst(K,I,J)=v_pg(I,J,1)-(v_pg(I,J,1)-vsavg(I,J))*
-     *               (PMB(K)-pmid(1,I,J))/(p(I,J)+ptop-pmid(1,I,J))
+     *               (PMB(K)-PMID(1,I,J)) / (PEDN(1,I,J)-PMID(1,I,J))
            end if
           else
            if (qabove) then
@@ -4149,7 +4149,7 @@ C**** interpolate vorticity onto fixed pressure level
  1742     continue
           qabove = pmb(k).le.pedn(l-1,i,j)
           pfact=(PMB(K)-PL)/(PDN-PL)
-          if (PMB(K).GT.pmid(1,I,J).AND.PMB(K).LT.(p(I,J)+ptop)) then
+          If (PMB(K) > PMID(1,I,J) .and. PMB(K) < PEDN(1,I,J))  Then
            vt_inst(K,I,J)=undef
           else
            if (qabove) then
@@ -4179,9 +4179,9 @@ C**** omega (w) at fixed pressure levels
  1743     continue
           qabove = pmb(k).le.pedn(l-1,i,j)
           pfact=(PMB(K)-PL)/(PDN-PL)
-          if (PMB(K).GT.pedn(2,I,J).AND.PMB(K).LT.(p(I,J)+ptop)) then
+          If (PMB(K) > PEDN(2,I,J) .and. PMB(K) < PEDN(1,I,J))  Then
            omg_inst(K,I,J)=(wsave(I,J,1)-wsave(I,J,1)*
-     *               (PMB(K)-pedn(2,I,J))/(p(I,J)+ptop-pedn(2,I,J)))
+     *               (PMB(K)-PEDN(2,I,J)) / (PEDN(1,I,J)-PEDN(2,I,J)))
           else
            if (qabove) then
             omg_inst(K,I,J)=wsave(I,J,L)+
@@ -4214,23 +4214,23 @@ C**** large-scale conden(L),deep conv(E),shallow conv(S) at fixed pressure level
  1745     continue
           qabove = pmb(k).le.pedn(l-1,i,j)
           pfact=(PMB(K)-PL)/(PDN-PL)
-          if (PMB(K).GT.pmid(1,I,J).AND.PMB(K).LT.(p(I,J)+ptop)) then
+          If (PMB(K) > PMID(1,I,J) .and. PMB(K) < PEDN(1,I,J))  Then 
            lwc_inst(K,I,J)=CLWC3D(1,I,J)-CLWC3D(1,I,J)*
-     *               (PMB(K)-pmid(1,I,J))/(p(I,J)+ptop-pmid(1,I,J))
+     *               (PMB(K)-PMID(1,I,J)) / (PEDN(1,I,J)-PMID(1,I,J))
            iwc_inst(K,I,J)=CIWC3D(1,I,J)-CIWC3D(1,I,J)*
-     *               (PMB(K)-pmid(1,I,J))/(p(I,J)+ptop-pmid(1,I,J))
+     *               (PMB(K)-PMID(1,I,J)) / (PEDN(1,I,J)-PMID(1,I,J))
            cldmc_inst(K,I,J)=100.0d0*(cldmc(1,I,J)-cldmc(1,I,J)*
-     *               (PMB(K)-pmid(1,I,J))/(p(I,J)+ptop-pmid(1,I,J)))
+     *               (PMB(K)-PMID(1,I,J)) / (PEDN(1,I,J)-PMID(1,I,J))
            cldss_inst(K,I,J)=100.0d0*(cldss(1,I,J)-cldss(1,I,J)*
-     *               (PMB(K)-pmid(1,I,J))/(p(I,J)+ptop-pmid(1,I,J)))
+     *               (PMB(K)-PMID(1,I,J)) / (PEDN(1,I,J)-PMID(1,I,J))
            tlh_inst(K,I,J)=TLH3D(1,I,J)-TLH3D(1,I,J)*
-     *               (PMB(K)-pmid(1,I,J))/(p(I,J)+ptop-pmid(1,I,J))
+     *               (PMB(K)-PMID(1,I,J)) / (PEDN(1,I,J)-PMID(1,I,J))
            llh_inst(K,I,J)=LLH3D(1,I,J)-LLH3D(1,I,J)*
-     *               (PMB(K)-pmid(1,I,J))/(p(I,J)+ptop-pmid(1,I,J))
+     *               (PMB(K)-PMID(1,I,J)) / (PEDN(1,I,J)-PMID(1,I,J))
            dlh_inst(K,I,J)=DLH3D(1,I,J)-DLH3D(1,I,J)*
-     *               (PMB(K)-pmid(1,I,J))/(p(I,J)+ptop-pmid(1,I,J))
+     *               (PMB(K)-PMID(1,I,J)) / (PEDN(1,I,J)-PMID(1,I,J))
            slh_inst(K,I,J)=SLH3D(1,I,J)-SLH3D(1,I,J)*
-     *               (PMB(K)-pmid(1,I,J))/(p(I,J)+ptop-pmid(1,I,J))
+     *               (PMB(K)-PMID(1,I,J)) / (PEDN(1,I,J)-PMID(1,I,J))
           else
            if (qabove) then
             lwc_inst(K,I,J)=CLWC3D(L,I,J)+

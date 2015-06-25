@@ -164,12 +164,12 @@ contains
       status = 0
     case default
       generic%type = ILLEGAL_TYPE
-      call throwException('GenericType::GenericType() - no such type.',14)
+      call stop_model('GenericType::GenericType() - no such type.',14)
       return
     end select
 
     if (status /= 0) then
-      call throwException('GenericType::GenericType() - cannot convert string "' // &
+      call stop_model('GenericType::GenericType() - cannot convert string "' // &
            & trim(string) // '" to ' // trim(typeString(type)) // '.', 14)
     end if
 
@@ -330,7 +330,7 @@ contains
     integer, intent(in) :: sizeB
 
     if (sizeA /= sizeB) then
-      call throwException('GenericType_mod: nonconforming shapes.', 14)
+      call stop_model('GenericType_mod: nonconforming shapes.', 14)
       nonconforming = .true.
     else
       nonconforming = .false.
@@ -411,7 +411,7 @@ contains
     case (STRING_TYPE)
       string = trim(this%stringValue)
     case default
-      call throwException('GenericType::toString() - invalid type.',14)
+      call stop_model('GenericType::toString() - invalid type.',14)
     end select
   end function toString_single
 
@@ -481,7 +481,7 @@ contains
       read(unit) stringValue
       this = GenericType(stringValue)
     case default
-      call throwException('GenericType_mod::readUnformatted() - unsupported type.', 14)
+      call stop_model('GenericType_mod::readUnformatted() - unsupported type.', 14)
     end select
 
   end subroutine readUnformatted_generic
@@ -505,7 +505,7 @@ contains
     case (STRING_TYPE)
       write(unit) this%stringValue
     case default
-      call throwException('GenericType_mod::writeUnformatted() - unsupported type.', 14)
+      call stop_model('GenericType_mod::writeUnformatted() - unsupported type.', 14)
     end select
 
   end subroutine writeUnformatted_generic

@@ -13,7 +13,7 @@
 
       module ocn_tracer_vector_mod
       use ocn_tracer_entry_mod
-#define _entryname ocn_tracer_entry
+#define _entry type(ocn_tracer_entry)
 #include "containers/vector.fh"
       end module ocn_tracer_vector_mod
 
@@ -38,7 +38,7 @@
 
 
       use ocn_tracer_entry_mod
-      use ocn_tracer_vector_mod
+      use ocn_tracer_vector_mod, only: vector_ocn_tracer_entry=>vector
       SAVE
       type(vector_ocn_tracer_entry) :: tracerlist
 

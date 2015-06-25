@@ -473,7 +473,7 @@ contains
           t => iter%value()
           call this%insert(iter%key(), iter%value())
        else
-          call throwException('AssociativeArray::merge() failed due to duplicate keys: <' &
+          call stop_model('AssociativeArray::merge() failed due to duplicate keys: <' &
                & // trim(iter%key()) // '>.', 255)
        end if
       call iter%next()
