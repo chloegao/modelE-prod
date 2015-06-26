@@ -96,14 +96,12 @@ C**** Some local constants
 
       SUBROUTINE DIAGA
 !@sum  DIAGA accumulate various diagnostics during dynamics
-!@vers 2013/03/26
-!@auth Original Development Team
+!@vers 2015/06/25
       USE CONSTANT, only : grav,rgas,kapa,lhe,lhs,sha,bygrav,tf
      *     ,rvap,gamd,teeny,undef,radius,omega,kg2mb,mair
       Use Resolution, Only: IM,JM,LM, LS1
-      USE MODEL_COM, only : idacc
-     *     ,mdyn,mdiag
-      USE ATM_COM, only : zatmo,QCL,QCI,u,v,t,p,q,lm_req,req_fac_m
+      Use MODEL_COM,  Only: IDACC,MDYN,MDIAG
+      Use ATM_COM,    Only: U,V,T,Q,QCL,QCI, ZATMO, LM_REQ,REQ_FAC_M
       USE GEOM, only : sinlat2d,coslat2d,axyp,imaxj,
      &     lon2d_dg,byaxyp
 #ifndef SCM
@@ -1048,10 +1046,8 @@ C****
       SUBROUTINE conserv_MS(RMASS)
 !@sum  conserv_MA calculates total atmospheric mass
 !@auth Gary Russell/Gavin Schmidt
-      USE CONSTANT, only : mb2kg
-      USE RESOLUTION, only : pstrat
       USE RESOLUTION, only : im,jm
-      USE ATM_COM, only : p
+      Use ATM_COM,    Only: MASUM
       USE GEOM, only : imaxj
       USE DOMAIN_DECOMP_ATM, only : getDomainBounds, GRID
       IMPLICIT NONE
@@ -1072,7 +1068,7 @@ C**** MASS
 C****
       DO J=J_0,J_1
       DO I=I_0,IMAXJ(J)
-        RMASS(I,J)=(P(I,J)+PSTRAT)*mb2kg
+         RMASS(I,J) = MASUM(I,J)
       END DO
       END DO
       IF(HAVE_SOUTH_POLE) RMASS(2:im,1) =RMASS(1,1)
@@ -1122,11 +1118,10 @@ C****
       SUBROUTINE conserv_WM(WATER)
 !@sum  conserv_WM calculates total atmospheric water mass
 !@auth Gary Russell/Gavin Schmidt
-      USE CONSTANT, only : mb2kg
       USE RESOLUTION, only : im,jm,lm
       USE ATM_COM, only : qcl,qci,q
       USE GEOM, only : imaxj
-      USE ATM_COM, only : pdsig
+      Use ATM_COM,    Only: MA
       USE DOMAIN_DECOMP_ATM, only : getDomainBounds, GRID
       IMPLICIT NONE
 
@@ -1149,11 +1144,9 @@ C****
       DO I=I_0,IMAXJ(J)
         WATER(I,J) = 0.
         DO L=1,LM
-C         WATER(I,J)=WATER(I,J)+(Q(I,J,L)+WM(I,J,L))*PDSIG(L,I,J)
-          WATER(I,J)=WATER(I,J)+(Q(I,J,L)+QCI(I,J,L)+QCL(I,J,L))
-     *       *PDSIG(L,I,J)
+           WATER(I,J) = WATER(I,J) +
+     +                  (Q(I,J,L)+QCI(I,J,L)+QCL(I,J,L))*MA(L,I,J)
         ENDDO
-        WATER(I,J)=WATER(I,J)*mb2kg
       ENDDO
       ENDDO
       IF (HAVE_SOUTH_POLE) WATER(2:im,1) = WATER(1,1)
@@ -1166,11 +1159,10 @@ C****
       SUBROUTINE conserv_EWM(EWATER)
 !@sum  conserv_EWM calculates total atmospheric water energy
 !@auth Gary Russell/Gavin Schmidt
-      USE CONSTANT, only : mb2kg,shv,grav,lhe
+      Use CONSTANT,   Only: GRAV,SHV,LHE
       USE RESOLUTION, only : im,jm,lm
-      USE ATM_COM, only : qcl,qci,t,q,p
+      Use ATM_COM,    Only: Q,QCL,QCI, T, MA, PMID,PEDN,PK
       USE GEOM, only : imaxj
-      USE ATM_COM, only : pdsig, pmid, pk
       USE CLOUDS_COM, only : svlhx
       USE DOMAIN_DECOMP_ATM, only : getDomainBounds, GRID
       IMPLICIT NONE
@@ -1196,14 +1188,13 @@ C****
         EWATER(I,J) = 0.
         DO L=1,LM
 c this calculation currently only calculates latent heat
-c          W =(Q(I,J,L)+WM(I,J,L))*PDSIG(L,I,J)*mb2kg
-C         EL=(Q(I,J,L)*LHE+WM(I,J,L)*(LHE-SVLHX(L,I,J)))*PDSIG(L,I,J)
-          EL=(Q(I,J,L)*LHE+QCL(I,J,L)*(LHE-SVLHX(L,I,J))
-     *      +QCI(I,J,L)*(LHE-SVLHX(L,I,J)))*PDSIG(L,I,J)
-          EWATER(I,J)=EWATER(I,J)+EL !+W*(SHV*T(I,J,L)*PK(L,I,J)+GRAV
-!     *           *HSCALE*LOG(P(I,J)/PMID(L,I,J)))
+!          W = (Q(I,J,L) + WM(I,J,L))*MA(L,I,J)
+!         EL = (Q(I,J,L)*LHE+WM(I,J,L)*(LHE-SVLHX(L,I,J)))*MA(L,I,J)
+          EL = (Q(I,J,L)*LHE + QCL(I,J,L)*(LHE-SVLHX(L,I,J))
+     +                       + QCI(I,J,L)*(LHE-SVLHX(L,I,J)))*MA(L,I,J)
+          EWATER(I,J) = EWATER(I,J) + EL  !  + W*(SHV*T(I,J,L)*PK(L,I,J)
+!    +                  GRAV*HSCALE*Log(PEDN?(1,I,J)/PMID(L,I,J)))
         ENDDO
-        EWATER(I,J)=EWATER(I,J)*mb2kg
       ENDDO
       ENDDO
       IF(HAVE_SOUTH_POLE) EWATER(2:im,1) = EWATER(1,1)
@@ -1211,6 +1202,7 @@ C         EL=(Q(I,J,L)*LHE+WM(I,J,L)*(LHE-SVLHX(L,I,J)))*PDSIG(L,I,J)
       RETURN
 C****
       END SUBROUTINE conserv_EWM
+
 
 #ifndef SCM
       SUBROUTINE DIAG4A
@@ -1727,7 +1719,7 @@ c get_subdd
      *     ,lhe,rhow,undef,stbo,bysha
       use TimeConstants_mod, only: SECONDS_PER_DAY
       USE RESOLUTION, only : lm
-      Use ATM_COM,    Only: p,PEDN,zatmo,u,v,t,q
+      Use ATM_COM,    Only: PEDN, ZATMO, U,V,T,Q
       USE GEOM, only : imaxj,axyp,byaxyp
 #ifdef ttc_subdd
      *                ,cosu,sinu,dxv,dyp,bydxyp
@@ -3983,7 +3975,7 @@ c****
       USE RESOLUTION, only : PLbot
 #endif
       Use RESOLUTION, Only: JM,LM
-      USE ATM_COM, only : p,u,v
+      Use ATM_COM,    Only: U,V
       USE GEOM, only : imaxj
 #if (defined etc_subdd) || (defined ttc_subdd)
      *                ,cosu,sinu,dxv,dyp,bydxyp
@@ -5121,7 +5113,7 @@ c write physical variable
 !@vers 2013/03/27
 !@auth Reha Cakmur/Jan Perlwitz
       USE MODEL_COM, only : modelEclock
-      Use ATM_COM,   Only: P,U,V,T,Q,PMID
+      Use ATM_COM,   Only: U,V,T,Q,PMID
       USE CONSTANT, only : bygrav
       USE domain_decomp_atm, ONLY : am_i_root,getDomainBounds
       USE domain_decomp_atm, ONLY : globalsum,grid
