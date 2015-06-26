@@ -1380,7 +1380,7 @@ c**** this routine accumulates a time sequence for selected
 c**** quantities and from that prints a table of wave frequencies.
 c****
       use constant, only : bygrav
-      use resolution, only : lm
+      use resolution, only : lm,ptop
       use model_com, only : idacc,mdiag
       use atm_com, only : p,ualij,valij,phi
       use diag_com, only : nwav_dag,wave,max12hr_sequ
@@ -1404,7 +1404,7 @@ c****
       real*8, dimension(km), parameter ::
      &     pmb=(/922.,700.,500.,300.,100.,10./),
      &     ght=(/500.,2600.,5100.,8500.,15400.,30000./)
-      real*8, dimension(lm) :: p00,aml,pdsigl,pmidl
+      real*8, dimension(lm) :: aml,pdsigl,pmidl
       real*8, dimension(lm+1) :: pednl
       real*8 :: slope, now
       integer i,jlat,idacc9,k,kq,l,n
@@ -1458,7 +1458,7 @@ c
             htrd_tmp(i,:) = 0. ! for pack_zonal
             cycle
           endif
-          call calc_vert_amp(psll(i),lm,p00,aml,pdsigl,pednl,pmidl)
+          call calc_vert_amp (psll(i)+ptop,lm, aml,pdsigl,pednl,pmidl)
           l=2
           do k=1,km
             do while(pmb(k).lt.pmidl(l) .and. l.lt.lm)

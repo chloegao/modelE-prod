@@ -335,6 +335,7 @@ c u is associated with odd n, v with even n
       return
       end subroutine get_ij_of_n
 
+
       SUBROUTINE SDRAG(DT1)
 !@sum  SDRAG puts a drag on the winds in the top layers of the atmosphere
 !@auth Coefficients from the Original Development Team
@@ -349,7 +350,7 @@ c u is associated with odd n, v with even n
 !@var DT1 time step (s)
       REAL*8, INTENT(IN) :: DT1
 !@var LSDRAG lowest level at which SDRAG_lin is applied
-C**** SDRAG_const is applied above PTOP (150 mb) and below the SDRAG_lin
+C**** SDRAG_CONST is applied in stratosphere and below the SDRAG_LIN
 C**** regime (but not above P_CSDRAG)
       real*8 wl,tl,rho,cdn
       integer i,j,l
@@ -441,7 +442,7 @@ c
       USE DOMAIN_DECOMP_ATM, ONLY : GRID, getDomainBounds
       USE RESOLUTION, only : lm
       USE MODEL_COM, only : dtsrc
-      USE ATM_COM, only : ualij,valij,pk,p,t,u,v,zatmo
+      USE ATM_COM, only : ualij,valij,pk,pedn,t,u,v,zatmo
       USE SOMTQ_COM, only : tmom,mz
       USE CLOUDS_COM,       ONLY : AIRX,LMC   
       USE STRAT,            ONLY : GWDCOL, NM, ZVARX,ZVARY,ZWT,DEFRM   
@@ -473,7 +474,7 @@ c
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      &     RANMTN,ULDEF,VLDEF
-      REAL*8, DIMENSION(LM) :: P00,AML
+      REAL*8, DIMENSION(LM) :: AML
       INTEGER I,J,L,N,LTOP
       REAL*8 BVFSQ,ANGM,DPT,DUANG,XY
       integer lmax_angm(nm),lp10,lp2040,lpshr
@@ -538,7 +539,7 @@ C****
 C****
 C**** CALCULATE 1D ARRAYS
 C****
-      CALL CALC_VERT_AMP(P(I,J),LM,P00,AML,DP,PLE,PL)
+      Call CALC_VERT_AMP (PEDN(1,I,J),LM, AML,DP,PLE,PL)
       DO L=1,LM
         TL(L)=PK(L,I,J)*T(I,J,L)
         THL(L)=T(I,J,L)

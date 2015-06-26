@@ -7854,8 +7854,7 @@ c NOTE: the input file specifies integrals over its gridboxes.
           ii = volc_ij(1); jj = volc_ij(2)
           if(jj<j_0 .or. jj>j_1) cycle
           if(ii<i_0 .or. ii>i_1) cycle
-          call CALC_VERT_AMP(psref(ii,jj)-ptop,lm,
-     &         x1d,amref,x1d,pednref,x1d)
+          Call CALC_VERT_AMP (psref(ii,jj),lm, amref,x1d,pednref,x1d)
           lmax = 1
           do while(pednref(lmax) > volc_pup(ilon,jlat))
             lmax = lmax + 1
