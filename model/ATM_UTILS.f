@@ -10,16 +10,15 @@ C**** As this is written, it must be called after the call to CALC_AMPK
 C**** after DYNAM (since it uses pk/pmid). It would be better if it used
 C**** SPA and PU directly from the dynamics. (Future work).
       USE CONSTANT, only : rgas
-      USE ATM_COM, only : t,p,zatmo
-      USE DYNAMICS, only : sig
       USE GEOM, only : ddx_ci,ddx_cj,ddy_ci,ddy_cj
-      USE ATM_COM, only : phi,dpdy_by_rho,dpdy_by_rho_0,dpdx_by_rho
-     *     ,dpdx_by_rho_0,pmid,pk
+      USE ATM_COM, only : pmid,pedn,pk, t, zatmo,phi,
+     *                    dpdx_by_rho,dpdx_by_rho_0,
+     *                    dpdy_by_rho,dpdy_by_rho_0
       USE DOMAIN_DECOMP_ATM, only : grid, getDomainBounds, HALO_UPDATE
       IMPLICIT NONE
       REAL*8 :: by_rho1
-      real*8 :: dpsi,dpsj,dg1i,dg1j,dgsi,dgsj
-      real*8 :: dpsdx,dpsdy,dg1dx,dg1dy,dgsdx,dgsdy
+      real*8 :: dp1i ,dpsi ,dp1j ,dpsj , dg1i ,dg1j ,dgsi ,dgsj
+      real*8 :: dp1dx,dpsdx,dp1dy,dpsdy, dg1dx,dg1dy,dgsdx,dgsdy
       INTEGER I,J
 
 c**** Extract domain decomposition info
@@ -38,12 +37,16 @@ c      CALL HALO_UPDATE(grid, ZATMO)
 
       DO J=J_0,J_1
       DO I=I_0,I_1
-        dpsi = p(i+1,j)-p(i-1,j)
+        dp1i = pmid(1,i+1,j) - pmid(1,i-1,j)
+        dpsi = pedn(1,i+1,j) - pedn(1,i-1,j)
         dg1i = phi(i+1,j,1)-phi(i-1,j,1)
         dgsi = zatmo(i+1,j)-zatmo(i-1,j)
-        dpsj = p(i,j+1)-p(i,j-1)
+        dp1j = pmid(1,i,j+1) - pmid(1,i,j-1)
+        dpsj = pedn(1,i,j+1) - pedn(1,i,j-1)
         dg1j = phi(i,j+1,1)-phi(i,j-1,1)
         dgsj = zatmo(i,j+1)-zatmo(i,j-1)
+        dp1dx = dp1i*ddx_ci(i,j) + dp1j*ddx_cj(i,j)
+        dp1dy = dp1i*ddy_ci(i,j) + dp1j*ddy_cj(i,j)
         dpsdx = dpsi*ddx_ci(i,j) + dpsj*ddx_cj(i,j)
         dpsdy = dpsi*ddy_ci(i,j) + dpsj*ddy_cj(i,j)
         dg1dx = dg1i*ddx_ci(i,j) + dg1j*ddx_cj(i,j)
@@ -51,15 +54,16 @@ c      CALL HALO_UPDATE(grid, ZATMO)
         dgsdx = dgsi*ddx_ci(i,j) + dgsj*ddx_cj(i,j)
         dgsdy = dgsi*ddy_ci(i,j) + dgsj*ddy_cj(i,j)
         by_rho1=(rgas*t(I,J,1)*pk(1,I,J))/(pmid(1,I,J))
-        DPDX_BY_RHO(I,J)=dpsdx*sig(1)*by_rho1+dg1dx
-        DPDX_BY_RHO_0(I,J)=dpsdx*by_rho1+dgsdx
-        DPDY_BY_RHO(I,J)=dpsdy*sig(1)*by_rho1+dg1dy
-        DPDY_BY_RHO_0(I,J)=dpsdy*by_rho1+dgsdy
+        DPDX_BY_RHO  (I,J) = dp1dx*by_rho1 + dg1dx
+        DPDX_BY_RHO_0(I,J) = dpsdx*by_rho1 + dgsdx
+        DPDY_BY_RHO(  I,J) = dp1dy*by_rho1 + dg1dy
+        DPDY_BY_RHO_0(I,J) = dpsdy*by_rho1 + dgsdy
       ENDDO
       ENDDO
 
       return
       END SUBROUTINE PGRAD_PBL
+
 
 #else
       SUBROUTINE PGRAD_PBL
@@ -70,11 +74,10 @@ C**** after DYNAM (since it uses pk/pmid). It would be better if it used
 C**** SPA and PU directly from the dynamics. (Future work).
       USE CONSTANT, only : rgas
       USE RESOLUTION, only : im,jm
-      USE ATM_COM, only : t,p,zatmo
       USE GEOM, only : bydyp,bydxp,cosip,sinip
-      USE ATM_COM, only : phi,dpdy_by_rho,dpdy_by_rho_0,dpdx_by_rho
-     *     ,dpdx_by_rho_0,pmid,pk
-      USE DYNAMICS, only : sig
+      USE ATM_COM, only : pmid,pedn,pk, t, zatmo,phi,
+     *                    dpdx_by_rho,dpdx_by_rho_0,
+     *                    dpdy_by_rho,dpdy_by_rho_0
       USE DOMAIN_DECOMP_ATM, only : grid
       USE DOMAIN_DECOMP_1D, only : getDomainBounds, HALO_UPDATE
       USE DOMAIN_DECOMP_1D, only : NORTH, SOUTH
@@ -97,16 +100,15 @@ C**** (Pressure gradient)/density at first layer and surface
 C**** to be used in the PBL, at the primary grids
 
       ! for dPdy/rho at non-pole grids
-      CALL HALO_UPDATE(grid, P,   FROM=SOUTH+NORTH)
       CALL HALO_UPDATE(grid, PHI, FROM=SOUTH+NORTH)
       CALL HALO_UPDATE(grid, ZATMO, FROM=SOUTH+NORTH)
 
       DO I=1,IM
         DO J=J_0S,J_1S
           by_rho1=(rgas*t(I,J,1)*pk(1,I,J))/(100.*pmid(1,I,J))
-          DPDY_BY_RHO(I,J)=(100.*(P(I,J+1)-P(I,J-1))*SIG(1)*by_rho1
+          DPDY_BY_RHO(I,J) = (100*(PMID(1,I,J+1)-PMID(1,I,J-1))*by_rho1
      2         +PHI(I,J+1,1)-PHI(I,J-1,1))*BYDYP(J)*.5d0
-          DPDY_BY_RHO_0(I,J)=(100.*(P(I,J+1)-P(I,J-1))*by_rho1
+          DPDY_BY_RHO_0(I,J) =(100*(PEDN(1,I,J+1)-PEDN(1,I,J-1))*by_rho1
      2         +ZATMO(I,J+1)-ZATMO(I,J-1))*BYDYP(J)*.5d0
         END DO
       END DO
@@ -118,9 +120,9 @@ C**** to be used in the PBL, at the primary grids
         I=IM
         DO IP1=1,IM
           by_rho1=(rgas*t(I,J,1)*pk(1,I,J))/(100.*pmid(1,I,J))
-          DPDX_BY_RHO(I,J)=(100.*(P(IP1,J)-P(IM1,J))*SIG(1)*by_rho1
+          DPDX_BY_RHO(I,J) = (100*(PMID(1,Ip1,J)-PMID(1,Im1,J))*by_rho1
      2         +PHI(IP1,J,1)-PHI(IM1,J,1))*BYDXP(J)*.5d0
-          DPDX_BY_RHO_0(I,J)=(100.*(P(IP1,J)-P(IM1,J))*by_rho1
+          DPDX_BY_RHO_0(I,J) =(100*(PEDN(1,Ip1,J)-PEDN(1,Im1,J))*by_rho1
      2         +ZATMO(IP1,J)-ZATMO(IM1,J))*BYDXP(J)*.5d0
           IM1=I
           I=IP1
@@ -179,26 +181,19 @@ C**** to be used in the PBL, at the primary grids
 !@vers 2014/04/09
 !@auth Jean Lerner/Gavin Schmidt
       USE CONSTANT, only : bygrav,kapa
-      USE RESOLUTION, only : ls1,ptop
       USE RESOLUTION, only : im,jm,lm
-      USE ATM_COM, only : p,MASUM
-      USE ATM_COM, only : pdsig,pmid,pk,pedn,pek,MA,byMA
+      USE ATM_COM, only : pdsig,pmid,pk,pedn,pek,MA,byMA,MASUM
       USE DOMAIN_DECOMP_ATM, Only : grid, getDomainBounds, HALO_UPDATE
       USE FLUXES, only : atmsrf,asflx4
       IMPLICIT NONE
 
       INTEGER :: I,J,L,IT  !@var I,J,L  loop variables
       INTEGER, INTENT(IN) :: LMAX !@var LMAX max. level for update
-      REAL*8, DIMENSION(LMAX) :: PL,AML,PDSIGL,PMIDL
+      REAL*8, DIMENSION(LMAX) :: AML,PDSIGL,PMIDL
       REAL*8, DIMENSION(LMAX+1) :: PEDNL
 c**** Extract domain decomposition info
-      INTEGER :: J_0, J_1, J_0S, J_1S, J_0H, J_1H, I_0H, I_1H
-      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
-     &               J_STRT_SKP = J_0S, J_STOP_SKP = J_1S,
-     &               J_STRT_HALO= J_0H, J_STOP_HALO= J_1H,
-     &         HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
-     &         HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+      Integer :: J_0H, J_1H, I_0H, I_1H
+      Call getDomainBounds (GRID, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
       I_0H = grid%I_STRT_HALO
       I_1H = grid%I_STOP_HALO
 
@@ -208,15 +203,10 @@ C**** pressure. Routine should be called with LMAX=LM at start, and
 C**** subsequentaly with LMAX=LS1-1
 C**** Note Air mass is calculated in (kg/m^2)
 
-C**** Fill in polar boxes
-      IF (have_south_pole) P(2:IM,1) = P(1,1)
-      IF (have_north_pole) P(2:IM,JM)= P(1,JM)
-      Call HALO_UPDATE(grid, P)
-
-      DO J=J_0H,J_1H ! filling halo for P is faster than PDSIG
+      Do J=J_0H,J_1H
         DO I=I_0H,I_1H
 
-          CALL CALC_VERT_AMP(P(I,J),LMAX,PL,AML,PDSIGL,PEDNL,PMIDL)
+          Call CALC_VERT_AMP (PEDN(1,I,J),LMAX, AML,PDSIGL,PEDNL,PMIDL)
 
           DO L=1,MIN(LMAX,LM)
             PDSIG(L,I,J) = PDSIGL(L)
@@ -240,7 +230,7 @@ C**** Fill in polar boxes
         END DO
       END DO
 
-      atmsrf%SRFP = P+PTOP
+      atmsrf%SRFP(:,:) = PEDN(1,:,:)
       do it=1,4
         asflx4(it)%SRFP = atmsrf%SRFP
       enddo
@@ -252,8 +242,8 @@ C**** Fill in polar boxes
 !@sum  Compute P (mb) arrays from HALOed MA (kg/m^2)
 !@vers 2015/05/19
       Use CONSTANT,   Only: KAPA,KG2MB
-      Use RESOLUTION, Only: LM, MTOP,MFIXs, PTOP
-      Use ATM_COM,    Only: MA,MASUM,byMA, PDSIG,PMID,PEDN,PK,PEK,P
+      Use RESOLUTION, Only: LM, MTOP,MFIXs
+      Use ATM_COM,    Only: MA,MASUM,byMA, PDSIG,PMID,PEDN,PK,PEK, P
       Use FLUXES,     Only: ATMSRF,ASFLX4
       Use DOMAIN_DECOMP_ATM, Only :GRID, HALO_UPDATE_COLUMN
       Implicit None
@@ -278,8 +268,7 @@ C**** Fill in polar boxes
       ATMSRF%  AM1(:,:) =   MA(1,:,:)
       ATMSRF%byAM1(:,:) = byMA(1,:,:)
       ATMSRF%   P1(:,:) = PMID(1,:,:)
-!     ATMSRF% SRFP(:,:) = PEDN(1,:,:)
-      ATMSRF% SRFP(:,:) = P(:,:) + PTOP
+      ATMSRF% SRFP(:,:) = PEDN(1,:,:)
       ATMSRF%SRFPK(:,:) =  PEK(1,:,:)
 
       Do ITYPE=1,4
@@ -364,10 +353,10 @@ c**** Extract domain decomposition info
           ptropo(i,j) = pmid(lm-1,i,j)
         enddo
         enddo
-      else
+      else                  
 
 C**** Find WMO Definition of Tropopause to Nearest L
-        do j=J_0,J_1
+        do j=J_0,J_1        
         do i=I_0,imaxj(j)
           do l=1,lm
             TL(L)=T(I,J,L)*PK(L,I,J)

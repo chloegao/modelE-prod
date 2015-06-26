@@ -1038,12 +1038,11 @@ C****        3  SMOOTH P AND T
 C****
       Use CONSTANT,   Only: byGRAV,RGAS,SHA,KAPA,MB2KG
       Use RESOLUTION, Only: IM,JM,LM,LS1, MTOP,MFIXs, MFIX,MFRAC
-      USE RESOLUTION, ONLY: PTOP
       USE MODEL_COM, only : itime
       Use ATM_COM,    Only: ZATMO, MA, T,Q,QCL,QCI, PEDN,PMID,PK
       USE GEOM, only : areag,dxyp,byim
       USE SOMTQ_COM, only : tmom,qmom
-      USE DYNAMICS, only : COS_LIMIT,mfiltr,sig
+      Use DYNAMICS,   Only: COS_LIMIT,MFILTR
 #ifdef TRACERS_ON
       USE TRACER_COM, only: NTM,trm,trmom
       use OldTracer_mod, only: trname,ITIME_TR0
@@ -1100,12 +1099,8 @@ C****
           PSUMO = PSUMO + PEDNOLD(I,J)
           PEDN(1,I,J) = X(I,J) / Y(I,J)
 C**** reduce large variations (mainly due to topography)
-!         PEDN(1,I,J) = Max (PEDN(1,I,J), 0.9882d0*PEDNOLD(I,J))
-!         PEDN(1,I,J) = Min (PEDN(1,I,J), 1.0118d0*PEDNOLD(I,J))
-          PEDN(1,I,J) = PTOP + 
-     +       Max (PEDN(1,I,J)-PTOP, 0.99d0*(PEDNOLD(I,J)-PTOP))
-          PEDN(1,I,J) = PTOP +
-     +       Min (PEDN(1,I,J)-PTOP, 1.01d0*(PEDNOLD(I,J)-PTOP))
+          PEDN(1,I,J) = Max (PEDN(1,I,J), 0.9882d0*PEDNOLD(I,J))
+          PEDN(1,I,J) = Min (PEDN(1,I,J), 1.0118d0*PEDNOLD(I,J))
           PSUMN = PSUMN + PEDN(1,I,J)
         END DO
 !**** Conserve column mass for present J latitude row
@@ -1605,7 +1600,7 @@ c**** Extract domain decomposition info
 !@var DT1 time step (s)
       REAL*8, INTENT(IN) :: DT1
 !@var L(P)SDRAG lowest level at which SDRAG_lin is applied (near poles)
-C**** SDRAG_const is applied above PTOP (150 mb) and below the SDRAG_lin
+C**** SDRAG_CONST is applied in stratosphere below the SDRAG_LIN
 C**** regime (but not above P_CSDRAG)
       Real*8 :: X,MAUV,WL,TL,RHO,CDN,MMUV(LM),DU
 !@var DUT,DVT change in momentum (kg*m/s)

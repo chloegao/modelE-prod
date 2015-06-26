@@ -55,7 +55,7 @@
 
 !**** Stratospheric drag related parameters
 !@dbparam X_SDRAG.  SDRAG ~X_SDRAG(1)+X_SDRAG(2)*wind_magnitude
-!@dbparam C_SDRAG.  SDRAG=C_SDRAG (const.) above PTOP
+!@dbparam C_SDRAG.  SDRAG=C_SDRAG (const.)
 !@dbparam P_CSDRAG pressure level above which const.drag is increased
 !@dbparam P_SDRAG = pressure level above which SDRAG is applied (mb), PP_SDRAG = near poles
 !@dbparam Wc_JDRAG = critical velocity for J.Hansen/Judith Perlwitz drag; if 0 no JDRAG feature in SDRAG
@@ -69,7 +69,7 @@
                  Wc_JDRAG=30, WMAX=200, VSDRAGL(LS1:LM)=1
       Integer :: USE_UNR_DRAG=0
 !@var LSDRAG = level above which SDRAG is applied, LPSDRAG = near pole
-!@var ANG_SDRAG if =1: angular momentum lost by SDRAG is added in below PTOP
+!@var ANG_SDRAG if =1: angular momentum lost by SDRAG is added in stratosphere (1:LS1-1)
       Integer :: LSDRAG=LM, LPSDRAG=LM, ANG_SDRAG=1
 
 
@@ -102,9 +102,9 @@
 !!!#ifndef SCM
       Subroutine ALLOC_DYNAMICS (GRID)
       Use DOMAIN_DECOMP_ATM, Only: DIST_GRID, AM_I_ROOT
-      Use RESOLUTION, Only: LM,LS1, PSFMPT,PLBOT,PTOP
+      Use RESOLUTION, Only: LM,LS1, PSF,PLBOT,PSFmPT,PTOP
       Use DYNAMICS, Only: SIGE,SIG,DSIG,BYDSIG, MU,MV,MW,CONV, PU,PV,SD, DUT,DVT,SPA, SMASS,WCP,WCPsig
-      Use ATM_COM,  Only: LM_REQ, PL00,PMIDL00,PDSIGL00,AML00,BYAML00,PEDNL00
+      Use ATM_COM,  Only: LM_REQ, PMIDL00,PDSIGL00,AML00,byAML00,PEDNL00
       Implicit  None
       TYPE (DIST_GRID), Intent(In) :: GRID
       Integer :: I1H,INH,J1H,JNH, LMR,IER
@@ -124,7 +124,7 @@
          call stop_model('INPUT: ls1 incorrectly set in RES_',255)  ;  END IF
 !**** Calculate default vertical arrays (including rad. eq. layers)
       LMR = LM + LM_REQ
-      Call CALC_VERT_AMP (PSFMPT,LMR,PL00,AML00,PDSIGL00,PEDNL00,PMIDL00)
+      Call CALC_VERT_AMP (PSF,LMR, AML00,PDSIGL00,PEDNL00,PMIDL00)
       BYAML00(:) = 1 / AML00(:)
 
       Allocate (MU(I1H:INH,J1H:JNH,LM),  MV(I1H:INH,J1H:JNH,LM),  MW(I1H:INH,J1H:JNH,LM-1), &
@@ -171,7 +171,6 @@
 !     J1 = GRID%J_STRT_HALO  ;  JN = GRID%J_STOP_HALO  !  haloed primary row limits
 
       Do J=J1,JN  ;  Do I=I1,IN
-!        P(I,J) = kg2mb * (MASUM(I,J) + MTOP) - PTOP
          P(I,J) = kg2mb * (MASUM(I,J) - MFIXS)
          M = MTOP
          Do L=LM,1,-1
@@ -180,52 +179,44 @@
            PDSIG(L,I,J) = kg2mb * MA(L,I,J)
               PK(L,I,J) = PMID(L,I,J)**KAPA
             M = M + MA(L,I,J)  ;  EndDo  ;  EndDo  ;  EndDo
-
       Return
       EndSubroutine MAtoP
 
 
-      Subroutine CALC_VERT_AMP (P0,LMAX,PL,MA,PDSIG,PEDN,PMID)
+      Subroutine CALC_VERT_AMP (PS,LMAX, MA,PDSIG,PEDN,PMID)
 !@sum  CALC_VERT_AMPK calculates air mass and pressure vertical arrays
 !@auth Jean Lerner/Gavin Schmidt
-      Use CONSTANT,   Only: byGRAV
-      Use RESOLUTION, Only: LM,LS1, PTOP,PSFMPT,PMTOP
+      Use CONSTANT,   Only: MB2KG,KG2MB
+      Use RESOLUTION, Only: LM, MTOP,MFIX,MFRAC,MFIXs
       Use ATM_COM,    Only: LM_REQ, REQ_FAC,REQ_FAC_M,REQ_FAC_D
-      Use DYNAMICS,   Only: dsig,sig,sige
       Implicit  None
 
 !@var LMAX = max level for calculation
-!@var P0   = surface pressure - PTOP (mb)
+!@var PS = surface pressure (mb)
 !@var MA mass per unit area for each layer (kg/m^2)
 !@var PDSIG pressure interval at each level (mb)
 !@var PMID mid-point pressure (mb)
 !@var PEDN edge pressure (top of box) (mb)
       Integer,Intent(In)  :: LMAX
-      Real*8, Intent(In)  :: P0
-      Real*8, Intent(Out) :: MA(LMAX),PDSIG(LMAX),PMID(LMAX),PL(LMAX),PEDN(LMAX+1)
+      Real*8, Intent(In)  :: PS
+      Real*8, Intent(Out) :: MA(LMAX),PDSIG(LMAX),PMID(LMAX),PEDN(LMAX+1)
       Integer :: L
+      Real*8  :: MVAR
 
 !**** Calculate air mass, layer pressures
-!**** Note that only layers LS1 and below vary as a function of surface
-!**** pressure.
-      Do L=1,LS1-1
-           PL(L) = P0
-        PDSIG(L) = P0*DSIG(L)
-         PMID(L) = SIG(L)*P0 + PTOP
-         PEDN(L) = SIGE(L)*P0 + PTOP
-           MA(L) = PDSIG(L)*1d2*BYGRAV  ;  EndDo
-      Do L=LS1,Min(LMAX,LM)
-           PL(L) = PSFMPT
-        PDSIG(L) = PSFMPT*DSIG(L)
-         PMID(L) = SIG(L)*PSFMPT + PTOP
-         PEDN(L) = SIGE(L)*PSFMPT + PTOP
-           MA(L) = PDSIG(L)*1d2*BYGRAV  ;  EndDo
-      If (LMAX >= LM)  PEDN(LM+1) = SIGE(LM+1)*PSFMPT + PTOP
+      MVAR = PS*MB2KG - MFIXs - MTOP
+      PEDN(LM+1) = MTOP*KG2MB
+      Do L=LM,1,-1
+           MA(L) = MFIX(L) + MVAR*MFRAC(L)
+        PDSIG(L) = MA(L)*KG2MB
+         PMID(L) = PEDN(L+1) + PDSIG(L)*.5
+         PEDN(L) = PEDN(L+1) + PDSIG(L)  ;  EndDo
+
 !*** Radiation equilibrium layers if necessary
       If (LMAX == LM+LM_REQ)  Then
-         PMID(LM+1:LM+LM_REQ) = REQ_FAC_M(1:LM_REQ)*PMTOP
-           MA(LM+1:LM+LM_REQ) = REQ_FAC_D(1:LM_REQ)*PMTOP*1d2*BYGRAV
-         PEDN(LM+2:LM+LM_REQ) = REQ_FAC(1:LM_REQ-1)*PEDN(LM+1)
+           MA(LM+1:LM+LM_REQ) = REQ_FAC_D(1:LM_REQ)*MTOP
+         PMID(LM+1:LM+LM_REQ) = REQ_FAC_M(1:LM_REQ)*MTOP*KG2MB
+         PEDN(LM+2:LM+LM_REQ) = REQ_FAC(1:LM_REQ-1)*MTOP*KG2MB
          PEDN(LM+LM_REQ+1) = 0  ;  EndIf
 
       Return

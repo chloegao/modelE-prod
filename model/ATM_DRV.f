@@ -1121,6 +1121,7 @@ C**** check tracers
       RETURN
       END SUBROUTINE CHECKT
 
+
       subroutine read_aic
 !@sum read_AIC for a cold start, read the atmospheric IC file.
 !@+   Two input options are currently recognized
@@ -1142,7 +1143,7 @@ C**** check tracers
 !@+   Logic will be added to handle other possible input layerings and
 !@+   combinations of available fields.
       use constant, only : grav,rgas,lhe
-      use VerticalRes, only : lm,ptop
+      use VerticalRes, only : lm
       use atm_com, only : zatmo,psrf=>p,
      &     ualij,valij,uout=>u,vout=>v,
      &     tout=>t,qout=>q
@@ -1161,7 +1162,7 @@ C**** check tracers
 
       real*8, dimension(:), allocatable :: u,v,t,rh,p,plev
       real*8 :: pe(0:lm)
-      real*8, dimension(lm) :: pmid,pdum,pdum2,adum
+      real*8, dimension(lm) :: pmid, MAdum,PDSIGdum
 
       real*8, dimension(lm) :: xa,xb
       REAL*8 HSRF,TM,PR,PL,DTDZ,RHTROP,WTDN
@@ -1363,7 +1364,7 @@ C****
       PSRF(I,J)  = P(0)
       atmsrf%TSAVG(I,J) = T(0)
 
-      CALL CALC_VERT_AMP(P(0)-PTOP,LM,Pdum,Adum,Pdum2,PE,PMID)
+      Call CALC_VERT_AMP (P(0),LM, MAdum,PDSIGdum,PE,PMID)
 
 C****
 C**** Remap temperature and RH to model layers
