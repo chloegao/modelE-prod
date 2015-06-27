@@ -339,6 +339,7 @@ c
 
       call start('  obio main loop')
 
+      atm%chl_defined=.true.
 #ifdef OBIO_ON_GARYocean
        do 1000 j=j_0,j_1
        do 1000 i=i_0,i_1
@@ -1073,7 +1074,6 @@ cdiag     endif
           tot_chlo(i,j)=tot_chlo(i,j)+obio_P(1,nnut+nt)
        enddo
        atm%chl(i,j) = tot_chlo(i,j)
-       atm%chl_defined=.true.
        if (vrbos) then
           !!!write(*,'(/,a,3i5,e12.4)')
           write(*,*)

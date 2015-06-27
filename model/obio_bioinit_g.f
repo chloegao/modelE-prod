@@ -41,7 +41,7 @@ c  Carbon type 2    = DIC
       USE obio_dim
       USE obio_incom
       USE obio_forc, only: avgq
-      USE obio_com, only: gcmax,tracer_loc,tracer
+      USE obio_com, only: gcmax,tracer_loc
 
       USE OCEANRES, only : idm=>imo,jdm=>jmo,kdm=>lmo,dzo
       USE OCEAN, only : ZOE=>ZE,hocean
@@ -51,6 +51,7 @@ c  Carbon type 2    = DIC
  
       implicit none
 
+      real, ALLOCATABLE, DIMENSION(:,:,:,:):: tracer
       integer i,j,k,l,nn
       integer i1,i2,j1,j2,k1,k2
       integer lm
@@ -78,6 +79,7 @@ c  Carbon type 2    = DIC
       call alloc_obio_incom
 
       !gather_tracer
+      ALLOCATE(tracer(idm,jdm,kdm,ntrac))
       call pack_data( ogrid,  tracer_loc, tracer )
 
 

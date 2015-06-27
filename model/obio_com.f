@@ -76,7 +76,6 @@ c
 #endif
 #ifdef OBIO_ON_GARYocean
       real, ALLOCATABLE, DIMENSION(:,:,:,:):: tracer_loc    !only for gary ocean
-      real, ALLOCATABLE, DIMENSION(:,:,:,:):: tracer        !only for gary ocean
 
       integer nstep0
 
@@ -227,7 +226,6 @@ c**** Extract domain decomposition info
 
 
       ALLOCATE(tracer_loc(i_0h:i_1h,j_0h:j_1h,kdm,ntrac))
-      ALLOCATE(tracer(idm,jdm,kdm,ntrac))
 #endif
 
       ALLOCATE(tzoo2d(i_0h:i_1h,j_0h:j_1h))
@@ -510,7 +508,6 @@ c            do jj=j-1,j+1
       USE HYCOM_DIM, only : ogrid
       USE DOMAIN_DECOMP_1D, ONLY: PACK_DATA
       USE obio_com, only: tracav, plevav
-#ifdef TRACERS_OceanBiology
       USE obio_com, only:
      .     ao_co2fluxav_loc, ao_co2fluxav
      .    ,pCO2av_loc, pCO2av
@@ -519,17 +516,14 @@ c            do jj=j-1,j+1
 #ifdef TRACERS_Alkalinity
      .    ,caexpav_loc, caexpav
 #endif
-#endif
       implicit none 
 
-#ifdef TRACERS_OceanBiology
       call pack_data(ogrid, ao_co2fluxav_loc, ao_co2fluxav)
       call pack_data(ogrid, pCO2av_loc, pCO2av)
       call pack_data(ogrid, pp2tot_dayav_loc, pp2tot_dayav)
       call pack_data(ogrid, cexpav_loc, cexpav)
 #ifdef TRACERS_Alkalinity
       call pack_data(ogrid, caexpav_loc, caexpav)
-#endif
 #endif
       return
       end subroutine obio_gather_before_archive

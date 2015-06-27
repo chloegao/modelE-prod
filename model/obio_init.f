@@ -443,9 +443,7 @@ c  Read in factors to compute average irradiance
       endif
 
 #ifdef OBIO_ON_GARYocean
-      filename1='oasimdirect1'
-      filename2='oasimdirect2'
-      call obio_edaesa_g(filename1,filename2)
+      call obio_edaesa_g('oasimdirect1','oasimdirect2')
 #else
 !       !eda and esa interpolate in HYCOMgrid
 #endif

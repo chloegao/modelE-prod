@@ -54,7 +54,6 @@
       REAL*8, DIMENSION(KOIJ) :: SCALE_OIJ
 !@var [ij]grid_oij Grid descriptor for OIJ diagnostics
       INTEGER, DIMENSION(KOIJ) :: IGRID_OIJ,JGRID_OIJ
-#ifdef TRACERS_OceanBiology
 !@var ij_pCO2 surface ocean partial CO2 pressure
        character(len=1)str1
        character(len=4)str2
@@ -62,41 +61,25 @@
        character(len=4)str4
        character(len=5)str5
        character(len=9)str6
+       integer, allocatable :: ij_rhs(:, :)
        INTEGER :: IJ_dic,IJ_pCO2,IJ_nitr,IJ_diat,ij_herb
      .           ,ij_amm,ij_sil,ij_iron,ij_chlo,ij_cyan
      .           ,ij_cocc,ij_doc,IJ_alk,IJ_dayl,ij_sunz,ij_solz
      .           ,ij_flux,ij_Ed,ij_Es,ij_cexp,ij_pp,ij_wsd
      .           ,ij_lim(4,5),ilim,ij_ndet,ij_xchl   
      .           ,ij_pp1,ij_pp2,ij_pp3,ij_pp4
-     .           ,ij_rhs(ntrac-1,17),ll
+     .           ,ll
      .           ,ij_fca
 
-#ifdef OBIO_RUNOFF
-#ifdef NITR_RUNOFF
 !     .           ,ij_rnitrmflo
      .           ,ij_rnitrconc
-#endif
-#ifdef DIC_RUNOFF
      .           ,ij_rdicconc
-#endif
-#ifdef DOC_RUNOFF
      .           ,ij_rdocconc
-#endif
-#ifdef SILI_RUNOFF
      .           ,ij_rsiliconc
-#endif
-#ifdef IRON_RUNOFF
      .           ,ij_rironconc
-#endif
-#ifdef POC_RUNOFF
      .           ,ij_rpocconc
-#endif
-#ifdef ALK_RUNOFF
      .           ,ij_ralkconc
-#endif
-#endif
 
-#endif
       integer :: ij_cfcair, ij_kw, ij_csat, ij_cfcflux
 
 !@var IJ_xxx Names for OIJmm diagnostics
@@ -1743,6 +1726,7 @@ c
       enddo
       enddo
 
+      allocate(ij_rhs(ntrac-1,17))
       do nt=1,ntrac-1   ! don't include unused inert tracer
       do ll=1,17
         if (nt.eq.1)str4 = 'nitr'
