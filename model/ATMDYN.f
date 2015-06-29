@@ -144,7 +144,7 @@ c      end subroutine setDtParam
 !@vers 2015/05/08
 !@auth Original development team
       Use CONSTANT,   Only: by3,byGRAV,RGAS,SHA,kg2mb,UNDEF_VAL
-      Use RESOLUTION, Only: IM,JM,LM,LS1, MFIXs
+      Use RESOLUTION, Only: IM,JM,LM, MFIXs
       USE MODEL_COM, only : DTsrc
       Use ATM_COM,    Only: MA,U,V,T,Q,QCL,QCI,MASUM, MUs,MVs,MWs, GZ, P
       Use GEOM,       Only: AXYP
@@ -1037,7 +1037,7 @@ C****        2  SMOOTH T USING TROPOSPHERIC STRATIFICATION OF TEMPER
 C****        3  SMOOTH P AND T
 C****
       Use CONSTANT,   Only: byGRAV,RGAS,SHA,KAPA,MB2KG
-      Use RESOLUTION, Only: IM,JM,LM,LS1, MTOP,MFIXs, MFIX,MFRAC
+      Use RESOLUTION, Only: IM,JM,LM, MTOP,MFIXs, MFIX,MFRAC
       USE MODEL_COM, only : itime
       Use ATM_COM,    Only: ZATMO, MA, T,Q,QCL,QCI, PEDN,PMID,PK
       USE GEOM, only : areag,dxyp,byim
@@ -1054,11 +1054,11 @@ C****
 
       Real*8,Dimension(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      *   PEDNOLD,X,Y
-      Real*8,Dimension(1:LS1-1,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
+      Real*8,Dimension(LM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO)::
      *   MABEF,PKOLD
       Real*8 :: PSUMO,PSUMN,PDIF,AKAP,ZS, MVAR,MRAT,zMRAT
       REAL*8, EXTERNAL :: SLP
-      INTEGER I,J,L,N  !@var I,J,L  loop variables
+      Integer :: I,J,L,N, LMFRAC1,LMFRACM
       REAL*8, DIMENSION(grid%J_STRT_HALO:grid%J_STOP_HALO) :: KEJ,PEJ
       Integer :: J1P,JNP, J_0, J_1, J_0S, J_1S
       REAL*8 initialTotalEnergy, finalTotalEnergy
@@ -1075,9 +1075,13 @@ C**** Initialise total energy (J/m^2)
       initialTotalEnergy = getTotalEnergy()
 
 !**** Save MABEF, PKOLD, and PEDNOLD before FILTERing
-      MABEF(1:LS1-1,:,J1P:JNP) = MA(1:LS1-1,:,J1P:JNP)
-      PKOLD(1:LS1-1,:,J1P:JNP) = PK(1:LS1-1,:,J1P:JNP)
-      PEDNOLD(      :,J1P:JNP) = PEDN(1    ,:,J1P:JNP)
+      Do LMFRAC1=1,LM
+         If (MFRAC(LMFRAC1) > 0) Exit  ;  EndDo
+      Do LMFRACM=LM,1,-1
+         If (MFRAC(LMFRACM) > 0) Exit  ;  EndDo
+      MABEF(LMFRAC1:LMFRACM,:,J1P:JNP) = MA(LMFRAC1:LMFRACM,:,J1P:JNP)
+      PKOLD(LMFRAC1:LMFRACM,:,J1P:JNP) = PK(LMFRAC1:LMFRACM,:,J1P:JNP)
+      PEDNOLD(              :,J1P:JNP) = PEDN(1            ,:,J1P:JNP)
 
       if(pfilter_using_slp) then
 C****
@@ -1141,12 +1145,13 @@ C**** reduce large variations (mainly due to topography)
 !**** Compute new MA from filtered PEDN(1) array
       Do J=J1P,JNP  ;  Do I=1,IM
          MVAR = PEDN(1,I,J)*MB2KG - MFIXs - MTOP
-         MA(1:LS1-1,I,J) = MFIX(1:LS1-1) + MVAR*MFRAC(1:LS1-1)
+         MA(LMFRAC1:LMFRACM,I,J) = MFIX(LMFRAC1:LMFRACM) +
+     +                       MVAR*MFRAC(LMFRAC1:LMFRACM)
          EndDo  ;  EndDo
       Call MAtoPMB
 
 C**** Scale mixing ratios (incl moments) to conserve mass/heat
-      DO L=1,LS1-1
+      DO L=LMFRAC1,LMFRACM
       DO J=J_0S,J_1S
       DO I=1,IM
          zMRAT = MABEF(L,I,J) / MA(L,I,J)
@@ -1170,7 +1175,7 @@ C**** But if n_air=0 this will cause problems...
       do n=1,ntm
       if (trname(n).ne.'Air' .and. trname(n).ne.'CO2n') cycle
 !     if (itime.lt.itime_tr0(n)) cycle   !probably not needed
-      DO L=1,LS1-1
+      Do L=LMFRAC1,LMFRACM
         DO J=J_0S,J_1S
           DO I=1,IM
          MRAT = MA(L,I,J) / MABEF(L,I,J)
@@ -1190,7 +1195,7 @@ C**** TEMPERATURE STRATIFICATION FILTER ON T
 C****
       AKAP=KAPA-.205d0    ! what is this number?
       DO L=1,LM
-        IF(L.LT.LS1) THEN
+        If (L <= LMFRACM)  Then
           DO J=J_0S,J_1S
             Y(:,J) = PMID(L,:,J)**AKAP
             X(:,J)=T(:,J,L)*Y(:,J)
@@ -1578,6 +1583,7 @@ c**** Extract domain decomposition info
       END DO
       RETURN
       END SUBROUTINE SHAP1D
+
 
       SUBROUTINE SDRAG(DT1)
 !@sum  SDRAG puts a drag on the winds in the top layers of atmosphere

@@ -64,9 +64,7 @@ c#endif
       use CONSTANT, only : grav,shw,rgas,omega,bygrav,gamd
      &     ,radian,radius
       use TimeConstants_mod, only: SECONDS_PER_DAY
-      USE RESOLUTION, only : ls1
       use MODEL_COM, only : dtsrc,kocean,qcheck
-      use DYNAMICS, only : sige
       use DIAG_COM
       use DIAG_COM_RAD
       use DOMAIN_DECOMP_ATM, only: AM_I_ROOT
@@ -663,7 +661,6 @@ c
       lname_j(k) = 'STRATO TEMP CHANGE PER DEGREE LATITUDE'
       units_j(k) = 'deg C/deg lat'
       stitle_j(k)= '0DT/DLAT(STRAT) '
-c      scale_j(k) = .5D2*(JM-1.)/((SIGE(LS1)-SIGE(LSTR+1)+1d-12)*180.)
       scale_j(k) = 100.*radius*radian
       ia_j(k) = ia_dga
       fmt_reg(k) = fmtnone
@@ -674,7 +671,6 @@ c
       lname_j(k) = 'TROPO TEMP CHANGE PER DEGREE LATITUDE'
       units_j(k) = 'deg C/deg lat'
       stitle_j(k)= ' DT/DLAT(TROPO) '
-c      scale_j(k) = .5d2*(JM-1.)/((SIGE(1)-SIGE(LS1))*180.)
       scale_j(k) = 100.*radius*radian
       ia_j(k) = ia_dga
       fmt_reg(k) = fmtnone
@@ -781,7 +777,7 @@ c
       lname_j(k) = 'MOIST ADIABATIC LAPSE RATE'
       units_j(k) = 'K/km'
       stitle_j(k)= ' GAMM(K/KM)     '
-      scale_j(k) = 1.D3*GAMD/(SIGE(1)-SIGE(LS1))
+      scale_j(k) = 1d3*GAMD
       ia_j(k) = ia_dga
       fmt_j(k) = fmt911
       fmt_reg(k) = fmtnone
