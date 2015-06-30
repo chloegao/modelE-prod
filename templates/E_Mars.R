@@ -144,6 +144,9 @@ meanDistance = 1.52366231 ! AU
 ! scaling factor for solar brightness is now from mean distance.
 s0x=1.00
 
+! scaling factor for O2 amounts. 0.7% of present-day Earth gives 0.146%.
+o2x=0.007
+
 ! scaling factor for CO2 amounts.  Increase by the ratio of 95% molar CO2 to
 ! whatever concentration is in the GHG file (which has ppmv units)
 !co2x=1.
