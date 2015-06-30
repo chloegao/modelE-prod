@@ -4,6 +4,7 @@
 
       USE DOMAIN_DECOMP_ATM, only: write_parallel 
       use constant, only: pO2
+      use RAD_COM, only: o2x
 #ifdef TRACERS_ON
       use RAD_COM, only: njaero
 #endif
@@ -775,14 +776,14 @@ C---Calculate columns, for diagnostic output only:
       allocate( COLO2(NBFASTJ) )
       allocate( COLO3(NBFASTJ) )
       COLO3(NBFASTJ) = DO32(NBFASTJ)
-      COLO2(NBFASTJ) = DMFASTJ2(NBFASTJ)*pO2
+      COLO2(NBFASTJ) = DMFASTJ2(NBFASTJ)*pO2*o2x
 #ifdef TRACERS_ON
       allocate(colax(njaero,NBFASTJ))
       COLAX(:,NBFASTJ) = AER2(NBFASTJ,:)
 #endif
       do I=NBFASTJ-1,1,-1
         COLO3(i) = COLO3(i+1)+DO32(i)
-        COLO2(i) = COLO2(i+1)+DMFASTJ2(i)*pO2
+        COLO2(i) = COLO2(i+1)+DMFASTJ2(i)*pO2*o2x
 #ifdef TRACERS_ON
         COLAX(:,i) = COLAX(:,i+1)+AER2(i,:)
 #endif
@@ -837,7 +838,7 @@ C---Print out climatology:
           climat(6)=tref2(i,l,m)
           climat(7)=PJC
           climat(8)=climat(8)+climat(4)
-          climat(9)=climat(9)+climat(3)*pO2
+          climat(9)=climat(9)+climat(3)*pO2*o2x
           write(out_line,1100) I,(climat(k),k=1,9)
           call write_parallel(trim(out_line),crit=jay)
         enddo
@@ -1257,7 +1258,7 @@ C---Set up total optical depth over each CTM level, DTAUX:
       J1 = NLBATM
       do J=J1,NBFASTJ
         XLO3=DO32(J)*XQO3_2(J)
-        XLO2=DMFASTJ2(J)*XQO2_2(J)*pO2
+        XLO2=DMFASTJ2(J)*XQO2_2(J)*pO2*o2x
         XLRAY=DMFASTJ2(J)*QRAYL(KW)
         if(WAVEL <= 291.d0) XLRAY=XLRAY * 0.57d0
         DTAUX(J)=XLO3+XLO2+XLRAY
