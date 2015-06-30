@@ -551,8 +551,8 @@ c**** get input from pbl_args structure
 
       call griddr(z,zhat,xi,xihat,dz,dzh,zgs,ztop,bgrid,n,ierr)
       if (ierr.gt.0) then
-        print*,"advanc: i,j,ihc,itype=",ilong,jlat,ihc,
-     &       itype,u(1),v(1),t(1),q(1)
+        print*,"advanc: i,j,ihc=",ilong,jlat,ihc
+        print*,"advanc: itype,ztop,bgrid=",itype,ztop,bgrid
         call stop_model("PBL error in advanc",255)
       end if
 
@@ -3378,7 +3378,7 @@ c       endif
       real*8 zet,zet0
       ! out:
       real*8 dpsih
-      real*8 x,x0,xh
+      real*8 x,x0,xh,rat
       ! dpsih
       if(zet.ge.0.d0) then ! stable
         if(zet.le.zet1) then
@@ -3393,8 +3393,12 @@ c       endif
         x0=(1.-gamahu*zet0)**0.5d0
         xh= (1.-gamahu*zeth)**0.5d0
         if(zet.gt.zeth) then
-          dpsih=log(zet/zet0)
-     &          +sigma*log((1+x)*(1-x0)/((1-x)*(1+x0)))
+          if(x0.ne.1.d0) then
+            rat=(1+x)*(1-x0)/((1-x)*(1+x0))
+          else
+            rat=zet0/zet
+          endif
+          dpsih=log(zet/zet0)+sigma*log(rat)
         else
           dpsih=log(zet/zet0)
      2          +sigma*log((1+xh)*(1-x0)/((1-xh)*(1+x0)))
