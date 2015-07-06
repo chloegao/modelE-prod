@@ -56,7 +56,6 @@
      &     CFCICIN,CFCIC,CFCICINL,CFCICL,PIratio_N2O,PIratio_CFC,
      &     use_rad_n2o,use_rad_cfc,cfc_rad95,PltOx,Tpsc_offset_N,
      &     Tpsc_offset_S
-      use photolysis, only: rad_FL
 #ifdef INTERACTIVE_WETLANDS_CH4
       USE TRACER_SOURCES, only:int_wet_dist,topo_lim,sat_lim,gw_ulim,
      &gw_llim,sw_lim,exclude_us_eu,nn_or_zon,ice_age,nday_ch4,max_days,
