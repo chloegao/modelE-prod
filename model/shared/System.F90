@@ -4,27 +4,6 @@
 #ifdef COMPILER_PGI
 #define COMPILER_G95
 #endif
-  
-subroutine exit_rc (code)
-!@sum  exit_rc stops the run and sets a return code
-!@auth Reto A Ruedy
-#if ( defined(COMPILER_NAG) )
-  use f90_unix_proc
-#endif
-  implicit none
-  integer, intent(IN) :: code !@var code return code set by user
-#if defined(MACHINE_SGI) || defined(MACHINE_Linux) || defined(MACHINE_DEC) \
-  || ( defined(MACHINE_MAC) && ! defined(COMPILER_XLF) )
-       call exit(code) !!! should check if it works for Absoft and DEC
-#elif defined( MACHINE_IBM ) \
-  || ( defined(MACHINE_MAC) && defined(COMPILER_XLF) )
-  call exit_(code)
-#else
-  none of supported architectures was specified.
-  This will crash the compiling process.
-#endif
-  return
-end subroutine exit_rc
 
 subroutine sys_flush (unit)
 !@sum system call to flush corresponding I/O unit
