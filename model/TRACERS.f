@@ -1045,7 +1045,9 @@ cyhl     *             /18.d0/visc(i,j,l)
 
 #endif
 C**** Calculate height differences using geopotential
-                fgrfluxd=stokevdt*gbygz(i,j,l) 
+C**** Next line causes problems in high vertical resolution models. Limit it for now:
+C****           fgrfluxd=stokevdt*gbygz(i,j,l) 
+                fgrfluxd=min(stokevdt*gbygz(i,j,l),1.d0) 
                 fluxd(i,j) = trm(i,j,l,n)*fgrfluxd ! total flux down
                 trm(i,j,l,n) = trm(i,j,l,n)*(1.-fgrfluxd)+fluxu(i,j)
                 if (1.-fgrfluxd.le.1d-16) trm(i,j,l,n) = fluxu(i,j)
