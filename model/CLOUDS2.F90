@@ -1837,7 +1837,7 @@ contains
         DQM(LMAX)=DQM(LMAX)+QMPMAX
         DQMOM(xymoms,LMAX)=DQMOM(xymoms,LMAX) + QMOMPMAX(xymoms)
 #ifdef TRACERS_ON
-        DTM(LMAX,1:NTX) = DTM(LMAX,1:NTX) + TMPMAX(1:NTX)
+       DTM(LMAX,1:NTX) = DTM(LMAX,1:NTX) + TMPMAX(1:NTX)
         DTMOM(xymoms,LMAX,1:NTX) = DTMOM(xymoms,LMAX,1:NTX) + &
                                    TMOMPMAX(xymoms,1:NTX)
 #endif
@@ -2969,7 +2969,8 @@ contains
          ,RHW,SEDGE,SIGK,SLH,SMN1,SMN2,SMO1,SMO2,TEM,TEMP,TEVAP,THT1 &
          ,THT2,TLT1,TNEW,TNEWU,TOLD,TOLDU,TOLDUP,VDEF,WCONST,WMN1,WMN2 &
          ,QCLNEW,QCINEW,WMO1,WMO2,WMT1,WMT2,WMX1,WTEM,VVEL,RCLD,FCOND &
-         ,PRATM,SMN12,SMO12,QF,FSSLRAT,SMOM2_sv(nmom),QMOM2_sv(nmom),QCX
+         ,PRATM,SMN12,SMO12,QF,FSSLRAT,SMOM2_sv(nmom),QMOM2_sv(nmom),QCX &
+         ,QCXNEW
     real*8 SNdO,SNdL,SNdI,SCDNCW,SCDNCI
 #ifdef CLD_AER_CDNC
 !@auth Menon  - storing var for cloud droplet number
@@ -4540,8 +4541,12 @@ contains
       if (FSSL(L).gt.0) then
        IF(LHX.EQ.LHE) THEN
          QHEAT(L)=QHEATL(L)
+         QCX=QCLX(L)
+         QCXNEW=QCLNEW
        ELSE
          QHEAT(L)=QHEATI(L)
+         QCX=QCIX(L)
+         QCXNEW=QCINEW
        END IF
         if (QHEAT(L)+CLEARA(L)*FSSL(L)*ER(L).gt.0) then
           if (LHX*QL(L)+DTsrc*CLEARA(L)*ER(L).gt.0.) FQTOW=(QHEAT(L &
@@ -4553,12 +4558,12 @@ contains
 !yunha               +CLEARA(L)*FSSL(L)*ER(L))*DTsrc/(LHX*(WMX(L)-PREP(L)*DTsrc))
 !yunha          FWTOQ=min(1d0,FWTOQ)
           IF (FORM_CLOUDS) THEN
-            IF (QCLX(L)-PREP(L)*DTsrc.gt.0.) FWTOQ=-(QHEAT(L) &
-                 +CLEARA(L)*FSSL(L)*ER(L))*DTsrc/(LHX*(QCLX(L)-PREP(L)*DTsrc))
+            IF (QCX-PREP(L)*DTsrc.gt.0.) FWTOQ=-(QHEAT(L) &
+                 +CLEARA(L)*FSSL(L)*ER(L))*DTsrc/(LHX*(QCX-PREP(L)*DTsrc))
             FWTOQ=MIN(1d0,FWTOQ)
-            IF(QCLNEW.EQ.0.AND.QNEW.GE.0) FWTOQ=1.
+            IF(QCXNEW.EQ.0.AND.QNEW.GE.0) FWTOQ=1.
           ELSE ! YUNHA
-            IF (QCLX(L)-PREP(L)*DTsrc.gt.0.)FWTOQ=DWDT/(QCLX(L)-PREP(L)*DTsrc)
+            IF (QCX-PREP(L)*DTsrc.gt.0.)FWTOQ=DWDT/(QCX-PREP(L)*DTsrc)
             FWTOQ=MIN(1d0,FWTOQ)
           ENDIF
 #endif
