@@ -119,7 +119,8 @@ contains
     n_NH3 = n
     call set_ntm_power(n, -10)
     call set_tr_mm(n, 17.d0)
-    call set_tr_RKD(n, 0.7303d0   ) !tr_RKD=74 M/atm
+    call set_tr_RKD(n, 100.d0) ! higher than nominal; effective Henry
+!    call set_tr_RKD(n, 0.7303d0   ) !tr_RKD=74 M/atm
     call set_tr_DHD(n, -2.84d4  ) !tr_DHD=-6.80 kcal/mole
     call set_tr_wd_type(n, ngas)
     if (tracers_drydep) call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
