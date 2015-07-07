@@ -71,7 +71,7 @@
       REAL(8) :: AH2O      ! aerosol water         [ug/m^3]
       REAL(8) :: GNH3      ! gas-phase ammonia     [ugNH4/m^3] as ammonium (MW)
       REAL(8) :: GHNO3     ! gas-phase nitric acid [ugNO3/m^3] as nitrate  (MW)
-      REAL(8) :: TOT_DUST  ! total dust(sol+insol) [ug/m^3]
+      REAL(8) :: TOT_DUST=0.d0  ! total dust(sol+insol) [ug/m^3]
       REAL(8) :: TOT_SALT=0.d0 ! total salt(sol+insol) [ug/m^3]
       REAL(8) :: TK        ! absolute temperature  [K]          
       REAL(8) :: RH        ! relative humidity     [0-1]
@@ -153,14 +153,15 @@ c avol [m3/gb] mass of air pro m3
 #else 
       GHNO3= off_HNO3(i,j,l)   *1.d9 * 1.292
 #endif
-      TOT_DUST = 0.d0
 #ifdef  TRACERS_DUST
-      TOT_DUST =(trm(i,j,l,n_Clay)+trm(i,j,l,n_Silt1)+trm(i,j,l,n_Silt2)+trm(i,j,l,n_Silt3)) 
+! dust impact disabled until we gain confidence on it
+!      TOT_DUST =(trm(i,j,l,n_Clay)+trm(i,j,l,n_Silt1)+trm(i,j,l,n_Silt2)+trm(i,j,l,n_Silt3)) 
      *           *1.d9 /AVOL
 #endif
 #ifdef TRACERS_AEROSOLS_SEASALT
-      TOT_SALT  =(trm(i,j,l,n_seasalt1)+ trm(i,j,l,n_seasalt2))
-     *           *1.d9 /AVOL
+! seasalt impact disabled until we gain confidence on it
+!      TOT_SALT  =(trm(i,j,l,n_seasalt1)+ trm(i,j,l,n_seasalt2))
+!     *           *1.d9 /AVOL
 #endif  /* TRACERS_AEROSOLS_SEASALT */
 
 
@@ -303,7 +304,6 @@ c avol [m3/gb] mass of air pro m3
       REAL(8) :: AH2O      ! aerosol water         [ug/m^3]
       REAL(8) :: GNH3      ! gas-phase ammonia     [ugNH4/m^3] as ammonium (MW)
       REAL(8) :: GHNO3     ! gas-phase nitric acid [ugNO3/m^3] as nitrate  (MW)
-      REAL(8) :: TOT_DUST  ! total dust(sol+insol) [ug/m^3]
       REAL(8) :: TK        ! absolute temperature  [K]          
       REAL(8) :: RH        ! relative humidity     [0-1]
       REAL(8) :: RHD       ! RH of deliquescence   [0-1]
@@ -388,11 +388,6 @@ c avol [m3/gb] mass of air pro m3
       GHNO3= trm(i,j,l,n_HNO3) *1.d9 /AVOL
 #else 
       GHNO3= off_HNO3(i,j,l)   *1.d9 * 1.292
-#endif
-      TOT_DUST = 0.d0
-#ifdef  TRACERS_DUST
-      TOT_DUST =(trm(i,j,l,n_Clay)+trm(i,j,l,n_Silt1)+trm(i,j,l,n_Silt2)+trm(i,j,l,n_Silt3)) 
-     *           *1.d9 /AVOL
 #endif
 
 
