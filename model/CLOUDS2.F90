@@ -3207,11 +3207,7 @@ contains
     do L=1,LMCLD
       CLEARA(L)=1.-CLDSAVL(L)
 !     if(WMX(L).le.0.) CLEARA(L)=1.
-      IF(SVLHXL(L).EQ.LHE) THEN
-        if(QCLX(L).le.0.) CLEARA(L)=1.
-      ELSE IF(SVLHXL(L).EQ.LHS) THEN
-        if(QCIX(L).le.0.) CLEARA(L)=1.
-      END IF
+      if(QCLX(L)+QCIX(L).le.0.) CLEARA(L)=1.
 #ifdef CLD_AER_CDNC
       CLDSAV0(L) = 1.-CLEARA(L)
 #endif
@@ -3337,11 +3333,7 @@ contains
 
           if (L.lt.LMCLD) then
           !**** Decide whether precip initiates B-F process
-            IF(OLDLHX.EQ.LHE) THEN
-              PML=QCLX(L)*AIRM(L)*BYGRAV
-            ELSE
-              PML=QCIX(L)*AIRM(L)*BYGRAV
-            END IF
+            PML=(QCLX(L)+QCIX(L))*AIRM(L)*BYGRAV
             PMI=PREICE(L+1)*DTsrc
             RANDNO=RNDSSL(2,L)     !  RANDNO=RANDU(XY)
           !**** Calculate probability of ice precip seeding a water cloud
@@ -3370,7 +3362,7 @@ contains
       !**** COMPUTE RELATIVE HUMIDITY
       QSATL(L)=QSAT(TL(L),LHX,PL(L))
       RH1(L)=QL(L)/QSATL(L)
-      if(LHX.eq.LHS.and.QCIX(L).le.0d0) then ! Karcher and Lohmann formula
+      if(LHX.eq.LHS.and.QCLX(L)+QCIX(L).le.0d0) then ! Karcher and Lohmann formula
         QSATE=QSAT(TL(L),LHE,PL(L))
         RHW=(2.583d0-TL(L)/207.83)*(QSAT(TL(L),LHS,PL(L))/QSATE)
         if(TL(L).lt.238.16) RH1(L)=QL(L)/(QSATE*RHW)
@@ -3672,7 +3664,7 @@ contains
 
 
 !        QLWC=WMX(L)/(FCLD + teeny)     !in-cloud dimensionless LWC
-         QLWC=QCLX(L)/(FCLD + teeny)     !in-cloud dimensionless LWC
+         QLWC=(QCLX(L)+QCIX(L))/(FCLD + teeny)     !in-cloud dimensionless LWC or IWC
          QLWC=MIN(QLWC, 3.d-03)    !(upper limit for the QLWC)
 
          RHO=1.d5*PL(L)/(RGAS*TL(L))
@@ -4825,13 +4817,13 @@ contains
         end if
         if(CLEARA(L).gt.1.) CLEARA(L)=1.
         if(RH(L).gt.1.) CLEARA(L)=0.
-        if(QCIX(L).le.0.) CLEARA(L)=1.
+        if(QCLX(L)+QCIX(L).le.0.) CLEARA(L)=1.
         QF=(QL(L)-QSATC*(1.-CLEARA(L)))/(CLEARA(L)+teeny)
         if(QF.lt.0.) write(6,*) 'L CA QF Q QSA=',L,CLEARA(L),QF,QL(L), &
              QSATC
         QSATE=QSAT(TL(L),LHE,PL(L))
         RHW=(2.583d0-TL(L)/207.83)*(QSAT(TL(L),LHS,PL(L))/QSATE)
-        if(TL(L).lt.238.16.and.QCIX(L).le.0d0) RH1(L)=QF/(QSATE*RHW)
+        if(TL(L).lt.238.16.and.QCLX(L)+QCIX(L).le.0d0) RH1(L)=QF/(QSATE*RHW)
       end if
       if(RH1(L).gt.1.) then    ! RH was used in old versions
         SLH=LHX*BYSHA
@@ -5068,7 +5060,7 @@ contains
       ELSE
         WMXM(L+1)=QCIX(L+1)*AIRM(L)
       END IF
-      if(WMXM(L+1).gt.teeny) cycle ! use WMX(L+1) in old code
+      if(QCLX(L+1)+QCIX(L+1).gt.teeny) cycle
       TOLD=TL(L)
       TOLDU=TL(L+1)
       QOLD=QL(L)
@@ -5658,7 +5650,7 @@ contains
       !       IF (SVLHXL(L).EQ.LHE) CL3DL(L) = WMX(L)*RHODK*CD3DL(L) ! cld water kg m-2
       !       IF (SVLHXL(L).EQ.LHS) CI3DL(L) = WMX(L)*RHODK*CD3DL(L) ! ice water kg m-2
       if (SVLHXL(L).eq.LHE) CL3DL(L) = QCLX(L)*RHODK          ! cld water kg m-3
-      if (SVLHXL(L).eq.LHS) CI3DL(L) = QCLX(L)*RHODK          ! ice water kg m-3
+      if (SVLHXL(L).eq.LHS) CI3DL(L) = QCIX(L)*RHODK          ! ice water kg m-3
       !      write(6,*)"CT",L,WMX(L),CD3DL(l),CL3DL(L),CI3DL(L)
 
       !      CTEML(L)=TL(L)                            ! Cloud temperature(K)
