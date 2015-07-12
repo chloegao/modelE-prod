@@ -31,15 +31,8 @@
 #endif
 #endif /* TRACERS_WATER */
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
-    (defined TRACERS_TOMAS)
-      use tracers_dust,only : imDust,prefDustSources,fracClayPDFscheme
-     &   ,fracSiltPDFscheme
+    (defined TRACERS_AMP)  || (defined TRACERS_TOMAS)
       use trdust_drv, only : init_soildust
-#endif
-#ifdef TRACERS_QUARZHEM
-     &     ,DensityHematite, DensityQuartz, FreeFe, frHemaInQuarAggr,
-     &     pureByTotalHematite
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
       use tracer_sources, only: aircraft_Tyr1,aircraft_Tyr2
@@ -292,8 +285,7 @@ C**** Get to_conc from rundecks if it exists
       call syncProperty(tracers,"to_conc", set_to_conc, to_conc())
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
 c**** soil dust aerosol initializations
       call init_soildust
 #endif

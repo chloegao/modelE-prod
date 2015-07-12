@@ -156,33 +156,46 @@ C**** Each tracer has a variable name and a unique index
 
 !@var ntm_dust: Number of dust aerosol tracers.
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)||\
-    (defined TRACERS_TOMAS) 
+    (defined TRACERS_AMP)|| (defined TRACERS_TOMAS) 
 #if (defined TRACERS_DUST) || (defined TRACERS_AMP)||\
     (defined TRACERS_TOMAS) 
-#ifdef TRACERS_DUST_Silt4
-      integer, parameter :: ntm_dust=5
+      integer, parameter :: ntm_clay = 1
+#ifdef TRACERS_DUST_Silt5
+      integer, parameter :: ntm_dust = 6
 #else
-      integer, parameter :: ntm_dust=4
+#ifdef TRACERS_DUST_Silt4
+      integer, parameter :: ntm_dust = 5
+#else
+      integer, parameter :: ntm_dust = 4
 #endif  /* TRACERS_DUST_Silt4 */
-#else /* TRACERS_MINERALS || TRACERS_QUARZHEM */
+#endif  /* TRACERS_DUST_Silt5 */
+#else
 !@var ntm_minerals: Number of TRACERS_MINERALS tracers.
 #ifdef TRACERS_MINERALS
-      integer, parameter :: ntm_minerals=20
+      integer, parameter :: ntm_clay = 15
+      integer, parameter :: ntm_sil1 = 15
+      integer, parameter :: ntm_sil2 = 15
+      integer, parameter :: ntm_sil3 = 15
+#ifdef TRACERS_DUST_Silt5
+      integer, parameter :: ntm_sil4 = 15
+      integer, parameter :: ntm_sil5 = 15
 #else
-      integer, parameter :: ntm_minerals = 0
+#ifdef TRACERS_DUST_Silt4
+      integer, parameter :: ntm_sil4 = 15
+      integer, parameter :: ntm_sil5 = 0
+#else
+      integer, parameter :: ntm_sil4 = 0
+      integer, parameter :: ntm_sil5 = 0
+#endif  /* TRACERS_DUST_Silt4 */
+#endif  /* TRACERS_DUST_Silt5 */
+      integer, parameter :: ntm_dust = ntm_clay + ntm_sil1 + ntm_sil2 +
+     &     ntm_sil3 + ntm_sil4 + ntm_sil5
 #endif  /* TRACERS_MINERALS */
-!@var ntm_quarzhem: Number of TRACERS_QUARZHEM tracers.
-#ifdef TRACERS_QUARZHEM
-      integer, parameter :: ntm_quarzhem=3
+#endif  /* TRACERS_DUST || TRACERS_AMP || TRACERS_TOMAS */
 #else
-      integer, parameter :: ntm_quarzhem = 0
-#endif  /* TRACERS_QUARZHEM */
-      integer, parameter :: ntm_dust = ntm_minerals + ntm_quarzhem
-#endif /* TRACERS_MINERALS || TRACERS_QUARZHEM */
-#else
-      integer, parameter :: ntm_dust=0
-#endif
+      integer, parameter :: ntm_dust = 0
+      integer, parameter :: ntm_clay = 0
+#endif  /*  TRACERS_DUST || TRACERS_MINERALS || TRACERS_AMP || TRACERS_TOMAS */
 
 !@var ntm_het: Number of TRACERS_HETCHEM tracers.
 #ifdef TRACERS_HETCHEM
@@ -369,13 +382,32 @@ C**** Each tracer has a variable name and a unique index
      *     n_vbsAm2=0, n_vbsAm1=0, n_vbsAz=0,  n_vbsAp1=0, n_vbsAp2=0,
      *     n_vbsAp3=0, n_vbsAp4=0, n_vbsAp5=0, n_vbsAp6=0,
      *     n_OCocean=0,
-     &     n_clay=0,   n_silt1=0, n_silt2=0, n_silt3=0, n_silt4=0,
-     &     n_clayilli=0,n_claykaol=0,n_claysmec=0,n_claycalc=0,
-     &     n_clayquar=0,n_sil1quar=0,n_sil1feld=0,n_sil1calc=0,
-     &     n_sil1hema=0,n_sil1gyps=0,n_sil2quar=0,n_sil2feld=0,
-     &     n_sil2calc=0,n_sil2hema=0,n_sil2gyps=0,n_sil3quar=0,
-     &     n_sil3feld=0,n_sil3calc=0,n_sil3hema=0,n_sil3gyps=0,
-     &     n_sil1quhe=0,n_sil2quhe=0,n_sil3quhe=0,
+     &     n_clay=0,  n_silt1=0, n_silt2=0, n_silt3=0, n_silt4=0,
+     &     n_silt5=0,
+     &     n_clayilli=0, n_claykaol=0, n_claysmec=0, n_claycalc=0,
+     &     n_clayquar=0, n_clayfeld=0, n_clayhema=0, n_claygyps=0,
+     &     n_clayilhe=0, n_claykahe=0, n_claysmhe=0, n_claycahe=0,
+     &     n_clayquhe=0, n_clayfehe=0, n_claygyhe=0,
+     &     n_sil1illi=0, n_sil1kaol=0, n_sil1smec=0, n_sil1calc=0,
+     &     n_sil1quar=0, n_sil1feld=0, n_sil1hema=0, n_sil1gyps=0, 
+     &     n_sil1ilhe=0, n_sil1kahe=0, n_sil1smhe=0, n_sil1cahe=0,
+     &     n_sil1quhe=0, n_sil1fehe=0, n_sil1gyhe=0,
+     &     n_sil2illi=0, n_sil2kaol=0, n_sil2smec=0, n_sil2calc=0,
+     &     n_sil2quar=0, n_sil2feld=0, n_sil2hema=0, n_sil2gyps=0,
+     &     n_sil2ilhe=0, n_sil2kahe=0, n_sil2smhe=0, n_sil2cahe=0,
+     &     n_sil2quhe=0, n_sil2fehe=0, n_sil2gyhe=0,
+     &     n_sil3illi=0, n_sil3kaol=0, n_sil3smec=0, n_sil3calc=0,
+     &     n_sil3quar=0, n_sil3feld=0, n_sil3hema=0, n_sil3gyps=0,
+     &     n_sil3ilhe=0, n_sil3kahe=0, n_sil3smhe=0, n_sil3cahe=0,
+     &     n_sil3quhe=0, n_sil3fehe=0, n_sil3gyhe=0,
+     &     n_sil4illi=0, n_sil4kaol=0, n_sil4smec=0, n_sil4calc=0,
+     &     n_sil4quar=0, n_sil4feld=0, n_sil4hema=0, n_sil4gyps=0,
+     &     n_sil4ilhe=0, n_sil4kahe=0, n_sil4smhe=0, n_sil4cahe=0,
+     &     n_sil4quhe=0, n_sil4fehe=0, n_sil4gyhe=0,
+     &     n_sil5illi=0, n_sil5kaol=0, n_sil5smec=0, n_sil5calc=0,
+     &     n_sil5quar=0, n_sil5feld=0, n_sil5hema=0, n_sil5gyps=0,
+     &     n_sil5ilhe=0, n_sil5kahe=0, n_sil5smhe=0, n_sil5cahe=0,
+     &     n_sil5quhe=0, n_sil5fehe=0, n_sil5gyhe=0,
      *     n_M_NO3=0,   n_M_NH4=0,   n_M_H2O=0,   n_M_AKK_SU=0,
      *     n_N_AKK_1=0, n_M_ACC_SU=0,n_N_ACC_1=0, n_M_DD1_SU=0,
      *     n_M_DD1_DU=0,n_N_DD1_1=0, n_M_DS1_SU=0,n_M_DS1_DU=0,
@@ -404,6 +436,8 @@ C**** Each tracer has a variable name and a unique index
      *     nn_ClOx,   nn_BrOx,  nn_HCl,   nn_HOCl,   nn_ClONO2,  
      *      nn_HBr,    nn_HOBr,  nn_BrONO2,nn_CFC,    nn_GLT
 
+!@var n_soilDust index of first soil dust aerosol tracer
+      integer :: n_soilDust = 0
 #ifdef TRACERS_AMP
 !@var ntmAMPi Index of the first AMP tracer
 !@var ntmAMPe Index of the last AMP tracer

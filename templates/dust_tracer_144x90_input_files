@@ -1,11 +1,15 @@
 ! files for dust tracers
 ERS=ERS1_1993_MONTHLY.144x90.threshold-13 ! ERS data
 DSRC=Ginoux_source_v2009_VegMask_144x90   ! preferred dust sources
-                                          ! optimized use: prefDustSources=1
 ! alternative preferred dust source files:
-!  Ginoux2001_source_VegMask_144x90     (optimized use: prefDustSources=0)
-!  Ginoux_source_v2009_NoVegMask_144x90 (optimized use: prefDustSources=2)
-!  GriniZender_DustSources_144x90       (optimized use: prefDustSources=3)
-!  Tegen_DustSources_144x90             (optimized use: prefDustSources=4)
+!  Ginoux2001_source_VegMask_144x90
+!  Ginoux_source_v2009_NoVegMask_144x90
+!  GriniZender_DustSources_144x90
+!  Tegen_DustSources_144x90
 LKTAB=log_dust_emission_60ms-1 ! look up table for emission calculations
 LKTAB1=table_wspdf             ! look up table for wind speed probabilities
+! uncomment for AEROCOM year 2000 simulations (set also imDust=1)
+!dust_bin1=DUST_bin1_2000_2x2.5.nc
+!dust_bin2=DUST_bin2_2000_2x2.5.nc
+!dust_bin3=DUST_bin3_2000_2x2.5.nc
+!dust_bin4=DUST_bin4_2000_2x2.5.nc

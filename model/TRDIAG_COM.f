@@ -100,11 +100,7 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 
 !@param KTAIJS number of special lat/lon tracer diagnostics
 !@+   please just increase this if needed - don't bother with pp options
-#ifdef TRACERS_TOMAS
-      INTEGER,PARAMETER :: ktaijs=4500 !3590
-#else
-      INTEGER,PARAMETER :: ktaijs=2300
-#endif
+      INTEGER,PARAMETER :: ktaijs=6500
 !@param MaxSubCl Maximum number of sub classes of tracers for rad. diagnostics
       INTEGER,PARAMETER :: MaxSubCl=4
 !@param MaxDMc Maximum number of special wet depo diags for MC clouds

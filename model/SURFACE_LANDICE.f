@@ -169,8 +169,7 @@ C**** Set up tracers for PBL calculation if required
       pbl_args%ntix(1:ntm) = ntix(1:ntm)
 #endif
 
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       pbl_args % moddd = moddd
       pbl_args % ih = ih
       pbl_args % ihm = ihm

@@ -144,11 +144,11 @@
       use RunTimeControls_mod, only: tracers_nitrate
       use RunTimeControls_mod, only: tracers_dust
       use RunTimeControls_mod, only: tracers_dust_silt4
+      use RunTimeControls_mod, only: tracers_dust_silt5
       use RunTimeControls_mod, only: tracers_hetchem
       use RunTimeControls_mod, only: tracers_cosmo
       use RunTimeControls_mod, only: tracers_radon
       use RunTimeControls_mod, only: tracers_minerals
-      use RunTimeControls_mod, only: tracers_quarzhem
       use RunTimeControls_mod, only: tracers_on
       use RunTimeControls_mod, only: accmip_like_diags
       use RunTimeControls_mod, only: tracers_air
@@ -192,6 +192,9 @@
 #endif
 #ifdef TRACERS_RADON
       use sharedTracersMetadata_mod, only: Rn222_setSpec
+#endif
+#ifdef TRACERS_MINERALS
+      use MineralsTracersMetadata_mod
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)  || (defined TRACERS_AEROSOLS_SEASALT)
@@ -283,6 +286,7 @@
         call  Silt2_setSpec('Silt2')
         call  Silt3_setSpec('Silt3')
         if (tracers_dust_Silt4) call  Silt4_setSpec('Silt4')
+        if (tracers_dust_Silt5) call  Silt5_setSpec('Silt5')
       end if
 
 #ifdef TRACERS_NITRATE
@@ -325,12 +329,6 @@
        if (tracers_minerals) then
          call Minerals_InitMetadata(pTracer)
        end if
-#endif
-
-#ifdef TRACERS_QUARZHEM
-      if (tracers_quarzhem) then
-        call Quarzhem_InitMetadata(pTracer)
-      end if
 #endif
 
       if (tracers_air .or. accmip_like_diags) then
@@ -485,12 +483,6 @@
       use TRACER_COM, only: aer_int_yr
       USE TRACER_COM, only: offline_dms_ss, offline_ss
 #endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-      (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
-      (defined TRACERS_TOMAS)
-      use tracers_dust,only : imDust,prefDustSources,fracClayPDFscheme
-     &     ,fracSiltPDFscheme
-#endif
 #ifdef TRACERS_AMP
       USE AMP_AEROSOL, only: AMP_DIAG_FC, AMP_RAD_KEY
 #endif
@@ -506,6 +498,10 @@
       USE TRACERS_MPchem_COM, only: n_MPtable,tcscale
 #endif
       USE TRACER_COM, only: ef_fact3d, no_emis_over_ice
+#ifdef TRACERS_MINERALS
+      use tracers_dust, only: frIronOxideInAggregate,
+     &     noAggregateByTotalFeox
+#endif
       use Model_com, only: itime
       implicit none
       integer :: n
@@ -648,18 +644,9 @@ C**** Decide on how many times Radiation is called for aerosols once or nmode, d
 C**** Decide Radiative Mixing Rules - Volume - Core Shell - Maxwell Garnett, default Volume
       call sync_param("AMP_RAD_KEY",AMP_RAD_KEY)
 #endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-      (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
-      (defined TRACERS_TOMAS)
-C**** decide on AEROCOM or interactive emissions
-      CALL sync_param('imDUST',imDUST)
-      call sync_param('prefDustSources', prefDustSources)
-      call sync_param('fracClayPDFscheme', fracClayPDFscheme)
-      call sync_param('fracSiltPDFscheme', fracSiltPDFscheme)
-#endif
-#ifdef TRACERS_QUARZHEM
-      call sync_param( 'frHemaInQuarAggr', frHemaInQuarAggr )
-      call sync_param( 'pureByTotalHematite', pureByTotalHematite )
+#ifdef TRACERS_MINERALS
+      call sync_param('frIronOxideInAggregate', frIronOxideInAggregate)
+      call sync_param('noAggregateByTotalFeox', noAggregateByTotalFeox)
 #endif
 
 #if (defined TRACERS_COSMO)

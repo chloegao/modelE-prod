@@ -842,8 +842,7 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
       call alloc_tracer_tomas_com(grid)
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
       CALL alloc_dust(grid)
 #endif
 #endif

@@ -1278,6 +1278,9 @@ C****
       use TRACER_COM, only: n_SO4, n_SO4_d1, n_SO4_d2, n_SO4_d3
       use TRACER_COM, only: n_Clay, n_Silt1, n_Silt2, n_Silt3
       use TRACER_COM, only: n_SO2, n_CO, n_NOx, n_Ox
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+      use tracer_com, only: n_soilDust
+#endif
 #ifdef TRACERS_SPECIAL_O18
       use TRACER_COM, only: n_hdo, n_water
       use OldTracer_mod, only: trw0
@@ -1306,9 +1309,8 @@ C****
 #ifdef TRACERS_WATER
       USE TRDIAG_COM, only : trp_acc, tre_acc
 #endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-      use tracers_dust, only: dustDiagSubdd_acc,dust_names,n_soilDust
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+      use tracers_dust, only: dustDiagSubdd_acc, dust_names
       use trdust_drv, only: accSubddDust
 #endif
 
@@ -1365,8 +1367,7 @@ C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
       real(kind=8),allocatable,dimension(:,:,:) :: TRACER_array
      &     ,rTRACER_array
 #endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
 !@var dust3d_array three-dimensional soil dust array for subdd diagnostics
 !@var dust4d_array four-dimensional soil dust array for subdd diagnostics
       real(kind=8),allocatable,dimension(:,:,:) :: dust3d_array
@@ -1493,8 +1494,7 @@ C**** initialise special subdd accumulation
 #endif
       allocate(TRACER_array(i_0h:i_1h,j_0h:j_1h,NTM))
 #endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       allocate(dust3d_array(i_0h:i_1h,j_0h:j_1h,ntm_dust))
       allocate(dust4d_array(i_0h:i_1h,j_0h:j_1h,LmaxSUBDD,ntm_dust))
 #endif
@@ -1643,8 +1643,7 @@ c accSubdd
       end do
 #endif
 
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       call accSubddDust(dustDiagSubdd_acc) ! in TRDUST_DRV.f
 #endif
 
@@ -3715,8 +3714,7 @@ C**** overkill, but useful now for EPA down-scaling:
 
 C**** cases where multiple records go to one file for dust
 
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
         case ('DuEMIS','DuEMIS2','DuSMIXR','DuSCONC','DuLOAD')
           kunit=kunit+1
           do n=1,Ntm_dust
@@ -3947,7 +3945,7 @@ C**** other dust special cases
      &         ,qinstant=.false.)
 #endif
           cycle
-#endif /*TRACERS_DUST || TRACERS_MINERALS || TRACERS_QUARZHEM*/
+#endif /* TRACERS_DUST || TRACERS_MINERALS */
 
 C**** this prevents tokens that are not caught from messing up the file data
         case default
@@ -5516,8 +5514,7 @@ c
       ijdd = 1
 #else
 C**** Initialse diurnal diagnostic locations (taken from the 4x5 res)
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       NAMDD =
      &   (/'AUSD', 'MWST', 'SAHL', 'EPAC', 'AF01',
      &     'AF02', 'AF03', 'AF04', 'AF05', 'ASA1',

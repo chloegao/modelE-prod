@@ -15,16 +15,14 @@ c******************   TRACERS             ******************************
 #endif
       use sle001, only :
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_AMP)  || (defined TRACERS_TOMAS)
       use sle001,ONLY : aevap
 #endif
       use OldTracer_mod, only: itime_tr0, trname, needtrs
       use tracer_com, only: NTM
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
-    (defined TRACERS_TOMAS)
-      use tracer_com, only: Ntm_dust
+    (defined TRACERS_AMP)  || (defined TRACERS_TOMAS)
+      use tracer_com, only: Ntm_dust, n_soildust
 #endif
 #ifdef TRACERS_DRYDEP
       use OldTracer_mod, only:dodrydep
@@ -32,20 +30,8 @@ c******************   TRACERS             ******************************
 #ifdef TRACERS_WATER
       use OldTracer_mod, only: nWATER, nGAS, nPARt, tr_wd_TYPE
 #endif
-#ifdef TRACERS_DUST
-      use TRACER_COM, only: n_clay
-#else
-#ifdef TRACERS_MINERALS
-      use TRACER_COM, only: n_clayilli
-#else
-#ifdef TRACERS_QUARZHEM
-      use TRACER_COM, only: n_sil1quhe
-#endif
-#endif
-#endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_AMP)  || (defined TRACERS_TOMAS)
       USE tracers_dust,ONLY : imDust
 #endif
       use trdiag_com, only : taijn=>taijn_loc,
@@ -57,15 +43,13 @@ c******************   TRACERS             ******************************
 #ifdef TRACERS_DRYDEP
      *     ,tij_drydep,tij_gsdep,itcon_dd
 #endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
      &     ,ijts_spec,jls_spec
 #endif
 #ifdef TRACERS_ON
      &     ,trcsurf,trcSurfByVol
 #endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       USE tracers_dust,ONLY : nDustEmij,nDustEm2ij,nDustEmjl,nDustEm2jl
      &     ,nDustEv1ij,nDustEv2ij,nDustWthij
      &     ,nDustEv1jl,nDustEv2jl,nDustWthjl
@@ -75,12 +59,8 @@ c******************   TRACERS             ******************************
      *     ,trprec
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
-    (defined TRACERS_TOMAS)
-     &     ,prec,pprec,pevap,dust_flux_glob
-#endif
-#if (defined TRACERS_DUST) || (defined TRACERS_AMP) 
-     &     ,dust_flux2_glob
+    (defined TRACERS_AMP)  || (defined TRACERS_TOMAS)
+     &     ,prec,pprec,pevap,dust_flux_glob,dust_flux2_glob
 #endif
 
 #ifdef TRACERS_WATER
@@ -197,15 +177,14 @@ ccc extra stuff which was present in "earth" by default
       use pbl_drv, only : t_pbl_args
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_AMP)  || (defined TRACERS_TOMAS)
       use TimeConstants_mod, only: SECONDS_PER_DAY
       USE model_com,ONLY : modelEclock
       USE geom,ONLY : axyp
       USE ghy_com,ONLY : wearth,aiearth,wfcs
       use tracers_dust,only : nAerocomDust,d_dust,ers_data
      &     ,dustSourceFunction,frclay,frsilt,dryhr,vtrsh
-#if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
+#ifdef TRACERS_MINERALS
      &     ,mineralFractions
 #endif
 #endif
@@ -264,8 +243,7 @@ ccc tracers variables
 #endif
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_AMP)  || (defined TRACERS_TOMAS)
       ! todo: move (some of) this to subroutine dust_emission_prep
       call modelEclock%get(month=month, dayOfYear=dayOfYear)
       pbl_args%snow=atmlnd%snowe(i,j)
@@ -283,7 +261,7 @@ c**** prescribed dust emission
      &     d_dust(i,j,1:nAerocomDust,dayOfYear)
      &     /SECONDS_PER_DAY/axyp(i,j)/ptype
 #endif
-#if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
+#ifdef TRACERS_MINERALS
       pbl_args%mineralFractions(:)=mineralFractions(i,j,:)
 #endif
 
@@ -340,8 +318,7 @@ cddd#endif
       type (t_pbl_args), intent(in) :: pbl_args
       real*8 :: byNIsurf
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_AMP)  || (defined TRACERS_TOMAS)
       integer :: n1
 #endif
       integer n,nx
@@ -390,8 +367,7 @@ cddd     &     (arauto+asoilresp-agpp)/dtsurf
       enddo
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_AMP)  || (defined TRACERS_TOMAS)
 c     saves precipitation for dust emission calculation at next time step
       pprec(i,j)=prec(i,j)
 c     saves evaporation for dust emission calculation at next time step
@@ -529,28 +505,29 @@ C**** fixed datasets are used, it can happen over land as well.
 
 #endif
 
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
 ccc dust emission from earth
-        SELECT CASE (trname(n))
-#ifdef TRACERS_DUST
-        CASE ('Clay','Silt1','Silt2','Silt3','Silt4')
-          n1=n-n_clay+1
-#else
-#ifdef TRACERS_MINERALS
-        CASE ('ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
-     &        'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
-     &        'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
-     &        'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps',
-     &        'Sil1QuHe','Sil2QuHe','Sil3QuHe')
-          n1=n-n_clayilli+1
-#else
-#ifdef TRACERS_QUARZHEM
-        CASE ('Sil1QuHe','Sil2QuHe','Sil3QuHe')
-          n1=n-n_sil1quhe+1
-#endif
-#endif
-#endif
+        select case (trname(n))
+        case ('Clay','Silt1','Silt2','Silt3','Silt4','Silt5','ClayIlli'
+     &         ,'ClayKaol','ClaySmec','ClayCalc','ClayQuar','ClayFeld'
+     &         ,'ClayHema','ClayGyps','ClayIlHe','ClayKaHe','ClaySmHe'
+     &         ,'ClayCaHe','ClayQuHe','ClayFeHe','ClayGyHe','Sil1Quar'
+     &         ,'Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps','Sil1Illi'
+     &         ,'Sil1Kaol','Sil1Smec','Sil1QuHe','Sil1FeHe','Sil1CaHe'
+     &         ,'Sil1GyHe','Sil1IlHe','Sil1KaHe','Sil1SmHe','Sil2Quar'
+     &         ,'Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps','Sil2Illi'
+     &         ,'Sil2Kaol','Sil2Smec','Sil2QuHe','Sil2FeHe','Sil2CaHe'
+     &         ,'Sil2GyHe','Sil2IlHe','Sil2KaHe','Sil2SmHe','Sil3Quar'
+     &         ,'Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps','Sil3Illi'
+     &         ,'Sil3Kaol','Sil3Smec','Sil3QuHe','Sil3FeHe','Sil3CaHe'
+     &         ,'Sil3GyHe','Sil3IlHe','Sil3KaHe','Sil3SmHe','Sil4Quar'
+     &         ,'Sil4Feld','Sil4Calc','Sil4Hema','Sil4Gyps','Sil4Illi'
+     &         ,'Sil4Kaol','Sil4Smec','Sil4QuHe','Sil4FeHe','Sil4CaHe'
+     &         ,'Sil4GyHe','Sil4IlHe','Sil4KaHe','Sil4SmHe','Sil5Quar'
+     &         ,'Sil5Feld','Sil5Calc','Sil5Hema','Sil5Gyps','Sil5Illi'
+     &         ,'Sil5Kaol','Sil5Smec','Sil5QuHe','Sil5FeHe','Sil5CaHe'
+     &         ,'Sil5GyHe','Sil5IlHe','Sil5KaHe','Sil5SmHe')
+          n1=n-n_soildust+1
           atmlnd%trsrfflx(n,i,j)=atmlnd%trsrfflx(n,i,j)+
      &         pbl_args%dust_flux(n1)
           taijs(i,j,ijts_isrc(nDustEmij,n))
@@ -559,7 +536,6 @@ ccc dust emission from earth
      &         *axyp(i,j)*ptype*dtsurf
           if (jls_isrc(nDustEmjl,n)>0) call inc_tajls(i,j,1,jls_isrc(
      &       nDustEmjl,n),pbl_args%dust_flux(n1)*axyp(i,j)*ptype*dtsurf)
-#ifdef TRACERS_DUST
           IF (imDust == 0) THEN
             taijs(i,j,ijts_isrc(nDustEm2ij,n))
      &           =taijs(i,j,ijts_isrc(nDustEm2ij,n))
@@ -569,9 +545,8 @@ ccc dust emission from earth
      &           call inc_tajls(i,j,1,jls_isrc(nDustEm2jl,n),
      &           pbl_args%dust_flux2(n1)*axyp(i,j)*ptype*dtsurf)
           END IF
-#endif
 
-        END SELECT
+        end select
 #endif
 
 #ifdef BIOGENIC_EMISSIONS
@@ -612,8 +587,7 @@ ccc not sure about the code below. hopefully that''s what is meant above
       TRE_acc(n,i,j)=TRE_acc(n,i,j)+atmlnd%trevapor(n,i,j)*ptype
       enddo
 #endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
 c ..........
 c Accumulates dust events. One diagnostic field for all dust tracers
 c ..........
@@ -633,14 +607,12 @@ c     save global variables for subdaily diagnostics
 c     ..........
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+    (defined TRACERS_AMP)  || (defined TRACERS_TOMAS)
       DO n=1,Ntm_dust
         dust_flux_glob( i, j, n ) = dust_flux_glob( i, j, n ) +
      &       pbl_args%dust_flux( n ) * ptype / nisurf
-#ifdef TRACERS_DUST
         dust_flux2_glob( i, j, n ) = dust_flux2_glob( i, j, n ) +
      &       pbl_args%dust_flux2( n ) * ptype / nisurf
-#endif
       END DO
 #endif
 
@@ -956,8 +928,7 @@ c****
 
       call alloc_pbl_args(pbl_args)
 
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       pbl_args % moddd = moddd
       pbl_args % ih = 1+modelEclock%getHour()
       pbl_args % ihm = pbl_args%ih+(modelEclock%getDate()-1)*24
@@ -1660,8 +1631,7 @@ c***********************************************************************
 
 ccc the following values are returned by PBL
       real*8 us,vs,ws,psi,dbl,khs,ug,vg,wg,gusti,qsrf,tsv,ps,elhx
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
      &     ,wsgcm,wspdf
 #endif
       real*8, external :: qsat
@@ -1681,8 +1651,7 @@ ccc the following values are returned by PBL
       gusti = pbl_args%gusti
       qsrf = pbl_args%qsrf ; tsv = pbl_args%tsv ; ps = pbl_args%psurf
       elhx = pbl_args%elhx
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       wsgcm=pbl_args%wsgcm
       wspdf=pbl_args%wspdf
 #endif

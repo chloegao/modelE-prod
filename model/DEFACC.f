@@ -4468,8 +4468,7 @@ c
       units_ij(k) = 'm/s'
       ia_ij(k) = ia_srf
                                     
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       k=k+1
       ij_wsgcm = k
       lname_ij(k) = 'GCM SURFACE WIND SPEED'
@@ -6920,8 +6919,7 @@ c Column Diagnostics
       lname_dd(k)=' WSPDF*10'
 c
 
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       IF (adiurn_dust == 1) THEN
 c
       k=k+1

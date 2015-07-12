@@ -84,8 +84,7 @@ C****
 
 #ifdef TRACERS_ON
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
      &     ,dust_flux_glob,dust_flux2_glob
 #ifdef TRACERS_DRYDEP
      &     ,depo_turb_glob,depo_grav_glob
@@ -316,7 +315,7 @@ C**** Zero out fluxes summed over type and surface time step
       atmocn%TRGASEX = 0.0d0
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) 
+    (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
       dust_flux_glob = 0.d0
       dust_flux2_glob = 0.d0
       depo_turb_glob = 0.d0
@@ -340,8 +339,7 @@ C****
          IF(MODDSF.EQ.0) IDACC(ia_srf)=IDACC(ia_srf)+1
          MODDD=MOD(1+ITime/NDAY+NS,NIsurf)   ! 1+ not really needed ??
 
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
          pbl_args % moddd = moddd
          pbl_args % ih = ih
          pbl_args % ihm = ihm
@@ -872,7 +870,7 @@ C****
      &     ptype*rtsdt*axyp(i,j)*gsvel,itcon_dd(n,2),n)
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)
+    (defined TRACERS_AMP)
 c**** for subdaily diagnostics
           depo_turb_glob( i, j, n ) = depo_turb_glob( i, j, n )
      &         + ptype * rts * depvel / nisurf
@@ -1366,8 +1364,7 @@ C**** For distributed implementation - ensure point is on local process.
 #ifdef mjo_subdd
      *     ,E_acc
 #endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
      &     ,ij_wdry,ij_wtke,ij_wmoist,ij_wsgcm
 #endif
       USE SEAICE, only : ace1i
@@ -1522,8 +1519,7 @@ C**** SUBDD qblht_acc for PBL height *** YH Chen ***
 #endif
           aij(i,j,ij_wspdf)=aij(i,j,ij_wspdf)+atmsrf%wspdf(i,j)
 
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
           aij(i,j,ij_wsgcm)=aij(i,j,ij_wsgcm)+atmsrf%wsgcm(i,j)
           aij(i,j,ij_wdry)=aij(i,j,ij_wdry)+atmsrf%wsubwd(i,j)
           aij(i,j,ij_wtke)=aij(i,j,ij_wtke)+atmsrf%wsubtke(i,j)

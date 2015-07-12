@@ -101,15 +101,12 @@ subroutine CONDSE
 #ifdef TRACERS_COSMO
   use TRACER_COM, only: n_Be10,n_Be7
 #endif
-#ifdef TRACERS_DUST
-  use TRACER_COM, only: n_clay,n_clayilli,n_sil1quhe
-#endif
 #ifdef TRACERS_WATER
   use OldTracer_mod, only: trw0, dowetdep
   use TRACER_COM, only: trwm
 #else
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||    (defined TRACERS_QUARZHEM)
-  use TRACER_COM, only: Ntm_dust
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+  use TRACER_COM, only: Ntm_dust, n_soilDust
 #endif
 #endif
 #ifdef TRACERS_COSMO
@@ -132,7 +129,7 @@ subroutine CONDSE
   use TRDIAG_COM, only: jls_trdpmc,jls_trdpls,ijts_trdpmc,ijts_trdpls
 #endif
 #else
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
   use TRDIAG_COM, only: jls_wet,ijts_wet,itcon_wt
 #endif
 #endif
@@ -152,7 +149,7 @@ subroutine CONDSE
        ,diag_wetdep
 #endif
 #else
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
   use CLOUDS, only : tm_dust,tmom_dust,trprc_dust
 #endif
 #endif
@@ -207,7 +204,7 @@ subroutine CONDSE
 #ifdef TRACERS_WATER
   use FLUXES, only : trprec
 #else
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
   use FLUXES, only : trprec_dust
 #endif
 #endif
@@ -225,7 +222,7 @@ subroutine CONDSE
   use tracer_sources, only : n__prec
 #endif
   use FILEMANAGER, only: openunit,closeunit
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
   use tracers_dust,only : prelay
 #endif
   use TimerPackage_mod, only: startTimer => start, stopTimer => stop
@@ -377,7 +374,7 @@ subroutine CONDSE
 #endif
   real*8 :: tmp(NDIUVAR)
 #ifndef TRACERS_WATER
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
   integer :: n1,n_fidx
 #endif
 #endif
@@ -1002,7 +999,7 @@ subroutine CONDSE
 #endif
           !**** ACCUMULATE PRECIP
           PRCP=PRCPMC*100.*BYGRAV
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
           precnvl(1)=precnvl(1)+prcpmc*bygrav
 #endif
           !**** CALCULATE PRECIPITATION HEAT FLUX (FALLS AT 0 DEGREES CENTIGRADE)
@@ -1261,7 +1258,7 @@ subroutine CONDSE
         !**** TOTAL PRECIPITATION AND AGE OF SNOW
         PRCP=PRCP+PRCPSS*100.*BYGRAV
 
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
         do l=1,lm
           prelay(i,j,l)=((prebar1(l)*DTsrc*100.+precnvl(l)*100.)+ &
                (prebar1(l+1)*DTsrc*100.+precnvl(l+1)*100.))/2.
@@ -1787,7 +1784,7 @@ subroutine CONDSE
               do kr=1,Ndiupt
                 if(i == ijdd(1,kr) .and. j == ijdd(2,kr)) then
                   select case (trname(n))
-                  case ('Clay','Silt1','Silt2','Silt3','Silt4')
+                  case ('Clay','Silt1','Silt2','Silt3','Silt4','Silt5')
                     tmp(idd_wet)=+trprec(n,i,j)/Dtsrc
                     ADIURN(IDXD(:),KR,IH)=ADIURN(IDXD(:),KR,IH)+ &
                          TMP(IDXD(:))
@@ -1810,18 +1807,8 @@ subroutine CONDSE
         !     call simple wet deposition scheme for dust/mineral tracers
         !     ..........
 
-#ifdef TRACERS_DUST
-        n_fidx=n_clay
-#else
-#ifdef TRACERS_MINERALS
-        n_fidx=n_clayilli
-#else
-#ifdef TRACERS_QUARZHEM
-        n_fidx=n_sil1quhe
-#endif
-#endif
-#endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+        n_fidx=n_soildust
 
         do n=1,Ntm_dust
           n1=n_fidx+n-1
@@ -1856,7 +1843,7 @@ subroutine CONDSE
             do kr=1,Ndiupt
               if(i == ijdd(1,kr) .and. j == ijdd(2,kr)) then
                 select case (trname(n))
-                case ('Clay','Silt1','Silt2','Silt3','Silt4')
+                case ('Clay','Silt1','Silt2','Silt3','Silt4','Silt5')
                   tmp(idd_wet)=+trprec_dust(n,i,j)*byaxyp(i,j)/Dtsrc
                   ADIURN(IDXD(:),KR,IH)=ADIURN(IDXD(:),KR,IH)+ &
                        TMP(IDXD(:))

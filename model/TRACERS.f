@@ -1349,8 +1349,7 @@ C**** check whether air mass is conserved
 #endif
       use photolysis, only: jppj
 #endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       USE fluxes,ONLY : pprec,pevap
       USE tracers_dust,ONLY : hbaij,ricntd
       use trdust_drv, only: io_trDust
@@ -1399,8 +1398,7 @@ C**** check whether air mass is conserved
       REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: Rijncep_glob
 #endif
 #endif     
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       REAL*8,DIMENSION(Im,Jm) :: pprec_glob,ricntd_glob,hbaij_glob
       REAL*8,DIMENSION(Im,Jm) :: pevap_glob
 #endif
@@ -1518,8 +1516,7 @@ c not yet        header='For tracer 3D emissions: daily_z(i,j,l)'
 c not yet        call pack_data(grid,daily_z,aijl_glob)
 c not yet        if(am_i_root()) write(kunit,err=10) header,aijl_glob
 
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
        CALL pack_data(grid,pprec,pprec_glob)
        CALL pack_data(grid,pevap,pevap_glob)
        CALL pack_data(grid,hbaij,hbaij_glob)
@@ -1734,8 +1731,7 @@ C**** ESMF: Copy global data into the corresponding local (distributed) arrays.
 c not yet          if(am_i_root()) read(kunit,err=10) header,aijl_glob
 c not yet          call unpack_data(grid,aijl_glob,daily_z)
 
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
           IF (am_i_root()) READ(kunit,ERR=10) header,hbaij_glob,
      &         ricntd_glob,pprec_glob,pevap_glob
           CALL unpack_data(grid,hbaij_glob,hbaij)
@@ -1886,8 +1882,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
         END SELECT
       END SELECT
 
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       call io_trDust(kunit,iaction)
 #endif
 
@@ -2047,8 +2042,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
      &     ,sPM2p5_acc,sPM10_acc,l1PM2p5_acc,l1PM10_acc
      &     ,csPM2p5_acc,csPM10_acc
 #endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       USE fluxes,ONLY : pprec,pevap
       USE tracers_dust,ONLY : hbaij,ricntd
       use trdust_drv, only: io_trDust
@@ -2204,10 +2198,9 @@ c daily_z is currently only needed for CS
       call doVar(handle,action,csPM10_acc,'csPM10_acc(dist_im,dist_jm)')
 #endif
 
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       handle = ParallelIo(grid, fid,
-     &   'TRACERS_DUST||TRACERS_MINERALS||TRACERS_QUARZHEM')
+     &   'TRACERS_DUST||TRACERS_MINERALS')
       call doVar(handle,action,hbaij,'hbaij(dist_im,dist_jm)')
       call doVar(handle,action,ricntd,'ricntd(dist_im,dist_jm)')
       call doVar(handle,action,pprec,'pprec(dist_im,dist_jm)')

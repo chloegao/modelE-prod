@@ -200,8 +200,7 @@ C**** Calculate first layer tracer concentration
       call tracer_lower_bc(i,j,itype,pbl_args,atm)
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
-    (defined TRACERS_TOMAS) 
+    (defined TRACERS_AMP)  || (defined TRACERS_TOMAS) 
       call dust_emission_prep(i,j,itype,pbl_args)
 #endif
 
@@ -416,8 +415,7 @@ C ******************************************************************
       atm%khsavg(i,j)  =  pbl_args%khs
       atm%wspdf(i,j) = pbl_args%wspdf
 
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       atm%wsgcm(i,j) = pbl_args%wsgcm
       atm%wsubwd(i,j) = pbl_args%wsubwd
       atm%wsubtke(i,j) = pbl_args%wsubtke
@@ -428,15 +426,13 @@ ccc put drive output data to pbl_args structure
       pbl_args%psi = psi ! maybe also should be moved to ADVANC
                          ! or completely otside of PBL* ?
 
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       call PBL_adiurn_dust(I,J,ITYPE,PTYPE,pbl_args,atm)
 #endif
 
 #ifdef TRACERS_ON
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
-    (defined TRACERS_TOMAS) 
+    (defined TRACERS_AMP)  || (defined TRACERS_TOMAS) 
       call save_dust_emission_vars(i,j,itype,pbl_args)
 #endif
 #endif
@@ -572,8 +568,7 @@ C       pbl_args%tr_evap_max(nx) = evap_max * trsoil_rat(nx)
 #endif
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
-    (defined TRACERS_TOMAS) 
+    (defined TRACERS_AMP)  || (defined TRACERS_TOMAS) 
       subroutine dust_emission_prep(i,j,itype,pbl_args)
       use constant, only : by3
       use fluxes, only : pprec,pevap
@@ -613,8 +608,7 @@ c**** wspdf in PBL.f for the other soil types.
       end subroutine save_dust_emission_vars
 #endif
 
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       SUBROUTINE PBL_adiurn_dust(I,J,ITYPE,PTYPE,pbl_args,atm)
       use exchange_types
       USE CONSTANT, only :  rgas,grav,deltx,teeny
@@ -643,7 +637,7 @@ c**** wspdf in PBL.f for the other soil types.
       type (t_pbl_args) :: pbl_args
       class (atmsrf_xchng_vars) :: atm
 
-#if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
+#ifdef TRACERS_MINERALS
       INTEGER,PARAMETER :: n_idxd=6
 #else
 #ifdef TRACERS_DUST
@@ -703,7 +697,7 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
               n = pbl_args%ntix(nx)
               if (dodrydep( n )) then
                 select case(trname( n ))
-                case('Clay', 'Silt1', 'Silt2', 'Silt3')
+                case('Clay','Silt1','Silt2','Silt3','Silt4','Silt5')
                   tmp( idd_turb ) = tmp( idd_turb ) + ptype * rhosrf
      &                 * pbl_args%trs(nx) * pbl_args%dep_vel(n)
                   tmp( idd_grav ) = tmp( idd_grav ) + ptype * rhosrf
@@ -854,8 +848,7 @@ C**** ignore ocean currents for initialisation.
       ! todo: perhaps use presence of LKTAB file to automatically determine this
       call sync_param( 'calc_wspdf', calc_wspdf )
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_AMP)  || (defined TRACERS_TOMAS)
       calc_wspdf = 1
 #endif
 

@@ -124,4 +124,10 @@ u60.nc=nudgeF_hold/uwnd.2010.GISS.144x89.nc
 v60.nc=nudgeF_hold/vwnd.2010.GISS.144x89.nc
 u61.nc=nudgeF_hold/uwnd.2011.GISS.144x89.nc
 v61.nc=nudgeF_hold/vwnd.2011.GISS.144x89.nc
+u62.nc=nudgeF_hold/uwnd.2012.GISS.144x89_MANIP.nc
+v62.nc=nudgeF_hold/vwnd.2012.GISS.144x89_MANIP.nc
+u63.nc=nudgeF_hold/uwnd.2013.GISS.144x89.nc
+v63.nc=nudgeF_hold/vwnd.2013.GISS.144x89.nc
+u64.nc=nudgeF_hold/uwnd.2014.GISS.144x89.nc
+v64.nc=nudgeF_hold/vwnd.2014.GISS.144x89.nc
 

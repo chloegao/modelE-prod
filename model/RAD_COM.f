@@ -145,12 +145,7 @@ C**** does not produce exactly the same as the default values.
 #endif  /* TRACERS_NITRATE */
 
 #ifdef TRACERS_DUST
-      integer, parameter :: nraero_dust=ntm_dust
-#ifdef TRACERS_MINERALS
-     &                     +45 ! 4 clays instead of 1, for 15 clay types
-#else
-     &                     +3 ! 4 clays instead of 1
-#endif  /* TRACERS_MINERALS */
+      integer, parameter :: nraero_dust=ntm_dust + 3*ntm_clay
 #else
       integer, parameter :: nraero_dust=0
 #endif  /* TRACERS_DUST */
@@ -310,8 +305,6 @@ C**** Local variables initialised in init_RAD
       INTEGER, allocatable, DIMENSION(:) :: NTRIX
 !@var WTTR weighting array for optional aerosol-ratiation interactions
       REAL*8, allocatable, DIMENSION(:) :: WTTR
-!@var nrad_clay index of clay in arrays for optional aerosol interaction
-      INTEGER :: nrad_clay
 
 #ifdef CUBED_SPHERE
 !@var JM_DH2O number of latitudes in CH4->H2O input file

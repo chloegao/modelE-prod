@@ -996,6 +996,12 @@ module RunTimeControls_mod
   logical, parameter :: tracers_dust_silt4 = .false.
 #endif
 
+#if defined(TRACERS_DUST_Silt5)
+  logical, parameter :: tracers_dust_silt5 = .true.
+#else
+  logical, parameter :: tracers_dust_silt5 = .false.
+#endif
+
 #if defined(TRACERS_GASEXCH_land)
   logical, parameter :: tracers_gasexch_land = .true.
 #else
@@ -1084,12 +1090,6 @@ module RunTimeControls_mod
   logical, parameter :: tracers_oceanbiology = .true.
 #else
   logical, parameter :: tracers_oceanbiology = .false.
-#endif
-
-#if defined(TRACERS_QUARZHEM)
-  logical, parameter :: tracers_quarzhem = .true.
-#else
-  logical, parameter :: tracers_quarzhem = .false.
 #endif
 
 #if defined(TRACERS_RADON)

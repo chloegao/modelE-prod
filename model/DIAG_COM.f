@@ -201,7 +201,7 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
       INTEGER, PARAMETER, public :: NDIUVAR=74+14*lmax_dd2+6*npbl
      &     +4*(npbl-1)
 #else
-#if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_MINERALS)
       INTEGER, PARAMETER, public :: NDIUVAR=63
 #else
       INTEGER, PARAMETER, public :: NDIUVAR=60
@@ -212,8 +212,7 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
 #ifdef SCM
       INTEGER, PARAMETER, public :: NDIUPT=1
 #else
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       INTEGER, PARAMETER, public :: NDIUPT=34
 #else
       INTEGER, PARAMETER, public :: NDIUPT=4

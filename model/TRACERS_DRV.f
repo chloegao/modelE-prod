@@ -788,12 +788,25 @@ C**** set some defaults
 #endif
 
         case ('seasalt1','seasalt2','OCocean'
-     *       ,'Clay','Silt1','Silt2','Silt3'
-     *       ,'Silt4','ClayIlli','ClayKaol','ClaySmec','ClayCalc'
-     *       ,'ClayQuar','Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema'
-     *       ,'Sil1Gyps','Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema'
-     *       ,'Sil2Gyps','Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema'
-     *       ,'Sil3Gyps','Sil1QuHe','Sil2QuHe','Sil3QuHe')
+     &         ,'Clay','Silt1','Silt2','Silt3','Silt4','Silt5'
+     &         ,'ClayIlli' ,'ClayKaol','ClaySmec','ClayCalc','ClayQuar'
+     &         ,'ClayFeld' ,'ClayHema','ClayGyps','ClayIlHe','ClayKaHe'
+     &         ,'ClaySmHe' ,'ClayCaHe','ClayQuHe','ClayFeHe','ClayGyHe'
+     &         ,'Sil1Quar' ,'Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps'
+     &         ,'Sil1Illi' ,'Sil1Kaol','Sil1Smec','Sil1QuHe','Sil1FeHe'
+     &         ,'Sil1CaHe' ,'Sil1GyHe','Sil1IlHe','Sil1KaHe','Sil1SmHe'
+     &         ,'Sil2Quar' ,'Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps'
+     &         ,'Sil2Illi' ,'Sil2Kaol','Sil2Smec','Sil2QuHe','Sil2FeHe'
+     &         ,'Sil2CaHe' ,'Sil2GyHe','Sil2IlHe','Sil2KaHe','Sil2SmHe'
+     &         ,'Sil3Quar' ,'Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps'
+     &         ,'Sil3Illi' ,'Sil3Kaol','Sil3Smec','Sil3QuHe','Sil3FeHe'
+     &         ,'Sil3CaHe' ,'Sil3GyHe','Sil3IlHe','Sil3KaHe','Sil3SmHe'
+     &         ,'Sil4Quar' ,'Sil4Feld','Sil4Calc','Sil4Hema','Sil4Gyps'
+     &         ,'Sil4Illi' ,'Sil4Kaol','Sil4Smec','Sil4QuHe','Sil4FeHe'
+     &         ,'Sil4CaHe' ,'Sil4GyHe','Sil4IlHe','Sil4KaHe','Sil4SmHe'
+     &         ,'Sil5Quar' ,'Sil5Feld','Sil5Calc','Sil5Hema','Sil5Gyps'
+     &         ,'Sil5Illi' ,'Sil5Kaol','Sil5Smec','Sil5QuHe','Sil5FeHe'
+     &         ,'Sil5CaHe' ,'Sil5GyHe','Sil5IlHe','Sil5KaHe','Sil5SmHe')
           itcon_mc(n) =13
           qcon(itcon_mc(n)) = .true.  ; conpts(1) = 'MOIST CONV'
           qsum(itcon_mc(n)) = .false.
@@ -1247,8 +1260,7 @@ c     - Species including TOMAS  emissions - 2D sources and 3D sources
       USE DIAG_COM
 #ifdef TRACERS_ON
       USE TRDIAG_COM
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       use tracers_dust, only: nDustEmjl, nDustEm2jl, nDustEv1jl,
      &   nDustEv2jl, nDustWthjl, imDust
 #endif
@@ -2468,14 +2480,26 @@ c gravitational settling
         end select
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-        CASE('Clay','Silt1','Silt2','Silt3','Silt4',
-     &       'ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
-     &       'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
-     &       'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
-     &       'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps',
-     &       'Sil1QuHe','Sil2QuHe','Sil3QuHe')
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+        CASE('Clay','Silt1','Silt2','Silt3','Silt4','Silt5','ClayIlli'
+     &         ,'ClayKaol','ClaySmec','ClayCalc','ClayQuar','ClayFeld'
+     &         ,'ClayHema','ClayGyps','ClayIlHe','ClayKaHe','ClaySmHe'
+     &         ,'ClayCaHe','ClayQuHe','ClayFeHe','ClayGyHe','Sil1Quar'
+     &         ,'Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps','Sil1Illi'
+     &         ,'Sil1Kaol','Sil1Smec','Sil1QuHe','Sil1FeHe','Sil1CaHe'
+     &         ,'Sil1GyHe','Sil1IlHe','Sil1KaHe','Sil1SmHe','Sil2Quar'
+     &         ,'Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps','Sil2Illi'
+     &         ,'Sil2Kaol','Sil2Smec','Sil2QuHe','Sil2FeHe','Sil2CaHe'
+     &         ,'Sil2GyHe','Sil2IlHe','Sil2KaHe','Sil2SmHe','Sil3Quar'
+     &         ,'Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps','Sil3Illi'
+     &         ,'Sil3Kaol','Sil3Smec','Sil3QuHe','Sil3FeHe','Sil3CaHe'
+     &         ,'Sil3GyHe','Sil3IlHe','Sil3KaHe','Sil3SmHe','Sil4Quar'
+     &         ,'Sil4Feld','Sil4Calc','Sil4Hema','Sil4Gyps','Sil4Illi'
+     &         ,'Sil4Kaol','Sil4Smec','Sil4QuHe','Sil4FeHe','Sil4CaHe'
+     &         ,'Sil4GyHe','Sil4IlHe','Sil4KaHe','Sil4SmHe','Sil5Quar'
+     &         ,'Sil5Feld','Sil5Calc','Sil5Hema','Sil5Gyps','Sil5Illi'
+     &         ,'Sil5Kaol','Sil5Smec','Sil5QuHe','Sil5FeHe','Sil5CaHe'
+     &         ,'Sil5GyHe','Sil5IlHe','Sil5KaHe','Sil5SmHe')
 
         k=k+1
           jls_isrc(nDustEmjl,n)=k
@@ -2519,7 +2543,7 @@ c gravitational settling
           jls_power(k)=1
           units_jls(k)=unit_string(jls_power(k),'kg/s')
 #endif
-#endif /* TRACERS_DUST || TRACERS_MINERALS || TRACERS_QUARZHEM */
+#endif /* TRACERS_DUST || TRACERS_MINERALS */
 
 C**** Here are some more examples of generalised diag. configuration
 c      n = n_dust
@@ -2778,8 +2802,7 @@ c Oxidants
         units_jls(k) = unit_string(jls_power(k),'molec/cm3')
 #endif  /* TRACERS_AEROSOLS_Koch || TRACERS_AMP || TRACERS_TOMAS */
 
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       k = k + 1
       jls_spec(nDustEv1jl)=k
       lname_jls(k)='No. dust events'
@@ -2981,8 +3004,7 @@ c Oxidants
       USE DIAG_COM
 #ifdef TRACERS_ON
       USE TRDIAG_COM
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       use tracers_dust, only: nDustEmij, nDustEm2ij, nDustEv1ij
      &   ,nDustEv2ij, nDustWthij, imDust
 #endif
@@ -5059,14 +5081,26 @@ c SS clear sky longwave surface radiative forcing
         end select
 #endif
 
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-      CASE('Clay','Silt1','Silt2','Silt3','Silt4',
-     &   'ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
-     &   'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
-     &   'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
-     &   'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps',
-     &   'Sil1QuHe','Sil2QuHe','Sil3QuHe')
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+      CASE('Clay','Silt1','Silt2','Silt3','Silt4','Silt5','ClayIlli'
+     &      ,'ClayKaol','ClaySmec','ClayCalc','ClayQuar','ClayFeld'
+     &      ,'ClayHema','ClayGyps','ClayIlHe','ClayKaHe','ClaySmHe'
+     &      ,'ClayCaHe','ClayQuHe','ClayFeHe','ClayGyHe','Sil1Quar'
+     &      ,'Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps','Sil1Illi'
+     &      ,'Sil1Kaol','Sil1Smec','Sil1QuHe','Sil1FeHe','Sil1CaHe'
+     &      ,'Sil1GyHe','Sil1IlHe','Sil1KaHe','Sil1SmHe','Sil2Quar'
+     &      ,'Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps','Sil2Illi'
+     &      ,'Sil2Kaol','Sil2Smec','Sil2QuHe','Sil2FeHe','Sil2CaHe'
+     &      ,'Sil2GyHe','Sil2IlHe','Sil2KaHe','Sil2SmHe','Sil3Quar'
+     &      ,'Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps','Sil3Illi'
+     &      ,'Sil3Kaol','Sil3Smec','Sil3QuHe','Sil3FeHe','Sil3CaHe'
+     &      ,'Sil3GyHe','Sil3IlHe','Sil3KaHe','Sil3SmHe','Sil4Quar'
+     &      ,'Sil4Feld','Sil4Calc','Sil4Hema','Sil4Gyps','Sil4Illi'
+     &      ,'Sil4Kaol','Sil4Smec','Sil4QuHe','Sil4FeHe','Sil4CaHe'
+     &      ,'Sil4GyHe','Sil4IlHe','Sil4KaHe','Sil4SmHe','Sil5Quar'
+     &      ,'Sil5Feld','Sil5Calc','Sil5Hema','Sil5Gyps','Sil5Illi'
+     &      ,'Sil5Kaol','Sil5Smec','Sil5QuHe','Sil5FeHe','Sil5CaHe'
+     &      ,'Sil5GyHe','Sil5IlHe','Sil5KaHe','Sil5SmHe')
         k=k+1
         ijts_isrc(nDustEmij,n)=k
         lname_ijts(k)='Emission of '//TRIM(trname(n))
@@ -5106,7 +5140,10 @@ c SS clear sky longwave surface radiative forcing
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #endif
         SELECT CASE (trname(n))
-        CASE ('Clay')
+        CASE ('Clay','ClayIlli','ClayKaol','ClaySmec','ClayCalc'
+     &         ,'ClayQuar','ClayFeld' ,'ClayHema','ClayGyps','ClayIlHe'
+     &         ,'ClayKaHe','ClaySmHe' ,'ClayCaHe','ClayQuHe','ClayFeHe'
+     &         ,'ClayGyHe')
 
 C???? can this be replaced with calls to set_diag_rad?
           IF (diag_rad /= 1) THEN
@@ -5357,12 +5394,22 @@ c dust clear sky longwave radiative forcing at surface of four sub size classes
               ijts_HasArea(k) = .false.
             end do
           endif
-        CASE('Silt1','Silt2','Silt3','Silt4',
-     &     'ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
-     &     'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
-     &     'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
-     &     'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps',
-     &     'Sil1QuHe','Sil2QuHe','Sil3QuHe')
+        CASE('Silt1','Silt2','Silt3','Silt4','Silt5','Sil1Quar'
+     &         ,'Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps','Sil1Illi'
+     &         ,'Sil1Kaol','Sil1Smec','Sil1QuHe','Sil1FeHe','Sil1CaHe'
+     &         ,'Sil1GyHe','Sil1IlHe','Sil1KaHe','Sil1SmHe','Sil2Quar'
+     &         ,'Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps','Sil2Illi'
+     &         ,'Sil2Kaol','Sil2Smec','Sil2QuHe','Sil2FeHe','Sil2CaHe'
+     &         ,'Sil2GyHe','Sil2IlHe','Sil2KaHe','Sil2SmHe','Sil3Quar'
+     &         ,'Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps','Sil3Illi'
+     &         ,'Sil3Kaol','Sil3Smec','Sil3QuHe','Sil3FeHe','Sil3CaHe'
+     &         ,'Sil3GyHe','Sil3IlHe','Sil3KaHe','Sil3SmHe','Sil4Quar'
+     &         ,'Sil4Feld','Sil4Calc','Sil4Hema','Sil4Gyps','Sil4Illi'
+     &         ,'Sil4Kaol','Sil4Smec','Sil4QuHe','Sil4FeHe','Sil4CaHe'
+     &         ,'Sil4GyHe','Sil4IlHe','Sil4KaHe','Sil4SmHe','Sil5Quar'
+     &         ,'Sil5Feld','Sil5Calc','Sil5Hema','Sil5Gyps','Sil5Illi'
+     &         ,'Sil5Kaol','Sil5Smec','Sil5QuHe','Sil5FeHe','Sil5CaHe'
+     &         ,'Sil5GyHe','Sil5IlHe','Sil5KaHe','Sil5SmHe')
 
           call set_diag_rad(n,k)
 
@@ -5459,7 +5506,7 @@ c dust clear sky longwave radiative forcing at surface
             ijts_HasArea(k) = .false.
           endif
         END SELECT
-#endif  /* TRACERS_DUST || TRACERS_MINERALS || TRACERS_QUARZHEM */
+#endif  /* TRACERS_DUST || TRACERS_MINERALS */
 
       end select
 
@@ -5669,8 +5716,7 @@ c SW forcing from albedo change
         scale_ijts(k) = 10.**(-ijts_power(k))
         ijts_HasArea(k) = .false.
 #endif  /* TRACERS_SPECIAL_Shindell */
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       k = k + 1
       ijts_spec(nDustEv1ij)=k
       lname_ijts(k)='No. dust events'
@@ -6885,8 +6931,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
        USE AEROSOL_SOURCES, only: rn_src
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_AMP)  || (defined TRACERS_TOMAS)
       USE tracers_dust,ONLY : hbaij,ricntd
       use trdust_drv, only: tracer_ic_soildust
 #endif
@@ -7746,14 +7791,26 @@ c**** earth
           end do; end do; end do
 #endif
 
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-        CASE('Clay','Silt1','Silt2','Silt3','Silt4',
-     &       'ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
-     &       'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
-     &       'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
-     &       'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps',
-     &       'Sil1QuHe','Sil2QuHe','Sil3QuHe')
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+        CASE('Clay','Silt1','Silt2','Silt3','Silt4','Silt5','ClayIlli'
+     &         ,'ClayKaol','ClaySmec','ClayCalc','ClayQuar','ClayFeld'
+     &         ,'ClayHema','ClayGyps','ClayIlHe','ClayKaHe','ClaySmHe'
+     &         ,'ClayCaHe','ClayQuHe','ClayFeHe','ClayGyHe','Sil1Quar'
+     &         ,'Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps','Sil1Illi'
+     &         ,'Sil1Kaol','Sil1Smec','Sil1QuHe','Sil1FeHe','Sil1CaHe'
+     &         ,'Sil1GyHe','Sil1IlHe','Sil1KaHe','Sil1SmHe','Sil2Quar'
+     &         ,'Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps','Sil2Illi'
+     &         ,'Sil2Kaol','Sil2Smec','Sil2QuHe','Sil2FeHe','Sil2CaHe'
+     &         ,'Sil2GyHe','Sil2IlHe','Sil2KaHe','Sil2SmHe','Sil3Quar'
+     &         ,'Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps','Sil3Illi'
+     &         ,'Sil3Kaol','Sil3Smec','Sil3QuHe','Sil3FeHe','Sil3CaHe'
+     &         ,'Sil3GyHe','Sil3IlHe','Sil3KaHe','Sil3SmHe','Sil4Quar'
+     &         ,'Sil4Feld','Sil4Calc','Sil4Hema','Sil4Gyps','Sil4Illi'
+     &         ,'Sil4Kaol','Sil4Smec','Sil4QuHe','Sil4FeHe','Sil4CaHe'
+     &         ,'Sil4GyHe','Sil4IlHe','Sil4KaHe','Sil4SmHe','Sil5Quar'
+     &         ,'Sil5Feld','Sil5Calc','Sil5Hema','Sil5Gyps','Sil5Illi'
+     &         ,'Sil5Kaol','Sil5Smec','Sil5QuHe','Sil5FeHe','Sil5CaHe'
+     &         ,'Sil5GyHe','Sil5IlHe','Sil5KaHe','Sil5SmHe')
           ! defaults ok
           hbaij=0D0
           ricntd=0D0
@@ -7933,8 +7990,7 @@ c units are mg Terpene/m2/month
 #endif  /* TRACERS_AEROSOLS_SOA */
 ! ---------------------------------------------------
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
 c **** reads in files for dust/mineral tracers
       call tracer_ic_soildust
 #endif
@@ -10272,8 +10328,8 @@ C**** this is a parameterisation from Georg Hoffmann
           fq = 0.D0                           ! defaults to zero.
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_COSMO) ||\
     (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AEROSOLS_SEASALT) ||\
-    (defined TRACERS_AMP) || (defined TRACERS_RADON)
+    (defined TRACERS_AEROSOLS_SEASALT) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_RADON)
 c only dissolve if the cloud has grown
 #if (defined TRACERS_AEROSOLS_Koch) && (defined TRACERS_DUST) &&\
     (defined TRACERS_HETCHEM)
@@ -10331,8 +10387,7 @@ c only dissolve if the cloud has grown
           endif
 c complete dissolution in convective clouds
 c with double dissolution if partially soluble
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
           IF (fq_aer(ntix(n)) > 0. .AND. tr_conv) THEN
 #else
           if (TR_CONV) then
@@ -10533,7 +10588,6 @@ C**** this is a parameterisation from Georg Hoffmann
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_COSMO) ||\
     (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) ||\
     (defined TRACERS_AMP) || (defined TRACERS_RADON) ||\
     (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
 
@@ -10655,16 +10709,14 @@ cc complete dissolution in convective clouds
 cc with double dissolution if partially soluble
 c          if (TR_CONV) then ! convective cloud
 c            if (LHX.EQ.LHE) then !liquid cloud
-ccdust #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-ccdust     (defined TRACERS_QUARZHEM)
+ccdust #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
 ccdust           IF (fq_aer(ntix(n)) > 0.)
 ccdust #endif
 c              fq(n)=fq_aer(ntix(n))
 ccdust?              fq(n)=(1.d0+fq_aer(ntix(n)))/2.d0
 ccdust?              fq(n)=(1.d0+3.d0*fq_aer(ntix(n)))/4.d0
 c            else
-ccdust #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-ccdust     (defined TRACERS_QUARZHEM)
+ccdust #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
 ccdust           IF (fq_aer(ntix(n)) > 0.)
 ccdust #endif
 c              fq(n)=fq_aer(ntix(n))*0.12d0
@@ -10756,7 +10808,6 @@ c            ssfac=RKD*WMXTR*MAIR*1.D-6*Ppas/(FCLOUD+teeny)
         CASE(nPART)                           ! aerosols
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_COSMO) ||\
     (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) ||\
     (defined SHINDELL_STRAT_EXTRA) || (defined TRACERS_AMP) ||\
     (defined TRACERS_RADON) || (defined TRACERS_AEROSOLS_SEASALT)
           fq = -b_beta_DT*(EXP(-PREC*rc_washt(ntix(n)))-1.D0)
@@ -10901,7 +10952,7 @@ c      fq(water_list) = 0d0
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_COSMO) ||\
     (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AEROSOLS_SEASALT) ||\
+    (defined TRACERS_AEROSOLS_SEASALT) ||\
     (defined SHINDELL_STRAT_EXTRA) || (defined TRACERS_AMP) ||\
     (defined TRACERS_RADON) || (defined TRACERS_TOMAS)
 c
