@@ -6808,7 +6808,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       USE CONSTANT, only: mair,rhow,grav,tf,avog,rgas
       use TimeConstants_mod, only: SECONDS_PER_DAY
       USE resolution,ONLY : Im,Jm,Lm,Ls1,ptop
-      USE ATM_COM, only : q,qcl
+      USE ATM_COM, only : q,qcl,qci
       use model_com, only: modelEclock
       USE MODEL_COM, only: itime,dtsrc,itimeI
       USE ATM_COM, only: pmidl00
@@ -7268,7 +7268,8 @@ c     tmominit = 0.
         do j=J_0,J_1
           do i=I_0,I_1
             trm(i,j,l,n) =  q(i,j,l)*MA(l,i,j)*axyp(i,j)*trinit
-            trwm(i,j,l,n)= qcl(i,j,l)*MA(l,i,j)*axyp(i,j)*trinit
+            trwm(i,j,l,n)= (qcl(i,j,l)+qci(i,j,l))*MA(l,i,j)
+     &           *axyp(i,j)*trinit
             trmom(:,i,j,l,n) = qmom(:,i,j,l)*MA(l,i,j)*axyp(i,j)
      *           *tmominit
           end do
