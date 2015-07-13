@@ -537,7 +537,7 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
          IF (AMP_DIAG_FC == 2) THEN
             nraero_AMP=nmodes
          ELSE
-            nraero_AMP=n_N_AKK_1
+            nraero_AMP=1
          ENDIF
 #endif /* TRACERS_AMP */
 
