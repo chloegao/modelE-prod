@@ -5715,6 +5715,19 @@ c SW forcing from albedo change
           ijts_power(k) = -15
           units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
           scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+c Surface industrial emissions n
+          do kr=1,ntsurfsrc(n_SO2)
+            k = k + 1
+              ijts_source(kr,n) = k
+              ia_ijts(k) = ia_src
+              sname_ijts(k) = trim(trname(n))//'_src_'//
+     &                        trim(SO2sources(kr)%sourceName)
+              lname_ijts(k) = trim(trname(n))//' source from '//
+     &                        trim(SO2sources(kr)%sourceName)
+              ijts_power(k) = -15
+              units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+              scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+          enddo
         case('M_BC1_BC','M_OCC_OC')
 c Surface industrial emissions
         do kr=1,ntsurfsrc(n)
