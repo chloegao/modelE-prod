@@ -3156,8 +3156,11 @@ contains
     CLDSSL=0
     TAUSSL=0
     WMPR=0.
-    QCINEW=0d0
-    QCLNEW=0d0
+    prebar1=0.
+    rh1=0.
+
+    QCINEW=0.
+    QCLNEW=0.
 #ifdef TRACERS_WATER
     TRPRSS = 0.
     TRPRBAR = 0.
