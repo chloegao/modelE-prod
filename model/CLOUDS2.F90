@@ -1030,7 +1030,9 @@ contains
               FSUB_tmp=1.d0+(PL(LMIN)-PL(LMAX)-100.d0)/200.d0
             end if
 
-            FCONV_tmp=min(MPLUM1*BYAM(LMIN+1),1d0)
+            !FCONV_tmp=min(MPLUM1*BYAM(LMIN+1),1d0)
+                                        ! ref timescale = 1800 s
+            FCONV_tmp=MIN(MPLUM1*BYAM(LMIN+1)*(1800d0/DTsrc),1d0)
             if(FSUB_tmp.gt.1.d0/(FCONV_tmp+1.d-20)-1.d0) &
                  FSUB_tmp=1.d0/(FCONV_tmp+1.d-20)-1.d0
             FSUB_tmp=max(1.d0,min(FSUB_tmp,5.d0))
