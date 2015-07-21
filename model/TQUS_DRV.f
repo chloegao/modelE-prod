@@ -274,9 +274,9 @@ C****     1/2 x-direction
          end if
       end if
       enddo ! while(nbad.gt.0)
-!      if(ncyc.gt.2) then
+      if(ncyc.gt.2) then
          if (AM_I_ROOT()) write(6,*) 'AADVQ0: ncyc>2',ncyc
-!      end if
+      end if
 
 C****
 C**** Decide how many timesteps to take by computing Courant limits
