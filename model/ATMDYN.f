@@ -2651,7 +2651,7 @@ C****
       USE DOMAIN_DECOMP_ATM, only: grid, getDomainBounds
       USE DOMAIN_DECOMP_1D, only : halo_update, south, north
       IMPLICIT NONE
-      Real*8 :: byNCYC,byMMA
+      Real*8 :: byMMA
       INTEGER I,J,L   !@var I,J,L loop variables
 
 c**** Extract domain decomposition info
@@ -2661,14 +2661,12 @@ c**** Extract domain decomposition info
 
       Do L=1,LM
          MMB(:,:,L) = MAOLD(L,:,:)*KG2MB*AXYP(:,:)  ;  EndDo
-      CALL AADVQ0 (1._8)  ! uses the fluxes MUs,MVs,MWs from DYNAM
+      Call AADVQ0  !  uses fluxes MUs,MVs,MWs from DYNAM
 C****
 C**** convert from concentration to mass units
 C****
       DO L=1,LM
       DO J=J_0,J_1
-!         IF(J==1.AND.L==1) WRITE (6,*) 'QDYNAM:',Q(1,1,1),MMB(1,1,1),
-!     *      AXYP(1,1)
       DO I=1,IM
          Q(I,J,L) = Q(I,J,L)*MMB(I,J,L)
          QMOM(:,I,J,L) = QMOM(:,I,J,L)*MMB(I,J,L)
@@ -2677,13 +2675,12 @@ C**** ADVECT
         sfbm = 0.; sbm = 0.; sbf = 0.
         sfcm = 0.; scm = 0.; scf = 0.
       CALL AADVQ (Q,QMOM, .TRUE. ,'q       ')
-        byncyc = 1./ncyc
         AGC(:,:,jl_totntlh) = AGC(:,:,jl_totntlh) + sbf(:,:)
         AGC(:,:,jl_zmfntlh) = AGC(:,:,jl_zmfntlh)
-     &    + sbm(:,:)*sfbm(:,:)*byim*byncyc
+     &    + sbm(:,:)*sfbm(:,:)*byim
         AGC(:,:,jl_totvtlh) = AGC(:,:,jl_totvtlh) + scf(:,:)
         AGC(:,:,jl_zmfvtlh)  = AGC(:,:,jl_zmfvtlh)
-     &    + scm(:,:)*sfcm(:,:)*byim*byncyc
+     &    + scm(:,:)*sfcm(:,:)*byim
 C****
 C**** convert from mass to concentration units (using updated MMA)
 C****
@@ -2693,17 +2690,7 @@ C****
         byMMA = 1 / MMA(I,J,L)
         Q(I,J,L) = Q(I,J,L)*byMMA
         QMOM(:,I,J,L) = QMOM(:,I,J,L)*byMMA
-      enddo; 
-!         IF(J==1.AND.L==1) WRITE (6,*) 'QDYNAM:',Q(1,1,1),MMA(1,1,1)
-      enddo; enddo
-
-#ifndef TRACERS_ON
-c Unscale the vertical mass flux accumulation for use by column physics.
-c Switch the sign convention back to "positive downward".
-      MWs(:,:,:) = -MWs(:,:,:)*NCYC
-#else
-c TRDYNAM will do the unscaling
-#endif
+      enddo; enddo; enddo
 
       RETURN
       END SUBROUTINE QDYNAM
@@ -2725,7 +2712,6 @@ c TRDYNAM will do the unscaling
 #endif
       USE ATM_COM, only : MWs
       IMPLICIT NONE
-      REAL*8 byncyc
       INTEGER N
 
 C**** uses the fluxes MUs,MVs,MWs from DYNAM and QDYNAM
@@ -2739,13 +2725,12 @@ C**** uses the fluxes MUs,MVs,MWs from DYNAM and QDYNAM
 
 C**** Flux diagnostics
 #ifndef SKIP_TRACER_DIAGS
-        byncyc = 1./ncyc
         TAJLN(:,:,jlnt_nt_tot,n) = TAJLN(:,:,jlnt_nt_tot,n) + sbf(:,:)
         TAJLN(:,:,jlnt_nt_mm, n) = TAJLN(:,:,jlnt_nt_mm, n)
-     &    + sbm(:,:)*sfbm(:,:)*byim*byncyc
+     &    + sbm(:,:)*sfbm(:,:)*byim
         TAJLN(:,:,jlnt_vt_tot,n) = TAJLN(:,:,jlnt_vt_tot,n) + scf(:,:)
         TAJLN(:,:,jlnt_vt_mm, n) = TAJLN(:,:,jlnt_vt_mm, n)
-     &    + scm(:,:)*sfcm(:,:)*byim*byncyc
+     &    + scm(:,:)*sfcm(:,:)*byim
 
 #ifdef TRACERS_WATER
 C**** vertically integrated atmospheric fluxes
@@ -2753,16 +2738,11 @@ C**** vertically integrated atmospheric fluxes
         TAIJN(:,:,tij_vflx,n) = TAIJN(:,:,tij_vflx,n) + sbfv(:,:)
 #endif
 #endif
-
       ENDDO
-
-c Unscale the vertical mass flux accumulation for use by column physics.
-c Switch the sign convention back to "positive downward".
-      MWs(:,:,:) = -MWs(:,:,:)*NCYC
-
       RETURN
       END SUBROUTINE TrDYNAM
 #endif
+
 
       module UNRDRAG_COM
       !@sum  UNRDRAG_COM model variables for (alternative) gravity wave drag
