@@ -413,13 +413,13 @@ cBond + Berstroem, all wavelength
                case ('SU')
                   VMass(AMP_MODES_MAP(nAMP),1) =trm(i,j,l,n)/DENS_SULF
                case ('BC')
-                  VMass(AMP_MODES_MAP(nAMP),1) =trm(i,j,l,n)/DENS_BCAR
+                  VMass(AMP_MODES_MAP(nAMP),2) =trm(i,j,l,n)/DENS_BCAR
                case ('OC')
-                  VMass(AMP_MODES_MAP(nAMP),1) =trm(i,j,l,n)/DENS_OCAR
+                  VMass(AMP_MODES_MAP(nAMP),3) =trm(i,j,l,n)/DENS_OCAR
                case ('DU')
-                  VMass(AMP_MODES_MAP(nAMP),1) =trm(i,j,l,n)/DENS_DUST
+                  VMass(AMP_MODES_MAP(nAMP),4) =trm(i,j,l,n)/DENS_DUST
                case ('SS')
-                  VMass(AMP_MODES_MAP(nAMP),1) =trm(i,j,l,n)/DENS_SEAS
+                  VMass(AMP_MODES_MAP(nAMP),5) =trm(i,j,l,n)/DENS_SEAS
                end select
              endif
            else                           ! Number
