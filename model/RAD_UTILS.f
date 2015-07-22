@@ -1262,6 +1262,7 @@ C           REMARKS
 C                   PLANCK INTENSITY (W/m^2*STER) IS GIVEN BY PFofTK/PI
 C
 C     ------------------------------------------------------------------
+      use CONSTANT, only: stbo ! (W m-2 K-4) Stefan-Boltzmann 
       IMPLICIT NONE
       REAL*8, PARAMETER, DIMENSION(21) ::
      *     BN = (/1D0, -1D0, 1D0, -1D0, 1D0, -1D0, 5D0, -691D0, 7D0,
@@ -1328,7 +1329,7 @@ C     REAL*8, PARAMETER :: PI =3.141592653589793D0
   160 CONTINUE
       PNORM=15.D0/PI4
       PFofTK=ABS(GXB-GXA)*PNORM
-      PFofTK=PFofTK*5.6692D-08*TK**4
+      PFofTK=PFofTK*stbo*TK**4
       RETURN
       END FUNCTION PFofTK
 

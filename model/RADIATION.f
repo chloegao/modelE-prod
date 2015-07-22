@@ -270,16 +270,16 @@ C------------------------------------------
 !@+       lookup table.  If the requested tmin is less than the default
 !@+       value of 124 K, the lookup table is extrapolated at startup to
 !@+       cover the requested range (same for tmax exceeding 373 K).
-      integer :: planck_tmin=124, planck_tmax=373
+      integer :: planck_tmin=1, planck_tmax=800
 
 !@var transmission_corrections whether to apply correction factors
 !@+   to longwave transmission
       logical :: transmission_corrections
 C            RADDAT_TR_SGP_TABLES          read from  radfile1, radfile2
       INTEGER, PARAMETER :: NGUX=1024, NTX=8, NPX=19
-      REAL*8, dimension(NGUX,NTX,NPX) :: TAUTBL,TAUWV0,TAUCD0
+      REAL*8, dimension(NGUX,NTX,NPX) :: TAUTBL,TAUWV0,TAUCD0,TAUO30
       REAL*8  H2O(100),FCO2(100)
-      REAL*8, DIMENSION(:,:), ALLOCATABLE :: PLANCK!(124:373,33)
+      REAL*8, DIMENSION(1:800,33) :: PLANCK
       REAL*8  XKCFC(12,8,17:20),ULOX(19,16),DUX(19,16), XTFAC(11,9)
 ! Correction-factor lookup-table sizes
 ! NLCF  : number of layers in ref. atm. used to compute the table
@@ -944,7 +944,7 @@ C-----------------------------------------------------------------------
 CR(2)    Reads in Merged k-Distribution Tau Tables for Thermal Radiation
 C        CFCs, H2O Continuum Tau Table, Merged k-Distr Planck Flux Table
 C
-C        (Reads: TAUCD0,TAUTBL,TAUWV0,PLANCK,XKCFC,H2OCN8,H2OCF8
+C        (Reads: TAUCD0,TAUTBL,TAUWV0,TAUO30,PLANCK,XKCFC,H2OCN8,H2OCF8
 c                DUCH4,SDUCH4,DUN2O,SDUN2O,ULOX,DUX      used in TAUGAS)
 C       ----------------------------------------------------------------
 
@@ -952,8 +952,8 @@ C       ----------------------------------------------------------------
       READ(NRFU) title,TAUTBL
       READ(NRFU) title,TAUWV0
       READ(NRFU) title,TAUCD0
-      !READ(NRFU) title,PLANCK
-      call read_extend_planck(nrfu)
+      READ(NRFU) title,TAUO30
+      READ(NRFU) title,PLANCK
       READ(NRFU) title,XKCFC
       READ(NRFU) title,ULOX,DUX
 
@@ -1705,7 +1705,7 @@ C--------------------------------
       if(use_o3_ref > 0 )then
         CALL REPART (O3JREF(1,IGCM,JGCM),PLBO3,NLO3+1, ! in
      *                        U0GAS(1,3),PLB0, NL+1)   ! out, ok if L1>1 ?
-        ! next block may seem weird but it is here to allow RCOMPX calls with 
+        ! next block may seem weird but it is here to allow RCOMPX calls with
         ! reference ozone in part of the atmosphere and tracer below:
         if(use_tracer_chem(1) > 0) then
           U0GAS(1:use_tracer_chem(1),3)=chem_IN(1,1:use_tracer_chem(1))
@@ -2967,7 +2967,7 @@ c LW
          TRBALK(l,:) = TAB(l,:)
        enddo
 #endif
-#ifdef TRACERS_TOMAS 
+#ifdef TRACERS_TOMAS
       CALL SETTOMAS(EXT,SCT,GCB,TAB)
        do L = L1,LM
 c SW
@@ -3830,9 +3830,9 @@ C                     --------------------------------------------------
 
       SUBROUTINE TAUGAS
       IMPLICIT NONE
-C     ----------------------------------------------------------
-C     TAUGAS INPUT REQUIRES:  L1,NL,PL,DPL,TLM,ULGAS,    TAUCD0
-C                             TAUTBL,TAUWV0,XKCFC,H2OCN8,H2OCF8
+C     -------------------------------------------------------------
+C     TAUGAS INPUT REQUIRES:  L1,NL,PL,DPL,TLM,ULGAS, TAUTBL,TAUWV0
+C                             TAUCD0,TAUO30, XKCFC,H2OCN8,H2OCF8
 C                             ULOX,DUX,XTRUP,XTU0,XTRDN,XTD0
 C                             DXUP2,DXDN2,DXUP3,DXDN3,DXUP6,DXDN6
 C                             DXUP7,DXDN7,DXUP8,DXDN8,DXUP9,DXDN9
@@ -3915,10 +3915,10 @@ C     ----------------------------------------------------------
       INTEGER MLGAS(21)
       INTEGER I,IM,L,LL,LCF,LCFdn,LCFup,NLPrat,IULOW,IU,IPX,IAA,ITX
      *     ,IGAS,NG,KK,IK1,IK2,IPU,IK,NU,IUA,nsum
-     *     ,IUB,IH2O0,IG  ,ICDlow,ICO20, IUW,IU1,IU2
+     *     ,IUB,IH2O0,IG  ,ICDlow,ICO20, IO3low,IO30, IUW,IU1,IU2
      *     ,i2u1,i2u2,i3u1,i3u2,i6u1,i6u2,i7u1,i7u2,i8u1,i8u2,i9u1,i9u2
 
-      REAL*8 UH2O, UCO2L,UO3LL,UCH4L,UN2OL,UCF1L,UCF2L,USO2
+      REAL*8 UH2O,UCO2L,UO3LL,UCH4L,UN2OL,UCF1L,UCF2L,USO2
      *     ,DUH2,DU1,DU2,DUCO,D2U1,D2U2,DUO3,D3U1,D3U2,DUCH,D7U1,D7U2
      *     ,DUN2,D6U1,D6U2,DUF1,D8U1,D8U2,DUF2,D9U1,D9U2,SUM1,SUM2,sumPR
      *     ,TAUT1,TAUT2,TAUHFB,TAUCF,TAUIPG,TAUSUM,TAU11,TAU12
@@ -4033,15 +4033,18 @@ C**** Find correction factors XTU and XTD
       END DO
   100 CONTINUE
 
+      ICDlow = 0 ! default: CO2 not low
+      IO3low = 0 ! default: O3  not low
+      IUlow  = 0 ! water vapor  not low
+
       UH2O = 1d-10 + SUM(ULGAS(L1:NL,1))
       IF (UH2O < 1.1d-10) THEN  ! low water vapor
         IUlow    = 1
         XTU(:,:) = XTU0(:,:)                                  ! 1:NLCF,1:NRCF
         XTD(:,:) = XTD0(:,:)                                  ! 1:NLCF,1:NRCF
-        GO TO 180
+        GO TO 180               ! if no water vapor
       END IF
 
-      IUlow = 0                 ! with water vapor
       UCO2L = LOG10 (1d-10 + SUM(ULGAS(L1:NL,2)))
       UO3LL = LOG10 (1d-10 + SUM(ULGAS(L1:NL,3)))
       UCH4L = LOG10 (1d-10 + SUM(ULGAS(L1:NL,7)))
@@ -4050,8 +4053,8 @@ C**** Find correction factors XTU and XTD
       UCF2L = LOG10 (1d-10 + SUM(ULGAS(L1:NL,9)))
       USO2  = SUM(ULGAS(L1:NL,13))
 
-      ICDLOW=0
       if(UCO2L < -9.958607315d0) ICDlow = 1  ! if UCO2<1.1d-10 (low CO2)
+      IF(UO3LL < -9.6)           IO3LOW = 1  ! low ozone
 
       DUCO=UCO2L-ULMNCO
       IF(DUCO.LT.0.) DUCO=0.
@@ -4420,21 +4423,28 @@ C     IF(NU <= 1) then  ;  XUA = 0  ;  XUB = 0  ;  endif
 
       IH2O0=0
       IF( (IGAS==6.OR.IGAS==8.OR.IGAS==10.OR.IGAS==13.OR.IGAS==15)
-     +   .and. IULOW == 1 ) IH2O0=1
+     +   .and. IULOW==1 ) IH2O0=1
 
       ICO20=0
       IF( (IGAS==4.OR.IGAS==9.OR.IGAS==11) .and. ICDLOW==1 ) ICO20=1
 
+      IO30=0
+      IF( (IGAS==5.or.IGAS==7.or.IGAS==12.or.IGAS==14.or.IGAS==16)
+     +   .and. IO3LOW==1 ) IO30=1
+
+!!!   WARNING: If IH2O0+ICO20+IO30=2 accuracy is reduced
+!!!   WARNING: If IH2O0+ICO20+IO30=3 result is unusable
+
       DO 430 IG=1,NG
-      IF(IH2O0 == 0 .and. ICO20 == 0) THEN
-      TAUIPG = WAAA*TAUTBL(IG+IGUX(IGAS)+NG* IUA   ,ITX  ,IPX)
-     +       + WAAB*TAUTBL(IG+IGUX(IGAS)+NG*(IUA+1),ITX  ,IPX)
-     +       + WABA*TAUTBL(IG+IGUX(IGAS)+NG* IUA   ,ITX+1,IPX)
-     +       + WABB*TAUTBL(IG+IGUX(IGAS)+NG*(IUA+1),ITX+1,IPX)
-     +       + WBAA*TAUTBL(IG+IGUX(IGAS)+NG* IUB   ,ITX  ,IPX-1)
-     +       + WBAB*TAUTBL(IG+IGUX(IGAS)+NG*(IUB+1),ITX  ,IPX-1)
-     +       + WBBA*TAUTBL(IG+IGUX(IGAS)+NG* IUB   ,ITX+1,IPX-1)
-     +       + WBBB*TAUTBL(IG+IGUX(IGAS)+NG*(IUB+1),ITX+1,IPX-1)
+      IF      (IH2O0 == 1) THEN
+      TAUIPG = WAAA*TAUWV0(IG+IGUX(IGAS)+NG* IUA   ,ITX  ,IPX) ! low H2O
+     +       + WAAB*TAUWV0(IG+IGUX(IGAS)+NG*(IUA+1),ITX  ,IPX)
+     +       + WABA*TAUWV0(IG+IGUX(IGAS)+NG* IUA   ,ITX+1,IPX)
+     +       + WABB*TAUWV0(IG+IGUX(IGAS)+NG*(IUA+1),ITX+1,IPX)
+     +       + WBAA*TAUWV0(IG+IGUX(IGAS)+NG* IUB   ,ITX  ,IPX-1)
+     +       + WBAB*TAUWV0(IG+IGUX(IGAS)+NG*(IUB+1),ITX  ,IPX-1)
+     +       + WBBA*TAUWV0(IG+IGUX(IGAS)+NG* IUB   ,ITX+1,IPX-1)
+     +       + WBBB*TAUWV0(IG+IGUX(IGAS)+NG*(IUB+1),ITX+1,IPX-1)
       ELSE IF (ICO20 == 1) THEN
       TAUIPG = WAAA*TAUCD0(IG+IGUX(IGAS)+NG* IUA   ,ITX  ,IPX) ! low CO2
      +       + WAAB*TAUCD0(IG+IGUX(IGAS)+NG*(IUA+1),ITX  ,IPX)
@@ -4444,15 +4454,24 @@ C     IF(NU <= 1) then  ;  XUA = 0  ;  XUB = 0  ;  endif
      +       + WBAB*TAUCD0(IG+IGUX(IGAS)+NG*(IUB+1),ITX  ,IPX-1)
      +       + WBBA*TAUCD0(IG+IGUX(IGAS)+NG* IUB   ,ITX+1,IPX-1)
      +       + WBBB*TAUCD0(IG+IGUX(IGAS)+NG*(IUB+1),ITX+1,IPX-1)
-      ELSE   !! if (ICO20 == 0 .and. IH2O0 == 1)
-      TAUIPG = WAAA*TAUWV0(IG+IGUX(IGAS)+NG* IUA   ,ITX  ,IPX)  ! low WV
-     +       + WAAB*TAUWV0(IG+IGUX(IGAS)+NG*(IUA+1),ITX  ,IPX)
-     +       + WABA*TAUWV0(IG+IGUX(IGAS)+NG* IUA   ,ITX+1,IPX)
-     +       + WABB*TAUWV0(IG+IGUX(IGAS)+NG*(IUA+1),ITX+1,IPX)
-     +       + WBAA*TAUWV0(IG+IGUX(IGAS)+NG* IUB   ,ITX  ,IPX-1)
-     +       + WBAB*TAUWV0(IG+IGUX(IGAS)+NG*(IUB+1),ITX  ,IPX-1)
-     +       + WBBA*TAUWV0(IG+IGUX(IGAS)+NG* IUB   ,ITX+1,IPX-1)
-     +       + WBBB*TAUWV0(IG+IGUX(IGAS)+NG*(IUB+1),ITX+1,IPX-1)
+      ELSE IF (IO30 == 1) THEN
+      TAUIPG = WAAA*TAUO30(IG+IGUX(IGAS)+NG* IUA   ,ITX  ,IPX) ! low O3
+     +       + WAAB*TAUO30(IG+IGUX(IGAS)+NG*(IUA+1),ITX  ,IPX)
+     +       + WABA*TAUO30(IG+IGUX(IGAS)+NG* IUA   ,ITX+1,IPX)
+     +       + WABB*TAUO30(IG+IGUX(IGAS)+NG*(IUA+1),ITX+1,IPX)
+     +       + WBAA*TAUO30(IG+IGUX(IGAS)+NG* IUB   ,ITX  ,IPX-1)
+     +       + WBAB*TAUO30(IG+IGUX(IGAS)+NG*(IUB+1),ITX  ,IPX-1)
+     +       + WBBA*TAUO30(IG+IGUX(IGAS)+NG* IUB   ,ITX+1,IPX-1)
+     +       + WBBB*TAUO30(IG+IGUX(IGAS)+NG*(IUB+1),ITX+1,IPX-1)
+      ELSE   !! if H2O, CO2, O3 are present (I..0=0)
+      TAUIPG = WAAA*TAUTBL(IG+IGUX(IGAS)+NG* IUA   ,ITX  ,IPX)
+     +       + WAAB*TAUTBL(IG+IGUX(IGAS)+NG*(IUA+1),ITX  ,IPX)
+     +       + WABA*TAUTBL(IG+IGUX(IGAS)+NG* IUA   ,ITX+1,IPX)
+     +       + WABB*TAUTBL(IG+IGUX(IGAS)+NG*(IUA+1),ITX+1,IPX)
+     +       + WBAA*TAUTBL(IG+IGUX(IGAS)+NG* IUB   ,ITX  ,IPX-1)
+     +       + WBAB*TAUTBL(IG+IGUX(IGAS)+NG*(IUB+1),ITX  ,IPX-1)
+     +       + WBBA*TAUTBL(IG+IGUX(IGAS)+NG* IUB   ,ITX+1,IPX-1)
+     +       + WBBB*TAUTBL(IG+IGUX(IGAS)+NG*(IUB+1),ITX+1,IPX-1)
       ENDIF
 
       TAUSUM=TRGXLK(L,KK)+TAUIPG
@@ -4462,13 +4481,13 @@ C     IF(NU <= 1) then  ;  XUA = 0  ;  XUB = 0  ;  endif
   500 CONTINUE
 
 
-C-------------------------------------------------------------------    
-C            H2O WINDOW ABSORPTION (2013)                   
-C-------------------------------------------------------------------    
+C-------------------------------------------------------------------
+C            H2O WINDOW ABSORPTION (2013)
+C-------------------------------------------------------------------
       IF(MLGAS(1) == 1) THEN
         XK=WTB*(XKH2OW(ITX+1)-XKH2OW(ITX))+XKH2OW(ITX)
         TRGXLK(L,1)=TRGXLK(L,1)+XK*ULGAS(L,1)
-      END IF 
+      END IF
 
 C                               CFC11 and CFC12 Window Absorption (1997)
 C                               ----------------------------------------
@@ -8109,7 +8128,7 @@ C
       icyc  = mavg*icycs0
       icycf = mavg*icycs0f
       DO 370 J=JYRREF,JYRNOW
-      if(j > 2000) icyc = icycf  
+      if(j > 2000) icyc = icycf
       KWSKIP=0
       IF(J > JYRREF) KWSKIP=KLIMIT
       IF(J==JYRNOW) KWSKIP=0
@@ -8507,141 +8526,6 @@ C
 C
       RETURN
       END SUBROUTINE WRITET
-
-      subroutine read_extend_planck(nrfu)
-c Reads the Planck function lookup table from unit nrfu and
-c extrapolates it below 124 K or above 373 K if necessary.
-c A weighted average of linear and logarithmic extrapolation
-c is used.
-c This version is adapted from A. Lacis routine PKTK33.
-c Comments from that routine are listed at the end, as are
-c some better log-vs-linear weights for T>800 K.
-      implicit none
-      integer :: nrfu
-
-      REAL*8 :: PFOFTK,TKOFPF ! external funcs
-
-      integer i,k
-      real*8 :: wtlin,wtlog,tk,dtk,f1,f2,g1,g2,wavna,wavnb
-
-      ! weights for linear extrapolation for the T range 1-31 K
-      ! (value for T=31 K is used for 32K-123K).
-      real*8, parameter :: wtlintklo(31) = (/
-     &     0.0314,0.03245,0.0333 ,0.0341 ,0.0351,
-     &     0.0362,0.03745,0.03861,0.03962,0.0414,
-     &     0.0427,0.0440 ,0.0451 ,0.0463 ,0.0477,
-     &     0.0488,0.0506 ,0.0508 ,0.0532 ,0.0542,
-     &     0.0552,0.0562 ,0.0572 ,0.0585 ,0.060,
-     &     0.061 ,0.062  ,0.063  ,0.064  ,0.071,
-     &     0.075 /)
-
-      character(len=80) :: title
-      real*8 planck_in(124:373,33)
-
-      read(nrfu) title,planck_in
-
-      allocate(planck(planck_tmin:planck_tmax,size(planck_in,2)))
-
-      planck(124:373,:) = planck_in(124:373,:)
-
-      ! nothing more to do if tmin, tmax have their default values
-      if(planck_tmin==124 .and. planck_tmax==373) return
-
-      do k=1,size(planck,2) ! loop over k-bins
-
-! ballpark extrapolation over 1K-123K range to be near SIGMA*TK**4, pre-norm  
-        g1=planck(125,k)
-        g2=planck(124,k)
-        f1=log(g1)
-        f2=log(g2)
-        do i=planck_tmin,123
-          wtlin = wtlintklo(min(i,31))
-          wtlog = 1.d0-wtlin
-          dtk = real(124-i,kind=8)
-          planck(i,k) = wtlog*exp(f2+(f2-f1)*dtk)+wtlin*(g2+(g2-g1)*dtk)
-          planck(i,k) = max(1d-10, planck(i,k))
-        enddo
-
-! 50-50 average of log & linear extrapolation for T > 373 K
-        wtlin = 0.5 
-        wtlog = 1.d0-wtlin
-        g1=planck(372,k)
-        g2=planck(373,k)
-        f1=log(g1)
-        f2=log(g2)
-        dtk = 0d0
-        do i=374,planck_tmax
-          dtk = real(i-373,kind=8)
-          planck(i,k) = wtlog*exp(f2+(f2-f1)*dtk)+wtlin*(g2+(g2-g1)*dtk)
-        enddo
-        
-      enddo
-
-      ! renormalization
-c     PFOFTK(WAVNA,WAVNB,TK) is used here in place of SIGMA*TK**4
-c     TKOFPF(WAVNA,WAVNB,TK) is the inverse of PFOFTK(WAVNA,WAVNB,TK)
-
-      WAVNA=0.D0; WAVNB=40000.D0 ! cover the spectral range for SIGMA*T**4
-
-      do i=planck_tmin,planck_tmax
-        tk = real(i,kind=8)
-        planck(i,:) = pfoftk(wavna,wavnb,tk)*
-     &       (planck(i,:)/sum(planck(i,:)))
-      enddo
-
-c----------------------------------------------------------------------
-c     Input:   BLANCK(8250) (one-dim 33-k Planck spec intvl TK=123-373)
-c                           (renamed normal ModelE variable PLANCK)
-c     Output:  PLANCK(800,33) (two-dim 33-k Planck spec intvl TK=1-800)
-c                            (replaced BLANCK(8250) with PLANCK(800,33)
-c     Note:    BLANCK uses IT0=123 & ITNEXT=250 to locate TK,k interval
-c              PLANCK uses integer KT=TK as baseline for ,k flux interp
-c                    (IT0 & ITNEXT in THERML,SURF are no longer needed) 
-c     Remark:  Planck 33-k spectral intvals extrapolated to TK=1,TK=800 
-c              (PLANCK sum over 33-k intvals normalized to SIGMA*TK**4)
-c              BLANCK data copied back to PLANCK(124-373,33)if K0COPY=1
-c              IF(K0COPY.EQ.1) all normalized to SIGMA*TK**4, dif=.001K
-c              recommended default: K0COPY=0
-c----------------------------------------------------------------------
-
-
-c                ! defaults:  K0COPY=0
-c      INTEGER K0COPY
-c      K0COPY=0   ! K0COPY=1 copies BLANCK back to PLANCK (for 124-373 K)
-
-c      IF(K0COPY.EQ.1) THEN    !  copy BLANCK to PLANCK (for 124-373 K)
-c        PLANCK(124:373,:) = PLANCK_in(124:373,:)
-c      ENDIF
-
-c weights for temps over 800
-c      IF(I.GT.800) WTLIN=0.87 
-c      IF(I.GT.850) WTLIN=0.91  
-c      IF(I.GT.900) WTLIN=0.94    
-c      IF(I.GT.950) WTLIN=0.96    
-c      IF(I.GT.1000) WTLIN=0.98     
-c      IF(I.GT.1050) WTLIN=0.985      
-c      IF(I.GT.1100) WTLIN=0.991       
-c      IF(I.GT.1150) WTLIN=0.995      
-c      IF(I.GT.1200) WTLIN=0.997       
-c      IF(I.GT.1250) WTLIN=0.9984      
-c      IF(I.GT.1300) WTLIN=0.9991      
-c      IF(I.GT.1350) WTLIN=0.9995     
-c      IF(I.GT.1400) WTLIN=0.99975      
-c      IF(I.GT.1450) WTLIN=0.99987       
-c      IF(I.GT.1500) WTLIN=0.999938       
-c      IF(I.GT.1550) WTLIN=0.999968        
-c      IF(I.GT.1600) WTLIN=0.999984      
-c      IF(I.GT.1650) WTLIN=0.999992       
-c      IF(I.GT.1700) WTLIN=0.999996      
-c      IF(I.GT.1750) WTLIN=0.999998       
-c      IF(I.GT.1800) WTLIN=0.999999      
-c      IF(I.GT.1850) WTLIN=0.9999995    
-c      IF(I.GT.1900) WTLIN=0.99999975      
-c      IF(I.GT.1950) WTLIN=0.99999990
-
-      return
-
-      end subroutine read_extend_planck
 
       END MODULE RADPAR
 
