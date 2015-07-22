@@ -274,7 +274,7 @@ c
       RETURN
       END SUBROUTINE AADVQ
 
-      SUBROUTINE AADVQ0(dt_dummy)
+      SUBROUTINE AADVQ0
 !@sum AADVQ0 initialises advection of tracer.
 !@+   Decide how many cycles to take such that mass does not become
 !@+   too small during any of the operator splitting steps of each cycle
@@ -287,7 +287,6 @@ c
       USE QUSDEF, only : nmom
       USE GEOM, only : imaxj
       IMPLICIT NONE
-      real*8, intent(in) :: dt_dummy
       INTEGER :: i,j,l,n,nc,nbad,nbad_loc,ierr_loc,ierr,nc3d,ncxy
      &     ,ncycxy_loc(lm),im1,lmin,lmax,nl,nstepx_dum,nstepz_dum
 #ifdef UPWIND_HALOS
