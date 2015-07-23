@@ -348,7 +348,7 @@ c -----------------------------------------------------------------
 
       ! Local
       INTEGER n,w,s,nAMP
-      REAL*8,     DIMENSION(nmodes,7) :: VolFrac, VMass
+      REAL*8,     DIMENSION(nmodes,7) :: VolFrac, VMass=0
       REAL*8                          :: H2O, NO3 
       REAL(8), PARAMETER :: TINYNUMER = 1.0D-30 
       COMPLEX*8, DIMENSION(6,7)      :: Ri
