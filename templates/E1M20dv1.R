@@ -97,7 +97,7 @@ NAMERVR=RD_modelE_M.names.txt     ! named river outlets
 TOP_INDEX=top_index_72x46_a.ij.ext.nc  ! only used if #define DO_TOPMODEL_RUNOFF
 !                                             (end of section 2 of data input files)
 RADN1=sgpgxg.table8               ! rad.tables and history files
-RADN2=LWTables33k_lowH20_CO2_O3_planck_1-800              ! rad.tables and history files
+RADN2=LWTables33k_lowH2O_CO2_O3_planck_1-800              ! rad.tables and history files
 RADN4=LWCorrTables33k              ! rad.tables and history files
 RADN5=H2Ocont_MT_CKD  ! Mlawer/Tobin_Clough/Kneizys/Davies H2O continuum table
 ! other available H2O continuum tables:

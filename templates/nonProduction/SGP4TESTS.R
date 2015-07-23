@@ -154,7 +154,7 @@ GIC=SGP_extractions/GIC.144X90.DEC01.1.ext_2.nc
 
 GHG=GHG.Mar2009.txt
 RADN1=sgpgxg.table8
-RADN2=LWTables33k.1a
+RADN2=LWTables33k_lowH2O_CO2_O3_planck_1-800
 RADN4=LWCorrTables33k
 RADN5=H2Ocont_MT_CKD
 RADN3=miescatpar.abcdv2
