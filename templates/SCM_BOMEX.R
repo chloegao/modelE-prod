@@ -160,7 +160,7 @@ GIC=/path/to/user/directory/extractions/GIC.144X90.DEC01.1.ext_2.nc
 
 GHG=GHG.1850-2050.Mar2002
 RADN1=sgpgxg.table8
-RADN2=LWTables33k_lowH20_CO2_O3_planck_1-800
+RADN2=LWTables33k_lowH2O_CO2_O3_planck_1-800
 RADN4=LWCorrTables33k
 RADN5=H2Ocont_MT_CKD
 RADN3=miescatpar.abcdv2

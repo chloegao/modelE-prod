@@ -74,7 +74,7 @@ soil_textures=soil_textures_top30cm_2x2.5
 SOILCARB_global=soilcarb_top30cm_2x2.5.nc
     ! resolution independent files
 RADN1=sgpgxg.table8               ! rad.tables and history files
-RADN2=LWTables33k_lowH20_CO2_O3_planck_1-800              ! rad.tables and history files
+RADN2=LWTables33k_lowH2O_CO2_O3_planck_1-800              ! rad.tables and history files
 RADN4=LWCorrTables33k              ! rad.tables and history files
 RADN5=H2Ocont_MT_CKD  ! Mlawer/Tobin_Clough/Kneizys/Davies H2O continuum table
 ! other available H2O continuum tables:

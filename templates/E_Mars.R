@@ -103,7 +103,7 @@ GHG=planet/desert_world/GHG.CO2only.txt
 
 ! radiation input files
 RADN1=sgpgxg.table8               ! rad.tables and history files
-RADN2=LWTables33k_lowH20_CO2_O3_planck_1-800              ! rad.tables and history files
+RADN2=LWTables33k_lowH2O_CO2_O3_planck_1-800              ! rad.tables and history files
 RADN5=H2Ocont_MT_CKD  ! Mlawer/Tobin_Clough/Kneizys/Davies H2O continuum table
 RADN3=miescatpar.abcdv2
 RH_QG_Mie=oct2003.relhum.nr.Q633G633.table
