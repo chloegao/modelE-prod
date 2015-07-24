@@ -612,12 +612,6 @@ module RunTimeControls_mod
   logical, parameter :: obio_on_garyocean = .false.
 #endif
 
-#if defined(OBIO_RAD_coupling)
-  logical, parameter :: obio_rad_coupling = .true.
-#else
-  logical, parameter :: obio_rad_coupling = .false.
-#endif
-
 #if defined(OFFLINE)
   logical, parameter :: offline = .true.
 #else
