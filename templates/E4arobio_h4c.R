@@ -18,7 +18,6 @@ Preprocessor Options
 #define ATM2x2h             !2x2.5 40 layer atm & 26 layer 1deg hycom (387x360)
 #define HYCOM1deg           !2x2.5 40 layer atm & 26 layer 1deg hycom (387x360)
 #define TRACERS_OceanBiology
-#define OBIO_RAD_coupling
 #define pCO2_ONLINE
 ! #define constCO2
 #define TRACERS_ON                  ! include tracers code
@@ -107,7 +106,6 @@ dic_inicond=dic_glodap_annmean.asc       ! initial cond for dic (GLODAP)
 alk_inicond=alk_glodap_annmean.asc       ! initial cond/forcing for alk (GLODAP)
 !!!oasimdirect=oasimdirect_20w_new          ! spectral light components
                                             ! if not defined
-OBIO_RAD_coupling
 atmFe_inicond=iron_gocart_1x1mon.asc     ! GOCART iron flux
 atmFedirect1=iron_ron_195x180_20w.asc    ! Ron Miller's dust fluxes
 facirr=facirr.asc                        ! factors for mean irradiance w/in

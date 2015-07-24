@@ -25,18 +25,8 @@
       real, ALLOCATABLE, DIMENSION(:,:,:)  :: alk_glob        !alkalinity in 'umol/kg'
 #endif
 
-#ifndef OBIO_RAD_coupling
-      real, ALLOCATABLE, DIMENSION(:,:,:,:,:):: Eda,Esa       !direct,diffuse downwelling irradiance
-#endif
-
       real solz               !mean cosine solar zenith angle
       real sunz               !solar zenith angle
-#ifdef OBIO_RAD_coupling 
-      real eda_frac(nlt),esa_frac(nlt)
-      real ovisdir_ij,ovisdif_ij,onirdir_ij,onirdif_ij
-#else
-      real Eda2(nlt,nhn),Esa2(nlt,nhn)
-#endif
       real Ed(nlt),Es(nlt)
       real wind               !surface wind from atmos
       real tirrq(kdm)         !total mean irradiance in quanta

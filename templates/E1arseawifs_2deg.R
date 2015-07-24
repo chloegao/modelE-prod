@@ -21,7 +21,6 @@ Preprocessor Options
 !#define TRACERS_OceanBiology
 !#define OBIO_ON_GARYocean
 !#define pCO2_ONLINE
-!#define OBIO_RAD_coupling
 #define CHL_from_SeaWIFs
 End Preprocessor Options
 
@@ -150,7 +149,6 @@ alk_inicond=alk_glodap_annmean.asc       ! initial cond/forcing for alk
 (GLODAP)
 !!!oasimdirect=oasimdirect_20w_new          ! spectral light components
                                             ! if not defined
-OBIO_RAD_coupling
 atmFe_inicond=iron_gocart_1x1mon.asc     ! GOCART iron flux
 atmFedirect1=iron_ron_195x180_20w.asc    ! Ron Miller's dust fluxes
 facirr=facirr.asc                        ! factors for mean irradiance w/in
