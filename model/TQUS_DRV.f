@@ -150,6 +150,8 @@ C**** The MMA array space is temporarily put to use in this section
       USE DOMAIN_DECOMP_1D, ONLY : NORTH, SOUTH, AM_I_ROOT, HALO_UPDATE
       IMPLICIT NONE
 
+      Integer,Parameter :: NCYCPRINT = 2
+      Real*8 ,Parameter :: MRATIOMAX = .5
       INTEGER :: i,j,l,n,nc,im1,nbad,nbad_loc
       REAL*8 :: byn,ssp,snp
       INTEGER :: I_0, I_1, J_1, J_0, J1P,JNP
@@ -174,13 +176,14 @@ C****
 C**** Set things up
       nbad = 1
       ncyc = 0
+
       do while(nbad.gt.0)
+
       ncyc = ncyc + 1
       byn = 1./ncyc
       nbad_loc = 0
-      do l=1,lm
-         mma(:,:,l) = mb(:,:,l)
-      enddo
+      mma(:,:,:) = mb(:,:,:)
+
       do nc=1,ncyc
 
 C****     1/2 x-direction
@@ -189,37 +192,59 @@ C****     1/2 x-direction
           im1 = im
           do i=1,im
             mma(i,j,l) = mma(i,j,l) + (mus(im1,j,l)-mus(i,j,l))*byn*.5
-            if (mma(i,j,l) < .5*mb(i,j,l))  nbad_loc = nbad_loc + 1
+            if (mma(i,j,l) < mratiomax*mb(i,j,l)) then
+              nbad_loc = nbad_loc + 1
+              exit lloopx1
+            endif
             im1 = i
           end do
         end do
         end do lloopx1
+        If (NBAD_LOC > 0 .and. NCYC >= NCYCPRINT)
+     *     Write (6,900) 'AADVQ0: 1/2 X1 step too large.',I,J,L,NCYC,
+     *        MMA(I,J,L)/MB(I,J,L),
+     *        MUs(Im1,J,L)*byN*.5/MB(I,J,L),MUs(I,J,L)*byN*.5/MB(I,J,L),                                                    
+     *        MVs(I,J-1:J,L)*byN/MB(I,J,L),   
+     *        MWs(I,J,L)*byN/MB(I,J,L),MWs(I,J,L-1)*byN/MB(I,J,L)                
         CALL GLOBALSUM(grid, nbad_loc, nbad, all=.true.)
         IF(NBAD.GT.0) exit ! nc loop
-        nbad_loc = nbad
 
 C****         y-direction
         lloopy: do l=1,lm              !Interior
         do j=J_0S,J_1S
         do i=1,im
           mma(i,j,l) = mma(i,j,l) + (mvs(i,j-1,l)-mvs(i,j,l))*byn
-          if (mma(i,j,l) < .5*mb(i,j,l))  nbad_loc = nbad_loc + 1
+          if (mma(i,j,l) < mratiomax*mb(i,j,l)) then
+            nbad_loc = nbad_loc + 1
+            exit lloopy
+          endif
         end do
         end do
         if (HAVE_SOUTH_POLE) then
            ssp = sum(mma(:, 1,l)-mvs(:,1,l)*byn)*byim
            mma(:,1 ,l) = ssp
-           if (mma(1,1,l) < .5*mb(1,1,l))  nbad_loc = nbad_loc + 1
+           if (mma(1,1,l) < mratiomax*mb(1,1,l)) then
+             nbad_loc = nbad_loc + 1
+             exit lloopy
+           endif
         endif
         if (HAVE_NORTH_POLE) then
            snp = sum(mma(:,jm,l)+mvs(:,jm-1,l)*byn)*byim
            mma(:,jm,l) = snp
-           if (mma(1,jm,l) < .5*mb(1,jm,l))  nbad_loc = nbad_loc + 1
+           if (mma(1,jm,l) < mratiomax*mb(1,jm,l)) then
+             nbad_loc = nbad_loc + 1
+             exit lloopy
+           endif
         endif
         end do lloopy
+        If (NBAD_LOC > 0 .and. NCYC >= NCYCPRINT)
+     *     Write (6,900) 'AADVQ0:     Y  step too large.',I,J,L,NCYC,
+     *        MMA(I,J,L)/MB(I,J,L),
+     *        MUs(Im1,J,L)*byN*.5/MB(I,J,L),MUs(I,J,L)*byN*.5/MB(I,J,L),                                                    
+     *        MVs(I,J-1:J,L)*byN/MB(I,J,L),   
+     *        MWs(I,J,L)*byN/MB(I,J,L),MWs(I,J,L-1)*byN/MB(I,J,L)                
         CALL GLOBALSUM(grid, nbad_loc, nbad, all=.true.)
         IF(NBAD.GT.0) exit ! nc loop
-        nbad_loc = nbad
 
 C****         z-direction
         lloopz2: do l=1,lm
@@ -227,28 +252,42 @@ C****         z-direction
         do j=J_0,J_1
         do i=1,im
           mma(i,j,l) = mma(i,j,l) + mws(i,j,l)*byn
-          if (mma(i,j,l) < .5*mb(i,j,l))  nbad_loc = nbad_loc + 1
+          if (mma(i,j,l) < mratiomax*mb(i,j,l)) then
+            nbad_loc = nbad_loc + 1
+            exit lloopz2
+          endif
         end do
         end do
         else if(l.eq.lm) then ! topmost layer
         do j=J_0,J_1
         do i=1,im
           mma(i,j,l) = mma(i,j,l) - mws(i,j,l-1)*byn
-          if (mma(i,j,l) < .5*mb(i,j,l))  nbad_loc = nbad_loc + 1
+          if (mma(i,j,l) < mratiomax*mb(i,j,l)) then
+            nbad_loc = nbad_loc + 1
+            exit lloopz2
+          endif
         end do
         end do
         else ! interior layers
         do j=J_0,J_1
         do i=1,im
           mma(i,j,l) = mma(i,j,l) + (mws(i,j,l)-mws(i,j,l-1))*byn
-          if (mma(i,j,l) < .5*mb(i,j,l))  nbad_loc = nbad_loc + 1
+          if (mma(i,j,l) < mratiomax*mb(i,j,l)) then
+            nbad_loc = nbad_loc + 1
+            exit lloopz2
+          endif
         end do
         end do
         endif
         end do lloopz2
+        If (NBAD_LOC > 0 .and. NCYC >= NCYCPRINT)
+     *     Write (6,900) 'AADVQ0:     Z  step too large.',I,J,L,NCYC,
+     *        MMA(I,J,L)/MB(I,J,L),
+     *        MUs(Im1,J,L)*byN*.5/MB(I,J,L),MUs(I,J,L)*byN*.5/MB(I,J,L),                                                    
+     *        MVs(I,J-1:J,L)*byN/MB(I,J,L),   
+     *        MWs(I,J,L)*byN/MB(I,J,L),MWs(I,J,L-1)*byN/MB(I,J,L)                
         CALL GLOBALSUM(grid, nbad_loc, nbad, all=.true.)
         IF(NBAD.GT.0) exit ! nc loop
-        nbad_loc=nbad
 
 C****     1/2 x-direction
         lloopx2: do l=1,lm
@@ -256,14 +295,22 @@ C****     1/2 x-direction
           im1 = im
           do i=1,im
             mma(i,j,l) = mma(i,j,l) + (mus(im1,j,l)-mus(i,j,l))*byn*.5
-            if (mma(i,j,l) < .5*mb(i,j,l))  nbad_loc = nbad_loc + 1
+            if (mma(i,j,l) < mratiomax*mb(i,j,l)) then
+              nbad_loc = nbad_loc + 1
+              exit lloopx2
+            endif
             im1 = i
           end do
         end do
         end do lloopx2
+        If (NBAD_LOC > 0 .and. NCYC >= NCYCPRINT)
+     *     Write (6,900) 'AADVQ0: 1/2 X2 step too large.',I,J,L,NCYC,
+     *        MMA(I,J,L)/MB(I,J,L),
+     *        MUs(Im1,J,L)*byN*.5/MB(I,J,L),MUs(I,J,L)*byN*.5/MB(I,J,L),                                                    
+     *        MVs(I,J-1:J,L)*byN/MB(I,J,L),   
+     *        MWs(I,J,L)*byN/MB(I,J,L),MWs(I,J,L-1)*byN/MB(I,J,L)                
         CALL GLOBALSUM(grid, nbad_loc, nbad, all=.true.)
         IF(NBAD.GT.0) exit ! nc loop
-        nbad_loc=nbad
 
       end do ! nc loop
 
@@ -273,10 +320,8 @@ C****     1/2 x-direction
             call stop_model('AADVQ0: ncyc>=10',11)
          end if
       end if
+
       enddo ! while(nbad.gt.0)
-      if(ncyc.gt.2) then
-         if (AM_I_ROOT()) write(6,*) 'AADVQ0: ncyc>2',ncyc
-      end if
 
 C****
 C**** Decide how many timesteps to take by computing Courant limits
@@ -289,8 +334,7 @@ C****
          call xstep (2d0*ncyc,MMA,nstepx2(J_0H,1,n))
       end do
       RETURN
-  900 format (1x,a,3i4,f10.4,i5)
-  910 format (1x,a,i4,f10.4,i5)
+  900 Format (A,4I5,7F8.3)
       END subroutine AADVQ0
 
 
