@@ -321,8 +321,8 @@
 !@+   vegetation calculation.
 !@auth Greg Faluvegi based on direction from Olga Pechony
       use model_com, only: dtsrc
-      use resolution, only : jm,ptop
-      use atm_com, only : p
+      use resolution, only : jm
+      use atm_com, only : pedn
       use domain_decomp_atm,only: grid, getDomainBounds
       use flammability_com, only: flammability,veg_density,ravg_prec,
      & ravg_prec,iHfl,iDfl,i0fl,first_prec,HRAfl,DRAfl,PRSfl,missing,
@@ -365,7 +365,7 @@
             tsurf = atmsrf%tsavg(i,j)
             qsurf = atmsrf%qsavg(i,j)
             call calc_flammability(tsurf,SECONDS_PER_DAY*ravg_prec(i,j)/dtsrc,
-     &           min(1.d0,qsurf/qsat(tsurf,lhe,p(i,j)+ptop)),
+     &           min(1.d0,qsurf/qsat(tsurf,lhe,pedn(1,i,j))),
      &           veg_density(i,j),flammability(i,j)) 
             endif
           ! update diagnostic
