@@ -160,6 +160,7 @@
 #else
       integer kn
 #endif
+      integer :: idx_co2
       character string*80
       character jstring*3
 
@@ -552,7 +553,8 @@ cdiag write(*,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
      .   nstep,i,j,solz,sunz,wind,atmFe_ij
        endif
 
-       if (atm%n_co2n>0) co2flux=atm%trgasex(atm%n_co2n, i, j)
+       idx_co2=atm%gasex_index%getindex(atm%n_co2n)
+       if (idx_co2>0) co2flux=atm%trgasex(idx_co2, i, j)
 
        !------------------------------------------------------------
        !at the beginning of each day only
