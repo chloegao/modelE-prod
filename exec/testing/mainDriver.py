@@ -1,11 +1,13 @@
 # This is the main driver for the modelE regression tests. To run the scripts:
-# python mainDriver.py [configuration file]
+#
+#   $  python mainDriver.py [configuration file name]
+#
 import time
 import sys
 import os.path
 import regUtils
 import regPool
-import modelE
+import regTools as tools
 import logging
 
 logger = logging.getLogger('main')
@@ -24,47 +26,71 @@ def main():
             print 'Error: ' + cfgfile + ' : file does not exist'
             print useMessage
             sys.exit()
-       
+
+# Logger setup       
     logging.basicConfig(
         filename = str(sys.argv[1]) + '.LOG',
         format = "%(levelname) -10s %(module)s:%(lineno)s %(funcName)s %(message)s",
         level = logging.DEBUG,
         filemode = 'w'
     )
+    stdoutLog = logging.StreamHandler(sys.stdout)
+    formatter = logging.Formatter('%(name)s : %(message)s')
+    stdoutLog.setFormatter(formatter)
+    if os.environ.has_key('DEBUG'):
+        stdoutLog.setLevel(logging.DEBUG)
+    else:
+        stdoutLog.setLevel(logging.INFO)
+    logger = logging.getLogger()
+    logger.addHandler(stdoutLog)
 
 # Read user-defined config file and store in a config object
     config = regUtils.readConfig(cfgfile)
-# Get default COMP options from a config file
+
+# COMPCONFIG section contains computational configuration information (compilers,
+# libraries, etc). There are COMPCONFIG defaults in file comp.cfg but those can be
+# overridden in the user-defined config file by re-defining the defaults.
     if not config.has_section("COMPCONFIG"):
-        bpconfig = regUtils.readConfig('system.cfg')
+        compconfig = regUtils.readConfig('comp.cfg')
     else:
-        bpconfig = config
+        compconfig = config
 
-# config file contains a list of model configurations. In modelE these
-# configurations are called rundecks. For convenience store that information in 
-# a separate list:
-    runList = modelE.getModelConfigurations(config)
+    userconfig = regUtils.ConfigSectionMap(config, 'USERCONFIG')
+    makesystem = userconfig['makesystem']
 
-# Let's setup the testing environment:
-    modelE.setupEnv(config, bpconfig)
+# --- modelE specific workflow ---
+# Config file contains a list of model configurations pertinent to rundecks.
+# For convenience store that list separately:
+    runList = regUtils.getModelConfigurations(config)
 
-# Create gitTasks
-    gitTasks = modelE.setupCloneTasks(config, bpconfig, runList)
-# ... and execute them
-    regPool.runCommands(gitTasks, 'no')
+# Let's setup the testing environment, specific to modelE
+    tools.setupEnv(config, compconfig)
+
+    if makesystem == 'makeOld':
+        # Create gitTasks
+        gitTasks = tools.setupCloneTasks(config, compconfig, runList)
+        # ... and execute them (if NOT debugging)
+        if not os.environ.has_key('DEBUG'):
+            regPool.runCommands(gitTasks, 'no')
+    else:
+        # Setup run directories for out of source builds
+        tools.setupRuns(config, compconfig, runList)
 
 # Create scripts
-    scriptTasks = modelE.setupScriptTasks(config, bpconfig, runList)
+    scriptTasks = tools.setupScriptTasks(config, compconfig, runList)
+
 # ... and run them
-    userconfig = regUtils.ConfigSectionMap(config, 'USERCONFIG')
     useBatch = userconfig['usebatch']
     regPool.runCommands(scriptTasks, useBatch)
 
     eTime =  time.time()-starttime
-# Gather results and notify
-    if userconfig['diffreport'] == 'yes':
-#        modelE.createDiffreport(config, runList)
-        modelE.sendDiffreport(config, bpconfig, eTime)
+
+# Verify runs and notify (only if "mailto" field is not empty)
+    tools.verifyRuns(config, runList)
+    if userconfig['mailto']:
+        tools.sendDiffreport(config, compconfig, eTime)
+# -------------------------------
+
     logger.info('Time taken = %f' %(eTime))
 
 #-------------------------------------------------------------------------------

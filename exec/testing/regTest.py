@@ -1,13 +1,13 @@
-#  Base class for regression tests
+#  Base class for modelE regression tests
 class regTest:
     def __init__(self, name):
         self.name = name
         self.modes = ['mpi']
         self.compilers = ['gfortran']
-        self.compflags = 'default'
-        self.npes = [8]
-        self.testLevel = 'full'
-        self.duration = 1
+        self.buildtype = 'release'
+        self.npes = [1,4]
+        self.verification = 'restartRun'
+        # for restartRun, 25hr endtime
         self.endtime = 25
         # SYSCONFIG options 
         self.useBatch = 'no'
@@ -26,33 +26,28 @@ class regTest:
                         self.compilers = vv
                     elif kk=='endtime':
                         self.endtime = vv
-                    elif kk=='testlevel':
-                        self.testLevel = vv
+                    elif kk=='verification':
+                        self.verification = vv
                     elif kk=='npes':
                         self.npes = vv
-                    elif kk=='compflags':
+                    elif kk=='buildtype':
                         self.compile_only = vv
-                    elif kk=='duration':
-                        self.duration = vv
         self.useBatch = sysconfig['usebatch']
         self.modules = sysconfig['modules']
-        self.resDir = sysconfig['scratchdir'] + '/regression_results/'
-        self.scrDir = sysconfig['scratchdir'] + '/regression_scratch/'
-        self.nsteps = self.duration * 2
+        self.resDir = sysconfig['scratchdir'] + '/results/'
+        self.scrDir = sysconfig['scratchdir'] + '/scratch/'
             
     def getOpt(self, opt):
         if opt=='modes':
             return self.modes
         elif opt=='compilers':
             return self.compilers
-        elif opt=='compflags':
+        elif opt=='buildtype':
             return self.compile_only
         elif opt=='npes':
             return self.npes
-        elif opt=='duration':
-            return self.duration
-        elif opt=='testlevel':
-            return self.testLevel
+        elif opt=='verification':
+            return self.verification
         elif opt=='endtime':
             return self.endtime
         elif opt=='nsteps':
