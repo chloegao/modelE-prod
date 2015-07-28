@@ -462,6 +462,11 @@ def compareBase(run, endTime, npes=1):
     logger.info('Compare '+run.name+' '+endTime+' base run')
     prefix = run.name + '/'
 
+    cmd = 'cd '+run.name+ '; test `head -1 run_status` -eq 13'
+    rc = run.sysCmd(cmd, 3, 'r')
+    if rc != 0:
+        return
+
     # Check if run result exists:
     fileTST = prefix + checkpointName(run, endTime, npes)
     if not os.path.exists(fileTST):
@@ -495,6 +500,11 @@ def compareRestart(run, npes=1):
     logger = logging.getLogger('COMPRST ')
     logger.info('Compare '+run.name+' '+run.endTime+' and restart run')
     prefix = run.name + '/'
+
+    cmd = 'cd '+run.name+ '; test `head -1 run_status` -eq 13'
+    rc = run.sysCmd(cmd, 3, 'r')
+    if rc != 0:
+        return
 
     # Check if continuous run result exists:
     fileCON = prefix + checkpointName(run, run.endTime, npes)
