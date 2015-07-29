@@ -55,10 +55,12 @@ c arrays for upwind halos
      &     buffer_exchange=>halo_update_mask
       USE QUSDEF
       USE QUSCOM, ONLY : IM,JM,LM
-      USE ATM_COM, ONLY: pu=>MUs, pv=>MVs, sd=>MWs, mb, MMA
+      USE ATM_COM, ONLY: pu=>MUs, pv=>MVs, MWs, mb, MMA
       IMPLICIT NONE
+
       character(*) tname          !tracer name
       logical :: qlimit
+      Real*8  :: SD(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM), byNCYC
       REAL*8, dimension(im,grid%J_STRT_HALO:grid%J_STOP_HALO,lm) ::
      &                  rm
       REAL*8, dimension(NMOM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM)
@@ -88,6 +90,7 @@ c**** Extract domain decomposition info
          MMA(:,:,L) = MB(:,:,L) ! fill in halo lats
       ENDDO
 
+      byNCYC = 1d0 / NCYC
       do nc=1,ncyc
 
         if(nc.gt.1) CALL HALO_UPDATE(grid, MMA, FROM=NORTH+SOUTH)
@@ -219,6 +222,7 @@ c when flow out both sides would cause negative tracer mass, modify moments
           endif                 ! l.le.lm
 
 c when flow out both sides would cause negative tracer mass, modify moments
+          SD(:,:,:) = - MWs(:,:,:)*byNCYC
           if(qlimit .and. l.gt.1 .and. l.lt.lm) then
             do j=j_0,j_1
               do ii=1,ni_checkfobs_z(j,l)
@@ -781,7 +785,7 @@ c
         do j=j_0,j_1
           n = 0
           do i=1,imaxj(j)
-            if (mw(i,j,l-1) > 0 .and. mw(i,j,l+1) < 0)  then
+            if (mw(i,j,l-1) > 0 .and. mw(i,j,l) < 0)  then
               n = n + 1
               i_checkfobs_z(n,j,l) = i
             endif
