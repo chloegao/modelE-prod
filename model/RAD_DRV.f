@@ -82,7 +82,8 @@ C****
      *     ,cloud_rad_forc,aer_rad_forc
      *     ,PLB0,shl0  ! saved to avoid OMP-copyin of input arrays
      *     ,albsn_yr,dALBsnX,nradfrc
-     *     ,rad_interact_aer,clim_interact_chem,rad_forc_lev,ntrix,wttr
+     *     ,rad_interact_aer,clim_interact_chem,rad_forc_lev,
+     *      ntrix,ntrix_i,ntrix_amp,wttr
      *     ,nrad_clay,variable_orb_par,orb_par_year_bp,orb_par,nrad
      *     ,radiationSetOrbit
 #ifdef TRACERS_ON
@@ -535,7 +536,7 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
 
 #ifdef  TRACERS_AMP
          IF (AMP_DIAG_FC == 2) THEN
-            nraero_AMP=nmodes
+            nraero_AMP=nmodes-2
          ELSE
             nraero_AMP=1
          ENDIF
@@ -559,8 +560,13 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
      &      +nraero_AMP+nraero_TOMAS+nraero_OM_SP
 
       allocate(ntrix(nraero)) ; ntrix=0
+#ifdef TRACERS_AMP
+      allocate(ntrix_i(nmodes-2)) ; ntrix_i=0
+      allocate(ntrix_amp(nmodes-2)) ; ntrix_amp=0
+#else
+      allocate(ntrix_i(nraero)) ; ntrix_i=0
+#endif
       allocate(wttr(nraero))  ; wttr=1.
-
 #ifdef TRACERS_SPECIAL_Shindell
       if (nraero_rsf>0) then
         if (nraero_rsf /= nraero) then
@@ -823,14 +829,18 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
         if (AMP_DIAG_FC == 2) then
           ntrix(n+1:n+nraero_AMP)=
      &       (/n_N_AKK_1 ,n_N_ACC_1 ,n_N_DD1_1 ,n_N_DS1_1 ,n_N_DD2_1,
-     &         n_N_DS2_1, n_N_SSA_1, n_N_SSC_1, n_N_OCC_1, n_N_BC1_1,
-     &         n_N_BC2_1 ,n_N_BC3_1,
+     &         n_N_DS2_1, n_N_OCC_1, n_N_BC1_1, n_N_BC2_1 ,n_N_BC3_1,
      &         n_N_DBC_1, n_N_BOC_1, n_N_BCS_1, n_N_MXX_1/)
         else
           ntrix(n+1)=n_N_AKK_1
-        endif
+         endif
       endif
-      n=n+nraero_AMP
+         ntrix_amp(n+1:n+nmodes-2)=
+     &       (/n_N_AKK_1 ,n_N_ACC_1 ,n_N_DD1_1 ,n_N_DS1_1 ,n_N_DD2_1,
+     &         n_N_DS2_1, n_N_OCC_1, n_N_BC1_1, n_N_BC2_1 ,n_N_BC3_1,
+     &         n_N_DBC_1, n_N_BOC_1, n_N_BCS_1, n_N_MXX_1/)
+ 
+         n=n+nraero_AMP
 #endif  /* (defined TRACERS_AMP) || (defined TRACERS_AMP_M1) */
 !-----------------------------------------------------------------------
 #ifdef TRACERS_TOMAS
@@ -1497,8 +1507,8 @@ C     OUTPUT DATA
      *     ,plb0,shl0,tchg,alb,fsrdir,srvissurf,srdn,cfrac,rcld
      *     ,chem_tracer_save,rad_interact_aer,kliq,RHfix,CLDx
      *     ,ghg_yr,CO2X,N2OX,CH4X,CFC11X,CFC12X,XGHGX,rad_forc_lev,ntrix
-     *     ,wttr,cloud_rad_forc,CC_cdncx,OD_cdncx,cdncl,nrad_clay
-     *     ,dALBsnX,rad_to_chem,trsurf,dirvis
+     *     ,ntrix_i,ntrix_amp,wttr,cloud_rad_forc,CC_cdncx,OD_cdncx
+     *     ,cdncl,nrad_clay,dALBsnX,rad_to_chem,trsurf,dirvis
      *     ,FSRDIF,DIRNIR,DIFNIR,aer_rad_forc,clim_interact_chem
      *     ,TAUSUMW,TAUSUMI
 #ifdef mjo_subdd
@@ -1595,6 +1605,9 @@ c          use TRACER_COM, only: SNFST0,TNFST0
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: Lmax_rad_O3,Lmax_rad_CH4
 #endif /* TRACERS_SPECIAL_Shindell */
+#ifdef TRACERS_AMP
+      USE AERO_CONFIG, only: nmodes
+#endif
 #endif /* TRACERS_ON */
 #ifdef TRACERS_TOMAS
       USE TOMAS_AEROSOL, only: icomp,TOMAS_DIAG_FC
@@ -1700,7 +1713,7 @@ C  GHG Effective forcing relative to 1850
      *     TRHRA,SRHRA ! for adj.frc
       REAL*8, DIMENSION(LM) :: TOTCLD,dcc_cdncl,dod_cdncl
       INTEGER I,J,L,K,KR,LR,JR,IH,IHM,INCH,JK,IT,iy,iend,N,onoff_aer
-     *     ,onoff_chem,LFRC,JTIME,n1,moddrf
+     *     ,onoff_chem,LFRC,JTIME,n1,moddrf,nraero_internal
       REAL*8 ROT1,ROT2,PLAND,CSS,CMC,DEPTH,QSS,TAUSSL,TAUSSLIP
      *     ,TAUMCL,ELHX,CLDCV,X,OPNSKY,CSZ2,tauup,taudn,ptype4(4)
      *     ,taucl,wtlin,MSTRAT,STRATQ,STRJ,MSTJ,optdw,optdi,rsign_aer
@@ -2791,54 +2804,61 @@ C*****************************************************
     (defined TRACERS_AEROSOLS_SEASALT)
 
 C**** Save optical depth diags
-      do n=1,nraero
-        IF (ntrix(n) > 0) THEN
+#ifdef TRACERS_AMP    ! Necessary because radiation call can be limited to 1 call, but diagnostic is calculated for all populations
+        nraero_internal = nmodes-2
+        ntrix_i(1:nmodes-2) = ntrix_amp(1:nmodes-2) 
+#else
+        nraero_internal = nraero
+        ntrix_i(:) = ntrix(:) 
+#endif        
+      do n=1,nraero_internal
+        IF (ntrix_i(n) > 0) THEN
           SELECT CASE (trname(ntrix(n)))
           CASE ('Clay')
             n1=n-nrad_clay+1
             IF (diag_rad /= 1) THEN
-              IF (ijts_tausub(1,ntrix(n),n1) > 0)
-     &             taijs(i,j,ijts_tausub(1,ntrix(n),n1))
-     &             =taijs(i,j,ijts_tausub(1,ntrix(n),n1))
+              IF (ijts_tausub(1,ntrix_i(n),n1) > 0)
+     &             taijs(i,j,ijts_tausub(1,ntrix_i(n),n1))
+     &             =taijs(i,j,ijts_tausub(1,ntrix_i(n),n1))
      &             +SUM(ttausv(1:Lm,n))
-              IF (ijts_tausub(2,ntrix(n),n1) > 0)
-     &             taijs(i,j,ijts_tausub(2,ntrix(n),n1))
-     &             =taijs(i,j,ijts_tausub(2,ntrix(n),n1))
+              IF (ijts_tausub(2,ntrix_i(n),n1) > 0)
+     &             taijs(i,j,ijts_tausub(2,ntrix_i(n),n1))
+     &             =taijs(i,j,ijts_tausub(2,ntrix_i(n),n1))
      &             +SUM(ttausv(1:Lm,n))*OPNSKY
             END IF
-            if (ijlt_3Daaod(NTRIX(n)).gt.0)
-     *           taijls(i,j,1:lm,ijlt_3Daaod(NTRIX(n)))
-     *           =taijls(i,j,1:lm,ijlt_3Daaod(NTRIX(n)))+
+            if (ijlt_3Daaod(NTRIX_I(n)).gt.0)
+     *           taijls(i,j,1:lm,ijlt_3Daaod(NTRIX_I(n)))
+     *           =taijls(i,j,1:lm,ijlt_3Daaod(NTRIX_I(n)))+
      *            (aesqex(1:lm,6,n)-aesqsc(1:lm,6,n))
-            if (ijlt_3Dtau(NTRIX(n)).gt.0)
-     *           taijls(i,j,1:lm,ijlt_3Dtau(NTRIX(n)))
-     *           =taijls(i,j,1:lm,ijlt_3Dtau(NTRIX(n)))+TTAUSV(1:lm,n)
+            if (ijlt_3Dtau(NTRIX_I(n)).gt.0)
+     *           taijls(i,j,1:lm,ijlt_3Dtau(NTRIX_I(n)))
+     *         =taijls(i,j,1:lm,ijlt_3Dtau(NTRIX_I(n)))+TTAUSV(1:lm,n)
             IF (diag_rad == 1) THEN
               DO kr=1,6
-                IF (ijts_sqexsub(1,kr,ntrix(n),n1) > 0)
-     &               taijs(i,j,ijts_sqexsub(1,kr,ntrix(n),n1))
-     &               =taijs(i,j,ijts_sqexsub(1,kr,ntrix(n),n1))
+                IF (ijts_sqexsub(1,kr,ntrix_i(n),n1) > 0)
+     &               taijs(i,j,ijts_sqexsub(1,kr,ntrix_i(n),n1))
+     &               =taijs(i,j,ijts_sqexsub(1,kr,ntrix_i(n),n1))
      &               +SUM(aesqex(1:Lm,kr,n))
-                IF (ijts_sqexsub(2,kr,ntrix(n),n1) > 0)
-     &               taijs(i,j,ijts_sqexsub(2,kr,ntrix(n),n1))
-     &               =taijs(i,j,ijts_sqexsub(2,kr,ntrix(n),n1))
+                IF (ijts_sqexsub(2,kr,ntrix_i(n),n1) > 0)
+     &               taijs(i,j,ijts_sqexsub(2,kr,ntrix_i(n),n1))
+     &               =taijs(i,j,ijts_sqexsub(2,kr,ntrix_i(n),n1))
      &               +SUM(aesqex(1:Lm,kr,n))*OPNSKY
-                IF (ijts_sqscsub(1,kr,ntrix(n),n1) > 0)
-     &               taijs(i,j,ijts_sqscsub(1,kr,ntrix(n),n1))
-     &               =taijs(i,j,ijts_sqscsub(1,kr,ntrix(n),n1))
+                IF (ijts_sqscsub(1,kr,ntrix_i(n),n1) > 0)
+     &               taijs(i,j,ijts_sqscsub(1,kr,ntrix_i(n),n1))
+     &               =taijs(i,j,ijts_sqscsub(1,kr,ntrix_i(n),n1))
      &               +SUM(aesqsc(1:Lm,kr,n))
-                IF (ijts_sqscsub(2,kr,ntrix(n),n1) > 0)
-     &               taijs(i,j,ijts_sqscsub(2,kr,ntrix(n),n1))
-     &               =taijs(i,j,ijts_sqscsub(2,kr,ntrix(n),n1))
+                IF (ijts_sqscsub(2,kr,ntrix_i(n),n1) > 0)
+     &               taijs(i,j,ijts_sqscsub(2,kr,ntrix_i(n),n1))
+     &               =taijs(i,j,ijts_sqscsub(2,kr,ntrix_i(n),n1))
      &               +SUM(aesqsc(1:Lm,kr,n))*OPNSKY
-                IF (ijts_sqcbsub(1,kr,ntrix(n),n1) > 0)
-     &               taijs(i,j,ijts_sqcbsub(1,kr,ntrix(n),n1))
-     &               =taijs(i,j,ijts_sqcbsub(1,kr,ntrix(n),n1))
+                IF (ijts_sqcbsub(1,kr,ntrix_i(n),n1) > 0)
+     &               taijs(i,j,ijts_sqcbsub(1,kr,ntrix_i(n),n1))
+     &               =taijs(i,j,ijts_sqcbsub(1,kr,ntrix_i(n),n1))
      &               +SUM(aesqcb(1:Lm,kr,n))
      &               /(SUM(aesqsc(1:Lm,kr,n))+1.D-10)
-                IF (ijts_sqcbsub(2,kr,ntrix(n),n1) > 0)
-     &               taijs(i,j,ijts_sqcbsub(2,kr,ntrix(n),n1))
-     &               =taijs(i,j,ijts_sqcbsub(2,kr,ntrix(n),n1))
+                IF (ijts_sqcbsub(2,kr,ntrix_i(n),n1) > 0)
+     &               taijs(i,j,ijts_sqcbsub(2,kr,ntrix_i(n),n1))
+     &               =taijs(i,j,ijts_sqcbsub(2,kr,ntrix_i(n),n1))
      &               +SUM(aesqcb(1:Lm,kr,n))
      &               /(SUM(aesqsc(1:Lm,kr,n))+1.D-10)*OPNSKY
               END DO
@@ -2846,49 +2866,49 @@ C**** Save optical depth diags
           CASE DEFAULT
 
             IF (diag_rad /= 1) THEN
-              if (ijts_tau(1,NTRIX(n)).gt.0)
-     &             taijs(i,j,ijts_tau(1,NTRIX(n)))
-     &             =taijs(i,j,ijts_tau(1,NTRIX(n)))+SUM(TTAUSV(1:lm,n))
-              if (ijts_tau(2,NTRIX(n)).gt.0)
-     &             taijs(i,j,ijts_tau(2,NTRIX(n)))
-     &             =taijs(i,j,ijts_tau(2,NTRIX(n)))
+              if (ijts_tau(1,NTRIX_I(n)).gt.0)
+     &             taijs(i,j,ijts_tau(1,NTRIX_I(n)))
+     &           =taijs(i,j,ijts_tau(1,NTRIX_I(n)))+SUM(TTAUSV(1:lm,n))
+              if (ijts_tau(2,NTRIX_I(n)).gt.0)
+     &             taijs(i,j,ijts_tau(2,NTRIX_I(n)))
+     &             =taijs(i,j,ijts_tau(2,NTRIX_I(n)))
      &             +SUM(TTAUSV(1:lm,n))*OPNSKY
             END IF
-            if (ijlt_3Daaod(NTRIX(n)).gt.0)
-     &           taijls(i,j,1:lm,ijlt_3Daaod(NTRIX(n)))
-     &           =taijls(i,j,1:lm,ijlt_3Daaod(NTRIX(n)))+
+            if (ijlt_3Daaod(NTRIX_I(n)).gt.0)
+     &           taijls(i,j,1:lm,ijlt_3Daaod(NTRIX_I(n)))
+     &           =taijls(i,j,1:lm,ijlt_3Daaod(NTRIX_I(n)))+
      *            (aesqex(1:lm,6,n)-aesqsc(1:lm,6,n))
-            if (ijlt_3Dtau(NTRIX(n)).gt.0)
-     &           taijls(i,j,1:lm,ijlt_3Dtau(NTRIX(n)))
-     &           =taijls(i,j,1:lm,ijlt_3Dtau(NTRIX(n)))+TTAUSV(1:lm,n)
+            if (ijlt_3Dtau(NTRIX_I(n)).gt.0)
+     &           taijls(i,j,1:lm,ijlt_3Dtau(NTRIX_I(n)))
+     &         =taijls(i,j,1:lm,ijlt_3Dtau(NTRIX_I(n)))+TTAUSV(1:lm,n)
             IF (diag_rad == 1) THEN
               DO kr=1,6
 c                 print*,'SUSA  diag',SUM(aesqex(1:Lm,kr,n))
-                IF (ijts_sqex(1,kr,ntrix(n)) > 0)
-     &               taijs(i,j,ijts_sqex(1,kr,ntrix(n)))
-     &               =taijs(i,j,ijts_sqex(1,kr,ntrix(n)))
+                IF (ijts_sqex(1,kr,ntrix_i(n)) > 0)
+     &               taijs(i,j,ijts_sqex(1,kr,ntrix_i(n)))
+     &               =taijs(i,j,ijts_sqex(1,kr,ntrix_i(n)))
      &               +SUM(aesqex(1:Lm,kr,n))
-                IF (ijts_sqex(2,kr,ntrix(n)) > 0)
-     &               taijs(i,j,ijts_sqex(2,kr,ntrix(n)))
-     &               =taijs(i,j,ijts_sqex(2,kr,ntrix(n)))
+                IF (ijts_sqex(2,kr,ntrix_i(n)) > 0)
+     &               taijs(i,j,ijts_sqex(2,kr,ntrix_i(n)))
+     &               =taijs(i,j,ijts_sqex(2,kr,ntrix_i(n)))
      &               +SUM(aesqex(1:Lm,kr,n))*OPNSKY
-                IF (ijts_sqsc(1,kr,ntrix(n)) > 0)
-     &               taijs(i,j,ijts_sqsc(1,kr,ntrix(n)))
-     &               =taijs(i,j,ijts_sqsc(1,kr,ntrix(n)))
+                IF (ijts_sqsc(1,kr,ntrix_i(n)) > 0)
+     &               taijs(i,j,ijts_sqsc(1,kr,ntrix_i(n)))
+     &               =taijs(i,j,ijts_sqsc(1,kr,ntrix_i(n)))
      &               +SUM(aesqsc(1:Lm,kr,n))
-                IF (ijts_sqsc(2,kr,ntrix(n)) > 0)
-     &               taijs(i,j,ijts_sqsc(2,kr,ntrix(n)))
-     &               =taijs(i,j,ijts_sqsc(2,kr,ntrix(n)))
+                IF (ijts_sqsc(2,kr,ntrix_i(n)) > 0)
+     &               taijs(i,j,ijts_sqsc(2,kr,ntrix_i(n)))
+     &               =taijs(i,j,ijts_sqsc(2,kr,ntrix_i(n)))
      &               +SUM(aesqsc(1:Lm,kr,n))*OPNSKY
 #ifndef TRACERS_TOMAS
-                IF (ijts_sqcb(1,kr,ntrix(n)) > 0)
-     &               taijs(i,j,ijts_sqcb(1,kr,ntrix(n)))
-     &               =taijs(i,j,ijts_sqcb(1,kr,ntrix(n)))
+                IF (ijts_sqcb(1,kr,ntrix_i(n)) > 0)
+     &               taijs(i,j,ijts_sqcb(1,kr,ntrix_i(n)))
+     &               =taijs(i,j,ijts_sqcb(1,kr,ntrix_i(n)))
      &               +SUM(aesqcb(1:Lm,kr,n))
      &               /(SUM(aesqsc(1:Lm,kr,n))+1.D-10)
-                IF (ijts_sqcb(2,kr,ntrix(n)) > 0)
-     &               taijs(i,j,ijts_sqcb(2,kr,ntrix(n)))
-     &               =taijs(i,j,ijts_sqcb(2,kr,ntrix(n)))
+                IF (ijts_sqcb(2,kr,ntrix_i(n)) > 0)
+     &               taijs(i,j,ijts_sqcb(2,kr,ntrix_i(n)))
+     &               =taijs(i,j,ijts_sqcb(2,kr,ntrix_i(n)))
      &               +SUM(aesqcb(1:Lm,kr,n))
      &               /(SUM(aesqsc(1:Lm,kr,n))+1.D-10)*OPNSKY
 #else
@@ -2898,14 +2918,14 @@ c                 print*,'SUSA  diag',SUM(aesqex(1:Lm,kr,n))
      *                 aesqsc(l,kr,n)
                 enddo
 
-                IF (ijts_sqcb(1,kr,ntrix(n)) > 0)
-     &               taijs(i,j,ijts_sqcb(1,kr,ntrix(n)))
-     &               =taijs(i,j,ijts_sqcb(1,kr,ntrix(n)))
+                IF (ijts_sqcb(1,kr,ntrix_i(n)) > 0)
+     &               taijs(i,j,ijts_sqcb(1,kr,ntrix_i(n)))
+     &               =taijs(i,j,ijts_sqcb(1,kr,ntrix_i(n)))
      &               +qcb_col(kr,n)
      &               /(SUM(aesqsc(1:Lm,kr,n))+1.D-10)
-                IF (ijts_sqcb(2,kr,ntrix(n)) > 0)
-     &               taijs(i,j,ijts_sqcb(2,kr,ntrix(n)))
-     &               =taijs(i,j,ijts_sqcb(2,kr,ntrix(n)))
+                IF (ijts_sqcb(2,kr,ntrix_i(n)) > 0)
+     &               taijs(i,j,ijts_sqcb(2,kr,ntrix_i(n)))
+     &               =taijs(i,j,ijts_sqcb(2,kr,ntrix_i(n)))
      &               +qcb_col(kr,n)
      &               /(SUM(aesqsc(1:Lm,kr,n))+1.D-10)*OPNSKY
 #endif

@@ -308,6 +308,8 @@ C**** Local variables initialised in init_RAD
       REAL*8, DIMENSION(LM_REQ)       :: PLB0,SHL0
 !@var NTRIX Indexing array for optional aerosol-radiation interactions
       INTEGER, allocatable, DIMENSION(:) :: NTRIX
+      INTEGER, allocatable, DIMENSION(:) :: NTRIX_I
+      INTEGER, allocatable, DIMENSION(:) :: NTRIX_AMP
 !@var WTTR weighting array for optional aerosol-ratiation interactions
       REAL*8, allocatable, DIMENSION(:) :: WTTR
 !@var nrad_clay index of clay in arrays for optional aerosol interaction
