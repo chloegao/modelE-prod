@@ -8472,7 +8472,7 @@ C**** at the start of any day
       implicit none
       integer :: i,j,ns,ns_isop,l,ky,n,nsect,kreg
       REAL*8 :: source,sarea,steppy,base,steppd,x,airm,anngas,
-     *  tmon,bydt,tnew,scca(im),fice
+     *  tmon,bydt,tnew,fice
       REAL*8 :: sarea_prt(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                    GRID%J_STRT_HALO:GRID%J_STOP_HALO)
 #ifdef TRACERS_SPECIAL_Shindell
@@ -8999,7 +8999,7 @@ C****
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
       case ('SO2', 'SO4', 'M_ACC_SU', 'M_AKK_SU',
-     &      'BCII', 'BCB', 'OCII', 'OCB', 'NH3', 
+     &      'BCII', 'BCB', 'OCII', 'OCB', 
      &      'vbsAm2', 'vbsAm1', 'vbsAz', 'vbsAp1', 'vbsAp2',
      &      'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6',
      &      'M_BC1_BC', 'M_OCC_OC', 'M_BOC_BC', 'M_BOC_OC',
@@ -9135,6 +9135,26 @@ C****
         
 #endif
         enddo ! ns
+#if (defined TRACERS_NITRATE) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
+      case ('NH3')
+#ifdef DYNAMIC_BIOMASS_BURNING
+        if(do_fire(n))call dynamic_biomass_burning(n,ntsurfsrc(n)+1) 
+#endif
+        do ns=1,ntsurfsrc(n); do j=J_0,J_1; do i=I_0,I_1
+        ! add annual cycle to agricultural emissions
+        if (ns == 2) then
+          if (cosz1(i,j) > 0.) then
+          trsource(i,j,ns,n)=sfc_src(i,j,n,ns)
+     &      *axyp(i,j)* cosz1(i,j) * 4.d0
+          endif
+        else
+          trsource(:,J_0:J_1,ns,n)=sfc_src(:,J_0:J_1,n,ns)
+     &      *axyp(:,J_0:J_1) 
+        endif
+        enddo ; enddo ; enddo
+
+#endif /* TRACERS_NITRATE || TRACERS_AMP || TRACERS_TOMAS */
 #endif /* (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) || (defined TRACERS_TOMAS) */
       end select
 
