@@ -159,12 +159,6 @@ C**** does not produce exactly the same as the default values.
       integer :: nraero_AMP
       integer :: nraero_TOMAS
 
-#ifdef TRACERS_OM_SP
-      integer, parameter :: nraero_OM_SP=1
-#else
-      integer, parameter :: nraero_OM_SP=0
-#endif  /* TRACERS_OM_SP */
-
 #ifdef TRACERS_AEROSOLS_SEASALT
       integer, parameter :: nraero_seasalt=2
 #else
