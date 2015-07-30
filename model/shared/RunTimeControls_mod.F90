@@ -1062,12 +1062,6 @@ module RunTimeControls_mod
   logical, parameter :: tracers_ocean_water_masses = .false.
 #endif
 
-#if defined(TRACERS_OM_SP)
-  logical, parameter :: tracers_om_sp = .true.
-#else
-  logical, parameter :: tracers_om_sp = .false.
-#endif
-
 #if defined(TRACERS_ON)
   logical, parameter :: tracers_on = .true.
 #else

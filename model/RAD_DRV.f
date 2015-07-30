@@ -2543,7 +2543,7 @@ C**** Assumes that 4 clay tracers are adjacent in nraero array
               set_clayquar=.true.
             END SELECT
             kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
-            CALL RCOMPX  ! tr.aero.Koch/dust/miner./quarz/om_sp/seasalt
+            CALL RCOMPX  ! tr.aero.Koch/dust/miner./quarz/seasalt
             SNFST(1,n,I,J)=SRNFLB(1) ! surface forcing
             TNFST(1,n,I,J)=TRNFLB(1)
             SNFST(2,n,I,J)=SRNFLB(LFRC)
