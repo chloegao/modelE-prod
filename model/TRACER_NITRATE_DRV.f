@@ -156,7 +156,7 @@ c avol [m3/gb] mass of air pro m3
 #ifdef  TRACERS_DUST
 ! dust impact disabled until we gain confidence on it
 !      TOT_DUST =(trm(i,j,l,n_Clay)+trm(i,j,l,n_Silt1)+trm(i,j,l,n_Silt2)+trm(i,j,l,n_Silt3)) 
-     *           *1.d9 /AVOL
+!     *           *1.d9 /AVOL
 #endif
 #ifdef TRACERS_AEROSOLS_SEASALT
 ! seasalt impact disabled until we gain confidence on it
