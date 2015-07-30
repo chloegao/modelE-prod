@@ -13,13 +13,16 @@ c
 c --- thus, the pairs [(ipacn,jpac),(iatln,jatl)],[(ipacs,jpac),(iatls,jatl)]
 c --- refer to identical grid cells in physical space.
 
+#ifdef HYCOM2deg
 c --- 2deg hycom
-c     integer,parameter :: ipacn=67,ipacs=68,jpac= 95
-c     integer,parameter :: iatln= 2,iatls= 1,jatl=156
-
+      integer,parameter :: ipacn=67,ipacs=68,jpac= 95
+      integer,parameter :: iatln= 2,iatls= 1,jatl=156
+#endif
+#ifdef HYCOM1deg
 c --- 1deg hycom refined (389x360) or unrefined (359x360)
       integer,parameter :: ipacn=137,ipacs=138,jpac=189
       integer,parameter :: iatln= 2,iatls= 1,jatl=312
+#endif
 
       logical,parameter :: beropn=.true.    !  true if bering strait open
 c-----------------------------------------------------------------------------
