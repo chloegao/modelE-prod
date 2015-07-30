@@ -145,7 +145,7 @@ module KochTracersMetadata_mod
       call set_tr_mm(n, 12.d0)
       call set_trpdens(n, 1.3d3) !kg/m3
       call set_trradius(n, 1.d-7 ) !m
-      call set_fq_aer(n, 0.6d0 ) !fraction of aerosol that dissolves
+      call set_fq_aer(n, 0.8d0 ) !fraction of aerosol that dissolves
       call set_tr_wd_type(n, npart)
 #ifdef DYNAMIC_BIOMASS_BURNING
       ! 12 below are the 12 VDATA veg types or Ent remapped to them,

@@ -787,8 +787,8 @@ c     endif
 #endif
 #endif
       dtt=dtsrc
-      !efold time of 2.7 days
-      bciage=(1.d0-exp(-dtsrc/(2.7d0*SECONDS_PER_DAY)))/dtsrc 
+      !efold time of 1 days
+      bciage=(1.d0-exp(-dtsrc/(1.0d0*SECONDS_PER_DAY)))/dtsrc 
       !efold time of 1.6 days
       ociage=(1.d0-exp(-dtsrc/(1.6d0*SECONDS_PER_DAY)))/dtsrc
 C**** THIS LOOP SHOULD BE PARALLELISED
