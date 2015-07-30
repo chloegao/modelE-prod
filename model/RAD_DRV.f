@@ -2799,7 +2799,7 @@ C**** Save optical depth diags
 #endif        
       do n=1,nraero_internal
         IF (ntrix_i(n) > 0) THEN
-          SELECT CASE (trname(ntrix(n)))
+          SELECT CASE (trname(ntrix_i(n)))
           CASE ('Clay')
             n1=n-nrad_clay+1
             IF (diag_rad /= 1) THEN
