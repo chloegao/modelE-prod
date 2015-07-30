@@ -71,7 +71,7 @@ C****
 #ifdef TRACERS_ON
       use rad_com, only: nraero_seasalt,
      *                   nraero_koch,nraero_nitrate,nraero_dust,
-     *                   nraero_AMP,nraero_TOMAS,nraero_OM_SP
+     *                   nraero_AMP,nraero_TOMAS
 #endif  /* TRACERS_ON */
       USE RAD_COM, only : rqt, s0x, co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx
      *     ,o2x,no2x,n2cx,yGHGx,so2x,CH4X_RADoverCHEM,snoage_def
@@ -557,7 +557,7 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
 
 #ifdef TRACERS_ON
       nraero=nraero_seasalt+nraero_koch+nraero_nitrate+nraero_dust
-     &      +nraero_AMP+nraero_TOMAS+nraero_OM_SP
+     &      +nraero_AMP+nraero_TOMAS
 
       allocate(ntrix(nraero)) ; ntrix=0
 #ifdef TRACERS_AMP
@@ -640,11 +640,11 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
      &                             ,1
 #endif  /* TRACERS_AEROSOLS_SOA */
      &                             ,0,0/)
-! augment BC by 50%
         fstasc(n+2:n+nraero_koch)=(/1.d0,1.d0
 #ifdef TRACERS_AEROSOLS_SOA
      &                             ,1.d0
 #endif  /* TRACERS_AEROSOLS_SOA */
+! augment BC by 50%
      &                             ,1.5d0,1.5d0/)
 #endif  /* SULF_ONLY_AEROSOLS */
       endif
@@ -869,20 +869,6 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
       endif
       n=n+nraero_TOMAS
 #endif
-!-----------------------------------------------------------------------
-#ifdef TRACERS_OM_SP
-      if (nraero_OM_SP > 0) then
-        if (rad_interact_aer > 0) then
-          FS8OPX(4)=0.d0
-          FS8OPX(5:6)=2.d0 ! BC's sol.effect are doubled
-          FT8OPX(4)=0.d0
-          FT8OPX(7)=1.3d0 ! why dust 1.3?
-        endif
-        ntrix(n+1:n+nraero_OM_SP)=(/n_OCA4/)
-        trrdry(n+1:n+nraero_OM_SP)=(/0.3d0/)
-      endif
-      n=n+nraero_OM_SP
-#endif  /* TRACERS_OM_SP */
 !=======================================================================
 !=======================================================================
 #endif  /* TRACERS_ON */
@@ -2364,7 +2350,7 @@ C**** more than one tracer is lumped together for radiation purposes
           end select
         end if
       end do
-#endif /* TRACERS_AEROSOLS_Koch/DUST/MINERALS/QUARZHEM/OM_SP/SEASALT */
+#endif /* TRACERS_AEROSOLS_Koch/DUST/MINERALS/QUARZHEM/SEASALT */
 
 #ifdef TRACERS_AMP
       CALL SETAMP_LEV(i,j,l)
@@ -2574,7 +2560,7 @@ C**** Assumes that 4 clay tracers are adjacent in nraero array
           END IF
         end do
       end if
-#endif /* TRACERS_AEROSOLS_Koch/DUST/MINERALS/QUARZHEM/OM_SP/SEASALT */
+#endif /* TRACERS_AEROSOLS_Koch/DUST/MINERALS/QUARZHEM/SEASALT */
 
       if (moddrf==0) then
 #ifdef TRACERS_SPECIAL_Shindell
