@@ -36,6 +36,7 @@ C****
 !@auth Original Development Team
 !@calls RADPAR:RCOMP1, ORBPAR
       USE FILEMANAGER
+      use RunTimeControls_mod, only : tracers_minerals
       USE Dictionary_mod
       USE CONSTANT, only : grav,bysha,twopi,planet_name
       USE RESOLUTION, only : jm,lm,psf
@@ -69,9 +70,8 @@ C****
       use photolysis, only: aer2,miedx2,nbfastj
 #endif  /* TRACERS_SPECIAL_Shindell */
 #ifdef TRACERS_ON
-      use rad_com, only: nraero_seasalt,
-     *                   nraero_koch,nraero_nitrate,nraero_dust,
-     *                   nraero_AMP,nraero_TOMAS,nraero_OM_SP
+      use rad_com, only: nraero_seasalt, nraero_koch, nraero_nitrate,
+     &     nraero_dust, nraero_AMP, nraero_TOMAS, nraero_OM_SP
 #endif  /* TRACERS_ON */
       USE RAD_COM, only : rqt, s0x, co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx
      *     ,o2x,no2x,n2cx,yGHGx,so2x,CH4X_RADoverCHEM,snoage_def
@@ -104,7 +104,7 @@ C****
       USE TRACER_COM, only: n_Clay, n_Silt1, n_Silt2, n_Silt3, n_Silt4,
      &     n_Silt5
       USE TRACER_COM, only: n_SO4, n_Seasalt1, n_Seasalt2
-      USE TRACER_COM, only: n_OCB, n_OCIA, n_Isopp1a, n_SO4, ntm_dust
+      USE TRACER_COM, only: n_OCB, n_OCIA, n_Isopp1a, n_SO4
 #ifdef TRACERS_TOMAS
       USE TRACER_COM, only: n_ASO4, n_ANACL, n_AECOB, n_AECIL,
      &     n_AOCOB, n_AOCIL, n_ADUST
@@ -136,6 +136,11 @@ C****
      &     n_sil5kahe, n_sil5smhe, ntm_sil1, ntm_sil2, ntm_sil3,
      &     ntm_sil4, ntm_sil5
       use tracers_dust, only: nSubClays, effRadMinerals, subClayWeights
+      use trdust_drv, only : calcSubClayWeights
+#endif
+#ifdef TRACERS_DUST
+      use tracers_dust, only : nSubClays, subClayWeights
+      use trdust_drv, only : calcSubClayWeights
 #endif
 #ifdef TRACERS_AMP
       USE AERO_CONFIG, only: nmodes
@@ -748,29 +753,29 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
      &     (n_clayilhe, i = 1,nSubClays), (n_claykahe, i = 1,nSubClays),
      &     (n_claysmhe, i = 1,nSubClays), (n_claycahe, i = 1,nSubClays),
      &     (n_clayquhe, i = 1,nSubClays), (n_clayfehe, i = 1,nSubClays),
-     &     (n_claygyhe, i = 1,nSubClays), n_sil1quar, n_sil1feld,
-     &     n_sil1calc, n_sil1hema, n_sil1gyps, n_sil1illi, n_sil1kaol,
-     &     n_sil1smec, n_sil1quhe, n_sil1fehe, n_sil1cahe, n_sil1gyhe,
-     &     n_sil1ilhe, n_sil1kahe, n_sil1smhe, n_sil2quar, n_sil2feld,
-     &     n_sil2calc, n_sil2hema, n_sil2gyps, n_sil2illi, n_sil2kaol,
-     &     n_sil2smec, n_sil2quhe, n_sil2fehe, n_sil2cahe, n_sil2gyhe,
-     &     n_sil2ilhe, n_sil2kahe, n_sil2smhe, n_sil3quar, n_sil3feld,
-     &     n_sil3calc, n_sil3hema, n_sil3gyps, n_sil3illi, n_sil3kaol,
-     &     n_sil3smec, n_sil3quhe, n_sil3fehe, n_sil3cahe, n_sil3gyhe,
-     &     n_sil3ilhe, n_sil3kahe, n_sil3smhe
+     &     (n_claygyhe, i = 1,nSubClays), n_sil1illi, n_sil1kaol,
+     &     n_sil1smec, n_sil1calc, n_sil1quar, n_sil1feld, n_sil1hema,
+     &     n_sil1gyps, n_sil1ilhe, n_sil1kahe, n_sil1smhe, n_sil1cahe,
+     &     n_sil1quhe, n_sil1fehe, n_sil1gyhe, n_sil2illi, n_sil2kaol,
+     &     n_sil2smec, n_sil2calc, n_sil2quar, n_sil2feld, n_sil2hema,
+     &     n_sil2gyps, n_sil2ilhe, n_sil2kahe, n_sil2smhe, n_sil2cahe,
+     &     n_sil2quhe, n_sil2fehe, n_sil2gyhe, n_sil3illi, n_sil3kaol,
+     &     n_sil3smec, n_sil3calc, n_sil3quar, n_sil3feld, n_sil3hema,
+     &     n_sil3gyps, n_sil3ilhe, n_sil3kahe, n_sil3smhe, n_sil3cahe,
+     &     n_sil3quhe, n_sil3fehe, n_sil3gyhe
 #ifdef TRACERS_DUST_Silt4
-     &     , n_sil4quar, n_sil4feld, n_sil4calc, n_sil4hema, n_sil4gyps
-     &     , n_sil4illi, n_sil4kaol, n_sil4smec, n_sil4quhe, n_sil4fehe
-     &     , n_sil4cahe, n_sil4gyhe, n_sil4ilhe, n_sil4kahe, n_sil4smhe
+     &     , n_sil4illi, n_sil4kaol, n_sil4smec, n_sil4calc, n_sil4quar
+     &     , n_sil4feld, n_sil4hema, n_sil4gyps, n_sil4ilhe, n_sil4kahe
+     &     , n_sil4smhe, n_sil4cahe, n_sil4quhe, n_sil4fehe, n_sil4gyhe
 #endif  /* TRACERS_DUST_Silt4 */
 #ifdef TRACERS_DUST_Silt5
-     &     , n_sil5quar, n_sil5feld, n_sil5calc, n_sil5hema, n_sil5gyps
-     &     , n_sil5illi, n_sil5kaol, n_sil5smec, n_sil5quhe, n_sil5fehe
-     &     , n_sil5cahe, n_sil5gyhe, n_sil5ilhe, n_sil5kahe, n_sil5smhe
+     &     , n_sil5illi, n_sil5kaol, n_sil5smec, n_sil5calc, n_sil5quar
+     &     , n_sil5feld, n_sil5hema, n_sil5gyps, n_sil5ilhe, n_sil5kahe
+     &     , n_sil5smhe, n_sil5cahe, n_sil5quhe, n_sil5fehe, n_sil5gyhe
 #endif  /* TRACERS_DUST_Silt5 */
      &     /)
         trrdry(n+1:n+nraero_dust)=
-     &      (/(effRadMinerals(1:4), i=1,ntm_clay),
+     &      (/(effRadMinerals(1:nSubClays), i=1,ntm_clay),
      &        (effRadMinerals(5), i=1,ntm_sil1),
      &        (effRadMinerals(6), i=1,ntm_sil2),
      &        (effRadMinerals(7), i=1,ntm_sil3)
@@ -781,10 +786,12 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
      &       ,(effRadMinerals(9), i=1,ntm_sil5)
 #endif  /* TRACERS_DUST_Silt5 */
      &       /)
-        wttr(n+1:n+nraero_dust)=
-     &      (/((subClayWeights(ntrix(i)-n_soilDust+1, j),
-     &             j=1,nSubClays), i=n+1,nraero_dust,nSubClays),
-     &        (1.d0, i=1, ntm_sil1+ntm_sil2+ntm_sil3)
+
+        if ( tracers_minerals ) call calcSubClayWeights
+
+        wttr( n+1:n+nraero_dust )= (/((subClayWeights( ntrix(i)
+     &       -n_soilDust+1, j ), j=1,nSubClays), i=n+1,ntm_clay), (1.d0,
+     &       i=1,ntm_sil1+ntm_sil2+ntm_sil3)
 #ifdef TRACERS_DUST_Silt4
      &       ,(1.d0, i=1, ntm_sil4)
 #endif  /* TRACERS_DUST_Silt4 */
@@ -792,6 +799,7 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
      &       ,(1.d0, i=1, ntm_sil5)
 #endif  /* TRACERS_DUST_Silt5 */
      &       /)
+
         densclay=(/(trpdens(n_clayilli), i=1,nSubClays),
      &             (trpdens(n_claykaol), i=1,nSubClays),
      &             (trpdens(n_claysmec), i=1,nSubClays),
@@ -807,14 +815,14 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
      &             (trpdens(n_clayquhe), i=1,nSubClays),
      &             (trpdens(n_clayfehe), i=1,nSubClays),
      &             (trpdens(n_claygyhe), i=1,nSubClays)/)
-        denssil1=(/trpdens(n_sil1quar),trpdens(n_sil1feld),
-     &             trpdens(n_sil1calc),trpdens(n_sil1hema),
-     &             trpdens(n_sil1gyps),trpdens(n_sil1illi),
-     &             trpdens(n_sil1kaol),trpdens(n_sil1smec),
-     &             trpdens(n_sil1quhe),trpdens(n_sil1fehe),
-     &             trpdens(n_sil1cahe),trpdens(n_sil1gyhe),
+        denssil1=(/trpdens(n_sil1illi),trpdens(n_sil1kaol),
+     &             trpdens(n_sil1smec),trpdens(n_sil1calc),
+     &             trpdens(n_sil1quar),trpdens(n_sil1feld),
+     &             trpdens(n_sil1hema),trpdens(n_sil1gyps),
      &             trpdens(n_sil1ilhe),trpdens(n_sil1kahe),
-     &             trpdens(n_sil1smhe)/)
+     &             trpdens(n_sil1smhe),trpdens(n_sil1cahe),
+     &             trpdens(n_sil1quhe),trpdens(n_sil1fehe),
+     &             trpdens(n_sil1gyhe)/)
         denssil2=denssil1
         denssil3=denssil1
 #ifdef TRACERS_DUST_Silt4
@@ -853,7 +861,7 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
      &                             ,22.0d0
 #endif  /* TRACERS_DUST_Silt5 */
      &                             /)
-! Define weighting for different clays
+
         wttr(n+1:n+nraero_dust)=(/0.009d0,0.081d0,0.234d0,0.676d0,
      &                            1.d0,1.d0,1.d0
 #ifdef TRACERS_DUST_Silt4
@@ -2450,7 +2458,7 @@ c       JCKERR=JCKERR+1
         sizewc(LM+k)= 0.
         sizeic(LM+k)= 0.
 #ifdef TRACERS_ON
-C**** set radiative equilibirum extra tracer amount to zero
+C**** set radiative equilibrium extra tracer amount to zero
         IF (nraero.gt.0) TRACER(LM+k,1:nraero)=0.
 #endif
       END DO

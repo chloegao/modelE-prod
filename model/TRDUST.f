@@ -443,9 +443,13 @@ c**** prescribed AEROCOM dust emission
      &         ,'Sil3SmHe')
           n_bin = 4
 
+        case default
+
+          n_bin = 0
+
         END SELECT
 
-        dsrcflx = d_dust( n_bin )
+        if ( n_bin > 0 ) dsrcflx = d_dust( n_bin )
 
 #ifdef TRACERS_MINERALS
         dsrcflx = dsrcflx * mineralFractions( n - n_soildust + 1 )

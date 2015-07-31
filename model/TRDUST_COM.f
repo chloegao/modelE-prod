@@ -8,7 +8,7 @@
     (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
       use constant, only : By6
       use resolution, only : Im,Jm,Lm
-      use tracer_com, only: ntm_dust
+      use tracer_com, only: ntm_dust, ntm_clay
       use OldTracer_mod, only: trName, MAX_LEN_NAME
 
       IMPLICIT NONE
@@ -18,9 +18,21 @@
 !@param By4 1D0/4D0
       real( kind=8 ), parameter :: By4 = 1D0/4D0
 
-!@param dust_names names of soil dust aerosol tracers
+!@param dust_names  names of soil dust aerosol tracers
       character(len=MAX_LEN_NAME),allocatable,dimension(:) ::
      &     dust_names(:)
+
+!@param dAridSoils  median particle diameter by volume of arid soils
+      real( kind=8 ), parameter :: dAridSoils = 3.4d0 ! Kok, PNAS (2011)
+!@param sigmaAridSoils  particle diameter standard deviation by volume of
+!@+       arid soils
+      real( kind=8 ), parameter :: sigmaAridSoils = 3.0d0 ! Kok, PNAS (2011)
+!@param Cv normalization constant for emitted volume size distribution
+!@+       according to Brittle Fragmentation Theory (Kok, PNAS 2011)
+      real( kind=8 ), parameter :: Cv = 12.63 ! [um]
+!@param lambda  crack propagation length for emitted volume size distribution
+!@+       according to Brittle Fragmentation Theory (Kok, PNAS 2011)
+      real( kind=8 ), parameter :: lambda = 12 ! [um]
 
 !@param nDustBins  number of size classes for soil dust aerosol tracers
       integer, parameter :: nDustBins = 6
@@ -41,6 +53,10 @@
       real(kind=8), parameter, dimension( ndustBinsRadia + 1 ) ::
      &     dustBoundsRadia = (/ subClayBounds, dustBounds( 3:nDustBins+1
      &     ) /)
+
+!@var subClayWeights  weights for masses in the sub bins of the clay size
+!@+     class for each soil dust tracer
+      real( kind=8 ), dimension( ntm_clay, nSubClays ) :: subClayWeights
 
 c**** rundeck parameter to switch between different emission schemes
 c****
@@ -206,11 +222,6 @@ c**** additional declarations for dust tracers with mineralogical composition
       real( kind=8 ), dimension( ndustBinsRadia ) :: effRadMinerals = (/
      &     effRadClay, effRadSil1, effRadSil2, effRadSil3, effRadSil4,
      &     effRadSil5 /)
-
-!@var subClayWeights  weights for masses in the sub bins of the clay size
-!@+     class for each mineralogical soil dust tracer (dimension ntm_dust
-!@+     for practical reasons)
-      real( kind=8 ), dimension( ntm_dust, nSubClays ) :: subClayWeights
 #endif
 
 c**** Parameters for dust/mineral tracer specific diagnostics

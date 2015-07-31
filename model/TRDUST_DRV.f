@@ -7,6 +7,8 @@
     (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
 
       use filemanager,only: nameunit,openunit,closeunit
+      use RunTimeControls_mod, only : tracers_dust_silt4,
+     &     tracers_dust_silt5
       use constant, only: rgas
       use resolution, only: im,jm,lm
       use Dictionary_mod, only : sync_param
@@ -593,16 +595,16 @@ c read_mineralfractions_netcdf
       character( len = 28 ), parameter :: rstring =
      &     'read_mineralfractions_netcdf'
 
-      logical, dimension(ntm_dust) :: qminfr = .false.
-
-      integer :: i, j, n, n1, ncid, varid, fid
+      integer :: i, j, n, n1, fid, n_bin
 
       character( len=4 ) :: minName
       character( len=5 ) :: binName
       character( len=13 ) :: varName
 
-      real(kind=8), dimension( grid%i_strt:grid%i_stop,
-     &                 grid%j_strt:grid%j_stop ) :: work ! no halo
+      real( kind=8 ), dimension( grid%i_strt:grid%i_stop, ! no halo
+     &     grid%j_strt:grid%j_stop ) :: work 
+      real( kind=8 ), dimension( grid%i_strt_halo:grid%i_stop_halo,
+     &     grid%j_strt_halo:grid%j_stop_halo, nDustBins ) :: zsum
 
       if ( am_i_root() ) write( 6, * ) 'Read from file MINFR'
 
@@ -677,6 +679,71 @@ c**** different files does not influence the results
           end if
         end do
       end do
+
+      if ( imDust == 1 ) then
+
+c**** Prescribed dust emission (like AEROCOM emission) also comes with a
+c**** prescribed size distribution. Therefore, the mineral fractions are
+c**** normalized to unity for each size bin.
+
+        zsum = 0.d0
+        do n = 1,Ntm_dust
+
+          select case ( dust_names( n )(1:4) )
+          case('Clay')
+            n_bin = 1
+          case('Sil1')
+            n_bin = 2
+          case('Sil2')
+            n_bin = 3
+          case('Sil3')
+            n_bin = 4
+          case('Sil4')
+            n_bin = 5
+          case('Sil5')
+            n_bin = 6
+          case default
+            cycle
+          end select
+
+          do j = j_0,j_1
+            do i = i_0,i_1
+              zsum( i, j, n_bin ) = zsum( i, j, n_bin ) +
+     &             mineralFractions( i, j, n )
+            end do
+          end do
+
+        end do                  ! Ntm_dust
+
+        do n = 1,Ntm_dust
+
+          select case ( dust_names( n )(1:4) )
+          case('Clay')
+            n_bin = 1
+          case('Sil1')
+            n_bin = 2
+          case('Sil2')
+            n_bin = 3
+          case('Sil3')
+            n_bin = 4
+          case('Sil4')
+            n_bin = 5
+          case('Sil5')
+            n_bin = 6
+          case default
+            cycle
+          end select
+
+          do j = j_0,j_1
+            do i = i_0,i_1
+              if ( zsum( i, j, n_bin ) > 0 )  mineralFractions( i, j, n)
+     &             = mineralFractions( i, j, n ) / zsum( i, j, n_bin )
+            end do
+          end do
+
+        end do
+
+      end if
 
       return
       end subroutine read_mineralfractions_netcdf
@@ -823,7 +890,7 @@ C$$$      end do
 
 c**** calculate normalized mass fraction weights of the minerals for
 c**** each sub clay bin
-      call calcSubClayWeights
+c      call calcSubClayWeights
 
 c**** get transformation matrix for mapping from Kandler dust size bins
 c**** to ModelE radiation code dust aerosols bins
@@ -1346,77 +1413,6 @@ c getBins1toBins2_ln
 
       return
       end subroutine getBins1toBins2_ln
-
-c calcSubClayWeights
-      subroutine calcSubClayWeights
-!@sum calcSubClayWeights  calculate weights of masses in each clay sub bin
-!@+     for each tracer
-!@auth jan perlwitz
-
-      implicit none
-
-      integer :: n, n_hema, n_aggr
-      real(kind=8) :: zsum
-
-      subClayWeights = 0.d0
-      do n = 1,ntm_dust
-
-        select case( dust_names( n ) )
-
-        case('ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar'
-     &         ,'ClayFeld','ClayGyps')
-          n_hema = n_clayhema - n_soilDust + 1
-          select case ( dust_names( n ) )
-          case('ClayIlli') ; n_aggr = n_clayilhe - n_soilDust + 1
-          case('ClayKaol') ; n_aggr = n_claykahe - n_soilDust + 1
-          case('ClaySmec') ; n_aggr = n_claysmhe - n_soilDust + 1
-          case('ClayCalc') ; n_aggr = n_claycahe - n_soilDust + 1
-          case('ClayQuar') ; n_aggr = n_clayquhe - n_soilDust + 1
-          case('ClayFeld') ; n_aggr = n_clayfehe - n_soilDust + 1
-          case('ClayGyps') ; n_aggr = n_claygyhe - n_soilDust + 1
-          end select
-
-        case default
-          cycle
-
-        end select
-
-C$$$        if ( am_i_root() ) write( 999, * )
-C$$$     &       'In calcSubClayWeights: n, dust_names( n ), ',
-C$$$     &       'mineralIndex( n ), n_hema, n_aggr: ', n, dust_names( n ),
-C$$$     &       mineralIndex( n ), n_hema, n_aggr
-
-        do i = 1,nSubClays
-
-          subClayWeights( n, i ) = volumeIncrementsMineralsSubClay(
-     &         mineralIndex( n ), i) / volumeClaySiltMinerals(
-     &         mineralIndex( n ), 1 )
-          subClayWeights( n_hema, i ) = volumeIncrementsMineralsSubClay(
-     &         mineralIndex( n_hema ) , i ) / volumeClaySiltMinerals(
-     &         mineralIndex( n_hema ) , 1 )
-          subClayWeights( n_aggr, i ) = (1 - frIronOxideInAggregate) *
-     &         subClayWeights( n, i ) + frIronOxideInAggregate *
-     &         subClayWeights( n_hema, i )
-
-        end do
-
-      end do
-
-      do n = 1,ntm_dust
-
-        zsum = sum( subClayWeights( n, : ) )
-        if ( zsum == 0.d0 ) cycle
-        subClayWeights( n, 1:nSubClays ) = subClayWeights( n,
-     &       1:nSubClays ) / zsum
-!        write(999,*) 'In TRDUST_DRV.f: In calcSubClayWeights: ',
-!     &       'ntm_dust, n, dust_names(n),'
-!     &       ,' subClayWeights( n, 1:nSubClays ): ', ntm_dust, n,
-!     &       dust_names( n ), subClayWeights( n, 1:nSubClays )
-
-      end do
-
-      return
-      end subroutine calcSubClayWeights
 
       end subroutine calcMineralRadiationParameters
 
@@ -2058,6 +2054,43 @@ C$$$     $     ironOxideAggrProb( :, :, 1:ntm_clay ), dim=3 )
       end subroutine calcIronOxideAggregates
 
 #endif /*  TRACERS_MINERALS */
+
+c calcSubClayWeights
+      subroutine calcSubClayWeights
+!@sum calcSubClayWeights  calculate weights of masses in each clay sub bin
+!@+     for each tracer using clay part of volume distribution from brittle
+!@+     fragmentation theory (Kok, PNAS 2011, Eq. 6)
+!@auth jan perlwitz
+
+      implicit none
+
+      integer :: i, n
+      real(kind=8) :: zsum, bin_mean, erf_in
+
+      subClayWeights = 0.d0
+      do i = 1,nSubClays
+
+        bin_mean = sqrt( subClayBounds( i ) * subClayBounds( i + 1 ) )
+        erf_in = log( bin_mean / dAridSoils) / (sqrt( 2.d0 ) * log(
+     &       sigmaAridSoils ))
+
+        subClayWeights( 1:ntm_clay, i ) = 1.d0 / Cv * ( 1 +
+     &       errorFunction( erf_in )) * exp(-(bin_mean /lambda)**3 ) *
+     &       (subClayBounds( i + 1 ) - subClayBounds( i ))
+
+      end do
+
+      do n = 1,ntm_clay
+
+        zsum = sum( subClayWeights( n, : ) )
+        if ( zsum == 0.d0 ) cycle
+        subClayWeights( n, 1:nSubClays ) = subClayWeights( n,
+     &       1:nSubClays ) / zsum
+
+      end do
+
+      return
+      end subroutine calcSubClayWeights
 
 c errorFunction
       real(kind=8) function errorFunction( z )

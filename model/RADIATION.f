@@ -150,7 +150,7 @@ C----------------
       REAL*8 :: snoage_fac_max=.5d0
 
 !@var ITRMAX maximum number of optional tracers
-      INTEGER, PARAMETER :: ITRMAX=50
+      INTEGER, PARAMETER :: ITRMAX=150
 !@var TRACER array to add up to ITRMAX additional aerosol species
       REAL*8    :: TRACER(LX,ITRMAX)
 !@var FSTOPX,FTTOPX switches on/off aerosol for diagnostics (solar,thermal component)

@@ -15,9 +15,10 @@
 #ifdef TRACERS_TOMAS
       USE TOMAS_AEROSOL, only: icomp
 #endif
-#ifdef TRACERS_ON
-      use tracer_com, only: ntm_dust
-#endif  /* TRACERS_ON */
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+      use tracer_com, only: ntm_dust, ntm_clay, ntm_sil1, ntm_sil2,
+     &     ntm_sil3, ntm_sil4, ntm_sil5
+#endif
 !@var S0 solar 'constant' needs to be saved between calls to radiation
       IMPLICIT NONE
       SAVE
@@ -144,10 +145,13 @@ C**** does not produce exactly the same as the default values.
       integer, parameter :: nraero_nitrate=0
 #endif  /* TRACERS_NITRATE */
 
-#ifdef TRACERS_DUST
-      integer, parameter :: nraero_dust=ntm_dust + 3*ntm_clay
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+      integer, parameter :: nraero_clay = 4 * ntm_clay
+      integer, parameter :: nraero_dust = nraero_clay + ntm_sil1 +
+     &     ntm_sil2 + ntm_sil3 + ntm_sil4 + ntm_sil5
 #else
-      integer, parameter :: nraero_dust=0
+      integer, parameter :: nraero_clay = 0
+      integer, parameter :: nraero_dust = 0
 #endif  /* TRACERS_DUST */
 
 ! AMP and TOMAS will define their values later

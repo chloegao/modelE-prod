@@ -154,22 +154,28 @@ C**** Each tracer has a variable name and a unique index
       integer, parameter :: ntm_ococean=0
 #endif  /* TRACERS_AEROSOLS_OCEAN */
 
-!@var ntm_dust: Number of dust aerosol tracers.
+!@param ntm_dust: Number of dust aerosol tracers.
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_AMP)|| (defined TRACERS_TOMAS) 
 #if (defined TRACERS_DUST) || (defined TRACERS_AMP)||\
     (defined TRACERS_TOMAS) 
       integer, parameter :: ntm_clay = 1
+      integer, parameter :: ntm_sil1 = 1
+      integer, parameter :: ntm_sil2 = 1
+      integer, parameter :: ntm_sil3 = 1
 #ifdef TRACERS_DUST_Silt5
-      integer, parameter :: ntm_dust = 6
+      integer, parameter :: ntm_sil4 = 1
+      integer, parameter :: ntm_sil5 = 1
 #else
 #ifdef TRACERS_DUST_Silt4
-      integer, parameter :: ntm_dust = 5
+      integer, parameter :: ntm_sil4 = 1
+      integer, parameter :: ntm_sil5 = 0
 #else
-      integer, parameter :: ntm_dust = 4
+      integer, parameter :: ntm_sil4 = 0
+      integer, parameter :: ntm_sil5 = 0
 #endif  /* TRACERS_DUST_Silt4 */
 #endif  /* TRACERS_DUST_Silt5 */
-#else
+#else /* !(TRACERS_DUST || TRACERS_AMP || TRACERS_TOMAS) */
 !@var ntm_minerals: Number of TRACERS_MINERALS tracers.
 #ifdef TRACERS_MINERALS
       integer, parameter :: ntm_clay = 15
@@ -188,14 +194,13 @@ C**** Each tracer has a variable name and a unique index
       integer, parameter :: ntm_sil5 = 0
 #endif  /* TRACERS_DUST_Silt4 */
 #endif  /* TRACERS_DUST_Silt5 */
-      integer, parameter :: ntm_dust = ntm_clay + ntm_sil1 + ntm_sil2 +
-     &     ntm_sil3 + ntm_sil4 + ntm_sil5
 #endif  /* TRACERS_MINERALS */
 #endif  /* TRACERS_DUST || TRACERS_AMP || TRACERS_TOMAS */
-#else
+      integer, parameter :: ntm_dust = ntm_clay + ntm_sil1 + ntm_sil2 +
+     &     ntm_sil3 + ntm_sil4 + ntm_sil5
+#else /* !(TRACERS_DUST || TRACERS_MINERALS || TRACERS_AMP || TRACERS_TOMAS) */
       integer, parameter :: ntm_dust = 0
-      integer, parameter :: ntm_clay = 0
-#endif  /*  TRACERS_DUST || TRACERS_MINERALS || TRACERS_AMP || TRACERS_TOMAS */
+#endif  /* TRACERS_DUST || TRACERS_MINERALS || TRACERS_AMP || TRACERS_TOMAS */
 
 !@var ntm_het: Number of TRACERS_HETCHEM tracers.
 #ifdef TRACERS_HETCHEM
