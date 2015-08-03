@@ -8469,6 +8469,7 @@ C**** at the start of any day
       use Attributes_mod
       use AbstractAttribute_mod
       USE FILEMANAGER, only: openunit,closeunit
+      USE Dictionary_mod, only: sync_param
       implicit none
       integer :: i,j,ns,ns_isop,l,ky,n,nsect,kreg
       REAL*8 :: source,sarea,steppy,base,steppd,x,airm,anngas,
@@ -8491,6 +8492,7 @@ c      real*8 :: nlight, max_COSZ1, fact0
 !@+ both tracers, and organics, where emissions of C are multiplied with OM/OC
       real*8 :: src_fact
 #endif
+      integer :: seasonalNH3src=0
 
 #ifdef TRACERS_TERP
 !@param orvoc_fact Fraction of ORVOC added to Terpenes, for SOA production (Griffin et al., 1999)
@@ -9141,9 +9143,10 @@ C****
 #ifdef DYNAMIC_BIOMASS_BURNING
         if(do_fire(n))call dynamic_biomass_burning(n,ntsurfsrc(n)+1) 
 #endif
+        call sync_param("seasonalNH3src", seasonalNH3src)
         do ns=1,ntsurfsrc(n); do j=J_0,J_1; do i=I_0,I_1
         ! add annual cycle to agricultural emissions
-        if (ns == 2) then
+        if (ns == seasonalNH3src) then
           if (cosz1(i,j) > 0.) then
           trsource(i,j,ns,n)=sfc_src(i,j,n,ns)
      &      *axyp(i,j)* cosz1(i,j) * 4.d0
