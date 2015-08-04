@@ -42,7 +42,6 @@
      &     pureByTotalHematite
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
-      use tracer_sources, only: aircraft_Tyr1,aircraft_Tyr2
       USE TRCHEM_Shindell_COM,only:LCOalt,PCOalt,
      &     CH4altINT,CH4altINX,LCH4alt,PCH4alt,
      &     CH4altX,CH4altT,ch4_init_sh,ch4_init_nh,scale_ch4_IC_file,
