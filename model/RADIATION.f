@@ -3919,6 +3919,7 @@ C     ----------------------------------------------------------
      *     ,i2u1,i2u2,i3u1,i3u2,i6u1,i6u2,i7u1,i7u2,i8u1,i8u2,i9u1,i9u2
 
       REAL*8 UH2O,UCO2L,UO3LL,UCH4L,UN2OL,UCF1L,UCF2L,USO2
+     *                       ,UCH4L1,CH4RAT
      *     ,DUH2,DU1,DU2,DUCO,D2U1,D2U2,DUO3,D3U1,D3U2,DUCH,D7U1,D7U2
      *     ,DUN2,D6U1,D6U2,DUF1,D8U1,D8U2,DUF2,D9U1,D9U2,SUM1,SUM2,sumPR
      *     ,TAUT1,TAUT2,TAUHFB,TAUCF,TAUIPG,TAUSUM,TAU11,TAU12
@@ -4052,6 +4053,19 @@ C**** Find correction factors XTU and XTD
       UCF1L = LOG10 (1d-10 + SUM(ULGAS(L1:NL,8)))
       UCF2L = LOG10 (1d-10 + SUM(ULGAS(L1:NL,9)))
       USO2  = SUM(ULGAS(L1:NL,13))
+
+      CH4RAT = 1.
+      if(UCH4L>.7) then                    ! high CH4 concentration case
+         if(UCH4L<1.1) then
+            UCH4L1 = 1.15*UCH4L - .1
+         else if(UCH4L<1.7) then
+            UCH4L1 = 0.70*UCH4L + .4
+         else
+            UCH4L1 = 0.375*UCH4L + .95
+         end if
+         CH4RAT = 10**UCH4L1/10**UCH4L
+         UCH4L = UCH4L1
+      end if
 
       if(UCO2L < -9.958607315d0) ICDlow = 1  ! if UCO2<1.1d-10 (low CO2)
       IF(UO3LL < -9.6)           IO3LOW = 1  ! low ozone
@@ -4280,6 +4294,7 @@ C         Locate model layer temperature between ITX and ITX+1
       KK   = IG1X(KGX(IGAS))
       NG   = NGX (KGX(IGAS))
       UGAS = ULGAS(L,IGASX(IGAS))
+      IF(IGAS == 13.OR.IGAS == 14) UGAS = UGAS*CH4RAT
       IF(IGAS == 17.OR.IGAS == 18) UGAS = UGAS + ULGAS(L,11)
 
       IF(IGAS < 21) GO TO 375
