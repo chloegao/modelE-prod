@@ -116,7 +116,7 @@
 !@sum These polynomial coefficients normally should be read
 !@+  in from the file 'isoprene.coef'. I am hardcoding them
 !@+  here, as the quickest way to make sure this is ESMF-
-!@+  compliant, as I don't suspect we will commit this code.
+!@+  compliant, as I do not suspect we will commit this code.
 !@ THIS IS NOW OBSOLETE
 
       use biogenic_emis
@@ -137,7 +137,7 @@
 !@sum These baseline emissions factors normally should be read
 !@+  in from the file 'isopemis.table'. I am hardcoding them
 !@+  here, as the quickest way to make sure this is ESMF-
-!@+  compliant, as I don't suspect we will commit this code.
+!@+  compliant, as I do not suspect we will commit this code.
 !@+  Units are atoms C cm^-2 leaf s^-1
 !@+  Construct the base emission for each grid box                         
 !@+  Output is baseisop in kg C cm^-2 * surface area of cell (cm^2)

@@ -591,7 +591,7 @@ C* Calculate the deposition velocity, to be returned:
 C       Please see comments in land case above:     
         II = 1                  ! ice
         IF(ITYPE == 1) II  = 11 ! water
-        LDT=1 ! just so we don't have to use all new variables
+        LDT=1 ! just so we do not have to use all new variables
         RI(LDT)   = 1.d12 ! No stomatal deposition
         RLU(LDT)  = 1.d6  ! No cuticular surface deposition 
         RAC(LDT)  = 1.d0
@@ -766,7 +766,6 @@ C  in terms of calculating the diffusivity as long as molecule is not
 C  too big.
 C======================================================================
 !@param XMAIR air molecular weight (KG/mole)
-!@param AVOG Avogadro's number (molecules/mole)
 !@param RADX hard-sphere molecular radius of the diffusing gas
 !@param RADAIR hard-sphere molecular radius of air
 !@param PRESS pressure (kg/s2/m) used to calculate molec. diffusivities
@@ -784,7 +783,7 @@ C======================================================================
       REAL*8 :: Z,DIAM,FRPATH,SPEED,AIRDEN     
 
 C* Calculate air density AIRDEN:
-      AIRDEN = PRESS*avog*bygasc/TK ! can't we get this from the GCM?
+      AIRDEN = PRESS*avog*bygasc/TK 
 C* Calculate the mean free path for gas X in air: eq. 8.5 of Seinfeld
 C*  [1986]; DIAM is the collision diameter for gas X with air :
       Z = XM/XMAIR
@@ -832,7 +831,7 @@ C--   read polynomial coefficients for drydep:
 
       SUBROUTINE RDLAND
 !@sum RDLAND Read in land types and fractions(times 1000) from
-!@+   the formatted input file:  'vegtype.global', also, Read Olson's
+!@+   the formatted input file:  'vegtype.global', also, Read Olson
 !@+   data from formatted input file 'drydep.table' (formerly done
 !@+   in MODIN routine).
 !@auth ? HARVARD CTM
@@ -862,8 +861,8 @@ C
 !@var I,J local lat lon index
 !@var K,L,IDUMMY dummy loop indicies
 !@param NWAT number of olsons land types that are water
-!@var NWAT2 Number of Olson's surface types that are water (read in)
-!@var IWATER ID index for Olson's surface types that are water
+!@var NWAT2 Number of Olson surface types that are water (read in)
+!@var IWATER ID index for Olson surface types that are water
 !@var COM 70 characters of comments to read in?
 !@var iu_data unit number for read
 !@var iols temp read in index
@@ -970,13 +969,13 @@ C********* this section replaces call to MODIN *******************
       DO L = 1,5
         READ(iu_data,'(70A1)') COM
       END DO
-C** Read Olson's surf. types, corresponding deposition surf. types, z0:
+C** Read Olson surf. types, corresponding deposition surf. types, z0:
       DO L = 1,NVEGTYPE
         READ(iu_data,'(3I6)')  iols, IDEP(iols), IZO(iols)
       END DO
 C** For the water surface types, zO is input as 1.E-4 m but is
 C** recalculated elsewhere as function of wind speed.  Read the # of
-C** Olson's surface types that are water (NWAT) and the corresponding
+C** Olson surface types that are water (NWAT) and the corresponding
 C** IDs (IWATER):
       READ(iu_data,'(70A1)') COM
       READ(iu_data,'(10I3)') NWAT2, (IWATER(I), I=1,NWAT)
