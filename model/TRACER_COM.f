@@ -506,10 +506,10 @@ C**** tracer specific switches
 
 C**** arrays that could be general, but are only used by chemistry
 
-!! dbparam trans_emis_overr_yr year for overriding tracer transient emis
-!! dbparam trans_emis_overr_day day for overriding tracer transient emis
-!@var trans_emis_overr_yr year for overriding tracer transient emis
-!@var trans_emis_overr_day day for overriding tracer transient emis
+!@dbparam trans_emis_overr_yr year for overriding Shindell tracer
+!@+       transient emissions
+!@dbparam trans_emis_overr_day day for overriding Shindell tracer
+!@+       transient emissions
       integer :: trans_emis_overr_yr=0, trans_emis_overr_day=0
 ! ---- section for altering tracers sources by sector/region ----
 !@param n_max_reg  maximum number of regions for emissions altering
