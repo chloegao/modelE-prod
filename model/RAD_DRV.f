@@ -2790,7 +2790,7 @@ C*****************************************************
     (defined TRACERS_AEROSOLS_SEASALT)
 
 C**** Save optical depth diags
-#ifdef TRACERS_AMP    ! Necessary because radiation call can be limited to 1 call, but diagnostic is calculated for all populations
+#ifdef TRACERS_AMP /* Necessary because radiation call can be limited to 1 call, but diagnostic is calculated for all populations */
         nraero_internal = nmodes-2
         ntrix_i(1:nmodes-2) = ntrix_amp(1:nmodes-2) 
 #else
