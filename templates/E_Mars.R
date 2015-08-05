@@ -152,11 +152,6 @@ o2x=0.007
 !co2x=1.
 co2x=3333.
 
-! Setting these enables extrapolation of Planck-function lookup tables
-! past the default lower/upper limits of 124 and 373 K.
-planck_tmin=1    ! minimum temperature (K)
-planck_tmax=400  ! maximum temperature (K)
-
 ! -1 uses Thekaekara solar spectrum, so no RADN9 input file required
 KSOLAR=-1
 
