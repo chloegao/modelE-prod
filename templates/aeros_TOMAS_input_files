@@ -22,7 +22,6 @@ SO2_VOLCANO=SO2_volc_2000_2x2.5_pres.nc
 ! -------- aerosol --------------
 DMS_SEA=DMS_Kettle_Andreae_2x2.5 ! needed when OFFLINE_DMS_SS=0
 !DMS_FLUX=DMS.2x2.5_AEROCOM.nc ! needed when OFFLINE_DMS_SS=1
-!SO2_AIRCRAFT=NOy_sources/aircraft_4x5_1940-2000 ! zero in 1940 and before.
 !--------AR5 inputs --------------------
 AECOB_01_AIRC=AR5_emis/F/T/BCIA_air_AR5_1910-2000_2x2.5
 AECOB_01_01=BCII_awb_AR5_1850-2000_2x2.5_h
