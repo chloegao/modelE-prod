@@ -658,7 +658,7 @@ c note: not applying CPP when declaring counts/lists.
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)||\
     (defined TRACERS_TOMAS)
         select case (trname(n))
-        case('SO2','SO4','H2O2_s','H2O2')
+        case('SO2','SO4','H2O2_s','H2O2','M_ACC_SU','ASO4__01')
           if ( .not.(
      *         (trname(n).eq."H2O2" .and. coupled_chem.eq.0).or.
      *         (trname(n).eq."H2O2_s" .and. coupled_chem.eq.1)) )

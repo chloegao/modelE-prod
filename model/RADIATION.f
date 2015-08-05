@@ -344,7 +344,7 @@ C--------------------------------------   have to handle 1 point in time
 !@+ 3 MADDST   =  1   Reads  Dust-windblown mineral climatology   RFILE6
 !@+ 4 MADVOL   =  1   Reads  Volcanic 1950-00 aerosol climatology RFILE7
 !@+ 5 MADEPS   =  1   Reads  Epsilon cloud heterogeneity data     RFILE8
-!@+ 6 MADLUV   =  1   Reads  Lean's SolarUV 1882-1998 variability RFILE9
+!@+ 6 MADLUV   =  1   Reads  Lean format Spectral Solar Irrad.    RFILE9
 !@+   MADGHG   =  1          Enables UPDGHG update. MADGHG=0: no update
 !@+   MADSUR   =  1   Reads  Vegetation,Topography data    RFILEC,RFILED
 !@+   MADBAK   if 1          Adds background aerosols
@@ -757,7 +757,7 @@ C                 H2O       CO2   O3     O2  NO2       N2O         CH4
 C                        CCL3F1      CCL2F2   N2     CFC-Y       CFC-Z
 C     GAS  NUMBER             8           9   10        11          12
 
-C     Makiko's GHG Trend Compilation  GHG.1850-2050.Dec1999 in GTREND
+C     Makiko GHG Trend Compilation  GHG.1850-2050.Dec1999 in GTREND
 C     ---------------------------------------------------------------
 !@var nghg nr. of well-mixed GHgases: CO2 N2O CH4 CFC-11 CFC-12 others
 !@var nyrsghg max.number of years of prescr. greenhouse gas history
@@ -878,7 +878,7 @@ C     MADAER   =  2   Reads  Aerosol 50y tropospheric climatology RFILE5
 C     MADDST   =  3   Reads  Dust-windblown mineral climatology   RFILE6
 C     MADVOL   =  4   Reads  Volcanic 1950-00 aerosol climatology RFILE7
 C     MADEPS   =  5   Reads  Epsilon cloud heterogeneity data     RFILE8
-C     MADLUV   =  6   Reads  Lean's SolarUV 1882-1998 variability RFILE9
+C     MADLUV   =  6   Reads  Lean formar Solar Spectral Irrad.    RFILE9
 C
 C                 Related Model Add-on Data Parameters set in RADPAR
 C
@@ -1349,8 +1349,8 @@ C             ----------------------------------------------------------
 
 
 C-----------------------------------------------------------------------
-CR(9)         Read Judith Lean's Solar UV and Solar Constant Variability
-C                                      Monthly-Mean Solar UV (1882-1998)
+CR(9)         Read Judith Lean Solar UV and Solar Constant Variability
+C                                                Monthly-Mean Solar UV 
 C                                      ---------------------------------
       iMS0X = MS0X
 
@@ -1573,7 +1573,7 @@ C     MADAER  =  2  Updates  Aerosol 50y tropospheric climatology RFILE5
 C     MADDST  =  3  Updates  Dust-windblown mineral climatology   RFILE6
 C     MADVOL  =  4  Updates  Volcanic 1950-00 aerosol climatology RFILE7
 C     MADEPS  =  5  Updates  Epsilon cloud heterogeneity data     RFILE8
-C     MADLUV  =  6  Updates  Lean''s SolarUV 1882-1998 variability RFILE9
+C     MADLUV  =  6  Updates  Lean format Spectral Solar Irrad.    RFILE9
 C
 C                 Related Model Add-on Data Parameters set in RADPAR
 C
@@ -1672,12 +1672,12 @@ C     MADVEL  Model Add-on Data of Extended Climatology Enable Parameter
 C             Each MADVEL digit is ON/OFF switch for corresponding input
 C             e.g. MADVEL=123456   (zero digit skips process)
 C
-C     MADO3M  =  1           Makiko's 1951-1997 Ozone climatology RFILEA
+C     MADO3M  =  1           Makiko   1951-1997 Ozone climatology RFILEA
 C     MADAER  =  2  Updates  Aerosol 50y tropospheric climatology RFILE5
 C     MADDST  =  3  Updates  Dust-windblown mineral climatology   RFILE6
 C     MADVOL  =  4  Updates  Volcanic 1950-00 aerosol climatology RFILE7
 C     MADEPS  =  5           Epsilon cloud heterogeneity data     RFILE8
-C     MADLUV  =  6           Lean's SolarUV 1882-1998 variability RFILE9
+C     MADLUV  =  6           Lean format Spectral Solar Irrad.    RFILE9
 C
 C                 Related Model Add-on Data Parameters set in RADPAR
 C
@@ -3919,6 +3919,7 @@ C     ----------------------------------------------------------
      *     ,i2u1,i2u2,i3u1,i3u2,i6u1,i6u2,i7u1,i7u2,i8u1,i8u2,i9u1,i9u2
 
       REAL*8 UH2O,UCO2L,UO3LL,UCH4L,UN2OL,UCF1L,UCF2L,USO2
+     *                       ,UCH4L1,CH4RAT
      *     ,DUH2,DU1,DU2,DUCO,D2U1,D2U2,DUO3,D3U1,D3U2,DUCH,D7U1,D7U2
      *     ,DUN2,D6U1,D6U2,DUF1,D8U1,D8U2,DUF2,D9U1,D9U2,SUM1,SUM2,sumPR
      *     ,TAUT1,TAUT2,TAUHFB,TAUCF,TAUIPG,TAUSUM,TAU11,TAU12
@@ -4052,6 +4053,19 @@ C**** Find correction factors XTU and XTD
       UCF1L = LOG10 (1d-10 + SUM(ULGAS(L1:NL,8)))
       UCF2L = LOG10 (1d-10 + SUM(ULGAS(L1:NL,9)))
       USO2  = SUM(ULGAS(L1:NL,13))
+
+      CH4RAT = 1.
+      if(UCH4L>.7) then                    ! high CH4 concentration case
+         if(UCH4L<1.1) then
+            UCH4L1 = 1.15*UCH4L - .1
+         else if(UCH4L<1.7) then
+            UCH4L1 = 0.70*UCH4L + .4
+         else
+            UCH4L1 = 0.375*UCH4L + .95
+         end if
+         CH4RAT = 10**UCH4L1/10**UCH4L
+         UCH4L = UCH4L1
+      end if
 
       if(UCO2L < -9.958607315d0) ICDlow = 1  ! if UCO2<1.1d-10 (low CO2)
       IF(UO3LL < -9.6)           IO3LOW = 1  ! low ozone
@@ -4280,6 +4294,7 @@ C         Locate model layer temperature between ITX and ITX+1
       KK   = IG1X(KGX(IGAS))
       NG   = NGX (KGX(IGAS))
       UGAS = ULGAS(L,IGASX(IGAS))
+      IF(IGAS == 13.OR.IGAS == 14) UGAS = UGAS*CH4RAT
       IF(IGAS == 17.OR.IGAS == 18) UGAS = UGAS + ULGAS(L,11)
 
       IF(IGAS < 21) GO TO 375
@@ -6248,7 +6263,7 @@ C     WRITER Radiative Input/Output Cloud/Aerosol Data/Conrol Parameters
 C
 C         INDEX
 C           0     control parameter defaults in RADPAR
-C           1     RADPAR Radiative control/scaling param's; GHG defaults
+C           1     RADPAR Radiative control/scaling params; GHG defaults
 C           2     RADPAR Atmospheric composition P,H,T,Cld,Aer  profiles
 C           3     RADPAR Computed LW SW fluxes cooling and heating rates
 C           4     Aerosol and Cloud: Mie scattering radiative parameters
@@ -8538,7 +8553,7 @@ C
       INTEGER iy,n
 C
 C-------------------------------------------------------------
-C        Makiko's GHG Trend Compilation  GHG.1850-2050.Dec1999
+C        Makiko GHG Trend Compilation  GHG.1850-2050.Dec1999
 C
 C        Annual-Mean      Greenhouse Gas Mixing Ratios
 C-------------------------------------------------------------

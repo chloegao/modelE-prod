@@ -301,6 +301,7 @@ SUBDD4='dq_turb dth_turb dq_mc dth_mc dq_ss dth_ss dth_sw dth_lw dth_rad'
 SUBDD5='dq_ls dth_ls dq_nudge dth_nudge'
 SUBDD6='isccp_sunlit isccp_ctp isccp_tau isccp_lcld isccp_hcld'
 NSUBDD=1         ! saving sub-daily diags every NSUBDD-th physics time step (1/2 hr)
+SCM_PlumeDiag=0  !to save Plume diagnostics set SCM_PlumeDiag=1
 WRITE_ONE_FILE=1 ! all outputs to a single file
 
 ! KOCEAN=0 means prescribed surface ocean conditions.  This parameter is currently

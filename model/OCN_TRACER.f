@@ -550,7 +550,7 @@ C**** at each time step set surface tracer conc=1+flux from atmos
 !    .   Xconv,a,wind,solub,Sc,kw   
 !     endif
 #ifdef OCN_CFCconst
-!     cfcair = 1.          !pptv to derive green's functions -- corresponds to $
+!     cfcair = 1.          !pptv to derive greens functions -- corresponds to $
       call get_param('cfc_conc_const',cfc_conc_const)
       cfcair=cfc_conc_const
 #else
@@ -658,7 +658,7 @@ C**** at each time step set surface tracer conc=1+flux from atmos
 !     CFC 11 and 12 Solubilities in seawater
 !     ref: Warner & Weiss (1985) , Deep Sea Research, vol32
 !
-!     pt:       temperature (degre Celcius)
+!     pt:       temperature (degree Celcius)
 !     ps:       salinity    (o/oo)
 !     kn:       11 = CFC-11, 12 = CFC-12
 !     sol_cfc:  in mol/m3/pptv
@@ -736,7 +736,7 @@ C**** at each time step set surface tracer conc=1+flux from atmos
 !_
 !---------------------------------------------------
 !     CFC 11 and 12 schmidt number 
-!     as a fonction of temperature. 
+!     as a function of temperature. 
 !
 !     ref: Zheng et al (1998), JGR, vol 103,No C1 
 !
@@ -746,7 +746,7 @@ C**** at each time step set surface tracer conc=1+flux from atmos
 !     J-C Dutay - LSCE
 !---------------------------------------------------
 !
-!   coefficients with t in degre Celcius
+!   coefficients with t in degree Celcius
 !   ------------------------------------
       implicit none
       real*8 :: a1,a2,a3,a4,t

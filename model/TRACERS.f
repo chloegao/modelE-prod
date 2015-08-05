@@ -1013,7 +1013,7 @@ C**** set particle properties
 #endif  
 
 #ifndef TRACERS_TOMAS
-C**** calculate stoke's velocity (including possible hydration effects
+C**** calculate stokes velocity (including possible hydration effects
 C**** and slip correction factor)
                 stokevdt=dtsrc*vgs(airden(i,j,l),rh(i,j,l),tr_radius
      *               ,tr_dens,visc(i,j,l),hydrate)
@@ -1109,7 +1109,7 @@ C**** hydrated density
         rad = tr_radius 
       end if
 
-C**** calculate stoke's velocity
+C**** calculate stokes velocity
       vgs=2.*grav*dens*rad**2/(9.*visc)
 
 C**** slip correction factor

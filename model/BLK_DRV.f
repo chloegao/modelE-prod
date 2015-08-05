@@ -3,8 +3,8 @@
       module mo_bulk2m_driver_gcm
 !@sum 2-moment bulk cloud microphysics scheme                                
 !@contains routines to calculate cloud and ice crystal number, autoconversion, phase-interactions 
-!@auth Surabi Menon and Igor Sednev ; based on Morrison's 2008 scheme in CCSM
-!@as in Morrison and Gettelman, 2008, J Clim 21, 15, 3642-3659 and Gettelman et al. 2008, J Clim,21,3660-3679
+!@auth Surabi Menon and Igor Sednev ; based on Morrison 2008 scheme in CCSM
+!@+    as in Morrison and Gettelman, 2008, J Clim 21, 15, 3642-3659 and Gettelman et al. 2008, J Clim,21,3660-3679
       USE resolution,ONLY: im,jm,lm
       IMPLICIT NONE
       PRIVATE
@@ -525,7 +525,7 @@ c thermal conductivity for air
 c Saturation vapor pressure and mixing ratio
             evs(k) = polysvp(tk3d(k),0)   ! pa
             eis(k) = polysvp(tk3d(k),1)   ! pa
-c make sure ice saturation doesn't exceed water sat. near freezing
+c make sure ice saturation does not exceed water sat. near freezing
 	    if (eis(k).gt.evs(k)) eis(k) = evs(k)
 c Saturation mixing ratio
             qvs(k) = .622d0*evs(k)/(pp3d(k)-evs(k))
@@ -596,7 +596,7 @@ c If mixing ratio < 1.e-20 set mixing ratio and number conc to zero
 	   qi3d(k) = 0.
            ni3d(k) = 0.
 	 end if
-c make sure number concentrations aren't negative
+c make sure number concentrations are not negative
 	ni3d(k) = max(0.0d0,ni3d(k))
 c calculate size distribution parameters
 	if (qi3d(k).ge.qsmall) then
@@ -663,7 +663,7 @@ c If mixing ratio < 1.e-20 set mixing ratio and number conc to zero
          qs3d(k) = 0.
          ns3d(k) = 0.
          end if
-c make sure number concentrations aren't negative
+c make sure number concentrations are not negative
 	ns3d(k) = max(0.0d0,ns3d(k))
 c calculate size distribution parameters
 	if (qs3d(k).ge.qsmall) then
@@ -726,7 +726,7 @@ c If mixing ratio < 1.e-20 set mixing ratio and number conc to zero
 	   qr3d(k) = 0.
            nr3d(k) = 0.
 	 end if
-c make sure number concentrations aren't negative
+c make sure number concentrations are not negative
         nr3d(k) = max(0.0d0,nr3d(k))
 c calculate lamr
 	if (qr3d(k).ge.qsmall) then
@@ -789,7 +789,7 @@ c If mixing ratio < 1.e-20 set mixing ratio and number conc to zero
 	   qc3d(k) = 0.
            nc3d(k) = 0.
          end if
-c make sure number concentrations aren't negative
+c make sure number concentrations are not negative
 	 nc3d(k) = max(0.0d0,nc3d(k))
 c Martin et al. (1994) formula for pgam
          pgam(k) = 0.0d0
@@ -943,7 +943,7 @@ c If mixing ratio < 1.e-20 set mixing ratio and number conc to zero
 	   qr3d(k) = 0.
            nr3d(k) = 0.
 	 end if
-c make sure number concentrations aren't negative
+c make sure number concentrations are not negative
 	ni3d(k) = max(0.0d0,ni3d(k))
 	ns3d(k) = max(0.0d0,ns3d(k))
 	nc3d(k) = max(0.0d0,nc3d(k))
@@ -3048,7 +3048,7 @@ c          dum = max(dum,0.40d0)
            dum1 = nanew1/2.*(1.-derf1(uu1))
            dum2 = nanew2/2.*(1.-derf1(uu2))  
            dum3 = (dum1+dum2)/rho(k)  !convert to kg-1
-c make sure this value isn't greater than total number of aerosol
+c make sure this value is not greater than total number of aerosol
 	      dum3 = min((nanew1+nanew2)/rho(k),dum3)
 	      dum4 = (dum3-nc3d(k)) ! / dtmic
 	      dum4 = max(0.d0,dum4)
@@ -3403,7 +3403,7 @@ c set reaslistic limits on fallspeeds
      1           (1./(lamr(k)**3*lams(k))+
      1            1./(lamr(k)**2*lams(k)**2)+
      1            1./(lamr(k)*lams(k)**3))
-c make sure pracs doesn't exceed total rain mixing ratio
+c make sure pracs does not exceed total rain mixing ratio
 c as this may otherwise result in too much transfer of water during
 c rime-splintering
             mpracs(k) = min(mpracs(k),qr3d(k)/dt)
@@ -4564,7 +4564,7 @@ c conservation of qc
         mpra(k) = mpra(k)*ratio
         end if
 c conservation of qr
-c all terms are positive, don't need conservation of rain
+c all terms are positive, do not need conservation of rain
 c conservation of snow
         dum = (-msmltr(k)-msmlts(k))*dtmic
         if (dum.gt.qs3d(k).and.qs3d(k).ge.qsmall) then
@@ -5430,7 +5430,7 @@ c assume minimum eff. sub-grid velocity 0.20 m/s
            dum1 = nanew1/2.*(1.-derf1(uu1))
            dum2 = nanew2/2.*(1.-derf1(uu2))  
            dum3 = (dum1+dum2)/rho(k)  !convert to kg-1
-c make sure this value isn't greater than total number of aerosol
+c make sure this value is not greater than total number of aerosol
 	      dum3 = min((nanew1+nanew2)/rho(k),dum3)
 	      dum4 = (dum3-nc3d(k)) ! / dtmic
 	      dum4 = max(0.d0,dum4)
@@ -6614,7 +6614,7 @@ c positiveness of nc
           npra(k) = npra(k)*ratio
         end if
 c positiveness of nr
-c all terms are positive, don't need conservation of rain
+c all terms are positive, do not need conservation of rain
 c positiveness of snow
         dum = (-nsmltr(k)-nsmlts(k))*dtmic
         if (dum.gt.ns3d(k).and.ns3d(k).ge.nsmall) then

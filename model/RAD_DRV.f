@@ -128,10 +128,10 @@ C****
 
       use AbstractOrbit_mod, only: AbstractOrbit
       ! begin section for radiation-only SCM
-      use constant, only : gasc,tf,mair,mwat,pi,lhe,lhs,mb2kg,kapa
+      use constant, only : gasc,tf,mair,mwat,pi,lhe,lhs,mb2kg,kg2mb,kapa
       use atm_com, only : q,p,pmid,pedn,pdsig,pek,ma,byma,ltropo
       use atm_com, only : aml00,byaml00,req_fac,kradia,lm_req
-      use resolution, only : im,plbot,ptop,ls1
+      use resolution, only : im, mtop,mfix,mfrac,mfixs, ls1,plbot,ptop
       use rad_com, only : modrd
       use radpar, only : u0gas,ulgas,set_gases_internally
       use radpar, only : set_aerosols_internally,
@@ -174,7 +174,7 @@ C****
       character*6 :: skip
 
       ! begin section for radiation-only SCM
-      real*8 :: cosz_const
+      real*8 :: cosz_const, mvar
       character(len=6) :: gasnames(13)
       integer :: fid,igas
       real*8 :: szadeg,s0cosz,s0_tmp,cosz_tmp,tloc
@@ -336,11 +336,13 @@ C**** sync radiation parameters from input
           fid = par_open(grid,'AIC','read')
           call read_dist_data(grid,fid,'t',t)
           call read_dist_data(grid,fid,'q',q)
-          call read_dist_data(grid,fid,'p',p)
+          call read_dist_data(grid,fid,'p',p)  !  surface pressure (mb)
           call read_dist_data(grid,fid,'tsurf',atmsrf%gtempr)
-          do l=ls1-1,1,-1  ! sigma-rescaling
-            pednl00(l) = ptop +
-     &           (pednl00(l)-ptop)*((p(1,1)-ptop)/(pednl00(1)-ptop))
+!****     Rescaling: pednl00(1) = ps (= p)
+          mvar = p(1,1)*mb2kg - mfixs - mtop
+          pednl00(lm+1) = mtop*kg2mb
+          do l=lm,1,-1
+            pednl00(l) = pednl00(l+1) + (mfix(l) + mvar*mfrac(l))*kg2mb
           enddo
           call par_close(grid,fid)
         elseif(is_set_param('temp1d')) then
