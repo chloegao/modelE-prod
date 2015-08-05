@@ -97,8 +97,8 @@ c calculates .5*(u**2+v**2) on the A grid, using A-grid winds.
       end subroutine recalc_agrid_uv
 
       subroutine replicate_uv_to_agrid(u_r,v_r,k,ursp,vrsp,urnp,vrnp)
-c replicate the d-grid u's and v's surrounding a-grid cells into
-c a-grid arrays u_r, v_r containing 2 u's and v's at each cell.
+c replicate the d-grid u and v surrounding a-grid cells into
+c a-grid arrays u_r, v_r containing 2 u and 2 v at each cell.
 c
 c           ---U_d---            --------- 
 c          |    |    |          |         |
@@ -249,7 +249,7 @@ c allocate u_d, v_d with the extra row/column for interp routine
       end subroutine regrid_atov_1d
 
       subroutine get_nuv(nuv)
-c reports the number of u's and v's in the domain
+c reports the number of u and v in the domain
       USE DOMAIN_DECOMP_ATM, only : GRID
       implicit none
       integer :: nuv
@@ -862,7 +862,7 @@ c From horizontal mass fluxes pu/pv, computes vertical mass flux in
 c a constant-pressure vertical coordinate whose pressure levels are
 c the global means of each layer, and interpolates them to
 c terrain-following coordinate surfaces.
-c Values for the model's constant-pressure layers are copied from sd.
+c Values for the model constant-pressure layers are copied from sd.
 c Outputs are placed in arrays wcp,wcpsig in the DYNAMICS module.
       use RESOLUTION, only: im,lm
       use RESOLUTION, only: ls1,ptop

@@ -216,7 +216,7 @@ C**** BEGINNING OF LAYER LOOP
 C****
 C****
 C**** COMPUTATION OF MASS FLUXES     P,T  PU     PRIMARY GRID ROW
-C**** ARAKAWA'S SCHEME B             PV   U,V    SECONDARY GRID ROW
+C**** ARAKAWA SCHEME B               PV   U,V    SECONDARY GRID ROW
 C****
 
       do j=max(2,j_0h),j_1s

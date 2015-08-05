@@ -453,7 +453,7 @@ c apply north-south filter to U and V once per physics timestep
        zNSxDT = 1 / (NS*DT)
 !****                             +---------+
 !**** COMPUTATION OF MASS FLUXES  |  MA,T  MU    PRIMARY GRID ROW (J)
-!**** ARAKAWA'S SCHEME B          +---MV---U,V   VELOCITY GRID ROW (J)
+!**** ARAKAWA SCHEME B            +---MV---U,V   VELOCITY GRID ROW (J)
 !****
       Call GetDomainBounds (GRID,
      &   J_STRT      = J1  , J_STOP      = JN  , !  primary row limits

@@ -1472,7 +1472,7 @@ c workaround for uninitialized patches%srfstate_exports multiply by zero
       REAL*8, ALLOCATABLE, DIMENSION(:,:)   :: FLAKE0
 
 #ifdef GLINT2
-!@var FLICE_ICEMODEL Fraction of gridbox that's landice that
+!@var FLICE_ICEMODEL Fraction of gridbox that is landice that
 !     comes from a GLINT2-related ice model.
 !     NOTE: FLICE_GLINT2 < FLICE
       REAL*8, ALLOCATABLE, DIMENSION(:,:)   :: FLICE_GLINT2
@@ -1669,7 +1669,7 @@ C**** fluxes associated with variable lake fractions
       END MODULE FLUXES
 
       SUBROUTINE ALLOC_FLUXES !(grd_dum)
-!@sum   Initializes FLUXES''s arrays
+!@sum   Initializes FLUXES arrays
 !@auth  Rosalinda de Fainchtein
       USE EXCHANGE_TYPES, only : alloc_xchng_vars
       USE DOMAIN_DECOMP_ATM, ONLY : GRD_DUM=>GRID,

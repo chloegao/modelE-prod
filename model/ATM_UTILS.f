@@ -420,7 +420,7 @@ C**** Find WMO Definition of Tropopause to Nearest L
 !@+   at least 1 km in any higher layer.
 !@+ * (GISS failsafe) Some cases occur when the lapse rate never falls
 !@+   below 2 K/km. In such cases the failsafe level is that where the
-!@+   lapse rate first falls below 3 K/km. If this still doesn't work
+!@+   lapse rate first falls below 3 K/km. If this still does not work
 !@+   (ever?), the level is set to the pressure level below 30mb.
 !@+
       USE RESOLUTION, only : klev=>lm
