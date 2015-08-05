@@ -178,9 +178,7 @@ C** but including nitrates
       endif
 #endif  /* TRACERS_AEROSOLS_OCEAN */
       SSM1 = 9.55d11*DSU(1)         ! all sulfate
-C**nitrate,  vol radius = 0.3 um and effe rad = 0.15 um
-C** Choose value that works as for sulfates
-      SSM1a= (DSU(14)/1700.d0)/(0.004189d0*(0.058**3))   
+      SSM1a = 9.55d11*DSU(14)       ! nitrate
 c     SSM2 = 1.94d11*DSU(2)         ! SS 0.01-1 um
       SSM2 = 1.89d10*DSU(2)*fq_ssoc_ss ! SS 0.01-1 um
 c     SSM3 = 2.43d07*DSU(3)         ! SS in 1-4 um
@@ -362,7 +360,7 @@ c     SSM8 = 2.98d11*(DSU(18)+DSU(19)+DSU(20)+DSU(21))! SOA with 100% solubility
       endif
 #endif  /* TRACERS_AEROSOLS_OCEAN */
       SSM1 = 9.55d11*DSU(1)         ! all sulfate 
-      SSM1a= (DSU(14)/1700.d0)/(0.004189d0*(0.058**3)) !nitrate
+      SSM1a= 9.55d11*DSU(14)        ! nitrates
 c     SSM2 = 1.94d11*DSU(2)         ! SS 01.-1 um 
       SSM2 = 1.89d10*DSU(2)*fq_ssoc_ss ! SS 01.-1 um 
 c     SSM3 = 2.43d07*DSU(3)         ! SS in 1-4 um 
@@ -556,14 +554,14 @@ c     SSM8 = 2.98d10*(DSU(18)+DSU(19)+DSU(20)+DSU(21))! SOA with 100% solubility
       endif
 #endif  /* TRACERS_AEROSOLS_OCEAN */
       SSM1 = 9.55d11*DSU(1)         ! all sulfate 
-      SSM1a=(DSU(14)/1700.d0)/(0.004189d0*(0.058**3))   !nitrate
+      SSM1a= 9.55d11*DSU(14)        ! nitrates
 c     SSM2 = 1.94d11*DSU(2)         ! SS 01.-1 um 
       SSM2 = 1.89d10*DSU(2)*fq_ssoc_ss ! SS 01.-1 um 
 c     SSM3 = 2.43d07*DSU(3)         ! SS in 1-4 um 
       SSM4 = 1.70d12*DSU(4)         ! OCIA aged industrial OC
       SSM5 = 1.70d12*DSU(5)*0.8!*fq_aer(n_OCB) ! OCB
       SSM6 = 1.70d12*DSU(6)         ! BCIA aged industrial BC
-      SSM7 = 1.70d12*DSU(7)*0.6!*fq_aer(n_BCB) ! BCB
+      SSM7 = 1.70d12*DSU(7)*0.8!*fq_aer(n_BCB) ! BCB
 #ifdef TRACERS_AEROSOLS_SOA
       SSM8 = 1.70d12*(DSU(18)*0.8!*fq_aer(n_isopp1a)
      &               +DSU(19)*0.8!*fq_aer(n_isopp2a)
