@@ -681,6 +681,10 @@ contains
       call set_fq_aer(tracerIndex, getSolubility(mode))
       call set_tr_wd_type(tracerIndex, nPART)
 
+      if (trim(tracerName) == 'M_BC1_BC') then
+        call check_aircraft_sectors(tracerName) ! special 3D source case
+      endif
+
     end function AMP_setSpec
 
 !------------------------------------------------------------------------------

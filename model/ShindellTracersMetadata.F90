@@ -219,8 +219,7 @@ contains
       &  2.1700112d-07, 3.0054335d-07, 0.0000000d+00, 0.0000000d+00, &
       &  0.0000000d+00, 0.0000000d+00/)
 #endif
-     if (tracers_special_shindell) &
-       call check_aircraft_sectors(n_NOx) ! special 3D source case
+      call check_aircraft_sectors(name) ! special 3D source case
     end subroutine NOx_setSpec
 
     subroutine ClOx_setSpec(name)

@@ -135,6 +135,7 @@ module KochTracersMetadata_mod
       call set_trradius(n, 1.d-7 ) !m
       call set_fq_aer(n, 1.d0   ) !fraction of aerosol that dissolves
       call set_tr_wd_type(n, npart)
+      call check_aircraft_sectors(name) ! special 3D source case
     end subroutine BCIA_setSpec
 
     subroutine BCB_setSpec(name)

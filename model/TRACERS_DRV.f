@@ -597,7 +597,7 @@ C**** set some defaults
             qcon(g) = .true.; conpts(g-12) = 'Aging source'
             qsum(g) = .true.
             select case(trim(pTracer%getName()))
-            case ('BCII')
+            case ('BCIA')
               g=g+1; itcon_3Dsrc(nAircraft,N) = g
               qcon(g) = .true.; conpts(g-12) = 'Aircraft Source'
               qsum(g) = .true.
@@ -8019,8 +8019,6 @@ CC****
 C**** Extract useful local domain parameters from "grid"
 C****
 
-      xyear=0
-      xday=0
       call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
@@ -8111,16 +8109,6 @@ C**** Tracer specific call for CH4
 
 #if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch) ||\
     (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
-C**** Allow overriding of transient emissions date:
-! for now, tying this to O3_yr becasue Gavin
-! didn't want a new parameter, also not allowing
-! day overriding yet, because of that.
-      trans_emis_overr_yr=ABS(o3_yr)
-      if(trans_emis_overr_yr > 0)then
-        xyear=trans_emis_overr_yr
-      else
-        xyear=year
-      endif
 !!    if(trans_emis_overr_day > 0)then
 !!      xday=trans_emis_overr_day
 !!    else
@@ -8134,11 +8122,34 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
         call read_aero(dms_offline,'DMS_FIELD') !not applied directly to tracer
         call read_aero(so2_offline,'SO2_FIELD') !not applied directly to tracer
       endif
-#ifdef CUBED_SPHERE
-      call get_aircraft_tracer(xyear,xday,daily_gz,.true.)
-#endif
 #endif /* TRACERS_SPECIAL_Shindell */
+#ifdef CUBED_SPHERE
+      call get_aircraft_tracer(year,xday,daily_gz,.true.)
+#endif
       do n=1,NTM
+!**** Allow overriding of transient emissions date:
+! for now, tying this to O3_yr becasue Gavin
+! didn't want a new parameter, also not allowing
+! day overriding yet, because of that.
+#ifdef TRACERS_SPECIAL_Shindell
+        if (n<=ntm_chem) then
+          trans_emis_overr_yr=ABS(o3_yr)
+          if(trans_emis_overr_yr > 0)then
+            xyear=trans_emis_overr_yr
+          else
+            xyear=year
+          endif
+        else
+#endif
+          if(aer_int_yr > 0) then
+            xyear=aer_int_yr
+          else
+            xyear=year
+          endif
+#ifdef TRACERS_SPECIAL_Shindell
+        end if
+#endif
+
         pTracer => tracers%getReference(trname(n))
         if(trname(n)=='CH4')then ! ---------- methane --------------
 #ifdef TRACERS_SPECIAL_Shindell
@@ -8158,45 +8169,8 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
          if(nread>0) call read_ncep_for_wetlands(end_of_day)
 #endif
 #endif /* TRACERS_SPECIAL_Shindell */
-        else !-------------------------------------- general ---------
 
-!!!#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
-!!!    (defined TRACERS_TOMAS)
-!!!          if ( ! this if statement is needed, since some tracers have ntsurfsrc>0 but no trname_XX files. It should dissappear one day.
-!!!#ifdef TRACERS_SPECIAL_Shindell
-!!!     &        n<=NTM_chem .or.
-!!!#endif
-!!!     &        n==n_SO2
-!!!#ifdef TRACERS_AEROSOLS_Koch
-!!!     &        .or. n==n_BCII .or. n==n_BCB .or. n==n_OCII .or. n==n_OCB
-!!!#endif
-!!!#if (defined TRACERS_NITRATE) || (defined TRACERS_AMP) ||\
-!!!    (defined TRACERS_TOMAS)
-!!!     &        .or. n==n_NH3
-!!!#endif
-!!!#ifdef TRACERS_AMP
-!!!     &        .or. n==n_M_BC1_BC .or. n==n_M_OCC_OC
-!!!     &        .or. n==n_M_BOC_BC .or. n==n_M_BOC_OC
-!!!#endif
-!!!#ifdef TRACERS_TOMAS
-!!!     &        .or. n==n_AECOB(1) .or. n==n_AOCOB(1)
-!!!#endif
-!!!     &        ) then
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS)
-#ifdef TRACERS_SPECIAL_Shindell
-            if (n>ntm_chem) then
-#endif
-              if(aer_int_yr > 0) then
-                xyear=aer_int_yr
-              else
-                xyear=year
-              endif
-#ifdef TRACERS_SPECIAL_Shindell
-            end if
-#endif
-#endif
-!!!#endif /* (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) || (defined TRACERS_TOMAS) */
+        else !-------------------------------------- general ---------
 
             nread=ntsurfsrc(n) ! default
             select case (trname(n)) ! list here tracers that have 3D biomass burning emissions
@@ -8210,24 +8184,10 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
             end select
 
 #ifndef TRACERS_AEROSOLS_SOA
-#ifdef TRACERS_AEROSOLS_Koch
             select case (trname(n))
-            case ('OCII')
+            case ('OCII','M_OCC_OC','SOAgas') ! Koch/AMP/TOMAS cases
               nread=nread-1
             end select
-#endif
-#ifdef TRACERS_AMP
-            select case (trname(n))
-            case ('M_OCC_OC')
-              nread=nread-1
-            end select
-#endif
-#ifdef TRACERS_TOMAS
-            select case (trname(n))
-            case ('SOAgas')
-              nread=nread-1
-            end select
-#endif
 #endif  /* TRACERS_AEROSOLS_SOA */
 
 #if (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
@@ -8293,15 +8253,17 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
      &        call read_aero(sulfate,'SULFATE_SA') !not applied directly
             end select
 #endif
-!!!#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
-!!!    (defined TRACERS_TOMAS) 
-!!!          endif ! n=n_...
-!!!#endif
+
         endif !------------------------------------------------------
       end do ! NTM
 
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
       pTracer => tracers%getReference(trname(n_codirect))
+      if(trans_emis_overr_yr > 0)then
+        xyear=trans_emis_overr_yr
+      else
+        xyear=year
+      endif
       call readSurfaceSources(pTracer,n_codirect,
      &     ntsurfsrc(n_codirect)+nBBsources(n_codirect),xyear,
      & xday,.false.,itime,itime_tr0(n_codirect),sfc_src)
@@ -9284,7 +9246,7 @@ c latlon grid
 c$$$      use OldTracer_mod, only: itime_tr0, do_fire, trname
 c$$$      use OldTracer_mod, only: tr_mm, nBBsources, mass2vol
       use OldTracer_mod
-      USE TRACER_COM, only: ntm, sfc_src, trm
+      USE TRACER_COM, only: ntm, sfc_src, trm, aer_int_yr
       use TRACER_COM, only: mchem, mtrace, n_BCIA, n_BCII, n_CFC, n_CH4
       use TRACER_COM, only: n_DMS, n_H2O2_s, n_HNO3, n_MSA, N_N2O
       use TRACER_COM, only: n_N_d1, n_N_d2, n_N_d3, n_NH3, n_NH4
@@ -9369,7 +9331,7 @@ c$$$      use OldTracer_mod, only: tr_mm, nBBsources, mass2vol
 #endif
 
       implicit none
-      INTEGER n,ns,najl,i,j,l,blay,xyear,xday   ; real*8 now
+      INTEGER n,ns,najl,i,j,l,blay,xday   ; real*8 now
       INTEGER J_0, J_1, I_0, I_1
       integer :: src_index,bb_i,bb_e
       integer :: initial_ghg_setup
@@ -9405,8 +9367,6 @@ c$$$      use OldTracer_mod, only: tr_mm, nBBsources, mass2vol
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      xyear=0
-      xday=0
       call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
@@ -9696,43 +9656,38 @@ C are done for chemistry.  It might be better to do it like surface
 C sources are done? -- GSF 11/26/02)
 c
       CALL TIMER (NOW,MTRACE)
-C**** Allow overriding of transient emissions date:
-! for now, tying this to o3_yr becasue Gavin
-! didn't want a new parameter, also not allowing
-! day overriding yet, because of that.
-      trans_emis_overr_yr=ABS(o3_yr)
-      if(trans_emis_overr_yr > 0)then
-        xyear=trans_emis_overr_yr
-      else
-        xyear=year
-      endif
-!!    if(trans_emis_overr_day > 0)then
-!!      xday=trans_emis_overr_day
-!!    else
-        xday=dayOfYear
-!!    endif
+
 #ifdef SHINDELL_STRAT_EXTRA
       tr3Dsource(I_0:I_1,J_0:J_1,:,1,n_GLT) = 0.d0
       call overwrite_GLT
       call apply_tracer_3Dsource(1,n_GLT)
 #endif
-      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_NOx)  = 0.
+      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_NOx)  = 0.d0
 #endif /* TRACERS_SPECIAL_Shindell */
 #ifdef TRACERS_AEROSOLS_Koch
-      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_BCIA)  = 0.
+      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_BCIA)  = 0.d0
 #endif
 #ifdef TRACERS_TOMAS
-      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_AECOB(1))  = 0.
+      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_AECOB(1))  = 0.d0
 #endif
 #ifdef TRACERS_AMP
-      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_M_BC1_BC)  = 0.
+      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_M_BC1_BC)  = 0.d0
 #endif
 #if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch) ||\
     (defined TRACERS_AMP) || (defined TRACERS_TOMAS) 
+!**** Allow overriding of transient emissions date:
+! for now, xyear is tied to o3_yr because Gavin
+! did not want a new parameter, also not allowing
+! day overriding yet, because of that.
+!!    if(trans_emis_overr_day > 0)then
+!!      xday=trans_emis_overr_day
+!!    else
+        xday=dayOfYear
+!!    endif
 #ifdef CUBED_SPHERE
-      call get_aircraft_tracer(xyear,xday,dummy3d,.false.)
+      call get_aircraft_tracer(year,xday,dummy3d,.false.)
 #else
-      call get_aircraft_tracer(xyear,xday,phi,.true.) ! read from disk
+      call get_aircraft_tracer(year,xday,phi,.true.) ! read from disk
 #endif
 #endif
 #ifdef TRACERS_AEROSOLS_Koch

@@ -95,6 +95,7 @@ contains
          3.1232341d-07, 4.1607765d-07, 0.0000000d+00, 0.0000000d+00, &
          0.0000000d+00, 0.0000000d+00/)
 #endif
+    call check_aircraft_sectors(name) ! special 3D source case
 
   end subroutine SO2_setSpec
 
