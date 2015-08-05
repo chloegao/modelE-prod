@@ -495,7 +495,6 @@ c want kg DMS/m2/s
 
       DMS_flux=0.d0
         erate=0.d0
-        !!!Tc=T-273.d0
         if (OFFLINE_DMS_SS.ne.1) then
         if (itype.eq.1) then
 c       if (lm.lt.40) then 
@@ -1614,7 +1613,7 @@ c     if (bc_dalb.ne.0.) write(6,*) 'alb_write',i,j,bc_dalb,bcc,rads
 !@+     and snow age. From Susan Marshall's PhD thesis
 !@+auth Dorothy Koch
 c
-      USE CONSTANT, only: pi,gasc
+      USE CONSTANT, only: pi,gasc,tf
       USE FLUXES, only: atmsrf
       use TimeConstants_mod, only: DAYS_PER_YEAR
       USE RAD_COM, only: snoage
@@ -1636,7 +1635,7 @@ c Find the age of snow, I assume the age does not
 c  vary within the gridbox so just take the max?
        age=DMAX1(snoage(1,i,j),snoage(2,i,j),snoage(3,i,j))
 c Use Temperature to check if melting or non-melting snow
-       IF (atmsrf%tsavg(i,j).le.273.15) then
+       IF (atmsrf%tsavg(i,j).le.tf) then
 c Non-melting snow; distinguish between initial or
 c  secondary growth rate
         IF (age.lt.13.5) then

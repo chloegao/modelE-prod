@@ -178,7 +178,7 @@ c
       k=k+1
       jk_temp = k
       sname_gc(k) = 'temp' !'AJK03'
-      lname_gc(k) = 'TEMPERATURE' !'(TX-273.16)*DP'
+      lname_gc(k) = 'TEMPERATURE' !'(TX-TFREZ)*DP'
       units_gc(k) = 'C'
       scale_gc(k) = 1.
       jgrid_gc(k) = 1

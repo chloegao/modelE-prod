@@ -667,6 +667,7 @@ C**** at each time step set surface tracer conc=1+flux from atmos
 !
 !     J-C Dutay - LSCE
 !-------------------------------------------------------------------
+      use constant, only : tf
       implicit none
       real*8 :: a1,a2,a3,a4,b1,b2,b3,ta,d,pt,ps
       integer kn
@@ -699,7 +700,7 @@ C**** at each time step set surface tracer conc=1+flux from atmos
        endif
  
 
-      ta       = ( pt + 273.16d0)* 0.01d0
+      ta       = ( pt + tf)* 0.01d0
       d    = (b3*ta + b2)*ta + b1
  
  

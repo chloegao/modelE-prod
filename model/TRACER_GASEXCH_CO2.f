@@ -97,11 +97,11 @@ c     ps:       salinity    (o/oo)
 c     sol_co2:  in mol/m3/pptv
 c               1 pptv = 1 part per trillion = 10^-12 atm = 1 picoatm
 c-------------------------------------------------------------------
-
+      USE CONSTANT, only : tf
       REAL*8    pt,ps,ta,tk100,tk1002
 
 
-      ta = (pt + 273.16d0)
+      ta = (pt + tf)
       tk100 = ta*0.01d0
       tk1002 = tk100*tk100
       sol_co2 = exp(-162.8301d0 + 218.2968d0/tk100  +

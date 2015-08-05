@@ -6,6 +6,7 @@
 #ifndef CUBED_SPHERE
 
       module hycom_cpler
+      USE CONSTANT, only : tf
       USE HYCOM_DIM_GLOB, only : iia,jja,iio,jjo,isp,ifp,ilp,ii,jj,ip
       USE HYCOM_SCALARS, only : flnma2o,flnma2o_s,flnmo2a,flnmo2a_f
      &   ,flnma2o_tau,flnmcoso,lp
@@ -368,7 +369,7 @@ c
 c
       do 17 n=1,nlisto2a(ia,ja)
  17   flda(ia,ja)=flda(ia,ja)+(fldo(ilisto2a(ia,ja,n),jlisto2a(ia,ja,n))
-     .    +273.16d0)**4*wlisto2a(ia,ja,n)
+     .    +tf)**4*wlisto2a(ia,ja,n)
       flda(ia,ja)=sqrt(sqrt(flda(ia,ja)))       ! Kelvin for radiation
  16   continue
 c
@@ -842,7 +843,7 @@ c --- input: fldo in deg C; outout: flda in deg K
 c
       implicit none
       real*8 fldo(iio,J_0H:J_1H),flda(iio,J_0H:J_1H)
-      flda(:,:) = fldo(:,:)+273.16d0
+      flda(:,:) = fldo(:,:)+tf
       return
       end subroutine tempro2a
 c

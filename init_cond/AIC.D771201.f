@@ -154,9 +154,9 @@ C     CALL MAP  (IM,JM,NINT(PLEV( 4)),TITLEH(1),AH(1,1, 4))
 C     CALL MAP  (IM,JM,NINT(PLEV(12)),TITLEH(1),AH(1,1,12))
 C     CALL MAP  (IM,JM,NINT(PLEV( 4)),TITLEH(2),AH(1,1,16))
 Cx    CALL MAP1 (IM,JM,NINT(PLEV( 4)),TITLEH(3),AH(1,1,28),
-Cx   *           WTA,1.,273.16,26)
+Cx   *           WTA,1.,273.15,26)
 Cx    CALL MAP1 (IM,JM,NINT(PLEV(13)),TITLEH(3),AH(1,1,41),
-Cx   *           WTA,1.,273.16,26)
+Cx   *           WTA,1.,273.15,26)
 Cx    CALL MAP1 (IM,JM,NINT(PLEV( 4)),TITLEH(4),AH(1,1,46),
 Cx   *           WTA,.1,500.,26)
 Cx    CALL MAP  (IM,JM,NINT(PLEV( 4)),TITLEH(5),AH(1,1,60))
@@ -202,10 +202,10 @@ C     IPL = NINT(974.*SIG(lm/2)+PTOP)
 C     CALL MAP  (IM,JM,IPL,TITLEV(1),AHV(1,1,1+lm/2))
 C     CALL MAP  (IM,JM,IPL,TITLEV(2),AHV(1,1,1+lm/2+lm))
 C     CALL MAP1 (IM,JM,IPL,TITLEV(3),AHV(1,1,1+lm/2+2*lm),WTA,1.,
-C    *           273.16,1)
+C    *           273.15,1)
 C     CALL MAP1 (IM,JM,IPL,TITLEV(4),AHV(1,1,1+lm/2+3*lm),WTA,1.e5,
 C                0.,1)
-C     CALL MAP1 (IM,JM,0,TITLEV(5),AHV(1,1,2+4*lm),WTA,1.,273.16,1)
+C     CALL MAP1 (IM,JM,0,TITLEV(5),AHV(1,1,2+4*lm),WTA,1.,273.15,1)
 C     CALL MAP1 (IM,JM,-1000,TITLEV(6),AHV(1,1,3+4*lm),WTA,1.,1000.,1)
   942 FORMAT (A,F10.5,' (mb)')
       END
