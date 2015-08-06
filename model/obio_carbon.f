@@ -515,7 +515,6 @@ c
 c  Computes pCO2 in the surface layer and delta pCO2 with the 
 c  atmosphere using OCMIP protocols.
 c
-      USE CONSTANT, only: tf
       USE obio_dim, only: ALK_CLIM
 
       implicit none
@@ -581,6 +580,7 @@ C
       subroutine co2calc_SWS(t,s,dic_in,ta_in,pt_in,sit_in
      &                  ,phlo,phhi,ph,xco2_in
      &                  ,co2star,pCO2surf)
+      USE CONSTANT, only: tf
 C
 C-------------------------------------------------------------------------
 C
