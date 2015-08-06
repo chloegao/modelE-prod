@@ -11,6 +11,7 @@
      &    ,aI_0,aI_1, aJ_0,aJ_1, aI_0H,aI_1H, aJ_0H,aJ_1H
      &    , J_0,  J_1,  J_0H,  J_1H
      &    ,isp,ifp,ilp,ip
+      USE CONSTANT, only : tf
       implicit none
       save
       private
@@ -166,7 +167,7 @@ c --- input: tco in deg C; outout: tka in deg K
 c
       real*8 tco(iio,J_0H:J_1H),tka(aI_0H:aI_1H,aJ_0H:aJ_1H)
       real*8 tko4(iio,J_0H:J_1H)
-      tko4(:,J_0:J_1) = (tco(:,J_0:J_1)+273.16d0)**4
+      tko4(:,J_0:J_1) = (tco(:,J_0:J_1)+tf)**4
       call xgridremap_ij(remap_ssto2a, tko4, tka)
       tka(aI_0:aI_1,aJ_0:aJ_1) = tka(aI_0:aI_1,aJ_0:aJ_1)**.25d0
       return

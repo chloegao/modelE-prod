@@ -300,7 +300,7 @@ C** TEMPK and TEMPC are surface air temperatures in K and in C
               
 #ifdef TRACERS_TOMAS
 
-      XNU = 0.0000151*(TEMPK/273.15)**1.77
+      XNU = 0.0000151*(TEMPK/tf)**1.77
       mu=2.5277e-7*tempk**0.75302
                                 
 !calculate particle physical and depositional properties      

@@ -69,8 +69,8 @@ module constant
 !@param byrhoi 1/rhoi (m^3/kg)
   real*8,parameter :: byrhoi = 1d0/rhoi
 
-!@param tf freezing point of water at 1 atm (273.16 K)
-  real*8,parameter :: tf = 273.16d0
+!@param tf freezing point of water at 1 atm (273.15 K)
+  real*8,parameter :: tf = 273.15d0
 !@param bytf 1/tf (K^-1)
   real*8,parameter :: bytf = 1d0/tf
 

@@ -87,7 +87,7 @@ c---------------------------------------------------
       REAL*8  a1 ( 11: 12), a2 ( 11: 12), a3 ( 11: 12), a4 ( 11: 12)
       REAL*8 t
 c
-c   coefficients with t in degre Celcius
+c   coefficients with t in degree Celcius
 c   ------------------------------------
       a1(11) = 3501.8
       a2(11) = -210.31
@@ -137,6 +137,7 @@ c               1 pptv = 1 part per trillion = 10^-12 atm = 1 picoatm
 c
 c     J-C Dutay - LSCE
 c-------------------------------------------------------------------
+      USE CONSTANT, only : tf
 
       REAL*8    pt, ps,ta,d
       REAL*8 a1 ( 11: 12), a2 ( 11: 12), a3 ( 11: 12), a4 ( 11: 12)
@@ -169,7 +170,7 @@ c     ----------
       b3 ( 12) =   -0.0153924
 c
 
-      ta       = ( pt + 273.16)* 0.01
+      ta       = ( pt + tf)* 0.01
       d    = ( b3 ( kn)* ta + b2 ( kn))* ta + b1 ( kn)
 c
 c
