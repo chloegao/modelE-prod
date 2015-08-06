@@ -497,9 +497,9 @@ def verifyRuns(config, runSources):
            # If not, then go on to next experiment
            if status != 0:
               continue
-           else:
-               compare(rundeck, run)
-               writeDiff(run, fileH)
+
+           compare(rundeck, run)
+           writeDiff(run, fileH)
 
            fileH.close()
 
