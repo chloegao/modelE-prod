@@ -51,6 +51,7 @@ module ShindellTracersMetadata_mod
   USE CONSTANT, only: gasc
 #endif
   use Tracer_mod, only: Tracer
+  use Dictionary_mod, only: sync_param
 
   implicit none
   private
@@ -370,12 +371,18 @@ contains
 
 #ifdef TRACERS_AEROSOLS_SOA
     subroutine isopp1g_setSpec(name)
+      use OldTracer_mod, only: om2oc, set_om2oc
       character(len=*), intent(in) :: name
+      real*8 :: tmp
       n = oldAddTracer(name)
       n_isopp1g = n
       n_soa_i = n_isopp1g       !the first from the soa species
+      tmp = om2oc(n)
+      call sync_param(trim(name)//"_om2oc",tmp)
+      call set_om2oc(n, tmp)
       call set_ntm_power(n, -11)
-      call set_tr_mm(n, 15.6d0)
+      tmp = 12.d0 * om2oc(n)
+      call set_tr_mm(n, tmp)
       call set_tr_RKD(n, 1.d4 / convert_HSTAR ) !Henry; from mole/(L atm) to mole/J
       call set_tr_DHD(n, -12.d0 * gasc        ) !Henry temp dependence (J/mole), Chung and Seinfeld, 2002
       call set_tr_wd_type(n, ngas)
@@ -383,11 +390,17 @@ contains
     end subroutine isopp1g_setSpec
 
     subroutine isopp1a_setSpec(name)
+      use OldTracer_mod, only: om2oc, set_om2oc
       character(len=*), intent(in) :: name
+      real*8 :: tmp
       n = oldAddTracer(name)
       n_isopp1a = n
+      tmp = om2oc(n)
+      call sync_param(trim(name)//"_om2oc",tmp)
+      call set_om2oc(n, tmp)
       call set_ntm_power(n, -11)
-      call set_tr_mm(n, 15.6d0)
+      tmp = 12.d0 * om2oc(n)
+      call set_tr_mm(n, tmp)
       call set_trpdens(n, 1.5d3) !kg/m3
       call set_trradius(n, 3.d-7) !m
       call set_fq_aer(n, 0.8d0) !fraction of aerosol that dissolves
@@ -395,11 +408,17 @@ contains
     end subroutine isopp1a_setSpec
 
     subroutine isopp2g_setSpec(name)
+      use OldTracer_mod, only: om2oc, set_om2oc
       character(len=*), intent(in) :: name
+      real*8 :: tmp
       n = oldAddTracer(name)
       n_isopp2g = n
+      tmp = om2oc(n)
+      call sync_param(trim(name)//"_om2oc",tmp)
+      call set_om2oc(n, tmp)
       call set_ntm_power(n, -11)
-      call set_tr_mm(n, 15.6d0)
+      tmp = 12.d0 * om2oc(n)
+      call set_tr_mm(n, tmp)
       call set_tr_RKD(n, 1.d4 / convert_HSTAR ) !Henry; from mole/(L atm) to mole/J
       call set_tr_DHD(n, -12.d0 * gasc        ) !Henry temp dependence (J/mole), Chung and Seinfeld, 2002
       call set_tr_wd_type(n, ngas)
@@ -407,12 +426,18 @@ contains
     end subroutine isopp2g_setSpec
 
     subroutine isopp2a_setSpec(name)
+      use OldTracer_mod, only: om2oc, set_om2oc
       character(len=*), intent(in) :: name
+      real*8 :: tmp
       n = oldAddTracer(name)
       n_isopp2a = n
       if (.not. tracers_terp) n_soa_e = n_isopp2a       !the last from the soa species
+      tmp = om2oc(n)
+      call sync_param(trim(name)//"_om2oc",tmp)
+      call set_om2oc(n, tmp)
       call set_ntm_power(n, -11)
-      call set_tr_mm(n, 15.6d0)
+      tmp = 12.d0 * om2oc(n)
+      call set_tr_mm(n, tmp)
       call set_trpdens(n, 1.5d3) !kg/m3
       call set_trradius(n, 3.d-7) !m
       call set_fq_aer(n, 0.8d0) !fraction of aerosol that dissolves
@@ -420,11 +445,17 @@ contains
     end subroutine isopp2a_setSpec
 
     subroutine apinp1g_setSpec(name)
+      use OldTracer_mod, only: om2oc, set_om2oc
       character(len=*), intent(in) :: name
+      real*8 :: tmp
       n = oldAddTracer(name)
       n_apinp1g = n
+      tmp = om2oc(n)
+      call sync_param(trim(name)//"_om2oc",tmp)
+      call set_om2oc(n, tmp)
       call set_ntm_power(n, -11)
-      call set_tr_mm(n, 15.6d0)
+      tmp = 12.d0 * om2oc(n)
+      call set_tr_mm(n, tmp)
       call set_tr_RKD(n, 1.d4 / convert_HSTAR ) !Henry; from mole/(L atm) to mole/J
       call set_tr_DHD(n, -12.d0 * gasc        ) !Henry temp dependence (J/mole), Chung and Seinfeld, 2002
       call set_tr_wd_type(n, ngas)
@@ -432,11 +463,17 @@ contains
     end subroutine apinp1g_setSpec
 
     subroutine apinp1a_setSpec(name)
+      use OldTracer_mod, only: om2oc, set_om2oc
       character(len=*), intent(in) :: name
+      real*8 :: tmp
       n = oldAddTracer(name)
       n_apinp1a = n
+      tmp = om2oc(n)
+      call sync_param(trim(name)//"_om2oc",tmp)
+      call set_om2oc(n, tmp)
       call set_ntm_power(n, -11)
-      call set_tr_mm(n, 15.6d0)
+      tmp = 12.d0 * om2oc(n)
+      call set_tr_mm(n, tmp)
       call set_trpdens(n, 1.5d3) !kg/m3
       call set_trradius(n, 3.d-7) !m
       call set_fq_aer(n, 0.8d0) !fraction of aerosol that dissolves
@@ -444,11 +481,17 @@ contains
     end subroutine apinp1a_setSpec
 
     subroutine apinp2g_setSpec(name)
+      use OldTracer_mod, only: om2oc, set_om2oc
       character(len=*), intent(in) :: name
+      real*8 :: tmp
       n = oldAddTracer(name)
       n_apinp2g = n
+      tmp = om2oc(n)
+      call sync_param(trim(name)//"_om2oc",tmp)
+      call set_om2oc(n, tmp)
       call set_ntm_power(n, -11)
-      call set_tr_mm(n, 15.6d0)
+      tmp = 12.d0 * om2oc(n)
+      call set_tr_mm(n, tmp)
       call set_tr_RKD(n, 1.d4 / convert_HSTAR ) !Henry; from mole/(L atm) to mole/J
       call set_tr_DHD(n, -12.d0 * gasc        ) !Henry temp dependence (J/mole), Chung and Seinfeld, 2002
       call set_tr_wd_type(n, ngas)
@@ -456,12 +499,18 @@ contains
     end subroutine apinp2g_setSpec
 
     subroutine apinp2a_setSpec(name)
+      use OldTracer_mod, only: om2oc, set_om2oc
       character(len=*), intent(in) :: name
+      real*8 :: tmp
       n = oldAddTracer(name)
       n_apinp2a = n
       n_soa_e = n_apinp2a       !the last from the soa species
+      tmp = om2oc(n)
+      call sync_param(trim(name)//"_om2oc",tmp)
+      call set_om2oc(n, tmp)
       call set_ntm_power(n, -11)
-      call set_tr_mm(n, 15.6d0)
+      tmp = 12.d0 * om2oc(n)
+      call set_tr_mm(n, tmp)
       call set_trpdens(n, 1.5d3) !kg/m3
       call set_trradius(n, 3.d-7) !m
       call set_fq_aer(n, 0.8d0) !fraction of aerosol that dissolves

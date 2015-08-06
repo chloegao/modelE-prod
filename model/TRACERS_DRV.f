@@ -6873,7 +6873,8 @@ C**** 3D tracer-related arrays but not attached to any one tracer
 #endif  /* TRACERS_AEROSOLS_SEASALT || TRACERS_AMP || TRACERS_TOMAS */
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
-      USE AEROSOL_SOURCES, only: DMSinput,om2oc
+      use OldTracer_mod, only: om2oc
+      USE AEROSOL_SOURCES, only: DMSinput
 #ifndef TRACERS_AEROSOLS_SOA
       USE AEROSOL_SOURCES, only: OCT_src
 #endif  /* TRACERS_AEROSOLS_SOA */
@@ -8141,11 +8142,14 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
           endif
         else
 #endif
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
           if(aer_int_yr > 0) then
             xyear=aer_int_yr
           else
             xyear=year
           endif
+#endif
 #ifdef TRACERS_SPECIAL_Shindell
         end if
 #endif
@@ -8402,7 +8406,8 @@ C**** at the start of any day
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
-      USE AEROSOL_SOURCES, only: BBinc,om2oc
+      use OldTracer_mod, only: om2oc
+      USE AEROSOL_SOURCES, only: BBinc
 #ifndef TRACERS_AEROSOLS_SOA
       USE AEROSOL_SOURCES, only: OCT_src
 #endif  /* TRACERS_AEROSOLS_SOA */
@@ -9246,7 +9251,11 @@ c latlon grid
 c$$$      use OldTracer_mod, only: itime_tr0, do_fire, trname
 c$$$      use OldTracer_mod, only: tr_mm, nBBsources, mass2vol
       use OldTracer_mod
-      USE TRACER_COM, only: ntm, sfc_src, trm, aer_int_yr
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
+      USE TRACER_COM, only: aer_int_yr
+#endif
+      USE TRACER_COM, only: ntm, sfc_src, trm
       use TRACER_COM, only: mchem, mtrace, n_BCIA, n_BCII, n_CFC, n_CH4
       use TRACER_COM, only: n_DMS, n_H2O2_s, n_HNO3, n_MSA, N_N2O
       use TRACER_COM, only: n_N_d1, n_N_d2, n_N_d3, n_NH3, n_NH4
@@ -9293,7 +9302,8 @@ c$$$      use OldTracer_mod, only: tr_mm, nBBsources, mass2vol
 #endif  /* TRACERS_AEROSOLS_SOA */
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
-      USE AEROSOL_SOURCES, only: so2_src_3d,BBinc,om2oc
+      use OldTracer_mod, only: om2oc
+      USE AEROSOL_SOURCES, only: so2_src_3d,BBinc
 #ifdef TRACERS_AEROSOLS_VBS
       USE AEROSOL_SOURCES, only: VBSemifact
       USE TRACERS_VBS, only: vbs_tr
