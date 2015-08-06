@@ -51,6 +51,7 @@ module ShindellTracersMetadata_mod
   USE CONSTANT, only: gasc
 #endif
   use Tracer_mod, only: Tracer
+  use Dictionary_mod, only: sync_param
 
   implicit none
   private
