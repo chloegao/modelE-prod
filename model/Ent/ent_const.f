@@ -30,7 +30,7 @@
       real*8,parameter :: shw25 = 4181.3d0 !Specific heat of water liquid @ 25 oC (J kg-1 K-1) (Wiki)
       real*8,parameter :: shw20 = 4185.d0 !Specific heat of water liquid @ 20 oC (J kg-1 K-1) (GISS GCM)
       real*8,parameter :: rhow = 1d3  !Density of pure water (1000 kg/m^3)
-      real*8,parameter :: tfrz = 273.16d0 !freezing pt of H2O at 1 atm (Kelvin)
+      real*8,parameter :: tfrz = 273.15d0 !freezing pt of H2O at 1 atm (Kelvin)
       real*8,parameter :: KELVIN = tfrz
       real*8,parameter :: gasc = 8.314510d0 !gas constant (8.314510 J/mol K)
       real*8,parameter :: Avogadro=6.023d23 !Avogadro's constant (atmos/mole)

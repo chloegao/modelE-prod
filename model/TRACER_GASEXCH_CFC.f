@@ -104,7 +104,7 @@ c               1 pptv = 1 part per trillion = 10^-12 atm = 1 picoatm
 c
 c     J-C Dutay - LSCE
 c-------------------------------------------------------------------
-
+      USE CONSTANT, only : tf
       REAL*8    pt, ps,ta,d
       REAL*8 a1 ( 11: 12), a2 ( 11: 12), a3 ( 11: 12), a4 ( 11: 12)
       REAL*8 b1 ( 11: 12), b2 ( 11: 12), b3 ( 11: 12)
@@ -135,7 +135,7 @@ c     ----------
       b2 ( 12) =    0.091015d0
       b3 ( 12) =   -0.0153924d0
 c
-      ta       = ( pt + 273.16d0)* 0.01d0
+      ta       = ( pt + tf)* 0.01d0
       d    = ( b3 ( kn)* ta + b2 ( kn))* ta + b1 ( kn)
 
 c

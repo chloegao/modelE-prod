@@ -7153,7 +7153,7 @@ C
      +      ,T81,'List: SRBQEX(L,K),SRBQST(L,K),SRBQCB(L,K), TRAB Q S G'
      +      /'      KWTRAB=',I1/7X, 6I8/
      +        '   AEROSOL   SO4     SEA     ANT     OCX     BCI '
-     +        ,'    BCB'/ ! OCN     OCB     BCB     SSB         '/
+     +        ,'    BCB'/ ! OCN     OCB     BCB     SSB   
      +        '   SIZE ', 6F8.1)
  6451 FORMAT('  K  SRBQEX - DRY')
  6452 FORMAT(I3,6X,15F8.5)
