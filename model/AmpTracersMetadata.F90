@@ -427,7 +427,7 @@ module AmpTracersMetadata_mod
   real(8), parameter :: DUST_MolecMass = 1.0d0
   real(8), parameter :: SEAS_MolecMass = 75.0d0
   real(8), parameter :: BCAR_MolecMass = 12.0d0
-  real(8), parameter :: OCAR_MolecMass = 15.6d0
+  real(8), parameter :: OCAR_MolecMass = 12.0d0
 
   integer :: n ! class scoped temporary tracer index
 
@@ -655,6 +655,7 @@ contains
 !------------------------------------------------------------------------------
     function AMP_setSpec(mode, component) result (tracerIndex)
 !------------------------------------------------------------------------------
+      use OldTracer_mod, only: om2oc, set_om2oc
       implicit none
       character(len=*), intent(in) :: mode
       character(len=*), intent(in) :: component
@@ -662,6 +663,7 @@ contains
       character(len=1) :: prefix
       character(len=64) :: tracerName
       integer :: tracerIndex
+      real*8 :: tmp
 
       prefix = getTracerPrefix(component)
       tracerName = prefix // "_" // mode // "_" // component
@@ -673,9 +675,19 @@ contains
           call stop_model( 'ntmAMPi+ntmAMP-1 /= ntmAMPe', 255 )
       end if
 
+      if (trim(component) == 'OC') then
+        tmp = om2oc(tracerIndex)
+        call sync_param(trim(name)//"_om2oc",tmp)
+        call set_om2oc(tracerIndex, tmp)
+      endif
       call set_ntm_power(tracerIndex, -11)
       call set_ntsurf(tracerIndex, tracerName)
-      call set_tr_mm(tracerIndex, getMolecularMass(component)) 
+      if (trim(component) == 'OC') then
+        tmp = getMolecularMass(component) * om2oc(tracerIndex)
+      else
+        tmp = getMolecularMass(component)
+      endif
+      call set_tr_mm(tracerIndex, tmp)
       call set_trpdens(tracerIndex, getDensity(component))
       call set_trradius(tracerIndex, getRadius(mode))
       call set_fq_aer(tracerIndex, getSolubility(mode))

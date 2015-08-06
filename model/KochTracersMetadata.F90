@@ -160,9 +160,11 @@ module KochTracersMetadata_mod
 
 #ifdef TRACERS_AEROSOLS_VBS
     subroutine VBS_setSpec(name, index, type)
+      use OldTracer_mod, only: om2oc, set_om2oc
       use tracers_vbs, only: vbs_tr
       implicit none
       character(len=*), intent(in) :: name
+      real*8 :: tmp
       integer, intent(in) :: index
       character(len=4), intent(in) :: type
 
@@ -175,8 +177,12 @@ module KochTracersMetadata_mod
         vbs_tr%iaer(index) = n
       end select
 
+      tmp = om2oc(n)
+      call sync_param(trim(name)//"_om2oc",tmp)
+      call set_om2oc(n, tmp)
       call set_ntm_power(n, -11)
-      call set_tr_mm(n, 15.6d0)
+      tmp = 12.d0 * om2oc(n)
+      call set_tr_mm(n, tmp)
       select case(name)
       case ('vbsGm2', 'vbsGm1', 'vbsGz',  'vbsGp1', 'vbsGp2', &! VBS gas-phase
         'vbsGp3', 'vbsGp4', 'vbsGp5', 'vbsGp6')
@@ -202,11 +208,17 @@ module KochTracersMetadata_mod
 #endif /* TRACERS_AEROSOLS_VBS */
 
     subroutine OCII_setSpec(name)
+      use OldTracer_mod, only: om2oc, set_om2oc
       character(len=*), intent(in) :: name
+      real*8 :: tmp
       n = oldAddTracer(name)
       n_OCII = n
+      tmp = om2oc(n)
+      call sync_param("OCII_om2oc",tmp)
+      call set_om2oc(n, tmp)
       call set_ntm_power(n, -11)
-      call set_tr_mm(n, 15.6d0)
+      tmp = 12.d0 * om2oc(n)
+      call set_tr_mm(n, tmp)
       call set_trpdens(n, 1.5d3) !kg/m3
       call set_trradius(n, 3.d-7 ) !m
       call set_fq_aer(n, 0.0d0   ) !fraction of aerosol that dissolves
@@ -214,11 +226,17 @@ module KochTracersMetadata_mod
     end subroutine OCII_setSpec
 
     subroutine OCIA_setSpec(name)
+      use OldTracer_mod, only: om2oc, set_om2oc
       character(len=*), intent(in) :: name
+      real*8 :: tmp
       n = oldAddTracer(name)
       n_OCIA = n
+      tmp = om2oc(n)
+      call sync_param("OCIA_om2oc",tmp)
+      call set_om2oc(n, tmp)
       call set_ntm_power(n, -11)
-      call set_tr_mm(n, 15.6d0)
+      tmp = 12.d0 * om2oc(n)
+      call set_tr_mm(n, tmp)
       call set_trpdens(n, 1.5d3) !kg/m3
       call set_trradius(n, 3.d-7 ) !m
       call set_fq_aer(n, 1.d0   ) !fraction of aerosol that dissolves
@@ -231,13 +249,12 @@ module KochTracersMetadata_mod
       real*8 :: tmp
       n = oldAddTracer(name)
       n_OCB = n
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)
-      tmp = om2oc(n_OCB)
+      tmp = om2oc(n)
       call sync_param("OCB_om2oc",tmp)
-      call set_om2oc(n_OCB, tmp)
-#endif
+      call set_om2oc(n, tmp)
       call set_ntm_power(n, -11)
-      call set_tr_mm(n, 15.6d0)
+      tmp = 12.d0 * om2oc(n)
+      call set_tr_mm(n, tmp)
       call set_trpdens(n, 1.5d3) !kg/m3
       call set_trradius(n, 3.d-7 ) !m
       call set_fq_aer(n, 0.8d0   ) !fraction of aerosol that dissolves
