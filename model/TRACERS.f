@@ -2466,6 +2466,8 @@ C
       end subroutine accumCachedTracerSUBDDs
 #endif /* CACHED_SUBDD */
 
+#if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch) ||\
+    (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
 
       SUBROUTINE get_aircraft_tracer(year,xday,phi,need_read)
 !@sum  get_aircraft_tracer to define the 3D source of tracers from aircraft
@@ -2646,7 +2648,6 @@ C
         if(need_read) then
 
         call openunit(mon_files(k),mon_units,mon_bins(k))
-      print*,'KOSTAS ',yr1,yr2,xyear,xday
         call read_monthly_3Dsources(Laircr,mon_units,
      &   src,trans_emis,yr1,yr2,xyear,xday)
         call closeunit(mon_units)
@@ -2922,3 +2923,5 @@ CCCCCCcall readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*(imon-1))
 
       return
       end subroutine read_monthly_3Dsources
+
+#endif /* defined TRACERS_SPECIAL_Shindell or Koch/AMP/TOMAS aerosols */

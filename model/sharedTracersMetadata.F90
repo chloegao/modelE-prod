@@ -95,7 +95,10 @@ contains
          3.1232341d-07, 4.1607765d-07, 0.0000000d+00, 0.0000000d+00, &
          0.0000000d+00, 0.0000000d+00/)
 #endif
+#if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch) ||\
+    (defined TRACERS_AMP) || (defined TRACERS_TOMAS) 
     call check_aircraft_sectors(name) ! special 3D source case
+#endif
 
   end subroutine SO2_setSpec
 
