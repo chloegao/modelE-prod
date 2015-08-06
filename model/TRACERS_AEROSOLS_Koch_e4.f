@@ -16,7 +16,6 @@
 !@ GRAINS
 !@ read_mon_3D
 !@ read_seawifs_chla
-      use OldTracer_mod, only: om2oc
       IMPLICIT NONE
       SAVE
       INTEGER, PARAMETER :: ndmssrc  = 1
