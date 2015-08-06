@@ -6,6 +6,7 @@
 !@auth Surabi Menon and Igor Sednev ; based on Morrison's 2008 scheme in CCSM
 !@as in Morrison and Gettelman, 2008, J Clim 21, 15, 3642-3659 and Gettelman et al. 2008, J Clim,21,3660-3679
       USE resolution,ONLY: im,jm,lm
+      USE CONSTANT, only : tf,rgas,rvap,pi,grav
       IMPLICIT NONE
       PRIVATE
       integer,parameter :: mx=1 !,mx=lm
@@ -468,11 +469,11 @@ c fallspeed parameters (V=aD^b)
 	   bs = 0.41
 	   br = 0.8
 c constants and parameters
- 	   pi = 4.0d0*datan(1.0d0)
- 	   r = 287.15d0
- 	   rv = 465.5d0
+c 	   pi = 4.0d0*datan(1.0d0)
+ 	   r = rgas
+ 	   rv = rvap
  	   cp = 1005.0d0
-           rhosu = 85000./(287.15*273.15)
+           rhosu = 85000./(rgas*tf)
  	   rhow = 997.
 	   rhoi = 500.
 	   rhosn = 100.
@@ -491,7 +492,7 @@ Cigs
 	   f2s = 0.28 
 	   f1r = 0.78
 	   f2r = 0.32
- 	   g = 9.806
+ 	   g = grav
 	   qsmall = 1.e-20
 	   nsmall = 1.e-20
 
@@ -1259,7 +1260,7 @@ c Local
         la     = .true.
         mx0=k0
         dtmic = dt
-          lcold =  tk3d.le.273.15
+          lcold =  tk3d.le.tf
           lwarm =  .NOT. lcold
           lqc3d = qc3d.ge.qsmall
           lqi3d = qi3d.ge.qsmall
@@ -1393,7 +1394,7 @@ c        stop 890
         else
           qs00=0.0d0
         endif
-        lcold =  tk3d.le.273.15
+        lcold =  tk3d.le.tf
         lwarm =  .NOT. lcold
         select case (trim(tag))
            case ('drop')
@@ -1501,7 +1502,7 @@ c       write(6,*)"NUMBER",ncactv(1:mx0),mx0
         else
           qs00=0.0d0
         endif
-        lcold =  tk3d.le.273.15
+        lcold =  tk3d.le.tf
         lwarm =  .NOT. lcold
         select case (trim(tag))
            case ('drop')
@@ -2101,7 +2102,7 @@ c Make hydrometeors distributions
      *  ,tk3d,pp3d,qsmall,'drop',mx0)
 c Make time & altitude dependent coefficients
         ldummy=make_coefs(mx0)
-          lcold =  tk3d.le.273.15
+          lcold =  tk3d.le.tf
           lwarm =  .NOT. lcold
           lqc3d = qc3d.ge.qsmall
           lqi3d = qi3d.ge.qsmall
@@ -2140,7 +2141,7 @@ c Make hydrometeors distributions
      *  ,tk3d,pp3d,qsmall,'crys',mx0)
 c Make time & altitude dependent coefficients
         ldummy=make_coefs(mx0)
-          lcold =  tk3d.le.273.15
+          lcold =  tk3d.le.tf
           lwarm =  .NOT. lcold
           lqc3d = qc3d.ge.qsmall
           lqi3d = qi3d.ge.qsmall
@@ -2174,7 +2175,7 @@ c Make hydrometeors distributions
 c
 c Make time & altitude dependent coefficients
         ldummy=make_coefs(mx0)
-          lcold =  tk3d.le.273.15
+          lcold =  tk3d.le.tf
           lwarm =  .NOT. lcold
           lqc3d = qc3d.ge.qsmall
           lqi3d = qi3d.ge.qsmall
@@ -2205,7 +2206,7 @@ c Make hydrometeors distributions
      *  ,tk3d,pp3d,qsmall,'crys',mx0)
 c Make time & altitude dependent coefficients
         ldummy=make_coefs(mx0)
-          lcold =  tk3d.le.273.15
+          lcold =  tk3d.le.tf
           lwarm =  .NOT. lcold
           lqc3d = qc3d.ge.qsmall
           lqi3d = qi3d.ge.qsmall
@@ -2236,7 +2237,7 @@ c Make hydrometeors distributions
      *  ,tk3d,pp3d,qsmall,'snow',mx0)
 c Make time & altitude dependent coefficients
         ldummy=make_coefs(mx0)
-          lcold =  tk3d.le.273.15
+          lcold =  tk3d.le.tf
           lwarm =  .NOT. lcold
           lqc3d = qc3d.ge.qsmall
           lqi3d = qi3d.ge.qsmall
@@ -2267,7 +2268,7 @@ c Make hydrometeors distributions
      *  ,tk3d,pp3d,qsmall,'snow',mx0)
 c Make time & altitude dependent coefficients
         ldummy=make_coefs(mx0)
-          lcold =  tk3d.le.273.15
+          lcold =  tk3d.le.tf
           lwarm =  .NOT. lcold
           lqc3d = qc3d.ge.qsmall
           lqi3d = qi3d.ge.qsmall
@@ -2297,7 +2298,7 @@ c Make hydrometeors distributions
      *  ,tk3d,pp3d,qsmall,'snow',mx0)
 c Make time & altitude dependent coefficients
         ldummy=make_coefs(mx0)
-          lcold =  tk3d.le.273.15
+          lcold =  tk3d.le.tf
           lwarm =  .NOT. lcold
           lqc3d = qc3d.ge.qsmall
           lqi3d = qi3d.ge.qsmall
@@ -2327,7 +2328,7 @@ c Make hydrometeors distributions
      *  ,tk3d,pp3d,qsmall,'snow',mx0)
 c Make time & altitude dependent coefficients
         ldummy=make_coefs(mx0)
-          lcold =  tk3d.le.273.15
+          lcold =  tk3d.le.tf
           lwarm =  .NOT. lcold
           lqc3d = qc3d.ge.qsmall;lqc3d = qc3d.ge.1.0d-8
           lqi3d = qi3d.ge.qsmall
@@ -2355,7 +2356,7 @@ c Make hydrometeors distributions
      *  ,tk3d,pp3d,qsmall,'crys',mx0)
 c Make time & altitude dependent coefficients
         ldummy=make_coefs(mx0)
-          lcold =  tk3d.le.273.15
+          lcold =  tk3d.le.tf
           lwarm =  .NOT. lcold
           lqc3d = qc3d.ge.qsmall
           lqi3d = qi3d.ge.qsmall
@@ -2385,7 +2386,7 @@ c Make hydrometeors distributions
      *  ,tk3d,pp3d,qsmall,'rain',mx0)
 c Make time & altitude dependent coefficients
         ldummy=make_coefs(mx0)
-          lcold =  tk3d.le.273.15
+          lcold =  tk3d.le.tf
           lwarm =  .NOT. lcold
           lqc3d = qc3d.ge.qsmall;lqc3d = qc3d.ge.1.0d-8
           lqi3d = qi3d.ge.qsmall
@@ -2413,7 +2414,7 @@ c Make hydrometeors distributions
      *  ,tk3d,pp3d,qsmall,'drop',mx0)
 c Make time & altitude dependent coefficients
         ldummy=make_coefs(mx0)
-          lcold =  tk3d.le.273.15
+          lcold =  tk3d.le.tf
           lwarm =  .NOT. lcold
           lqc3d = qc3d.ge.qsmall;lqc3d = qc3d.ge.1.0d-8
           lqi3d = qi3d.ge.qsmall
@@ -2441,7 +2442,7 @@ c Make hydrometeors distributions
      *  ,tk3d,pp3d,qsmall,'drop',mx0)
 c Make time & altitude dependent coefficients
         ldummy=make_coefs(mx0)
-          lcold =  tk3d.le.273.15
+          lcold =  tk3d.le.tf
           lwarm =  .NOT. lcold
           lqc3d = qc3d.ge.qsmall
           lqi3d = qi3d.ge.qsmall
@@ -2469,7 +2470,7 @@ c Make hydrometeors distributions
      *  ,tk3d,pp3d,qsmall,'rain',mx0)
 c Make time & altitude dependent coefficients
         ldummy=make_coefs(mx0)
-          lcold =  tk3d.le.273.15
+          lcold =  tk3d.le.tf
           lwarm =  .NOT. lcold
           lqc3d = qc3d.ge.qsmall
           lqi3d = qi3d.ge.qsmall
@@ -2498,7 +2499,7 @@ c Make hydrometeors distributions
      *  ,tk3d,pp3d,qsmall,'crys',mx0)
 c Make time & altitude dependent coefficients
         ldummy=make_coefs(mx0)
-          lcold =  tk3d.le.273.15
+          lcold =  tk3d.le.tf
           lwarm =  .NOT. lcold
           lqc3d = qc3d.ge.qsmall
           lqi3d = qi3d.ge.qsmall
@@ -2527,7 +2528,7 @@ c Make hydrometeors distributions
      *  ,tk3d,pp3d,qsmall,'drop',mx0)
 c Make time & altitude dependent coefficients
         ldummy=make_coefs(mx0)
-          lcold =  tk3d.le.273.15
+          lcold =  tk3d.le.tf
           lwarm =  .NOT. lcold
           lqc3d = qc3d.ge.qsmall
           lqi3d = qi3d.ge.qsmall
@@ -2567,12 +2568,12 @@ c freezing of cloud droplets only allowed below -4 C
 c number of contact nuclei (m^-3) from Meyers et al., 1992
 c factor of 1000 is to convert from L^-1 to m^-3
 c meyers curve
-c     Nacnt = exp(-2.80d0+0.262d0*(273.15d0-tk3d(k)))*1.0d3
+c     Nacnt = exp(-2.80d0+0.262d0*(tf-tk3d(k)))*1.0d3
 c cooper curve
-         Nacnt =  5.*exp(0.304*(273.15-tk3d(k)))
+         Nacnt =  5.*exp(0.304*(tf-tk3d(k)))
          if(Nacnt.gt.209000.) Nacnt=209000.
 c flecther
-c	nacnt = 0.01*exp(0.6*(273.15-tk3d(k)))
+c	nacnt = 0.01*exp(0.6*(tf-tk3d(k)))
 c drop contact freezing
            drop_freez_contact: if(lfreezC) then
 	     mnuccc(k) = pi*pi/3.*Dap(k)*Nacnt*rhow*cdist1(k)*
@@ -2585,11 +2586,11 @@ c drop immersion freezing (bigg 1953)
            drop_freez_immersion: if(lfreezI) then
              mnucci(k) = pi*pi/36.*rhow*
      1             cdist1(k)*gamma(7.0d0+pgam(k))*
-     1              bimm*exp(aimm*(273.15-tk3d(k)))/
+     1              bimm*exp(aimm*(tf-tk3d(k)))/
      1              lamc(k)**3/lamc(k)**3
              nnucci(k) = pi/6.*
      1             cdist1(k)*gamma(pgam(k)+4.0d0)*bimm*
-     1            exp(aimm*(273.15-tk3d(k)))/lamc(k)**3
+     1            exp(aimm*(tf-tk3d(k)))/lamc(k)**3
 c        write(6,*)"2M_QAUT2",nnucci(k),k,lamc(k),tk3d(k)  
            endif drop_freez_immersion
 c drop homogeneous freezing
@@ -2638,11 +2639,11 @@ c freezing allowed below -4 C
           nhfrr(k) =0.0d0; mhfrr(k) =0.0d0
 	   if_rain_exists: if (tk3d(k) .lt. 269.15 .and. lqr3d(k)) then
 c meyers curve
-	      Nacnt = exp(-2.80d0+0.262d0*(273.15-tk3d(k)))*1.0d3
+	      Nacnt = exp(-2.80d0+0.262d0*(tf-tk3d(k)))*1.0d3
 c cooper curve
-c        Nacnt =  5.*exp(0.304*(273.15-tk3d(k)))
+c        Nacnt =  5.*exp(0.304*(tf-tk3d(k)))
 c flecther curve
-c	nacnt = 0.01*exp(0.6*(273.15-tk3d(k)))
+c	nacnt = 0.01*exp(0.6*(tf-tk3d(k)))
 c rain contact freezing
            rain_freez_contact: if(lfreezC) then
 	      mnuccr(k) = 8.0d0*pi*pi*Dap(k)*Nacnt*rhow*
@@ -2652,10 +2653,10 @@ c rain contact freezing
 c rain immersion freezing
            rain_freez_immersion: if(lfreezI) then
 	      mnucir(k) = 20.0d0*pi*pi*rhow*nr3d(k)*bimm*
-     1             exp(aimm*(273.15-tk3d(k)))/lamr(k)**3/lamr(k)**3
+     1             exp(aimm*(tf-tk3d(k)))/lamr(k)**3/lamr(k)**3
 
 	      nnucir(k) = pi*nr3d(k)*bimm*
-     1              exp(aimm*(273.15-tk3d(k)))/lamr(k)**3
+     1              exp(aimm*(tf-tk3d(k)))/lamr(k)**3
            endif rain_freez_immersion
 c rain homogeneous freezing
            rain_freez_homogeneous: if(lfreezH) then
@@ -2731,7 +2732,7 @@ c updated saturation ratio with respect to water and ice
 	   supi = dumqv/dumqsi
            sw(k) = 1.0d2*(supw-1.0d0)
            si(k) = 1.0d2*(supi -1.0d0)
-           tpc= dumt - 273.15
+           tpc= dumt - tf
 c Meyers formulation 
          if_meyers: if(lmeyers) then
            ice_saturation: if(si(k) .gt. 0 ) then
@@ -2746,7 +2747,7 @@ c	       Nacns = exp(-0.639d0+0.262d0*supi)*1.0d3
              meyers_contact: if(tpc .lt. temp2 .AND. lmeyersT) then
                tpc = max(temp3, tpc)
 c meyers temperature curve, [no/kq]
-c	     Nacnt = exp(-2.80d0+0.262d0*(273.15-tk3d(k)))*1.0d3
+c	     Nacnt = exp(-2.80d0+0.262d0*(tf-tk3d(k)))*1.0d3
 	     Nacnt = ct_meyers*exp(at_meyers-bt_meyers*tpc)/rho(k)
                nnucmt(k) = max(Nacnt-ni3d(k),0.0d0)
                mnucmt(k) = nnucmt(k)*mi0
@@ -2919,7 +2920,7 @@ c add sub-grid vertical velocity
 c assume minimum eff. sub-grid velocity 0.20 m/s
 c          dum = max(dum,0.40d0)                 
            dum = max(dum,0.20d0)                 
-           sigvl = 0.0761-1.55e-4*(tk3d(k)-273.15)
+           sigvl = 0.0761-1.55e-4*(tk3d(k)-tf)
            aact = 2.*mw/(rhow*rr)*sigvl/tk3d(k)
            alpha = g*mw*xxlv(k)/(cp*rr*tk3d(k)**2)-
      1       g*ma/(rr*tk3d(k))
@@ -3471,7 +3472,7 @@ c snow may persits above freezing, formula from rutledge and hobbs, 1984
 	  if_snow_exists: if (lqs3d(k) .and. lwarm(k) ) then
 c if water supersaturation, snow melts to form rain
             if_meltSR: if(lmeltSR) then
-	      msmltr(k)=2.*pi*n0s(k)*kap(k)*(273.15-tk3d(k))/
+	      msmltr(k)=2.*pi*n0s(k)*kap(k)*(tf-tk3d(k))/
      1               xlf(k)*rho(k)*(f1s/(lams(k)*lams(k))+
      1               f2s*(asn(k)*rho(k)/mu(k))**0.5*
      1               sc(k)**(1./3.)*gamma(5./2.+bs/2.)/
@@ -4320,7 +4321,7 @@ c        ldummy=make_distribution(dtmic,ci,di,pi,rhow,cs,ds,dr
 c     *  ,tk3d,pp3d,qsmall,'drop',mx0)
 c Make time & altitude dependent coefficients
 c        ldummy=make_coefs(mx0)
-          lcold =  tk3d.le.273.15
+          lcold =  tk3d.le.tf
           lwarm =  .NOT. lcold
           lqc3d = qc3d.ge.qsmall
           lqi3d = qi3d.ge.qsmall
@@ -4349,7 +4350,7 @@ c        ldummy=make_distribution(dtmic,ci,di,pi,rhow,cs,ds,dr
 c     *  ,tk3d,pp3d,qsmall,'crys',mx0)
 c Make time & altitude dependent coefficients
 c        ldummy=make_coefs(mx0)
-          lcold =  tk3d.le.273.15
+          lcold =  tk3d.le.tf
           lwarm =  .NOT. lcold
           lqc3d = qc3d.ge.qsmall
           lqi3d = qi3d.ge.qsmall
@@ -4447,7 +4448,7 @@ c conservation of qs
 
        end if
          else ! warm cloud: temperature above freezing
-c for cloud ice and snow, only processes operating at T > 273.15 is
+c for cloud ice and snow, only processes operating at T > tf is
 c melting/evaporating, which is already conserved during process
 c calculation
 c conservation of qc
@@ -4522,7 +4523,7 @@ c
 	   nsubr(k) = dum*nr3d(k)/dtmic
 	end if
 
-        if (tk3d(k).ge.273.15) then
+        if (tk3d(k).ge.tf) then
         if (msmlts(k)+msmltr(k).lt.0.) then
 	   dum = (msmlts(k)+msmltr(k))*dtmic/qs3d(k)
            dum = max(-1.0d0,dum)
@@ -5232,7 +5233,7 @@ c Make hydrometeors distributions
      *  ,tk3d,pp3d,qsmall,'drop',mx0)
 c Make time & altitude dependent coefficients
         ldummy=make_coefs(mx0)
-          lcold =  tk3d.le.273.15
+          lcold =  tk3d.le.tf
           lwarm =  .NOT. lcold
           lqc3d = qc3d.ge.qsmall
           lqi3d = qi3d.ge.qsmall
@@ -5298,7 +5299,7 @@ c add sub-grid vertical velocity
 	   dum = dum+wvar(k)
 c assume minimum eff. sub-grid velocity 0.20 m/s
            dum = max(dum,0.40d0)                 
-           sigvl = 0.0761-1.55e-4*(tk3d(k)-273.15)
+           sigvl = 0.0761-1.55e-4*(tk3d(k)-tf)
            aact = 2.*mw/(rhow*rr)*sigvl/tk3d(k)
            alpha = g*mw*xxlv(k)/(cp*rr*tk3d(k)**2)-
      1       g*ma/(rr*tk3d(k))
@@ -5357,7 +5358,7 @@ c Make hydrometeors distributions
      *  ,tk3d,pp3d,qsmall,'all',mx0)
 c Make time & altitude dependent coefficients
         ldummy=make_coefs(mx0)
-          lcold =  tk3d.le.273.15
+          lcold =  tk3d.le.tf
           lwarm =  .NOT. lcold
           lqc3d = qc3d.ge.qsmall
           lqi3d = qi3d.ge.qsmall
@@ -5897,7 +5898,7 @@ c Local
 c            print *,sname,k,dumw,dumi,dum
             sw(k)=dum/dumw-1.d0        
             si(k)=dum/dumi-1.d0
-            if(tk.gt. 273.16) si(k)=sw(k)
+            if(tk.gt. tf) si(k)=sw(k)
       enddo
       ra = si
       end function hugh_make_supi
@@ -5925,7 +5926,7 @@ c Local
             dumi=polysvp(tk,1)
             sw(k)=dum/dumw-1.d0        
             si(k)=dum/dumi-1.d0
-            if(tk.gt. 273.16) si(k)=sw(k)
+            if(tk.gt. tf) si(k)=sw(k)
       enddo
       ra = sw
       end function hugh_make_supw
@@ -5952,7 +5953,7 @@ c Local
             dumi=polysvp(tk,1)
             sw(k)=dum/dumw-1.d0        
             si(k)=dum/dumi-1.d0
-            if(tk.gt. 273.16) si(k)=sw(k)
+            if(tk.gt. tf) si(k)=sw(k)
       enddo
       return
       end subroutine brm_make_supsat1d
@@ -6098,8 +6099,8 @@ c  type refers to saturation with respect to liquid (0) or ice (1)
       real*8 dum
 c ice
       if (type.eq.1) then
-         polysvp = 10.**(-9.09718*(273.16/t-1.)-3.56654*
-     1     log10(273.16/t)+0.876793*(1.-t/273.16)+
+         polysvp = 10.**(-9.09718*(tf/t-1.)-3.56654*
+     1     log10(tf/t)+0.876793*(1.-t/tf)+
      1     log10(6.1071))*100.
       end if
 c liquid
@@ -6479,7 +6480,7 @@ c positiveness of ns
 
        end if
          else ! warm cloud: temperature above freezing
-c for cloud ice and snow, only processes operating at T > 273.15 is
+c for cloud ice and snow, only processes operating at T > tf is
 c melting/evaporating, which is already conserved during process
 c calculation
 c positiveness of nc
@@ -6559,7 +6560,7 @@ c Make time & altitude dependent coefficients
 c
         ldummy=make_coefs(mx0)
 c
-          lcold =  tk3d.le.273.15
+          lcold =  tk3d.le.tf
           lwarm =  .NOT. lcold
           lqc3d = qc3d.ge.qsmall;lqc3d = qc3d.ge.1.0d-8
           lqi3d = qi3d.ge.qsmall
@@ -6674,7 +6675,7 @@ c Make time & altitude dependent coefficients
 c
         ldummy=make_coefs(mx0)
 c
-          lcold =  tk3d.le.273.15
+          lcold =  tk3d.le.tf
           lwarm =  .NOT. lcold
           lqc3d = qc3d.ge.qsmall
           lqi3d = qi3d.ge.qsmall
@@ -6779,7 +6780,7 @@ c Make time & altitude dependent coefficients
 c
         ldummy=make_coefs(mx0)
 c
-          lcold =  tk3d.le.273.15
+          lcold =  tk3d.le.tf
           lwarm =  .NOT. lcold
           lqc3d = qc3d.ge.qsmall;lqc3d = qc3d.ge.1.0d-8
           lqi3d = qi3d.ge.qsmall
@@ -7230,7 +7231,7 @@ c assume minimum eff. sub-grid velocity 0.20 m/s
 
            dum = max(dum,0.40d0)
 
-           sigvl = 0.0761-1.55e-4*(tk3d(k)-273.15)
+           sigvl = 0.0761-1.55e-4*(tk3d(k)-tf)
            aact = 2.*mw/(rhow*rr)*sigvl/tk3d(k)
            alpha = g*mw*xxlv(k)/(cp*rr*tk3d(k)**2)-
      1       g*ma/(rr*tk3d(k))
