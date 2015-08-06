@@ -902,8 +902,6 @@ C**** Clean up ice fraction (if rsi>(1-OPNOCN)-1d-3) => rsi=(1-OPNOCN))
         FTRSI3(:) = TRSIL(:,3)*FMSI4/MSI2
 #endif
         MSI2=MSI2-FMSI4         ! new ice mass of second physical layer
-        FRI(1:2)=XSI(1:2)*ACE1I/(ACE1I+MSI2)
-        FRI(3:4)=XSI(3:4)*MSI2/(ACE1I+MSI2)
         
 C**** separate out snow and ice components
         call get_snow_ice_layer(SNOW,MSI2,HSIL,SSIL,
@@ -911,6 +909,10 @@ C**** separate out snow and ice components
      *       TRSIL,TRSNOW,TRICE, 
 #endif 
      *       SNOWL,HSNOW,HICE,SICE,TSNW,TSIL,MICE,.false.)
+
+C**** fractions of new ice in each layer (deals with thick snow case)
+        FRI(1:2)=MICE(1:2)/(ACE1I+MSI2)
+        FRI(3:4)=XSI(3:4)*MSI2/(ACE1I+MSI2)
 
 C**** distribute snow variables over new ice extent
         SNOWL(:) = SNOWL(:)*(ROICE/ROICEN)
@@ -1930,15 +1932,15 @@ C**** lower levels
         IF (MICE(1).gt.0) THEN ! flux ice and check for enough
           IF (FMSI1.gt.MICE(1)) THEN ! flux all ice and some snow  
 #ifdef TRACERS_WATER
-            TRSNOW(:,2)=(FMSI1-MICE(1))*TRSNOW(:,1)/SNOWL(1)
-            TRSNOW(:,1)=TRSNOW(:,1)-TRSNOW(:,2)
+            TRSNOW(:,2)=TRSNOW(:,2)+(FMSI1-MICE(1))*TRSNOW(:,1)/SNOWL(1)
+            TRSNOW(:,1)=TRSNOW(:,1)-(FMSI1-MICE(1))*TRSNOW(:,1)/SNOWL(1)
             TRICE(:,2) = TRICE(:,1)+TRICE(:,2)
             TRICE(:,1) = 0.
 #endif 
-            HSNOW(2)=(FMSI1-MICE(1))*HSNOW(1)/SNOWL(1)
-            HSNOW(1)=HSNOW(1)-HSNOW(2)
-            SNOWL(2)= (FMSI1-MICE(1))
-            SNOWL(1)=SNOWL(1)-SNOWL(2)
+            HSNOW(2)=HSNOW(2)+(FMSI1-MICE(1))*HSNOW(1)/SNOWL(1)
+            HSNOW(1)=HSNOW(1)-(FMSI1-MICE(1))*HSNOW(1)/SNOWL(1)
+            SNOWL(2)=SNOWL(2)+(FMSI1-MICE(1))
+            SNOWL(1)=SNOWL(1)-(FMSI1-MICE(1))
             HICE(2)=HICE(2)+HICE(1)
             HICE(1)=0.
             SICE(2)=SICE(2)+SICE(1)
@@ -1998,6 +2000,8 @@ c         FSSI1 = 0.
 #endif
             HICE(1)= -(SNOWL(2)+FMSI1)*HICE(2)/MICE(2)
             HICE(2)= HICE(2)-HICE(1)
+            SICE(1)= -(SNOWL(2)+FMSI1)*SICE(2)/MICE(2)
+            SICE(2)= SICE(2)-SICE(1)
             MICE(1)= -(SNOWL(2)+FMSI1)
             MICE(2)= MICE(2)-MICE(1)
             HSNOW(1)=HSNOW(1)+HSNOW(2)
