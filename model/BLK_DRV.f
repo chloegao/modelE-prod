@@ -241,7 +241,6 @@ C microphysics parameters and physical constants, defined during first time step
 	REAL*8 
      1     bi,bc,bs,br  ! 'b' parameter in fallspeed-diam relationship
 	REAL*8 
-     1     pi,          ! pi=3.14159
      1     r,           ! gas constant for dry air
      1     rv,          ! gas constant for water vapor
      1     cp,          ! specific heat at constant pressure for dry air
