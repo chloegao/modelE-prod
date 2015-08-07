@@ -378,7 +378,7 @@ C* first check for any points that are ITYPE=4 but all ice/water:
             IF((II /= 1 .and. II /= 11) .or. problem_point) THEN
    
 C** Here, we should probably put some provisions that if the GCM land
-C** grid box is mostly snow-covered, set II=1 <<<<<<<<<<<<<<<<<<<<<<<
+C** grid box is mostly snow-covered, set II=1 <######################
 C**       
 C* Read the internal resistance RI (minimum stomatal resistance for
 C* water vapor, per unit area of leaf) from the IRI array; a '9999'
