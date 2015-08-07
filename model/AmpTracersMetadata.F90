@@ -656,6 +656,7 @@ contains
     function AMP_setSpec(mode, component) result (tracerIndex)
 !------------------------------------------------------------------------------
       use OldTracer_mod, only: om2oc, set_om2oc
+      use Dictionary_mod, only: sync_param
       implicit none
       character(len=*), intent(in) :: mode
       character(len=*), intent(in) :: component
@@ -677,7 +678,7 @@ contains
 
       if (trim(component) == 'OC') then
         tmp = om2oc(tracerIndex)
-        call sync_param(trim(name)//"_om2oc",tmp)
+        call sync_param(trim(tracerName)//"_om2oc",tmp)
         call set_om2oc(tracerIndex, tmp)
       endif
       call set_ntm_power(tracerIndex, -11)
