@@ -2,7 +2,7 @@
 #include "rundeck_opts.h"
 
 #ifndef OBIO_ON_GARYocean     !not on Gary's ocean
-      subroutine obio_bioinit(nn)
+      subroutine obio_bioinit
  
 !note: 
 !obio_bioinit is called only for a cold start and reads in INITIAL conditions and interpolates them
@@ -54,7 +54,7 @@ cddd     &     scatter_hycom_arrays
 
       implicit none
 
-      integer i,j,k,l,nn
+      integer i,j,k,l
 
 
       integer nir(nrg), nt

@@ -3,7 +3,7 @@
 #ifdef OBIO_ON_GARYocean
       subroutine obio_model(atm)
 #else
-      subroutine obio_model(nn,mm,atm)
+      subroutine obio_model(mm,atm)
 #endif
 
 !@sum  OBIO_MODEL is the main ocean bio-geo-chem routine 
@@ -144,7 +144,7 @@
 
       REAL*4  :: obio_tr_mm(16)= (/ 14., 14., 28.055, 55.845, 1., 1.,
      .     1., 1., 1., 14., 14., 28.055, 55.845, 12., 12., 1. /)
-      integer i,j,k,l,km,nn,mm
+      integer i,j,k,l,km,mm
 
       integer ihr,ichan,iyear,nt,ihr0,lgth,kmax
       integer ll,ilim
@@ -240,7 +240,7 @@ c
       cexpav_loc = 0
       caexpav_loc = 0
 
-      call obio_bioinit(nn)
+      call obio_bioinit
 #endif
       endif   !if nstep=1 or nstep=itimei
 
@@ -633,7 +633,7 @@ cdiag    enddo
        tot = 0.0
        if (.not.allocated(eda_frac)) then
          allocate(eda_frac(nlt), esa_frac(nlt))
-         open(unit=iu_bio,file='eda_esa_ratios',status='unknown')
+         open(newunit=iu_bio,file='eda_esa_ratios',status='unknown')
          do ichan=1,nlt
            read(iu_bio,'(3f13.8)')dummy1,eda_frac(ichan),esa_frac(ichan)
          enddo

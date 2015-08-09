@@ -775,7 +775,7 @@ c
 c      if (dobio) then
 c
           !call obio_listDifferences('obio_model', 'before')
-        call obio_model(nn,mm,ocnatm)
+        call obio_model(mm,ocnatm)
           !call obio_listDifferences('obio_model', 'after')
 c
 c      endif
