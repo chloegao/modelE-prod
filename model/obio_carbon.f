@@ -10,7 +10,7 @@ c  ncar(2) = DIC  (uM(C))
 c
 
       USE MODEL_COM, only: dtsrc
-
+      USE CONSTANT, only: tf
       USE obio_dim
       USE obio_incom, only : cnratio,rlamdoc,rkdoc1,rkdoc2
      .                      ,rlampoc,uMtomgm3,Pzo,stdslp
@@ -336,7 +336,7 @@ c Update DIC for sea-air flux of CO2
           scco2arg = (scco2/660.D0)**(-0.5)      !Schmidt number
           rkwco2 = awan*wssq*scco2arg           !transfer coeff (units of m/s)
         endif
-        tk = 273.15+Ts
+        tk = tf+Ts
         tk100 = tk*0.01
         tk1002 = tk100*tk100
         ff = exp(-162.8301 + 218.2968/tk100  +       !solub in mol/kg/picoatm
@@ -551,6 +551,7 @@ C
       subroutine co2calc_SWS(t,s,dic_in,ta_in,pt_in,sit_in
      &                  ,phlo,phhi,ph,xco2_in
      &                  ,co2star,pCO2surf)
+      USE CONSTANT, only: tf
 C
 C-------------------------------------------------------------------------
 C
@@ -681,7 +682,7 @@ C in Seawater", DOE, 1994 (SOP No. 3, p25-26).
 C
 C Derive simple terms used more than once
 C
-      tk = 273.15 + t
+      tk = tf + t
       tk100 = tk/100.0
       tk1002=tk100*tk100
       invtk=1.0/tk
