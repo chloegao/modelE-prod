@@ -1,6 +1,6 @@
 #include "rundeck_opts.h"
 
-      subroutine obio_alkalinity(vrbos,kmax,i,j)
+      subroutine obio_alkalinity(kmax,i,j)
 
 !@sum  online computation of alkalinity
 !@auth Natassa Romanou
@@ -49,7 +49,7 @@
      .      rhs,alk1d,caexp,kzc
 #ifdef OBIO_RUNOFF
 #ifdef ALK_RUNOFF
-     .      ,ralkconc_loc(i,j)
+      use obio_com, only: ralkconc_loc
       USE OFLUXES, only:  oFLOWO
       USE MODEL_COM, only: dtsrc
 #endif
@@ -57,10 +57,8 @@
 
 
 #ifdef OBIO_ON_GARYocean
-      USE MODEL_COM, only: nstep=> itime
-      USE OCEAN, only: dxypo,lmm
+      USE OCEAN, only: dxypo
 #else
-      USE hycom_scalars, only: nstep
       USE hycom_arrays, only: scp2
 #endif
 
@@ -69,7 +67,6 @@
       integer nt,k,kmax,nchl1,nchl2,i,j
       real*8 J_PO4(kmax),pp,Jprod(kmax),Jprod_sum,Fc,zz,F_Ca(kmax+1),
      .       J_Ca(kmax),term,term1,term2,DOP
-      logical vrbos
 !--------------------------------------------------------------------------
 !only compute tendency terms if total depth greater than conpensation depth
       if (p1d(kmax+1) .lt. p1d(kzc)) then
@@ -121,10 +118,6 @@
         else
           Jprod(k)=0.
         endif
-
-!     write(*,'(a,5i5,5e12.4)')'obio_alkalinity1:',
-!    .            nstep,i,j,k,kzc,
-!    .            p1d(k),p1d(k+1),p1d(kzc),pp,Jprod(k)
       enddo
 
 !integrate net primary production down to zc
@@ -147,10 +140,6 @@
 
       !p1d(kzc) is really the compensation depth
       !F_Ca(kzc) is the CaCO3 export
-!     write(*,'(a,i8,3i5,7e12.4)')'CaCO3 downward flux:',
-!    .        nstep,i,j,kzc,p1d(kzc),zc,rain_ratio,cpratio,Fc,
-!    .        exp(-1.d0*(p1d(kzc)-p1d(kzc))/d_Ca),F_Ca(kzc)
-
       caexp = 0.d0
       do k=1,kzc
       caexp = caexp + F_Ca(k)
@@ -161,8 +150,6 @@
 #else
      .                * scp2(i,j)   ! -> Pg,C/yr
 #endif
-!     write(*,'(a,5i5,3e12.4)')'obio_alkalinity, caexp:',
-!    . nstep,i,j,k,kzc,F_Ca(k),dxypo(j),caexp
       enddo
 
 !compute sources/sinks of CaCO3
@@ -179,12 +166,6 @@
                                      ! because already in cnratio (see obio_init)
        rhs(k,15,5) = term
        A_tend(k) = A_tend(k) + term      
-
-!     if(mod(nstep,48).eq.0.) 
-!     if(j.eq.100.and.i.eq.1)
-!    .write(*,'(a,4i5,3e12.4)')'obio_alkalinity2:',
-!    .   nstep,i,j,k,rhs(k,15,1),rhs(k,15,5),A_tend(k)
-
       enddo
 
 #ifdef OBIO_RUNOFF
@@ -204,16 +185,6 @@
       A_tend = A_tend /1024.5d0 *1.d3     ! mili-mol,N/m3/hr -> umol/m3/hr -> umol/kg/hr
 
 !!!!!!!!!! NEED TO ADD BOTTOM BOUNDARY CONDITIONS 
-
-!     if (vrbos) then
-!     do k=1,kmax
-!     k=1
-!     write(*,'(a,4i5,12e12.4)')'obio_alkalinity; ',
-!    .    nstep,i,j,k
-!    .   ,p1d(k),p1d(kzc),J_PO4(k),pp,Jprod_sum,Fc
-!    .   ,F_Ca(k),J_Ca(k),alk1d(k),A_tend(k),term1,term2
-!     enddo
-!     endif
 
  100  continue
       end subroutine obio_alkalinity

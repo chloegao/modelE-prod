@@ -39,19 +39,13 @@ c  Carbon type 2    = DIC
       USE FILEMANAGER, only: openunit,closeunit
 
       USE obio_dim
-      USE obio_incom
-      USE obio_forc, only: avgq
-#ifdef TRACERS_Alkalinity
-     .    ,alk_glob
-#endif
+      USE obio_incom, only: cnratio, csratio, cfratio
+      USE obio_forc, only: avgq,alk
       USE obio_com, only: gcmax
  
-      USE hycom_dim_glob, only : jj,isp,ifp,ilp,iia,jja,iio,jjo,kdm
-     &     ,idm,jdm
-      USE hycom_dim, only : isp_l=>isp,ifp_l=>ifp,ilp_l=>ilp
-      USE hycom_dim, only : j_0,j_1
-      !USE hycom_arrays_glob, only : tracer_glob => tracer
-      USE hycom_arrays_glob, only : tracer,dpinit
+      USE hycom_dim, only : isp,ifp,ilp,kdm
+      USE hycom_dim, only : j_0,j_1,i_0h,i_1h,j_0h,j_1h
+      USE hycom_arrays, only : tracer, dpinit
       USE hycom_scalars, only: onem
 
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
@@ -66,50 +60,41 @@ cddd     &     scatter_hycom_arrays
       integer nir(nrg), nt
       integer iu_bioinit
 
-      real rlon,rlat,dicmin,dicmax
       real zz
 
       character*2 ntchar
-      character*80 filename
 
-      call alloc_obio_incom
+      integer, ALLOCATABLE, DIMENSION(:,:)   :: ir
+      real,  ALLOCATABLE, DIMENSION(:,:,:) :: fer,dicmod,dic
 
-      call gather_tracer
-      call gather_dpinit
-
-      if (AM_I_ROOT()) then
-c  Initialize
+      ALLOCATE(ir(i_0h:i_1h,j_0h:j_1h))
+      ALLOCATE(fer(i_0h:i_1h,j_0h:j_1h,kdm))
+      allocate(dicmod(i_0h:i_1h,j_0h:j_1h,kdm))
+      allocate(dic(i_0h:i_1h,j_0h:j_1h,kdm))
 
       tracer(:,:,:,1:ntyp)=0.d0
       Fer(:,:,:) = 0.d0
 
-      filename='nitrates_inicond'
-      call bio_inicond(filename,tracer(:,:,:,1))
+      call bio_inicond('nitrates_inicond',tracer(:,:,:,1))
+      call bio_inicond('silicate_inicond',tracer(:,:,:,3))
 
-      filename='silicate_inicond'
-      call bio_inicond(filename,tracer(:,:,:,3))
 
 #ifdef obio_TRANSIENTRUNS
 ! in the transient runs keep the dic read in from RSF/AIC file
       dic = tracer(:,:,:,15)
 #else
 ! otherwise take from rundeck
-      filename='dic_inicond'
-      call bio_inicond(filename,dic(:,:,:))
+      call bio_inicond('dic_inicond',dic)
 #endif
 
 #ifdef TRACERS_Alkalinity
-      filename='alk_inicond'
-      call bio_inicond(filename,alk_glob(:,:,:))
+      call bio_inicond('alk_inicond',alk)
       do k=1,kdm
-      do j=1,jdm
-      do i=1,idm
-         if(alk_glob(i,j,k).lt.0.) alk_glob(i,j,k)=0.
+      do j=j_0h,j_1h
+      do i=i_0h,i_1h
+         if(alk(i,j,k).lt.0.) alk(i,j,k)=0.
 
-         alk_glob(i,j,k)=dmax1(alk_glob(i,j,k),2000.d0)   !set minimum =2000
-
-!        write(*,'(a,3i5,e12.4)')'obio_bioinit: ',
-!    .         i,j,k,alk_glob(i,j,k)
+         alk(i,j,k)=dmax1(alk(i,j,k),2000.d0)   !set minimum =2000
       enddo
       enddo
       enddo
@@ -123,18 +108,14 @@ c  Initialize
 !mismatch of the noaa grid and the hycom grid. To fill in have to do
 !the interpolation in matlab (furtuna).
 !at the same time use dps and interpolate to layer depths from the model
-      dicmin = 1.e30
-      dicmax =-1.e30
 
       do k=1,kdm
-       do j=1,jdm
-        do i=1,idm
+       do j=j_0h,j_1h
+        do i=i_0h,i_1h
           if(tracer(i,j,k,1).le.0.)tracer(i,j,k,1)=0.085d0
           if(tracer(i,j,k,3).le.0.)tracer(i,j,k,3)=0.297d0
           if (dic(i,j,k).le.0.) dic(i,j,k)=1837.d0
           dic(i,j,k)=max(dic(i,j,k),1837.0)   !set minimum =1837
-          dicmin =min(dicmin,dic(i,j,k))
-          dicmax =max(dicmax,dic(i,j,k))
 !       if (k.eq.1)
 !    .  write(*,'(a,3i5,15e12.4)')'obio_bioinit4:',
 !    .  i,j,1,tracer(i,j,k,1),tracer(i,j,k,2),tracer(i,j,k,3),
@@ -147,16 +128,16 @@ c  Initialize
       enddo
 
       write(*,'(a,2e12.4)')'BIO: bioinit: dic min-max=',
-     .       dicmin,dicmax
+     .       minval(dic),maxval(dic)
 
 c  Obtain region indicators
       write(6,*)'calling fndreg...'
-      call fndreg
+      call fndreg(ir)
  
 c  Define Fe:NO3 ratios by region, according to Fung et al. (2000)
 c  GBC.  Conversion produces nM Fe, since NO3 is as uM
 
-      do j=1,jj
+      do j=j_0h,j_1h
        do k=1,kdm
         do l=1,isp(j)
          do i=ifp(j,l),ilp(j,l)
@@ -197,9 +178,9 @@ c  Create arrays
       write(6,*)'Creating bio restart data for ',ntyp,' arrays and'
      . ,kdm,'  layers...'
 
-      do 1000 j=1,jj
-      do 1000 l=1,isp(j)
-      do 1000 i=ifp(j,l),ilp(j,l)
+      do j=j_0h,j_1h
+      do l=1,isp(j)
+      do i=ifp(j,l),ilp(j,l)
 
         zz=0.d0
         do k=1,kdm
@@ -251,13 +232,15 @@ c          tracer(i,j,k,nt) = 0.05*50.0  !in C units mg/m3
 
 #ifdef TRACERS_Alkalinity
           do nt = ntyp+n_inert+ndet+ncar,ntyp+n_inert+ndet+ncar+nalk
-           tracer(i,j,k,nt) = alk_glob(i,j,k)
+           tracer(i,j,k,nt) = alk(i,j,k)
           enddo
 #endif
 
          enddo
 
- 1000 continue
+      end do
+      end do
+      end do
 
 
 c  Detritus (set to 0 for start up)
@@ -266,7 +249,7 @@ c  Detritus (set to 0 for start up)
       csratio = 106.0/16.0*12.0    !C:Si ratio (ugl:uM)
       cfratio = 150000.0*12.0*1.0E-3    !C:Fe ratio (ugl:nM)
 
-      do j=1,jj
+      do j=j_0h,j_1h
        do l=1,isp(j)
         do i=ifp(j,l),ilp(j,l)
          do k=1,kdm
@@ -291,7 +274,7 @@ c   as the mean for 020m deeper than the mixed layer, converted from
 c   uM/kg to uM
       write(6,*)'Carbon...'
 c    conversion from uM to mg/m3
-      do j=1,jj
+      do j=j_0h,j_1h
        do l=1,isp(j)
         do i=ifp(j,l),ilp(j,l)
          do k=1,kdm
@@ -303,7 +286,7 @@ c    conversion from uM to mg/m3
       enddo
 
       !only carbon components
-      do j=1,jj
+      do j=j_0h,j_1h
        do l=1,isp(j)
         do i=ifp(j,l),ilp(j,l)
          do k = 1,kdm
@@ -315,25 +298,6 @@ c         car(i,j,k,1) = 0.0  !from Walsh et al 1999
        enddo
       enddo
 
-      endif
-
-!     do j=1,jj
-!      do l=1,isp(j)
-!       do i=ifp(j,l),ilp(j,l)
-!       k=1
-!       write(*,'(a,3i5,15e12.4)')'obio_bioinit5:',
-!    .  i,j,1,tracer(i,j,k,1),tracer(i,j,k,2),tracer(i,j,k,3),
-!    .        tracer(i,j,k,4),tracer(i,j,k,5),tracer(i,j,k,6),
-!    .        tracer(i,j,k,7),tracer(i,j,k,8),tracer(i,j,k,9),
-!    .        tracer(i,j,k,10),tracer(i,j,k,11),tracer(i,j,k,12),
-!    .        tracer(i,j,k,13),tracer(i,j,k,14),tracer(i,j,k,15)
-!     enddo
-!     enddo
-!     enddo
-
-      !scatter tracer
-      call scatter_tracer
-
 c  Light saturation data
       if (AM_I_ROOT()) then
       write(6,*)'Light saturation data...'
@@ -342,8 +306,8 @@ c  Light saturation data
 
       do j=j_0,j_1
        do k=1,kdm
-        do l=1,isp_l(j)
-         do i=ifp_l(j,l),ilp_l(j,l)
+        do l=1,isp(j)
+         do i=ifp(j,l),ilp(j,l)
           avgq(i,j,k) = 25.0
          enddo
         enddo
@@ -356,8 +320,8 @@ c  Coccolithophore max growth rate
       endif
       do j=j_0,j_1
        do k=1,kdm
-        do l=1,isp_l(j)
-         do i=ifp_l(j,l),ilp_l(j,l)
+        do l=1,isp(j)
+         do i=ifp(j,l),ilp(j,l)
           gcmax(i,j,k) = 0.0
          enddo
         enddo
@@ -395,7 +359,7 @@ c  Coccolithophore max growth rate
       end
 
 c------------------------------------------------------------------------------
-      subroutine fndreg
+      subroutine fndreg(ir)
  
 c  Finds nwater indices corresponding to significant regions,
 c  and defines arrays.  Variables representative of the regions will 
@@ -417,14 +381,15 @@ c       13 -- Mediterranean/Black Seas
  
 
       USE obio_dim
-      USE obio_incom, only: ir
 
-      USE hycom_dim_glob, only : jj,isp,ifp,ilp
-      USE hycom_arrays_glob, only : lonij,latij,dpinit
+      USE hycom_dim, only : isp,ifp,ilp
+      use hycom_dim, only: i_0h,i_1h,j_0h,j_1h
+      USE hycom_arrays, only : lonij,latij,dpinit
       USE hycom_scalars, only: onem
 
       implicit none
 
+      integer, DIMENSION(i_0h:i_1h,j_0h:j_1h), intent(out)   :: ir
 
       integer i,j,l
       integer iant,isin,ispc,isat,iein,iepc,ieat,incp
@@ -458,7 +423,7 @@ c  Initialize region indicator array
       nir = 0
  
 c  Find nwater values corresponding to regions
-      do 1000 j=1,jj
+      do 1000 j=j_0h,j_1h
       do 1000 l=1,isp(j)
       do 1000 i=ifp(j,l),ilp(j,l)
 
@@ -702,11 +667,13 @@ c
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
       USE GEOM, only : DLATM
 
-      USE hycom_dim_glob, only : jj,isp,ifp,ilp,iia,jja,iio,jjo,kdm
-      USE hycom_arrays_glob, only : dpinit,scp2
+      USE hycom_dim_glob, only : iia,jja,iio,kdm
+      use hycom_dim, only: isp, ifp, ilp,ogrid
+      use hycom_dim, only: i_0h,i_1h,j_0h,j_1h,aj_0h,aj_1h
+      use hycom_arrays, only: dpinit
       USE hycom_scalars, only: onem
 
-      USE hycom_cpler, only: wlista2o,ilista2o,jlista2o,nlista2o
+      USE hycom_cpler, only: flxa2o
 
       implicit none
 
@@ -723,18 +690,20 @@ c
       real data_min(kgrd),data_max(kgrd)
       real sum1
       real dummy1(iia/2,jja,kgrd),dummy2(iia/2,jja,kgrd)
-      real fldo(iio,jjo,kgrd)
-      real pinit(iio,jjo,kdm+1),fldo2(iio,jjo,kdm)
+      real fldo(iio,j_0h:j_1h,kgrd)
+      real pinit(i_0h:i_1h,j_0h:j_1h,kdm+1)
+      real fldo2(i_0h:i_1h,j_0h:j_1h,kdm)
       real nodc_depths(kgrd),nodc_d(kgrd+1)
-      !real dpinit(iio,jjo,kdm)
 
       logical vrbos
 
-      character*80 filename
+      character(len=*) :: filename
 
       data nodc_depths/0,  10,  20,  30,  50,  75, 100, 125, 150, 200,
      .          250, 300, 400, 500, 600, 700, 800, 900,1000,1100,1200,
      .    1300,1400,1500,1750,2000,2500,3000,3500,4000,4500,5000,5500/
+
+      real*8 offia,offib,dlata,datmis
 
 !--------------------------------------------------------------
 
@@ -784,8 +753,12 @@ cdiag endif
       enddo    ! j-loop
 
       !compute glb average and replace missing data
-      call HNTR80(igrd,jgrd,180.d0,60.d0,
-     .             iia,jja,0.d0,DLATM,-9999.d0)
+      offia = 180d0
+      offib = 0d0
+      dlata = 60d0
+      datmis = -9999d0
+      call HNTR80(igrd,jgrd,offia,dlata,
+     .             iia,jja,offib,DLATM,datmis)
 
       call HNTR8P (data_mask,data(:,:,k),data2(:,:,k))
       enddo    ! k-loop
@@ -817,32 +790,16 @@ cdiag endif
       !--------------------------------------------------------
 
 ! inerpolate to the HYCOM ocean grid
-      do 8 j=1,jj
-      do 8 l=1,isp(j)
-      do 8 i=ifp(j,l),ilp(j,l)
-
-      do 9 k=1,kgrd
-      fldo(i,j,k)=0.
-c
-      do 9 n=1,nlista2o(i,j)
-      fldo(i,j,k)=fldo(i,j,k)
-     .           +data2(ilista2o(i,j,n),jlista2o(i,j,n),k)
-     .                       *wlista2o(i,j,n)
- 9    continue
- 8    continue
-
-cdiag if (filename.eq.'dic_inicond') then
-cdiag do j=1,jjo; do i=1,iio; do k=1,kgrd
-cdiag   write(*,'(a,3i5,3e20.10)')'3333333333',
-cdiag.       i,j,k,nodc_depths(k),fldo(i,j,k),scp2(i,j)
-cdiag enddo; enddo; enddo
-cdiag endif
+      fldo=0.
+      do k=1,kgrd
+        call flxa2o(data2(:,aj_0h:aj_1h,k),fldo(:,:,k))
+      end do
 
       !--------------------------------------------------------
       !use dpinit(i,j,k)/onem
 
        pinit(:,:,1)=0.d0
-       do 10 j=1,jj
+       do 10 j=j_0h, j_1h
        do 10 l=1,isp(j)
        do 10 i=ifp(j,l),ilp(j,l)
        do  k=1,kdm
@@ -851,7 +808,7 @@ cdiag endif
  10    continue
 
        fldo2(:,:,:)=-9999.d0
-       do j=1,jj                       
+       do j=j_0h,j_1h
        do l=1,isp(j)
        do i=ifp(j,l),ilp(j,l)
 
@@ -883,17 +840,6 @@ cdiag.               i,j,k,fldo(i,j,k),nodc_d(k),nodc_kmax
        enddo
        enddo
        enddo
-
-cdiag if (filename.eq.'dic_inicond') then
-cdiag do j=1,jjo; do i=1,iio; 
-cdiag do k=1,kdm
-cdiag   write(*,'(a,3i5,2e20.10)')'4444444444',
-cdiag.       i,j,k,pinit(i,j,k),fldo2(i,j,k)
-cdiag enddo; 
-cdiag   write(*,'(a,3i5,2e20.10)')'4444444444',
-cdiag.       i,j,kdm+1,pinit(i,j,kdm+1),-9999. 
-cdiag enddo; enddo
-cdiag endif
 
       !--------------------------------------------------------
 

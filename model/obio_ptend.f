@@ -791,7 +791,7 @@ CHECK  endif !tirrq(k) .gt. 0.0
 
 
 #ifdef TRACERS_Alkalinity
-      call obio_alkalinity(vrbos,kmax,i,j)
+      call obio_alkalinity(kmax,i,j)
 #endif
   
 cdiag if(vrbos) then

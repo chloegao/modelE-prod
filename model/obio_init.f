@@ -42,7 +42,6 @@ c
       USE OCEAN, only : ZOE=>ZE,focean,lmm
       USE MODEL_COM, only: dtsrc
       USE OCEANR_DIM, only : ogrid
-      use obio_com, only : focean_glob,lmom_glob
 #else
       USE hycom_dim_glob, only : idm,jdm,kdm
       USE hycom_scalars, only : nstep,baclin
@@ -70,7 +69,6 @@ c
      .    ,dummy
 
       real fldo2(idm,jdm,kdm)
-      real fldoz(idm,jdm,kdm)
 
       character*50 title
 !     character*50 cfle
@@ -81,16 +79,6 @@ c
 
 c 
       if (AM_I_ROOT()) print*, 'Ocean Biology setup starts'
-
-#ifdef OBIO_ON_GARYocean
-      if(am_i_root()) then
-        allocate(focean_glob(idm,jdm),lmom_glob(idm,jdm))
-      else
-        allocate(focean_glob(1,1),lmom_glob(1,1))
-      endif
-      call pack_data(ogrid,focean,focean_glob)
-      call pack_data(ogrid,lmm,lmom_glob)
-#endif
 
 ! time steps
 #ifdef OBIO_ON_GARYocean
@@ -507,31 +495,10 @@ c  Read in factors to compute average irradiance
 #else
 !read in alkalinity annual mean file
       if (ALK_CLIM.eq.1) then      !read from climatology
-        filename='alk_inicond'
 #ifdef OBIO_ON_GARYocean
-        call bio_inicond_g(filename,fldo2,fldoz)
-        alk(:,:,:)=fldo2
-
-        !remove negative values
-        !negs are over land or under ice due to GLODAP missing values in the Arctic Ocean
-        !for under ice missing values, use climatological minimums for sets of layers based
-        !on GLODAP, rather than setting to the same global min.
-        do j=1,jdm
-        do i=1,idm
-        do k=1,kdm
-         if (alk(i,j,k).lt.0. .and. focean_glob(i,j).gt.0) then
-            if (zoe(k).le.150.) alk(i,j,k)=2172.      !init neg might be under ice,
-            if (zoe(k).gt.150. .and. zoe(k).lt.1200.) alk(i,j,k)=2200.
-            if (zoe(k).ge.1200.) alk(i,j,k)=2300.
-         endif
-         if (focean_glob(i,j).le.0) then
-           alk(i,j,k)=0.
-         endif
-        enddo
-        enddo
-        enddo
+        call init_alk(alk)
 #else
-        call bio_inicond(filename,alk(:,:,:))
+        call bio_inicond('alk_inicond',alk)
 #endif
       else      !set to zero, obio_carbon sets alk=tabar*sal/sal_mean
         alk = 0.

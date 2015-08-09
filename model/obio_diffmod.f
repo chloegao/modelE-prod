@@ -15,14 +15,14 @@
 #ifdef OBIO_ON_GARYocean
       use oceanres,  only: idm=>imo, kdm=>lmo
       use oceanr_dim, only : ogrid
-      use obio_com, only: tracers => tracer_loc
+      use obio_com, only: tracer
       use ocn_tracer_com, only : tracerlist
        USE MODEL_COM,  only : nstep=>itime
 #else
       use hycom_dim_glob, only : idm, kdm
       use hycom_dim, only: ogrid
       use hycom_scalars, only: nstep
-      use hycom_arrays, only: tracers => tracer
+      use hycom_arrays, only: tracer
       use hycom_arrays, only: dpinit
       use hycom_dim_glob, only: numTracers => ntrcr
 #endif
@@ -52,7 +52,7 @@
         init = .true.
 
         allocate(previousTracers(idm, j_0h:j_1h, kdm, numTracers))
-        previousTracers = tracers
+        previousTracers = tracer
 
 #ifndef OBIO_ON_GARYocean
         allocate(previousdpinit(idm,j_0h:j_1h, kdm))
@@ -64,7 +64,7 @@
       select case (trim(phase))
       case ('before')
 
-        previousTracers = tracers
+        previousTracers = tracer
 #ifndef OBIO_ON_GARYocean
         previousdpinit = dpinit
 #endif
@@ -76,7 +76,7 @@
         do iTracer = 1, numTracers
           if (am_i_root()) write(name,'(a,1x,a,i10,a,1x,i3.0)')
      .         trim(operation),',nstep = ',nstep,': tracer',iTracer
-          call spotDiff3D(name, tracers(:,:,:,iTracer), 
+          call spotDiff3D(name, tracer(:,:,:,iTracer), 
      &         previousTracers(:,:,:,iTracer))
         end do
 
