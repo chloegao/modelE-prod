@@ -8407,7 +8407,6 @@ C**** at the start of any day
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
       use OldTracer_mod, only: om2oc
-      USE AEROSOL_SOURCES, only: BBinc
 #ifndef TRACERS_AEROSOLS_SOA
       USE AEROSOL_SOURCES, only: OCT_src
 #endif  /* TRACERS_AEROSOLS_SOA */
