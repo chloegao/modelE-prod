@@ -222,11 +222,10 @@ C we change that.)
 !@+    call read_aero(sulfate,'SULFATE_SA')
 !@+    call read_aero(so2_offline,'SO2_FIELD')
 !@auth Drew Shindell / Greg Faluvegi
-      USE RESOLUTION, only : ptop,psf
       USE RESOLUTION, only : lm
       USE RESOLUTION, only : im,jm
+      Use ATM_COM,    Only: PMIDL00
       use model_com, only: modelEclock
-      USE DYNAMICS, only : sig
       USE DOMAIN_DECOMP_ATM, only: GRID
       USE DOMAIN_DECOMP_ATM, only: getDomainBounds, write_parallel
       USE FILEMANAGER, only: openunit,closeunit
@@ -251,7 +250,7 @@ C we change that.)
       character*80 :: title
       character(len=300) :: out_line
       logical, dimension(ncalls) :: mon_bins=(/.true.,.true.,.true./)
-      REAL*8, DIMENSION(LM)    :: pres,srcLout
+      REAL*8, DIMENSION(LM)    :: srcLout
       REAL*8, DIMENSION(Lsulf) :: srcLin
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO
      *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,Lsulf,ncalls):: src
@@ -283,10 +282,9 @@ C     Interpolation in the vertical.
 C====
 C====   Place field onto model levels
 C====              
-      PRES(:)=SIG(:)*(PSF-PTOP)+PTOP
       DO J=J_0,J_1; DO I=I_0,I_1
         srcLin(1:Lsulf)=src(I,J,1:Lsulf,nc)
-        call LOGPINT(Lsulf,Psulf,srcLin,LM,PRES,srcLout,.true.)
+        Call LOGPINT (Lsulf,Psulf,srcLin,LM,PMIDL00,srcLout,.true.)
         field(I,J,1:LM)=srcLout(1:LM)
       END DO   ; END DO    
   
