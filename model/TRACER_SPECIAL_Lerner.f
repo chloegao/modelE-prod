@@ -22,7 +22,7 @@ C**** These variables are used by both ozone and strat chem routines
 
       contains
       subroutine set_prather_constants
-      USE RESOLUTION, only: jm,lm ! ,psfmpt,sige,ptop
+      Use RESOLUTION, Only: JM,LM
       USE ATM_COM, only: pednl00
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       USE CH4_SOURCES
@@ -65,7 +65,7 @@ c GISS-ESMF EXCEPTIONAL CASE
 C---just calculate average P(mbar) at edge of each level
 C---Calculate average P(mbar) at edge of each level PLEVL(1)=Psurf
       do lr=1,lm+1
-        p0l(lr) = pednl00(lm+2-lr) ! sige(lm+2-lr)*psfmpt+ptop
+        p0l(lr) = pednl00(lm+2-lr)
       end do
       return
 
@@ -1169,9 +1169,7 @@ C**** October 1963 14CO2 Concentrations for GCM  2/26/99
 C**** 2/2/2: generalized code for modelE
 C****
       USE RESOLUTION, ONLY: im,jm,lm
-      USE RESOLUTION, ONLY: ls1,psf,ptop
       USE DOMAIN_DECOMP_ATM, only: GRID, getDomainBounds
-      USE DYNAMICS, only: sige
       USE ATM_COM, only: pedn
       USE FILEMANAGER, only: openunit,closeunit
       USE GEOM, only : DLAT_DG
@@ -1184,7 +1182,7 @@ C****
      &              GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
       CHARACTER*80 TITLE
       integer i,j,jw,k,l,n,iu_in,iu_out
-      real*8 pup,cup,pdn,cdn,psum,csum,psurf,ptrop,w,zk !,stratm
+      Real*8 :: pup,cup,pdn,cdn,psum,csum,w,zk !,stratm
 
       INTEGER :: I_0, I_1, J_1, J_0
       INTEGER :: J_0S, J_1S
@@ -1236,20 +1234,16 @@ C****
 C****
 C**** Interpoate CO2J to CO2IJL on GCM grid conserving vertical means
 C****
-C**** psf, ptrop, pdn ..... in pascals (mb*100)
-      ptrop = ptop*100.
+C**** P(K), PUP, PDN, PSUM in (Pa) = (mb*100)
       DO 440 J=J_0,J_1
       DO 440 I=I_0,I_1
       PDN = pedn(1,i,j)*100.
-      psurf = pdn
       CDN = CO2JK(J,0)
       K=1
       DO 430 L=1,LM
       PSUM = 0.
       CSUM = 0.
-      if (l.eq.ls1) psurf = psf*100.
-!     PUP = pedn(l+1)*100  No?
-      PUP  =  SIGE(L+1)*(psurf-ptrop)+ptrop
+      PUP = PEDN(L+1,I,J)*100
   410 IF(P(K).LE.PUP)  GO TO 420
       PSUM = PSUM +  PDN-P(K)
       CSUM = CSUM + (PDN-P(K))*(CDN+CO2JK(J,K))/2.
@@ -1461,7 +1455,7 @@ c    *  fnew(km,lm),pold(lmo),pnew(lm),ain(lmo),aout(lm)
 
 !     initialize
       pold(:) = sigo(:)*(psf-10.)+10.
-      pnew(:) = pmidl00(1:lm)    ! sig(:)*psfmpt+ptop
+      pnew(:) = pmidl00(1:lm)
       wta = 1.
 !     find a top for the output data (a drop sloppy!)
 !     Note: ltopx is always higher than lmtc so it doesn't matter..
@@ -1547,11 +1541,9 @@ C****    But what WOULD be correct???
 C**** Input data are from Wofsy
 C**** 1995 CH4 Concentrations in ppb; 1995 CO2 Concentrations in ppm
       USE RESOLUTION, ONLY: im,jm,lm
-      USE RESOLUTION, ONLY: ls1,psf,ptop
       USE MODEL_COM, ONLY: amonth,jmon0
       USE DOMAIN_DECOMP_ATM, only: GRID, getDomainBounds, AM_I_ROOT
-      USE DYNAMICS, only: sige
-      USE ATM_COM, only: pedn
+      USE ATM_COM, only: pednl00
       USE FILEMANAGER, only: openunit,closeunit
       USE GEOM, only : DLAT_DG,lat_dg
       implicit none
@@ -1561,7 +1553,7 @@ C**** 1995 CH4 Concentrations in ppb; 1995 CO2 Concentrations in ppm
       REAL*8 GASW(3,62),
      *  GASJK(GRID%J_STRT_HALO:GRID%J_STOP_HALO,0:kmw),
      *  GASJL(GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm),
-     *  P(0:kmw),pup,cup,pdn,cdn,psum,csum,psurf,w,zk,scale
+     *  P(0:kmw),pup,cup,pdn,cdn,psum,csum,w,zk,scale
       CHARACTER*80 card,titlew,dfile*24
       character*(*) cgas
 
@@ -1627,7 +1619,7 @@ C**** Keep step function except at two transition points (+/- 15 deg)
 C**** Above, extend
         GASJK(j,91:kmw) = GASJK(j,90)
       end do
-C**** Calculate data pressure levels (Pa)
+C**** Calculate data pressure levels (mb)
 C**** z* in km (=7 ln (1000/p)
       zk = 0.
       DO 120 K=0,kmw
@@ -1640,16 +1632,13 @@ C**** means
 C****
       GASJL = 0.
       DO 440 J=J_0,J_1
-      PDN = pedn(1,1,j)
-      psurf = psf           ! is this correct? should be pdn, no?
+      PDN = pednl00(1)
       CDN = GASJK(J,0)
       K=1
       DO 430 L=1,lm
       PSUM = 0.
       CSUM = 0.
-      if (l.eq.ls1) psurf = psf
-!     PUP  = pednl00(l+1), but then PDN above should be pednl00(1) also?
-      PUP  = (psurf-ptop)*SIGE(L+1)+ptop
+      PUP  = pednl00(l+1)
   410 IF(P(K).LE.PUP)  GO TO 420
       PSUM = PSUM +  PDN-P(K)
       CSUM = CSUM + (PDN-P(K))*(CDN+GASJK(J,K))/2.
