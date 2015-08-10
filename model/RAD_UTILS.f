@@ -3278,14 +3278,13 @@ C     functions
 #ifdef HIGH_FREQUENCY_O3_INPUT
       subroutine UPDO3D_highFrequency(JYEARO,JJDAYO,
      & o3jday_HF_modelLevels)
-      use resolution, only : psf, LS1, psfmpt, ptop, LM
+      use resolution, only : LM, mtop,mfix,mfrac,mfixs
       use domain_decomp_atm, only: grid, getdomainbounds
       use timestream_mod, only : init_stream,read_stream
       use pario, only : par_open,par_close,read_dist_data
       use filemanager, only : file_exists
       use atm_com, only: pedn
-      use dynamics, only : dsig,sige
-      use constant, only : bygrav,tf,rgas
+      use constant, only : bygrav,tf,rgas,mb2kg,kg2mb
       implicit none
       integer, intent(in) :: JYEARO,JJDAYO
       real*8, dimension(:,:,:), pointer :: o3jday_HF_modelLevels
@@ -3298,7 +3297,7 @@ C     functions
       real*8, dimension(LM):: OxHFarr_Interpolated, OxHFarr_Converted,
      &                        airmass
       real*8, dimension(LM+1)::modelPressureBottoms, filePressureBottoms
-      real*8 :: numerator, denominator
+      real*8 :: numerator, denominator, mvar
 
       integer :: j_0, j_1, i_0, i_1
 
@@ -3333,13 +3332,13 @@ C     functions
       do j=j_0,j_1
       do i=i_0,i_1
         modelPressureBottoms(:)=pedn(:,i,j)
-        filePressureBottoms(1:LS1-1)=
-     &                  sige(1:LS1-1)*(psf4o3arr(i,j)-ptop)+ptop
-        filePressureBottoms(LS1:LM+1)=sige(LS1:LM+1)*psfmpt+ptop
         ! approximate the air mass concurrent with ozone input:
-        airmass(1:LS1-1)=
-     &   (psf4o3arr(i,j)-ptop)*dsig(1:LS1-1)*1.d2*bygrav
-        airmass(LS1:LM)=psfmpt*dsig(LS1:LM)*1.d2*bygrav
+        mvar = psf4o3arr(i,j)*mb2kg - mfixs - mtop
+        filePressureBottoms(LM+1) = mtop
+        do L=LM,1,-1
+           airmass(L) = mfix(L) + mvar*mfrac(L)
+           filePressureBottoms(L) = filePressureBottoms(L+1) +
+                                    airmass(L)*kg2mb  ;  EndDo
 
         ! to avoid potentially losing some of the column ozone, adjust
         ! bottom level edge (similar to how routine UPDO3D does:
