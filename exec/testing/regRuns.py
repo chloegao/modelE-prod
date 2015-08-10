@@ -19,14 +19,14 @@ class newRundeck:
             self.name      = 'nonProduction_E_AR5_C12'
         self.standalone    = 'yes'
         self.verification  = 'restartRun'
-        self.compiler      = 'gfortran'
+        self.compiler      = '' # Get compiler from MODELERC
         self.buildType     = 'release'
         self.modes         = 'serial,mpi'
         self.endtime       = 25
         self.npes          = '1,4'
         self.modeList      = []
         self.npList        = []
-        self.branch        = 'master'
+        self.branch        = ''
         self.updateBase    = 'no'
         self.modelerc      = os.environ['HOME']+'/.modelErc'
         self.baseDir       = '.'
@@ -35,7 +35,7 @@ class newRundeck:
         self.scratchDir    = '.'
         self.decksDir      = '.'
         self.makesystem    = 'makeOld'
-        self.savedisk      = '.' # Initialized via .modelErc
+        self.savedisk      = '.' # Get from MODELERC
 
         # Now override defaults with values specified in config file
         getConfigFile(self)

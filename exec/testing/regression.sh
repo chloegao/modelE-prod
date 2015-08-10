@@ -23,8 +23,8 @@
 #
 # Caveats:
 #
-# 1) User must preload working env modules and set MODELERC env
-#    - Only builds with one compiler: gfortran
+# 1) User must preload working env modules and set MODELERC
+#    - Builds with compiler specified in MODELERC
 #    - builds with COMPILE_WITH_TRAPS=YES
 # 2) Runs interactively
 #    - OK for small rundecks
@@ -35,11 +35,18 @@
 # 4) No baseline testing is done - just internal consistency
 #    - serial vs 4 pes
 #    - checkpoint/restart vs continuous
-# 5) Needs working version of git and python.
+# 5) Needs python version 2.7.x
 #
 
 root=`pwd`
 scripts=$root/../exec/testing
+
+if [ -z "$MODELERC" ]; then
+   echo "Please set MODELERC."
+   exit 1
+else
+   compiler=`grep COMPILER $MODELERC | awk -F= '{print $2}'`
+fi
 
 cnt=0
 if [ "$#" -gt 1 ]; then
@@ -52,15 +59,14 @@ if [ "$#" -gt 1 ]; then
    node=`uname -n`
    # We need the right python version on DISCOVER
    if [[ "$node" =~ discover || "$node" =~ dali || "$node" =~ borg ]]; then
-      export PATH=/usr/local/other/SSSO_Ana-PyD/2.1.0/bin/python:$PATH
+      export PATH=/usr/local/other/SSSO_Ana-PyD/2.1.0/bin:$PATH
    fi
 
-   branch=`git branch | awk '{print $2}'` 
    repo=${root%/*}
    for run in "${rundecks[@]}"; do
       cp  $scripts/template.cfg $run.cfg
-      sed -i "s|REPO|${repo}|g"  $run.cfg
-      sed -i "s|BRANCH|${branch}|g" $run.cfg
+      sed -i "s|COMPILER|${compiler}|g" $run.cfg
+      sed -i "s|REPO|${repo}|g" $run.cfg
       sed -i "s/RUNDECK/${run}/g" $run.cfg
    done
 else
