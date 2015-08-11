@@ -5,7 +5,7 @@
 # Usage: regression.sh [RUNSRC1 RUNSRC2 ... RUNSRCN]
 #
 # Where [...] are optional arguments representing rundeck template
-# names.
+# names and one additional flag, -c, to compile only.
 #
 # Examples:
 #
@@ -20,6 +20,12 @@
 #
 #   will test E4F40, E4TcadiF40 and Earobio_g6c and all runs will 
 #   be done in the decks directory.
+#
+#   ../exec/testing/regression.sh E4TcadiF40 E4TcomasF40 -c
+#
+#   will compile E4TcadiF40 and E4TctomasF40.
+#
+# Errors, if any, will be printed on STDOUT.
 #
 # Caveats:
 #
@@ -49,11 +55,16 @@ else
 fi
 
 cnt=0
-if [ "$#" -gt 1 ]; then
+verification="restartRun"
+if [ "$#" -gt 0 ]; then
    userArgs=( "$@" )
    rundecks=()
    for arg in "${userArgs[@]}"; do
-      rundecks=( "${rundecks[@]}" "$arg" )
+      if [ "$arg" == "-c" ]; then
+	 verification=compileOnly
+      else
+	 rundecks=( "${rundecks[@]}" "$arg" )
+      fi
    done
 
    node=`uname -n`
@@ -68,9 +79,10 @@ if [ "$#" -gt 1 ]; then
       sed -i "s|COMPILER|${compiler}|g" $run.cfg
       sed -i "s|REPO|${repo}|g" $run.cfg
       sed -i "s/RUNDECK/${run}/g" $run.cfg
+      sed -i "s/VERIFICATION/${verification}/g" $run.cfg
    done
 else
-   useArgs=()
+   rundecks=("nonProduction_E_AR5_C12")
 fi
 
 python $scripts/regression.py ${rundecks[@]}

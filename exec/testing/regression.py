@@ -73,12 +73,12 @@ if __name__ == '__main__':
 
     # List of runSources to verify specified on command line
     runSources = []
-    if len(sys.argv) > 1:
+    if len(sys.argv) > 0:
         for arg in sys.argv[1:]:
             runSources.append(arg)
     else: # if none specified, use nonProduction_E_AR5_C12
         runSources.append('nonProduction_E_AR5_C12')
-    
+
     # Loop over each run source in list
     for source in runSources:
 
