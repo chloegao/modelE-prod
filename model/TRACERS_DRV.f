@@ -9302,7 +9302,7 @@ c$$$      use OldTracer_mod, only: tr_mm, nBBsources, mass2vol
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
       use OldTracer_mod, only: om2oc
-      USE AEROSOL_SOURCES, only: so2_src_3d,BBinc
+      USE AEROSOL_SOURCES, only: so2_src_3d
 #ifdef TRACERS_AEROSOLS_VBS
       USE AEROSOL_SOURCES, only: VBSemifact
       USE TRACERS_VBS, only: vbs_tr
@@ -9347,9 +9347,7 @@ c$$$      use OldTracer_mod, only: tr_mm, nBBsources, mass2vol
 !@var src_fact Factor to multiply aerosol emissions. Default is 1. Notable
 !@+ exceptions are SO2/SO4, where one file is being read and distributed to
 !@+ both tracers, and organics, where emissions of C are multiplied with OM/OC
-!@var bb_fact ituning factor to multiply biomass burning emissions. For
-!@+ IPCC emissions, this is 1.4 to match BC observations.
-      real*8 :: src_fact,bb_fact
+      real*8 :: src_fact
 !@var blsrc (m2/s) tr3Dsource (kg/s) in boundary layer,
 !@+                per unit of air mass (kg/m2)
       real*8 :: blsrc
@@ -9417,7 +9415,7 @@ C****
 #endif
 
 ! -----------
-! define src_fact (=1 by default), bb_fact (=1 by default) and src_index (=n by default)
+! define src_fact (=1 by default) and src_index (=n by default)
 ! for the gas and aerosol tracers that have 3D emissions (will apply to biomass burning)
 ! -----------
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
@@ -9430,7 +9428,6 @@ C****
      &      'M_BC1_BC', 'M_OCC_OC', 'M_BOC_BC', 'M_BOC_OC'
      &      ,'ASO4__01','AECOB_01','AOCOB_01')
           src_fact=1.d0 ! factor to multiply emissions with
-          bb_fact=1.d0 ! factor to multiply biomass_burning emissions with
           src_index=n   ! index to be used for emissions
           select case (trname(n))
 #ifndef One_percent_sulfate 
@@ -9478,8 +9475,6 @@ C****
     (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_VBS)
           case ('OCII')
             src_fact=om2oc(n)
-          case ('BCB', 'M_BC1_BC', 'M_BOC_BC','AECOB_01')
-            if(.not.do_fire(n))bb_fact=BBinc
           case ('OCB', 'M_OCC_OC', 'M_BOC_OC','AOCOB_01',
      &          'vbsAm2', 'vbsAm1', 'vbsAz',  'vbsAp1', 'vbsAp2',
      &          'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6')
@@ -9494,7 +9489,6 @@ C****
               endif
 #endif
             end select
-            if(.not.do_fire(n))bb_fact=BBinc
 #endif
           end select
 
@@ -9520,7 +9514,7 @@ C**** 3D biomass source
           end if
           do j=J_0,J_1; do i=I_0,I_1
             blay=int(dclev(i,j)+0.5d0)
-            blsrc = axyp(i,j)*src_fact*bb_fact*
+            blsrc = axyp(i,j)*src_fact*
      &       sum(sfc_src(i,j,src_index,bb_i:bb_e))/sum(MA(1:blay,i,j))
             do l=1,blay
               tr3Dsource(i,j,l,nBiomass,n) = blsrc*MA(l,i,j)

@@ -442,10 +442,6 @@
 #ifdef TRACERS_AEROSOLS_SEASALT
       use tracers_seasalt, only: tune_ss1, tune_ss2
 #endif  /* TRACERS_AEROSOLS_SEASALT */
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
-      (defined TRACERS_TOMAS)
-      USE AEROSOL_SOURCES, only: BBinc
-#endif
       use TRDIAG_COM, only: diag_rad
       use TRACER_COM, only: ntm ! should be available by this procedure call
 #ifdef TRACERS_WATER
@@ -539,10 +535,6 @@ C**** Decide on water tracer conc. units from rundeck if it exists
       call sync_param("tune_ss1",tune_ss1)
       call sync_param("tune_ss2",tune_ss2)
 #endif  /* TRACERS_AEROSOLS_SEASALT */
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
-      (defined TRACERS_TOMAS)
-      call sync_param("BBinc",BBinc)
-#endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
       (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
 C**** determine year of emissions

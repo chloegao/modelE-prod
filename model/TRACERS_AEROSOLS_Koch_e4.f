@@ -46,8 +46,6 @@ c!@var DMS_AER           DMS prescribed by AERONET (kg S/day/box)
 #endif
 !var off_HNO3 off-line HNO3 field, used for nitrate and AMP when gas phase chemistry turned off
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)     ::  off_HNO3, off_SS
-!@var BBinc enhancement factor of BB carbonaceous aerosol emissions (Kostas: should this be applied to all BB emitted tracers?)
-      real*8:: BBinc=1.0d0
 #ifdef TRACERS_AEROSOLS_VBS
 !@var VBSemifact factor that distributes organic aerosols in volatility bins
       real*8, allocatable, dimension(:) :: VBSemifact
