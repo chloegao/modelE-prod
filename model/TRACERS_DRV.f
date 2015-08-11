@@ -7957,10 +7957,16 @@ C**** Note this routine must always exist (but can be a dummy routine)
       USE DOMAIN_DECOMP_ATM, only : grid, getDomainBounds,
      & write_parallel
       USE RAD_COM, only: o3_yr
+#ifdef TRACERS_VOLCEXP
+      USE AEROSOL_SOURCES, only: so2_src_3d
+      USE timestream_mod, only: init_stream,read_stream
+      USE tracer_com, only: SO2_volc_stream,SO2_vphe_stream
+#endif
 #ifdef TRACERS_COSMO
       USE COSMO_SOURCES, only : variable_phi
 #endif
       USE CONSTANT, only: grav
+      use TimeConstants_mod, only: SECONDS_PER_DAY
       use OldTracer_mod, only: trname, itime_tr0, MAX_LEN_NAME
       use OldTracer_mod, only: nBBsources, do_fire, vol2mass
       use TRACER_COM, only: tracers, set_ntsurfsrc
@@ -8004,10 +8010,15 @@ C**** Note this routine must always exist (but can be a dummy routine)
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
      &     :: daily_gz
       data last_month/-1/
-      INTEGER J_0, J_1, I_0, I_1
+      INTEGER J_0, J_1, I_0, I_1,I,J,ll,lmax,lmin
 #ifdef TRACERS_TOMAS
       integer km, najl_num,naij_num,k
       real*8 :: scalesize(nbins+nbins) !temporal emission mass fraction
+#endif
+#ifdef TRACERS_VOLCEXP
+      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO)
+     &     :: SO2_volc_emis_expl, Plume_hei_volc_emis_expl !  volc emiss
 #endif
       class (Tracer), pointer :: pTracer
 C****
@@ -8030,6 +8041,49 @@ C****
       endif
       daily_gz = grav*daily_z
 
+
+#ifdef TRACERS_VOLCEXP
+! Reading explosive volcano emissions for SO2
+      if(.not. end_of_day) then ! synonym for model init phase
+        ! initialize the file handle
+
+        call init_stream(grid,SO2_volc_stream,'SO2_VOLCANO_EXPL','SO2'
+     &       ,0d0,1d30,'linm2m',year,dayofyear) 
+      
+        call init_stream(grid,SO2_vphe_stream,'SO2_VOLCANO_EXPL',
+     &       'Plume_height',0d0,1d30,'linm2m',year,dayofyear)
+      endif
+
+      call read_stream(grid,SO2_volc_stream,year,dayofyear,
+     &                 SO2_volc_emis_expl)
+      call read_stream(grid,SO2_vphe_stream,year,dayofyear,
+     &                 Plume_hei_volc_emis_expl)
+
+      so2_src_3d(:,:,:,2) = 0.d0
+
+      DO J=J_0,J_1                          
+      DO I=I_0,I_1  
+         if(so2_volc_emis_expl(i,j) <= 0.d0) cycle
+
+          lmax = 1
+          do while(daily_z(i,j,lmax) < Plume_hei_volc_emis_expl(i,j))
+            lmax = lmax + 1
+          enddo
+            lmin=max(1,lmax - lmax/3)
+          do ll=lmin,lmax ! add source into the upper 1/3 of the plume
+                          ! conversion kt/d into kg/s
+          if (lmax <= 2) then
+            so2_src_3d(i,j,1,2) = so2_src_3d(i,j,1,2)
+     &                + so2_volc_emis_expl(i,j)/SECONDS_PER_DAY*1.d6
+          else
+            so2_src_3d(i,j,ll,2) = so2_src_3d(i,j,ll,2)
+     &                + (1./(float(lmax-lmin)+1)) 
+     &                * so2_volc_emis_expl(i,j)/SECONDS_PER_DAY*1.d6
+          endif
+          enddo
+        enddo
+      enddo
+#endif
 #ifdef TRACERS_SPECIAL_Lerner
       if (.not. end_of_day) then
 C**** Initialize tables for linoz
@@ -9497,12 +9551,17 @@ C****
 C**** 3D volcanic source
         select case (trname(n))
         case ('SO2', 'SO4', 'M_ACC_SU', 'M_AKK_SU')
+#ifdef TRACERS_VOLCEXP
+          tr3Dsource(:,J_0:J_1,:,nVolcanic,n) =
+     &      so2_src_3d(:,J_0:J_1,:,2)*src_fact
+          call apply_tracer_3Dsource(nVolcanic,n)
+#else
           tr3Dsource(:,J_0:J_1,:,nVolcanic,n) =
      &      so2_src_3d(:,J_0:J_1,:,1)*src_fact
           call apply_tracer_3Dsource(nVolcanic,n)
+#endif
         end select
 #endif
-
 C**** 3D biomass source
         tr3Dsource(:,J_0:J_1,:,nBiomass,n) = 0.
         if(do_fire(src_index) .or. nBBsources(src_index) > 0) then

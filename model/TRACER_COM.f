@@ -43,7 +43,9 @@ C
       use OldTracer_mod, only: ntisurfsrc
       use OldTracer_mod, only: trli0
       use OldTracer_mod, only: trsi0
-
+#ifdef TRACERS_VOLCEXP
+      use timestream_mod, only : timestream
+#endif
 #ifdef TRACERS_AEROSOLS_VBS
       use TRACERS_VBS, only: vbs_bins
 #endif
@@ -551,6 +553,10 @@ C**** arrays that could be general, but are only used by chemistry
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: rxts,rxts1,rxts2,rxts3
      *                                         ,rxts4
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:,:) :: krate
+#endif
+#ifdef TRACERS_VOLCEXP
+      type(timestream) :: SO2_volc_stream  ! explosive emissions
+      type(timestream) :: SO2_vphe_stream  ! explosive plume height
 #endif
 
 !@var xyz_count,xyz_list count/list of tracers in category xyz.
