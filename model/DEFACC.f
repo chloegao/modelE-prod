@@ -5466,7 +5466,7 @@ c
       jk_tx = k
       denom_jl(k) = jk_dpwt
       sname_jl(k) = 'tx' !'AJK03'
-      lname_jl(k) = 'TEMPERATURE' !'(TX-273.16)*DP'
+      lname_jl(k) = 'TEMPERATURE' !'(TX-TFREZ)*DP'
       units_jl(k) = 'C'
       lgrid_jl(k) = ctr_cp
       ia_jl(k) = ia_dga

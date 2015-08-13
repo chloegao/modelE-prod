@@ -779,19 +779,20 @@ C
 C       Internal:
 C               lifout  !Logical switch set .TRUE. iff diagnostic output here
 
-      implicit real*8 (a-h,n,o-z)
+      implicit none
 C080625AH
         integer igrid,jgrid
         INTEGER m       ! Number of ocean levels
         REAL*8 ba1(m)   ! Array for first baroclinic mode as calculated by this routine
         LOGICAL lifout
         PARAMETER(lifout=.TRUE.)
+      real*8 n2,z,n,ni,pi,a,nm,arg,B1
       dimension n2(m)   !Array for N^2
       dimension z(m),n(m),ni(m) !Arrays for depth, SQRT(N^2), and z integral of N^2
         REAL*8 frd      !"f r_d" calculated in this routine
 C******AH
 C080625AH Work variables introduced.
-        INTEGER im
+        INTEGER im,i
 C******AH
 C080630AH Depth integrations are only done from maximum N level, "the pycnocline depth",
 C       to the bottom so points above the depth of Maximum N are excluded unlike in B1b.f.
@@ -799,7 +800,6 @@ C       Introduce new arrays for depth and SQRT(N^2) which start at "pycnocline 
         REAL*8 zsubpyc(m),nsubpyc(m)
         INTEGER isubpyc(m),msubpyc
 C******AH
-
 
       pi=acos(-1.d0)
       a=.1
@@ -882,8 +882,10 @@ c     IF(im.eq.m) WRITE(*,*)'b1:im,m,frd=',ik,jk,im,m,frd
 C*****
       subroutine dqtfg(x,y,z,n)
       !@sum integrate y from x(1) to x(i) and store it in z(i)
-      implicit real*8 (a-h,o-z)
-      dimension x(n),y(n),z(n)
+      implicit none
+      real*8 sum1,sum2
+      integer n,i
+      real*8 x(n),y(n),z(n)
       sum2=0.
       if(n-1)4,3,1
     1 do 2 i=2,n

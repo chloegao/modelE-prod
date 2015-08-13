@@ -1464,7 +1464,7 @@ C*** Unpack read global data into local distributed arrays
       allocate(SCALE_TCON(ktcon,ntmxcon))
       allocate(TITLE_TCON(ktcon,ntmxcon))
       allocate(IA_TCON(ktcon,ntmxcon))
-      IA_TCON = 0
+      IA_TCON = 1
       allocate(NSUM_TCON(ktcon,ntmxcon))
       NSUM_TCON = 0
       allocate(NOFMT(ktcon,ntmxcon))

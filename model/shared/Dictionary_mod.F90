@@ -193,18 +193,18 @@ module Dictionary_mod
   integer :: num_cparam = 0
 
   interface set_param
-    module procedure set_iparam, set_rparam, set_cparam
-    module procedure  set_aiparam, set_arparam, set_acparam
+    module procedure set_iparam, set_rparam, set_cparam, set_lparam
+    module procedure  set_aiparam, set_arparam, set_acparam, set_alparam
   end interface
 
   interface get_param
-    module procedure get_iparam, get_rparam, get_cparam
-    module procedure get_aiparam, get_arparam, get_acparam
+    module procedure get_iparam, get_rparam, get_cparam, get_lparam
+    module procedure get_aiparam, get_arparam, get_acparam, get_alparam
   end interface
 
   interface sync_param
-    module procedure sync_iparam, sync_rparam, sync_cparam
-    module procedure sync_aiparam, sync_arparam, sync_acparam
+    module procedure sync_iparam, sync_rparam, sync_cparam, sync_lparam
+    module procedure sync_aiparam, sync_arparam, sync_acparam, sync_alparam
   end interface
 
   interface query_param
@@ -647,6 +647,96 @@ contains
   end subroutine get_acparam
 
 
+  !***** logicals ******!
+
+
+  subroutine set_lparam( name, value, opt )
+    implicit none
+    character*(*), intent(in) :: name
+    logical, intent(in) :: value
+    character(len=*), optional, intent(in) :: opt
+    logical v(1)
+    v(1) = value
+    call set_alparam( name, v, 1, opt )
+    return
+  end subroutine set_lparam
+
+
+  subroutine set_alparam( name, value, np, opt )
+    implicit none
+    character*(*), intent(in) :: name
+    integer, intent(in) :: np
+    logical, intent(in) :: value(np)
+    character(len=*), optional, intent(in) :: opt
+    type (ParamStr), pointer :: PStr
+    logical flag
+    character*1 source
+
+    flag = .false.
+    source = 'u'
+    if ( present(opt) ) then
+      if ( scan(opt,'o') .ne. 0 ) flag = .true.
+      if ( scan(opt,'r') .ne. 0 ) source = 'r'
+    endif
+
+    call set_pstr( name, np, 'i', PStr, flag )
+    where  (value(1:np) )
+      Idata( PStr%indx : PStr%indx+np-1 ) = 1
+    elsewhere
+      Idata( PStr%indx : PStr%indx+np-1 ) = 0
+    end where
+    PStr%source = source
+    return
+  end subroutine set_alparam
+
+
+  subroutine get_lparam( name, value, default )
+    implicit none
+    character*(*), intent(in) ::  name
+    logical, intent(out) ::  value
+    logical, intent(in), optional ::  default
+    logical v(1)
+
+    if ( present(default) ) then
+      call get_alparam( name, v, 1, (/default/) )
+    else
+      call get_alparam( name, v, 1 )
+    endif
+    value = v(1)
+    return
+  end subroutine get_lparam
+
+
+  subroutine get_alparam( name, value, np, default, update_access_flag )
+    implicit none
+    character*(*), intent(in) ::  name
+    integer, intent (in) :: np
+    logical, intent(out) ::  value(np)
+    logical, intent(in), optional ::  default(np)    
+    logical, intent(in), optional :: update_access_flag
+    logical :: update_access
+    type (ParamStr), pointer :: PStr
+
+    update_access = .true.
+    if (present(update_access_flag) ) update_access = update_access_flag
+
+    call get_pstr( name, np, 'i', PStr )
+    if ( associated( PStr) ) then
+      value(1:np) = Idata( PStr%indx : PStr%indx+np-1 ).ne.0
+      if ( update_access ) PStr%is_accessed = 'y'
+    else if ( present(default) ) then
+      value(1:np) = default(1:np)
+    else
+      print *, 'PARAM: Can''t get - not in database : ', name
+      call stop_model( &
+           &       'PARAM: Can''t get parameter - not in database',255)
+    endif
+    return
+  end subroutine get_alparam
+
+
+
+
   !***** sync functions ******!
 
   subroutine sync_iparam( name, value )
@@ -728,6 +818,33 @@ contains
       call set_param( name, value, np )
     endif
   end subroutine sync_acparam
+
+
+  subroutine sync_lparam( name, value )
+    implicit none
+    character*(*), intent(in) :: name
+    logical, intent(inout) :: value
+
+    if ( is_set_param( name ) ) then
+      call get_param( name, value )
+    else
+      call set_param( name, value )
+    endif
+  end subroutine sync_lparam
+
+
+  subroutine sync_alparam( name, value, np )
+    implicit none
+    character*(*), intent(in) :: name
+    integer, intent(in) :: np
+    logical, intent(inout) :: value(np)
+
+    if ( is_set_param( name ) ) then
+      call get_param( name, value, np )
+    else
+      call set_param( name, value, np )
+    endif
+  end subroutine sync_alparam
 
 
 

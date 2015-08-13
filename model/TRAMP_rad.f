@@ -143,15 +143,23 @@ C Longwave: --------------------------------------------------------------------
       ENDDO   ! modes
       ENDDO   ! level
 
-c    write ss diagnostic on ds1 and ds2
+c    write diagnostic on transported tracers: ss->ds1 and ds2
+        TTAUSV(:,3) =  TTAUSV(:,3) + TTAUSV(:,4) 
         TTAUSV(:,4) =  TTAUSV(:,7) 
-        TTAUSV(:,6) =  TTAUSV(:,8) 
-        aesqex(:,:,4)= aesqex(:,:,7)
-        aesqex(:,:,6)= aesqex(:,:,8)
-        aesqsc(:,:,4)= aesqsc(:,:,7)
-        aesqsc(:,:,6)= aesqsc(:,:,8)
-        aesqcb(:,:,4)= aesqcb(:,:,7)
-        aesqcb(:,:,6)= aesqcb(:,:,8)
+        TTAUSV(:,5) =  TTAUSV(:,5) + TTAUSV(:,6) 
+        TTAUSV(:,6:14) =  TTAUSV(:,8:16) 
+        aesqex(:,:,3) =  aesqex(:,:,3) + aesqex(:,:,4) 
+        aesqex(:,:,4) =  aesqex(:,:,7) 
+        aesqex(:,:,5) =  aesqex(:,:,5) + aesqex(:,:,6) 
+        aesqex(:,:,6:14) =  aesqex(:,:,8:16) 
+        aesqsc(:,:,3) =  aesqsc(:,:,3) + aesqsc(:,:,4) 
+        aesqsc(:,:,4) =  aesqsc(:,:,7) 
+        aesqsc(:,:,5) =  aesqsc(:,:,5) + aesqsc(:,:,6) 
+        aesqsc(:,:,6:14) =  aesqsc(:,:,8:16) 
+        aesqcb(:,:,3) =  aesqcb(:,:,3) + aesqcb(:,:,4) 
+        aesqcb(:,:,4) =  aesqcb(:,:,7) 
+        aesqcb(:,:,5) =  aesqcb(:,:,5) + aesqcb(:,:,6) 
+        aesqcb(:,:,6:14) =  aesqcb(:,:,8:16) 
 
          ENDIF       ! AMP_RAD_KEY=1or3
 
@@ -306,15 +314,23 @@ C Longwave: --------------------------------------------------------------------
       ENDDO   ! modes
       ENDDO   ! level
 
-c    write ss diagnostic on ds1 and ds2
+c    write diagnostic on transported tracers: ss->ds1 and ds2        
+        TTAUSV(:,3) =  TTAUSV(:,3) + TTAUSV(:,4) 
         TTAUSV(:,4) =  TTAUSV(:,7) 
-        TTAUSV(:,6) =  TTAUSV(:,8) 
-        aesqex(:,:,4)= aesqex(:,:,7)
-        aesqex(:,:,6)= aesqex(:,:,8)
-        aesqsc(:,:,4)= aesqsc(:,:,7)
-        aesqsc(:,:,6)= aesqsc(:,:,8)
-        aesqcb(:,:,4)= aesqcb(:,:,7)
-        aesqcb(:,:,6)= aesqcb(:,:,8)
+        TTAUSV(:,5) =  TTAUSV(:,5) + TTAUSV(:,6) 
+        TTAUSV(:,6:14) =  TTAUSV(:,8:16) 
+        aesqex(:,:,3) =  aesqex(:,:,3) + aesqex(:,:,4) 
+        aesqex(:,:,4) =  aesqex(:,:,7) 
+        aesqex(:,:,5) =  aesqex(:,:,5) + aesqex(:,:,6) 
+        aesqex(:,:,6:14) =  aesqex(:,:,8:16) 
+        aesqsc(:,:,3) =  aesqsc(:,:,3) + aesqsc(:,:,4) 
+        aesqsc(:,:,4) =  aesqsc(:,:,7) 
+        aesqsc(:,:,5) =  aesqsc(:,:,5) + aesqsc(:,:,6) 
+        aesqsc(:,:,6:14) =  aesqsc(:,:,8:16) 
+        aesqcb(:,:,3) =  aesqcb(:,:,3) + aesqcb(:,:,4) 
+        aesqcb(:,:,4) =  aesqcb(:,:,7) 
+        aesqcb(:,:,5) =  aesqcb(:,:,5) + aesqcb(:,:,6) 
+        aesqcb(:,:,6:14) =  aesqcb(:,:,8:16) 
 
         ENDIF     ! AMP_RAD_KEY = 2
       endif
@@ -348,7 +364,7 @@ c -----------------------------------------------------------------
 
       ! Local
       INTEGER n,w,s,nAMP
-      REAL*8,     DIMENSION(nmodes,7) :: VolFrac, VMass
+      REAL*8,     DIMENSION(nmodes,7) :: VolFrac, VMass=0
       REAL*8                          :: H2O, NO3 
       REAL(8), PARAMETER :: TINYNUMER = 1.0D-30 
       COMPLEX*8, DIMENSION(6,7)      :: Ri
@@ -413,13 +429,13 @@ cBond + Berstroem, all wavelength
                case ('SU')
                   VMass(AMP_MODES_MAP(nAMP),1) =trm(i,j,l,n)/DENS_SULF
                case ('BC')
-                  VMass(AMP_MODES_MAP(nAMP),1) =trm(i,j,l,n)/DENS_BCAR
+                  VMass(AMP_MODES_MAP(nAMP),2) =trm(i,j,l,n)/DENS_BCAR
                case ('OC')
-                  VMass(AMP_MODES_MAP(nAMP),1) =trm(i,j,l,n)/DENS_OCAR
+                  VMass(AMP_MODES_MAP(nAMP),3) =trm(i,j,l,n)/DENS_OCAR
                case ('DU')
-                  VMass(AMP_MODES_MAP(nAMP),1) =trm(i,j,l,n)/DENS_DUST
+                  VMass(AMP_MODES_MAP(nAMP),4) =trm(i,j,l,n)/DENS_DUST
                case ('SS')
-                  VMass(AMP_MODES_MAP(nAMP),1) =trm(i,j,l,n)/DENS_SEAS
+                  VMass(AMP_MODES_MAP(nAMP),5) =trm(i,j,l,n)/DENS_SEAS
                end select
              endif
            else                           ! Number

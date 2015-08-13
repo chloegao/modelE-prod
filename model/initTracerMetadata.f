@@ -198,7 +198,6 @@
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)  || (defined TRACERS_AEROSOLS_SEASALT)
-      use TRACER_COM, only: aer_int_yr
       USE TRACER_COM, only: offline_dms_ss, offline_ss
 #endif
       use MiscTracersMetadata_mod
@@ -441,10 +440,6 @@
 #ifdef TRACERS_AEROSOLS_SEASALT
       use tracers_seasalt, only: tune_ss1, tune_ss2
 #endif  /* TRACERS_AEROSOLS_SEASALT */
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
-      (defined TRACERS_TOMAS)
-      USE AEROSOL_SOURCES, only: BBinc
-#endif
       use TRDIAG_COM, only: diag_rad
       use TRACER_COM, only: ntm ! should be available by this procedure call
 #ifdef TRACERS_WATER
@@ -453,7 +448,6 @@
 #endif
 #endif /* TRACERS_WATER */
 #ifdef TRACERS_SPECIAL_Shindell
-      use tracer_sources, only: aircraft_Tyr1,aircraft_Tyr2
       USE TRCHEM_Shindell_COM,only:LCOalt,PCOalt,
      &     CH4altINT,CH4altINX,LCH4alt,PCH4alt,
      &     CH4altX,CH4altT,ch4_init_sh,ch4_init_nh,scale_ch4_IC_file,
@@ -538,10 +532,6 @@ C**** Decide on water tracer conc. units from rundeck if it exists
       call sync_param("tune_ss2",tune_ss2)
 #endif  /* TRACERS_AEROSOLS_SEASALT */
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
-      (defined TRACERS_TOMAS)
-      call sync_param("BBinc",BBinc)
-#endif
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
       (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
 C**** determine year of emissions
       if (is_set_param("aer_int_yr")) then
@@ -585,26 +575,6 @@ C**** set super saturation parameter for isotopes if needed
       call sync_param("use_rad_ch4",use_rad_ch4)
       call sync_param("Lmax_rad_O3",Lmax_rad_O3)
       call sync_param("Lmax_rad_CH4",Lmax_rad_CH4)
-      if (is_set_param("aircraft_Tyr1")) then
-        call get_param("aircraft_Tyr1",aircraft_Tyr1)
-      else
-        if (master_yr == 0) then
-          call stop_model("Please provide aircraft_Tyr1 via the "//
-     .                    "rundeck", 255)
-        else
-          aircraft_Tyr1=master_yr
-        endif
-      endif
-      if (is_set_param("aircraft_Tyr2")) then
-        call get_param("aircraft_Tyr2",aircraft_Tyr2)
-      else
-        if (master_yr == 0) then
-          call stop_model("Please provide aircraft_Tyr2 via the "//
-     .                    "rundeck", 255)
-        else
-          aircraft_Tyr2=master_yr
-        endif
-      endif
       call sync_param("use_rad_n2o",use_rad_n2o)
       call sync_param("use_rad_cfc",use_rad_cfc)
       call sync_param("PIratio_N2O",PIratio_N2O)

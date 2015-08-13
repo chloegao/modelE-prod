@@ -21,7 +21,6 @@ Preprocessor Options
 !#define TRACERS_OceanBiology
 !#define OBIO_ON_GARYocean
 !#define pCO2_ONLINE
-!#define OBIO_RAD_coupling
 #define CHL_from_SeaWIFs
 End Preprocessor Options
 
@@ -115,7 +114,7 @@ REG=REG2X2.5                    ! special regions-diag
 RVR=RD_modelE_F.nc             ! river direction file
 NAMERVR=RD_modelE_F.names.txt  ! named river outlets
 RADN1=sgpgxg.table8             ! rad.tables and history files
-RADN2=LWTables33k.1a            ! rad.tables and history files
+RADN2=LWTables33k_lowH2O_CO2_O3_planck_1-800            ! rad.tables and history files
 RADN4=LWCorrTables33k            ! rad.tables and history files
 RADN5=H2Ocont_MT_CKD  ! Mlawer/Tobin_Clough/Kneizys/Davies H2O continuum table
 RADN3=miescatpar.abcdv2
@@ -150,7 +149,6 @@ alk_inicond=alk_glodap_annmean.asc       ! initial cond/forcing for alk
 (GLODAP)
 !!!oasimdirect=oasimdirect_20w_new          ! spectral light components
                                             ! if not defined
-OBIO_RAD_coupling
 atmFe_inicond=iron_gocart_1x1mon.asc     ! GOCART iron flux
 atmFedirect1=iron_ron_195x180_20w.asc    ! Ron Miller's dust fluxes
 facirr=facirr.asc                        ! factors for mean irradiance w/in

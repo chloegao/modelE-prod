@@ -24,12 +24,6 @@
       public asolz_loc
       public awind_loc
 #endif
-#ifdef OBIO_RAD_coupling
-      public avisdir_loc
-      public avisdif_loc
-      public anirdir_loc
-      public anirdif_loc
-#endif
 
       ! accumulators for output on atmospheric grid
       ! (shouldn't these actually be accumulated on ocean grid
@@ -44,10 +38,6 @@
       real, ALLOCATABLE, DIMENSION(:,:)    :: asolz_loc
 !wind speed from modelE (see hycom2.f)
       real, ALLOCATABLE, DIMENSION(:,:)    :: awind_loc
-#endif
-#ifdef OBIO_RAD_coupling
-      real*8, ALLOCATABLE, DIMENSION(:,:) :: avisdir_loc,avisdif_loc
-     .     ,anirdir_loc,anirdif_loc
 #endif
 
 
@@ -85,12 +75,6 @@
 #ifdef TRACERS_OceanBiology
       ALLOCATE(asolz_loc(aI_0H:aI_1H,aJ_0H:aJ_1H))
       ALLOCATE(awind_loc(aI_0H:aI_1H,aJ_0H:aJ_1H))
-#endif
-#ifdef OBIO_RAD_coupling
-      ALLOCATE(avisdir_loc(aI_0H:aI_1H,aJ_0H:aJ_1H),
-     &         avisdif_loc(aI_0H:aI_1H,aJ_0H:aJ_1H),
-     &         anirdir_loc(aI_0H:aI_1H,aJ_0H:aJ_1H),
-     &         anirdif_loc(aI_0H:aI_1H,aJ_0H:aJ_1H) )
 #endif
 
       end subroutine alloc_hycom_atm

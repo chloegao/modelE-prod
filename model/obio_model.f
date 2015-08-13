@@ -17,12 +17,6 @@
      .                    ,wind
      .                    ,alk
      .                    ,tirrq3d
-#ifdef OBIO_RAD_coupling
-      use obio_forc, only: eda_frac,esa_frac
-     .                    ,ovisdir_ij,ovisdif_ij,onirdir_ij,onirdif_ij
-#else
-      use obio_forc, only: Eda,Esa,Eda2,Esa2
-#endif
       USE obio_com,  only: dobio,gcmax,day_of_month,hour_of_day
      .                    ,temp1d,dp1d,obio_P,det,car,avgq1d
      .                    ,ihra_ij,gcmax1d,atmFe_ij,covice_ij
@@ -65,6 +59,7 @@
 #endif
 #endif
 
+      use runtimecontrols_mod, only: tracers_alkalinity
 #ifdef OBIO_ON_GARYocean
       use obio_com, only: obio_deltat,nstep0
      .                    ,tracer =>tracer_loc        
@@ -73,7 +68,6 @@
      .                 ,ij_doc,ij_iron,ij_alk,ij_Ed,ij_Es,ij_pp
      .                 ,ij_cexp,ij_lim,ij_wsd,ij_ndet,ij_xchl
      .                 ,ij_rhs,ij_flux,ij_fca
-      use runtimecontrols_mod, only: tracers_alkalinity
 
 #ifdef OBIO_RUNOFF
 #ifdef NITR_RUNOFF
@@ -166,11 +160,14 @@
 #else
       integer kn
 #endif
+      integer :: idx_co2
       character string*80
       character jstring*3
 
       logical vrbos,noon,errcon
       integer :: year, month, dayOfYear, date, hour
+      real, allocatable, dimension(:), save :: eda_frac, esa_frac
+      integer :: iu_bio
 
       if(.not.dobio) return
 
@@ -522,32 +519,6 @@ cdiag write(*,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
       if (vrbos) write(*,*) 'compensation depth, kzc = ',kzc
 
 
-#ifdef OBIO_RAD_coupling
-       ovisdir_ij=atm%dirvis(i,j)
-       ovisdif_ij=atm%difvis(i,j)
-       onirdir_ij=atm%dirnir(i,j)
-       onirdif_ij=atm%difnir(i,j)
-
-       if (vrbos)write(*,'(/,a,3i5,4e12.4)')
-     .    'obio_model, radiation: ',
-     .    nstep,i,j,ovisdir_ij,ovisdif_ij,onirdir_ij,onirdif_ij
-#else
-       !OASIM spectral irradiance data just above the surface
-       !Eda and Esa fields have ihr=1:12, ie every 2hrs
-!      do ihr=1,nhn
-!       do ichan=1,nlt
-!        Eda2(ichan,ihr)=Eda(i,j,ichan,ihr,l0)*w0
-!    .                  +Eda(i,j,ichan,ihr,l1)*w1
-!    .                  +Eda(i,j,ichan,ihr,l2)*w2
-!    .                  +Eda(i,j,ichan,ihr,l3)*w3
-!        Esa2(ichan,ihr)=Esa(i,j,ichan,ihr,l0)*w0
-!    .                  +Esa(i,j,ichan,ihr,l1)*w1
-!    .                  +Esa(i,j,ichan,ihr,l2)*w2
-!    .                  +Esa(i,j,ichan,ihr,l3)*w3
-!       enddo
-!      enddo
-#endif
-
        !solz is read inside hycom.f and forfun.f
 !      do ihr=1,12
 !       solz2(ihr)=solz_all(i,j,ihr,l0)*w0
@@ -582,7 +553,8 @@ cdiag write(*,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
      .   nstep,i,j,solz,sunz,wind,atmFe_ij
        endif
 
-       if (atm%n_co2n>0) co2flux=atm%trgasex(atm%n_co2n, i, j)
+       idx_co2=atm%gasex_index%getindex(atm%n_co2n)
+       if (idx_co2>0) co2flux=atm%trgasex(idx_co2, i, j)
 
        !------------------------------------------------------------
        !at the beginning of each day only
@@ -635,25 +607,18 @@ cdiag    endif
        endif   !end of calculations for the beginning of day
 
 
-       !------------------------------------------------------------
-#ifndef OBIO_RAD_coupling
-       !Eda and Esa OASIM data is given every 2hrs
-       if (mod(hour_of_day,2) .eq. 0) then
-       !only every 2 hrs
-#endif
-
-         do ichan = 1,nlt
-           Ed(ichan) = 0.0
-           Es(ichan) = 0.0
-         enddo
-         rmud = 0.0
-         iyear=2001
+       do ichan = 1,nlt
+         Ed(ichan) = 0.0
+         Es(ichan) = 0.0
+       enddo
+       rmud = 0.0
+       iyear=2001
 
 
          !compute rod and ros only here. not ocean albedo.
          !ocean albedo is computed in ALBEDO.f
          !have to have hygr =  .true. 
-         call ocalbedo(wind,solz,dummy,dummy,dummy1,
+       call ocalbedo(wind,solz,dummy,dummy,dummy1,
      .                      rod,ros,.true.,i,j)
 
 
@@ -669,48 +634,40 @@ cdiag.    nstep,i,j,k,rod(k),ros(k)
 cdiag    enddo
 
          !only call obio_sfcirr for points in light
-         tot = 0.0
+       tot = 0.0
+       if (.not.allocated(eda_frac)) then
+         allocate(eda_frac(nlt), esa_frac(nlt))
+         open(newunit=iu_bio,file='eda_esa_ratios',status='unknown')
+         do ichan=1,nlt
+           read(iu_bio,'(3f13.8)')dummy1,eda_frac(ichan),esa_frac(ichan)
+         enddo
+         close(iu_bio)
+       endif
+       if (allocated(atm%dirvis)) then
          do ichan = 1,nlt
-#ifdef OBIO_RAD_coupling
-          if (ichan .le. 18) then     !visible + uv
-              Ed(ichan) = ovisdir_ij * eda_frac(ichan)
-              Es(ichan) = ovisdif_ij * esa_frac(ichan)
-          else               !nir
-              Ed(ichan) = onirdir_ij * eda_frac(ichan)
-              Es(ichan) = onirdif_ij * esa_frac(ichan)
-          endif
-          tot = tot + Ed(ichan)+Es(ichan)
+           if (ichan .le. 18) then     !visible + uv
+             Ed(ichan) = atm%dirvis(i,j) * eda_frac(ichan)
+             Es(ichan) = atm%difvis(i,j) * esa_frac(ichan)
+           else               !nir
+             Ed(ichan) = atm%dirnir(i,j) * eda_frac(ichan)
+             Es(ichan) = atm%difnir(i,j) * esa_frac(ichan)
+           endif
 
-!         if (ichan.eq.7) then
-!         write(*,'(a,4i5,7e12.4)')'obio_model, tirrq1: ',
-!    .         nstep,i,j,ichan,
-!    .         ovisdir_ij,eda_frac(ichan),
-!    .         ovisdif_ij,esa_frac(ichan),
-!    .         Ed(ichan),Es(ichan),tot
-!         endif
+           tot = tot + Ed(ichan)+Es(ichan)
 
 #ifdef OBIO_ON_GARYocean
        !integrate over all ichan
-       OIJ(I,J,IJ_ed) = OIJ(I,J,IJ_ed) + Ed(ichan) ! direct sunlight   
-       OIJ(I,J,IJ_es) = OIJ(I,J,IJ_es) + Es(ichan) ! diffuse sunlight   
-#endif
-#else
-          Ed(ichan) = Eda2(ichan,ihr0)
-          Es(ichan) = Esa2(ichan,ihr0)
-          tot = tot + Eda2(ichan,ihr0)+Esa2(ichan,ihr0)
+           OIJ(I,J,IJ_ed) = OIJ(I,J,IJ_ed) + Ed(ichan) ! direct sunlight   
+           OIJ(I,J,IJ_es) = OIJ(I,J,IJ_es) + Es(ichan) ! diffuse sunlight   
 #endif
          enddo  !ichan
+       endif
          noon=.false.
          if (hour_of_day.eq.12)then
           if (i.eq.itest.and.j.eq.jtest)noon=.true.
          endif
          if (tot .ge. 0.1) call obio_sfcirr(noon,rod,ros,vrbos)
 
-!         write(*,'(a,4i5,4e12.4)')'obio_model, tirrq2: ',
-!    .         nstep,i,j,7,
-!    .         Ed(7),Es(7),rod(7),ros(7)
-
-      
       if (vrbos) then
         write(*,'(a,3i9)')
      .       'obio_model: counter days,   i,j,nstep=',i,j,nstep
@@ -786,9 +743,6 @@ cdiag    enddo
 
          if (tot .ge. 0.1) ihra_ij = ihra_ij + 1
 
-#ifndef OBIO_RAD_coupling
-       endif   !every even hour of the day
-#endif
 
        !------------------------------------------------------------
        !compute tendency terms on the m level

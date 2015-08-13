@@ -8,12 +8,10 @@ c from reactions *within* family only:
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
 
 C**** GLOBAL parameters and variables:
-      USE RESOLUTION, only : ls1,ptop,psf
       USE RESOLUTION, only : LM
-      USE DYNAMICS, only : sig
+      Use ATM_COM,    Only: PMIDL00
       USE TRACER_COM, only : n_CH4, n_Ox, nn_Ox, nn_CH4
       USE TRCHEM_Shindell_COM, only:ss,rr,y,nO2,nM,nH2O,nO,nO1D,nO3,pOx
-
       IMPLICIT NONE
 
 C**** Local parameters and variables and arguments:
@@ -26,10 +24,10 @@ C**** Local parameters and variables and arguments:
 !@var PRES local nominal pressure
       integer, intent(IN)   :: Lmax,I,J
       integer               :: L,iO3form
-      REAL*8, DIMENSION(LM) :: PRES ! keep at LM; defined by SIG(:)
+      REAL*8, DIMENSION(LM) :: PRES ! keep at LM; defined by PMIDL00(:)
       real*8                :: az, bz, P1
 
-      PRES(1:LM)=SIG(1:LM)*(PSF-PTOP)+PTOP
+      PRES(1:LM) = PMIDL00(1:LM)
 #ifdef TRACERS_TERP
       iO3form=98
 #else
@@ -151,18 +149,16 @@ C       Set limits on NO, NO2, NOx:
       END SUBROUTINE NOxfam
 
 
-
       SUBROUTINE HOxfam(Lmax,I,J)
 !@sum HOxfam Find HOx family (OH,HO2) partitioning assuming equilibrium
 !@+   concentration of HOx.
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
 
 C**** GLOBAL parameters and variables:
-      USE RESOLUTION, only : LS1,ptop,psf
+      USE RESOLUTION, only : LS1
       USE RESOLUTION, only : LM
-      USE DYNAMICS, only : sig
       USE GEOM, only : LAT2D_DG
-      USE ATM_COM, only: LTROPO
+      USE ATM_COM, only: LTROPO,PMIDL00
 
       USE TRACER_COM, only : n_CH4,n_HNO3,n_CH3OOH,n_H2O2,n_HCHO,n_CO,
      &                       n_Paraffin,n_Alkenes,n_Isoprene,n_AlkylNit,
@@ -209,7 +205,7 @@ C**** Local parameters and variables and arguments:
      &   yAtomicH
       REAL*8, DIMENSION(LM) :: PRES ! can keep LM
 
-      PRES(1:LM)=SIG(1:LM)*(PSF-PTOP)+PTOP
+      PRES(1:LM) = PMIDL00(1:LM)
 
       select case(which_trop)
       case(0); maxT=min(ltropo(I,J),Lmax)

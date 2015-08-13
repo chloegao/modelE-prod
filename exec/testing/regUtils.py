@@ -1,7 +1,8 @@
-# This module contains uyilities to help setup the regression tests
+# This module contains utilities to help setup the regression tests
 import string
 import ConfigParser
 import os
+import re
 import sys
 import errno
 import shutil
@@ -9,20 +10,76 @@ import subprocess
 import logging
 from regTest import *
 
-logger = logging.getLogger('regUtils')
+logger = logging.getLogger('utils')
+
+import os, datetime
+
+#-------------------------------------------------------------------------------
+# Create directory wit timestamp
+def mkdirTimeSTamp(list, filename):
+    mydir = os.path.join(os.getcwd(), datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
+    try:
+        os.makedirs(mydir)
+    except OSError, e:
+        if e.errno != 17:
+            raise # This was not a "directory exist" error..
+    with open(os.path.join(mydir, filename), 'w') as d:
+        d.writelines(list)
+
+#-------------------------------------------------------------------------------
+# Create/return a list of model run configurations specified in config file
+def getModelConfigurations(config):
+    sections = config.sections()
+    modelConfig = {}
+
+# Retrieve all model run configurations. For convenience divide the sections
+# in the configuration file into two types: CONFIG and others. The former 
+# have CONFIG in their names. Thus, if a section name does NOT have CONFIG 
+# in its name then it is a rundeck configuration.
+    for sect in sections:
+        match = not re.search("CONFIG",sect)
+        # get all rundeck sections from config file
+        if (match):
+            modelConfig[sect] = ConfigSectionMap(config, sect)
+
+# Store each model run configurations in a list and let each item in the list
+# have access to the user-defined options
+    runList = []
+    for name,options in modelConfig.items():
+        # Each item is a regression test (regTest) instance
+        runList.append(regTest(name))
+    userconfig = ConfigSectionMap(config, 'USERCONFIG')
+    for d in runList:
+        d.setOpts(userconfig, modelConfig)
+        
+    return runList
+
+#-------------------------------------------------------------------------------
+# Create a directory composed of various user-defined attributes
+def mkdirCommand(config, deckname, compiler, cmode):
+    userconfig = ConfigSectionMap(config, 'USERCONFIG')
+    branch    = userconfig['repobranch']
+    scratch   = userconfig['scratchdir'] + '/scratch/' + branch + '/'
+    reference = scratch + '/' + branch
+    adir      = scratch + '/' + compiler + '/' + deckname + cmode
+    if not os.path.isdir(adir):
+        mkdir_p(adir)
 
 #-------------------------------------------------------------------------------
 # Return a command that creates a clone of the reference clone
-def gitCloneCommand(config, deckname, compiler):
+def gitCloneCommand(config, deckname, compiler, cmode):
     userconfig = ConfigSectionMap(config, 'USERCONFIG')
     branch    = userconfig['repobranch']
-    scratch   = userconfig['scratchdir'] + '/regression_scratch/' + branch + '/'
+    scratch   = userconfig['scratchdir'] + '/scratch/' + branch + '/'
     reference = scratch + '/' + branch
-    clone     = scratch + '/' + compiler + '/' + deckname
+    clone     = scratch + '/' + compiler + '/' + deckname + cmode
 # if clone does not exist then create it
     if not os.path.isdir(clone):
         s = string.Template('git clone -b $b $r $t > /dev/null 2>&1')
         return s.substitute(b=branch, r=reference, t=clone)
+    else:
+        logger.debug('Git clone %s exists', clone)
+        return clone
 
 #-------------------------------------------------------------------------------
 # Workaround for "mkdir -p" command
@@ -37,17 +94,18 @@ def mkdir_p(path):
 #-------------------------------------------------------------------------------
 # "Safe" way to clean the contents of a directory
 def cleanDir(adir):
-   if(adir == '/' or adir == "\\"): 
-       logger.error('Cannot clean %s',adir)
-       return
-   else:
-       for file_object in os.listdir(adir):
-           logger.debug('Will clean up %s',adir)
-           file_object_path = os.path.join(adir, file_object)
-           if os.path.isfile(file_object_path):
-               os.unlink(file_object_path)
-           else:
-               shutil.rmtree(file_object_path) 
+    logger.info('Cleaning up scratch space...')
+    if(adir == '/' or adir == "\\"):
+        logger.error('Cannot clean %s',adir)
+        return
+    else:
+        for file_object in os.listdir(adir):
+            logger.debug('Will clean up %s',adir)
+            file_object_path = os.path.join(adir, file_object)
+            if os.path.isfile(file_object_path):
+                os.unlink(file_object_path)
+            else:
+                shutil.rmtree(file_object_path)
 
 
 #-------------------------------------------------------------------------------
@@ -94,28 +152,8 @@ def readConfig(cfgfile):
     config = ConfigParser.ConfigParser()
     config.read(cfgfile)
 
-    logger.debug('Read configuration file %s',cfgfile)
+    logger.info('Read configuration file %s',cfgfile)
     return config
-
-#-------------------------------------------------------------------------------
-# Setup testing environment:
-# 1) Create working directories
-# 2) Clone model from git repository and...
-def setupEnv(config):
-   sysconfig = ConfigSectionMap(config, 'SYSCONFIG')
-   branch =  sysconfig['repobranch']
-   resultsDir = sysconfig['scratchdir'] + '/regression_results/' + branch
-   scratchDir = sysconfig['scratchdir'] + '/regression_scratch/' + branch
-
-   if not os.path.exists(resultsDir):
-      mkdir_p(resultsDir)    
-      mkdir_p(scratchDir)
-   else:
-      if sysconfig['cleanscratch'] == 'yes':
-         cleanDir(scratchDir)
-         cleanDir(resultsDir)
-
-   getCodeFromRepository(config)
 
 #-------------------------------------------------------------------------------
 # Get a list of compilers used
@@ -124,38 +162,3 @@ def getCompilers(config):
    compilers = compconfig['compilers'].split(",")
    return compilers
 
-
-#-------------------------------------------------------------------------------
-# Clone the model from the user-specified git repository
-def getCodeFromRepository(config):
-   sysconfig = ConfigSectionMap(config, 'SYSCONFIG')
-   scratch = sysconfig['scratchdir']
-   repo = sysconfig['repository']
-   branch =  sysconfig['repobranch']
-# Create a  clone named 'branch' in a  directory named 'branch'
-   clone = scratch + '/regression_scratch/' + branch + '/' + branch
-   logger.debug('Will access repository %s',repo)
-
-# Check if remote is a valid repository
-   p = subprocess.Popen(["git", "ls-remote", repo], stdout=subprocess.PIPE)
-   output = p.communicate()[0]
-   if p.returncode != 0:
-      logger.error("Specified git repository does not exists. RC=["+str(p.returncode)+"]")
-      # If we have no code, exit :-(
-      sys.exit(0)
-
-   cwd = os.getcwd()
-# Always fresh-clone      
-   logger.debug('Cloning %s into %s', repo, clone)
-   # If scratch space is not "cleaned" then there may be a repository
-   if os.path.isdir(clone):
-       os.chdir(clone)
-       if os.path.isdir('.git'):
-           logger.warning('%s is already a git repository', clone)
-           subprocess.check_call('git pull', shell=True)
-   else:
-       cmd = 'git clone -b ' + branch + ' ' + repo + ' ' + clone \
-          + '> /dev/null 2>&1'
-       subprocess.check_call(cmd, shell=True)
-
-   os.chdir(cwd)

@@ -62,7 +62,7 @@ contains
     ! Ordering of the abscissas is usually not needed.
     !CALL sortEigen(A,Z,N,NMAX)
     x = a
-    w = amu0*z(1,:)**2
+    w = amu0*z(1,1:n)**2
 
   END SUBROUTINE GaussianCoeffs
 

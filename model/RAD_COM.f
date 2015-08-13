@@ -158,12 +158,6 @@ C**** does not produce exactly the same as the default values.
       integer :: nraero_AMP
       integer :: nraero_TOMAS
 
-#ifdef TRACERS_OM_SP
-      integer, parameter :: nraero_OM_SP=1
-#else
-      integer, parameter :: nraero_OM_SP=0
-#endif  /* TRACERS_OM_SP */
-
 #ifdef TRACERS_AEROSOLS_SEASALT
       integer, parameter :: nraero_seasalt=2
 #else
@@ -307,6 +301,8 @@ C**** Local variables initialised in init_RAD
       REAL*8, DIMENSION(LM_REQ)       :: PLB0,SHL0
 !@var NTRIX Indexing array for optional aerosol-radiation interactions
       INTEGER, allocatable, DIMENSION(:) :: NTRIX
+      INTEGER, allocatable, DIMENSION(:) :: NTRIX_I
+      INTEGER, allocatable, DIMENSION(:) :: NTRIX_AMP
 !@var WTTR weighting array for optional aerosol-ratiation interactions
       REAL*8, allocatable, DIMENSION(:) :: WTTR
 

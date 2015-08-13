@@ -1013,7 +1013,7 @@ C**** set particle properties
 #endif  
 
 #ifndef TRACERS_TOMAS
-C**** calculate stoke's velocity (including possible hydration effects
+C**** calculate stokes velocity (including possible hydration effects
 C**** and slip correction factor)
                 stokevdt=dtsrc*vgs(airden(i,j,l),rh(i,j,l),tr_radius
      *               ,tr_dens,visc(i,j,l),hydrate)
@@ -1045,7 +1045,9 @@ cyhl     *             /18.d0/visc(i,j,l)
 
 #endif
 C**** Calculate height differences using geopotential
-                fgrfluxd=stokevdt*gbygz(i,j,l) 
+C**** Next line causes problems in high vertical resolution models. Limit it for now:
+C****           fgrfluxd=stokevdt*gbygz(i,j,l) 
+                fgrfluxd=min(stokevdt*gbygz(i,j,l),1.d0) 
                 fluxd(i,j) = trm(i,j,l,n)*fgrfluxd ! total flux down
                 trm(i,j,l,n) = trm(i,j,l,n)*(1.-fgrfluxd)+fluxu(i,j)
                 if (1.-fgrfluxd.le.1d-16) trm(i,j,l,n) = fluxu(i,j)
@@ -1107,7 +1109,7 @@ C**** hydrated density
         rad = tr_radius 
       end if
 
-C**** calculate stoke's velocity
+C**** calculate stokes velocity
       vgs=2.*grav*dens*rad**2/(9.*visc)
 
 C**** slip correction factor
@@ -2456,3 +2458,463 @@ C
 
       end subroutine accumCachedTracerSUBDDs
 #endif /* CACHED_SUBDD */
+
+#if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch) ||\
+    (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
+
+      SUBROUTINE get_aircraft_tracer(year,xday,phi,need_read)
+!@sum  get_aircraft_tracer to define the 3D source of tracers from aircraft
+!@auth Drew Shindell? / Greg Faluvegi / Jean Learner
+!@ver  2.0 (based on DB396Tds3M23 -- adapted for AR5 emissions)
+      USE RESOLUTION, only : im,jm
+      USE RESOLUTION, only : lm
+      use model_com, only: itime, master_yr
+      use domain_decomp_atm, only: GRID
+      use domain_decomp_atm, only: getDomainBounds, write_parallel
+      use constant, only: bygrav
+      use filemanager, only: openunit,closeunit
+      use fluxes, only: tr3Dsource
+      use geom, only: axyp
+      use OldTracer_mod, only: itime_tr0,trname
+      use TRACER_COM, only: ntm_chem, aer_int_yr, trans_emis_overr_yr
+#ifdef TRACERS_SPECIAL_Shindell
+      use TRACER_COM, only: n_NOx
+#endif
+#ifdef TRACERS_AEROSOLS_Koch
+      use TRACER_COM, only: n_BCIA
+#endif
+#ifdef TRACERS_TOMAS
+      use TRACER_COM, only: n_AECOB
+#endif
+#ifdef TRACERS_AMP
+          use TRACER_COM, only: n_M_BC1_BC
+#endif
+      use TRACER_COM, only: nAircraft
+      use Dictionary_mod, only: is_set_param, get_param
+      USE RAD_COM, only: o3_yr
+      IMPLICIT NONE
+ 
+!@param Laircr the number of layers of aircraft data read from file
+      INTEGER, PARAMETER :: Laircr=25
+!@param aircraft_Tyr1, aircraft_Tyr2 the starting and ending years
+!@+     for transient tracer aircraft emissions (= means non transient)
+      integer :: aircraft_Tyr1=0,aircraft_Tyr2=0
+!@var airtracer 3D source of tracer from aircraft (on model levels)
+      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
+     &     :: airtracer
+
+      integer, intent(IN) :: year,xday
+      integer :: xyear
+      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),
+     &     intent(IN) :: phi
+      logical, intent(IN) :: need_read
+
+      character(len=300) :: out_line
+      integer, parameter :: nanns=0
+#if (defined TRACERS_SPECIAL_Shindell) && \
+    ((defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+     (defined TRACERS_TOMAS))
+      integer, parameter :: nmons=2
+#else /* Shindell only, or aerosol only */
+      integer, parameter :: nmons=1
+#endif
+      integer :: mon_units
+      integer l,i,j,k,ll
+      character*13, dimension(nmons) :: 
+#if (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AEROSOLS_Koch)
+     *  mon_files=(/'NOx_AIRC     ','BCIA_AIRC    '/)
+#elif (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AMP)
+     *  mon_files=(/'NOx_AIRC     ','M_BC1_BC_AIRC'/)
+#elif (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_TOMAS)
+     *  mon_files=(/'NOx_AIRC     ','AECOB_01_AIRC'/)
+#elif (defined TRACERS_SPECIAL_Shindell)
+     *  mon_files=(/'NOx_AIRC     '/)
+#elif (defined TRACERS_AEROSOLS_Koch)
+     *  mon_files=(/'BCIA_AIRC    '/)
+#elif (defined TRACERS_AMP)
+     *  mon_files=(/'M_BC1_BC_AIRC'/)
+#elif (defined TRACERS_TOMAS)
+     *  mon_files=(/'AECOB_01_AIRC'/)
+#endif
+
+      integer, dimension(nmons) :: mon_tracers ! define them later
+#if (defined TRACERS_SPECIAL_Shindell) && \
+    ((defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+     (defined TRACERS_TOMAS))
+      logical, dimension(nmons) :: mon_bins=(/.true.,.true./) ! binary file?
+#else /* this is for Shindell only or aerosol only */
+      logical, dimension(nmons) :: mon_bins=(/.true./) ! binary file?
+#endif
+      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO
+     *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,Laircr):: src
+!@var zmod approx. geometric height at model layer(m), phi/grav
+      real*8, dimension(LM)                :: zmod
+!@var zairL heights of AR5 aircraft emissions (km)
+      real*4, parameter, dimension(Laircr) :: zairL = ! alt in km:
+     & (/0.305, 0.915, 1.525, 2.135, 2.745, 3.355, 3.965, 4.575, 5.185,
+     & 5.795, 6.405, 7.015, 7.625, 8.235001, 8.845, 9.455001, 10.065,
+     & 10.675, 11.285, 11.895, 12.505, 13.115, 13.725, 14.335, 14.945/)
+      integer :: J_1, J_0, I_0, I_1
+      logical :: trans_emis=.false.
+      integer :: yr1=0, yr2=0
+ 
+! Aircraft tracer source input is monthly, on 25 levels.
+! Read it in here and interpolated each day.
+
+      if (is_set_param("aircraft_Tyr1")) then
+        call get_param("aircraft_Tyr1",aircraft_Tyr1)
+      else
+        if (master_yr == 0) then
+          call stop_model("Please provide aircraft_Tyr1 via the "//
+     .                    "rundeck", 255)
+        else
+          aircraft_Tyr1=master_yr
+        endif
+      endif
+      if (is_set_param("aircraft_Tyr2")) then
+        call get_param("aircraft_Tyr2",aircraft_Tyr2)
+      else
+        if (master_yr == 0) then
+          call stop_model("Please provide aircraft_Tyr2 via the "//
+     .                    "rundeck", 255)
+        else
+          aircraft_Tyr2=master_yr
+        endif
+      endif
+
+#if (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AEROSOLS_Koch)
+      mon_tracers(1)=n_NOx
+      mon_tracers(2)=n_BCIA
+#elif (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_TOMAS)
+      mon_tracers(1)=n_NOx
+      mon_tracers(2)=n_AECOB(1)
+#elif (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AMP)
+      mon_tracers(1)=n_NOx
+      mon_tracers(2)=n_M_BC1_BC
+#elif (defined TRACERS_SPECIAL_Shindell)
+      mon_tracers(1)=n_NOx
+#elif (defined TRACERS_AEROSOLS_Koch)
+      mon_tracers(1)=n_BCIA
+#elif (defined TRACERS_AMP)
+      mon_tracers(1)=n_M_BC1_BC
+#elif (defined TRACERS_TOMAS)
+      mon_tracers(1)=n_AECOB(1)
+#endif
+      do k=1,nmons
+        if (mon_tracers(k) == 0) then
+          call stop_model("mon_tracers(k) not defined",255)
+        endif
+        if (itime < itime_tr0(mon_tracers(k))) cycle
+        call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
+        call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1)
+
+! Monthly sources are interpolated to the current day
+! Units are KG(N)/m2/s, so no conversion is necessary:
+        if(aircraft_Tyr1==aircraft_Tyr2)then
+          trans_emis=.false.; yr1=0; yr2=0
+        else
+          trans_emis=.true.; yr1=aircraft_Tyr1; yr2=aircraft_Tyr2
+        endif
+
+#ifdef TRACERS_SPECIAL_Shindell
+        if (mon_tracers(k)<=ntm_chem) then
+          trans_emis_overr_yr=ABS(o3_yr)
+          if(trans_emis_overr_yr > 0)then
+            xyear=trans_emis_overr_yr
+          else
+            xyear=year
+          endif
+        else
+#endif
+          if(aer_int_yr > 0) then
+            xyear=aer_int_yr
+          else
+            xyear=year
+          endif
+#ifdef TRACERS_SPECIAL_Shindell
+        end if
+#endif
+        if (trans_emis .and. xyear < 1900) return !<-- hardcode for NO AIRCRAFT before 1900
+
+        if(need_read) then
+
+        call openunit(mon_files(k),mon_units,mon_bins(k))
+        call read_monthly_3Dsources(Laircr,mon_units,
+     &   src,trans_emis,yr1,yr2,xyear,xday)
+        call closeunit(mon_units)
+
+! Place aircraft sources onto model levels:
+        airtracer = 0.d0
+        do j=J_0,J_1
+          do i=I_0,I_1
+            zmod(:)=phi(i,j,:)*bygrav*1.d-3 ! km
+            do LL=1,Laircr
+              if(src(i,j,LL) > 0.)then
+                loop_l: do L=1,LM
+                  if(zairL(LL) <= zmod(L)) then
+      airtracer(i,j,l) = airtracer(i,j,l) + src(i,j,LL)*axyp(i,j)
+                    exit loop_l
+                  endif
+                if(L==LM)call stop_model("aircraft level problem",255)
+                enddo loop_l
+              endif  ! is there a source?
+            enddo   ! LL
+          enddo    ! I
+        enddo     ! J
+
+        endif                     ! need_read?
+
+        tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,mon_tracers(k)) =
+     &    airtracer(I_0:I_1,J_0:J_1,:)
+      enddo ! k
+
+      return
+      end subroutine get_aircraft_tracer
+ 
+
+      subroutine check_aircraft_sectors(tr_sect)
+!@sum check_aircraft_sectors checks parameters for user-
+!@+ set sector for aircraft source.
+!@auth Greg Faluvegi
+      use TracerSource_mod, only: TracerSource3D
+      use Tracer_mod, only: Tracer
+      use tracer_com, only: nAircraft, tracers,
+     & sect_name,num_sectors,
+     & n_max_sect,ef_fact,num_regions,ef_fact,ef_fact3d
+      use Dictionary_mod, only: sync_param
+      IMPLICIT NONE
+      character(len=*), intent(in) :: tr_sect
+      integer :: i,j,ns,nsect,nn
+      character*124 :: tr_sectors_are
+      character*32 :: pname
+
+      type (TracerSource3D), pointer :: source
+      class (Tracer), pointer :: pTracer
+
+      tr_sectors_are = ' '
+      pTracer => tracers%getReference(trim(tr_sect))
+      source => pTracer%sources3D(nAircraft)
+
+      pname=trim(tr_sect)//'_AIRC_sect'
+      call sync_param(pname,tr_sectors_are)
+      source%num_tr_sectors = 0
+
+      i=1
+      do while(i < len(tr_sectors_are))
+        j=index(tr_sectors_are(i:len(tr_sectors_are))," ")
+        if (j > 1) then
+          source%num_tr_sectors = source%num_tr_sectors + 1
+          i=i+j
+        else
+          i=i+1
+        end if
+      enddo
+      ns=source%num_tr_sectors
+      if(ns > n_max_sect)
+     &call stop_model("num_tr_sectors3D problem",255)
+      if(ns > 0)then
+        read(tr_sectors_are,*) source%tr_sect_name(1:ns)
+        do nsect=1,ns
+          source%tr_sect_index(nsect) = 0
+          loop_nn: do nn=1,num_sectors
+            if(trim(source%tr_sect_name(nsect)) ==
+     &         trim(sect_name(nn))) then
+              source%tr_sect_index(nsect) = nn
+              ef_fact3d(nn,1:num_regions)=
+     &        ef_fact(nn,1:num_regions)
+              exit loop_nn
+            endif
+          enddo loop_nn
+        enddo
+      endif
+
+      return
+      end subroutine check_aircraft_sectors
+
+      SUBROUTINE read_monthly_3Dsources
+     & (Ldim,iu,data1,trans_emis,yr1,yr2,xyear,xday)
+!@sum Read in monthly sources and interpolate to current day
+!@auth Jean Lerner and others / Greg Faluvegi
+      USE RESOLUTION, only : im,jm
+      USE JulianCalendar_mod, only: idofm=>JDmidOfM
+      USE FILEMANAGER, only : NAMEUNIT
+      USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds,READT_PARALLEL
+     &     ,REWIND_PARALLEL
+     &     ,write_parallel,backspace_parallel,am_i_root
+      implicit none
+!@var Ldim how many vertical levels in the read-in file?
+!@var L dummy vertical loop variable
+      integer :: Ldim,L,imon,iu,ipos,k,nn,k2,kstep=10
+      character(len=300) :: out_line
+      real*8 :: frac, alpha
+      real*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO
+     *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::A2D,B2D,dummy
+      real*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO
+     *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,Ldim) ::tlca,tlcb,data1
+     *     ,sfc_a,sfc_b
+      logical, intent(in):: trans_emis
+      integer, intent(in):: yr1,yr2,xyear,xday
+     
+      integer :: J_0, J_1, I_0, I_1
+
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)     
+      call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1)     
+
+C No doubt this code can be combined/compressed, but I am going to
+C do the transient and non-transient cases separately for the moment:
+
+! -------------- non-transient emissions ----------------------------!
+      if(.not.trans_emis) then
+C
+      imon=1                ! imon=January
+      if (xday <= 16)  then ! DAY in Jan 1-15, first month is Dec
+        if(am_i_root())write(6,*) 'Not using this first record:'
+        call readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*11)
+        do L=1,Ldim
+          call readt_parallel(grid,iu,nameunit(iu),A2D,1)
+          tlca(I_0:I_1,J_0:J_1,L)=A2D(I_0:I_1,J_0:J_1)
+        enddo  
+        call rewind_parallel(iu)
+      else              ! DAY is in Jan 16 to Dec 16, get first month
+        do while(xday > idofm(imon) .AND. imon <= 12)
+          imon=imon+1
+        enddo
+        if(imon/=2)then ! avoids advancing records at start of file
+          if(am_i_root())write(6,*) 'Not using this first record:'
+          call readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*(imon-2))
+        end if
+        do L=1,Ldim
+          call readt_parallel(grid,iu,nameunit(iu),A2D,1)
+          tlca(I_0:I_1,J_0:J_1,L)=A2D(I_0:I_1,J_0:J_1)
+        enddo   
+        if(imon==13) call rewind_parallel(iu)
+      end if
+      do L=1,Ldim
+        call readt_parallel(grid,iu,nameunit(iu),B2D,1)
+        tlcb(I_0:I_1,J_0:J_1,L)=B2D(I_0:I_1,J_0:J_1)
+      enddo 
+c**** Interpolate two months of data to current day
+      frac = float(idofm(imon)-xday)/(idofm(imon)-idofm(imon-1))
+      data1(I_0:I_1,J_0:J_1,:) =
+     & tlca(I_0:I_1,J_0:J_1,:)*frac + tlcb(I_0:I_1,J_0:J_1,:)*(1.-frac)
+      write(out_line,*) '3D source monthly factor=',frac
+      call write_parallel(trim(out_line))
+
+! --------------- transient emissions -------------------------------!
+      else
+        ! 3D source files as of now have no meta-data so assume
+        ! that transient time slices are decadal:
+        kstep=10
+        ipos=1
+        k2=yr1
+        alpha=0.d0 ! before start year, use start year value
+        if(xyear>yr2.or.(xyear==yr2.and.xday>=183))then
+          alpha=1.d0 ! after end year, use end year value
+          ipos=(yr2-yr1)/kstep
+          k2=yr2-kstep
+        endif
+        do k=yr1,yr2-kstep,kstep
+          if(xyear>k .or. (xyear==k.and.xday>=183)) then
+            if(xyear<k+kstep .or. (xyear==k+kstep.and.xday<183))then
+              ipos=1+(k-yr1)/kstep ! (integer artithmatic)
+              alpha=real(xyear-k)/real(kstep)
+              k2=k
+              exit
+            endif
+          endif
+        enddo
+!
+! read the two necessary months from the first decade:
+!
+      imon=1                ! imon=January
+      if (xday <= 16)  then ! DAY in Jan 1-15, first month is Dec
+        if(am_i_root())write(6,*) 'Not using this first record:'
+        call readt_parallel
+     &  (grid,iu,nameunit(iu),dummy,(ipos-1)*12*Ldim+Ldim*11)
+        do L=1,Ldim
+          call readt_parallel(grid,iu,nameunit(iu),A2D,1)
+          tlca(I_0:I_1,J_0:J_1,L)=A2D(I_0:I_1,J_0:J_1)
+        enddo
+        do nn=1,12*Ldim; call backspace_parallel(iu); enddo
+      else              ! DAY is in Jan 16 to Dec 16, get first month
+        do while(xday > idofm(imon) .AND. imon <= 12)
+          imon=imon+1
+        enddo
+        if(imon/=2 .or. ipos/=1)then ! avoids advancing records at start of file
+          if(am_i_root())write(6,*) 'Not using this first record:' 
+          call readt_parallel
+     &    (grid,iu,nameunit(iu),dummy,(ipos-1)*12*Ldim+Ldim*(imon-2))
+        end if
+        do L=1,Ldim
+          call readt_parallel(grid,iu,nameunit(iu),A2D,1)
+          tlca(I_0:I_1,J_0:J_1,L)=A2D(I_0:I_1,J_0:J_1)
+        enddo
+        if(imon==13)then
+          do nn=1,12*Ldim; call backspace_parallel(iu); enddo
+        endif
+      end if
+CCCCC write(6,*) 'Not using this first record:'
+CCCCC call readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*(imon-1))
+      do L=1,Ldim
+        call readt_parallel(grid,iu,nameunit(iu),B2D,1)
+        tlcb(I_0:I_1,J_0:J_1,L)=B2D(I_0:I_1,J_0:J_1)
+      enddo
+      frac = float(idofm(imon)-xday)/(idofm(imon)-idofm(imon-1))
+      sfc_a(I_0:I_1,J_0:J_1,:) =
+     & tlca(I_0:I_1,J_0:J_1,:)*frac + tlcb(I_0:I_1,J_0:J_1,:)*(1.-frac)
+      call rewind_parallel( iu )
+
+      ipos=ipos+1
+      imon=1                ! imon=January
+      if (xday <= 16)  then ! DAY in Jan 1-15, first month is Dec
+        if(am_i_root())write(6,*) 'Not using this first record:'
+        call readt_parallel
+     &  (grid,iu,nameunit(iu),dummy,(ipos-1)*12*Ldim+Ldim*11)
+        do L=1,Ldim
+          call readt_parallel(grid,iu,nameunit(iu),A2D,1)
+          tlca(I_0:I_1,J_0:J_1,L)=A2D(I_0:I_1,J_0:J_1)
+        enddo
+        do nn=1,12*Ldim; call backspace_parallel(iu); enddo
+      else              ! DAY is in Jan 16 to Dec 16, get first month
+        do while(xday > idofm(imon) .AND. imon <= 12)
+          imon=imon+1
+        enddo
+        if(am_i_root())write(6,*) 'Not using this first record:'
+        call readt_parallel
+     &  (grid,iu,nameunit(iu),dummy,(ipos-1)*12*Ldim+Ldim*(imon-2))
+        do L=1,Ldim
+          call readt_parallel(grid,iu,nameunit(iu),A2D,1)
+          tlca(I_0:I_1,J_0:J_1,L)=A2D(I_0:I_1,J_0:J_1)
+        enddo
+        if(imon==13)then
+          do nn=1,12*Ldim; call backspace_parallel(iu); enddo
+        endif
+      end if
+CCCCCCwrite(6,*) 'Not using this first record:'
+CCCCCCcall readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*(imon-1))
+      do L=1,Ldim
+        call readt_parallel(grid,iu,nameunit(iu),B2D,1)
+        tlcb(I_0:I_1,J_0:J_1,L)=B2D(I_0:I_1,J_0:J_1)
+      enddo
+      frac = float(idofm(imon)-xday)/(idofm(imon)-idofm(imon-1))
+      sfc_b(I_0:I_1,J_0:J_1,:) =
+     & tlca(I_0:I_1,J_0:J_1,:)*frac + tlcb(I_0:I_1,J_0:J_1,:)*(1.-frac)
+
+! now interpolate between the two time periods:
+
+      data1(I_0:I_1,J_0:J_1,:) = sfc_a(I_0:I_1,J_0:J_1,:)*(1.d0-alpha) 
+     & + sfc_b(I_0:I_1,J_0:J_1,:)*alpha
+
+      write(out_line,*) '3D source at',
+     &100.d0*alpha,' % of period this day ',k2,' to this day ',k2+kstep,
+     &' and monthly fraction= ',frac 
+      call write_parallel(trim(out_line))
+
+      endif ! transient or not
+
+      return
+      end subroutine read_monthly_3Dsources
+
+#endif /* defined TRACERS_SPECIAL_Shindell or Koch/AMP/TOMAS aerosols */

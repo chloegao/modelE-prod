@@ -199,10 +199,8 @@ c
      &     sss_loc,ogeoza_loc,uosurf_loc,vosurf_loc,gtemp_loc,gtempr_loc
       real*8, dimension(:,:,:), pointer :: dmsi_loc,dhsi_loc,dssi_loc
       real*8, dimension(:,:), pointer :: cosz1_loc,wsavg_loc,achl_loc
-#ifdef OBIO_RAD_coupling
-      real*8, dimension(:,:), pointer ::
-     &     dirvis_loc,difvis_loc,dirnir_loc,difnir_loc
-#endif
+      real*8, dimension(:,:), allocatable, save ::
+     &     avisdir_loc,avisdif_loc, anirdir_loc, anirdif_loc
       real*8, dimension(:,:,:), pointer :: GTRACER_loc
 c
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -248,12 +246,6 @@ c
       cosz1_loc => atmocn%cosz1
       wsavg_loc => atmocn%wsavg
       achl_loc => atmocn%chl
-#ifdef OBIO_RAD_coupling
-      dirvis_loc => atmocn%dirvis
-      difvis_loc => atmocn%difvis
-      dirnir_loc => atmocn%dirnir
-      difnir_loc => atmocn%difnir
-#endif
 
       gtemp_loc => atmocn%gtemp
       gtempr_loc => atmocn%gtempr
@@ -299,12 +291,18 @@ c
           awind_loc(ia,ja)=0.
           asolz_loc(ia,ja)=0.
 #endif
-#ifdef OBIO_RAD_coupling
+        if (allocated(atmocn%dirvis)) then
+          if (.not.allocated(avisdir_loc))
+     &             ALLOCATE(
+     &         avisdir_loc(aI_0H:aI_1H,aJ_0H:aJ_1H),
+     &         avisdif_loc(aI_0H:aI_1H,aJ_0H:aJ_1H),
+     &         anirdir_loc(aI_0H:aI_1H,aJ_0H:aJ_1H),
+     &         anirdif_loc(aI_0H:aI_1H,aJ_0H:aJ_1H) )
           avisdir_loc(ia,ja)=0.
           avisdif_loc(ia,ja)=0.
           anirdir_loc(ia,ja)=0.
           anirdif_loc(ia,ja)=0.
-#endif
+        endif
  28     continue
 #ifdef CUBED_SPHERE
         call reset_dynsi_accum
@@ -399,16 +397,16 @@ c --- dmua on A-grid, admui on C-grid
             awind_loc(ia,ja)=awind_loc(ia,ja) !
      .           +wsavg_loc(ia,ja)*dtsrc/(SECONDS_PER_HOUR*real(nhr)) !
 #endif
-#ifdef OBIO_RAD_coupling
+          if (allocated(atmocn%dirvis)) then
             avisdir_loc(ia,ja)=avisdir_loc(ia,ja) !
-     .           +DIRVIS_loc(ia,ja)*dtsrc/(SECONDS_PER_HOUR*real(nhr)) !
+     .         +atmocn%dirvis(ia,ja)*dtsrc/(SECONDS_PER_HOUR*real(nhr)) !
             avisdif_loc(ia,ja)=avisdif_loc(ia,ja) !
-     .           +DIFVIS_loc(ia,ja)*dtsrc/(SECONDS_PER_HOUR*real(nhr)) !
+     .         +atmocn%difvis(ia,ja)*dtsrc/(SECONDS_PER_HOUR*real(nhr)) !
             anirdir_loc(ia,ja)=anirdir_loc(ia,ja) !
-     .           +DIRNIR_loc(ia,ja)*dtsrc/(SECONDS_PER_HOUR*real(nhr)) !
+     .         +atmocn%dirnir(ia,ja)*dtsrc/(SECONDS_PER_HOUR*real(nhr)) !
             anirdif_loc(ia,ja)=anirdif_loc(ia,ja) !
-     .           +DIFNIR_loc(ia,ja)*dtsrc/(SECONDS_PER_HOUR*real(nhr)) !
-#endif
+     .         +atmocn%difnir(ia,ja)*dtsrc/(SECONDS_PER_HOUR*real(nhr)) !
+          endif
 
  29   continue
 
@@ -455,12 +453,12 @@ c combine wind and ice stresses after regridding
       call flxa2o(asolz_loc,ocnatm%cosz1)
       call flxa2o(awind_loc,ocnatm%wsavg)
 #endif
-#ifdef OBIO_RAD_coupling
-      call flxa2o(avisdir_loc,ocnatm%dirvis)
-      call flxa2o(avisdif_loc,ocnatm%difvis)
-      call flxa2o(anirdir_loc,ocnatm%dirnir)
-      call flxa2o(anirdif_loc,ocnatm%difnir)
-#endif
+      if (allocated(atmocn%dirvis)) then
+        call flxa2o(avisdir_loc,ocnatm%dirvis)
+        call flxa2o(avisdif_loc,ocnatm%difvis)
+        call flxa2o(anirdir_loc,ocnatm%dirnir)
+        call flxa2o(anirdif_loc,ocnatm%difnir)
+      endif
       call scatter1_hycom_arrays ! delete this call, if not the routine
 c
       call system_clock(before)

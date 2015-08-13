@@ -10,9 +10,6 @@ c
       USE obio_dim
       USE obio_incom
       USE obio_forc, only : ihra,atmFe_glob,atmFe,alk
-#ifdef OBIO_RAD_coupling
-     .                      ,eda_frac,esa_frac
-#endif
       USE obio_com, only : npst,npnd,WtoQ,obio_ws,P_tend,D_tend
      .                    ,C_tend,wsdet,gro,obio_deltath,obio_deltat 
 
@@ -54,8 +51,7 @@ c
       USE pario
 
       use ocalbedo_mod, only: lam, ocalbedo_init=>init
-      use RunTimeControls_mod, only: obio_rad_coupling,
-     .      chl_from_seawifs, chl_from_obio
+      use RunTimeControls_mod, only: chl_from_seawifs
 
       implicit none  
 
@@ -423,32 +419,6 @@ c  Read in factors to compute average irradiance
         wsdet(kdm+1,nt) = 0.0
        enddo
  
-#ifdef OBIO_RAD_coupling
-      if (AM_I_ROOT()) then
-      print*, '    '
-      print*, 'reading Eda and Esa spectral ratios.....'
-      print*, '    '
-      endif
-      open(unit=iu_bio,file='eda_esa_ratios',status='unknown')
-      do ichan=1,nlt
-       read(iu_bio,'(3f13.8)')dummy,eda_frac(ichan),esa_frac(ichan)
-      enddo
-      close(iu_bio)
-#else
-!read in light (this will be changed later to be passed from atmosphere
-      if (AM_I_ROOT()) then
-      print*, '    '
-      print*, 'reading OASIM data.....'
-      print*, '    '
-      endif
-
-#ifdef OBIO_ON_GARYocean
-      call obio_edaesa_g('oasimdirect1','oasimdirect2')
-#else
-!       !eda and esa interpolate in HYCOMgrid
-#endif
-#endif  /*OBIO_RAD_coupling*/
-
 !read in atmospheric iron deposition (this will also be changed later...)
       if (AM_I_ROOT()) then
       print*, '    '
@@ -582,12 +552,6 @@ c  Read in factors to compute average irradiance
       if (ALK_CLIM.eq.1) write(*,*) 'ALKLNTY, GLODAP annmean'
       if (ALK_CLIM.eq.2) write(*,*) 'ALKALINITY prognostic'
 
-      if (obio_rad_coupling) then
-        print*, 'OBIO - RADIATION COUPLING'
-        if (chl_from_seawifs) print*,
-     .                           'USE SeaWIFs chlorophyl distributions'
-        if (chl_from_obio) print*, 'USE model chlorophyl distributions'
-      endif
 #ifdef pCO2_ONLINE
       print*, 'PCO2 is computed online and not through lookup table'
 #else
@@ -874,77 +838,15 @@ c
       end subroutine bio_inicond2D
 #endif
 
-#ifdef STANDALONE_OCEAN
-#ifdef OBIO_ON_GARYocean
-      subroutine obio_edaesa_g(filename1,filename2)
-!read in eda and esa
-!read in a field and convert to ocean grid (using Gary Russel's routine) 
-
-      USE FILEMANAGER, only: openunit,closeunit
-      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,unpack_data
-      USE OCEANR_DIM, only : ogrid
-
-      USE OCEANRES, only : imo,jmo,lmo
-      USE OCEAN, only : oDLATM=>DLATM,LMOM=>LMM,ZOE=>ZE,FOCEAN
-      USE obio_forc, only: Eda_glob, Esa_glob, Eda,Esa
-
-      implicit none
-
-
-      integer, parameter :: igrd=360,jgrd=180,kgrd=33
-      integer, parameter :: igrd2=288
-      integer, parameter :: nmo=12,nhr=12
-      integer i,j,k,l,n,lm
-      integer iu_file,lgth
-      real data1(igrd,jgrd)
-      real data2(igrd,jgrd)
-      real data_mask(igrd,jgrd)
-
-      integer imon,ihr
-
-      logical vrbos
-
-      character*80 filename1,filename2
-
-!--------------------------------------------------------------
-      if ( AM_I_ROOT() ) then
-      lgth=len_trim(filename1)
-      print*, 'obio-init: reading from file...',filename1(1:lgth)
-      call openunit(filename1,iu_file,.false.,.true.)
-
-      do imon=1,nmo; do ihr=1,nhr; do k=1,kgrd;
-          do i=1,igrd2; do j=1,jgrd
-          read(iu_file,'(e12.4)')Eda_glob(i,j,k,ihr,imon)
-          enddo; enddo    ! i,j-loop
-      enddo; enddo;enddo    ! k,imon
-      call closeunit(iu_file)
-      lgth=len_trim(filename2)
-      print*, 'obio-init: reading from file...',filename2(1:lgth)
-      call openunit(filename2,iu_file,.false.,.true.)
-
-      do imon=1,nmo; do ihr=1,nhr; do k=1,kgrd;
-          do i=1,igrd2; do j=1,jgrd
-          read(iu_file,'(e12.4)')Esa_glob(i,j,k,ihr,imon)
-          enddo; enddo    ! i,j-loop
-      enddo; enddo;enddo    ! k,imon
-      call closeunit(iu_file)
-      endif   !AM_I_ROOT
-!--------------------------------------------------------------
-
-      call unpack_data(ogrid, Eda_glob, Eda)
-      call unpack_data(ogrid, Esa_glob, Esa)
-
-      end subroutine obio_edaesa_g
-#endif /*  STANDALONE_OCEAN */
-#endif  /* Russell ocean */
-
       subroutine setup_obio
 #ifdef OBIO_ON_GARYocean
       use ocn_tracer_com, only: add_ocn_tracer
       use runtimecontrols_mod, only: tracers_alkalinity
 #endif
+      use exchange_types, only: rad_coupling
       implicit none
 
+      rad_coupling=.true.
 #ifdef OBIO_ON_GARYocean
       call add_ocn_tracer('Nitr      ', i_ntrocn=-4)
       call add_ocn_tracer('Ammo      ', i_ntrocn=-6)

@@ -206,7 +206,7 @@ GIC=/path/to/user/directory/extractions/GIC.144X90.DEC01.1.ext_2.nc
 
 GHG=GHG.Mar2004.txt
 RADN1=sgpgxg.table8
-RADN2=LWTables33k.1a
+RADN2=LWTables33k_lowH2O_CO2_O3_planck_1-800
 RADN4=LWCorrTables33k
 RADN5=H2Ocont_MT_CKD
 RADN3=miescatpar.abcdv2
@@ -301,6 +301,7 @@ SUBDD4='dq_turb dth_turb dq_mc dth_mc dq_ss dth_ss dth_sw dth_lw dth_rad'
 SUBDD5='dq_ls dth_ls dq_nudge dth_nudge'
 SUBDD6='isccp_sunlit isccp_ctp isccp_tau isccp_lcld isccp_hcld'
 NSUBDD=1         ! saving sub-daily diags every NSUBDD-th physics time step (1/2 hr)
+SCM_PlumeDiag=0  !to save Plume diagnostics set SCM_PlumeDiag=1
 WRITE_ONE_FILE=1 ! all outputs to a single file
 
 ! KOCEAN=0 means prescribed surface ocean conditions.  This parameter is currently

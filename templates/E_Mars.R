@@ -103,7 +103,7 @@ GHG=planet/desert_world/GHG.CO2only.txt
 
 ! radiation input files
 RADN1=sgpgxg.table8               ! rad.tables and history files
-RADN2=LWTables33k.1a              ! rad.tables and history files
+RADN2=LWTables33k_lowH2O_CO2_O3_planck_1-800              ! rad.tables and history files
 RADN5=H2Ocont_MT_CKD  ! Mlawer/Tobin_Clough/Kneizys/Davies H2O continuum table
 RADN3=miescatpar.abcdv2
 RH_QG_Mie=oct2003.relhum.nr.Q633G633.table
@@ -144,15 +144,13 @@ meanDistance = 1.52366231 ! AU
 ! scaling factor for solar brightness is now from mean distance.
 s0x=1.00
 
+! scaling factor for O2 amounts. 0.7% of present-day Earth gives 0.146%.
+o2x=0.007
+
 ! scaling factor for CO2 amounts.  Increase by the ratio of 95% molar CO2 to
 ! whatever concentration is in the GHG file (which has ppmv units)
 !co2x=1.
 co2x=3333.
-
-! Setting these enables extrapolation of Planck-function lookup tables
-! past the default lower/upper limits of 124 and 373 K.
-planck_tmin=1    ! minimum temperature (K)
-planck_tmax=400  ! maximum temperature (K)
 
 ! -1 uses Thekaekara solar spectrum, so no RADN9 input file required
 KSOLAR=-1

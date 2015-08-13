@@ -14,7 +14,7 @@ c
      &                        GLOBALSUM,GLOBALMAX,
      &                        write_parallel,writet8_column,
      &                        writet_parallel
-      USE RESOLUTION, only  : ptop,psf,ls1
+      USE RESOLUTION, only  : ls1
       USE RESOLUTION, only  : IM,JM
       USE ATM_COM, only     : T,Q
       use model_com, only: modelEclock
@@ -22,10 +22,10 @@ c
       use TimeConstants_mod, only: HOURS_PER_DAY
       USE TRACER_COM, only  : ntm
       USE TRACER_COM, only  : COUPLED_CHEM
+      USE RAD_COM, only     : o2x
       USE CONSTANT, only    : radian,gasc,mair,mb2kg,pi,avog,rgas,pO2,
      &                        bygrav,lhe,undef,teeny
-      USE ATM_COM, only     : pedn,LTROPO
-      USE DYNAMICS, only    : sig
+      USE ATM_COM, only     : pedn,PMIDL00,LTROPO
       USE FILEMANAGER, only : openunit,closeunit,nameunit
       USE RAD_COM, only     : COSZ1,alb,rcloudfj=>rcld,
      &                        rad_to_chem,chem_tracer_save,H2ObyCH4,
@@ -146,7 +146,7 @@ C**** Local parameters and variables and arguments:
 !@var bysumOx reciprocal of sum of regional Ox tracers
 !@var maxPSC a limit placed on some PSC reactions to prevent sudden overflows
       REAL*8, DIMENSION(NTM) :: PIfact
-      REAL*8, DIMENSION(LM) :: PRES2 ! keep LM; based on SIG(:)
+      REAL*8, DIMENSION(LM) :: PRES2 ! keep LM; based on PMIDL00(:)
       REAL*8 :: FACT1,FACT2,FACT3,FACT4,FACT5,FACT6,FACT7,fact_so4,
      &  FASTJ_PFACT,bydtsrc,byavog,CH4FACT,r179,rlossN,maxPSC,
      &  rprodN,ratioN,pfactor,bypfactor,gwprodHNO3,gprodHNO3,
@@ -287,7 +287,7 @@ C Some INITIALIZATIONS :
       byavog  = 1.d0/avog
       bydtsrc = 1.d0/dtsrc
       BYFJM   = 1.d0/real(JM)
-      PRES2(:)= SIG(:)*(PSF-PTOP)+PTOP
+      PRES2(1:LM) = PMIDL00(1:LM)
 
       if(H2ObyCH4 /= 0. .and. clim_interact_chem > 0)                
      &call stop_model('H2ObyCH4.ne.0 .and. clim_interact_chem > 0',13)
@@ -450,7 +450,7 @@ c Save presure, temperature, thickness, rel. hum. in local arrays:
      & (rgas*bygrav*TX(i,j,L)*LOG(pedn(L,i,j)/pedn(L+1,i,j)))
 c Calculate M and set fixed ratios for O2 & H2:
        y(nM,L)=pmid(L,i,j)/(ta(L)*cboltz)
-       y(nO2,L)=y(nM,L)*pO2
+       y(nO2,L)=y(nM,L)*pO2*o2x
        if(pres2(l) > 20.d0)then
          y(nH2,L)=y(nM,L)*pfix_H2
        else
@@ -2153,7 +2153,6 @@ C Make sure nighttime chemistry changes are not too big:
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
 
 C**** GLOBAL parameters and variables:
-      USE RESOLUTION, only  : ptop,psf,ls1
       USE RESOLUTION, only  : LM
       USE MODEL_COM, only: Itime,ItimeI
       USE TRACER_COM, only: coupled_chem,trm,nn_N2O5,n_N2O5,n_SO4
@@ -2161,8 +2160,7 @@ C**** GLOBAL parameters and variables:
       USE OldTracer_mod, only: vol2mass
       USE RAD_COM, only  : rad_to_chem
       USE CONSTANT, only : PI
-      USE ATM_COM, only : MA
-      USE DYNAMICS, only : sig
+      USE ATM_COM, only : MA, PMIDL00
       USE TRCHEM_Shindell_COM, only: nr2,nr3,nmm,nhet,ta,ea,rr,pe,
      & cboltz,r1,sb,nst,y,nM,nH2O,ro,sn,which_trop,sulfate,RKBYPIM,dt2,
      & RGAMMASULF,pscX,topLevelOfChemistry,rh,bythick,aero
@@ -2210,7 +2208,7 @@ C**** Local parameters and variables and arguments:
 !@var LAXt,LAXb lowest and highest levels to have nonzero 
 !@+   RAD-code aerosol extinction 
 !@var aero array =1 for nonzero rkext, otherwise 0.
-      REAL*8, DIMENSION(LM) :: PRES ! PRES stays LM as function of SIG(:)
+      REAL*8, DIMENSION(LM) :: PRES ! = PMIDL00(1:LM)
       INTEGER               :: LAXt,LAXb
       real*8, allocatable, dimension(:) :: PSCEX,rkext
 
@@ -2218,7 +2216,7 @@ C**** Local parameters and variables and arguments:
       allocate( rkext(topLevelOfChemistry) )
 
       aero(:)=0
-      PRES(:)=SIG(:)*(PSF-PTOP)+PTOP
+      PRES(1:LM) = PMIDL00(1:LM)
       rkext(:)=0.d0 ! initialize over L
       LAXb=0
       LAXt=0

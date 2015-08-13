@@ -8,7 +8,7 @@ import multiprocessing
 import commands
 import logging
 
-logger = logging.getLogger('regPool')
+logger = logging.getLogger('pool')
 
 #-------------------------------------------------------------------------------
 class Worker(multiprocessing.Process):
@@ -36,9 +36,9 @@ class Task(object):
     def __init__(self, a):
         self.a = a
     def __call__(self):
-        rc = syscmd1(self.a)
+        rc =  subprocess.Popen(self.a, shell=True)
         while rc.poll() is None:
-            time.sleep(5)
+            time.sleep(10)
         if rc.returncode !=0:
             logger.debug('%r failed: %s' % (self.a, rc))
         logger.debug('%r is done' % (self.a))
@@ -50,13 +50,13 @@ class Batch(object):
     def __init__(self, a):
         self.a = a
     def __call__(self):
-        rc = sbatchSlurmCmd(self.a)
+        rc = sbatch_slurm_cmd(self.a)
         while True:
             for job in jobs:
                 logger.debug('Monitoring job : ' + job)
-                rc=syscmd2('squeue -j '+str(job)+' -t PD,R -h -o %t')
+                rc=subproc('squeue -j '+str(job)+' -t PD,R -h -o %t')
                 # If job is done, remove from list
-                if rc == '':
+                if not rc:
                     logger.debug( '...' + job + ' is done')
                     jobs.remove(job)
                 else:
@@ -64,7 +64,7 @@ class Batch(object):
                         logger.debug( '...' + job + ' is pending')
                     else:
                         logger.debug( '...' + job + ' is running')
-                    time.sleep(60)
+                    time.sleep(30)
             # If list is empty then we are done
             if not jobs:
                 break
@@ -72,13 +72,13 @@ class Batch(object):
         return '%s' % (self.a)
 
 #-------------------------------------------------------------------------------
-def runCommands(commands, useBatch):
+def runCommands(cmds, useBatch):
     # Establish communication queues
     tasks = multiprocessing.JoinableQueue()
     results = multiprocessing.Queue()
     
     # Start workers
-    num_workers = len(commands)
+    num_workers = len(cmds)
     logger.debug( 'Creating %d workers' % num_workers)
     workers = [ Worker(tasks, results)
                   for i in xrange(num_workers) ]
@@ -86,14 +86,14 @@ def runCommands(commands, useBatch):
         w.start()
     
     # Enqueue jobs
-    num_jobs = len(commands)
-    for command in commands:
+    num_jobs = len(cmds)
+    for cmd in cmds:
         if useBatch == 'yes':
-            tasks.put(Batch(command))
+            tasks.put(Batch(cmd))
         else:
-            tasks.put(Task(command))
+            tasks.put(Task(cmd))
 
-    # Add a poison pill for each worker
+    # add one stop value per worker to the job queue
     for i in xrange(num_workers):
         tasks.put(None)
 
@@ -101,21 +101,20 @@ def runCommands(commands, useBatch):
     tasks.join()
   
 #-------------------------------------------------------------------------------
-#  This function submits a batch job under SLURM and creates a jobs list
-def sbatchSlurmCmd(cmd):
+# This function submits a batch job under SLURM and creates a jobs list
+# NCCS-DISCOVER only.
+def sbatch_slurm_cmd(cmd):
     global jobs
     jobs = []
     output = commands.getoutput(cmd % vars())
+    logger.debug(output)
+    # output example: "Submitted batch job 12345"
     # Parse the output from sbatch and append job ID to jobs list
     jobs.append(shlex.split(output)[3])
     return 0
 
 #-------------------------------------------------------------------------------
-def syscmd1(cmd):
-    return subprocess.Popen(cmd, shell=True)
-
-#-------------------------------------------------------------------------------
-def syscmd2(cmd):
+def subproc(cmd):
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
     (out, err) = proc.communicate()
     return out

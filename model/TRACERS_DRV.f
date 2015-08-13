@@ -597,7 +597,7 @@ C**** set some defaults
             qcon(g) = .true.; conpts(g-12) = 'Aging source'
             qsum(g) = .true.
             select case(trim(pTracer%getName()))
-            case ('BCII')
+            case ('BCIA')
               g=g+1; itcon_3Dsrc(nAircraft,N) = g
               qcon(g) = .true.; conpts(g-12) = 'Aircraft Source'
               qsum(g) = .true.
@@ -3014,6 +3014,7 @@ c Oxidants
 #endif /* TRACERS_ON */
 #ifdef TRACERS_AMP
       USE AMP_AEROSOL, only: AMP_DIAG_FC
+      use tracer_com, only: n_N_AKK_1
 #endif
 #ifdef TRACERS_TOMAS
       USE TOMAS_AEROSOL, only: TOMAS_DIAG_FC
@@ -5760,22 +5761,19 @@ c SW forcing from albedo change
           ijts_power(k) = -15
           units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
           scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-c Surface industrial emissions
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS)
-        do kr=1,ntsurfsrc(n_SO2)
-          k = k + 1
-            ijts_source(kr,n) = k
-            ia_ijts(k) = ia_src
-            sname_ijts(k) = trim(trname(n))//'_src_'//
-     &                      trim(SO2sources(kr)%sourceName)
-            lname_ijts(k) = trim(trname(n))//' source from '//
-     &                      trim(SO2sources(kr)%sourceName)
-            ijts_power(k) = -15
-            units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-            scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-        enddo
-#endif
+c Surface industrial emissions n
+          do kr=1,ntsurfsrc(n_SO2)
+            k = k + 1
+              ijts_source(kr,n) = k
+              ia_ijts(k) = ia_src
+              sname_ijts(k) = trim(trname(n))//'_src_'//
+     &                        trim(SO2sources(kr)%sourceName)
+              lname_ijts(k) = trim(trname(n))//' source from '//
+     &                        trim(SO2sources(kr)%sourceName)
+              ijts_power(k) = -15
+              units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+              scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+          enddo
         case('M_BC1_BC','M_OCC_OC')
 c Surface industrial emissions
         do kr=1,ntsurfsrc(n)
@@ -5899,7 +5897,7 @@ c Special Radiation Diagnostic
 
 c - Tracer independent Diagnostic
       IF ( AMP_DIAG_FC == 1 ) THEN
-        n=1    !  really? why use ijts_fc then?
+        n=n_N_AKK_1
 cc shortwave radiative forcing
         k = k + 1
         ijts_fc(1,n) = k
@@ -5978,7 +5976,7 @@ c         units_ijts(k) = unit_string(ijts_power(k),'Numb.')
 c         scale_ijts(k) = 10.**(-ijts_power(k))
 c      end do
 c      end do
-#endif
+#endif  /* TRACERS_AMP */
 
 c
 c Append some denominator fields if necessary
@@ -6854,7 +6852,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       USE CONSTANT, only: mair,rhow,grav,tf,avog,rgas
       use TimeConstants_mod, only: SECONDS_PER_DAY
       USE resolution,ONLY : Im,Jm,Lm,Ls1,ptop
-      USE ATM_COM, only : q,qcl
+      USE ATM_COM, only : q,qcl,qci
       use model_com, only: modelEclock
       USE MODEL_COM, only: itime,dtsrc,itimeI
       USE ATM_COM, only: pmidl00
@@ -6921,7 +6919,8 @@ C**** 3D tracer-related arrays but not attached to any one tracer
 #endif  /* TRACERS_AEROSOLS_SEASALT || TRACERS_AMP || TRACERS_TOMAS */
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
-      USE AEROSOL_SOURCES, only: DMSinput,om2oc
+      use OldTracer_mod, only: om2oc
+      USE AEROSOL_SOURCES, only: DMSinput
 #ifndef TRACERS_AEROSOLS_SOA
       USE AEROSOL_SOURCES, only: OCT_src
 #endif  /* TRACERS_AEROSOLS_SOA */
@@ -7313,7 +7312,8 @@ c     tmominit = 0.
         do j=J_0,J_1
           do i=I_0,I_1
             trm(i,j,l,n) =  q(i,j,l)*MA(l,i,j)*axyp(i,j)*trinit
-            trwm(i,j,l,n)= qcl(i,j,l)*MA(l,i,j)*axyp(i,j)*trinit
+            trwm(i,j,l,n)= (qcl(i,j,l)+qci(i,j,l))*MA(l,i,j)
+     &           *axyp(i,j)*trinit
             trmom(:,i,j,l,n) = qmom(:,i,j,l)*MA(l,i,j)*axyp(i,j)
      *           *tmominit
           end do
@@ -8013,10 +8013,16 @@ C**** Note this routine must always exist (but can be a dummy routine)
       USE DOMAIN_DECOMP_ATM, only : grid, getDomainBounds,
      & write_parallel
       USE RAD_COM, only: o3_yr
+#ifdef TRACERS_VOLCEXP
+      USE AEROSOL_SOURCES, only: so2_src_3d
+      USE timestream_mod, only: init_stream,read_stream
+      USE tracer_com, only: SO2_volc_stream,SO2_vphe_stream
+#endif
 #ifdef TRACERS_COSMO
       USE COSMO_SOURCES, only : variable_phi
 #endif
       USE CONSTANT, only: grav
+      use TimeConstants_mod, only: SECONDS_PER_DAY
       use OldTracer_mod, only: trname, itime_tr0, MAX_LEN_NAME
       use OldTracer_mod, only: nBBsources, do_fire, vol2mass
       use TRACER_COM, only: tracers, set_ntsurfsrc
@@ -8060,10 +8066,15 @@ C**** Note this routine must always exist (but can be a dummy routine)
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
      &     :: daily_gz
       data last_month/-1/
-      INTEGER J_0, J_1, I_0, I_1
+      INTEGER J_0, J_1, I_0, I_1,I,J,ll,lmax,lmin
 #ifdef TRACERS_TOMAS
       integer km, najl_num,naij_num,k
       real*8 :: scalesize(nbins+nbins) !temporal emission mass fraction
+#endif
+#ifdef TRACERS_VOLCEXP
+      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO)
+     &     :: SO2_volc_emis_expl, Plume_hei_volc_emis_expl !  volc emiss
 #endif
       class (Tracer), pointer :: pTracer
 C****
@@ -8076,8 +8087,6 @@ CC****
 C**** Extract useful local domain parameters from "grid"
 C****
 
-      xyear=0
-      xday=0
       call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
@@ -8088,6 +8097,49 @@ C****
       endif
       daily_gz = grav*daily_z
 
+
+#ifdef TRACERS_VOLCEXP
+! Reading explosive volcano emissions for SO2
+      if(.not. end_of_day) then ! synonym for model init phase
+        ! initialize the file handle
+
+        call init_stream(grid,SO2_volc_stream,'SO2_VOLCANO_EXPL','SO2'
+     &       ,0d0,1d30,'linm2m',year,dayofyear) 
+      
+        call init_stream(grid,SO2_vphe_stream,'SO2_VOLCANO_EXPL',
+     &       'Plume_height',0d0,1d30,'linm2m',year,dayofyear)
+      endif
+
+      call read_stream(grid,SO2_volc_stream,year,dayofyear,
+     &                 SO2_volc_emis_expl)
+      call read_stream(grid,SO2_vphe_stream,year,dayofyear,
+     &                 Plume_hei_volc_emis_expl)
+
+      so2_src_3d(:,:,:,2) = 0.d0
+
+      DO J=J_0,J_1                          
+      DO I=I_0,I_1  
+         if(so2_volc_emis_expl(i,j) <= 0.d0) cycle
+
+          lmax = 1
+          do while(daily_z(i,j,lmax) < Plume_hei_volc_emis_expl(i,j))
+            lmax = lmax + 1
+          enddo
+            lmin=max(1,lmax - lmax/3)
+          do ll=lmin,lmax ! add source into the upper 1/3 of the plume
+                          ! conversion kt/d into kg/s
+          if (lmax <= 2) then
+            so2_src_3d(i,j,1,2) = so2_src_3d(i,j,1,2)
+     &                + so2_volc_emis_expl(i,j)/SECONDS_PER_DAY*1.d6
+          else
+            so2_src_3d(i,j,ll,2) = so2_src_3d(i,j,ll,2)
+     &                + (1./(float(lmax-lmin)+1)) 
+     &                * so2_volc_emis_expl(i,j)/SECONDS_PER_DAY*1.d6
+          endif
+          enddo
+        enddo
+      enddo
+#endif
 #ifdef TRACERS_SPECIAL_Lerner
       if (.not. end_of_day) then
 C**** Initialize tables for linoz
@@ -8168,16 +8220,6 @@ C**** Tracer specific call for CH4
 
 #if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch) ||\
     (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
-C**** Allow overriding of transient emissions date:
-! for now, tying this to O3_yr becasue Gavin
-! didn't want a new parameter, also not allowing
-! day overriding yet, because of that.
-      trans_emis_overr_yr=ABS(o3_yr)
-      if(trans_emis_overr_yr > 0)then
-        xyear=trans_emis_overr_yr
-      else
-        xyear=year
-      endif
 !!    if(trans_emis_overr_day > 0)then
 !!      xday=trans_emis_overr_day
 !!    else
@@ -8191,11 +8233,37 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
         call read_aero(dms_offline,'DMS_FIELD') !not applied directly to tracer
         call read_aero(so2_offline,'SO2_FIELD') !not applied directly to tracer
       endif
-#ifdef CUBED_SPHERE
-      call get_aircraft_tracer(xyear,xday,daily_gz,.true.)
-#endif
 #endif /* TRACERS_SPECIAL_Shindell */
+#ifdef CUBED_SPHERE
+      call get_aircraft_tracer(year,xday,daily_gz,.true.)
+#endif
       do n=1,NTM
+!**** Allow overriding of transient emissions date:
+! for now, tying this to O3_yr becasue Gavin
+! didn't want a new parameter, also not allowing
+! day overriding yet, because of that.
+#ifdef TRACERS_SPECIAL_Shindell
+        if (n<=ntm_chem) then
+          trans_emis_overr_yr=ABS(o3_yr)
+          if(trans_emis_overr_yr > 0)then
+            xyear=trans_emis_overr_yr
+          else
+            xyear=year
+          endif
+        else
+#endif
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
+          if(aer_int_yr > 0) then
+            xyear=aer_int_yr
+          else
+            xyear=year
+          endif
+#endif
+#ifdef TRACERS_SPECIAL_Shindell
+        end if
+#endif
+
         pTracer => tracers%getReference(trname(n))
         if(trname(n)=='CH4')then ! ---------- methane --------------
 #ifdef TRACERS_SPECIAL_Shindell
@@ -8215,45 +8283,8 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
          if(nread>0) call read_ncep_for_wetlands(end_of_day)
 #endif
 #endif /* TRACERS_SPECIAL_Shindell */
-        else !-------------------------------------- general ---------
 
-!!!#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
-!!!    (defined TRACERS_TOMAS)
-!!!          if ( ! this if statement is needed, since some tracers have ntsurfsrc>0 but no trname_XX files. It should dissappear one day.
-!!!#ifdef TRACERS_SPECIAL_Shindell
-!!!     &        n<=NTM_chem .or.
-!!!#endif
-!!!     &        n==n_SO2
-!!!#ifdef TRACERS_AEROSOLS_Koch
-!!!     &        .or. n==n_BCII .or. n==n_BCB .or. n==n_OCII .or. n==n_OCB
-!!!#endif
-!!!#if (defined TRACERS_NITRATE) || (defined TRACERS_AMP) ||\
-!!!    (defined TRACERS_TOMAS)
-!!!     &        .or. n==n_NH3
-!!!#endif
-!!!#ifdef TRACERS_AMP
-!!!     &        .or. n==n_M_BC1_BC .or. n==n_M_OCC_OC
-!!!     &        .or. n==n_M_BOC_BC .or. n==n_M_BOC_OC
-!!!#endif
-!!!#ifdef TRACERS_TOMAS
-!!!     &        .or. n==n_AECOB(1) .or. n==n_AOCOB(1)
-!!!#endif
-!!!     &        ) then
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS)
-#ifdef TRACERS_SPECIAL_Shindell
-            if (n>ntm_chem) then
-#endif
-              if(aer_int_yr > 0) then
-                xyear=aer_int_yr
-              else
-                xyear=year
-              endif
-#ifdef TRACERS_SPECIAL_Shindell
-            end if
-#endif
-#endif
-!!!#endif /* (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) || (defined TRACERS_TOMAS) */
+        else !-------------------------------------- general ---------
 
             nread=ntsurfsrc(n) ! default
             select case (trname(n)) ! list here tracers that have 3D biomass burning emissions
@@ -8267,24 +8298,10 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
             end select
 
 #ifndef TRACERS_AEROSOLS_SOA
-#ifdef TRACERS_AEROSOLS_Koch
             select case (trname(n))
-            case ('OCII')
+            case ('OCII','M_OCC_OC','SOAgas') ! Koch/AMP/TOMAS cases
               nread=nread-1
             end select
-#endif
-#ifdef TRACERS_AMP
-            select case (trname(n))
-            case ('M_OCC_OC')
-              nread=nread-1
-            end select
-#endif
-#ifdef TRACERS_TOMAS
-            select case (trname(n))
-            case ('SOAgas')
-              nread=nread-1
-            end select
-#endif
 #endif  /* TRACERS_AEROSOLS_SOA */
 
 #if (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
@@ -8350,15 +8367,17 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
      &        call read_aero(sulfate,'SULFATE_SA') !not applied directly
             end select
 #endif
-!!!#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
-!!!    (defined TRACERS_TOMAS) 
-!!!          endif ! n=n_...
-!!!#endif
+
         endif !------------------------------------------------------
       end do ! NTM
 
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
       pTracer => tracers%getReference(trname(n_codirect))
+      if(trans_emis_overr_yr > 0)then
+        xyear=trans_emis_overr_yr
+      else
+        xyear=year
+      endif
       call readSurfaceSources(pTracer,n_codirect,
      &     ntsurfsrc(n_codirect)+nBBsources(n_codirect),xyear,
      & xday,.false.,itime,itime_tr0(n_codirect),sfc_src)
@@ -8497,7 +8516,7 @@ C**** at the start of any day
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
-      USE AEROSOL_SOURCES, only: BBinc,om2oc
+      use OldTracer_mod, only: om2oc
 #ifndef TRACERS_AEROSOLS_SOA
       USE AEROSOL_SOURCES, only: OCT_src
 #endif  /* TRACERS_AEROSOLS_SOA */
@@ -8526,10 +8545,11 @@ C**** at the start of any day
       use Attributes_mod
       use AbstractAttribute_mod
       USE FILEMANAGER, only: openunit,closeunit
+      USE Dictionary_mod, only: sync_param
       implicit none
       integer :: i,j,ns,ns_isop,l,ky,n,nsect,kreg
       REAL*8 :: source,sarea,steppy,base,steppd,x,airm,anngas,
-     *  tmon,bydt,tnew,scca(im),fice
+     *  tmon,bydt,tnew,fice
       REAL*8 :: sarea_prt(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                    GRID%J_STRT_HALO:GRID%J_STOP_HALO)
 #ifdef TRACERS_SPECIAL_Shindell
@@ -8548,6 +8568,7 @@ c      real*8 :: nlight, max_COSZ1, fact0
 !@+ both tracers, and organics, where emissions of C are multiplied with OM/OC
       real*8 :: src_fact
 #endif
+      integer :: seasonalNH3src=0
 
 #ifdef TRACERS_TERP
 !@param orvoc_fact Fraction of ORVOC added to Terpenes, for SOA production (Griffin et al., 1999)
@@ -9056,7 +9077,7 @@ C****
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
       case ('SO2', 'SO4', 'M_ACC_SU', 'M_AKK_SU',
-     &      'BCII', 'BCB', 'OCII', 'OCB', 'NH3', 
+     &      'BCII', 'BCB', 'OCII', 'OCB', 
      &      'vbsAm2', 'vbsAm1', 'vbsAz', 'vbsAp1', 'vbsAp2',
      &      'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6',
      &      'M_BC1_BC', 'M_OCC_OC', 'M_BOC_BC', 'M_BOC_OC',
@@ -9192,6 +9213,27 @@ C****
         
 #endif
         enddo ! ns
+#if (defined TRACERS_NITRATE) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
+      case ('NH3')
+#ifdef DYNAMIC_BIOMASS_BURNING
+        if(do_fire(n))call dynamic_biomass_burning(n,ntsurfsrc(n)+1) 
+#endif
+        call sync_param("seasonalNH3src", seasonalNH3src)
+        do ns=1,ntsurfsrc(n); do j=J_0,J_1; do i=I_0,I_1
+        ! add annual cycle to agricultural emissions
+        if (ns == seasonalNH3src) then
+          if (cosz1(i,j) > 0.) then
+          trsource(i,j,ns,n)=sfc_src(i,j,n,ns)
+     &      *axyp(i,j)* cosz1(i,j) * 4.d0
+          endif
+        else
+          trsource(:,J_0:J_1,ns,n)=sfc_src(:,J_0:J_1,n,ns)
+     &      *axyp(:,J_0:J_1) 
+        endif
+        enddo ; enddo ; enddo
+
+#endif /* TRACERS_NITRATE || TRACERS_AMP || TRACERS_TOMAS */
 #endif /* (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) || (defined TRACERS_TOMAS) */
       end select
 
@@ -9318,6 +9360,10 @@ c latlon grid
 c$$$      use OldTracer_mod, only: itime_tr0, do_fire, trname
 c$$$      use OldTracer_mod, only: tr_mm, nBBsources, mass2vol
       use OldTracer_mod
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
+      USE TRACER_COM, only: aer_int_yr
+#endif
       USE TRACER_COM, only: ntm, sfc_src, trm
       use TRACER_COM, only: mchem, mtrace, n_BCIA, n_BCII, n_CFC, n_CH4
       use TRACER_COM, only: n_DMS, n_H2O2_s, n_HNO3, n_MSA, N_N2O
@@ -9365,7 +9411,8 @@ c$$$      use OldTracer_mod, only: tr_mm, nBBsources, mass2vol
 #endif  /* TRACERS_AEROSOLS_SOA */
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
-      USE AEROSOL_SOURCES, only: so2_src_3d,BBinc,om2oc
+      use OldTracer_mod, only: om2oc
+      USE AEROSOL_SOURCES, only: so2_src_3d
 #ifdef TRACERS_AEROSOLS_VBS
       USE AEROSOL_SOURCES, only: VBSemifact
       USE TRACERS_VBS, only: vbs_tr
@@ -9403,16 +9450,14 @@ c$$$      use OldTracer_mod, only: tr_mm, nBBsources, mass2vol
 #endif
 
       implicit none
-      INTEGER n,ns,najl,i,j,l,blay,xyear,xday   ; real*8 now
+      INTEGER n,ns,najl,i,j,l,blay,xday   ; real*8 now
       INTEGER J_0, J_1, I_0, I_1
       integer :: src_index,bb_i,bb_e
       integer :: initial_ghg_setup
 !@var src_fact Factor to multiply aerosol emissions. Default is 1. Notable
 !@+ exceptions are SO2/SO4, where one file is being read and distributed to
 !@+ both tracers, and organics, where emissions of C are multiplied with OM/OC
-!@var bb_fact ituning factor to multiply biomass burning emissions. For
-!@+ IPCC emissions, this is 1.4 to match BC observations.
-      real*8 :: src_fact,bb_fact
+      real*8 :: src_fact
 !@var blsrc (m2/s) tr3Dsource (kg/s) in boundary layer,
 !@+                per unit of air mass (kg/m2)
       real*8 :: blsrc
@@ -9439,8 +9484,6 @@ c$$$      use OldTracer_mod, only: tr_mm, nBBsources, mass2vol
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      xyear=0
-      xday=0
       call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
@@ -9482,7 +9525,7 @@ C****
 #endif
 
 ! -----------
-! define src_fact (=1 by default), bb_fact (=1 by default) and src_index (=n by default)
+! define src_fact (=1 by default) and src_index (=n by default)
 ! for the gas and aerosol tracers that have 3D emissions (will apply to biomass burning)
 ! -----------
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
@@ -9495,7 +9538,6 @@ C****
      &      'M_BC1_BC', 'M_OCC_OC', 'M_BOC_BC', 'M_BOC_OC'
      &      ,'ASO4__01','AECOB_01','AOCOB_01')
           src_fact=1.d0 ! factor to multiply emissions with
-          bb_fact=1.d0 ! factor to multiply biomass_burning emissions with
           src_index=n   ! index to be used for emissions
           select case (trname(n))
 #ifndef One_percent_sulfate 
@@ -9543,8 +9585,6 @@ C****
     (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_VBS)
           case ('OCII')
             src_fact=om2oc(n)
-          case ('BCB', 'M_BC1_BC', 'M_BOC_BC','AECOB_01')
-            if(.not.do_fire(n))bb_fact=BBinc
           case ('OCB', 'M_OCC_OC', 'M_BOC_OC','AOCOB_01',
      &          'vbsAm2', 'vbsAm1', 'vbsAz',  'vbsAp1', 'vbsAp2',
      &          'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6')
@@ -9559,7 +9599,6 @@ C****
               endif
 #endif
             end select
-            if(.not.do_fire(n))bb_fact=BBinc
 #endif
           end select
 
@@ -9568,12 +9607,17 @@ C****
 C**** 3D volcanic source
         select case (trname(n))
         case ('SO2', 'SO4', 'M_ACC_SU', 'M_AKK_SU')
+#ifdef TRACERS_VOLCEXP
+          tr3Dsource(:,J_0:J_1,:,nVolcanic,n) =
+     &      so2_src_3d(:,J_0:J_1,:,2)*src_fact
+          call apply_tracer_3Dsource(nVolcanic,n)
+#else
           tr3Dsource(:,J_0:J_1,:,nVolcanic,n) =
      &      so2_src_3d(:,J_0:J_1,:,1)*src_fact
           call apply_tracer_3Dsource(nVolcanic,n)
+#endif
         end select
 #endif
-
 C**** 3D biomass source
         tr3Dsource(:,J_0:J_1,:,nBiomass,n) = 0.
         if(do_fire(src_index) .or. nBBsources(src_index) > 0) then
@@ -9585,7 +9629,7 @@ C**** 3D biomass source
           end if
           do j=J_0,J_1; do i=I_0,I_1
             blay=int(dclev(i,j)+0.5d0)
-            blsrc = axyp(i,j)*src_fact*bb_fact*
+            blsrc = axyp(i,j)*src_fact*
      &       sum(sfc_src(i,j,src_index,bb_i:bb_e))/sum(MA(1:blay,i,j))
             do l=1,blay
               tr3Dsource(i,j,l,nBiomass,n) = blsrc*MA(l,i,j)
@@ -9730,43 +9774,38 @@ C are done for chemistry.  It might be better to do it like surface
 C sources are done? -- GSF 11/26/02)
 c
       CALL TIMER (NOW,MTRACE)
-C**** Allow overriding of transient emissions date:
-! for now, tying this to o3_yr becasue Gavin
-! didn't want a new parameter, also not allowing
-! day overriding yet, because of that.
-      trans_emis_overr_yr=ABS(o3_yr)
-      if(trans_emis_overr_yr > 0)then
-        xyear=trans_emis_overr_yr
-      else
-        xyear=year
-      endif
-!!    if(trans_emis_overr_day > 0)then
-!!      xday=trans_emis_overr_day
-!!    else
-        xday=dayOfYear
-!!    endif
+
 #ifdef SHINDELL_STRAT_EXTRA
       tr3Dsource(I_0:I_1,J_0:J_1,:,1,n_GLT) = 0.d0
       call overwrite_GLT
       call apply_tracer_3Dsource(1,n_GLT)
 #endif
-      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_NOx)  = 0.
+      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_NOx)  = 0.d0
 #endif /* TRACERS_SPECIAL_Shindell */
 #ifdef TRACERS_AEROSOLS_Koch
-      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_BCIA)  = 0.
+      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_BCIA)  = 0.d0
 #endif
 #ifdef TRACERS_TOMAS
-      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_AECOB(1))  = 0.
+      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_AECOB(1))  = 0.d0
 #endif
 #ifdef TRACERS_AMP
-      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_M_BC1_BC)  = 0.
+      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_M_BC1_BC)  = 0.d0
 #endif
 #if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch) ||\
     (defined TRACERS_AMP) || (defined TRACERS_TOMAS) 
+!**** Allow overriding of transient emissions date:
+! for now, xyear is tied to o3_yr because Gavin
+! did not want a new parameter, also not allowing
+! day overriding yet, because of that.
+!!    if(trans_emis_overr_day > 0)then
+!!      xday=trans_emis_overr_day
+!!    else
+        xday=dayOfYear
+!!    endif
 #ifdef CUBED_SPHERE
-      call get_aircraft_tracer(xyear,xday,dummy3d,.false.)
+      call get_aircraft_tracer(year,xday,dummy3d,.false.)
 #else
-      call get_aircraft_tracer(xyear,xday,phi,.true.) ! read from disk
+      call get_aircraft_tracer(year,xday,phi,.true.) ! read from disk
 #endif
 #endif
 #ifdef TRACERS_AEROSOLS_Koch

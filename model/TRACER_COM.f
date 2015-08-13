@@ -43,7 +43,9 @@ C
       use OldTracer_mod, only: ntisurfsrc
       use OldTracer_mod, only: trli0
       use OldTracer_mod, only: trsi0
-
+#ifdef TRACERS_VOLCEXP
+      use timestream_mod, only : timestream
+#endif
 #ifdef TRACERS_AEROSOLS_VBS
       use TRACERS_VBS, only: vbs_bins
 #endif
@@ -545,10 +547,10 @@ C**** tracer specific switches
 
 C**** arrays that could be general, but are only used by chemistry
 
-!! dbparam trans_emis_overr_yr year for overriding tracer transient emis
-!! dbparam trans_emis_overr_day day for overriding tracer transient emis
-!@var trans_emis_overr_yr year for overriding tracer transient emis
-!@var trans_emis_overr_day day for overriding tracer transient emis
+!@dbparam trans_emis_overr_yr year for overriding Shindell tracer
+!@+       transient emissions
+!@dbparam trans_emis_overr_day day for overriding Shindell tracer
+!@+       transient emissions
       integer :: trans_emis_overr_yr=0, trans_emis_overr_day=0
 ! ---- section for altering tracers sources by sector/region ----
 !@param n_max_reg  maximum number of regions for emissions altering
@@ -590,6 +592,10 @@ C**** arrays that could be general, but are only used by chemistry
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: rxts,rxts1,rxts2,rxts3
      *                                         ,rxts4
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:,:) :: krate
+#endif
+#ifdef TRACERS_VOLCEXP
+      type(timestream) :: SO2_volc_stream  ! explosive emissions
+      type(timestream) :: SO2_vphe_stream  ! explosive plume height
 #endif
 
 !@var xyz_count,xyz_list count/list of tracers in category xyz.
@@ -697,7 +703,7 @@ c note: not applying CPP when declaring counts/lists.
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)||\
     (defined TRACERS_TOMAS)
         select case (trname(n))
-        case('SO2','SO4','H2O2_s','H2O2')
+        case('SO2','SO4','H2O2_s','H2O2','M_ACC_SU','ASO4__01')
           if ( .not.(
      *         (trname(n).eq."H2O2" .and. coupled_chem.eq.0).or.
      *         (trname(n).eq."H2O2_s" .and. coupled_chem.eq.1)) )

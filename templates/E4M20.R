@@ -73,31 +73,8 @@ NAMERVR=RD_modelE_M.names.txt     ! named river outlets
 TOP_INDEX=top_index_72x46_a.ij.ext.nc  ! only used if #define DO_TOPMODEL_RUNOFF
 GLMELT=GLMELT_4X5.OCN.nc   ! glacial melt distribution
     ! resolution independent files
-RADN1=sgpgxg.table8               ! rad.tables and history files
-RADN2=LWTables33k.1a              ! rad.tables and history files
-RADN4=LWCorrTables33k              ! rad.tables and history files
-RADN5=H2Ocont_MT_CKD  ! Mlawer/Tobin_Clough/Kneizys/Davies H2O continuum table
-! other available H2O continuum tables:
-!    RADN5=H2Ocont_Ma_2000
-!    RADN5=H2Ocont_Roberts
-!    RADN5=H2Ocont_Ma_2008
-RADN3=miescatpar.abcdv2
-! updated aerosols need MADAER=3
-TAero_SUL=SUL_Koch2008_kg_m2_72x46x20_1890-2000h.nc
-TAero_SSA=SSA_Koch2008_kg_m2_72x46x20h.nc
-TAero_NIT=NIT_Bauer2008_kg_m2_72x46x20_1890-2000h.nc
-TAero_OCA=OCA_Koch2008_kg_m2_72x46x20_1890-2000h.nc
-TAero_BCA=BCA_Koch2008_kg_m2_72x46x20_1890-2000h.nc
-TAero_BCB=BCB_Koch2008_kg_m2_72x46x20_1890-2000h.nc
-RH_QG_Mie=oct2003.relhum.nr.Q633G633.table
-RADN7=STRATAER.VOL.1850-1999.Apr02_hdr
-RADN8=cloud.epsilon4.72x46
-RADN9=solar.lean02.ann.uvflux_hdr      ! need KSOLAR=2
-RADNE=topcld.trscat8
-ISCCP=ISCCP.tautables
+#include "rad_input_files"
 #include "rad_72x46_input_files"
-GHG=GHG.Mar2004.txt
-dH2O=dH2O_by_CH4_monthly
 MSU_wts=MSU.RSS.weights.data
 
 Label and Namelist:
@@ -152,24 +129,7 @@ KSIALB=0        ! 6-band albedo (Hansen) (=-1 no land ice fixup, 1 Lacis' scheme
 KSOLAR=2
 
 madaer=3        ! updated aerosols
-! parameters that control the atmospheric/boundary conditions
-! if set to 0, the current (day/) year is used: transient run
-crops_yr=1850 ! if -1, crops in VEG-file is used
-s0_yr=1850
-s0_day=182
-ghg_yr=1850
-ghg_day=182
-volc_yr=-1  ! 1850-1999 mean strat.aeros
-volc_day=182
-aero_yr=1850
-od_cdncx=0.        ! don't include 1st indirect effect
-cc_cdncx=0.        ! don't include 2nd indirect effect (was .0036)
-albsn_yr=1850
-dalbsnX=.024
-o3_yr=1850
-
-variable_orb_par=0
-orb_par_year_bp=100   !  BP i.e. 1950-orb_par_year_bp AD = 1850 AD
+#include "atmCompos_1850_params"
 
 ! parameters that control the Shapiro filter
 DT_XUfilter=450. ! Shapiro filter on U in E-W direction; usually same as DT (below)

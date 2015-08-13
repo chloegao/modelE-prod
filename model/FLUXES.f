@@ -353,10 +353,8 @@
 #endif
 !@var TRGASEX  tracer gas exchange (mol,CO2/m^2/s)
          REAL*8, DIMENSION(:,:,:), POINTER :: TRGASEX
-#ifdef OBIO_RAD_coupling
-         REAL*8, DIMENSION(:,:), POINTER ::
+         REAL*8, DIMENSION(:,:), allocatable ::
      &     DIRVIS,DIFVIS,DIRNIR,DIFNIR
-#endif
 C**** array of Chlorophyll data for use in ocean albedo calculation
 !@var CHL Chlorophyll concentration data (mgr/m**3)
          REAL*8, DIMENSION(:,:), POINTER :: CHL
@@ -580,6 +578,8 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
         module procedure alloc_atmlnd_xchng_vars
         module procedure alloc_iceocn_xchng_vars
       end interface alloc_xchng_vars
+
+      logical :: rad_coupling=.false.
 
       CONTAINS
 
@@ -1200,14 +1200,12 @@ c workaround for uninitialized patches%srfstate_exports multiply by zero
       this % CHL = 0.
       this%chl_defined=.false.
 
-#ifdef OBIO_RAD_coupling
-      allocate(
-     &          this % DIRVIS  ( I_0H:I_1H , J_0H:J_1H ),
-     &          this % DIFVIS  ( I_0H:I_1H , J_0H:J_1H ),
-     &          this % DIRNIR  ( I_0H:I_1H , J_0H:J_1H ),
-     &          this % DIFNIR  ( I_0H:I_1H , J_0H:J_1H ),
-     &   STAT = IER)
-#endif
+      if (rad_coupling)
+     &  allocate(this % DIRVIS  ( I_0H:I_1H , J_0H:J_1H ),
+     &           this % DIFVIS  ( I_0H:I_1H , J_0H:J_1H ),
+     &           this % DIRNIR  ( I_0H:I_1H , J_0H:J_1H ),
+     &           this % DIFNIR  ( I_0H:I_1H , J_0H:J_1H ),
+     &           STAT = IER)
 
       this % modd5s = -999
 
@@ -1472,7 +1470,7 @@ c workaround for uninitialized patches%srfstate_exports multiply by zero
       REAL*8, ALLOCATABLE, DIMENSION(:,:)   :: FLAKE0
 
 #ifdef GLINT2
-!@var FLICE_ICEMODEL Fraction of gridbox that's landice that
+!@var FLICE_ICEMODEL Fraction of gridbox that is landice that
 !     comes from a GLINT2-related ice model.
 !     NOTE: FLICE_GLINT2 < FLICE
       REAL*8, ALLOCATABLE, DIMENSION(:,:)   :: FLICE_GLINT2
@@ -1666,7 +1664,7 @@ C**** fluxes associated with variable lake fractions
       END MODULE FLUXES
 
       SUBROUTINE ALLOC_FLUXES !(grd_dum)
-!@sum   Initializes FLUXES''s arrays
+!@sum   Initializes FLUXES arrays
 !@auth  Rosalinda de Fainchtein
       USE EXCHANGE_TYPES, only : alloc_xchng_vars
       USE DOMAIN_DECOMP_ATM, ONLY : GRD_DUM=>GRID,

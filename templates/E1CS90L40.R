@@ -90,7 +90,7 @@ GLMELT=GLMELT_CS90.nc   ! glacial melt distribution
 !                                             (end of section 2 of data input files)
 RADN1=sgpgxg.table8               ! rad.tables and history files
 !RADN2=radfil33k
-RADN2=LWTables33k.1a              ! rad.tables and history files
+RADN2=LWTables33k_lowH2O_CO2_O3_planck_1-800              ! rad.tables and history files
 RADN4=LWCorrTables33k              ! rad.tables and history files
 RADN5=H2Ocont_Ma_2000             ! H2O continuum table
 ! other available H2O continuum tables:

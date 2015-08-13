@@ -276,10 +276,8 @@ C****
 #endif
 #endif
       use rad_com, only : trhr,fsf,trsurf,cosz1
-#ifdef OBIO_RAD_coupling
       use fluxes, only : atmocn
       use rad_com, only : dirvis,fsrdif,dirnir,difnir
-#endif
       implicit none
       integer :: it
 
@@ -309,12 +307,12 @@ C****
 
 
       ! miscellaneous fields only defined for some types
-#ifdef OBIO_RAD_coupling
-      atmocn % DIRVIS = DIRVIS
-      atmocn % DIFVIS = FSRDIF
-      atmocn % DIRNIR = DIRNIR
-      atmocn % DIFNIR = DIFNIR
-#endif
+      if (allocated(atmocn%dirvis)) then
+        atmocn % DIRVIS = DIRVIS
+        atmocn % DIFVIS = FSRDIF
+        atmocn % DIRNIR = DIRNIR
+        atmocn % DIFNIR = DIFNIR
+      endif
 
       return
       end subroutine atm_phase1_exports

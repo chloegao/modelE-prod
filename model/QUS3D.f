@@ -44,7 +44,9 @@ c arrays for upwind halos
       real*8, dimension(:), allocatable :: sbufs,sbufn,rbufs,rbufn
 #endif
 
+
       contains
+
 
       SUBROUTINE AADVQ(RM,RMOM,qlimit,tname)
       USE DOMAIN_DECOMP_ATM, only : grid
@@ -53,10 +55,12 @@ c arrays for upwind halos
      &     buffer_exchange=>halo_update_mask
       USE QUSDEF
       USE QUSCOM, ONLY : IM,JM,LM
-      USE ATM_COM, ONLY: pu=>MUs, pv=>MVs, sd=>MWs, mb, MMA
+      USE ATM_COM, ONLY: pu=>MUs, pv=>MVs, MWs, mb, MMA
       IMPLICIT NONE
+
       character(*) tname          !tracer name
       logical :: qlimit
+      Real*8  :: SD(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM), byNCYC
       REAL*8, dimension(im,grid%J_STRT_HALO:grid%J_STOP_HALO,lm) ::
      &                  rm
       REAL*8, dimension(NMOM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM)
@@ -86,6 +90,7 @@ c**** Extract domain decomposition info
          MMA(:,:,L) = MB(:,:,L) ! fill in halo lats
       ENDDO
 
+      byNCYC = 1d0 / NCYC
       do nc=1,ncyc
 
         if(nc.gt.1) CALL HALO_UPDATE(grid, MMA, FROM=NORTH+SOUTH)
@@ -217,6 +222,7 @@ c when flow out both sides would cause negative tracer mass, modify moments
           endif                 ! l.le.lm
 
 c when flow out both sides would cause negative tracer mass, modify moments
+          SD(:,:,:) = - MWs(:,:,:)*byNCYC
           if(qlimit .and. l.gt.1 .and. l.lt.lm) then
             do j=j_0,j_1
               do ii=1,ni_checkfobs_z(j,l)
@@ -250,7 +256,8 @@ c
             lmin = lminzij(i,j)
             lmax = lmaxzij(i,j)
             nl = lmax-lmin+1
-            mw1d(1:nl-1) = mw_extra(i,j,lmin:lmax-1)/nstepz_extra(i,j)
+            mw1d(1:nl-1) = - mw_extra(i,j,lmin:lmax-1) /
+     /                     (ncyc*nstepz_extra(i,j))
             mw1d(nl) = 0d0      ! important
             ma1d(1:nl) = MMA(i,j,lmin:lmax)
             rm1d(1:nl) = rm(i,j,lmin:lmax)
@@ -274,7 +281,8 @@ c
       RETURN
       END SUBROUTINE AADVQ
 
-      SUBROUTINE AADVQ0(dt_dummy)
+
+      Subroutine AADVQ0
 !@sum AADVQ0 initialises advection of tracer.
 !@+   Decide how many cycles to take such that mass does not become
 !@+   too small during any of the operator splitting steps of each cycle
@@ -287,13 +295,12 @@ c
       USE QUSDEF, only : nmom
       USE GEOM, only : imaxj
       IMPLICIT NONE
-      real*8, intent(in) :: dt_dummy
       INTEGER :: i,j,l,n,nc,nbad,nbad_loc,ierr_loc,ierr,nc3d,ncxy
      &     ,ncycxy_loc(lm),im1,lmin,lmax,nl,nstepx_dum,nstepz_dum
 #ifdef UPWIND_HALOS
       integer :: ni_pack,ni_unpack
 #endif
-      REAL*8 :: byn,ssp,snp,mvbyn,mwbyn,mpol,byn3d
+      REAL*8 :: byn,byNXY,ssp,snp,mvbyn,mwbyn,mpol,byn3d
       real*8, dimension(im) :: mubyn,am,mi
       real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo) ::
      &     ma2d,mb2d
@@ -330,7 +337,7 @@ c note: mw south halo is already filled for GISS dynamics
         END DO
         IF (HAVE_NORTH_POLE) MU(:,JM,L) = 0.
         IF (HAVE_NORTH_POLE) MV(:,JM,L) = 0.
-        MW(:,j_0h:j_1h,L) = -MW(:,j_0h:j_1h,L) ! accum phase should do the switch
+!!!        MW(:,j_0h:j_1h,L) = -MW(:,j_0h:j_1h,L) ! accum phase should do the switch
       ENDDO
       MW(:,j_0h:j_1h,LM) = 0.
       CALL HALO_UPDATE(grid, MV, FROM=NORTH)
@@ -397,7 +404,7 @@ c check courant numbers in the z direction
             if(l.lt.lm) then
               do j=j_0,j_1
                 do i=1,im
-                  mwbyn = mw(i,j,l)*byn
+                  mwbyn = - mw(i,j,l)*byn
                   if((MMA(i,j,l)-mwbyn)*(MMA(i,j,l+1)+mwbyn).lt.0.) then
                     lminzij(i,j) = min(lminzij(i,j),l)
                     lmaxzij(i,j) = max(lmaxzij(i,j),l+1)
@@ -410,19 +417,19 @@ c update mass from z fluxes
               if(l.eq.1) then   ! lowest layer
                 do j=J_0,J_1
                   do i=1,im
-                    MMA(i,j,l) = MMA(i,j,l)-mw(i,j,l)*byn
+                    MMA(i,j,l) = MMA(i,j,l) + mw(i,j,l)*byn
                   enddo
                 enddo
               elseif(l.eq.lm) then ! topmost layer
                 do j=J_0,J_1
                   do i=1,im
-                    MMA(i,j,l) = MMA(i,j,l)+mw(i,j,l-1)*byn
+                    MMA(i,j,l) = MMA(i,j,l) - mw(i,j,l-1)*byn
                   enddo
                 enddo
               else              ! interior layers
                 do j=J_0,J_1
                   do i=1,im
-                    MMA(i,j,l) = MMA(i,j,l)+(mw(i,j,l-1)-mw(i,j,l))*byn
+                    MMA(i,j,l) = MMA(i,j,l)+(mw(i,j,l)-mw(i,j,l-1))*byn
                   end do
                 end do
               endif
@@ -439,7 +446,7 @@ C**** Divide the mass fluxes by the number of 3D cycles
         DO L=1,LM
           mu(:,:,l)=mu(:,:,l)*byn
           mv(:,:,l)=mv(:,:,l)*byn
-          mw(:,:,l)=mw(:,:,l)*byn
+!!!          mw(:,:,l)=mw(:,:,l)*byn
         ENDDO
       endif
 
@@ -462,7 +469,7 @@ c      mw_extra(:,:,:) = 0d0 ! zeroing not needed
           div1d(1+l-lmin) = mu(im1,j,l)-mu(i,j,l)+mv(i,j-1,l)-mv(i,j,l)
         enddo
         mb1d(1:nl) = mb(i,j,lmin:lmax)
-        mw1d(1:nl) = mw(i,j,lmin:lmax)
+        mw1d(1:nl) = - mw(i,j,lmin:lmax)*byn
 c first determine the limit on the initial mass flux.
 c at this point, div1d only includes xy contributions.
         ma1d(1:nl) = mb1d(1:nl)
@@ -470,8 +477,8 @@ c at this point, div1d only includes xy contributions.
         do nc3d=2,ncyc
           ma1d(1:nl-1) = ma1d(1:nl-1) - mw1d(1:nl-1)
           ma1d(2:nl  ) = ma1d(2:nl  ) + mw1d(1:nl-1)
-          if(lmin.gt.1 ) ma1d(1 ) = ma1d(1 ) + mw(i,j,lmin-1)
-          if(lmax.lt.lm) ma1d(nl) = ma1d(nl) - mw(i,j,lmax  )
+          if(lmin.gt.1 ) ma1d(1 ) = ma1d(1 ) - mw(i,j,lmin-1)*byn
+          if(lmax.lt.lm) ma1d(nl) = ma1d(nl) + mw(i,j,lmax  )*byn
           ma1d(1:nl) = ma1d(1:nl) + div1d(1:nl)
           mamin(1:nl) = min(ma1d(1:nl),mamin(1:nl))
         enddo
@@ -484,11 +491,11 @@ c at this point, div1d only includes xy contributions.
           div1d(l  ) = div1d(l  ) - mwlim
           div1d(l+1) = div1d(l+1) + mwlim
           mw1d(l) = mw1d(l) - mwlim
-          mw_extra(i,j,l-1+lmin) = mw1d(l)
+          mw_extra(i,j,l-1+lmin) = - mw1d(l)*ncyc
         enddo
 c div1d now includes xy + mwlim contributions
-        if(lmin.gt.1 ) div1d(1 ) = div1d(1 ) + mw(i,j,lmin-1)
-        if(lmax.lt.lm) div1d(nl) = div1d(nl) - mw(i,j,lmax  )
+        if(lmin.gt.1 ) div1d(1 ) = div1d(1 ) - mw(i,j,lmin-1)*byn
+        if(lmax.lt.lm) div1d(nl) = div1d(nl) + mw(i,j,lmax  )*byn
         ma1d(1:nl) = mb1d(1:nl)
         do nc3d=1,ncyc
           ma1d(1:nl) = ma1d(1:nl) + div1d(1:nl)
@@ -513,14 +520,14 @@ c            CALL HALO_UPDATE(grid, MB2D, FROM=SOUTH+NORTH)
           nbad = 1
           do while(nbad.gt.0)
             if(ncycxy(l).gt.ncmax) exit nc3dloop
-            byn = 1./ncycxy(l)
+            byNXY = 1./ncycxy(l)
             nbad = 0
             do nc=1,ncycxy(l)
 
 c check y direction courant numbers
               do j=max(2,j_0),min(j_1,jm-2)
                 do i=1,im
-                  mvbyn = mv(i,j,l)*byn
+                  mvbyn = mv(i,j,l)*byNXY
                   if((ma2d(i,j)-mvbyn)*(ma2d(i,j+1)+mvbyn).lt.0.) then
                     nbad = nbad + 1
                   endif
@@ -530,7 +537,7 @@ c check y direction courant numbers
                 j=1
                 mpol = ma2d(1,j)*im
                 do i=1,im
-                  mvbyn = mv(i,j,l)*byn
+                  mvbyn = mv(i,j,l)*byNXY
                   if((mpol-mvbyn)*(ma2d(i,j+1)+mvbyn).lt.0.) then
                     nbad = nbad + 1
                   endif
@@ -540,7 +547,7 @@ c check y direction courant numbers
                 j=jm-1
                 mpol = ma2d(1,j+1)*im
                 do i=1,im
-                  mvbyn = mv(i,j,l)*byn
+                  mvbyn = mv(i,j,l)*byNXY
                   if((ma2d(i,j)-mvbyn)*(mpol+mvbyn).lt.0.) then
                     nbad = nbad + 1
                   endif
@@ -549,26 +556,26 @@ c check y direction courant numbers
 c check mass ratios after y direction, update mass
               do j=J_0S,J_1S
                 do i=1,im
-                  ma2d(i,j) = ma2d(i,j) + (mv(i,j-1,l)-mv(i,j,l))*byn
+                  ma2d(i,j) = ma2d(i,j) + (mv(i,j-1,l)-mv(i,j,l))*byNXY
                   if (ma2d(i,j).lt.mrat_limy*mb(i,j,l)) then
                     nbad = nbad + 1
                   endif
                 end do
                 i=1
-                  ma2d(i,j) = ma2d(i,j) + (mu(im ,j,l)-mu(i,j,l))*byn
+                  ma2d(i,j) = ma2d(i,j) + (mu(im ,j,l)-mu(i,j,l))*byNXY
                 do i=2,im
-                  ma2d(i,j) = ma2d(i,j) + (mu(i-1,j,l)-mu(i,j,l))*byn
+                  ma2d(i,j) = ma2d(i,j) + (mu(i-1,j,l)-mu(i,j,l))*byNXY
                 end do
               end do
               if (HAVE_SOUTH_POLE) then
-                ssp = sum(ma2d(:, 1)-mv(:,   1,l)*byn)*byim
+                ssp = sum(ma2d(:, 1)-mv(:,   1,l)*byNXY)*byim
                 ma2d(:,1 ) = ssp
                 if (ma2d(1,1).lt.mrat_limy*mb(1,1,l)) then
                   nbad = nbad + 1
                 endif
               endif
               if (HAVE_NORTH_POLE) then
-                snp = sum(ma2d(:,jm)+mv(:,jm-1,l)*byn)*byim
+                snp = sum(ma2d(:,jm)+mv(:,jm-1,l)*byNXY)*byim
                 ma2d(:,jm) = snp
                 if (ma2d(1,jm).lt.mrat_limy*mb(1,jm,l)) then
                   nbad = nbad + 1
@@ -589,20 +596,20 @@ c update boundary airmasses to avoid layerwise mpi communication during iteratio
                 if(.not.have_south_pole) then
                   j=j_0h
                   i=1
-                  ma2d(i,j) = ma2d(i,j) + byn*
+                  ma2d(i,j) = ma2d(i,j) + byNXY*
      &                 (mu(im,j,l)-mu(i,j,l)+pv_south(i,l)-mv(i,j,l))
                   do i=2,im
-                    ma2d(i,j) = ma2d(i,j) + byn*
+                    ma2d(i,j) = ma2d(i,j) + byNXY*
      &                   (mu(i-1,j,l)-mu(i,j,l)+pv_south(i,l)-mv(i,j,l))
                   enddo
                 endif
                 if(.not.have_north_pole) then
                   j=j_1h
                   i=1
-                  ma2d(i,j) = ma2d(i,j) + byn*
+                  ma2d(i,j) = ma2d(i,j) + byNXY*
      &                 (mu(im,j,l)-mu(i,j,l)+mv(i,j-1,l)-mv(i,j,l))
                   do i=2,im
-                    ma2d(i,j) = ma2d(i,j) + byn*
+                    ma2d(i,j) = ma2d(i,j) + byNXY*
      &                   (mu(i-1,j,l)-mu(i,j,l)+mv(i,j-1,l)-mv(i,j,l))
                   enddo
                 endif
@@ -616,19 +623,19 @@ c now add the z mass tendency at this level
             if(l.eq.1) then     ! lowest layer
               do j=max(1,J_0H),min(JM,J_1H)
                 do i=1,im
-                  mb2d(i,j) = ma2d(i,j)-mw(i,j,l)
+                  mb2d(i,j) = ma2d(i,j) + mw(i,j,l)*byn
                 enddo
               enddo
             else if(l.eq.lm) then ! topmost layer
               do j=max(1,J_0H),min(JM,J_1H)
                 do i=1,im
-                  mb2d(i,j) = ma2d(i,j)+mw(i,j,l-1)
+                  mb2d(i,j) = ma2d(i,j) - mw(i,j,l-1)*byn
                 end do
               end do
             else                ! interior layers
               do j=max(1,J_0H),min(JM,J_1H)
                 do i=1,im
-                  mb2d(i,j) = ma2d(i,j)+(mw(i,j,l-1)-mw(i,j,l))
+                  mb2d(i,j) = ma2d(i,j) + (mw(i,j,l)-mw(i,j,l-1))*byn
                 enddo
               enddo
             endif
@@ -651,10 +658,10 @@ c globalmax of ncycxy, nstepx for each lat/level
         endif
 C**** Further divide the xy mass fluxes by the number of xy cycles at each level
         if(ncycxy(l).gt.1) then
-          byn = 1./ncycxy(l)
-          pv_south(:,l) = pv_south(:,l)*byn
-          mu(:,:,l)=mu(:,:,l)*byn
-          mv(:,:,l)=mv(:,:,l)*byn
+          byNXY = 1./ncycxy(l)
+          pv_south(:,l) = pv_south(:,l)*byNXY
+          mu(:,:,l)=mu(:,:,l)*byNXY
+          mv(:,:,l)=mv(:,:,l)*byNXY
         endif
         ma2d(:,j_0s:j_1s) = mb(:,j_0s:j_1s,l)
         nstepx(j_0s:j_1s,l) = 1
@@ -675,16 +682,16 @@ c z-direction mass update
           if(nc3d.lt.ncyc) then
             if(l.eq.1) then     ! lowest layer
               do j=J_0S,J_1S
-                ma2d(:,j) = ma2d(:,j)-mw(:,j,l)
+                ma2d(:,j) = ma2d(:,j) + mw(:,j,l)*byn
               enddo
             else if(l.eq.lm) then ! topmost layer
               do j=J_0S,J_1S
-                ma2d(:,j) = ma2d(:,j)+mw(:,j,l-1)
+                ma2d(:,j) = ma2d(:,j) - mw(:,j,l-1)*byn
               end do
             else                ! interior layers
               do j=J_0S,J_1S
                 do i=1,im
-                  ma2d(i,j) = ma2d(i,j)+(mw(i,j,l-1)-mw(i,j,l))
+                  ma2d(i,j) = ma2d(i,j) + (mw(i,j,l)-mw(i,j,l-1))*byn
                 enddo
               enddo
             endif
@@ -778,7 +785,7 @@ c
         do j=j_0,j_1
           n = 0
           do i=1,imaxj(j)
-            if(mw(i,j,l).gt.0. .and. mw(i,j,l-1).lt.0.) then
+            if (mw(i,j,l-1) > 0 .and. mw(i,j,l) < 0)  then
               n = n + 1
               i_checkfobs_z(n,j,l) = i
             endif
@@ -814,7 +821,9 @@ c
       RETURN
       END subroutine AADVQ0
 
+
       end MODULE TRACER_ADV
+
 
       SUBROUTINE XSTEP(jprt,lprt,ierr,M,MU,NSTEP,am,mi)
 !@sum XSTEP determines the number of X timesteps for tracer dynamics
@@ -875,6 +884,7 @@ c      ierr=0
       enddo      ! while(courmax.gt.1.)
       RETURN
       END SUBROUTINE XSTEP
+
 
       SUBROUTINE ZSTEP (M0,ML,CM0,CM,NSTEP,NL)
 !@sum ZSTEP determines the number of Z timesteps for tracer dynamics

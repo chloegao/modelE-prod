@@ -492,7 +492,7 @@ C****
       ERRQ=COMP8 ('P     ',IM,JM,1      ,P1 ,P2 ) .or. ERRQ
       ERRQ=COMP8 ('STRAT ',IM,JM,1      ,strat1 ,strat2 ) .or. ERRQ
       ERRQ=COMPiLIJ ('ISTRAT',2,IM,JM      ,istrat1,istrat2 ) .or. ERRQ
-      IF (KOCEAN1.eq.KOCEAN2) THEN ! compare oceans else don't
+      IF (KOCEAN1.eq.KOCEAN2) THEN ! compare oceans else do not
         IF (KOCEAN1.le.1) THEN  ! Qflux/fixed
           ERRQ=COMP8LIJp('TOCN  ',3,IM,JM ,TOCN1,TOCN2).or.ERRQ
           ERRQ=COMP8 ('Z10   ',IM,JM,1    ,     Z1,     Z2).or.ERRQ

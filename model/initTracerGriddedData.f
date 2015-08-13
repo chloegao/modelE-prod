@@ -35,7 +35,6 @@
       use trdust_drv, only : init_soildust
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
-      use tracer_sources, only: aircraft_Tyr1,aircraft_Tyr2
       USE TRCHEM_Shindell_COM,only:LCOalt,PCOalt,
      &     CH4altINT,CH4altINX,LCH4alt,PCH4alt,
      &     CH4altX,CH4altT,ch4_init_sh,ch4_init_nh,scale_ch4_IC_file,
@@ -49,7 +48,6 @@
      &     CFCICIN,CFCIC,CFCICINL,CFCICL,PIratio_N2O,PIratio_CFC,
      &     use_rad_n2o,use_rad_cfc,cfc_rad95,PltOx,Tpsc_offset_N,
      &     Tpsc_offset_S
-      use photolysis, only: rad_FL
 #ifdef INTERACTIVE_WETLANDS_CH4
       USE TRACER_SOURCES, only:int_wet_dist,topo_lim,sat_lim,gw_ulim,
      &gw_llim,sw_lim,exclude_us_eu,nn_or_zon,ice_age,nday_ch4,max_days,
@@ -82,7 +80,6 @@
       USE AERO_ACTV, only: DENS_SULF, DENS_DUST,
      &          DENS_SEAS, DENS_BCAR, DENS_OCAR
       USE AERO_CONFIG, only: nbins
-      USE AMP_AEROSOL, only: AMP_DIAG_FC, AMP_RAD_KEY
       USE AERO_COAG, only : SETUP_KIJ
       USE AERO_SETUP
       USE AERO_NPF, only: SETUP_NPFMASS

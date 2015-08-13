@@ -20,10 +20,8 @@ Preprocessor Options
 #define TRACERS_OCEAN_INDEP         ! independently defined ocn tracers
 #define TRACERS_OceanBiology
 #define pCO2_ONLINE
-#define OBIO_RAD_coupling
 #define TRACERS_GASEXCH_ocean       ! ANY ocean: special tracers to be passed to ocean
 #define TRACERS_GASEXCH_ocean_CO2   ! ANY ocean: special tracers to be passed to ocean
-!!!!#define CHL_from_OBIO               ! ANY ocean: interactive CHL
 !!!!#define CHL_from_SeaWIFs
 End Preprocessor Options
 

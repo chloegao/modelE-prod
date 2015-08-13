@@ -257,7 +257,7 @@ CCC      real*8 :: bgrid
 !@var ustar_min limit on surface friction speed 
       real*8, parameter :: smax=0.25d0,smin=0.005d0,cmax=smax*smax,
      *     cmin=smin*smin,emax=1.d5,ustar_min=1d-2
-     *    ,lmonin_min=1d-20,lmonin_max=1d20
+     *    ,lmonin_min=1d-6,lmonin_max=1d6
 
 !@param xdelt When used in place of deltx in expressions involving
 !@+     virtual temperature T, xdelt=0 switches off virtual T effects.
@@ -533,8 +533,8 @@ c**** get input from pbl_args structure
 
       call griddr(z,zhat,xi,xihat,dz,dzh,zgs,ztop,bgrid,n,ierr)
       if (ierr.gt.0) then
-        print*,"advanc: i,j,ihc,itype=",ilong,jlat,ihc,
-     &       itype,u(1),v(1),t(1),q(1)
+        print*,"advanc: i,j,ihc=",ilong,jlat,ihc
+        print*,"advanc: itype,ztop,bgrid=",itype,ztop,bgrid
         call stop_model("PBL error in advanc",255)
       end if
 
@@ -1514,7 +1514,7 @@ C**** functional dependence on Sc,Pr for smooth, rough surfaces
       zet=z/lmonin
       zet0=z0/lmonin
 
-      call find_dpsih(zet,zet0,dpsih)
+      call find_dpsih(zet,zet0,z,z0,dpsih)
       dh=max(log(z/z0)-dpsih,1.d-3)
       ch=kappa*kappa/(dm*dh)
       if (ch.gt.cmax) ch=cmax
@@ -3345,17 +3345,17 @@ c       endif
       return
       end subroutine find_dpsim
 
-      subroutine find_dpsih(zet,zet0,dpsih)
+      subroutine find_dpsih(zet,zet0,z,z0,dpsih)
       implicit none
       ! in:
-      real*8 zet,zet0
+      real*8 zet,zet0,z,z0
       ! out:
       real*8 dpsih
-      real*8 x,x0,xh
+      real*8 x,x0,xh,rat
       ! dpsih
       if(zet.ge.0.d0) then ! stable
         if(zet.le.zet1) then
-          dpsih=sigma1*log(zet/zet0)-sigma*gamahs*(zet-zet0)
+          dpsih=sigma1*log(z/z0)-sigma*gamahs*(zet-zet0)
         else
           dpsih=sigma1*log(zet1/zet0)-sigma*gamahs*(zet1-zet0)
      &         +(1+sigma*(zet1*(slope1-gamahs)-1))*log(zet/zet1)
@@ -3366,10 +3366,14 @@ c       endif
         x0=(1.-gamahu*zet0)**0.5d0
         xh= (1.-gamahu*zeth)**0.5d0
         if(zet.gt.zeth) then
-          dpsih=log(zet/zet0)
-     &          +sigma*log((1+x)*(1-x0)/((1-x)*(1+x0)))
+          if(-gamahu*zet.lt.1d-5) then
+            rat=z0/z*(1-.5d0*gamahu*(zet-zet0))
+          else
+            rat=(1+x)*(1-x0)/((1-x)*(1+x0))
+          endif
+          dpsih=log(z/z0)+sigma*log(rat)
         else
-          dpsih=log(zet/zet0)
+          dpsih=log(z/z0)
      2          +sigma*log((1+xh)*(1-x0)/((1-xh)*(1+x0)))
      3          -0.7957508d0*((-zeth)**(-by3)-(-zet)**(-by3))
                 ! 0.9*kappa**(4/3)*3 = 0.7957508

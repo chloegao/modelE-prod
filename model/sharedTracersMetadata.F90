@@ -95,6 +95,10 @@ contains
          3.1232341d-07, 4.1607765d-07, 0.0000000d+00, 0.0000000d+00, &
          0.0000000d+00, 0.0000000d+00/)
 #endif
+#if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch) ||\
+    (defined TRACERS_AMP) || (defined TRACERS_TOMAS) 
+    call check_aircraft_sectors(name) ! special 3D source case
+#endif
 
   end subroutine SO2_setSpec
 
@@ -119,7 +123,8 @@ contains
     n_NH3 = n
     call set_ntm_power(n, -10)
     call set_tr_mm(n, 17.d0)
-    call set_tr_RKD(n, 0.7303d0   ) !tr_RKD=74 M/atm
+    call set_tr_RKD(n, 100.d0) ! higher than nominal; effective Henry
+!    call set_tr_RKD(n, 0.7303d0   ) !tr_RKD=74 M/atm
     call set_tr_DHD(n, -2.84d4  ) !tr_DHD=-6.80 kcal/mole
     call set_tr_wd_type(n, ngas)
     if (tracers_drydep) call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)

@@ -29,7 +29,6 @@ module TomasTracersMetadata_mod
   use OldTracer_mod, only: set_fq_aer
   use OldTracer_mod, only: nGAS, nPart
   use OldTracer_mod, only: tr_RKD      
-  use TRACER_COM, only: aer_int_yr
   use TRACER_COM, only: offline_dms_ss, offline_ss
   use TRACER_COM, only: xk, nbins
   use TRACER_COM, only: n_H2O2, n_NH3,  n_NH4, n_H2SO4

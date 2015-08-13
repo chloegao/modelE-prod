@@ -1022,16 +1022,16 @@ c
      &     shape(atm%TRGASEX),'lij')
 #endif
 
-#ifdef OBIO_RAD_coupling
-      call ab_add(lstr,atm%DIRVIS,ocnatm%DIRVIS,shape(atm%DIRVIS),'ij',
+      if (allocated(atm%dirvis)) then
+       call ab_add(lstr,atm%DIRVIS,ocnatm%DIRVIS,shape(atm%DIRVIS),'ij',
      &     aOCNwt,oOCNwt)
-      call ab_add(lstr,atm%DIFVIS,ocnatm%DIFVIS,shape(atm%DIFVIS),'ij',
+       call ab_add(lstr,atm%DIFVIS,ocnatm%DIFVIS,shape(atm%DIFVIS),'ij',
      &     aOCNwt,oOCNwt)
-      call ab_add(lstr,atm%DIRNIR,ocnatm%DIRNIR,shape(atm%DIRNIR),'ij',
+       call ab_add(lstr,atm%DIRNIR,ocnatm%DIRNIR,shape(atm%DIRNIR),'ij',
      &     aOCNwt,oOCNwt)
-      call ab_add(lstr,atm%DIFNIR,ocnatm%DIFNIR,shape(atm%DIFNIR),'ij',
+       call ab_add(lstr,atm%DIFNIR,ocnatm%DIFNIR,shape(atm%DIFNIR),'ij',
      &     aOCNwt,oOCNwt)
-#endif
+      endif
 
       if (tracers_oceanbiology.or.ocn_cfc) then
         call ab_add( lstr,atm%COSZ1,ocnatm%COSZ1,shape(atm%COSZ1),'ij',
@@ -1318,13 +1318,13 @@ c*
      &     atm%gasex_index%getsize())
 #endif
 
-#ifdef OBIO_RAD_coupling
-      aWEIGHT(:,:) = atm%FOCEAN(:,:)
-      CALL INT_AG2OG(atm%DIRVIS,ocnatm%DIRVIS, aWEIGHT)
-      CALL INT_AG2OG(atm%DIFVIS,ocnatm%DIFVIS, aWEIGHT)
-      CALL INT_AG2OG(atm%DIRNIR,ocnatm%DIRNIR, aWEIGHT)
-      CALL INT_AG2OG(atm%DIFNIR,ocnatm%DIFNIR, aWEIGHT)
-#endif
+      if (allocated(atm%dirvis)) then
+        aWEIGHT(:,:) = atm%FOCEAN(:,:)
+        CALL INT_AG2OG(atm%DIRVIS,ocnatm%DIRVIS, aWEIGHT)
+        CALL INT_AG2OG(atm%DIFVIS,ocnatm%DIFVIS, aWEIGHT)
+        CALL INT_AG2OG(atm%DIRNIR,ocnatm%DIRNIR, aWEIGHT)
+        CALL INT_AG2OG(atm%DIFNIR,ocnatm%DIFNIR, aWEIGHT)
+      endif
 
       if (tracers_oceanbiology.or.ocn_cfc) then
         aWEIGHT(:,:) = atm%FOCEAN(:,:)

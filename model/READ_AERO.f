@@ -95,8 +95,8 @@ C                  SO4     NO3    OCX    BCB   BCI
       real*8, parameter, dimension(2) ::
 C                    Ocean         Land      ! r**3: r=.085,.052 microns
      &  radto3 =(/ 614.125d-24, 140.608d-24/),  ! used for SO4,NO3,OC,BC
-     &  scl    =(/     162d0,       298d0/),  ! for Gultepe's formula
-     &  offset =(/     273d0,       595d0/)   ! for Gultepe's formula
+     &  scl    =(/     162d0,       298d0/),  ! for Gultepe formula
+     &  offset =(/     273d0,       595d0/)   ! for Gultepe formula
 
       integer it, n
       real*8  An,An0,cdnc(2),cdnc0(2),fbymass1

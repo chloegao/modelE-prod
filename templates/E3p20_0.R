@@ -66,7 +66,7 @@ TOPO=Z72X46N.2deg_rfn              !!! hycom
 REG=REG4X5           ! special regions-diag
 RVR=RD4X525.RVR.2deghycom.bin         !!! hycom
 RADN1=sgpgxg.table8               ! rad.tables and history files
-RADN2=LWTables33k.1a              ! rad.tables and history files
+RADN2=LWTables33k_lowH2O_CO2_O3_planck_1-800              ! rad.tables and history files
 RADN4=LWCorrTables33k              ! rad.tables and history files
 RADN5=H2Ocont_MT_CKD  ! Mlawer/Tobin_Clough/Kneizys/Davies H2O continuum table
 ! other available H2O continuum tables:

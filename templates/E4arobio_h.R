@@ -22,7 +22,6 @@ Preprocessor Options
 #define ATM2x2h                      ! 2x2.5 40 layer atm
 #define HYCOM1deg                    ! 1deg 26 layer hycom (387x360x26)
 #define TRACERS_OceanBiology
-#define OBIO_RAD_coupling
 #define pCO2_ONLINE
 ! #define constCO2
 #define TRACERS_ON                  ! include tracers code

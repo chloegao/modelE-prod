@@ -16,7 +16,6 @@
 !@ GRAINS
 !@ read_mon_3D
 !@ read_seawifs_chla
-      use OldTracer_mod, only: om2oc
       IMPLICIT NONE
       SAVE
       INTEGER, PARAMETER :: ndmssrc  = 1
@@ -29,7 +28,11 @@ c!@var DMS_AER           DMS prescribed by AERONET (kg S/day/box)
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: OCT_src !(im,jm,12)
 #endif  /* TRACERS_AEROSOLS_SOA */
 !@var SO2_src_3D SO2 volcanic sources (and biomass) (kg/s)
+#ifdef TRACERS_VOLCEXP
+      INTEGER, PARAMETER :: nso2src_3d  = 2
+#else
       INTEGER, PARAMETER :: nso2src_3d  = 1
+#endif
       real*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: SO2_src_3D !(im,jm,lm,nso2src_3d)
 !@var PBLH boundary layer height
 !@var MDF is the mass of the downdraft flux
@@ -47,8 +50,6 @@ c!@var DMS_AER           DMS prescribed by AERONET (kg S/day/box)
 #endif
 !var off_HNO3 off-line HNO3 field, used for nitrate and AMP when gas phase chemistry turned off
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)     ::  off_HNO3, off_SS
-!@var BBinc enhancement factor of BB carbonaceous aerosol emissions (Kostas: should this be applied to all BB emitted tracers?)
-      real*8:: BBinc=1.0d0
 #ifdef TRACERS_AEROSOLS_VBS
 !@var VBSemifact factor that distributes organic aerosols in volatility bins
       real*8, allocatable, dimension(:) :: VBSemifact
@@ -495,7 +496,6 @@ c want kg DMS/m2/s
 
       DMS_flux=0.d0
         erate=0.d0
-        !!!Tc=T-273.d0
         if (OFFLINE_DMS_SS.ne.1) then
         if (itype.eq.1) then
 c       if (lm.lt.40) then 
@@ -787,8 +787,8 @@ c     endif
 #endif
 #endif
       dtt=dtsrc
-      !efold time of 2.7 days
-      bciage=(1.d0-exp(-dtsrc/(2.7d0*SECONDS_PER_DAY)))/dtsrc 
+      !efold time of 1 days
+      bciage=(1.d0-exp(-dtsrc/(1.0d0*SECONDS_PER_DAY)))/dtsrc 
       !efold time of 1.6 days
       ociage=(1.d0-exp(-dtsrc/(1.6d0*SECONDS_PER_DAY)))/dtsrc
 C**** THIS LOOP SHOULD BE PARALLELISED
@@ -1614,7 +1614,7 @@ c     if (bc_dalb.ne.0.) write(6,*) 'alb_write',i,j,bc_dalb,bcc,rads
 !@+     and snow age. From Susan Marshall's PhD thesis
 !@+auth Dorothy Koch
 c
-      USE CONSTANT, only: pi,gasc
+      USE CONSTANT, only: pi,gasc,tf
       USE FLUXES, only: atmsrf
       use TimeConstants_mod, only: DAYS_PER_YEAR
       USE RAD_COM, only: snoage
@@ -1636,7 +1636,7 @@ c Find the age of snow, I assume the age does not
 c  vary within the gridbox so just take the max?
        age=DMAX1(snoage(1,i,j),snoage(2,i,j),snoage(3,i,j))
 c Use Temperature to check if melting or non-melting snow
-       IF (atmsrf%tsavg(i,j).le.273.15) then
+       IF (atmsrf%tsavg(i,j).le.tf) then
 c Non-melting snow; distinguish between initial or
 c  secondary growth rate
         IF (age.lt.13.5) then

@@ -300,7 +300,7 @@ C****
 C**** BOUNDARY LAYER INTERACTION
 C****
       ! TG = Temperature of top ice layer (K)
-      ! TF = freezing point of water at 1 atm (273.16 K)
+      ! TF = freezing point of water at 1 atm (273.15 K)
       TG=TG1+TF
 
       ! LHS = latent heat of sublimation at 0 C (J/kg)
@@ -549,7 +549,7 @@ C****
       END DO  ! end of I loop
       END DO  ! end of J loop
 ! ============================================================
-! Now we're outside the loop over grid points
+! Now outside the loop over grid points
 
       call dealloc_pbl_args(pbl_args)
 
@@ -729,7 +729,7 @@ c
 #endif
 
         ! Downscale Temperature
-        ! ***** But isn't this supposed to be POTENTIAL Temperature?
+        ! ***** But is this not supposed to be POTENTIAL Temperature?
         ! Use a simple 8 K/km lapse rate
          DO J=J_0,J_1
          DO I=I_0,IMAXJ(J)

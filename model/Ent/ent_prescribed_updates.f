@@ -220,10 +220,10 @@
 #ifndef MIXED_CANOPY
              cop%h = hdata(cop%pft)
 !          else !mixed_VEG, hdata array is by cohort order
-#else  !MIXED_CANOPY
+#else  /* MIXED_CANOPY */
              cop%h = hdata(i)
 !          endif
-#endif !MIXED_CANOPY
+#endif /* MIXED_CANOPY */
           if (pfpar(cop%pft)%woody) then !update dbh
             cop%dbh = height2dbh(cop%pft,cop%h)
 !            if (init) then !Set population density and crown geometry
