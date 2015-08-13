@@ -1,12 +1,11 @@
 !--------- dust aerosol parameters----------------
-imDust=0           ! 0: PDF emission scheme, 1: AEROCOM
-adiurn_dust=0      ! 1: daily dust diagnostics at certain grid points
-prefDustSources=1     ! 0: Ginoux 2001 w/ vegetation mask
-                      ! 1: Ginoux 2009 w/ vegetation mask (current default)
-                      ! 2: Ginoux 2009 w/o vegetation, 3: Grini/Zender sources
-                      ! 4: Tegen sources, >4: Free choice of emis. parameters
-!fracClayPDFscheme=1. ! Frac. clay emis, only effective for prefDustSources > 4
-!fracSiltPDFscheme=1. ! Frac. silt emis, only effective for prefDustSources > 4
-                      ! set internally for 0-4
+imDust=0                          ! 0: PDF emission scheme, 1: AEROCOM
+adiurn_dust=0                     ! 1: daily dust diagnostics for selected grid boxes
+fracClayPDFscheme=0.021009171128  ! clay emission parameter from calibration
+fracSiltPDFscheme=0.0422669525005 ! silt emission parameter from calibration
+  !fracClayPDFscheme=0.013502038[1]     * 1.556[2]
+  !fracSiltPDFscheme=0.0483603575521[1] * 0.874[2]
+  ![1] emission parameters used for calibration run E50TcadiF40pi_jpp
+  ![2] optimization factors calculated from calibration run
 !to_conc_soildust=1   ! three-dimensional dust output as concentration [kg/m^3]
 !-------------------------------------------------
