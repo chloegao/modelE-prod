@@ -1,4 +1,6 @@
 *.ERR
+*.i
+*.i90
 *.mod
 *.o
 *.smod
@@ -12,6 +14,5 @@
 /.current_options
 /.depend_subdirs
 /.liblist
-*.i
-*.i90
+/libmodel.a
 /notes

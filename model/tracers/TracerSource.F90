@@ -11,9 +11,9 @@ module TracerSource_mod
   integer, parameter :: N_MAX_SECT = 10
 
   type TracerSource
-    integer :: num_tr_sectors ! number of sectors for a particular tracer and source
-    integer :: tr_sect_index(N_MAX_SECT) ! array hold the sector index for given tracer/source
-    character(len=10) :: tr_sect_name(N_MAX_SECT) ! array hold the sector name for given tracer/source
+    integer :: num_tr_sectors = 0! number of sectors for a particular tracer and source
+    integer :: tr_sect_index(N_MAX_SECT)  = 0 ! array hold the sector index for given tracer/source
+    character(len=10) :: tr_sect_name(N_MAX_SECT) = ' '! array hold the sector name for given tracer/source
   end type TracerSource
 
   type, extends(TracerSource) :: TracerSource3D

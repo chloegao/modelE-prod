@@ -2709,8 +2709,8 @@ C
       source%num_tr_sectors = 0
 
       i=1
-      do while(i < len(tr_sectors_are))
-        j=index(tr_sectors_are(i:len(tr_sectors_are))," ")
+      do while(i < len_trim(tr_sectors_are))
+        j=index(tr_sectors_are(i:len_trim(tr_sectors_are))," ")
         if (j > 1) then
           source%num_tr_sectors = source%num_tr_sectors + 1
           i=i+j
