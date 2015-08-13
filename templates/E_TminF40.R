@@ -1,9 +1,13 @@
-E_TdusNuF40.R GISS Model E  2000 ocn/atm   jan perlwitz  11/2011
-E_TdusNuF40: E_AR5_NINT + soil dust aerosol tracers + nudged winds using NCEP
- reanalyses
+E_TminF40.R GISS Model E 2000 ocn/atm jan perlwitz 07/2015
+E_TminF40: E_AR5_NINT + mineralogical soil dust aerosol tracers
+(Please cite following reference for the description of the mineralogical soil
+ dust model:
+ Perlwitz, J.P., C. Pérez García-Pando, and R.L. Miller, 2015: Predicting the
+   mineral composition of dust aerosols — Part 1: Representing key processes.
+   Atmos. Chem. Phys. Discuss., 14, 3493-3575, doi:10.5194/acpd-15-3493-2015.
 
 E_AR5_NINT: modelE as frozen in April 2010
-modelE4 2x2.5 hor. grid with 40 lyrs, top at .1 mb (+ 3 rad.lyrs)
+modelE2 2x2.5 hor. grid with 40 lyrs, top at .1 mb (+ 3 rad.lyrs)
 atmospheric composition from year 2000
 ocean data: prescribed, 1996-2005 climatology
 uses turbulence scheme (no dry conv), grav.wave drag
@@ -16,13 +20,11 @@ Preprocessor Options
 #define NEW_IO                   ! new I/O (netcdf) on
 !#define NEW_IO_SUBDD             ! new I/O (netcdf) for subdd on
 #define TRAC_ADV_CPU             ! timing index for tracer advection on
-#define NUDGE_ON                 ! nudged winds on
-! OFF #define MERRA_NUDGING            ! nudging to use MERRA input files
 #define USE_ENT                  ! include dynamic vegetation model
 #define TRACERS_ON               ! include tracers code
 #define TRACERS_WATER            ! wet deposition and water tracer
-#define TRACERS_DUST             ! include dust tracers
-#define TRACERS_DUST_Silt4       ! include silt4 size bin of dust
+#define TRACERS_MINERALS         ! include mineralogical soil dust tracers
+#define TRACERS_DUST_Silt4       ! include silt4 size bin of dust/minerals
 #define TRACERS_DRYDEP           ! default dry deposition
 #define TRDIAG_WETDEPO           ! additional wet deposition diags for tracers
 #define RAD_O3_2010              ! 2010 ozone dataset
@@ -43,16 +45,13 @@ ATMDYN MOMEN2ND                     ! atmospheric dynamics
 QUS_DRV                             ! advection of T
 STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 QUS3D                               ! advection of Q and tracers
-
-#include "tracer_dust_source_files"
+#include "tracer_minerals_source_files"
 #include "tracer_shared_source_files"
 TRDIAG
 
 #include "latlon_source_files"
 #include "modelE4_source_files"
 #include "static_ocn_source_files"
-
-NUDGE                               ! code for nudging winds
 
 Components:
 #include "E4_components_nc"    /* without "Ent" */
@@ -71,11 +70,10 @@ RVR=RD_Fb.nc             ! river direction file
 NAMERVR=RD_Fb.names.txt  ! named river outlets
 
 #include "land144x90_input_files"
-#include "nudging_144x89_input_files"
 #include "rad_input_files"
 #include "rad_144x90_input_files"
 
-#include "dust_tracer_144x90_input_files"
+#include "mineral_tracer_144x90_input_files"
 
 #include "dry_depos_144x90_input_files"
 
@@ -83,7 +81,7 @@ MSU_wts=MSU.RSS.weights.data      ! MSU-diag
 REG=REG2X2.5                      ! special regions-diag
 
 Label and Namelist:  (next 2 lines)
-E_TdusNuF40 (E_AR5_NINT with year 2000 atm., 1996-2005 clim ocn, dust tracers, nudged)
+E_TminF40 (E_AR5_NINT with year 2000 atm., 1996-2005 clim ocn, dust mineral tracers)
 
 
 &&PARAMETERS
@@ -105,7 +103,7 @@ KSOLAR=2         ! 2: use long annual mean file ; 1: use short monthly file
 #include "atmCompos_2000_params"
 madaer=3         ! 3: updated aerosols          ; 1: default sulfates/aerosols
 #include "aerosol_params"
-#include "dust_params"
+#include "mineral_params"
 
 DTsrc=1800.      ! cannot be changed after a run has been started
 DT=225.
@@ -120,11 +118,11 @@ NRAD=5           ! radiation (every NRAD'th physics time step)
 #include "diag_params"
 
 Nssw=2           ! until diurnal diags are fixed, Nssw has to be even
-Ndisk=960
+Ndisk=480
 &&END_PARAMETERS
 
  &INPUTZ
- YEARI=1995,MONTHI=12,DATEI=1,HOURI=0,IYEAR1=1950 ! must be IYEAR1=1950 for nudging
+ YEARI=1995,MONTHI=12,DATEI=1,HOURI=0, ! pick IYEAR1=YEARI (default) or < YEARI
  YEARE=2006,MONTHE=1,DATEE=1,HOURE=0,     KDIAG=12*0,9,
  ISTART=2,IRANDI=0, YEARE=1995,MONTHE=12,DATEE=1,HOURE=1,
 /
