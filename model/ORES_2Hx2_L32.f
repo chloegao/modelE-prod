@@ -24,8 +24,6 @@ C***
       Real*8,Parameter ::
      *    AKHMIN = 5.d6     ! minimum horizontal diffusion
      *  , AKHFAC = 1d0      ! factor to multiply built-in scaling for k_diff
-     *  , fkph   = 0.1d0    ! vertical diffusion coefficient (cm**2/sec)
-     *  , fkpm   = 10.*fkph ! vertical viscosity coefficient (cm**2/sec)
      *  , OABFUX=0.         ! coef. for divergence filter in X dir. 
      *  , OABFVX=0.         ! coef. for vorticity filter in X dir.
      *  , by4tonv=0.        ! coef. for divergence filter in Y dir.

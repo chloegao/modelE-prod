@@ -18,6 +18,11 @@ C****
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TRMO1,TXMO1,TYMO1
 #endif
 
+      ! todo: make fkph a runtime parameter along with difsiw in KPPE
+      real*8, parameter ::
+     &    fkph   = 0.1d0    ! background vertical diffusion coefficient (cm**2/sec)
+     &  , fkpm   = 10.*fkph ! background vertical viscosity coefficient (cm**2/sec)
+
       END MODULE KPP_COM
 C****
       MODULE KPPE
@@ -26,7 +31,7 @@ C****
 c====================== include file "KPP_1D.COM" =====================
 c
       USE OCEAN, only : lmo
-      USE OCEANRES, only : fkph, fkpm
+      USE KPP_COM, only : fkph, fkpm
       USE SW2OCEAN, only : lsrpd,fsr,fsrz,dfsrdz,dfsrdzb
       IMPLICIT NONE
       SAVE
@@ -65,8 +70,8 @@ c     variables used for vertical diffusion
 c
 c inputs: (set through namelist)
 c
-!@var fkph   = vertical diffusion coefficient (cm**2/sec) (taken from OCEANRES)
-!@var fkpm   = vertical viscosity coefficient (cm**2/sec) (taken from OCEANRES)
+!@var fkph   = vertical diffusion coefficient (cm**2/sec) (taken from KPP_COM)
+!@var fkpm   = vertical viscosity coefficient (cm**2/sec) (taken from KPP_COM)
 !@var bvdc   = background vertical diffusion constant
 !@var bvvc   = background vertical viscosity constant
 !@var vvclim = vertical viscosity coefficient limit
@@ -1365,7 +1370,7 @@ C****
       USE OCEAN, ONLY : GXXMO,GYYMO,GZZMO,GXYMO,SXXMO,SYYMO,SZZMO,SXYMO
       USE OCEAN, ONLY : USE_QUS,NBYZM,I1YZM,I2YZM,DZO
 #ifdef ENHANCED_DEEP_MIXING
-      USE OCEANRES, only : fkph
+      USE KPP_COM, only : fkph
       USE CONSTANT, only : pi
 #endif
 #ifdef TRACERS_OCEAN
