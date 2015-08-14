@@ -1934,11 +1934,56 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       END SUBROUTINE io_tracer
 
 
-      subroutine setup_emis_sectors_regions
-!@sum setup_emis_sectors_regions reads from the rundeck the 
+      subroutine setup_emis_sectors
+!@sum setup_emis_sectors reads from the rundeck the 
 !@+ geographic regions and sectors associated with tracer
 !@+ emissions and saves names.
-!@+ Also reads the factors associated with each sector and
+!@auth Greg Faluvegi
+
+      use TRACER_COM, only : n_max_sect,
+     & n_max_reg,alter_sources,ef_REG_IJ,
+     & ef_fact,num_sectors,sect_name
+      USE DOMAIN_DECOMP_ATM, only: GRID,getDomainBounds
+      use DOMAIN_DECOMP_ATM, only: AM_I_ROOT,writet_parallel
+      USE GEOM, only: lat2d_dg, lon2d_dg, imaxj
+      USE FILEMANAGER, only: openunit,closeunit,nameunit
+      use Dictionary_mod, only : sync_param
+      use EmissionRegion_mod, only: initializeEmissionsRegions
+      use EmissionRegion_mod, only: regions, numRegions
+
+      implicit none
+
+      integer :: i,j,n,iu
+      character*80 :: title
+      character*2 :: fnum
+      character*124 :: sectors_are
+
+      sectors_are=' '
+      call sync_param("sectors_are",sectors_are)
+
+      call initializeEmissionsRegions()
+
+! see how many sectors there are, save names in array:
+      num_sectors=0
+      i=1
+      do while(i < len(sectors_are))
+        j=index(sectors_are(i:len(sectors_are))," ")
+        if (j > 1) then
+          num_sectors=num_sectors+1
+          i=i+j
+        else
+          i=i+1
+        end if
+      enddo
+      if (num_sectors > n_max_sect) call stop_model
+     &("n_max_sect must be increased",255)
+      if(num_sectors > 0 ) read(sectors_are,*)
+     & sect_name(1:num_sectors)
+
+      end subroutine setup_emis_sectors
+
+      subroutine setup_emis_sectors_regions
+!@sum Reads the factors associated with each sector and
 !@+ region. Output IJ map of regions.
 !@auth Greg Faluvegi
 
@@ -1969,23 +2014,6 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       call sync_param("sectors_are",sectors_are)
 
       call initializeEmissionsRegions()
-
-! see how many sectors there are, save names in array:
-      num_sectors=0
-      i=1
-      do while(i < len(sectors_are))
-        j=index(sectors_are(i:len(sectors_are))," ")
-        if (j > 1) then
-          num_sectors=num_sectors+1
-          i=i+j
-        else
-          i=i+1
-        end if
-      enddo
-      if (num_sectors > n_max_sect) call stop_model
-     &("n_max_sect must be increased",255)
-      if(num_sectors > 0 ) read(sectors_are,*)
-     & sect_name(1:num_sectors)
 
 ! read the actual emission altering factors:
       do n=1,num_sectors
@@ -2709,8 +2737,8 @@ C
       source%num_tr_sectors = 0
 
       i=1
-      do while(i < len_trim(tr_sectors_are))
-        j=index(tr_sectors_are(i:len_trim(tr_sectors_are))," ")
+      do while(i < len(tr_sectors_are))
+        j=index(tr_sectors_are(i:len(tr_sectors_are))," ")
         if (j > 1) then
           source%num_tr_sectors = source%num_tr_sectors + 1
           i=i+j
