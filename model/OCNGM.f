@@ -223,6 +223,8 @@ C**** Initialize SLOPES common block of coefficients
 C**** Calculate all diffusivities
       CALL ISOSLOPE4
 
+      CALL GET_PSI_DIAG
+
       CALL HALO_UPDATE(grid,AIY0 (:,grid%j_strt_halo:grid%j_stop_halo,
      *           :) , FROM=SOUTH)
       CALL HALO_UPDATE(grid,AIY1 (:,grid%j_strt_halo:grid%j_stop_halo,
@@ -736,7 +738,7 @@ c
           i=im
             gijl(i,j,l,1) = gijl(i,j,l,1) + flux_x(  1,j,l)
           do i=1,im
-            gijl(i,j,l,3) = gijl(i,j,l,3) + flux_z(i,j,l)
+            gijl(i,j,l,3) = gijl(i,j,l,3) - flux_z(i,j,l) ! gijl is positive down
           enddo
         enddo
         do j=j_0,min(j_1,jm-1)
@@ -1016,7 +1018,7 @@ c
           i=im
             gijl(i,j,l,1) = gijl(i,j,l,1) + flux_x(  1,j,l)
           do i=1,im
-            gijl(i,j,l,3) = gijl(i,j,l,3) + flux_z(i,j,l)
+            gijl(i,j,l,3) = gijl(i,j,l,3) - flux_z(i,j,l) ! gijl is positive down
           enddo
         enddo
         do j=j_0,min(j_1,jm-1)
@@ -1180,19 +1182,12 @@ C****
       USE GM_COM
       USE FILEMANAGER
 
-      use odiag, only : oijl=>oijl_loc,ijl_mfvb
-      use ocean, only : dzo,dxvo
-      use ocean, only : nbyzm,i1yzm,i2yzm,lmm
-      use ocean, only : nbyzu,i1yzu,i2yzu,lmu
-      use ocean, only : nbyzv,i1yzv,i2yzv
-      use constant, only : rhows
+      use ocean, only : dzo
 
       IMPLICIT NONE
 
       REAL*8, DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) ::
-     &     RHO, KBYRHOZ
-      REAL*8, DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,0:LMO) ::
-     &     PSIY
+     &     RHO
       REAL*8  BYRHO,DZVLM1,CORI,BETA,ARHO,ARHOX,ARHOY,ARHOZ,AN,RD
      *     ,BYTEADY,DH0,DZSUMX,DZSUMY,R1,R2,P12
       REAL*8, DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) ::
@@ -1209,8 +1204,6 @@ C****
       LOGICAL :: HAVE_NORTH_POLE,HAVE_SOUTH_POLE 
       logical :: dothis
       real*8 :: k1d(lmo)
-      real*8 :: wtup,wtdn,rhomid,rhoy_,sly,krat,kmax
-      integer :: n
 
 #if (defined CONSTANT_MESO_DIFFUSIVITY)
 #define USE_1D_DIFFUSIVITY
@@ -1542,6 +1535,11 @@ c        endif
 c        IFIRST = 0
 c      END IF
 
+      RETURN
+C****
+      END SUBROUTINE DENSGRAD
+
+      subroutine get_psi_diag
 c
 c Calculate bolus velocity diagnostics and store them in units of
 c accumulated mass flux (kg) for consistency with the diagnostics
@@ -1557,9 +1555,34 @@ c gradients used in ISOSLOPE4.  However, a future commit will attempt
 c to insert code into ISOSLOPE4 to store the diffusivities in effect
 c after modification by CFL criteria and ML exclusion (rather than
 c mimicking that logic here).
-c 
-c For now, only the north-south component is being calculated/stored.
-c
+
+      use gm_com, only : ainv
+      use odiag, only : oijl=>oijl_loc,ijl_mfub,ijl_mfvb
+      use ocean, only : dzo,dxvo,dypo
+      use ocean, only : im,jm,lmo,dts
+      use ocean, only : nbyzm,i1yzm,i2yzm,lmm
+      use ocean, only : nbyzu,i1yzu,i2yzu,lmu
+      use ocean, only : nbyzv,i1yzv,i2yzv,lmv
+      use constant, only : rhows
+      use domain_decomp_1d, only : getdomainbounds, halo_update, north
+      use oceanr_dim, only : grid=>ogrid
+      use kpp_com, only : kpl
+      use gm_com, only : rhox,rhoy,rhomz,byrhoz
+      implicit none
+      integer :: i,j,l,n,ip1
+      integer :: j_0,j_1,j_0s,j_1s
+      logical :: have_north_pole
+      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,lmo) ::
+     &     kbyrhoz
+      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,0:lmo) ::
+     &     psi
+      real*8 :: wtup,wtdn,rhomid,kmax,rhox_,slx,rhoy_,sly,krat
+
+c**** Extract domain decomposition info
+      call getdomainbounds(grid, j_strt = j_0, j_stop = j_1,
+     &     j_strt_skp  = j_0s,   j_stop_skp  = j_1s,
+     &               have_north_pole = have_north_pole)
+
       kbyrhoz = 0.
       do l=1,lmo-1
         wtup = dzo(l+1)/(dzo(l)+dzo(l+1))
@@ -1578,8 +1601,46 @@ c
       enddo
       call halo_update(grid,kbyrhoz,from=north)
       call halo_update(grid,byrhoz,from=north) ! needed?
-      psiy = 0.
+
       rhomid = rhows ! for now
+
+      psi = 0.
+      do l=1,lmo-1
+        kmax = ( .25*(dzo(l)+dzo(l+1))**2 )/dts
+        wtup = dzo(l+1)/(dzo(l)+dzo(l+1))
+        wtdn = 1.-wtup
+        do j=j_0s,j_1s
+        do n=1,nbyzu(j,l+1)
+        do i=i1yzu(n,j,l+1),i2yzu(n,j,l+1)
+          ip1 = i+1; if(i.eq.im) ip1 = 1
+          ! vertically interpolate rhox to layer edges
+          rhox_ = (wtup*rhox(i,j,l)+wtdn*rhox(i,j,l+1))
+          ! calculate x-slope
+          slx = rhox_*(byrhoz(i,j,l)+byrhoz(ip1,j,l))*.5
+          ! streamfunc = K
+          psi(i,j,l) = rhox_ *(kbyrhoz(i,j,l)+kbyrhoz(ip1,j,l))*.5
+          ! mimic the "CFL tapering" in ISOSLOPE4: locally reduce
+          ! K so that the vertical component of Redi diffusion does
+          ! not violate CFL conditions for numerical stability
+          krat = psi(i,j,l)*slx/kmax
+          if(krat .gt. 1d0) psi(i,j,l) = psi(i,j,l)/krat
+          psi(i,j,l) = psi(i,j,l)*rhomid
+        enddo
+        enddo
+        enddo
+      enddo
+      do l=1,lmo
+        do j=j_0s,j_1s
+        do n=1,nbyzu(j,l)
+        do i=i1yzu(n,j,l),i2yzu(n,j,l)
+          oijl(i,j,l,ijl_mfub) = oijl(i,j,l,ijl_mfub) +
+     &         (psi(i,j,l)-psi(i,j,l-1))*dypo(j)*dts
+        enddo
+        enddo
+        enddo
+      enddo
+
+      psi = 0.
       do l=1,lmo-1
         kmax = ( .25*(dzo(l)+dzo(l+1))**2 )/dts
         wtup = dzo(l+1)/(dzo(l)+dzo(l+1))
@@ -1587,18 +1648,18 @@ c
         do j=j_0s,j_1s
         do n=1,nbyzv(j,l+1)
         do i=i1yzv(n,j,l+1),i2yzv(n,j,l+1)
-          ! verticall interpolate rhoy to layer edges
+          ! vertically interpolate rhoy to layer edges
           rhoy_ = (wtup*rhoy(i,j,l)+wtdn*rhoy(i,j,l+1))
           ! calculate y-slope
           sly = rhoy_*(byrhoz(i,j,l)+byrhoz(i,j+1,l))*.5
           ! streamfunc = K
-          psiy(i,j,l) = rhoy_ *(kbyrhoz(i,j,l)+kbyrhoz(i,j+1,l))*.5
+          psi(i,j,l) = rhoy_ *(kbyrhoz(i,j,l)+kbyrhoz(i,j+1,l))*.5
           ! mimic the "CFL tapering" in ISOSLOPE4: locally reduce
           ! K so that the vertical component of Redi diffusion does
           ! not violate CFL conditions for numerical stability
-          krat = psiy(i,j,l)*sly/kmax
-          if(krat .gt. 1d0) psiy(i,j,l) = psiy(i,j,l)/krat
-          psiy(i,j,l) = psiy(i,j,l)*rhomid
+          krat = psi(i,j,l)*sly/kmax
+          if(krat .gt. 1d0) psi(i,j,l) = psi(i,j,l)/krat
+          psi(i,j,l) = psi(i,j,l)*rhomid
         enddo
         enddo
         enddo
@@ -1608,16 +1669,14 @@ c
         do n=1,nbyzv(j,l)
         do i=i1yzv(n,j,l),i2yzv(n,j,l)
           oijl(i,j,l,ijl_mfvb) = oijl(i,j,l,ijl_mfvb) +
-     &         (psiy(i,j,l)-psiy(i,j,l-1))*dxvo(j)*dts
+     &         (psi(i,j,l)-psi(i,j,l-1))*dxvo(j)*dts
         enddo
         enddo
         enddo
       enddo
 
-
-      RETURN
-C****
-      END SUBROUTINE DENSGRAD
+      return
+      end subroutine get_psi_diag
 
       Subroutine VBAR_GM0
 !@sum VBAR_GM0 calculates specific volume and vertical gradients for GM
@@ -1671,8 +1730,9 @@ C****
 C**** Calculate pressure by integrating from the top down
           PE = OPRESS(I,J)
           Do L=1,LMOM(I,J)
-            PM(L) = PE + MO(I,J,L)*GRAV*.5
+            PM(L) = PE
             PE    = PE + MO(I,J,L)*GRAV
+            PM(L) = .5d0*(PE + PM(L))
             G3D(I,J,L) = GMD(L)
             S3D(I,J,L) = SMD(L)
             P3D(I,J,L) = PM(L)

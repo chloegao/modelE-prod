@@ -1745,6 +1745,7 @@ c
 c Convert oijl accumulations into the desired units
 c
       use ocean, only : im,jm,lmo,lmm,imaxj,focean,dxypo,dxvo,dypo,dts
+      use ocean, only : nbyzm,i1yzm,i2yzm
       use odiag, only : koijl,oijl_out,oijl=>oijl_loc,ijl_area
      &     ,ijl_mo,ijl_mou,ijl_mov,ijl_g0m,ijl_s0m,ijl_ptm,ijl_pdm
      &     ,ijl_mfu,ijl_mfv,ijl_mfw,ijl_mfw2,ijl_ggmfl,ijl_sgmfl
@@ -1779,6 +1780,10 @@ c
       real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo) ::
      &     mfu,pres
       real*8, dimension(:,:), allocatable :: mfu_glob,sf_glob
+      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,lmo) ::
+     &     mfub,mfvb
+      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,0:lmo) ::
+     &     mfwb
 #ifdef TRACERS_OCEAN
       type(ocn_tracer_entry), pointer :: entry
 #endif
@@ -1827,6 +1832,35 @@ c
       enddo
       enddo
 
+
+c****
+c**** derive bolus vertical mass flux from bolus horizontal mass fluxes
+c**** for skew-GM
+      mfub = oijl(:,:,:,ijl_mfub)
+      mfvb = oijl(:,:,:,ijl_mfvb)
+      mfwb = 0.
+      call halo_update(grid,mfvb,from=south)
+        do l=1,lmo-1
+        do j=j_0s,j_1s
+          i=1
+          if(l.lt.lmm(i,j)) then
+            mfwb(i,j,l) = mfwb(i,j,l-1) + (
+     &         (mfub(im,j,l)-mfub(i,j,l))
+     &        +(mfvb(i,j-1,l)-mfvb(i,j,l))
+     &         )
+          endif
+          do n=1,nbyzm(j,l+1)
+          do i=max(2,i1yzm(n,j,l+1)),i2yzm(n,j,l+1)
+            mfwb(i,j,l) = mfwb(i,j,l-1) + (
+     &         (mfub(i-1,j,l)-mfub(i,j,l))
+     &        +(mfvb(i,j-1,l)-mfvb(i,j,l))
+     &         )
+          enddo
+          enddo
+        enddo
+        enddo
+        oijl(:,:,:,ijl_mfwb) = mfwb(:,:,1:lmo)
+
 c
 c Vertical fluxes.  Some conversions to per square meter
 c
@@ -1837,7 +1871,7 @@ c
           oijl_out(i,j,l,ijl_area) = idacc(ia_cpl)*dxypo(j)
         endif
         oijl_out(i,j,l,ijl_mfw) = oijl(i,j,l,ijl_mfw)
-cnotyet        oijl_out(i,j,l,ijl_mfwb) = oijl(i,j,l,ijl_mfwb)
+        oijl_out(i,j,l,ijl_mfwb) = oijl(i,j,l,ijl_mfwb)
         oijl_out(i,j,l,ijl_mfw2) = oijl(i,j,l,ijl_mfw2)/dxypo(j)
         oijl_out(i,j,l,ijl_ggmfl+2) = oijl(i,j,l,ijl_ggmfl+2)
         oijl_out(i,j,l,ijl_sgmfl+2) = oijl(i,j,l,ijl_sgmfl+2)
@@ -1873,7 +1907,7 @@ c
         do j=j_0s,j_1s
         do i=1,im
           oijl_out(i,j,l,ijl_mfu) = oijl(i,j,l,ijl_mfu)
-cnotyet          oijl_out(i,j,l,ijl_mfub) = oijl(i,j,l,ijl_mfub)
+          oijl_out(i,j,l,ijl_mfub) = oijl(i,j,l,ijl_mfub)
           oijl_out(i,j,l,ijl_gflx) = oijl(i,j,l,ijl_gflx)
           oijl_out(i,j,l,ijl_sflx) = oijl(i,j,l,ijl_sflx)
           oijl_out(i,j,l,ijl_ggmfl) = oijl(i,j,l,ijl_ggmfl)

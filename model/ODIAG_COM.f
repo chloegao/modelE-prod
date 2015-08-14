@@ -1047,15 +1047,14 @@ c
       scale_oijl(k) = (1d2/RHOWS)/dts
       lgrid_oijl(k) = 2
 c
-c will be activated when GM schemes other than skew-flux are activated
-c      k=k+1
-c      IJL_MFUB = k
-c      denom_oijl(k) = IJL_MOU
-c      sname_oijl(k) = 'ub'
-c      units_oijl(k) = 'cm/s'
-c      lname_oijl(k) = 'EAST-WEST BOLUS VELOCITY'
-c      scale_oijl(k) = 1d2/dts
-c      igrid_oijl(k) = 2
+      k=k+1
+      IJL_MFUB = k
+      denom_oijl(k) = IJL_MOU
+      sname_oijl(k) = 'ub'
+      units_oijl(k) = 'cm/s'
+      lname_oijl(k) = 'EAST-WEST BOLUS VELOCITY'
+      scale_oijl(k) = 1d2/dts
+      igrid_oijl(k) = 2
 c
       k=k+1
       IJL_MFVB = k
@@ -1066,15 +1065,14 @@ c
       scale_oijl(k) = 1d2/dts
       jgrid_oijl(k) = 2
 c
-c will be activated when GM schemes other than skew-flux are activated
-c      k=k+1
-c      IJL_MFWB = k
-c      denom_oijl(k) = IJL_AREA
-c      sname_oijl(k) = 'wb'
-c      units_oijl(k) = 'cm/s'
-c      lname_oijl(k) = 'VERTICAL BOLUS VELOCITY'
-c      scale_oijl(k) = (1d2/RHOWS)/dts
-c      lgrid_oijl(k) = 2
+      k=k+1
+      IJL_MFWB = k
+      denom_oijl(k) = IJL_AREA
+      sname_oijl(k) = 'wb'
+      units_oijl(k) = 'cm/s'
+      lname_oijl(k) = 'VERTICAL BOLUS VELOCITY'
+      scale_oijl(k) = (1d2/RHOWS)/dts
+      lgrid_oijl(k) = 2
 c
       k=k+1
       IJL_GFLX = k
@@ -1251,7 +1249,7 @@ c      IJL_GGMFL_vert = k
       denom_oijl(k) = IJL_AREA
       sname_oijl(k) = 'ggmflx_z'
       units_oijl(k) = 'W/m^2'
-      lname_oijl(k) = 'GM/EDDY VERT. HEAT FLUX'
+      lname_oijl(k) = 'GM/EDDY DOWNWARD VERT. HEAT FLUX'
       scale_oijl(k) = 1./dts
       lgrid_oijl(k) = 2
 c
@@ -1276,7 +1274,7 @@ c      IJL_SGMFL_vert = k
       denom_oijl(k) = IJL_AREA
       sname_oijl(k) = 'sgmflx_z'
       units_oijl(k) = '10^-6 kg/m^2 s'
-      lname_oijl(k) = 'GM/EDDY VERT. SALT FLUX'
+      lname_oijl(k) = 'GM/EDDY DOWNWARD VERT. SALT FLUX'
       scale_oijl(k) = 1d6/dts
       lgrid_oijl(k) = 2
 c
@@ -2251,7 +2249,8 @@ c
         kn_toijl(:,kk) = (/ toijl_gmfl+2, nt /)
         call add_var(cdl_toijl,
      &       'float '//trim(sname_toijl(kk))//trim(xyzstr),
-     &       long_name='GM/EDDY VERT. FLUX '//trim(entry%trname),
+     &       long_name='GM/EDDY DOWNWARD VERT. FLUX '//
+     &       trim(entry%trname),
      &       units=trim(unitstr),
      &       make_timeaxis=make_timeaxis)
 
