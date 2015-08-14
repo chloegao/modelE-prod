@@ -48,7 +48,7 @@ c
      &     OPBOT1,OPBOT2
       real*8 :: relfac,dt_odiff,TIME
       real*8, parameter :: byno=1./nocean
-      real*8 :: dtdum
+      real*8 :: dtdum,mrat_st
 
       INTEGER it,jt
 
@@ -366,6 +366,24 @@ c
         END DO
 #endif
 
+      if(use_qus==1) then
+        ! Save seawater mass pre-straits to adjust second-order
+        ! moments (SOMs) post-straits.  This is easier than
+        ! propagating the SOMs through the straits code.
+        ! The need for adjustment primarily arises from the
+        ! fact that the moments have extensive units.
+        ! First-order moments are already propagated through
+        ! the straits code.
+        do l=1,lmo
+        do j=j_0,j_1
+        do n=1,nbyzm(j,l)
+        do i=i1yzm(n,j,l),i2yzm(n,j,l)
+          mo1(i,j,l) = mo(i,j,l)
+        enddo
+        enddo
+        enddo
+        enddo
+      endif
       call gather_ocean_straits()
 
       IF(AM_I_ROOT()) THEN
@@ -382,6 +400,43 @@ C****
       END IF
       call scatter_ocean_straits()
       call BCAST_straits (.false.)
+
+      if(use_qus==1) then
+        ! Adjust second-order moments post-straits in upstream cells.
+        ! Seawater emerging from a strait (downstream) is assumed
+        ! to have zero SOMs for now.
+        do l=1,lmo
+        do j=j_0,j_1
+        do n=1,nbyzm(j,l)
+        do i=i1yzm(n,j,l),i2yzm(n,j,l)
+          if(mo1(i,j,l) .le. mo(i,j,l)) cycle
+          mrat_st = mo(i,j,l)/mo1(i,j,l)
+          gxxmo(i,j,l) = gxxmo(i,j,l)*mrat_st
+          gyymo(i,j,l) = gyymo(i,j,l)*mrat_st
+          gzzmo(i,j,l) = gzzmo(i,j,l)*mrat_st
+          gxymo(i,j,l) = gxymo(i,j,l)*mrat_st
+          gyzmo(i,j,l) = gyzmo(i,j,l)*mrat_st
+          gzxmo(i,j,l) = gzxmo(i,j,l)*mrat_st
+          sxxmo(i,j,l) = sxxmo(i,j,l)*mrat_st
+          syymo(i,j,l) = syymo(i,j,l)*mrat_st
+          szzmo(i,j,l) = szzmo(i,j,l)*mrat_st
+          sxymo(i,j,l) = sxymo(i,j,l)*mrat_st
+          syzmo(i,j,l) = syzmo(i,j,l)*mrat_st
+          szxmo(i,j,l) = szxmo(i,j,l)*mrat_st
+#ifdef TRACERS_OCEAN
+          txxmo(i,j,l,:) = txxmo(i,j,l,:)*mrat_st
+          tyymo(i,j,l,:) = tyymo(i,j,l,:)*mrat_st
+          tzzmo(i,j,l,:) = tzzmo(i,j,l,:)*mrat_st
+          txymo(i,j,l,:) = txymo(i,j,l,:)*mrat_st
+          tyzmo(i,j,l,:) = tyzmo(i,j,l,:)*mrat_st
+          tzxmo(i,j,l,:) = tzxmo(i,j,l,:)*mrat_st
+#endif
+        enddo
+        enddo
+        enddo
+        enddo
+      endif
+
         CALL CHECKO ('STADV ')
 
       ENDDO  !  End of Do-loop NO=1,NOCEAN
