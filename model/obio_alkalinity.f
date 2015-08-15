@@ -1,6 +1,6 @@
 #include "rundeck_opts.h"
 
-      subroutine obio_alkalinity(vrbos,kmax,i,j)
+      subroutine obio_alkalinity(kmax,i,j)
 
 !@sum  online computation of alkalinity
 !@auth Natassa Romanou
@@ -49,7 +49,7 @@
      .      rhs,alk1d,caexp,kzc
 #ifdef OBIO_RUNOFF
 #ifdef ALK_RUNOFF
-     .      ,ralkconc_loc(i,j)
+      use obio_com, only: ralkconc_loc
       USE OFLUXES, only:  oFLOWO
       USE MODEL_COM, only: dtsrc
 #endif
@@ -58,7 +58,7 @@
 
 #ifdef OBIO_ON_GARYocean
       USE MODEL_COM, only: nstep=> itime
-      USE OCEAN, only: dxypo,lmm
+      USE OCEAN, only: dxypo
 #else
       USE hycom_scalars, only: nstep
       USE hycom_arrays, only: scp2
@@ -69,7 +69,6 @@
       integer nt,k,kmax,nchl1,nchl2,i,j
       real*8 J_PO4(kmax),pp,Jprod(kmax),Jprod_sum,Fc,zz,F_Ca(kmax+1),
      .       J_Ca(kmax),term,term1,term2,DOP
-      logical vrbos
 !--------------------------------------------------------------------------
 !only compute tendency terms if total depth greater than conpensation depth
       if (p1d(kmax+1) .lt. p1d(kzc)) then
@@ -205,7 +204,6 @@
 
 !!!!!!!!!! NEED TO ADD BOTTOM BOUNDARY CONDITIONS 
 
-!     if (vrbos) then
 !     do k=1,kmax
 !     k=1
 !     write(*,'(a,4i5,12e12.4)')'obio_alkalinity; ',
@@ -213,7 +211,6 @@
 !    .   ,p1d(k),p1d(kzc),J_PO4(k),pp,Jprod_sum,Fc
 !    .   ,F_Ca(k),J_Ca(k),alk1d(k),A_tend(k),term1,term2
 !     enddo
-!     endif
 
  100  continue
       end subroutine obio_alkalinity

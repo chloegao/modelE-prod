@@ -11,7 +11,7 @@
       USE OCEANRES,       only : idm=>imo,jdm=>jmo,kdm=>lmo
       USE OCN_TRACER_COM, only : ntrcr=>ntm
       USE OCEAN,          only : ip=>focean
-      USE obio_com,       only : tracer,tracer_glob
+      USE obio_com,       only : tracer
 #else
       USE hycom_dim_glob, only : kdm,jj,isp,ifp,ilp,ip,ntrcr,idm,jdm
       USE hycom_arrays_glob, only : tracer

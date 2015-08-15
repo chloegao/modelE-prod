@@ -21,9 +21,6 @@
       real, ALLOCATABLE, DIMENSION(:,:,:)  :: atmFe
       real, ALLOCATABLE, DIMENSION(:,:,:)  :: atmFe_glob      !surface iron deposition
       real, ALLOCATABLE, DIMENSION(:,:,:)  :: alk             !alkalinity in 'umol/kg'
-#ifdef TRACERS_Alkalinity
-      real, ALLOCATABLE, DIMENSION(:,:,:)  :: alk_glob        !alkalinity in 'umol/kg'
-#endif
 
       real solz               !mean cosine solar zenith angle
       real sunz               !solar zenith angle
@@ -65,8 +62,5 @@
       ALLOCATE(   avgq(i_0h:i_1h,j_0h:j_1h,kdm))
       ALLOCATE(    alk(i_0h:i_1h,j_0h:j_1h,kdm))
       ALLOCATE(atmFe(i_0h:i_1h,j_0h:j_1h,12),atmFe_glob(idm,jdm,12))
-#ifdef TRACERS_Alkalinity
-      ALLOCATE(alk_glob(idm,jdm,kdm))
-#endif
 
       end subroutine alloc_obio_forc

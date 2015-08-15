@@ -1189,7 +1189,6 @@ C     nothing to gather - ocean prescribed
       call alloc_kprf_arrays_local
 
 #ifdef TRACERS_OceanBiology
-      call alloc_obio_forc
       call alloc_obio_com
 #endif
 

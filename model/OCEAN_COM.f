@@ -604,7 +604,6 @@ c??   call ALLOC_GM_COM(agrid)
       !call ALLOC_OFLUXES(atmocn)
 
 #ifdef TRACERS_OceanBiology
-      call alloc_obio_forc
       call alloc_obio_com
 #endif
       call alloc_odiff(ogrid)
