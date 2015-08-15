@@ -633,7 +633,7 @@ cdiag    enddo
        tot = 0.0
        if (.not.allocated(eda_frac)) then
          allocate(eda_frac(nlt), esa_frac(nlt))
-         open(newunit=iu_bio,file='eda_esa_ratios',status='unknown')
+         call openunit('eda_esa_ratios',iu_bio,.false.,.false.)
          do ichan=1,nlt
            read(iu_bio,'(3f13.8)')dummy1,eda_frac(ichan),esa_frac(ichan)
          enddo
