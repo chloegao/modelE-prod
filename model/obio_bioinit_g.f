@@ -41,34 +41,39 @@ c  Carbon type 2    = DIC
       USE obio_dim
       USE obio_incom
       USE obio_forc, only: avgq
-      USE obio_com, only: gcmax,tracer_loc
+      USE obio_com, only: gcmax,tracer
 
-      USE OCEANRES, only : idm=>imo,jdm=>jmo,kdm=>lmo,dzo
-      USE OCEAN, only : ZOE=>ZE,hocean
+      USE OCEANRES, only : kdm=>lmo,dzo
+      USE OCEAN, only : ZOE=>ZE
       USE OCEANR_DIM, only : ogrid
 
-      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,pack_data,unpack_data
- 
       implicit none
 
-      real, ALLOCATABLE, DIMENSION(:,:,:,:):: tracer
-      integer i,j,k,l,nn
-      integer i1,i2,j1,j2,k1,k2
-      integer lm
+      real, parameter, dimension(0:13) :: fer_values=
+     &  (/ 0E0,
+     &     3.5E-3,      !Antarctic
+     &     20.0E-3,     !South Indian
+     &     4.5E-3,      !South Pacific
+     &     20.0E-3,     !South Atlantic
+     &     22.5E-3,     !Equatorial Indian
+     &     4.0E-3,      !Equatorial Pacific
+     &     20.0E-3,     !Equatorial Atlantic
+     &     25.0E-3,     !North Indian
+     &     6.0E-3,      !North Central Pacific
+     &     20.0E-3,     !North Central Atlantic
+     &     6.0E-3,      !North Pacific
+     &     10.0E-3,     !North Atlantic
+     &     20.0E-3 /)   !Mediterranean
+
+      integer i,j,k,l
+      integer i1,i2
 
       integer nir(nrg),nt
-      integer iu_bioinit
-
-      real dicmin,dicmax
-      real zz
-
-      real fldo2(idm,jdm,kdm)
-      real fldoz(idm,jdm,kdm)
-
-      character*2 ntchar
-      character*80 filename
 
       INTEGER :: j_0h,j_1h,i_0h,i_1h
+
+      integer, ALLOCATABLE, DIMENSION(:,:)   :: ir
+      real,  ALLOCATABLE, DIMENSION(:,:,:) :: Fer,dicmod,dic
 
       I_0H = ogrid%I_STRT_HALO
       I_1H = ogrid%I_STOP_HALO
@@ -76,14 +81,11 @@ c  Carbon type 2    = DIC
       J_1H = ogrid%J_STOP_HALO
 
 
-      call alloc_obio_incom
+      ALLOCATE(ir(i_0h:i_1h,j_0h:j_1h))
+      ALLOCATE(Fer(i_0h:i_1h,j_0h:j_1h,kdm))
+      ALLOCATE(dicmod(i_0h:i_1h,j_0h:j_1h,kdm))
+      ALLOCATE(dic(i_0h:i_1h,j_0h:j_1h,kdm))
 
-      !gather_tracer
-      ALLOCATE(tracer(idm,jdm,kdm,ntrac))
-      call pack_data( ogrid,  tracer_loc, tracer )
-
-
-      if (AM_I_ROOT()) then
 c  Initialize
 
       tracer(:,:,:,1:ntyp)=0.
@@ -91,45 +93,19 @@ c  Initialize
       Fer(:,:,:) = 0.d0
 
 
-      filename='nitrates_inicond'
-      call bio_inicond_g(filename,fldo2,fldoz)
-      tracer(:,:,:,1)=fldo2         !because 3 is nintrate
-
-      filename='silicate_inicond'
-      call bio_inicond_g(filename,fldo2,fldoz)
-      tracer(:,:,:,3)=fldo2         !because 3 is silicate
+      call bio_inicond_g('nitrates_inicond',tracer(:,:,:,1)) !because 1 is nintrate
+      call bio_inicond_g('silicate_inicond',tracer(:,:,:,3)) !because 3 is silicate
 
 #ifdef obio_TRANSIENTRUNS
 ! in the transient runs keep the dic read in from RSF/AIC file
       dic = tracer(:,:,:,15)
 #else
 ! otherwise take from rundeck
-      filename='dic_inicond'
-      call bio_inicond_g(filename,fldo2,fldoz)
-      dic(:,:,:)=fldo2
+      call bio_inicond_g('dic_inicond',dic)
 #endif
 
 #ifdef TRACERS_Alkalinity
-      filename='alk_inicond'
-      call bio_inicond_g(filename,fldo2,fldoz)
-      tracer(:,:,:,ntrac)=fldo2
-     
-      !remove negative values
-      !negs are over land or under ice due to GLODAP missing values in the Arctic Ocean
-      !for under ice missing values, use climatological minimums for sets of layers based
-      !on GLODAP, rather than setting to the same global min.
-      do j=1,jdm
-      do i=1,idm
-      do k=1,kdm
-       if (tracer(i,j,k,ntrac).lt.0.) then
-          if (zoe(k).le.150.) tracer(i,j,k,ntrac)=2172.      !init neg might be under ice,
-          if (zoe(k).gt.150. .and. zoe(k).lt.1200.)
-     &                           tracer(i,j,k,ntrac)=2200. 
-          if (zoe(k).ge.1200.) tracer(i,j,k,ntrac)=2300.      
-       endif
-      enddo
-      enddo
-      enddo
+      call init_alk(tracer(:,:,:,ntrac))
 #endif
 
 !!these rno3 and so2_init fields are not correct. There are void points due to
@@ -137,72 +113,39 @@ c  Initialize
 !the interpolation in matlab (furtuna).
 !at the same time use dps and interpolate to layer depths from the model
 
-      dicmin = 1.d30
-      dicmax =-1.d30
-
       do k=1,kdm
-      do j=1,jdm
-       do i=1,idm
+      do j=j_0h,j_1h
+       do i=i_0h,i_1h
          if(tracer(i,j,k,1).le.0.d0)tracer(i,j,k,1)=0.085d0
          if(tracer(i,j,k,3).le.0.d0)tracer(i,j,k,3)=0.297d0
           if (dic(i,j,k).le.0.d0) dic(i,j,k)=1837d0
           dic(i,j,k)=max(dic(i,j,k),1837.0)   !set minimum =1837
-          dicmin =min(dicmin,dic(i,j,k))
-          dicmax =max(dicmax,dic(i,j,k))
         enddo
        enddo
       enddo
       write(*,'(a,2e12.4)')'BIO: bioinit: dic min-max=',
-     .       dicmin,dicmax
+     .       minval(dic),maxval(dic)
 
 c  Obtain region indicators
       write(6,*)'calling fndreg...'
-      call fndreg
+      call fndreg(ir)
  
 c  Define Fe:NO3 ratios by region, according to Fung et al. (2000)
 c  GBC.  Conversion produces nM Fe, since NO3 is as uM
 
-      do j=1,jdm
-       do i=1,idm
-        do k=1,kdm
-          if (ir(i,j) .eq. 1)then        !Antarctic
-           Fer(i,j,k) = 3.5E-3
-          else if (ir(i,j) .eq. 2)then   !South Indian
-           Fer(i,j,k) = 20.0E-3
-          else if (ir(i,j) .eq. 3)then   !South Pacific
-           Fer(i,j,k) = 4.5E-3
-          else if (ir(i,j) .eq. 4)then   !South Atlantic
-           Fer(i,j,k) = 20.0E-3
-          else if (ir(i,j) .eq. 5)then   !Equatorial Indian
-           Fer(i,j,k) = 22.5E-3
-          else if (ir(i,j) .eq. 6)then   !Equatorial Pacific
-           Fer(i,j,k) = 4.0E-3
-          else if (ir(i,j) .eq. 7)then   !Equatorial Atlantic
-           Fer(i,j,k) = 20.0E-3
-          else if (ir(i,j) .eq. 8)then   !North Indian
-           Fer(i,j,k) = 25.0E-3
-          else if (ir(i,j) .eq. 9)then   !North Central Pacific
-           Fer(i,j,k) = 6.0E-3
-          else if (ir(i,j) .eq. 10)then  !North Central Atlantic
-           Fer(i,j,k) = 20.0E-3
-          else if (ir(i,j) .eq. 11)then  !North Pacific
-           Fer(i,j,k) = 6.0E-3
-          else if (ir(i,j) .eq. 12)then  !North Atlantic
-           Fer(i,j,k) = 10.0E-3
-          else if (ir(i,j) .eq. 13)then  !Mediterranean
-           Fer(i,j,k) = 20.0E-3
-          endif
+      do j=j_0h,j_1h
+        do i=i_0h,i_1h
+          fer(i,j,:)=fer_values(ir(i,j))
         enddo  
-       enddo  
       enddo  
  
 c  Create arrays 
       write(6,*)'Creating bio restart data for ',ntyp,' arrays and'
      . ,kdm,'  layers...'
 
-      do 1000 j=1,jdm
-      do 1000 i=1,idm
-      do 1000 k=1,kdm
+      do j=j_0h,j_1h
+      do i=i_0h,i_1h
+      do k=1,kdm
 
 
           !Nitrate
@@ -261,7 +204,9 @@ c          tracer(i,j,k,nt) = 0.05*50.0  !in C units mg/m3
 #endif
           dicmod(i,j,k)=dic(i,j,k)
 
- 1000 continue
+      end do
+      end do
+      end do
 
 
 c  Detritus (set to 0 for start up)
@@ -270,8 +215,8 @@ c  Detritus (set to 0 for start up)
       csratio = 106.0/16.0*12.0    !C:Si ratio (ugl:uM)
       cfratio = 150000.0*12.0*1.0E-3    !C:Fe ratio (ugl:nM)
 
-      do j=1,jdm
-      do i=1,idm
+      do j=j_0h,j_1h
+      do i=i_0h,i_1h
       do k=1,kdm
            !only detritus components
            tracer(i,j,k,ntyp+n_inert+1) = tracer(i,j,k,1)*0.25*cnratio !as carbon
@@ -292,8 +237,8 @@ c   uM/kg to uM
       write(6,*)'Carbon...'
 c    conversion from uM to mg/m3
 
-      do j=1,jdm
-      do i=1,idm
+      do j=j_0h,j_1h
+      do i=i_0h,i_1h
       do k=1,kdm
           tracer(i,j,k,ntyp+n_inert+ndet+1) = 0.0
           tracer(i,j,k,ntyp+n_inert+ndet+2) = 0.0
@@ -302,8 +247,8 @@ c    conversion from uM to mg/m3
       enddo
 
       !only carbon components
-      do j=1,jdm
-      do i=1,idm
+      do j=j_0h,j_1h
+      do i=i_0h,i_1h
       do k=1,kdm
           tracer(i,j,k,ntyp+n_inert+ndet+2) = dicmod(i,j,k)
 c         car(i,j,k,1) = 3.0  !from Bissett et al 1999 (uM(C))
@@ -311,12 +256,6 @@ c         car(i,j,k,1) = 0.0  !from Walsh et al 1999
       enddo
       enddo
       enddo
-
-
-      endif   !if am_i_root
-
-      !scatter_tracer
-      call unpack_data( ogrid,  tracer, tracer_loc )
 
 c  Light saturation data
       write(6,*)'Light saturation data...'
@@ -340,35 +279,43 @@ c  Coccolithophore max growth rate
       enddo
       enddo
  
-      !save initialization
-!     if (AM_I_ROOT()) then
-!     do nt=1,ntyp+n_inert+ndet+ncar
-!       ntchar='00'
-!       if(nt.le.9)write(ntchar,'(i1)')nt
-!       if(nt.gt.9)write(ntchar,'(i2)')nt
-!       print*,'BIO: saving initial tracer fields '
-!    .        ,'bioinit_tracer'//ntchar
-!       call openunit('bioinit_tracer'//ntchar,iu_bioinit)
-!     do k=1,kdm
-!     do j=1,jdm
-!     do i=1,idm
-!          write(iu_bioinit,'(3i4,4e12.4)')
-!    .           i,j,k,dzo(k),tracer(i,j,k,nt),focean(i,j),hocean(i,j)
-!       enddo
-!       enddo
-!       enddo
-!     call closeunit(iu_bioinit)
-!     enddo
-
-!     print*,'bioinit: COLD INITIALIZATION'
-!     endif   ! am_i_root
       call obio_trint(0)
 
       return
       end subroutine obio_bioinit_g
 
+      subroutine init_alk(alk)
+      use oceanr_dim, only: ogrid
+      use oceanres, only: lmo
+      use ocean, only : ze
+      implicit none
+      real, dimension(ogrid%i_strt_halo:ogrid%i_stop_halo,
+     &      ogrid%j_strt_halo:ogrid%j_stop_halo,lmo), intent(out) :: alk
+      integer :: i, j, k
+
+      call bio_inicond_g('alk_inicond',alk)
+
+      !remove negative values
+      !negs are over land or under ice due to GLODAP missing values in the Arctic Ocean
+      !for under ice missing values, use climatological minimums for sets of layers based
+      !on GLODAP, rather than setting to the same global min.
+      do j=ogrid%j_strt_halo,ogrid%j_stop_halo
+      do i=ogrid%i_strt_halo,ogrid%i_stop_halo
+      do k=1,lmo
+       if (alk(i,j,k).lt.0.) then
+          if (ze(k).le.150.) alk(i,j,k)=2172.      !init neg might be under ice,
+          if (ze(k).gt.150. .and. ze(k).lt.1200.)
+     &                           alk(i,j,k)=2200. 
+          if (ze(k).ge.1200.) alk(i,j,k)=2300.      
+       endif
+      enddo
+      enddo
+      enddo
+      return
+      end subroutine init_alk
+
 c------------------------------------------------------------------------------
-      subroutine fndreg
+      subroutine fndreg(ir)
  
 c  Finds nwater indices corresponding to significant regions,
 c  and defines arrays.  Variables representative of the regions will 
@@ -390,15 +337,14 @@ c       13 -- Mediterranean/Black Seas
  
 
       USE OCEANR_DIM, only : ogrid   
-      USE OCEANRES, only : idm=>imo,jdm=>jmo,kdm=>lmo
-      Use OCEAN,      only : ZOE=>ZE, oLON_DG,oLAT_DG
+      Use OCEAN,      only : ZOE=>ZE, oLON_DG,oLAT_DG,focean
 
       USE obio_dim
-      USE obio_incom, only: ir
-      use obio_com, only : focean_glob,lmom_glob
       implicit none
 
 
+      integer, DIMENSION(ogrid%i_strt_halo:ogrid%i_stop_halo,
+     &    ogrid%j_strt_halo:ogrid%j_stop_halo), intent(out)   :: ir
       integer i,j,l,k
       integer iant,isin,ispc,isat,iein,iepc,ieat,incp
      .       ,inca,inat,imed,inin,inpc,nr,ntot
@@ -430,16 +376,15 @@ c  Initialize region indicator array
       nir = 0
  
 c  Find nwater values corresponding to regions
-       do 1000 j=1,jdm
-       do 1000 i=1,idm
+       do 1000 j=ogrid%j_strt_halo,ogrid%j_stop_halo
+       do 1000 i=ogrid%i_strt_halo,ogrid%i_stop_halo
 
         rlon=oLON_DG(i,1)
         rlat=oLAT_DG(j,1)
 
         if (rlon .gt. 180)rlon = rlon-360.0
 
-        !if (ZOE(LMOM_glob(i,j)).le.0) go to 100
-        if (focean_glob(i,j).le.0) go to 100
+        if (focean(i,j).le.0) go to 100
 
 c   Antarctic region
         if (rlat .le. antlat)then
@@ -656,160 +601,48 @@ c  Total up points for check
       write(6,*)'Total ocean points = ',ntot
  
       return
-      end
+      end subroutine fndreg
 
 c------------------------------------------------------------------------------
-      subroutine bio_inicond_g(filename,fldo2,fldoz)
 
-!read in a field and convert to ocean grid (using Gary Russel's routine) 
-
-      USE FILEMANAGER, only: openunit,closeunit
-      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
-      USE OCEANR_DIM, only : grid=>ogrid
-      USE OCEANRES, only : imo,jmo,lmo
-      USE OCEAN, only : oDLATM=>DLATM,ZOE=>ZE
-      use obio_com, only : focean_glob, lmom_glob
+      subroutine bio_inicond_g(filename,fldo2)
+      use bio_inicond_mod, only: bio_inicond_read
+      USE OCEANRES, only : idm=>imo, jdm=>jmo, kdm=>lmo
+      USE OCEANR_DIM, only : ogrid
+      USE OCEAN, only : DLATM,ZOE=>ZE, focean, lmm
       implicit none
 
-
-      integer, parameter :: igrd=360,jgrd=180,kgrd=33
-      integer i,j,k,l,n,lm
-      integer iu_file,lgth
-      real data(igrd,jgrd,kgrd)
-      real data_mask(igrd,jgrd)
-      real data_min(kgrd),data_max(kgrd)
-
-      real fldo(imo,jmo,kgrd)
-      real fldo2(imo,jmo,lmo)
-      real fldoz(imo,jmo,lmo)
-
+      character(len=*), intent(in) :: filename
+      real, intent(out) :: fldo2(ogrid%i_strt_halo:ogrid%i_stop_halo,
+     &    ogrid%j_strt_halo:ogrid%j_stop_halo, kdm)
+      integer, parameter :: kgrd=33
+      real fldo(idm,jdm,kgrd)
       real nodc_depths(kgrd)
-
-      integer ii,jj,lcount
-      real count_min
-
-      logical vrbos
-
-      character*80 filename
-
       data nodc_depths/0,  10,  20,  30,  50,  75, 100, 125, 150, 200,
      .          250, 300, 400, 500, 600, 700, 800, 900,1000,1100,1200,
      .    1300,1400,1500,1750,2000,2500,3000,3500,4000,4500,5000,5500/
+      integer :: i, j, k, lm
+      interface
+        Subroutine VLKtoLZ (KM,LM, MK,ME, RK, RL,RZ)
+        Real*8 MK(KM),ME(0:LM), RK(KM), RL(LM) 
+        Real*8, optional :: RZ(LM)
+        end Subroutine VLKtoLZ
+      end interface
 
-      real*8 offia,offib,dlata,datmis
-
-!--------------------------------------------------------------
-
-      !read no3 files from Watson and convert to ascii
-      lgth=len_trim(filename)
-      if (AM_I_ROOT())
-     .print*, 'bioinit: reading from file...',filename(1:lgth)
-      call openunit(filename,iu_file,.false.,.true.)
-
-!NOTE: data starts from Greenwich
-!      missing values are -9999
-       do k=1,kgrd
-       data_min(k)=1.e10
-       data_max(k)=-1.e10
-         do i=1,igrd
-           do j=1,jgrd
-             read(iu_file,'(e12.4)')data(i,j,k)
-             !preserve the mean for later
-              if (data(i,j,k)>0.) then
-                data_min(k)=min(data_min(k),data(i,j,k))
-                data_max(k)=max(data_max(k),data(i,j,k))
-             endif
-           enddo
-         enddo
-      enddo
-      call closeunit(iu_file)
-
-cdiag if (filename.eq.'dic_inicond') then
-cdiag do j=1,jgrd; do i=1,igrd; do k=1,kgrd
-cdiag   write(*,'(a,3i5,2e20.10)')'1111111111',
-cdiag.       i,j,k,nodc_depths(k),data(i,j,k)
-cdiag enddo; enddo; enddo
-cdiag endif
-!--------------------------------------------------------------
-! convert to Russell ocean grid
-! note that in obio_bioinit this part converts to modelE atmosph grid
-
-      do k=1,kgrd
-
-      do i=1,igrd
-      do j=1,jgrd
-
-        !mask
-        data_mask(i,j)=0.d0
-        if (data(i,j,k)>=0.d0) data_mask(i,j)=1.d0
-
-      enddo    ! i-loop
-      enddo    ! j-loop
-
-!compute glb average and replace missing data
-      offia = 180d0
-      offib = 0d0
-      dlata = 60d0
-      datmis = -9999d0
-      call HNTR80(igrd,jgrd,offia,dlata,
-     .             imo,jmo,offib,oDLATM,datmis)
-
-      call HNTR8P (data_mask,data(:,:,k),fldo(:,:,k))
-
-      enddo    ! k-loop
-
-!ensure minima
-!fill in polar values
-      do k=1,kgrd; do i=1,imo; do j=1,jmo
-        if(fldo(i,j,k).lt.data_min(k)) fldo(i,j,k)=data_min(k)
-      enddo; enddo; enddo
-
-cdiag if (filename.eq.'dic_inicond') then
-cdiag do j=1,jmo; do i=1,imo; do k=1,kgrd
-cdiag   write(*,'(a,3i5,2e20.10)')'2222222222',
-cdiag.       i,j,k,nodc_depths(k),fldo(i,j,k)
-cdiag enddo; enddo; enddo
-cdiag endif
-
-cdiag if (filename.eq.'dic_inicond') then
-cdiag do j=1,jmo; do i=1,imo; do k=1,kgrd
-cdiag   write(*,'(a,3i5,2e20.10)')'3333333333',
-cdiag.       i,j,k,nodc_depths(k),fldo(i,j,k)
-cdiag enddo; enddo; enddo
-cdiag endif
-
-
-!--------------------------------------------------------------
-      print*, 'imo,jmo= ',imo, jmo
-      do j=1,jmo
-      do i=1,imo
-
-      do k=1,lmo
-      fldo2(i,j,k)= -9999.
-      fldoz(i,j,k)= -9999.
-      enddo
-
-      IF (FOCEAN_glob(i,j).gt.0) then
-         lm=lmom_glob(i,j)
-          call VLKtoLZ(kgrd,lm,nodc_depths,ZOE,
-     .                 fldo(i,j,:),fldo2(i,j,:),fldoz(i,j,:))   
-      ENDIF
-
+      call bio_inicond_read(filename, dlatm, 180d0, .true., fldo)
+      
+      fldo2=-9999.d0
+      do j=ogrid%j_strt_halo, ogrid%j_stop_halo
+      do i=ogrid%i_strt_halo, ogrid%i_stop_halo
+        IF (FOCEAN(i,j).gt.0) then
+          lm=lmm(i,j)
+          call VLKtoLZ(kgrd,lm,nodc_depths,ZOE,fldo(i,j,:),fldo2(i,j,:))
+        ENDIF
       enddo
       enddo
-  
-cdiag if (filename.eq.'dic_inicond') then
-cdiag do j=1,jmo; do i=1,imo; do k=1,lmo
-cdiag   write(*,'(a,3i5,2e20.10)')'4444444444',
-cdiag.       i,j,k,ZOE(k),fldo2(i,j,k)
-cdiag enddo; enddo; enddo
-cdiag endif
 
       return
-  
       end subroutine bio_inicond_g
-
-
 
       Subroutine VLKtoLZ (KM,LM, MK,ME, RK, RL,RZ)        !  2008/02/05
 C****
@@ -846,9 +679,8 @@ C****           RQ = integrated tracer mass times mass (kg^2/m^4)
 C****
       Implicit Real*8 (A-H,M-Z)
       Parameter (DATMIS = -999999)
-      Real*8 MK(KM),ME(0:LM), RK(KM), RL(LM),RZ(LM), RM(1024),RQ(1024)
-
-
+      Real*8 MK(KM),ME(0:LM), RK(KM), RL(LM),RM(1024),RQ(1024)
+      Real*8, optional :: RZ(LM)
 
 C     If (LM > 1024)  Stop 'LM exceeds internal dimentions in VLKtoLZ'
 C****
@@ -927,26 +759,25 @@ C**** Calculate RL and RZ from RM and RQ when MK(KM) < ME(LM)
 C****
 C**** MK(KM) <= ME(0)
   200 RL(:) = DATMIS
-      RZ(:) = DATMIS
+      if (present(rz)) RZ(:) = DATMIS
       Return
 C**** ME(L-1) < MK(KM) < ME(L)
-  220 Do 230 LL=1,L-1
-      RL(LL) =   RM(LL) / (ME(LL)-ME(LL-1))
-  230 RZ(LL) = 6*RQ(LL) / (ME(LL)-ME(LL-1))**2
+  220 RL(1:L-1) =   RM(1:L-1) / (ME(1:L-1)-ME(0:L-2))
       RL(L)  =   RM(L)  / (MK(KM)-ME(L-1))
-      RZ(L)  = 6*(RQ(L) + .5*(ME(L)-MK(KM))*RM(L)) / (MK(KM)-ME(L-1))**2
-C**** Vertical gradient is extrapolated half way to .5*[MK(KM)+ME(L)]
-      RZ(L)  = RZ(L) * (.5*(MK(KM)+ME(L))-ME(L-1)) / (MK(KM)-ME(L-1))
       RL(L+1:LM) = DATMIS
-      RZ(L+1:LM) = DATMIS
+      if (present(rz)) then
+        RZ(1:L-1) = 6*RQ(1:L-1) / (ME(1:L-1)-ME(0:L-2))**2
+        RZ(L)= 6*(RQ(L) + .5*(ME(L)-MK(KM))*RM(L)) / (MK(KM)-ME(L-1))**2
+C**** Vertical gradient is extrapolated half way to .5*[MK(KM)+ME(L)]
+        RZ(L)  = RZ(L) * (.5*(MK(KM)+ME(L))-ME(L-1)) / (MK(KM)-ME(L-1))
+        RZ(L+1:LM) = DATMIS
+      endif
       Return
 C****
 C**** Calculate RL and RZ from RM and RQ when ME(LM) < MK(KM)
 C****
-  300 Do 310 L=1,LM
-      RL(L) =   RM(L) / (ME(L)-ME(L-1))
-  310 RZ(L) = 6*RQ(L) / (ME(L)-ME(L-1))**2
-      Return
+  300 RL(1:lm) =   RM(1:lm) / (ME(1:lm)-ME(0:lm-1))
+      if (present(rz)) RZ(1:lm) = 6*RQ(1:lm) / (ME(1:lm)-ME(0:lm-1))**2
       End 
 
 #endif /*  OBIO_ON_GARYocean */

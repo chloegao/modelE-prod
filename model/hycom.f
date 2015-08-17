@@ -775,7 +775,7 @@ c
 c      if (dobio) then
 c
           !call obio_listDifferences('obio_model', 'before')
-        call obio_model(nn,mm,ocnatm)
+        call obio_model(mm,ocnatm)
           !call obio_listDifferences('obio_model', 'after')
 c
 c      endif
@@ -951,71 +951,6 @@ c
 ccc      write (string,'(a12,i8)') 'hybgrd, step',nstep
 ccc      call comparall(m,n,mm,nn,string)
 
-
-#if (defined TRACERS_OceanBiology) ||  (defined TRACERS_AGE_OCEAN) \
-     || (defined TRACERS_OCEAN_WATER_MASSES) || (defined TRACERS_ZEBRA)
-
-!accumulate fields for diagnostic output
-      call gather_dpinit 
-!     if (AM_I_ROOT()) then
-!     if (mod(nstep,trcfrq).eq.0) then
-
-!     diag_counter=diag_counter+1
-!     print*, 'tracers:    doing tracav at nstep=',nstep,diag_counter
-
-!     endif  !trcfrq
-!     endif  !AM_I_ROOT
-
-!     if (mod(nstep,trcfrq).eq.0) then
-
-!       call start('  tracav')
-
-!#ifdef TRACERS_OceanBiology
-!        do j=j_0,j_1
-!          do i=1,idm
-!            ao_co2fluxav_loc(i,j)=ao_co2fluxav_loc(i,j) + 
-!     &           ao_co2flux_loc(i,j)
-!            pCO2av_loc(i,j)=pCO2av_loc(i,j)+pCO2_loc(i,j)
-!            pp2tot_dayav_loc(i,j) = pp2tot_dayav_loc(i,j)
-!     .                            + pp2tot_day_loc(i,j)
-!            cexpav_loc(i,j)=cexpav_loc(i,j)+cexp_loc(i,j)
-!
-!            if(i.eq.243.and.j.eq.1) then
-!            write(*,'(a,3i5,8e12.4)')'1111111111',
-!     .      nstep,i,j,ao_co2flux_loc(i,j),ao_co2fluxav_loc(i,j)
-!     .      ,pco2_loc(i,j),pCO2av_loc(i,j)
-!     .      ,pp2tot_day_loc(i,j),pp2tot_dayav_loc(i,j)
-!     .      ,cexp_loc(i,j),cexpav_loc(i,j)
-!            endif
-!#ifdef TRACERS_Alkalinity
-!            caexpav_loc(i,j)=caexpav_loc(i,j)+caexp_loc(i,j)
-!#endif
-!          enddo
-!        enddo
-!#endif
-!
-!        do j=j_0,j_1
-!          do i=1,idm
-!
-!            do k=1,kk
-!              plev = max(0.,dpinit_loc(i,j,k))
-!              if (plev.lt.1.e30) then
-!                plevav_loc(i,j,k) = plevav_loc(i,j,k) + plev
-!                
-!                do nt=1,ntrcr
-!                  tracav_loc(i,j,k,nt) = tracav_loc(i,j,k,nt) + 
-!     &                 tracer_loc(i,j,k,nt)*plev
-!                enddo !nt
-!
-!              endif
-!            enddo  !k
-!          end do
-!        end do
-!
-!        call stop('  tracav')
-!      end if
-
-#endif
 
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       if (AM_I_ROOT()) then
@@ -1264,8 +1199,6 @@ c --- accumulate fields for agcm
 
  201  continue
 
-      ! may need the next line for TRACERS_GASEXCH_ocean_CFC
-      !call gather_tracer
 #ifdef TRACERS_ON
       do j=J_0,J_1
       do l=1,isp_loc(j)
@@ -1954,34 +1887,3 @@ c------------------------------------------------------------------
 
       end subroutine scatter1_hycom_arrays
 c------------------------------------------------------------------
-
-      subroutine scatter_tracer
-      USE HYCOM_ARRAYS, only : tracer_loc => tracer
-      USE HYCOM_ARRAYS_GLOB, only : tracer
-      USE HYCOM_DIM, only : ogrid
-      USE DOMAIN_DECOMP_1D, ONLY: UNPACK_DATA
- 
-      call unpack_data( ogrid,  tracer, tracer_loc )
-
-      end subroutine scatter_tracer
-
-      subroutine gather_tracer
-      USE HYCOM_ARRAYS, only : tracer_loc => tracer
-      USE HYCOM_ARRAYS_GLOB, only : tracer
-      USE HYCOM_DIM, only : ogrid
-      USE DOMAIN_DECOMP_1D, ONLY: PACK_DATA
- 
-      call pack_data( ogrid,  tracer_loc, tracer )
-
-      end subroutine gather_tracer
-
-      subroutine gather_dpinit
-      USE HYCOM_ARRAYS, only : dpinit_loc => dpinit
-      USE HYCOM_ARRAYS_GLOB, only : dpinit
-      USE HYCOM_DIM, only : ogrid
-      USE DOMAIN_DECOMP_1D, ONLY: PACK_DATA
- 
-      call pack_data( ogrid,  dpinit_loc, dpinit )
-
-      end subroutine gather_dpinit
-      

@@ -3,7 +3,7 @@
 #ifdef OBIO_ON_GARYocean
       subroutine obio_model(atm)
 #else
-      subroutine obio_model(nn,mm,atm)
+      subroutine obio_model(mm,atm)
 #endif
 
 !@sum  OBIO_MODEL is the main ocean bio-geo-chem routine 
@@ -61,8 +61,7 @@
 
       use runtimecontrols_mod, only: tracers_alkalinity
 #ifdef OBIO_ON_GARYocean
-      use obio_com, only: obio_deltat,nstep0
-     .                    ,tracer =>tracer_loc        
+      use obio_com, only: obio_deltat,nstep0,tracer
       USE ODIAG, only : ij_pCO2,ij_dic,ij_nitr,ij_diat
      .                 ,ij_amm,ij_sil,ij_chlo,ij_cyan,ij_cocc,ij_herb
      .                 ,ij_doc,ij_iron,ij_alk,ij_Ed,ij_Es,ij_pp
@@ -145,7 +144,7 @@
 
       REAL*4  :: obio_tr_mm(16)= (/ 14., 14., 28.055, 55.845, 1., 1.,
      .     1., 1., 1., 14., 14., 28.055, 55.845, 12., 12., 1. /)
-      integer i,j,k,l,km,nn,mm
+      integer i,j,k,l,km,mm
 
       integer ihr,ichan,iyear,nt,ihr0,lgth,kmax
       integer ll,ilim
@@ -241,7 +240,7 @@ c
       cexpav_loc = 0
       caexpav_loc = 0
 
-      call obio_bioinit(nn)
+      call obio_bioinit
 #endif
       endif   !if nstep=1 or nstep=itimei
 
@@ -427,45 +426,42 @@ cdiag.          olon_dg(i,1),olat_dg(j,1)
          enddo
 #else
        do k=1,kdm
-        km=k+mm
+         km=k+mm
          temp1d(k)=temp(i,j,km)
-          saln1d(k)=saln(i,j,km)
-           dp1d(k)=dpinit(i,j,k)/onem
+         saln1d(k)=saln(i,j,km)
+         dp1d(k)=dpinit(i,j,k)/onem
 #endif
-            avgq1d(k)=avgq(i,j,k)
-             gcmax1d(k)=gcmax(i,j,k)
-              tirrq(k)=tirrq3d(i,j,k)
-#ifndef TRACERS_Alkalinity
+         avgq1d(k)=avgq(i,j,k)
+         gcmax1d(k)=gcmax(i,j,k)
+         tirrq(k)=tirrq3d(i,j,k)
+#ifdef TRACERS_Alkalinity
+         alk1d(k)=tracer(i,j,k,ntyp+n_inert+ndet+ncar+1)
+#else
               !NOT for INTERACTIVE alk
-              alk1d(k)=alk(i,j,k)
+         alk1d(k)=alk(i,j,k)
 #endif
               !----daysetbio/daysetrad arrays----!
-              tzoo=tzoo2d(i,j)
-              tfac(k)=tfac3d(i,j,k)
-              do nt=1,nchl
-                rmuplsr(k,nt)=rmuplsr3d(i,j,k,nt)
-                rikd(k,nt)=rikd3d(i,j,k,nt)
-              enddo
-              wshc(k)=wshc3d(i,j,k)
-              Fescav(k)=Fescav3d(i,j,k)
-              do nt=1,nlt
-                acdom(k,nt)=acdom3d(i,j,k,nt)
-              enddo
-              !----daysetbio arrays----!
-              do nt=1,ntyp+n_inert
-             obio_P(k,nt)=tracer(i,j,k,nt)
-            enddo
-           do nt=1,ndet
-          det(k,nt)=tracer(i,j,k,ntyp+n_inert+nt)
+         tzoo=tzoo2d(i,j)
+         tfac(k)=tfac3d(i,j,k)
+         do nt=1,nchl
+           rmuplsr(k,nt)=rmuplsr3d(i,j,k,nt)
+           rikd(k,nt)=rikd3d(i,j,k,nt)
          enddo
-        do nt=1,ncar
-       car(k,nt)=tracer(i,j,k,ntyp+n_inert+ndet+nt)
-       enddo
-#ifdef TRACERS_Alkalinity
-       do nt=1,nalk
-       alk1d(k)=tracer(i,j,k,ntyp+n_inert+ndet+ncar+nt)
-       enddo
-#endif
+         wshc(k)=wshc3d(i,j,k)
+         Fescav(k)=Fescav3d(i,j,k)
+         do nt=1,nlt
+           acdom(k,nt)=acdom3d(i,j,k,nt)
+         enddo
+              !----daysetbio arrays----!
+         do nt=1,ntyp+n_inert
+           obio_P(k,nt)=tracer(i,j,k,nt)
+         enddo
+         do nt=1,ndet
+           det(k,nt)=tracer(i,j,k,ntyp+n_inert+nt)
+         enddo
+         do nt=1,ncar
+           car(k,nt)=tracer(i,j,k,ntyp+n_inert+ndet+nt)
+         enddo
        enddo  !k=1,kdm or lmm
 
        p1d(1)=0.
@@ -637,7 +633,7 @@ cdiag    enddo
        tot = 0.0
        if (.not.allocated(eda_frac)) then
          allocate(eda_frac(nlt), esa_frac(nlt))
-         open(newunit=iu_bio,file='eda_esa_ratios',status='unknown')
+         call openunit('eda_esa_ratios',iu_bio,.false.,.false.)
          do ichan=1,nlt
            read(iu_bio,'(3f13.8)')dummy1,eda_frac(ichan),esa_frac(ichan)
          enddo

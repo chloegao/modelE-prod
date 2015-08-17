@@ -11,8 +11,7 @@
       USE OCEANRES, only : kdm=>lmo
       use ocean, only : jm
 #else
-      USE hycom_dim_glob
-      USE hycom_scalars, only: baclin
+      USE hycom_dim_glob, only: kdm
 #endif
 
       implicit none
@@ -75,7 +74,7 @@ c
       real, ALLOCATABLE, DIMENSION(:,:) :: ao_co2flux_loc  !ao CO2 on the ocean grid ***NOT for GASEXCH runs****
 #endif
 #ifdef OBIO_ON_GARYocean
-      real, ALLOCATABLE, DIMENSION(:,:,:,:):: tracer_loc    !only for gary ocean
+      real, ALLOCATABLE, DIMENSION(:,:,:,:):: tracer    !only for gary ocean
 
       integer nstep0
 
@@ -191,11 +190,6 @@ C endif
       real*8 :: Iron_BC = -0.005
 #endif
 
-#ifdef OBIO_ON_GARYocean
-      real*8, allocatable :: focean_glob(:,:)
-      integer, allocatable :: lmom_glob(:,:)
-#endif
-
 
       END MODULE obio_com
 
@@ -225,8 +219,10 @@ c**** Extract domain decomposition info
       J_1H = ogrid%J_STOP_HALO
 
 
-      ALLOCATE(tracer_loc(i_0h:i_1h,j_0h:j_1h,kdm,ntrac))
+      ALLOCATE(tracer(i_0h:i_1h,j_0h:j_1h,kdm,ntrac))
 #endif
+
+      call alloc_obio_forc
 
       ALLOCATE(tzoo2d(i_0h:i_1h,j_0h:j_1h))
       ALLOCATE(wshc3d(i_0h:i_1h,j_0h:j_1h,kdm))
@@ -299,7 +295,7 @@ c**** Extract domain decomposition info
       Use OCN_TRACER_COM, Only : tracerlist, ocn_tracer_entry
       USE obio_forc, only : avgq,tirrq3d,ihra
       USE obio_com, only : gcmax,nstep0
-     &     ,tracer=>tracer_loc,pp2tot_day
+     &     ,tracer,pp2tot_day
       use pario, only : defvar
       use domain_decomp_1d, only : getDomainBounds
       implicit none
@@ -333,7 +329,7 @@ c**** Extract domain decomposition info
       use model_com, only : nstep=>itime
       USE obio_forc, only : avgq,tirrq3d,ihra
       USE obio_com, only : gcmax,nstep0
-     &     ,tracer=>tracer_loc,pp2tot_day
+     &     ,tracer,pp2tot_day
       use domain_decomp_1d, only : getDomainBounds
       implicit none
       integer fid   !@var fid unit number of read/write
@@ -372,7 +368,7 @@ c**** Extract domain decomposition info
       end subroutine new_io_obio
 
       subroutine new_io_obio_inicond
-      USE obio_com, only: tracer=>tracer_loc
+      USE obio_com, only: tracer
       use ocn_tracer_com, only : tracerlist, ocn_tracer_entry
       use ocean, only : lmo,lmm,ze,zmid,focean
       use ocean, only : im,jm
@@ -384,13 +380,18 @@ c**** Extract domain decomposition info
 
       integer i,j,l,lm,lm_in,lmo_in,n,fid,ii,jj
       logical :: need_zregrid
-      real*8 :: rz(lmo)
       real*8, allocatable :: z_in(:)
       real*8, dimension(:,:,:), allocatable :: arr_in,arr_tmp
       integer :: dlens(7),ndims
       integer :: i_0,i_1,j_0,j_1
       integer :: i_0h,i_1h,j_0h,j_1h
       type(ocn_tracer_entry), pointer :: entry
+      interface
+        Subroutine VLKtoLZ (KM,LM, MK,ME, RK, RL,RZ)
+        Real*8 MK(KM),ME(0:LM), RK(KM), RL(LM)
+        Real*8, optional :: RZ(LM)
+        end Subroutine VLKtoLZ 
+      end interface
 
       i_0 = grid%i_strt
       i_1 = grid%i_stop
@@ -431,7 +432,7 @@ c**** Extract domain decomposition info
             if(focean(i,j).le.0) cycle
             lm = lmm(i,j)
             call VLKtoLZ(lmo_in,lm,z_in,ze,
-     &           arr_in(i,j,:),tracer(i,j,:,n),rz)
+     &           arr_in(i,j,:),tracer(i,j,:,n))
           enddo
           enddo
         else

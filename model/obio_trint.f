@@ -7,7 +7,7 @@
 #ifdef OBIO_ON_GARYocean
       use oceanres,  only: idm=>imo,jdm=>jmo,kdm=>lmo
       use oceanr_dim, only : ogrid
-      use obio_com, only: tracer => tracer_loc ! rename local
+      use obio_com, only: tracer
       use ocn_tracer_com, only : tracerlist
       use model_com, only : nstep=>itime
       use ocean, only: trmo
