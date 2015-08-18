@@ -4,16 +4,14 @@
 !@sum  GM_COM variables related to GM isopycnal and Redi fluxes
 !@auth Gavin Schmidt/Dan Collins
 !@ver  2009/02/13
-      USE CONSTANT, only : radius,omega,grav
       USE OCEAN, only : im,jm,lmo,lmm,lmu,lmv,dts,cospo,sinpo,ze,dxypo
      *     ,mo,dypo,dyvo,dxpo,dzo
       USE KPP_COM, only : kpl
       USE OCEAN_DYN, only  : dh  ! ,vbar
-      USE ODIAG, only : oij=>oij_loc,ij_gmsc 
 
       USE DOMAIN_DECOMP_1D, ONLY : GETDomainBounds, HALO_UPDATE, NORTH,
-     *                          SOUTH, PACK_DATA, AM_I_ROOT,
-     *                          UNPACK_DATA, GLOBALSUM
+     *                          SOUTH, AM_I_ROOT,
+     *                          GLOBALSUM
       USE OCEANR_DIM, only : grid=>ogrid
       IMPLICIT NONE
 
@@ -34,12 +32,6 @@
      *     BXX, BYY, BZZ, AZX, BZX, CZX,AEZX,
      *     EZX,CEZX, AZY, BZY,  CZY,AEZY, EZY,CEZY
 
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) ::
-     *     BYDZV,BYDH,DZV
-
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) ::
-     *     RHOX,RHOY,RHOMZ,BYRHOZ
-
 !@var AINV Calculated Isopycnal thickness diffusion (m^2/s)
 !@var ARIV Calculated Redi diffusion (m^2/s)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) ::
@@ -52,39 +44,13 @@
 !@var QCROSS true if cross terms should be calculated
       !LOGICAL, PARAMETER :: QCROSS = .NOT. (ARAI.eq.1d0) ! i.e..FALSE.
       LOGICAL :: QCROSS
-!@var AMU = Visbeck scheme scaling parameter (1)
-      REAL*8, PARAMETER :: AMU = 0.13d0
 !@var SLIM = Upper limit of isopycnal slopes (stability parameter)
       REAL*8, PARAMETER :: SLIM=2d-3, BYSLIM=1./SLIM
 
       REAL*8, PARAMETER :: eps=TINY(1.D0)
 
-#if (defined CONSTANT_MESO_DIFFUSIVITY)
-!@dbparam meso_diffusivity_const constant diffusivity (m2/s)
-!@+       for sensitivity studies
-      real*8 :: meso_diffusivity_const
-#elif (defined EXPDECAY_MESO_DIFFUSIVITY)
-!@dbparam meso_diffusivity_z0
-!@dbparam meso_diffusivity_zscale
-!@dbparam meso_diffusivity_deep
-      real*8 ::
-     & meso_diffusivity_z0,meso_diffusivity_zscale,meso_diffusivity_deep
-#elif (defined CONSTANT_MESO_LENSCALE)
-!@dbparam meso_lenscale_const a fixed length scale (meters) to use in
-!@+       lieu of Rossby radius RD in AINV = AMU * RD**2 * BYTEADY
-      real*8 :: meso_lenscale_const
-#endif
       REAL*8, ALLOCATABLE, DIMENSION(:) ::
      *     BYDYP,BYDXP,BYDYV
-
-!@var VBAR specific volume (ref to mid point pressure)
-!@var dVBARdZ specific volume vertical difference (ref to lower point pressure)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: VBAR, dVBARdZ,G3D,S3D,P3D
-!@var RHOZ1K density gradient over top 1km
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: RHOZ1K
-
-!@var LUP level corresponding to 1km depth
-      INTEGER :: LUP
 
       contains
 
@@ -145,22 +111,6 @@ c**** allocate arrays
         allocate( EZY (IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
         allocate( CEZY(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
 
-        allocate( BYDZV(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
-        allocate( BYDH (IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
-        allocate( DZV  (IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
-
-        allocate( VBAR   (IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
-        allocate( DVBARDZ(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
-        allocate( G3D   (IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
-        allocate( S3D   (IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
-        allocate( P3D   (IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
-        allocate( RHOZ1K (IM,grid%j_strt_halo:grid%j_stop_halo) )
-
-        allocate( RHOX   (IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
-        allocate( RHOY   (IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
-        allocate( RHOMZ  (IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
-        allocate( BYRHOZ (IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
-
         allocate( AINV (IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
         allocate( ARIV (IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
 
@@ -172,42 +122,50 @@ c**** allocate arrays
 
       END MODULE GM_COM
 
-      SUBROUTINE GMKDIF(RGMI_in)
+      SUBROUTINE GMKDIF(K3D_in,RGMI_in)
 !@sum GMKDIF calculates density gradients and tracer operators
 !@+   for Redi and GM isopycnal skew fluxes
 !@auth Dan Collins/Gavin Schmidt
       USE GM_COM
-      USE Dictionary_mod
+      use ocean_dyn, only : bydh
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: RGMI_in
+      REAL*8, DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) ::
+     &   K3D_in
 
       INTEGER I,J,L,IM1
 
       INTEGER :: J_0, J_1, J_0S, J_1S, J_0STG, J_1STG, J_0H, J_1H
       INTEGER, SAVE :: IFIRST = 1
 
-      if ( IFIRST.ne.0 ) then
-        IFIRST = 0
-        call ALLOC_GM_COM
-#if (defined CONSTANT_MESO_DIFFUSIVITY)
-       call get_param('meso_diffusivity_const',meso_diffusivity_const)
-#elif (defined EXPDECAY_MESO_DIFFUSIVITY)
-       call get_param('meso_diffusivity_z0',meso_diffusivity_z0)
-       call get_param('meso_diffusivity_zscale',meso_diffusivity_zscale)
-       call get_param('meso_diffusivity_deep',meso_diffusivity_deep)
-#elif (defined CONSTANT_MESO_LENSCALE)
-       call get_param( 'meso_lenscale_const', meso_lenscale_const )
-#endif
-      endif
-
-      RGMI = RGMI_in
-      QCROSS = .NOT. (RGMI.eq.1d0)
-
 c**** Extract domain decomposition info
       call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
      &               J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
      &               J_STRT_HALO = J_0H,   J_STOP_HALO = J_1H)
+
+      if ( IFIRST.ne.0 ) then
+        IFIRST = 0
+        call ALLOC_GM_COM
+C**** set up geometry needed
+        DO J=J_0,J_1
+          BYDYP(J)=1d0/DYPO(J)
+          BYDXP(J)=1d0/DXPO(J)
+        END DO
+        DO J=J_0,J_1S
+          BYDYV(J)=1d0/DYVO(J)
+        END DO
+        CALL HALO_UPDATE(grid,BYDYP (grid%j_strt_halo:grid%j_stop_halo),
+     *                 FROM=SOUTH+NORTH)
+        CALL HALO_UPDATE(grid,BYDYV (grid%j_strt_halo:grid%j_stop_halo),
+     *                 FROM=SOUTH+NORTH)
+        CALL HALO_UPDATE(grid,BYDXP (grid%j_strt_halo:grid%j_stop_halo),
+     *                 FROM=SOUTH+NORTH)
+      endif
+
+      RGMI = RGMI_in
+      QCROSS = .NOT. (RGMI.eq.1d0)
+
 
 C**** Initialize SLOPES common block of coefficients
       DO L=1,LMO
@@ -220,7 +178,10 @@ C**** Initialize SLOPES common block of coefficients
          BXX(:,:,L)=0. ; BYY(:,:,L)=0. ;  BZZ(:,:,L)=0.
       END DO
 
-C**** Calculate all diffusivities
+      ARIV = K3D_in
+C**** thickness diffusivity scaled with isoneutral diffusivity
+      AINV = RGMI * ARIV
+
       CALL ISOSLOPE4
 
       CALL GET_PSI_DIAG
@@ -365,6 +326,7 @@ C****
 !@sum  GMFEXP apply GM fluxes to tracer quantities
 !@auth Gavin Schmidt/Dan Collins
       USE GM_COM
+      use ocnmeso_com, only : bydzv=>bydze3d
       IMPLICIT NONE
       REAL*8, DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LMO),
      *        INTENT(INOUT) :: TRM,TXM,TYM,TZM
@@ -536,7 +498,8 @@ C****
 !@sum  computes GM fluxes for tracer quantities
       USE GM_COM, ONLY: grid,GETDomainBounds,IM,JM,LMO,LMM,LMU,LMV,
      &                  DXYPO,MO, kpl,
-     &                  BXX, BYY, BZZ, BYDH, RGMI, BYDXP, BYDYP
+     &                  BXX, BYY, BZZ, RGMI, BYDXP, BYDYP
+      use ocean_dyn, only : bydh
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: DT4
       REAL*8, DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LMO),
@@ -1036,6 +999,8 @@ C****
 !@auth Gavin Schmidt/Dan Collins
 !@ver  2009/02/13
       USE GM_COM
+      use ocean_dyn, only : bydh
+      use ocnmeso_com, only : rhox,rhoy,rhomz,byrhoz,dzv=>dze3d
       IMPLICIT NONE
       INTEGER I,J,L,IM1
       REAL*8 :: AIX0ST,AIX2ST,AIY0ST,AIY2ST,SIX0,SIX2,SIY0,SIY2,
@@ -1051,8 +1016,6 @@ c**** Extract domain decomposition info
      &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
      &               J_STRT_HALO = J_0H,   J_STOP_HALO = J_1H)
 
-C**** Calculate horizontal and vertical density gradients.
-      CALL DENSGRAD
 C****
 C**** Three grid boxes (triads) are used for each slope. The GM skew
 C**** diffusion coefficient is calculated for each triad as well.
@@ -1083,10 +1046,10 @@ C**** SIX0, SIY0, SIX2, SIY2: four slopes that use RHOMZ(L)
         AIX2ST = ARIV(I,J,L)
         AIY0ST = ARIV(I,J,L)
         AIY2ST = ARIV(I,J,L)
-        SIX0 = RHOX(I  ,J,L) * BYRHOZ(I,J,L)
-        SIX2 = RHOX(IM1,J,L) * BYRHOZ(I,J,L)
-        SIY2 = RHOY(I,J-1,L) * BYRHOZ(I,J,L)
-        SIY0 = RHOY(I,J  ,L) * BYRHOZ(I,J,L)
+        SIX0 = RHOX(L,I  ,J) * BYRHOZ(I,J,L)
+        SIX2 = RHOX(L,IM1,J) * BYRHOZ(I,J,L)
+        SIY2 = RHOY(L,I,J-1) * BYRHOZ(I,J,L)
+        SIY0 = RHOY(L,I,J  ) * BYRHOZ(I,J,L)
         IF (ARIV(I,J,L).gt.0.) THEN ! limit slopes <ML
           byAIDT = 1 / (4*DTS*(AINV(I,J,L)+ARIV(I,J,L)))
           DSX0sq = DZV(I,J,L)**2 * byAIDT
@@ -1120,10 +1083,10 @@ C**** SIX1, SIY1, SIX3, SIY3: four slopes that use RHOMZ(L-1)
         AIX3ST = ARIV(I,J,L)
         AIY1ST = ARIV(I,J,L)
         AIY3ST = ARIV(I,J,L)
-        SIX1 = RHOX(I  ,J,L) * BYRHOZ(I,J,L-1)
-        SIX3 = RHOX(IM1,J,L) * BYRHOZ(I,J,L-1)
-        SIY1 = RHOY(I,J  ,L) * BYRHOZ(I,J,L-1)
-        SIY3 = RHOY(I,J-1,L) * BYRHOZ(I,J,L-1)
+        SIX1 = RHOX(L,I  ,J) * BYRHOZ(I,J,L-1)
+        SIX3 = RHOX(L,IM1,J) * BYRHOZ(I,J,L-1)
+        SIY1 = RHOY(L,I,J  ) * BYRHOZ(I,J,L-1)
+        SIY3 = RHOY(L,I,J-1) * BYRHOZ(I,J,L-1)
         IF (ARIV(I,J,L).gt.0.) THEN ! limit slopes <ML
           byAIDT = 1 / (4*DTS*(AINV(I,J,L)+ARIV(I,J,L)))
           DSX1sq = DZV(I,J,L-1)**2 * byAIDT
@@ -1176,368 +1139,6 @@ C**** S2X0...S2X3, S2Y0...S2Y3
       RETURN
       END SUBROUTINE ISOSLOPE4
 C****
-      SUBROUTINE DENSGRAD
-!@sum  DENSGRAD calculates all horizontal and vertical density gradients
-!@auth Gavin Schmidt/Dan Collins
-      USE GM_COM
-      USE FILEMANAGER
-
-      use ocean, only : dzo
-
-      IMPLICIT NONE
-
-      REAL*8, DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) ::
-     &     RHO
-      REAL*8  BYRHO,DZVLM1,CORI,BETA,ARHO,ARHOX,ARHOY,ARHOZ,AN,RD
-     *     ,BYTEADY,DH0,DZSUMX,DZSUMY,R1,R2,P12
-      REAL*8, DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) ::
-     *   kappam3d
-      REAL*8, SAVE :: HUP
-      INTEGER I,J,L,IM1,LAV,iu_ODIFF
-      INTEGER, SAVE :: IFIRST = 1
-      CHARACTER TITLE*80
-      Real*8,External   :: VOLGSP
-      REAL*8, DIMENSION(IM,JM) ::  AINV_glob
-
-      INTEGER :: J_0, J_1, J_0S, J_1S, J_0STG, J_1STG, J_0H, J_1H
-      INTEGER :: J_1HR
-      LOGICAL :: HAVE_NORTH_POLE,HAVE_SOUTH_POLE 
-      logical :: dothis
-      real*8 :: k1d(lmo)
-
-#if (defined CONSTANT_MESO_DIFFUSIVITY)
-#define USE_1D_DIFFUSIVITY
-      k1d(:) = meso_diffusivity_const
-#elif (defined EXPDECAY_MESO_DIFFUSIVITY)
-#define USE_1D_DIFFUSIVITY
-      do l=1,lmo
-        k1d(l) = meso_diffusivity_z0*
-     &       exp(-(.5*(ze(l-1)+ze(l)))/meso_diffusivity_zscale)
-     &       + meso_diffusivity_deep
-      enddo
-
-#endif
-
-c**** Extract domain decomposition info
-      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
-     &               J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,
-     &               J_STRT_STGR=J_0STG, J_STOP_STGR=J_1STG,
-     &               J_STRT_HALO = J_0H,   J_STOP_HALO = J_1H,
-     &               HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
-     &               HAVE_NORTH_POLE = HAVE_NORTH_POLE)
-
-C**** set up geometry needed
-      IF (IFIRST.eq.1) THEN
-        DO J=J_0,J_1
-          BYDYP(J)=1d0/DYPO(J)
-          BYDXP(J)=1d0/DXPO(J)
-        END DO
-        !DO J=1,JM-1
-        DO J=J_0,J_1S
-          BYDYV(J)=1d0/DYVO(J)
-        END DO
-C**** Calculate level at 1km depth
-        LUP=0
-   10   LUP=LUP + 1
-        IF (ZE(LUP+1).lt.1d3) GOTO 10
-        HUP = ZE(LUP)
-        IFIRST = 0. 
-
-        CALL HALO_UPDATE(grid,BYDYP (grid%j_strt_halo:grid%j_stop_halo),
-     *                 FROM=SOUTH+NORTH)
-        CALL HALO_UPDATE(grid,BYDYV (grid%j_strt_halo:grid%j_stop_halo),
-     *                 FROM=SOUTH+NORTH)
-        CALL HALO_UPDATE(grid,BYDXP (grid%j_strt_halo:grid%j_stop_halo),
-     *                 FROM=SOUTH+NORTH)
-
-      END IF
-C****
-      call vbar_gm0
-
-      !initialize
-      RHO = -0.0; BYDH = -0.0;
-      DZV = -0.0; BYDZV = -0.0;
-
-      DO L=1,LMO
-      DO J=J_0,J_1
-      DO I=1,IM
-C**** Skip non-ocean grid points
-        IF (L.le.LMM(I,J)) THEN
-C**** RHO(I,J,L)  Density=1/specific volume
-          BYRHO = VBAR(I,J,L)
-            DH0 =   DH(I,J,L)
-          IF (J.eq.1)  THEN         ! South pole
-            BYRHO = VBAR(1,1,L)
-              DH0 =   DH(1,1,L)
-          END IF
-          IF (J.eq.JM) THEN         ! North pole
-            BYRHO = VBAR(1,JM,L)
-              DH0 =   DH(1,JM,L)
-          END IF
-          RHO(I,J,L)  = 1d0/BYRHO
-          BYDH(I,J,L) = 1d0/DH0
-          IF(L.gt.1) THEN
-            DZVLM1     = 0.5* (DH(I,J,L) + DH(I,J,L-1))
-            DZV(I,J,L-1) = DZVLM1
-            BYDZV(I,J,L-1) = 1d0/DZVLM1
-          END IF
-        END IF
- 911  END DO
-      END DO
-      END DO
-
-      CALL HALO_UPDATE(grid,RHO (:,grid%j_strt_halo:grid%j_stop_halo,:),
-     *                 FROM=SOUTH+NORTH)
-
-      CALL HALO_UPDATE(grid,G3D)
-      CALL HALO_UPDATE(grid,S3D)
-      CALL HALO_UPDATE(grid,P3D)
-
-C**** Calculate density gradients
-
-      !initialize
-      RHOMZ = -0.0; BYRHOZ = -0.0;
-      RHOY = -0.0; RHOX = -0.0;
-
-      J_1HR = min(J_1STG+1, JM)
-      DO L=1,LMO
-        DO J=J_0STG,J_1HR
-          IM1 = IM
-          DO I=1,IM
-C**** Skip non-ocean grid points
-            IF(LMM(I,J).lt.L) GO TO 931
-C**** minus vertical gradient
-            IF(L.gt.1) THEN
-              RHOMZ(I,J,L-1)=MAX(0d0,
-     *           -dVBARdZ(I,J,L)*BYDZV(I,J,L-1)/VBAR(I,J,L-1)**2)
-              IF(RHOMZ(I,J,L-1).ne.0.)
-     *             BYRHOZ(I,J,L-1)=1./RHOMZ(I,J,L-1)
-            END IF
-C**** Calculate horizontal gradients
-            IF(LMV(I,J-1).ge.L) THEN
-              p12 = .5d0*(p3d(i,j-1,l)+p3d(i,j,l))
-              r1 = 1d0/volgsp(g3d(i,j-1,l),s3d(i,j-1,l),p12)
-              r2 = 1d0/volgsp(g3d(i,j  ,l),s3d(i,j  ,l),p12)
-              RHOY(I,J-1,L) =
-C     *           (RHO(I,J,L) - RHO(I,J-1,L))*BYDYV(J-1)
-     *           (r2 - r1)*BYDYV(J-1)
-            ENDIF
-            IF(LMU(IM1,J).ge.L) THEN
-              p12 = .5d0*(p3d(im1,j,l)+p3d(i,j,l))
-              r1 = 1d0/volgsp(g3d(im1,j,l),s3d(im1,j,l),p12)
-              r2 = 1d0/volgsp(g3d(i  ,j,l),s3d(i  ,j,l),p12)
-              RHOX(IM1,J,L) =
-C     *           (RHO(I,J,L) - RHO(IM1,J,L))*BYDXP(J)
-     *           (r2 - r1)*BYDXP(J)
-            ENDIF
-  931       IM1 = I
-          END DO
-        END DO
-      END DO
-#ifdef OCN_GISS_MESO 
-      CALL OCN_mesosc(kappam3d)
-#endif
-C**** Calculate VMHS diffusion = amu* min(NH/f,equ.rad)^2 /Teady
-      AINV = 0.
-      ARIV = 0.
-      DO J=J_0S,J_1S
-        CORI = ABS(2d0*OMEGA*SINPO(J))
-        BETA = ABS(2d0*OMEGA*COSPO(J)/RADIUS)
-        IM1=IM
-        DO I=1,IM
-          IF (LMM(I,J).gt.0) THEN
-C**** Calculate average density + gradients over [1,LUP]
-            ARHO  = 0.
-            ARHOX = 0.
-            ARHOY = 0.
-            DZSUMX = 0.
-            DZSUMY = 0.
-            LAV = MIN(LUP,LMM(I,J))
-            DO L=1,LAV
-              ARHO  = ARHO  + RHO(I,J,L)
-              IF(LMU(IM1,J).ge.L) THEN
-                ARHOX = ARHOX + RHOX(IM1,J,L)*DZO(L)
-                DZSUMX = DZSUMX + DZO(L)
-              END IF
-              IF(LMU(I  ,J).ge.L) THEN
-                ARHOX = ARHOX + RHOX(I  ,J,L)*DZO(L)
-                DZSUMX = DZSUMX + DZO(L)
-              END IF
-              IF(LMV(I,J-1).ge.L) THEN
-                ARHOY = ARHOY + RHOY(I,J-1,L)*DZO(L)
-                DZSUMY = DZSUMY + DZO(L)
-              END IF
-              IF(LMV(I,J  ).ge.L) THEN
-                ARHOY = ARHOY + RHOY(I,J  ,L)*DZO(L)
-                DZSUMY = DZSUMY + DZO(L)
-              END IF
-            END DO
-            ARHO  = ARHO / REAL(LAV,KIND=8)
-            IF (DZSUMX.gt.0.) ARHOX = ARHOX / DZSUMX
-            IF (DZSUMY.gt.0.) ARHOY = ARHOY / DZSUMY
-            IF (LAV.gt.1) THEN
-              ARHOZ=2*RHOZ1K(I,J)/(ZE(LAV)+ZE(LAV-1)-ZE(1))
-            ELSE
-              ARHOZ = 0.
-            END IF
-C**** avoid occasional inversions. IF ARHOZ<=0 then GM is pure vertical
-C**** so keep at zero, and let KPP do the work.
-            IF (ARHOZ.gt.0) THEN
-#ifdef USE_1D_DIFFUSIVITY
-              ARIV(I,J,:) = k1d(:)
-#else
-#ifdef OCN_GISS_MESO
-              ARIV(I,J,:) = kappam3d(I,J,:)
-#else
-              AN = SQRT(GRAV * ARHOZ / ARHO)
-#ifdef CONSTANT_MESO_LENSCALE
-              RD = meso_lenscale_const
-#else
-              RD = AN * HUP / CORI
-              IF (RD.gt.ABS(J-.5*(JM+1))*DYPO(J)) RD=SQRT(AN*HUP/BETA)
-#endif
-              BYTEADY = GRAV * SQRT(ARHOX*ARHOX + ARHOY*ARHOY) / (AN
-     *             *ARHO)
-              ARIV(I,J,:) = AMU * RD**2 * BYTEADY ! was = AIN
-#endif
-#endif
-            END IF
-            !ARIV(I,J,:) = ARAI * AINV(I,J,:) ! was = ARI
-            AINV(I,J,:) = RGMI * ARIV(I,J,:)
-          END IF
-          IM1=I
-C**** Set diagnostics
-          OIJ(I,J,IJ_GMSC) = OIJ(I,J,IJ_GMSC) + AINV(I,J,1) ! GM-scaling
-        END DO
-      END DO
-C**** North pole
-      if ( HAVE_NORTH_POLE ) then
-        IF (LMM(1,JM).gt.0) THEN
-C**** Calculate average density + gradients over [1,LUP]
-          ARHO  = 0. ; ARHOY = 0. ;  DZSUMY = 0.
-          LAV = MIN(LUP,LMM(1,JM))
-          DO L=1,LAV
-            ARHO  = ARHO  + RHO(1,JM,L)
-            DO I=1,IM
-              IF(LMV(I,JM-1).ge.L) THEN
-! take abs to get a non-directional scale
-                ARHOY = ARHOY + ABS(RHOY(I,JM-1,L))*DZO(L)
-                DZSUMY = DZSUMY + DZO(L)
-              END IF
-            END DO
-          END DO
-          ARHO  = ARHO / REAL(LAV,KIND=8)
-          IF (DZSUMY.gt.0.) ARHOY = ARHOY / DZSUMY
-          IF (LAV.gt.1) THEN
-            ARHOZ=2*RHOZ1K(1,JM)/(ZE(LAV)+ZE(LAV-1)-ZE(1))
-          ELSE
-            ARHOZ = 0.
-          END IF
-C**** avoid occasional inversions. IF ARHOZ<=0 then GM is pure vertical
-C**** so keep at zero, and let KPP do the work.
-          IF (ARHOZ.gt.0) THEN
-#ifdef USE_1D_DIFFUSIVITY
-            ARIV(1,JM,:) = k1d(:)
-#else
-#ifdef OCN_GISS_MESO
-            ARIV(1,JM,:) = kappam3d(1,JM,:)
-#else
-            AN = SQRT(GRAV * ARHOZ / ARHO)
-            CORI = ABS(2d0*OMEGA*SINPO(JM))
-#ifdef CONSTANT_MESO_LENSCALE
-            RD = meso_lenscale_const
-#else
-            RD = AN * HUP / CORI
-#endif
-            BYTEADY = GRAV * ARHOY / (AN*ARHO)
-            ARIV(1,JM,:) = AMU * RD**2 * BYTEADY ! was = AIN
-#endif
-#endif
-          END IF
-          !ARIV(1,JM,:) = ARAI * AINV(1,JM,:) ! was = ARI
-          AINV(1,JM,:) = RGMI * ARIV(1,JM,:)
-        END IF
-c       AINV(2:IM,JM)=AINV(1,JM)
-c       ARIV(2:IM,JM)=ARIV(1,JM)
-        DO L=1,LMO
-          AINV(2:IM,JM,L)=AINV(1,JM,L)
-          ARIV(2:IM,JM,L)=ARIV(1,JM,L)
-        ENDDO
-C**** Set diagnostics
-        OIJ(1,JM,IJ_GMSC) = OIJ(1,JM,IJ_GMSC) + AINV(1,JM,1) ! GM-scaling
-      endif
-C**** South pole
-      if ( HAVE_SOUTH_POLE ) then
-        IF (LMM(1,1).gt.0) THEN
-C**** Calculate average density + gradients over [1,LUP]
-          ARHO  = 0. ; ARHOY = 0. ;  DZSUMY = 0.
-          LAV = MIN(LUP,LMM(1,1))
-          DO L=1,LAV
-            ARHO  = ARHO  + RHO(1,1,L)
-            DO I=1,IM
-              IF(LMV(I,2).ge.L) THEN
-! take abs to get a non-directional scale
-                ARHOY = ARHOY + ABS(RHOY(I,2,L))*DZO(L)
-                DZSUMY = DZSUMY + DZO(L)
-              END IF
-            END DO
-          END DO
-          ARHO  = ARHO / REAL(LAV,KIND=8)
-          IF (DZSUMY.gt.0.) ARHOY = ARHOY / DZSUMY
-          IF (LAV.gt.1) THEN
-            ARHOZ=2*RHOZ1K(1,1)/(ZE(LAV)+ZE(LAV-1)-ZE(1))
-          ELSE
-            ARHOZ = 0.
-          END IF
-C**** avoid occasional inversions. IF ARHOZ<=0 then GM is pure vertical
-C**** so keep at zero, and let KPP do the work.
-          IF (ARHOZ.gt.0) THEN
-#ifdef USE_1D_DIFFUSIVITY
-            ARIV(1,1,:) = k1d(:)
-#else
-#ifdef OCN_GISS_MESO
-            ARIV(1,1,:) = kappam3d(1,1,:)
-#else
-            AN = SQRT(GRAV * ARHOZ / ARHO)
-            CORI = ABS(2d0*OMEGA*SINPO(JM))
-#ifdef CONSTANT_MESO_LENSCALE
-            RD = meso_lenscale_const
-#else
-            RD = AN * HUP / CORI
-#endif
-            BYTEADY = GRAV * ARHOY / (AN*ARHO)
-            ARIV(1,1,:) = AMU * RD**2 * BYTEADY ! was = AIN
-#endif
-#endif
-          END IF
-          !ARIV(1,1,:) = ARAI * AINV(1,1,:) ! was = ARI
-          AINV(1,1,:) = RGMI * ARIV(1,1,:)
-        END IF
-c       AINV(2:IM,1)=AINV(1,1)
-c       ARIV(2:IM,1)=ARIV(1,1)
-        DO L=1,LMO
-          AINV(2:IM,1,L)=AINV(1,1,L)
-          ARIV(2:IM,1,L)=ARIV(1,1,L)
-        ENDDO
-C**** Set diagnostics
-        OIJ(1,1,IJ_GMSC) = OIJ(1,1,IJ_GMSC) + AINV(1,1,1) ! GM-scaling
-      endif
-C****
-c      IF (IFIRST.eq.1) THEN  !output GM diffusion coefficient
-c        CALL PACK_DATA(grid,    AINV  ,    AINV_glob)
-c        if( AM_I_ROOT() ) then
-c          call openunit('ODIFF',iu_ODIFF,.true.,.false.)
-c          TITLE = "Visbeck scaling for GM coefficient m^2/s"
-c          WRITE(iu_ODIFF) TITLE,((REAL(AINV_glob(I,J),KIND=4),i=1,im),
-c     *                            j=1,jm)
-c          call closeunit(iu_ODIFF)
-c        endif
-c        IFIRST = 0
-c      END IF
-
-      RETURN
-C****
-      END SUBROUTINE DENSGRAD
 
       subroutine get_psi_diag
 c
@@ -1567,7 +1168,7 @@ c mimicking that logic here).
       use domain_decomp_1d, only : getdomainbounds, halo_update, north
       use oceanr_dim, only : grid=>ogrid
       use kpp_com, only : kpl
-      use gm_com, only : rhox,rhoy,rhomz,byrhoz
+      use ocnmeso_com, only : rhox,rhoy,rhomz,byrhoz
       implicit none
       integer :: i,j,l,n,ip1
       integer :: j_0,j_1,j_0s,j_1s
@@ -1614,7 +1215,7 @@ c**** Extract domain decomposition info
         do i=i1yzu(n,j,l+1),i2yzu(n,j,l+1)
           ip1 = i+1; if(i.eq.im) ip1 = 1
           ! vertically interpolate rhox to layer edges
-          rhox_ = (wtup*rhox(i,j,l)+wtdn*rhox(i,j,l+1))
+          rhox_ = (wtup*rhox(l,i,j)+wtdn*rhox(l+1,i,j))
           ! calculate x-slope
           slx = rhox_*(byrhoz(i,j,l)+byrhoz(ip1,j,l))*.5
           ! streamfunc = K
@@ -1649,7 +1250,7 @@ c**** Extract domain decomposition info
         do n=1,nbyzv(j,l+1)
         do i=i1yzv(n,j,l+1),i2yzv(n,j,l+1)
           ! vertically interpolate rhoy to layer edges
-          rhoy_ = (wtup*rhoy(i,j,l)+wtdn*rhoy(i,j,l+1))
+          rhoy_ = (wtup*rhoy(l,i,j)+wtdn*rhoy(l+1,i,j))
           ! calculate y-slope
           sly = rhoy_*(byrhoz(i,j,l)+byrhoz(i,j+1,l))*.5
           ! streamfunc = K
@@ -1677,105 +1278,3 @@ c**** Extract domain decomposition info
 
       return
       end subroutine get_psi_diag
-
-      Subroutine VBAR_GM0
-!@sum VBAR_GM0 calculates specific volume and vertical gradients for GM
-!@auth Gary Russell/Gavin Schmidt
-      Use CONSTANT, only: grav
-      Use GM_COM, only: vbar,dvbardz,rhoz1k,lup,g3d,s3d,p3d
-      Use OCEAN, Only: IM,JM,LMO, LMOM=>LMM,DXYPO, MO, ZE,
-     *                 G0M,GZM=>GZMO, S0M,SZM=>SZMO, OPRESS, FOCEAN
-      Use DOMAIN_DECOMP_1D, Only: HALO_UPDATE, NORTH
-      USE OCEANR_DIM, only : grid=>ogrid
-
-      Implicit None
-      Real*8,Parameter :: z12eH=.28867513d0  !  z12eH = 1/SQRT(12)
-      Integer*4 I,J,L,IMAX, J1,JN,JNH, LAV,LAVM
-      Real*8, dimension(lmo) :: gup,gdn,sup,sdn,pm,gmd,smd
-      Real*8 :: vup,vdn,vupu,vdnu,pe,bym
-      Logical*4 QSP,QNP
-      Real*8,External   :: VOLGSP,temgs
-
-C****
-C**** Extract domain decomposition band parameters
-C****                          Band1  Band2  BandM
-      J1  = GRID%J_STRT     !    1      5     JM-3   Band minimum
-      JN  = GRID%J_STOP     !    4      8     JM     Band maximum
-      JNH = Min(JN+1,JM)    !    5      9     JM     Halo maximum
-      QSP = J1==1           !    T      F      F
-      QNP = JN==JM          !    F      F      T
-C****
-      Call HALO_UPDATE (GRID,OPRESS,FROM=NORTH)
-      Call HALO_UPDATE (GRID,  MO, FROM=NORTH)
-      Call HALO_UPDATE (GRID, G0M, FROM=NORTH)
-      Call HALO_UPDATE (GRID, GZM, FROM=NORTH)
-      Call HALO_UPDATE (GRID, S0M, FROM=NORTH)
-      Call HALO_UPDATE (GRID, SZM, FROM=NORTH)
-
-      Do J=J1,JNH
-        IMAX=IM  ;  If(J==1.or.J==JM) IMAX=1
-        Do I=1,IMAX
-          If (FOCEAN(I,J) == 0)  CYCLE
-
-          Do L=1,LMOM(I,J)
-            BYM=1d0/(MO(I,J,L)*DXYPO(J))
-            GMD(L)= G0M(I,J,L)*BYM
-            GUP(L)=(G0M(I,J,L)-2*z12eH*GZM(I,J,L))*BYM
-            GDN(L)=(G0M(I,J,L)+2*z12eH*GZM(I,J,L))*BYM
-            SMD(L)= S0M(I,J,L)*BYM
-            SUP(L)=(S0M(I,J,L)-2*z12eH*SZM(I,J,L))*BYM
-            SDN(L)=(S0M(I,J,L)+2*z12eH*SZM(I,J,L))*BYM
-          EndDo
-          
-C**** Calculate pressure by integrating from the top down
-          PE = OPRESS(I,J)
-          Do L=1,LMOM(I,J)
-            PM(L) = PE
-            PE    = PE + MO(I,J,L)*GRAV
-            PM(L) = .5d0*(PE + PM(L))
-            G3D(I,J,L) = GMD(L)
-            S3D(I,J,L) = SMD(L)
-            P3D(I,J,L) = PM(L)
-          EndDo
-C**** Calculate potential specific volume (ref to mid-point pr)
-          Do L=LMOM(I,J),1,-1
-            VUP = VOLGSP (GUP(L),SUP(L),PM(L))
-            VDN = VOLGSP (GDN(L),SDN(L),PM(L))
-            VBAR(I,J,L) = (VUP + VDN)*.5
-C**** Vertical gradient calculated using lower box mid-point pr
-            IF (L.gt.1) then 
-              VUPU = VOLGSP (GUP(L-1),SUP(L-1),PM(L))
-              VDNU = VOLGSP (GDN(L-1),SDN(L-1),PM(L))
-              dVBARdZ(I,J,L) = .5* (VUP + VDN - VUPU - VDNU)
-            end if
-          EndDo
-C**** Vertical potential gradient in top 1km
-          LAV = MIN(LUP,LMOM(I,J))
-          LAVM = MAX(LAV/2,1)   ! mid depth
-          VUP = VOLGSP (GMD(1),SMD(1),PM(LAVM))
-          VDN = VOLGSP (GMD(LAV),SMD(LAV),PM(LAVM))
-          RHOZ1K(I,J) = (VUP - VDN)/VBAR(I,J,LAVM)**2
-        EndDo
-      EndDo
-C**** Copy VBAR to all longitudes at poles
-      If (QNP) Then
-        Do L=1,LMOM(1,JM)
-          VBAR(2:IM,JM,L) = VBAR(1,JM,L)
-          G3D(2:IM,JM,L) = G3D(1,JM,L)
-          S3D(2:IM,JM,L) = S3D(1,JM,L)
-          P3D(2:IM,JM,L) = P3D(1,JM,L)
-          dVBARdZ(2:IM,JM,L) = dVBARdZ(1,JM,L)
-        EndDo
-      EndIf
-      If (QSP) Then
-        Do L=1,LMOM(1,1)
-          VBAR(2:IM,1,L) = VBAR(1,1,L)
-          G3D(2:IM,1,L) = G3D(1,1,L)
-          S3D(2:IM,1,L) = S3D(1,1,L)
-          P3D(2:IM,1,L) = P3D(1,1,L)
-          dVBARdZ(2:IM,1,L) = dVBARdZ(1,1,L)
-        EndDo
-      EndIf
-
-      Return
-      End Subroutine VBAR_GM0

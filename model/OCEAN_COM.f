@@ -361,7 +361,7 @@ C**** ocean related parameters
 !@var DH height of each ocean layer
 !@var VBAR mean specific volume of each layer
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: DH,VBAR !  (IM,JM,LMO)
-     &     ,dZGdP
+     &     ,dZGdP,BYDH
 
 !@var GUP,GDN specific pot enthropy upper,lower part of layer (J/kg)
 !@var SUP,SDN salinity at           upper,lower part of layer (1)
@@ -446,7 +446,7 @@ C****
 
       USE OCEAN, only: alloc_odiff
 
-      USE OCEAN_DYN, only : DH,VBAR, dZGdP, GUP,GDN, SUP,SDN
+      USE OCEAN_DYN, only : DH,BYDH,VBAR, dZGdP, GUP,GDN, SUP,SDN
       USE OCEAN_DYN, only : MMI,SMU,SMV,SMW,CONV,MU,MV,MW
       use Dictionary_mod, only : sync_param
       IMPLICIT NONE
@@ -558,6 +558,7 @@ C****
 !!!   ALLOCATE(   PO(IM,J_0H:J_1H,LMO), STAT = IER)
 !!!   ALLOCATE(  PHI(IM,J_0H:J_1H,LMO), STAT = IER)
       ALLOCATE(   DH(IM,J_0H:J_1H,LMO), STAT = IER)
+      ALLOCATE( BYDH(IM,J_0H:J_1H,LMO), STAT = IER)
       ALLOCATE( VBAR(IM,J_0H:J_1H,LMO), STAT = IER)
       ALLOCATE(dZGdP(IM,J_0H:J_1H,LMO), STAT = IER)
       ALLOCATE(  GUP(IM,J_0H:J_1H,LMO), STAT = IER)
@@ -607,6 +608,8 @@ c??   call ALLOC_GM_COM(agrid)
       call alloc_obio_com
 #endif
       call alloc_odiff(ogrid)
+
+      call alloc_ocnmeso_com
 
       call read_ocean_topo
       if(ogrid%have_domain) CALL GEOMO

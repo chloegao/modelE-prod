@@ -43,7 +43,6 @@ c
       Integer*4 I,J,L,N,NS,NST,NO,NEVEN ; real*8 now
       Real*8,Dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LMO) ::
      &     MO1,MO2, UO1,UO2,UOD1,UOD2, VO1,VO2,VOD1,VOD2
-     &    ,G0M0,GXMO0,GYMO0,S0M0,SXMO0,SYMO0
       Real*8,Dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      &     OPBOT1,OPBOT2
       real*8 :: relfac,dt_odiff,TIME
@@ -459,31 +458,12 @@ c      CALL OABFILx ! binomial filter
 c      CALL OABFILy ! binomial filter
 c      CALL CHECKO ('ODIFF0')
 
-C**** Apply GM + Redi tracer fluxes
-      CALL GMKDIF(1d0)
-      G0M0=G0M; GXMO0=GXMO; GYMO0=GYMO
-      CALL GMFEXP(G0M,GXMO,GYMO,GZMO,.FALSE.,OIJL(1,J_0H,1,IJL_GGMFL))
-      S0M0=S0M; SXMO0=SXMO; SYMO0=SYMO
-      CALL GMFEXP(S0M,SXMO,SYMO,SZMO,.TRUE. ,OIJL(1,J_0H,1,IJL_SGMFL))
 
-#ifdef OCN_GISS_MESO
-c     CALL MESO_D(G0M0,GXMO0,GYMO0,G0M,GXMO,GYMO,GZMO)
-      CALL MESO_D(G0M0,GXMO0,GYMO0,GXMO,GYMO,GZMO)
-      G0M=G0M0
-c     CALL MESO_D_TEST(G0M0,G0M,GXMO0,GYMO0,GZMO)
-c     CALL MESO_D(S0M0,SXMO0,SYMO0,S0M,SXMO,SYMO,SZMO)
+C****
+C**** Mesoscale tracer transports
+C****
+      call ocnmeso_drv
 
-      CALL MESO_A(G0M,GXMO,GYMO,GZMO)
-c     CALL MESO_A(S0M,SXMO,SYMO,SZMO)
-#endif
-
-#ifdef TRACERS_OCEAN
-      DO N = 1,tracerlist%getsize()
-        entry=>tracerlist%at(n)
-        CALL GMFEXP(TRMO(1,J_0H,1,N),TXMO(1,J_0H,1,N),TYMO(1,J_0H,1,N),
-     *    TZMO(1,J_0H,1,N),entry%t_qlimit,TOIJL(1,J_0H,1,TOIJL_GMFL,N))
-      END DO
-#endif
       CALL CHECKO ('GMDIFF')
 
 #ifdef TRACERS_OCEAN
