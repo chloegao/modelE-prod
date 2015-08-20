@@ -2891,15 +2891,14 @@ contains
     real*8, dimension(KMAX) :: VMO1,VMO2,VMN1,VMN2 !@var dummy variables
 !@var Miscellaneous vertical arrays
     real*8, dimension(LM) :: &
-!        QSATL,RHF,ATH,SQ,ER,QHEAT &
-         QSATL,RHF,ATH,SQ,ER,QHEAT,QHEATL,QHEATI, &
+         QSATL,RHF,ATH,SQ,ER,QHEAT, &
          CLEARA,PREP,RH00,EC,WMXM
 !@var QSATL saturation water vapor mixing ratio
 !@var RHF environmental relative humidity
 !@var ATH change in potential temperature
 !@var SQ ERMAX dummy variables
 !@var ER evaporation of precip
-!@var QHEAT,QHEATL,QHEATI change of latent heat
+!@var QHEAT change of latent heat
 !@var CLEARA fraction of clear region
 !@var PREP precip conversion rate
 !@var RH00 threshold relative humidity
@@ -2970,7 +2969,7 @@ contains
          ,QNEWU,QOLD,QOLDU,QSATC,QSATE,RANDNO,RCLDE,RHI,RHN,RHO,RHT1 &
          ,RHW,SEDGE,SIGK,SLH,SMN1,SMN2,SMO1,SMO2,TEM,TEMP,TEVAP,THT1 &
          ,THT2,TLT1,TNEW,TNEWU,TOLD,TOLDU,TOLDUP,VDEF,WCONST,WMN1,WMN2 &
-         ,QCLNEW,QCINEW,WMO1,WMO2,WMT1,WMT2,WMX1,WTEM,VVEL,RCLD,FCOND &
+         ,WMO1,WMO2,WMT1,WMT2,WMX1,WTEM,VVEL,RCLD,FCOND &
          ,PRATM,SMN12,SMO12,QF,FSSLRAT,SMOM2_sv(nmom),QMOM2_sv(nmom),QCX &
          ,QCXNEW
     real*8 SNdO,SNdL,SNdI,SCDNCW,SCDNCI
@@ -3108,7 +3107,7 @@ contains
 !@var TOLD,TOLDU,TOLDUP previous temperatures
 !@var VDEF = VVEL - VSUB
 !@var WCONST,WMN1,WMN2,WMO1,WMO2,WMT1,WMT2,WMX1 dummy variables
-!@var QCLNEW QCINEW updated cloud water mixing ratio
+!@var QCXNEW updated cloud water or ice mixing ratio
 !@var WTEM cloud water density (g m**-3)
 !@var VVEL vertical velocity (cm/s)
 !@var FCOND QF dummy variables
@@ -3153,16 +3152,13 @@ contains
     PREBAR=0.
     LHP=0.
     QHEAT=0.
-    QHEATL=0.
-    QHEATI=0.
     CLDSSL=0
     TAUSSL=0
     WMPR=0.
     prebar1=0.
     rh1=0.
 
-    QCINEW=0.
-    QCLNEW=0.
+    QCXNEW=0.
 #ifdef TRACERS_WATER
     TRPRSS = 0.
     TRPRBAR = 0.
@@ -3419,6 +3415,12 @@ contains
         qcix(l) = 0.
       endif
 
+      if( LHX.eq.LHE )then
+        QCX = QCLX(L)
+      else
+        QCX = QCIX(L)
+      endif
+
       SVLHXL(L)=LHX
       TL(L)=TL(L)+HCHANG/(SHA*FSSL(L)+teeny)
       TH(L)=TL(L)/PLK(L)
@@ -3561,11 +3563,6 @@ contains
 
 #if (defined CLD_AER_CDNC) && \
     ((defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AEROSOLS_SEASALT))
-      if( LHX.eq.LHE )then
-        QCX = QCLX(L)
-      else
-        QCX = QCIX(L)
-      endif
       call GET_CDNC(L,LHX,WCONST,WMUI,AIRM(L),QCX,DXYPIJ, &
            FCLD,CLEARA(L),CLDSAVL(L),DSS,PL(L),TL(L), &
            NCLL(L),VVEL,SME(L),DSU,CDNL0,CDNL1)
@@ -3696,8 +3693,7 @@ contains
 !End of updrate velocity option.
 
 
-!        QLWC=WMX(L)/(FCLD + teeny)     !in-cloud dimensionless LWC
-         QLWC=(QCLX(L)+QCIX(L))/(FCLD + teeny)     !in-cloud dimensionless LWC or IWC
+         QLWC=QCX/(FCLD + teeny)     !in-cloud dimensionless LWC
          QLWC=MIN(QLWC, 3.d-03)    !(upper limit for the QLWC)
 
          RHO=1.d5*PL(L)/(RGAS*TL(L))
@@ -4213,7 +4209,7 @@ contains
 #endif
       !**** COMPUTE THE AUTOCONVERSION RATE OF CLOUD WATER TO PRECIPITATION
 
-      if(QCLX(L)+QCIX(L).gt.0.) then
+      if(QCX.gt.0.) then
 
         RHO=1d5*PL(L)/(RGAS*TL(L))
         qcx = 0.
@@ -4286,6 +4282,7 @@ contains
         !** end routine for QAUT as a function of N,LWC
         !C#endif
         !C#endif
+
           end if
           if(LHX.EQ.LHS.AND.QCIX(L).gt.0.) then
             QCX = QCIX(L)
@@ -4319,7 +4316,6 @@ contains
           CM1=CM0
           if(BANDF) CM1=CM0*CBF      ! only for liquid clouds?
           if(LHX.eq.LHS) CM1=CM0     ! already LHX.eq.LHS
-        !       CM1=CM0
           CM=CM1*(1.-1./exp(TEM*TEM))+100.*(PREBAR(L+1)+ &
                PRECNVL(L+1)*BYDTsrc)
           CM=CM*CMX
@@ -4342,148 +4338,80 @@ contains
         ATH(L)=(TH(L)-TTOLDL(L))*BYDTsrc
         QCONV=LHX*AQ(L)-RH(L)*SQ(L)*SHA*PLK(L)*ATH(L) &
              -TEM*QSATL(L)*RH(L)
-        IF(LHX.EQ.LHE) THEN
-          FORM_CLOUDS= (QCONV.gt.0. .or. QCLX(L).gt.0.)
-        ELSE
-          FORM_CLOUDS= (QCONV.gt.0. .or. QCIX(L).gt.0.)
-        END IF
+        FORM_CLOUDS= (QCONV.gt.0. .or. QCX.gt.0.)
       end if
       !****
       ERMAX=LHX*PREBAR(L+1)*GRAV*BYAM(L)
       if (FORM_CLOUDS) then
         !**** COMPUTE EVAPORATION OF RAIN WATER, ER
         RHN=min(RH(L),RHF(L))
-        if(LHX.EQ.LHE) THEN
-        if(QCLX(L).gt.0.)  then
+        if(QCX.gt.0.)  then
           ER(L)=(1.-RHN)**ERP*LHX*PREBAR(L+1)*GbyAIRM0 ! GRAV/AIRM0
-        else                    !  QCLX(l).le.0.
+        else                    !  QCX.le.0.
           if(PREICE(L+1).gt.0..and.TL(L).lt.TF)  then
             ER(L)=(1.-RHI)**ERP*LHX*PREBAR(L+1)*GbyAIRM0 ! GRAV/AIRM0
           else
             ER(L)=(1.-RH(L))**ERP*LHX*PREBAR(L+1)*GbyAIRM0 ! GRAV/AIRM0
           end if
-        end if
-        end if
-        if(LHX.EQ.LHS) THEN
-        if(QCIX(L).gt.0.)  then
-          ER(L)=(1.-RHN)**ERP*LHX*PREBAR(L+1)*GbyAIRM0 ! GRAV/AIRM0
-        else                    !  QCIX(L).le.0.
-          if(PREICE(L+1).gt.0..and.TL(L).lt.TF)  then
-            ER(L)=(1.-RHI)**ERP*LHX*PREBAR(L+1)*GbyAIRM0 ! GRAV/AIRM0
-          else
-            ER(L)=(1.-RH(L))**ERP*LHX*PREBAR(L+1)*GbyAIRM0 ! GRAV/AIRM0
-          end if
-        end if
         end if
         ER(L)=max(0d0,min(ER(L),ERMAX))
         !**** COMPUTATION OF CLOUD WATER EVAPORATION
         if (CLEARA(L).gt.0.) then
-!         WTEM=1d5*WMX(L)*PL(L)/(FCLD*TL(L)*RGAS+teeny)
-          IF(LHX.EQ.LHE) THEN
-            WTEM=1d5*QCLX(L)*PL(L)/(FCLD*TL(L)*RGAS+teeny)
-          ELSE
-            WTEM=1d5*QCIX(L)*PL(L)/(FCLD*TL(L)*RGAS+teeny)
-          END IF
+          WTEM=1d5*QCX*PL(L)/(FCLD*TL(L)*RGAS+teeny)
           if(LHX.eq.LHE.and.QCLX(L)/FCLD.ge.WCONST*1d-3) &
                WTEM=1d2*WCONST*PL(L)/(TL(L)*RGAS)
           if(WTEM.lt.1d-10) WTEM=1d-10
           if(LHX.eq.LHE)  then
-            !           RCLD=1d-6*(RWCLDOX*10.*(1.-PEARTH)+7.*PEARTH)*(WTEM*4.)**BY3
             RCLD=RCLDX*1d-6*100.d0*(WTEM/(2.d0*BY3*TWOPI*SCDNCW))**BY3
           else
-            !           RCLD=25.d-6*(WTEM/4.2d-3)**BY3 * (1.+pl(l)*xRICld)
             RCLD=RCLDX*100.d-6*(WTEM/(2.d0*BY3*TWOPI*SCDNCI))**BY3
             RCLD=min(RCLD,RIMAX)
           end if
           CK1=1000.*LHX*LHX/(2.4d-2*RVAP*TL(L)*TL(L))
           CK2=1000.*RGAS*TL(L)/(2.4d-3*QSATL(L)*PL(L))
           TEVAP=COEEC*(CK1+CK2)*RCLD*RCLD
-!         WMX1=WMX(L)-PREP(L)*DTsrc
-          IF(LHX.EQ.LHE) THEN
-            WMX1=QCLX(L)-PREP(L)*DTsrc
-          ELSE
-            WMX1=QCIX(L)-PREP(L)*DTsrc
-          END IF
+          WMX1=QCX-PREP(L)*DTsrc
           WMPR(L)=PREP(L)*DTsrc             ! precip water
           ECRATE=(1.-RHF(L))/(TEVAP*FCLD+teeny)
           if(ECRATE.gt.BYDTsrc) ECRATE=BYDTsrc
           EC(L)=WMX1*ECRATE*LHX
         end if
         !**** COMPUTE NET LATENT HEATING DUE TO STRATIFORM CLOUD PHASE CHANGE,
-        !**** QHEAT, AND NEW CLOUD WATER CONTENTS, QCLNEW AND QCINEW
-        IF(LHX.EQ.LHE) THEN
+        !**** QHEAT, AND NEW CLOUD WATER CONTENT, QCXNEW 
         DRHDT=2.*CLEARA(L)*CLEARA(L)*(1.-RH00(L))*(QCONV+ER(L))/LHX/ &
-             (QCLX(L)/(FCLD+teeny)+2.*CLEARA(L)*QSATL(L)*(1.-RH00(L)) &
+             (QCX/(FCLD+teeny)+2.*CLEARA(L)*QSATL(L)*(1.-RH00(L)) &
              +teeny)
-        if(ER(L).eq.0.and.QCLX(L).le.0.) DRHDT=0.
-        QHEATL(L)=FSSL(L)*(QCONV-LHX*DRHDT*QSATL(L))/(1.+RH(L)*SQ(L))
-        if (debug) print*,"ls2",l,qheatl(l)
-        DWDT=QHEATL(L)/LHX-PREP(L)+CLEARA(L)*FSSL(L)*ER(L)/LHX
-        QCLNEW =QCLX(L)+DWDT*DTsrc
-        if(QCLNEW.lt.0.) then
-          QCLNEW=0.
-          QHEATL(L)=(-QCLX(L)*BYDTsrc+PREP(L))*LHX-CLEARA(L)*FSSL(L)*ER(L)
-          if (debug) print*,"ls3",l,qheatl(l)
+        if(ER(L).eq.0.and.QCX.le.0.) DRHDT=0.
+        QHEAT(L)=FSSL(L)*(QCONV-LHX*DRHDT*QSATL(L))/(1.+RH(L)*SQ(L))
+        if (debug) print*,"ls2",l,qheat(l)
+        DWDT=QHEAT(L)/LHX-PREP(L)+CLEARA(L)*FSSL(L)*ER(L)/LHX
+        QCXNEW =QCX+DWDT*DTsrc
+        if(QCXNEW.lt.0.) then
+          QCXNEW=0.
+          QHEAT(L)=(-QCX*BYDTsrc+PREP(L))*LHX-CLEARA(L)*FSSL(L)*ER(L)
+          if (debug) print*,"ls3",l,qheat(l)
         end if
-        END IF
-        IF(LHX.EQ.LHS) THEN
-        DRHDT=2.*CLEARA(L)*CLEARA(L)*(1.-RH00(L))*(QCONV+ER(L))/LHX/ &
-             (QCIX(L)/(FCLD+teeny)+2.*CLEARA(L)*QSATL(L)*(1.-RH00(L)) &
-             +teeny)
-        if(ER(L).eq.0.and.QCIX(L).le.0.) DRHDT=0.
-        QHEATI(L)=FSSL(L)*(QCONV-LHX*DRHDT*QSATL(L))/(1.+RH(L)*SQ(L))
-        if (debug) print*,"ls2",l,qheati(l)
-        DWDT=QHEATI(L)/LHX-PREP(L)+CLEARA(L)*FSSL(L)*ER(L)/LHX
-        QCINEW =QCIX(L)+DWDT*DTsrc
-        if(QCINEW.lt.0.) then
-          QCINEW=0.
-          QHEATI(L)=(-QCIX(L)*BYDTsrc+PREP(L))*LHX-CLEARA(L)*FSSL(L)*ER(L)
-          if (debug) print*,"ls3",l,qheati(l)
-        end if
-        END IF
       else
-        !**** UNFAVORABLE CONDITIONS FOR CLOUDS TO EXIT, PRECIP OUT CLOUD WATER
-        QHEATL(L)=0.           ! QHEAT(L)=0.
-        QHEATI(L)=0.
-        if (LHX.eq.LHE.and.QCLX(L).gt.0.) then
-
+        !**** UNFAVORABLE CONDITIONS FOR CLOUDS TO EXIST, PRECIP OUT CLOUD WATER
+        QHEAT(L)=0.
+        if (QCX.gt.0.) then
           call get_dq_evap(tl(l)*rh00(l)/plk(l),ql(l)*rh00(l),plk(l) &
-               ,rh00(l),lhx,pl(l),qclx(l)/(fssl(l)*rh00(l)),dqsum,fqcond1 &
+               ,rh00(l),lhx,pl(l),qcx/(fssl(l)*rh00(l)),dqsum,fqcond1 &
                )
           DWDT=DQSUM*RH00(L)*FSSL(L)
-
           !**** DWDT is amount of water going to vapour, store LH (sets QNEW below)
-          QHEATL(L)=-DWDT*LHX*BYDTsrc
-          if (debug) print*,"ls4",l,qheatl(l)
-          PREP(L)=max(0d0,(QCLX(L)-DWDT)*BYDTsrc) ! precip out cloud water
-          WMPR(L)=PREP(L)*DTsrc ! precip water (for opt. depth calculation)
-        end if
-        if (LHX.eq.LHS.and.QCIX(L).gt.0.) then
-
-          call get_dq_evap(tl(l)*rh00(l)/plk(l),ql(l)*rh00(l),plk(l) &
-               ,rh00(l),lhx,pl(l),qcix(l)/(fssl(l)*rh00(l)),dqsum,fqcond1 &
-               )
-          DWDT=DQSUM*RH00(L)*FSSL(L)
-
-          !**** DWDT is amount of water going to vapour, store LH (sets QNEW below)
-          QHEATI(L)=-DWDT*LHX*BYDTsrc
+          QHEAT(L)=-DWDT*LHX*BYDTsrc
           if (debug) print*,"ls4",l,qheat(l)
-          PREP(L)=max(0d0,(QCIX(L)-DWDT)*BYDTsrc) ! precip out cloud water
+          PREP(L)=max(0d0,(QCX-DWDT)*BYDTsrc) ! precip out cloud water
           WMPR(L)=PREP(L)*DTsrc ! precip water (for opt. depth calculation)
         end if
         ER(L)=(1.-RH(L))**ERP*LHX*PREBAR(L+1)*GbyAIRM0 ! GRAV/AIRM0
         if(PREICE(L+1).gt.0..and.TL(L).lt.TF) &
              ER(L)=(1.-RHI)**ERP*LHX*PREBAR(L+1)*GbyAIRM0 ! GRAV/AIRM0
         ER(L)=max(0d0,min(ER(L),ERMAX))
-        IF(LHX.EQ.LHE) THEN
-          QHEATL(L)=QHEATL(L)-CLEARA(L)*FSSL(L)*ER(L)
-          if (debug) print*,"ls5",l,qheatl(l),lhx
-          QCLNEW=0.              ! QCLNEW=0.
-        ELSE
-          QHEATI(L)=QHEATI(L)-CLEARA(L)*FSSL(L)*ER(L)
-          if (debug) print*,"ls5",l,qheati(l),lhx
-          QCINEW=0.
-        END IF
+        QHEAT(L)=QHEAT(L)-CLEARA(L)*FSSL(L)*ER(L)
+        if (debug) print*,"ls5",l,qheat(l),lhx
+        QCXNEW=0.
       end if
 
       !**** PHASE CHANGE OF PRECIPITATION, FROM ICE TO WATER
@@ -4517,49 +4445,27 @@ contains
              AIRM(L)*(PREP(L)-ER(L)*CLEARA(L)*FSSL(L)/LHX)*BYGRAV)
       end if
       !**** UPDATE NEW TEMPERATURE AND SPECIFIC HUMIDITY
-      IF(LHX.EQ.LHE) THEN
-       QNEW =QL(L)-DTsrc*QHEATL(L)/(LHX*FSSL(L)+teeny)
-       if(QNEW.lt.0.) then
+      QNEW =QL(L)-DTsrc*QHEAT(L)/(LHX*FSSL(L)+teeny)
+      if(QNEW.lt.0.) then
         QNEW=0.
-        QHEATL(L)=QL(L)*LHX*BYDTsrc*FSSL(L)
-        if (debug) print*,"ls9",l,qheatl(l)
-        DWDT1=QHEATL(L)/LHX-PREP(L)+CLEARA(L)*FSSL(L)*ER(L)/LHX
-        QCLNEW=QCLX(L)+DWDT1*DTsrc
-        !**** IF QCLNEW .LT. 0., THE COMPUTATION IS UNSTABLE
-        if(QCLNEW.lt.0.) then
+        QHEAT(L)=QL(L)*LHX*BYDTsrc*FSSL(L)
+        if (debug) print*,"ls9",l,qheat(l)
+        DWDT1=QHEAT(L)/LHX-PREP(L)+CLEARA(L)*FSSL(L)*ER(L)/LHX
+        QCXNEW=QCX+DWDT1*DTsrc
+        if(QCXNEW.lt.0.) then ! THE COMPUTATION IS UNSTABLE
           IERR=1
           LERR=L
-          WMERR=QCLNEW
-          QCLNEW=0.
+          WMERR=QCXNEW
+          QCXNEW=0.
         end if
-       end if
-      END IF
-      IF(LHX.EQ.LHS) THEN
-       QNEW =QL(L)-DTsrc*QHEATI(L)/(LHX*FSSL(L)+teeny)
-       if(QNEW.lt.0.) then
-        QNEW=0.
-        QHEATI(L)=QL(L)*LHX*BYDTsrc*FSSL(L)
-        if (debug) print*,"ls9",l,qheati(l)
-        DWDT1=QHEATI(L)/LHX-PREP(L)+CLEARA(L)*FSSL(L)*ER(L)/LHX
-        QCINEW=QCIX(L)+DWDT1*DTsrc
-        !**** IF QCINEW .LT. 0., THE COMPUTATION IS UNSTABLE
-        if(QCINEW.lt.0.) then
-          IERR=1
-          LERR=L
-          WMERR=QCINEW
-          QCINEW=0.
-        end if
-       end if
-      END IF
+      end if
       !**** Only Calculate fractional changes of Q to W
 #ifdef TRACERS_WATER
       FPR=0.
       if( LHX.eq.LHE )then
         QCX = QCLX(L)
-        QCXNEW = QCLNEW
       else
         QCX = QCIX(L)
-        QCXNEW = QCINEW
       endif
       if (QCX.gt.0.) FPR=PREP(L)*DTsrc/QCX              ! CLW->P
       FPR=min(1d0,FPR)
@@ -4572,13 +4478,9 @@ contains
       FQTOW=0.                                                ! Q->CLW
       if (FSSL(L).gt.0) then
        IF(LHX.EQ.LHE) THEN
-         QHEAT(L)=QHEATL(L)
          QCX=QCLX(L)
-         QCXNEW=QCLNEW
        ELSE
-         QHEAT(L)=QHEATI(L)
          QCX=QCIX(L)
-         QCXNEW=QCINEW
        END IF
         if (QHEAT(L)+CLEARA(L)*FSSL(L)*ER(L).gt.0) then
           if (LHX*QL(L)+DTsrc*CLEARA(L)*ER(L).gt.0.) FQTOW=(QHEAT(L &
@@ -4605,26 +4507,13 @@ contains
       !**** adjust gradients down if Q decreases
       QMOM(:,L)= QMOM(:,L)*(1.-FQTOW)
       IF(LHX.EQ.LHE) THEN
-        QCLX(L)=QCLNEW
-        QCX=QCLNEW
+        QCLX(L)=QCXNEW
       ELSE
-        QCIX(L)=QCINEW
-        QCX=QCINEW
+        QCIX(L)=QCXNEW
       END IF
-      QCXNEW=QCX
-      !     if(abs(DTsrc*(QHEAT(L)-HPHASE)).gt.100.*SHA*FSSL(L)) then ! warn
-      !       write(0,*) 'it,i,j,l,tlold,dtl,qht,hph',itime,i_debug,j_debug,
-      !    *    L,TL(L),DTsrc*(QHEAT(L)-HPHASE)/(SHA*FSSL(L)+teeny),
-      !    *    QHEAT(L),HPHASE
-      !       debug_out=.true.
-      !     end if
-      IF(LHX.EQ.LHE) THEN
-        TL(L)=TL(L)+DTsrc*(QHEATL(L)-HPHASE)/(SHA*FSSL(L)+teeny)
-        if (debug) print*,"lsA",l,qheatl(l),hphase,lhx
-      ELSE
-        TL(L)=TL(L)+DTsrc*(QHEATI(L)-HPHASE)/(SHA*FSSL(L)+teeny)
-        if (debug) print*,"lsA",l,qheati(l),hphase,lhx
-      END IF
+      QCX=QCXNEW
+      TL(L)=TL(L)+DTsrc*(QHEAT(L)-HPHASE)/(SHA*FSSL(L)+teeny)
+      if (debug) print*,"lsA",l,qheat(l),hphase,lhx
 
       TH(L)=TL(L)/PLK(L)
       QSATC=QSAT(TL(L),LHX,PL(L))
@@ -4846,7 +4735,6 @@ contains
       end do
       if (PREBAR(L).eq.0) TRPRBAR(1:ntx,L)=0. ! remove round off error
       if (QCX.eq.0)    TRWML(1:ntx,L)=0.   ! remove round off error
-!     if (QCLX(L)+QCIX(L).eq.0)    TRWML(1:ntx,L)=0.   ! remove round off error
 #endif
       !**** CONDENSE MORE MOISTURE IF RELATIVE HUMIDITY .GT. 1
       RH1(L)=QL(L)/QSATC
@@ -4860,13 +4748,13 @@ contains
         end if
         if(CLEARA(L).gt.1.) CLEARA(L)=1.
         if(RH(L).gt.1.) CLEARA(L)=0.
-        if(QCLX(L)+QCIX(L).le.0.) CLEARA(L)=1.
+        if(QCX.le.0.) CLEARA(L)=1.
         QF=(QL(L)-QSATC*(1.-CLEARA(L)))/(CLEARA(L)+teeny)
         if(QF.lt.0.) write(6,*) 'L CA QF Q QSA=',L,CLEARA(L),QF,QL(L), &
              QSATC
         QSATE=QSAT(TL(L),LHE,PL(L))
         RHW=(2.583d0-TL(L)/207.83)*(QSAT(TL(L),LHS,PL(L))/QSATE)
-        if(TL(L).lt.238.16.and.QCLX(L)+QCIX(L).le.0d0) RH1(L)=QF/(QSATE*RHW)
+        if(TL(L).lt.238.16.and.QCX.le.0d0) RH1(L)=QF/(QSATE*RHW)
       end if
       if(RH1(L).gt.1.) then    ! RH was used in old versions
         SLH=LHX*BYSHA
@@ -4878,13 +4766,11 @@ contains
 
           TL(L)=TL(L)+SLH*DQSUM
           QL(L)=QL(L)-DQSUM
-!         WMX(L)=WMX(L)+DQSUM*FSSL(L)
+          QCX=QCX+DQSUM*FSSL(L)
           IF(LHX.EQ.LHE) THEN
-            QCLX(L)=QCLX(L)+DQSUM*FSSL(L)
-            QCX = QCLX(L)
+            QCLX(L) = QCX
           ELSE
-            QCIX(L)=QCIX(L)+DQSUM*FSSL(L)
-            QCX = QCIX(L)
+            QCIX(L) = QCX
           END IF
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
@@ -4976,7 +4862,6 @@ contains
         end if
         RH(L)=QL(L)/QSAT(TL(L),LHX,PL(L))
         TH(L)=TL(L)/PLK(L)
-        !     if (debug_out) write(0,*) 'after condensation: l,tlnew,',l,tl(l)
       end if
 
       if(RH(L).le.1.) then
@@ -4988,16 +4873,10 @@ contains
       end if
       if(CLEARA(L).gt.1.) CLEARA(L)=1.
       if(RH(L).gt.1.) CLEARA(L)=0.
-!     if(WMX(L).le.0.) CLEARA(L)=1.
-      IF(LHX.EQ.LHE) THEN
-        if(QCLX(L).le.0.) CLEARA(L)=1.
-      ELSE
-        if(QCIX(L).le.0.) CLEARA(L)=1.
-      END IF
+      if(QCX.le.0.) CLEARA(L)=1.
       if(CLEARA(L).lt.0.) CLEARA(L)=0.
       RHF(L)=RH00(L)+(1.-CLEARA(L))*(1.-RH00(L))
-      IF(LHX.EQ.LHE) THEN
-      if(RH(L).le.RHF(L).and.RH(L).lt..999999.and.QCLX(L).gt.0.) then
+      if(RH(L).le.RHF(L).and.RH(L).lt..999999.and.QCX.gt.0.) then
         !**** PRECIP OUT CLOUD WATER IF RH LESS THAN THE RH OF THE ENVIRONMENT
 #ifdef TRACERS_WATER
         TRPRBAR(1:NTX,L) = TRPRBAR(1:NTX,L) + TRWML(1:NTX,L)
@@ -5007,38 +4886,15 @@ contains
 #endif
         TRWML(1:NTX,L) = 0.
 #endif
-        PREBAR(L)=PREBAR(L)+QCLX(L)*AIRM(L)*BYGRAV*BYDTsrc
+        PREBAR(L)=PREBAR(L)+QCX*AIRM(L)*BYGRAV*BYDTsrc
         if(LHP(L).eq.LHS .and. LHX.eq.LHE) then
-          HCHANG=QCLX(L)*LHM
+          HCHANG=QCX*LHM
           if (debug) print*,"lsC",l,hchang
           TL(L)=TL(L)+HCHANG/(SHA*FSSL(L)+teeny)
-          !         if(debug_out) write(0,*) 'after rain out: l,tlnew',l,tl(l)
           TH(L)=TL(L)/PLK(L)
         end if
-        QCLX(L)=0.
+        QCX=0.
       end if
-      ELSE
-      if(RH(L).le.RHF(L).and.RH(L).lt..999999.and.QCIX(L).gt.0.) then
-        !**** PRECIP OUT CLOUD WATER IF RH LESS THAN THE RH OF THE ENVIRONMENT
-#ifdef TRACERS_WATER
-        TRPRBAR(1:NTX,L) = TRPRBAR(1:NTX,L) + TRWML(1:NTX,L)
-#ifdef TRDIAG_WETDEPO
-        if (diag_wetdep == 1) &
-             trprcp_ls(l,1:ntx)=trprcp_ls(l,1:ntx)+trwml(1:ntx,l)
-#endif
-        TRWML(1:NTX,L) = 0.
-#endif
-        PREBAR(L)=PREBAR(L)+QCIX(L)*AIRM(L)*BYGRAV*BYDTsrc
-!       if(LHP(L).eq.LHS .and. LHX.eq.LHE) then  ! LHX.eq.LHS now
-!         HCHANG=QCLX(L)*LHM
-!         if (debug) print*,"lsC",l,hchang
-!         TL(L)=TL(L)+HCHANG/(SHA*FSSL(L)+teeny)
-!         !         if(debug_out) write(0,*) 'after rain out: l,tlnew',l,tl(l)
-!         TH(L)=TL(L)/PLK(L)
-!      end if
-        QCIX(L)=0.
-      end if
-      END IF
       prebar1(l)=prebar(l)
       !**** set phase of condensation for next box down
       PREICE(L)=0.
@@ -5054,15 +4910,13 @@ contains
       end if
       if(CLEARA(L).gt.1.) CLEARA(L)=1.
       if(RH(L).gt.1.) CLEARA(L)=0.
-!     if(WMX(L).le.teeny) WMX(L)=0.
-!     if(WMX(L).le.0.) CLEARA(L)=1.
-      IF(LHX.EQ.LHE) THEN
-        if(QCLX(L).le.teeny) QCLX(L)=0.
-        if(QCLX(L).le.0.) CLEARA(L)=1.
-      ELSE
-        if(QCIX(L).le.teeny) QCIX(L)=0.
-        if(QCIX(L).le.0.) CLEARA(L)=1.
-      END IF
+      if(QCX.le.teeny) QCX=0.
+      if(LHX.eq.LHE) then
+        qclx(l)=qcx
+      else
+        qcix(l)=qcx
+      endif
+      if(QCX.le.0.) CLEARA(L)=1.
       if(CLEARA(L).lt.0.) CLEARA(L)=0.
       CLDSSL(L)=FSSL(L)*(1.-CLEARA(L))
       CLDSAVL(L)=1.-CLEARA(L)
@@ -5203,7 +5057,6 @@ contains
       SMN2=SMN2-(SMN12-SMO12)*AIRM(L+1)/((AIRM(L)+AIRM(L+1))*PLK(L+1))
       TH(L)=SMN1*BYAM(L)
       TL(L)=TH(L)*PLK(L)
-      !       if(debug_out) write(0,*) 'after CTEI: l,tlnew',l,tl(l)
       QL(L)=QMN1*BYAM(L)
       LHX=SVLHXL(L)
       RH(L)=QL(L)/QSAT(TL(L),LHX,PL(L))
@@ -5301,7 +5154,6 @@ contains
         if (debug) print*,"lsD",l+1,LHX*QCIX(L+1)
       END IF
       TL(L+1)=TH(L+1)*PLK(L+1)
-      !       if(debug_out) write(0,*) 'after re-evap: l,tlnew',l+1,tl(l+1)
       RH(L+1)=QL(L+1)/QSAT(TL(L+1),LHX,PL(L+1))
       IF(LHX.EQ.LHE) THEN
         QCLX(L+1)=0.
@@ -5513,7 +5365,7 @@ contains
 
         !         RCLD=(RWCLDOX*10.*(1.-PEARTH)+7.0*PEARTH)*(WTEM*4.)**BY3
         RCLD=RCLDX*100.d0*(WTEM/(2.d0*BY3*TWOPI*SCDNCW))**BY3
-        QHEATC=(QHEATL(L)+FSSL(L)*CLEARA(L)*(EC(L)+ER(L)))/LHX
+        QHEATC=(QHEAT(L)+FSSL(L)*CLEARA(L)*(EC(L)+ER(L)))/LHX
         if(RCLD.gt.RWMAX.and.PREP(L).gt.QHEATC) RCLD=RWMAX
         RCLDE=RCLD/BYBR
         RCLDE1 = RCLDE
@@ -5523,7 +5375,7 @@ contains
           RCLDE1 = MIN(RCLDE1,RIMAX)/BYBR
         endif
 #ifdef CLD_AER_CDNC
-        !** Using the Liu and Daum paramet
+        !** Using the Liu and Daum parameterization
         !** for spectral dispersion effects on droplet size distribution
         Repsi=1.d0 - 0.7d0*exp(-0.003d0*SCDNCW)
         Repsis=Repsi*Repsi
