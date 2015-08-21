@@ -5,11 +5,11 @@ c --- biological/light setup
 c ----------------------------------------------------------------
 c 
       USE FILEMANAGER, only: openunit,closeunit,file_exists
-      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT, pack_data
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
 
       USE obio_dim
       USE obio_incom
-      USE obio_forc, only : ihra,atmFe_glob,atmFe,alk
+      USE obio_forc, only : ihra,atmFe,alk
       USE obio_com, only : npst,npnd,WtoQ,obio_ws,P_tend,D_tend
      .                    ,C_tend,wsdet,gro,obio_deltath,obio_deltat 
 
@@ -415,18 +415,10 @@ c  Read in factors to compute average irradiance
       endif
 
       if(file_exists('ironflux')) then ! read netcdf format flux
-	fid = par_open(ogrid,'ironflux','read')
-	call read_dist_data(ogrid,fid,'ironflux',atmFe)
-	call par_close(ogrid,fid)
+        fid = par_open(ogrid,'ironflux','read')
+        call read_dist_data(ogrid,fid,'ironflux',atmFe)
+        call par_close(ogrid,fid)
       else
-!     open(unit=iu_bio,file='atmFedirect0'
-!    . ,form='unformatted',status='old',access='direct' 
-!    . ,recl=idm*jdm*8/4)
-!     do imon=1,12  !1 year of monthly values
-!      nrec=imon
-!      read (iu_bio,rec=nrec)((atmFe_glob(i,j,imon),i=1,idm),j=1,jdm)
-!     enddo
-!     close(iu_bio)
         call bio_inicond2D('atmFe_inicond',atmFe)
       endif ! netcdf iron or not
 
@@ -636,15 +628,15 @@ c
 
       integer, parameter :: igrd=360,jgrd=180,kgrd=12
       character(len=*), intent(in) :: filename
-      real, intent(out) :: fldo(ogrid%I_STRT_HALO:ogrid%I_STOP_HALO,
-     .          ogrid%J_STRT_HALO:ogrid%J_STOP_HALO,kgrd)
+      real, intent(out) :: fldo(ogrid%I_STRT:ogrid%I_STOP,
+     .          ogrid%J_STRT:ogrid%J_STOP,kgrd)
       real data2(idm,jdm,kgrd)
       integer :: k
 
       call bio_inicond_read(filename, dlatm, 0d0, .false., data2)
 #ifdef OBIO_ON_GARYocean
-      fldo=data2(ogrid%I_STRT_HALO:ogrid%I_STOP_HALO,
-     .          ogrid%J_STRT_HALO:ogrid%J_STOP_HALO,:)
+      fldo=data2(ogrid%I_STRT:ogrid%I_STOP,
+     .          ogrid%J_STRT:ogrid%J_STOP,:)
 #else
       do k=1,kgrd
         call flxa2o(data2(:,aj_0h:aj_1h,k),fldo(:,:,k))

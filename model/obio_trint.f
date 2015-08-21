@@ -4,10 +4,10 @@
 !iflg - 0 compute  carb_old  (before obio)
 !iflg - 1 zero-out carb_old  (after  obio)
 
+      use obio_com, only: tracer
 #ifdef OBIO_ON_GARYocean
       use oceanres,  only: idm=>imo,jdm=>jmo,kdm=>lmo
       use oceanr_dim, only : ogrid
-      use obio_com, only: tracer
       use ocn_tracer_com, only : tracerlist
       use model_com, only : nstep=>itime
       use ocean, only: trmo
@@ -15,7 +15,7 @@
 #else
       use hycom_dim_glob, only : ntrcr,idm,jdm,kdm
       use hycom_dim, only: ogrid
-      use hycom_arrays, only : tracer,dpinit,scp2
+      use hycom_arrays, only : dpinit,scp2
       use hycom_scalars, only : nstep,onem
       use hycom_atm, only : ocnatm
 #endif

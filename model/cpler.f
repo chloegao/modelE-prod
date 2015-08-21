@@ -205,7 +205,7 @@ c     input: flda (W/m*m), output: fldo (W/m*m)
 c
       implicit none
       integer i,j,l,n
-      real*8 flda_loc(iia,aJ_0H:aJ_1H),fldo_loc(iio,J_0H:J_1H)
+      real*8 flda_loc(iia,aJ_0H:aJ_1H),fldo_loc(:,:)
       real*8, allocatable :: flda(:,:),fldo(:,:)
       if(am_i_root()) then
         allocate(flda(iia,jja),fldo(iio,jjo))

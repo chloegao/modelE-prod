@@ -41,11 +41,11 @@ c  Carbon type 2    = DIC
       USE obio_dim
       USE obio_incom
       USE obio_forc, only: avgq
-      USE obio_com, only: gcmax
+      USE obio_com, only: gcmax, tracer
  
       USE hycom_dim, only : ip,kdm
-      USE hycom_dim, only : j_0,j_1,i_0h,i_1h,j_0h,j_1h
-      USE hycom_arrays, only : tracer, dpinit
+      USE hycom_dim, only : i_0,i_1,j_0,j_1
+      USE hycom_arrays, only : dpinit
       USE hycom_scalars, only: onem
 
       implicit none
@@ -76,10 +76,10 @@ c  Carbon type 2    = DIC
       integer, ALLOCATABLE, DIMENSION(:,:)   :: ir
       real,  ALLOCATABLE, DIMENSION(:,:,:) :: fer,dicmod,dic
 
-      ALLOCATE(ir(i_0h:i_1h,j_0h:j_1h))
-      ALLOCATE(fer(i_0h:i_1h,j_0h:j_1h,kdm))
-      allocate(dicmod(i_0h:i_1h,j_0h:j_1h,kdm))
-      allocate(dic(i_0h:i_1h,j_0h:j_1h,kdm))
+      ALLOCATE(ir(i_0:i_1,j_0:j_1))
+      ALLOCATE(fer(i_0:i_1,j_0:j_1,kdm))
+      allocate(dicmod(i_0:i_1,j_0:j_1,kdm))
+      allocate(dic(i_0:i_1,j_0:j_1,kdm))
 
       tracer(:,:,:,1:ntyp)=0.d0
       Fer(:,:,:) = 0.d0
@@ -110,8 +110,8 @@ c  Carbon type 2    = DIC
 !at the same time use dps and interpolate to layer depths from the model
 
       do k=1,kdm
-       do j=j_0h,j_1h
-        do i=i_0h,i_1h
+       do j=j_0,j_1
+        do i=i_0,i_1
           if(tracer(i,j,k,1).le.0.)tracer(i,j,k,1)=0.085d0
           if(tracer(i,j,k,3).le.0.)tracer(i,j,k,3)=0.297d0
           if (dic(i,j,k).le.0.) dic(i,j,k)=1837.d0
@@ -137,8 +137,8 @@ c  Obtain region indicators
 c  Define Fe:NO3 ratios by region, according to Fung et al. (2000)
 c  GBC.  Conversion produces nM Fe, since NO3 is as uM
 
-      do j=j_0h,j_1h
-        do i=i_0h,i_1h
+      do j=j_0,j_1
+        do i=i_0,i_1
           fer(i,j,:)=fer_values(ir(i,j))
         enddo  !i-loop
       enddo  !j-loop
@@ -147,8 +147,8 @@ c  Create arrays
       write(6,*)'Creating bio restart data for ',ntyp,' arrays and'
      . ,kdm,'  layers...'
 
-      do j=j_0h,j_1h
-      do i=i_0h,i_1h
+      do j=j_0,j_1
+      do i=i_0,i_1
         if (ip(i,j)==0) cycle
         
 
@@ -211,8 +211,8 @@ c  Detritus (set to 0 for start up)
       csratio = 106.0/16.0*12.0    !C:Si ratio (ugl:uM)
       cfratio = 150000.0*12.0*1.0E-3    !C:Fe ratio (ugl:nM)
 
-      do j=j_0h,j_1h
-       do i=i_0h,i_1h
+      do j=j_0,j_1
+       do i=i_0,i_1
          do k=1,kdm
           if (dpinit(i,j,k)/onem .gt. 0.0)then
            !only detritus components
@@ -234,8 +234,8 @@ c   as the mean for 020m deeper than the mixed layer, converted from
 c   uM/kg to uM
       write(6,*)'Carbon...'
 c    conversion from uM to mg/m3
-      do j=j_0h,j_1h
-       do i=i_0h,i_1h
+      do j=j_0,j_1
+       do i=i_0,i_1
          do k=1,kdm
           tracer(i,j,k,ntyp+n_inert+ndet+1) = 0.0
           tracer(i,j,k,ntyp+n_inert+ndet+2) = 0.0
@@ -244,8 +244,8 @@ c    conversion from uM to mg/m3
       enddo
 
       !only carbon components
-      do j=j_0h,j_1h
-       do i=i_0h,i_1h
+      do j=j_0,j_1
+       do i=i_0,i_1
          if (ip(i,j)==0) cycle
          do k = 1,kdm
           tracer(i,j,k,ntyp+n_inert+ndet+2) = dicmod(i,j,k)
@@ -260,7 +260,7 @@ c  Light saturation data
 
       do j=j_0,j_1
        do k=1,kdm
-         do i=i_0h,i_1h
+         do i=i_0,i_1
           if (ip(i,j)==0) cycle
           avgq(i,j,k) = 25.0
          enddo
@@ -270,7 +270,7 @@ c  Light saturation data
 c  Coccolithophore max growth rate
       do j=j_0,j_1
        do k=1,kdm
-        do i=i_0h,i_1h
+        do i=i_0,i_1
           gcmax(i,j,k) = 0.0
         enddo
        enddo
@@ -284,14 +284,14 @@ c  Coccolithophore max growth rate
       subroutine init_alk(alk)
       use hycom_dim, only: ogrid, kdm
       implicit none
-      real, dimension(ogrid%i_strt_halo:ogrid%i_stop_halo,
-     &      ogrid%j_strt_halo:ogrid%j_stop_halo,kdm), intent(out) :: alk
+      real, dimension(ogrid%i_strt:ogrid%i_stop,
+     &      ogrid%j_strt:ogrid%j_stop,kdm), intent(out) :: alk
       integer :: i, j, k
 
       call bio_inicond('alk_inicond',alk)
       do k=1,kdm
-      do j=ogrid%j_strt_halo,ogrid%j_stop_halo
-      do i=ogrid%i_strt_halo,ogrid%i_stop_halo
+      do j=ogrid%j_strt,ogrid%j_stop
+      do i=ogrid%i_strt,ogrid%i_stop
          if(alk(i,j,k).lt.0.) then
            alk(i,j,k)=0.
          else
@@ -328,13 +328,13 @@ c       13 -- Mediterranean/Black Seas
       USE obio_dim
 
       USE hycom_dim, only : ip
-      use hycom_dim, only: i_0h,i_1h,j_0h,j_1h
+      use hycom_dim, only: i_0,i_1,j_0,j_1
       USE hycom_arrays, only : lonij,latij,dpinit
       USE hycom_scalars, only: onem
 
       implicit none
 
-      integer, DIMENSION(i_0h:i_1h,j_0h:j_1h), intent(out)   :: ir
+      integer, DIMENSION(i_0:i_1,j_0:j_1), intent(out)   :: ir
 
       integer i,j,l
       integer iant,isin,ispc,isat,iein,iepc,ieat,incp
@@ -368,8 +368,8 @@ c  Initialize region indicator array
       nir = 0
  
 c  Find nwater values corresponding to regions
-      do 1000 j=j_0h,j_1h
-      do 1000 i=i_0h,i_1h
+      do 1000 j=j_0,j_1
+      do 1000 i=i_0,i_1
 
         rlon=lonij(i,j,3)
         rlat=latij(i,j,3)
@@ -610,11 +610,11 @@ c------------------------------------------------------------------------------
       implicit none
 
       character(len=*), intent(in) :: filename
-      real, intent(out) :: fldo2(ogrid%i_strt_halo:ogrid%i_stop_halo,
-     &    ogrid%j_strt_halo:ogrid%j_stop_halo, kdm)
+      real, intent(out) :: fldo2(ogrid%i_strt:ogrid%i_stop,
+     &    ogrid%j_strt:ogrid%j_stop, kdm)
       integer, parameter :: kgrd=33
       real data2(iia,jja,kgrd)
-      real fldo(idm,ogrid%j_strt_halo:ogrid%j_stop_halo,kgrd)
+      real fldo(idm,ogrid%j_strt:ogrid%j_stop,kgrd)
       real pinit(kdm+1)
       real nodc_depths(kgrd),nodc_d(kgrd+1)
       data nodc_depths/0,  10,  20,  30,  50,  75, 100, 125, 150, 200,
@@ -633,8 +633,8 @@ c------------------------------------------------------------------------------
       !use dpinit(i,j,k)/onem
 
        fldo2=-9999.d0
-       do j=ogrid%j_strt_halo,ogrid%j_stop_halo
-       do i=ogrid%i_strt_halo,ogrid%i_stop_halo
+       do j=ogrid%j_strt,ogrid%j_stop
+       do i=ogrid%i_strt,ogrid%i_stop
          if (ip(i,j)==0) cycle
 
          pinit=0

@@ -44,9 +44,11 @@ c  Carbon type 2    = DIC
       USE obio_com, only: gcmax,tracer
 
       USE OCEANRES, only : kdm=>lmo,dzo
-      USE OCEAN, only : ZOE=>ZE
+      USE OCEAN, only : ZOE=>ZE, focean
       USE OCEANR_DIM, only : ogrid
 
+      USE DOMAIN_DECOMP_1D, ONLY: PACK_DATA, unpack_data,am_i_root!df:
+      use oceanres, only: idm=>imo, jdm=>jmo
       implicit none
 
       real, parameter, dimension(0:13) :: fer_values=
@@ -70,21 +72,21 @@ c  Carbon type 2    = DIC
 
       integer nir(nrg),nt
 
-      INTEGER :: j_0h,j_1h,i_0h,i_1h
+      INTEGER :: j_0,j_1,i_0,i_1
 
       integer, ALLOCATABLE, DIMENSION(:,:)   :: ir
       real,  ALLOCATABLE, DIMENSION(:,:,:) :: Fer,dicmod,dic
 
-      I_0H = ogrid%I_STRT_HALO
-      I_1H = ogrid%I_STOP_HALO
-      J_0H = ogrid%J_STRT_HALO
-      J_1H = ogrid%J_STOP_HALO
 
+      I_0 = ogrid%I_STRT
+      I_1 = ogrid%I_STOP
+      J_0 = ogrid%J_STRT
+      J_1 = ogrid%J_STOP
 
-      ALLOCATE(ir(i_0h:i_1h,j_0h:j_1h))
-      ALLOCATE(Fer(i_0h:i_1h,j_0h:j_1h,kdm))
-      ALLOCATE(dicmod(i_0h:i_1h,j_0h:j_1h,kdm))
-      ALLOCATE(dic(i_0h:i_1h,j_0h:j_1h,kdm))
+      ALLOCATE(ir(i_0:i_1,j_0:j_1))
+      ALLOCATE(Fer(i_0:i_1,j_0:j_1,kdm))
+      ALLOCATE(dicmod(i_0:i_1,j_0:j_1,kdm))
+      ALLOCATE(dic(i_0:i_1,j_0:j_1,kdm))
 
 c  Initialize
 
@@ -114,8 +116,8 @@ c  Initialize
 !at the same time use dps and interpolate to layer depths from the model
 
       do k=1,kdm
-      do j=j_0h,j_1h
-       do i=i_0h,i_1h
+      do j=j_0,j_1
+       do i=i_0,i_1
          if(tracer(i,j,k,1).le.0.d0)tracer(i,j,k,1)=0.085d0
          if(tracer(i,j,k,3).le.0.d0)tracer(i,j,k,3)=0.297d0
           if (dic(i,j,k).le.0.d0) dic(i,j,k)=1837d0
@@ -133,8 +135,8 @@ c  Obtain region indicators
 c  Define Fe:NO3 ratios by region, according to Fung et al. (2000)
 c  GBC.  Conversion produces nM Fe, since NO3 is as uM
 
-      do j=j_0h,j_1h
-        do i=i_0h,i_1h
+      do j=j_0,j_1
+        do i=i_0,i_1
           fer(i,j,:)=fer_values(ir(i,j))
         enddo  
       enddo  
@@ -143,8 +145,9 @@ c  Create arrays
       write(6,*)'Creating bio restart data for ',ntyp,' arrays and'
      . ,kdm,'  layers...'
 
-      do j=j_0h,j_1h
-      do i=i_0h,i_1h
+      do j=j_0,j_1
+      do i=i_0,i_1
+      if (focean(i,j).le.0) cycle
       do k=1,kdm
 
 
@@ -215,8 +218,8 @@ c  Detritus (set to 0 for start up)
       csratio = 106.0/16.0*12.0    !C:Si ratio (ugl:uM)
       cfratio = 150000.0*12.0*1.0E-3    !C:Fe ratio (ugl:nM)
 
-      do j=j_0h,j_1h
-      do i=i_0h,i_1h
+      do j=j_0,j_1
+      do i=i_0,i_1
       do k=1,kdm
            !only detritus components
            tracer(i,j,k,ntyp+n_inert+1) = tracer(i,j,k,1)*0.25*cnratio !as carbon
@@ -237,8 +240,8 @@ c   uM/kg to uM
       write(6,*)'Carbon...'
 c    conversion from uM to mg/m3
 
-      do j=j_0h,j_1h
-      do i=i_0h,i_1h
+      do j=j_0,j_1
+      do i=i_0,i_1
       do k=1,kdm
           tracer(i,j,k,ntyp+n_inert+ndet+1) = 0.0
           tracer(i,j,k,ntyp+n_inert+ndet+2) = 0.0
@@ -247,8 +250,8 @@ c    conversion from uM to mg/m3
       enddo
 
       !only carbon components
-      do j=j_0h,j_1h
-      do i=i_0h,i_1h
+      do j=j_0,j_1
+      do i=i_0,i_1
       do k=1,kdm
           tracer(i,j,k,ntyp+n_inert+ndet+2) = dicmod(i,j,k)
 c         car(i,j,k,1) = 3.0  !from Bissett et al 1999 (uM(C))
@@ -261,8 +264,8 @@ c  Light saturation data
       write(6,*)'Light saturation data...'
       avgq = 0.0d0
 
-      do j=j_0h,j_1h
-      do i=i_0h,i_1h
+      do j=j_0,j_1
+      do i=i_0,i_1
       do k=1,kdm
           avgq(i,j,k) = 25.0
       enddo
@@ -271,8 +274,8 @@ c  Light saturation data
 
 c  Coccolithophore max growth rate
       write(6,*)'Coccolithophore max growth rate...'
-      do j=j_0h,j_1h
-      do i=i_0h,i_1h
+      do j=j_0,j_1
+      do i=i_0,i_1
       do k=1,kdm
           gcmax(i,j,k) = 0.0
       enddo
@@ -289,8 +292,8 @@ c  Coccolithophore max growth rate
       use oceanres, only: lmo
       use ocean, only : ze
       implicit none
-      real, dimension(ogrid%i_strt_halo:ogrid%i_stop_halo,
-     &      ogrid%j_strt_halo:ogrid%j_stop_halo,lmo), intent(out) :: alk
+      real, dimension(ogrid%i_strt:ogrid%i_stop,
+     &      ogrid%j_strt:ogrid%j_stop,lmo), intent(out) :: alk
       integer :: i, j, k
 
       call bio_inicond_g('alk_inicond',alk)
@@ -299,8 +302,8 @@ c  Coccolithophore max growth rate
       !negs are over land or under ice due to GLODAP missing values in the Arctic Ocean
       !for under ice missing values, use climatological minimums for sets of layers based
       !on GLODAP, rather than setting to the same global min.
-      do j=ogrid%j_strt_halo,ogrid%j_stop_halo
-      do i=ogrid%i_strt_halo,ogrid%i_stop_halo
+      do j=ogrid%j_strt,ogrid%j_stop
+      do i=ogrid%i_strt,ogrid%i_stop
       do k=1,lmo
        if (alk(i,j,k).lt.0.) then
           if (ze(k).le.150.) alk(i,j,k)=2172.      !init neg might be under ice,
@@ -343,8 +346,8 @@ c       13 -- Mediterranean/Black Seas
       implicit none
 
 
-      integer, DIMENSION(ogrid%i_strt_halo:ogrid%i_stop_halo,
-     &    ogrid%j_strt_halo:ogrid%j_stop_halo), intent(out)   :: ir
+      integer, DIMENSION(ogrid%i_strt:ogrid%i_stop,
+     &             ogrid%j_strt:ogrid%j_stop), intent(out)   :: ir
       integer i,j,l,k
       integer iant,isin,ispc,isat,iein,iepc,ieat,incp
      .       ,inca,inat,imed,inin,inpc,nr,ntot
@@ -376,8 +379,8 @@ c  Initialize region indicator array
       nir = 0
  
 c  Find nwater values corresponding to regions
-       do 1000 j=ogrid%j_strt_halo,ogrid%j_stop_halo
-       do 1000 i=ogrid%i_strt_halo,ogrid%i_stop_halo
+       do 1000 j=ogrid%j_strt,ogrid%j_stop
+       do 1000 i=ogrid%i_strt,ogrid%i_stop
 
         rlon=oLON_DG(i,1)
         rlat=oLAT_DG(j,1)
@@ -613,8 +616,8 @@ c------------------------------------------------------------------------------
       implicit none
 
       character(len=*), intent(in) :: filename
-      real, intent(out) :: fldo2(ogrid%i_strt_halo:ogrid%i_stop_halo,
-     &    ogrid%j_strt_halo:ogrid%j_stop_halo, kdm)
+      real, intent(out) :: fldo2(ogrid%i_strt:ogrid%i_stop,
+     &    ogrid%j_strt:ogrid%j_stop, kdm)
       integer, parameter :: kgrd=33
       real fldo(idm,jdm,kgrd)
       real nodc_depths(kgrd)
@@ -632,8 +635,8 @@ c------------------------------------------------------------------------------
       call bio_inicond_read(filename, dlatm, 180d0, .true., fldo)
       
       fldo2=-9999.d0
-      do j=ogrid%j_strt_halo, ogrid%j_stop_halo
-      do i=ogrid%i_strt_halo, ogrid%i_stop_halo
+      do j=ogrid%j_strt, ogrid%j_stop
+      do i=ogrid%i_strt, ogrid%i_stop
         IF (FOCEAN(i,j).gt.0) then
           lm=lmm(i,j)
           call VLKtoLZ(kgrd,lm,nodc_depths,ZOE,fldo(i,j,:),fldo2(i,j,:))

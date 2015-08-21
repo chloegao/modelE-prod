@@ -60,8 +60,9 @@
 #endif
 
       use runtimecontrols_mod, only: tracers_alkalinity
+      use obio_com, only: tracer
 #ifdef OBIO_ON_GARYocean
-      use obio_com, only: obio_deltat,nstep0,tracer
+      use obio_com, only: obio_deltat,nstep0
       USE ODIAG, only : ij_pCO2,ij_dic,ij_nitr,ij_diat
      .                 ,ij_amm,ij_sil,ij_chlo,ij_cyan,ij_cocc,ij_herb
      .                 ,ij_doc,ij_iron,ij_alk,ij_Ed,ij_Es,ij_pp
@@ -121,7 +122,7 @@
       USE KPP_COM,    only : kpl
 #else
       USE hycom_dim
-      USE hycom_arrays, only: tracer,dpinit,temp,saln,oice
+      USE hycom_arrays, only: tracer_h=>tracer,dpinit,temp,saln,oice
      .                            ,p,dpmixl,latij,lonij,scp2
       USE  hycom_arrays_glob, only: latij_glob=>latij,lonij_glob=>lonij
       USE hycom_scalars, only: trcout,nstep,onem,nstep0
@@ -135,7 +136,7 @@
      .    ,caexp_loc=>caexpij
 #endif
 
-      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,pack_data,unpack_data
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
       use TimerPackage_mod
 
       use exchange_types, only : atmocn_xchng_vars
@@ -425,6 +426,7 @@ cdiag.          olon_dg(i,1),olat_dg(j,1)
            endif
          enddo
 #else
+       if (nstep0 .gt. 0) tracer(i,j,:,:)=tracer_h(i,j,:,:)
        do k=1,kdm
          km=k+mm
          temp1d(k)=temp(i,j,km)
@@ -1014,6 +1016,8 @@ cdiag     endif
 
        enddo
        enddo
+#else
+       tracer_h(i,j,:,:)=tracer(i,j,:,:)
 #endif
 
        ihra(i,j)=ihra_ij

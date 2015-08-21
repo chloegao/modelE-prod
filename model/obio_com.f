@@ -73,8 +73,8 @@ c
       real, ALLOCATABLE, DIMENSION(:,:) :: ao_co2fluxav,ao_co2fluxav_loc
       real, ALLOCATABLE, DIMENSION(:,:) :: ao_co2flux_loc  !ao CO2 on the ocean grid ***NOT for GASEXCH runs****
 #endif
+      real, ALLOCATABLE, DIMENSION(:,:,:,:):: tracer
 #ifdef OBIO_ON_GARYocean
-      real, ALLOCATABLE, DIMENSION(:,:,:,:):: tracer    !only for gary ocean
 
       integer nstep0
 
@@ -203,82 +203,79 @@ C endif
       USE DOMAIN_DECOMP_1D, only : getDomainBounds
       USE OCEANRES, only :idm=>imo,jdm=>jmo,kdm=>lmo
 #else
-      USE hycom_dim_glob 
-      USE hycom_dim, only : i_0h,i_1h,j_0h,j_1h
+      USE hycom_dim, only: idm,jdm,kdm,ogrid
 #endif
 
       implicit none
 
-#ifdef OBIO_ON_GARYocean
 c**** Extract domain decomposition info
-      INTEGER :: j_0h,j_1h,i_0h,i_1h
+      INTEGER :: j_0,j_1,i_0,i_1
 
-      I_0H = ogrid%I_STRT_HALO
-      I_1H = ogrid%I_STOP_HALO
-      J_0H = ogrid%J_STRT_HALO
-      J_1H = ogrid%J_STOP_HALO
+      I_0 = ogrid%I_STRT
+      I_1 = ogrid%I_STOP
+      J_0 = ogrid%J_STRT
+      J_1 = ogrid%J_STOP
 
 
-      ALLOCATE(tracer(i_0h:i_1h,j_0h:j_1h,kdm,ntrac))
-#endif
+      ALLOCATE(tracer(i_0:i_1,j_0:j_1,kdm,ntrac))
 
       call alloc_obio_forc
 
-      ALLOCATE(tzoo2d(i_0h:i_1h,j_0h:j_1h))
-      ALLOCATE(wshc3d(i_0h:i_1h,j_0h:j_1h,kdm))
-      ALLOCATE(Fescav3d(i_0h:i_1h,j_0h:j_1h,kdm))
-      ALLOCATE(rmuplsr3d(i_0h:i_1h,j_0h:j_1h,kdm,nchl),
-     &            rikd3d(i_0h:i_1h,j_0h:j_1h,kdm,nchl))
-      ALLOCATE(acdom3d(i_0h:i_1h,j_0h:j_1h,kdm,nlt))
-      ALLOCATE(tfac3d(i_0h:i_1h,j_0h:j_1h,kdm))
-      ALLOCATE(gcmax(i_0h:i_1h,j_0h:j_1h,kdm))
-      ALLOCATE(pCO2(i_0h:i_1h,j_0h:j_1h))           
-      ALLOCATE(pp2tot_day(i_0h:i_1h,j_0h:j_1h))
-      ALLOCATE(tot_chlo(i_0h:i_1h,j_0h:j_1h))
-      ALLOCATE(rhs_obio(i_0h:i_1h,j_0h:j_1h,ntrac,17))
-      ALLOCATE(chng_by(i_0h:i_1h,j_0h:j_1h,14))
+      ALLOCATE(tzoo2d(i_0:i_1,j_0:j_1))
+      ALLOCATE(wshc3d(i_0:i_1,j_0:j_1,kdm))
+      ALLOCATE(Fescav3d(i_0:i_1,j_0:j_1,kdm))
+      ALLOCATE(rmuplsr3d(i_0:i_1,j_0:j_1,kdm,nchl),
+     &            rikd3d(i_0:i_1,j_0:j_1,kdm,nchl))
+      ALLOCATE(acdom3d(i_0:i_1,j_0:j_1,kdm,nlt))
+      ALLOCATE(tfac3d(i_0:i_1,j_0:j_1,kdm))
+      ALLOCATE(gcmax(i_0:i_1,j_0:j_1,kdm))
+      ALLOCATE(pCO2(i_0:i_1,j_0:j_1))           
+      ALLOCATE(pp2tot_day(i_0:i_1,j_0:j_1))
+      ALLOCATE(tot_chlo(i_0:i_1,j_0:j_1))
+      ALLOCATE(rhs_obio(i_0:i_1,j_0:j_1,ntrac,17))
+      ALLOCATE(chng_by(i_0:i_1,j_0:j_1,14))
 
 #ifdef OBIO_RUNOFF
 #ifdef NITR_RUNOFF
-!      ALLOCATE(rnitrmflo_loc(i_0h:i_1h,j_0h:j_1h))
-      ALLOCATE(rnitrconc_loc(i_0h:i_1h,j_0h:j_1h))
+!      ALLOCATE(rnitrmflo_loc(i_0:i_1,j_0:j_1))
+      ALLOCATE(rnitrconc_loc(i_0:i_1,j_0:j_1))
 #endif
 #ifdef DIC_RUNOFF
-      ALLOCATE(rdicconc_loc(i_0h:i_1h,j_0h:j_1h))
+      ALLOCATE(rdicconc_loc(i_0:i_1,j_0:j_1))
 #endif
 #ifdef DOC_RUNOFF
-      ALLOCATE(rdocconc_loc(i_0h:i_1h,j_0h:j_1h))
+      ALLOCATE(rdocconc_loc(i_0:i_1,j_0:j_1))
 #endif
 #ifdef SILI_RUNOFF
-      ALLOCATE(rsiliconc_loc(i_0h:i_1h,j_0h:j_1h))
+      ALLOCATE(rsiliconc_loc(i_0:i_1,j_0:j_1))
 #endif
 #ifdef IRON_RUNOFF
-      ALLOCATE(rironconc_loc(i_0h:i_1h,j_0h:j_1h))
+      ALLOCATE(rironconc_loc(i_0:i_1,j_0:j_1))
 #endif
 #ifdef POC_RUNOFF
-      ALLOCATE(rpocconc_loc(i_0h:i_1h,j_0h:j_1h))
+      ALLOCATE(rpocconc_loc(i_0:i_1,j_0:j_1))
 #endif
 #ifdef ALK_RUNOFF
-      ALLOCATE(ralkconc_loc(i_0h:i_1h,j_0h:j_1h))
+      ALLOCATE(ralkconc_loc(i_0:i_1,j_0:j_1))
 #endif
 #endif
 
 #ifndef OBIO_ON_GARYocean   /* NOT for Russell ocean */
-      ALLOCATE(ao_co2flux_loc(i_0h:i_1h,j_0h:j_1h))
-      ALLOCATE(tracav(i_0h:i_1h,j_0h:j_1h,kdm,ntrac))
-      ALLOCATE(plevav(i_0h:i_1h,j_0h:j_1h,kdm))
+      ALLOCATE(ao_co2flux_loc(i_0:i_1,j_0:j_1))
+      ALLOCATE(tracav(i_0:i_1,j_0:j_1,kdm,ntrac))
+      ALLOCATE(plevav(i_0:i_1,j_0:j_1,kdm))
       ALLOCATE(pCO2av(idm,jdm))
       ALLOCATE(pp2tot_dayav(idm,jdm))
-      ALLOCATE(cexpij(i_0h:i_1h,j_0h:j_1h))
-      ALLOCATE(caexpij(i_0h:i_1h,j_0h:j_1h))
+      ALLOCATE(cexpij(i_0:i_1,j_0:j_1))
+      ALLOCATE(caexpij(i_0:i_1,j_0:j_1))
       ALLOCATE(cexpav(idm,jdm))
       ALLOCATE(caexpav(idm,jdm))
-      ALLOCATE(pCO2av_loc(i_0h:i_1h,j_0h:j_1h))
-      ALLOCATE(pp2tot_dayav_loc(i_0h:i_1h,j_0h:j_1h))
-      ALLOCATE(cexpav_loc(i_0h:i_1h,j_0h:j_1h))
-      ALLOCATE(caexpav_loc(i_0h:i_1h,j_0h:j_1h))
+      ALLOCATE(pCO2av_loc(i_0:i_1,j_0:j_1))
+      ALLOCATE(pp2tot_dayav_loc(i_0:i_1,j_0:j_1))
+      ALLOCATE(cexpav_loc(i_0:i_1,j_0:j_1))
+      ALLOCATE(caexpav_loc(i_0:i_1,j_0:j_1))
       ALLOCATE(ao_co2fluxav(idm,jdm))
-      ALLOCATE(ao_co2fluxav_loc(i_0h:i_1h,j_0h:j_1h))
+      ALLOCATE(ao_co2fluxav_loc(i_0:i_1,j_0:j_1))
 #endif
 
       end subroutine alloc_obio_com

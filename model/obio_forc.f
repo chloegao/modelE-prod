@@ -19,7 +19,6 @@
       real, ALLOCATABLE, DIMENSION(:,:,:)  :: tirrq3d
       real, ALLOCATABLE, DIMENSION(:,:,:)  :: avgq            !mean daily irradiance in quanta
       real, ALLOCATABLE, DIMENSION(:,:,:)  :: atmFe
-      real, ALLOCATABLE, DIMENSION(:,:,:)  :: atmFe_glob      !surface iron deposition
       real, ALLOCATABLE, DIMENSION(:,:,:)  :: alk             !alkalinity in 'umol/kg'
 
       real solz               !mean cosine solar zenith angle
@@ -42,25 +41,25 @@
       USE OCEANRES, only : idm=>imo,jdm=>jmo,kdm=>lmo
 #else
       USE hycom_dim_glob
-      USE hycom_dim, only : ogrid,i_0h,i_1h,j_0h,j_1h
+      USE hycom_dim, only : ogrid,i_0,i_1,j_0,j_1
 #endif
 
 
       implicit none
 
 #ifdef OBIO_ON_GARYocean
-      INTEGER :: j_0h,j_1h,i_0h,i_1h
+      INTEGER :: j_0,j_1,i_0,i_1
 
-      I_0H = ogrid%I_STRT_HALO
-      I_1H = ogrid%I_STOP_HALO
-      J_0H = ogrid%J_STRT_HALO
-      J_1H = ogrid%J_STOP_HALO
+      I_0 = ogrid%I_STRT
+      I_1 = ogrid%I_STOP
+      J_0 = ogrid%J_STRT
+      J_1 = ogrid%J_STOP
 #endif
 
-      ALLOCATE(tirrq3d(i_0h:i_1h,j_0h:j_1h,kdm))
-      ALLOCATE(   ihra(i_0h:i_1h,j_0h:j_1h))
-      ALLOCATE(   avgq(i_0h:i_1h,j_0h:j_1h,kdm))
-      ALLOCATE(    alk(i_0h:i_1h,j_0h:j_1h,kdm))
-      ALLOCATE(atmFe(i_0h:i_1h,j_0h:j_1h,12),atmFe_glob(idm,jdm,12))
+      ALLOCATE(tirrq3d(i_0:i_1,j_0:j_1,kdm))
+      ALLOCATE(   ihra(i_0:i_1,j_0:j_1))
+      ALLOCATE(   avgq(i_0:i_1,j_0:j_1,kdm))
+      ALLOCATE(    alk(i_0:i_1,j_0:j_1,kdm))
+      ALLOCATE(atmFe(i_0:i_1,j_0:j_1,12))
 
       end subroutine alloc_obio_forc
