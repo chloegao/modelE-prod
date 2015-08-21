@@ -51,7 +51,6 @@ OCN_Int_LATLON                      ! atm-ocn regrid routines
 obio_diffmod     |$(R8)|
 
 !!!ar!!!obio_oasimhr     |$(R8)|
-!!!ar!!!obio_limits      |$(R8)|
 
 Components:
 tracers Ent shared MPI_Support solvers giss_LSM dd2d

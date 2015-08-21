@@ -17,7 +17,6 @@ obio_forc        |$(R8)|
 obio_init        |$(R8)|
 obio_bioinit_g   |$(R8)|
 obio_model       |$(R8)|
-obio_trint       |$(R8)|
 obio_daysetrad   |$(R8)|
 obio_daysetbio   |$(R8)|
 obio_sfcirr      |$(R8)|

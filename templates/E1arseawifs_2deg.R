@@ -78,7 +78,6 @@ SparseCommunicator_mod                 ! sparse gather/scatter module
 !obio_init        |$(R8)|
 !obio_bioinit_g   |$(R8)|
 !obio_model       |$(R8)|
-!obio_trint       |$(R8)|
 !obio_daysetrad   |$(R8)|
 !obio_daysetbio   |$(R8)|
 obio_ocalbedo    |$(R8)|
@@ -91,7 +90,6 @@ obio_reflectance |$(R8)|
 !obio_sinksettl   |$(R8)|
 
 !!!ar!!!obio_oasimhr     |$(R8)|
-!!!ar!!!obio_limits      |$(R8)|
 
 Components:
 MPI_Support shared

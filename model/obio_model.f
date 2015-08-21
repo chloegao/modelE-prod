@@ -227,8 +227,6 @@ c
         ! being set in obio_bioinit_g rather than obio_init. - M.K.
         avgq(:,:,:) = 25.0 !  Light saturation data
         gcmax(:,:,:) = 0.0 !  Coccolithophore max growth rate
-        call obio_trint(0) ! todo: move corresp. call out of obio_bioinit_g
-                           ! to a point after this if-test
       else
         call obio_bioinit_g
       endif
@@ -254,7 +252,6 @@ c
          call obio_init
 
          print*,'WARM INITIALIZATION'
-         call obio_trint(0)
 
       endif !for restart only
 #else
@@ -265,7 +262,6 @@ c
          call obio_init
 
          print*,'WARM INITIALIZATION'
-         call obio_trint(0)
        endif !for restart only
 #endif
       call stop(' obio_init')
@@ -328,7 +324,6 @@ c
 #endif
 
       !print out tracer integrals just before main loop
-      call obio_trint(0)
 
 #ifndef OBIO_ON_GARYocean     /* HYCOM only */
       diag_counter=diag_counter+1
@@ -1170,9 +1165,6 @@ cdiag     endif
  1000 continue
       call stop('  obio main loop')
 
-      call start('   obio_trint')
-      call obio_trint(1)
-      call stop('   obio_trint')
 
 #ifdef OBIO_ON_GARYocean
 ! Hack for the "setup" period right after a cold start, before the

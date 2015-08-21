@@ -276,8 +276,6 @@ c  Coccolithophore max growth rate
        enddo
       enddo
  
-      call obio_trint(0)
-
       return
       end subroutine obio_bioinit
 
