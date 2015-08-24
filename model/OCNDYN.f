@@ -1133,6 +1133,7 @@ C**** Only do this at end of the day
 
 C**** Add glacial melt from Antarctica and Greenland
         CALL GLMELT(SECONDS_PER_DAY)
+        Call DIAGCO (10,ATMOCN)
 
 c uncomment following call to activate tracers at arbitrary times
 c#ifdef TRACERS_OCEAN

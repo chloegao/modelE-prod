@@ -738,6 +738,7 @@ c instances of the arrays containing derived quantities
 
 #endif /* NEW_IO */
 
+
       SUBROUTINE DIAGCO (M,atmocn)
 !@sum  DIAGCO Keeps track of the ocean conservation properties
 !@auth Gary Russell/Gavin Schmidt
@@ -748,17 +749,23 @@ c instances of the arrays containing derived quantities
 #endif
       USE EXCHANGE_TYPES, only : atmocn_xchng_vars
       IMPLICIT NONE
-!@var M index denoting from where DIAGCO is called (see DIAGCA)
+
+!@var   M  index denoting from where DIAGCO is called
+!****   1  Initialization
+!****   5  Precipitation:  PRECIP_OC, RIVERF
+!****   9  Mixing:  ODIFF, GMKDIF, OCN_MESOSC, FORM_SI
+!****  10  Daily:  GLMELT
+!****  11  Surface:  UNDERICE, GROUND_OC, OSTRES2
+!****  12  Dynamics:  OCONV, OBDRAG2, OCOAST, Dynamics, Straits
+
       INTEGER, INTENT(IN) :: M
       type(atmocn_xchng_vars) :: atmocn
-c
       REAL*8, EXTERNAL :: conserv_OCE,conserv_OKE,conserv_OMS
      *     ,conserv_OSL,conserv_OAM
 #ifdef TRACERS_OCEAN
       INTEGER NT
       type(ocn_tracer_entry), pointer :: entry
 #endif
-
 
       if(.not. oGRID%have_domain) return
 
@@ -2495,15 +2502,21 @@ c compensate for polar loops in conserv_ODIAG not going from 1 to im
       integer, intent(in) :: jm_budg
 !@var I,J are atm grid point values for the accumulation
       INTEGER :: I,J,J_0,J_1,J_0H,J_1H
+      Real*8  :: dLATD  !  latitudinal budget spacing in degrees
  
 C**** define atmospheric grid
       call getDomainBounds(ogrid,
      &     J_STRT=J_0,J_STOP=J_1,
      &     J_STRT_HALO=J_0H,J_STOP_HALO=J_1H)
 
+      dLATD = 180d0 / JM_BUDG
+      If (JM_BUDG == 46)  dLATD = 4
+      If (JM_BUDG == 24)  dLATD = 8
       DO J=J_0H,J_1H
         DO I=1,IMO
-           oJ_BUDG(I,J)=NINT(1+(olat2d_dg(I,J)+90)*(JM_BUDG-1)/180.)
+           oJ_BUDG(I,J) = Nint (oLAT2D_DG(I,J)/dLATD + (JM_BUDG+1)/2d0)
+           If (oJ_BUDG(I,J) < 1)        oJ_BUDG(I,J) = 1
+           If (oJ_BUDG(I,J) > JM_BUDG)  oJ_BUDG(I,J) = JM_BUDG
         END DO
       END DO
 
@@ -2511,4 +2524,3 @@ C**** define atmospheric grid
       oJ_1B=MAXVAL( oJ_BUDG(1:IMO,J_0:J_1) )
 
       END SUBROUTINE SET_OJ_BUDG
-
