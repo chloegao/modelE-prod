@@ -76,10 +76,6 @@ SCM_OMEGA=sgp60varanarucC1.c1.20050101.000000.cdf   ! large-scale vertical wind
 !SCM_LS_V=sgp60varanarucC1.c1.20050101.000000.cdf    ! large-scale vert adv flux div profile(s)
 SCM_LS_H=sgp60varanarucC1.c1.20050101.000000.cdf    ! large-scale horiz adv flux div profile(s)
 
-! Forcing for SGP case
-SCMSRF=SGP.surface.0501.dat
-SCMLAY=SGP.layer.0501.dat
-
 ! Topography, area fractions of surface types
 TOPO=SGP_extractions/Z2HX2fromZ1QX1N.nc
 
