@@ -73,7 +73,7 @@ c  Carbon type 2    = DIC
       INTEGER :: j_0,j_1,i_0,i_1
 
       integer, ALLOCATABLE, DIMENSION(:,:)   :: ir
-      real,  ALLOCATABLE, DIMENSION(:,:,:) :: Fer,dicmod,dic
+      real,  ALLOCATABLE, DIMENSION(:,:,:) :: Fer,dic
 
 
       I_0 = ogrid%I_STRT
@@ -83,7 +83,6 @@ c  Carbon type 2    = DIC
 
       ALLOCATE(ir(i_0:i_1,j_0:j_1))
       ALLOCATE(Fer(i_0:i_1,j_0:j_1,kdm))
-      ALLOCATE(dicmod(i_0:i_1,j_0:j_1,kdm))
       ALLOCATE(dic(i_0:i_1,j_0:j_1,kdm))
 
 c  Initialize
@@ -194,7 +193,6 @@ c          tracer(i,j,k,nt) = 0.05*50.0  !in C units mg/m3
 
           !DIC
           !read earlier from file
-          dicmod(i,j,k)=dic(i,j,k)
 
 #ifdef limitDIC1
 !!!       dic(i,j,k)=dmax1(1837d0,0.99*dic(i,j,k))  !!! g6hh
@@ -203,7 +201,6 @@ c          tracer(i,j,k,nt) = 0.05*50.0  !in C units mg/m3
 #ifdef limitDIC2
           dic(i,j,k)=dmax1(1837d0,1.002*dic(i,j,k))  !!! g6hh3
 #endif
-          dicmod(i,j,k)=dic(i,j,k)
 
       end do
       end do
@@ -250,8 +247,9 @@ c    conversion from uM to mg/m3
       !only carbon components
       do j=j_0,j_1
       do i=i_0,i_1
+      if (focean(i,j)==0) cycle
       do k=1,kdm
-          tracer(i,j,k,ntyp+n_inert+ndet+2) = dicmod(i,j,k)
+          tracer(i,j,k,ntyp+n_inert+ndet+2) = dic(i,j,k)
 c         car(i,j,k,1) = 3.0  !from Bissett et al 1999 (uM(C))
 c         car(i,j,k,1) = 0.0  !from Walsh et al 1999
       enddo

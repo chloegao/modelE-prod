@@ -74,11 +74,10 @@ c  Carbon type 2    = DIC
       real zz
 
       integer, ALLOCATABLE, DIMENSION(:,:)   :: ir
-      real,  ALLOCATABLE, DIMENSION(:,:,:) :: fer,dicmod,dic
+      real,  ALLOCATABLE, DIMENSION(:,:,:) :: fer,dic
 
       ALLOCATE(ir(i_0:i_1,j_0:j_1))
       ALLOCATE(fer(i_0:i_1,j_0:j_1,kdm))
-      allocate(dicmod(i_0:i_1,j_0:j_1,kdm))
       allocate(dic(i_0:i_1,j_0:j_1,kdm))
 
       tracer(:,:,:,1:ntyp)=0.d0
@@ -196,10 +195,6 @@ c          tracer(i,j,k,nt) = 0.05*50.0  !in C units mg/m3
            tracer(i,j,k,nt) = tracer(i,j,k,1)
           enddo
 
-          !DIC
-          !read earlier from file
-          dicmod(i,j,k)=dic(i,j,k)
-
          enddo
       end do
       end do
@@ -248,7 +243,7 @@ c    conversion from uM to mg/m3
        do i=i_0,i_1
          if (ip(i,j)==0) cycle
          do k = 1,kdm
-          tracer(i,j,k,ntyp+n_inert+ndet+2) = dicmod(i,j,k)
+          tracer(i,j,k,ntyp+n_inert+ndet+2) = dic(i,j,k)
          enddo
 c         car(i,j,k,1) = 3.0  !from Bissett et al 1999 (uM(C))
 c         car(i,j,k,1) = 0.0  !from Walsh et al 1999
