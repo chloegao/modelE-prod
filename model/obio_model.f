@@ -21,7 +21,7 @@
      .                    ,temp1d,dp1d,obio_P,det,car,avgq1d
      .                    ,ihra_ij,gcmax1d,atmFe_ij,covice_ij
      .                    ,P_tend,D_tend,C_tend,saln1d
-     .                    ,pCO2,pCO2_ij,p1d,wsdet
+     .                    ,pCO2_ij,p1d,wsdet
      .                    ,rhs,alk1d
      .                    ,tzoo,tfac,rmuplsr,rikd,wshc,Fescav
      .                    ,tzoo2d,tfac3d,rmuplsr3d,rikd3d
@@ -127,13 +127,9 @@
       USE  hycom_arrays_glob, only: latij_glob=>latij,lonij_glob=>lonij
       USE hycom_scalars, only: trcout,nstep,onem,nstep0
      .                        ,time,lp,baclin,huge
-      USE obio_com, only: ao_co2flux_loc,tracav,
-     .     pCO2av,plevav, ao_co2fluxav_loc,
-     .     cexpav,caexpav,pp2tot_dayav,cexpij,
+      USE obio_com, only: ao_co2fluxav_loc,
      .     pCO2av_loc,pp2tot_dayav_loc,cexpav_loc,caexpav_loc
-      USE obio_com, only: diag_counter,cexp_loc=>cexpij
-     .    ,pp2tot_day_loc=>pp2tot_day, pCO2_loc=>pCO2
-     .    ,caexp_loc=>caexpij
+      USE obio_com, only: diag_counter
 #endif
 
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
@@ -149,7 +145,7 @@
 
       integer ihr,ichan,iyear,nt,ihr0,lgth,kmax
       integer ll,ilim
-      real    tot,dummy(6),dummy1,plev
+      real    tot,dummy(6),dummy1
       real    rod(nlt),ros(nlt)
 #ifdef OBIO_ON_GARYocean
       Real*8,External   :: VOLGSP
@@ -231,8 +227,6 @@ c
         call obio_bioinit_g
       endif
 #else
-      tracav = 0.
-      plevav=0.
       ao_co2fluxav_loc  = 0.
       pCO2av_loc = 0
       pp2tot_dayav_loc = 0
@@ -1045,16 +1039,7 @@ cdiag     endif
      .    nstep,i,j,pp2tot_day(i,j)
        endif
 
-       !update pCO2 array
-       pCO2(i,j)=pCO2_ij
        atm%gtracer(atm%n_co2n, i,j)=pCO2_ij
-
-#ifndef OBIO_ON_GARYocean     /* NOT for Russell ocean */
-       !update cexp array
-       cexpij(i,j) = cexp
-
-       ao_co2flux_loc(i,j)=co2flux 
-#endif
 
 !diagnostics
 #ifdef OBIO_ON_GARYocean
@@ -1072,7 +1057,7 @@ cdiag     endif
 
        OIJ(I,J,IJ_doc) = OIJ(I,J,IJ_doc) + tracer(i,j,1,14) ! surf ocean doc
        OIJ(I,J,IJ_dic) = OIJ(I,J,IJ_dic) + tracer(i,j,1,15) ! surf ocean dic
-       OIJ(I,J,IJ_pCO2) = OIJ(I,J,IJ_pCO2) + pCO2(i,j)*(1.-oRSI(i,j)) ! surf ocean pco2
+       OIJ(I,J,IJ_pCO2) = OIJ(I,J,IJ_pCO2) + pCO2_ij*(1.-oRSI(i,j)) ! surf ocean pco2
 
        OIJ(I,J,IJ_cexp) = OIJ(I,J,IJ_cexp) + cexp             ! export production
        OIJ(I,J,IJ_ndet) = OIJ(I,J,IJ_ndet) + tracer(i,j,4,11) ! ndet at 74m
@@ -1127,33 +1112,21 @@ cdiag     endif
        endif
 
 #else    /* HYCOM ACCUMULATED DIAGNOSTICS */
-      ao_co2fluxav_loc(i,j)=ao_co2fluxav_loc(i,j) + ao_co2flux_loc(i,j)
-      pCO2av_loc(i,j)=pCO2av_loc(i,j)+pCO2_loc(i,j)
+      ao_co2fluxav_loc(i,j)=ao_co2fluxav_loc(i,j) + co2flux
+      pCO2av_loc(i,j)=pCO2av_loc(i,j)+pCO2_ij
       pp2tot_dayav_loc(i,j) = pp2tot_dayav_loc(i,j) 
-     .                      + pp2tot_day_loc(i,j)
-      cexpav_loc(i,j)=cexpav_loc(i,j)+cexp_loc(i,j)
-      do k=1,kk
-        plev = max(0.,dpinit(i,j,k))
-        if (plev.lt.1.e30) then
-          plevav(i,j,k) = plevav(i,j,k) + plev
-
-          do nt=1,ntrcr
-            tracav(i,j,k,nt) = tracav(i,j,k,nt) +
-     .           tracer(i,j,k,nt)*plev
-          enddo !nt
-
-        endif
-      enddo  !k
+     .                      + pp2tot_day(i,j)
+      cexpav_loc(i,j)=cexpav_loc(i,j)+cexp
 #ifdef TRACERS_Alkalinity
-            caexpav_loc(i,j)=caexpav_loc(i,j)+caexp_loc(i,j)
+            caexpav_loc(i,j)=caexpav_loc(i,j)+caexp
 #endif
             if(i.eq.243.and.j.eq.1) then
       print*, 'tracers:    doing tracav at nstep=',nstep,diag_counter
             write(*,'(a,3i5,8e12.4)')'1111111111',
-     .      nstep,i,j,ao_co2flux_loc(i,j),ao_co2fluxav_loc(i,j)
-     .      ,pco2_loc(i,j),pCO2av_loc(i,j)
-     .      ,pp2tot_day_loc(i,j),pp2tot_dayav_loc(i,j)
-     .      ,cexp_loc(i,j),cexpav_loc(i,j)
+     .      nstep,i,j,co2flux,ao_co2fluxav_loc(i,j)
+     .      ,pco2_ij,pCO2av_loc(i,j)
+     .      ,pp2tot_day(i,j),pp2tot_dayav_loc(i,j)
+     .      ,cexp,cexpav_loc(i,j)
             endif
 
 #endif

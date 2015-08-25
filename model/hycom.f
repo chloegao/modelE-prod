@@ -1176,8 +1176,6 @@ ccc     .     'barotrop. v vel. (mm/s)')
       || (defined TRACERS_ZEBRA)
       ! These were being obtained from obio_com.  Why?
       diag_counter=0
-      tracav_loc = 0
-      plevav_loc = 0
 #endif
 
  23   continue

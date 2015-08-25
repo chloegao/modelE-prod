@@ -47,8 +47,6 @@ c  Carbon type 2    = DIC
       USE OCEAN, only : ZOE=>ZE, focean
       USE OCEANR_DIM, only : ogrid
 
-      USE DOMAIN_DECOMP_1D, ONLY: PACK_DATA, unpack_data,am_i_root!df:
-      use oceanres, only: idm=>imo, jdm=>jmo
       implicit none
 
       real, parameter, dimension(0:13) :: fer_values=
