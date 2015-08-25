@@ -224,7 +224,7 @@ c
         avgq(:,:,:) = 25.0 !  Light saturation data
         gcmax(:,:,:) = 0.0 !  Coccolithophore max growth rate
       else
-        call obio_bioinit_g
+        call obio_bioinit
       endif
 #else
       ao_co2fluxav_loc  = 0.

@@ -76,7 +76,7 @@ SparseCommunicator_mod                 ! sparse gather/scatter module
 !obio_com         |$(R8)|
 !obio_forc        |$(R8)|
 !obio_init        |$(R8)|
-!obio_bioinit_g   |$(R8)|
+!obio_bioinit     |$(R8)|
 !obio_model       |$(R8)|
 !obio_daysetrad   |$(R8)|
 !obio_daysetbio   |$(R8)|
