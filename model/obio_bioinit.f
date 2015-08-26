@@ -638,12 +638,12 @@ c------------------------------------------------------------------------------
       subroutine bio_inicond(filename,fldo2)
       use bio_inicond_mod, only: bio_inicond_read
 #ifdef OBIO_ON_GARYocean
-      USE OCEANRES, only : idm=>imo, jdm=>jmo, kdm=>lmo
+      USE OCEANRES, only : kdm=>lmo
       USE OCEANR_DIM, only : ogrid
       USE OCEAN, only : DLATM,ZOE=>ZE, focean, lmm
 #else
       use hycom_dim, only: aj_0h,aj_1h,kdm
-      use hycom_dim, only: ip,ogrid,iia,jja,idm
+      use hycom_dim, only: ip,ogrid,iia,jja
       USE GEOM, only : DLATM
       use hycom_arrays, only: dpinit
       USE hycom_scalars, only: onem
@@ -656,7 +656,7 @@ c------------------------------------------------------------------------------
      &    ogrid%j_strt:ogrid%j_stop, kdm)
       integer, parameter :: kgrd=33
 #ifdef OBIO_ON_GARYocean
-      real fldo(idm,jdm,kgrd)
+      real fldo(ogrid%im_world,ogrid%jm_world,kgrd)
       interface
         Subroutine VLKtoLZ (KM,LM, MK,ME, RK, RL,RZ)
         Real*8 MK(KM),ME(0:LM), RK(KM), RL(LM) 
@@ -665,7 +665,7 @@ c------------------------------------------------------------------------------
       end interface
 #else
       real data2(iia,jja,kgrd)
-      real fldo(idm,ogrid%j_strt:ogrid%j_stop,kgrd)
+      real fldo(ogrid%im_world,ogrid%j_strt:ogrid%j_stop,kgrd)
       real pinit(kdm+1)
 #endif
       real nodc_depths(kgrd),nodc_d(kgrd+1)

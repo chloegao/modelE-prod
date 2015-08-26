@@ -5,9 +5,8 @@
 #ifdef OBIO_ON_GARYocean
       USE OCEANRES, only : kdm=>lmo 
 #else
-      USE hycom_dim_glob
+      USE hycom_dim, only: kdm
 #endif
-      USE obio_dim
       use ocalbedo_mod, only: nlt
 
 
@@ -35,12 +34,10 @@
 !------------------------------------------------------------------------------
       subroutine alloc_obio_forc
       USE obio_forc
-      USE obio_dim
 #ifdef OBIO_ON_GARYocean
       USE OCEANR_DIM, only : ogrid
-      USE OCEANRES, only : idm=>imo,jdm=>jmo,kdm=>lmo
+      USE OCEANRES, only : kdm=>lmo
 #else
-      USE hycom_dim_glob
       USE hycom_dim, only : ogrid,i_0,i_1,j_0,j_1
 #endif
 

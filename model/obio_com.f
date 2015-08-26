@@ -194,9 +194,9 @@ C endif
 
 #ifdef OBIO_ON_GARYocean
       USE OCEANR_DIM, only : ogrid
-      USE OCEANRES, only :idm=>imo,jdm=>jmo,kdm=>lmo
+      USE OCEANRES, only :kdm=>lmo
 #else
-      USE hycom_dim, only: idm,jdm,kdm,ogrid
+      USE hycom_dim, only: kdm,ogrid
 #endif
 
       implicit none
@@ -253,15 +253,15 @@ c**** Extract domain decomposition info
 #endif
 
 #ifndef OBIO_ON_GARYocean   /* NOT for Russell ocean */
-      ALLOCATE(pCO2av(idm,jdm))
-      ALLOCATE(pp2tot_dayav(idm,jdm))
-      ALLOCATE(cexpav(idm,jdm))
-      ALLOCATE(caexpav(idm,jdm))
+      ALLOCATE(pCO2av(ogrid%im_world,ogrid%jm_world))
+      ALLOCATE(pp2tot_dayav(ogrid%im_world,ogrid%jm_world))
+      ALLOCATE(cexpav(ogrid%im_world,ogrid%jm_world))
+      ALLOCATE(caexpav(ogrid%im_world,ogrid%jm_world))
       ALLOCATE(pCO2av_loc(i_0:i_1,j_0:j_1))
       ALLOCATE(pp2tot_dayav_loc(i_0:i_1,j_0:j_1))
       ALLOCATE(cexpav_loc(i_0:i_1,j_0:j_1))
       ALLOCATE(caexpav_loc(i_0:i_1,j_0:j_1))
-      ALLOCATE(ao_co2fluxav(idm,jdm))
+      ALLOCATE(ao_co2fluxav(ogrid%im_world,ogrid%jm_world))
       ALLOCATE(ao_co2fluxav_loc(i_0:i_1,j_0:j_1))
 #endif
 

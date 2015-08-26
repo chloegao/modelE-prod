@@ -38,12 +38,12 @@ c
 #endif
 #endif
 #ifdef OBIO_ON_GARYocean
-      USE OCEANRES, only : idm=>imo,jdm=>jmo,kdm=>lmo
+      USE OCEANRES, only : kdm=>lmo
       USE OCEAN, only : ZOE=>ZE,focean,lmm
       USE MODEL_COM, only: dtsrc
       USE OCEANR_DIM, only : ogrid
 #else
-      USE hycom_dim_glob, only : idm,jdm,kdm
+      USE hycom_dim_glob, only : kdm
       USE hycom_scalars, only : nstep,baclin
       USE hycom_dim, only : ogrid
 #endif
@@ -67,8 +67,6 @@ c
       real planck,c,hc,oavo,rlamm,rlam450,Sdom,rlam,hcoavo
      .    ,rnn,rbot,pi
      .    ,dummy
-
-      real fldo2(idm,jdm,kdm)
 
       character*50 title
 !     character*50 cfle

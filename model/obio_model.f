@@ -115,9 +115,9 @@
       USE OCEAN,       only : oLON_DG,oLAT_DG
       USE CONSTANT,   only : grav
       USE OCEANR_DIM, only : ogrid
-      USE OCEANRES,   only : idm=>imo,jdm=>jmo,kdm=>lmo,dzo
+      USE OCEANRES,   only : kdm=>lmo,dzo
       USE OFLUXES,    only : oRSI,oAPRESS
-      USE OCEAN,      only : ZOE=>ZE,g0m,s0m,mo,dxypo,focean,lmm
+      USE OCEAN,      only : ZOE=>ZE,g0m,s0m,mo,dxypo,ip=>focean,lmm
      .                      ,trmo,txmo,tymo,tzmo
       USE KPP_COM,    only : kpl
 #else
@@ -174,17 +174,10 @@ c
       call modelEclock%get(year=year, month=month, date=date,
      .  hour=hour, dayOfYear=dayOfYear)
 
-#ifdef OBIO_ON_GARYocean
       if (JDendOfM(month).eq.dayOfYear.and.hour.eq.12) then
           if (mod(nstep,2).eq.0)
      .    diagno_bio=.true. ! end of month,mid-day
       endif
-#else
-      if (JDendOfM(month).eq.dayOfYear.and.hour.eq.12) then
-          if (mod(nstep,2).eq.0)     !two timesteps per hour
-     .    diagno_bio=.true. ! end of month,mid-day
-      endif
-#endif
 
 !Cold initialization
 
@@ -326,16 +319,10 @@ c
       call start('  obio main loop')
 
       atm%chl_defined=.true.
-#ifdef OBIO_ON_GARYocean
-       do 1000 j=j_0,j_1
-       do 1000 i=i_0,i_1
+       do j=j_0,j_1
+       do i=i_0,i_1
        dp1d(:) = 0.
-       IF(FOCEAN(I,J).gt.0.) THEN
-#else
-       do 1000 j=j_0,j_1             !1,jj
-       do 1000 l=1,isp(j)
-       do 1000 i=ifp(j,l),ilp(j,l)
-#endif
+       IF(ip(I,J)==0) cycle
 
 cdiag  if (nstep.eq.1)
 cdiag. write(*,'(a,3i5,2e12.4)')'obio_model, step,i,j=',nstep,i,j,
@@ -844,15 +831,8 @@ cdiag     endif
       do nt= 1, ntrac-1
       rhs_obio(i,j,nt,ll) = 0.d0
       do k = 1, kdm
-#ifdef OBIO_ON_GARYocean
           rhs_obio(i,j,nt,ll) = rhs_obio(i,j,nt,ll) +
      .                 rhs(k,nt,ll)*dp1d(k)    
-#else
-        if (dp1d(k) < huge) then
-          rhs_obio(i,j,nt,ll) = rhs_obio(i,j,nt,ll) +
-     .                 rhs(k,nt,ll)*dp1d(k)    
-        endif
-#endif
       enddo  !k
 
       if (vrbos) then
@@ -1131,11 +1111,8 @@ cdiag     endif
 
 #endif
 
-#ifdef OBIO_ON_GARYocean
-      endif   !if focean>0
-#endif
-
- 1000 continue
+      end do
+      end do
       call stop('  obio main loop')
 
 
