@@ -34,10 +34,18 @@
       if (.not. init) then
         init = .true.
 
+#ifdef __GFORTRAN__
+        previousTracers = tracer
+#else
         allocate(previousTracers, source=tracer)
+#endif
 
 #ifndef OBIO_ON_GARYocean
+#ifdef __GFORTRAN__
+        previousdpinit = dpinit
+#else
         allocate(previousdpinit, source=dpinit)
+#endif
 #endif
         return ! nothing to compare on the 1st trip
       end if
