@@ -8,6 +8,8 @@
        integer :: itime_tr0=0
        logical :: conc_from_fw=.false., t_qlimit=.true., need_ic=.false.
        logical :: from_file=.false.
+       integer, dimension(:), allocatable :: con_point_idx
+       character(len=10), dimension(:), allocatable :: con_point_str
       end type ocn_tracer_entry
       end module ocn_tracer_entry_mod
 
@@ -57,19 +59,30 @@
       contains
 
       subroutine add_ocn_tracer(i_trname, i_trw0, i_ntrocn, i_conc,
-     &                                                  i_from_file)
+     &              i_from_file, i_con_point_idx, i_con_point_str)
       use ocn_tracer_entry_mod
       implicit none
       character(len=*), intent(in) :: i_trname
       integer, intent(in), optional :: i_trw0, i_ntrocn
       logical, intent(in), optional :: i_conc, i_from_file
+      integer, dimension(:), intent(in), optional :: i_con_point_idx
+      character*10, dimension(:), intent(in), optional:: i_con_point_str
       type(ocn_tracer_entry) :: entry
+      integer :: numpts
 
       entry%trname=i_trname
       if (present(i_trw0)) entry%trw0=i_trw0
       if (present(i_ntrocn)) entry%ntrocn=i_ntrocn
       if (present(i_conc)) entry%conc_from_fw=i_conc
       if (present(i_from_file)) entry%from_file=i_from_file
+      numpts=0
+      if (present(i_con_point_idx)) numpts=size(i_con_point_idx)
+      allocate(entry%con_point_idx(numpts))
+      allocate(entry%con_point_str(numpts))
+      if (numpts>0) then
+        entry%con_point_idx=i_con_point_idx
+        entry%con_point_str=i_con_point_str
+      endif
       call tracerlist%push_back(entry)
       return
       end subroutine add_ocn_tracer

@@ -654,26 +654,46 @@ c------------------------------------------------------------------------------
 #endif
       use exchange_types, only: rad_coupling
       implicit none
+      integer, dimension(1) :: con_idx
+      character(len=10), dimension(1) :: con_str
 
+      con_idx=[12]
+      con_str=['OCN BIOL']
       rad_coupling=.true.
 #ifdef OBIO_ON_GARYocean
-      call add_ocn_tracer('Nitr      ', i_ntrocn=-4)
-      call add_ocn_tracer('Ammo      ', i_ntrocn=-6)
-      call add_ocn_tracer('Sili      ', i_ntrocn=-4)
-      call add_ocn_tracer('Iron      ', i_ntrocn=-8)
-      call add_ocn_tracer('Diat      ', i_ntrocn=-8)
-      call add_ocn_tracer('Chlo      ', i_ntrocn=-8)
-      call add_ocn_tracer('Cyan      ', i_ntrocn=-8)
-      call add_ocn_tracer('Cocc      ', i_ntrocn=-8)
-      call add_ocn_tracer('Herb      ', i_ntrocn=-8)
-      call add_ocn_tracer('Inert     ', i_ntrocn=-4)
-      call add_ocn_tracer('N_det     ', i_ntrocn=-6)
-      call add_ocn_tracer('S_det     ', i_ntrocn=-6)
-      call add_ocn_tracer('I_det     ', i_ntrocn=-10)
-      call add_ocn_tracer('DOC       ', i_ntrocn=-6)
-      call add_ocn_tracer('DIC       ', i_ntrocn=-3)
+      call add_ocn_tracer('Nitr      ', i_ntrocn=-4,
+     &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
+      call add_ocn_tracer('Ammo      ', i_ntrocn=-6,
+     &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
+      call add_ocn_tracer('Sili      ', i_ntrocn=-4,
+     &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
+      call add_ocn_tracer('Iron      ', i_ntrocn=-8,
+     &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
+      call add_ocn_tracer('Diat      ', i_ntrocn=-8,
+     &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
+      call add_ocn_tracer('Chlo      ', i_ntrocn=-8,
+     &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
+      call add_ocn_tracer('Cyan      ', i_ntrocn=-8,
+     &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
+      call add_ocn_tracer('Cocc      ', i_ntrocn=-8,
+     &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
+      call add_ocn_tracer('Herb      ', i_ntrocn=-8,
+     &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
+      call add_ocn_tracer('Inert     ', i_ntrocn=-4,
+     &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
+      call add_ocn_tracer('N_det     ', i_ntrocn=-6,
+     &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
+      call add_ocn_tracer('S_det     ', i_ntrocn=-6,
+     &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
+      call add_ocn_tracer('I_det     ', i_ntrocn=-10,
+     &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
+      call add_ocn_tracer('DOC       ', i_ntrocn=-6,
+     &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
+      call add_ocn_tracer('DIC       ', i_ntrocn=-3,
+     &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
       if (tracers_alkalinity)
-     &             call add_ocn_tracer('Alk       ', i_ntrocn=-6)
+     &             call add_ocn_tracer('Alk       ', i_ntrocn=-6,
+     &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
 #endif   /* #ifdef OBIO_ON_GARYocean */
 
       return

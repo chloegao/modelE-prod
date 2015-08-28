@@ -1962,7 +1962,8 @@ C**** Oceanic tracers
         INST_SC=10.**(-entry%ntrocn)
         CHNG_SC=10.**(-entry%ntrocn+ndel)
         CALL SET_TCONO(entry%trname(1:8),UNITS_INST,UNITS,
-     &            INST_SC,CHNG_SC, nt)
+     &            INST_SC,CHNG_SC, nt, size(entry%con_point_idx),
+     &            entry%con_point_idx, entry%con_point_str)
       end do
 #endif
 #endif /* STANDALONE_OCEAN */
