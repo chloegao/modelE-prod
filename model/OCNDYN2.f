@@ -97,7 +97,7 @@ C**** Apply bottom and coastal drags
 C**** Add ocean biology
 #ifdef TRACERS_OceanBiology
       call obio_model(ocnatm)
-      IF (ATMOCN%MODD5S.EQ.0) CALL DIAGCO (13,atmocn)
+      CALL DIAGCO (13,atmocn)
 #endif
 
          CALL TIMER (NOW,MSGSO)
