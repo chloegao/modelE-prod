@@ -154,7 +154,7 @@ C**** Calculate horizontal and vertical density gradients.
 #endif
 
 C**** Apply GM + Redi tracer fluxes
-
+      k3d = 0.
 C**** Calculate mesoscale diffusivity
 #ifdef USE_1D_MESODIFF
       call get_1d_mesodiff(k3d)
