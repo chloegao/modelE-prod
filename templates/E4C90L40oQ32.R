@@ -21,14 +21,14 @@ Preprocessor Options
 #define AG2OG_OCEANS_BUNDLE
 #define OG2AG_OCEANS_BUNDLE
 #define BUNDLE_INTERP
+#define OCN_LAYERING L32
 End Preprocessor Options
 
 Object modules:
      ! resolution-specific source codes
 AtmCS90                           ! 90 Cube-Sphere Grid
 AtmL40                             ! vertical resolution is 40 layers -> 0.1mb
-ORES_1Qx1_L32                       ! ocean horiz res 2x2.5deg, 32 vert layers
-OFFT288E                            ! Fast Fourier Transform
+ORES_1Qx1 OFFT288E                  ! ocean horiz res 1.25x1deg
 
      ! Codes used by the cubed-atmosphere configuration (FV dynamics)
 #include "cubed_sphere_source_files"

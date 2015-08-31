@@ -22,15 +22,16 @@ Preprocessor Options
 #define IRRIGATION_ON
 #define NEW_IO
 #define CHECK_OCEAN                 ! needed to compile aux/file CMPE002
+#define OCN_LAYERING L32
 End Preprocessor Options
 
 Object modules:
      ! resolution-specific source codes
 Atm144x90                         ! horizontal resolution is 144x90 -> 2x2.5deg
 AtmL40                             ! vertical resolution is 40 layers -> 0.1mb
-ORES_1Qx1_L32                       ! ocean horiz res 2x2.5deg, 32 vert layers
 DIAG_RES_F                          ! diagnostics
-FFT144 OFFT288E                     ! Fast Fourier Transform
+FFT144                              ! Fast Fourier Transform
+ORES_1Qx1 OFFT288E                  ! ocean horiz res 1.25x1deg
 
 IO_DRV                              ! new i/o 
 

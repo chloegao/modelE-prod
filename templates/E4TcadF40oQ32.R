@@ -14,6 +14,7 @@ filters: U,V in E-W and N-S direction (after every physics time step)
 
 Preprocessor Options
 #define CHECK_OCEAN              ! needed to compile aux/file CMPE002
+#define OCN_LAYERING L32
 #define TRAC_ADV_CPU
 #define USE_ENT                  ! include dynamic vegetation model
 !  OFF #define NEW_IO
@@ -55,7 +56,7 @@ Atm144x90                  ! horizontal resolution is 144x90 -> 2x2.5deg
 AtmL40                      ! vertical resolution is 40 layers -> 0.1mb
 DIAG_RES_F                          ! diagnostics
 FFT144                              ! Fast Fourier Transform
-ORES_1Qx1_L32 OFFT288E              ! ocean horiz res 1x1.25deg, 32 layers
+ORES_1Qx1 OFFT288E                  ! ocean horiz res 1.25x1deg
 
 IORSF                               ! i/o
 ! or IO_DRV TRDIAG                       ! new i/o

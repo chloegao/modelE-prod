@@ -1,3 +1,4 @@
+OLAYERS                             ! ocean layering options
 ODIAG_COM  OCEAN_COM  OGEOM         ! dynamic ocean modules
 OCNDYN  OCNDYN2  OTIDELL            ! dynamic ocean routines
 OCN_Interp                          ! dynamic ocean routines

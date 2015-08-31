@@ -8,8 +8,7 @@ c Will add more documentation if this version becomes the modelE default.
 C****
       USE CONSTANT, only : rhows,grav
       USE MODEL_COM, only : msurf,itime,DTSRC
-      USE OCEANRES, only : NOCEAN
-      USE OCEAN, only : im,jm,lmo,ndyno,mo,g0m,s0m,
+      USE OCEAN, only : im,jm,lmo,ndyno,nocean,mo,g0m,s0m,
      *    dts,dtofs,dto,dtolf,mdyno,msgso,
      *    ogeoz,ogeoz_sv,opbot,ze,lmm,imaxj, UO,VO,VONP,IVNP, ! VOSP,IVSP,
      *    OBottom_drag,OCoastal_drag,OTIDE,uod,vod,lmu,lmv
@@ -46,8 +45,7 @@ c
       Real*8,Dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      &     OPBOT1,OPBOT2
       real*8 :: relfac,dt_odiff,TIME
-      real*8, parameter :: byno=1./nocean
-      real*8 :: dtdum,mrat_st
+      real*8 :: dtdum,byno,mrat_st
 
       INTEGER it,jt
 
@@ -61,6 +59,8 @@ c**** Extract domain decomposition info
       call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
      &     J_STRT_SKP = J_0S, J_STOP_SKP = J_1S,
      &     J_STRT_HALO = J_0H, J_STOP_HALO = J_1H)
+
+      byno = 1d0/nocean
 
 C***  Get the data from the atmospheric grid to the ocean grid
       call AG2OG_oceans(atmocn,iceocn)

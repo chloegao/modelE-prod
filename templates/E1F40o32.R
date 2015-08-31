@@ -23,12 +23,13 @@ STACKSIZE=524288
 Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
 #define CHECK_OCEAN                 ! needed to compile aux/file CMPE002
+#define OCN_LAYERING L32
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
 Atm144x90                  ! horizontal resolution is 144x90 -> 2x2.5deg
 AtmL40                      ! vertical resolution is 40 layers -> 0.1mb
-ORES_2Hx2_L32                       ! ocean horiz res 2x2.5deg, 32 vert layers
+ORES_2Hx2 OFFT144E                  ! ocean horiz res 2x2.5deg
 MODEL_COM GEOM_B IORSF              ! model variables and geometry
 TRIDIAG                             ! tridiagonal matrix solver
 MODELE                              ! Main and model overhead
@@ -61,7 +62,7 @@ RAD_UTILS ALBEDO READ_AERO             ! radiation and albedo
 DIAG_COM DIAG DEFACC DIAG_PRT          ! diagnostics
 DIAG_ZONAL GCDIAGb                     ! grid-dependent code for lat-circle diags
 DIAG_RES_F                             ! diagnostics (resolution dependent)
-      FFT144 OFFT144E                  ! utilities
+      FFT144                           ! utilities
 POUT                                   ! post-processing output
 SparseCommunicator_mod                 ! sparse gather/scatter module
 
