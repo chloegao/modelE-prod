@@ -19,10 +19,6 @@
      &  , diapyn, diapyc, jerlv0, thkdff
      &  , bolus_biharm_constant, bolus_laplc_constant
      &  , bolus_laplc_exponential
-#if (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES) \
-     || (defined TRACERS_ZEBRA)
-     .  , diag_counter,itest_trac,jtest_trac
-#endif
 
       USE HYCOM_ARRAYS_GLOB, only: scatter_hycom_arrays
       USE HYCOM_CPLER, only : agrid,tempro2a, ssto2a
