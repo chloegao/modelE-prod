@@ -370,7 +370,7 @@ C**** array of Chlorophyll data for use in ocean albedo calculation
 !@+   conservation diagnostics.  see diag_com.
          integer :: modd5s,jm_budg
          real*8, dimension(:), pointer :: area_of_zone
-         real*8, dimension(:,:), pointer :: consrv
+         real*8, dimension(:,:), pointer :: consrv=>NULL()
          integer, dimension(:,:), pointer :: nofm
 
 ! Some atmosphere-declared tracer info for uses within ocean codes.
