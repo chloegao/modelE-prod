@@ -8,6 +8,7 @@ import errno
 import shutil
 import subprocess
 import glob
+import fnmatch
 import logging
 import time
 import regUtils
@@ -485,7 +486,6 @@ def verifyRuns(config, runSources):
 
         logger.info('Verifying ' + rundeck.name + ': ' + rundeck.verification)
         for run in runs:
-            logger.info('compiler='+run.compiler)
             if makesystem == 'makeOld':
                 decksDir = scratchDir+run.compiler+'/'+dirName+'.'+run.mode+'/decks'
                 os.chdir(decksDir)
@@ -506,12 +506,16 @@ def verifyRuns(config, runSources):
                 exe = 'model/modelexe'
                 cmd = 'ls '+exe
             status = run.sysCmd(cmd, 3, 'b')
-           # If not, then go on to next experiment
+            # If not, then go on to next experiment - and write results
             if status != 0:
                 writeDiff(run, fileH)
                 continue
-            else:
-                compare(rundeck, run)
+            # Check for run-time failures
+            for f in os.listdir(decksDir + '/' + run.name + '/'):
+                if fnmatch.fnmatch(f, '*FAILED'):
+                    run.results[3] = 'Fr'
+            # Record comparisons
+            compare(rundeck, run)
 
             writeDiff(run, fileH)
             fileH.close()
