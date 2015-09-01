@@ -96,7 +96,7 @@
       INTEGER IJL_MO,IJL_G0M,IJL_S0M,IJL_GFLX,IJL_SFLX,IJL_MFU,IJL_MFV
      *     ,IJL_MFW,IJL_GGMFL,IJL_SGMFL,IJL_KVM,IJL_KVG,IJL_WGFL
      *     ,IJL_WSFL,IJL_PTM,IJL_PDM,IJL_MOU,IJL_MOV,IJL_MFW2,IJL_AREA
-     *     ,IJL_MFUB,IJL_MFVB,IJL_MFWB,IJL_ISDM,IJL_PDM2
+     *     ,IJL_MFUB,IJL_MFVB,IJL_MFWB,IJL_ISDM,IJL_PDM2,IJL_KVX
 #ifdef OCN_GISS_TURB
      *     ,ijl_ri,ijl_rrho,ijl_bv2,ijl_otke,ijl_kvs,ijl_kvc,ijl_buoy
 #endif
@@ -875,6 +875,7 @@ C****
 #endif
       USE EXCHANGE_TYPES, only : atmocn_xchng_vars
       use runtimecontrols_mod, only: tracers_alkalinity, ocn_cfc
+      use dictionary_mod, only : get_param
       IMPLICIT NONE
       type(atmocn_xchng_vars) :: atmocn
 c
@@ -887,6 +888,7 @@ c
       character(len=20) :: xyzstr,unitstr
       real*8 :: byrho2,inst_sc,chng_sc
       logical :: set_miss
+      integer :: use_tdiss_
 
 #ifndef STANDALONE_OCEAN
       call set_oj_budg(atmocn%jm_budg)
@@ -1140,6 +1142,18 @@ c
       lname_oijl(k) = 'VERT. HEAT DIFF.'
       scale_oijl(k) = 1d4*byrho2
       lgrid_oijl(k) = 2
+c
+      call get_param('ocean_use_tdiss',use_tdiss_,default=0)
+      if(use_tdiss_==1) then
+      k=k+1
+      IJL_KVX = k
+      denom_oijl(k) = IJL_AREA
+      sname_oijl(k) = 'kvx'
+      units_oijl(k) = 'cm^2/s'
+      lname_oijl(k) = 'VERT. HEAT DIFF. FROM TIDAL DISSIPATION'
+      scale_oijl(k) = 1d4!*byrho2
+      lgrid_oijl(k) = 2
+      endif
 c
 #ifdef OCN_GISS_TURB
       k=k+1

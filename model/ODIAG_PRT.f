@@ -1749,7 +1749,7 @@ c
       use odiag, only : koijl,oijl_out,oijl=>oijl_loc,ijl_area
      &     ,ijl_mo,ijl_mou,ijl_mov,ijl_g0m,ijl_s0m,ijl_ptm,ijl_pdm
      &     ,ijl_mfu,ijl_mfv,ijl_mfw,ijl_mfw2,ijl_ggmfl,ijl_sgmfl
-     &     ,ijl_wgfl,ijl_wsfl,ijl_kvm,ijl_kvg,ijl_gflx,ijl_sflx
+     &     ,ijl_wgfl,ijl_wsfl,ijl_kvm,ijl_kvg,ijl_kvx,ijl_gflx,ijl_sflx
      &     ,ijl_mfub,ijl_mfvb,ijl_mfwb,ijl_isdm,ijl_pdm2
      &     ,oij=>oij_loc,ij_sf,olnst,ln_mflx
 #ifdef OCN_GISS_TURB
@@ -1773,6 +1773,7 @@ c
       use mdiag_com, only : ia_cpl
       use model_com, only : idacc
       use constant, only : grav
+      use kpp_com, only : use_tdiss
       implicit none
       integer i,j,l,k,kk,n
       real*8 mass,gos,sos,temgs,volgs,volgsp,fac,facst,dpr
@@ -1879,6 +1880,9 @@ c
         oijl_out(i,j,l,ijl_wsfl) = oijl(i,j,l,ijl_wsfl)
         oijl_out(i,j,l,ijl_kvm) = oijl(i,j,l,ijl_kvm)*dxypo(j)
         oijl_out(i,j,l,ijl_kvg) = oijl(i,j,l,ijl_kvg)*dxypo(j)
+        if(use_tdiss==1) then
+          oijl_out(i,j,l,ijl_kvx) = oijl(i,j,l,ijl_kvx)*dxypo(j)
+        endif
         oijl_out(i,j,l,ijl_gflx+2) = oijl(i,j,l,ijl_gflx+2)
         oijl_out(i,j,l,ijl_sflx+2) = oijl(i,j,l,ijl_sflx+2)
 #ifdef OCN_GISS_TURB
