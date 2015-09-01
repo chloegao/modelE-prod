@@ -322,6 +322,8 @@ def run1hr(run, npes=1):
         cmd = rune+run.name+' -np '+str(npes)+' -cold-restart'  
         rc = run.sysCmd(cmd, 3, '1')
         if rc != 0:
+            cmd = 'cd '+run.name+'; touch '+run.name+'.1hr.FAILED'
+            rc = run.sysCmd(cmd, 3, '1')
             return 1
 
         cmd = 'cd '+run.name+ '; test `head -1 run_status` -eq ' + mErc
@@ -391,6 +393,8 @@ def runRestart(run, npes=1, endtime=25):
     cmd = rune+run.name+' -np '+str(npes)+' -cold-restart'  
     rc = run.sysCmd(cmd, 3, 'r')
     if rc != 0:
+        cmd = 'cd '+run.name+'; touch '+run.name+'.'+str(endtime)+'.FAILED'
+        rc = run.sysCmd(cmd, 3, '1')
         return 1
 
     cmd = 'cd '+run.name+'; cp fort.1.nc '+checkpointName(run, run.endTime, npes)
@@ -406,6 +410,8 @@ def runRestart(run, npes=1, endtime=25):
     cmd = 'cd '+run.name+'; '+restart+'; test `head -1 run_status` -eq '+mErc
     rc = run.sysCmd(cmd, 3, 'r')
     if rc != 0:
+        cmd = 'cd '+run.name+'; touch '+run.name+'.restart.FAILED'
+        rc = run.sysCmd(cmd, 3, '1')
         return 1
 
     cmd = 'cd '+run.name+';cp fort.2.nc '+checkpointName(run, 'restart', npes)
