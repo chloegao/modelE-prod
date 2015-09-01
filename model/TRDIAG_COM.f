@@ -777,7 +777,7 @@ C****
       NSUM_TCON(NI,itr) = -1
       IA_TCON(NI,itr) = 12
       NM=NI
-      DO N=2,ktcon+1
+      DO N=2,ktcon
         IF (QCON(N-1)) THEN
           NM = NM + 1
           NOFMT(N,itr) = NM
