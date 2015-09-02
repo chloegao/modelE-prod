@@ -827,6 +827,7 @@ C**** NOFM contains the indexes of the CONSRV array where each
 C**** change is to be stored for each quantity. If NOFM(M,ICON)=0,
 C**** no calculation is done.
 C**** NOFM(1,ICON) is the index for the instantaneous value.
+      if (m>size(atmocn%nofm, 1)) return
       IF (atmocn%NOFM(M,ICON).gt.0) THEN
 C**** Calculate current value TOTAL
         CALL CONSFN(TOTAL)
