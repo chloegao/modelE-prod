@@ -551,6 +551,7 @@ C**** Calculate level at 1km depth
 
       subroutine make_k3d(k2d,k3d)
 ! to be replaced with nontrivial version in next commit
+      use ocnmeso_com, only : kbg
       use ocean, only : nbyzm,i1yzm,i2yzm,lmm,im,lmo
       use oceanr_dim, only : grid=>ogrid
       use domain_decomp_1d, only : getdomainbounds
@@ -569,7 +570,7 @@ c
       do j=j_0,j_1
       do n=1,nbyzm(j,1)
       do i=i1yzm(n,j,1),i2yzm(n,j,1)
-        k3d(i,j,:) = k2d(i,j)
+        k3d(i,j,:) = (k2d(i,j)-kbg)+kbg
       enddo
       enddo
       enddo
