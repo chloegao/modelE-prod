@@ -1746,6 +1746,7 @@ c Convert oijl accumulations into the desired units
 c
       use ocean, only : im,jm,lmo,lmm,imaxj,focean,dxypo,dxvo,dypo,dts
       use ocean, only : nbyzm,i1yzm,i2yzm
+      use ocnmeso_com, only : use_tdmix
       use odiag, only : koijl,oijl_out,oijl=>oijl_loc,ijl_area
      &     ,ijl_mo,ijl_mou,ijl_mov,ijl_g0m,ijl_s0m,ijl_ptm,ijl_pdm
      &     ,ijl_mfu,ijl_mfv,ijl_mfw,ijl_mfw2,ijl_ggmfl,ijl_sgmfl
@@ -1765,6 +1766,7 @@ c
 #ifdef TRACERS_OCEAN
       use odiag, only :
      &     ktoijlx,toijl_out,divbya_toijl,kn_toijl,toijl_loc,toijl_conc
+     &    ,toijl_tflx,toijl_gmfl
       USE OCN_TRACER_COM, only : n_Water, tracerlist, ocn_tracer_entry
 #endif
       use oceanr_dim, only : grid=>ogrid
@@ -1777,6 +1779,7 @@ c
       implicit none
       integer i,j,l,k,kk,n
       real*8 mass,gos,sos,temgs,volgs,volgsp,fac,facst,dpr
+      real*8 wdenom,xedge,wtdn,wtup,massdn,massup
       integer :: j_0,j_1,j_0s,j_1s
       real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo) ::
      &     mfu,pres
@@ -1784,7 +1787,9 @@ c
       real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,lmo) ::
      &     mfub,mfvb
       real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,0:lmo) ::
-     &     mfwb
+     &     mfwb,dmfwb
+      real*8 :: sncor
+      integer :: ib
 #ifdef TRACERS_OCEAN
       type(ocn_tracer_entry), pointer :: entry
 #endif
@@ -1834,13 +1839,43 @@ c
       enddo
 
 
-c****
-c**** derive bolus vertical mass flux from bolus horizontal mass fluxes
-c**** for skew-GM
+      dmfwb = 0.
       mfub = oijl(:,:,:,ijl_mfub)
       mfvb = oijl(:,:,:,ijl_mfvb)
       mfwb = 0.
       call halo_update(grid,mfvb,from=south)
+      if(use_tdmix==1) then
+        ! Calculate dmfwb, the bolus-induced component of the mass
+        ! flux used in the remapping (vertical advective) tracer flux.
+        ! It is used below for post-hoc repartitioning of accumulated
+        ! advective fluxes into resolved- and bolus-velocity components.
+        ! See notes in TDMIX.
+        mfwb(:,:,1:lmo) = oijl(:,:,1:lmo,ijl_mfwb)
+        do l=1,lmo-1
+        do j=j_0s,j_1s
+          i=1
+          if(l.lt.lmm(i,j)) then
+            dmfwb(i,j,l) = dmfwb(i,j,l-1) + (
+     &         (mfub(im,j,l)-mfub(i,j,l))
+     &        +(mfvb(i,j-1,l)-mfvb(i,j,l))
+     &        +(mfwb(i,j,l-1)-mfwb(i,j,l))
+     &         )!/dxypo(j)
+          endif
+          do n=1,nbyzm(j,l+1)
+          do i=max(2,i1yzm(n,j,l+1)),i2yzm(n,j,l+1)
+            dmfwb(i,j,l) = dmfwb(i,j,l-1) + (
+     &         (mfub(i-1,j,l)-mfub(i,j,l))
+     &        +(mfvb(i,j-1,l)-mfvb(i,j,l))
+     &        +(mfwb(i,j,l-1)-mfwb(i,j,l))
+     &         )!/dxypo(j)
+          enddo
+          enddo
+        enddo
+        enddo
+      else
+c****
+c**** derive bolus vertical mass flux from bolus horizontal mass fluxes
+c**** for skew-GM
         do l=1,lmo-1
         do j=j_0s,j_1s
           i=1
@@ -1861,21 +1896,47 @@ c**** for skew-GM
         enddo
         enddo
         oijl(:,:,:,ijl_mfwb) = mfwb(:,:,1:lmo)
-
+      endif
 c
 c Vertical fluxes.  Some conversions to per square meter
 c
       do l=1,lmo-1
       do j=j_0,j_1
-      do i=1,imaxj(j)
-        if(l.lt.lmm(i,j)) then
-          oijl_out(i,j,l,ijl_area) = idacc(ia_cpl)*dxypo(j)
-        endif
+      do n=1,nbyzm(j,l+1)
+      do i=i1yzm(n,j,l+1),i2yzm(n,j,l+1)
+        oijl_out(i,j,l,ijl_area) = idacc(ia_cpl)*dxypo(j)
+          
         oijl_out(i,j,l,ijl_mfw) = oijl(i,j,l,ijl_mfw)
+     &       -dmfwb(i,j,l) ! subtract bolus-induced part of remap flux
         oijl_out(i,j,l,ijl_mfwb) = oijl(i,j,l,ijl_mfwb)
-        oijl_out(i,j,l,ijl_mfw2) = oijl(i,j,l,ijl_mfw2)/dxypo(j)
+     &       +dmfwb(i,j,l) !      add bolus-induced part of remap flux
+
+
+        massup = oijl(i,j,l  ,ijl_mo)*dxypo(j)
+        massdn = oijl(i,j,l+1,ijl_mo)*dxypo(j)
+        wtdn = massup/(massup+massdn)
+        wtup = 1d0-wtdn
+
+        ! centered approximation of layer edge g for repartitioning
+        xedge =
+     &       wtup* (oijl(i,j,l  ,ijl_g0m) / massup)
+     &      +wtdn* (oijl(i,j,l+1,ijl_g0m) / massdn)
+        oijl_out(i,j,l,ijl_gflx+2) = oijl(i,j,l,ijl_gflx+2)
+     &       -dmfwb(i,j,l)*xedge ! subtract bolus-induced part of remap flux
         oijl_out(i,j,l,ijl_ggmfl+2) = oijl(i,j,l,ijl_ggmfl+2)
+     &       +dmfwb(i,j,l)*xedge !      add bolus-induced part of remap flux
+
+        ! centered approximation of layer edge s for repartitioning
+        xedge =
+     &       wtup* (oijl(i,j,l  ,ijl_s0m) / massup)
+     &      +wtdn* (oijl(i,j,l+1,ijl_s0m) / massdn)
+        oijl_out(i,j,l,ijl_sflx+2) = oijl(i,j,l,ijl_sflx+2)
+     &       -dmfwb(i,j,l)*xedge ! subtract bolus-induced part of remap flux
         oijl_out(i,j,l,ijl_sgmfl+2) = oijl(i,j,l,ijl_sgmfl+2)
+     &       +dmfwb(i,j,l)*xedge !      add bolus-induced part of remap flux
+
+        oijl_out(i,j,l,ijl_mfw2) = oijl(i,j,l,ijl_mfw2)/dxypo(j)
+
         oijl_out(i,j,l,ijl_wgfl) = oijl(i,j,l,ijl_wgfl)
         oijl_out(i,j,l,ijl_wsfl) = oijl(i,j,l,ijl_wsfl)
         oijl_out(i,j,l,ijl_kvm) = oijl(i,j,l,ijl_kvm)*dxypo(j)
@@ -1883,8 +1944,6 @@ c
         if(use_tdiss==1) then
           oijl_out(i,j,l,ijl_kvx) = oijl(i,j,l,ijl_kvx)*dxypo(j)
         endif
-        oijl_out(i,j,l,ijl_gflx+2) = oijl(i,j,l,ijl_gflx+2)
-        oijl_out(i,j,l,ijl_sflx+2) = oijl(i,j,l,ijl_sflx+2)
 #ifdef OCN_GISS_TURB
         oijl_out(i,j,l,ijl_kvs) = oijl(i,j,l,ijl_kvs)*dxypo(j)
         oijl_out(i,j,l,ijl_kvc) = oijl(i,j,l,ijl_kvc)*dxypo(j)
@@ -1897,6 +1956,7 @@ c
 #ifdef OCN_GISS_SM
         oijl_out(i,j,l,ijl_fvb) = oijl(i,j,l,ijl_fvb)*dxypo(j)
 #endif
+      enddo
       enddo
       enddo
       enddo
@@ -1985,6 +2045,33 @@ C****
         if(entry%to_per_mil>0 .and. n.ne.n_Water) then
           toijl_out(:,:,:,kk) = 1d3*(toijl_out(:,:,:,kk)/entry%trw0
      &         -toijl_loc(:,:,:,TOIJL_conc,n_water))
+        endif
+        if(use_tdmix==1 .and.
+     &       (k.eq.toijl_gmfl+2 .or. k.eq.toijl_tflx+2)) then
+          if(k.eq.toijl_gmfl+2) then
+            sncor = +1d0
+          else
+            sncor = -1d0
+          endif
+          do l=1,lmo-1
+          do j=j_0,j_1
+          do ib=1,nbyzm(j,l+1)
+          do i=i1yzm(ib,j,l+1),i2yzm(ib,j,l+1)
+            massup = oijl(i,j,l  ,ijl_mo)*dxypo(j)
+            massdn = oijl(i,j,l+1,ijl_mo)*dxypo(j)
+            wtdn = massup/(massup+massdn)
+            wtup = 1d0-wtdn
+            ! centered approximation of layer edge tracer for repartitioning
+            xedge =
+     &           wtup* (toijl_loc(i,j,l  ,toijl_conc,n) / massup)
+     &          +wtdn* (toijl_loc(i,j,l+1,toijl_conc,n) / massdn)
+            toijl_out(i,j,l,kk) = toijl_out(i,j,l,kk) 
+                 ! add or subtract bolus-induced part of remap flux
+     &           +(dmfwb(i,j,l)/dxypo(j))*xedge*sncor
+          enddo
+          enddo
+          enddo
+          enddo
         endif
       enddo
 #endif

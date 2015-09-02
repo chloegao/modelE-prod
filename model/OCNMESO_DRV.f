@@ -14,8 +14,16 @@
       module ocnmeso_com
       implicit none
 
+!@dbparam use_tdmix whether to use thickness-diffusion mesoscale code
+!@dbparam use_gmscz whether to use exponential vertical structure in mesoscale K
+      integer :: use_tdmix=0,use_gmscz=0
+
+!@dbparam zsmult multiplier for exp decay scale when use_gmscz>0
 !@dbparam kvismult multiplier for Visbeck K when using simple_mesodiff
+!@dbparam enhance_shallow_kmeso whether to enhance shallow-ocean diffusivity
+      real*8 :: zsmult=1d0
       real*8 :: kvismult=1d0
+      integer :: enhance_shallow_kmeso=0
 
 !@dbparam kbg (m2/s) minimum mesoscale diffusivity
       real*8 :: kbg=100d0
@@ -58,10 +66,9 @@
       subroutine alloc_ocnmeso_com
       use ocean, only : im,lmo
       use ocnmeso_com
-      use dictionary_mod, only : sync_param
+      use dictionary_mod, only : get_param,sync_param
       use oceanr_dim, only : ogrid
       use domain_decomp_1d, only : getdomainbounds
-      use dictionary_mod
       implicit none
       integer :: j_0h,j_1h
 
@@ -72,17 +79,35 @@
       allocate( p3d (lmo,im,j_0h:j_1h) )
       allocate( r3d (lmo,im,j_0h:j_1h) )
       allocate( v3d (lmo,im,j_0h:j_1h) )
-      allocate( rhox   (lmo,im,j_0h:j_1h) )
-      allocate( rhoy   (lmo,im,j_0h:j_1h) )
+      allocate( rhox(lmo,im,j_0h:j_1h) )
+      allocate( rhoy(lmo,im,j_0h:j_1h) )
 
       allocate( rhomz  (im,j_0h:j_1h,lmo) )
       allocate( byrhoz (im,j_0h:j_1h,lmo) )
       allocate( dze3d  (im,j_0h:j_1h,lmo) )
       allocate( bydze3d(im,j_0h:j_1h,lmo) )
 
+      call sync_param('ocean_use_tdmix',use_tdmix)
+      if(use_tdmix==1) then
+        call alloc_tdmix
+      endif
+      call sync_param('ocean_use_gmscz',use_gmscz)
+
+      if(use_gmscz<0 .or. use_gmscz>2) then
+        call stop_model('bad value of ocean_use_gmscz',255)
+      endif
+
+      if(use_gmscz>0) then
+        call sync_param('ocean_zsmult',zsmult)
+      endif
+
 #ifdef SIMPLE_MESODIFF
-      call sync_param("ocean_kvismult",kvismult)
+      call sync_param('ocean_kvismult',kvismult)
+      call sync_param('ocean_enhance_shallow_kmeso',
+     &     enhance_shallow_kmeso)
 #endif
+
+      call sync_param('ocean_kmeso_bg',kbg)
 
 #if (defined CONSTANT_MESO_DIFFUSIVITY)
        call get_param('meso_diffusivity_const',meso_diffusivity_const)
@@ -97,31 +122,44 @@
       end subroutine alloc_ocnmeso_com
 
       subroutine ocnmeso_drv
-      use ocean, only : im,jm,lmo,lmm,mo,g0m,s0m,dts
-      use ocean, only :
-     *     gxmo,gymo,gzmo,
-     *     sxmo,symo,szmo
+      use ocean, only : im,jm,lmo,lmm,mo,g0m,s0m,dts,dxypo
+      use ocean, only : use_qus,
+     *     gxmo,gymo,gzmo, gxxmo,gyymo,gzzmo, gxymo,gyzmo,gzxmo,
+     *     sxmo,symo,szmo, sxxmo,syymo,szzmo, sxymo,syzmo,szxmo
       use ocean, only :
      &     nbyzm,nbyzu,nbyzv, i1yzm,i2yzm, i1yzu,i2yzu, i1yzv,i2yzv
-      use domain_decomp_1d, only : getdomainbounds
+      use ocean_dyn, only : mmi
+      use domain_decomp_1d, only : getdomainbounds, halo_update,
+     &     south,north
       use oceanr_dim, only : grid=>ogrid
       use odiag, only : oijl=>oijl_loc,oij=>oij_loc,
      *    ijl_ggmfl,ijl_sgmfl
      &   ,ijl_mfub,ijl_mfvb,ijl_mfwb
-      use odiag, only : ij_gmsc!,ij_gmscz
+      use odiag, only : ij_gmsc,ij_gmscz
+
 #ifdef TRACERS_OCEAN
       USE OCN_TRACER_COM, only : tracerlist, ocn_tracer_entry
       USE OCEAN, only : trmo,
      &     txmo,tymo,tzmo,txxmo,tyymo,tzzmo,txymo,tyzmo,tzxmo
       Use ODIAG, Only: toijl=>toijl_loc,toijl_gmfl
 #endif
+      use ocnmeso_com, only : kbg,use_tdmix,use_gmscz,
+     &     enhance_shallow_kmeso
       implicit none
       integer i,j,l,n
-
+!@var gmscz (m) eddy activity depth scale
       real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo) ::
      &     k2d,gmscz
+!@var k3d diffusivity at column centers (m2/s)
       real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,lmo) ::
-     &   k3d
+     &     k3d
+!@var k3d[xy] diffusivity at x- and y- edges (m2/s)
+!@var mokg rescaled version of mo to have kg units like other tracers
+      real*8, dimension(:,:,:), allocatable :: k3dx,k3dy,mokg
+!@var fl3d 3D fluxes (kg/s) for diagnostic accumulations (see notes in tdmix)
+      real*8, dimension(:,:,:,:), allocatable :: fl3d
+
+      integer :: ind1,ind2
 
       logical, dimension(im,grid%j_strt_halo:grid%j_stop_halo) ::
      &     zeroing_mask
@@ -129,10 +167,11 @@
       real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,lmo) ::
      &    g0m0,gxmo0,gymo0,s0m0,sxmo0,symo0
 #endif
-
 #ifdef TRACERS_OCEAN
       type(ocn_tracer_entry), pointer :: trentry
 #endif
+      real*8, dimension(:,:,:), allocatable ::
+     &     Xxxmo,Xyymo,Xzzmo, Xxymo,Xyzmo,Xzxmo
 
 c**** Extract domain decomposition info
 
@@ -148,21 +187,24 @@ c**** Extract domain decomposition info
 C**** Calculate horizontal and vertical density gradients.
       call densgrad
 
-#ifdef OCN_GISS_MESO
-      G0M0=G0M; GXMO0=GXMO; GYMO0=GYMO
-      S0M0=S0M; SXMO0=SXMO; SYMO0=SYMO
-#endif
-
-C**** Apply GM + Redi tracer fluxes
-      k3d = 0.
 C**** Calculate mesoscale diffusivity
+      k3d = 0.
+
+      if(use_gmscz>0) then
+        call get_gmscz(gmscz)
+      else
+        gmscz = 100000.
+      endif
+
 #ifdef USE_1D_MESODIFF
       call get_1d_mesodiff(k3d)
 #endif
 
-      gmscz = 0.
 #ifdef SIMPLE_MESODIFF
       call simple_mesodiff(k2d)
+      if(enhance_shallow_kmeso==1) then
+        call shallow_enhance_kmeso(k2d,gmscz)
+      endif
 #endif
 
 #if defined(ORIG_MESODIFF) || defined(OCN_GISS_MESO)
@@ -170,75 +212,202 @@ C**** Calculate mesoscale diffusivity
 #endif
 
 #if defined(ORIG_MESODIFF) || defined(SIMPLE_MESODIFF)
-      call make_k3d(k2d,k3d)
+      if(use_tdmix==1) k3d(:,:,1) = k2d(:,:) ! for oij diag
 #endif
 
 #if defined(OCN_GISS_MESO)
       CALL OCN_mesosc(k3d)
+#endif
+
+!        if(use_kmeso2) then
+!          call get_kmeso2(kbg,k2d)
+!        endif
+
+
+C**** Apply GM + Redi tracer fluxes
+
+      if(use_tdmix==1) then
+
+        allocate(mokg(im,grid%j_strt_halo:grid%j_stop_halo,lmo))
+        allocate(k3dx(lmo,im,grid%j_strt_halo:grid%j_stop_halo))
+        allocate(k3dy(lmo,im,grid%j_strt_halo:grid%j_stop_halo))
+        allocate(fl3d(im,grid%j_strt_halo:grid%j_stop_halo,lmo,3))
+
+        call halo_update(grid,mo)
+
+        mokg = mmi
+
+#if defined(USE_1D_MESODIFF) || defined(OCN_GISS_MESO)
+#ifdef OCN_GISS_MESO
+        ! M. Kelley note Sep 2 2015
+        ! Technically it is possible to use k3d from the above
+        ! call to OCN_mesosc in the tdmix framework.  However,
+        ! it is unlikely that tdmix will closely match the
+        ! flux convergence from MESO_A corresponding to its
+        ! flux_x(I,J,L) = Unew(I,J,L)*TRXMO(I,J,L)+dzFnewx(I,J,L)
+        ! flux_y(I,J,L) = Vnew(I,J,L)*TRYMO(I,J,L)+dzFnewy(I,J,L)
+        ! flux_z(I,J,L) = Wnew(I,J,L)*dzTRM(I,J,L)
+        ! which I have not yet understood yet.
+        call stop_model('ocnmeso_drv: review remarks on '//
+     &       'tdmix+giss_meso before proceeding',255)
+#endif
+        call make_k3dxy_from_k3d(k3d,k3dx,k3dy)
+#else
+        call make_k3dxy(k2d,gmscz,k3dx,k3dy)
+#endif
+
+        call tdmix_prep(dts,k3dx,k3dy)
+
+        ! Water mass is transported as a "tracer" with unit concentration.
+        ! Bolus velocity diagnostics are inferred from this tracer.
+        ! See notes in tdmix_mod regarding post-hoc partitioning of the
+        ! vertical remapping flux into resolved and bolus-induced components.
+        call tdmix(mokg,.false.,fl3d)
+        ind1 = ijl_mfub; ind2 = ind1 + 2
+        oijl(:,:,:,ind1:ind2) = oijl(:,:,:,ind1:ind2) + fl3d
+
+        do l=1,lmo
+        do j=j_0,j_1
+        do n=1,nbyzm(j,l)
+        do i=i1yzm(n,j,l),i2yzm(n,j,l)
+          mo(i,j,l) = mokg(i,j,l)/dxypo(j)
+        enddo
+        enddo
+        enddo
+        enddo
+
+        if(use_qus.ne.1) then
+          allocate(Xxxmo(im,j_0h:j_1h,lmo)); Xxxmo = 0.
+          allocate(Xyymo(im,j_0h:j_1h,lmo)); Xyymo = 0.
+          allocate(Xzzmo(im,j_0h:j_1h,lmo)); Xzzmo = 0.
+          allocate(Xxymo(im,j_0h:j_1h,lmo)); Xxymo = 0.
+          allocate(Xyzmo(im,j_0h:j_1h,lmo)); Xyzmo = 0.
+          allocate(Xzxmo(im,j_0h:j_1h,lmo)); Xzxmo = 0.
+        endif
+
+        ! Heat transport
+        if(use_qus==1) then
+          call relax_qusmoms(mokg,g0m,
+     &         gxmo,gymo,gzmo, gxxmo,gyymo,gzzmo, gxymo,gyzmo,gzxmo)
+        else
+          call relax_qusmoms(mokg,g0m,
+     &         gxmo,gymo,gzmo, Xxxmo,Xyymo,Xzzmo, Xxymo,Xyzmo,Xzxmo)
+        endif
+        call tdmix(g0m,.false.,fl3d)
+        ind1 = ijl_ggmfl; ind2 = ind1 + 2
+        oijl(:,:,:,ind1:ind2) = oijl(:,:,:,ind1:ind2) + fl3d
+
+        ! Salt transport
+        if(use_qus==1) then
+          call relax_qusmoms(mokg,s0m,
+     &         sxmo,symo,szmo, sxxmo,syymo,szzmo, sxymo,syzmo,szxmo)
+        else
+          call relax_qusmoms(mokg,s0m,
+     &         sxmo,symo,szmo, Xxxmo,Xyymo,Xzzmo, Xxymo,Xyzmo,Xzxmo)
+        endif
+        call tdmix(s0m,.true. ,fl3d)
+        ind1 = ijl_sgmfl; ind2 = ind1 + 2
+        oijl(:,:,:,ind1:ind2) = oijl(:,:,:,ind1:ind2) + fl3d
+
+#ifdef TRACERS_OCEAN
+        ! Tracer transport
+        ind1 = toijl_gmfl; ind2 = ind1 + 2
+        do n=1,tracerlist%getsize()
+          trentry=>tracerlist%at(n)
+          if(use_qus==1) then
+            call relax_qusmoms(mokg,trmo(1,j_0h,1,n),
+     &       txmo (1,j_0h,1,n),tymo (1,j_0h,1,n),tzmo (1,j_0h,1,n),
+     &       txxmo(1,j_0h,1,n),tyymo(1,j_0h,1,n),tzzmo(1,j_0h,1,n),
+     &       txymo(1,j_0h,1,n),tyzmo(1,j_0h,1,n),tzxmo(1,j_0h,1,n)
+     &       )
+          else
+            call relax_qusmoms(mokg,trmo(1,j_0h,1,n),
+     &           txmo(1,j_0h,1,n),tymo(1,j_0h,1,n),tzmo(1,j_0h,1,n),
+     &           Xxxmo,Xyymo,Xzzmo, Xxymo,Xyzmo,Xzxmo)
+          endif
+          call tdmix(trmo(1,j_0h,1,n),trentry%t_qlimit,fl3d)
+          toijl(:,:,:,ind1:ind2,n) = toijl(:,:,:,ind1:ind2,n) + fl3d
+        enddo
+#endif
+
+      else ! skew-GM
+
+#if defined(ORIG_MESODIFF) || defined(SIMPLE_MESODIFF)
+        call make_k3d_cellcenter(k2d,gmscz,k3d)
+#endif
+
+#ifdef OCN_GISS_MESO
 ! This zero-out snippet was added so that previous results under
 ! OCN_GISS_MESO option are preserved identically after separating
 ! the various calculations of mesoscale diffusivity.  It corresponds
-! to the following logical in old routine DENSGRAD (now ORIG_MESODIFF):
+! to the following logic in old routine DENSGRAD (now ORIG_MESODIFF):
 C**** avoid occasional inversions. IF ARHOZ<=0 then GM is pure vertical
 C**** so keep at zero, and let KPP do the work.
-      do j=j_0,j_1
-      do n=1,nbyzm(j,1)
-      do i=i1yzm(n,j,1),i2yzm(n,j,1)
-        if(zeroing_mask(i,j)) k3d(i,j,:) = 0.
-        k3d(i,j,:) = k2d(i,j)
-      enddo
-      enddo
-      enddo
+        do j=j_0,j_1
+        do n=1,nbyzm(j,1)
+        do i=i1yzm(n,j,1),i2yzm(n,j,1)
+          if(zeroing_mask(i,j)) k3d(i,j,:) = 0.
+          k3d(i,j,:) = k2d(i,j)
+        enddo
+        enddo
+        enddo
 #endif
 
-      if(have_south_pole) then
-        do l=1,lmo
-          k3d(2:im,1,l) = k3d(1,1,l)
-        enddo
-      endif
-      if(have_north_pole) then
-        do l=1,lmo
-          k3d(2:im,jm,l) = k3d(1,jm,l)
-        enddo
-      endif
+        if(have_south_pole) then
+          do l=1,lmo
+            k3d(2:im,1,l) = k3d(1,1,l)
+          enddo
+        endif
+        if(have_north_pole) then
+          do l=1,lmo
+            k3d(2:im,jm,l) = k3d(1,jm,l)
+          enddo
+        endif
 
 
-      call gmkdif(k3d,1d0)
-      call gmfexp(g0m,gxmo,gymo,gzmo,.false.,oijl(1,j_0h,1,ijl_ggmfl))
-      call gmfexp(s0m,sxmo,symo,szmo,.true. ,oijl(1,j_0h,1,ijl_sgmfl))
+#ifdef OCN_GISS_MESO
+        G0M0=G0M; GXMO0=GXMO; GYMO0=GYMO
+        S0M0=S0M; SXMO0=SXMO; SYMO0=SYMO
+#endif
+
+        call gmkdif(k3d,1d0)
+        call gmfexp(g0m,gxmo,gymo,gzmo,.false.,oijl(1,j_0h,1,ijl_ggmfl))
+        call gmfexp(s0m,sxmo,symo,szmo,.true. ,oijl(1,j_0h,1,ijl_sgmfl))
 #ifdef TRACERS_OCEAN
-      do n = 1,tracerlist%getsize()
-        trentry=>tracerlist%at(n)
-        call gmfexp(trmo(1,j_0h,1,n),
+        do n = 1,tracerlist%getsize()
+          trentry=>tracerlist%at(n)
+          call gmfexp(trmo(1,j_0h,1,n),
      &         txmo(1,j_0h,1,n),tymo(1,j_0h,1,n),tzmo(1,j_0h,1,n),
      &         trentry%t_qlimit,toijl(1,j_0h,1,toijl_gmfl,n))
-      end do
+        enddo
 #endif
 
 #ifdef OCN_GISS_MESO
 c     CALL MESO_D(G0M0,GXMO0,GYMO0,G0M,GXMO,GYMO,GZMO)
-      CALL MESO_D(G0M0,GXMO0,GYMO0,GXMO,GYMO,GZMO)
-      G0M=G0M0
+        CALL MESO_D(G0M0,GXMO0,GYMO0,GXMO,GYMO,GZMO)
+        G0M=G0M0
 c     CALL MESO_D_TEST(G0M0,G0M,GXMO0,GYMO0,GZMO)
 c     CALL MESO_D(S0M0,SXMO0,SYMO0,S0M,SXMO,SYMO,SZMO)
 
-      CALL MESO_A(G0M,GXMO,GYMO,GZMO)
+        CALL MESO_A(G0M,GXMO,GYMO,GZMO)
 c     CALL MESO_A(S0M,SXMO,SYMO,SZMO)
 #endif
+
+      endif ! use_tdmix or not
 
       ! set diagnostics
       do j=j_0,j_1
       do i=1,im
         if(lmm(i,j).eq.0) cycle
         oij(i,j,ij_gmsc) = oij(i,j,ij_gmsc) + k3d(i,j,1)
-c        oij(i,j,ij_gmscz) = oij(i,j,ij_gmscz) + gmscz(i,j)
+        oij(i,j,ij_gmscz) = oij(i,j,ij_gmscz) + gmscz(i,j)
       enddo
       enddo
 
       end subroutine ocnmeso_drv
 
       subroutine densgrad
-!@sum  DENSGRAD calculates all horizontal and vertical density gradients
+!@sum  densgrad calculates all horizontal and vertical density gradients
       use ocean_dyn, only : bydh
       use ocnmeso_com, only : g3d,s3d,p3d,rhox,rhoy,rhomz,byrhoz,
      &     rho=>r3d,vbar=>v3d,bydzv=>bydze3d,dzv=>dze3d
@@ -549,17 +718,76 @@ C**** Calculate level at 1km depth
 
       end subroutine simple_mesodiff
 
-      subroutine make_k3d(k2d,k3d)
-! to be replaced with nontrivial version in next commit
-      use ocnmeso_com, only : kbg
-      use ocean, only : nbyzm,i1yzm,i2yzm,lmm,im,lmo
+      subroutine get_gmscz(gmscz)
+!@sum get_gmscz obtains a characteristic depth scale over which
+!@+   surface-connected baroclinic eddies are active.  This version
+!@+   calculates it as:
+!@+        z-integral ( |grad_h(rho)| * z )
+!@+        --------------------------------
+!@+        z-integral ( |grad_h(rho)|     )
+!@+   where grad_h is the horizontal gradient operator.
+      use ocean, only : im,jm,lmo
+      use ocean, only : dzo,ze
+      use ocean, only : nbyzm,i1yzm,i2yzm,lmm
+      use ocnmeso_com, only : zsmult
+      use ocnmeso_com, only : rhox,rhoy
+      use oceanr_dim, only : grid=>ogrid
+      use domain_decomp_1d, only : getdomainbounds
+      implicit none
+!@var gmscz (m) eddy activity depth scale
+      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo) ::
+     &     gmscz
+c
+      integer :: i,j,l,n,lmaxscz,il,ir,jl,jr
+      integer :: j_0s,j_1s
+      logical :: have_north_pole
+      real*8 :: rxysum,arhox,arhoy,arhohdz
+
+      call getdomainbounds(grid, j_strt_skp=j_0s, j_stop_skp=j_1s,
+     &               have_north_pole=have_north_pole)
+
+      do lmaxscz=1,lmo
+        if(ze(lmaxscz+1).gt.3000.) exit
+      enddo
+      do j=j_0s,j_1s
+      do n=1,nbyzm(j,1)
+      do i=i1yzm(n,j,1),i2yzm(n,j,1)
+        if(i.eq.1) then
+          il = im
+        else
+          il = i-1
+        endif
+        ir = i
+        jl = j-1
+        jr = j
+        gmscz(i,j) = 0.
+        rxysum = 0.
+        do l=1,min(lmm(i,j),lmaxscz)
+          arhox = .5d0*(rhox(l,il,j)+rhox(l,ir,j))
+          arhoy = .5d0*(rhoy(l,i,jl)+rhoy(l,i,jr))
+          arhohdz = sqrt(arhox*arhox+arhoy*arhoy)*dzo(l)
+          gmscz(i,j) = gmscz(i,j) + arhohdz*.5d0*(ze(l-1)+ze(l))
+          rxysum = rxysum + arhohdz
+        enddo
+        gmscz(i,j) = zsmult * gmscz(i,j)/(rxysum+1d-30)
+      enddo
+      enddo
+      enddo
+
+      if(have_north_pole) gmscz(:,jm) = gmscz(:,jm-1)
+
+      end subroutine get_gmscz
+
+      subroutine shallow_enhance_kmeso(k2d,gmscz)
+!@sum shallow_enhance_kmeso increase diffusivity in shallow waters
+!@+   to help disperse river input and prevent too-low salinities
+      use ocean, only : im,ze
+      use ocean, only : nbyzm,i1yzm,i2yzm,lmm
       use oceanr_dim, only : grid=>ogrid
       use domain_decomp_1d, only : getdomainbounds
       implicit none
       real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo) ::
-     &     k2d
-      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,lmo) ::
-     &     k3d
+     &     k2d,gmscz
 c
       integer :: i,j,l,n
 
@@ -570,12 +798,177 @@ c
       do j=j_0,j_1
       do n=1,nbyzm(j,1)
       do i=i1yzm(n,j,1),i2yzm(n,j,1)
-        k3d(i,j,:) = (k2d(i,j)-kbg)+kbg
+        if(ze(lmm(i,j)).lt.500.) then ! hard-coded definition of shallow
+          k2d(i,j) = max(k2d(i,j),1200.) ! 1200 m2/s
+          gmscz(i,j) = 1d4 ! remove vertical dependence
+        endif
       enddo
       enddo
       enddo
 
-      end subroutine make_k3d
+      end subroutine shallow_enhance_kmeso
+
+      subroutine make_k3dxy(k2d,gmscz,k3dx,k3dy)
+!@sum make_k3dxy construct 3D diffusivity as the product of a
+!@+   column-characteristic diffusivity k2d and a vertical shape
+!@+   function having a characteristic depth scale gmscz.
+!@+   Both k2d and gmscz vary horizontally.
+      use ocean, only : im,jm,lmo
+      use ocean, only : nbyzu,i1yzu,i2yzu,lmu
+      use ocean, only : nbyzv,i1yzv,i2yzv,lmv
+      use oceanr_dim, only : grid=>ogrid
+      use domain_decomp_1d, only : getdomainbounds,halo_update
+      implicit none
+      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo) ::
+     &     k2d,gmscz
+      real*8, dimension(lmo,im,grid%j_strt_halo:grid%j_stop_halo) ::
+     &     k3dx,k3dy
+c
+      integer :: i,j,l,n,il,ir,jl,jr
+
+      integer :: j_0,j_1,j_0s,j_1s
+
+      real*8 :: ksurf,gmscze
+
+      call getdomainbounds(grid, j_strt=j_0, j_stop=j_1,
+     &               j_strt_skp=j_0s, j_stop_skp=j_1s)
+
+      call halo_update(grid,k2d)
+      call halo_update(grid,gmscz)
+
+      do j=j_0s,j_1s
+      do n=1,nbyzu(j,1)
+      do i=i1yzu(n,j,1),i2yzu(n,j,1)
+        il = i
+        if(i.eq.im) then
+          ir = 1
+        else
+          ir = i+1
+        endif
+        ksurf = .5d0*(k2d(il,j)+k2d(ir,j))
+        gmscze = .5d0*(gmscz(il,j)+gmscz(ir,j))
+        call do_k3d_product(ksurf,gmscze,k3dx(:,i,j))
+      enddo
+      enddo
+      enddo
+
+      do j=max(2,j_0-1),j_1s
+      do n=1,nbyzv(j,1)
+      do i=i1yzv(n,j,1),i2yzv(n,j,1)
+        jl = j
+        jr = j+1
+        ksurf = .5d0*(k2d(i,jl)+k2d(i,jr))
+        gmscze = .5d0*(gmscz(i,jl)+gmscz(i,jr))
+        call do_k3d_product(ksurf,gmscze,k3dy(:,i,j))
+      enddo
+      enddo
+      enddo
+
+      end subroutine make_k3dxy
+
+      subroutine make_k3d_cellcenter(k2d,gmscz,k3d)
+!@sum make_k3d_cellcenter construct 3D diffusivity as the product of a
+!@+   column-characteristic diffusivity k2d and a vertical shape
+!@+   function having a characteristic depth scale gmscz.
+!@+   Both k2d and gmscz vary horizontally.
+      use ocean, only : nbyzm,i1yzm,i2yzm,im,lmo
+      use oceanr_dim, only : grid=>ogrid
+      use domain_decomp_1d, only : getdomainbounds
+      implicit none
+      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo) ::
+     &     k2d,gmscz
+      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,lmo) ::
+     &     k3d
+c
+      integer :: i,j,l,n
+      integer :: j_0,j_1
+
+      call getdomainbounds(grid, j_strt=j_0, j_stop=j_1)
+
+      do j=j_0,j_1
+      do n=1,nbyzm(j,1)
+      do i=i1yzm(n,j,1),i2yzm(n,j,1)
+        call do_k3d_product(k2d(i,j),gmscz(i,j),k3d(i,j,:))
+      enddo
+      enddo
+      enddo
+
+      end subroutine make_k3d_cellcenter
+
+      subroutine do_k3d_product(ks,zs,k1d)
+      use ocnmeso_com, only : kbg,use_gmscz
+      use ocean, only : lmo,ze
+      implicit none
+      real*8 :: ks,zs,k1d(lmo)
+      integer :: l
+      real*8 :: zbyzs,expfac
+      do l=1,lmo
+        if(zs.eq.0.) then
+          zbyzs = 0.
+        else
+          zbyzs = .5d0*(ze(l-1)+ze(l))/zs
+        endif
+        if(use_gmscz==0) then
+          expfac = 1d0
+        elseif(use_gmscz==1) then
+          expfac = exp(-zbyzs)
+        else !if(use_gmscz==2) then
+          expfac = exp(-(zbyzs-1d0)**2)
+        endif
+        k1d(l) = (ks-kbg)*expfac+kbg
+      enddo
+      end subroutine do_k3d_product
+
+      subroutine make_k3dxy_from_k3d(k3d,k3dx,k3dy)
+!@sum make_k3dxy_from_k3d shift cell-center 3D diffusivity to cell edges
+      use ocean, only : im,jm,lmo
+      use ocean, only : nbyzu,i1yzu,i2yzu,lmu
+      use ocean, only : nbyzv,i1yzv,i2yzv,lmv
+      use oceanr_dim, only : grid=>ogrid
+      use domain_decomp_1d, only : getdomainbounds,halo_update
+      implicit none
+      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,lmo) ::
+     &     k3d
+      real*8, dimension(lmo,im,grid%j_strt_halo:grid%j_stop_halo) ::
+     &     k3dx,k3dy
+c
+      integer :: i,j,l,n,il,ir
+
+      integer :: j_0,j_1,j_0s,j_1s
+
+      call getdomainbounds(grid, j_strt=j_0, j_stop=j_1,
+     &               j_strt_skp=j_0s, j_stop_skp=j_1s)
+
+
+      call halo_update(grid,k3d)
+
+      do j=j_0s,j_1s
+      do n=1,nbyzu(j,1)
+      do i=i1yzu(n,j,1),i2yzu(n,j,1)
+        il = i
+        if(i.eq.im) then
+          ir = 1
+        else
+          ir = i+1
+        endif
+        do l=1,lmo
+          k3dx(l,i,j) = .5d0*(k3d(il,j,l)+k3d(ir,j,l))
+        enddo
+      enddo
+      enddo
+      enddo
+
+      do j=max(2,j_0-1),j_1s
+      do n=1,nbyzv(j,1)
+      do i=i1yzv(n,j,1),i2yzv(n,j,1)
+        do l=1,lmo
+          k3dy(l,i,j) = .5d0*(k3d(i,j,l)+k3d(i,j+1,l))
+        enddo
+      enddo
+      enddo
+      enddo
+
+      end subroutine make_k3dxy_from_k3d
 
       subroutine orig_mesodiff(k2d,zeroing_mask)
 !@auth Gavin Schmidt/Dan Collins

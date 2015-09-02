@@ -38,7 +38,7 @@
 !@var IJ_xxx Names for OIJ diagnostics
       INTEGER IJ_HBL,IJ_BO,IJ_BOSOL,IJ_USTAR,IJ_SSH,IJ_PB,IJ_SF,
      *     IJ_SRHFLX,IJ_SRWFLX,IJ_SRHFLXI,IJ_SRWFLXI,IJ_SRSFLXI,IJ_ERVR
-     *     ,IJ_MRVR,IJ_EICB,IJ_MICB,IJ_GMSC,ij_mld 
+     *     ,IJ_MRVR,IJ_EICB,IJ_MICB,IJ_GMSC,IJ_GMSCz,ij_mld 
 #ifdef OCN_GISS_MESO
      .     ,ij_eke,ij_rd
 #endif
@@ -1918,6 +1918,14 @@ c
       lname_oij(k)='Scaling for GM skew-flux'
       sname_oij(k)='gm_scale_ij'
       units_oij(k)='m2/s'
+      ia_oij(k)=ia_src
+      scale_oij(k)=1.
+
+      k=k+1
+      IJ_GMSCz=k
+      lname_oij(k)='Mesoscale diffusivity z-decay scale'
+      sname_oij(k)='zscale_meso'
+      units_oij(k)='m'
       ia_oij(k)=ia_src
       scale_oij(k)=1.
 
