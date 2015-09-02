@@ -618,7 +618,7 @@ c
       USE OCEANRES, only : idm=>imo,jdm=>jmo
       USE OCEAN, only : DLATM
 #else
-      USE hycom_dim, only : ogrid, idm=>iia, jdm=>jja, aj_0h, aj_1h
+      USE hycom_dim, only : ogrid, idm=>iia, jdm=>jja, aj_0, aj_1
       use hycom_cpler, only: flxa2o
       USE GEOM, only : DLATM      !here okay to use dlatm because interpolate from atmos
 #endif
@@ -637,7 +637,7 @@ c
      .          ogrid%J_STRT:ogrid%J_STOP,:)
 #else
       do k=1,kgrd
-        call flxa2o(data2(:,aj_0h:aj_1h,k),fldo(:,:,k))
+        call flxa2o(data2(:,aj_0:aj_1,k),fldo(:,:,k))
       end do
 #endif
 

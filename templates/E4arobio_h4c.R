@@ -175,6 +175,8 @@ jerlv0=1
 !atmCO2=289.9      !uatm for preindustrial runs
 atmCO2=0.          !prognostic atmCO2
 to_volume_MixRat=1    ! for tracer printout
+!!!solFe=0.02            ! default iron solubility
+solFe=0.05            ! enhanced iron solubility
 
 &&END_PARAMETERS
 
