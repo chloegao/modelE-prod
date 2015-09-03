@@ -77,7 +77,8 @@ C**** used in init_land_surface, and deallocated after use.
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: earth_ice
 !@var earth_tp temperature of layer (C)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: earth_tp
-
+!@var tsnowtop skin temperature of snow (C)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: tsnowtop
 
 !@var GDEEP keeps average (2:n) values of temperature, water and ice
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: GDEEP
@@ -706,6 +707,7 @@ c      END SUBROUTINE io_earth
         allocate(temp(ngm,i_0:i_1,j_0:j_1),
      &        wetness(ngm,i_0:i_1,j_0:j_1),
      &         snowdp(i_0:i_1,j_0:j_1),
+     &       tsnowtop(i_0:i_1,j_0:j_1),
      &        earth_tp(0:ngm,ls_nfrac,i_0:i_1,j_0:j_1),
      &       earth_sat(0:ngm,ls_nfrac,i_0:i_1,j_0:j_1),
      &       earth_ice(0:ngm,ls_nfrac,i_0:i_1,j_0:j_1))
@@ -713,6 +715,8 @@ c      END SUBROUTINE io_earth
         wetness = .8d0 ! default in case wetness not present
         call read_dist_data(grid,fid,'wetness',wetness,jdim=3)
         call read_dist_data(grid,fid,'snow',snowdp)
+        tsnowtop = temp(1,:,:) ! default in case tsnowtop not present
+        call read_dist_data(grid,fid,'tsnowtop',tsnowtop)
         do ifrac=1,ls_nfrac
           do j=j_0,j_1
           do i=i_0,i_1

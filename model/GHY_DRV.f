@@ -2163,6 +2163,7 @@ c**** recompute ground hydrology data if necessary (new soils data)
 
      &           earth_sat(:,:,i,j), earth_ice(:,:,i,j),
      &           earth_tp(:,:,i,j),  snowbv(:,i,j),
+     &           tsnowtop(i,j),
 
      &           ws_can, shc_can,
      &           q_ij(i,j,:,:), dz_ij(i,j,:)
@@ -2181,7 +2182,7 @@ c**** recompute ground hydrology data if necessary (new soils data)
         end do
         write (*,*) 'ground hydrology data was made from ground data'
         if(allocated(earth_tp)) then
-          deallocate(earth_tp, earth_sat, earth_ice)
+          deallocate(earth_tp, earth_sat, earth_ice, tsnowtop)
         endif
       end if
 
@@ -2555,6 +2556,7 @@ c outer loop over ibv
 
      &     earth_sat, earth_ice,
      &     earth_tp, snowd,
+     &     tsnowtop,
 
      &     ws_can, shc_can,
      &     q, dz )
@@ -2571,7 +2573,7 @@ c outer loop over ibv
       !-- in
       real*8, intent(in) :: earth_sat(0:,:), earth_ice(0:,:),
      &      earth_tp(0:,:)
-      real*8, intent(in) ::  snowd(:)
+      real*8, intent(in) ::  snowd(:), tsnowtop
       real*8, intent(in) :: ws_can, shc_can
       real*8, intent(in) :: q(:,:), dz(:)
       !--- local
@@ -2609,8 +2611,8 @@ c if there is a snow put it all in the first layer (assume rho_snow = 200)
         wsn(1,ibv)=snowd(ibv)
         fr_snow(ibv) = 1.d0
 
-c set snow temperature to temperature of first soil layer (or 0)
-        tsn1(ibv) = min( earth_tp(1,ibv), 0.d0 )
+c set snow temperature to average of snow top and first soil layer (or 0)
+        tsn1(ibv) = min( .5d0*(tsnowtop+earth_tp(1,ibv)), 0.d0 )
 
 c use snow temperature to get the heat of the snow
         call temperature_to_heat(hsn(1,ibv),
