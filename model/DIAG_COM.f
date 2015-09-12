@@ -115,7 +115,7 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: ASJL,ASJL_loc
 
 !@param KAIJ number of AIJ diagnostics
-      INTEGER, PARAMETER, public :: KAIJ=415
+      INTEGER, PARAMETER, public :: KAIJ=416
 #ifdef ACCMIP_LIKE_DIAGS
      &                                   + 8
 #endif
@@ -1881,6 +1881,7 @@ c more complicated logic
       return
       End Subroutine Scatter_zonal_diags
 
+
 C**** Routines associated with the budget grid
 #ifndef SCM
       SUBROUTINE SET_J_BUDG
@@ -1893,6 +1894,7 @@ C**** Routines associated with the budget grid
 !@var I,J are atm grid point values for the accumulation
       INTEGER :: I,J,J_0,J_1,I_0,I_1,J_0H,J_1H,I_0H,I_1H
       INTEGER :: IER
+      Real*8  :: dLATD  !  latitudinal budget spacing in degrees
 
 C**** define atmospheric grid
       call getDomainBounds(grid,J_STRT=J_0,J_STOP=J_1,J_STRT_HALO=J_0H,
@@ -1904,9 +1906,14 @@ C**** define atmospheric grid
 
 C**** Define mapping from actual lon/lat point to budget grid
 C**** this should be valid for all grids (lat/lon, cubed sphere,...)
+      dLATD = 180d0 / JM_BUDG
+      If (JM_BUDG == 46)  dLATD = 4
+      If (JM_BUDG == 24)  dLATD = 8
       DO J=J_0,J_1
         DO I=I_0,I_1
-           J_BUDG(I,J)=NINT(1+(lat2d_dg(I,J)+90)*(JM_BUDG-1)/180.)
+           J_BUDG(I,J) = Nint (LAT2D_DG(I,J)/dLATD + (JM_BUDG+1)/2d0)
+           If (J_BUDG(I,J) < 1)        J_BUDG(I,J) = 1
+           If (J_BUDG(I,J) > JM_BUDG)  J_BUDG(I,J) = JM_BUDG
         END DO
       END DO
 
@@ -1918,6 +1925,7 @@ C**** define limits on budget indices for each processor
 
       RETURN
       END SUBROUTINE SET_J_BUDG
+
 
       subroutine set_wtbudg()
 !@sum Precomputes area weights for zonal means on budget grid

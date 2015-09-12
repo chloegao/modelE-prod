@@ -150,16 +150,6 @@ c
       integer ipa(iia,jja)
 #endif
       integer nt
-#ifdef TRACERS_OceanBiology
-      integer ihr,ichan,hour_of_day,day_of_month,iyear
-      integer bef,aft                   !  bio routine timing variables
-      real plev
-#endif
-#if (defined TRACERS_AGE_OCEAN) \
-      || (defined TRACERS_OCEAN_WATER_MASSES) \
-      || (defined TRACERS_ZEBRA)
-      real plev
-#endif
       external rename
       logical master,slave,diag_ape
       character util(idm*jdm+14)*2,charac(20)*1,string*20,
@@ -172,9 +162,6 @@ c
       real cnuity_time,tsadvc_time,momtum_time,barotp_time,trcadv_time,
      .     convec_time,thermf_time,enloan_time,mxlayr_time,hybgen_time,
      .     agcm_time,ogcm_time
-#ifdef TRACERS_OceanBiology
-      real*4 ocnbio_time,ocnbio_total_time,ocnbio_avg_time
-#endif
       integer after,before,rate,bfogcm
       integer :: year, month, dayOfYear, date, hour
 c
@@ -201,6 +188,7 @@ c
       real*8, dimension(:,:), pointer :: cosz1_loc,wsavg_loc,achl_loc
       real*8, dimension(:,:), allocatable, save ::
      &     avisdir_loc,avisdif_loc, anirdir_loc, anirdif_loc
+      real*8, allocatable, DIMENSION(:,:), save :: asolz_loc, awind_loc
       real*8, dimension(:,:,:), pointer :: GTRACER_loc
 c
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -222,6 +210,10 @@ c
 
       call getdte(Itime,Nday,Iyear1,year,month,dayOfYear,date,hour,amon)
 
+      if (.not.allocated(asolz_loc)) then
+        allocate(asolz_loc(aI_0H:aI_1H,aJ_0H:aJ_1H))
+        allocate(awind_loc(aI_0H:aI_1H,aJ_0H:aJ_1H))
+      endif
       rsi_loc => iceocn%rsi
       focean_loc => atmocn%focean
       dmua_loc => atmocn%dmua
@@ -287,10 +279,8 @@ c
         do nt=1,atmocn%gasex_index%getsize()
           atracflx_loc(ia,ja,nt)=0.
         enddo
-#ifdef TRACERS_OceanBiology
-          awind_loc(ia,ja)=0.
-          asolz_loc(ia,ja)=0.
-#endif
+        awind_loc(ia,ja)=0.
+        asolz_loc(ia,ja)=0.
         if (allocated(atmocn%dirvis)) then
           if (.not.allocated(avisdir_loc))
      &             ALLOCATE(
@@ -391,12 +381,10 @@ c --- dmua on A-grid, admui on C-grid
      .                       atracflx_loc(ia,ja,nt)
         end if
       enddo
-#ifdef TRACERS_OceanBiology
             asolz_loc(ia,ja)=asolz_loc(ia,ja) !
      .           +COSZ1_loc(ia,ja)*dtsrc/(SECONDS_PER_HOUR*real(nhr)) !
             awind_loc(ia,ja)=awind_loc(ia,ja) !
      .           +wsavg_loc(ia,ja)*dtsrc/(SECONDS_PER_HOUR*real(nhr)) !
-#endif
           if (allocated(atmocn%dirvis)) then
             avisdir_loc(ia,ja)=avisdir_loc(ia,ja) !
      .         +atmocn%dirvis(ia,ja)*dtsrc/(SECONDS_PER_HOUR*real(nhr)) !
@@ -449,10 +437,8 @@ c combine wind and ice stresses after regridding
         call flxa2o(atracflx_loc(:,:,nt),ocnatm%work1)
         ocnatm%trgasex(nt,:,:) = ocnatm%work1(:,:)
       enddo
-#ifdef TRACERS_OceanBiology
       call flxa2o(asolz_loc,ocnatm%cosz1)
       call flxa2o(awind_loc,ocnatm%wsavg)
-#endif
       if (allocated(atmocn%dirvis)) then
         call flxa2o(avisdir_loc,ocnatm%dirvis)
         call flxa2o(avisdif_loc,ocnatm%difvis)
@@ -775,7 +761,7 @@ c
 c      if (dobio) then
 c
           !call obio_listDifferences('obio_model', 'before')
-        call obio_model(nn,mm,ocnatm)
+        call obio_model(mm,ocnatm)
           !call obio_listDifferences('obio_model', 'after')
 c
 c      endif
@@ -952,71 +938,6 @@ ccc      write (string,'(a12,i8)') 'hybgrd, step',nstep
 ccc      call comparall(m,n,mm,nn,string)
 
 
-#if (defined TRACERS_OceanBiology) ||  (defined TRACERS_AGE_OCEAN) \
-     || (defined TRACERS_OCEAN_WATER_MASSES) || (defined TRACERS_ZEBRA)
-
-!accumulate fields for diagnostic output
-      call gather_dpinit 
-!     if (AM_I_ROOT()) then
-!     if (mod(nstep,trcfrq).eq.0) then
-
-!     diag_counter=diag_counter+1
-!     print*, 'tracers:    doing tracav at nstep=',nstep,diag_counter
-
-!     endif  !trcfrq
-!     endif  !AM_I_ROOT
-
-!     if (mod(nstep,trcfrq).eq.0) then
-
-!       call start('  tracav')
-
-!#ifdef TRACERS_OceanBiology
-!        do j=j_0,j_1
-!          do i=1,idm
-!            ao_co2fluxav_loc(i,j)=ao_co2fluxav_loc(i,j) + 
-!     &           ao_co2flux_loc(i,j)
-!            pCO2av_loc(i,j)=pCO2av_loc(i,j)+pCO2_loc(i,j)
-!            pp2tot_dayav_loc(i,j) = pp2tot_dayav_loc(i,j)
-!     .                            + pp2tot_day_loc(i,j)
-!            cexpav_loc(i,j)=cexpav_loc(i,j)+cexp_loc(i,j)
-!
-!            if(i.eq.243.and.j.eq.1) then
-!            write(*,'(a,3i5,8e12.4)')'1111111111',
-!     .      nstep,i,j,ao_co2flux_loc(i,j),ao_co2fluxav_loc(i,j)
-!     .      ,pco2_loc(i,j),pCO2av_loc(i,j)
-!     .      ,pp2tot_day_loc(i,j),pp2tot_dayav_loc(i,j)
-!     .      ,cexp_loc(i,j),cexpav_loc(i,j)
-!            endif
-!#ifdef TRACERS_Alkalinity
-!            caexpav_loc(i,j)=caexpav_loc(i,j)+caexp_loc(i,j)
-!#endif
-!          enddo
-!        enddo
-!#endif
-!
-!        do j=j_0,j_1
-!          do i=1,idm
-!
-!            do k=1,kk
-!              plev = max(0.,dpinit_loc(i,j,k))
-!              if (plev.lt.1.e30) then
-!                plevav_loc(i,j,k) = plevav_loc(i,j,k) + plev
-!                
-!                do nt=1,ntrcr
-!                  tracav_loc(i,j,k,nt) = tracav_loc(i,j,k,nt) + 
-!     &                 tracer_loc(i,j,k,nt)*plev
-!                enddo !nt
-!
-!              endif
-!            enddo  !k
-!          end do
-!        end do
-!
-!        call stop('  tracav')
-!      end if
-
-#endif
-
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       if (AM_I_ROOT()) then
       if (diag_ape)
@@ -1153,12 +1074,6 @@ c
       if (mod(nstep,5).eq.0) call sys_flush(lp)
       end if  ! AM_I_ROOT
 
-#ifdef TRACERS_OceanBiology
-!     if (AM_I_ROOT()) then
-!       if (dobio .or. diagno) call obio_trint
-!     endif
-#endif
-
 c
       if (.not.diagno) go to 23
 c
@@ -1237,14 +1152,6 @@ ccc     .     'barotrop. v vel. (mm/s)')
       endif  !  AM_I_ROOT
       call set_data_after_archiv()
 
-#if (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES) \
-      || (defined TRACERS_ZEBRA)
-      ! These were being obtained from obio_com.  Why?
-      diag_counter=0
-      tracav_loc = 0
-      plevav_loc = 0
-#endif
-
  23   continue
 
 c --- accumulate fields for agcm
@@ -1264,8 +1171,6 @@ c --- accumulate fields for agcm
 
  201  continue
 
-      ! may need the next line for TRACERS_GASEXCH_ocean_CFC
-      !call gather_tracer
 #ifdef TRACERS_ON
       do j=J_0,J_1
       do l=1,isp_loc(j)
@@ -1954,34 +1859,3 @@ c------------------------------------------------------------------
 
       end subroutine scatter1_hycom_arrays
 c------------------------------------------------------------------
-
-      subroutine scatter_tracer
-      USE HYCOM_ARRAYS, only : tracer_loc => tracer
-      USE HYCOM_ARRAYS_GLOB, only : tracer
-      USE HYCOM_DIM, only : ogrid
-      USE DOMAIN_DECOMP_1D, ONLY: UNPACK_DATA
- 
-      call unpack_data( ogrid,  tracer, tracer_loc )
-
-      end subroutine scatter_tracer
-
-      subroutine gather_tracer
-      USE HYCOM_ARRAYS, only : tracer_loc => tracer
-      USE HYCOM_ARRAYS_GLOB, only : tracer
-      USE HYCOM_DIM, only : ogrid
-      USE DOMAIN_DECOMP_1D, ONLY: PACK_DATA
- 
-      call pack_data( ogrid,  tracer_loc, tracer )
-
-      end subroutine gather_tracer
-
-      subroutine gather_dpinit
-      USE HYCOM_ARRAYS, only : dpinit_loc => dpinit
-      USE HYCOM_ARRAYS_GLOB, only : dpinit
-      USE HYCOM_DIM, only : ogrid
-      USE DOMAIN_DECOMP_1D, ONLY: PACK_DATA
- 
-      call pack_data( ogrid,  dpinit_loc, dpinit )
-
-      end subroutine gather_dpinit
-      

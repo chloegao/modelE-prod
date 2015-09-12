@@ -58,12 +58,12 @@ class newRun():
         self.shortName = shortName
         self.name = shortName+'.'+mode+'.'+rundeck.compiler
         # The following are (cmd)strings used by gnu-make
-        if rundeck.makesystem == 'makeOld':
-            self.runCmd = 'RUN='+self.name
-            self.runSrcCmd = 'RUNSRC='+rundeck.name
-        else:
-            self.runCmd = self.name
-            self.runSrcCmd = rundeck.name
+#        if rundeck.makesystem == 'makeOld':
+        self.runCmd = 'RUN='+self.name
+        self.runSrcCmd = 'RUNSRC='+rundeck.name
+#        else:
+#            self.runCmd = self.name
+#            self.runSrcCmd = rundeck.name
         if mode == 'serial':
             self.mode = 'serial'
             self.modeCmd = 'MPI=NO'
@@ -91,6 +91,7 @@ class newRun():
         self.verification = rundeck.verification
         self.npList = rundeck.npList
         self.endtime = rundeck.endtime
+        self.decksDir = rundeck.decksDir
 
 
     # System call that records result of subprocess call
@@ -281,14 +282,20 @@ def build(run):
         if rc != 0:
             return 1
     else:
-        rc = run.sysCmd(run.repository + '/exec/configure ' + run.runCmd + \
-                            ' ' + run.runSrcCmd + ' ' + run.modeCmd + \
-                            ' ' + run.xflags, 3, 'b')
+        cmd = 'make rundeck '+run.runCmd+' '+run.runSrcCmd
+        rc = run.sysCmd(cmd, 3, 'b')
         if rc != 0:
             return 1
-        rc = run.sysCmd('make -j setup', 3, 'b')
+        os.chdir(run.decksDir+'/../'+run.name)
+        cmd = '../configme/discover_'+run.compiler+' ../decks/'+run.name+'.R ..'
+        rc = run.sysCmd(cmd, 3, 'b')
         if rc != 0:
             return 1
+        cmd = 'make -j'
+        rc = run.sysCmd(cmd, 3, 'b')
+        if rc != 0:
+            return 1
+        
     return 0
            
 """
@@ -303,25 +310,48 @@ def run1hr(run, npes=1):
         cmd =  'make setup '+run.runCmd+' '+run.modeCmd+' '+run.xflags
         rc = run.sysCmd(cmd, 3, '1')
     else:
-        rc = run.sysCmd('make setup ', 3, '1')
+        os.chdir(run.decksDir+'/..')
+        cmd = 'python python/rune/make_rundir.py decks/'+run.name+'.R '+run.name+'-scratch'
+        logger.info(cmd)
+        rc = run.sysCmd(cmd, 3, '1')
     if rc != 0:
         return 1
 
-    rune = run.repository+'/exec/runE '
-    cmd = rune+run.name+' -np '+str(npes)+' -cold-restart'  
-    rc = run.sysCmd(cmd, 3, '1')
-    if rc != 0:
-        return 1
+    if run.makesystem == 'makeOld':
+        rune = run.repository+'/exec/runE '
+        cmd = rune+run.name+' -np '+str(npes)+' -cold-restart'  
+        rc = run.sysCmd(cmd, 3, '1')
+        if rc != 0:
+            cmd = 'cd '+run.name+'; touch '+run.name+'.1hr.FAILED'
+            rc = run.sysCmd(cmd, 3, '1')
+            return 1
 
-    cmd = 'cd '+run.name+ '; test `head -1 run_status` -eq ' + mErc
-    rc = run.sysCmd(cmd, 3, '1')
-    if rc != 0:
-        return 1
+        cmd = 'cd '+run.name+ '; test `head -1 run_status` -eq ' + mErc
+        rc = run.sysCmd(cmd, 3, '1')
+        if rc != 0:
+            return 1
 
-    cmd = 'cd '+run.name+'; cp fort.2.nc '+checkpointName(run, '1hr', npes)
-    rc = run.sysCmd(cmd, 3, '1')
-    if rc != 0:
-        return 1
+        cmd = 'cd '+run.name+'; cp fort.2.nc '+checkpointName(run, '1hr', npes)
+        rc = run.sysCmd(cmd, 3, '1')
+        if rc != 0:
+            return 1
+    else:
+        os.chdir(run.decksDir+'/../'+run.name+'-scratch')
+        rune = ''
+        if run.mode == 'mpi':
+            rune = 'mpirun -np '+str(npes)
+        cmd = rune+' ../'+run.name+'/model/modelexe -i I -cold-restart'  
+        rc = run.sysCmd(cmd, 3, '1')
+        if rc != 0:
+            return 1
+        cmd = 'test `head -1 run_status` -eq ' + mErc
+        rc = run.sysCmd(cmd, 3, '1')
+        if rc != 0:
+            return 1
+        cmd = 'cp fort.2.nc '+checkpointName(run, '1hr', npes)
+        rc = run.sysCmd(cmd, 3, '1')
+        if rc != 0:
+            return 1
 
     logger.info(run.name + ' is DONE')
     return 0
@@ -363,6 +393,8 @@ def runRestart(run, npes=1, endtime=25):
     cmd = rune+run.name+' -np '+str(npes)+' -cold-restart'  
     rc = run.sysCmd(cmd, 3, 'r')
     if rc != 0:
+        cmd = 'cd '+run.name+'; touch '+run.name+'.'+str(endtime)+'.FAILED'
+        rc = run.sysCmd(cmd, 3, '1')
         return 1
 
     cmd = 'cd '+run.name+'; cp fort.1.nc '+checkpointName(run, run.endTime, npes)
@@ -378,6 +410,8 @@ def runRestart(run, npes=1, endtime=25):
     cmd = 'cd '+run.name+'; '+restart+'; test `head -1 run_status` -eq '+mErc
     rc = run.sysCmd(cmd, 3, 'r')
     if rc != 0:
+        cmd = 'cd '+run.name+'; touch '+run.name+'.restart.FAILED'
+        rc = run.sysCmd(cmd, 3, '1')
         return 1
 
     cmd = 'cd '+run.name+';cp fort.2.nc '+checkpointName(run, 'restart', npes)
@@ -460,12 +494,11 @@ def compareBase(run, endTime, npes=1):
         return
 
     logger.info('Compare '+run.name+' '+endTime+' base run')
-    prefix = run.name + '/'
-
-    cmd = 'cd '+run.name+ '; test `head -1 run_status` -eq 13'
-    rc = run.sysCmd(cmd, 3, 'r')
-    if rc != 0:
-        return
+    if run.makesystem == 'makeOld':
+        prefix = run.name + '/'
+    else:
+        prefix = run.decksDir+'/../'+run.name+'-scratch/'
+        
 
     # Check if run result exists:
     fileTST = prefix + checkpointName(run, endTime, npes)
@@ -478,12 +511,9 @@ def compareBase(run, endTime, npes=1):
 
     n = getNumDiffs(fileTST, fileBAS)
     if n == '0':
-#    rc = subprocess.check_output([diffreportExe, fileTST, fileBAS])
-#    if rc == '':
         run.results[4] = run.successMark
     else:
         run.results[4] = '{: ^5}'.format(n)
-#        run.results[4] = run.failMark   
         logger.warning('---Baseline reproducibility failed')
         if run.runsrc.updateBase == 'yes':
             if subprocess.call(['cp', fileTST, fileBAS]) == 0:
@@ -501,11 +531,6 @@ def compareRestart(run, npes=1):
     logger.info('Compare '+run.name+' '+run.endTime+' and restart run')
     prefix = run.name + '/'
 
-    cmd = 'cd '+run.name+ '; test `head -1 run_status` -eq 13'
-    rc = run.sysCmd(cmd, 3, 'r')
-    if rc != 0:
-        return
-
     # Check if continuous run result exists:
     fileCON = prefix + checkpointName(run, run.endTime, npes)
     if not os.path.exists(fileCON):
@@ -521,8 +546,6 @@ def compareRestart(run, npes=1):
     logger.debug(diffreportExe+' '+fileCON+' '+fileRST)
     n = getNumDiffs(fileCON, fileRST)
     if n == '0':
-#    rc = subprocess.check_output([diffreportExe, fileCON, fileRST])
-#    if rc == '':
         run.results[5] = run.successMark
     else:
         # SCM rundeck is not restart reproducible
@@ -530,7 +553,6 @@ def compareRestart(run, npes=1):
             run.results[5] = run.failMark+'*'
         else:
             run.results[5] = '{: ^5}'.format(n)
-#            run.results[5] = run.failMark
             logger.warning('---Restart reproducibility failed')
 
  
@@ -566,12 +588,9 @@ def compareNPE(runMPI, endTime, npes):
     logger.debug(diffreportExe+' '+fileSER+' '+fileMPI)
     n = getNumDiffs(fileSER, fileMPI)
     if n == '0':
-#    rc = subprocess.check_output([diffreportExe, fileSER, fileMPI])
-#    if rc == '':
         runMPI.results[6] = runMPI.successMark
     else:
         runMPI.results[6] = '{: ^5}'.format(n)
-#        runMPI.results[6] = runMPI.failMark
         logger.warning('---NPE reproducibility failed')
 
         

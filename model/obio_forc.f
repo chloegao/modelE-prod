@@ -2,15 +2,6 @@
 
       MODULE obio_forc
 
-#ifdef OBIO_ON_GARYocean
-      USE OCEANRES, only : kdm=>lmo 
-#else
-      USE hycom_dim_glob
-#endif
-      USE obio_dim
-      use ocalbedo_mod, only: nlt
-
-
       implicit none
 
 
@@ -19,17 +10,13 @@
       real, ALLOCATABLE, DIMENSION(:,:,:)  :: tirrq3d
       real, ALLOCATABLE, DIMENSION(:,:,:)  :: avgq            !mean daily irradiance in quanta
       real, ALLOCATABLE, DIMENSION(:,:,:)  :: atmFe
-      real, ALLOCATABLE, DIMENSION(:,:,:)  :: atmFe_glob      !surface iron deposition
       real, ALLOCATABLE, DIMENSION(:,:,:)  :: alk             !alkalinity in 'umol/kg'
-#ifdef TRACERS_Alkalinity
-      real, ALLOCATABLE, DIMENSION(:,:,:)  :: alk_glob        !alkalinity in 'umol/kg'
-#endif
 
       real solz               !mean cosine solar zenith angle
       real sunz               !solar zenith angle
-      real Ed(nlt),Es(nlt)
+      real, allocatable, dimension(:) ::  Ed, Es
       real wind               !surface wind from atmos
-      real tirrq(kdm)         !total mean irradiance in quanta
+      real, allocatable, dimension(:) :: tirrq !total mean irradiance in quanta
       real, parameter ::  tirrq_critical=10. !in quanta threshold at compensation depth
       real rmud               !downwelling irradiance average cosine
       real rhosrf             !surface air density which comes from PBL.f
@@ -38,35 +25,31 @@
 
 !------------------------------------------------------------------------------
       subroutine alloc_obio_forc
+      use ocalbedo_mod, only: nlt
       USE obio_forc
-      USE obio_dim
 #ifdef OBIO_ON_GARYocean
       USE OCEANR_DIM, only : ogrid
-      USE OCEANRES, only : idm=>imo,jdm=>jmo,kdm=>lmo
+      USE OCEANRES, only : kdm=>lmo
 #else
-      USE hycom_dim_glob
-      USE hycom_dim, only : ogrid,i_0h,i_1h,j_0h,j_1h
+      USE hycom_dim, only : ogrid, kdm
 #endif
 
 
       implicit none
 
-#ifdef OBIO_ON_GARYocean
-      INTEGER :: j_0h,j_1h,i_0h,i_1h
+      INTEGER :: j_0,j_1,i_0,i_1
 
-      I_0H = ogrid%I_STRT_HALO
-      I_1H = ogrid%I_STOP_HALO
-      J_0H = ogrid%J_STRT_HALO
-      J_1H = ogrid%J_STOP_HALO
-#endif
+      I_0 = ogrid%I_STRT
+      I_1 = ogrid%I_STOP
+      J_0 = ogrid%J_STRT
+      J_1 = ogrid%J_STOP
 
-      ALLOCATE(tirrq3d(i_0h:i_1h,j_0h:j_1h,kdm))
-      ALLOCATE(   ihra(i_0h:i_1h,j_0h:j_1h))
-      ALLOCATE(   avgq(i_0h:i_1h,j_0h:j_1h,kdm))
-      ALLOCATE(    alk(i_0h:i_1h,j_0h:j_1h,kdm))
-      ALLOCATE(atmFe(i_0h:i_1h,j_0h:j_1h,12),atmFe_glob(idm,jdm,12))
-#ifdef TRACERS_Alkalinity
-      ALLOCATE(alk_glob(idm,jdm,kdm))
-#endif
+      ALLOCATE(tirrq3d(i_0:i_1,j_0:j_1,kdm))
+      ALLOCATE(   ihra(i_0:i_1,j_0:j_1))
+      ALLOCATE(   avgq(i_0:i_1,j_0:j_1,kdm))
+      ALLOCATE(    alk(i_0:i_1,j_0:j_1,kdm))
+      ALLOCATE(atmFe(i_0:i_1,j_0:j_1,12))
+      allocate(tirrq(kdm))
+      allocate(Ed(nlt),Es(nlt))
 
       end subroutine alloc_obio_forc

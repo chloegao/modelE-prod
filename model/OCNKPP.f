@@ -18,6 +18,18 @@ C****
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TRMO1,TXMO1,TYMO1
 #endif
 
+!@dbparam use_tdiss whether to apply tidally induced vertical mixing
+!@+       from input dataset
+      integer :: use_tdiss=0
+!@var tdiss prescribed tidal dissipation (W/m2)
+!@var tdiss_n N corresponding to prescribed tidal dissipation (1/s)
+      real*8, allocatable, dimension(:,:) :: tdiss,tdiss_n
+
+      ! todo: make fkph a runtime parameter along with difsiw in KPPE
+      real*8, parameter ::
+     &    fkph   = 0.1d0    ! background vertical diffusion coefficient (cm**2/sec)
+     &  , fkpm   = 10.*fkph ! background vertical viscosity coefficient (cm**2/sec)
+
       END MODULE KPP_COM
 C****
       MODULE KPPE
@@ -26,7 +38,7 @@ C****
 c====================== include file "KPP_1D.COM" =====================
 c
       USE OCEAN, only : lmo
-      USE OCEANRES, only : fkph, fkpm
+      USE KPP_COM, only : fkph, fkpm
       USE SW2OCEAN, only : lsrpd,fsr,fsrz,dfsrdz,dfsrdzb
       IMPLICIT NONE
       SAVE
@@ -65,8 +77,8 @@ c     variables used for vertical diffusion
 c
 c inputs: (set through namelist)
 c
-!@var fkph   = vertical diffusion coefficient (cm**2/sec) (taken from OCEANRES)
-!@var fkpm   = vertical viscosity coefficient (cm**2/sec) (taken from OCEANRES)
+!@var fkph   = vertical diffusion coefficient (cm**2/sec) (taken from KPP_COM)
+!@var fkpm   = vertical viscosity coefficient (cm**2/sec) (taken from KPP_COM)
 !@var bvdc   = background vertical diffusion constant
 !@var bvvc   = background vertical viscosity constant
 !@var vvclim = vertical viscosity coefficient limit
@@ -1344,7 +1356,7 @@ C****
      *     ,dxypo,cosic,sinic,uo,vo,uod,vod,ramvn,bydts, IVNP,kpl
       USE ODIAG, only : oijl=>oijl_loc,oij=>oij_loc,oijmm
      *     ,ij_hbl,ij_hblmax,ij_bo,ij_bosol,ij_ustar,ijl_kvm,ijl_kvg
-     *     ,ijl_wgfl,ijl_wsfl,ol,l_rho,l_temp,l_salt  !ij_ogeoz
+     *     ,ijl_kvx,ijl_wgfl,ijl_wsfl,ol,l_rho,l_temp,l_salt  !ij_ogeoz
      *     ,ij_mld,ij_mldmax
 #ifdef OCN_GISS_TURB
      *     ,ijl_ri,ijl_rrho,ijl_bv2,ijl_otke,ijl_kvs,ijl_kvc,ijl_buoy
@@ -1354,6 +1366,7 @@ C****
 #endif
       USE KPP_COM, only : g0m1,s0m1,mo1,gxm1,gym1,sxm1,sym1,uo1,vo1
      &     ,uod1,vod1
+      USE KPP_COM, only : use_tdiss,tdiss,tdiss_n
 #ifdef OCN_GISS_TURB
       USE GISSMIX_COM, only : otke,rhobot,exya,ut2a,taubx,tauby
 #endif
@@ -1365,7 +1378,7 @@ C****
       USE OCEAN, ONLY : GXXMO,GYYMO,GZZMO,GXYMO,SXXMO,SYYMO,SZZMO,SXYMO
       USE OCEAN, ONLY : USE_QUS,NBYZM,I1YZM,I2YZM,DZO
 #ifdef ENHANCED_DEEP_MIXING
-      USE OCEANRES, only : fkph
+      USE KPP_COM, only : fkph
       USE CONSTANT, only : pi
 #endif
 #ifdef TRACERS_OCEAN
@@ -1446,6 +1459,10 @@ C**** KPP variables
 !@var kvextra an array prescribing background diffusivity as a function of depth
       REAL*8, DIMENSION(LMO) :: KVEXTRA
 #endif
+!@var kvtdiss profile of diffusivity (m2/s) output by get_kvtdiss
+!@var m1d layer mass (kg/m2) input to get_kvtdiss
+      real*8, dimension(lmo) :: kvtdiss,m1d
+
       integer :: j_0,j_1,j_0s,j_1s,j_0h
       logical :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
       logical ::
@@ -1538,6 +1555,8 @@ C**** will be fixed during convection.
         UTD(:,:,L) = UOD(:,:,L)
         VTD(:,:,L) = VOD(:,:,L)
       END DO
+
+      kvtdiss = 0.
 
       if(use_qus==1) then
         adjust_zslope_using_flux = .false.
@@ -1918,6 +1937,18 @@ C**** else remove solar from Bo
 C**** Start iteration for diffusivities
       MML = MMLT   ! start with pre-source mass
       BYMML = BYMMLT
+
+      if(use_tdiss==1) then
+        do l=1,lmij
+          g(l) = g0ml(l)*bymml(l)
+          s(l) = s0ml(l)*bymml(l)
+          m1d(l) = mml(l)*bydxypo(j)
+        enddo
+        call get_kvtdiss(lmij,g,s,m1d,po,tdiss(i,j),tdiss_n(i,j),
+     &       kvtdiss,
+     &       .false.) ! debug ?
+      endif
+
       ITER = 0
       HBL = 0
   510 ITER =ITER + 1
@@ -2153,7 +2184,7 @@ C****                            ghat (s/m^2) => (s m^4/kg^2)
          akvs(l) = akvs(l) + kvextra(l)
          akvc(l) = akvc(l) + kvextra(l)
 #endif
-         klen(i,j,l) = akvs(l)
+         klen(i,j,l) = akvs(l)+kvtdiss(l)
          R = 5d-1*(RHO(L)+RHO(L+1))
          R2 = R**2
 c        GHATM(L) = 0.          ! no non-local momentum transport
@@ -2181,10 +2212,10 @@ c        GHATT(L,:)=GHATS(L)*(DELTATR(:)-TRML(1,:)*DELTAM*BYMML(1))
 c    &                      /(DELTAS-S0ML0(1)*BYMML(1)*DELTAM+1d-30)
 #endif
 #endif
-         AKVM(L) = AKVM(L)*R2
-         AKVG(L) = AKVG(L)*R2
-         AKVS(L) = AKVS(L)*R2
-         AKVC(L) = AKVC(L)*R2
+         AKVM(L) = (AKVM(L)+KVTDISS(L))*R2
+         AKVG(L) = (AKVG(L)+KVTDISS(L))*R2
+         AKVS(L) = (AKVS(L)+KVTDISS(L))*R2
+         AKVC(L) = (AKVC(L)+KVTDISS(L))*R2
          AKVG3D(L,I,J) = AKVG(L)
          AKVS3D(L,I,J) = AKVS(L)
          AKVC3D(L,I,J) = AKVC(L)
@@ -2315,6 +2346,9 @@ C**** Diagnostics for non-local transport and vertical diffusion
        DO L=1,LMIJ-1
          OIJL(I,J,L,IJL_KVM) = OIJL(I,J,L,IJL_KVM) + AKVM(L)
          OIJL(I,J,L,IJL_KVG) = OIJL(I,J,L,IJL_KVG) + AKVG(L)
+         if(use_tdiss==1) then
+           OIJL(I,J,L,IJL_KVX) = OIJL(I,J,L,IJL_KVX) + KVTDISS(L)
+         endif
 #ifdef OCN_GISS_TURB
          OIJL(I,J,L,IJL_KVS) = OIJL(I,J,L,IJL_KVS) + AKVS(L)
          OIJL(I,J,L,IJL_KVC) = OIJL(I,J,L,IJL_KVC) + AKVC(L)
@@ -2767,6 +2801,149 @@ C****
 
       RETURN
       END SUBROUTINE OCONV
+
+      subroutine get_kvtdiss(lm,g,s,m,p,tpow,tpow_n,kv,do_debug)
+!@sum get_kvtdiss Deliberately simplified calculation of tidally
+!@+   generated diffusivity kv from a semi-interactive estimate
+!@+   of column-integrated tidal dissipation.
+!@+   This version employs a bulk (nonlocal) relationship
+!@+   between dissipation and diffusivity, in contrast to
+!@+   other modelE codes which set kv = dissipation/N2
+!@+   locally at each depth with dissipation independent
+!@+   of local N2.  Here, the rate of column potential energy
+!@+   gain from the action of a trial profile of kv is
+!@+   calculated; kv is then multiplicatively adjusted
+!@+   to match the column-integrated dissipation rate.  The
+!@+   shape of the kv profile is an exponential decay upward
+!@+   from the local seafloor with a vertical scale inversely
+!@+   proportional to column N.  The reference dissipation rate
+!@+   in each column is taken from an offline model and is
+!@+   rescaled by the ratio N/N_offline where N is the
+!@+   near-seafloor B-V frequency.
+!@+   Note that output kv is an effective buoyancy diffusivity,
+!@+   not a diffusivity for heat, salt, or tracers individually.
+!@+   Consistent with the host KPP code, this version assumes equality
+!@+   of heat and salt diffusivity when evaluating the action of the
+!@+   trial kv.
+      use constant, only : grav
+      implicit none
+!@var lm number of layers in local column
+      integer :: lm
+!@var tpow column-integrated tidal dissipation (W/m2) from offline model
+!@var tpow_n B-V frequency (1/s) used to compute tpow in offline model
+      real*8 :: tpow,tpow_n
+!@var g specific potential enthalphy (J/kg)
+!@var s salinity (kg/kg)
+!@var m layer mass (kg/m2)
+!@var p pressure (Pa)
+      real*8, dimension(lm) :: g,s,m,p
+!@var kv output tidally induced diffusivity (m2/s)
+      real*8, dimension(lm) :: kv
+!@var do_debug whether to output debugging info
+      logical :: do_debug
+c
+! Empirical parameters and tuning factors:
+      real*8, parameter ::
+     &      eff=.7d0/3d0        ! locality+conversion efficiency of dissip - >kv
+     &     ,n_column_ref=.01d0  ! col. N (1/s) at which kv z-scale = zscale_ref
+     &     ,zscale_ref=100d0    ! reference vertical decay scale of kv (m)
+     &     ,zscale_max=1000d0   ! maximum allowed vertical decay scale (m)
+     &     ,delz_n_bot=300d0    ! distance over which near-bottom N is evaluated
+     &     ,tpow_n_min=1d-5     ! lower bound on N (1/s) from offline dissipation
+     &     ,rescale_tpow_max=2d0 ! maximum allowed rescaling factor for dissip rate
+     &     ,dtnom=1d5           ! timestep (s) over which to apply trial kv
+     &     ,kvnom=1d-5          ! peak magnitude of trial kv (m2/s)
+     &     ,kv_max=10d0         ! maximum allowed output kv (m2/s)
+     &     ,rescale_kv_max=kv_max/kvnom
+c
+      real*8 :: volgsp ! external func
+      real*8 :: n_column,zscale,tpow_rescaled,n_bot,pbot,ztop,zbot,delz
+      integer :: l,iter,ltop
+      real*8 :: pesum0,pesum,rhokvbydze,vol,gl,sl,rescale_factor
+      real*8, dimension(:), allocatable :: ze,fxs,fxg,rho
+
+      allocate(ze(0:lm),fxg(0:lm),fxs(0:lm),rho(lm))
+
+      kv(:) = 0.
+      ! Two iterations.
+      ! The first evaluates initial PE and calculates trial kv and its fluxes.
+      ! The second evaluates final PE and rescales kv as per subr. header
+      do iter=1,2
+        ! compute potential energy
+        pesum = 0.
+        ze(lm) = 0.
+        do l=lm,1,-1
+          gl = g(l)
+          sl = s(l)
+          if(iter.eq.2) then ! apply flux convergence from trial kv
+            gl = gl + dtnom*(fxg(l-1)-fxg(l))/m(l)
+            sl = sl + dtnom*(fxs(l-1)-fxs(l))/m(l)
+          endif
+          vol = volgsp(gl,sl,p(l))
+          ! subgrid quadrature is overkill to evaluate change of PE
+          ze(l-1) = ze(l) + m(l)*vol
+          pesum = pesum + .5*(ze(l-1)+ze(l))*m(l)
+          rho(l) = 1d0/vol
+        enddo
+        pesum = pesum*grav
+        if(iter.eq.1) then ! compute trial kv and evaluate its fluxes
+          pesum0 = pesum ! save original column PE
+          delz = .5*(ze(0)+ze(1)-ze(lm-1)-ze(lm))
+          n_column = sqrt(grav*
+     &         abs(volgsp(g(lm),s(lm),0d0)/
+     &             volgsp(g(1),s(1),0d0)-1d0)/delz) + 1d-30
+          zscale = min(zscale_ref*n_column_ref/n_column, zscale_max)
+          do l=1,lm-1
+            kv(l) = exp(-ze(l)/zscale)*kvnom
+            rhokvbydze = kv(l)*(rho(l+1)+rho(l))/(ze(l-1)-ze(l+1))
+            ! simplest possible diff. numerics should suffice here
+            fxg(l) = (g(l)-g(l+1))*rhokvbydze
+            fxs(l) = (s(l)-s(l+1))*rhokvbydze
+          enddo
+          fxg(0) = 0.
+          fxs(0) = 0.
+          fxg(lm) = 0.
+          fxs(lm) = 0.
+        elseif(pesum.eq.pesum0) then
+c          write(6,*) 'pesum,pesum0 ',pesum,pesum0
+c          write(6,*) 'ze ',ze
+c          write(6,*) 'g ',g
+c          write(6,*) 's ',s
+c          write(6,*) 'm ',m
+cc            call stop_model('testing',255)
+          kv = 0.
+        else
+          ! rescale reference dissipation rate to get
+          ! actual dissipation rate from near-bottom N
+          zbot = .5d0*(ze(lm-1)+ze(lm))
+          do ltop=lm-1,1,-1
+            ztop = .5d0*(ze(ltop-1)+ze(ltop))
+            delz = ztop-zbot
+            if(ltop.eq.1 .or. delz .ge. delz_n_bot) exit
+          enddo
+          pbot = grav*sum(m)
+          n_bot = sqrt(grav*
+     &         abs(volgsp(g(lm),s(lm),pbot)/
+     &             volgsp(g(ltop),s(ltop),pbot)-1d0) / delz )
+          rescale_factor = n_bot/max(tpow_n_min,tpow_n)
+          rescale_factor = min(rescale_tpow_max,rescale_factor)
+          tpow_rescaled = tpow*rescale_factor
+          ! (final kv) -> (trial kv) *
+          !   (column dissip)/(rate of PE increase with trial kv)
+          rescale_factor = dtnom*eff*tpow_rescaled/(pesum-pesum0)
+          kv(:) = kv(:)*min(rescale_kv_max,max(0d0,rescale_factor))
+          if(do_debug) then
+            write(6,*) 'pesum,pesum0 debug',pesum,pesum0,
+     &           (pesum-pesum0)/dtnom
+            write(6,*) 'bv ',n_column
+            write(6,*) 'kv ',kv
+            write(6,*) 'tpow_n ',tpow_n,n_bot
+          endif
+        endif
+      enddo
+      deallocate(ze,fxg,fxs,rho)
+
+      end subroutine get_kvtdiss
 
       SUBROUTINE STCONV
 !@sum  STCONV uses vertical diffusion coefficients from KPP schmeme
@@ -3249,11 +3426,12 @@ C****
 !@sum  To allocate arrays who sizes now need to be determined at
 !@+    run-time
 !@auth Reto Ruedy
-
+      use pario, only : par_open,read_dist_data,par_close
       USE DOMAIN_DECOMP_1D, only : dist_grid,getDomainBounds
 !      USE OCEANR_DIM
 
       USE KPP_COM
+      use dictionary_mod, only : sync_param
 #ifdef TRACERS_OCEAN
       use ocn_tracer_com, only: tracerlist
 #endif
@@ -3262,6 +3440,7 @@ C****
 
       INTEGER :: J_1H, J_0H
       INTEGER :: IER
+      integer :: fid
 
       call getDomainBounds(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
 
@@ -3287,6 +3466,22 @@ c     k02count=1.
      *          TYMO1(tracerlist%getsize(),IM,J_0H:J_1H),
      *   STAT = IER)
 #endif
+
+      call sync_param("ocean_use_tdiss",use_tdiss)
+      if(use_tdiss==1) then
+#ifdef ENHANCED_DEEP_MIXING
+        call stop_model(
+     &    'ENHANCED_DEEP_MIXING and use_tdiss==1 incompatible',255)
+#endif
+        allocate(tdiss(im,j_0h:j_1h), stat = ier)
+        fid = par_open(grid,'TDISS','read')
+        call read_dist_data(grid,fid,'dissip',tdiss)
+        call par_close(grid,fid)
+        allocate(tdiss_n(im,j_0h:j_1h), stat = ier)
+        fid = par_open(grid,'TDISS_N','read')
+        call read_dist_data(grid,fid,'buoyancy',tdiss_n)
+        call par_close(grid,fid)
+      endif
 
       END SUBROUTINE alloc_kpp_com
 

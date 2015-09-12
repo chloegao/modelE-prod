@@ -137,10 +137,6 @@ c
         C_tend(k,2) = 0.d0
 #endif
 
-!       if(k.eq.1)
-!    .     write(*,'(a,3i5,e12.4)')'dicterm1',
-!    .     nstep,i,j,term
-
         term = docbac * pnoice(k)
         rhs(k,14,14) = term
         C_tend(k,2) = C_tend(k,2) + term
@@ -148,20 +144,12 @@ c
         C_tend(k,2) = 0.d0
 #endif
      
-!       if(k.eq.1)
-!    .     write(*,'(a,3i5,e12.4)')'dicterm2',
-!    .     nstep,i,j,term
-
         term = tfac(k)*remin(1)*det(k,1)/uMtomgm3 * pnoice(k)
         rhs(k,14,10) = term
         C_tend(k,2) = C_tend(k,2) + term
 #ifdef noBIO
         C_tend(k,2) = 0.d0
 #endif
-
-!       if(k.eq.1)
-!    .     write(*,'(a,3i5,e12.4)')'dicterm3',
-!    .     nstep,i,j,term
 
 !     if(k.eq.1)write(*,'(a,3i5,11e12.4)')'dic_carbon:',
 !    . nstep,i,j,tzoo,resz,obio_P(k,ntyp),dicresz,pnoice,
@@ -196,9 +184,6 @@ c
 #endif
 #endif
 
-
-cdiag   if (vrbos) write(*,'(a,i7,e12.4)')
-cdiag.        'obio_carbon1: ', nstep,C_tend(1,2)
 
 ! Phytoplankton components related to growth
       do k = 1,kmax
@@ -269,16 +254,9 @@ cdiag.        'obio_carbon1: ', nstep,C_tend(1,2)
         C_tend(k,2) = 0.d0
 #endif
 
-!       if(k.eq.1)
-!    .     write(*,'(a,3i5,e12.4)')'dicterm4',
-!    .     nstep,i,j,term
-
 
       endif !tirrq>0
       enddo !k=1,kmax
-
-cdiag if (vrbos) write(*,'(a,i7,e12.4)')
-cdiag.    'obio_carbon2: ', nstep,C_tend(1,2)
 
 c pCO2
       if (pco2_online) then
@@ -312,7 +290,6 @@ c pCO2
         if(vrbos)then
           write(*,'(a,3i5,9e12.4)')
      .      'carbon: ONLINE',nstep,i,j,temp1d(1),saln1d(1),
-!    .      '66666666666666',nstep,i,j,temp1d(1),saln1d(1),
      .                 car(1,2),alk1d(1),
      .                 obio_P(1,1),obio_P(1,3),pCO2_ij,
      .                 pHsfc,pnoice(1)
@@ -396,7 +373,6 @@ c Update DIC for sea-air flux of CO2
 
         if (vrbos) then
           write(6,'(a,3i7,9e12.4)')'obio_carbon(watson):',
-!          write(6,'(a,3i7,9e12.4)')'99999999999999999999',
      .      nstep,i,j,Ts,scco2arg,wssq,rkwco2,ff,xco2,pCO2_ij,
      .      rkwco2*(xco2-pCO2_ij)*ff*1.0245D-3,term     !this flux should have units mol,co2/m2/s
         endif

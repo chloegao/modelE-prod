@@ -14,7 +14,6 @@ c
       USE OCEANRES, only : kdm=>lmo
 #else
       USE hycom_dim_glob, only : kdm
-      USE hycom_scalars, only : nstep
 #endif
 
       implicit none

@@ -782,7 +782,8 @@ c     &             +(FYYjm1(i)-FYY) ) * (bymnew*bymnew)
 c
 c average the pole
 c
-        if(qnp .and. l<=lmom(1,jm)) then
+        if(qnp) then
+        if(l<=lmom(1,jm)) then
           j = jm
           mo(:,j,l) = sum(mo(:,j,l))/im
           rm(:,j,l) = sum(rm(:,j,l))/im
@@ -797,6 +798,7 @@ c
             ryz(i,j,l) = 0.
             rzx(i,j,l) = 0.
           enddo
+        endif
         endif
 
       enddo ! l
@@ -1484,7 +1486,8 @@ C**** Extract domain decomposition band parameters
 c
 c average the pole
 c
-        if(qnp .and. l<=lmom(1,jm)) then
+        if(qnp) then
+        if(l<=lmom(1,jm)) then
           j = jm
           mo(:,j,l) = sum(mo(:,j,l))/im
           rm(:,j,l) = sum(rm(:,j,l))/im
@@ -1499,6 +1502,7 @@ c
             ryz(i,j,l) = 0.
             rzx(i,j,l) = 0.
           enddo
+        endif
         endif
 
       enddo ! l

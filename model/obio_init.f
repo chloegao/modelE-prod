@@ -5,11 +5,11 @@ c --- biological/light setup
 c ----------------------------------------------------------------
 c 
       USE FILEMANAGER, only: openunit,closeunit,file_exists
-      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT, pack_data
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
 
       USE obio_dim
       USE obio_incom
-      USE obio_forc, only : ihra,atmFe_glob,atmFe,alk
+      USE obio_forc, only : ihra,atmFe,alk
       USE obio_com, only : npst,npnd,WtoQ,obio_ws,P_tend,D_tend
      .                    ,C_tend,wsdet,gro,obio_deltath,obio_deltat 
 
@@ -38,13 +38,12 @@ c
 #endif
 #endif
 #ifdef OBIO_ON_GARYocean
-      USE OCEANRES, only : idm=>imo,jdm=>jmo,kdm=>lmo
+      USE OCEANRES, only : kdm=>lmo
       USE OCEAN, only : ZOE=>ZE,focean,lmm
       USE MODEL_COM, only: dtsrc
       USE OCEANR_DIM, only : ogrid
-      use obio_com, only : focean_glob,lmom_glob
 #else
-      USE hycom_dim_glob, only : idm,jdm,kdm
+      USE hycom_dim_glob, only : kdm
       USE hycom_scalars, only : nstep,baclin
       USE hycom_dim, only : ogrid
 #endif
@@ -69,9 +68,6 @@ c
      .    ,rnn,rbot,pi
      .    ,dummy
 
-      real fldo2(idm,jdm,kdm)
-      real fldoz(idm,jdm,kdm)
-
       character*50 title
 !     character*50 cfle
       character cacbc*11,cabw*10
@@ -81,16 +77,6 @@ c
 
 c 
       if (AM_I_ROOT()) print*, 'Ocean Biology setup starts'
-
-#ifdef OBIO_ON_GARYocean
-      if(am_i_root()) then
-        allocate(focean_glob(idm,jdm),lmom_glob(idm,jdm))
-      else
-        allocate(focean_glob(1,1),lmom_glob(1,1))
-      endif
-      call pack_data(ogrid,focean,focean_glob)
-      call pack_data(ogrid,lmm,lmom_glob)
-#endif
 
 ! time steps
 #ifdef OBIO_ON_GARYocean
@@ -427,24 +413,11 @@ c  Read in factors to compute average irradiance
       endif
 
       if(file_exists('ironflux')) then ! read netcdf format flux
-	fid = par_open(ogrid,'ironflux','read')
-	call read_dist_data(ogrid,fid,'ironflux',atmFe)
-	call par_close(ogrid,fid)
+        fid = par_open(ogrid,'ironflux','read')
+        call read_dist_data(ogrid,fid,'ironflux',atmFe)
+        call par_close(ogrid,fid)
       else
-!     open(unit=iu_bio,file='atmFedirect0'
-!    . ,form='unformatted',status='old',access='direct' 
-!    . ,recl=idm*jdm*8/4)
-!     do imon=1,12  !1 year of monthly values
-!      nrec=imon
-!      read (iu_bio,rec=nrec)((atmFe_glob(i,j,imon),i=1,idm),j=1,jdm)
-!     enddo
-!     close(iu_bio)
-        filename='atmFe_inicond'
-#ifdef OBIO_ON_GARYocean
-        call bio_inicond2D_g(filename,atmFe(:,:,:),.true.)
-#else
-        call bio_inicond2D(filename,atmFe(:,:,:),.true.)
-#endif
+        call bio_inicond2D('atmFe_inicond',atmFe)
       endif ! netcdf iron or not
 
 #ifdef OBIO_RUNOFF
@@ -507,31 +480,10 @@ c  Read in factors to compute average irradiance
 #else
 !read in alkalinity annual mean file
       if (ALK_CLIM.eq.1) then      !read from climatology
-        filename='alk_inicond'
 #ifdef OBIO_ON_GARYocean
-        call bio_inicond_g(filename,fldo2,fldoz)
-        alk(:,:,:)=fldo2
-
-        !remove negative values
-        !negs are over land or under ice due to GLODAP missing values in the Arctic Ocean
-        !for under ice missing values, use climatological minimums for sets of layers based
-        !on GLODAP, rather than setting to the same global min.
-        do j=1,jdm
-        do i=1,idm
-        do k=1,kdm
-         if (alk(i,j,k).lt.0. .and. focean_glob(i,j).gt.0) then
-            if (zoe(k).le.150.) alk(i,j,k)=2172.      !init neg might be under ice,
-            if (zoe(k).gt.150. .and. zoe(k).lt.1200.) alk(i,j,k)=2200.
-            if (zoe(k).ge.1200.) alk(i,j,k)=2300.
-         endif
-         if (focean_glob(i,j).le.0) then
-           alk(i,j,k)=0.
-         endif
-        enddo
-        enddo
-        enddo
+        call init_alk(alk)
 #else
-        call bio_inicond(filename,alk(:,:,:))
+        call bio_inicond('alk_inicond',alk)
 #endif
       else      !set to zero, obio_carbon sets alk=tabar*sal/sal_mean
         alk = 0.
@@ -577,266 +529,123 @@ c  Read in factors to compute average irradiance
       return
       end
 c------------------------------------------------------------------------------
-#ifdef OBIO_ON_GARYocean
 
-      subroutine bio_inicond2D_g(filename,fldo,dateline)
+      module bio_inicond_mod
+      contains
+
+      subroutine bio_inicond_read(filename, dlatm, loff, setmin, fldo)
+      USE FILEMANAGER, only: openunit,closeunit
+      implicit none
+      character(len=*), intent(in) :: filename
+      real*8, intent(in) :: dlatm, loff
+      logical, intent(in) :: setmin
+      real, dimension(:, :, :), intent(out) ::  fldo
+
+      integer :: iu_file, i, j, k, kgrd
+      integer, parameter :: igrd=360,jgrd=180
+      real, dimension(:, :, :), allocatable :: data
+      real, dimension(:, :), allocatable :: data_mask
+      real*8 dlata,offib,datmis
+      real :: datamin
+
+      kgrd=size(fldo, 3)
+      allocate(data(igrd,jgrd,kgrd))
+      allocate(data_mask(igrd,jgrd))
+      print*, 'obio_init: reading from file...',trim(filename)
+      call openunit(trim(filename),iu_file,.false.,.true.)
+
+!iron gocart data start from dateline
+!      missing values are -9999
+
+!--------------------------------------------------------------
+
+      dlata = 60d0
+      offib = 0d0
+      datmis = -9999d0
+      do k=1,kgrd
+        data_mask=0.d0
+        do i=1,igrd
+          do j=1,jgrd
+            read(iu_file,'(e12.4)')data(i,j,k)
+            if (data(i,j,k)>=0) data_mask(i,j)=1.d0
+          end do
+        end do
+
+      !iron gocart data start from dateline
+        call HNTR80(igrd,jgrd,loff,dlata,
+     .             size(fldo,1),size(fldo,2),offib,DLATM,datmis)
+
+      !use hntr8p in order to get correct polar value: 
+      !i.e. average longitudinal value everywhere
+
+        call HNTR8P (data_mask,data(:,:,k),fldo(:,:,k))
+        if (setmin) then
+          datamin=huge(datamin)
+          do i=1,igrd
+            do j=1,jgrd
+              if (data(i,j,k)>0) datamin=min(datamin,data(i,j,k))
+            end do
+          end do
+          do i=1, size(fldo, 1)
+            do j=1, size(fldo, 2)
+              if (fldo(i,j,k)<datamin) fldo(i, j, k)=datamin
+            end do
+          end do
+        endif
+      enddo    ! k-loop
+      call closeunit(iu_file)
+
+      return
+      end subroutine bio_inicond_read
+
+      end module bio_inicond_mod
+
+
+      subroutine bio_inicond2D(filename,fldo)
 
 !read in a field at 1x1 resolution
 !convert to atmospheric grid
 !convert to ocean grid 
 !this routine only for (i,j,monthly) arrays
 
-      USE FILEMANAGER, only: openunit,closeunit
-      USE OCEANR_DIM, only : ogrid
-      USE OCEANRES, only : idm=>imo,jdm=>jmo
-      USE OCEAN, only : oDLATM=>DLATM
-
-      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,unpack_data
-
-      implicit none
-
-      integer i,j,k,l,n
-      integer, parameter :: igrd=360,jgrd=180,kgrd=12
-      integer iu_file,lgth
-
-      real data(igrd,jgrd,kgrd)
-      real data_min(kgrd),data_max(kgrd)
-      real data_mask(igrd,jgrd)
-      real fldo(ogrid%I_STRT_HALO:ogrid%I_STOP_HALO,
-     .          ogrid%J_STRT_HALO:ogrid%J_STOP_HALO,kgrd)
-      real fldo_glob(idm,jdm,kgrd)
-      real idl_n
-
-      logical vrbos,dateline
-
-      character*80 filename
-      real*8 dlata,offib,datmis
-
-      if ( AM_I_ROOT() ) then
-
-!--------------------------------------------------------------
-      lgth=len_trim(filename)
-      print*, 'obio_init: reading from file...',filename(1:lgth)
-      call openunit(filename,iu_file,.false.,.true.)
-
-!iron gocart data start from dateline
-!      missing values are -9999
-       do k=1,kgrd
-       data_min(k)=1.e10
-       data_max(k)=-1.e10
-         do i=1,igrd
-           do j=1,jgrd
-             read(iu_file,'(e12.4)')data(i,j,k)
-             !preserve the mean for later
-              if (data(i,j,k)>0.) then
-                data_min(k)=min(data_min(k),data(i,j,k))
-                data_max(k)=max(data_max(k),data(i,j,k))
-             endif
-           enddo
-         enddo
-      enddo
-      call closeunit(iu_file)
-
-!--------------------------------------------------------------
-      do k=1,kgrd
-
-      do i=1,igrd
-      do j=1,jgrd
-
-        !mask
-        data_mask(i,j)=0.d0
-        if (data(i,j,k)>=0.d0) data_mask(i,j)=1.d0
-
-cdiag   if (k.eq.1)
-cdiag.    write(*,'(a,3i5,2e12.4)')'before hntr80 ',
-cdiag.    i,j,1,data(i,j,k),data_mask(i,j)
-
-
-      enddo    ! i-loop
-      enddo    ! j-loop
-
-      !iron gocart data start from dateline
-      if (dateline) idl_n=0.d0   !no of poits away from dateline
-      dlata = 60d0
-      offib = 0d0
-      datmis = -9999d0
-      call HNTR80(igrd,jgrd,idl_n,dlata,
-     .             idm,jdm,offib,oDLATM,datmis)
-
-      !use hntr8p in order to get correct polar value: 
-      !i.e. average longitudinal value everywhere
-
-      call HNTR8P (data_mask,data(:,:,k),fldo_glob(:,:,k))
-
-cdiag if (k.eq.1) then
-cdiag do i=1,idm
-cdiag do j=1,jdm
-cdiag  write(*,'(a,3i5,e12.4)')'after hntr8p ',
-cdiag.    i,j,k,fldo_glob(i,j,k)
-cdiag enddo
-cdiag enddo
-cdiag endif
-
-      enddo    ! k-loop
-
-!--------------------------------------------------------------
-
-      endif   !AM_I_ROOT
-
-      call unpack_data(ogrid, fldo_glob, fldo)
-
-      return
-  
-      end subroutine bio_inicond2D_g
-
-#endif
-
-c------------------------------------------------------------------------------
-#ifndef OBIO_ON_GARYocean
-      subroutine bio_inicond2D(filename,fldo,dateline)
-
-!read in a field at 1x1 resolution
-!convert to atmospheric grid
-!convert to ocean grid (using Shana's routine) 
-!this routine only for (i,j,monthly) arrays
-
 c --- mapping flux-like field from agcm to ogcm
 c     input: flda (W/m*m), output: fldo (W/m*m)
 c
 
-      USE FILEMANAGER, only: openunit,closeunit
+      use bio_inicond_mod, only: bio_inicond_read
+#ifdef OBIO_ON_GARYocean
+      USE OCEANR_DIM, only : ogrid
+      USE OCEANRES, only : idm=>imo,jdm=>jmo
+      USE OCEAN, only : DLATM
+#else
+      USE hycom_dim, only : ogrid, idm=>iia, jdm=>jja, aj_0, aj_1
+      use hycom_cpler, only: flxa2o
       USE GEOM, only : DLATM      !here okay to use dlatm because interpolate from atmos
-
-      USE hycom_dim_glob, only : jj,isp,ifp,ilp,iia,jja,iio,jjo
-      USE hycom_dim, only : ogrid,i_0h,i_1h,j_0h,j_1h
-      USE hycom_cpler, only: wlista2o,ilista2o,jlista2o,nlista2o
-      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,unpack_data
+#endif
       implicit none
 
-      integer i,j,k,l,n
       integer, parameter :: igrd=360,jgrd=180,kgrd=12
-      integer iu_file,lgth
-      integer i1,j1,iii,jjj,isum,kmax
+      character(len=*), intent(in) :: filename
+      real, intent(out) :: fldo(ogrid%I_STRT:ogrid%I_STOP,
+     .          ogrid%J_STRT:ogrid%J_STOP,kgrd)
+      real data2(idm,jdm,kgrd)
+      integer :: k
 
-      real data_mask(igrd,jgrd)
-      real data(igrd,jgrd,kgrd)
-      real data2(iia,jja,kgrd)
-      real data_min(kgrd),data_max(kgrd)
-      real sum1
-      real dummy1(36,jja,kgrd),dummy2(36,jja,kgrd)
-      real fldo(i_0h:i_1h,j_0h:j_1h,kgrd)
-      real fldo_glob(iio,jjo,kgrd)
-      real idl_n
-
-      logical vrbos,dateline
-
-      character*80 filename
-
-      if ( AM_I_ROOT() ) then
-
-!--------------------------------------------------------------
-      lgth=len_trim(filename)
-      if (AM_I_ROOT())
-     .print*, 'obio_init: reading from file...',filename(1:lgth)
-      call openunit(filename,iu_file,.false.,.true.)
-
-!NOTE: data starts from Greenwich
-!      missing values are -9999
-!iron gocart data starts from dateline
-       do k=1,kgrd
-       data_min(k)=1.e10
-       data_max(k)=-1.e10
-         do i=1,igrd
-           do j=1,jgrd
-             read(iu_file,'(e12.4)')data(i,j,k)
-             !preserve the mean for later
-              if (data(i,j,k)>0.) then
-                data_min(k)=min(data_min(k),data(i,j,k))
-                data_max(k)=max(data_max(k),data(i,j,k))
-             endif
-           enddo
-         enddo
-      enddo
-      call closeunit(iu_file)
-
-!--------------------------------------------------------------
-! convert to the atmospheric grid
-! this code is also present in obio_bioinit_g
+      call bio_inicond_read(filename, dlatm, 0d0, .false., data2)
+#ifdef OBIO_ON_GARYocean
+      fldo=data2(ogrid%I_STRT:ogrid%I_STOP,
+     .          ogrid%J_STRT:ogrid%J_STOP,:)
+#else
       do k=1,kgrd
-      do i=1,igrd
-      do j=1,jgrd
-        !mask
-        data_mask(i,j)=0.d0
-        if (data(i,j,k)>=0.d0) data_mask(i,j)=1.d0
-cdiag   if (k.eq.1)
-cdiag.    write(*,'(a,3i5,2e12.4)')'before hntr80 ',
-cdiag.    i,j,1,data(i,j,k),data_mask(i,j)
-      enddo    ! i-loop
-      enddo    ! j-loop
-
-      !compute glb average and replace missing data
-      if (dateline) idl_n=0.d0   !no of poits away from dateline
-      call HNTR80(igrd,jgrd,idl_n,60.d0,
-     .             iia,jja,0.d0,DLATM,-9999.d0)
-      call HNTR8P (data_mask,data(:,:,k),data2(:,:,k))
-      enddo    ! k-loop
-
-!     !this is needed for dic
-!     do k=1,kgrd
-!     do i=1,iia
-!     do j=1,jja
-!     if (data2(i,j,k).gt.0) then
-!       if (data2(i,j,k)<data_min(k)) data2(i,j,k)=data_min(k)
-!       if (data2(i,j,k)>data_max(k)) data2(i,j,k)=data_max(k)
-!     endif
-!     enddo
-!     enddo
-!     enddo
-
-      !--------------------------------------------------------
-      !***************** important! start from dateline
-!     if (.not.dateline) then
-!     !move to dateline
-!     dummy1=data2(1:36,:,:);
-!     dummy2=data2(37:72,:,:);
-!     data2(1:36,:,:)=dummy2;
-!     data2(37:72,:,:)=dummy1;
-!     endif
-
-      !--------------------------------------------------------
-      do 8 j=1,jj
-      do 8 l=1,isp(j)
-      do 8 i=ifp(j,l),ilp(j,l)
-
-      do 9 k=1,kgrd
-      fldo_glob(i,j,k)=0.
-c
-      do 91 n=1,nlista2o(i,j)
-      fldo_glob(i,j,k)=fldo_glob(i,j,k)
-     .           +data2(ilista2o(i,j,n),jlista2o(i,j,n),k)
-     .                       *wlista2o(i,j,n)
- 91   continue
- 9    continue
- 8    continue
-
-!     !this is needed for dic
-!     do k=1,kgrd
-!     do i=1,iio
-!     do j=1,jjo
-!       if (fldo(i,j,k)<data_min(k)) fldo(i,j,k)=data_min(k)
-!       if (fldo(i,j,k)>data_max(k)) fldo(i,j,k)=data_max(k)
-!     enddo
-!     enddo
-!     enddo
-
-      !--------------------------------------------------------
-      endif   !if am-i-root
-
-      call unpack_data(ogrid, fldo_glob, fldo)
-      return
-  
-      end subroutine bio_inicond2D
+        call flxa2o(data2(:,aj_0:aj_1,k),fldo(:,:,k))
+      end do
 #endif
+
+      return
+      end subroutine bio_inicond2D
+
+
+c------------------------------------------------------------------------------
 
       subroutine setup_obio
 #ifdef OBIO_ON_GARYocean
@@ -845,26 +654,46 @@ c
 #endif
       use exchange_types, only: rad_coupling
       implicit none
+      integer, dimension(1) :: con_idx
+      character(len=10), dimension(1) :: con_str
 
+      con_idx=[12]
+      con_str=['OCN BIOL']
       rad_coupling=.true.
 #ifdef OBIO_ON_GARYocean
-      call add_ocn_tracer('Nitr      ', i_ntrocn=-4)
-      call add_ocn_tracer('Ammo      ', i_ntrocn=-6)
-      call add_ocn_tracer('Sili      ', i_ntrocn=-4)
-      call add_ocn_tracer('Iron      ', i_ntrocn=-8)
-      call add_ocn_tracer('Diat      ', i_ntrocn=-8)
-      call add_ocn_tracer('Chlo      ', i_ntrocn=-8)
-      call add_ocn_tracer('Cyan      ', i_ntrocn=-8)
-      call add_ocn_tracer('Cocc      ', i_ntrocn=-8)
-      call add_ocn_tracer('Herb      ', i_ntrocn=-8)
-      call add_ocn_tracer('Inert     ', i_ntrocn=-4)
-      call add_ocn_tracer('N_det     ', i_ntrocn=-6)
-      call add_ocn_tracer('S_det     ', i_ntrocn=-6)
-      call add_ocn_tracer('I_det     ', i_ntrocn=-10)
-      call add_ocn_tracer('DOC       ', i_ntrocn=-6)
-      call add_ocn_tracer('DIC       ', i_ntrocn=-3)
+      call add_ocn_tracer('Nitr      ', i_ntrocn=-4,
+     &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
+      call add_ocn_tracer('Ammo      ', i_ntrocn=-6,
+     &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
+      call add_ocn_tracer('Sili      ', i_ntrocn=-4,
+     &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
+      call add_ocn_tracer('Iron      ', i_ntrocn=-8,
+     &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
+      call add_ocn_tracer('Diat      ', i_ntrocn=-8,
+     &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
+      call add_ocn_tracer('Chlo      ', i_ntrocn=-8,
+     &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
+      call add_ocn_tracer('Cyan      ', i_ntrocn=-8,
+     &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
+      call add_ocn_tracer('Cocc      ', i_ntrocn=-8,
+     &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
+      call add_ocn_tracer('Herb      ', i_ntrocn=-8,
+     &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
+      call add_ocn_tracer('Inert     ', i_ntrocn=-4,
+     &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
+      call add_ocn_tracer('N_det     ', i_ntrocn=-6,
+     &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
+      call add_ocn_tracer('S_det     ', i_ntrocn=-6,
+     &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
+      call add_ocn_tracer('I_det     ', i_ntrocn=-10,
+     &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
+      call add_ocn_tracer('DOC       ', i_ntrocn=-6,
+     &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
+      call add_ocn_tracer('DIC       ', i_ntrocn=-3,
+     &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
       if (tracers_alkalinity)
-     &             call add_ocn_tracer('Alk       ', i_ntrocn=-6)
+     &             call add_ocn_tracer('Alk       ', i_ntrocn=-6,
+     &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
 #endif   /* #ifdef OBIO_ON_GARYocean */
 
       return

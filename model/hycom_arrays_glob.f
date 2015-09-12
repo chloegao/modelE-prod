@@ -171,11 +171,6 @@ cddd      public msk
       public diafor
       public klist
       public ijlist
-#if (defined TRACERS_AGE_OCEAN) \
-    || (defined TRACERS_OCEAN_WATER_MASSES) \
-    || (defined TRACERS_ZEBRA)
-      public plevav,tracav
-#endif
 
 
 !!      include 'bering.h'
@@ -236,12 +231,6 @@ c
      .,tauxav(:,:),tauyav(:,:)
      .,ufxcum(:,:,:),vfxcum(:,:,:),dpinit(:,:,:)
      .,dpmxav(:,:),oiceav(:,:)
-#if (defined TRACERS_AGE_OCEAN) \
-    || (defined TRACERS_OCEAN_WATER_MASSES) \
-    || (defined TRACERS_ZEBRA)
-      real*8, allocatable ::
-     . plevav(:,:,:),tracav(:,:,:,:)
-#endif
 c
 !!      real uav,vav,dpuav,dpvav,temav,salav,th3av,dpav,ubavav,vbavav
 !!     .    ,pbavav,sfhtav,uflxav,vflxav,diaflx,salflav,brineav,eminpav
@@ -454,12 +443,6 @@ c
       call unpack_data( ogrid,  vib, vib_loc )
       call unpack_data( ogrid,  pbot, pbot_loc )
       call unpack_data( ogrid,  tracer, tracer_loc )
-#if (defined TRACERS_AGE_OCEAN) \
-    || (defined TRACERS_OCEAN_WATER_MASSES) \
-    || (defined TRACERS_ZEBRA)
-      call unpack_data( ogrid,  tracav, tracav_loc )
-      call unpack_data( ogrid,  plevav, plevav_loc )
-#endif
       call unpack_data( ogrid,  diadff, diadff_loc )
       call unpack_data( ogrid,  tprime, tprime_loc )
       !!!call unpack_data( ogrid,  sgain, sgain_loc )
@@ -619,12 +602,6 @@ c
       call pack_data( ogrid,  diafor_loc, diafor )
       call pack_data( ogrid,  klist_loc, klist )
       call pack_data( ogrid,  ijlist_loc, ijlist )
-#if (defined TRACERS_AGE_OCEAN) \
-    || (defined TRACERS_OCEAN_WATER_MASSES) \
-    || (defined TRACERS_ZEBRA)
-      call pack_data(ogrid, plevav_loc, plevav)
-      call pack_data(ogrid, tracav_loc, tracav)
-#endif
 
       end subroutine gather_hycom_arrays
 
@@ -698,11 +675,6 @@ c
      .,surflav(idm,jdm),tauxav(idm,jdm),tauyav(idm,jdm)
      .,ufxcum(idm,jdm,kdm),vfxcum(idm,jdm,kdm),dpinit(idm,jdm,kdm) 
      .,dpmxav(idm,jdm),oiceav(idm,jdm)  
-#if (defined TRACERS_AGE_OCEAN) \
-    || (defined TRACERS_OCEAN_WATER_MASSES) \
-    || (defined TRACERS_ZEBRA)
-     .,plevav(idm,jdm,kdm),tracav(idm,jdm,kdm,ntrcr)
-#endif
      .)
 c 
       allocate( 

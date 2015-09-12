@@ -12,7 +12,7 @@
      .                      ,oLON_DG,oLAT_DG,uo,vo,sinpo,im,dxpo,dypo
      .                      ,kpl
       USE OCEAN_DYN, Only : DH
-      USE GM_COM, only: RHOX, RHOY
+      USE OCNMESO_COM, only: RHOX, RHOY
 #ifdef OCN_GISS_MESO
       USE ODIAG, only: oij=>oij_loc,oijl=>oijl_loc
      .            ,ij_eke,ij_rd,ijl_ueddy,ijl_veddy,ijl_n2
@@ -21,7 +21,7 @@
       USE ODIAG, only: zoc
 
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
-     ., HALO_UPDATE, NORTH, SOUTH
+     ., HALO_UPDATE, HALO_UPDATE_COLUMN, NORTH, SOUTH
       use TimerPackage_mod
 
       IMPLICIT NONE
@@ -194,12 +194,8 @@ C-- z at tracer level
       zt=-zh*100.
 C--
 
-      CALL HALO_UPDATE(ogrid,
-     *                 RHOX(:,ogrid%j_strt_halo:ogrid%j_stop_halo,:),
-     *                 FROM=SOUTH+NORTH)
-      CALL HALO_UPDATE(ogrid,
-     *                 RHOY(:,ogrid%j_strt_halo:ogrid%j_stop_halo,:),
-     *                 FROM=SOUTH+NORTH)
+      CALL HALO_UPDATE_COLUMN(ogrid,rhox)
+      CALL HALO_UPDATE_COLUMN(ogrid,rhoy)
       CALL HALO_UPDATE(ogrid,
      *                 vo(:,ogrid%j_strt_halo:ogrid%j_stop_halo,:),
      *                 FROM=SOUTH+NORTH)
@@ -290,12 +286,12 @@ c    .                 /(max(1.d0,z_cm(k+1)+z_cm(k)))/2.
          endif
       enddo
       do k=1,kdm
-         drhodx_cgs(k)=rhox(i,j,k)*1.d-3/100.d0
-         drhody_cgs(k)=rhoy(i,j,k)*1.d-3/100.d0
-         IF(rhox(i,j,k).ne.0..AND.rhox(im1,j,k).ne.0.)
-     *     drhodx_cgs(k)=0.5*(rhox(i,j,k)+rhox(im1,j,k))*1.d-3/100.d0
-         IF(rhoy(i,j,k).ne.0..AND.rhoy(i,j-1,k).ne.0.)
-     *     drhody_cgs(k)=0.5*(rhoy(i,j,k)+rhoy(i,j-1,k))*1.d-3/100.d0
+         drhodx_cgs(k)=rhox(k,i,j)*1.d-3/100.d0
+         drhody_cgs(k)=rhoy(k,i,j)*1.d-3/100.d0
+         IF(rhox(k,i,j).ne.0..AND.rhox(k,im1,j).ne.0.)
+     *     drhodx_cgs(k)=0.5*(rhox(k,i,j)+rhox(k,im1,j))*1.d-3/100.d0
+         IF(rhoy(k,i,j).ne.0..AND.rhoy(k,i,j-1).ne.0.)
+     *     drhody_cgs(k)=0.5*(rhoy(k,i,j)+rhoy(k,i,j-1))*1.d-3/100.d0
       enddo
 C-- TONY - 03/07/11
 C-- Calculate a new drhodz using the potential densities

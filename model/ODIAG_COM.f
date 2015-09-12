@@ -38,7 +38,7 @@
 !@var IJ_xxx Names for OIJ diagnostics
       INTEGER IJ_HBL,IJ_BO,IJ_BOSOL,IJ_USTAR,IJ_SSH,IJ_PB,IJ_SF,
      *     IJ_SRHFLX,IJ_SRWFLX,IJ_SRHFLXI,IJ_SRWFLXI,IJ_SRSFLXI,IJ_ERVR
-     *     ,IJ_MRVR,IJ_EICB,IJ_MICB,IJ_GMSC,ij_mld 
+     *     ,IJ_MRVR,IJ_EICB,IJ_MICB,IJ_GMSC,IJ_GMSCz,ij_mld 
 #ifdef OCN_GISS_MESO
      .     ,ij_eke,ij_rd
 #endif
@@ -96,7 +96,7 @@
       INTEGER IJL_MO,IJL_G0M,IJL_S0M,IJL_GFLX,IJL_SFLX,IJL_MFU,IJL_MFV
      *     ,IJL_MFW,IJL_GGMFL,IJL_SGMFL,IJL_KVM,IJL_KVG,IJL_WGFL
      *     ,IJL_WSFL,IJL_PTM,IJL_PDM,IJL_MOU,IJL_MOV,IJL_MFW2,IJL_AREA
-     *     ,IJL_MFUB,IJL_MFVB,IJL_MFWB,IJL_ISDM,IJL_PDM2
+     *     ,IJL_MFUB,IJL_MFVB,IJL_MFWB,IJL_ISDM,IJL_PDM2,IJL_KVX
 #ifdef OCN_GISS_TURB
      *     ,ijl_ri,ijl_rrho,ijl_bv2,ijl_otke,ijl_kvs,ijl_kvc,ijl_buoy
 #endif
@@ -738,6 +738,7 @@ c instances of the arrays containing derived quantities
 
 #endif /* NEW_IO */
 
+
       SUBROUTINE DIAGCO (M,atmocn)
 !@sum  DIAGCO Keeps track of the ocean conservation properties
 !@auth Gary Russell/Gavin Schmidt
@@ -748,17 +749,23 @@ c instances of the arrays containing derived quantities
 #endif
       USE EXCHANGE_TYPES, only : atmocn_xchng_vars
       IMPLICIT NONE
-!@var M index denoting from where DIAGCO is called (see DIAGCA)
+
+!@var   M  index denoting from where DIAGCO is called
+!****   1  Initialization
+!****   5  Precipitation:  PRECIP_OC, RIVERF
+!****   9  Mixing:  ODIFF, GMKDIF, OCN_MESOSC, FORM_SI
+!****  10  Daily:  GLMELT
+!****  11  Surface:  UNDERICE, GROUND_OC, OSTRES2
+!****  12  Dynamics:  OCONV, OBDRAG2, OCOAST, Dynamics, Straits
+
       INTEGER, INTENT(IN) :: M
       type(atmocn_xchng_vars) :: atmocn
-c
       REAL*8, EXTERNAL :: conserv_OCE,conserv_OKE,conserv_OMS
      *     ,conserv_OSL,conserv_OAM
 #ifdef TRACERS_OCEAN
       INTEGER NT
       type(ocn_tracer_entry), pointer :: entry
 #endif
-
 
       if(.not. oGRID%have_domain) return
 
@@ -820,6 +827,7 @@ C**** NOFM contains the indexes of the CONSRV array where each
 C**** change is to be stored for each quantity. If NOFM(M,ICON)=0,
 C**** no calculation is done.
 C**** NOFM(1,ICON) is the index for the instantaneous value.
+      if (m>size(atmocn%nofm, 1)) return
       IF (atmocn%NOFM(M,ICON).gt.0) THEN
 C**** Calculate current value TOTAL
         CALL CONSFN(TOTAL)
@@ -868,6 +876,7 @@ C****
 #endif
       USE EXCHANGE_TYPES, only : atmocn_xchng_vars
       use runtimecontrols_mod, only: tracers_alkalinity, ocn_cfc
+      use dictionary_mod, only : get_param
       IMPLICIT NONE
       type(atmocn_xchng_vars) :: atmocn
 c
@@ -880,6 +889,7 @@ c
       character(len=20) :: xyzstr,unitstr
       real*8 :: byrho2,inst_sc,chng_sc
       logical :: set_miss
+      integer :: use_tdiss_
 
 #ifndef STANDALONE_OCEAN
       call set_oj_budg(atmocn%jm_budg)
@@ -1047,15 +1057,14 @@ c
       scale_oijl(k) = (1d2/RHOWS)/dts
       lgrid_oijl(k) = 2
 c
-c will be activated when GM schemes other than skew-flux are activated
-c      k=k+1
-c      IJL_MFUB = k
-c      denom_oijl(k) = IJL_MOU
-c      sname_oijl(k) = 'ub'
-c      units_oijl(k) = 'cm/s'
-c      lname_oijl(k) = 'EAST-WEST BOLUS VELOCITY'
-c      scale_oijl(k) = 1d2/dts
-c      igrid_oijl(k) = 2
+      k=k+1
+      IJL_MFUB = k
+      denom_oijl(k) = IJL_MOU
+      sname_oijl(k) = 'ub'
+      units_oijl(k) = 'cm/s'
+      lname_oijl(k) = 'EAST-WEST BOLUS VELOCITY'
+      scale_oijl(k) = 1d2/dts
+      igrid_oijl(k) = 2
 c
       k=k+1
       IJL_MFVB = k
@@ -1066,15 +1075,14 @@ c
       scale_oijl(k) = 1d2/dts
       jgrid_oijl(k) = 2
 c
-c will be activated when GM schemes other than skew-flux are activated
-c      k=k+1
-c      IJL_MFWB = k
-c      denom_oijl(k) = IJL_AREA
-c      sname_oijl(k) = 'wb'
-c      units_oijl(k) = 'cm/s'
-c      lname_oijl(k) = 'VERTICAL BOLUS VELOCITY'
-c      scale_oijl(k) = (1d2/RHOWS)/dts
-c      lgrid_oijl(k) = 2
+      k=k+1
+      IJL_MFWB = k
+      denom_oijl(k) = IJL_AREA
+      sname_oijl(k) = 'wb'
+      units_oijl(k) = 'cm/s'
+      lname_oijl(k) = 'VERTICAL BOLUS VELOCITY'
+      scale_oijl(k) = (1d2/RHOWS)/dts
+      lgrid_oijl(k) = 2
 c
       k=k+1
       IJL_GFLX = k
@@ -1135,6 +1143,18 @@ c
       lname_oijl(k) = 'VERT. HEAT DIFF.'
       scale_oijl(k) = 1d4*byrho2
       lgrid_oijl(k) = 2
+c
+      call get_param('ocean_use_tdiss',use_tdiss_,default=0)
+      if(use_tdiss_==1) then
+      k=k+1
+      IJL_KVX = k
+      denom_oijl(k) = IJL_AREA
+      sname_oijl(k) = 'kvx'
+      units_oijl(k) = 'cm^2/s'
+      lname_oijl(k) = 'VERT. HEAT DIFF. FROM TIDAL DISSIPATION'
+      scale_oijl(k) = 1d4!*byrho2
+      lgrid_oijl(k) = 2
+      endif
 c
 #ifdef OCN_GISS_TURB
       k=k+1
@@ -1251,7 +1271,7 @@ c      IJL_GGMFL_vert = k
       denom_oijl(k) = IJL_AREA
       sname_oijl(k) = 'ggmflx_z'
       units_oijl(k) = 'W/m^2'
-      lname_oijl(k) = 'GM/EDDY VERT. HEAT FLUX'
+      lname_oijl(k) = 'GM/EDDY DOWNWARD VERT. HEAT FLUX'
       scale_oijl(k) = 1./dts
       lgrid_oijl(k) = 2
 c
@@ -1276,7 +1296,7 @@ c      IJL_SGMFL_vert = k
       denom_oijl(k) = IJL_AREA
       sname_oijl(k) = 'sgmflx_z'
       units_oijl(k) = '10^-6 kg/m^2 s'
-      lname_oijl(k) = 'GM/EDDY VERT. SALT FLUX'
+      lname_oijl(k) = 'GM/EDDY DOWNWARD VERT. SALT FLUX'
       scale_oijl(k) = 1d6/dts
       lgrid_oijl(k) = 2
 c
@@ -1901,6 +1921,14 @@ c
       ia_oij(k)=ia_src
       scale_oij(k)=1.
 
+      k=k+1
+      IJ_GMSCz=k
+      lname_oij(k)='Mesoscale diffusivity z-decay scale'
+      sname_oij(k)='zscale_meso'
+      units_oij(k)='m'
+      ia_oij(k)=ia_src
+      scale_oij(k)=1.
+
       if (k.gt.KOIJ) then
         write(6,*) "Too many OIJ diagnostics: increase KOIJ to at least"
      *       ,k
@@ -1957,7 +1985,8 @@ C**** Oceanic tracers
         INST_SC=10.**(-entry%ntrocn)
         CHNG_SC=10.**(-entry%ntrocn+ndel)
         CALL SET_TCONO(entry%trname(1:8),UNITS_INST,UNITS,
-     &            INST_SC,CHNG_SC, nt)
+     &            INST_SC,CHNG_SC, nt, size(entry%con_point_idx),
+     &            entry%con_point_idx, entry%con_point_str)
       end do
 #endif
 #endif /* STANDALONE_OCEAN */
@@ -2251,7 +2280,8 @@ c
         kn_toijl(:,kk) = (/ toijl_gmfl+2, nt /)
         call add_var(cdl_toijl,
      &       'float '//trim(sname_toijl(kk))//trim(xyzstr),
-     &       long_name='GM/EDDY VERT. FLUX '//trim(entry%trname),
+     &       long_name='GM/EDDY DOWNWARD VERT. FLUX '//
+     &       trim(entry%trname),
      &       units=trim(unitstr),
      &       make_timeaxis=make_timeaxis)
 
@@ -2496,15 +2526,21 @@ c compensate for polar loops in conserv_ODIAG not going from 1 to im
       integer, intent(in) :: jm_budg
 !@var I,J are atm grid point values for the accumulation
       INTEGER :: I,J,J_0,J_1,J_0H,J_1H
+      Real*8  :: dLATD  !  latitudinal budget spacing in degrees
  
 C**** define atmospheric grid
       call getDomainBounds(ogrid,
      &     J_STRT=J_0,J_STOP=J_1,
      &     J_STRT_HALO=J_0H,J_STOP_HALO=J_1H)
 
+      dLATD = 180d0 / JM_BUDG
+      If (JM_BUDG == 46)  dLATD = 4
+      If (JM_BUDG == 24)  dLATD = 8
       DO J=J_0H,J_1H
         DO I=1,IMO
-           oJ_BUDG(I,J)=NINT(1+(olat2d_dg(I,J)+90)*(JM_BUDG-1)/180.)
+           oJ_BUDG(I,J) = Nint (oLAT2D_DG(I,J)/dLATD + (JM_BUDG+1)/2d0)
+           If (oJ_BUDG(I,J) < 1)        oJ_BUDG(I,J) = 1
+           If (oJ_BUDG(I,J) > JM_BUDG)  oJ_BUDG(I,J) = JM_BUDG
         END DO
       END DO
 
@@ -2512,4 +2548,3 @@ C**** define atmospheric grid
       oJ_1B=MAXVAL( oJ_BUDG(1:IMO,J_0:J_1) )
 
       END SUBROUTINE SET_OJ_BUDG
-

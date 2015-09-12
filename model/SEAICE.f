@@ -13,7 +13,7 @@
       IMPLICIT NONE
       SAVE
 
-!@param dtdp Clausius-Clapeyron Constant (dT/dp of ice) (units K Pa-1)
+!@param dtdp Clausius-Clapeyron Constant (dT/dp of ice) [K Pa-1]
       real*8, parameter :: dtdp = -7.5d-8
 
 #ifdef TRACERS_WATER
@@ -26,27 +26,29 @@
       REAL*8, PARAMETER, DIMENSION(LMI) ::
      *     XSI= (/0.5d0, 0.5d0, 0.5d0, 0.5d0/),
      *     BYXSI= (/ 1./XSI(1), 1./XSI(2), 1./XSI(3), 1./XSI(4) /)
-!@param Z1I thickness of first layer ice (m)
+!@param Z1I thickness of first layer ice [m]
       REAL*8, PARAMETER :: Z1I = .1d0
-!@param ACE1I ice mass first layer (kg/m^2)
+!@param ACE1I ice mass first layer [kg/m^2]
       REAL*8, PARAMETER :: ACE1I = Z1I*RHOI
-!@param Z2OIM min. thickness of 2nd layer ice (m) (if > 0)
+!@param Z2OIM min. thickness of 2nd layer ice [m] (if > 0)
       REAL*8, PARAMETER :: Z2OIM = .1d0    ! .4d0
-!@param AC2OIM min. ice mass 2nd layer (kg/m^2)   (if > 0)
+!@param AC2OIM min. ice mass 2nd layer [kg/m^2]   (if > 0)
       REAL*8, PARAMETER :: AC2OIM = Z2OIM*RHOI
 C**** snow/ice thermal diffusivity (Pringle et al, 2007)
-!@param alami0,alams lambda coefficient for ice/snow J/(m*degC*sec)
-      REAL*8, PARAMETER :: alami0=2.11d0, alams=0.35d0
+!@param alami0 lambda coefficient for ice [J m-1 K-1 s-1]
+      REAL*8, PARAMETER :: alami0=2.11d0
+!@param alams lambda coefficient for snow [J m-1 K-1 s-1]
+      REAL*8, PARAMETER :: alams=0.35d0
 !@param alamdS salinity/temp coefficient for conductivity (J/(m*s)/psu)
 !@param alamdT temp coefficient for conductivity (J/(m*s)/degC^2)
       real*8, parameter :: alamdS=0.09d0, alamdT=-0.011d0
-!@param RHOS density of snow (kg/m^3)
+!@param RHOS density of snow [kg/m^3]
       REAL*8, PARAMETER :: RHOS = 300.0
 !@var FLEADOC lead fraction for ocean ice (1) for mean ice thickness of 1 m
       REAL*8, PARAMETER :: FLEADOC = 0.06d0
-!@var FLEADLK lead fraction for lakes (%)
+!@var FLEADLK lead fraction for lakes [%]
       REAL*8, PARAMETER :: FLEADLK = 0.
-!@var FLEADMX maximum thickness for lead fraction (m)
+!@var FLEADMX maximum thickness for lead fraction [m]
       REAL*8, PARAMETER :: FLEADMX = 5.
 !@param BYHREF (1/m) reciprocal of scale depth for calculating open water
 !@+     fraction as a function of mean ice thickness
@@ -55,15 +57,15 @@ C**** snow/ice thermal diffusivity (Pringle et al, 2007)
       REAL*8, PARAMETER :: BYRLS = 1./(RHOS*ALAMS)
 !@param MU coefficient of seawater freezing point w.r.t. salinity
       REAL*8, PARAMETER :: MU = 0.054d0   ! C/ppt
-!@param SSI0 default value for sea ice salinity (kg/kg) (=3.2ppt)
+!@param SSI0 default value for sea ice salinity (=3.2ppt) [kg/kg]
       REAL*8, PARAMETER :: SSI0 = 0.0032d0
-!@param FSSS fraction of ocean salinity found in new-formed ice
+!@param FSSS fraction of ocean salinity found in new-formed ice [1]
       REAL*8, PARAMETER :: FSSS = 8d0/35d0
 !@var qsfix flag is true if salinity of sea ice is constant
       LOGICAL :: QSFIX = .false.
 !@var alpha implicity for heat diffusion in sea ice (1=fully implicit)
       REAL*8, PARAMETER :: ALPHA = 1.0
-!@dbparam oi_ustar0 default ice-ocean friction velocity (m/s)
+!@dbparam oi_ustar0 default ice-ocean friction velocity [m/s]
       REAL*8 :: oi_ustar0 = 1d-3  ! 5d-3 ! not used if ice dynamics is
 !@dbparam silmfac factor controlling lateral melt of ocean ice
       REAL*8 :: silmfac = 1.d-7 ! = pi*(3d-6)/0.66/1000
@@ -74,7 +76,7 @@ C**** snow/ice thermal diffusivity (Pringle et al, 2007)
 !@var osurf_tilt controls calc. of ocean surface tilt for ice dyn:
 !@+       from geostrophy (=0) or from free surface (=1, default)
       INTEGER :: osurf_tilt = 1
-!@param ssimin critical cutoff for salt amount (kg/kg)
+!@param ssimin critical cutoff for salt amount [kg/kg]
       REAL*8 :: ssimin = 1d-4
 !@var DEBUG flag
       LOGICAL DEBUG

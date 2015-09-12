@@ -60,7 +60,7 @@ C**** TAIJLN
 C**** TAIJN
 !@param KTAIJ number of 2D diags describing surface and column load along 
 !@+   with wet and dry deposition
-!@+   please just increase this if needed - don't bother with pp options
+!@+   please just increase this if needed - do not bother with pp options
       integer, parameter :: ktaij=22
 
 !@var IJT_XX names for taijn diagnostics
@@ -326,7 +326,7 @@ C**** TAJLN
 
 C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 !@param ktajls number of source/sink TAJLS tracer diagnostics;
-!@+   please just increase this if needed - don't bother with pp options
+!@+   please just increase this if needed - do not bother with pp options
 #ifndef TRACERS_TOMAS
       INTEGER,PARAMETER :: ktajls=1260
 #else
@@ -696,7 +696,7 @@ C****
 
 #ifdef TRACERS_OCEAN
       SUBROUTINE SET_TCONO(NAME_CON,INST_UNIT,SUM_UNIT,
-     &     INST_SC,CHNG_SC, itr0)
+     &    INST_SC,CHNG_SC, itr0, extra_pt_n, extra_pt_idx, extra_pt_str)
 !@sum  SET_TCONO assigns ocean conservation diagnostic array indices
 !@auth Gavin Schmidt
       USE TimeConstants_mod, only: SECONDS_PER_DAY
@@ -718,16 +718,22 @@ C****
       REAL*8, INTENT(IN) :: CHNG_SC
 !@var ITR index for the tracer
       INTEGER, INTENT(IN) :: ITR0
+!@var extra_pt_n number of extra points
+      integer, intent(in) :: extra_pt_n
+!@var extra_pt_n extra point indices
+      integer, dimension(extra_pt_n), intent(in) :: extra_pt_idx
+!@var extra_pt_str extra point labels
+      character*10, dimension(extra_pt_n), intent(in) :: extra_pt_str
 !@var QCON denotes at which points conservation diags are saved
-      LOGICAL, DIMENSION(npts) :: QCON
+      LOGICAL, DIMENSION(ktcon) :: QCON
 !@var QSUM sets whether each diag is included in final sum
 !@+   should be zero for diags set using DIAGTCB (i.e. using difference)
-      LOGICAL, DIMENSION(npts) :: QSUM
-      LOGICAL, DIMENSION(npts) :: QSUM_CON   ! local version
+      LOGICAL, DIMENSION(ktcon) :: QSUM
+      LOGICAL, DIMENSION(ktcon) :: QSUM_CON   ! local version
 !@var sname name of conservation quantity (no spaces)
       CHARACTER*8 :: sname
 !@var CONPT0_sname like CONPT0 but without spaces
-      CHARACTER*10, DIMENSION(npts) :: CONPT0_sname, CONPT
+      CHARACTER*10, DIMENSION(ktcon) :: CONPT0_sname, CONPT
       CHARACTER*11 CHGSTR
       CHARACTER*40 clean_str
       INTEGER NI,NM,NS,N,k,itr
@@ -736,19 +742,24 @@ C****
       if (itr0>maxntmocn) call
      &     stop_model('trdiag_com: increase maxntmocn', 255)
       nocntrcons=max(nocntrcons,itr0)
-      CONPT=CONPT0
+      CONPT(1:npts)=CONPT0
       CONPT(8)="OCN PHYS"
-      QCON=(/ F, F, F, T, F, F, F, T, T, T, T/)
+      QCON=F
+      QCON(1:npts)=(/ F, F, F, T, F, F, F, T, T, T, T/)
       QSUM(:) = T
-#ifdef TRACERS_OceanBiology
-      CONPT(4)="OCN BIOL"
-#endif
 
 C**** make nice netcdf names
       sname=trim(clean_str(name_con))
       do n=1,npts
          conpt0_sname(n) = trim(clean_str(conpt(n)))
       enddo
+      do k=1,extra_pt_n
+         n=extra_pt_idx(k)
+         conpt(n)=extra_pt_str(k)
+         conpt0_sname(n)=trim(clean_str(conpt(n)))
+         qcon(n)=T
+         qsum(n)=T
+      end do
 C****
       NI=1
       itr=itr0+natmtrcons
@@ -762,25 +773,17 @@ C****
       NSUM_TCON(NI,itr) = -1
       IA_TCON(NI,itr) = 12
       NM=NI
-      DO N=2,npts+1
+      DO N=2,ktcon
         IF (QCON(N-1)) THEN
           NM = NM + 1
           NOFMT(N,itr) = NM
           QSUM_CON(NM)=.FALSE.
           IF (QSUM(N-1)) QSUM_CON(NM)=.TRUE.
           CHGSTR=" CHANGE OF "
-          if (n.le.npts+1) then
             TITLE_TCON(NM,itr) = CHGSTR//TRIM(NAME_CON)//" BY "//
      *         CONPT(N-1)
             name_tconsrv(NM,itr) =
      *           "chg_oc_"//trim(sname)//"_"//TRIM(CONPT0_sname(N-1))
-c          else
-c            IF (.not. QSUM(N-1)) CHGSTR="     DELTA "
-c            TITLE_TCON(NM,itr) = CHGSTR//TRIM(NAME_CON)//" BY "//
-c     *           CONPTs(N-npts-1)
-c            name_tconsrv(NM,itr) =
-c     *           "chg_"//trim(sname)//"_"//TRIM(CONPTs_sname(N-npts-1))
-          end if
           lname_tconsrv(NM,itr) = TITLE_TCON(NM,itr)
           units_tconsrv(NM,itr) = SUM_UNIT
           SELECT CASE (N)

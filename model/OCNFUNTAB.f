@@ -401,3 +401,290 @@ C****
      *                             + (GG-IG  )*T(IG+1,JS+1,KP+1)))
       RETURN
       END
+
+! All functions below this line were imported from the offline OIC
+! program. Todo: remove implicit typing and gotos.
+
+      Function VOLPTS (PIN,T,SIN)
+C****
+C**** VOLPTS calculates the specific volume of sea water as a
+C**** function of pressure, temperature and salinity.
+C**** The reference for this function is:
+C**** "Tenth report of the joint panel on oceanographic tables and
+C**** standards", Sidney, British Columbia, Canada, 1-5 September
+C**** 1980, sponsored by Unesco, ICES, SCOR, IAPSO.
+C**** Also see:
+C**** N.P. Fofonoff, 1985.  Physical Properties of Seawater: A New
+C**** Salinity Scale and Equation of State for Seawater.  Journal
+C**** of Geophysical Research, volume 90, pp 3332-3342.
+C****
+C**** Input: PIN (Pa) = pressure above normal atmospheric pressure,
+C****                   from 0 to 1.E8
+C****          T (C)  = temperature, from -2 to 40
+C****        SIN (1)  = salinity (kg NaCl/kg sea water), from 0 to .042
+C****
+C**** Output: VOLPTS (m^3/kg) = specific volume of sea water
+C****
+      Implicit Real*8 (A-Z)
+      Data A0,A1,A2,A3,A4,A5 /999.842594, 6.793952D-2,
+     *  -9.095290D-3, 1.001685D-4, -1.120083D-6, 6.536332D-9/
+      Data B0,B1,B2,B3,B4 /8.24493D-1, -4.0899D-3, 7.6438D-5,
+     *  -8.2467D-7, 5.3875D-9/
+      Data C0,C1,C2 /-5.72466D-3, 1.0227D-4, -1.6546D-6/
+      Data D0 /4.8314D-4/
+      Data E0,E1,E2,E3,E4 /19652.21, 148.4206, -2.327105,
+     *  1.360477D-2, -5.155288D-5/
+      Data F0,F1,F2,F3 /54.6746, -.603459, 1.09987D-2, -6.1670D-5/
+      Data G0,G1,G2 /7.944D-2, 1.6483D-2, -5.3009D-4/
+      Data H0,H1,H2,H3 /3.239908, 1.43713D-3, 1.16092D-4, -5.77905D-7/
+      Data I0,I1,I2 /2.2838D-3, -1.0981D-5, -1.6078D-6/
+      Data J0 /1.91075D-4/
+      Data K0,K1,K2 /8.50935D-5, -6.12293D-6, 5.2787D-8/
+      Data M0,M1,M2 /-9.9348D-7, 2.0816D-8, 9.1697D-10/
+C****
+      P  = PIN*1.D-5
+      S  = SIN*1.D3
+      S32= S*Sqrt(S)
+      KW = E0+(E1+(E2+(E3+E4*T)*T)*T)*T
+      AW = H0+(H1+(H2+H3*T)*T)*T
+      BW = K0+(K1+K2*T)*T
+      KO = KW + (F0+(F1+(F2+F3*T)*T)*T)*S + (G0+(G1+G2*T)*T)*S32
+      A  = AW + (I0+(I1+I2*T)*T)*S + J0*S32
+      B  = BW + (M0+(M1+M2*T)*T)*S
+      K  = KO + A*P + B*P**2
+      DENSTW = A0+(A1+(A2+(A3+(A4+A5*T)*T)*T)*T)*T
+      DENST0 = DENSTW + (B0+(B1+(B2+(B3+B4*T)*T)*T)*T)*S
+     *                + (C0+(C1+C2*T)*T)*S32
+     *                +  D0*S**2
+      VOLPTS = (1.-P/K)/DENST0
+      Return
+      End
+
+      Function SHCPTS (PIN,T,SIN)
+C****
+C**** SHCPTS calculates the specific heat capacity of sea water as
+C**** a function of pressure, temperature and salinity.
+C**** The reference for this function is:
+C**** N.P. Fofonoff and R.C. Millard Jr., 1983.  Algorithms for
+C**** Computation of Fundamental Properties of Seawater.  UNESCO
+C**** Technical Papers in Marine Science, volume 44.
+C**** Also see:
+C**** N.P. Fofonoff, 1985.  Physical Properties of Seawater: A New
+C**** Salinity Scale and Equation of State for Seawater.  Journal
+C**** of Geophysical Research, volume 90, pp 3332-3342.
+C****
+C**** Input: PIN (Pa) = pressure above normal atmospheric pressure,
+C****                   from 0 to 1.E8
+C****          T (C)  = temperature, from 0 to 35
+C****        SIN (1)  = salinity (kg NaCl/kg sea water), from 0 to .04
+C****
+C**** Output: SHCPTS (J/kg*C) = specific heat capacity of sea water
+C****                           with standard deviation error of
+C****                           .636 (J/C*kg)
+C****
+      Implicit Real*8 (A-Z)
+      Data A000/ 4217.4    /, A001/-7.643575  /, A002/  .1770383 /,
+     *     A010/-3.720283  /, A011/  .1072763 /, A012/-4.07718D-3/,
+     *     A020/  .1412855 /, A021/-1.38385D-3/, A022/ 5.148D-5  /,
+     *     A030/-2.654387D-3/,
+     *     A040/ 2.093236D-5/,
+     *     A100/-4.9592D-1 /, A101/ 4.9247D-3 /, A102/-1.2331D-4 /,
+     *     A110/ 1.45747D-2/, A111/-1.28315D-4/, A112/-1.517D-6  /,
+     *     A120/-3.13885D-4/, A121/ 9.802D-7  /, A122/ 3.122D-8  /,
+     *     A130/ 2.0357D-6 /, A131/ 2.5941D-8 /,
+     *     A140/ 1.7168D-8 /, A141/-2.9179D-10/,
+     *     A200/ 2.4931D-4 /, A201/-2.9558D-6 /, A202/ 9.971D-8  /,
+     *     A210/-1.08645D-5/, A211/ 1.17054D-7/,
+     *     A220/ 2.87533D-7/, A221/-2.3905D-9 /,
+     *     A230/-4.0027D-9 /, A231/ 1.8448D-11/,
+     *     A240/ 2.2956D-11/,
+     *     A300/-5.422D-8  /, A301/ 5.540D-10 /,
+     *     A310/ 2.6380D-9 /, A311/-1.7682D-11/, A312/-1.4300D-12/,
+     *     A320/-6.5637D-11/, A321/ 3.513D-13 /,
+     *     A330/ 6.136D-13 /
+C****
+      P  = PIN*1.D-5
+      S  = SIN*1.D3
+      S32= S*Sqrt(S)
+      SHCPTS = A000+(A010+(A020+(A030+A040*T)*T)*T)*T
+     *  +   S*(A001+(A011+ A021                 *T)*T)
+     *  + S32*(A002+(A012+ A022                 *T)*T)
+     *  +     (A100+(A110+(A120+(A130+A140*T)*T)*T)*T
+     *  +   S*(A101+(A111+(A121+(A131+A141*T)*T)*T)*T)
+     *  + S32*(A102+(A112+ A122                 *T)*T)
+     *  +     (A200+(A210+(A220+(A230+A240*T)*T)*T)*T
+     *  +   S*(A201+(A211+(A221+ A231        *T)*T)*T)
+     *  + S32* A202
+     *  +     (A300+(A310+(A320+ A330        *T)*T)*T
+     *  +   S*(A301+(A311+ A321                 *T)*T)
+     *  + S32*       A312                          *T )*P)*P)*P
+      Return
+      End
+
+      Function ATGPTS (PIN,T,SIN)
+C****
+C**** ATGPTS calculates the adiabatic lapse rate of sea water as
+C**** a function of pressure, temperature and salinity.
+C**** The reference for this function is:
+C**** N.P. Fofonoff and R.C. Millard Jr., 1983.  Algorithms for
+C**** Computation of Fundamental Properties of Seawater.  UNESCO
+C**** Technical Papers in Marine Science, volume 44.
+C****
+C**** Input: PIN (Pa) = pressure above normal atmospheric pressure
+C****          T (C)  = temperature
+C****        SIN (1)  = salinity (kg NaCl/kg sea water)
+C****
+C**** Output: ATGPTS (C/Pa) = adiabatic lapse tate of sea water, at
+C****                         S = .035, error < .006 (C) when used
+C****                         to calculate potential temperature
+C****
+      Implicit Real*8 (A-Z)
+      Data A000/ 3.5803D-5 /, A010/ 8.5258D-6 /, A020/-6.8360D-8 /,
+     *                        A030/ 6.6228D-10/,
+     *     A001/ 1.8932D-6 /, A011/-4.2393D-8 /,
+     *     A100/ 1.8741D-8 /, A110/-6.7795D-10/, A120/ 8.7330D-12/,
+     *                        A130/-5.4481D-14/,
+     *     A101/-1.1351D-10/, A111/ 2.7759D-12/,
+     *     A200/-4.6206D-13/, A210/ 1.8676D-14/, A220/-2.1687D-16/
+C****
+      P = PIN*1.D-4
+      S = SIN*1.D3 - 35.
+      ATGPTS = A000+(A010+(A020+A030*T)*T)*T
+     *    + S*(A001+ A011*T)
+     *    +   (A100+(A110+(A120+A130*T)*T)*T
+     *    + S*(A101+ A111*T)
+     *    +   (A200+(A210+ A220        *T)*T)*P)*P
+      ATGPTS = ATGPTS*1.D-4
+      Return
+      End
+
+      Function PTPTS (P,T,S)
+C****
+C**** PTPTS calculates the potential temperature of sea water as
+C**** a function of pressure, temperature and salinity.
+C**** At pressures above 0, PTPTS solves the differential equation:
+C**** dT/dP = ATG = TK/SHC * dSVOL/dT .
+C**** At pressure = 0, PTPTS = T.
+C****
+C**** Input: P (Pa) = pressure above normal atmospheric pressure
+C****        T (C)  = temperature
+C****        S (1)  = salinity (kg NaCl/kg sea water)
+C****
+C**** Output: PTPTS (C) = potential temperature of sea water,
+C****                     with maximum error of .004 (C) ?
+C****
+      Implicit Real*8 (A-H,O-Z)
+      NM = 1 + Abs(P)/2.D6
+      DP = P/NM
+      T0 = T
+      DO 10 N=NM,1,-1
+      P0 = N*DP
+      T1 = T0 - .5*DP*ATGPTS(P0-.25*DP,T0,S)
+   10 T0 = T0 -    DP*ATGPTS(P0-.50*DP,T1,S)
+      PTPTS = T0
+      Return
+      End
+
+      Function DELHTS (T,SIN)
+C****
+C**** DELHTS calculates the change of specific enthalpy of sea
+C**** water as salinity changes from 0 to an input value, as a
+C**** function of temperature at atmospheric pressure.
+C**** The reference for this function is:
+C**** Frank J. Millero and Wing H. Leung, 1976.  The Thermodynamics
+C**** of Seawater at One Atmosphere.  American Journal of Science,
+C**** volume 276.
+C****
+C**** Input: T (C) = temperature, from -2 to 40
+C****        S (1) = salinity (kg NaCl/kg sea water), from 0 to .04
+C****
+C**** Output: DELHTS (J/kg) = change of specific heat of sea water
+C****
+      Implicit Real*8 (A-Z)
+      Data A01/ 3.4086D-3/, A03/ 7.9350D-4/, A02/-4.7989D-4/,
+     *     A11/-6.3798D-5/, A13/ 1.0760D-4/, A12/ 6.3787D-6/,
+     *     A21/ 1.3877D-6/, A23/-6.3923D-7/, A22/-1.1647D-7/,
+     *     A31/-1.0512D-8/, A33/ 8.60D-9  /, A32/ 5.717D-10/
+C****
+      S = SIN*1.D3
+      DELHTS = (A01+(A11+(A21+A31*T)*T)*T
+     *       + (A03+(A13+(A23+A33*T)*T)*T)*Sqrt(S)
+     *       + (A02+(A12+(A22+A32*T)*T)*T)*S)*S*1.D3
+      Return
+      End
+
+      Function HETPTS (P,T,S)
+C****
+C**** HETPTS calculates the specific enthalpy of sea water as a
+C**** function of pressure, temperature and salinity.
+C**** At pressures above 0, HETPTS solves the differential equation:
+C**** dH/dP = V .
+C**** At pressure = 0 and salinities above 0,
+C**** H(0,T,S) = H(0,T,0) + DELHTS(T,S)
+C**** At pressure = 0 and salinity = 0, HETPTS solves the differential
+C**** equation:  dH/dT = C .
+C****
+C**** Input: P (Pa) = pressure above normal atmospheric pressure
+C****        T (C)  = temperature
+C****        S (1)  = salinity (kg NaCl/kg sea water)
+C****
+C**** Output: HETPTS (J/kg) = specific enthalpy of sea water
+C****
+      Implicit Real*8 (A-H,O-Z)
+C****
+C**** Calculate H(P,T,S) - H(0,T,S) by integrating  dH/dP = V  at
+C**** constant entropy and salinity
+C****
+      H0 = 0.
+      T0 = T
+      If (P==0)  GoTo 20
+      NM = 1 + Abs(P)/2.D6
+      DP = P/NM
+C**** For first step, integrate T down 1/2 DP, and H down full DP
+      P1 = DP*(NM-.5)
+      TX = T0 - .25*DP*ATGPTS(P1+.375*DP,T0,S)
+      T1 = T0 - .50*DP*ATGPTS(P1+.250*DP,TX,S)
+      H0 = H0 +     DP*VOLPTS(P1,T1,S)
+C**** For subsequent steps, integrate T and H down full DP
+      Do 10 N=NM-1,1,-1
+      P1 = DP*(N-.5)
+      T0 = T1 - .5*DP*ATGPTS(P1+.75*DP,T1,S)
+      T1 = T1 -    DP*ATGPTS(P1+.50*DP,T0,S)
+   10 H0 = H0 +    DP*VOLPTS(P1,T1,S)
+C**** For last step, integrate T down 1/2 DP
+      TX = T1 - .25*DP*ATGPTS(.375*DP,T1,S)
+      T0 = T1 - .50*DP*ATGPTS(.250*DP,TX,S)
+C****
+C**** Calculate H(P,T,S) - H(0,T,0) = H(P,T,S) - H(0,T,S) + DELHTS(T,S)
+C****
+   20 H0 = H0 + DELHTS(T0,S)
+C****
+C**** Calculate H(0,T,0) - H(0,0,0) by integrating  dH/dT = C  at
+C**** constant pressure and salinity
+C****
+      NM = 1 + Abs(T0)
+      DT = T0/NM
+      Do 30 N=0,NM-1
+      T1 = DT*(N+.5)
+   30 H0 = H0 + DT*SHCPTS(0.D0,T1,0.D0)
+C****
+      HETPTS = H0
+      Return
+      End
+
+      Function PHPTS (P,T,S)
+C****
+C**** PHPTS calculates the potential specific enthalpy of sea water
+C**** as a function of pressure, temperature and salinity.
+C****
+C**** Input: P (Pa) = pressure above normal atmospheric pressure
+C****        T (C)  = temperature
+C****        S (1)  = salinity (kg NaCl/kg sea water)
+C****
+C**** Output: PHPTS (J/kg) = potential specific enthalpy of sea water
+C****
+      Implicit Real*8 (A-H,O-Z)
+      A = PTPTS(P,T,S)
+      PHPTS = HETPTS(0.D0,A,S)
+      Return
+      End

@@ -8,6 +8,7 @@ import errno
 import shutil
 import subprocess
 import glob
+import fnmatch
 import logging
 import time
 import regUtils
@@ -23,6 +24,7 @@ def setupEnv(config, compconfig):
     branch =  userconfig['repobranch']
     resultsDir = userconfig['scratchdir'] + '/results/' + userconfig['repobranch']
     scratchDir = userconfig['scratchdir'] + '/scratch/' + userconfig['repobranch']
+    makesystem =  userconfig['makesystem']
 
     if userconfig['cleanscratch'] == 'yes':
         if not os.path.exists(resultsDir):
@@ -32,7 +34,8 @@ def setupEnv(config, compconfig):
             regUtils.cleanDir(scratchDir)
             regUtils.cleanDir(resultsDir)
 
-        setupModelEenv(config, compconfig)
+        if makesystem == "makeOld":
+           setupModelEenv(config, compconfig)
         gitCloneRepository(config)
 
 
@@ -59,7 +62,6 @@ def gitCloneRepository(config):
 def setupModelEenv(config, compconfig):
     userconfig =regUtils. ConfigSectionMap(config, 'USERCONFIG')
     branch =  userconfig['repobranch']
-    makesystem =  userconfig['makesystem']
     resultsDir = userconfig['scratchdir'] + '/results/' + branch
     scratchDir = userconfig['scratchdir'] + '/scratch/' + branch
 
@@ -176,23 +178,29 @@ def setupCloneTasks(config, compconfig, decklist):
 def setupRuns(config, compconfig, decklist):
     userconfig =regUtils.ConfigSectionMap(config, 'USERCONFIG')
     compilers = regUtils.getCompilers(compconfig)
+    scratch = userconfig['scratchdir']
+    repo = userconfig['repository']
+    branch =  userconfig['repobranch']
+    repo = scratch + '/scratch/' + branch + '/' + branch
+    os.chdir(scratch + '/scratch/' + branch)
 
-    tasks = []
-    for deck in decklist:
-      # since nonProduction rundeck names can be quite long, extract the
-      # nonProduction_ part...
-        dName = deck.name
-        if re.search('nonProduction', deck.name):
-            start = deck.name.find('nonProduction') + 14
-            dName = deck.name[start:]
-
-        for comp in deck.getOpt('compilers').split(','):
+    cwd = os.getcwd()
+    for comp in compilers:
+        os.chdir(cwd)
+        logger.debug('Cloning %s into %s', repo, comp)
+        cmd = 'git clone ' + repo + ' ' + comp + '> /dev/null 2>&1'
+        subprocess.check_call(cmd, shell=True)
+        os.chdir(cwd+'/'+comp)
+        for deck in decklist:
+            dName = deck.name
+            if re.search('nonProduction', deck.name):
+                start = deck.name.find('nonProduction') + 14
+                dName = deck.name[start:]
             for mode in deck.getOpt('modes').split(','):
-                cmode = '.' + mode
-                if comp in compilers:
-                    regUtils.mkdirCommand(config, dName, comp, cmode)
-                else:
-                    logger.error(comp+' is not defined in COMPCONFIG')
+                adir = dName +  '.' + mode + '.' + comp
+                if not os.path.isdir(adir):
+                    regUtils.mkdir_p(adir)
+    setupModelEenv(config, compconfig)
 
 #-------------------------------------------------------------------------------
 # Return a command to submit/execute a [batch] job
@@ -347,8 +355,8 @@ def createScriptTask(config, compconfig, deck, comp, mode):
     if makesystem == 'makeOld':
         decksDir = scratchDir + '/' + jobName +  '.' + mode + '/decks/'
     else:
-        decksDir = scratchDir + '/' + jobName +  '.' + mode
-        fileHandle.write ('export BUILD_OUT_OF_SOURCE=YES\n')
+        decksDir = scratchDir + '/decks/'
+#        fileHandle.write ('export BUILD_OUT_OF_SOURCE=YES\n')
 
     fileHandle.write ('export DECKSDIR=' + decksDir + '\n')
 
@@ -382,7 +390,7 @@ def createRegConfig(config, deck, modelerc, comp, jobName, mode):
     if makesystem == 'makeOld':
         decksDir = scratch + '/' + jobName + '.' + mode + '/decks/'
     else:
-        decksDir = scratch + '/' + jobName + '.' + mode
+        decksDir = scratch + '/decks/'
 
 # Regression tests do not run the regression script in standalone mode    
     standalone = 'no'
@@ -469,7 +477,7 @@ def verifyRuns(config, runSources):
               if makesystem == 'makeOld':
                  decksDir = scratchDir+comp+'/'+dirName+'.'+mode+'/decks'
               else:
-                 decksDir = scratchDir+comp+'/'+dirName+'.'+mode
+                 decksDir = scratchDir+comp+'/decks'
               os.chdir(decksDir)
               os.environ['MYCONFIGDIR'] = decksDir
               # Create rundeck object with default or config properties
@@ -477,31 +485,40 @@ def verifyRuns(config, runSources):
               runs.append(newRun(rundeck, mode))
 
         logger.info('Verifying ' + rundeck.name + ': ' + rundeck.verification)
-
         for run in runs:
-           if makesystem == 'makeOld':
-              decksDir = scratchDir+run.compiler+'/'+dirName+'.'+run.mode+'/decks'
-           else:
-              decksDir = scratchDir+run.compiler+'/'+dirName+'.'+run.mode
-           os.chdir(decksDir)
+            if makesystem == 'makeOld':
+                decksDir = scratchDir+run.compiler+'/'+dirName+'.'+run.mode+'/decks'
+                os.chdir(decksDir)
+            else:
+                decksDir = scratchDir+run.compiler+'/decks'
+                os.chdir(decksDir+'/../'+run.name)
 
            # For each rundeck/compiler/mode combination
            # create a diffFile with verification results
-           diffFile = rundeck.resultsDir + '/' + run.name + '.diff'
-           fileH = open(diffFile, 'w')
+            diffFile = rundeck.resultsDir + '/' + run.name + '.diff'
+            fileH = open(diffFile, 'w')
 
            # Did executable build?
-           exe = dirName+'.'+run.mode+'.'+run.compiler
-           cmd = 'ls '+exe+'_bin/'+(exe+'.exe')
-           status = run.sysCmd(cmd, 3, 'b')
-           # If not, then go on to next experiment
-           if status != 0:
-              continue
+            if makesystem == 'makeOld':
+                exe = dirName+'.'+run.mode+'.'+run.compiler
+                cmd = 'ls '+exe+'_bin/'+(exe+'.exe')
+            else:
+                exe = 'model/modelexe'
+                cmd = 'ls '+exe
+            status = run.sysCmd(cmd, 3, 'b')
+            # If not, then go on to next experiment - and write results
+            if status != 0:
+                writeDiff(run, fileH)
+                continue
+            # Check for run-time failures
+            for f in os.listdir(decksDir + '/' + run.name + '/'):
+                if fnmatch.fnmatch(f, '*FAILED'):
+                    run.results[3] = 'Fr'
+            # Record comparisons
+            compare(rundeck, run)
 
-           compare(rundeck, run)
-           writeDiff(run, fileH)
-
-           fileH.close()
+            writeDiff(run, fileH)
+            fileH.close()
 
     logger.info(rundeck.name + ' verification complete.')
 

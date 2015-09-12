@@ -15,6 +15,7 @@ Preprocessor Options
 #define TRACERS_ON                  ! include tracers code
 #define USE_ENT
 #define CHECK_OCEAN                 ! needed to compile aux/file CMPE002
+#define OCN_LAYERING L32
 #define OBIO_ON_GARYocean           ! obio on Russell ocean
 #define TRACERS_OCEAN               ! Gary's Ocean tracers activated
 #define TRACERS_OCEAN_INDEP         ! independently defined ocn tracers
@@ -29,9 +30,9 @@ Object modules: (in order of decreasing priority)
      ! resolution-specific source codes
 Atm144x90                  ! horizontal resolution is 144x90 -> 2x2.5deg
 AtmL40                      ! vertical resolution is 40 layers -> 0.1mb
-ORES_2Hx2_L32                       ! ocean horiz res 2x2.5deg, 32 vert layers
 DIAG_RES_F                          ! diagnostics (resolution dependent)
-FFT144 OFFT144E                     ! utilities
+FFT144                              ! utilities
+ORES_2Hx2 OFFT144E                  ! ocean horiz res 2x2.5deg
 
 IO_DRV                              ! new i/o 
 
@@ -51,7 +52,6 @@ OCN_Int_LATLON                      ! atm-ocn regrid routines
 obio_diffmod     |$(R8)|
 
 !!!ar!!!obio_oasimhr     |$(R8)|
-!!!ar!!!obio_limits      |$(R8)|
 
 Components:
 tracers Ent shared MPI_Support solvers giss_LSM dd2d
@@ -218,6 +218,8 @@ nssw=48         ! obio needs that in order to always restart from hour 0
 !!! atmCO2=289.9      !uatm for preindustrial runs
 atmCO2=0.             !prognostic atmCO2
 to_volume_MixRat=1    ! for tracer printout
+!!!solFe=0.02            ! default iron solubility
+solFe=0.05            ! enhanced iron solubility
 
 &&END_PARAMETERS
 

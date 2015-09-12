@@ -917,7 +917,7 @@ C****  11  AFTER OCEAN DYNAMICS (from ODYNAM)
 C****  12  AFTER OCEAN SUB-GRIDSCALE PHYS
 C****
 #ifndef SCM
-      EXTERNAL conserv_AM,conserv_KE,conserv_MS,conserv_PE
+      EXTERNAL conserv_AM,conserv_KE,conserv_MS,conserv_PE,conserv_SE
      *     ,conserv_WM,conserv_EWM,conserv_LKM,conserv_LKE,conserv_OMSI
      *     ,conserv_OHSI,conserv_OSSI,conserv_LMSI,conserv_LHSI
      *     ,conserv_MLI,conserv_HLI,conserv_WTG,conserv_HTG
@@ -1115,6 +1115,118 @@ C****
       END SUBROUTINE conserv_PE
 
 
+      Subroutine CONSERV_SE (SE)
+!@sum  CONSERV_SE computes total atmospheric static energy
+!@auth Gary L. Russell
+
+!**** MA (kg/m^2)  = air mass including that of condensate
+!**** MD (kg/m^2)  = gaseous dry air mass = MA - MV - ML - MI
+!**** MV (kg/m^2)  = water vapor mass = Q / MA
+!**** ML (kg/m^2)  = liquid condensate = QCL / MA
+!**** MI (kg/m^2)  = ice condensate = QCI / MA
+!**** MG (kg/m^2)  = gaseous air mass = MA - ML - MI
+!**** MC (kg/m^2)  = condensate mass = ML + MI
+!**** Cv (J/C*kg)  = Cp - RGAS
+!**** SHG (J/C*kg) = Cp = gaseous specific heat capacity =
+!****              = (SHA*MD + SHV*MV) / (MD + MV)
+!**** SHA (J/C*kg) = specific heat capacity of dry air
+!**** SHV (J/C*kg) = specific heat capacity of water vapor
+!**** SHW (J/C*kg) = specific heat capacity of liquid water
+!**** SHI (J/C*kg) = specific heat capacity of ice
+!**** SHC (J/C*kg) = specific heat capacity of condensate =
+!****              = (SHW*ML + SHI*MI) / (ML + MI)
+!**** RGAS (J/C*kg) = gas constant for dry air
+!**** RVAP (J/C*kg) = gas constant for water vapor
+!**** RMIX (J/C*kg) = (RGAS*MD + RVAP*RV) / (MD + MV)
+!**** LHE  (J/kg)   = latent heat of vaporization at 0 C
+!**** LHM  (J/kg)   = latent heat of melting at 0 C
+!**** KAPA          = exponent of exner function = RGAS / SHA
+!****
+!**** G (m/s^2)  = Earth's gravitational acceleration
+!**** M (kg/m^2) = vertical coordinate = mass above
+!**** P (Pa)     = pressure = M*G = RHO*RMIX*TK
+!**** Z (m)      = altitude above sea level
+!**** TK  (K)    = gaseous temperature = TKP*P^KAPA
+!**** TKP (K)    = gaseous potential temperature
+!**** TCC (C)    = condensate temperature
+!**** TF  (K)    = freezing point temperature = TK - TC
+!**** RHO (kg/m^3) = gaseous density
+!****
+!**** dP = - RHO*G dZ   in layer without condensate
+!**** (MG/MA) dP = - RHO*G dZ   in layer with volumeless condensate
+!**** (MG/MA)*RMIX*TK dP = - P*G dZ   from P = RHO*RMIX*TK
+!**** (MG/MA)*RMIX*TK dM = - P dZ
+!****
+!**** TPE (J/m^2) = gaseous internal + geopotential + condensate energy 
+!****   = Integrate Total Potential Energy from M1,P1,Z1 to M2,P2,Z2 =
+!****   = S[(MG/MA)*Cv*TK + G*Z]dM + SHW*ML*TCC + SHI*MI*TCC = 
+!****   = S[(MG/MA)*Cp*TK - (MG/MA)*RGAS*TK + G*Z]dM + SHC*MC*TCC = 
+!****   = S[(MG/MA)*Cp*TK dM + P dZ + Z dP] + SHC*MC*TCC = 
+!****   = (MG/MA)*SHG*TK*MA + S[dPZ] + SHC*MC*TCc = 
+!****   = MG*SHG*TK + SHC*MC*TCC + P2*Z2 - P1*Z1 = TPE in layer 1:2
+!**** Integrate over all layers:
+!**** TPE = Sum(MG*SHG*TK + SHC*MC*TCC) + PSURF*ZSURF - P0*Z0
+!**** As Z0 approaches infinity, P0*Z0 approaches 0; P0*Z0 is ignored
+!****
+!**** gaseous sensible heat is measured in degrees Kelvin
+!**** condensate sensible heat is measured in degrees Centigrade
+!**** to measure all water in C, latent energy includes -SHV*TF*MV
+!**** SE(I,J) (J/m^2) = TPE + latent energy =
+!****   = sensible + latent + surface geopotential energy =
+!****   = SHG*Sum(MG*TKP*PK) + SHW*Sum(ML*TCC) + SHI*Sum(MI*TCC) +
+!****   + (LHE-SHV*TF)*Sum(MV) - LHM*Sum(MI)
+!****   + G*ZSURF*[MTOP+Sum(MA)]
+!****
+!**** If condensate falls from a layer to the layer below, it has lost
+!**** geopotential energy.  But the mean pressure of each layer is less,
+!**** each layer will expand, and the geopotential energy of the rest of
+!**** the column will increase.  Total geopotential energy is conserved. 
+
+      Use CONSTANT,   Only: SHA,SHV,SHW,SHI,LHE,LHM,TF
+      Use Resolution, Only: IM,JM,LM, MTOP
+      Use ATM_COM,    Only: MA,MASUM,PK,T,Q,QCL,QCI,ZATMO  !!! ,TCC
+      Use GEOM,       Only: IMAXJ
+      Use DOMAIN_DECOMP_ATM, Only: GetDomainBounds,GRID
+      Implicit None
+
+      Integer :: I,J,L, I1,IN,J1,JN
+      Logical :: QSP,QNP
+      Real*8  :: SE(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &              GRID%J_STRT_HALO:GRID%J_STOP_HALO),
+     &           MD,MV,ML,MI
+
+      Call GetDomainBounds (GRID, HAVE_SOUTH_POLE=QSP,
+     &                            HAVE_NORTH_POLE=QNP)
+      I1 = GRID%I_STRT  ;  IN = GRID%I_STOP
+      J1 = GRID%J_STRT  ;  JN = GRID%J_STOP
+
+!**** Total Static Energy (J/m^2)
+      Do J=J1,JN  ;  Do I=I1,IMAXJ(J)
+         SE(I,J) = 0
+         Do L=LM,1,-1
+!           ML = MA(L,I,J) * QCL(I,J,L)
+!           MI = MA(L,I,J) * QCI(I,J,L)
+!           MV = (MA(L,I,J) - ML - MI) * Q(I,J,L)
+!           MD = MA(L,I,J) - MV - ML - MI
+!           SE(I,J) = SE(I,J) + (SHA*MD + SHV*MV)*T(I,J,L)*PK(L,I,J)
+!    +                        + (SHW*ML + SHI*MI)*TCC(L,I,J)
+!    +                        + (LHE - SHV*TF)*MV - LHM*MI
+!****       Ignoring sensible heat of water
+            MI = MA(L,I,J) * QCI(I,J,L)
+            MV = MA(L,I,J) * Q(I,J,L)
+            MD = MA(L,I,J)
+            SE(I,J) = SE(I,J) + SHA*MD*T(I,J,L)*PK(L,I,J)
+     +                        + LHE*MV - LHM*MI
+         EndDo
+         SE(I,J) = SE(I,J) + ZATMO(I,J)*(MASUM(I,J)+MTOP)
+      EndDo  ;  EndDo
+
+      If (QSP)  SE(2:IM,1)  = SE(1,1)
+      If (QNP)  SE(2:IM,JM) = SE(1,JM)
+      Return
+      EndSubroutine CONSERV_SE
+
+
       SUBROUTINE conserv_WM(WATER)
 !@sum  conserv_WM calculates total atmospheric water mass
 !@auth Gary Russell/Gavin Schmidt
@@ -1193,7 +1305,6 @@ c this calculation currently only calculates latent heat
           EL = (Q(I,J,L)*LHE + QCL(I,J,L)*(LHE-SVLHX(L,I,J))
      +                       + QCI(I,J,L)*(LHE-SVLHX(L,I,J)))*MA(L,I,J)
           EWATER(I,J) = EWATER(I,J) + EL  !  + W*(SHV*T(I,J,L)*PK(L,I,J)
-!    +                  GRAV*HSCALE*Log(PEDN?(1,I,J)/PMID(L,I,J)))
         ENDDO
       ENDDO
       ENDDO

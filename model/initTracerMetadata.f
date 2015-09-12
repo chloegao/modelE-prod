@@ -210,8 +210,8 @@
       external setDefaultSpec
       integer :: i
 
-! call routine to read/set up regions and sectors for emissions:
-      call setup_emis_sectors_regions()
+! call routine to read/set up sectors for emissions:
+      call setup_emis_sectors()
       call initializeOldTracers(tracers, setDefaultSpec)
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
@@ -499,6 +499,9 @@
       use Model_com, only: itime
       implicit none
       integer :: n
+
+! call routine to read/set up regions for emissions:
+      call setup_emis_sectors_regions()
 
 C**** 
 C**** Set some documentary parameters in the database

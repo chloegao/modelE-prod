@@ -20,10 +20,6 @@
      .     ,admui_loc,admvi_loc
 
       public atracflx_loc
-#ifdef TRACERS_OceanBiology
-      public asolz_loc
-      public awind_loc
-#endif
 
       ! accumulators for output on atmospheric grid
       ! (shouldn't these actually be accumulated on ocean grid
@@ -34,11 +30,6 @@
      .     ,admui_loc,admvi_loc ! == dmui_loc,dmvi_loc on atm. domain
 
       real, ALLOCATABLE, DIMENSION(:,:,:) :: atracflx_loc
-#ifdef TRACERS_OceanBiology
-      real, ALLOCATABLE, DIMENSION(:,:)    :: asolz_loc
-!wind speed from modelE (see hycom2.f)
-      real, ALLOCATABLE, DIMENSION(:,:)    :: awind_loc
-#endif
 
 
       contains
@@ -72,10 +63,6 @@
 
       ALLOCATE(atracflx_loc(aI_0H:aI_1H,aJ_0H:aJ_1H,
      &                          atmocn%gasex_index%getsize()))
-#ifdef TRACERS_OceanBiology
-      ALLOCATE(asolz_loc(aI_0H:aI_1H,aJ_0H:aJ_1H))
-      ALLOCATE(awind_loc(aI_0H:aI_1H,aJ_0H:aJ_1H))
-#endif
 
       end subroutine alloc_hycom_atm
 

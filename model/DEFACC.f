@@ -1120,6 +1120,7 @@ c
       return
       end subroutine j_defs
 
+
       subroutine ij_defs
       use constant
       use MODEL_COM
@@ -1169,6 +1170,15 @@ C**** AIJ diagnostic names:
 C**** NAME     NO.    DESCRIPTION   (SCALE)*IDACC  LOCATION
 C**** ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 c
+!**** Horizontal Fractions
+      k=k+1 !
+      IJ_POCEAN = k ! not accumulated
+      lname_ij(k) = 'OCEAN FRACTION'
+      units_ij(k) = '%'
+      name_ij(k) = 'ocnfr'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 100.
+c
       k=k+1 !
       IJ_RSOI = k ! POICE (1)            1 GD
       atmice%IJ_RSOI = k
@@ -1179,18 +1189,18 @@ c
       scale_ij(k) = 100.
 c
       k=k+1 !
-      IJ_POCEAN = k ! not accumulated
-      lname_ij(k) = 'OCEAN FRACTION'
-      units_ij(k) = '%'
-      name_ij(k) = 'ocnfr'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 100.
-c
-      k=k+1 !
       IJ_POPOCN = k
       lname_ij(k) = 'OPEN OCEAN FRACTION'
       units_ij(k) = '%'
       name_ij(k) = 'opocnfr'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 100.
+c
+      k=k+1 !
+      IJ_LK = k ! PLAKE                                       4 DA
+      lname_ij(k) = 'LAKE FRACTION'
+      units_ij(k) = '%'
+      name_ij(k) = 'lakefr'
       ia_ij(k) = ia_src
       scale_ij(k) = 100.
 c
@@ -1219,14 +1229,6 @@ c
       scale_ij(k) = 100.
 c
       k=k+1 !
-      IJ_VSFR = k
-      lname_ij(k) = 'VEGETATION FRACTION'
-      units_ij(k) = '%'
-      name_ij(k) = 'vsfr'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 100.
-c
-      k=k+1 !
       IJ_BSFR = k
       lname_ij(k) = 'BARE SOIL FRACTION'
       units_ij(k) = '%'
@@ -1235,11 +1237,36 @@ c
       scale_ij(k) = 100.
 c
       k=k+1 !
+      IJ_VSFR = k
+      lname_ij(k) = 'VEGETATION FRACTION'
+      units_ij(k) = '%'
+      name_ij(k) = 'vsfr'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 100.
+c
+      k=k+1
+      IJ_FVEG = k
+      name_ij(k) = 'fr_veg' !
+      lname_ij(k) = 'FRACTION OF VEGETATED SOIL'
+      units_ij(k) = '%'
+      scale_ij(k) = 100.
+      ia_ij(k) = ia_src
+      !ir_ij(k) = ir_0_3550
+c
+      k=k+1 !
       IJ_LI = k ! PLICE                                       4 DA
       lname_ij(k) = 'LAND ICE FRACTION'
       units_ij(k) = '%'
       name_ij(k) = 'landicefr'
       ia_ij(k) = ia_src
+      scale_ij(k) = 100.
+c
+      k=k+1 !
+      IJ_P850 = k !
+      lname_ij(k) = 'FREQUENCY OF 850mb PRESSURE'  ! weighting function
+      units_ij(k) = '%'
+      name_ij(k) = 'p_850_freq'
+      ia_ij(k) = ia_dga
       scale_ij(k) = 100.
 c
       k=k+1 !
@@ -1252,6 +1279,233 @@ c
       scale_ij(k) = 100.
 c
       k=k+1 !
+      IJ_RSIT = k ! POICE+PLICE+(IF SNOW)PEARTH               4 DA
+      atmice%IJ_RSIT = k
+      lname_ij(k) = 'SNOW AND ICE COVERAGE'
+      units_ij(k) = '%'
+      name_ij(k) = 'snowicefr'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 100.
+c
+      k=k+1
+      IJ_FRMP = k
+      lname_ij(k) = 'SEA ICE MELT POND FRACTION'
+      units_ij(k) = '%'
+      name_ij(k) = 'FRMP'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 100.
+      denom_ij(k) = IJ_RSOI
+
+      k=k+1 !
+      IJ_CLDCV = k ! PCLD (1)  (COMPOSITE OVER ATMOSPHERE)   2 RD
+      lname_ij(k) = 'TOTAL CLOUD COVER'
+      units_ij(k) = '%'
+      name_ij(k) = 'pcldt'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 100.
+c
+      k=k+1 !
+      IJ_PMCCLD = k ! PCLDMC (1)  (COMPOSITE OVER ATMOSPHERE) 2 RD
+      lname_ij(k) = 'CONVECTIVE CLOUD COVER'
+      units_ij(k) = '%'
+      name_ij(k) = 'pmccld'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 100.
+c
+      k=k+1 !
+      IJ_TCLDI = k
+      lname_ij(k) = 'FRACTION OF TIME FOR ISCCP CLOUD'
+      units_ij(k) = '%'
+      name_ij(k) = 'pcldt_isccp'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 100.
+c
+      k=k+1 !
+      IJ_CLDCV1 = k ! PCLD (1)  (COMPOSITE OVER ATMOSPHERE)   2 RD
+      lname_ij(k) = 'TAU>1 CLOUD COVER'
+      units_ij(k) = '%'
+      name_ij(k) = 'pcldt_tau1'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 100.
+
+      k=k+1 !
+      IJ_MCCVTP = k ! PCLDMC (1)  (PICK UP FROM MSTCNV)
+      lname_ij(k) = 'MC TOP CLOUD COVER'
+      units_ij(k) = ''
+      name_ij(k) = 'mccvtp'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+c
+      k=k+1 !
+      IJ_MCCVBS = k ! PCLDMC (1)  (PICK UP FROM MSTCNV)
+      lname_ij(k) = 'MC BASE CLOUD COVER'
+      units_ij(k) = ''
+      name_ij(k) = 'mccvbs'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+c
+      k=k+1 !
+      IJ_CLRSKY = k ! not accumulated
+      lname_ij(k) = 'CLEAR SKY FRACTION'
+      units_ij(k) = '%'
+      name_ij(k) = 'clrsky'
+      ia_ij(k) = ia_ij(IJ_CLDCV)
+      scale_ij(k) = 100.
+c
+!**** Water Mass
+      k=k+1
+      IJ_Q100 = k
+      lname_ij(k) = 'SPECIFIC HUMIDITY AT 100mb'
+      units_ij(k) = 'g/kg'
+      name_ij(k) = 'q_100'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 1d3
+      ir_ij(k) = ir_0_18
+c
+      k=k+1
+      IJ_Q300 = k
+      lname_ij(k) = 'SPECIFIC HUMIDITY AT 300mb'
+      units_ij(k) = 'g/kg'
+      name_ij(k) = 'q_300'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 1d3
+      ir_ij(k) = ir_0_18
+c
+      k=k+1
+      IJ_Q500 = k
+      lname_ij(k) = 'SPECIFIC HUMIDITY AT 500mb'
+      units_ij(k) = 'g/kg'
+      name_ij(k) = 'q_500'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 1d3
+      ir_ij(k) = ir_0_18
+c
+      k=k+1
+      IJ_Q700 = k
+      lname_ij(k) = 'SPECIFIC HUMIDITY AT 700mb'
+      units_ij(k) = 'g/kg'
+      name_ij(k) = 'q_700'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 1d3
+      ir_ij(k) = ir_0_18
+c
+      k=k+1
+      IJ_Q850 = k
+      lname_ij(k) = 'SPECIFIC HUMIDITY AT 850mb'
+      units_ij(k) = 'g/kg'
+      name_ij(k) = 'q_850'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 1d3
+      ir_ij(k) = ir_0_18
+      denom_ij(k) = IJ_P850
+c
+      k=k+1 !
+      IJ_QS   = k ! QS                                (NO PRT)  3 SF
+      lname_ij(k) = 'SURFACE AIR SPECIFIC HUMIDITY'
+      units_ij(k) = '10^-4 g/g'
+      name_ij(k) = 'qsurf'
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.d4
+      ir_ij(k) = ir_0_180
+c
+      k=k+1
+      IJ_RH100 = k
+      lname_ij(k) = 'RELATIVE HUMIDITY (ICE) AT 100mb'
+      units_ij(k) = '%'
+      name_ij(k) = 'rh_100'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 1d2
+      ir_ij(k) = ir_pct
+c
+      k=k+1
+      IJ_RH300 = k
+      lname_ij(k) = 'RELATIVE HUMIDITY (ICE) AT 300mb'
+      units_ij(k) = '%'
+      name_ij(k) = 'rh_300'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 1d2
+      ir_ij(k) = ir_pct
+c
+      k=k+1
+      IJ_RH500 = k
+      lname_ij(k) = 'RELATIVE HUMIDITY AT 500mb'
+      units_ij(k) = '%'
+      name_ij(k) = 'rh_500'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 1d2
+      ir_ij(k) = ir_pct
+c
+      k=k+1
+      IJ_RH700 = k
+      lname_ij(k) = 'RELATIVE HUMIDITY AT 700mb'
+      units_ij(k) = '%'
+      name_ij(k) = 'rh_700'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 1d2
+      ir_ij(k) = ir_pct
+c
+      k=k+1
+      IJ_RH850 = k
+      lname_ij(k) = 'RELATIVE HUMIDITY AT 850mb'
+      units_ij(k) = '%'
+      name_ij(k) = 'rh_850'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 1d2
+      ir_ij(k) = ir_pct
+      denom_ij(k) = IJ_P850
+c
+      k=k+1 !
+      IJ_RH1 = k !
+      lname_ij(k) = 'LAYER 1 RELATIVE HUMIDITY'
+      units_ij(k) = '%'
+      name_ij(k) = 'rh_layer1'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 1d2
+      ir_ij(k) = ir_pct
+c
+      k=k+1 !
+      IJ_RHs  = k ! RHs                               (NO PRT)  3 SF
+      lname_ij(k) = 'SURFACE AIR RELATIVE HUMIDITY'
+      units_ij(k) = '%'
+      name_ij(k) = 'RHsurf'
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.d2
+c
+      k=k+1
+      IJ_WMSUM = k ! LIQUID WATER PATH (kg/m**2)             1 CL
+      lname_ij(k) = 'LIQUID WATER PATH'
+      units_ij(k) = '.1 kg/m^2'
+      name_ij(k) = 'lwp'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 10.
+      ir_ij(k) = ir_0_18
+c
+      k=k+1 !
+      IJ_QM = k ! ATMOSPHERIC WATER VAPOUR CONTENT (kg/m**2)             1 CL
+      lname_ij(k) = 'ATMOSPHERIC WATER VAPOUR'
+      units_ij(k) = 'kg/m^2'
+      name_ij(k) = 'qatm'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_0_18
+c
+      k=k+1 !
+      IJ_CLDW = k ! CLOUD CONDENSED WATER                      1 CL
+      lname_ij(k) = 'CLOUD CONDENSED WATER'
+      units_ij(k) = 'kg/m^2'
+      name_ij(k) = 'cldw'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+c
+      k=k+1 !
+      IJ_CLDI = k ! CLOUD CONDENSED ICE                        1 CL
+      lname_ij(k) = 'CLOUD CONDENSED ICE'
+      units_ij(k) = 'kg/m^2'
+      name_ij(k) = 'cldi'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+c
+      k=k+1 !
       IJ_SNOW = k ! SNOW (KG/m**2)       1 GD
       atmice%IJ_SNOW = k
       lname_ij(k) = 'SNOW DEPTH'    ! 'SNOW MASS'
@@ -1261,78 +1515,45 @@ c
       scale_ij(k) = 1.
       ir_ij(k) = ir_0_26_150
 c
-      k=k+1 !
-      IJ_SHDT = k ! SHDT (J/m**2)        1 SF
-      lname_ij(k) = 'SENSIBLE HEAT FLUX'
-      units_ij(k) = 'W/m^2'
-      name_ij(k) = 'sensht'
+      k=k+1
+      IJ_GBSSND = k
+      name_ij(k) = 'bs_snowdp' !
+      lname_ij(k) = 'SNOW DEPTH OVER BARE SOIL'
+      units_ij(k) = 'mm H2O'
       ia_ij(k) = ia_src
-      scale_ij(k) = 1./DTsrc
-      ir_ij(k) = ir_m265_95
+      scale_ij(k) = 1000.
+      ir_ij(k) = ir_0_3550
+      denom_ij(k) = IJ_BSFR
+c
+      k=k+1
+      IJ_GVSSND = k
+      name_ij(k) = 'vs_snowdp' !
+      lname_ij(k) = 'SNOW DEPTH OVER VEG SOIL'
+      units_ij(k) = 'mm H2O'
+      scale_ij(k) = 1000.
+      ia_ij(k) = ia_src
+      ir_ij(k) = ir_0_3550
+      denom_ij(k) = IJ_VSFR
 c
       k=k+1 !
-      IJ_PREC = k ! PREC (mm/day)       1 CN
-      lname_ij(k) = 'PRECIPITATION'
-      units_ij(k) = 'mm/day'
-      name_ij(k) = 'prec'
+      IJ_ZSNOW = k ! snow thickness over all surface types
+      atmice%IJ_ZSNOW = k
+      lname_ij(k) = 'SNOW THICKNESS'
+      units_ij(k) = 'm'
+      name_ij(k) = 'zsnow'
       ia_ij(k) = ia_src
-      scale_ij(k) = SECONDS_PER_DAY/DTsrc
-      ir_ij(k) = ir_0_3_15
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_0_4
 c
-      k=k+1 !
-      IJ_PRECLI = k ! PREC OVER LAND ICE (mm/day)       1 CN
-      lname_ij(k) = 'PRECIPITATION OVER LAND ICE'
-      units_ij(k) = 'mm/day'
-      name_ij(k) = 'pr_lndice'
+      k=k+1
+      atmice%IJ_MLTP = k
+      lname_ij(k) = 'SEA ICE MELT POND MASS'
+      units_ij(k) = 'kg/m^2'
+      name_ij(k) = 'MLTP'
       ia_ij(k) = ia_src
-      scale_ij(k) = SECONDS_PER_DAY/DTsrc
-      denom_ij(k) = IJ_LI
-c
-      k=k+1 !
-      IJ_PRECGR = k ! PREC OVER EARTH (mm/day)       1 CN
-      lname_ij(k) = 'PRECIPITATION OVER EARTH'
-      units_ij(k) = 'mm/day'
-      name_ij(k) = 'pr_grnd'
-      ia_ij(k) = ia_src
-      scale_ij(k) = SECONDS_PER_DAY/DTsrc
-      denom_ij(k) = IJ_PSOIL
-c
-      k=k+1 !
-      IJ_PRECOO = k ! PREC OVER OPEN OCEAN (mm/day)       1 CN
-      lname_ij(k) = 'PRECIPITATION OVER OPEN OCEAN'
-      units_ij(k) = 'mm/day'
-      name_ij(k) = 'pr_oocn'
-      ia_ij(k) = ia_src
-      scale_ij(k) = SECONDS_PER_DAY/DTsrc
-      denom_ij(k) = IJ_POPWAT
-c
-      k=k+1 !
-      IJ_PRECSI = k ! PREC OVER SEA ICE (mm/day)       1 CN
-      lname_ij(k) = 'PRECIPITATION OVER SEA ICE'
-      units_ij(k) = 'mm/day'
-      name_ij(k) = 'pr_oice'
-      ia_ij(k) = ia_src
-      scale_ij(k) = SECONDS_PER_DAY/DTsrc
+      scale_ij(k) = 1.
       denom_ij(k) = IJ_RSOI
-c
-      k=k+1 !
-      IJ_PRECMC = k ! PREC MC (mm/day)       1 CN
-      lname_ij(k) = 'CONVECTIVE PRECIPITATION'
-      units_ij(k) = 'mm/day'
-      name_ij(k) = 'prec_mc'
-      ia_ij(k) = ia_src
-      scale_ij(k) = SECONDS_PER_DAY/DTsrc
-      ir_ij(k) = ir_0_3_15
-c
-      k=k+1 !
-      IJ_EVAP = k ! EVAP (mm/day)       1 SF
-      lname_ij(k) = 'EVAPORATION'
-      units_ij(k) = 'mm/day'
-      name_ij(k) = 'evap'
-      ia_ij(k) = ia_src
-      scale_ij(k) = SECONDS_PER_DAY/DTsrc
-      ir_ij(k) = ir_0_3_15
-c
+
       k=k+1 !
       IJ_BETA = k ! BETA (1)             1 GD
       lname_ij(k) = 'GROUND WETNESS (VEG ROOTS)'
@@ -1341,6 +1562,308 @@ c
       ia_ij(k) = ia_src
       scale_ij(k) = 100.
       denom_ij(k) = IJ_VSFR
+c
+      k=k+1 !
+      IJ_GWTR = k ! WATER1+WATER2+ICE1+ICE2 (EARTH POINTS ONLY) 1 GD
+      lname_ij(k) = 'TOTAL EARTH WATER' ! includes ice
+      units_ij(k) = 'kg/m^2'
+      name_ij(k) = 'gwtr'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_0_710
+      denom_ij(k) = IJ_PSOIL
+c
+      k=k+1 !
+      IJ_GICE = k ! ICE1+ICE2 (EARTH POINTS ONLY) 1 GD
+      lname_ij(k) = 'TOTAL EARTH ICE' ! includes ice
+      units_ij(k) = 'kg/m^2'
+      name_ij(k) = 'gice'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_0_710
+      denom_ij(k) = IJ_PSOIL
+c
+      k=k+1 !
+      IJ_GWTR1 = k ! WATER1+ICE1 (EARTH POINTS ONLY) 1 GD
+      lname_ij(k) = 'WATER IN UPPER EARTH LAYER' ! includes ice
+      units_ij(k) = 'kg/m^2'
+      name_ij(k) = 'gwtr1'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_0_710
+      denom_ij(k) = IJ_PSOIL
+c
+      k=k+1
+      IJ_GBSW = k
+      name_ij(k) = 'bs_wlay1' !
+      lname_ij(k) = 'LAYER 1 BARE SOIL WATER'
+      units_ij(k) = 'mm'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1000.
+      ir_ij(k) = ir_0_710
+      denom_ij(k) = IJ_BSFR
+c
+      k=k+1
+      name_ij(k) = 'bs_wlay2' !
+      lname_ij(k) = 'LAYER 2 BARE SOIL WATER'
+      units_ij(k) = 'mm'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1000.
+      ir_ij(k) = ir_0_710
+      denom_ij(k) = IJ_BSFR
+c
+      k=k+1
+      name_ij(k) = 'bs_wlay3' !
+      lname_ij(k) = 'LAYER 3 BARE SOIL WATER'
+      units_ij(k) = 'mm'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1000.
+      ir_ij(k) = ir_0_710
+      denom_ij(k) = IJ_BSFR
+c
+      k=k+1
+      name_ij(k) = 'bs_wlay4' !
+      lname_ij(k) = 'LAYER 4 BARE SOIL WATER'
+      units_ij(k) = 'mm'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1000.
+      ir_ij(k) = ir_0_710
+      denom_ij(k) = IJ_BSFR
+c
+      k=k+1
+      name_ij(k) = 'bs_wlay5' !
+      lname_ij(k) = 'LAYER 5 BARE SOIL WATER'
+      units_ij(k) = 'mm'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1000.
+      ir_ij(k) = ir_0_710
+      denom_ij(k) = IJ_BSFR
+c
+      k=k+1
+      name_ij(k) = 'bs_wlay6' !
+      lname_ij(k) = 'LAYER 6 BARE SOIL WATER'
+      units_ij(k) = 'mm'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1000.
+      ir_ij(k) = ir_0_710
+      denom_ij(k) = IJ_BSFR
+c
+      k=k+1
+      IJ_GBSBET = k
+      name_ij(k) = 'bs_beta' !
+      lname_ij(k) = 'BARE SOIL WETNESS, BETA'
+      units_ij(k) = '%'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 100.
+      denom_ij(k) = IJ_BSFR
+c
+      k=k+1
+      IJ_GVSW = k
+      name_ij(k) = 'vs_wcan' !
+      lname_ij(k) = 'VEGETATION CANOPY SOIL WATER'
+      units_ij(k) = 'mm'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1000.
+      ir_ij(k) = ir_0_710
+      denom_ij(k) = IJ_VSFR
+c
+      k=k+1
+      name_ij(k) = 'vs_wlay1' !
+      lname_ij(k) = 'LAYER 1 VEGETATED SOIL WATER'
+      units_ij(k) = 'mm'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1000.
+      ir_ij(k) = ir_0_710
+      denom_ij(k) = IJ_VSFR
+c
+      k=k+1
+      name_ij(k) = 'vs_wlay2' !
+      lname_ij(k) = 'LAYER 2 VEGETATED SOIL WATER'
+      units_ij(k) = 'mm'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1000.
+      ir_ij(k) = ir_0_710
+      denom_ij(k) = IJ_VSFR
+c
+      k=k+1
+      name_ij(k) = 'vs_wlay3' !
+      lname_ij(k) = 'LAYER 3 VEGETATED SOIL WATER'
+      units_ij(k) = 'mm'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1000.
+      ir_ij(k) = ir_0_710
+      denom_ij(k) = IJ_VSFR
+c
+      k=k+1
+      name_ij(k) = 'vs_wlay4' !
+      lname_ij(k) = 'LAYER 4 VEGETATED SOIL WATER'
+      units_ij(k) = 'mm'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1000.
+      ir_ij(k) = ir_0_710
+      denom_ij(k) = IJ_VSFR
+c
+      k=k+1
+      name_ij(k) = 'vs_wlay5' !
+      lname_ij(k) = 'LAYER 5 VEGETATED SOIL WATER'
+      units_ij(k) = 'mm'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1000.
+      ir_ij(k) = ir_0_710
+      denom_ij(k) = IJ_VSFR
+c
+      k=k+1
+      name_ij(k) = 'vs_wlay6' !
+      lname_ij(k) = 'LAYER 6 VEGETATED SOIL WATER'
+      units_ij(k) = 'mm'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1000.
+      ir_ij(k) = ir_0_710
+      denom_ij(k) = IJ_VSFR
+c
+      k=k+1
+      IJ_GVSWET = k
+      name_ij(k) = 'vs_wetness' !
+      lname_ij(k) = 'VEGETATED SOIL WETNESS'
+      units_ij(k) = '%'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 100.
+      denom_ij(k) = IJ_VSFR
+c
+      k=k+1
+      IJ_GBVSWT = k
+      name_ij(k) = 'bvs_wet' !
+      lname_ij(k) = 'BARE & VEGETATED SOIL WETNESS'
+      units_ij(k) = '%'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 100.
+      denom_ij(k) = IJ_PSOIL
+c
+      k=k+1
+      IJ_GWTBL = k
+      name_ij(k) = 'wtbl_depth' !
+      lname_ij(k) = 'AVERAGE WATER TABLE DEPTH'
+      units_ij(k) = 'm'
+      ia_ij(k) = ia_srf
+      scale_ij(k) = -1.
+      ir_ij(k) = ir_0_3_15
+      denom_ij(k) = IJ_PSOIL
+c
+      k=k+1
+      IJ_MWL = k
+      lname_ij(k) = 'MASS OF LAKE AND RIVER WATER'
+      units_ij(k) = '10^10 kg'
+      name_ij(k) = 'mwl'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.d-10
+      !ir_ij(k) = ir_m1_3
+      denom_ij(k) = 0
+c
+      k=k+1
+      IJ_GBETPEN = k
+      name_ij(k) = 'beta_pen' !
+      lname_ij(k) = 'PENMAN SOIL WETNESS, BETA'
+      units_ij(k) = '%'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 100.
+      denom_ij(k) = IJ_PSOIL
+c
+      k=k+1 !
+      IJ_DTGDTS = k ! 18*(DEL(TG)/DEL(TS)-1),DEL=diurn_range     dly_ea
+      lname_ij(k) = 'PLANT WATER STRESS'
+      units_ij(k) = '1'
+      name_ij(k) = 'plant_wstress'
+      ia_ij(k) = ia_12hr
+      scale_ij(k) = 2.*30.
+      ir_ij(k) = ir_m190_530
+c
+      k=k+1 !
+      IJ_MCCON   = k !
+      lname_ij(k) = 'MOIST CONV COUNT'
+      units_ij(k) = '1'
+      name_ij(k) = 'mccon'
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_0_3550
+c
+!**** Salt
+      k=k+1 !
+      IJ_SSS = k               !      3 SF
+      lname_ij(k) = 'SEA SURFACE SALINITY'    ! layer 1
+      units_ij(k) = 'psu'
+      name_ij(k) = 'sss'
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
+      denom_ij(k) = IJ_POCEAN
+c
+      k=k+1
+      atmice%IJ_SSI1 = k
+      lname_ij(k) = 'SEA ICE SALINITY (MASS LAYER 1)'
+      units_ij(k) = 'psu'
+      name_ij(k) = 'SSI1'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1d3
+      denom_ij(k) = IJ_RSOI
+
+      k=k+1
+      atmice%IJ_SSI2 = k
+      lname_ij(k) = 'SEA ICE SALINITY (MASS LAYER 2)'
+      units_ij(k) = 'psu'
+      name_ij(k) = 'SSI2'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1d3
+      denom_ij(k) = IJ_RSOI
+
+      k=k+1 !
+      atmice%IJ_STIO = k ! NET SALT AT ICE-OCEAN INTERFACE
+      lname_ij(k) = 'NET ICE-OCEAN SALT'
+      units_ij(k) = 'kg/m^2/s'
+      name_ij(k) = 'netst_icoc'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1./DTsrc
+      denom_ij(k) = IJ_POCEAN
+c
+!**** Pressure
+      k=k+1 !
+      IJ_CLDTPPR = k ! P-CLOUD TOP   (100 PA)                  2 RD
+      lname_ij(k) = 'CLOUD TOP PRESSURE'
+      units_ij(k) = 'mb'
+      name_ij(k) = 'cldtpp'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_0_1775
+      denom_ij(k) = IJ_CLDCV
+c
+c     near cloud top P:     P at level down to which cloud opt.depth = 1
+      k=k+1 !
+      IJ_CLDT1P  = k ! P-CLOUD TOP   (100 PA)                  2 RD
+      lname_ij(k) = 'CLOUD TAU=1 PRESSURE'
+      units_ij(k) = 'mb'
+      name_ij(k) = 'cldtpp_tau1'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_0_1775
+      denom_ij(k) = IJ_CLDCV1
+c
+      k=k+1 !
+      IJ_MCCLDTP = k ! P-MC CLOUD TOP   (100 PA)
+      lname_ij(k) = 'CONVECTIVE CLOUD TOP PRESSURE'
+      units_ij(k) = 'mb'
+      name_ij(k) = 'mccldtp'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_0_1775
+      denom_ij(k) = IJ_MCCVTP
+c
+      k=k+1 !
+      IJ_MCCLDBS = k ! P-MC CLOUD BASE  (100 PA)
+      lname_ij(k) = 'CONVECTIVE CLOUD BASE PRESSURE'
+      units_ij(k) = 'mb'
+      name_ij(k) = 'mccldbs'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_0_1775
+      denom_ij(k) = IJ_MCCVBS
 c
       k=k+1 !
       IJ_PRES = k ! PIJ (100 PA)  (NO PRINTOUT)  4 DA
@@ -1360,6 +1883,425 @@ c
       scale_ij(k) = 1.
       ir_ij(k) = ir_0_1775
 c
+      k=k+1 !
+      IJ_SLP  = k ! PSL (100 PA-1000)  (USING TS)             4 DA
+      lname_ij(k) = 'SEA LEVEL PRESSURE'
+      units_ij(k) = 'mb-1000'
+      name_ij(k) = 'slp'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m9_26
+c
+      k=k+1 !
+      IJ_SLPQ  = k ! PSL (100 PA-1000)  (USING TS)             4 DA
+      lname_ij(k) = 'SEA LEVEL PRESSURE (INCL. Q)'
+      units_ij(k) = 'mb-1000'
+      name_ij(k) = 'slpq'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m9_26
+c
+      K = K+1
+      IJ_PVS = K
+       NAME_IJ(K) = 'PVS'
+      LNAME_IJ(K) = 'SURFACE VAPOR PRESSURE'
+      UNITS_IJ(K) = 'mb'
+      ia_ij(k) = IA_IJ(IJ_QS  )
+
+!**** Temperature
+      k=k+1 !
+      IJ_BTMPW = k ! BTEMPW-TF (K-TF)                         2 RD
+      lname_ij(k) = 'BRIGHTNESS TEMP THRU WNDW' ! window region
+      units_ij(k) = 'C'
+      name_ij(k) = 'btemp_window'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m80_28
+c
+      k=k+1
+      IJ_PTROP = k
+      lname_ij(k) = 'TROPOPAUSE PRESSURE (WMO)'
+      units_ij(k) = 'mb'
+      name_ij(k) = 'ptrop'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+
+      k=k+1
+      IJ_TTROP = k
+      lname_ij(k) = 'TROPOPAUSE TEMPERATURE (WMO)'
+      units_ij(k) = 'K'
+      name_ij(k) = 'ttrop'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+
+      k=k+1 !
+      IJ_CLDTPT = k !
+      lname_ij(k) = 'CLOUD TOP TEMPERATURE'
+      units_ij(k) = 'C'
+      name_ij(k) = 'cldtpt'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m80_28
+      denom_ij(k) = IJ_CLDCV
+
+c     near cloud top T:     T at level down to which cloud opt.depth = 1
+      k=k+1 !
+      IJ_CLDT1T = k !
+      lname_ij(k) = 'CLOUD TAU=1 TEMPERATURE'
+      units_ij(k) = 'C'
+      name_ij(k) = 'cldtpt_tau1'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m80_28
+      denom_ij(k) = IJ_CLDCV1
+c
+      k=k+1 !
+      IJ_CTPI = k
+      lname_ij(k) = 'CLOUD TOP PRESSURE (ISCCP)'
+      units_ij(k) = 'mb'
+      name_ij(k) = 'cldtpp_isccp'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_0_1775
+      denom_ij(k) = IJ_TCLDI
+c
+      k=k+1 !
+      IJ_T100 = k !
+      lname_ij(k) = 'TEMPERATURE AT 100mb'
+      units_ij(k) = 'C'
+      name_ij(k) = 't_100'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m80_28
+c
+      k=k+1 !
+      IJ_T300 = k !
+      lname_ij(k) = 'TEMPERATURE AT 300mb'
+      units_ij(k) = 'C'
+      name_ij(k) = 't_300'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m80_28
+c
+      k=k+1 !
+      IJ_T500 = k !
+      lname_ij(k) = 'TEMPERATURE AT 500mb'
+      units_ij(k) = 'C'
+      name_ij(k) = 't_500'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m80_28
+c
+      k=k+1 !
+      IJ_T700 = k !
+      lname_ij(k) = 'TEMPERATURE AT 700mb'
+      units_ij(k) = 'C'
+      name_ij(k) = 't_700'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m80_28
+c
+      k=k+1 !
+      IJ_T850 = k !
+      lname_ij(k) = 'TEMPERATURE AT 850mb'
+      units_ij(k) = 'C'
+      name_ij(k) = 't_850'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m80_28
+      denom_ij(k) = IJ_P850
+c
+      k=k+1 !
+      IJ_TS   = k ! TS (K-TF)                                 3 SF
+      lname_ij(k) = 'SURFACE AIR TEMPERATURE'
+      units_ij(k) = 'C'
+      name_ij(k) = 'tsurf'
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m80_28
+c
+      k=k+1 !
+      IJ_TSLI = k ! SURF AIR TEMP OVER LAND ICE  (C)  NISURF*1 SF
+      lname_ij(k) = 'SURF AIR TEMP OVER LAND ICE'
+      units_ij(k) = 'C'
+      name_ij(k) = 'tsurf_lndice'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.d0/NIsurf
+      ir_ij(k) = ir_m80_28
+      denom_ij(k) = IJ_LI
+c
+      k=k+1 !
+      IJ_TG1  = k ! TG1 (K-TF)                                1 GD
+      lname_ij(k) = 'GROUND TEMPERATURE'
+      units_ij(k) = 'C'
+      name_ij(k) = 'tgrnd'
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m80_28
+c
+      k=k+1
+      atmice%IJ_TSICE = k
+      lname_ij(k) = 'SEA ICE SURFACE TEMPERATURE'
+      units_ij(k) = 'K'
+      name_ij(k) = 'ts_oice'
+      ia_ij(k) = ia_src
+      denom_ij(k) = IJ_RSOI
+c
+      k=k+1
+      atmice%IJ_TSI = k
+      lname_ij(k) = 'SEA ICE TEMPERATURE (MASS LAYER 2)'
+      units_ij(k) = 'C'
+      name_ij(k) = 'TEMPSI'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+      denom_ij(k) = IJ_RSOI
+
+      k=k+1
+      IJ_GVST = k
+      name_ij(k) = 'can_temp' !
+      lname_ij(k) = 'CANOPY TEMPERATURE'
+      units_ij(k) = 'C'
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m80_28
+      denom_ij(k) = IJ_VSFR
+c
+      k=k+1
+      name_ij(k) = 'vs_tlay1' !
+      lname_ij(k) = 'VEGETATED SOIL LAYER 1 TEMPERATURE'
+      units_ij(k) = 'C'
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m80_28
+      denom_ij(k) = IJ_VSFR
+c
+      k=k+1
+      name_ij(k) = 'vs_tlay2' !
+      lname_ij(k) = 'VEGETATED SOIL LAYER 2 TEMPERATURE'
+      units_ij(k) = 'C'
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m80_28
+      denom_ij(k) = IJ_VSFR
+c
+      k=k+1
+      name_ij(k) = 'vs_tlay3' !
+      lname_ij(k) = 'VEGETATED SOIL LAYER 3 TEMPERATURE'
+      units_ij(k) = 'C'
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m80_28
+      denom_ij(k) = IJ_VSFR
+c
+      k=k+1
+      name_ij(k) = 'vs_tlay4' !
+      lname_ij(k) = 'VEGETATED SOIL LAYER 4 TEMPERATURE'
+      units_ij(k) = 'C'
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m80_28
+      denom_ij(k) = IJ_VSFR
+c
+      k=k+1
+      name_ij(k) = 'vs_tlay5' !
+      lname_ij(k) = 'VEGETATED SOIL LAYER 5 TEMPERATURE'
+      units_ij(k) = 'C'
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m80_28
+      denom_ij(k) = IJ_VSFR
+c
+      k=k+1
+      name_ij(k) = 'vs_tlay6' !
+      lname_ij(k) = 'VEGETATED SOIL LAYER 6 TEMPERATURE'
+      units_ij(k) = 'C'
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m80_28
+      denom_ij(k) = IJ_VSFR
+c
+      k=k+1
+      IJ_GBST = k
+      name_ij(k) = 'bs_tlay1' !
+      lname_ij(k) = 'BARE SOIL LAYER 1 TEMPERATURE'
+      units_ij(k) = 'C'
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m80_28
+      denom_ij(k) = IJ_BSFR
+c
+      k=k+1
+      name_ij(k) = 'bs_tlay2' !
+      lname_ij(k) = 'BARE SOIL LAYER 2 TEMPERATURE'
+      units_ij(k) = 'C'
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m80_28
+      denom_ij(k) = IJ_BSFR
+c
+      k=k+1
+      name_ij(k) = 'bs_tlay3' !
+      lname_ij(k) = 'BARE SOIL LAYER 3 TEMPERATURE'
+      units_ij(k) = 'C'
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m80_28
+      denom_ij(k) = IJ_BSFR
+c
+      k=k+1
+      name_ij(k) = 'bs_tlay4' !
+      lname_ij(k) = 'BARE SOIL LAYER 4 TEMPERATURE'
+      units_ij(k) = 'C'
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m80_28
+      denom_ij(k) = IJ_BSFR
+c
+      k=k+1
+      name_ij(k) = 'bs_tlay5' !
+      lname_ij(k) = 'BARE SOIL LAYER 5 TEMPERATURE'
+      units_ij(k) = 'C'
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m80_28
+      denom_ij(k) = IJ_BSFR
+c
+      k=k+1
+      name_ij(k) = 'bs_tlay6' !
+      lname_ij(k) = 'BARE SOIL LAYER 6 TEMPERATURE'
+      units_ij(k) = 'C'
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m80_28
+      denom_ij(k) = IJ_BSFR
+c
+      k=k+1 !
+      IJ_TGO  = k               !      3 SF
+      lname_ij(k) = 'SEA SURFACE TEMPERATURE'    ! layer 1
+      units_ij(k) = 'C'
+      name_ij(k) = 'sst'
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m9_26
+      denom_ij(k) = IJ_POCEAN
+c
+      k=k+1 !
+      IJ_TOC2 = k ! TGO2= TOCEAN(2)  (C)
+      lname_ij(k) = 'OCEAN TEMPERATURE BELOW MIXED LAYER' ! lyr 2
+      units_ij(k) = 'C'
+      name_ij(k) = 'TOC2'
+      ia_ij(k) = ia_12hr
+      scale_ij(k) = 2.
+      ir_ij(k) = ir_m9_26
+      denom_ij(k) = IJ_POCEAN
+c
+      k=k+1 !
+      IJ_TGO2 = k ! TGO12= TOCEAN(3) (C)
+      lname_ij(k) = 'OCEAN TEMPERATURE AT ANN-MAX MIXED-LAYER' ! layer 3
+      units_ij(k) = 'C'
+      name_ij(k) = 'TGO2'
+      ia_ij(k) = ia_12hr
+      scale_ij(k) = 2.
+      ir_ij(k) = ir_m9_26
+      denom_ij(k) = IJ_POCEAN
+c
+      k=k+1 !
+      IJ_TMNMX  = k ! MIN(DIURNAL MAX OF COMPOSITE TS)      12 MN
+      lname_ij(k) = 'SURFC AIR TEMPERATURE: LOWEST DIURNAL HIGH'
+      units_ij(k) = 'C'
+      name_ij(k) = 'TMNMX'
+      ia_ij(k) = ia_inst
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m80_28
+c
+      k=k+1 !
+      IJ_TMAXE = k ! MAX TS OVER EARTH FOR CURRENT DAY (C)       dly_ea
+      lname_ij(k) = 'SURFACE AIR TEMPERATURE: DIURNAL HIGH/SOIL'
+      units_ij(k) = 'C'
+      name_ij(k) = 'TMAXE'
+      ia_ij(k) = ia_12hr
+      scale_ij(k) = 2.
+      ir_ij(k) = ir_m80_28
+      denom_ij(k) = IJ_PSOIL
+c
+      k=k+1
+      IJ_TMAXC = k ! MAX composite TS FOR CURRENT DAY (C)        dly_ea
+      lname_ij(k) = 'SURFACE AIR TEMPERATURE: DIURNAL HIGH' ! composite
+      units_ij(k) = 'C'
+      name_ij(k) = 'TMAXC'
+      ia_ij(k) = ia_12hr   ! really ia_24hr
+      scale_ij(k) = 2.*1.  ! really 1.
+      ir_ij(k) = ir_m80_28
+      denom_ij(k) = 0
+c
+      k=k+1 !
+      IJ_TDSL = k ! DIURNAL DELTA TS (K) OVER SOIL (NO PRT)      dly_ea
+      lname_ij(k) = 'DIURNAL SURF AIR TEMP RANGE OVER SOIL'
+      units_ij(k) = 'K'
+      name_ij(k) = 'dtdiurn_soil'
+      ia_ij(k) = ia_12hr
+      scale_ij(k) = 2.
+      ir_ij(k) = ir_0_18
+      denom_ij(k) = IJ_PSOIL
+c
+      k=k+1
+      IJ_TDCOMP = k
+      lname_ij(k) = 'DIURNAL SURF AIR TEMP RANGE' ! composite
+      units_ij(k) = 'C'
+      name_ij(k) = 'dtdiurn'
+      ia_ij(k) = ia_12hr
+      scale_ij(k) = 2.
+      ir_ij(k) = ir_0_18
+c
+!**** Energy
+      k=k+1
+      IJ_HTSNOW = k
+      lname_ij(k) = 'TOTAL LAND SNOW HEAT STORAGE'
+      units_ij(k) = 'J/m^2'
+      name_ij(k) = 'snow_heat' !
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m80_28
+      denom_ij(k) = IJ_PSOIL
+c
+      k=k+1
+      IJ_HTSOIL = k
+      lname_ij(k) = 'TOTAL SOIL HEAT STORAGE'
+      units_ij(k) = 'J/m^2'
+      name_ij(k) = 'soil_heat' !
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m80_28
+      denom_ij(k) = IJ_PSOIL
+c
+      k=k+1
+      IJ_GML = k
+      lname_ij(k) = 'ENTHALPY OF LAKE AND RIVER WATER'
+      units_ij(k) = '10^15 J'
+      name_ij(k) = 'gml'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.d-15
+      !ir_ij(k) = ir_m1_3
+      denom_ij(k) = 0
+c
+      k=k+1
+      atmice%IJ_SIHC = k   ! note this is referenced to water at 0 deg C
+      lname_ij(k) = 'SEA ICE HEAT CONTENT'
+      units_ij(k) = 'J/m^2'
+      name_ij(k) = 'hc_oice'
+      ia_ij(k) = ia_src
+      denom_ij(k) = IJ_RSOI
+c
+      k=k+1 !
+      IJ_STRNGTS = k ! MAX(0,65F-TS_daily_avg in F)              dly_ea
+      lname_ij(k) = 'MONTHLY HEATING' ! monthly heating need ?
+      units_ij(k) = 'degF days'
+      name_ij(k) = 'heat_deg_days'
+      ia_ij(k) = ia_12hr
+      scale_ij(k) = 2.*30.
+      ir_ij(k) = ir_0_3550
+c
+!**** Geopotential Height
       k=k+1 !
       IJ_PHI1K = k ! PHI1000 (M**2/S**2) 4 DA
       lname_ij(k) = '1000mb HEIGHT'
@@ -1424,449 +2366,878 @@ c
       ir_ij(k) = ir_m3975_1425
 c
       if (kgz_max.gt.k-IJ_PHI1K+1) then
-      k=k+1
-      IJ_PHI10 = k ! PHI10-30000*GRAV   4 DA
-      lname_ij(k) = '10 mb HEIGHT'
-      units_ij(k) = 'm-30000'
-      name_ij(k) = 'phi_10'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = BYGRAV
-      ir_ij(k) = ir_m5300_1900
+         k=k+1
+         IJ_PHI10 = k ! PHI10-30000*GRAV   4 DA
+         lname_ij(k) = '10 mb HEIGHT'
+         units_ij(k) = 'm-30000'
+         name_ij(k) = 'phi_10'
+         ia_ij(k) = ia_dga
+         scale_ij(k) = BYGRAV
+         ir_ij(k) = ir_m5300_1900
       end if
 c
       if (kgz_max.gt.k-IJ_PHI1K+1) then
-      k=k+1
-      IJ_PHI3p4 = k ! PHI3.4-40000*GRAV   4 DA
-      lname_ij(k) = '3.4 mb HEIGHT'
-      units_ij(k) = 'm-40000'
-      name_ij(k) = 'phi_3.4'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = BYGRAV
-      ir_ij(k) = ir_m5300_1900
+         k=k+1
+         IJ_PHI3p4 = k ! PHI3.4-40000*GRAV   4 DA
+         lname_ij(k) = '3.4 mb HEIGHT'
+         units_ij(k) = 'm-40000'
+         name_ij(k) = 'phi_3.4'
+         ia_ij(k) = ia_dga
+         scale_ij(k) = BYGRAV
+         ir_ij(k) = ir_m5300_1900
       end if
 c
       if (kgz_max.gt.k-IJ_PHI1K+1) then
-      k=k+1
-      IJ_PHI0p7 = k ! PHI0.7-50000*GRAV   4 DA
-      lname_ij(k) = '0.7 mb HEIGHT'
-      units_ij(k) = 'm-50000'
-      name_ij(k) = 'phi_0.7'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = BYGRAV
-      ir_ij(k) = ir_m5300_1900
+         k=k+1
+         IJ_PHI0p7 = k ! PHI0.7-50000*GRAV   4 DA
+         lname_ij(k) = '0.7 mb HEIGHT'
+         units_ij(k) = 'm-50000'
+         name_ij(k) = 'phi_0.7'
+         ia_ij(k) = ia_dga
+         scale_ij(k) = BYGRAV
+         ir_ij(k) = ir_m5300_1900
       end if
 c
       if (kgz_max.gt.k-IJ_PHI1K+1) then
-      k=k+1
-      IJ_PHI0p16 = k ! PHI0.16-61000*GRAV   4 DA
-      lname_ij(k) = '0.16 mb HEIGHT'
-      units_ij(k) = 'm-61000'
-      name_ij(k) = 'phi_0.16'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = BYGRAV
-      ir_ij(k) = ir_m5300_1900
+         k=k+1
+         IJ_PHI0p16 = k ! PHI0.16-61000*GRAV   4 DA
+         lname_ij(k) = '0.16 mb HEIGHT'
+         units_ij(k) = 'm-61000'
+         name_ij(k) = 'phi_0.16'
+         ia_ij(k) = ia_dga
+         scale_ij(k) = BYGRAV
+         ir_ij(k) = ir_m5300_1900
       end if
 c
       if (kgz_max.gt.k-IJ_PHI1K+1) then
-      k=k+1
-      IJ_PHI0p07 = k ! PHI0.07-67000*GRAV   4 DA
-      lname_ij(k) = '0.07 mb HEIGHT'
-      units_ij(k) = 'm-67000'
-      name_ij(k) = 'phi_0.07'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = BYGRAV
-      ir_ij(k) = ir_m5300_1900
+         k=k+1
+         IJ_PHI0p07 = k ! PHI0.07-67000*GRAV   4 DA
+         lname_ij(k) = '0.07 mb HEIGHT'
+         units_ij(k) = 'm-67000'
+         name_ij(k) = 'phi_0.07'
+         ia_ij(k) = ia_dga
+         scale_ij(k) = BYGRAV
+         ir_ij(k) = ir_m5300_1900
       end if
 c
       if (kgz_max.gt.k-IJ_PHI1K+1) then
-      k=k+1
-      IJ_PHI0p03 = k ! PHI0.03-72000*GRAV   4 DA
-      lname_ij(k) = '0.03 mb HEIGHT'
-      units_ij(k) = 'm-72000'
-      name_ij(k) = 'phi_0.03'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = BYGRAV
-      ir_ij(k) = ir_m5300_1900
+         k=k+1
+         IJ_PHI0p03 = k ! PHI0.03-72000*GRAV   4 DA
+         lname_ij(k) = '0.03 mb HEIGHT'
+         units_ij(k) = 'm-72000'
+         name_ij(k) = 'phi_0.03'
+         ia_ij(k) = ia_dga
+         scale_ij(k) = BYGRAV
+         ir_ij(k) = ir_m5300_1900
       end if
 c
       k=k+1 !
-      IJ_P850 = k !
-      lname_ij(k) = 'FREQUENCY OF 850mb PRESSURE'  ! weighting function
-      units_ij(k) = '%'
-      name_ij(k) = 'p_850_freq'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 100.
+      IJ_PBLHT   = k !
+      lname_ij(k) = 'PBL HEIGHT'
+      units_ij(k) = 'M'
+      name_ij(k) = 'pblht'
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_0_3550
 c
       k=k+1 !
-      IJ_T100 = k !
-      lname_ij(k) = 'TEMPERATURE AT 100mb'
-      units_ij(k) = 'C'
-      name_ij(k) = 't_100'
+      IJ_SSH = k               !      3 SF
+      lname_ij(k) = 'SEA SURFACE HEIGHT'
+      units_ij(k) = 'm'
+      name_ij(k) = 'ssh'
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
+      denom_ij(k) = IJ_POCEAN
+c
+      k=k+1 !
+      atmice%IJ_MSI = k ! ACE2OI+ACE1I= (MSI2+MSI1)*POICE/RHOI (m)   1 GD
+      lname_ij(k) = 'OCEAN ICE THICKNESS'
+      units_ij(k) = 'm'
+      name_ij(k) = 'ZSI'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1./RHOI
+      ir_ij(k) = ir_0_4
+      denom_ij(k) = IJ_RSOI
+c
+!**** Velocity and Momentum
+      k=k+1 !
+      IJ_UJET = k ! UJET (M/S)                                4 DA
+      lname_ij(k) = 'U COMPONENT OF JET WINDS'
+      units_ij(k) = 'm/s'
+      name_ij(k) = 'ujet'
       ia_ij(k) = ia_dga
       scale_ij(k) = 1.
-      ir_ij(k) = ir_m80_28
+      igrid_ij(k) = 1 ! now using a-grid winds
+      jgrid_ij(k) = 1
+      ir_ij(k) = ir_m38_106
 c
       k=k+1 !
-      IJ_T300 = k !
-      lname_ij(k) = 'TEMPERATURE AT 300mb'
-      units_ij(k) = 'C'
-      name_ij(k) = 't_300'
+      IJ_VJET = k ! VJET (M/S)                                4 DA
+      lname_ij(k) = 'V COMPONENT OF JET WINDS'
+      units_ij(k) = 'm/s'
+      name_ij(k) = 'vjet'
       ia_ij(k) = ia_dga
       scale_ij(k) = 1.
-      ir_ij(k) = ir_m80_28
+      igrid_ij(k) = 1 ! now using a-grid winds
+      jgrid_ij(k) = 1
+      ir_ij(k) = ir_m38_106
 c
       k=k+1 !
-      IJ_T500 = k !
-      lname_ij(k) = 'TEMPERATURE AT 500mb'
-      units_ij(k) = 'C'
-      name_ij(k) = 't_500'
-      ia_ij(k) = ia_dga
+      IJ_US   = k ! US (M/S)                                  3 SF
+      lname_ij(k) = 'U COMPONENT OF SURFACE AIR WIND'
+      units_ij(k) = 'm/s'
+      name_ij(k) = 'usurf'
+      ia_ij(k) = ia_srf
       scale_ij(k) = 1.
-      ir_ij(k) = ir_m80_28
+      ir_ij(k) = ir_m9_26
 c
       k=k+1 !
-      IJ_T700 = k !
-      lname_ij(k) = 'TEMPERATURE AT 700mb'
-      units_ij(k) = 'C'
-      name_ij(k) = 't_700'
-      ia_ij(k) = ia_dga
+      IJ_VS   = k ! VS (M/S)                                  3 SF
+      lname_ij(k) = 'V COMPONENT OF SURFACE AIR WIND'
+      units_ij(k) = 'm/s'
+      name_ij(k) = 'vsurf'
+      ia_ij(k) = ia_srf
       scale_ij(k) = 1.
-      ir_ij(k) = ir_m80_28
+      ir_ij(k) = ir_m9_26
 c
       k=k+1 !
-      IJ_T850 = k !
-      lname_ij(k) = 'TEMPERATURE AT 850mb'
-      units_ij(k) = 'C'
-      name_ij(k) = 't_850'
-      ia_ij(k) = ia_dga
+      IJ_WS   = k ! SURFACE WIND SPEED (M/S)                  3 SF
+      lname_ij(k) = 'SURFACE WIND SPEED'
+      units_ij(k) = 'm/s'
+      name_ij(k) = 'wsurf'
+      ia_ij(k) = ia_srf
       scale_ij(k) = 1.
-      ir_ij(k) = ir_m80_28
-      denom_ij(k) = IJ_P850
-c
-      k=k+1
-      IJ_Q100 = k
-      lname_ij(k) = 'SPECIFIC HUMIDITY AT 100mb'
-      units_ij(k) = 'g/kg'
-      name_ij(k) = 'q_100'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1d3
       ir_ij(k) = ir_0_18
-c
-      k=k+1
-      IJ_Q300 = k
-      lname_ij(k) = 'SPECIFIC HUMIDITY AT 300mb'
-      units_ij(k) = 'g/kg'
-      name_ij(k) = 'q_300'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1d3
-      ir_ij(k) = ir_0_18
-c
-      k=k+1
-      IJ_Q500 = k
-      lname_ij(k) = 'SPECIFIC HUMIDITY AT 500mb'
-      units_ij(k) = 'g/kg'
-      name_ij(k) = 'q_500'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1d3
-      ir_ij(k) = ir_0_18
-c
-      k=k+1
-      IJ_Q700 = k
-      lname_ij(k) = 'SPECIFIC HUMIDITY AT 700mb'
-      units_ij(k) = 'g/kg'
-      name_ij(k) = 'q_700'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1d3
-      ir_ij(k) = ir_0_18
-c
-      k=k+1
-      IJ_Q850 = k
-      lname_ij(k) = 'SPECIFIC HUMIDITY AT 850mb'
-      units_ij(k) = 'g/kg'
-      name_ij(k) = 'q_850'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1d3
-      ir_ij(k) = ir_0_18
-      denom_ij(k) = IJ_P850
 c
       k=k+1 !
-      IJ_RH1 = k !
-      lname_ij(k) = 'LAYER 1 RELATIVE HUMIDITY'
-      units_ij(k) = '%'
-      name_ij(k) = 'rh_layer1'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1d2
-      ir_ij(k) = ir_pct
-c
-      k=k+1
-      IJ_RH100 = k
-      lname_ij(k) = 'RELATIVE HUMIDITY (ICE) AT 100mb'
-      units_ij(k) = '%'
-      name_ij(k) = 'rh_100'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1d2
-      ir_ij(k) = ir_pct
-c
-      k=k+1
-      IJ_RH300 = k
-      lname_ij(k) = 'RELATIVE HUMIDITY (ICE) AT 300mb'
-      units_ij(k) = '%'
-      name_ij(k) = 'rh_300'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1d2
-      ir_ij(k) = ir_pct
-c
-      k=k+1
-      IJ_RH500 = k
-      lname_ij(k) = 'RELATIVE HUMIDITY AT 500mb'
-      units_ij(k) = '%'
-      name_ij(k) = 'rh_500'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1d2
-      ir_ij(k) = ir_pct
-c
-      k=k+1
-      IJ_RH700 = k
-      lname_ij(k) = 'RELATIVE HUMIDITY AT 700mb'
-      units_ij(k) = '%'
-      name_ij(k) = 'rh_700'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1d2
-      ir_ij(k) = ir_pct
-c
-      k=k+1
-      IJ_RH850 = k
-      lname_ij(k) = 'RELATIVE HUMIDITY AT 850mb'
-      units_ij(k) = '%'
-      name_ij(k) = 'rh_850'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1d2
-      ir_ij(k) = ir_pct
-      denom_ij(k) = IJ_P850
+      IJ_GUSTI   = k !
+      lname_ij(k) = 'GUSTI WIND'
+      units_ij(k) = 'M/S'
+      name_ij(k) = 'gusti'
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_0_3550
 c
       k=k+1 !
-      IJ_PMCCLD = k ! PCLDMC (1)  (COMPOSITE OVER ATMOSPHERE) 2 RD
-      lname_ij(k) = 'CONVECTIVE CLOUD COVER'
-      units_ij(k) = '%'
-      name_ij(k) = 'pmccld'
+      IJ_TAUUS = k ! TAUUS (MOM. SURF. DRAG) (kg/m**2) (NO PRT)  3 SF
+      lname_ij(k) = 'U COMPON OF MOMENTUM SRF DRAG'
+      units_ij(k) = 'g/m*s^2'
+      name_ij(k) = 'tauus'
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1000.
+      ir_ij(k) = ir_m2650_950
+c
+      k=k+1 !
+      IJ_TAUVS = k ! TAUVS (MOM. SURF. DRAG) (kg/m**2) (NO PRT)  3 SF
+      lname_ij(k) = 'V COMPON OF MOMENTUM SRF DRAG'
+      units_ij(k) = 'g/m*s^2'
+      name_ij(k) = 'tauvs'
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1000.
+      ir_ij(k) = ir_m2650_950
+c
+      k=k+1 !
+      IJ_TAUS = k ! TAUS  (MOM. SURF. DRAG) (kg/m**2) (NO PRT)  3 SF
+      lname_ij(k) = 'MAG OF MOMENTUM SURFACE DRAG'
+      units_ij(k) = 'g/m*s^2'
+      name_ij(k) = 'tausmag'
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1000.
+      ir_ij(k) = ir_0_710
+c
+c     k=k+1 !
+c     IJ_WLM  = k ! WIND SPEED IN TOP LAYER (M/S) before SDRAG 1 SD
+c     lname_ij(k) = 'WIND SPEED IN TOP LAYER'
+c     units_ij(k) = 'm/s'
+c     name_ij(k) = 'WLM'
+c     ia_ij(k) = ia_src
+c     scale_ij(k) = 1.
+c     igrid_ij(k) = 2
+c     jgrid_ij(k) = 2
+c     ir_ij(k) = ir_0_26_150
+c
+!**** Vertical Mass Fluxes
+      k=k+1 !
+      IJ_PREC = k ! PREC (mm/day)       1 CN
+      lname_ij(k) = 'PRECIPITATION'
+      units_ij(k) = 'mm/day'
+      name_ij(k) = 'prec'
+      ia_ij(k) = ia_src
+      scale_ij(k) = SECONDS_PER_DAY/DTsrc
+      ir_ij(k) = ir_0_3_15
+c
+      k=k+1 !
+      IJ_PRECGR = k ! PREC OVER EARTH (mm/day)       1 CN
+      lname_ij(k) = 'PRECIPITATION OVER EARTH'
+      units_ij(k) = 'mm/day'
+      name_ij(k) = 'pr_grnd'
+      ia_ij(k) = ia_src
+      scale_ij(k) = SECONDS_PER_DAY/DTsrc
+      denom_ij(k) = IJ_PSOIL
+c
+      k=k+1 !
+      IJ_AINTRCP = k ! aintercep
+      lname_ij(k) = 'PRECIPITATION INTERCEPTED BY CANOPY'
+      units_ij(k) = 'mm/day'
+      name_ij(k) = 'prec_int_canopy'
+      ia_ij(k) = ia_src
+      scale_ij(k) = SECONDS_PER_DAY/DTsrc
+      ir_ij(k) = ir_m1_3
+      denom_ij(k) = IJ_VSFR
+c
+      k=k+1 !
+      IJ_PRECLI = k ! PREC OVER LAND ICE (mm/day)       1 CN
+      lname_ij(k) = 'PRECIPITATION OVER LAND ICE'
+      units_ij(k) = 'mm/day'
+      name_ij(k) = 'pr_lndice'
+      ia_ij(k) = ia_src
+      scale_ij(k) = SECONDS_PER_DAY/DTsrc
+      denom_ij(k) = IJ_LI
+c
+      k=k+1 !
+      IJ_PRECOO = k ! PREC OVER OPEN OCEAN (mm/day)       1 CN
+      lname_ij(k) = 'PRECIPITATION OVER OPEN OCEAN'
+      units_ij(k) = 'mm/day'
+      name_ij(k) = 'pr_oocn'
+      ia_ij(k) = ia_src
+      scale_ij(k) = SECONDS_PER_DAY/DTsrc
+      denom_ij(k) = IJ_POPWAT
+c
+      k=k+1 !
+      IJ_PRECSI = k ! PREC OVER SEA ICE (mm/day)       1 CN
+      lname_ij(k) = 'PRECIPITATION OVER SEA ICE'
+      units_ij(k) = 'mm/day'
+      name_ij(k) = 'pr_oice'
+      ia_ij(k) = ia_src
+      scale_ij(k) = SECONDS_PER_DAY/DTsrc
+      denom_ij(k) = IJ_RSOI
+c
+      k=k+1 !
+      IJ_PRECMC = k ! PREC MC (mm/day)       1 CN
+      lname_ij(k) = 'CONVECTIVE PRECIPITATION'
+      units_ij(k) = 'mm/day'
+      name_ij(k) = 'prec_mc'
+      ia_ij(k) = ia_src
+      scale_ij(k) = SECONDS_PER_DAY/DTsrc
+      ir_ij(k) = ir_0_3_15
+c
+      k=k+1 !
+      IJ_EVAP = k ! EVAP (mm/day)       1 SF
+      lname_ij(k) = 'EVAPORATION'
+      units_ij(k) = 'mm/day'
+      name_ij(k) = 'evap'
+      ia_ij(k) = ia_src
+      scale_ij(k) = SECONDS_PER_DAY/DTsrc
+      ir_ij(k) = ir_0_3_15
+c
+      k=k+1 !
+      IJ_PEVAP = k ! POTENTIAL EVAPORATION (KG/m**2)         1 EA
+      lname_ij(k) = 'POTENTIAL EVAPORATION'
+      units_ij(k) = 'mm/day'
+      name_ij(k) = 'pot_evap'
+      ia_ij(k) = ia_src
+      scale_ij(k) = SECONDS_PER_DAY/DTsrc
+      ir_ij(k) = ir_0_26_150
+      denom_ij(k) = IJ_PSOIL
+c
+      k=k+1 !
+      IJ_EVAPLI = k ! EVAP OVER LAND ICE  (KG/m**2)          1 GD
+      lname_ij(k) = 'LAND ICE EVAPORATION'
+      units_ij(k) = 'mm/day'
+      name_ij(k) = 'evap_lndice'
+      ia_ij(k) = ia_src
+      scale_ij(k) = SECONDS_PER_DAY/DTsrc
+c     iw built-in
+      ir_ij(k) = ir_0_3_15
+      denom_ij(k) = IJ_LI
+c
+      k=k+1 !
+      IJ_EVAPO = k ! EVAP*PWATER  (KG/m**2)                  1 GD
+      lname_ij(k) = 'OPEN WATER EVAPORATION'
+      units_ij(k) = 'mm/day'
+      name_ij(k) = 'evap_ocn'
+      ia_ij(k) = ia_src
+      scale_ij(k) = SECONDS_PER_DAY/DTsrc
+c     iw built-in
+      ir_ij(k) = ir_0_3_15
+      denom_ij(k) = IJ_POPWAT
+c
+      k=k+1 !
+      IJ_EVAPI = k ! EVAP*POICE  (KG/m**2)                   1 GD
+      lname_ij(k) = 'OCEAN ICE EVAPORATION'
+      units_ij(k) = 'mm/day'
+      name_ij(k) = 'evap_oice'
+      ia_ij(k) = ia_src
+      scale_ij(k) = SECONDS_PER_DAY/DTsrc
+c     iw built-in
+      ir_ij(k) = ir_0_3_15
+      denom_ij(k) = IJ_RSOI
+c
+      k=k+1 !
+      IJ_EVAPE = k ! EVAP OVER EARTH  (KG/m**2)              1 GD
+      lname_ij(k) = 'SOIL EVAPORATION'
+      units_ij(k) = 'mm/day'
+      name_ij(k) = 'evap_land'
+      ia_ij(k) = ia_src
+      scale_ij(k) = SECONDS_PER_DAY/DTsrc
+c     iw built-in
+      ir_ij(k) = ir_0_3_15
+      denom_ij(k) = IJ_PSOIL
+c
+      k=k+1
+      IJ_GBSEVP = k
+      name_ij(k) = 'bs_evap' !
+      lname_ij(k) = 'BARE SOIL EVAPORATION'
+      units_ij(k) = 'mm/day'
+      ia_ij(k) = ia_src
+      scale_ij(k) = SECONDS_PER_DAY/DTsrc
+      ir_ij(k) = ir_0_3_15
+      denom_ij(k) = IJ_BSFR
+c
+      k=k+1
+      IJ_GDCEVP = k
+      name_ij(k) = 'drycan_evap' !
+      lname_ij(k) = 'DRY CANOPY EVAPORATION'
+      units_ij(k) = 'mm/day'
+      ia_ij(k) = ia_src
+      scale_ij(k) = SECONDS_PER_DAY/DTsrc
+      ir_ij(k) = ir_0_3_15
+      denom_ij(k) = IJ_VSFR
+c
+      k=k+1
+      IJ_GWCEVP = k
+      name_ij(k) = 'wetcan_evap' !
+      lname_ij(k) = 'WET CANOPY EVAPORATION'
+      units_ij(k) = 'mm/day'
+      ia_ij(k) = ia_src
+      scale_ij(k) = SECONDS_PER_DAY/DTsrc
+      ir_ij(k) = ir_0_3_15
+      denom_ij(k) = IJ_VSFR
+c
+      k=k+1
+      IJ_GEVPPEN = k
+      name_ij(k) = 'pev_pen' !
+      lname_ij(k) = 'PENMAN POTENTIAL EVAPORATION'
+      units_ij(k) = 'mm/day'
+      ia_ij(k) = ia_src
+      scale_ij(k) = SECONDS_PER_DAY/DTsrc
+      ir_ij(k) = ir_0_26_150
+      denom_ij(k) = IJ_PSOIL
+c
+      k=k+1
+      IJ_EVAPSN = k
+      name_ij(k) = 'snow_evap' !
+      lname_ij(k) = 'LAND SNOW EVAPORATION'
+      units_ij(k) = 'mm/day'
+      ia_ij(k) = ia_src
+      scale_ij(k) = SECONDS_PER_DAY/DTsrc
+      ir_ij(k) = ir_0_3_15
+      denom_ij(k) = IJ_PSOIL
+c
+      k=k+1 !
+      IJ_SNWF = k ! SNOW FALL  (KG/m**2)                     1 PR
+      lname_ij(k) = 'SNOW FALL (H2O EQUIV)'
+      units_ij(k) = 'mm/day'
+      name_ij(k) = 'snowfall'
+      ia_ij(k) = ia_src
+      scale_ij(k) = SECONDS_PER_DAY/DTsrc
+      ir_ij(k) = ir_0_3_15
+c
+      k=k+1 !
+      IJ_AFLMLT = k ! snow melt water  (KG/m**2 /s)                1 PG
+      lname_ij(k) = 'SNOW MELT FLUX'
+      units_ij(k) = 'mm/day'
+      name_ij(k) = 'snow_melt'
+      ia_ij(k) = ia_src
+      scale_ij(k) = SECONDS_PER_DAY/DTsrc
+      ir_ij(k) = ir_m1_3
+      denom_ij(k) = IJ_PSOIL
+c
+      k=k+1 !
+      IJ_RUNE = k ! RUN1 OVER EARTH  (KG/m**2)                1 PG
+      lname_ij(k) = 'GROUND RUNOFF OVER SOIL'
+      units_ij(k) = 'mm/day'
+      name_ij(k) = 'runoff_soil'
+      ia_ij(k) = ia_src
+      scale_ij(k) = SECONDS_PER_DAY/DTsrc
+      ir_ij(k) = ir_m1_3
+      denom_ij(k) = IJ_PSOIL
+c
+      k=k+1 !
+      IJ_RUNLI = k ! RUN1 OVER LAND ICE  (KG/m**2) (NO PRT)    1 PG
+      lname_ij(k) = 'SURFACE RUNOFF OVER LAND ICE'
+      units_ij(k) = 'mm/day'
+      name_ij(k) = 'runoff_lndice'
+      ia_ij(k) = ia_src
+      scale_ij(k) = SECONDS_PER_DAY/DTsrc
+      ir_ij(k) = ir_m1_3
+      denom_ij(k) = IJ_LI
+c
+      k=k+1 !
+      IJ_ARUNU = k ! ARUNU                                      1 EA
+      lname_ij(k) = 'UNDERGROUND RUNOFF OVER SOIL'
+      units_ij(k) = 'mm/day'
+      name_ij(k) = 'runoff_ugrnd'
+      ia_ij(k) = ia_src
+      scale_ij(k) = SECONDS_PER_DAY/DTsrc
+      ir_ij(k) = ir_m1_3
+      denom_ij(k) = IJ_PSOIL
+c
+      k=k+1
+      atmice%IJ_SISNWF = k
+      lname_ij(k) = 'SEA ICE SNOWFALL RATE'
+      units_ij(k) = 'kg/m^2/s'
+      name_ij(k) = 'prsn_oice'
+      scale_ij(k)=1/DTsrc
+      ia_ij(k) = ia_src
+      denom_ij(k) = IJ_RSOI
+c
+      k=k+1
+      atmice%IJ_SIGRFR = k
+      lname_ij(k) = 'SEA ICE FRAZIL GROWTH RATE'
+      units_ij(k) = 'kg/m^2/s'
+      name_ij(k) = 'grfraz_oice'
+      scale_ij(k)=1/DTsrc
+      ia_ij(k) = ia_src
+      denom_ij(k) = IJ_PWATER
+c
+      k=k+1
+      atmice%IJ_SIGRCG = k
+      lname_ij(k) = 'SEA ICE CONGELATION GROWTH RATE'
+      units_ij(k) = 'kg/m^2/s'
+      name_ij(k) = 'grcong_oice'
+      scale_ij(k)=1/DTsrc
+      ia_ij(k) = ia_src
+      denom_ij(k) = IJ_PWATER
+c
+      k=k+1
+      atmice%IJ_SIGRLT = k   ! i.e. negative of lateral melt
+      lname_ij(k) = 'SEA ICE LATERAL GROWTH RATE'
+      units_ij(k) = 'kg/m^2/s'
+      name_ij(k) = 'grlat_oice'
+      scale_ij(k)=1/DTsrc
+      ia_ij(k) = ia_src
+      denom_ij(k) = IJ_PWATER
+c
+      k=k+1
+      atmice%IJ_SNTOSI = k   ! includes snow to ice and seawater to ice terms
+      lname_ij(k) = 'SNOW ICE FORMATION RATE'
+      units_ij(k) = 'kg/m^2/s'
+      name_ij(k) = 'snotoice'
+      scale_ij(k)=1/DTsrc
+      ia_ij(k) = ia_src
+      denom_ij(k) = IJ_PWATER
+c
+      k=k+1
+      atmice%IJ_SITOPMLT = k
+      lname_ij(k) = 'SEA ICE SURFACE MELT RATE'
+      units_ij(k) = 'kg/m^2/s'
+      name_ij(k) = 'topmlt_oice'
+      scale_ij(k)=1/DTsrc
+      ia_ij(k) = ia_src
+      denom_ij(k) = IJ_PWATER
+c
+      k=k+1
+      atmice%IJ_SIBOTMLT = k
+      lname_ij(k) = 'SEA ICE BASAL MELT RATE'
+      units_ij(k) = 'kg/m^2/s'
+      name_ij(k) = 'botmlt_oice'
+      scale_ij(k)=1/DTsrc
+      ia_ij(k) = ia_src
+      denom_ij(k) = IJ_PWATER
+c
+      K = K+1
+      atmice%IJ_MSNFLOOD = K
+      LNAME_IJ(K) = 'ICE MASS FROZEN by SNOW FLOOD'
+      UNITS_IJ(K) = 'kg/s*m^2'
+      NAME_IJ(K)  = 'msnflood'
+      SCALE_IJ(K) = 1 / DTSRC
+      IA_IJ(K)    = IA_SRC
+      DENOM_IJ(K) = IJ_PWATER
+c
+      k=k+1 !
+      IJ_FWOC = k ! NET FRESH WATER AT Z0 (INCL RIVERS + ICEBERGS)
+      lname_ij(k) = 'NET FRESH WATER INTO OCEAN'
+      units_ij(k) = 'kg/m^2/s'
+      name_ij(k) = 'netfw_osurf'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1./DTsrc
+      denom_ij(k) = IJ_POCEAN
+c
+      k=k+1 !
+      atmice%IJ_FWIO = k ! NET FRESH WATER AT ICE-OCEAN INTERFACE
+      lname_ij(k) = 'NET ICE-OCEAN FRESH WATER'
+      units_ij(k) = 'kg/m^2/s'
+      name_ij(k) = 'netfw_icoc'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1./DTsrc
+      denom_ij(k) = IJ_POCEAN
+c
+      k=k+1 !
+      IJ_IMPMLI = k ! IMPLICIT MASS FLUX over LAND ICE (kg/s*m^2)           1 SF
+      lname_ij(k) = 'IMPLICIT MASS FLUX over LAND ICE'
+      units_ij(k) = 'kg/s*m^2'
+      name_ij(k) = 'impm_lndice'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1./DTsrc
+      denom_ij(k) = IJ_LI
+c
+      k=k+1 !
+      IJ_IMPMGR = k ! IMPLICIT MASS FLUX over GROUND (kg/s*m^2)           1 SF
+      lname_ij(k) = 'IMPLICIT MASS FLUX over GROUND'
+      units_ij(k) = 'kg/s*m^2'
+      name_ij(k) = 'impm_gr'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1./DTsrc
+      denom_ij(k) = IJ_PSOIL
+c
+      k=k+1 !
+      IJ_IMPMKI = k ! IMPLICIT MASS FLUX over LAKE ICE (kg/s*m^2)           1 SF
+      lname_ij(k) = 'IMPLICIT MASS FLUX over LAKE ICE'
+      units_ij(k) = 'kg/s*m^2'
+      name_ij(k) = 'impm_ki'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1./DTsrc
+      denom_ij(k) = IJ_RSOI
+c
+      IF (KOCEAN.ne.1) THEN
+        k=k+1
+        atmice%IJ_SMFX = k
+        lname_ij(k) = 'SEA ICE IMPLICIT MASS FLUX'
+        units_ij(k) = 'kg/m^2'
+        name_ij(k) = 'SIMSFX'
+        ia_ij(k) = ia_12hr
+        scale_ij(k) = 2.
+      END IF
+c
+      K = K+1
+      IJ_MLKtoGR  = K
+      LNAME_IJ(K) = 'MASS of EXPANDING LAKE SATURATES GROUND'
+      UNITS_IJ(K) = 'kg/s*m^2'
+      NAME_IJ(K)  = 'mlktogr'
+      IA_IJ(K)    = IA_12HR
+      SCALE_IJ(K) = 2 / SECONDS_PER_DAY
+c
+!**** Vertical Energy Fluxes
+      k=k+1 !
+      IJ_SHDT = k ! SHDT (J/m**2)        1 SF
+      lname_ij(k) = 'SENSIBLE HEAT FLUX'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'sensht'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1./DTsrc
+      ir_ij(k) = ir_m265_95
+c
+      k=k+1 !
+      IJ_SHDTLI = k ! SHDT OVER LAND ICE  (J/m**2)           1 SF
+      lname_ij(k) = 'SENS HEAT FLUX OVER LAND ICE'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'sensht_lndice'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1./DTsrc
+      ir_ij(k) = ir_m38_106
+      denom_ij(k) = IJ_LI
+c
+      k=k+1
+      IJ_SISH = k
+      lname_ij(k) = 'SEA ICE SENSIBLE HEAT FLUX'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'sh_oice'
+      scale_ij(k)=1/DTsrc
+      ia_ij(k) = ia_src
+      denom_ij(k) = IJ_RSOI
+c
+      K = K+1
+      IJ_HWV = K
+       NAME_IJ(K) = 'HWV'
+      LNAME_IJ(K) = 'LATENT HEAT FLUX'
+      UNITS_IJ(K) = 'W/m^2'
+      ia_ij(k) = IA_IJ(IJ_EVAP)
+      scale_ij(k) = 2500000 / DTsrc
+
+      k=k+1 !
+      IJ_EVHDT = k ! EVHDT OVER LAND ICE  (J/m**2)           1 SF
+      lname_ij(k) = 'LATENT HEAT FLUX OVER LAND ICE'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'latht_lndice'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1./DTsrc
+      ir_ij(k) = ir_m38_106
+      denom_ij(k) = IJ_LI
+c
+      k=k+1 !
+      IJ_NETH = k    ! SRHDT+TRHDT+SHDT+EVHDT+ENRGP (J/m**2)   1 SC
+      lname_ij(k) = 'NET HEATING AT GROUND'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'netht_grnd'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1./DTsrc
+      ir_ij(k) = ir_m530_190
+c
+      k=k+1 !
+      IJ_AERUNS = k ! energy of surf runoff                      1 EA
+      lname_ij(k) = 'HEAT OF SURFACE RUNOFF OVER SOIL'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'e_runoff_surf'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.d0/DTsrc
+      ir_ij(k) = ir_m1_3
+      denom_ij(k) = IJ_PSOIL
+c
+      k=k+1 !
+      IJ_AERUNU = k ! energy of underground runoff              1 EA
+      lname_ij(k) = 'HEAT OF UNDERGROUND RUNOFF OVER SOIL'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'e_runoff_ugrnd'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.d0/DTsrc
+      ir_ij(k) = ir_m1_3
+      denom_ij(k) = IJ_PSOIL
+c
+      k=k+1 !
+      atmice%IJ_F0OI = k ! F0DT*POICE, NET HEAT AT Z0  (J/m**2)     1 GD
+      lname_ij(k) = 'NET HEAT INTO OCEAN ICE'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'netht_oice'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1./DTsrc
+c     iw built-in
+      ir_ij(k) = ir_m530_190
+      denom_ij(k) = IJ_RSOI
+c
+      k=k+1 !
+      IJ_F0LI = k ! F0DT, NET HEAT AT Z0 OVER LAND ICE  (J/m**2) 1 GD
+      lname_ij(k) = 'NET HEAT INTO LAND ICE'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'netht_lndice'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1./DTsrc
+      ir_ij(k) = ir_m530_190
+      denom_ij(k) = IJ_LI
+c
+      k=k+1 !
+      IJ_F0E  = k ! F0DT, NET HEAT AT Z0 OVER EARTH  (J/m**2) 1 GD
+      lname_ij(k) = 'NET HEAT INTO LAND SURFACE'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'netht_land'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1./DTsrc
+      ir_ij(k) = ir_m530_190
+      denom_ij(k) = IJ_PSOIL
+c
+      K = K+1
+      atmice%IJ_HSNFLOOD = K
+      LNAME_IJ(K) = 'ICE HEAT FROZEN by SNOW FLOOD'
+      UNITS_IJ(K) = 'W/m^2'
+      NAME_IJ(K)  = 'hsnflood'
+      SCALE_IJ(K) = 1 / DTSRC
+      IA_IJ(K)    = IA_SRC
+      DENOM_IJ(K) = IJ_PWATER
+c
+      k=k+1 !
+      IJ_F0OC = k ! NET HEAT INTO OCEAN (INCL. RIVERS + ICEBERGS)
+      lname_ij(k) = 'NET HEAT INTO OCEAN'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'netht_osurf'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1./DTsrc
+c     iw built-in
+      ir_ij(k) = ir_m530_190
+      denom_ij(k) = IJ_POCEAN
+c
+      k=k+1 !
+      atmice%IJ_HTIO = k ! NET HEAT AT ICE-OCEAN INTERFACE
+      lname_ij(k) = 'NET ICE-OCEAN HEAT'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'netht_icoc'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1./DTsrc
+      denom_ij(k) = IJ_POCEAN
+c
+      k=k+1 !
+      IJ_F1LI = k ! F1DT OVER LAND ICE  (J/m**2)             1 PG
+      lname_ij(k) = 'CONDUCTION AT LYR 1 BOTTOM OVER LAND ICE'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'F1LI'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1./DTsrc
+      ir_ij(k) = ir_m530_190
+      denom_ij(k) = IJ_LI
+c
+      k=k+1 !
+      IJ_IMPHLI = k ! IMPLICIT HEAT FLUX over LAND ICE (W/m^2)           1 SF
+      lname_ij(k) = 'IMPLICIT HEAT FLUX over LAND ICE'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'imph_lndice'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1./DTsrc
+      denom_ij(k) = IJ_LI
+c
+      k=k+1 !
+      IJ_IMPHGR = k ! IMPLICIT HEAT FLUX over GROUND (W/m^2)           1 SF
+      lname_ij(k) = 'IMPLICIT HEAT FLUX over GROUND'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'imph_gr'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1./DTsrc
+      denom_ij(k) = IJ_PSOIL
+c
+      k=k+1 !
+      IJ_IMPHKI = k ! IMPLICIT HEAT FLUX over LAKE ICE (W/m^2)           1 SF
+      lname_ij(k) = 'IMPLICIT HEAT FLUX over LAKE ICE'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'imph_ki'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1./DTsrc
+      denom_ij(k) = IJ_RSOI
+c
+      K = K+1
+      IJ_HLKtoGR  = K
+      LNAME_IJ(K) = 'HEAT of EXPANDING LAKE SATURATES GROUND'
+      UNITS_IJ(K) = 'W/m^2'
+      NAME_IJ(K)  = 'hlktogr'
+      IA_IJ(K)    = IA_12HR
+      SCALE_IJ(K) = 2 / SECONDS_PER_DAY
+c
+!**** Radiation
+      k=k+1 !
+      IJ_SRINCP0 = k ! SRINCP0 (W/m**2)                        3 SR
+      lname_ij(k) = 'INCIDENT SOLAR RADIATION, TOA'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'incsw_toa'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1
+      ir_ij(k) = ir_0_710
+c
+      k=k+1 !
+      IJ_SRNFP0 = k ! SRNFP0 (W/m**2)                         2 RD
+      lname_ij(k) = 'NET SOLAR RADIATION, TOA'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'srnf_toa'
       ia_ij(k) = ia_rad
-      scale_ij(k) = 100.
-c
-      k=k+1 !
-      IJ_MCCVTP = k ! PCLDMC (1)  (PICK UP FROM MSTCNV)
-      lname_ij(k) = 'MC TOP CLOUD COVER'
-      units_ij(k) = ''
-      name_ij(k) = 'mccvtp'
-      ia_ij(k) = ia_src
       scale_ij(k) = 1.
+      ir_ij(k) = ir_0_710
 c
       k=k+1 !
-      IJ_MCCVBS = k ! PCLDMC (1)  (PICK UP FROM MSTCNV)
-      lname_ij(k) = 'MC BASE CLOUD COVER'
-      units_ij(k) = ''
-      name_ij(k) = 'mccvbs'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.
-c
-      k=k+1 !
-      IJ_CLDCV = k ! PCLD (1)  (COMPOSITE OVER ATMOSPHERE)   2 RD
-      lname_ij(k) = 'TOTAL CLOUD COVER'
-      units_ij(k) = '%'
-      name_ij(k) = 'pcldt'
-      ia_ij(k) = ia_rad
-      scale_ij(k) = 100.
-c
-      k=k+1 !
-      IJ_CLRSKY = k ! not accumulated
-      lname_ij(k) = 'CLEAR SKY FRACTION'
-      units_ij(k) = '%'
-      name_ij(k) = 'clrsky'
-      ia_ij(k) = ia_ij(IJ_CLDCV)
-      scale_ij(k) = 100.
-c
-      k=k+1 !
-      IJ_CLDTPPR = k ! P-CLOUD TOP   (100 PA)                  2 RD
-      lname_ij(k) = 'CLOUD TOP PRESSURE'
-      units_ij(k) = 'mb'
-      name_ij(k) = 'cldtpp'
+      IJ_CLR_SRUPTOA = k ! SRUFP0*CLRSKY (W/m**2)            2 RD
+      lname_ij(k) = 'CLR SKY OUT SOLAR RADIATION, TOA'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'swup_toa_clrsky'
       ia_ij(k) = ia_rad
       scale_ij(k) = 1.
-      ir_ij(k) = ir_0_1775
-      denom_ij(k) = IJ_CLDCV
+      ir_ij(k) = ir_0_710
+      denom_ij(k) = IJ_CLRSKY
 c
       k=k+1 !
-      IJ_MCCLDTP = k ! P-MC CLOUD TOP   (100 PA)
-      lname_ij(k) = 'CONVECTIVE CLOUD TOP PRESSURE'
-      units_ij(k) = 'mb'
-      name_ij(k) = 'mccldtp'
-      ia_ij(k) = ia_src
+      IJ_SRNTP = k   ! SRNTP (W/m**2)                          2 RD
+      lname_ij(k) = 'NET SOLAR RADIATION, TROPO'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'srn_tropo'
+      ia_ij(k) = ia_rad
       scale_ij(k) = 1.
-      ir_ij(k) = ir_0_1775
-      denom_ij(k) = IJ_MCCVTP
+      ir_ij(k) = ir_0_710
 c
       k=k+1 !
-      IJ_MCCLDBS = k ! P-MC CLOUD BASE  (100 PA)
-      lname_ij(k) = 'CONVECTIVE CLOUD BASE PRESSURE'
-      units_ij(k) = 'mb'
-      name_ij(k) = 'mccldbs'
-      ia_ij(k) = ia_src
+      IJ_CLR_SRNTP = k   ! SRNTP_CLR (W/m**2)                   2 RD
+      lname_ij(k) = 'NET CLEAR-SKY SOLAR RADIATION, TROPO'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'srnclr_tropo'
+      ia_ij(k) = ia_rad
       scale_ij(k) = 1.
-      ir_ij(k) = ir_0_1775
-      denom_ij(k) = IJ_MCCVBS
-c
-#ifdef CLD_AER_CDNC
-      k=k+1
-      IJ_dzwm = k
-      lname_ij(k) = 'Warm Moist Cnv Cld DZ'
-      units_ij(k) = 'm'
-      name_ij(k) = 'dzwm'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.
-c
-      k=k+1
-      IJ_dzim = k
-      lname_ij(k) = 'Cold Moist Cnv cld DZ'
-      units_ij(k) = 'm'
-      name_ij(k) = 'dzim'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.
-c
-      k=k+1
-      IJ_dzws = k
-      lname_ij(k) = 'Warm Large-scale cld DZ'
-      units_ij(k) = 'm'
-      name_ij(k) = 'dzws'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.
-c
-      k=k+1
-      IJ_dzis = k
-      lname_ij(k) = 'Cold Large-scale cld DZ'
-      units_ij(k) = 'm'
-      name_ij(k) = 'dzis'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.
-c
-      k=k+1
-      IJ_3dNWM = k
-      lname_ij(k) = '2D Warm Moist Cnv CDNC '
-      units_ij(k) = 'cm^-3'
-      name_ij(k) = 'Nwm3d'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.
-      denom_ij(k) = ij_dzwm
-c
-      k=k+1
-      IJ_3dNIM = k
-      lname_ij(k) = '2D Cold Moist Cnv CDNC '
-      units_ij(k) = 'cm^-3'
-      name_ij(k) = 'Nim3d'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.
-      denom_ij(k) = ij_dzim
-c
-      k=k+1
-      IJ_3dRWM = k
-      lname_ij(k) = '2D Warm Moist Conv Reff '
-      units_ij(k) = 'um'
-      name_ij(k) = 'Rwm3d'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.
-      denom_ij(k) = ij_dzwm
-c
-      k=k+1
-      IJ_3dRIM = k
-      lname_ij(k) = '2D Cold Moist Conv Reff '
-      units_ij(k) = 'um'
-      name_ij(k) = 'Rim3d'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.
-      denom_ij(k) = ij_dzim
-c
-      k=k+1
-      IJ_3dLWM = k
-      lname_ij(k) = '2D Warm Moist Conv LWC  '
-      units_ij(k) = 'g m-3'
-      name_ij(k) = 'Lwm3d'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.
-      denom_ij(k) = ij_dzwm
-c
-      k=k+1
-      IJ_3dLIM = k
-      lname_ij(k) = '2D Cold Moist Conv LWC  '
-      units_ij(k) = 'g m-3'
-      name_ij(k) = 'Lim3d'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.
-      denom_ij(k) = ij_dzim
-c
-      k=k+1
-      IJ_3dNWS = k
-      lname_ij(k) = '2D Warm Large-scale CDNC '
-      units_ij(k) = 'cm^-3'
-      name_ij(k) = 'Nws3d'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.
-      denom_ij(k) = ij_dzws
-c
-      k=k+1
-      IJ_3dNIS = k
-      lname_ij(k) = '2D Cold Large-scale CDNC '
-      units_ij(k) = 'cm^-3'
-      name_ij(k) = 'Nis3d'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.
-      denom_ij(k) = ij_dzis
-c
-      k=k+1
-      IJ_3dRWS = k
-      lname_ij(k) = '2D Warm Large-scale Reff '
-      units_ij(k) = 'um'
-      name_ij(k) = 'Rws3d'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.
-      denom_ij(k) = ij_dzws
-c
-      k=k+1
-      IJ_3dRIS = k
-      lname_ij(k) = '2D Cold Large-scale Reff '
-      units_ij(k) = 'um'
-      name_ij(k) = 'Ris3d'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.
-      denom_ij(k) = ij_dzis
-c
-      k=k+1
-      IJ_3dLWS = k
-      lname_ij(k) = '2D Warm Large-scale LWC '
-      units_ij(k) = 'g m-3'
-      name_ij(k) = 'Lws3d'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.
-      denom_ij(k) = ij_dzws
-c
-      k=k+1
-      IJ_3dLIS = k
-      lname_ij(k) = '2D Cold Large-scale LWC '
-      units_ij(k) = 'g m-3'
-      name_ij(k) = 'Lis3d'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.
-      denom_ij(k) = ij_dzis
-#endif
+      ir_ij(k) = ir_m190_530
+      denom_ij(k) = IJ_CLRSKY
 c
       k=k+1 !
-      IJ_DSEV  = k
-       ! P4*(SHA*T4+Z4)*V1*DSIG*DXV (100 W*M/S**2) (UV GRID) 4 DA
-      lname_ij(k) = 'TOTAL NT DRY STAT ENRGY' !  NT: NORTHWARD TRANSPORT
-      units_ij(k) = '10^14 W'
-      name_ij(k) = 'nt_dse'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1.d-14*100.*BYGRAV
-      igrid_ij(k) = 2
-      jgrid_ij(k) = 2
-      ir_ij(k) = ir_m95_265
+      IJ_SRINCG = k ! SRINCG (W/m**2)                         2 RD
+      lname_ij(k) = 'INCIDENT SOLAR RADIATION, SURF'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'incsw_grnd'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_0_710
+c
+      k=k+1 !
+      IJ_CLR_SRINCG = k ! SRINCG*CLRSKY (W/m**2)            2 RD
+      lname_ij(k) = 'CLR SKY INCIDENT SOLAR RADIATION, SRF'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'incsw_grnd_clrsky'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_0_710
+      denom_ij(k) = IJ_CLRSKY
+c
+      k=k+1
+      IJ_SISWD = k
+      lname_ij(k) = 'SEA ICE DOWNWARD SHORTWAVE RADIATION'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'swd_oice'
+      scale_ij(k)=1/DTsrc
+      ia_ij(k) = ia_src
+      denom_ij(k) = IJ_RSOI
+c
+      k=k+1
+      IJ_SISWU = k
+      lname_ij(k) = 'SEA ICE UPWARD SHORTWAVE RADIATION'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'swu_oice'
+      scale_ij(k)=1/DTsrc
+      ia_ij(k) = ia_src
+      denom_ij(k) = IJ_RSOI
+c
+      k=k+1 !
+      IJ_SRNFG = k   ! SRNFG (W/m**2)                          2 RD
+      lname_ij(k) = 'NET SOLAR RADIATION, SURF'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'srnf_grnd'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_0_710
+c
+      k=k+1 !
+      IJ_CLR_SRNFG = k ! SRNFG*CLRSKY (W/m**2)            2 RD
+      lname_ij(k) = 'CLR SKY NET SOLAR RADIATION, SRF'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'swn_grnd_clrsky'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_0_710
+      denom_ij(k) = IJ_CLRSKY
+c
+      k=k+1 !
+      IJ_SRREF = k ! PLAVIS*S0*COSZ (W/m**2)                  2 RD
+      lname_ij(k) = 'REFLECTED SOLAR RADIATION IN VISUAL'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'srrefvis_toa'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_0_710
+c
+      k=k+1 !
+      IJ_SRVISSURF = k ! SRVISSURF (W/m**2)                         2 RD
+      lname_ij(k) = 'TOTAL VISIBLE SOLAR RADIATION AT SURFACE'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'srvissurf'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_0_710
+c
+      k=k+1 !
+      IJ_SRVDIR = k ! FSRDIR*SRVISSURF (W/m**2)                  2 RD
+      lname_ij(k) = 'DIRECT VISIBLE SOLAR RADIATION AT SURFACE'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'srvdir'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_0_710
+c
+      k=k+1
+      IJ_SRVIS = k ! ALBVIS*S0*COSZ (W/m**2)                  2 RD
+      lname_ij(k) = 'REFLECTED SOLAR RADIATION IN VISUAL AT SURF'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'srrefvis_grnd'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_0_710
 c
       k=k+1 !
       IJ_TRNFP0 = k ! TRNFP0 (W/m**2)                         2 RS
@@ -1876,6 +3247,98 @@ c
       ia_ij(k) = ia_rad
       scale_ij(k) = 1.
       ir_ij(k) = ir_m530_190
+c
+      k=k+1 !
+      IJ_CLR_TRUPTOA = k ! TRUFP0*CLRSKY (W/m**2)            2 RD
+      lname_ij(k) = 'CLR SKY OUT THERMAL RADIATION, TOA'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'trup_toa_clrsky'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_0_710
+      denom_ij(k) = IJ_CLRSKY
+c                          non-negligible clouds (opt.depth>1)
+      k=k+1 !
+      IJ_TRNTP = k   ! TRNTP (W/m**2)                          2 RD
+      lname_ij(k) = 'NET THERMAL RADIATION, TROPO'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'trn_tropo'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_0_710
+c
+      k=k+1 !
+      IJ_CLR_TRNTP = k   ! TRNTP_CLR (W/m**2)                   2 RD
+      lname_ij(k) = 'NET CLEAR-SKY THERMAL RADIATION, TROPO'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'trnclr_tropo'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_0_710
+      denom_ij(k) = IJ_CLRSKY
+c
+      k=k+1 !
+      IJ_TRSDN = k ! (W/m**2)                         2 RS
+      lname_ij(k) = 'THERMAL RADIATION DOWN, SURF'   ! >0 if down !
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'trdn_surf'
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m530_190
+c
+      k=k+1 !
+      IJ_CLR_TRDNG = k ! TRDNG*CLRSKY (W/m**2)            2 RD
+      lname_ij(k) = 'CLR SKY THERMAL RADIATION DOWN, SRF'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'trdn_grnd_clrsky'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_0_710
+      denom_ij(k) = IJ_CLRSKY
+c
+      k=k+1 !
+      IJ_TRSUP = k ! (W/m**2)                         2 RS
+      lname_ij(k) = 'THERMAL RADIATION UP, SURF'   ! >0 if up !
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'trup_surf'
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m530_190
+c
+      K = K+1
+      IJ_RTSE = K
+       NAME_IJ(K) = 'RTSE'
+      LNAME_IJ(K) = 'NET THERMAL RADIATION from SURFACE'    ! >0 if up !
+      UNITS_IJ(K) = 'W/m^2'
+      ia_ij(k) = IA_IJ(IJ_TRSUP)
+
+      k=k+1
+      IJ_TRHDT = k ! TRHDT OVER LAND ICE  (J/m**2)           1 SF
+      lname_ij(k) = 'NET THERMAL RADIATION INTO LAND ICE'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'trht_lndice'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1./DTsrc
+      ir_ij(k) = ir_m38_106
+      denom_ij(k) = IJ_LI
+c
+      k=k+1
+      IJ_SILWD = k
+      lname_ij(k) = 'SEA ICE DOWNWARD LONGWAVE RADIATION'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'lwd_oice'
+      scale_ij(k)=1/DTsrc
+      ia_ij(k) = ia_src
+      denom_ij(k) = IJ_RSOI
+c
+      k=k+1
+      IJ_SILWU = k
+      lname_ij(k) = 'SEA ICE UPWARD LONGWAVE RADIATION'
+      units_ij(k) = 'W/m^2'
+      name_ij(k) = 'lwu_oice'
+      scale_ij(k)=1/DTsrc
+      ia_ij(k) = ia_src
+      denom_ij(k) = IJ_RSOI
 c
       k=k+1 !
       IJ_RNFP1 = k ! RNFP1 (W/m**2)
@@ -1894,87 +3357,6 @@ c
       ia_ij(k) = ia_src
       scale_ij(k) = 1./DTsrc
       ir_ij(k) = ir_m95_265
-c
-      k=k+1 !
-      IJ_NETH = k    ! SRHDT+TRHDT+SHDT+EVHDT+ENRGP (J/m**2)   1 SC
-      lname_ij(k) = 'NET HEATING AT GROUND'
-      units_ij(k) = 'W/m^2'
-      name_ij(k) = 'netht_grnd'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1./DTsrc
-      ir_ij(k) = ir_m530_190
-c
-      k=k+1 !
-      IJ_TRSDN = k ! (W/m**2)                         2 RS
-      lname_ij(k) = 'THERMAL RADIATION DOWN, SURF'   ! >0 if down !
-      units_ij(k) = 'W/m^2'
-      name_ij(k) = 'trdn_surf'
-      ia_ij(k) = ia_srf
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m530_190
-c
-      k=k+1 !
-      IJ_TRSUP = k ! (W/m**2)                         2 RS
-      lname_ij(k) = 'THERMAL RADIATION UP, SURF'   ! >0 if up !
-      units_ij(k) = 'W/m^2'
-      name_ij(k) = 'trup_surf'
-      ia_ij(k) = ia_srf
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m530_190
-c
-      k=k+1 !
-      IJ_SRNFP0 = k ! SRNFP0 (W/m**2)                         2 RD
-      lname_ij(k) = 'NET SOLAR RADIATION, TOA'
-      units_ij(k) = 'W/m^2'
-      name_ij(k) = 'srnf_toa'
-      ia_ij(k) = ia_rad
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_0_710
-c
-      k=k+1 !
-      IJ_SRINCP0 = k ! SRINCP0 (W/m**2)                        3 SR
-      lname_ij(k) = 'INCIDENT SOLAR RADIATION, TOA'
-      units_ij(k) = 'W/m^2'
-      name_ij(k) = 'incsw_toa'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1
-      ir_ij(k) = ir_0_710
-c
-      k=k+1 !
-      IJ_SRVDIR = k ! FSRDIR*SRVISSURF (W/m**2)                  2 RD
-      lname_ij(k) = 'DIRECT VISIBLE SOLAR RADIATION AT SURFACE'
-      units_ij(k) = 'W/m^2'
-      name_ij(k) = 'srvdir'
-      ia_ij(k) = ia_rad
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_0_710
-c
-      k=k+1 !
-      IJ_SRVISSURF = k ! SRVISSURF (W/m**2)                         2 RD
-      lname_ij(k) = 'TOTAL VISIBLE SOLAR RADIATION AT SURFACE'
-      units_ij(k) = 'W/m^2'
-      name_ij(k) = 'srvissurf'
-      ia_ij(k) = ia_rad
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_0_710
-c
-      k=k+1 !
-      IJ_SRNFG = k   ! SRNFG (W/m**2)                          2 RD
-      lname_ij(k) = 'NET SOLAR RADIATION, SURF'
-      units_ij(k) = 'W/m^2'
-      name_ij(k) = 'srnf_grnd'
-      ia_ij(k) = ia_rad
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_0_710
-c
-      k=k+1 !
-      IJ_SRINCG = k ! SRINCG (W/m**2)                         2 RD
-      lname_ij(k) = 'INCIDENT SOLAR RADIATION, SURF'
-      units_ij(k) = 'W/m^2'
-      name_ij(k) = 'incsw_grnd'
-      ia_ij(k) = ia_rad
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_0_710
 c
       if (nradfrc>0) then
         k=k+1 !
@@ -2135,435 +3517,74 @@ c
       scale_ij(k) = 1.
       ir_ij(k) = ir_m95_265
 c
-      k=k+1 !
-      IJ_SRNTP = k   ! SRNTP (W/m**2)                          2 RD
-      lname_ij(k) = 'NET SOLAR RADIATION, TROPO'
-      units_ij(k) = 'W/m^2'
-      name_ij(k) = 'srn_tropo'
-      ia_ij(k) = ia_rad
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_0_710
+      if (nradfrc>0) then
+        k=k+1 !
+        IJ_SWDCLS = k ! SW clear-sky down radiation surf (W/m**2) 2 RD
+        lname_ij(k) = 'SW CLR-SKY DOWNWARD RADIATION, SURFACE METHOD 2'
+        units_ij(k) = 'W/m^2'
+        name_ij(k) = 'swdcls'
+        ia_ij(k) = ia_rad_frc
+        scale_ij(k) = 1.
+        ir_ij(k) = ir_m95_265
 c
-      k=k+1 !
-      IJ_TRNTP = k   ! TRNTP (W/m**2)                          2 RD
-      lname_ij(k) = 'NET THERMAL RADIATION, TROPO'
-      units_ij(k) = 'W/m^2'
-      name_ij(k) = 'trn_tropo'
-      ia_ij(k) = ia_rad
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_0_710
+        k=k+1 !
+        IJ_SWNCLS = k ! SW clear-sky net radiation surf (W/m**2) 2 RD
+        lname_ij(k) = 'SW CLR-SKY NET RADIATION, SURFACE METHOD 2'
+        units_ij(k) = 'W/m^2'
+        name_ij(k) = 'swncls'
+        ia_ij(k) = ia_rad_frc
+        scale_ij(k) = 1.
+        ir_ij(k) = ir_m95_265
 c
-      k=k+1 !
-      IJ_CLR_SRNTP = k   ! SRNTP_CLR (W/m**2)                   2 RD
-      lname_ij(k) = 'NET CLEAR-SKY SOLAR RADIATION, TROPO'
-      units_ij(k) = 'W/m^2'
-      name_ij(k) = 'srnclr_tropo'
-      ia_ij(k) = ia_rad
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m190_530
-      denom_ij(k) = IJ_CLRSKY
+        k=k+1 !
+        IJ_LWDCLS = k ! LW clear-sky down radiation surf (W/m**2) 2 RD
+        lname_ij(k) = 'LW CLR-SKY DOWNWARD RADIATION SURFACE METHOD 2'
+        units_ij(k) = 'W/m^2'
+        name_ij(k) = 'lwdcls'
+        ia_ij(k) = ia_rad_frc
+        scale_ij(k) = 1.
+        ir_ij(k) = ir_m95_265
 c
-      k=k+1 !
-      IJ_CLR_TRNTP = k   ! TRNTP_CLR (W/m**2)                   2 RD
-      lname_ij(k) = 'NET CLEAR-SKY THERMAL RADIATION, TROPO'
-      units_ij(k) = 'W/m^2'
-      name_ij(k) = 'trnclr_tropo'
-      ia_ij(k) = ia_rad
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_0_710
-      denom_ij(k) = IJ_CLRSKY
+        k=k+1 !
+        IJ_SWNCLT = k ! SW clear-sky net radiation TOA (W/m**2) 2 RD
+        lname_ij(k) = 'SW CLR-SKY NET RADIATION TOA METHOD 2'
+        units_ij(k) = 'W/m^2'
+        name_ij(k) = 'swnclt'
+        ia_ij(k) = ia_rad_frc
+        scale_ij(k) = 1.
+        ir_ij(k) = ir_m95_265
 c
-      k=k+1 !
-      IJ_TG1  = k ! TG1 (K-TF)                                1 GD
-      lname_ij(k) = 'GROUND TEMPERATURE'
-      units_ij(k) = 'C'
-      name_ij(k) = 'tgrnd'
-      ia_ij(k) = ia_srf
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m80_28
+        k=k+1 !
+        IJ_LWNCLT = k ! LW clear-sky net radiation TOA (W/m**2) 2 RD
+        lname_ij(k) = 'LW CLR-SKY NET RADIATION TOA METHOD 2'
+        units_ij(k) = 'W/m^2'
+        name_ij(k) = 'lwnclt'
+        ia_ij(k) = ia_rad_frc
+        scale_ij(k) = 1.
+        ir_ij(k) = ir_m95_265
+      endif
 c
+!**** Horizontal Mass Fluxes
       k=k+1 !
-      IJ_RSIT = k ! POICE+PLICE+(IF SNOW)PEARTH               4 DA
-      atmice%IJ_RSIT = k
-      lname_ij(k) = 'SNOW AND ICE COVERAGE'
-      units_ij(k) = '%'
-      name_ij(k) = 'snowicefr'
+      IJ_FMU  = k ! EAST-WEST MASS FLUX (KG/S) 100./GRAV/3600.*1 DY
+      lname_ij(k) = 'EAST-WEST MASS FLUX'
+      units_ij(k) = '10^10 kg/s'
+      name_ij(k) = 'fmu'
       ia_ij(k) = ia_src
-      scale_ij(k) = 100.
-c
-      k=k+1 !
-      IJ_LK = k ! PLAKE                                       4 DA
-      lname_ij(k) = 'LAKE FRACTION'
-      units_ij(k) = '%'
-      name_ij(k) = 'lakefr'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 100.
-c
-      k=k+1 !
-      IJ_TDSL = k ! DIURNAL DELTA TS (K) OVER SOIL (NO PRT)      dly_ea
-      lname_ij(k) = 'DIURNAL SURF AIR TEMP RANGE OVER SOIL'
-      units_ij(k) = 'K'
-      name_ij(k) = 'dtdiurn_soil'
-      ia_ij(k) = ia_12hr
-      scale_ij(k) = 2.
-      ir_ij(k) = ir_0_18
-      denom_ij(k) = IJ_PSOIL
-c
-      k=k+1
-      IJ_TDCOMP = k
-      lname_ij(k) = 'DIURNAL SURF AIR TEMP RANGE' ! composite
-      units_ij(k) = 'C'
-      name_ij(k) = 'dtdiurn'
-      ia_ij(k) = ia_12hr
-      scale_ij(k) = 2.
-      ir_ij(k) = ir_0_18
-c
-      k=k+1 !
-      IJ_DTDP = k ! DTHETA/DPHI (K S**2/m**2) IN TROPOSPHERE  4 DA
-      lname_ij(k) = 'TROP STATIC STABILITY'
-      units_ij(k) = 'C/km'
-      name_ij(k) = 'dtdz_tropo'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1000.*GRAV*P1000K
-      ir_ij(k) = ir_0_18
-c
-      k=k+1 !
-      IJ_SSTABX = k ! PEAK DTHETA/DPHI (K S**2/m**2) IN PBL   1 CL
-      lname_ij(k) = 'PEAK STATIC STABILITY IN PBL'
-      units_ij(k) = 'C/km'
-      name_ij(k) = 'dtdzmax_pbl'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1000.*GRAV*P1000K
-      ir_ij(k) = ir_0_18
-c
-      k=k+1 !
-      IJ_RUNE = k ! RUN1 OVER EARTH  (KG/m**2)                1 PG
-      lname_ij(k) = 'GROUND RUNOFF OVER SOIL'
-      units_ij(k) = 'mm/day'
-      name_ij(k) = 'runoff_soil'
-      ia_ij(k) = ia_src
-      scale_ij(k) = SECONDS_PER_DAY/DTsrc
-      ir_ij(k) = ir_m1_3
-      denom_ij(k) = IJ_PSOIL
-c
-      k=k+1 !
-      IJ_AFLMLT = k ! snow melt water  (KG/m**2 /s)                1 PG
-      lname_ij(k) = 'SNOW MELT FLUX'
-      units_ij(k) = 'mm/day'
-      name_ij(k) = 'snow_melt'
-      ia_ij(k) = ia_src
-      scale_ij(k) = SECONDS_PER_DAY/DTsrc
-      ir_ij(k) = ir_m1_3
-      denom_ij(k) = IJ_PSOIL
-c
-      k=k+1 !
-      IJ_RUNLI = k ! RUN1 OVER LAND ICE  (KG/m**2) (NO PRT)    1 PG
-      lname_ij(k) = 'SURFACE RUNOFF OVER LAND ICE'
-      units_ij(k) = 'mm/day'
-      name_ij(k) = 'runoff_lndice'
-      ia_ij(k) = ia_src
-      scale_ij(k) = SECONDS_PER_DAY/DTsrc
-      ir_ij(k) = ir_m1_3
-      denom_ij(k) = IJ_LI
-c
-      k=k+1 !
-      IJ_WS   = k ! SURFACE WIND SPEED (M/S)                  3 SF
-      lname_ij(k) = 'SURFACE WIND SPEED'
-      units_ij(k) = 'm/s'
-      name_ij(k) = 'wsurf'
-      ia_ij(k) = ia_srf
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_0_18
-c
-      k=k+1 !
-      IJ_TS   = k ! TS (K-TF)                                 3 SF
-      lname_ij(k) = 'SURFACE AIR TEMPERATURE'
-      units_ij(k) = 'C'
-      name_ij(k) = 'tsurf'
-      ia_ij(k) = ia_srf
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m80_28
-c
-      k=k+1 !
-      IJ_US   = k ! US (M/S)                                  3 SF
-      lname_ij(k) = 'U COMPONENT OF SURFACE AIR WIND'
-      units_ij(k) = 'm/s'
-      name_ij(k) = 'usurf'
-      ia_ij(k) = ia_srf
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m9_26
-c
-      k=k+1 !
-      IJ_VS   = k ! VS (M/S)                                  3 SF
-      lname_ij(k) = 'V COMPONENT OF SURFACE AIR WIND'
-      units_ij(k) = 'm/s'
-      name_ij(k) = 'vsurf'
-      ia_ij(k) = ia_srf
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m9_26
-c
-      k=k+1 !
-      IJ_SLP  = k ! PSL (100 PA-1000)  (USING TS)             4 DA
-      lname_ij(k) = 'SEA LEVEL PRESSURE'
-      units_ij(k) = 'mb-1000'
-      name_ij(k) = 'slp'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m9_26
-c
-      k=k+1 !
-      IJ_SLPQ  = k ! PSL (100 PA-1000)  (USING TS)             4 DA
-      lname_ij(k) = 'SEA LEVEL PRESSURE (INCL. Q)'
-      units_ij(k) = 'mb-1000'
-      name_ij(k) = 'slpq'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m9_26
-c
-      k=k+1 !
-      IJ_UJET = k ! UJET (M/S)                                4 DA
-      lname_ij(k) = 'U COMPONENT OF JET WINDS'
-      units_ij(k) = 'm/s'
-      name_ij(k) = 'ujet'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1.
-      igrid_ij(k) = 1 ! now using a-grid winds
+      scale_ij(k) = 1.d-10*100.*BYGRAV/DTsrc
+      igrid_ij(k) = 2
       jgrid_ij(k) = 1
       ir_ij(k) = ir_m38_106
 c
       k=k+1 !
-      IJ_VJET = k ! VJET (M/S)                                4 DA
-      lname_ij(k) = 'V COMPONENT OF JET WINDS'
-      units_ij(k) = 'm/s'
-      name_ij(k) = 'vjet'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1.
-      igrid_ij(k) = 1 ! now using a-grid winds
-      jgrid_ij(k) = 1
-      ir_ij(k) = ir_m38_106
-c
-      k=k+1 !
-      IJ_PCLDL = k ! PCLD(LOW) (1)                            2 RD
-      lname_ij(k) = 'LOW LEVEL CLOUDINESS'
-      units_ij(k) = '%'
-      name_ij(k) = 'pcldl'
-      ia_ij(k) = ia_rad
-      scale_ij(k) = 100.
-c
-      k=k+1 !
-      IJ_PCLDM = k ! PCLD(MID) (1)                            2 RD
-      lname_ij(k) = 'MIDDLE LEVEL CLOUDINESS'
-      units_ij(k) = '%'
-      name_ij(k) = 'pcldm'
-      ia_ij(k) = ia_rad
-      scale_ij(k) = 100.
-c
-      k=k+1 !
-      IJ_PCLDH = k ! PCLD(HIGH) (1)                           2 RD
-      lname_ij(k) = 'HIGH LEVEL CLOUDINESS'
-      units_ij(k) = '%'
-      name_ij(k) = 'pcldh'
-      ia_ij(k) = ia_rad
-      scale_ij(k) = 100.
-c
-      k=k+1 !
-      IJ_BTMPW = k ! BTEMPW-TF (K-TF)                         2 RD
-      lname_ij(k) = 'BRIGHTNESS TEMP THRU WNDW' ! window region
-      units_ij(k) = 'C'
-      name_ij(k) = 'btemp_window'
-      ia_ij(k) = ia_rad
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m80_28
-c
-      k=k+1 !
-      IJ_SRREF = k ! PLAVIS*S0*COSZ (W/m**2)                  2 RD
-      lname_ij(k) = 'REFLECTED SOLAR RADIATION IN VISUAL'
-      units_ij(k) = 'W/m^2'
-      name_ij(k) = 'srrefvis_toa'
-      ia_ij(k) = ia_rad
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_0_710
-c
-      k=k+1
-      IJ_SRVIS = k ! ALBVIS*S0*COSZ (W/m**2)                  2 RD
-      lname_ij(k) = 'REFLECTED SOLAR RADIATION IN VISUAL AT SURF'
-      units_ij(k) = 'W/m^2'
-      name_ij(k) = 'srrefvis_grnd'
-      ia_ij(k) = ia_rad
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_0_710
-c
-      k=k+1 !
-      IJ_TOC2 = k ! TGO2= TOCEAN(2)  (C)
-      lname_ij(k) = 'OCEAN TEMPERATURE BELOW MIXED LAYER' ! lyr 2
-      units_ij(k) = 'C'
-      name_ij(k) = 'TOC2'
-      ia_ij(k) = ia_12hr
-      scale_ij(k) = 2.
-      ir_ij(k) = ir_m9_26
-      denom_ij(k) = IJ_POCEAN
-c
-      k=k+1 !
-      IJ_TAUS = k ! TAUS  (MOM. SURF. DRAG) (kg/m**2) (NO PRT)  3 SF
-      lname_ij(k) = 'MAG OF MOMENTUM SURFACE DRAG'
-      units_ij(k) = 'g/m*s^2'
-      name_ij(k) = 'tausmag'
-      ia_ij(k) = ia_srf
-      scale_ij(k) = 1000.
-      ir_ij(k) = ir_0_710
-c
-      k=k+1 !
-      IJ_TAUUS = k ! TAUUS (MOM. SURF. DRAG) (kg/m**2) (NO PRT)  3 SF
-      lname_ij(k) = 'U COMPON OF MOMENTUM SRF DRAG'
-      units_ij(k) = 'g/m*s^2'
-      name_ij(k) = 'tauus'
-      ia_ij(k) = ia_srf
-      scale_ij(k) = 1000.
-      ir_ij(k) = ir_m2650_950
-c
-      k=k+1 !
-      IJ_TAUVS = k ! TAUVS (MOM. SURF. DRAG) (kg/m**2) (NO PRT)  3 SF
-      lname_ij(k) = 'V COMPON OF MOMENTUM SRF DRAG'
-      units_ij(k) = 'g/m*s^2'
-      name_ij(k) = 'tauvs'
-      ia_ij(k) = ia_srf
-      scale_ij(k) = 1000.
-      ir_ij(k) = ir_m2650_950
-c
-      k=k+1 !
-      IJ_GWTR = k ! WATER1+WATER2+ICE1+ICE2 (EARTH POINTS ONLY) 1 GD
-      lname_ij(k) = 'TOTAL EARTH WATER' ! includes ice
-      units_ij(k) = 'kg/m^2'
-      name_ij(k) = 'gwtr'
+      IJ_FMV  = k ! NORTH-SOUTH MASS FLUX (KG/S) 100./GRAV/3600.*1 DY
+      lname_ij(k) = 'NORTH-SOUTH MASS FLUX'
+      units_ij(k) = '10^10 kg/s'
+      name_ij(k) = 'fmv'
       ia_ij(k) = ia_src
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_0_710
-      denom_ij(k) = IJ_PSOIL
-c
-      k=k+1 !
-      IJ_GICE = k ! ICE1+ICE2 (EARTH POINTS ONLY) 1 GD
-      lname_ij(k) = 'TOTAL EARTH ICE' ! includes ice
-      units_ij(k) = 'kg/m^2'
-      name_ij(k) = 'gice'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_0_710
-      denom_ij(k) = IJ_PSOIL
-c
-      k=k+1 !
-      IJ_GWTR1 = k ! WATER1+ICE1 (EARTH POINTS ONLY) 1 GD
-      lname_ij(k) = 'WATER IN UPPER EARTH LAYER' ! includes ice
-      units_ij(k) = 'kg/m^2'
-      name_ij(k) = 'gwtr1'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_0_710
-      denom_ij(k) = IJ_PSOIL
-c
-      k=k+1 !
-      IJ_ZSNOW = k ! snow thickness over all surface types
-      atmice%IJ_ZSNOW = k
-      lname_ij(k) = 'SNOW THICKNESS'
-      units_ij(k) = 'm'
-      name_ij(k) = 'zsnow'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_0_4
-c
-      k=k+1 !
-      IJ_QS   = k ! QS                                (NO PRT)  3 SF
-      lname_ij(k) = 'SURFACE AIR SPECIFIC HUMIDITY'
-      units_ij(k) = '10^-4 g/g'
-      name_ij(k) = 'qsurf'
-      ia_ij(k) = ia_srf
-      scale_ij(k) = 1.d4
-      ir_ij(k) = ir_0_180
-c
-      k=k+1 !
-      IJ_RHs  = k ! RHs                               (NO PRT)  3 SF
-      lname_ij(k) = 'SURFACE AIR RELATIVE HUMIDITY'
-      units_ij(k) = '%'
-      name_ij(k) = 'RHsurf'
-      ia_ij(k) = ia_srf
-      scale_ij(k) = 1.d2
-c
-      k=k+1 !
-      IJ_STRNGTS = k ! MAX(0,65F-TS_daily_avg in F)              dly_ea
-      lname_ij(k) = 'MONTHLY HEATING' ! monthly heating need ?
-      units_ij(k) = 'degF days'
-      name_ij(k) = 'heat_deg_days'
-      ia_ij(k) = ia_12hr
-      scale_ij(k) = 2.*30.
-      ir_ij(k) = ir_0_3550
-c
-      k=k+1 !
-      IJ_ARUNU = k ! ARUNU                                      1 EA
-      lname_ij(k) = 'UNDERGROUND RUNOFF OVER SOIL'
-      units_ij(k) = 'mm/day'
-      name_ij(k) = 'runoff_ugrnd'
-      ia_ij(k) = ia_src
-      scale_ij(k) = SECONDS_PER_DAY/DTsrc
-      ir_ij(k) = ir_m1_3
-      denom_ij(k) = IJ_PSOIL
-c
-      k=k+1 !
-      IJ_AERUNS = k ! energy of surf runoff                      1 EA
-      lname_ij(k) = 'HEAT OF SURFACE RUNOFF OVER SOIL'
-      units_ij(k) = 'W/m^2'
-      name_ij(k) = 'e_runoff_surf'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.d0/DTsrc
-      ir_ij(k) = ir_m1_3
-      denom_ij(k) = IJ_PSOIL
-c
-      k=k+1 !
-      IJ_AERUNU = k ! energy of underground runoff              1 EA
-      lname_ij(k) = 'HEAT OF UNDERGROUND RUNOFF OVER SOIL'
-      units_ij(k) = 'W/m^2'
-      name_ij(k) = 'e_runoff_ugrnd'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.d0/DTsrc
-      ir_ij(k) = ir_m1_3
-      denom_ij(k) = IJ_PSOIL
-c
-      k=k+1
-      IJ_HTSOIL = k
-      lname_ij(k) = 'TOTAL SOIL HEAT STORAGE'
-      units_ij(k) = 'J/m^2'
-      name_ij(k) = 'soil_heat' !
-      ia_ij(k) = ia_srf
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m80_28
-      denom_ij(k) = IJ_PSOIL
-c
-      k=k+1
-      IJ_HTSNOW = k
-      lname_ij(k) = 'TOTAL LAND SNOW HEAT STORAGE'
-      units_ij(k) = 'J/m^2'
-      name_ij(k) = 'snow_heat' !
-      ia_ij(k) = ia_srf
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m80_28
-      denom_ij(k) = IJ_PSOIL
-c
-      k=k+1 !
-      IJ_AINTRCP = k ! aintercep
-      lname_ij(k) = 'PRECIPITATION INTERCEPTED BY CANOPY'
-      units_ij(k) = 'mm/day'
-      name_ij(k) = 'prec_int_canopy'
-      ia_ij(k) = ia_src
-      scale_ij(k) = SECONDS_PER_DAY/DTsrc
-      ir_ij(k) = ir_m1_3
-      denom_ij(k) = IJ_VSFR
-c
-      k=k+1 !
-      IJ_DTGDTS = k ! 18*(DEL(TG)/DEL(TS)-1),DEL=diurn_range     dly_ea
-      lname_ij(k) = 'PLANT WATER STRESS'
-      units_ij(k) = '1'
-      name_ij(k) = 'plant_wstress'
-      ia_ij(k) = ia_12hr
-      scale_ij(k) = 2.*30.
-      ir_ij(k) = ir_m190_530
+      scale_ij(k) = 1.d-10*100.*BYGRAV/DTsrc
+      igrid_ij(k) = 1
+      jgrid_ij(k) = 2
 c
       k=k+1 !
       IJ_PUQ  = k ! P*U*Q (VERT. INTEGRATED) (100 PA*M/S) 4 DA
@@ -2587,466 +3608,138 @@ c
       jgrid_ij(k) = 2
       ir_ij(k) = ir_m45_130
 c
-#ifdef CHL_DIAGNOSTIC
-      k=k+1
-      IJ_CHL = k
-      lname_ij(k) = 'Total Chlorophyll'
-      units_ij(k) = 'mg/m^3'
-      scale_ij(k) = 1.
-      name_ij(k) = 'chl'
-      ia_ij(k) = ia_rad
-      scale_ij(k) = 1.
-      denom_ij(k) = IJ_POCEAN
-#endif /* #ifdef CHL_DIAGNOSTIC */
-c
-
-#ifdef TRACERS_ON
-      allocate(ij_kw(gasex_index%getsize()))
-      allocate(ij_alpha(gasex_index%getsize()))
-      allocate(ij_gasx(gasex_index%getsize()))
-      do ngx=1, gasex_index%getsize()
-        n=gasex_index%at(ngx)
-        k=k+1
-        IJ_Kw(ngx) = k
-        lname_ij(k) = 'Transfer Velocity '//trname(n)
-        units_ij(k) = 'm/s'
-        scale_ij(k) = 1.
-        name_ij(k) = 'Kw_gas_'//trname(n)
-        ia_ij(k) = ia_srf
-        scale_ij(k) = 1.
-        denom_ij(k) = IJ_POCEAN
-
-        k=k+1
-        IJ_alpha(ngx) = k
-        lname_ij(k) = 'Solubility '//trname(n)
-        units_ij(k) = 'mol/m3/uatm'
-        scale_ij(k) = 1.
-        name_ij(k) = 'alpha_gas_'//trname(n)
-        ia_ij(k) = ia_srf
-        scale_ij(k) = 1.
-        denom_ij(k) = IJ_POCEAN
-
-        k=k+1
-        IJ_gasx(ngx) = k
-        lname_ij(k) = 'Gas Exchange Flux '//trname(n)
-        units_ij(k) = 'mol/m2/yr'
-        scale_ij(k) = 1.
-        name_ij(k) = 'trgasex_'//trname(n)
-        ia_ij(k) = ia_src
-        scale_ij(k) = 1.
-        denom_ij(k) = IJ_POCEAN
-      end do
-#endif
-
-#ifdef TRACERS_OBIO_RIVERS
-      k=k+1
-      IJ_rvrflo = k  ! Mass Outflow by Rivers without gmelt (10**5 kg/s)  E-5/DTS*1 RV
-      lname_ij(k) = 'Mass Outflow by Rivers without gmelt'
+      k=k+1 !
+      IJ_MRVR = k ! Mass Inflow by Rivers (10**5 kg/s)  E-5/DTS*1 RV
+      lname_ij(k) = 'Mass Inflow by Rivers'
       units_ij(k) = '10^5 kg/s'
-!      scale_ij(k) = 1.
+      name_ij(k) = 'MRVR'
+      ia_ij(k) = ia_src
       scale_ij(k) = 1.d-5/DTsrc
-      name_ij(k) = 'FLOWO'
+      ir_ij(k) = ir_m1325_475
+c
+      k=k+1 !
+      IJ_MRVRO = k ! Mass Outflow by Rivers (10**5 kg/s)  E-5/DTS*1 RV
+      lname_ij(k) = 'Mass Outflow by Rivers'
+      units_ij(k) = '10^5 kg/s'
+      name_ij(k) = 'MRVRO'
       ia_ij(k) = ia_src
-!      denom_ij(k) = IJ_POCEAN
-
-#endif
+      scale_ij(k) = 1.d-5/DTsrc
+      ir_ij(k) = ir_m1325_475
 c
       k=k+1 !
-      IJ_TGO  = k               !      3 SF
-      lname_ij(k) = 'SEA SURFACE TEMPERATURE'    ! layer 1
-      units_ij(k) = 'C'
-      name_ij(k) = 'sst'
-      ia_ij(k) = ia_srf
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m9_26
-      denom_ij(k) = IJ_POCEAN
-c
-      k=k+1 !
-      IJ_SSS = k               !      3 SF
-      lname_ij(k) = 'SEA SURFACE SALINITY'    ! layer 1
-      units_ij(k) = 'psu'
-      name_ij(k) = 'sss'
-      ia_ij(k) = ia_srf
-      scale_ij(k) = 1.
-      denom_ij(k) = IJ_POCEAN
-c
-      k=k+1 !
-      IJ_SSH = k               !      3 SF
-      lname_ij(k) = 'SEA SURFACE HEIGHT'
-      units_ij(k) = 'm'
-      name_ij(k) = 'ssh'
-      ia_ij(k) = ia_srf
-      scale_ij(k) = 1.
-      denom_ij(k) = IJ_POCEAN
-c
-      k=k+1 !
-      atmice%IJ_MSI = k ! ACE2OI+ACE1I= (MSI2+MSI1)*POICE/RHOI (m)   1 GD
-      lname_ij(k) = 'OCEAN ICE THICKNESS'
-      units_ij(k) = 'm'
-      name_ij(k) = 'ZSI'
+      IJ_MICB = k ! Mass Inflow by Icebergs (10**5 kg/s)  E-5/DTS*1 RV
+      lname_ij(k) = 'Mass Inflow by Icebergs'
+      units_ij(k) = '10^5 kg/s'
+      name_ij(k) = 'MICB'
       ia_ij(k) = ia_src
-      scale_ij(k) = 1./RHOI
-      ir_ij(k) = ir_0_4
-      denom_ij(k) = IJ_RSOI
-
+      scale_ij(k) = 1.d-5/DTsrc
+      ir_ij(k) = ir_m1325_475
 c
-c     k=k+1 !
-c     IJ_WLM  = k ! WIND SPEED IN TOP LAYER (M/S) before SDRAG 1 SD
-c     lname_ij(k) = 'WIND SPEED IN TOP LAYER'
-c     units_ij(k) = 'm/s'
-c     name_ij(k) = 'WLM'
-c     ia_ij(k) = ia_src
-c     scale_ij(k) = 1.
-c     igrid_ij(k) = 2
-c     jgrid_ij(k) = 2
-c     ir_ij(k) = ir_0_26_150
-c
+!**** Horizontal Energy Fluxes
       k=k+1 !
-      IJ_TGO2 = k ! TGO12= TOCEAN(3) (C)
-      lname_ij(k) = 'OCEAN TEMPERATURE AT ANN-MAX MIXED-LAYER' ! layer 3
-      units_ij(k) = 'C'
-      name_ij(k) = 'TGO2'
-      ia_ij(k) = ia_12hr
-      scale_ij(k) = 2.
-      ir_ij(k) = ir_m9_26
-      denom_ij(k) = IJ_POCEAN
-c
-      k=k+1 !
-      IJ_EVAPO = k ! EVAP*PWATER  (KG/m**2)                  1 GD
-      lname_ij(k) = 'OPEN WATER EVAPORATION'
-      units_ij(k) = 'mm/day'
-      name_ij(k) = 'evap_ocn'
-      ia_ij(k) = ia_src
-      scale_ij(k) = SECONDS_PER_DAY/DTsrc
-c     iw built-in
-      ir_ij(k) = ir_0_3_15
-      denom_ij(k) = IJ_POPWAT
-c
-      k=k+1 !
-      IJ_EVAPI = k ! EVAP*POICE  (KG/m**2)                   1 GD
-      lname_ij(k) = 'OCEAN ICE EVAPORATION'
-      units_ij(k) = 'mm/day'
-      name_ij(k) = 'evap_oice'
-      ia_ij(k) = ia_src
-      scale_ij(k) = SECONDS_PER_DAY/DTsrc
-c     iw built-in
-      ir_ij(k) = ir_0_3_15
-      denom_ij(k) = IJ_RSOI
-c
-      k=k+1 !
-      IJ_EVAPLI = k ! EVAP OVER LAND ICE  (KG/m**2)          1 GD
-      lname_ij(k) = 'LAND ICE EVAPORATION'
-      units_ij(k) = 'mm/day'
-      name_ij(k) = 'evap_lndice'
-      ia_ij(k) = ia_src
-      scale_ij(k) = SECONDS_PER_DAY/DTsrc
-c     iw built-in
-      ir_ij(k) = ir_0_3_15
-      denom_ij(k) = IJ_LI
-c
-      k=k+1 !
-      IJ_EVAPE = k ! EVAP OVER EARTH  (KG/m**2)              1 GD
-      lname_ij(k) = 'SOIL EVAPORATION'
-      units_ij(k) = 'mm/day'
-      name_ij(k) = 'evap_land'
-      ia_ij(k) = ia_src
-      scale_ij(k) = SECONDS_PER_DAY/DTsrc
-c     iw built-in
-      ir_ij(k) = ir_0_3_15
-      denom_ij(k) = IJ_PSOIL
-c
-      k=k+1 !
-      IJ_F0OC = k ! NET HEAT INTO OCEAN (INCL. RIVERS + ICEBERGS)
-      lname_ij(k) = 'NET HEAT INTO OCEAN'
-      units_ij(k) = 'W/m^2'
-      name_ij(k) = 'netht_osurf'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1./DTsrc
-c     iw built-in
-      ir_ij(k) = ir_m530_190
-      denom_ij(k) = IJ_POCEAN
-c
-      k=k+1 !
-      IJ_FWOC = k ! NET FRESH WATER AT Z0 (INCL RIVERS + ICEBERGS)
-      lname_ij(k) = 'NET FRESH WATER INTO OCEAN'
-      units_ij(k) = 'kg/m^2/s'
-      name_ij(k) = 'netfw_osurf'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1./DTsrc
-      denom_ij(k) = IJ_POCEAN
-c
-      k=k+1 !
-      atmice%IJ_FWIO = k ! NET FRESH WATER AT ICE-OCEAN INTERFACE
-      lname_ij(k) = 'NET ICE-OCEAN FRESH WATER'
-      units_ij(k) = 'kg/m^2/s'
-      name_ij(k) = 'netfw_icoc'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1./DTsrc
-      denom_ij(k) = IJ_POCEAN
-c
-      k=k+1 !
-      atmice%IJ_HTIO = k ! NET HEAT AT ICE-OCEAN INTERFACE
-      lname_ij(k) = 'NET ICE-OCEAN HEAT'
-      units_ij(k) = 'W/m^2'
-      name_ij(k) = 'netht_icoc'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1./DTsrc
-      denom_ij(k) = IJ_POCEAN
-c
-      k=k+1 !
-      atmice%IJ_STIO = k ! NET SALT AT ICE-OCEAN INTERFACE
-      lname_ij(k) = 'NET ICE-OCEAN SALT'
-      units_ij(k) = 'kg/m^2/s'
-      name_ij(k) = 'netst_icoc'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1./DTsrc
-      denom_ij(k) = IJ_POCEAN
-c
-      k=k+1 !
-      atmice%IJ_F0OI = k ! F0DT*POICE, NET HEAT AT Z0  (J/m**2)     1 GD
-      lname_ij(k) = 'NET HEAT INTO OCEAN ICE'
-      units_ij(k) = 'W/m^2'
-      name_ij(k) = 'netht_oice'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1./DTsrc
-c     iw built-in
-      ir_ij(k) = ir_m530_190
-      denom_ij(k) = IJ_RSOI
-c
-      k=k+1 !
-      IJ_F0LI = k ! F0DT, NET HEAT AT Z0 OVER LAND ICE  (J/m**2) 1 GD
-      lname_ij(k) = 'NET HEAT INTO LAND ICE'
-      units_ij(k) = 'W/m^2'
-      name_ij(k) = 'netht_lndice'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1./DTsrc
-      ir_ij(k) = ir_m530_190
-      denom_ij(k) = IJ_LI
-c
-      k=k+1 !
-      IJ_F0E  = k ! F0DT, NET HEAT AT Z0 OVER EARTH  (J/m**2) 1 GD
-      lname_ij(k) = 'NET HEAT INTO LAND SURFACE'
-      units_ij(k) = 'W/m^2'
-      name_ij(k) = 'netht_land'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1./DTsrc
-      ir_ij(k) = ir_m530_190
-      denom_ij(k) = IJ_PSOIL
-c
-      k=k+1 !
-      IJ_F1LI = k ! F1DT OVER LAND ICE  (J/m**2)             1 PG
-      lname_ij(k) = 'CONDUCTION AT LYR 1 BOTTOM OVER LAND ICE'
-      units_ij(k) = 'W/m^2'
-      name_ij(k) = 'F1LI'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1./DTsrc
-      ir_ij(k) = ir_m530_190
-      denom_ij(k) = IJ_LI
-c
-      k=k+1 !
-      IJ_SNWF = k ! SNOW FALL  (KG/m**2)                     1 PR
-      lname_ij(k) = 'SNOW FALL (H2O EQUIV)'
-      units_ij(k) = 'mm/day'
-      name_ij(k) = 'snowfall'
-      ia_ij(k) = ia_src
-      scale_ij(k) = SECONDS_PER_DAY/DTsrc
-      ir_ij(k) = ir_0_3_15
-c
-      k=k+1 !
-      IJ_TSLI = k ! SURF AIR TEMP OVER LAND ICE  (C)  NISURF*1 SF
-      lname_ij(k) = 'SURF AIR TEMP OVER LAND ICE'
-      units_ij(k) = 'C'
-      name_ij(k) = 'tsurf_lndice'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.d0/NIsurf
-      ir_ij(k) = ir_m80_28
-      denom_ij(k) = IJ_LI
-c
-      k=k+1 !
-      IJ_SHDTLI = k ! SHDT OVER LAND ICE  (J/m**2)           1 SF
-      lname_ij(k) = 'SENS HEAT FLUX OVER LAND ICE'
-      units_ij(k) = 'W/m^2'
-      name_ij(k) = 'sensht_lndice'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1./DTsrc
-      ir_ij(k) = ir_m38_106
-      denom_ij(k) = IJ_LI
-c
-      k=k+1 !
-      IJ_EVHDT = k ! EVHDT OVER LAND ICE  (J/m**2)           1 SF
-      lname_ij(k) = 'LATENT HEAT FLUX OVER LAND ICE'
-      units_ij(k) = 'W/m^2'
-      name_ij(k) = 'latht_lndice'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1./DTsrc
-      ir_ij(k) = ir_m38_106
-      denom_ij(k) = IJ_LI
-c
-      IJ_TRHDT = k ! TRHDT OVER LAND ICE  (J/m**2)           1 SF
-      lname_ij(k) = 'NET THERMAL RADIATION INTO LAND ICE'
-      units_ij(k) = 'W/m^2'
-      name_ij(k) = 'trht_lndice'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1./DTsrc
-      ir_ij(k) = ir_m38_106
-      denom_ij(k) = IJ_LI
-c
-      k=k+1 !
-      IJ_IMPMLI = k ! IMPLICIT MASS FLUX over LAND ICE (kg/s*m^2)           1 SF
-      lname_ij(k) = 'IMPLICIT MASS FLUX over LAND ICE'
-      units_ij(k) = 'kg/s*m^2'
-      name_ij(k) = 'impm_lndice'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1./DTsrc
-      denom_ij(k) = IJ_LI
-c
-      k=k+1 !
-      IJ_IMPMGR = k ! IMPLICIT MASS FLUX over GROUND (kg/s*m^2)           1 SF
-      lname_ij(k) = 'IMPLICIT MASS FLUX over GROUND'
-      units_ij(k) = 'kg/s*m^2'
-      name_ij(k) = 'impm_gr'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1./DTsrc
-      denom_ij(k) = IJ_PSOIL
-c
-      k=k+1 !
-      IJ_IMPMKI = k ! IMPLICIT MASS FLUX over LAKE ICE (kg/s*m^2)           1 SF
-      lname_ij(k) = 'IMPLICIT MASS FLUX over LAKE ICE'
-      units_ij(k) = 'kg/s*m^2'
-      name_ij(k) = 'impm_ki'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1./DTsrc
-      denom_ij(k) = IJ_RSOI
-c
-      k=k+1 !
-      IJ_IMPHLI = k ! IMPLICIT HEAT FLUX over LAND ICE (W/m^2)           1 SF
-      lname_ij(k) = 'IMPLICIT HEAT FLUX over LAND ICE'
-      units_ij(k) = 'W/m^2'
-      name_ij(k) = 'imph_lndice'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1./DTsrc
-      denom_ij(k) = IJ_LI
-c
-      k=k+1 !
-      IJ_IMPHGR = k ! IMPLICIT HEAT FLUX over GROUND (W/m^2)           1 SF
-      lname_ij(k) = 'IMPLICIT HEAT FLUX over GROUND'
-      units_ij(k) = 'W/m^2'
-      name_ij(k) = 'imph_gr'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1./DTsrc
-      denom_ij(k) = IJ_PSOIL
-c
-      k=k+1 !
-      IJ_IMPHKI = k ! IMPLICIT HEAT FLUX over LAKE ICE (W/m^2)           1 SF
-      lname_ij(k) = 'IMPLICIT HEAT FLUX over LAKE ICE'
-      units_ij(k) = 'W/m^2'
-      name_ij(k) = 'imph_ki'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1./DTsrc
-      denom_ij(k) = IJ_RSOI
-c
-      K = K+1
-      IJ_MLKtoGR  = K
-      LNAME_IJ(K) = 'MASS of EXPANDING LAKE SATURATES GROUND'
-      UNITS_IJ(K) = 'kg/s*m^2'
-      NAME_IJ(K)  = 'mlktogr'
-      IA_IJ(K)    = IA_12HR
-      SCALE_IJ(K) = 2 / SECONDS_PER_DAY
-c
-      K = K+1
-      IJ_HLKtoGR  = K
-      LNAME_IJ(K) = 'HEAT of EXPANDING LAKE SATURATES GROUND'
-      UNITS_IJ(K) = 'W/m^2'
-      NAME_IJ(K)  = 'hlktogr'
-      IA_IJ(K)    = IA_12HR
-      SCALE_IJ(K) = 2 / SECONDS_PER_DAY
-c
-      k=k+1 !
-      IJ_TMNMX  = k ! MIN(DIURNAL MAX OF COMPOSITE TS)      12 MN
-      lname_ij(k) = 'SURFC AIR TEMPERATURE: LOWEST DIURNAL HIGH'
-      units_ij(k) = 'C'
-      name_ij(k) = 'TMNMX'
-      ia_ij(k) = ia_inst
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m80_28
-c
-      k=k+1 !
-      IJ_PEVAP = k ! POTENTIAL EVAPORATION (KG/m**2)         1 EA
-      lname_ij(k) = 'POTENTIAL EVAPORATION'
-      units_ij(k) = 'mm/day'
-      name_ij(k) = 'pot_evap'
-      ia_ij(k) = ia_src
-      scale_ij(k) = SECONDS_PER_DAY/DTsrc
-      ir_ij(k) = ir_0_26_150
-      denom_ij(k) = IJ_PSOIL
-c
-      k=k+1 !
-      IJ_TMAXE = k ! MAX TS OVER EARTH FOR CURRENT DAY (C)       dly_ea
-      lname_ij(k) = 'SURFACE AIR TEMPERATURE: DIURNAL HIGH/SOIL'
-      units_ij(k) = 'C'
-      name_ij(k) = 'TMAXE'
-      ia_ij(k) = ia_12hr
-      scale_ij(k) = 2.
-      ir_ij(k) = ir_m80_28
-      denom_ij(k) = IJ_PSOIL
-c
-      k=k+1
-      IJ_TMAXC = k ! MAX composite TS FOR CURRENT DAY (C)        dly_ea
-      lname_ij(k) = 'SURFACE AIR TEMPERATURE: DIURNAL HIGH' ! composite
-      units_ij(k) = 'C'
-      name_ij(k) = 'TMAXC'
-      ia_ij(k) = ia_12hr   ! really ia_24hr
-      scale_ij(k) = 2.*1.  ! really 1.
-      ir_ij(k) = ir_m80_28
-      denom_ij(k) = 0
-c
-      k=k+1
-      IJ_WMSUM = k ! LIQUID WATER PATH (kg/m**2)             1 CL
-      lname_ij(k) = 'LIQUID WATER PATH'
-      units_ij(k) = '.1 kg/m^2'
-      name_ij(k) = 'lwp'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 10.
-      ir_ij(k) = ir_0_18
-c
-#ifdef CLD_AER_CDNC
-c
-      k=k+1 !
-      IJ_WISUM = k ! ICE WATER PATH (kg/m**2)             1 CL
-      lname_ij(k) = 'ICE WATER PATH'
-      units_ij(k) = '.1 kg/m^2'
-      name_ij(k) = 'iwp'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 10.
-      ir_ij(k) = ir_0_18
-c
-      k=k+1 !
-      IJ_WMCLWP = k ! MC LIQUID WATER PATH (kg/m**2)             1 CL
-      lname_ij(k) = 'MC LIQUID WATER PATH'
-      units_ij(k) = '.1 kg/m^2'
-      name_ij(k) = 'mclwp'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 10.
-      ir_ij(k) = ir_0_18
-c
-      k=k+1 !
-      IJ_WMCTWP = k ! MC Total WATER PATH (kg/m**2)             1 CL
-      lname_ij(k) = 'MC TOTAL WATER PATH'
-      units_ij(k) = '.1 kg/m^2'
-      name_ij(k) = 'mctwp'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 10.
-      ir_ij(k) = ir_0_18
-#endif
-c
-      k=k+1 !
-      IJ_QM = k ! ATMOSPHERIC WATER VAPOUR CONTENT (kg/m**2)             1 CL
-      lname_ij(k) = 'ATMOSPHERIC WATER VAPOUR'
-      units_ij(k) = 'kg/m^2'
-      name_ij(k) = 'qatm'
+      IJ_DSEV  = k
+       ! P4*(SHA*T4+Z4)*V1*DSIG*DXV (100 W*M/S**2) (UV GRID) 4 DA
+      lname_ij(k) = 'TOTAL NT DRY STAT ENRGY' !  NT: NORTHWARD TRANSPORT
+      units_ij(k) = '10^14 W'
+      name_ij(k) = 'nt_dse'
       ia_ij(k) = ia_dga
-      scale_ij(k) = 1.
+      scale_ij(k) = 1.d-14*100.*BYGRAV
+      igrid_ij(k) = 2
+      jgrid_ij(k) = 2
+      ir_ij(k) = ir_m95_265
+c
+      k=k+1 !
+      IJ_FGZU = k ! EAST-WEST GEOPOTENTIAL FLUX (W)    /3600.*1 DY
+      lname_ij(k) = 'EAST-WEST GEOPOTENTIAL FLUX'
+      units_ij(k) = '10^10 W'
+      name_ij(k) = 'fgzu'
+      ia_ij(k) = ia_src
+      SCALE_IJ(K) = 1d-10 / DTSRC
+      igrid_ij(k) = 2
+      jgrid_ij(k) = 1
+      ir_ij(k) = ir_m1325_475
+c
+      k=k+1 !
+      IJ_FGZV = k ! NORTH-SOUTH GEOPOTENTIAL FLUX (W)  /3600.*1 DY
+      lname_ij(k) = 'NORTH-SOUTH GEOPOTENTIAL FLUX'
+      units_ij(k) = '10^10 W'
+      name_ij(k) = 'fgzv'
+      ia_ij(k) = ia_src
+      SCALE_IJ(K) = 1d-10 / DTSRC
+      igrid_ij(k) = 1
+      jgrid_ij(k) = 2
+      ir_ij(k) = ir_m1325_475
+c
+      k=k+1 !     NOTE: INFLOW IS DEFINED AS MASS ENTERING A BOX
+      IJ_ERVR = k ! Energy Inflow by Rivers (10**10 W) E-10/DTS*1 RV
+      lname_ij(k) = 'Energy Inflow by Rivers'
+      units_ij(k) = '10^10 W'
+      name_ij(k) = 'ERVR'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.d-10/DTsrc
+      ir_ij(k) = ir_m1325_475
+c
+      k=k+1 !    NOTE: OUTFLOW IS DEFINED AS MASS LEAVING A BOX
+      IJ_ERVRO = k ! Energy Outflow by Rivers (10**10 W) E-10/DTS*1 RV
+      lname_ij(k) = 'Energy Outflow by Rivers'
+      units_ij(k) = '10^10 W'
+      name_ij(k) = 'ERVRO'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.d-10/DTsrc
+      ir_ij(k) = ir_m1325_475
+c
+      k=k+1 !
+      IJ_EICB = k ! Energy Inflow by Icebergs (10**10 W) E-10/DTS*1 RV
+      lname_ij(k) = 'Energy Inflow by Icebergs'
+      units_ij(k) = '10^10 W'
+      name_ij(k) = 'EICB'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.d-10/DTsrc
+      ir_ij(k) = ir_m1325_475
+c
+!**** Stability
+      k=k+1 !
+      IJ_DTDP = k ! DTHETA/DPHI (K S**2/m**2) IN TROPOSPHERE  4 DA
+      lname_ij(k) = 'TROP STATIC STABILITY'
+      units_ij(k) = 'C/km'
+      name_ij(k) = 'dtdz_tropo'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 1000.*GRAV*P1000K
       ir_ij(k) = ir_0_18
+c
+      k=k+1 !
+      IJ_SSTABX = k ! PEAK DTHETA/DPHI (K S**2/m**2) IN PBL   1 CL
+      lname_ij(k) = 'PEAK STATIC STABILITY IN PBL'
+      units_ij(k) = 'C/km'
+      name_ij(k) = 'dtdzmax_pbl'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1000.*GRAV*P1000K
+      ir_ij(k) = ir_0_18
+c
+!**** Clouds
+      k=k+1 !
+      IJ_PCLDL = k ! PCLD(LOW) (1)                            2 RD
+      lname_ij(k) = 'LOW LEVEL CLOUDINESS'
+      units_ij(k) = '%'
+      name_ij(k) = 'pcldl'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 100.
+c
+      k=k+1 !
+      IJ_PCLDM = k ! PCLD(MID) (1)                            2 RD
+      lname_ij(k) = 'MIDDLE LEVEL CLOUDINESS'
+      units_ij(k) = '%'
+      name_ij(k) = 'pcldm'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 100.
+c
+      k=k+1 !
+      IJ_PCLDH = k ! PCLD(HIGH) (1)                           2 RD
+      lname_ij(k) = 'HIGH LEVEL CLOUDINESS'
+      units_ij(k) = '%'
+      name_ij(k) = 'pcldh'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 100.
 c
       k=k+1 !
       IJ_PSCLD = k ! SHALLOW CONVECTIVE CLOUD COVER  (1)     1 CL
@@ -3080,304 +3773,94 @@ c
       ia_ij(k) = ia_src
       scale_ij(k) = 100.
 c
+C**** Note these two diagnostics are NOT the total cloud cover (that is got by
+C**** summing the low+ mid+high diagnostics). Instead, this is the
+C**** fraction of time that a cloud appears in the grid box (which may
+C**** well cover less than 100% of the box) and the amount of time that
+C**** clouds could be detected. TCLDI is needed for weighting the cloud
+C**** top pressure and optical depth, and SCLDI is needed for weighting
+C**** frequency diags.
+c
       k=k+1 !
-      IJ_CLDW = k ! CLOUD CONDENSED WATER                      1 CL
-      lname_ij(k) = 'CLOUD CONDENSED WATER'
-      units_ij(k) = 'kg/m^2'
-      name_ij(k) = 'cldw'
+      IJ_SCLDI = k
+      lname_ij(k) = 'FRACTION OF SUNLIT FOR ISCCP CLOUD'
+      units_ij(k) = '%'
+      name_ij(k) = 'pclds_isccp'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 100.
+c
+      k=k+1 !
+      IJ_LCLDI = k
+      lname_ij(k) = 'LOW LEVEL CLOUDINESS (ISCCP)'
+      units_ij(k) = '%'
+      name_ij(k) = 'pcldl_isccp'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 100.
+      denom_ij(k) = IJ_SCLDI
+c
+      k=k+1 !
+      IJ_MCLDI = k
+      lname_ij(k) =
+     *     'MIDDLE LEVEL CLOUDINESS (ISCCP)'
+      units_ij(k) = '%'
+      name_ij(k) = 'pcldm_isccp'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 100.
+      denom_ij(k) = IJ_SCLDI
+c
+      k=k+1 !
+      IJ_HCLDI = k
+      lname_ij(k) = 'HIGH LEVEL CLOUDINESS (ISCCP)'
+      units_ij(k) = '%'
+      name_ij(k) = 'pcldh_isccp'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 100.
+      denom_ij(k) = IJ_SCLDI
+c
+      k=k+1 !
+      IJ_TAUI = k
+      lname_ij(k) = 'CLOUD OPTICAL DEPTH (ISCCP)'
+      units_ij(k) = ''
+      name_ij(k) = 'optd_isccp'
       ia_ij(k) = ia_src
       scale_ij(k) = 1.
+      denom_ij(k) = IJ_TCLDI
+
+      k=k+1 !
+      IJ_WTRCLD = k ! PCLD (1)  (COMPOSITE OVER ATMOSPHERE)   2 RD
+      lname_ij(k) = 'WATER CLOUD COVER'
+      units_ij(k) = '%'
+      name_ij(k) = 'wtrcld'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 100.
 c
       k=k+1 !
-      IJ_CLDI = k ! CLOUD CONDENSED ICE                        1 CL
-      lname_ij(k) = 'CLOUD CONDENSED ICE'
-      units_ij(k) = 'kg/m^2'
-      name_ij(k) = 'cldi'
-      ia_ij(k) = ia_src
+      IJ_ICECLD = k ! PCLD (1)  (COMPOSITE OVER ATMOSPHERE)   2 RD
+      lname_ij(k) = 'ICE CLOUD COVER'
+      units_ij(k) = '%'
+      name_ij(k) = 'icecld'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 100.
+c
+      k=k+1 !
+      IJ_OPTDW = k
+      lname_ij(k) = 'WATER CLOUD OPTICAL DEPTH'
+      units_ij(k) = ''
+      name_ij(k) = 'optdw'
+      ia_ij(k) = ia_rad
       scale_ij(k) = 1.
-c
-c     k=k+1 !
-cfree IJ_EMTMOM = k ! INCIDENT MTN EAST MOM. FLUX (MB-M/S**2)  1 SD
-cfree lname_ij(k) = 'INCIDENT MTN EAST MOMENTUM FLUX'
-cfree units_ij(k) = 'mb m/s^2'
-cfree name_ij(k) = 'EMTMOM'
-cfree ia_ij(k) = ia_src
-cfree scale_ij(k) = 1./DTsrc
-c
-c     k=k+1 !
-cfree IJ_SMTMOM = k ! INCIDENT MTN SOUTH MOM. FLUX (MB-M/S**2) 1 SD
-cfree lname_ij(k) = 'INCIDENT MTN SOUTH MOMENTUM FLUX'
-cfree units_ij(k) = 'mb m/s^2'
-cfree name_ij(k) = 'SMTMOM'
-cfree ia_ij(k) = ia_src
-cfree scale_ij(k) = 1./DTsrc
+      denom_ij(k) = IJ_WTRCLD
 c
       k=k+1 !
-      IJ_FMU  = k ! EAST-WEST MASS FLUX (KG/S) 100./GRAV/3600.*1 DY
-      lname_ij(k) = 'EAST-WEST MASS FLUX'
-      units_ij(k) = '10^10 kg/s'
-      name_ij(k) = 'fmu'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.d-10*100.*BYGRAV/DTsrc
-      igrid_ij(k) = 2
-      jgrid_ij(k) = 1
-      ir_ij(k) = ir_m38_106
+      IJ_OPTDI = k
+      lname_ij(k) = 'ICE CLOUD OPTICAL DEPTH'
+      units_ij(k) = ''
+      name_ij(k) = 'optdi'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 1.
+      denom_ij(k) = IJ_ICECLD
 c
-      k=k+1 !
-      IJ_FMV  = k ! NORTH-SOUTH MASS FLUX (KG/S) 100./GRAV/3600.*1 DY
-      lname_ij(k) = 'NORTH-SOUTH MASS FLUX'
-      units_ij(k) = '10^10 kg/s'
-      name_ij(k) = 'fmv'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.d-10*100.*BYGRAV/DTsrc
-      igrid_ij(k) = 1
-      jgrid_ij(k) = 2
-c
-      k=k+1 !
-      IJ_FGZU = k ! EAST-WEST GEOPOTENTIAL FLUX (W)    /3600.*1 DY
-      lname_ij(k) = 'EAST-WEST GEOPOTENTIAL FLUX'
-      units_ij(k) = '10^10 W'
-      name_ij(k) = 'fgzu'
-      ia_ij(k) = ia_src
-      SCALE_IJ(K) = 1d-10 / DTSRC
-      igrid_ij(k) = 2
-      jgrid_ij(k) = 1
-      ir_ij(k) = ir_m1325_475
-c
-      k=k+1 !
-      IJ_FGZV = k ! NORTH-SOUTH GEOPOTENTIAL FLUX (W)  /3600.*1 DY
-      lname_ij(k) = 'NORTH-SOUTH GEOPOTENTIAL FLUX'
-      units_ij(k) = '10^10 W'
-      name_ij(k) = 'fgzv'
-      ia_ij(k) = ia_src
-      SCALE_IJ(K) = 1d-10 / DTSRC
-      igrid_ij(k) = 1
-      jgrid_ij(k) = 2
-      ir_ij(k) = ir_m1325_475
-c
-      k=k+1 !     NOTE: INFLOW IS DEFINED AS MASS ENTERING A BOX
-      IJ_ERVR = k ! Energy Inflow by Rivers (10**10 W) E-10/DTS*1 RV
-      lname_ij(k) = 'Energy Inflow by Rivers'
-      units_ij(k) = '10^10 W'
-      name_ij(k) = 'ERVR'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.d-10/DTsrc
-      ir_ij(k) = ir_m1325_475
-c
-      k=k+1 !
-      IJ_MRVR = k ! Mass Inflow by Rivers (10**5 kg/s)  E-5/DTS*1 RV
-      lname_ij(k) = 'Mass Inflow by Rivers'
-      units_ij(k) = '10^5 kg/s'
-      name_ij(k) = 'MRVR'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.d-5/DTsrc
-      ir_ij(k) = ir_m1325_475
-c
-      k=k+1 !
-      IJ_EICB = k ! Energy Inflow by Icebergs (10**10 W) E-10/DTS*1 RV
-      lname_ij(k) = 'Energy Inflow by Icebergs'
-      units_ij(k) = '10^10 W'
-      name_ij(k) = 'EICB'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.d-10/DTsrc
-      ir_ij(k) = ir_m1325_475
-c
-      k=k+1 !
-      IJ_MICB = k ! Mass Inflow by Icebergs (10**5 kg/s)  E-5/DTS*1 RV
-      lname_ij(k) = 'Mass Inflow by Icebergs'
-      units_ij(k) = '10^5 kg/s'
-      name_ij(k) = 'MICB'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.d-5/DTsrc
-      ir_ij(k) = ir_m1325_475
-c
-      k=k+1 !    NOTE: OUTFLOW IS DEFINED AS MASS LEAVING A BOX
-      IJ_ERVRO = k ! Energy Outflow by Rivers (10**10 W) E-10/DTS*1 RV
-      lname_ij(k) = 'Energy Outflow by Rivers'
-      units_ij(k) = '10^10 W'
-      name_ij(k) = 'ERVRO'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.d-10/DTsrc
-      ir_ij(k) = ir_m1325_475
-c
-      k=k+1 !
-      IJ_MRVRO = k ! Mass Outflow by Rivers (10**5 kg/s)  E-5/DTS*1 RV
-      lname_ij(k) = 'Mass Outflow by Rivers'
-      units_ij(k) = '10^5 kg/s'
-      name_ij(k) = 'MRVRO'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.d-5/DTsrc
-      ir_ij(k) = ir_m1325_475
-c
-      k=k+1 !
-      IJ_LKICE = k
-      lname_ij(k) = 'LAKE ICE WEIGHTING' ! for lake freeze/thaw diags
-      units_ij(k) = ' '
-      name_ij(k) = 'LKICEWT'
-      ia_ij(k) = ia_inst
-c
-      k=k+1 !
-      IJ_LKON = k
-      lname_ij(k) = 'LAST ICE-FREE DAY (SH-58,NH-242)'
-      units_ij(k) = 'JULIAN DAY'
-      name_ij(k) = 'lkonday'
-      ia_ij(k) = ia_inst
-      denom_ij(k) = IJ_LKICE
-c
-      k=k+1 !
-      IJ_LKOFF = k
-      lname_ij(k) = 'LAST ICED-UP DAY (SH-58,NH-242)'
-      units_ij(k) = 'JULIAN DAY'
-      name_ij(k) = 'lkoffday'
-      ia_ij(k) = ia_inst
-      denom_ij(k) = IJ_LKICE
-c
-      k=k+1
-      IJ_GBSW = k
-      name_ij(k) = 'bs_wlay1' !
-      lname_ij(k) = 'LAYER 1 BARE SOIL WATER'
-      units_ij(k) = 'mm'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1000.
-      ir_ij(k) = ir_0_710
-      denom_ij(k) = IJ_BSFR
-c
-      k=k+1
-      name_ij(k) = 'bs_wlay2' !
-      lname_ij(k) = 'LAYER 2 BARE SOIL WATER'
-      units_ij(k) = 'mm'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1000.
-      ir_ij(k) = ir_0_710
-      denom_ij(k) = IJ_BSFR
-c
-      k=k+1
-      name_ij(k) = 'bs_wlay3' !
-      lname_ij(k) = 'LAYER 3 BARE SOIL WATER'
-      units_ij(k) = 'mm'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1000.
-      ir_ij(k) = ir_0_710
-      denom_ij(k) = IJ_BSFR
-c
-      k=k+1
-      name_ij(k) = 'bs_wlay4' !
-      lname_ij(k) = 'LAYER 4 BARE SOIL WATER'
-      units_ij(k) = 'mm'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1000.
-      ir_ij(k) = ir_0_710
-      denom_ij(k) = IJ_BSFR
-c
-      k=k+1
-      name_ij(k) = 'bs_wlay5' !
-      lname_ij(k) = 'LAYER 5 BARE SOIL WATER'
-      units_ij(k) = 'mm'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1000.
-      ir_ij(k) = ir_0_710
-      denom_ij(k) = IJ_BSFR
-c
-      k=k+1
-      name_ij(k) = 'bs_wlay6' !
-      lname_ij(k) = 'LAYER 6 BARE SOIL WATER'
-      units_ij(k) = 'mm'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1000.
-      ir_ij(k) = ir_0_710
-      denom_ij(k) = IJ_BSFR
-c
-      k=k+1
-      IJ_GBSBET = k
-      name_ij(k) = 'bs_beta' !
-      lname_ij(k) = 'BARE SOIL WETNESS, BETA'
-      units_ij(k) = '%'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 100.
-      denom_ij(k) = IJ_BSFR
-c
-      k=k+1
-      IJ_GBETPEN = k
-      name_ij(k) = 'beta_pen' !
-      lname_ij(k) = 'PENMAN SOIL WETNESS, BETA'
-      units_ij(k) = '%'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 100.
-      denom_ij(k) = IJ_PSOIL
-c
-      k=k+1
-      IJ_GVSW = k
-      name_ij(k) = 'vs_wcan' !
-      lname_ij(k) = 'VEGETATION CANOPY SOIL WATER'
-      units_ij(k) = 'mm'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1000.
-      ir_ij(k) = ir_0_710
-      denom_ij(k) = IJ_VSFR
-c
-      k=k+1
-      name_ij(k) = 'vs_wlay1' !
-      lname_ij(k) = 'LAYER 1 VEGETATED SOIL WATER'
-      units_ij(k) = 'mm'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1000.
-      ir_ij(k) = ir_0_710
-      denom_ij(k) = IJ_VSFR
-c
-      k=k+1
-      name_ij(k) = 'vs_wlay2' !
-      lname_ij(k) = 'LAYER 2 VEGETATED SOIL WATER'
-      units_ij(k) = 'mm'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1000.
-      ir_ij(k) = ir_0_710
-      denom_ij(k) = IJ_VSFR
-c
-      k=k+1
-      name_ij(k) = 'vs_wlay3' !
-      lname_ij(k) = 'LAYER 3 VEGETATED SOIL WATER'
-      units_ij(k) = 'mm'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1000.
-      ir_ij(k) = ir_0_710
-      denom_ij(k) = IJ_VSFR
-c
-      k=k+1
-      name_ij(k) = 'vs_wlay4' !
-      lname_ij(k) = 'LAYER 4 VEGETATED SOIL WATER'
-      units_ij(k) = 'mm'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1000.
-      ir_ij(k) = ir_0_710
-      denom_ij(k) = IJ_VSFR
-c
-      k=k+1
-      name_ij(k) = 'vs_wlay5' !
-      lname_ij(k) = 'LAYER 5 VEGETATED SOIL WATER'
-      units_ij(k) = 'mm'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1000.
-      ir_ij(k) = ir_0_710
-      denom_ij(k) = IJ_VSFR
-c
-      k=k+1
-      name_ij(k) = 'vs_wlay6' !
-      lname_ij(k) = 'LAYER 6 VEGETATED SOIL WATER'
-      units_ij(k) = 'mm'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1000.
-      ir_ij(k) = ir_0_710
-      denom_ij(k) = IJ_VSFR
-c
-      k=k+1
-      IJ_GBVSWT = k
-      name_ij(k) = 'bvs_wet' !
-      lname_ij(k) = 'BARE & VEGETATED SOIL WETNESS'
-      units_ij(k) = '%'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 100.
-      denom_ij(k) = IJ_PSOIL
-c
+!**** Vegetation and Ground Hydrology variables
       k=k+1
       IJ_GCONATM = k
       name_ij(k) = 'cond_atm' !
@@ -3397,203 +3880,6 @@ c
       scale_ij(k) = 100.
       ir_ij(k) = ir_0_71
       denom_ij(k) = IJ_VSFR
-c
-      k=k+1
-      IJ_GEVPPEN = k
-      name_ij(k) = 'pev_pen' !
-      lname_ij(k) = 'PENMAN POTENTIAL EVAPORATION'
-      units_ij(k) = 'mm/day'
-      ia_ij(k) = ia_src
-      scale_ij(k) = SECONDS_PER_DAY/DTsrc
-      ir_ij(k) = ir_0_26_150
-      denom_ij(k) = IJ_PSOIL
-c
-      k=k+1
-      IJ_GBST = k
-      name_ij(k) = 'bs_tlay1' !
-      lname_ij(k) = 'BARE SOIL LAYER 1 TEMPERATURE'
-      units_ij(k) = 'C'
-      ia_ij(k) = ia_srf
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m80_28
-      denom_ij(k) = IJ_BSFR
-c
-      k=k+1
-      name_ij(k) = 'bs_tlay2' !
-      lname_ij(k) = 'BARE SOIL LAYER 2 TEMPERATURE'
-      units_ij(k) = 'C'
-      ia_ij(k) = ia_srf
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m80_28
-      denom_ij(k) = IJ_BSFR
-c
-      k=k+1
-      name_ij(k) = 'bs_tlay3' !
-      lname_ij(k) = 'BARE SOIL LAYER 3 TEMPERATURE'
-      units_ij(k) = 'C'
-      ia_ij(k) = ia_srf
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m80_28
-      denom_ij(k) = IJ_BSFR
-c
-      k=k+1
-      name_ij(k) = 'bs_tlay4' !
-      lname_ij(k) = 'BARE SOIL LAYER 4 TEMPERATURE'
-      units_ij(k) = 'C'
-      ia_ij(k) = ia_srf
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m80_28
-      denom_ij(k) = IJ_BSFR
-c
-      k=k+1
-      name_ij(k) = 'bs_tlay5' !
-      lname_ij(k) = 'BARE SOIL LAYER 5 TEMPERATURE'
-      units_ij(k) = 'C'
-      ia_ij(k) = ia_srf
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m80_28
-      denom_ij(k) = IJ_BSFR
-c
-      k=k+1
-      name_ij(k) = 'bs_tlay6' !
-      lname_ij(k) = 'BARE SOIL LAYER 6 TEMPERATURE'
-      units_ij(k) = 'C'
-      ia_ij(k) = ia_srf
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m80_28
-      denom_ij(k) = IJ_BSFR
-c
-      k=k+1
-      IJ_GBSEVP = k
-      name_ij(k) = 'bs_evap' !
-      lname_ij(k) = 'BARE SOIL EVAPORATION'
-      units_ij(k) = 'mm/day'
-      ia_ij(k) = ia_src
-      scale_ij(k) = SECONDS_PER_DAY/DTsrc
-      ir_ij(k) = ir_0_3_15
-      denom_ij(k) = IJ_BSFR
-c
-      k=k+1
-      IJ_GDCEVP = k
-      name_ij(k) = 'drycan_evap' !
-      lname_ij(k) = 'DRY CANOPY EVAPORATION'
-      units_ij(k) = 'mm/day'
-      ia_ij(k) = ia_src
-      scale_ij(k) = SECONDS_PER_DAY/DTsrc
-      ir_ij(k) = ir_0_3_15
-      denom_ij(k) = IJ_VSFR
-c
-      k=k+1
-      IJ_GWCEVP = k
-      name_ij(k) = 'wetcan_evap' !
-      lname_ij(k) = 'WET CANOPY EVAPORATION'
-      units_ij(k) = 'mm/day'
-      ia_ij(k) = ia_src
-      scale_ij(k) = SECONDS_PER_DAY/DTsrc
-      ir_ij(k) = ir_0_3_15
-      denom_ij(k) = IJ_VSFR
-c
-      k=k+1
-      IJ_EVAPSN = k
-      name_ij(k) = 'snow_evap' !
-      lname_ij(k) = 'LAND SNOW EVAPORATION'
-      units_ij(k) = 'mm/day'
-      ia_ij(k) = ia_src
-      scale_ij(k) = SECONDS_PER_DAY/DTsrc
-      ir_ij(k) = ir_0_3_15
-      denom_ij(k) = IJ_PSOIL
-c
-#ifdef IRRIGATION_ON
-      k=k+1
-      IJ_IRRW_TOT = k
-      lname_ij(k) = 'POTENTIAL IRRIGATION'
-      units_ij(k) = 'mm/d'
-      name_ij(k) = 'irrig_w_tot'
-      ia_ij(k) = ia_src
-      scale_ij(k) = SECONDS_PER_DAY/DTsrc
-      !ir_ij(k) = ir_m1_3
-      denom_ij(k) = 0 ! per total grid area; =IJ_PSOIL for per earth
-c
-      k=k+1
-      IJ_IRRW = k
-      lname_ij(k) = 'TOTAL (ACTUAL) IRRIGATION WATER'
-      units_ij(k) = 'mm/d'
-      name_ij(k) = 'irrig_w'
-      ia_ij(k) = ia_src
-      scale_ij(k) = SECONDS_PER_DAY/DTsrc
-      !ir_ij(k) = ir_m1_3
-      denom_ij(k) = 0
-c
-      k=k+1
-      IJ_IRRE = k
-      lname_ij(k) = 'HEAT OF IRRIGATION'
-      units_ij(k) = 'W/m2'
-      name_ij(k) = 'irrig_e'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.d0/DTsrc
-      !ir_ij(k) = ir_m1_3
-      denom_ij(k) = 0
-c
-      k=k+1
-      IJ_GMLir = k
-      lname_ij(k) = 'ENTHALPY OF LAKE/RIVER LOST TO IRRIGATION'
-      units_ij(k) = 'J'
-      name_ij(k) = 'gml_irrigate'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.d0
-      !ir_ij(k) = ir_m1_3
-      denom_ij(k) = 0
-c
-      k=k+1
-      IJ_irrgw = k
-      lname_ij(k) = 'IRRIGATION WATER FROM EXTERNAL SOURCE (GRNDWATER)'
-      units_ij(k) = 'mm/d'
-      name_ij(k) = 'irrig_gw'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1000.d0*SECONDS_PER_DAY
-      !ir_ij(k) = ir_m1_3
-      denom_ij(k) = 0
-c
-      k=k+1
-      IJ_irrgwE = k
-      lname_ij(k) = 'HEAT OF EXTERNALLY ADDED IRRIGATION'
-      units_ij(k) = 'W/m2'
-      name_ij(k) = 'irrig_gwE'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.d0
-      !ir_ij(k) = ir_m1_3
-      denom_ij(k) = 0
-c
-      k=k+1
-      IJ_MWLir = k
-      lname_ij(k) = 'MASS OF LAKE/RIVER WATER USED FOR IRRIGATION'
-      units_ij(k) = 'kg'
-      name_ij(k) = 'mwl_irrigate'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.d0
-      !ir_ij(k) = ir_m1_3
-      denom_ij(k) = 0
-#endif
-c
-      k=k+1
-      IJ_MWL = k
-      lname_ij(k) = 'MASS OF LAKE AND RIVER WATER'
-      units_ij(k) = '10^10 kg'
-      name_ij(k) = 'mwl'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.d-10
-      !ir_ij(k) = ir_m1_3
-      denom_ij(k) = 0
-c
-      k=k+1
-      IJ_GML = k
-      lname_ij(k) = 'ENTHALPY OF LAKE AND RIVER WATER'
-      units_ij(k) = '10^15 J'
-      name_ij(k) = 'gml'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.d-15
-      !ir_ij(k) = ir_m1_3
-      denom_ij(k) = 0
 c
       k=k+1 ! nyk 4/25/03
       IJ_GPP = k    !kg[C]/m2/s
@@ -3679,89 +3965,6 @@ c
       scale_ij(k) = 1.
 c
       k=k+1
-      IJ_GVST = k
-      name_ij(k) = 'can_temp' !
-      lname_ij(k) = 'CANOPY TEMPERATURE'
-      units_ij(k) = 'C'
-      ia_ij(k) = ia_srf
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m80_28
-      denom_ij(k) = IJ_VSFR
-c
-      k=k+1
-      name_ij(k) = 'vs_tlay1' !
-      lname_ij(k) = 'VEGETATED SOIL LAYER 1 TEMPERATURE'
-      units_ij(k) = 'C'
-      ia_ij(k) = ia_srf
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m80_28
-      denom_ij(k) = IJ_VSFR
-c
-      k=k+1
-      name_ij(k) = 'vs_tlay2' !
-      lname_ij(k) = 'VEGETATED SOIL LAYER 2 TEMPERATURE'
-      units_ij(k) = 'C'
-      ia_ij(k) = ia_srf
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m80_28
-      denom_ij(k) = IJ_VSFR
-c
-      k=k+1
-      name_ij(k) = 'vs_tlay3' !
-      lname_ij(k) = 'VEGETATED SOIL LAYER 3 TEMPERATURE'
-      units_ij(k) = 'C'
-      ia_ij(k) = ia_srf
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m80_28
-      denom_ij(k) = IJ_VSFR
-c
-      k=k+1
-      name_ij(k) = 'vs_tlay4' !
-      lname_ij(k) = 'VEGETATED SOIL LAYER 4 TEMPERATURE'
-      units_ij(k) = 'C'
-      ia_ij(k) = ia_srf
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m80_28
-      denom_ij(k) = IJ_VSFR
-c
-      k=k+1
-      name_ij(k) = 'vs_tlay5' !
-      lname_ij(k) = 'VEGETATED SOIL LAYER 5 TEMPERATURE'
-      units_ij(k) = 'C'
-      ia_ij(k) = ia_srf
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m80_28
-      denom_ij(k) = IJ_VSFR
-c
-      k=k+1
-      name_ij(k) = 'vs_tlay6' !
-      lname_ij(k) = 'VEGETATED SOIL LAYER 6 TEMPERATURE'
-      units_ij(k) = 'C'
-      ia_ij(k) = ia_srf
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m80_28
-      denom_ij(k) = IJ_VSFR
-c
-      k=k+1
-      IJ_GWTBL = k
-      name_ij(k) = 'wtbl_depth' !
-      lname_ij(k) = 'AVERAGE WATER TABLE DEPTH'
-      units_ij(k) = 'm'
-      ia_ij(k) = ia_srf
-      scale_ij(k) = -1.
-      ir_ij(k) = ir_0_3_15
-      denom_ij(k) = IJ_PSOIL
-c
-      k=k+1
-      IJ_GVSWET = k
-      name_ij(k) = 'vs_wetness' !
-      lname_ij(k) = 'VEGETATED SOIL WETNESS'
-      units_ij(k) = '%'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 100.
-      denom_ij(k) = IJ_VSFR
-c
-      k=k+1
       IJ_GBETAT = k
       name_ij(k) = 'beta_trans' !
       lname_ij(k) = 'TRANSPIRATION EFFICIENCY, BETAT'
@@ -3770,34 +3973,352 @@ c
       scale_ij(k) = 100.
       denom_ij(k) = IJ_VSFR
 c
+#ifdef CLD_AER_CDNC
       k=k+1
-      IJ_GBSSND = k
-      name_ij(k) = 'bs_snowdp' !
-      lname_ij(k) = 'SNOW DEPTH OVER BARE SOIL'
-      units_ij(k) = 'mm H2O'
+      IJ_dzwm = k
+      lname_ij(k) = 'Warm Moist Cnv Cld DZ'
+      units_ij(k) = 'm'
+      name_ij(k) = 'dzwm'
       ia_ij(k) = ia_src
-      scale_ij(k) = 1000.
-      ir_ij(k) = ir_0_3550
-      denom_ij(k) = IJ_BSFR
+      scale_ij(k) = 1.
 c
       k=k+1
-      IJ_GVSSND = k
-      name_ij(k) = 'vs_snowdp' !
-      lname_ij(k) = 'SNOW DEPTH OVER VEG SOIL'
-      units_ij(k) = 'mm H2O'
-      scale_ij(k) = 1000.
+      IJ_dzim = k
+      lname_ij(k) = 'Cold Moist Cnv cld DZ'
+      units_ij(k) = 'm'
+      name_ij(k) = 'dzim'
       ia_ij(k) = ia_src
-      ir_ij(k) = ir_0_3550
-      denom_ij(k) = IJ_VSFR
+      scale_ij(k) = 1.
 c
       k=k+1
-      IJ_FVEG = k
-      name_ij(k) = 'fr_veg' !
-      lname_ij(k) = 'FRACTION OF VEGETATED SOIL'
-      units_ij(k) = '%'
-      scale_ij(k) = 100.
+      IJ_dzws = k
+      lname_ij(k) = 'Warm Large-scale cld DZ'
+      units_ij(k) = 'm'
+      name_ij(k) = 'dzws'
       ia_ij(k) = ia_src
-      !ir_ij(k) = ir_0_3550
+      scale_ij(k) = 1.
+c
+      k=k+1
+      IJ_dzis = k
+      lname_ij(k) = 'Cold Large-scale cld DZ'
+      units_ij(k) = 'm'
+      name_ij(k) = 'dzis'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+c
+      k=k+1
+      IJ_3dNWM = k
+      lname_ij(k) = '2D Warm Moist Cnv CDNC '
+      units_ij(k) = 'cm^-3'
+      name_ij(k) = 'Nwm3d'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+      denom_ij(k) = ij_dzwm
+c
+      k=k+1
+      IJ_3dNIM = k
+      lname_ij(k) = '2D Cold Moist Cnv CDNC '
+      units_ij(k) = 'cm^-3'
+      name_ij(k) = 'Nim3d'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+      denom_ij(k) = ij_dzim
+c
+      k=k+1
+      IJ_3dRWM = k
+      lname_ij(k) = '2D Warm Moist Conv Reff '
+      units_ij(k) = 'um'
+      name_ij(k) = 'Rwm3d'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+      denom_ij(k) = ij_dzwm
+c
+      k=k+1
+      IJ_3dRIM = k
+      lname_ij(k) = '2D Cold Moist Conv Reff '
+      units_ij(k) = 'um'
+      name_ij(k) = 'Rim3d'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+      denom_ij(k) = ij_dzim
+c
+      k=k+1
+      IJ_3dLWM = k
+      lname_ij(k) = '2D Warm Moist Conv LWC  '
+      units_ij(k) = 'g m-3'
+      name_ij(k) = 'Lwm3d'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+      denom_ij(k) = ij_dzwm
+c
+      k=k+1
+      IJ_3dLIM = k
+      lname_ij(k) = '2D Cold Moist Conv LWC  '
+      units_ij(k) = 'g m-3'
+      name_ij(k) = 'Lim3d'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+      denom_ij(k) = ij_dzim
+c
+      k=k+1
+      IJ_3dNWS = k
+      lname_ij(k) = '2D Warm Large-scale CDNC '
+      units_ij(k) = 'cm^-3'
+      name_ij(k) = 'Nws3d'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+      denom_ij(k) = ij_dzws
+c
+      k=k+1
+      IJ_3dNIS = k
+      lname_ij(k) = '2D Cold Large-scale CDNC '
+      units_ij(k) = 'cm^-3'
+      name_ij(k) = 'Nis3d'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+      denom_ij(k) = ij_dzis
+c
+      k=k+1
+      IJ_3dRWS = k
+      lname_ij(k) = '2D Warm Large-scale Reff '
+      units_ij(k) = 'um'
+      name_ij(k) = 'Rws3d'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+      denom_ij(k) = ij_dzws
+c
+      k=k+1
+      IJ_3dRIS = k
+      lname_ij(k) = '2D Cold Large-scale Reff '
+      units_ij(k) = 'um'
+      name_ij(k) = 'Ris3d'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+      denom_ij(k) = ij_dzis
+c
+      k=k+1
+      IJ_3dLWS = k
+      lname_ij(k) = '2D Warm Large-scale LWC '
+      units_ij(k) = 'g m-3'
+      name_ij(k) = 'Lws3d'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+      denom_ij(k) = ij_dzws
+c
+      k=k+1
+      IJ_3dLIS = k
+      lname_ij(k) = '2D Cold Large-scale LWC '
+      units_ij(k) = 'g m-3'
+      name_ij(k) = 'Lis3d'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+      denom_ij(k) = ij_dzis
+#endif
+c
+#ifdef CHL_DIAGNOSTIC
+      k=k+1
+      IJ_CHL = k
+      lname_ij(k) = 'Total Chlorophyll'
+      units_ij(k) = 'mg/m^3'
+      scale_ij(k) = 1.
+      name_ij(k) = 'chl'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 1.
+      denom_ij(k) = IJ_POCEAN
+#endif /* #ifdef CHL_DIAGNOSTIC */
+c
+
+#ifdef TRACERS_ON
+      allocate(ij_kw(gasex_index%getsize()))
+      allocate(ij_alpha(gasex_index%getsize()))
+      allocate(ij_gasx(gasex_index%getsize()))
+      do ngx=1, gasex_index%getsize()
+        n=gasex_index%at(ngx)
+        k=k+1
+        IJ_Kw(ngx) = k
+        lname_ij(k) = 'Transfer Velocity '//trname(n)
+        units_ij(k) = 'm/s'
+        scale_ij(k) = 1.
+        name_ij(k) = 'Kw_gas_'//trname(n)
+        ia_ij(k) = ia_srf
+        scale_ij(k) = 1.
+        denom_ij(k) = IJ_POCEAN
+
+        k=k+1
+        IJ_alpha(ngx) = k
+        lname_ij(k) = 'Solubility '//trname(n)
+        units_ij(k) = 'mol/m3/uatm'
+        scale_ij(k) = 1.
+        name_ij(k) = 'alpha_gas_'//trname(n)
+        ia_ij(k) = ia_srf
+        scale_ij(k) = 1.
+        denom_ij(k) = IJ_POCEAN
+
+        k=k+1
+        IJ_gasx(ngx) = k
+        lname_ij(k) = 'Gas Exchange Flux '//trname(n)
+        units_ij(k) = 'mol/m2/yr'
+        scale_ij(k) = 1.
+        name_ij(k) = 'trgasex_'//trname(n)
+        ia_ij(k) = ia_src
+        scale_ij(k) = 1.
+        denom_ij(k) = IJ_POCEAN
+      end do
+#endif
+
+#ifdef TRACERS_OBIO_RIVERS
+      k=k+1
+      IJ_rvrflo = k  ! Mass Outflow by Rivers without gmelt (10**5 kg/s)  E-5/DTS*1 RV
+      lname_ij(k) = 'Mass Outflow by Rivers without gmelt'
+      units_ij(k) = '10^5 kg/s'
+!      scale_ij(k) = 1.
+      scale_ij(k) = 1.d-5/DTsrc
+      name_ij(k) = 'FLOWO'
+      ia_ij(k) = ia_src
+!      denom_ij(k) = IJ_POCEAN
+
+#endif
+c
+#ifdef CLD_AER_CDNC
+c
+      k=k+1 !
+      IJ_WISUM = k ! ICE WATER PATH (kg/m**2)             1 CL
+      lname_ij(k) = 'ICE WATER PATH'
+      units_ij(k) = '.1 kg/m^2'
+      name_ij(k) = 'iwp'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 10.
+      ir_ij(k) = ir_0_18
+c
+      k=k+1 !
+      IJ_WMCLWP = k ! MC LIQUID WATER PATH (kg/m**2)             1 CL
+      lname_ij(k) = 'MC LIQUID WATER PATH'
+      units_ij(k) = '.1 kg/m^2'
+      name_ij(k) = 'mclwp'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 10.
+      ir_ij(k) = ir_0_18
+c
+      k=k+1 !
+      IJ_WMCTWP = k ! MC Total WATER PATH (kg/m**2)             1 CL
+      lname_ij(k) = 'MC TOTAL WATER PATH'
+      units_ij(k) = '.1 kg/m^2'
+      name_ij(k) = 'mctwp'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 10.
+      ir_ij(k) = ir_0_18
+#endif
+c
+c     k=k+1 !
+cfree IJ_EMTMOM = k ! INCIDENT MTN EAST MOM. FLUX (MB-M/S**2)  1 SD
+cfree lname_ij(k) = 'INCIDENT MTN EAST MOMENTUM FLUX'
+cfree units_ij(k) = 'mb m/s^2'
+cfree name_ij(k) = 'EMTMOM'
+cfree ia_ij(k) = ia_src
+cfree scale_ij(k) = 1./DTsrc
+c
+c     k=k+1 !
+cfree IJ_SMTMOM = k ! INCIDENT MTN SOUTH MOM. FLUX (MB-M/S**2) 1 SD
+cfree lname_ij(k) = 'INCIDENT MTN SOUTH MOMENTUM FLUX'
+cfree units_ij(k) = 'mb m/s^2'
+cfree name_ij(k) = 'SMTMOM'
+cfree ia_ij(k) = ia_src
+cfree scale_ij(k) = 1./DTsrc
+c
+      k=k+1 !
+      IJ_LKICE = k
+      lname_ij(k) = 'LAKE ICE WEIGHTING' ! for lake freeze/thaw diags
+      units_ij(k) = ' '
+      name_ij(k) = 'LKICEWT'
+      ia_ij(k) = ia_inst
+c
+      k=k+1 !
+      IJ_LKON = k
+      lname_ij(k) = 'LAST ICE-FREE DAY (SH-58,NH-242)'
+      units_ij(k) = 'JULIAN DAY'
+      name_ij(k) = 'lkonday'
+      ia_ij(k) = ia_inst
+      denom_ij(k) = IJ_LKICE
+c
+      k=k+1 !
+      IJ_LKOFF = k
+      lname_ij(k) = 'LAST ICED-UP DAY (SH-58,NH-242)'
+      units_ij(k) = 'JULIAN DAY'
+      name_ij(k) = 'lkoffday'
+      ia_ij(k) = ia_inst
+      denom_ij(k) = IJ_LKICE
+c
+#ifdef IRRIGATION_ON
+      k=k+1
+      IJ_IRRW_TOT = k
+      lname_ij(k) = 'POTENTIAL IRRIGATION'
+      units_ij(k) = 'mm/d'
+      name_ij(k) = 'irrig_w_tot'
+      ia_ij(k) = ia_src
+      scale_ij(k) = SECONDS_PER_DAY/DTsrc
+      !ir_ij(k) = ir_m1_3
+      denom_ij(k) = 0 ! per total grid area; =IJ_PSOIL for per earth
+c
+      k=k+1
+      IJ_IRRW = k
+      lname_ij(k) = 'TOTAL (ACTUAL) IRRIGATION WATER'
+      units_ij(k) = 'mm/d'
+      name_ij(k) = 'irrig_w'
+      ia_ij(k) = ia_src
+      scale_ij(k) = SECONDS_PER_DAY/DTsrc
+      !ir_ij(k) = ir_m1_3
+      denom_ij(k) = 0
+c
+      k=k+1
+      IJ_IRRE = k
+      lname_ij(k) = 'HEAT OF IRRIGATION'
+      units_ij(k) = 'W/m2'
+      name_ij(k) = 'irrig_e'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.d0/DTsrc
+      !ir_ij(k) = ir_m1_3
+      denom_ij(k) = 0
+c
+      k=k+1
+      IJ_GMLir = k
+      lname_ij(k) = 'ENTHALPY OF LAKE/RIVER LOST TO IRRIGATION'
+      units_ij(k) = 'J'
+      name_ij(k) = 'gml_irrigate'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.d0
+      !ir_ij(k) = ir_m1_3
+      denom_ij(k) = 0
+c
+      k=k+1
+      IJ_irrgw = k
+      lname_ij(k) = 'IRRIGATION WATER FROM EXTERNAL SOURCE (GRNDWATER)'
+      units_ij(k) = 'mm/d'
+      name_ij(k) = 'irrig_gw'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1000.d0*SECONDS_PER_DAY
+      !ir_ij(k) = ir_m1_3
+      denom_ij(k) = 0
+c
+      k=k+1
+      IJ_irrgwE = k
+      lname_ij(k) = 'HEAT OF EXTERNALLY ADDED IRRIGATION'
+      units_ij(k) = 'W/m2'
+      name_ij(k) = 'irrig_gwE'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.d0
+      !ir_ij(k) = ir_m1_3
+      denom_ij(k) = 0
+c
+      k=k+1
+      IJ_MWLir = k
+      lname_ij(k) = 'MASS OF LAKE/RIVER WATER USED FOR IRRIGATION'
+      units_ij(k) = 'kg'
+      name_ij(k) = 'mwl_irrigate'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.d0
+      !ir_ij(k) = ir_m1_3
+      denom_ij(k) = 0
+#endif
 c
 c Gravity Wave diagnostics
       iDO_GWDRAG = 0
@@ -3883,486 +4404,6 @@ c
       ir_ij(k) = ir_m1_3
       iDO_GWDRAG = k-IJ_GW1+1
       END IF
-c
-C**** Note these two diagnostics are NOT the total cloud cover (that is got by
-C**** summing the low+ mid+high diagnostics). Instead, this is the
-C**** fraction of time that a cloud appears in the grid box (which may
-C**** well cover less than 100% of the box) and the amount of time that
-C**** clouds could be detected. TCLDI is needed for weighting the cloud
-C**** top pressure and optical depth, and SCLDI is needed for weighting
-C**** frequency diags.
-c
-      k=k+1 !
-      IJ_SCLDI = k
-      lname_ij(k) = 'FRACTION OF SUNLIT FOR ISCCP CLOUD'
-      units_ij(k) = '%'
-      name_ij(k) = 'pclds_isccp'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 100.
-c
-      k=k+1 !
-      IJ_LCLDI = k
-      lname_ij(k) = 'LOW LEVEL CLOUDINESS (ISCCP)'
-      units_ij(k) = '%'
-      name_ij(k) = 'pcldl_isccp'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 100.
-      denom_ij(k) = IJ_SCLDI
-c
-      k=k+1 !
-      IJ_MCLDI = k
-      lname_ij(k) =
-     *     'MIDDLE LEVEL CLOUDINESS (ISCCP)'
-      units_ij(k) = '%'
-      name_ij(k) = 'pcldm_isccp'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 100.
-      denom_ij(k) = IJ_SCLDI
-c
-      k=k+1 !
-      IJ_HCLDI = k
-      lname_ij(k) = 'HIGH LEVEL CLOUDINESS (ISCCP)'
-      units_ij(k) = '%'
-      name_ij(k) = 'pcldh_isccp'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 100.
-      denom_ij(k) = IJ_SCLDI
-c
-      k=k+1 !
-      IJ_TCLDI = k
-      lname_ij(k) = 'FRACTION OF TIME FOR ISCCP CLOUD'
-      units_ij(k) = '%'
-      name_ij(k) = 'pcldt_isccp'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 100.
-c
-      k=k+1 !
-      IJ_CTPI = k
-      lname_ij(k) = 'CLOUD TOP PRESSURE (ISCCP)'
-      units_ij(k) = 'mb'
-      name_ij(k) = 'cldtpp_isccp'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_0_1775
-      denom_ij(k) = IJ_TCLDI
-c
-      k=k+1 !
-      IJ_TAUI = k
-      lname_ij(k) = 'CLOUD OPTICAL DEPTH (ISCCP)'
-      units_ij(k) = ''
-      name_ij(k) = 'optd_isccp'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.
-      denom_ij(k) = IJ_TCLDI
-
-      k=k+1
-      IJ_PTROP = k
-      lname_ij(k) = 'TROPOPAUSE PRESSURE (WMO)'
-      units_ij(k) = 'mb'
-      name_ij(k) = 'ptrop'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.
-
-      k=k+1
-      IJ_TTROP = k
-      lname_ij(k) = 'TROPOPAUSE TEMPERATURE (WMO)'
-      units_ij(k) = 'K'
-      name_ij(k) = 'ttrop'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.
-
-      k=k+1
-      atmice%IJ_TSI = k
-      lname_ij(k) = 'SEA ICE TEMPERATURE (MASS LAYER 2)'
-      units_ij(k) = 'C'
-      name_ij(k) = 'TEMPSI'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.
-      denom_ij(k) = IJ_RSOI
-
-      k=k+1
-      atmice%IJ_SSI1 = k
-      lname_ij(k) = 'SEA ICE SALINITY (MASS LAYER 1)'
-      units_ij(k) = 'psu'
-      name_ij(k) = 'SSI1'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1d3
-      denom_ij(k) = IJ_RSOI
-
-      k=k+1
-      atmice%IJ_SSI2 = k
-      lname_ij(k) = 'SEA ICE SALINITY (MASS LAYER 2)'
-      units_ij(k) = 'psu'
-      name_ij(k) = 'SSI2'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1d3
-      denom_ij(k) = IJ_RSOI
-
-      k=k+1
-      atmice%IJ_MLTP = k
-      lname_ij(k) = 'SEA ICE MELT POND MASS'
-      units_ij(k) = 'kg/m^2'
-      name_ij(k) = 'MLTP'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.
-      denom_ij(k) = IJ_RSOI
-
-      k=k+1
-      IJ_FRMP = k
-      lname_ij(k) = 'SEA ICE MELT POND FRACTION'
-      units_ij(k) = '%'
-      name_ij(k) = 'FRMP'
-      ia_ij(k) = ia_rad
-      scale_ij(k) = 100.
-      denom_ij(k) = IJ_RSOI
-
-      IF (KOCEAN.ne.1) THEN
-        k=k+1
-        atmice%IJ_SMFX = k
-        lname_ij(k) = 'SEA ICE IMPLICIT MASS FLUX'
-        units_ij(k) = 'kg/m^2'
-        name_ij(k) = 'SIMSFX'
-        ia_ij(k) = ia_12hr
-        scale_ij(k) = 2.
-      END IF
-c
-      k=k+1
-      atmice%IJ_TSICE = k
-      lname_ij(k) = 'SEA ICE SURFACE TEMPERATURE'
-      units_ij(k) = 'K'
-      name_ij(k) = 'ts_oice'
-      ia_ij(k) = ia_src
-      denom_ij(k) = IJ_RSOI
-c
-      k=k+1
-      atmice%IJ_SISNWF = k
-      lname_ij(k) = 'SEA ICE SNOWFALL RATE'
-      units_ij(k) = 'kg/m^2/s'
-      name_ij(k) = 'prsn_oice'
-      scale_ij(k)=1/DTsrc
-      ia_ij(k) = ia_src
-      denom_ij(k) = IJ_RSOI
-c
-      k=k+1
-      atmice%IJ_SIGRFR = k
-      lname_ij(k) = 'SEA ICE FRAZIL GROWTH RATE'
-      units_ij(k) = 'kg/m^2/s'
-      name_ij(k) = 'grfraz_oice'
-      scale_ij(k)=1/DTsrc
-      ia_ij(k) = ia_src
-      denom_ij(k) = IJ_PWATER
-c
-      k=k+1
-      atmice%IJ_SIGRCG = k
-      lname_ij(k) = 'SEA ICE CONGELATION GROWTH RATE'
-      units_ij(k) = 'kg/m^2/s'
-      name_ij(k) = 'grcong_oice'
-      scale_ij(k)=1/DTsrc
-      ia_ij(k) = ia_src
-      denom_ij(k) = IJ_PWATER
-c
-      k=k+1
-      atmice%IJ_SIGRLT = k   ! i.e. negative of lateral melt
-      lname_ij(k) = 'SEA ICE LATERAL GROWTH RATE'
-      units_ij(k) = 'kg/m^2/s'
-      name_ij(k) = 'grlat_oice'
-      scale_ij(k)=1/DTsrc
-      ia_ij(k) = ia_src
-      denom_ij(k) = IJ_PWATER
-c
-      k=k+1
-      atmice%IJ_SNTOSI = k   ! includes snow to ice and seawater to ice terms
-      lname_ij(k) = 'SNOW ICE FORMATION RATE'
-      units_ij(k) = 'kg/m^2/s'
-      name_ij(k) = 'snotoice'
-      scale_ij(k)=1/DTsrc
-      ia_ij(k) = ia_src
-      denom_ij(k) = IJ_PWATER
-c
-      k=k+1
-      atmice%IJ_SITOPMLT = k
-      lname_ij(k) = 'SEA ICE SURFACE MELT RATE'
-      units_ij(k) = 'kg/m^2/s'
-      name_ij(k) = 'topmlt_oice'
-      scale_ij(k)=1/DTsrc
-      ia_ij(k) = ia_src
-      denom_ij(k) = IJ_PWATER
-c
-      k=k+1
-      atmice%IJ_SIBOTMLT = k
-      lname_ij(k) = 'SEA ICE BASAL MELT RATE'
-      units_ij(k) = 'kg/m^2/s'
-      name_ij(k) = 'botmlt_oice'
-      scale_ij(k)=1/DTsrc
-      ia_ij(k) = ia_src
-      denom_ij(k) = IJ_PWATER
-c
-      K = K+1
-      atmice%IJ_MSNFLOOD = K
-      LNAME_IJ(K) = 'ICE MASS FROZEN by SNOW FLOOD'
-      UNITS_IJ(K) = 'kg/s*m^2'
-      NAME_IJ(K)  = 'msnflood'
-      SCALE_IJ(K) = 1 / DTSRC
-      IA_IJ(K)    = IA_SRC
-      DENOM_IJ(K) = IJ_PWATER
-c
-      K = K+1
-      atmice%IJ_HSNFLOOD = K
-      LNAME_IJ(K) = 'ICE HEAT FROZEN by SNOW FLOOD'
-      UNITS_IJ(K) = 'W/m^2'
-      NAME_IJ(K)  = 'hsnflood'
-      SCALE_IJ(K) = 1 / DTSRC
-      IA_IJ(K)    = IA_SRC
-      DENOM_IJ(K) = IJ_PWATER
-c
-      k=k+1
-      atmice%IJ_SIHC = k   ! note this is referenced to water at 0 deg C
-      lname_ij(k) = 'SEA ICE HEAT CONTENT'
-      units_ij(k) = 'J/m^2'
-      name_ij(k) = 'hc_oice'
-      ia_ij(k) = ia_src
-      denom_ij(k) = IJ_RSOI
-c
-      k=k+1
-      IJ_SISWD = k
-      lname_ij(k) = 'SEA ICE DOWNWARD SHORTWAVE RADIATION'
-      units_ij(k) = 'W/m^2'
-      name_ij(k) = 'swd_oice'
-      scale_ij(k)=1/DTsrc
-      ia_ij(k) = ia_src
-      denom_ij(k) = IJ_RSOI
-c
-      k=k+1
-      IJ_SISWU = k
-      lname_ij(k) = 'SEA ICE UPWARD SHORTWAVE RADIATION'
-      units_ij(k) = 'W/m^2'
-      name_ij(k) = 'swu_oice'
-      scale_ij(k)=1/DTsrc
-      ia_ij(k) = ia_src
-      denom_ij(k) = IJ_RSOI
-c
-      k=k+1
-      IJ_SILWD = k
-      lname_ij(k) = 'SEA ICE DOWNWARD LONGWAVE RADIATION'
-      units_ij(k) = 'W/m^2'
-      name_ij(k) = 'lwd_oice'
-      scale_ij(k)=1/DTsrc
-      ia_ij(k) = ia_src
-      denom_ij(k) = IJ_RSOI
-c
-      k=k+1
-      IJ_SILWU = k
-      lname_ij(k) = 'SEA ICE UPWARD LONGWAVE RADIATION'
-      units_ij(k) = 'W/m^2'
-      name_ij(k) = 'lwu_oice'
-      scale_ij(k)=1/DTsrc
-      ia_ij(k) = ia_src
-      denom_ij(k) = IJ_RSOI
-c
-      k=k+1
-      IJ_SISH = k
-      lname_ij(k) = 'SEA ICE SENSIBLE HEAT FLUX'
-      units_ij(k) = 'W/m^2'
-      name_ij(k) = 'sh_oice'
-      scale_ij(k)=1/DTsrc
-      ia_ij(k) = ia_src
-      denom_ij(k) = IJ_RSOI
-c
-      k=k+1 !
-      IJ_CLR_SRINCG = k ! SRINCG*CLRSKY (W/m**2)            2 RD
-      lname_ij(k) = 'CLR SKY INCIDENT SOLAR RADIATION, SRF'
-      units_ij(k) = 'W/m^2'
-      name_ij(k) = 'incsw_grnd_clrsky'
-      ia_ij(k) = ia_rad
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_0_710
-      denom_ij(k) = IJ_CLRSKY
-c
-      k=k+1 !
-      IJ_CLR_SRNFG = k ! SRNFG*CLRSKY (W/m**2)            2 RD
-      lname_ij(k) = 'CLR SKY NET SOLAR RADIATION, SRF'
-      units_ij(k) = 'W/m^2'
-      name_ij(k) = 'swn_grnd_clrsky'
-      ia_ij(k) = ia_rad
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_0_710
-      denom_ij(k) = IJ_CLRSKY
-c
-      k=k+1 !
-      IJ_CLR_TRDNG = k ! TRDNG*CLRSKY (W/m**2)            2 RD
-      lname_ij(k) = 'CLR SKY THERMAL RADIATION DOWN, SRF'
-      units_ij(k) = 'W/m^2'
-      name_ij(k) = 'trdn_grnd_clrsky'
-      ia_ij(k) = ia_rad
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_0_710
-      denom_ij(k) = IJ_CLRSKY
-c
-      k=k+1 !
-      IJ_CLR_SRUPTOA = k ! SRUFP0*CLRSKY (W/m**2)            2 RD
-      lname_ij(k) = 'CLR SKY OUT SOLAR RADIATION, TOA'
-      units_ij(k) = 'W/m^2'
-      name_ij(k) = 'swup_toa_clrsky'
-      ia_ij(k) = ia_rad
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_0_710
-      denom_ij(k) = IJ_CLRSKY
-c
-      k=k+1 !
-      IJ_CLR_TRUPTOA = k ! TRUFP0*CLRSKY (W/m**2)            2 RD
-      lname_ij(k) = 'CLR SKY OUT THERMAL RADIATION, TOA'
-      units_ij(k) = 'W/m^2'
-      name_ij(k) = 'trup_toa_clrsky'
-      ia_ij(k) = ia_rad
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_0_710
-      denom_ij(k) = IJ_CLRSKY
-c                          non-negligible clouds (opt.depth>1)
-      k=k+1 !
-      IJ_CLDCV1 = k ! PCLD (1)  (COMPOSITE OVER ATMOSPHERE)   2 RD
-      lname_ij(k) = 'TAU>1 CLOUD COVER'
-      units_ij(k) = '%'
-      name_ij(k) = 'pcldt_tau1'
-      ia_ij(k) = ia_rad
-      scale_ij(k) = 100.
-c     near cloud top P:     P at level down to which cloud opt.depth = 1
-      k=k+1 !
-      IJ_CLDT1P  = k ! P-CLOUD TOP   (100 PA)                  2 RD
-      lname_ij(k) = 'CLOUD TAU=1 PRESSURE'
-      units_ij(k) = 'mb'
-      name_ij(k) = 'cldtpp_tau1'
-      ia_ij(k) = ia_rad
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_0_1775
-      denom_ij(k) = IJ_CLDCV1
-c
-      k=k+1 !
-      IJ_CLDTPT = k !
-      lname_ij(k) = 'CLOUD TOP TEMPERATURE'
-      units_ij(k) = 'C'
-      name_ij(k) = 'cldtpt'
-      ia_ij(k) = ia_rad
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m80_28
-      denom_ij(k) = IJ_CLDCV
-c     near cloud top T:     T at level down to which cloud opt.depth = 1
-      k=k+1 !
-      IJ_CLDT1T = k !
-      lname_ij(k) = 'CLOUD TAU=1 TEMPERATURE'
-      units_ij(k) = 'C'
-      name_ij(k) = 'cldtpt_tau1'
-      ia_ij(k) = ia_rad
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m80_28
-      denom_ij(k) = IJ_CLDCV1
-c
-      k=k+1 !
-      IJ_WTRCLD = k ! PCLD (1)  (COMPOSITE OVER ATMOSPHERE)   2 RD
-      lname_ij(k) = 'WATER CLOUD COVER'
-      units_ij(k) = '%'
-      name_ij(k) = 'wtrcld'
-      ia_ij(k) = ia_rad
-      scale_ij(k) = 100.
-c
-      k=k+1 !
-      IJ_ICECLD = k ! PCLD (1)  (COMPOSITE OVER ATMOSPHERE)   2 RD
-      lname_ij(k) = 'ICE CLOUD COVER'
-      units_ij(k) = '%'
-      name_ij(k) = 'icecld'
-      ia_ij(k) = ia_rad
-      scale_ij(k) = 100.
-c
-      k=k+1 !
-      IJ_OPTDW = k
-      lname_ij(k) = 'WATER CLOUD OPTICAL DEPTH'
-      units_ij(k) = ''
-      name_ij(k) = 'optdw'
-      ia_ij(k) = ia_rad
-      scale_ij(k) = 1.
-      denom_ij(k) = IJ_WTRCLD
-c
-      k=k+1 !
-      IJ_OPTDI = k
-      lname_ij(k) = 'ICE CLOUD OPTICAL DEPTH'
-      units_ij(k) = ''
-      name_ij(k) = 'optdi'
-      ia_ij(k) = ia_rad
-      scale_ij(k) = 1.
-      denom_ij(k) = IJ_ICECLD
-c
-      k=k+1 !
-      IJ_PBLHT   = k !
-      lname_ij(k) = 'PBL HEIGHT'
-      units_ij(k) = 'M'
-      name_ij(k) = 'pblht'
-      ia_ij(k) = ia_srf
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_0_3550
-c
-      k=k+1 !
-      IJ_GUSTI   = k !
-      lname_ij(k) = 'GUSTI WIND'
-      units_ij(k) = 'M/S'
-      name_ij(k) = 'gusti'
-      ia_ij(k) = ia_srf
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_0_3550
-c
-      k=k+1 !
-      IJ_MCCON   = k !
-      lname_ij(k) = 'MOIST CONV COUNT'
-      units_ij(k) = '1'
-      name_ij(k) = 'mccon'
-      ia_ij(k) = ia_srf
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_0_3550
-c
-      if (nradfrc>0) then
-        k=k+1 !
-        IJ_SWDCLS = k ! SW clear-sky down radiation surf (W/m**2) 2 RD
-        lname_ij(k) = 'SW CLR-SKY DOWNWARD RADIATION, SURFACE METHOD 2'
-        units_ij(k) = 'W/m^2'
-        name_ij(k) = 'swdcls'
-        ia_ij(k) = ia_rad_frc
-        scale_ij(k) = 1.
-        ir_ij(k) = ir_m95_265
-c
-        k=k+1 !
-        IJ_SWNCLS = k ! SW clear-sky net radiation surf (W/m**2) 2 RD
-        lname_ij(k) = 'SW CLR-SKY NET RADIATION, SURFACE METHOD 2'
-        units_ij(k) = 'W/m^2'
-        name_ij(k) = 'swncls'
-        ia_ij(k) = ia_rad_frc
-        scale_ij(k) = 1.
-        ir_ij(k) = ir_m95_265
-c
-        k=k+1 !
-        IJ_LWDCLS = k ! LW clear-sky down radiation surf (W/m**2) 2 RD
-        lname_ij(k) = 'LW CLR-SKY DOWNWARD RADIATION SURFACE METHOD 2'
-        units_ij(k) = 'W/m^2'
-        name_ij(k) = 'lwdcls'
-        ia_ij(k) = ia_rad_frc
-        scale_ij(k) = 1.
-        ir_ij(k) = ir_m95_265
-c
-        k=k+1 !
-        IJ_SWNCLT = k ! SW clear-sky net radiation TOA (W/m**2) 2 RD
-        lname_ij(k) = 'SW CLR-SKY NET RADIATION TOA METHOD 2'
-        units_ij(k) = 'W/m^2'
-        name_ij(k) = 'swnclt'
-        ia_ij(k) = ia_rad_frc
-        scale_ij(k) = 1.
-        ir_ij(k) = ir_m95_265
-c
-        k=k+1 !
-        IJ_LWNCLT = k ! LW clear-sky net radiation TOA (W/m**2) 2 RD
-        lname_ij(k) = 'LW CLR-SKY NET RADIATION TOA METHOD 2'
-        units_ij(k) = 'W/m^2'
-        name_ij(k) = 'lwnclt'
-        ia_ij(k) = ia_rad_frc
-        scale_ij(k) = 1.
-        ir_ij(k) = ir_m95_265
-      endif
 c
       k=k+1 !
       IJ_DSKIN   = k !
@@ -4790,29 +4831,7 @@ c      scale_ij(k) = 1.
       ir_ij(k) = ir_m80_28
       denom_ij(k) = 0
 
-      K = K+1
-      IJ_RTSE = K
-       NAME_IJ(K) = 'RTSE'
-      LNAME_IJ(K) = 'NET THERMAL RADIATION from SURFACE'    ! >0 if up !
-      UNITS_IJ(K) = 'W/m^2'
-      ia_ij(k) = IA_IJ(IJ_TRSUP)
-
-      K = K+1
-      IJ_HWV = K
-       NAME_IJ(K) = 'HWV'
-      LNAME_IJ(K) = 'LATENT HEAT FLUX'
-      UNITS_IJ(K) = 'W/m^2'
-      ia_ij(k) = IA_IJ(IJ_EVAP)
-      scale_ij(k) = 2500000 / DTsrc
-
-      K = K+1
-      IJ_PVS = K
-       NAME_IJ(K) = 'PVS'
-      LNAME_IJ(K) = 'SURFACE VAPOR PRESSURE'
-      UNITS_IJ(K) = 'mb'
-      ia_ij(k) = IA_IJ(IJ_QS  )
 #ifdef HEALY_LM_DIAGS
-
       k=k+1 !
       IJ_CROPS  = k ! CROPS (%)                                1 GD
       lname_ij(k) = 'CROP COVER'
@@ -4840,8 +4859,6 @@ c      scale_ij(k) = 1.
 
 c
 c Define min/max diagnostics
-c
-
 c
       k=0
 c
@@ -4960,6 +4977,7 @@ c
 
       return
       end subroutine ij_defs
+
 
       subroutine jl_defs
       use CONSTANT, only : grav,twopi,sha,rgas,bygrav,radius,lhe

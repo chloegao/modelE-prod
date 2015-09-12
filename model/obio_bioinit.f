@@ -1,14 +1,12 @@
-
 #include "rundeck_opts.h"
 
-#ifndef OBIO_ON_GARYocean     !not on Gary's ocean
-      subroutine obio_bioinit(nn)
+      subroutine obio_bioinit
  
 !note: 
 !obio_bioinit is called only for a cold start and reads in INITIAL conditions and interpolates them
-!to the hycom grid. Such fields are nitrates,silicate,dic
+!to the ocean grid. Such fields are nitrates,silicate,dic
 !obio_init  is called for every start of the run and reads in BOUNDARY conditions and interpolates 
-!them to hycom grid. such fields are iron,alkalinity,chlorophyl
+!them to ocean grid. such fields are iron,alkalinity,chlorophyl
 
 c based on /g6/aromanou/Watson_new/BioInit/rstbio.F
 
@@ -41,78 +39,74 @@ c  Carbon type 2    = DIC
       USE obio_dim
       USE obio_incom
       USE obio_forc, only: avgq
-#ifdef TRACERS_Alkalinity
-     .    ,alk_glob
-#endif
-      USE obio_com, only: gcmax
+      USE obio_com, only: gcmax, tracer
  
-      USE hycom_dim_glob, only : jj,isp,ifp,ilp,iia,jja,iio,jjo,kdm
-     &     ,idm,jdm
-      USE hycom_dim, only : isp_l=>isp,ifp_l=>ifp,ilp_l=>ilp
-      USE hycom_dim, only : j_0,j_1
-      !USE hycom_arrays_glob, only : tracer_glob => tracer
-      USE hycom_arrays_glob, only : tracer,dpinit
+#ifdef OBIO_ON_GARYocean
+      USE OCEANRES, only : kdm=>lmo,dzo
+      USE OCEAN, only : ZOE=>ZE, ip=>focean
+      USE OCEANR_DIM, only : ogrid
+#else
+      USE hycom_dim, only : ip,kdm,ogrid
+      USE hycom_arrays, only : dpinit
       USE hycom_scalars, only: onem
-
-      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
-cddd      USE hycom_arrays_glob, only: gather_hycom_arrays,
-cddd     &     scatter_hycom_arrays
+#endif
 
       implicit none
 
-      integer i,j,k,l,nn
+      real, parameter, dimension(0:13) :: fer_values=
+     &  (/ 0E0,
+     &     3.5E-3,      !Antarctic
+     &     20.0E-3,     !South Indian
+     &     4.5E-3,      !South Pacific
+     &     20.0E-3,     !South Atlantic
+     &     22.5E-3,     !Equatorial Indian
+     &     4.0E-3,      !Equatorial Pacific
+     &     20.0E-3,     !Equatorial Atlantic
+     &     25.0E-3,     !North Indian
+     &     6.0E-3,      !North Central Pacific
+     &     20.0E-3,     !North Central Atlantic
+     &     6.0E-3,      !North Pacific
+     &     10.0E-3,     !North Atlantic
+     &     20.0E-3 /)   !Mediterranean
+
+      integer i,j,k,l
 
 
       integer nir(nrg), nt
-      integer iu_bioinit
 
-      real rlon,rlat,dicmin,dicmax
+      INTEGER :: j_0,j_1,i_0,i_1
+
       real zz
 
-      character*2 ntchar
-      character*80 filename
+      integer, ALLOCATABLE, DIMENSION(:,:)   :: ir
+      real,  ALLOCATABLE, DIMENSION(:,:,:) :: fer,dic
 
-      call alloc_obio_incom
+      I_0 = ogrid%I_STRT
+      I_1 = ogrid%I_STOP
+      J_0 = ogrid%J_STRT
+      J_1 = ogrid%J_STOP
 
-      call gather_tracer
-      call gather_dpinit
-
-      if (AM_I_ROOT()) then
-c  Initialize
+      ALLOCATE(ir(i_0:i_1,j_0:j_1))
+      ALLOCATE(fer(i_0:i_1,j_0:j_1,kdm))
+      allocate(dic(i_0:i_1,j_0:j_1,kdm))
 
       tracer(:,:,:,1:ntyp)=0.d0
       Fer(:,:,:) = 0.d0
 
-      filename='nitrates_inicond'
-      call bio_inicond(filename,tracer(:,:,:,1))
+      call bio_inicond('nitrates_inicond',tracer(:,:,:,1))
+      call bio_inicond('silicate_inicond',tracer(:,:,:,3))
 
-      filename='silicate_inicond'
-      call bio_inicond(filename,tracer(:,:,:,3))
 
 #ifdef obio_TRANSIENTRUNS
 ! in the transient runs keep the dic read in from RSF/AIC file
       dic = tracer(:,:,:,15)
 #else
 ! otherwise take from rundeck
-      filename='dic_inicond'
-      call bio_inicond(filename,dic(:,:,:))
+      call bio_inicond('dic_inicond',dic)
 #endif
 
 #ifdef TRACERS_Alkalinity
-      filename='alk_inicond'
-      call bio_inicond(filename,alk_glob(:,:,:))
-      do k=1,kdm
-      do j=1,jdm
-      do i=1,idm
-         if(alk_glob(i,j,k).lt.0.) alk_glob(i,j,k)=0.
-
-         alk_glob(i,j,k)=dmax1(alk_glob(i,j,k),2000.d0)   !set minimum =2000
-
-!        write(*,'(a,3i5,e12.4)')'obio_bioinit: ',
-!    .         i,j,k,alk_glob(i,j,k)
-      enddo
-      enddo
-      enddo
+      call init_alk(tracer(:,:,:,ntrac))
 #endif
 
 !     /archive/u/aromanou/Watson_new/BioInit/iron_ron_4x5.asc
@@ -123,91 +117,50 @@ c  Initialize
 !mismatch of the noaa grid and the hycom grid. To fill in have to do
 !the interpolation in matlab (furtuna).
 !at the same time use dps and interpolate to layer depths from the model
-      dicmin = 1.e30
-      dicmax =-1.e30
 
       do k=1,kdm
-       do j=1,jdm
-        do i=1,idm
+       do j=j_0,j_1
+        do i=i_0,i_1
           if(tracer(i,j,k,1).le.0.)tracer(i,j,k,1)=0.085d0
           if(tracer(i,j,k,3).le.0.)tracer(i,j,k,3)=0.297d0
           if (dic(i,j,k).le.0.) dic(i,j,k)=1837.d0
           dic(i,j,k)=max(dic(i,j,k),1837.0)   !set minimum =1837
-          dicmin =min(dicmin,dic(i,j,k))
-          dicmax =max(dicmax,dic(i,j,k))
-!       if (k.eq.1)
-!    .  write(*,'(a,3i5,15e12.4)')'obio_bioinit4:',
-!    .  i,j,1,tracer(i,j,k,1),tracer(i,j,k,2),tracer(i,j,k,3),
-!    .        tracer(i,j,k,4),tracer(i,j,k,5),tracer(i,j,k,6),
-!    .        tracer(i,j,k,7),tracer(i,j,k,8),tracer(i,j,k,9),
-!    .        tracer(i,j,k,10),tracer(i,j,k,11),tracer(i,j,k,12),
-!    .        tracer(i,j,k,13),tracer(i,j,k,14),tracer(i,j,k,15)
         enddo
        enddo
       enddo
 
       write(*,'(a,2e12.4)')'BIO: bioinit: dic min-max=',
-     .       dicmin,dicmax
+     .       minval(dic),maxval(dic)
 
 c  Obtain region indicators
       write(6,*)'calling fndreg...'
-      call fndreg
+      call fndreg(ir)
  
 c  Define Fe:NO3 ratios by region, according to Fung et al. (2000)
 c  GBC.  Conversion produces nM Fe, since NO3 is as uM
 
-      do j=1,jj
-       do k=1,kdm
-        do l=1,isp(j)
-         do i=ifp(j,l),ilp(j,l)
-
-          if (ir(i,j) .eq. 1)then        !Antarctic
-           Fer(i,j,k) = 3.5E-3
-          else if (ir(i,j) .eq. 2)then   !South Indian
-           Fer(i,j,k) = 20.0E-3
-          else if (ir(i,j) .eq. 3)then   !South Pacific
-           Fer(i,j,k) = 4.5E-3
-          else if (ir(i,j) .eq. 4)then   !South Atlantic
-           Fer(i,j,k) = 20.0E-3
-          else if (ir(i,j) .eq. 5)then   !Equatorial Indian
-           Fer(i,j,k) = 22.5E-3
-          else if (ir(i,j) .eq. 6)then   !Equatorial Pacific
-           Fer(i,j,k) = 4.0E-3
-          else if (ir(i,j) .eq. 7)then   !Equatorial Atlantic
-           Fer(i,j,k) = 20.0E-3
-          else if (ir(i,j) .eq. 8)then   !North Indian
-           Fer(i,j,k) = 25.0E-3
-          else if (ir(i,j) .eq. 9)then   !North Central Pacific
-           Fer(i,j,k) = 6.0E-3
-          else if (ir(i,j) .eq. 10)then  !North Central Atlantic
-           Fer(i,j,k) = 20.0E-3
-          else if (ir(i,j) .eq. 11)then  !North Pacific
-           Fer(i,j,k) = 6.0E-3
-          else if (ir(i,j) .eq. 12)then  !North Atlantic
-           Fer(i,j,k) = 10.0E-3
-          else if (ir(i,j) .eq. 13)then  !Mediterranean
-           Fer(i,j,k) = 20.0E-3
-          endif
-         enddo  !i-loop
-        enddo  !l-loop
-       enddo  !k-loop
+      do j=j_0,j_1
+        do i=i_0,i_1
+          fer(i,j,:)=fer_values(ir(i,j))
+        enddo  !i-loop
       enddo  !j-loop
  
 c  Create arrays 
       write(6,*)'Creating bio restart data for ',ntyp,' arrays and'
      . ,kdm,'  layers...'
 
-      do 1000 j=1,jj
-      do 1000 l=1,isp(j)
-      do 1000 i=ifp(j,l),ilp(j,l)
+      do j=j_0,j_1
+      do i=i_0,i_1
+        if (ip(i,j)==0) cycle
 
         zz=0.d0
         do k=1,kdm
           !Nitrate
           !read earlier from file
 
+#ifndef OBIO_ON_GARYocean
           zz=zz+dpinit(i,j,k)/onem   !depth in m
-
+#endif
           !Ammonium
           tracer(i,j,k,2) = 0.5
           !!!if (zz.gt.4000.d0)tracer(i,j,k,2) = Pdeep(2)
@@ -240,24 +193,24 @@ c          endif
 c          tracer(i,j,k,nt) = 0.05*50.0  !in C units mg/m3
           enddo
 
-          !intert tracer
+          !inert tracer
           do nt = ntyp+1,ntyp+n_inert
            tracer(i,j,k,nt) = tracer(i,j,k,1)
           enddo
 
           !DIC
           !read earlier from file
-          dicmod(i,j,k)=dic(i,j,k)
-
-#ifdef TRACERS_Alkalinity
-          do nt = ntyp+n_inert+ndet+ncar,ntyp+n_inert+ndet+ncar+nalk
-           tracer(i,j,k,nt) = alk_glob(i,j,k)
-          enddo
+#ifdef limitDIC1
+!!!       dic(i,j,k)=dmax1(1837d0,0.99*dic(i,j,k))  !!! g6hh
+          dic(i,j,k)=dmax1(1837d0,1.005*dic(i,j,k))  !!! g6hh2
+#endif
+#ifdef limitDIC2
+          dic(i,j,k)=dmax1(1837d0,1.002*dic(i,j,k))  !!! g6hh3
 #endif
 
          enddo
-
- 1000 continue
+      end do
+      end do
 
 
 c  Detritus (set to 0 for start up)
@@ -266,11 +219,14 @@ c  Detritus (set to 0 for start up)
       csratio = 106.0/16.0*12.0    !C:Si ratio (ugl:uM)
       cfratio = 150000.0*12.0*1.0E-3    !C:Fe ratio (ugl:nM)
 
-      do j=1,jj
-       do l=1,isp(j)
-        do i=ifp(j,l),ilp(j,l)
+      do j=j_0,j_1
+       do i=i_0,i_1
          do k=1,kdm
+#ifdef OBIO_ON_GARYocean
+          if (.true.) then
+#else
           if (dpinit(i,j,k)/onem .gt. 0.0)then
+#endif
            !only detritus components
            tracer(i,j,k,ntyp+n_inert+1) = tracer(i,j,k,1)*0.25*cnratio !as carbon
            tracer(i,j,k,ntyp+n_inert+2) = tracer(i,j,k,3)*0.1
@@ -281,7 +237,6 @@ c  Detritus (set to 0 for start up)
           endif
          enddo
         enddo
-       enddo
       enddo
 
 c  Carbon (set to 0 for start up)
@@ -291,111 +246,90 @@ c   as the mean for 020m deeper than the mixed layer, converted from
 c   uM/kg to uM
       write(6,*)'Carbon...'
 c    conversion from uM to mg/m3
-      do j=1,jj
-       do l=1,isp(j)
-        do i=ifp(j,l),ilp(j,l)
+      do j=j_0,j_1
+       do i=i_0,i_1
          do k=1,kdm
           tracer(i,j,k,ntyp+n_inert+ndet+1) = 0.0
           tracer(i,j,k,ntyp+n_inert+ndet+2) = 0.0
          enddo
-        enddo
        enddo
       enddo
 
       !only carbon components
-      do j=1,jj
-       do l=1,isp(j)
-        do i=ifp(j,l),ilp(j,l)
+      do j=j_0,j_1
+       do i=i_0,i_1
+         if (ip(i,j)==0) cycle
          do k = 1,kdm
-          tracer(i,j,k,ntyp+n_inert+ndet+2) = dicmod(i,j,k)
+          tracer(i,j,k,ntyp+n_inert+ndet+2) = dic(i,j,k)
          enddo
 c         car(i,j,k,1) = 3.0  !from Bissett et al 1999 (uM(C))
 c         car(i,j,k,1) = 0.0  !from Walsh et al 1999
         enddo
-       enddo
       enddo
 
-      endif
-
-!     do j=1,jj
-!      do l=1,isp(j)
-!       do i=ifp(j,l),ilp(j,l)
-!       k=1
-!       write(*,'(a,3i5,15e12.4)')'obio_bioinit5:',
-!    .  i,j,1,tracer(i,j,k,1),tracer(i,j,k,2),tracer(i,j,k,3),
-!    .        tracer(i,j,k,4),tracer(i,j,k,5),tracer(i,j,k,6),
-!    .        tracer(i,j,k,7),tracer(i,j,k,8),tracer(i,j,k,9),
-!    .        tracer(i,j,k,10),tracer(i,j,k,11),tracer(i,j,k,12),
-!    .        tracer(i,j,k,13),tracer(i,j,k,14),tracer(i,j,k,15)
-!     enddo
-!     enddo
-!     enddo
-
-      !scatter tracer
-      call scatter_tracer
-
 c  Light saturation data
-      if (AM_I_ROOT()) then
-      write(6,*)'Light saturation data...'
-      endif
       avgq = 0.0
 
       do j=j_0,j_1
-       do k=1,kdm
-        do l=1,isp_l(j)
-         do i=ifp_l(j,l),ilp_l(j,l)
-          avgq(i,j,k) = 25.0
-         enddo
+        do i=i_0,i_1
+          if (ip(i,j)==0) cycle
+          do k=1,kdm
+            avgq(i,j,k) = 25.0
+          enddo
         enddo
-       enddo
       enddo
 
 c  Coccolithophore max growth rate
-      if (AM_I_ROOT()) then
-      write(6,*)'Coccolithophore max growth rate...'
-      endif
       do j=j_0,j_1
        do k=1,kdm
-        do l=1,isp_l(j)
-         do i=ifp_l(j,l),ilp_l(j,l)
+        do i=i_0,i_1
           gcmax(i,j,k) = 0.0
-         enddo
         enddo
        enddo
       enddo
  
-      !save initialization
-!     if (AM_I_ROOT()) then
-!when uncommenting these lines careful with parallelization
-!     do nt=1,ntrac
-!       nt=1
-!       ntchar='00'
-!       if(nt.le.9)write(ntchar,'(i1)')nt
-!       if(nt.gt.9)write(ntchar,'(i2)')nt
-!       print*,'BIO: saving initial tracer fields '
-!    .        ,'bioinit_tracer'//ntchar
-!       call openunit('bioinit_tracer'//ntchar,iu_bioinit)
-!       do k=1,kdm
-!       do j=1,jdm			!  do not parallelize
-!       do i=1,idm
-!          write(iu_bioinit,'(3i4,2e12.4)')
-!    .           i,j,k,dpinit(i,j,k)/onem,tracer(i,j,k,nt)
-!       enddo
-!       enddo
-!       enddo
-!     call closeunit(iu_bioinit)
-!     enddo
-!     print*,'bioinit: COLD INITIALIZATION'
-!     endif     ! if am_i_root
-
-      call obio_trint(0)
-
-
       return
-      end
+      end subroutine obio_bioinit
+
+      subroutine init_alk(alk)
+#ifdef OBIO_ON_GARYocean
+      use oceanr_dim, only: ogrid
+      use oceanres, only: kdm=>lmo
+      use ocean, only : ze
+#else
+      use hycom_dim, only: ogrid, kdm
+#endif
+      implicit none
+      real, dimension(ogrid%i_strt:ogrid%i_stop,
+     &      ogrid%j_strt:ogrid%j_stop,kdm), intent(out) :: alk
+      integer :: i, j, k
+
+      call bio_inicond('alk_inicond',alk)
+      do k=1,kdm
+      do j=ogrid%j_strt,ogrid%j_stop
+      do i=ogrid%i_strt,ogrid%i_stop
+#ifdef OBIO_ON_GARYocean
+        if (alk(i,j,k).lt.0.) then
+          if (ze(k).le.150.) alk(i,j,k)=2172.      !init neg might be under ice,
+          if (ze(k).gt.150. .and. ze(k).lt.1200.)
+     &                           alk(i,j,k)=2200.
+          if (ze(k).ge.1200.) alk(i,j,k)=2300.
+        endif
+#else
+        if (alk(i,j,k).lt.0.) then
+           alk(i,j,k)=0.
+         else
+           alk(i,j,k)=dmax1(alk(i,j,k),2000.d0)   !set minimum =2000
+        endif
+#endif
+      enddo
+      enddo
+      enddo
+      return
+      end subroutine init_alk
 
 c------------------------------------------------------------------------------
-      subroutine fndreg
+      subroutine fndreg(ir)
  
 c  Finds nwater indices corresponding to significant regions,
 c  and defines arrays.  Variables representative of the regions will 
@@ -417,14 +351,19 @@ c       13 -- Mediterranean/Black Seas
  
 
       USE obio_dim
-      USE obio_incom, only: ir
-
-      USE hycom_dim_glob, only : jj,isp,ifp,ilp
-      USE hycom_arrays_glob, only : lonij,latij,dpinit
+#ifdef OBIO_ON_GARYocean
+      USE OCEANR_DIM, only : ogrid   
+      Use OCEAN,      only : ZOE=>ZE, oLON_DG,oLAT_DG,ip=>focean
+#else
+      USE hycom_dim, only : ip,ogrid
+      USE hycom_arrays, only : lonij,latij,dpinit
       USE hycom_scalars, only: onem
+#endif
 
       implicit none
 
+      integer, DIMENSION(ogrid%i_strt:ogrid%i_stop,
+     &             ogrid%j_strt:ogrid%j_stop), intent(out)   :: ir
 
       integer i,j,l
       integer iant,isin,ispc,isat,iein,iepc,ieat,incp
@@ -458,16 +397,23 @@ c  Initialize region indicator array
       nir = 0
  
 c  Find nwater values corresponding to regions
-      do 1000 j=1,jj
-      do 1000 l=1,isp(j)
-      do 1000 i=ifp(j,l),ilp(j,l)
+       do j=ogrid%j_strt,ogrid%j_stop
+       do i=ogrid%i_strt,ogrid%i_stop
 
+#ifdef OBIO_ON_GARYocean
+        rlon=oLON_DG(i,1)
+        rlat=oLAT_DG(j,1)
+#else
         rlon=lonij(i,j,3)
         rlat=latij(i,j,3)
+#endif
 
         if (rlon .gt. 180)rlon = rlon-360.0
 
-        if (dpinit(i,j,1)/onem .le. 0.0)go to 100
+        if (ip(i,j)==0) cycle
+#ifndef OBIO_ON_GARYocean
+        if (dpinit(i,j,1)/onem .le. 0.0) cycle
+#endif
 
 c   Antarctic region
         if (rlat .le. antlat)then
@@ -666,12 +612,12 @@ c  North Atlantic
           endif
          endif
         endif
-100     continue
 
 !       write(121,'(2(i4,1x),4(f8.3,1x),e12.4,i4)')
 !    .        i,j,lonij(i,j,3),latij(i,j,3),
 !    .        rlon,rlat,dpinit(i,j,1)/onem,ir(i,j)
- 1000 continue
+       end do
+       end do
  
 c  Set nir to minimum 1 value to prevent error in division
       do nr = 1,nrg
@@ -687,220 +633,110 @@ c  Total up points for check
       write(6,*)'Total ocean points = ',ntot
  
       return
-      end
+      end subroutine fndreg
 c------------------------------------------------------------------------------
       subroutine bio_inicond(filename,fldo2)
-
-!read in a field and convert to ocean grid (using Shana's routine) 
-!convert to the new grid using dps from the model and the remap routine
-
-c --- mapping flux-like field from agcm to ogcm
-c     input: flda (W/m*m), output: fldo (W/m*m)
-c
-
-      USE FILEMANAGER, only: openunit,closeunit
-      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
+      use bio_inicond_mod, only: bio_inicond_read
+#ifdef OBIO_ON_GARYocean
+      USE OCEANRES, only : kdm=>lmo
+      USE OCEANR_DIM, only : ogrid
+      USE OCEAN, only : DLATM,ZOE=>ZE, focean, lmm
+#else
+      use hycom_dim, only: aj_0h,aj_1h,kdm
+      use hycom_dim, only: ip,ogrid,iia,jja
       USE GEOM, only : DLATM
-
-      USE hycom_dim_glob, only : jj,isp,ifp,ilp,iia,jja,iio,jjo,kdm
-      USE hycom_arrays_glob, only : dpinit,scp2
+      use hycom_arrays, only: dpinit
       USE hycom_scalars, only: onem
-
-      USE hycom_cpler, only: wlista2o,ilista2o,jlista2o,nlista2o
-
+      USE hycom_cpler, only: flxa2o
+#endif
       implicit none
 
-
-      integer, parameter :: igrd=360,jgrd=180,kgrd=33
-      integer i,j,k,l,n
-      integer iu_file,lgth
-      integer i1,j1,iii,jjj,isum,kmax
-      integer nodc_kmax
-
-      real data(igrd,jgrd,kgrd)
+      character(len=*), intent(in) :: filename
+      real, intent(out) :: fldo2(ogrid%i_strt:ogrid%i_stop,
+     &    ogrid%j_strt:ogrid%j_stop, kdm)
+      integer, parameter :: kgrd=33
+#ifdef OBIO_ON_GARYocean
+      real fldo(ogrid%im_world,ogrid%jm_world,kgrd)
+      interface
+        Subroutine VLKtoLZ (KM,LM, MK,ME, RK, RL,RZ)
+        Real*8 MK(KM),ME(0:LM), RK(KM), RL(LM) 
+        Real*8, optional :: RZ(LM)
+        end Subroutine VLKtoLZ
+      end interface
+#else
       real data2(iia,jja,kgrd)
-      real data_mask(igrd,jgrd)
-      real data_min(kgrd),data_max(kgrd)
-      real sum1
-      real dummy1(iia/2,jja,kgrd),dummy2(iia/2,jja,kgrd)
-      real fldo(iio,jjo,kgrd)
-      real pinit(iio,jjo,kdm+1),fldo2(iio,jjo,kdm)
+      real fldo(ogrid%im_world,ogrid%j_strt:ogrid%j_stop,kgrd)
+      real pinit(kdm+1)
+#endif
       real nodc_depths(kgrd),nodc_d(kgrd+1)
-      !real dpinit(iio,jjo,kdm)
-
-      logical vrbos
-
-      character*80 filename
-
       data nodc_depths/0,  10,  20,  30,  50,  75, 100, 125, 150, 200,
      .          250, 300, 400, 500, 600, 700, 800, 900,1000,1100,1200,
      .    1300,1400,1500,1750,2000,2500,3000,3500,4000,4500,5000,5500/
+      integer :: i, j, k, kmax, nodc_kmax
 
-!--------------------------------------------------------------
-
-      !read no3 files from Watson and convert to ascii
-      lgth=len_trim(filename)
-      if (AM_I_ROOT())
-     .print*, 'bioinit: reading from file...',filename(1:lgth)
-      call openunit(filename,iu_file,.false.,.true.)
-
-!NOTE: data starts from Greenwich
-       do k=1,kgrd
-       data_min(k)=1.e10
-       data_max(k)=-1.e10
-         do i=1,igrd
-           do j=1,jgrd
-             read(iu_file,'(e12.4)')data(i,j,k)
-             !preserve the mean for later
-              if (data(i,j,k)>0.) then
-                data_min(k)=min(data_min(k),data(i,j,k))
-                data_max(k)=max(data_max(k),data(i,j,k))
-             endif
-           enddo
-         enddo
+#ifdef OBIO_ON_GARYocean
+      call bio_inicond_read(filename, dlatm, 180d0, .true., fldo)
+      
+      fldo2=-9999.d0
+      do j=ogrid%j_strt, ogrid%j_stop
+      do i=ogrid%i_strt, ogrid%i_stop
+        IF (FOCEAN(i,j).gt.0) then
+          call VLKtoLZ(kgrd,lmm(i,j),nodc_depths,ZOE,
+     &                             fldo(i,j,:),fldo2(i,j,:))
+        ENDIF
       enddo
-      call closeunit(iu_file)
+      enddo
+#else
+      call bio_inicond_read(filename, dlatm, 180d0, .true., data2)
 
-cdiag if (filename.eq.'dic_inicond') then
-cdiag do j=1,jgrd; do i=1,igrd; do k=1,kgrd
-cdiag   write(*,'(a,3i5,2e20.10)')'1111111111',
-cdiag.       i,j,k,nodc_depths(k),data(i,j,k)
-cdiag enddo; enddo; enddo
-cdiag endif
-
-!--------------------------------------------------------------
-! convert to the atmospheric grid
-! this code is also present in obio_bioinit_g
-! but there it converts to Russell ocean grid
+      fldo=0.
       do k=1,kgrd
-      do i=1,igrd
-      do j=1,jgrd
-
-        !mask
-        data_mask(i,j)=0.d0
-        if (data(i,j,k)>=0.d0) data_mask(i,j)=1.d0
-
-      enddo    ! i-loop
-      enddo    ! j-loop
-
-      !compute glb average and replace missing data
-      call HNTR80(igrd,jgrd,180.d0,60.d0,
-     .             iia,jja,0.d0,DLATM,-9999.d0)
-
-      call HNTR8P (data_mask,data(:,:,k),data2(:,:,k))
-      enddo    ! k-loop
-
-!ensure minima
-!fill in polar values
-      do k=1,kgrd; do i=1,iia; do j=1,jja
-        if(data2(i,j,k).lt.data_min(k)) 
-     .                data2(i,j,k)=data_min(k)
-      enddo; enddo; enddo
-
-
-cdiag if (filename.eq.'dic_inicond') then
-cdiag do j=1,jja; do i=1,iia; do k=1,kgrd
-cdiag   write(*,'(a,3i5,2e20.10)')'2222222222',
-cdiag.       i,j,k,nodc_depths(k),data2(i,j,k)
-cdiag enddo; enddo; enddo
-cdiag endif
-
-      !--------------------------------------------------------
-      !***************** important! change to dateline
-      !earlier versions of hycom needed to change to dateline
-      !move to dateline
-!     dummy1=data2(1:iia/2,:,:);
-!     dummy2=data2(iia/2+1:iia,:,:);
-!     data2(1:iia/2,:,:)=dummy2;
-!     data2(iia/2+1:iia,:,:)=dummy1;
-
-      !--------------------------------------------------------
-
-! inerpolate to the HYCOM ocean grid
-      do 8 j=1,jj
-      do 8 l=1,isp(j)
-      do 8 i=ifp(j,l),ilp(j,l)
-
-      do 9 k=1,kgrd
-      fldo(i,j,k)=0.
-c
-      do 9 n=1,nlista2o(i,j)
-      fldo(i,j,k)=fldo(i,j,k)
-     .           +data2(ilista2o(i,j,n),jlista2o(i,j,n),k)
-     .                       *wlista2o(i,j,n)
- 9    continue
- 8    continue
-
-cdiag if (filename.eq.'dic_inicond') then
-cdiag do j=1,jjo; do i=1,iio; do k=1,kgrd
-cdiag   write(*,'(a,3i5,3e20.10)')'3333333333',
-cdiag.       i,j,k,nodc_depths(k),fldo(i,j,k),scp2(i,j)
-cdiag enddo; enddo; enddo
-cdiag endif
+        call flxa2o(data2(:,aj_0h:aj_1h,k),fldo(:,:,k))
+      end do
 
       !--------------------------------------------------------
       !use dpinit(i,j,k)/onem
 
-       pinit(:,:,1)=0.d0
-       do 10 j=1,jj
-       do 10 l=1,isp(j)
-       do 10 i=ifp(j,l),ilp(j,l)
-       do  k=1,kdm
-         pinit(i,j,k+1)=pinit(i,j,k)+dpinit(i,j,k)/onem
-       enddo
- 10    continue
+       fldo2=-9999.d0
+       do j=ogrid%j_strt,ogrid%j_stop
+       do i=ogrid%i_strt,ogrid%i_stop
+         if (ip(i,j)==0) cycle
 
-       fldo2(:,:,:)=-9999.d0
-       do j=1,jj                       
-       do l=1,isp(j)
-       do i=ifp(j,l),ilp(j,l)
-
+         pinit=0
+         do k=1,kdm
+           pinit(k+1)=pinit(k)+dpinit(i,j,k)/onem
+         end do
           !match nodc and model bottom pressure
           !the top match already
+          kmax=1
           do k=2,kdm+1
-           if (pinit(i,j,k) .gt. pinit(i,j,k-1)) kmax=k
+           if (pinit(k) .gt. pinit(k-1)) kmax=k
           enddo
 
           !model bottom at kmax+1
           do k=1,kgrd
-           if (nodc_depths(k) .le. pinit(i,j,min(21,kmax+1))) then
+           if (nodc_depths(k) .le. pinit(min(21,kmax+1))) then
                nodc_d(k)=nodc_depths(k)
                nodc_kmax=k
            endif
 cdiag      write(*,'(a,3i5,2e12.4,i5)')'bioinit: ',
 cdiag.               i,j,k,fldo(i,j,k),nodc_d(k),nodc_kmax
           enddo
-          nodc_d(nodc_kmax+1)=pinit(i,j,min(21,kmax+1))
+          nodc_d(nodc_kmax+1)=pinit(min(21,kmax+1))
 
 !        call remap1d_pcm(fldo(i,j,1:nodc_kmax),nodc_d,nodc_kmax,
 !    .             fldo2(i,j,:),pinit(i,j,:),kdm,.false.,i,j)
 
-    
-         vrbos=.false.
          call remap1d_plm(fldo(i,j,1:nodc_kmax),nodc_d,nodc_kmax,
-     .             fldo2(i,j,1:kdm),pinit(i,j,1:kdm+1),kdm,vrbos,i,j)
+     .             fldo2(i,j,1:kdm),pinit(1:kdm+1),kdm,.false.,i,j)
 
        enddo
        enddo
-       enddo
-
-cdiag if (filename.eq.'dic_inicond') then
-cdiag do j=1,jjo; do i=1,iio; 
-cdiag do k=1,kdm
-cdiag   write(*,'(a,3i5,2e20.10)')'4444444444',
-cdiag.       i,j,k,pinit(i,j,k),fldo2(i,j,k)
-cdiag enddo; 
-cdiag   write(*,'(a,3i5,2e20.10)')'4444444444',
-cdiag.       i,j,kdm+1,pinit(i,j,kdm+1),-9999. 
-cdiag enddo; enddo
-cdiag endif
-
+#endif
       !--------------------------------------------------------
 
-       return
-  
-       end subroutine bio_inicond
-  
+      end subroutine bio_inicond
+
       subroutine remap1d_plm(yold,xold,kold,ynew,xnew,knew,vrbos,i,j)
 c
 c --- consider two stepwise constant functions -yold,ynew- whose
@@ -1117,6 +953,7 @@ c
       return
       end
 
+#ifndef OBIO_ON_GARYocean
       Subroutine HNTR80 (IMA,JMA,OFFIA,DLATA,
      *                   IMB,JMB,OFFIB,DLATB, DATMIS)
 C****
@@ -1347,5 +1184,140 @@ C****
    20 Continue
       Return
       End Subroutine HNTR8
+#endif
 
-#endif    /* not on gary's ocean */
+      Subroutine VLKtoLZ (KM,LM, MK,ME, RK, RL,RZ)        !  2008/02/05
+C****
+C**** VLKtoLZ assumes a continuous piecewise linear tracer distribution,
+C**** defined by input tracer concentrations RK at KM specific points.
+C**** MK in the downward vertical mass coordinate.
+C**** R(M) = {RK(K-1)*[MK(K)-M] + RK(K)*[M-MK(K-1)]} / [MK(K)-MK(K-1)]
+C****               when MK(K-1) < M < MK(K).
+C**** R(M) = RK(1)  when M < MK(1).
+C**** R(M) = is undefined when MK(KM) < M.
+C****
+C**** VLKtoLZ integrates this tracer distribution over the LM output
+C**** layers defined by their layer edges ME, calculating the tracer
+C**** mass RM of each layer and the vertical gradient RZ.
+C**** RNEW(M) = RL(L) + RZ(L)*[M-MC(L)]/dM(L) when ME(L-1) < M < ME(L)
+C**** where MC(L) = .5*[ME(L-1)+ME(L)] and dM(L) = ME(L)-ME(L-1)
+C**** Mean concentration of output layers is RL(L) = RM(L)/dM(L).
+C****
+C**** If ME(L-1) < MK(KM) < ME(L), then RL(L) and RZ(L) are calculated
+C**** from the input profile up to MK(KM); RL(L+1:LM) and RZ(L+1:LM)
+C**** for deeper layers are undefined, set to DATMIS.
+C****
+C**** Input:  KM = number of input edges
+C****         LM = number of output cells
+C****         MK = mass coordinates of input points (kg/m^2)
+C****         ME = mass coordinates of output layer edges (kg/m^2)
+C****         RK = tracer concentration at input points
+C****
+C**** Output: RL = mean tracer concentration of each output layer
+C****         RZ = vertical gradient of tracer mass of each output layer
+C****
+C**** Internal: RM = integrated tracer mass of output layers (kg/m^2)
+C****           RQ = integrated tracer mass times mass (kg^2/m^4)
+C****
+      Implicit Real*8 (A-H,M-Z)
+      Parameter (DATMIS = -999999)
+      Real*8 MK(KM),ME(0:LM), RK(KM), RL(LM),RM(1024),RQ(1024)
+      Real*8, optional :: RZ(LM)
+
+C     If (LM > 1024)  Stop 'LM exceeds internal dimentions in VLKtoLZ'
+C****
+      RM(1:LM) = 0
+      RQ(1:LM) = 0
+      K = 1
+      L = 1
+      MC = .5*(ME(L)+ME(L-1))
+C****
+C**** Integrate layers with M < MK(1)
+C****
+      If (ME(0) < MK(1))  GoTo 20
+C**** MK(1) <= ME(0), determine K such that MK(K-1) <= ME(0) < MK(K)
+   10 If (K == KM)  GoTo 200  ;  K = K+1
+      If (MK(K) <= ME(0))  GoTo 10
+      GoTo 130  !  MK(K-1) <= ME(0) < MK(K)
+C**** ME(0) < MK(1), determine output cell containing MK(1)
+   20 If (MK(1) < ME(L))  GoTo 30
+C**** ME(L-1) < ME(L) < MK(1), integrate RM from ME(L-1) to ME(L)
+      RM(L) = RK(1)*(ME(L)-ME(L-1))
+      RQ(L) = 0
+      If (L == LM)  GoTo 300  ;  L = L+1  ;  MC = .5*(ME(L)+ME(L-1))
+      GoTo 20
+C**** ME(L-1) < MK(1) < ME(L), integrate RM from ME(L-1) to MK(1)
+   30 RM(L) = RK(1)*(MK(1)-ME(L-1))
+      RQ(L) = RK(1)*(MK(1)-ME(L-1))*(.5*(MK(1)+ME(L-1))-MC)
+      If (K == KM)  GoTo 220  ;  K = K+1
+C****
+C**** Integrate layers with MK(1) < M < MK(KM)
+C****
+  100 If (ME(L) < MK(K))  GoTo 120
+C**** ME(L-1) < MK(K-1) < MK(K) < ME(L), integrate from MK(K-1) to MK(K)
+      RM(L) = RM(L) + (RK(K)-RK(K-1))*(MK(K)+MK(K-1))/2 +
+     +                RK(K-1)*MK(K)-RK(K)*MK(K-1)
+      RQ(L) = RQ(L) +
+     +  (RK(K)-RK(K-1))*(MK(K)*MK(K)+MK(K)*MK(K-1)+MK(K-1)*MK(K-1))/3 +
+     +  (RK(K-1)*(MK(K)+MC)-RK(K)*(MK(K-1)+MC))*(MK(K)+MK(K-1))/2 +
+     +  (RK(K)*MK(K-1)-RK(K-1)*MK(K))*MC
+      If (K == KM)  GoTo 220  ;  K = K+1
+      GoTo 100
+C**** ME(L-1) < MK(K-1) < ME(L) < MK(K), integrate from MK(K-1) to ME(L)
+  120 RM(L) = RM(L) + ((RK(K)-RK(K-1))*(ME(L)+MK(K-1))/2 +
+     +                 (RK(K-1)*MK(K)-RK(K)*MK(K-1))) * (ME(L)-MK(K-1))
+     /              / (MK(K)-MK(K-1))
+      RQ(L) = RQ(L) +
+     +  ((RK(K)-RK(K-1))*(ME(L)*ME(L)+ME(L)*MK(K-1)+MK(K-1)*MK(K-1))/3 +
+     +   (RK(K-1)*(MK(K)+MC)-RK(K)*(MK(K-1)+MC))*(ME(L)+MK(K-1))/2 +
+     +   (RK(K)*MK(K-1)-RK(K-1)*MK(K))*MC) * (ME(L)-MK(K-1)) /
+     /  (MK(K)-MK(K-1))
+      If (L == LM)  GoTo 300  ;  L = L+1  ;  MC = .5*(ME(L)+ME(L-1))
+  130 If (MK(K) < ME(L))  GoTo 160
+C**** MK(K-1) < ME(L-1) < ME(L) < MK(K), integrate from ME(L-1) to ME(L)
+  140 RM(L) = ((RK(K)-RK(K-1))*(ME(L)+ME(L-1))/2 +
+     +         (RK(K-1)*MK(K)-RK(K)*MK(K-1))) * (ME(L)-ME(L-1)) /
+     /        (MK(K)-MK(K-1))
+      RQ(L) =
+     +  ((RK(K)-RK(K-1))*(ME(L)*ME(L)+ME(L)*ME(L-1)+ME(L-1)*ME(L-1))/3 +
+     +   (RK(K-1)*(MK(K)+MC)-RK(K)*(MK(K-1)+MC))*(ME(L)+ME(L-1))/2 +
+     +   (RK(K)*MK(K-1)-RK(K-1)*MK(K))*MC) * (ME(L)-ME(L-1)) /
+     /  (MK(K)-MK(K-1))
+      If (L == LM)  GoTo 300  ;  L = L+1  ;  MC = .5*(ME(L)+ME(L-1))
+      If (ME(L) < MK(K))  GoTo 140
+C**** MK(K-1) < ME(L-1) < MK(K) < ME(L), integrate from ME(L-1) to MK(K)
+  160 RM(L) = RM(L) + ((RK(K)-RK(K-1))*(MK(K)+ME(L-1))/2 +
+     +                 (RK(K-1)*MK(K)-RK(K)*MK(K-1))) * (MK(K)-ME(L-1))
+     /              / (MK(K)-MK(K-1))
+      RQ(L) = RQ(L) +
+     +  ((RK(K)-RK(K-1))*(MK(K)*MK(K)+MK(K)*ME(L-1)+ME(L-1)*ME(L-1))/3 +
+     +   (RK(K-1)*(MK(K)+MC)-RK(K)*(MK(K-1)+MC))*(MK(K)+ME(L-1))/2 +
+     +   (RK(K)*MK(K-1)-RK(K-1)*MK(K))*MC) * (MK(K)-ME(L-1)) /
+     /  (MK(K)-MK(K-1))
+      If (K == KM)  GoTo 220  ;  K = K+1
+      GoTo 100
+C****
+C**** Calculate RL and RZ from RM and RQ when MK(KM) < ME(LM)
+C****
+C**** MK(KM) <= ME(0)
+  200 RL(:) = DATMIS
+      if (present(rz)) RZ(:) = DATMIS
+      Return
+C**** ME(L-1) < MK(KM) < ME(L)
+  220 RL(1:L-1) =   RM(1:L-1) / (ME(1:L-1)-ME(0:L-2))
+      RL(L)  =   RM(L)  / (MK(KM)-ME(L-1))
+      RL(L+1:LM) = DATMIS
+      if (present(rz)) then
+        RZ(1:L-1) = 6*RQ(1:L-1) / (ME(1:L-1)-ME(0:L-2))**2
+        RZ(L)= 6*(RQ(L) + .5*(ME(L)-MK(KM))*RM(L)) / (MK(KM)-ME(L-1))**2
+C**** Vertical gradient is extrapolated half way to .5*[MK(KM)+ME(L)]
+        RZ(L)  = RZ(L) * (.5*(MK(KM)+ME(L))-ME(L-1)) / (MK(KM)-ME(L-1))
+        RZ(L+1:LM) = DATMIS
+      endif
+      Return
+C****
+C**** Calculate RL and RZ from RM and RQ when ME(LM) < MK(KM)
+C****
+  300 RL(1:lm) =   RM(1:lm) / (ME(1:lm)-ME(0:lm-1))
+      if (present(rz)) RZ(1:lm) = 6*RQ(1:lm) / (ME(1:lm)-ME(0:lm-1))**2
+      End
