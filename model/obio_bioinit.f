@@ -642,7 +642,7 @@ c------------------------------------------------------------------------------
       USE OCEANR_DIM, only : ogrid
       USE OCEAN, only : DLATM,ZOE=>ZE, focean, lmm
 #else
-      use hycom_dim, only: aj_0h,aj_1h,kdm
+      use hycom_dim, only: aj_0,aj_1,kdm
       use hycom_dim, only: ip,ogrid,iia,jja
       USE GEOM, only : DLATM
       use hycom_arrays, only: dpinit
@@ -691,7 +691,7 @@ c------------------------------------------------------------------------------
 
       fldo=0.
       do k=1,kgrd
-        call flxa2o(data2(:,aj_0h:aj_1h,k),fldo(:,:,k))
+        call flxa2o(data2(:,aj_0:aj_1,k),fldo(:,:,k))
       end do
 
       !--------------------------------------------------------
