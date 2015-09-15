@@ -529,8 +529,12 @@ C****      names, indices, units, idacc-numbers, etc.
 
       character(len=sname_strlen), dimension(kaj), public :: name_reg
 
+!****
 !@var IJ_xxx AIJ diagnostic names
+!****
       INTEGER, public ::
+!**** Vertical Energy Fluxes
+     &  IJ_dSE_DYN,IJ_dKE_DYN,IJ_dTE_DYN,
      &     IJ_RSOI, IJ_RSNW, IJ_SNOW, IJ_SHDT, IJ_PREC, IJ_EVAP,
      *     IJ_SSAT, IJ_BETA,  IJ_SLP1,  IJ_P4UV, IJ_PRES, IJ_PHI1K,
      *     IJ_PHI850, IJ_PHI700, IJ_PHI500, IJ_PHI300, IJ_PHI100,

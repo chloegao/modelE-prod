@@ -99,11 +99,10 @@ C**** module should own dynam variables used by other routines
       REAL*8, ALLOCATABLE, DIMENSION(:,:)  :: DPDY_BY_RHO_0
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PHI
 
-!@var MUs,MVs,MWs,PS save PU,PV,SD,P for hourly tracer advection
+!@var MUs,MVs,MWs,MB save for source time step tracer advection
 !@var MB Air mass array for tracers (before advection)
 !@var MMA (kg) Air mass array for tracers (updated during advection)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: MUs,MVs,MWs,MB,MMA
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: PS
 
 !@var DKE change in KE due to dissipation (SURF/DC/MC) (m^2/s^2)
 !@var KEA KE on the A grid (m^2/s^2)
@@ -132,7 +131,7 @@ C**** module should own dynam variables used by other routines
      &     PEDN,PEK,SD_CLOUDS,GZ,PHI,
      &     MUs,MVs,MWs,MB,MMA,DKE,KEA,
      &     UALIJ,VALIJ,WSAVE,
-     &     MASUM,PTROPO,LTROPO,PS,
+     &     MASUM,PTROPO,LTROPO,
      &     DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
       use GEOM, only : geom_atm
       use pario, only : par_open,par_close,read_dist_data
@@ -248,7 +247,6 @@ C**** Check polar uniformity
      $     DPDY_BY_RHO(I_0H:I_1H,J_0H:J_1H),
      $   DPDX_BY_RHO_0(I_0H:I_1H,J_0H:J_1H),
      $   DPDY_BY_RHO_0(I_0H:I_1H,J_0H:J_1H),
-     $              PS(I_0H:I_1H,J_0H:J_1H),
      $   STAT = IER)
 
 ! correct or wrong, but being static all arrays were initialized
