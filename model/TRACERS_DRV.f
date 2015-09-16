@@ -2768,6 +2768,16 @@ c
         jls_ltop(k)  = LTOP
         jls_power(k) = -2
         units_jls(k) = unit_string(jls_power(k),'kg/s')
+c
+        k = k + 1
+        jls_O3vmr=k
+        sname_jls(k) = 'O3_VMR'
+        lname_jls(k) = 'O3 volume mixing ratio'
+        jls_ltop(k)  = LTOP
+        jls_power(k) = -8 ! simply to match Ox_CONCENTRATION diag
+        scale_jls(k) = 1.
+        units_jls(k) = unit_string(jls_power(k),'V/V air')
+
 #endif  /* TRACERS_SPECIAL_Shindell */
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
@@ -5716,6 +5726,15 @@ c SW forcing from albedo change
         units_ijts(k) = unit_string(ijts_power(k),'number of accum')
         scale_ijts(k) = 10.**(-ijts_power(k))
         ijts_HasArea(k) = .false.
+      k = k + 1
+        ijs_O3mass=k
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = 'Total Column Ozone (not Ox) Mass'
+        sname_ijts(k) = 'O3_Total_Mass'
+        ijts_power(k) = -4
+        units_ijts(k) = unit_string(ijts_power(k),'kg/m^2') ! to match tracers
+        scale_ijts(k) = 10.**(-ijts_power(k))
+        ijts_HasArea(k) = .false.
 #endif  /* TRACERS_SPECIAL_Shindell */
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       k = k + 1
@@ -6378,6 +6397,20 @@ C**** 3D tracer-related arrays but not attached to any one tracer
         sname_ijlt(k) = 'JH2O2'
         ijlt_power(k) = 2
         units_ijlt(k) = unit_string(ijlt_power(k),'s-1')
+        scale_ijlt(k) = 10.**(-ijlt_power(k))
+      k = k + 1
+        ijlt_O3ppbv=k
+        lname_ijlt(k) = 'O3 not Ox volume mixing ratio'
+        sname_ijlt(k) = 'O3_vmr'
+        ijlt_power(k) = 0
+        units_ijlt(k) = unit_string(ijlt_power(k),'ppbv')
+        scale_ijlt(k) = 10.**(-ijlt_power(k))
+      k = k + 1
+        ijlt_O3cmatm=k
+        lname_ijlt(k) = 'O3 not Ox in cm-atm units'
+        sname_ijlt(k) = 'O3_cm_atm'
+        ijlt_power(k) = 0
+        units_ijlt(k) = unit_string(ijlt_power(k),'cm-atm')
         scale_ijlt(k) = 10.**(-ijlt_power(k))
 #ifdef ACCMIP_LIKE_DIAGS
       k = k + 1
