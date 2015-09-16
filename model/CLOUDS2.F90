@@ -15,137 +15,134 @@ module CLOUDS
   USE ATM_COM, only : pdsigl00
   use MODEL_COM, only : dtsrc,itime  ! ,coupled_chem
   use TimeConstants_mod, only: SECONDS_PER_HOUR
-#if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
+  use CLOUDS_COM, only : ncol
+  use QUSDEF, only : nmom,xymoms,zmoms,zdir
+
+#if defined(TRACERS_ON)
+  use TRACER_COM, only: NTM, ntm_soa,ntm_ococean
+  use OldTracer_mod, only: trname, t_qlimit
+#endif
+
+#if defined(TRACERS_ON) && defined(TRACERS_AEROSOLS_OCEAN)
+  use OldTracer_mod, only: trpdens
+  use TRACER_COM, only: n_ococean,n_seasalt1,trm
+#endif  /* TRACERS_AEROSOLS_OCEAN */
+
+#if defined(TRACERS_ON) && defined(TRACERS_WATER)
+  use OldTracer_mod, only: tr_wd_type, tr_RKD, tr_DHD
+  use TRACER_COM,    only: nGAS, nPART, nWATER, tr_evap_fact, gases_list,gases_count
+#endif
+
+#if defined(TRACERS_ON) && defined(TRACERS_WATER) && (defined(TRACERS_AEROSOLS_Koch) || defined(TRACERS_AMP) || defined(TRACERS_TOMAS))
+  use TRACER_COM, only: aqchem_list,aqchem_count
+#endif
+
+#if defined(TRACERS_ON) && !defined(TRACERS_WATER) && (defined(TRACERS_DUST) || defined(TRACERS_MINERALS))
+  use TRACER_COM, only: Ntm_dust
+#endif
+
+#if defined(CLD_AER_CDNC) || defined(CLD_SUBDD)
   use CONSTANT, only : kapa,mair,gasc
   use RESOLUTION, only : ptop,psf,ls1
   use DYNAMICS, only : sig,sige
 #endif
 
-  use CLOUDS_COM, only : ncol
-
-#if (defined CLD_AER_CDNC) || (defined BLK_2MOM)
+#if defined(CLD_AER_CDNC) || defined(BLK_2MOM)
   use mo_bulk2m_driver_gcm, only: execute_bulk2m_driver
 #endif
-  use QUSDEF, only : nmom,xymoms,zmoms,zdir
-#ifdef TRACERS_ON
-  use TRACER_COM, only: NTM, ntm_soa,ntm_ococean
-  use OldTracer_mod, only: trname, t_qlimit
-#ifdef TRACERS_AEROSOLS_OCEAN
-  use OldTracer_mod, only: trpdens
-  use TRACER_COM, only: n_ococean,n_seasalt1,trm
-#endif  /* TRACERS_AEROSOLS_OCEAN */
-#ifdef TRACERS_WATER
-  use OldTracer_mod, only: tr_wd_type, tr_RKD, tr_DHD
-  use TRACER_COM, only:        nGAS, nPART, nWATER, &
-       tr_evap_fact, gases_list,gases_count
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS)
-  use TRACER_COM, only: aqchem_list,aqchem_count
-#endif
-#else
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
-  use TRACER_COM, only: Ntm_dust
-#endif
-#endif
-#endif
 
-#if (defined CLD_AER_CDNC) || (defined BLK_2MOM)
-#ifdef TRACERS_AMP
+#if (defined(CLD_AER_CDNC) || defined(BLK_2MOM)) && defined(TRACERS_AMP)
   use CLOUDS_COM, only: NACTC,NAERC
   use AERO_CONFIG, only: NMODES
 #endif
-#endif
+
 #ifdef SCM
   use SCM_COM, only : SCMopt
 #endif
+
   implicit none
   save
-  !**** parameters and constants
-  real*8, parameter :: TI=233.16d0   !@param TI pure ice limit
-  real*8, parameter :: CLDMIN=.10d0 !@param CLDMIN min MC/LSC region
+
+!**** parameters and constants
+!@param CCMUL multiplier for convective cloud cover
+!@param CCMUL1 multiplier for deep anvil cloud cover
+!@param CCMUL2 multiplier for shallow anvil cloud cover
+!@param COETAU multiplier for convective cloud optical thickness
 !@param WMU critical cloud water content for rapid conversion (g m**-3)
+  real*8, parameter :: CCMUL=2.,CCMUL1=5.,CCMUL2=3.,COETAU=.08d0
   real*8, parameter :: WMU=.25
   real*8, parameter :: WMUL=.5       !@param WMUL WMU over land
-  !     REAL*8, PARAMETER :: WMUI=.1d0     !@param WMUI WMU for ice clouds
   real*8 WMUI                          !@param WMUI WMU for ice clouds
+  !     REAL*8, PARAMETER :: WMUI=.1d0     !@param WMUI WMU for ice clouds
+  real*8, parameter :: TI=233.16d0   !@param TI pure ice limit
+  real*8, parameter :: CLDMIN=.10d0 !@param CLDMIN min MC/LSC region
   real*8, parameter :: BRCLD=.2d0    !@param BRCLD for cal. BYBR
   real*8, parameter :: FDDET=.25d0 !@param FDDET remainder of downdraft
   real*8, parameter :: DTMIN1=1.d0 !@param DTMIN1 min DT to stop downdraft drop
   real*8, parameter :: SLHE=LHE*BYSHA
   real*8, parameter :: SLHS=LHS*BYSHA
-!@param CCMUL multiplier for convective cloud cover
-!@param CCMUL1 multiplier for deep anvil cloud cover
-!@param CCMUL2 multiplier for shallow anvil cloud cover
-!@param COETAU multiplier for convective cloud optical thickness
-  real*8, parameter :: CCMUL=2.,CCMUL1=5.,CCMUL2=3.,COETAU=.08d0
 
-  real*8 :: RTEMP,CMX,RCLDX,WMUIX,CONTCE1,CONTCE2,TNX,QNX
-  real*8 :: BYBR,BYDTsrc,XMASS,PLAND
 !@var BYBR factor for converting cloud particle radius to effect. radius
 !@var XMASS dummy variable
 !@var PLAND land fraction
+  real*8 :: BYBR,BYDTsrc,XMASS,PLAND
+  real*8 :: RTEMP,CMX,RCLDX,WMUIX,CONTCE1,CONTCE2,TNX,QNX
 
-  !**** Set-able variables
+!**** Set-able variables
 !@dbparam LMCM max level for originating MC plumes
-  integer :: LMCM = -1 ! defaults to LS1-1 if not set in rundeck
 !@dbparam ISC integer to turn on computation of stratocumulus clouds
+  integer :: LMCM = -1 ! defaults to LS1-1 if not set in rundeck
   integer :: ISC = 0  ! set ISC=1 to compute stratocumulus clouds
-  !     REAL*8 :: U00MAX = .99d0      ! maximum U00 for water clouds
-  !****
-  !**** WARNING: U00wtrX AND U00ice ARE NO LONGER USED BY THE GCM. USE U00a and U00b INSTEAD
-  !****
+!     REAL*8 :: U00MAX = .99d0      ! maximum U00 for water clouds
+!****
+!**** WARNING: U00wtrX AND U00ice ARE NO LONGER USED BY THE GCM. USE U00a and U00b INSTEAD
+!****
 !@dbparam U00wtrX multiplies U00ice for critical humidity for water clds
-  real*8 :: U00wtrX = 1.0d0     ! default, needed for AR4 runs
 !@dbparam U00ice critical humidity for ice cloud condensation
-  real*8 :: U00ice = .7d0       ! default, needed for AR4 runs
 !@dbparam U00a tuning knob for U00 above 850 mb without moist convection
 !@dbparam U00b tuning knob for U00 below 850 mb and in convective regions
-  real*8 :: U00a = 0.55d0       ! default
-  real*8 :: U00b = 1.00d0       ! default
 !@dbparam MAXCTOP max cloud top pressure
-  real*8 :: MAXCTOP =50.d0  ! default
 !@dbparam funio_denominator funio denominator
-  real*8 :: funio_denominator=22.d0  ! default
 !@dbparam autoconv_multiplier autoconversion rate multiplier
-  real*8 :: autoconv_multiplier=1.d0 ! default
 !@dbparam radius_multiplier cloud particle radius multiplier
-  real*8 :: radius_multiplier=1.d0   ! default
 !@dbparam wmui_multiplier critical ice cloud water multiplier
-  real*8 :: wmui_multiplier=1.d0     ! default
 !@dbparam entrainment_cont1 constant for entrainment rate, plume 1
-  real*8 :: entrainment_cont1=.4d0   ! default
 !@dbparam entrainment_cont2 constant for entrainment rate, plume 2
-  real*8 :: entrainment_cont2=.6d0   ! default
 !@dbparam HRMAX maximum distance an air parcel rises from surface
-  real*8 :: HRMAX = 1000.d0     ! default (m)
 !@dbparam RIMAX maximum ice cloud size
 !@dbparam RWMAX maximum water cloud size
-  real*8 :: RIMAX = 100.d0, RWMAX = 20.d0      ! microns
 !@dbparam RWCldOX multiplies part.size of water clouds over ocean
-  real*8 :: RWCldOX=1.d0
-!@dbparam RICldX multiplies part.size of ice clouds at 1000mb
-!@+       RICldX changes linearly to 1 as p->0mb
-  real*8 :: RICldX=1.d0 , xRICld
+!@dbparam RICldX multiplies part.size of ice clouds at 1000mb, changes linearly to 1 as p->0mb
 !@dbparam do_blU00 =1 if boundary layer U00 is treated differently
+  real*8 :: U00wtrX = 1.0d0     ! default, needed for AR4 runs
+  real*8 :: U00ice = .7d0       ! default, needed for AR4 runs
+  real*8 :: U00a = 0.55d0       ! default
+  real*8 :: U00b = 1.00d0       ! default
+  real*8 :: MAXCTOP =50.d0  ! default
+  real*8 :: funio_denominator=22.d0  ! default
+  real*8 :: autoconv_multiplier=1.d0 ! default
+  real*8 :: radius_multiplier=1.d0   ! default
+  real*8 :: wmui_multiplier=1.d0     ! default
+  real*8 :: entrainment_cont1=.4d0   ! default
+  real*8 :: entrainment_cont2=.6d0   ! default
+  real*8 :: HRMAX = 1000.d0     ! default (m)
+  real*8 :: RIMAX = 100.d0, RWMAX = 20.d0      ! microns
+  real*8 :: RWCldOX=1.d0
+  real*8 :: RICldX=1.d0 , xRICld
   integer :: do_blU00=0     ! default is to disable this
 
 ! Switches to revert to old AR5 convective settings.
 ! Default values correspond to AR5'.
 !@dbparam  MC_FDDRT frac of ddraft condensate avail for evp
-      REAL*8 :: MC_FDDRT=.5d0    ! Was 1.0 in AR5.
 !@dbparam MC_ENTR_MASS_LIM_PLUME 1 to limit entr. mass to that of plume, 0 for base layer
-      INTEGER :: MC_ENTR_MASS_LIM_PLUME=1 !
 !@dbparam MC_NEW_DDRFT_THETAV 1 to use new virt pot temp for ddraft buoy, 0 for old
-      INTEGER :: MC_NEW_DDRFT_THETAV=1
 !@dbparam MC_REVP_ABV_CLDBASE 1 to allow conv re-evap above the cld base, 0 for below only
+      REAL*8 :: MC_FDDRT=.5d0    ! Was 1.0 in AR5.
+      INTEGER :: MC_ENTR_MASS_LIM_PLUME=1 !
+      INTEGER :: MC_NEW_DDRFT_THETAV=1
       INTEGER :: MC_REVP_ABV_CLDBASE=1
 
-#ifdef TRACERS_ON
-!@var ntx,NTIX: Number and Indices of active tracers used in convection
-  integer, allocatable, dimension(:) :: ntix
-  integer ntx
-#endif
-  !**** ISCCP diag related variables
+!**** ISCCP diag related variables
 !!! @parameter ncol used to be set here  20 for gcm runs and 100 for scm runs
 !!!     now moved to CLOUDS_COM.f  for portability
 !@var tautab look-up table to convert count value to optical thickness
@@ -153,34 +150,17 @@ module CLOUDS
   real*8 :: tautab(0:255)
   integer :: invtau(-20:45000)
 
-  !**** input variables
-  logical DEBUG
+!**** input variables
 !@var RA ratio of primary grid box to secondary gridbox
-  real*8, dimension(:), allocatable :: RA !(KMAX)
 !@var UM,VM,UM1,VM1,U_0,V_0 velocity related variables(UM,VM)=(U,V)*AIRM
+  logical DEBUG
+  real*8, dimension(:), allocatable :: RA !(KMAX)
   real*8, dimension(:,:), allocatable :: UM,VM,UM1,VM1 !(KMAX,LM)
   real*8, dimension(:,:), allocatable :: U_0,V_0       !(KMAX,LM)
 
 !@var Miscellaneous vertical arrays set in driver
 !@var PLE pressure at layer edge
 !@var LHP array of precip phase ! may differ from LHX
-  real*8, dimension(LM+1) :: PLE,LHP
-  real*8, dimension(LM) :: PL,PLK,AIRM,BYAM,ETAL,TL,QL,TH,RH,QCLX,QCIX &
-       ,VSUBL,MCFLX,DGDSM,DPHASE,DTOTW,DQCOND,DGDQM,AQ,DPDT,RH1 &
-       ,FSSL,VLAT,DDMFLX,WTURB,TVL,W2L,GZL &
-       ,DPHASHLW,DPHADEEP,DGSHLW,DGDEEP &
-       ,QDNL,TDNL,U00L
-#if (defined CLD_AER_CDNC) || (defined BLK_2MOM)
-  real*8, dimension(LM) :: WMXICE
-#endif
-  real*8, dimension(LM) :: DQMTOTAL,DQMSHLW,DQMDEEP &
-       ,DQCTOTAL,DQCSHLW,DQCDEEP,DQLSC
-
-!@dbparam use_vmp whether to use VMP option
-      logical :: use_vmp=.false.
-!@var wmpr precipitation mixing ratio (kg/kg)
-      real*8, dimension(lm) :: wmpr
-
 !@var PL layer pressure (mb)
 !@var PLK PL**KAPA
 !@var AIRM the layer's pressure depth (mb)
@@ -192,9 +172,6 @@ module CLOUDS
 !@var RH1 relative humidity to compare with the threshold humidity
 !@var QCLX liquid cloud water mixing ratio (kg/kg) ! WMX
 !@var QCIX ice cloud water mixing ratio (kg/kg)
-#if (defined CLD_AER_CDNC) || (defined BLK_2MOM)
-!@var WMXICE ice water mixing ratio (kg/kg)
-#endif
 !@var VSUBL downward vertical velocity due to cumulus subsidence (cm/s)
 !@var MCFLX, DGDSM, DPHASE, DQCOND, DGDQM dummy variables
 !@var DDMFLX accumulated downdraft mass flux (mb)
@@ -202,87 +179,126 @@ module CLOUDS
 !@var DPDT time change rate of pressure (mb/s)
 !@var FSSL grid fraction for large-scale clouds
 !@var VLAT dummy variable
-  real*8, dimension(LM+1) :: PRECNVL
 !@var WTURB turbulent vertical velocity (m)
 !@var PRECNVL convective precip entering the layer top
-  !**** new arrays must be set to model arrays in driver (before MSTCNV)
-  real*8, dimension(LM) :: SDL,QCIL,QCLL  ! WML
+  real*8, dimension(LM+1) :: PLE,LHP
+  real*8, dimension(LM) :: PL,PLK,AIRM,BYAM,ETAL,TL,QL,TH,RH,QCLX,QCIX &
+       ,VSUBL,MCFLX,DGDSM,DPHASE,DTOTW,DQCOND,DGDQM,AQ,DPDT,RH1 &
+       ,FSSL,VLAT,DDMFLX,WTURB,TVL,W2L,GZL &
+       ,DPHASHLW,DPHADEEP,DGSHLW,DGDEEP &
+       ,QDNL,TDNL,U00L
+  real*8, dimension(LM) :: DQMTOTAL,DQMSHLW,DQMDEEP &
+       ,DQCTOTAL,DQCSHLW,DQCDEEP,DQLSC
+  real*8, dimension(LM+1) :: PRECNVL
+
+!@dbparam use_vmp whether to use VMP option
+!@var wmpr precipitation mixing ratio (kg/kg)
+      logical :: use_vmp=.false.
+      real*8, dimension(lm) :: wmpr
+
+!**** new arrays must be set to model arrays in driver (before MSTCNV)
 !@var SDL vertical velocity in sigma coordinate
 !@var QCLL cloud liquid water mixing ratio (kg/kg)
 !@var QCIL cloud ice water mixing ratio (kg/kg)
-  !**** new arrays must be set to model arrays in driver (after MSTCNV)
-  real*8, dimension(LM) :: TAUMCL,SVLATL,CLDMCL,SVLHXL,SVWMXL,SVLAT1
+  real*8, dimension(LM) :: SDL,QCIL,QCLL  ! WML
+
+!**** new arrays must be set to model arrays in driver (after MSTCNV)
 !@var TAUMCL convective cloud optical thickness
 !@var SVLATL saved LHX for convective cloud
 !@var CLDMCL convective cloud cover
 !@var SVLHXL saved LHX for large-scale cloud
 !@var SVWMXL saved detrained convective cloud water
-  real*8, dimension(LM) :: CSIZEL,CSIZELIP
 !@var CSIZEL cloud particle radius (micron)
 !@var CSIZELIP counterpart to CSIZEL for ice precip in supercooled water clouds
-#ifdef CLD_AER_CDNC
-  real*8, dimension(LM) :: ACDNWM,ACDNIM
-!@var ACDNWM,ACDNIM -CDNC - warm and cold moist cnv clouds (cm^-3)
-  real*8, dimension(LM) :: ACDNWS,ACDNIS
-!@var ACDNWS,ACDNIS -CDNC - warm and cold large scale clouds (cm^-3)
-  real*8, dimension(LM) :: CDNC_TOMAS
-!@var CDNC_TOMAS, CDNC_NENS -CDNC from Nenes and Seinfel parameterization- warm large scale clouds
-!(cm^-3)
-  real*8, dimension(LM) :: AREWS,AREIS,AREWM,AREIM  ! for diag
-!@var AREWS and AREWM are moist cnv, and large scale Reff arrays (um)
-  real*8, dimension(LM) :: ALWWS,ALWIS,ALWWM,ALWIM  ! for diag
-  real*8, dimension(LM) :: CDN3DL,CRE3DL
-!@var ALWWM and ALWIM  etc are liquid water contents
-!@var SMLWP is LWP
-  real*8 SMLWP
-!@var SME is the TKE in 1 D from e(l) = egcm(l,i,j)  (m^2/s^2)
-  real*8, dimension(LM)::SME
-  integer NLSW,NLSI,NMCW,NMCI
-#endif
-#if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
-!@var CTTEM,CD3DL,CL3DL,CI3DL are cld temp, cld thickness,cld water
-  real*8, dimension(LM) ::CTEML,CD3DL,CL3DL,CI3DL
-#endif
-  !**** new arrays must be set to model arrays in driver (before LSCOND)
-  real*8, dimension(LM) :: TTOLDL,CLDSAVL,CLDSV1
+  real*8, dimension(LM) :: TAUMCL,SVLATL,CLDMCL,SVLHXL,SVWMXL,SVLAT1
+  real*8, dimension(LM) :: CSIZEL,CSIZELIP
+
+!**** new arrays must be set to model arrays in driver (before LSCOND)
 !@var TTOLDL previous potential temperature
 !@var CLDSAVL saved large-scale cloud cover
-#ifdef CLD_AER_CDNC
-  real*8, dimension(LM)::NCLL,NCIL
-!@var NCLL is saved CDNC
-!@var NCIL is saved ice crystal numbe
-#endif
-  !**** new arrays must be set to model arrays in driver (after LSCOND)
-  real*8, dimension(LM) :: SSHR,DCTEI,TAUSSL,CLDSSL,TAUSSLIP
+  real*8, dimension(LM) :: TTOLDL,CLDSAVL,CLDSV1
+
+!**** new arrays must be set to model arrays in driver (after LSCOND)
 !@var TAUSSLIP counterpart to TAUSSL for ice precip in supercooled water clouds
 !@var SSHR,DCTEI height diagnostics of dry and latent heating by MC
 !@var TAUSSL large-scale cloud optical thickness
 !@var CLDSSL large-scale cloud cover
-
 !@var SM,QM Vertical profiles of (T/p**kappa)*AIRM, q*AIRM
+  real*8, dimension(LM) :: SSHR,DCTEI,TAUSSL,CLDSSL,TAUSSLIP
   real*8, dimension(LM) :: SM,QM
-  real*8, dimension(NMOM,LM) :: SMOM,QMOM,SMOMMC,QMOMMC, &
-       SMOMLS,QMOMLS
+  real*8, dimension(NMOM,LM) :: SMOM,QMOM,SMOMMC,QMOMMC, SMOMLS,QMOMLS
+
+!@var KMAX index for surrounding velocity
+!@var LMCLD max cloud top level
+!@var PEARTH fraction of land in grid box
+!@var TS average surface temperture (C)
+!@var RIS, RI1, RI2 Richardson numbers
+!@var DCL max level of planetary boundary layer
+!@var ZPBL PBL height (m)
+!@var PPBL pressure corresponding to ZPBL (mb)
+  integer ::  KMAX,LMCLD
+  real*8 :: PEARTH,TS,QS,US,VS,RIS,RI1,RI2,DXYPIJ,ROICE
+  integer :: DCL
+  REAL*8 :: ZPBL,PPBL
+
+!**** output variables
+!@var PRCPMC precip due to moist convection
+!@var PRCPSS precip due to large-scale condensation
+!@var HCNDSS heating due to large-scale condensation
+!@var WMSUM cloud liquid water path
+!@var CLDSLWIJ shallow convective cloud cover
+!@var CLDDEPIJ deep convective cloud cover
+!@var LMCMAX upper-most convective layer
+!@var LMCMIN lowerest convective layer
+!@var AIRXL is convective mass flux (mb)
+!@var RNDSSL stored random number sequences
+!@var prebar1 copy of variable prebar
+  real*8 :: PRCPMC,PRCPSS,HCNDSS,WMSUM
+  real*8 :: CLDSLWIJ,CLDDEPIJ
+  integer :: LMCMAX,LMCMIN
+  real*8 AIRXL,PRHEAT
+  real*8  RNDSSL(3,LM)
+  real*8 prebar1(Lm+1)
 
 #ifdef TRACERS_ON
+!@var ntx,NTIX: Number and Indices of active tracers used in convection
 !@var TM Vertical profiles of tracers
+!@var TRDNL tracer concentration in lowest downdraft (kg/kg)
+  integer, allocatable, dimension(:) :: ntix
+  integer ntx
   real*8, allocatable, dimension(:,:) :: TM
   real*8, allocatable, dimension(:,:,:) :: TMOM
-!@var TRDNL tracer concentration in lowest downdraft (kg/kg)
   real*8, allocatable, dimension(:,:) :: TRDNL
-#ifdef TRACERS_WATER
+! The following tracer arrays are workspace for MSTCNV.  They are
+! declared as permanent arrays here to avoid the expense of initializing
+! temporary LM,NTM arrays to zero each time MSTCNV is called.  After
+! completion of MC calculations, MSTCNV resets these arrays to zero in
+! the layers in which they were used.
+!@var DTM,DTMR: Vertical profiles of Tracers changes
+!@var TPOLD saved plume temperature after condensation for tracers (this is slightly different from TPSAV)
+  real*8, allocatable, dimension(:,:)      :: DTM, DTMR, TMDNL
+  real*8, allocatable, dimension(:,:,:) :: DTMOM, DTMOMR, TMOMDNL
+  real*8, dimension(LM)       :: TPOLD=0
+#endif
+
+#if defined(TRACERS_ON) && defined(TRACERS_WATER)
 !@var TRWML Vertical profile of liquid water tracers (kg)
 !@var TRSVWML New liquid water tracers from m.c. (kg)
-  real*8, allocatable, dimension(:,:) :: TRWML, TRSVWML
 !@var TRPRSS super-saturated tracer precip (kg)
 !@var TRPRMC moist convective tracer precip (kg)
+  real*8, allocatable, dimension(:,:) :: TRWML, TRSVWML
   real*8, allocatable, dimension(:)    :: TRPRSS,TRPRMC
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS)
-  ! for diagnostics
+!@var TRCOND tracer mass in condensate
+!@var TRCONDV tracer mass in lofted condensate
+  real*8, allocatable, dimension(:,:)   :: TRCOND,TRCONDV
+#endif
+
+#if defined(TRACERS_ON) && defined(TRACERS_WATER) && (defined(TRACERS_AEROSOLS_Koch) || defined(TRACERS_AMP) || defined(TRACERS_TOMAS))
+! for diagnostics
   real*8, allocatable, dimension(:,:) :: DT_SULF_MC,DT_SULF_SS
 #endif
-#ifdef TRDIAG_WETDEPO
+
+#if defined(TRACERS_ON) && defined(TRACERS_WATER) && defined(TRDIAG_WETDEPO)
 !@dbparam diag_wetdep switches on/off special diags for wet deposition
   integer :: diag_wetdep=0 ! =off (default) (on: 1)
 !@var trcond_mc saves tracer condensation in MC clouds [kg]
@@ -291,91 +307,69 @@ module CLOUDS
 !@var trprcp_mc saves tracer precipitated from MC clouds [kg]
 !@var trnvap_mc saves reevaporated tracer of MC clouds precip [kg]
 !@var trwash_mc saves tracers washed out by collision for MC clouds [kg]
-  real*8,allocatable, dimension(:,:) :: trcond_mc,trdvap_mc,trflcw_mc, &
-       trprcp_mc,trnvap_mc,trwash_mc
 !@var trwash_ls saves tracers washed out by collision for LS clouds [kg]
 !@var trprcp_ls saves tracer precipitation from LS clouds [kg]
 !@var trclwc_ls saves tracers condensed in cloud water of LS clouds [kg]
 !@var trevap_ls saves reevaporated tracers of LS cloud precip [kg]
 !@var trclwe_ls saves tracers evaporated from cloud water of LS clouds [kg]
 !@var trcond_ls saves tracer condensation in LS clouds [kg]
-  real*8,allocatable,dimension(:,:) :: trwash_ls,trevap_ls,trclwc_ls, &
-       trprcp_ls,trclwe_ls,trcond_ls
+  real*8,allocatable, dimension(:,:) :: trcond_mc,trdvap_mc,trflcw_mc, trprcp_mc,trnvap_mc,trwash_mc
+  real*8,allocatable,dimension(:,:) :: trwash_ls,trevap_ls,trclwc_ls, trprcp_ls,trclwe_ls,trcond_ls
 #endif
-#else
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+
+#if defined(TRACERS_ON) && !defined(TRACERS_WATER) && (defined(TRACERS_DUST) || defined(TRACERS_MINERALS))
 !@var tm_dust vertical profile of dust/mineral tracers [kg]
-  real*8,dimension(Lm,Ntm_dust) :: tm_dust
 !@var tmom_dust vertical profiles of dust/mineral tracer moments [kg]
-  real*8,dimension(nmom,Lm,Ntm_dust) :: tmom_dust
 !@var trprc_dust dust/mineral tracer precip [kg]
+  real*8,dimension(Lm,Ntm_dust) :: tm_dust
+  real*8,dimension(nmom,Lm,Ntm_dust) :: tmom_dust
   real*8,dimension(Lm,Ntm_dust) :: trprc_dust
 #endif
-#endif
-#endif
 
-!@var KMAX index for surrounding velocity
-!@var LMCLD max cloud top level
-  integer ::  KMAX,LMCLD
-!@var PEARTH fraction of land in grid box
-!@var TS average surface temperture (C)
-!@var RIS, RI1, RI2 Richardson numbers
-  real*8 :: PEARTH,TS,QS,US,VS,RIS,RI1,RI2,DXYPIJ,ROICE
-!@var DCL max level of planetary boundary layer
-!@var ZPBL PBL height (m)
-!@var PPBL pressure corresponding to ZPBL (mb)
-  integer :: DCL
-  REAL*8 :: ZPBL,PPBL
-
-  !**** output variables
-  real*8 :: PRCPMC,PRCPSS,HCNDSS,WMSUM
-!@var PRCPMC precip due to moist convection
-!@var PRCPSS precip due to large-scale condensation
-!@var HCNDSS heating due to large-scale condensation
-!@var WMSUM cloud liquid water path
-#ifdef CLD_AER_CDNC
-  real*8 :: WMCLWP,WMCTWP
+#if defined(CLD_AER_CDNC)
+!@var ACDNWM,ACDNIM -CDNC - warm and cold moist cnv clouds (cm^-3)
+!@var ACDNWS,ACDNIS -CDNC - warm and cold large scale clouds (cm^-3)
+!@var CDNC_TOMAS, CDNC_NENS -CDNC from Nenes and Seinfel parameterization- warm large scale clouds (cm^-3)
+!@var AREWS and AREWM are moist cnv, and large scale Reff arrays (um)
+!@var ALWWM and ALWIM  etc are liquid water contents
+!@var SMLWP is LWP
+!@var SME is the TKE in 1 D from e(l) = egcm(l,i,j)  (m^2/s^2)
+  real*8, dimension(LM) :: ACDNWM,ACDNIM
+  real*8, dimension(LM) :: ACDNWS,ACDNIS
+  real*8, dimension(LM) :: CDNC_TOMAS
+  real*8, dimension(LM) :: AREWS,AREIS,AREWM,AREIM  ! for diag
+  real*8, dimension(LM) :: ALWWS,ALWIS,ALWWM,ALWIM  ! for diag
+  real*8, dimension(LM) :: CDN3DL,CRE3DL
+  real*8 SMLWP
+  real*8, dimension(LM)::SME
+!@var NCLL is saved CDNC
+!@var NCIL is saved ice crystal numbe
+  real*8, dimension(LM)::NCLL,NCIL
+  integer NLSW,NLSI,NMCW,NMCI
 !@var WMCLWP , WMCTWP moist convective LWP and total water path
+  real*8 :: WMCLWP,WMCTWP
 #endif
-  real*8 :: CLDSLWIJ,CLDDEPIJ
-!@var CLDSLWIJ shallow convective cloud cover
-!@var CLDDEPIJ deep convective cloud cover
-  integer :: LMCMAX,LMCMIN
-!@var LMCMAX upper-most convective layer
-!@var LMCMIN lowerest convective layer
-!@var AIRXL is convective mass flux (mb)
-  real*8 AIRXL,PRHEAT
-!@var RNDSSL stored random number sequences
-  real*8  RNDSSL(3,LM)
-!@var prebar1 copy of variable prebar
-  real*8 prebar1(Lm+1)
+
+#if defined(CLD_AER_CDNC) || defined(BLK_2MOM)
+!@var WMXICE ice water mixing ratio (kg/kg)
+  real*8, dimension(LM) :: WMXICE
+#endif
+
+#if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
+!@var CTTEM,CD3DL,CL3DL,CI3DL are cld temp, cld thickness,cld water
+  real*8, dimension(LM) ::CTEML,CD3DL,CL3DL,CI3DL
+#endif
+
 #ifdef SCM
-  !@var plume diagnostics
+!@var plume diagnostics
   real*8 CUMFLX(LM,2,LM),DWNFLX(LM,2,LM),WCUALL(LM,2,LM), &
          ENTALL(LM,2,LM),DETALL(LM,2,LM),MPLUMEALL(LM,2,LM), &
          PLUME_MAX(2,LM),PLUME_MIN(2,LM)
 #endif
 
-#ifdef TRACERS_ON
-  ! The following tracer arrays are workspace for MSTCNV.  They are
-  ! declared as permanent arrays here to avoid the expense of initializing
-  ! temporary LM,NTM arrays to zero each time MSTCNV is called.  After
-  ! completion of MC calculations, MSTCNV resets these arrays to zero in
-  ! the layers in which they were used.
-!@var DTM,DTMR: Vertical profiles of Tracers changes
-  real*8, allocatable, dimension(:,:)      :: DTM, DTMR, TMDNL
-  real*8, allocatable, dimension(:,:,:) :: DTMOM, DTMOMR, TMOMDNL
-!@var TPOLD saved plume temperature after condensation for tracers
-!@+   (this is slightly different from TPSAV)
-  real*8, dimension(LM)       :: TPOLD=0
-#ifdef TRACERS_WATER
-!@var TRCOND tracer mass in condensate
-!@var TRCONDV tracer mass in lofted condensate
-  real*8, allocatable, dimension(:,:)   :: TRCOND,TRCONDV
-#endif
-#endif
 
 contains
+
 
   subroutine MSTCNV(IERR,LERR,i_debug,j_debug)
 
