@@ -8157,7 +8157,7 @@ C****
           do while(daily_z(i,j,lmax) < Plume_hei_volc_emis_expl(i,j))
             lmax = lmax + 1
           enddo
-            lmax = lmax + 1  ; adding one layer as to not have plume height identical to mixing height
+            lmax = lmax + 1 ! adding one layer as to not have plume height identical to mixing height
             lmin=max(1,lmax - lmax/3)
           do ll=lmin,lmax ! add source into the upper 1/3 of the plume
                           ! conversion kt/d into kg/s
