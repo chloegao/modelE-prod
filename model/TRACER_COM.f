@@ -66,6 +66,9 @@ c
 !@dbparam COUPLED_CHEM: if 0 => uncoupled, if 1 => coupled
       integer :: COUPLED_CHEM = 0
 
+!@dbparam whichEPFCs choses emisPerFireByVegType calibration: 1=AR5, 2=GFED3, 3=GFED2, 4=MOPITT
+      integer :: whichEPFCs = 1 
+
 C**** Each tracer has a variable name and a unique index
 !@var NTM number of tracers
       integer :: NTM

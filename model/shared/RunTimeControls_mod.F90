@@ -78,6 +78,12 @@ module RunTimeControls_mod
   logical, parameter :: alt_interp = .false.
 #endif
 
+#if defined(ANTHROPOGENIC_FIRE_MODEL)
+  logical, parameter :: anthropogenic_fire_model = .true.
+#else
+  logical, parameter :: anthropogenic_fire_model = .false.
+#endif
+
 #if defined(ASCII_REGIONS)
   logical, parameter :: ascii_regions = .true.
 #else
@@ -276,6 +282,12 @@ module RunTimeControls_mod
   logical, parameter :: deep_atm = .false.
 #endif
 
+#if defined(DETAILED_FIRE_OUTPUT)
+  logical, parameter :: detailed_fire_output = .true.
+#else
+  logical, parameter :: detailed_fire_output = .false.
+#endif
+
 #if defined(DOMAIN_DECOMP_ATM_IS_1D)
   logical, parameter :: domain_decomp_atm_is_1d = .true.
 #else
@@ -396,12 +408,6 @@ module RunTimeControls_mod
   logical, parameter :: global_trig = .false.
 #endif
 
-#if defined(HTAP_LIKE_DIAGS)
-  logical, parameter :: htap_like_diags = .true.
-#else
-  logical, parameter :: htap_like_diags = .false.
-#endif
-
 #if defined(HYCOM_UNFINISHED)
   logical, parameter :: hycom_unfinished = .true.
 #else
@@ -472,6 +478,12 @@ module RunTimeControls_mod
   logical, parameter :: latlon_core = .true.
 #else
   logical, parameter :: latlon_core = .false.
+#endif
+
+#if defined(LIMIT_BARREN_FLAMMABILITY)
+  logical, parameter :: limit_barren_flammability = .true.
+#else
+  logical, parameter :: limit_barren_flammability = .false.
 #endif
 
 #if defined(LUS_VERT_ADV)

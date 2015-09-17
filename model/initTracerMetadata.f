@@ -6,6 +6,7 @@
       use RunTimeControls_mod, only: tracers_amp
       use RunTimeControls_mod, only: tracers_tomas
       use OldTracer_mod, only: trName, do_fire
+      use OldTracer_mod, only: set_do_fire
       use OldTracer_mod, only: nBBsources, set_nBBsources
       use DOMAIN_DECOMP_ATM, only: am_i_root
       use TRACER_COM, only: tracers
@@ -53,18 +54,18 @@
 #ifdef DYNAMIC_BIOMASS_BURNING
 !     allow some tracers to have biomass burning based on fire model:
         select case (trname(n))
-          case('NOx','CO','Alkenes','Paraffin','BCB','OCB','NH3','SO2'
+          case('NOx','CO','Alkenes','Paraffin','BCB','OCB','NH3','SO2',
      &         'vbsAm2', 'vbsAm1', 'vbsAz',  'vbsAp1', 'vbsAp2',
-     &         'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6',
-#ifdef TRACERS_SPECIAL_Shindell
-     &         ,'CH4'           ! in here to avoid potential Lerner tracers conflict
-#endif
+     &         'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6'
 #ifdef TRACERS_TOMAS
      &         ,'AECOB_01','AOCOB_01' !BCB and OCB hygroscopities? Need to put emission into OB and IL.
-
 #endif
      &         )
-          call set_do_fire(n, .true.)
+            call set_do_fire(n, .true.)
+#ifdef TRACERS_SPECIAL_Shindell
+          case('CH4') ! in here to avoid potential Lerner tracers conflict
+            if(use_rad_ch4==0) call set_do_fire(n, .true.)
+#endif
         end select
 #endif /* DYNAMIC_BIOMASS_BURNING */
 
@@ -150,7 +151,6 @@
       use RunTimeControls_mod, only: tracers_radon
       use RunTimeControls_mod, only: tracers_minerals
       use RunTimeControls_mod, only: tracers_on
-      use RunTimeControls_mod, only: accmip_like_diags
       use RunTimeControls_mod, only: tracers_air
       use RunTimeControls_mod, only: tracers_amp
       use OldTracer_mod, only: HSTAR
@@ -465,8 +465,8 @@
       use photolysis, only: rad_FL
 #ifdef INTERACTIVE_WETLANDS_CH4
       USE TRACER_SOURCES, only:int_wet_dist,topo_lim,sat_lim,gw_ulim,
-     &  gw_llim,sw_lim,exclude_us_eu,nn_or_zon,ice_age,nday_ch4,max_days,
-     &  ns_wet,nra_ch4
+     &  gw_llim,sw_lim,exclude_us_eu,nn_or_zon,ice_age,nday_ch4,
+     &  max_days,ns_wet,nra_ch4
 #endif
 #ifdef BIOGENIC_EMISSIONS
       use biogenic_emis, only: base_isopreneX

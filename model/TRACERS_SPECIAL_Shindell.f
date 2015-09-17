@@ -984,11 +984,11 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
       call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1)
 
       imon=1
-      if (modelEclock%dayOfYear() <= 16)  then ! JDAY in Jan 1-15, first month is Dec
+      if (modelEclock%getDayOfYear() <= 16)  then ! JDAY in Jan 1-15, first month is Dec
         call readt_parallel(grid,iu,nameunit(iu),tlca,12)
         call rewind_parallel( iu )
       else            ! JDAY is in Jan 16 to Dec 16, get first month
-        do while(modelEclock%dayOfYear() > idofm(imon) .AND. imon <= 12)
+        do while(modelEclock%getDayOfYear() > idofm(imon).AND.imon<=12)
           imon=imon+1
         enddo
         call readt_parallel(grid,iu,nameunit(iu),tlca,imon-1)
@@ -999,7 +999,7 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
       call readt_parallel(grid,iu,nameunit(iu),tlcb,1)
 
 c**** Interpolate two months of data to current day
-      frac = float(idofm(imon)-modelEclock%dayOfYear()) / 
+      frac = float(idofm(imon)-modelEclock%getDayOfYear()) / 
      & (idofm(imon)-idofm(imon-1))
       data(I_0:I_1,J_0:J_1)=tlca(I_0:I_1,J_0:J_1)*frac + 
      & tlcb(I_0:I_1,J_0:J_1)*(1.-frac)

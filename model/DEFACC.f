@@ -1140,9 +1140,12 @@ c
       use geom
       use dynamics, only : do_gwdrag,ido_gwdrag
       use rad_com, only: nradfrc
+#ifdef DETAILED_FIRE_OUTPUT
+      use flammability_com, only: nVtype,ij_flamV
+#endif
       implicit none
-      integer :: i,k,kk,k1,l,n,ngx
-      character(len=16) :: ijstr
+      integer :: i,k,kk,k3,k1,l,n,ngx
+      character(len=16) :: ijstr,string_flamV
       real*8 x_dummy(im)
       logical :: set_miss
 c
@@ -4567,7 +4570,45 @@ c
         name_ij(k) = 'FLAMM'
         ia_ij(k) = ia_src
         scale_ij(k) = 1.e0
-#endif
+#if (defined DYNAMIC_BIOMASS_BURNING)&&(defined DETAILED_FIRE_OUTPUT)
+      do k3=1,nVtype
+        k=k+1   ! vegetation fractions used in fire model
+          ij_flamV(k3) = k
+          string_flamV=' '; write(string_flamV,*) k3
+          lname_ij(k) = 'VEG FRACTION FOR FLAMMABILITY TYPE '//
+     &    trim(ADJUSTL(string_flamV))
+          units_ij(k) = 'fraction of whole grid'
+          name_ij(k) = 'FVFRAC'//trim(ADJUSTL(string_flamV))
+          ia_ij(k) = ia_src
+          scale_ij(k) = 1.
+      end do
+#endif /* DYNAMIC_BIOMASS_BURNING && DETAILED_FIRE_OUTPUT */
+#ifdef USE_ENT
+      k=k+1        ! vegetation density for fire model purposes
+        ij_fvden = k
+        lname_ij(k) = 'FIRE MODEL VEGETATION DENSITY'
+        units_ij(k) = 'none'
+        name_ij(k) = 'FVDEN'
+        ia_ij(k) = ia_src
+        scale_ij(k) = 1.
+#endif /* USE_ENT */
+#ifdef ANTHROPOGENIC_FIRE_MODEL
+      k=k+1        ! frac dynamic biomass burning emis from humans
+        ij_human = k
+        lname_ij(k) = 'FRAC OF DYN BIOBURN EMIS DUE TO HUMAN IGN.'
+        units_ij(k) = 'none'
+        name_ij(k) = 'fHUMAN'
+        ia_ij(k) = ia_src
+        scale_ij(k) = 1.
+      k=k+1        ! The Fire Count (no need to save for ubiquitous
+        ij_fireC = k ! case, since it is constant factor times flammability)
+        lname_ij(k) = 'FIRE COUNT FOR DYN BIOBURN USING ANTHRO MODEL'
+        units_ij(k) = 'fires/s/box'
+        name_ij(k) = 'fireCount'
+        ia_ij(k) = ia_src
+        scale_ij(k) = 1.
+#endif /* ANTHROPOGENIC_FIRE_MODEL */
+#endif /* CALCULATE_FLAMMABILITY */
 #if(defined CALCULATE_LIGHTNING)||(defined TRACERS_SPECIAL_Shindell)
       k=k+1        ! lightning flash rate
         ij_flash = k

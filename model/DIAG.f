@@ -1379,7 +1379,7 @@ C****
 #endif
       USE Dictionary_mod
 #ifdef CALCULATE_FLAMMABILITY
-      use flammability_com, only : raP_acc
+      use flammability_com, only : raP_acc,veg_density,flammability
 #endif
 #ifdef TRACERS_ON
 #ifndef SKIP_TRACERS_RAD
@@ -1792,7 +1792,7 @@ c get_subdd
 !@+                    NO2col NO2 column amount, instant., (kg/m2)
 !@+                    D*          (HDO on any model level)
 !@+                    B*          (BE7 on any model level)
-!@+                    SO4, RAPR
+!@+                    SO4, RAPR, FVDEN, FLAM
 !@+                    7BEW, 7BED, BE7ATM
 !@+                    LWC,IWC,TLH,SLH,DLH,LLH,OLR,PW,EVP,PBH   ! mjo_subdd
 !@+                    SWH,LWH,TDRY,DDRY,SDRY,LDRY              ! mjo_subdd
@@ -2148,7 +2148,15 @@ c          datar8=SECONDS_PER_DAY*prec/dtsrc
           units_of_data = 'mm/day'
           long_name = 'Running Average of Precipitation'
           qinstant = .false.
-#endif
+        case ("FVDEN")  ! instantaneous vegetation density FOR FIRE MODEL only (unitless)
+          datar8=veg_density
+          units_of_data = '1'
+          long_name = 'Vegetation Density For Fire Model Only'
+        case ("FLAM")  ! instantaneous flammability from fire model (unitless)
+          datar8=flammability
+          units_of_data = '1'
+          long_name = 'Fire Model Flammability'
+#endif /* CALCULATE_FLAMMABILITY */
 #ifdef TRACERS_SPECIAL_Shindell
         case ("oAVG")   ! Nsubdd-step average SFC Ox tracer (ppbv)
           datar8=sOx_acc/real(Nsubdd) ! accum over Nsubdd steps, already in ppbv
@@ -3770,9 +3778,11 @@ c**** Mixing ratio for all tracers at surface [kg/kg]
               call write_data(data,kunit,polefix)
             end do
 #ifdef NEW_IO_SUBDD
-            call write_subdd(trim(namedd(k)),TRACER_array,polefix
-     &           ,units_of_data,long_name=long_name,suffixes=trname
-     &           ,qinstant=.false.)
+            call stop_model('TrSMIXR: fix line in DIAG.f please',255)
+            ! next line fails compilation due to the "trname":
+!           call write_subdd(trim(namedd(k)),TRACER_array,polefix
+!    &           ,units_of_data,long_name=long_name,suffixes=trname
+!    &           ,qinstant=.false.)
 #endif
             cycle
 
@@ -3796,9 +3806,11 @@ c**** Concentration for all tracers at surface [kg/m^3]
               call write_data(data,kunit,polefix)
             end do
 #ifdef NEW_IO_SUBDD
-            call write_subdd(trim(namedd(k)),TRACER_array,polefix
-     &           ,units_of_data,long_name=long_name,suffixes=trname
-     &           ,qinstant=.false.)
+            call stop_model('TrSCONC: fix line in DIAG.f please',255)
+            ! next line fails compilation due to the "trname":
+!           call write_subdd(trim(namedd(k)),TRACER_array,polefix
+!    &           ,units_of_data,long_name=long_name,suffixes=trname
+!    &           ,qinstant=.false.)
 #endif
             cycle
 #endif /*TRACERS_ON*/
@@ -4508,14 +4520,14 @@ c time_subdd
      &       date=date)
       if (q24) then ! coordinate is #days
         t = newBaseTime(
-     &       madelEclock%getTimeInSecondsFromDate(iyear1,month,date,0)
-        time_subdd = nint(t / calendr%getSecondsPerDay())
+     &       modelEclock%getTimeInSecondsFromDate(iyear1,month,date,0))
+        time_subdd = nint(t / calendar%getSecondsPerDay())
       else ! coordinate is #hours
         t = newBaseTime(
-     &       madelEclock%getTimeInSecondsFromDate(iyear1,month,0,0)
+     &       modelEclock%getTimeInSecondsFromDate(iyear1,month,0,0)
      &        + (rec-1)*nsubdd*dtsrc)
         time_subdd =
-     &       nint(t / (calendr%getSecondsPerDay()/INT_HOURS_PER_DAY))
+     &       nint(t / (calendar%getSecondsPerDay()/INT_HOURS_PER_DAY))
       end if
 
       return

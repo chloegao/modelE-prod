@@ -298,7 +298,7 @@ end interface
 !@var nBBsources: number of sources attributed to biomass burning
     integer :: nBBsources = 0 
 !@var emisPerFireByVegType: emisPerFireByVegType tracer emissions per fire count as a
-!@+ function of 12 standard GISS (VDATA) vegetation types
+!@+ function of 12 standard GISS (VDATA) vegetation types. (kg/m2/fire)
     real*8, dimension(12) :: emisPerFireByVegType = 0.0d0 
 !@var trpdens: tracer particle density (kg/m^3)
 !@+               (=0 for non-particle tracers)

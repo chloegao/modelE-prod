@@ -8270,6 +8270,15 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
 #ifdef CUBED_SPHERE
       call get_aircraft_tracer(year,xday,daily_gz,.true.)
 #endif
+#if defined DYNAMIC_BIOMASS_BURNING && defined ANTHROPOGENIC_FIRE_MODEL
+      trans_emis_overr_yr=ABS(o3_yr) ! note: for now, ignores aer_int_yr
+      if(trans_emis_overr_yr > 0)then
+        xyear=trans_emis_overr_yr
+      else
+        xyear=year
+      endif
+      call readflamPopDens(xyear,xday)
+#endif
       do n=1,NTM
 !**** Allow overriding of transient emissions date:
 ! for now, tying this to O3_yr becasue Gavin
@@ -8516,6 +8525,7 @@ C**** at the start of any day
       use OldTracer_mod, only: vol2mass
       use OldTracer_mod, only: trname
       use OldTracer_mod, only: itime_tr0
+      use OldTracer_mod, only: do_fire
       use TimeConstants_mod, only: SECONDS_PER_DAY, INT_DAYS_PER_YEAR, 
      &                             HOURS_PER_DAY, INT_MONTHS_PER_YEAR
       USE ATM_COM, only: MA  ! Air mass of each box (kg/m^2)
@@ -8649,6 +8659,9 @@ C****
            trsource(:,J_0:J_1,3,n_ANUM(1)+k-1)=0.
         enddo
 #endif
+#endif
+#ifdef DYNAMIC_BIOMASS_BURNING
+      call calculate_fire_count
 #endif
 C**** All sources are saved as kg/s
       iter = tracers%begin()
@@ -9312,6 +9325,10 @@ c$$$      end do
 
       call iter%next()
       end do ! n - main tracer loop
+
+#if defined(DYNAMIC_BIOMASS_BURNING) && (defined DETAILED_FIRE_OUTPUT)
+      call accumulateVegTypesDiag
+#endif
 
       END SUBROUTINE set_tracer_2Dsource
 

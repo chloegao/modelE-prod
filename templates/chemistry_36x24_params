@@ -26,8 +26,8 @@ aircraft_Tyr1=2000 ! regardless of the type of run, if you have non-transient
 aircraft_Tyr2=2000 ! aircraft emission files, set these two equal or omit them.
 
 ! Colin Price lightning model needs resolution-dependant tuning:
-tune_lt_land=19.096d0 ! =2.2d0*2.17d0 roughX4
-tune_lt_sea= 33.852d0 ! =3.9d0*2.17d0 roughX4
+tune_lt_land=33.227d0 ! =2.2d0*2.17d0 roughX4 * 2 for bugfix, *0.87
+tune_lt_sea= 58.903d0 ! =3.9d0*2.17d0 roughX4 * 2 for bugfix, *0.87
 
 ! -----------------------------------
 ! Pressure above which Ox, NOx, BrOx, and ClOx will be

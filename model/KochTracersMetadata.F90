@@ -18,13 +18,16 @@ module KochTracersMetadata_mod
   use OldTracer_mod, only: set_HSTAR
   use OldTracer_mod, only: set_tr_RKD
   use OldTracer_mod, only: set_tr_DHD
+  use OldTracer_mod, only: set_emisPerFireByVegType
   use OldTracer_mod, only: tr_RKD 
   use TRACER_COM, only:  n_MSA, n_SO2,  n_SO4, n_DMS, &
     n_BCII,  n_BCIA,  n_BCB, n_OCII,  n_OCIA,  n_OCB, n_H2O2_s
+  use TRACER_COM, only: whichEPFCs
   use Dictionary_mod, only: sync_param
   use RunTimeControls_mod, only: tracers_drydep
   use RunTimeControls_mod, only: sulf_only_aerosols
   use RunTimeControls_mod, only: tracers_special_shindell
+  use RunTimeControls_mod, only: dynamic_biomass_burning
   use Tracer_mod, only: Tracer
 #ifdef TRACERS_AEROSOLS_VBS
   use TRACERS_VBS, only: ivbs_m2,ivbs_m1,ivbs_m0,ivbs_p1,ivbs_p2,ivbs_p3,&
@@ -149,12 +152,27 @@ module KochTracersMetadata_mod
       call set_fq_aer(n, 0.8d0 ) !fraction of aerosol that dissolves
       call set_tr_wd_type(n, npart)
 #ifdef DYNAMIC_BIOMASS_BURNING
-      ! 12 below are the 12 VDATA veg types or Ent remapped to them,
-      ! from Olga Pechony's AR5_EPFC_factors_incl_SO2.xlsx file.
-      emisPerFireByVegType(n,1:12)=(/0.0000000d+00, 8.2731990d-09,&
-        1.7817767d-07, 8.5456378d-08, 2.5662467d-07, 3.3909114d-07,&
-        1.1377826d-07, 2.9145593d-07, 0.0000000d+00, 0.0000000d+00,&
-        0.0000000d+00, 0.0000000d+00/)
+      if (dynamic_biomass_burning) then
+        ! 12 below are the 12 VDATA veg types or Ent remapped to them,
+        ! from Olga Pechony's EPFC.xlsx e-mailed to Greg 1/13/2013
+        call sync_param("whichEPFCs",whichEPFCs)
+        select case(whichEPFCs)
+        case(1) ! AR5
+          call set_emisPerFireByVegType(n, [0.d0,4.80d-9,8.33d-8,4.13d-8, &
+          & 1.16d-7,1.08d-7,5.84d-8,6.10d-8,0.d0,0.d0,0.d0,0.d0] )
+        case(2) ! GFED3
+          call set_emisPerFireByVegType(n, [0.d0,1.64d-7,6.21d-8,3.04d-8, &
+          & 3.01d-8,4.20d-8,6.87d-8,7.21d-8,0.d0,0.d0,0.d0,0.d0] )
+        case(3) ! GFED2
+          call set_emisPerFireByVegType(n, [0.d0,6.07d-8,3.98d-8,4.53d-8, &
+          & 4.80d-8,4.78d-8,5.19d-8,7.95d-8,0.d0,0.d0,0.d0,0.d0] )
+        case(4) ! MOPITT
+          call set_emisPerFireByVegType(n, [0.d0,2.77d-8,1.12d-7,2.58d-8, &
+          & 8.94d-8,7.49d-8,5.88d-9,2.50d-8,0.d0,0.d0,0.d0,0.d0] )
+        case default
+          call stop_model('whichEPFCs unknown',255)
+        end select
+      end if
 #endif
     end subroutine BCB_setSpec
 
@@ -192,12 +210,28 @@ module KochTracersMetadata_mod
       case ('vbsAm2', 'vbsAm1', 'vbsAz',  'vbsAp1', 'vbsAp2', &! VBS aerosol-phase
             'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6')
 #ifdef DYNAMIC_BIOMASS_BURNING
-        ! 12 below are the 12 VDATA veg types or Ent remapped to them,
-        ! from Olga Pechony's AR5_EPFC_factors_incl_SO2.xlsx file.
-        emisPerFireByVegType(n,1:12)=(/0.0000000d+00, 6.4230818d-07,&
-          1.6844633d-06, 8.7537586d-07, 2.5902559d-06, 4.3200689d-06,&
-          2.6824284d-06, 3.9549395d-06, 0.0000000d+00, 0.0000000d+00,&
-          0.0000000d+00, 0.0000000d+00/)
+        if (dynamic_biomass_burning) then
+          ! Looks like the following were copied from the OCB tracer:
+          ! 12 below are the 12 VDATA veg types or Ent remapped to them,
+          ! from Olga Pechony's EPFC.xlsx e-mailed to Greg 1/13/2013
+          call sync_param("whichEPFCs",whichEPFCs)
+          select case(whichEPFCs)
+          case(1) ! AR5
+            call set_emisPerFireByVegType(n, [0.d0,5.71d-7,7.11d-7,4.02d-7, &
+            & 1.18d-6,1.25d-6,9.51d-7,9.80d-7,0.d0,0.d0,0.d0,0.d0] )
+          case(2) ! GFED3
+            call set_emisPerFireByVegType(n, [0.d0,3.37d-6,9.98d-7,1.40d-7, &
+            & 2.51d-7,6.44d-7,1.34d-6,6.92d-7,0.d0,0.d0,0.d0,0.d0] )
+          case(3) ! GFED2
+            call set_emisPerFireByVegType(n, [0.d0,8.74d-7,3.15d-7,4.02d-7, &
+            & 4.70d-7,5.40d-7,9.81d-7,9.18d-7,0.d0,0.d0,0.d0,0.d0] )
+          case(4) ! MOPITT
+            call set_emisPerFireByVegType(n, [0.d0,3.51d-7,1.13d-6,2.37d-7, &
+            & 7.18d-7,1.05d-6,1.18d-7,2.86d-7,0.d0,0.d0,0.d0,0.d0] )
+          case default
+            call stop_model('whichEPFCs unknown',255)
+          end select
+        end if
 #endif
         call set_tr_wd_type(n, npart)
         call set_trpdens(n, 1.5d3) !kg/m3
@@ -260,12 +294,27 @@ module KochTracersMetadata_mod
       call set_fq_aer(n, 0.8d0   ) !fraction of aerosol that dissolves
       call set_tr_wd_type(n, npart)
 #ifdef DYNAMIC_BIOMASS_BURNING
-      ! 12 below are the 12 VDATA veg types or Ent remapped to them,
-      ! from Olga Pechony's AR5_EPFC_factors_incl_SO2.xlsx file.
-      emisPerFireByVegType(n,1:12)=(/0.0000000d+00, 6.4230818d-07,&
-        1.6844633d-06, 8.7537586d-07, 2.5902559d-06, 4.3200689d-06,&
-        2.6824284d-06, 3.9549395d-06, 0.0000000d+00, 0.0000000d+00,&
-        0.0000000d+00, 0.0000000d+00/)
+      if (dynamic_biomass_burning) then
+        ! 12 below are the 12 VDATA veg types or Ent remapped to them,
+        ! from Olga Pechony's EPFC.xlsx e-mailed to Greg 1/13/2013
+        call sync_param("whichEPFCs",whichEPFCs)
+        select case(whichEPFCs)
+        case(1) ! AR5
+          call set_emisPerFireByVegType(n, [0.d0,5.71d-7,7.11d-7,4.02d-7, &
+          & 1.18d-6,1.25d-6,9.51d-7,9.80d-7,0.d0,0.d0,0.d0,0.d0] )
+        case(2) ! GFED3
+          call set_emisPerFireByVegType(n, [0.d0,3.37d-6,9.98d-7,1.40d-7, &
+          & 2.51d-7,6.44d-7,1.34d-6,6.92d-7,0.d0,0.d0,0.d0,0.d0] )
+        case(3) ! GFED2
+          call set_emisPerFireByVegType(n, [0.d0,8.74d-7,3.15d-7,4.02d-7, &
+          & 4.70d-7,5.40d-7,9.81d-7,9.18d-7,0.d0,0.d0,0.d0,0.d0] )
+        case(4) ! MOPITT
+          call set_emisPerFireByVegType(n, [0.d0,3.51d-7,1.13d-6,2.37d-7, &
+          & 7.18d-7,1.05d-6,1.18d-7,2.86d-7,0.d0,0.d0,0.d0,0.d0] )
+        case default
+          call stop_model('whichEPFCs unknown',255)
+        end select
+      end if
 #endif
     end subroutine OCB_setSpec
 

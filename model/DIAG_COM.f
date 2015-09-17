@@ -116,6 +116,9 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
 
 !@param KAIJ number of AIJ diagnostics
       INTEGER, PARAMETER, public :: KAIJ=426
+#ifdef CALCULATE_FLAMMABILITY
+     &                                   + 20
+#endif
 #ifdef ACCMIP_LIKE_DIAGS
      &                                   + 8
 #endif
@@ -577,7 +580,7 @@ C****      names, indices, units, idacc-numbers, etc.
      *     ,ij_3dlwm,ij_3dlim,ij_3dlws,ij_3dlis
      *     ,ij_ssprec,ij_mcprec,IJ_WMCLWP,IJ_WMCTWP
      &     ,ij_wdry,ij_wtke,ij_wmoist,ij_wsgcm,ij_wspdf
-     &     ,ij_flam,ij_CtoG,ij_flash
+     &     ,ij_flam,ij_CtoG,ij_flash,ij_fireC,ij_human,ij_fvden
      *     ,ij_swaerabs,ij_lwaerabs
      *     ,ij_swaerabsnt
      *     ,ij_lwaerabsnt,ij_evapsn,ij_irrW,ij_irrE,ij_irrW_tot

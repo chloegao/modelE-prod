@@ -2048,6 +2048,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 !@+   on the full list of tracers.
 !@auth T. Clune
       use ParallelIo_mod
+      use pario, only : read_data,defvar,write_data
       use domain_decomp_atm, only : grid
       USE Dictionary_mod
       USE TRACER_COM, only: ntm, TRmom, TRM, coupled_chem
@@ -2199,6 +2200,7 @@ c daily_z is currently only needed for CS
           call read_data(grid,fid,'i0_ncep',i0_ncep,
      &       bcast_all=.true.)
           call read_data(grid,fid,'first_ncep',first_ncep,
+     &       bcast_all=.true.)
         case ('write_dist')
           call write_data(grid,fid,'iday_ncep',iday_ncep)
           call write_data(grid,fid,'i0_ncep',i0_ncep)
