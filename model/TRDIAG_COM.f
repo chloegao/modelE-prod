@@ -95,7 +95,7 @@ C**** TAIJN
 C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 !@var ijs_XXX index for diags not specific to a certain tracer
       INTEGER :: ijs_ai,ijs_isoprene,ijs_NO2_1030,ijs_NO2_1030c,
-     &ijs_NO2_1330,ijs_NO2_1330c,ijts_Sdrydep,
+     &ijs_NO2_1330,ijs_NO2_1330c,ijts_Sdrydep,ijs_O3mass,
      &ijts_clrsky=0,ijts_pocean=0
 
 !@param KTAIJS number of special lat/lon tracer diagnostics
@@ -231,7 +231,8 @@ C**** TAIJLS 3D special tracer diagnostics
      & ijlt_Oxp,ijlt_Oxd,ijlt_CH4d,ijlt_OxpHO2,ijlt_OxpCH3O2,ijlt_OxpRO2
      & ,ijlt_OxlOH,ijlt_OxlHO2,ijlt_OxlALK,ijlt_phO1D,ijlt_pO1D,ijlt_pOH
      & ,ijlt_NOxLgt,ijlt_NOvmr,ijlt_NO2vmr,ijlt_JO1D,ijlt_JNO2
-     & ,ijlt_JH2O2,ijlt_prodSO4aq,ijlt_prodSO4gs
+     & ,ijlt_JH2O2,ijlt_prodSO4aq,ijlt_prodSO4gs,ijlt_O3ppbv
+     & ,ijlt_O3cmatm
 #ifdef SOA_DIAGS
 !@var ijlt_soa_changeL_isoprene gas-phase changeL of isoprene SOA (ug/m3)
 #ifdef TRACERS_TERP
@@ -333,7 +334,7 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
       INTEGER,PARAMETER :: ktajls=3262 
 #endif
 !@var jls_XXX index for non-tracer specific or special diags
-      INTEGER jls_OHconk,jls_HO2con,jls_NO3
+      INTEGER jls_OHconk,jls_HO2con,jls_NO3,jls_O3vmr
      *     ,jls_phot,jls_OHcon,jls_H2Omr
      *     ,jls_N2O5sulf,jls_day,jls_COd,jls_COp,jls_Oxd,jls_Oxp
      *     ,jls_ClOcon,jls_H2Ocon,jls_H2Ochem,jls_OxdT,jls_OxpT

@@ -30,9 +30,9 @@ tune_lt_sea= 3.1736d0 ! =3.9d0*2.17d0 then *0.25*1.5 for 2x2.5 model
 
 ! -----------------------------------
 ! Pressure above which Ox, NOx, BrOx, and ClOx will be
-! overwritten with climatology. Default of 0.1 is (From 23-
-! layer model) won't choose any 40-layer model levels):
-PltOx=0.2
+! overwritten with climatology based on NINT ozone input.
+! There is an online non-zero default. 
+PltOx=0.0
 
 Tpsc_offset_N=-10.d0 ! pol.strat.cloud temperature offset NH
 Tpsc_offset_S=-7.5d0 ! pol.strat.cloud temperature offset SH

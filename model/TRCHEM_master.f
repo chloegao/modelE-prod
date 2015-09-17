@@ -67,12 +67,12 @@ c
       USE TRACER_SOURCES, only: avg_model,n__sw
 #endif
       USE TRDIAG_COM, only    : taijs=>taijs_loc,taijls=>taijls_loc
-     &     ,ijlt_NO3,jls_COp,jls_COd,jls_Oxp,jls_N2O5sulf
+     &     ,ijlt_NO3,jls_COp,jls_COd,jls_Oxp,jls_N2O5sulf,jls_O3vmr
      &     ,jls_Oxd,jls_OxpT,jls_OxdT,ijs_NO2_1030,ijs_NO2_1030c
-     &     ,ijlt_COp,ijlt_COd,ijlt_Oxd,ijlt_Oxp,ijlt_pO1D
+     &     ,ijlt_COp,ijlt_COd,ijlt_Oxd,ijlt_Oxp,ijlt_pO1D,ijs_O3mass
      &     ,ijlt_pOH,ijlt_OxpHO2,ijlt_OxpCH3O2,ijlt_OxlHO2,ijlt_OxlALK
      &     ,ijlt_OxlOH,ijs_NO2_1330,ijs_NO2_1330c,ijlt_NO2vmr,ijlt_NOvmr
-     &     ,ijlt_JO1D,ijlt_JNO2,ijlt_JH2O2
+     &     ,ijlt_JO1D,ijlt_JNO2,ijlt_JH2O2,ijlt_O3ppbv,ijlt_O3cmatm
      &     ,jls_ClOcon,jls_H2Ocon
       USE TRCHEM_Shindell_COM
 #ifdef TRACERS_AEROSOLS_SOA
@@ -165,7 +165,7 @@ C**** Local parameters and variables and arguments:
      &  chgHT4,chgHT5,rmrClOx,rmrBrOx,rmv,rmrOx,avgTT_H2O,avgTT_CH4,
      &  countTT,bHNO3,mHNO3,HNO3_thresh,Ttemp,changeBrOx,changeBrONO2,
      &  changeBrOx2,changeHBr,tempChangeNOx,ss27x2,ss27x2_c,OHpptv,
-     &  HO2pptv,ObyO3,NO2byNO,ClbyClO,voc2nox_denom
+     &  HO2pptv,ObyO3,NO2byNO,ClbyClO,voc2nox_denom,tempChangeOx
       integer :: igas,LL,I,J,L,N,inss,L2,n2,ierr,ierr_loc,Jqq,Iqq,
      & maxT,iu,itemp_iter,ih1330e,ih1030e,ih1030,ih1330,m,istep,index1,
      & index2,nb
@@ -598,7 +598,6 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 c Pass O3 array (in ppmv; here seems to be ppv) to fastj. Above these
 C levels fastj2 uses Nagatani climatological O3, read in by chem_init: 
         DO L=1,topLevelOfChemistry
-          if(PMID(L,I,J)<=0.1d0) y(nO3,L)=y(nn_Ox,L)
           O3_FASTJ(L)=y(nO3,L)/y(nM,L)
         END DO
 
@@ -1530,6 +1529,9 @@ c           Conserve N wrt BrONO2 once inital Br changes past:
         tempChangeNOx= ! this needed for several diags below:
      &  changeL(L,n_NOx)*mass2vol(n_NOx)*y(nM,L)/(axyp(I,J)*MA(L,I,J))
 
+        tempChangeOx=
+     &  changeL(L,n_Ox)*mass2vol(n_Ox)*y(nM,L)/(axyp(I,J)*MA(L,I,J))
+
 ! Accumulate NO2 10:30am/1:30pm tropo column diags:
 ! -- moved from sunlight/darkness sections because needed changeNOx
 ! -- saved here in molecules/cm2
@@ -1619,6 +1621,18 @@ c           Conserve N wrt BrONO2 once inital Br changes past:
         taijls(i,j,l,ijlt_NOvmr)=taijls(i,j,l,ijlt_NOvmr)+
      &  (1.d0-pNOx(i,j,l))*(y(nn_NOx,l)+tempChangeNOx)/y(nM,l)
 #endif
+
+        ! Below there is a 3D O3 diagnostic in cm-atm units for more
+        ! direct NINT input. Here try to save it in vmr(ppbv) for humans,
+        ! (both JL and IJL). Above top of chemistry accumulate Ox (which is
+        ! likely, depending on your deck settings actually O3 from NINT
+        ! input anyway) further on in code below:
+        if(L <= topLevelOfChemistry) then
+          taijls(i,j,L,ijlt_O3ppbv)=taijls(i,j,L,ijlt_O3ppbv)+
+     &    1.e9*pOx(i,j,L)*(y(nn_Ox,L)+tempChangeOx)/y(nM,L)
+          CALL INC_TAJLS2  ! (V/V air)
+     &    (I,J,L,jls_O3vmr,pOx(i,j,L)*(y(nn_Ox,L)+tempChangeOx)/y(nM,L))
+        end if
 
         call printSS27x2Etc()
 
@@ -1730,7 +1744,7 @@ C Special cases of overwriting, when doing stratospheric chemistry C
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC     
 C N2O, CFC, and optional CH4 L=1 overwriting: with all these "fact"s
 C this looks complicated, but basically, you are either converting
-C from mixing ratio to KG (normal case) or from cm*atm to KG  
+C from mixing ratio to KG (normal case) or from cm-atm to KG  
 C (interactive radiation case - for more on that conversion, see
 C the notes on O3MULT in the TRCHEM_Shindell_COM program):
       PIfact(:)=1.d0     
@@ -1815,21 +1829,31 @@ C the notes on O3MULT in the TRCHEM_Shindell_COM program):
 
 CCCCCCCCCCCCCCCCCC END OVERWRITE SECTION CCCCCCCCCCCCCCCCCCCCCC
 
-c Save new tracer Ox and CH4 fields for use in radiation or elsewhere:
-c (radiation code wants atm*cm units):
+c Save new tracer O3 and CH4 fields for use in radiation or elsewhere:
+c (radiation code wants atm-cm units):
       do j=J_0,J_1
         if(prnchg)DU_O3(J)=0.d0 ! Drew's diagnostic...
         do i=I_0,imaxj(j) 
           do L=1,LM ! all model layers
+            ! Pass Ox to the rad code, except...
             chem_tracer_save(1,L,i,j)=(trm(i,j,L,n_Ox) +
      &      (tr3Dsource(i,j,L,nChemistry,n_Ox) + 
      &      tr3Dsource(i,j,L,nOverwrite,n_Ox))*dtsrc)
      &      *byaxyp(i,j)*byO3MULT
+            ! ... if on active chemistry level, pass O3 instead.
+            ! (likely, depending on rundeck settings, your Ox above
+            ! the top of the chemistry is actually NINT O3 anyway):
+            if(L <= topLevelOfChemistry) chem_tracer_save(1,L,i,j)=
+     &                          pOx(i,j,L)*chem_tracer_save(1,L,i,j)
             chem_tracer_save(2,L,i,j)=(trm(i,j,L,n_CH4) +
      &      (tr3Dsource(i,j,L,nChemistry,n_CH4) + 
      &      tr3Dsource(i,j,L,nOverwrite,n_CH4))*dtsrc)
      &      *byaxyp(i,j)*avog/(tr_mm(n_CH4)*2.69e20)
             if(prnchg)DU_O3(J)=DU_O3(J)+chem_tracer_save(1,L,i,j)
+            ! Above 3D O3 diagnostic in ppbv units is saved (for humans to see).
+            ! Here do it in atm-cm units for direct NINT input for rad code.
+            taijls(i,j,L,ijlt_O3cmatm)=taijls(i,j,L,ijlt_O3cmatm)+
+     &      chem_tracer_save(1,L,i,j)
           end do
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
           strato3_tracer_save(1:LM,i,j)=(trm(i,j,1:LM,n_stratOx) +
@@ -1837,6 +1861,36 @@ c (radiation code wants atm*cm units):
      &    tr3Dsource(i,j,1:LM,nOverwrite,n_stratOx))*dtsrc)
      &    *byaxyp(i,j)*byO3MULT
 #endif
+          ! accumulate diag for the column sum of O3 mass hopefully similarly to
+          ! how taijn Ox_Total_mass is done. Use O3 for chemistry layers, Ox
+          ! tracer above (which is likely anyway actually O3 from NINT intput):
+          taijs(i,j,ijs_O3mass)=taijs(i,j,ijs_O3mass)+
+     &    sum( pOx(i,j,1:topLevelOfChemistry)*
+     &    (trm(i,j,1:topLevelOfChemistry,n_Ox)+
+     &    (tr3Dsource(i,j,1:topLevelOfChemistry,nChemistry,n_Ox)+
+     &    tr3Dsource(i,j,1:topLevelOfChemistry,nOverwrite,n_Ox))
+     &    *dtsrc))*byaxyp(i,j)
+          taijs(i,j,ijs_O3mass)=taijs(i,j,ijs_O3mass)+
+     &    sum( 
+     &    (trm(i,j,topLevelOfChemistry+1:LM,n_Ox)+
+     &    (tr3Dsource(i,j,topLevelOfChemistry+1:LM,nChemistry,n_Ox)+
+     &    tr3Dsource(i,j,topLevelOfChemistry+1:LM,nOverwrite,n_Ox))
+     &    *dtsrc))*byaxyp(i,j)
+
+          ! and the above-chemistry O3 (using the Ox tracer which is probably
+          ! O3 from NINT anyway):
+          do L=topLevelOfChemistry+1,LM
+            taijls(i,j,L,ijlt_O3ppbv)=taijls(i,j,L,ijlt_O3ppbv)+
+     &      1.e9*(trm(i,j,L,n_Ox)+(tr3Dsource(i,j,L,nChemistry,n_Ox)+
+     &      tr3Dsource(i,j,L,nOverwrite,n_Ox))*dtsrc)*byMA(L,i,j)*
+     &      byaxyp(i,j)*mass2vol(n_Ox) ! ppbv
+            CALL INC_TAJLS2  ! (V/V air)
+     &      (I,J,L,jls_O3vmr,(trm(i,j,L,n_Ox)+
+     &      (tr3Dsource(i,j,L,nChemistry,n_Ox)+
+     &      tr3Dsource(i,j,L,nOverwrite,n_Ox))*dtsrc)*byMA(L,i,j)*
+     &      byaxyp(i,j)*mass2vol(n_Ox))
+          end do 
+
         end do ! i
         if(prnchg)DU_O3(J)=1.d3*DU_O3(J)/IMAXJ(J)
       end do   ! j
@@ -2208,7 +2262,7 @@ C**** Local parameters and variables and arguments:
 !@var LAXt,LAXb lowest and highest levels to have nonzero 
 !@+   RAD-code aerosol extinction 
 !@var aero array =1 for nonzero rkext, otherwise 0.
-      REAL*8, DIMENSION(LM) :: PRES ! = PMIDL00(1:LM)
+      REAL*8, DIMENSION(LM) :: PRES ! = PMIDL00(1:LM). Keeps LM dimension not top of chem
       INTEGER               :: LAXt,LAXb
       real*8, allocatable, dimension(:) :: PSCEX,rkext
 
