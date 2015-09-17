@@ -8096,8 +8096,7 @@ C****
         daily_z = daily_z/grav
       endif
       daily_gz = grav*daily_z
-
-
+ 
 #ifdef TRACERS_VOLCEXP
 ! Reading explosive volcano emissions for SO2
       if(.not. end_of_day) then ! synonym for model init phase
@@ -8119,12 +8118,13 @@ C****
 
       DO J=J_0,J_1                          
       DO I=I_0,I_1  
-         if(so2_volc_emis_expl(i,j) <= 0.d0) cycle
 
+        if(so2_volc_emis_expl(i,j) <= 0.d0) cycle
           lmax = 1
           do while(daily_z(i,j,lmax) < Plume_hei_volc_emis_expl(i,j))
             lmax = lmax + 1
           enddo
+            lmax = lmax + 1  ; adding one layer as to not have plume height identical to mixing height
             lmin=max(1,lmax - lmax/3)
           do ll=lmin,lmax ! add source into the upper 1/3 of the plume
                           ! conversion kt/d into kg/s

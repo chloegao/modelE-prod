@@ -2082,6 +2082,9 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 #ifdef TRACERS_WATER
       USE TRACER_COM, only: trwm
 #endif
+#if (defined CUBED_SPHERE) || (defined TRACERS_VOLCEXP)
+      USE TRACER_COM, only: daily_z
+#endif
       use OldTracer_mod, only: trName
       use model_com, only : ioread,iowrite
 
@@ -2115,9 +2118,9 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 #endif
       enddo
 
-#ifdef CUBED_SPHERE
+#if (defined CUBED_SPHERE) || (defined TRACERS_VOLCEXP)
 c daily_z is currently only needed for CS
-      call doVar(handle,daily_z,'daily_z'//ijldims)
+      call doVar(handle,action,daily_z,'daily_z'//ijldims)
 #endif
 
 #ifdef TRACERS_SPECIAL_Shindell       
