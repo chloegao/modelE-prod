@@ -42,14 +42,13 @@ c  Carbon type 2    = DIC
       USE obio_com, only: gcmax, tracer
  
 #ifdef OBIO_ON_GARYocean
-      USE OCEANRES, only : kdm=>lmo,dzo
-      USE OCEAN, only : ZOE=>ZE, ip=>focean
+      USE OCEANRES, only : kdm=>lmo
+      USE OCEAN, only : ip=>focean
       USE OCEANR_DIM, only : ogrid
 #else
       USE hycom_dim, only : ip,kdm,ogrid
-      USE hycom_arrays, only : dpinit
-      USE hycom_scalars, only: onem
 #endif
+      use obio_com, only: ze
 
       implicit none
 
@@ -75,8 +74,6 @@ c  Carbon type 2    = DIC
       integer nir(nrg), nt
 
       INTEGER :: j_0,j_1,i_0,i_1
-
-      real zz
 
       integer, ALLOCATABLE, DIMENSION(:,:)   :: ir
       real,  ALLOCATABLE, DIMENSION(:,:,:) :: fer,dic
@@ -153,21 +150,17 @@ c  Create arrays
       do i=i_0,i_1
         if (ip(i,j)==0) cycle
 
-        zz=0.d0
         do k=1,kdm
           !Nitrate
           !read earlier from file
 
-#ifndef OBIO_ON_GARYocean
-          zz=zz+dpinit(i,j,k)/onem   !depth in m
-#endif
           !Ammonium
           tracer(i,j,k,2) = 0.5
-          !!!if (zz.gt.4000.d0)tracer(i,j,k,2) = Pdeep(2)
+          !!!if (ze(i,j,k).gt.4000.d0)tracer(i,j,k,2) = Pdeep(2)
 
           !Silica
           !read earlier from file
-          !!!if (zz.gt. 4000.d0)tracer(i,j,k,2) = Pdeep(3)
+          !!!if (ze(i,j,k).gt. 4000.d0)tracer(i,j,k,2) = Pdeep(3)
 
           !Iron
           tracer(i,j,k,4) = Fer(i,j,k)*tracer(i,j,k,1)  !Fung et al. 2000
@@ -182,7 +175,7 @@ c          endif
            tracer(i,j,k,4) = Fer(i,j,k)*0.5*tracer(i,j,k,1)
           endif
           tracer(i,j,k,4) = max(tracer(i,j,k,4),0.01)
-          !!!if (zz.gt. 4000.)tracer(i,j,k,4) = Pdeep(4)
+          !!!if (ze(i,j,k).gt. 4000.)tracer(i,j,k,4) = Pdeep(4)
 
           !Herbivores
           do nt = nnut+1,ntyp-nzoo
@@ -222,18 +215,14 @@ c  Detritus (set to 0 for start up)
       do j=j_0,j_1
        do i=i_0,i_1
          do k=1,kdm
-#ifdef OBIO_ON_GARYocean
-          if (.true.) then
-#else
-          if (dpinit(i,j,k)/onem .gt. 0.0)then
-#endif
+           if (ze(i,j,k)>ze(i,j,k-1)) then
            !only detritus components
-           tracer(i,j,k,ntyp+n_inert+1) = tracer(i,j,k,1)*0.25*cnratio !as carbon
-           tracer(i,j,k,ntyp+n_inert+2) = tracer(i,j,k,3)*0.1
-           tracer(i,j,k,ntyp+n_inert+3) = tracer(i,j,k,4)*0.25
-           tracer(i,j,k,ntyp+n_inert+1) = 0.0
-           tracer(i,j,k,ntyp+n_inert+2) = 0.0
-           tracer(i,j,k,ntyp+n_inert+3) = 0.0
+             tracer(i,j,k,ntyp+n_inert+1) = tracer(i,j,k,1)*0.25*cnratio !as carbon
+             tracer(i,j,k,ntyp+n_inert+2) = tracer(i,j,k,3)*0.1
+             tracer(i,j,k,ntyp+n_inert+3) = tracer(i,j,k,4)*0.25
+             tracer(i,j,k,ntyp+n_inert+1) = 0.0
+             tracer(i,j,k,ntyp+n_inert+2) = 0.0
+             tracer(i,j,k,ntyp+n_inert+3) = 0.0
           endif
          enddo
         enddo
@@ -295,10 +284,10 @@ c  Coccolithophore max growth rate
 #ifdef OBIO_ON_GARYocean
       use oceanr_dim, only: ogrid
       use oceanres, only: kdm=>lmo
-      use ocean, only : ze
 #else
       use hycom_dim, only: ogrid, kdm
 #endif
+      use obio_com, only : ze
       implicit none
       real, dimension(ogrid%i_strt:ogrid%i_stop,
      &      ogrid%j_strt:ogrid%j_stop,kdm), intent(out) :: alk
@@ -308,20 +297,12 @@ c  Coccolithophore max growth rate
       do k=1,kdm
       do j=ogrid%j_strt,ogrid%j_stop
       do i=ogrid%i_strt,ogrid%i_stop
-#ifdef OBIO_ON_GARYocean
         if (alk(i,j,k).lt.0.) then
-          if (ze(k).le.150.) alk(i,j,k)=2172.      !init neg might be under ice,
-          if (ze(k).gt.150. .and. ze(k).lt.1200.)
+          if (ze(i, j, k).le.150.) alk(i,j,k)=2172.      !init neg might be under ice,
+          if (ze(i, j, k).gt.150. .and. ze(i, j, k).lt.1200.)
      &                           alk(i,j,k)=2200.
-          if (ze(k).ge.1200.) alk(i,j,k)=2300.
+          if (ze(i, j, k).ge.1200.) alk(i,j,k)=2300.
         endif
-#else
-        if (alk(i,j,k).lt.0.) then
-           alk(i,j,k)=0.
-         else
-           alk(i,j,k)=dmax1(alk(i,j,k),2000.d0)   !set minimum =2000
-        endif
-#endif
       enddo
       enddo
       enddo
@@ -353,12 +334,12 @@ c       13 -- Mediterranean/Black Seas
       USE obio_dim
 #ifdef OBIO_ON_GARYocean
       USE OCEANR_DIM, only : ogrid   
-      Use OCEAN,      only : ZOE=>ZE, oLON_DG,oLAT_DG,ip=>focean
+      Use OCEAN,      only : oLON_DG,oLAT_DG,ip=>focean
 #else
       USE hycom_dim, only : ip,ogrid
-      USE hycom_arrays, only : lonij,latij,dpinit
-      USE hycom_scalars, only: onem
+      USE hycom_arrays, only : lonij,latij
 #endif
+      use obio_com, only: ze
 
       implicit none
 
@@ -411,9 +392,7 @@ c  Find nwater values corresponding to regions
         if (rlon .gt. 180)rlon = rlon-360.0
 
         if (ip(i,j)==0) cycle
-#ifndef OBIO_ON_GARYocean
-        if (dpinit(i,j,1)/onem .le. 0.0) cycle
-#endif
+        if (ze(i,j,1)<=ze(i,j,0)) cycle
 
 c   Antarctic region
         if (rlat .le. antlat)then
@@ -613,9 +592,6 @@ c  North Atlantic
          endif
         endif
 
-!       write(121,'(2(i4,1x),4(f8.3,1x),e12.4,i4)')
-!    .        i,j,lonij(i,j,3),latij(i,j,3),
-!    .        rlon,rlat,dpinit(i,j,1)/onem,ir(i,j)
        end do
        end do
  
@@ -637,16 +613,15 @@ c  Total up points for check
 c------------------------------------------------------------------------------
       subroutine bio_inicond(filename,fldo2)
       use bio_inicond_mod, only: bio_inicond_read
+      use obio_com, only: ze
 #ifdef OBIO_ON_GARYocean
       USE OCEANRES, only : kdm=>lmo
       USE OCEANR_DIM, only : ogrid
-      USE OCEAN, only : DLATM,ZOE=>ZE, focean, lmm
+      USE OCEAN, only : DLATM, focean, lmm
 #else
       use hycom_dim, only: aj_0,aj_1,kdm
       use hycom_dim, only: ip,ogrid,iia,jja
       USE GEOM, only : DLATM
-      use hycom_arrays, only: dpinit
-      USE hycom_scalars, only: onem
       USE hycom_cpler, only: flxa2o
 #endif
       implicit none
@@ -666,7 +641,6 @@ c------------------------------------------------------------------------------
 #else
       real data2(iia,jja,kgrd)
       real fldo(ogrid%im_world,ogrid%j_strt:ogrid%j_stop,kgrd)
-      real pinit(kdm+1)
 #endif
       real nodc_depths(kgrd),nodc_d(kgrd+1)
       data nodc_depths/0,  10,  20,  30,  50,  75, 100, 125, 150, 200,
@@ -681,7 +655,7 @@ c------------------------------------------------------------------------------
       do j=ogrid%j_strt, ogrid%j_stop
       do i=ogrid%i_strt, ogrid%i_stop
         IF (FOCEAN(i,j).gt.0) then
-          call VLKtoLZ(kgrd,lmm(i,j),nodc_depths,ZOE,
+          call VLKtoLZ(kgrd,lmm(i,j),nodc_depths,ze(i, j, :),
      &                             fldo(i,j,:),fldo2(i,j,:))
         ENDIF
       enddo
@@ -695,40 +669,35 @@ c------------------------------------------------------------------------------
       end do
 
       !--------------------------------------------------------
-      !use dpinit(i,j,k)/onem
 
        fldo2=-9999.d0
        do j=ogrid%j_strt,ogrid%j_stop
        do i=ogrid%i_strt,ogrid%i_stop
          if (ip(i,j)==0) cycle
 
-         pinit=0
-         do k=1,kdm
-           pinit(k+1)=pinit(k)+dpinit(i,j,k)/onem
-         end do
           !match nodc and model bottom pressure
           !the top match already
           kmax=1
-          do k=2,kdm+1
-           if (pinit(k) .gt. pinit(k-1)) kmax=k
+          do k=1,kdm
+           if (ze(i, j, k) .gt. ze(i, j, k-1)) kmax=k+1
           enddo
 
           !model bottom at kmax+1
           do k=1,kgrd
-           if (nodc_depths(k) .le. pinit(min(21,kmax+1))) then
+           if (nodc_depths(k) .le. ze(i, j, min(20,kmax))) then
                nodc_d(k)=nodc_depths(k)
                nodc_kmax=k
            endif
 cdiag      write(*,'(a,3i5,2e12.4,i5)')'bioinit: ',
 cdiag.               i,j,k,fldo(i,j,k),nodc_d(k),nodc_kmax
           enddo
-          nodc_d(nodc_kmax+1)=pinit(min(21,kmax+1))
+          nodc_d(nodc_kmax+1)=ze(i, j, min(20,kmax))
 
 !        call remap1d_pcm(fldo(i,j,1:nodc_kmax),nodc_d,nodc_kmax,
-!    .             fldo2(i,j,:),pinit(i,j,:),kdm,.false.,i,j)
+!    .             fldo2(i,j,:),ze(i, j, :),kdm,.false.,i,j)
 
          call remap1d_plm(fldo(i,j,1:nodc_kmax),nodc_d,nodc_kmax,
-     .             fldo2(i,j,1:kdm),pinit(1:kdm+1),kdm,.false.,i,j)
+     .             fldo2(i,j,1:kdm),ze(i, j, :),kdm,.false.,i,j)
 
        enddo
        enddo

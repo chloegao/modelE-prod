@@ -12,6 +12,7 @@ c
       USE obio_forc, only : ihra,atmFe,alk
       USE obio_com, only : npst,npnd,WtoQ,obio_ws,P_tend,D_tend
      .                    ,C_tend,wsdet,gro,obio_deltath,obio_deltat 
+      use obio_com, only: build_ze
 
 #ifdef OBIO_RUNOFF
 #ifdef NITR_RUNOFF
@@ -39,12 +40,11 @@ c
 #endif
 #ifdef OBIO_ON_GARYocean
       USE OCEANRES, only : kdm=>lmo
-      USE OCEAN, only : ZOE=>ZE,focean,lmm
       USE MODEL_COM, only: dtsrc
       USE OCEANR_DIM, only : ogrid
 #else
       USE hycom_dim_glob, only : kdm
-      USE hycom_scalars, only : nstep,baclin
+      USE hycom_scalars, only : baclin
       USE hycom_dim, only : ogrid
 #endif
       USE pario
@@ -78,6 +78,7 @@ c
 c 
       if (AM_I_ROOT()) print*, 'Ocean Biology setup starts'
 
+      call build_ze
 ! time steps
 #ifdef OBIO_ON_GARYocean
       obio_deltath = dtsrc/3600.d0  !time step in hours
@@ -371,11 +372,6 @@ c  Read in factors to compute average irradiance
        enddo
       enddo
       call closeunit(iu_fac)
-!     if (AM_I_ROOT()) then
-!     print*,'nstep, facirr(10,18,1)=',nstep,facirr4(10,18,1,1)
-!     print*,'nstep, facirr(10,18,1)=',nstep,facirr(10,18,1,1)
-!     print*, '    '
-!     endif
 
 !ifst part from ptend.f
        do k=1,kdm
@@ -480,11 +476,7 @@ c  Read in factors to compute average irradiance
 #else
 !read in alkalinity annual mean file
       if (ALK_CLIM.eq.1) then      !read from climatology
-#ifdef OBIO_ON_GARYocean
         call init_alk(alk)
-#else
-        call bio_inicond('alk_inicond',alk)
-#endif
       else      !set to zero, obio_carbon sets alk=tabar*sal/sal_mean
         alk = 0.
       endif

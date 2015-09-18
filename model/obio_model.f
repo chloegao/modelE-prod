@@ -117,7 +117,7 @@
       USE OCEANR_DIM, only : ogrid
       USE OCEANRES,   only : kdm=>lmo,dzo
       USE OFLUXES,    only : oRSI,oAPRESS
-      USE OCEAN,      only : ZOE=>ZE,g0m,s0m,mo,dxypo,ip=>focean,lmm
+      USE OCEAN,      only : g0m,s0m,mo,dxypo,ip=>focean,lmm
      .                      ,trmo,txmo,tymo,tzmo
       USE KPP_COM,    only : kpl
 #else
@@ -131,6 +131,7 @@
      .     pCO2av_loc,pp2tot_dayav_loc,cexpav_loc,caexpav_loc
       USE obio_com, only: diag_counter
 #endif
+      use obio_com, only: ze
 
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
       use TimerPackage_mod

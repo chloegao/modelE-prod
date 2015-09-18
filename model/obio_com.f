@@ -184,6 +184,38 @@ C endif
       real*8 :: Iron_BC = -0.005
 #endif
 
+      real*8, dimension(:, :, :), allocatable :: ze
+
+      contains
+
+      subroutine build_ze
+#ifdef OBIO_ON_GARYocean
+      use oceanr_dim, only: ogrid
+      use oceanres, only: kdm=>lmo
+      use ocean, only : zoe=>ze
+#else
+      use hycom_dim, only: ogrid, kdm
+      USE hycom_arrays, only : dpinit
+      USE hycom_scalars, only: onem
+#endif
+      implicit none
+      integer :: k
+
+      if (.not.allocated(ze)) allocate(ze(ogrid%i_strt:ogrid%i_stop,
+     &                                ogrid%j_strt:ogrid%j_stop, 0:kdm))
+      do k=0, kdm
+#ifdef OBIO_ON_GARYocean
+        ze(:, :, k)=zoe(k)
+#else
+        if (k>0) then
+          ze(:, :, k)=dpinit(ogrid%i_strt:ogrid%i_stop,
+     &                 ogrid%j_strt:ogrid%j_stop, k)/onem+ze(:, :, k-1)
+        else
+          ze(:, :, k)=0
+        endif
+#endif
+      end do
+      end subroutine build_ze
 
       END MODULE obio_com
 

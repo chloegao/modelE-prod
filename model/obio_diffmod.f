@@ -10,14 +10,13 @@
 
       subroutine obio_listDifferences(operation, phase)
 !@sum This routine checks for any changes against the previous state of both the 
-!@+   tracer array and the dpinit array.   Each tracer is reported separately.
+!@+   tracer array and the ze array.   Each tracer is reported separately.
       
-      use obio_com, only: tracer
+      use obio_com, only: tracer, ze
 #ifdef OBIO_ON_GARYocean
        USE MODEL_COM,  only : nstep=>itime
 #else
       use hycom_scalars, only: nstep
-      use hycom_arrays, only: dpinit
 #endif
       use domain_decomp_1d, only: am_i_root
 
@@ -26,7 +25,7 @@
 
       logical, save :: init = .false.
       real*8, allocatable, save :: previousTracers(:,:,:,:)
-      real*8, allocatable, save :: previousdpinit(:,:,:)
+      real*8, allocatable, save :: previousze(:,:,:)
 
       integer :: iTracer
       character(len=50) :: name
@@ -40,12 +39,10 @@
         allocate(previousTracers, source=tracer)
 #endif
 
-#ifndef OBIO_ON_GARYocean
 #ifdef __GFORTRAN__
-        previousdpinit = dpinit
+        previousze = ze
 #else
-        allocate(previousdpinit, source=dpinit)
-#endif
+        allocate(previousze, source=ze)
 #endif
         return ! nothing to compare on the 1st trip
       end if
@@ -54,9 +51,7 @@
       case ('before')
 
         previousTracers = tracer
-#ifndef OBIO_ON_GARYocean
-        previousdpinit = dpinit
-#endif
+        previousze = ze
 
       case default
 
@@ -69,11 +64,9 @@
      &         previousTracers(:,:,:,iTracer))
         end do
 
-#ifndef OBIO_ON_GARYocean
         if (am_i_root()) write(name,'(a,1x,a,i10,a,1x)')
-     .         trim(operation),',nstep = ',nstep,': dpinit'
-        call spotDiff3D(lbound(dpinit,2),name, dpinit, previousdpinit)
-#endif
+     .         trim(operation),',nstep = ',nstep,': ze'
+        call spotDiff3D(lbound(ze,2),name, ze, previousze)
       end select
 
       end subroutine obio_listDifferences
