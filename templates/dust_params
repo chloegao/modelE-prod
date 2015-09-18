@@ -1,7 +1,7 @@
 !--------- dust aerosol parameters----------------
 imDust=0                          ! 0: PDF emission scheme, 1: AEROCOM
 adiurn_dust=0                     ! 1: daily dust diagnostics for selected grid boxes
-# for Tcadi version:
+!for Tcadi version:
 fracClayPDFscheme=0.0292867845524 ! clay emission parameter from calibration
 fracSiltPDFscheme=0.0500018048081 ! silt emission parameter from calibration
   !fracClayPDFscheme=0.021009171128 [1] * 1.394[2]
