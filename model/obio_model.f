@@ -60,9 +60,9 @@
 #endif
 
       use runtimecontrols_mod, only: tracers_alkalinity
-      use obio_com, only: tracer
+      use obio_com, only: tracer,nstep0
 #ifdef OBIO_ON_GARYocean
-      use obio_com, only: obio_deltat,nstep0
+      use obio_com, only: obio_deltat
       USE ODIAG, only : ij_pCO2,ij_dic,ij_nitr,ij_diat
      .                 ,ij_amm,ij_sil,ij_chlo,ij_cyan,ij_cocc,ij_herb
      .                 ,ij_doc,ij_iron,ij_alk,ij_Ed,ij_Es,ij_pp
@@ -125,7 +125,7 @@
       USE hycom_arrays, only: tracer_h=>tracer,dpinit,temp,saln,oice
      .                            ,p,dpmixl,latij,lonij,scp2
       USE  hycom_arrays_glob, only: latij_glob=>latij,lonij_glob=>lonij
-      USE hycom_scalars, only: trcout,nstep,onem,nstep0
+      USE hycom_scalars, only: nstep,onem
      .                        ,time,lp,baclin,huge
       USE obio_com, only: ao_co2fluxav_loc,
      .     pCO2av_loc,pp2tot_dayav_loc,cexpav_loc,caexpav_loc
@@ -165,6 +165,7 @@
       integer :: year, month, dayOfYear, date, hour
       real, allocatable, dimension(:), save :: eda_frac, esa_frac
       integer :: iu_bio
+      logical, save :: initialized=.false.
 
       if(.not.dobio) return
 
@@ -183,75 +184,58 @@ c
 !Cold initialization
 
       call start(' obio_init')
-#ifdef OBIO_ON_GARYocean
       !nstep0=0 : cold initialization
       !nstep0>0 : warm initialization, is the timestep of current restart run
       !nstep    : current timestep   
-      !itimei   : initial timestep   
 
-      print*, 'itimei,nstep,nstep0 =',
-     .         itimei,nstep,nstep0
+      print*, 'nstep,nstep0 =',
+     .         nstep,nstep0
 
-      if (nstep.eq.itimei) then
-      print*, 'COLD INITIALIZATION....'
-      nstep0=0
-#else
-      if (nstep.eq.1) then
-        print*, 'COLD INITIALIZATION1...'
-        trcout=.true.
-#endif
+      if (nstep0==0) then
+        print*, 'COLD INITIALIZATION....'
 
-      if (AM_I_ROOT()) write(*,'(a)')'BIO:Ocean Biology starts ....'
+        if (AM_I_ROOT()) write(*,'(a)')'BIO:Ocean Biology starts ....'
 
 
-      call obio_init
+        call obio_init
       !tracer array initialization.
       !note: we do not initialize obio_P,det and car
 
 #ifdef OBIO_ON_GARYocean
-      if(file_exists('obio_inicond')) then
+        if(file_exists('obio_inicond')) then
         ! read initial state in netcdf format.  this input file contains the
         ! result of the special-case initializations in obio_bioinit_g
-        call new_io_obio_inicond
+          call new_io_obio_inicond
         ! not sure why trivial initial values for avgq, gcmax were
         ! being set in obio_bioinit_g rather than obio_init. - M.K.
-        avgq(:,:,:) = 25.0 !  Light saturation data
-        gcmax(:,:,:) = 0.0 !  Coccolithophore max growth rate
-      else
-        call obio_bioinit
-      endif
+          avgq(:,:,:) = 25.0 !  Light saturation data
+          gcmax(:,:,:) = 0.0 !  Coccolithophore max growth rate
+        else
+          call obio_bioinit
+        endif
 #else
-      ao_co2fluxav_loc  = 0.
-      pCO2av_loc = 0
-      pp2tot_dayav_loc = 0
-      cexpav_loc = 0
-      caexpav_loc = 0
+        ao_co2fluxav_loc  = 0.
+        pCO2av_loc = 0
+        pp2tot_dayav_loc = 0
+        cexpav_loc = 0
+        caexpav_loc = 0
 
-      call obio_bioinit
+        call obio_bioinit
 #endif
-      endif   !if nstep=1 or nstep=itimei
+      endif   !cold restart
 
 
 
 !Warm initialization
 
-#ifdef OBIO_ON_GARYocean
-      if (nstep0 .gt. itimei .and. nstep.eq.nstep0) then
-         call obio_init
-
-         print*,'WARM INITIALIZATION'
-
-      endif !for restart only
-#else
-       if (nstep0 .gt. 0 .and. nstep.eq.nstep0+1) then
+      if ((nstep0>0).and..not.initialized) then
          write(*,'(a)')'For restart runs.....'
          write(*,'(a,2i9,f10.3)')
      .            'nstep0,nstep,time=',nstep0,nstep,time
          call obio_init
-
          print*,'WARM INITIALIZATION'
-       endif !for restart only
-#endif
+
+      endif !for restart only
       call stop(' obio_init')
 
 #ifdef OBIO_ON_GARYocean
@@ -398,12 +382,12 @@ cdiag.          olon_dg(i,1),olat_dg(j,1)
      .                                *  MO(I,J,k)*DXYPO(J)           ! kg,trac/kg,air=> kg,trac
 #endif
 
-           if (nstep0 .gt. itimei) then
+           if (nstep0>0) then
               tracer(i,j,k,nt) = trmo(i,j,k,nt) / trmo_unit_factor(k,nt)
            endif
          enddo
 #else
-       if (nstep0 .gt. 0) tracer(i,j,:,:)=tracer_h(i,j,:,:)
+       if (nstep0>0) tracer(i,j,:,:)=tracer_h(i,j,:,:)
        do k=1,kdm
          km=k+mm
          temp1d(k)=temp(i,j,km)
@@ -533,11 +517,7 @@ cdiag write(*,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
 
        !------------------------------------------------------------
        !at the beginning of each day only
-#ifdef OBIO_ON_GARYocean
-       if (hour_of_day.le.1 .or. nstep.eq.nstep0) then    
-#else
-       if (hour_of_day.le.1) then
-#endif
+       if ((hour_of_day.le.1).or..not.initialized) then
 
           if (day_of_month.eq.1)ihra_ij=1
           call obio_daysetrad(vrbos,i,j)
@@ -1116,17 +1096,9 @@ cdiag     endif
       end do
       call stop('  obio main loop')
 
-
-#ifdef OBIO_ON_GARYocean
-! Hack for the "setup" period right after a cold start, before the
-! first restart file is written:
-! Set nstep0 > itimei so that the obio tracer array is copied from
-! trmo.  Setting nstep0 to a huge number bypasses the check for
-! a warm start (nstep0 > itimei .and. nstep == nstep0).
-      if(nstep0 <= itimei) nstep0 = huge(nstep0)
-#endif
-
       call stop(' obio_model')
+      initialized=.true.
+      nstep0=nstep0+1
       return
 
       end subroutine obio_model

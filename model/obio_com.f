@@ -68,10 +68,10 @@ c
       real, ALLOCATABLE, DIMENSION(:,:) :: ao_co2fluxav,ao_co2fluxav_loc
 #endif
       real, ALLOCATABLE, DIMENSION(:,:,:,:):: tracer
+
+      integer :: nstep0=0
+
 #ifdef OBIO_ON_GARYocean
-
-      integer nstep0
-
 
       !test point
 !!    integer, parameter :: itest=16, jtest=45    !equatorial Pacific                  2deg ocean
@@ -344,7 +344,7 @@ c**** Extract domain decomposition info
 
       select case (iaction)
       case (iowrite)            ! output to restart file
-        call write_data(grid,fid,'obio_nstep0',nstep)
+        call write_data(grid,fid,'obio_nstep0',nstep0)
         call write_dist_data(grid,fid,'avgq',avgq)
         call write_dist_data(grid,fid,'gcmax',gcmax)
         call write_dist_data(grid,fid,'tirrq3d',tirrq3d)
@@ -531,7 +531,7 @@ c            do jj=j-1,j+1
       USE obio_com, only : gcmax,pCO2av=>pCO2av_loc,pp2tot_day,
      &     ao_co2fluxav=>ao_co2fluxav_loc,
      &     pp2tot_dayav=>pp2tot_dayav_loc,
-     &     cexpav=>cexpav_loc, diag_counter
+     &     cexpav=>cexpav_loc, diag_counter,nstep0
       implicit none
       integer fid   !@var fid file id
       character(len=14) :: str2d
@@ -541,7 +541,7 @@ c            do jj=j-1,j+1
       str3d ='(idm,dist_jdm,kdm)'
       str3d2='(idm,dist_jdm,kdmx2)'
 
-c      call defvar(grid,fid,nstep,'obio_nstep0')
+      call defvar(grid,fid,nstep0,'obio_nstep0')
       call defvar(grid,fid,diag_counter,'obio_diag_counter')
       call defvar(grid,fid,avgq,'avgq'//str3d)
       call defvar(grid,fid,gcmax,'gcmax'//str3d)
@@ -568,12 +568,13 @@ c      call defvar(grid,fid,nstep,'obio_nstep0')
       USE obio_com, only : gcmax,pCO2av=>pCO2av_loc,pp2tot_day,
      &     ao_co2fluxav=>ao_co2fluxav_loc,
      &     pp2tot_dayav=>pp2tot_dayav_loc,
-     &     cexpav=>cexpav_loc, diag_counter
+     &     cexpav=>cexpav_loc, diag_counter,nstep0
       implicit none
       integer fid   !@var fid unit number of read/write
       integer iaction !@var iaction flag for reading or writing to file
       select case (iaction)
       case (iowrite)            ! output to restart file
+        call write_data(grid,fid,'obio_nstep0',nstep0)
         call write_data(grid,fid,'obio_diag_counter',diag_counter)
         call write_dist_data(grid,fid,'avgq',avgq)
         call write_dist_data(grid,fid,'gcmax',gcmax)
@@ -585,6 +586,8 @@ c      call defvar(grid,fid,nstep,'obio_nstep0')
         call write_dist_data(grid,fid,'cexpav',cexpav)
         call write_dist_data(grid,fid,'pp2tot_day',pp2tot_day)
       case (ioread)            ! input from restart file
+        call read_data(grid,fid,'obio_nstep0',nstep0,
+     &       bcast_all=.true.)
         call read_data(grid,fid,'obio_diag_counter',diag_counter)
         call read_dist_data(grid,fid,'avgq',avgq)
         call read_dist_data(grid,fid,'gcmax',gcmax)
