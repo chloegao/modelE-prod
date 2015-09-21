@@ -39,6 +39,8 @@
       INTEGER IJ_HBL,IJ_BO,IJ_BOSOL,IJ_USTAR,IJ_SSH,IJ_PB,IJ_SF,
      *     IJ_SRHFLX,IJ_SRWFLX,IJ_SRHFLXI,IJ_SRWFLXI,IJ_SRSFLXI,IJ_ERVR
      *     ,IJ_MRVR,IJ_EICB,IJ_MICB,IJ_GMSC,IJ_GMSCz,ij_mld 
+     *     ,IJ_dEPO_Dyn
+
 #ifdef OCN_GISS_MESO
      .     ,ij_eke,ij_rd
 #endif
@@ -1870,6 +1872,14 @@ c
       units_oij(k)="kg/m^2/s"
       ia_oij(k)=ia_src
       scale_oij(k)=1./dts
+
+      K = K+1
+      IJ_dEPO_Dyn = K  !  OCEANS
+      LNAME_OIJ(K) = 'Potential Enthalpy of Ocean by Advection'
+      SNAME_OIJ(K) = 'dEPO_Dyn'    
+      UNITS_OIJ(K) = 'W/m^2'
+      SCALE_OIJ(K) = 1 / DTsrc
+         IA_OIJ(K) = IA_SRC
 
       k=k+1
       IJ_ERVR=k

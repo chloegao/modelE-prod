@@ -1003,6 +1003,7 @@ C**** replicate ice values at the poles
 C****
       END SUBROUTINE FORM_SI
 
+
 #ifndef STANDALONE_OCEAN
       SUBROUTINE SI_diags(si_state,iceocn,atmice)
       USE MODEL_COM, only : kocean,itime
@@ -1118,6 +1119,8 @@ c
      &         +ATMICE%HVSI(I,J)
           AIJ(I,J,ATMICE%IJ_SVSI)=AIJ(I,J,ATMICE%IJ_SVSI)
      &         +ATMICE%SVSI(I,J)
+          AIJ(I,J,ATMICE%IJ_dHSI_Dyn) = AIJ(I,J,ATMICE%IJ_dHSI_Dyn) +
+     +          ATMICE%HSICNV(I,J)
         ENDDO
         ENDDO
 #ifdef TRACERS_WATER

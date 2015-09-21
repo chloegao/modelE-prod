@@ -2547,6 +2547,7 @@ C****
 C****
       END SUBROUTINE CHECKO
 
+
       Subroutine CONSERV_OMS (OMASS)
 C****
 !@sum   CONSERV_OMS calculates zonal ocean mass (kg/m^2) on ocean grid
@@ -2578,14 +2579,15 @@ C****
 
 C**** Include ocean mass of straits
       Do N=1,NMST
-         I = IST(N,1)
-         J = JST(N,1)
-        If (J >= J_0 .and. J <= J_1)
-     &        OMASS(I,J) = OMASS(I,J) + Sum(MMST(:LMST(N),N))
-     &                                     /oXYP(I,J)
+         I = IST(N,1)  ;  J = JST(N,1)
+         If (J >= J_0 .and. J <= J_1)  OMASS(I,J) = OMASS(I,J) +
+     +      .5 * Sum(MMST(1:LMST(N),N)) / oXYP(I,J)
+         I = IST(N,2)  ;  J = JST(N,2)
+         If (J >= J_0 .and. J <= J_1)  OMASS(I,J) = OMASS(I,J) +
+     +      .5 * Sum(MMST(1:LMST(N),N)) / oXYP(I,J)
       EndDo
-
       End Subroutine CONSERV_OMS
+
 
       Subroutine CONSERV_OSL (OSALT)
 C****
@@ -2618,13 +2620,13 @@ C****
 
 C**** Include ocean salt of straits
       Do N=1,NMST
-        I = IST(N,1)
-        J = JST(N,1)
-        If (J >= J_0 .and. J <= J_1)
-     &    OSALT(I,J) = OSALT(I,J) + Sum(S0MST(:LMST(N),N))/oXYP(I,J)
-
+         I = IST(N,1)  ;  J = JST(N,1)
+         If (J >= J_0 .and. J <= J_1)  OSALT(I,J) = OSALT(I,J) +
+     +      .5 * Sum(S0MST(1:LMST(N),N)) / oXYP(I,J)
+         I = IST(N,2)  ;  J = JST(N,2)
+         If (J >= J_0 .and. J <= J_1)  OSALT(I,J) = OSALT(I,J) +
+     +      .5 * Sum(S0MST(1:LMST(N),N)) / oXYP(I,J)
       EndDo
-
       End Subroutine CONSERV_OSL
 
 
@@ -2659,13 +2661,13 @@ C****
 
 C**** Include ocean potential enthalpy of straits
       Do N=1,NMST
-        I = IST(N,1)
-        J = JST(N,1)
-        If (J >= J_0 .and. J <= J_1)
-     &       OCEANE(I,J) = OCEANE(I,J) + Sum(G0MST(:LMST(N),N))
-     &                     /oXYP(I,J)
+         I = IST(N,1)  ;  J = JST(N,1)
+         If (J >= J_0 .and. J <= J_1)  OCEANE(I,J) = OCEANE(I,J) +
+     +      .5 * Sum(G0MST(1:LMST(N),N)) / oXYP(I,J)
+         I = IST(N,2)  ;  J = JST(N,2)
+         If (J >= J_0 .and. J <= J_1)  OCEANE(I,J) = OCEANE(I,J) +
+     +      .5 * Sum(G0MST(1:LMST(N),N)) / oXYP(I,J)
       EndDo
-
       End Subroutine CONSERV_OCE
 
 

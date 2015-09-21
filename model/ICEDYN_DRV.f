@@ -1012,6 +1012,7 @@ C**** uisurf/visurf are on atm grid but are latlon oriented
       RETURN
       END SUBROUTINE DYNSI
 
+
 #ifndef CUBED_SPHERE
       SUBROUTINE ADVSI(atmice)
 !@sum  ADVSI advects sea ice
@@ -1094,9 +1095,7 @@ C**** Get grid parameters
      &     ,FYSI(IM,J_0H:J_1H)
      &     ,FAW(IM,J_0H:J_1H)
      &     ,BYFOA(IM,J_0H:J_1H) )
-
       ALLOCATE( USIDT(IM, J_0H:J_1H), VSIDT(IM, J_0H:J_1H) )
-
 
       FOCEAN => ATMICE%FOCEAN
       RSI => SI_OCN%RSI
@@ -1119,6 +1118,7 @@ C**** Get grid parameters
       ATMICE%MVSI(:,:)=0
       ATMICE%HVSI(:,:)=0
       ATMICE%SVSI(:,:)=0
+
 #ifdef TRACERS_WATER
       ATMICE%TUSI(:,:,:)=0
       ATMICE%TVSI(:,:,:)=0
@@ -1157,6 +1157,7 @@ C**** Currently this is on atmospheric grid
         MHS(L+2,:,J_0:J_1) = HSI(L,:,J_0:J_1)
         MHS(L+2+LMI,:,J_0:J_1) = SSI(L,:,J_0:J_1)
       END DO
+
 #ifdef TRACERS_WATER
 C**** add tracers to advected arrays
       DO J=J_0, J_1
@@ -1180,11 +1181,13 @@ C**** add tracers to advected arrays
         END DO
       END DO
 #endif
+
 C**** define inverse area array
       DO J=J_0, J_1
       DO I=1,IM
         IF (FOCEAN(I,J).gt.0) THEN
           BYFOA(I,J)=BYDXYP(J)/FOCEAN(I,J)
+          ATMICE%HSICNV(I,J) = RSI(I,J) * Sum(HSI(:,I,J))
         ELSE
           BYFOA(I,J)=0.
         END IF
@@ -1626,6 +1629,9 @@ C****
             DO L=3,LMI
                SSI(L,I,J) = MHS(L+2+LMI,I,J)
             END DO
+            ATMICE%HSICNV(I,J) = FOCEAN(I,J) *
+     *         (RSI(I,J)*Sum(HSI(:,I,J)) - ATMICE%HSICNV(I,J))
+
 #ifdef TRACERS_WATER
 C**** reconstruct tracer arrays
             DO ITR=1,NTM
@@ -1666,8 +1672,8 @@ c        END DO
         DO J=J_0, J_1
           DO I=1,si_ocn%IMAXJ(J)
             IF (FOCEAN(I,J).gt.0) THEN
-              atmice%HSICNV(I,J)=(RSI(I,J)*SUM(MHS(3:2+LMI,I,J))
-     *                       -RSISAVE(I,J)*SUM(HSI(1:LMI,I,J)))
+               ATMICE%HSICNV(I,J) = RSI(I,J)*Sum(MHS(3:2+LMI,I,J)) -
+     -                              ATMICE%HSICNV(I,J)
 C**** reset sea ice concentration
               RSI(I,J)=RSISAVE(I,J)
             END IF
@@ -1675,13 +1681,12 @@ C**** reset sea ice concentration
         END DO
       END IF
 C****
-
       DEALLOCATE(FMSI,FMSJ,MHS,SFMSI,AMSI)
       DEALLOCATE(FASI, FXSI, FYSI, FAW, BYFOA, USIDT, VSIDT)
-
       RETURN
       END SUBROUTINE ADVSI
 #endif
+
 
 #ifdef CUBED_SPHERE
       subroutine INT_AtmA2IceA_XY(aA,iA)

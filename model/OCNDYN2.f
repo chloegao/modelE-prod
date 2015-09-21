@@ -23,7 +23,8 @@ C****
       USE OCEANR_DIM, only : grid=>ogrid
       USE ODIAG, only : oijl=>oijl_loc,oij=>oij_loc,
      *    ijl_mo,ijl_g0m,ijl_s0m,  ijl_gflx, ijl_sflx, ijl_mfw2,
-     *    ijl_mfu,ijl_mfv,ijl_mfw, ijl_ggmfl,ijl_sgmfl,ij_ssh,ij_pb
+     *    ijl_mfu,ijl_mfv,ijl_mfw, ijl_ggmfl,ijl_sgmfl,ij_ssh,ij_pb,
+     *    IJ_dEPO_Dyn
       USE OFLUXES, only : ocnatm
 #ifdef TRACERS_OCEAN
       USE OCN_TRACER_COM, only : tracerlist, ocn_tracer_entry,n_age,
@@ -43,7 +44,7 @@ c
       Real*8,Dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LMO) ::
      &     MO1,MO2, UO1,UO2,UOD1,UOD2, VO1,VO2,VOD1,VOD2
       Real*8,Dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
-     &     OPBOT1,OPBOT2
+     &     OPBOT1,OPBOT2, G0INIT,G0FINAL
       real*8 :: relfac,dt_odiff,TIME
       real*8 :: dtdum,byno,mrat_st
 
@@ -279,6 +280,7 @@ c
 c long-timestep advection of potential enthalpy, salt, and tracers
 c
       dtdum = DTOLF
+      Call CONSERV_OCE (G0INIT)
       if(use_qus==1) then
         CALL OADVT3 (G0M,
      &     GXMO,GYMO,GZMO, GXXMO,GYYMO,GZZMO, GXYMO,GYZMO,GZXMO,
@@ -292,6 +294,8 @@ c
         CALL OADVT2 (S0M,SXMO,SYMO,SZMO,DTDUM,.TRUE.
      *        ,OIJL(1,J_0H,1,IJL_SFLX))
       endif
+      Call CONSERV_OCE (G0FINAL)
+
 #ifdef TRACERS_OCEAN
       if(use_qus==1) then
         DO N=1,tracerlist%getsize()
@@ -352,6 +356,8 @@ c
             OIJ(I,J,IJ_SSH) = OIJ(I,J,IJ_SSH) + OGEOZ(I,J)*byno
             OIJ(I,J,IJ_PB)  = OIJ(I,J,IJ_PB)  +
      &           (OPBOT(I,J)-ZE(LMM(I,J))*RHOWS*GRAV)*byno
+            OIJ(I,J,IJ_dEPO_Dyn) = OIJ(I,J,IJ_dEPO_Dyn) +
+     +           (G0FINAL(I,J) - G0INIT(I,J))
           enddo
         enddo
       enddo

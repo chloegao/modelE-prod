@@ -116,9 +116,6 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
 
 !@param KAIJ number of AIJ diagnostics
       INTEGER, PARAMETER, public :: KAIJ=426
-#ifdef CALCULATE_FLAMMABILITY
-     &                                   + 20
-#endif
 #ifdef ACCMIP_LIKE_DIAGS
      &                                   + 8
 #endif
@@ -537,7 +534,7 @@ C****      names, indices, units, idacc-numbers, etc.
 !****
       INTEGER, public ::
 !**** Vertical Energy Fluxes
-     &  IJ_dSE_DYN,IJ_dKE_DYN,IJ_dTE_DYN,
+     &  IJ_dSE_Dyn,IJ_dKE_Dyn,IJ_dTE_Dyn,IJ_dHSI_Dyn,
      &     IJ_RSOI, IJ_RSNW, IJ_SNOW, IJ_SHDT, IJ_PREC, IJ_EVAP,
      *     IJ_SSAT, IJ_BETA,  IJ_SLP1,  IJ_P4UV, IJ_PRES, IJ_PHI1K,
      *     IJ_PHI850, IJ_PHI700, IJ_PHI500, IJ_PHI300, IJ_PHI100,
@@ -580,7 +577,7 @@ C****      names, indices, units, idacc-numbers, etc.
      *     ,ij_3dlwm,ij_3dlim,ij_3dlws,ij_3dlis
      *     ,ij_ssprec,ij_mcprec,IJ_WMCLWP,IJ_WMCTWP
      &     ,ij_wdry,ij_wtke,ij_wmoist,ij_wsgcm,ij_wspdf
-     &     ,ij_flam,ij_CtoG,ij_flash,ij_fireC,ij_human,ij_fvden
+     &     ,ij_flam,ij_CtoG,ij_flash
      *     ,ij_swaerabs,ij_lwaerabs
      *     ,ij_swaerabsnt
      *     ,ij_lwaerabsnt,ij_evapsn,ij_irrW,ij_irrE,ij_irrW_tot

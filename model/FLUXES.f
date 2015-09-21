@@ -432,7 +432,7 @@ C**** array of Chlorophyll data for use in ocean albedo calculation
      &     ,IJ_SIGRCG,IJ_SSI1,IJ_SSI2,IJ_TSI,IJ_F0OI,IJ_SISNWF
      &     ,IJ_RSOI,IJ_MSI,IJ_SITOPMLT
 !@var IJ_[MHS][UV]SI indices for sea ice mass/heat/salt transport diags
-     &     ,IJ_MUSI,IJ_MVSI,IJ_HUSI,IJ_HVSI,IJ_SUSI,IJ_SVSI
+     &     ,IJ_MUSI,IJ_MVSI,IJ_HUSI,IJ_HVSI,IJ_SUSI,IJ_SVSI,IJ_dHSI_Dyn
          INTEGER :: J_IMELT,J_HMELT,J_SMELT
      &     ,j_implm,j_implh
      &     ,j_rsnow,j_rsi,j_ace1,j_ace2,j_snow
