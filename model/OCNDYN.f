@@ -5389,6 +5389,9 @@ C****
      *  lmu,lmv,dxpo,dypo,dxvo,dyvo,bydxypo
       USE OCEAN_DYN, only : dh
       USE TRIDIAG_MOD, only : tridiag, tridiag_new
+#ifdef ODIFF_TRIDIAG_CYCLIC
+      USE TRIDIAG_MOD, only : tridiag_cyclic
+#endif
       USE DOMAIN_DECOMP_1D, ONLY : GETDomainBounds, AM_I_ROOT
       USE OCEANR_DIM, only : grid=>ogrid
       USE DOMAIN_DECOMP_1D, ONLY : HALO_UPDATE, NORTH, SOUTH, broadcast
@@ -5564,7 +5567,6 @@ C**** Calculate fluxes (including FSLIP condition)
      *                 FROM=SOUTH)
 
 C**** Calculate tridiagonal matrix for first semi-implicit step (in x)
-C**** Minor complication due to cyclic nature of boundary condition
       AU=0. ; BU=0. ; CU=0. ; RU=0.
       AV=0. ; BV=0. ; CV=0. ; RV=0.
 
@@ -5576,14 +5578,11 @@ C**** Minor complication due to cyclic nature of boundary condition
           BV(I,J) = 1d0
           IF (L.LE.LMU(I,J)) THEN
             DTU = DT2*(DH(I,J,L)+DH(IP1,J,L))*BYMU(I,J)
-            IF (I.gt.1 ) AU(I,J) =        - DTU*UXA(I,J,L)
-                         BU(I,J) = BU(I,J) - DTU*UXB(I,J,L)
-            IF (I.lt.IM) CU(I,J) =        - DTU*UXC(I,J,L)
+            AU(I,J) =         - DTU*UXA(I,J,L)
+            BU(I,J) = BU(I,J) - DTU*UXB(I,J,L)
+            CU(I,J) =         - DTU*UXC(I,J,L)
             RU(I,J) = UO(I,J,L) + DTU*(UYA(I,J,L)*UO(I,J-1,L)
      *           +UYB(I,J,L)*UO(I,J,L) + UYC(I,J,L)*UO(I,J+1,L))
-C**** Make properly tridiagonal by making explicit cyclic terms
-            IF (I == 1 ) RU(I,J)=RU(I,J) + DTU*UXA(I,J,L)*UO(IM,J,L)
-            IF (I == IM) RU(I,J)=RU(I,J) + DTU*UXC(I,J,L)*UO(1,J,L)
 C**** Add Wasjowicz cross-terms to RU + second metric term
             RU(I,J) = RU(I,J) + DTU*((DYPO(J)*(FUX(IM1,J) - FUX(I,J))
      *           + DXVO(J)*FUY(I,J) - DXVO(J-1)*FUY(I,J-1))*BYDXYPO(J)
@@ -5591,14 +5590,11 @@ C**** Add Wasjowicz cross-terms to RU + second metric term
           END IF
           IF (L.LE.LMV(I,J)) THEN
             DTV = DT2*(DH(I,J,L)+DH(I,J+1,L))*BYMV(I,J)
-            IF (I.gt.1 ) AV(I,J) =        - DTV*VXA(I,J,L)
-                         BV(I,J) = BV(I,J) - DTV*VXB(I,J,L)
-            IF (I.lt.IM) CV(I,J) =        - DTV*VXC(I,J,L)
+            AV(I,J) =         - DTV*VXA(I,J,L)
+            BV(I,J) = BV(I,J) - DTV*VXB(I,J,L)
+            CV(I,J) =         - DTV*VXC(I,J,L)
             RV(I,J) = VO(I,J,L) + DTV*(VYA(I,J,L)*VO(I,J-1,L)
      *           +VYB(I,J,L)*VO(I,J,L) + VYC(I,J,L)*VO(I,J+1,L))
-C**** Make properly tridiagonal by making explicit cyclic terms
-            IF (I == 1 ) RV(I,J)=RV(I,J) + DTV*VXA(I,J,L)*VO(IM,J,L)
-            IF (I == IM) RV(I,J)=RV(I,J) + DTV*VXC(I,J,L)*VO(1,J,L)
 C**** Add Wasjowicz cross-terms to RV + second metric term
             RV(I,J) = RV(I,J) + DTV*((DYVO(J)*(FVX(I,J) - FVX(IM1,J))
      *           + DXPO(J)*FVY(I,J-1) - DXPO(J+1)*FVY(I,J))*BYDXYV(J)
@@ -5607,6 +5603,32 @@ C**** Add Wasjowicz cross-terms to RV + second metric term
           IM1=I
           I=IP1
         END DO
+#ifndef ODIFF_TRIDIAG_CYCLIC
+C**** Minor complication due to cyclic nature of boundary condition
+C**** Make properly tridiagonal by making explicit cyclic terms
+        I = 1
+        IF (L.LE.LMU(I,J)) THEN
+          DTU = DT2*(DH(I,J,L)+DH(I+1,J,L))*BYMU(I,J)
+          AU(I,J) = 0.
+          RU(I,J)=RU(I,J) + DTU*UXA(I,J,L)*UO(IM,J,L)
+        ENDIF
+        IF (L.LE.LMV(I,J)) THEN
+          AV(I,J) = 0.
+          DTV = DT2*(DH(I,J,L)+DH(I,J+1,L))*BYMV(I,J)
+          RV(I,J)=RV(I,J) + DTV*VXA(I,J,L)*VO(IM,J,L)
+        ENDIF
+        I = IM
+        IF (L.LE.LMU(I,J)) THEN
+          CU(I,J) = 0.
+          DTU = DT2*(DH(I,J,L)+DH(1,J,L))*BYMU(I,J)
+          RU(I,J)=RU(I,J) + DTU*UXC(I,J,L)*UO(1,J,L)
+        ENDIF
+        IF (L.LE.LMV(I,J)) THEN
+          CV(I,J) = 0.
+          DTV = DT2*(DH(I,J,L)+DH(I,J+1,L))*BYMV(I,J)
+          RV(I,J)=RV(I,J) + DTV*VXC(I,J,L)*VO(1,J,L)
+        ENDIF
+#endif
       END DO
 C**** At North Pole (no metric terms)
 c     BU(IIP) = 1d0
@@ -5628,8 +5650,15 @@ c     END IF
       END DO
 C**** Call tridiagonal solver
       DO J = J_0S, J_1S
+#ifdef ODIFF_TRIDIAG_CYCLIC
+        CALL TRIDIAG_cyclic(AU(:,J), BU(:,J), CU(:,J), RU(:,J),
+     &       UO(:,J,L), IM)
+        CALL TRIDIAG_cyclic(AV(:,J), BV(:,J), CV(:,J), RV(:,J),
+     &       VO(:,J,L), IM)
+#else
         CALL TRIDIAG(AU(:,J), BU(:,J), CU(:,J), RU(:,J), UO(:,J,L), IM)
         CALL TRIDIAG(AV(:,J), BV(:,J), CV(:,J), RV(:,J), VO(:,J,L), IM)
+#endif
       END DO
 
       END DO ! end loop over layers
