@@ -146,7 +146,7 @@ c tracer_ic_soildust
       IMPLICIT NONE
 
       integer :: i, ierr, j, io_data, ib, k, k1, m, fid
-      REAL*8 :: zsum,tabsum
+      REAL*8 :: zsum
 c**** temporary array to read in data
       real( kind=8 ), dimension( grid%i_strt:grid%i_stop, ! no halo
      &     grid%j_strt:grid%j_stop, INT_DAYS_PER_YEAR+1 ) ::
@@ -666,7 +666,8 @@ c**** um (between 0.1 and 16 um, if Silt4 class is not defined; between
 c**** 0.1 and 64 um when Silt5 is defined) for each grid box so that a
 c**** possible different scaling of the input mineral fractions from
 c**** different files does not influence the results
-      n1 = ntm_clay + ntm_sil1 + ntm_sil2 + ntm_sil3 + ntm_sil4
+      n1 = ntm_clay + ntm_sil1 + ntm_sil2 + ntm_sil3 + ntm_sil4 +
+     &     ntm_sil5
       work( i_0:i_1, j_0:j_1 ) = sum( mineralFractions( i_0:i_1, j_0:j_1
      &     , 1:n1 ), dim=3 )
       do j = j_0,j_1
