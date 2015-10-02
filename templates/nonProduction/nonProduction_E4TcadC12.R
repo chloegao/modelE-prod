@@ -21,7 +21,6 @@ Preprocessor Options
 ! OFF  #define RAD_O3_GCM_HRES     ! Use GCM horiz resl to input rad code clim Ozone
 !  OFF #define AUXILIARY_OX_RADF ! radf diags for climatology or tracer Ozone
 #define TRACERS_TERP                ! include terpenes in gas-phase chemistry
-#define AR5_FASTJ_XSECS ! to avoid using updated fastj cross sections introduced april 2015
 #define BIOGENIC_EMISSIONS       ! turns on interactive isoprene emissions
 #define TRACERS_AEROSOLS_SEASALT ! seasalt
 #define TRACERS_AEROSOLS_Koch    ! Dorothy Koch's tracers (aerosols, etc)
