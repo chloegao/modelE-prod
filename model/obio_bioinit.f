@@ -612,7 +612,8 @@ c  Total up points for check
       end subroutine fndreg
 c------------------------------------------------------------------------------
       subroutine bio_inicond(filename,fldo2)
-      use bio_inicond_mod, only: bio_inicond_read
+      use bio_inicond_mod, only: bio_inicond_read, bio_inicond_read_new
+      use dictionary_mod, only: sync_param
       use obio_com, only: ze
 #ifdef OBIO_ON_GARYocean
       USE OCEANRES, only : kdm=>lmo
@@ -647,19 +648,25 @@ c------------------------------------------------------------------------------
      .          250, 300, 400, 500, 600, 700, 800, 900,1000,1100,1200,
      .    1300,1400,1500,1750,2000,2500,3000,3500,4000,4500,5000,5500/
       integer :: i, j, k, kmax, nodc_kmax
+      integer :: new_inicond=0
 
 #ifdef OBIO_ON_GARYocean
-      call bio_inicond_read(filename, dlatm, 180d0, .true., fldo)
-      
-      fldo2=-9999.d0
-      do j=ogrid%j_strt, ogrid%j_stop
-      do i=ogrid%i_strt, ogrid%i_stop
-        IF (FOCEAN(i,j).gt.0) then
-          call VLKtoLZ(kgrd,lmm(i,j),nodc_depths,ze(i, j, :),
+      call sync_param('new_inicond', new_inicond)
+      if (new_inicond==1) then
+        call bio_inicond_read_new(filename, fldo2)
+      else
+        call bio_inicond_read(filename, dlatm, 180d0, .true., fldo)
+
+        fldo2=-9999.d0
+        do j=ogrid%j_strt, ogrid%j_stop
+        do i=ogrid%i_strt, ogrid%i_stop
+          IF (FOCEAN(i,j).gt.0) then
+            call VLKtoLZ(kgrd,lmm(i,j),nodc_depths,ze(i, j, :),
      &                             fldo(i,j,:),fldo2(i,j,:))
-        ENDIF
-      enddo
-      enddo
+          ENDIF
+        enddo
+        enddo
+      endif
 #else
       call bio_inicond_read(filename, dlatm, 180d0, .true., data2)
 

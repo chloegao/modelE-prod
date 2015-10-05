@@ -525,6 +525,58 @@ c------------------------------------------------------------------------------
       module bio_inicond_mod
       contains
 
+      subroutine bio_inicond_read_new(filename, fldo)
+      use pario, only : par_open,par_close
+     &     ,read_data,read_dist_data,get_dimlens
+      use obio_com, only: ze
+#ifdef OBIO_ON_GARYocean
+      use oceanres, only : kdm=>lmo
+      use oceanr_dim, only : ogrid
+      use ocean, only : ip=>focean, lmm
+#else
+      USE hycom_dim, only : kdm, ogrid, ip
+#endif
+      implicit none
+      character(len=*), intent(in) :: filename
+      real, dimension(ogrid%i_strt:ogrid%i_stop,
+     &    ogrid%j_strt:ogrid%j_stop, kdm), intent(out) ::  fldo
+      real*8, dimension(:,:,:), allocatable :: array
+      real*8, dimension(:), allocatable :: depth
+      integer :: fid, dlens(7), ndims, i, j
+      logical :: regrid
+      interface
+        Subroutine VLKtoLZ (KM,LM, MK,ME, RK, RL,RZ)
+        Real*8 MK(KM),ME(0:LM), RK(KM), RL(LM)
+        Real*8, optional :: RZ(LM)
+        end Subroutine VLKtoLZ
+      end interface
+
+      fid=par_open(ogrid, filename, 'read')
+      call get_dimlens(ogrid, fid, 'array', ndims, dlens)
+      if ((dlens(1)/=ogrid%im_world).or.(dlens(2)/=ogrid%jm_world))
+     &   call stop_model('dimension mismatch: '//trim(filename), 255)
+      allocate(array(ogrid%i_strt:ogrid%i_stop,
+     &                  ogrid%j_strt:ogrid%j_stop, dlens(3)))
+      allocate(depth(dlens(3)))
+      call read_data(ogrid, fid, 'depth', depth, bcast_all=.true.)
+      call read_dist_data(ogrid, fid, 'array', array)
+      regrid=kdm/=dlens(3)
+      if (.not.regrid) regrid=all(abs(depth-
+     &                      ze(ogrid%i_strt, ogrid%j_strt, :))<1d0)
+      if (regrid) then
+        do i=ogrid%i_strt,ogrid%i_stop
+          do j=ogrid%j_strt,ogrid%j_stop
+            if (ip(i, j)==0) cycle
+            call vlktolz(dlens(3), lmm(i, j), depth, ze(i, j, :),
+     &           array(i, j, :), fldo(i, j, :))
+          end do
+        end do
+      else
+        fldo=array
+      endif
+      call par_close(ogrid, fid)
+      end subroutine bio_inicond_read_new
+
       subroutine bio_inicond_read(filename, dlatm, loff, setmin, fldo)
       USE FILEMANAGER, only: openunit,closeunit
       implicit none
