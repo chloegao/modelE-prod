@@ -525,6 +525,8 @@ c------------------------------------------------------------------------------
       module bio_inicond_mod
       contains
 
+!temporarily only on GISS ocean:
+#ifdef OBIO_ON_GARYocean
       subroutine bio_inicond_read_new(filename, fldo)
       use pario, only : par_open,par_close
      &     ,read_data,read_dist_data,get_dimlens
@@ -576,6 +578,7 @@ c------------------------------------------------------------------------------
       endif
       call par_close(ogrid, fid)
       end subroutine bio_inicond_read_new
+#endif
 
       subroutine bio_inicond_read(filename, dlatm, loff, setmin, fldo)
       USE FILEMANAGER, only: openunit,closeunit

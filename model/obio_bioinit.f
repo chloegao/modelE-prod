@@ -612,7 +612,11 @@ c  Total up points for check
       end subroutine fndreg
 c------------------------------------------------------------------------------
       subroutine bio_inicond(filename,fldo2)
-      use bio_inicond_mod, only: bio_inicond_read, bio_inicond_read_new
+      use bio_inicond_mod, only: bio_inicond_read
+!temporarily only on GISS ocean:
+#ifdef OBIO_ON_GARYocean
+      use bio_inicond_mod, only: bio_inicond_read_new
+#endif
       use dictionary_mod, only: sync_param
       use obio_com, only: ze
 #ifdef OBIO_ON_GARYocean
