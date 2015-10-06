@@ -573,12 +573,12 @@ c potential temperature.
 c
 
       X=RGAS*LHE*LHE/(SHA*RVAP)
-      bybetafac = radius/(2.*omega)
+      bybetafac = radius/(2.*abs(omega))
 
       DO J=J_0,J_1
       DO I=I_0,IMAXJ(J)
 
-        byfcor = 1d0/(2.*omega*abs(sinlat2d(i,j))+teeny)
+        byfcor = 1d0/(2.*abs(omega)*abs(sinlat2d(i,j))+teeny)
         bybeta = bybetafac/(coslat2d(i,j)+teeny)
 c troposphere
         w2max = maxval(ua(1:ls1-1,i,j)**2+va(1:ls1-1,i,j)**2)+teeny
