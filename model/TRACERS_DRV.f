@@ -9931,9 +9931,9 @@ C**** Apply chemistry and overwrite changes:
        tr3Dsource(I_0:I_1,J_0:J_1,:,nChemistry,n_NH3)  = 0.d0
 
 #ifdef TRACERS_SPECIAL_Shindell
-       call EQSAM_DRV(topLevelOfChemistry)
+       call NITRATE_THERMO_DRV(topLevelOfChemistry)
 #else
-       call EQSAM_DRV(LM)
+       call NITRATE_THERMO_DRV(LM)
 #endif
 
 #ifdef TRACERS_SPECIAL_Shindell
