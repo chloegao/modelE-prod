@@ -382,7 +382,7 @@ contains
     !****    (1) ADJUSTMENT TIME FOR STABILIZATION OF CLOUD BASE BY CUMULUS MASS
     !****        FLUX (TADJ): DEFAULT VALUE = 1.0 (HOUR)
     !****    (2) SCALING FACTOR FOR ENTRAINMENT STRENGTH (CONTCE): DEFAULT VALUES
-    !****        CONTCE1 = 0.3, CONTCE2 = 0.6
+    !****        CONTCE1 = 0.4, CONTCE2 = 0.6
     !****    (3) SCALING FACTOR FOR EFFECT OF PRESSURE GRADIENT ON CONVECTIVE
     !****        HORIZONTAL MOMENTUM TRANSPORT (PGRAD): DEFAULT VALUE = 0.7
     !****    (4) FRACTION OF UPDRAFT MASS ASSUMED FOR INITIAL DOWNDRAFT MASS (ETADN):
@@ -967,7 +967,6 @@ CLOUD_BASE: do LMIN=1,LMCM-1
       !****
 
       ITYPE=2           ! always 2 types of clouds: less and more entraining
-      FCTYPE=1.
 
       !**** STABILIZATION IS ASSUMED TO OCCUROVER 1 HOUR, SO ONLY APPLY A FRACTION
       !**** OF THE REQUIRED MASS FLUX IN ONE PHYSICS TIMESTEP
@@ -979,15 +978,13 @@ CLOUD_TYPES:  do IC=1,ITYPE
         !**** Initialise plume characteristics
         MC1=.false.    ! flag for first convection event
         LHX=LHE
-        MPLUME=min(AIRM(LMIN),AIRM(LMIN+1))
-        if(MPLUME.gt.FMP2) MPLUME=FMP2
+        MPLUME = Min (AIRM(LMIN), AIRM(LMIN+1), FMP2)
 
-        if(ITYPE.eq.2) then     ! cal. MPLUME for 1st plume and 2nd plume
+        !**** Compute MPLUME for 1st plume and 2nd plume
           FCTYPE=1.
-          if(MPLUME.gt.FMP0) FCTYPE=FMP0/MPLUME
+          if(MPLUME.gt.FMP0) FCTYPE=FMP0/MPLUME  !  FMP0 is proportional to amount of rising air
           if(IC.eq.2) FCTYPE=1.-FCTYPE
           if(FCTYPE.lt.0.001) cycle CLOUD_TYPES
-        end if
         MPLUM1=MPLUME
 
         !****
@@ -1001,20 +998,16 @@ CLOUD_TYPES:  do IC=1,ITYPE
         !****
 AREA_PARTITION: do NPPL=1,2
 
-          if(NPPL.eq.2)   then                  ! Perform 2nd pass if MC
-            if(.not.MC1 .or. MCCONT.lt.2)  then ! went more than 2 layers
-              cycle AREA_PARTITION              ! else - skip 2nd pass
-            else
+          If (NPPL==2 .and. (.not.MC1 .or. MCCONT.lt.2))  Cycle AREA_PARTITION
+          !**** Convection rose 2 or more layers for first AREA PARTITION
 
 #ifdef TRACERS_ON
-              call reset_tracer_work_arrays(lmin,lmax)
+                If (NPPL==2)  Call reset_tracer_work_arrays (lmin,lmax)
 #endif
 
 #if defined(TRACERS_AEROSOLS_Koch) || defined(TRACERS_AMP) || defined(TRACERS_TOMAS)
-      DT_SULF_MC(1:NTM,lmin:lmax)=0.
+                If (NPPL==2)  DT_SULF_MC(1:NTM,lmin:lmax) = 0
 #endif
-            end if
-          end if
 
           MPLUME=MPLUM1*FCTYPE
 
@@ -1087,8 +1080,7 @@ AREA_PARTITION: do NPPL=1,2
 
           !**** adjust MPLUME to take account of restricted area of subsidence
           !**** (i.e. MPLUME is now a greater fraction of the relevant airmass.
-          MPLUME=min( MPLUME/FMC1, &
-               AIRM(LMIN)*0.95d0*QM(LMIN)/(QMOLD(LMIN) + teeny) )
+          MPLUME = Min (MPLUME/FMC1, AIRM(LMIN)*0.95d0*QM(LMIN)/(QMOLD(LMIN) + teeny))
           if(MPLUME.le..001*AIRM(LMIN)) cycle CLOUD_TYPES
           FPLUME=MPLUME*BYAM(LMIN)
           SMP  =  SMOLD(LMIN)*FPLUME
@@ -1237,15 +1229,10 @@ CLOUD_TOP:  do L=LMIN+1,LM
 
 #ifdef TRACERS_ON
               DTM(L-1,1:NTX) = DTM(L-1,1:NTX)+DELTA*TMP(1:NTX)
-              DTMOM(xymoms,L-1,1:NTX)=DTMOM(xymoms,L-1,1:NTX)+DELTA &
-                   *TMOMP(xymoms,1:NTX)
+              DTMOM(xymoms,L-1,1:NTX) = DTMOM(xymoms,L-1,1:NTX) + DELTA*TMOMP(xymoms,1:NTX)
               TMP(1:NTX) = TMP(1:NTX)*(1.-DELTA)
               TMOMP(xymoms,1:NTX) = TMOMP(xymoms,1:NTX)*(1.-DELTA)
-!TOMAS DEBUG
-            DO N=1,NTM
-              if(TMP(n).lt.0.) print*,'TMP<0 2',TMP(n),trname(n),DELTA
-            ENDDO
-!TOMAS DEBUG
+              If (TMP(1:NTM) < 0)  Write (6,*) 'TMP<0 2',TMP(1:NTM),TRNAME(1:NTM),DELTA  !  TOMAS debug
 #endif
             end if
 
@@ -1290,10 +1277,8 @@ CLOUD_TOP:  do L=LMIN+1,LM
 
 #if defined(CLD_AER_CDNC) && (defined(TRACERS_AEROSOLS_Koch) || defined(TRACERS_AEROSOLS_SEASALT))
 !@auth Menon  saving aerosols mass for CDNC prediction
-            do N=1,SNTM
-              DSS(N)=1.d-10
-              DSGL(L,N)=1.d-10
-            enddo
+            DSS(1:SNTM) = 1d-10
+            DSGL(L,1:SNTM) = 1d-10
 #endif
 
 #if defined(CLD_AER_CDNC) && defined(ALT_CDNC_INPUTS)
@@ -1572,9 +1557,7 @@ CLOUD_TOP:  do L=LMIN+1,LM
                 ETAL1=FENTR/(FPLUME+teeny)
                 EPLUME=MPLUME*ETAL1
                 !**** Reduce EPLUME so that mass flux is less than mass in box
-                if (EPLUME.gt.AIRM(L)*0.975d0-MPLUME) then
-                  EPLUME=AIRM(L)*0.975d0-MPLUME
-                end if
+                If (EPLUME > AIRM(L)*0.975d0 - MPLUME)  EPLUME = AIRM(L)*0.975d0 - MPLUME
                 MPLUME=MPLUME+EPLUME
                 ETAL1=EPLUME/MPOLD
                 FENTR=ETAL1*FPOLD
@@ -1864,8 +1847,7 @@ CLOUD_TOP:  do L=LMIN+1,LM
 
 #ifdef TRACERS_ON
         DTM(LMAX,1:NTX) = DTM(LMAX,1:NTX) + TMPMAX(1:NTX)
-        DTMOM(xymoms,LMAX,1:NTX) = DTMOM(xymoms,LMAX,1:NTX) + &
-                                   TMOMPMAX(xymoms,1:NTX)
+        DTMOM(xymoms,LMAX,1:NTX) = DTMOM(xymoms,LMAX,1:NTX) + TMOMPMAX(xymoms,1:NTX)
 #endif
 
         CCM(LMAX)=0.
@@ -1920,8 +1902,7 @@ DOWNDRAFT: do L=LDRAFT,1,-1
             SLH=LHX*BYSHA
             TNX1=SMDN*PLK(L)/DDRAFT   ! save for tracers
 
-            call get_dq_evap(smdn,qmdn,plk(l),ddraft,lhx,pl(l),cond(l) &
-                 ,dqsum,fqcond1)
+            call get_dq_evap(smdn,qmdn,plk(l),ddraft,lhx,pl(l),cond(l), dqsum,fqcond1)
 
             !**** EVAPORATE CONVECTIVE CONDENSATE IN DOWNDRAFT AND UPDATE DOWNDRAFT
             !**** TEMPERATURE AND HUMIDITY; CURRENTLY ALL CONDENSATE IS ALLOWED TO
@@ -1950,22 +1931,19 @@ DOWNDRAFT: do L=LDRAFT,1,-1
             !**** RE-EVAPORATION OF TRACERS IN DOWNDRAFTS
             !**** (If 100% evaporation, allow all tracers to evaporate completely.)
             if(FQEVP.eq.1.) then  ! total evaporation
-              TMDN(1:NTX)     = TMDN(1:NTX) + TRCOND(1:NTX,L)
 
 #ifdef TRDIAG_WETDEPO
-              if (diag_wetdep == 1) &
-                   trdvap_mc(l,1:ntx)=trdvap_mc(l,1:ntx)+trcond(1:ntx,l)
+              if (diag_wetdep == 1)  trdvap_mc(l,1:ntx) = trdvap_mc(l,1:ntx) + trcond(1:ntx,l)
 #endif
 
+              TMDN(1:NTX)     = TMDN(1:NTX) + TRCOND(1:NTX,L)
               TRCOND(1:NTX,L) = 0.d0
             else            ! otherwise, tracers evaporate dependent on type of tracer
-              call GET_EVAP_FACTOR_array( &
-                   NTX,TNX1,LHX,.false.,1d0,FQEVP,FQEVPT,ntix)
+              call GET_EVAP_FACTOR_array (NTX,TNX1,LHX,.false.,1d0,FQEVP,FQEVPT,ntix)
               dtr(1:ntx) = fqevpt(1:ntx)*trcond(1:ntx,l)
 
 #ifdef TRDIAG_WETDEPO
-              if (diag_wetdep == 1) trdvap_mc(l,1:ntx)=trdvap_mc(l,1:ntx) &
-                   +dtr(1:ntx)
+              if (diag_wetdep == 1)  trdvap_mc(l,1:ntx) = trdvap_mc(l,1:ntx) + dtr(1:ntx)
 #endif
 
               TMDN(1:NTX)     = TMDN(1:NTX)     + DTR(1:NTX)
@@ -1990,13 +1968,10 @@ DOWNDRAFT: do L=LDRAFT,1,-1
                    -QCLL(L-1)-QCIL(L-1))
               END IF
 
-              if ((SVMIX-SVM1).ge.DTMIN1) then
-                DDRAFT=FDDET*DDRUP             ! detrain downdraft if buoyant
-              end if
+              If (SVMIX-SVM1 >= DTMIN1)  DDRAFT = FDDET*DDRUP  !  detrain downdraft if buoyant
 
               !**** LIMIT SIZE OF DOWNDRAFT IF NEEDED
-              if(DDRAFT.gt..95d0*(AIRM(L-1)+DMR(L-1))) &
-                   DDRAFT=.95d0*(AIRM(L-1)+DMR(L-1))
+              If (DDRAFT > .95d0*(AIRM(L-1)+DMR(L-1)))  DDRAFT = .95d0*(AIRM(L-1)+DMR(L-1))
               EDRAFT=DDRAFT-DDRUP
 
               !**** ENTRAIN INTO DOWNDRAFT, UPDATE TEMPERATURE AND HUMIDITY
@@ -2027,8 +2002,7 @@ DOWNDRAFT: do L=LDRAFT,1,-1
 #ifdef TRACERS_ON
                 Tenv(1:NTX)=tm(l,1:NTX)/airm(l)
                 TMDN(1:NTX)=TMDN(1:NTX)+EDRAFT*Tenv(1:NTX)
-                TMOMDN(xymoms,1:NTX)= TMOMDN(xymoms,1:NTX)+ TMOM(xymoms,L &
-                     ,1:NTX)*FENTRA
+                TMOMDN(xymoms,1:NTX)= TMOMDN(xymoms,1:NTX) + TMOM(xymoms,L,1:NTX)*FENTRA
                 DTMR(L,1:NTX)=DTMR(L,1:NTX)-EDRAFT*TENV(1:NTX)
                 DTMOMR(:,L,1:NTX)=DTMOMR(:,L,1:NTX)-TMOM(:,L,1:NTX)*FENTRA
 #endif
@@ -2055,8 +2029,7 @@ DOWNDRAFT: do L=LDRAFT,1,-1
 
 #ifdef TRACERS_ON
                 DTM(L,1:NTX)=DTM(L,1:NTX)-FENTRA*TMDN(1:NTX)
-                DTMOM(xymoms,L,1:NTX)=DTMOM(xymoms,L,1:NTX)- &
-                     TMOMDN(xymoms,1:NTX)*FENTRA
+                DTMOM(xymoms,L,1:NTX) = DTMOM(xymoms,L,1:NTX) - TMOMDN(xymoms,1:NTX)*FENTRA
                 TMDN(1:NTX)=TMDN(1:NTX)*(1.+FENTRA)
                 TMOMDN(xymoms,1:NTX)= TMOMDN(xymoms,1:NTX)*(1.+FENTRA)
 #endif
@@ -2090,10 +2063,8 @@ DOWNDRAFT: do L=LDRAFT,1,-1
               end do
 
 #ifdef TRACERS_ON
-              do N=1,NTX
-                TMDN(N)=TMDN(N)+TMDNL(L-1,N)
-                TMOMDN(xymoms,N)=TMOMDN(xymoms,N)+TMOMDNL(xymoms,L-1,N)
-              end do
+              TMDN(1:NTX) = TMDN(1:NTX) + TMDNL(L-1,1:NTX)
+              TMOMDN(xymoms,1:NTX) = TMOMDN(xymoms,1:NTX) + TMOMDNL(xymoms,L-1,1:NTX)
 #endif
 
             end if
@@ -2129,17 +2100,13 @@ DOWNDRAFT: do L=LDRAFT,1,-1
         !**** Calculate vertical mass fluxes (Note CM for subsidence is defined
         !**** in opposite sense than normal (positive is down))
         if(LDMIN.gt.LMIN) LDMIN=LMIN    ! some loops require LMIN to LMAX
-        do L=0,LDMIN-1
-          CM(L) = 0.
-        end do
+        CM(0:LDMIN-1) = 0
         do L=LDMIN,LMAX
           CM(L) = CM(L-1) - DM(L) - DMR(L)
           SMT(L)=SM(L)    ! Save profiles for diagnostics
           QMT(L)=QM(L)
         end do
-        do L=LMAX,LM
-          CM(L) = 0.
-        end do
+        CM(LMAX:LM) = 0
         !**** simple upwind scheme for momentum
         do K=1,KMAX
           SUMU(K)=sum(UM(K,LDMIN:LMAX))
@@ -2149,8 +2116,7 @@ DOWNDRAFT: do L=LDRAFT,1,-1
         ALPHA=0.
         do L=LDMIN,LMAX
           CLDM=CCM(L)
-          if(L.lt.LDRAFT.and.L.ge.LLMIN.and.ETADN.gt.1d-10) &
-               CLDM=CCM(L)-DDM(L)
+          If (L < LDRAFT .and. L >= LLMIN .and. ETADN > 1d-10)  CLDM = CCM(L) - DDM(L)
           if(MC1) VSUBL(L)=100.*CLDM*RGAS*TL(L)/(PL(L)*GRAV*DTsrc)
           BETA=CLDM*BYAM(L+1)
           if(CLDM.lt.0.) BETA=CLDM*BYAM(L)
@@ -2159,10 +2125,8 @@ DOWNDRAFT: do L=LDRAFT,1,-1
           if(BETA.lt.0.) BETAU=0.
           if(ALPHA.lt.0.) ALPHAU=0.
           do K=1,KMAX
-            UM(K,L)= &
-                 UM(K,L)+RA(K)*(-ALPHAU*UM(K,L)+BETAU*UM(K,L+1)+DUM(K,L))
-            VM(K,L)= &
-                 VM(K,L)+RA(K)*(-ALPHAU*VM(K,L)+BETAU*VM(K,L+1)+DVM(K,L))
+            UM(K,L) = UM(K,L) + RA(K)*(-ALPHAU*UM(K,L)+BETAU*UM(K,L+1)+DUM(K,L))
+            VM(K,L) = VM(K,L) + RA(K)*(-ALPHAU*VM(K,L)+BETAU*VM(K,L+1)+DVM(K,L))
           end do
           ALPHA=BETA
         end do
@@ -2171,10 +2135,8 @@ DOWNDRAFT: do L=LDRAFT,1,-1
           SUMV1(K)=sum(VM(K,LDMIN:LMAX))
         end do
         do K=1,KMAX                          ! momentum adjustment
-          UM(K,LDMIN:LMAX)=UM(K,LDMIN:LMAX)-(SUMU1(K)-SUMU(K))* &
-               AIRM(LDMIN:LMAX)/SUMDP
-          VM(K,LDMIN:LMAX)=VM(K,LDMIN:LMAX)-(SUMV1(K)-SUMV(K))* &
-               AIRM(LDMIN:LMAX)/SUMDP
+          UM(K,LDMIN:LMAX) = UM(K,LDMIN:LMAX) - (SUMU1(K)-SUMU(K))*AIRM(LDMIN:LMAX)/SUMDP
+          VM(K,LDMIN:LMAX) = VM(K,LDMIN:LMAX) - (SUMV1(K)-SUMV(K))*AIRM(LDMIN:LMAX)/SUMDP
         end do
 
         !****
@@ -2223,13 +2185,11 @@ DOWNDRAFT: do L=LDRAFT,1,-1
           do N=1,NTX
             ML(LDMIN:LMAX) =  AIRM(LDMIN:LMAX) +    DMR(LDMIN:LMAX)*BYKSUB
             TM(LDMIN:LMAX,N) =  TM(LDMIN:LMAX,N) + DTMR(LDMIN:LMAX,N)*BYKSUB
-            TMOM(:,LDMIN:LMAX,N) = TMOM(:,LDMIN:LMAX,N)+DTMOMR(:,LDMIN:LMAX,N) &
-                 *BYKSUB
+            TMOM(:,LDMIN:LMAX,N) = TMOM(:,LDMIN:LMAX,N) + DTMOMR(:,LDMIN:LMAX,N)*byKSUB
             call adv1d(tm(ldmin,n),tmom(1,ldmin,n), f(ldmin),fmom(1,ldmin), &
                  ml(ldmin),cmneg(ldmin), nsub,t_qlimit(n),1, zdir,ierrt,lerrt)
             TM(LDMIN:LMAX,N) = TM(LDMIN:LMAX,N) +   DTM(LDMIN:LMAX,N)*BYKSUB
-            TMOM(:,LDMIN:LMAX,N) = TMOM(:,LDMIN:LMAX,N) +DTMOM(:,LDMIN:LMAX,N) &
-                 *BYKSUB
+            TMOM(:,LDMIN:LMAX,N) = TMOM(:,LDMIN:LMAX,N) + DTMOM(:,LDMIN:LMAX,N)*byKSUB
             ierr=max(ierrt,ierr) ; lerr=max(lerrt+ldmin-1,lerr)
           end do
 #endif
@@ -2238,8 +2198,7 @@ DOWNDRAFT: do L=LDRAFT,1,-1
         !**** Check for v. rare negative humidity error condition
         do L=LDMIN,LMAX
           if(QM(L).lt.0.d0) then
-            write(6,*) ' Q neg: it,i,j,l,q,cm',itime,i_debug,j_debug,l &
-                 ,qm(l),cmneg(l)
+            write(6,*) ' Q neg: it,i,j,l,q,cm',itime,i_debug,j_debug,l,qm(l),cmneg(l)
             !**** reduce subsidence post hoc.
             LM1=max(1,L-1)
             if (QM(LM1)+QM(L).lt.0) then
@@ -2273,8 +2232,7 @@ DOWNDRAFT: do L=LDRAFT,1,-1
 
           do L=LDMIN,LMAX
 !            if (TM(L,N).lt.0.) then
-!              write(6,*) trname(n),' neg: it,i,j,l,tr,cm',itime,i_debug &
-!                   ,j_debug,l,tm(l,n),cmneg(l)
+!              write(6,*) trname(n),' neg: it,i,j,l,tr,cm',itime,i_debug,j_debug,l,tm(l,n),cmneg(l)
 !              !**** reduce subsidence post hoc.
 !              LM1=max(1,L-1)
 !              if (TM(LM1,N)+TM(L,N).lt.0) then
@@ -2295,11 +2253,9 @@ DOWNDRAFT: do L=LDRAFT,1,-1
                 write(6,*) trname(n)," neg cannot be fixed!",L,TM(1:L,N)
               else
                 if(l-lborrow1.gt.1) then
-                  write(6,*) trname(n),' nonlocal borrow: it,i,j,l,tr,cm', &
-                       itime,i_debug,j_debug,l,tm(lborrow1:l,n),cmneg(l)
+                  write(6,*) trname(n),' nonlocal borrow: it,i,j,l,tr,cm',itime,i_debug,j_debug,l,tm(lborrow1:l,n),cmneg(l)
                 else
-                  write(6,*) trname(n),' neg: it,i,j,l,tr,cm', &
-                       itime,i_debug,j_debug,l,tm(l,n),cmneg(l)
+                  write(6,*) trname(n),' neg: it,i,j,l,tr,cm',itime,i_debug,j_debug,l,tm(l,n),cmneg(l)
                 endif
                 ! note: borrowing from more than one layer is done by
                 ! multiplication rather than subtraction
@@ -2322,13 +2278,11 @@ DOWNDRAFT: do L=LDRAFT,1,-1
           DGDQM(L)=DGDQM(L)+SLHE*(QM(L)-QMT(L))*FMC1
           DQMTOTAL(L)=DQMTOTAL(L)+(QM(L)-QMT(L))*BYAM(L)*FMC1
           if(PLE(LMAX+1).gt.700.d0) then
-            DGSHLW(L)=DGSHLW(L)+ &
-                 (PLK(L)*(SM(L)-SMT(L))-FCDH-FCDH1)*FMC1
+            DGSHLW(L) = DGSHLW(L) + (PLK(L)*(SM(L)-SMT(L))-FCDH-FCDH1)*FMC1
             DQMSHLW(L)=DQMSHLW(L)+(QM(L)-QMT(L))*BYAM(L)*FMC1
           endif
           if(PLE(LMIN)-PLE(LMAX+1).ge.450.d0) then
-            DGDEEP(L)=DGDEEP(L)+ &
-                 (PLK(L)*(SM(L)-SMT(L))-FCDH-FCDH1)*FMC1
+            DGDEEP(L) = DGDEEP(L) + (PLK(L)*(SM(L)-SMT(L))-FCDH-FCDH1)*FMC1
             DQMDEEP(L)=DQMDEEP(L)+(QM(L)-QMT(L))*BYAM(L)*FMC1
           endif
           DTOTW(L)=DTOTW(L)+SLHE*(QM(L)-QMT(L)+COND(L))*FMC1
@@ -2345,10 +2299,8 @@ DOWNDRAFT: do L=LDRAFT,1,-1
         end do
 
         !**** save new 'environment' profile for static stability calc.
-        do L=1,LM
-          SM1(L)=SM(L)
-          QM1(L)=QM(L)
-        end do
+        SM1(1:LM) = SM(1:LM)
+        QM1(1:LM) = QM(1:LM)
 
 #ifdef TRACERS_ON
         TM1(:,1:NTX) = TM(:,1:NTX)
@@ -2378,8 +2330,7 @@ DOWNDRAFT: do L=LDRAFT,1,-1
             !**** Apportion cloud tracers and condensation
             !**** Note that TRSVWML is in mass units unlike SVWMX
 #if defined(TRACERS_WATER)  && defined(TRDIAG_WETDEPO)
-            if (diag_wetdep == 1) &
-                 trflcw_mc(l,1:ntx)=trflcw_mc(l,1:ntx)+fclw*trcond(1:ntx,l)
+            if (diag_wetdep == 1)  trflcw_mc(l,1:ntx) = trflcw_mc(l,1:ntx) + fclw*trcond(1:ntx,l)
 #endif
 
 #ifdef TRACERS_WATER
@@ -2407,22 +2358,18 @@ DOWNDRAFT: do L=LDRAFT,1,-1
         if ((TOLD.gt.TF .and. vlat(Lmax).eq.lhs) .or. (TOLD.le.TF .and. &
              vlat(lmax).eq.lhe)) then
           FSSUM = 0
-          if (abs(PLK(LMAX)*SM(LMAX)).gt.teeny .and. ((lhp(lmax)-vlat(lmax &
-               ))*PRCP*BYSHA).lt.0) FSSUM = -(lhp(lmax)-vlat(lmax))*PRCP &
-               *BYSHA/(PLK(LMAX)*SM(LMAX))
-          if (debug) print*,"cnv0",lmax,(lhp(lmax)-vlat(lmax))*PRCP*BYSHA &
-               /PLK(LMAX),lhp(lmax),vlat(lmax)
+          If (Abs(PLK(LMAX)*SM(LMAX)) > teeny .and. (lhp(lmax)-vlat(lmax))*PRCP*bySHA < 0) &
+             FSSUM = - (lhp(lmax)-vlat(lmax))*PRCP*bySHA / (PLK(LMAX)*SM(LMAX))
+          If (debug)  Write (6,*) 'cnv0',lmax, (lhp(lmax)-vlat(lmax))*PRCP*bySHA/PLK(LMAX), lhp(lmax),vlat(lmax)
           SM(LMAX)=SM(LMAX)+(lhp(lmax)-vlat(lmax))*PRCP*BYSHA/PLK(LMAX)
           SMOM(:,LMAX) =  SMOM(:,LMAX)*(1.-FSSUM)
         end if
 
         !**** add in heat1 from lmax
-        if (heat1(lmax).ne.0) print*,"cnvA",i_debug,j_debug,lmax &
-             ,heat1(lmax),vlat(lmax),lhp(lmax),prcp
+        If (heat1(lmax) /= 0)  Write (6,*) 'cnvA',i_debug,j_debug,lmax,heat1(lmax),vlat(lmax),lhp(lmax),prcp
 
         !      FSSUM = 0
-        !      IF (ABS(PLK(LMAX)*SM(LMAX)).gt.teeny .and. HEAT1(lmax).gt.0) FSSUM
-        !     *     = -heat1(lmax)/(PLK(LMAX)*SM(LMAX))
+        !      If (Abs(PLK(LMAX)*SM(LMAX)) > teeny .and. HEAT1(lmax) > 0)  FSSUM = - heat1(lmax) / (PLK(LMAX)*SM(LMAX))
         !      SM(LMAX)=SM(LMAX)-heat1(lmax)/PLK(LMAX)
         !      SMOM(:,LMAX) =  SMOM(:,LMAX)*(1.-FSSUM)
 
@@ -2434,17 +2381,12 @@ DOWNDRAFT: do L=LDRAFT,1,-1
 #endif
 
 #if defined(TRACERS_WATER) && defined(TRDIAG_WETDEPO)
-        if (diag_wetdep == 1) &
-             trprcp_mc(lmax,1:ntx)=trprcp_mc(lmax,1:ntx) &
-             +trcond(1:ntx,lmax)
+        if (diag_wetdep == 1)  trprcp_mc(lmax,1:ntx) = trprcp_mc(lmax,1:ntx) + trcond(1:ntx,lmax)
 #endif
 
-        DPHASE(LMAX)=DPHASE(LMAX)+(CDHSUM-CDHSUM1+ &
-             CDHM)*FMC1
-        if(PLE(LMAX+1).gt.700.d0) DPHASHLW(LMAX)=DPHASHLW(LMAX)+ &
-             (CDHSUM-CDHSUM1+CDHM)*FMC1
-        if(PLE(LMIN)-PLE(LMAX+1).ge.450.d0) DPHADEEP(LMAX)= &
-             DPHADEEP(LMAX)+(CDHSUM-CDHSUM1+CDHM)*FMC1
+        DPHASE(LMAX) = DPHASE(LMAX) + (CDHSUM-CDHSUM1+CDHM)*FMC1
+        If (PLE(LMAX+1)           >  700)  DPHASHLW(LMAX) = DPHASHLW(LMAX) + (CDHSUM-CDHSUM1+CDHM)*FMC1
+        If (PLE(LMIN)-PLE(LMAX+1) >= 450)  DPHADEEP(LMAX) = DPHADEEP(LMAX) + (CDHSUM-CDHSUM1+CDHM)*FMC1
 
 !**** Loop down from top of plume
 EVAP_PRECIP: do L=LMAX-1,1,-1
@@ -2456,8 +2398,7 @@ EVAP_PRECIP: do L=LMAX-1,1,-1
 
           !**** stop if FCLOUD negative
           IF(FCLOUD.lt.0d0) THEN
-            WRITE(6,*) 'negative cloud cover',I_debug,J_debug, &
-              L,CCM(L),WCU(L),TL(L),FCLOUD
+            WRITE(6,*) 'negative cloud cover',I_debug,J_debug,L,CCM(L),WCU(L),TL(L),FCLOUD
             call stop_model("MSTCNV: negative cloud cover", 255)
           END IF
 
@@ -2469,10 +2410,8 @@ EVAP_PRECIP: do L=LMAX-1,1,-1
           if(FEVAP.gt..5) FEVAP=.5
           CLDMCL(L+1)=min(CLDMCL(L+1)+FCLOUD*FMC1,FMC1)
           CLDREF=CLDMCL(L+1)
-          if(PLE(LMAX+1).gt.700..and.CLDREF.gt.CLDSLWIJ) &
-               CLDSLWIJ=CLDREF
-          if(PLE(LMIN)-PLE(LMAX+1).ge.450..and.CLDREF.gt.CLDDEPIJ) &
-               CLDDEPIJ=CLDREF
+          If (PLE(LMAX+1)           >  700 .and. CLDREF > CLDSLWIJ)  CLDSLWIJ = CLDREF
+          If (PLE(LMIN)-PLE(LMAX+1) >= 450 .and. CLDREF > CLDDEPIJ)  CLDDEPIJ = CLDREF
           TOLD=SMOLD(L)*PLK(L)*BYAM(L)
           TOLD1=SMOLD(L+1)*PLK(L+1)*BYAM(L+1)
 
@@ -2494,8 +2433,7 @@ EVAP_PRECIP: do L=LMAX-1,1,-1
 
           if (PRCP.gt.0.) then
 
-            if (mcloud.gt.0) call get_dq_evap(smold(l),qmold(l),plk(l),airm(l) &
-                 ,lhx,pl(l),prcp*AIRM(L)/MCLOUD,dqsum,fprcp)
+            if (mcloud.gt.0) call get_dq_evap (smold(l),qmold(l),plk(l),airm(l),lhx,pl(l),prcp*AIRM(L)/MCLOUD, dqsum,fprcp)
             dqsum=dqsum*MCLOUD*BYAM(L)
 
             PRCP=PRCP-DQSUM
@@ -2505,8 +2443,7 @@ EVAP_PRECIP: do L=LMAX-1,1,-1
 
           !**** UPDATE TEMPERATURE DUE TO NET REEVAPORATION IN CLOUDS
           FSSUM = 0
-          if (abs(PLK(L)*SM(L)).gt.teeny .and. (SLH*DQSUM+HEAT1(L)).gt.0) &
-               FSSUM = (SLH*DQSUM+HEAT1(L))/(PLK(L)*SM(L))
+          If (Abs(PLK(L)*SM(L)) > teeny .and. SLH*DQSUM+HEAT1(L) > 0)  FSSUM = (SLH*DQSUM+HEAT1(L)) / (PLK(L)*SM(L))
           if (debug) print*,"cnv4",l,SLH*DQSUM,HEAT1(L)
           SM(L)=SM(L)-(SLH*DQSUM+HEAT1(L))/PLK(L)
           SMOM(:,L) =  SMOM(:,L)*(1.-FSSUM)
@@ -2517,13 +2454,11 @@ EVAP_PRECIP: do L=LMAX-1,1,-1
           DQCOND(L)=DQCOND(L)-SLH*DQSUM*FMC1
           DQCTOTAL(L)=DQCTOTAL(L)-DQSUM*BYAM(L)*FMC1
           if(PLE(LMAX+1).gt.700.d0) then
-            DPHASHLW(L)=DPHASHLW(L)- &
-                 (SLH*DQSUM-FCDH1+HEAT1(L))*FMC1
+            DPHASHLW(L) = DPHASHLW(L) - (SLH*DQSUM-FCDH1+HEAT1(L))*FMC1
             DQCSHLW(L)=DQCSHLW(L)-DQSUM*BYAM(L)*FMC1
           endif
           if(PLE(LMIN)-PLE(LMAX+1).ge.450.d0) then
-            DPHADEEP(L)=DPHADEEP(L)- &
-                 (SLH*DQSUM-FCDH1+HEAT1(L))*FMC1
+            DPHADEEP(L) = DPHADEEP(L) - (SLH*DQSUM-FCDH1+HEAT1(L))*FMC1
             DQCDEEP(L)=DQCDEEP(L)-DQSUM*BYAM(L)*FMC1
           endif
 
@@ -2540,21 +2475,18 @@ EVAP_PRECIP: do L=LMAX-1,1,-1
 
               do N=1,NTX
                 TM(L,N)   = TM(L,N)  + TRPRCP(N)
-                !         if (debug .and.n.eq.1) print*,"cld2",L,TM(L,N),TRPRCP(N),2
-                !     *         *FEVAP
+                !         if (debug .and.n.eq.1) print*,"cld2",L,TM(L,N),TRPRCP(N),2*FEVAP
                 TRPRCP(N) = 0.d0
               end do
             else ! otherwise, tracers evaporate dependent on type of tracer
               !**** estimate effective humidity
               if (below_cloud) then
                 TNX1=(SM(L)*PLK(L)-SLH*DQSUM*(1./(2.*MCLOUD)-1.))*BYAM(L)
-                HEFF=min(1d0,(QM(L)+DQSUM*(1./(2.*MCLOUD)-1.))*BYAM(L) &
-                     /QSAT(TNX1,LHX,PL(L)))
+                HEFF = Min (1d0, (QM(L)+DQSUM*(1/(2*MCLOUD)-1))*byAM(L)  /QSAT(TNX1,LHX,PL(L)))
               else
                 heff=1.
               end if
-              call GET_EVAP_FACTOR_array( &
-                   NTX,TOLD,LHX,BELOW_CLOUD,HEFF,FPRCP,FPRCPT,ntix)
+              Call GET_EVAP_FACTOR_array (NTX,TOLD,LHX,BELOW_CLOUD,HEFF,FPRCP,FPRCPT,ntix)
               dtr(1:ntx) = fprcpt(1:ntx)*trprcp(1:ntx)
 
 #ifdef TRDIAG_WETDEPO
@@ -2562,8 +2494,7 @@ EVAP_PRECIP: do L=LMAX-1,1,-1
 #endif
 
               TM(L,1:NTX) = TM(L,1:NTX)     + DTR(1:NTX)
-              !          if (debug .and.n.eq.1) print*,"cld3",L,TM(L,N),FPRCP
-              !     *         ,FPRCPT(N),TRPRCP(N)
+              !          if (debug .and.n.eq.1) print*,"cld3",L,TM(L,N),FPRCP,FPRCPT(N),TRPRCP(N)
               TRPRCP(1:NTX) = TRPRCP(1:NTX) - DTR(1:NTX)
             end if
 
@@ -2653,10 +2584,8 @@ EVAP_PRECIP: do L=LMAX-1,1,-1
               do N=1,NTX
                 TRPRCP(N) = DTR(N)+TRPRCP(N)+THWASH(N)
                 TM(L,N)=TM(L,N)*(1.-FWASHT(N))-THWASH(N)
-                !          if (debug .and.n.eq.1) print*,"cld4",L,TM(L,N),FWASHT(N)
-                !     *         ,THWASH(N)
-                TMOM(xymoms,L,N)=TMOM(xymoms,L,N) * &
-                     (1.-FWASHT(N)-TMFAC(N))
+                !          if (debug .and.n.eq.1) print*,"cld4",L,TM(L,N),FWASHT(N),THWASH(N)
+                TMOM(xymoms,L,N) = TMOM(xymoms,L,N) * (1 - FWASHT(N) - TMFAC(N))
               end do
             end if
 
@@ -2679,8 +2608,7 @@ EVAP_PRECIP: do L=LMAX-1,1,-1
           !**** Isotopic equilibration of liquid precip with water vapour
           if (LHX.eq.LHE .and. PRCP.gt.0) then
             do N=1,NTX
-              call ISOEQUIL(NTIX(N),TOLD,.true.,QM(L),PRCP,TM(L,N),TRPRCP(N) &
-                   ,0.5d0)
+              Call ISOEQUIL (NTIX(N),TOLD,.true.,QM(L),PRCP,TM(L,N),TRPRCP(N),0.5d0)
             end do
           end if
 #endif
@@ -2695,8 +2623,7 @@ EVAP_PRECIP: do L=LMAX-1,1,-1
             CLDMCL(1)=min(CLDMCL(1),FMC1)
           else
             RHO=PL(1)/(RGAS*TL(1))
-            CLDMCL(1)=min(CLDMCL(1)+FMC1*CCM(LMIN)/(RHO*GRAV*WCU(LMIN)* &
-                 DTsrc+teeny),FMC1)
+            CLDMCL(1) = Min (CLDMCL(1) + FMC1*CCM(LMIN) / (RHO*GRAV*WCU(LMIN)*DTsrc+teeny), FMC1)
           end if
         end if
         PRCPMC=PRCPMC+PRCP*FMC1
@@ -2725,22 +2652,16 @@ EVAP_PRECIP: do L=LMAX-1,1,-1
     if(LMCMIN.gt.0) then
 
       !**** set fssl array
-      do L=1,LMCMAX
-        FSSL(L)=1.-FMC1
-      end do
+      FSSL(1:LMCMAX) = 1 - FMC1
 
 #if defined(TRACERS_WATER) && defined(TRDIAG_WETDEPO)
       if (diag_wetdep == 1) then
-        do n=1,ntx
-          do l=1,lmcmax
-            trcond_mc(l,n)=trcond_mc(l,n)*fmc1
-            trdvap_mc(l,n)=trdvap_mc(l,n)*fmc1
-            trflcw_mc(l,n)=trflcw_mc(l,n)*fmc1
-            trprcp_mc(l,n)=trprcp_mc(l,n)*fmc1
-            trnvap_mc(l,n)=trnvap_mc(l,n)*fmc1
-            trwash_mc(l,n)=trwash_mc(l,n)*fmc1
-          enddo
-        enddo
+         trcond_mc(1:lmcmax,1:ntx) = trcond_mc(1:lmcmax,1:ntx)*fmc1
+         trdvap_mc(1:lmcmax,1:ntx) = trdvap_mc(1:lmcmax,1:ntx)*fmc1
+         trflcw_mc(1:lmcmax,1:ntx) = trflcw_mc(1:lmcmax,1:ntx)*fmc1
+         trprcp_mc(1:lmcmax,1:ntx) = trprcp_mc(1:lmcmax,1:ntx)*fmc1
+         trnvap_mc(1:lmcmax,1:ntx) = trnvap_mc(1:lmcmax,1:ntx)*fmc1
+         trwash_mc(1:lmcmax,1:ntx) = trwash_mc(1:lmcmax,1:ntx)*fmc1
       end if
 #endif
 
@@ -2802,10 +2723,8 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
       !**** ASSUMED BELOW CLOUD BASE FOR RAIN FALLING FROM DEEP CONVECTION
       if(CLDMCL(L).gt.0.) then
         TAUMCL(L)=AIRM(L)*COETAU
-        if(L.eq.LMCMAX .and. PLE(LMCMIN)-PLE(LMCMAX+1).lt.450.) &
-             TAUMCL(L)=AIRM(L)*.02d0
-        if(L.le.LMCMIN .and. PLE(LMCMIN)-PLE(LMCMAX+1).ge.450.) &
-             TAUMCL(L)=AIRM(L)*.02d0
+        If (L == LMCMAX .and. PLE(LMCMIN)-PLE(LMCMAX+1) <  450)  TAUMCL(L) = AIRM(L)*.02d0
+        If (L <= LMCMIN .and. PLE(LMCMIN)-PLE(LMCMAX+1) >= 450)  TAUMCL(L) = AIRM(L)*.02d0
       end if
       SVLAT1(L) = SVLATL(L)   ! used in large-scale clouds
       if(SVLATL(L).eq.0.) then
@@ -2822,8 +2741,7 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
         FCLD=CLDMCL(L)+1.E-20
         TEM=1.d5*SVWMXL(L)*AIRM(L)*BYGRAV
         WTEM=1.d5*SVWMXL(L)*PL(L)/(FCLD*TL(L)*RGAS)
-        if(SVLATL(L).eq.LHE.and.SVWMXL(L)/FCLD.ge.WCONST*1.d-3) &
-             WTEM=1d2*WCONST*PL(L)/(TL(L)*RGAS)
+        If (SVLATL(L) == LHE .and. SVWMXL(L)/FCLD >= WCONST*1d-3)  WTEM = 1d2*WCONST*PL(L) / (TL(L)*RGAS)
         if(WTEM.lt.1.d-10) WTEM=1.d-10
         !**   Set CDNC for moist conv. clds (const at present)
         MNdO = 59.68d0/(RWCLDOX**3)
@@ -4533,9 +4451,7 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
         QHEATI(L)=0.
         if (LHX.eq.LHE.and.QCLX(L).gt.0.) then
 
-          call get_dq_evap(tl(l)*rh00(l)/plk(l),ql(l)*rh00(l),plk(l) &
-               ,rh00(l),lhx,pl(l),qclx(l)/(fssl(l)*rh00(l)),dqsum,fqcond1 &
-               )
+          call get_dq_evap (tl(l)*rh00(l)/plk(l),ql(l)*rh00(l),plk(l),rh00(l),lhx,pl(l),qclx(l)/(fssl(l)*rh00(l)), dqsum,fqcond1)
           DWDT=DQSUM*RH00(L)*FSSL(L)
 
           !**** DWDT is amount of water going to vapour, store LH (sets QNEW below)
@@ -4546,9 +4462,7 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
         end if
         if (LHX.eq.LHS.and.QCIX(L).gt.0.) then
 
-          call get_dq_evap(tl(l)*rh00(l)/plk(l),ql(l)*rh00(l),plk(l) &
-               ,rh00(l),lhx,pl(l),qcix(l)/(fssl(l)*rh00(l)),dqsum,fqcond1 &
-               )
+          call get_dq_evap (tl(l)*rh00(l)/plk(l),ql(l)*rh00(l),plk(l),rh00(l),lhx,pl(l),qcix(l)/(fssl(l)*rh00(l)), dqsum,fqcond1)
           DWDT=DQSUM*RH00(L)*FSSL(L)
 
           !**** DWDT is amount of water going to vapour, store LH (sets QNEW below)
