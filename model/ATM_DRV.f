@@ -5,7 +5,7 @@
       USE Dictionary_mod
       Use RESOLUTION, Only: IM,JM,LM
       Use CONSTANT,   Only: SHA,SHV
-      Use GEOM,       Only: AREAG,AXYP
+      Use GEOM,       Only: AXYP
       Use ATM_COM,    Only: MASUM,MA,MAOLD,PMID,PMIDOLD, PK,T,Q,QCL,QCI,
      &                      MUs,MVs, KEA
       Use DIAG_COM,   Only: AIJ=>AIJ_LOC,
@@ -80,7 +80,9 @@ C****
       CALL CHECKT ('DYNAM0')
          MODD5D=MOD(Itime-ItimeI,NDA5D)
          IF (MODD5D.EQ.0) IDACC(ia_d5d)=IDACC(ia_d5d)+1
+#ifndef SCM
          IF (MODD5D.EQ.0) CALL DIAG5A (2,0)
+#endif
          IF (MODD5D.EQ.0) CALL DIAGCA (1)
 
 C**** Save MA and PMID before dynamics for Q advection and clouds
@@ -212,10 +214,13 @@ C**** calculate zenith angle for current time step
       CALL CALC_ZENITH_ANGLE
          CALL CHECKT ('DYNAM ')
          CALL TIMER (NOW,MSURF)
+#ifndef SCM
          IF (MODD5D.EQ.0) CALL DIAG5A (7,NIdyn)
+#endif
          IF (MODD5D.EQ.0) CALL DIAGCA (2)
+#ifndef SCM
          IF (MOD(Itime,NDAY/2).eq.0) CALL DIAG7A
-
+#endif
 C****
 C**** INTEGRATE SOURCE TERMS
 C****
@@ -234,7 +239,9 @@ c dissipation gets included in the KE->PE adjustment
          MODD5S=MOD(Itime-ItimeI,NDA5S)
          atmocn%MODD5S = MODD5S
          IF (MODD5S.EQ.0) IDACC(ia_d5s)=IDACC(ia_d5s)+1
+#ifndef SCM
          IF (MODD5S.EQ.0.AND.MODD5D.NE.0) CALL DIAG5A (1,0)
+#endif
          IF (MODD5S.EQ.0.AND.MODD5D.NE.0) CALL DIAGCA (1)
 
 C**** FIRST CALL MELT_SI SO THAT TOO SMALL ICE FRACTIONS ARE REMOVED
@@ -251,7 +258,9 @@ C**** CONDENSATION, SUPER SATURATION AND MOIST CONVECTION
       CALL CONDSE
          CALL CHECKT ('CONDSE')
          CALL TIMER (NOW,MCNDS)
+#ifndef SCM
          IF (MODD5S.EQ.0) CALL DIAG5A (9,NIdyn)
+#endif
          IF (MODD5S.EQ.0) CALL DIAGCA (3)
 
 C**** RADIATION, SOLAR AND THERMAL
@@ -259,7 +268,9 @@ C**** RADIATION, SOLAR AND THERMAL
       CALL RADIA
          CALL CHECKT ('RADIA ')
          CALL TIMER (NOW,MRAD)
+#ifndef SCM
          IF (MODD5S.EQ.0) CALL DIAG5A (11,NIdyn)
+#endif
          IF (MODD5S.EQ.0) CALL DIAGCA (4)
 
 #ifdef TRACERS_ON
