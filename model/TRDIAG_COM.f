@@ -233,6 +233,9 @@ C**** TAIJLS 3D special tracer diagnostics
      & ,ijlt_NOxLgt,ijlt_NOvmr,ijlt_NO2vmr,ijlt_JO1D,ijlt_JNO2
      & ,ijlt_JH2O2,ijlt_prodSO4aq,ijlt_prodSO4gs,ijlt_O3ppbv
      & ,ijlt_O3cmatm
+!@var ijlt_aH2O aerosol H2O from thermodynamics (ug/m3)
+!@var ijlt_apH aerosol pH from thermodynamics (dimensionless)
+      integer :: ijlt_aH2O,ijlt_apH
 #ifdef SOA_DIAGS
 !@var ijlt_soa_changeL_isoprene gas-phase changeL of isoprene SOA (ug/m3)
 #ifdef TRACERS_TERP

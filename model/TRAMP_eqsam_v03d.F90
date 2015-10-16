@@ -694,6 +694,7 @@ do il=1,loop
       yo(il,31) = PCl                                                 ! particulate chloride (p=a+s)     [umol/m^3]
       yo(il,32) = PNa                                                 ! particulate sodium (p=a+s)       [umol/m^3]
       yo(il,36) = RHD                                                 ! RH of deliquescence
+      yo(il,37) = HPLUS                                               ! H+ molality                      [mol/kg]
 enddo
 !
 end subroutine eqsam_v03d

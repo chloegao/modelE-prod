@@ -35,6 +35,7 @@
       USE ATM_COM,   only: pmid,pk,MA   ! midpoint pressure in hPa (mb)
 !                                             and pk is t mess up factor
       USE DOMAIN_DECOMP_ATM,only: GRID, getDomainBounds
+      use TRDIAG_COM, only: taijls=>taijls_loc,ijlt_aH2O,ijlt_apH
 
       IMPLICIT NONE
 
@@ -209,6 +210,9 @@ c avol [m3/gb] mass of air pro m3
       RHD   = 0.80D+00                            ! RHD = 0.80 for ammonium sulfate (Ghan et al., 2001).
       RHC   = 0.35D+00                            ! RHC = 0.35 for ammonium sulfate (Ghan et al., 2001).
 
+! save aerosol water (ug/m3) and aerosol pH (dimensionless)
+      taijls(I,J,L,ijlt_aH2O)=taijls(I,J,L,ijlt_aH2O)+AH2O
+      taijls(I,J,L,ijlt_apH)=taijls(I,J,L,ijlt_apH)+(-log10(AERLIQ(1)*1.d-3)) !  mol/m3 to mol/kg assuming density 1.d-3 kg/m3
 
 ! Nitrate production   from [ug/m^3] -> trm [kg/gb]
       tr3Dsource(i,j,l,1,n_NO3p)= ((ANO3 * 1.d-9 *AVOL) -trm(i,j,l,n_NO3p)) /dtsrc

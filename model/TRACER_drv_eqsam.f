@@ -45,12 +45,13 @@
       USE ATM_COM,   only: pmid,pk,MA   ! midpoint pressure in hPa (mb)
 !                                             and pk is t mess up factor
       USE DOMAIN_DECOMP_ATM,only: GRID, getDomainBounds
+      use TRDIAG_COM, only: taijls=>taijls_loc,ijlt_aH2O,ijlt_apH
 
       IMPLICIT NONE
 
       INTEGER:: j,l,i,J_0, J_1,n,I_0,I_1,LTOP
       INTEGER, PARAMETER :: NCA  = 11    ! fixed number of input variables
-      INTEGER, PARAMETER :: NCO  = 36    ! fixed number of output variables
+      INTEGER, PARAMETER :: NCO  = 37    ! fixed number of output variables
       INTEGER, PARAMETER :: IOPT =  1    ! =1 selects the metastable (wet) state and history
 !     INTEGER, PARAMETER :: IOPT =  2    ! =2 selects the solid      (dry) state and history
       INTEGER, PARAMETER :: LOOP =  1    ! only a single time step done
@@ -184,6 +185,9 @@ c avol [m3/gb] mass of air pro m3
       RHD   = 0.80D+00                            ! RHD = 0.80 for ammonium sulfate (Ghan et al., 2001).
       RHC   = 0.35D+00                            ! RHC = 0.35 for ammonium sulfate (Ghan et al., 2001).
  
+! save aerosol water (ug/m3) and aerosol pH (dimensionless)
+      taijls(I,J,L,ijlt_aH2O)=taijls(I,J,L,ijlt_aH2O)+AH2O
+      taijls(I,J,L,ijlt_apH)=taijls(I,J,L,ijlt_apH)+(-log10(YO(1,37)))
 
 ! Nitrate production   from [ug/m^3] -> trm [kg/gb]
       tr3Dsource(i,j,l,1,n_NO3p)= ((ANO3 * 1.d-9 *AVOL) -trm(i,j,l,n_NO3p)) /dtsrc

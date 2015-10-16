@@ -6544,6 +6544,23 @@ C**** 3D tracer-related arrays but not attached to any one tracer
 #endif /* ACCMIP_LIKE_DIAGS */
 #endif /* TRACERS_SPECIAL_Shindell */
 
+#ifdef TRACERS_NITRATE
+      k = k + 1
+        ijlt_aH2O=k
+        lname_ijlt(k) = 'aerosol H2O'
+        sname_ijlt(k) = 'aerosol_H2O'
+        ijlt_power(k) = 0
+        units_ijlt(k) = unit_string(ijlt_power(k),'ug/m3')
+        scale_ijlt(k) = 10.**(-ijlt_power(k))
+      k = k + 1
+        ijlt_apH=k
+        lname_ijlt(k) = 'aerosol pH'
+        sname_ijlt(k) = 'aerosol_pH'
+        ijlt_power(k) = 0
+        units_ijlt(k) = unit_string(ijlt_power(k),'')
+        scale_ijlt(k) = 10.**(-ijlt_power(k))
+#endif  /* TRACERS_NITRATE */
+
 #ifdef SOA_DIAGS
       k = k + 1
         ijlt_soa_changeL_isoprene=k
