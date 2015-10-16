@@ -314,6 +314,11 @@ C**** Add up the non-interactive tracer surface sources.
       implicit none
       integer :: it
 
+#ifdef SCM
+      ! update SST every time step for SCM cases
+      call daily_ocean(.false.,atmocn)
+#endif
+
       ! Step 1: copy fields not already stored in atmsrf%xxx
       atmsrf%prec = prec
       atmsrf%eprec = eprec
