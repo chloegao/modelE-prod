@@ -1232,7 +1232,9 @@ CLOUD_TOP:  do L=LMIN+1,LM
               DTMOM(xymoms,L-1,1:NTX) = DTMOM(xymoms,L-1,1:NTX) + DELTA*TMOMP(xymoms,1:NTX)
               TMP(1:NTX) = TMP(1:NTX)*(1.-DELTA)
               TMOMP(xymoms,1:NTX) = TMOMP(xymoms,1:NTX)*(1.-DELTA)
-              If (TMP(1:NTM) < 0)  Write (6,*) 'TMP<0 2',TMP(1:NTM),TRNAME(1:NTM),DELTA  !  TOMAS debug
+              DO N=1,NTM
+                if (TMP(n) < 0.) print *,'TMP<0 2',TMP(n),trname(n)  !  TOMAS debug
+              END DO
 #endif
             end if
 
