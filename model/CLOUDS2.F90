@@ -5508,7 +5508,7 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
       if(SCDNCW.gt.1400.d0) SCDNCw=1400.d0
       !     if (SCDNCW.gt.20.) write(6,*) "SCND CDNC",SCDNCW,NCLL(l),l
 #endif
-
+      wmpr(l) = max(wmpr(l),0d0)
       if(LHX.eq.LHE) then
 
         !         RCLD=(RWCLDOX*10.*(1.-PEARTH)+7.0*PEARTH)*(WTEM*4.)**BY3
@@ -5517,7 +5517,7 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
         if(RCLD.gt.RWMAX.and.PREP(L).gt.QHEATC) RCLD=RWMAX
         RCLDE=RCLD/BYBR
         RCLDE1 = RCLDE
-        if(use_vmp .and. lhp(l).eq.lhs) then
+        if(use_vmp .and. lhp(l).eq.lhs .and. wmpr(l).gt.0.) then
           RCLDE1 = 1.d5*WMPR(L)*PL(L)/(FCLD*TL(L)*RGAS+teeny)
           RCLDE1 =RCLDX*100.d0*(RCLDE1/(2.d0*BY3*TWOPI*SCDNCI))**BY3
           RCLDE1 = MIN(RCLDE1,RIMAX)/BYBR
