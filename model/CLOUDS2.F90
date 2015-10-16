@@ -4217,10 +4217,11 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
 #endif
       !**** COMPUTE THE AUTOCONVERSION RATE OF CLOUD WATER TO PRECIPITATION
 
-      if(QCLX(L)+QCIX(L).gt.0.) then
+      qcx = qclx(l)+qcix(l)
+
+      if(qcx.gt.0.) then
 
         RHO=1d5*PL(L)/(RGAS*TL(L))
-        qcx = 0.
 
         if(use_vmp) then
           if(tl(l) .gt. tmax_ice) then
@@ -4245,10 +4246,11 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
           ! reciprocal time constant CM.  Todo: try single interp.
           tem =  wconst*wtliq +    wmui*(1d0-wtliq)
           cm0 = cm00liq*wtliq + cm00ice*(1d0-wtliq)
+
         else
 
           if(LHX.EQ.LHE.AND.QCLX(L).gt.0.) then
-            QCX = QCLX(L)
+            !QCX = QCLX(L)
             TEM = WCONST
             CM00=1.d-4    ! 3.d-5
 
@@ -4292,7 +4294,7 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
         !C#endif
           end if
           if(LHX.EQ.LHS.AND.QCIX(L).gt.0.) then
-            QCX = QCIX(L)
+            !QCX = QCIX(L)
             TEM = WMUI
             if(SVWMXL(L).le.0d0) then
               CM00=1.d-3
@@ -4301,7 +4303,8 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
             endif
           end if
           ! limiting autoconversion rate
-          if(qcx.gt.0.) CM0=CM00
+          !if(qcx.gt.0.) CM0=CM00
+          CM0=CM00
 
           if(TL(L).lt.TF.and.LHX.eq.LHE) then ! check snowing pdf
             PRATM=1d5*COEFM*QCLX(L)*PL(L)/(WCONST*FCLD*TL(L)*RGAS+teeny)
@@ -4310,26 +4313,23 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
           end if
         endif ! use_vmp or not
 
-        if(qcx.gt.0.) then
-
-          if(vdef.gt.0. .and. rho*qcx.lt.10.0d0) then
-            cm0=cm0*10.**(-0.2*vdef)
-          endif
-
-          TEM=RHO*QCX/(TEM*FCLD+teeny)
-          TEM=TEM*TEM
-          if(TEM.gt.10.) TEM=10.
-          if(VDEF.gt.0..and.RHO*QCX.ge.10.0d0) CM0=CM00
-          CM1=CM0
-          if(BANDF) CM1=CM0*CBF      ! only for liquid clouds?
-          if(LHX.eq.LHS) CM1=CM0     ! already LHX.eq.LHS
-        !       CM1=CM0
-          CM=CM1*(1.-1./exp(TEM*TEM))+100.*(PREBAR(L+1)+ &
-               PRECNVL(L+1)*BYDTsrc)
-          CM=CM*CMX
-          if(CM.gt.BYDTsrc) CM=BYDTsrc
-          PREP(L)=QCX*CM ! PREP(L)+ precip from clouds
+        if(vdef.gt.0. .and. rho*qcx.lt.10.0d0) then
+          cm0=cm0*10.**(-0.2*vdef)
         endif
+
+        TEM=RHO*QCX/(TEM*FCLD+teeny)
+        TEM=TEM*TEM
+        if(TEM.gt.10.) TEM=10.
+        if(VDEF.gt.0..and.RHO*QCX.ge.10.0d0) CM0=CM00
+        CM1=CM0
+        if(BANDF) CM1=CM0*CBF      ! only for liquid clouds?
+        if(LHX.eq.LHS) CM1=CM0     ! already LHX.eq.LHS
+        !       CM1=CM0
+        CM=CM1*(1.-1./exp(TEM*TEM))+100.*(PREBAR(L+1)+ &
+               PRECNVL(L+1)*BYDTsrc)
+        CM=CM*CMX
+        if(CM.gt.BYDTsrc) CM=BYDTsrc
+        PREP(L)=QCX*CM
 
       else
         CM=0.
