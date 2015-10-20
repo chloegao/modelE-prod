@@ -28,6 +28,7 @@
     logical :: omega,w,VadvHwind,ls_v,ls_h,Qrad
     logical :: nudge,Fnudge
     logical :: BeersLaw,PlumeDiag
+    logical :: gradient,noMC,noCTEI
     real*8 :: lat,lon,area,tau
     integer :: sfc
   end type SCMoptions
@@ -56,6 +57,9 @@
 !@var SCMopt%area = SCM nominal area (m2)
 !@var SCMopt%tau = nudging time constant (s) for qv and T
 !@var SCMopt%sfc = 1:land, 2:ocean (defaults to land)
+!@var SCMopt%gradient = T:preserve gradients when interpolating
+!@var SCMopt%noMC = T:turn off moist convection
+!@var SCMopt%noCTEI = T:turn off cloud-top entrainment instability
 !@var SCMopts%BeersLaw = T:use Beer's Law treatment (only) for radiative heating
 !@var SCMopts%PlumeDiag = T:report moist convection plume diagnostics
 
@@ -140,6 +144,13 @@
   SCMopt%ls_h = file_exists('SCM_LS_H')
   SCMopt%Qrad = file_exists('SCM_QRAD')
   SCMopt%Fnudge = file_exists('SCM_FNUDGE')
+
+  ! optional preservation of gradients during interpolation of input profiles
+  SCMopt%gradient = is_set_param('SCM_gradient')
+
+  ! options to turn off moist convection, cloud-top entrainment instability
+  SCMopt%noMC = is_set_param('SCM_noMC')
+  SCMopt%noCTEI = is_set_param('SCM_noCTEI')
 
   ! optional Beer's Law radiative heating
   SCMopt%BeersLaw = is_set_param('SCM_BeersLaw')
