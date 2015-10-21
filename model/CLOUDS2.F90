@@ -3030,6 +3030,7 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
     integer                   :: nm,iuo=801
 #ifdef TRACERS_AMP
     real*8                    :: naero (mkx,nmodes)
+    real*8                    :: SNd_L (lm)
     !     real*8,dimension(lm,nmodes)   :: nactc
 #endif
 #ifdef TRACERS_TOMAS
@@ -4217,6 +4218,9 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
       if (SCDNCW.ge.1400.d0) SCDNCW=1400.d0     !set max CDNC, sensitivity test
       !     if (SNd.gt.20.) write(6,*)"CDNC LSS",SCDNCW,SNd,L
 #endif
+#ifdef TRACERS_AMP
+      SNd_L(L) = SNd  ! keep Number concentration value for use in second L-Loop in LSCOND
+#endif
       !**** COMPUTE THE AUTOCONVERSION RATE OF CLOUD WATER TO PRECIPITATION
 
       qcx = qclx(l)+qcix(l)
@@ -5401,7 +5405,7 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
       !     if (L.eq.1)write(6,*)"BLK_2M NUPD",NEWCDN,OLDCDN
 #endif
 #ifdef TRACERS_AMP
-      NCLL(L)=SNd
+      NCLL(L)=SNd_L(L)
       NCIL(L)=SNdi
 #endif
 #ifdef TRACERS_TOMAS
@@ -5428,11 +5432,15 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
         mdrop =QCLX(L)
         ndrop= NCLL(L)*1.d6  !mdrop/mw0         ! drop concent, [No/m3]
         if(QCLX(L).eq.0.) ndrop=0.0
+        ncrys = 0.
+        mcrys = 0.
       else
         mcrys =QCIX(L)
         WMXICE(L) = QCIX(L)
         ncrys= NCIL(L)*1.d6  !mcrys/mi0         ! crystal concent, [No/m3]
         if(QCIX(L).eq.0.) ncrys=0.0
+        ndrop = 0.
+        mdrop = 0.
       endif
       !      if(L.eq.1)write(6,*)"5th check BLK_2M",
       !    *WMX(L),NCLL(L),NCIL(L)
