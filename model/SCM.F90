@@ -713,7 +713,7 @@
   ! force potential temperature to modestly increase with height 
   ! in the appended layers
 
-  use SCM_com, only : nstepSCM, SCMin
+  use SCM_com, only : nstepSCM, SCMin, SCMopt
   use SCM_mod
   use constant, only : LHE
   use resolution, only : LM
@@ -775,7 +775,7 @@
       endif
 
     else
-    ! pressure-conserving interpolation to GCM layer center
+    ! linear or pressure-conserving interpolation to GCM layer center
 
       ! identify layer range of input data within the GCM layer
       Lbot = 0
@@ -789,27 +789,41 @@
       if(Pedge(Lgcm) > SCMin_tP%Le(1)) Lbot=1
       if(Pedge(Lgcm+1) > SCMin_tP%Le(1)) Ltop=1
 
-      ! pressure-weighted conversion to GCM layers with inputs,
-      ! variable-dependent treatment in GCM layers above
+      ! variable-dependent treatment in GCM layers above input profile
       if( Lbot > 0 .and. Lbot==Ltop )then
         ! GCM layer is below the first layer or within a single layer
         SCMinP(Lgcm) = SCMin_tP%value(nstepSCM,Lbot)
       else if( Lbot > 0 .and. Ltop > 0 )then
         ! GCM layer spans two or more input layers
-        dPtot = 0.
-        dPsum = 0.
-        do Ladd = Lbot,Ltop
-          if( Ladd==Lbot )then
-            dPadd = Pedge(Lgcm) - SCMin_tP%Le(Ladd+1)
-          else if( Ladd==Ltop )then
-            dPadd = SCMin_tP%Le(Ladd) - Pedge(Lgcm+1)
-          else
-            dPadd = SCMin_tP%Le(Ladd) - SCMin_tP%Le(Ladd+1)
-          endif
-          dPtot = dPtot + dPadd
-          dPsum = dPsum + dPadd*SCMin_tP%value(nstepSCM,Ladd)
-        enddo
-        SCMinP(Lgcm) = dPsum/dPtot
+        if( SCMopt%gradient )then   ! linear interpolation
+          do Ldata = 1,SCMin_tP%nlev-1
+            if( PMID(Lgcm,1,1) < SCMin_tP%L(Ldata) .and. &
+                PMID(Lgcm,1,1) > SCMin_tP%L(Ldata+1) )then
+              dPtot = SCMin_tP%L(Ldata)-SCMin_tP%L(Ldata+1)
+              fp1 = (PMID(Lgcm,1,1) - SCMin_tP%L(Ldata+1))/dPtot
+              fp1 = min(1.,max(0.,fp1))
+              fp2 = max(0.,1.-fp1)
+              SCMinP(Lgcm) = fp1*SCMin_tP%value(nstepSCM,Ldata) + &
+                             fp2*SCMin_tP%value(nstepSCM,Ldata+1)
+              exit
+            endif
+          enddo
+        else                        ! pressure-weighted interpolation
+          dPtot = 0.
+          dPsum = 0.
+          do Ladd = Lbot,Ltop
+            if( Ladd==Lbot )then
+              dPadd = Pedge(Lgcm) - SCMin_tP%Le(Ladd+1)
+            else if( Ladd==Ltop )then
+              dPadd = SCMin_tP%Le(Ladd) - Pedge(Lgcm+1)
+            else
+              dPadd = SCMin_tP%Le(Ladd) - SCMin_tP%Le(Ladd+1)
+            endif
+            dPtot = dPtot + dPadd
+            dPsum = dPsum + dPadd*SCMin_tP%value(nstepSCM,Ladd)
+          enddo
+          SCMinP(Lgcm) = dPsum/dPtot
+        endif
       else
         ! GCM layer top is at least partly above input data top
         ! (neglect contribution from input data)

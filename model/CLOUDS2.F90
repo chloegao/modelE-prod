@@ -951,6 +951,9 @@ CLOUD_BASE: do LMIN=1,LMCM-1
       SVEDG=SEDGE*(1.+DELTX*QEDGE-WMEDG)
       LHX=LHE
       SLH=LHX*BYSHA
+#ifdef SCM
+      if( SCMopt%noMC ) cycle   ! skip moist convection
+#endif
       DMSE=(SVUP-SVEDG)*PLK(LMIN+1)+(SVEDG-SVDN)*PLK(LMIN)+ &
            SLHE*(QSAT(SUP*PLK(LMIN+1),LHX,PL(LMIN+1))-QDN)
       if(DMSE.gt.-1d-10) cycle  ! try next level
@@ -5093,6 +5096,9 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
     !****
     !**** CLOUD-TOP ENTRAINMENT INSTABILITY
     !****
+#ifdef SCM
+    if( .not. SCMopt%noCTEI )then
+#endif
     CLOUD_TOP_ENTRAINMENT: do L=LMCLD-1,1,-1
       LHX=SVLHXL(L)
       SM(L)=TH(L)*AIRM(L)
@@ -5346,6 +5352,9 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
       DCTEI(L)=DCTEI(L)+FSSL(L)*(QNEW-QOLD)*AIRM(L)*LHX*BYSHA
       DCTEI(L+1)=DCTEI(L+1)+FSSL(L+1)*(QNEWU-QOLDU)*AIRM(L+1)*LHX*BYSHA
     end do CLOUD_TOP_ENTRAINMENT
+#ifdef SCM
+    end if ! .not. SCMopt%noCTEI
+#endif
 
     !**** COMPUTE CLOUD PARTICLE SIZE AND OPTICAL THICKNESS
     WMSUM=0.

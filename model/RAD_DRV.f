@@ -1692,6 +1692,13 @@ C     INPUT DATA   partly (i,j) dependent, partly global
       REAL*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
      &                  grid%j_strt_halo:grid%j_stop_halo,lm) ::
      &     SDDARR3D
+#ifdef SCM
+C     radiative flux profiles for sub-daily output, generalized
+C     for GCM grid but currently limited to SCM use
+      REAL*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
+     &                  grid%j_strt_halo:grid%j_stop_halo,lm) ::
+     &     TRDFLB_prof, TRUFLB_prof, SRDFLB_prof, SRUFLB_prof
+#endif
 #endif
 #ifdef ACCMIP_LIKE_DIAGS
 !@var snfs_ghg,tnfs_ghg like SNFS/TNFS but with reference GHG for
@@ -3110,6 +3117,11 @@ c**** difference of net flux over layer
         ! radiative flux difference over each layer
         TRHR(1:LM,I,J) = Frad(1:LM) - Frad(2:LM+1)
       endif
+c**** save radiative flux profiles for sub-daily output
+      TRDFLB_prof(I,J,1:LM) = TRDFLB(1:LM)
+      TRUFLB_prof(I,J,1:LM) = TRUFLB(1:LM)
+      SRDFLB_prof(I,J,1:LM) = SRDFLB(1:LM)
+      SRUFLB_prof(I,J,1:LM) = SRUFLB(1:LM)
 #endif
 C**** Save fluxes at four levels surface, P0, P1, LTROPO
       SNFS(1,I,J)=SRNFLB(1)     ! Surface
@@ -3747,6 +3759,8 @@ C****
       enddo
       enddo
 
+#ifdef SCM
+
       call find_groups('rijlh',grpids,ngroups)
       do igrp=1,ngroups
       subdd => subdd_groups(grpids(igrp))
@@ -3769,9 +3783,31 @@ C****
      &                      bysha*byma(L,I,J)/PK(L,I,J)
         enddo;           enddo;         enddo
         call inc_subdd(subdd,k,sddarr3d)
+      case ('lwdp')
+        do j=j_0,j_1; do i=i_0,imaxj(j); do l=1,lmaxsubdd
+          sddarr3d(i,j,l) = TRDFLB_prof(i,j,l)
+        enddo;           enddo;         enddo
+        call inc_subdd(subdd,k,sddarr3d)
+      case ('lwup')
+        do j=j_0,j_1; do i=i_0,imaxj(j); do l=1,lmaxsubdd
+          sddarr3d(i,j,l) = TRUFLB_prof(i,j,l)
+        enddo;           enddo;         enddo
+        call inc_subdd(subdd,k,sddarr3d)
+      case ('swdp')
+        do j=j_0,j_1; do i=i_0,imaxj(j); do l=1,lmaxsubdd
+          sddarr3d(i,j,l) = SRDFLB_prof(i,j,l)
+        enddo;           enddo;         enddo
+        call inc_subdd(subdd,k,sddarr3d)
+      case ('swup')
+        do j=j_0,j_1; do i=i_0,imaxj(j); do l=1,lmaxsubdd
+          sddarr3d(i,j,l) = SRUFLB_prof(i,j,l)
+        enddo;           enddo;         enddo
+        call inc_subdd(subdd,k,sddarr3d)
       end select
       enddo
       enddo
+
+#endif
 
 #endif  /* CACHED_SUBDD */
 
@@ -4481,6 +4517,34 @@ c
      &  lname = 'theta tendency from radiative heating',
      &  units = 'K/day',
      &  scale = 1000.**kapa*SECONDS_PER_DAY,
+     &  sched = sched_rad
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'lwdp',
+     &  lname = 'LONGWAVE DOWNWARD FLUX profile',
+     &  units = 'W/m^2',
+     &  sched = sched_rad
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'lwup',
+     &  lname = 'LONGWAVE UPWARD FLUX profile',
+     &  units = 'W/m^2',
+     &  sched = sched_rad
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'swdp',
+     &  lname = 'SHORTWAVE DOWNWARD FLUX profile',
+     &  units = 'W/m^2',
+     &  sched = sched_rad
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'swup',
+     &  lname = 'SHORTWAVE UPWARD FLUX profile',
+     &  units = 'W/m^2',
      &  sched = sched_rad
      &     )
 c
