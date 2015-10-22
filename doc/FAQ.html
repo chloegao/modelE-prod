@@ -30,13 +30,6 @@ amend the response to make it clearer or more complete.</P>
   <LI><A HREF="#Q1_9">Why do I get single precision answers from
        double precision variables?, and what are all those 'd0'
        doing?</A>
-  <LI><A HREF="#Q1_10"> Why does GISS sometimes use the line number
-       format for fortran files?</A> 
-  <LI><A HREF="#Q1_11"> Is line number format is 'harder' to
-       edit?</A>
-  <LI><A HREF="#Q1_12"> Don't revision control systems (rcs or cvs)
-       provide equal functionality?</A>
-  <LI><A HREF="#Q1_13">Will the update system ever change? </A>
   <LI><A HREF="#Q1_14">The model core dumps!</A>
 </OL>
 
@@ -268,72 +261,6 @@ numerator (I think). Thus <tt>1./IM </tt>gives only single precision.
 <P>On some compilers there is a compiler option (such as -r8) that
 removes these problems, but not all. Hence for maximum portability we
 are trying to be explicit about writing those 'd0's out.</P>
-
-<P><A NAME="Q1_10"><b> 10) Why does GISS use the line number
-format for fortran files?</b></a></P>
-
-<P>Line number format is the practive of using the first 8 characters
-of a line to insert line number information in a 'F8.3' format.</P>
-
-<P>
-Historically, this is a holdover from the days of the punchcard
-when all lines required a line number. Subsequently, it was used at
-GISS to make additions/corrections to files without having to copy
-the entire rest of the code (the update system). Further refinements
-have led to functional updates that allow the 'piggy-backing' of
-specific functionality (such as tracer code, or ocean coupling) on
-top of the underlying model code in a relatively model-version
-independent way. We have also found it very useful in tracking bugs,
-notifying users about code changes and referencing in general. 
-</P>
-
-<P>
-In modelE line number format has been replaced by the CVS revision
-control system and preprocessing options. 
-</P>
-
-<P><A NAME="Q1_11"><b>11) Is line number format is 'harder' to edit?</b></a></P>
-
-<P>
-Since the format is written in ASCII is just as easy as any other
-text format to edit in any standard editor. In addition we have tools
-which work very well that a) allow standard fortran mode in Emacs to
-work with line-numbers (giss-fortran-mode.el) b) utilities that
-fill-in any missing line numbers, so that you don't ever need to put
-them in by hand (fillnum). This could be combined with the makefile,
-so that the it would occur automatically c) you can choose whatever
-format you like to edit (.U file, a .f file (line numbers first or
-last)) with options to upd
-</P>
-
-<P><A NAME="Q1_12"><b>12) Don't revision control systems (rcs or cvs)
-provide equal functionality?</b></a></P> 
-
-<P>
-One part of the update file system (of which line numbers are
-part) is indeed to save space and store only changes from a base file
-and this is replicated - and improved upon with rcs or cvs. However,
-the other part of the system involves the addition of functionality
-that is generally independent of the base code (i.e the tracer code,
-the stratospheric code, the coupling to the ocean, options for
-diagnostic output etc), which can be applied directly to any version
-of the base code, hopefully with only minimal changes. This is not
-replicated by standard rcs/cvs systems (and indeed they do not try).
-This functionality is to some extent similar to the use of
-pre-processor directives, but as the number of options grow (as they
-will), this produces unwieldy and overly complicated base code.
-Thirdly, line numbers are a very easy way to refer to code sections,
-either to describe what is going on, or to refer to specific lines,
-for instance, when a bug is discovered. 
-</P>
-
-<P><A NAME="Q1_13"><b>13) Will the update system ever change?</b></a></P>
-<P>
-We have already seen an increase in functionality of the update
-system that have made it much more useful for precisely the functions
-that rcs/cvs does not cover. However, for the new modelE code that
-was built directly in CVS, it will probably not be re-introduced.
-</P>
 
 <P><A NAME="Q1_14"><b>14) The model core dumps!</b></a></P>
 <p>
