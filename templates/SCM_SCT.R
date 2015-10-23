@@ -182,7 +182,6 @@ SCM_lon=-125.              ! SCT longitude of subtropical northeastern Pacific (
 SCM_lat=25.                ! SCT latitude of subtropical northeastern Pacific (deg)
 SCM_area=10000000000.0     ! arbitrary grid box area (m2)
 SCM_sfc=2                  ! 1:land,2:ocean
-SCM_ustar=0.17             ! surface friction speed (m/s)
 SCM_gradient=1             ! preserve gradients when interpolating input profiles
 SCM_noMC=0                 ! turn off moist convection
 SCM_noCTEI=0               ! turn off cloud-top entrainment instability
