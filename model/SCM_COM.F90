@@ -172,6 +172,10 @@
   ! 0(default): surface is set by GCM input files in run deck
   call get_param('SCM_sfc',SCMopt%sfc,default=0)
 
+  ! if not ocean surface, must specify surface heat fluxes
+  if( SCMopt%sfc.ne.2 .and. .not.SCMopt%sflx ) &
+    call stop_model('alloc_SCM_COM: surface requires specified fluxes',255)
+
   ! optional nudging
   SCMopt%nudge = is_set_param('SCM_tau')
   if( SCMopt%nudge ) call get_param('SCM_tau',SCMopt%tau)
