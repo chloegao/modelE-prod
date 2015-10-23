@@ -145,15 +145,20 @@
   SCMopt%Qrad = file_exists('SCM_QRAD')
   SCMopt%Fnudge = file_exists('SCM_FNUDGE')
 
-  ! optional preservation of gradients during interpolation of input profiles
-  SCMopt%gradient = is_set_param('SCM_gradient')
+  ! F(default): pressure-weighted interpolation of thermodynamic profiles
+  ! T(optional): linear interpolation to preserve gradients
+  call get_param('SCM_gradient',SCMopt%gradient,default=.false.)
 
-  ! options to turn off moist convection, cloud-top entrainment instability
-  SCMopt%noMC = is_set_param('SCM_noMC')
-  SCMopt%noCTEI = is_set_param('SCM_noCTEI')
+  ! F(default): standard operation
+  ! T(optional): turn off moist convection
+  call get_param('SCM_noMC',SCMopt%noMC,default=.false.)
+
+  ! F(default): standard operation
+  ! T(optional): turn off cloud-top entrainment instability
+  call get_param('SCM_noCTEI',SCMopt%noCTEI,default=.false.)
 
   ! optional Beer's Law radiative heating
-  SCMopt%BeersLaw = is_set_param('SCM_BeersLaw')
+  call get_param('SCM_BeersLaw',SCMopt%BeersLaw,default=.false.)
   if( SCMopt%BeersLaw )then
     call get_param('SCM_BeersLaw',dum_array,3)
     SCMin%BeersLaw_f0    = dum_array(1)
@@ -192,7 +197,7 @@
   if( SCMopt%VadvHwind .and. .not. ( SCMopt%geo .and. ( SCMopt%omega .or. SCMopt%w ))) &
     call stop_model('alloc_SCM_COM: SCM_VadvHwind makes no sense')
         
-  call get_param('SCM_PlumeDiag',idum,default=0) ; SCMopt%PlumeDiag = (idum/=0)
+  call get_param('SCM_PlumeDiag',SCMopt%PlumeDiag,default=.false.)
 
   end subroutine alloc_SCM_COM
 
