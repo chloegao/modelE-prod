@@ -42,9 +42,7 @@ c
       USE MODEL_COM, only : nstep=>itime
       USE OCEANRES, only : kdm=>lmo
       use ofluxes, only : ocnatm
-#ifdef DF_TEMP
       use odiag, only: oij=>oij_loc, ij_ph, ij_co3
-#endif
 #else
       USE hycom_dim_glob, only : kdm
       USE hycom_scalars, only : nstep
@@ -323,12 +321,10 @@ c pCO2
       endif
 
 #ifdef OBIO_ON_GARYocean
-#ifdef DF_TEMP
       OIJ(I,J,IJ_pH) = OIJ(I,J,IJ_pH) + pHsfc
 #ifdef TOPAZ_params
 #ifdef TRACERS_Alkalinity
       OIJ(I,J,IJ_co3) = OIJ(I,J,IJ_co3) + co3_conc
-#endif
 #endif
 #endif
 #else

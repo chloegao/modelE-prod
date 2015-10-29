@@ -74,10 +74,8 @@
      .                 ,ij_doc,ij_iron,ij_alk,ij_Ed,ij_Es,ij_pp,ij_dayl
      .                 ,ij_cexp,ij_lim,ij_wsd,ij_ndet,ij_xchl
      .                 ,ij_sunz,ij_solz
-#ifdef DF_TEMP
      .                 ,ij_pp1,ij_pp2,ij_pp3,ij_pp4
-     .                 ,ijl_avgq
-#endif
+     .                 ,ijl_avgq,ijl_kpar,ijl_dtemp
      .                 ,ij_rhs,ij_flux,ij_fca
 
 #ifdef OBIO_RUNOFF
@@ -744,14 +742,12 @@ cdiag.                  tot,ichan=1,nlt)
          if (tot .ge. 0.1) call obio_edeu(kmax,vrbos,i,j)
 
 #ifdef OBIO_ON_GARYocean
-#ifdef DF_TEMP
        do k=1,kdm
        OIJL(I,J,k,IJL_kpar) = OIJL(I,J,k,IJL_kpar) + Kpar(k) !  kpar
      .                      * MO(i,j,k) * dxypo(j)    !in order to get landmask-have to set denom_ijl in odiag_com
        OIJL(I,J,k,IJL_dtemp) = OIJL(I,J,k,IJL_dtemp) + delta_temp1d(k) !  change in T due to kpar
      .                      * MO(i,j,k) * dxypo(j)    !in order to get landmask-have to set denom_ijl in odiag_com
        enddo
-#endif
 #endif
 
 
@@ -997,9 +993,7 @@ cdiag     endif
         !update avgq and gcmax arrays
         avgq(i,j,k)=avgq1d(k)
 #ifdef OBIO_ON_GARYocean
-#ifdef DF_TEMP
         OIJL(I,J,k,IJL_avgq)= OIJL(I,J,k,IJL_avgq) + avgq1d(k)
-#endif
 #endif
         gcmax(i,j,k)=gcmax1d(k)
         tirrq3d(i,j,k)=tirrq(k)
@@ -1095,12 +1089,10 @@ cdiag     endif
        OIJ(I,J,IJ_herb) = OIJ(I,J,IJ_herb) + tracer(i,j,1,9) ! surf ocean herbivores
        OIJ(I,J,IJ_pp) = OIJ(I,J,IJ_pp) + pp2tot_day(i,j)     ! surf ocean pp
 
-#ifdef DF_TEMP
        OIJ(I,J,IJ_pp1) = OIJ(I,J,IJ_pp1) + pp2diat_day(i,j)     ! ocean pp from diatoms
        OIJ(I,J,IJ_pp2) = OIJ(I,J,IJ_pp2) + pp2chlo_day(i,j)     ! ocean pp from chlorophytes
        OIJ(I,J,IJ_pp3) = OIJ(I,J,IJ_pp3) + pp2cyan_day(i,j)     ! ocean pp from cyanobacteria
        OIJ(I,J,IJ_pp4) = OIJ(I,J,IJ_pp4) + pp2cocc_day(i,j)     ! ocean pp from coccolithophores
-#endif
 
        OIJ(I,J,IJ_doc) = OIJ(I,J,IJ_doc) + tracer(i,j,1,14) ! surf ocean doc
        OIJ(I,J,IJ_dic) = OIJ(I,J,IJ_dic) + tracer(i,j,1,15) ! surf ocean dic

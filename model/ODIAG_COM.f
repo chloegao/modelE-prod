@@ -69,9 +69,7 @@
      .           ,ij_cocc,ij_doc,IJ_alk,IJ_dayl,ij_sunz,ij_solz
      .           ,ij_flux,ij_Ed,ij_Es,ij_cexp,ij_pp,ij_wsd
      .           ,ij_lim(4,5),ilim,ij_ndet,ij_xchl   
-#ifdef DF_TEMP
      .           ,ij_pp1,ij_pp2,ij_pp3,ij_pp4
-#endif
      .           ,ll
      .           ,ij_fca
 
@@ -85,10 +83,8 @@
      .           ,ij_ralkconc
 
       integer :: ij_cfcair, ij_kw, ij_csat, ij_cfcflux
-#ifdef DF_TEMP
      .   , ij_cfcwind, ij_cfcpres, ij_cfcsst, ij_cfcsss, ij_cfcrho
      .   , ij_cfcsolub, ij_cfcSpres, ij_co3, ij_ph
-#endif
 
 !@var IJ_xxx Names for OIJmm diagnostics
       INTEGER IJ_HBLmax,ij_mldmax
@@ -114,9 +110,7 @@
 #ifdef OCN_GISS_MESO
      .     ,ijl_ueddy,ijl_veddy,ijl_n2
 #endif
-#ifdef DF_TEMP
       integer :: ijl_avgq, ijl_kpar, ijl_dtemp
-#endif
 
 !@var lname_oijl Long names for OIJL diagnostics
       CHARACTER(len=lname_strlen), DIMENSION(KOIJL) :: LNAME_OIJL
@@ -1349,7 +1343,6 @@ c
       lgrid_oijl(k) = 2
 c
 #ifdef TRACERS_OceanBiology
-#ifdef DF_TEMP
       k=k+1
       IJL_avgq=k
       lname_oijl(k) = "Mean daily irradiance"
@@ -1372,7 +1365,6 @@ c
       sname_oijl(k) = "dtemp_par"
       units_oijl(k) = "C"
       scale_oijl(k) = 1
-#endif
 #endif
 c
 #ifdef OCN_GISS_MESO
@@ -1482,7 +1474,6 @@ c
         ia_oij(k)=ia_src
         scale_oij(k)=1
 
-#ifdef DF_TEMP
         k=k+1
         IJ_cfcwind=k
         lname_oij(k)="CFC wind           "
@@ -1538,11 +1529,9 @@ c
         units_oij(k)="mol/m3/uatm"
         ia_oij(k)=ia_src
         scale_oij(k)=1
-#endif
       endif
 
 #ifdef TRACERS_OceanBiology
-#ifdef DF_TEMP
 #ifdef TOPAZ_params
       k=k+1
       IJ_co3=k
@@ -1560,7 +1549,6 @@ c
       units_oij(k)="pH units"
       ia_oij(k)=ia_src
       scale_oij(k)=1
-#endif
 
       k=k+1
       IJ_solz=k
@@ -1837,7 +1825,6 @@ c
       ia_oij(k)=ia_src
       scale_oij(k)=1
 
-#ifdef DF_TEMP
       do nt=1,4
       k=k+1
       if (nt.eq.1) then
@@ -1856,7 +1843,6 @@ c
       ia_oij(k)=ia_src
       scale_oij(k)=1
       enddo
-#endif
 
       do nt=1,4
       do ilim=1,5
