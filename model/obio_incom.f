@@ -20,7 +20,6 @@
 
       real rad, pi2
 
-      real :: pHsfc               !pH at surface
       real Pdeep(ntyp)            !deep BC
       real detdeep(ndet)          !detrital deep BC
       real cardeep(ncar)          !carbon deep BC

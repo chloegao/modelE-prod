@@ -10,6 +10,7 @@
       real, ALLOCATABLE, DIMENSION(:,:,:)  :: tirrq3d
       real, ALLOCATABLE, DIMENSION(:,:,:)  :: avgq            !mean daily irradiance in quanta
       real, ALLOCATABLE, DIMENSION(:,:,:)  :: atmFe
+      real, ALLOCATABLE, DIMENSION(:,:)  :: surfN
       real, ALLOCATABLE, DIMENSION(:,:,:)  :: alk             !alkalinity in 'umol/kg'
 
       real solz               !mean cosine solar zenith angle

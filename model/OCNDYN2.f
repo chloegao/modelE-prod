@@ -65,6 +65,10 @@ c**** Extract domain decomposition info
 
 C***  Get the data from the atmospheric grid to the ocean grid
       call AG2OG_oceans(atmocn,iceocn)
+#ifdef TRACERS_GASEXCH_ocean_CO2
+C        Call CARBON ('AG2OG_')
+         Call NITR ('AG2OG_')
+#endif
 
 C***  Interpolate DYNSI outputs to the ocean grid
 C***  (at present, only the ice-ocean stress is used)
@@ -80,6 +84,10 @@ c-------------------------------------------------------------------
 C**** Apply surface fluxes to ocean
       CALL GROUND_OC
          CALL CHECKO('GRNDOC')
+#ifdef TRACERS_GASEXCH_ocean_CO2
+C        Call CARBON ('GRNDOC')
+         Call NITR ('GRNDOC')
+#endif
 
 C**** Apply ice/ocean and air/ocean stress to ocean
       CALL OSTRES2
@@ -90,6 +98,10 @@ C**** Apply ice/ocean and air/ocean stress to ocean
 C**** Apply ocean vertical mixing
       CALL OCONV
          CALL CHECKO('OCONV ')
+#ifdef TRACERS_GASEXCH_ocean_CO2
+C        Call CARBON ('OCONV ')
+         Call NITR ('OCONV ')
+#endif
 
 C**** Apply bottom and coastal drags
       if (OBottom_drag  == 1) CALL OBDRAG2
@@ -98,6 +110,10 @@ C**** Apply bottom and coastal drags
 C**** Add ocean biology
 #ifdef TRACERS_OceanBiology
       call obio_model(ocnatm)
+#ifdef TRACERS_GASEXCH_ocean_CO2
+         Call CARBON ('OBIO_M')
+         Call NITR ('OBIO_M')
+#endif
       CALL DIAGCO (13,atmocn)
 #endif
 
@@ -469,7 +485,10 @@ C****
 C**** Mesoscale tracer transports
 C****
       call ocnmeso_drv
-
+#ifdef TRACERS_GASEXCH_ocean_CO2
+C        Call CARBON ('OCNMESO')
+         Call NITR ('OCNMESO')
+#endif
       CALL CHECKO ('GMDIFF')
 
 #ifdef TRACERS_OCEAN

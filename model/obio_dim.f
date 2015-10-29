@@ -23,6 +23,7 @@
 !  P(11) = alkalinity (uM)
 !  pCO2 (uatm)
 !  alk  (umolC/kg)
+!  Ca_det_calc   Ca in detritus calcite
 
       implicit none
 
@@ -34,7 +35,11 @@
      .                     ,ndet=3
      .                     ,ncar=2
 #ifdef TRACERS_Alkalinity
-     .                     ,nalk=1
+#ifdef TOPAZ_params
+     .                     ,nalk=2   ! 1- alk, 2-ca_det_calc
+#else
+     .                     ,nalk=1   ! 1- alk
+#endif
 #endif
 
       integer, parameter :: ntrac = nnut+nchl+nzoo+n_inert+ndet+ncar
@@ -71,7 +76,11 @@
      .      ,'N_det     ', 'S_det     ', 'I_det     ', 'DOC       ' 
      .      ,'DIC       '
 #ifdef TRACERS_Alkalinity
+#ifdef TOPAZ_params
+     .      ,'ALK       ', 'Ca_det    '
+#else
      .      ,'ALK       '
+#endif
 #endif
      .     /)
 #endif

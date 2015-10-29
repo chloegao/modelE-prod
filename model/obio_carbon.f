@@ -20,6 +20,9 @@ c
       USE obio_com, only : C_tend,obio_P,P_tend,car
      .                    ,tfac,det,D_tend,tzoo,pnoice,pCO2_ij
      .                    ,temp1d,saln1d,dp1d,rhs,alk1d
+#ifdef TRACERS_Alkalinity
+      use obio_com, only: co3_conc
+#endif
 
 #ifdef OBIO_RUNOFF
 #ifdef DOC_RUNOFF
@@ -39,10 +42,14 @@ c
       USE MODEL_COM, only : nstep=>itime
       USE OCEANRES, only : kdm=>lmo
       use ofluxes, only : ocnatm
+#ifdef DF_TEMP
+      use odiag, only: oij=>oij_loc, ij_ph, ij_co3
+#endif
 #else
       USE hycom_dim_glob, only : kdm
       USE hycom_scalars, only : nstep
       use hycom_atm, only : ocnatm
+      use obio_com, only: phav_loc
 #endif
 
 #ifdef OBIO_RUNOFF
@@ -67,7 +74,7 @@ c
       real  :: docexcp(nchl),dicresp(nchl),scco2,scco2arg,wssq,rkwco2
       real  :: Ts,tk,tk100,tk1002,ff,xco2,deltco2,flxmolm3,flxmolm3h
       real  :: gro(kdm,nchl)
-      real  :: pHsfc
+      real  :: pHsfc            !pH at surface
       real term
       real bs
       real, save :: atmco2=-1.
@@ -88,12 +95,12 @@ c
 
         docexcz = excz*rmmzoo*obio_P(k,ntyp)  !zoopl production DOC
         term = - docexcz*pnoice(k)
-        rhs(k,ntyp,14) = term
+        rhs(k,9,14) = term
         P_tend(k,ntyp) = P_tend(k,ntyp) + term
 
 !change: June 1, 2010
         term = bn*docexcz*pnoice(k)
-        rhs(k,1,ntyp) = term
+        rhs(k,1,9) = term
         P_tend(k,1) = P_tend(k,1) + term
 
         term = bf*docexcz*pnoice(k)
@@ -106,11 +113,20 @@ c
         docbac = tfac(k)*rndep*docdep*car(k,1)   !bacterial loss DOC
         docdet = tfac(k)*rlampoc*det(k,1)        !detrital production DOC
 
-        term = (docexcz*mgchltouMC
-     .                   +  docdet/uMtomgm3-docbac)*pnoice(k)
-        rhs(k,13,14) = term
+!!!!    term = (docexcz*mgchltouMC
+!!!! .                   +  docdet/uMtomgm3-docbac)*pnoice(k)
+        term = docexcz*mgchltouMC*pnoice(k)
+        rhs(k,13,12) = term
         C_tend(k,1) = C_tend(k,1) + term
 
+        term = docdet/uMtomgm3   *pnoice(k)
+        rhs(k,13,13) = term
+        C_tend(k,1) = C_tend(k,1) + term
+
+
+        term = -docbac           *pnoice(k)
+        rhs(k,13,14) = term
+        C_tend(k,1) = C_tend(k,1) + term
 
         !adjust detritus
         term = - docdet * pnoice(k) !carbon/nitrogen detritus
@@ -132,7 +148,7 @@ c
 
         term = dicresz*mgchltouMC * pnoice(k)
         rhs(k,14,15) = term
-        C_tend(k,2) = term
+        C_tend(k,2) = C_tend(k,2) + term
 #ifdef noBIO
         C_tend(k,2) = 0.d0
 #endif
@@ -150,10 +166,6 @@ c
 #ifdef noBIO
         C_tend(k,2) = 0.d0
 #endif
-
-!     if(k.eq.1)write(*,'(a,3i5,11e12.4)')'dic_carbon:',
-!    . nstep,i,j,tzoo,resz,obio_P(k,ntyp),dicresz,pnoice,
-!    . mgchltouMC,docbac,tfac(k),remin(1),det(k,1),uMtomgm3
 
       enddo  !k=1,kmax
 
@@ -204,10 +216,11 @@ c
         do nt = 1,nchl
          !!totgro = gro(k,nt)*obio_P(k,nt+nnut)
          totgro = gro(k,nt)
+!!!!     if (nt.eq.4) totgro = gro(k,nt)*pnoice(k)  !for cocco (see ptend)
 
 !change June 1, 2010
           docexcp(nt) = excp*totgro   !phyto production DOC
-           dicresp(nt) = resp*totgro   !phyto production DIC
+          dicresp(nt) = resp*totgro   !phyto production DIC
 !endofchange
 
 !change: March 15, 2010
@@ -223,11 +236,11 @@ c
 
 !change June 1, 2010
           term =  bn*(docexcp(nt)+dicresp(nt))
-          rhs(k,1,15) = term
+          rhs(k,1,15) = rhs(k,1,15)+term    !accumulate
           P_tend(k,1) = P_tend(k,1) + term
 
           term = bf*(docexcp(nt)+dicresp(nt))
-          rhs(k,4,15) = term
+          rhs(k,4,15) = rhs(k,4,15)+term    !accumulate
           P_tend(k,4) = P_tend(k,4) + term
 !endofchange
 
@@ -247,13 +260,17 @@ c
         rhs(k,13,5) = term        
         C_tend(k,1) = C_tend(k,1) + term
 
-        term = ((sumres-sumutk)*mgchltouMC)     !phyto prod DIC
+!!!!    term = ((sumres-sumutk)*mgchltouMC)     !phyto prod DIC
+        term = sumres*mgchltouMC                !phyto prod DIC by respiration
         rhs(k,14,5) = term
+        C_tend(k,2) = C_tend(k,2) + term
+
+        term = -sumutk*mgchltouMC               !sink DIC by phyto growth
+        rhs(k,14,6) = term
         C_tend(k,2) = C_tend(k,2) + term
 #ifdef noBIO
         C_tend(k,2) = 0.d0
 #endif
-
 
       endif !tirrq>0
       enddo !k=1,kmax
@@ -304,6 +321,19 @@ c pCO2
      .                        car(1,2),alk1d(1),pCO2_ij,pHsfc
         endif
       endif
+
+#ifdef OBIO_ON_GARYocean
+#ifdef DF_TEMP
+      OIJ(I,J,IJ_pH) = OIJ(I,J,IJ_pH) + pHsfc
+#ifdef TOPAZ_params
+#ifdef TRACERS_Alkalinity
+      OIJ(I,J,IJ_co3) = OIJ(I,J,IJ_co3) + co3_conc
+#endif
+#endif
+#endif
+#else
+      pHav_loc(i,j) = pHsfc
+#endif
 
 c Update DIC for sea-air flux of CO2
 
@@ -885,7 +915,9 @@ C
 C  ---------------------------------------------------------------------
 C 
         subroutine ta_iter_SWS(x,fn,df)
-
+#ifdef TRACERS_Alkalinity
+        use obio_com, only: co3_conc
+#endif
         implicit none
 
         real*8 x,fn,df,b2,db,dic,bt,pt,sit,ta,x3,x2,c,a,a2,da,b,
@@ -925,6 +957,12 @@ C
       b = x2 + k1*x + k12
       b2=b*b
       db = 2.0*x + k1
+#ifdef TOPAZ_params
+#ifdef TRACERS_Alkalinity
+!     print*,'ta_iter_SWS: co3_conc',dic,k12,b
+      co3_conc = 2.0*dic*k12/b
+#endif
+#endif
 C
 C	fn = hco3+co3+borate+oh+hpo4+2*po4+silicate-hfree-hso4-hf-h3po4-ta
 C===========================================================================

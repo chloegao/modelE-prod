@@ -26,3 +26,6 @@ obio_carbon      |$(R8)|
 obio_update      |$(R8)|
 obio_sinksettl   |$(R8)|
 !!!obio_alkalinity  |$(R8)|
+obio_diffmod|$(R8)|
+obio_chkbalances |$(R8)|
+obio_conserv |$(R8)|

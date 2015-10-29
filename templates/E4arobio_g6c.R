@@ -49,10 +49,6 @@ OCN_Int_LATLON                      ! atm-ocn regrid routines
 
 #include "ocarbon_cycle_oR_files" ! both gas exch and ocean tracer oR model
 
-obio_diffmod     |$(R8)|
-
-!!!ar!!!obio_oasimhr     |$(R8)|
-
 Components:
 tracers Ent shared MPI_Support solvers giss_LSM dd2d
 

@@ -29,22 +29,23 @@
 !-------------------------------------------------------------------------
 ! J_ALK = -rN:P* J_PO4 + 2*J_Ca
 ! J_PO4 = J_NO3/rN:P, tendency of phosphates
-! J_NO3 : tendency of nitrates, P_tend(:,1)
-! J_Ca = R* rC:P* (1-sigma_Ca)* Jprod, for  z<zc
+! J_NO3 = tendency of nitrates, P_tend(:,1)
+! J_Ca = - R* rC:P* (1-sigma_Ca)* Jprod, for  z<zc  ***NOTE sign was wrong in OCMIP documentation
 ! J_Ca = - dF_Ca/dz,   for z>zc
 ! Jprod = pp, for z<zc 
 ! Jprod = 0,  for z>zc
 ! Distinguish two cases: pp based on all species
 !                        pp based on coccolithophores only
 ! F_Ca = R * rC:P * Fc * exp(-(z-zc)/d)
-!   Fc = (1-sigma_Ca) * integral_0_zc (J_DOC*dz)
+!   Fc = (1-sigma_Ca) * integral_0_zc (Jprod*dz)
+!   ! Fc = (1-sigma_Ca) * integral_0_zc (J_DOC*dz)
 !
 ! note sign errors in equations 28a and 31 of notes.
 !-------------------------------------------------------------------------
 
       USE obio_dim
       USE obio_incom, only: rain_ratio,cpratio,sigma_Ca,d_Ca,
-     .      npratio,uMtomgm3,cnratio,bn,zc
+     .      npratio,uMtomgm3,cnratio,bn,zc,mgchltouMC
       USE obio_com, only: P_tend,p1d,pp2_1d,dp1d,A_tend,
      .      rhs,alk1d,caexp,kzc
 #ifdef OBIO_RUNOFF
@@ -68,7 +69,7 @@
 
       integer nt,k,kmax,nchl1,nchl2,i,j
       real*8 J_PO4(kmax),pp,Jprod(kmax),Jprod_sum,Fc,zz,F_Ca(kmax+1),
-     .       J_Ca(kmax),term,term1,term2,DOP
+     .       J_Ca(kmax),term,term1,term2,DOP,offterm
 !--------------------------------------------------------------------------
 !only compute tendency terms if total depth greater than conpensation depth
       if (p1d(kmax+1) .lt. p1d(kzc)) then
@@ -83,13 +84,27 @@
 !compute sources/sinks of phosphate
 !J_PO4 units uM/hr
       do k=1,kmax
-      J_PO4(k) =  P_tend(k,1)/npratio   !approximate by nitrate conc tendency
-                                        !NO3/PO4 ratio from Conkright et al, 1994
-     .            /14.d0                !expressed as nitrates
-      term = -1.d0*npratio * J_PO4(k)   !uM,N/hr= mili-mol,N/m3/hr
+!     J_PO4(k) =  P_tend(k,1)           !approximate by nitrate conc tendency
+!                                       !NO3/PO4 ratio from Conkright et al, 1994
+!                                       !expressed as nitrates
+!                                       ! in notes npratio that multiplies tendency term cancells 
+!                                       ! out with npratio that divides to get units of nitrate
+!     J_PO4(k) =  rhs(k,1,5)+rhs(k,1,6)+rhs(k,1,7)+rhs(k,1,8)    !uptake of nitrate
+!     J_PO4(k) =((rhs(k,1,5)+rhs(k,1,6)+rhs(k,1,7)+rhs(k,1,8))/bn
+!    .         +  rhs(k,14,6)/mgchltouMC
+!    .         +(rhs(k,2,5)+rhs(k,2,6)
+!    .         + rhs(k,2,7)+rhs(k,2,8))/bn)/cnratio
+
+      J_PO4(k) =  rhs(k,1,5)+rhs(k,1,6)+rhs(k,1,7)+rhs(k,1,8)
+     .          +(rhs(k,5,13)+rhs(k,6,13)+rhs(k,7,13)+rhs(k,8,13))*bn
+     .          + rhs(k,2,5)+rhs(k,2,6)+rhs(k,2,7)+rhs(k,2,8)
+
+      term = -1.d0* J_PO4(k)            !uM,N/hr= mili-mol,N/m3/hr
       rhs(k,15,1) = term
       A_tend(k)= term 
       enddo
+
+      call cadet_topaz(kmax)
 
 !distinguish two cases: OCMIP uses total pp for Jprod, whereas here we also
 !consider the case where Jprod only includes coccolithophores
@@ -150,21 +165,16 @@
 !    .        nstep,i,j,kzc,p1d(kzc),zc,rain_ratio,cpratio,Fc,
 !    .        exp(-1.d0*(p1d(kzc)-p1d(kzc))/d_Ca),F_Ca(kzc)
 
-      caexp = 0.d0
-      do k=1,kzc
-      caexp = caexp + F_Ca(k)
-     .                *24.d0*365.d0
-     .                *1.d-15       !PgC/m2/yr
+
 #ifdef OBIO_ON_GARYocean
-     .                * dxypo(j)    ! -> Pg,C/yr
+!     caexp = F_Ca(4)        !mili-gC/m2/hr
+      caexp = F_Ca(kzc)        !mili-gC/m2/hr
 #else
-     .                * scp2(i,j)   ! -> Pg,C/yr
+      caexp = F_Ca(kzc)      !mili-gC/m2/hr
 #endif
-!     write(*,'(a,5i5,3e12.4)')'obio_alkalinity, caexp:',
-!    . nstep,i,j,k,kzc,F_Ca(k),dxypo(j),caexp
-      enddo
 
 !compute sources/sinks of CaCO3
+      offterm= 0.d0
       do k=1,kmax
          if (p1d(k) .le. p1d(kzc))  then
              !formation of calcium carbonate above compensation depth
@@ -179,10 +189,21 @@
        rhs(k,15,5) = term
        A_tend(k) = A_tend(k) + term      
 
-!     if(mod(nstep,48).eq.0.) 
-!     if(j.eq.100.and.i.eq.1)
+       offterm = offterm + term * dp1d(k)
+
 !    .write(*,'(a,4i5,3e12.4)')'obio_alkalinity2:',
-!    .   nstep,i,j,k,rhs(k,15,1),rhs(k,15,5),A_tend(k)
+!    .   nstep,i,j,k,term,offterm,rhs(k,15,5)
+
+
+      !bottom boundary condition adjust bottom layer
+      if (k.eq.kmax) then
+         rhs(kmax,15,5) = rhs(kmax,15,5) - offterm /dp1d(kmax)
+         A_tend(kmax) = A_tend(kmax) - offterm / dp1d(kmax)
+      endif
+
+!     if(vrbos)
+!    .write(*,'(a,4i5,3e12.4)')'obio_alkalinity3:',
+!    .   nstep,i,j,k,term,offterm,rhs(k,15,5)
 
       enddo
 
@@ -214,3 +235,82 @@
 
  100  continue
       end subroutine obio_alkalinity
+
+      subroutine cadet_topaz(kmax,vrbos)
+
+      USE MODEL_COM, only: dtsrc
+      USE obio_dim
+      USE obio_incom, only: cnratio,mgchltouMC
+      USE obio_com, only: co3_conc,temp1d,saln1d,obio_P,p1d
+     .                   ,wsdet
+
+      implicit none
+
+      integer k,kmax
+      real*8 T,Salt,TK,PKSPC,wsink, gamma_cadet_calc
+      real*8 co3_calc_sol,Omega_calc,J_cadet_calc
+      real*8 lambda0,KEppley,P_star,P_min,CaN_calc_ratio,Omega_satmax
+      real*8 N_cyanob,jgraz_cyanob_N,P_insitu,J_prod_cadet_calc
+      real*8 Ca_det_calc
+      logical vrbos
+
+      do k=1,kmax
+      !rate of constant dissolution of cadet_calc
+      !wsink=1.d0
+      wsink =  wsdet(k,1)    !wsdet for carbon????
+      gamma_cadet_calc = wsink/1343.d0    ! in s-1
+      gamma_cadet_calc = gamma_cadet_calc * 3600.d0     ! in hr-1
+
+      T = temp1d(k)
+      Salt = saln1d(k)
+      TK = T + 273.15
+      P_insitu = 0.1016*p1d(k)+1.013
+      PKSPC = 171.9065
+     .      + 0.077993 * TK
+     .      - 2903.293 / TK
+     .      - 71.595* dlog10(TK)
+     .      - (-0.77712 + 2.8426d-3 *TK + 178.34/TK)*Salt**(1./2.)
+     .      + 0.07711*salt
+     .      - 4.1249d-3 * salt**(3./2.)
+     .      - 0.02
+     .      - (48.76 - 0.5304*T) * (P_insitu - 1.013) / (191.46*TK)
+     .      + (1.d-3 *(11.76 -0.3692 *T))
+     .      * (P_insitu -1.013)*(P_insitu-1.013)/(382.92*TK)
+      co3_calc_sol = 10**(-PKSPC) / (2.937d-4 *max(5.d0, Salt))
+      !??? co3_conc, how do I apply it over all depths?
+      Omega_calc = co3_conc / co3_calc_sol
+
+      !how do i compute ca_det_calc ????
+!     Ca_det_calc =
+      ! dissolution rate in units of mol kg-1 s-1 calculated in every layer,
+      ! and has to be multiplied by the thickness to get a layer flux.
+!     J_cadet_calc =
+!    .     gamma_cadet_calc*max(0.d0,1.d0-Omega_calc)* Ca_det_calc
+
+      !grazing rate constant at 0C
+      lambda0 = 0.19/86400. *3600.   !hr^-1
+      !Temp. coeff for growth
+      KEppley = 0.063   ! C^-1 (Eppley 1972)
+      !nitrogen in small phytoplankton (=here cyanobacteria)
+      N_cyanob = obio_P(k,3) *mgchltouMC/cnratio
+      !pivot phyto. conc. for grazing allometry
+      P_star = 1.9d-6 * 16/106   !mol,N/kg
+      !min. phyto. conc. threshold for grazing
+      P_min = 1.d-10   !mol,N/kg (added for stability)
+      jgraz_cyanob_N = min(1.d0/dtsrc,
+     .                     lambda0 * exp(KEppley*T)
+     .      *(N_cyanob * N_cyanob /
+     .       (P_star *(N_cyanob + P_min)))) * N_cyanob
+      !Calcite CaCO3 to nitrogen uptake ratio
+      CaN_calc_ratio =  0.005 * 106/16    !mol,Ca/mol,N *** tunable to give right caexp
+      !maximum saturation state
+      Omega_satmax = 10.  !dimensionless; to limit possible extreme values
+      J_prod_cadet_calc = jgraz_cyanob_N * CaN_calc_ratio
+     .                  * exp(-0.0539*T)
+     .                  * min(Omega_satmax,max(0.d0,Omega_calc - 1.d0))
+
+!     A_tend() = 2.d0 * (J_cadet_calc - J_prod_cadet_calc)
+
+      enddo
+
+      end subroutine cadet_topaz

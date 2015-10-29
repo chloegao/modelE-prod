@@ -250,6 +250,7 @@ c    conversion from uM to mg/m3
          if (ip(i,j)==0) cycle
          do k = 1,kdm
           tracer(i,j,k,ntyp+n_inert+ndet+2) = dic(i,j,k)
+     .       * 1024.5 * 0.001                               ! convert micromole/kg to mili-mol/m3
          enddo
 c         car(i,j,k,1) = 3.0  !from Bissett et al 1999 (uM(C))
 c         car(i,j,k,1) = 0.0  !from Walsh et al 1999
@@ -615,7 +616,7 @@ c------------------------------------------------------------------------------
       use bio_inicond_mod, only: bio_inicond_read
 !temporarily only on GISS ocean:
 #ifdef OBIO_ON_GARYocean
-      use bio_inicond_mod, only: bio_inicond_read_new
+      use bio_inicond_mod, only: bio_inicond_new
 #endif
       use dictionary_mod, only: sync_param
       use obio_com, only: ze
@@ -657,7 +658,7 @@ c------------------------------------------------------------------------------
 #ifdef OBIO_ON_GARYocean
       call sync_param('new_inicond', new_inicond)
       if (new_inicond==1) then
-        call bio_inicond_read_new(filename, fldo2)
+        call bio_inicond_new(filename, fldo2)
       else
         call bio_inicond_read(filename, dlatm, 180d0, .true., fldo)
 

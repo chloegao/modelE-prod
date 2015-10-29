@@ -28,6 +28,10 @@ c
       real, ALLOCATABLE, DIMENSION(:,:,:,:):: acdom3d
       real, ALLOCATABLE, DIMENSION(:,:,:)  :: gcmax         !cocco max growth rate
       real, ALLOCATABLE, DIMENSION(:,:)    :: pp2tot_day    !net pp total per day
+      real, ALLOCATABLE, DIMENSION(:,:)    :: pp2diat_day
+      real, ALLOCATABLE, DIMENSION(:,:)    :: pp2chlo_day
+      real, ALLOCATABLE, DIMENSION(:,:)    :: pp2cyan_day
+      real, ALLOCATABLE, DIMENSION(:,:)    :: pp2cocc_day
       real, ALLOCATABLE, DIMENSION(:,:)    :: tot_chlo      !tot chlorophyl at surf. layer
       real, ALLOCATABLE, DIMENSION(:,:,:,:):: rhs_obio      !rhs matrix
       real, ALLOCATABLE, DIMENSION(:,:,:)  :: chng_by       !integr tendency for total C
@@ -66,8 +70,21 @@ c
       real, ALLOCATABLE, DIMENSION(:,:) :: cexpav, cexpav_loc
       real, ALLOCATABLE, DIMENSION(:,:) :: caexpav, caexpav_loc
       real, ALLOCATABLE, DIMENSION(:,:) :: ao_co2fluxav,ao_co2fluxav_loc
+      real, ALLOCATABLE, DIMENSION(:,:) :: pp2diat_dayav
+      real, ALLOCATABLE, DIMENSION(:,:) :: pp2diat_dayav_loc
+      real, ALLOCATABLE, DIMENSION(:,:) :: pp2chlo_dayav
+      real, ALLOCATABLE, DIMENSION(:,:) :: pp2chlo_dayav_loc
+      real, ALLOCATABLE, DIMENSION(:,:) :: pp2cyan_dayav
+      real, ALLOCATABLE, DIMENSION(:,:) :: pp2cyan_dayav_loc
+      real, ALLOCATABLE, DIMENSION(:,:) :: pp2cocc_dayav
+      real, ALLOCATABLE, DIMENSION(:,:) :: pp2cocc_dayav_loc
+      real, ALLOCATABLE, DIMENSION(:,:) :: pHav,pHav_loc
 #endif
       real, ALLOCATABLE, DIMENSION(:,:,:,:):: tracer
+      real, ALLOCATABLE, DIMENSION(:,:)::  Edz,Euz,Esz
+      real, ALLOCATABLE, DIMENSION(:,:)::  Kd       !absorption+scattering in seawater due to chl
+      real, ALLOCATABLE, DIMENSION(:)::  Kpar     !kpar from NBOM
+      real, ALLOCATABLE, DIMENSION(:)::  delta_temp1d  !change in T due to kpar
 
       integer :: nstep0=0
 
@@ -113,6 +130,7 @@ c
      .                 ,alk1d(kdm),flimit(kdm,nchl,5)
 
       real atmFe_ij,covice_ij
+
       integer inwst,inwnd,jnwst,jnwnd     !starting and ending indices 
                                           !for daylight 
                                           !in i and j directions
@@ -120,7 +138,8 @@ c
       real P_tend(kdm,ntyp+n_inert)       !bio tendency (dP/dt)
 
 #ifdef TRACERS_Alkalinity
-      real A_tend(kdm)
+      real A_tend(kdm), co3_conc
+      real ca_det_calc1d(kdm),Ca_tend(kdm)
 #endif
 #ifdef OBIO_RUNOFF
 
@@ -255,6 +274,10 @@ c**** Extract domain decomposition info
       ALLOCATE(tfac3d(i_0:i_1,j_0:j_1,kdm))
       ALLOCATE(gcmax(i_0:i_1,j_0:j_1,kdm))
       ALLOCATE(pp2tot_day(i_0:i_1,j_0:j_1))
+      ALLOCATE(pp2diat_day(i_0:i_1,j_0:j_1))
+      ALLOCATE(pp2chlo_day(i_0:i_1,j_0:j_1))
+      ALLOCATE(pp2cyan_day(i_0:i_1,j_0:j_1))
+      ALLOCATE(pp2cocc_day(i_0:i_1,j_0:j_1))
       ALLOCATE(tot_chlo(i_0:i_1,j_0:j_1))
       ALLOCATE(rhs_obio(i_0:i_1,j_0:j_1,ntrac,17))
       ALLOCATE(chng_by(i_0:i_1,j_0:j_1,14))
@@ -289,13 +312,30 @@ c**** Extract domain decomposition info
       ALLOCATE(pp2tot_dayav(ogrid%im_world,ogrid%jm_world))
       ALLOCATE(cexpav(ogrid%im_world,ogrid%jm_world))
       ALLOCATE(caexpav(ogrid%im_world,ogrid%jm_world))
+      ALLOCATE(pp2diat_dayav(ogrid%im_world,ogrid%jm_world))
+      ALLOCATE(pp2chlo_dayav(ogrid%im_world,ogrid%jm_world))
+      ALLOCATE(pp2cyan_dayav(ogrid%im_world,ogrid%jm_world))
+      ALLOCATE(pp2cocc_dayav(ogrid%im_world,ogrid%jm_world))
+      ALLOCATE(pHav(ogrid%im_world,ogrid%jm_world))
+      ALLOCATE(ao_co2fluxav(ogrid%im_world,ogrid%jm_world))
       ALLOCATE(pCO2av_loc(i_0:i_1,j_0:j_1))
       ALLOCATE(pp2tot_dayav_loc(i_0:i_1,j_0:j_1))
       ALLOCATE(cexpav_loc(i_0:i_1,j_0:j_1))
       ALLOCATE(caexpav_loc(i_0:i_1,j_0:j_1))
-      ALLOCATE(ao_co2fluxav(ogrid%im_world,ogrid%jm_world))
       ALLOCATE(ao_co2fluxav_loc(i_0:i_1,j_0:j_1))
+      ALLOCATE(pp2diat_dayav_loc(i_0:i_1,j_0:j_1))
+      ALLOCATE(pp2chlo_dayav_loc(i_0:i_1,j_0:j_1))
+      ALLOCATE(pp2cyan_dayav_loc(i_0:i_1,j_0:j_1))
+      ALLOCATE(pp2cocc_dayav_loc(i_0:i_1,j_0:j_1))
+      ALLOCATE(pHav_loc(i_0:i_1,j_0:j_1))
 #endif
+
+      ALLOCATE(Edz(nlt,kdm))
+      ALLOCATE(Esz(nlt,kdm))
+      ALLOCATE(Euz(nlt,kdm))
+      ALLOCATE(Kd(nlt,kdm))
+      ALLOCATE(Kpar(kdm))
+      ALLOCATE(delta_temp1d(kdm))
 
       end subroutine alloc_obio_com
 
@@ -484,6 +524,8 @@ c            do jj=j-1,j+1
      .     diag_counter
      .    ,ao_co2fluxav_loc, pp2tot_dayav_loc
      .    ,pCO2av_loc, cexpav_loc
+     .    ,pp2diat_dayav_loc,pp2chlo_dayav_loc,pp2cyan_dayav_loc
+     .    ,pp2cocc_dayav_loc,pHav_loc
 #ifdef TRACERS_Alkalinity
      .    ,caexpav_loc
 #endif
@@ -496,6 +538,11 @@ c            do jj=j-1,j+1
 #ifdef TRACERS_Alkalinity
       caexpav_loc = 0
 #endif
+      pp2diat_dayav_loc=0
+      pp2chlo_dayav_loc=0
+      pp2cyan_dayav_loc=0
+      pp2cocc_dayav_loc=0
+      pHav_loc=0
       end subroutine obio_set_data_after_archiv
 
       subroutine obio_gather_before_archive
@@ -506,6 +553,10 @@ c            do jj=j-1,j+1
      .    ,pCO2av_loc, pCO2av
      .    ,pp2tot_dayav_loc, pp2tot_dayav
      .    ,cexpav_loc, cexpav
+     .    ,pp2diat_dayav_loc,pp2chlo_dayav_loc,pp2cyan_dayav_loc
+     .    ,pp2cocc_dayav_loc,pHav_loc
+     .    ,pp2diat_dayav,pp2chlo_dayav,pp2cyan_dayav
+     .    ,pp2cocc_dayav,pHav
 #ifdef TRACERS_Alkalinity
      .    ,caexpav_loc, caexpav
 #endif
@@ -518,6 +569,11 @@ c            do jj=j-1,j+1
 #ifdef TRACERS_Alkalinity
       call pack_data(ogrid, caexpav_loc, caexpav)
 #endif
+      call pack_data(ogrid, pp2diat_dayav_loc, pp2diat_dayav)
+      call pack_data(ogrid, pp2chlo_dayav_loc, pp2chlo_dayav)
+      call pack_data(ogrid, pp2cyan_dayav_loc, pp2cyan_dayav)
+      call pack_data(ogrid, pp2cocc_dayav_loc, pp2cocc_dayav)
+      call pack_data(ogrid, pHav_loc, pHav)
       return
       end subroutine obio_gather_before_archive
 
@@ -532,6 +588,8 @@ c            do jj=j-1,j+1
      &     ao_co2fluxav=>ao_co2fluxav_loc,
      &     pp2tot_dayav=>pp2tot_dayav_loc,
      &     cexpav=>cexpav_loc, diag_counter,nstep0
+     .    ,pp2diat_dayav_loc,pp2chlo_dayav_loc,pp2cyan_dayav_loc
+     .    ,pp2cocc_dayav_loc,pHav_loc
       implicit none
       integer fid   !@var fid file id
       character(len=14) :: str2d
@@ -552,6 +610,11 @@ c            do jj=j-1,j+1
       call defvar(grid,fid,ao_co2fluxav,'ao_co2fluxav'//str2d)
       call defvar(grid,fid,cexpav,'cexpav'//str2d)
       call defvar(grid,fid,pp2tot_day,'pp2tot_day'//str2d)
+      call defvar(grid,fid,pp2diat_dayav_loc,'pp2diat_day'//str2d)
+      call defvar(grid,fid,pp2chlo_dayav_loc,'pp2chlo_day'//str2d)
+      call defvar(grid,fid,pp2cyan_dayav_loc,'pp2cyan_day'//str2d)
+      call defvar(grid,fid,pp2cocc_dayav_loc,'pp2cocc_day'//str2d)
+      call defvar(grid,fid,phav_loc,'pHav'//str2d)
 
       return
       end subroutine def_rsf_obio
@@ -569,6 +632,8 @@ c            do jj=j-1,j+1
      &     ao_co2fluxav=>ao_co2fluxav_loc,
      &     pp2tot_dayav=>pp2tot_dayav_loc,
      &     cexpav=>cexpav_loc, diag_counter,nstep0
+     .    ,pp2diat_dayav_loc,pp2chlo_dayav_loc,pp2cyan_dayav_loc
+     .    ,pp2cocc_dayav_loc,pHav_loc
       implicit none
       integer fid   !@var fid unit number of read/write
       integer iaction !@var iaction flag for reading or writing to file
@@ -585,6 +650,11 @@ c            do jj=j-1,j+1
         call write_dist_data(grid,fid,'ao_co2fluxav',ao_co2fluxav)
         call write_dist_data(grid,fid,'cexpav',cexpav)
         call write_dist_data(grid,fid,'pp2tot_day',pp2tot_day)
+        call write_dist_data(grid,fid,'pp2diat_day',pp2diat_dayav_loc)
+        call write_dist_data(grid,fid,'pp2chlo_day',pp2chlo_dayav_loc)
+        call write_dist_data(grid,fid,'pp2cyan_day',pp2cyan_dayav_loc)
+        call write_dist_data(grid,fid,'pp2cocc_day',pp2cocc_dayav_loc)
+        call write_dist_data(grid,fid,'pHav',phav_loc)
       case (ioread)            ! input from restart file
         call read_data(grid,fid,'obio_nstep0',nstep0,
      &       bcast_all=.true.)
@@ -598,6 +668,11 @@ c            do jj=j-1,j+1
         call read_dist_data(grid,fid,'ao_co2fluxav',ao_co2fluxav)
         call read_dist_data(grid,fid,'cexpav',cexpav)
         call read_dist_data(grid,fid,'pp2tot_day',pp2tot_day)
+        call read_dist_data(grid,fid,'pp2diat_day',pp2diat_dayav_loc)
+        call read_dist_data(grid,fid,'pp2chlo_day',pp2chlo_dayav_loc)
+        call read_dist_data(grid,fid,'pp2cyan_day',pp2cyan_dayav_loc)
+        call read_dist_data(grid,fid,'pp2cocc_day',pp2cocc_dayav_loc)
+        call read_dist_data(grid,fid,'pHav',phav_loc)
       end select
       return
       end subroutine new_io_obio

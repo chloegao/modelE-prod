@@ -109,15 +109,6 @@
      .                    * baclin/SECONDS_PER_HOUR
           enddo
 
-
-cdiag      if (vrbos) then
-cdiag        do k=1,kmax
-cdiag        write(*,'(a,6i5,3e12.4)')'befr sinking',
-cdiag.       nstep,kmax,nt,i,j,k,obio_P(k,nnut+nt),
-cdiag.       p1d(k),obio_ws(k,nt)
-cdiag        enddo
-cdiag      endif
-
            do k=1,kmax
             rhs(k,nnut+nt,16)=obio_P(k,nnut+nt)
            enddo
@@ -137,16 +128,6 @@ cdiag      endif
      ,          (obio_P(k,nnut+nt)-rhs(k,nnut+nt,16))/obio_deltat
            enddo
 
-
-cdiag      if (vrbos) then
-cdiag        do k=1,kmax
-cdiag        write(*,*)'aftr sinking',
-cdiag.       nstep,kmax,nt,i,j,k,obio_P(k,nnut+nt),
-cdiag.       p1d(k),obio_ws(k,nt)
-cdiag        enddo
-cdiag      endif
-
-
        enddo   !nchl
        !detrital settling
        do nt=1,ndet
@@ -159,21 +140,6 @@ cdiag      endif
             wsdet(k,nt)=wsdeth(nt)
           end do
           wsdet(1,nt)=0.                !  no flux through sea surface
-
-cdiag     if (vrbos.and.nt.eq.1) then
-cdiag       do k=1,kdm
-cdiag          write(lp,'(a,3i5,3e12.4)')
-cdiag.         'bfre bcdond: ',nt,kmax,k,wsdet(k,nt),p1d(k),det(k,nt)
-cdiag       enddo
-cdiag       write(400,'(a,3i5,2e12.4)')
-cdiag.     'bfre bcdond: ',nstep,kmax,k,wsdet(k,nt),p1d(k)
-cdiag     endif
-cdiag      if (vrbos) then
-cdiag        do k=1,kmax
-cdiag        write(*,*)'befr settling: ',
-cdiag.       nstep,kmax,nt,i,j,k,wsdet(k,nt),p1d(k),det(k,nt)
-cdiag        enddo
-cdiag      endif
 
           !no flux through the sea floor
           !and convert to distance
@@ -207,14 +173,6 @@ cdiag      endif
            rhs(k,nnut+nchl+nzoo+nt,16)=
      .            (det(k,nt)-rhs(k,nnut+nchl+nzoo+nt,16))/obio_deltat
           enddo
-
-cdiag      if (vrbos) then
-cdiag        do k=1,kmax
-cdiag        write(*,*)'aftr settling: ',
-cdiag.       nstep,kmax,nt,i,j,k,wsdet(k,nt),p1d(k),det(k,nt)
-cdiag        enddo
-cdiag      endif
-
 
        end do  !ndet
 

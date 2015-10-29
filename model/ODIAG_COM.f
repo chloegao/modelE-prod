@@ -69,7 +69,9 @@
      .           ,ij_cocc,ij_doc,IJ_alk,IJ_dayl,ij_sunz,ij_solz
      .           ,ij_flux,ij_Ed,ij_Es,ij_cexp,ij_pp,ij_wsd
      .           ,ij_lim(4,5),ilim,ij_ndet,ij_xchl   
+#ifdef DF_TEMP
      .           ,ij_pp1,ij_pp2,ij_pp3,ij_pp4
+#endif
      .           ,ll
      .           ,ij_fca
 
@@ -83,6 +85,10 @@
      .           ,ij_ralkconc
 
       integer :: ij_cfcair, ij_kw, ij_csat, ij_cfcflux
+#ifdef DF_TEMP
+     .   , ij_cfcwind, ij_cfcpres, ij_cfcsst, ij_cfcsss, ij_cfcrho
+     .   , ij_cfcsolub, ij_cfcSpres, ij_co3, ij_ph
+#endif
 
 !@var IJ_xxx Names for OIJmm diagnostics
       INTEGER IJ_HBLmax,ij_mldmax
@@ -107,6 +113,9 @@
 #endif
 #ifdef OCN_GISS_MESO
      .     ,ijl_ueddy,ijl_veddy,ijl_n2
+#endif
+#ifdef DF_TEMP
+      integer :: ijl_avgq, ijl_kpar, ijl_dtemp
 #endif
 
 !@var lname_oijl Long names for OIJL diagnostics
@@ -1339,6 +1348,33 @@ c
       scale_oijl(k) = 1.
       lgrid_oijl(k) = 2
 c
+#ifdef TRACERS_OceanBiology
+#ifdef DF_TEMP
+      k=k+1
+      IJL_avgq=k
+      lname_oijl(k) = "Mean daily irradiance"
+      sname_oijl(k) = "avgq"
+      units_oijl(k) = "quanta"
+      scale_oijl(k) = 1
+
+      k=k+1
+      IJL_kpar=k
+      denom_oijl(k) = IJL_MO
+      lname_oijl(k) = "KPAR"
+      sname_oijl(k) = "kpar"
+      units_oijl(k) = "??"
+      scale_oijl(k) = 1
+
+      k=k+1
+      IJL_dtemp=k
+      denom_oijl(k) = IJL_MO
+      lname_oijl(k) = "dtemp due to kpar"
+      sname_oijl(k) = "dtemp_par"
+      units_oijl(k) = "C"
+      scale_oijl(k) = 1
+#endif
+#endif
+c
 #ifdef OCN_GISS_MESO
       k=k+1
       IJL_n2=k
@@ -1445,9 +1481,87 @@ c
         units_oij(k)="mol/m2/s"
         ia_oij(k)=ia_src
         scale_oij(k)=1
+
+#ifdef DF_TEMP
+        k=k+1
+        IJ_cfcwind=k
+        lname_oij(k)="CFC wind           "
+        sname_oij(k)="oij_cfcwind"
+        units_oij(k)="m/s"
+        ia_oij(k)=ia_src
+        scale_oij(k)=1
+
+        k=k+1
+        IJ_cfcpres=k
+        lname_oij(k)="CFC pres"
+        sname_oij(k)="oij_cfcpres"
+        units_oij(k)="atm"
+        ia_oij(k)=ia_src
+        scale_oij(k)=1
+
+        k=k+1
+        IJ_cfcSpres=k
+        lname_oij(k)="CFC Spres"
+        sname_oij(k)="oij_cfcSpres"
+        units_oij(k)="Pa"
+        ia_oij(k)=ia_src
+        scale_oij(k)=1
+
+        k=k+1
+        IJ_cfcsst=k
+        lname_oij(k)="CFC sst"
+        sname_oij(k)="oij_cfcsst"
+        units_oij(k)=" "
+        ia_oij(k)=ia_src
+        scale_oij(k)=1
+
+        k=k+1
+        IJ_cfcsss=k
+        lname_oij(k)="CFC sss"
+        sname_oij(k)="oij_cfcsss"
+        units_oij(k)=" "
+        ia_oij(k)=ia_src
+        scale_oij(k)=1
+
+        k=k+1
+        IJ_cfcrho=k
+        lname_oij(k)="CFC rho"
+        sname_oij(k)="oij_cfcrho"
+        units_oij(k)="kg/m3"
+        ia_oij(k)=ia_src
+        scale_oij(k)=1
+
+        k=k+1
+        IJ_cfcsolub=k
+        lname_oij(k)="CFC solub"
+        sname_oij(k)="oij_cfcsolub"
+        units_oij(k)="mol/m3/uatm"
+        ia_oij(k)=ia_src
+        scale_oij(k)=1
+#endif
       endif
 
 #ifdef TRACERS_OceanBiology
+#ifdef DF_TEMP
+#ifdef TOPAZ_params
+      k=k+1
+      IJ_co3=k
+      lname_oij(k)="co3 "
+      sname_oij(k)="oij_co3"
+      units_oij(k)="????????"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1
+#endif
+
+      k=k+1
+      IJ_pH=k
+      lname_oij(k)="ocean surface pH"
+      sname_oij(k)="oij_pH"
+      units_oij(k)="pH units"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1
+#endif
+
       k=k+1
       IJ_solz=k
       lname_oij(k)="Cos Solar Zenith Angle"
@@ -1722,6 +1836,27 @@ c
       units_oij(k)="mg,C/m2/day"
       ia_oij(k)=ia_src
       scale_oij(k)=1
+
+#ifdef DF_TEMP
+      do nt=1,4
+      k=k+1
+      if (nt.eq.1) then
+      IJ_pp1=k;lname_oij(k)="PP-diat";sname_oij(k)="oij_pp1";
+      endif
+      if (nt.eq.2) then
+      IJ_pp2=k;lname_oij(k)="PP-chlor";sname_oij(k)="oij_pp2";
+      endif
+      if (nt.eq.3) then
+      IJ_pp3=k;lname_oij(k)="PP-cyan";sname_oij(k)="oij_pp3";
+      endif
+      if (nt.eq.4) then
+      IJ_pp4=k;lname_oij(k)="PP-cocc";sname_oij(k)="oij_pp4";
+      endif
+      units_oij(k)="mg,C/m2/day"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1
+      enddo
+#endif
 
       do nt=1,4
       do ilim=1,5

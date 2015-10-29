@@ -9,7 +9,7 @@ c
 
       USE obio_dim
       USE obio_incom
-      USE obio_forc, only : ihra,atmFe,alk
+      USE obio_forc, only : ihra,atmFe,alk,surfN
       USE obio_com, only : npst,npnd,WtoQ,obio_ws,P_tend,D_tend
      .                    ,C_tend,wsdet,gro,obio_deltath,obio_deltat 
       use obio_com, only: build_ze
@@ -106,7 +106,6 @@ c  Degrees to radians conversion
        rks(nt) = 0.0
        rkf(nt) = 0.0
       enddo
-      pHsfc = 8.0
 c
 c  Phytoplankton group parameters
       do nt = 1,nchl
@@ -263,11 +262,27 @@ c  Detrital remineralization rates /hr
 !change: March 10, 2010
 !     remin(1) = 0.010/24.0            !nitrogen
       remin(1) = 0.020/24.0            !nitrogen
+#ifdef increaseNremin
+      remin(1) = 0.5/24.0            !nitrogen
+#endif
+#ifdef increaseNremin2
+      remin(1) = 0.1/24.0            !nitrogen
+#endif
+#ifdef increaseNremin3
+      remin(1) = 0.3/24.0            !nitrogen
+#endif
       remin(2) = 0.0001/24.0           !silica
+#ifdef increaseSremin
+      remin(2) = 0.002/24.0           !silica
+#endif
 !     remin(3) = 0.020/24.0            !iron
 !change June 1, 2010
       remin(3) = 0.50/24.0            !iron
 !endofchange
+#ifdef increaseIremin
+      remin(3) = 0.70/24.0            !iron
+#endif
+
       fescavrate(1) = 2.74E-5/24.0      !low fe scavenging rate/hr
       fescavrate(2) = 50.0*fescavrate(1) !high fe scavenging rate/hr
 c
@@ -414,6 +429,11 @@ c  Read in factors to compute average irradiance
         call par_close(ogrid,fid)
       else
         call bio_inicond2D('atmFe_inicond',atmFe)
+#ifdef Relax2SurfN
+        allocate(surfn(ogrid%i_strt:ogrid%i_stop,
+     &                       ogrid%j_strt:ogrid%j_stop))
+        call bio_surfN('nitrates_inicond',surfn)
+#endif
       endif ! netcdf iron or not
 
 #ifdef OBIO_RUNOFF
@@ -513,6 +533,9 @@ c  Read in factors to compute average irradiance
       print*,'limit DIC to +0.2%'
 #endif
 
+       write(*,'(a,3(f8.6,1x))'), 'OBIO remin rates (per day)=',
+     . remin(1)*24.,remin(2)*24.,remin(3)*24.
+
       write(*,*)'**************************************************'
       write(*,*)'**************************************************'
       write(*,*)'**************************************************'
@@ -525,11 +548,35 @@ c------------------------------------------------------------------------------
       module bio_inicond_mod
       contains
 
-!temporarily only on GISS ocean:
-#ifdef OBIO_ON_GARYocean
-      subroutine bio_inicond_read_new(filename, fldo)
+      subroutine bio_inicond_read_new(filename, array, depth)
       use pario, only : par_open,par_close
      &     ,read_data,read_dist_data,get_dimlens
+#ifdef OBIO_ON_GARYocean
+      use oceanr_dim, only : ogrid
+#else
+      USE hycom_dim, only : ogrid
+#endif
+      implicit none
+      character(len=*), intent(in) :: filename
+      real*8, dimension(:,:,:), allocatable, intent(out) :: array
+      real*8, dimension(:), allocatable, intent(out) :: depth
+      integer :: fid, dlens(7), ndims
+
+      fid=par_open(ogrid, filename, 'read')
+      call get_dimlens(ogrid, fid, 'array', ndims, dlens)
+      if ((dlens(1)/=ogrid%im_world).or.(dlens(2)/=ogrid%jm_world))
+     &   call stop_model('dimension mismatch: '//trim(filename), 255)
+      allocate(array(ogrid%i_strt:ogrid%i_stop,
+     &                  ogrid%j_strt:ogrid%j_stop, dlens(3)))
+      allocate(depth(dlens(3)))
+      call read_data(ogrid, fid, 'depth', depth, bcast_all=.true.)
+      call read_dist_data(ogrid, fid, 'array', array)
+      call par_close(ogrid, fid)
+      end subroutine bio_inicond_read_new
+
+!temporarily only on GISS ocean:
+#ifdef OBIO_ON_GARYocean
+      subroutine bio_inicond_new(filename, fldo)
       use obio_com, only: ze
 #ifdef OBIO_ON_GARYocean
       use oceanres, only : kdm=>lmo
@@ -544,8 +591,8 @@ c------------------------------------------------------------------------------
      &    ogrid%j_strt:ogrid%j_stop, kdm), intent(out) ::  fldo
       real*8, dimension(:,:,:), allocatable :: array
       real*8, dimension(:), allocatable :: depth
-      integer :: fid, dlens(7), ndims, i, j
       logical :: regrid
+      integer :: i, j
       interface
         Subroutine VLKtoLZ (KM,LM, MK,ME, RK, RL,RZ)
         Real*8 MK(KM),ME(0:LM), RK(KM), RL(LM)
@@ -553,31 +600,22 @@ c------------------------------------------------------------------------------
         end Subroutine VLKtoLZ
       end interface
 
-      fid=par_open(ogrid, filename, 'read')
-      call get_dimlens(ogrid, fid, 'array', ndims, dlens)
-      if ((dlens(1)/=ogrid%im_world).or.(dlens(2)/=ogrid%jm_world))
-     &   call stop_model('dimension mismatch: '//trim(filename), 255)
-      allocate(array(ogrid%i_strt:ogrid%i_stop,
-     &                  ogrid%j_strt:ogrid%j_stop, dlens(3)))
-      allocate(depth(dlens(3)))
-      call read_data(ogrid, fid, 'depth', depth, bcast_all=.true.)
-      call read_dist_data(ogrid, fid, 'array', array)
-      regrid=kdm/=dlens(3)
+      call bio_inicond_read_new(filename, array, depth)
+      regrid=kdm/=size(depth)
       if (.not.regrid) regrid=all(abs(depth-
      &                      ze(ogrid%i_strt, ogrid%j_strt, :))<1d0)
       if (regrid) then
         do i=ogrid%i_strt,ogrid%i_stop
           do j=ogrid%j_strt,ogrid%j_stop
             if (ip(i, j)==0) cycle
-            call vlktolz(dlens(3), lmm(i, j), depth, ze(i, j, :),
+            call vlktolz(size(depth), lmm(i, j), depth, ze(i, j, :),
      &           array(i, j, :), fldo(i, j, :))
           end do
         end do
       else
         fldo=array
       endif
-      call par_close(ogrid, fid)
-      end subroutine bio_inicond_read_new
+      end subroutine bio_inicond_new
 #endif
 
       subroutine bio_inicond_read(filename, dlatm, loff, setmin, fldo)
@@ -647,6 +685,34 @@ c------------------------------------------------------------------------------
 
       end module bio_inicond_mod
 
+
+      subroutine bio_surfn(filename, fldo)
+      use bio_inicond_mod, only: bio_inicond_read, bio_inicond_read_new
+      use dictionary_mod, only: sync_param
+#ifdef OBIO_ON_GARYocean
+      USE OCEANR_DIM, only : ogrid
+      USE OCEAN, only : dlatm
+#else
+      USE hycom_dim, only : ogrid
+      USE GEOM, only : dlatm
+#endif
+      implicit none
+      character(len=*), intent(in) :: filename
+      real, intent(out) :: fldo(ogrid%I_STRT:ogrid%I_STOP,
+     .          ogrid%J_STRT:ogrid%J_STOP)
+      integer :: new_inicond=0
+      real*8, dimension(:, :, :), allocatable :: array
+      real*8, dimension(:), allocatable :: depth
+
+      call sync_param('new_inicond', new_inicond)
+      if (new_inicond==1) then
+        call bio_inicond_read_new(filename, array, depth)
+      else
+        allocate(array(size(fldo, 1), size(fldo, 2), 1))
+        call bio_inicond_read(filename, dlatm, 180d0, .true., array)
+      endif
+      fldo=array(:, :, 1)
+      end subroutine bio_surfn
 
       subroutine bio_inicond2D(filename,fldo)
 
