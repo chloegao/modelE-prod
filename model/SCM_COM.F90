@@ -157,8 +157,8 @@
   ! T(optional): turn off cloud-top entrainment instability
   call get_param('SCM_noCTEI',SCMopt%noCTEI,default=.false.)
 
-  ! optional Beer's Law radiative heating
-  call get_param('SCM_BeersLaw',SCMopt%BeersLaw,default=.false.)
+  ! optional Beer's Law radiative heating (which takes 3 input parameters)
+  SCMopt%BeersLaw = is_set_param('SCM_BeersLaw')
   if( SCMopt%BeersLaw )then
     call get_param('SCM_BeersLaw',dum_array,3)
     SCMin%BeersLaw_f0    = dum_array(1)
