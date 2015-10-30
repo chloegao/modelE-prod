@@ -78,7 +78,7 @@ SCM_SFLUX=SCM_DYCOMS-II-RF02.nc   ! surface heat flux(es)
 SCM_TSKIN=SCM_DYCOMS-II-RF02.nc   ! skin temperature
 SCM_GEO=SCM_DYCOMS-II-RF02.nc     ! geostrophic wind profile(s)
 SCM_THETA=SCM_DYCOMS-II-RF02.nc   ! potential temperature profile(s)
-SCM_WVMR=SCM_DYCOMS-II-RF02.nc    ! water vapor mixing ratio profile(s)
+SCM_WVMR=SCM_DYCOMS-II-RF02.nc    ! water vapor mixing ratio profile(s) (revised 2015-10-29)
 SCM_W=SCM_DYCOMS-II-RF02.nc       ! large-scale vertical wind profile(s)
 
 ! Topography, area fractions of surface types
