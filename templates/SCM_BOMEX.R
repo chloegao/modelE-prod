@@ -184,6 +184,9 @@ SCM_lat=15.                ! BOMEX latitude (deg)
 SCM_area=10000000000.0     ! arbitrary grid box area (m2)
 SCM_sfc=2                  ! 1:land,2:ocean
 SCM_ustar=0.28             ! surface friction speed (m/s)
+SCM_gradient=1             ! preserve gradients when interpolating input profile?
+SCM_noMC=0                 ! turn off moist convection? 
+SCM_noCTEI=0               ! turn off cloud-top entrainment instability?
 
 DTsrc=1800.     ! Atm. physics timestep.
 NIsurf=1        ! Number of surface physics timesteps per atm. physics timestep.
