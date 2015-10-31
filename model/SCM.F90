@@ -761,8 +761,8 @@
       else
         ! otherwise interpolate
         do Ldata = 1,SCMin_tP%nlev-1
-          if( Pedge(Lgcm) < SCMin_tP%Le(Ldata) .and. &
-              Pedge(Lgcm) > SCMin_tP%Le(Ldata+1) )then
+          if( Pedge(Lgcm) <  SCMin_tP%Le(Ldata) .and. &
+              Pedge(Lgcm) >= SCMin_tP%Le(Ldata+1) )then
             dPtot = SCMin_tP%Le(Ldata)-SCMin_tP%Le(Ldata+1)
             fp1 = (Pedge(Lgcm) - SCMin_tP%Le(Ldata+1))/dPtot
             fp1 = min(1.,max(0.,fp1))
@@ -781,10 +781,10 @@
       Lbot = 0
       Ltop = 0
       do Ldata = 1,SCMin_tP%nlev
-        if(Pedge(Lgcm) < SCMin_tP%Le(Ldata) .and. &
-           Pedge(Lgcm) > SCMin_tP%Le(Ldata+1)) Lbot=Ldata
-        if(Pedge(Lgcm+1) < SCMin_tP%Le(Ldata) .and. &
-           Pedge(Lgcm+1) > SCMin_tP%Le(Ldata+1)) Ltop=Ldata
+        if(Pedge(Lgcm) <  SCMin_tP%Le(Ldata) .and. &
+           Pedge(Lgcm) >= SCMin_tP%Le(Ldata+1)) Lbot=Ldata
+        if(Pedge(Lgcm+1) <  SCMin_tP%Le(Ldata) .and. &
+           Pedge(Lgcm+1) >= SCMin_tP%Le(Ldata+1)) Ltop=Ldata
       enddo
       if(Pedge(Lgcm) > SCMin_tP%Le(1)) Lbot=1
       if(Pedge(Lgcm+1) > SCMin_tP%Le(1)) Ltop=1
@@ -797,8 +797,8 @@
         ! GCM layer spans two or more input layers
         if( SCMopt%gradient )then   ! linear interpolation
           do Ldata = 1,SCMin_tP%nlev-1
-            if( PMID(Lgcm,1,1) < SCMin_tP%L(Ldata) .and. &
-                PMID(Lgcm,1,1) > SCMin_tP%L(Ldata+1) )then
+            if( PMID(Lgcm,1,1) <  SCMin_tP%L(Ldata) .and. &
+                PMID(Lgcm,1,1) >= SCMin_tP%L(Ldata+1) )then
               dPtot = SCMin_tP%L(Ldata)-SCMin_tP%L(Ldata+1)
               fp1 = (PMID(Lgcm,1,1) - SCMin_tP%L(Ldata+1))/dPtot
               fp1 = min(1.,max(0.,fp1))
