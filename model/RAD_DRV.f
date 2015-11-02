@@ -3712,7 +3712,7 @@ C****
         call inc_subdd(subdd,k,SWUS)
       case ('swds')
         do j=j_0,j_1; do i=i_0,imaxj(j)
-          sddarr(i,j)=srdn(i,j)*cosz1(i,j)
+          sddarr(i,j)=srdn(i,j)*cosz2(i,j)
         enddo;        enddo
         call inc_subdd(subdd,k,sddarr)
       case ('swdf')
@@ -3795,12 +3795,12 @@ C****
         call inc_subdd(subdd,k,sddarr3d)
       case ('swdp')
         do j=j_0,j_1; do i=i_0,imaxj(j); do l=1,lmaxsubdd
-          sddarr3d(i,j,l) = SRDFLB_prof(i,j,l)
+          sddarr3d(i,j,l) = SRDFLB_prof(i,j,l)*COSZ2(I,J)
         enddo;           enddo;         enddo
         call inc_subdd(subdd,k,sddarr3d)
       case ('swup')
         do j=j_0,j_1; do i=i_0,imaxj(j); do l=1,lmaxsubdd
-          sddarr3d(i,j,l) = SRUFLB_prof(i,j,l)
+          sddarr3d(i,j,l) = SRUFLB_prof(i,j,l)*COSZ2(I,J)
         enddo;           enddo;         enddo
         call inc_subdd(subdd,k,sddarr3d)
       end select
