@@ -368,9 +368,9 @@ C****
         VEDGE(L)=.5*(VL(L-1)+VL(L))
         TEDGE=.5*(TL(L-1)+TL(L))
         BVEDGE=.5*(BVF(L-1)+BVF(L))
-c Rind et al. JAS 45 vol. 3, eqn 10: original coding perhaps OK
-c        BYFACS(L)=-.5*GRAV*PLE(L)/(RGAS*RKBY3*BVEDGE*TEDGE)
-        BYFACS(L)=-.5*GRAV*PLE(L)/(RGAS*SQRT(RKBY3)*BVEDGE*TEDGE)
+c Rind et al. JAS 45 vol. 3, eqn 10: original coding OK
+        BYFACS(L)=-.5*GRAV*PLE(L)/(RGAS*RKBY3*BVEDGE*TEDGE)
+c        BYFACS(L)=-.5*GRAV*PLE(L)/(RGAS*SQRT(RKBY3)*BVEDGE*TEDGE)
       END DO
       DO N=1,NM
         DO L=LD(N),LM
