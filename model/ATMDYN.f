@@ -605,10 +605,10 @@ C**** Compute MW (kg/s) = downward vertical mass flux
          CONVs = Sum(CONV(I,J,:))
          MVARs = MESUM(I,J) - MFIXs
          MW(I,J,LM-1) = CONV(I,J,LM) - CONVs*MFRAC(LM) +
-     +      (ME(LM,I,J) - MFIX(LM) - MVARs*MFRAC(LM))*DXYP(J)*zNSxDT
+     +      (ME(LM,I,J) - (MFIX(LM)+MVARs*MFRAC(LM)))*DXYP(J)*zNSxDT
          Do 2430 L=LM-2,1,-1
- 2430       MW(I,J,L) = CONV(I,J,L+1) - CONVs*MFRAC(L+1) + MW(I,J,L+1) +
-     +       (ME(L+1,I,J) - MFIX(L+1) - MVARs*MFRAC(L+1))*DXYP(J)*zNSxDT
+ 2430       MW(I,J,L) = MW(I,J,L+1) + CONV(I,J,L+1) - CONVs*MFRAC(L+1) + 
+     +       (ME(L+1,I,J) - (MFIX(L+1)+MVARs*MFRAC(L+1)))*DXYP(J)*zNSxDT
  2435 CONTINUE
       Do L=1,LM-1
          If (QSP)  MW(2:IM,1 ,L) = MW(1,1 ,L)
