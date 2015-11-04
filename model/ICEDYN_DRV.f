@@ -1637,7 +1637,7 @@ c         MHS(5+3*LMI:6+3*LMI,I,J) = 0.
           DO ITR=1,NTM
             TRICE(ITR,:) =
      *        MHS(1+(3+ITR-1)*(LMI+2)    :LMI+(3+ITR-1)*(LMI+2),I,J)
-            TRSNOW(ITR,:)
+            TRSNOW(ITR,:) =
      *        MHS(1+LMI+(3+ITR-1)*(LMI+2):(3+ITR)*(LMI+2)      ,I,J)
           ENDDO
 #endif
