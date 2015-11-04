@@ -536,7 +536,7 @@ C****
       USE Dictionary_mod
       USE CONSTANT, only : grav
       USE FLUXES, only : nisurf,atmocn,atmice
-      USE RESOLUTION, only : ls1,plbot
+      USE RESOLUTION, only : ls1=>ls1_nominal,plbot
       USE RESOLUTION, only : im,jm,lm
       USE MODEL_COM, only :
      *      irand,idacc ,nday,dtsrc ,iyear1,itime,itimei,itimee
@@ -1062,7 +1062,7 @@ C**** CHECKT IS TURNED ON BY SETTING QCHECK=.TRUE. IN NAMELIST
 C**** REMEMBER TO SET QCHECK BACK TO .FALSE. AFTER THE ERRORS ARE
 C**** CORRECTED.
       USE CONSTANT, only : tf
-      USE RESOLUTION, only : ls1
+      USE RESOLUTION, only : ls1=>ls1_nominal
       USE RESOLUTION, only : im,jm,lm
       USE ATM_COM, only : u,v,t,p,q,qcl,qci,pk
 #ifdef BLK_2MOM

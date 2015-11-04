@@ -165,7 +165,11 @@ C****
       use constant, only : gasc,tf,mair,mwat,pi,lhe,lhs,mb2kg,kg2mb,kapa
       use atm_com, only : q,p,pmid,pedn,pdsig,pek,ma,byma,ltropo
       use atm_com, only : aml00,byaml00,req_fac,kradia,lm_req
-      use resolution, only : im, mtop,mfix,mfrac,mfixs, ls1,plbot,ptop
+      use resolution, only : im, plbot,ls1=>ls1_nominal
+      use resolution, only: mfix,mfrac
+#ifndef STDHYB
+      use resolution, only: mfixs,mtop
+#endif
       use rad_com, only : modrd
       use radpar, only : u0gas,ulgas,set_gases_internally
       use radpar, only : set_aerosols_internally,
@@ -379,8 +383,11 @@ C**** sync radiation parameters from input
           call read_dist_data(grid,fid,'p',p)  !  surface pressure (mb)
           call read_dist_data(grid,fid,'tsurf',atmsrf%gtempr)
 !****     Rescaling: pednl00(1) = ps (= p)
-          mvar = p(1,1)*mb2kg - mfixs - mtop
-          pednl00(lm+1) = mtop*kg2mb
+          mvar = p(1,1)*mb2kg
+#ifndef STDHYB
+     &         - mfixs - mtop
+#endif
+          pednl00(lm+1) = plbot(lm+1)!mtop*kg2mb
           do l=lm,1,-1
             pednl00(l) = pednl00(l+1) + (mfix(l) + mvar*mfrac(l))*kg2mb
           enddo
@@ -401,7 +408,7 @@ C**** sync radiation parameters from input
         enddo
         pk = pmid**kapa
         pek = pedn**kapa
-        p(i,j) = pedn(1,i,j)-ptop
+        p(i,j) = pedn(1,i,j)-pedn(ls1,i,j)
 
         do l=1,lm
           t(i,j,l) = t(i,j,l)/pk(l,i,j)
@@ -1489,7 +1496,7 @@ C**** Add water to relevant tracers as well
       USE RESOLUTION, only : pmtop
       USE RESOLUTION, only : im,jm,lm
 #ifdef TRACERS_SPECIAL_Shindell
-      USE RESOLUTION, only : LS1 
+      USE RESOLUTION, only : LS1=>ls1_nominal
 #endif
       USE ATM_COM, only : kradia,lm_req,p,t,q,iu_rad,req_fac_d
       USE MODEL_COM
@@ -3712,7 +3719,7 @@ C****
         call inc_subdd(subdd,k,SWUS)
       case ('swds')
         do j=j_0,j_1; do i=i_0,imaxj(j)
-          sddarr(i,j)=srdn(i,j)*cosz2(i,j)
+          sddarr(i,j)=srdn(i,j)*cosz1(i,j)
         enddo;        enddo
         call inc_subdd(subdd,k,sddarr)
       case ('swdf')
@@ -3795,12 +3802,12 @@ C****
         call inc_subdd(subdd,k,sddarr3d)
       case ('swdp')
         do j=j_0,j_1; do i=i_0,imaxj(j); do l=1,lmaxsubdd
-          sddarr3d(i,j,l) = SRDFLB_prof(i,j,l)*COSZ2(I,J)
+          sddarr3d(i,j,l) = SRDFLB_prof(i,j,l)
         enddo;           enddo;         enddo
         call inc_subdd(subdd,k,sddarr3d)
       case ('swup')
         do j=j_0,j_1; do i=i_0,imaxj(j); do l=1,lmaxsubdd
-          sddarr3d(i,j,l) = SRUFLB_prof(i,j,l)*COSZ2(I,J)
+          sddarr3d(i,j,l) = SRUFLB_prof(i,j,l)
         enddo;           enddo;         enddo
         call inc_subdd(subdd,k,sddarr3d)
       end select

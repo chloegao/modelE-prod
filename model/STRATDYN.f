@@ -728,7 +728,7 @@ C**** Uses TRIDIAG for implicit scheme (MU=1) as in diffuse53.
 C**** This version only does diffusion for lowest LDIFM layers.
 C****
       Use CONSTANT,   Only: RGAS,GRAV,TWOPI,KAPA,SHA,kg2mb
-      Use RESOLUTION, Only: IM,JM,LM,LS1
+      Use RESOLUTION, Only: IM,JM,LM,LS1=>ls1_nominal
       Use ATM_COM,    Only: PEDN,PMID,PK
       USE DYNAMICS, only : mrch
       USE DOMAIN_DECOMP_ATM, only: grid, getDomainBounds

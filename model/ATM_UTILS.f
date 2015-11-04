@@ -242,7 +242,10 @@ C**** Note Air mass is calculated in (kg/m^2)
 !@sum  Compute P (mb) arrays from HALOed MA (kg/m^2)
 !@vers 2015/05/19
       Use CONSTANT,   Only: KAPA,KG2MB
-      Use RESOLUTION, Only: LM, MTOP,MFIXs
+      Use RESOLUTION, Only: LM, MTOP
+#ifndef STDHYB
+      Use RESOLUTION, Only: MFIXS
+#endif
       Use ATM_COM,    Only: MA,MASUM,byMA, PDSIG,PMID,PEDN,PK,PEK, P
       Use FLUXES,     Only: ATMSRF,ASFLX4
       Use DOMAIN_DECOMP_ATM, Only :GRID, HALO_UPDATE_COLUMN
@@ -263,7 +266,11 @@ C**** Note Air mass is calculated in (kg/m^2)
           PEK(L,:,:) = PEDN(L,:,:)**KAPA
          byMA(L,:,:) = 1 / MA(L,:,:)  ;  EndDo
 
-          P(:,:) = (MASUM(:,:) - MFIXs)*KG2MB
+          P(:,:) = (MASUM(:,:)
+#ifndef STDHYB
+     &      -MFIXs
+#endif
+     &     )*KG2MB
 
       ATMSRF%  AM1(:,:) =   MA(1,:,:)
       ATMSRF%byAM1(:,:) = byMA(1,:,:)
@@ -280,7 +287,7 @@ C**** Note Air mass is calculated in (kg/m^2)
       SUBROUTINE CALC_AMP(p,amp)
 !@sum  CALC_AMP Calc. AMP: kg air*grav/100, incl. const. pressure strat
 !@auth Jean Lerner/Max Kelley
-      USE RESOLUTION, only : ls1,psf,ptop
+      USE RESOLUTION, only : ls1=>ls1_nominal,plbot
       USE RESOLUTION, only : im,jm,lm
       USE DYNAMICS, only : dsig
       USE GEOM, only : axyp
@@ -308,7 +315,8 @@ ccc   enddo
         ELSE
 ccc   do l=ls1,lm
           do j=J_0,J_1
-            amp(I_0:I_1,j,l) = (psf-ptop)*axyp(I_0:I_1,j)*dsig(l)
+            amp(I_0:I_1,j,l) =
+     &           (plbot(1)-plbot(ls1))*axyp(I_0:I_1,j)*dsig(l)
           enddo
         END IF
 ccc   enddo

@@ -191,7 +191,7 @@ C**** Save current value in TCONSRV(NI)
 !@sum consrv_tr calculate total zonal tracer amount (kg)
 !@auth Gavin Schmidt
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
-      use resolution, only : ls1
+      use resolution, only : ls1=>ls1_nominal
       use resolution, only : lm,jm,im
       use geom, only : imaxj
       use OldTracer_mod, only: trname
@@ -585,7 +585,7 @@ C****
 !@     It is NOT parallelized.
       USE CONSTANT, only : undef,teeny
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
-      USE RESOLUTION, only : ls1
+      USE RESOLUTION, only : ls1=>ls1_nominal
       USE RESOLUTION, only : jm,lm
       USE MODEL_COM, only: itime,idacc,xlabel,lrunid
       USE DYNAMICS, only : dsig

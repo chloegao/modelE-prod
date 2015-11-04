@@ -69,7 +69,7 @@
 !@var MFRACSOLD(L) = Sum [MFRAC(L+1:LM)]   defined from 0:LM
 
       Integer :: LLL
-      Integer,Parameter :: LM=40, LS1=26
+      Integer,Parameter :: LM=40, LS1=26, LS1_NOMINAL=LS1
       Real*8,Parameter  :: MDRYA = 10034, MTOP = 1, &
          MFIXSOLD(0:LM) = (/ 6185,  5985,5785,5585,5385,5185,  4985,4785,4585,4385,4185, &
                                     3985,3785,3585,3385,3185,  2985,2785,2585,2385,2185, &

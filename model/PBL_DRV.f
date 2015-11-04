@@ -1264,7 +1264,7 @@ C**** initialise some pbl common variables
       use PBL_DRV
       use domain_decomp_atm, only : grid
       use PBL_DRV, only : dbls0,slope0,dbl_max_stable
-      USE RESOLUTION, only : ls1
+      USE RESOLUTION, only : lm
       implicit none
       integer :: i,j,l,ldbl,ldbls
       real*8 :: ztop,coriol,dbl,ustar,lmonin,tmp,dbls
@@ -1295,7 +1295,7 @@ C**** initialise some pbl common variables
           zpbl=ztop
           pl1=pmid(1,i,j)         ! pij*sig(1)+ptop
           tl1=t(i,j,1)*(1.+xdelt*q(i,j,1))*pk(1,i,j)
-          do l=2,ls1
+          do l=2,lm
             pl=pmid(l,i,j)        !pij*sig(l)+ptop
             tl=t(i,j,l)*(1.+xdelt*q(i,j,l))*pk(l,i,j) !virtual,absolute
             tbar=thbar(tl1,tl)

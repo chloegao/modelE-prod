@@ -6901,7 +6901,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
 #endif
       USE CONSTANT, only: mair,rhow,grav,tf,avog,rgas
       use TimeConstants_mod, only: SECONDS_PER_DAY
-      USE resolution,ONLY : Im,Jm,Lm,Ls1,ptop
+      USE resolution,ONLY : Im,Jm,Lm,Ls1=>ls1_nominal
       USE ATM_COM, only : q,qcl,qci
       use model_com, only: modelEclock
       USE MODEL_COM, only: itime,dtsrc,itimeI
@@ -11219,7 +11219,6 @@ C**** no fractionation for ice evap
 !@+    gas phase sulfur oxidation chemistry
 !@vers 2013/03/26
 !@auth Bell
-      USE RESOLUTION, only : ls1
       USE RESOLUTION, only : im,jm,lm
       USE ATM_COM, only: t
       USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds,write_parallel

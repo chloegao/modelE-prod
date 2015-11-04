@@ -4,7 +4,7 @@ module VerticalRes
   Implicit None
 !@var LM    = number of dynamical layers
 !@var LS1   = lowest layer of strtosphere
-  Integer*4,Parameter :: LM=12, LS1=9
+  Integer*4,Parameter :: LM=12, LS1=9, LS1_NOMINAL=LS1
 
 !@var MDRYA = dry atmospheric mass (kg/m^2) = 100*PSF/GRAV
 !@var MTOP  = mass above dynamical top (kg/m^2) = 100*PMTOP/GRAV
