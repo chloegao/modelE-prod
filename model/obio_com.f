@@ -211,7 +211,9 @@ C endif
 #ifdef OBIO_ON_GARYocean
       use oceanr_dim, only: ogrid
       use oceanres, only: kdm=>lmo
-      use ocean, only : zoe=>ze
+      use ofluxes, only: oapress
+      use ocean, only: g0m,s0m,mo,dxypo,lmm
+      use constant, only: grav
 #else
       use hycom_dim, only: ogrid, kdm
       USE hycom_arrays, only : dpinit
@@ -219,21 +221,32 @@ C endif
 #endif
       implicit none
       integer :: k
+      real :: pres,g,s
+      integer :: i,j
+      real*8 :: volgsp
 
       if (.not.allocated(ze)) allocate(ze(ogrid%i_strt:ogrid%i_stop,
      &                                ogrid%j_strt:ogrid%j_stop, 0:kdm))
-      do k=0, kdm
+      ze=0
 #ifdef OBIO_ON_GARYocean
-        ze(:, :, k)=zoe(k)
-#else
-        if (k>0) then
-          ze(:, :, k)=dpinit(ogrid%i_strt:ogrid%i_stop,
-     &                 ogrid%j_strt:ogrid%j_stop, k)/onem+ze(:, :, k-1)
-        else
-          ze(:, :, k)=0
-        endif
-#endif
+      do i=ogrid%i_strt,ogrid%i_stop
+        do j=ogrid%j_strt,ogrid%j_stop
+          pres=oapress(i,j)
+          do k=1, lmm(i,j)
+            pres=pres+mo(i,j,k)*grav*.5
+            g=g0m(i,j,k)/(mo(i,j,k)*dxypo(j))
+            s=s0m(i,j,k)/(mo(i,j,k)*dxypo(j))
+            ze(i,j,k)=ze(i,j,k-1)+mo(i,j,k)*volgsp(g,s,pres)
+            pres=pres+mo(i,j,k)*grav*.5
+          end do
+        end do
       end do
+#else
+      do k=1, kdm
+        ze(:, :, k)=ze(:, :, k-1)+dpinit(ogrid%i_strt:ogrid%i_stop,
+     &                 ogrid%j_strt:ogrid%j_stop, k)/onem
+      end do
+#endif
       end subroutine build_ze
 
       END MODULE obio_com
