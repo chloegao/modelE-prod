@@ -6,7 +6,9 @@
       USE obio_incom
       USE obio_com,  only: rhs_obio,chng_by
 
-      integer nstep,i,j
+      implicit none
+
+      integer nstep,i,j,nt
       real*8 balnc(15)
       real*8 tolrnc
       logical vrbos
