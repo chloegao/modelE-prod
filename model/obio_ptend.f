@@ -16,7 +16,7 @@ c  P(9) = herbivores (mg chl m-3)
  
       USE obio_dim
       USE obio_incom,only: cnratio,cfratio,remin,obio_wsh,bf,cchlratio
-     .                    ,wsdeth,rkn,rks,rkf,Rm,phygross,bn,solFe
+     .                    ,wsdeth,rkn,rks,rkf,Rm,phygross,bn,bs,solFe
      .                    ,mgchltouMC,uMtomgm3
       USE obio_forc, only: tirrq
       USE obio_com, only : dp1d,obio_P,obio_ws,P_tend,D_tend,C_tend
@@ -73,7 +73,7 @@ c  P(9) = herbivores (mg chl m-3)
 
 
 
-      real bs,ptot
+      real ptot
       real Pzoo,Gzoo,Dzoo1,Dzoo2,exc
       real tirrqice,upn,upa,upf,ups
 
