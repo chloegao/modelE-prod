@@ -189,7 +189,7 @@
 !@var PSTRAT = pressure of stratosphere (mb) = PTOP - PMTOP
 !@var PSFMPT = mean pressure of troposhere (mb) = PSF - PTOP
 !@var PLBOT(L) = mean pressure at bottom of layer L (mb) = [MTOP + MFIXS(L-1) + MFRACS(L-1)*MVARSMEAN]*GRAV / 100
-      Integer,Parameter :: LS1 = 59
+      Integer,Parameter :: LS1 = 59, LS1_NOMINAL=LS1
       Real*8, Parameter :: PSF = MDRYA*9.80665d0 / 100, &
                          PMTOP =  MTOP*9.80665d0 / 100, &
                           PTOP = (MTOP + MFIXSNEW(LM-LS1+1))*9.80665d0 / 100, &

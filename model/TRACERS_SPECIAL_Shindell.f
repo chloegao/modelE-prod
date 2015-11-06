@@ -296,7 +296,7 @@ C====
 !@sum get_CH4_IC to generate initial conditions for methane.
 !@vers 2013/03/26
 !@auth Greg Faluvegi/Drew Shindell
-      USE RESOLUTION, only : ls1
+      USE RESOLUTION, only : ls1=>ls1_nominal
       USE RESOLUTION, only : im,jm,lm
       USE MODEL_COM, only  : DTsrc
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds,

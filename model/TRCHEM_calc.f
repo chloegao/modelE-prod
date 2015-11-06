@@ -8,7 +8,7 @@ C**** GLOBAL parameters and variables:
 C
       USE SOMTQ_COM, only       : qmom
       USE RAD_COM, only         : clim_interact_chem
-      USE RESOLUTION, only      : ls1
+      USE RESOLUTION, only      : ls1=>ls1_nominal
       USE RESOLUTION, only      : im,jm,lm
       USE ATM_COM, only         : Q
       USE DOMAIN_DECOMP_ATM,only : grid,getDomainBounds,write_parallel

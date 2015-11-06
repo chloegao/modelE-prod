@@ -2094,7 +2094,7 @@ subroutine init_CLD(istart)
 !@sum  init_CLD initialises parameters for MSTCNV and LSCOND
 !@auth M.S.Yao/A. Del Genio (modularisation by Gavin Schmidt)
   use CONSTANT, only : grav,by3,radian
-  use RESOLUTION, only : ls1,plbot
+  use RESOLUTION, only : ls1=>ls1_nominal,plbot
   use RESOLUTION, only : jm,lm
   use MODEL_COM, only : dtsrc
   USE ATM_COM, only : t,q ! for coldstart istart=2 case
@@ -2362,7 +2362,7 @@ subroutine qmom_topo_adjustments
   ! topographic slopes to prevent large supersaturations in upslope flow.
   !
   use constant, only : tf,lhe,lhs,bysha
-  use resolution, only : ls1
+  use resolution, only : ls1=>ls1_nominal
   use resolution, only : im,jm,lm
   use atm_com, only : zatmo,t,q
   use atm_com, only : MUs,MVs,pk,pmid

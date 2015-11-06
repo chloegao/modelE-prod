@@ -123,7 +123,7 @@ C**** module should own dynam variables used by other routines
       USE CONSTANT, only : GRAV
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID,HALO_UPDATE
      &     ,hassouthpole,hasnorthpole
-      Use RESOLUTION, Only: IM,JM,LM, MDRYA, PSFMPT
+      Use RESOLUTION, Only: IM,JM,LM, MDRYA
       USE ATM_COM, ONLY : temperature_istart1
       USE ATM_COM, ONLY : ZATMO,P,U,V,T,Q,qcl,qci
       USE ATM_COM, ONLY :
@@ -175,7 +175,7 @@ C****
       V(:,:,:)=0.
       T(:,:,:)=temperature_istart1  ! will be changed to pot.temp later
       Q(:,:,:)=3.D-6
-      P(:,:)=PSFMPT
+      !P(:,:)=PSFMPT
       qcl(:,:,:)=0.
       qci(:,:,:)=0.
       ZATMO(:,:)=0.

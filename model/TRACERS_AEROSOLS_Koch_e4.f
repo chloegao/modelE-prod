@@ -595,7 +595,6 @@ c
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT, getDomainBounds 
       USE DOMAIN_DECOMP_ATM, only: DREAD8_PARALLEL,DREAD_PARALLEL
       USE DOMAIN_DECOMP_ATM, only : GRID, write_parallel
-      USE RESOLUTION, only : ls1
       use resolution, only: im,jm,lm
       use atm_com, only : t,q
       use model_com, only: modelEclock

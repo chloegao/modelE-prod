@@ -43,7 +43,7 @@ module CLOUDS
 
 #if defined(CLD_AER_CDNC) || defined(CLD_SUBDD)
   use CONSTANT, only : kapa,mair,gasc
-  use RESOLUTION, only : ptop,psf,ls1
+  use threeD_mass_unfinished, only : ptop,psf,ls1=>ls1_nominal
   use DYNAMICS, only : sig,sige
 #endif
 
