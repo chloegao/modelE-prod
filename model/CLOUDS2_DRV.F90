@@ -1235,6 +1235,47 @@ subroutine CONDSE
              Itime,I,J,LERR,' CONDSE:H2O<0',WMERR,' ->0'
 
         !**** Accumulate diagnostics of LSCOND
+
+#ifdef CLD_AER_CDNC
+        ! code transplanted from LSCOND
+        SMLWP=WMSUM
+        CDN3DL=0.
+        CRE3DL=0.
+        ACDNWS=0.
+        ACDNIS=0.
+        AREWS=0.
+        AREIS=0.
+        ALWWS=0.
+        ALWIS=0.
+        NLSW = 0
+        NLSI = 0
+!    CDNC_TOMAS=0.
+        do l=1,lmcld
+          if(CLDSV1(L).gt.1.d-5) then
+            if(SVLHXL(L).eq.LHE) then
+              ! max(...,20) b/c NCLL had different lower limit than SCDNCW
+              ACDNWS(L)= max(NCLL(L),20d0)
+              AREWS(L) = CSIZEL(L)
+              ALWWS(L) = 1.d5*QCLX(L)*PL(L)/(CLDSV1(L)*TL(L)*RGAS+teeny)
+              CDN3DL(L) = NCLL(L)
+              CRE3DL(L)=CSIZEL(L)
+              NLSW  = NLSW + 1
+        !      if(ACDNWS(L).gt.20.d0) write(6,*)"INWCLD",ACDNWS(L),
+        !    * SCDNCW,NLSW,AREWS(L),RCLDE,LHX
+            elseif(SVLHXL(L).eq.LHS) then
+              ACDNIS(L)= NCIL(L)
+              AREIS(L) = CSIZEL(L)
+              ALWIS(L) = 1.d5*QCIX(L)*PL(L)/(CLDSV1(L)*TL(L)*RGAS+teeny)
+              CDN3DL(L) = NCIL(L)
+              CRE3DL(L)=CSIZEL(L)
+              NLSI  = NLSI + 1
+        !      if(ACDNIS(L).gt.0.d0)    write(6,*)"INICLD",ACDNIS(L),
+        !    * SCDNCI,NLSI,AREIS(L),RCLDE,LHX
+            endif
+          endif
+        enddo
+#endif
+
         AIJ(I,J,IJ_WMSUM)=AIJ(I,J,IJ_WMSUM)+WMSUM
 #ifdef CACHED_SUBDD
       Cloud_daily(I,J,7) = Cloud_daily(I,J,7) + WMSUM

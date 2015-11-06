@@ -69,6 +69,7 @@ TRDUST_COM TRDUST TRDUST_DRV        ! dust tracer specific code
 #include "tracer_shindell_source_files"
 #include "tracer_aerosols_source_files"
 CLD_AEROSOLS_Menon_MBLK_MAT_E29q BLK_DRV ! aerosol-cloud interactions
+CLD_AER_CDNC            ! aerosol-cloud interactions wrapper
 
 #include "latlon_source_files"
 #include "modelE4_source_files"
