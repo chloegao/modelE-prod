@@ -3472,7 +3472,6 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
         TEM=RHO*QCX/(TEM*FCLD+teeny)
         TEM=TEM*TEM
         if(TEM.gt.10.) TEM=10.
-        if(VDEF.gt.0..and.RHO*QCX.ge.10.0d0) CM0=CM00
         CM1=CM0
         if(BANDF) CM1=CM0*CBF      ! only for liquid clouds?
         if(LHX.eq.LHS) CM1=CM0     ! already LHX.eq.LHS
