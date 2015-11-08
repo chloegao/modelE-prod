@@ -1,12 +1,20 @@
 !--------- mineralogical dust aerosol parameters----------------
 imDust=0                          ! 0: PDF emission scheme, 1: AEROCOM
 adiurn_dust=0                     ! 1: daily dust diagnostics for selected grid boxes
-fracClayPDFscheme=0.30927938 ! clay emission parameter from calibration
-fracSiltPDFscheme=0.30927938 ! silt emission parameter from calibration
-   !fracClayPDFscheme=0.053818764d0[1]+4*0.063865154d0[2]
-   !fracSiltPDFscheme=0.053818764d0[1]+4*0.063865154d0[2]
-   ![1]: clay emission parameter from calibration run E_AR5_111018TdusNu02F40
-   ![2]: silt emission parameter from calibration run E_AR5_111018TdusNu02F40
+! AMF method nudged
+fracClayPDFscheme=0.2025779939 ! clay emission parameter from calibration
+fracSiltPDFscheme=0.2025779939 ! silt emission parameter from calibration
+   !fracClayPDFscheme = 0.30927938[1] * 0.655[2]
+   !fracSiltPDFscheme = 0.30927938[1] * 0.655[2]
+   ![1]: emission parameters used for calibration run E20151001TminNu40AMF_001
+   ![2]: optimization factor calculated from calibration run
+! SMF method nudged
+!fracClayPDFscheme=0.07762912438
+!fracSiltPDFscheme=0.07762912438
+   !fracClayPDFscheme = 0.30927938[1] * 0.251[2]
+   !fracSiltPDFscheme = 0.30927938[1] * 0.251[2]
+   ![1] emission parameters used for calibration run E20151001TminNu40SMF_001
+   ![2] optimization factor calculated from calibration run
 to_conc_soildust=1    ! three-dimensional dust output as concentration [kg/m^3]
 soilDustEmissionDistr=1 ! choose emission size distr. 0: Kandler 2009 low/medium
                         ! dust(default) 1: Kandler 2009 high dust
