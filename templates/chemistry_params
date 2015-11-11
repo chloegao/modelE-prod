@@ -34,8 +34,10 @@ tune_lt_sea= 5.5221d0 ! =3.9d0*2.17d0, *0.25*1.5 for 2x2.5, * 2 for bugfix, *0.8
 ! There is an online non-zero default. 
 PltOx=0.0
 
+preslimitO2photCorrection=0.0 ! O2 photolysis rate corrections happen a pressures gt this
+
 Tpsc_offset_N=-10.d0 ! pol.strat.cloud temperature offset NH
-Tpsc_offset_S=-7.5d0 ! pol.strat.cloud temperature offset SH
+Tpsc_offset_S=-10.d0 ! pol.strat.cloud temperature offset SH
 
 COUPLED_CHEM=1     ! to couple chemistry and aerosols
 use_sol_Ox_cycle=0 ! (=1) apply ozone changes in radiation, based on solar cycle

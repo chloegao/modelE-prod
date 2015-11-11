@@ -3291,6 +3291,7 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
                  BANDF=.true.
           end if
         end if
+        LHP(L)=LHX
         if(LHX.eq.LHS .and. (OLDLHX.eq.LHE.or.OLDLAT.eq.LHE)) BANDF=.true.
 
       endif ! use_vmp or not
@@ -3358,7 +3359,7 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
 
       !**** Set precip phase to be the same as the cloud, unless precip above
       !**** is ice and temperatures after ice melt would still be below TFrez
-      LHP(L)=LHX
+
       if (LHP(L+1).eq.LHS .and. &
            TL(L).lt.TF+DTsrc*LHM*PREICE(L+1)*GRAV*BYAM(L)*BYSHA) then
         if(use_vmp) then

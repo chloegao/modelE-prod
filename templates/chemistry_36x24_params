@@ -33,10 +33,12 @@ tune_lt_sea= 58.903d0 ! =3.9d0*2.17d0 roughX4 * 2 for bugfix, *0.87
 ! Pressure above which Ox, NOx, BrOx, and ClOx will be
 ! overwritten with climatology. Default of 0.1 is (From 23-
 ! layer model) won't choose any 40-layer model levels):
-PltOx=0.2
+PltOx=0.
+
+preslimitO2photCorrection=0.0 ! O2 photolysis rate corrections happen a pressures gt this
 
 Tpsc_offset_N=-10.d0 ! pol.strat.cloud temperature offset NH
-Tpsc_offset_S=-7.5d0 ! pol.strat.cloud temperature offset SH
+Tpsc_offset_S=-10.d0 ! pol.strat.cloud temperature offset SH
 
 COUPLED_CHEM=1     ! to couple chemistry and aerosols
 use_sol_Ox_cycle=0 ! (=1) apply ozone changes in radiation, based on solar cycle

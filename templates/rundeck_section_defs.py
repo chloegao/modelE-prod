@@ -217,7 +217,7 @@ RADN3=miescatpar.abcdv2
 RH_QG_Mie=oct2003.relhum.nr.Q633G633.table
 RADN7=STRATAER.VOL.SATO.1850-1999.Apr02_hdr
 RADN8=cloud.epsilon4.72x46
-RADN9=solar.DBbglean.ann850-2000.uvflux_hdr       ! need KSOLAR=2
+RADN9=solar.lean2015.ann1610-2014_hdr ! need KSOLAR=2
 RADNE=topcld.trscat8
 
 ISCCP=ISCCP.tautables
