@@ -9437,7 +9437,7 @@ c$$$      use OldTracer_mod, only: tr_mm, nBBsources, mass2vol
       use TRACER_COM, only: n_N_d1, n_N_d2, n_N_d3, n_NH3, n_NH4
       use TRACER_COM, only: n_NOx, n_NO3p, n_OCIA, n_OCII
       use TRACER_COM, only: n_SO4, n_SO4_d1, n_SO4_d2, n_SO4_d3
-      use TRACER_COM, only: n_NO3p, n_OCIA, n_OCII, n_SO2
+      use TRACER_COM, only: n_SO2
       use TRACER_COM, only: ntm_chem, ntsurfsrc
       use TRACER_COM, only: ntm_chem_beg, ntm_chem_end
       use TRACER_COM, only: n_NOx, naircraft, nBiomass, nChemistry
