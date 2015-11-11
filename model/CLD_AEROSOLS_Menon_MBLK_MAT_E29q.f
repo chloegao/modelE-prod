@@ -290,7 +290,7 @@ c
 C************************************************************************************
 C** For large-scale stratus clouds
 C*************************************************************************************
-      SUBROUTINE GET_CDNC(L,LHX,WCONST,WMUI,AIRM,WMX,DXYPJ,
+      SUBROUTINE GET_CDNC(LHX,AIRM,WMX,DXYPJ,
      *FCLD,CAREA,CLDSAVL,DSS,PL,TL,OLDCDL,
      *VVEL,SME,DSU,CDNL0,CDNL1)
 !@sum specific calculation to get cloud droplet number for indirect effects
@@ -309,11 +309,11 @@ C*******************************************************************************
       real*8,dimension(nt)::DSS,DSU
       real*8 EXPL,EXPO,WCDNL,CDNL0,
      *CCLD0,CCLD1,DCLD,dfn,CDNL1,amass,tams
-     *,FCLD,WCONST,LHX,WMUI,DXYPJ
+     *,FCLD,LHX,DXYPJ
       real*8 SSM1,SSM2,SSM3,SSM4,SSM5,SSM6,SSM7,SSM8,SSM9,SSMAL,SSML
       real*8 SSMD1,SSMD2,SSMD3,SSM1a
       real*8 term1,term2,vterm,alf
-      integer L,n
+      integer n
       real*8 :: fq_ssoc_oc,fq_ssoc_ss
 
       do n = 1,nt
@@ -506,7 +506,7 @@ c     write(6,*)"QAUT",r6c,r6,RCLD,cwc,WMX,FCLD,SCDNCW,QCRIT,QAUT
 C**************************************************************************
 C** Here we calculate the updated CDNC if aerosol mass has changed
 C**************************************************************************
-      SUBROUTINE GET_CDNC_UPD(L,LHX,WCONST,WMUI,WMX,FCLD,
+      SUBROUTINE GET_CDNC_UPD(LHX,WMX,FCLD,
      *CLDSSL,CLDSAVL,VVEL,SME,DSU,OLDCDL,CDNL0,CDNL1)
 !@sum specific calculation to get cloud droplet number for indirect effects
 !@auth Surabi Menon 
@@ -521,7 +521,7 @@ C**************************************************************************
      *,OLDCDL,VVEL,SME,WTURB
       real*8 EXPL,EXPO,WCDNL,CDNL0,
      *CCLD0,CCLD1,DCLD,dfn,CDNL1,FCLD
-     *,LHX,WMUI,WCONST
+     *,LHX
       real*8 term1,term2,vterm,alf
       integer, PARAMETER :: nt=17+ntm_soa/2+ntm_ococean
       real*8,dimension(nt)::DSU
@@ -529,7 +529,6 @@ C**************************************************************************
       real*8 SSM1,SSM2,SSM3,SSM4,SSM5,SSM6,SSM7,SSM8,SSM9,SSMAL,SSML
       real*8 SSMD1,SSMD2,SSMD3,SSM1a
 
-      integer L
       real*8 :: fq_ssoc_oc,fq_ssoc_ss
 
       SSMAL=0.d0

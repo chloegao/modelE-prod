@@ -12,7 +12,6 @@ c
       USE obio_forc, only : ihra,atmFe,alk,surfN
       USE obio_com, only : npst,npnd,WtoQ,obio_ws,P_tend,D_tend
      .                    ,C_tend,wsdet,gro,obio_deltath,obio_deltat 
-      use obio_com, only: build_ze
 
 #ifdef OBIO_RUNOFF
 #ifdef NITR_RUNOFF
@@ -78,7 +77,6 @@ c
 c 
       if (AM_I_ROOT()) print*, 'Ocean Biology setup starts'
 
-      call build_ze
 ! time steps
 #ifdef OBIO_ON_GARYocean
       obio_deltath = dtsrc/3600.d0  !time step in hours

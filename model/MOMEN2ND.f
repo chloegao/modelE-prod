@@ -1,11 +1,11 @@
       module MOMENTS
-      USE RESOLUTION, only : ls1, PSFMPT, JM
+      USE RESOLUTION, only : JM
       implicit none
       private
 
       public ADVECV, moment_enq_order
       public initMoments
-      REAL*8, SAVE :: SMASS(JM)
+      !REAL*8, SAVE :: SMASS(JM)
 
       contains
 
@@ -14,9 +14,9 @@
       USE GEOM, only : DXYV
       IMPLICIT NONE
       INTEGER :: J
-      DO J=2,JM
-        SMASS(J)=PSFMPT*DXYV(J)
-      END DO
+      !DO J=2,JM
+      !  SMASS(J)=PSFMPT*DXYV(J)
+      !END DO
       END SUBROUTINE initMoments
 
       subroutine moment_enq_order(order)

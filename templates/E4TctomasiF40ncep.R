@@ -81,6 +81,7 @@ TRDIAG
 #include "latlon_source_files"
 #include "modelE4_source_files"
 CLD_AEROSOLS_Menon_MBLK_MAT_E29q BLK_DRV ! aerosol-cloud interactions
+CLD_AER_CDNC            ! aerosol-cloud interactions wrapper
 lightning                           ! Colin Price lightning model
 ! flammability_drv flammability       ! Olga's fire model
 NUDGE                               ! Nudged with NCEP

@@ -14,7 +14,7 @@ c
      &                        GLOBALSUM,GLOBALMAX,
      &                        write_parallel,writet8_column,
      &                        writet_parallel
-      USE RESOLUTION, only  : ls1
+      USE RESOLUTION, only  : ls1=>ls1_nominal
       USE RESOLUTION, only  : IM,JM
       USE ATM_COM, only     : T,Q
       use model_com, only: modelEclock
@@ -2159,7 +2159,7 @@ C Make sure nighttime chemistry changes are not too big:
 !@+ taken from the UK Harwell Model
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
 !
-      use resolution, only : ls1
+      use resolution, only : ls1=>ls1_nominal
       use resolution, only : lm
       use model_com, only: modelEclock
       use atm_com, only: pmid

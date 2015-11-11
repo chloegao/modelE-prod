@@ -4,7 +4,7 @@ E_TminF40: E_AR5_NINT + mineralogical soil dust aerosol tracers
  dust model:
  Perlwitz, J.P., C. Pérez García-Pando, and R.L. Miller, 2015: Predicting the
    mineral composition of dust aerosols — Part 1: Representing key processes.
-   Atmos. Chem. Phys. Discuss., 14, 3493-3575, doi:10.5194/acpd-15-3493-2015.
+   Atmos. Chem. Phys., 15, 11593-11627, doi:10.5194/acp-15-11593-2015.
 
 E_AR5_NINT: modelE as frozen in April 2010
 modelE2 2x2.5 hor. grid with 40 lyrs, top at .1 mb (+ 3 rad.lyrs)

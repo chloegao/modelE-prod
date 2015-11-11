@@ -39,6 +39,7 @@
      .                    ,ca_det_calc1d
 #endif
       use obio_com, only: caexp
+      use obio_com, only: build_ze
 
 #ifdef OBIO_RUNOFF
 #ifdef NITR_RUNOFF
@@ -204,6 +205,7 @@ c
       print*, 'nstep,nstep0 =',
      .         nstep,nstep0
 
+      call build_ze
       if (nstep0==0) then
         print*, 'COLD INITIALIZATION....'
 
@@ -368,7 +370,6 @@ cdiag.          olon_dg(i,1),olat_dg(j,1)
          rho_water = 1d0/VOLGSP(g,s,pres)
 !!!!!!   rho_water = 1035.
          dp1d(k)=MO(I,J,K)/rho_water   !local thickenss of each layer in meters
-
          if(vrbos.and.k.eq.1)write(*,'(a,4e12.4)')
      .             'obio_model,t,s,p,rho= '
      .             ,temp1d(k),saln1d(k),dp1d(k),rho_water

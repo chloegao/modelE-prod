@@ -70,7 +70,7 @@ c
 
 C**** GLOBAL parameters and variables:
 
-      USE RESOLUTION, only         : LS1
+      USE RESOLUTION, only         : LS1=>LS1_NOMINAL
       USE ATM_COM, only            : LTROPO
       USE TRACER_COM, only         : n_NOx,nn_NOx,n_Alkenes,nn_Alkenes
       USE TRCHEM_Shindell_COM, only:rr,y,yNO3,nO3,nHO2,yCH3O2,nO,nC2O3,
@@ -155,7 +155,7 @@ C       Set limits on NO, NO2, NOx:
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
 
 C**** GLOBAL parameters and variables:
-      USE RESOLUTION, only : LS1
+      USE RESOLUTION, only : LS1=>LS1_NOMINAL
       USE RESOLUTION, only : LM
       USE GEOM, only : LAT2D_DG
       USE ATM_COM, only: LTROPO,PMIDL00
@@ -406,7 +406,7 @@ c CZ: OH->HO2 reactions :
 C**** GLOBAL parameters and variables:
 
       USE ATM_COM, only   : LTROPO
-      USE RESOLUTION, only : LS1
+      USE RESOLUTION, only : LS1=>LS1_NOMINAL
       USE RESOLUTION, only : LM
       USE TRACER_COM, only : n_ClOx,n_HOCl,n_ClONO2,n_HCl,n_H2O2,n_CH4
       USE TRACER_COM, only : nn_ClOx,nn_HOCl,nn_ClONO2,nn_HCl,nn_H2O2,
@@ -559,7 +559,7 @@ c Normalize so that amount of ClOx doesn't change:
 !@auth Drew Shindell
 
 C**** GLOBAL parameters and variables:
-      USE RESOLUTION, only : LS1
+      USE RESOLUTION, only : LS1=>LS1_NOMINAL
       USE ATM_COM, only    : LTROPO
       USE TRACER_COM, only : n_BrOx,n_H2O2,n_HBr,n_HOBr,n_BrONO2
       USE TRACER_COM, only : nn_BrOx,nn_H2O2,nn_HBr,nn_HOBr,nn_BrONO2

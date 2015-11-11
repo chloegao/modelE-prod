@@ -4,7 +4,7 @@
 !@sum  DIAG_COM Diagnostic model variables
 !@auth Original Development Team
 !@ver  2010/11/12
-      use resolution, only : im,jm,lm,ls1
+      use resolution, only : im,jm,lm,ls1=>ls1_nominal
       USE ATM_COM, only : lm_req
 #ifndef SCM
       use diag_zonal, only : jm_budg
@@ -1231,7 +1231,7 @@ c allocate master copies of budget- and JK-arrays on root
 #ifndef SCM
       module gc_com
       use mdiag_com, only : sname_strlen,units_strlen,lname_strlen
-      use resolution, only : jm,lm,ls1,pmtop
+      use resolution, only : jm,lm,ls1=>ls1_nominal,pmtop
       use diag_zonal, only : imlonh,jmlat
       use cdl_mod
       implicit none

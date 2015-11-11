@@ -1012,7 +1012,6 @@ C**** uisurf/visurf are on atm grid but are latlon oriented
       RETURN
       END SUBROUTINE DYNSI
 
-
 #ifndef CUBED_SPHERE
       SUBROUTINE ADVSI(atmice)
 !@sum  ADVSI advects sea ice
@@ -1030,7 +1029,8 @@ C**** uisurf/visurf are on atm grid but are latlon oriented
      &     hasNorthPole, hasSouthPole
       USE ICEDYN, only : dxyp,dyp,dxp,dxv,bydxyp
       !USE ICEDYN_COM, only : grid_MIC
-      USE SEAICE, only : ace1i,xsi,Ti,Ei
+      USE SEAICE, only : ace1i,xsi,Ti,
+     * get_snow_ice_layer,set_snow_ice_layer,relayer,relayer_12
       USE SEAICE_COM, only : si_ocn,lmi
 #ifdef TRACERS_WATER
       USE SEAICE, only : ntm
@@ -1046,13 +1046,15 @@ C**** uisurf/visurf are on atm grid but are latlon oriented
       INTEGER :: NTRICE
 #ifdef TRACERS_WATER
       INTEGER ITR
-      REAL*8 TRSNOW(NTM), TRICE(NTM)
+      REAL*8 TRSNOW(NTM,2), TRICE(NTM,LMI)
 #endif
       REAL*8, ALLOCATABLE :: SFMSI(:),AMSI(:)
 !@var MHS mass/heat/salt content of sea ice
       REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: FMSJ,MHS
       INTEGER I,J,L,IM1,IP1,K
       REAL*8 SFASI,DMHSI,ASI,YRSI,XRSI,FRSI,SICE,TMP,TICE,ENRG
+      REAL*8 :: MICE(LMI),SICEg(LMI),HICE(LMI),TSIL(LMI),MSI1,FMSI2
+      REAL*8 :: HSNOW(2),SNOWL(2),TSNW(2)
 
 C****
 C**** FLUXCB  USIDT  U compon of time integrated sea ice velocity (m)
@@ -1082,9 +1084,9 @@ C**** Get grid parameters
 
 
 #ifndef TRACERS_WATER
-      NTRICE=2+2*LMI
+      NTRICE=3*(LMI+2)
 #else
-      NTRICE=2+(2+NTM)*LMI
+      NTRICE=(3+NTM)*(LMI+2)
 #endif
 
       ALLOCATE(SFMSI(NTRICE),AMSI(NTRICE))
@@ -1095,7 +1097,9 @@ C**** Get grid parameters
      &     ,FYSI(IM,J_0H:J_1H)
      &     ,FAW(IM,J_0H:J_1H)
      &     ,BYFOA(IM,J_0H:J_1H) )
+
       ALLOCATE( USIDT(IM, J_0H:J_1H), VSIDT(IM, J_0H:J_1H) )
+
 
       FOCEAN => ATMICE%FOCEAN
       RSI => SI_OCN%RSI
@@ -1118,7 +1122,6 @@ C**** Get grid parameters
       ATMICE%MVSI(:,:)=0
       ATMICE%HVSI(:,:)=0
       ATMICE%SVSI(:,:)=0
-
 #ifdef TRACERS_WATER
       ATMICE%TUSI(:,:,:)=0
       ATMICE%TVSI(:,:,:)=0
@@ -1147,40 +1150,42 @@ C**** Regularise ice concentration gradients to prevent advection errors
         END IF
       END DO
       END DO
-
 C**** set up local MHS array to contain all advected quantities
-C**** MHS(1:2) = MASS, MHS(3:2+LMI) = HEAT, MHS(3+LMI:2+2*LMI)=SALT
 C**** Currently this is on atmospheric grid
-      MHS(1,:,J_0:J_1) = ACE1I + SNOWI(:,J_0:J_1)
-      MHS(2,:,J_0:J_1) = MSI(:,J_0:J_1)
-      DO L=1,LMI
-        MHS(L+2,:,J_0:J_1) = HSI(L,:,J_0:J_1)
-        MHS(L+2+LMI,:,J_0:J_1) = SSI(L,:,J_0:J_1)
-      END DO
+      SNOWL=0.; HSNOW=0.; HICE=0.; SICEg=0.; TSNW=0.; TSIL=0.; MICE=0.
+
+      DO J=J_0, J_1
+        DO I=1,IM
+      call get_snow_ice_layer(SNOWI(I,J),MSI(I,J),HSI(:,I,J),SSI(:,I,J),
+#ifdef TRACERS_WATER
+     *     TRSI(:,:,I,J),TRSNOW,TRICE,
+#endif 
+     *     SNOWL,HSNOW,HICE,SICEg,TSNW,TSIL,MICE,.false.)
+
+C-- MASS: ICE(LMI)
+          MHS(1      :LMI    ,I,J) = MICE
+C-- MASS: SNOW(2)
+          MHS(LMI+1  :LMI+2  ,I,J) = SNOWL
+C-- HEAT: ICE(LMI)
+          MHS(3+LMI  :2+2*LMI,I,J) = HICE
+C-- HEAT: SNOW(2)
+          MHS(3+2*LMI:4+2*LMI,I,J) = HSNOW
+C-- SALT: ICE(LMI)
+          MHS(5+2*LMI:4+3*LMI,I,J) = SICEg
+C-- SALT: SNOW (2, always =0)
+          MHS(5+3*LMI:6+3*LMI,I,J) = 0.
 
 #ifdef TRACERS_WATER
 C**** add tracers to advected arrays
-      DO J=J_0, J_1
-        DO I=1,IM
           DO ITR=1,NTM
-          IF (SNOWI(I,J)*XSI(2).gt.XSI(1)*ACE1I) THEN ! layer 1:all snow
-            SICE=SSI(1,I,J)+SSI(2,I,J)
-            TRSNOW(ITR) = TRSI(ITR,1,I,J) + TRSI(ITR,2,I,J)*MAX(1.
-     *           -(ACE1I-SICE)/(XSI(2)*(ACE1I+SNOWI(I,J))-SICE),0d0)
-          ELSE                  ! first layer is snow and some ice
-            TRSNOW(ITR) = TRSI(ITR,1,I,J)*MIN(SNOWI(I,J)/(XSI(1)*(ACE1I
-     *           +SNOWI(I,J))-SSI(1,I,J)),1d0)
-          END IF
-          TRICE(ITR) = TRSI(ITR,1,I,J) + TRSI(ITR,2,I,J) - TRSNOW(ITR)
-          MHS(1+2+(1+ITR)*LMI,I,J)=TRSNOW(ITR)
-          MHS(2+2+(1+ITR)*LMI,I,J)=TRICE(ITR)
-          DO L=3,LMI
-            MHS(L+2+(1+ITR)*LMI,I,J)=TRSI(ITR,L,I,J)
-          END DO
-          END DO
-        END DO
-      END DO
+            MHS(1+(3+ITR-1)*(LMI+2)    :LMI+(3+ITR-1)*(LMI+2),I,J)
+     *        = TRICE(ITR,:)
+            MHS(1+LMI+(3+ITR-1)*(LMI+2):(3+ITR)*(LMI+2)      ,I,J)
+     *        = TRSNOW(ITR,:)
+          ENDDO
 #endif
+        ENDDO
+      ENDDO
 
 C**** define inverse area array
       DO J=J_0, J_1
@@ -1269,13 +1274,13 @@ C**** Sea ice velocity is northward at grid box edge
      *       -3d0*FASI(I,J))
         FMSJ(I,1:NTRICE,J) = FASI(I,J)*MHS(1:NTRICE,I,J)
       END IF
-        ATMICE%MVSI(I,J)=SUM(FMSJ(I,1:2,J))
-        ATMICE%HVSI(I,J)=SUM(FMSJ(I,3:2+LMI,J))
-        ATMICE%SVSI(I,J)=SUM(FMSJ(I,3+LMI:2+2*LMI,J))
+        ATMICE%MVSI(I,J)=SUM(FMSJ(I,1:LMI+2,J))
+        ATMICE%HVSI(I,J)=SUM(FMSJ(I,3+LMI:4+2*LMI,J))
+        ATMICE%SVSI(I,J)=SUM(FMSJ(I,5+2*LMI:6+3*LMI,J))
 #ifdef TRACERS_WATER
          DO ITR=1,NTM
            ATMICE%TVSI(I,J,ITR)=
-     &          SUM(FMSJ(I,3+(1+ITR)*LMI:2+(2+ITR)*LMI,J))
+     &          SUM(FMSJ(I,1+(3+ITR-1)*(LMI+2):(3+ITR)*(LMI+2),J))
          END DO
 #endif
   120 CONTINUE
@@ -1303,13 +1308,13 @@ C**** Sea ice velocity is northward into North Pole box
 C**** Accumulate sea ice leaving and entering North Pole box
         SFASI = SFASI + FASI(I,JM-1)
         SFMSI(1:NTRICE) = SFMSI(1:NTRICE) + FMSJ(I,1:NTRICE,JM-1)
-         ATMICE%MVSI(I,JM-1)=SUM(FMSJ(I,1:2,JM-1))
-         ATMICE%HVSI(I,JM-1)=SUM(FMSJ(I,3:2+LMI,JM-1))
-         ATMICE%SVSI(I,JM-1)=SUM(FMSJ(I,3+LMI:2+2*LMI,JM-1))
+         ATMICE%MVSI(I,JM-1)=SUM(FMSJ(I,1:LMI+2,JM-1))
+         ATMICE%HVSI(I,JM-1)=SUM(FMSJ(I,3+LMI:4+2*LMI,JM-1))
+         ATMICE%SVSI(I,JM-1)=SUM(FMSJ(I,5+2*LMI:6+3*LMI,JM-1))
 #ifdef TRACERS_WATER
            DO ITR=1,NTM
              ATMICE%TVSI(I,JM-1,ITR)=
-     &            SUM(FMSJ(I,3+(1+ITR)*LMI:2+(2+ITR)*LMI,JM-1))
+     &            SUM(FMSJ(I,1+(3+ITR-1)*(LMI+2):(3+ITR)*(LMI+2),JM-1))
            END DO
 #endif
       ENDIF
@@ -1403,22 +1408,26 @@ C**** Limit RSIX and RSIY so that sea ice is positive at the edges
       IF(RSI(I,J)-RSIY(I,J).gt.1d0) RSIY(I,J) =    RSI(I,J)-1d0
       IF(RSI(I,J)+RSIY(I,J).gt.1d0) RSIY(I,J) =1d0-RSI(I,J)
       GO TO 330
+
 C**** Sea ice crunches into itself and completely covers grid box
+C**** Move excess ice to lower layers, allow snow to pile up
   320 RSI(I,J)   = 1d0
       RSIX(I,J)  = 0.
       RSIY(I,J)  = 0.
-      MHS(1,I,J) = AMSI(1)/ASI
-      MHS(2,I,J) =(AMSI(1)+AMSI(2))*BYFOA(I,J) - MHS(1,I,J)
-      DO K=1,(NTRICE-2)/LMI
-        MHS(3+LMI*(K-1),I,J) = AMSI(3+LMI*(K-1)) / ASI
-        MHS(4+LMI*(K-1),I,J) = AMSI(4+LMI*(K-1)) / ASI
-        DMHSI = (AMSI(3+LMI*(K-1))+AMSI(4+LMI*(K-1))+AMSI(5+LMI*(K-1))
-     *       +AMSI(6+LMI*(K-1)))*(BYFOA(I,J) -1d0 / ASI )
-        MHS(5+LMI*(K-1),I,J) = AMSI(5+LMI*(K-1)) / ASI +
-     *       XSI(3)*DMHSI
-        MHS(6+LMI*(K-1),I,J) = AMSI(6+LMI*(K-1)) / ASI +
-     *       XSI(4)*DMHSI
+      DO K=1,NTRICE/(LMI+2)
+C**** K=1: MASS, K=2: HEAT, K=3: SALT
+        MHS(1+(LMI+2)*(K-1),I,J) = AMSI(1+(LMI+2)*(K-1)) / ASI          # 4 ice layers
+        MHS(2+(LMI+2)*(K-1),I,J) = AMSI(2+(LMI+2)*(K-1)) / ASI
+        DMHSI = SUM(AMSI(1+(LMI+2)*(K-1):4+(LMI+2)*(K-1)))
+     *            *(BYFOA(I,J) -1d0/ ASI)
+        MHS(3+(LMI+2)*(K-1),I,J) = AMSI(3+(LMI+2)*(K-1)) / ASI +
+     *        XSI(3)*DMHSI
+        MHS(4+(LMI+2)*(K-1),I,J) = AMSI(4+(LMI+2)*(K-1)) / ASI +
+     *        XSI(4)*DMHSI
+        MHS(5+(LMI+2)*(K-1),I,J) = AMSI(5+(LMI+2)*(K-1)) * BYFOA(I,J)   # 2 snow layers
+        MHS(6+(LMI+2)*(K-1),I,J) = AMSI(6+(LMI+2)*(K-1)) * BYFOA(I,J)
       END DO
+
 C**** End of loop over J
   330 CONTINUE
 C**** End of loop over I
@@ -1435,21 +1444,24 @@ C****
         RSI(1,JM)   = ASI*BYFOA(1,JM)
         IF (ASI.gt.0) MHS(1:NTRICE,1,JM) = AMSI(1:NTRICE)/ASI
         GO TO 400
+
 C**** Sea ice crunches into itself at North Pole box
-  350   RSI(1,JM)   = 1d0
-        MHS(1,1,JM) = AMSI(1)/ASI
-        MHS(2,1,JM) =(AMSI(1)+AMSI(2))*BYFOA(1,JM)-MHS(1,1,JM)
-        DO K=1,(NTRICE-2)/LMI
-          MHS(3+LMI*(K-1),1,JM) = AMSI(3+LMI*(K-1)) / ASI
-          MHS(4+LMI*(K-1),1,JM) = AMSI(4+LMI*(K-1)) / ASI
-          DMHSI = (AMSI(3+LMI*(K-1))+AMSI(4+LMI*(K-1))+
-     &              AMSI(5+LMI*(K-1))
-     *         +AMSI(6+LMI*(K-1)))*(BYFOA(1,JM) -1d0/ ASI)
-          MHS(5+LMI*(K-1),1,JM) = AMSI(5+LMI*(K-1)) / ASI +
-     *         XSI(3)*DMHSI
-          MHS(6+LMI*(K-1),1,JM) = AMSI(6+LMI*(K-1)) / ASI +
-     *         XSI(4)*DMHSI
-        END DO
+C**** Move excess ice to lower layers, allow snow to pile up
+  350 RSI(1,JM)   = 1d0
+      DO K=1,NTRICE/(LMI+2)
+C**** K=1: MASS, K=2: HEAT, K=3: SALT
+        MHS(1+(LMI+2)*(K-1),1,JM) = AMSI(1+(LMI+2)*(K-1)) / ASI         # 4 ice layers
+        MHS(2+(LMI+2)*(K-1),1,JM) = AMSI(2+(LMI+2)*(K-1)) / ASI
+        DMHSI = SUM(AMSI(1+(LMI+2)*(K-1):4+(LMI+2)*(K-1)))
+     *            *(BYFOA(1,JM) -1d0/ ASI)
+        MHS(3+(LMI+2)*(K-1),1,JM) = AMSI(3+(LMI+2)*(K-1)) / ASI +
+     *        XSI(3)*DMHSI
+        MHS(4+(LMI+2)*(K-1),1,JM) = AMSI(4+(LMI+2)*(K-1)) / ASI +
+     *        XSI(4)*DMHSI
+        MHS(5+(LMI+2)*(K-1),1,JM) = AMSI(5+(LMI+2)*(K-1)) * BYFOA(1,JM) # 2 snow layers
+        MHS(6+(LMI+2)*(K-1),1,JM) = AMSI(6+(LMI+2)*(K-1)) * BYFOA(1,JM)
+      END DO
+
       END IF   !HAVE_NORTH_POLE
 C****
 C**** East-West Advection of Sea Ice
@@ -1480,13 +1492,13 @@ C**** Sea ice velocity is eastward at grid box edge
         FYSI(I,J)=FAW(I,J)*RSIY(I,J)*FOCEAN(I,J)
         FMSI(1:NTRICE,I) = FASI(I,J)*MHS(1:NTRICE,I,J)
       END IF
-         ATMICE%MUSI(I,J)=SUM(FMSI(1:2,I))
-         ATMICE%HUSI(I,J)=SUM(FMSI(3:2+LMI,I))
-         ATMICE%SUSI(I,J)=SUM(FMSI(3+LMI:2+2*LMI,I))
+         ATMICE%MUSI(I,J)=SUM(FMSI(1:LMI+2,I))
+         ATMICE%HUSI(I,J)=SUM(FMSI(3+LMI:4+2*LMI,I))
+         ATMICE%SUSI(I,J)=SUM(FMSI(5+2*LMI:6+3*LMI,I))
 #ifdef TRACERS_WATER
          DO ITR=1,NTM
            ATMICE%TUSI(I,J,ITR)=
-     &          SUM(FMSI(3+(1+ITR)*LMI:2+(2+ITR)*LMI,I))
+     &          SUM(FMSI(1+(3+ITR-1)*(LMI+2):(3+ITR)*(LMI+2),I))
          END DO
 #endif
   420 I=IP1
@@ -1571,22 +1583,26 @@ C**** Limit RSIX and RSIY so that sea ice is positive at the edges
       IF(RSI(I,J)+RSIY(I,J).gt.1d0) RSIY(I,J) =1d0-RSI(I,J)
       IF(RSI(I,J)>1d0) RSI(I,J)=1d0
       GO TO 630
+
 C**** Sea ice crunches into itself and completely covers grid box
+C**** Move excess ice to lower layers, allow snow to pile up
   620 RSI(I,J)   = 1d0
       RSIX(I,J)  = 0.
       RSIY(I,J)  = 0.
-      MHS(1,I,J) = AMSI(1)/ASI
-      MHS(2,I,J) =(AMSI(1)+AMSI(2))*BYFOA(I,J) - MHS(1,I,J)
-      DO K=1,(NTRICE-2)/LMI
-        MHS(3+LMI*(K-1),I,J) = AMSI(3+LMI*(K-1)) / ASI
-        MHS(4+LMI*(K-1),I,J) = AMSI(4+LMI*(K-1)) / ASI
-        DMHSI = (AMSI(3+LMI*(K-1))+AMSI(4+LMI*(K-1))+AMSI(5+LMI*(K-1))
-     *       +AMSI(6+LMI*(K-1)))*(BYFOA(I,J) -1d0/ ASI)
-        MHS(5+LMI*(K-1),I,J) = AMSI(5+LMI*(K-1)) / ASI +
-     *       XSI(3)*DMHSI
-        MHS(6+LMI*(K-1),I,J) = AMSI(6+LMI*(K-1)) / ASI +
-     *       XSI(4)*DMHSI
+      DO K=1,NTRICE/(LMI+2)
+C**** K=1: MASS, K=2: HEAT, K=3: SALT
+        MHS(1+(LMI+2)*(K-1),I,J) = AMSI(1+(LMI+2)*(K-1)) / ASI          # 4 ice layers
+        MHS(2+(LMI+2)*(K-1),I,J) = AMSI(2+(LMI+2)*(K-1)) / ASI
+        DMHSI = SUM(AMSI(1+(LMI+2)*(K-1):4+(LMI+2)*(K-1)))
+     *            *(BYFOA(I,J) -1d0/ ASI)
+        MHS(3+(LMI+2)*(K-1),I,J) = AMSI(3+(LMI+2)*(K-1)) / ASI +
+     *        XSI(3)*DMHSI
+        MHS(4+(LMI+2)*(K-1),I,J) = AMSI(4+(LMI+2)*(K-1)) / ASI +
+     *        XSI(4)*DMHSI
+        MHS(5+(LMI+2)*(K-1),I,J) = AMSI(5+(LMI+2)*(K-1)) * BYFOA(I,J)   # 2 snow layers
+        MHS(6+(LMI+2)*(K-1),I,J) = AMSI(6+(LMI+2)*(K-1)) * BYFOA(I,J)
       END DO
+
 C**** End of loop over I
   630 IM1=I
 C**** End of loop over J
@@ -1599,57 +1615,59 @@ C**** Currently on atmospheric grid, so no interpolation necessary
           DO I=1,si_ocn%IMAXJ(J)
             IF (FOCEAN(I,J).gt.0) THEN
 C**** Fresh water sea ice mass convergence (needed for qflux model)
-            atmice%MSICNV(I,J) = RSI(I,J)*(MHS(1,I,J)+MHS(2,I,J)
-     &             -SUM(MHS(3+LMI:2*LMI+2,I,J)))
-     &             -RSISAVE(I,J)*(ACE1I+SNOWI(I,J)
-     *             +MSI(I,J)-SUM(SSI(1:LMI,I,J)))
-C**** sea ice prognostic variables
-            SNOWI(I,J)= MAX(0d0,MHS(1,I,J) - ACE1I)
-            MSI(I,J)  = MHS(2,I,J)
-            DO L=1,LMI
-              HSI(L,I,J) = MHS(L+2,I,J)
-            END DO
-C**** ensure that salinity is only associated with ice
-            SICE=MHS(1+2+LMI,I,J)+MHS(2+2+LMI,I,J)
-            IF (SNOWI(I,J).gt.XSI(2)*(ACE1I+SNOWI(I,J))) THEN
-              SSI(1,I,J)=0.
-            ELSE
-              SSI(1,I,J)=SICE*(XSI(1)*ACE1I-XSI(2)*SNOWI(I,J))/ACE1I
-            END IF
-            SSI(2,I,J)=SICE-SSI(1,I,J)
-C**** correction of heat energy to compensate for salinity fix
-            TICE=Ti(HSI(1,I,J)/(XSI(1)*(ACE1I+SNOWI(I,J))),1d3*MHS(1+2
-     *           +LMI,I,J)/(XSI(1)*(ACE1I+SNOWI(I,J))))
-            ENRG=XSI(1)*(ACE1I+SNOWI(I,J))*(
-     *         Ei(TICE,1d3*MHS(1+2+LMI,I,J)/(XSI(1)*(ACE1I+SNOWI(I,J))))
-     *        -Ei(TICE,1d3*SSI(1,I,J)/(XSI(1)*(ACE1I+SNOWI(I,J)))) )
-            HSI(1,I,J)=HSI(1,I,J)-ENRG
-            HSI(2,I,J)=HSI(2,I,J)+ENRG
-C****
-            DO L=3,LMI
-               SSI(L,I,J) = MHS(L+2+LMI,I,J)
-            END DO
+            atmice%MSICNV(I,J) = RSI(I,J)*(SUM(MHS(1:LMI+2,I,J))
+     *           -SUM(MHS(5+2*LMI:4+3*LMI,I,J)))
+     *                  - RSISAVE(I,J)*(ACE1I+SNOWI(I,J)
+     *           +MSI(I,J)-SUM(SSI(1:LMI,I,J)))
+
+C-- MASS: ICE(LMI)
+          MICE  = MHS(1      :LMI    ,I,J)
+C-- MASS: SNOW(2)
+          SNOWL = MHS(LMI+1  :LMI+2  ,I,J)
+C-- HEAT: ICE(LMI)
+          HICE  = MHS(3+LMI  :2+2*LMI,I,J)
+C-- HEAT: SNOW(2)
+          HSNOW = MHS(3+2*LMI:4+2*LMI,I,J)
+C-- SALT: ICE(LMI)
+          SICEg = MHS(5+2*LMI:4+3*LMI,I,J)
+C-- SALT: SNOW (2, always =0)
+c         MHS(5+3*LMI:6+3*LMI,I,J) = 0.
+
+#ifdef TRACERS_WATER
+          DO ITR=1,NTM
+            TRICE(ITR,:) =
+     *        MHS(1+(3+ITR-1)*(LMI+2)    :LMI+(3+ITR-1)*(LMI+2),I,J)
+            TRSNOW(ITR,:) =
+     *        MHS(1+LMI+(3+ITR-1)*(LMI+2):(3+ITR)*(LMI+2)      ,I,J)
+          ENDDO
+#endif
+
+C-- Mass fluxes required to keep first layer ice = ACE1I
+      FMSI2=MICE(1)+MICE(2)-ACE1I
+C**** relayer lower ice layers
+        call relayer(FMSI2,MICE,HICE,SICEg
+#ifdef TRACERS_WATER
+     *       ,TRICE
+#endif
+     *       )
+
+C**** relayer upper two layers
+        call relayer_12(HSNOW,HICE,SICEg,MICE,SNOWL
+#ifdef TRACERS_WATER
+     *       ,TRSNOW,TRICE
+#endif 
+     *       )
+
+C**** reconstitute upper snow and ice layers
+        call set_snow_ice_layer(HSNOW,HICE,SICEg,MICE,SNOWL,
+#ifdef TRACERS_WATER
+     *       TRSNOW,TRICE,TRSI(:,:,I,J),
+#endif 
+     *       SNOWI(I,J),MSI1,MSI(I,J),HSI(:,I,J),SSI(:,I,J))
+
             ATMICE%HSICNV(I,J) = FOCEAN(I,J) *
      *         (RSI(I,J)*Sum(HSI(:,I,J)) - ATMICE%HSICNV(I,J))
 
-#ifdef TRACERS_WATER
-C**** reconstruct tracer arrays
-            DO ITR=1,NTM
-              IF (ACE1I.gt.XSI(2)*(SNOWI(I,J)+ACE1I)) THEN
-                TRSI(ITR,1,I,J)= MHS(2+2+(1+ITR)*LMI,I,J) *(ACE1I
-     *               -XSI(2)*(SNOWI(I,J)+ACE1I))/ACE1I +MHS(1+2+(1+ITR)
-     *               *LMI,I,J)
-              ELSE
-                TRSI(ITR,1,I,J)= MHS(1+2+(1+ITR)*LMI,I,J)*XSI(1)*(ACE1I
-     *               +SNOWI(I,J))/SNOWI(I,J)
-              END IF
-              TRSI(ITR,2,I,J)= MHS(1+2+(1+ITR)*LMI,I,J)+MHS(2+2+(1+ITR)
-     *             *LMI,I,J)-TRSI(ITR,1,I,J)
-              DO L=3,LMI
-                TRSI(ITR,L,I,J)=MHS(L+2+(1+ITR)*LMI,I,J)
-              END DO
-            END DO
-#endif
             atmice%FWSIM(I,J)=RSI(I,J)*(ACE1I+SNOWI(I,J)+MSI(I,J)-
      *           SUM(SSI(1:LMI,I,J)))
             END IF
@@ -1672,7 +1690,7 @@ c        END DO
         DO J=J_0, J_1
           DO I=1,si_ocn%IMAXJ(J)
             IF (FOCEAN(I,J).gt.0) THEN
-               ATMICE%HSICNV(I,J) = RSI(I,J)*Sum(MHS(3:2+LMI,I,J)) -
+              atmice%HSICNV(I,J)=RSI(I,J)*SUM(MHS(3+LMI:2+2*LMI,I,J)) -
      -                              ATMICE%HSICNV(I,J)
 C**** reset sea ice concentration
               RSI(I,J)=RSISAVE(I,J)
@@ -1681,12 +1699,13 @@ C**** reset sea ice concentration
         END DO
       END IF
 C****
+
       DEALLOCATE(FMSI,FMSJ,MHS,SFMSI,AMSI)
       DEALLOCATE(FASI, FXSI, FYSI, FAW, BYFOA, USIDT, VSIDT)
+
       RETURN
       END SUBROUTINE ADVSI
 #endif
-
 
 #ifdef CUBED_SPHERE
       subroutine INT_AtmA2IceA_XY(aA,iA)

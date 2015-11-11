@@ -99,7 +99,7 @@ C**** Some local constants
 !@vers 2015/06/25
       USE CONSTANT, only : grav,rgas,kapa,lhe,lhs,sha,bygrav,tf
      *     ,rvap,gamd,teeny,undef,radius,omega,kg2mb,mair
-      Use Resolution, Only: IM,JM,LM, LS1
+      Use Resolution, Only: IM,JM,LM, LS1=>LS1_NOMINAL
       Use MODEL_COM,  Only: IDACC,MDYN,MDIAG
       Use ATM_COM,    Only: U,V,T,Q,QCL,QCI, ZATMO, LM_REQ,REQ_FAC_M
       USE GEOM, only : sinlat2d,coslat2d,axyp,imaxj,

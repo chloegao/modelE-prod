@@ -30,7 +30,7 @@ C**** Variables used in DIAG5 calculations
       SUBROUTINE init_ATMDYN
       USE DOMAIN_DECOMP_ATM, only: grid
       use domain_decomp_1d, only : am_i_root
-      use resolution, only : lm,mfixs,mdrya
+      use resolution, only : lm,mdrya
       use model_com, only : dtsrc
       use constant, only : planet_name
       use dynamics
@@ -144,7 +144,7 @@ c      end subroutine setDtParam
 !@vers 2015/05/08
 !@auth Original development team
       Use CONSTANT,   Only: by3,byGRAV,RGAS,SHA,kg2mb,UNDEF_VAL
-      Use RESOLUTION, Only: IM,JM,LM, MFIXs
+      Use RESOLUTION, Only: IM,JM,LM
       USE MODEL_COM, only : DTsrc
       Use ATM_COM,    Only: MA,U,V,T,Q,QCL,QCI,MASUM, MUs,MVs,MWs, GZ, P
       Use GEOM,       Only: AXYP
@@ -426,7 +426,13 @@ c apply north-south filter to U and V once per physics timestep
 !@+            CONV (kg/s) =  horizontal mass convergence
 !@+            SPA (.5 m/s) = filtered (U+U) defined on eastern cell edge
 !!@auth Original development team
-      Use RESOLUTION, Only: IM,JM,LM,LS1, MFIX,MFIXs,MFRAC
+      Use RESOLUTION, Only: IM,JM,LM,LS1=>LS1_NOMINAL
+      Use RESOLUTION, Only: MFIX,MFRAC
+#ifdef STDHYB
+      Use RESOLUTION, Only: mtop
+#else
+      Use RESOLUTION, Only: MFIXs
+#endif
       Use ATM_COM,    Only: ZATMO
       Use GEOM,       Only: IMAXJ, DXYP,DYP,DXV, POLWT
       Use DYNAMICS,   Only: DT, MU,MV,MW,CONV, SPA,DO_POLEFIX
@@ -603,12 +609,20 @@ C**** Compute MW (kg/s) = downward vertical mass flux
       DO 2435 J=J1,JN
       Do 2435 I=1,IMAXJ(J)
          CONVs = Sum(CONV(I,J,:))
-         MVARs = MESUM(I,J) - MFIXs
-         MW(I,J,LM-1) = CONV(I,J,LM) - CONVs*MFRAC(LM) +
-     +      (ME(LM,I,J) - MFIX(LM) - MVARs*MFRAC(LM))*DXYP(J)*zNSxDT
-         Do 2430 L=LM-2,1,-1
- 2430       MW(I,J,L) = CONV(I,J,L+1) - CONVs*MFRAC(L+1) + MW(I,J,L+1) +
-     +       (ME(L+1,I,J) - MFIX(L+1) - MVARs*MFRAC(L+1))*DXYP(J)*zNSxDT
+         MVARs = MESUM(I,J)
+#ifdef STDHYB
+     &        + MTOP
+#else
+     &        - MFIXs
+#endif
+         MW(I,J,LM-1) =
+     &        CONV(I,J,LM) - CONVs*MFRAC(LM) +
+     +      (ME(LM,I,J) - (MFIX(LM)+MVARs*MFRAC(LM)) )*DXYP(J)*zNSxDT
+         do L=LM-2,1,-1
+           MW(I,J,L) = MW(I,J,L+1) +
+     &          CONV(I,J,L+1) - CONVs*MFRAC(L+1) + 
+     &      (ME(L+1,I,J) - (MFIX(L+1)+MVARs*MFRAC(L+1)) )*DXYP(J)*zNSxDT
+         enddo
  2435 CONTINUE
       Do L=1,LM-1
          If (QSP)  MW(2:IM,1 ,L) = MW(1,1 ,L)
@@ -1037,7 +1051,11 @@ C****        2  SMOOTH T USING TROPOSPHERIC STRATIFICATION OF TEMPER
 C****        3  SMOOTH P AND T
 C****
       Use CONSTANT,   Only: byGRAV,RGAS,SHA,KAPA,MB2KG
-      Use RESOLUTION, Only: IM,JM,LM, MTOP,MFIXs, MFIX,MFRAC
+      Use RESOLUTION, Only: IM,JM,LM
+      Use RESOLUTION, Only: MFIX,MFRAC
+#ifndef STDHYB
+      Use RESOLUTION, Only: MFIXs,MTOP
+#endif
       USE MODEL_COM, only : itime
       Use ATM_COM,    Only: ZATMO, MA, T,Q,QCL,QCI, PEDN,PMID,PK
       USE GEOM, only : areag,dxyp,byim
@@ -1144,7 +1162,10 @@ C**** reduce large variations (mainly due to topography)
 
 !**** Compute new MA from filtered PEDN(1) array
       Do J=J1P,JNP  ;  Do I=1,IM
-         MVAR = PEDN(1,I,J)*MB2KG - MFIXs - MTOP
+         MVAR = PEDN(1,I,J)*MB2KG
+#ifndef STDHYB
+     &       - MFIXs - MTOP
+#endif
          MA(LMFRAC1:LMFRACM,I,J) = MFIX(LMFRAC1:LMFRACM) +
      +                       MVAR*MFRAC(LMFRAC1:LMFRACM)
          EndDo  ;  EndDo
@@ -1589,7 +1610,7 @@ c**** Extract domain decomposition info
 !@sum  SDRAG puts a drag on the winds in the top layers of atmosphere
 !@auth Original Development Team
       Use CONSTANT,   Only: GRAV,RGAS,SHA
-      USE RESOLUTION, only : ls1
+      USE RESOLUTION, only : ls1=>ls1_nominal
       USE RESOLUTION, only : im,jm,lm
       USE MODEL_COM, only : itime
       Use ATM_COM,    Only: MA,U,V,T, PEDN,PK
@@ -2897,7 +2918,7 @@ C**** vertically integrated atmospheric fluxes
       USE UNRDRAG_COM
       USE CONSTANT, only : grav, bygrav, kapa, rgas
       USE GEOM, only: RAPVS, RAPVN
-      USE RESOLUTION, only : ls1,psfmpt,ptop
+      use threeD_mass_unfinished, only : ls1=>ls1_nominal,psfmpt,ptop
       USE RESOLUTION, only : im,jm,lm
       USE MODEL_COM, only: modelEclock
       USE DYNAMICS, only : sig,dsig,sige

@@ -1716,7 +1716,7 @@ Cjrp      kij_self=kij_self*1.0e6/boxvol !normalize by grid cell volume
       tot_nh3 = giss_nh3g/17.d0 + giss_nh4a/18.d0
 
       ! get the total number of kmol so4
-	tot_so4=0.d0
+      tot_so4=0.d0
       do k=1,ibins
          tot_so4 = tot_so4 + Mke(k,srtso4)/96.d0
       enddo
@@ -1971,7 +1971,7 @@ C     and get the nucleation rate and critical cluster size
          endif
       else
          max_H2SO4conc = 1.0D100
-      endif	
+      endif
       
 C     Checks for when condensation sink is very small
       if (CS.gt.CSeps) then
@@ -2497,14 +2497,14 @@ C     particles into the first size bin.  don't let it go less than zero.
             enddo
          enddo
          return
-      endif	
+      endif
       
 ! determine how much mass to add to each size bin
 ! also determine how many condensation steps we need
       totsinkfrac = 0.d0
       do k=1,ibins
-	   totsinkfrac = totsinkfrac + sinkfrac(k) ! get sink frac total not including nuc bin
-	enddo
+        totsinkfrac = totsinkfrac + sinkfrac(k) ! get sink frac total not including nuc bin
+      enddo
       nsteps = 1
       do k=1,ibins
          if (sinkfrac(k).lt.1.0D-20)then
@@ -2531,8 +2531,8 @@ C     particles into the first size bin.  don't let it go less than zero.
      &        CS,sinkfrac)      ! set Nnuc to zero for this calculation
             totsinkfrac = 0.d0
             do k=1,ibins
-	         totsinkfrac = totsinkfrac + sinkfrac(k) ! get sink frac total not including nuc bin
-	      enddo
+              totsinkfrac = totsinkfrac + sinkfrac(k) ! get sink frac total not including nuc bin
+            enddo
          endif      
          
          tot_m=0.d0
@@ -3650,7 +3650,7 @@ c--------------------------------------------------------------------
       if (rh .gt. 0.95d0) rh = 0.95d0
       if (q .lt. 1.d0) q = 1.d0
       if (q .gt. 50.d0) q = 50.d0      
-	
+
       h6=0.000026859579119003205*SA + 1.7477354270484002d-8*q*SA + 
      &     1.5718068902491457d-8*SA**2 + 8.060796806911441d-8*SA*T + 
      &     3.904048293417882d-7*SA*Log(H2SO4) + 
@@ -3725,8 +3725,8 @@ c--------------------------------------------------------------------
       h3=EXP(h3)
 
 
-	
-	h1=456229.3726785317 - 696754.0061755505/h3 - 
+
+      h1=456229.3726785317 - 696754.0061755505/h3 - 
      &  8.954389043957226d7*h6 + (1.4677717736521986d8*h6)/h3 + 
      &  1867.5296995211318*q - (2798.172491398116*q)/h3 + 
      &  1500.05530404756*h6*q - (171625.68387665015*h6*q)/h3 - 
@@ -4029,10 +4029,10 @@ c--------------------------------------------------------------------
      &  0.000011334503487127534*q*T*Log(H2SO4)**3*Log(RH)**2 + 
      &  0.000029425270779265584*T**2*Log(H2SO4)**3*Log(RH)**2
 
-	  h1=EXP(h1)
+      h1=EXP(h1)
 
 
-	h2=-32043.03148295406 + 59725.428570008815/h3 +  
+      h2=-32043.03148295406 + 59725.428570008815/h3 +  
      & 7.128537634261564d6*h6 - (1.3833467233343722d7*h6)/h3+
      & 33.63110252227136*q-(48.61215633992165*q)/h3 - 16602.414377611287
      & *h6*q + (40754.788181739124* h6*q)/h3 -2.3397851800516185*q**2 + 
@@ -4262,11 +4262,11 @@ c--------------------------------------------------------------------
      & Log(RH)**2 + 0.00007918460467376976*q*T*Log(H2SO4)**2*Log(RH)**2+  
      & 0.00009291148493939081*T**2*Log(H2SO4)**2*Log(RH)**2
 
-	 h2=exp(h2)
+      h2=exp(h2)
 
 
 
-	h4=-233.3693139924163 + 3711.127600293859*h6 - 
+      h4=-233.3693139924163 + 3711.127600293859*h6 - 
      &  127375.45943800849*h6**2 - 0.6541599370168311*q - 
      &  8.950348936875036*h6*q + 1420.4060399615116*h6**2*q + 
      &  0.006010885721884837*q**2 - 0.2514391282801529*h6*q**2 + 
@@ -4355,10 +4355,10 @@ c--------------------------------------------------------------------
      &  0.0005604898286672238*T*Log(H2SO4)**3 - 
      &  0.00648946009121241*Log(H2SO4)**4
 
-	  H4=EXP(H4)
-	
+      H4=EXP(H4)
 
-	h5=68.64045827314231-3277.3575769882523*h6 + 1.0798559249565618*q- 
+
+      h5=68.64045827314231-3277.3575769882523*h6 + 1.0798559249565618*q- 
      &  25.296110707348316*h6*q + 13.398992645698215*RH + 
      &  922.4932305036297*h6*RH - 0.27140107873619296*q*RH + 
      &  20.08312325165439*h6*q*RH + 66.82077511984484*RH**2 + 
@@ -4414,8 +4414,8 @@ c--------------------------------------------------------------------
          return
       endif
 
-	return
-	End 
+      return
+      End 
 
 C=======================================================================
 C

@@ -77,7 +77,7 @@ C if CARBON /=1    parameter(Rm=1.0/24.0)      !max zoopl. growth rate/hr
 
 c     parameter(bn=0.5,bs=0.5)        !N/chl and Si/chl ratios
       
-      real bn,bf,cchlratio
+      real bn,bs,bf,cchlratio
 
 
       integer nl450

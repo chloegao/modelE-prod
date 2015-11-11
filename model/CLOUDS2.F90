@@ -43,7 +43,7 @@ module CLOUDS
 
 #if defined(CLD_AER_CDNC) || defined(CLD_SUBDD)
   use CONSTANT, only : kapa,mair,gasc
-  use RESOLUTION, only : ptop,psf,ls1
+  use threeD_mass_unfinished, only : ptop,psf,ls1=>ls1_nominal
   use DYNAMICS, only : sig,sige
 #endif
 
@@ -2855,6 +2855,9 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
 !@sum  LSCOND column physics of large scale condensation
 !@auth M.S.Yao/A. Del Genio (modularisation by Gavin Schmidt)
 !@calls CTMIX,QSAT,DQSATDT,THBAR
+#ifdef CLD_AER_CDNC
+    use cld_aer_cdnc_mod
+#endif
     implicit none
 
 !@param tmax_ice maximum temperature for virtual mixed phase (VMP) microphysics
@@ -2983,86 +2986,16 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
          ,PRATM,SMN12,SMO12,QF,FSSLRAT,SMOM2_sv(nmom),QMOM2_sv(nmom),QCX &
          ,QCXNEW
     real*8 SNdO,SNdL,SNdI,SCDNCW,SCDNCI
+
 #ifdef CLD_AER_CDNC
 !@auth Menon  - storing var for cloud droplet number
-    integer, parameter :: SNTM=31
-    real*8 Repsis,Repsi,Rbeta,CDNL1,QAUT,DSU(SNTM),QCRIT &
-         ,CDNL0,NEWCDN,OLDCDN,SNd
-    real*8 dynvis(LM),DSGL(LM,SNTM),DSS(SNTM),r6,r6c
-    real*8 NEWCLD,SAVCLD
-    real*8, dimension(lm) :: vvel_sv,CLDSAV0
-    real*8, dimension(sntm,lm) :: dsu_sv
+    real*8 Rbeta,NEWCDN,OLDCDN
+    real*8, dimension(lm) :: vvel_sv,CLDSAV0,SNd_L
+    real*8, dimension(sntm,lm) :: dsu
 #endif
 #if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
     real*8 DPP,TEMPR,RHODK,PPRES,PRS        ! for 3 hrly diag
-    real*8 D3DL(LM),CWCON(LM)               ! for 3 hrly diag
-#endif
-#if (defined CLD_AER_CDNC) || (defined BLK_2MOM)
-    integer,parameter         :: mkx=1   ! lm
-    real*8,parameter          :: mw0 = 2.094395148947515E-15
-    real*8,parameter          :: mi0 = 2.094395148947515E-15
-    logical, parameter        :: lSCM=.false.
-    logical, parameter        :: wSCM=.false.
-    real(8), parameter        :: tiny = 1.0D-30
-    real*8,dimension(mkx)     :: tk0,qk0,pk0,w0,v0,r0,rablk
-    real*8,dimension(mkx)     :: tk0new,qk0new
-    real*8,dimension(mkx)     :: ndrop,mdrop,ncrys,mcrys
-    real*8,dimension(mkx)     :: nrain,mrain,mtau,rtau,ctau,dtau
-    real*8                    :: qrArray(5),row,mr0,piby6
-    real*8,dimension(mkx)     :: vrain
-    real*8,dimension(mkx)     :: ndrop_old,mdrop_old
-    real*8,dimension(mkx)     :: ndrop_new,mdrop_new
-    real*8,dimension(mkx)     :: ndrop_blk,mdrop_blk
-    real*8,dimension(mkx)     :: ndrop_res,mdrop_res
-    real*8,dimension(mkx)     :: ncrys_old,mcrys_old
-    real*8,dimension(mkx)     :: ncrys_new,mcrys_new
-    real*8,dimension(mkx)     :: ncrys_blk,mcrys_blk
-    real*8,dimension(mkx)     :: ncrys_res,mcrys_res
-    real*8,dimension(mkx)     :: npccn,nprc,nnuccc,nnucci
-    real*8,dimension(mkx)     :: mpccn,mprc,mnuccc,mnucci
-    real*8,dimension(mkx)     :: nnuccd,nnucmd,nnucmt
-    real*8,dimension(mkx)     :: mnuccd,mnucmd,mnucmt
-    real*8,dimension(mkx)     :: nc_tnd,qc_tnd,ni_tnd,qi_tnd
-    real*8,dimension(mkx)     :: nc_tot,qc_tot,ni_tot,qi_tot
-
-    real*8                    :: DTB2M,QAUT_B2M
-    real*8                    :: NEWCDNC,OLDCDNC
-    real*8,dimension(LM)      :: DCLD
-    logical                   :: ldummy=.false.
-    character*8               :: sname='lscond: '
-    integer                   :: nm,iuo=801
-#ifdef TRACERS_AMP
-    real*8                    :: naero (mkx,nmodes)
-    real*8                    :: SNd_L (lm)
-    !     real*8,dimension(lm,nmodes)   :: nactc
-#endif
-#ifdef TRACERS_TOMAS
-      REAL*8,dimension(mkx)     :: nactl
-!Can
-!Can Droplet parameterization quantities
-!Can
-      INTEGER :: NCCNMx,NCC,NSECi
-      PARAMETER (NCCNMx=100, NCC=10)
-      REAL*8 SULFI, BOXVL, TOTi,TOT_MI, &
-           TPi(NCCNMx), MLi(NCCNMx), SLVL(NCC), CCON(NCC), &
-           NACTEarth, NACTOcean, NACT, NACTBL, &
-           SMAXEarth, SMAXOcean, SMAX, &
-           REFFEarth, REFFOcean, REFF, REFFBL, REFFGISS, &
-           CLDTAUEarth, CLDTAUOcean, CLDTAU, CLDTAUBL, CLDTAULIQ, &
-           CLDTAUICE, TPARC,PPARC, &
-           WPARCOcean, WPARCEarth, WPARC, &
-           RHOSI,QLWC,EPSILON,AUTO(6),DIFFLWMR,DIFFEPS
-
-      INTEGER ITYP
-      LOGICAL EX
-!c$$$      REAL*8 CldLiqTauNS(IM,JM,LM), CldLiqTauBL(IM,JM,LM),
-!c$$$     &                 CldLiqTauGS(IM,JM,LM), CldIceTauGS(IM,JM,LM)
-!c$$$      COMMON /MICROPH/ CldLiqTauNS, CldLiqTauBL, CldLiqTauGS,
-!c$$$     &                 CldIceTauGS
-!Can
-!Can
-
-#endif
+    real*8 D3DL(LM)               ! for 3 hrly diag
 #endif
 
 !@var BETA,BMAX,CBFC0,CKIJ,CK1,CK2,PRATM dummy variabls
@@ -3148,13 +3081,14 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
     WCONST=WMU*(1.-PEARTH)+WMUL*PEARTH
     WMUI=WMUIX*.001         ! .0001
 
+!#ifndef CLD_AER_CDNC
     !***Setting constant values of CDNC over land and ocean to get RCLD=f(CDNC,LWC)
     SNdO = 59.68d0/(RWCLDOX**3)
     SNdL = 174.d0
     SNdI = 0.06417127d0
     SCDNCW=SNdO*(1.-PEARTH)+SNdL*PEARTH
     SCDNCI=SNdI
-
+!#endif
 
     !**** initialise vertical arrays
     ER=0.
@@ -3191,19 +3125,6 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
     fwasht(:) = 0. ! nonzero only for aerosols
     fqcondt(:) = 0.
     fqtowt(:) = 0.
-#endif
-#ifdef CLD_AER_CDNC
-    CDN3DL=0.
-    CRE3DL=0.
-    SMLWP=0.
-    !      AERTAU=0.
-    DSGL(:,1:SNTM)=0.
-#endif
-#if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
-    CTEML=0.
-    CD3DL=0.
-    CL3DL=0.
-    CI3DL=0.
 #endif
 #if (defined CLD_AER_CDNC) || (defined BLK_2MOM)
     WMXICE(:)=0.
@@ -3370,6 +3291,7 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
                  BANDF=.true.
           end if
         end if
+        LHP(L)=LHX
         if(LHX.eq.LHS .and. (OLDLHX.eq.LHE.or.OLDLAT.eq.LHE)) BANDF=.true.
 
       endif ! use_vmp or not
@@ -3437,7 +3359,7 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
 
       !**** Set precip phase to be the same as the cloud, unless precip above
       !**** is ice and temperatures after ice melt would still be below TFrez
-      LHP(L)=LHX
+
       if (LHP(L+1).eq.LHS .and. &
            TL(L).lt.TF+DTsrc*LHM*PREICE(L+1)*GRAV*BYAM(L)*BYSHA) then
         if(use_vmp) then
@@ -3446,784 +3368,44 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
           LHP(L)=LHP(L+1)
         endif
       endif
-#if (defined CLD_AER_CDNC) && \
-    ((defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AEROSOLS_SEASALT))
-!@auth Menon  saving aerosols mass for CDNC prediction
-      do N=1,SNTM
-        DSS(N)=1.d-10
-        DSGL(L,N)=1.d-10
-      end do
-      do N=1,NTX
-        select case (trname(ntix(n)))
-        case('SO4')
-          DSGL(L,1)=tm(l,n)     !n=4
-          DSS(1) = DSGL(L,1)
-#ifdef TRACERS_AEROSOLS_SEASALT
-        case('seasalt1')
-          DSGL(L,2)=tm(l,n)     !n=6
-          DSS(2) = DSGL(L,2)
-        case('seasalt2')
-          DSGL(L,3)=tm(l,n)     !n=7
-          DSS(3) = DSGL(L,3)
-#endif  /* TRACERS_AEROSOLS_SEASALT */
-        case('OCIA')
-          DSGL(L,4)=tm(l,n)     !n=12
-          DSS(4) = DSGL(L,4)
-        case('OCB')
-          DSGL(L,5)=tm(l,n)     !n=13
-          DSS(5) = DSGL(L,5)
-        case('BCIA')
-          DSGL(L,6)=tm(l,n)     !n=9
-          DSS(6) = DSGL(L,6)
-        case('BCB')
-          DSGL(L,7)=tm(l,n)     !n=10
-          DSS(7) = DSGL(L,7)
-        case('OCII')
-          DSGL(L,8)=tm(l,n)     !n=11
-          DSS(8) = DSGL(L,8)
-        case('BCII')
-          DSGL(L,9)=tm(l,n)     !n=8
-          DSS(9) = DSGL(L,9)
-#ifdef TRACERS_DUST
-        case('Clay')
-          DSGL(L,10)=tm(l,n)    !n=23
-          DSS(10) = DSGL(L,10)
-        case('Silt1')
-          DSGL(L,11)=tm(l,n)    !n=23
-          DSS(11) = DSGL(L,11)
-        case('Silt2')
-          DSGL(L,12)=tm(l,n)    !n=23
-          DSS(12) = DSGL(L,12)
-        case('Silt3')
-          DSGL(L,13)=tm(l,n)    !n=23
-          DSS(13) = DSGL(L,13)
-#endif
-#ifdef TRACERS_NITRATE
-        case('NO3p')
-          DSGL(L,14)=tm(l,n)    !n=23
-          DSS(14) = DSGL(L,14)
-#endif
-#ifdef TRACERS_HETCHEM
-          !**** Here are dust particles coated with sulfate
-        case('SO4_d1')
-          DSGL(L,15)=tm(l,n)    !n=20
-          DSS(15) = DSGL(L,15)
-        case('SO4_d2')
-          DSGL(L,16)=tm(l,n)    !n=21
-          DSS(16) = DSGL(L,16)
-        case('SO4_d3')
-          DSGL(L,17)=tm(l,n)    !n=22
-          DSS(17) = DSGL(L,17)
-#endif
-#ifdef TRACERS_AEROSOLS_SOA
-        case('isopp1a')
-          DSGL(L,18)=tm(l,n)
-          DSS(18) = DSGL(L,18)
-        case('isopp2a')
-          DSGL(L,19)=tm(l,n)
-          DSS(19) = DSGL(L,19)
-#ifdef TRACERS_TERP
-        case('apinp1a')
-          DSGL(L,20)=tm(l,n)
-          DSS(20) = DSGL(L,20)
-        case('apinp2a')
-          DSGL(L,21)=tm(l,n)
-          DSS(21) = DSGL(L,21)
-#endif  /* TRACERS_TERP */
-#endif  /* TRACERS_AEROSOLS_SOA */
-#ifdef TRACERS_AEROSOLS_OCEAN
-        case('OCocean')
-          DSGL(L,22)=tm(l,n)
-          DSS(22) = DSGL(L,22)
-#endif  /* TRACERS_AEROSOLS_OCEAN */
-#ifdef TRACERS_AEROSOLS_VBS
-        case('vbsAm2')
-          DSGL(L,23)=tm(l,n)
-          DSS(23) = DSGL(L,23)
-        case('vbsAm1')
-          DSGL(L,24)=tm(l,n)
-          DSS(24) = DSGL(L,24)
-        case('vbsAz')
-          DSGL(L,25)=tm(l,n)
-          DSS(25) = DSGL(L,25)
-        case('vbsAp1')
-          DSGL(L,26)=tm(l,n)
-          DSS(26) = DSGL(L,26)
-        case('vbsAp2')
-          DSGL(L,27)=tm(l,n)
-          DSS(27) = DSGL(L,27)
-        case('vbsAp3')
-          DSGL(L,28)=tm(l,n)
-          DSS(28) = DSGL(L,28)
-        case('vbsAp4')
-          DSGL(L,29)=tm(l,n)
-          DSS(29) = DSGL(L,29)
-        case('vbsAp5')
-          DSGL(L,30)=tm(l,n)
-          DSS(30) = DSGL(L,30)
-        case('vbsAp6')
-          DSGL(L,31)=tm(l,n)
-          DSS(31) = DSGL(L,31)
-#endif  /* TRACERS_AEROSOLS_VBS */
-        end select
-      end do      !end of n loop for tracers
-#endif   /* tracerpart and cld-aer part */
 
-#if (defined CLD_AER_CDNC) && \
-    ((defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AEROSOLS_SEASALT))
-      if( LHX.eq.LHE )then
-        QCX = QCLX(L)
-      else
-        QCX = QCIX(L)
-      endif
-      call GET_CDNC(L,LHX,WCONST,WMUI,AIRM(L),QCX,DXYPIJ, &
-           FCLD,CLEARA(L),CLDSAVL(L),DSS,PL(L),TL(L), &
-           NCLL(L),VVEL,SME(L),DSU,CDNL0,CDNL1)
-      DSU_SV(:,L) = DSU(:) ! save for opt. depth calc.
-      !     write(6,*)"Where is",DSU(L),l
-      SNd=CDNL1
-      !C** Pass old and new cloud droplet number
-      NEWCDN=SNd
-      OLDCDN=CDNL0
-      !     if(SNd.gt.20.) write(6,*)"SM 11 CDNC",NEWCDN,OLDCDN,L
-#endif
-#if (defined CLD_AER_CDNC) || (defined BLK_2MOM)
-      ! Microphysical time step
-      dtB2M=DTsrc
-      ! Set all tendencies to zero
-      ldummy=execute_bulk2m_driver('all','2zero',mkx)
-      ! Set thermodynamics
-      tk0=TL(L)                 ! Temperature, [K]
-      qk0=QL(L)                 ! Water vapor mixing ratio, [kq/kq]
-      pk0=PL(L)                 ! Pressure, [hPa]
-      w0=VVEL*1.d-02            ! Large-scale velocity, [m/s]
-      v0=WTURB(L) !; v0=w3d(k,i,j) ! Sub-grid velocity, [m/s]
-      r0=0.0  !RDTNDL(L)        ! tendency due to radiation, [K/s], not needed
-      !      print*,"rad tendency",w0,v0,r0,L
-      piby6=4.*atan(1.0)/6.0; row=1.e+03
-      qrArray(1)=842.0e+00                      ! [m^(1-b)s]
-      qrArray(2)=  0.8e+00                      ! [unitless]
-      qrArray(3)=500.0e-06                      ! assumed mean rain diameter [m]
-      qrArray(4)=piby6*row*qrArray(3)**3        ! mean rain mass [kg]
-      qrArray(5)=1000.0e-06                     ! assumed rain conc [No/m^3]
-      !      write(ou,*) 'k,   prebar(k)   vrain(k)    mrain(k)    nrain(k)'
-      vrain=min(qrArray(1)*qrArray(3)**qrArray(2),9.2d0)  ! [m/s]
-      !      write(6,*)"VRAIN",vrain,l
-      mrain=100.d0*prebar(L)/vrain             ! [kq/m^3]
-      nrain=mrain/qrArray(4)                ! [No/m^3]
-      RHO=1d5*PL(L)/(RGAS*TL(L))
-      mrain=1.d3*mrain/RHO                  !kg water/kg air
-      nrain=1.d3*nrain/RHO                  !number/kg air
-      ldummy=execute_bulk2m_driver('all' &
-           ,tk0,qk0,pk0,w0,v0,r0)
-      ! Set microphysics
-      if(LHX.eq.LHE)  then
-        mdrop=QCLX(L)            ! drop content, [kg water/kg air]
-        ndrop =NCLL(L)*1.d6   !convert from cm-3 to m-3
-        if (QCLX(L).eq.0.) ndrop=0.d0
-        ncrys=0.d0;mcrys=0.0d0
-      else
-        WMXICE(L) = QCIX(L)
-        mcrys=WMXICE(L)         ! crys content, [kg water/kg air]
-        ncrys=NCIL(L)*1.d6     ! convert cm-3 to m-3; set at 0.1 l-1 = 1.d-4 cm-3
-        if (QCIX(L).eq.0.) ncrys=0.d0
-        ndrop=0.0d0;mdrop=0.0d0
-      endif
-      !
-      ndrop_old=ndrop;mdrop_old=mdrop;ncrys_old=ncrys;mcrys_old=mcrys
-      ndrop_new=0.0d0;mdrop_new=0.0d0;ncrys_new=0.0d0;mcrys_new=0.0d0
-      nc_tnd=0.0d0;qc_tnd=0.0d0;ni_tnd=0.0d0;qi_tnd=0.0d0
-      nc_tot=0.0d0;qc_tot=0.0d0;ni_tot=0.0d0;qi_tot=0.0d0
-      !
-      !** Convert from l-1 to cm-3====>  1 l^-1 = 10^-3 cm^-3 = 10^3 m^-3
-      !      ldummy=execute_bulk2m_driver('all'
-      !    *           ,ndrop,mdrop,ncrys,mcrys,'end')
-#ifdef TRACERS_AMP
-      do nm=1,nmodes
-        naero(mkx,nm)=nactc(l,nm)
-        !       if(l.eq.1) then
-        !       if(nactc(l,nm).gt.1.)write(6,*)"Callmatrix",naero(mkx,nm)*1.e-6
-        !        endif
-      enddo
-      ldummy=execute_bulk2m_driver('all' &
-           ,ndrop,mdrop,ncrys,mcrys,naero,nmodes,'end',qr0=mrain, &
-           nr0=nrain)
-#endif
-#ifdef TRACERS_TOMAS
-!CCC
-!Can *************************************************************************
-!Can      CLOUD DROPLET CALCULATION
-!Can *************************************************************************
-!CCC
-!CCC *** Input properties for parameterization
-!CCC
-      TOT_MI    = 0d0
-      WPARC      = 0d0
-      SMAX       = 0d0
-      NACT       = 0d0
-      REFF       = 0d0
-!      CLDTAU     = 0d0
-!      CLDTAUBL   = 0d0 ! I don't account BL case- yhl
-!c$$$      QautP6     = 0d0
-!c$$$      QautKK     = 0d0
-!c$$$      QautMC     = 0d0
-!c$$$      QautBH     = 0d0
-!c$$$      QautGI     = 0d0
-!c$$$      QautNS     = 0d0
-!c$$$C
-!C Get CCN properties
-!C
-!      avol(l) = axyp(i_debug,j_debug)*MA(i_debug,j_debug,l)/mair*
-!!!   byam(l) = [m2/kg of air]
-      boxvl = DXYPIJ*airm(l)*mb2kg*rgas*TL(L)  &
-          /100./PL(L)
-
-      CALL getCCN (I_debug,J_debug,L,BOXVL,TOT_MI,TOTi,TPi,MLi, &
-         NCCNMx,NSECi)        ! Get CCN properties
-!C
-!C Call cloud microphysics
-!C
-      IF (LHX.EQ.LHE) THEN         ! Liquid clouds present
-!CCC
-!CCC *** Nenes & Seinfeld parameterization - calcuilate droplet number
-!CCC
-
-!Two options for Updrate velocity
-
-!1. fixed as a constant
-
-!         WPARCOcean = 0.15d0       ! Fix Ocean and terrestrial updrafts for now
-!         WPARCEarth = 0.3d0
-!         WPARC      = (1.d0-PEARTH)*WPARCOcean + PEARTH*WPARCEarth
-
-!2. computed using EGCM
-! TOMAS (Nov 2011) WPARC results in too high CDNC. So it reduced by 7 times (arbitrary)
-!        WPARC=v0(mkx)/7. !wturb=sqrt(0.6667*EGCM(l,i,j))
-! TOMAS (NOV 2013) WPARC now use large-scale vertical velocity (v0 is sub-grid scale velocity)
-         WPARC=(VVEL*1.d-02+v0(mkx))/7.           !wturb=sqrt(0.6667*EGCM(l,i,j))
-         WPARC=MAX(WPARC,0.0) ! make sure it is positive
-         WPARC=MIN(WPARC,0.4) ! arbituary max
-!End of updrate velocity option.
-
-
-!        QLWC=WMX(L)/(FCLD + teeny)     !in-cloud dimensionless LWC
-         QLWC=(QCLX(L)+QCIX(L))/(FCLD + teeny)     !in-cloud dimensionless LWC or IWC
-         QLWC=MIN(QLWC, 3.d-03)    !(upper limit for the QLWC)
-
-         RHO=1.d5*PL(L)/(RGAS*TL(L))
-         RHOSI = RHO*1.d-3
-         if(rhosi.eq.0.) print*,'zero rho',rho,pl(l),tl(l)
-
-         TPARC=tk0(mkx)
-         PPARC=pk0(mkx)*100.d0  ! mbar to Pa
-         IF (TOTi.GT.6.d7.and.WPARC.gt.0.) THEN  ! more than 60 particles per cc, call droplet
-                                                 ! activation
-            CALL CALCNd (TPARC,PPARC,TPi,MLi,NSECi,WPARC,NACT & ! Activate droplets
-                 ,SMAX ,RHOSI,QLWC,EPSILON,AUTO,DIFFLWMR,DIFFEPS,pearth)
-         ELSE
-!YUNHA- The minimum NACT is set to 1 instead of 40.d6, which is used for old GISS-TOMAS model.
-            NACT = 1.0 !ndrop(mkx) ! 40.d6      ! Minimum droplet number [#/m3]
-            SMAX = 0.0001    ! Minimum supersaturation
-         ENDIF
-
-       ENDIF
-
-       NACTL(mkx)=NACT
-       CDNC_TOMAS(L)=nactl(mkx)*1.e-6 !m-3 to cm-3
-
-       ldummy=execute_bulk2m_driver('all' &
-            ,ndrop,mdrop,ncrys,mcrys,nactl,'end',qr0=mrain, &
-           nr0=nrain)
-
-#endif
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AEROSOLS_SEASALT)
-      ldummy=execute_bulk2m_driver('all' &
-           ,ndrop,mdrop,ncrys,mcrys,'end',qr0=mrain,nr0=nrain)
-#endif
-      ! Make calls to calculate hydrometeors' growth rates due to microphysical
-      ! processes
-      ! content      :       [kg water/kg air/s]
-      ! concentration:       [No/kg air/s]
-      ! Activation of cloud droplets: prescribed AP spectrum
-      !*** For the originial HM scheme with fixed distributions for amm. sulfate
-      !       ldummy=execute_bulk2m_driver('hugh','drop_nucl',dtB2M,mkx)
-
-      !*** Use this if using the Lohmann or Gultepe scheme  for mass to number
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AEROSOLS_SEASALT)
-      OLDCDNC=OLDCDN*1.d6  !convert from cm-3 to m-3
-      NEWCDNC=NEWCDN*1.d6  !convert from cm-3 to m-3
-      ldummy=execute_bulk2m_driver('gult','drop_nucl',dtB2M,mkx, &
-           OLDCDNC,NEWCDNC)
-#endif
-#ifdef TRACERS_AMP
-      !*** Using the AMP_actv interface from MATRIX
-      ldummy=execute_bulk2m_driver('matr','drop_nucl',dtB2M,mkx)
-#endif
-#ifdef TRACERS_TOMAS
-      !*** Using the TOMAS_actv interface from TOMAS
-        ldummy=execute_bulk2m_driver('toma','drop_nucl',dtB2M,mkx)
-#endif
-      ! Droplets' autoconversion: Beheng (concentration and content)
-      !       ldummy=execute_bulk2m_driver('hugh','drop_auto',dtB2M,mkx)
-      ! Droplets' autoconversion: Seifert and Beheng (concentration and content)
-      !       ldummy=execute_bulk2m_driver('beheng','drop_auto',dtB2M,mkx)
-      ! Freezing of cloud droplets (contact and immersion)
-      ldummy=execute_bulk2m_driver('hugh','drop_frzn',dtB2M,mkx)
-      ! Crystal nucleation: Ncrys=anuc(k)*wef**bnuc(k)
-      ldummy=execute_bulk2m_driver('hugh','crys_nucl',dtB2M,mkx)
-      ! Numerous processes of water-water,water-ice, ice-ice interaction,
-      ! condensation/evaporation/deposition/sublimation, ice multiplication
-      ! and sedimention are ready to be called. There are only a few examples:
-      !        ldummy=execute_bulk2m_driver('hugh','drop_rain',dtB2M,mkx)
-      !        ldummy=execute_bulk2m_driver('hugh','drop_snow',dtB2M,mkx)
-      !        ldummy=execute_bulk2m_driver('hugh','crys_auto',dtB2M,mkx)
-      !        ldummy=execute_bulk2m_driver('hugh','crys_snow',dtB2M,mkx)
-      !        ldummy=execute_bulk2m_driver('hugh','crys_cond',dtB2M,mkx)
-      !        ldummy=execute_bulk2m_driver('hugh','snow_melt',dtB2M,mkx)
-      !
-      ! In this chain of events the very last call, which applies saturation
-      ! adjustment to keep environment about water saturation, is supposed to be
-      !        ldummy=execute_bulk2m_driver('hugh','drop_cond',dtB2M,mkx)
-      !
-      ! To ensure calculated growth rates don't lead to negative contents:
-      ! Previous call ('drop_cond') HAS to be used.
-      !        ldummy=execute_bulk2m_driver('all','make_balance',mkx)
-      ! Otherwise, the caller is responsible to handle the problem.
-      !
-      ! To get particular growth rate:
-      !        rablk = execute_bulk2m_driver('get','rate','mprc')
-      ! return value "rablk" is real*8 array whose dimension is equal to "mkx"
-      !
-      ! To get tendencies of temperature, water vapor mixing ratio or
-      ! tendencies of concentration/content of particular hydrometeor:
-      !        rablk = execute_bulk2m_driver('get','tnd','qc_tnd')
-      ! return value "rablk" is real*8 array whose dimension is equal to "mkx"
-      !
-      ! To get parameters of hydrometeors size distributions:
-      !        rablk = execute_bulk2m_driver('get','val','ec')
-      ! return value "rablk" is real*8 array whose dimension is equal to "mkx"
-      !
-      ! To update concentration and contents due to uncommented processes
-      ! If "make_balance" was used:
-      !        ndrop=ndrop+dtB2M*execute_bulk2m_driver('get','tnd','nc_tnd')
-      !        mdrop=mdrop+dtB2M*execute_bulk2m_driver('get','tnd','qc_tnd')
-      !        ncrys=ncrys+dtB2M*execute_bulk2m_driver('get','tnd','ni_tnd')
-      !        mcrys=mcrys+dtB2M*execute_bulk2m_driver('get','tnd','qi_tnd')
-
-      !
-      ! This is our case
-      ! Without "make_balance":
-      ! Droplet concentration
-      !       if(l.eq.1) then
-      !        npccn=execute_bulk2m_driver('get','npccn')
-      !        nprc=execute_bulk2m_driver('get','nprc')
-      !        nnuccc=execute_bulk2m_driver('get','nnuccc')
-      !        nnucci=execute_bulk2m_driver('get','nnucci')
-      !         if(npccn(l).gt.1.)write(6,*)"check BLK",ndrop*1.e-6,
-      !    *npccn*1.e-6,nprc*1.e-6,nnuccc*1.e-6,nnucci*1.e-6
-      !       endif
-
-      ndrop=ndrop+( &
-                                !       npccn              ! change n droplets activation
-           +execute_bulk2m_driver('get','npccn') &
-                                !       nprc               ! change n autoconversion of droplets:
-           -execute_bulk2m_driver('get','nprc') &
-                                !       nnuccc             ! change n due to con droplets freez
-           -execute_bulk2m_driver('get','nnuccc') &
-                                !       nnucci             ! change n due to imm droplets freez
-           -execute_bulk2m_driver('get','nnucci') &
-                                !
-           )*dtB2M
-      !
-      ! Droplet content
-      mdrop=mdrop+( &
-                                !       mpccn              ! change q droplets activation
-           +execute_bulk2m_driver('get','mpccn') &
-                                !       mprc               ! change q autoconversion of droplets:
-           -execute_bulk2m_driver('get','mprc') &
-                                !       mnuccc             ! change q due to con droplets freez
-           -execute_bulk2m_driver('get','mnuccc') &
-                                !       mnucci             ! change q due to imm droplets freez
-           -execute_bulk2m_driver('get','mnucci') &
-                                !
-           )*dtB2M
-      !
-      ! Crystal concentration
-      ncrys=ncrys+( &
-                                !       nnuccc             ! change n due to contact droplets freez
-           +execute_bulk2m_driver('get','nnuccc') &
-                                !       nnucci            ! change n due to immersion droplets freez
-           +execute_bulk2m_driver('get','nnucci') &
-                                !       nnuccd            ! change n freezing aerosol (prim ice nuc)
-           +execute_bulk2m_driver('get','nnuccd') &
-           )*dtB2M &
-                                !      nnucmd        ! change n cond freezing Meyer's (prim ice nuc)
-           +execute_bulk2m_driver('get','nnucmd') &
-                                !      nnucmt        ! change n cont freezing Meyer's (prim ice nuc)
-           +execute_bulk2m_driver('get','nnucmt')
-      !
-      ! Crystal content
-      mcrys=mcrys+( &
-                                !       mnuccc             ! change q due to con droplets freez
-           +execute_bulk2m_driver('get','mnuccc') &
-                                !       mnucci             ! change q due to imm droplets freez
-           +execute_bulk2m_driver('get','mnucci') &
-                                !       mnuccd            ! change q freezing aerosol (prim ice nuc)
-           +execute_bulk2m_driver('get','mnuccd') &
-           )*dtB2M &
-                                !      mnucmd        ! change q cond freezing Meyer's (prim ice nuc)
-           +execute_bulk2m_driver('get','mnucmd') &
-                                !      mnucmt        ! change q cont freezing Meyer's (prim ice nuc)
-           +execute_bulk2m_driver('get','mnucmt')
-      !
-      if_balance: if( (ndrop(mkx) .lt. 0) .or. (mdrop(mkx) .lt. 0)  .or. &
-           (ncrys(mkx) .lt. 0) .or. (mcrys(mkx) .lt. 0)) then
-        !
-        if(lSCM) then
-          write(6,*)"stop BLK: ndrop_old,mdrop_old,ncrys_old,mcrys_old" &
-               ,l,ndrop_old*1.e-6,mdrop_old*1.e+3,ncrys_old*1.e-3,mcrys_old*1.e+3
-          !
-          write(6,*)"stop BLK: ndrop,mdrop,ncrys,mcrys" &
-               ,l,ndrop*1.e-6,mdrop*1.e+3,ncrys*1.e-3,mcrys*1.e+3
-        endif
-        !
-        ! No/m^3
-        !
-        npccn  =             & ! change n droplets activation
-             +execute_bulk2m_driver('get','npccn')*dtB2M
-        nprc   =             & ! change n autoconversion of droplets:
-             -execute_bulk2m_driver('get','nprc')*dtB2M
-        nnuccc =             & ! change n due to con droplets freez
-             -execute_bulk2m_driver('get','nnuccc')*dtB2M
-        nnucci =             & ! change n due to imm droplets freez
-             -execute_bulk2m_driver('get','nnucci')*dtB2M
-
-        nc_tot = npccn + nprc + nnuccc + nnucci
-        !
-        ! No/cc
-        !
-        if(lSCM) then
-          write(6,*)"stop BLK: ndrop_old,nc_tot,ndrop" &
-               ,l,ndrop_old*1.e-6,nc_tot*1.e-6,ndrop*1.e-6
-          write(6,*)"stop BLK: npccn,nprc,nnuccc,nnucci" &
-               ,l,npccn*1.e-6,nprc*1.e-6,nnuccc*1.e-6,nnucci*1.e-6
-        endif
-        !
-        ! kg/kg
-        !
-        mpccn  =              & ! change q droplets activation
-             execute_bulk2m_driver('get','mpccn')*dtB2M
-        mprc   =              & ! change q autoconversion of droplets:
-             -execute_bulk2m_driver('get','mprc')*dtB2M
-        mnuccc =              & ! change q due to con droplets freez
-             -execute_bulk2m_driver('get','mnuccc')*dtB2M
-        mnucci =              & ! change q due to imm droplets freez
-             -execute_bulk2m_driver('get','mnucci')*dtB2M
-
-        qc_tot = mpccn + mprc + mnuccc + mnucci
-        !
-        ! g/kg
-        !
-        if(lSCM) then
-          write(6,*)"stop BLK: mdrop_old,qc_tot,mdrop" &
-               ,l,mdrop_old*1.e+3,qc_tot*1.e+3,mdrop*1.e+3
-          write(6,*)"stop BLK: mpccn,mprc,mnuccc,mnucci" &
-               ,l,mpccn*1.e+3,mprc*1.e+3,mnuccc*1.e+3,mnucci*1.e+3
-        endif
-        !
-        ! No/m^3
-        !
-        nnuccc  =             & ! change n due to contact droplets freez
-             +execute_bulk2m_driver('get','nnuccc')*dtB2M
-        nnucci  =             & ! change n due to immersion droplets freez
-             +execute_bulk2m_driver('get','nnucci')*dtB2M
-        nnuccd  =             & ! change n freezing aerosol (prim ice nuc)
-             +execute_bulk2m_driver('get','nnuccd') ! *dtB2M
-        nnucmd =              & ! change n cond freezing Meyer's (prim ice nuc)
-             +execute_bulk2m_driver('get','nnucmd') ! *dtB2M
-        nnucmt =              & ! change n cont freezing Meyer's (prim ice nuc)
-             +execute_bulk2m_driver('get','nnucmt') ! *dtB2M
-
-        ni_tot = nnuccc + nnucci + nnuccd + nnucmd + nnucmt
-        !
-        ! No/l
-        !
-        if(lSCM) then
-          write(6,*)"stop BLK: ncrys_old,ni_tot,ncrys" &
-               ,l,ncrys_old*1.e-3,ni_tot*1.e-3,ncrys*1.e-3
-          write(6,*)"stop BLK: nnuccc,nnucci,nnuccd,nnucmd,nnucmt" &
-               ,l,nnuccc*1.e-3,nnucci*1.e-3,nnuccd*1.e-3,nnucmd*1.e-3 &
-               ,nnucmt*1.e-3
-        endif
-        !
-        ! kg/kg
-        !
-        mnuccc  =             & ! change q due to contact droplets freez
-             +execute_bulk2m_driver('get','mnuccc')*dtB2M
-        mnucci  =             & ! change q due to immersion droplets freez
-             +execute_bulk2m_driver('get','mnucci')*dtB2M
-        mnuccd  =             & ! change q freezing aerosol (prim ice nuc)
-             +execute_bulk2m_driver('get','mnuccd') ! *dtB2M
-        mnucmd =              & ! change q cond freezing Meyer's (prim ice nuc)
-             +execute_bulk2m_driver('get','mnucmd') ! *dtB2M
-        mnucmt =              & ! change q cont freezing Meyer's (prim ice nuc)
-             +execute_bulk2m_driver('get','mnucmt') ! *dtB2M
-
-        qi_tot = mnuccc + mnucci + mnuccd + mnucmd + mnucmt
-        !
-        ! g/m^3
-        !
-        if(lSCM) then
-          write(6,*)"stop BLK: mcrys_old,qi_tot,mcrys" &
-               ,l,mcrys_old*1.e+3,qi_tot*1.e+3,mcrys*1.e+3
-          write(6,*)"stop BLK: mnuccc,mnucci,mnuccd,mnucmd,mnucmt" &
-               ,l,mnuccc*1.e+3,mnucci*1.e+3,mnuccd*1.e+3,mnucmd*1.e+3 &
-               ,mnucmt*1.e+3
-        endif
-        !
-        ! balanced tendecies:
-        !
-        ldummy=execute_bulk2m_driver('all','make_balance',mkx)
-        !
-        nc_tnd=dtB2M*execute_bulk2m_driver('get','tnd','nc_tnd')
-        if(lSCM) then
-          write(6,*)"stop BLK:00: nc_tnd",l,nc_tnd*1.e-6
-        endif
-        !
-        npccn  =             & ! change n droplets activation
-             +execute_bulk2m_driver('get','npccn')*dtB2M
-        nprc   =             & ! change n autoconversion of droplets:
-             -execute_bulk2m_driver('get','nprc')*dtB2M
-        nnuccc =             & ! change n due to con droplets freez
-             -execute_bulk2m_driver('get','nnuccc')*dtB2M
-        nnucci =             & ! change n due to imm droplets freez
-             -execute_bulk2m_driver('get','nnucci')*dtB2M
-
-        nc_tnd = npccn + nprc + nnuccc + nnucci
-        if(lSCM) then
-          write(6,*)"stop BLK:01: nc_tnd",l,nc_tnd*1.e-6
-        endif
-        !
-        qc_tnd=dtB2M*execute_bulk2m_driver('get','tnd','qc_tnd')
-        if(lSCM) then
-          write(6,*)"stop BLK:00: qc_tnd",l,qc_tnd*1.e+3
-        endif
-        !
-        mpccn  =              & ! change q droplets activation
-             execute_bulk2m_driver('get','mpccn')*dtB2M
-        mprc   =              & ! change q autoconversion of droplets:
-             -execute_bulk2m_driver('get','mprc')*dtB2M
-        mnuccc =              & ! change q due to con droplets freez
-             -execute_bulk2m_driver('get','mnuccc')*dtB2M
-        mnucci =              & ! change q due to imm droplets freez
-             -execute_bulk2m_driver('get','mnucci')*dtB2M
-
-        qc_tnd = mpccn + mprc + mnuccc + mnucci
-        if(lSCM) then
-          write(6,*)"stop BLK:01: qc_tnd",l,qc_tnd*1.e+3
-        endif
-        !
-        ni_tnd=dtB2M*execute_bulk2m_driver('get','tnd','ni_tnd')
-        if(lSCM) then
-          write(6,*)"stop BLK:01: ni_tnd",l,ni_tnd*1.e-3
-        endif
-        !
-        qi_tnd=dtB2M*execute_bulk2m_driver('get','tnd','qi_tnd')
-        if(lSCM) then
-          write(6,*)"stop BLK:01: qi_tnd",l,qi_tnd*1.e+3
-        endif
-        !
-        ndrop_new = ndrop_old + nc_tnd
-        mdrop_new = mdrop_old + qc_tnd
-        ncrys_new = ncrys_old + ni_tnd
-        mcrys_new = mcrys_old + qi_tnd
-        !
-        ndrop_blk = execute_bulk2m_driver('get','val','nc')
-        mdrop_blk = execute_bulk2m_driver('get','val','qc')
-        ncrys_blk = execute_bulk2m_driver('get','val','ni')
-        mcrys_blk = execute_bulk2m_driver('get','val','qi')
-        !
-        ndrop_res = ndrop_blk + nc_tnd
-        mdrop_res = mdrop_blk + qc_tnd
-        ncrys_res = ncrys_blk + ni_tnd
-        mcrys_res = mcrys_blk + qi_tnd
-        !
-        if(wSCM) then
-          write(6,*) &
-               "stop BLK: ndrop_old,nc_tnd,ndrop_new" &
-               ,l,ndrop_old*1.e-6,nc_tnd*1.e-6,ndrop_new*1.e-6
-          !
-          write(6,*) &
-               "stop BLK: mdrop_old,qc_tnd,mdrop_new" &
-               ,l,mdrop_old*1.e+3,qc_tnd*1.e3,mdrop_new*1.e+3
-          !
-          write(6,*) &
-               "stop BLK: ncrys_old,ni_tnd,ncrys_new" &
-               ,l,ncrys_old*1.e-3,ni_tnd*1.e-3,ncrys_new*1.e-3
-          !
-          write(6,*) &
-               "stop BLK: mcrys_old,qi_tnd,mcrys_new" &
-               ,l,mcrys_old*1.e+3,qi_tnd*1.e3,mcrys_new*1.e+3
-          !
-          write(6,*) &
-               "stop BLK: ndrop_blk,nc_tnd,ndrop_res" &
-               ,l,ndrop_blk*1.e-6,nc_tnd*1.e-6,ndrop_res*1.e-6
-          !
-          write(6,*) &
-               "stop BLK: mdrop_blk,qc_tnd,mdrop_res" &
-               ,l,mdrop_blk*1.e+3,qc_tnd*1.e3,mdrop_res*1.e+3
-          !
-          write(6,*) &
-               "stop BLK: ndrop_old,ndrop,ndrop_new,nc_tot,nc_tnd" &
-               ,l,ndrop_old*1.e-6,ndrop_new*1.e-6,ndrop*1.e-6 &
-               ,nc_tot*1.e-6,nc_tnd*1.e-6
-          !
-          write(6,*) &
-               "stop BLK: mdrop_old,mdrop,mdrop_new,qc_tot,qc_tnd" &
-               ,l,mdrop_old*1.e+3,mdrop_new*1.e+3,mdrop*1.e+3 &
-               ,qc_tot*1.e+3,qc_tnd*1.e+3
-        endif
-        !
-        ! output for standalone internal variables
-        !
-        if(lSCM) then
-          write(iuo,*) 'l dtB2M'
-          write(iuo,*) l
-          write(iuo,*) dtB2M
-
-          write(iuo,*) 'wmx wmxice tl ql pl svlhxl lhx '
-          write(iuo,*) qclx
-          write(iuo,*) wmxice
-          write(iuo,*) tl
-          write(iuo,*) ql
-          write(iuo,*) pl
-          write(iuo,*) svlhxl
-          write(iuo,*) lhx
-
-          write(iuo,*) 'ndrop_old mdrop_old ncrys_old mcrys_old'
-          write(iuo,*) ndrop_old
-          write(iuo,*) mdrop_old
-          write(iuo,*) ncrys_old
-          write(iuo,*) mcrys_old
-
-          write(iuo,*) 'nc_tnd qc_tnd ni_tnd qi_tnd'
-          write(iuo,*) nc_tnd
-          write(iuo,*) qc_tnd
-          write(iuo,*) ni_tnd
-          write(iuo,*) qi_tnd
-
-          write(iuo,*) 'ndrop_new mdrop_new ncrys_new mcrys_new'
-          write(iuo,*) ndrop_new
-          write(iuo,*) mdrop_new
-          write(iuo,*) ncrys_new
-          write(iuo,*) mcrys_new
-
-          write(iuo,*) 'ndrop mdrop ncrys mcrys'
-          write(iuo,*) ndrop
-          write(iuo,*) mdrop
-          write(iuo,*) ncrys
-          write(iuo,*) mcrys
-
-          write(iuo,*) 'ndrop_res mdrop_res ncrys_res mcrys_res'
-          write(iuo,*) ndrop_res
-          write(iuo,*) mdrop_res
-          write(iuo,*) ncrys_res
-          write(iuo,*) mcrys_res
-
-          write(iuo,*) 'npccn nprc nnuccc nnucci nc_tot'
-          write(iuo,*) npccn
-          write(iuo,*) nprc
-          write(iuo,*) nnuccc
-          write(iuo,*) nnucci
-          write(iuo,*) nc_tot
-
-          write(iuo,*) 'mpccn mprc mnuccc mnucci qc_tot'
-          write(iuo,*) mpccn
-          write(iuo,*) mprc
-          write(iuo,*) mnuccc
-          write(iuo,*) mnucci
-          write(iuo,*) qc_tot
-
-          write(iuo,*) 'nnuccd nnucmd nnucmt ni_tot'
-          write(iuo,*) nnuccd
-          write(iuo,*) nnucmd
-          write(iuo,*) nnucmt
-          write(iuo,*) ni_tot
-
-          write(iuo,*) 'mnuccd mnucmd mnucmt qi_tot'
-          write(iuo,*) mnuccd
-          write(iuo,*) mnucmd
-          write(iuo,*) mnucmt
-          write(iuo,*) qi_tot
-          !
-        endif
-        !
-        if( (ndrop_res(mkx) .lt. 0) .or. (mdrop_res(mkx) .lt. 0)  .or. &
-             (ncrys_res(mkx) .lt. 0) .or. (mcrys_res(mkx) .lt. 0)) then
-          !        call stop_model("BLK2MOM: Negative conc/cont...", 255)
-          !         write(6,*)"We reached -ve con.",ndrop_res(mkx),mdrop_res(mkx),
-          !     * ncrys_res(mkx), mcrys_res(mkx),l
-          ndrop_res(mkx)=20.*1.d06
-          mdrop_res(mkx)=1*1.d-06
-          ncrys_res(mkx)=1*1.d-06
-          mcrys_res(mkx)=1*1.d02
-        else
-          ndrop=ndrop_res;mdrop=mdrop_res;ncrys=ncrys_res;mcrys=mcrys_res
-        endif
-        !
-      endif if_balance
-      !
-      ! To calculate "new" temperature and vapor mixing ratio:
-      ldummy=execute_bulk2m_driver('tkqv','tk_qv',mkx)
-      tk0new=tk0+dtB2M*execute_bulk2m_driver('get','tnd','tk_tnd')
-      qk0new=qk0+dtB2M*execute_bulk2m_driver('get','tnd','qv_tnd')
-      !
-      ! At this point you have 2 phases separately.
-      ! Almost all processes are switched off, but you can calculate also
-      ! accreation of droplets/crystal  by rain/snow, for example, and use
-      ! rain/snow as diagnostic variables. But you need one additional
-      ! long-storage array to keep ice crystal hydrometeor content as a minimum
-      !
-      !     IF(LHX.EQ.LHE)  THEN
-      !        WMX(L)=mdrop(mkx)
-      !      ELSE
-      !        WMX(L)=mcrys(mkx)
-      !      ENDIF
-      !
-      ! GCM logics...........  SNd0, SNdL [No/cc; ]SNdI Units also in /cc
-      !
-      !      SNdI=ncrys(mkx)*1.0d-6          ! ncrys, [No/m^3]
-      SNdI = 0.06417127d0
-      !      if(SNdI.gt.0.) write(6,*)"ICE CRY",SNdI, SNdI/dtB2M
-      if(SNdI.gt.1.d0) SNdI=1.d0      !try to limit to 1000 /l
-      SNd=ndrop(mkx)*1.d-6                 ! ndrop, [No/m^3]
-      !      if(SNd.gt.20.) write(6,*)"SM 12 CDNC",SNd   ,l
-      !**** Old treatment to get CDNC for cloud changes within time steps
-      DCLD(L) = FCLD-CLDSAVL(L) ! cloud fraction change
-      !** If previous time step is clear sky
-      if(CLDSAVL(L).eq.0.) then
-        SNd=SNd
-      elseif (DCLD(L).le.0.d0) then
-        SNd=NCLL(L)
-      elseif(DCLD(L).gt.0.d0) then
-        SNd=( (NCLL(L)*CLDSAVL(L)) + (SNd*DCLD(L)) )/FCLD
-      endif
-      !* If using an alternate definition for QAUT
-      rablk=execute_bulk2m_driver('get','mprc')
-      QAUT_B2M=rablk(mkx)
-#endif  /* (cld-aer and BLK_2MOM) */
 #ifdef CLD_AER_CDNC
-      SCDNCW=SNd      ! we have already passed the grid box value
-      SCDNCI=SNdI
-      if (SCDNCI.le.0.0d0) SCDNCI=teeny         !set min ice crystal, do we need this, please check
-      if (SCDNCW.le.20.d0) SCDNCW=20.d0         !set min CDNC, sensitivity test
-      !     if(SCDNCW.gt.2000.) write(6,*)"PROBLEM",SCDNCW,L
-      if (SCDNCW.ge.1400.d0) SCDNCW=1400.d0     !set max CDNC, sensitivity test
-      !     if (SNd.gt.20.) write(6,*)"CDNC LSS",SCDNCW,SNd,L
+
+
+#if ((defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AEROSOLS_SEASALT))
+      call cld_aer_cdnc_block0( &
+       ntx,ntix, &
+       lhx,fcld,vvel,dxypij, &
+       qclx(l),qcix(l),cleara(l),cldsavl(l),pl(l),tl(l),ncll(l),sme(l),airm(l), &
+       tm(l,:), & ! input: tracer amounts
+       dsu(:,l), & ! output for re-run of blk_2mom in optical thickness loop below
+       oldcdn,newcdn & ! output affecting koch/seasalt EC_IN_OPTICS
+       )
 #endif
-#ifdef TRACERS_AMP
-      SNd_L(L) = SNd  ! keep Number concentration value for use in second L-Loop in LSCOND
+
+      ! Call blk_2mom for two (hopefully) temporary reasons:
+      !  (1) get scdncw,scdnci for EC_IN_OPTICS
+      !  (2) remember SNd for optical thickness loop for TRACERS_AMP case
+      ! No effect on cloud microphysics.
+      call cld_aer_cdnc_block1( &
+       i_debug,j_debug, &
+       oldcdn,newcdn, & ! koch/seasalt reason (1)
+       dtsrc,vvel,lhx,fcld,dxypij,pearth, &
+       prebar(l),tl(l),ql(l),pl(l),wturb(l),cldsavl(l), &
+       qclx(l),qcix(l),ncll(l),ncil(l),airm(l) &
+#if defined(TRACERS_AMP)
+       ,nactc(l,:) &
 #endif
+#ifdef TRACERS_TOMAS
+       ,tm(l,:) & ! input: tracer amounts
+       ,cdnc_tomas(l) &
+#endif
+       ,SNd_L(l) & ! output for reason (2)
+       ,scdncw,scdnci & ! output for reason (1)
+       )
+
+#endif /* CLD_AER_CDNC */
+
       !**** COMPUTE THE AUTOCONVERSION RATE OF CLOUD WATER TO PRECIPITATION
 
       qcx = qclx(l)+qcix(l)
@@ -4263,44 +3445,6 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
             TEM = WCONST
             CM00=1.d-4    ! 3.d-5
 
-        !C#ifdef CLD_AER_CDNC
-        !** Choice of 2 different routines to get the autoconversion rate
-        !C#ifdef BLK_2MOM
-        !*** using an alternate QAUT definition based on Beheng (1994)
-        !C    if(FCLD.gt.teeny) then
-        !C      CM=QAUT_B2M/(WMX(L)+1.d-20)+1.d0*100.d0*(PREBAR(L+1)+
-        !C   *  PRECNVL(L+1)*BYDTsrc)
-        !       if (QAUT_B2M.lt.0.) write(6,*)"QAUT BLK_2M",QAUT_B2M,CM,WMX(L),L
-        !       if(L.eq.1) write(6,*)"4th check BLK_2M",CM,QAUT_B2M,WMX(L)
-        !C      if(CM.gt.1.d-03) CM=1.d-03
-        !C    else
-        !C      CM=0.d0
-        !C    endif
-        !C#else
-        !** Use Qaut definition based on Rotstayn and Liu (2005, GRL)
-        !C         WTEM=1d5*WMX(L)*PL(L)/(FCLD*TL(L)*RGAS+teeny)
-        !C          IF(LHX.EQ.LHE)  THEN
-        !C            RCLD=RCLDX*100.d0*(WTEM/(2.d0*BY3*TWOPI*SCDNCW))**BY3
-        !C          ELSE
-        !C            RCLD=RCLDX*100.d0*(WTEM/(2.d0*BY3*TWOPI*SCDNCI))**BY3
-        !    *         *(1.+pl(l)*xRICld)
-        !C          END IF
-        !C       CALL GET_QAUT(L,PL(L),TL(L),FCLD,WMX(L),SCDNCW,RCLD,RHOW,
-        !C     *r6,r6c,QCRIT,QAUT)
-        !** Can also use other Qaut definitions if BLK_2MOM is not defined by switching to this call
-        !     CALL GET_QAUT(L,TL(L),FCLD,WMX(L),SCDNCW,RHO,QCRIT,QAUT)
-        !      CALL GET_QAUT(L,FCLD,WMX(L),SCDNCW,RHO,QAUT)
-        !*** If 6th moment of DSD is greater than critical radius r6c start QAUT
-        !     if (r6.gt.r6c) then
-        !C      if ((WMX(L)/(FCLD+teeny)).GT.QCRIT) then
-        !C        CM=QAUT/(WMX(L)+1.d-20)+1.d0*100.d0*(PREBAR(L+1)+
-        !C     *     PRECNVL(L+1)*BYDTsrc)
-        !C      else
-        !C        CM=0.d0
-        !C      endif
-        !** end routine for QAUT as a function of N,LWC
-        !C#endif
-        !C#endif
           end if
           if(LHX.EQ.LHS.AND.QCIX(L).gt.0.) then
             !QCX = QCIX(L)
@@ -4329,7 +3473,6 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
         TEM=RHO*QCX/(TEM*FCLD+teeny)
         TEM=TEM*TEM
         if(TEM.gt.10.) TEM=10.
-        if(VDEF.gt.0..and.RHO*QCX.ge.10.0d0) CM0=CM00
         CM1=CM0
         if(BANDF) CM1=CM0*CBF      ! only for liquid clouds?
         if(LHX.eq.LHS) CM1=CM0     ! already LHX.eq.LHS
@@ -5357,18 +4500,18 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
 #endif
 
     !**** COMPUTE CLOUD PARTICLE SIZE AND OPTICAL THICKNESS
-    WMSUM=0.
-#ifdef CLD_AER_CDNC
-    ACDNWS=0.
-    ACDNIS=0.
-    AREWS=0.
-    AREIS=0.
-    ALWWS=0.
-    ALWIS=0.
-    NLSW = 0
-    NLSI = 0
-!    CDNC_TOMAS=0.
+
+#ifndef CLD_AER_CDNC
+!***Setting constant values of CDNC over land and ocean to get RCLD=f(CDNC,LWC)
+    SNdO = 59.68d0/(RWCLDOX**3)
+    SNdL = 174.d0
+    SNdI = 0.06417127d0
+    SCDNCW=SNdO*(1.-PEARTH)+SNdL*PEARTH
+    SCDNCI=SNdI
 #endif
+
+    WMSUM=0.
+
     OPTICAL_THICKNESS: do L=1,LMCLD
       FCLD=CLDSSL(L)+teeny
 !     WTEM=1.d5*WMX(L)*PL(L)/(FCLD*TL(L)*RGAS+teeny)
@@ -5379,155 +4522,23 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
         WTEM=1.d5*QCIX(L)*PL(L)/(FCLD*TL(L)*RGAS+teeny)
       END IF
       if(WTEM.lt.1d-10) WTEM=1.d-10
-      !***Setting constant values of CDNC over land and ocean to get RCLD=f(CDNC,LWC)
-      SNdO = 59.68d0/(RWCLDOX**3)
-      SNdL = 174.d0
-      SNdI = 0.06417127d0
-      SCDNCW=SNdO*(1.-PEARTH)+SNdL*PEARTH
-      SCDNCI=SNdI
-#if (defined CLD_AER_CDNC ) || (defined BLK_2MOM)
-#ifdef ALT_CDNC_INPUTS
-      VVEL = VVEL_sv(l)    ! retrieve value at this level
-      DSU(:) = DSU_SV(:,L) ! retrieve
-      NEWCLD = 1.-CLEARA(L)
-      SAVCLD = CLDSAV0(L) ! from prev. timestep
-#else
-      ! These choices always produce DCLD <= 0.
-      NEWCLD = CLDSSL(L)  ! = (1-CLEARA)*FSSL (updated)
-      SAVCLD = CLDSAVL(L) ! = (1-CLEARA)      (already updated)
-#endif
-!@auth Menon for CDNC prediction
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AEROSOLS_SEASALT)
-      if( LHX.eq.LHE )then
-        QCX = QCLX(L)
-      else
-        QCX = QCIX(L)
-      endif
-      call GET_CDNC_UPD(L,LHX,WCONST,WMUI,QCX,FCLD,NEWCLD, &
-           SAVCLD,VVEL,SME(L),DSU,NCLL(L), &
-           CDNL0,CDNL1)
-      NCLL(L) = CDNL1
-      SNd=CDNL1
-      !** Pass old and new cloud droplet number
-      NEWCDN=SNd
-      OLDCDN=CDNL0
-      !     if (L.eq.1)write(6,*)"BLK_2M NUPD",NEWCDN,OLDCDN
-#endif
-#ifdef TRACERS_AMP
-      NCLL(L)=SNd_L(L)
-      NCIL(L)=SNdi
-#endif
-#ifdef TRACERS_TOMAS
-       NCLL(L)=SNd
-       NCIL(L)=SNdi
-#endif
-#endif
-#if (defined CLD_AER_CDNC) || (defined BLK_2MOM)
-      ! Update thermo if environment was changed
-      tk0=TL(L)                 ! Temperature, [K]
-      qk0=QL(L)                 ! Water vapor mixing ratio, [kq/kq]
-      pk0=PL(L)                 ! Pressure, [hPa]
-      w0=VVEL*1.d-02           ! Large-scale velocity, [m/s]
-      v0=WTURB(L) !; v0=w3d(k,i,j) ! Sub-grid velocity, [m/s]
-      r0= 0.0  !RDTNDL(L)               ! T tendency due to radiation, [K/s]
-      ldummy=execute_bulk2m_driver('all' &
-           ,tk0,qk0,pk0,w0,v0,r0)
-      ! Update micro if contents were changed
-      !        mdrop=WMX(L)            ! drop content, [kg water/kg air]
-      !        ndrop=mdrop/mw0         ! drop concent, [No/m3]
-      !        mcrys=WMXICE(L)         ! crys content, [kg water/kg air]
-      !        ncrys=mcrys/mi0         ! crys concent, [No/m3]
-      if(LHX.eq.LHE)  then
-        mdrop =QCLX(L)
-        ndrop= NCLL(L)*1.d6  !mdrop/mw0         ! drop concent, [No/m3]
-        if(QCLX(L).eq.0.) ndrop=0.0
-        ncrys = 0.
-        mcrys = 0.
-      else
-        mcrys =QCIX(L)
-        WMXICE(L) = QCIX(L)
-        ncrys= NCIL(L)*1.d6  !mcrys/mi0         ! crystal concent, [No/m3]
-        if(QCIX(L).eq.0.) ncrys=0.0
-        ndrop = 0.
-        mdrop = 0.
-      endif
-      !      if(L.eq.1)write(6,*)"5th check BLK_2M",
-      !    *WMX(L),NCLL(L),NCIL(L)
-      !
-      ldummy=execute_bulk2m_driver('all' &
-           ,ndrop,mdrop,ncrys,mcrys,'end')
-      ! Get new drop & crys concentration
-      !     ldummy=execute_bulk2m_driver('surabi','GET_CDNC_UPD',dtB2M,mkx)
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AEROSOLS_SEASALT)
-      !*** Call Lohmann's or Gultepe's scheme for CDNC
-      OLDCDNC=OLDCDN*1.d6  !convert from cm-3 to m-3
-      NEWCDNC=NEWCDN*1.d6  !convert from cm-3 to m-3
-      ldummy=execute_bulk2m_driver('gult','drop_nucl',dtB2M,mkx, &
-           OLDCDNC,NEWCDNC)
-#endif
-#ifdef TRACERS_AMP
-      !*** Using the AMP_actv interface from MATRIX
-      ldummy=execute_bulk2m_driver('matr','drop_nucl',dtB2M,mkx)
-#endif
-#ifdef TRACERS_TOMAS
-      !*** Using the AMP_actv interface from MATRIX
-        ldummy=execute_bulk2m_driver('toma','drop_nucl',dtB2M,mkx)
-#endif
-      rablk=execute_bulk2m_driver('get','value','nc') + ( &
-           +execute_bulk2m_driver('get','npccn') &
-           )*dtB2M
-      SNd=rablk(mkx)*1.0d-6            ! ndrop, [No/m^3], SNdL, [No/cc]
-      !     if(SNd.gt.20.) write(6,*)"Finally out",SNd, l
-      !**** Old treatment to get CDNC for cloud changes within time steps
-      DCLD(L) = NEWCLD-SAVCLD ! cloud fraction change
-      !** If previous time step is clear sky
-      if(SAVCLD.eq.0.) then
-        SNd=SNd
-      elseif (DCLD(L).le.0.d0) then
-        SNd=NCLL(L)
-      elseif(DCLD(L).gt.0.d0) then
-        SNd=( (NCLL(L)*SAVCLD) + (SNd*DCLD(L)) )/NEWCLD
-      endif
-      rablk=execute_bulk2m_driver('get','value','ni') + ( &
-                                !       nnuccc             ! change n due to contact droplets freez
-           +execute_bulk2m_driver('get','nnuccc') &
-                                !       nnucci            ! change n due to immersion droplets freez
-           +execute_bulk2m_driver('get','nnucci') &
-                                !       nnuccd            ! change n freezing aerosol (prim ice nuc)
-           +execute_bulk2m_driver('get','nnuccd') &
-           )*dtB2M &
-                                !      nnucmd        ! change n cond freezing Meyer's (prim ice nuc)
-           +execute_bulk2m_driver('get','nnucmd') &
-                                !      nnucmt        ! change n cont freezing Meyer's (prim ice nuc)
-           +execute_bulk2m_driver('get','nnucmt')
 
-      !      SNdI=rablk(mkx)*1.0d-6             ! from ncrys [No/m^3] to SNdI in [No/cc]
-      SNdI = 0.06417127d0
-      if(SNdI.gt.1.d0) SNdI=1.d0      !try to limit to 1000 /l
-      NCLL(L) = SNd
-      NCIL(L) = SNdI
-#ifdef TRACERS_AMP
-      nactc(l,1:nmodes) =  naero(mkx,1:nmodes)
-      !      do nm=1,nmodes
-      !        if(nactc(l,nm).gt.0.)
-      !    *   write(6,*)"NMOD1",nactc(l,nm),l,nm
-      !       enddo
-#endif
-      !      if(L.eq.1) write(6,*)"6_LO check BLK_2M",SNd,SNdI
-      ! To get effective radii in micron
-      rablk=execute_bulk2m_driver('get','value','ec')  ! [micron]
-#endif
 #ifdef CLD_AER_CDNC
-      SCDNCW=SNd
-      SNdI = 0.06417127d0
-      SCDNCI=SNdI
-      if (SCDNCW.le.20.d0) SCDNCW=20.d0   !set min CDNC sensitivity test
-      !     If (SCDNCI.le.0.06d0) SCDNCI=0.06417127d0   !set min ice crystal
-      if (SCDNCI.le.0.0d0) SCDNCI=teeny           !set min ice crystal
-      if(SCDNCW.gt.1400.d0) SCDNCw=1400.d0
-      !     if (SCDNCW.gt.20.) write(6,*) "SCND CDNC",SCDNCW,NCLL(l),l
+      ! re-running blk_2mom
+      call cld_aer_cdnc_block2( &
+         lhx,fcld,dtsrc, &
+         dsu(:,l), & ! only for koch/seasalt
+         cleara(l),vvel_sv(l),CLDSAV0(l),qclx(l),qcix(l),sme(l), &
+         ncll(l),ncil(l),tl(l),ql(l),pl(l),wturb(l),wmxice(l), &
+         snd_l(l), & ! only used for tracers_amp
+         rbeta, & ! DSD dispersion factor
+         scdncw, & ! output
+         scdnci & ! output coincidentally equal to SNdi
+      )
 #endif
+
       wmpr(l) = max(wmpr(l),0d0)
+
       if(LHX.eq.LHE) then
 
         !         RCLD=(RWCLDOX*10.*(1.-PEARTH)+7.0*PEARTH)*(WTEM*4.)**BY3
@@ -5542,22 +4553,10 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
           RCLDE1 = MIN(RCLDE1,RIMAX)/BYBR
         endif
 #ifdef CLD_AER_CDNC
-        !** Using the Liu and Daum paramet
-        !** for spectral dispersion effects on droplet size distribution
-        Repsi=1.d0 - 0.7d0*exp(-0.003d0*SCDNCW)
-        Repsis=Repsi*Repsi
-        Rbeta=(((1.d0+2.d0*Repsis)**0.667d0))/((1.d0+Repsis)**0.333d0)
         !     write(6,*)"RCLD",Rbeta,RCLD,SCDNCW,Repsis
         RCLDE=RCLD*Rbeta
         RCLDE1 = RCLDE
 !@auth Menon    end of addition  comment out the RCLDE definition below
-#endif
-#ifdef BLK_2MOM
-        !        if(l.eq.1) write(6,*)"7th check BLK_2M",RCLDE,RCLD
-        !    *   ,SCDNCW,WTEM
-        !        rablk=execute_bulk2m_driver('get','value','ec')  ! [micron]
-        !        RCLDE=rablk(mkx)
-        !        if(l.eq.1) write(6,*)"8th check BLK_2M",RCLDE
 #endif
       else
         !         RCLD=25.0*(WTEM/4.2d-3)**BY3 * (1.+pl(l)*xRICld)
@@ -5566,37 +4565,11 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
         RCLDE=RCLD/BYBR
         RCLDE1 = RCLDE
         if(use_vmp .and. cldssl(l).gt.0) CSIZELIP(L)=RCLDE1
-#ifdef BLK_2MOM
-        !       if(L.eq.1)  write(6,*)"9th check BLK_2M",RCLDE
-        !        rablk=execute_bulk2m_driver('get','value','ei')  ! [micron]
-        !        RCLDE=rablk(mkx)
-        !        if(l.eq.1) write(6,*)"10th check BLK_2M",RCLDE
-#endif
       end if
       RCLDE1=5.*RCLDE1         ! for precip optical thickness
       CSIZEL(L)=RCLDE
       IF(FCLD.LE.teeny.AND.CSIZEL(L).GT.25.d0) CSIZEL(L)=25.d0
-#ifdef CLD_AER_CDNC  /* save for diag purposesi */
-      if (FCLD.gt.1.d-5.and.LHX.eq.LHE) then
-        ACDNWS(L)= SCDNCW
-        AREWS(L) = RCLDE
-        ALWWS(L) = WTEM
-        CDN3DL(L)=SCDNCW
-        CRE3DL(L)=RCLDE
-        NLSW  = NLSW + 1
-        !      if(ACDNWS(L).gt.20.d0) write(6,*)"INWCLD",ACDNWS(L),
-        !    * SCDNCW,NLSW,AREWS(L),RCLDE,LHX
-      elseif(FCLD.gt.1.d-5.and.LHX.eq.LHS) then
-        ACDNIS(L)= SCDNCI
-        AREIS(L) = RCLDE
-        ALWIS(L) = WTEM
-        CDN3DL(L)=SCDNCI
-        CRE3DL(L)=RCLDE
-        NLSI  = NLSI + 1
-        !      if(ACDNIS(L).gt.0.d0)    write(6,*)"INICLD",ACDNIS(L),
-        !    * SCDNCI,NLSI,AREIS(L),RCLDE,LHX
-      end if
-#endif
+
 !     TEM=AIRM(L)*WMX(L)*1.d2*BYGRAV
       IF(LHX.EQ.LHE) THEN
         TEM=AIRM(L)*QCLX(L)*1.d2*BYGRAV
@@ -5623,9 +4596,6 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
       if(FCLD.le.teeny) TAUSSL(L)=0.
       if(TAUSSL(L).gt.100.) TAUSSL(L)=100.
       if(LHX.eq.LHE) WMSUM=WMSUM+TEM      ! pick up water path
-#ifdef CLD_AER_CDNC
-      SMLWP=WMSUM
-#endif
     end do OPTICAL_THICKNESS
 
     !**** CALCULATE OPTICAL THICKNESS
@@ -5670,6 +4640,11 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
 
 
 #if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
+    CTEML=0.
+    CD3DL=0.
+    CL3DL=0.
+    CI3DL=0.
+
     !Save variables for 3 hrly diagnostics
     !     AAA=1
     !     DO L=LMCLD,1,-1

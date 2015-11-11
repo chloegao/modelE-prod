@@ -68,6 +68,8 @@ module VerticalRes
   integer, parameter :: ls1 = wt*ls1_lower + (1-wt)*(ls1_lower+1)
 #endif
 
+  integer, parameter :: ls1_nominal=ls1
+
   Real*8,Parameter :: &
     PTOP = plbot(ls1), &
     PMTOP = plbot(lm+1), &

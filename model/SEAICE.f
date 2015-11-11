@@ -1155,7 +1155,7 @@ c           TRICE(:,L) = TRICE(:,L)-DTRSI(:,L)
 C**** calculate removal of excess salinity using flushing and brine pocket limit
         DO L=1,LMI
           IF (SICE(L).gt.0) THEN
-            brine_frac=-mu*1d3*(SICE(L)/TSIL(L))/MICE(L)
+            brine_frac=-mu*1d3*(SICE(L)/min(TSIL(L),-1.d-8))/MICE(L)
 C**** flushing (30% of MELT12 pushes out an equivalent mass of brine)
             rate = min(1d0,0.3d0*MELT12/(MICE(L)*brine_frac)) ! fractional loss
 C**** basic gravity drainage (3 day timescale)
@@ -1382,7 +1382,7 @@ c            lh = lhm + Tb*(shw-shi)
             lh = lhm*(1.-Sib*1d-3) + Tb*(shw-shi)
           case ("BP")           ! brine pockets
             if (Sib.gt.0) then
-              lh = lhm*(1.+mu*Sib/Tb) + (Tb+mu*Sib)*(shw-shi)
+             lh = lhm*(1.+mu*Sib/min(Tb,-1.d-8)) + (Tb+mu*Sib)*(shw-shi)
             else
               lh = lhm + Tb*(shw-shi)
             end if
@@ -1427,7 +1427,8 @@ c            lh = lhm + Tb*shw - Ti*shi
             lh = lhm*(1.-Sib*1d-3) + Tb*shw - Ti*shi
           case ("BP")           ! brine pockets
             if (Sib.gt.0) then
-              lh = lhm*(1.+mu*Sib/Ti)+(Ti+mu*Sib)*(shw-shi)-shw*(Ti-Tb)
+              lh = lhm*(1.+mu*Sib/min(Ti,-1.d-8))
+     *            +(Ti+mu*Sib)*(shw-shi)-shw*(Ti-Tb)
             else
               lh = lhm + Tb*shw - Ti*shi
             end if
@@ -2181,7 +2182,7 @@ c        Ei=Ti*shi-lhm
         Ei=Ti*shi-lhm*(1.-1d-3*Si)
       case ("BP")               ! brine pocket formulation
         if (Si.gt.0) then  ! is this safe from T=0? (or T>-muS?)
-          Ei= (Ti+mu*Si)*shi-lhm*(1.+mu*Si/Ti)-shw*mu*Si
+          Ei= (Ti+mu*Si)*shi-lhm*(1.+mu*Si/min(Ti,-1.d-8))-shw*mu*Si
         else
           Ei= Ti*shi-lhm
         end if
@@ -2203,7 +2204,7 @@ c        Mi=max(0d0,msi+hsi*bylhm)
       case ("SI")               ! salinity affects only mass
         Mi=max(0d0,msi+hsi*bylhm/(1.-ssi/msi))
       case ("BP")               ! brine pocket formulation
-        if (ssi.gt.0) then
+        if (ssi.gt.ssimin*msi) then
           Mi=0.
           if (hsi+shw*mu*1d3*ssi.gt.0) Mi=msi
         else
@@ -2264,7 +2265,8 @@ c        Em= 0.
       if (seaice_thermo.eq."SI" .or. Si.eq.0) then ! pure ice value
         alami=alami0
       else                      ! use brine fraction
-        alami=alami0 + alamdT*Ti + alamdS*Si/Ti
+        alami=alami0 + alamdT*Ti + alamdS*Si/min(Ti,-1.d-8)
+        IF(alami.LE.0.) alami=alami0
       end if
 
       RETURN
@@ -2280,7 +2282,7 @@ c        Em= 0.
       if (seaice_thermo.eq."SI" .or. Si.eq.0) then ! pure ice value
         dEidTi=shi
       else                      ! use brine fraction
-        dEidTi=shi+lhm*mu*Si/(Ti*Ti)
+        dEidTi=shi+lhm*mu*Si/(min(Ti,-1.d-8)*min(Ti,-1.d-8))
       end if
 
       RETURN
