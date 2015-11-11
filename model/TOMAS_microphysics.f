@@ -58,7 +58,7 @@
       real Kn                     !Knudsen number of particle
       real*8 mp         !particle mass (kg)
       real beta                   !correction for coagulation coeff.
-      real aerodens
+      real*8 aerodens
       external aerodens
       real*8 Mktot      !total mass of aerosol
 
@@ -1364,7 +1364,7 @@ Cjrp               endif
       real mso4, mh2o, mno3, mnh4 !mass of each component (kg/grid box)
       real mecil,mecob,mocil,mocob
       real mdust,mnacl  
-      real aerodens, gasdiff
+      real*8 aerodens, gasdiff
       external aerodens         !!, gasdiff
       
       parameter(Neps=1.0d10)
@@ -1478,7 +1478,8 @@ C     get size dependent values
       real*8 mfp                !mean free path of air molecule (m)
       real Di                   !diffusivity of gas in air (m2/s), and molecular weight (kg/mol)
       real*8 Neps               !tolerance for number
-      real density,mw           !density [kg m^-3]
+      real*8 density            !density [kg m^-3]
+      real mw
       real*8 mp                 !mass per particle [kg]
       real*8 Dpk(ibins)         !diameter of particle [m]
       real*8 Kn                 !Knudson number
@@ -1488,7 +1489,8 @@ C     get size dependent values
       real mso4, mh2o, mno3, mnh4 !mass of each component (kg/grid box)
       real mecil,mecob,mocil,mocob
       real mdust,mnacl  
-      real aerodens, gasdiff
+      real*8 aerodens
+      real gasdiff
       external aerodens         !, gasdiff
 
       parameter(Neps=1.0d10)
@@ -1536,10 +1538,10 @@ C     get size dependent values
             mp=Mktot/Nko(k)
           else
 !nothing in this bin - set to "typical value"
-            density=1500.
+            density=1500.d0
             mp=sqrt(xk(k+1)*xk(k))
           endif
-          Dpk(k)=((mp/density)*(6./pi))**(0.333)
+          Dpk(k)=((mp/density)*(6.d0/pi))**(1.d0/3.d0)
           Kn=2.0*mfp/Dpk(k)     !S&P eqn 11.35 (text)
           beta(k)=(1.+Kn)/(1.+2.*Kn*(1.+Kn)/alpha(spec)) !S&P eqn 11.35
         enddo      
@@ -1606,7 +1608,7 @@ C-----OUTPUTS-----------------------------------------------------------
       real mso4, mh2o, mno3, mnh4  !mass of each component (kg/grid box)
       real mecil,mecob,mocil,mocob
       real mdust,mnacl  
-      real aerodens
+      real*8 aerodens
       external aerodens
 
       parameter (kB= 1.38E-23) !pi and gas constant (J/mol K)
@@ -2180,7 +2182,7 @@ C-----INPUTS------------------------------------------------------------
       real mso4, mh2o, mno3, mnh4  !mass of each component (kg/grid box)
       real mecil,mecob,mocil,mocob
       real mdust,mnacl  
-      real aerodens
+      real*8 aerodens
       external aerodens
       real*8 fn_c     ! barrierless nucleation rate
       real*8 h1,h2,h3,h4,h5,h6
@@ -2268,10 +2270,10 @@ C     and get the nucleation rate and critical cluster size
             mp=Mktot/Nki(k)
          else
                                 !nothing in this bin - set to "typical value"
-            density=1500.
+            density=1500.d0
             mp=sqrt(xk(k+1)*xk(k))
          endif
-         Dpk(k)=((mp/density)*(6./pi))**(0.333)
+         Dpk(k)=((mp/density)*(6.d0/pi))**(1.d0/3.d0)
       enddo
 
 C     if nucleation occured, see how many particles grow to join the first size
@@ -4436,7 +4438,7 @@ C
      &     ,ijlt_ccn_03,ijlt_ccn_02
       USE CONSTANT, only: pi,gasc
       implicit none 
-      REAL*8 SURT,DIAM(NBINS+1),Tvol,DENS(7),A
+      REAL*8 SURT,DIAM3(NBINS+1),Tvol,DENS(7),A3
 c      REAL*8 Tp,BOXM,BOXV
       integer i, j, l, si, n
       integer k,kk,tracnum
@@ -4444,7 +4446,7 @@ c      REAL*8 Tp,BOXM,BOXV
       
 !@var constants needed for CCN calculation 
       real*8, parameter :: Mv=18.015d-3
-      real, parameter :: rhow= 1000.
+      real*8, parameter :: rhow= 1000.d0
 !@var temporal CCN 
       real*8, dimension(nsmax) :: ccn_mod 
 !@var temporal Sc 
@@ -4471,12 +4473,11 @@ C get density
 C surface tension
       SURT   = 0.0761-1.55E-4*(Temp-273.)
 
-      A = 4*Mv*SURT/(gasc*Temp*rhow)
+      A3 = (4*Mv*SURT/(gasc*Temp*rhow))**3
 
       DO N=1,NBINS+1 
-
-C Diameter in each size boundary with assuming density =1800 kg/m3. 
-        diam(n)= (xk(n)/1800.*6./pi)**0.333
+C Diameter cubed in each size boundary with assuming density =1800 kg/m3. 
+        diam3(n)= xk(n)/1800.d0*6.d0/pi
       ENDDO
 
       DO N=1,NBINS
@@ -4489,9 +4490,10 @@ C Diameter in each size boundary with assuming density =1800 kg/m3.
      &       +0.227*Mk(n,6)/dens(6))/Tvol ! average kappa in a bin 
 C note that kappa is hard-coded here. 
 
-        Sc(n) = exp(sqrt(4.*A*A*A/27./Diam(n)/Diam(n)/Diam(n)/kappa(n)))
-
-        Sc(n)=(Sc(n)-1.)*100.
+        Sc(n) = sqrt(4.d0*A3/27.d0/Diam3(n)/kappa(n))
+        Sc(n) = min(Sc(n), 10.d0) ! HACK!!! Yunha must fix this. Chances are that particles of diameter 2.55e-9 in mode 1 are just too small for this calculation?
+        Sc(n) = exp(Sc(n))
+        Sc(n)=(Sc(n)-1.d0)*100.d0
 
 c        print*,'debug_kappa',n,kappa(n),Sc(n)
 
@@ -4510,8 +4512,7 @@ C     INTERPOLATION :
           if(N .LT. NBINS)THEN 
             IF(SC(N+1) .lt. SMAX(si) .and. SC(N) .gt. SMAX(SI) ) THEN 
 C     compute new Sc (I+1) using the upper limit Dp to determine the activation fraction  
-              Scnew = exp(sqrt(4.*A*A*A/27./Diam(n+1)/Diam(n+1)/
-     &             Diam(n+1)/kappa(n)))
+              Scnew = exp(sqrt(4.*A3/27./Diam3(n+1)/kappa(n)))
               Scnew=(Scnew-1.)*100.
 
               CCN_mod(SI)=CCN_mod(SI)+Nk(n)/boxvol*

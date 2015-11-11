@@ -28,14 +28,14 @@ C-----INCLUDE FILES--------------------------------------------------
       integer,parameter ::  ncomp=8
 !@param srtso4,srtna, etc : index number for icomp 
       integer srtso4, srtna, srth2o, srtecob, srtecil, srtocob,
-     &	      srtocil, srtnh4, srtdust
+     &        srtocil, srtnh4, srtdust
       parameter (srtso4=1,
      &           srtna =2,
      &           srtecob=3,
      &           srtecil=4,
      &           srtocob=5,
      &           srtocil=6,
-     &		 srtdust=7,
+     &           srtdust=7,
      &           srtnh4=8,
      &           srth2o=9)
 
@@ -596,7 +596,7 @@ c$$$            enddo
 !@auth  Yunha Lee
 !@ver   1.0
 
-      subroutine dep_getdp(i,j,l,getdp,size_density)                                            
+      subroutine dep_getdp(i,j,l,getdp,size_density)
       USE TRACER_COM, only : nbins,n_ASO4,n_ANACL,n_AECIL,
      &     n_AECOB,n_AOCIL,n_AOCOB,n_ADUST,n_AH2O,
      &     n_ANUM,ntm,xk,trm
@@ -613,15 +613,15 @@ C-----VARIABLE DECLARATIONS------------------------------------------
 
       integer i,j,l  !coordinate of GCM grid cell
       integer n,k      !tracer index and size bin index
-      real density                 !density (kg/m3) of current size bin
+      real*8 density                 !density (kg/m3) of current size bin
       real mso4, mh2o, mno3, mnh4  !mass of each component (kg/grid box)
       real mecil,mecob,mocil,mocob
       real mdust,mtot,mnacl             
       real*8 mp          !particle mass (kg)
       real*8 mu          !air viscosity (kg/m s)
       real*8 qsat
-      real aerodens
-      real,intent(out),DIMENSION(nbins) :: getdp,size_density
+      real*8 aerodens
+      real*8,intent(out),DIMENSION(nbins) :: getdp,size_density
       real*8 Neps  !a small number of particles (#/box)
       parameter (Neps=1.d-20)
 
@@ -690,7 +690,7 @@ C     Swap GCM variables into aerosol algorithm variables
          mtot= 1.1875*Mk(k,srtso4)+mnacl+mecil+mecob+
      *        mocil+mocob+mdust+mh2o
    
-         size_density(k)=density      
+         size_density(k)=density
 
          if (Nk(k) .gt. Neps.and.mtot.gt.0.) then
             mp=mtot/Nk(k)
@@ -743,10 +743,10 @@ C     Swap GCM variables into aerosol algorithm variables
       implicit none
       
 #ifdef TOMAS_12_10NM
-	character*17 infile
+      character*17 infile
 #endif
 #ifdef TOMAS_12_3NM
-	character*21 infile
+      character*21 infile
 #endif
 
       integer innum, ii, jj, kk
@@ -779,10 +779,10 @@ C     Swap GCM variables into aerosol algorithm variables
       implicit none
       
 #ifdef TOMAS_12_10NM
-	character*15 infile
+      character*15 infile
 #endif
 #ifdef TOMAS_12_3NM
-	character*19 infile
+      character*19 infile
 #endif
       integer innum, ii, jj, kk
       integer,intent(out),dimension(101,101,101):: binact
@@ -824,18 +824,18 @@ C     Swap GCM variables into aerosol algorithm variables
       
       do k=1, nbins
         mecil=TM(n_AECIL(1)-1+k)
-	mocil=TM(n_AOCIL(1)-1+k)
-	mocob=TM(n_AOCOB(1)-1+k)
-	mso4=TM(n_ASO4(1)-1+k)*1.2 !account for ammonium sulfate
-	mnacl=TM(n_ANACL(1)-1+k)
-	mdust=TM(n_ADUST(1)-1+k)
-	mtot=mecil+mocil+mocob+mso4+mnacl+mdust+1.e-20
-	xocil=mocil/mtot
-	xso4=mso4/mtot
-	xnacl=mnacl/mtot
-	iso4=min(101,int(xso4*100)+1)
-	inacl=min(101,int(xnacl*100)+1)
-	iocil=min(101,int(xocil*100)+1)
+        mocil=TM(n_AOCIL(1)-1+k)
+        mocob=TM(n_AOCOB(1)-1+k)
+        mso4=TM(n_ASO4(1)-1+k)*1.2 !account for ammonium sulfate
+        mnacl=TM(n_ANACL(1)-1+k)
+        mdust=TM(n_ADUST(1)-1+k)
+        mtot=mecil+mocil+mocob+mso4+mnacl+mdust+1.e-20
+        xocil=mocil/mtot
+        xso4=mso4/mtot
+        xnacl=mnacl/mtot
+        iso4=min(101,int(xso4*100)+1)
+        inacl=min(101,int(xnacl*100)+1)
+        iocil=min(101,int(xocil*100)+1)
         
         if(xso4.lt.0.or.xnacl.lt.0.or. xocil.lt.0)then
           print*,'wrong getfraction'
@@ -1039,7 +1039,7 @@ C Calculate tau for each size bin
 Ckpc  Jan.,2002 - extended to include carbonaceous aerosols
 !@ver  1.0
 
-      real FUNCTION aerodens(mso4,mno3,mnh4,mnacl,mecil,
+      real*8 FUNCTION aerodens(mso4,mno3,mnh4,mnacl,mecil,
      & mecob,mocil,mocob,mdust,mh2o)
 
       USE OldTracer_mod, only : trpdens
@@ -2157,12 +2157,12 @@ C-----VARIABLE DECLARATIONS-----------------------------------
       real*8, intent(out) :: ndistfinal(nbins) !the number of particles being added to the gridbox after subgrid coag
       real*8, intent(out) :: maddfinal(nbins) !the mass that should be added to each bin due to coagulation (kg)
       real*8 mp ! mass of the particle (kg)
-      real density                !density (kg/m3) of particles
+      real*8 density                !density (kg/m3) of particles
       real*8 diameter(nbins) ! diamter of the particle (m)
       real*8 diaml(nbins) ! total diamter of particles larger (m/cm3)
       real*8 fracdiaml(nbins,nbins) ! fraction of coagulation that occurs with each bin larger
       real*8 kcoag(nbins) ! the coagulation rate for the particles in each bin (s^-1)
-      real aerodens
+      real*8 aerodens
       real mso4, mh2o, mno3, mnh4  !mass of each component (kg/grid box)
       real mecil,mecob,mocil,mocob
       real mdust,mnacl   
@@ -2184,7 +2184,7 @@ C     get the wet diameter of particles in each size bin
          endif
          if((mdist2(k,srtso4)+mdist2(k,srtna)+mdist2(k,srtocil)+
      &        mdist2(k,srtdust)).eq.0)then
-            density=1400.
+            density=1400.d0
          else
          mso4=mdist2(k,srtso4) 
          mnacl=mdist2(k,srtna)

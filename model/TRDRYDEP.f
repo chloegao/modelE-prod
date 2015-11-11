@@ -263,7 +263,7 @@ C
       REAL*8, INTENT(OUT), DIMENSION(NTM) :: gs_vel
       REAL*8,INTENT(IN) :: psurf ! surface pressure
 !      REAL*8, INTENT(IN), DIMENSION(NTM) :: TM
-      real Dp(nbins),density(nbins) !particle diameter (m)
+      real*8 Dp(nbins),density(nbins) !particle diameter (m)
       real*8 Dk          !@var Dk particle diffusivity (m2/s)
       real*8 mu          !@var mu air viscosity (kg/m s)
       real*8 Sc,St       !@var Sc/St  particle Schmidt and Stokes numbers

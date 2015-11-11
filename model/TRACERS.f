@@ -944,8 +944,8 @@ C****
       real*8, dimension(grid%I_STRT_HALO:grid%I_STOP_HALO,
      &     grid%J_STRT_HALO:grid%J_STOP_HALO,lm,NBINS) :: vs !gravitational settling velocity (m s-1)
 !@var Dp_gr : particle diameter (m)
-      real Dp_gr(nbins)         
-      real density_gr(nbins)    !density (kg/m3) of current size bin           
+      real*8 Dp_gr(nbins)         
+      real*8 density_gr(nbins)  !density (kg/m3) of current size bin
       real*8 mp                 !particle mass (kg)
       real*8 mu                 !air viscosity (kg/m s)
 #endif
@@ -1079,12 +1079,7 @@ C****
       USE CONSTANT, only : by3,pi,gasc,avog,rt2,deltx
      *     ,mair,grav
       IMPLICIT NONE
-#ifdef TRACERS_TOMAS
-      real*8, intent(in) ::  airden,rh1,visc
-      real, intent(in) ::  tr_radius,tr_dens
-#else
       real*8, intent(in) ::  airden,rh1,tr_radius,tr_dens,visc
-#endif
       logical, intent(in) :: hydrate
       real*8  wmf,frpath
       real*8, parameter :: dair=3.65d-10 !m diameter of air molecule

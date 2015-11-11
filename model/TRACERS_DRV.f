@@ -9542,7 +9542,7 @@ c$$$      use OldTracer_mod, only: tr_mm, nBBsources, mass2vol
       real mso4, mh2o, mno3, mnh4  !mass of each component (kg/grid box)
       real mecil,mecob,mocil,mocob
       real mdust,mnacl  
-      real aerodens, density
+      real*8 aerodens, density
       external aerodens 
 #endif
       integer :: year, dayOfYear
@@ -10999,7 +10999,7 @@ C
       real stratscav
 !@var dpaero : aerosol diameter [m]
       real*8 dpaero,mtot  
-      real,dimension(nbins) ::  getdp,density
+      real*8,dimension(nbins) ::  getdp,density
 #endif
 c      thlaw(:)=0.
 
