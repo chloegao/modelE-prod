@@ -611,7 +611,7 @@ C Define and alter resulting photolysis coefficients (zj --> ss):
 
         ! Letting this spherical corrections get too small (0?) causes NaNs
         ! e.g. in the SOA code. Also sza can be > 90, so COS could go negative:
-        sphericalCorrection=MAX(1.d-2,DCOS(sza*radian))
+        sphericalCorrection=SQRT(MAX(1.d-2,DCOS(sza*radian)))
 
         DO L=min(JPNL,topLevelOfChemistry),1,-1
           do inss=1,JPPJ
