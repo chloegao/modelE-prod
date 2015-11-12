@@ -2026,10 +2026,10 @@ DOWNDRAFT: do L=LDRAFT,1,-1
                 do K=1,KMAX          ! add in momentum detrainment
                   UMTEMP=PGRAD*DDRAFT**2*(U_0(K,L+1)-U_0(K,L))/(PL(L)-PL(L+1))
                   VMTEMP=PGRAD*DDRAFT**2*(V_0(K,L+1)-V_0(K,L))/(PL(L)-PL(L+1))
-                  UMDN(K)=UMDN(K)*(1.+FENTRA)-UMTEMP
-                  VMDN(K)=VMDN(K)*(1.+FENTRA)-VMTEMP
                   DUM(K,L)=DUM(K,L)-FENTRA*UMDN(K)+UMTEMP
                   DVM(K,L)=DVM(K,L)-FENTRA*VMDN(K)+VMTEMP
+                  UMDN(K)=UMDN(K)*(1.+FENTRA)-UMTEMP
+                  VMDN(K)=VMDN(K)*(1.+FENTRA)-VMTEMP
                 end do
 
 #ifdef TRACERS_ON
