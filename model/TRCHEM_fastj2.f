@@ -286,8 +286,12 @@ c       19 = Ice Clouds
 #ifdef TRACERS_AEROSOLS_Koch
           MIEDX2(LL,n+1)=12+irh
 #ifndef SULF_ONLY_AEROSOLS
-          MIEDX2(LL,n+2:n+nraero_koch)=
-     &      (/36+irh,36+irh
+          MIEDX2(LL,n+2:n+nraero_koch)=(/
+#ifdef TRACERS_AEROSOLS_VBS
+     &        36+irh
+#else
+     &        36+irh,36+irh
+#endif  /* TRACERS_AEROSOLS_VBS */
 #ifdef TRACERS_AEROSOLS_SOA
      &       ,36+irh
 #endif  /* TRACERS_AEROSOLS_SOA */

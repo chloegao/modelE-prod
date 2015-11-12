@@ -107,6 +107,7 @@ C****
      &     n_Silt5
       USE TRACER_COM, only: n_SO4, n_Seasalt1, n_Seasalt2
       USE TRACER_COM, only: n_OCB, n_OCIA, n_Isopp1a, n_SO4
+      USE TRACER_COM, only: n_vbsAm2
 #ifdef TRACERS_TOMAS
       USE TRACER_COM, only: n_ASO4, n_ANACL, n_AECOB, n_AECIL,
      &     n_AOCOB, n_AOCIL, n_ADUST
@@ -671,27 +672,52 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
         trrdry(n+1)=0.15d0
         itr(n+1)=1
 #ifndef SULF_ONLY_AEROSOLS
-        ntrix(n+2:n+nraero_koch)=(/n_OCIA,n_OCB
+        ntrix(n+2:n+nraero_koch)=(/
+#ifdef TRACERS_AEROSOLS_VBS
+     &                             n_vbsAm2
+#else
+     &                             n_OCIA,n_OCB
+#endif  /* TRACERS_AEROSOLS_VBS */
 #ifdef TRACERS_AEROSOLS_SOA
      &                            ,n_isopp1a
 #endif  /* TRACERS_AEROSOLS_SOA */
      &                            ,n_BCIA,n_BCB/)
-        trrdry(n+2:n+nraero_koch)=(/0.2d0,0.2d0
+        trrdry(n+2:n+nraero_koch)=(/
+#ifdef TRACERS_AEROSOLS_VBS
+     &                             0.2d0
+#else
+     &                             0.2d0,0.2d0
+#endif  /* TRACERS_AEROSOLS_VBS */
 #ifdef TRACERS_AEROSOLS_SOA
      &                             ,0.2d0
 #endif  /* TRACERS_AEROSOLS_SOA */
      &                             ,0.08d0,0.08d0/)
-        itr(n+2:n+nraero_koch)=(/4,4
+        itr(n+2:n+nraero_koch)=(/
+#ifdef TRACERS_AEROSOLS_VBS
+     &                             4
+#else
+     &                             4,4
+#endif  /* TRACERS_AEROSOLS_VBS */
 #ifdef TRACERS_AEROSOLS_SOA
      &                          ,4
 #endif  /* TRACERS_AEROSOLS_SOA */
      &                          ,5,6/)
-        krhtra(n+2:n+nraero_koch)=(/1,1
+        krhtra(n+2:n+nraero_koch)=(/
+#ifdef TRACERS_AEROSOLS_VBS
+     &                             1
+#else
+     &                             1,1
+#endif  /* TRACERS_AEROSOLS_VBS */
 #ifdef TRACERS_AEROSOLS_SOA
      &                             ,1
 #endif  /* TRACERS_AEROSOLS_SOA */
      &                             ,0,0/)
-        fstasc(n+2:n+nraero_koch)=(/1.d0,1.d0
+        fstasc(n+2:n+nraero_koch)=(/
+#ifdef TRACERS_AEROSOLS_VBS
+     &                             1.d0
+#else
+     &                             1.d0,1.d0
+#endif  /* TRACERS_AEROSOLS_VBS */
 #ifdef TRACERS_AEROSOLS_SOA
      &                             ,1.d0
 #endif  /* TRACERS_AEROSOLS_SOA */
@@ -2359,7 +2385,7 @@ C**** more than one tracer is lumped together for radiation purposes
       do n=1,nraero
         if (NTRIX(n).gt.0) then
           select case (trname(NTRIX(n)))
-          case ("OCIA", 'vbsAm2')
+          case ("OCIA", "vbsAm2")
             TRACER(L,n)=(
 #ifdef TRACERS_AEROSOLS_VBS
      *           sum(trm(i,j,l,vbs_tr%iaer))

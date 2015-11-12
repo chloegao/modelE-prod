@@ -22,6 +22,10 @@ module KochTracersMetadata_mod
   use OldTracer_mod, only: tr_RKD 
   use TRACER_COM, only:  n_MSA, n_SO2,  n_SO4, n_DMS, &
     n_BCII,  n_BCIA,  n_BCB, n_OCII,  n_OCIA,  n_OCB, n_H2O2_s
+  use TRACER_COM, only: n_vbsGm2, n_vbsGm1, n_vbsGz,  n_vbsGp1, n_vbsGp2, &
+                        n_vbsGp3, n_vbsGp4, n_vbsGp5, n_vbsGp6, &
+                        n_vbsAm2, n_vbsAm1, n_vbsAz,  n_vbsAp1, n_vbsAp2, &
+                        n_vbsAp3, n_vbsAp4, n_vbsAp5, n_vbsAp6
   use TRACER_COM, only: whichEPFCs
   use Dictionary_mod, only: sync_param
   use RunTimeControls_mod, only: tracers_drydep
@@ -188,6 +192,26 @@ module KochTracersMetadata_mod
 
       n = oldAddTracer(name)
 
+      select case(name)
+        case("vbsGm2"); n_vbsGm2 = n
+        case("vbsGm1"); n_vbsGm1 = n
+        case("vbsGz"); n_vbsGz = n
+        case("vbsGp1"); n_vbsGp1 = n
+        case("vbsGp2"); n_vbsGp2 = n
+        case("vbsGp3"); n_vbsGp3 = n
+        case("vbsGp4"); n_vbsGp4 = n
+        case("vbsGp5"); n_vbsGp5 = n
+        case("vbsGp6"); n_vbsGp6 = n
+        case("vbsAm2"); n_vbsAm2 = n
+        case("vbsAm1"); n_vbsAm1 = n
+        case("vbsAz"); n_vbsAz = n
+        case("vbsAp1"); n_vbsAp1 = n
+        case("vbsAp2"); n_vbsAp2 = n
+        case("vbsAp3"); n_vbsAp3 = n
+        case("vbsAp4"); n_vbsAp4 = n
+        case("vbsAp5"); n_vbsAp5 = n
+        case("vbsAp6"); n_vbsAp6 = n
+      end select
       select case (type)
       case ('igas')
         vbs_tr%igas(index) = n

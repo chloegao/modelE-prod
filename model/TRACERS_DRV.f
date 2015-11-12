@@ -3881,6 +3881,100 @@ c SOA clear sky longwave surface radiative forcing
           ijts_power(k) = -12
           units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
           scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+
+          select case(trname(n))
+          case ('vbsAm2')
+        call set_diag_rad(n,k)
+
+c shortwave radiative forcing
+        if (nradfrc>0) then
+          k = k + 1
+          ijts_fc(1,n) = k
+          ia_ijts(k) = ia_rad_frc
+          lname_ijts(k) = trim(trname(n))//' SW radiative forcing'
+          sname_ijts(k) = 'swf_'//trim(trname(n))
+          ijts_power(k) = -2
+          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+          ijts_HasArea(k) = .false.
+c longwave radiative forcing
+          k = k + 1
+          ijts_fc(2,n) = k
+          ia_ijts(k) = ia_rad_frc
+          lname_ijts(k) = trim(trname(n))//' LW radiative forcing'
+          sname_ijts(k) = 'lwf_'//trim(trname(n))
+          ijts_power(k) = -2
+          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+          ijts_HasArea(k) = .false.
+c shortwave surface radiative forcing
+          k = k + 1
+          ijts_fc(3,n) = k
+          ia_ijts(k) = ia_rad_frc
+          lname_ijts(k) = trim(trname(n))//' SW surface rad forcing'
+          sname_ijts(k) = 'swf_surf_'//trim(trname(n))
+          ijts_power(k) = -2
+          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+          ijts_HasArea(k) = .false.
+c longwave surface radiative forcing
+          k = k + 1
+          ijts_fc(4,n) = k
+          ia_ijts(k) = ia_rad_frc
+          lname_ijts(k) = trim(trname(n))//' LW surface rad forcing'
+          sname_ijts(k) = 'lwf_surf_'//trim(trname(n))
+          ijts_power(k) = -2
+          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+          ijts_HasArea(k) = .false.
+c clear sky shortwave radiative forcing
+          k = k + 1
+          ijts_fc(5,n) = k
+          ia_ijts(k) = ia_rad_frc
+          lname_ijts(k) = trim(trname(n))//' clr sky SW rad forcing'
+          sname_ijts(k) = 'swf_CS_'//trim(trname(n))
+          dname_ijts(k) = 'clrsky'
+          ijts_power(k) = -2
+          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+          ijts_HasArea(k) = .false.
+c clear sky longwave radiative forcing
+          k = k + 1
+          ijts_fc(6,n) = k
+          ia_ijts(k) = ia_rad_frc
+          lname_ijts(k) = trim(trname(n))//' clr sky LW rad forcing'
+          sname_ijts(k) = 'lwf_CS_'//trim(trname(n))
+          dname_ijts(k) = 'clrsky'
+          ijts_power(k) = -2
+          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+          ijts_HasArea(k) = .false.
+c clear sky shortwave surface radiative forcing
+          k = k + 1
+          ijts_fc(7,n) = k
+          ia_ijts(k) = ia_rad_frc
+          lname_ijts(k) = trim(trname(n))//
+     &               ' clr sky SW surf rad forcing'
+          sname_ijts(k) = 'swf_CS_surf_'//trim(trname(n))
+          dname_ijts(k) = 'clrsky'
+          ijts_power(k) = -2
+          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+          ijts_HasArea(k) = .false.
+c clear sky longwave surface radiative forcing
+          k = k + 1
+          ijts_fc(8,n) = k
+          ia_ijts(k) = ia_rad_frc
+          lname_ijts(k) = trim(trname(n))//
+     &               ' clr sky LW surf rad forcing'
+          sname_ijts(k) = 'lwf_CS_surf_'//trim(trname(n))
+          dname_ijts(k) = 'clrsky'
+          ijts_power(k) = -2
+          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+          scale_ijts(k) = 10.**(-ijts_power(k))
+          ijts_HasArea(k) = .false.
+        endif
+          end select
         end select
 
       case ('BCIA', 'BCB', 'OCIA', 'OCB')
@@ -7684,7 +7778,7 @@ c**** earth
           end select
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
             trm(i,j,l,n) =
-     &      MA(l,i,j)*axyp(i,j)*vol2mass(n)*0.d0*ICfactor
+     &      MA(l,i,j)*axyp(i,j)*vol2mass(n)*0.d0*ICfactor*5.d-14
           end do; end do; end do
 #endif /* TRACERS_SPECIAL_Shindell */
 

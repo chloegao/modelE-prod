@@ -129,11 +129,19 @@ C**** does not produce exactly the same as the default values.
 #ifdef SULF_ONLY_AEROSOLS
       integer, parameter :: nraero_koch=1
 #else
+#ifdef TRACERS_AEROSOLS_VBS
+#ifdef TRACERS_AEROSOLS_SOA
+      integer, parameter :: nraero_koch=5
+#else
+      integer, parameter :: nraero_koch=4
+#endif  /* TRACERS_AEROSOLS_SOA */
+#else
 #ifdef TRACERS_AEROSOLS_SOA
       integer, parameter :: nraero_koch=6
 #else
       integer, parameter :: nraero_koch=5
 #endif  /* TRACERS_AEROSOLS_SOA */
+#endif  /* TRACERS_AEROSOLS_VBS */
 #endif  /* SULF_ONLY_AEROSOLS */
 #else
       integer, parameter :: nraero_koch=0
