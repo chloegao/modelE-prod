@@ -554,18 +554,23 @@ c in ADVECV.
       If (ZATMO(I,J) <  ZATMO(Ip1,J))
      *   Then  ;  M = MASUM(I,J)
                   Do L=1,LS1-1
-                     If (MU(I,J,L) <= 0)  GoTo 310
+                     If (M <= MASUM(Ip1,J)) exit
+                     If (MU(I,J,L) > 0)  then
+                       MU(I,J,L+1) = MU(I,J,L+1) + MU(I,J,L)
+                       MU(I,J,L) = 0
+                     endif
                      M = M - MA(L,I,J)
-                     If (M <= MASUM(Ip1,J))  GoTo 310
-                     MU(I,J,L+1) = MU(I,J,L+1) + MU(I,J,L)
-                     MU(I,J,L) = 0  ;  EndDo
+                  EndDo
          Else  ;  M = MASUM(Ip1,J)
                   Do L=1,LS1-1
-                     If (MU(I,J,L) >= 0)  GoTo 310
+                     If (M <= MASUM(I,J)) exit
+                     If (MU(I,J,L) < 0)  then
+                       MU(I,J,L+1) = MU(I,J,L+1) + MU(I,J,L)
+                       MU(I,J,L) = 0
+                     endif
                      M = M - MA(L,Ip1,J)
-                     If (M <= MASUM(I,J))  GoTo 310
-                     MU(I,J,L+1) = MU(I,J,L+1) + MU(I,J,L)
-                     MU(I,J,L) = 0  ;  EndDo  ;  EndIf
+                  EndDo
+         EndIf
   310 I = Ip1
 
 !**** Modify northward uphill air mass fluxes around steep topography
@@ -576,18 +581,23 @@ c in ADVECV.
       If (ZATMO(I,J-1) <  ZATMO(I,J))
      *   Then  ;  M = MASUM(I,J-1)
                   Do L=1,LS1-1
-                     If (MV(I,J,L) <= 0)  GoTo 320
+                     If (M <= MASUM(I,J)) exit
+                     If (MV(I,J,L) > 0)  then
+                       MV(I,J,L+1) = MV(I,J,L+1) + MV(I,J,L)
+                       MV(I,J,L) = 0
+                     endif
                      M = M - MA(L,I,J-1)
-                     If (M <= MASUM(I,J))  GoTo 320
-                     MV(I,J,L+1) = MV(I,J,L+1) + MV(I,J,L)
-                     MV(I,J,L) = 0  ;  EndDo
+                  EndDo
          Else  ;  M = MASUM(I,J)
                   Do L=1,LS1-1
-                     If (MV(I,J,L) >= 0)  GoTo 320
+                     If (M <= MASUM(I,J-1)) exit
+                     If (MV(I,J,L) < 0)  then
+                       MV(I,J,L+1) = MV(I,J,L+1) + MV(I,J,L)
+                       MV(I,J,L) = 0
+                     endif
                      M = M - MA(L,I,J)
-                     If (M <= MASUM(I,J-1))  GoTo 320
-                     MV(I,J,L+1) = MV(I,J,L+1) + MV(I,J,L)
-                     MV(I,J,L) = 0  ;  EndDo  ;  EndIf
+                  EndDo
+         EndIf
   320 Continue
 
       endif ! aflux_topo_adjustments
