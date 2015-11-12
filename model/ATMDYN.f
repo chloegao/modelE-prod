@@ -20,6 +20,18 @@ C**** Variables used in DIAG5 calculations
 !@+   around steep orography
       logical :: aflux_topo_adjustments=.true.
 
+!@dbparam [npatch,ipatch,jpatch,md]_aflux_topo_adj number of patches in
+!@+       which to apply AFLUX adjustment, start/end i and j
+!@+       indices for each patch, and the mode for each patch.
+!@+       mode=0 sets the near-surface fluxes to 0.
+!@+       mode=1 transfers near-surface fluxes upward.
+!@+       If none of these parameters is specified in the rundeck,
+!@+       1 global patch with mode=1 is assumed.
+      integer :: npatch_aflux_topo_adj
+      integer, dimension(:,:), allocatable ::
+     &     ipatch_aflux_topo_adj,jpatch_aflux_topo_adj
+      integer, dimension(:), allocatable :: md_aflux_topo_adj
+
 !@var pfilter_using_slp whether to zonally filter surface pressure using
 !@+   diagnosed SLP.  If false, the filter adjusts surface pressure
 !@+   to smooth the zonal PGF
@@ -30,12 +42,15 @@ C**** Variables used in DIAG5 calculations
       SUBROUTINE init_ATMDYN
       USE DOMAIN_DECOMP_ATM, only: grid
       use domain_decomp_1d, only : am_i_root
-      use resolution, only : lm,mdrya
+      use resolution, only : im,jm,lm,mdrya
       use model_com, only : dtsrc
       use constant, only : planet_name
       use dynamics
       use Dictionary_mod
       implicit none
+      integer, allocatable :: ibuf(:)
+      character(len=1) :: ptyp
+
       call get_param( "DT", DT )
 C**** NIdyn=dtsrc/dt(dyn) has to be a multiple of 2
       NIdyn = 2*nint(.5*dtsrc/dt)
@@ -114,6 +129,35 @@ c     endif
       CALL AVRX
       ALLOCATE( FCUVA(0:IMH, grid%j_strt_halo:grid%j_stop_halo, LM, 2),
      &          FCUVB(0:IMH, grid%j_strt_halo:grid%j_stop_halo, LM, 2))
+
+
+      ! Get AFLUX adjustment info
+      if(is_set_param('i1_aflux_topo_adj')) then
+        call query_param('i1_aflux_topo_adj',npatch_aflux_topo_adj,ptyp)
+        allocate(ibuf(npatch_aflux_topo_adj))
+        allocate(ipatch_aflux_topo_adj(2,npatch_aflux_topo_adj))
+        allocate(jpatch_aflux_topo_adj(2,npatch_aflux_topo_adj))
+        allocate(md_aflux_topo_adj(npatch_aflux_topo_adj))
+        call get_param('i1_aflux_topo_adj',ibuf,npatch_aflux_topo_adj)
+        ipatch_aflux_topo_adj(1,:) = ibuf
+        call get_param('i2_aflux_topo_adj',ibuf,npatch_aflux_topo_adj)
+        ipatch_aflux_topo_adj(2,:) = ibuf
+        call get_param('j1_aflux_topo_adj',ibuf,npatch_aflux_topo_adj)
+        jpatch_aflux_topo_adj(1,:) = ibuf
+        call get_param('j2_aflux_topo_adj',ibuf,npatch_aflux_topo_adj)
+        jpatch_aflux_topo_adj(2,:) = ibuf
+        call get_param('md_aflux_topo_adj',md_aflux_topo_adj,
+     &       npatch_aflux_topo_adj)
+      else ! use defaults
+        npatch_aflux_topo_adj = 1
+        allocate(ipatch_aflux_topo_adj(2,npatch_aflux_topo_adj))
+        allocate(jpatch_aflux_topo_adj(2,npatch_aflux_topo_adj))
+        allocate(md_aflux_topo_adj(npatch_aflux_topo_adj))
+        ipatch_aflux_topo_adj(:,1) = (/ 1, im /)
+        jpatch_aflux_topo_adj(:,1) = (/ 1, jm /)
+        md_aflux_topo_adj = 1
+      endif
+
       end SUBROUTINE init_ATMDYN
 
 c      subroutine setDtParam(tName, tParam, dtSrc)
@@ -455,6 +499,8 @@ c apply north-south filter to U and V once per physics timestep
       Real*8  :: DUMMYS(IM),MUS,MVS,PBS,MVSA(LM), zNSxDT,
      *           DUMMYN(IM),MUN,MVN,PBN,MVNA(LM),
      *           USV0(IM,2,LM),VSV0(IM,2,LM), M,CONVs,MVARs
+      real*8 :: mdn,mup,xx
+      integer :: iup,idn,jup,jdn,adjmode,nn,j1p,j2p
 
        zNSxDT = 1 / (NS*DT)
 !****                             +---------+
@@ -545,60 +591,97 @@ c in ADVECV.
          If (QNP)  MU(:,JM,:) = MU(:,JM,:)*TWOby3  ;  EndIf
 
       if(aflux_topo_adjustments) then
+c
+c modify uphill air mass fluxes around topography
+c
+      do adjmode=0,1
+        ! mode=0 before 1 so that 1-overlying-0 regions are no-ops
+        do nn=1,npatch_aflux_topo_adj
+          if(md_aflux_topo_adj(nn).ne.adjmode) cycle
+          j1p=max(jpatch_aflux_topo_adj(1,nn),j1xp)
+          j2p=min(jpatch_aflux_topo_adj(2,nn),jnxp)
+          do j=j1p,j2p
+          do i=ipatch_aflux_topo_adj(1,nn),ipatch_aflux_topo_adj(2,nn)
+            if(i.eq.im) then
+              ip1 = 1
+            else
+              ip1 = i+1
+            endif
+            if    (zatmo(i,j) .lt. zatmo(ip1,j)) then
+              iup = ip1
+              idn = i
+              xx = +1d0
+            elseif(zatmo(i,j) .gt. zatmo(ip1,j)) then
+              idn = ip1
+              iup = i
+              xx = -1d0
+            else
+              cycle
+            endif
 
-!**** Modify eastward uphill air mass fluxes around steep topography
-      Do 310 J=J1XP,JNXP
-      I = IM
-      Do 310 Ip1=1,IM
-      If (ZATMO(I,J) == ZATMO(Ip1,J))  GoTo 310
-      If (ZATMO(I,J) <  ZATMO(Ip1,J))
-     *   Then  ;  M = MASUM(I,J)
-                  Do L=1,LS1-1
-                     If (M <= MASUM(Ip1,J)) exit
-                     If (MU(I,J,L) > 0)  then
-                       MU(I,J,L+1) = MU(I,J,L+1) + MU(I,J,L)
-                       MU(I,J,L) = 0
-                     endif
-                     M = M - MA(L,I,J)
-                  EndDo
-         Else  ;  M = MASUM(Ip1,J)
-                  Do L=1,LS1-1
-                     If (M <= MASUM(I,J)) exit
-                     If (MU(I,J,L) < 0)  then
-                       MU(I,J,L+1) = MU(I,J,L+1) + MU(I,J,L)
-                       MU(I,J,L) = 0
-                     endif
-                     M = M - MA(L,Ip1,J)
-                  EndDo
-         EndIf
-  310 I = Ip1
+            mup = masum(iup,j)
+            mdn = masum(idn,j)
 
-!**** Modify northward uphill air mass fluxes around steep topography
-!**** Exceptional J loop boundaries, not:  Do J=J1V,JNV
-      Do 320 J=Max(J1XP,3),JNXP
-      Do 320 I=1,IM
-      If (ZATMO(I,J-1) == ZATMO(I,J))  GoTo 320
-      If (ZATMO(I,J-1) <  ZATMO(I,J))
-     *   Then  ;  M = MASUM(I,J-1)
-                  Do L=1,LS1-1
-                     If (M <= MASUM(I,J)) exit
-                     If (MV(I,J,L) > 0)  then
-                       MV(I,J,L+1) = MV(I,J,L+1) + MV(I,J,L)
-                       MV(I,J,L) = 0
-                     endif
-                     M = M - MA(L,I,J-1)
-                  EndDo
-         Else  ;  M = MASUM(I,J)
-                  Do L=1,LS1-1
-                     If (M <= MASUM(I,J-1)) exit
-                     If (MV(I,J,L) < 0)  then
-                       MV(I,J,L+1) = MV(I,J,L+1) + MV(I,J,L)
-                       MV(I,J,L) = 0
-                     endif
-                     M = M - MA(L,I,J)
-                  EndDo
-         EndIf
-  320 Continue
+            if(adjmode.eq.0) then
+              do l=1,lm-1
+                if(mdn .lt. mup) exit
+                mu(i,j,l) = 0.
+                mdn = mdn - ma(l,idn,j)
+              enddo
+            else
+              do l=1,lm-1
+                if(mdn .lt. mup) exit
+                if(xx*mu(i,j,l).gt.0.) then
+                  mu(i,j,l+1) = mu(i,j,l+1) + mu(i,j,l)
+                  mu(i,j,l) = 0.
+                endif
+                mdn = mdn - ma(l,idn,j)
+              enddo
+            endif
+
+          enddo ! i
+          enddo ! j
+
+          j1p=max(jpatch_aflux_topo_adj(1,nn),max(3,j1xp))
+          j2p=min(jpatch_aflux_topo_adj(2,nn),jnxp)
+          do j=j1p,j2p
+          do i=ipatch_aflux_topo_adj(1,nn),ipatch_aflux_topo_adj(2,nn)
+            if    (zatmo(i,j-1) .lt. zatmo(i,j)) then
+              jup = j
+              jdn = j-1
+              xx = +1d0
+            elseif(zatmo(i,j-1) .gt. zatmo(i,j)) then
+              jdn = j
+              jup = j-1
+              xx = -1d0
+            else
+              cycle
+            endif
+
+            mup = masum(i,jup)
+            mdn = masum(i,jdn)
+
+            if(adjmode.eq.0) then
+              do l=1,lm-1
+                if(mdn .lt. mup) exit
+                mv(i,j,l) = 0.
+                mdn = mdn - ma(l,i,jdn)
+              enddo
+            else
+              do l=1,lm-1
+                if(mdn .lt. mup) exit
+                if(xx*mv(i,j,l).gt.0.) then
+                  mv(i,j,l+1) = mv(i,j,l+1) + mv(i,j,l)
+                  mv(i,j,l) = 0.
+                endif
+                mdn = mdn - ma(l,i,jdn)
+              enddo
+            endif
+          enddo ! i
+          enddo ! j
+
+        enddo ! nn
+      enddo ! adjmode
 
       endif ! aflux_topo_adjustments
 
