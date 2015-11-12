@@ -624,18 +624,18 @@ c
 
             if(adjmode.eq.0) then
               do l=1,lm-1
+                mdn = mdn - ma(l,idn,j)
                 if(mdn .lt. mup) exit
                 mu(i,j,l) = 0.
-                mdn = mdn - ma(l,idn,j)
               enddo
             else
               do l=1,lm-1
+                mdn = mdn - ma(l,idn,j)
                 if(mdn .lt. mup) exit
                 if(xx*mu(i,j,l).gt.0.) then
                   mu(i,j,l+1) = mu(i,j,l+1) + mu(i,j,l)
                   mu(i,j,l) = 0.
                 endif
-                mdn = mdn - ma(l,idn,j)
               enddo
             endif
 
@@ -663,18 +663,18 @@ c
 
             if(adjmode.eq.0) then
               do l=1,lm-1
+                mdn = mdn - ma(l,i,jdn)
                 if(mdn .lt. mup) exit
                 mv(i,j,l) = 0.
-                mdn = mdn - ma(l,i,jdn)
               enddo
             else
               do l=1,lm-1
+                mdn = mdn - ma(l,i,jdn)
                 if(mdn .lt. mup) exit
                 if(xx*mv(i,j,l).gt.0.) then
                   mv(i,j,l+1) = mv(i,j,l+1) + mv(i,j,l)
                   mv(i,j,l) = 0.
                 endif
-                mdn = mdn - ma(l,i,jdn)
               enddo
             endif
           enddo ! i
