@@ -1034,8 +1034,9 @@ C     APR 2015 - FIX vs with slip correction factor (use vgs now)
 cyhl              vs(I,J,L,k)=density_gr(k)*(Dp_gr(k)**2)*grav
 cyhl     *             /18.d0/visc(i,j,l) 
 
-             vs(I,J,L,k)=vgs(airden(i,j,l),0.,Dp_gr(k)/2.,density_gr(k)
-     *           ,visc(i,j,l),hydrate) 
+             vs(I,J,L,k) = 
+     *            vgs(airden(i,j,l),0.d0,Dp_gr(k)/2.,density_gr(k),
+     *            visc(i,j,l),hydrate) 
            enddo
          endif
           binnum=mod(N-n_ASO4(1)+1,NBINS)

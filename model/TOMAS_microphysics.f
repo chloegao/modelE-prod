@@ -1364,7 +1364,8 @@ Cjrp               endif
       real mso4, mh2o, mno3, mnh4 !mass of each component (kg/grid box)
       real mecil,mecob,mocil,mocob
       real mdust,mnacl  
-      real*8 aerodens, gasdiff
+      real*8 aerodens
+      real gasdiff
       external aerodens         !!, gasdiff
       
       parameter(Neps=1.0d10)
