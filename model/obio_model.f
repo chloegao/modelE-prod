@@ -249,6 +249,9 @@ c
 
 !Warm initialization
 
+#ifdef OBIO_ON_GARYocean
+      time = float(nstep)
+#endif
       if ((nstep0>0).and..not.initialized) then
          write(*,'(a)')'For restart runs.....'
          write(*,'(a,2i9,f10.3)')
@@ -260,7 +263,6 @@ c
       call stop(' obio_init')
 
 #ifdef OBIO_ON_GARYocean
-      time = float(nstep)
       i_0=ogrid%I_STRT
       i_1=ogrid%I_STOP
       j_0=ogrid%J_STRT
