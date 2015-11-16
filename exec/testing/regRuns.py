@@ -500,26 +500,33 @@ def compareBase(run, endTime, npes=1):
         prefix = run.decksDir+'/../'+run.name+'-scratch/'
         
 
-    # Check if run result exists:
-    fileTST = prefix + checkpointName(run, endTime, npes)
-    if not os.path.exists(fileTST):
+    # Check if current run result file exists:
+    current = prefix + checkpointName(run, endTime, npes)
+    if not os.path.exists(current):
         logger.error('---CHECKPOINT file does not exist.')
         return
 
-    fileBAS = run.runsrc.baseDir + '/' + checkpointName(run, endTime, npes)
-    logger.debug(diffreportExe+' '+fileTST+' '+fileBAS)
+    oldBase = run.runsrc.baseDir + '/' + checkpointName(run, endTime, npes)
+    theBase = run.runsrc.baseDir + '/' + run.shortName + '.' + endTime
+    logger.debug(diffreportExe+' '+current+' '+oldBase)
 
-    n = getNumDiffs(fileTST, fileBAS)
+    n = getNumDiffs(theBase, current)
     if n == '0':
         run.results[4] = run.successMark
     else:
         run.results[4] = '{: ^5}'.format(n)
         logger.warning('---Baseline reproducibility failed')
         if run.runsrc.updateBase == 'yes':
-            if subprocess.call(['cp', fileTST, fileBAS]) == 0:
+            # Save a copy of the OLD baseline
+            if subprocess.call(['cp', theBase, oldBase]) == 0:
+                logger.info('Saved BASELINE')
+            else:
+                logger.error('Error in: cp '+theBase+' ' +oldBase)
+                
+            if subprocess.call(['cp', current, theBase]) == 0:
                 logger.info('Updated BASELINE')
             else:
-                logger.error('Error in: cp '+fileTST+' ' +fileBAS)
+                logger.error('Error in: cp '+current+' ' +theBase)
         else:
             logger.info('BASELINE not updated')
 

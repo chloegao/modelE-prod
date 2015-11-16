@@ -15,7 +15,7 @@ logger = logging.getLogger('utils')
 import os, datetime
 
 #-------------------------------------------------------------------------------
-# Create directory wit timestamp
+# Create directory with timestamp
 def mkdirTimeSTamp(list, filename):
     mydir = os.path.join(os.getcwd(), datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
     try:
@@ -42,12 +42,13 @@ def getModelConfigurations(config):
         if (match):
             modelConfig[sect] = ConfigSectionMap(config, sect)
 
-# Store each model run configurations in a list and let each item in the list
+# Store model run configurations in a list and let each item in the list
 # have access to the user-defined options
     runList = []
     for name,options in modelConfig.items():
         # Each item is a regression test (regTest) instance
         runList.append(regTest(name))
+
     userconfig = ConfigSectionMap(config, 'USERCONFIG')
     for d in runList:
         d.setOpts(userconfig, modelConfig)
@@ -55,7 +56,7 @@ def getModelConfigurations(config):
     return runList
 
 #-------------------------------------------------------------------------------
-# Create a directory composed of various user-defined attributes
+# Create a directory with name composed of various user-defined attributes
 def mkdirCommand(config, deckname, compiler, cmode):
     userconfig = ConfigSectionMap(config, 'USERCONFIG')
     branch    = userconfig['repobranch']
@@ -118,7 +119,7 @@ def ConfigSectionMap(config, section):
         try:
             adict[option] = config.get(section, option)
             if adict[option] == -1:
-                DebugPrint("skip: %s" % option)
+                logger.info('skip option %s',option)
         except:
             logger.error("exception on %s!" % option)
             adict[option] = None
