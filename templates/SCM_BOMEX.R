@@ -81,7 +81,7 @@ SCM_GEO=SCM_BOMEX.nc     ! geostrophic wind profile(s)
 SCM_THETA=SCM_BOMEX.nc   ! temperature profile(s)
 SCM_WVMR=SCM_BOMEX.nc    ! water vapor mixing ratio profile(s)
 SCM_W=SCM_BOMEX.nc       ! large-scale vertical wind profile(s)
-SCM_QRAD=SCM_BOMEX.nc    ! radiative heating rate profile(s)
+SCM_QRAD=SCM_BOMEX.nc    ! radiative heating rate profile(s) (revised 2015-11-17)
 
 ! Topography, area fractions of surface types
 TOPO=/path/to/user/directory/extractions/Z2HX2fromZ1QX1N.nc
