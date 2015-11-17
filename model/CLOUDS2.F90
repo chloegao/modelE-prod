@@ -2,6 +2,17 @@
 
 #define ALT_CDNC_INPUTS
 
+#ifdef WEAKER_MC_LIMITS
+#define ALT_UVSUB
+#endif
+
+#if defined(TRACERS_ON) && defined(WEAKER_MC_LIMITS)
+To-dos:
+(1) fplume=mplume*byam can be greater than 1, though currently capped at 1.
+    Re-examine how fplume is used for washout in mstcnv.
+(2) The post-entrainment pre-subsidence negative-q fixup for tracers also.
+#endif
+
 module CLOUDS
 
 !@sum  CLOUDS column physics of moist conv. and large-scale condensation
@@ -428,6 +439,16 @@ contains
     integer,  parameter :: ITMAX=50
     real*8,   parameter :: FITMAX=1d0/ITMAX
     real*8,   parameter :: PN=1.d0,   RHOG=400., RHOIP=100.
+#ifdef WEAKER_MC_LIMITS
+!@param remrat the maximum fraction of airm allowed to be removed by
+!@+     entrainment.  Values approaching 1 are not numerically problematic
+!@+     within the convection routine itself, but the heating rates associated
+!@+     with large plumes entraining entire model layers crash the dynamics.
+!@+     The implicit-ing of eplume/edraft reduces the frequency of occurence
+!@+     of the remrat limit.
+    real*8, parameter :: remrat=.333d0 ! higher values known to crash F40
+    !real*8, parameter :: remrat=.75d0 ! this worked for F96
+#endif
     !
 !@param AIRM0 air mass used to compute convective cloud cover
 !@param CK1 a tunning const.
@@ -468,6 +489,9 @@ contains
          SUMU,SUMV,SUMU1,SUMV1,UMP,VMP,UMDN,VMDN
     !
     real*8, dimension(KMAX,LM) :: DUM,DVM,UMDNL,VMDNL
+#ifdef ALT_UVSUB
+    real*8, DIMENSION(KMAX,0:LM) :: FUM,FVM
+#endif
     !
     real*8, dimension(NMOM) :: &
          SMOMP,QMOMP, SMOMPMAX,QMOMPMAX, SMOMDN,QMOMDN
@@ -657,9 +681,9 @@ contains
     real*8, dimension(NMOM,LM,NTM) :: TMOMOLD
     real*8, dimension(NTM) :: TMP, TMPMAX, TENV, TMDN, TM_dum, DTR
     real*8, dimension(NMOM,NTM) :: TMOMP, TMOMPMAX, TMOMDN
+#endif
     real*8 :: vsum
     integer :: lborrow1
-#endif
 
 #if defined(TRACERS_ON) && defined(TRACERS_WATER)
 !@var TRPCRP tracer mass in precip
@@ -1204,6 +1228,7 @@ CLOUD_TOP:  do L=LMIN+1,LM
 
             MCCONT=MCCONT+1
             if(MCCONT.eq.1) MC1=.true.
+#ifndef WEAKER_MC_LIMITS
             !****
             !**** IF PLUME MASS IS TOO LARGE FOR UPPER LAYER, LEAVE PART BEHIND IN LOWER LAYER
             !**** AND ADJUST TEMPERATURE, HUMIDITY, AND MOMENTUM THERE
@@ -1240,6 +1265,7 @@ CLOUD_TOP:  do L=LMIN+1,LM
               END DO
 #endif
             end if
+#endif /* not WEAKER_MC_LIMITS */
 
             !**** WORK DONE BY CONVECTION IN UPPER LAYER REMOVES ENERGY FROM THE PLUME
             WORK=MPLUME*(SUP-SDN)*(PLK(L-1)-PLK(L))/PLK(L-1)
@@ -1551,11 +1577,22 @@ CLOUD_TOP:  do L=LMIN+1,LM
             end if
 
             if(ENT(L).gt.0.D0) then    ! non-zero entrainment
+#ifdef WEAKER_MC_LIMITS
+              eplume = mplume*(1000.d0*ent(l)*gzl(l))
+              eplume = eplume/(1d0 + eplume/(airm(l)+dmr(l))) ! "implicit"
+              ! note this if-block ends after the weaker_mc_limits cpp endif
+              if(eplume .gt. teeny) then
+                eplume = min(eplume,(airm(l)+dmr(l))*remrat)
+                ent(l) = 0.001d0*(eplume/mplume)/gzl(l) ! in case eplume was limited
+                mplume = mplume+eplume
+                fplume = min(mplume*byam(l),1d0) ! for tracers
+#else
               FENTR=1000.D0*ENT(L)*GZL(L)*FPLUME
               if(FENTR+FPLUME.gt.1.) then
                 FENTR=1.-FPLUME
                 ENT(L)=0.001d0*FENTR/(GZL(L)*FPLUME)
               end if
+              ! note this if-block ends after the weaker_mc_limits cpp endif
               if(FENTR.ge.teeny) then    !  Big Enough, Proceed
                 MPOLD=MPLUME
                 FPOLD=FPLUME
@@ -1572,6 +1609,7 @@ CLOUD_TOP:  do L=LMIN+1,LM
                 ELSE
                   FPLUME = MPLUME*BYAM(L) ! and use this instead
                 END IF
+#endif /* WEAKER_MC_LIMITS */
                 FENTRA = EPLUME*BYAM(L)
                 DSMR(L)=DSMR(L)-EPLUME*SUP        ! = DSM(L)-SM(L)*FENTRA
                 DSMOMR(:,L)=DSMOMR(:,L)-SMOM(:,L)*FENTRA
@@ -1693,6 +1731,13 @@ CLOUD_TOP:  do L=LMIN+1,LM
 
                 !**** To test with code with no downdrafts, set etadn=0. here
                 !**** etadn=0.  ! test
+
+#ifdef WEAKER_MC_LIMITS
+                IF(.5*ETADN*MPLUME .GT. REMRAT*(AIRM(L)+DMR(L))) THEN
+                  ETADN = REMRAT*(AIRM(L)+DMR(L))/(.5*MPLUME)
+                  ETADN = MAX(ETADN, 1D-9) ! hack
+                ENDIF
+#endif
 
                 FLEFT=1.-.5*ETADN
                 DDRAFT=ETADN*MPLUME
@@ -1976,8 +2021,17 @@ DOWNDRAFT: do L=LDRAFT,1,-1
               If (SVMIX-SVM1 >= DTMIN1)  DDRAFT = FDDET*DDRUP  !  detrain downdraft if buoyant
 
               !**** LIMIT SIZE OF DOWNDRAFT IF NEEDED
+#ifndef WEAKER_MC_LIMITS
               If (DDRAFT > .95d0*(AIRM(L-1)+DMR(L-1)))  DDRAFT = .95d0*(AIRM(L-1)+DMR(L-1))
+#endif
               EDRAFT=DDRAFT-DDRUP
+#ifdef WEAKER_MC_LIMITS
+              if(edraft.gt.0.) then
+                edraft = edraft/(1d0 + edraft/(airm(l)+dmr(l))) ! "implicit"
+              endif
+              EDRAFT = MIN(EDRAFT, REMRAT*(AIRM(L)+DMR(L)) )
+              DDRAFT = DDRUP+EDRAFT
+#endif
 
               !**** ENTRAIN INTO DOWNDRAFT, UPDATE TEMPERATURE AND HUMIDITY
               if (EDRAFT.gt.0) then  ! usual case, entrainment into downdraft
@@ -2112,6 +2166,35 @@ DOWNDRAFT: do L=LDRAFT,1,-1
           QMT(L)=QM(L)
         end do
         CM(LMAX:LM) = 0
+
+#if (defined ALT_UVSUB) || (defined WEAKER_MC_LIMITS)
+      ! this updated ksub actually has nothing to do with ALT_UVSUB, but
+      ! am introducing it for future use in high-vertical-res runs
+        ksub = 1
+        do l=ldmin,lmax-1
+          if(    +cm(l) > (airm(l+1)+dmr(l+1))*.99d0 ) then
+            ksub = max(ksub, 1+int(.01d0 + (+cm(l)-dmr(l+1))/airm(l+1)) )
+          elseif(-cm(l) > (airm(l  )+dmr(l  ))*.99d0 ) then
+            ksub = max(ksub, 1+int(.01d0 + (-cm(l)-dmr(l  ))/airm(l  )) )
+          endif
+          if(dm(l) > airm(l)) ksub = max(ksub, 1 + int(dm(l)/airm(l)))
+        enddo
+        if(ksub.gt.6) write(6,*) 'ksub>6 ',i_debug,j_debug,ksub
+#else
+        ksub = 1
+        do l=ldmin,lmax-1
+          if(    +cm(l) > airm(l+1)+dmr(l+1)) then
+            ksub = max(ksub, 1+int((+cm(l)-dmr(l+1))/airm(l+1)) )
+          elseif(-cm(l) > airm(l  )+dmr(l  )) then
+            ksub = max(ksub, 1+int((-cm(l)-dmr(l  ))/airm(l  )) )
+          endif
+        enddo
+        ksub = min(ksub,2) ! max 2 iterations allowed currently
+!      ksub = 2 ! non-interactive default
+#endif
+
+        byksub = 1d0/ksub
+
         !**** simple upwind scheme for momentum
         do K=1,KMAX
           SUMU(K)=sum(UM(K,LDMIN:LMAX))
@@ -2123,6 +2206,7 @@ DOWNDRAFT: do L=LDRAFT,1,-1
           CLDM=CCM(L)
           If (L < LDRAFT .and. L >= LLMIN .and. ETADN > 1d-10)  CLDM = CCM(L) - DDM(L)
           if(MC1) VSUBL(L)=100.*CLDM*RGAS*TL(L)/(PL(L)*GRAV*DTsrc)
+#ifndef ALT_UVSUB
           BETA=CLDM*BYAM(L+1)
           if(CLDM.lt.0.) BETA=CLDM*BYAM(L)
           BETAU=BETA
@@ -2134,7 +2218,37 @@ DOWNDRAFT: do L=LDRAFT,1,-1
             VM(K,L) = VM(K,L) + RA(K)*(-ALPHAU*VM(K,L)+BETAU*VM(K,L+1)+DVM(K,L))
           end do
           ALPHA=BETA
+#endif
         end do
+
+#ifdef ALT_UVSUB
+        fum(1:kmax,ldmin-1) = 0.
+        fum(1:kmax,lmax) = 0.
+        fvm(1:kmax,ldmin-1) = 0.
+        fvm(1:kmax,lmax) = 0.
+        do iter=1,ksub ! subsidence sub-timesteps
+          do l=ldmin,lmax-1
+            cldm=ccm(l)
+            if(l.lt.ldraft.and.l.ge.llmin.and.etadn.gt.1d-10) cldm=ccm(l)-ddm(l)
+          !cldm = cm(l) ! to do exactly the same as tracer adv.
+            cldm = cldm*byksub
+            if(cldm .ge. 0.) then
+              fum(1:kmax,l) = -(cldm*byam(l+1))*um(1:kmax,l+1)
+              fvm(1:kmax,l) = -(cldm*byam(l+1))*vm(1:kmax,l+1)
+            else
+              fum(1:kmax,l) = -(cldm*byam(l))*um(1:kmax,l)
+              fvm(1:kmax,l) = -(cldm*byam(l))*vm(1:kmax,l)
+            endif
+          enddo
+          do l=ldmin,lmax
+            do k=1,kmax
+              um(k,l)=um(k,l)+ra(k)*(fum(k,l-1)-fum(k,l)+dum(k,l)*byksub)
+              vm(k,l)=vm(k,l)+ra(k)*(fvm(k,l-1)-fvm(k,l)+dvm(k,l)*byksub)
+            enddo
+          enddo
+        enddo
+#endif
+
         do K=1,KMAX
           SUMU1(K)=sum(UM(K,LDMIN:LMAX))
           SUMV1(K)=sum(VM(K,LDMIN:LMAX))
@@ -2146,20 +2260,6 @@ DOWNDRAFT: do L=LDRAFT,1,-1
 
         !****
 
-        ! Determine the number of subsidence sub-timesteps such that
-        ! courant numbers in the QUS do not exceed 1
-        ksub = 1
-        do l=ldmin,lmax-1
-          if(    +cm(l) > airm(l+1)+dmr(l+1)) then
-            ksub = max(ksub, 1+int((+cm(l)-dmr(l+1))/airm(l+1)) )
-          elseif(-cm(l) > airm(l  )+dmr(l  )) then
-            ksub = max(ksub, 1+int((-cm(l)-dmr(l  ))/airm(l  )) )
-          endif
-        enddo
-        ksub = min(ksub,2) ! max 2 iterations allowed currently
-        !      ksub = 2 ! non-interactive default
-
-        byksub = 1d0/ksub
         nsub = lmax-ldmin+1
         cmneg=0.          ! initialization
         cmneg(ldmin:lmax-1) = -cm(ldmin:lmax-1)*byksub
@@ -2179,11 +2279,52 @@ DOWNDRAFT: do L=LDRAFT,1,-1
           ML(LDMIN:LMAX) = AIRM(LDMIN:LMAX) +   DMR(LDMIN:LMAX)*BYKSUB
           QM(LDMIN:LMAX) =   QM(LDMIN:LMAX) +  DQMR(LDMIN:LMAX)*BYKSUB
           QMOM(:,LDMIN:LMAX)=QMOM(:,LDMIN:LMAX)+DQMOMR(:,LDMIN:LMAX)*BYKSUB
+
+#ifdef WEAKER_MC_LIMITS
+          ! The properties of entrained air were not calculated accounting for
+          ! sub-stepping, so negative humidities/tracers may occur when
+          ! there are sharp vertical gradients.
+          do l=ldmin,lmax
+            if (qm(l).lt.0.) then ! transfer from below
+              vsum = qm(l)
+              lborrow1 = l
+              do while(vsum.lt.0. .and. lborrow1.gt.1)
+                lborrow1 = lborrow1 - 1
+                vsum = vsum + qm(lborrow1)
+              enddo
+              if(vsum.lt.0.) then
+                write(6,*) " Q neg cannot be fixed!",L,QM(1:L)
+              else
+                if(l-lborrow1.gt.1) then
+                  write(6,*) 'Q nonlocal borrow: it,i,j,l,q,cm', &
+                       itime,i_debug,j_debug,l,qm(lborrow1:l),cmneg(l)
+                else
+                  write(6,*) 'Q neg: it,i,j,l,q,cm', &
+                       itime,i_debug,j_debug,l,qm(l),cmneg(l)
+                endif
+                ! note: transfer from more than one layer is done by
+                ! multiplication rather than subtraction
+                qm(lborrow1:l-1)=qm(lborrow1:l-1)*(vsum/(vsum-qm(l)))
+                qm(l)=0.
+              endif
+            endif
+          enddo
+#endif
+
           call adv1d(qm(ldmin),qmom(1,ldmin), f(ldmin),fmom(1,ldmin), &
                ml(ldmin),cmneg(ldmin), nsub,.true.,1, zdir,ierrt,lerrt)
           QM(LDMIN:LMAX) =   QM(LDMIN:LMAX) +   DQM(LDMIN:LMAX)*BYKSUB
           QMOM(:,LDMIN:LMAX)=QMOM(:,LDMIN:LMAX)+DQMOM(:,LDMIN:LMAX)*BYKSUB
           ierr=max(ierrt,ierr) ; lerr=max(lerrt+ldmin-1,lerr)
+
+#ifdef WEAKER_MC_LIMITS
+          do l=ldmin,lmax
+            if (qm(l).lt.0.) then ! should never happen
+              write(6,*) 'q neg after subsidence ', &
+                       itime,i_debug,j_debug,l,qm(l)
+            endif
+          enddo
+#endif
 
 #ifdef TRACERS_ON
           !**** Subsidence of tracers by Quadratic Upstream Scheme
@@ -2200,6 +2341,8 @@ DOWNDRAFT: do L=LDRAFT,1,-1
 #endif
 
         end do        ! end of sub-timesteps for subsidence
+
+#ifndef WEAKER_MC_LIMITS
         !**** Check for v. rare negative humidity error condition
         do L=LDMIN,LMAX
           if(QM(L).lt.0.d0) then
@@ -2225,6 +2368,7 @@ DOWNDRAFT: do L=LDRAFT,1,-1
             end if
           end if
         end do
+#endif /* not WEAKER_MC_LIMITS */
 
 #ifdef TRACERS_ON /* this restriction continues until appropriate #endif */
         !**** check for independent tracer errors
