@@ -4513,10 +4513,13 @@ C     INTERPOLATION :
           if(N .LT. NBINS)THEN 
             IF(SC(N+1) .lt. SMAX(si) .and. SC(N) .gt. SMAX(SI) ) THEN 
 C     compute new Sc (I+1) using the upper limit Dp to determine the activation fraction  
-              Scnew = exp(sqrt(4.*A3/27./Diam3(n+1)/kappa(n)))
-              Scnew=(Scnew-1.)*100.
+              Scnew = sqrt(4.d0*A3/27.d0/Diam3(n+1)/kappa(n))
+              Scnew = min(Scnew, 10.d0) ! HACK!!! Yunha must fix this. Chances are that particles of diameter 2.55e-9 in mode 1 are just too small for this calculation?
+              Scnew = exp(Scnew)
+              Scnew=(Scnew-1.d0)*100.d0
 
-              CCN_mod(SI)=CCN_mod(SI)+Nk(n)/boxvol*
+              if (Sc(n) .ne. Scnew) ! HACK! This is needed to avoid division by zero. Yunha must verify that this is indeed the correct behavior, as it appears to be the case.
+     &        CCN_mod(SI)=CCN_mod(SI)+Nk(n)/boxvol*
      &         (1/(dlog(100.+SMAX(SI)))**(2)-1/(dlog(100.+Scnew))**(2))/
      &         (1/(dlog(100.+Sc(n)))**(2)-1/(dlog(100.+Scnew))**(2))
               
