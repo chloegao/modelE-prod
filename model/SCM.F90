@@ -936,8 +936,8 @@
 
   use SCM_com, only : SCMopt,SCMin,nstepSCM
   use SCM_mod
-  use resolution, only : LM,PTOP
-  use atm_com, only : P,PMID,PK,T
+  use resolution, only : LM
+  use atm_com, only : P,PMID,PEDN,PK,T
   use constant, only : KAPA,GRAV,RGAS
   implicit none
   integer L
@@ -945,7 +945,7 @@
   ! specified surface pressure
   if( SCMopt%Ps )then
     SCMin%Ps = SCMin_tPs%value(nstepSCM)
-    P(1,1) = SCMin%Ps - PTOP
+    PEDN(1,1,1) = SCMin%Ps
     call CALC_AMPK(LM)
   else
     call stop_model('SCM: no surface pressure?',255)
