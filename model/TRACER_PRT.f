@@ -591,6 +591,9 @@ C****
       USE DYNAMICS, only : dsig
       USE GEOM, only: bydxyp,dxyp,lat_dg
       use OldTracer_mod, only: ntm_power, dowetdep, trw0
+#ifdef TRACERS_SPECIAL_Lerner
+      use OldTracer_mod, only: trname
+#endif
       USE TRACER_COM, only: ntm, n_water
 #ifdef TRACERS_SPECIAL_O18
       use tracer_com, only: n_h2o18, n_hdo, n_h2o17
@@ -614,6 +617,9 @@ C****
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRDIAG_COM, only : jls_H2Omr, jls_day
+#endif
+#ifdef TRACERS_SPECIAL_Lerner
+      use TRACER_COM, only: n_CH4, n_O3
 #endif
       USE BDJLT
       IMPLICIT NONE

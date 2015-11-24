@@ -2,6 +2,7 @@
 
       MODULE CH4_SOURCES
       USE TRACER_COM
+      implicit none
 !@var CH4_src CH4 surface sources and sinks (kg/s)
       integer, parameter :: nch4src=14
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: CH4_src
@@ -49,7 +50,7 @@ C**** ESMF: This array is read in only
       ALLOCATE(   frqlos(I_0H:I_1H,J_0H:J_1H,lmtc),
      *          STAT=IER)  
 
-C---calculate nearest latitude to std lat's
+C---calculate nearest latitude to std lats
       yedge1=-90.
       yedgen= 90.
 c GISS-ESMF EXCEPTIONAL CASE
@@ -76,13 +77,13 @@ C---Calculate average P(mbar) at edge of each level PLEVL(1)=Psurf
       MODULE TRACERS_MPchem_COM
 !@sum Variables for Prather's Stratospheric chemistry loss model
       USE RESOLUTION, only: jm,lm
-      USE TRACER_COM, only: ntm
       use TimeConstants_mod, only: INT_MONTHS_PER_YEAR
+      implicit none
 !@var n_MPtable_max:  Number of tracers that will use the frequency
 !@+    tables and share strat chem code
       integer, parameter :: n_MPtable_max=3
 !@var n_MPtable: Index for tracers that use the frequency tables
-      integer, dimension(ntm) :: n_MPtable
+      integer, allocatable, dimension(:) :: n_MPtable
 !@var tcscale: Scale factor for frequency tables
       real*8, dimension(n_MPtable_max) :: tcscale
 !@param lz_schem Number of heights in stratchem tables
@@ -95,6 +96,7 @@ C---Calculate average P(mbar) at edge of each level PLEVL(1)=Psurf
       real*8 ps(lz_sx+1)
 
       contains
+
       SUBROUTINE STRATCHEM_SETUP(nsc,tname)
 C**** Prather stratospheric chemistry
       USE FILEMANAGER, only: openunit,closeunit
@@ -102,7 +104,7 @@ C**** Prather stratospheric chemistry
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       use TimeConstants_mod, only: INT_MONTHS_PER_YEAR
       implicit none
-!     nsc = n_MPtable(n)
+
       integer nsc,j,k,m,iu
       character*80 titlch
       character*8 tname
@@ -164,8 +166,8 @@ c-------- N.B. F(@30km) assumed to be constant from 29-31 km (by mass)
       USE DOMAIN_DECOMP_ATM, only: GRID, getDomainBounds
       USE GEOM, only: imaxj
       USE QUSDEF, only : mz,mzz
-      USE TRACER_COM
-cc      USE TRDIAG_COM, only : jls_3Dsource
+      use OldTracer_mod, only: itime_tr0,trname
+      USE TRACER_COM, only: trm, trmom
       USE TRACERS_MPchem_COM, only: tltrm,tltzm,tltzzm,n_MPtable,tcscale
       USE PRATHER_CHEM_COM, only: nstrtc
       USE FLUXES, only: tr3Dsource
@@ -188,7 +190,7 @@ C****
       facbb = 1.
       if (trname(n).eq.'CH4') facbb = (40.d0/25.73d0)*(40.d0/35.177d0)
 C-----STRATOSPHERIC LOSS occurs in top NSTRTC layers
-C-----ALLOW FOR ONLY ONE SET OF TSCPARM's FOR STRATOSPHERIC LOSS,
+C-----ALLOW FOR ONLY ONE SET OF TSCPARMs FOR STRATOSPHERIC LOSS,
 C-----uses TCSCALE for different tracers to scale loss
 C-----uses S.O.M. formulation for vertical losses
 C-----NOTE that TLTRM(J,LR,N) stored from top (=LM) down
@@ -263,13 +265,14 @@ C--tscparm(lz_schem,18,12,N) defined for 18 lats (85S, 75S, ...85N)
 C --                   & 12 months
 C----  do NOT interpolate, just pick nearest latitude
 C---assume given MONTH = month #, NTM=# tracers, JM=#lats, etc.
-      integer n,j,jj,k,lr
+      integer n,j,jj,k,lr,jmon
 
       INTEGER :: J_1, J_0
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
       call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
+      jmon = modelEclock%getMonth()
 
       DO 800 N=1,n_MPtable_max
         DO 700 J=J_0,J_1
@@ -298,9 +301,9 @@ C---- CTM layers LM down
 !@auth Jean Lerner
       USE RESOLUTION, only: im,jm,lm
       USE MODEL_COM, only: nday,itime,dtsrc,modelEclock
-      USE DOMAIN_DECOMP_ATM, only: GRID, getDomainBounds, AM_I_ROOT, 
       use TimeConstants_mod, only: SECONDS_PER_HOUR, HOURS_PER_DAY, 
-     &                             DAYS_PER_YEAR
+     *                             DAYS_PER_YEAR
+      USE DOMAIN_DECOMP_ATM, only: GRID, getDomainBounds, AM_I_ROOT,
      *  readt8_parallel,haveLatitude,broadcast,
      *  backspace_parallel
       USE GEOM, only: imaxj,byim
@@ -321,6 +324,7 @@ C---- CTM layers LM down
       INTEGER :: J_1, J_0, I_0, I_1
       INTEGER :: J_1H, J_0H, I_1H, I_0H
       INTEGER :: IER
+      integer :: jyear, jday
       character*16, save :: FRQname='OHCH4_FRQ_interp'
 
 C****
@@ -332,6 +336,9 @@ C****
       call getDomainBounds(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
       I_0H = grid%I_STRT_HALO
       I_1H = grid%I_STOP_HALO
+
+      jday = modelEclock%getDayOfYear()
+      jyear = modelEclock%getYear()
 
 C**** Check whether chem.loss rate is up-to-date (updated every 5 days)
       lmtc = lm-nstrtc
@@ -553,7 +560,7 @@ c
       USE LINOZ_CHEM_COM, only: O3trop_Prod,O3trop_Loss,lmtc
       USE FLUXES, only: tr3Dsource
       implicit none
-      integer i,j,l,n,nsp,nsl
+      integer i,j,l,n,nsp,nsl,jmon
       real*8 rprod,rloss,factor,tk
       real*8 dz != -dP/rhoG; rho=PRT; Deposition velocity
       INTEGER :: J_1, J_0, I_0, I_1
@@ -564,6 +571,7 @@ C****
       call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
+      jmon = modelEclock%getMonth()
 
 C**** Convert from kg/cm3/s to kg
         do l=1,lmtc
@@ -609,7 +617,7 @@ C****
       USE QUSDEF, only : mz,mzz
       USE FLUXES, only: trsource
       implicit none
-      integer i,j,l,n,ns
+      integer i,j,l,n,ns,jmon
       INTEGER :: J_1, J_0, I_0, I_1
       real*8 tmsurf,dmass,tk
       real*8 dz ! = -dP/rhoG; rho=PRT; Deposition velocity
@@ -618,6 +626,7 @@ C**** Extract useful local domain parameters from "grid"
       call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
+      jmon = modelEclock%getMonth()
 
       l=1
       do j=j_0,j_1
@@ -785,13 +794,14 @@ c
       implicit none
       real*8  STRT0L(LM),STRT1L(LM),STRT2L(LM),STRTX(lz_linoz)
       real*8 f(lz_lx)
-      integer j,jj,k,lr,n
+      integer j,jj,k,lr,n,jmon
 
       INTEGER :: J_1, J_0
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
       call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
+      jmon = modelEclock%getMonth()
 
 c-------- TLPARM(25,18,12,N) defined for -----------------------------
 c lz_linoz  25 layers from 58 km to 10 km by 2 km intervals
@@ -945,12 +955,13 @@ C**** There are 3 monthly sources and 11 annual sources
 C**** Annual sources are read in at start and re-start of run only
 C**** Monthly sources are interpolated each day
       USE RESOLUTION, only: im,jm
-      USE MODEL_COM, only: itime,JDperY,modelEclock
+      USE MODEL_COM, only: itime,modelEclock
       use TimeConstants_mod, only: SECONDS_PER_DAY, INT_DAYS_PER_YEAR
+      use TimeConstants_mod, only: JDPERY
       USE FLUXES, only: focean,fearth0,flake0
       USE DOMAIN_DECOMP_ATM, only: GRID, getDomainBounds, 
      *  readt_parallel, AM_I_ROOT
-      USE TRACER_COM, only: itime_tr0,trname
+      use OldTracer_mod, only: itime_tr0,trname
       USE FILEMANAGER, only: openunit,closeunit
       USE FILEMANAGER, only: nameunit
       USE CH4_SOURCES, only: src=>ch4_src,nsrc=>nch4src
@@ -981,13 +992,15 @@ c GISS-ESMF EXCEPTIONAL CASE - SAVE variable, I/O
       integer i,j,nt,iu,k,imon(nmons)
       logical :: ifirst=.true. 
       integer :: jdlast=0
+      integer :: jday
       save ifirst,jdlast,tlca,tlcb,mon_units,imon
-
       INTEGER :: J_1, J_0, J_0H, J_1H, I_0H, I_1H
+
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
       call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
+      jday = modelEclock%getDayOfYear()
 
       adj_wet = 0
       do J=J_0,J_1
@@ -1078,11 +1091,12 @@ C**** There are two monthly sources and 4 annual sources
 C**** Annual sources are read in at start and re-start of run only
 C**** Monthly sources are interpolated each day
       USE RESOLUTION, only: im,jm
-      USE MODEL_COM, only: itime,JDperY,modelEclock
+      USE MODEL_COM, only: itime,modelEclock
+      use TimeConstants_mod, only: JDPERY
       USE DOMAIN_DECOMP_ATM, only : grid, getDomainBounds, AM_I_ROOT
       use TimeConstants_mod, only: SECONDS_PER_DAY, INT_DAYS_PER_YEAR
       USE DOMAIN_DECOMP_ATM, only : READT_PARALLEL
-      USE TRACER_COM, only: itime_tr0,trname
+      use OldTracer_mod, only: itime_tr0,trname
       USE CO2_SOURCES, only: src=>co2_src,nsrc=>nco2src
       USE FILEMANAGER, only: openunit,closeunit
       USE FILEMANAGER, only: nameunit
@@ -1108,8 +1122,10 @@ c GISS-ESMF EXCEPTIONAL CASE - SAVE and I/O issues
       integer :: jdlast=0
       save ifirst,jdlast,tlca,tlcb,mon_units,imon
       integer :: J_0, J_1, J_0H, J_1H, I_0H, I_1H
+      integer :: jday
 
       call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
+      jday = modelEclock%getDayOfYear()
 
       if (itime.lt.itime_tr0(nt)) return
 C****
@@ -1675,6 +1691,7 @@ c     call closeunit(iu)
 !@sum  To allocate arrays whose sizes now need to be determined at
 !@+    run time
 !@auth NCCS (Goddard) Development Team
+      use TRACER_COM, only: ntm
       USE PRATHER_CHEM_COM
       USE TRACERS_MPchem_COM
       USE CO2_SOURCES
@@ -1700,11 +1717,8 @@ C****
       ALLOCATE(  CH4_src(I_0H:I_1H,J_0H:J_1H,nch4src),
      *           CO2_src(I_0H:I_1H,J_0H:J_1H,nco2src),
      *           STAT=IER )
+      allocate( n_MPtable(ntm) )
 
-C**** ESMF: This array is read in only
-!     lmtc = lm-nstrtc
-!     ALLOCATE(   frqlos(I_0H:I_1H,J_0H:J_1H,lmtc),
-!    *          STAT=IER)       !! nstrtc has not yet been read from rundeck !!
       END SUBROUTINE ALLOC_TRACER_SPECIAL_Lerner_COM
 
 

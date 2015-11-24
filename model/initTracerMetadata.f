@@ -171,6 +171,10 @@
       use OldTracer_mod, only: set_dodrydep
       use OldTracer_mod, only: set_to_volume_MixRat
       use Tracer_mod, only: Tracer
+#ifdef TRACERS_SPECIAL_Lerner
+      use LernerTracersMetadata_mod
+      USE TRACERS_MPchem_COM, only: n_MPtable,tcscale
+#endif
 #ifdef TRACERS_SPECIAL_Shindell
       use ShindellTracersMetadata_mod
 #endif   
@@ -220,6 +224,11 @@
       call sync_param("OFFLINE_DMS_SS",OFFLINE_DMS_SS)
 !**** seasalt from offline fields
       call sync_param("OFFLINE_SS",OFFLINE_SS)
+#endif
+
+#ifdef TRACERS_SPECIAL_Lerner
+      n_MPtable = 0
+      tcscale = 0.
 #endif
 
 ! ***  BEGIN TRACER METADATA INITIALIZATION
@@ -487,10 +496,6 @@
       USE AEROSOL_SOURCES, only: VBSemifact
       USE TRACERS_VBS, only: vbs_tr
 #endif  /* TRACERS_AEROSOLS_VBS */
-#ifdef TRACER_SPECIAL_Lerner
-      use LernerTracersMetadata_mod
-      USE TRACERS_MPchem_COM, only: n_MPtable,tcscale
-#endif
       USE TRACER_COM, only: ef_fact3d, no_emis_over_ice
 #ifdef TRACERS_MINERALS
       use tracers_dust, only: frIronOxideInAggregate,
@@ -512,16 +517,6 @@ C****
       call syncProperty(tracers, "itime_tr0", set_itime_tr0,itime_tr0())
 
       call sync_param( "COUPLED_CHEM", COUPLED_CHEM )
-
-#ifdef TRACERS_ON
-#ifdef TRACERS_SPECIAL_Lerner
-!TLC - LERNER tracer will need some changes
-      LERNER tracers not supported with current changes
-! Lerner defaults
-      n_MPtable = 0
-      tcscale = 0.
-#endif
-#endif /* TRACERS_ON */
 
 C**** Synchronise tracer related parameters from rundeck
 
