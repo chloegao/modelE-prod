@@ -68,23 +68,6 @@
                                           !2-Alk is prognostic
 #endif
 
-#ifndef OBIO_ON_GARYocean
-!definition only used by HYCOM; Russell ocean def in OCN_TRACER_COM
-      CHARACTER*10 :: trname(ntrac) = (/ 'Nitr      ', 'Ammo      ' 
-     .      ,'Sili      ', 'Iron      ', 'Diat      ', 'Chlo      ' 
-     .      ,'Cyan      ', 'Cocc      ', 'Herb      ', 'Inert     ' 
-     .      ,'N_det     ', 'S_det     ', 'I_det     ', 'DOC       ' 
-     .      ,'DIC       '
-#ifdef TRACERS_Alkalinity
-#ifdef TOPAZ_params
-     .      ,'ALK       ', 'Ca_det    '
-#else
-     .      ,'ALK       '
-#endif
-#endif
-     .     /)
-#endif
-
 c --- diagno_bio      output obio-model fields and diagnostic messages
       logical, public:: diagno_bio
 
