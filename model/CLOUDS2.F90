@@ -974,12 +974,18 @@ CLOUD_BASE: do LMIN=1,LMCM-1
       WMEDG=.5*(WMUP+WMDN)
       SVEDG=SEDGE*(1.+DELTX*QEDGE-WMEDG)
       LHX=LHE
-      SLH=LHX*BYSHA
 #ifdef SCM
       if( SCMopt%noMC ) cycle   ! skip moist convection
 #endif
+#ifdef ALT_MC_EXITS
+      if(sdn*plk(lmin+1) < ti) lhx = lhs
+      ! check for saturation added here since it may later be removed
+      ! above cloud base
+      if(qdn < qsat(sdn*plk(lmin+1),lhx,pl(lmin+1))) cycle
+#endif
+      SLH=LHX*BYSHA
       DMSE=(SVUP-SVEDG)*PLK(LMIN+1)+(SVEDG-SVDN)*PLK(LMIN)+ &
-           SLHE*(QSAT(SUP*PLK(LMIN+1),LHX,PL(LMIN+1))-QDN)
+           SLH*(QSAT(SUP*PLK(LMIN+1),LHX,PL(LMIN+1))-QDN)
       if(DMSE.gt.-1d-10) cycle  ! try next level
 
       !**** MASS_FLUX PERFORMS THE ITERATIONS
@@ -1206,6 +1212,21 @@ CLOUD_TOP:  do L=LMIN+1,LM
 
             !**** (3)TEST TO SEE WHETHER LIFTED PARCEL IS ABOVE LIFTING CONDENSATION
             !**** W.R.T. LIQUID WATER, OR W.R.T. ICE FOR HOMOGENEOUS NUCLEATION (T<-40)
+
+#ifdef ALT_MC_EXITS /* termination condition differs for ti < tp < tf */
+            if(tp .ge. tf) then
+              lhx = lhe
+            else
+              lhx = lhs
+            endif
+            ! Check if entrainment of dry air caused plume to become unsaturated,
+            ! though not considering possible evaporation of available condensate.
+            ! Like tpsav, the tp passed to qsat here is not a realized temperature;
+            ! it is post-lifting and pre-get_dq_cond.  But unlike tpsav, it
+            ! is for the current plume.
+            qsatmp = mplume*qsat((smp*plk(l)/mplume),lhx,pl(l))
+            if(qmp .lt. qsatmp) exit cloud_top
+#else
             LHX=LHE
             if(TP.lt.TI) LHX=LHS
             QSATMP=MPLUME*QSAT(TP,LHX,PL(L))
@@ -1215,6 +1236,7 @@ CLOUD_TOP:  do L=LMIN+1,LM
               LHX=LHS
               QSATMP=MPLUME*QSAT(TP,LHX,PL(L))
             end if
+#endif
 
             !**** DEFINE DUMMY LATENT HEAT VARIABLE TO AVOID PHASE DISCREPANCY BETWEEN PLUMES
             if (VLAT(L).eq.LHS) LHX=LHS
