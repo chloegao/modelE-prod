@@ -98,7 +98,7 @@ c       fix winds if specified and no Coriolis acceleration
 
 c       large-scale forcings
 
-        if( SCMopt%omega .or. SCMopt%w )then
+        if( ( SCMopt%omega .and. .not. SCMopt%ls_v ) .or. SCMopt%w )then
 c       *** apply omega defined at layer bottom to upwind gradient
 
           if ( L < LM ) then ! omega assumed zero at top of layer LM
