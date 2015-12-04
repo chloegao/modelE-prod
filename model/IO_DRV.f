@@ -11,6 +11,9 @@ C**** For all iaction < 0  ==> WRITE, For all iaction > 0  ==> READ
      *                      ioread,iowrite,iowrite_mon
      &     ,itimei,rsf_file_name,kcopy
       use pario, only : par_open,par_close,par_enddef
+#ifdef TRACERS_OceanBiology
+      use obio_diag, only: new_io_obio_diag
+#endif
       IMPLICIT NONE
 !@var fname name of file to be read or written
       character(len=*) :: fname
@@ -96,6 +99,9 @@ c
         call new_io_glaacc(fid,iaction)
 #endif
         call new_io_ocdiag(fid,iaction)
+#ifdef TRACERS_OceanBiology
+        call new_io_obio_diag(fid, iaction)
+#endif
 #ifndef STANDALONE_HYCOM
         call new_io_icdiag(fid,iorw)
 #endif
@@ -167,6 +173,9 @@ c
      &     jyear0,itime,itime0,nday
       use domain_decomp_atm, only : grid
       use pario, only : write_attr
+#ifdef TRACERS_OceanBiology
+      use obio_diag, only: def_meta_obio_diag
+#endif
       implicit none
       integer :: fid         !@var fid file id
       character(len=100) :: fromto
@@ -188,6 +197,9 @@ c idacc(5) is not additive
       call def_meta_glaacc(fid)
 #endif
       call def_meta_ocdiag(fid)
+#ifdef TRACERS_OceanBiology
+      call def_meta_obio_diag(fid)
+#endif
 #ifndef STANDALONE_HYCOM
       call def_meta_icdiag(fid)
 #endif
@@ -202,6 +214,9 @@ c idacc(5) is not additive
 !@sum  def_acc_meta writes metadata to acc files
 !@auth M. Kelley
 !@ver  beta
+#ifdef TRACERS_OceanBiology
+      use obio_diag, only: write_meta_obio_diag
+#endif
       implicit none
       integer :: fid         !@var fid file id
       call write_meta_atmacc(fid)
@@ -209,6 +224,9 @@ c idacc(5) is not additive
       call write_meta_glaacc(fid)
 #endif
       call write_meta_ocdiag(fid)
+#ifdef TRACERS_OceanBiology
+      call write_meta_obio_diag(fid)
+#endif
 #ifndef STANDALONE_HYCOM
       call write_meta_icdiag(fid)
 #endif
@@ -219,6 +237,9 @@ c idacc(5) is not additive
 !@sum  def_acc_all defines acc array structure in restart files
 !@auth M. Kelley
 !@ver  beta
+#ifdef TRACERS_OceanBiology
+      use obio_diag, only: def_rsf_obio_diag
+#endif
       implicit none
       integer :: fid         !@var fid file id
       logical :: r4_on_disk  !@var r4_on_disk if true, real*8 stored as real*4
@@ -229,6 +250,9 @@ c idacc(5) is not additive
       call def_rsf_ocdiag(fid,r4_on_disk)
 #ifndef STANDALONE_HYCOM
       call def_rsf_icdiag(fid,r4_on_disk)
+#endif
+#ifdef TRACERS_OceanBiology
+      call def_rsf_obio_diag(fid, r4_on_disk)
 #endif
       return
       end subroutine def_acc_all

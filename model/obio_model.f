@@ -70,43 +70,41 @@
       use obio_com, only: tracer,nstep0
 #ifdef OBIO_ON_GARYocean
       use obio_com, only: obio_deltat
-      USE ODIAG, only : ij_pCO2,ij_dic,ij_nitr,ij_diat
+#endif
+      USE obio_diag, only : ij_pCO2,ij_dic,ij_nitr,ij_diat
      .                 ,ij_amm,ij_sil,ij_chlo,ij_cyan,ij_cocc,ij_herb
      .                 ,ij_doc,ij_iron,ij_alk,ij_Ed,ij_Es,ij_pp,ij_dayl
      .                 ,ij_cexp,ij_lim,ij_wsd,ij_ndet,ij_xchl
      .                 ,ij_sunz,ij_solz
      .                 ,ij_pp1,ij_pp2,ij_pp3,ij_pp4
-     .                 ,ijl_avgq,ijl_kpar,ijl_dtemp
      .                 ,ij_rhs,ij_flux,ij_fca
 
 #ifdef OBIO_RUNOFF
 #ifdef NITR_RUNOFF
-      USE ODIAG, only: ij_rnitrconc
+      USE obio_diag, only: ij_rnitrconc
 !     .                 ,ij_rnitrmflo
 #endif
 #ifdef DIC_RUNOFF
-      USE ODIAG, only: ij_rdicconc
+      USE obio_diag, only: ij_rdicconc
 #endif
 #ifdef DOC_RUNOFF
-      USE ODIAG, only:  ij_rdocconc
+      USE obio_diag, only:  ij_rdocconc
 #endif
 #ifdef SILI_RUNOFF
-      USE ODIAG, only:  ij_rsiliconc
+      USE obio_diag, only:  ij_rsiliconc
 #endif
 #ifdef IRON_RUNOFF
-      USE ODIAG, only:  ij_rironconc
+      USE obio_diag, only:  ij_rironconc
 #endif
 #ifdef POC_RUNOFF
-      USE ODIAG, only:  ij_rpocconc
+      USE obio_diag, only:  ij_rpocconc
 #endif
 #ifdef ALK_RUNOFF
-      USE ODIAG, only:  ij_ralkconc
+      USE obio_diag, only:  ij_ralkconc
 #endif
 #endif
-
-
-      USE ODIAG, only : oij=>oij_loc,oijl=>oijl_loc
-#endif
+      USE obio_diag, only : oijl=>obio_ijl,ijl_avgq,ijl_kpar,ijl_dtemp
+      use obio_diag, only: oij=>obio_ij
       use ocalbedo_mod, only: ocalbedo
 
       USE MODEL_COM, only: modelEclock
@@ -126,17 +124,15 @@
       USE CONSTANT,   only : grav
       USE OCEANR_DIM, only : ogrid
       USE OCEANRES,   only : kdm=>lmo,dzo
-      USE OFLUXES,    only : oRSI,oAPRESS
+      USE OFLUXES,    only : oice=>oRSI,oAPRESS
       USE OCEAN,      only : g0m,s0m,mo,dxypo,ip=>focean,lmm
      .                      ,trmo,txmo,tymo,tzmo
-      USE KPP_COM,    only : kpl
 #else
       USE hycom_dim
       USE hycom_arrays, only: tracer_h=>tracer,dpinit,temp,saln,oice
      .                            ,p,dpmixl,latij,lonij,scp2
       USE  hycom_arrays_glob, only: latij_glob=>latij,lonij_glob=>lonij
-      USE hycom_scalars, only: nstep,onem
-     .                        ,time,lp,baclin,huge
+      USE hycom_scalars, only: nstep,onem,time,lp,baclin
       USE obio_com, only: ao_co2fluxav_loc,
      .     pCO2av_loc,pp2tot_dayav_loc,cexpav_loc,caexpav_loc,
      .     pp2diat_dayav_loc,pp2chlo_dayav_loc,pp2cyan_dayav_loc,
@@ -148,6 +144,7 @@
 
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
       use TimerPackage_mod
+      use obio_diag, only: reset_obio_diag
 
       use exchange_types, only : atmocn_xchng_vars
       implicit none
@@ -166,14 +163,10 @@
       Real*8,External   :: VOLGSP
       real*8 temgs,g,s,temgsp,pres
       real*8 time,dtr,ftr,rho_water
-      real*8 trmo_unit_factor(kdm,ntrac)
       integer i_0,i_1,j_0,j_1
-#else
-      integer kn
 #endif
+      real*8 trmo_unit_factor(kdm,ntrac)
       integer :: idx_co2
-      character string*80
-      character jstring*3
 
       logical vrbos,noon,errcon
       integer :: year, month, dayOfYear, date, hour
@@ -308,9 +301,6 @@ c
          ihr0 = int(hour_of_day/2)
 
       if (diagno_bio) then
-#ifdef OBIO_ON_GARYocean
-        write(string,'(a3,i4.4,2a)') amon,year,'.',xlabel(1:lrunid)
-#endif
       endif  !diagno_bio
 
 #ifdef OBIO_ON_GARYocean
@@ -323,6 +313,9 @@ c
 #ifndef OBIO_ON_GARYocean     /* HYCOM only */
       diag_counter=diag_counter+1
 #endif
+
+      if ((dayofyear==1+jdendofm(month-1)).and.
+     &       modeleclock%isbeginningofday()) call reset_obio_diag
 
       call start('  obio main loop')
 
@@ -341,12 +334,8 @@ cdiag.          olon_dg(i,1),olat_dg(j,1)
 
        !fill in reduced rank arrays
        ihra_ij=ihra(i,j)
-#ifdef OBIO_ON_GARYocean
-       covice_ij=oRSI(i,j)
-#else
        !!covice_ij=covice(i,j)  !for standalone hycom
        covice_ij=oice(i,j)      !for modelE-hycom
-#endif
        pCO2_ij=atm%gtracer(atm%n_co2n,i,j)
      
 #ifdef OBIO_ON_GARYocean
@@ -428,7 +417,8 @@ cdiag.          olon_dg(i,1),olat_dg(j,1)
 #endif
 
 #else
-       if (nstep0>0) tracer(i,j,:,:)=tracer_h(i,j,:,:)
+       trmo_unit_factor=1
+       if (nstep0>0) tracer(i,j,:,:)=tracer_h(i,j,:,:)/trmo_unit_factor
        do k=1,kdm
          km=k+mm
          temp1d(k)=temp(i,j,km)
@@ -668,11 +658,9 @@ cdiag    enddo
 
            tot = tot + Ed(ichan)+Es(ichan)
 
-#ifdef OBIO_ON_GARYocean
        !integrate over all ichan
            OIJ(I,J,IJ_ed) = OIJ(I,J,IJ_ed) + Ed(ichan) ! direct sunlight   
            OIJ(I,J,IJ_es) = OIJ(I,J,IJ_es) + Es(ichan) ! diffuse sunlight   
-#endif
          enddo  !ichan
        endif
          noon=.false.
@@ -752,7 +740,6 @@ cdiag.                  tot,ichan=1,nlt)
      .                      * MO(i,j,k) * dxypo(j)    !in order to get landmask-have to set denom_ijl in odiag_com
        enddo
 #endif
-
 
          if (vrbos) then
 cdiag      write(*,107)nstep,
@@ -938,14 +925,12 @@ cdiag     endif
 
       call obio_chkbalances(vrbos,nstep,i,j)
 
-#ifdef OBIO_ON_GARYocean
       do nt=1,ntrac-1   ! don't include unused inert tracer
       do ll=1,17
       OIJ(I,J,IJ_rhs(nt,ll)) = OIJ(I,J,IJ_rhs(nt,ll))
      .                                    + rhs_obio(i,j,nt,ll)  ! all terms in rhs
       enddo
       enddo
-#endif
 
       if (vrbos) then
        print*, 'OBIO TENDENCIES, 1-17, 1,7'
@@ -995,9 +980,7 @@ cdiag     endif
 #endif
         !update avgq and gcmax arrays
         avgq(i,j,k)=avgq1d(k)
-#ifdef OBIO_ON_GARYocean
         OIJL(I,J,k,IJL_avgq)= OIJL(I,J,k,IJL_avgq) + avgq1d(k)
-#endif
         gcmax(i,j,k)=gcmax1d(k)
         tirrq3d(i,j,k)=tirrq(k)
        enddo !k
@@ -1006,7 +989,6 @@ cdiag     endif
       !update trmo etc arrays
        do k=1,kmax
        do nt=1,ntrac
-
           dtr = tracer(i,j,k,nt) * trmo_unit_factor(k,nt) 
      .        - trmo(i,j,k,nt)
 
@@ -1022,7 +1004,7 @@ cdiag     endif
        enddo
        enddo
 #else
-       tracer_h(i,j,:,:)=tracer(i,j,:,:)
+       tracer_h(i,j,:,:)=tracer(i,j,:,:)*trmo_unit_factor
 #endif
 
        ihra(i,j)=ihra_ij
@@ -1073,7 +1055,6 @@ cdiag     endif
        atm%gtracer(atm%n_co2n, i,j)=pCO2_ij
 
 !diagnostics
-#ifdef OBIO_ON_GARYocean
        if (solz.gt.0) then
            OIJ(I,J,IJ_dayl) = OIJ(I,J,IJ_dayl) + 1.d0   !number of timesteps daylight   
        endif
@@ -1099,16 +1080,20 @@ cdiag     endif
 
        OIJ(I,J,IJ_doc) = OIJ(I,J,IJ_doc) + tracer(i,j,1,14) ! surf ocean doc
        OIJ(I,J,IJ_dic) = OIJ(I,J,IJ_dic) + tracer(i,j,1,15) ! surf ocean dic
-       OIJ(I,J,IJ_pCO2) = OIJ(I,J,IJ_pCO2) + pCO2_ij*(1.-oRSI(i,j)) ! surf ocean pco2
+       OIJ(I,J,IJ_pCO2) = OIJ(I,J,IJ_pCO2) + pCO2_ij*(1.-oice(i,j)) ! surf ocean pco2
 
        OIJ(I,J,IJ_cexp) = OIJ(I,J,IJ_cexp) + cexp             ! export production
        OIJ(I,J,IJ_ndet) = OIJ(I,J,IJ_ndet) + tracer(i,j,4,11) ! ndet at 74m
        OIJ(I,J,IJ_wsd)= OIJ(I,J,IJ_wsd)+ wsdet(4,1)           ! sink. vel. n/cdet at 74m
-       OIJ(I,J,IJ_xchl) = OIJ(I,J,IJ_xchl) 
-     .                  + trmo(i,j,4,5)*obio_ws(4,1) 
-     .                  + trmo(i,j,4,6)*obio_ws(4,1) 
-     .                  + trmo(i,j,4,7)*obio_ws(4,1)
-     .                  + trmo(i,j,4,8)*obio_ws(4,1)   !total phyto cexp at 74m
+       if (4<=kmax) then
+         OIJ(I,J,IJ_xchl) = OIJ(I,J,IJ_xchl)
+     .              + tracer(i,j,4,5)*trmo_unit_factor(4,5)*obio_ws(4,1)
+     .              + tracer(i,j,4,6)*trmo_unit_factor(4,6)*obio_ws(4,1)
+     .              + tracer(i,j,4,7)*trmo_unit_factor(4,7)*obio_ws(4,1)
+     .              + tracer(i,j,4,8)*trmo_unit_factor(4,8)*obio_ws(4,1) !total phyto cexp at 74m
+       else
+         oij(i,j,ij_xchl)=0
+       endif
 
        !limitation diags surface only (for now)
        k = 1
@@ -1153,7 +1138,7 @@ cdiag     endif
          OIJ(I,J,IJ_alk) = OIJ(I,J,IJ_alk) + alk(i,j,1)          ! surf ocean alkalinity
        endif
 
-#else    /* HYCOM ACCUMULATED DIAGNOSTICS */
+#ifndef OBIO_ON_GARYocean    /* HYCOM ACCUMULATED DIAGNOSTICS */
       ao_co2fluxav_loc(i,j)=ao_co2fluxav_loc(i,j) + co2flux
       pCO2av_loc(i,j)=pCO2av_loc(i,j)+pCO2_ij
       pp2tot_dayav_loc(i,j) = pp2tot_dayav_loc(i,j) 

@@ -761,12 +761,21 @@ c------------------------------------------------------------------------------
       subroutine setup_obio
 #ifdef OBIO_ON_GARYocean
       use ocn_tracer_com, only: add_ocn_tracer
-      use runtimecontrols_mod, only: tracers_alkalinity
 #endif
+      use runtimecontrols_mod, only: tracers_alkalinity
       use exchange_types, only: rad_coupling
+      use obio_dim, only: ntrac
+      use obio_diag
       implicit none
       integer, dimension(1) :: con_idx
       character(len=10), dimension(1) :: con_str
+      integer :: nt, ilim, ll
+      character(len=5) :: str1
+      character(len=9) :: str2
+      character(len=1), parameter :: lim_sym(4)=(/'d', 'h', 'b', 'c'/)  ! diatoms, chloroph, cyanobact, coccoliths
+      character(len=4), parameter :: rhs_sym(15)=(/ 'nitr', 'ammo',
+     &     'sili', 'iron', 'diat', 'chlo', 'cyan', 'cocc', 'herb',
+     &     'ndet', 'sdet', 'idet', 'doc_', 'dic_', 'alk_' /)
 
       con_idx=[12]
       con_str=['OCN BIOL']
@@ -806,6 +815,124 @@ c------------------------------------------------------------------------------
      &             call add_ocn_tracer('Alk       ', i_ntrocn=-6,
      &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
 #endif   /* #ifdef OBIO_ON_GARYocean */
+#ifdef TOPAZ_params
+      call add_diag("co3 ", "oij_co3",
+     &              "????????", .false., IJ_co3)
+#endif
+      call add_diag("ocean surface pH", "oij_pH",
+     &              "pH units", .false., IJ_pH)
+      call add_diag("Cos Solar Zenith Angle", "oij_solz",
+     &              "xxxx", .false., IJ_solz)
+      call add_diag("Solar Zenith Angle", "oij_sunz",
+     &              "degrees", .false., IJ_sunz)
+      call add_diag("Daylight length", "oij_dayl",
+     &              "timesteps", .false., IJ_dayl)
+      call add_diag("Surface Ocean Direct Sunlight",
+     &              "oij_Ed", "quanta", .false., IJ_Ed)
+      call add_diag("Surface Ocean Diffuse Sunlight",
+     &              "oij_Es", "quanta", .false., IJ_Es)
+      call add_diag("Surface ocean Nitrates", "oij_nitr",
+     &              "uM", .false., IJ_nitr)
+      call add_diag("Surface ocean Ammonium", "oij_amm",
+     &              "uM", .false., IJ_amm)
+      call add_diag("Surface ocean Silicate", "oij_sil",
+     &              "uM", .false., IJ_sil)
+      call add_diag("Surface ocean Iron", "oij_iron",
+     &              "nM", .false., IJ_iron)
+      call add_diag("Surface ocean Diatoms", "oij_diat",
+     &              "mg/m3", .false., IJ_diat)
+      call add_diag("Surface ocean Chlorophytes", "oij_chlo",
+     &              "mg/m3", .false., IJ_chlo)
+      call add_diag("Surface ocean Cyanobacteria", "oij_cyan",
+     &              "mg/m3", .false., IJ_cyan)
+      call add_diag("Surface ocean Coccolithophores", "oij_cocc",
+     &              "mg/m3", .false., IJ_cocc)
+      call add_diag("Surface ocean Herbivores", "oij_herb",
+     &              "mg/m3", .false., IJ_herb)
+      call add_diag("Surface ocean DOC", "oij_doc",
+     &              "uM", .false., IJ_doc)
+      call add_diag("Surface ocean DIC", "oij_dic",
+     &              "uM", .false., IJ_dic)
+      call add_diag("Surface ocean partial CO2 pressure",
+     &              "oij_pCO2", "uatm", .false., IJ_pCO2)
+      call add_diag("Surface ocean alkalinity", "oij_alk",
+     &              "umol/kg", .false., IJ_alk)
+      call add_diag("AO Flux CO2 (ogrid,grC/m2/yr)", "oij_flux",
+     &              "grC/m2/yr", .false., IJ_flux)
+      call add_diag("C export flux at compensation depth", "oij_cexp",
+     &              "mili-grC/m2/hr", .false., IJ_cexp)
+      call add_diag("N/C detritus at 74m", "oij_ndet",
+     &              "ugC/l", .false., IJ_ndet)
+      call add_diag("sink vel n/cdet at 74m", "oij_wsd",
+     &              "m/hr", .false., IJ_wsd)
+      call add_diag("C export due to chloroph", "oij_xchl",
+     &              "kg,C*m/hr", .false., IJ_xchl)
+      if (tracers_alkalinity) then
+        call add_diag("CaCO3 export flux at compensation depth",
+     &                "oij_fca", "mili-g,C/m2/hr", .false., IJ_fca)
+      endif
+
+#ifdef OBIO_RUNOFF
+#ifdef NITR_RUNOFF
+!      call add_diag("Nitrate mass flow from rivers", "oij_rnitrmflo",
+!     &               "kg/s", IJ_rnitrmflo)
+      call add_diag("Nitrate conc in runoff", "oij_rnitrconc",
+     &              "kg/kg", .false., IJ_rnitrconc)
+#endif
+#ifdef DIC_RUNOFF
+      call add_diag("DIC conc in runoff", "oij_rdicconc",
+     &              "kg/kg", .false., IJ_rdicconc)
+#endif
+#ifdef DOC_RUNOFF
+      call add_diag("DOC conc in runoff", "oij_rdocconc",
+     &              "kg/kg", .false., IJ_rdocconc)
+#endif
+#ifdef SILI_RUNOFF
+      call add_diag("silica conc in runoff", "oij_rsiliconc",
+     &              "kg/kg", .false., IJ_rsiliconc)
+#endif
+#ifdef IRON_RUNOFF
+      call add_diag("iron conc in runoff", "oij_rironconc",
+     &              "kg/kg", .false., IJ_rironconc)
+#endif
+#ifdef POC_RUNOFF
+      call add_diag("poc conc in runoff", "oij_rpocconc",
+     &              "kg/kg", .false., IJ_rpocconc)
+#endif
+#ifdef ALK_RUNOFF
+      call add_diag("alkalinity conc in runoff", "oij_ralkconc",
+     &              "mol/kg", .false., IJ_ralkconc)
+#endif
+#endif
+      call add_diag("Depth integrated PP", "oij_pp",
+     &              "mg,C/m2/day", .false., IJ_pp)
+      call add_diag("PP-diat", "oij_pp1",
+     &              "mg,C/m2/day", .false., IJ_pp1)
+      call add_diag("PP-chlor", "oij_pp2",
+     &              "mg,C/m2/day", .false., IJ_pp2)
+      call add_diag("PP-cyan", "oij_pp3",
+     &              "mg,C/m2/day", .false., IJ_pp3)
+      call add_diag("PP-cocc", "oij_pp4",
+     &              "mg,C/m2/day", .false., IJ_pp4)
+      do nt=1, 4
+        do ilim=1, 5
+          write(str1, '(A1,A3,I1)') lim_sym(nt), 'lim', ilim
+          call add_diag(str1, str1, "?", .false., ij_lim(nt, ilim))
+        end do
+      end do
+      do nt=1, ntrac-1      ! don't include unused inert tracer
+        do ll=1, 17
+          write(str2, '(A4,A3,I2.2)') rhs_sym(nt), 'rhs', ll
+          call add_diag(str2, str2, "?", .false., ij_rhs(nt, ll))
+        end do
+      end do
+
+      call add_diag("Mean daily irradiance", "avgq",
+     &              "quanta", .true., IJL_avgq)
+      call add_diag("KPAR", "kpar",
+     &              "??", .true., IJL_kpar)
+      call add_diag("dtemp due to kpar", "dtemp_par",
+     &              "C", .true., IJL_dtemp)
 
       return
       end subroutine setup_obio

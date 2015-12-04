@@ -42,7 +42,7 @@ c
       USE MODEL_COM, only : nstep=>itime
       USE OCEANRES, only : kdm=>lmo
       use ofluxes, only : ocnatm
-      use odiag, only: oij=>oij_loc, ij_ph, ij_co3
+      use obio_diag, only: oij=>obio_ij, ij_ph, ij_co3
 #else
       USE hycom_dim_glob, only : kdm
       USE hycom_scalars, only : nstep

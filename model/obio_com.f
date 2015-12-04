@@ -251,10 +251,307 @@ C endif
 
       END MODULE obio_com
 
+
+
+!------------------------------------------------------------------------------
+      module vector_str30_mod
+#define _entry character(30)
+#include "containers/vector.fh"
+      end module vector_str30_mod
+
+      module vector_str80_mod
+#define _entry character(80)
+#include "containers/vector.fh"
+      end module vector_str80_mod
+
+
+      module obio_diag
+      use vector_str30_mod, only: vector_str30=>vector
+      use vector_str80_mod, only: vector_str80=>vector
+      use vector_integer_mod, only: vector_integer=>vector
+      use vector_real8_mod, only: vector_real8=>vector
+      use cdl_mod, only: cdl_type
+      use obio_dim, only: ntrac
+      implicit none
+      private
+
+      public :: init_obio_diag, new_io_obio_diag, def_meta_obio_diag,
+     &   write_meta_obio_diag, def_rsf_obio_diag, reset_obio_diag,
+     &   add_diag
+
+      real*8, dimension(:, :, :), allocatable, public :: obio_ij
+      real*8, dimension(:, :, :, :), allocatable, public :: obio_ijl
+      integer, public :: ij_solz, ij_sunz, ij_dayl, ij_ed, ij_es,
+     &   ij_nitr, ij_amm, ij_sil, ij_iron, ij_diat, ij_chlo, ij_cyan,
+     &   ij_cocc, ij_herb, ij_doc, ij_dic, ij_pco2, ij_alk, ij_flux,
+     &   ij_cexp, ij_ndet, ij_wsd, ij_xchl, ij_fca, ij_rnitrmflo,
+     &   ij_rnitrconc, ij_rdicconc, ij_rdocconc, ij_rsiliconc,
+     &   ij_rironconc, ij_rpocconc, ij_ralkconc, ij_pp, ij_lim(4, 5),
+     &   ij_rhs(ntrac-1, 17), ij_pp1, ij_pp2, ij_pp3, ij_pp4, ij_co3,
+     &   ij_ph
+      integer, public :: ijl_avgq, ijl_kpar, ijl_dtemp
+      type(vector_str30) :: sname_ij, units_ij
+      type(vector_str30) :: sname_ijl, units_ijl
+      type(vector_str80) :: lname_ij, lname_ijl
+      type(vector_integer) :: ia_ij, ia_ijl
+      type(vector_real8) :: scale_ij, scale_ijl
+      type(cdl_type) :: cdl_ij, cdl_ijl
+      type(cdl_type), pointer :: cdl_lons, cdl_lats, cdl_depths
+#ifndef OBIO_ON_GARYocean
+      type(cdl_type), allocatable, target ::
+     &                         hycom_lons, hycom_lats, hycom_depths
+#endif
+
+      contains
+
+
+      subroutine add_diag(lname, sname, units, dim3, idx)
+      use mdiag_com, only : ia_cpl
+      implicit none
+
+      character(len=*), target, intent(in) :: lname, sname, units
+      logical, intent(in) :: dim3
+      integer, intent(out) :: idx
+      character(len=30) :: sname1, units1
+      character(len=80) :: lname1
+
+      lname1=lname
+      sname1=sname
+      units1=units
+      if (dim3) then
+        call lname_ijl%push_back(lname1)
+        call sname_ijl%push_back(sname1)
+        call units_ijl%push_back(units1)
+        call scale_ijl%push_back(1.d0)
+        call ia_ijl%push_back(ia_cpl)
+        idx=lname_ijl%getsize()
+      else
+        call lname_ij%push_back(lname1)
+        call sname_ij%push_back(sname1)
+        call units_ij%push_back(units1)
+        call scale_ij%push_back(1.d0)
+        call ia_ij%push_back(ia_cpl)
+        idx=lname_ij%getsize()
+      endif
+      end subroutine add_diag
+
+
+      subroutine init_obio_diag
+#ifdef OBIO_ON_GARYocean
+      USE OCEANR_DIM, only: ogrid
+      USE OCEANRES, only: kdm=>lmo
+      use odiag, only: cdl_olons, cdl_olats, cdl_odepths
+#else
+      USE hycom_dim, only: kdm, ogrid
+      use cdl_mod, only: add_coord, init_cdl_type
+      use domain_decomp_1d, only: am_i_root
+#endif
+      implicit none
+
+#ifdef OBIO_ON_GARYocean
+      cdl_lons=>cdl_olons
+      cdl_lats=>cdl_olats
+      cdl_depths=>cdl_odepths
+#else
+      allocate(hycom_lons, hycom_lats, hycom_depths)
+      cdl_lons=>hycom_lons
+      cdl_lats=>hycom_lats
+      cdl_depths=>hycom_depths
+      if (am_i_root()) then
+            ! cdl not defined for hycom yet, this is for the time being:
+        call init_cdl_type('cdl_obio_lons', hycom_lons)
+        call add_coord(hycom_lons, 'lono', ogrid%im_world,
+     &      units='degrees_east')
+        call init_cdl_type('cdl_obio_lats', hycom_lats)
+        call add_coord(hycom_lats, 'lato', ogrid%jm_world,
+     &      units='degrees_north')
+        call init_cdl_type('cdl_obio_depths', hycom_depths)
+        call add_coord(hycom_depths, 'zoc', kdm, units='m')
+      endif
+#endif
+      allocate(obio_ij(ogrid%i_strt:ogrid%i_stop,
+     &         ogrid%j_strt:ogrid%j_stop, lname_ij%getsize()))
+      allocate(obio_ijl(ogrid%i_strt:ogrid%i_stop,
+     &         ogrid%j_strt:ogrid%j_stop, kdm, lname_ijl%getsize()))
+
+      end subroutine init_obio_diag
+
+
+      subroutine def_rsf_obio_diag(fid, r4_on_disk)
+      use pario, only: defvar
+#ifdef OBIO_ON_GARYocean
+      USE OCEANR_DIM, only: ogrid
+#else
+      USE hycom_dim, only: ogrid
+#endif
+      implicit none
+
+      integer, intent(in) :: fid
+      logical, intent(in) :: r4_on_disk
+
+      call defvar(ogrid, fid, obio_ij,
+     &     'obio_ij(dist_imo, dist_jmo, kobio_ij)',
+     &     r4_on_disk=r4_on_disk)
+      call defvar(ogrid, fid, obio_ijl,
+     &     'obio_ijl(dist_imo, dist_jmo, lmo, kobio_ijl)',
+     &     r4_on_disk=r4_on_disk)
+
+      end subroutine def_rsf_obio_diag
+
+
+      subroutine new_io_obio_diag(fid, iaction)
+      use model_com, only: ioread
+      use pario, only: write_dist_data, read_dist_data
+#ifdef OBIO_ON_GARYocean
+      USE OCEANR_DIM, only: ogrid
+#else
+      USE hycom_dim, only: ogrid
+#endif
+      implicit none
+
+      integer, intent(in) :: fid
+      integer, intent(in) :: iaction
+
+      if (iaction.eq.ioread) then
+        call read_dist_data(ogrid, fid, 'obio_ij', obio_ij)
+        call read_dist_data(ogrid, fid, 'obio_ijl', obio_ijl)
+      else
+        call write_dist_data(ogrid, fid, 'obio_ij', obio_ij)
+        call write_dist_data(ogrid, fid, 'obio_ijl', obio_ijl)
+      end if
+
+      end subroutine new_io_obio_diag
+
+
+      subroutine def_meta_obio_diag(fid)
+      use pario, only: defvar, write_attr
+      use cdl_mod, only: defvar_cdl, merge_cdl, add_var
+      use domain_decomp_1d, only: am_i_root
+#ifdef OBIO_ON_GARYocean
+      USE OCEANR_DIM, only: ogrid
+#else
+      USE hycom_dim, only: ogrid, kdm
+      use hycom_arrays, only : lonij, latij
+      use obio_com, only: ze, build_ze
+#endif
+      implicit none
+
+      integer, intent(in) :: fid
+      integer :: k
+
+      if (associated(cdl_lons)) then
+        if (am_i_root()) then
+          call merge_cdl(cdl_lons, cdl_lats, cdl_ij)
+#ifndef OBIO_ON_GARYocean
+          call add_var(cdl_ij, 'float latij(lato,lono) ;',
+     &         long_name='gridbox latitude', units='degrees')
+          call add_var(cdl_ij, 'float lonij(lato,lono) ;',
+     &         long_name='gridbox longitude', units='degrees')
+#endif
+          call merge_cdl(cdl_ij, cdl_depths, cdl_ijl)
+#ifndef OBIO_ON_GARYocean
+          call add_var(cdl_ijl, 'float depths(lato,lono,zoc) ;',
+     &         long_name='gridbox depth', units='m')
+#endif
+          do k=1, sname_ij%getsize()
+            call add_var(cdl_ij,
+     &         'float '//trim(sname_ij%at(k))//'(lato,lono) ;',
+     &         long_name=trim(lname_ij%at(k)),
+     &         units=trim(units_ij%at(k)) )
+          enddo
+          do k=1, sname_ijl%getsize()
+            call add_var(cdl_ijl,
+     &         'float '//trim(sname_ijl%at(k))//'(zoc,lato,lono) ;',
+     &         long_name=trim(lname_ijl%at(k)),
+     &         units=trim(units_ijl%at(k)),
+     &         set_miss=.true.)
+          enddo
+        endif
+        call defvar_cdl(ogrid, fid, cdl_ij,
+     &                  'cdl_obio_ij(cdl_strlen,kcdl_obio_ij)')
+        call defvar_cdl(ogrid, fid, cdl_ijl,
+     &       'cdl_obio_ijl(cdl_strlen,kcdl_obio_ijl)')
+      endif
+
+      call write_attr(ogrid, fid, 'obio_ij', 'reduction', 'sum')
+      call write_attr(ogrid, fid, 'obio_ij', 'split_dim', 3)
+      call defvar(ogrid, fid, ia_ij%getdata(), 'ia_obio_ij(kobio_ij)')
+      call defvar(ogrid, fid, scale_ij%getdata(),
+     &            'scale_obio_ij(kobio_ij)')
+      call defvar(ogrid, fid, sname_ij%getdata(),
+     &            'sname_obio_ij(sname_strlen,kobio_ij)')
+
+
+      call write_attr(ogrid, fid, 'obio_ijl', 'reduction', 'sum')
+      call write_attr(ogrid, fid, 'obio_ijl', 'split_dim', 4)
+      call defvar(ogrid, fid, ia_ijl%getdata(),
+     &            'ia_obio_ijl(kobio_ijl)')
+      call defvar(ogrid, fid, scale_ijl%getdata(),
+     &            'scale_obio_ijl(kobio_ijl)')
+      call defvar(ogrid, fid, sname_ijl%getdata(),
+     &            'sname_obio_ijl(sname_strlen,kobio_ijl)')
+#ifndef OBIO_ON_GARYocean
+      call defvar(ogrid, fid,latij(:,:,3), 'latij(dist_imo,dist_jmo)')
+      call defvar(ogrid, fid,lonij(:,:,3), 'lonij(dist_imo,dist_jmo)')
+      call build_ze
+      call defvar(ogrid,fid,ze(:,:,1:), 'depths(dist_imo,dist_jmo,lmo)')
+#endif
+
+      end subroutine def_meta_obio_diag
+
+
+      subroutine write_meta_obio_diag(fid)
+      use pario, only: write_data, write_dist_data
+      use cdl_mod, only: write_cdl
+#ifdef OBIO_ON_GARYocean
+      USE OCEANR_DIM, only: ogrid
+#else
+      USE hycom_dim, only: ogrid
+      use hycom_arrays, only : lonij, latij
+      use obio_com, only: ze
+#endif
+      implicit none
+
+      integer, intent(in) :: fid
+
+#ifndef OBIO_ON_GARYocean
+      call write_dist_data(ogrid, fid, 'latij', latij(:, :, 3))
+      call write_dist_data(ogrid, fid, 'lonij', lonij(:, :, 3))
+      call write_dist_data(ogrid, fid, 'depths', ze)
+#endif
+      call write_data(ogrid, fid, 'ia_obio_ij', ia_ij%getdata())
+      call write_data(ogrid, fid, 'scale_obio_ij', scale_ij%getdata())
+      call write_data(ogrid, fid, 'sname_obio_ij', sname_ij%getdata())
+      if (associated(cdl_lons))
+     &      call write_cdl(ogrid, fid, 'cdl_obio_ij', cdl_ij)
+
+      call write_data(ogrid, fid, 'ia_obio_ijl', ia_ijl%getdata())
+      call write_data(ogrid, fid, 'scale_obio_ijl', scale_ijl%getdata())
+      call write_data(ogrid, fid, 'sname_obio_ijl', sname_ijl%getdata())
+      if (associated(cdl_lons))
+     &      call write_cdl(ogrid, fid, 'cdl_obio_ijl', cdl_ijl)
+
+      end subroutine write_meta_obio_diag
+
+
+      subroutine reset_obio_diag
+      implicit none
+
+      obio_ij=0.
+      obio_ijl=0.
+
+      end subroutine reset_obio_diag
+
+
+      end module obio_diag
+
+
+
 !------------------------------------------------------------------------------
       subroutine alloc_obio_com
       USE obio_com
       USE obio_dim
+      use obio_diag, only: init_obio_diag
 
 #ifdef OBIO_ON_GARYocean
       USE OCEANR_DIM, only : ogrid
@@ -349,6 +646,8 @@ c**** Extract domain decomposition info
       ALLOCATE(Kd(nlt,kdm))
       ALLOCATE(Kpar(kdm))
       ALLOCATE(delta_temp1d(kdm))
+
+      call init_obio_diag
 
       end subroutine alloc_obio_com
 
