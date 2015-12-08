@@ -209,19 +209,7 @@ c
       !tracer array initialization.
       !note: we do not initialize obio_P,det and car
 
-#ifdef OBIO_ON_GARYocean
-        if(file_exists('obio_inicond')) then
-        ! read initial state in netcdf format.  this input file contains the
-        ! result of the special-case initializations in obio_bioinit_g
-          call new_io_obio_inicond
-        ! not sure why trivial initial values for avgq, gcmax were
-        ! being set in obio_bioinit_g rather than obio_init. - M.K.
-          avgq(:,:,:) = 25.0 !  Light saturation data
-          gcmax(:,:,:) = 0.0 !  Coccolithophore max growth rate
-        else
-          call obio_bioinit
-        endif
-#else
+#ifndef OBIO_ON_GARYocean
         ao_co2fluxav_loc  = 0.
         pCO2av_loc = 0
         pp2tot_dayav_loc = 0
@@ -232,10 +220,8 @@ c
         cexpav_loc = 0
         caexpav_loc = 0
         pHav_loc = 0
-
-
-        call obio_bioinit
 #endif
+        call obio_bioinit
       endif   !cold restart
 
 
