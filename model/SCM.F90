@@ -790,10 +790,11 @@
       if(Pedge(Lgcm+1) > SCMin_tP%Le(1)) Ltop=1
 
       ! variable-dependent treatment in GCM layers above input profile
-      if( Lbot > 0 .and. Lbot==Ltop )then
+      if( Lbot > 0 .and. ( Lbot==Ltop .and. .not. SCMopt%gradient ) )then
         ! GCM layer is below the first layer or within a single layer
         SCMinP(Lgcm) = SCMin_tP%value(nstepSCM,Lbot)
-      else if( Lbot > 0 .and. Ltop > 0 )then
+      else if( Lbot > 0 .and. ( Ltop > 0 .or. &
+               ( Lbot==Ltop .and. SCMopt%gradient ) ) )then
         ! GCM layer spans two or more input layers
         if( SCMopt%gradient )then   ! linear interpolation
           do Ldata = 1,SCMin_tP%nlev-1
