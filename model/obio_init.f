@@ -557,7 +557,7 @@ c------------------------------------------------------------------------------
       implicit none
       character(len=*), intent(in) :: filename
       real*8, dimension(:,:,:), allocatable, intent(out) :: array
-      real*8, dimension(:), allocatable, intent(out) :: depth
+      real*8, dimension(:), allocatable, intent(out), optional :: depth
       integer :: fid, dlens(7), ndims
 
       fid=par_open(ogrid, filename, 'read')
@@ -566,8 +566,10 @@ c------------------------------------------------------------------------------
      &   call stop_model('dimension mismatch: '//trim(filename), 255)
       allocate(array(ogrid%i_strt:ogrid%i_stop,
      &                  ogrid%j_strt:ogrid%j_stop, dlens(3)))
-      allocate(depth(dlens(3)))
-      call read_data(ogrid, fid, 'depth', depth, bcast_all=.true.)
+      if (present(depth)) then
+        allocate(depth(dlens(3)))
+        call read_data(ogrid, fid, 'depth', depth, bcast_all=.true.)
+      endif
       call read_dist_data(ogrid, fid, 'array', array)
       call par_close(ogrid, fid)
       end subroutine bio_inicond_read_new
@@ -700,11 +702,10 @@ c------------------------------------------------------------------------------
      .          ogrid%J_STRT:ogrid%J_STOP)
       integer :: new_inicond=0
       real*8, dimension(:, :, :), allocatable :: array
-      real*8, dimension(:), allocatable :: depth
 
       call sync_param('new_inicond', new_inicond)
       if (new_inicond==1) then
-        call bio_inicond_read_new(filename, array, depth)
+        call bio_inicond_read_new(filename, array)
       else
         allocate(array(size(fldo, 1), size(fldo, 2), 1))
         call bio_inicond_read(filename, dlatm, 180d0, .true., array)
@@ -723,7 +724,8 @@ c --- mapping flux-like field from agcm to ogcm
 c     input: flda (W/m*m), output: fldo (W/m*m)
 c
 
-      use bio_inicond_mod, only: bio_inicond_read
+      use bio_inicond_mod, only: bio_inicond_read, bio_inicond_read_new
+      use dictionary_mod, only: sync_param
 #ifdef OBIO_ON_GARYocean
       USE OCEANR_DIM, only : ogrid
       USE OCEANRES, only : idm=>imo,jdm=>jmo
@@ -737,16 +739,26 @@ c
 
       integer, parameter :: igrd=360,jgrd=180,kgrd=12
       character(len=*), intent(in) :: filename
-      real, intent(out) :: fldo(ogrid%I_STRT:ogrid%I_STOP,
-     .          ogrid%J_STRT:ogrid%J_STOP,kgrd)
+      real, intent(out), allocatable :: fldo(:, :, :)
       real data2(idm,jdm,kgrd)
-      integer :: k
+      integer :: k, new_inicond=0
 
-      call bio_inicond_read(filename, dlatm, 0d0, .false., data2)
 #ifdef OBIO_ON_GARYocean
-      fldo=data2(ogrid%I_STRT:ogrid%I_STOP,
+      call sync_param('new_inicond', new_inicond)
+      if (new_inicond==1) then
+        call bio_inicond_read_new(filename, fldo)
+      else
+        allocate(fldo(ogrid%I_STRT:ogrid%I_STOP,
+     .                              ogrid%J_STRT:ogrid%J_STOP,kgrd))
+        call bio_inicond_read(filename, dlatm, 0d0, .false., data2)
+        fldo=data2(ogrid%I_STRT:ogrid%I_STOP,
      .          ogrid%J_STRT:ogrid%J_STOP,:)
+      endif
 #else
+      call sync_param('new_inicond', new_inicond)
+      allocate(fldo(ogrid%I_STRT:ogrid%I_STOP,
+     .                              ogrid%J_STRT:ogrid%J_STOP,kgrd))
+      call bio_inicond_read(filename, dlatm, 0d0, .false., data2)
       do k=1,kgrd
         call flxa2o(data2(:,aj_0:aj_1,k),fldo(:,:,k))
       end do
