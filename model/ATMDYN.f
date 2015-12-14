@@ -204,6 +204,9 @@ c      end subroutine setDtParam
 
       Real*8,Dimension (LM, IM, GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      &   MEVEN,MODD1,MODD3
+#ifdef V2_ATMDYN_TIMESTEPPING
+     &  ,MMID
+#endif
       Real*8,Dimension (IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      &   MSUMODD, FPEU,FPEV, AM1,AM2
       Real*8,Dimension (IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) ::
@@ -304,7 +307,9 @@ C**** Leap-frog re-initialization: IF (NS.LT.NIdyn)
       Call AFLUX  (NS,   UT,VT,MODD1,MSUMODD,   MEVEN,MASUM)
       Call ADVECM (DTLF,              MEVEN,    MA,MASUM)
       Call GWDRAG (DTLF, UT,VT,             U,V,MA, T,TZ, .False.)
+#ifndef V2_ATMDYN_TIMESTEPPING
       Call VDIFF  (DTLF, UT,VT,             U,V,MA, T)
+#endif
       Call ADVECV (DTLF, UT,VT,MODD1, MEVEN,U,V,MA)
        PU(:,:,:) = MU(:,:,:)*kg2mb
        PV(:,:,:) = MV(:,:,:)*kg2mb
@@ -322,12 +327,19 @@ C**** ADVECT Q AND T
       Do L=1,LM
          MMA(:,:,L) = MEVEN(L,:,:)*AXYP(:,:)  ;  EndDo
       Call AADVT (DTLF, MMA,T,TMOM, .False., FPEU,FPEV)
+#ifdef V2_ATMDYN_TIMESTEPPING
+      Call VDIFF  (DTLF, UT,VT,             U,V,MA, T)
+#endif
 !     save z-moment of temperature in contiguous memory for later
       TZ(:,:,:) = TMOM(MZ,:,:,:)
        TT(:,:,:) = .5*( T(:,:,:)+ TT(:,:,:))
       TZT(:,:,:) = .5*(TZ(:,:,:)+TZT(:,:,:))
-
+#ifdef V2_ATMDYN_TIMESTEPPING
+      MMID = .5d0*(MEVEN + MA)
+      Call PGF    (DTLF, UT,VT,MMID,       U,V,MA, TT,TZT)
+#else
       Call PGF    (DTLF, UT,VT,MODD1,       U,V,MA, TT,TZT)
+#endif
       Call COMPUTE_MASS_FLUX_DIAGS (GZ, MU,MV, DT)
       call isotropuv(u,v,COS_LIMIT)
       if (USE_UNR_DRAG==0) CALL SDRAG (DTLF)
@@ -823,6 +835,266 @@ C**** Compute MW (kg/s) = downward vertical mass flux
      *  (I3,11F12.3,F12.6))
       EndSubroutine ADVECM
 
+#ifdef V2_PGF
+      SUBROUTINE PGF(DT1, U,V,MAM, UT,VT,MAFTER, T,SZ)
+
+!@sum  PGF Adds pressure gradient forces to momentum
+!@auth Original development team
+      USE CONSTANT, only : grav,rgas,kapa,bykapa,bykapap1,bykapap2
+      USE RESOLUTION, only : ls1,psfmpt,ptop
+      USE RESOLUTION, only : im,jm,lm
+      USE ATM_COM, only : zatmo
+      USE DIAG_COM, only : modd5k
+      USE GEOM, only : imaxj,dxyv,dxv,dyv,dxyp,dyp,dxp,acor,acor2
+      USE ATM_COM, only : gz,phi
+      USE DYNAMICS, only : pu,spa,dut,dvt,do_polefix,mrch
+     &     ,dsig,sige,sig,bydsig
+c      USE DIAG, only : diagcd
+      USE DOMAIN_DECOMP_ATM, only: grid
+      USE DOMAIN_DECOMP_1D, Only : getdomainbounds
+      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE
+      USE DOMAIN_DECOMP_1D, only : NORTH, SOUTH
+      USE DOMAIN_DECOMP_1D, only : haveLatitude
+      IMPLICIT NONE
+      REAL*8 DT1
+
+      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM)::
+     &     U,V,UT,VT,T,SZ
+
+      REAL*8,DIMENSION(LM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
+     &   MAM,MAFTER
+
+! local arrays computed from input
+      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) ::
+     *  P
+      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
+     *  PB
+
+      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO):: FD,RFDUX
+
+      REAL*8 PKE(LS1:LM+1)
+      REAL*8 DT4
+      REAL*8 PIJ,PDN,PKDN,PKPDN,PKPPDN,PUP,PKUP,PKPUP,PKPPUP,DP,P0,X
+     *     ,BYDP
+      REAL*8 TZBYDP,FLUX,FDNP,FDSP,RFDU,PHIDN,FACTOR
+      INTEGER I,J,L,IM1,IP1,IPOLE  !@var I,J,IP1,IM1,L,IPOLE loop variab.
+c**** Extract domain decomposition info
+      INTEGER :: J_0, J_1, J_0STG, J_1STG, J_0S, J_1S, J_0H, J_1H
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+      CALL getdomainbounds(grid, J_STRT = J_0, J_STOP = J_1,
+     &               J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG,
+     &               J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,
+     &               J_STRT_HALO = J_0H,   J_STOP_HALO = J_1H,
+     &         HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &         HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+C****
+      DT4=DT1/4.
+      DO L=LS1,LM+1
+        PKE(L)=(PSFMPT*SIGE(L)+PTOP)**KAPA
+      END DO
+C****
+C**** VERTICAL DIFFERENCING
+C****
+      DO L=LS1,LM
+      SPA(:,:,L)=0.
+      END DO
+
+      DO J=J_0,J_1
+      DO I=1,IMAXJ(J)
+        ! fill in old-style arrays from new-style arrays
+        p(i,j,1) = sum(mam(1:ls1-1,i,j))*grav*.01d0
+        pb(i,j) = sum(mafter(1:ls1-1,i,j))*grav*.01d0
+        do l=2,ls1-1
+          p(i,j,l) = p(i,j,1)
+        enddo
+        do l=ls1,lm
+          p(i,j,l) = psfmpt
+        enddo
+
+        PIJ=P(I,J,1)
+        PDN=PIJ+PTOP
+        PKDN=PDN**KAPA
+        PHIDN=ZATMO(I,J)
+C**** LOOP OVER THE LAYERS
+        DO L=1,LM
+          PKPDN=PKDN*PDN
+          PKPPDN=PKPDN*PDN
+          IF(L.GE.LS1) THEN
+            DP=DSIG(L)*PSFMPT
+            BYDP=1./DP
+            P0=SIG(L)*PSFMPT+PTOP
+            TZBYDP=2.*SZ(I,J,L)*BYDP
+            X=T(I,J,L)+TZBYDP*P0
+            PUP=SIGE(L+1)*PSFMPT+PTOP
+            PKUP=PKE(L+1)
+            PKPUP=PKUP*PUP
+            PKPPUP=PKPUP*PUP
+          ELSE
+            DP=DSIG(L)*PIJ
+            BYDP=1./DP
+            P0=SIG(L)*PIJ+PTOP
+            TZBYDP=2.*SZ(I,J,L)*BYDP
+            X=T(I,J,L)+TZBYDP*P0
+            PUP=SIGE(L+1)*PIJ+PTOP
+            PKUP=PUP**KAPA
+            PKPUP=PKUP*PUP
+            PKPPUP=PKPUP*PUP
+C****   CALCULATE SPA, MASS WEIGHTED THROUGHOUT THE LAYER
+            SPA(I,J,L)=RGAS*((X+TZBYDP*PTOP)*(PKPDN-PKPUP)*BYKAPAP1
+     *      -X*PTOP*(PKDN-PKUP)*BYKAPA-TZBYDP*(PKPPDN-PKPPUP)*BYKAPAP2)
+     *      *BYDP
+          END IF
+C**** CALCULATE PHI, MASS WEIGHTED THROUGHOUT THE LAYER
+          PHI(I,J,L)=PHIDN+RGAS*(X*PKDN*BYKAPA-TZBYDP*PKPDN*BYKAPAP1
+     *      -(X*(PKPDN-PKPUP)*BYKAPA-TZBYDP*(PKPPDN-PKPPUP)*BYKAPAP2)
+     *      *BYDP*BYKAPAP1)
+C**** CALULATE PHI AT LAYER TOP (EQUAL TO BOTTOM OF NEXT LAYER)
+          PHIDN=PHIDN+RGAS*(X*(PKDN-PKUP)*BYKAPA-TZBYDP*(PKPDN-PKPUP)
+     *     *BYKAPAP1)
+          PDN=PUP
+          PKDN=PKUP
+        END DO
+      END DO
+      END DO
+
+C**** SET POLAR VALUES FROM THOSE AT I=1
+      IF (haveLatitude(grid, J=1)) THEN
+        DO L=1,LM
+          P(2:IM,1,L)=P(1,1,L)
+          SPA(2:IM,1,L)=SPA(1,1,L)
+          PHI(2:IM,1,L)=PHI(1,1,L)
+        END DO
+        PB(2:IM,1)=PB(1,1)
+      END IF
+      IF (haveLatitude(grid, J=JM)) THEN
+        DO L=1,LM
+          P(2:IM,JM,L)=P(1,JM,L)
+          SPA(2:IM,JM,L)=SPA(1,JM,L)
+          PHI(2:IM,JM,L)=PHI(1,JM,L)
+        END DO
+        PB(2:IM,JM)=PB(1,JM)
+      END IF
+
+      DO L=1,LM
+        GZ(:,:,L)=PHI(:,:,L)
+      END DO
+C****
+C**** PRESSURE GRADIENT FORCE
+C****
+C**** NORTH-SOUTH DERIVATIVE AFFECTS THE V-COMPONENT OF MOMENTUM
+C
+      CALL HALO_UPDATE(grid, P,   FROM=SOUTH)
+      CALL HALO_UPDATE(grid, PHI, FROM=SOUTH)
+      CALL HALO_UPDATE(grid, SPA, FROM=SOUTH)
+      DO 3236 L=1,LM
+      DO 3236 J=J_0STG,J_1STG
+      FACTOR = DT4*DXV(J)*DSIG(L)
+      IM1=IM
+      DO 3234 I=1,IM
+      FLUX=    ((P(I,J,L)+P(I,J-1,L))*(PHI(I,J,L)-PHI(I,J-1,L))+
+     *  (SPA(I,J,L)+SPA(I,J-1,L))*(P(I,J,L)-P(I,J-1,L)))*FACTOR
+      DVT(I,J,L)  =DVT(I,J,L)  -FLUX
+      DVT(IM1,J,L)=DVT(IM1,J,L)-FLUX
+ 3234 IM1=I
+ 3236 CONTINUE
+C
+C**** SMOOTHED EAST-WEST DERIVATIVE AFFECTS THE U-COMPONENT
+C
+C Although PU appears to require a halo update, the halos
+C of PHI, SPA, and P enable implementation without the additional halo.
+C
+      DO L=1,LM
+        IF (haveLatitude(grid, J=1)) PU(:,1,L)=0.
+        IF (haveLatitude(grid, J=JM)) PU(:,JM,L)=0.
+        I=IM
+
+        DO J=Max(2,J_0STG-1),J_1STG
+          DO IP1=1,IM
+            PU(I,J,L)=(P(IP1,J,L)+P(I,J,L))*(PHI(IP1,J,L)-PHI(I,J,L))+
+     *           (SPA(IP1,J,L)+SPA(I,J,L))*(P(IP1,J,L)-P(I,J,L))
+            I=IP1
+          END DO
+        END DO
+
+        CALL AVRX (PU(1,J_0H,L),jrange=(/MAX(2,J_0H),MIN(JM-1,J_1H)/))
+
+        DO J=J_0STG,J_1STG
+          FACTOR = -DT4*DYV(J)*DSIG(L)
+          DO I=1,IM
+            DUT(I,J,L)=DUT(I,J,L)+FACTOR*(PU(I,J,L)+PU(I,J-1,L))
+          END DO
+        END DO
+      END DO
+
+c correct for erroneous dxyv at the poles
+      if(do_polefix.eq.1) then
+         do ipole=1,2
+            if(haveLatitude(grid,J=2) .and. ipole.eq.1) then
+               j = 2
+            else if(haveLatitude(grid,J=JM) .and. ipole.eq.2) then
+               j = JM
+            else
+               cycle
+            endif
+            dut(:,j,:) = dut(:,j,:)*acor
+            dvt(:,j,:) = dvt(:,j,:)*acor2
+         enddo
+      endif
+C
+C**** CALL DIAGNOSTICS
+      IF(MRCH.GT.0) THEN
+         IF(MODD5K.LT.MRCH) CALL DIAG5D (6,MRCH,DUT,DVT)
+         CALL DIAGCD (grid,3,U,V,DUT,DVT,DT1)
+      ENDIF
+C****
+C****
+C**** UNDO SCALING PERFORMED AT BEGINNING OF DYNAM
+C****
+      DO 3410 J=J_0STG,J_1STG
+      DO 3410 I=1,IM
+ 3410 FD(I,J)=PB(I,J)*DXYP(J)
+      IF (haveLatitude(grid, J=1)) THEN
+        FDSP=PB(1, 1)*DXYP( 1)
+        FDSP=FDSP+FDSP
+        DO I=1,IM
+          FD(I, 1)=FDSP
+        END DO
+      END IF
+      IF (haveLatitude(grid, J=JM)) THEN
+        FDNP=PB(1,JM)*DXYP(JM)
+        FDNP=FDNP+FDNP
+        DO I=1,IM
+          FD(I,JM)=FDNP
+        END DO
+      END IF
+C
+      CALL HALO_UPDATE(grid, FD, FROM=SOUTH)
+      DO 3530 J=J_0STG,J_1STG
+      I=IM
+      DO 3525 IP1=1,IM
+      RFDUX(I,J)=4./(FD(I,J)+FD(IP1,J)+FD(I,J-1)+FD(IP1,J-1))
+ 3525 I = IP1
+ 3530 CONTINUE
+C
+      DO 3550 L=1,LM
+      DO 3550 J=J_0STG,J_1STG
+      RFDU=1./(PSFMPT*DXYV(J)*DSIG(L))
+      DO 3540 I=1,IM
+      IF(L.LT.LS1) RFDU=RFDUX(I,J)*BYDSIG(L)
+
+c      if(i.eq.10 .and. j.eq.10) then
+c        write(6,*) 'dudt1010old ',l,dut(i,j,l)*rfdu,dvt(i,j,l)*rfdu
+c      endif
+
+      VT(I,J,L)=VT(I,J,L)+DVT(I,J,L)*RFDU
+      UT(I,J,L)=UT(I,J,L)+DUT(I,J,L)*RFDU
+ 3540 CONTINUE
+ 3550 CONTINUE
+C
+      RETURN
+      END SUBROUTINE PGF
+
+#else /* not V2_PGF */
 
       Subroutine PGF (DT1, U,V,MAM, UT,VT,MAFTER, S0,SZ)
 !@sum  PGF Adds pressure gradient forces to momentum
@@ -1042,6 +1314,7 @@ C****
 
       RETURN
       END SUBROUTINE PGF
+#endif /* V2_PGF or not */
 
       SUBROUTINE AVRX(X,jrange)
 !@sum  AVRX Smoothes zonal mass flux and geopotential near the poles
@@ -1146,6 +1419,9 @@ C****
       Use CONSTANT,   Only: byGRAV,RGAS,SHA,KAPA,MB2KG
       Use RESOLUTION, Only: IM,JM,LM
       Use RESOLUTION, Only: MFIX,MFRAC
+#ifdef V2_PSURF_FILTER
+      Use RESOLUTION, Only: ptop
+#endif
 #ifndef STDHYB
       Use RESOLUTION, Only: MFIXs,MTOP
 #endif
@@ -1214,8 +1490,15 @@ C****
           PSUMO = PSUMO + PEDNOLD(I,J)
           PEDN(1,I,J) = X(I,J) / Y(I,J)
 C**** reduce large variations (mainly due to topography)
+#ifdef V2_PSURF_FILTER /* only for comparing to V2 runs */
+          PEDN(1,I,J) = ptop +
+     &         Max (PEDN(1,I,J)-ptop, 0.99d0*(PEDNOLD(I,J)-ptop))
+          PEDN(1,I,J) = ptop +
+     &         Min (PEDN(1,I,J)-ptop, 1.01d0*(PEDNOLD(I,J)-ptop))
+#else
           PEDN(1,I,J) = Max (PEDN(1,I,J), 0.9882d0*PEDNOLD(I,J))
           PEDN(1,I,J) = Min (PEDN(1,I,J), 1.0118d0*PEDNOLD(I,J))
+#endif
           PSUMN = PSUMN + PEDN(1,I,J)
         END DO
 !**** Conserve column mass for present J latitude row
