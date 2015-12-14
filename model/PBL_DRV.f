@@ -778,7 +778,7 @@ c These routines include the array ipbl which indicates if the
 c  computation for a particular ITYPE was done last time step.
 c -------------------------------------------------------------
       USE Dictionary_mod
-      USE CONSTANT, only : lhe,lhs,tf,omega2,deltx,UNDEF_VAL
+      USE CONSTANT, only : lhe,lhs,tf,omega2,deltx,UNDEF_VAL,rgas,grav
       USE ATM_COM, only : u,v,p,t,q
       USE ATM_COM, only : traditional_coldstart_aic
       USE GEOM, only : imaxj,sinlat2d
@@ -793,7 +793,7 @@ c -------------------------------------------------------------
       USE PBLCOM
       USE DOMAIN_DECOMP_ATM, only : GRID
       USE DOMAIN_DECOMP_1D, only : WRITET_PARALLEL, getDomainBounds
-      USE ATM_COM, only : pmid,pk,pedn,pek
+      USE ATM_COM, only : pmid,pk,pedn,pek,pdsig
      &    ,DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
      &    ,ua=>ualij,va=>valij
       USE SEAICE_COM, only : si_atm
@@ -884,6 +884,8 @@ C****
 
         DO J=J_0,J_1
         DO I=I_0,I_1
+          pblht(i,j) = (.5*pdsig(1,i,j)/pmid(1,i,j))*
+     &         (rgas*t(i,j,1)*pk(1,i,j)/grav)
           atmsrf%usavg(i,j) = ua(1,i,j)
           atmsrf%vsavg(i,j) = va(1,i,j)
           atmsrf%wsavg(i,j) =
