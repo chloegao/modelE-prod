@@ -3151,10 +3151,12 @@ c**** difference of net flux over layer
         TRHR(1:LM,I,J) = Frad(1:LM) - Frad(2:LM+1)
       endif
 c**** save radiative flux profiles for sub-daily output
+#ifdef CACHED_SUBDD
       TRDFLB_prof(I,J,1:LM) = TRDFLB(1:LM)
       TRUFLB_prof(I,J,1:LM) = TRUFLB(1:LM)
       SRDFLB_prof(I,J,1:LM) = SRDFLB(1:LM)
       SRUFLB_prof(I,J,1:LM) = SRUFLB(1:LM)
+#endif
 #endif
 C**** Save fluxes at four levels surface, P0, P1, LTROPO
       SNFS(1,I,J)=SRNFLB(1)     ! Surface
