@@ -16,7 +16,8 @@ logger = logging.getLogger('main')
 # MAIN DRIVER
 def main():
     starttime = time.time()
-    useMessage = 'Usage: python ' + sys.argv[0] + ' <configFileName> # no file extension'
+    useMessage = 'Usage: python ' + sys.argv[0] + \
+        ' <configFileName> # no file extension'
     if len(sys.argv)==1:
         print useMessage
         sys.exit()
@@ -48,8 +49,8 @@ def main():
     config = regUtils.readConfig(cfgfile)
 
 # COMPCONFIG section contains computational configuration information (compilers,
-# libraries, etc). There are COMPCONFIG defaults in file comp.cfg but those can be
-# overridden in the user-defined config file by re-defining the defaults.
+# libraries, etc). There are COMPCONFIG defaults in file comp.cfg but those can
+# be overridden in the user-defined config file by re-defining the defaults.
     if not config.has_section("COMPCONFIG"):
         compconfig = regUtils.readConfig('comp.cfg')
     else:
@@ -66,12 +67,11 @@ def main():
 # Let's setup the testing environment, specific to modelE
     tools.setupEnv(config, compconfig)
 
+# Define/execute git/mkdir tasks
     if makesystem == 'makeOld':
         # Create gitTasks
         gitTasks = tools.setupCloneTasks(config, compconfig, runList)
-        # ... and execute them (if NOT debugging)
-        if not os.environ.has_key('DEBUG'):
-            regPool.runCommands(gitTasks, 'no')
+        regPool.runCommands(gitTasks, 'no')
     else:
         # Setup run directories for out of source builds
         tools.setupRuns(config, compconfig, runList)
@@ -86,7 +86,7 @@ def main():
     eTime =  time.time()-starttime
 
 # Verify runs and notify (only if "mailto" field is not empty)
-    tools.verifyRuns(config, runList)
+    tools.verifyRuns(config, compconfig, runList)
     if userconfig['mailto']:
         tools.sendDiffreport(config, compconfig, eTime)
 # -------------------------------

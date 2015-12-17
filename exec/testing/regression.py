@@ -30,25 +30,24 @@ import shlex
 import subprocess
 import logging
 import ConfigParser
+import regCompare
 from regRuns import *
 
-def compare(rundeck, run):
-    if run.verification != 'compileOnly':
-        if run.mode == 'serial':
-            compareBase(run, '1hr')
-            if run.verification != 'run1hr':
-                compareBase(run, run.endTime)
-                # And compare SERIAL checkpoint-restart
-                compareRestart(run)
-        else:
-            for npes in rundeck.npList:
-                # Compare runs with baseline
-                compareBase(run, '1hr', npes=npes)
-                if run.verification != 'run1hr':
-                    compareBase(run, run.endTime, npes=npes)
-                    compareRestart(run, npes=npes)
-                # Compare 1hr run against serial
-                compareNPE(run, run.endTime, npes)
+def compare(run):
+    if run.mode == 'serial':
+        regCompare.base(run, 1) # 1hr run
+        if run.verification == 'restartRun':
+            regCompare.base(run, run.endTime)
+            regCompare.restart(run)
+    else:
+        for npes in run.getOpt('npes'):
+            regCompare.base(run, 1, npes=npes)
+            if run.verification == 'restartRun':
+                regCompare.base(run, run.endTime, npes=npes)
+                regCompare.restart(run, npes=npes)
+            # Compare NPE vs serial
+            regCompare.nPE(run, run.endTime, npes)
+
 
 def writeDiff(run, fileH):
     fileH.write('%20s' % (run.results[0]))
@@ -66,14 +65,12 @@ def writeDiff(run, fileH):
 """
 if __name__ == '__main__':
 
-    setRunUtils()
-
     # System call return code
     OK = 0
 
     # List of runSources to verify specified on command line
     runSources = []
-    if len(sys.argv) > 0:
+    if len(sys.argv) > 1:
         for arg in sys.argv[1:]:
             runSources.append(arg)
     else: # if none specified, use nonProduction_E_AR5_C12
@@ -82,17 +79,18 @@ if __name__ == '__main__':
     # Loop over each run source in list
     for source in runSources:
 
-        # Create rundeck object with default or config properties
+        # Create rundeck object
         rundeck = newRundeck(source)
+
+        # Setup a logging stream for this rundeck
+        rundeck.setLogging()
+        logger = logging.getLogger('MAIN    ')
         
-        # List of rundeck run configurations for each mode
+        # Create a list of rundeck run configurations for each mode
         runs = []
-        for mode in rundeck.modeList:
+        for mode in rundeck.modes:
             runs.append(newRun(rundeck, mode))
 
-        # Setup a logging stream
-        setupLogging(rundeck)
-        logger = logging.getLogger('MAIN    ')
         # All the work is done from the modelE decks directory
         os.chdir(rundeck.decksDir)
 
@@ -102,47 +100,48 @@ if __name__ == '__main__':
         logger.info('Verifying ' + rundeck.name + ': ' + rundeck.verification)
 
         for run in runs:
+
+            # initialize build results to OK
             serBuildResult = OK
             mpiBuildResult = OK
+
             if run.mode == 'serial':
                 serBuildResult = build(run)
-                if rundeck.verification != 'compileOnly':
-                    if serBuildResult == OK:
-                        rc = run1hr(run)
-                        if rc != 0:
-                            continue
-                        if rundeck.verification != 'run1hr':
-                            rc = runRestart(run, endtime=run.endtime)
-                            if rc != 0:
-                                continue
-            else:
+                if rundeck.verification == 'compileOnly':
+                    continue
+                if serBuildResult == OK:
+                    # Always run 1hr
+                    rc = run1hr(run)
+                    if rundeck.verification == 'restartRun':
+                        rc = runRestart(run, endTime=run.endTime)
+            else: # MPI
                 mpiBuildResult = build(run)
-                if run.verification != 'compileOnly':
-                    if mpiBuildResult == OK:
-                        for npes in rundeck.npList:
-                            rc = run1hr(run, npes=npes)
-                            if rc != 0:
-                                continue
-                            if run.verification != 'run1hr':
-                                rc = runRestart(run, npes=npes, endtime=run.endtime)
-                                if rc != 0:
+                if run.verification == 'compileOnly':
+                    continue
+                if mpiBuildResult == OK:
+                    if run.verification == 'customRun':
+                        if mpiBuildResult == OK:
+                            for npes in run.npes:
+                                rc = runLong(run, npes=npes)
+                                if rc != OK:
                                     continue
-
-                elif rundeck.verification == 'customRun':
-                    if mpiBuildResult == OK:
-                        for npes in run.npList:
-                            rc = runLong(run, npes=npes)
-                            if rc != 0:
-                                continue
+                    else:    
+                        for npes in run.npes:
+                            # Always run 1hr
+                            rc = run1hr(run, npes=npes)
+                            if run.verification == 'restartRun':
+                                rc = runRestart(run, npes=npes, endTime=run.endTime)
 
             logger.info(rundeck.name + ' ' + run.mode + ' runs complete.')
+
             # If any build failed, then go on to the next run
             if serBuildResult != OK or mpiBuildResult != OK:
                 continue
 
             if rundeck.standalone == 'yes':
-                compare(rundeck, run)
-                writeDiff(run, fileH)
+                if run.verification != 'customRun' or run.verification == 'compileOnly':
+                    compare(run)
+                    writeDiff(run, fileH)
 
         fileH.close()
 

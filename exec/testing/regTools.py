@@ -12,7 +12,8 @@ import fnmatch
 import logging
 import time
 import regUtils
-from regRuns import *
+import regRuns
+import regCompare
 
 logger = logging.getLogger('tools')
 
@@ -26,6 +27,7 @@ def setupEnv(config, compconfig):
     scratchDir = userconfig['scratchdir'] + '/scratch/' + userconfig['repobranch']
     makesystem =  userconfig['makesystem']
 
+    # Make sure - if specified - that work space is clean
     if userconfig['cleanscratch'] == 'yes':
         if not os.path.exists(resultsDir):
             regUtils.mkdir_p(resultsDir)    
@@ -73,9 +75,10 @@ def setupModelEenv(config, compconfig):
 
 # We need to get a list of compilers...
     compilers = regUtils.getCompilers(compconfig)
+# and libraries/modules info...
     libsconfig = regUtils.ConfigSectionMap(compconfig, 'COMPCONFIG')
 
-# ... to create modelErc file(s)
+# ... to create modelErc file(s) for each compiler
     for comp in compilers:
        if not os.path.exists(scratchDir + comp):
           regUtils.mkdir_p(resultsDir + '/' + comp)
@@ -162,12 +165,11 @@ def setupCloneTasks(config, compconfig, decklist):
          
         for comp in deck.getOpt('compilers').split(','):
             for mode in deck.getOpt('modes').split(','):
-                cmode = '.' + mode
                 if comp in compilers:
-                   commandString = regUtils.gitCloneCommand(config, dName, comp, cmode)
+                   commandString = regUtils.gitCloneCommand(config, dName, comp, mode)
                    cloneTasks.append(commandString)
                 else:
-                   logger.error(comp+' is not defined in COMPCONFIG')
+                   logger.error('Compiler '+comp+' is not defined in COMPCONFIG')
             
     for t in cloneTasks:
         logger.debug('CLONE TASK %s', t)
@@ -219,8 +221,11 @@ def setupScriptTasks(config, compconfig, decklist):
                 else:
                     logger.error(comp+' is not defined in COMPCONFIG')
 
-    for t in scriptTasks:
-        logger.debug('SCRIPT TASK %s', t)
+    if len(scriptTasks) > 0:
+        for t in scriptTasks:
+            logger.debug('SCRIPT TASK %s', t)
+    else:
+            logger.debug('There is nothing to do.')        
     return scriptTasks
 
 #-------------------------------------------------------------------------------
@@ -231,7 +236,7 @@ def createScriptTask(config, compconfig, deck, comp, mode):
     modules    = userconfig['modules']
     useBatch   = userconfig['usebatch']
     branch     = userconfig['repobranch']
-    scriptsDir = userconfig['scriptsdir'] + '/exec/testing/'
+    scriptsDir = userconfig['scriptsdir'] + '/'
     useMods    = userconfig['modules']
     resultsDir = userconfig['scratchdir'] + '/results/' + \
                  branch + '/' + comp
@@ -248,14 +253,16 @@ def createScriptTask(config, compconfig, deck, comp, mode):
     fileHandle = open ( filename, 'w' ) 
 
     if useBatch == 'yes':
+        
+        cores = max(deck.getOpt('npes'))
+
         # If we are just compiling this rundeck
         if deck.getOpt('verification') == 'compileOnly':
             cores = 4
-            walltime = '00:30:00'
+            walltime = '00:10:00'
 
         # customRun is a 2-month run
         elif deck.getOpt('verification') == 'customRun':
-            cores = 88                
             if re.search('tomas', deckName):
                 walltime = '8:00:00'
             elif re.search('amp', deckName):
@@ -265,32 +272,18 @@ def createScriptTask(config, compconfig, deck, comp, mode):
             elif re.search('obio', deckName):
                 walltime = '1:00:00'
             elif re.search('C12', deckName):
-                cores = 22
                 walltime = '0:30:00'
             elif re.search('M20', deckName):
-                cores = 44
                 walltime = '0:30:00'
             else:
-                cores = 44
                 walltime = '1:00:00'
             
         # regular runs (1hr and/or restart)
         else:               
             if 'mpi' in mode: 
-                cores = 8
                 walltime = '01:00:00'
-                if re.search('tomas', deckName):
-                    cores = 88                
-                elif re.search('amp', deckName):
-                    cores = 44        
-                elif re.search('E_AR5_V2', deckName):
-                    if re.search('NINT', deckName):
-                        cores = 8
-                    else: # CADI and CAMP
-                        cores = 44
 
-            # serial
-            else:
+            else: # serial
                 cores = 1
                 walltime = '00:30:00'
                 if re.search('obio', deckName):
@@ -318,10 +311,10 @@ def createScriptTask(config, compconfig, deck, comp, mode):
         fileHandle.write ('#SBATCH --time='     + walltime + '\n')
         fileHandle.write ('#SBATCH --ntasks=' + str(cores) + '\n')
         # Use Haswell NODES
-        fileHandle.write ('#SBATCH --constraint=hasw' + '\n')
+        #fileHandle.write ('#SBATCH --constraint=hasw' + '\n')
         #if walltime == '00:30:00':
         #    fileHandle.write ('#SBATCH --qos=debug' + '\n')
-           
+          
     # Create rest of script used in batch OR interactive jobs:
 
     # Do we have modules to 'load'?
@@ -358,7 +351,10 @@ def createScriptTask(config, compconfig, deck, comp, mode):
         decksDir = scratchDir + '/decks/'
 #        fileHandle.write ('export BUILD_OUT_OF_SOURCE=YES\n')
 
+    # Set some environment variables
     fileHandle.write ('export DECKSDIR=' + decksDir + '\n')
+    modelErc = scratchDir + '/modelErc.' + comp
+    fileHandle.write ('export MODELERC=' + modelErc + '\n')
 
     # cd to the working dir and run the script
     fileHandle.write ('cd ' + decksDir + '\n')
@@ -366,7 +362,6 @@ def createScriptTask(config, compconfig, deck, comp, mode):
     fileHandle.write (' ' + '\n')
     fileHandle.close()
 
-    modelErc = scratchDir + '/modelErc.' + comp
     createRegConfig(config, deck, modelErc, comp, jobName, mode)
 
     if useBatch == 'yes':
@@ -379,7 +374,7 @@ def createScriptTask(config, compconfig, deck, comp, mode):
 #-------------------------------------------------------------------------------
 # Create a config file for regression.py script. 
 # Note: there is one config file for each rundeck/compiler combination
-def createRegConfig(config, deck, modelerc, comp, jobName, mode):
+def createRegConfig(config, deck, modelErc, comp, jobName, mode):
     cfg  = regUtils.ConfigSectionMap(config, 'USERCONFIG')
     branch     = cfg['repobranch']
     resultsDir = cfg['scratchdir'] + '/results/' + \
@@ -397,13 +392,14 @@ def createRegConfig(config, deck, modelerc, comp, jobName, mode):
     regconfig  = ConfigParser.RawConfigParser()
     regconfig.add_section('regSettings')
     regconfig.set('regSettings', 'rundeck', deck.name)
-    regconfig.set('regSettings', 'modelerc', modelerc)
+    regconfig.set('regSettings', 'modelerc', modelErc)
     regconfig.set('regSettings', 'compiler', comp)
     regconfig.set('regSettings', 'modes', mode)
     regconfig.set('regSettings', 'standalone', standalone)
     regconfig.set('regSettings', 'verification', deck.getOpt('verification'))
     regconfig.set('regSettings', 'endtime', deck.getOpt('endtime'))
-    regconfig.set('regSettings', 'nplist', deck.getOpt('npes'))
+    npestr = ' '.join(str(e) for e in deck.getOpt('npes'))
+    regconfig.set('regSettings', 'npes', npestr)
     regconfig.set('regSettings', 'buildtype', cfg['buildtype'])
     regconfig.set('regSettings', 'repository', cfg['repository'])
     regconfig.set('regSettings', 'branch', branch)
@@ -421,23 +417,21 @@ def createRegConfig(config, deck, modelerc, comp, jobName, mode):
 
 
 #-------------------------------------------------------------------------------
-def compare(rundeck, run):
-    if run.verification != 'compileOnly':
-        if run.mode == 'serial':
-            compareBase(run, '1hr')
-            if run.verification != 'run1hr':
-                compareBase(run, run.endTime)
-                # And compare SERIAL checkpoint-restart
-                compareRestart(run)
-        else:
-            for npes in rundeck.npList:
-                # Compare runs with baseline
-                compareBase(run, '1hr', npes=npes)
-                if run.verification != 'run1hr':
-                    compareBase(run, run.endTime, npes=npes)
-                    compareRestart(run, npes=npes)
-                # Compare 1hr run against serial
-                compareNPE(run, run.endTime, npes)
+def compare(run):
+
+    if run.mode == 'serial':
+        regCompare.base(run, 1) # 1hr run
+        if run.verification == 'restartRun':
+            regCompare.base(run, run.endTime)
+            regCompare.restart(run)
+    else:
+        for npes in run.npes:
+            regCompare.base(run, 1, npes=npes)
+            if run.verification == 'restartRun':
+                regCompare.base(run, run.endTime, npes=npes)
+                regCompare.restart(run, npes=npes)
+            # Compare NPE vs serial
+            regCompare.nPE(run, run.endTime, npes)
 
 #-------------------------------------------------------------------------------
 def writeDiff(run, fileH):
@@ -453,14 +447,14 @@ def writeDiff(run, fileH):
 #-------------------------------------------------------------------------------
 # This function performs a verification of the run output produced by the
 # regression tests. 
-def verifyRuns(config, runSources):
-    logger.info('Verifying...')
-    setRunUtils()
+def verifyRuns(config, compconfig, runSources):
+    logger.info('Reproducibility tests...')
 
     userconfig = regUtils.ConfigSectionMap(config, 'USERCONFIG')
     makesystem =  userconfig['makesystem']
     scratchDir = userconfig['scratchdir'] + '/scratch/' + \
         userconfig['repobranch'] + '/' 
+    validCompilers = regUtils.getCompilers(compconfig)
 
     # Loop over each run source in list
     for source in runSources:
@@ -473,19 +467,27 @@ def verifyRuns(config, runSources):
         # List of rundeck run configurations for each mode
         runs = []
         for mode in source.getOpt('modes').split(','):
-           for comp in source.getOpt('compilers').split(','):
-              if makesystem == 'makeOld':
-                 decksDir = scratchDir+comp+'/'+dirName+'.'+mode+'/decks'
-              else:
-                 decksDir = scratchDir+comp+'/decks'
-              os.chdir(decksDir)
-              os.environ['MYCONFIGDIR'] = decksDir
-              # Create rundeck object with default or config properties
-              rundeck = newRundeck(source.name)
-              runs.append(newRun(rundeck, mode))
+            if mode != 'serial' and mode != 'mpi':
+                logger.error('---Incorrect mode---' + mode)
+                continue
+            for comp in source.getOpt('compilers').split(','):
+                if comp in validCompilers:
+                    if makesystem == 'makeOld':
+                        decksDir = scratchDir+comp+'/'+dirName+'.'+mode+'/decks'
+                    else:
+                        decksDir = scratchDir+comp+'/decks'
+                    os.chdir(decksDir)
+                    os.environ['MYCONFIGDIR'] = decksDir
+                    # Create rundeck object
+                    rundeck = regRuns.newRundeck(source.name)
+                    runs.append(regRuns.newRun(rundeck, mode))
+                else:
+                   logger.error('Compiler '+comp+' is not defined in COMPCONFIG')
+                   continue
 
-        logger.info('Verifying ' + rundeck.name + ': ' + rundeck.verification)
         for run in runs:
+            logger.info(run.name + ': ' + run.verification)
+
             if makesystem == 'makeOld':
                 decksDir = scratchDir+run.compiler+'/'+dirName+'.'+run.mode+'/decks'
                 os.chdir(decksDir)
@@ -498,29 +500,39 @@ def verifyRuns(config, runSources):
             diffFile = rundeck.resultsDir + '/' + run.name + '.diff'
             fileH = open(diffFile, 'w')
 
-           # Did executable build?
+            # Did executable build?
             if makesystem == 'makeOld':
                 exe = dirName+'.'+run.mode+'.'+run.compiler
-                cmd = 'ls '+exe+'_bin/'+(exe+'.exe')
+                cmd = exe+'_bin/'+(exe+'.exe')
             else:
                 exe = 'model/modelexe'
                 cmd = 'ls '+exe
-            status = run.sysCmd(cmd, 3, 'b')
-            # If not, then go on to next experiment - and write results
-            if status != 0:
-                writeDiff(run, fileH)
-                continue
-            # Check for run-time failures
-            for f in os.listdir(decksDir + '/' + run.name + '/'):
-                if fnmatch.fnmatch(f, '*FAILED'):
-                    run.results[3] = 'Fr'
-            # Record comparisons
-            compare(rundeck, run)
+            exists = os.path.isfile(cmd)
+            if exists:
+                run.results[3] = '+'
+            else:
+                run.results[3] = 'Fb'
 
+            # Check for run-time failures
+            if  exists and run.verification != 'compileOnly':
+                ddir = decksDir + '/' + run.name + '/'
+                if os.path.exists(ddir):
+                    for file in os.listdir(ddir):
+                        if file.endswith('.FAILED'):
+                            run.results[3] = 'Fr'
+                else:
+                    logger.error(ddir + ' does not exist')
+                    continue
+
+            # Reproducibility checks
+            if run.verification != 'customRun' and run.verification != 'compileOnly':
+                compare(run)
+
+            # Write the rest of the results
             writeDiff(run, fileH)
             fileH.close()
 
-    logger.info(rundeck.name + ' verification complete.')
+            logger.info(run.name + ' verification complete.')
 
 #-------------------------------------------------------------------------------
 # Create a diff report and notify via email
@@ -579,6 +591,7 @@ def sendDiffreport(config, compconfig, eTime):
     fp.write('Fb  : build failure\n')
     fp.write('Fr  : run-time failure\n')
     fp.write('F*  : expected failure\n')
+    fp.write('C   : Created baseline\n')
     fp.write('-   : not available\n')
     fp.write('Notes:\n')
     fp.write('-'*6+'\n')

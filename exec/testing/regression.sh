@@ -2,28 +2,32 @@
 #
 # Runs regression.py and performs some basic regression testing
 #
-# Usage: regression.sh [RUNSRC1 RUNSRC2 ... RUNSRCN]
+# Usage: regression.sh [RUNSRC1 RUNSRC2 ... RUNSRCN -r]
 #
 # Where [...] are optional arguments representing rundeck template
-# names and one additional flag, -c, to compile only.
+# names and one additional flag, -r, to perform restart regression.
 #
 # Examples:
 #
 #   From decks directory, without arguments:
 #
-#   ../exec/testing/regression.sh
+#   1)   ../exec/testing/regression.sh
 #   
-#   will test nonProduction_E_AR5_C12 and will write all results
+#   will compile-only nonProduction_E_AR5_C12 and will write all results
 #   in decks directory.
 #
-#   ../exec/testing/regression.sh E4F40 E4TcadiF40 Earobio_g6c
+#   2)   ../exec/testing/regression.sh E4F40 E4TcadiF40 Earobio_g6c
 #
-#   will test E4F40, E4TcadiF40 and Earobio_g6c and all runs will 
+#   will compile-only E4F40, E4TcadiF40 and Earobio_g6c and all runs will 
 #   be done in the decks directory.
 #
-#   ../exec/testing/regression.sh E4TcadiF40 E4TcomasF40 -c
+#   3)   ../exec/testing/regression.sh nonProduction_E_AR5_C12 -r
+#   
+#   will run restart-regression on nonProduction_E_AR5_C12
 #
-#   will compile E4TcadiF40 and E4TctomasF40.
+#   4)   ../exec/testing/regression.sh E4F40 E4TcadiF40 E4TctomasF40 -r
+#
+#   will run restart-regression on E4F40, E4TcadiF40 and E4TctomasF40.
 #
 # Errors, if any, will be printed on STDOUT.
 #
@@ -35,7 +39,7 @@
 # 2) Runs interactively
 #    - OK for small rundecks
 # 3) No separate scratch space
-#    - Else builds and runs proceed in the decks directory
+#    -  Builds and runs proceed in the decks directory
 #       - Beware of quotas
 #    - Builds and runs proceed sequentially
 # 4) No baseline testing is done - just internal consistency
@@ -55,13 +59,13 @@ else
 fi
 
 cnt=0
-verification="restartRun"
+verification=compileOnly
 if [ "$#" -gt 0 ]; then
    userArgs=( "$@" )
    rundecks=()
    for arg in "${userArgs[@]}"; do
-      if [ "$arg" == "-c" ]; then
-	 verification=compileOnly
+      if [ "$arg" == "-r" ]; then
+	 verification=restartRun
       else
 	 rundecks=( "${rundecks[@]}" "$arg" )
       fi
