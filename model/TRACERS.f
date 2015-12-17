@@ -2711,8 +2711,10 @@ C
       use Tracer_mod, only: Tracer
       use tracer_com, only: nAircraft, tracers,
      & sect_name,num_sectors,
-     & n_max_sect,ef_fact,num_regions,ef_fact,ef_fact3d
+     & n_max_sect,ef_fact,ef_fact,ef_fact3d
       use Dictionary_mod, only: sync_param
+      use EmissionRegion_mod, only: numRegions
+      
       IMPLICIT NONE
       character(len=*), intent(in) :: tr_sect
       integer :: i,j,ns,nsect,nn
@@ -2751,8 +2753,8 @@ C
             if(trim(source%tr_sect_name(nsect)) ==
      &         trim(sect_name(nn))) then
               source%tr_sect_index(nsect) = nn
-              ef_fact3d(nn,1:num_regions)=
-     &        ef_fact(nn,1:num_regions)
+              ef_fact3d(nn,1:numRegions)=
+     &        ef_fact(nn,1:numRegions)
               exit loop_nn
             endif
           enddo loop_nn

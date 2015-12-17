@@ -8619,6 +8619,7 @@ C**** at the start of any day
 !@vers 2013/03/26
 !@auth Jean Lerner/Gavin Schmidt
       USE MODEL_COM, only: itime,dtsrc,nday
+      use SpecialIO_mod, only: write_parallel
       use TracerSurfaceSource_mod, only: TracerSurfaceSource
       use Attributes_mod
       use AttributeDictionary_mod
@@ -8638,23 +8639,23 @@ C**** at the start of any day
       use OldTracer_mod, only: itime_tr0
       use OldTracer_mod, only: do_fire
       use TimeConstants_mod, only: SECONDS_PER_DAY, INT_DAYS_PER_YEAR, 
-     &                             HOURS_PER_DAY, INT_MONTHS_PER_YEAR
+     &           SECONDS_PER_HOUR, HOURS_PER_DAY, INT_MONTHS_PER_YEAR
       USE ATM_COM, only: MA  ! Air mass of each box (kg/m^2)
       USE TRACER_COM, only: ntm
 #ifndef SKIP_TRACER_SRCS
       USE FLUXES, only: trsource
 #endif
       use TRACER_COM, only: tracers
-      use TRACER_COM, only: num_regions
-      use TRACER_COM, only: reg_E, ef_FACT
+      use EmissionRegion_mod, only: numRegions,regions
+      use TRACER_COM, only: ef_FACT
       USE RESOLUTION, only : pmtop,psf
       USE GEOM, only: axyp,areag,lat2d_dg,lon2d_dg,imaxj,lat2d
       USE QUSDEF
       USE TRACER_COM, only: sfc_src
       USE TRACER_COM, only: alter_sources
       use TRACER_COM, only: n_isoprene, n_SO2, no_emis_over_ice
-      use TRACER_COM, only: trm, ntsurfsrc, rnsrc, reg_N, reg_W, reg_S
-      use TRACER_COM, only: tracers, num_regions, reg_E, ef_FACT
+      use TRACER_COM, only: trm, ntsurfsrc, rnsrc
+      use TRACER_COM, only: tracers, ef_FACT
       use OldTracer_mod, only: itime_tr0, vol2mass, trname
 #ifdef TRACERS_TOMAS
       use TRACER_COM, only: n_AH2O, n_AECOB
@@ -8748,13 +8749,13 @@ c      real*8 :: nlight, max_COSZ1, fact0
       real*8 :: tot_emis(GRID%I_STRT:GRID%I_STOP,
      &     GRID%J_STRT:GRID%J_STOP)
 #endif
-      integer :: year, month, dayOfYear
+      integer :: year, month, dayOfYear,hour,localTimeIndex
 
       type (TracerIterator) :: iter
       class (AbstractAttribute), pointer :: pa
 
       call modelEclock%get(year=year, month=month, 
-     *     dayOfYear=dayOfYear)
+     *     dayOfYear=dayOfYear, hour=hour)
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
@@ -9397,41 +9398,73 @@ C****
 ! please keep at end of tracer loop : 
 ! TODO: should be able to uncomment
 !       this and delete the subsequent block when F2003 compilers are ready.
+! Note 1: Whoever implements, please check that the "nn" index in the commented call 
+!         is correct.
+! Note 2: When the diurnal cycle functionality was added the below-commented 
+!         routine was not updated.
 c$$$      do ns = 1, size(sources)      ! loop over source
 c$$$        call emissionScenario%scaleSource(trsource(:,:,ns,n), 
 c$$$     &       sources(ns)%trsect_index(1:sources(nn)%num_tr_sectors))
 c$$$      end do
 
 #ifndef SKIP_TRACER_SRCS
-      if(alter_sources)then               ! if altering requested
-        do ns=1,ntsurfsrc(n)              ! loop over source
+      ! First regional sector alterations:
+      if(alter_sources)then                     ! if any region/sector altering requested
+        do ns=1,ntsurfsrc(n)                    ! loop over sources
           do nsect=1,sources(ns)%num_tr_sectors ! and sectors for that source
-            do j=J_0,J_1                  ! and latitudes
-              do i=I_0,imaxj(j)           ! and longitudes
-                do kreg=1,num_regions     ! and defined regions
-          if(lat2d_dg(i,j) >= reg_S(kreg) .and. lat2d_dg(i,j)! check if
-     &    <= reg_N(kreg) .and. lon2d_dg(i,j) >= reg_W(kreg)  ! in region
-     &    .and. lon2d_dg(i,j) < reg_E(kreg) ) then
-            if(ef_fact(sources(ns)%tr_sect_index(nsect),kreg) > -1.e20)
-     &      trsource(i,j,ns,n)=trsource(i,j,ns,n)*
-     &      ef_FACT(sources(ns)%tr_sect_index(nsect),kreg)
-          endif
-                enddo
-              enddo
-            enddo
-          enddo
-        enddo
-      endif
+            do j=J_0,J_1                        ! and horizonal space   
+              do i=I_0,imaxj(j)          
+                do kreg=1,numRegions            ! loop defined regions
+                  if(
+     &            lat2d_dg(i,j)>=regions(kreg)%southernEdge .and.  ! check if 
+     &            lat2d_dg(i,j)<=regions(kreg)%northernEdge .and.  ! currently
+     &            lon2d_dg(i,j)>=regions(kreg)%westernEdge .and.   ! in region
+     &            lon2d_dg(i,j)< regions(kreg)%easternEdge) then ! change to <= after thinking about it.
+       if(ef_fact(sources(ns)%tr_sect_index(nsect),kreg) > -1.e20)then
+         trsource(i,j,ns,n)=trsource(i,j,ns,n)*
+     &   ef_fact(sources(ns)%tr_sect_index(nsect),kreg)
+       end if
+                  end if ! in-region
+                end do   ! regions
+              end do     ! i
+            end do       ! j
+          end do         ! sector
+        end do           ! sources
+      end if             ! any region/sector altering of sources requested
 
-! optionally set sources to zero over (>90%) ice:
+      ! Then diurnal cycle application:
+      do ns=1,ntsurfsrc(n)                    ! loop over sources
+        if(sources(ns)%applyDiurnalCycle)then ! does source have a diurnal cycle defined?
+          ! this might not work if there aren't an equal number of timesteps each hour:
+          if(MOD(SECONDS_PER_HOUR,dtsrc).ne.0.d0)then
+            call write_parallel('Diurnal emissions steps/hr problem')
+            call stop_model('Problem w/ emissions diurnal cycle 2',255)
+          end if
+          do j=J_0,J_1                        ! loop horizontal space
+            do i=I_0,imaxj(j)
+              ! intendinf here for localTimeIndex an integer index ranging from 1 to INT_HOURS_PER_DAY
+              localTimeIndex=(hour+1) 
+     &            +NINT((i-(IM+1)/2.)*HOURS_PER_DAY/float(IM))
+              if(localTimeIndex>HOURS_PER_DAY)
+     &            localTimeIndex=localTimeIndex-HOURS_PER_DAY
+              if(localTimeIndex<1)
+     &            localTimeIndex=localTimeIndex+HOURS_PER_DAY
+              trsource(i,j,ns,n)=trsource(i,j,ns,n)*
+     &            sources(ns)%diurnalCycle(localTimeIndex)
+            end do     ! i
+          end do       ! j
+        end if         ! this source has a diurnal cycle
+      end do           ! sources
+
+      ! Optionally set sources to zero over (>90%) ice:
       if(no_emis_over_ice > 0)then
         do j=J_0,J_1
           do i=I_0,imaxj(j)
             fice=flice(i,j)+si_atm%rsi(i,j)*(focean(i,j)+flake(i,j))
-            if(fice > 0.9d0) trsource(i,j,:,:)=0.d0
-          enddo
-        enddo
-      endif
+            if(fice > 0.9d0) trsource(i,j,:,n)=0.d0
+          end do
+        end do
+      end if
 #endif
 
       call iter%next()

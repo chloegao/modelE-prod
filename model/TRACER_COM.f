@@ -558,9 +558,8 @@ C**** arrays that could be general, but are only used by chemistry
 ! ---- section for altering tracers sources by sector/region ----
 !@param n_max_reg  maximum number of regions for emissions altering
       integer, parameter :: n_max_reg=10
-!@var num_regions the number of source-altering regions from rundeck
 !@var num_sectors the number of source-altering sectors from rundeck
-      integer :: num_regions, num_sectors
+      integer :: num_sectors
 !@var alter_sources true if any source altering factors are on
       logical :: alter_sources
 !@var reg_N the north edge of rectangular regions for emissions altering
