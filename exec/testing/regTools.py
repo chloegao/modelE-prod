@@ -11,7 +11,7 @@ import glob
 import fnmatch
 import logging
 import time
-import regUtils
+import regUtils as util
 import regRuns
 import regCompare
 
@@ -21,7 +21,7 @@ logger = logging.getLogger('tools')
 # Setup modelE testing environment:
 def setupEnv(config, compconfig):
     logger.info('Setup testing environment')
-    userconfig = regUtils.ConfigSectionMap(config, 'USERCONFIG')
+    userconfig = util.ConfigSectionMap(config, 'USERCONFIG')
     branch =  userconfig['repobranch']
     resultsDir = userconfig['scratchdir'] + '/results/' + userconfig['repobranch']
     scratchDir = userconfig['scratchdir'] + '/scratch/' + userconfig['repobranch']
@@ -29,12 +29,7 @@ def setupEnv(config, compconfig):
 
     # Make sure - if specified - that work space is clean
     if userconfig['cleanscratch'] == 'yes':
-        if not os.path.exists(resultsDir):
-            regUtils.mkdir_p(resultsDir)    
-            regUtils.mkdir_p(scratchDir)
-        else:
-            regUtils.cleanDir(scratchDir)
-            regUtils.cleanDir(resultsDir)
+        util.cleanScratch(config)
 
         if makesystem == "makeOld":
            setupModelEenv(config, compconfig)
@@ -45,7 +40,7 @@ def setupEnv(config, compconfig):
 # Clone the model from the user-specified git repository
 def gitCloneRepository(config):
     logger.info('Clone user-specified git repository')
-    userconfig = regUtils.ConfigSectionMap(config, 'USERCONFIG')
+    userconfig = util.ConfigSectionMap(config, 'USERCONFIG')
     scratch = userconfig['scratchdir']
     repo = userconfig['repository']
     branch =  userconfig['repobranch']
@@ -62,27 +57,27 @@ def gitCloneRepository(config):
 #-------------------------------------------------------------------------------
 # ModelE specific setup
 def setupModelEenv(config, compconfig):
-    userconfig =regUtils. ConfigSectionMap(config, 'USERCONFIG')
+    userconfig =util. ConfigSectionMap(config, 'USERCONFIG')
     branch =  userconfig['repobranch']
     resultsDir = userconfig['scratchdir'] + '/results/' + branch
     scratchDir = userconfig['scratchdir'] + '/scratch/' + branch
 
 # the following directories are modelE specific:
-    regUtils.mkdir_p(scratchDir+'/decks_repository')
-    regUtils.mkdir_p(scratchDir+'/cmrun')
-    regUtils.mkdir_p(scratchDir+'/exec')
-    regUtils.mkdir_p(scratchDir+'/savedisk')
+    util.mkdir_p(scratchDir+'/decks_repository')
+    util.mkdir_p(scratchDir+'/cmrun')
+    util.mkdir_p(scratchDir+'/exec')
+    util.mkdir_p(scratchDir+'/savedisk')
 
 # We need to get a list of compilers...
-    compilers = regUtils.getCompilers(compconfig)
+    compilers = util.getCompilers(compconfig)
 # and libraries/modules info...
-    libsconfig = regUtils.ConfigSectionMap(compconfig, 'COMPCONFIG')
+    libsconfig = util.ConfigSectionMap(compconfig, 'COMPCONFIG')
 
 # ... to create modelErc file(s) for each compiler
     for comp in compilers:
        if not os.path.exists(scratchDir + comp):
-          regUtils.mkdir_p(resultsDir + '/' + comp)
-          regUtils.mkdir_p(scratchDir + '/' + comp)
+          util.mkdir_p(resultsDir + '/' + comp)
+          util.mkdir_p(scratchDir + '/' + comp)
        writeModelErc(libsconfig, scratchDir, comp)
 
 #-------------------------------------------------------------------------------
@@ -151,8 +146,8 @@ def writeModelErc(cfg, scratchDir, compiler):
 
 #-------------------------------------------------------------------------------
 def setupCloneTasks(config, compconfig, decklist):
-    userconfig =regUtils.ConfigSectionMap(config, 'USERCONFIG')
-    compilers = regUtils.getCompilers(compconfig)
+    userconfig =util.ConfigSectionMap(config, 'USERCONFIG')
+    compilers = util.getCompilers(compconfig)
 
     cloneTasks = []
     for deck in decklist:
@@ -166,7 +161,7 @@ def setupCloneTasks(config, compconfig, decklist):
         for comp in deck.getOpt('compilers').split(','):
             for mode in deck.getOpt('modes').split(','):
                 if comp in compilers:
-                   commandString = regUtils.gitCloneCommand(config, dName, comp, mode)
+                   commandString = util.gitCloneCommand(config, dName, comp, mode)
                    cloneTasks.append(commandString)
                 else:
                    logger.error('Compiler '+comp+' is not defined in COMPCONFIG')
@@ -178,8 +173,8 @@ def setupCloneTasks(config, compconfig, decklist):
 #-------------------------------------------------------------------------------
 # For out-of source builds, create directory for each rundeck/compiler/mode combo
 def setupRuns(config, compconfig, decklist):
-    userconfig =regUtils.ConfigSectionMap(config, 'USERCONFIG')
-    compilers = regUtils.getCompilers(compconfig)
+    userconfig =util.ConfigSectionMap(config, 'USERCONFIG')
+    compilers = util.getCompilers(compconfig)
     scratch = userconfig['scratchdir']
     repo = userconfig['repository']
     branch =  userconfig['repobranch']
@@ -201,14 +196,14 @@ def setupRuns(config, compconfig, decklist):
             for mode in deck.getOpt('modes').split(','):
                 adir = dName +  '.' + mode + '.' + comp
                 if not os.path.isdir(adir):
-                    regUtils.mkdir_p(adir)
+                    util.mkdir_p(adir)
     setupModelEenv(config, compconfig)
 
 #-------------------------------------------------------------------------------
 # Return a command to submit/execute a [batch] job
 def setupScriptTasks(config, compconfig, decklist):
     logger.info('Prepare and execute tasks...')
-    compilers = regUtils.getCompilers(compconfig)
+    compilers = util.getCompilers(compconfig)
 
     scriptTasks = []
     for deck in decklist:
@@ -232,7 +227,7 @@ def setupScriptTasks(config, compconfig, decklist):
 # Creates script to be submitted to batch system OR to be executed interactively
 # Batch system is assumed to be the one on NCCS-DISCOVER machines
 def createScriptTask(config, compconfig, deck, comp, mode):
-    userconfig  = regUtils.ConfigSectionMap(config, 'USERCONFIG')
+    userconfig  = util.ConfigSectionMap(config, 'USERCONFIG')
     modules    = userconfig['modules']
     useBatch   = userconfig['usebatch']
     branch     = userconfig['repobranch']
@@ -337,7 +332,7 @@ def createScriptTask(config, compconfig, deck, comp, mode):
         if comp == 'gfortran':
             compvendor = 'gcc'
 
-        modsconfig = regUtils.ConfigSectionMap(compconfig, 'COMPCONFIG')
+        modsconfig = util.ConfigSectionMap(compconfig, 'COMPCONFIG')
         for mod in modsconfig['modulelist'].split(','):
             if re.search(compvendor, mod):
                 for mm in modsconfig[mod].split(','):
@@ -375,7 +370,7 @@ def createScriptTask(config, compconfig, deck, comp, mode):
 # Create a config file for regression.py script. 
 # Note: there is one config file for each rundeck/compiler combination
 def createRegConfig(config, deck, modelErc, comp, jobName, mode):
-    cfg  = regUtils.ConfigSectionMap(config, 'USERCONFIG')
+    cfg  = util.ConfigSectionMap(config, 'USERCONFIG')
     branch     = cfg['repobranch']
     resultsDir = cfg['scratchdir'] + '/results/' + \
             branch + '/' + comp
@@ -450,11 +445,11 @@ def writeDiff(run, fileH):
 def verifyRuns(config, compconfig, runSources):
     logger.info('Reproducibility tests...')
 
-    userconfig = regUtils.ConfigSectionMap(config, 'USERCONFIG')
+    userconfig = util.ConfigSectionMap(config, 'USERCONFIG')
     makesystem =  userconfig['makesystem']
     scratchDir = userconfig['scratchdir'] + '/scratch/' + \
         userconfig['repobranch'] + '/' 
-    validCompilers = regUtils.getCompilers(compconfig)
+    validCompilers = util.getCompilers(compconfig)
 
     # Loop over each run source in list
     for source in runSources:
@@ -537,14 +532,14 @@ def verifyRuns(config, compconfig, runSources):
 #-------------------------------------------------------------------------------
 # Create a diff report and notify via email
 def sendDiffreport(config, compconfig, eTime):
-    userconfig  = regUtils.ConfigSectionMap(config, 'USERCONFIG')
+    userconfig  = util.ConfigSectionMap(config, 'USERCONFIG')
     mailto     = userconfig['mailto']
     branch     = userconfig['repobranch']
     resultsDir = userconfig['scratchdir'] + '/results/' + branch
     buildtype  = userconfig['buildtype']
     message    = userconfig['message']
     sortdiff   = userconfig['sortdiff']
-    compilers  = regUtils.getCompilers(compconfig)
+    compilers  = util.getCompilers(compconfig)
 
     diffFile = resultsDir + '/' + 'diffreport.txt'
     fp = open(diffFile, 'w')
@@ -595,7 +590,7 @@ def sendDiffreport(config, compconfig, eTime):
     fp.write('-   : not available\n')
     fp.write('Notes:\n')
     fp.write('-'*6+'\n')
-    compconfig = regUtils.ConfigSectionMap(compconfig, 'COMPCONFIG')
+    compconfig = util.ConfigSectionMap(compconfig, 'COMPCONFIG')
     compVers =  compconfig['compiler_versions'].split(",")
     i=0
     for comp in compilers:

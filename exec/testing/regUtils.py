@@ -3,6 +3,7 @@ import string
 import ConfigParser
 import os
 import re
+import sys
 import errno
 import datetime
 import shutil
@@ -164,12 +165,58 @@ def copyFile(src, dest):
     return 1
 
 #-------------------------------------------------------------------------------
-"""
-  Return a checkpoint file name with various identifiers
-"""
 def checkpointName(name, mode, endTime, npes):
+#  Return a checkpoint file name with various identifiers
     if mode == 'serial':
         return name  + '.' + endTime
     else:
         return name + '.' + endTime + '.np=' + str(npes)
+
+#-------------------------------------------------------------------------------
+def loggerSetup(cfg):
+# Logger setup       
+    logging.basicConfig(
+        filename = str(cfg) + '.LOG',
+        format = "%(levelname) -10s %(module)s:%(lineno)s %(funcName)s %(message)s",
+        level = logging.DEBUG,
+        filemode = 'w'
+    )
+    stdoutLog = logging.StreamHandler(sys.stdout)
+    formatter = logging.Formatter('%(name)s : %(message)s')
+    stdoutLog.setFormatter(formatter)
+    if os.environ.has_key('DEBUG'):
+        stdoutLog.setLevel(logging.DEBUG)
+    else:
+        stdoutLog.setLevel(logging.INFO)
+    logger = logging.getLogger()
+    logger.addHandler(stdoutLog)
+
+#-------------------------------------------------------------------------------
+from ConfigParser import SafeConfigParser
+def showConfig(cfgfile):
+
+    parser = SafeConfigParser()
+    parser.read(cfgfile)
+
+    for section_name in parser.sections():
+        print 'Section:', section_name
+        print '  Options:', parser.options(section_name)
+        for name, value in parser.items(section_name):
+            print '  %s = %s' % (name, value)
+        print
+
+#-------------------------------------------------------------------------------
+def cleanScratch(config):
+    logger.info('Clean up testing environment')
+    userconfig = ConfigSectionMap(config, 'USERCONFIG')
+    resultsDir = userconfig['scratchdir'] + '/results/' + userconfig['repobranch']
+    scratchDir = userconfig['scratchdir'] + '/scratch/' + userconfig['repobranch']
+
+    if not os.path.exists(resultsDir):
+        mkdir_p(resultsDir)    
+        mkdir_p(scratchDir)
+    else:
+        cleanDir(scratchDir)
+        cleanDir(resultsDir)
+
 

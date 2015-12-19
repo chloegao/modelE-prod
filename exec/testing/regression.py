@@ -31,7 +31,7 @@ import subprocess
 import logging
 import ConfigParser
 import regCompare
-from regRuns import *
+import regRuns as r
 
 def compare(run):
     if run.mode == 'serial':
@@ -80,7 +80,7 @@ if __name__ == '__main__':
     for source in runSources:
 
         # Create rundeck object
-        rundeck = newRundeck(source)
+        rundeck = r.newRundeck(source)
 
         # Setup a logging stream for this rundeck
         rundeck.setLogging()
@@ -89,7 +89,7 @@ if __name__ == '__main__':
         # Create a list of rundeck run configurations for each mode
         runs = []
         for mode in rundeck.modes:
-            runs.append(newRun(rundeck, mode))
+            runs.append(r.newRun(rundeck, mode))
 
         # All the work is done from the modelE decks directory
         os.chdir(rundeck.decksDir)
@@ -106,31 +106,31 @@ if __name__ == '__main__':
             mpiBuildResult = OK
 
             if run.mode == 'serial':
-                serBuildResult = build(run)
+                serBuildResult = r.build(run)
                 if rundeck.verification == 'compileOnly':
                     continue
                 if serBuildResult == OK:
                     # Always run 1hr
-                    rc = run1hr(run)
+                    rc = r.run1hr(run)
                     if rundeck.verification == 'restartRun':
-                        rc = runRestart(run, endTime=run.endTime)
+                        rc = r.runRestart(run, endTime=run.endTime)
             else: # MPI
-                mpiBuildResult = build(run)
+                mpiBuildResult = r.build(run)
                 if run.verification == 'compileOnly':
                     continue
                 if mpiBuildResult == OK:
                     if run.verification == 'customRun':
                         if mpiBuildResult == OK:
                             for npes in run.npes:
-                                rc = runLong(run, npes=npes)
+                                rc = r.runLong(run, npes=npes)
                                 if rc != OK:
                                     continue
                     else:    
                         for npes in run.npes:
                             # Always run 1hr
-                            rc = run1hr(run, npes=npes)
+                            rc = r.run1hr(run, npes=npes)
                             if run.verification == 'restartRun':
-                                rc = runRestart(run, npes=npes, endTime=run.endTime)
+                                rc = r.runRestart(run, npes=npes, endTime=run.endTime)
 
             logger.info(rundeck.name + ' ' + run.mode + ' runs complete.')
 
