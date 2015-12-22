@@ -2,7 +2,7 @@ import os
 import shutil
 import subprocess
 import logging
-import regUtils
+import regUtils as utils
 
 """
   Compare model results with those in the baseline location.
@@ -24,7 +24,7 @@ def base(run, endTime, npes=1):
         
     # Check if checkpoint file exists:
     current = prefix + \
-        regUtils.checkpointName(run.name, run.mode, str(endTime)+'hr', npes)
+        utils.checkpointName(run.name, run.mode, str(endTime)+'hr', npes)
     if not os.path.exists(current):
         logger.error('CHECKPOINT file '+current+' does not exist.')
         return
@@ -36,13 +36,13 @@ def base(run, endTime, npes=1):
     if not os.path.exists(theBase):
         logger.warning('Baseline file '+theBase+' does not exist!')
         if run.updateBase == 'yes':
-            if regUtils.copyFile(current, theBase) == 0:
+            if utils.copyFile(current, theBase) == 0:
                 logger.info('Created BASELINE')
-                run.results[4] = run.createMark
+                run.results[5] = run.createMark
             else:
                 logger.error('Error in: cp '+current+' ' +theBase)
         else:
-            run.results[4] = run.naMark
+            run.results[5] = run.naMark
 
     # If baseline exists then execute diffreport
     else:
@@ -50,20 +50,20 @@ def base(run, endTime, npes=1):
         n = getNumDiffs(theBase, current)
         # No differences
         if n == '0':
-            run.results[4] = run.successMark
+            run.results[5] = run.successMark
         # If there are differences then update the baseline dir (if specified)
         # and keep a (temporary) copy of the old one
         else:
-            run.results[4] = '{: ^5}'.format(n)
+            run.results[5] = '{: ^5}'.format(n)
             logger.warning('Baseline reproducibility failed!!!')
             if run.updateBase == 'yes':
-                if regUtils.copyFile(current, theBase) == 0:
+                if utils.copyFile(current, theBase) == 0:
                     logger.info('Replaced BASELINE')
                 else:
                     logger.error('Error in: cp '+current+' ' +theBase)
                 # TODO: Make this configurable
                 #timestr = time.strftime("%Y%m%d-%H%M%S")
-                #if regUtils.copyFile(theBase, tmpBase+'-'+timestr) == 0:
+                #if utils.copyFile(theBase, tmpBase+'-'+timestr) == 0:
                 #    logger.info('Saved old BASELINE')
                 #else:
                 #    logger.error('Error in: cp '+theBase+' ' +tmpBase+'-'+timestr)
@@ -81,14 +81,14 @@ def restart(run, npes=1):
 
     # Check if continuous run result exists:
     fileCON = prefix + \
-        regUtils.checkpointName(run.name, run.mode, str(run.endTime)+'hr', npes)
+        utils.checkpointName(run.name, run.mode, str(run.endTime)+'hr', npes)
     if not os.path.exists(fileCON):
         logger.error('CHECKPOINT file '+fileCON+' does not exist.')
         return
 
     # Check if restart run result exists:
     fileRST = prefix + \
-        regUtils.checkpointName(run.name, run.mode, 'restart', npes)
+        utils.checkpointName(run.name, run.mode, 'restart', npes)
     if not os.path.exists(fileRST):
         logger.error('RESTART file '+fileRST+' does not exist.')
         return
@@ -96,16 +96,15 @@ def restart(run, npes=1):
     logger.debug('Compare '+fileCON+' '+fileRST)
     n = getNumDiffs(fileCON, fileRST)
     if n == '0':
-        run.results[5] = run.successMark
+        run.results[6] = run.successMark
     else:
         # SCM rundeck is not restart reproducible
         if 'SGP' in run.name:
-            run.results[5] = run.failMark+'*'
+            run.results[6] = run.failMark+'*'
         else:
-            run.results[5] = '{: ^5}'.format(n)
+            run.results[6] = '{: ^5}'.format(n)
             logger.warning('Restart reproducibility failed!!!')
 
- 
 """
   Compare SERIAL vs MPI
 """
@@ -131,7 +130,7 @@ def nPE(runMPI, endTime, npes):
 
     # Check if MPI result exists:
     fileMPI = runMPI.name + '/' + \
-       regUtils.checkpointName(runMPI.name, runMPI.mode, str(endTime)+'hr', npes)
+       utils.checkpointName(runMPI.name, runMPI.mode, str(endTime)+'hr', npes)
     if not os.path.exists(fileMPI):
         logger.warning('MPI file '+fileMPI+' does not exist!')
         return
@@ -139,9 +138,9 @@ def nPE(runMPI, endTime, npes):
     logger.debug('Compare '+fileSER+' '+fileMPI)
     n = getNumDiffs(fileSER, fileMPI)
     if n == '0':
-        runMPI.results[6] = runMPI.successMark
+        runMPI.results[7] = runMPI.successMark
     else:
-        runMPI.results[6] = '{: ^5}'.format(n)
+        runMPI.results[7] = '{: ^5}'.format(n)
         logger.warning('NPE reproducibility failed!!!')
   
 """
@@ -162,7 +161,7 @@ def getDiffexe():
     # This is needed to find diffreport.x, assumed to be in $HOME/bin
     os.environ["PATH"] += os.pathsep + os.environ["HOME"] \
       + '/bin'
-    diffreportExe = regUtils.which('diffreport.x')
+    diffreportExe = utils.which('diffreport.x')
     if diffreportExe is None:
         print 'No available diffreport.x. Will use diff'
         diffreportExe = 'diff'

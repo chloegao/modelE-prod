@@ -14,13 +14,14 @@ class regTest(object):
         self.resultsDir = '.'
         self.verification = 'compileOnly'
         self.endTime = 25
-
+        self.unitTest = 'no'
+        
     def getOpt(self, opt):
         if opt=='modes':
             return self.modes
         elif opt=='compilers':
             return self.compilers
-        elif opt=='buildType':
+        elif opt=='buildtype':
             return self.compile_only
         elif opt=='npes':
             nint = []
@@ -31,14 +32,16 @@ class regTest(object):
             return self.useBatch
         elif opt=='modules':
             return self.modules
-        elif opt=='resultsDir':
+        elif opt=='resultsdir':
             return self.resultsDir
-        elif opt=='scratchDir':
+        elif opt=='scratchdir':
             return self.scratchDir
         elif opt=='verification':
             return self.verification
         elif opt=='endtime':
             return int(self.endTime)
+        elif opt=='unittest':
+            return self.unitTest
 
     def setOpts(self, deckconfig):
         for name,options in deckconfig.items():
@@ -53,21 +56,23 @@ class regTest(object):
                         for n in vv.split(','):
                             nint.append(int(n))
                         self.npes = nint 
-                    elif kk=='buildType':
+                    elif kk=='buildtype':
                         self.compile_only = vv
                     elif kk=='usebatch':
                         self.useBatch = vv
                     elif kk=='modules':
                         self.modules = vv
-                    elif kk=='scratchDir':
+                    elif kk=='scratchdir':
                         self.scratchDir = vv + '/scratch/'
-                    elif kk=='resultsDir':
+                    elif kk=='resultsdir':
                         self.resultsDir = vv + '/results/'
                     elif kk=='verification':
                         self.verification = vv
                     elif kk=='endtime':
                         self.endTime = int(vv)
-            
+                    elif kk=='unittest':
+                        self.unitTest = vv
+
     def dump(self):
         attrs = vars(self)
         print ', '.join("%s: %s" % item for item in attrs.items())

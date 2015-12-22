@@ -1,25 +1,19 @@
 """
-  This script executes modelE serial and MPI runs and generates results
-  used to verify various reproducibility measures.
-  The script can be executed from the decks directory using default
-  options and without arguments as follows:
- 
-      python  ../exec/testing/regression.py
- 
-  In that case the script will run the nonProduction_E_AR5_C12 rundeck 
-  using the gfortran compiler and in serial and mpi modes. 
-  Alternatively one can use the default options with one argument:
- 
-      python  ../exec/testing/regression.py <runsource>
- 
-  and run the <runsource> rundeck.
-  Finally one can run a set of rundecks by specifying configuration
-  files for each runsource, i.e. from the decks subdirectory issue the command:
+  This script executes modelE serial and MPI run combinations and generates 
+  results used to verify various reproducibility measures.
+
+  The script can be executed from the decks directory as follows:
+
+     ../exec/testing/regression.sh [RUNSRC1 RUNSRC2 ... RUNSRCN -r]
+
+  See the documentation in regression.sh 
+
+  If executed standalone as follows:
  
       python  ../exec/testing/regression.py  <runsource1> [<runsource2> ...]
  
-  This requires a configuration file name <runsource>.cfg for each runsource.
-  When called from a higher level driver (mainDriver.py), this script's results
+  then this requires a configuration file name <runsource>.cfg for each runsource.
+  When called from the higher level driver (reg), this script's results
   are used to generate a report of regression testing reproducibility checks.
   
 """

@@ -7,13 +7,13 @@ import time
 import subprocess
 import logging
 import ConfigParser
-import regUtils
-import regTest
+import regUtils as utils
+import regTest as t
 
 """ 
   This class assigns settings used to test a given rundeck 
 """
-class newRundeck(regTest.regTest):
+class newRundeck(t.regTest):
 
     def __init__(self, sourceName='nonProduction_E_AR5_C12'):
         # Overide name
@@ -89,7 +89,7 @@ class newRun(newRundeck):
             self.xflags += 'COMPILE_WITH_TRAPS=YES'
         # Run results are stored in an array
         self.results = [shortName, rundeck.compiler, mode, 
-                        '  -  ', '  -  ', '  -  ', '  -  ']
+                        '  -  ', '  -  ', '  -  ', '  -  ', '  -  ']
         self.successMark   = '+'
         self.failMark      = 'F'
         self.createMark    = 'C'
@@ -101,27 +101,49 @@ class newRun(newRundeck):
             self.debug = False
 
     # System call that records result of subprocess call
-    def sysCmd(self, commandString, result, stage):
+    def sysCmd(self, commandString, resultIndex, stageID, makeLog='yes'):
 
         logger = logging.getLogger('SYSTEM  ')
         status = 1
-
+        grepResult = 'OK'
         if self.debug:
             logger.info(commandString)
         else:
             logger.debug(commandString)
-            makeLog = self.resultsDir + '/'  + self.name + '-make.log'            
-            with open(makeLog,'a') as f:
-               status = subprocess.call(commandString, \
-                                         stdout=f, stderr=f, shell=True)
+            if makeLog == 'yes':
+                makeLog = self.resultsDir + '/'  + self.name + '-make.log'
+                with open(makeLog,'a') as f:
+                    status = subprocess.call(commandString, \
+                                             stdout=f, stderr=f, shell=True)
+            else: # we do not log the unit tests, we just capture their output
+                proc = subprocess.Popen(commandString,
+                        shell=True,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        )
+                proc.wait()
+                status = proc.returncode
+                if status == 0: # all OK or some failures
+                    grep = subprocess.Popen(['grep', 'OK'],
+                                            stdin=proc.stdout,
+                                            stdout=subprocess.PIPE,
+                    )
+                    end_of_pipe = grep.stdout
+                    for line in end_of_pipe:
+                        grepResult = line.strip()
+                    if (grepResult == 'OK'):
+                        subprocess.call('touch .OK', shell=True)
+                else: # run-time error
+                    grepResult = 'notOK'
+                    
             logger.debug('Return code: ' + str(status))
+            logger.debug('Unit tests result: ' + grepResult)
 
-            if (status == 0):
-                self.results[result] = self.successMark
+            if (status == 0 and grepResult == 'OK'):
+                self.results[resultIndex] = self.successMark
             else:
                 logger.error(commandString+': FAILED')
-                self.results[result] = self.failMark+stage
-                raise RuntimeError('Run time error')
+                self.results[resultIndex] = self.failMark+stageID
  
 """ 
   Set configuration for a rundeck
@@ -134,9 +156,8 @@ def getConfigSettings(rundeck):
     else: # it is in the current directory
         myConfigDir = '.'
     configfile = myConfigDir + '/' + rundeck.name + '.cfg'
-
+    
     if os.path.isfile(configfile):
-
         config = ConfigParser.ConfigParser()
         config.read(configfile)
         # rundeck settings
@@ -154,6 +175,7 @@ def getConfigSettings(rundeck):
         rundeck.npes = nint
         rundeck.standalone = config.get('regSettings', 'standalone')
         rundeck.verification = config.get('regSettings', 'verification')
+        rundeck.unitTest = config.get('regSettings', 'unittest')
         rundeck.endTime   = int(config.get('regSettings', 'endtime'))
         rundeck.buildType  = config.get('regSettings', 'buildtype')
         # system settings
@@ -165,42 +187,9 @@ def getConfigSettings(rundeck):
         rundeck.decksDir  = config.get('regSettings','decksdir')
         rundeck.repository = config.get('regSettings', 'repository')
         rundeck.makesystem = config.get('regSettings', 'makesystem')
-    
-    else: # When running script in standlone-mode there is no config file
-
-        config = ConfigParser.ConfigParser()
-        config.add_section('regSettings')
-        # Use defaults in newRundeck
-        # rundeck settings
-        config.set('regSettings', 'rundeck'   , rundeck.name)
-
-        # MODELERC needs to be set
-        try:
-            rundeck.modelerc = os.environ['MODELERC']
-        except Exception:
-            print ' *** MODELERC environment variable is not defined.'
-            sys.exit(1)
-
-        # Extract COMPILER from modelErc file
-        cmd = "grep COMPILER " + rundeck.modelerc + "| awk -F= '{print $2}'"
-        out = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE,\
-                               stderr=subprocess.STDOUT)
-        rundeck.compiler = out.communicate()[0].rstrip()
-        config.set('regSettings', 'modes'     , rundeck.modes)
-        config.set('regSettings', 'standalone' , rundeck.standalone)
-        config.set('regSettings', 'verification' , rundeck.verification)
-        config.set('regSettings', 'endtime'   , rundeck.endTime)
-        config.set('regSettings', 'npes'      , rundeck.npes)
-        config.set('regSettings', 'buildtype' , rundeck.buildType)
-        # system settings
-        config.set('regSettings', 'branch'    , rundeck.branch)
-        config.set('regSettings', 'basedir'   , rundeck.baseDir)
-        config.set('regSettings', 'updatebase', rundeck.updateBase)
-        config.set('regSettings', 'resultsdir', rundeck.resultsDir)
-        config.set('regSettings', 'scratchdir', rundeck.scratchDir)
-        config.set('regSettings', 'decksdir'  , rundeck.decksDir)
-        config.set('regSettings', 'repository', rundeck.repository)
-        config.set('regSettings', 'makesystem', rundeck.makesystem)
+    else:
+        print ' *** Configuration file does not exist *** ' + configfile
+        sys.exit(1)
 
     # Extract SAVEDISK from modelErc file - needed in compareNPE            
     cmd = "cat "+rundeck.modelerc+"| grep SAVEDISK"+"| awk -F= '{print $2}'"
@@ -227,11 +216,6 @@ def build(run):
     logger.info(run.name + ' ' + run.modeCmd + ' ' + run.xflags)
 
     if run.makesystem == 'makeOld':
-        try:
-            run.sysCmd('make --quiet clean', 3, 'b')
-        except Exception, e:
-            logger.exception(str(e))
-            return 1
         try:
             cmd = 'make rundeck '+run.runCmd+' '+run.runSrcCmd
             run.sysCmd(cmd, 3, 'b')
@@ -262,6 +246,19 @@ def build(run):
         try:
             cmd = 'make -j'
             run.sysCmd(cmd, 3, 'b')
+        except Exception, e:
+            logger.exception(str(e))
+            return 1
+
+    if run.unitTest == 'yes':
+        logger.info('Run unit tests...')
+        if os.environ.has_key('PFUNIT'):
+            print os.environ['PFUNIT']
+        else: # it is in the current directory
+            print 'PFUNIT not set'
+        try:
+            cmd = 'make tests '+run.runCmd+' '+run.modeCmd
+            run.sysCmd(cmd, 4, 't', 'no')
         except Exception, e:
             logger.exception(str(e))
             return 1
@@ -313,7 +310,7 @@ def run1hr(run, npes=1):
 
         try:
             cmd = 'cd ' + run.name + '; cp fort.2.nc ' \
-                  + regUtils.checkpointName(run.name, run.mode, '1hr', npes)
+                  + utils.checkpointName(run.name, run.mode, '1hr', npes)
             run.sysCmd(cmd, 3, '1')
         except Exception, e:
             logger.exception(str(e))
@@ -337,7 +334,7 @@ def run1hr(run, npes=1):
             return 1
         try:
             cmd = 'cp fort.2.nc ' \
-                  + regUtils.checkpointName(run.name, run.mode, '1hr', npes)
+                  + utils.checkpointName(run.name, run.mode, '1hr', npes)
             run.sysCmd(cmd, 3, '1')
         except Exception, e:
             logger.exception(str(e))
@@ -357,7 +354,7 @@ def runRestart(run, npes=1, endTime=25):
         restart += ' -np ' + str(npes)
 
     logger.info(run.name + ', ' + run.mode + ', npes=' + str(npes) + \
-                    ', endtime=' + str(endTime))
+                    ', endTime=' + str(endTime))
 
     checkPt = endTime - 1
     ndisk = checkPt * 2
@@ -400,7 +397,7 @@ def runRestart(run, npes=1, endTime=25):
 
     try:
         cmd = 'cd ' + run.name + '; cp fort.1.nc ' \
-        +regUtils.checkpointName(run.name, run.mode, str(endTime)+'hr', npes)
+        +utils.checkpointName(run.name, run.mode, str(endTime)+'hr', npes)
         run.sysCmd(cmd, 3, 'b')
     except Exception, e:
         logger.exception(str(e))
@@ -425,7 +422,7 @@ def runRestart(run, npes=1, endTime=25):
 
     try:
         cmd = 'cd ' + run.name + ';cp fort.2.nc ' \
-            + regUtils.checkpointName(run.name, run.mode, 'restart', npes)
+            + utils.checkpointName(run.name, run.mode, 'restart', npes)
         run.sysCmd(cmd, 3, 're')
     except Exception,e:
         logger.exception(str(e))
