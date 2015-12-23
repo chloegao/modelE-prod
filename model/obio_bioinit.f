@@ -613,11 +613,7 @@ c  Total up points for check
       end subroutine fndreg
 c------------------------------------------------------------------------------
       subroutine bio_inicond(filename,fldo2)
-      use bio_inicond_mod, only: bio_inicond_read
-!temporarily only on GISS ocean:
-#ifdef OBIO_ON_GARYocean
-      use bio_inicond_mod, only: bio_inicond_new
-#endif
+      use bio_inicond_mod, only: bio_inicond_read, bio_inicond_new
       use dictionary_mod, only: sync_param
       use obio_com, only: ze
 #ifdef OBIO_ON_GARYocean
@@ -655,11 +651,11 @@ c------------------------------------------------------------------------------
       integer :: i, j, k, kmax, nodc_kmax
       integer :: new_inicond=0
 
-#ifdef OBIO_ON_GARYocean
       call sync_param('new_inicond', new_inicond)
       if (new_inicond==1) then
         call bio_inicond_new(filename, fldo2)
       else
+#ifdef OBIO_ON_GARYocean
         call bio_inicond_read(filename, dlatm, 180d0, .true., fldo)
 
         fldo2=-9999.d0
@@ -671,49 +667,49 @@ c------------------------------------------------------------------------------
           ENDIF
         enddo
         enddo
-      endif
 #else
-      call bio_inicond_read(filename, dlatm, 180d0, .true., data2)
+        call bio_inicond_read(filename, dlatm, 180d0, .true., data2)
 
-      fldo=0.
-      do k=1,kgrd
-        call flxa2o(data2(:,aj_0:aj_1,k),fldo(:,:,k))
-      end do
+        fldo=0.
+        do k=1,kgrd
+          call flxa2o(data2(:,aj_0:aj_1,k),fldo(:,:,k))
+        end do
 
       !--------------------------------------------------------
 
-       fldo2=-9999.d0
-       do j=ogrid%j_strt,ogrid%j_stop
-       do i=ogrid%i_strt,ogrid%i_stop
-         if (ip(i,j)==0) cycle
+        fldo2=-9999.d0
+        do j=ogrid%j_strt,ogrid%j_stop
+        do i=ogrid%i_strt,ogrid%i_stop
+          if (ip(i,j)==0) cycle
 
           !match nodc and model bottom pressure
           !the top match already
           kmax=1
           do k=1,kdm
-           if (ze(i, j, k) .gt. ze(i, j, k-1)) kmax=k+1
+            if (ze(i, j, k) .gt. ze(i, j, k-1)) kmax=k+1
           enddo
 
           !model bottom at kmax+1
           do k=1,kgrd
-           if (nodc_depths(k) .le. ze(i, j, min(20,kmax))) then
-               nodc_d(k)=nodc_depths(k)
-               nodc_kmax=k
-           endif
-cdiag      write(*,'(a,3i5,2e12.4,i5)')'bioinit: ',
+            if (nodc_depths(k) .le. ze(i, j, min(20,kmax))) then
+              nodc_d(k)=nodc_depths(k)
+              nodc_kmax=k
+            endif
+cdiag       write(*,'(a,3i5,2e12.4,i5)')'bioinit: ',
 cdiag.               i,j,k,fldo(i,j,k),nodc_d(k),nodc_kmax
           enddo
           nodc_d(nodc_kmax+1)=ze(i, j, min(20,kmax))
 
-!        call remap1d_pcm(fldo(i,j,1:nodc_kmax),nodc_d,nodc_kmax,
+!         call remap1d_pcm(fldo(i,j,1:nodc_kmax),nodc_d,nodc_kmax,
 !    .             fldo2(i,j,:),ze(i, j, :),kdm,.false.,i,j)
 
-         call remap1d_plm(fldo(i,j,1:nodc_kmax),nodc_d,nodc_kmax,
+          call remap1d_plm(fldo(i,j,1:nodc_kmax),nodc_d,nodc_kmax,
      .             fldo2(i,j,1:kdm),ze(i, j, :),kdm,.false.,i,j)
 
-       enddo
-       enddo
+        enddo
+        enddo
 #endif
+      endif
       !--------------------------------------------------------
 
       end subroutine bio_inicond
