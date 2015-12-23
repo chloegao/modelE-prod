@@ -25,6 +25,7 @@ c
       use hycom_cpler, only: flxa2o
       USE GEOM, only : DLATM      !here okay to use dlatm because interpolate from atmos
 #endif
+      implicit none
 
       integer, parameter :: igrd=360,jgrd=180,kgrd=12
       character(len=*), intent(in) :: filename
@@ -32,7 +33,6 @@ c
       real data2(idm,jdm,kgrd)
       integer :: k, new_inicond=0
 
-#ifdef OBIO_ON_GARYocean
       call sync_param('new_inicond', new_inicond)
       if (new_inicond==1) then
         call bio_inicond_read_new(filename, fldo)
@@ -40,18 +40,15 @@ c
         allocate(fldo(ogrid%I_STRT:ogrid%I_STOP,
      .                              ogrid%J_STRT:ogrid%J_STOP,kgrd))
         call bio_inicond_read(filename, dlatm, 0d0, .false., data2)
+#ifdef OBIO_ON_GARYocean
         fldo=data2(ogrid%I_STRT:ogrid%I_STOP,
      .          ogrid%J_STRT:ogrid%J_STOP,:)
-      endif
 #else
-      call sync_param('new_inicond', new_inicond)
-      allocate(fldo(ogrid%I_STRT:ogrid%I_STOP,
-     .                              ogrid%J_STRT:ogrid%J_STOP,kgrd))
-      call bio_inicond_read(filename, dlatm, 0d0, .false., data2)
-      do k=1,kgrd
-        call flxa2o(data2(:,aj_0:aj_1,k),fldo(:,:,k))
-      end do
+        do k=1,kgrd
+          call flxa2o(data2(:,aj_0:aj_1,k),fldo(:,:,k))
+        end do
 #endif
+      endif
 
       return
       end subroutine bio_inicond2D
@@ -64,6 +61,7 @@ c
 #else
       USE hycom_dim, only : ogrid
 #endif
+      implicit none
       character(len=*), intent(in) :: filename
       real*8, dimension(:,:,:), allocatable, intent(out) :: array
       real*8, dimension(:), allocatable, intent(out), optional :: depth
@@ -83,8 +81,6 @@ c
       call par_close(ogrid, fid)
       end subroutine bio_inicond_read_new
 
-!temporarily only on GISS ocean:
-#ifdef OBIO_ON_GARYocean
       subroutine bio_inicond_new(filename, fldo)
       use obio_com, only: ze
 #ifdef OBIO_ON_GARYocean
@@ -94,13 +90,14 @@ c
 #else
       USE hycom_dim, only : kdm, ogrid, ip
 #endif
+      implicit none
       character(len=*), intent(in) :: filename
       real, dimension(ogrid%i_strt:ogrid%i_stop,
      &    ogrid%j_strt:ogrid%j_stop, kdm), intent(out) ::  fldo
       real*8, dimension(:,:,:), allocatable :: array
-      real*8, dimension(:), allocatable :: depth
+      real*8, dimension(:), allocatable :: depth, nodc_d
       logical :: regrid
-      integer :: i, j
+      integer :: i, j, k, kmax, nodc_kmax
       interface
         Subroutine VLKtoLZ (KM,LM, MK,ME, RK, RL,RZ)
         Real*8 MK(KM),ME(0:LM), RK(KM), RL(LM)
@@ -113,6 +110,7 @@ c
       if (.not.regrid) regrid=all(abs(depth-
      &                      ze(ogrid%i_strt, ogrid%j_strt, :))<1d0)
       if (regrid) then
+#ifdef OBIO_ON_GARYocean
         do i=ogrid%i_strt,ogrid%i_stop
           do j=ogrid%j_strt,ogrid%j_stop
             if (ip(i, j)==0) cycle
@@ -120,14 +118,36 @@ c
      &           array(i, j, :), fldo(i, j, :))
           end do
         end do
+#else
+        fldo=-9999.d0
+        allocate(nodc_d(size(depth)+1))
+        do j=ogrid%j_strt,ogrid%j_stop
+        do i=ogrid%i_strt,ogrid%i_stop
+          if (ip(i,j)==0) cycle
+          kmax=1
+          do k=1,kdm
+            if (ze(i, j, k) .gt. ze(i, j, k-1)) kmax=k+1
+          enddo
+          do k=1,size(depth)
+            if (depth(k) .le. ze(i, j, min(20,kmax))) then
+              nodc_d(k)=depth(k)
+              nodc_kmax=k
+            endif
+          enddo
+          nodc_d(nodc_kmax+1)=ze(i, j, min(20,kmax))
+          call remap1d_plm(array(i,j,1:nodc_kmax),nodc_d,nodc_kmax,
+     .             fldo(i,j,1:kdm),ze(i, j, :),kdm,.false.,i,j)
+        enddo
+        enddo
+#endif
       else
         fldo=array
       endif
       end subroutine bio_inicond_new
-#endif
 
       subroutine bio_inicond_read(filename, dlatm, loff, setmin, fldo)
       USE FILEMANAGER, only: openunit,closeunit
+      implicit none
       character(len=*), intent(in) :: filename
       real*8, intent(in) :: dlatm, loff
       logical, intent(in) :: setmin
@@ -191,6 +211,7 @@ c
       end subroutine bio_inicond_read
 
       end module bio_inicond_mod
+
 
 c ----------------------------------------------------------------
       subroutine obio_init
@@ -736,6 +757,7 @@ c  Read in factors to compute average irradiance
       return
       end subroutine obio_init
 
+c------------------------------------------------------------------------------
 
       subroutine bio_surfn(filename, fldo)
       use bio_inicond_mod, only: bio_inicond_read, bio_inicond_read_new
