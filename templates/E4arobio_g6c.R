@@ -99,13 +99,13 @@ cfle2=acbc25b.dat                        ! phytoplankton spectrl absorp.
 !!!!pco2table=pco2.tbl.asc               ! table to compute pco2 values
                                          ! from sst,sss,dic,alk
                                          ! if not defined pCO2_ONLINE
-nitrates_inicond=no3_nodc_annmean.asc    ! initial cond for nitrates (NODC)
-silicate_inicond=sio2_nodc_annmean.asc   ! initial cond for silicate (NODC)
-dic_inicond=dic_glodap_annmean.asc       ! initial cond for dic (GLODAP)
-alk_inicond=alk_glodap_annmean.asc       ! initial cond/forc for alk(GLODAP)
+nitrates_inicond=no3_nodc_annmean_90x144.nc    ! initial cond for nitrates (NODC)
+silicate_inicond=sio2_nodc_annmean_90x144.nc   ! initial cond for silicate (NODC)
+dic_inicond=dic_glodap_annmean_90x144.nc       ! initial cond for dic (GLODAP)
+alk_inicond=alk_glodap_annmean_90x144.nc       ! initial cond/forc for alk(GLODAP)
 !!!oasimdirect=oasimdirect_20w_new       ! spectral light components
                                          ! if not def OBIO_RAD_coupling
-atmFe_inicond=iron_gocart_1x1mon.asc     ! GOCART iron flux
+atmFe_inicond=iron_gocart_1x1mon_90x144.nc     ! GOCART iron flux
 atmFedirect1=iron_ron_195x180_20w.asc    ! Ron Miller's dust fluxes
 facirr=facirr.asc                        ! factors for mean irrad w/in water
 eda_esa_ratios=eda_esa_ratios.asc        ! ratios of rad spectrl components
@@ -216,6 +216,8 @@ atmCO2=0.             !prognostic atmCO2
 to_volume_MixRat=1    ! for tracer printout
 !!!solFe=0.02            ! default iron solubility
 solFe=0.05            ! enhanced iron solubility
+
+new_inicond=1
 
 &&END_PARAMETERS
 
