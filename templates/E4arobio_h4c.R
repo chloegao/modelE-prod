@@ -178,8 +178,6 @@ to_volume_MixRat=1    ! for tracer printout
 !!!solFe=0.02            ! default iron solubility
 solFe=0.05            ! enhanced iron solubility
 
-new_inicond=1
-
 &&END_PARAMETERS
 
  &INPUTZ
