@@ -1059,9 +1059,9 @@ C**** Remap G and S to model layers; calculate vertical gradients
 C****
         SK(1:KMIJ) = SOIC(I,J,1:KMIJ)
         call VLKtoLZ (KMIJ,LMOM(I,J), ZOIC,ZOE(0:LM), GK(1:KMIJ),
-     &       G0(I,J,1:LM),GZ(I,J,1:LM))
+     &       G0(I,J,1:LM),GZ(I,J,1:LM), missing)
         call VLKtoLZ (KMIJ,LMOM(I,J), ZOIC,ZOE(0:LM), SK(1:KMIJ),
-     &       S0(I,J,1:LM),SZ(I,J,1:LM))
+     &       S0(I,J,1:LM),SZ(I,J,1:LM), missing)
 C****
 C**** Iteratively solve for MO so that integrated Z matches ZLO
 C****
@@ -1096,9 +1096,10 @@ C**** Add heights from each layer from ZSOLID (= - HOCEAN)
 
       deallocate(toic,soic)
 
-      contains
+      end subroutine tempsalt_oic
 
-      subroutine VLKtoLZ (KM,LM, MK,ME, RK, RL,RZ)
+
+      subroutine VLKtoLZ (KM,LM, MK,ME, RK, RL,RZ, missing)
 C****
 C**** VLKtoLZ assumes a continuous piecewise linear tracer distribution,
 C**** defined by input tracer concentrations RK at KM specific points.
@@ -1134,6 +1135,7 @@ C****
       implicit none
       integer :: km,lm
       Real*8 MK(KM),ME(0:LM), RK(KM), RL(LM),RZ(LM), RM(1024),RQ(1024)
+      real*8 :: missing
       real*8 :: mc
       integer :: k,l,ll
 C     If (LM > 1024)  Stop 'LM exceeds internal dimentions in VLKtoLZ'
@@ -1234,8 +1236,6 @@ C****
   310 RZ(L) = 6*RQ(L) / (ME(L)-ME(L-1))**2
       return
       end subroutine vlktolz
-
-      end subroutine tempsalt_oic
 
       subroutine init_odiff(grid)
       use OCEAN, only: BYDXYV, BYDXYPJM, UYPB, UYPA, FSLIP

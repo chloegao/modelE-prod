@@ -141,14 +141,14 @@ scatt. coefs
 !!!pco2table=pco2.tbl.asc                   ! table to compute pco2 vals from
 sst,sss,dic,alk
                                             ! if not defined pCO2_ONLINE
-nitrates_inicond=no3_nodc_annmean.asc    ! initial cond for nitrates (NODC)
-silicate_inicond=sio2_nodc_annmean.asc   ! initial cond for silicate (NODC)
-dic_inicond=dic_glodap_annmean.asc       ! initial cond for dic (GLODAP)
-alk_inicond=alk_glodap_annmean.asc       ! initial cond/forcing for alk
+nitrates_inicond=no3_nodc_annmean_90x144.nc    ! initial cond for nitrates (NODC)
+silicate_inicond=sio2_nodc_annmean_90x144.nc   ! initial cond for silicate (NODC)
+dic_inicond=dic_glodap_annmean_90x144.nc       ! initial cond for dic (GLODAP)
+alk_inicond=alk_glodap_annmean_90x144.nc       ! initial cond/forcing for alk
 (GLODAP)
 !!!oasimdirect=oasimdirect_20w_new          ! spectral light components
                                             ! if not defined
-atmFe_inicond=iron_gocart_1x1mon.asc     ! GOCART iron flux
+atmFe_inicond=iron_gocart_1x1mon_90x144.nc     ! GOCART iron flux
 atmFedirect1=iron_ron_195x180_20w.asc    ! Ron Miller's dust fluxes
 facirr=facirr.asc                        ! factors for mean irradiance w/in
 water

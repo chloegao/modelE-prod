@@ -4,56 +4,7 @@
 
       contains
 
-      subroutine bio_inicond2D(filename,fldo)
-
-!read in a field at 1x1 resolution
-!convert to atmospheric grid
-!convert to ocean grid 
-!this routine only for (i,j,monthly) arrays
-
-c --- mapping flux-like field from agcm to ogcm
-c     input: flda (W/m*m), output: fldo (W/m*m)
-c
-
-      use dictionary_mod, only: sync_param
-#ifdef OBIO_ON_GARYocean
-      USE OCEANR_DIM, only : ogrid
-      USE OCEANRES, only : idm=>imo,jdm=>jmo
-      USE OCEAN, only : DLATM
-#else
-      USE hycom_dim, only : ogrid, idm=>iia, jdm=>jja, aj_0, aj_1
-      use hycom_cpler, only: flxa2o
-      USE GEOM, only : DLATM      !here okay to use dlatm because interpolate from atmos
-#endif
-      implicit none
-
-      integer, parameter :: igrd=360,jgrd=180,kgrd=12
-      character(len=*), intent(in) :: filename
-      real, intent(out), allocatable :: fldo(:, :, :)
-      real data2(idm,jdm,kgrd)
-      integer :: k, new_inicond=0
-
-      call sync_param('new_inicond', new_inicond)
-      if (new_inicond==1) then
-        call bio_inicond_read_new(filename, fldo)
-      else
-        allocate(fldo(ogrid%I_STRT:ogrid%I_STOP,
-     .                              ogrid%J_STRT:ogrid%J_STOP,kgrd))
-        call bio_inicond_read(filename, dlatm, 0d0, .false., data2)
-#ifdef OBIO_ON_GARYocean
-        fldo=data2(ogrid%I_STRT:ogrid%I_STOP,
-     .          ogrid%J_STRT:ogrid%J_STOP,:)
-#else
-        do k=1,kgrd
-          call flxa2o(data2(:,aj_0:aj_1,k),fldo(:,:,k))
-        end do
-#endif
-      endif
-
-      return
-      end subroutine bio_inicond2D
-
-      subroutine bio_inicond_read_new(filename, array, depth)
+      subroutine bio_inicond_read(filename, array, depth)
       use pario, only : par_open,par_close
      &     ,read_data,read_dist_data,get_dimlens
 #ifdef OBIO_ON_GARYocean
@@ -79,9 +30,9 @@ c
       endif
       call read_dist_data(ogrid, fid, 'array', array)
       call par_close(ogrid, fid)
-      end subroutine bio_inicond_read_new
+      end subroutine bio_inicond_read
 
-      subroutine bio_inicond_new(filename, fldo)
+      subroutine bio_inicond(filename, fldo)
       use obio_com, only: ze
 #ifdef OBIO_ON_GARYocean
       use oceanres, only : kdm=>lmo
@@ -96,26 +47,27 @@ c
      &    ogrid%j_strt:ogrid%j_stop, kdm), intent(out) ::  fldo
       real*8, dimension(:,:,:), allocatable :: array
       real*8, dimension(:), allocatable :: depth, nodc_d
+      real*8, dimension(:), allocatable :: dummy
       logical :: regrid
       integer :: i, j, k, kmax, nodc_kmax
       interface
-        Subroutine VLKtoLZ (KM,LM, MK,ME, RK, RL,RZ)
-        Real*8 MK(KM),ME(0:LM), RK(KM), RL(LM)
-        Real*8, optional :: RZ(LM)
+        Subroutine VLKtoLZ (KM,LM, MK,ME, RK, RL,RZ, missing)
+        Real*8 MK(KM),ME(0:LM), RK(KM), RL(LM), RZ(LM), missing
         end Subroutine VLKtoLZ
       end interface
 
-      call bio_inicond_read_new(filename, array, depth)
+      call bio_inicond_read(filename, array, depth)
       regrid=kdm/=size(depth)
       if (.not.regrid) regrid=all(abs(depth-
      &                      ze(ogrid%i_strt, ogrid%j_strt, :))<1d0)
       if (regrid) then
 #ifdef OBIO_ON_GARYocean
+        allocate(dummy(size(fldo, 3)))
         do i=ogrid%i_strt,ogrid%i_stop
           do j=ogrid%j_strt,ogrid%j_stop
             if (ip(i, j)==0) cycle
             call vlktolz(size(depth), lmm(i, j), depth, ze(i, j, :),
-     &           array(i, j, :), fldo(i, j, :))
+     &           array(i, j, :), fldo(i, j, :), dummy, -999999.)
           end do
         end do
 #else
@@ -143,72 +95,7 @@ c
       else
         fldo=array
       endif
-      end subroutine bio_inicond_new
-
-      subroutine bio_inicond_read(filename, dlatm, loff, setmin, fldo)
-      USE FILEMANAGER, only: openunit,closeunit
-      implicit none
-      character(len=*), intent(in) :: filename
-      real*8, intent(in) :: dlatm, loff
-      logical, intent(in) :: setmin
-      real, dimension(:, :, :), intent(out) ::  fldo
-
-      integer :: iu_file, i, j, k, kgrd
-      integer, parameter :: igrd=360,jgrd=180
-      real, dimension(:, :, :), allocatable :: data
-      real, dimension(:, :), allocatable :: data_mask
-      real*8 dlata,offib,datmis
-      real :: datamin
-
-      kgrd=size(fldo, 3)
-      allocate(data(igrd,jgrd,kgrd))
-      allocate(data_mask(igrd,jgrd))
-      print*, 'obio_init: reading from file...',trim(filename)
-      call openunit(trim(filename),iu_file,.false.,.true.)
-
-!iron gocart data start from dateline
-!      missing values are -9999
-
-!--------------------------------------------------------------
-
-      dlata = 60d0
-      offib = 0d0
-      datmis = -9999d0
-      do k=1,kgrd
-        data_mask=0.d0
-        do i=1,igrd
-          do j=1,jgrd
-            read(iu_file,'(e12.4)')data(i,j,k)
-            if (data(i,j,k)>=0) data_mask(i,j)=1.d0
-          end do
-        end do
-
-      !iron gocart data start from dateline
-        call HNTR80(igrd,jgrd,loff,dlata,
-     .             size(fldo,1),size(fldo,2),offib,DLATM,datmis)
-
-      !use hntr8p in order to get correct polar value: 
-      !i.e. average longitudinal value everywhere
-
-        call HNTR8P (data_mask,data(:,:,k),fldo(:,:,k))
-        if (setmin) then
-          datamin=huge(datamin)
-          do i=1,igrd
-            do j=1,jgrd
-              if (data(i,j,k)>0) datamin=min(datamin,data(i,j,k))
-            end do
-          end do
-          do i=1, size(fldo, 1)
-            do j=1, size(fldo, 2)
-              if (fldo(i,j,k)<datamin) fldo(i, j, k)=datamin
-            end do
-          end do
-        endif
-      enddo    ! k-loop
-      call closeunit(iu_file)
-
-      return
-      end subroutine bio_inicond_read
+      end subroutine bio_inicond
 
       end module bio_inicond_mod
 
@@ -223,7 +110,7 @@ c
 
       USE obio_dim
       USE obio_incom
-      use bio_inicond_mod, only: bio_inicond2D
+      use bio_inicond_mod, only: bio_inicond_read
       USE obio_forc, only : ihra,atmFe,alk,surfN
       USE obio_com, only : npst,npnd,WtoQ,obio_ws,P_tend,D_tend
      .                    ,C_tend,wsdet,gro,obio_deltath,obio_deltat 
@@ -641,7 +528,7 @@ c  Read in factors to compute average irradiance
         call read_dist_data(ogrid,fid,'ironflux',atmFe)
         call par_close(ogrid,fid)
       else
-        call bio_inicond2D('atmFe_inicond',atmFe)
+        call bio_inicond_read('atmFe_inicond', atmFe)
 #ifdef Relax2SurfN
         allocate(surfn(ogrid%i_strt:ogrid%i_stop,
      &                       ogrid%j_strt:ogrid%j_stop))
@@ -760,7 +647,7 @@ c  Read in factors to compute average irradiance
 c------------------------------------------------------------------------------
 
       subroutine bio_surfn(filename, fldo)
-      use bio_inicond_mod, only: bio_inicond_read, bio_inicond_read_new
+      use bio_inicond_mod, only: bio_inicond_read
       use dictionary_mod, only: sync_param
 #ifdef OBIO_ON_GARYocean
       USE OCEANR_DIM, only : ogrid
@@ -773,16 +660,9 @@ c------------------------------------------------------------------------------
       character(len=*), intent(in) :: filename
       real, intent(out) :: fldo(ogrid%I_STRT:ogrid%I_STOP,
      .          ogrid%J_STRT:ogrid%J_STOP)
-      integer :: new_inicond=0
       real*8, dimension(:, :, :), allocatable :: array
 
-      call sync_param('new_inicond', new_inicond)
-      if (new_inicond==1) then
-        call bio_inicond_read_new(filename, array)
-      else
-        allocate(array(size(fldo, 1), size(fldo, 2), 1))
-        call bio_inicond_read(filename, dlatm, 180d0, .true., array)
-      endif
+      call bio_inicond_read(filename, array)
       fldo=array(:, :, 1)
       end subroutine bio_surfn
 
