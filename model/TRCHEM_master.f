@@ -2213,7 +2213,7 @@ C**** GLOBAL parameters and variables:
       USE TRDIAG_COM, only: jls_N2O5sulf
       USE OldTracer_mod, only: vol2mass
       USE RAD_COM, only  : rad_to_chem
-      USE CONSTANT, only : PI
+      USE CONSTANT, only : PI, pN2
       USE ATM_COM, only : MA, PMIDL00
       USE TRCHEM_Shindell_COM, only: nr2,nr3,nmm,nhet,ta,ea,rr,pe,
      & cboltz,r1,sb,nst,y,nM,nH2O,ro,sn,which_trop,sulfate,RKBYPIM,dt2,
@@ -2303,6 +2303,8 @@ C**** Local parameters and variables and arguments:
           ELSE
             rr(jj,L)=pe(jj)
           END IF
+c         for #9, M is really N2
+          if(jj == 9) rr(jj,L)=rr(jj,L)*pN2
 c         for #12, k based on three-parameters from JPL2011
           if(jj == 12) rr(jj,L)=rr(jj,L)*(ta(L)**0.667)
 c         for #13, k= based on termolecular reaction from JPL2011
