@@ -2298,11 +2298,7 @@ C**** Local parameters and variables and arguments:
         byta=1.d0/ta(L)
         pcon=y(nM,L)*ta(L)*cboltz/1013.d0
         do jj=1,nr2             ! bimolecular rates start
-          IF(ea(jj) /= 0.d0) THEN
-            rr(jj,L)=pe(jj)*exp(-ea(jj)*byta)
-          ELSE
-            rr(jj,L)=pe(jj)
-          END IF
+          rr(jj,L)=pe(jj)*exp(-ea(jj)*byta)
 c         for #9, M is really N2
           if(jj == 9) rr(jj,L)=rr(jj,L)*pN2
 c         for #12, k based on three-parameters from JPL2011
