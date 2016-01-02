@@ -84,7 +84,9 @@ module constant
 !@param byshi 1/shi [kg K J-1]
   real*8,parameter :: byshi = 1d0/shi
 
-!@param fraction of O2 in the atmosphere (0-1)
+!@param fraction of N2 in dry air (0-1)
+      real*8,parameter :: pN2 = 0.780840d0
+!@param fraction of O2 in dry air (0-1)
       real*8,parameter :: pO2 = 0.209476d0
 
   !**** RGAS = R/M_A = 1000* 8.314510 J/mol K /28.9655 g/mol

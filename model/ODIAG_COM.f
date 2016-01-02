@@ -856,7 +856,7 @@ c
       type(ocn_tracer_entry), pointer :: entry
 #endif
       CHARACTER UNITS*20,UNITS_INST*20,unit_string*50
-      INTEGER k,kb,kq,kc,kk,n,nt,ndel,kk_Water
+      INTEGER k,kb,kq,kc,kk,n,nt,kk_Water
       character(len=10) :: xstr,ystr,zstr
       character(len=20) :: xyzstr,unitstr
       real*8 :: byrho2,inst_sc,chng_sc
@@ -1657,17 +1657,12 @@ C**** Set up oceanic component conservation diagnostics
 
 #ifdef TRACERS_OCEAN 
 C**** Oceanic tracers 
-#ifdef TRACERS_OceanBiology
-      ndel=8
-#else
-      ndel=10
-#endif
       do nt=1,tracerlist%getsize()
         entry=>tracerlist%at(nt)
         UNITS_INST="("//trim(unit_string(entry%ntrocn,'kg/m^2'))//")"
-        UNITS="("//trim(unit_string(entry%ntrocn-ndel,'kg/m^2/s'))//")"
+        UNITS="("//trim(unit_string(entry%ntrocn_delta,'kg/m^2/s'))//")"
         INST_SC=10.**(-entry%ntrocn)
-        CHNG_SC=10.**(-entry%ntrocn+ndel)
+        CHNG_SC=10.**(-entry%ntrocn_delta)
         CALL SET_TCONO(entry%trname(1:8),UNITS_INST,UNITS,
      &            INST_SC,CHNG_SC, nt, size(entry%con_point_idx),
      &            entry%con_point_idx, entry%con_point_str)
