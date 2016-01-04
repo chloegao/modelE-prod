@@ -525,16 +525,18 @@ def verifyRuns(config, compconfig, runSources):
                 wdir = 'model/modelexe'
                 cmd = 'ls '+wdir
             exists = os.path.isfile(cmd)
+            # There is an executable
             if exists:
                 run.results[3] = '+'
                 # Did we run units tests?
                 if run.unitTest == 'yes':
-                    testsRC = decksDir+'/.OK'
-                    rcExists = os.path.isfile(testsRC)
-                    if rcExists:
-                        run.results[4] = '+'
+                    testsRes = decksDir+'/.unit'
+                    resExists = os.path.isfile(testsRes)
+                    if resExists:
+                        out = subprocess.check_output(['cat',testsRes])
+                        run.results[4] = out.strip()
                     else:
-                        run.results[4] = 'F'
+                        run.results[4] = '+'
                 
             else:
                 run.results[3] = 'Fb'

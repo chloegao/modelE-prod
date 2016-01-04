@@ -123,27 +123,44 @@ class newRun(newRundeck):
                         )
                 proc.wait()
                 status = proc.returncode
-                if status == 0: # all OK or some failures
-                    grep = subprocess.Popen(['grep', 'OK'],
+                if status != 0:
+                    # Are there unit test "Failues"
+                    grep = subprocess.Popen(shlex.split('grep Failures'),
                                             stdin=proc.stdout,
+                                                        stdout=subprocess.PIPE,
+                    )
+                    # If so, how many?
+                    cut = subprocess.Popen(shlex.split('cut -f 2 -d,'),
+                                            stdin=grep.stdout,
                                             stdout=subprocess.PIPE,
                     )
-                    end_of_pipe = grep.stdout
-                    for line in end_of_pipe:
-                        grepResult = line.strip()
-                    if (grepResult == 'OK'):
-                        subprocess.call('touch .OK', shell=True)
-                else: # run-time error
-                    grepResult = 'notOK'
+                    awk =subprocess.Popen(shlex.split("awk '{print $2}'"),
+                                            stdin=cut.stdout,
+                                            stdout=subprocess.PIPE,
+                    ) 
+                    grep.stdout.close()
+                    out,err = awk.communicate()
+                    grepResult = out.strip()
+                    # If grep was empty then it was a build error:
+                    if grepResult == '':
+                        grepResult = 'Fb'
+                    # Write result to small file for diffreport
+                    f = open(".unit", "w+")
+                    f.write(grepResult)
+                    f.close()
                     
             logger.debug('Return code: ' + str(status))
             logger.debug('Unit tests result: ' + grepResult)
 
-            if (status == 0 and grepResult == 'OK'):
+            if (status == 0):
                 self.results[resultIndex] = self.successMark
             else:
-                logger.error(commandString+': FAILED')
-                self.results[resultIndex] = self.failMark+stageID
+                if grepResult == 'OK':
+                    logger.error(commandString+': FAILED')
+                    self.results[resultIndex] = self.failMark+stageID
+                else:
+                    self.results[resultIndex] = grepResult
+                    
  
 """ 
   Set configuration for a rundeck
@@ -252,10 +269,6 @@ def build(run):
 
     if run.unitTest == 'yes':
         logger.info('Run unit tests...')
-        if os.environ.has_key('PFUNIT'):
-            print os.environ['PFUNIT']
-        else: # it is in the current directory
-            print 'PFUNIT not set'
         try:
             cmd = 'make tests '+run.runCmd+' '+run.modeCmd
             run.sysCmd(cmd, 4, 't', 'no')
