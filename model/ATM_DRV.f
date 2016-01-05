@@ -807,6 +807,7 @@ c set-up for MPI implementation
 #ifdef TRACERS_AEROSOLS_SEASALT
       use tracers_seasalt, only: alloc_seasalt_sources
 #endif  /* TRACERS_AEROSOLS_SEASALT */
+      use geom, only: geom_atm
       IMPLICIT NONE
 #ifdef GLINT2
       include 'mpif.h'      ! Needed for GLINT2
@@ -815,6 +816,8 @@ c set-up for MPI implementation
 c initialize the atmospheric domain decomposition
 c for now, CREATE_CAP is only relevant to the cubed sphere grid
       call init_grid(grid, im, jm, lm, CREATE_CAP=.true.)
+
+      call geom_atm
 
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       call initTracerCom

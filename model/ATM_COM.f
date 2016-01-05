@@ -133,7 +133,6 @@ C**** module should own dynam variables used by other routines
      &     UALIJ,VALIJ,WSAVE,
      &     MASUM,PTROPO,LTROPO,
      &     DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
-      use GEOM, only : geom_atm
       use pario, only : par_open,par_close,read_dist_data
       use Dictionary_mod, only : sync_param, get_param
 #ifdef etc_subdd
@@ -160,8 +159,6 @@ C**** module should own dynam variables used by other routines
 C****
 C**** CALCULATE SPHERICAL GEOMETRY
 C****
-      call geom_atm
-
       ALLOCATE(ZATMO(I_0H:I_1H,J_0H:J_1H), STAT = IER)
       ALLOCATE(P(I_0H:I_1H,J_0H:J_1H), STAT = IER)
       ALLOCATE(U(I_0H:I_1H,J_0H:J_1H,LM), STAT = IER)
