@@ -1137,11 +1137,11 @@ AREA_PARTITION: do NPPL=1,2
             TMP(n) = TMOLD(LMIN,n)*FPLUME
             if(t_qlimit(n)) TMP(n) = min(TMP(n),0.95d0*TM(LMIN,n))
           enddo
-!TOMAS DEBUG
+#ifdef TOMAS_DEBUG
             DO N=1,NTM
               if(TMP(n).lt.0.) print*,'TMP<0 1',TMP(n),trname(n)
             ENDDO
-!TOMAS DEBUG
+#endif
           TMOMP(xymoms,1:NTX)=TMOMOLD(xymoms,LMIN,1:NTX)*FPLUME
           DTMR(LMIN,1:NTX)=-TMP(1:NTX)
           DTMOMR(xymoms,LMIN,1:NTX)=-TMOMP(xymoms,1:NTX)
@@ -1282,9 +1282,11 @@ CLOUD_TOP:  do L=LMIN+1,LM
               DTMOM(xymoms,L-1,1:NTX) = DTMOM(xymoms,L-1,1:NTX) + DELTA*TMOMP(xymoms,1:NTX)
               TMP(1:NTX) = TMP(1:NTX)*(1.-DELTA)
               TMOMP(xymoms,1:NTX) = TMOMP(xymoms,1:NTX)*(1.-DELTA)
+#ifdef TOMAS_DEBUG
               DO N=1,NTM
                 if (TMP(n) < 0.) print *,'TMP<0 2',TMP(n),trname(n)  !  TOMAS debug
               END DO
+#endif
 #endif
             end if
 #endif /* not WEAKER_MC_LIMITS */
@@ -1537,16 +1539,17 @@ CLOUD_TOP:  do L=LMIN+1,LM
               TRCOND(N,L) = TRCOND(N,L)+SULFOUT(iaqch)
             enddo
 #endif
-
+#ifdef TOMAS_DEBUG
             DO N=1,NTM
               if(TMP(n).lt.0.) print*,'TMP<0 3',TMP(n),trname(n)
             ENDDO
+#endif
             TM_dum(:) = TMP(:)
-!TOMAS DEBUG
+#ifdef TOMAS_DEBUG
             DO N=1,NTM
               if(TM_dum(n).lt.0.) print*,'TM_dum<0 1',TM_dum(n),trname(n)
             ENDDO
-!TOMAS DEBUG
+#endif
             call GET_COND_FACTOR_array( &
                  NTX,WMXTR,TPOLD(L),TPOLD(L-1),LHX,FPLUME &
                  ,FQCOND,FQCONDT,.true.,TRCOND(:,L),TM_dum,THLAW,TR_LEF,PL(L) &
@@ -4028,11 +4031,11 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
       endif
 
       TM_dum(:) = TM(L,:)
-!TOMAS DEBUG
+#ifdef TOMAS_DEBUG
             DO N=1,NTM
               if(TM_dum(n).lt.0.) print*,'TM_dum<0 2',TM_dum(n),trname(n)
             ENDDO
-!TOMAS DEBUG
+#endif
       if(BELOW_CLOUD.and.QCX.lt.teeny) then
         FQTOWT(:)=0.
         THLAW(gases_list)=0.
@@ -4138,8 +4141,8 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
         FPRT=FPR
         TRWML(N,L) = TRWML(N,L)*(1.-FPRT)  + DTQWT(N)+THLAW(N)
 
-        TM(L,N) = max(0.D0, TM(L,N) &
-             + DTERT(N) - DTWRT - DTQWT(N) - THLAW(N) - THWASH(N) )
+        TM(L,N) = TM(L,N) + DTERT(N) - DTWRT - DTQWT(N) - THLAW(N) - THWASH(N)
+        if (t_qlimit(n)) tm(l,n)=max(0d0, tm(l, n))
 
         TRPRBAR(N,L)=TRPRBAR(N,L+1)*(1.-FERT(N)) &
              +DTPRT(N)+DTWRT+THWASH(N)
@@ -4250,11 +4253,11 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
           ! below TR_LEFT(iaqch) limits the amount of available tracer in gridbox
           !dmkf and below, extra arguments for GET_COND, addition of THLAW
           TM_dum(:) = TM(L,:)
-!TOMAS DEBUG
+#ifdef TOMAS_DEBUG
             DO N=1,NTM
               if(TM_dum(n).lt.0.) print*,'TM_dum<0 3',TM_dum(n),trname(n)
             ENDDO
-!TOMAS DEBUG
+#endif
           call GET_COND_FACTOR_array(NTX,WMXTR,TL(L),TL(L),LHX,FCLD,FCOND &
                ,FQCONDT,.false.,TRWML(:,L),TM_dum,THLAW,TR_LEF,pl(l) &
                ,ntix,CLDSAVT)
