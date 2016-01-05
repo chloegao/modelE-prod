@@ -7491,7 +7491,6 @@ c     tmominit = 0.
 #ifndef TRACERS_ATM_ONLY
         call init_single_seaice_tracer(si_atm,n,trsi0(n))
         call init_single_seaice_tracer(si_ocn,n,trsi0(n))
-#endif
 
         do j=J_0,J_1
           do i=I_0,I_1
@@ -7505,7 +7504,6 @@ c Define a simple d18O based on Tsurf for GIC, put dD on meteoric water line
 #endif
 C**** lakes
             if (flake(i,j).gt.0) then
-#ifndef TRACERS_ATM_ONLY
               trlake(n,1,i,j)=tracerTs*mldlk(i,j)*rhow*flake(i,j)
      *             *axyp(i,j)
               if (mwl(i,j)-mldlk(i,j)*rhow*flake(i,j)*axyp(i,j).gt.1d-10
@@ -7514,15 +7512,12 @@ C**** lakes
               else
                 trlake(n,2,i,j)=0.
               end if
-#endif
               atmocn%gtracer(n,i,j)=trw0(n)
             else !if (focean(i,j).eq.0) then
-#ifndef TRACERS_ATM_ONLY
               trlake(n,1,i,j)=trw0(n)*mwl(i,j)
               trlake(n,2,i,j)=0.
 c            else
 c              trlake(n,1:2,i,j)=0.
-#endif
             end if
 c**** ice
             if (si_atm%msi(i,j).gt.0) then
@@ -7530,10 +7525,8 @@ c**** ice
             end if
 c**** landice
             if (flice(i,j).gt.0) then
-#ifndef TRACERS_ATM_ONLY
               trlndi(n,i,j,:)=trli0(n)*(ace1li+ace2li)	! calls trli0_s()
               trsnowli(n,i,j,:)=trli0(n)*snowli(i,j,:)
-#endif
               do ipatch=1,ubound(atmglas,1)
 #ifdef GLINT2
                 atmglas_hp(ipatch)%gtracer(n,i,j)=trli0(n)
@@ -7541,10 +7534,8 @@ c**** landice
                 atmglas(ipatch)%gtracer(n,i,j)=trli0(n)
               enddo
             else
-#ifndef TRACERS_ATM_ONLY
               trlndi(n,i,j,:)=0.
               trsnowli(n,i,j,:)=0.
-#endif
               do ipatch=1,ubound(atmglas,1)
 #ifdef GLINT2
                 atmglas_hp(ipatch)%gtracer(n,i,j)=0.
@@ -7556,7 +7547,6 @@ c**** earth
             !!!if (fearth(i,j).gt.0) then
             if (focean(i,j) < 1.d0) then
               conv=rhow         ! convert from m to kg/m^2
-#ifndef TRACERS_ATM_ONLY
               tr_w_ij  (n,:,:,i,j)=tracerTs*w_ij (:,:,i,j)*conv
               tr_wsn_ij(n,1:nsn_ij(1,i,j),1,i,j)=
      &             tracerTs*wsn_ij(1:nsn_ij(1,i,j),1,i,j)
@@ -7565,19 +7555,17 @@ c**** earth
      &             tracerTs*wsn_ij(1:nsn_ij(2,i,j),2,i,j)
      &             *fr_snow_ij(2,i,j)*conv
               !trsnowbv(n,2,i,j)=trw0(n)*snowbv(2,i,j)*conv
-#endif
               atmlnd%gtracer (n,i,j)=trw0(n)
             else
-#ifndef TRACERS_ATM_ONLY
               tr_w_ij  (n,:,:,i,j)=0.
               tr_wsn_ij(n,:,:,i,j)=0.
-#endif
               !trsnowbv(n,1,i,j)=0.
               !trsnowbv(n,2,i,j)=0.
               atmlnd%gtracer(n,i,j)=0.
             end if
           end do
           end do
+#endif
 #ifdef TRACERS_SPECIAL_O18
           if (AM_I_ROOT()) then
             if(trname(n).eq."H2O18") write(6,'(A52,f6.2,A15,f8.4,A18)')

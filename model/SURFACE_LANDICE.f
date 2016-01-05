@@ -282,12 +282,14 @@ C****
 
 c      uocean = 0. ; vocean = 0. ! no land ice velocity
 #ifdef TRACERS_WATER
-#ifndef TRACERS_ATM_ONLY
       do nx=1,ntx
+#ifdef TRACERS_ATM_ONLY
+        trgrnd2(nx)=igla%gtracer(NTIX(NX),i,j)
+#else
         trgrnd2(nx)=TRLNDI(ntix(nx),I,J,IHC)/(ACE1LI+ACE2LI)
+#endif
       end do
       pbl_args%trgrnd2(1:ntm) = trgrnd2(1:ntm)
-#endif
 #endif
 ! END ---------------------------------------------------------
 
