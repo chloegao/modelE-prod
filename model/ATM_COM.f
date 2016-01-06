@@ -25,7 +25,7 @@
      *     REQ_FAC_D=(/ .5d0,  .3d0,  .2d0 /)     ! delta
 
 !@var PL00, PMIDL00, PDSIGL00, AML00 press (mb), mid-pressure (mb),
-!@+        mass (kg/m2) for mean profile
+!@+        pressure thickness (mb), mass (kg/m2) for mean profile
 !@var PEDNL00 edge pressure for mean profile (mb)
       REAL*8, DIMENSION(LM+LM_REQ) ::
      &     PL00, PMIDL00, PDSIGL00, AML00, BYAML00

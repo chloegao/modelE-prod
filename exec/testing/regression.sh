@@ -70,6 +70,9 @@ if [ "$#" -gt 0 ]; then
 	 rundecks=( "${rundecks[@]}" "$arg" )
       fi
    done
+else
+   rundecks=("nonProduction_E_AR5_C12")
+fi
 
    node=`uname -n`
    # We need the right python version on DISCOVER
@@ -80,13 +83,11 @@ if [ "$#" -gt 0 ]; then
    repo=${root%/*}
    for run in "${rundecks[@]}"; do
       cp  $scripts/template.cfg $run.cfg
-      sed -i "s|COMPILER|${compiler}|g" $run.cfg
-      sed -i "s|REPO|${repo}|g" $run.cfg
-      sed -i "s/RUNDECK/${run}/g" $run.cfg
-      sed -i "s/VERIFICATION/${verification}/g" $run.cfg
+      sed -i -e "s|COMPILER|${compiler}|g" $run.cfg
+      sed -i -e "s|REPO|${repo}|g" $run.cfg
+      sed -i -e "s|MODELERC|${MODELERC}|g" $run.cfg
+      sed -i -e "s/RUNDECK/${run}/g" $run.cfg
+      sed -i -e "s/VERIFICATION/${verification}/g" $run.cfg
    done
-else
-   rundecks=("nonProduction_E_AR5_C12")
-fi
 
 python $scripts/regression.py ${rundecks[@]}

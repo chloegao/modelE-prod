@@ -45,7 +45,6 @@ def getModelConfigurations(config):
         # Each item is a regression test (regTest) instance
         runList.append(regTest.regTest(name))
 
-    userconfig = ConfigSectionMap(config, 'USERCONFIG')
     for d in runList:
         d.setOpts(modelConfig)
         
