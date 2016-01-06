@@ -620,6 +620,9 @@ c note: not applying CPP when declaring counts/lists.
         module procedure ntsurfsrc_all
       end interface ntsurfsrc
 
+      real*8, allocatable, dimension(:, :, :) :: xyztr
+      integer :: ntm_sph=0, ntm_reg=0
+
       contains
 
       subroutine initTracerCom()
@@ -838,6 +841,9 @@ C****
       subroutine syncProperty(tracers, property, setValue, values)
       use Dictionary_mod, only: sync_param
       use TracerBundle_mod
+      use oldtracer_mod, only: src_dist_index
+      implicit none
+
       type (TracerBundle), intent(inout) :: tracers
       character(len=*) :: property
       interface
@@ -852,11 +858,17 @@ C****
       integer :: n 
       integer :: i
 
-      n = tracers%size()
+      n = 0
+      do i=1, tracers%size()
+         if (src_dist_index(i)<=1) n=n+1 ! count tracers, ignoring duplicates
+      end do
       scratch = values
       call sync_param(property,scratch,n)
       do i = 1, n
          call setValue(i, scratch(i))
+      end do
+      do i=n+1, tracers%size()
+         call setValue(i, scratch(src_dist_index(i)))
       end do
 
       end subroutine syncProperty

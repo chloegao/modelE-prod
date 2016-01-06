@@ -1268,7 +1268,7 @@ c     - Species including TOMAS  emissions - 2D sources and 3D sources
       USE CLOUDS, ONLY : diag_wetdep
 #endif
 #endif /* TRACERS_ON */
-      use OldTracer_mod, only: trname, ntm_power
+      use OldTracer_mod, only: trname, ntm_power, src_dist_index
       implicit none
       integer k,n,kk,ltop
       character*50 :: unit_string
@@ -1314,6 +1314,7 @@ C**** set defaults for some precip/wet-dep related diags
       AOCOB01sources => pTracer%surfaceSources
 #endif
       do n=1,NTM
+        if (src_dist_index(n)/=0) cycle
         pTracer => tracers%getReference(trname(n))
         sources => pTracer%surfaceSources
       select case (trname(n))
@@ -3029,7 +3030,8 @@ c Oxidants
 #ifdef TRACERS_TOMAS
       USE TOMAS_AEROSOL, only: TOMAS_DIAG_FC
 #endif
-      use OldTracer_mod, only: trname, ntm_power, dodrydep
+      use OldTracer_mod, only: trname, ntm_power, dodrydep,
+     &          src_dist_index
       use rad_com, only: nradfrc
       implicit none
       integer k,n,n1,kr,ktaijs_out
@@ -3073,6 +3075,7 @@ C**** This needs to be 'hand coded' depending on circumstances
       AOCOB01sources => pTracer%surfaceSources
 #endif
       do n=1,NTM
+        if (src_dist_index(n)/=0) cycle
         pTracer => tracers%getReference(trname(n))
         sources => pTracer%surfaceSources
 
@@ -7088,6 +7091,8 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       use TRACER_COM, only:n_OCII 
 #endif
 #endif /* TRACERS_ON */
+      use oldtracer_mod, only: src_dist_base, src_dist_index
+      use tracer_com, only: xyztr
 
       IMPLICIT NONE
       real*8,parameter :: d18oT_slope=0.45,tracerT0=25
@@ -7169,6 +7174,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       integer :: initial_GHG_setup
       integer :: lat_val
 #endif /* TRACERS_ON */
+      character(len=:), allocatable :: name
 
 #ifdef TRACERS_ON
 C****
@@ -7211,10 +7217,12 @@ C**** set some defaults for water tracers
       tr_wsn_ij(n,:,:,:,J_0:J_1)=0.
 #endif
 #endif
-      select case (trname(n))
+      name=trname(n)
+      if (src_dist_index(n)/=0) name=trname(src_dist_base(n))
+      select case (name)
 
         case default
-          write(6,*) 'In TRACER_IC:',trname(n),' does not exist '
+          write(6,*) 'In TRACER_IC:',name,' does not exist '
           call stop_model("TRACER_IC",255)
 
         case ('Air')
@@ -7399,7 +7407,7 @@ C**** Fill in the tracer; above 100 mb interpolate linearly with P to 0 at top
          end do   ; end do   ; end do
 #endif /* TRACERS_SPECIAL_Shindell */
 #ifdef TRACERS_SPECIAL_Lerner
-          call get_wofsy_gas_IC(trname(n),CH4ic)
+          call get_wofsy_gas_IC(name,CH4ic)
           do l=1,lm         !ppbv==>ppbm
           do j=J_0,J_1
             trm(:,j,l,n) = MA(l,:,j)*axyp(:,j)*CH4ic(j,l)*0.552d-9
@@ -7431,7 +7439,7 @@ C**** Fill in the tracer; above 100 mb interpolate linearly with P to 0 at top
       case ('Water', 'H2O18', 'HDO', 'HTO', 'H2O17')
 
 C**** initial atmospheric conc. needs to be defined for each tracer
-        select case (trname(n))
+        select case (name)
         case ('Water')
           trinit=1.
 C**** for gradients defined on air mass
@@ -7460,6 +7468,14 @@ c     tmominit = 0.
      &           *axyp(i,j)*trinit
             trmom(:,i,j,l,n) = qmom(:,i,j,l)*MA(l,i,j)*axyp(i,j)
      *           *tmominit
+            if (src_dist_index(n)/=0) then
+              trm(i, j, l, n)=trm(i, j, l, n)*
+     &                                 xyztr(src_dist_index(n), i, j)
+              trwm(i, j, l, n)=trwm(i, j, l, n)*
+     &                                 xyztr(src_dist_index(n), i, j)
+              trmom(:, i, j, l, n)=trmom(:, i, j, l, n)*
+     &                                 xyztr(src_dist_index(n), i, j)
+            endif
           end do
         end do
         end do
@@ -7477,7 +7493,7 @@ c     tmominit = 0.
               trmom(:,i,jm,:,n)=0.
           enddo
         endif
-        if (trname(n).eq."HTO") then ! initialise bomb source
+        if (name.eq."HTO") then ! initialise bomb source
           do l=ls1-1,ls1+1      ! strat. source lat 44 N - 56 N
           do j=J_0,J_1
           do i=I_0,I_1
@@ -7497,9 +7513,9 @@ c     tmominit = 0.
             tracerTs=trw0(n)
 #ifdef TRACERS_SPECIAL_O18
 c Define a simple d18O based on Tsurf for GIC, put dD on meteoric water line
-            if(trname(n).eq."H2O18") tracerTs=TRW0(n_H2O18)*(1.+1d-3*
+            if(name.eq."H2O18") tracerTs=TRW0(n_H2O18)*(1.+1d-3*
      *           ((atmsrf%tsavg(i,j)-(tf+tracerT0))*d18oT_slope))
-            if(trname(n).eq."HDO") tracerTs=TRW0(n_HDO)*(1.+(1d-3*
+            if(name.eq."HDO") tracerTs=TRW0(n_HDO)*(1.+(1d-3*
      *         (((atmsrf%tsavg(i,j)-(tf+tracerT0))*d18oT_slope)*8+1d1)))
 #endif
 C**** lakes
@@ -7568,7 +7584,7 @@ c**** earth
 #endif
 #ifdef TRACERS_SPECIAL_O18
           if (AM_I_ROOT()) then
-            if(trname(n).eq."H2O18") write(6,'(A52,f6.2,A15,f8.4,A18)')
+            if(name.eq."H2O18") write(6,'(A52,f6.2,A15,f8.4,A18)')
      *            "Initialized trlake tr_w_ij tr_wsn_ij using Tsurf at"
      *           ,tracerT0,"degC, 0 permil",d18oT_slope
      *           ,"permil d18O/degC"
@@ -7959,6 +7975,9 @@ C**** Initialise pbl profile if necessary
           if(tr_wd_type(n).eq.nWATER)THEN
             asflx(ipatch)%trabl(ipbl,n,:,j) =
      &           trinit*asflx(ipatch)%qabl(ipbl,:,j)
+            if (src_dist_index(n)/=0) asflx(ipatch)%trabl(ipbl,n,:,j) =
+     &              asflx(ipatch)%trabl(ipbl,n,:,j)*
+     &                                 xyztr(src_dist_index(n), :, j)
           ELSE
             asflx(ipatch)%trabl(ipbl,n,:,j) =
      &           trm(:,j,1,n)*byMA(1,:,j)*byaxyp(:,j)
@@ -11608,3 +11627,320 @@ C If particle diameter is out of bounds, return reasonable value
 
 #endif
 
+!--------------------------------------------------------------------
+! sph_mod -- generate spherical harmonics
+!--------------------------------------------------------------------
+      module sph_mod
+      implicit none
+
+      private
+
+      type, public :: sph
+        private
+        real*8 :: base
+        real*8, dimension(:), allocatable :: coeff
+        integer :: l, m
+      contains
+        procedure :: build
+        procedure :: disp
+        procedure :: value
+      end type sph
+
+      contains
+
+      function binomial(n, k)
+      implicit none
+      integer, intent(in) :: n, k
+      integer :: binomial
+      integer :: i, kk
+
+      kk=merge(k, n-k, (k<n-k).and.(k<=n))
+      binomial=1
+      do i=1, kk
+        binomial=binomial*(n+1-i)/i
+      end do
+      return
+      end function binomial
+
+      subroutine deriv(a)
+      implicit none
+      real*8, dimension(:), intent(inout) :: a
+      integer :: i
+
+      do i=1, size(a)-1
+        a(i)=a(i+1)*i
+      end do
+      a(size(a))=0
+      return
+      end subroutine deriv
+
+      subroutine mult(a, b, res)
+      implicit none
+      real*8, dimension(:), intent(in) :: a, b
+      real*8, dimension(:), allocatable, intent(out) :: res
+      integer :: i, j, sz, r0, r1
+      real*8 :: val
+
+      sz=size(a)+size(b)-1
+      allocate(res(sz))
+      do i=0, sz-1
+        r0=max(0, i+1-size(b))
+        r1=min(i, size(a)-1)
+        val=0
+        do j=r0, r1
+          val=val+a(j+1)*b(i-j+1)
+        end do
+        res(i+1)=val
+      end do
+      return
+      end subroutine mult
+
+      subroutine legendre_poly(n, coeff)
+      implicit none
+      integer, intent(in) :: n
+      real*8, dimension(:), allocatable, intent(out) :: coeff
+      integer :: i, j, k
+      real*8 :: val
+
+      allocate(coeff(n+1))
+      coeff=0
+      do i=mod(n, 2), n, 2
+        val=1
+        k=merge(i, n-i, i<n-i)
+        do j=1, k
+          val=val*(n+1-j)/j
+        end do
+        do j=1, n
+          val=val*(n+i+1-j*2)/j
+        end do
+        coeff(i+1)=val
+      end do
+      return
+      end subroutine legendre_poly
+
+!----------------------
+! build(l, m) builds the spherical harmonic function l, m
+!----------------------
+      subroutine build(this, l, m)
+      implicit none
+      class(sph), intent(inout) :: this
+      integer, intent(in) :: l, m
+      integer :: i, absm
+      real*8, parameter :: pi=4.d0*datan(1.d0)
+      real*8, dimension(:), allocatable :: coeff
+      real*8 :: term
+
+      this%l=l
+      this%m=m
+      absm=abs(m)
+      term=1.
+      do i=l-absm+1, l+absm
+        term=term*i
+      end do
+      this%base=sqrt((.5*l+.25)/term/pi)
+      if (m/=0) this%base=this%base*sqrt(2.)
+      call legendre_poly(l, coeff)
+      do i=1, absm
+        call deriv(coeff)
+      end do
+      allocate(this%coeff(l+1-absm))
+      this%coeff(:)=coeff(1:(l+1-absm))
+      return
+      end subroutine build
+
+      subroutine disp(this)
+      implicit none
+      class(sph), intent(inout) :: this
+      integer :: i
+
+      write(*,*)'Y',this%l,this%m,'= ...'
+      write(*,*)this%base,'*'
+      if (this%m/=0) then
+        write(*,*)'sin'
+        write(*,*)'^',abs(this%m)
+        write(*,*)'(t)*'
+      end if
+      write(*,*)'(',this%coeff(1)
+      do i=2, size(this%coeff)
+        write(*,*)'+',this%coeff(i),'*cos^',i-1,'(t)'
+      end do
+      write(*,*)')'
+      if (this%m<0) write(*,*)'*sin(',abs(this%m),'*p)'
+      if (this%m>0) write(*,*)'*cos(',abs(this%m),'*p)'
+      return
+      end subroutine disp
+
+!----------------------
+! value(t, p) value at a given point (in spherical coordinates theta, phi)
+!----------------------
+      function value(this, t, p)
+      implicit none
+      class(sph), intent(in) :: this
+      real*8, intent(in) :: t, p
+      real*8 :: value
+      integer :: i
+
+      value=0.
+      do i=1, size(this%coeff)
+        value=value+this%coeff(i)*cos(t)**(i-1)
+      end do
+      value=value*this%base
+      if (this%m/=0) then
+        value=value*sin(t)**abs(this%m)
+      end if
+      if (this%m<0) value=value*sin(-this%m*p)
+      if (this%m>0) value=value*cos(this%m*p)
+      return
+      end function value
+
+      end module sph_mod
+
+!--------------------------------------------------------------------
+!--------------------------------------------------------------------
+
+
+      subroutine src_dist_config
+      use resolution, only : im,jm
+      USE DOMAIN_DECOMP_atm, ONLY : GRID, getdomainbounds, am_i_root
+      use tracer_com, only: xyztr, ntm_sph, ntm_reg
+      use dictionary_mod, only: get_param, is_set_param
+      implicit none
+      include 'netcdf.inc'
+      interface
+        subroutine src_dist_config_sph(l, m, n, arr)
+        integer, intent(in) :: l, m, n
+        real*8, dimension(:, :, :), allocatable, intent(inout) :: arr
+        end subroutine src_dist_config_sph
+      end interface
+
+      integer :: status,fid,vid,did,srt(3),cnt(3)
+c
+      character(len=80) :: xyzfile='src_dist_cfg'
+      integer, dimension(im,jm) :: regions
+      real*8, dimension(:,:,:), allocatable :: xyztr_sph
+      integer :: i,j,n,l,m,ntm,n_sph
+      INTEGER :: J_0, J_1
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+      CALL getdomainbounds(grid, J_STRT=J_0, J_STOP=J_1)
+      ntm_sph = 1  ! always keep trname(1)='Water   '
+      ntm_reg = 0
+      status = nf_open(trim(xyzfile),nf_nowrite,fid)
+      if(status.ne.nf_noerr) then
+        if(am_i_root())
+     &       write(6,*) 'input file ',trim(xyzfile),' not found'
+        call stop_model('missing input file in src_dist_config',255)
+      endif
+      status = nf_inq_dimid(fid,'tracer',did)
+      if(status.eq.nf_noerr) then
+        status = nf_inq_dimlen(fid,did,ntm_sph)
+      endif
+      status = nf_inq_varid(fid,'regions',vid)
+      if(status.eq.nf_noerr) then
+        status = nf_get_var_int(fid,vid,regions)
+        ntm_reg = maxval(regions)
+        do n=1,ntm_reg
+          if(.not.any(regions.eq.n)) then
+            if(am_i_root()) write(6,*) 'missing region ',n
+            call stop_model('missing region in src_dist_config',255)
+          endif
+        enddo
+      endif
+      n_sph=0
+      if (is_set_param('src_dist_sph'))
+     &   call get_param('src_dist_sph', n_sph)
+      ntm=ntm_sph+ntm_reg+n_sph**2
+      allocate(xyztr(ntm,IM,J_0:J_1))
+
+c read spherical harmonic basis functions
+      status = nf_inq_varid(fid,'xyztr',vid)
+      if(status.eq.nf_noerr .and. ntm_sph.gt.1) then
+        srt(1:3) = (/ 1, 1, j_0 /)
+        cnt(1:3) = (/ ntm_sph, im, 1+j_1-j_0 /)
+        if(ntm_reg.gt.0) then
+          allocate(xyztr_sph(ntm_sph,IM,J_0:J_1))
+          status = nf_get_vara_double(fid,vid,srt,cnt,xyztr_sph)
+        else
+          status = nf_get_vara_double(fid,vid,srt,cnt,xyztr)
+        endif
+      else  ! if no xyztr in file, retain normal water as a tracer
+        xyztr(1,:,:) = 1d0
+      endif
+      status = nf_close(fid)
+c copy spherical funcs and region tracers into xyztr
+      do j=j_0,j_1
+        do i=1,im
+          if(ntm_sph.gt.1 .and. ntm_reg.gt.0) then
+            xyztr(1:ntm_sph,i,j)=xyztr_sph(1:ntm_sph,i,j)
+          endif
+          if(ntm_reg.gt.0) then
+            xyztr(ntm_sph+1:ntm,i,j) = 0d0
+            xyztr(ntm_sph+regions(i,j),i,j) = 1d0
+          endif
+        enddo
+      enddo
+      do l=0, n_sph-1
+        call src_dist_config_sph(l, 0,
+     &                  ntm_sph+ntm_reg+l**2+1, xyztr)
+        do m=1, l
+          call src_dist_config_sph(l, m,
+     &                  ntm_sph+ntm_reg+l**2+m*2, xyztr)
+          call src_dist_config_sph(l, -m,
+     &                  ntm_sph+ntm_reg+l**2+m*2+1, xyztr)
+        end do
+      end do
+      return
+      end subroutine src_dist_config
+
+      subroutine src_dist_config_sph(l, m, n, arr)
+      use sph_mod, only: sph
+      use geom, only: lat_dg,lon_dg
+      use constant, only: pi
+      use domain_decomp_atm, only : grid, getdomainbounds
+      implicit none
+      integer, intent(in) :: l, m, n
+      real*8, dimension(:, :, :), allocatable, intent(inout) :: arr
+      integer :: i, j, i0, i1, j0, j1
+      real*8, parameter :: factor=sqrt(4.*pi)
+      type(sph) :: gen
+
+      call getdomainbounds(grid,
+     &                 i_strt=i0, i_stop=i1, j_strt=j0, j_stop=j1)
+      call gen%build(l, m)
+      do i=i0, i1
+        do j=j0, j1
+          arr(n,i,j)=gen%value((90.-lat_dg(j,1))*pi/180.,
+     &                                 lon_dg(i,1)*pi/180.)*factor
+        end do
+      end do
+
+      return
+      end subroutine src_dist_config_sph
+
+      subroutine init_src_dist
+      use resolution, only : im
+      use tracer_com, only: ntm, xyztr, ntm_sph, ntm_reg
+      use domain_decomp_atm, only : grid, getdomainbounds
+      use fluxes, only: focean, asflx
+      use oldtracer_mod, only: src_dist_index
+      implicit none
+      integer :: i, j, n, j_0, j_1
+
+      if (allocated(xyztr)) then
+        call getdomainbounds(grid, j_strt=j_0, j_stop=j_1)
+        do j=j_0, j_1
+          do i=1, im
+            do n=1, ntm_reg
+              xyztr(n+ntm_sph, i, j)=xyztr(n+ntm_sph, i, j)*focean(i, j)
+            enddo
+          enddo
+        enddo
+        do i=1, size(asflx)
+          do n=1, ntm
+            if (src_dist_index(n)>0) asflx(i)%gtracer(n, :, j_0:j_1)=
+     &                             xyztr(src_dist_index(n), :, j_0:j_1)
+          enddo
+        enddo
+      endif
+      end subroutine init_src_dist

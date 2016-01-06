@@ -78,6 +78,8 @@ public :: set_om2oc, om2oc
 public :: set_to_volume_MixRat, to_volume_MixRat 
 public :: set_to_conc, to_conc 
 public :: set_TRLI0, TRLI0 
+public :: set_src_dist_base, src_dist_base 
+public :: set_src_dist_index, src_dist_index 
 
   interface tr_mm
 module procedure tr_mm_s
@@ -253,6 +255,16 @@ module procedure TRLI0_s
 module procedure TRLI0_all
    module procedure TRLI0_m
 end interface
+interface src_dist_base
+module procedure src_dist_base_s
+module procedure src_dist_base_all
+   module procedure src_dist_base_m
+end interface
+interface src_dist_index
+module procedure src_dist_index_s
+module procedure src_dist_index_all
+   module procedure src_dist_index_m
+end interface
 
 
   integer, parameter :: MAX_LEN_NAME = 20
@@ -298,7 +310,7 @@ end interface
 !@var nBBsources: number of sources attributed to biomass burning
     integer :: nBBsources = 0 
 !@var emisPerFireByVegType: emisPerFireByVegType tracer emissions per fire count as a
-!@+ function of 12 standard GISS (VDATA) vegetation types. (kg/m2/fire)
+!@+ function of 12 standard GISS (VDATA) vegetation types
     real*8, dimension(12) :: emisPerFireByVegType = 0.0d0 
 !@var trpdens: tracer particle density (kg/m^3)
 !@+               (=0 for non-particle tracers)
@@ -340,6 +352,10 @@ end interface
     integer :: to_conc = 0 
 !@var TRLI0: default tracer conc. for land ice (kg/kg)
     real*8 :: TRLI0 = 0.d0 
+!@var src_dist_base: source distribution base
+    integer :: src_dist_base = 0 
+!@var src_dist_index: source distribution index
+    integer :: src_dist_index = 0 
 
 
   end type OldTracer_type
@@ -1735,6 +1751,80 @@ contains
     real*8 :: TRLI0_m(size(oldIndices))
     TRLI0_m = internalTracers(oldIndices(:))%TRLI0
   end function TRLI0_m
+
+
+
+  subroutine set_src_dist_base(oldIndex, value)
+   use Attributes_mod
+    integer, intent(in) :: oldIndex
+    integer, intent(in) :: value
+    internalTracers(oldIndex)%src_dist_base = value
+    call tracerReference%setAttribute(trName(oldIndex), "src_dist_base", newAttribute(value))
+  end subroutine set_src_dist_base
+  
+  function src_dist_base_s(oldIndex)
+    use GenericType_mod
+    integer, intent(in) :: oldIndex
+    type (Tracer), pointer :: p
+    integer :: src_dist_base_s
+#ifdef NEW_TRACER_PROPERTIES
+    src_dist_base_s = tracerReference%getProperty(trName(oldIndex), "src_dist_base")
+#else
+#ifdef MIXED_TRACER_PROPERTIES
+    src_dist_base_s = tracerReference%internalTracers(oldIndex)%getProperty("src_dist_base")
+#else
+    src_dist_base_s = internalTracers(oldIndex)%src_dist_base
+#endif
+#endif
+  end function src_dist_base_s
+
+  function src_dist_base_all()
+    integer :: src_dist_base_all(size(internalTracers))
+    src_dist_base_all = internalTracers(:)%src_dist_base
+  end function src_dist_base_all
+
+  function src_dist_base_m(oldIndices)
+    integer, intent(in) :: oldIndices(:)
+    integer :: src_dist_base_m(size(oldIndices))
+    src_dist_base_m = internalTracers(oldIndices(:))%src_dist_base
+  end function src_dist_base_m
+
+
+
+  subroutine set_src_dist_index(oldIndex, value)
+   use Attributes_mod
+    integer, intent(in) :: oldIndex
+    integer, intent(in) :: value
+    internalTracers(oldIndex)%src_dist_index = value
+    call tracerReference%setAttribute(trName(oldIndex), "src_dist_index", newAttribute(value))
+  end subroutine set_src_dist_index
+  
+  function src_dist_index_s(oldIndex)
+    use GenericType_mod
+    integer, intent(in) :: oldIndex
+    type (Tracer), pointer :: p
+    integer :: src_dist_index_s
+#ifdef NEW_TRACER_PROPERTIES
+    src_dist_index_s = tracerReference%getProperty(trName(oldIndex), "src_dist_index")
+#else
+#ifdef MIXED_TRACER_PROPERTIES
+    src_dist_index_s = tracerReference%internalTracers(oldIndex)%getProperty("src_dist_index")
+#else
+    src_dist_index_s = internalTracers(oldIndex)%src_dist_index
+#endif
+#endif
+  end function src_dist_index_s
+
+  function src_dist_index_all()
+    integer :: src_dist_index_all(size(internalTracers))
+    src_dist_index_all = internalTracers(:)%src_dist_index
+  end function src_dist_index_all
+
+  function src_dist_index_m(oldIndices)
+    integer, intent(in) :: oldIndices(:)
+    integer :: src_dist_index_m(size(oldIndices))
+    src_dist_index_m = internalTracers(oldIndices(:))%src_dist_index
+  end function src_dist_index_m
 
 
 

@@ -326,6 +326,7 @@ C Read landuse parameters and coefficients for tracer dry deposition:
       CALL SETUP_RAD
 #endif
 
+      call init_src_dist
 
       return
       end subroutine initTracerGriddedData

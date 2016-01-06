@@ -14,7 +14,7 @@
       SUBROUTINE DIAGJLT_prep
 ! comments to be added
       use OldTracer_mod, only:  ntm_power
-      use OldTracer_mod, only:  trname
+      use OldTracer_mod, only:  trname, src_dist_index
       use constant, only: teeny, grav
       use resolution, only: lm
       USE MODEL_COM, only: idacc
@@ -132,6 +132,7 @@ C**** LOOP OVER TRACERS
 C****
 
       DO N=1,NTM
+      if (src_dist_index(n)>1) cycle
 C****
 C**** TRACER CONCENTRATION
 C****
@@ -629,7 +630,7 @@ c
       use resolution, only : im,jm
       use model_com, only: idacc
       use OldTracer_mod, only: dodrydep, dowetdep
-      use OldTracer_mod, only: trname, trw0
+      use OldTracer_mod, only: trname, trw0, src_dist_index
       use tracer_com, only: ntm, n_water
 #ifdef TRACERS_SPECIAL_O18
       use tracer_com, only: n_h2o18, n_hdo, n_h2o17
@@ -716,6 +717,7 @@ c
 c Tracer sums/means and ground conc
 c
       do n=1,NTM
+      if (src_dist_index(n)>1) cycle
       do kx=1,ktaij
         if (index(lname_tij(kx,n),'unused').gt.0) cycle
         k = k+1
@@ -1037,7 +1039,7 @@ c
 !     comments to be added
       use resolution, only : im,jm,lm
       use model_com, only: idacc
-      use OldTracer_mod, only: trw0
+      use OldTracer_mod, only: trw0, src_dist_index
       use tracer_com, only: ntm, n_water
 #ifdef TRACERS_SPECIAL_O18
       use tracer_com, only: n_h2o18, n_hdo, n_h2o17
@@ -1106,6 +1108,7 @@ C**** Fill in the undefined pole box duplicates
 
 C**** Tracer concentrations
       do n=1,NTM
+        if (src_dist_index(n)>1) cycle
         k = k+1
         sname_taijl(k) = sname_ijt(n)
         lname_taijl(k) = lname_ijt(n)

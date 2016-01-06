@@ -354,6 +354,7 @@
         call TOMAS_InitMetadata(pTracer)
       end if
 #endif
+      call init_source_distrib
 
 ! ***  END TRACER METADATA INITIALIZATION
 
@@ -430,6 +431,42 @@
 
       end subroutine initTracerMetadata
 
+
+!------------------------------------------------------------------------------
+      subroutine init_source_distrib
+      use dictionary_mod, only : is_set_param, get_param
+      use oldtracer_mod, only: oldaddtracer, set_t_qlimit, findtracer,
+     &  set_src_dist_base, set_src_dist_index
+      use tracer_com, only: xyztr
+      implicit none
+      character(len=1024) :: list
+      integer :: str_pos, i, nt, nt_orig
+      character(len=10) :: name, basename
+
+      if (is_set_param('src_dist_tr')) then
+        call src_dist_config
+        call get_param('src_dist_tr', list)
+        list=adjustl(list)
+        do while (len_trim(list).gt.0)
+          str_pos=index(list, ' ')
+          name=list(1:str_pos-1)
+          basename=name
+          nt_orig=findtracer(basename)
+          call set_t_qlimit(nt_orig, .false.)
+          call set_src_dist_base(nt_orig, nt_orig)
+          call set_src_dist_index(nt_orig, 1)
+          do i=2, size(xyztr, 1)
+            write(name(6:8), '(i3.3)') i
+            nt=oldaddtracer(name, basename)
+            call set_src_dist_index(nt, i)
+          end do
+          list=adjustl(list(str_pos:))
+        end do
+      endif
+
+      return
+      end subroutine init_source_distrib
+!------------------------------------------------------------------------------
 
 !------------------------------------------------------------------------------
       subroutine laterInitTracerMetadata()

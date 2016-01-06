@@ -978,6 +978,69 @@ C*** Unpack read global data into local distributed arrays
       END SUBROUTINE io_trdiag
 #endif
 
+      subroutine write_src_dist_data(fid, def)
+      use pario, only: defvar, write_dist_data, write_data
+      use domain_decomp_atm, only : grid
+      use trdiag_com, only: taijln=>taijln_loc,
+     &                                   taijn=>taijn_loc, tij_prec
+      use oldtracer_mod, only: src_dist_base, src_dist_index
+      use tracer_com, only: ntm, xyztr, ntm_sph, ntm_reg
+      implicit none
+      integer, intent(in) :: fid
+      logical, intent(in) :: def
+      real*8, dimension(:, :, :, :), allocatable, save :: tr2
+      real*8, dimension(:, :, :, :, :), allocatable, save :: tr3
+      integer, dimension(ntm) :: lst
+      integer :: i, n, ndist, nindex
+
+      if (def) then
+        ndist=0
+        nindex=0
+        do n=1, ntm
+          if (src_dist_index(n)==1) then
+            ndist=ndist+1
+            lst(n)=ndist
+          end if
+          nindex=max(nindex, src_dist_index(n))
+        end do
+        if (ndist==0) return
+        allocate(tr2(size(taijn, 1), size(taijn, 2), ndist, nindex))
+        allocate(tr3(size(taijln, 1), size(taijln, 2), size(taijln, 3),
+     &    ndist, nindex))
+        do n=1, ntm
+          if (src_dist_index(n)==1) then
+            do i=n, ntm
+              if (src_dist_base(i)==src_dist_base(n)) then
+                tr2(:, :, lst(n), src_dist_index(i))=
+     &                                 taijn(:, :, tij_prec, i)
+                tr3(:, :, :, lst(n), src_dist_index(i))=
+     &                                 taijln(:, :, :, i)
+              end if
+            end do
+          end if
+        end do
+        call defvar(grid,fid,tr2,
+     &            'src_dist2(dist_im,dist_jm,ndist,nbasis)')
+        call defvar(grid,fid,tr3,
+     &            'src_dist3(dist_im,dist_jm,lm,ndist,nbasis)')
+        call defvar(grid,fid,xyztr,
+     &            'src_dist_basis(nbasis,dist_im,dist_jm)')
+        call defvar(grid,fid,ntm_sph,'ntm_sph')
+        call defvar(grid,fid,ntm_reg,'ntm_reg')
+      else
+        if (allocated(tr2).and.allocated(tr3)) then
+          call write_dist_data(grid,fid,'src_dist2',tr2)
+          call write_dist_data(grid,fid,'src_dist3',tr3)
+          call write_data(grid,fid,'ntm_sph',ntm_sph)
+          call write_data(grid,fid,'ntm_reg',ntm_reg)
+          deallocate(tr2)
+          deallocate(tr3)
+        end if
+        if (allocated(xyztr))
+     &    call write_dist_data(grid,fid,'src_dist_basis',xyztr,jdim=3)
+      endif
+      end subroutine write_src_dist_data
+
 #ifdef NEW_IO
 #ifdef TRACERS_ON /* only declare NEW_IO routines when needed */
       subroutine def_rsf_trdiag(fid,r4_on_disk)
@@ -1006,6 +1069,7 @@ C*** Unpack read global data into local distributed arrays
      &       'taij(dist_im,dist_jm,ktaij)',r4_on_disk=.true.)
         call defvar(grid,fid,tajl,
      &       'tajl(jm_budg,lm,ktajl)',r4_on_disk=.true.)
+        call write_src_dist_data(fid, .true.)
       else
         call defvar(grid,fid,taijln,'taijln(dist_im,dist_jm,lm,ntm)')
         call defvar(grid,fid,taijls,'taijls(dist_im,dist_jm,lm,ktaijl)')
@@ -1046,6 +1110,7 @@ C*** Unpack read global data into local distributed arrays
         call write_dist_data(grid,fid,'taijl',taijl)
         call write_dist_data(grid,fid,'taij',taij)
         call write_data(grid,fid,'tajl',tajl)
+        call write_src_dist_data(fid, .false.)
       case (iowrite)            ! output to restart file
         call gather_zonal_trdiag
         call write_dist_data(grid,fid,'taijln',taijln)

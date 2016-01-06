@@ -176,7 +176,7 @@ C****
 !@calls sync_param
       use OldTracer_mod, only: trName, tr_wd_TYPE, mass2vol
       use OldTracer_mod, only: dowetdep, dodrydep, trradius, ntrocn
-      use OldTracer_mod, only: ntm_power, nwater
+      use OldTracer_mod, only: ntm_power, nwater, src_dist_index
       USE CONSTANT, only: mair
       USE MODEL_COM, only: dtsrc
       USE FLUXES, only : nisurf,atmice
@@ -368,15 +368,17 @@ C****     2  TRS (SURFACE TRACER CONC.) (M*M * KG TRACER/KG AIR)
 C****     3  TM (SUM OVER ALL LAYERS) (M*M * KG TRACER)
       do n=1,ntm
 C**** Summation of mass over all layers
-      k = 1        ! <<<<< Be sure to do this
-      tij_mass = k
+      k = 0        ! <<<<< Be sure to do this
+      if (src_dist_index(n)<=1) then
+        k = k+1
+        tij_mass = k
         write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_Total_Mass'
         write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//' Total Mass'
         units_tij(k,n) = unit_string(ijtm_power(n),'kg/m^2')
         scale_tij(k,n) = 10.**(-ijtm_power(n))
 C**** Average concentration over layers
-      k = k+1
-      tij_conc = k
+        k = k+1
+        tij_conc = k
         write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_Average'
         write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//' Average'
         units_tij(k,n) = unit_string(ijtc_power(n),cmr(n))
@@ -388,8 +390,8 @@ C**** Average concentration over layers
         endif
 #endif
 C**** Surface concentration
-      k = k+1
-      tij_surf = k
+        k = k+1
+        tij_surf = k
         write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_At_Surface'
         write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//' At Surface'
         units_tij(k,n) = unit_string(ijtc_power(n),cmr(n))
@@ -402,8 +404,8 @@ C**** Surface concentration
         endif
 #endif
 C**** Surface concentration by volume (units kg/m^3)
-      k = k+1
-      tij_surfbv = k
+        k = k+1
+        tij_surfbv = k
         write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
      *     '_byVol_At_Surface'
         write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
@@ -411,6 +413,7 @@ C**** Surface concentration by volume (units kg/m^3)
         units_tij(k,n) = unit_string(ijtc_power(n),'kg/m^3')
         scale_tij(k,n)=MMR_to_VMR(n)*10.**(-ijtc_power(n))/
      *                 REAL(NIsurf,KIND=8)
+      endif ! if (src_dist_index(n)<=1) then
 #ifdef TRACERS_WATER
 C**** the following diagnostics are set assuming that the particular
 C**** tracer exists in water.
@@ -435,9 +438,10 @@ C**** Tracers in precipitation (=Wet deposition)
         end if
       end if
 C**** Tracers in evaporation
-      k = k+1
-      tij_evap = k
-      if (tr_wd_type(n).eq.nWater) then
+      if (src_dist_index(n)<=1) then
+        k = k+1
+        tij_evap = k
+        if (tr_wd_type(n).eq.nWater) then
         write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_in_evap'
         write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
      *       ' in Evaporation'
@@ -449,10 +453,10 @@ C**** Tracers in evaporation
           units_tij(k,n)=unit_string(ijtc_power(n),trim(cmrwt(n))//'/s')
           scale_tij(k,n)=10.**(-ijtc_power(n))/dtsrc
         end if
-      endif
+        endif
 C**** Tracers in river runoff (two versions - for inflow and outflow)
-      k = k+1
-      tij_rvr = k
+        k = k+1
+        tij_rvr = k
         sname_tij(k,n) = trim(TRNAME(n))//'_in_rvr'
         lname_tij(k,n) = trim(TRNAME(n))//' in River Inflow'
         if (to_per_mil(n) .eq.1) then
@@ -463,8 +467,8 @@ C**** Tracers in river runoff (two versions - for inflow and outflow)
           scale_tij(k,n)=10.**(-ijtc_power(n)-3)
         end if
         denom_tij(k,n)=n_Water
-      k = k+1
-      tij_rvro = k
+        k = k+1
+        tij_rvro = k
         sname_tij(k,n) = trim(TRNAME(n))//'_in_rvro'
         lname_tij(k,n) = trim(TRNAME(n))//' in River Outflow'
         if (to_per_mil(n) .eq.1) then
@@ -476,8 +480,8 @@ C**** Tracers in river runoff (two versions - for inflow and outflow)
         end if
         denom_tij(k,n)=n_Water
 C**** Tracers in iceberg runoff 
-      k = k+1
-      tij_icb = k
+        k = k+1
+        tij_icb = k
         sname_tij(k,n) = trim(TRNAME(n))//'_in_icb'
         lname_tij(k,n) = trim(TRNAME(n))//' in Iceberg Inflow'
         if (to_per_mil(n) .eq.1) then
@@ -489,8 +493,8 @@ C**** Tracers in iceberg runoff
         end if
         denom_tij(k,n)=n_Water
 C**** Tracers in sea ice
-      k = k+1
-      atmice%tij_seaice = k
+        k = k+1
+        atmice%tij_seaice = k
         sname_tij(k,n) = trim(TRNAME(n))//'_in_ice'
         lname_tij(k,n) = trim(TRNAME(n))//' in Sea Ice'
         if (to_per_mil(n) .eq.1) then
@@ -504,8 +508,8 @@ C**** Tracers in sea ice
 c        denom_tij(k,n)=n_Water ! if kg/kg units for non-water-isotopes
         end if
 C**** Tracers conc. in ground component (ie. water or ice surfaces)
-      k = k+1
-      tij_grnd = k
+        k = k+1
+        tij_grnd = k
         write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_at_Grnd'
         write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
      *       ' at Ground'
@@ -518,8 +522,8 @@ C**** Tracers conc. in ground component (ie. water or ice surfaces)
           scale_tij(k,n)=10.**(-ijtc_power(n)-3)/REAL(NIsurf,KIND=8)
         end if
 C**** Tracers conc. in lakes (layer 1)
-      k = k+1
-      tij_lk1 = k
+        k = k+1
+        tij_lk1 = k
         sname_tij(k,n) = trim(TRNAME(n))//'_Lake1'
         lname_tij(k,n) = trim(TRNAME(n))//' Lakes layer 1'
         if (to_per_mil(n) .eq.1) then
@@ -531,8 +535,8 @@ C**** Tracers conc. in lakes (layer 1)
         end if
         denom_tij(k,n)=n_Water
 C**** Tracers conc. in lakes (layer 2)
-      k = k+1
-      tij_lk2 = k
+        k = k+1
+        tij_lk2 = k
         sname_tij(k,n) = trim(TRNAME(n))//'_Lake2'
         lname_tij(k,n) = trim(TRNAME(n))//' Lakes layer 2'
         if (to_per_mil(n) .eq.1) then
@@ -544,8 +548,8 @@ C**** Tracers conc. in lakes (layer 2)
         end if
         denom_tij(k,n)=n_Water
 C**** Tracers conc. in soil water
-      k = k+1
-      tij_soil = k
+        k = k+1
+        tij_soil = k
         sname_tij(k,n) = trim(TRNAME(n))//'_in_Soil'
         lname_tij(k,n) = trim(TRNAME(n))//' Soil Water'
         if (to_per_mil(n) .eq.1) then
@@ -557,8 +561,8 @@ C**** Tracers conc. in soil water
         end if
         denom_tij(k,n)=n_Water
 C**** Tracers conc. in land snow water
-      k = k+1
-      tij_snow = k
+        k = k+1
+        tij_snow = k
         sname_tij(k,n) = trim(TRNAME(n))//'_in_Snow'
         lname_tij(k,n) = trim(TRNAME(n))//' Land Snow Water'
         if (to_per_mil(n) .eq.1) then
@@ -570,8 +574,8 @@ C**** Tracers conc. in land snow water
         end if
         denom_tij(k,n)=n_Water
 C**** Tracer ice-ocean flux
-      k = k+1
-      atmice%tij_icocflx = k
+        k = k+1
+        atmice%tij_icocflx = k
         write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_ic_oc_flx'
         write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
      *       ' Ice-Ocean Flux'
@@ -584,35 +588,36 @@ C**** Tracer ice-ocean flux
           scale_tij(k,n)=10.**(-ijtc_power(n)+5)/DTsrc
         end if
 C**** Tracers integrated E-W atmospheric flux
-      k = k+1
-      tij_uflx = k
+        k = k+1
+        tij_uflx = k
         write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_uflx'
         write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
      *       ' E-W Atmos Flux'
         units_tij(k,n)=unit_string(ijtc_power(n)+10,'kg/s')
         scale_tij(k,n)=10.**(-ijtc_power(n)-10)/DTsrc
 C**** Tracers integrated N-S atmospheric flux
-      k = k+1
-      tij_vflx = k
+        k = k+1
+        tij_vflx = k
         write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_vflx'
         write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
      *       ' N-S Atmos Flux'
         units_tij(k,n)=unit_string(ijtc_power(n)+10,'kg/s')
         scale_tij(k,n)=10.**(-ijtc_power(n)-10)/DTsrc
 C**** Tracers integrated E-W sea ice flux
-      k = k+1
-      atmice%tij_tusi = k
+        k = k+1
+        atmice%tij_tusi = k
         sname_tij(k,n) = trim(TRNAME(n))//'_tusi'
         lname_tij(k,n) = trim(TRNAME(n))//' E-W Ice Flux'
         units_tij(k,n) = unit_string(ntrocn(n),'kg/s')
         scale_tij(k,n) = (10.**(-ntrocn(n)))/DTsrc
 C**** Tracers integrated N-S sea ice flux
-      k = k+1
-      atmice%tij_tvsi = k
+        k = k+1
+        atmice%tij_tvsi = k
         sname_tij(k,n) = trim(TRNAME(n))//'_tvsi'
         lname_tij(k,n) = trim(TRNAME(n))//' N-S Ice Flux'
         units_tij(k,n) = unit_string(ntrocn(n),'kg/s')
         scale_tij(k,n) = (10.**(-ntrocn(n)))/DTsrc
+      endif ! if (src_dist_index(n)<=1) then
 #endif
 #ifdef TRACERS_DRYDEP
 C**** Tracers dry deposition flux.
@@ -743,6 +748,7 @@ C**** trflux1 is total flux into first layer
       USE TRACER_COM, only : NTM,trm,trmom
       USE FLUXES, only : trflux1,atmsrf
       USE DOMAIN_DECOMP_ATM, ONLY : GRID, getDomainBounds
+      use oldtracer_mod, only: src_dist_index
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: dtstep
       INTEGER n,i,j
@@ -779,6 +785,7 @@ c        trflux1(:,j,n) = trflux1(:,j,n)+atmsrf%trsrfflx(n,:,j)
 C**** Technically speaking the vertical moments should be modified here
 C**** as well. But for consistency with water vapour we only modify
 C**** moments for dew.
+       if (src_dist_index(n)==0) then
         do j=J_0,J_1
           do i=i_0,imaxj(j)
             if (atmsrf%trsrfflx(n,i,j).lt.0 .and.
@@ -789,6 +796,7 @@ C**** moments for dew.
             end if
           end do
         end do
+       endif
       end do
 C****
       RETURN
