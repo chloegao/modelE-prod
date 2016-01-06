@@ -96,6 +96,8 @@ def writeModelErc(cfg, scratchDir, compiler):
    NETCDFHOME=$nd\n\
    PNETCDFHOME=$pd\n\
    BASELIBDIR5=$bd\n\
+   PFUNITSERIALDIR=$p1\n\
+   PFUNITMPIDIR=$pn\n\
    BUILD_OUT_OF_SOURCE=NO\n\
    OVERWRITE=YES\n\
    OUTPUT_TO_FILES=NO\n\
@@ -109,6 +111,8 @@ def writeModelErc(cfg, scratchDir, compiler):
                               md=cfg['gccmpidir'],\
                               nd=cfg['gccnetcdf'],\
                               pd=cfg['gccpnetcdf'],\
+                              p1=cfg['gccserialpfunitdir'],\
+                              pn=cfg['gccmpipfunitdir'],\
                               bd=cfg['gccesmf'])
    elif compiler == 'intel':
       modelErc = s.substitute(cm=compiler,\
@@ -118,6 +122,8 @@ def writeModelErc(cfg, scratchDir, compiler):
                               md=cfg['intelmpidir'],\
                               nd=cfg['intelnetcdf'],\
                               pd=cfg['intelpnetcdf'],\
+                              p1=cfg['intelserialpfunitdir'],\
+                              pn=cfg['intelmpipfunitdir'],\
                               bd=cfg['intelesmf'])
    elif compiler == 'nag':
       modelErc = s.substitute(cm=compiler,\
@@ -127,6 +133,8 @@ def writeModelErc(cfg, scratchDir, compiler):
                               md=cfg['nagmpidir'],\
                               nd=cfg['nagnetcdf'],\
                               pd=cfg['nagpnetcdf'],\
+                              p1=cfg['nagserialpfunitdir'],\
+                              pn=cfg['nagmpipfunitdir'],\
                               bd=cfg['nagesmf'])
    else:
       modelErc = s.substitute(cm=compiler,\
@@ -136,6 +144,8 @@ def writeModelErc(cfg, scratchDir, compiler):
                               md=cfg['gccmpidir'],\
                               nd=cfg['gccnetcdf'],\
                               pd=cfg['gccpnetcdf'],\
+                              p1=cfg['gccserialpfunitdir'],\
+                              pn=cfg['gccmpipfunitdir'],\
                               bd=cfg['gccesmf'])
 
    rcfile = open(scratchDir + '/' + compiler + '/modelErc.' + compiler, "w")
@@ -145,6 +155,7 @@ def writeModelErc(cfg, scratchDir, compiler):
    logger.debug('Created modelErc file for compiler %s', compiler)
 
 #-------------------------------------------------------------------------------
+# For in-source builds we need a clone for each rundeck/compiler/mode combo
 def setupCloneTasks(config, compconfig, decklist):
     userconfig =util.ConfigSectionMap(config, 'USERCONFIG')
     compilers = util.getCompilers(compconfig)
@@ -323,7 +334,7 @@ def createScriptTask(config, compconfig, deck, comp, mode):
         # If not on DISCOVER
         else:
             fileHandle.write ('#!/bin/bash' + '\n')
-            # This is not portable...just my MAC so far
+            # CC: This is not portable...just my MAC so far
             fileHandle.write ('. /opt/local/share/Modules/3.2.10/init/bash' + '\n')
             fileHandle.write ('module purge' + '\n')
 
@@ -350,13 +361,23 @@ def createScriptTask(config, compconfig, deck, comp, mode):
     fileHandle.write ('export DECKSDIR=' + decksDir + '\n')
     modelErc = scratchDir + '/modelErc.' + comp
     fileHandle.write ('export MODELERC=' + modelErc + '\n')
-
+    # PFUNIT
+    if deck.getOpt('unittest') == 'yes':
+        if 'mpi' in mode: 
+            cmd = "cat "+modelErc+"| grep PFUNITMPIDIR"+"| awk -F= '{print $2}'"
+        else:
+            cmd = "cat "+modelErc+"| grep PFUNITSERIALDIR"+"| awk -F= '{print $2}'"
+        out = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE,\
+                               stderr=subprocess.STDOUT)
+        pfunitDir = out.communicate()[0].rstrip()
+        fileHandle.write ('export PFUNIT=' + pfunitDir + '\n')
+        
     # cd to the working dir and run the script
     fileHandle.write ('cd ' + decksDir + '\n')
     fileHandle.write ('python ' + scriptsDir + '/' + 'regression.py ' + deckName + '\n')
     fileHandle.write (' ' + '\n')
     fileHandle.close()
-
+    
     createRegConfig(config, deck, modelErc, comp, jobName, mode)
 
     if useBatch == 'yes':
@@ -391,6 +412,7 @@ def createRegConfig(config, deck, modelErc, comp, jobName, mode):
     regconfig.set('regSettings', 'compiler', comp)
     regconfig.set('regSettings', 'modes', mode)
     regconfig.set('regSettings', 'standalone', standalone)
+    regconfig.set('regSettings', 'unittest', deck.getOpt('unittest'))
     regconfig.set('regSettings', 'verification', deck.getOpt('verification'))
     regconfig.set('regSettings', 'endtime', deck.getOpt('endtime'))
     npestr = ' '.join(str(e) for e in deck.getOpt('npes'))
@@ -427,7 +449,7 @@ def compare(run):
                 regCompare.restart(run, npes=npes)
             # Compare NPE vs serial
             regCompare.nPE(run, run.endTime, npes)
-
+    
 #-------------------------------------------------------------------------------
 def writeDiff(run, fileH):
     fileH.write('%20s' % (run.results[0]))
@@ -497,14 +519,25 @@ def verifyRuns(config, compconfig, runSources):
 
             # Did executable build?
             if makesystem == 'makeOld':
-                exe = dirName+'.'+run.mode+'.'+run.compiler
-                cmd = exe+'_bin/'+(exe+'.exe')
+                wdir = dirName+'.'+run.mode+'.'+run.compiler
+                cmd = wdir+'_bin/'+(wdir+'.exe')
             else:
-                exe = 'model/modelexe'
-                cmd = 'ls '+exe
+                wdir = 'model/modelexe'
+                cmd = 'ls '+wdir
             exists = os.path.isfile(cmd)
+            # There is an executable
             if exists:
                 run.results[3] = '+'
+                # Did we run units tests?
+                if run.unitTest == 'yes':
+                    testsRes = decksDir+'/.unit'
+                    resExists = os.path.isfile(testsRes)
+                    if resExists:
+                        out = subprocess.check_output(['cat',testsRes])
+                        run.results[4] = out.strip()
+                    else:
+                        run.results[4] = '+'
+                
             else:
                 run.results[3] = 'Fb'
 
@@ -544,14 +577,14 @@ def sendDiffreport(config, compconfig, eTime):
     diffFile = resultsDir + '/' + 'diffreport.txt'
     fp = open(diffFile, 'w')
     fp.write(message + ' \n')
-    fp.write('-'*72+'\n')
+    fp.write('-'*80+'\n')
     fp.write('Branch: ' + branch)
     fp.write('  --  Build type: ' + buildtype +  '\n')
-    fp.write('-'*72+'\n')
-    fp.write('%70s\n' % ('    -REPRODUCIBILITY   '))
-    fp.write('%20s%10s%8s%8s%8s%8s%8s\n' % \
-        ('RUNDECK', 'COMPILER', 'MODE', 'RUN', 'BAS', 'RST', 'NPE'))
-    fp.write('-'*72+'\n')
+    fp.write('-'*80+'\n')
+    fp.write('%78s\n' % ('    -REPRODUCIBILITY   '))
+    fp.write('%20s%10s%8s%8s%8s%8s%8s%8s\n' % \
+        ('RUNDECK', 'COMPILER', 'MODE', 'RUN', 'UNT', 'BAS', 'RST', 'NPE'))
+    fp.write('-'*80+'\n')
 
 
     # Look at run diffs and check for build failures (Fb)
@@ -575,10 +608,10 @@ def sendDiffreport(config, compconfig, eTime):
                 with open(f,'r') as inf:
                     fp.write(inf.read())
 
-    fp.write('-'*72+'\n')
+    fp.write('-'*80+'\n')
     hhmmss = time.strftime('%H:%M:%S', time.gmtime(eTime))
     fp.write('Time taken = %s \n' %(hhmmss))
-    fp.write('-'*72+'\n')
+    fp.write('-'*80+'\n')
     fp.write('Legend:\n')
     fp.write('-'*7+'\n')
     fp.write('+   : success\n')

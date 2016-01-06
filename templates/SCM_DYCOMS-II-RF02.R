@@ -183,7 +183,6 @@ SCM_area=10000000000.0     ! arbitrary grid box area (m2)
 SCM_sfc=2                  ! 1:land,2:ocean
 SCM_ustar=0.25             ! surface friction speed (m/s)
 SCM_BeersLaw=70.,22.,85.   ! Beer's Law f0,f1 (W/m2), and kappa (m2/kg)
-SCM_gradient=1             ! preserve gradients when interpolating input profile?
 SCM_noMC=0                 ! turn off moist convection? 
 SCM_noCTEI=0               ! turn off cloud-top entrainment instability?
 

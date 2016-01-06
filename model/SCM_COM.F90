@@ -28,7 +28,7 @@
     logical :: omega,w,VadvHwind,ls_v,ls_h,Qrad
     logical :: nudge,Fnudge
     logical :: BeersLaw,PlumeDiag
-    logical :: gradient,noMC,noCTEI
+    logical :: TopHat,noMC,noCTEI
     real*8 :: lat,lon,area,tau
     integer :: sfc
   end type SCMoptions
@@ -57,7 +57,7 @@
 !@var SCMopt%area = SCM nominal area (m2)
 !@var SCMopt%tau = nudging time constant (s) for qv and T
 !@var SCMopt%sfc = 1:land, 2:ocean (defaults to land)
-!@var SCMopt%gradient = T:preserve gradients when interpolating
+!@var SCMopt%TopHat = T:assume top-hat distributions for input profiles (else piecewise linear)
 !@var SCMopt%noMC = T:turn off moist convection
 !@var SCMopt%noCTEI = T:turn off cloud-top entrainment instability
 !@var SCMopts%BeersLaw = T:use Beer's Law treatment (only) for radiative heating
@@ -68,7 +68,7 @@
     real*8 U(LM),V(LM),Ug(LM),Vg(LM)
     real*8 T(LM),TH(LM),Q(LM),Omega(LM),W(LM)
     real*8 SadvV(LM),QadvV(LM),TadvH(LM),QadvH(LM)
-    real*8 Qrad(LM), Fnudge(LM)
+    real*8 Qrad(LM),Fnudge(LM)
     real*8 time,lhf,shf,Tskin,Ps,z0m,ustar,alb
     real*8 BeersLaw_f0,BeersLaw_f1,BeersLaw_kappa
   end type SCMinputs
@@ -145,9 +145,10 @@
   SCMopt%Qrad = file_exists('SCM_QRAD')
   SCMopt%Fnudge = file_exists('SCM_FNUDGE')
 
-  ! F(default): pressure-weighted interpolation of thermodynamic profiles
-  ! T(optional): linear interpolation to preserve gradients
-  call get_param('SCM_gradient',SCMopt%gradient,default=.false.)
+  ! F(default): assume piecewise linear relation between input layers when reading input profiles
+  ! T(optional): assume top-hat distribution within input layers when reading input profiles
+  !              (which requires uniform pressure grid)
+  call get_param('SCM_TopHat',SCMopt%TopHat,default=.false.)
 
   ! F(default): standard operation
   ! T(optional): turn off moist convection
