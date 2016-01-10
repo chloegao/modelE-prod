@@ -1,6 +1,7 @@
 # This module contains functions that help setup and compare modelE runs
 import sys
 import os
+import re
 import shutil
 import shlex
 import time
@@ -109,48 +110,45 @@ class newRun(newRundeck):
         if self.debug:
             logger.info(commandString)
         else:
-            logger.debug(commandString)
+            logger.info(commandString)
             if makeLog == 'yes':
                 makeLog = self.resultsDir + '/'  + self.name + '-make.log'
                 with open(makeLog,'a') as f:
                     status = subprocess.call(commandString, \
                                              stdout=f, stderr=f, shell=True)
-            else: # we do not log the unit tests, we just capture their output
+            else:
+                # Run make tests command
                 proc = subprocess.Popen(commandString,
-                        shell=True,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE,
-                        )
+                                        shell=True,
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.PIPE,)
+                # And check output "interactively"
+                failures = False
+                while True:
+                    output = proc.stdout.readline()
+                    if output == '' and proc.poll is not None:
+                        break
+                    if output:
+                        logger.debug(output.strip())
+                        if 'Failures' in output:
+                            outlist =  output.split(' ')
+                            # Extract number of unit test failures, if any
+                            numfail = int(re.search(r'\d+', outlist[4]).group())
+                            failures = True
+                            
                 proc.wait()
                 status = proc.returncode
                 if status != 0:
-                    # Are there unit test "Failues"
-                    grep = subprocess.Popen(shlex.split('grep Failures'),
-                                            stdin=proc.stdout,
-                                                        stdout=subprocess.PIPE,
-                    )
-                    # If so, how many?
-                    cut = subprocess.Popen(shlex.split('cut -f 2 -d,'),
-                                            stdin=grep.stdout,
-                                            stdout=subprocess.PIPE,
-                    )
-                    awk =subprocess.Popen(shlex.split("awk '{print $2}'"),
-                                            stdin=cut.stdout,
-                                            stdout=subprocess.PIPE,
-                    ) 
-                    grep.stdout.close()
-                    out,err = awk.communicate()
-                    grepResult = out.strip()
-                    # If grep was empty then it was a build error:
-                    if grepResult == '':
-                        grepResult = 'Fb'
-                    # Write result to small file for diffreport
+                    # Write result to small file for post-processing
                     f = open(".unit", "w+")
-                    f.write(grepResult)
+                    if failures:
+                        f.write(str(numfail))
+                    else: # Run-time error
+                        f.write('Fr')
+
                     f.close()
-                    
+
             logger.debug('Return code: ' + str(status))
-            logger.debug('Unit tests result: ' + grepResult)
 
             if (status == 0):
                 self.results[resultIndex] = self.successMark
@@ -161,7 +159,6 @@ class newRun(newRundeck):
                 else:
                     self.results[resultIndex] = grepResult
                     
- 
 """ 
   Set configuration for a rundeck
 """
@@ -193,15 +190,15 @@ def getConfigSettings(rundeck):
         rundeck.standalone = config.get('regSettings', 'standalone')
         rundeck.verification = config.get('regSettings', 'verification')
         rundeck.unitTest = config.get('regSettings', 'unittest')
-        rundeck.endTime   = int(config.get('regSettings', 'endtime'))
-        rundeck.buildType  = config.get('regSettings', 'buildtype')
+        rundeck.endTime = int(config.get('regSettings', 'endtime'))
+        rundeck.buildType = config.get('regSettings', 'buildtype')
         # system settings
-        rundeck.baseDir   = config.get('regSettings', 'basedir')
-        rundeck.branch    = config.get('regSettings', 'branch')
-        rundeck.updateBase   = config.get('regSettings', 'updatebase')
-        rundeck.resultsDir    = config.get('regSettings', 'resultsdir')
-        rundeck.scratchDir    = config.get('regSettings', 'scratchdir')
-        rundeck.decksDir  = config.get('regSettings','decksdir')
+        rundeck.baseDir = config.get('regSettings', 'basedir')
+        rundeck.branch = config.get('regSettings', 'branch')
+        rundeck.updateBase = config.get('regSettings', 'updatebase')
+        rundeck.resultsDir = config.get('regSettings', 'resultsdir')
+        rundeck.scratchDir = config.get('regSettings', 'scratchdir')
+        rundeck.decksDir = config.get('regSettings','decksdir')
         rundeck.repository = config.get('regSettings', 'repository')
         rundeck.makesystem = config.get('regSettings', 'makesystem')
     else:
