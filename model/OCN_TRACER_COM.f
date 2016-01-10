@@ -77,7 +77,7 @@
       if (present(i_ntrocn_delta)) then
         entry%ntrocn_delta=i_ntrocn_delta
       else
-        entry%ntrocn_delta=i_ntrocn-10 ! default is 10 orders of magnitude less
+        entry%ntrocn_delta=entry%ntrocn-10 ! default is 10 orders of magnitude less
       endif
       if (present(i_conc)) entry%conc_from_fw=i_conc
       if (present(i_from_file)) entry%from_file=i_from_file
