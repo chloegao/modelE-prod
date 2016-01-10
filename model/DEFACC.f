@@ -1143,6 +1143,7 @@ c
 #ifdef DETAILED_FIRE_OUTPUT
       use flammability_com, only: nVtype,ij_flamV
 #endif
+      USE SOCPBL, only : calc_wspdf
       implicit none
       integer :: i,k,kk,k3,k1,l,n,ngx
       character(len=16) :: ijstr,string_flamV
@@ -4537,12 +4538,14 @@ c
       ia_ij(k) = ia_dga
       scale_ij(k) = 100.
 c
-      k=k+1
-      ij_wspdf = k
-      lname_ij(k) = 'PDF MEAN SURFACE WIND SPEED'
-      name_ij(k) = 'wspdf'  
-      units_ij(k) = 'm/s'
-      ia_ij(k) = ia_srf
+      if (calc_wspdf) then
+        k=k+1
+        ij_wspdf = k
+        lname_ij(k) = 'PDF MEAN SURFACE WIND SPEED'
+        name_ij(k) = 'wspdf'  
+        units_ij(k) = 'm/s'
+        ia_ij(k) = ia_srf
+      endif
                                     
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       k=k+1
