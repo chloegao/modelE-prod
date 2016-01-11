@@ -1339,6 +1339,7 @@ C**** For distributed implementation - ensure point is on local process.
       USE SOMTQ_COM, only : mz
       USE ATM_COM, only : byMA
       USE RAD_COM, only : trhr
+      USE SOCPBL, only : calc_wspdf
 #ifdef TRACERS_ON
       use OldTracer_mod, only: itime_tr0, needtrs
       USE TRACER_COM, only : NTM,trm,trmom
@@ -1517,7 +1518,9 @@ C****
 C**** SUBDD qblht_acc for PBL height *** YH Chen ***
           pblht_acc(I,J)=pblht_acc(I,J)+dblavg(i,j)
 #endif
-          aij(i,j,ij_wspdf)=aij(i,j,ij_wspdf)+atmsrf%wspdf(i,j)
+          if( calc_wspdf==1 )then
+            aij(i,j,ij_wspdf)=aij(i,j,ij_wspdf)+atmsrf%wspdf(i,j)
+          endif
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
           aij(i,j,ij_wsgcm)=aij(i,j,ij_wsgcm)+atmsrf%wsgcm(i,j)
