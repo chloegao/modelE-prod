@@ -4538,7 +4538,7 @@ c
       ia_ij(k) = ia_dga
       scale_ij(k) = 100.
 c
-      if (calc_wspdf) then
+      if (calc_wspdf == 1) then
         k=k+1
         ij_wspdf = k
         lname_ij(k) = 'PDF MEAN SURFACE WIND SPEED'
