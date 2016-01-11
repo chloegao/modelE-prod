@@ -2245,7 +2245,7 @@ subroutine init_CLD(istart)
     do l=1,lm
       ttold(l,:,:)=t(:,:,l)
       qtold(l,:,:)=q(:,:,l)
-#ifndef RH_INIT_85 /* option allows for backwards compatibility */
+#ifdef RH_INIT_FROM_TandQ /* define init RH(T,Q) w/r/t liquid instead of using fixed value */
       rhsav(l,:,:)=q(:,:,l)/qsat(t(:,:,l)*pk(l,:,:),lhe,pmid(l,:,:))
 #endif
     end do
