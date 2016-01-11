@@ -1421,9 +1421,12 @@ C**** CONV parameters: BETA controls degree of convection (default 0.5).
 C**** KPP variables
       REAL*8, PARAMETER :: epsln=1d-20
       REAL*8 zgrid(0:LMO+1),hwide(0:LMO+1),Shsq(LMO),dVsq(LMO)
-     *     ,talpha(LMO),sbeta(LMO),dbloc(LMO),dbsfc(LMO),Ritop(LMO),
-     *     alphaDT(LMO),betaDS(LMO),ghat(LMO),byhwide(0:LMO+1)
+     *     ,talpha(LMO),sbeta(LMO),galpha(LMO)
+     &     ,dbloc(LMO),dbsfc(LMO),Ritop(LMO)
+     *     ,alphaDT(LMO),betaDS(LMO),alphaDG(LMO)
+     &     ,ghat(LMO),byhwide(0:LMO+1)
       REAL*8 G(LMO),S(LMO),TO(LMO),BYRHO(LMO),RHO(LMO),PO(LMO)
+      REAL*8, DIMENSION(0:LMO) :: POE
       REAL*8 UKJM(LMO,IM+2)  !  ,UKM(LMO,4,IM,2:JM-1),OLJ(3,LMO,JM)
       REAL*8, DIMENSION(LMO,4,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      &     UKM,UKMD
@@ -1438,6 +1441,7 @@ C**** KPP variables
 #endif
       REAL*8, DIMENSION(LMO,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      &     DZ3D
+      REAL*8 bydz,rhoe
 #ifdef TRACERS_OCEAN
       REAL*8 FLT3D(0:LMO,tracerlist%getsize(),IM,
      &                  grid%J_STRT_HALO:grid%J_STOP_HALO)
@@ -1915,6 +1919,10 @@ c       OIJ(I,J,IJ_OGEOZ)=OIJ(I,J,IJ_OGEOZ)+OGEOZ(I,J)
       zgrid(0) = epsln
       hwide(0) = epsln
       byhwide(0) = 0.
+      POE(0) = 0.
+      DO L=1,LMIJ
+        POE(L) = POE(L-1) + GRAV*MO(I,J,L)
+      ENDDO
       PO(1) = 5d-1*MO(I,J,1)*GRAV
       DO L=1,LMO-1
          zgrid(L) = -0.5*ZSCALE*(ZE(L-1) + ZE(L)) ! tracer level
@@ -1984,7 +1992,7 @@ C****          dbloc = g/rho{k+1,k+1} * [ rho{k,k+1}-rho{k+1,k+1} ]
 C****    buoyancy difference with respect to "zref", the surface  (m/s2)
 C****          dbsfc = g/rho{k,k} * [ rho{k,k}-rho{1,k} ] (CORRECT)
 C****    thermal expansion coefficient without 1/rho factor    (kg/m3/C)
-C****          talpha= d(rho{k,k})/d(T(k))
+C****          talph= d(rho{k,k})/d(T(k))
 C****    salt expansion coefficient without 1/rho factor     (kg/m3/PSU)
 C****          sbeta = d(rho{k,k})/d(S(k))
 
@@ -2007,8 +2015,8 @@ C**** find mld, the mixed layer depth
       mld=-zgrid(lmij)
       kmld=lmij
       do l=1,lmij
-        G(L)=G0ML(L)*BYMML(L)
-        S(L)=S0ML(L)*BYMML(L)
+c       G(L)=G0ML(L)*BYMML(L)
+c       S(L)=S0ML(L)*BYMML(L)
         ptd(l) = 1d0/VOLGS(G(L),S(L))-1000d0
         if (abs(ptd(l)-ptd(1)).gt.ptdd) then
           ptdm=ptd(1)+sign(ptdd,ptd(l)-ptd(1))
@@ -2019,7 +2027,7 @@ C**** find mld, the mixed layer depth
         endif
       end do
       talpha(1) =  ALPHAGSP(G(1),S(1),PO(1)) ! <0
-      sbeta(1)  =   BETAGSP(G(1),S(1),PO(1))
+      sbeta(1)  =   BETAGSP(G(1),S(1),PO(1))*1d3
 
 C**** surface wind turbulent friction speed (m/s) = sqrt( |tau_0|/rho )
       Ustar = SQRT(U2rho*BYRHO(1))
@@ -2030,8 +2038,8 @@ C****    Bosol = -g*(talpha * wtsol                )/rho
 C**** Bo includes all buoyancy and heat forcing
       BYSHC = 1d0/SHCGS(G(1),S(1))
       Bo    = - GRAV*BYRHO(1)**2 *(
-     *       sbeta(1)*DELTAS*1d3 + talpha(1)*BYSHC*DELTAE -
-     *     ( sbeta(1)*S(1)*1d3   + talpha(1)*BYSHC*G(1) )*DELTAM)
+     *       sbeta(1)*DELTAS + talpha(1)*BYSHC*DELTAE -
+     *     ( sbeta(1)*S(1)   + talpha(1)*BYSHC*G(1) )*DELTAM)
       Bosol = - GRAV*BYRHO(1)**2 * talpha(1)*BYSHC*DELTASR
 
 C**** Double diffusive option (ddmix) needs alphaDT,betaDS
@@ -2043,12 +2051,35 @@ C**** betaDS   = mean sbeta  * delta(salt)  at interfaces (kg/m3)
         do L=2,LMIJ
           TO(L)     =   TEMGSP(G(L),S(L),PO(L))
           talpha(L)= ALPHAGSP(G(L),S(L),PO(L)) ! <0
-          sbeta(L) =  BETAGSP(G(L),S(L),PO(L))
+          sbeta(L) =  BETAGSP(G(L),S(L),PO(L))*1d3
           alphaDT(L-1) = - 5d-1 * (talpha(L-1) + talpha(L))
      $         * (TO(L-1) - TO(L))
-          betaDS (L-1) = 5d-1 * (sbeta (L-1) + sbeta(L))
-     $         * (S(L-1) - S(L))*1d3
+          betaDS (L-1) = - 5d-1 * (sbeta (L-1) + sbeta(L))
+     $         * (S(L-1) - S(L))
         end do
+
+        do l=1,lmij-1
+          alphaDG(l) = rho(l+1) - 1d0/VOLGSP(G(L),S(L+1),PO(L+1))
+          if(abs(g(l+1)-g(l))/4185d0.gt.1d-6) then
+            galpha(l) = alphaDG(l)/(g(l+1)-g(l))
+            if(galpha(l).eq.0d0) then
+              write(6,*) 'galpha == 0',i,j,l,g(l+1)-g(l),
+     &             g(l:l+1)/4185d0,s(l:l+1)
+            endif
+          else
+            galpha(l) = -1.
+          endif
+          betaDS(l) = rho(l+1) - 1d0/VOLGSP(G(L+1),S(L),PO(L+1))
+          if(abs(s(l+1)-s(l)).gt.1d-9) then
+            sbeta(l) = betaDS(l)/(s(l+1)-s(l))
+          else
+            sbeta(l) = 1000.
+          endif
+          rhoe = .5d0*(rho(l)+rho(l+1))
+          galpha(l) = galpha(l)/rhoe
+          sbeta(l) = sbeta(l)/rhoe
+        enddo
+
       end if
 
 #ifndef OCN_GISS_TURB
@@ -2105,8 +2136,9 @@ C ud is u interpolated to the v point and vd is v interpolated to the u point.
 
       call gissmix(
       ! in:
-     &    lmij,ze,zgrid,dbloc,Shsq,alphaDT,betaDS,rho
-     &   ,ustarb2,exy,Coriol,hbl,strait
+     &    lmij,ze,zgrid,dbloc,Shsq,alphaDT,betaDS,alphaDG,rho
+     &   ,ustarb2,exy,Coriol,hbl,talpha,sbeta,galpha,strait,kbl,bf,ustar
+     &   ,i,j
       ! out:
      &   ,ri,rrho,bv2,akvm,akvg,akvs,akvc,e)
 
@@ -2991,11 +3023,12 @@ C**** CONV parameters: BETA controls degree of convection (default 0.5).
 #endif
       REAL*8, SAVE :: zgrid(0:LMO+1),hwide(0:LMO+1),byhwide(0:LMO+1)
       REAL*8 Shsq(LMO),dVsq(LMO)
-     *     ,talpha(LMO),sbeta(LMO),dbloc(LMO),dbsfc(LMO),Ritop(LMO),
-     *     alphaDT(LMO),betaDS(LMO)
+     *     ,talpha(LMO),sbeta(LMO),galpha(LMO)
+     &     ,dbloc(LMO),dbsfc(LMO),Ritop(LMO),
+     *     alphaDT(LMO),betaDS(LMO),alphaDG(LMO)
       REAL*8, PARAMETER :: epsln=1d-20
       REAL*8, SAVE :: Bo,Bosol,bydts,ustar
-      REAL*8 U2rho,RI,Coriol,HBL,HBLP,RHOM,RHO1,R,R2,DTBYDZ2,mld
+      REAL*8 U2rho,RI,Coriol,HBL,HBLP,RHOM,RHO1,R,R2,DTBYDZ2,mld,rhoe
       REAL*8 VOLGSP,ALPHAGSP,BETAGSP,TEMGSP,SHCGS
       INTEGER, SAVE :: IFIRST = 1
       INTEGER I,L,N,LMIJ,IQ,ITER,NSIGG,NSIGS,KBL
@@ -3131,16 +3164,35 @@ C**** betaDS  = mean sbeta  * delta(salt)     at interfaces  (kg/m3)
       if (LDD) then
         TO(1)      =    TEMGSP(G(1),S(1),PO(1))
         talpha(1) =  ALPHAGSP(G(1),S(1),PO(1)) ! <0
-        sbeta(1)  =   BETAGSP(G(1),S(1),PO(1))
+        sbeta(1)  =   BETAGSP(G(1),S(1),PO(1))*1d3
         do L=2,LMIJ
           TO(L)      =    TEMGSP(G(L),S(L),PO(L))
           talpha(L) =  ALPHAGSP(G(L),S(L),PO(L)) ! <0
-          sbeta(L)  =   BETAGSP(G(L),S(L),PO(L))
+          sbeta(L)  =   BETAGSP(G(L),S(L),PO(L))*1d3
           alphaDT(L-1) = - 5d-1 * (talpha(L-1) + talpha(L))
      $         * (TO(L-1) - TO(L))
           betaDS (L-1) = 5d-1 * (sbeta (L-1) + sbeta(L))
-     $         * (S(L-1) - S(L))*1d3
+     $         * (S(L-1) - S(L))
         end do
+
+        do l=1,lmij-1
+          alphaDG(l) = rho(l+1) - 1d0/VOLGSP(G(L),S(L+1),PO(L+1))
+          if(abs(g(l+1)-g(l)).gt.1d-10) then
+            galpha(l) = alphaDG(l)/(g(l+1)-g(l))
+          else
+            galpha(l) = -1.
+          endif
+          betaDS(l) = rho(l+1) - 1d0/VOLGSP(G(L+1),S(L),PO(L+1))
+          if(abs(s(l+1)-s(l)).gt.1d-10) then
+            sbeta(l) = betaDS(l)/(s(l+1)-s(l))
+          else
+            sbeta(l) = 1000.
+          endif
+          rhoe = .5d0*(rho(l)+rho(l+1))
+          galpha(l) = galpha(l)/rhoe
+          sbeta(l) = sbeta(l)/rhoe
+        enddo
+
       end if
 
 #ifndef OCN_GISS_TURB
@@ -3164,8 +3216,9 @@ C**** Get diffusivities for the whole column
 
       call gissmix(
       ! in:
-     &    lmij,ze,zgrid,dbloc,Shsq,alphaDT,betaDS,rho
-     &   ,ustarb2,exy,Coriol,hbl,strait
+     &    lmij,ze,zgrid,dbloc,Shsq,alphaDT,betaDS,alphaDG,rho
+     &   ,ustarb2,exy,Coriol,hbl,talpha,sbeta,galpha,strait,kbl,bf,ustar
+     &   ,0,0
       ! out:
      &   ,ri1,rrho,bv2,akvm,akvg,akvs,akvc,e)
       buoy=0.

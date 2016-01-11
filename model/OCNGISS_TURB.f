@@ -17,8 +17,8 @@ c     USE OCN_TRACER_COM, only : ntm
 
       integer, parameter :: mt0=107,mt=2*mt0  !@var mt dim of ri in table
       integer, parameter :: nt0=54, nt=2*nt0  !@var nt dim of rr in table
-      real*8, parameter :: kmin=1d-3    !@var kmin min of diffusivities, (m^2/s)
-      real*8, parameter :: kmax=100.    !@var kmax max of diffusivities, (m^2/s)
+c     real*8, parameter :: kmin=1d-3    !@var kmin min of diffusivities, (m2/s)
+      real*8, parameter :: kmax=100.    !@var kmax max of diffusivities, (m2/s)
       real*8, parameter :: osocb1=21.6,kappa=0.4
       real*8 ::
      &    ria(mt)       !@var ria ri 1d array of richardson #, for 2d tables
@@ -442,7 +442,9 @@ C**** initialize otke
 
       subroutine gissmix( 
       ! in:
-     &    n,ze,zg,db,dv2,adt,bds,rho,ustarb2,exy,fc,hbl,strait
+     &    n,ze,zg,db,dv2,adt,bds,adg,rho,ustarb2,exy,fc,hbl
+     &   ,talpha,sbeta,galpha,strait,kbl,bf,ustar
+     &   ,ilon,jlat
       ! out:
      &   ,ri,rr,bv2,km,kh,ks,kc,e) 
 
@@ -458,10 +460,11 @@ C**** initialize otke
 !@var exya internal tidal energy (w/m^2)
 !@var ut2a unresolved bottom shear squared (m/s)^2
 
-      USE CONSTANT, only : omega, by3
+      USE CONSTANT, only : omega, by3, teeny, grav, rt2
       USE GISS_OTURB
 !@ MODULE OTURB's variables will be used and/or updated
 !@ for example, taubx,tauby will be updated
+c     USE SOCPBL, only :: c1,c2,c3,c4,c5,rimax
       implicit none
 
       ! in:
@@ -470,15 +473,25 @@ C**** initialize otke
       real*8 zg(0:lmo+1) !@var zg vertical grid depth (m), < 0
       real*8 db(lmo)     !@var db -grav/rho*d(rho) (m/s^2)
       real*8 dv2(lmo)    !@var dv2 vel. diff. squared btw layers (m/s)^2
-      real*8 adt(lmo)    !@var adt rho*alpha*DT (kg/m^3)
-      real*8 bds(lmo)    !@var bds rho*beta*DS  (kg/m^3)
+      real*8 adt(lmo)    !@var adt rho*talpha*DT (kg/m^3)
+      real*8 bds(lmo)    !@var bds rho*sbeta*DS  (kg/m^3)
+      real*8 adg(lmo)    !@var adg rho*galphag*DG (kg/m^3)
       real*8 rho(lmo)    !@var rho density
       real*8 ustarb2     !@var ustarb2 velocity squared at zg(n)
       real*8 exy         !@var exy tidal power input
       real*8 fc          !@var fc Coriolis parameter=2*omega*sin(lat) (1/s)
       real*8 hbl         !@var hbl pbl depth (m)
+      real*8 talpha(lmo) !@var talpha thermal expansion coeff w/o 1/rho (kg/m3/C) 
+      real*8 sbeta(lmo)  !@var sbeta salt expansion coeff w/o 1/rho (kg/m3/PSU)
+      real*8 galpha(lmo) !@var
       integer strait     !@var strait 0: not in strait; 1: in strait
-      intent (in) n,ze,zg,db,dv2,adt,bds,rho,ustarb2,exy,fc,hbl,strait
+      integer kbl        !@var kbl index of first grid level below hbl
+      real*8 bf          !@var bf buoyancy forcing
+      real*8 ustar       !@var ustar friction velocity
+      integer ilon,jlat
+      intent (in) n,ze,zg,db,dv2,adt,bds,adg
+     &     ,rho,ustarb2,exy,fc,hbl,talpha,sbeta,galpha,strait
+     &     ,kbl,bf,ustar,ilon,jlat
 
       ! out:
       real*8 ri(0:lmo+1) !@var ri local richardson number
@@ -505,9 +518,10 @@ C**** initialize otke
       real*8, parameter :: l1min=3.d0,l2min=.05d0 ! (m)
       integer iter, mr
       real*8 vs2(0:lmo+1)!@var vs2 velocity shear squared (1/s**2)
-      real*8 len         !@var len turbulence length scale (m)
+      real*8 len(lmo)         !@var len turbulence length scale (m)
+      real*8 rrg(lmo)
 
-      integer l,jlo,jhi,klo,khi
+      integer l,jlo,jhi,klo,khi,lmix
       real*8 a1,a2,b1,b2,c1,c2,c3,c4
       real*8 ril,rrl,gm,sm,sh,ss,sc,kml,khl,ksl,kcl,lr,etau
       real*8 l0,l1,l2,kz,zbyh,bydz,zl,tmp
@@ -520,13 +534,17 @@ C**** initialize otke
      &   ,epsbyn2=.288d-4                 ! (m^2/s), (66)
      &   ,q=.7d0   ! fraction of baroclinic energy into creating mixing
      &   ,byzet=1./500.d0                 ! upward decaying factor (1/m)
-      real*8 fbyden,afc,ltn,bvbyf,fac,kmbg,khbg,ksbg
-      real*8 den,fz,epstd_byn2,kmtd,khtd,kstd
+      real*8 fbyden,afc,ltn,bvbyf,fac,kmbg,khbg,ksbg,kcbg
+      real*8 den,fz,epstd,epstd_byn2,kmtd,khtd,kstd,kctd
       real*8 phim2,zb,unr20
 
+      real*8 gammam,gammah,gammas,gammac
+      real*8 len2,wei
+
+      ! ri,rr,bv2,km,kh,ks,kc,kh1,ks1,fhtd,fstd,e
       f30=omega                       ! (1/s), below (65b)
       bv0byf30=bv0/f30                ! (1), (65b)
-      byden=1./(f30*acosh(bv0byf30))  ! (1), (65b)
+      byden=1./(f30*acosh(bv0byf30))  ! (s), (65b)
 
       ! Vertical grid diagram
       !
@@ -554,6 +572,13 @@ C**** initialize otke
       ! latter is called only once from routine init_OCEAN in OCNDYN.f
       !-----------------------------------------------------------------
 
+c     if(ze(kbl-1).lt.hbl) then
+c       lmix=kbl
+c     else
+c       lmix=kbl-1
+c     endif 
+c     write(21,*) kbl,lmix,hbl
+      lmix=max(kbl-1,1)
       do l=1,n-1
          bydz=1./(zg(l)-zg(l+1))
          bv2(l)=db(l)*bydz ! N^2
@@ -562,16 +587,45 @@ C**** initialize otke
       do mr = 1,num_smooth ! no smoothing if num_smooth=0
          call z121(bv2,n-1,lmo)
          call z121(vs2,n-1,lmo)
+         call z121(bds,n-1,lmo)
+         call z121(adt,n-1,lmo)
       end do
       do l=1,n-1
-         ri(l)=bv2(l)/(vs2(l)+1d-30)
-         rr(l)=bds(l)/(adt(l)+1d-30)
-      end do
-      do mr = 1,num_smooth
-        call z121(rr,n-1,lmo)
-      end do
+         ri(l)=bv2(l)/(vs2(l)+teeny)
+         ! smooth bds and adt separately, to be done
+         !rr(l)=-bds(l)/(adt(l)+teeny)
 
-      l0=.15*hbl
+         if(abs(adt(l)).lt.1d-10) then
+           rr(l) = 1d30
+         else
+           rr(l) = -bds(l)/adt(l)
+         endif
+         if(abs(1d0-rr(l)).lt.1d-3) then
+           if(rr(l).lt.1d0) then
+             rr(l) = .999d0
+           else
+             rr(l) = 1.001d0
+           endif
+         endif
+
+
+         if(abs(adg(l)).lt.1d-10) then
+           rrg(l) = 1d20
+         else
+           rrg(l) = -bds(l)/adg(l)
+         endif
+         if(abs(1d0-rrg(l)).lt.1d-3) then
+           if(rrg(l).lt.1d0) then
+             rrg(l) = .999d0
+           else
+             rrg(l) = 1.001d0
+           endif
+         endif
+
+         rr(l) = rrg(l) ! test
+
+      end do
+c     end do
 
       ! modify ri at the interface nearest to ocean bottom
       ! due to unresolved bottom shear, C2010, eqs,(73)-(77)
@@ -579,14 +633,13 @@ C**** initialize otke
       ! (generalized to include rr dependence)
       ! phim=f/(1-a*f*rf), f=sqrt(2.)/b1*(gm/sm**2)**.25, a=0 or 2.7
       ! iterate for ri=n2/(sig2+unr2)
-
       if(strait.eq.0) then
          l=n-1
          if(ri(l).ne.0.d0) then
            zb=ze(n)-ze(l)
            unr20=ustarb2/(kappa*zb)**2
            rrl=rr(l)
-           if(abs(rrl).gt.1.) rrl=1/(rr(l)+1d-30)
+           if(abs(rrl).gt.1.) rrl=1d0/rr(l)
            rrl=min(max(rrl,rrmin),rrmax)
            ! locatex uses bisection method to lookup tables
            call locatex(nt,rra,rrl,klo,khi,a2,b2)
@@ -597,14 +650,37 @@ C**** initialize otke
              phim2=a2*(a1*phim2a(jlo,klo)+b1*phim2a(jhi,klo))
      &            +b2*(b1*phim2a(jhi,khi)+a1*phim2a(jlo,khi))
              tmp=ril
-             ril=bv2(l)/(vs2(l)+unr20*phim2+1d-20)
+             ril=bv2(l)/(vs2(l)+unr20*phim2+teeny)
              ril=.9d0*ril+.1d0*tmp ! best
-             if(abs((ril-tmp)/(ril+tmp+1d-20)).le.1d-2) exit
+             if(abs((ril-tmp)/(ril+tmp+teeny)).le.1d-2) exit
            end do
            ri(l)=ril
          endif
       endif
-      
+
+      ! length scale:
+      l0=.15*hbl
+      do l=1,n-1
+         zl=ze(l)
+         zbyh=zl/hbl
+         kz=kappa*zl
+         !@var lr length scale reduction factor by stable buoyancy
+         !@var l0 constant length scale within obl 
+         !@var l1 length scale before reduced by stable buoyancy 
+         !@var l1min minimum of l1 below obl 
+         !@var l2 length scale after reduced by stable buoyancy 
+         !@var l2min minimum of l2
+         !@var len final length scale
+         lr=1./(1.+max(ri(l),0.d0))
+         if(zl.le.hbl) then   ! within obl
+            l1=l0
+         else
+            l1=l1min+max(l0-l1min,0.d0)*exp(1.-zbyh)
+         endif
+         l2=max(l1*lr,l2min)
+         len(l)=l2*kz/(l2+kz)
+      end do
+
       den=1.-exp(-ze(n)*byzet)
       afc=abs(fc)
       fbyden=afc*byden
@@ -615,7 +691,7 @@ C**** initialize otke
          rrl=rr(l)
          flag=0
          if(abs(rrl).gt.1.) then
-            rrl=1/(rr(l)+1d-30)
+            rrl=1d0/rr(l)
             flag=1
          endif
 
@@ -645,30 +721,9 @@ C**** initialize otke
             sh=ss
             ss=tmp
          endif
-
-         ! length scale:
-         zl=ze(l)
-         zbyh=zl/hbl
-         kz=kappa*zl
-         !@var lr length scale reduction factor by stable buoyancy
-         !@var l0 constant length scale within obl 
-         !@var l1 length scale before reduced by stable buoyancy 
-         !@var l1min minimum of l1 below obl 
-         !@var l2 length scale after reduced by stable buoyancy 
-         !@var l2min minimum of l2
-         !@var len final length scale
-         lr=1./(1.+max(ril,0.d0))
-         if(zl.le.hbl) then   ! within obl
-            l1=l0
-         else
-            l1=l1min+max(l0-l1min,0.d0)*exp(1.-zbyh)
-         endif
-         l2=max(l1*lr,l2min)
-         len=l2*kz/(l2+kz)
-         tmp=(osocb1*len)**2*vs2(l)
-         e(l)=.5*tmp/(gm+1.d-20)
-         e(l)=min(max(e(l),emin),emax)
-         etau=.5*osocb1*sqrt(2.*e(l))*len
+         tmp=(osocb1*len(l))**2*vs2(l)
+         e(l)=.5*tmp/(gm+teeny)
+         etau=.5*osocb1*sqrt(2.*e(l))*len(l)
          kml=etau*sm
          khl=etau*sh
          ksl=etau*ss
@@ -677,9 +732,10 @@ C**** initialize otke
          ! background and tidally induced diffusivities
 
          if(ril.gt.0.) then
+         !if(ril.gt.0..and.l.gt.lmix) then ! ??
             ! C2010, eqs.(65a)-(66); C2011, near end of Sec 4, p.203
             ! afc = abs(Coriol)
-            bvbyf=sqrt(max(bv2(l),1d-8))/(afc+1.d-30) 
+            bvbyf=sqrt(max(bv2(l),teeny))/(afc+teeny) 
             if(bvbyf.gt.1.) then
                ltn=acosh(bvbyf)*fbyden  ! dimensionless
                ltn=max(ltn,7.d-2)       ! limit described in C2004
@@ -687,25 +743,66 @@ C**** initialize otke
                ltn=7.d-2                ! dimensionless
             endif
             fac=epsbyn2*ltn      ! in m^2/s, Km=GAMMAm*fac
-            kmbg=fac
-            khbg=by3*fac
-            ksbg=khbg
+c           kmbg=fac
+c           khbg=by3*fac
+c           ksbg=khbg
 
             ! tidally induced diffusivities, C2010, eqs.(69)-(71)
-            ! use the following fz instead of (70) of C10:
+            ! fz is average between main layer mid of F(z) of (70) of C10:
             fz=(exp((-zg(l+1)-ze(n))*byzet)
      &         -exp((-zg(l)  -ze(n))*byzet))/(den*(zg(l)-zg(l+1)))
-            epstd_byn2=q*exy*fz*2./(rho(l)+rho(l+1))/max(bv2(l),1d-8)
-            kmtd=epstd_byn2
-            khtd=by3*epstd_byn2
-            kstd=khtd
-         else
+c           ftd=-by3*q*exy*fz*2./(rho(l)+rho(l+1))
+c           kmtd=-ftd/max(bv2(l),teeny)
+c           epstd_byn2=q*exy*fz*2./(rho(l)+rho(l+1))/max(bv2(l),1d-8)
+c           khtd=by3*kmtd
+c           kstd=khtd
+            epstd=q*exy*fz*2./(rho(l)+rho(l+1))
+
+            ril=.5d0
+c           rrl=-1.d0
+            call locatex(mt,ria,ril,jlo,jhi,a1,b1)
+            call locatex(nt,rra,rrl,klo,khi,a2,b2)
+            c1=a1*a2
+            c2=b1*a2
+            c3=b1*b2
+            c4=a1*b2
+            gm=c1*gma(jlo,klo)+c2*gma(jhi,klo)
+     &        +c3*gma(jhi,khi)+c4*gma(jlo,khi)
+            sm=c1*sma(jlo,klo)+c2*sma(jhi,klo)
+     &        +c3*sma(jhi,khi)+c4*sma(jlo,khi)
+            sh=c1*sha(jlo,klo)+c2*sha(jhi,klo)
+     &        +c3*sha(jhi,khi)+c4*sha(jlo,khi)
+            ss=c1*ssa(jlo,klo)+c2*ssa(jhi,klo)
+     &        +c3*ssa(jhi,khi)+c4*ssa(jlo,khi)
+            sc=c1*sca(jlo,klo)+c2*sca(jhi,klo)
+     &        +c3*sca(jhi,khi)+c4*sca(jlo,khi)
+            ! symmetry of giss model: sh <-> ss if rr<->1/rr
+            if(flag.eq.1) then
+              tmp=sh
+              sh=ss
+              ss=tmp
+            endif
+            gammam=.5d0*gm*ril*sm
+            gammah=.5d0*gm*ril*sh
+            gammas=.5d0*gm*ril*ss
+            gammac=.5d0*gm*ril*sc
+            kmbg=gammam*fac
+            khbg=gammah*fac
+            ksbg=gammas*fac
+            kcbg=gammac*fac
+            kmtd=min(gammam*epstd/max(bv2(l),teeny),3d-1)
+            khtd=min(gammah*epstd/max(bv2(l),teeny),1d-1)
+            kstd=min(gammas*epstd/max(bv2(l),teeny),1d-1)
+            kctd=min(gammac*epstd/max(bv2(l),teeny),1d-1)
+         else ! ril <= 0
             kmbg=0.
             khbg=0.
             ksbg=0.
+            kcbg=0.
             kmtd=0.
             khtd=0.
             kstd=0.
+            kctd=0.
          endif      
 
          ! foreground, background and tidal diffusivities added up
@@ -714,12 +811,9 @@ C**** initialize otke
          km(l)=min(kml+kmbg+kmtd,kmax)
          kh(l)=min(khl+khbg+khtd,kmax)
          ks(l)=min(ksl+ksbg+kstd,kmax)
-         kc(l)=min(kcl+ksbg+kstd,kmax)
-         
+         kc(l)=min(kcl+kcbg+kctd,kmax)
       end do  
       km(0)=0.; kh(0)=0.; ks(0)=0.; kc(0)=0.
-      km(1)=max(km(1),kmin);kh(1)=max(kh(1),kmin);ks(1)=max(ks(1),kmin)
-      kc(1)=max(kc(1),kmin)
       km(n:lmo+1)=0.; kh(n:lmo+1)=0.; ks(n:lmo+1)=0.; kc(n:lmo+1)=0.
       ri(0)=0.; rr(0)=0.; bv2(0)=0.
       ri(n:lmo+1)=0.; rr(n:lmo+1)=0.; bv2(n:lmo+1)=0.; e(n:lmo)=emin
