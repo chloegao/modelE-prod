@@ -2134,11 +2134,11 @@ end subroutine CONDSE
 subroutine init_CLD(istart)
 !@sum  init_CLD initialises parameters for MSTCNV and LSCOND
 !@auth M.S.Yao/A. Del Genio (modularisation by Gavin Schmidt)
-  use CONSTANT, only : grav,by3,radian
+  use CONSTANT, only : grav,by3,radian,lhe
   use RESOLUTION, only : ls1=>ls1_nominal,plbot
   use RESOLUTION, only : jm,lm
   use MODEL_COM, only : dtsrc
-  USE ATM_COM, only : t,q ! for coldstart istart=2 case
+  USE ATM_COM, only : t,q,pmid,pk ! for coldstart istart=2 case
   use DOMAIN_DECOMP_ATM, only : GRID, AM_I_ROOT
   use GEOM, only : lat2d
 #ifndef SCM
@@ -2176,7 +2176,7 @@ subroutine init_CLD(istart)
 #endif
 
   use CLOUDS_COM, only : llow,lmid,lhi &
-       ,isccp_reg2d,UKM,VKM,ttold,qtold
+       ,isccp_reg2d,UKM,VKM,ttold,qtold,rhsav
   use CLOUDS, only : use_vmp
   use DIAG_COM, only : nisccp,isccp_late &
        ,isccp_diags,ntau,npres
@@ -2193,6 +2193,7 @@ subroutine init_CLD(istart)
   implicit none
   integer, intent(in) :: istart
   real*8 PLE
+  real*8 qsat ! external function
   integer L,I,J,n,iu_ISCCP
   integer :: I_0,I_1,J_0,J_1, I_0H,I_1H,J_0H,J_1H
   character TITLE*80
@@ -2244,6 +2245,9 @@ subroutine init_CLD(istart)
     do l=1,lm
       ttold(l,:,:)=t(:,:,l)
       qtold(l,:,:)=q(:,:,l)
+#ifndef RH_INIT_85 /* option allows for backwards compatibility */
+      rhsav(l,:,:)=q(:,:,l)/qsat(t(:,:,l)*pk(l,:,:),lhe,pmid(l,:,:))
+#endif
     end do
   endif
 
