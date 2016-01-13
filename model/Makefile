@@ -83,6 +83,12 @@ include $(CONFIG_DIR)/base.mk
 include $(CONFIG_DIR)/rules.mk
 INCS += -I$(MODEL_DIR)/shared
 
+# sanity check - make sure that sources are present for all listed objects
+MISSING_SRCS = $(filter-out $(FSRCS:.f=) $(F90SRCS:.F90=), $(strip $(OBJ_LIST)))
+ifneq ($(MISSING_SRCS),)
+  $(error no sources for requested objects: $(MISSING_SRCS))
+endif
+
 #include $(GISSCLIM_DIR)/config/rules.mk
 #COMPLIBS = $(patsubst %, %/lib.a, $(COMPONENTS))
 
