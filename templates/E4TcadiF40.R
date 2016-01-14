@@ -123,7 +123,13 @@ E4TcadiF40 (E4TcadF40 with computed aerosol indirect effect)
 ! cond_scheme=2   ! newer conductance scheme (N. Kiang) ! not used with Ent
 
 ! Increasing U00a decreases the high cloud cover; increasing U00b decreases net rad at TOA
-U00a=0.54  ! above 850mb w/o MC region;  tune this first to get 30-35% high clouds
+! w/o VMP clouds (uncomment when model is run w/o VMP clouds):
+!U00a=0.58  ! above 850mb w/o MC region;  tune this first to get 30-35% high clouds
+! w/ VMP clouds (comment out when model is run w/o VMP clouds):
+U00a=0.59  ! above 850mb w/o MC region;  tune this first to get 30-35% high clouds
+use_vmp=1
+radius_multiplier=1.1
+
 U00b=1.00  ! below 850mb and MC regions; tune this last  to get rad.balance
 WMUI_multiplier = 2.
 
@@ -163,6 +169,6 @@ Ndisk=960
 
  &INPUTZ
  YEARI=1949,MONTHI=12,DATEI=1,HOURI=0, ! pick IYEAR1=YEARI (default) or < YEARI
- YEARE=1949,MONTHE=12,DATEE=2,HOURE=0,     KDIAG=12*0,9,
+ YEARE=1961,MONTHE=1,DATEE=1,HOURE=0,     KDIAG=12*0,9,
  ISTART=2,IRANDI=0, YEARE=1949,MONTHE=12,DATEE=1,HOURE=1,
 /
