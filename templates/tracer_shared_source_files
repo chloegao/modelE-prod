@@ -1,6 +1,5 @@
 ! Codes common to atmospheric tracer sets
 TRACER_COM                          ! configurable tracer code
-newTracer_COM			    ! configurable tracer code
 TRACERS_DRV |-O0|                   ! O0 speeds compilation and no difference for this file
 initTracerGriddedData		    ! grid independent info
 initTracerMetadata		    ! misc initialization that used to be mixed in with metadata
