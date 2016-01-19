@@ -37,8 +37,12 @@ module constant
 
   !**** Physical constants
 
-!@param stbo Stefan-Boltzmann constant [W m-2 K-4]
-  real*8,parameter :: stbo =5.67051d-8 !current best estimate
+!@param stbo Stefan-Boltzmann constant (W/m^2 K^4)
+! real*8,parameter :: stbo =5.6692d-8 ! used in radiation til 2015
+! real*8,parameter :: stbo =5.67051d-8 ! year 2000 best estimate 
+  real*8,parameter :: stbo =5.67037321d-8 ! CODATA recommended in 2010
+! real*8,parameter :: stbo =5.670367d-8 ! CODATA recommended in 2015
+!                           +-0.000013d-8 uncertainty 
 
   !**** Latent heats:
   !**** Note that for energy conservation the efective latent heat at any
