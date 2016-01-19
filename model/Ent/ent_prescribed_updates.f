@@ -142,6 +142,7 @@
       laipatch = 0.d0
       lai_new = 0.d0
       lai_old = 0.d0
+      i = 0
 !      Clossacc(:,:,:) = 0.d0  !?Moved to inside patch loop - NK
       pp => ecp%oldest      
       do while ( associated(pp) )

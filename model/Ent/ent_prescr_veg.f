@@ -308,12 +308,14 @@ c**** calculate root fraction afr averaged over vegetation types
 
       if (.not.pfpar(pft)%woody) then
         popdens = 10.d0       !Grass ##HACK See Stampfli et al 2008 (~25 seedlings/m2 for cover %1-10, but big range)
-      else
+      else if (dbh > 0.0001) then
         wooddens = wooddensity_gcm3(pft)
         Blmax = 0.0419d0 * (dbh**1.56d0) * (wooddens**0.55d0)
         !popdens = (alamax(pft+COVEROFFSET)/pfpar(pft)%sla)/Blmax 
         popdens = (LAImax/pfpar(pft)%sla)/Blmax 
         !leaf area/ground area/(leaf area/kg-C) / (kg-C/individ)
+      else
+        popdens = 0.d0
       endif
       end function popdensity
 

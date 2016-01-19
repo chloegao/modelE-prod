@@ -2259,6 +2259,7 @@ c      endif
       real*8 :: Csum
       real*8 :: dC_total, dClab_dbiomass
       real*8 :: facclim !Frost hardiness parameter - affects turnover rates in winter.
+      real*8 :: dC_lab_corr
 
       Closs(:,:,:) = 0.d0
       !Clossacc(:,:,:) = 0.d0 !Initialized outside of this routine
@@ -2395,6 +2396,13 @@ c      endif
      &       * fracrootCASA(i) 
      &       * (turn_froot + max(0.d0,-dC_froot))
       enddo
+
+!!! hack to prevent C_lab from growing infinitely
+      if ( cop%C_lab*cop%n > 3000.d0 ) then
+        dC_lab_corr = cop%C_lab*cop%n - 3000.d0
+        dC_lab = dC_lab - dC_lab_corr/cop%n
+        Closs(CARBON,LEAF,1) = Closs(CARBON,LEAF,1) + dC_lab_corr
+      endif
 
       !* Diagnostic
       dC_total = 0.d0
