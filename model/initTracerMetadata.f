@@ -440,8 +440,9 @@
       use tracer_com, only: xyztr
       implicit none
       character(len=1024) :: list
-      integer :: str_pos, i, nt, nt_orig
+      integer :: str_pos, i, nt, nt_orig, ndigits
       character(len=10) :: name, basename
+      character(len=8) :: fm
 
       if (is_set_param('src_dist_tr')) then
         call src_dist_config
@@ -455,8 +456,11 @@
           call set_t_qlimit(nt_orig, .false.)
           call set_src_dist_base(nt_orig, nt_orig)
           call set_src_dist_index(nt_orig, 1)
+          ndigits=int(log10(size(xyztr, 1)*1d0))+1
+          if (ndigits>7) call stop_model('too many digits',255)
+          write(fm,'(a,i1.1,a,i1.1,a)') '(a,i',ndigits,'.',ndigits,')'
           do i=2, size(xyztr, 1)
-            write(name(6:8), '(i3.3)') i
+            write(name, fm) trim(basename(1:8-ndigits)), i
             nt=oldaddtracer(name, basename)
             call set_src_dist_index(nt, i)
           end do
