@@ -3983,6 +3983,10 @@ C     ----------------------------------------------------------
 
       real*8 :: dudp(lx),ddudp ! ddudp is vertical gradient of water vapor
 
+#ifdef TAPER_UTCF
+      real*8 :: pcen_tap,wt_one,pwid_tap
+#endif
+
       ! compute QABOVE/QBELOW, the WV amount above/below each reference level
       CALL REPART (ULGAS(1,1),PLB,  NL+1,
      &             QABOVE,    PLBCF, NLCF+1)
@@ -4250,6 +4254,18 @@ c      end if
 
         XTRU(NL,2:NRCF+1) = 1.
         XTRD(NL,2:NRCF+1) = 1.
+
+#ifdef TAPER_UTCF
+        ! force upward transmission correction factors to 1 near the model top
+        !pcen_tap = 1d0 ! center pressure (mb) of blending region
+        pcen_tap = .1d0 ! center pressure (mb) of blending region
+        pwid_tap = .5d0*pcen_tap ! width (mb) of blending region
+        do l=nl,1,-1
+          wt_one = .5d0*(1d0+tanh((pcen_tap-plb(l))/pwid_tap)) ! blending weight
+          xtru(l,2:nrcf+1) = wt_one*1d0 + (1d0-wt_one)*xtru(l,2:nrcf+1)
+          if(wt_one.lt.1d-3) exit ! far from model top
+        enddo
+#endif
 
       ! correction for cases when water vapor mixing ratio increases upward
         DO L=1,NL
