@@ -5338,7 +5338,7 @@ C                            -------------------------------------------
      *     ,TRN2,TRN3,TAUG,TAU2,TAU3,S0VIS,S0NIR,SUMX,SUMD,SUMU,SUMN
      *     ,SUMH,SGPG
       INTEGER I,K,KK,L,M,N,NN,KLAM,NDBLS
-      REAL*8 :: ZWPATH,ALPH,BETA,FACK12,ROOT,TAUK,FACK13
+      REAL*8 :: WVCOL,ZWPATH,ALPH,BETA,FACK12,ROOT,PTROOT,TAUK,FACK13
 
       S0COSZ=S0 ; IF (NORMS0==0) S0COSZ=S0*COSZ
 
@@ -5509,7 +5509,15 @@ cc      ALLGCB(K)=SGPG
       ENDIF
    90 CONTINUE
 
-      ZWPATH = SUM(ULGAS(:,1))*(1d0/COSZ + 2d0*srbalb(6))
+      WVCOL = SUM(ULGAS(:,1))
+      ZWPATH = WVCOL*(1d0/COSZ + 2d0*srbalb(6))
+
+#ifdef SWFIX_20151201
+      FACK12 = 0.09325D0*
+     &     ((ZWPATH**0.97D0)/(1.D0+5.D-4*(ZWPATH**1.31D0)))*0.462D-05
+      FACK13 = 0.0001982D0*
+     &     ((WVCOL**1.08D0)*(1.D0+6.D-5*(WVCOL**0.93D0)))*0.277D-05 
+#endif
 
       K = 0
   300 CONTINUE    !   DO K=1,NKSLAM
@@ -5637,6 +5645,11 @@ C            fOnOff is 'tunable' from 0. to 1. (introduced 7/3/2014)
 
       CASE (12)
       !ULN=ULGAS(N,1) ! not needed because uln set to this before select case
+#ifdef SWFIX_20151201
+      PTROOT=(((PLN+10.0)/1000.0)**0.5D0)/SQRT(TLN/296.D0)
+      TAUK=PTROOT*ULN
+      TAU=TAUK*FACK12*FONOFF
+#else
       ALPH=0.002d0
       BETA=0.200d0
       !FACK12=1.05D-04*ZWPATH/(1.D0-1.D-05*ZWPATH)
@@ -5644,9 +5657,15 @@ C            fOnOff is 'tunable' from 0. to 1. (introduced 7/3/2014)
       ROOT=SQRT(((PLN+50.0)/1000.0)**2+1000.0*BETA*ULN/(PLN+50.0))
       TAUK=ALPH*(ROOT-(PLN+50.0)/1000.0)
       TAU=TAUK*FACK12*fOnOff
+#endif
 
       CASE (13)
       !ULN=ULGAS(N,1) ! not needed because uln set to this before select case
+#ifdef SWFIX_20151201
+      PTROOT=(((PLN+10.0)/1000.0)**0.5D0)/SQRT(TLN/296.D0)
+      TAUK=PTROOT*ULN
+      TAU=TAUK*FACK13*FONOFF
+#else
       ALPH=0.004d0
       BETA=0.200d0
       !FACK13=1.05D-04*ZWPATH/(1.D0-1.D-05*ZWPATH)
@@ -5654,6 +5673,7 @@ C            fOnOff is 'tunable' from 0. to 1. (introduced 7/3/2014)
       ROOT=SQRT(((PLN+50.0)/1000.0)**2+1000.0*BETA*ULN/(PLN+50.0))
       TAUK=ALPH*(ROOT-(PLN+50.0)/1000.0)
       TAU=TAUK*FACK13*fOnOff
+#endif
 
       CASE (14)
         TAU=XCMNO2*ULGAS(N,5)+XCMO3*ULGAS(N,3)
