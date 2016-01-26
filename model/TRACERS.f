@@ -837,17 +837,14 @@ C****
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
-      expdec = 1. 
-
       if (ifirst) then
-        do n=1,ntm
-          if (trdecay(n).gt.0.0) expdec(n)=exp(-trdecay(n)*dtsrc)
-        end do
+        expdec = 1.
         ifirst = .false.
       end if
 
       do n=1,ntm
         if (trdecay(n).gt.0. .and. itime.ge.itime_tr0(n)) then
+          expdec(n)=exp(-trdecay(n)*dtsrc)
 C**** Atmospheric decay
           told(:,:,:)=trm(:,:,:,n)
 
