@@ -38,7 +38,6 @@ ATMDYN MOMEN2ND                     ! atmospheric dynamics
 QUS_DRV                             ! advection of Q/tracers
 TQUS_DRV                            ! advection of Q
 STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
-ALLOC_DRV                           ! allocate global distributed arrays
 
 #include "latlon_source_files"
 #include "modelE4_source_files"
