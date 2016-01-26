@@ -161,6 +161,9 @@ def copyFile(src, dest):
     # eg. source or destination doesn't exist
     except IOError as e:
         print('Error: %s' % e.strerror)
+    # eg. Operation not permitted
+    except OSError as e:
+        print('Error: %s' % e.strerror)
     return 1
 
 #-------------------------------------------------------------------------------
