@@ -104,15 +104,16 @@
 
   use SCM_com, only : SCMopt,SCMin
   use resolution, only : LM
-  use atm_com, only : T,PK,Q,U,V,PMID
+  use atm_com, only : T,PK,Q,QCL,U,V,PMID
   use fluxes, only : atmocn,atmlnd
   use fluxes, only : FLAND,FOCEAN,FLICE,FLAKE0,FEARTH0
   use ghy_com, only : FEARTH
   use lakes_com, only : FLAKE
   use radpar, only : KEEPAL
-  use constant, only : TF
+  use constant, only : TF,LHE,SHA
   implicit none
   integer L
+  real*8 dqsum,fcond
 
   ! report initialization
   write(6,*) 'SCM initializing ... '
@@ -128,8 +129,13 @@
   ! initialize atmospheric state
   write(6,*) ' ... SCM initializing atmospheric state ...'
   do L = 1,LM
-    T(1,1,L) = SCMin%T(L)/PK(L,1,1)
+    T(1,1,L) = SCMin%T(L)/PK(L,1,1) ! potential temperature
     Q(1,1,L) = SCMin%Q(L)
+    ! saturation adjustment (relieve any supersaturation w/r/t liquid in initial state)
+    call get_dq_cond( T(1,1,L)*PK(L,1,1), Q(1,1,L), 1d0, 1d0, lhe, pmid(L,1,1), dqsum, fcond )
+    QCL(1,1,L) = dqsum
+    Q(1,1,L) = Q(1,1,L)-dqsum
+    T(1,1,L) = T(1,1,L)+dqsum*LHE/SHA/PK(L,1,1)
     ! horizontal winds may be specified throughout or else geostrophic
     ! throughout; if geostrophic, may be initialized using SCMopt%wind
     if( SCMopt%wind )then
@@ -140,6 +146,7 @@
       V(1,1,L) = SCMin%Vg(L)
     endif
   enddo 
+
 
   ! initialize surface from run deck if requested
   write(6,*) ' ... SCM initializing surface state ...'
