@@ -111,6 +111,7 @@
   use lakes_com, only : FLAKE
   use radpar, only : KEEPAL
   use constant, only : TF,LHE,SHA
+  use CLOUDS_COM, only : CLDSAV 
   implicit none
   integer L
   real*8 dqsum,fcond
@@ -129,10 +130,11 @@
   ! initialize atmospheric state
   write(6,*) ' ... SCM initializing atmospheric state ...'
   do L = 1,LM
-    T(1,1,L) = SCMin%T(L)/PK(L,1,1) ! potential temperature
+    T(1,1,L) = SCMin%T(L)/PK(L,1,1) ! temperature -> potential temperature
     Q(1,1,L) = SCMin%Q(L)
     ! saturation adjustment (relieve any supersaturation w/r/t liquid in initial state)
-    call get_dq_cond( T(1,1,L)*PK(L,1,1), Q(1,1,L), 1d0, 1d0, lhe, pmid(L,1,1), dqsum, fcond )
+    call get_dq_cond( T(1,1,L), Q(1,1,L), PK(L,1,1), 1d0, lhe, pmid(L,1,1), dqsum, fcond )
+    if( dqsum > 0d0 ) CLDSAV(L,1,1) = 1d0
     QCL(1,1,L) = dqsum
     Q(1,1,L) = Q(1,1,L)-dqsum
     T(1,1,L) = T(1,1,L)+dqsum*LHE/SHA/PK(L,1,1)
