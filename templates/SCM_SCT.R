@@ -182,8 +182,8 @@ SCM_lon=-125.              ! SCT longitude of subtropical northeastern Pacific (
 SCM_lat=25.                ! SCT latitude of subtropical northeastern Pacific (deg)
 SCM_area=10000000000.0     ! arbitrary grid box area (m2)
 SCM_sfc=2                  ! 1:land,2:ocean
-SCM_noMC=0                 ! turn off moist convection
-SCM_noCTEI=0               ! turn off cloud-top entrainment instability
+SCM_allowMC=1              ! allow moist convection? 
+SCM_allowCTEI=1            ! allow cloud-top entrainment instability?
 
 DTsrc=1800.     ! Atm. physics timestep.
 NIsurf=1        ! Number of surface physics timesteps per atm. physics timestep.
