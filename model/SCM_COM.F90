@@ -28,7 +28,7 @@
     logical :: omega,w,VadvHwind,ls_v,ls_h,Qrad
     logical :: nudge,Fnudge
     logical :: BeersLaw,PlumeDiag
-    logical :: TopHat,noMC,noCTEI
+    logical :: TopHat,allowMC,allowCTEI
     real*8 :: lat,lon,area,tau
     integer :: sfc
   end type SCMoptions
@@ -58,8 +58,8 @@
 !@var SCMopt%tau = nudging time constant (s) for qv and T
 !@var SCMopt%sfc = 1:land, 2:ocean (defaults to land)
 !@var SCMopt%TopHat = T:assume top-hat distributions for input profiles (else piecewise linear)
-!@var SCMopt%noMC = T:turn off moist convection
-!@var SCMopt%noCTEI = T:turn off cloud-top entrainment instability
+!@var SCMopt%allowMC = T:allow moist convection
+!@var SCMopt%allowCTEI = T:allow cloud-top entrainment instability
 !@var SCMopts%BeersLaw = T:use Beer's Law treatment (only) for radiative heating
 !@var SCMopts%PlumeDiag = T:report moist convection plume diagnostics
 
@@ -150,13 +150,13 @@
   !              (which requires uniform pressure grid)
   call get_param('SCM_TopHat',SCMopt%TopHat,default=.false.)
 
-  ! F(default): standard operation
-  ! T(optional): turn off moist convection
-  call get_param('SCM_noMC',SCMopt%noMC,default=.false.)
+  ! T(default): standard operation
+  ! F(optional): skip moist convection
+  call get_param('SCM_allowMC',SCMopt%allowMC,default=.true.)
 
-  ! F(default): standard operation
-  ! T(optional): turn off cloud-top entrainment instability
-  call get_param('SCM_noCTEI',SCMopt%noCTEI,default=.false.)
+  ! T(default): standard operation
+  ! F(optional): skip cloud-top entrainment instability
+  call get_param('SCM_allowCTEI',SCMopt%allowCTEI,default=.true.)
 
   ! optional Beer's Law radiative heating (which takes 3 input parameters)
   SCMopt%BeersLaw = is_set_param('SCM_BeersLaw')
