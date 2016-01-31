@@ -110,34 +110,36 @@ class newRun(newRundeck):
         if self.debug:
             logger.info(commandString)
         else:
-            logger.info(commandString)
+            logger.debug(commandString)
             if makeLog == 'yes':
                 makeLog = self.resultsDir + '/'  + self.name + '-make.log'
                 with open(makeLog,'a') as f:
                     status = subprocess.call(commandString, \
                                              stdout=f, stderr=f, shell=True)
             else:
-                # Run make tests command
-                proc = subprocess.Popen(commandString,
-                                        shell=True,
-                                        stdout=subprocess.PIPE,
-                                        stderr=subprocess.PIPE,)
-                # And check output "interactively"
+                status = 1
                 failures = False
-                while True:
-                    output = proc.stdout.readline()
-                    if output == '' and proc.poll is not None:
-                        break
-                    if output:
-                        logger.debug(output.strip())
-                        if 'Failures' in output:
-                            outlist =  output.split(' ')
-                            # Extract number of unit test failures, if any
-                            numfail = int(re.search(r'\d+', outlist[4]).group())
-                            failures = True
+                if os.environ.has_key('PFUNIT'):
+                    # Run make tests command
+                    proc = subprocess.Popen(commandString,
+                                            shell=True,
+                                            stdout=subprocess.PIPE,
+                                            stderr=subprocess.PIPE,)
+                    # And check output "interactively"
+                    while True:
+                       output = proc.stdout.readline()
+                       if output == '' and proc.poll is not None:
+                           break
+                       if output:
+                           logger.debug(output.strip())
+                           if 'Failures' in output:
+                               outlist =  output.split(' ')
+                               # Extract number of unit test failures, if any
+                               numfail = int(re.search(r'\d+', outlist[4]).group())
+                               failures = True
                             
-                proc.wait()
-                status = proc.returncode
+                    proc.wait()
+                    status = proc.returncode
                 if status != 0:
                     # Write result to small file for post-processing
                     f = open(".unit", "w+")
@@ -158,7 +160,7 @@ class newRun(newRundeck):
                     self.results[resultIndex] = self.failMark+stageID
                 else:
                     self.results[resultIndex] = grepResult
-                    
+
 """ 
   Set configuration for a rundeck
 """
@@ -236,6 +238,13 @@ def build(run):
         except Exception, e:
             logger.exception(str(e))
             return 1
+        if run.standalone == 'yes':
+            try:
+                cmd = 'make --quiet clean'
+                run.sysCmd(cmd, 3, 'b')
+            except Exception, e:
+                logger.exception(str(e))
+                return 1
         try:
             cmd = 'make -j gcm '+run.runCmd+' '+run.modeCmd+' '+run.xflags
             run.sysCmd(cmd, 3, 'b')
@@ -272,7 +281,6 @@ def build(run):
         except Exception, e:
             logger.exception(str(e))
             return 1
-        
     return 0
            
 """
