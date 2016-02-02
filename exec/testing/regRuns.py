@@ -140,6 +140,9 @@ class newRun(newRundeck):
                             
                     proc.wait()
                     status = proc.returncode
+                else:
+                    logger.error('PFUNIT environment variable has not been set.')
+                                 
                 if status != 0:
                     # Write result to small file for post-processing
                     f = open(".unit", "w+")
