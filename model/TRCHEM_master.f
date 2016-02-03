@@ -156,7 +156,9 @@ C**** Local parameters and variables and arguments:
      &  rNO3plusNO2,rN2O5decomp,rHCHOplusNO3,rAldplusNO3,rIsopplusNO3,
      &  rClOplusNO2,rDMSplusNO3,wlossN2O5,wlossNOx,
      &  wprodNOx,rlossNO3,rprodNO3,wprodN2O5,pNO3temp,rBrOplusNO2,
-     &  wlossClONO2,wprodClONO2,changeN,sphericalCorrection,
+     &  wlossClONO2,wprodClONO2,changeN,sphericalCorrectionReg1,
+     &  sphericalCorrectionReg2,sphericalCorrectionReg3,
+     &  sphericalCorrectionReg4,
      &  changeTerpenes,rTerpplusNO3,changeisopp1g,changeisopp2g,
      &  changeapinp1g,changeapinp2g,changeOx,fraQ,
      &  thick,changeCO,changeN_d1,changeN_d2,changeN_d3,changeNO3p,
@@ -609,27 +611,43 @@ C Define and alter resulting photolysis coefficients (zj --> ss):
         colmO2=5.6d20 
         colmO3=5.0d16 
 
-        ! Letting this spherical corrections get too small (0?) causes NaNs
+        ! Using MAX() here because 
+        ! letting this spherical corrections get too small (0?) causes NaNs
         ! e.g. in the SOA code. Also sza can be > 90, so COS could go negative:
-        sphericalCorrection=SQRT(MAX(1.d-2,DCOS(sza*radian)))
+        sphericalCorrectionReg1=
+     &    (MAX(1.d-2,DCOS(sza*radian)))**reg1Power_SpherO2andN2Ocorr
+        sphericalCorrectionReg2=
+     &    (MAX(1.d-2,DCOS(sza*radian)))**reg2Power_SpherO2andN2Ocorr
+        sphericalCorrectionReg3=
+     &    (MAX(1.d-2,DCOS(sza*radian)))**reg3Power_SpherO2andN2Ocorr
+        sphericalCorrectionReg4=
+     &    (MAX(1.d-2,DCOS(sza*radian)))**reg4Power_SpherO2andN2Ocorr
 
         DO L=min(JPNL,topLevelOfChemistry),1,-1
           do inss=1,JPPJ
             ss(inss,L,I,J)=zj(L,inss)
 #ifndef SHINDELL_SKIP_WINDOW_TUNE /* note NOT defined */
             !reduce rates for gases that photolyze in window region (~200nm):
-            if(inss == 27) then ! for O2:
-              if(pres2(L)>preslimitO2photCorrection) then
-                ss(inss,L,I,J)=ss(inss,L,I,J)
-     &          *windowO2corr*sphericalCorrection
+            if(inss == 27 .or. inss == 28) then ! for O2 and N2O reactions:
+              ! Apply spherical corrections:
+              if(pres2(L)>reg1TopPres_SpherO2andN2Ocorr)then
+                ss(inss,L,I,J)=ss(inss,L,I,J)*sphericalCorrectionReg1
+              else if(pres2(L)>reg2TopPres_SpherO2andN2Ocorr .and.
+     &                pres2(L).le.reg1TopPres_SpherO2andN2Ocorr) then
+                ss(inss,L,I,J)=ss(inss,L,I,J)*sphericalCorrectionReg2
+              else if(pres2(L)>reg3TopPres_SpherO2andN2Ocorr .and.
+     &                pres2(L).le.reg2TopPres_SpherO2andN2Ocorr) then
+                ss(inss,L,I,J)=ss(inss,L,I,J)*sphericalCorrectionReg3
               else
-                ss(inss,L,I,J)=ss(inss,L,I,J)*windowO2corr
+                ss(inss,L,I,J)=ss(inss,L,I,J)*sphericalCorrectionReg4
               end if
             end if
-            ! for N2O (similar correction for CFC removed):
+            ! Then apply linear corrections for same reactions:
+            if(inss == 27) then
+              ss(inss,L,I,J)=ss(inss,L,I,J)*windowO2corr
+            end if
             if(inss == 28) then
-              ss(inss,L,I,J)=ss(inss,L,I,J)
-     &        *windowN2Ocorr*sphericalCorrection
+              ss(inss,L,I,J)=ss(inss,L,I,J)*windowN2Ocorr
             end if
 #endif /* not defined to skip */
           enddo
