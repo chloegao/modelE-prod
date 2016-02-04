@@ -179,10 +179,23 @@ C to define BrOx,ClOx,ClONOs,HCL,COIC,OxIC,CFCIC,N2OICX,CH4ICX too:
      
 !@dbparam Tpsc_offset_N NH offset for the above T_thresh
 !@dbparam Tpsc_offset_S SH offset for the above T_thresh
-!@dbparam preslimitO2photCorrection pressue above which ss(27) should
-!@+ get the spherical correction (on top of linear) (hPa)
-!@dbparam windowO2corr linear correction to ss(27) O2 in window region
-!@dbparam windowN2Ocorr linear correction to ss(28) N2O in window region
+!@dbparam reg1Power_SpherO2andN2Ocorr first from surface region power of 
+!@+ cos(sza)^x of spherical correction to ss(27) and ss(28)
+!@dbparam reg2Power_SpherO2andN2Ocorr second from surface region power of 
+!@+ cos(sza)^x of spherical correction to ss(27) and ss(28)
+!@dbparam reg3Power_SpherO2andN2Ocorr third from surface region power of 
+!@+ cos(sza)^x of spherical correction to ss(27) and ss(28)
+!@dbparam reg4Power_SpherO2andN2Ocorr fourth and last from surface region power of 
+!@+ cos(sza)^x of spherical correction to ss(27) and ss(28)
+!@dbparam reg1TopPres_SpherO2andN2Ocorr pressure at top of first from surface region
+!@+ for spherical correction to ss(27) and ss(28) (hPa)
+!@dbparam reg2TopPres_SpherO2andN2Ocorr pressure at top of second from surface region
+!@+ for spherical correction to ss(27) and ss(28) (hPa)
+!@dbparam reg3TopPres_SpherO2andN2Ocorr pressure at top of third from surface region
+!@+ for spherical correction to ss(27) and ss(28) (hPa)
+! (fourth = top region needs no upper pressure)
+!@dbparam windowO2corr linear correction to ss(27) O2 in window region (in addition to spherical)
+!@dbparam windowN2Ocorr linear correction to ss(28) N2O in window region (in addition to spherical)
 !@dbparam ch4_init_sh,ch4_init_nh initial methane conc. (ppmv) 
 !@+       defaults are for 1990
 !@dbparam allowSomeChemReinit (1=YES) to allow some chemistry variables
@@ -232,12 +245,18 @@ C to define BrOx,ClOx,ClONOs,HCL,COIC,OxIC,CFCIC,N2OICX,CH4ICX too:
      &                     ,PIratio_other = 0.500d0
      &                     ,PIratio_N2O   = 0.896d0
      &                     ,PIratio_CFC   = 0.000d0
-     &                     ,PltOx         = 0.100d0
-     &                     ,Tpsc_offset_N = 0.d0
-     &                     ,Tpsc_offset_S = 0.d0
-     &                     ,preslimitO2photCorrection = 20.d0
-     &                     ,windowN2Ocorr = 0.6d0
-     &                     ,windowO2corr  = 0.6d0
+     &                     ,PltOx         = 0.000d0
+     &                     ,Tpsc_offset_N = -10.d0
+     &                     ,Tpsc_offset_S = -10.d0
+     &                     ,reg1Power_SpherO2andN2Ocorr = 2.0d0
+     &                     ,reg2Power_SpherO2andN2Ocorr = 2.0d0
+     &                     ,reg3Power_SpherO2andN2Ocorr = 1.0d0
+     &                     ,reg4Power_SpherO2andN2Ocorr = 0.5d0
+     &                     ,reg1TopPres_SpherO2andN2Ocorr = 50.d0
+     &                     ,reg2TopPres_SpherO2andN2Ocorr = 10.d0
+     &                     ,reg3TopPres_SpherO2andN2Ocorr = 5.d0
+     &                     ,windowN2Ocorr = 0.8d0
+     &                     ,windowO2corr  = 0.8d0
      &                     ,PSClatS       = -50.d0
      &                     ,PSClatN       =  50.d0
 
