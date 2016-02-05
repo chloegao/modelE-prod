@@ -1670,7 +1670,11 @@ C----------------------------------------------
       SUBROUTINE RCOMPX
       use SURF_ALBEDO, only : getsur
       use O3mod, only : plbo3,nlo3
+#ifdef SCM
+      use SCM_COM, only : SCMopt,SCMin
+#endif
       IMPLICIT NONE
+      integer k
 C     ------------------------------------------------------------------
 C     MADVEL  Model Add-on Data of Extended Climatology Enable Parameter
 C             Each MADVEL digit is ON/OFF switch for corresponding input
@@ -1723,6 +1727,16 @@ C--------------------------------
         ! climatology above those levels:
         U0GAS(1:lm_gcm,3)=O3JDAY_HF_modelLevels(1:lm_gcm,IGCM,JGCM)
         FULGAS(3)=1.d0
+#endif
+#ifdef SCM
+        if(SCMopt%ozone)then
+        ! Overwrite specified SCM levels (indicated by non-zero values), 
+        ! leaving climatology above those levels:
+          do k = 1,lm_gcm
+            if(SCMin%O3(k) > 0.) U0GAS(k,3)=SCMin%O3(k)
+          enddo
+          FULGAS(3)=1.d0
+        endif
 #endif
         ! considering this move to here from setgas:
         ! chem_out(:,1)=U0GAS(:,3)*FULGAS(3) ! save climatology O3 for chem

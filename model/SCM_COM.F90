@@ -25,7 +25,8 @@
   type SCMoptions
     logical :: sflx,Tskin,Ps,z0m,ustar,alb
     logical :: wind,geo,temp,theta,wvmr,rh
-    logical :: omega,w,VadvHwind,ls_v,ls_h,Qrad
+    logical :: ozone,omega,w,VadvHwind
+    logical :: ls_v,ls_h,ls_h_UV,Qrad
     logical :: nudge,Fnudge
     logical :: BeersLaw,PlumeDiag
     logical :: TopHat,allowMC,allowCTEI
@@ -43,13 +44,15 @@
 !@var SCMopt%wvmr = T:specify water vapor mixing ratio
 !@var SCMopt%rh = T:specify relative rather than specific humidity
 !@var SCMopt%z0m = T:specify surface roughness height
-!@var SCMopt%ustar = T:specify surface friction speed
+!@var SCMopt%ustar = T:specify surface friction velocity
 !@var SCMopt%alb = T:specify surface mid-visible albedo
 !@var SCMopt%omega = T:specify omega for qv, theta vertical forcings
+!@var SCMopt%ozone = T:specify ozone profile
 !@var SCMopt%w = T:specify large-scale vertical wind
-!@var SCMopt%VadvHwind = T:vertical forcing of vertical wind (using Omega or W)
+!@var SCMopt%VadvHwind = T:vertical forcing of horizontal wind (using Omega or W)
 !@var SCMopt%ls_v = T:specify qv and dry static energy / Cp vert adv flux divergence
 !@var SCMopt%ls_h = T:specify qv and dry static energy / Cp horiz adv flux divergence
+!@var SCMopt%ls_h_UV = T:horizontal forcing of horizontal wind (specified)
 !@var SCMopt%Qrad = T:specify fixed radiative heating profile
 !@var SCMopt%nudge = T:nudge qv and T with timescale tau
 !@var SCMopt%Fnudge = T:apply scale factor profile to qv and T nudging
@@ -66,8 +69,9 @@
 !@var SCMinputs type for SCM inputs at each time step
   type SCMinputs
     real*8 U(LM),V(LM),Ug(LM),Vg(LM)
-    real*8 T(LM),TH(LM),Q(LM),Omega(LM),W(LM)
+    real*8 T(LM),TH(LM),Q(LM),Omega(LM),W(LM),O3(LM)
     real*8 SadvV(LM),QadvV(LM),TadvH(LM),QadvH(LM)
+    real*8 UadvH(LM),VadvH(LM)
     real*8 Qrad(LM),Fnudge(LM)
     real*8 time,lhf,shf,Tskin,Ps,z0m,ustar,alb
     real*8 BeersLaw_f0,BeersLaw_f1,BeersLaw_kappa
@@ -81,10 +85,13 @@
 !@var SCMin%Q SCM input water vapor mixing ratio at GCM sigma levels (kg/kg)
 !@var SCMin%Omega SCM input pressure tendency at GCM sigmal levels (mb/s)
 !@var SCMin%W SCM input vertical wind at GCM sigmal levels (m/s)
+!@var SCMin%O3 SCM input ozone at GCM sigmal levels (molec/atm-cm)
 !@var SCMin%SadvV input vertical flux divergence of dry static energy / Cp (K/s)
 !@var SCMin%QadvV input water vapor mixing ratio vertical flux div at GCM sigma levels (kg/kg/s)
 !@var SCMin%TadvH input absolute T horizontal flux div at GCM sigma levels (K/s)
 !@var SCMin%QadvH input water vapor mixing ratio horizontal flux div at GCM sigma levels (kg/kg/s)
+!@var SCMin%UadvH input zonal wind div at GCM sigma levels (m/s/s)
+!@var SCMin%VadvH input meridional wind div at GCM sigma levels (m/s/s)
 !@var SCMin%Qrad input radiative heating rate profile at GCM sigma levels (W/m2)
 !@var SCMin%Fnudge input nudging scale factor profile for qv and T (-)
 !@var SCMin%time SCM input time (d)
@@ -93,7 +100,7 @@
 !@var SCMin%Tskin SCM input surface skin temperature (K)
 !@var SCMin%Ps SCM input surface pressure (mb)
 !@var SCMin%z0m SCM input surface roughness height (m)
-!@var SCMin%ustar SCM input surface friction speed (m/s)
+!@var SCMin%ustar SCM input surface friction velocity (m/s)
 !@var SCMin%alb SCM input surface albedo (-)
 !@var SCMin%BeersLaw_f0 SCM input cloud-top longwave cooling asymptote (W/m2)
 !@var SCMin%BeersLaw_f1 SCM input cloud-base longwave heating asymptote (W/m2)
@@ -129,9 +136,12 @@
     call stop_model('alloc_SCM_COM: either T or theta required',255)
 
   SCMopt%Tskin = file_exists('SCM_TSKIN')
+  SCMopt%ustar = file_exists('SCM_USTAR')
   SCMopt%sflx = file_exists('SCM_SFLUX')
   SCMopt%wind = file_exists('SCM_WIND')
   SCMopt%geo = file_exists('SCM_GEO')
+
+  SCMopt%ozone = file_exists('SCM_OZONE')
 
   SCMopt%omega = file_exists('SCM_OMEGA')
   SCMopt%w = file_exists('SCM_W')
@@ -142,6 +152,7 @@
     call stop_model( 'alloc_SCM_COM: omega needed for convergence',255)
 
   SCMopt%ls_h = file_exists('SCM_LS_H')
+  SCMopt%ls_h_UV = file_exists('SCM_LS_H_UV')
   SCMopt%Qrad = file_exists('SCM_QRAD')
   SCMopt%Fnudge = file_exists('SCM_FNUDGE')
 
@@ -189,9 +200,15 @@
   SCMopt%z0m = is_set_param('SCM_z0m')
   if( SCMopt%z0m ) call get_param('SCM_z0m',SCMin%z0m)
 
-  ! optional surface friction speed
-  SCMopt%ustar = is_set_param('SCM_ustar')
-  if( SCMopt%ustar ) call get_param('SCM_ustar',SCMin%ustar)
+  ! if not time-varying surface friction velocity above,
+  ! optional fixed surface friction velocity
+  if( .not. SCMopt%ustar )then
+    SCMopt%ustar = is_set_param('SCM_ustar')
+    if( SCMopt%ustar ) call get_param('SCM_ustar',SCMin%ustar)
+  else
+    if( is_set_param('SCM_ustar') ) &
+      call stop_model('alloc_SCM_COM: redundant ustar values',255)
+  endif
 
   if( SCMopt%z0m .and. SCMopt%ustar ) &
     call stop_model('alloc_SCM_COM: at most one of z0m or ustar',255)
@@ -201,6 +218,9 @@
 
   if( SCMopt%VadvHwind .and. .not. ( SCMopt%geo .and. ( SCMopt%omega .or. SCMopt%w ))) &
     call stop_model('alloc_SCM_COM: SCM_VadvHwind makes no sense')
+        
+  if( SCMopt%ls_h_UV .and. .not. SCMopt%geo ) &
+    call stop_model('alloc_SCM_COM: SCMopt%ls_h_UV requires geostrophic wind')
         
   call get_param('SCM_PlumeDiag',SCMopt%PlumeDiag,default=.false.)
 

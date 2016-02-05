@@ -22,9 +22,11 @@
   end type SCMin_tProfile
   type(SCMin_tProfile) SCMin_tU,SCMin_tV,SCMin_tUg,SCMin_tVg
   type(SCMin_tProfile) SCMin_tT,SCMin_tTH,SCMin_tQ
+  type(SCMin_tProfile) SCMin_tOzone
   type(SCMin_tProfile) SCMin_tOmega,SCMin_tW
   type(SCMin_tProfile) SCMin_tSadvV,SCMin_tQadvV
   type(SCMin_tProfile) SCMin_tTadvH,SCMin_tQadvH
+  type(SCMin_tProfile) SCMin_tUadvH,SCMin_tVadvH
   type(SCMin_tProfile) SCMin_tQrad,SCMin_tFnudge
 
 !@type SCMin_tSscalar structured type for SCM input scalars
@@ -39,6 +41,7 @@
   end type SCMin_tScalar
   type(SCMin_tScalar) SCMin_tLHF,SCMin_tSHF
   type(SCMin_tScalar) SCMin_tTskin,SCMin_tPs
+  type(SCMin_tScalar) SCMin_tUstar
 
 !@type SCMreadXscalar structured type for reading SCM input scalars
   type SCMreadXscalar
@@ -192,6 +195,7 @@
 
   use SCM_com, only : SCMopt
   use SCM_mod
+  use filemanager, only : file_exists
   implicit none
 
   ! read variable namelist, which provides input file variable names
@@ -209,6 +213,11 @@
   ! specified skin temperature (K)
   if( SCMopt%Tskin )then
     call read_SCM_scalar('SCM_TSKIN','Tskin',SCMin_tTskin)
+  endif
+
+  ! specified surface friction velocity (m/s)
+  if( SCMopt%ustar .and. file_exists('SCM_USTAR') )then
+    call read_SCM_scalar('SCM_USTAR','Ustar',SCMin_tUstar)
   endif
 
   ! specified surface pressure (mb)
@@ -239,6 +248,11 @@
     call read_SCM_profile('SCM_GEO','Vg',SCMin_tVg)
   endif
 
+  ! specified ozone profile (kg/kg), to be used only where non-zero
+  if( SCMopt%ozone )then
+    call read_SCM_profile('SCM_OZONE','O3',SCMin_tOzone)
+  endif
+
   ! specified large-scale vertical wind (mb/s) or forcing terms
   if( SCMopt%omega )then
     call read_SCM_profile('SCM_OMEGA','Omega',SCMin_tOmega)
@@ -256,6 +270,12 @@
   if( SCMopt%ls_h )then
     call read_SCM_profile('SCM_LS_H','TadvH',SCMin_tTadvH)
     call read_SCM_profile('SCM_LS_H','QadvH',SCMin_tQadvH)
+  endif
+
+  ! specified large-scale horizontal tendences of winds (m/s/s)
+  if( SCMopt%ls_h_UV )then
+    call read_SCM_profile('SCM_LS_H_UV','UadvH',SCMin_tUadvH)
+    call read_SCM_profile('SCM_LS_H_UV','VadvH',SCMin_tVadvH)
   endif
 
   ! specified radiative heating rate profile (K/s)
@@ -980,10 +1000,12 @@
   use SCM_com, only : SCMopt,SCMin,nstepSCM
   use SCM_mod
   use resolution, only : LM
-  use atm_com, only : P,PMID,PEDN,PK,T
+  use atm_com, only : P,PMID,PEDN,PK,T,PDSIG
   use constant, only : KAPA,GRAV,RGAS
+  use filemanager, only : file_exists
   implicit none
   integer L
+  real*8 DZ(LM)
 
   ! specified surface pressure
   if( SCMopt%Ps )then
@@ -1002,6 +1024,9 @@
 
   ! specified skin temperature
   if( SCMopt%Tskin ) SCMin%Tskin = SCMin_tTskin%value(nstepSCM)
+
+  if( SCMopt%ustar .and. file_exists('SCM_USTAR') ) &
+    SCMin%ustar = SCMin_tUstar%value(nstepSCM)
 
   ! specified temperature or potential temperature with 1000-mb ref
   if( SCMopt%temp )then
@@ -1030,6 +1055,18 @@
     call interp_p_SCM_profile(SCMin_tVg,SCMin%Vg,'Vg',SCMp_const)
   endif
 
+  ! specified ozone profile (molec/atm-cm), to be used only where non-zero
+  ! (convert from input units of kg/kg)
+  if( SCMopt%ozone )then
+    call interp_p_SCM_profile(SCMin_tOzone,SCMin%O3,'O3',SCMp_zero)
+    do L = 1,LM
+      DZ(L) = PDSIG(L,1,1)/PMID(L,1,1) &
+            * (RGAS/GRAV)*T(L,1,1)*PK(L,1,1)
+      SCMin%O3(L) = SCMin%O3(L)*DZ(L)*PMID(L,1,1)*100. &
+                  / (RGAS*T(L,1,1)*2.14E-2)
+    enddo
+  endif
+
   ! large-scale forcing terms
   ! vertical velocity always applied through omega, in pressure units (mb/s)
   if( SCMopt%omega )then
@@ -1048,6 +1085,10 @@
   if( SCMopt%ls_h )then
     call interp_p_SCM_profile(SCMin_tTadvH,SCMin%TadvH,'TadvH',SCMp_zero)
     call interp_p_SCM_profile(SCMin_tQadvH,SCMin%QadvH,'QadvH',SCMp_zero)
+  endif
+  if( SCMopt%ls_h_UV )then
+    call interp_p_SCM_profile(SCMin_tUadvH,SCMin%UadvH,'UadvH',SCMp_zero)
+    call interp_p_SCM_profile(SCMin_tVadvH,SCMin%VadvH,'VadvH',SCMp_zero)
   endif
 
   ! specified radiative heating profile

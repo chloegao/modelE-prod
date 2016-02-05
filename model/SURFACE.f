@@ -1096,10 +1096,34 @@ C
         sddarr2d = atmsrf%vsavg
         call inc_subdd(subdd,k,sddarr2d)
 C
+      case ('wsavg')
+        do j=j_0,j_1; do i=i_0,imaxj(j)
+          sddarr2d(i,j) = atmsrf%wsavg(i,j)
+        enddo;        enddo
+        call inc_subdd(subdd,k,sddarr2d)
+C
       case ('rs')
         do j=j_0,j_1; do i=i_0,imaxj(j)
           sddarr2d(i,j) = atmsrf%qsavg(i,j)/
      &    qsat(atmsrf%tsavg(i,j),lhe,pedn(1,I,J))
+        enddo;        enddo
+        call inc_subdd(subdd,k,sddarr2d)
+C
+      case ('qs')
+        do j=j_0,j_1; do i=i_0,imaxj(j)
+          sddarr2d(i,j) = atmsrf%qsavg(i,j)
+        enddo;        enddo
+        call inc_subdd(subdd,k,sddarr2d)
+C
+      case ('ustar')
+        do j=j_0,j_1; do i=i_0,imaxj(j)
+          sddarr2d(i,j) = atmsrf%ustar_pbl(i,j)
+        enddo;        enddo
+        call inc_subdd(subdd,k,sddarr2d)
+C
+      case ('gtempr')
+        do j=j_0,j_1; do i=i_0,imaxj(j)
+          sddarr2d(i,j) = atmsrf%gtempr(i,j)
         enddo;        enddo
         call inc_subdd(subdd,k,sddarr2d)
 C

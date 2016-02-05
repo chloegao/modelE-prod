@@ -62,7 +62,8 @@ c     apply large-scale forcings to T, Q, U, V
       real*8, dimension(LM) :: Tabs(LM),
      &                         SCM_ver_u_adv,SCM_ver_v_adv,
      &                         SCM_nudge_T,SCM_nudge_Q,
-     &                         SCM_force_T,SCM_force_Q
+     &                         SCM_force_T,SCM_force_Q,
+     &                         SCM_force_U,SCM_force_V
       real*8 f_cor
 
       INTEGER L
@@ -84,6 +85,8 @@ c     operate on absolute temperature
 
       SCM_force_T = 0.
       SCM_force_Q = 0.
+      SCM_force_U = 0.
+      SCM_force_V = 0.
       SCM_nudge_T = 0.
       SCM_nudge_Q = 0.
 
@@ -130,7 +133,7 @@ c       *** otherwise no LS vertical flux divergence if not specified
         endif
 
         if( .not. SCMopt%ls_h )then
-c       *** no vertical forcings
+c       *** no horizontal forcings
           SCMin%TadvH(L) = 0.
           SCMin%QadvH(L) = 0.
         endif
@@ -171,40 +174,6 @@ c     *** apply changes to actual prognostic variable (potential temperature)
         T(1,1,L) = Tabs(L)/PK(L,1,1)
       enddo
 
-#ifdef CACHED_SUBDD
-C****
-C**** Collect some high-frequency outputs
-C****
-      call find_groups('fijlh',grpids,ngroups)
-      do igrp=1,ngroups
-      subdd => subdd_groups(grpids(igrp))
-      do k=1,subdd%ndiags
-      select case (subdd%name(k))
-      case ('dq_ls')
-        do j=j_0,j_1; do i=i_0,i_1; do l=1,lm
-          sddarr3d(i,j,l) = SCM_force_Q(l)
-        enddo;        enddo;        enddo
-        call inc_subdd(subdd,k,sddarr3d)
-      case ('dth_ls')
-        do j=j_0,j_1; do i=i_0,i_1; do l=1,lm
-          sddarr3d(i,j,l) = SCM_force_T(l)/PK(l,1,1)
-        enddo;        enddo;        enddo
-        call inc_subdd(subdd,k,sddarr3d)
-      case ('dq_nudge')
-        do j=j_0,j_1; do i=i_0,i_1; do l=1,lm
-          sddarr3d(i,j,l) = SCM_nudge_Q(l)
-        enddo;        enddo;        enddo
-        call inc_subdd(subdd,k,sddarr3d)
-      case ('dth_nudge')
-        do j=j_0,j_1; do i=i_0,i_1; do l=1,lm
-          sddarr3d(i,j,l) = SCM_nudge_T(l)/PK(l,1,1)
-        enddo;        enddo;        enddo
-        call inc_subdd(subdd,k,sddarr3d)
-      end select
-      enddo
-      enddo
-#endif
-
 c     when Coriolis forcing used (computed from geostrophic winds),
 c     also possibly apply vertical advection to horizontal winds
 
@@ -214,6 +183,12 @@ c     also possibly apply vertical advection to horizontal winds
 
         SCM_ver_u_adv = 0.
         SCM_ver_v_adv = 0.
+
+        if( .not. SCMopt%ls_h_UV )then
+c       *** no horizontal wind forcings
+          SCMin%UadvH(L) = 0.
+          SCMin%VadvH(L) = 0.
+        endif
 
         do L = 1,LM
 
@@ -243,16 +218,61 @@ c         *** apply omega defined at layer bottom to upwind gradient
             endif
           endif
 
+          SCM_force_U(L) = (SCM_ver_u_adv(L)+SCMin%UadvH(L))*DTSRC
+          SCM_force_V(L) = (SCM_ver_v_adv(L)+SCMin%VadvH(L))*DTSRC
+
 c         apply combined forcings to horizontal winds
-          U(1,1,L) = U(1,1,L) +
-     &      ( SCM_ver_u_adv(L) +
-     &        f_cor*(V(1,1,L)-SCMin%Vg(L)) )*dtsrc
-          V(1,1,L) = V(1,1,L) +
-     &      ( SCM_ver_v_adv(L) -
-     &        f_cor*(U(1,1,L)-SCMin%Ug(L)) )*dtsrc
+          U(1,1,L) = U(1,1,L) + SCM_force_U(L) +
+     &        f_cor*(V(1,1,L)-SCMin%Vg(L))*DTSRC
+          V(1,1,L) = V(1,1,L) + SCM_force_V(L) -
+     &        f_cor*(U(1,1,L)-SCMin%Ug(L))*DTSRC
 
         enddo      ! L = 1,LM
       endif        ! use geostrophic winds for Coriolis forcing
+
+#ifdef CACHED_SUBDD
+C****
+C**** Collect some high-frequency outputs
+C****
+      call find_groups('fijlh',grpids,ngroups)
+      do igrp=1,ngroups
+      subdd => subdd_groups(grpids(igrp))
+      do k=1,subdd%ndiags
+      select case (subdd%name(k))
+      case ('dq_ls')
+        do j=j_0,j_1; do i=i_0,i_1; do l=1,lm
+          sddarr3d(i,j,l) = SCM_force_Q(l)
+        enddo;        enddo;        enddo
+        call inc_subdd(subdd,k,sddarr3d)
+      case ('dth_ls')
+        do j=j_0,j_1; do i=i_0,i_1; do l=1,lm
+          sddarr3d(i,j,l) = SCM_force_T(l)/PK(l,1,1)
+        enddo;        enddo;        enddo
+        call inc_subdd(subdd,k,sddarr3d)
+      case ('du_ls')
+        do j=j_0,j_1; do i=i_0,i_1; do l=1,lm
+          sddarr3d(i,j,l) = SCM_force_U(l)
+        enddo;        enddo;        enddo
+        call inc_subdd(subdd,k,sddarr3d)
+      case ('dv_ls')
+        do j=j_0,j_1; do i=i_0,i_1; do l=1,lm
+          sddarr3d(i,j,l) = SCM_force_V(l)
+        enddo;        enddo;        enddo
+        call inc_subdd(subdd,k,sddarr3d)
+      case ('dq_nudge')
+        do j=j_0,j_1; do i=i_0,i_1; do l=1,lm
+          sddarr3d(i,j,l) = SCM_nudge_Q(l)
+        enddo;        enddo;        enddo
+        call inc_subdd(subdd,k,sddarr3d)
+      case ('dth_nudge')
+        do j=j_0,j_1; do i=i_0,i_1; do l=1,lm
+          sddarr3d(i,j,l) = SCM_nudge_T(l)/PK(l,1,1)
+        enddo;        enddo;        enddo
+        call inc_subdd(subdd,k,sddarr3d)
+      end select
+      enddo
+      enddo
+#endif
 
       return
       END SUBROUTINE SCM_FORCN 
@@ -479,6 +499,20 @@ c
      &  lname = 'theta tendency from large-scale forcings',
      &  units = 'K/day',
      &  scale = 1000.**kapa/dtsrc*SECONDS_PER_DAY
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'du_ls',
+     &  lname = 'zonal wind tendency from large-scale forcings',
+     &  units = 'm/s/day',
+     &  scale = SECONDS_PER_DAY/dtsrc
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'dv_ls',
+     &  lname = 'meridional wind tendency from large-scale forcings',
+     &  units = 'm/s/day',
+     &  scale = SECONDS_PER_DAY/dtsrc
      &     )
 c
       arr(next()) = info_type_(

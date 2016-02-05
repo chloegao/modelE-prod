@@ -1597,12 +1597,6 @@ C
         sddarr2d = pedn(1,:,:)
         call inc_subdd(subdd,k,sddarr2d)
 C
-      case ('gtempr')
-        call inc_subdd(subdd,k,atmsrf%gtempr)
-C
-      case ('ustar')
-        call inc_subdd(subdd,k,atmice%ustar_pbl)
-C
       case ('pblht')
         call inc_subdd(subdd,k,atmsrf%dblavg)
 C
