@@ -265,7 +265,7 @@ C**** Each tracer has a variable name and a unique index
 #endif  /* TRACERS_AIR */
 #ifdef TRACERS_AMP
 #ifdef TRACERS_AMP_M1
-      integer, parameter :: ntmAMP=51
+      integer, parameter :: ntmAMP=53
 #endif  /* TRACERS_AMP_M1 */
 #ifdef TRACERS_AMP_M2
       integer, parameter :: ntmAMP=51

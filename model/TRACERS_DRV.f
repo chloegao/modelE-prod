@@ -922,8 +922,9 @@ c Processes AMP Budget
           qsum(g) = .true.
 
         case ('N_AKK_1 ','N_ACC_1 ','N_DD1_1 ','N_DS1_1 ','N_DD2_1 '
-     *       ,'N_DS2_1 ','N_OCC_1 ','N_BC1_1 ','N_BC2_1 ','N_BC3_1 '
-     *       ,'N_DBC_1 ','N_BOC_1 ','N_BCS_1 ','N_MXX_1 ','N_OCS_1 ')
+     *       ,'N_DS2_1 ','N_SSA_1 ','N_SSC_1 ','N_OCC_1 ','N_BC1_1 '
+     *       ,'N_BC2_1 ','N_BC3_1 ','N_DBC_1 ','N_BOC_1 ','N_BCS_1 '
+     *       ,'N_MXX_1 ','N_OCS_1 ')
 
           kt_power_change(n) = 5
           kt_power_inst(n) = 3
@@ -4495,7 +4496,7 @@ c#endif
      *    'M_ACC_SU','N_ACC_1 ','M_DD1_SU','M_DD1_DU','N_DD1_1 ',!ACC,DD1
      *    'M_DS1_SU','M_DS1_DU','N_DS1_1 ','M_DD2_SU','M_DD2_DU',!DS1,DD2
      *    'N_DD2_1 ','M_DS2_SU','M_DS2_DU','N_DS2_1 ','M_SSA_SU',!DD2,DS2,SSA
-     *    'M_SSA_SS','M_SSC_SS'                                 ,!SSA,SSC
+     *    'M_SSA_SS','N_SSA_1 ','M_SSC_SS','N_SSC_1',            !SSA,SSC
      *    'M_OCC_SU','M_OCC_OC','N_OCC_1 ','M_BC1_SU','M_BC1_BC',!OCC,BC1
      *    'N_BC1_1 ','M_BC2_SU','M_BC2_BC','N_BC2_1 ','M_BC3_SU',!BC1,BC2,BC3
      *    'M_BC3_BC','N_BC3_1 ','M_DBC_SU','M_DBC_BC','M_DBC_DU',!BC3,DBC
@@ -5937,7 +5938,7 @@ c- interactive sources diagnostic
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
       CASE('N_AKK_1 ','N_ACC_1 ','N_DD1_1 ','N_DS1_1 ','N_DD2_1 ',
-     *     'N_DS2_1 ','N_OCC_1 ','N_BC1_1 ',
+     *     'N_DS2_1 ','N_SSA_1 ','N_SSC_1 ','N_OCC_1 ','N_BC1_1 ',
      *     'N_BC2_1 ','N_BC3_1 ','N_DBC_1 ','N_BOC_1 ','N_BCS_1 ',
      *     'N_MXX_1 ','N_OCS_1 ')
       IF ( AMP_DIAG_FC == 2 ) THEN
@@ -6353,7 +6354,6 @@ c clear sky scattering asymmetry factor in six solar bands
       ir_ijlt = ir_log2  ! default
       ia_ijlt = ia_src   ! default
 #ifdef TRACERS_AMP
-      ijlt_AMPext(:)=0
       ijlt_AMPm(:,:)=0
 #endif
 
@@ -6403,7 +6403,7 @@ C**** some tracer specific 3D arrays
 #ifdef TRACERS_AMP
 c- 3D diagnostic per mode
       CASE('N_AKK_1 ','N_ACC_1 ','N_DD1_1 ','N_DS1_1 ','N_DD2_1 ',
-     *     'N_DS2_1 ','N_OCC_1 ','N_BC1_1 ',
+     *     'N_DS2_1 ','N_SSA_1 ','N_SSC_1 ','N_OCC_1 ','N_BC1_1 ',
      *     'N_BC2_1 ','N_BC3_1 ','N_DBC_1 ','N_BOC_1 ','N_BCS_1 ',
      *     'N_MXX_1 ','N_OCS_1 ')
         k = k + 1
@@ -6881,51 +6881,6 @@ C**** 3D tracer-related arrays but not attached to any one tracer
           scale_ijlt(k) = 10.**(-ijlt_power(k))
       enddo
 #endif  /* SOA_DIAGS */
-
-#ifdef TRACERS_AMP
-      k = k + 1
-        ijlt_AMPext(1)=k
-        lname_ijlt(k) = 'N_SSA ACTI'
-        sname_ijlt(k) = 'ACTI3D_N_SSA_1'
-        ijlt_power(k) = -2
-        units_ijlt(k) = unit_string(ijlt_power(k),'Numb.')
-        scale_ijlt(k) = 10.**(-ijlt_power(k))
-      k = k + 1
-        ijlt_AMPext(2)=k
-        lname_ijlt(k) = 'N_SSC ACTI'
-        sname_ijlt(k) = 'ACTI3D_N_SSC_1'
-        ijlt_power(k) = -2
-        units_ijlt(k) = unit_string(ijlt_power(k),'Numb.')
-        scale_ijlt(k) = 10.**(-ijlt_power(k))
-      k = k + 1
-        ijlt_AMPext(3)=k
-        lname_ijlt(k) = 'N_SSA DIAM'
-        sname_ijlt(k) = 'DIAM_N_SSA_1'
-        ijlt_power(k) = -2
-        units_ijlt(k) = unit_string(ijlt_power(k),'m')
-        scale_ijlt(k) = 10.**(-ijlt_power(k))
-      k = k + 1
-        ijlt_AMPext(4)=k
-        lname_ijlt(k) = 'N_SSC DIAM'
-        sname_ijlt(k) = 'DIAM_N_SSC_1'
-        ijlt_power(k) = -2
-        units_ijlt(k) = unit_string(ijlt_power(k),'m')
-        scale_ijlt(k) = 10.**(-ijlt_power(k))
-      k = k + 1
-        ijlt_AMPext(5)=k
-        lname_ijlt(k) = 'N_SSA_1'
-        sname_ijlt(k) = 'N_SSA_1'
-        ijlt_power(k) = -10
-        units_ijlt(k) = unit_string(ijlt_power(k),'Numb.')
-        scale_ijlt(k) = 10.**(-ijlt_power(k))
-      k = k + 1
-        ijlt_AMPext(6)=k
-        lname_ijlt(k)= 'N_SSC_1'
-        sname_ijlt(k)= 'N_SSC_1'
-        ijlt_power(k) = -10
-        units_ijlt(k) = unit_string(ijlt_power(k),'Numb.')
-        scale_ijlt(k) = 10.**(-ijlt_power(k))
-#endif
 
 #ifdef TRACERS_TOMAS 
 
@@ -7878,7 +7833,7 @@ c**** earth
      *         'N_ACC_1 ','M_DD1_SU','N_DD1_1 ',
      *         'M_DS1_SU','M_DS1_DU','N_DS1_1 ','M_DD2_SU','M_DD2_DU',
      *         'N_DD2_1 ','M_DS2_SU','M_DS2_DU','N_DS2_1 ','M_SSA_SU',
-     *         'M_OCC_SU','N_OCC_1 ','M_BC1_SU',
+     *         'M_OCC_SU','N_OCC_1 ','M_BC1_SU','N_SSA_1 ','N_SSC_1 ',
      *         'N_BC1_1 ','M_BC2_SU','M_BC2_BC','N_BC2_1 ','M_BC3_SU',
      *         'M_BC3_BC','N_BC3_1 ','M_DBC_SU','M_DBC_BC','M_DBC_DU',
      *         'N_DBC_1 ','M_BOC_SU','M_BOC_BC','M_BOC_OC','N_BOC_1 ',

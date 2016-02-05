@@ -198,7 +198,7 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 C**** TAIJLS 3D special tracer diagnostics
 
 !@param ktaijl number of TAIJLS tracer diagnostics;
-      INTEGER, PARAMETER :: ktaijl=70
+      INTEGER, PARAMETER :: ktaijl=72
 #ifdef ACCMIP_LIKE_DIAGS 
      &                            + 12
 #endif
@@ -284,9 +284,7 @@ C**** TAIJLS 3D special tracer diagnostics
      $     ijlt_soa_evap, ijlt_soa_cond, ijlt_soa_chem
 #endif  /* SOA_DIAGS */
 #ifdef TRACERS_AMP
-!@var ijlt_AMPext special diagnostic for not-transported tracers
 !@var ijlt_AMPm tracer independent array for AMP modes
-      INTEGER :: ijlt_AMPext(6)
       integer, allocatable :: ijlt_AMPm(:,:)
 #endif 
 !@var ijlt_3Dtau 3D tracer independent array for hydrated opt. thick.

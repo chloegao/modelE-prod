@@ -588,7 +588,7 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
 
 #ifdef  TRACERS_AMP
          IF (AMP_DIAG_FC == 2) THEN
-            nraero_AMP=nmodes-2
+            nraero_AMP=nmodes
          ELSE
             nraero_AMP=1
          ENDIF
@@ -613,8 +613,8 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
 
       allocate(ntrix(nraero)) ; ntrix=0
 #ifdef TRACERS_AMP
-      allocate(ntrix_i(nmodes-2)) ; ntrix_i=0
-      allocate(ntrix_amp(nmodes-2)) ; ntrix_amp=0
+      allocate(ntrix_i(nmodes)) ; ntrix_i=0
+      allocate(ntrix_amp(nmodes)) ; ntrix_amp=0
 #else
       allocate(ntrix_i(nraero)) ; ntrix_i=0
 #endif
@@ -907,17 +907,19 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
         endif
         if (AMP_DIAG_FC == 2) then
           ntrix(n+1:n+nraero_AMP)=
-     &       (/n_N_AKK_1 ,n_N_ACC_1 ,n_N_DD1_1 ,n_N_DS1_1 ,n_N_DD2_1,
-     &         n_N_DS2_1, n_N_OCC_1, n_N_BC1_1, n_N_BC2_1 ,n_N_BC3_1,
-     &         n_N_DBC_1, n_N_BOC_1, n_N_BCS_1, n_N_MXX_1/)
+     &       (/n_N_AKK_1, n_N_ACC_1, n_N_DD1_1, n_N_DS1_1, n_N_DD2_1,
+     &         n_N_DS2_1, n_N_SSA_1, n_N_SSC_1, n_N_OCC_1, n_N_BC1_1, 
+     &         n_N_BC2_1 ,n_N_BC3_1, n_N_DBC_1, n_N_BOC_1, n_N_BCS_1, 
+     &         n_N_MXX_1/)
         else
           ntrix(n+1)=n_N_AKK_1
          endif
       endif
-         ntrix_amp(n+1:n+nmodes-2)=
-     &       (/n_N_AKK_1 ,n_N_ACC_1 ,n_N_DD1_1 ,n_N_DS1_1 ,n_N_DD2_1,
-     &         n_N_DS2_1, n_N_OCC_1, n_N_BC1_1, n_N_BC2_1 ,n_N_BC3_1,
-     &         n_N_DBC_1, n_N_BOC_1, n_N_BCS_1, n_N_MXX_1/)
+         ntrix_amp(n+1:n+nmodes)=
+     &       (/n_N_AKK_1, n_N_ACC_1, n_N_DD1_1, n_N_DS1_1, n_N_DD2_1,
+     &         n_N_DS2_1, n_N_SSA_1, n_N_SSC_1, n_N_OCC_1, n_N_BC1_1, 
+     &         n_N_BC2_1 ,n_N_BC3_1, n_N_DBC_1, n_N_BOC_1, n_N_BCS_1, 
+     &         n_N_MXX_1/)
  
          n=n+nraero_AMP
 #endif  /* (defined TRACERS_AMP) || (defined TRACERS_AMP_M1) */
@@ -2846,8 +2848,8 @@ C*****************************************************
 
 C**** Save optical depth diags
 #ifdef TRACERS_AMP /* Necessary because radiation call can be limited to 1 call, but diagnostic is calculated for all populations */
-      nraero_internal = nmodes-2
-      ntrix_i(1:nmodes-2) = ntrix_amp(1:nmodes-2) 
+      nraero_internal = nmodes
+      ntrix_i(1:nmodes) = ntrix_amp(1:nmodes) 
 #else
       nraero_internal = nraero
       ntrix_i(:) = ntrix(:) 
