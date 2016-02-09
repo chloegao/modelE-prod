@@ -186,8 +186,8 @@ c     also possibly apply vertical advection to horizontal winds
 
         if( .not. SCMopt%ls_h_UV )then
 c       *** no horizontal wind forcings
-          SCMin%UadvH(L) = 0.
-          SCMin%VadvH(L) = 0.
+          SCMin%UadvH(:) = 0.
+          SCMin%VadvH(:) = 0.
         endif
 
         do L = 1,LM
