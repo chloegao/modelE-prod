@@ -184,10 +184,6 @@
   ! 0(default): surface is set by GCM input files in run deck
   call get_param('SCM_sfc',SCMopt%sfc,default=0)
 
-  ! if not ocean surface, must specify surface heat fluxes
-  if( SCMopt%sfc.ne.2 .and. .not.SCMopt%sflx ) &
-    call stop_model('alloc_SCM_COM: surface requires specified fluxes',255)
-
   ! optional nudging
   SCMopt%nudge = is_set_param('SCM_tau')
   if( SCMopt%nudge ) call get_param('SCM_tau',SCMopt%tau)
@@ -212,6 +208,23 @@
 
   if( SCMopt%z0m .and. SCMopt%ustar ) &
     call stop_model('alloc_SCM_COM: at most one of z0m or ustar',255)
+
+  ! if not time-varying surface turbulent heat fluxes above,
+  ! optional fixed sensible and latent heat fluxes
+  if( .not. SCMopt%sflx )then
+    SCMopt%sflx = is_set_param('SCM_shf')
+    if( SCMopt%sflx )then 
+      call get_param('SCM_shf',SCMin%shf)
+      call get_param('SCM_lhf',SCMin%lhf)
+    endif
+  else
+    if( is_set_param('SCM_ustar') ) &
+      call stop_model('alloc_SCM_COM: redundant ustar values',255)
+  endif
+
+  ! if not ocean surface, must specify surface heat fluxes
+  if( SCMopt%sfc.ne.2 .and. .not.SCMopt%sflx ) &
+    call stop_model('alloc_SCM_COM: surface requires specified fluxes',255)
 
   ! optional vertical forcing of horizontal winds
   SCMopt%VadvHwind = is_set_param('SCM_VadvHwind')

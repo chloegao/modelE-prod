@@ -205,7 +205,7 @@
   call read_SCM_namelist('SCM_NML')
 
   ! specified sensible and latent heat fluxes (W/m2),
-  if( SCMopt%sflx )then
+  if( SCMopt%sflx .and. file_exists('SCM_SFLUX') )then
     call read_SCM_scalar('SCM_SFLUX','LHF',SCMin_tLHF)
     call read_SCM_scalar('SCM_SFLUX','SHF',SCMin_tSHF)
   endif
@@ -340,7 +340,7 @@
     SCMreadNML(ivar)%f_scale = scale_factor
     SCMreadNML(ivar)%f_offset = offset
     SCMreadNML(ivar)%nvar = nvar_nml ! redundant
-    write(6,*) ' ... namelist variable names: ',trim(model_varname),' ',trim(file_varname)
+    write(6,*) ' ... namelist variable names: ',trim(model_varname)
   enddo
   call closeunit(iu_nml)
 
@@ -1017,7 +1017,7 @@
   endif
 
   ! specified surface fluxes
-  if( SCMopt%sflx )then
+  if( SCMopt%sflx .and. file_exists('SCM_SFLUX') )then
     SCMin%lhf = SCMin_tLHF%value(nstepSCM)
     SCMin%shf = SCMin_tSHF%value(nstepSCM)
   endif
