@@ -1061,9 +1061,9 @@
     call interp_p_SCM_profile(SCMin_tOzone,SCMin%O3,'O3',SCMp_zero)
     do L = 1,LM
       DZ(L) = PDSIG(L,1,1)/PMID(L,1,1) &
-            * (RGAS/GRAV)*T(L,1,1)*PK(L,1,1)
+            * (RGAS/GRAV)*T(1,1,L)*PK(L,1,1)
       SCMin%O3(L) = SCMin%O3(L)*DZ(L)*PMID(L,1,1)*100. &
-                  / (RGAS*T(L,1,1)*2.14E-2)
+                  / (RGAS*T(1,1,L)*2.14E-2)
     enddo
   endif
 
