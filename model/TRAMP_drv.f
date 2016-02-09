@@ -245,7 +245,7 @@ c       CALL SIZE_PDFS(AERO,PDF1,PDF2)
      *        -trm(i,j,l,n_NH3)) /dtsrc
 
 #ifdef  TRACERS_SPECIAL_Shindell
-      tr3Dsource(i,j,l,3,n_HNO3)  =((GAS(2)/1.292 * 1.d-9)
+      tr3Dsource(i,j,l,3,n_HNO3)  =((GAS(2)*AVOL * 1.d-9)
      *        -trm(i,j,l,n_HNO3))/dtsrc
 #endif
 c       DT_AERO(:,:) = DT_AERO(:,:) * dtsrc !DT_AERO [# or ug/m3/s] , taijs [kg m2/kg(air)], byMA [kg/m2]
