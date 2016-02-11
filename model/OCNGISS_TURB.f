@@ -511,7 +511,7 @@ c     USE SOCPBL, only :: c1,c2,c3,c4,c5,rimax
       !@var l0 constant length scale within obl 
       !@var l1 length scale throughout the vertical ocean
       !@var l1min minimum of l1 below obl 
-      !@var lr length scale reduction factor by stable buoyancy
+c     !@var lr length scale reduction factor by stable buoyancy
       !@var l2 length scale after reduced by stable buoyancy 
       !@var l2min minimum of l2
       !@var len final length scale
@@ -523,7 +523,7 @@ c     USE SOCPBL, only :: c1,c2,c3,c4,c5,rimax
 
       integer l,jlo,jhi,klo,khi,lmix
       real*8 a1,a2,b1,b2,c1,c2,c3,c4
-      real*8 ril,rrl,gm,sm,sh,ss,sc,kml,khl,ksl,kcl,lr,etau
+      real*8 ril,rrl,gm,sm,sh,ss,sc,kml,khl,ksl,kcl,etau
       real*8 l0,l1,l2,kz,zbyh,bydz,zl,tmp
 
       ! for background diffusivities
@@ -664,21 +664,22 @@ c     end do
          zl=ze(l)
          zbyh=zl/hbl
          kz=kappa*zl
-         !@var lr length scale reduction factor by stable buoyancy
+c        !@var lr length scale reduction factor by stable buoyancy
          !@var l0 constant length scale within obl 
          !@var l1 length scale before reduced by stable buoyancy 
          !@var l1min minimum of l1 below obl 
          !@var l2 length scale after reduced by stable buoyancy 
          !@var l2min minimum of l2
          !@var len final length scale
-         lr=1./(1.+max(ri(l),0.d0))
+c        lr=1./(1.+max(ri(l),0.d0))
          if(zl.le.hbl) then   ! within obl
             l1=l0
          else
             l1=l1min+max(l0-l1min,0.d0)*exp(1.-zbyh)
          endif
-         l2=max(l1*lr,l2min)
-         len(l)=l2*kz/(l2+kz)
+c        l2=max(l1*lr,l2min)
+c        len(l)=l2*kz/(l2+kz)
+         len(l)=l1*kz/(l1+kz)
       end do
 
       den=1.-exp(-ze(n)*byzet)
@@ -723,6 +724,7 @@ c     end do
          endif
          tmp=(osocb1*len(l))**2*vs2(l)
          e(l)=.5*tmp/(gm+teeny)
+         e(l)=min(max(e(l),emin),emax)
          etau=.5*osocb1*sqrt(2.*e(l))*len(l)
          kml=etau*sm
          khl=etau*sh
