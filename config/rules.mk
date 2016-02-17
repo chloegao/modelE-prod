@@ -112,7 +112,9 @@ ifneq ($(COMPILER),)
 endif
 
 ### HACK !! - add source dir to CPPFLAGS
-CPPFLAGS += -I$(SRC_DIR)
+ifneq ($(SRC_DIR),)
+  CPPFLAGS += -I$(SRC_DIR)
+endif
 
 ifeq ($(MPI),YES)
   CPPFLAGS += -DUSE_MPI
