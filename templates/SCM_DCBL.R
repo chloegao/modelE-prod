@@ -1,4 +1,4 @@
-SCM_DICE.R GISS Model E      M. Kelley 10/2013, A. Fridlind 2/2016
+SCM_DCBL.R GISS Model E      M. Kelley 10/2013, A. Fridlind 2/2016
 
 Dry convective boundary layer (Bretherton and Park, 2009, doi:10.1175/2008JCLI2556.1, section 3a)
 
@@ -8,7 +8,7 @@ containing  /path/to/user/directory/extractions - see notes below)
 SCM-irrelevant codes and input files are excluded.
 Template #includes should be refactored so that this exclusion happens automatically.
 
-SCM case: SGP Jan 2005
+SCM case: DCBL
 For other cases, change one or more of the following as necessary:
 (1) SCM input variable namelist (SCM_NML) and SCM input files (SCM_PS, SCM_SFLUX, etc.)
 (2) SCM parameters SCM_lon, SCM_lat, and files extracted from gridded data at SCM_lon, SCM_lat
@@ -106,7 +106,7 @@ SCM_WVMR=SCM_DCBL.nc    ! initial water vapor mixing ratio profile
 ! (2) Use exec/extract_scm.sh to sample gridded files at location
 !     lon_targ, lat_targ.
 !     Firstly,
-!       replace /home/afridlin/models/modelE/input_SCM/SCM_DICE with a real path, preferably which
+!       replace /home/afridlin/models/modelE/input_SCM/SCM_DCBL with a real path, preferably which
 !        (a) contains a string denoting the SCM location/case being run
 !        (b) is unlikely to be chosen by any other users on the system
 !       Habits (a) and (b) will prevent clutter and accidental overwrites.
@@ -214,18 +214,18 @@ ISCCP=ISCCP.tautables
 MSU_wts=MSU.RSS.weights.data
 
 Label and Namelist:
-SCM_DICE (documenting the Single Column Model)
+SCM_DCBL (dry convective boundary layer)
 
 
 &&PARAMETERS
 
 ! SCM parameters
-SCM_lon=-96.25             ! Southern Great Plains site longitude (deg)
-SCM_lat=37.                ! Southern Great Plains site latitude (deg)
+SCM_lon=-97.485            ! Southern Great Plains site longitude (deg)
+SCM_lat=36.605             ! Southern Great Plains site latitude (deg)
 SCM_area=49370385348.1287  ! nominal grid box area (m2) from 144x90 grid
 SCM_sfc=1                  ! 1:land,2:ocean
 SCM_z0m=0.16               ! friction velocity (m)
-SCM_BeersLaw=70.,22.,85.   ! Beer's Law f0,f1 (W/m2), and kappa (m2/kg)
+SCM_BeersLaw=00.,00.,85.   ! Beer's Law f0,f1 (W/m2), and kappa (m2/kg)
 SCM_shf=300.               ! fixed sensible heat flux (W/m2)
 SCM_lhf=0.                 ! fixed latent heat flux (W/m2)
 
@@ -293,7 +293,7 @@ SUBDD1='cldss cldmc cldss_2d totcld totcld_diag'
 SUBDD2='gtempr shflx lhflx ustar wsavg qs pblht pwv lwp iwp tau_ss tau_mc'
 SUBDD3='olrrad olrcs lwds lwdscs lwus swds swus swdf'
 SUBDD4='dq_turb dth_turb dq_mc dth_mc dq_ss dth_ss dth_sw dth_lw dth_rad'
-SUBDD5='dq_ls dth_ls du_ls dv_ls dq_nudge dth_nudge'
+SUBDD5='dq_ls dth_ls du_ls dv_ls dq_nudge dth_nudge column_fmse z_surf'
 SUBDD6='isccp_sunlit isccp_ctp isccp_tau isccp_lcld isccp_hcld'
 NSUBDD=1         ! saving sub-daily diags every NSUBDD-th physics time step (1/2 hr)
 SCM_PlumeDiag=0  !to save Plume diagnostics set SCM_PlumeDiag=1
