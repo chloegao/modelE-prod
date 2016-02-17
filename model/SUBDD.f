@@ -1724,7 +1724,7 @@ c
 c 2D outputs
 c
       use model_com, only : dtsrc,nday
-      use constant, only : rhow
+      use constant, only : rhow,bygrav
       use TimeConstants_mod, only: SECONDS_PER_DAY
       use subdd_mod, only : info_type,sched_rad,reduc_min,reduc_max
 ! info_type_ is a homemade structure constructor for older compilers
@@ -1938,6 +1938,13 @@ c
      &     )
 c
       arr(next()) = info_type_(
+     &  sname = 'z_surf',
+     &  lname = 'surface height',
+     &  units = 'm',
+     &  scale = bygrav
+     &     )
+c
+      arr(next()) = info_type_(
      &  sname = 'gtempr',
      &  lname = 'SKIN TEMPERATURE',
      &  units = 'K'
@@ -1983,6 +1990,12 @@ c
      &  sname = 'iwp',
      &  lname = 'ICE WATER PATH',
      &  units = 'kg/m^2'
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'column_fmse',
+     &  lname = 'column of frozen moist static energy',
+     &  units = 'J/m^2'
      &     )
 c
       arr(next()) = info_type_(

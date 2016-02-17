@@ -1551,16 +1551,16 @@ C****
 #ifdef CACHED_SUBDD
       subroutine accum_subdd_atm
 C**** interpolate to pressure levels and accumulate the subdd diagnostics
-      USE CONSTANT, only : teeny,lhe,bygrav
+      USE CONSTANT, only : teeny,lhe,lhm,sha,bygrav
       use subdd_mod, only : lmaxsubdd
       use subdd_mod, only : subdd_type,subdd_groups,subdd_ngroups
       use subdd_mod, only : aijph_l1,aijph_l2
      &      ,subdd_npres,subdd_pk, subdd_pres
       use subdd_mod, only : inc_subdd,find_groups
       use atm_com,    only: u,v,t,q,qcl,qci, pdsig,pmid,pedn,pk,
-     &                      ualij,valij, zatmo,gz, wsave
+     &                      ualij,valij, zatmo,gz, wsave, ma,masum
       use domain_decomp_atm, only : grid,get=>getdomainbounds
-      use resolution, only : lm
+      use resolution, only : lm,mtop
       USE GEOM, only: imaxj
       use fluxes, only : atmsrf,atmice
       use model_com, only : dtsrc
@@ -1597,6 +1597,9 @@ C
         sddarr2d = pedn(1,:,:)
         call inc_subdd(subdd,k,sddarr2d)
 C
+      case ('z_surf')
+        call inc_subdd(subdd,k,zatmo)
+C
       case ('pblht')
         call inc_subdd(subdd,k,atmsrf%dblavg)
 C
@@ -1623,6 +1626,17 @@ C
       case ('iwp')
         do j=j_0,j_1; do i=i_0,imaxj(j)
           sddarr2d(i,j) = sum(qci(i,j,1:LM)*pdsig(1:LM,i,j))*100.*bygrav
+        enddo;        enddo
+        call inc_subdd(subdd,k,sddarr2d)
+C
+      case ('column_fmse')
+        ! same as total static energy computed by conserv_se,
+        ! which is disabled for SCM
+        do j=j_0,j_1; do i=i_0,imaxj(j)
+          sddarr2d(i,j) = sum( 
+     &           (sha*t(i,j,1:LM)*pk(1:LM,i,j)+
+     &            lhe*q(i,j,1:LM)-lhm*qci(i,j,1:LM))*ma(1:LM,i,j))+
+     &           zatmo(i,j)*(masum(i,j)+mtop)
         enddo;        enddo
         call inc_subdd(subdd,k,sddarr2d)
 C
