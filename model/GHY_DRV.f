@@ -1325,6 +1325,12 @@ c**** accumulate surface fluxes and prognostic and diagnostic quantities
 C**** calculate correction for different TG in radiation and surface
       dLWDT = pbl_args%dtsurf*
      &     (atmlnd%TRUP_in_rad(I,J) - STBO*(tearth(i,j)+TF)**4)
+#ifdef SCM
+      if( .not. SCMopt%sfcQrad )then 
+c**** zero atmospheric longwave cooling associated with surface
+        dLWDT = 0.
+      endif
+#endif
 
       atmlnd%dth1(i,j)=-(SHDT+dLWDT)/(sha*ma1)
       atmlnd%dq1(i,j) = aevap/ma1

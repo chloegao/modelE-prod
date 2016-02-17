@@ -27,7 +27,7 @@
     logical :: wind,geo,temp,theta,wvmr,rh
     logical :: ozone,omega,w,VadvHwind
     logical :: ls_v,ls_h,ls_h_UV,Qrad
-    logical :: nudge,Fnudge
+    logical :: nudge,Fnudge,sfcQrad
     logical :: BeersLaw,PlumeDiag
     logical :: TopHat,allowMC,allowCTEI
     real*8 :: lat,lon,area,tau
@@ -56,6 +56,7 @@
 !@var SCMopt%Qrad = T:specify fixed radiative heating profile
 !@var SCMopt%nudge = T:nudge qv and T with timescale tau
 !@var SCMopt%Fnudge = T:apply scale factor profile to qv and T nudging
+!@var SCMopt%sfcQrad = T:allow longwave atmospheric heating associated with the surface
 !@var SCMopt%lat,SCMopt%lon = SCM latitude and longitude
 !@var SCMopt%area = SCM nominal area (m2)
 !@var SCMopt%tau = nudging time constant (s) for qv and T
@@ -180,6 +181,10 @@
      
   if( SCMopt%Qrad .and. SCMopt%BeersLaw ) &
     call stop_model( 'alloc_SCM_COM: at most one of Qrad or BeersLaw',255)
+
+  ! ignore longwave atmospheric heating associated with the surface
+  ! when using parameterized or specified profile of radiative heating
+  SCMopt%sfcQrad = .not. ( SCMopt%Qrad .or. SCMopt%BeersLaw )
 
   ! 0(default): surface is set by GCM input files in run deck
   call get_param('SCM_sfc',SCMopt%sfc,default=0)

@@ -607,6 +607,10 @@ C**** impose specified surface heat fluxes
         SHEAT  = -SCMin%shf
         EVHEAT = -SCMin%lhf
       endif
+      if( .not. SCMopt%sfcQrad )then 
+C**** zero atmospheric longwave heating associated with surface
+        TRHEAT = 0.
+      endif
 #endif
 
 C**** CASE (1) ! FLUXES USING EXPLICIT TIME STEP FOR OCEAN POINTS
@@ -650,6 +654,11 @@ C****** impose specified surface heat fluxes (again)
           EVHEAT = -SCMin%lhf
           SHDT   = DTSURF*SHEAT
           EVHDT  = DTSURF*EVHEAT
+        endif
+        if( .not. SCMopt%sfcQrad )then 
+C****** zero atmospheric longwave heating associated with surface (again)
+          TRHEAT = 0.
+          TRHDT  = DTSURF*TRHEAT
         endif
 #endif
         F1DT = DTSURF*(F1+(dTG*dF1dTG-dT2*dF1dTG))
@@ -744,6 +753,12 @@ C**** Limit heat fluxes out of lakes if near minimum depth
 C**** calculate correction for different TG in radiation and surface
       !dLWDT = DTSURF*(TRSURF(ITYPE,I,J)-TRHR(0,I,J))+TRHDT
       dLWDT = DTSURF*(asflx(itype)%TRUP_in_rad(I,J)-TRHR(0,I,J))+TRHDT
+#ifdef SCM
+      if( .not. SCMopt%sfcQrad )then 
+C**** zero atmospheric longwave heating associated with surface (again)
+        dLWDT = 0.0
+      endif
+#endif
 C**** final fluxes
       asflx(itype)%DTH1(I,J)=-(SHDT+dLWDT)/(SHA*MA1) ! +ve up
       asflx(itype)%sensht(i,j) = asflx(itype)%sensht(i,j)+SHDT
