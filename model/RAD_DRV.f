@@ -2720,15 +2720,13 @@ c set for BC-albedo effect
           TNFST(1,n,I,J)=TRNFLB(1)
           SNFST(2,n,I,J)=SRNFLB(LFRC) ! Tropopause forcing
           TNFST(2,n,I,J)=TRNFLB(LFRC)
-          FSTOPX(:) = onoff_aer !turns on online tracer
-          FTTOPX(:) = onoff_aer !
+          FSTOPX(n) = onoff_aer !turns on online tracer
+          FTTOPX(n) = onoff_aer !
         ENDDO
 #endif
 #ifdef TRACERS_TOMAS
         IF (TOMAS_DIAG_FC == 2) THEN
-            FSTOPX(:) = onoff_aer !turns on online tracer
-            FTTOPX(:) = onoff_aer !
-          Do n = 1,icomp-2
+          DO n = 1,icomp-2
             FSTOPX(n) = 1-onoff_aer !turns off online tracer
             FTTOPX(n) = 1-onoff_aer !
             CALL RCOMPX
