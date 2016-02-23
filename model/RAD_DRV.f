@@ -1673,6 +1673,7 @@ c          use TRACER_COM, only: SNFST0,TNFST0
       USE TRCHEM_Shindell_COM, only: Lmax_rad_O3,Lmax_rad_CH4
 #endif /* TRACERS_SPECIAL_Shindell */
 #ifdef TRACERS_AMP
+      USE AMP_AEROSOL, only: AMP_DIAG_FC
       USE AERO_CONFIG, only: nmodes
 #endif
 #endif /* TRACERS_ON */
@@ -2712,6 +2713,18 @@ c set for BC-albedo effect
         dALBsn=dALBsn1
 #endif
 #ifdef TRACERS_AMP
+      IF ( AMP_DIAG_FC == 1 ) THEN
+        n = 1
+          FSTOPX(:) = 1-onoff_aer !turns off online tracer
+          FTTOPX(:) = 1-onoff_aer !
+          CALL RCOMPX
+          SNFST(1,n,I,J)=SRNFLB(1) ! surface forcing
+          TNFST(1,n,I,J)=TRNFLB(1)
+          SNFST(2,n,I,J)=SRNFLB(LFRC) ! Tropopause forcing
+          TNFST(2,n,I,J)=TRNFLB(LFRC)
+          FSTOPX(:) = onoff_aer !turns on online tracer
+          FTTOPX(:) = onoff_aer !
+       ELSE
         DO n = 1,nraero
           FSTOPX(n) = 1-onoff_aer !turns off online tracer
           FTTOPX(n) = 1-onoff_aer !
@@ -2723,6 +2736,7 @@ c set for BC-albedo effect
           FSTOPX(n) = onoff_aer !turns on online tracer
           FTTOPX(n) = onoff_aer !
         ENDDO
+      ENDIF
 #endif
 #ifdef TRACERS_TOMAS
         IF (TOMAS_DIAG_FC == 2) THEN
