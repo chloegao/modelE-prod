@@ -220,7 +220,7 @@ C         Interpolate CH4 altitude-dependence to model resolution:
       case ('CFC')
 #ifdef TRACERS_SPECIAL_Shindell
           if(AM_I_ROOT( ))then
-C          check on GHG file's 1995 value for CFCs:
+C          check on GHG files 1995 value for CFCs:
            call openunit('GHG',iu_data,.false.,.true.)
            do i=1,5; read(iu_data,'(a80)') title; enddo
            temp_year=0

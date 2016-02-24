@@ -2510,7 +2510,8 @@ C
       use fluxes, only: tr3Dsource
       use geom, only: axyp
       use OldTracer_mod, only: itime_tr0,trname
-      use TRACER_COM, only: ntm_chem, aer_int_yr, trans_emis_overr_yr
+      use TRACER_COM, only: ntm_chem_beg,ntm_chem_end
+      use TRACER_COM, only: aer_int_yr,trans_emis_overr_yr
 #ifdef TRACERS_SPECIAL_Shindell
       use TRACER_COM, only: n_NOx
 #endif
@@ -2653,7 +2654,8 @@ C
         endif
 
 #ifdef TRACERS_SPECIAL_Shindell
-        if (mon_tracers(k)<=ntm_chem) then
+        if ((mon_tracers(k)>=ntm_chem_beg).and.
+     &      (mon_tracers(k)<=ntm_chem_end)) then
           trans_emis_overr_yr=ABS(o3_yr)
           if(trans_emis_overr_yr > 0)then
             xyear=trans_emis_overr_yr
