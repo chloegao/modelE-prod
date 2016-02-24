@@ -175,6 +175,11 @@ c      logical pole
         pbl_args%evap_max = 1.
         pbl_args%fr_sat = 1.    ! entire surface is saturated
         pbl_args%qg_aver = pbl_args%qg_sat ! QG_AVER=QG_SAT
+#ifdef SCM
+        if( SCMopt%Qskin )then ! force skin water vapor mixing ratio
+          pbl_args%qg_aver = SCMin%Qskin
+        endif
+#endif
         if(itype==1) then
           pbl_args%elhx = lhe
         else
@@ -803,6 +808,9 @@ c -------------------------------------------------------------
       use ent_mod, only: ent_get_exports
       use ent_com, only : entcells
 #endif
+#ifdef SCM
+      USE SCM_COM, only : SCMopt,SCMin
+#endif
       use pario, only : par_open,par_close,read_dist_data
 
       IMPLICIT NONE
@@ -902,6 +910,11 @@ C**** Initialize surface friction velocity
 C**** SET SURFACE SPECIFIC HUMIDITY FROM FIRST LAYER HUMIDITY
           atmsrf%QSAVG(I,J)=Q(I,J,1)
           atmsrf%QGAVG(I,J)=Q(I,J,1)
+#ifdef SCM
+          if( SCMopt%Qskin )then ! force skin water vapor mixing ratio
+            atmsrf%qgavg(i,j) = SCMin%Qskin
+          endif
+#endif
         ENDDO
         ENDDO
       endif
@@ -923,6 +936,12 @@ C things to be done regardless of inipbl
 
       call sync_param( 'XCDpbl', XCDpbl )
       call sync_param( 'skin_effect', skin_effect )
+#ifdef SCM  
+      if( .not. SCMopt%sfcQrad )then
+c**** disable skin_effect when ignoring longwave atmospheric heating
+        skin_effect=0
+      endif
+#endif
 
       do j=J_0,J_1
         do i=I_0,I_1
@@ -996,7 +1015,11 @@ C**** fix roughness length for ocean ice that turned to land ice
             ps=pedn(1,i,j)    !pij+ptop
             psk=pek(1,i,j)    !expbyk(ps)
             qgrnd=qsat(tgrndv,elhx,ps)
-
+#ifdef SCM
+            if( SCMopt%Qskin )then ! force skin water vapor mixing ratio
+              qgrnd = SCMin%Qskin
+            endif
+#endif
             utop = ua(1,i,j)
             vtop = va(1,i,j)
             qtop=q(i,j,1)

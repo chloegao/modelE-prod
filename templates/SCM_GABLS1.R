@@ -1,6 +1,7 @@
-SCM.R GISS Model E      M. Kelley 10/2013
+SCM_GABLS1.R GISS Model E      M. Kelley 10/2013, A. Fridlind 2/2016
 
-Initial framework for truly single-column mode for Model E.
+Dry stable boundary layer (Bretherton and Park, 2009, doi:10.1175/2008JCLI2556.1, section 3b)
+using specified skin temperature and skin water vapor mixing ratio (idealized by overwriting ocean values)
 
 This is a functioning rundeck, not a template (excepting the lines
 containing  /path/to/user/directory/extractions - see notes below)
@@ -8,7 +9,7 @@ containing  /path/to/user/directory/extractions - see notes below)
 SCM-irrelevant codes and input files are excluded.
 Template #includes should be refactored so that this exclusion happens automatically.
 
-SCM case: SGP Jan 2005
+SCM case: GABLS1
 For other cases, change one or more of the following as necessary:
 (1) SCM input variable namelist (SCM_NML) and SCM input files (SCM_PS, SCM_SFLUX, etc.)
 (2) SCM parameters SCM_lon, SCM_lat, and files extracted from gridded data at SCM_lon, SCM_lat
@@ -82,18 +83,13 @@ OPTS_giss_LSM = USE_ENT=YES
 Data input files:
 
 ! SCM input files
-SCM_NML=SCM_ARM.nml                                 ! input variable namelist with units
-SCM_PS=sgp60varanarucC1.c1.20050101.000000.cdf      ! surface pressure
-SCM_SFLUX=sgp60varanarucC1.c1.20050101.000000.cdf   ! surface heat fluxes
-SCM_TSKIN=sgp60varanarucC1.c1.20050101.000000.cdf   ! skin temperature
-! if horizontal and geostrophic wind profiles are specified, horizontal are initial
-SCM_WIND=sgp60varanarucC1.c1.20050101.000000.cdf    ! horizontal wind profiles
-!SCM_GEO=sgp60varanarucC1.c1.20050101.000000.cdf     ! geostrophic wind profiles
-SCM_TEMP=sgp60varanarucC1.c1.20050101.000000.cdf    ! temperature profile(s)
-SCM_WVMR=sgp60varanarucC1.c1.20050101.000000.cdf    ! water vapor mixing ratio profile(s)
-SCM_OMEGA=sgp60varanarucC1.c1.20050101.000000.cdf   ! large-scale vertical wind
-!SCM_LS_V=sgp60varanarucC1.c1.20050101.000000.cdf    ! large-scale vert adv flux div profile(s)
-SCM_LS_H=sgp60varanarucC1.c1.20050101.000000.cdf    ! large-scale horiz adv flux div profile(s)
+SCM_NML=SCM_default.nml       ! input variable namelist with units
+SCM_PS=SCM_GABLS1.nc          ! surface pressure
+SCM_TSKIN=SCM_GABLS1_skin.nc  ! surface skin temperature
+SCM_QSKIN=SCM_GABLS1_skin.nc  ! surface skin water vapor mixing ratio
+SCM_GEO=SCM_GABLS1.nc         ! geostrophic wind profiles
+SCM_THETA=SCM_GABLS1.nc       ! initial potential temperature profile
+SCM_WVMR=SCM_GABLS1.nc        ! initial water vapor mixing ratio profile
 
 ! The set of forcings for a particular SCM test case typically does not include
 ! all of the data required to run Model E.  Each line below of the form
@@ -220,20 +216,18 @@ ISCCP=ISCCP.tautables
 MSU_wts=MSU.RSS.weights.data
 
 Label and Namelist:
-SCM (documenting the Single Column Model)
+SCM_GABLS1 (dry stable boundary layer)
 
 
 &&PARAMETERS
 
 ! SCM parameters
-SCM_lon=-97.49             ! Southern Great Plains site longitude (deg)
-SCM_lat=36.61              ! Southern Great Plains site latitude (deg)
+SCM_lon=-146.              ! Beaufort Sea longitude (deg)
+SCM_lat=73.                ! Beaufort Sea latitude (deg)
 SCM_area=49370385348.1287  ! nominal grid box area (m2) from 144x90 grid
-SCM_sfc=1                  ! 1:land,2:ocean
-SCM_z0m=0.0005             ! surface roughness height (m)
-SCM_alb=0.3                ! mid-visible surface albedo (-)
-SCM_tau=10800.             ! nudging time constant
-SCM_TopHat=1               ! input profiles treated as top-hat? (default=0)
+SCM_sfc=2                  ! 1:land,2:ocean
+SCM_z0m=0.1                ! aerodynamic roughness length (m)
+SCM_BeersLaw=00.,00.,85.   ! Beer's Law f0,f1 (W/m2), and kappa (m2/kg)
 
 DTsrc=1800.     ! Atm. physics timestep.
 NIsurf=1        ! Number of surface physics timesteps per atm. physics timestep.
@@ -295,11 +289,11 @@ Nssw=2
 !NSUBDD=0         ! saving sub-daily diags every NSUBDD-th physics time step (1/2 hr)
 
 SUBDD='u v t q rh z p_3d p_surf prec mcp ssp snowfall snowdp qcl qci'
-SUBDD1='cldss cldmc cldss_2d totcld totcld_diag'
-SUBDD2='gtempr shflx lhflx ustar pblht pwv lwp iwp tau_ss tau_mc'
+SUBDD1='cldss cldmc cldss_2d totcld totcld_diag gtemp tsavg'
+SUBDD2='gtempr shflx lhflx ustar wsavg qs pblht pwv lwp iwp tau_ss tau_mc'
 SUBDD3='olrrad olrcs lwds lwdscs lwus swds swus swdf egcm'
 SUBDD4='dq_turb dth_turb dq_mc dth_mc dq_ss dth_ss dth_sw dth_lw dth_rad'
-SUBDD5='dq_ls dth_ls dq_nudge dth_nudge'
+SUBDD5='dq_ls dth_ls du_ls dv_ls dq_nudge dth_nudge column_fmse z_surf'
 SUBDD6='isccp_sunlit isccp_ctp isccp_tau isccp_lcld isccp_hcld'
 NSUBDD=1         ! saving sub-daily diags every NSUBDD-th physics time step (1/2 hr)
 SCM_PlumeDiag=0  !to save Plume diagnostics set SCM_PlumeDiag=1
@@ -316,7 +310,7 @@ variable_lk=1
 &&END_PARAMETERS
 
  &INPUTZ
- YEARI=2005,MONTHI=1,DATEI=1,HOURI=0, ! pick IYEAR1=YEARI (default) or < YEARI
- YEARE=2005,MONTHE=1,DATEE=31,HOURE=23,     KDIAG=12*0,9,
- ISTART=2,IRANDI=0, YEARE=2005,MONTHE=1,DATEE=31,HOURE=23,
+ YEARI=1994,MONTHI=10,DATEI=1,HOURI=0, ! pick IYEAR1=YEARI (default) or < YEARI
+ YEARE=1994,MONTHE=10,DATEE=1,HOURE=9,     KDIAG=12*0,9,
+ ISTART=2,IRANDI=0,
 /

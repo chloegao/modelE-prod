@@ -116,6 +116,7 @@ C****
       use subdd_mod, only : subdd_groups,subdd_ngroups,subdd_type
      &     ,inc_subdd,find_groups
       use resolution, only : lm
+      use pblcom, only : egcm
 #endif
 #ifdef TRACERS_ON
       USE TRACER_COM, only: gasex_index
@@ -465,7 +466,14 @@ C**** pass salinity (zero for lakes)
       pbl_args%sss_loc=sss(i,j)
 c**** sanity check (to prevent rare anomalies that will be dealt with by
 C**** addice next time)
+#ifndef SCM 
       TG1=max(TG1,tfrez(sss(i,j)))
+#else 
+c**** skip sanity check when forcing skin temperature
+      if( .not. SCMopt%Tskin )then
+        TG1=max(TG1,tfrez(sss(i,j)))
+      endif
+#endif
 
       END IF
 C****
@@ -529,7 +537,13 @@ C****
 
       TG=TG1+TF
       QG_SAT=QSAT(TG,ELHX,PS)
-      IF (ITYPE.eq.1 .and. focean(i,j).gt.0) QG_SAT=0.98d0*QG_SAT
+      IF (ITYPE.eq.ITYPE_OCEAN.and. 
+     &    focean(i,j).gt.0) QG_SAT=0.98d0*QG_SAT
+#ifdef SCM
+      if( SCMopt%Qskin )then ! force skin water vapor mixing ratio
+        qg_sat = SCMin%Qskin
+      endif
+#endif
       pbl_args%TG=TG   ! actual ground temperature
       pbl_args%TR4=TR4 ! radiative temperature K^4
       !pbl_args%ELHX=ELHX   ! relevant latent heat
@@ -550,13 +564,13 @@ c      pbl_args%fr_sat = 1. ! entire surface is saturated
       pbl_args%vocean = vocean
 c      pbl_args%psurf = PS
 c      pbl_args%trhr0 = TRHR(0,I,J)
-      pbl_args%ocean = (ITYPE.eq.1 .and. FOCEAN(I,J).gt.0)
+      pbl_args%ocean = (ITYPE.eq.ITYPE_OCEAN .and. FOCEAN(I,J).gt.0)
       pbl_args%snow = SNOW
 
 !     Calculate drag coefficients, wind speed, air density, etc.
 !     PBL = "Planetary Boundary Layer"
 C**** Call pbl to calculate near surface profile
-      if(itype == 1) then
+      if(itype == ITYPE_OCEAN) then
         CALL PBL(I,J,1,ITYPE,PTYPE,pbl_args,atmocn)
       else
         CALL PBL(I,J,1,ITYPE,PTYPE,pbl_args,atmice)
@@ -581,6 +595,11 @@ C**** Adjust ground variables to account for skin effects
       TG = TG + pbl_args%dskin
       QG_SAT=QSAT(TG,ELHX,PS)
       IF (pbl_args%ocean) QG_SAT=0.98d0*QG_SAT
+#ifdef SCM
+      if( SCMopt%Qskin )then ! force skin water vapor mixing ratio
+        qg_sat = SCMin%Qskin
+      endif
+#endif
       TG1 = TG - TF
       TR4=(sqrt(sqrt(TR4))+pbl_args%dskin)**4
 
@@ -607,20 +626,16 @@ C**** impose specified surface heat fluxes
         SHEAT  = -SCMin%shf
         EVHEAT = -SCMin%lhf
       endif
-      if( .not. SCMopt%sfcQrad )then 
-C**** zero atmospheric longwave heating associated with surface
-        TRHEAT = 0.
-      endif
 #endif
 
 C**** CASE (1) ! FLUXES USING EXPLICIT TIME STEP FOR OCEAN POINTS
-      if ( ITYPE == 1) then
+      if ( ITYPE == ITYPE_OCEAN) then
         SHDT = DTSURF*SHEAT
         EVHDT=DTSURF*EVHEAT              ! latent heat flux
         TRHDT=DTSURF*TRHEAT
 
 C**** CASE (2) ! FLUXES USING IMPLICIT TIME STEP FOR ICE POINTS
-      else if ( ITYPE == 2 ) then
+      else if ( ITYPE == ITYPE_OCEANICE ) then
 
 ! heat flux on first/second/third layers (W/m^2)
         F1 = (TG1-TG2)*dF1dTG + SRHEAT*FSRI(1)
@@ -655,11 +670,6 @@ C****** impose specified surface heat fluxes (again)
           SHDT   = DTSURF*SHEAT
           EVHDT  = DTSURF*EVHEAT
         endif
-        if( .not. SCMopt%sfcQrad )then 
-C****** zero atmospheric longwave heating associated with surface (again)
-          TRHEAT = 0.
-          TRHDT  = DTSURF*TRHEAT
-        endif
 #endif
         F1DT = DTSURF*(F1+(dTG*dF1dTG-dT2*dF1dTG))
         TG1 = TG1+dTG          ! first layer sea ice temperature (degC)
@@ -688,7 +698,7 @@ C**** Limit evaporation if lake mass is at minimum
         GO TO 3720
       END IF
       EVHDT=DQ1X*(LHE+TG1*SHV)*MA1
-      IF (ITYPE.NE.1) TG1=TG1+(EVHDT-EVHDT0)/HCG1
+      IF (ITYPE.NE.ITYPE_OCEAN) TG1=TG1+(EVHDT-EVHDT0)/HCG1
  3720 EVAP=-DQ1X*MA1
 
 #ifdef TRACERS_WATER
@@ -753,12 +763,6 @@ C**** Limit heat fluxes out of lakes if near minimum depth
 C**** calculate correction for different TG in radiation and surface
       !dLWDT = DTSURF*(TRSURF(ITYPE,I,J)-TRHR(0,I,J))+TRHDT
       dLWDT = DTSURF*(asflx(itype)%TRUP_in_rad(I,J)-TRHR(0,I,J))+TRHDT
-#ifdef SCM
-      if( .not. SCMopt%sfcQrad )then 
-C**** zero atmospheric longwave heating associated with surface (again)
-        dLWDT = 0.0
-      endif
-#endif
 C**** final fluxes
       asflx(itype)%DTH1(I,J)=-(SHDT+dLWDT)/(SHA*MA1) ! +ve up
       asflx(itype)%sensht(i,j) = asflx(itype)%sensht(i,j)+SHDT
@@ -774,7 +778,7 @@ C****
 C**** SAVE SOME TYPE DEPENDENT FLUXES/DIAGNOSTICS
 C****
 !!!      CASE (1)  ! ocean
-      if ( ITYPE == 1 ) then
+      if ( ITYPE == ITYPE_OCEAN ) then
         ! todo: use the (gtemps-gtemp) form outside this loop
         ! after figuring why it doesn't always give the same result
         IF(MODDSF.EQ.0)
@@ -1088,6 +1092,11 @@ C****
           sddarr3d(i,j,l) = (T(i,j,l)-T_i(i,j,l))
         enddo;        enddo;        enddo
         call inc_subdd(subdd,k,sddarr3d)
+      case ('egcm')
+        do j=j_0,j_1; do i=i_0,i_1; do l=1,lm
+          sddarr3d(i,j,l) = egcm(l,i,j)
+        enddo;        enddo;        enddo
+        call inc_subdd(subdd,k,sddarr3d)
       end select
       enddo
       enddo
@@ -1139,6 +1148,12 @@ C
       case ('gtempr')
         do j=j_0,j_1; do i=i_0,imaxj(j)
           sddarr2d(i,j) = atmsrf%gtempr(i,j)
+        enddo;        enddo
+        call inc_subdd(subdd,k,sddarr2d)
+C
+      case ('gtemp')
+        do j=j_0,j_1; do i=i_0,imaxj(j)
+          sddarr2d(i,j) = atmsrf%gtemp(i,j)
         enddo;        enddo
         call inc_subdd(subdd,k,sddarr2d)
 C
@@ -1413,6 +1428,7 @@ C**** For distributed implementation - ensure point is on local process.
      *      uflux1,vflux1,tflux1,qflux1
      &     ,nisurf,fland,flice,focean
      &     ,atmocn,atmice,atmgla,atmlnd,asflx4,atmsrf
+      USE itype_enum
 #ifdef TRACERS_ON
 #ifndef SKIP_TRACER_DIAGS
       USE TRDIAG_COM, only : taijn=>taijn_loc,
@@ -1501,19 +1517,19 @@ C****
 C**** ACCUMULATE DIAGNOSTICS FOR EACH SURFACE TIME STEP AND ITYPE AND REGION
 C****
             JR=JREG(I,J)
-            if(itype==1) then
+            if(itype==ITYPE_OCEAN) then
               if(focean(i,j)>0.) then
                 idtype = itocean
               else
                 idtype = itlake
               endif
-            elseif(itype==2) then
+            elseif(itype==ITYPE_OCEANICE) then
               if(focean(i,j)>0.) then
                 idtype = itoice
               else
                 idtype = itlkice
               endif
-            elseif(itype==3) then
+            elseif(itype==ITYPE_LAND) then
               idtype = itlandi
             else
               idtype = itearth
@@ -1687,6 +1703,7 @@ c     &        (i,j,1,jls_isrc(2,n),asflx4(1)%trevapor(n,i,j)*focean(i,j))
       USE FLUXES, only :
      &      focean
      &     ,atmocn,atmice,atmgla,atmlnd,asflx4,atmsrf
+      USE itype_enum
 #ifdef TRACERS_ON
 #ifndef SKIP_TRACER_DIAGS
       USE TRDIAG_COM, only : taijn=>taijn_loc, tij_evap
@@ -1726,19 +1743,19 @@ C****
 C**** ACCUMULATE DIAGNOSTICS FOR EACH SURFACE TIME STEP AND ITYPE AND REGION
 C****
           JR=JREG(I,J)
-          if(itype==1) then
+          if(itype==ITYPE_OCEAN) then
             if(focean(i,j)>0.) then
               idtype = itocean
             else
               idtype = itlake
             endif
-          elseif(itype==2) then
+          elseif(itype==ITYPE_OCEANICE) then
             if(focean(i,j)>0.) then
               idtype = itoice
             else
               idtype = itlkice
             endif
-          elseif(itype==3) then
+          elseif(itype==ITYPE_LAND) then
             idtype = itlandi
           else
             idtype = itearth
@@ -2430,7 +2447,7 @@ C****
      .             + pbl_args%alpha_gas(ngx) * focean(i,j) ! mol,CO2/m3/uatm
      .             * (1.d0 - RSI) ! only over open water
                 endif
-                if(NS==NIsurf .and. itype==1) then
+                if(NS==NIsurf .and. itype==ITYPE_OCEAN) then
                   AIJ(i,j,ij_gasx(ngx)) = AIJ(i,j,ij_gasx(ngx)) 
      .                + TRGASEX(ngx,I,J) * focean(i,j)
      .                * SECONDS_PER_YEAR    ! mol,CO2/m2/yr
@@ -2508,6 +2525,13 @@ c
      &  lname = 'theta tendency from surface fluxes and turbulence',
      &  units = 'K/day',
      &  scale = 1000.**kapa/dtsrc*SECONDS_PER_DAY
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'egcm',
+     &  lname = 'atmospheric turbulent kinetic energy',
+     &  units = 'm2/s2',
+     &  scale = 1.d0
      &     )
 c
       return

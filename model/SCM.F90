@@ -40,7 +40,7 @@
     real*8, dimension(:), allocatable :: value
   end type SCMin_tScalar
   type(SCMin_tScalar) SCMin_tLHF,SCMin_tSHF
-  type(SCMin_tScalar) SCMin_tTskin,SCMin_tPs
+  type(SCMin_tScalar) SCMin_tTskin,SCMin_tQskin,SCMin_tPs
   type(SCMin_tScalar) SCMin_tUstar
 
 !@type SCMreadXscalar structured type for reading SCM input scalars
@@ -152,7 +152,6 @@
     endif
   enddo 
 
-
   ! initialize surface from run deck if requested
   write(6,*) ' ... SCM initializing surface state ...'
   if( SCMopt%sfc > 0 )then
@@ -169,11 +168,10 @@
     FEARTH0(1,1) = FEARTH(1,1)
   endif
   if( SCMopt%Tskin )then
-    atmlnd%GTEMP(1,1) = SCMin%Tskin - TF
-    atmocn%GTEMP(1,1) = SCMin%Tskin - TF
-    atmocn%GTEMP2(1,1) = SCMin%Tskin - TF
-    atmlnd%GTEMPR(1,1) = SCMin%Tskin
+    atmocn%GTEMP(1,1)  = SCMin%Tskin - TF
     atmocn%GTEMPR(1,1) = SCMin%Tskin
+    atmlnd%GTEMP(1,1)  = SCMin%Tskin - TF
+    atmlnd%GTEMPR(1,1) = SCMin%Tskin
   endif
   if( SCMopt%alb ) KEEPAL = 1 ! use surface albedo in run deck
 
@@ -213,6 +211,13 @@
   ! specified skin temperature (K)
   if( SCMopt%Tskin )then
     call read_SCM_scalar('SCM_TSKIN','Tskin',SCMin_tTskin)
+  endif
+
+  ! specified skin water vapor mixing ratio (kg/kg),
+  ! currently overwriting values of ocean surface skin
+  ! in order to represent dry idealized boundary layers
+  if( SCMopt%Qskin )then
+    call read_SCM_scalar('SCM_QSKIN','Qskin',SCMin_tQskin)
   endif
 
   ! specified surface friction velocity (m/s)
@@ -1001,7 +1006,8 @@
   use SCM_mod
   use resolution, only : LM
   use atm_com, only : P,PMID,PEDN,PK,T,PDSIG
-  use constant, only : KAPA,GRAV,RGAS
+  use fluxes, only : atmocn,atmlnd
+  use constant, only : TF,KAPA,GRAV,RGAS
   use filemanager, only : file_exists
   implicit none
   integer L
@@ -1022,8 +1028,17 @@
     SCMin%shf = SCMin_tSHF%value(nstepSCM)
   endif
 
-  ! specified skin temperature
-  if( SCMopt%Tskin ) SCMin%Tskin = SCMin_tTskin%value(nstepSCM)
+  ! specified skin temperature (K)
+  if( SCMopt%Tskin )then
+    SCMin%Tskin = SCMin_tTskin%value(nstepSCM)
+    atmocn%GTEMP(1,1)  = SCMin%Tskin - TF
+    atmocn%GTEMPR(1,1) = SCMin%Tskin
+    atmlnd%GTEMP(1,1)  = SCMin%Tskin - TF
+    atmlnd%GTEMPR(1,1) = SCMin%Tskin
+  endif
+
+  ! specified skin water vapor mixing ratio (kg/kg)
+  if( SCMopt%Qskin ) SCMin%Qskin = SCMin_tQskin%value(nstepSCM)
 
   if( SCMopt%ustar .and. file_exists('SCM_USTAR') ) &
     SCMin%ustar = SCMin_tUstar%value(nstepSCM)
@@ -1114,6 +1129,6 @@
   print*,'Error reading file: ',file_name
   print*,'Error string: ',file_string
   print*,'Error code: ', nf_strerror(errcode)
-  call stop_model('netcdf stop here',255)
+  call stop_model('SCM handle_err: netcdf stop here',255)
 
   end subroutine handle_err

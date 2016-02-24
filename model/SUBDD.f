@@ -1946,6 +1946,12 @@ c
 c
       arr(next()) = info_type_(
      &  sname = 'gtempr',
+     &  lname = 'SKIN RADIATIVE TEMPERATURE',
+     &  units = 'K'
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'gtemp',
      &  lname = 'SKIN TEMPERATURE',
      &  units = 'K'
      &     )

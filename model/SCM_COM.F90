@@ -23,7 +23,7 @@
 
 !@type SCMoptions type for SCM setup options
   type SCMoptions
-    logical :: sflx,Tskin,Ps,z0m,ustar,alb
+    logical :: sflx,Tskin,Qskin,Ps,z0m,ustar,alb
     logical :: wind,geo,temp,theta,wvmr,rh
     logical :: ozone,omega,w,VadvHwind
     logical :: ls_v,ls_h,ls_h_UV,Qrad
@@ -35,7 +35,8 @@
   end type SCMoptions
   type(SCMoptions) SCMopt
 !@var SCMopt%sflx = T:use prescribed sensible and latent heat fluxes
-!@var SCMopt%Tskin = T:use prescribed skin T for radiation
+!@var SCMopt%Tskin = T:use prescribed skin T for radiation and/or ocean sensible heat flux
+!@var SCMopt%Qskin = T:use prescribed skin Q (requires ocean surface setting)
 !@var SCMopt%Ps = T:use prescribed surface pressure
 !@var SCMopt%wind = T:specify winds
 !@var SCMopt%geo = T:use geostrophic winds for Coriolis forcing
@@ -74,7 +75,7 @@
     real*8 SadvV(LM),QadvV(LM),TadvH(LM),QadvH(LM)
     real*8 UadvH(LM),VadvH(LM)
     real*8 Qrad(LM),Fnudge(LM)
-    real*8 time,lhf,shf,Tskin,Ps,z0m,ustar,alb
+    real*8 time,lhf,shf,Qskin,Tskin,Ps,z0m,ustar,alb
     real*8 BeersLaw_f0,BeersLaw_f1,BeersLaw_kappa
   end type SCMinputs
   type(SCMinputs) SCMin
@@ -98,6 +99,7 @@
 !@var SCMin%time SCM input time (d)
 !@var SCMin%lhf SCM input surface turbulent latent heat flux (W/m2)
 !@var SCMin%shf SCM input surface turbulent sensible heat flux (W/m2)
+!@var SCMin%Qskin SCM input surface skin water vapor mixing ratio (kg/kg)
 !@var SCMin%Tskin SCM input surface skin temperature (K)
 !@var SCMin%Ps SCM input surface pressure (mb)
 !@var SCMin%z0m SCM input surface roughness height (m)
@@ -137,6 +139,7 @@
     call stop_model('alloc_SCM_COM: either T or theta required',255)
 
   SCMopt%Tskin = file_exists('SCM_TSKIN')
+  SCMopt%Qskin = file_exists('SCM_QSKIN')
   SCMopt%ustar = file_exists('SCM_USTAR')
   SCMopt%sflx = file_exists('SCM_SFLUX')
   SCMopt%wind = file_exists('SCM_WIND')
@@ -227,9 +230,20 @@
       call stop_model('alloc_SCM_COM: redundant ustar values',255)
   endif
 
-  ! if not ocean surface, must specify surface heat fluxes
-  if( SCMopt%sfc.ne.2 .and. .not.SCMopt%sflx ) &
-    call stop_model('alloc_SCM_COM: surface requires specified fluxes',255)
+  ! land surface currently requires specified heat fluxes, and ocean
+  ! setting must be used for setting skin water vapor mixing ratio
+  if( SCMopt%sfc.eq.1 )then
+    if( .not.SCMopt%sflx ) &
+      call stop_model('alloc_SCM_COM: land surface fluxes required',255)
+    if( SCMopt%Qskin ) &
+      call stop_model('alloc_SCM_COM: setting Qskin requires ocean setting',255)
+  endif
+
+  ! ocean surface requires specified heat fluxes or skin temperature
+  if( SCMopt%sfc.eq.2 )then
+    if( .not.SCMopt%sflx .and. .not.SCMopt%Tskin ) &
+      call stop_model('alloc_SCM_COM: ocean surface fluxes required',255)
+  endif
 
   ! optional vertical forcing of horizontal winds
   SCMopt%VadvHwind = is_set_param('SCM_VadvHwind')
