@@ -2654,7 +2654,7 @@ C
         endif
 
 #ifdef TRACERS_SPECIAL_Shindell
-        if ((mon_tracers(k)<=ntm_chem_beg).and.
+        if ((mon_tracers(k)>=ntm_chem_beg).and.
      &      (mon_tracers(k)<=ntm_chem_end)) then
           trans_emis_overr_yr=ABS(o3_yr)
           if(trans_emis_overr_yr > 0)then

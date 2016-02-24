@@ -701,8 +701,6 @@ contains
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_codirect = n
-      if (ntm_chem_beg==0) ntm_chem_beg = n
-      ntm_chem_end = n
       call set_ntm_power(n, -8)
       call set_tr_mm(n, 28.01d0)
       call set_trdecay(n,  2.31482d-7) ! 1/(50 days)
@@ -713,8 +711,6 @@ contains
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_stratOx = n
-      if (ntm_chem_beg==0) ntm_chem_beg = n
-      ntm_chem_end = n
       ! assumes initial Ox conditions read in for Ox tracer
       call set_ntm_power(n, -8)
       call set_tr_mm(n, 48.d0)
@@ -728,8 +724,6 @@ contains
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_GLT = n
-      if (ntm_chem_beg==0) ntm_chem_beg = n
-      ntm_chem_end = n
       call set_ntm_power(n, -11)
       call set_tr_mm(n, mair)
     end subroutine GLT_setSpec
