@@ -20,7 +20,7 @@ C
      &     ,ijlt_OxpRO2
      &     ,jls_ClOcon,jls_H2Ocon,jls_H2Ochem
       use OldTracer_mod, only: vol2mass, mass2vol
-      USE TRACER_COM, only  : ntm_chem_beg, ntm_chem_end, ntm_chem,
+      USE TRACER_COM, only  : ntm_chem_beg, ntm_chem_end,
      &  n_CH4,n_CH3OOH,n_Paraffin,n_PAN,n_Isoprene,n_stratOx,
      &  n_Terpenes,n_AlkylNit,n_Alkenes,n_N2O5,n_NOx,n_HO2NO2,
      &  n_isopp1g,n_isopp1a,n_isopp2g,n_isopp2a,n_apinp1g,
@@ -130,7 +130,6 @@ C**** Local parameters and variables and arguments:
      & dxbym2v,changeX,vClONO2,vBrONO2,conc2mass,rNO3prod,rNO2prod,
      & rNOprod,changeAldehyde,rxnN2,rxnN3,rxnN4,NprodOx,NlossNOx,byta,
      & diffCH3O2,tempAcet,prodCH3O2,dQMsum
-      integer :: idx
 
       call getDomainBounds(grid, J_STRT    =J_0,  J_STOP    =J_1)
       
@@ -661,7 +660,7 @@ C             REACTION RATES, CHEMICAL CHANGES
 c (chem1prn: argument before multip is index = number of call):
       
       if(prnrts .and. J==jprn .and. I==iprn)then
-        do igas=1,ntm_chem
+        do igas=ntm_chem_beg,ntm_chem_end
           total=0.d0
           write(out_line,108)' Species: ',ay(igas)
           call write_parallel(trim(out_line),crit=jay)
@@ -944,21 +943,20 @@ c Loops to calculate tracer changes:
 
       rMAbyM(1:maxL)=MA(1:maxL,I,J)/y(nM,1:maxL)
 
-      do igas=1,ntm_chem ! TRACER LOOP -----------------
-       idx = igas+ntm_chem_beg-1
-       dxbym2v=axyp(I,J)*vol2mass(idx)
+      do igas=ntm_chem_beg,ntm_chem_end ! TRACER LOOP -----------------
+       dxbym2v=axyp(I,J)*vol2mass(igas)
        do L=1,maxL
          conc2mass=rMAbyM(L)*dxbym2v
          c2ml(l) = conc2mass
-         changeL(L,idx)=
+         changeL(L,igas)=
      &   (dest(igas,L)+prod(igas,L))*conc2mass
 #ifdef ACCMIP_LIKE_DIAGS
-         if(idx == n_CO)then
+         if(igas == n_CO)then
            TAIJLS(I,J,L,ijlt_COp)=TAIJLS(I,J,L,ijlt_COp)+prod(igas,L)
      *          *cpd
            TAIJLS(I,J,L,ijlt_COd)=TAIJLS(I,J,L,ijlt_COd)+dest(igas,L)
      *          *cpd
-         else if(idx == n_Ox)then
+         else if(igas == n_Ox)then
 #ifdef SHINDELL_STRAT_EXTRA
            if(trm(i,j,L,n_Ox)==0.)call stop_model('zero ozone',255)
            changeL(L,n_stratOx)=dest(igas,L)*conc2mass*
@@ -972,7 +970,7 @@ c Loops to calculate tracer changes:
      *          *cpd
            TAIJLS(I,J,L,ijlt_Oxd)=TAIJLS(I,J,L,ijlt_Oxd)+dest(igas,L)
      *          *cpd
-         else if(idx==n_CH4)then
+         else if(igas==n_CH4)then
            ! destruction only
            TAIJLS(I,J,L,ijlt_CH4d)=
      &          TAIJLS(I,J,L,ijlt_CH4d)+dest(igas,L)*cpd
@@ -981,44 +979,44 @@ c Loops to calculate tracer changes:
          
 c Set N2O5 to equilibrium when necessary (near ground,
 c N2O5 is thermally unstable, has a very short lifetime):
-         if(idx==n_N2O5.and.(-dest(igas,L) >= y(nn_N2O5,L)*0.75d0
+         if(igas==n_N2O5.and.(-dest(igas,L) >= y(nn_N2O5,L)*0.75d0
      &    .or. chemrate(iN2O5form,L) > y(nn_NOx,L)))then
            rnewval=(rr(iN2O5form,L)*y(nNO3,L)*y(nNO2,L))/
      &     (rr(iN2O5decomp,L)*y(nM,L)+ss(7,L,I,J)+1.d-12)
            if(rnewval < 1.d0)rnewval=1.d0
-           changeL(L,idx)=(rnewval-y(nn_N2O5,L))
-           if(changeL(L,idx) > 0.33d0*y(nNO2,L))changeL(L,idx)=
+           changeL(L,igas)=(rnewval-y(nn_N2O5,L))
+           if(changeL(L,igas) > 0.33d0*y(nNO2,L))changeL(L,igas)=
      &     0.33d0*y(nNO2,L)
-           changeL(L,idx)=changeL(L,idx)*conc2mass
+           changeL(L,igas)=changeL(L,igas)*conc2mass
          end if
 
 c Conserve NOx with respect to N2O5:
-         if(idx == n_NOx.and.(-dest(nn_N2O5,L) >= y(nn_N2O5,L)
+         if(igas == n_NOx.and.(-dest(nn_N2O5,L) >= y(nn_N2O5,L)
      &   .or. chemrate(iN2O5form,L) > y(nn_NOx,L)))then
            rnewval=(rr(iN2O5form,L)*y(nNO3,L)*y(nNO2,L))/
      &     (rr(iN2O5decomp,L)*y(nM,L)+ss(7,L,I,J)+1.d-12)
            if(rnewval < 1.d0)rnewval=1.d0
            changeX=(rnewval-y(nn_N2O5,L))
            if(changeX > 0.33d0*y(nNO2,L))changeX=0.33d0*y(nNO2,L)
-           changeL(L,idx)=
-     &     changeL(L,idx)-changeX*conc2mass
+           changeL(L,igas)=
+     &     changeL(L,igas)-changeX*conc2mass
          end if
 
 c Set HO2NO2 to equil when necessary:
-         if(idx == n_HO2NO2.and.(-dest(igas,L) >= y(nn_HO2NO2,L)
+         if(igas == n_HO2NO2.and.(-dest(igas,L) >= y(nn_HO2NO2,L)
      &   .or. chemrate(iHO2NO2form,L) > y(nn_NOx,L)))then
            rnewval=(rr(iHO2NO2form,L)*y(nHO2,L)*y(nNO2,L))/
      &     (rr(iHO2NO2_OH,L)*y(nOH,L)+rr(iHO2NO2decomp,L)*y(nM,L)
      &     +ss(10,L,I,J)+ss(11,L,I,J)+1.d-12)
            if(rnewval < 1.d0)rnewval=1.d0
-           changeL(L,idx)=(rnewval-y(nn_HO2NO2,L))
-           if(changeL(L,idx) > 0.33d0*y(nNO2,L))changeL(L,idx)=
+           changeL(L,igas)=(rnewval-y(nn_HO2NO2,L))
+           if(changeL(L,igas) > 0.33d0*y(nNO2,L))changeL(L,igas)=
      &     0.33d0*y(nNO2,L)
-           changeL(L,idx)=changeL(L,idx)*conc2mass
+           changeL(L,igas)=changeL(L,igas)*conc2mass
          end if
 
 c Conserve NOx with respect to HO2NO2:
-         if(idx == n_NOx.and.(-dest(nn_HO2NO2,L) >= y(nn_HO2NO2,L)
+         if(igas == n_NOx.and.(-dest(nn_HO2NO2,L) >= y(nn_HO2NO2,L)
      &   .or. chemrate(iHO2NO2form,L) > y(nn_NOx,L)))then
            rnewval=(rr(iHO2NO2form,L)*y(nHO2,L)*y(nNO2,L))/
      &     (rr(iHO2NO2_OH,L)*y(nOH,L)+rr(iHO2NO2decomp,L)*y(nM,L)
@@ -1026,32 +1024,32 @@ c Conserve NOx with respect to HO2NO2:
            if(rnewval < 1.d0)rnewval=1.d0
            changeX=(rnewval-y(nn_HO2NO2,L))
            if(changeX > 0.33d0*y(nNO2,L))changeX=0.33d0*y(nNO2,L)
-           changeL(L,idx)=changeL(L,idx)-
+           changeL(L,igas)=changeL(L,igas)-
      &     changeX*conc2mass
          end if
 
 c Set PAN to equilibrium when necessary (near ground,
 c PAN is thermally unstable, has a very short lifetime):
-         if(idx == n_PAN.and.(-dest(igas,L) >= y(nn_PAN,L).or.
+         if(igas == n_PAN.and.(-dest(igas,L) >= y(nn_PAN,L).or.
      &   chemrate(iPANform,L) > y(nn_NOx,L)))then
            rnewval=(rr(iPANform,L)*y(nC2O3,L)*y(nNO2,L))/
      &     (rr(iPANdecomp,L)*y(nM,L)+ss(15,L,I,J)+1.d-12)
            if(rnewval < 1.d0)rnewval=1.d0
-           changeL(L,idx)=(rnewval-y(nn_PAN,L))
-           if(changeL(L,idx) > 0.33d0*y(nNO2,L))changeL(L,idx)=
+           changeL(L,igas)=(rnewval-y(nn_PAN,L))
+           if(changeL(L,igas) > 0.33d0*y(nNO2,L))changeL(L,igas)=
      &     0.33d0*y(nNO2,L)
-           changeL(L,idx)=changeL(L,idx)*conc2mass
+           changeL(L,igas)=changeL(L,igas)*conc2mass
          endif
 
 c Conserve NOx with respect to PAN:
-         if(idx == n_NOx.and.(-dest(nn_PAN,L) >= y(nn_PAN,L).or.
+         if(igas == n_NOx.and.(-dest(nn_PAN,L) >= y(nn_PAN,L).or.
      &   chemrate(iPANform,L) > y(nn_NOx,L)))then
            rnewval=(rr(iPANform,L)*y(nC2O3,L)*y(nNO2,L))/
      &     (rr(iPANdecomp,L)*y(nM,L)+ss(15,L,I,J)+1.d-12)
            if(rnewval < 1.d0)rnewval=1.d0
            changeX=(rnewval-y(nn_PAN,L))
            if(changeX > 0.33d0*y(nNO2,L))changeX=0.33d0*y(nNO2,L)
-           changeL(L,idx)=changeL(L,idx)-changeX*conc2mass
+           changeL(L,igas)=changeL(L,igas)-changeX*conc2mass
          end if
 
 c Cacluate Cl2 amount to P/L:
@@ -1064,81 +1062,81 @@ c Cacluate Cl2 amount to P/L:
          yCl2(I,J,L)=y(nCl2,L)
 
 c Set HOBr to equilibrium when necessary:
-         if(idx == n_HOBr.and.(-dest(igas,L) >= y(nn_HOBr,L).or.
+         if(igas == n_HOBr.and.(-dest(igas,L) >= y(nn_HOBr,L).or.
      &     chemrate(73,L) > 0.5d0*y(nn_BrOx,L)))then
            rnewval=(rr(73,L)*y(nBrO,L)*y(nHO2,L))/
      &     (ss(24,L,i,j)+1.d-12)
            if(rnewval < 1.d0)rnewval=1.d0
-           changeL(L,idx)=(rnewval-y(nn_HOBr,L))
-           if(changeL(L,idx) > 0.5d0*y(nBrO,L))changeL(L,idx)=
+           changeL(L,igas)=(rnewval-y(nn_HOBr,L))
+           if(changeL(L,igas) > 0.5d0*y(nBrO,L))changeL(L,igas)=
      &     0.5d0*y(nBrO,L)
-           changeL(L,idx)=changeL(L,idx)*conc2mass
+           changeL(L,igas)=changeL(L,igas)*conc2mass
          end if
 
 c Conserve BrOx with respect to HOBr:
-         if(idx == n_BrOx.and.(-dest(nn_HOBr,L) >= y(nn_HOBr,L)
+         if(igas == n_BrOx.and.(-dest(nn_HOBr,L) >= y(nn_HOBr,L)
      &   .or. chemrate(73,L) > 0.5d0*y(nn_BrOx,L)))then
            rnewval=(rr(73,L)*y(nBrO,L)*y(nHO2,L))/
      &     (ss(24,L,i,j)+1.d-12)
            if(rnewval < 1.d0)rnewval=1.d0
            changeX=(rnewval-y(nn_HOBr,L))
            if(changeX > 0.5d0*y(nBrO,L))changeX=0.5d0*y(nBrO,L)
-           changeL(L,idx)=changeL(L,idx)-
+           changeL(L,igas)=changeL(L,igas)-
      &     changeX*conc2mass
          end if
 
 c Set BrONO2 to equilibrium when necessary:
-         if(idx == n_BrONO2.and.(-dest(igas,L) >= y(nn_BrONO2,L)
+         if(igas == n_BrONO2.and.(-dest(igas,L) >= y(nn_BrONO2,L)
      &   .or. chemrate(iBrOplusNO2,L) > 0.5d0*y(nn_BrOx,L)))then
            rnewval=(rr(iBrOplusNO2,L)*y(nBrO,L)*y(nNO2,L))/
      &     (ss(23,L,i,j)+1.d-12)
            if(rnewval < 1.d0)rnewval=1.d0
-           changeL(L,idx)=(rnewval-y(nn_BrONO2,L))
-           if(changeL(L,idx) > 0.5d0*y(nBrO,L))changeL(L,idx)=
+           changeL(L,igas)=(rnewval-y(nn_BrONO2,L))
+           if(changeL(L,igas) > 0.5d0*y(nBrO,L))changeL(L,igas)=
      &     0.5d0*y(nBrO,L)
-           changeL(L,idx)=changeL(L,idx)*conc2mass
+           changeL(L,igas)=changeL(L,igas)*conc2mass
          end if
 
 c Conserve BrOx with respect to BrONO2:
-         if(idx == n_BrOx.and.(-dest(nn_BrONO2,L) >= y(nn_BrONO2,L)
+         if(igas == n_BrOx.and.(-dest(nn_BrONO2,L) >= y(nn_BrONO2,L)
      &   .or. chemrate(iBrOplusNO2,L) > 0.5d0*y(nn_BrOx,L)))then
            rnewval=(rr(iBrOplusNO2,L)*y(nBrO,L)*y(nNO2,L))/
      &     (ss(23,L,i,j)+1.d-12)
            if(rnewval < 1.d0)rnewval=1.d0
            changeX=(rnewval-y(nn_BrONO2,L))
            if(changeX > 0.5d0*y(nBrO,L))changeX=0.5d0*y(nBrO,L)
-           changeL(L,idx)=changeL(L,idx)-changeX*
+           changeL(L,igas)=changeL(L,igas)-changeX*
      &     conc2mass
          end if
 
 c Conserve NOx with respect to BrONO2:
-         if(idx == n_NOx.and.(-dest(nn_BrONO2,L) >= y(nn_BrONO2,L)
+         if(igas == n_NOx.and.(-dest(nn_BrONO2,L) >= y(nn_BrONO2,L)
      &   .or. chemrate(iBrOplusNO2,L) > 0.5d0*y(nn_BrOx,L)))then
            rnewval=(rr(iBrOplusNO2,L)*y(nBrO,L)*y(nNO2,L))/
      &     (ss(23,L,i,j)+1.d-12)
            if(rnewval < 1.d0)rnewval=1.d0
            changeX=(rnewval-y(nn_BrONO2,L))
            if(changeX > 0.5d0*y(nBrO,L))changeX=0.5d0*y(nBrO,L)
-           changeL(L,idx)=changeL(L,idx)-changeX*
+           changeL(L,igas)=changeL(L,igas)-changeX*
      &     conc2mass
          end if
 
 c Set ClONO2 to equilibrium when necessary:
-         if(idx == n_ClONO2.and.(-dest(igas,L) >= y(nn_ClONO2,L)
+         if(igas == n_ClONO2.and.(-dest(igas,L) >= y(nn_ClONO2,L)
      &   .or. chemrate(iClOplusNO2,L) > 0.8d0*y(nn_ClOx,L)))then
            rnewval=(rr(iClOplusNO2,L)*y(nClO,L)*y(nNO2,L))/
      &     (ss(22,L,i,j)+rr(65,L)*y(nO,L)+1.d-12)
            if(rnewval < 1.d0)rnewval=1.d0
-           changeL(L,idx)=(rnewval-y(nn_ClONO2,L))
-           if(changeL(L,idx) > 0.3d0*y(nClO,L))changeL(L,idx)=
+           changeL(L,igas)=(rnewval-y(nn_ClONO2,L))
+           if(changeL(L,igas) > 0.3d0*y(nClO,L))changeL(L,igas)=
      &     0.3d0*y(nClO,L)
-           if(-changeL(L,idx) > 0.8d0*y(nn_ClONO2,L))
-     &     changeL(L,idx)=-0.8d0*y(nn_ClONO2,L)
-           changeL(L,idx)=changeL(L,idx)*conc2mass
+           if(-changeL(L,igas) > 0.8d0*y(nn_ClONO2,L))
+     &     changeL(L,igas)=-0.8d0*y(nn_ClONO2,L)
+           changeL(L,igas)=changeL(L,igas)*conc2mass
          end if
 
 c Conserve ClOx with respect to ClONO2:
-         if(idx == n_ClOx.and.(-dest(nn_ClONO2,L) >= y(nn_ClONO2,L)
+         if(igas == n_ClOx.and.(-dest(nn_ClONO2,L) >= y(nn_ClONO2,L)
      &   .or. chemrate(iClOplusNO2,L) > 0.8d0*y(nn_ClOx,L)))then
            rnewval=(rr(iClOplusNO2,L)*y(nClO,L)*y(nNO2,L))/
      &     (ss(22,L,i,j)+rr(65,L)*y(nO,L)+1.d-12)
@@ -1147,11 +1145,11 @@ c Conserve ClOx with respect to ClONO2:
            if(changeX > 0.3d0*y(nClO,L))changeX=0.3d0*y(nClO,L)
            if(-changeX > 0.8d0*y(nn_ClONO2,L))changeX=
      &     -0.8d0*y(nn_ClONO2,L)
-           changeL(L,idx)=changeL(L,idx)-changeX*conc2mass
+           changeL(L,igas)=changeL(L,igas)-changeX*conc2mass
          end if
 
 c Conserve NOx with respect to ClONO2:
-         if(idx == n_NOx.and.(-dest(nn_ClONO2,L) >= y(nn_ClONO2,L)
+         if(igas == n_NOx.and.(-dest(nn_ClONO2,L) >= y(nn_ClONO2,L)
      &   .or. chemrate(iClOplusNO2,L) > 0.8d0*y(nn_ClOx,L)))then
            rnewval=(rr(iClOplusNO2,L)*y(nClO,L)*y(nNO2,L))/
      &     (ss(22,L,i,j)+rr(65,L)*y(nO,L)+1.d-12)
@@ -1160,24 +1158,24 @@ c Conserve NOx with respect to ClONO2:
            if(changeX > 0.3d0*y(nClO,L))changeX=0.3d0*y(nClO,L)
            if(-changeX > 0.8d0*y(nn_ClONO2,L))changeX=
      &     -0.8d0*y(nn_ClONO2,L)
-           changeL(L,idx)=changeL(L,idx)-changeX*conc2mass
+           changeL(L,igas)=changeL(L,igas)-changeX*conc2mass
          end if
 
 c Set HOCl to equilibrium when necessary:
-         if(idx == n_HOCl.and.(-dest(igas,L) >= y(nn_HOCl,L).or.
+         if(igas == n_HOCl.and.(-dest(igas,L) >= y(nn_HOCl,L).or.
      &   chemrate(63,L) > y(nn_ClOx,L)))then
            rnewval=(rr(63,L)*y(nClO,L)*y(nHO2,L) + 
      &     rr(51,L)*y(nCl2,L)*y(nOH,L)) /
      &     (ss(21,L,i,j)+rr(55,L)*y(nO,L)+rr(51,L)*y(nCl2,L)+1.d-12)
            if(rnewval < 1.d0)rnewval=1.d0
-           changeL(L,idx)=(rnewval-y(nn_HOCl,L))
-           if(changeL(L,idx) > 0.3d0*y(nClO,L))changeL(L,idx)=
+           changeL(L,igas)=(rnewval-y(nn_HOCl,L))
+           if(changeL(L,igas) > 0.3d0*y(nClO,L))changeL(L,igas)=
      &     0.3d0*y(nClO,L)
-           changeL(L,idx)=changeL(L,idx)*conc2mass
+           changeL(L,igas)=changeL(L,igas)*conc2mass
          end if
 
 c Conserve ClOx with respect to HOCl:
-         if(idx == n_ClOx.and.(-dest(nn_HOCl,L) >= y(nn_HOCl,L)
+         if(igas == n_ClOx.and.(-dest(nn_HOCl,L) >= y(nn_HOCl,L)
      &   .or. chemrate(63,L) > y(nn_ClOx,L)))then
            rnewval=(rr(63,L)*y(nClO,L)*y(nHO2,L) + 
      &     rr(51,L)*y(nCl2,L)*y(nOH,L)) /
@@ -1185,18 +1183,18 @@ c Conserve ClOx with respect to HOCl:
            if(rnewval < 1.d0)rnewval=1.d0
            changeX=(rnewval-y(nn_HOCl,L))
            if(changeX > 0.3d0*y(nClO,L))changeX=0.3d0*y(nClO,L)
-           changeL(L,idx)=changeL(L,idx)-changeX*conc2mass
+           changeL(L,igas)=changeL(L,igas)-changeX*conc2mass
 
          end if
 
        end do ! L
 
-       if(idx == n_CO)then
+       if(igas == n_CO)then
          call inc_tajls_column(i,j,1,maxL,maxL,jls_COp,
      &        prod(igas,1:maxL)*c2ml(1:maxL))
          call inc_tajls_column(i,j,1,maxL,maxL,jls_COd,
      &        dest(igas,1:maxL)*c2ml(1:maxL))
-       else if(idx == n_Ox)then
+       else if(igas == n_Ox)then
          call inc_tajls_column(i,j,1,maxL,maxL,jls_Oxp ,
      &        prod(igas,1:maxL)*c2ml(1:maxL))
          call inc_tajls_column(i,j,1,maxT,maxT,jls_OxpT,
@@ -1482,9 +1480,8 @@ c     In the stratosphere, calculate ozone change due to rxn with atomic H:
 
 c Print chemical changes in a particular grid box if desired:
       if(prnchg .and. J==jprn .and. I==iprn)then
-       do igas=1,ntm_chem
-         idx=igas+ntm_chem_beg-1
-         changeA=changeL(Lprn,idx)*y(nM,lprn)*mass2vol(idx)*
+       do igas=ntm_chem_beg,ntm_chem_end
+         changeA=changeL(Lprn,igas)*y(nM,lprn)*mass2vol(igas)*
      &   byaxyp(I,J)*byMA(lprn,I,J)
          if(y(igas,lprn) == 0.d0)then
            write(out_line,156) ay(igas),': ',changeA,' molecules;  y=0'
@@ -1497,7 +1494,7 @@ c Print chemical changes in a particular grid box if desired:
            call write_parallel(trim(out_line),crit=jay)
          end if
 
-         if(igas == ntm_chem)then
+         if(igas == ntm_chem_end)then
           if(LPRN > maxT)then
             write(out_line,155) ay(nH2O),': ',
      &      changeH2O(lprn),' molecules produced; ',
@@ -1545,25 +1542,24 @@ c Print chemical changes in a particular grid box if desired:
 
 C Tracer masses & slopes are updated in apply_tracer_3Dsource,
 C so here, just saved in changeL:
-      do igas=1,ntm_chem
-       idx=igas+ntm_chem_beg-1
+      do igas=ntm_chem_beg,ntm_chem_end
        do L=1,maxL
 c Limit the change due to chemistry:
-        if(changeL(L,idx) > 1.d20) then
+        if(changeL(L,igas) > 1.d20) then
           WRITE(out_line,*)
      &    'change set to 0 in chemstep: I,J,L,igas,change'
-     &    ,I,J,L,igas,changeL(L,idx)
+     &    ,I,J,L,igas,changeL(L,igas)
           call write_parallel(trim(out_line),unit=99,crit=.true.)
-          changeL(L,idx) = 0.d0
+          changeL(L,igas) = 0.d0
         end if
-        if(-changeL(L,idx) > trm(I,J,L,idx)) THEN
+        if(-changeL(L,igas) > trm(I,J,L,igas)) THEN
           if(prnchg)then
             WRITE(out_line,*)
      &      'change > mass, so use 95%: I,J,L,igas,change'
-     &      ,I,J,L,igas,changeL(L,idx)
+     &      ,I,J,L,igas,changeL(L,igas)
             call write_parallel(trim(out_line),unit=99,crit=.true.)
           end if
-          changeL(L,idx) = -0.95d0*trm(I,J,L,idx)
+          changeL(L,igas) = -0.95d0*trm(I,J,L,igas)
         end if
        end do    ! L
       end do     ! igas

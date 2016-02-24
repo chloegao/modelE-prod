@@ -8138,7 +8138,7 @@ C**** Note this routine must always exist (but can be a dummy routine)
      & n_CH4,n_Isoprene,n_codirect,sfc_src,ntsurfsrc,
      & trans_emis_overr_yr,trans_emis_overr_day
 #ifdef TRACERS_SPECIAL_Shindell
-      use TRACER_COM, only: ntm_chem
+      use TRACER_COM, only: ntm_chem_beg,ntm_chem_end
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
@@ -8358,7 +8358,7 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
 ! didn't want a new parameter, also not allowing
 ! day overriding yet, because of that.
 #ifdef TRACERS_SPECIAL_Shindell
-        if (n<=ntm_chem) then
+        if ((n>=ntm_chem_beg).and.(n<=ntm_chem_end)) then
           trans_emis_overr_yr=ABS(o3_yr)
           if(trans_emis_overr_yr > 0)then
             xyear=trans_emis_overr_yr
@@ -9527,7 +9527,7 @@ c$$$      use OldTracer_mod, only: tr_mm, nBBsources, mass2vol
       use TRACER_COM, only: n_NOx, n_NO3p, n_OCIA, n_OCII
       use TRACER_COM, only: n_SO4, n_SO4_d1, n_SO4_d2, n_SO4_d3
       use TRACER_COM, only: n_SO2
-      use TRACER_COM, only: ntm_chem, ntsurfsrc
+      use TRACER_COM, only: ntsurfsrc
       use TRACER_COM, only: ntm_chem_beg, ntm_chem_end
       use TRACER_COM, only: n_NOx, naircraft, nBiomass, nChemistry
       use TRACER_COM, only: nVolcanic, nOverwrite, nChemloss, nOther

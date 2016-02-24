@@ -297,16 +297,9 @@ C**** Each tracer has a variable name and a unique index
       integer, parameter :: ntm_amp=0
 #endif  /* TRACERS_AMP */
 
-!@param ntm_chem number of drew-only tracers
-      integer, parameter :: ntm_chem=ntm_shindell_trop+
-     *                               ntm_terp+
-     *                               ntm_shindell_strat+
-     *                               ntm_soa
-      ! Set by Shindell
-      integer :: NTM_chem_beg
-      integer :: NTM_chem_end
-#ifdef TRACERS_AMP
-#else
+!@var ntm_chem_beg,ntm_chem_end Indices of first and last chemistry tracers
+      integer :: ntm_chem_beg=0,ntm_chem_end=0
+
 #ifdef TRACERS_TOMAS
        !constants that have to do with the number of tracers
 !@param NBS is the number of bulk species (gases and aerosols that don't
@@ -350,11 +343,7 @@ C**** Each tracer has a variable name and a unique index
 
       real*8, dimension(nbins+1) :: xk
 
-#endif  /* TRACERS_TOMAS */
-#endif
-
 !@var N_XXX: variable names of indices for tracers (init = 0)
-#ifdef TRACERS_TOMAS
       integer, dimension(nbins) :: n_ANUM =0
       integer, dimension(nbins) :: n_ASO4 =0
       integer, dimension(nbins) :: n_ANACL=0
@@ -365,7 +354,7 @@ C**** Each tracer has a variable name and a unique index
       integer, dimension(nbins) :: n_AH2O=0
       integer, dimension(nbins) :: n_ADUST=0  
       integer :: n_SOAgas=0
-#endif
+#endif  /* TRACERS_TOMAS */
       integer ::
      *                 n_SF6_c=0,                                        
      *     n_Air=0,    n_SF6=0,   n_Rn222=0, n_CO2=0,      n_N2O=0,
