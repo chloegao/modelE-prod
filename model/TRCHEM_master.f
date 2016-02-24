@@ -41,7 +41,7 @@ c
      &                      n_HCHO,n_HO2NO2,n_CO,n_CH4,n_PAN,
      &                      n_Isoprene,n_AlkylNit,n_Alkenes,n_stratOx,
      &                      n_Terpenes,n_SO4,n_H2O2_s,oh_live,no3_live,
-     &                      n_Paraffin,n_DMS,n_MSA,n_SO2,
+     &                      n_Paraffin,ntm_chem,n_DMS,n_MSA,n_SO2,
      &                      trm,trmom,nChemistry,nOverwrite,
      &                      n_isopp1g,n_isopp1a,n_isopp2g,n_isopp2a,
      &                      n_apinp1g,n_apinp1a,n_apinp2g,n_apinp2a,
@@ -205,7 +205,7 @@ C**** Local parameters and variables and arguments:
 #ifdef TRACERS_TOMAS
       integer :: k
 #endif
-      integer :: hour
+      integer :: hour, idx
 
       call modelEclock%get(hour=hour)
 
@@ -464,8 +464,9 @@ c Calculate M and set fixed ratios for O2 & H2:
 
       ! check trm 1 vs 2
 c Tracers (converted from mass to number density):
-       do igas=ntm_chem_beg,ntm_chem_end
-         y(igas,L)=trm(I,J,L,igas)*y(nM,L)*mass2vol(igas)*
+       do igas=1,ntm_chem
+         idx=igas+ntm_chem_beg-1
+         y(igas,L)=trm(I,J,L,idx)*y(nM,L)*mass2vol(idx)*
      &   BYAXYP(I,J)*byMA(L,I,J)
        enddo
 

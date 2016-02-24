@@ -307,7 +307,7 @@ c -----------------------------------------------------------------
       USE AERO_CONFIG, ONLY: NMODES
 
       IMPLICIT NONE
-      Integer :: i,j,l,n,x,nAMP,offset
+      Integer :: i,j,l,n,x,nAMP
       real*8, dimension(:), allocatable :: trpdens_local
 
       allocate(trpdens_local(NTM))
@@ -315,13 +315,12 @@ c -----------------------------------------------------------------
         trpdens_local(x)=trpdens(x)
       enddo
  
-      offset=ntmAMPi-1
       nAMP=n-ntmAMPi+1
       if(AMP_MODES_MAP(nAMP).gt.0)
      &  AMP_dens(i,j,l,AMP_MODES_MAP(nAMP)) = 
-     &  sum(trpdens_local(offset+AMP_trm_nm1(nAMP):offset+AMP_trm_nm2(nAMP)) * 
-     &  trm(i,j,l,offset+AMP_trm_nm1(nAMP):offset+AMP_trm_nm2(nAMP))) 
-     & / (sum(trm(i,j,l,offset+AMP_trm_nm1(nAMP):offset+AMP_trm_nm2(nAMP))) + 1.0D-30)
+     &  sum(trpdens_local(AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP)) * 
+     &  trm(i,j,l,AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP))) 
+     & / (sum(trm(i,j,l,AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP))) + 1.0D-30)
       if (AMP_dens(i,j,l,AMP_MODES_MAP(nAMP)).le.0) 
      &  AMP_dens(i,j,l,AMP_MODES_MAP(nAMP)) = 
      &  trpdens_local(AMP_MODES_MAP(nAMP))
@@ -344,7 +343,7 @@ c -----------------------------------------------------------------
       USE AMP_AEROSOL, only : AMP_TR_MM
 
       IMPLICIT NONE
-      Integer :: i,j,l,n,x,nAMP,offset
+      Integer :: i,j,l,n,x,nAMP
       real*8, dimension(:), allocatable :: tr_mm_local
 
       allocate(tr_mm_local(NTM))
@@ -352,14 +351,13 @@ c -----------------------------------------------------------------
         tr_mm_local(x)=tr_mm(x)
       enddo
 
-      offset=ntmAMPi-1
       nAMP=n-ntmAMPi+1
       if(AMP_MODES_MAP(nAMP) > 0 .and.
-     &  sum(trm(i,j,l,offset+AMP_trm_nm1(nAMP):offset+AMP_trm_nm2(nAMP))) > 0. )
+     &  sum(trm(i,j,l,AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP))) > 0. )
      &  AMP_TR_MM(i,j,l,AMP_MODES_MAP(nAMP)) = 
-     &  sum(tr_mm_local(offset+AMP_trm_nm1(nAMP):offset+AMP_trm_nm2(nAMP)) * 
-     &  trm(i,j,l,offset+AMP_trm_nm1(nAMP):offset+AMP_trm_nm2(nAMP))) 
-     & / sum(trm(i,j,l,offset+AMP_trm_nm1(nAMP):offset+AMP_trm_nm2(nAMP)))
+     &  sum(tr_mm_local(AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP)) * 
+     &  trm(i,j,l,AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP))) 
+     & / sum(trm(i,j,l,AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP)))
       if (AMP_TR_MM(i,j,l,AMP_MODES_MAP(nAMP)).le.0) 
      &  AMP_TR_MM(i,j,l,AMP_MODES_MAP(nAMP)) = 
      &  tr_mm_local(AMP_MODES_MAP(nAMP))

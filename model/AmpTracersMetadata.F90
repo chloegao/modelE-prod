@@ -44,7 +44,7 @@ module AmpTracersMetadata_mod
     tracers_amp_m5, tracers_amp_m6,         &
     tracers_amp_m7, tracers_amp_m8,         &
     tracers_special_shindell
-  use Tracer_com, only: ntmAMPi, ntmAMPe, ntmAMP
+  use Tracer_com, only: ntmAMPi, ntmAMPe, ntmAMP, ntm_chem
   use Tracer_com, only: set_ntsurfsrc
   use OldTracer_mod, only: set_ntisurfsrc
   use OldTracer_mod, only: set_needtrs
@@ -100,29 +100,29 @@ module AmpTracersMetadata_mod
     41,42,43,44,45,46,47,48,49,50, &
     51,52,53,54   /)
   integer, parameter :: AMP_trm_nm1(ntmAMP)=(/ &
-    0 ,0 ,0 ,4 ,4,  & !AKK
-    6 ,6 ,8 ,8 ,8,  & !ACC,DD1
-    11,11,11,14,14, & !DS1,DD2
-    14,17,17,17,20, & !DD2,DS2,SSA
-    20,20,23,23,             & !SSA,SSC
-    25,25,25,28,28, & !OCC,BC1
-    28,31,31,31,35, & !BC1,BC2,BC3
-    35,35,37,37,37, & !BC3,DBC
-    37,41,41,41,41, & !DBC,BOC
-    45,45,45,48,48, & !BCS,MXX
-    48,48,48,48/)
+    0 ,         0 ,         0 ,ntm_chem+4 ,ntm_chem+4,  & !AKK
+    ntm_chem+6 ,ntm_chem+6 ,ntm_chem+8 ,ntm_chem+8 ,ntm_chem+8,  & !ACC,DD1
+    ntm_chem+11,ntm_chem+11,ntm_chem+11,ntm_chem+14,ntm_chem+14, & !DS1,DD2
+    ntm_chem+14,ntm_chem+17,ntm_chem+17,ntm_chem+17,ntm_chem+20, & !DD2,DS2,SSA
+    ntm_chem+20,ntm_chem+20,ntm_chem+23,ntm_chem+23,             & !SSA,SSC
+    ntm_chem+25,ntm_chem+25,ntm_chem+25,ntm_chem+28,ntm_chem+28, & !OCC,BC1
+    ntm_chem+28,ntm_chem+31,ntm_chem+31,ntm_chem+31,ntm_chem+35, & !BC1,BC2,BC3
+    ntm_chem+35,ntm_chem+35,ntm_chem+37,ntm_chem+37,ntm_chem+37, & !BC3,DBC
+    ntm_chem+37,ntm_chem+41,ntm_chem+41,ntm_chem+41,ntm_chem+41, & !DBC,BOC
+    ntm_chem+45,ntm_chem+45,ntm_chem+45,ntm_chem+48,ntm_chem+48, & !BCS,MXX
+    ntm_chem+48,ntm_chem+48,ntm_chem+48,ntm_chem+48/)
   integer, parameter :: AMP_trm_nm2(ntmAMP)=(/ &
-    0 ,0 ,0 ,4 ,4,  & !AKK
-    6 ,6 ,9 ,9 ,9,  & !ACC,DD1
-    12,12,12,15,15, & !DS1,DD2
-    15,18,18,18,21, & !DD2,DS2,SSA
-    21,21,24,24,             & !SSA,SSC
-    26,26,26,29,29, & !OCC,BC1
-    29,32,32,32,35, & !BC1,BC2,BC3
-    35,35,39,39,39, & !BC3,DBC
-    39,43,43,43,43, & !DBC,BOC
-    46,46,46,52,52, & !BCS,MXX
-    52,52,52,52/)
+    0 ,         0 ,         0 ,ntm_chem+4 ,ntm_chem+4,  & !AKK
+    ntm_chem+6 ,ntm_chem+6 ,ntm_chem+9 ,ntm_chem+9 ,ntm_chem+9,  & !ACC,DD1
+    ntm_chem+12,ntm_chem+12,ntm_chem+12,ntm_chem+15,ntm_chem+15, & !DS1,DD2
+    ntm_chem+15,ntm_chem+18,ntm_chem+18,ntm_chem+18,ntm_chem+21, & !DD2,DS2,SSA
+    ntm_chem+21,ntm_chem+21,ntm_chem+24,ntm_chem+24,             & !SSA,SSC
+    ntm_chem+26,ntm_chem+26,ntm_chem+26,ntm_chem+29,ntm_chem+29, & !OCC,BC1
+    ntm_chem+29,ntm_chem+32,ntm_chem+32,ntm_chem+32,ntm_chem+35, & !BC1,BC2,BC3
+    ntm_chem+35,ntm_chem+35,ntm_chem+39,ntm_chem+39,ntm_chem+39, & !BC3,DBC
+    ntm_chem+39,ntm_chem+43,ntm_chem+43,ntm_chem+43,ntm_chem+43, & !DBC,BOC
+    ntm_chem+46,ntm_chem+46,ntm_chem+46,ntm_chem+52,ntm_chem+52, & !BCS,MXX
+    ntm_chem+52,ntm_chem+52,ntm_chem+52,ntm_chem+52/)
 #endif
 #ifdef TRACERS_AMP_M2
   integer, parameter :: AMP_MODES_MAP(ntmAMP)=(/ &
