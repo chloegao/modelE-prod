@@ -9,9 +9,8 @@ c
       USE MODEL_COM, only  : dtsrc,Itime,ItimeI
       USE CONSTANT, only   : pi, mair, mwat, radian,avog
       USE ATM_COM, only    : MA, byMA, PMID, PK
-      USE TRACER_COM, only : NTM, trm, ntm_soa, ntm_terp
+      USE TRACER_COM, only : trm, ntm_soa, ntm_terp
       use OldTracer_mod, only: TR_MM
-      USE TRACER_COM, only : ntm, trm, ntm_soa, ntm_terp
 
       IMPLICIT NONE
       SAVE

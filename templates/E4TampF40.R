@@ -147,7 +147,7 @@ KSOLAR=2         ! 2: use long annual mean file ; 1: use short monthly file
 !!!!!!!!!!!!!!!!!!!!!!!
 madaer=3         ! 3: updated aerosols          ; 1: default sulfates/aerosols
 #include "AMP_params"
-#include "dust_params"
+#include "dust_params_matrix"
 !#include "chemistry_params"
 aircraft_Tyr1=1910 ! regardless of the type of run, if you have non-transient
 aircraft_Tyr2=2000 ! emission files, set these two equal or omit them.

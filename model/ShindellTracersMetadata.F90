@@ -8,7 +8,7 @@ module ShindellTracersMetadata_mod
   use sharedTracersMetadata_mod, only: CH4_setspec, &
     N2O_setspec, H2O2_setspec
   use sharedTracersMetadata_mod, only: convert_HSTAR
-  use TRACER_COM, only: NTM_chem_beg, NTM_chem_end, whichEPFCs
+  use TRACER_COM, only: ntm_chem_beg, ntm_chem_end, whichEPFCs
   use TRACER_COM, only: n_CH4,  n_N2O, n_Ox,   n_NOx, & 
     n_N2O5,   n_HNO3,  n_H2O2,  n_CH3OOH,   n_HCHO,  &
     n_HO2NO2, n_CO,    n_PAN,   n_H2O17,             &
@@ -141,7 +141,7 @@ contains
            nn_apinp1g,nn_apinp1a,nn_apinp2g,nn_apinp2a,         &
            nn_ClOx,   nn_BrOx,  nn_HCl,   nn_HOCl,   nn_ClONO2,  &
            nn_HBr,    nn_HOBr,  nn_BrONO2,nn_CFC,    nn_GLT
-      use TRACER_COM, only: NTM_chem_beg
+      use TRACER_COM, only: ntm_chem_beg
       integer :: offset
 
      offset = ntm_chem_beg - 1
@@ -194,7 +194,8 @@ contains
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_Ox = n
-      NTM_chem_beg = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       call set_ntm_power(n, -8)
       call set_tr_mm(n, 48.d0)
       if (tracers_drydep) then
@@ -207,6 +208,8 @@ contains
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_NOx = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       call set_ntm_power(n, -11)
       call set_tr_mm(n, 14.01d0)
       if (tracers_drydep) then
@@ -243,6 +246,8 @@ contains
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_ClOx = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       call set_ntm_power(n, -11)
       call set_tr_mm(n, 51.5d0)
     end subroutine ClOx_setSpec
@@ -251,6 +256,8 @@ contains
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_BrOx = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       call set_ntm_power(n, -14)
       call set_tr_mm(n, 95.9d0)
     end subroutine BrOx_setSpec
@@ -259,6 +266,8 @@ contains
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_N2O5 = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       call set_ntm_power(n, -12)
       call set_tr_mm(n, 108.02d0)
     end subroutine N2O5_setSpec
@@ -267,6 +276,8 @@ contains
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_HNO3 = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       call set_ntm_power(n, -11)
       call set_tr_mm(n, 63.018d0)
       call set_tr_RKD(n, 2.073d3 ) ! in mole/J = 2.1d5 mole/(L atm)
@@ -277,6 +288,8 @@ contains
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_CH3OOH = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       call set_ntm_power(n, -11)
       call set_tr_mm(n, 48.042d0)
       if (tracers_drydep) call set_HSTAR(n,  3.d2)
@@ -286,6 +299,8 @@ contains
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_HCHO = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       call set_ntm_power(n, -11)
       call set_tr_mm(n, 30.026d0)
       call set_tr_RKD(n, 6.218d1 ) ! mole/J = 6.3d3 mole/(L atm)
@@ -296,6 +311,8 @@ contains
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_HO2NO2 = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       call set_ntm_power(n, -12)
       call set_tr_mm(n, 79.018d0)
     end subroutine HO2NO2_setSpec
@@ -304,6 +321,8 @@ contains
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_CO = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       call set_ntm_power(n, -8)
       call set_tr_mm(n, 28.01d0)
 #ifdef DYNAMIC_BIOMASS_BURNING
@@ -330,10 +349,13 @@ contains
       end if
 #endif
     end subroutine CO_setSpec
+
     subroutine PAN_setSpec(name)
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_PAN = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       call set_ntm_power(n, -11)
       call set_tr_mm(n, 121.054d0) ! assuming CH3COOONO2 = PAN)
       if (tracers_drydep) call set_HSTAR(n,  3.6d0)
@@ -343,6 +365,8 @@ contains
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_Isoprene = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       call set_ntm_power(n, -11)
       call set_tr_mm(n, 60.05d0) ! i.e. 5 carbons
       if (tracers_drydep) call set_HSTAR(n,  1.3d-2)
@@ -352,6 +376,8 @@ contains
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_AlkylNit = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       call set_ntm_power(n, -11)
       call set_tr_mm(n, mair)   !unknown molecular weight, so use air and make
       ! note in the diagnostics write-out...
@@ -361,6 +387,8 @@ contains
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_Alkenes = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       call set_ntm_power(n, -10)
       call set_tr_mm(n, 1.0d0)  ! So, careful: source files now in Kmole/m2/s or
       ! equivalently, kg/m2/s for species with tr_mm=1
@@ -393,6 +421,8 @@ contains
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_Paraffin = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       call set_ntm_power(n, -10)
       call set_tr_mm(n, 1.0d0)  ! So, careful: source files now in Kmole/m2/s or
       ! equivalently, kg/m2/s for species with tr_mm=1
@@ -425,6 +455,8 @@ contains
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_Terpenes = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       call set_ntm_power(n, -11)
       call set_tr_mm(n, 120.10d0) ! i.e. 10 carbons
       if (tracers_drydep) call set_HSTAR(n,  1.3d-2)
@@ -437,6 +469,8 @@ contains
       real*8 :: tmp
       n = oldAddTracer(name)
       n_isopp1g = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       n_soa_i = n_isopp1g       !the first from the soa species
       tmp = om2oc(n)
       call sync_param(trim(name)//"_om2oc",tmp)
@@ -456,6 +490,8 @@ contains
       real*8 :: tmp
       n = oldAddTracer(name)
       n_isopp1a = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       tmp = om2oc(n)
       call sync_param(trim(name)//"_om2oc",tmp)
       call set_om2oc(n, tmp)
@@ -474,6 +510,8 @@ contains
       real*8 :: tmp
       n = oldAddTracer(name)
       n_isopp2g = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       tmp = om2oc(n)
       call sync_param(trim(name)//"_om2oc",tmp)
       call set_om2oc(n, tmp)
@@ -492,6 +530,8 @@ contains
       real*8 :: tmp
       n = oldAddTracer(name)
       n_isopp2a = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       if (.not. tracers_terp) n_soa_e = n_isopp2a       !the last from the soa species
       tmp = om2oc(n)
       call sync_param(trim(name)//"_om2oc",tmp)
@@ -511,6 +551,8 @@ contains
       real*8 :: tmp
       n = oldAddTracer(name)
       n_apinp1g = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       tmp = om2oc(n)
       call sync_param(trim(name)//"_om2oc",tmp)
       call set_om2oc(n, tmp)
@@ -529,6 +571,8 @@ contains
       real*8 :: tmp
       n = oldAddTracer(name)
       n_apinp1a = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       tmp = om2oc(n)
       call sync_param(trim(name)//"_om2oc",tmp)
       call set_om2oc(n, tmp)
@@ -547,6 +591,8 @@ contains
       real*8 :: tmp
       n = oldAddTracer(name)
       n_apinp2g = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       tmp = om2oc(n)
       call sync_param(trim(name)//"_om2oc",tmp)
       call set_om2oc(n, tmp)
@@ -565,6 +611,8 @@ contains
       real*8 :: tmp
       n = oldAddTracer(name)
       n_apinp2a = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       n_soa_e = n_apinp2a       !the last from the soa species
       tmp = om2oc(n)
       call sync_param(trim(name)//"_om2oc",tmp)
@@ -583,6 +631,8 @@ contains
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_HCl = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       call set_ntm_power(n, -10)
       call set_tr_mm(n, 36.5d0)
     end subroutine HCl_setSpec
@@ -591,6 +641,8 @@ contains
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_HOCl = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       call set_ntm_power(n, -12)
       call set_tr_mm(n, 52.5d0)
     end subroutine HOCl_setSpec
@@ -599,6 +651,8 @@ contains
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_ClONO2 = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       call set_ntm_power(n, -11)
       call set_tr_mm(n, 97.5d0)
     end subroutine ClONO2_setSpec
@@ -607,6 +661,8 @@ contains
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_HBr = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       call set_ntm_power(n, -14)
       call set_tr_mm(n, 80.9d0)
     end subroutine HBr_setSpec
@@ -615,6 +671,8 @@ contains
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_HOBr = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       call set_ntm_power(n, -14)
       call set_tr_mm(n, 96.9d0)
     end subroutine HOBr_setSpec
@@ -623,6 +681,8 @@ contains
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_BrONO2 = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       call set_ntm_power(n, -14)
       call set_tr_mm(n, 141.9d0)
     end subroutine BrONO2_setSpec
@@ -631,7 +691,8 @@ contains
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_CFC = n
-      NTM_chem_end = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       call set_ntm_power(n, -12)
       call set_tr_mm(n, 137.4d0) !CFC11
     end subroutine CFC_setSpec

@@ -1,5 +1,4 @@
       MODULE AERO_ACTV
-      use SpecialFunctions_mod, only: erfGam
 !      USE AMP_AEROSOL, ONLY: NACTV
       USE AERO_PARAM,  ONLY: NLAYS, AUNIT1
       USE AERO_CONFIG, ONLY: NMODES
@@ -214,7 +213,13 @@
       REAL(8) :: PTOT              ! ambient pressure [Pa]
       REAL(8) :: WUPDRAFT          ! updraft velocity [m/s]
       REAL(8) :: AC(NMODEX)        ! minimum dry radius for activation for each mode [um]
+      REAL(8) :: AC_2(NMODEX)        ! minimum dry radius for activation for each mode [um]
+      REAL(8) :: AC_3(NMODEX)        ! minimum dry radius for activation for each mode [um]
+      REAL(8) :: AC_5(NMODEX)        ! minimum dry radius for activation for each mode [um]
       REAL(8) :: FRACACTN(NMODEX)  ! activating fraction of number conc. for each mode [1]
+      REAL(8) :: FRACACTN_2(NMODEX)  ! activating fraction of number conc. for each mode [1]
+      REAL(8) :: FRACACTN_3(NMODEX)  ! activating fraction of number conc. for each mode [1]
+      REAL(8) :: FRACACTN_5(NMODEX)  ! activating fraction of number conc. for each mode [1]
       REAL(8) :: FRACACTM(NMODEX)  ! activating fraction of mass   conc. for each mode [1]
       REAL(8) :: NACT(NMODEX)      ! activating number concentration for each mode [#/m^3]
       REAL(8) :: MACT(NMODEX)      ! activating mass   concentration for each mode [ug/m^3]
@@ -274,6 +279,7 @@
       REAL(8)            :: SM(NMODEX)                     ! [1]   
       REAL(8)            :: DUM                            ! [1/m]    
       REAL(8)            :: U                              ! argument to error function [1]
+      REAL(8)            :: ERF                            ! error function [1], but not declared in an f90 module 
       REAL(8)            :: SMAX                           ! maximum supersaturation [1]
       
 !----------------------------------------------------------------------------------------------------------------------
@@ -325,21 +331,148 @@
       DO I=1, NMODEX
         AC(I)       = RG(I) * ( SM(I) / SMAX )**0.66666666666666667D+00               ! [um]
         U           = LOG(AC(I)/RG(I)) / ( SQRT2 * XLOGSIGM(I) )                      ! [1]
-        FRACACTN(I) = 0.5D+00 * (1.0D+00 - erfGam(U))                                    ! [1]
-        FRACACTM(I) = 0.5D+00 * (1.0D+00 - erfGam(U - THREESQRT2BY2*XLOGSIGM(I) ) )      ! [1]
+        FRACACTN(I) = 0.5D+00 * (1.0D+00 - ERF(U))                                    ! [1]
+        FRACACTM(I) = 0.5D+00 * (1.0D+00 - ERF(U - THREESQRT2BY2*XLOGSIGM(I) ) )      ! [1]
         NACT(I)     = FRACACTN(I) * XNAP(I)                                           ! [#/m^3]
         MACT(I)     = FRACACTM(I) * XMAP(I)                                           ! [ug/m^3]
-        !--------------------------------------------------------------------------------------------------------------
-        !IF(FRACACTN(I) .GT. 0.9999999D+00 ) THEN
-        !   WRITE(*,*)I,AC(I),U,FRACACTN(I),XNAP(I)
-        !  PRINT*,' SUSA',I,AC(I),U,FRACACTN(I),XNAP(I)
-        ! STOP
-        ! ENDIF
         !--------------------------------------------------------------------------------------------------------------
       ENDDO 
 
       RETURN
       END SUBROUTINE ACTFRAC_MAT
+
+
+      SUBROUTINE GCF(GAMMCF,A,X,GLN)
+
+      IMPLICIT NONE
+!-----------------------------------------------------------------------------------------------------------------------
+!     SEE NUMERICAL RECIPES, W. PRESS ET AL., 2ND EDITION.
+!-----------------------------------------------------------------------------------------------------------------------
+      INTEGER, PARAMETER :: ITMAX=10000
+      REAL(8), PARAMETER :: EPS=3.0D-07
+      REAL(8), PARAMETER :: FPMIN=1.0D-30
+      REAL(8) :: A,GAMMCF,GLN,X
+      INTEGER :: I
+      REAL(8) :: AN,B,C,D,DEL,H
+      GLN=GAMMLN(A)
+      B=X+1.0D+00-A
+      C=1.0D+00/FPMIN
+      D=1.0D+00/B
+      H=D
+      DO I=1,ITMAX
+        AN=-I*(I-A)
+        B=B+2.0D+00
+        D=AN*D+B
+        IF(ABS(D).LT.FPMIN)D=FPMIN
+        C=B+AN/C
+        IF(ABS(C).LT.FPMIN)C=FPMIN
+        D=1.0D+00/D
+        DEL=D*C
+        H=H*DEL
+        IF(ABS(DEL-1.0D+00).LT.EPS)GOTO 1
+      ENDDO
+      WRITE(*,*)'AERO_ACTV: SUBROUTINE GCF: A TOO LARGE, ITMAX TOO SMALL', GAMMCF,A,X,GLN
+1     GAMMCF=EXP(-X+A*LOG(X)-GLN)*H
+      RETURN
+      END SUBROUTINE GCF
+
+
+      SUBROUTINE GSER(GAMSER,A,X,GLN)
+
+      IMPLICIT NONE
+!-----------------------------------------------------------------------------------------------------------------------
+!     SEE NUMERICAL RECIPES, W. PRESS ET AL., 2ND EDITION.
+!-----------------------------------------------------------------------------------------------------------------------
+      INTEGER, PARAMETER :: ITMAX=10000  ! was ITMAX=100   in Press et al. 
+      REAL(8), PARAMETER :: EPS=3.0D-09  ! was EPS=3.0D-07 in Press et al.
+      REAL(8) :: A,GAMSER,GLN,X
+      INTEGER :: N
+      REAL(8) :: AP,DEL,SUM
+      GLN=GAMMLN(A)
+      IF(X.LE.0.D+00)THEN
+        IF(X.LT.0.)STOP 'AERO_ACTV: SUBROUTINE GSER: X < 0 IN GSER'
+        GAMSER=0.D+00
+        RETURN
+      ENDIF
+      AP=A
+      SUM=1.D+00/A
+      DEL=SUM
+      DO N=1,ITMAX
+        AP=AP+1.D+00
+        DEL=DEL*X/AP
+        SUM=SUM+DEL
+        IF(ABS(DEL).LT.ABS(SUM)*EPS)GOTO 1
+      ENDDO
+      WRITE(*,*)'AERO_ACTV: SUBROUTINE GSER: A TOO LARGE, ITMAX TOO SMALL'
+1     GAMSER=SUM*EXP(-X+A*LOG(X)-GLN)
+      RETURN
+      END SUBROUTINE GSER
+
+
+      DOUBLE PRECISION FUNCTION GAMMLN(XX)
+
+      IMPLICIT NONE
+!-----------------------------------------------------------------------------------------------------------------------
+!     SEE NUMERICAL RECIPES, W. PRESS ET AL., 2ND EDITION.
+!-----------------------------------------------------------------------------------------------------------------------
+      REAL(8) :: XX
+      INTEGER J
+      DOUBLE PRECISION SER,STP,TMP,X,Y,COF(6)
+      SAVE COF,STP
+      DATA COF,STP/76.18009172947146D0,-86.50532032941677D0,
+     &24.01409824083091D0,-1.231739572450155D0,.1208650973866179D-2,
+     &-.5395239384953D-5,2.5066282746310005D0/
+      X=XX
+      Y=X
+      TMP=X+5.5D0
+      TMP=(X+0.5D0)*LOG(TMP)-TMP
+      SER=1.000000000190015D0
+      DO J=1,6
+        Y=Y+1.D0
+        SER=SER+COF(J)/Y
+      ENDDO
+      GAMMLN=TMP+LOG(STP*SER/X)
+      RETURN
+      END FUNCTION GAMMLN 
+
+
+      DOUBLE PRECISION FUNCTION ERF(X)
+      IMPLICIT NONE
+!-----------------------------------------------------------------------------------------------------------------------
+!     SEE NUMERICAL RECIPES, W. PRESS ET AL., 2ND EDITION.
+!-----------------------------------------------------------------------------------------------------------------------
+      REAL(8) :: X
+!U    USES GAMMP
+      ERF = 0.d0
+      IF(X.LT.0.0D+00)THEN
+        ERF=-GAMMP(0.5D0,X**2)
+      ELSE
+        ERF= GAMMP(0.5D0,X**2)
+      ENDIF
+      RETURN
+      END FUNCTION ERF
+
+
+      DOUBLE PRECISION FUNCTION GAMMP(A,X)
+      IMPLICIT NONE
+!-----------------------------------------------------------------------------------------------------------------------
+!     SEE NUMERICAL RECIPES, W. PRESS ET AL., 2ND EDITION.
+!-----------------------------------------------------------------------------------------------------------------------
+      REAL(8) :: A,X
+      REAL(8) :: GAMMCF,GAMSER,GLN
+      IF(X.LT.0.0D+00.OR.A.LE.0.0D+00)THEN
+        WRITE(*,*)'AERO_ACTV: FUNCTION GAMMP: BAD ARGUMENTS'
+      ENDIF
+      IF(X.LT.A+1.0D+00)THEN
+        CALL GSER(GAMSER,A,X,GLN)
+        GAMMP=GAMSER
+      ELSE
+        CALL GCF(GAMMCF,A,X,GLN)
+        GAMMP=1.0D+00-GAMMCF
+      ENDIF
+      RETURN
+      END FUNCTION GAMMP
+
 
       END MODULE AERO_ACTV
       

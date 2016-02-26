@@ -1,8 +1,8 @@
 !-------Aerosol inputs--------------
 !----oxidants needed if not coupled to chem ----
 !
-AER_CHEM=OXID_E__1TgfF40_2x2.5
-OFFLINE_HNO3.nc=HNO3_dummy_2000_GISS2x2.nc
+!AER_CHEM=OXID_E__1TgfF40_2x2.5
+!OFFLINE_HNO3.nc=HNO3_dummy_2000_GISS2x2.nc
 !OFFLINE_HNO3.nc=HNO3_dummy_1850_GISS2x2.nc
 !-----------------------------------------------
 !       AMP Radiation Input

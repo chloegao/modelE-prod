@@ -82,12 +82,12 @@ OPTS_giss_LSM = USE_ENT=YES
 Data input files:
 
 ! SCM input files
-SCM_NML=SCM_default.nml ! input variable namelist with units
-SCM_PS=SCM_DCBL.nc      ! surface pressure
-SCM_TSKIN=SCM_DCBL.nc   ! skin temperature
-SCM_GEO=SCM_DCBL.nc     ! geostrophic wind profiles
-SCM_THETA=SCM_DCBL.nc   ! initial potential temperature profile
-SCM_WVMR=SCM_DCBL.nc    ! initial water vapor mixing ratio profile
+SCM_NML=SCM_default.nml     ! input variable namelist with units
+SCM_PS=SCM_DCBL.nc          ! surface pressure
+SCM_TSKIN=SCM_DCBL.nc       ! skin temperature
+SCM_GEO=SCM_DCBL.nc         ! geostrophic wind profiles
+SCM_THETA=SCM_DCBL.nc       ! initial potential temperature profile
+SCM_WVMR=SCM_DCBL.nc        ! initial water vapor mixing ratio profile
 
 ! The set of forcings for a particular SCM test case typically does not include
 ! all of the data required to run Model E.  Each line below of the form
@@ -106,7 +106,7 @@ SCM_WVMR=SCM_DCBL.nc    ! initial water vapor mixing ratio profile
 ! (2) Use exec/extract_scm.sh to sample gridded files at location
 !     lon_targ, lat_targ.
 !     Firstly,
-!       replace /home/afridlin/models/modelE/input_SCM/SCM_DCBL with a real path, preferably which
+!       replace /path/to/user/directory with a real path, preferably which
 !        (a) contains a string denoting the SCM location/case being run
 !        (b) is unlikely to be chosen by any other users on the system
 !       Habits (a) and (b) will prevent clutter and accidental overwrites.
@@ -220,11 +220,11 @@ SCM_DCBL (dry convective boundary layer)
 &&PARAMETERS
 
 ! SCM parameters
-SCM_lon=-97.485            ! Southern Great Plains site longitude (deg)
-SCM_lat=36.605             ! Southern Great Plains site latitude (deg)
+SCM_lon=-97.49             ! Southern Great Plains site longitude (deg)
+SCM_lat=36.61              ! Southern Great Plains site latitude (deg)
 SCM_area=49370385348.1287  ! nominal grid box area (m2) from 144x90 grid
-SCM_sfc=1                  ! 1:land,2:ocean
-SCM_z0m=0.16               ! friction velocity (m)
+SCM_sfc=2                  ! 1:land,2:ocean
+SCM_z0m=0.16               ! aerodynamic roughness length (m)
 SCM_BeersLaw=00.,00.,85.   ! Beer's Law f0,f1 (W/m2), and kappa (m2/kg)
 SCM_shf=300.               ! fixed sensible heat flux (W/m2)
 SCM_lhf=0.                 ! fixed latent heat flux (W/m2)
@@ -291,7 +291,7 @@ Nssw=2
 SUBDD='u v t q rh z p_3d p_surf prec mcp ssp snowfall snowdp qcl qci'
 SUBDD1='cldss cldmc cldss_2d totcld totcld_diag'
 SUBDD2='gtempr shflx lhflx ustar wsavg qs pblht pwv lwp iwp tau_ss tau_mc'
-SUBDD3='olrrad olrcs lwds lwdscs lwus swds swus swdf'
+SUBDD3='olrrad olrcs lwds lwdscs lwus swds swus swdf egcm'
 SUBDD4='dq_turb dth_turb dq_mc dth_mc dq_ss dth_ss dth_sw dth_lw dth_rad'
 SUBDD5='dq_ls dth_ls du_ls dv_ls dq_nudge dth_nudge column_fmse z_surf'
 SUBDD6='isccp_sunlit isccp_ctp isccp_tau isccp_lcld isccp_hcld'
@@ -310,7 +310,7 @@ variable_lk=1
 &&END_PARAMETERS
 
  &INPUTZ
- YEARI=2000,MONTHI=01,DATEI=01,HOURI=0, ! pick IYEAR1=YEARI (default) or < YEARI
- YEARE=2000,MONTHE=01,DATEE=01,HOURE=9,     KDIAG=12*0,9,
+ YEARI=2000,MONTHI=7,DATEI=1,HOURI=0, ! pick IYEAR1=YEARI (default) or < YEARI
+ YEARE=2000,MONTHE=7,DATEE=1,HOURE=9,     KDIAG=12*0,9,
  ISTART=2,IRANDI=0,
 /

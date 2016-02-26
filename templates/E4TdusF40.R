@@ -98,7 +98,7 @@ KSOLAR=2         ! 2: use long annual mean file ; 1: use short monthly file
 #include "atmCompos_2000_params"
 madaer=3         ! 3: updated aerosols          ; 1: default sulfates/aerosols
 #include "aerosol_params"
-#include "dust_params"
+#include "dust_params_oma"
 
 DTsrc=1800.      ! cannot be changed after a run has been started
 DT=225.
