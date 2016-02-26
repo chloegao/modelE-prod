@@ -53,11 +53,11 @@ end module AbstractTimeStamp_mod
 #define TYPE_NAME AbstractTimeStamp
 #define HAS_PRINT
 
-#include <AssociativeArrayTemplate.h>
+#include "AssociativeArrayTemplate.h"
 
 #define VALUE_TYPE AbstractTimeStamp
 #define ASSOCIATIVE_ARRAY_TYPE AbstractTimeStampAssociativeArray
 #undef ITERATOR_TYPE
 #define HASH_TYPE AbstractTimeStampHashMap
 
-#include <HashMapTemplate.h>
+#include "HashMapTemplate.h"

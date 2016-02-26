@@ -1,4 +1,4 @@
-#include "containers/tmplbase.fh"
+#include "tmplbase.fh"
 
 ! key:
 
@@ -83,9 +83,9 @@
 
 #define _entry type(pair)
 #define EQUAL_DEFINED
-#include "containers/tmplhead.fh"
+#include "tmplhead.fh"
 
-#include "containers/set_decl.fh"
+#include "set_decl.fh"
 
       type, public :: map
         type(set) :: data
@@ -100,12 +100,12 @@
 
       contains
 
-#include "containers/set_impl.fh"
+#include "set_impl.fh"
 
 #ifdef _key_pointer
 #define _ptrtype _ptrkey
 #define _trgtype _trgkey
-#include "containers/pointerdef.fh"
+#include "pointerdef.fh"
 #endif
 
 ! =======================
@@ -221,4 +221,4 @@
 #undef __KEYEQ
 #undef __KEYCOMP
 #undef __VALSET
-#include "containers/tmpltail.fh"
+#include "tmpltail.fh"

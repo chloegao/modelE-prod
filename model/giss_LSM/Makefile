@@ -21,9 +21,9 @@ include $(CONFIG_DIR)/base.mk
 #sinclude $(DEPENDFILE)
 include $(CONFIG_DIR)/rules.mk
 
-ifeq ($(USE_ENT),YES)
-CPPFLAGS += -DUSE_ENT
-endif
+#ifeq ($(USE_ENT),YES)
+#CPPFLAGS += -DUSE_ENT
+#endif
 
 ifeq ($(OFFLINE_RUN),YES)
 CPPFLAGS += -DOFFLINE_RUN
