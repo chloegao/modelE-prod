@@ -278,6 +278,10 @@ ifeq ($(MPI),YES)
   endif
 endif
 
+#!! hack to deal with Intel "source_include" bug
+# basically has to assume that all include files are in model/shared directory
+INCS += -I$(MODEL_E_ROOT)/model/shared
+
 
 CPPFLAGS += $(INCS)
 

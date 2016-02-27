@@ -74,10 +74,5 @@ endif
 include $(CONFIG_DIR)/base.mk
 include $(CONFIG_DIR)/rules.mk
 
-# Ugly workaround for an ugly Intel bug
-ifeq ($(COMPILER),intel)
-FFLAGS += -I`dirname $<`/containers
-F90FLAGS += -I`dirname $<`/containers
-endif
 
 
