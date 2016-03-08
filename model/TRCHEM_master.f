@@ -83,7 +83,7 @@ c
 
       use TRACER_COM, only: nn_CH4,  nn_N2O, nn_Ox,   nn_NOx, 
      &      nn_N2O5,   nn_HNO3,  nn_H2O2,  nn_CH3OOH,   nn_HCHO, 
-     &      nn_HO2NO2, nn_CO,    nn_PAN,   nn_H2O17,             
+     &      nn_HO2NO2, nn_PAN,   nn_H2O17,             
      &      nn_Isoprene, nn_AlkylNit, nn_Alkenes, nn_Paraffin,   
      &      nn_stratOx, nn_Terpenes,nn_codirect,                
      &      nn_isopp1g,nn_isopp1a,nn_isopp2g,nn_isopp2a,         
