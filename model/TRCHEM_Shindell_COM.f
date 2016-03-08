@@ -9,7 +9,7 @@ c
       USE MODEL_COM, only  : dtsrc,Itime,ItimeI
       USE CONSTANT, only   : pi, mair, mwat, radian,avog
       USE ATM_COM, only    : MA, byMA, PMID, PK
-      USE TRACER_COM, only : trm, ntm_soa, ntm_terp
+      USE TRACER_COM, only : trm, ntm_soa, ntm_terp, ntm_dCO
       use OldTracer_mod, only: TR_MM
 
       IMPLICIT NONE
@@ -77,37 +77,37 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
 #endif  /* TRACERS_TERP */
      & n_tri =    11,
      & n_nst =     3,
-     & nc     =   53+ntm_terp+ntm_soa,     !formerly in param sub
-     & ny     =   51+ntm_terp+ntm_soa,     !formerly in param sub  
+     & nc     =   53+ntm_terp+ntm_soa+ntm_dCO,     !formerly in param sub
+     & ny     =   51+ntm_terp+ntm_soa+ntm_dCO,     !formerly in param sub  
      & numfam =    4,     !formerly in param sub  
-     & nC2O3=     26+ntm_terp+ntm_soa,
-     & nXO2=      27+ntm_terp+ntm_soa,
-     & nXO2N=     28+ntm_terp+ntm_soa,
-     & nRXPAR=    29+ntm_terp+ntm_soa,
-     & nROR=      30+ntm_terp+ntm_soa,
-     & nAldehyde= 31+ntm_terp+ntm_soa,
-     & nH2O=      32+ntm_terp+ntm_soa,
-     & nCH3O2=    33+ntm_terp+ntm_soa,
-     & nH2=       34+ntm_terp+ntm_soa,
-     & nOH=       35+ntm_terp+ntm_soa,
-     & nHO2=      36+ntm_terp+ntm_soa,
-     & nO3=       37+ntm_terp+ntm_soa,
-     & nO=        38+ntm_terp+ntm_soa,
-     & nO1D=      39+ntm_terp+ntm_soa,
-     & nNO=       40+ntm_terp+ntm_soa,
-     & nNO2=      41+ntm_terp+ntm_soa,
-     & nNO3=      42+ntm_terp+ntm_soa,
-     & nHONO=     43+ntm_terp+ntm_soa,
-     & nCl2O2=    44+ntm_terp+ntm_soa,
-     & nClO=      45+ntm_terp+ntm_soa,
-     & nOClO=     46+ntm_terp+ntm_soa,
-     & nCl2=      47+ntm_terp+ntm_soa,
-     & nCl=       48+ntm_terp+ntm_soa,
-     & nBrCl=     49+ntm_terp+ntm_soa,
-     & nBrO=      50+ntm_terp+ntm_soa,
-     & nBr=       51+ntm_terp+ntm_soa,
-     & nO2=       52+ntm_terp+ntm_soa,
-     & nM=        53+ntm_terp+ntm_soa,     !you must always put nM last (highest number)
+     & nC2O3=     26+ntm_terp+ntm_soa+ntm_dCO,
+     & nXO2=      27+ntm_terp+ntm_soa+ntm_dCO,
+     & nXO2N=     28+ntm_terp+ntm_soa+ntm_dCO,
+     & nRXPAR=    29+ntm_terp+ntm_soa+ntm_dCO,
+     & nROR=      30+ntm_terp+ntm_soa+ntm_dCO,
+     & nAldehyde= 31+ntm_terp+ntm_soa+ntm_dCO,
+     & nH2O=      32+ntm_terp+ntm_soa+ntm_dCO,
+     & nCH3O2=    33+ntm_terp+ntm_soa+ntm_dCO,
+     & nH2=       34+ntm_terp+ntm_soa+ntm_dCO,
+     & nOH=       35+ntm_terp+ntm_soa+ntm_dCO,
+     & nHO2=      36+ntm_terp+ntm_soa+ntm_dCO,
+     & nO3=       37+ntm_terp+ntm_soa+ntm_dCO,
+     & nO=        38+ntm_terp+ntm_soa+ntm_dCO,
+     & nO1D=      39+ntm_terp+ntm_soa+ntm_dCO,
+     & nNO=       40+ntm_terp+ntm_soa+ntm_dCO,
+     & nNO2=      41+ntm_terp+ntm_soa+ntm_dCO,
+     & nNO3=      42+ntm_terp+ntm_soa+ntm_dCO,
+     & nHONO=     43+ntm_terp+ntm_soa+ntm_dCO,
+     & nCl2O2=    44+ntm_terp+ntm_soa+ntm_dCO,
+     & nClO=      45+ntm_terp+ntm_soa+ntm_dCO,
+     & nOClO=     46+ntm_terp+ntm_soa+ntm_dCO,
+     & nCl2=      47+ntm_terp+ntm_soa+ntm_dCO,
+     & nCl=       48+ntm_terp+ntm_soa+ntm_dCO,
+     & nBrCl=     49+ntm_terp+ntm_soa+ntm_dCO,
+     & nBrO=      50+ntm_terp+ntm_soa+ntm_dCO,
+     & nBr=       51+ntm_terp+ntm_soa+ntm_dCO,
+     & nO2=       52+ntm_terp+ntm_soa+ntm_dCO,
+     & nM=        53+ntm_terp+ntm_soa+ntm_dCO,     !you must always put nM last (highest number)
      & JPPJ_Shindell = 28,
      & n_fam =     5,
      & p_5   =    14,
@@ -386,8 +386,8 @@ C**************  V  A  R  I  A  B  L  E  S *******************
       INTEGER :: nr,nr2,nr3,nmm,nhet,MODPHOT,L75P,L75M,L569P,L569M,
      &lprn,jprn,iprn,MIEDX,NCFASTJ,topLevelOfChemistry
       INTEGER, DIMENSION(n_fam)        :: nfam = 
-     &     (/37+ntm_terp+ntm_soa,40+ntm_terp+ntm_soa,
-     &       44+ntm_terp+ntm_soa,50+ntm_terp+ntm_soa,0/)
+     &     (/37+ntm_terp+ntm_soa+ntm_dCO,40+ntm_terp+ntm_soa+ntm_dCO,
+     &       44+ntm_terp+ntm_soa+ntm_dCO,50+ntm_terp+ntm_soa+ntm_dCO,0/)
       INTEGER, DIMENSION(p_1,p_2)      :: nn, nnr
       INTEGER, DIMENSION(p_3)          :: nps, nds, npnr, ndnr
       INTEGER, DIMENSION(p_4)          :: kps, kds, kpnr, kdnr

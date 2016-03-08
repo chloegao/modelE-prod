@@ -55,6 +55,9 @@
 !     allow some tracers to have biomass burning based on fire model:
         select case (trname(n))
           case('NOx','CO','Alkenes','Paraffin','BCB','OCB','NH3','SO2',
+#ifdef TRACERS_dCO
+               'dC17O', 'dC18O', 'd13CO',
+#endif  /* TRACERS_dCO */
      &         'vbsAm2', 'vbsAm1', 'vbsAz',  'vbsAp1', 'vbsAp2',
      &         'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6'
 #ifdef TRACERS_TOMAS
@@ -76,6 +79,9 @@
 #ifdef TRACERS_SPECIAL_Shindell
      &         'CH4',           ! in here to avoid potential Lerner tracers conflict
 #endif
+#ifdef TRACERS_dCO
+     *         'dC17O', 'dC18O', 'd13CO',
+#endif  /* TRACERS_dCO */
      &         'AECOB_01','AOCOB_01', 
      &         'NH3', 'SO2', 'BCB', 'OCB', ! do not include sulfate here
      &         'vbsAm2', 'vbsAm1', 'vbsAz',  'vbsAp1', 'vbsAp2',

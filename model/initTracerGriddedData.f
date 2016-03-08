@@ -252,7 +252,11 @@ C          read the CFC initial conditions:
           end do     ; end do
 #endif /* TRACERS_SPECIAL_Shindell */
 
-      case ('CO')
+      case ('CO'
+#ifdef TRACERS_dCO
+     *     ,'dC17O','dC18O','d13CO'
+#endif  /* TRACERS_dCO */
+     *     )
 #ifdef TRACERS_SPECIAL_Shindell
           call openunit('CO_IC',iu_data,.true.,.true.)
           CALL READT8_PARALLEL(grid,iu_data,NAMEUNIT(iu_data),COICIN,0)

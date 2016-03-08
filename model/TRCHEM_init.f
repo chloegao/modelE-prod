@@ -77,7 +77,11 @@ C Initialize a few (IM,JM,topLevelOfChemistry) arrays, first hour only:
  100  format(/3(50x,l1/),3(50x,i8/))
 #ifdef TRACERS_AEROSOLS_SOA
 #ifdef TRACERS_TERP
+#ifdef TRACERS_dCO
+ 110  format(6(///10(a8)),(///5(a8)))
+#else
  110  format(6(///10(a8)),(///2(a8)))
+#endif
 #else
  110  format(6(///10(a8)),(///1(a8)))
 #endif

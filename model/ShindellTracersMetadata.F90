@@ -9,6 +9,9 @@ module ShindellTracersMetadata_mod
     N2O_setspec, H2O2_setspec
   use sharedTracersMetadata_mod, only: convert_HSTAR
   use TRACER_COM, only: ntm_chem_beg, ntm_chem_end, whichEPFCs
+#ifdef TRACERS_dCO
+  use TRACER_COM, only: n_dC17O, n_dC18O, n_d13CO
+#endif  /* TRACERS_dCO */
   use TRACER_COM, only: n_CH4,  n_N2O, n_Ox,   n_NOx, & 
     n_N2O5,   n_HNO3,  n_H2O2,  n_CH3OOH,   n_HCHO,  &
     n_HO2NO2, n_CO,    n_PAN,   n_H2O17,             &
@@ -125,6 +128,12 @@ contains
       end if
     end if
 
+#ifdef TRACERS_dCO
+    call  CO_setSpec('dC17O')
+    call  CO_setSpec('dC18O')
+    call  CO_setSpec('d13CO')
+#endif  /* TRACERS_dCO */
+
     call calculateIndexOffsets
 
 !------------------------------------------------------------------------------
@@ -141,6 +150,9 @@ contains
            nn_apinp1g,nn_apinp1a,nn_apinp2g,nn_apinp2a,         &
            nn_ClOx,   nn_BrOx,  nn_HCl,   nn_HOCl,   nn_ClONO2,  &
            nn_HBr,    nn_HOBr,  nn_BrONO2,nn_CFC,    nn_GLT
+#ifdef TRACERS_dCO
+      use TRACER_COM, only: nn_dC17O, nn_dC18O, nn_d13CO
+#endif  /* TRACERS_dCO */
       use TRACER_COM, only: ntm_chem_beg
       integer :: offset
 
@@ -187,6 +199,12 @@ contains
      nn_BrONO2 = n_BrONO2 - offset
      nn_CFC = n_CFC - offset
      nn_GLT = n_GLT - offset
+
+#ifdef TRACERS_dCO
+     nn_dC17O = n_dC17O - offset
+     nn_dC18O = n_dC18O - offset
+     nn_d13CO = n_d13CO - offset
+#endif  /* TRACERS_dCO */
 
     end subroutine calculateIndexOffsets
 
@@ -320,7 +338,20 @@ contains
     subroutine CO_setSpec(name)
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
-      n_CO = n
+      select case (name)
+        case ('CO')
+          n_CO = n
+#ifdef TRACERS_dCO
+        case ('dC17O')
+          n_dC17O = n
+        case ('dC18O')
+          n_dC18O = n
+        case ('d13CO')
+          n_d13CO = n
+#endif  /* TRACERS_dCO */
+        case default
+          call stop_model('CO-like tracer '//name//' unknown',255)
+      end select
       if (ntm_chem_beg==0) ntm_chem_beg = n
       ntm_chem_end = n
       call set_ntm_power(n, -8)

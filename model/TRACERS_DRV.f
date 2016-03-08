@@ -318,6 +318,9 @@ C**** set some defaults
 
         case ('Ox','N2O5','HNO3','H2O2','CH3OOH','HCHO','HO2NO2','PAN'
      *       ,'AlkylNit','ClOx','BrOx','HCl','HOCl','ClONO2','HBr'
+#ifdef TRACERS_dCO
+     *       ,'dC17O', 'dC18O', 'd13CO'
+#endif  /* TRACERS_dCO */
      *       ,'HOBr','BrONO2','CFC','NOx','CO','Isoprene','Alkenes'
      *       ,'Paraffin','stratOx','Terpenes') ! N2O done above
           select case (trim(pTracer%getName()))
@@ -326,6 +329,9 @@ C**** set some defaults
      *           ,'BrONO2','NOx')
               kt_power_change(n) = -14
             case ('HNO3','H2O2','CO','Isoprene','Alkenes','Paraffin'
+#ifdef TRACERS_dCO
+     *           ,'dC17O', 'dC18O', 'd13CO'
+#endif  /* TRACERS_dCO */
      *           ,'Terpenes')
               kt_power_change(n) = -13
             case default
@@ -352,7 +358,11 @@ C**** set some defaults
               qsum(itcon_3Dsrc(nAircraft,N)) = .true.
           end select
           select case(trim(pTracer%getName()))
-            case('NOx','CO','Alkenes','Paraffin')
+            case('NOx','CO',
+#ifdef TRACERS_dCO
+     *           'dC17O','dC18O','d13CO',
+#endif  /* TRACERS_dCO */
+     *           'Alkenes','Paraffin')
               g=g+1; itcon_3Dsrc(nBiomass,N) = g
               qcon(g) = .true.; conpts(g-12) = 'Biomass src'
               qsum(g) = .true.
@@ -1634,6 +1644,9 @@ C**** special one unique to HTO
 
       case ('HCl','HOCl','ClONO2','HBr','HOBr','BrONO2','CFC',
      &      'BrOx','ClOx','Alkenes','Paraffin','Isoprene','CO',
+#ifdef TRACERS_dCO
+     *      'dC17O', 'dC18O', 'd13CO',
+#endif  /* TRACERS_dCO */
      &      'N2O5','HNO3','H2O2','CH3OOH','HCHO','HO2NO2','PAN',
      &      'AlkylNit','Ox','NOx','stratOx','Terpenes')
         do kk=1,ntsurfsrc(n)
@@ -1666,6 +1679,9 @@ C**** special one unique to HTO
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         select case(trname(n))
         case ('Alkenes','Paraffin','Isoprene','CO','N2O5','HNO3',
+#ifdef TRACERS_dCO
+     *      'dC17O', 'dC18O', 'd13CO',
+#endif  /* TRACERS_dCO */
      &  'H2O2','CH3OOH','HCHO','HO2NO2','PAN','AlkylNit','Ox',
      &  'Terpenes','NOx','stratOx','BrOx','ClOx')
           k = k + 1
@@ -1704,7 +1720,11 @@ C**** special one unique to HTO
           units_jls(k) = unit_string(jls_power(k),'kg/s')
         end select
         select case(trname(n))
-        case('NOx','CO','Alkenes','Paraffin')
+        case('NOx','CO',
+#ifdef TRACERS_dCO
+     *       'dC17O','dC18O','d13CO',
+#endif  /* TRACERS_dCO */
+     *       'Alkenes','Paraffin')
           k = k + 1
           jls_3Dsource(nBiomass,n) = k
           sname_jls(k) = 'Biomass_src_of_'//trim(trname(n))
@@ -3349,6 +3369,9 @@ C**** This needs to be 'hand coded' depending on circumstances
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
       case ('NOx','CO','Isoprene','Alkenes','Paraffin',
+#ifdef TRACERS_dCO
+     *'dC17O', 'dC18O', 'd13CO',
+#endif  /* TRACERS_dCO */
      &'ClOx','BrOx','HCl','HOCl','ClONO2','HBr','HOBr','BrONO2',
      &'CFC','H2O2','CH3OOH','Ox','N2O5','HNO3','HCHO','Terpenes',
      &'HO2NO2','PAN','AlkylNit','stratOx')
@@ -3374,6 +3397,9 @@ C**** This needs to be 'hand coded' depending on circumstances
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         select case(trname(n))
         case('NOx','CO','Isoprene','Alkenes','Paraffin',
+#ifdef TRACERS_dCO
+     *  'dC17O', 'dC18O', 'd13CO',
+#endif  /* TRACERS_dCO */
      &  'CFC','H2O2','CH3OOH','Ox','N2O5','HNO3','HCHO',
      &  'Terpenes','HO2NO2','PAN','AlkylNit','stratOx')
           k = k + 1
@@ -3503,7 +3529,11 @@ C**** This needs to be 'hand coded' depending on circumstances
 #endif /* ACCMIP_LIKE_DIAGS */
         end select
         select case(trname(n))
-        case('NOx','CO','Alkenes','Paraffin')
+        case('NOx','CO',
+#ifdef TRACERS_dCO
+     *       'dC17O','dC18O','d13CO',
+#endif  /* TRACERS_dCO */
+     *       'Alkenes','Paraffin')
           k = k + 1
           ijts_3Dsource(nBiomass,n) = k
           ia_ijts(k) = ia_src
@@ -7644,7 +7674,11 @@ c**** earth
             trm(i,j,l,n) = MA(l,i,j)*axyp(i,j)*1.d-12*ICfactor
           end do; end do; end do
 
-        case ('CO')
+        case ('CO'
+#ifdef TRACERS_dCO
+     *       ,'dC17O','dC18O','d13CO'
+#endif  /* TRACERS_dCO */
+     *       )
           do l=1,lm
             select case(PI_run)
             case(1) ! ise scaling
@@ -8404,6 +8438,9 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
             nread=ntsurfsrc(n) ! default
             select case (trname(n)) ! list here tracers that have 3D biomass burning emissions
             case ('Alkenes', 'CO', 'NOx', 'Paraffin', ! CH4 done above
+#ifdef TRACERS_dCO
+     *      'dC17O', 'dC18O', 'd13CO',
+#endif  /* TRACERS_dCO */
      &      'NH3', 'SO2', 'BCB', 'OCB', ! do not include sulfate here
      &      'vbsAm2', 'vbsAm1', 'vbsAz',  'vbsAp1', 'vbsAp2',
      &      'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6',
@@ -9101,6 +9138,9 @@ C****
 #ifdef TRACERS_SPECIAL_Shindell
       case ('Ox','NOx','ClOx','BrOx','N2O5','HNO3','H2O2','CH3OOH',
      &      'HCHO','HO2NO2','CO','PAN','AlkylNit','Alkenes','Paraffin',
+#ifdef TRACERS_dCO
+     *      'dC17O', 'dC18O', 'd13CO',
+#endif  /* TRACERS_dCO */
      &      'HCl','HOCl','ClONO2','HBr','HOBr','BrONO2','N2O','CFC',
      &      'stratOx','codirect')
 #ifdef DYNAMIC_BIOMASS_BURNING
@@ -9687,6 +9727,9 @@ C****
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_TOMAS)
       case ('Alkenes', 'CO', 'NOx', 'Paraffin','CH4','codirect',
+#ifdef TRACERS_dCO
+     *      'dC17O', 'dC18O', 'd13CO',
+#endif  /* TRACERS_dCO */
      &      'NH3', 'SO2', 'SO4', 'BCII', 'BCB', 'OCII', 'OCB',
      &      'vbsAm2', 'vbsAm1', 'vbsAz',  'vbsAp1', 'vbsAp2',
      &      'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6',
