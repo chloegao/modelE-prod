@@ -4720,6 +4720,7 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
           RCLDE1 = 1.d5*WMPR(L)*PL(L)/(FCLD*TL(L)*RGAS+teeny)
           RCLDE1 =RCLDX*100.d0*(RCLDE1/(2.d0*BY3*TWOPI*SCDNCI))**BY3
           RCLDE1 = MIN(RCLDE1,RIMAX)/BYBR
+          CSIZELIP(L) = RCLDE1
         endif
 #ifdef CLD_AER_CDNC
         !     write(6,*)"RCLD",Rbeta,RCLD,SCDNCW,Repsis

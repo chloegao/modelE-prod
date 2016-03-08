@@ -2341,6 +2341,7 @@ C****
       use diag_com, only : aij=>aij_loc,ij_gasx,ij_kw,ij_alpha
       use OldTracer_mod, only: vol2mass, tr_mm, itime_tr0
       USE TRACER_COM, only: n_co2n,n_cfcn,gasex_index
+      use itype_enum, only : ITYPE_OCEAN
       implicit none
       integer, intent(in) :: i,j,itype,ns,moddsf
       real*8, intent(in) :: ptype,pocean,rsi,rhosrf,tgo,dtsurf

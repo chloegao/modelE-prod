@@ -195,7 +195,8 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
       integer, parameter, public :: lmax_dd2=ls1
 !@param NDIUVAR number of diurnal diagnostics
 #ifdef TRACERS_AMP
-      INTEGER, PARAMETER, public :: NDIUVAR=73+16+16+100+40+40+40+40
+c      INTEGER, PARAMETER, public :: NDIUVAR=73+16+16+100+40+40+40+40
+      INTEGER, PARAMETER, public :: NDIUVAR=700
 #else
 #ifdef TRACERS_DUST
       INTEGER, PARAMETER, public :: NDIUVAR=74+14*lmax_dd2+6*npbl

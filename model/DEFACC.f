@@ -6960,7 +6960,7 @@ c Mass Tracer
         end do
 c Column Diagnostics
        idd_ncL=k+1
-        do l=1,LM
+        do l=1,lmax_dd0
           k=k+1
           name_dd(k)='TotNumb_L'//lst(l)
           units_dd(k)='#/cm3'
@@ -6969,7 +6969,7 @@ c Column Diagnostics
         end do
 
        idd_ccn=k+1
-        do l=1,LM
+        do l=1,lmax_dd0
           k=k+1
           name_dd(k)='CCN_L'//lst(l)
           units_dd(k)='#/cm3'
@@ -6978,7 +6978,7 @@ c Column Diagnostics
         end do
 
        idd_cdnc=k+1
-        do l=1,LM
+        do l=1,lmax_dd0
           k=k+1
           name_dd(k)='CDNC_L'//lst(l)
           units_dd(k)='#/cm3'
@@ -6987,7 +6987,7 @@ c Column Diagnostics
         end do
 
        idd_lwc=k+1
-        do l=1,LM
+        do l=1,lmax_dd0
           k=k+1
           name_dd(k)='LWC_L'//lst(l)
           units_dd(k)='kg/m3'
@@ -6996,7 +6996,7 @@ c Column Diagnostics
         end do
 
        idd_pres=k+1
-        do l=1,LM
+        do l=1,lmax_dd0
           k=k+1
           name_dd(k)='Pres_L'//lst(l)
           units_dd(k)='hPa'
