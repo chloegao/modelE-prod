@@ -160,7 +160,7 @@ C**** GLOBAL parameters and variables:
       USE GEOM, only : LAT2D_DG
       USE ATM_COM, only: LTROPO,PMIDL00
 
-      USE TRACER_COM, only : n_CH4,n_HNO3,n_CH3OOH,n_H2O2,n_HCHO,n_CO,
+      USE TRACER_COM, only : n_CH4,n_HNO3,n_CH3OOH,n_H2O2,n_HCHO,
      &                       n_Paraffin,n_Alkenes,n_Isoprene,n_AlkylNit,
      &                       n_Terpenes,
      &                       rsulf1,rsulf2,rsulf4,n_SO2,n_DMS,
