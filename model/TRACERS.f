@@ -2511,7 +2511,12 @@ C
       use geom, only: axyp
       use OldTracer_mod, only: itime_tr0,trname
       use TRACER_COM, only: ntm_chem_beg,ntm_chem_end
-      use TRACER_COM, only: aer_int_yr,trans_emis_overr_yr
+      use TRACER_COM, only: trans_emis_overr_yr
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) || \
+    (defined TRACERS_TOMAS)
+      use TRACER_COM, only: aer_int_yr
+#endif
+
 #ifdef TRACERS_SPECIAL_Shindell
       use TRACER_COM, only: n_NOx
 #endif
@@ -2664,11 +2669,17 @@ C
           endif
         else
 #endif
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) || \
+    (defined TRACERS_TOMAS)
           if(aer_int_yr > 0) then
             xyear=aer_int_yr
           else
+#endif
             xyear=year
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) || \
+    (defined TRACERS_TOMAS)
           endif
+#endif
 #ifdef TRACERS_SPECIAL_Shindell
         end if
 #endif

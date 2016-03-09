@@ -821,9 +821,11 @@ C**** Local variables initialised in init_RAD
      &     'chem_tracer_save(two,lm,dist_im,dist_jm)')
       call defvar(grid,fid,rad_to_chem,
      &     'rad_to_chem(five,lm,dist_im,dist_jm)')
-      call defvar(grid,fid,nraero,'nraero')
-      call defvar(grid,fid,ttausv_nraero,
-     &     'ttausv_nraero(dist_im,dist_jm,lm,nraero)')
+      if (nraero > 0) then
+        call defvar(grid,fid,nraero,'nraero')
+        call defvar(grid,fid,ttausv_nraero,
+     &       'ttausv_nraero(dist_im,dist_jm,lm,nraero)')
+      endif
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
       call defvar(grid,fid,strato3_tracer_save,
      &     'strato3_tracer_save(lm,dist_im,dist_jm)')
@@ -916,8 +918,10 @@ C**** Local variables initialised in init_RAD
         call write_dist_data(grid,fid,'aerAbs6SaveInst',aerAbs6SaveInst)
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
-        call write_data(grid, fid,'nraero', nraero)
-        call write_dist_data(grid,fid,'ttausv_nraero',ttausv_nraero)
+        if (nraero > 0) then
+          call write_data(grid, fid,'nraero', nraero)
+          call write_dist_data(grid,fid,'ttausv_nraero',ttausv_nraero)
+        endif
 #endif
       case (ioread)
         call read_data(grid, fid,'s0', s0, bcast_all=.true.)
@@ -964,11 +968,14 @@ C**** Local variables initialised in init_RAD
         call read_dist_data(grid,fid,'aerAbs6SaveInst',aerAbs6SaveInst)
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
-        if (.not.allocated(ttausv_nraero)) then
-          call read_data(grid,fid,'nraero',nraero_rsf, bcast_all=.true.)
-          allocate(ttausv_nraero(I_0H:I_1H,J_0H:J_1H,lm,nraero_rsf))
+        if (nraero > 0) then
+          if (.not.allocated(ttausv_nraero)) then
+            call read_data(grid,fid,'nraero',nraero_rsf,
+     &                     bcast_all=.true.)
+            allocate(ttausv_nraero(I_0H:I_1H,J_0H:J_1H,lm,nraero_rsf))
+          endif
+          call read_dist_data(grid,fid,'ttausv_nraero',ttausv_nraero)
         endif
-        call read_dist_data(grid,fid,'ttausv_nraero',ttausv_nraero)
 #endif
       end select
       return
