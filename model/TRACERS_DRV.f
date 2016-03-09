@@ -8360,11 +8360,9 @@ C**** Tracer specific call for CH4
 
 #if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch) ||\
     (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
-!!    if(trans_emis_overr_day > 0)then
-!!      xday=trans_emis_overr_day
-!!    else
-        xday=dayOfYear
-!!    endif
+      !! xday is used by multiple sources below
+      xday=dayOfYear
+      !!
 #ifdef TRACERS_SPECIAL_Shindell
 C**** Next line for fastj photon fluxes to vary with time:
       if(rad_FL.gt.0) call READ_FL(end_of_day)
@@ -8374,9 +8372,29 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
         call read_aero(so2_offline,'SO2_FIELD') !not applied directly to tracer
       endif
 #endif /* TRACERS_SPECIAL_Shindell */
+
 #ifdef CUBED_SPHERE
-      call get_aircraft_tracer(year,xday,daily_gz,.true.)
+      ! Currently, for the cubed sphere case, the aircraft sources
+      ! are applied each time step but only updated daily here:
+      ! Thus the logical argument .true. to read from disk and distribute:
+#ifdef TRACERS_SPECIAL_Shindell
+      call get_aircraft_tracer
+    & (n_NOx,'NOx_AIRC',year,xday,daily_gz,.true.)
 #endif
+#ifdef TRACERS_AEROSOLS_Koch
+      call get_aircraft_tracer
+    & (n_BCIA,'BCIA_AIRC',year,xday,daily_gz,.true.)
+#endif
+#ifdef TRACERS_AMP
+      call get_aircraft_tracer
+    & (n_M_BC1_BC,'M_BC1_BC_AIRC',year,xday,daily_gz,.true.)
+#endif
+#ifdef TRACERS_TOMAS
+      call get_aircraft_tracer
+    & (n_AECOB(1),'AECOB_01_AIRC',year,xday,daily_gz,.true.)
+#endif
+#endif /* CUBED_SPHERE */
+
 #if defined DYNAMIC_BIOMASS_BURNING && defined ANTHROPOGENIC_FIRE_MODEL
       trans_emis_overr_yr=ABS(o3_yr) ! note: for now, ignores aer_int_yr
       if(trans_emis_overr_yr > 0)then
@@ -9979,42 +9997,64 @@ c
       call overwrite_GLT
       call apply_tracer_3Dsource(1,n_GLT)
 #endif
-      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_NOx)  = 0.d0
 #endif /* TRACERS_SPECIAL_Shindell */
-#ifdef TRACERS_AEROSOLS_Koch
-      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_BCIA)  = 0.d0
-#endif
-#ifdef TRACERS_TOMAS
-      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_AECOB(1))  = 0.d0
-#endif
-#ifdef TRACERS_AMP
-      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_M_BC1_BC)  = 0.d0
-#endif
-#if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch) ||\
-    (defined TRACERS_AMP) || (defined TRACERS_TOMAS) 
-!**** Allow overriding of transient emissions date:
-! for now, xyear is tied to o3_yr because Gavin
-! did not want a new parameter, also not allowing
-! day overriding yet, because of that.
-!!    if(trans_emis_overr_day > 0)then
-!!      xday=trans_emis_overr_day
-!!    else
-        xday=dayOfYear
-!!    endif
-#ifdef CUBED_SPHERE
-      call get_aircraft_tracer(year,xday,dummy3d,.false.)
-#else
-      call get_aircraft_tracer(year,xday,phi,.true.) ! read from disk
-#endif
-#endif
-#ifdef TRACERS_AEROSOLS_Koch
-      call apply_tracer_3Dsource(nAircraft,n_BCIA)
-#endif
-#ifdef TRACERS_AMP
-      call apply_tracer_3Dsource(nAircraft,n_M_BC1_BC)
-#endif
+
+! Work on Aircraft Sources Here:
+
 #ifdef TRACERS_SPECIAL_Shindell
+      xday=dayOfYear
+      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_NOx)  = 0.d0
+#ifdef CUBED_SPHERE
+      call get_aircraft_tracer ! logical read from disk
+    & (n_NOx,'NOx_AIRC',year,xday,dummy3d,.false.)
+#else
+      call get_aircraft_tracer(n_NOx,'NOx_AIRC',year,xday,phi,.true.)
+#endif
       call apply_tracer_3Dsource(nAircraft,n_NOx)
+#endif /* TRACERS_SPECIAL_Shindell */
+
+#ifdef TRACERS_AEROSOLS_Koch
+      xday=dayOfYear
+      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_BCIA)  = 0.d0
+#ifdef CUBED_SPHERE
+      call get_aircraft_tracer ! logical read from disk
+    & (n_BCIA,'BCIA_AIRC',year,xday,dummy3d,.false.)
+#else
+      call get_aircraft_tracer(n_BCIA,'BCIA_AIRC',year,xday,phi,.true.)
+#endif
+      call apply_tracer_3Dsource(nAircraft,n_BCIA)
+#endif /* TRACERS_AEROSOLS_Koch */
+
+#ifdef TRACERS_AMP
+      xday=dayOfYear
+      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_M_BC1_BC)  = 0.d0
+#ifdef CUBED_SPHERE
+      call get_aircraft_tracer ! logical read from disk
+    & (n_M_BC1_BC,'M_BC1_BC_AIRC',year,xday,dummy3d,.false.)
+#else
+      call get_aircraft_tracer
+    & (n_M_BC1_BC,'M_BC1_BC_AIRC',year,xday,phi,.true.)
+#endif
+      call apply_tracer_3Dsource(nAircraft,n_M_BC1_BC)
+#endif /* TRACERS_AMP */
+
+#ifdef TRACERS_TOMAS
+      xday=dayOfYear
+      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_AECOB(1))  = 0.d0
+#ifdef CUBED_SPHERE
+      call get_aircraft_tracer ! logical read from disk
+    & (n_AECOB(1),'AECOB_01_AIRC',year,xday,dummy3d,.false.)
+#else
+      call get_aircraft_tracer
+    & (n_AECOB(1),'AECOB_01_AIRC',year,xday,phi,.true.)
+#endif
+      ! TOMAS Applies its aircraft source in its own section below
+#endif /* TRACERS_TOMAS */
+
+
+! Done with Aircraft Source Defining
+
+#ifdef TRACERS_SPECIAL_Shindell
       tr3Dsource(I_0:I_1,J_0:J_1,:,nOther,n_NOx) = 0.d0
       call get_lightning_NOx
       call apply_tracer_3Dsource(nOther,n_NOx)

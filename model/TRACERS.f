@@ -2496,42 +2496,27 @@ C
 #if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch) ||\
     (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
 
-      SUBROUTINE get_aircraft_tracer(year,xday,phi,need_read)
+      subroutine get_aircraft_tracer
+     & (nTracer,fileName,year,xday,phi,need_read)
 !@sum  get_aircraft_tracer to define the 3D source of tracers from aircraft
 !@auth Drew Shindell? / Greg Faluvegi / Jean Learner
-!@ver  2.0 (based on DB396Tds3M23 -- adapted for AR5 emissions)
-      USE RESOLUTION, only : im,jm
-      USE RESOLUTION, only : lm
+      use RESOLUTION, only : im,jm,lm
       use model_com, only: itime, master_yr
-      use domain_decomp_atm, only: GRID
-      use domain_decomp_atm, only: getDomainBounds, write_parallel
+      use domain_decomp_atm, only: GRID,getDomainBounds,write_parallel
       use constant, only: bygrav
-      use filemanager, only: openunit,closeunit
+      use filemanager, only: openunit,closeunit,is_fbsa
       use fluxes, only: tr3Dsource
       use geom, only: axyp
-      use OldTracer_mod, only: itime_tr0,trname
-      use TRACER_COM, only: ntm_chem_beg,ntm_chem_end
+      use OldTracer_mod, only: itime_tr0
+      use TRACER_COM, only: ntm_chem_beg,ntm_chem_end,nAircraft
       use TRACER_COM, only: trans_emis_overr_yr
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) || \
     (defined TRACERS_TOMAS)
       use TRACER_COM, only: aer_int_yr
 #endif
-
-#ifdef TRACERS_SPECIAL_Shindell
-      use TRACER_COM, only: n_NOx
-#endif
-#ifdef TRACERS_AEROSOLS_Koch
-      use TRACER_COM, only: n_BCIA
-#endif
-#ifdef TRACERS_TOMAS
-      use TRACER_COM, only: n_AECOB
-#endif
-#ifdef TRACERS_AMP
-          use TRACER_COM, only: n_M_BC1_BC
-#endif
-      use TRACER_COM, only: nAircraft
       use Dictionary_mod, only: is_set_param, get_param
-      USE RAD_COM, only: o3_yr
+      use RAD_COM, only: o3_yr
+
       IMPLICIT NONE
  
 !@param Laircr the number of layers of aircraft data read from file
@@ -2543,55 +2528,26 @@ C
       real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
      &     :: airtracer
-
-      integer, intent(IN) :: year,xday
+!@var fileName the name of the aircraft source file for this tracer
+      character*80, intent(IN) :: fileName
+!@var nTracer the index of the tracer in current call in ntm arrays
+!@+   for example n_NOx or n_M_BC1_BC
+      integer, intent(IN) :: year,xday,nTracer
       integer :: xyear
       real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),
      &     intent(IN) :: phi
       logical, intent(IN) :: need_read
 
-      character(len=300) :: out_line
-      integer, parameter :: nanns=0
-#if (defined TRACERS_SPECIAL_Shindell) && \
-    ((defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
-     (defined TRACERS_TOMAS))
-      integer, parameter :: nmons=2
-#else /* Shindell only, or aerosol only */
-      integer, parameter :: nmons=1
-#endif
-      integer :: mon_units
-      integer l,i,j,k,ll
-      character*13, dimension(nmons) :: 
-#if (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AEROSOLS_Koch)
-     *  mon_files=(/'NOx_AIRC     ','BCIA_AIRC    '/)
-#elif (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AMP)
-     *  mon_files=(/'NOx_AIRC     ','M_BC1_BC_AIRC'/)
-#elif (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_TOMAS)
-     *  mon_files=(/'NOx_AIRC     ','AECOB_01_AIRC'/)
-#elif (defined TRACERS_SPECIAL_Shindell)
-     *  mon_files=(/'NOx_AIRC     '/)
-#elif (defined TRACERS_AEROSOLS_Koch)
-     *  mon_files=(/'BCIA_AIRC    '/)
-#elif (defined TRACERS_AMP)
-     *  mon_files=(/'M_BC1_BC_AIRC'/)
-#elif (defined TRACERS_TOMAS)
-     *  mon_files=(/'AECOB_01_AIRC'/)
-#endif
+      integer :: fileUnit 
+      integer L,i,j,k,LL
 
-      integer, dimension(nmons) :: mon_tracers ! define them later
-#if (defined TRACERS_SPECIAL_Shindell) && \
-    ((defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
-     (defined TRACERS_TOMAS))
-      logical, dimension(nmons) :: mon_bins=(/.true.,.true./) ! binary file?
-#else /* this is for Shindell only or aerosol only */
-      logical, dimension(nmons) :: mon_bins=(/.true./) ! binary file?
-#endif
+!@var src holds the tracer source returned from actual reading routine
       real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO
      *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,Laircr):: src
 !@var zmod approx. geometric height at model layer(m), phi/grav
-      real*8, dimension(LM)                :: zmod
-!@var zairL heights of AR5 aircraft emissions (km)
+      real*8, dimension(LM) :: zmod
+!@var zairL heights of CMIP5,CMIP6 aircraft emissions (km)
       real*4, parameter, dimension(Laircr) :: zairL = ! alt in km:
      & (/0.305, 0.915, 1.525, 2.135, 2.745, 3.355, 3.965, 4.575, 5.185,
      & 5.795, 6.405, 7.015, 7.625, 8.235001, 8.845, 9.455001, 10.065,
@@ -2603,94 +2559,63 @@ C
 ! Aircraft tracer source input is monthly, on 25 levels.
 ! Read it in here and interpolated each day.
 
-      if (is_set_param("aircraft_Tyr1")) then
-        call get_param("aircraft_Tyr1",aircraft_Tyr1)
-      else
-        if (master_yr == 0) then
-          call stop_model("Please provide aircraft_Tyr1 via the "//
-     .                    "rundeck", 255)
+      if (is_fbsa(fileName)) then
+        if (is_set_param("aircraft_Tyr1")) then
+          call get_param("aircraft_Tyr1",aircraft_Tyr1)
         else
-          aircraft_Tyr1=master_yr
-        endif
-      endif
-      if (is_set_param("aircraft_Tyr2")) then
-        call get_param("aircraft_Tyr2",aircraft_Tyr2)
-      else
-        if (master_yr == 0) then
-          call stop_model("Please provide aircraft_Tyr2 via the "//
-     .                    "rundeck", 255)
+          call stop_model("Must provide aircraft_Tyr1 via rundeck",255)
+        end if
+        if (is_set_param("aircraft_Tyr2")) then
+          call get_param("aircraft_Tyr2",aircraft_Tyr2)
         else
-          aircraft_Tyr2=master_yr
-        endif
-      endif
-
-#if (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AEROSOLS_Koch)
-      mon_tracers(1)=n_NOx
-      mon_tracers(2)=n_BCIA
-#elif (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_TOMAS)
-      mon_tracers(1)=n_NOx
-      mon_tracers(2)=n_AECOB(1)
-#elif (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AMP)
-      mon_tracers(1)=n_NOx
-      mon_tracers(2)=n_M_BC1_BC
-#elif (defined TRACERS_SPECIAL_Shindell)
-      mon_tracers(1)=n_NOx
-#elif (defined TRACERS_AEROSOLS_Koch)
-      mon_tracers(1)=n_BCIA
-#elif (defined TRACERS_AMP)
-      mon_tracers(1)=n_M_BC1_BC
-#elif (defined TRACERS_TOMAS)
-      mon_tracers(1)=n_AECOB(1)
-#endif
-      do k=1,nmons
-        if (mon_tracers(k) == 0) then
-          call stop_model("mon_tracers(k) not defined",255)
-        endif
-        if (itime < itime_tr0(mon_tracers(k))) cycle
-        call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
-        call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1)
-
-! Monthly sources are interpolated to the current day
-! Units are KG(N)/m2/s, so no conversion is necessary:
-        if(aircraft_Tyr1==aircraft_Tyr2)then
+          call stop_model("Must provide aircraft_Tyr2 via rundeck",255)
+        end if
+        if (aircraft_Tyr1==aircraft_Tyr2) then
           trans_emis=.false.; yr1=0; yr2=0
         else
           trans_emis=.true.; yr1=aircraft_Tyr1; yr2=aircraft_Tyr2
-        endif
-
-#ifdef TRACERS_SPECIAL_Shindell
-        if ((mon_tracers(k)>=ntm_chem_beg).and.
-     &      (mon_tracers(k)<=ntm_chem_end)) then
-          trans_emis_overr_yr=ABS(o3_yr)
-          if(trans_emis_overr_yr > 0)then
-            xyear=trans_emis_overr_yr
-          else
-            xyear=year
-          endif
-        else
-#endif
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) || \
-    (defined TRACERS_TOMAS)
-          if(aer_int_yr > 0) then
-            xyear=aer_int_yr
-          else
-#endif
-            xyear=year
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) || \
-    (defined TRACERS_TOMAS)
-          endif
-#endif
-#ifdef TRACERS_SPECIAL_Shindell
         end if
+      end if
+
+      if (nTracer == 0) then
+        call stop_model("nTracer undefined in get_aircraft_tracer",255)
+      end if
+
+      if (itime < itime_tr0(nTracer)) goto 999 ! returns w/o doing source
+
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1)
+
+! Monthly sources are interpolated to the current day
+! Units are kg m-2 s-1, so no conversion is necessary:
+
+      ! Determine year of emissions to use:
+      trans_emis_overr_yr=0
+#ifdef TRACERS_SPECIAL_Shindell
+      if ((nTracer>=ntm_chem_beg).and.(nTracer<=ntm_chem_end)) then
+        trans_emis_overr_yr=ABS(o3_yr)
+      else
 #endif
-        if (trans_emis .and. xyear < 1900) return !<-- hardcode for NO AIRCRAFT before 1900
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) || \
+    (defined TRACERS_TOMAS)
+        trans_emis_overr_yr=aer_int_yr
+#else 
+        continue
+#endif
+#ifdef TRACERS_SPECIAL_Shindell
+      end if
+#endif
+      xyear=year ! default is model year but allow override:
+      if (trans_emis_overr_yr > 0) xyear=trans_emis_overr_yr
 
-        if(need_read) then
+      if (trans_emis .and. xyear < 1900) goto 999 !<-- hardcode for NO AIRCRAFT before 1900
 
-        call openunit(mon_files(k),mon_units,mon_bins(k))
-        call read_monthly_3Dsources(Laircr,mon_units,
+      if (need_read) then
+
+        call openunit(fileName,fileUnit,.true.)
+        call read_monthly_3Dsources(Laircr,fileUnit,
      &   src,trans_emis,yr1,yr2,xyear,xday)
-        call closeunit(mon_units)
+        call closeunit(fileUnit)
 
 ! Place aircraft sources onto model levels:
         airtracer = 0.d0
@@ -2698,25 +2623,26 @@ C
           do i=I_0,I_1
             zmod(:)=phi(i,j,:)*bygrav*1.d-3 ! km
             do LL=1,Laircr
-              if(src(i,j,LL) > 0.)then
-                loop_l: do L=1,LM
-                  if(zairL(LL) <= zmod(L)) then
-      airtracer(i,j,l) = airtracer(i,j,l) + src(i,j,LL)*axyp(i,j)
-                    exit loop_l
-                  endif
-                if(L==LM)call stop_model("aircraft level problem",255)
-                enddo loop_l
-              endif  ! is there a source?
-            enddo   ! LL
-          enddo    ! I
-        enddo     ! J
+              if (src(i,j,LL) > 0.) then
+                loop_L: do L=1,LM
+                  if (zairL(LL) <= zmod(L)) then
+                    airtracer(i,j,L) = airtracer(i,j,L) +
+     &                                 src(i,j,LL)*axyp(i,j)
+                    exit loop_L
+                  end if
+                  if(L==LM)call stop_model("aircraft lev. problem",255)
+                end do loop_L
+              end if ! is there a source?
+            end do ! LL aircraft levels
+          end do ! I
+        end do ! J
 
-        endif                     ! need_read?
+      end if ! read was needed
 
-        tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,mon_tracers(k)) =
-     &    airtracer(I_0:I_1,J_0:J_1,:)
-      enddo ! k
+      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,nTracer) =
+     & airtracer(I_0:I_1,J_0:J_1,:)
 
+999   continue
       return
       end subroutine get_aircraft_tracer
  
