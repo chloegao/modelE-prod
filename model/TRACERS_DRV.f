@@ -8379,19 +8379,19 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
       ! Thus the logical argument .true. to read from disk and distribute:
 #ifdef TRACERS_SPECIAL_Shindell
       call get_aircraft_tracer
-    & (n_NOx,'NOx_AIRC',year,xday,daily_gz,.true.)
+     & (n_NOx,'NOx_AIRC',year,xday,daily_gz,.true.)
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
       call get_aircraft_tracer
-    & (n_BCIA,'BCIA_AIRC',year,xday,daily_gz,.true.)
+     & (n_BCIA,'BCIA_AIRC',year,xday,daily_gz,.true.)
 #endif
 #ifdef TRACERS_AMP
       call get_aircraft_tracer
-    & (n_M_BC1_BC,'M_BC1_BC_AIRC',year,xday,daily_gz,.true.)
+     & (n_M_BC1_BC,'M_BC1_BC_AIRC',year,xday,daily_gz,.true.)
 #endif
 #ifdef TRACERS_TOMAS
       call get_aircraft_tracer
-    & (n_AECOB(1),'AECOB_01_AIRC',year,xday,daily_gz,.true.)
+     & (n_AECOB(1),'AECOB_01_AIRC',year,xday,daily_gz,.true.)
 #endif
 #endif /* CUBED_SPHERE */
 
@@ -10006,7 +10006,7 @@ c
       tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_NOx)  = 0.d0
 #ifdef CUBED_SPHERE
       call get_aircraft_tracer ! logical read from disk
-    & (n_NOx,'NOx_AIRC',year,xday,dummy3d,.false.)
+     & (n_NOx,'NOx_AIRC',year,xday,dummy3d,.false.)
 #else
       call get_aircraft_tracer(n_NOx,'NOx_AIRC',year,xday,phi,.true.)
 #endif
@@ -10018,7 +10018,7 @@ c
       tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_BCIA)  = 0.d0
 #ifdef CUBED_SPHERE
       call get_aircraft_tracer ! logical read from disk
-    & (n_BCIA,'BCIA_AIRC',year,xday,dummy3d,.false.)
+     & (n_BCIA,'BCIA_AIRC',year,xday,dummy3d,.false.)
 #else
       call get_aircraft_tracer(n_BCIA,'BCIA_AIRC',year,xday,phi,.true.)
 #endif
@@ -10030,10 +10030,10 @@ c
       tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_M_BC1_BC)  = 0.d0
 #ifdef CUBED_SPHERE
       call get_aircraft_tracer ! logical read from disk
-    & (n_M_BC1_BC,'M_BC1_BC_AIRC',year,xday,dummy3d,.false.)
+     & (n_M_BC1_BC,'M_BC1_BC_AIRC',year,xday,dummy3d,.false.)
 #else
       call get_aircraft_tracer
-    & (n_M_BC1_BC,'M_BC1_BC_AIRC',year,xday,phi,.true.)
+     & (n_M_BC1_BC,'M_BC1_BC_AIRC',year,xday,phi,.true.)
 #endif
       call apply_tracer_3Dsource(nAircraft,n_M_BC1_BC)
 #endif /* TRACERS_AMP */
@@ -10043,10 +10043,10 @@ c
       tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_AECOB(1))  = 0.d0
 #ifdef CUBED_SPHERE
       call get_aircraft_tracer ! logical read from disk
-    & (n_AECOB(1),'AECOB_01_AIRC',year,xday,dummy3d,.false.)
+     & (n_AECOB(1),'AECOB_01_AIRC',year,xday,dummy3d,.false.)
 #else
       call get_aircraft_tracer
-    & (n_AECOB(1),'AECOB_01_AIRC',year,xday,phi,.true.)
+     & (n_AECOB(1),'AECOB_01_AIRC',year,xday,phi,.true.)
 #endif
       ! TOMAS Applies its aircraft source in its own section below
 #endif /* TRACERS_TOMAS */
