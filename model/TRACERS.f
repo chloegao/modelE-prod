@@ -2529,7 +2529,7 @@ C
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
      &     :: airtracer
 !@var fileName the name of the aircraft source file for this tracer
-      character*80, intent(IN) :: fileName
+      character(len=*), intent(IN) :: fileName
 !@var nTracer the index of the tracer in current call in ntm arrays
 !@+   for example n_NOx or n_M_BC1_BC
       integer, intent(IN) :: year,xday,nTracer
