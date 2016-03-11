@@ -35,8 +35,7 @@ module AmpTracersMetadata_mod
     n_M_MXX_SU,n_M_MXX_BC,n_M_MXX_OC,n_M_MXX_DU, &
     n_M_MXX_SS,n_N_MXX_1 ,n_M_OCS_SU,n_M_OCS_OC, &
     n_N_OCS_1,n_M_SSS_SS,n_M_SSS_SU,             &
-    n_H2SO4, n_N_SSA_1, n_N_SSC_1,               &  
-    n_H2O2, n_NH3,  n_NH4, n_H2SO4, n_DMS, n_SO2, n_H2O2_s
+    n_H2SO4, n_N_SSA_1, n_N_SSC_1
   use RunTimeControls_mod, only: &
     tracers_nitrate, tracers_aerosols_koch, tracers_aerosols_seasalt, &
     tracers_amp_m1, tracers_amp_m2,         &

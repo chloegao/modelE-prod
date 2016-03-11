@@ -20,7 +20,7 @@ module KochTracersMetadata_mod
   use OldTracer_mod, only: set_tr_DHD
   use OldTracer_mod, only: set_emisPerFireByVegType
   use OldTracer_mod, only: tr_RKD 
-  use TRACER_COM, only:  n_MSA, n_SO2,  n_SO4, n_DMS, &
+  use TRACER_COM, only:  n_MSA, n_SO4, n_DMS, &
     n_BCII,  n_BCIA,  n_BCB, n_OCII,  n_OCIA,  n_OCB, n_H2O2_s
   use TRACER_COM, only: n_vbsGm2, n_vbsGm1, n_vbsGz,  n_vbsGp1, n_vbsGp2, &
                         n_vbsGp3, n_vbsGp4, n_vbsGp5, n_vbsGp6, &

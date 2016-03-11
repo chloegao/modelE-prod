@@ -27,7 +27,7 @@ module sharedTracersMetadata_mod
   use OldTracer_mod, only: ngas, nPART
   use OldTracer_mod, only: set_emisPerFireByVegType
   use TRACER_COM, only : set_ntsurfsrc, whichEPFCs
-  use TRACER_COM, only: n_H2O2, n_NH3,  n_NH4, n_H2SO4, n_DMS, n_SO2, n_H2O2_s, &
+  use TRACER_COM, only: n_H2O2, n_NH3,  n_NH4, n_DMS, n_SO2, n_H2O2_s, &
     n_CH4, n_N2O, n_Rn222
   use Dictionary_mod, only: sync_param
   use RunTimeControls_mod, only: tracers_drydep

@@ -1764,7 +1764,7 @@ C Bulk species
 
       USE TRACER_COM, only : nbins,xk,ntm,trm,trmom,ntsurfsrc,
      &     n_ASO4,n_ANACL,n_AECOB,n_AECIL,n_AOCOB,
-     &     n_AOCIL,n_ADUST,n_ANUM,n_SO2,n_AH2O
+     &     n_AOCIL,n_ADUST,n_ANUM,n_AH2O
  
       IMPLICIT NONE
 
