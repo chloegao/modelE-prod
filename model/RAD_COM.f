@@ -968,14 +968,12 @@ C**** Local variables initialised in init_RAD
         call read_dist_data(grid,fid,'aerAbs6SaveInst',aerAbs6SaveInst)
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
-        if (nraero > 0) then
-          if (.not.allocated(ttausv_nraero)) then
-            call read_data(grid,fid,'nraero',nraero_rsf,
-     &                     bcast_all=.true.)
-            allocate(ttausv_nraero(I_0H:I_1H,J_0H:J_1H,lm,nraero_rsf))
-          endif
-          call read_dist_data(grid,fid,'ttausv_nraero',ttausv_nraero)
+        if (.not.allocated(ttausv_nraero)) then
+          call read_data(grid,fid,'nraero',nraero_rsf,
+     &                   bcast_all=.true.)
+          allocate(ttausv_nraero(I_0H:I_1H,J_0H:J_1H,lm,nraero_rsf))
         endif
+        call read_dist_data(grid,fid,'ttausv_nraero',ttausv_nraero)
 #endif
       end select
       return
