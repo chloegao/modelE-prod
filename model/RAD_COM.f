@@ -971,9 +971,13 @@ C**** Local variables initialised in init_RAD
         if (.not.allocated(ttausv_nraero)) then
           call read_data(grid,fid,'nraero',nraero_rsf,
      &                   bcast_all=.true.)
-          allocate(ttausv_nraero(I_0H:I_1H,J_0H:J_1H,lm,nraero_rsf))
+          if (nraero_rsf /= 0) then
+            allocate(ttausv_nraero(I_0H:I_1H,J_0H:J_1H,lm,nraero_rsf))
+          endif
         endif
-        call read_dist_data(grid,fid,'ttausv_nraero',ttausv_nraero)
+        if (allocated(ttausv_nraero)) then ! needs to be separate from previous if
+          call read_dist_data(grid,fid,'ttausv_nraero',ttausv_nraero)
+        endif
 #endif
       end select
       return
