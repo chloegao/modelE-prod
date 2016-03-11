@@ -128,7 +128,7 @@ madaer=3         ! 3: updated aerosols          ; 1: default sulfates/aerosols
 
 #include "aerosol_36x24_params"
 
-#include "dust_params"
+#include "dust_params_vmp_oma"
 #include "chemistry_36x24_params"
 
 DTsrc=1800.      ! cannot be changed after a run has been started
