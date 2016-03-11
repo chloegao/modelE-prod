@@ -163,7 +163,7 @@ C**** GLOBAL parameters and variables:
       USE TRACER_COM, only : n_CH4,n_HNO3,n_CH3OOH,n_H2O2,n_HCHO,
      &                       n_Paraffin,n_Alkenes,n_Isoprene,n_AlkylNit,
      &                       n_Terpenes,
-     &                       rsulf1,rsulf2,rsulf4,n_SO2,n_DMS,
+     &                       rsulf1,rsulf2,rsulf4,
      &                       n_HBr,n_HOCl,n_HCl
 
       USE TRACER_COM, only : nn_CH4,nn_HNO3,nn_CH3OOH,nn_H2O2,nn_HCHO,

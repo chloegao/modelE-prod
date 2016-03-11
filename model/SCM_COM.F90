@@ -225,9 +225,6 @@
       call get_param('SCM_shf',SCMin%shf)
       call get_param('SCM_lhf',SCMin%lhf)
     endif
-  else
-    if( is_set_param('SCM_ustar') ) &
-      call stop_model('alloc_SCM_COM: redundant ustar values',255)
   endif
 
   ! land surface currently requires specified heat fluxes, and ocean

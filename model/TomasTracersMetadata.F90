@@ -31,9 +31,7 @@ module TomasTracersMetadata_mod
   use OldTracer_mod, only: tr_RKD      
   use TRACER_COM, only: offline_dms_ss, offline_ss
   use TRACER_COM, only: xk, nbins
-  use TRACER_COM, only: n_H2O2, n_NH3,  n_NH4, n_H2SO4
-  use TRACER_COM, only: n_DMS, n_SO2, n_H2O2_s
-  use TRACER_COM, only: n_ASO4, n_ANACL, n_AECOB, n_AECIL, n_AECOB, &
+  use TRACER_COM, only: n_NH4, n_H2SO4
     n_AOCIL, n_ADUST, n_ANUM, n_AOCOB, n_AH2O, n_SOAgas
   use TRACER_COM, only: set_ntsurfsrc
   use TOMAS_AEROSOL, only : binact10, binact02, fraction10, fraction02
