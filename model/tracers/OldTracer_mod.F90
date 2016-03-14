@@ -57,6 +57,7 @@ public :: set_dodrydep, dodrydep
 public :: set_F0, F0 
 public :: set_HSTAR, HSTAR 
 public :: set_do_fire, do_fire 
+public :: set_do_aircraft, do_aircraft
 public :: set_nBBsources, nBBsources 
 public :: set_emisPerFireByVegType, emisPerFireByVegType 
 public :: set_trpdens, trpdens 
@@ -150,6 +151,11 @@ interface do_fire
 module procedure do_fire_s
 module procedure do_fire_all
    module procedure do_fire_m
+end interface
+interface do_aircraft
+module procedure do_aircraft_s
+module procedure do_aircraft_all
+   module procedure do_aircraft_m
 end interface
 interface nBBsources
 module procedure nBBsources_s
@@ -307,6 +313,8 @@ end interface
     real*8 :: HSTAR = 0.d0 
 !@var do_fire: true if tracer should have emissions via flammability
     logical :: do_fire = .false. 
+!@var do_aircraft: true if tracer should have emissions via aircraft
+    logical :: do_aircraft = .false. 
 !@var nBBsources: number of sources attributed to biomass burning
     integer :: nBBsources = 0 
 !@var emisPerFireByVegType: emisPerFireByVegType tracer emissions per fire count as a
@@ -985,6 +993,43 @@ contains
     logical :: do_fire_m(size(oldIndices))
     do_fire_m = internalTracers(oldIndices(:))%do_fire
   end function do_fire_m
+
+
+
+  subroutine set_do_aircraft(oldIndex, value)
+   use Attributes_mod
+    integer, intent(in) :: oldIndex
+    logical, intent(in) :: value
+    internalTracers(oldIndex)%do_aircraft = value
+    call tracerReference%setAttribute(trName(oldIndex), "do_aircraft", newAttribute(value))
+  end subroutine set_do_aircraft
+
+  function do_aircraft_s(oldIndex)
+    use GenericType_mod
+    integer, intent(in) :: oldIndex
+    type (Tracer), pointer :: p
+    logical :: do_aircraft_s
+#ifdef NEW_TRACER_PROPERTIES
+    do_aircraft_s = tracerReference%getProperty(trName(oldIndex), "do_aircraft")
+#else
+#ifdef MIXED_TRACER_PROPERTIES
+    do_aircraft_s = tracerReference%internalTracers(oldIndex)%getProperty("do_aircraft")
+#else
+    do_aircraft_s = internalTracers(oldIndex)%do_aircraft
+#endif
+#endif
+  end function do_aircraft_s
+
+  function do_aircraft_all()
+    logical :: do_aircraft_all(size(internalTracers))
+    do_aircraft_all = internalTracers(:)%do_aircraft
+  end function do_aircraft_all
+
+  function do_aircraft_m(oldIndices)
+    integer, intent(in) :: oldIndices(:)
+    logical :: do_aircraft_m(size(oldIndices))
+    do_aircraft_m = internalTracers(oldIndices(:))%do_aircraft
+  end function do_aircraft_m
 
 
 

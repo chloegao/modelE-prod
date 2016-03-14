@@ -23,6 +23,7 @@ C
       use OldTracer_mod, only: F0
       use OldTracer_mod, only: HSTAR
       use OldTracer_mod, only: do_fire
+      use OldTracer_mod, only: do_aircraft
       use OldTracer_mod, only: nBBsources
       use OldTracer_mod, only: emisPerFireByVegType
       use OldTracer_mod, only: trpdens
@@ -656,6 +657,7 @@ c note: not applying CPP when declaring counts/lists.
       call tracers%addDefaultValue('F0', 0.0d0)
       call tracers%addDefaultValue('HSTAR', 0.0d0)
       call tracers%addDefaultValue('do_fire', .false.)
+      call tracers%addDefaultValue('do_aircraft', .false.)
       call tracers%addDefaultValue('nBBsources', 0)
 
       call tracers%addDefaultValue('trradius', 0.0d0)

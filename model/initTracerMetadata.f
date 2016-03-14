@@ -5,8 +5,8 @@
       use Dictionary_mod, only: sync_param
       use RunTimeControls_mod, only: tracers_amp
       use RunTimeControls_mod, only: tracers_tomas
-      use OldTracer_mod, only: trName, do_fire
-      use OldTracer_mod, only: set_do_fire
+      use OldTracer_mod, only: trName, do_fire, do_aircraft
+      use OldTracer_mod, only: set_do_fire, set_do_aircraft
       use OldTracer_mod, only: nBBsources, set_nBBsources
       use DOMAIN_DECOMP_ATM, only: am_i_root
       use TRACER_COM, only: tracers
@@ -24,7 +24,7 @@
       integer, intent(in) :: n
       class (Tracer), pointer :: pTracer
 
-      logical :: checkSourceName
+      logical :: checkSourceName,hasAircraftFile
       integer :: val
 
       call pTracer%insert('ntSurfSrc', 0)
@@ -50,6 +50,10 @@
 
       call findSurfaceSources(pTracer, checkSourceName, 
      &     sect_name(1:num_sectors))
+
+!     Next, check whether tracers have 3D aircraft source files:
+      inquire(file=trim(trname(n)//'_AIRC'), exist=hasAircraftFile)
+      if(hasAircraftFile)call set_do_aircraft(n, .true.)
 
 #ifdef DYNAMIC_BIOMASS_BURNING
 !     allow some tracers to have biomass burning based on fire model:

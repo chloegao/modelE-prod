@@ -8164,7 +8164,7 @@ C**** Note this routine must always exist (but can be a dummy routine)
       USE CONSTANT, only: grav
       use TimeConstants_mod, only: SECONDS_PER_DAY
       use OldTracer_mod, only: trname, itime_tr0, MAX_LEN_NAME
-      use OldTracer_mod, only: nBBsources, do_fire, vol2mass
+      use OldTracer_mod, only: nBBsources,do_fire,vol2mass,do_aircraft
       use TRACER_COM, only: tracers, set_ntsurfsrc
       USE TRACER_COM, only: coupled_chem,daily_z
       USE TRACER_COM, only: n_CO2n
@@ -8378,19 +8378,19 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
       ! are applied each time step but only updated daily here:
       ! Thus the logical argument .true. to read from disk and distribute:
 #ifdef TRACERS_SPECIAL_Shindell
-      call get_aircraft_tracer
+      if(do_aircraft(n_NOx)) call get_aircraft_tracer
      & (n_NOx,'NOx_AIRC',year,xday,daily_gz,.true.)
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
-      call get_aircraft_tracer
+      if(do_aircraft(n_BCIA)) call get_aircraft_tracer
      & (n_BCIA,'BCIA_AIRC',year,xday,daily_gz,.true.)
 #endif
 #ifdef TRACERS_AMP
-      call get_aircraft_tracer
+      if(do_aircraft(n_M_BC1_BC)) call get_aircraft_tracer
      & (n_M_BC1_BC,'M_BC1_BC_AIRC',year,xday,daily_gz,.true.)
 #endif
 #ifdef TRACERS_TOMAS
-      call get_aircraft_tracer
+      if(do_aircraft(n_AECOB(1))) call get_aircraft_tracer
      & (n_AECOB(1),'AECOB_01_AIRC',year,xday,daily_gz,.true.)
 #endif
 #endif /* CUBED_SPHERE */
@@ -9571,7 +9571,7 @@ c latlon grid
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, 
      & write_parallel,AM_I_ROOT
       use RESOLUTION, only: LM
-c$$$      use OldTracer_mod, only: itime_tr0, do_fire, trname
+c$$$      use OldTracer_mod, only: itime_tr0, do_fire, trname, do_aircraft
 c$$$      use OldTracer_mod, only: tr_mm, nBBsources, mass2vol
       use OldTracer_mod
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
@@ -10002,53 +10002,62 @@ c
 ! Work on Aircraft Sources Here:
 
 #ifdef TRACERS_SPECIAL_Shindell
-      xday=dayOfYear
-      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_NOx)  = 0.d0
+      if(do_aircraft(n_NOx)) then
+        xday=dayOfYear
+        tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_NOx)  = 0.d0
 #ifdef CUBED_SPHERE
-      call get_aircraft_tracer ! logical read from disk
-     & (n_NOx,'NOx_AIRC',year,xday,dummy3d,.false.)
+        call get_aircraft_tracer ! logical read from disk
+     &  (n_NOx,'NOx_AIRC',year,xday,dummy3d,.false.)
 #else
-      call get_aircraft_tracer(n_NOx,'NOx_AIRC',year,xday,phi,.true.)
+        call get_aircraft_tracer(n_NOx,'NOx_AIRC',year,xday,phi,.true.)
 #endif
-      call apply_tracer_3Dsource(nAircraft,n_NOx)
+        call apply_tracer_3Dsource(nAircraft,n_NOx)
+      end if
 #endif /* TRACERS_SPECIAL_Shindell */
 
 #ifdef TRACERS_AEROSOLS_Koch
-      xday=dayOfYear
-      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_BCIA)  = 0.d0
+      if(do_aircraft(n_BCIA)) then
+        xday=dayOfYear
+        tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_BCIA)  = 0.d0
 #ifdef CUBED_SPHERE
-      call get_aircraft_tracer ! logical read from disk
-     & (n_BCIA,'BCIA_AIRC',year,xday,dummy3d,.false.)
+        call get_aircraft_tracer ! logical read from disk
+     &  (n_BCIA,'BCIA_AIRC',year,xday,dummy3d,.false.)
 #else
-      call get_aircraft_tracer(n_BCIA,'BCIA_AIRC',year,xday,phi,.true.)
+        call get_aircraft_tracer
+     &  (n_BCIA,'BCIA_AIRC',year,xday,phi,.true.)
 #endif
-      call apply_tracer_3Dsource(nAircraft,n_BCIA)
+        call apply_tracer_3Dsource(nAircraft,n_BCIA)
+      end if
 #endif /* TRACERS_AEROSOLS_Koch */
 
 #ifdef TRACERS_AMP
-      xday=dayOfYear
-      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_M_BC1_BC)  = 0.d0
+      if(do_aircraft(n_M_BC1_BC)) then
+        xday=dayOfYear
+        tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_M_BC1_BC)  = 0.d0
 #ifdef CUBED_SPHERE
-      call get_aircraft_tracer ! logical read from disk
-     & (n_M_BC1_BC,'M_BC1_BC_AIRC',year,xday,dummy3d,.false.)
+        call get_aircraft_tracer ! logical read from disk
+     &  (n_M_BC1_BC,'M_BC1_BC_AIRC',year,xday,dummy3d,.false.)
 #else
-      call get_aircraft_tracer
-     & (n_M_BC1_BC,'M_BC1_BC_AIRC',year,xday,phi,.true.)
+        call get_aircraft_tracer
+     &  (n_M_BC1_BC,'M_BC1_BC_AIRC',year,xday,phi,.true.)
 #endif
-      call apply_tracer_3Dsource(nAircraft,n_M_BC1_BC)
+        call apply_tracer_3Dsource(nAircraft,n_M_BC1_BC)
+      end if
 #endif /* TRACERS_AMP */
 
 #ifdef TRACERS_TOMAS
-      xday=dayOfYear
-      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_AECOB(1))  = 0.d0
+      if(do_aircraft(n_AECOB(1))) then
+        xday=dayOfYear
+        tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_AECOB(1))  = 0.d0
 #ifdef CUBED_SPHERE
-      call get_aircraft_tracer ! logical read from disk
-     & (n_AECOB(1),'AECOB_01_AIRC',year,xday,dummy3d,.false.)
+        call get_aircraft_tracer ! logical read from disk
+     &  (n_AECOB(1),'AECOB_01_AIRC',year,xday,dummy3d,.false.)
 #else
-      call get_aircraft_tracer
-     & (n_AECOB(1),'AECOB_01_AIRC',year,xday,phi,.true.)
+        call get_aircraft_tracer
+     &  (n_AECOB(1),'AECOB_01_AIRC',year,xday,phi,.true.)
 #endif
-      ! TOMAS Applies its aircraft source in its own section below
+        ! TOMAS Applies its aircraft source in its own section below
+      end if
 #endif /* TRACERS_TOMAS */
 
 
@@ -10149,11 +10158,19 @@ C**** Apply chemistry and overwrite changes:
      &        tr3Dsource(:,J_0:J_1,:,nBiomass,n_AECOB(1))
      &        *scalesizeCARBO100(kk)
 c$$$  
-         TOMAS_air(:,J_0:J_1,:,kk)=
+       enddo
+       if(do_aircraft(n_AECOB(1)))then
+         do kk=1,nbins
+           TOMAS_air(:,J_0:J_1,:,kk)=
      &        tr3Dsource(:,J_0:J_1,:,nAircraft,n_AECOB(1))
      &        *scalesizeCARBO30(kk)            
-       enddo
+
+         enddo
+       endif
        
+       !TODO: once reproducibility is determined, pull these
+       ! if's out of the k loop and do a second conditional
+       ! k-loop instead:
        do k=1,nbins
          
          tr3Dsource(:,J_0:J_1,:,nBiomass,n_AECOB(1)+k-1)=
@@ -10164,17 +10181,21 @@ c$$$
          tr3Dsource(:,J_0:J_1,:,nAircraft,n_AECOB(1)+k-1)=
      *        TOMAS_air(:,J_0:J_1,:,k)*0.8
          
-         tr3Dsource(:,J_0:J_1,:,nAircraft,n_AECIL(1)+k-1)=
+         if(do_aircraft(n_AECOB(1)))
+           tr3Dsource(:,J_0:J_1,:,nAircraft,n_AECIL(1)+k-1)=
      *        TOMAS_air(:,J_0:J_1,:,k)*0.2
          
-         tr3Dsource(:,J_0:J_1,:,2,n_ANUM(1)+k-1)=
+           tr3Dsource(:,J_0:J_1,:,2,n_ANUM(1)+k-1)=
      &        (TOMAS_bio(:,J_0:J_1,:,k)+TOMAS_air(:,J_0:J_1,:,k))
      &        /(sqrt(xk(k)*xk(k+1)))  
+         end if
          
          call apply_tracer_3Dsource(nBiomass, n_AECOB(1)+k-1)
-         call apply_tracer_3Dsource(nAircraft,n_AECOB(1)+k-1)
+         if(do_aircraft(n_AECOB(1)))
+     &    call apply_tracer_3Dsource(nAircraft,n_AECOB(1)+k-1)
          call apply_tracer_3Dsource(nBiomass, n_AECIL(1)+k-1)
-         call apply_tracer_3Dsource(nAircraft,n_AECIL(1)+k-1)
+         if(do_aircraft(n_AECOB(1)))
+     &    call apply_tracer_3Dsource(nAircraft,n_AECIL(1)+k-1)
          call apply_tracer_3Dsource(2,       n_ANUM(1)+k-1)
 
          call apply_tracer_3Dsource(nVolcanic,n_ASO4(1)+k-1)
