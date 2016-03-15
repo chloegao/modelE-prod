@@ -110,11 +110,6 @@ contains
       end select
     end if
 #endif
-#if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch) ||\
-    (defined TRACERS_AMP) || (defined TRACERS_TOMAS) 
-    call check_aircraft_sectors(name) ! special 3D source case
-#endif
-
   end subroutine SO2_setSpec
 
   subroutine H2O2_setSpec(name)
@@ -166,7 +161,6 @@ contains
       end select
     end if
 #endif
-
   end subroutine NH3_setSpec
 
   subroutine H2O2_s_setSpec(name)
@@ -223,7 +217,6 @@ contains
       end select
     end if
 #endif
-
     end subroutine CH4_setSpec
 
     subroutine N2O_setSpec(name)

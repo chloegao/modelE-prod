@@ -53,7 +53,10 @@
 
 !     Next, check whether tracers have 3D aircraft source files:
       inquire(file=trim(trname(n)//'_AIRC'), exist=hasAircraftFile)
-      if(hasAircraftFile)call set_do_aircraft(n, .true.)
+      if(hasAircraftFile)then
+        call set_do_aircraft(n, .true.)
+        call check_aircraft_sectors(trim(trname(n))) ! special 3D source case
+      end if
 
 #ifdef DYNAMIC_BIOMASS_BURNING
 !     allow some tracers to have biomass burning based on fire model:

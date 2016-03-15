@@ -257,7 +257,6 @@ contains
         end select
       end if
 #endif
-      call check_aircraft_sectors(name) ! special 3D source case
     end subroutine NOx_setSpec
 
     subroutine ClOx_setSpec(name)

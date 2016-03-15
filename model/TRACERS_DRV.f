@@ -27,7 +27,7 @@
       use TRACER_COM, only: nchemloss
       use TRACER_COM, only: nchemistry
       use TRACER_COM, only: nbiomass
-      use TRACER_COM, only: naircraft
+      use TRACER_COM, only: naircraft, do_aircraft
       use TRACER_COM, only: ntsurfsrc
       use TRACER_COM, only: tracers
       use TRACER_COM, only: n_SO2
@@ -248,6 +248,12 @@ C**** set some defaults
           qcon(itcon_3Dsrc(nOverwrite,N))=.true.
           conpts(g-12)='Overwrite'
           qsum(itcon_3Dsrc(nOverwrite,N)) = .true.
+          if(do_aircraft(N))then
+            g=g+1; itcon_3Dsrc(nAircraft,N) = g
+            qcon(g) = .true.
+            conpts(g-12) = 'Aircraft'
+            qsum(g) = .true.
+          end if
           do kk=1,ntsurfsrc(n)
             g=g+1; itcon_surf(kk,N) = g
             qcon(itcon_surf(kk,N))=.true.
@@ -347,16 +353,18 @@ C**** set some defaults
           conpts(g-12)='Overwrite'
           qsum(itcon_3Dsrc(nOverwrite,N)) = .true.
           select case(trim(pTracer%getName()))
-            case ('NOx')
-              g=g+1; itcon_3Dsrc(nOther,N) = g
-              qcon(itcon_3Dsrc(nOther,N)) = .true.
-              conpts(g-12) = 'Lightning'
-              qsum(itcon_3Dsrc(nOther,N)) = .true.
-              g=g+1; itcon_3Dsrc(nAircraft,N) = g
-              qcon(itcon_3Dsrc(nAircraft,N)) = .true.
-              conpts(g-12) = 'Aircraft'
-              qsum(itcon_3Dsrc(nAircraft,N)) = .true.
+          case ('NOx')
+            g=g+1; itcon_3Dsrc(nOther,N) = g
+            qcon(itcon_3Dsrc(nOther,N)) = .true.
+            conpts(g-12) = 'Lightning'
+            qsum(itcon_3Dsrc(nOther,N)) = .true.
           end select
+          if(do_aircraft(N))then
+            g=g+1; itcon_3Dsrc(nAircraft,N) = g
+            qcon(g) = .true.
+            conpts(g-12) = 'Aircraft'
+            qsum(g) = .true.
+          end if
           select case(trim(pTracer%getName()))
             case('NOx','CO',
 #ifdef TRACERS_dCO
@@ -495,9 +503,11 @@ C**** set some defaults
           g=13; itcon_3Dsrc(nVolcanic,N) = g
           qcon(g) = .true.; conpts(g-12) = 'Volcanic src'
           qsum(g) = .true.
-          g=g+1; itcon_3Dsrc(nAircraft,N) = g
-          qcon(g) = .true.; conpts(g-12) = 'Aircraft src'
-          qsum(g)=.true.
+          if(do_aircraft(N))then
+            g=g+1; itcon_3Dsrc(nAircraft,N) = g
+            qcon(g) = .true. ; conpts(g-12) = 'Aircraft src'
+            qsum(g) = .true.
+          end if
           g=g+1; itcon_3Dsrc(nBiomass,N) = g
           qcon(g) = .true.; conpts(g-12) = 'Biomass src'
           qsum(g)=.true.
@@ -606,12 +616,11 @@ C**** set some defaults
             g=g+1; itcon_3Dsrc(nChemistry,N) = g
             qcon(g) = .true.; conpts(g-12) = 'Aging source'
             qsum(g) = .true.
-            select case(trim(pTracer%getName()))
-            case ('BCIA')
+            if(do_aircraft(N))then
               g=g+1; itcon_3Dsrc(nAircraft,N) = g
-              qcon(g) = .true.; conpts(g-12) = 'Aircraft Source'
+              qcon(g) = .true. ; conpts(g-12) = 'Aircraft Source'
               qsum(g) = .true.
-            end select
+            end if
           case ('BCB', 'OCB')
             g=g+1; itcon_3Dsrc(nBiomass,N) = g
             qcon(g) = .true.; conpts(g-12) = 'Biomass src'
@@ -674,6 +683,11 @@ C**** set some defaults
             g=g+1; itcon_3Dsrc(nBiomass,N) = g
             qcon(g) = .true.; conpts(g-12) = 'Biomass src'
             qsum(g) = .true.
+            if(do_aircraft(N))then
+              g=g+1; itcon_3Dsrc(nAircraft,N) = g
+              qcon(g) = .true. ; conpts(g-12) = 'Aircraft'
+              qsum(g) = .true.
+            end if
             do kk=1,ntsurfsrc(n)
               g=g+1; itcon_surf(kk,N) = g
               qcon(itcon_surf(kk,N))=.true.
@@ -1116,9 +1130,11 @@ c     Processes TOMAS Budget
          g=g+1; itcon_3Dsrc(nBiomass,n) = g
          qcon(g) = .true.; conpts(g-12) = 'Biomass src'
          qsum(g) = .true.
-         g=g+1; itcon_3Dsrc(nAircraft,n) = g
-         qcon(g) = .true.; conpts(g-12) = 'Aircraft src'
-         qsum(g) = .true.
+         if(do_aircraft(n_AECOB(1)))then
+           g=g+1; itcon_3Dsrc(nAircraft,n) = g
+           qcon(g) = .true. ; conpts(g-12) = 'Aircraft src'
+           qsum(g) = .true.
+         end if
          g=g+1; itcon_3Dsrc(nChemistry,n) = g
          qcon(g) = .true.; conpts(g-12) = 'ECOB Aging'
          qsum(g) = .true.
@@ -1264,7 +1280,7 @@ c     - Species including TOMAS  emissions - 2D sources and 3D sources
       USE MODEL_COM, only: dtsrc
       use TRACER_COM, only: n_SO2, naircraft, nbiomass, nchemistry
       use TRACER_COM, only: nOther, nOverwrite, nVolcanic, nChemloss
-      use TRACER_COM, only: ntsurfsrc, tracers
+      use TRACER_COM, only: ntsurfsrc, tracers, do_aircraft
 #ifdef TRACERS_TOMAS
       use TRACER_COM, only: n_ANUM, n_AECOB, n_AOCOB
 #endif
@@ -1400,6 +1416,15 @@ C**** set defaults for some precip/wet-dep related diags
         jls_ltop(k) = LM
         jls_power(k) = -2
         units_jls(k) = unit_string(jls_power(k),'kg/s')
+        if(do_aircraft(n)) then
+          k = k + 1
+          jls_3Dsource(nAircraft,n) = k
+          sname_jls(k) = 'aircraft_source_of_'//trim(trname(n))
+          lname_jls(k) = 'CHANGE OF '//trim(trname(n))//' BY AIRCRAFT'
+          jls_ltop(k) = LM
+          jls_power(k) = -2
+          units_jls(k) = unit_string(jls_power(k),'kg/s')
+        end if
 #else
         k = k + 1
         jls_source(6,n) = k
@@ -1711,6 +1736,8 @@ C**** special one unique to HTO
           jls_ltop(k) = LM
           jls_power(k) = -2
           units_jls(k) = unit_string(jls_power(k),'kg/s')
+        end select
+        if(do_aircraft(n)) then
           k = k + 1
           jls_3Dsource(nAircraft,n) = k
           sname_jls(k) = 'aircraft_source_of_'//trim(trname(n))
@@ -1718,7 +1745,7 @@ C**** special one unique to HTO
           jls_ltop(k) = LM
           jls_power(k) = -2
           units_jls(k) = unit_string(jls_power(k),'kg/s')
-        end select
+        end if
         select case(trname(n))
         case('NOx','CO',
 #ifdef TRACERS_dCO
@@ -1860,6 +1887,16 @@ c biomass burning source
         jls_ltop(k) = LM
         jls_power(k) =0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
+c aircraft production of NH3
+        if(do_aircraft(n))then
+          k = k + 1
+          jls_3Dsource(nAircraft,n) = k
+          sname_jls(k) = 'aircraft_source_of_'//trim(trname(n))
+          lname_jls(k) = trim(trname(n))//' aircraft source'
+          jls_ltop(k) = LM
+          jls_power(k) = -2
+          units_jls(k) = unit_string(jls_power(k),'kg/s')
+        end if
 
        case ('SO2')
 c industrial source
@@ -1883,13 +1920,15 @@ c volcanic production of SO2
         jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 c aircraft production of SO2
-        k = k + 1
-        jls_3Dsource(nAircraft,n) = k
-        sname_jls(k) = 'aircraft_source_of_'//trim(trname(n))
-        lname_jls(k) = trim(trname(n))//' aircraft source'
-        jls_ltop(k) = LM
-        jls_power(k) = -2
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        if(do_aircraft(n))then
+          k = k + 1
+          jls_3Dsource(nAircraft,n) = k
+          sname_jls(k) = 'aircraft_source_of_'//trim(trname(n))
+          lname_jls(k) = trim(trname(n))//' aircraft source'
+          jls_ltop(k) = LM
+          jls_power(k) = -2
+          units_jls(k) = unit_string(jls_power(k),'kg/s')
+        end if
 c biomass burning source
         k = k + 1
         jls_3Dsource(nBiomass,n) = k
@@ -2214,8 +2253,7 @@ c photolysis rate
           jls_ltop(k) = LM
           jls_power(k) = -1
           units_jls(k) = unit_string(jls_power(k),'kg/s')
-          select case(trname(n))
-          case ('BCIA')
+          if(do_aircraft(n))then
             k = k + 1
             jls_3Dsource(nAircraft,n) = k
             sname_jls(k) = 'aircraft_source_of_'//trim(trname(n))
@@ -2223,7 +2261,7 @@ c photolysis rate
             jls_ltop(k) = LM
             jls_power(k) = -1
             units_jls(k) = unit_string(jls_power(k),'kg/s')
-          end select
+          end if
         end select
         k = k + 1
         jls_grav(n) = k
@@ -2393,13 +2431,15 @@ c industrial source
      *    'AECIL_01','AECIL_02','AECIL_03','AECIL_04','AECIL_05',
      *    'AECIL_06','AECIL_07','AECIL_08','AECIL_09','AECIL_10',
      *    'AECIL_11','AECIL_12','AECIL_13','AECIL_14','AECIL_15')
-        k = k + 1
-        jls_3Dsource(nAircraft,n) = k
-        sname_jls(k) = 'Aircraft_source_of_'//trname(n)
-        lname_jls(k) =trim(trname(n))// 'Aircraft source'
-        jls_ltop(k) = LM
-        jls_power(k) = 1
-        units_jls(k) = unit_string(jls_power(k),'kg/s')
+        if(do_aircraft(n_AECOB(1)))then
+          k = k + 1
+          jls_3Dsource(nAircraft,n) = k
+          sname_jls(k) = 'Aircraft_source_of_'//trname(n)
+          lname_jls(k) =trim(trname(n))// 'Aircraft source'
+          jls_ltop(k) = LM
+          jls_power(k) = 1
+          units_jls(k) = unit_string(jls_power(k),'kg/s')
+        end if
         k = k + 1
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'Aging_loss_of'//trim(trname(n))
@@ -3029,7 +3069,7 @@ c Oxidants
       USE MODEL_COM, only: dtsrc
       use TRACER_COM, only: ntm, n_SO2, naircraft, nbiomass, nchemistry
       use TRACER_COM, only: nOther, nOverwrite, nVolcanic, nChemloss
-      use TRACER_COM, only: ntsurfsrc, tracers
+      use TRACER_COM, only: ntsurfsrc, tracers, do_aircraft
 #ifdef TRACERS_TOMAS
       use TRACER_COM, only: n_AOCOB, n_ANUM, n_AECOB
 #endif
@@ -3421,14 +3461,6 @@ C**** This needs to be 'hand coded' depending on circumstances
           ijts_power(k) = -12
           units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
           scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-          k = k + 1
-          ijts_3Dsource(nAircraft,n) = k
-          ia_ijts(k) = ia_src
-          lname_ijts(k) = trim(trname(n))//' Aircraft Source'
-          sname_ijts(k) = trim(trname(n))//'_aircraft'
-          ijts_power(k) = -12
-          units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-          scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         case('Ox','stratOx')
           if (nradfrc>0) then
             k = k + 1
@@ -3528,6 +3560,18 @@ C**** This needs to be 'hand coded' depending on circumstances
           end if
 #endif /* ACCMIP_LIKE_DIAGS */
         end select
+
+        if(do_aircraft(n))then
+          k = k + 1
+          ijts_3Dsource(nAircraft,n) = k
+          ia_ijts(k) = ia_src
+          lname_ijts(k) = trim(trname(n))//' Aircraft Source'
+          sname_ijts(k) = trim(trname(n))//'_aircraft'
+          ijts_power(k) = -12
+          units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+          scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+        end if
+
         select case(trname(n))
         case('NOx','CO',
 #ifdef TRACERS_dCO
@@ -3691,6 +3735,16 @@ c SOA clear sky longwave surface radiative forcing
         ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+        if(do_aircraft(n))then
+          k = k + 1
+          ijts_3Dsource(nAircraft,n) = k
+          ia_ijts(k) = ia_src
+          lname_ijts(k) = trim(trname(n))//' Aircraft Source'
+          sname_ijts(k) = trim(trname(n))//'_aircraft'
+          ijts_power(k) = -12
+          units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+          scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+        end if
 #else
       k = k + 1
         ijts_source(6,n) = k
@@ -4022,8 +4076,7 @@ c clear sky longwave surface radiative forcing
           ijts_power(k) = -12
           units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
           scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-          select case(trname(n))
-          case ('BCIA')
+          if(do_aircraft(n))then
             k = k + 1
             ijts_3Dsource(nAircraft,n) = k
             ia_ijts(k) = ia_src
@@ -4032,7 +4085,7 @@ c clear sky longwave surface radiative forcing
             ijts_power(k) = -12
             units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
             scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-          end select
+          end if
         case ('BCB', 'OCB')
           k = k + 1
           ijts_3Dsource(nBiomass,n) = k
@@ -4175,15 +4228,17 @@ c production of SO2 from volcanic emissions
         ijts_power(k) = -15
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+        if(do_aircraft(n))then
 c production of SO2 from aircraft
-        k = k + 1
-        ijts_3Dsource(nAircraft,n) = k
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = trim(trname(n))//' Aircraft Source'
-        sname_ijts(k) = trim(trname(n))//'_aircraft'
-        ijts_power(k) = -15
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+          k = k + 1
+          ijts_3Dsource(nAircraft,n) = k
+          ia_ijts(k) = ia_src
+          lname_ijts(k) = trim(trname(n))//' Aircraft Source'
+          sname_ijts(k) = trim(trname(n))//'_aircraft'
+          ijts_power(k) = -15
+          units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+          scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+        end if
 c emissions of biomass SO2
         k = k + 1
         ijts_3Dsource(nBiomass,n) = k
@@ -4388,6 +4443,17 @@ c emissions of biomass NH3
         ijts_power(k) = -15
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+        if(do_aircraft(n))then
+c production of NH3 from aircraft
+          k = k + 1
+          ijts_3Dsource(nAircraft,n) = k
+          ia_ijts(k) = ia_src
+          lname_ijts(k) = trim(trname(n))//' Aircraft Source'
+          sname_ijts(k) = trim(trname(n))//'_aircraft'
+          ijts_power(k) = -15
+          units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+          scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+        end if
 c emissions of industrial NH3
         do kr=1,ntsurfsrc(n)
           k = k + 1
@@ -4893,14 +4959,16 @@ c SO4 from industrial emissions
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
-        k = k + 1
-        ijts_3Dsource(nAircraft,n) = k
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'Aircraft source'//trim(trname(n))
-        sname_ijts(k) = 'Aircraft_src_'//trim(trname(n))
-        ijts_power(k) = -15
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+        if(do_aircraft(n_AECOB(1)))then
+          k = k + 1
+          ijts_3Dsource(nAircraft,n) = k
+          ia_ijts(k) = ia_src
+          lname_ijts(k) = 'Aircraft source'//trim(trname(n))
+          sname_ijts(k) = 'Aircraft_src_'//trim(trname(n))
+          ijts_power(k) = -15
+          units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+          scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+        end if
 
         k = k + 1
         ijts_3Dsource(nBiomass,n) = k
@@ -5938,14 +6006,16 @@ c Surface industrial emissions
         end do
         select case(trname(n))
         case('M_BC1_BC')
-          k = k + 1
-          ijts_3Dsource(nAircraft,n) = k
-          ia_ijts(k) = ia_src
-          lname_ijts(k) = trim(trname(n))//' Aircraft Source'
-          sname_ijts(k) = trim(trname(n))//'_aircraft'
-          ijts_power(k) = -12
-          units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-          scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+          if(do_aircraft(n))then
+            k = k + 1
+            ijts_3Dsource(nAircraft,n) = k
+            ia_ijts(k) = ia_src
+            lname_ijts(k) = trim(trname(n))//' Aircraft Source'
+            sname_ijts(k) = trim(trname(n))//'_aircraft'
+            ijts_power(k) = -12
+            units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
+            scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+          end if
         end select
         end select
         k = k + 1
@@ -8377,22 +8447,14 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
       ! Currently, for the cubed sphere case, the aircraft sources
       ! are applied each time step but only updated daily here:
       ! Thus the logical argument .true. to read from disk and distribute:
-#ifdef TRACERS_SPECIAL_Shindell
-      if(do_aircraft(n_NOx)) call get_aircraft_tracer
-     & (n_NOx,'NOx_AIRC',year,xday,daily_gz,.true.)
-#endif
-#ifdef TRACERS_AEROSOLS_Koch
-      if(do_aircraft(n_BCIA)) call get_aircraft_tracer
-     & (n_BCIA,'BCIA_AIRC',year,xday,daily_gz,.true.)
-#endif
-#ifdef TRACERS_AMP
-      if(do_aircraft(n_M_BC1_BC)) call get_aircraft_tracer
-     & (n_M_BC1_BC,'M_BC1_BC_AIRC',year,xday,daily_gz,.true.)
-#endif
-#ifdef TRACERS_TOMAS
-      if(do_aircraft(n_AECOB(1))) call get_aircraft_tracer
-     & (n_AECOB(1),'AECOB_01_AIRC',year,xday,daily_gz,.true.)
-#endif
+      ! All Tracers! (formerly just hardcoded set allowed)
+      do n=1,ntm
+        if(do_aircraft(n)) then
+          call get_aircraft_tracer
+     &    (n,trim(trname(n))//'_AIRC',year,xday,daily_gz,.true.)
+          ! for TOMAS, is trname(n_AECOB(1))=='AECOB_01' ?
+        end if
+      end do
 #endif /* CUBED_SPHERE */
 
 #if defined DYNAMIC_BIOMASS_BURNING && defined ANTHROPOGENIC_FIRE_MODEL
@@ -9779,22 +9841,22 @@ C****
             src_index=n_SO2
 #endif
 #else
-       case ('SO2')
-          src_fact=0.99d0 ! the rest goes to sulfate (SO4 or M_ACC_SU)
-        case ('SO4','ASO4__01')
-          src_fact=0.015d0 ! (1.-SO2 fraction)*tr_mm(n_SO4)/tr_mm(n_SO2)
-          src_index=n_SO2
-        case ('M_ACC_SU')
-          src_fact=0.015d0
+          case ('SO2')
+            src_fact=0.99d0 ! the rest goes to sulfate (SO4 or M_ACC_SU)
+          case ('SO4','ASO4__01')
+            src_fact=0.015d0 ! (1.-SO2 fraction)*tr_mm(n_SO4)/tr_mm(n_SO2)
+            src_index=n_SO2
+          case ('M_ACC_SU')
+            src_fact=0.015d0
 #ifndef TRACERS_AMP_M4
      &            *0.99d0 ! the rest goes to M_AKK_SU
 #endif
-          src_index=n_SO2
+            src_index=n_SO2
 #ifndef TRACERS_AMP_M4
-        case ('M_AKK_SU')
-          src_fact=0.015d0
+          case ('M_AKK_SU')
+            src_fact=0.015d0
      &            *0.01d0
-          src_index=n_SO2
+            src_index=n_SO2
 #endif
 #endif
 
@@ -9999,69 +10061,27 @@ c
 #endif
 #endif /* TRACERS_SPECIAL_Shindell */
 
-! Work on Aircraft Sources Here:
-
-#ifdef TRACERS_SPECIAL_Shindell
-      if(do_aircraft(n_NOx)) then
-        xday=dayOfYear
-        tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_NOx)  = 0.d0
+      !  Aircraft Sources Here: All Tracers! (formerly just hardcoded set allowed)
+      do n=1,ntm 
+        if(do_aircraft(n)) then
+          xday=dayOfYear
+          tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n)  = 0.d0
 #ifdef CUBED_SPHERE
-        call get_aircraft_tracer ! logical read from disk
-     &  (n_NOx,'NOx_AIRC',year,xday,dummy3d,.false.)
+          call get_aircraft_tracer ! logical read from disk
+     &     (n,trim(trname(n))//'_AIRC',year,xday,dummy3d,.false.)
 #else
-        call get_aircraft_tracer(n_NOx,'NOx_AIRC',year,xday,phi,.true.)
+          call get_aircraft_tracer
+     &     (n,trim(trname(n))//'_AIRC',year,xday,phi,.true.)
 #endif
-        call apply_tracer_3Dsource(nAircraft,n_NOx)
-      end if
-#endif /* TRACERS_SPECIAL_Shindell */
-
-#ifdef TRACERS_AEROSOLS_Koch
-      if(do_aircraft(n_BCIA)) then
-        xday=dayOfYear
-        tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_BCIA)  = 0.d0
-#ifdef CUBED_SPHERE
-        call get_aircraft_tracer ! logical read from disk
-     &  (n_BCIA,'BCIA_AIRC',year,xday,dummy3d,.false.)
-#else
-        call get_aircraft_tracer
-     &  (n_BCIA,'BCIA_AIRC',year,xday,phi,.true.)
-#endif
-        call apply_tracer_3Dsource(nAircraft,n_BCIA)
-      end if
-#endif /* TRACERS_AEROSOLS_Koch */
-
-#ifdef TRACERS_AMP
-      if(do_aircraft(n_M_BC1_BC)) then
-        xday=dayOfYear
-        tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_M_BC1_BC)  = 0.d0
-#ifdef CUBED_SPHERE
-        call get_aircraft_tracer ! logical read from disk
-     &  (n_M_BC1_BC,'M_BC1_BC_AIRC',year,xday,dummy3d,.false.)
-#else
-        call get_aircraft_tracer
-     &  (n_M_BC1_BC,'M_BC1_BC_AIRC',year,xday,phi,.true.)
-#endif
-        call apply_tracer_3Dsource(nAircraft,n_M_BC1_BC)
-      end if
-#endif /* TRACERS_AMP */
-
 #ifdef TRACERS_TOMAS
-      if(do_aircraft(n_AECOB(1))) then
-        xday=dayOfYear
-        tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n_AECOB(1))  = 0.d0
-#ifdef CUBED_SPHERE
-        call get_aircraft_tracer ! logical read from disk
-     &  (n_AECOB(1),'AECOB_01_AIRC',year,xday,dummy3d,.false.)
+          ! TOMAS has to apply this among tracers in its own section below.
+          if(n /= n_AECOB(1))
+     &    call apply_tracer_3Dsource(nAircraft,n)
 #else
-        call get_aircraft_tracer
-     &  (n_AECOB(1),'AECOB_01_AIRC',year,xday,phi,.true.)
+          call apply_tracer_3Dsource(nAircraft,n)
 #endif
-        ! TOMAS Applies its aircraft source in its own section below
-      end if
-#endif /* TRACERS_TOMAS */
-
-
-! Done with Aircraft Source Defining
+        end if
+      end do
 
 #ifdef TRACERS_SPECIAL_Shindell
       tr3Dsource(I_0:I_1,J_0:J_1,:,nOther,n_NOx) = 0.d0
@@ -10152,7 +10172,7 @@ C**** Apply chemistry and overwrite changes:
    
        TOMAS_bio(:,J_0:J_1,:,:)=0.0
        TOMAS_air(:,J_0:J_1,:,:)=0.0
-       
+
        do kk=1,nbins
          TOMAS_bio(:,J_0:J_1,:,kk)=
      &        tr3Dsource(:,J_0:J_1,:,nBiomass,n_AECOB(1))
@@ -10178,17 +10198,18 @@ c$$$
          tr3Dsource(:,J_0:J_1,:,nBiomass,n_AECIL(1)+k-1)=
      *        TOMAS_bio(:,J_0:J_1,:,k)*0.2
          
-         tr3Dsource(:,J_0:J_1,:,nAircraft,n_AECOB(1)+k-1)=
+         if(do_aircraft(n_AECOB(1))) then
+           tr3Dsource(:,J_0:J_1,:,nAircraft,n_AECOB(1)+k-1)=
      *        TOMAS_air(:,J_0:J_1,:,k)*0.8
-         
-         if(do_aircraft(n_AECOB(1)))
            tr3Dsource(:,J_0:J_1,:,nAircraft,n_AECIL(1)+k-1)=
      *        TOMAS_air(:,J_0:J_1,:,k)*0.2
-         
-           tr3Dsource(:,J_0:J_1,:,2,n_ANUM(1)+k-1)=
-     &        (TOMAS_bio(:,J_0:J_1,:,k)+TOMAS_air(:,J_0:J_1,:,k))
-     &        /(sqrt(xk(k)*xk(k+1)))  
          end if
+         
+         ! Here TOMAS_air() would be 0 when do_aircraft(n_AECOB(1)) is false,
+         ! so leaving it unconditional:
+         tr3Dsource(:,J_0:J_1,:,2,n_ANUM(1)+k-1)=
+     &      (TOMAS_bio(:,J_0:J_1,:,k)+TOMAS_air(:,J_0:J_1,:,k))
+     &      /(sqrt(xk(k)*xk(k+1)))  
          
          call apply_tracer_3Dsource(nBiomass, n_AECOB(1)+k-1)
          if(do_aircraft(n_AECOB(1)))
