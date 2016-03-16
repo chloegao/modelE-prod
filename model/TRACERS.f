@@ -15,8 +15,7 @@
       use TracerSource_mod, only: TracerSource3D
       use Tracer_mod, only: Tracer
       use OldTracer_mod, only: trname
-      USE TRACER_COM, only : NTM,trm,trmom,alter_sources,
-     * ef_FACT3d,tracers
+      USE TRACER_COM, only : NTM,trm,trmom,alter_sources,tracers
       USE CONSTANT, only : teeny
       USE RESOLUTION, only: lm
       USE MODEL_COM, only : dtsrc
@@ -49,8 +48,6 @@
       logical :: domom
       integer najl,i,j,l,naij,kreg,nsect,nn
       INTEGER :: J_0, J_1, I_0, I_1
-      integer :: mask(grid%i_strt:grid%i_stop,grid%j_strt:grid%j_stop)
-      real*8 :: coef(grid%i_strt:grid%i_stop,grid%j_strt:grid%j_stop)
 
       type (TracerSource3D), pointer :: source
       class (Tracer), pointer :: pTracer
@@ -74,46 +71,6 @@ C**** 3D sources.
 C**** Modify tracer amount, moments, and diagnostics
       najl = jls_3Dsource(ns,n)
       naij = ijts_3Dsource(ns,n)
-
-C**** apply tracer source alterations if requested in rundeck:
-      pTracer => tracers%getReference(trname(n))
-      source => pTracer%sources3D(ns)
-      if (alter_sources) then
-        do kreg = 1, numRegions
-          do j = j_0, j_1
-            do i = i_0, imaxj(j)
-              if (regions(kreg)%hasLatLon(lat2d_dg(i,j),lon2d_dg(i,j)))
-     &             then
-                 mask(i,j) = 1
-              else
-                 mask(i,j) = 0
-              end if
-            end do
-          end do
-
-          do nsect = 1, source%num_tr_sectors
-            nn = source%tr_sect_index(nsect)
-            if (ef_FACT3d(nn,kreg) > -1.e20) then
-              do j = j_0, j_1
-                 do i = i_0, imaxj(j)
-                    coef(i,j) = 
-     &                   mask(i,j) * ef_Fact3d(nn,kreg) + 
-     &                   (1-mask(i,j))
-                 end do
-              end do
-              do l = 1, lm
-                do j = j_0, j_1
-                  do i = i_0, imaxj(j)
-                    tr3Dsource(i,j,l,ns,n) = tr3Dsource(i,j,l,ns,n) *
-     &                    coef(i,j)
-        
-                  end do
-                end do
-              end do
-            end if
-          end do
-        end do
-      end if
 
       eps = tiny(trm(i_0,j_0,1,n))
       fred = UNDEF_VAL
@@ -2646,67 +2603,6 @@ C
       return
       end subroutine get_aircraft_tracer
  
-
-      subroutine check_aircraft_sectors(tr_sect)
-!@sum check_aircraft_sectors checks parameters for user-
-!@+ set sector for aircraft source.
-!@auth Greg Faluvegi
-      use TracerSource_mod, only: TracerSource3D
-      use Tracer_mod, only: Tracer
-      use tracer_com, only: nAircraft, tracers,
-     & sect_name,num_sectors,
-     & n_max_sect,ef_fact,ef_fact,ef_fact3d
-      use Dictionary_mod, only: sync_param
-      use EmissionRegion_mod, only: numRegions
-      
-      IMPLICIT NONE
-      character(len=*), intent(in) :: tr_sect
-      integer :: i,j,ns,nsect,nn
-      character*124 :: tr_sectors_are
-      character*32 :: pname
-
-      type (TracerSource3D), pointer :: source
-      class (Tracer), pointer :: pTracer
-
-      tr_sectors_are = ' '
-      pTracer => tracers%getReference(trim(tr_sect))
-      source => pTracer%sources3D(nAircraft)
-
-      pname=trim(tr_sect)//'_AIRC_sect'
-      call sync_param(pname,tr_sectors_are)
-      source%num_tr_sectors = 0
-
-      i=1
-      do while(i < len(tr_sectors_are))
-        j=index(tr_sectors_are(i:len(tr_sectors_are))," ")
-        if (j > 1) then
-          source%num_tr_sectors = source%num_tr_sectors + 1
-          i=i+j
-        else
-          i=i+1
-        end if
-      enddo
-      ns=source%num_tr_sectors
-      if(ns > n_max_sect)
-     &call stop_model("num_tr_sectors3D problem",255)
-      if(ns > 0)then
-        read(tr_sectors_are,*) source%tr_sect_name(1:ns)
-        do nsect=1,ns
-          source%tr_sect_index(nsect) = 0
-          loop_nn: do nn=1,num_sectors
-            if(trim(source%tr_sect_name(nsect)) ==
-     &         trim(sect_name(nn))) then
-              source%tr_sect_index(nsect) = nn
-              ef_fact3d(nn,1:numRegions)=
-     &        ef_fact(nn,1:numRegions)
-              exit loop_nn
-            endif
-          enddo loop_nn
-        enddo
-      endif
-
-      return
-      end subroutine check_aircraft_sectors
 
       SUBROUTINE read_monthly_3Dsources
      & (Ldim,iu,data1,trans_emis,yr1,yr2,xyear,xday)

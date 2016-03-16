@@ -53,10 +53,7 @@
 
 !     Next, check whether tracers have 3D aircraft source files:
       inquire(file=trim(trname(n)//'_AIRC'), exist=hasAircraftFile)
-      if(hasAircraftFile)then
-        call set_do_aircraft(n, .true.)
-        call check_aircraft_sectors(trim(trname(n))) ! special 3D source case
-      end if
+      if(hasAircraftFile) call set_do_aircraft(n, .true.)
 
 #ifdef DYNAMIC_BIOMASS_BURNING
 !     allow some tracers to have biomass burning based on fire model:
@@ -553,7 +550,7 @@
       USE AEROSOL_SOURCES, only: VBSemifact
       USE TRACERS_VBS, only: vbs_tr
 #endif  /* TRACERS_AEROSOLS_VBS */
-      USE TRACER_COM, only: ef_fact3d, no_emis_over_ice
+      USE TRACER_COM, only: no_emis_over_ice
 #ifdef TRACERS_MINERALS
       use tracers_dust, only: frIronOxideInAggregate,
      &     noAggregateByTotalFeox
@@ -691,9 +688,6 @@ C**** get rundeck parameter for cosmogenic source factor
       call sync_param("be7_src_param", be7_src_param)
 #endif
       call sync_param("no_emis_over_ice",no_emis_over_ice)
-
-!     initialize 3D source factors:
-      ef_fact3d(:,:)=1.d0
 
       end subroutine laterInitTracerMetadata
 

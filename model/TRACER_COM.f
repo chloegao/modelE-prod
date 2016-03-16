@@ -584,9 +584,7 @@ C**** arrays that could be general, but are only used by chemistry
 !@var sect_name array hold the sector names (all)
       character*10,dimension(N_MAX_SECT):: sect_name
 !@var ef_fact the actual factors that alter sources by region/sector
-!@var ef_fact3d factors used to alter 3D sources (these are more
-!@+ hard-coded for now...)
-      real*8, dimension(N_MAX_SECT,n_max_reg) :: ef_fact,ef_fact3D
+      real*8, dimension(N_MAX_SECT,n_max_reg) :: ef_fact
 ! variables for outputting a map of the regions:
       real*8, allocatable, dimension(:,:) :: ef_REG_IJ
 ! --- end of source-altering section ----------------------------
