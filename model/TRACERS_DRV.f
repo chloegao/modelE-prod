@@ -8443,6 +8443,8 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
       endif
 #endif /* TRACERS_SPECIAL_Shindell */
 
+#if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch) ||\
+    (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
 #ifdef CUBED_SPHERE
       ! Currently, for the cubed sphere case, the aircraft sources
       ! are applied each time step but only updated daily here:
@@ -8456,6 +8458,7 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
         end if
       end do
 #endif /* CUBED_SPHERE */
+#endif /* Shindell or Koch or AMP or TOMAS */
 
 #if defined DYNAMIC_BIOMASS_BURNING && defined ANTHROPOGENIC_FIRE_MODEL
       trans_emis_overr_yr=ABS(o3_yr) ! note: for now, ignores aer_int_yr
@@ -10061,6 +10064,8 @@ c
 #endif
 #endif /* TRACERS_SPECIAL_Shindell */
 
+#if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch) ||\
+    (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
       !  Aircraft Sources Here: All Tracers! (formerly just hardcoded set allowed)
       do n=1,ntm 
         if(do_aircraft(n)) then
@@ -10082,6 +10087,7 @@ c
 #endif
         end if
       end do
+#endif /* Shindell or Koch or AMP or TOMAS */
 
 #ifdef TRACERS_SPECIAL_Shindell
       tr3Dsource(I_0:I_1,J_0:J_1,:,nOther,n_NOx) = 0.d0
