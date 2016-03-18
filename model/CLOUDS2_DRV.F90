@@ -682,7 +682,7 @@ subroutine CONDSE
         do nx=1,ntx
           do l=1,lm
             tm(l,nx) = trm(i,j,l,ntix(nx))
-            tmom(:,l,nx) = trmom(:,i,j,l,ntix(nx)
+            tmom(:,l,nx) = trmom(:,i,j,l,ntix(nx))
           end do
         end do
 #endif
