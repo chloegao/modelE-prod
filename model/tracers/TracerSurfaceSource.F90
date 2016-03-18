@@ -562,7 +562,7 @@ contains
 
   end subroutine releaseCache
 
-  subroutine readSurfaceSource(this, fname, checkname, sfc_src, xyear, xday)
+  subroutine readSurfaceSource(this, fname, checkname, sfc_src, xyear, xday, isChemTracer)
     USE DOMAIN_DECOMP_ATM, only: GRID,  readt_parallel, write_parallel
     use Domain_decomp_atm, only: getDomainBounds
     USE FILEMANAGER, only: openunit,closeunit, nameunit,is_fbsa
@@ -574,6 +574,7 @@ contains
     logical, intent(in) :: checkname
     real*8, intent(inout) :: sfc_src(grid%i_strt_halo:,grid%j_strt_halo:)
     integer, intent(in) :: xyear, xday
+    logical, intent(in) :: isChemTracer
 
     integer :: iu,k,ipos,kx,iposDay,kstep=10
     character(len=300) :: out_line
@@ -583,17 +584,22 @@ contains
          & sfc_a,sfc_b
 
     INTEGER :: J_1, J_0, I_0, I_1
-    integer :: aer_int_yr,master_yr
+    integer :: cyclic_yr,master_yr
 
     if(.not.is_fbsa(fname)) then
 
       if(this%firstTrip) then
         this%firstTrip = .false.
         call get_param('master_yr',master_yr)
-        call get_param('aer_int_yr',aer_int_yr,default=master_yr)
+        if (isChemTracer) then
+          call get_param('o3_yr',cyclic_yr,default=master_yr)
+        else
+          call get_param('aer_int_yr',cyclic_yr,default=master_yr)
+        end if
+        cyclic_yr=ABS(cyclic_yr)
         call init_stream(grid,this%EMstream,trim(fname), &
              trim(this%tracername),0d0,1d30,'linm2m',xyear,xday, &
-             cyclic = (aer_int_yr > 0) )
+             cyclic = (cyclic_yr > 0) )
       endif
       call read_stream(grid,this%EMstream,xyear,xday,sfc_src)
 

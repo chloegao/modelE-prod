@@ -311,8 +311,8 @@ C**** Each tracer has a variable name and a unique index
      *                               ntm_dCO+
      *                               ntm_soa
       ! Set by Shindell
-      integer :: NTM_chem_beg
-      integer :: NTM_chem_end
+      integer :: NTM_chem_beg = 0
+      integer :: NTM_chem_end = 0
 #ifdef TRACERS_AMP
 #else
 #ifdef TRACERS_TOMAS

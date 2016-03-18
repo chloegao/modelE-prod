@@ -8290,6 +8290,7 @@ C**** Note this routine must always exist (but can be a dummy routine)
 C****
       integer :: year, month, dayOfYear
       character(len=MAX_LEN_NAME) :: tmpString
+      logical :: isChemTracer
 
       call modelEclock%get(year=year, month=month, 
      *     dayOfYear=dayOfYear)
@@ -8470,12 +8471,17 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
       call readflamPopDens(xyear,xday)
 #endif
       do n=1,NTM
+        if ((n>=ntm_chem_beg).and.(n<=ntm_chem_end)) then
+          isChemTracer=.true. ! careful: only for this n loop
+        else
+          isChemTracer=.false.
+        end if
 !**** Allow overriding of transient emissions date:
 ! for now, tying this to O3_yr becasue Gavin
 ! didn't want a new parameter, also not allowing
 ! day overriding yet, because of that.
 #ifdef TRACERS_SPECIAL_Shindell
-        if ((n>=ntm_chem_beg).and.(n<=ntm_chem_end)) then
+        if (isChemTracer) then
           trans_emis_overr_yr=ABS(o3_yr)
           if(trans_emis_overr_yr > 0)then
             xyear=trans_emis_overr_yr
@@ -8500,8 +8506,8 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
         if(trname(n)=='CH4')then ! ---------- methane --------------
 #ifdef TRACERS_SPECIAL_Shindell
          nread=ntsurfsrc(n)+nBBsources(n)
-         if(nread>0) call readSurfaceSources(pTracer,n,
-     &        nread,xyear,xday,.true., itime, itime_tr0(n), sfc_src)
+         if(nread>0) call readSurfaceSources(pTracer,n,nread,xyear,xday,
+     &   .true., itime, itime_tr0(n), sfc_src,isChemTracer)
 #ifdef WATER_MISC_GRND_CH4_SRC
          do ns=1,ntsurfsrc(n) 
            if(pTracer%surfaceSources(ns)%sourceName=='gsfMGOLjal')
@@ -8545,11 +8551,11 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
      &           tmpString(1:5).eq.'ANUM_'.or.
      &           trim(trname(n)).eq.'M_AKK_SU'.or. 
      &           trim(trname(n)).eq.'M_ACC_SU') then  
-!skip these tracers!               
+              continue !skip these tracers!
             else
 
-            if(nread>0) call readSurfaceSources(pTracer, n,
-     &             nread,xyear,xday,.false.,itime,itime_tr0(n),sfc_src)
+              if(nread>0) call readSurfaceSources(pTracer,n,nread,xyear,
+     &        xday,.false.,itime,itime_tr0(n),sfc_src,isChemTracer)
 
             endif
 #ifndef TRACERS_AEROSOLS_SOA
@@ -8562,19 +8568,21 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
               sfc_src(:,J_0:J_1,n,ntsurfsrc(n))=0.d0 ! this will become terpene sources
             end select
 #endif  /* TRACERS_AEROSOLS_SOA */
-#else
+#else /* NOT TRACERS_AMP or TRACERS_TOMAS */
             select case(trname(n))
             case ('vbsAm2', 'vbsAm1', 'vbsAz', 'vbsAp1', 'vbsAp2',
      &            'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6')
-              if(nread>0)call readSurfaceSources(pTracer, n,
-     &           nread,xyear,xday,.false.,itime,itime_tr0(n),sfc_src)
+              if(nread>0)call readSurfaceSources(pTracer,n,nread,xyear,
+     &           xday,.false.,itime,itime_tr0(n),sfc_src,isChemTracer)
             case ('SO4')
               ! nothing here, SO4 sources come from SO2
+              continue
             case default
-              if(nread>0)call readSurfaceSources(pTracer,n,
-     &             nread,xyear,xday,.true.,itime,itime_tr0(n),sfc_src)
+              if(nread>0)call readSurfaceSources(pTracer,n,nread,xyear,
+     &        xday,.true.,itime,itime_tr0(n),sfc_src,isChemTracer)
             end select
-#endif
+#endif /* WHETHER TRACERS_AMP or TRACERS_TOMAS */
+
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
             if (trim(trname(n)).eq.'SO2') then ! set this AFTER reading
@@ -8615,7 +8623,7 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
       endif
       call readSurfaceSources(pTracer,n_codirect,
      &     ntsurfsrc(n_codirect)+nBBsources(n_codirect),xyear,
-     & xday,.false.,itime,itime_tr0(n_codirect),sfc_src)
+     & xday,.false.,itime,itime_tr0(n_codirect),sfc_src,.true.)
 #endif
 
 #endif /* TRACERS_SPECIAL_Shindell || TRACERS_AEROSOLS_Koch || TRACERS_AMP || TRACERS_TOMAS */
