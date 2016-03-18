@@ -76,7 +76,12 @@ contains
       this%tracerName = tracerName
       this%sourceName = 'notfound'
       fid = par_open(grid,trim(fileName),'read')
-      call read_attr(grid,fid,'global','source',i,this%sourceName)
+      ! give priority to variable attribute, but for backwards-compatibility,
+      ! try global attribute if variable attribute read failed:
+      call read_attr(grid,fid,this%tracerName,'source',i,this%sourceName)
+      if(trim(this%sourceName).eq.'notfound') then
+        call read_attr(grid,fid,'global','source',i,this%sourceName)
+      endif
       call par_close(grid,fid)
       if(trim(this%sourceName).eq.'notfound') then
         call stop_model('source name not found in file '//trim(fileName),255)
