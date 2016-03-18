@@ -1,5 +1,5 @@
 .SUFFIXES:
-.PHONY: force rundeck depend gcm setup clean vclean newstart exe cmp .R htmldoc setup_script setup_nocomp tests check_vars
+.PHONY: force rundeck depend gcm setup clean vclean newstart exe cmp .R htmldoc setup_script setup_nocomp tests check_vars check_RUNSRC
 
 # main definitions
 USER = $(shell whoami)
@@ -39,7 +39,7 @@ HTMLDOC_DIR = $(DECKS_DIR)/$(RUN)_html
 export HTMLDOC_DIR
 RUN_COMMAND = $(SCRIPTS_DIR)/runE
 
-RUNSRC  = EM20
+RUNSRC  =
 RUN     =
 RUNDECKSRC = $(TEMPLATES_DIR)/$(RUNSRC).R
 PRUNDECKSRC = $(TEMPLATES_DIR)/$(RUNSRC).py
@@ -78,7 +78,7 @@ linkNonProduction:
 	@if [ -e $(TEMPLATES_DIR)/nonProduction/$(RUNSRC).R ]; then \
 	ln -sf $(TEMPLATES_DIR)/nonProduction/$(RUNSRC).R $(TEMPLATES_DIR); fi
 
-rundeck: linkNonProduction
+rundeck: linkNonProduction check_RUNSRC
 	@if [ -f $(DECKS_REPOSITORY)/$(RUN).R -a \
 	-z "`find $(DECKS_REPOSITORY)/$(RUN).R -user $(USER)`" ]; then \
 	echo 'name $(RUN) is already used by somebody else'; \
@@ -324,6 +324,13 @@ check_sanity:
 check_RUN:
 	@if [ "$(RUN)"xx = xx ] ; then \
 	  echo "Your have to specify rundeck name with RUN=..." ; \
+	  echo "... aborting ..." ; \
+	  exit 1 ; fi
+
+check_RUNSRC:
+	@if [ "$(RUNSRC)"xx = xx ] ; then \
+	  echo "Your have to specify template name with RUNSRC=..." ; \
+	  echo "For example: RUNSRC=E4F40" ; \
 	  echo "... aborting ..." ; \
 	  exit 1 ; fi
 
