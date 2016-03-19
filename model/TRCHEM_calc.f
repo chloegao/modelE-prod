@@ -46,7 +46,7 @@ C
      &                   ,SF3,ratioNs,ratioN2,rNO2frac,nO,nClO,nBrO
      &                   ,rNOfrac,rNOdenom,nOClO,nCl,nBr,OxlossbyH
      &                   ,nCl2,yCl2,SF2,nO2,MWabyMWw,yCl2O2,pscX
-     &                   ,topLevelOfChemistry,changeL
+     &                   ,topLevelOfChemistry,changeL,n_bi_terp
 #ifdef TRACERS_AEROSOLS_SOA
        USE TRACERS_SOA, only: apartmolar,whichsoa,soa_apart,LM_soa
 #endif  /* TRACERS_AEROSOLS_SOA */
@@ -104,17 +104,20 @@ C**** Local parameters and variables and arguments:
       INTEGER :: L,iter,maxL,igas,maxT,Lz,it,n
       INTEGER :: J_0, J_1
 #ifdef TRACERS_TERP
-      INTEGER, PARAMETER :: iHO2NO2form=102,iN2O5form=103,
-     &iPANform=105,iHO2NO2_OH=18,iHO2NO2decomp=95,iN2O5decomp=96
-     &,iPANdecomp=29,iClOplusNO2=107,iBrOplusNO2=108,iClOplusClO=106
-     &,iOHplusNO2=101,iNOplusO=99
-     &,iTerpenesOH=92,iTerpenesO3=93
-#else
-      INTEGER, PARAMETER :: iHO2NO2form=99,iN2O5form=100,
-     &iPANform=102,iHO2NO2_OH=18,iHO2NO2decomp=92,iN2O5decomp=93
-     &,iPANdecomp=29,iClOplusNO2=104,iBrOplusNO2=105,iClOplusClO=103
-     &,iOHplusNO2=98,iNOplusO=96
+      integer, parameter :: iTerpenesOH=92,iTerpenesO3=93
 #endif  /* TRACERS_TERP */
+      INTEGER, PARAMETER :: iHO2NO2form=99+n_bi_terp,
+     &                      iN2O5form=100+n_bi_terp,
+     &                      iPANform=102+n_bi_terp,
+     &                      iHO2NO2_OH=18, ! this is before terpenes
+     &                      iHO2NO2decomp=92+n_bi_terp,
+     &                      iN2O5decomp=93+n_bi_terp,
+     &                      iPANdecomp=29+n_bi_terp,
+     &                      iClOplusNO2=104+n_bi_terp,
+     &                      iBrOplusNO2=105+n_bi_terp,
+     &                      iClOplusClO=103+n_bi_terp,
+     &                      iOHplusNO2=98+n_bi_terp,
+     &                      iNOplusO=96+n_bi_terp
       character(len=300) :: out_line
       logical            :: jay
       real*8, allocatable, dimension(:) :: rMAbyM,sv_changeN2O,

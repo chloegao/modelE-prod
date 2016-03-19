@@ -181,17 +181,16 @@ C**** Local parameters and variables and arguments:
 
       real*8, dimension(JM)     :: DU_O3_glob
 #ifdef TRACERS_TERP
-      integer, parameter :: iN2O5plusH2O=109,iNO3plusNO2=103,
-     &                      iN2O5decomp=96,iClOplusNO2=107,
-     &                      iClONO2plusH2O=110,iClONO2plusHCl=111,
-     &                      iHOClplusHCl=112,iN2O5plusHCl=113,
-     &                      iTerpenesO3=93,iTerpenesNO3=94
-#else
-      integer, parameter :: iN2O5plusH2O=106,iNO3plusNO2=100,
-     &                      iN2O5decomp=93,iClOplusNO2=104,
-     &                      iClONO2plusH2O=107,iClONO2plusHCl=108,
-     &                      iHOClplusHCl=109,iN2O5plusHCl=110
+      integer, parameter :: iTerpenesO3=93,iTerpenesNO3=94
 #endif  /* TRACERS_TERP */
+      integer, parameter :: iN2O5plusH2O=106+n_bi_terp,
+     &                      iNO3plusNO2=100+n_bi_terp,
+     &                      iN2O5decomp=93+n_bi_terp,
+     &                      iClOplusNO2=104+n_bi_terp,
+     &                      iClONO2plusH2O=107+n_bi_terp,
+     &                      iClONO2plusHCl=108+n_bi_terp,
+     &                      iHOClplusHCl=109+n_bi_terp,
+     &                      iN2O5plusHCl=110+n_bi_terp
 
       real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::

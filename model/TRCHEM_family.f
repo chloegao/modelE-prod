@@ -12,6 +12,7 @@ C**** GLOBAL parameters and variables:
       Use ATM_COM,    Only: PMIDL00
       USE TRACER_COM, only : n_CH4, n_Ox, nn_Ox, nn_CH4
       USE TRCHEM_Shindell_COM, only:ss,rr,y,nO2,nM,nH2O,nO,nO1D,nO3,pOx
+     &                             ,n_bi_terp
       IMPLICIT NONE
 
 C**** Local parameters and variables and arguments:
@@ -28,11 +29,7 @@ C**** Local parameters and variables and arguments:
       real*8                :: az, bz, P1
 
       PRES(1:LM) = PMIDL00(1:LM)
-#ifdef TRACERS_TERP
-      iO3form=98
-#else
-      iO3form=95
-#endif  /* TRACERS_TERP */
+      iO3form=95+n_bi_terp
 
       do L=1,Lmax
 c       for concentration of O(1D):
@@ -75,7 +72,7 @@ C**** GLOBAL parameters and variables:
       USE TRACER_COM, only         : n_NOx,nn_NOx,n_Alkenes,nn_Alkenes
       USE TRCHEM_Shindell_COM, only:rr,y,yNO3,nO3,nHO2,yCH3O2,nO,nC2O3,
      & pNO3,ta,nXO2,ss,nNO,nNO2,pNOx,nNO3,nHONO,which_trop,nClO,nOClO,
-     & nBrO
+     & nBrO,n_bi_terp
 
       IMPLICIT NONE
 
@@ -92,11 +89,7 @@ C**** Local parameters and variables and arguments:
       integer, intent(IN) :: Lmax,I,J
       real*8              :: b,c,p1,p2,d
       
-#ifdef TRACERS_TERP
-      iNO2form=99
-#else
-      iNO2form=96
-#endif  /* TRACERS_TERP */
+      iNO2form=96+n_bi_terp
 
       select case(which_trop)
       case(0); maxT=min(Ltropo(I,J),Lmax)
@@ -175,6 +168,7 @@ C**** GLOBAL parameters and variables:
      &                        nO2,nM,nHO2,nOH,nH2,nAldehyde,nXO2,nXO2N,
      &                        ta,ss,nC2O3,nROR,yso2,ydms,which_trop,nO1D
      &         ,OxlossbyH,dt2,nBrO,nClO,nOClO,nBr,nCl,SF3,nO,nCH3O2
+     &         ,n_bi_terp
 
       IMPLICIT NONE
 
@@ -193,11 +187,11 @@ C**** Local parameters and variables and arguments:
 !@var PRES local nominal pressure for regional Ox tracers
 
 #ifdef TRACERS_TERP
-      integer, parameter :: iH2O2form=100,iHNO3form=101,iHONOform=104
-     &                     ,iTerpenesOH=92,iTerpenesO3=93
-#else
-      integer, parameter :: iH2O2form=97,iHNO3form=98,iHONOform=101
+      integer, parameter :: iTerpenesOH=92,iTerpenesO3=93
 #endif  /* TRACERS_TERP */
+      integer, parameter :: iH2O2form=97+n_bi_terp,
+     &                      iHNO3form=98+n_bi_terp,
+     &                      iHONOform=101+n_bi_terp
       integer             :: L, maxT 
       integer, intent(IN) :: Lmax,I,J
       real*8              :: aqqz, bqqz, cqqz, cz, dz, sqroot, 
@@ -414,7 +408,7 @@ C**** GLOBAL parameters and variables:
       use photolysis, only : sza
       USE TRCHEM_Shindell_COM, only:pClOx,rr,y,nClO,nOClO,nCl,nCl2O2,
      &    ta,ss,nO3,nHO2,nNO3,nO,nNO,nBr,nOH,nBrO,nCH3O2,nM,nCl2,nH2,
-     &    dt2,pClx,pOClOx,nNO2,which_trop,yCl2,yCl2O2,ClOx_old
+     &    dt2,pClx,pOClOx,nNO2,which_trop,yCl2,yCl2O2,ClOx_old,n_bi_terp
 
       IMPLICIT NONE
 
@@ -430,13 +424,9 @@ C**** Local parameters and variables and arguments:
       integer, intent(IN)   :: Lmax,I,J
       real*8                :: A,B,C,D,F,G,Q,V,X,YY,dClOx,ww,p1,p2,p3,
      &                         dOClO,ratioc,rnormnum,destCl,prodCl
-#ifdef TRACERS_TERP
-      integer, parameter :: iClOplusClO=106,iCl2O2decomp=97,
-     &                      iClOplusNO2=107
-#else
-      integer, parameter :: iClOplusClO=103,iCl2O2decomp=94,
-     &                      iClOplusNO2=104
-#endif  /* TRACERS_TERP */
+      integer, parameter :: iClOplusClO=103+n_bi_terp,
+     &                      iCl2O2decomp=94+n_bi_terp,
+     &                      iClOplusNO2=104+n_bi_terp
 
       select case(which_trop)
       case(0); maxT=min(ltropo(I,J),Lmax)
@@ -564,7 +554,7 @@ C**** GLOBAL parameters and variables:
       USE TRACER_COM, only : n_BrOx,n_H2O2,n_HBr,n_HOBr,n_BrONO2
       USE TRACER_COM, only : nn_BrOx,nn_H2O2,nn_HBr,nn_HOBr,nn_BrONO2
       USE TRCHEM_Shindell_COM, only:rr,y,nO3,nClO,nOClO,nNO,nO,nBr,nOH,
-     &    nBrO,ss,nHO2,nNO2,pBrOx,which_trop
+     &    nBrO,ss,nHO2,nNO2,pBrOx,which_trop,n_bi_terp
 
       IMPLICIT NONE
 
@@ -576,11 +566,7 @@ C**** Local parameters and variables and arguments:
       integer             :: L,maxT
       integer, intent(IN) :: Lmax,I,J
       real*8              :: a,b,c,d,eq,f,p2,p1
-#ifdef TRACERS_TERP
-      integer, parameter :: iBrOplusNO2=108
-#else
-      integer, parameter :: iBrOplusNO2=105
-#endif  /* TRACERS_TERP */
+      integer, parameter :: iBrOplusNO2=105+n_bi_terp
       
       select case(which_trop)
       case(0); maxT=min(ltropo(I,J),Lmax)
