@@ -112,7 +112,7 @@ C**** Local parameters and variables and arguments:
      &                      iHO2NO2_OH=18, ! this is before terpenes
      &                      iHO2NO2decomp=92+n_bi_terp,
      &                      iN2O5decomp=93+n_bi_terp,
-     &                      iPANdecomp=29+n_bi_terp,
+     &                      iPANdecomp=29, ! this is before terpenes
      &                      iClOplusNO2=104+n_bi_terp,
      &                      iBrOplusNO2=105+n_bi_terp,
      &                      iClOplusClO=103+n_bi_terp,
