@@ -1685,8 +1685,9 @@ c Initialize change arrays:
 C**** GLOBAL parameters and variables:
 
       USE TRCHEM_Shindell_COM, only: p_2, p_3, p_4, ny, numfam,nfam
+      USE TRCHEM_Shindell_COM, only: n_bi_terp
 #ifdef TRACERS_dCO
-      USE TRCHEM_Shindell_COM, only: n_bi_terp, n_bi_dCO
+      USE TRCHEM_Shindell_COM, only: n_bi_dCO
       use TRACER_COM, only: n_dC17O, n_dC18O, n_d13CO
 #endif  /* TRACERS_dCO */
 
