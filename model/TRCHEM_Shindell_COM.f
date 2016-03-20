@@ -74,7 +74,12 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
 #else
      & n_bi_terp = 0,
 #endif  /* TRACERS_TERP */
-     & n_bi  =    91+n_bi_terp,
+#ifdef TRACERS_dCO
+     & n_bi_dCO = 12, ! number of dCO bimolecular reactions
+#else
+     & n_bi_dCO = 0,
+#endif  /* TRACERS_dCO */
+     & n_bi  =    91+n_bi_terp+n_bi_dCO,
      & n_nst =     3,
      & n_tri =    11,
      & n_het =     5,

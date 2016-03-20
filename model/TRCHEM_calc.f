@@ -38,7 +38,7 @@ C
      &                   yCH3O2,yC2O3,yXO2,yXO2N,yRXPAR,yAldehyde,
      &                   yROR,nCH3O2,nC2O3,nXO2,nXO2N,nRXPAR,
      &                   nAldehyde,nROR,nr,nn,dt2,dest,prod,
-     &                   ny,rr,nO1D,nOH,nNO,nHO2,ta,nM,ss,
+     &                   rr,nO1D,nOH,nNO,nHO2,ta,nM,ss,
      &                   nO3,nNO2,nNO3,prnrts,jprn,iprn,lprn,ay,
      &                   prnchg,y,nps,kps,nds,kds,
      &                   npnr,nnr,ndnr,kpnr,kdnr,nH2O,which_trop,
@@ -46,7 +46,7 @@ C
      &                   ,SF3,ratioNs,ratioN2,rNO2frac,nO,nClO,nBrO
      &                   ,rNOfrac,rNOdenom,nOClO,nCl,nBr,OxlossbyH
      &                   ,nCl2,yCl2,SF2,nO2,MWabyMWw,yCl2O2,pscX
-     &                   ,topLevelOfChemistry,changeL,n_bi_terp
+     &                   ,topLevelOfChemistry,changeL,n_bi_terp,n_bi_dCO
 #ifdef TRACERS_AEROSOLS_SOA
        USE TRACERS_SOA, only: apartmolar,whichsoa,soa_apart,LM_soa
 #endif  /* TRACERS_AEROSOLS_SOA */
@@ -61,6 +61,9 @@ C
      &      nn_apinp1g,nn_apinp1a,nn_apinp2g,nn_apinp2a,         
      &      nn_ClOx,   nn_BrOx,  nn_HCl,   nn_HOCl,   nn_ClONO2,  
      &      nn_HBr,    nn_HOBr,  nn_BrONO2,nn_CFC,    nn_GLT
+#ifdef TRACERS_dCO
+     &     ,nn_dC17O,nn_dC18O,nn_d13CO
+#endif  /* TRACERS_dCO */
 
       USE DIAG_COM_RAD, only : j_h2och4
       use photolysis, only: ks,kss
@@ -103,21 +106,22 @@ C**** Local parameters and variables and arguments:
       INTEGER, INTENT(INOUT) :: ierr_loc
       INTEGER :: L,iter,maxL,igas,maxT,Lz,it,n
       INTEGER :: J_0, J_1
+      INTEGER, PARAMETER :: iAlkenesO3=35,
+     &                      iPANdecomp=29,
+     &                      iHO2NO2_OH=18
 #ifdef TRACERS_TERP
       integer, parameter :: iTerpenesOH=92,iTerpenesO3=93
 #endif  /* TRACERS_TERP */
-      INTEGER, PARAMETER :: iHO2NO2form=99+n_bi_terp,
-     &                      iN2O5form=100+n_bi_terp,
-     &                      iPANform=102+n_bi_terp,
-     &                      iHO2NO2_OH=18, ! this is before terpenes
-     &                      iHO2NO2decomp=92+n_bi_terp,
-     &                      iN2O5decomp=93+n_bi_terp,
-     &                      iPANdecomp=29, ! this is before terpenes
-     &                      iClOplusNO2=104+n_bi_terp,
-     &                      iBrOplusNO2=105+n_bi_terp,
-     &                      iClOplusClO=103+n_bi_terp,
-     &                      iOHplusNO2=98+n_bi_terp,
-     &                      iNOplusO=96+n_bi_terp
+      INTEGER, PARAMETER :: iHO2NO2form=99+n_bi_terp+n_bi_dCO,
+     &                      iN2O5form=100+n_bi_terp+n_bi_dCO,
+     &                      iPANform=102+n_bi_terp+n_bi_dCO,
+     &                      iHO2NO2decomp=92+n_bi_terp+n_bi_dCO,
+     &                      iN2O5decomp=93+n_bi_terp+n_bi_dCO,
+     &                      iClOplusNO2=104+n_bi_terp+n_bi_dCO,
+     &                      iBrOplusNO2=105+n_bi_terp+n_bi_dCO,
+     &                      iClOplusClO=103+n_bi_terp+n_bi_dCO,
+     &                      iOHplusNO2=98+n_bi_terp+n_bi_dCO,
+     &                      iNOplusO=96+n_bi_terp+n_bi_dCO
       character(len=300) :: out_line
       logical            :: jay
       real*8, allocatable, dimension(:) :: rMAbyM,sv_changeN2O,
@@ -210,8 +214,13 @@ c Add additional Cl from CFC photolysis + background :
 c Oxidation of Isoprene and Alkenes produces less than one
 c HCHO, Alkenes, and CO per rxn, correct here following Houweling:
       do L=1,maxL
-        prod(nn_CO,L)=prod(nn_CO,L)-0.63d0*chemrate(35,L)
-        prod(nn_HCHO,L)=prod(nn_HCHO,L)-0.36d0*chemrate(35,L)
+        prod(nn_CO,L)=prod(nn_CO,L)-0.63d0*chemrate(iAlkenesO3,L)
+#ifdef TRACERS_dCO
+        prod(nn_dC18O,L)=prod(nn_dC18O,L)-0.63d0*chemrate(iAlkenesO3,L)
+        prod(nn_dC17O,L)=prod(nn_dC17O,L)-0.63d0*chemrate(iAlkenesO3,L)
+        prod(nn_d13CO,L)=prod(nn_d13CO,L)-0.63d0*chemrate(iAlkenesO3,L)
+#endif  /* TRACERS_dCO */
+        prod(nn_HCHO,L)=prod(nn_HCHO,L)-0.36d0*chemrate(iAlkenesO3,L)
         prod(nn_HCHO,L)=prod(nn_HCHO,L)-0.39d0*chemrate(30,L)
 #ifdef TRACERS_TERP
      &                               -0.39d0*chemrate(iTerpenesOH,L)
@@ -373,7 +382,7 @@ c       Set value for XO2:
      &  rr(iTerpenesOH,L)*y(nn_Terpenes,L)*0.85d0+
 #endif  /* TRACERS_TERP */
      &  rr(33,L)*y(nn_AlkylNit,L))+
-     &  y(nO3,L)*(rr(35,L)*y(nn_Alkenes,L)*0.29d0+
+     &  y(nO3,L)*(rr(iAlkenesO3,L)*y(nn_Alkenes,L)*0.29d0+
      &  rr(31,L)*y(nn_Isoprene,L)*0.18d0
 #ifdef TRACERS_TERP
      &  +rr(iTerpenesO3,L)*y(nn_Terpenes,L)*0.18d0
@@ -415,7 +424,7 @@ c       Set value for XO2N:
 
 c       Set value for RXPAR:
         RXPARprod=rr(37,L)*y(nn_Paraffin,L)*y(nOH,L)*0.11d0+
-     &  rr(34,L)*yROR(I,J,L)*2.1d0+rr(35,L)*y(nn_Alkenes,L)*
+     &  rr(34,L)*yROR(I,J,L)*2.1d0+rr(iAlkenesO3,L)*y(nn_Alkenes,L)*
      &  y(nO3,L)*0.9d0
         RXPARdest=RXPAR_PAR
         if(RXPARdest > 0.d0)then
@@ -428,7 +437,7 @@ c       Set value for RXPAR:
 c       Set value for Aldehyde:
         Aldehydeprod=rr(37,L)*y(nn_Paraffin,L)*y(nOH,L)*0.11d0+
      &  rr(34,L)*y(nn_Alkenes,L)*y(nOH,L)+
-     &  rr(42,L)*yROR(I,J,L)*1.1d0+rr(35,L)*y(nn_Alkenes,L)*
+     &  rr(42,L)*yROR(I,J,L)*1.1d0+rr(iAlkenesO3,L)*y(nn_Alkenes,L)*
      &  y(nO3,L)*0.44d0
         Aldehydedest=rr(38,L)*y(nOH,L)+ss(16,L,I,J)
 c       Check for equilibrium:
@@ -655,6 +664,14 @@ c Calculate ozone change due to Cl2O2 cycling:
 c Include oxidation of CO by O(1D)
       do L=1,maxL
         dest(nn_CO,L)=dest(nn_CO,L)-1.0d-9*y(nn_CO,L)*y(nO1D,L)*dt2
+#ifdef TRACERS_dCO
+        dest(nn_dC17O,L)=dest(nn_dC17O,L)
+     &                  -1.0d-9*y(nn_dC17O,L)*y(nO1D,L)*dt2
+        dest(nn_dC18O,L)=dest(nn_dC18O,L)
+     &                  -1.0d-9*y(nn_dC18O,L)*y(nO1D,L)*dt2
+        dest(nn_d13CO,L)=dest(nn_d13CO,L)
+     &                  -1.0d-9*y(nn_d13CO,L)*y(nO1D,L)*dt2
+#endif  /* TRACERS_dCO */
       end do
 
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
@@ -1701,7 +1718,7 @@ c Reactive families:
             ireac=ireac+1
             do iaL=1,maxL
               if(nn(1,ndnr(ireac)) >= nfam(igas) .and. 
-     &        nn(1,ndnr(ireac)) < nfam(igas+1))then
+     &           nn(1,ndnr(ireac)) < nfam(igas+1))then
                 dest(igas,iaL)=dest(igas,iaL)+multip
      &          *chemrate(ndnr(ireac),iaL)
 c               Save change array for individual family elements:
@@ -1710,7 +1727,7 @@ c               Save change array for individual family elements:
               end if
               if(numeL == 2)then
                 if(nn(2,ndnr(ireac)) >= nfam(igas) .and. 
-     &          nn(2,ndnr(ireac)) < nfam(igas+1))then
+     &             nn(2,ndnr(ireac)) < nfam(igas+1))then
                   dest(igas,iaL)=dest(igas,iaL)+
      &            multip*chemrate(ndnr(ireac),iaL)
                   dest(nn(2,ndnr(ireac)),iaL)=
