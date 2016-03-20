@@ -216,8 +216,8 @@ c HCHO, Alkenes, and CO per rxn, correct here following Houweling:
       do L=1,maxL
         prod(nn_CO,L)=prod(nn_CO,L)-0.63d0*chemrate(iAlkenesO3,L)
 #ifdef TRACERS_dCO
-        prod(nn_dC18O,L)=prod(nn_dC18O,L)-0.63d0*chemrate(iAlkenesO3,L)
         prod(nn_dC17O,L)=prod(nn_dC17O,L)-0.63d0*chemrate(iAlkenesO3,L)
+        prod(nn_dC18O,L)=prod(nn_dC18O,L)-0.63d0*chemrate(iAlkenesO3,L)
         prod(nn_d13CO,L)=prod(nn_d13CO,L)-0.63d0*chemrate(iAlkenesO3,L)
 #endif  /* TRACERS_dCO */
         prod(nn_HCHO,L)=prod(nn_HCHO,L)-0.36d0*chemrate(iAlkenesO3,L)
@@ -1685,6 +1685,10 @@ c Initialize change arrays:
 C**** GLOBAL parameters and variables:
 
       USE TRCHEM_Shindell_COM, only: p_2, p_3, p_4, ny, numfam,nfam
+#ifdef TRACERS_dCO
+      USE TRCHEM_Shindell_COM, only: n_bi_terp, n_bi_dCO
+      use TRACER_COM, only: n_dC17O, n_dC18O, n_d13CO
+#endif  /* TRACERS_dCO */
 
       IMPLICIT NONE
 
@@ -1695,7 +1699,8 @@ C**** Local parameters and variables and arguments:
 !@+   two products
 !@var kdnr kdnr,kpnr,kds, or kps    passed from chemstep
 !@var nn nn,nnr,ks, or kss          passed from chemstep
-!@var ndnr ndnr,npnr,nds, or nps    passed from chemstep
+!@var ndnr ndnr,npnr,nds, or nps    passed from chemstep.
+!@+   ndnr(ireac) gives reaction index number as found in JPLRX or JPLPH
 !@var chemrate chemrate or photrate passed from chemstep
 !@var dest dest or prod             passed from chemstep
 !@var multip -1 for destruction, +1 for production
@@ -1714,6 +1719,7 @@ C**** Local parameters and variables and arguments:
       INTEGER, DIMENSION(p_3)        :: ndnr
       REAL*8,  DIMENSION(p_2,maxL)   :: chemrate ! automatic array
       REAL*8,  DIMENSION(ny,maxL)    :: dest ! automatic array
+      integer, parameter :: idC17OplusOH=92+n_bi_terp
 
       ireac=0
       
@@ -1724,6 +1730,13 @@ c Reactive families:
         if(dk >= 1) then
           do i=1,dk
             ireac=ireac+1
+#ifdef TRACERS_dCO
+            if ((ndnr(ireac) >= idC17OplusOH).and.
+     &          (ndnr(ireac) < idC17OplusOH+n_bi_dCO)) then
+              if ((igas /= n_dC17O).and.(igas /= n_dC18O).and.
+     &            (igas /= n_d13CO)) cycle ! do not affect chemistry
+            endif
+#endif  /* TRACERS_dCO */
             do nl=1,numeL
               if(nn(nl,ndnr(ireac)) >= nfam(igas) .and. 
      &           nn(nl,ndnr(ireac)) < nfam(igas+1))then
@@ -1749,6 +1762,13 @@ c Individual Species:
         if(dk >= 1) then
           do i=1,dk
             ireac=ireac+1
+#ifdef TRACERS_dCO
+            if ((ndnr(ireac) >= idC17OplusOH).and.
+     &          (ndnr(ireac) < idC17OplusOH+n_bi_dCO)) then
+              if ((igas /= n_dC17O).and.(igas /= n_dC18O).and.
+     &            (igas /= n_d13CO)) cycle ! do not affect chemistry
+            endif
+#endif  /* TRACERS_dCO */
             dest(igas,1:maxL)=
      &        dest(igas,1:maxL)+
      &        multip*chemrate(ndnr(ireac),1:maxL)
