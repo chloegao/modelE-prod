@@ -9,8 +9,7 @@ C**** GLOBAL parameters and variables:
       USE MODEL_COM, only: Itime, ItimeI
       USE DOMAIN_DECOMP_ATM, only : getDomainBounds, grid
       USE TRACER_COM, only: oh_live,no3_live
-      USE TRCHEM_Shindell_COM, only:ny,numfam,nn,nps,nds,
-     &    ndnr,kps,kds,kpnr,kdnr,nnr,nr,npnr,nr2,nr3,nmm,
+      USE TRCHEM_Shindell_COM, only:
      &    prnls,prnrts,prnchg,lprn,jprn,iprn,ay,pHOx,pOx,pNOx,
      &    yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yNO3,yRXPAR,yXO2N,acetone,
      &    allowSomeChemReinit,pNO3,topLevelOfChemistry
