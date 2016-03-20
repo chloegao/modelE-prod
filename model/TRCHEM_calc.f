@@ -1690,16 +1690,24 @@ C**** GLOBAL parameters and variables:
 
 C**** Local parameters and variables and arguments:
 !@var maxL passed highest chemistry level
-!@var numeL first index of nn array
+!@var numeL first index of nn array, 1 for single reactant (photolytic
+!@+   destruction) 2 for all other cases, meaning either two reactants or
+!@+   two products
 !@var kdnr kdnr,kpnr,kds, or kps    passed from chemstep
 !@var nn nn,nnr,ks, or kss          passed from chemstep
 !@var ndnr ndnr,npnr,nds, or nps    passed from chemstep
 !@var chemrate chemrate or photrate passed from chemstep
 !@var dest dest or prod             passed from chemstep
 !@var multip -1 for destruction, +1 for production
-!@var i,ireac,igas,ial,nbeg,nend dummy loop variables
-!@var dk dummy variable
-      INTEGER ireac,igas,ial,i,dk,nbeg,nend
+!@var igas index of tracer, as defined in e.g. trname
+!@var ireac index of reaction per tracer. Starts from 1 and increases
+!@+   every time a tracer has a reaction. E.g.: tracer a has 3 destruction
+!@+   reactions, and tracer b has 4; ireac is [123] for a and [4567] for b.
+!@+   Production and destruction are tracked separately.
+!@var nbeg First non-family tracer
+!@var nend Last non-family tracer
+!@var i,dk,nl dummy variable
+      INTEGER ireac,igas,i,dk,nl,nbeg,nend
       INTEGER, INTENT(IN)            :: maxL,numeL,multip
       INTEGER, DIMENSION(p_4)        :: kdnr
       INTEGER, DIMENSION(numeL,p_2)  :: nn ! automatic array
@@ -1716,26 +1724,18 @@ c Reactive families:
         if(dk >= 1) then
           do i=1,dk
             ireac=ireac+1
-            do iaL=1,maxL
-              if(nn(1,ndnr(ireac)) >= nfam(igas) .and. 
-     &           nn(1,ndnr(ireac)) < nfam(igas+1))then
-                dest(igas,iaL)=dest(igas,iaL)+multip
-     &          *chemrate(ndnr(ireac),iaL)
+            do nl=1,numeL
+              if(nn(nl,ndnr(ireac)) >= nfam(igas) .and. 
+     &           nn(nl,ndnr(ireac)) < nfam(igas+1))then
+                dest(igas,1:maxL)=
+     &            dest(igas,1:maxL)+
+     &            multip*chemrate(ndnr(ireac),1:maxL)
 c               Save change array for individual family elements:
-                dest(nn(1,ndnr(ireac)),iaL)=dest(nn(1,ndnr(ireac)),iaL)
-     &          + multip*chemrate(ndnr(ireac),iaL)
+                dest(nn(nl,ndnr(ireac)),1:maxL)=
+     &            dest(nn(nl,ndnr(ireac)),1:maxL)+
+     &            multip*chemrate(ndnr(ireac),1:maxL)
               end if
-              if(numeL == 2)then
-                if(nn(2,ndnr(ireac)) >= nfam(igas) .and. 
-     &             nn(2,ndnr(ireac)) < nfam(igas+1))then
-                  dest(igas,iaL)=dest(igas,iaL)+
-     &            multip*chemrate(ndnr(ireac),iaL)
-                  dest(nn(2,ndnr(ireac)),iaL)=
-     &            dest(nn(2,ndnr(ireac)),iaL) + 
-     &            multip*chemrate(ndnr(ireac),iaL)
-                end if
-              end if
-            end do ! ial
+            end do ! numeL
           end do  ! i
         end if
       end do      ! igas
@@ -1749,10 +1749,9 @@ c Individual Species:
         if(dk >= 1) then
           do i=1,dk
             ireac=ireac+1
-            do iaL=1,maxL
-              dest(igas,iaL)=dest(igas,iaL)+multip*
-     &        chemrate(ndnr(ireac),iaL)
-            end do
+            dest(igas,1:maxL)=
+     &        dest(igas,1:maxL)+
+     &        multip*chemrate(ndnr(ireac),1:maxL)
           end do
         end if
       end do
