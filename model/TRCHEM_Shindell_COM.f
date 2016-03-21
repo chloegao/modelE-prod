@@ -25,6 +25,7 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
 !@param n_bi maximum number of bimolecular reactions
 !@param n_tri maximum number of trimolecular reactions
 !@param n_nst maximum number of monomolecular decompositions
+!@param n_het maximum number of heterogeneous reactions
 !@param n_fam maximum number of chemical families
 !@param JPPJ_Shindell number of photolysis reactions in the Shindell chemistry
 !@param luselb Use reflective photolysis boundary treatment
@@ -69,14 +70,20 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
      & p_3   =   500,
      & p_4   =   209,
 #ifdef TRACERS_TERP
-     & n_rx  =   113,
-     & n_bi  =    97,
+     & n_bi_terp = 3, ! number of terpenes bimolecular reactions
 #else
-     & n_rx  =   110,
-     & n_bi  =    94,
+     & n_bi_terp = 0,
 #endif  /* TRACERS_TERP */
-     & n_tri =    11,
+#ifdef TRACERS_dCO
+     & n_bi_dCO = 12, ! number of dCO bimolecular reactions
+#else
+     & n_bi_dCO = 0,
+#endif  /* TRACERS_dCO */
+     & n_bi  =    91+n_bi_terp+n_bi_dCO,
      & n_nst =     3,
+     & n_tri =    11,
+     & n_het =     5,
+     & n_rx  = n_bi+n_nst+n_tri+n_het,
      & nc     =   53+ntm_terp+ntm_soa+ntm_dCO,     !formerly in param sub
      & ny     =   51+ntm_terp+ntm_soa+ntm_dCO,     !formerly in param sub  
      & numfam =    4,     !formerly in param sub  
@@ -348,11 +355,11 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var prod_sulfate  N2O5 change by sulfate reactions in mass units
 !@var wprod_sulf N2O5 change by sulfate reactions in molecules/cm3/s
 !@var DT2 variable chemical time step, set in masterchem
-!@var nr total number of        reactions read in from gs_jpl00_trop_15
-!@var nr3 #of trimolecular      reactions read in from gs_jpl00_trop_15
-!@var nr2 #of mono+bi-molecular reactions read in from gs_jpl00_trop_15
-!@var nmm #of monomolecular     reactions read in from gs_jpl00_trop_15
-!@var nhet #of heterogenous     reactions read in from gs_jpl00_trop_15
+!@var nr total number of        reactions read in from JPLRX
+!@var nr3 #of trimolecular      reactions read in from JPLRX
+!@var nr2 #of mono+bi-molecular reactions read in from JPLRX
+!@var nmm #of monomolecular     reactions read in from JPLRX
+!@var nhet #of heterogenous     reactions read in from JPLRX
 !@var ratioNs,ratioN2,rNO2frac,rNOfrac,rNOdenom variables for nitrogen
 !@+   conservation (strat)
 !@var chemrate,photrate ?   
@@ -418,7 +425,7 @@ C**************  Not Latitude-Dependant ****************************
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: dest, prod
       REAL*8, ALLOCATABLE, DIMENSION(:)   :: OxlossbyH, ClOx_old
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: changeL
-      REAL*8, DIMENSION(n_bi)             :: pe, ea
+      REAL*8, DIMENSION(n_bi+n_nst)       :: pe, ea
       REAL*8, DIMENSION(n_tri)            :: ro, r1, sn, sb
       REAL*8, DIMENSION(LCOalt)           :: COICINL,OxICINL,CH4ICINL
      &                                       ,N2OICINL,CFCICINL

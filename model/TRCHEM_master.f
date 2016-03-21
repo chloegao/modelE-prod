@@ -48,6 +48,9 @@ c
      &                      rsulf1,rsulf2,rsulf3,rsulf4,
      &                      n_HBr,n_HOCl,n_HCl,n_ClONO2,n_ClOx,
      &                      n_BrOx,n_BrONO2,n_CFC,n_N2O,n_HOBR
+#ifdef TRACERS_dCO
+     &                     ,n_dC17O,n_dC18O,n_d13CO
+#endif  /* TRACERS_dCO */
 #ifdef TRACERS_AMP
       USE TRACER_COM, only  : n_M_AKK_SU,n_M_ACC_SU,n_M_DD1_SU,
      &                        n_M_DS1_SU,n_M_DD2_SU,n_M_DS2_SU,
@@ -181,17 +184,17 @@ C**** Local parameters and variables and arguments:
 
       real*8, dimension(JM)     :: DU_O3_glob
 #ifdef TRACERS_TERP
-      integer, parameter :: iN2O5plusH2O=109,iNO3plusNO2=103,
-     &                      iN2O5decomp=96,iClOplusNO2=107,
-     &                      iClONO2plusH2O=110,iClONO2plusHCl=111,
-     &                      iHOClplusHCl=112,iN2O5plusHCl=113,
-     &                      iTerpenesO3=93,iTerpenesNO3=94
-#else
-      integer, parameter :: iN2O5plusH2O=106,iNO3plusNO2=100,
-     &                      iN2O5decomp=93,iClOplusNO2=104,
-     &                      iClONO2plusH2O=107,iClONO2plusHCl=108,
-     &                      iHOClplusHCl=109,iN2O5plusHCl=110
+      integer, parameter :: iTerpenesO3=93,iTerpenesNO3=94
 #endif  /* TRACERS_TERP */
+      integer, parameter :: iN2O5plusH2O=106+n_bi_terp+n_bi_dCO,
+     &                      iNO3plusNO2=100+n_bi_terp+n_bi_dCO,
+     &                      iN2O5decomp=93+n_bi_terp+n_bi_dCO,
+     &                      iClOplusNO2=104+n_bi_terp+n_bi_dCO,
+     &                      iClONO2plusH2O=107+n_bi_terp+n_bi_dCO,
+     &                      iClONO2plusHCl=108+n_bi_terp+n_bi_dCO,
+     &                      iHOClplusHCl=109+n_bi_terp+n_bi_dCO,
+     &                      iN2O5plusHCl=110+n_bi_terp+n_bi_dCO,
+     &                      iBrOplusNO2=105+n_bi_terp+n_bi_dCO
 
       real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
@@ -929,7 +932,7 @@ c       paths if lead to negative conc:
 #endif  /* TRACERS_TERP */
         rClOplusNO2=y(nClO,L)*rr(iClOplusNO2,L)*y(nNO2,L)*dt2
         rDMSplusNO3=ydms(i,j,L)*rsulf3(i,j,L)*yNO3(I,J,L)*dt2
-        rBrOplusNO2=rr(108,L)*y(nn_NOx,L)*pNOx(I,J,L)
+        rBrOplusNO2=rr(iBrOplusNO2,L)*y(nn_NOx,L)*pNOx(I,J,L)
      &    *y(nn_BrOx,L)*pBrOx(I,J,L)*dt2
         chgHT3=rr(iClONO2plusHCl,L)*y(nn_ClONO2,L)*dt2
         changehetClONO2=-1.d0*(rr(iClONO2plusH2O,L)*y(nn_ClONO2,L))*dt2
@@ -1204,6 +1207,30 @@ C -- CO --
           taijls(i,j,L,ijlt_COd)=taijls(i,j,L,ijlt_COd)+changeCO*cpd
 #endif
         end if       
+#ifdef TRACERS_dCO
+! ok to overwrite changeCO here
+C -- dC17O --
+        changeL(L,n_dC17O)=rHCHOplusNO3*pfactor*vol2mass(n_dC17O)
+        changeCO=changeL(L,n_dC17O)*mass2vol(n_dC17O)*bypfactor
+        if((trm(i,j,l,n_dC17O)+changeL(l,n_dC17O)) < minKG)then
+          changeL(l,n_dC17O) = minKG - trm(i,j,l,n_dC17O)
+          changeCO=changeL(L,n_dC17O)*mass2vol(n_dC17O)*bypfactor
+        endif
+C -- dC18O --
+        changeL(L,n_dC18O)=rHCHOplusNO3*pfactor*vol2mass(n_dC18O)
+        changeCO=changeL(L,n_dC18O)*mass2vol(n_dC18O)*bypfactor
+        if((trm(i,j,l,n_dC18O)+changeL(l,n_dC18O)) < minKG)then
+          changeL(l,n_dC18O) = minKG - trm(i,j,l,n_dC18O)
+          changeCO=changeL(L,n_dC18O)*mass2vol(n_dC18O)*bypfactor
+        endif
+C -- d13CO --
+        changeL(L,n_d13CO)=rHCHOplusNO3*pfactor*vol2mass(n_d13CO)
+        changeCO=changeL(L,n_d13CO)*mass2vol(n_d13CO)*bypfactor
+        if((trm(i,j,l,n_d13CO)+changeL(l,n_d13CO)) < minKG)then
+          changeL(l,n_d13CO) = minKG - trm(i,j,l,n_d13CO)
+          changeCO=changeL(L,n_d13CO)*mass2vol(n_d13CO)*bypfactor
+        endif
+#endif  /* TRACERS_dCO */
 C -- HNO3 --  (HNO3 from gas and het phase rxns )
         changeL(L,n_HNO3)=changeHNO3*pfactor*vol2mass(n_HNO3)
         IF((trm(i,j,L,n_HNO3)+changeL(L,n_HNO3)) < minKG) THEN
