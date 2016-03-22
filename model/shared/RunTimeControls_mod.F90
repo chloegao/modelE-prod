@@ -984,6 +984,12 @@ module RunTimeControls_mod
   logical, parameter :: tracers_cosmo = .false.
 #endif
 
+#if defined(TRACERS_dCO)
+  logical, parameter :: tracers_dco = .true.
+#else
+  logical, parameter :: tracers_dco = .false.
+#endif
+
 #if defined(TRACERS_DRYDEP)
   logical, parameter :: tracers_drydep = .true.
 #else

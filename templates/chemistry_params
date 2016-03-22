@@ -22,7 +22,7 @@ SECTORS_ARE='WET'
 !-fit-here--|                                                              |---
 !-----
 aircraft_Tyr1=1910 ! regardless of the type of run, if you have non-transient
-aircraft_Tyr2=2000 ! aircraft emission files, set these two equal or omit them.
+aircraft_Tyr2=2020 ! aircraft emission files, set these two equal or omit them.
 
 ! Colin Price lightning model needs resolution-dependant tuning:
 tune_lt_land=2.4920d0 ! =2.2d0*2.17d0, *0.5*1.2*0.5 for 2x2.5, * 2 for bugfix, *0.87
