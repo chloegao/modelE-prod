@@ -76,8 +76,10 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
 #endif  /* TRACERS_TERP */
 #ifdef TRACERS_dCO
      & n_bi_dCO = 12, ! number of dCO bimolecular reactions
+     & jppj_dCO = 9,  ! number of dCO photochemical reactions
 #else
      & n_bi_dCO = 0,
+     & jppj_dCO = 0,
 #endif  /* TRACERS_dCO */
      & n_bi  =    91+n_bi_terp+n_bi_dCO,
      & n_nst =     3,
@@ -115,7 +117,7 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
      & nBr=       51+ntm_terp+ntm_soa+ntm_dCO,
      & nO2=       52+ntm_terp+ntm_soa+ntm_dCO,
      & nM=        53+ntm_terp+ntm_soa+ntm_dCO,     !you must always put nM last (highest number)
-     & JPPJ_Shindell = 28,
+     & JPPJ_Shindell = 28+jppj_dCO,
      & n_fam =     5,
      & p_5   =    14,
      & n_phot=     2  

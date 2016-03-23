@@ -2262,7 +2262,7 @@ C**** GLOBAL parameters and variables:
       USE ATM_COM, only : MA, PMIDL00
       USE TRCHEM_Shindell_COM, only: nr2,nr3,nmm,nhet,ta,ea,rr,pe,
      & cboltz,r1,sb,nst,y,nM,nH2O,ro,sn,which_trop,sulfate,RKBYPIM,dt2,
-     & RGAMMASULF,pscX,topLevelOfChemistry,rh,bythick,aero
+     & RGAMMASULF,pscX,topLevelOfChemistry,rh,bythick,aero,n_bi_terp
 
 #ifdef TRACERS_AEROSOLS_SOA
       USE TRACER_COM, only: n_isopp1a,n_isopp2a
@@ -2310,6 +2310,9 @@ C**** Local parameters and variables and arguments:
       REAL*8, DIMENSION(LM) :: PRES ! = PMIDL00(1:LM). Keeps LM dimension not top of chem
       INTEGER               :: LAXt,LAXb
       real*8, allocatable, dimension(:) :: PSCEX,rkext
+#ifdef TRACERS_dCO
+      integer, parameter :: idC17OplusOH=92+n_bi_terp
+#endif  /* TRACERS_dCO */
 
       allocate( PSCEX(topLevelOfChemistry) )
       allocate( rkext(topLevelOfChemistry) )
@@ -2350,7 +2353,13 @@ c         for #12, k based on three-parameters from JPL2011
           if(jj == 12) rr(jj,L)=rr(jj,L)*(ta(L)**0.667)
 c         for #13, k= based on termolecular reaction from JPL2011
 c         (see paged 185-188 and note D1)
-          if(jj == 13) then
+          if(jj == 13
+#ifdef TRACERS_dCO
+     &       .or. jj == idC17OplusOH
+     &       .or. jj == idC17OplusOH+4
+     &       .or. jj == idC17OplusOH+8
+#endif  /* TRACERS_dCO */
+     &      ) then
             k0TM=y(nM,L)*pe(jj)*((300.d0*byta)**1.4)
             kinfT=1.1d-12*(300.d0*byta)**(-1.3)
             dd=k0TM/kinfT
