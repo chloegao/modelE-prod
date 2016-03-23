@@ -123,7 +123,7 @@ clean_all vclean: clean
 clean: clean_components
 
 clean_components:
-	-rm -f $(RUN_H) $(MOD_DIR)/*.mod
+	-rm -f $(RUN_H) $(MOD_DIR)/*.mod .liblist
 	for i in $(AVAILABLE_COMPONENTS) ; do \
 	  if [ -d $$i ] ; then $(MAKE) -C $$i clean ; fi ; done
 

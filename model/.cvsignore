@@ -1,8 +1,0 @@
-*.ERR
-*.sig
-*.pp.f
-*.pp.inst.f
-*.pp.pdb
-diff.out
-diffs.out
-mod
