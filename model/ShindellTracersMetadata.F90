@@ -120,6 +120,12 @@ contains
     call  N2O_setSpec('N2O')
     call  CFC_setSpec('CFC')
 
+#ifdef TRACERS_dCO
+    call  CO_setSpec('dC17O')
+    call  CO_setSpec('dC18O')
+    call  CO_setSpec('d13CO')
+#endif  /* TRACERS_dCO */
+
     if (shindell_strat_extra) then
       if (accmip_like_diags) then
         call  codirect_setSpec('codirect')
@@ -127,12 +133,6 @@ contains
         call  GLT_setSpec('GLT') ! generic linear tracer
       end if
     end if
-
-#ifdef TRACERS_dCO
-    call  CO_setSpec('dC17O')
-    call  CO_setSpec('dC18O')
-    call  CO_setSpec('d13CO')
-#endif  /* TRACERS_dCO */
 
     call calculateIndexOffsets
 
