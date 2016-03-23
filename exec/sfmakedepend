@@ -559,7 +559,11 @@ if ( !( $cray || $parasoft || $intel ) ) {
 
 # Sort out the Makefiles
 
-rename($mf, "$mf.old") || warn "can't overwrite $mf.old: $!\n";
+if ( -s $mf ) {
+    rename($mf, "$mf.old") || warn "can't overwrite $mf.old: $!\n";
+} else {
+    unlink $mf || warn "can't remove $mf: $!\n";
+}
 rename('Makefile.new', $mf) ||
      warn "can't move Makefile.new to $mf: $!\n";
 
