@@ -109,7 +109,7 @@ NAMERVR=RDdistocean_CS90_EM.names.txt  ! named river outlets
 
 #include "chem_emiss_C90_input_files"
 
-#include "aeros_C90_input_files"
+#include "aerosol_OMA_C90_input_files"
 
 MSU_wts=MSU.RSS.weights.data     ! MSU-diag
 REG=REG.txt                      ! special regions-diag

@@ -95,7 +95,7 @@ NAMERVR=RD8X10.names.txt ! named river outlets
 #include "dust_tracer_36x24_input_files"
 #include "dry_depos_36x24_input_files"
 #include "chem_emiss_36x24_input_files"
-#include "aerosol_36x24_input_files"
+#include "aerosol_OMA_36x24_input_files"
 Ox_ref=o3_zeros_36x24x49.nc
 
 MSU_wts=MSU.RSS.weights.data      ! MSU-diag
@@ -126,7 +126,7 @@ initial_GHG_setup = 1 ! Set to 0 after initial setup.
 
 madaer=3         ! 3: updated aerosols          ; 1: default sulfates/aerosols
 
-#include "aerosol_36x24_params"
+#include "aerosol_OMA_36x24_params"
 
 #include "dust_params_vmp_oma"
 #include "chemistry_36x24_params"

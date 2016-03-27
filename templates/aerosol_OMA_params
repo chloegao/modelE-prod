@@ -5,13 +5,8 @@ prather_limits=1   ! 1: to avoid some negative tracers in sub-gridscale
 diag_rad=1         ! 1: additional radiation diagnostics
 diag_wetdep=1      ! 1: additional wet deposition diagnostics
 OCB_om2oc=1.4      ! biomass burning organic matter to organic carbon ratio (default is 1.4)
-!BBinc=1.4          ! enhancement factor for carbonaceous aerosols (1.4 for AR5 emissions, 1.0 elsewhere)
 !--- number of biomass burning sources (per tracer)
 NH3_nBBsources=2
 SO2_nBBsources=2
-M_BC1_BC_nBBsources=2
-M_OCC_OC_nBBsources=2
-OFFLINE_DMS_SS=0   ! 1= read offline DMS and dust from aerocom file
-!------------------  AMP parameters
-AMP_DIAG_FC=  1    ! 2=nmode radiation calls  ||  1=one radiation call
-AMP_RAD_KEY = 1    ! 1=Volume Mixing || 2=Core-Shell || 3=Maxwell Garnett
+BCB_nBBsources=2
+OCB_nBBsources=2
