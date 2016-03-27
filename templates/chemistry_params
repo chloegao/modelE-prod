@@ -83,7 +83,10 @@ scale_ch4_IC_file=1.d0 ! multiplicative factor on CH4 IC file (fix_CH4_chemistry
 ! For altering tracer initial conditions and overwriting by a factor:
 ! set PI_run=1 and change the corresponding factors below. [For altering
 ! emissions, use the sectors above in the rundeck.
-!PI_run        = 1       ! =1 turns on below factors:
+!PI_run        = 1       ! =1 turns on below PIratio factors. Note that for
+                         ! master_yr=1850 if PI_run is undefined in the rundeck
+                         ! it defaults to 1, so the parameters below are used.
+                         ! For all other master_yr values, PI_run defaults to 0
 PIratio_N     = 0.667d0 ! {NOx, HNO3, N2O5, HO2NO2}
 PIratio_CO_T  = 0.333d0 ! CO in troposphere
 PIratio_CO_S  = 0.500d0 ! CO in stratosphere
