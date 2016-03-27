@@ -8261,7 +8261,7 @@ C**** Note this routine must always exist (but can be a dummy routine)
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
       USE FLUXES, only: tr3Dsource
-      USE TRCHEM_Shindell_COM,only: PI_run, use_rad_ch4,
+      USE TRCHEM_Shindell_COM,only:
      & dms_offline,so2_offline,sulfate,fix_CH4_chemistry
       use photolysis, only: rad_FL,read_FL
 #endif
