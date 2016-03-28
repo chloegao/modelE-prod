@@ -2408,7 +2408,7 @@ C
               call inc_subdd(subdd,k,sddarr3d)
               exit ntm_loop
             end if
-         end do ntm_loop
+          end do ntm_loop
         enddo ! k
       enddo ! igroup
 
@@ -2431,7 +2431,7 @@ C
               call inc_subdd(subdd,k,sddarr3d)
               exit ntm_loop2
             end if
-         end do ntm_loop2
+          end do ntm_loop2
         enddo ! k
       enddo ! igroup
 
