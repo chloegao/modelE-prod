@@ -2565,7 +2565,7 @@ c
       arr(next()) = info_type_(
      &  sname = 'p_3d',
      &  lname = 'pressure on model levels',
-     &  units = 'Pa'
+     &  units = 'mb'
      &     )
       arr(next()) = info_type_(
      &  sname = 'rh_3d',
