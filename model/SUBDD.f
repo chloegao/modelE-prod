@@ -2261,6 +2261,18 @@ c
      &  lname = 'Activated Particles Number Concentration',
      &  units = '#/m^2'
      &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'ptrop',
+     &  lname = 'Tropopause pressure',
+     &  units = 'mb'
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'ttrop',
+     &  lname = 'Tropopause temperature',
+     &  units = 'K'
+     &     )
       return
       contains
       integer function next()

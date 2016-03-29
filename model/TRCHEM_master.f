@@ -107,7 +107,7 @@ c
       type(subdd_type), pointer :: subdd
       real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
      &                  grid%j_strt_halo:grid%j_stop_halo,
-     &                  LM) :: mrno,mrno2
+     &                  LM) :: mrno,mrno2,OH_conc,HO2_conc
 #endif
 C**** Local parameters and variables and arguments:
 !@param by35 1/35 used for spherical geometry constant
@@ -1703,6 +1703,8 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
         mrno2(i,j,L)=pNOx(i,j,L)*(y(nn_NOx,L)+tempChangeNOx)/y(nM,L)
         mrno(i,j,L)=
      &  (1d0-pNOx(i,j,L))*(y(nn_NOx,L)+tempChangeNOx)/y(nM,L)
+        OH_conc(i,j,l)=y(nOH,L)
+        HO2_conc(i,j,l)=y(nHO2,L)
 #endif
      
 #ifdef TRACERS_HETCHEM
@@ -1722,6 +1724,8 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       do L=topLevelOfChemistry+1,LM
         mrno2(i,j,L)=0.d0
         mrno(i,j,L)=0.d0
+        OH_conc(i,j,L)=0.d0
+        HO2_conc(i,j,L)=0.d0
       end do
 #endif
 
@@ -1753,6 +1757,10 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
             call inc_subdd(subdd,k,mrno2)
           case ('MRNO')
             call inc_subdd(subdd,k,mrno)
+          case ('OH_conc')
+            call inc_subdd(subdd,k,OH_conc)
+          case ('HO2_conc')
+            call inc_subdd(subdd,k,HO2_conc)
           end select
         enddo ! k
       enddo ! igroup
@@ -1766,6 +1774,10 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
             call inc_subdd(subdd,k,mrno2)
           case ('MRNOcp')
             call inc_subdd(subdd,k,mrno)
+          case ('OH_conccp')
+            call inc_subdd(subdd,k,OH_conc)
+          case ('HO2_conccp')
+            call inc_subdd(subdd,k,HO2_conc)
           end select
         enddo ! k
       enddo ! igroup

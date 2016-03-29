@@ -2296,6 +2296,18 @@ C
      &  lname = 'NO mixing ratio',
      &  units = 'mole species / mole air'
      &  )
+C
+      arr(next()) = info_type_(
+     &  sname = 'OH_conc', ! because not a tracer
+     &  lname = 'OH concentration',
+     &  units = 'molecules cm-3'
+     &  )
+C
+      arr(next()) = info_type_(
+     &  sname = 'HO2_conc', ! because not a tracer
+     &  lname = 'HO2 concentration',
+     &  units = 'molecules cm-3'
+     &  )
 #endif /* TRACERS_SPECIAL_Shindell */
 
       return
@@ -2356,6 +2368,18 @@ C
      &  sname = 'MRNOcp', ! because not a tracer
      &  lname = 'NO mixing ratio',
      &  units = 'mole species / mole air'
+     &  )
+C
+      arr(next()) = info_type_(
+     &  sname = 'OH_conccp', ! because not a tracer
+     &  lname = 'OH concentration',
+     &  units = 'molecules cm-3'
+     &  )
+C
+      arr(next()) = info_type_(
+     &  sname = 'HO2_conccp', ! because not a tracer
+     &  lname = 'HO2 concentration',
+     &  units = 'molecules cm-3'
      &  )
 #endif /* TRACERS_SPECIAL_Shindell */
 
