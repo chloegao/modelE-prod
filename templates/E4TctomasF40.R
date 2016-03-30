@@ -112,7 +112,7 @@ NAMERVR=RD_modelE_Fa.names.txt  ! named river outlets
 
 #include "chem_emiss_144x90_input_files"
 
-#include "aeros_TOMAS_input_files"
+#include "aerosol_TOMAS_input_files"
 
 MSU_wts=MSU.RSS.weights.data      ! MSU-diag
 REG=REG2X2.5                      ! special regions-diag

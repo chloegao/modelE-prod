@@ -2296,6 +2296,18 @@ C
      &  lname = 'NO mixing ratio',
      &  units = 'mole species / mole air'
      &  )
+C
+      arr(next()) = info_type_(
+     &  sname = 'OH_conc', ! because not a tracer
+     &  lname = 'OH concentration',
+     &  units = 'molecules cm-3'
+     &  )
+C
+      arr(next()) = info_type_(
+     &  sname = 'HO2_conc', ! because not a tracer
+     &  lname = 'HO2 concentration',
+     &  units = 'molecules cm-3'
+     &  )
 #endif /* TRACERS_SPECIAL_Shindell */
 
       return
@@ -2357,6 +2369,18 @@ C
      &  lname = 'NO mixing ratio',
      &  units = 'mole species / mole air'
      &  )
+C
+      arr(next()) = info_type_(
+     &  sname = 'OH_conccp', ! because not a tracer
+     &  lname = 'OH concentration',
+     &  units = 'molecules cm-3'
+     &  )
+C
+      arr(next()) = info_type_(
+     &  sname = 'HO2_conccp', ! because not a tracer
+     &  lname = 'HO2 concentration',
+     &  units = 'molecules cm-3'
+     &  )
 #endif /* TRACERS_SPECIAL_Shindell */
 
       return
@@ -2408,7 +2432,7 @@ C
               call inc_subdd(subdd,k,sddarr3d)
               exit ntm_loop
             end if
-         end do ntm_loop
+          end do ntm_loop
         enddo ! k
       enddo ! igroup
 
@@ -2431,7 +2455,7 @@ C
               call inc_subdd(subdd,k,sddarr3d)
               exit ntm_loop2
             end if
-         end do ntm_loop2
+          end do ntm_loop2
         enddo ! k
       enddo ! igroup
 

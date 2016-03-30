@@ -1685,9 +1685,8 @@ c Initialize change arrays:
 C**** GLOBAL parameters and variables:
 
       USE TRCHEM_Shindell_COM, only: p_2, p_3, nc, ny, numfam,nfam
-      USE TRCHEM_Shindell_COM, only: n_bi_terp,n_rx
+      USE TRCHEM_Shindell_COM, only: n_rx
 #ifdef TRACERS_dCO
-      USE TRCHEM_Shindell_COM, only: n_bi_dCO
       use TRACER_COM, only: n_dC17O, n_dC18O, n_d13CO
 #endif  /* TRACERS_dCO */
 
@@ -1718,7 +1717,9 @@ C**** Local parameters and variables and arguments:
       INTEGER, DIMENSION(p_3)        :: ndnr
       REAL*8,  DIMENSION(p_2,maxL)   :: chemrate ! automatic array
       REAL*8,  DIMENSION(ny,maxL)    :: dest ! automatic array
-      integer, parameter :: idC17OplusOH=92+n_bi_terp
+#ifdef TRACERS_dCO
+      logical :: is_dCO_reaction
+#endif  /* TRACERS_dCO */
 
       ireac=0
       
@@ -1730,8 +1731,7 @@ c Reactive families:
           do i=1,dk
             ireac=ireac+1
 #ifdef TRACERS_dCO
-            if ((ndnr(ireac) >= idC17OplusOH).and.
-     &          (ndnr(ireac) < idC17OplusOH+n_bi_dCO)) then
+            if (is_dCO_reaction(ireac,ndnr)) then
               if ((igas /= n_dC17O).and.(igas /= n_dC18O).and.
      &            (igas /= n_d13CO)) cycle ! do not affect chemistry
             endif
@@ -1760,8 +1760,7 @@ c Individual Species:
           do i=1,dk
             ireac=ireac+1
 #ifdef TRACERS_dCO
-            if ((ndnr(ireac) >= idC17OplusOH).and.
-     &          (ndnr(ireac) < idC17OplusOH+n_bi_dCO)) then
+            if (is_dCO_reaction(ireac,ndnr)) then
               if ((igas /= n_dC17O).and.(igas /= n_dC18O).and.
      &            (igas /= n_d13CO)) cycle ! do not affect chemistry
             endif
@@ -1894,3 +1893,33 @@ c       skip same reaction if written twice:
 
       return
       end SUBROUTINE chem1prn
+
+#ifdef TRACERS_dCO
+      logical function is_dCO_reaction(ireac, ndnr)
+!@sum is_dCO_reaction Returns .true. if reaction ireac involves dCO tracers,
+!@+                   false otherwise
+!@auth Kostas Tsigaridis
+
+      use photolysis, only: jppj
+      use TRCHEM_Shindell_COM, only: p_3,n_bi_terp,n_bi_dCO
+      implicit none
+
+      integer, intent(in) :: ireac
+      integer, dimension(p_3), intent(in) :: ndnr
+      integer, parameter :: idC17OplusOH=92+n_bi_terp
+
+      is_dCO_reaction=.false.
+      if (maxval(ndnr)==jppj) then ! photolysis
+        if ((ndnr(ireac) >= 29).and.
+     &      (ndnr(ireac) < 38)) then
+          is_dCO_reaction=.true.
+        endif
+      else                      ! thermal
+        if ((ndnr(ireac) >= idC17OplusOH).and.
+     &      (ndnr(ireac) < idC17OplusOH+n_bi_dCO)) then
+          is_dCO_reaction=.true.
+        endif
+      endif
+
+      end function is_dCO_reaction
+#endif  /* TRACERS_dCO */

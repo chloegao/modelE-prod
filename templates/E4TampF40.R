@@ -111,7 +111,7 @@ NAMERVR=RD_modelE_Fa.names.txt  ! named river outlets
 !#include "chem_emiss_144x90_input_files"
 
 Terpenes_01=ORCHIDEE_Terpenes_1990_2x2.5_h
-#include "aeros_AMPconstSRC_input_files"
+#include "aerosol_MATRIX_input_files"
 
 MSU_wts=MSU.RSS.weights.data      ! MSU-diag
 REG=REG2X2.5                      ! special regions-diag

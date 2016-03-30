@@ -350,6 +350,7 @@ def createScriptTask(config, compconfig, deck, comp, mode):
                     cmd = 'module load ' + mm +'\n'
                     fileHandle.write (cmd)
 
+    fileHandle.write ('umask 022' + '\n')
     makesystem =  userconfig['makesystem']
     if makesystem == 'makeOld':
         decksDir = scratchDir + '/' + jobName +  '.' + mode + '/decks/'
@@ -435,20 +436,28 @@ def createRegConfig(config, deck, modelErc, comp, jobName, mode):
 
 #-------------------------------------------------------------------------------
 def compare(run):
-
+    # Internal consistency checks
+    if run.mode == 'serial':
+        if run.verification == 'restartRun':
+            regCompare.restart(run, run.endTime)
+    else:
+        for npes in run.npes:
+            if run.verification == 'restartRun':
+                regCompare.restart(run, npes=npes)
+            # Compare NPE vs serial
+            regCompare.nPE(run, run.endTime, npes)
+            
+    # Baseline checks
     if run.mode == 'serial':
         regCompare.base(run, 1) # 1hr run
         if run.verification == 'restartRun':
             regCompare.base(run, run.endTime)
-            regCompare.restart(run)
     else:
         for npes in run.npes:
-            regCompare.base(run, 1, npes=npes)
+            regCompare.base(run, 1, npes=npes) # 1hr run
             if run.verification == 'restartRun':
                 regCompare.base(run, run.endTime, npes=npes)
-                regCompare.restart(run, npes=npes)
-            # Compare NPE vs serial
-            regCompare.nPE(run, run.endTime, npes)
+    
     
 #-------------------------------------------------------------------------------
 def writeDiff(run, fileH):
@@ -577,6 +586,7 @@ def sendDiffreport(config, compconfig, eTime):
     diffFile = resultsDir + '/' + 'diffreport.txt'
     fp = open(diffFile, 'w')
     fp.write(message + ' \n')
+    fp.write('Repository: ' + userconfig['repository'] +  '\n')
     fp.write('-'*80+'\n')
     fp.write('Branch: ' + branch)
     fp.write('  --  Build type: ' + buildtype +  '\n')

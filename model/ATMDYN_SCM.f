@@ -106,10 +106,10 @@ c       *** apply omega defined at layer bottom to upwind gradient
 
           if ( L < LM ) then ! omega assumed zero at top of layer LM
             if ( SCMin%Omega(L+1) > 0. ) then ! upwind gradient above
-              SCMin%SadvV(L) = -SCMin%Omega(L)*
+              SCMin%SadvV(L) = -SCMin%Omega(L+1)*
      &           (T(1,1,L+1)-T(1,1,L))*PK(L,1,1)/
      &           (PMID(L+1,1,1)-PMID(L,1,1))
-              SCMin%QadvV(L) = -SCMin%Omega(L)*
+              SCMin%QadvV(L) = -SCMin%Omega(L+1)*
      &           (Q(1,1,L+1)-Q(1,1,L))/
      &           (PMID(L+1,1,1)-PMID(L,1,1))
             endif
@@ -197,10 +197,10 @@ c         *** apply omega defined at layer bottom to upwind gradient
 
             if ( L < LM ) then ! omega assumed zero at top of layer LM
               if ( SCMin%Omega(L+1) > 0. ) then ! upwind gradient above
-                 SCM_ver_u_adv(L) = -SCMin%Omega(L)*
+                 SCM_ver_u_adv(L) = -SCMin%Omega(L+1)*
      &              (U(1,1,L+1)-U(1,1,L))/
      &              (PMID(L+1,1,1)-PMID(L,1,1))
-                 SCM_ver_v_adv(L) = -SCMin%Omega(L)*
+                 SCM_ver_v_adv(L) = -SCMin%Omega(L+1)*
      &              (V(1,1,L+1)-V(1,1,L))/
      &              (PMID(L+1,1,1)-PMID(L,1,1))
               endif

@@ -1559,6 +1559,7 @@ C**** interpolate to pressure levels and accumulate the subdd diagnostics
       use subdd_mod, only : inc_subdd,find_groups
       use atm_com,    only: u,v,t,q,qcl,qci, pdsig,pmid,pedn,pk,
      &                      ualij,valij, zatmo,gz, wsave, ma,masum
+     &                     ,ptropo,ltropo
       use domain_decomp_atm, only : grid,get=>getdomainbounds
       use resolution, only : lm,mtop
       USE GEOM, only: imaxj
@@ -1648,6 +1649,15 @@ C
           !ts = t(i,j,1)*pek(1,i,j)
           sddarr2d(i,j) =
      &         slp(pedn(1,i,j),atmsrf%tsavg(i,j),bygrav*zatmo(i,j))
+        enddo;        enddo
+        call inc_subdd(subdd,k,sddarr2d)
+C
+      case ('ptrop')
+        call inc_subdd(subdd,k,ptropo)
+C
+      case ('ttrop')
+        do j=j_0,j_1; do i=i_0,imaxj(j)
+          sddarr2d(i,j) = t(i,j,ltropo(i,j))*pk(ltropo(i,j),i,j)
         enddo;        enddo
         call inc_subdd(subdd,k,sddarr2d)
       end select

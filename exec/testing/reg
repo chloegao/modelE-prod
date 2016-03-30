@@ -40,8 +40,8 @@ def main():
 
     cfgfile = str(args.cfgname) + '.cfg'
     if not os.path.isfile(cfgfile):
-        print 'Error: ' + cfgfile + ' : file does not exist'
-        print useMessage
+        print ' +++ Error: ' + cfgfile + ' : file does not exist +++'
+        print ' Note: specify configuration file name without extension'
         sys.exit()
             
     utils.loggerSetup(sys.argv[1])

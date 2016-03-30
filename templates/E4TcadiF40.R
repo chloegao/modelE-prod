@@ -19,33 +19,37 @@ Preprocessor Options
 #define USE_ENT                  ! include dynamic vegetation model
 #define TRACERS_ON               ! include tracers code
 #define TRACERS_WATER            ! wet deposition and water tracer
-#define TRACERS_DUST             ! include dust tracers
-#define TRACERS_DUST_Silt4       ! include 4th silt size class of dust
 #define TRACERS_DRYDEP           ! default dry deposition
 #define TRDIAG_WETDEPO           ! additional wet deposition diags for tracers
 #define NO_HDIURN                ! exclude hdiurn diagnostics
+!---> chemistry start
 #define TRACERS_SPECIAL_Shindell    ! includes drew's chemical tracers
 #define RAD_O3_2010              ! 2010 ozone dataset
 !  OFF #define AUXILIARY_OX_RADF ! radf diags for climatology or tracer Ozone
 #define TRACERS_TERP                ! include terpenes in gas-phase chemistry
 #define BIOGENIC_EMISSIONS       ! turns on interactive isoprene emissions
-#define TRACERS_AEROSOLS_SEASALT ! seasalt
-#define TRACERS_AEROSOLS_Koch    ! Dorothy Koch's tracers (aerosols, etc)
-#define TRACERS_AEROSOLS_SOA     ! Secondary Organic Aerosols
-!  OFF #define SOA_DIAGS                ! Additional diagnostics for SOA
-#define TRACERS_NITRATE
-#define TRACERS_HETCHEM
-#define BC_ALB                    !optional tracer BC affects snow albedo
-#define CLD_AER_CDNC              !aerosol-cloud interactions
-#define BLK_2MOM                  !aerosol-cloud interactions
 !  OFF #define WATER_MISC_GRND_CH4_SRC ! adds lake, ocean, misc. ground sources for CH4
 !  OFF #define CALCULATE_FLAMMABILITY  ! activated code to determine flammability of surface veg
 !  OFF #define DYNAMIC_BIOMASS_BURNING  ! alter biomas burning my flammability
 !  OFF #define CALCULATE_LIGHTNING ! turn on Colin Price lightning when TRACERS_SPECIAL_Shindell off
 !  OFF #define SHINDELL_STRAT_EXTRA     ! non-chemistry stratospheric tracers
 !  OFF #define INTERACTIVE_WETLANDS_CH4 ! turns on interactive CH4 wetland source
-!  OFF #define NUDGE_ON                 ! nudge the meteorology
 !  OFF #define ACCMIP_LIKE_DIAGS  ! adds many diags as defined by ACCMIP project
+!<--- chemistry end
+!---> OMA start
+#define TRACERS_DUST             ! include dust tracers
+#define TRACERS_DUST_Silt4       ! include 4th silt size class of dust
+#define TRACERS_AEROSOLS_SEASALT ! seasalt
+#define TRACERS_AEROSOLS_Koch    ! Dorothy Koch's tracers (aerosols, etc)
+#define TRACERS_AEROSOLS_SOA     ! Secondary Organic Aerosols
+!  OFF #define SOA_DIAGS                ! Additional diagnostics for SOA
+#define TRACERS_NITRATE
+#define TRACERS_HETCHEM
+!<--- OMA end
+#define BC_ALB                    !optional tracer BC affects snow albedo
+#define CLD_AER_CDNC              !aerosol-cloud interactions
+#define BLK_2MOM                  !aerosol-cloud interactions
+!  OFF #define NUDGE_ON                 ! nudge the meteorology
 End Preprocessor Options
 
 Object modules:
@@ -86,6 +90,7 @@ Ent
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB    /* needed for "Ent" only */
 OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
+OPTS_dd2d = NC_IO=PNETCDF
 
 Data input files:
 #include "IC_144x90_input_files"
@@ -106,7 +111,7 @@ NAMERVR=RD_modelE_Fa.names.txt  ! named river outlets
 
 #include "chem_emiss_144x90_input_files"
 
-#include "aeros_input_files"
+#include "aerosol_OMA_input_files"
 
 MSU_wts=MSU.RSS.weights.data      ! MSU-diag
 REG=REG2X2.5                      ! special regions-diag
@@ -145,7 +150,7 @@ initial_GHG_setup = 1 ! Set to 0 after initial setup.
 ! use of model year and use abs(o3_yr) instead!
 !!!!!!!!!!!!!!!!!!!!!!!
 madaer=3         ! 3: updated aerosols          ; 1: default sulfates/aerosols
-#include "aerosol_params"
+#include "aerosol_OMA_params"
 #include "dust_params_vmp_oma"
 #include "chemistry_params"
 
