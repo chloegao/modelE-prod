@@ -20,7 +20,7 @@ def base(run, endTime, npes=1):
     if run.makesystem == 'makeOld':
         prefix = run.name + '/'
     else:
-        prefix = run.decksDir+'/../'+run.name+'-scratch/'
+        prefix = run.decksDir+'/'+run.name+'/'
         
     # Check if checkpoint file exists:
     current = prefix + \

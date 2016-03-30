@@ -44,10 +44,11 @@ def main():
         print ' Note: specify configuration file name without extension'
         sys.exit()
             
-    utils.loggerSetup(sys.argv[1])
+    utils.loggerSetup(str(args.cfgname))
 
 # Read user-defined config file and store in a config object
     config = utils.readConfig(cfgfile)
+    utils.header(config)
 
 # COMPCONFIG section contains computational configuration information (compilers,
 # libraries, etc). There are COMPCONFIG defaults in file comp.cfg but those can

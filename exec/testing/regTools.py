@@ -61,6 +61,7 @@ def setupModelEenv(config, compconfig):
     branch =  userconfig['repobranch']
     resultsDir = userconfig['scratchdir'] + '/results/' + branch
     scratchDir = userconfig['scratchdir'] + '/scratch/' + branch
+    makesystem =  userconfig['makesystem']
 
 # the following directories are modelE specific:
     util.mkdir_p(scratchDir+'/decks_repository')
@@ -78,11 +79,16 @@ def setupModelEenv(config, compconfig):
        if not os.path.exists(scratchDir + comp):
           util.mkdir_p(resultsDir + '/' + comp)
           util.mkdir_p(scratchDir + '/' + comp)
-       writeModelErc(libsconfig, scratchDir, comp)
+       writeModelErc(libsconfig, scratchDir, comp, makesystem)
 
 #-------------------------------------------------------------------------------
 # Write a compiler-specific modelErc file
-def writeModelErc(cfg, scratchDir, compiler):
+def writeModelErc(cfg, scratchDir, compiler, makesystem):
+
+   # boos = BUILD_OUT_OF_SOURCE
+   boos = 'NO'
+   if makesystem == 'makeNew':
+      boos = 'YES'
 
    s = string.Template('\
    DECKS_REPOSITORY=$scr/decks_repository\n\
@@ -90,6 +96,7 @@ def writeModelErc(cfg, scratchDir, compiler):
    EXECDIR=$scr/exec\n\
    SAVEDISK=$scr/savedisk\n\
    GCMSEARCHPATH=$datadir\n\
+   BUILD_OUT_OF_SOURCE=$boos\n\
    COMPILER=$cm\n\
    MPIDISTR=$mn\n\
    MPIDIR=$md\n\
@@ -98,15 +105,15 @@ def writeModelErc(cfg, scratchDir, compiler):
    BASELIBDIR5=$bd\n\
    PFUNITSERIALDIR=$p1\n\
    PFUNITMPIDIR=$pn\n\
-   BUILD_OUT_OF_SOURCE=NO\n\
    OVERWRITE=YES\n\
    OUTPUT_TO_FILES=NO\n\
-   VERBOSE_OUTPUT=NO')
+   VERBOSE_OUTPUT=YES')
 
    if compiler == 'gfortran':
       modelErc = s.substitute(cm=compiler,\
                               scr=scratchDir,\
                               datadir=cfg['modeldatadir'],\
+                              boos=boos,\
                               mn=cfg['gccmpi'],\
                               md=cfg['gccmpidir'],\
                               nd=cfg['gccnetcdf'],\
@@ -118,6 +125,7 @@ def writeModelErc(cfg, scratchDir, compiler):
       modelErc = s.substitute(cm=compiler,\
                               scr=scratchDir,\
                               datadir=cfg['modeldatadir'],\
+                              boos=boos,\
                               mn=cfg['intelmpi'],\
                               md=cfg['intelmpidir'],\
                               nd=cfg['intelnetcdf'],\
@@ -129,6 +137,7 @@ def writeModelErc(cfg, scratchDir, compiler):
       modelErc = s.substitute(cm=compiler,\
                               scr=scratchDir,\
                               datadir=cfg['modeldatadir'],\
+                              boos=boos,\
                               mn=cfg['nagmpi'],\
                               md=cfg['nagmpidir'],\
                               nd=cfg['nagnetcdf'],\
@@ -140,6 +149,7 @@ def writeModelErc(cfg, scratchDir, compiler):
       modelErc = s.substitute(cm=compiler,\
                               scr=scratchDir,\
                               datadir=cfg['modeldatadir'],\
+                              boos=boos,\
                               mn=cfg['gccmpi'],\
                               md=cfg['gccmpidir'],\
                               nd=cfg['gccnetcdf'],\
@@ -194,10 +204,7 @@ def setupRuns(config, compconfig, decklist):
 
     cwd = os.getcwd()
     for comp in compilers:
-        os.chdir(cwd)
-        logger.debug('Cloning %s into %s', repo, comp)
-        cmd = 'git clone ' + repo + ' ' + comp + '> /dev/null 2>&1'
-        subprocess.check_call(cmd, shell=True)
+        util.mkdir_p(cwd+'/'+comp)
         os.chdir(cwd+'/'+comp)
         for deck in decklist:
             dName = deck.name
@@ -355,8 +362,7 @@ def createScriptTask(config, compconfig, deck, comp, mode):
     if makesystem == 'makeOld':
         decksDir = scratchDir + '/' + jobName +  '.' + mode + '/decks/'
     else:
-        decksDir = scratchDir + '/decks/'
-#        fileHandle.write ('export BUILD_OUT_OF_SOURCE=YES\n')
+        decksDir = scratchDir + '/' + jobName + '.' + mode + '.' + comp + '/'
 
     # Set some environment variables
     fileHandle.write ('export DECKSDIR=' + decksDir + '\n')
@@ -402,7 +408,7 @@ def createRegConfig(config, deck, modelErc, comp, jobName, mode):
     if makesystem == 'makeOld':
         decksDir = scratch + '/' + jobName + '.' + mode + '/decks/'
     else:
-        decksDir = scratch + '/decks/'
+        decksDir = scratch + '/' + jobName + '.' + mode + '.' + comp + '/'
 
 # Regression tests do not run the regression script in standalone mode    
     standalone = 'no'
@@ -419,7 +425,15 @@ def createRegConfig(config, deck, modelErc, comp, jobName, mode):
     npestr = ' '.join(str(e) for e in deck.getOpt('npes'))
     regconfig.set('regSettings', 'npes', npestr)
     regconfig.set('regSettings', 'buildtype', cfg['buildtype'])
-    regconfig.set('regSettings', 'repository', cfg['repository'])
+
+    if makesystem == 'makeOld':
+        regconfig.set('regSettings', 'repository', cfg['repository'])
+    else:
+        # Out of source build still pollutes the repository a little bit...
+        #...so we make sure that it is the clone
+        newrepo = cfg['scratchdir']+'/scratch/'+branch+'/'+branch      
+        regconfig.set('regSettings', 'repository', newrepo)
+
     regconfig.set('regSettings', 'branch', branch)
     regconfig.set('regSettings', 'basedir', cfg['basedir'])
     regconfig.set('regSettings', 'updatebase', cfg['updatebase'])
@@ -501,7 +515,7 @@ def verifyRuns(config, compconfig, runSources):
                     if makesystem == 'makeOld':
                         decksDir = scratchDir+comp+'/'+dirName+'.'+mode+'/decks'
                     else:
-                        decksDir = scratchDir+comp+'/decks'
+                        decksDir = scratchDir+'/'+comp+'/'+dirName+'.'+mode+'.'+comp
                     os.chdir(decksDir)
                     os.environ['MYCONFIGDIR'] = decksDir
                     # Create rundeck object
@@ -516,10 +530,9 @@ def verifyRuns(config, compconfig, runSources):
 
             if makesystem == 'makeOld':
                 decksDir = scratchDir+run.compiler+'/'+dirName+'.'+run.mode+'/decks'
-                os.chdir(decksDir)
             else:
-                decksDir = scratchDir+run.compiler+'/decks'
-                os.chdir(decksDir+'/../'+run.name)
+                decksDir = scratchDir+run.compiler+'/'+dirName+'.'+run.mode+'.'+run.compiler
+            os.chdir(decksDir)
 
            # For each rundeck/compiler/mode combination
            # create a diffFile with verification results
@@ -527,13 +540,10 @@ def verifyRuns(config, compconfig, runSources):
             fileH = open(diffFile, 'w')
 
             # Did executable build?
-            if makesystem == 'makeOld':
-                wdir = dirName+'.'+run.mode+'.'+run.compiler
-                cmd = wdir+'_bin/'+(wdir+'.exe')
-            else:
-                wdir = 'model/modelexe'
-                cmd = 'ls '+wdir
+            wdir = dirName+'.'+run.mode+'.'+run.compiler
+            cmd = wdir+'_bin/'+(wdir+'.exe')
             exists = os.path.isfile(cmd)
+
             # There is an executable
             if exists:
                 run.results[3] = '+'

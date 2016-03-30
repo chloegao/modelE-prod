@@ -221,4 +221,27 @@ def cleanScratch(config):
         cleanDir(scratchDir)
         cleanDir(resultsDir)
 
+#-------------------------------------------------------------------------------
+def header(cfg):
+    logger.info('USER CONFIGURATION:')
+    userconfig  = ConfigSectionMap(cfg, 'USERCONFIG')
+    mailto     = userconfig['mailto']
+    branch     = userconfig['repobranch']
+    buildtype  = userconfig['buildtype']
+    sections = cfg.sections()
+
+    print('-'*80)
+    print('Testing repository: ' + userconfig['repository'])
+    print('Testing _'+branch+'_ branch using _'+buildtype+'_ build type')
+    ## To print w/o a CR  append a comma after the last argument to print. 
+    ##print 'Rundecks: ',
+    ##for section_name in sections:
+    ##    if 'CONFIG' not in section_name:
+    ##        print section_name,
+    ##print
+    print('Output in: ' +  userconfig['scratchdir'])
+    if mailto:
+        print('Results will be mailed to: ' + mailto)
+    print('-'*80)
+
 

@@ -256,21 +256,14 @@ def build(run):
             return 1
     else:
         try:
-            cmd = 'make rundeck '+run.runCmd+' '+run.runSrcCmd
+            configure = run.repository+'/exec/configure '
+            cmd = configure+run.name+' '+run.runsrc
             run.sysCmd(cmd, 3, 'b')
         except Exception, e:
             logger.exception(str(e))
             return 1
         try:
-            os.chdir(run.decksDir+'/../'+run.name)
-            cmd = '../configme/discover_' + run.compiler + ' ../decks/' \
-                  + run.name+'.R ..'
-            run.sysCmd(cmd, 3, 'b')
-        except Exception, e:
-            logger.exception(str(e))
-            return 1
-        try:
-            cmd = 'make -j'
+            cmd = 'make -j gcm'
             run.sysCmd(cmd, 3, 'b')
         except Exception, e:
             logger.exception(str(e))
@@ -303,63 +296,33 @@ def run1hr(run, npes=1):
             return 1
     else:
         try:
-            os.chdir(run.decksDir+'/..')
-            cmd = 'python python/rune/make_rundir.py decks/' +run.name \
-                  + '.R ' + run.name + '-scratch'
-            run.sysCmd(cmd, 3, '1')
+            run.sysCmd('make -j setup', 3, '1')
         except Exception, e:
             logger.exception(str(e))
             return 1
 
-    if run.makesystem == 'makeOld':
-        try:
-            rune = run.repository+'/exec/runE '
-            cmd = rune+run.name+' -np '+str(npes)+' -cold-restart'  
-            run.sysCmd(cmd, 3, '1')
-        except Exception, e:
-            logger.exception(str(e))
-            cmd = 'cd '+run.name+'; touch '+run.name+'.1hr.FAILED'
-            rc = run.sysCmd(cmd, 3, '1')
-            return 1
+    try:
+        rune = run.repository+'/exec/runE '
+        cmd = rune+run.name+' -np '+str(npes)+' -cold-restart'  
+        run.sysCmd(cmd, 3, '1')
+    except Exception, e:
+        logger.exception(str(e))
+        return 1
 
-        try:
-            cmd = 'cd '+run.name+ '; test `head -1 run_status` -eq ' + mErc
-            run.sysCmd(cmd, 3, '1')
-        except Exception, e:
-            logger.exception(str(e))
-            return 1
+    try:
+        cmd = 'cd '+run.name+ '; test `head -1 run_status` -eq ' + mErc
+        run.sysCmd(cmd, 3, '1')
+    except Exception, e:
+        logger.exception(str(e))
+        return 1
 
-        try:
-            cmd = 'cd ' + run.name + '; cp fort.2.nc ' \
-                  + utils.checkpointName(run.name, run.mode, '1hr', npes)
-            run.sysCmd(cmd, 3, '1')
-        except Exception, e:
-            logger.exception(str(e))
-            return 1
-    else:
-        os.chdir(run.decksDir+'/../'+run.name+'-scratch')
-        rune = ''
-        if run.mode == 'mpi':
-            rune = 'mpirun -np '+str(npes)
-        try:
-            cmd = rune+' ../'+run.name+'/model/modelexe -i I -cold-restart'  
-            run.sysCmd(cmd, 3, '1')
-        except Exception, e:
-            logger.exception(str(e))
-            return 1
-        try:
-            cmd = 'test `head -1 run_status` -eq ' + mErc
-            run.sysCmd(cmd, 3, '1')
-        except Exception, e:
-            logger.exception(str(e))
-            return 1
-        try:
-            cmd = 'cp fort.2.nc ' \
-                  + utils.checkpointName(run.name, run.mode, '1hr', npes)
-            run.sysCmd(cmd, 3, '1')
-        except Exception, e:
-            logger.exception(str(e))
-            return 1
+    try:
+        cmd = 'cd ' + run.name + '; cp fort.2.nc ' \
+            + utils.checkpointName(run.name, run.mode, '1hr', npes)
+        run.sysCmd(cmd, 3, '1')
+    except Exception, e:
+        logger.exception(str(e))
+        return 1
 
     logger.info(run.name + ' is DONE')
     return 0
@@ -401,7 +364,7 @@ def runRestart(run, npes=1, endTime=25):
             return 1
     else:
         try:
-            run.sysCmd('make setup ', 3, 's')
+            run.sysCmd('make -j setup', 3, 's')
         except Exception, e:
             logger.exception(str(e))
             return 1
@@ -412,8 +375,6 @@ def runRestart(run, npes=1, endTime=25):
         run.sysCmd(cmd, 3, 'r')
     except Exception, e:
         logger.exception(str(e))
-        cmd = 'cd '+run.name+'; touch '+run.name+'.'+str(endTime)+'.FAILED'
-        run.sysCmd(cmd, 3, 'a')
         return 1
 
     try:
@@ -437,8 +398,6 @@ def runRestart(run, npes=1, endTime=25):
         run.sysCmd(cmd, 3, 'R')
     except Exception, e:
         logger.exception(str(e))
-        cmd = 'cd '+run.name+'; touch '+run.name+'.restart.FAILED'
-        run.sysCmd(cmd, 3, 'd')
         return 1
 
     try:
@@ -451,20 +410,12 @@ def runRestart(run, npes=1, endTime=25):
 
 # Reset rundeck settings for next MPI run
     if len(run.npes) > 1:
-        if run.makesystem == 'makeOld':
-            try:
-                makecmd = 'make rundeck '+run.runCmd+' '+run.runSrcCmd
-                run.sysCmd(makecmd, 3, 'f')
-            except Exception, e:
-                logger.exception(str(e))
-                return 1
-        else:
-            try:
-                run.sysCmd('make rundeck RUN=' + run.runCmd 
-                              + ' RUNSRC='+ run.runSrcCmd, 3, 'f')
-            except Exception, e:
-                logger.exception(str(e))
-                return 1
+        try:
+            makecmd = 'make rundeck '+run.runCmd+' '+run.runSrcCmd
+            run.sysCmd(makecmd, 3, 'f')
+        except Exception, e:
+            logger.exception(str(e))
+            return 1
 
     logger.info(run.name + ' is DONE')
     return 0
