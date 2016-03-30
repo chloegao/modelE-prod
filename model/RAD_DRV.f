@@ -1735,6 +1735,16 @@ C     for GCM grid but currently limited to SCM use
      &                  grid%j_strt_halo:grid%j_stop_halo,lm) ::
      &     TRDFLB_prof, TRUFLB_prof, SRDFLB_prof, SRUFLB_prof
 #endif
+#ifdef TRACERS_ON
+! types of aods to be saved
+! The name will be any combination of {,TRNAME}{as,cs}{,a}aod
+      character(len=10), dimension(2) :: ssky=(/'as','cs'/),
+     &                                   lsky=(/'All-sky','Clear-sky'/)
+      character(len=10), dimension(2) :: sabs=(/'','a'/),
+     &                                   labs=(/'','absorption'/)
+      character(len=10) :: spcname
+      integer :: s,a
+#endif  /* TRACERS_ON */
 #endif
 #ifdef ACCMIP_LIKE_DIAGS
 !@var snfs_ghg,tnfs_ghg like SNFS/TNFS but with reference GHG for
@@ -2868,7 +2878,7 @@ C**** Save optical depth diags
 #endif        
       nsub_ntrix = 0
       do n=1,nraero_internal
-        IF (ntrix_i(n) > 0) THEN
+        IF (ntrix_i(n) > 0) THEN ! This if test is probably not needed?
           SELECT CASE (trname(ntrix_i(n)))
           CASE ('Clay','ClayIlli','ClayKaol','ClaySmec','ClayCalc'
      &           ,'ClayQuar','ClayFeld','ClayHema','ClayGyps'
@@ -3857,6 +3867,22 @@ C****
       enddo
 
 #endif
+
+#ifdef TRACERS_ON
+
+      call find_groups('taijh',grpids,ngroups)
+      do igrp=1,ngroups
+        subdd => subdd_groups(grpids(igrp))
+        do k=1,subdd%ndiags
+          select case (subdd%name(k))
+            case ('asaod')
+              sddarr=sum(sum(ttausv_nraero,dim=4),dim=3)
+              call inc_subdd(subdd,k,sddarr)
+          end select
+        enddo ! k
+      enddo ! igroup
+
+#endif  /* TRACERS_ON */
 
 #endif  /* CACHED_SUBDD */
 
