@@ -128,6 +128,7 @@ E4TcadiF40 (E4TcadF40 with computed aerosol indirect effect)
 
 ! cond_scheme=2   ! newer conductance scheme (N. Kiang) ! not used with Ent
 
+! The following two lines are only used when aerosol/radiation interactions are off
 FS8OPX=1.,1.,1.,1.,1.5,1.5,1.,1.
 FT8OPX=1.,1.,1.,1.,1.,1.,1.,1.
 
