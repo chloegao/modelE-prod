@@ -65,7 +65,7 @@ QUS3D                               ! advection of Q and tracers
 TRDUST_COM TRDUST TRDUST_DRV        ! dust tracer specific code
 #include "tracer_shared_source_files"
 #include "tracer_shindell_source_files"
-#include "tracer_aerosols_source_files"
+#include "tracer_OMA_source_files"
 TRDIAG
 
 #include "latlon_source_files"

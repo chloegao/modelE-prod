@@ -50,6 +50,7 @@ Preprocessor Options
 #define CLD_AER_CDNC              !aerosol-cloud interactions
 #define BLK_2MOM                  !aerosol-cloud interactions
 !  OFF #define NUDGE_ON                 ! nudge the meteorology
+#define SWFIX_20151201
 End Preprocessor Options
 
 Object modules:
@@ -70,7 +71,7 @@ QUS3D                               ! advection of Q and tracers
 TRDUST_COM TRDUST TRDUST_DRV        ! dust tracer specific code
 #include "tracer_shared_source_files"
 #include "tracer_shindell_source_files"
-#include "tracer_aerosols_source_files"
+#include "tracer_OMA_source_files"
 TRDIAG                              ! new i/o
 
 #include "latlon_source_files"
@@ -126,6 +127,10 @@ E4TcadiF40 (E4TcadF40 with computed aerosol indirect effect)
 #include "gwdragF40_params"
 
 ! cond_scheme=2   ! newer conductance scheme (N. Kiang) ! not used with Ent
+
+! The following two lines are only used when aerosol/radiation interactions are off
+FS8OPX=1.,1.,1.,1.,1.5,1.5,1.,1.
+FT8OPX=1.,1.,1.,1.,1.,1.,1.,1.
 
 ! Increasing U00a decreases the high cloud cover; increasing U00b decreases net rad at TOA
 ! w/o VMP clouds (uncomment when model is run w/o VMP clouds):
