@@ -2223,22 +2223,45 @@ c daily_z is currently only needed for CS
 ! 2D tracer outputs (model horizontal grid).
 ! Each tracer output must be declared separately (no bundling).
       use model_com, only : dtsrc,nday
-      use subdd_mod, only : info_type
+      use subdd_mod, only : info_type, sched_rad
+      use OldTracer_mod, only: trname
+      use radpar, only: nraero=>NTRACE
+      use rad_com, only: ntrix
 ! info_type_ is a homemade structure constructor for older compilers
       use subdd_mod, only : info_type_
       implicit none
       integer :: nmax,decl_count
       type(info_type) :: arr(nmax)
+! types of aods to be saved
+! The name will be any combination of {,TRNAME}{as,cs}{,a}aod
+      character(len=10), dimension(2) :: ssky=(/'as','cs'/),
+     &                                   lsky=(/'All-sky','Clear-sky'/)
+      character(len=10), dimension(2) :: sabs=(/'','a'/),
+     &                                   labs=(/'','absorption'/)
+      character(len=10) :: spcname
+      integer :: s,a,n
 
       decl_count = 0
 
-! NONE AT THE MOMENT:
-!     arr(next()) = info_type_(
-!    &  sname = 'someName',
-!    &  lname = 'some tracer output field',
-!    &  units = 'kg/m2'
-!    &     )
-!
+      do s=1,size(ssky)
+      do a=1,size(sabs)
+      do n=1,nraero+1 ! +1 for total
+        if (n<=nraero) then
+          spcname = trim(trname(ntrix(n)))
+        else
+          spcname = ''
+        endif
+        arr(next()) = info_type_(
+     &    sname = trim(spcname)//trim(ssky(s))//trim(sabs(a))//'aod',
+     &    lname = trim(spcname)//' '//trim(lsky(s))//' '//
+     &            trim(labs(a))//' aerosol optical depth',
+     &    units = '-',
+     &    sched = sched_rad
+     &       )
+      enddo ! n
+      enddo ! a
+      enddo ! s
+
       return
       contains
       integer function next()

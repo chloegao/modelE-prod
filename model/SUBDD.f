@@ -2237,20 +2237,6 @@ c
      &     )    
 c
       arr(next()) = info_type_(
-     &  sname = 'aod',
-     &  lname = 'Aerosol Optical Thickness',
-     &  units = '-',
-     &  sched = sched_rad
-     &     )
-c
-      arr(next()) = info_type_(
-     &  sname = 'aaod',
-     &  lname = 'Aerosol Absorption Optical Thickness',
-     &  units = '-',
-     &  sched = sched_rad
-     &     )
-c
-      arr(next()) = info_type_(
      &  sname = 'pn',
      &  lname = 'Number Concentration of dg > 0.1 um',
      &  units = '#/m^2'
