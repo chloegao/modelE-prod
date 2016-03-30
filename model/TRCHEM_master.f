@@ -351,7 +351,6 @@ c This is to work around initial instabilities.
       maxPSC=0.2d0/dt2
 
 c Calculate new photolysis rates every n_phot main timesteps:
-      MODPHOT= 0 ! old days was: MOD(Itime-ItimeI,n_phot)
 
 C CALCULATE TX, THE REAL TEMPERATURE:
 C (note this section is already done in DIAG.f)
@@ -595,10 +594,8 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 C                 BEGIN PHOTOLYSIS                               C
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
-      if(MODPHOT == 0)then ! i.e. not (necessarily) every time step
-
-       ! additional SUNLIGHT criterion (see also fam chem criterion):
-       if((ALB(I,J,1) /= 0.d0).AND.(sza < szamax))then
+      ! SUNLIGHT criterion
+      if((ALB(I,J,1) /= 0.d0).AND.(sza < szamax))then
        
 c Pass O3 array (in ppmv; here seems to be ppv) to fastj. Above these
 C levels fastj2 uses Nagatani climatological O3, read in by chem_init: 
@@ -690,8 +687,7 @@ C Define and alter resulting photolysis coefficients (zj --> ss):
      &    by35*SQRT(1.224d3*COSZ1(I,J)**2.+1.d0)
         END DO
 
-       endif ! (sunlight)
-      endif  ! (modphot)                           
+      endif ! (sunlight)
       
 CCCCCCCCCCCCCCCCC END PHOTOLYSIS SECTION CCCCCCCCCCCCCCCCCCCCCCCCC
 
@@ -2272,7 +2268,7 @@ C**** GLOBAL parameters and variables:
       USE RAD_COM, only  : rad_to_chem
       USE CONSTANT, only : PI, pN2
       USE ATM_COM, only : MA, PMIDL00
-      USE TRCHEM_Shindell_COM, only: nr2,nr3,nmm,nhet,ta,ea,rr,pe,
+      USE TRCHEM_Shindell_COM, only: n_bi,n_tri,n_nst,n_het,ta,ea,rr,pe,
      & cboltz,r1,sb,nst,y,nM,nH2O,ro,sn,which_trop,sulfate,RKBYPIM,dt2,
      & RGAMMASULF,pscX,topLevelOfChemistry,rh,bythick,aero,n_bi_terp
 
@@ -2357,7 +2353,7 @@ C**** Local parameters and variables and arguments:
       do L=1,topLevelOfChemistry            !  ==> BEGIN ALTITUDE LOOP <==
         byta=1.d0/ta(L)
         pcon=y(nM,L)*ta(L)*cboltz/1013.d0
-        do jj=1,nr2             ! bimolecular rates start
+        do jj=1,n_bi+n_nst             ! bimolecular rates start
           rr(jj,L)=pe(jj)*exp(-ea(jj)*byta)
 c         for #9, M is really N2
           if(jj == 9) rr(jj,L)=rr(jj,L)*pN2
@@ -2412,18 +2408,18 @@ c         for #16, k=[pe*exp(-e(jj)/ta(l))]+k3[M]/(1+k3[M]/k2)
                            
         ! here we USED TO tune rr for N2O+O(1D)-->N2+O2 and N2O+O(1D)-->NO+NO
          
-        do jj=1,nr3           ! trimolecular rates start
-          rr(nr2+jj,L)=y(nM,L)*ro(jj)*(300.d0*byta)**sn(jj)
+        do jj=1,n_tri         ! trimolecular rates start
+          rr(n_bi+n_nst+jj,L)=y(nM,L)*ro(jj)*(300.d0*byta)**sn(jj)
           if(r1(jj) .ne. 0.d0)then 
-            dd=rr(nr2+jj,L)/(r1(jj)*(300.d0*byta)**sb(jj))
+            dd=rr(n_bi+n_nst+jj,L)/(r1(jj)*(300.d0*byta)**sb(jj))
             pp=0.6d0**(1.d0/(1.d0+(log10(dd))**2.))
-            rr(nr2+jj,L)=(rr(nr2+jj,L)/(1.d0+dd))*pp
+            rr(n_bi+n_nst+jj,L)=(rr(n_bi+n_nst+jj,L)/(1.d0+dd))*pp
           end if
         end do                ! trimolecular rates end
 
-        nb=nr2-nmm
-        if(nmm >= 1) then
-          do jj=1,nmm         ! monomolecular rates start
+        nb=n_bi
+        if(n_nst >= 1) then
+          do jj=1,n_nst         ! monomolecular rates start
            ! 0.5 for precision,correct following line:
            rrrr=exp(0.5d0*ea(jj+nb)*byta)
            rr(jj+nb,L)=rr(nst(jj),L)/(rrrr*pe(jj+nb)*rrrr*y(nM,l))     
@@ -2446,7 +2442,7 @@ c coefficients(in km**-1) are from SAGE II data on GISS web site:
         bypfactor=1.d0/pfactor
 
         if(pres(L) >= 245.d0 .or. pres(L) <= 5.d0)then 
-          do jj=nr2+nr3+2,nr2+nr3+nhet
+          do jj=n_bi+n_nst+n_tri+2,n_bi+n_nst+n_tri+n_het
             rr(jj,L)=1.0d-35
           enddo 
           ! Add rxn of N2O5 on sulfate analogous to what is done in darkness:
@@ -2498,7 +2494,7 @@ c         in troposphere loss is rxn on sulfate, in strat rxn w PSC or sulfate
           prod_sulf=wprod_sulf*pfactor
           CALL INC_TAJLS(I,J,L,jls_N2O5sulf,
      &                   -1.d0*prod_sulf*vol2mass(n_N2O5))
-          rr(nr2+nr3+1,L)=wprod_sulf/(dt2*y(nn_N2O5,L))
+          rr(n_bi+n_nst+n_tri+1,L)=wprod_sulf/(dt2*y(nn_N2O5,L))
 
         else  
 
@@ -2558,30 +2554,32 @@ c         in troposphere loss is rxn on sulfate, in strat rxn w PSC or sulfate
 
 c         Reaction 1 on sulfate and PSCs:      
           temp=sqrt(8.d0*1.38d-16*ta(l)*6.02d23/(PI*108.d0))
-          rr(nr2+nr3+1,L)=0.5d0*rkext(l)*1.d-5*temp*0.2d0
-          if(pres(l) > 31.6d0) rr(nr2+nr3+1,L)=
-     &    rr(nr2+nr3+1,L)+0.25d0*pscEx(l)*temp*0.0004d0
+          rr(n_bi+n_nst+n_tri+1,L)=0.5d0*rkext(l)*1.d-5*temp*0.2d0
+          if(pres(l) > 31.6d0) rr(n_bi+n_nst+n_tri+1,L)=
+     &    rr(n_bi+n_nst+n_tri+1,L)+0.25d0*pscEx(l)*temp*0.0004d0
 
 c         Reaction 2 on sulfate and PSCs:      
           temp=sqrt(8.d0*1.38d-16*ta(l)*6.02d23/(PI*97.d0))
-          rr(nr2+nr3+2,L)=0.5d0*rkext(l)*1.d-5*temp*0.8d-2
-          if(pres(l) > 31.6d0) rr(nr2+nr3+2,L)=
-     &    rr(nr2+nr3+2,L)+0.25d0*pscEx(l)*temp*4.d-3
+          rr(n_bi+n_nst+n_tri+2,L)=0.5d0*rkext(l)*1.d-5*temp*0.8d-2
+          if(pres(l) > 31.6d0) rr(n_bi+n_nst+n_tri+2,L)=
+     &    rr(n_bi+n_nst+n_tri+2,L)+0.25d0*pscEx(l)*temp*4.d-3
 
           if(pres(l) > 31.6d0) then
-            rr(nr2+nr3+3,L)=0.25d0*pscEx(l)*temp*0.2d0
-            rr(nr2+nr3+4,L)=
+            rr(n_bi+n_nst+n_tri+3,L)=0.25d0*pscEx(l)*temp*0.2d0
+            rr(n_bi+n_nst+n_tri+4,L)=
      &      sqrt(8.d0*1.38d-16*ta(l)*6.02d23/(PI*52.d0))
-            rr(nr2+nr3+4,L)=0.25d0*pscEx(l)*rr(nr2+nr3+4,L)*0.1d0
-            rr(nr2+nr3+5,L)=
+            rr(n_bi+n_nst+n_tri+4,L)=
+     &        0.25d0*pscEx(l)*rr(n_bi+n_nst+n_tri+4,L)*0.1d0
+            rr(n_bi+n_nst+n_tri+5,L)=
      &      sqrt(8.d0*1.38d-16*ta(l)*6.02d23/(PI*108.d0))
-            rr(nr2+nr3+5,L)=0.25d0*pscEx(l)*rr(nr2+nr3+5,L)*0.003d0
+            rr(n_bi+n_nst+n_tri+5,L)=
+     &        0.25d0*pscEx(l)*rr(n_bi+n_nst+n_tri+5,L)*0.003d0
           end if
 
         end if  
 
         if(pres(L) < 245.d0 .and. pres(L) > 5.d0)then
-          wprod_sulf=dt2*y(nn_N2O5,L)*rr(nr2+nr3+1,L)
+          wprod_sulf=dt2*y(nn_N2O5,L)*rr(n_bi+n_nst+n_tri+1,L)
           prod_sulf=wprod_sulf*pfactor
           CALL INC_TAJLS(I,J,L,jls_N2O5sulf,
      &                   -1.d0*prod_sulf*vol2mass(n_N2O5))

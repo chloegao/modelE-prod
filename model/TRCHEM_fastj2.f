@@ -187,9 +187,11 @@
 !@var jlabel Reference label identifying appropriate J-value to use
       character(len=7), allocatable, dimension(:) :: jlabel
 !@var jind mapping index for jvalues
-!@var ks mollst number for source gas in photolysis reaction
+!@var ks name of species that photolyses, as defined in the MOLEC file.
+!@+      The index denotes the reaction number, as defined in the JPLPH file
       integer, allocatable, dimension(:) :: jind,ks
-!@var kss mollst number for product gases from photolysis
+!@var kss same as ks, for photolysis products. The first index denotes the
+!@+       product 1 or 2, and the second the reaction number, as in ks
       integer, allocatable, dimension(:,:) :: kss
 !@var jfacta Quantum yield (or multiplication factor) for photolysis
       real*8, allocatable, dimension(:) :: jfacta
