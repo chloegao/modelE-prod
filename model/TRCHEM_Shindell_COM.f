@@ -16,25 +16,23 @@ c
       SAVE
 
 C**************  P  A  R  A  M  E  T  E  R  S  *******************
-!@param p_1 number of reactants per reaction
-!@param p_2 number of rxns in assembled lists (check with print rxn list)
+!@param p_1 number of reactants or products per reaction
+!@param p_2 maximum number of reactions or photolysis rates.
+!@+     Equals to n_rx or JPPJ_Shindell, whichever is greater
 !@param p_3 number of rxns in assembled lists (check with print rxn list)
-!@param p_4 number of rxns in assembled lists (check with print rxn list)
-!@param p_5 number of levels from top down with SRB flux
-!@param n_rx maximum number of chemical reactions
-!@param n_bi maximum number of bimolecular reactions
-!@param n_tri maximum number of trimolecular reactions
-!@param n_nst maximum number of monomolecular decompositions
-!@param n_het maximum number of heterogeneous reactions
-!@param n_fam maximum number of chemical families
-!@param JPPJ_Shindell number of photolysis reactions in the Shindell chemistry
+!@+     Equals to p_1*p_2
+!@param n_rx maximum number of chemical reactions in JPLRX
+!@param n_bi maximum number of bimolecular reactions in JPLRX
+!@param n_tri maximum number of trimolecular reactions in JPLRX
+!@param n_nst maximum number of monomolecular decompositions in JPLRX
+!@param n_het maximum number of heterogeneous reactions in JPLRX
+!@param numfam number of chemical families in JPLRX
+!@param JPPJ_Shindell number of photolysis reactions in JPLPH
 !@param luselb Use reflective photolysis boundary treatment
 !@param zlbatm Optical depth above which to set lower boundary
 !@param CMEQ1 ?
 !@param nc total number of molecules included (incl. O2 and N2)
 !@param ny number of chemically calculated gases (no O2 or N2)
-!@param numfam number of chemical families
-!@param n_phot how often to do photolysis (in increments of DTsrc)
 !@param O3MULT =2.14d-2 This is the conversion from (atm*cm) units
 !@+     (i.e. 1000 Dobson Units) to KG/m2. It is: 
 !@+     1.E4*2.69E19*48./6.02E26 where 1.E4 is cm2/m2, 2.69E19 is 
@@ -65,10 +63,6 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
       INTEGER, PARAMETER ::
      & LCOalt =   23,
      & LCH4alt=    6,
-     & p_1   =     2, 
-     & p_2   =   209,
-     & p_3   =   500,
-     & p_4   =   209,
 #ifdef TRACERS_TERP
      & n_bi_terp = 3, ! number of terpenes bimolecular reactions
 #else
@@ -86,8 +80,8 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
      & n_tri =    11,
      & n_het =     5,
      & n_rx  = n_bi+n_nst+n_tri+n_het,
-     & nc     =   53+ntm_terp+ntm_soa+ntm_dCO,     !formerly in param sub
      & ny     =   51+ntm_terp+ntm_soa+ntm_dCO,     !formerly in param sub  
+     & nc     = ny+2,     !formerly in param sub
      & numfam =    4,     !formerly in param sub  
      & nC2O3=     26+ntm_terp+ntm_soa+ntm_dCO,
      & nXO2=      27+ntm_terp+ntm_soa+ntm_dCO,
@@ -118,9 +112,9 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
      & nO2=       52+ntm_terp+ntm_soa+ntm_dCO,
      & nM=        53+ntm_terp+ntm_soa+ntm_dCO,     !you must always put nM last (highest number)
      & JPPJ_Shindell = 28+jppj_dCO,
-     & n_fam =     5,
-     & p_5   =    14,
-     & n_phot=     2  
+     & p_1   =     2, 
+     & p_2   = max(n_rx,JPPJ_Shindell),
+     & p_3   = p_1*p_2
 C ----------------------------------------------     
 c     & n_Ox=        1,    ! note, these
 c     & n_NOx=       2,    ! first 15 species are
@@ -272,21 +266,24 @@ C to define BrOx,ClOx,ClONOs,HCL,COIC,OxIC,CFCIC,N2OICX,CH4ICX too:
 
 C**************  V  A  R  I  A  B  L  E  S *******************  
 !@var topLevelOfChemistry the model level above which no chemistry is done
-!@var nn reactant's number in mol list, first index reactant 1 or 2,
-!@+      second - reaction number
-!@var nnr reaction product's number in mol list, indicies like nn
-!@var nps reaction numbers by molecule, photolytic production
-!@var nds reaction numbers by molecule, photolytic destruction
-!@var npnr reaction numbers by molecule, photolytic production
-!@var ndnr reaction numbers by molecule, photolytic destruction
-!@var kps reaction numbers by molecule, chemical production
-!@var kds reaction numbers by molecule, chemical destruction
-!@var kpnr reaction numbers by molecule, chemical production
-!@var kdnr reaction numbers by molecule, chemical destruction
-!@var fam ___?
+!@var nn name of species that reacts, as defined in the MOLEC file. The
+!@+      first index denotes the reactant 1 or 2, and the second the reaction
+!@+      number, as defined in the JPLRX file
+!@var nnr same as nn, for products
+!@var nps reaction index for production as defined in JPLPH, given the
+!@+       accumulated ireac (one ireac element per reaction per unique
+!@+       reactant)
+!@var nds same as nps for destruction
+!@var npnr same as nps for thermal reactions in JPLRX
+!@var ndnr same as npnr for destruction
+!@var kps index of JPLPH reaction (production) per photodissociating
+!@+       species found in MOLEC
+!@var kds same as kps for destruction
+!@var kpnr same as kps for thermal reactions in JPLRX
+!@var kdnr same as kpnr for destruction
 !@var nst reverse reaction number for dissociation reactions
 !@var lprn,jprn,iprn l, j, and i point for chemistry debugging
-!@var ay name of gas being considered
+!@var ay name of gas being considered, as defined in MOLEC
 !@var y concentration of gas, 1st index=gas number, 2nd=verticle level
 !@var rr rate constant of chemical reaction, first index - reaction
 !@+   number, 2nd is verticle level
@@ -346,7 +343,6 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var CH4altT tropical strat adjustments to CH4 (unitless, LM levels)
 !@var CH4altX xtra-tropical strat adjustments to CH4 (LM levels)
 !@var BYFJM = 1/JM
-!@var MODPHOT if MODPHOT=0 do photolysis, else skip it
 !@var TX temperature variable for master chem
 !@var ta local array to hold temperature
 !@var rh local array to hold relative humidity
@@ -357,14 +353,10 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var prod_sulfate  N2O5 change by sulfate reactions in mass units
 !@var wprod_sulf N2O5 change by sulfate reactions in molecules/cm3/s
 !@var DT2 variable chemical time step, set in masterchem
-!@var nr total number of        reactions read in from JPLRX
-!@var nr3 #of trimolecular      reactions read in from JPLRX
-!@var nr2 #of mono+bi-molecular reactions read in from JPLRX
-!@var nmm #of monomolecular     reactions read in from JPLRX
-!@var nhet #of heterogenous     reactions read in from JPLRX
 !@var ratioNs,ratioN2,rNO2frac,rNOfrac,rNOdenom variables for nitrogen
 !@+   conservation (strat)
-!@var chemrate,photrate ?   
+!@var chemrate reaction rate per layer
+!@var photrate photolysis rate per layer
 !@var L75P first model level above nominal 75 hPa
 !@var L75M first model level below nominal 75 hPa
 !@var F75P interpolation coeff. of higher altitude value (units ln(P))
@@ -392,14 +384,15 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@+ model layers.
 !@var ClOx_old total ClOx at start of chemical timestep
 !@var aero yes(1) or no(0) tag of non-zero rkext from Crates
-      INTEGER :: nr,nr2,nr3,nmm,nhet,MODPHOT,L75P,L75M,L569P,L569M,
+      INTEGER :: L75P,L75M,L569P,L569M,
      &lprn,jprn,iprn,MIEDX,NCFASTJ,topLevelOfChemistry
-      INTEGER, DIMENSION(n_fam)        :: nfam = 
+      INTEGER, DIMENSION(numfam+1)     :: nfam = 
      &     (/37+ntm_terp+ntm_soa+ntm_dCO,40+ntm_terp+ntm_soa+ntm_dCO,
-     &       44+ntm_terp+ntm_soa+ntm_dCO,50+ntm_terp+ntm_soa+ntm_dCO,0/)
-      INTEGER, DIMENSION(p_1,p_2)      :: nn, nnr
+     &       44+ntm_terp+ntm_soa+ntm_dCO,50+ntm_terp+ntm_soa+ntm_dCO,
+     &       ny+1/)
+      INTEGER, DIMENSION(p_1,n_rx)     :: nn, nnr
       INTEGER, DIMENSION(p_3)          :: nps, nds, npnr, ndnr
-      INTEGER, DIMENSION(p_4)          :: kps, kds, kpnr, kdnr
+      INTEGER, DIMENSION(nc)           :: kps, kds, kpnr, kdnr
       INTEGER, DIMENSION(n_nst)        :: nst
       INTEGER, ALLOCATABLE, DIMENSION(:) :: aero
 
@@ -435,7 +428,7 @@ C**************  Not Latitude-Dependant ****************************
      &                        ,BrOxalt,ClOxalt,ClONO2alt,HClalt
      &                        ,N2OICL,CFCICL  
 
-      LOGICAL                             :: fam,prnrts,prnchg,prnls
+      LOGICAL                             :: prnrts,prnchg,prnls
       LOGICAL, ALLOCATABLE, DIMENSION(:)  :: pscX
 
       CHARACTER*8, DIMENSION(nc)          :: ay

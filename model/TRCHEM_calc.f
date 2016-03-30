@@ -37,7 +37,7 @@ C
       USE TRCHEM_Shindell_COM, only: chemrate,photrate,cpd,
      &                   yCH3O2,yC2O3,yXO2,yXO2N,yRXPAR,yAldehyde,
      &                   yROR,nCH3O2,nC2O3,nXO2,nXO2N,nRXPAR,
-     &                   nAldehyde,nROR,nr,nn,dt2,dest,prod,
+     &                   nAldehyde,nROR,nn,dt2,dest,prod,
      &                   rr,nO1D,nOH,nNO,nHO2,ta,nM,ss,
      &                   nO3,nNO2,nNO3,prnrts,jprn,iprn,lprn,ay,
      &                   prnchg,y,nps,kps,nds,kds,
@@ -1640,8 +1640,8 @@ C**** special diags not associated with a particular tracer
 c
 C**** GLOBAL parameters and variables:
 
-      USE TRCHEM_Shindell_COM, only: nr,chemrate,photrate,rr,y,nn,dt2,
-     &                          ss,ny,dest,prod,nhet
+      USE TRCHEM_Shindell_COM, only: n_rx,chemrate,photrate,rr,y,nn,dt2,
+     &                          ss,ny,dest,prod,n_het
       use photolysis, only: jppj,ks
 
       IMPLICIT NONE
@@ -1656,11 +1656,11 @@ C**** Local parameters and variables and arguments:
 
 C Set up rates:
       do kalt=1,maxL
-        do ireac=1,nr-nhet       ! non-heterogeneous
+        do ireac=1,n_rx-n_het       ! non-heterogeneous
           chemrate(ireac,kalt)=rr(ireac,kalt)*y(nn(1,ireac),kalt)*
      &    y(nn(2,ireac),kalt)*dt2
         end do
-        do ireac=nr-nhet+1,nr    ! heterogeneous
+        do ireac=n_rx-n_het+1,n_rx    ! heterogeneous
           chemrate(ireac,kalt)=rr(ireac,kalt)*y(nn(1,ireac),kalt)*dt2
         end do
         do ireac=1,JPPJ          ! photolysis
@@ -1684,8 +1684,8 @@ c Initialize change arrays:
 
 C**** GLOBAL parameters and variables:
 
-      USE TRCHEM_Shindell_COM, only: p_2, p_3, p_4, ny, numfam,nfam
-      USE TRCHEM_Shindell_COM, only: n_bi_terp
+      USE TRCHEM_Shindell_COM, only: p_2, p_3, nc, ny, numfam,nfam
+      USE TRCHEM_Shindell_COM, only: n_bi_terp,n_rx
 #ifdef TRACERS_dCO
       USE TRCHEM_Shindell_COM, only: n_bi_dCO
       use TRACER_COM, only: n_dC17O, n_dC18O, n_d13CO
@@ -1710,13 +1710,11 @@ C**** Local parameters and variables and arguments:
 !@+   every time a tracer has a reaction. E.g.: tracer a has 3 destruction
 !@+   reactions, and tracer b has 4; ireac is [123] for a and [4567] for b.
 !@+   Production and destruction are tracked separately.
-!@var nbeg First non-family tracer
-!@var nend Last non-family tracer
 !@var i,dk,nl dummy variable
-      INTEGER ireac,igas,i,dk,nl,nbeg,nend
+      INTEGER ireac,igas,i,dk,nl
       INTEGER, INTENT(IN)            :: maxL,numeL,multip
-      INTEGER, DIMENSION(p_4)        :: kdnr
-      INTEGER, DIMENSION(numeL,p_2)  :: nn ! automatic array
+      INTEGER, DIMENSION(nc)         :: kdnr
+      INTEGER, DIMENSION(numeL,n_rx) :: nn ! automatic array
       INTEGER, DIMENSION(p_3)        :: ndnr
       REAL*8,  DIMENSION(p_2,maxL)   :: chemrate ! automatic array
       REAL*8,  DIMENSION(ny,maxL)    :: dest ! automatic array
@@ -1756,9 +1754,7 @@ c               Save change array for individual family elements:
 
 c Individual Species:
 
-      nbeg=numfam+1
-      nend=nfam(1)-1
-      do igas=nbeg,nend
+      do igas=numfam+1,nfam(1)-1
         dk=kdnr(igas+1)-kdnr(igas)
         if(dk >= 1) then
           do i=1,dk
@@ -1790,8 +1786,8 @@ c Individual Species:
 C**** GLOBAL parameters and variables:
 
       USE DOMAIN_DECOMP_ATM, only : write_parallel
-      USE TRCHEM_Shindell_COM, only: ay, lprn, nfam, p_4, numfam, y,
-     &                              p_2, p_3
+      USE TRCHEM_Shindell_COM, only: ay, lprn, nfam, nc, numfam, y,
+     &                              p_2, p_3, n_rx
 
       IMPLICIT NONE
 
@@ -1812,8 +1808,8 @@ C**** Local parameters and variables and arguments:
 !@var per dummy temp variable
       INTEGER, INTENT(IN) :: igas,I,J,maxL,multip,index,numeL
       INTEGER, DIMENSION(p_3)        :: ndnr
-      INTEGER, DIMENSION(numeL,p_2)  :: nn ! automatic array
-      INTEGER, DIMENSION(p_4)        :: kdnr      
+      INTEGER, DIMENSION(numeL,n_rx) :: nn ! automatic array
+      INTEGER, DIMENSION(nc)         :: kdnr      
       INTEGER                        :: ireac
       character*17                   :: label
       character(len=300)             :: out_line

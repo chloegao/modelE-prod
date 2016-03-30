@@ -106,7 +106,7 @@ C Initialize a few (IM,JM,topLevelOfChemistry) arrays, first hour only:
 C**** GLOBAL parameters and variables:
       USE DOMAIN_DECOMP_ATM, only: write_parallel
       USE FILEMANAGER, only: openunit,closeunit
-      USE TRCHEM_Shindell_COM, only: nr,nr2,nr3,nmm,nhet,pe,ea,nst,ro,
+      USE TRCHEM_Shindell_COM, only: pe,ea,nst,ro,
      &                               r1,sn,sb,nn,nnr
      &                              ,n_rx,n_bi,n_tri,n_nst,n_het
 
@@ -119,7 +119,7 @@ C
 !@var iu_data temporary unit number
       CHARACTER*8, DIMENSION(4) :: ate
       character(len=300) :: out_line
-      INTEGER :: i,ii,j,iu_data
+      INTEGER :: i,ii,j,iu_data,nr,nr2,nr3,nmm,nhet
 
 C Read in the number of each type of reaction:
       call openunit('JPLRX',iu_data,.false.,.true.)
@@ -134,7 +134,7 @@ C Read in the number of each type of reaction:
      &  call stop_model('ERROR: nr3 (from JPLRX) /= n_tri '//
      &                  '(from TRCHEM_Shindell_COM)', 255)
       if (nmm /= n_nst)
-     &  call stop_model('ERROR: nr (from JPLRX) /= n_nst '//
+     &  call stop_model('ERROR: nmm (from JPLRX) /= n_nst '//
      &                  '(from TRCHEM_Shindell_COM)', 255)
       if (nhet /= n_het)
      &  call stop_model('ERROR: nhet (from JPLRX) /= n_het '//
@@ -144,12 +144,12 @@ C Read in the number of each type of reaction:
       write(out_line,*) 'Chemical reactions used in the model: '
       call write_parallel(trim(out_line))
 
-      do i=1,nr               ! >>> begin loop over total reactions <<<
-        if(i <= nr-nhet) then !non-hetero
-          if(i <= nr2) then   !mono or bi
-            if(i > nr2-nmm) then ! read monomolecular reactions
-              if(i == nr2-nmm+1) read(iu_data,22)ate
-              read(iu_data,16)ate,pe(i),ea(i),nst(i-nr2+nmm)
+      do i=1,n_rx               ! >>> begin loop over total reactions <<<
+        if(i <= n_rx-n_het) then !non-hetero
+          if(i <= n_bi+n_nst) then   !mono or bi
+            if(i > n_bi) then ! read monomolecular reactions
+              if(i == n_bi+1) read(iu_data,22)ate
+              read(iu_data,16)ate,pe(i),ea(i),nst(i-n_bi)
               write(out_line,30) i,ate(1),' + ',ate(2),
      &        ' --> ',ate(3),' + ',ate(4)
               call write_parallel(trim(out_line))
@@ -160,20 +160,20 @@ C Read in the number of each type of reaction:
               call write_parallel(trim(out_line))
             end if
           else                    ! read trimolecular reactions
- 20         if(i == nr2+1) read(iu_data,22)ate
-            ii=i-nr2
+ 20         if(i == n_bi+n_nst+1) read(iu_data,22)ate
+            ii=i-n_bi-n_nst
             read(iu_data,21)ate,ro(ii),sn(ii),r1(ii),sb(ii)
             write(out_line,30) i,ate(1),' + ',ate(2),
      *      ' --> ',ate(3),' + ',ate(4)
             call write_parallel(trim(out_line))
           end if
         else                     ! read heterogeneous reactions
-          if(i == nr-(nhet-1)) read(iu_data,22)ate
+          if(i == n_rx-(n_het-1)) read(iu_data,22)ate
           read(iu_data,31)ate
           write(out_line,30) i,ate(1),' + ',ate(2),
      *    ' --> ',ate(3),' + ',ate(4)
           call write_parallel(trim(out_line))
-        end if ! (i <= nr-nhet)
+        end if ! (i <= n_rx-n_het)
 c
         do j=1,2
           call lstnum(ate(j),nn(j,i))
@@ -296,14 +296,14 @@ c fastj initialization routine:
 !@calls guide,printls
 
 C**** GLOBAL parameters and variables:
-      USE TRCHEM_Shindell_COM, only: nps,nds,kps,kds,nn,nnr,nr,
+      USE TRCHEM_Shindell_COM, only: nps,nds,kps,kds,nn,nnr,n_rx,
      &                      npnr,ndnr,kpnr,kdnr,prnls
       use photolysis, only: jppj,ks,kss
 
       IMPLICIT NONE
 
 c Chemical reaction lists:
-      call guide(npnr,ndnr,kpnr,kdnr,nn,nnr,2,nr)
+      call guide(npnr,ndnr,kpnr,kdnr,nn,nnr,2,n_rx)
 c Photolysis reaction lists:
       call guide( nps, nds, kps, kds,ks,kss,1,JPPJ)
 C Print out some diagnostics:
@@ -314,18 +314,18 @@ C Print out some diagnostics:
 
 
 
-      SUBROUTINE guide(npr,ndr,kpr,kdr,xx,nnn,ns,nre)
+      SUBROUTINE guide(npr,ndr,kpr,kdr,nn,nnn,ns,nre)
 !@sum guide read chemical and photochemical reaction lists
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
 !@calls calcls
 
 C**** GLOBAL parameters and variables:
-      USE TRCHEM_Shindell_COM, only: p_1,p_2,p_3,p_4
+      USE TRCHEM_Shindell_COM, only: p_1,p_2,p_3,nc
 
       IMPLICIT NONE
 
 C**** Local parameters and variables and arguments:
-!@var xx   = either nn  or ks   from reactn sub
+!@var nn   = either nn  or ks   from reactn sub
 !@var nnn  = either nnr or kss  from reactn sub
 !@var kpr  = either kps or kpnr from reactn sub
 !@var kdr  = either kds or kdnr from reactn sub
@@ -333,15 +333,15 @@ C**** Local parameters and variables and arguments:
 !@var ndr  = either nds or ndnr from reactn sub
 !@var ns   = either 1   or    2 from reactn sub
 !@var nre number of reactions
-      INTEGER,  DIMENSION(p_4)     :: kpr, kdr
+      INTEGER,  DIMENSION(nc)      :: kpr, kdr
       INTEGER,  DIMENSION(p_3)     :: npr, ndr
-      INTEGER, DIMENSION(p_1,p_2)  :: xx, nnn
+      INTEGER, DIMENSION(p_1,p_2)  :: nn, nnn
       INTEGER                      :: ns, nre
 
 c Chemical and photolytic destruction:
-      call calcls(xx,ns,nnn,2,ndr,kdr,nre)
+      call calcls(nn,ns,nnn,2,ndr,kdr,nre)
 c Chemical and photolytic production:
-      call calcls(nnn,2,xx,ns,npr,kpr,nre)
+      call calcls(nnn,2,nn,ns,npr,kpr,nre)
       
       return
       end SUBROUTINE guide
@@ -354,7 +354,7 @@ c Chemical and photolytic production:
 
 C**** GLOBAL parameters and variables:
       USE DOMAIN_DECOMP_ATM, only: write_parallel
-      USE TRCHEM_Shindell_COM, only: ny, numfam, p_2, p_3, p_4, nfam,
+      USE TRCHEM_Shindell_COM, only: ny, numfam, p_2, p_3, nc, nfam,
      &                               prnls
 
       IMPLICIT NONE
@@ -365,10 +365,10 @@ C**** Local parameters and variables and arguments:
 !@var nre  number of reactions
 !@var nns number of partic_ on opposite side of reaction
 !@var ns   = either ns or   2 from guide sub
-!@var nn   = either xx or nnn from guide sub
-!@var nnn  = either xx or nnn from guide sub
+!@var nn   = either nn or nnn from guide sub
+!@var nnn  = either nn or nnn from guide sub
 !@var ii,k,j,i,ij,i2,newfam,ifam dummy variables
-      INTEGER, DIMENSION(p_4)    :: kdr
+      INTEGER, DIMENSION(nc)     :: kdr
       INTEGER, DIMENSION(p_3)    :: ndr
       INTEGER :: nre, nns, ns, k, j, i, ij, i2, newfam, ifam, ii
       INTEGER, DIMENSION(ns,p_2) :: nn 
@@ -376,15 +376,18 @@ C**** Local parameters and variables and arguments:
       character(len=300) :: out_line
 
       k=1
-      nfam(numfam+1)=ny+1
       do j=1,numfam      !families, list only interfamily reactions
         newfam=0
         kdr(j)=k
         i_loop: do i=1,nre    ! 1 to # chem or phot reactions
           ij_loop: do ij=1,ns !ns # partic (prod & chem dest=2,phot dest=1)
             ! check if molecule # nn() is element of family j:
+            ! if not, do nothing and move the next molecule in nn
             if(nn(ij,i) >= nfam(j).and.nn(ij,i) < nfam(j+1))then
               ! check if reaction is intrafamily:
+              ! if yes, do nothing and move to next reaction
+              ! this skips reactions with at least one reactant and one
+              ! product of reaction i are from the same family j
               do i2=1,nns  ! nns # partic on opposite side of reac.
                 if(nnn(i2,i) >= nfam(j).and.nnn(i2,i) < nfam(j+1))
      &          cycle i_loop
