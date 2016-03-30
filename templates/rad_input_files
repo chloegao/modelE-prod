@@ -16,5 +16,5 @@ RADN9=solar.lean2015.ann1610-2014_hdr ! need KSOLAR=2
 RADNE=topcld.trscat8
 
 ISCCP=ISCCP.tautables
-GHG=GHG=GHG_RCP45.txt ! use GHG.Jul2009.txt for runs that start before 1850
+GHG==GHG_RCP45.txt ! use GHG.Jul2009.txt for runs that start before 1850
 dH2O=dH2O_by_CH4_monthly
