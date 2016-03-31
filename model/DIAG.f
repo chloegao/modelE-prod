@@ -1865,10 +1865,6 @@ c get_subdd
      &   ,swu_avg,swu_cnt
 #endif
 #ifdef TRACERS_ON
-      use radpar, only: nraero=>ntrace
-#ifndef SKIP_TRACERS_RAD
-      use rad_com, only: ntrix
-#endif
       use TRDIAG_COM, only: MMR_to_VMR
 #endif
       USE MDIAG_COM, only : lname_strlen
