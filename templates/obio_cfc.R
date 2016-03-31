@@ -59,7 +59,7 @@ dd2d
 Ent
 
 Component Options:
-OPTS_Ent = ONLINE=YES PS_MODEL=FBB    /* needed for "Ent" only */
+OPTS_Ent = ONLINE=YES PS_MODEL=FBB PFT_MODEL=ENT /* needed for "Ent" only */
 OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 
 Data input files:
