@@ -236,7 +236,7 @@
 c       Apostolos Voulgarakis (Feb 2010): Choose the indexes of the 
 c       aerosol types that we are going to use in Fast-J2 (indexes
 c       in look-up table), taking humidity into account. The different 
-c       aerosols used are in the same order with those in nraero list and
+c       aerosols used are in the same order with those in nraero_aod list and
 c       based on the default CADI configuration are:
 c
 c        1 = Sulfate (n_SO4)
@@ -470,8 +470,8 @@ C**** GLOBAL parameters and variables:
       USE RESOLUTION, only  : JM,LM
       USE GEOM, only: lat2d_dg
       use model_com, only: modelEclock
-      USE RAD_COM,only: ttausv_as,ntrix
-      USE RADPAR, only : nraero=>ntrace
+      USE RAD_COM,only: ttausv_as
+      USE RADPAR, only : nraero_aod=>ntrace
 #ifdef TRACERS_ON
       use OldTracer_mod, only: trname
 #endif
@@ -560,7 +560,8 @@ c  Add Aerosol Column - include aerosol (+cloud) types here.
 #ifndef TRACERS_TOMAS
 #ifndef TRACERS_AMP
 c Now do the rest of the aerosols
-      AER2(1:NLGCM,1:nraero)=ttausv_as(NSLON,NSLAT,1:NLGCM,1:nraero)
+      AER2(1:NLGCM,1:nraero_aod)=
+     &  ttausv_as(NSLON,NSLAT,1:NLGCM,1:nraero_aod)
 #endif
 #endif
 
