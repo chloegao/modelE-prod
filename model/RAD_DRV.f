@@ -88,11 +88,8 @@ C****
      *     ,variable_orb_par,orb_par_year_bp,orb_par,nrad
      *     ,radiationSetOrbit
 #ifdef TRACERS_ON
-     &     ,nTracerRadiaActive,tracerRadiaActiveFlag
-#endif
-#ifdef TRACERS_SPECIAL_Shindell
-     *     ,njaero,nraero_rsf,ttausv_nraero
-#endif  /* TRACERS_SPECIAL_Shindell */
+     *     ,njaero,nraero_rsf,ttausv_as,ttausv_cs
+#endif  /* TRACERS_ON */
 #ifdef ALTER_RADF_BY_LAT
      *     ,FULGAS_lat,FS8OPX_lat,FT8OPX_lat
 #endif
@@ -115,6 +112,7 @@ C****
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       use tracer_com, only: ntm_clay, n_soilDust
+      use rad_com, only: nr_soildust
 #endif
 #ifdef TRACERS_MINERALS
       use OldTracer_mod, only: trpdens
@@ -619,17 +617,19 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
       allocate(ntrix_i(nraero)) ; ntrix_i=0
 #endif
       allocate(wttr(nraero))  ; wttr=1.
-#ifdef TRACERS_SPECIAL_Shindell
       if (nraero_rsf>0) then
         if (nraero_rsf /= nraero) then
           call stop_model('nraero_rsf /= nraero',255)
         endif
       endif
 
-      if (.not.allocated(ttausv_nraero)) then
-        allocate(ttausv_nraero(I_0H:I_1H,J_0H:J_1H,lm,nraero))
-        ttausv_nraero = 0
+      if (.not.allocated(ttausv_as)) then
+        allocate(ttausv_as(I_0H:I_1H,J_0H:J_1H,lm,nraero))
+        allocate(ttausv_cs(I_0H:I_1H,J_0H:J_1H,lm,nraero))
+        ttausv_as = 0.d0
+        ttausv_cs = 0.d0
       end if
+#ifdef TRACERS_SPECIAL_Shindell
 #if (! defined(TRACERS_AMP)) && (! defined(TRACERS_TOMAS))
       njaero=nraero+2
 #else
@@ -750,6 +750,7 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
           FS8OPX(7)=0.d0
           FT8OPX(7)=0.d0
         end if
+        nr_soildust=n+1
 
 #ifdef TRACERS_MINERALS
 
@@ -1029,14 +1030,6 @@ C**** Read in the factors used for alterations:
         read(iu2,'(a6,8D8.3)') skip,(FT8OPX_lat(nn,n),nn=1,8)
       enddo
       call closeunit(iu2)
-#endif
-
-#ifdef TRACERS_ON
-c**** set tracerRadiaActiveFlag for radiatively active tracer
-      do n=1,nraero
-        if (ntrix(n) > 0) tracerRadiaActiveFlag(ntrix(n))=.true.
-      end do
-      nTracerRadiaActive=count(tracerRadiaActiveFlag)
 #endif
 
 c transplanted from main().  needs reviving
@@ -1589,11 +1582,7 @@ C     OUTPUT DATA
      &     ,srnflb_save,trnflb_save
 #endif
 #ifdef TRACERS_ON
-     &     ,ttausv_sum,ttausv_sum_cs,ttausv_count,ttausv_save
-     &     ,ttausv_cs_save,aerAbs6SaveInst
-#endif
-#ifdef TRACERS_SPECIAL_Shindell
-     &     ,ttausv_nraero
+     &     ,ttausv_as,ttausv_cs
 #endif
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
      &     ,stratO3_tracer_save
@@ -1766,8 +1755,6 @@ C  GHG Effective forcing relative to 1850
        real*8 :: Fe !! Function
 #endif
 #ifdef TRACERS_ON
-!@var StauL sum of ttausv over L
-      real*8 :: StauL
 !@var SNFST,TNFST like SNFS/TNFS but with/without specific tracers for
 !@+   radiative forcing calculations
       REAL*8,DIMENSION(2,nraero,grid%I_STRT_HALO:grid%I_STOP_HALO,
@@ -2058,9 +2045,6 @@ C**** SS clouds are considered as a block for each continuous cloud
 
       end if                    ! kradia le 0
 
-#ifdef TRACERS_ON
-      ttausv_count=ttausv_count+1.d0
-#endif
 #ifdef ACCMIP_LIKE_DIAGS
 ! because of additional updghg calls, these factors won't apply:
       if(CO2X.ne.1.)  call stop_model('CO2x.ne.1 accmip diags',255)
@@ -3022,36 +3006,8 @@ c                 print*,'SUSA  diag',SUM(aesqex(1:Lm,kr,n))
 #endif
 
 #ifdef TRACERS_ON
-! this to accumulate daily SUM of optical thickness for
-! each active tracer. Will become average in DIAG.f.
-! Also saving the aerosol absorption (band 6) 3D, summed over species.
-      aerAbs6SaveInst(i,j,:)=0.d0
-      do n=1,nraero
-        if(ntrix(n) > 0) then
-          StauL=sum(ttausv(1:LM,n))
-          ttausv_sum(i,j,ntrix(n))=ttausv_sum(i,j,ntrix(n))+StauL
-          ttausv_sum_cs(i,j,ntrix(n))=ttausv_sum_cs(i,j,ntrix(n))
-     &         +StauL*OPNSKY
-          aerAbs6SaveInst(i,j,1:lm)=aerAbs6SaveInst(i,j,1:lm) +
-     &    (aesqex(1:lm,6,n)-aesqsc(1:lm,6,n))
-        endif
-      enddo
-      IF (adiurn_dust == 1 .or. save3dAOD == 1) THEN
-        ttausv_save(i,j,:,:)=0.D0
-        DO n=1,nraero
-          IF (ntrix(n) > 0) THEN
-            do k=1,LM
-              ttausv_save(i,j,ntrix(n),k)=ttausv_save(i,j,ntrix(n),k)
-     &             +ttausv(k,n)
-              ttausv_cs_save(i,j,ntrix(n),k)
-     &             =ttausv_cs_save(i,j,ntrix(n),k)+ttausv(k,n)*OPNSKY
-            end do
-          END IF
-        END DO
-      END IF
-#ifdef TRACERS_SPECIAL_Shindell
-      ttausv_nraero(i,j,1:LM,1:nraero)=ttausv(1:LM,1:nraero)
-#endif
+      ttausv_as(i,j,1:LM,1:nraero)=ttausv(1:LM,1:nraero)
+      ttausv_cs(i,j,1:LM,1:nraero)=ttausv(1:LM,1:nraero)*OPNSKY
 #endif /* TRACERS_ON */
 
       IF (I.EQ.IWRITE .and. J.EQ.JWRITE) CALL WRITER(6,ITWRITE)
@@ -3876,7 +3832,10 @@ C****
         do k=1,subdd%ndiags
           select case (subdd%name(k))
             case ('asaod')
-              sddarr=sum(sum(ttausv_nraero,dim=4),dim=3)
+              sddarr=sum(sum(ttausv_as,dim=4),dim=3)
+              call inc_subdd(subdd,k,sddarr)
+            case ('csaod')
+              sddarr=sum(sum(ttausv_cs,dim=4),dim=3)
               call inc_subdd(subdd,k,sddarr)
           end select
         enddo ! k

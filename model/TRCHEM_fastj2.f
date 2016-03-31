@@ -470,7 +470,7 @@ C**** GLOBAL parameters and variables:
       USE RESOLUTION, only  : JM,LM
       USE GEOM, only: lat2d_dg
       use model_com, only: modelEclock
-      USE RAD_COM,only: ttausv_nraero,ntrix
+      USE RAD_COM,only: ttausv_as,ntrix
       USE RADPAR, only : nraero=>ntrace
 #ifdef TRACERS_ON
       use OldTracer_mod, only: trname
@@ -560,8 +560,7 @@ c  Add Aerosol Column - include aerosol (+cloud) types here.
 #ifndef TRACERS_TOMAS
 #ifndef TRACERS_AMP
 c Now do the rest of the aerosols
-      AER2(1:NLGCM,1:nraero)=
-     & ttausv_nraero(NSLON,NSLAT,1:NLGCM,1:nraero)
+      AER2(1:NLGCM,1:nraero)=ttausv_as(NSLON,NSLAT,1:NLGCM,1:nraero)
 #endif
 #endif
 
