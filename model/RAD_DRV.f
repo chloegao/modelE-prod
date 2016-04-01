@@ -59,7 +59,7 @@ C****
      *     ,KYEARD,KJDAYD,MADDST, KYEARV,KJDAYV,MADVOL
      *     ,KYEARE,KJDAYE,MADEPS, KYEARR,KJDAYR
 !g95     *     ,FSXAER,FTXAER    ! scaling (on/off) for default aerosols
-     *     ,ITR,nraero=>NTRACE ! turning on options for extra aerosols
+     *     ,ITR,nraero_aod=>NTRACE ! turning on options for extra aerosols
      *     ,FS8OPX,FT8OPX, TRRDRY,KRHTRA,TRADEN,REFDRY
      *     ,rcomp1, writer, writet
      *     ,FSTASC
@@ -70,7 +70,7 @@ C****
       use photolysis, only: aer2,miedx2,nbfastj
 #endif  /* TRACERS_SPECIAL_Shindell */
 #ifdef TRACERS_ON
-      use rad_com, only: nraero_seasalt,
+      use rad_com, only: nraero_rf,nraero_seasalt,
      *                   nraero_koch,nraero_nitrate,nraero_dust,
      *                   nraero_AMP,nraero_TOMAS
 #endif  /* TRACERS_ON */
@@ -84,7 +84,7 @@ C****
      *     ,PLB0,shl0  ! saved to avoid OMP-copyin of input arrays
      *     ,albsn_yr,dALBsnX,nradfrc
      *     ,rad_interact_aer,clim_interact_chem,rad_forc_lev
-     *     ,ntrix,ntrix_i,ntrix_amp,wttr
+     *     ,ntrix_aod,ntrix_rf,wttr
      *     ,variable_orb_par,orb_par_year_bp,orb_par,nrad
      *     ,radiationSetOrbit
 #ifdef TRACERS_ON
@@ -154,7 +154,6 @@ C****
 #endif
 #ifdef TRACERS_TOMAS
       USE TOMAS_AEROSOL, only: icomp,TOMAS_DIAG_FC
-      USE TRACER_COM, only : n_ANUM
 #endif
       use AerParam_mod, only : aermix
       use AerParam_mod, only: depoBC,depoBC_1990
@@ -563,75 +562,74 @@ caer  FT8OPX = (/1., 1., 1., 1., 1., 1.,    1.3d0,   1./)     thermal
 C**** Particle sizes of the first 4 groups have RelHum dependence
 
 C**** To add up to 8 further aerosols:
-C****  1) set nraero to the number of extra aerosol fields
+C****  1) set nraero_aod to the number of extra aerosol fields
 C****  2) ITR defines which set of Mie parameters get used, choose
 C****     from the following:
 C****     1 SO4,  2 seasalt, 3 nitrate, 4 OCX organic carbons
 C****     5 BCI,  6 BCB,     7 dust,    8 H2SO4 volc
-C****  2b) set up the indexing array NTRIX to map the RADIATION tracers
+C****  2b) set up the indexing array ntrix_aod to map the RADIATION tracers
 C****      to the main model tracers
 C****  2c) set up the weighting array WTTR to weight main model tracers,
 C****      if needed (default value is 1).
 C****
-C****  3) Use FSTOPX/FTTOPX(1:nraero) to scale them in RADIA
+C****  3) Use FSTOPX/FTTOPX(1:nraero_aod) to scale them in RADIA
 C****  4) Set TRRDRY to dry radius
 C****  5) Set KRHTRA=1 if aerosol has RH dependence, 0 if not
 C**** Note: whereas FSXAER/FTXAER are global (shared), FSTOPX/FTTOPX
 C****       have to be reset for each grid box to allow for the way it
 C****       is used in RADIA (TRACERS_AEROSOLS_Koch)
-caer   nraero = 0
+caer   nraero_aod = 0
 caer   ITR = (/ 0,0,0,0, 0,0,0,0 /)
 caer   TRRDRY=(/ .1d0, .1d0, .1d0, .1d0, .1d0, .1d0, .1d0, .1d0/)
 caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
 
 #ifdef  TRACERS_AMP
-         IF (AMP_DIAG_FC == 2) THEN
-            nraero_AMP=nmodes
-         ELSE
-            nraero_AMP=1
-         ENDIF
+      nraero_AMP=nmodes
+      IF (AMP_DIAG_FC == 2) THEN
+        nraero_rf=nraero_rf+nraero_AMP
+      ELSE
+        nraero_rf=nraero_rf+1
+      ENDIF
 #endif /* TRACERS_AMP */
 
 #ifdef  TRACERS_TOMAS
-         IF (TOMAS_DIAG_FC == 2) THEN
 !TOMAS does not include NO3 AND VOL, which use its default radiation. 
 #ifndef TRACERS_NITRATE
-            nraero_TOMAS=icomp-2
+      nraero_TOMAS=icomp-2
 #else
-            nraero_TOMAS=icomp-1
+      nraero_TOMAS=icomp-1
 #endif
-         ELSE
-            nraero_TOMAS=n_ANUM(1)
-         ENDIF
+      IF (TOMAS_DIAG_FC == 2) THEN
+        nraero_rf=nraero_rf+nraero_TOMAS
+      ELSE
+        nraero_rf=nraero_rf+1
+      ENDIF
 #endif /* TRACERS_TOMAS */
 
 #ifdef TRACERS_ON
-      nraero=nraero_seasalt+nraero_koch+nraero_nitrate+nraero_dust
-     &      +nraero_AMP+nraero_TOMAS
+      nraero_aod=nraero_seasalt+nraero_koch+nraero_nitrate+nraero_dust
+     &          +nraero_AMP+nraero_TOMAS
+      nraero_rf=nraero_rf+
+     &          nraero_seasalt+nraero_koch+nraero_nitrate+nraero_dust
 
-      allocate(ntrix(nraero)) ; ntrix=0
-#ifdef TRACERS_AMP
-      allocate(ntrix_i(nmodes)) ; ntrix_i=0
-      allocate(ntrix_amp(nmodes)) ; ntrix_amp=0
-#else
-      allocate(ntrix_i(nraero)) ; ntrix_i=0
-#endif
-      allocate(wttr(nraero))  ; wttr=1.
+      allocate(ntrix_aod(nraero_aod)) ; ntrix_aod=0
+      allocate(ntrix_rf(nraero_rf)) ; ntrix_rf=0
+      allocate(wttr(nraero_aod))  ; wttr=1.
       if (nraero_rsf>0) then
-        if (nraero_rsf /= nraero) then
-          call stop_model('nraero_rsf /= nraero',255)
+        if (nraero_rsf /= nraero_aod) then
+          call stop_model('nraero_rsf /= nraero_aod',255)
         endif
       endif
 
       if (.not.allocated(ttausv_as)) then
-        allocate(ttausv_as(I_0H:I_1H,J_0H:J_1H,lm,nraero))
-        allocate(ttausv_cs(I_0H:I_1H,J_0H:J_1H,lm,nraero))
+        allocate(ttausv_as(I_0H:I_1H,J_0H:J_1H,lm,nraero_aod))
+        allocate(ttausv_cs(I_0H:I_1H,J_0H:J_1H,lm,nraero_aod))
         ttausv_as = 0.d0
         ttausv_cs = 0.d0
       end if
 #ifdef TRACERS_SPECIAL_Shindell
 #if (! defined(TRACERS_AMP)) && (! defined(TRACERS_TOMAS))
-      njaero=nraero+2
+      njaero=nraero_aod+2
 #else
       njaero=2
 #endif
@@ -651,7 +649,7 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
           FS8OPX(2)=0.d0
           FT8OPX(2)=0.d0
         end if
-        ntrix(n+1:n+nraero_seasalt)=(/n_seasalt1,n_seasalt2/)
+        ntrix_aod(n+1:n+nraero_seasalt)=(/n_seasalt1,n_seasalt2/)
         trrdry(n+1:n+nraero_seasalt)=(/0.44d0,1.7d0/)
         itr(n+1:n+nraero_seasalt)=(/2,2/)
       endif
@@ -668,11 +666,11 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
           FT8OPX(4:6)=0.d0
 #endif
         end if
-        ntrix(n+1)=n_SO4
+        ntrix_aod(n+1)=n_SO4
         trrdry(n+1)=0.15d0
         itr(n+1)=1
 #ifndef SULF_ONLY_AEROSOLS
-        ntrix(n+2:n+nraero_koch)=(/
+        ntrix_aod(n+2:n+nraero_koch)=(/
 #ifdef TRACERS_AEROSOLS_VBS
      &                             n_vbsAm2
 #else
@@ -737,7 +735,7 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
           FS8OPX(3)=0.d0
           FT8OPX(3)=0.d0
         endif
-        ntrix(n+1:n+nraero_nitrate)=(/n_NO3p/)
+        ntrix_aod(n+1:n+nraero_nitrate)=(/n_NO3p/)
         trrdry(n+1:n+nraero_nitrate)=(/0.15d0/)
         itr(n+1:n+nraero_nitrate) = (/3/)
       endif
@@ -755,7 +753,7 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
 #ifdef TRACERS_MINERALS
 
 ! Adjust if number of dust tracers changes.
-        ntrix(n+1:n+nraero_dust)=(/
+        ntrix_aod(n+1:n+nraero_dust)=(/
      &     (n_clayilli, i = 1,nSubClays), (n_claykaol, i = 1,nSubClays),
      &     (n_claysmec, i = 1,nSubClays), (n_claycalc, i = 1,nSubClays),
      &     (n_clayquar, i = 1,nSubClays), (n_clayfeld, i = 1,nSubClays),
@@ -799,7 +797,7 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
 
         if ( tracers_minerals ) call calcSubClayWeights
 
-        wttr( n+1:n+nraero_dust )= (/((subClayWeights( ntrix(i)
+        wttr( n+1:n+nraero_dust )= (/((subClayWeights( ntrix_aod(i)
      &       -n_soilDust+1, j ), j=1,nSubClays), i=n+1,ntm_clay), (1.d0,
      &       i=1,ntm_sil1+ntm_sil2+ntm_sil3)
 #ifdef TRACERS_DUST_Silt4
@@ -853,7 +851,7 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
 
 #else  /* not TRACERS_MINERALS */
 
-        ntrix(n+1:n+nraero_dust)=(/n_clay,n_clay,n_clay,n_clay,
+        ntrix_aod(n+1:n+nraero_dust)=(/n_clay,n_clay,n_clay,n_clay,
      &                             n_silt1,n_silt2,n_silt3
 #ifdef TRACERS_DUST_Silt4
      &                            ,n_silt4
@@ -899,6 +897,8 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
       endif
       n=n+nraero_dust
 #endif  /* (defined TRACERS_DUST) || (defined TRACERS_MINERALS) */
+!define ntrix_rf, based on the OMA tracers above
+      if (n>0) ntrix_rf(1:n)=ntrix_aod(1:n)
 !-----------------------------------------------------------------------
 #if (defined TRACERS_AMP) || (defined TRACERS_AMP_M1)
       if (nraero_AMP > 0) then
@@ -906,23 +906,18 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
           FS8OPX(1:7)=0.d0
           FT8OPX(1:7)=0.d0
         endif
+        ntrix_aod(n+1:n+nraero_AMP)=
+     &     (/n_N_AKK_1, n_N_ACC_1, n_N_DD1_1, n_N_DS1_1, n_N_DD2_1,
+     &       n_N_DS2_1, n_N_SSA_1, n_N_SSC_1, n_N_OCC_1, n_N_BC1_1, 
+     &       n_N_BC2_1 ,n_N_BC3_1, n_N_DBC_1, n_N_BOC_1, n_N_BCS_1, 
+     &       n_N_MXX_1/)
         if (AMP_DIAG_FC == 2) then
-          ntrix(n+1:n+nraero_AMP)=
-     &       (/n_N_AKK_1, n_N_ACC_1, n_N_DD1_1, n_N_DS1_1, n_N_DD2_1,
-     &         n_N_DS2_1, n_N_SSA_1, n_N_SSC_1, n_N_OCC_1, n_N_BC1_1, 
-     &         n_N_BC2_1 ,n_N_BC3_1, n_N_DBC_1, n_N_BOC_1, n_N_BCS_1, 
-     &         n_N_MXX_1/)
+          ntrix_rf(n+1:n+nraero_AMP)=ntrix_aod(n+1:n+nraero_AMP)
         else
-          ntrix(n+1)=n_N_AKK_1
-         endif
+          ntrix_rf(n+1)=ntrix_aod(n+1)
+        endif
       endif
-         ntrix_amp(n+1:n+nmodes)=
-     &       (/n_N_AKK_1, n_N_ACC_1, n_N_DD1_1, n_N_DS1_1, n_N_DD2_1,
-     &         n_N_DS2_1, n_N_SSA_1, n_N_SSC_1, n_N_OCC_1, n_N_BC1_1, 
-     &         n_N_BC2_1 ,n_N_BC3_1, n_N_DBC_1, n_N_BOC_1, n_N_BCS_1, 
-     &         n_N_MXX_1/)
- 
-         n=n+nraero_AMP
+      n=n+nraero_AMP
 #endif  /* (defined TRACERS_AMP) || (defined TRACERS_AMP_M1) */
 !-----------------------------------------------------------------------
 #ifdef TRACERS_TOMAS
@@ -938,15 +933,16 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
 #endif  /* TRACERS_NITRATE */
         endif
 
-        if (TOMAS_DIAG_FC == 2) then
+        ntrix_aod(n+1:n+nraero_TOMAS)=
+     &     (/n_ASO4(1), n_ANACL(1), n_AECOB(1), n_AECIL(1),
+     &       n_AOCOB(1), n_AOCIL(1), n_ADUST(1)/)
+        itr(n+1:n+nraero_TOMAS) = (/1,2,6,5,4,4,7/)
+        krhtra(n+1:n+nraero_TOMAS)=0
 ! ANUM(1) for internal-mixing case. Others(ncomp-1) for external-mixing case.
-          ntrix(n+1:n+nraero_TOMAS)=
-     &       (/n_ASO4(1), n_ANACL(1), n_AECOB(1), n_AECIL(1),
-     &         n_AOCOB(1), n_AOCIL(1), n_ADUST(1)/)
-          itr(n+1:n+nraero_TOMAS) = (/1,2,6,5,4,4,7/)
-          krhtra(n+1:n+nraero_TOMAS)=0
+        if (TOMAS_DIAG_FC == 2) then
+          ntrix_rf(n+1:n+nraero_TOMAS)=ntrix_aod(n+1:n+nraero_TOMAS)
         else
-          ntrix(n+1)=n_ANUM(1)
+          ntrix_rf(n+1)=ntrix_aod(n+1)
         endif
       endif
       n=n+nraero_TOMAS
@@ -1546,7 +1542,7 @@ C     INPUT DATA  (i,j) dependent
      &             ,AGESN,SNOWD,SNOWOI,SNOWLI,dALBsn, ZSNWOI,ZOICE
      &             ,zmp,fmp,flags,LS1_loc,snow_frac,zlake
      *             ,TRACER,FSTOPX,FTTOPX,chem_IN
-     &             ,nraero=>NTRACE
+     &             ,nraero_aod=>NTRACE
      *             ,FTAUC,LOC_CHL,FSTASC,FTTASC
 #ifdef HEALY_LM_DIAGS
      *             ,VTAULAT
@@ -1561,13 +1557,13 @@ C     OUTPUT DATA
      &          ,SRDEXT ,SRDSCT ,SRDGCB ,SRVEXT ,SRVSCT ,SRVGCB
      &          ,aesqex,aesqsc,aesqcb
      &          ,SRXNIR,SRDNIR
-      USE RAD_COM, only : modrd,nrad
+      USE RAD_COM, only : modrd,nrad,nraero_rf
       USE RAD_COM, only : rqt,srhr,trhr,fsf,cosz1,s0x,rsdist,nradfrc
      *     ,CH4X_RADoverCHEM,snoage
      *     ,plb0,shl0,tchg,alb,fsrdir,srvissurf,srdn,cfrac,rcld
      *     ,chem_tracer_save,rad_interact_aer,kliq,RHfix,CLDx
-     *     ,ghg_yr,CO2X,N2OX,CH4X,CFC11X,CFC12X,XGHGX,rad_forc_lev,ntrix
-     *     ,ntrix_i,ntrix_amp,wttr,cloud_rad_forc,CC_cdncx,OD_cdncx
+     *     ,ghg_yr,CO2X,N2OX,CH4X,CFC11X,CFC12X,XGHGX,rad_forc_lev
+     *     ,ntrix_aod,ntrix_rf,wttr,cloud_rad_forc,CC_cdncx,OD_cdncx
      *     ,cdncl,dALBsnX,rad_to_chem,trsurf,dirvis
      *     ,FSRDIF,DIRNIR,DIFNIR,aer_rad_forc,clim_interact_chem
      *     ,TAUSUMW,TAUSUMI
@@ -1663,12 +1659,10 @@ c          use TRACER_COM, only: SNFST0,TNFST0
 #endif /* TRACERS_SPECIAL_Shindell */
 #ifdef TRACERS_AMP
       USE AMP_AEROSOL, only: AMP_DIAG_FC
-      USE AERO_CONFIG, only: nmodes
 #endif
 #endif /* TRACERS_ON */
 #ifdef TRACERS_TOMAS
       USE TOMAS_AEROSOL, only: icomp,TOMAS_DIAG_FC
-      USE TRACER_COM, only : n_ANUM
 #endif
       use AerParam_mod, only: dCDNC_est
       use AerParam_mod, only: depoBC,depoBC_1990
@@ -1757,11 +1751,11 @@ C  GHG Effective forcing relative to 1850
 #ifdef TRACERS_ON
 !@var SNFST,TNFST like SNFS/TNFS but with/without specific tracers for
 !@+   radiative forcing calculations
-      REAL*8,DIMENSION(2,nraero,grid%I_STRT_HALO:grid%I_STOP_HALO,
-     &                          grid%J_STRT_HALO:grid%J_STOP_HALO)::
+      REAL*8,DIMENSION(2,nraero_rf,grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &                             grid%J_STRT_HALO:grid%J_STOP_HALO)::
      *     SNFST,TNFST
 !@var SNFST_o3ref,TNFST_o3ref like snfst,tnfst for special case ozone for
-!@+   which nraero fields are not defined. Indicies are :
+!@+   which nraero_rf fields are not defined. Indicies are :
 !@+   1=LTROPO,reference, 2=TOA,reference; not saving surface forcing.
 !@+   3=LTROPO or LS1-1,auxiliary, 4=TOA,auxiliary; 5=LS1-1,reference
       REAL*8,DIMENSION(5,grid%I_STRT_HALO:grid%I_STOP_HALO,
@@ -1785,7 +1779,7 @@ C  GHG Effective forcing relative to 1850
      *     TRHRA,SRHRA ! for adj.frc
       REAL*8, DIMENSION(LM) :: TOTCLD,dcc_cdncl,dod_cdncl
       INTEGER I,J,L,K,KR,LR,JR,IH,IHM,INCH,JK,IT,iy,iend,N,onoff_aer
-     *     ,onoff_chem,LFRC,JTIME,n1,moddrf,nraero_internal
+     *     ,onoff_chem,LFRC,JTIME,n1,moddrf
       REAL*8 ROT1,ROT2,PLAND,CSS,CMC,DEPTH,QSS,TAUSSL,TAUSSLIP
      *     ,TAUMCL,ELHX,CLDCV,X,OPNSKY,CSZ2,tauup,taudn,ptype4(4)
      *     ,taucl,wtlin,MSTRAT,STRATQ,STRJ,MSTJ,optdw,optdi,rsign_aer
@@ -2371,7 +2365,7 @@ c       end if
         RHL(L) = shl(L)/QSAT(TLm(L),LHE,PMID(L,I,J))
         if(RHfix.ge.0.) RHL(L)=RHfix
 C**** Extra aerosol data
-C**** For up to nraero aerosols, define the aerosol amount to
+C**** For up to nraero_aod aerosols, define the aerosol amount to
 C**** be used (kg/m^2)
 C**** Only define TRACER if individual tracer is actually defined.
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
@@ -2379,9 +2373,8 @@ C**** Only define TRACER if individual tracer is actually defined.
 C**** loop over tracers that are passed to radiation.
 C**** Some special cases for black carbon, organic carbon, SOAs where
 C**** more than one tracer is lumped together for radiation purposes
-      do n=1,nraero
-        if (NTRIX(n).gt.0) then
-          select case (trname(NTRIX(n)))
+      do n=1,nraero_aod
+          select case (trname(ntrix_aod(n)))
           case ("OCIA", "vbsAm2")
             TRACER(L,n)=(
 #ifdef TRACERS_AEROSOLS_VBS
@@ -2414,28 +2407,27 @@ C**** more than one tracer is lumped together for radiation purposes
           case default
 #ifdef TRACERS_NITRATE
 ! assume full neutralization of NO3p, if NH4 suffice
-           select case (trname(NTRIX(n)))
+           select case (trname(ntrix_aod(n)))
            case ("NO3p")
-            if (trm(i,j,l,NTRIX(n)) > 0.d0) then
+            if (trm(i,j,l,ntrix_aod(n)) > 0.d0) then
               nh4_on_no3=min(trm(i,j,l,n_NO3p)*(tr_mm(n_NO3p)+
      *            tr_mm(n_NH4))/tr_mm(n_NO3p)-trm(i,j,l,n_NO3p),
      *                       trm(i,j,l,n_NH4))
-              wttr(n)=(nh4_on_no3+trm(i,j,l,NTRIX(n)))/
-     *                trm(i,j,l,NTRIX(n))
+              wttr(n)=(nh4_on_no3+trm(i,j,l,ntrix_aod(n)))/
+     *                trm(i,j,l,ntrix_aod(n))
             endif
            case ("SO4")
-            if (trm(i,j,l,NTRIX(n)) > 0.d0) then
+            if (trm(i,j,l,ntrix_aod(n)) > 0.d0) then
               nh4_on_no3=min(trm(i,j,l,n_NO3p)*(tr_mm(n_NO3p)+
      *            tr_mm(n_NH4))/tr_mm(n_NO3p)-trm(i,j,l,n_NO3p),
      *                       trm(i,j,l,n_NH4))
-              wttr(n)=(trm(i,j,l,n_NH4)-nh4_on_no3+trm(i,j,l,NTRIX(n)))/
-     *                trm(i,j,l,NTRIX(n))
+              wttr(n)=(trm(i,j,l,n_NH4)-nh4_on_no3+
+     *                 trm(i,j,l,ntrix_aod(n)))/trm(i,j,l,ntrix_aod(n))
             endif
            end select
 #endif
-           TRACER(L,n)=wttr(n)*trm(i,j,l,NTRIX(n))*BYAXYP(I,J)
+           TRACER(L,n)=wttr(n)*trm(i,j,l,ntrix_aod(n))*BYAXYP(I,J)
           end select
-        end if
       end do
 #endif /* TRACERS_AEROSOLS_Koch/DUST/MINERALS/SEASALT */
 
@@ -2465,7 +2457,7 @@ c       JCKERR=JCKERR+1
         sizeic(LM+k)= 0.
 #ifdef TRACERS_ON
 C**** set radiative equilibrium extra tracer amount to zero
-        IF (nraero.gt.0) TRACER(LM+k,1:nraero)=0.
+        IF (nraero_aod.gt.0) TRACER(LM+k,1:nraero_aod)=0.
 #endif
       END DO
       if (kradia.gt.1) then
@@ -2590,26 +2582,24 @@ C**** Ozone and Methane:
     (defined TRACERS_MINERALS) || (defined TRACERS_AEROSOLS_SEASALT)
 
 C**** Aerosols incl. Dust:        set up for radiative forcing diagnostics
-      if (nraero>0 .and. moddrf==0) then
-        do n=1,nraero
-          IF (ntrix(n) > 0) THEN
-            IF (trname(NTRIX(n)).eq."seasalt2") CYCLE ! not for seasalt2
-            FSTOPX(n)=1-onoff_aer ; FTTOPX(n)=1-onoff_aer ! turn on/off tracer
+      if (nraero_rf>0 .and. moddrf==0) then
+        do n=1,nraero_rf
+          IF (trname(ntrix_rf(n)).eq."seasalt2") CYCLE ! not for seasalt2
+          FSTOPX(n)=1-onoff_aer ; FTTOPX(n)=1-onoff_aer ! turn on/off tracer
 C**** Warning: small bit of hardcoding assumes that seasalt2 immediately
-C****          succeeds seasalt1 in nraero array
-            IF (trname(NTRIX(n)).eq."seasalt1") THEN          !add seasalt2
-              FSTOPX(n+1)=1-onoff_aer;FTTOPX(n+1)=1-onoff_aer !to seasalt1
-            END IF
-            kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
-            CALL RCOMPX  ! tr.aero.Koch/dust/miner./seasalt
-            SNFST(1,n,I,J)=SRNFLB(1) ! surface forcing
-            TNFST(1,n,I,J)=TRNFLB(1)
-            SNFST(2,n,I,J)=SRNFLB(LFRC)
-            TNFST(2,n,I,J)=TRNFLB(LFRC)
-            FSTOPX(n)=onoff_aer ; FTTOPX(n)=onoff_aer   ! back to default
-            IF (trname(NTRIX(n)).eq."seasalt1") THEN    ! also for seasalt2
-              FSTOPX(n+1)=onoff_aer ; FTTOPX(n+1)=onoff_aer
-            END IF
+C****          succeeds seasalt1 in nraero_rf array
+          IF (trname(ntrix_rf(n)).eq."seasalt1") THEN          !add seasalt2
+            FSTOPX(n+1)=1-onoff_aer;FTTOPX(n+1)=1-onoff_aer !to seasalt1
+          END IF
+          kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
+          CALL RCOMPX  ! tr.aero.Koch/dust/miner./seasalt
+          SNFST(1,n,I,J)=SRNFLB(1) ! surface forcing
+          TNFST(1,n,I,J)=TRNFLB(1)
+          SNFST(2,n,I,J)=SRNFLB(LFRC)
+          TNFST(2,n,I,J)=TRNFLB(LFRC)
+          FSTOPX(n)=onoff_aer ; FTTOPX(n)=onoff_aer   ! back to default
+          IF (trname(ntrix_rf(n)).eq."seasalt1") THEN    ! also for seasalt2
+            FSTOPX(n+1)=onoff_aer ; FTTOPX(n+1)=onoff_aer
           END IF
         end do
       end if
@@ -2707,56 +2697,50 @@ c set for BC-albedo effect
         dALBsn=dALBsn1
 #endif
 #ifdef TRACERS_AMP
-      IF ( AMP_DIAG_FC == 1 ) THEN
-        n = 1
-          FSTOPX(:) = 1-onoff_aer !turns off online tracer
-          FTTOPX(:) = 1-onoff_aer !
-          CALL RCOMPX
-          SNFST(1,n,I,J)=SRNFLB(1) ! surface forcing
-          TNFST(1,n,I,J)=TRNFLB(1)
-          SNFST(2,n,I,J)=SRNFLB(LFRC) ! Tropopause forcing
-          TNFST(2,n,I,J)=TRNFLB(LFRC)
-          FSTOPX(:) = onoff_aer !turns on online tracer
-          FTTOPX(:) = onoff_aer !
-       ELSE
-        DO n = 1,nraero
-          FSTOPX(n) = 1-onoff_aer !turns off online tracer
-          FTTOPX(n) = 1-onoff_aer !
-          CALL RCOMPX
-          SNFST(1,n,I,J)=SRNFLB(1) ! surface forcing
-          TNFST(1,n,I,J)=TRNFLB(1)
-          SNFST(2,n,I,J)=SRNFLB(LFRC) ! Tropopause forcing
-          TNFST(2,n,I,J)=TRNFLB(LFRC)
-          FSTOPX(n) = onoff_aer !turns on online tracer
-          FTTOPX(n) = onoff_aer !
-        ENDDO
-      ENDIF
-#endif
-#ifdef TRACERS_TOMAS
-        IF (TOMAS_DIAG_FC == 2) THEN
-          DO n = 1,icomp-2
+        DO n = 1,nraero_rf
+          if (AMP_DIAG_FC==2) then
             FSTOPX(n) = 1-onoff_aer !turns off online tracer
             FTTOPX(n) = 1-onoff_aer !
-            CALL RCOMPX
-            SNFST(1,n,I,J)=SRNFLB(1) ! surface forcing
-            TNFST(1,n,I,J)=TRNFLB(1)
-            SNFST(2,n,I,J)=SRNFLB(LFRC) ! Tropopause forcing
-            TNFST(2,n,I,J)=TRNFLB(LFRC)
-            FSTOPX(n) = onoff_aer !turns on online tracer
-            FTTOPX(n) = onoff_aer !
-          ENDDO
-        ELSE
-           n = 1
-          FSTOPX(:) = 1-onoff_aer !turns off online tracer
-          FTTOPX(:) = 1-onoff_aer !
+          else
+            FSTOPX(1:nraero_aod) = 1-onoff_aer !turns off online tracer
+            FTTOPX(1:nraero_aod) = 1-onoff_aer !
+          endif
           CALL RCOMPX
           SNFST(1,n,I,J)=SRNFLB(1) ! surface forcing
           TNFST(1,n,I,J)=TRNFLB(1)
           SNFST(2,n,I,J)=SRNFLB(LFRC) ! Tropopause forcing
           TNFST(2,n,I,J)=TRNFLB(LFRC)
-          FSTOPX(:) = onoff_aer !turns on online tracer
-          FTTOPX(:) = onoff_aer !
-        ENDIF
+          if (AMP_DIAG_FC==2) then
+            FSTOPX(n) = onoff_aer !turns on online tracer
+            FTTOPX(n) = onoff_aer !
+          else
+            FSTOPX(1:nraero_aod) = onoff_aer !turns on online tracer
+            FTTOPX(1:nraero_aod) = onoff_aer !
+          endif
+        ENDDO
+#endif
+#ifdef TRACERS_TOMAS
+        DO n = 1,nraero_rf
+          if (AMP_DIAG_FC==2) then
+            FSTOPX(n) = 1-onoff_aer !turns off online tracer
+            FTTOPX(n) = 1-onoff_aer !
+          else
+            FSTOPX(1:nraero_aod) = 1-onoff_aer !turns off online tracer
+            FTTOPX(1:nraero_aod) = 1-onoff_aer !
+          endif
+          CALL RCOMPX
+          SNFST(1,n,I,J)=SRNFLB(1) ! surface forcing
+          TNFST(1,n,I,J)=TRNFLB(1)
+          SNFST(2,n,I,J)=SRNFLB(LFRC) ! Tropopause forcing
+          TNFST(2,n,I,J)=TRNFLB(LFRC)
+          if (AMP_DIAG_FC==2) then
+            FSTOPX(n) = onoff_aer !turns on online tracer
+            FTTOPX(n) = onoff_aer !
+          else
+            FSTOPX(1:nraero_aod) = onoff_aer !turns on online tracer
+            FTTOPX(1:nraero_aod) = onoff_aer !
+          endif
+        ENDDO
 #endif
 C**** Optional calculation of CRF using a clear sky calc.
         if (cloud_rad_forc.gt.0) then
@@ -2853,161 +2837,153 @@ C*****************************************************
     (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
 
 C**** Save optical depth diags
-#ifdef TRACERS_AMP /* Necessary because radiation call can be limited to 1 call, but diagnostic is calculated for all populations */
-      nraero_internal = nmodes
-      ntrix_i(1:nmodes) = ntrix_amp(1:nmodes) 
-#else
-      nraero_internal = nraero
-      ntrix_i(:) = ntrix(:) 
-#endif        
       nsub_ntrix = 0
-      do n=1,nraero_internal
-        IF (ntrix_i(n) > 0) THEN ! This if test is probably not needed?
-          SELECT CASE (trname(ntrix_i(n)))
-          CASE ('Clay','ClayIlli','ClayKaol','ClaySmec','ClayCalc'
-     &           ,'ClayQuar','ClayFeld','ClayHema','ClayGyps'
-     &           ,'ClayIlHe','ClayKaHe','ClaySmHe','ClayCaHe'
-     &           ,'ClayQuHe','ClayFeHe','ClayGyHe')
-            nsub_ntrix(ntrix_i(n)) = nsub_ntrix(ntrix_i(n)) + 1
-            IF (diag_rad /= 1) THEN
-              IF ( ijts_tausub(1,ntrix_i(n),nsub_ntrix(ntrix_i(n))) > 0
-     &             )taijs(i,j,ijts_tausub(1,ntrix_i(n)
-     &             ,nsub_ntrix(ntrix_i(n)))) = taijs(i,j,ijts_tausub(1
-     &             ,ntrix_i(n),nsub_ntrix(ntrix_i(n)))) +SUM(ttausv(1:Lm
-     &             ,n))
-              IF ( ijts_tausub(2,ntrix_i(n),nsub_ntrix(ntrix_i(n))) > 0
-     &             )taijs(i,j,ijts_tausub(2,ntrix_i(n)
-     &             ,nsub_ntrix(ntrix_i(n)))) = taijs(i,j,ijts_tausub(2
-     &             ,ntrix_i(n),nsub_ntrix(ntrix_i(n)))) +SUM(ttausv(1:Lm
-     &             ,n)) * OPNSKY
-            END IF
-            if (ijlt_3Daaod(NTRIX_I(n)).gt.0)
-     *           taijls(i,j,1:lm,ijlt_3Daaod(NTRIX_I(n)))
-     *           =taijls(i,j,1:lm,ijlt_3Daaod(NTRIX_I(n)))+
-     *            (aesqex(1:lm,6,n)-aesqsc(1:lm,6,n))
-            if (ijlt_3Dtau(NTRIX_I(n)).gt.0)
-     *           taijls(i,j,1:lm,ijlt_3Dtau(NTRIX_I(n)))
-     *         =taijls(i,j,1:lm,ijlt_3Dtau(NTRIX_I(n)))+TTAUSV(1:lm,n)
-            IF (diag_rad == 1) THEN
-              DO kr=1,6
-                IF ( ijts_sqexsub(1,kr,ntrix_i(n)
-     &               ,nsub_ntrix(ntrix_i(n))) > 0 ) taijs(i,j
-     &               ,ijts_sqexsub(1,kr,ntrix_i(n)
-     &               ,nsub_ntrix(ntrix_i(n)))) = taijs(i,j
-     &               ,ijts_sqexsub(1,kr,ntrix_i(n)
-     &               ,nsub_ntrix(ntrix_i(n))))+SUM(aesqex(1:Lm ,kr,n))
-                IF ( ijts_sqexsub(2,kr,ntrix_i(n)
-     &               ,nsub_ntrix(ntrix_i(n))) >0 ) taijs(i,j
-     &               ,ijts_sqexsub(2,kr,ntrix_i(n)
-     &               ,nsub_ntrix(ntrix_i(n)))) = taijs(i,j
-     &               ,ijts_sqexsub(2,kr,ntrix_i(n)
-     &               ,nsub_ntrix(ntrix_i(n)))) +SUM(aesqex(1:Lm,kr,n)) *
-     &               OPNSKY
-                IF ( ijts_sqscsub(1,kr,ntrix_i(n)
-     &               ,nsub_ntrix(ntrix_i(n))) >0 ) taijs(i,j
-     &               ,ijts_sqscsub(1,kr,ntrix_i(n)
-     &               ,nsub_ntrix(ntrix_i(n)))) = taijs(i,j
-     &               ,ijts_sqscsub(1,kr,ntrix_i(n)
-     &               ,nsub_ntrix(ntrix_i(n)))) +SUM(aesqsc(1:Lm,kr,n))
-                IF ( ijts_sqscsub(2,kr,ntrix_i(n)
-     &               ,nsub_ntrix(ntrix_i(n))) >0 ) taijs(i,j
-     &               ,ijts_sqscsub(2,kr,ntrix_i(n)
-     &               ,nsub_ntrix(ntrix_i(n)))) = taijs(i,j
-     &               ,ijts_sqscsub(2,kr,ntrix_i(n)
-     &               ,nsub_ntrix(ntrix_i(n)))) +SUM(aesqsc(1:Lm,kr,n)) *
-     &               OPNSKY
-                IF ( ijts_sqcbsub(1,kr,ntrix_i(n)
-     &               ,nsub_ntrix(ntrix_i(n))) >0 ) taijs(i,j
-     &               ,ijts_sqcbsub(1,kr,ntrix_i(n)
-     &               ,nsub_ntrix(ntrix_i(n)))) = taijs(i,j
-     &               ,ijts_sqcbsub(1,kr,ntrix_i(n)
-     &               ,nsub_ntrix(ntrix_i(n)))) +SUM(aesqcb(1:Lm,kr,n)) /
-     &               (SUM(aesqsc(1:Lm,kr,n))+1.D-10)
-                IF (ijts_sqcbsub(2,kr,ntrix_i(n),nsub_ntrix(ntrix_i(n)))
-     &               >0) taijs(i,j,ijts_sqcbsub(2,kr,ntrix_i(n)
-     &               ,nsub_ntrix(ntrix_i(n)))) = taijs(i,j
-     &               ,ijts_sqcbsub(2,kr,ntrix_i(n)
-     &               ,nsub_ntrix(ntrix_i(n)))) +SUM(aesqcb(1:Lm,kr,n)) /
-     &               (SUM(aesqsc(1:Lm,kr,n))+1.D-10) * OPNSKY
-              END DO
-            END IF
-          CASE DEFAULT
+      do n=1,nraero_aod
+        SELECT CASE (trname(ntrix_aod(n)))
+        CASE ('Clay','ClayIlli','ClayKaol','ClaySmec','ClayCalc'
+     &         ,'ClayQuar','ClayFeld','ClayHema','ClayGyps'
+     &         ,'ClayIlHe','ClayKaHe','ClaySmHe','ClayCaHe'
+     &         ,'ClayQuHe','ClayFeHe','ClayGyHe')
+          nsub_ntrix(ntrix_aod(n)) = nsub_ntrix(ntrix_aod(n)) + 1
+          IF (diag_rad /= 1) THEN
+            IF ( ijts_tausub(1,ntrix_aod(n),nsub_ntrix(ntrix_aod(n)))>0
+     &           )taijs(i,j,ijts_tausub(1,ntrix_aod(n)
+     &           ,nsub_ntrix(ntrix_aod(n)))) = taijs(i,j,ijts_tausub(1
+     &           ,ntrix_aod(n),nsub_ntrix(ntrix_aod(n)))) +
+     &            SUM(ttausv(1:Lm,n))
+            IF ( ijts_tausub(2,ntrix_aod(n),nsub_ntrix(ntrix_aod(n)))>0
+     &           )taijs(i,j,ijts_tausub(2,ntrix_aod(n)
+     &           ,nsub_ntrix(ntrix_aod(n)))) = taijs(i,j,ijts_tausub(2
+     &           ,ntrix_aod(n),nsub_ntrix(ntrix_aod(n)))) +
+     &            SUM(ttausv(1:Lm,n)) * OPNSKY
+          END IF
+          if (ijlt_3Daaod(ntrix_aod(n)).gt.0)
+     *         taijls(i,j,1:lm,ijlt_3Daaod(ntrix_aod(n)))
+     *         =taijls(i,j,1:lm,ijlt_3Daaod(ntrix_aod(n)))+
+     *          (aesqex(1:lm,6,n)-aesqsc(1:lm,6,n))
+          if (ijlt_3Dtau(ntrix_aod(n)).gt.0)
+     *         taijls(i,j,1:lm,ijlt_3Dtau(ntrix_aod(n)))
+     *       =taijls(i,j,1:lm,ijlt_3Dtau(ntrix_aod(n)))+TTAUSV(1:lm,n)
+          IF (diag_rad == 1) THEN
+            DO kr=1,6
+              IF ( ijts_sqexsub(1,kr,ntrix_aod(n)
+     &             ,nsub_ntrix(ntrix_aod(n))) > 0 ) taijs(i,j
+     &             ,ijts_sqexsub(1,kr,ntrix_aod(n)
+     &             ,nsub_ntrix(ntrix_aod(n)))) = taijs(i,j
+     &             ,ijts_sqexsub(1,kr,ntrix_aod(n)
+     &             ,nsub_ntrix(ntrix_aod(n))))+SUM(aesqex(1:Lm ,kr,n))
+              IF ( ijts_sqexsub(2,kr,ntrix_aod(n)
+     &             ,nsub_ntrix(ntrix_aod(n))) >0 ) taijs(i,j
+     &             ,ijts_sqexsub(2,kr,ntrix_aod(n)
+     &             ,nsub_ntrix(ntrix_aod(n)))) = taijs(i,j
+     &             ,ijts_sqexsub(2,kr,ntrix_aod(n)
+     &             ,nsub_ntrix(ntrix_aod(n)))) +SUM(aesqex(1:Lm,kr,n)) *
+     &             OPNSKY
+              IF ( ijts_sqscsub(1,kr,ntrix_aod(n)
+     &             ,nsub_ntrix(ntrix_aod(n))) >0 ) taijs(i,j
+     &             ,ijts_sqscsub(1,kr,ntrix_aod(n)
+     &             ,nsub_ntrix(ntrix_aod(n)))) = taijs(i,j
+     &             ,ijts_sqscsub(1,kr,ntrix_aod(n)
+     &             ,nsub_ntrix(ntrix_aod(n)))) +SUM(aesqsc(1:Lm,kr,n))
+              IF ( ijts_sqscsub(2,kr,ntrix_aod(n)
+     &             ,nsub_ntrix(ntrix_aod(n))) >0 ) taijs(i,j
+     &             ,ijts_sqscsub(2,kr,ntrix_aod(n)
+     &             ,nsub_ntrix(ntrix_aod(n)))) = taijs(i,j
+     &             ,ijts_sqscsub(2,kr,ntrix_aod(n)
+     &             ,nsub_ntrix(ntrix_aod(n)))) +SUM(aesqsc(1:Lm,kr,n)) *
+     &             OPNSKY
+              IF ( ijts_sqcbsub(1,kr,ntrix_aod(n)
+     &             ,nsub_ntrix(ntrix_aod(n))) >0 ) taijs(i,j
+     &             ,ijts_sqcbsub(1,kr,ntrix_aod(n)
+     &             ,nsub_ntrix(ntrix_aod(n)))) = taijs(i,j
+     &             ,ijts_sqcbsub(1,kr,ntrix_aod(n)
+     &             ,nsub_ntrix(ntrix_aod(n)))) +SUM(aesqcb(1:Lm,kr,n)) /
+     &             (SUM(aesqsc(1:Lm,kr,n))+1.D-10)
+              IF (ijts_sqcbsub(2,kr,ntrix_aod(n),
+     &             nsub_ntrix(ntrix_aod(n)))
+     &             >0) taijs(i,j,ijts_sqcbsub(2,kr,ntrix_aod(n)
+     &             ,nsub_ntrix(ntrix_aod(n)))) = taijs(i,j
+     &             ,ijts_sqcbsub(2,kr,ntrix_aod(n)
+     &             ,nsub_ntrix(ntrix_aod(n)))) +SUM(aesqcb(1:Lm,kr,n)) /
+     &             (SUM(aesqsc(1:Lm,kr,n))+1.D-10) * OPNSKY
+            END DO
+          END IF
+        CASE DEFAULT
 
-            IF (diag_rad /= 1) THEN
-              if (ijts_tau(1,NTRIX_I(n)).gt.0)
-     &             taijs(i,j,ijts_tau(1,NTRIX_I(n)))
-     &           =taijs(i,j,ijts_tau(1,NTRIX_I(n)))+SUM(TTAUSV(1:lm,n))
-              if (ijts_tau(2,NTRIX_I(n)).gt.0)
-     &             taijs(i,j,ijts_tau(2,NTRIX_I(n)))
-     &             =taijs(i,j,ijts_tau(2,NTRIX_I(n)))
-     &             +SUM(TTAUSV(1:lm,n))*OPNSKY
-            END IF
-            if (ijlt_3Daaod(NTRIX_I(n)).gt.0)
-     &           taijls(i,j,1:lm,ijlt_3Daaod(NTRIX_I(n)))
-     &           =taijls(i,j,1:lm,ijlt_3Daaod(NTRIX_I(n)))+
+          IF (diag_rad /= 1) THEN
+            if (ijts_tau(1,ntrix_aod(n)).gt.0)
+     &           taijs(i,j,ijts_tau(1,ntrix_aod(n)))
+     &         =taijs(i,j,ijts_tau(1,ntrix_aod(n)))+SUM(TTAUSV(1:lm,n))
+            if (ijts_tau(2,ntrix_aod(n)).gt.0)
+     &           taijs(i,j,ijts_tau(2,ntrix_aod(n)))
+     &           =taijs(i,j,ijts_tau(2,ntrix_aod(n)))
+     &           +SUM(TTAUSV(1:lm,n))*OPNSKY
+          END IF
+            if (ijlt_3Daaod(ntrix_aod(n)).gt.0)
+     &           taijls(i,j,1:lm,ijlt_3Daaod(ntrix_aod(n)))
+     &           =taijls(i,j,1:lm,ijlt_3Daaod(ntrix_aod(n)))+
      *            (aesqex(1:lm,6,n)-aesqsc(1:lm,6,n))
-            if (ijlt_3Dtau(NTRIX_I(n)).gt.0)
-     &           taijls(i,j,1:lm,ijlt_3Dtau(NTRIX_I(n)))
-     &         =taijls(i,j,1:lm,ijlt_3Dtau(NTRIX_I(n)))+TTAUSV(1:lm,n)
+            if (ijlt_3Dtau(ntrix_aod(n)).gt.0)
+     &           taijls(i,j,1:lm,ijlt_3Dtau(ntrix_aod(n)))
+     &         =taijls(i,j,1:lm,ijlt_3Dtau(ntrix_aod(n)))+TTAUSV(1:lm,n)
             IF (diag_rad == 1) THEN
-              DO kr=1,6
-c                 print*,'SUSA  diag',SUM(aesqex(1:Lm,kr,n))
-                IF (ijts_sqex(1,kr,ntrix_i(n)) > 0)
-     &               taijs(i,j,ijts_sqex(1,kr,ntrix_i(n)))
-     &               =taijs(i,j,ijts_sqex(1,kr,ntrix_i(n)))
-     &               +SUM(aesqex(1:Lm,kr,n))
-                IF (ijts_sqex(2,kr,ntrix_i(n)) > 0)
-     &               taijs(i,j,ijts_sqex(2,kr,ntrix_i(n)))
-     &               =taijs(i,j,ijts_sqex(2,kr,ntrix_i(n)))
-     &               +SUM(aesqex(1:Lm,kr,n))*OPNSKY
-                IF (ijts_sqsc(1,kr,ntrix_i(n)) > 0)
-     &               taijs(i,j,ijts_sqsc(1,kr,ntrix_i(n)))
-     &               =taijs(i,j,ijts_sqsc(1,kr,ntrix_i(n)))
-     &               +SUM(aesqsc(1:Lm,kr,n))
-                IF (ijts_sqsc(2,kr,ntrix_i(n)) > 0)
-     &               taijs(i,j,ijts_sqsc(2,kr,ntrix_i(n)))
-     &               =taijs(i,j,ijts_sqsc(2,kr,ntrix_i(n)))
-     &               +SUM(aesqsc(1:Lm,kr,n))*OPNSKY
+            DO kr=1,6
+c               print*,'SUSA  diag',SUM(aesqex(1:Lm,kr,n))
+              IF (ijts_sqex(1,kr,ntrix_aod(n)) > 0)
+     &             taijs(i,j,ijts_sqex(1,kr,ntrix_aod(n)))
+     &             =taijs(i,j,ijts_sqex(1,kr,ntrix_aod(n)))
+     &             +SUM(aesqex(1:Lm,kr,n))
+              IF (ijts_sqex(2,kr,ntrix_aod(n)) > 0)
+     &             taijs(i,j,ijts_sqex(2,kr,ntrix_aod(n)))
+     &             =taijs(i,j,ijts_sqex(2,kr,ntrix_aod(n)))
+     &             +SUM(aesqex(1:Lm,kr,n))*OPNSKY
+              IF (ijts_sqsc(1,kr,ntrix_aod(n)) > 0)
+     &             taijs(i,j,ijts_sqsc(1,kr,ntrix_aod(n)))
+     &             =taijs(i,j,ijts_sqsc(1,kr,ntrix_aod(n)))
+     &             +SUM(aesqsc(1:Lm,kr,n))
+              IF (ijts_sqsc(2,kr,ntrix_aod(n)) > 0)
+     &             taijs(i,j,ijts_sqsc(2,kr,ntrix_aod(n)))
+     &             =taijs(i,j,ijts_sqsc(2,kr,ntrix_aod(n)))
+     &             +SUM(aesqsc(1:Lm,kr,n))*OPNSKY
 #ifndef TRACERS_TOMAS
-                IF (ijts_sqcb(1,kr,ntrix_i(n)) > 0)
-     &               taijs(i,j,ijts_sqcb(1,kr,ntrix_i(n)))
-     &               =taijs(i,j,ijts_sqcb(1,kr,ntrix_i(n)))
-     &               +SUM(aesqcb(1:Lm,kr,n))
-     &               /(SUM(aesqsc(1:Lm,kr,n))+1.D-10)
-                IF (ijts_sqcb(2,kr,ntrix_i(n)) > 0)
-     &               taijs(i,j,ijts_sqcb(2,kr,ntrix_i(n)))
-     &               =taijs(i,j,ijts_sqcb(2,kr,ntrix_i(n)))
-     &               +SUM(aesqcb(1:Lm,kr,n))
-     &               /(SUM(aesqsc(1:Lm,kr,n))+1.D-10)*OPNSKY
+              IF (ijts_sqcb(1,kr,ntrix_aod(n)) > 0)
+     &             taijs(i,j,ijts_sqcb(1,kr,ntrix_aod(n)))
+     &             =taijs(i,j,ijts_sqcb(1,kr,ntrix_aod(n)))
+     &             +SUM(aesqcb(1:Lm,kr,n))
+     &             /(SUM(aesqsc(1:Lm,kr,n))+1.D-10)
+              IF (ijts_sqcb(2,kr,ntrix_aod(n)) > 0)
+     &             taijs(i,j,ijts_sqcb(2,kr,ntrix_aod(n)))
+     &             =taijs(i,j,ijts_sqcb(2,kr,ntrix_aod(n)))
+     &             +SUM(aesqcb(1:Lm,kr,n))
+     &             /(SUM(aesqsc(1:Lm,kr,n))+1.D-10)*OPNSKY
 #else
-                qcb_col(kr,n)=0.d0
-                do l=1,lm
-                  qcb_col(kr,n)=qcb_col(kr,n)+aesqcb(l,kr,n)*
-     *                 aesqsc(l,kr,n)
-                enddo
+              qcb_col(kr,n)=0.d0
+              do l=1,lm
+                qcb_col(kr,n)=qcb_col(kr,n)+aesqcb(l,kr,n)*
+     *               aesqsc(l,kr,n)
+              enddo
 
-                IF (ijts_sqcb(1,kr,ntrix_i(n)) > 0)
-     &               taijs(i,j,ijts_sqcb(1,kr,ntrix_i(n)))
-     &               =taijs(i,j,ijts_sqcb(1,kr,ntrix_i(n)))
-     &               +qcb_col(kr,n)
-     &               /(SUM(aesqsc(1:Lm,kr,n))+1.D-10)
-                IF (ijts_sqcb(2,kr,ntrix_i(n)) > 0)
-     &               taijs(i,j,ijts_sqcb(2,kr,ntrix_i(n)))
-     &               =taijs(i,j,ijts_sqcb(2,kr,ntrix_i(n)))
-     &               +qcb_col(kr,n)
-     &               /(SUM(aesqsc(1:Lm,kr,n))+1.D-10)*OPNSKY
+              IF (ijts_sqcb(1,kr,ntrix_aod(n)) > 0)
+     &             taijs(i,j,ijts_sqcb(1,kr,ntrix_aod(n)))
+     &             =taijs(i,j,ijts_sqcb(1,kr,ntrix_aod(n)))
+     &             +qcb_col(kr,n)
+     &             /(SUM(aesqsc(1:Lm,kr,n))+1.D-10)
+              IF (ijts_sqcb(2,kr,ntrix_aod(n)) > 0)
+     &             taijs(i,j,ijts_sqcb(2,kr,ntrix_aod(n)))
+     &             =taijs(i,j,ijts_sqcb(2,kr,ntrix_aod(n)))
+     &             +qcb_col(kr,n)
+     &             /(SUM(aesqsc(1:Lm,kr,n))+1.D-10)*OPNSKY
 #endif
-              END DO
-            END IF
-          END SELECT
-        END IF
+            END DO
+          END IF
+        END SELECT
       end do
 
 #endif
 
 #ifdef TRACERS_ON
-      ttausv_as(i,j,1:LM,1:nraero)=ttausv(1:LM,1:nraero)
-      ttausv_cs(i,j,1:LM,1:nraero)=ttausv(1:LM,1:nraero)*OPNSKY
+      ttausv_as(i,j,1:LM,1:nraero_aod)=ttausv(1:LM,1:nraero_aod)
+      ttausv_cs(i,j,1:LM,1:nraero_aod)=ttausv(1:LM,1:nraero_aod)*OPNSKY
 #endif /* TRACERS_ON */
 
       IF (I.EQ.IWRITE .and. J.EQ.JWRITE) CALL WRITER(6,ITWRITE)
@@ -3297,8 +3273,8 @@ C****
             DO KR=1,NDIUPT
             IF (I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
 #if (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
-              TMP(idd_aot) =SUM(aesqex(1:Lm,6,1:nraero))!*OPNSKY
-              TMP(idd_aot2) =SUM(aesqsc(1:Lm,6,1:nraero))!*OPNSKY
+              TMP(idd_aot) =SUM(aesqex(1:Lm,6,1:nraero_aod))!*OPNSKY
+              TMP(idd_aot2) =SUM(aesqsc(1:Lm,6,1:nraero_aod))!*OPNSKY
 #endif
               TMP(IDD_PALB)=(1.-SNFS(3,I,J)/S0)
               TMP(IDD_GALB)=(1.-ALB(I,J,1))
@@ -3435,7 +3411,7 @@ C**** diagnostic sign changes (for aerosols)
 C**** define SNFS/TNFS level (TOA/TROPO) for calculating forcing
          LFRC=3                 ! TOA
          if (rad_forc_lev.gt.0) LFRC=4 ! TROPOPAUSE
-         if (nraero > 0) then
+         if (nraero_aod > 0) then
 #ifdef BC_ALB
       if (ijts_alb(1).gt.0)
      * TAIJS(I,J,ijts_alb(1))=TAIJS(I,J,ijts_alb(1))
@@ -3450,135 +3426,157 @@ c          snfst0(:,:,i,j)=0.D0
 c          tnfst0(:,:,i,j)=0.D0
 #endif /* TRACERS_AEROSOLS_Koch */
 c     ..........
-c     accumulation of forcings for tracers for which nraero fields are
+c     accumulation of forcings for tracers for which nraero_rf fields are
 c     defined
 c     ..........
            nsub_ntrix = 0
-           do n=1,nraero
-             IF (ntrix(n) > 0) THEN
-               SELECT CASE (trname(ntrix(n)))
+           do n=1,nraero_rf
+               SELECT CASE (trname(ntrix_rf(n)))
                CASE ('Clay','ClayIlli','ClayKaol','ClaySmec' ,'ClayCalc'
      &                ,'ClayQuar','ClayFeld','ClayHema' ,'ClayGyps'
      &                ,'ClayIlHe','ClayKaHe','ClaySmHe' ,'ClayCaHe'
      &                ,'ClayQuHe','ClayFeHe','ClayGyHe')
-                 nsub_ntrix(ntrix(n)) = nsub_ntrix(ntrix(n)) + 1
+                 nsub_ntrix(ntrix_rf(n)) = nsub_ntrix(ntrix_rf(n)) + 1
 c shortwave forcing (TOA or TROPO) of Clay sub size classes
-                 if (ijts_fcsub(1,ntrix(n),nsub_ntrix(ntrix(n))) > 0)
-     &                taijs(i,j,ijts_fcsub(1,ntrix(n)
-     &                ,nsub_ntrix(ntrix(n)))) = taijs(i,j,ijts_fcsub(1
-     &                ,ntrix(n),nsub_ntrix(ntrix(n)))) + rsign_aer
+                 if (ijts_fcsub(1,ntrix_rf(n),
+     &               nsub_ntrix(ntrix_rf(n))) > 0)
+     &                taijs(i,j,ijts_fcsub(1,ntrix_rf(n)
+     &                ,nsub_ntrix(ntrix_rf(n)))) = 
+     &               taijs(i,j,ijts_fcsub(1
+     &                ,ntrix_rf(n),nsub_ntrix(ntrix_rf(n)))) + 
+     &               rsign_aer
      &                *(snfst(2,n,i,j)-snfs(lfrc,i,j))*csz2
 c longwave forcing  (TOA or TROPO) of Clay size sub classes
-                 if (ijts_fcsub(2,ntrix(n),nsub_ntrix(ntrix(n))) > 0)
-     &                taijs(i,j,ijts_fcsub(2,ntrix(n)
-     &                ,nsub_ntrix(ntrix(n)))) = taijs(i,j,ijts_fcsub(2
-     &                ,ntrix(n),nsub_ntrix(ntrix(n)))) - rsign_aer
+                 if (ijts_fcsub(2,ntrix_rf(n),
+     &               nsub_ntrix(ntrix_rf(n))) > 0)
+     &                taijs(i,j,ijts_fcsub(2,ntrix_rf(n)
+     &                ,nsub_ntrix(ntrix_rf(n)))) = 
+     &               taijs(i,j,ijts_fcsub(2
+     &                ,ntrix_rf(n),nsub_ntrix(ntrix_rf(n)))) - 
+     &               rsign_aer
      &                *(tnfst(2,n,i,j)-tnfs(lfrc,i,j))
 c shortwave forcing (TOA or TROPO) clear sky of Clay sub size classes
-                 if (ijts_fcsub(5,ntrix(n),nsub_ntrix(ntrix(n))) > 0)
-     &                taijs(i,j,ijts_fcsub(5,ntrix(n)
-     &                ,nsub_ntrix(ntrix(n)))) = taijs(i,j,ijts_fcsub(5
-     &                ,ntrix(n),nsub_ntrix(ntrix(n)))) + rsign_aer
+                 if (ijts_fcsub(5,ntrix_rf(n),
+     &               nsub_ntrix(ntrix_rf(n))) > 0)
+     &                taijs(i,j,ijts_fcsub(5,ntrix_rf(n)
+     &                ,nsub_ntrix(ntrix_rf(n)))) = 
+     &               taijs(i,j,ijts_fcsub(5
+     &                ,ntrix_rf(n),nsub_ntrix(ntrix_rf(n)))) + 
+     &               rsign_aer
      &                *(snfst(2,n,i,j)-snfs(lfrc,i,j))*csz2 * (1.D0
      &                -cfrac(i,j))
 c longwave forcing  (TOA or TROPO) clear sky of Clay sub size classes
-                 if (ijts_fcsub(6,ntrix(n),nsub_ntrix(ntrix(n))) > 0)
-     &                taijs(i,j,ijts_fcsub(6,ntrix(n)
-     &                ,nsub_ntrix(ntrix(n)))) = taijs(i,j,ijts_fcsub(6
-     &                ,ntrix(n),nsub_ntrix(ntrix(n)))) - rsign_aer
+                 if (ijts_fcsub(6,ntrix_rf(n),
+     &               nsub_ntrix(ntrix_rf(n))) > 0)
+     &                taijs(i,j,ijts_fcsub(6,ntrix_rf(n)
+     &                ,nsub_ntrix(ntrix_rf(n)))) = 
+     &               taijs(i,j,ijts_fcsub(6
+     &                ,ntrix_rf(n),nsub_ntrix(ntrix_rf(n)))) - 
+     &               rsign_aer
      &                *(tnfst(2,n,i,j)-tnfs(lfrc,i,j)) * (1.D0-cfrac(i
      &                ,j))
 c shortwave forcing at surface (if required) of Clay sub size classes
-                 if (ijts_fcsub(3,ntrix(n),nsub_ntrix(ntrix(n))) > 0)
-     &                taijs(i,j,ijts_fcsub(3,ntrix(n)
-     &                ,nsub_ntrix(ntrix(n)))) = taijs(i,j,ijts_fcsub(3
-     &                ,ntrix(n),nsub_ntrix(ntrix(n)))) + rsign_aer
+                 if (ijts_fcsub(3,ntrix_rf(n),
+     &               nsub_ntrix(ntrix_rf(n))) > 0)
+     &                taijs(i,j,ijts_fcsub(3,ntrix_rf(n)
+     &                ,nsub_ntrix(ntrix_rf(n)))) = 
+     &               taijs(i,j,ijts_fcsub(3
+     &                ,ntrix_rf(n),nsub_ntrix(ntrix_rf(n)))) + 
+     &               rsign_aer
      &                *(snfst(1,n,i,j)-snfs(1,i,j))*csz2
 c longwave forcing at surface (if required) of Clay sub size classes
-                 if (ijts_fcsub(4,ntrix(n),nsub_ntrix(ntrix(n))) > 0)
-     &                taijs(i,j,ijts_fcsub(4,ntrix(n)
-     &                ,nsub_ntrix(ntrix(n)))) = taijs(i,j,ijts_fcsub(4
-     &                ,ntrix(n),nsub_ntrix(ntrix(n)))) - rsign_aer
+                 if (ijts_fcsub(4,ntrix_rf(n),
+     &               nsub_ntrix(ntrix_rf(n))) > 0)
+     &                taijs(i,j,ijts_fcsub(4,ntrix_rf(n)
+     &                ,nsub_ntrix(ntrix_rf(n)))) = 
+     &               taijs(i,j,ijts_fcsub(4
+     &                ,ntrix_rf(n),nsub_ntrix(ntrix_rf(n)))) - 
+     &               rsign_aer
      &                *(tnfst(1,n,i,j)-tnfs(1,i,j))
 c shortwave forcing at surface clear sky (if required) of Clay sub size classes
-                 if (ijts_fcsub(7,ntrix(n),nsub_ntrix(ntrix(n))) > 0)
-     &                taijs(i,j,ijts_fcsub(7,ntrix(n)
-     &                ,nsub_ntrix(ntrix(n)))) = taijs(i,j,ijts_fcsub(7
-     &                ,ntrix(n),nsub_ntrix(ntrix(n)))) +rsign_aer
+                 if (ijts_fcsub(7,ntrix_rf(n),
+     &               nsub_ntrix(ntrix_rf(n))) > 0)
+     &                taijs(i,j,ijts_fcsub(7,ntrix_rf(n)
+     &                ,nsub_ntrix(ntrix_rf(n)))) = 
+     &               taijs(i,j,ijts_fcsub(7
+     &                ,ntrix_rf(n),nsub_ntrix(ntrix_rf(n)))) +
+     &               rsign_aer
      &                *(snfst(1,n,i,j)-snfs(1,i,j))*csz2 * (1.D0-cfrac(i
      &                ,j))
 c longwave forcing at surface clear sky (if required) of Clay sub size classes
-                 if (ijts_fcsub(8,ntrix(n),nsub_ntrix(ntrix(n))) > 0)
-     &                taijs(i,j,ijts_fcsub(8,ntrix(n)
-     &                ,nsub_ntrix(ntrix(n)))) = taijs(i,j,ijts_fcsub(8
-     &                ,ntrix(n),nsub_ntrix(ntrix(n)))) - rsign_aer
+                 if (ijts_fcsub(8,ntrix_rf(n),
+     &               nsub_ntrix(ntrix_rf(n))) > 0)
+     &                taijs(i,j,ijts_fcsub(8,ntrix_rf(n)
+     &                ,nsub_ntrix(ntrix_rf(n)))) = 
+     &               taijs(i,j,ijts_fcsub(8
+     &                ,ntrix_rf(n),nsub_ntrix(ntrix_rf(n)))) - 
+     &               rsign_aer
      &                *(tnfst(1,n,i,j)-tnfs(1,i,j)) * (1.D0-cfrac(i,j))
                CASE DEFAULT
-                 SELECT CASE (trname(ntrix(n)))
+                 SELECT CASE (trname(ntrix_rf(n)))
                  CASE ('seasalt2')
                    CYCLE
                  END SELECT
 c shortwave forcing (TOA or TROPO)
-                 if (ijts_fc(1,ntrix(n)).gt.0)
-     &                taijs(i,j,ijts_fc(1,ntrix(n)))
-     &                =taijs(i,j,ijts_fc(1,ntrix(n)))
+                 if (ijts_fc(1,ntrix_rf(n)).gt.0)
+     &                taijs(i,j,ijts_fc(1,ntrix_rf(n)))
+     &                =taijs(i,j,ijts_fc(1,ntrix_rf(n)))
      &                +rsign_aer*(SNFST(2,N,I,J)-SNFS(LFRC,I,J))*CSZ2
 c longwave forcing  (TOA or TROPO)
-                 if (ijts_fc(2,ntrix(n)).gt.0)
-     &                taijs(i,j,ijts_fc(2,ntrix(n)))
-     &                =taijs(i,j,ijts_fc(2,ntrix(n)))
+                 if (ijts_fc(2,ntrix_rf(n)).gt.0)
+     &                taijs(i,j,ijts_fc(2,ntrix_rf(n)))
+     &                =taijs(i,j,ijts_fc(2,ntrix_rf(n)))
      &                -rsign_aer*(TNFST(2,N,I,J)-TNFS(LFRC,I,J))
 c shortwave forcing (TOA or TROPO) clear sky
-                 if (ijts_fc(5,ntrix(n)).gt.0)
-     &                taijs(i,j,ijts_fc(5,ntrix(n)))
-     &                =taijs(i,j,ijts_fc(5,ntrix(n)))
+                 if (ijts_fc(5,ntrix_rf(n)).gt.0)
+     &                taijs(i,j,ijts_fc(5,ntrix_rf(n)))
+     &                =taijs(i,j,ijts_fc(5,ntrix_rf(n)))
      &                +rsign_aer*(SNFST(2,N,I,J)-SNFS(LFRC,I,J))*CSZ2
      &                *(1.d0-CFRAC(I,J))
 c longwave forcing  (TOA or TROPO) clear sky
-                 if (ijts_fc(6,ntrix(n)).gt.0)
-     &                taijs(i,j,ijts_fc(6,ntrix(n)))
-     &                =taijs(i,j,ijts_fc(6,ntrix(n)))
+                 if (ijts_fc(6,ntrix_rf(n)).gt.0)
+     &                taijs(i,j,ijts_fc(6,ntrix_rf(n)))
+     &                =taijs(i,j,ijts_fc(6,ntrix_rf(n)))
      &                -rsign_aer*(TNFST(2,N,I,J)-TNFS(LFRC,I,J))
      &                *(1.d0-CFRAC(I,J))
 c shortwave forcing at surface (if required)
-                 if (ijts_fc(3,ntrix(n)).gt.0)
-     &                taijs(i,j,ijts_fc(3,ntrix(n)))
-     &                =taijs(i,j,ijts_fc(3,ntrix(n)))
+                 if (ijts_fc(3,ntrix_rf(n)).gt.0)
+     &                taijs(i,j,ijts_fc(3,ntrix_rf(n)))
+     &                =taijs(i,j,ijts_fc(3,ntrix_rf(n)))
      &                +rsign_aer*(SNFST(1,N,I,J)-SNFS(1,I,J))*CSZ2
 c longwave forcing at surface (if required)
-                 if (ijts_fc(4,ntrix(n)).gt.0)
-     &                taijs(i,j,ijts_fc(4,ntrix(n)))
-     &                =taijs(i,j,ijts_fc(4,ntrix(n)))
+                 if (ijts_fc(4,ntrix_rf(n)).gt.0)
+     &                taijs(i,j,ijts_fc(4,ntrix_rf(n)))
+     &                =taijs(i,j,ijts_fc(4,ntrix_rf(n)))
      &                -rsign_aer*(TNFST(1,N,I,J)-TNFS(1,I,J))
 c shortwave forcing at surface clear sky (if required)
-                 if (ijts_fc(7,ntrix(n)).gt.0)
-     &                taijs(i,j,ijts_fc(7,ntrix(n)))
-     &                =taijs(i,j,ijts_fc(7,ntrix(n)))
+                 if (ijts_fc(7,ntrix_rf(n)).gt.0)
+     &                taijs(i,j,ijts_fc(7,ntrix_rf(n)))
+     &                =taijs(i,j,ijts_fc(7,ntrix_rf(n)))
      &                +rsign_aer*(SNFST(1,N,I,J)-SNFS(1,I,J))*CSZ2
      &                *(1.d0-CFRAC(I,J))
 c longwave forcing at surface clear sky (if required)
-                 if (ijts_fc(8,ntrix(n)).gt.0)
-     &                taijs(i,j,ijts_fc(8,ntrix(n)))
-     &                =taijs(i,j,ijts_fc(8,ntrix(n)))
+                 if (ijts_fc(8,ntrix_rf(n)).gt.0)
+     &                taijs(i,j,ijts_fc(8,ntrix_rf(n)))
+     &                =taijs(i,j,ijts_fc(8,ntrix_rf(n)))
      &                -rsign_aer*(TNFST(1,N,I,J)-TNFS(1,I,J))
      &                *(1.d0-CFRAC(I,J))
                END SELECT
 #ifdef TRACERS_AEROSOLS_Koch
-c              SNFST0(1,ntrix(n),I,J)=SNFST0(1,ntrix(n),I,J)
+c              SNFST0(1,ntrix_rf(n),I,J)=SNFST0(1,ntrix_rf(n),I,J)
 c    &              +rsign_aer*(SNFST(2,n,I,J)-SNFS(LFRC,I,J))*CSZ2
-c              SNFST0(2,ntrix(n),I,J)=SNFST0(2,ntrix(n),I,J)
+c              SNFST0(2,ntrix_rf(n),I,J)=SNFST0(2,ntrix_rf(n),I,J)
 c    &              +rsign_aer*(SNFST(1,n,I,J)-SNFS(1,I,J))*CSZ2
-c              TNFST0(1,ntrix(n),I,J)=TNFST0(1,ntrix(n),I,J)
+c              TNFST0(1,ntrix_rf(n),I,J)=TNFST0(1,ntrix_rf(n),I,J)
 c    &              -rsign_aer*(TNFST(2,n,I,J)-TNFS(LFRC,I,J))
-c              TNFST0(2,ntrix(n),I,J)=TNFST0(2,ntrix(n),I,J)
+c              TNFST0(2,ntrix_rf(n),I,J)=TNFST0(2,ntrix_rf(n),I,J)
 c    &              -rsign_aer*(TNFST(1,n,I,J)-TNFS(1,I,J))
 #endif /* TRACERS_AEROSOLS_Koch */
-             END IF   ! ntrix(n)>0
-           end do     ! n=1,nraero
-         end if       ! nraero>0
+           end do     ! n=1,nraero_rf
+         end if       ! nraero_rf>0
 
 c ..........
-c accumulation of forcings for special case ozone (nraero fields
+c accumulation of forcings for special case ozone (nraero_rf fields
 c not defined) Warning: indicies used differently, since we don't
 c need CS or Surface, but are doing both TOA and Ltropo:
 c ..........

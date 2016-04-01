@@ -2226,7 +2226,7 @@ c daily_z is currently only needed for CS
       use subdd_mod, only : info_type, sched_rad
       use OldTracer_mod, only: trname
       use radpar, only: nraero=>NTRACE
-      use rad_com, only: ntrix
+      use rad_com, only: ntrix_aod
 ! info_type_ is a homemade structure constructor for older compilers
       use subdd_mod, only : info_type_
       implicit none
@@ -2247,7 +2247,7 @@ c daily_z is currently only needed for CS
       do a=1,size(sabs)
       do n=1,nraero+1 ! +1 for total
         if (n<=nraero) then
-          spcname = trim(trname(ntrix(n)))
+          spcname = trim(trname(ntrix_aod(n)))
         else
           spcname = ''
         endif

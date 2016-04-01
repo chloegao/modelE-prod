@@ -7,7 +7,7 @@
 !@auth Original Development Team
       USE RESOLUTION, only : im,jm,lm
       USE ATM_COM, only : lm_req
-      USE RADPAR, only : S0,nraero=>NTRACE
+      USE RADPAR, only : S0,nraero_aod=>NTRACE
       use AbstractOrbit_mod, only: AbstractOrbit
 #ifdef TRACERS_AMP
       USE AERO_CONFIG, ONLY: NMODES
@@ -108,8 +108,12 @@ C**** does not produce exactly the same as the default values.
 #endif
 #ifdef TRACERS_ON
 
-! nraero_xxxx are the aerosol-specific nraero (old ntrace) components of
-! aerosol-active species in radiation. nraero=sum(nraero_xxxx)
+! nraero_xxxx are the aerosol-specific nraero_aod (old ntrace) components of
+! aerosol-active species in radiation. nraero_aod=sum(nraero_xxxx)
+!@var nraero_aod Number of aerosol types in optical depth calculations
+!@var nraero_rf Number of aerosol types in forcing calculations, which is
+!@+             different from nraero_aod when DIAG_FC=1 (default)
+      integer :: nraero_rf=0
 #ifdef TRACERS_AEROSOLS_Koch
 #ifdef SULF_ONLY_AEROSOLS
       integer, parameter :: nraero_koch=1
@@ -142,7 +146,7 @@ C**** does not produce exactly the same as the default values.
       integer, parameter :: nraero_clay = 4 * ntm_clay
       integer, parameter :: nraero_dust = nraero_clay + ntm_sil1 +
      &     ntm_sil2 + ntm_sil3 + ntm_sil4 + ntm_sil5
-!@var nr_soildust First index of dust tracers in radiation (nraero)
+!@var nr_soildust First index of dust tracers in radiation (nraero_aod)
       integer :: nr_soildust = 0
 #else
       integer, parameter :: nraero_clay = 0
@@ -161,12 +165,12 @@ C**** does not produce exactly the same as the default values.
 
 #ifdef TRACERS_ON
 !@var njaero max expected rad code tracers passed to photolysis
-!@var nraero_rsf value of nraero found in the rsf file
-!@var ttausv_as All-sky aerosol optical saved 1:nraero not 1:ntm
+!@var nraero_rsf value of nraero_aod found in the rsf file
+!@var ttausv_as All-sky aerosol optical saved 1:nraero_aod not 1:ntm
 !@+   This is so clays are separate. Now also used for old parameter
 !@+   mxfastj: Number of aerosol/cloud types currently active in the model
 !@var ttausv_cs Same as ttausv_as for clear-sky
-      integer :: njaero ! nraero+2 cloud types (water/ice)
+      integer :: njaero ! nraero_aod+2 cloud types (water/ice)
       integer :: nraero_rsf=0
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:,:) :: ttausv_as
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:,:) :: ttausv_cs
@@ -295,10 +299,9 @@ C**** using the rad_forc_lev parameter.
 C**** Local variables initialised in init_RAD
 !@var PLB0,QL0 global parts of local arrays (to avoid OMP-copyin)
       REAL*8, DIMENSION(LM_REQ)       :: PLB0,SHL0
-!@var NTRIX Indexing array for optional aerosol-radiation interactions
-      INTEGER, allocatable, DIMENSION(:) :: NTRIX
-      INTEGER, allocatable, DIMENSION(:) :: NTRIX_I
-      INTEGER, allocatable, DIMENSION(:) :: NTRIX_AMP
+!@var ntrix_aod Indexing array for aerosol optical depth tracer names
+!@var ntrix_rf Indexing array for aerosol radiative forcing tracer names
+      INTEGER, allocatable, DIMENSION(:) :: ntrix_aod,ntrix_rf
 !@var WTTR weighting array for optional aerosol-ratiation interactions
       REAL*8, allocatable, DIMENSION(:) :: WTTR
 
@@ -741,12 +744,12 @@ C**** Local variables initialised in init_RAD
       call defvar(grid,fid,snoage,'snoage(d3,dist_im,dist_jm)')
 
 #ifdef TRACERS_ON
-      if (nraero > 0) then
-        call defvar(grid,fid,nraero,'nraero')
+      if (nraero_aod > 0) then
+        call defvar(grid,fid,nraero_aod,'nraero_aod')
         call defvar(grid,fid,ttausv_as,
-     &       'ttausv_as(dist_im,dist_jm,lm,nraero)')
+     &       'ttausv_as(dist_im,dist_jm,lm,nraero_aod)')
         call defvar(grid,fid,ttausv_cs,
-     &       'ttausv_cs(dist_im,dist_jm,lm,nraero)')
+     &       'ttausv_cs(dist_im,dist_jm,lm,nraero_aod)')
       endif
 #ifdef TRACERS_SPECIAL_Shindell
       call defvar(grid,fid,chem_tracer_save,
@@ -825,8 +828,8 @@ C**** Local variables initialised in init_RAD
         call write_dist_data(grid,fid,'trnflb_save',trnflb_save)
 #endif
 #ifdef TRACERS_ON
-        if (nraero > 0) then
-          call write_data(grid, fid,'nraero', nraero)
+        if (nraero_aod > 0) then
+          call write_data(grid, fid,'nraero_aod', nraero_aod)
           call write_dist_data(grid,fid,'ttausv_as',ttausv_as)
           call write_dist_data(grid,fid,'ttausv_cs',ttausv_cs)
         endif
@@ -867,7 +870,7 @@ C**** Local variables initialised in init_RAD
 #endif
 #ifdef TRACERS_ON
         if (.not.allocated(ttausv_as)) then
-          call read_data(grid,fid,'nraero',nraero_rsf,
+          call read_data(grid,fid,'nraero_aod',nraero_rsf,
      &                   bcast_all=.true.)
           if (nraero_rsf /= 0) then
             allocate(ttausv_as(I_0H:I_1H,J_0H:J_1H,lm,nraero_rsf))

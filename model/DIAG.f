@@ -5071,7 +5071,7 @@ c write physical variable
       USE ATM_COM, only : phi,wsave,pek,byMA
       USE rad_com,ONLY : cosz1,srnflb_save,trnflb_save
 #ifdef TRACERS_DUST
-     &                  ,nraero_dust,nr_soildust,ntrix
+     &                  ,nraero_dust,nr_soildust,ntrix_aod
      &                  ,ttausv_as,ttausv_cs
 #endif
       USE diag_com,ONLY : adiurn_dust,ndiupt,ndiuvar,lmax_dd2,ijdd
@@ -5150,10 +5150,10 @@ C****
 
               tmp(idd_load1:idd_load1+lmax_dd2-1)
      *             =tmp(idd_load1:idd_load1+lmax_dd2-1)+trm(i,j
-     *             ,1:lmax_dd2,ntrix(n1))*byaxyp(i,j)
+     *             ,1:lmax_dd2,ntrix_aod(n1))*byaxyp(i,j)
               tmp(idd_conc1:idd_conc1+lmax_dd2-1)
      *             =tmp(idd_conc1:idd_conc1+lmax_dd2-1)+trm(i,j
-     *             ,1:lmax_dd2,ntrix(n1))*byMA(1,i,j)*byaxyp(i,j)
+     *             ,1:lmax_dd2,ntrix_aod(n1))*byMA(1,i,j)*byaxyp(i,j)
               tmp(idd_tau1:idd_tau1+lmax_dd2-1)=tmp(idd_tau1:idd_tau1
      *             +lmax_dd2-1)+ttausv_as(i,j,1:lmax_dd2,n1)
               tmp(idd_tau_cs1:idd_tau_cs1+lmax_dd2-1)
