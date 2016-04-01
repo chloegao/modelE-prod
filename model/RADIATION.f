@@ -2974,27 +2974,20 @@ C-----------------
 
   500 CONTINUE
 
+#if (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
 #ifdef TRACERS_AMP
       CALL SETAMP(EXT,SCT,GCB,TAB)
-       do L = L1,LM  !radiation has 3 extra levels on the top - aerosol are zero
-c SW
-         SRBEXT(l,:) = EXT(l,:)
-         SRBSCT(l,:) = SCT(l,:)
-         SRBGCB(l,:) = GCB(l,:)
-c LW
-         TRBALK(l,:) = TAB(l,:)
-       enddo
 #endif
 #ifdef TRACERS_TOMAS
       CALL SETTOMAS(EXT,SCT,GCB,TAB)
-       do L = L1,LM
+#endif
+!radiation has 3 extra levels on the top - aerosols are zero
 c SW
-         SRBEXT(l,:) = EXT(l,:)
-         SRBSCT(l,:) = SCT(l,:)
-         SRBGCB(l,:) = GCB(l,:)
+      SRBEXT(L1:LM,:) = EXT(L1:LM,:)
+      SRBSCT(L1:LM,:) = SCT(L1:LM,:)
+      SRBGCB(L1:LM,:) = GCB(L1:LM,:)
 c LW
-         TRBALK(l,:) = TAB(l,:)
-       enddo
+      TRBALK(L1:LM,:) = TAB(L1:LM,:)
 #endif
 
 #ifndef TRACERS_TOMAS
