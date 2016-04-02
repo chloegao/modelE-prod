@@ -1,5 +1,5 @@
 !--------- general aerosol parameters-------------
-rad_forc_lev=1     ! 0: for TOA, 1: for tropopause for rad forcing diags.
+rad_forc_lev=0     ! 0: for TOA, 1: for tropopause for rad forcing diags.
 rad_interact_aer=1 ! 1: couples aerosols to radiation, 0: use climatology
 prather_limits=1   ! 1: to avoid some negative tracers in sub-gridscale
 diag_rad=1         ! 1: additional radiation diagnostics
