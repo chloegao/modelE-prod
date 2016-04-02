@@ -110,13 +110,6 @@ C Physical properties of aerosol components
       REAL*8, DIMENSION(124,101,91)      :: TOMAS_QEXT, TOMAS_QSCA,
      &     TOMAS_QABS,TOMAS_GSCA !,TOMAS_QBACK 
 
-!@param TOMAS_DIAG_FC : Flag used in aerosol radiation calculation
-!@+  2=external mixing (=icomp-2) radiation calls  |
-!@+  1=internal mixing (but AECOB is externally mixed) (ANUM_01) radiation call
-!@+  TOMAS_DIAG_FC=2 is only available now.
-
-      INTEGER                            :: TOMAS_DIAG_FC = 2 
-
 !@var number of supersaturations (0.1/0.2/0.3) 
       integer, parameter :: nsmax=3
       real*8, parameter :: Smax(nsmax)=(/0.1,0.2,0.3/)

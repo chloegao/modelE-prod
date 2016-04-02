@@ -108,6 +108,11 @@ C**** does not produce exactly the same as the default values.
 #endif
 #ifdef TRACERS_ON
 
+!@var DIAG_FC Controls the number of radiation calls for the calculation of
+!@+           aerosol radiative forcing. One call if =1, multiple calls if
+!@+           =2, with their number depending on the aerosol scheme used.
+!@+           Use =2 sparingly, it is s l o w. Default is 1.
+      integer :: diag_fc=1
 ! nraero_xxxx are the aerosol-specific nraero_aod (old ntrace) components of
 ! aerosol-active species in radiation. nraero_aod=sum(nraero_xxxx)
 !@var nraero_aod Number of aerosol types in optical depth calculations
@@ -153,9 +158,12 @@ C**** does not produce exactly the same as the default values.
       integer, parameter :: nraero_dust = 0
 #endif  /* TRACERS_DUST */
 
-! AMP and TOMAS will define their values later
-      integer :: nraero_AMP
-      integer :: nraero_TOMAS
+!@var nraero_OMA Number of OMA tracers that have an AOD value
+!@var nraero_AMP Number of AMP tracers that have an AOD value
+!@var nraero_TOMAS Number of TOMAS tracers that have an AOD value
+      integer :: nraero_OMA=0
+      integer :: nraero_AMP=0
+      integer :: nraero_TOMAS=0
 
 #ifdef TRACERS_AEROSOLS_SEASALT
       integer, parameter :: nraero_seasalt=2

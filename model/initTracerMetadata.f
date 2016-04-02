@@ -491,6 +491,7 @@
       USE TRACER_COM, only: NTM, tracers, syncProperty
       use TRACER_COM, only: coupled_chem
       use Dictionary_mod, only: sync_param,is_set_param,get_param
+      use RAD_COM, only: diag_fc
 #ifdef TRACERS_SPECIAL_O18
       use tracer_com, only: supsatfac
 #endif
@@ -541,7 +542,7 @@
       USE TRACER_COM, only: offline_dms_ss, offline_ss
 #endif
 #ifdef TRACERS_AMP
-      USE AMP_AEROSOL, only: AMP_DIAG_FC, AMP_RAD_KEY
+      USE AMP_AEROSOL, only: AMP_RAD_KEY
 #endif
 #if (defined TRACERS_COSMO)
       USE COSMO_SOURCES, only: be7_src_param
@@ -671,10 +672,9 @@ C**** set super saturation parameter for isotopes if needed
 #endif
 
 #endif /* TRACERS_SPECIAL_Shindell */
+      call sync_param("diag_fc",diag_fc)
 
 #if (defined TRACERS_AMP)
-C**** Decide on how many times Radiation is called for aerosols once or nmode, default one call
-      call sync_param("AMP_DIAG_FC",AMP_DIAG_FC)
 C**** Decide Radiative Mixing Rules - Volume - Core Shell - Maxwell Garnett, default Volume
       call sync_param("AMP_RAD_KEY",AMP_RAD_KEY)
 #endif

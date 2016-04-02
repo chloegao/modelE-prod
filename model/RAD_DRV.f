@@ -72,7 +72,7 @@ C****
 #ifdef TRACERS_ON
       use rad_com, only: nraero_rf,nraero_seasalt,
      *                   nraero_koch,nraero_nitrate,nraero_dust,
-     *                   nraero_AMP,nraero_TOMAS
+     *                   nraero_OMA,nraero_AMP,nraero_TOMAS
 #endif  /* TRACERS_ON */
       USE RAD_COM, only : rqt, s0x, co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx
      *     ,o2x,no2x,n2cx,yGHGx,so2x,CH4X_RADoverCHEM,snoage_def
@@ -105,6 +105,7 @@ C****
       USE TRACER_COM, only: n_SO4, n_Seasalt1, n_Seasalt2
       USE TRACER_COM, only: n_OCB, n_OCIA, n_Isopp1a, n_SO4
       USE TRACER_COM, only: n_vbsAm2
+      use RAD_COM, only: diag_fc
 #ifdef TRACERS_TOMAS
       USE TRACER_COM, only: n_ASO4, n_ANACL, n_AECOB, n_AECIL,
      &     n_AOCOB, n_AOCIL, n_ADUST
@@ -145,7 +146,6 @@ C****
 #endif
 #ifdef TRACERS_AMP
       USE AERO_CONFIG, only: nmodes
-      USE AMP_AEROSOL, only: AMP_DIAG_FC
       USE TRACER_COM, only:
      *     n_N_AKK_1 ,n_N_ACC_1 ,n_N_DD1_1 ,n_N_DS1_1 ,n_N_DD2_1,
      *     n_N_DS2_1, n_N_SSA_1, n_N_SSC_1, n_N_OCC_1, n_N_BC1_1,
@@ -153,7 +153,7 @@ C****
      *     n_N_DBC_1, n_N_BOC_1, n_N_BCS_1, n_N_MXX_1
 #endif
 #ifdef TRACERS_TOMAS
-      USE TOMAS_AEROSOL, only: icomp,TOMAS_DIAG_FC
+      USE TOMAS_AEROSOL, only: icomp
 #endif
       use AerParam_mod, only : aermix
       use AerParam_mod, only: depoBC,depoBC_1990
@@ -583,14 +583,23 @@ caer   ITR = (/ 0,0,0,0, 0,0,0,0 /)
 caer   TRRDRY=(/ .1d0, .1d0, .1d0, .1d0, .1d0, .1d0, .1d0, .1d0/)
 caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
 
-#ifdef  TRACERS_AMP
+#if (defined TRACERS_ON)
+      nraero_OMA=nraero_seasalt+nraero_koch+nraero_nitrate+nraero_dust
+      IF (diag_fc==2) THEN
+        nraero_rf=nraero_rf+nraero_OMA
+      ELSE
+        nraero_rf=nraero_rf+1
+      ENDIF
+#endif  /* TRACERS_ON */
+
+#ifdef TRACERS_AMP
       nraero_AMP=nmodes
-      IF (AMP_DIAG_FC == 2) THEN
+      IF (diag_fc==2) THEN
         nraero_rf=nraero_rf+nraero_AMP
       ELSE
         nraero_rf=nraero_rf+1
       ENDIF
-#endif /* TRACERS_AMP */
+#endif  /* TRACERS_AMP */
 
 #ifdef  TRACERS_TOMAS
 !TOMAS does not include NO3 AND VOL, which use its default radiation. 
@@ -599,7 +608,7 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
 #else
       nraero_TOMAS=icomp-1
 #endif
-      IF (TOMAS_DIAG_FC == 2) THEN
+      IF (diag_fc==2) THEN
         nraero_rf=nraero_rf+nraero_TOMAS
       ELSE
         nraero_rf=nraero_rf+1
@@ -607,26 +616,26 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
 #endif /* TRACERS_TOMAS */
 
 #ifdef TRACERS_ON
-      nraero_aod=nraero_seasalt+nraero_koch+nraero_nitrate+nraero_dust
-     &          +nraero_AMP+nraero_TOMAS
-      nraero_rf=nraero_rf+
-     &          nraero_seasalt+nraero_koch+nraero_nitrate+nraero_dust
+      nraero_aod=nraero_OMA+nraero_AMP+nraero_TOMAS
 
-      allocate(ntrix_aod(nraero_aod)) ; ntrix_aod=0
-      allocate(ntrix_rf(nraero_rf)) ; ntrix_rf=0
-      allocate(wttr(nraero_aod))  ; wttr=1.
       if (nraero_rsf>0) then
         if (nraero_rsf /= nraero_aod) then
           call stop_model('nraero_rsf /= nraero_aod',255)
         endif
       endif
 
-      if (.not.allocated(ttausv_as)) then
-        allocate(ttausv_as(I_0H:I_1H,J_0H:J_1H,lm,nraero_aod))
-        allocate(ttausv_cs(I_0H:I_1H,J_0H:J_1H,lm,nraero_aod))
-        ttausv_as = 0.d0
-        ttausv_cs = 0.d0
-      end if
+      if (nraero_aod>0) then
+        allocate(ntrix_aod(nraero_aod)) ; ntrix_aod=0
+        allocate(ntrix_rf(nraero_rf)) ; ntrix_rf=0
+        allocate(wttr(nraero_aod))  ; wttr=1.
+
+        if (.not.allocated(ttausv_as)) then
+          allocate(ttausv_as(I_0H:I_1H,J_0H:J_1H,lm,nraero_aod))
+          allocate(ttausv_cs(I_0H:I_1H,J_0H:J_1H,lm,nraero_aod))
+          ttausv_as = 0.d0
+          ttausv_cs = 0.d0
+        endif
+      endif
 #ifdef TRACERS_SPECIAL_Shindell
 #if (! defined(TRACERS_AMP)) && (! defined(TRACERS_TOMAS))
       njaero=nraero_aod+2
@@ -897,8 +906,15 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
       endif
       n=n+nraero_dust
 #endif  /* (defined TRACERS_DUST) || (defined TRACERS_MINERALS) */
+!-----------------------------------------------------------------------
 !define ntrix_rf, based on the OMA tracers above
-      if (n>0) ntrix_rf(1:n)=ntrix_aod(1:n)
+      if (n>0) then
+        if (diag_fc==2) then
+          ntrix_rf(1:nraero_OMA)=ntrix_aod(1:nraero_OMA)
+        else
+          ntrix_rf(1)=ntrix_aod(1)
+        endif
+      endif
 !-----------------------------------------------------------------------
 #if (defined TRACERS_AMP) || (defined TRACERS_AMP_M1)
       if (nraero_AMP > 0) then
@@ -911,7 +927,7 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
      &       n_N_DS2_1, n_N_SSA_1, n_N_SSC_1, n_N_OCC_1, n_N_BC1_1, 
      &       n_N_BC2_1 ,n_N_BC3_1, n_N_DBC_1, n_N_BOC_1, n_N_BCS_1, 
      &       n_N_MXX_1/)
-        if (AMP_DIAG_FC == 2) then
+        if (diag_fc==2) then
           ntrix_rf(n+1:n+nraero_AMP)=ntrix_aod(n+1:n+nraero_AMP)
         else
           ntrix_rf(n+1)=ntrix_aod(n+1)
@@ -939,7 +955,7 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
         itr(n+1:n+nraero_TOMAS) = (/1,2,6,5,4,4,7/)
         krhtra(n+1:n+nraero_TOMAS)=0
 ! ANUM(1) for internal-mixing case. Others(ncomp-1) for external-mixing case.
-        if (TOMAS_DIAG_FC == 2) then
+        if (diag_fc==2) then
           ntrix_rf(n+1:n+nraero_TOMAS)=ntrix_aod(n+1:n+nraero_TOMAS)
         else
           ntrix_rf(n+1)=ntrix_aod(n+1)
@@ -1599,6 +1615,7 @@ C     OUTPUT DATA
       USE DIAG_COM_RAD
 #ifdef TRACERS_ON
       USE DIAG_COM, only : adiurn_dust,save3dAOD
+      use RAD_COM, only: diag_fc
 #endif
       USE ATM_COM, only : pk,pedn,pmid,pdsig,ltropo,MA,byMA
       USE SEAICE_COM, only : si_atm
@@ -1657,13 +1674,7 @@ c          use TRACER_COM, only: SNFST0,TNFST0
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: Lmax_rad_O3,Lmax_rad_CH4
 #endif /* TRACERS_SPECIAL_Shindell */
-#ifdef TRACERS_AMP
-      USE AMP_AEROSOL, only: AMP_DIAG_FC
-#endif
 #endif /* TRACERS_ON */
-#ifdef TRACERS_TOMAS
-      USE TOMAS_AEROSOL, only: icomp,TOMAS_DIAG_FC
-#endif
       use AerParam_mod, only: dCDNC_est
       use AerParam_mod, only: depoBC,depoBC_1990
       USE TimerPackage_mod, only: startTimer => start, stopTimer => stop
@@ -2578,34 +2589,47 @@ C**** Ozone and Methane:
 #endif /* SHINDELL_STRAT_EXTRA && ACCMIP_LIKE_DIAGS */
 #endif /* TRACERS_SPECIAL_Shindell */
 
+      if (moddrf==0) then
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_MINERALS) || (defined TRACERS_AEROSOLS_SEASALT)
-
-C**** Aerosols incl. Dust:        set up for radiative forcing diagnostics
-      if (nraero_rf>0 .and. moddrf==0) then
+    (defined TRACERS_MINERALS) || (defined TRACERS_AEROSOLS_SEASALT) ||\
+    (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
+C**** Aerosols (OMA, MATRIX, TOMAS):
         do n=1,nraero_rf
           IF (trname(ntrix_rf(n)).eq."seasalt2") CYCLE ! not for seasalt2
-          FSTOPX(n)=1-onoff_aer ; FTTOPX(n)=1-onoff_aer ! turn on/off tracer
+          if (diag_fc==2) then
+            FSTOPX(n) = 1-onoff_aer !turns off online tracer
+            FTTOPX(n) = 1-onoff_aer !
 C**** Warning: small bit of hardcoding assumes that seasalt2 immediately
 C****          succeeds seasalt1 in nraero_rf array
-          IF (trname(ntrix_rf(n)).eq."seasalt1") THEN          !add seasalt2
-            FSTOPX(n+1)=1-onoff_aer;FTTOPX(n+1)=1-onoff_aer !to seasalt1
-          END IF
+            IF (trname(ntrix_rf(n)).eq."seasalt1") THEN          !add seasalt2
+              FSTOPX(n+1)=1-onoff_aer;FTTOPX(n+1)=1-onoff_aer !to seasalt1
+            END IF
+          else
+            FSTOPX(1:nraero_aod) = 1-onoff_aer !turns off online tracer
+            FTTOPX(1:nraero_aod) = 1-onoff_aer !
+          endif
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
+    (defined TRACERS_MINERALS) || (defined TRACERS_AEROSOLS_SEASALT)
           kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
+#endif
           CALL RCOMPX  ! tr.aero.Koch/dust/miner./seasalt
           SNFST(1,n,I,J)=SRNFLB(1) ! surface forcing
           TNFST(1,n,I,J)=TRNFLB(1)
-          SNFST(2,n,I,J)=SRNFLB(LFRC)
+          SNFST(2,n,I,J)=SRNFLB(LFRC) ! Tropopause forcing
           TNFST(2,n,I,J)=TRNFLB(LFRC)
-          FSTOPX(n)=onoff_aer ; FTTOPX(n)=onoff_aer   ! back to default
-          IF (trname(ntrix_rf(n)).eq."seasalt1") THEN    ! also for seasalt2
-            FSTOPX(n+1)=onoff_aer ; FTTOPX(n+1)=onoff_aer
-          END IF
+          if (diag_fc==2) then
+            FSTOPX(n) = onoff_aer !turns on online tracer
+            FTTOPX(n) = onoff_aer !
+            IF (trname(ntrix_rf(n)).eq."seasalt1") THEN    ! also for seasalt2
+              FSTOPX(n+1)=onoff_aer ; FTTOPX(n+1)=onoff_aer
+            END IF
+          else
+            FSTOPX(1:nraero_aod) = onoff_aer !turns on online tracer
+            FTTOPX(1:nraero_aod) = onoff_aer !
+          endif
         end do
-      end if
-#endif /* TRACERS_AEROSOLS_Koch/DUST/MINERALS/SEASALT */
+#endif
 
-      if (moddrf==0) then
 #ifdef TRACERS_SPECIAL_Shindell
 C**** Ozone:
 ! ozone rad forcing diags now use a constant reference year
@@ -2695,52 +2719,6 @@ c       NFSNBC(I,J)=SRNFLB(LFRC)
         ALBNBC(I,J)=SRNFLB(1)/(SRDFLB(1)+1.D-20)
 c set for BC-albedo effect
         dALBsn=dALBsn1
-#endif
-#ifdef TRACERS_AMP
-        DO n = 1,nraero_rf
-          if (AMP_DIAG_FC==2) then
-            FSTOPX(n) = 1-onoff_aer !turns off online tracer
-            FTTOPX(n) = 1-onoff_aer !
-          else
-            FSTOPX(1:nraero_aod) = 1-onoff_aer !turns off online tracer
-            FTTOPX(1:nraero_aod) = 1-onoff_aer !
-          endif
-          CALL RCOMPX
-          SNFST(1,n,I,J)=SRNFLB(1) ! surface forcing
-          TNFST(1,n,I,J)=TRNFLB(1)
-          SNFST(2,n,I,J)=SRNFLB(LFRC) ! Tropopause forcing
-          TNFST(2,n,I,J)=TRNFLB(LFRC)
-          if (AMP_DIAG_FC==2) then
-            FSTOPX(n) = onoff_aer !turns on online tracer
-            FTTOPX(n) = onoff_aer !
-          else
-            FSTOPX(1:nraero_aod) = onoff_aer !turns on online tracer
-            FTTOPX(1:nraero_aod) = onoff_aer !
-          endif
-        ENDDO
-#endif
-#ifdef TRACERS_TOMAS
-        DO n = 1,nraero_rf
-          if (AMP_DIAG_FC==2) then
-            FSTOPX(n) = 1-onoff_aer !turns off online tracer
-            FTTOPX(n) = 1-onoff_aer !
-          else
-            FSTOPX(1:nraero_aod) = 1-onoff_aer !turns off online tracer
-            FTTOPX(1:nraero_aod) = 1-onoff_aer !
-          endif
-          CALL RCOMPX
-          SNFST(1,n,I,J)=SRNFLB(1) ! surface forcing
-          TNFST(1,n,I,J)=TRNFLB(1)
-          SNFST(2,n,I,J)=SRNFLB(LFRC) ! Tropopause forcing
-          TNFST(2,n,I,J)=TRNFLB(LFRC)
-          if (AMP_DIAG_FC==2) then
-            FSTOPX(n) = onoff_aer !turns on online tracer
-            FTTOPX(n) = onoff_aer !
-          else
-            FSTOPX(1:nraero_aod) = onoff_aer !turns on online tracer
-            FTTOPX(1:nraero_aod) = onoff_aer !
-          endif
-        ENDDO
 #endif
 C**** Optional calculation of CRF using a clear sky calc.
         if (cloud_rad_forc.gt.0) then

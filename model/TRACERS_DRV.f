@@ -3083,13 +3083,10 @@ c Oxidants
 #if (defined TRACERS_WATER) && (defined TRDIAG_WETDEPO)
       USE CLOUDS, ONLY : diag_wetdep
 #endif
+      use RAD_COM, only: diag_fc
 #endif /* TRACERS_ON */
 #ifdef TRACERS_AMP
-      USE AMP_AEROSOL, only: AMP_DIAG_FC
       use tracer_com, only: n_N_AKK_1
-#endif
-#ifdef TRACERS_TOMAS
-      USE TOMAS_AEROSOL, only: TOMAS_DIAG_FC
 #endif
       use OldTracer_mod, only: trname, ntm_power, dodrydep,
      &          src_dist_index
@@ -5037,7 +5034,7 @@ c SO4 from industrial emissions
         case('ASO4__01','ANACL_01','AECOB_01','AECIL_01',
      &       'AOCOB_01','AOCIL_01','ADUST_01')
 
-        IF ( TOMAS_DIAG_FC == 2 ) THEN
+        IF (diag_fc==2) THEN
 c     c shortwave radiative forcing
           k = k + 1
           ijts_fc(1,n) = k
@@ -6041,7 +6038,7 @@ c- interactive sources diagnostic
      *     'N_DS2_1 ','N_SSA_1 ','N_SSC_1 ','N_OCC_1 ','N_BC1_1 ',
      *     'N_BC2_1 ','N_BC3_1 ','N_DBC_1 ','N_BOC_1 ','N_BCS_1 ',
      *     'N_MXX_1 ','N_OCS_1 ')
-      IF ( AMP_DIAG_FC == 2 ) THEN
+      IF (diag_fc==2) THEN
 cc shortwave radiative forcing
       k = k + 1
         ijts_fc(1,n) = k
@@ -6113,7 +6110,7 @@ c Special Radiation Diagnostic
       end do
 
 c - Tracer independent Diagnostic
-      IF ( AMP_DIAG_FC == 1 ) THEN
+      IF (diag_fc==1) THEN
         n=n_N_AKK_1
 cc shortwave radiative forcing
         k = k + 1

@@ -3,8 +3,11 @@
 !@sum   SETTOMAS_LEV                                              
 !    **************************************************************
 !@+    This is to compute aerosol optical depth by each components. 
-!@+    Currently, it assumes external mixing state (TOMAS_DIAG_FC = 2)
-!@+    Need new subroutine for internal-mixing case (TOMAS_DIAG_FC=1). 
+!@+    Currently, it assumes external mixing state (diag_fc=2)
+!@+    Need new subroutine for internal-mixing case (diag_fc=1). 
+!@+  2=external mixing (=icomp-2) radiation calls  |
+!@+  1=internal mixing (but AECOB is externally mixed) (ANUM_01) radiation call
+!@+  diag_fc=2 is only available now.
 !@auth  Yunha Lee, May 2006
 C                        
                        
@@ -19,11 +22,12 @@ C
       USE RADPAR,      only: TTAUSV,aesqex,aesqsc,aesqcb,FSTOPX,FTTOPX !Diagnostics
       USE ATM_COM, only : t            ! potential temperature (C)
      $                     ,q            ! saturated pressure
-      USE TOMAS_AEROSOL, only : TOMAS_qext,TOMAS_qsca,TOMAS_gsca,icomp,
-     & TOMAS_DIAG_FC ! aerosol radiative properties from lookup table
+      ! aerosol radiative properties from lookup table
+      USE TOMAS_AEROSOL, only : TOMAS_qext,TOMAS_qsca,TOMAS_gsca,icomp
       USE CONSTANT,   only : pi,lhe
       USE ATM_COM,   only: pmid,pk   ! midpoint pressure in hPa (mb)
       USE GEOM,        only: BYDXYP ! inverse area of gridbox [m-2]
+      use RAD_COM, only: diag_fc
 
       IMPLICIT NONE
 
@@ -104,7 +108,7 @@ c$$$      data k_nacl/1.e-6/
 C*********************************************************************
 
 !      if (itime.ne.itimeI) then 
-      IF(TOMAS_DIAG_FC.EQ.2)THEN
+      IF(diag_fc==2)THEN
       temp = pk(l,i,j)*t(i,j,l) !should be in [K]
       rhe =100.d0* MIN(1.,q(i,j,l)/QSAT(temp,lhe,pmid(l,i,j))) ! rhe [0-100]
       if (rhe .gt. 99.d0) rhe=99.d0
@@ -251,9 +255,9 @@ C     Determine size parameter
 !@sum   SETTOMAS                                              
 !    **************************************************************
 !@+    This subroutine computes total aerosol optical depth (all comp) 
-!@+    Currently, it assumes external mixing state (TOMAS_DIAG_FC = 2)
+!@+    Currently, it assumes external mixing state (diag_fc=2)
 !@+    and no absorption in the longwave length. 
-!@+    Need new subroutine for internal-mixing case (TOMAS_DIAG_FC=1). 
+!@+    Need new subroutine for internal-mixing case (diag_fc=1). 
 !@auth  Yunha Lee (modified from the existing modelE code)
 C
 C ************************************************************   
@@ -264,8 +268,9 @@ C ************************************************************
       USE RESOLUTION,  only: lm
       USE MODEL_COM,   only: itime,itimeI
       USE RADPAR,      only: TTAUSV,aesqex,aesqsc,aesqcb,FSTOPX,FTTOPX !Diagnostics
+      use RAD_COM,     only: diag_fc
 
-      USE TOMAS_AEROSOL, only : icomp,TOMAS_DIAG_FC
+      USE TOMAS_AEROSOL, only : icomp
   
       IMPLICIT NONE
 
@@ -286,7 +291,7 @@ C ************************************************************
       TOMAS_TAB(:,:,:)=0.d0 ! zero for now
       
       if (itime.ne.itimeI) then 
-        IF(TOMAS_DIAG_FC.EQ.2)THEN
+        IF(diag_fc==2)THEN
         do L = 1,LM             !radiation has 3 extra levels on the top - aerosol are zero
           
           do nc=1,icomp-2

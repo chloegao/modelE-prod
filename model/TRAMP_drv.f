@@ -22,7 +22,6 @@ C**************  Latitude-Dependant (allocatable) *******************
       ! FALSE : one Radiation call
       ! TRUE  : nmodes Radiation calls
       INTEGER                            :: AMP_RAD_KEY = 1 ! 1=Volume Mixing || 2=Core - Shell || 3=Maxwell Garnett
-      INTEGER                            :: AMP_DIAG_FC = 1 ! 2=nmode radiation calls  ||  1=one radiation call
 
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)       :: AQsulfRATE !(i,j,l)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: DIAM       ![m](i,j,l,nmodes)
