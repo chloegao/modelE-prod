@@ -1573,7 +1573,7 @@ C     OUTPUT DATA
      &          ,SRDEXT ,SRDSCT ,SRDGCB ,SRVEXT ,SRVSCT ,SRVGCB
      &          ,aesqex,aesqsc,aesqcb
      &          ,SRXNIR,SRDNIR
-      USE RAD_COM, only : modrd,nrad,nraero_rf
+      USE RAD_COM, only : modrd,nrad
       USE RAD_COM, only : rqt,srhr,trhr,fsf,cosz1,s0x,rsdist,nradfrc
      *     ,CH4X_RADoverCHEM,snoage
      *     ,plb0,shl0,tchg,alb,fsrdir,srvissurf,srdn,cfrac,rcld
@@ -1594,7 +1594,7 @@ C     OUTPUT DATA
      &     ,srnflb_save,trnflb_save
 #endif
 #ifdef TRACERS_ON
-     &     ,ttausv_as,ttausv_cs
+     &     ,ttausv_as,ttausv_cs,nraero_rf
 #endif
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
      &     ,stratO3_tracer_save
@@ -1674,6 +1674,9 @@ c          use TRACER_COM, only: SNFST0,TNFST0
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: Lmax_rad_O3,Lmax_rad_CH4
 #endif /* TRACERS_SPECIAL_Shindell */
+#ifdef TRACERS_TOMAS
+      USE TOMAS_AEROSOL, only: icomp
+#endif
 #endif /* TRACERS_ON */
       use AerParam_mod, only: dCDNC_est
       use AerParam_mod, only: depoBC,depoBC_1990
