@@ -15,13 +15,16 @@ filters: U,V in E-W and N-S direction (after every physics time step)
 
 Preprocessor Options
 #define NEW_IO                   ! new I/O (netcdf) on
-#define TRAC_ADV_CPU             ! timing index for tracer advection on
 #define USE_ENT                  ! include dynamic vegetation model
+#define SWFIX_20151201
+#define NO_HDIURN                ! exclude hdiurn diagnostics
+!---> generic tracers code start
+#define TRAC_ADV_CPU             ! timing index for tracer advection on
 #define TRACERS_ON               ! include tracers code
 #define TRACERS_WATER            ! wet deposition and water tracer
 #define TRACERS_DRYDEP           ! default dry deposition
 #define TRDIAG_WETDEPO           ! additional wet deposition diags for tracers
-#define NO_HDIURN                ! exclude hdiurn diagnostics
+!<--- generic tracers code end
 !---> chemistry start
 #define TRACERS_SPECIAL_Shindell    ! includes drew's chemical tracers
 #define RAD_O3_2010              ! 2010 ozone dataset
@@ -50,13 +53,12 @@ Preprocessor Options
 #define CLD_AER_CDNC              !aerosol-cloud interactions
 #define BLK_2MOM                  !aerosol-cloud interactions
 !  OFF #define NUDGE_ON                 ! nudge the meteorology
-#define SWFIX_20151201
 End Preprocessor Options
 
 Object modules:
      ! resolution-specific source codes
-Atm144x90                  ! horizontal resolution is 144x90 -> 2x2.5deg
-AtmL40                      ! vertical resolution is 40 layers -> 0.1mb
+Atm144x90                           ! horizontal resolution is 144x90 -> 2x2.5deg
+AtmL40                              ! vertical resolution is 40 layers -> 0.1mb
 DIAG_RES_F                          ! diagnostics
 FFT144                              ! Fast Fourier Transform
 
@@ -96,7 +98,7 @@ OPTS_dd2d = NC_IO=PNETCDF
 Data input files:
 #include "IC_144x90_input_files"
 #include "static_ocn_1880_144x90_input_files"
-VEG_DENSE=gsin/veg_dense_2x2.5 ! vegetation density for flammability calculations
+! VEG_DENSE=gsin/veg_dense_2x2.5 ! vegetation density for flammability calculations
 RVR=RD_modelE_Fa.nc             ! river direction file
 NAMERVR=RD_modelE_Fa.names.txt  ! named river outlets
 
@@ -158,6 +160,9 @@ madaer=3         ! 3: updated aerosols          ; 1: default sulfates/aerosols
 #include "aerosol_OMA_params"
 #include "dust_params_vmp_oma"
 #include "chemistry_params"
+! The following 2 lines OVERWRITE the include chemistry_params values!!
+! ch4_init_sh=1.750      ! init cond/fixed conditions SH CH4 ppmv
+! ch4_init_nh=1.855      ! init cond/fixed conditions NH CH4 ppmv
 
 DTsrc=1800.      ! cannot be changed after a run has been started
 DT=225.

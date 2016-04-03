@@ -13,14 +13,19 @@ filters: U,V in E-W and N-S direction (after every physics time step)
 
 Preprocessor Options
 #define NEW_IO                   ! new I/O (netcdf) on
-#define TRAC_ADV_CPU             ! timing index for tracer advection on
 #define USE_ENT                  ! include dynamic vegetation model
+#define SWFIX_20151201
+#define NO_HDIURN                ! exclude hdiurn diagnostics
+!---> generic tracers code start
+#define TRAC_ADV_CPU             ! timing index for tracer advection on
 #define TRACERS_ON               ! include tracers code
 #define TRACERS_WATER            ! wet deposition and water tracer
 #define TRACERS_DRYDEP           ! default dry deposition
 #define TRDIAG_WETDEPO           ! additional wet deposition diags for tracers
+!<--- generic tracers code end
+!---> chemistry start
 #define RAD_O3_2010              ! 2010 ozone dataset
-#define NO_HDIURN                ! exclude hdiurn diagnostics
+!<--- chemistry end
 !---> OMA start
 #define TRACERS_DUST             ! include dust tracers
 #define TRACERS_DUST_Silt4       ! include 4th silt size class of dust
@@ -29,8 +34,8 @@ End Preprocessor Options
 
 Object modules:
      ! resolution-specific source codes
-Atm144x90                         ! horizontal resolution is 144x90 -> 2x2.5deg
-AtmL40                             ! vertical resolution is 40 layers -> 0.1mb
+Atm144x90                           ! horizontal resolution is 144x90 -> 2x2.5deg
+AtmL40                              ! vertical resolution is 40 layers -> 0.1mb
 DIAG_RES_F                          ! diagnostics
 FFT144                              ! Fast Fourier Transform
 
@@ -44,10 +49,11 @@ STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 QUS3D                               ! advection of Q and tracers
 #include "tracer_dust_source_files"
 #include "tracer_shared_source_files"
-TRDIAG
+TRDIAG                              ! new i/o
 
 #include "latlon_source_files"
 #include "modelE4_source_files"
+
 #include "static_ocn_source_files"
 
 Components:
@@ -72,7 +78,6 @@ NAMERVR=RD_Fb.names.txt  ! named river outlets
 #include "rad_144x90_input_files"
 
 #include "dust_tracer_144x90_input_files"
-
 #include "dry_depos_144x90_input_files"
 
 MSU_wts=MSU.RSS.weights.data      ! MSU-diag
