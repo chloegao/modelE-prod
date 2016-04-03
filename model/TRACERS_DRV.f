@@ -3601,7 +3601,7 @@ c chemical production
         case('isopp1a')
           ! In the radiation code the RCOMPX call for isopp1a
           ! currently contains isopp1a+isopp2a and if TRACERS_TERP
-          ! also apinp1a+apinp2a, so using SOA in stead of trname:
+          ! also apinp1a+apinp2a, so using SOA instead of trname:
            
           call set_diag_rad(n,k)
 
@@ -5857,19 +5857,6 @@ c SW forcing from albedo change
         endif
 
 #endif
-#ifdef TRACERS_AEROSOLS_Koch
-      IF (diag_rad.eq.1) THEN
-        k = k + 1
-          ijs_ai = k           ! unused ?????
-          ia_ijts(k) = ia_rad
-          lname_ijts(k) = 'Aerosol Index'
-          sname_ijts(k) = 'ain_CSN'
-          dname_ijts(k) = 'clrsky'
-          ijts_power(k) = -2
-          units_ijts(k) = unit_string(ijts_power(k),' ')
-          scale_ijts(k) = 10.**(-ijts_power(k))
-      ENDIF
-#endif
 #ifdef TRACERS_SPECIAL_Shindell
 #ifdef BIOGENIC_EMISSIONS
       k = k+1
@@ -6283,149 +6270,116 @@ c      enddo
       end subroutine FindStrings
 #endif
 
+#ifdef TRACERS_ON
       subroutine set_diag_rad(n,k)
-!@sum set_diag_rad sets special rad diags for aerosols
+!@sum set_diag_rad saves extinction, scattering and asymmetry parameter diags
 !@auth Dorothy Koch
       use OldTracer_mod, only: trname
-#ifdef TRACERS_ON
-      USE TRDIAG_COM
-#endif /* TRACERS_ON */
-      USE DIAG_COM
+      use mdiag_com, only : sname_strlen
+      USE TRDIAG_COM, only: diag_rad,ijts_tau,ijts_sqex,ijts_sqsc
+     &                     ,ijts_sqcb,ia_ijts,sname_ijts
+     &                     ,lname_ijts,dname_ijts,ijts_power
+     &                     ,units_ijts,scale_ijts,ijts_HasArea
+      USE DIAG_COM, only: ia_rad
       implicit none
+
       integer, intent(inout) :: k
       integer, intent(in) :: n
-      integer kr
       character*50 :: unit_string
-      character*17 :: cform
+!@param sascs short name of all-sky/clear-sky selector
+!@var skr value of kr as a string
+!@param lascs long name of all-sky/clear-sky selector
+!@var kr index of solar bands
+!@var s index of sascs and lascs
+      character(len=sname_strlen), parameter :: dname='clrsky'
+      character(len=1) :: skr
+      character(len=10), parameter, dimension(2) ::
+     &  sascs=(/'','CS_'/),lascs=(/'','clear sky'/)
+      integer :: kr,s
 
-#ifdef TRACERS_ON
-      IF (diag_rad /= 1) THEN
-c optical thickness
-        k = k + 1
-        ijts_tau(1,n) = k
-        ia_ijts(k) = ia_rad
-        lname_ijts(k) = trim(trname(n))//' optical thickness'
-        sname_ijts(k) = 'tau_'//trim(trname(n))
-        ijts_power(k) = -2
-        units_ijts(k) = unit_string(ijts_power(k),' ')
-        scale_ijts(k) = 10.**(-ijts_power(k))
-        ijts_HasArea(k) = .false.
-c clear sky optical thickness
-        k = k + 1
-        ijts_tau(2,n) = k
-        ia_ijts(k) = ia_rad
-        lname_ijts(k) = trim(trname(n))//' clr sky optical thickness'
-        sname_ijts(k) = 'tau_CS_'//trim(trname(n))
-        dname_ijts(k) = 'clrsky'
-        ijts_power(k) = -2
-        units_ijts(k) = unit_string(ijts_power(k),' ')
-        scale_ijts(k) = 10.**(-ijts_power(k))
-        ijts_HasArea(k) = .false.
-      ELSE
-        DO kr=1,6
-c extinction optical thickness in six solar bands
-          k=k+1
-          ijts_sqex(1,kr,n)=k
-          ia_ijts(k)=ia_rad
-          WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &         ',A26,I1)'
-          WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &         ' SW total extinction band ',kr
-          WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
-     &         LEN_TRIM(trname(n)),')'
-          WRITE(sname_ijts(k),cform) 'ext_band',kr,'_',TRIM(trname(n))
-          ijts_power(k) = -4
-          units_ijts(k) = unit_string(ijts_power(k),' ')
-          scale_ijts(k) = 10.**(-ijts_power(k))
-          ijts_HasArea(k) = .false.
-c clear sky extinction optical thickness in six solar bands
-          k=k+1
-          ijts_sqex(2,kr,n)=k
-          ia_ijts(k)=ia_rad
-          WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &         ',A29,I1)'
-          WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &         ' CS SW total extinction band ',kr
-          WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
-     &         LEN_TRIM(trname(n)),')'
-          WRITE(sname_ijts(k),cform) 'ext_CS_band',kr,'_',
-     &         TRIM(trname(n))
-          dname_ijts(k) = 'clrsky'
-          ijts_power(k) = -4
-          units_ijts(k) = unit_string(ijts_power(k),' ')
-          scale_ijts(k) = 10.**(-ijts_power(k))
-          ijts_HasArea(k) = .false.
-c scattering optical thickness in six solar bands
-          k=k+1
-          ijts_sqsc(1,kr,n)=k
-          ia_ijts(k)=ia_rad
-          WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &         ',A28,I1)'
-          WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &         ' SW scatter extinction band ',kr
-          WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
-     &         LEN_TRIM(trname(n)),')'
-          WRITE(sname_ijts(k),cform) 'sct_band',kr,'_',TRIM(trname(n))
-          ijts_power(k) = -4
-          units_ijts(k) = unit_string(ijts_power(k),' ')
-          scale_ijts(k) = 10.**(-ijts_power(k))
-          ijts_HasArea(k) = .false.
-c clear sky scattering optical thickness in six solar bands
-          k=k+1
-          ijts_sqsc(2,kr,n)=k
-          ia_ijts(k)=ia_rad
-          WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &         ',A31,I1)'
-          WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &         ' CS SW scatter extinction band ',kr
-          WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
-     &         LEN_TRIM(trname(n)),')'
-          WRITE(sname_ijts(k),cform) 'sct_CS_band',kr,'_',
-     &         TRIM(trname(n))
-          dname_ijts(k) = 'clrsky'
-          ijts_power(k) = -4
-          units_ijts(k) = unit_string(ijts_power(k),' ')
-          scale_ijts(k) = 10.**(-ijts_power(k))
-          ijts_HasArea(k) = .false.
-c scattering asymmetry factor in six solar bands
-          k=k+1
-          ijts_sqcb(1,kr,n)=k
-
-          ia_ijts(k)=ia_rad
-          WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &         ',A26,I1)'
-          WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &         ' SW asymmetry factor band ',kr
-          WRITE(cform,'(A11,I1,A1)') '(A8,I1,A1,A',
-     &         LEN_TRIM(trname(n)),')'
-          WRITE(sname_ijts(k),cform) 'asf_band',kr,'_',TRIM(trname(n))
+      do s=1,size(sascs)
+        IF (diag_rad /= 1) THEN
+! aerosol optical depth for band6
+          k = k + 1
+          ijts_tau(s,n) = k
+          ia_ijts(k) = ia_rad
+          sname_ijts(k) = 'tau_'//trim(sascs(s))//trim(trname(n))
+          if (trim(sascs(s))=='CS_') then
+            lname_ijts(k) = trim(trname(n))//' '//trim(lascs(s))//
+     &                      ' aerosol optical depth'
+            dname_ijts(k) = 'clrsky'
+          else
+            lname_ijts(k) = trim(trname(n))//
+     &                      ' aerosol optical depth'
+          endif
           ijts_power(k) = -2
           units_ijts(k) = unit_string(ijts_power(k),' ')
           scale_ijts(k) = 10.**(-ijts_power(k))
           ijts_HasArea(k) = .false.
-c clear sky scattering asymmetry factor in six solar bands
-          k=k+1
-          ijts_sqcb(2,kr,n)=k
-          ia_ijts(k)=ia_rad
-          WRITE(cform,'(A2,I1,A8)') '(A',LEN_TRIM(trname(n)),
-     &         ',A29,I1)'
-          WRITE(lname_ijts(k),cform) TRIM(trname(n)),
-     &         ' CS SW asymmetry factor band ',kr
-          WRITE(cform,'(A12,I1,A1)') '(A11,I1,A1,A',
-     &         LEN_TRIM(trname(n)),')'
-          WRITE(sname_ijts(k),cform) 'asf_CS_band',kr,'_',
-     &         TRIM(trname(n))
-          dname_ijts(k) = 'clrsky'
-          ijts_power(k) = -2
-          units_ijts(k) = unit_string(ijts_power(k),' ')
-          scale_ijts(k) = 10.**(-ijts_power(k))
-          ijts_HasArea(k) = .false.
-        END DO
-      END IF
-#endif
+        ELSE
+          DO kr=1,6
+            write (skr,'(i1)') kr
+! extinction aerosol optical depth in six solar bands
+            k=k+1
+            ijts_sqex(s,kr,n)=k
+            ia_ijts(k)=ia_rad
+            sname_ijts(k)='ext_band'//skr//'_'//trim(sascs(s))//
+     &                    trim(trname(n))
+            if (trim(sascs(s))=='CS_') then
+              lname_ijts(k)=trim(trname(n))//' '//trim(lascs(s))//
+     &                      ' SW extinction band '//skr
+              dname_ijts(k) = 'clrsky'
+            else
+              lname_ijts(k)=trim(trname(n))//
+     &                      ' SW extinction band '//skr
+            endif
+            ijts_power(k) = -4
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+            ijts_HasArea(k) = .false.
+! scattering aerosol optical depth in six solar bands
+            k=k+1
+            ijts_sqsc(s,kr,n)=k
+            ia_ijts(k)=ia_rad
+            sname_ijts(k)='sct_band'//skr//'_'//trim(sascs(s))//
+     &                    trim(trname(n))
+            if (trim(sascs(s))=='CS_') then
+              lname_ijts(k)=trim(trname(n))//' '//trim(lascs(s))//
+     &                      ' SW scattering band '//skr
+              dname_ijts(k) = 'clrsky'
+            else
+              lname_ijts(k)=trim(trname(n))//
+     &                      ' SW scattering band '//skr
+            endif
+            ijts_power(k) = -4
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+            ijts_HasArea(k) = .false.
+! scattering asymmetry factor in six solar bands
+            k=k+1
+            ijts_sqcb(s,kr,n)=k
+            ia_ijts(k)=ia_rad
+            sname_ijts(k)='asf_band'//skr//'_'//trim(sascs(s))//
+     &                    trim(trname(n))
+            if (trim(sascs(s))=='CS_') then
+              lname_ijts(k)=trim(trname(n))//' '//trim(lascs(s))//
+     &                      ' SW assymetry factor band '//skr
+              dname_ijts(k) = 'clrsky'
+            else
+              lname_ijts(k)=trim(trname(n))//
+     &                      ' SW assymetry factor band '//skr
+            endif
+            ijts_power(k) = -2
+            units_ijts(k) = unit_string(ijts_power(k),' ')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+            ijts_HasArea(k) = .false.
+          END DO ! kr
+        END IF
+      enddo ! s
 
       return
       end subroutine set_diag_rad
+#endif  /* TRACERS_ON */
 
       subroutine init_ijlts_diag
 !@sum init_ijlts_diag Initialise lat/lon/height tracer diags
