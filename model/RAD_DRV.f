@@ -89,6 +89,9 @@ C****
      *     ,radiationSetOrbit
 #ifdef TRACERS_ON
      *     ,njaero,nraero_rsf,ttausv_as,ttausv_cs
+#ifdef CACHED_SUBDD
+     *     ,tabssv_as,tabssv_cs
+#endif  /* CACHED_SUBDD */
 #endif  /* TRACERS_ON */
 #ifdef ALTER_RADF_BY_LAT
      *     ,FULGAS_lat,FS8OPX_lat,FT8OPX_lat
@@ -634,6 +637,12 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
           allocate(ttausv_cs(I_0H:I_1H,J_0H:J_1H,lm,nraero_aod))
           ttausv_as = 0.d0
           ttausv_cs = 0.d0
+#ifdef CACHED_SUBDD
+          allocate(tabssv_as(I_0H:I_1H,J_0H:J_1H,lm,nraero_aod))
+          allocate(tabssv_cs(I_0H:I_1H,J_0H:J_1H,lm,nraero_aod))
+          tabssv_as = 0.d0
+          tabssv_cs = 0.d0
+#endif  /* CACHED_SUBDD */
         endif
       endif
 #ifdef TRACERS_SPECIAL_Shindell
@@ -1595,6 +1604,9 @@ C     OUTPUT DATA
 #endif
 #ifdef TRACERS_ON
      &     ,ttausv_as,ttausv_cs,nraero_rf
+#ifdef CACHED_SUBDD
+     *     ,tabssv_as,tabssv_cs
+#endif  /* CACHED_SUBDD */
 #endif
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
      &     ,stratO3_tracer_save
@@ -1735,12 +1747,16 @@ C     for GCM grid but currently limited to SCM use
 #ifdef TRACERS_ON
 ! types of aods to be saved
 ! The name will be any combination of {,TRNAME}{as,cs}{,a}aod
-      character(len=10), dimension(2) :: ssky=(/'as','cs'/),
-     &                                   lsky=(/'All-sky','Clear-sky'/)
-      character(len=10), dimension(2) :: sabs=(/'','a'/),
-     &                                   labs=(/'','absorption'/)
+      real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
+     &                  grid%j_strt_halo:grid%j_stop_halo,
+     &                  lm,nraero_aod) ::
+     &     sddarr4d
+      character(len=10), dimension(2) :: sgroups=(/'taijh','taijlh'/)
+      character(len=10), dimension(2) :: ssky=(/'as','cs'/)
+      character(len=10), dimension(2) :: sabs=(/'','a'/)
       character(len=10) :: spcname
-      integer :: s,a
+      character(len=50) :: sname
+      integer :: g,s,a
 #endif  /* TRACERS_ON */
 #endif
 #ifdef ACCMIP_LIKE_DIAGS
@@ -2958,13 +2974,19 @@ c               print*,'SUSA  diag',SUM(aesqex(1:Lm,kr,n))
             END DO
           END IF
         END SELECT
-      end do
+      end do ! nraero_aod
 
 #endif
 
 #ifdef TRACERS_ON
       ttausv_as(i,j,1:LM,1:nraero_aod)=ttausv(1:LM,1:nraero_aod)
       ttausv_cs(i,j,1:LM,1:nraero_aod)=ttausv(1:LM,1:nraero_aod)*OPNSKY
+#ifdef CACHED_SUBDD
+      tabssv_as(i,j,1:LM,1:nraero_aod)=
+     &  (aesqex(1:LM,6,1:nraero_aod)-aesqsc(1:LM,6,1:nraero_aod))
+      tabssv_cs(i,j,1:LM,1:nraero_aod)=
+     &  (aesqex(1:LM,6,1:nraero_aod)-aesqsc(1:LM,6,1:nraero_aod))*OPNSKY
+#endif  /* CACHED_SUBDD */
 #endif /* TRACERS_ON */
 
       IF (I.EQ.IWRITE .and. J.EQ.JWRITE) CALL WRITER(6,ITWRITE)
@@ -3805,20 +3827,53 @@ C****
 
 #ifdef TRACERS_ON
 
-      call find_groups('taijh',grpids,ngroups)
+      do g=1,size(sgroups)
+      call find_groups(sgroups(g),grpids,ngroups)
       do igrp=1,ngroups
-        subdd => subdd_groups(grpids(igrp))
-        do k=1,subdd%ndiags
-          select case (subdd%name(k))
-            case ('asaod')
-              sddarr=sum(sum(ttausv_as,dim=4),dim=3)
-              call inc_subdd(subdd,k,sddarr)
-            case ('csaod')
-              sddarr=sum(sum(ttausv_cs,dim=4),dim=3)
-              call inc_subdd(subdd,k,sddarr)
-          end select
-        enddo ! k
-      enddo ! igroup
+      subdd => subdd_groups(grpids(igrp))
+      do k=1,subdd%ndiags
+      do s=1,size(ssky)
+      do a=1,size(sabs)
+        select case (trim(ssky(s))//trim(sabs(a)))
+          case ('as')
+            sddarr4d=ttausv_as
+          case ('cs')
+            sddarr4d=ttausv_cs
+          case ('asa')
+            sddarr4d=tabssv_as
+          case ('csa')
+            sddarr4d=tabssv_cs
+          case default
+            cycle ! not implemented, silently ignore
+        end select
+        do n=1,nraero_aod+1 ! +1 for total
+          if (n<=nraero_aod) then
+            spcname = trim(trname(ntrix_aod(n)))
+          else
+            spcname = ''
+          endif
+          sname = trim(spcname)//trim(ssky(s))//trim(sabs(a))//'aod'
+          if (trim(sgroups(g))=='taijlh') sname=trim(sname)//'3d'
+          if (trim(sname)==trim(subdd%name(k))) then ! not select case here
+            if (n<=nraero_aod) then
+              sddarr3d=sddarr4d(:,:,:,n)
+            else
+              sddarr3d=sum(sddarr4d,dim=4)
+            endif
+            select case (trim(sgroups(g)))
+              case ('taijh')
+                sddarr=sum(sddarr3d,dim=3)
+                call inc_subdd(subdd,k,sddarr)
+              case ('taijlh')
+                call inc_subdd(subdd,k,sddarr3d)
+            end select
+          endif
+        enddo ! n
+      enddo ! a
+      enddo ! s
+      enddo ! k
+      enddo ! igrp
+      enddo ! g
 
 #endif  /* TRACERS_ON */
 

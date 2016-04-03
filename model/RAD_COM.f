@@ -182,6 +182,12 @@ C**** does not produce exactly the same as the default values.
       integer :: nraero_rsf=0
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:,:) :: ttausv_as
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:,:) :: ttausv_cs
+#ifdef CACHED_SUBDD
+!@var tabssv_as Same as ttausv_as for absorption
+!@var tabssv_cs Same as ttausv_cs for absorption
+      REAL*8,ALLOCATABLE,DIMENSION(:,:,:,:) :: tabssv_as
+      REAL*8,ALLOCATABLE,DIMENSION(:,:,:,:) :: tabssv_cs
+#endif  /* CACHED_SUBDD */
 #endif
 #endif
 !@var CFRAC Total cloud fraction as seen be radiation
@@ -758,6 +764,12 @@ C**** Local variables initialised in init_RAD
      &       'ttausv_as(dist_im,dist_jm,lm,nraero_aod)')
         call defvar(grid,fid,ttausv_cs,
      &       'ttausv_cs(dist_im,dist_jm,lm,nraero_aod)')
+#ifdef CACHED_SUBDD
+        call defvar(grid,fid,tabssv_as,
+     &       'tabssv_as(dist_im,dist_jm,lm,nraero_aod)')
+        call defvar(grid,fid,tabssv_cs,
+     &       'tabssv_cs(dist_im,dist_jm,lm,nraero_aod)')
+#endif  /* CACHED_SUBDD */
       endif
 #ifdef TRACERS_SPECIAL_Shindell
       call defvar(grid,fid,chem_tracer_save,
@@ -840,6 +852,10 @@ C**** Local variables initialised in init_RAD
           call write_data(grid, fid,'nraero_aod', nraero_aod)
           call write_dist_data(grid,fid,'ttausv_as',ttausv_as)
           call write_dist_data(grid,fid,'ttausv_cs',ttausv_cs)
+#ifdef CACHED_SUBDD
+          call write_dist_data(grid,fid,'tabssv_as',tabssv_as)
+          call write_dist_data(grid,fid,'tabssv_cs',tabssv_cs)
+#endif  /* CACHED_SUBDD */
         endif
 #endif
       case (ioread)
@@ -883,11 +899,19 @@ C**** Local variables initialised in init_RAD
           if (nraero_rsf /= 0) then
             allocate(ttausv_as(I_0H:I_1H,J_0H:J_1H,lm,nraero_rsf))
             allocate(ttausv_cs(I_0H:I_1H,J_0H:J_1H,lm,nraero_rsf))
+#ifdef CACHED_SUBDD
+            allocate(tabssv_as(I_0H:I_1H,J_0H:J_1H,lm,nraero_rsf))
+            allocate(tabssv_cs(I_0H:I_1H,J_0H:J_1H,lm,nraero_rsf))
+#endif  /* CACHED_SUBDD */
           endif
         endif
         if (allocated(ttausv_as)) then ! needs to be separate from previous if
           call read_dist_data(grid,fid,'ttausv_as',ttausv_as)
           call read_dist_data(grid,fid,'ttausv_cs',ttausv_cs)
+#ifdef CACHED_SUBDD
+          call read_dist_data(grid,fid,'tabssv_as',tabssv_as)
+          call read_dist_data(grid,fid,'tabssv_cs',tabssv_cs)
+#endif  /* CACHED_SUBDD */
         endif
 #endif
       end select

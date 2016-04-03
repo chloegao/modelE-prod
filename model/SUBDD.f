@@ -2621,18 +2621,6 @@ c
      &  units = '-'
      &     )
       arr(next()) = info_type_(
-     &  sname = 'aod_3d',
-     &  lname = 'AOD on model levels',
-     &  units = '-',
-     &  sched = sched_rad
-     &     )
-      arr(next()) = info_type_(
-     &  sname = 'aaod_3d',
-     &  lname = 'AAOD on model levels',
-     &  units = '-',
-     &  sched = sched_rad
-     &     )
-      arr(next()) = info_type_(
      &  sname = 'ccn01_3d',
      &  lname = 'CCN 0.1% on model levels',
      &  units = 'cm-3'
