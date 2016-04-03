@@ -6323,7 +6323,7 @@ c      enddo
             k=k+1
             ijts_sqex(s,kr,n)=k
             ia_ijts(k)=ia_rad
-            sname_ijts(k)='ext_band'//skr//'_'//trim(sascs(s))//
+            sname_ijts(k)='ext_'//trim(sascs(s))//'band'//skr//'_'//
      &                    trim(trname(n))
             if (trim(sascs(s))=='CS_') then
               lname_ijts(k)=trim(trname(n))//' '//trim(lascs(s))//
@@ -6341,7 +6341,7 @@ c      enddo
             k=k+1
             ijts_sqsc(s,kr,n)=k
             ia_ijts(k)=ia_rad
-            sname_ijts(k)='sct_band'//skr//'_'//trim(sascs(s))//
+            sname_ijts(k)='sct_'//trim(sascs(s))//'band'//skr//'_'//
      &                    trim(trname(n))
             if (trim(sascs(s))=='CS_') then
               lname_ijts(k)=trim(trname(n))//' '//trim(lascs(s))//
@@ -6359,7 +6359,7 @@ c      enddo
             k=k+1
             ijts_sqcb(s,kr,n)=k
             ia_ijts(k)=ia_rad
-            sname_ijts(k)='asf_band'//skr//'_'//trim(sascs(s))//
+            sname_ijts(k)='asf_'//trim(sascs(s))//'band'//skr//'_'//
      &                    trim(trname(n))
             if (trim(sascs(s))=='CS_') then
               lname_ijts(k)=trim(trname(n))//' '//trim(lascs(s))//
