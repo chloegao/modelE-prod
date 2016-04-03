@@ -2225,7 +2225,7 @@ c daily_z is currently only needed for CS
       use model_com, only : dtsrc,nday
       use subdd_mod, only : info_type, sched_rad
       use OldTracer_mod, only: trname
-      use radpar, only: nraero=>NTRACE
+      use radpar, only: nraero_aod=>NTRACE
       use rad_com, only: ntrix_aod
 ! info_type_ is a homemade structure constructor for older compilers
       use subdd_mod, only : info_type_
@@ -2245,8 +2245,8 @@ c daily_z is currently only needed for CS
 
       do s=1,size(ssky)
       do a=1,size(sabs)
-      do n=1,nraero+1 ! +1 for total
-        if (n<=nraero) then
+      do n=1,nraero_aod+1 ! +1 for total
+        if (n<=nraero_aod) then
           spcname = trim(trname(ntrix_aod(n)))
         else
           spcname = ''
