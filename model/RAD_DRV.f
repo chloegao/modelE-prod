@@ -1751,9 +1751,9 @@ C     for GCM grid but currently limited to SCM use
      &                  grid%j_strt_halo:grid%j_stop_halo,
      &                  lm,nraero_aod) ::
      &     sddarr4d
-      character(len=10), dimension(2) :: sgroups=(/'taijh','taijlh'/)
+      character(len=10), dimension(2) :: sgroups=(/'taijh ','taijlh'/)
       character(len=10), dimension(2) :: ssky=(/'as','cs'/)
-      character(len=10), dimension(2) :: sabs=(/'','a'/)
+      character(len=10), dimension(2) :: sabs=(/' ','a'/)
       character(len=10) :: spcname
       character(len=50) :: sname
       integer :: g,s,a

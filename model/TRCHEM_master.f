@@ -103,7 +103,7 @@ c
       IMPLICIT NONE
 
 #ifdef CACHED_SUBDD
-      integer :: igrp,ngroups,grpids(subdd_ngroups),k
+      integer :: igrp,ngroups,grpids(subdd_ngroups)
       type(subdd_type), pointer :: subdd
       real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
      &                  grid%j_strt_halo:grid%j_stop_halo,
@@ -205,7 +205,7 @@ C**** Local parameters and variables and arguments:
       integer :: initial_GHG_setup
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE     
       real*8 :: qsat ! this is a function in UTILDBL.f
-#ifdef TRACERS_TOMAS
+#if (defined TRACERS_TOMAS) || (defined CACHED_SUBDD)
       integer :: k
 #endif
       integer :: hour, idx

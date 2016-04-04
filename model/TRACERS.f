@@ -2235,9 +2235,9 @@ c daily_z is currently only needed for CS
 ! types of aods to be saved
 ! The name will be any combination of {,TRNAME}{as,cs}{,a}aod
       character(len=10), dimension(2) :: ssky=(/'as','cs'/),
-     &                                   lsky=(/'All-sky','Clear-sky'/)
-      character(len=10), dimension(2) :: sabs=(/'','a'/),
-     &                                   labs=(/'','absorption'/)
+     &                                lsky=(/'All-sky  ','Clear-sky'/)
+      character(len=10), dimension(2) :: sabs=(/' ','a'/),
+     &                                labs=(/'          ','absorption'/)
       character(len=10) :: spcname
       integer :: s,a,n
 
@@ -2290,9 +2290,9 @@ c daily_z is currently only needed for CS
 ! types of aods to be saved
 ! The name will be any combination of {,TRNAME}{as,cs}{,a}aod3d
       character(len=10), dimension(2) :: ssky=(/'as','cs'/),
-     &                                   lsky=(/'All-sky','Clear-sky'/)
-      character(len=10), dimension(2) :: sabs=(/'','a'/),
-     &                                   labs=(/'','absorption'/)
+     &                                lsky=(/'All-sky  ','Clear-sky'/)
+      character(len=10), dimension(2) :: sabs=(/' ','a'/),
+     &                                labs=(/'          ','absorption'/)
       character(len=10) :: spcname
       integer :: s,a
 
