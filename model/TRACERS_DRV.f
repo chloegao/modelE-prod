@@ -6294,7 +6294,7 @@ c      enddo
       character(len=sname_strlen), parameter :: dname='clrsky'
       character(len=1) :: skr
       character(len=10), parameter, dimension(2) ::
-     &  sascs=(/'','CS_'/),lascs=(/'','clear sky'/)
+     &  sascs=(/'   ','CS_'/),lascs=(/'         ','clear sky'/)
       integer :: kr,s
 
       do s=1,size(sascs)
