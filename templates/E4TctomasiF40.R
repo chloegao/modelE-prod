@@ -21,6 +21,7 @@ Preprocessor Options
 #define USE_ENT                  ! include dynamic vegetation model
 #define SWFIX_20151201
 #define NO_HDIURN                ! exclude hdiurn diagnostics
+#define MODIS_LAI
 !---> generic tracers code start
 #define TRAC_ADV_CPU             ! timing index for tracer advection on
 #define TRACERS_ON               ! include tracers code
@@ -66,11 +67,9 @@ IO_DRV                              ! new i/o
 
      ! GISS dynamics with gravity wave drag
 ATMDYN MOMEN2ND                     ! atmospheric dynamics
-QUS_DRV                             ! advection of T
+QUS_DRV QUS3D                       ! advection of Q/tracers
 STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 
-QUS3D                               ! advection of Q and tracers
-#include "tracer_dust_source_files"
 #include "tracer_shared_source_files"
 #include "tracer_shindell_source_files"
 #include "tracer_TOMAS_source_files"
@@ -99,8 +98,8 @@ Data input files:
 #include "IC_144x90_input_files"
 #include "static_ocn_2000_144x90_input_files"
 ! VEG_DENSE=gsin/veg_dense_2x2.5 ! vegetation density for flammability calculations
-RVR=RD_modelE_Fa.nc             ! river direction file
-NAMERVR=RD_modelE_Fa.names.txt  ! named river outlets
+RVR=RD_Fb.nc             ! river direction file
+NAMERVR=RD_Fb.names.txt  ! named river outlets
 
 #include "land144x90_input_files"
 #include "rad_input_files"
@@ -155,7 +154,7 @@ initial_GHG_setup = 1 ! Set to 0 after initial setup.
 !!!!!!!!!!!!!!!!!!!!!!!
 madaer=3         ! 3: updated aerosols          ; 1: default sulfates/aerosols
 #include "aerosol_TOMAS_params"
-#include "dust_params_vmp_matrix" ! THIS MUST BE REPLACED WITH A TOMAS ONE!
+#include "dust_params_vmp_matrix" /* THIS MUST BE REPLACED WITH A TOMAS ONE */
 #include "chemistry_params"
 ! The following 2 lines OVERWRITE the include chemistry_params values!!
 ch4_init_sh=1.750      ! init cond/fixed conditions SH CH4 ppmv

@@ -21,6 +21,7 @@ Preprocessor Options
 #define USE_ENT                  ! include dynamic vegetation model
 #define SWFIX_20151201
 #define NO_HDIURN                ! exclude hdiurn diagnostics
+#define MODIS_LAI
 End Preprocessor Options
 
 Object modules:
@@ -34,7 +35,7 @@ IO_DRV                              ! new i/o
 
      ! GISS dynamics with gravity wave drag
 ATMDYN MOMEN2ND                     ! atmospheric dynamics
-QUS_DRV TQUS_DRV                    ! advection of Q/tracers
+QUS_DRV QUS3D                       ! advection of Q/tracers
 STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 
 #include "latlon_source_files"
@@ -54,8 +55,8 @@ Data input files:
 #include "IC_144x90_input_files"
 #include "static_ocn_1880_144x90_input_files"
 
-RVR=RD_modelE_Fa.nc             ! river direction file
-NAMERVR=RD_modelE_Fa.names.txt  ! named river outlets
+RVR=RD_Fb.nc             ! river direction file
+NAMERVR=RD_Fb.names.txt  ! named river outlets
 
 #include "land144x90_input_files"
 #include "rad_input_files"
@@ -65,7 +66,7 @@ MSU_wts=MSU.RSS.weights.data      ! MSU-diag
 REG=REG2X2.5                      ! special regions-diag
 
 Label and Namelist:  (next 2 lines)
-E4F40 (NIsurf=1; modelE as frozen in June 2009, 1850 atmosph. cond., Ent veget.,
+E4F40 (NIsurf=2; modelE as frozen in June 2009, 1850 atmosph. cond., Ent veget.,
 with gravity wave drag, prescribed ocean)
 
 &&PARAMETERS
@@ -101,12 +102,12 @@ DT_XVfilter=225. ! Shapiro filter on V in E-W direction; usually same as DT
 DT_YVfilter=0.   ! Shapiro filter on V in N-S direction
 DT_YUfilter=0.   ! Shapiro filter on U in N-S direction
 
-NIsurf=1         ! (surf.interaction NIsurf times per physics time step)
+NIsurf=2         ! (surf.interaction NIsurf times per physics time step)
 NRAD=5           ! radiation (every NRAD'th physics time step)
 #include "diag_params"
 
 Nssw=2           ! until diurnal diags are fixed, Nssw has to be even
-Ndisk=480
+Ndisk=960
 &&END_PARAMETERS
 
  &INPUTZ
