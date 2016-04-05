@@ -2524,7 +2524,7 @@ c to use on-line tracer albedo impact, set dALBsnX=0. in rundeck
     ((defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS))
       call GET_BC_DALBEDO(i,j,dALBsn1)
-      dALBsn=dALBsn1
+      if (rad_interact_aer > 0) dALBsn=dALBsn1
 #endif
       if (poice.gt.0.) then
         zoice = ZSI(i,j)
@@ -2731,13 +2731,13 @@ C**** Ozone:
 
       if (moddrf==0) then
 #ifdef BC_ALB
-        dalbsn=0.d0
+        if (rad_interact_aer > 0) dalbsn=0.d0
         CALL RCOMPX
         NFSNBC(I,J)=SRNFLB(LM+LM_REQ+1)
 c       NFSNBC(I,J)=SRNFLB(LFRC)
         ALBNBC(I,J)=SRNFLB(1)/(SRDFLB(1)+1.D-20)
 c set for BC-albedo effect
-        dALBsn=dALBsn1
+        if (rad_interact_aer > 0) dALBsn=dALBsn1
 #endif
 C**** Optional calculation of CRF using a clear sky calc.
         if (cloud_rad_forc.gt.0) then
