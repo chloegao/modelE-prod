@@ -84,7 +84,7 @@ def gitCloneCommand(config, expname, compiler, cmode):
     scratch   = userconfig['scratchdir'] + '/scratch/' + branch
     reference = scratch + '/' + branch
     clone     = scratch + '/' + compiler + '/' + expname + '.' + cmode
-# if clone does not exist then create it
+
     if not os.path.isdir(clone):
         s = string.Template('git clone -b $b $r $t > /dev/null 2>&1')
         return s.substitute(b=branch, r=reference, t=clone)

@@ -1,6 +1,5 @@
 import os
-import shutil
-import subprocess
+import subprocess as sp
 import logging
 import regUtils as utils
 
@@ -148,8 +147,7 @@ def nPE(runMPI, endTime, npes):
 """
 def getNumDiffs(file1,file2):
     cmd = getDiffexe()+' '+file1+' '+file2+' | grep diffs | wc -l'
-    diff = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE,\
-                                stderr=subprocess.STDOUT)
+    diff = sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.STDOUT, shell=True)
     numDiffs = diff.communicate()[0]
     diff.wait()
     return ''.join(numDiffs.split())
@@ -159,8 +157,7 @@ def getNumDiffs(file1,file2):
 """
 def getDiffexe():
     # This is needed to find diffreport.x, assumed to be in $HOME/bin
-    os.environ["PATH"] += os.pathsep + os.environ["HOME"] \
-      + '/bin'
+    os.environ["PATH"] += os.pathsep + os.environ["HOME"] + '/bin'
     diffreportExe = utils.which('diffreport.x')
     if diffreportExe is None:
         print 'No available diffreport.x. Will use diff'

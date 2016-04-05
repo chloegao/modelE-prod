@@ -4,16 +4,12 @@ import ConfigParser
 import re
 import os
 import sys
-import errno
 import shutil
-import subprocess
+import subprocess as sp
 import glob
-import fnmatch
 import logging
 import time
 import regUtils as util
-import regRuns
-import regCompare
 
 logger = logging.getLogger('tools')
 
@@ -45,13 +41,12 @@ def gitCloneRepository(config):
     repo = userconfig['repository']
     branch =  userconfig['repobranch']
     clone = scratch + '/scratch/' + branch + '/' + branch
-    logger.debug('Clone repository %s',clone)
 
     cwd = os.getcwd()
     logger.debug('Cloning %s into %s', repo, clone)
-    cmd = 'git clone -b ' + branch + ' ' + repo + ' ' + clone \
-        + '> /dev/null 2>&1'
-    subprocess.check_call(cmd, shell=True)
+    cmd = (['git', 'clone', '-b', branch, repo, clone])
+    proc = sp.Popen(cmd)
+    proc.wait()
     os.chdir(cwd)
 
 #-------------------------------------------------------------------------------
@@ -212,7 +207,7 @@ def setupRuns(config, compconfig, decklist):
                 start = deck.name.find('nonProduction') + 14
                 dName = deck.name[start:]
             for mode in deck.getOpt('modes').split(','):
-                adir = dName +  '.' + mode + '.' + comp
+                adir = dName +  '.' + mode
                 if not os.path.isdir(adir):
                     util.mkdir_p(adir)
     setupModelEenv(config, compconfig)
@@ -330,22 +325,21 @@ def createScriptTask(config, compconfig, deck, comp, mode):
           
     # Create rest of script used in batch OR interactive jobs:
 
-    # Do we have modules to 'load'?
     if modules == 'yes':
-        machine = subprocess.check_output(['uname','-n'])
+        machine = sp.check_output(['uname','-n'])
+        # If on NCCS-DISCOVER
         if 'borg' in machine or 'discover' in machine or 'dali' in machine:
             fileHandle.write ('. /usr/share/modules/init/bash' + '\n')
             fileHandle.write ('module purge' + '\n')
-        # Need the following module on DISCOVER to get python 2.7.x
+            # Need python 2.7.x
             fileHandle.write ('module load other/SSSO_Ana-PyD/SApd_2.1.0' + '\n')
-        # If not on DISCOVER
         else:
             fileHandle.write ('#!/bin/bash' + '\n')
             # CC: This is not portable...just my MAC so far
             fileHandle.write ('. /opt/local/share/Modules/3.2.10/init/bash' + '\n')
             fileHandle.write ('module purge' + '\n')
 
-        # Using different naming convention for module names
+        # Needed due to different naming convention for module names
         compvendor = comp
         if comp == 'gfortran':
             compvendor = 'gcc'
@@ -362,24 +356,21 @@ def createScriptTask(config, compconfig, deck, comp, mode):
     if makesystem == 'makeOld':
         decksDir = scratchDir + '/' + jobName +  '.' + mode + '/decks/'
     else:
-        decksDir = scratchDir + '/' + jobName + '.' + mode + '.' + comp + '/'
+        decksDir = scratchDir + '/' + jobName + '.' + mode
 
-    # Set some environment variables
     fileHandle.write ('export DECKSDIR=' + decksDir + '\n')
     modelErc = scratchDir + '/modelErc.' + comp
     fileHandle.write ('export MODELERC=' + modelErc + '\n')
-    # PFUNIT
+
     if deck.getOpt('unittest') == 'yes':
         if 'mpi' in mode: 
             cmd = "cat "+modelErc+"| grep PFUNITMPIDIR"+"| awk -F= '{print $2}'"
         else:
             cmd = "cat "+modelErc+"| grep PFUNITSERIALDIR"+"| awk -F= '{print $2}'"
-        out = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE,\
-                               stderr=subprocess.STDOUT)
+        out = sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.STDOUT)
         pfunitDir = out.communicate()[0].rstrip()
         fileHandle.write ('export PFUNIT=' + pfunitDir + '\n')
         
-    # cd to the working dir and run the script
     fileHandle.write ('cd ' + decksDir + '\n')
     fileHandle.write ('python ' + scriptsDir + '/' + 'regression.py ' + deckName + '\n')
     fileHandle.write (' ' + '\n')
@@ -408,7 +399,7 @@ def createRegConfig(config, deck, modelErc, comp, jobName, mode):
     if makesystem == 'makeOld':
         decksDir = scratch + '/' + jobName + '.' + mode + '/decks/'
     else:
-        decksDir = scratch + '/' + jobName + '.' + mode + '.' + comp + '/'
+        decksDir = scratch + '/' + jobName + '.' + mode
 
 # Regression tests do not run the regression script in standalone mode    
     standalone = 'no'
@@ -429,8 +420,9 @@ def createRegConfig(config, deck, modelErc, comp, jobName, mode):
     if makesystem == 'makeOld':
         regconfig.set('regSettings', 'repository', cfg['repository'])
     else:
-        # Out of source build still pollutes the repository a little bit...
-        #...so we make sure that it is the clone
+        # Out of source build still pollutes the repository a little bit,
+        # specially for nonProduction builds. So, let's make sure we poullte
+        # a clone.
         newrepo = cfg['scratchdir']+'/scratch/'+branch+'/'+branch      
         regconfig.set('regSettings', 'repository', newrepo)
 
@@ -443,143 +435,8 @@ def createRegConfig(config, deck, modelErc, comp, jobName, mode):
     regconfig.set('regSettings', 'decksdir', decksDir)
 
     filename = decksDir + '/' + deck.name + '.cfg'
-    logger.debug(filename)
     with open(filename, 'w') as configfile:
         regconfig.write(configfile)
-
-
-#-------------------------------------------------------------------------------
-def compare(run):
-    # Internal consistency checks
-    if run.mode == 'serial':
-        if run.verification == 'restartRun':
-            regCompare.restart(run, run.endTime)
-    else:
-        for npes in run.npes:
-            if run.verification == 'restartRun':
-                regCompare.restart(run, npes=npes)
-            # Compare NPE vs serial
-            regCompare.nPE(run, run.endTime, npes)
-            
-    # Baseline checks
-    if run.mode == 'serial':
-        regCompare.base(run, 1) # 1hr run
-        if run.verification == 'restartRun':
-            regCompare.base(run, run.endTime)
-    else:
-        for npes in run.npes:
-            regCompare.base(run, 1, npes=npes) # 1hr run
-            if run.verification == 'restartRun':
-                regCompare.base(run, run.endTime, npes=npes)
-    
-    
-#-------------------------------------------------------------------------------
-def writeDiff(run, fileH):
-    fileH.write('%20s' % (run.results[0]))
-    fileH.write('%10s' % (run.results[1]))
-    fileH.write('%8s'  % (run.results[2]))
-    fileH.write('%4s'  % '    ')
-    for s in run.results[3:]:
-        fileH.write('{: ^5}'.format(s))
-        fileH.write('%3s'  % '   ')
-    fileH.write('\n')
-
-#-------------------------------------------------------------------------------
-# This function performs a verification of the run output produced by the
-# regression tests. 
-def verifyRuns(config, compconfig, runSources):
-    logger.info('Reproducibility tests...')
-
-    userconfig = util.ConfigSectionMap(config, 'USERCONFIG')
-    makesystem =  userconfig['makesystem']
-    scratchDir = userconfig['scratchdir'] + '/scratch/' + \
-        userconfig['repobranch'] + '/' 
-    validCompilers = util.getCompilers(compconfig)
-
-    # Loop over each run source in list
-    for source in runSources:
-
-        dirName = source.name 
-        if re.search('nonProduction', source.name):
-            start = source.name.find('nonProduction') + 14
-            dirName = source.name[start:]
-
-        # List of rundeck run configurations for each mode
-        runs = []
-        for mode in source.getOpt('modes').split(','):
-            if mode != 'serial' and mode != 'mpi':
-                logger.error('---Incorrect mode---' + mode)
-                continue
-            for comp in source.getOpt('compilers').split(','):
-                if comp in validCompilers:
-                    if makesystem == 'makeOld':
-                        decksDir = scratchDir+comp+'/'+dirName+'.'+mode+'/decks'
-                    else:
-                        decksDir = scratchDir+'/'+comp+'/'+dirName+'.'+mode+'.'+comp
-                    os.chdir(decksDir)
-                    os.environ['MYCONFIGDIR'] = decksDir
-                    # Create rundeck object
-                    rundeck = regRuns.newRundeck(source.name)
-                    runs.append(regRuns.newRun(rundeck, mode))
-                else:
-                   logger.error('Compiler '+comp+' is not defined in COMPCONFIG')
-                   continue
-
-        for run in runs:
-            logger.info(run.name + ': ' + run.verification)
-
-            if makesystem == 'makeOld':
-                decksDir = scratchDir+run.compiler+'/'+dirName+'.'+run.mode+'/decks'
-            else:
-                decksDir = scratchDir+run.compiler+'/'+dirName+'.'+run.mode+'.'+run.compiler
-            os.chdir(decksDir)
-
-           # For each rundeck/compiler/mode combination
-           # create a diffFile with verification results
-            diffFile = rundeck.resultsDir + '/' + run.name + '.diff'
-            fileH = open(diffFile, 'w')
-
-            # Did executable build?
-            wdir = dirName+'.'+run.mode+'.'+run.compiler
-            cmd = wdir+'_bin/'+(wdir+'.exe')
-            exists = os.path.isfile(cmd)
-
-            # There is an executable
-            if exists:
-                run.results[3] = '+'
-                # Did we run units tests?
-                if run.unitTest == 'yes':
-                    testsRes = decksDir+'/.unit'
-                    resExists = os.path.isfile(testsRes)
-                    if resExists:
-                        out = subprocess.check_output(['cat',testsRes])
-                        run.results[4] = out.strip()
-                    else:
-                        run.results[4] = '+'
-                
-            else:
-                run.results[3] = 'Fb'
-
-            # Check for run-time failures
-            if  exists and run.verification != 'compileOnly':
-                ddir = decksDir + '/' + run.name + '/'
-                if os.path.exists(ddir):
-                    for file in os.listdir(ddir):
-                        if file.endswith('.FAILED'):
-                            run.results[3] = 'Fr'
-                else:
-                    logger.error(ddir + ' does not exist')
-                    continue
-
-            # Reproducibility checks
-            if run.verification != 'customRun' and run.verification != 'compileOnly':
-                compare(run)
-
-            # Write the rest of the results
-            writeDiff(run, fileH)
-            fileH.close()
-
-            logger.info(run.name + ' verification complete.')
 
 #-------------------------------------------------------------------------------
 # Create a diff report and notify via email
@@ -607,27 +464,22 @@ def sendDiffreport(config, compconfig, eTime):
     fp.write('-'*80+'\n')
 
 
-    # Look at run diffs and check for build failures (Fb)
-    subprocess.call('find '+resultsDir+' -name \*.diff -exec cat {} \; >' \
-                        +resultsDir + '/' + 'alldiffs', shell=True)
-    # If failures exist, signal it with a file
-    subprocess.call('cat '+resultsDir + '/' + 'alldiffs | ' \
-                        + "awk '{print $4}' | grep Fb > " \
-                        + resultsDir + '/' + 'compileFail', shell=True)
-
     if sortdiff == 'yes':
-        # sort compiler column
-        subprocess.call('cat '+resultsDir + '/' + 'alldiffs | sort -k 2,2 >' \
-            +resultsDir + '/' + 'sorteddiffs', shell=True)
+        sp.call('find '+resultsDir+' -name \*.diff -exec cat {} \; >' \
+                    +resultsDir + '/' + 'alldiffs', shell=True)
+        sp.call('cat '+resultsDir + '/' + 'alldiffs | sort -k 2,2 >' \
+                    +resultsDir + '/' + 'sorteddiffs', shell=True)
         with open(resultsDir + '/' + 'sorteddiffs','r') as inf:
             fp.write(inf.read())
+        os.remove(resultsDir + '/' + 'alldiffs')
+        os.remove(resultsDir + '/' + 'sorteddiffs')
     else:
         for comp in compilers:
             diffs = glob.glob(resultsDir + '/' + comp + '/*.diff')
             for f in diffs:
                 with open(f,'r') as inf:
                     fp.write(inf.read())
-
+    
     fp.write('-'*80+'\n')
     hhmmss = time.strftime('%H:%M:%S', time.gmtime(eTime))
     fp.write('Time taken = %s \n' %(hhmmss))
@@ -654,13 +506,5 @@ def sendDiffreport(config, compconfig, eTime):
 
     subject = '"[modelE-regression]" '
     cmd = '/usr/bin/mail -s ' + subject + mailto + ' < ' + diffFile
-    subprocess.check_call(cmd, shell=True)
-
-    # If there were no compilation failures then signal it with a file
-    # Longer regression tests will run only if this file exists
-    if os.path.exists(resultsDir + '/' + 'compileFail'):
-        if os.stat(resultsDir + '/' + 'compileFail').st_size == 0:
-            subprocess.call('touch ' + os.environ['HOME'] \
-                            + '/.CompileModelEOK', shell=True)
-
+    sp.call(cmd, shell=True)
 

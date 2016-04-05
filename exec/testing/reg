@@ -99,8 +99,7 @@ def main():
 
     eTime =  time.time()-starttime
 
-# Verify runs and notify (only if "mailto" field is not empty)
-    tools.verifyRuns(config, compconfig, runList)
+# Notify results via email
     if userconfig['mailto']:
         tools.sendDiffreport(config, compconfig, eTime)
 
