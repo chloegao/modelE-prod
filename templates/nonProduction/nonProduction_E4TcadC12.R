@@ -10,6 +10,7 @@ Preprocessor Options
 #define USE_ENT                  ! include dynamic vegetation model
 #define SWFIX_20151201
 #define NO_HDIURN                ! exclude hdiurn diagnostics
+! OFF  #define MODIS_LAI
 !---> generic tracers code start
 #define TRAC_ADV_CPU             ! timing index for tracer advection on
 #define TRACERS_ON               ! include tracers code
@@ -57,15 +58,13 @@ AtmL12 STRAT_DUM             ! vertical resolution is 12 layers -> 10mb
 DIAG_RES_M                   ! diagnostics
 FFT36                        ! Fast Fourier Transform
 
-IO_DRV                       ! new i/o
+IO_DRV                              ! new i/o
 
     ! GISS dynamics
-ATMDYN MOMEN2ND              ! atmospheric dynamics
-QUS_DRV              ! T/Q moments, 1D QUS
+ATMDYN MOMEN2ND                     ! atmospheric dynamics
+QUS_DRV QUS3D                       ! advection of Q/tracers
 !   STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 
-QUS3D                               ! advection of Q and tracers
-#include "tracer_dust_source_files"
 #include "tracer_shared_source_files"
 #include "tracer_shindell_source_files"
 #include "tracer_OMA_source_files"
@@ -122,10 +121,15 @@ TCC12_E4Tcad (ModelE4 8x10, 12 layers, with Tcad tracers for testing only)
 #include "sdragC12_params"
 #include "gwdragC12_params"
 
-! Increasing U00a decreases the high cloud cover; increasing U00b decreases net rad at TOA
-U00a=0.54      ! above 850mb w/o MC region; tune this first to get 30-35% high clouds
-U00b=1.00      ! below 850mb and MC regions; then tune this to get rad.balance
+! cond_scheme=2   ! newer conductance scheme (N. Kiang) ! not used with Ent
 
+! The following two lines are only used when aerosol/radiation interactions are off
+FS8OPX=1.,1.,1.,1.,1.5,1.5,1.,1.
+FT8OPX=1.,1.,1.,1.,1.,1.,1.,1.
+
+! Increasing U00a decreases the high cloud cover; increasing U00b decreases net rad at TOA
+U00a=0.54  ! above 850mb w/o MC region;  tune this first to get 30-35% high clouds
+U00b=1.00  ! below 850mb and MC regions; tune this last  to get rad.balance
 WMUI_multiplier = 1.
 use_vmp=1
 radius_multiplier=1.1
@@ -154,7 +158,7 @@ DT_XVfilter=450. ! Shapiro filter on V in E-W direction; usually same as DT
 DT_YVfilter=0.   ! Shapiro filter on V in N-S direction
 DT_YUfilter=0.   ! Shapiro filter on U in N-S direction
 
-NIsurf=1         ! (surf.interaction NIsurf times per physics time step)
+NIsurf=2         ! (surf.interaction NIsurf times per physics time step)
 NRAD=5           ! radiation (every NRAD'th physics time step)
 #include "diag_params"
 ! save3dAOD=1      ! needed if 3D AOD (itAOD or ictAOD) SUBDDs are on and adiurn_dust=0
