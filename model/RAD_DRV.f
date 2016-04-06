@@ -3411,7 +3411,6 @@ C**** diagnostic sign changes (for aerosols)
 C**** define SNFS/TNFS level (TOA/TROPO) for calculating forcing
          LFRC=3                 ! TOA
          if (rad_forc_lev.gt.0) LFRC=4 ! TROPOPAUSE
-         if (nraero_aod > 0) then
 #ifdef BC_ALB
       if (ijts_alb(1).gt.0)
      * TAIJS(I,J,ijts_alb(1))=TAIJS(I,J,ijts_alb(1))
@@ -3573,7 +3572,6 @@ c              TNFST0(2,ntrix_rf(n),I,J)=TNFST0(2,ntrix_rf(n),I,J)
 c    &              -rsign_aer*(TNFST(1,n,I,J)-TNFS(1,I,J))
 #endif /* TRACERS_AEROSOLS_Koch */
            end do     ! n=1,nraero_rf
-         end if       ! nraero_rf>0
 
 c ..........
 c accumulation of forcings for special case ozone (nraero_rf fields
