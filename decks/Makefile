@@ -96,7 +96,7 @@ rundeck: linkNonProduction check_RUNSRC
 	  python $(PRUNDECKSRC) > $(RUNDECK); \
 	elif [ -s $(RUNDECKSRC) ]; then \
 	  echo '---- Regenerating Rundeck $(RUNDECK) from default ($(RUNDECKSRC)) ----' ; \
-	  sed 's/^'$(RUNSRC)'\([:\. ]\)/'$(RUN)'\1/g' $(RUNDECKSRC) \
+	  sed 's/^'$(notdir $(RUNSRC))'\([:\. ]\)/'$(RUN)'\1/g' $(RUNDECKSRC) \
 	  | $(SCRIPTS_DIR)/protect_ccp_options.pl -c | $(CPP) -I$(TEMPLATES_DIR) \
 	  | $(SCRIPTS_DIR)/protect_ccp_options.pl -c -u \
 	  > $(RUNDECK); \
