@@ -2698,19 +2698,19 @@ C**** Ozone:
 #ifdef ACCMIP_LIKE_DIAGS
 ! TOA GHG rad forcing: nf=1,4 are CH4, N2O, CFC11, and CFC12:
 ! Initial calls are reference year/day:
-      do nf=1,4
-        if(nf==1)then ! CH4 reference call must not use tracer
-          use_tracer_chem(2)=0
-        else ! N2O and CFC call's CH4 should match final call
-          use_tracer_chem(2)=onoff_chem*Lmax_rad_CH4
-        endif
-        fulgas(nfghg(nf))=sv_fulgas_ref(nf)
-        kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
-        CALL RCOMPX
-        SNFS_ghg(nf,I,J)=SRNFLB(LM+LM_REQ+1)
-        TNFS_ghg(nf,I,J)=TRNFLB(LM+LM_REQ+1)
-        fulgas(nfghg(nf))=sv_fulgas_now(nf)
-      enddo
+        do nf=1,4
+          if(nf==1)then ! CH4 reference call must not use tracer
+            use_tracer_chem(2)=0
+          else ! N2O and CFC call's CH4 should match final call
+            use_tracer_chem(2)=onoff_chem*Lmax_rad_CH4
+          endif
+          fulgas(nfghg(nf))=sv_fulgas_ref(nf)
+          kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
+          CALL RCOMPX
+          SNFS_ghg(nf,I,J)=SRNFLB(LM+LM_REQ+1)
+          TNFS_ghg(nf,I,J)=TRNFLB(LM+LM_REQ+1)
+          fulgas(nfghg(nf))=sv_fulgas_now(nf)
+        enddo
 #endif /* ACCMIP_LIKE_DIAGS */
 #endif /* TRACERS_SPECIAL_Shindell */
       end if ! moddrf=0
