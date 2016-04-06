@@ -2364,6 +2364,12 @@ C
      &  )
 C
       arr(next()) = info_type_(
+     &  sname = 'MRO3', ! because not a tracer
+     &  lname = 'O3 mixing ratio',
+     &  units = 'mole species / mole air'
+     &  )
+C
+      arr(next()) = info_type_(
      &  sname = 'OH_conc', ! because not a tracer
      &  lname = 'OH concentration',
      &  units = 'molecules cm-3'
@@ -2433,6 +2439,12 @@ C
       arr(next()) = info_type_(
      &  sname = 'MRNOcp', ! because not a tracer
      &  lname = 'NO mixing ratio',
+     &  units = 'mole species / mole air'
+     &  )
+C
+      arr(next()) = info_type_(
+     &  sname = 'MRO3cp', ! because not a tracer
+     &  lname = 'O3 mixing ratio',
      &  units = 'mole species / mole air'
      &  )
 C
