@@ -1477,24 +1477,22 @@ CLOUD_TOP:  do L=LMIN+1,LM
 #endif  /* CLD_AER_CDNC & (TRACERS_AEROSOLS_Koch or TRACERS_AEROSOLS_SEASALT) */
 
             !** Use MATRIX AMP_actv to decide what the aerosol number conc. is
-#if (defined(CLD_AER_CDNC) || defined(BLK_2MOM)) && !defined(TRACERS_TOMAS) && defined(TRACERS_AMP)
+#if defined(CLD_AER_CDNC) || defined(BLK_2MOM)
+
+#if defined(TRACERS_AMP)
             do nm=1,nmodes
               ncaero(nm)=naerc(l,nm)*1.d-6
               !         if(naerc(l,nm).gt.1.d-30) write(6,*)"mat",ncaero(nm),nm
             enddo
             call GET_CC_CDNC_MX(L,nmodes,ncaero,MCDNL1,MCDNO1)
-#endif
-
-#if (defined(CLD_AER_CDNC) || defined(BLK_2MOM)) && !defined(TRACERS_TOMAS) && !defined(TRACERS_AMP)
+#elif defined(TRACERS_TOMAS)
+            CALL GET_CC_CDNC_TOMAS(L,I_debug,J_debug,AIRM_CDNC,&
+                                   DXYPIJ,PL(L),TL(L),MCDNL1,MCDNO1)
+#else
             !** This is for the old mass to number calculations nc. is
             call GET_CC_CDNC(L,AIRM_CDNC,DXYPIJ,PL(L),TL(L),DSS, MCDNL1,MCDNO1)
 #endif
 
-#if (defined(CLD_AER_CDNC) || defined(BLK_2MOM)) && defined(TRACERS_TOMAS)
-       CALL GET_CC_CDNC_TOMAS(L,I_debug,J_debug,AIRM_CDNC, DXYPIJ,PL(L),TL(L),MCDNL1,MCDNO1)
-#endif
-
-#if defined(CLD_AER_CDNC) || defined(BLK_2MOM)
             MNdO=MCDNO1
             MNdL=MCDNL1
             MNdO_max(L)=max(MNdO_max(L),MCDNO1)
