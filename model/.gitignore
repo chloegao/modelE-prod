@@ -7,6 +7,7 @@
 # dependency files
 .depend
 .current_options
+.current_srcs
 /.depend_subdirs
 /.liblist
 
