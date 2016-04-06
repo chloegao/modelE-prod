@@ -60,11 +60,10 @@ module CLOUDS
 
 #if defined(CLD_AER_CDNC) || defined(BLK_2MOM)
   use mo_bulk2m_driver_gcm, only: execute_bulk2m_driver
-#endif
-
-#if (defined(CLD_AER_CDNC) || defined(BLK_2MOM)) && defined(TRACERS_AMP)
+#ifdef TRACERS_AMP
   use CLOUDS_COM, only: NACTC,NAERC
   use AERO_CONFIG, only: NMODES
+#endif
 #endif
 
 #ifdef SCM
@@ -729,11 +728,10 @@ contains
 !@var MCDNCW,MCDNCI cloud droplet # for warm,cold moist conv clouds (cm^-3)
     !     REAL*8 RHO   ! air density
     !CN0 is the No parameter in the Marshall-Palmer distribution
-#endif
-
-#if defined(CLD_AER_CDNC) && defined(TRACERS_AMP)
+#ifdef TRACERS_AMP
     real*8                    :: ncaero (nmodes)
     integer                   ::nm
+#endif
 #endif
 
     !          *******                                          *******
@@ -1330,7 +1328,11 @@ CLOUD_TOP:  do L=LMIN+1,LM
             FLAMG=(400.d0*PI*CN0G/(CONDMU+teeny))**.25
             FLAMI=(100.d0*PI*CN0I/(CONDMU+teeny))**.25
 
-#if defined(CLD_AER_CDNC) && (defined(TRACERS_AEROSOLS_Koch) || defined(TRACERS_AEROSOLS_SEASALT))
+#if defined(CLD_AER_CDNC) && \
+   (defined(TRACERS_AEROSOLS_Koch) || defined(TRACERS_AEROSOLS_SEASALT) || \
+    defined(TRACERS_DUST) || defined(TRACERS_NITRATE) || \
+    defined(TRACERS_HETCHEM) || defined(TRACERS_SOA) || \
+    defined(TRACERS_AEROSOLS_OCEAN) || defined(TRACERS_AEROSOLS_VBS))
 !@auth Menon  saving aerosols mass for CDNC prediction
             DSS(1:SNTM) = 1d-10
             DSGL(L,1:SNTM) = 1d-10
@@ -1349,10 +1351,15 @@ CLOUD_TOP:  do L=LMIN+1,LM
 #endif
 
 !**** Here we change convective precip due to aerosols
-#if defined(CLD_AER_CDNC) && (defined(TRACERS_AEROSOLS_Koch) || defined(TRACERS_AEROSOLS_SEASALT))
+#if defined(CLD_AER_CDNC) && \
+   (defined(TRACERS_AEROSOLS_Koch) || defined(TRACERS_AEROSOLS_SEASALT) || \
+    defined(TRACERS_DUST) || defined(TRACERS_NITRATE) || \
+    defined(TRACERS_HETCHEM) || defined(TRACERS_SOA) || \
+    defined(TRACERS_AEROSOLS_OCEAN) || defined(TRACERS_AEROSOLS_VBS))
       !**** DO and SELECT CASE loops continue through several tracer situations that include CLD_AER_CDNC & (Koch or SEASALT)
             do N=1,NTX
               select case (trname(ntix(n)))
+#if defined(TRACERS_AEROSOLS_Koch)
               case('SO4')
                 DSGL(L,1)=tm_cdnc(n)     !n=19
                 DSS(1) = DSGL(L,1)
@@ -1374,6 +1381,7 @@ CLOUD_TOP:  do L=LMIN+1,LM
               case('BCII')
                 DSGL(L,9)=tm_cdnc(n)     !n=23
                 DSS(9) = DSGL(L,9)
+#endif  /* TRACERS_AEROSOLS_Koch */
 
 #if defined(TRACERS_AEROSOLS_SEASALT)
               case('seasalt1')
@@ -1397,13 +1405,13 @@ CLOUD_TOP:  do L=LMIN+1,LM
               case('Silt3')
                 DSGL(L,13)=tm_cdnc(n)    !n=23
                 DSS(13) = DSGL(L,13)
-#endif
+#endif  /* TRACERS_DUST */
 
 #if defined(TRACERS_NITRATE)
               case('NO3p')
                 DSGL(L,14)=tm_cdnc(n)    !n=23
                 DSS(14) = DSGL(L,14)
-#endif
+#endif  /* TRACERS_NITRATE */
 
 #if defined(TRACERS_HETCHEM)
                 !**** Here are dust particles coated with sulfate
@@ -1416,7 +1424,7 @@ CLOUD_TOP:  do L=LMIN+1,LM
               case('SO4_d3')
                 DSGL(L,17)=tm_cdnc(n)    !n=22
                 DSS(17) = DSGL(L,17)
-#endif
+#endif  /* TRACERS_HETCHEM */
 
 #if defined(TRACERS_AEROSOLS_SOA)
               case('isopp1a')
@@ -1474,7 +1482,7 @@ CLOUD_TOP:  do L=LMIN+1,LM
 
               end select
             end do      !end of n loop for tracers
-#endif  /* CLD_AER_CDNC & (TRACERS_AEROSOLS_Koch or TRACERS_AEROSOLS_SEASALT) */
+#endif  /* CLD_AER_CDNC */
 
             !** Use MATRIX AMP_actv to decide what the aerosol number conc. is
 #if defined(CLD_AER_CDNC) || defined(BLK_2MOM)
@@ -3538,8 +3546,10 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
 
 #ifdef CLD_AER_CDNC
 
-
-#if ((defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AEROSOLS_SEASALT))
+#if defined(TRACERS_AEROSOLS_Koch) || defined(TRACERS_AEROSOLS_SEASALT) || \
+    defined(TRACERS_DUST) || defined(TRACERS_NITRATE) || \
+    defined(TRACERS_HETCHEM) || defined(TRACERS_SOA) || \
+    defined(TRACERS_AEROSOLS_OCEAN) || defined(TRACERS_AEROSOLS_VBS)
       call cld_aer_cdnc_block0( &
        ntx,ntix, &
        lhx,fcld,vvel,dxypij, &

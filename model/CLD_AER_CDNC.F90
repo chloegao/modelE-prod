@@ -16,7 +16,10 @@ module cld_aer_cdnc_mod
   public :: sntm,cld_aer_cdnc_block1,cld_aer_cdnc_block2
   integer, parameter :: SNTM=31
 
-#if ((defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AEROSOLS_SEASALT))
+#if defined(TRACERS_AEROSOLS_Koch) || defined(TRACERS_AEROSOLS_SEASALT) || \
+    defined(TRACERS_DUST) || defined(TRACERS_NITRATE) || \
+    defined(TRACERS_HETCHEM) || defined(TRACERS_SOA) || \
+    defined(TRACERS_AEROSOLS_OCEAN) || defined(TRACERS_AEROSOLS_VBS)
   public :: cld_aer_cdnc_block0
 #endif
 
@@ -54,7 +57,10 @@ module cld_aer_cdnc_mod
 
 contains
 
-#if ((defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AEROSOLS_SEASALT))
+#if defined(TRACERS_AEROSOLS_Koch) || defined(TRACERS_AEROSOLS_SEASALT) || \
+    defined(TRACERS_DUST) || defined(TRACERS_NITRATE) || \
+    defined(TRACERS_HETCHEM) || defined(TRACERS_SOA) || \
+    defined(TRACERS_AEROSOLS_OCEAN) || defined(TRACERS_AEROSOLS_VBS)
 
   subroutine cld_aer_cdnc_block0( &
        ntx,ntix, &
@@ -87,14 +93,9 @@ contains
       end do
       do N=1,NTX
         select case (trname(ntix(n)))
+#ifdef TRACERS_AEROSOLS_Koch
         case('SO4')
           DSS(1)=tm(n)     !n=4
-#ifdef TRACERS_AEROSOLS_SEASALT
-        case('seasalt1')
-          DSS(2)=tm(n)     !n=6
-        case('seasalt2')
-          DSS(3)=tm(n)     !n=7
-#endif  /* TRACERS_AEROSOLS_SEASALT */
         case('OCIA')
           DSS(4)=tm(n)     !n=12
         case('OCB')
@@ -107,6 +108,13 @@ contains
           DSS(8)=tm(n)     !n=11
         case('BCII')
           DSS(9)=tm(n)     !n=8
+#endif  /* TRACERS_AEROSOLS_Koch */
+#ifdef TRACERS_AEROSOLS_SEASALT
+        case('seasalt1')
+          DSS(2)=tm(n)     !n=6
+        case('seasalt2')
+          DSS(3)=tm(n)     !n=7
+#endif  /* TRACERS_AEROSOLS_SEASALT */
 #ifdef TRACERS_DUST
         case('Clay')
           DSS(10)=tm(n)    !n=23
@@ -116,7 +124,7 @@ contains
           DSS(12)=tm(n)    !n=23
         case('Silt3')
           DSS(13)=tm(n)    !n=23
-#endif
+#endif  /* TRACERS_DUST */
 #ifdef TRACERS_NITRATE
         case('NO3p')
           DSS(14)=tm(n)    !n=23
@@ -129,7 +137,7 @@ contains
           DSS(16)=tm(n)    !n=21
         case('SO4_d3')
           DSS(17)=tm(n)    !n=22
-#endif
+#endif  /* TRACERS_HETCHEM */
 #ifdef TRACERS_AEROSOLS_SOA
         case('isopp1a')
           DSS(18)=tm(n)
@@ -396,10 +404,6 @@ contains
            nr0=nrain)
 
 #endif
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AEROSOLS_SEASALT)
-      ldummy=execute_bulk2m_driver('all' &
-           ,ndrop,mdrop,ncrys,mcrys,'end',qr0=mrain,nr0=nrain)
-#endif
       ! Make calls to calculate hydrometeors' growth rates due to microphysical
       ! processes
       ! content      :       [kg water/kg air/s]
@@ -407,21 +411,20 @@ contains
       ! Activation of cloud droplets: prescribed AP spectrum
       !*** For the originial HM scheme with fixed distributions for amm. sulfate
       !       ldummy=execute_bulk2m_driver('hugh','drop_nucl',dtB2M,mkx)
-
-      !*** Use this if using the Lohmann or Gultepe scheme  for mass to number
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AEROSOLS_SEASALT)
+#if defined(TRACERS_AMP)
+      !*** Using the AMP_actv interface from MATRIX
+      ldummy=execute_bulk2m_driver('matr','drop_nucl',dtB2M,mkx)
+#elif defined(TRACERS_TOMAS)
+      !*** Using the TOMAS_actv interface from TOMAS
+      ldummy=execute_bulk2m_driver('toma','drop_nucl',dtB2M,mkx)
+#else
+      !*** Use this if using the Lohmann or Gultepe scheme for mass to number
+      ldummy=execute_bulk2m_driver('all' &
+           ,ndrop,mdrop,ncrys,mcrys,'end',qr0=mrain,nr0=nrain)
       OLDCDNC=OLDCDN*1.d6  !convert from cm-3 to m-3
       NEWCDNC=NEWCDN*1.d6  !convert from cm-3 to m-3
       ldummy=execute_bulk2m_driver('gult','drop_nucl',dtB2M,mkx, &
            OLDCDNC,NEWCDNC)
-#endif
-#ifdef TRACERS_AMP
-      !*** Using the AMP_actv interface from MATRIX
-      ldummy=execute_bulk2m_driver('matr','drop_nucl',dtB2M,mkx)
-#endif
-#ifdef TRACERS_TOMAS
-      !*** Using the TOMAS_actv interface from TOMAS
-        ldummy=execute_bulk2m_driver('toma','drop_nucl',dtB2M,mkx)
 #endif
       ! Droplets' autoconversion: Beheng (concentration and content)
       !       ldummy=execute_bulk2m_driver('hugh','drop_auto',dtB2M,mkx)
@@ -909,7 +912,13 @@ contains
       SAVCLD = CLDSAV0 ! from prev. timestep
 
 !@auth Menon for CDNC prediction
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AEROSOLS_SEASALT)
+#if defined(TRACERS_AMP)
+      NCLL=SNd_L
+      !NCIL=SNdi
+#elif defined(TRACERS_TOMAS)
+       NCLL=SNd_L
+       !NCIL=SNdi
+#else
       if( LHX.eq.LHE )then
         QCX = QCLX
       else
@@ -924,14 +933,6 @@ contains
       NEWCDN=SNd
       OLDCDN=CDNL0
       !     if (L.eq.1)write(6,*)"BLK_2M NUPD",NEWCDN,OLDCDN
-#endif
-#ifdef TRACERS_AMP
-      NCLL=SNd_L
-      !NCIL=SNdi
-#endif
-#ifdef TRACERS_TOMAS
-       NCLL=SNd_L
-       !NCIL=SNdi
 #endif
 
       ! Update thermo if environment was changed
@@ -969,20 +970,18 @@ contains
            ,ndrop,mdrop,ncrys,mcrys,'end')
       ! Get new drop & crys concentration
       !     ldummy=execute_bulk2m_driver('surabi','GET_CDNC_UPD',dtB2M,mkx)
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AEROSOLS_SEASALT)
+#if defined(TRACERS_AMP)
+      !*** Using the AMP_actv interface from MATRIX
+      ldummy=execute_bulk2m_driver('matr','drop_nucl',dtB2M,mkx)
+#elif defined(TRACERS_TOMAS)
+      !*** Using the AMP_actv interface from MATRIX
+        ldummy=execute_bulk2m_driver('toma','drop_nucl',dtB2M,mkx)
+#else
       !*** Call Lohmann's or Gultepe's scheme for CDNC
       OLDCDNC=OLDCDN*1.d6  !convert from cm-3 to m-3
       NEWCDNC=NEWCDN*1.d6  !convert from cm-3 to m-3
       ldummy=execute_bulk2m_driver('gult','drop_nucl',dtB2M,mkx, &
            OLDCDNC,NEWCDNC)
-#endif
-#ifdef TRACERS_AMP
-      !*** Using the AMP_actv interface from MATRIX
-      ldummy=execute_bulk2m_driver('matr','drop_nucl',dtB2M,mkx)
-#endif
-#ifdef TRACERS_TOMAS
-      !*** Using the AMP_actv interface from MATRIX
-        ldummy=execute_bulk2m_driver('toma','drop_nucl',dtB2M,mkx)
 #endif
       rablk=execute_bulk2m_driver('get','value','nc') + ( &
            +execute_bulk2m_driver('get','npccn') &
