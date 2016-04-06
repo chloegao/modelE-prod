@@ -94,6 +94,10 @@ C**************  Latitude-Dependant (allocatable) *******************
       USE AERO_SETUP 
       USE PBLCOM,     only: EGCM !(LM,IM,JM) 3-D turbulent kinetic energy [m^2/s^2]
       USE DOMAIN_DECOMP_ATM,only: GRID, getDomainBounds, am_i_root
+#ifdef CACHED_SUBDD
+      use subdd_mod, only : subdd_groups,subdd_type,subdd_ngroups,
+     &                      inc_subdd,find_groups
+#endif  /* CACHED_SUBDD */
 
       IMPLICIT NONE
 
@@ -109,6 +113,14 @@ C**************  Latitude-Dependant (allocatable) *******************
       INTEGER:: j,l,i,n,J_0, J_1, I_0, I_1, m,nAMP
 C**** functions
       REAL(8):: QSAT
+
+#ifdef CACHED_SUBDD
+      integer :: igrp,ngroups,grpids(subdd_ngroups),k
+      type(subdd_type), pointer :: subdd
+      real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
+     &                  grid%j_strt_halo:grid%j_stop_halo,lm) ::
+     &     sddarr3d
+#endif  /* CACHED_SUBDD */
 
       call getDomainBounds(grid, J_STRT =J_0, J_STOP =J_1)
       I_0 = grid%I_STRT
@@ -288,6 +300,21 @@ c - 2d PRT Diagnostic
       ENDDO !i
       ENDDO !j
       ENDDO !l
+
+#ifdef CACHED_SUBDD
+      call find_groups('taijlh',grpids,ngroups)
+      do igrp=1,ngroups
+        subdd => subdd_groups(grpids(igrp))
+        do k=1,subdd%ndiags
+          do n=ntmAMPi,ntmAMPe
+            if (trim(subdd%name(k)) /= 'd'//trim(trname(n))) cycle
+            nAMP=n-ntmAMPi+1
+            sddarr3d(:,:,:)=diam(:,:,:,amp_modes_map(nAMP))
+            call inc_subdd(subdd,k,sddarr3d)
+          enddo ! n
+        enddo ! k
+      enddo ! igrp
+#endif  /* CACHED_SUBDD */
 
       RETURN
       END SUBROUTINE MATRIX_DRV

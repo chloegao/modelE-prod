@@ -2313,6 +2313,18 @@ c daily_z is currently only needed for CS
      &    units = trim(unitString)
      &    )
 
+#ifdef TRACERS_AMP
+! AMP aerosol diameters
+        spcname=trim(trname(n))
+        if ((spcname(1:2) == 'N_') .and. (spcname(6:7) == '_1')) then
+          arr(next()) = info_type_(
+     &      sname = 'd'//trim(trname(n)),
+     &      lname = trim(trname(n))//' mass mean diameter',
+     &      units = 'm'
+     &         )
+        endif
+#endif  /* TRACERS_AMP */
+
       end do ! tracers loop
 
 ! 3d AOD
