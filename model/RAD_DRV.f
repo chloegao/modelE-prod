@@ -587,24 +587,15 @@ caer   TRRDRY=(/ .1d0, .1d0, .1d0, .1d0, .1d0, .1d0, .1d0, .1d0/)
 caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
 
 #if (defined TRACERS_ON)
-      nraero_OMA=nraero_seasalt+nraero_koch+nraero_nitrate+nraero_dust
-      IF (diag_fc==2) THEN
-        nraero_rf=nraero_rf+nraero_OMA
-      ELSE
-        nraero_rf=nraero_rf+1
-      ENDIF
-#endif  /* TRACERS_ON */
 
-#ifdef TRACERS_AMP
+#if defined(TRACERS_AMP)
       nraero_AMP=nmodes
       IF (diag_fc==2) THEN
         nraero_rf=nraero_rf+nraero_AMP
       ELSE
         nraero_rf=nraero_rf+1
       ENDIF
-#endif  /* TRACERS_AMP */
-
-#ifdef  TRACERS_TOMAS
+#elif defined(TRACERS_TOMAS)
 !TOMAS does not include NO3 AND VOL, which use its default radiation. 
 #ifndef TRACERS_NITRATE
       nraero_TOMAS=icomp-2
@@ -616,9 +607,15 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
       ELSE
         nraero_rf=nraero_rf+1
       ENDIF
-#endif /* TRACERS_TOMAS */
+#else
+      nraero_OMA=nraero_seasalt+nraero_koch+nraero_nitrate+nraero_dust
+      IF (diag_fc==2) THEN
+        nraero_rf=nraero_rf+nraero_OMA
+      ELSE
+        nraero_rf=nraero_rf+1
+      ENDIF
+#endif
 
-#ifdef TRACERS_ON
       nraero_aod=nraero_OMA+nraero_AMP+nraero_TOMAS
 
       if (nraero_rsf>0) then
