@@ -75,7 +75,7 @@ $(LIB): $(OBJS)
 
 #.INTERMEDIATE: $(FFSRCS_CPP) $(DEPENDFILE)_cpp $(DEPENDFILE)_f
 
-$(DEPENDFILE): $(FFSRCS) $(CSRCS) .current_options $(RUN_H)
+$(DEPENDFILE): $(FFSRCS) $(CSRCS) .current_options .current_srcs $(RUN_H)
 	@echo
 	@echo '--------          Rebuilding Dependencies  in        ---------'
 	@echo '--' `pwd`
@@ -102,7 +102,7 @@ $(DEPENDFILE): $(FFSRCS) $(CSRCS) .current_options $(RUN_H)
 
 
 clean:
-	-rm -f $(LIB) lib.a *.o *.mod *.smod .depend* .current_options rundeck_opts.h *.cpp
+	-rm -f $(LIB) lib.a *.o *.mod *.smod .depend* .current_options .current_srcs rundeck_opts.h *.cpp
 
 deplist:
 	echo $(THIS)_dir: $(DEPENDS_ON:=_dir)
@@ -122,6 +122,15 @@ depend: $(DEPENDFILE)
 	else rm -f .current_options.tmp ; \
 	fi
 
+.current_srcs: FORCE
+	@echo $(FFSRCS) $(CSRCS) > .current_srcs.tmp
+	@if [ ! -f .current_srcs ] || \
+	! cmp -s .current_srcs  .current_srcs.tmp ; then \
+	mv -f .current_srcs.tmp .current_srcs; \
+	else rm -f .current_srcs.tmp ; \
+	fi
+
+
 # create a list of all specified options, including the list
 # of source files
 define PROGRAM_opt_list
@@ -129,8 +138,10 @@ CURRENT_OPTIONS += $(1)=$($(1)),
 endef
 
 CURRENT_OPTIONS =
-$(foreach v,$(SUPPORTED_OPTIONS) FFSRCS, \
+$(foreach v,$(SUPPORTED_OPTIONS) MPI ESMF, \
   $(eval $(call PROGRAM_opt_list,$(v))))
+
+$(OBJS): .current_options
 
 ifeq ($(findstring $(MAKECMDGOALS),clean depend depend_all),)
 sinclude $(DEPENDFILE)
