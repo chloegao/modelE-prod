@@ -2226,7 +2226,8 @@ c daily_z is currently only needed for CS
       use subdd_mod, only : info_type, sched_rad
       use OldTracer_mod, only: trname
       use radpar, only: nraero_aod=>NTRACE
-      use rad_com, only: ntrix_aod
+      use rad_com, only: ntrix_aod,nraero_rf,ntrix_rf,diag_fc
+      use RunTimeControls_mod, only: tracers_amp, tracers_tomas
 ! info_type_ is a homemade structure constructor for older compilers
       use subdd_mod, only : info_type_
       implicit none
@@ -2238,8 +2239,10 @@ c daily_z is currently only needed for CS
      &                                lsky=(/'All-sky  ','Clear-sky'/)
       character(len=10), dimension(2) :: sabs=(/' ','a'/),
      &                                labs=(/'          ','absorption'/)
+      character(len=10), dimension(2) :: sfrc=(/'swf','lwf'/),
+     &                                lfrc=(/'shortwave','longwave'/)
       character(len=10) :: spcname
-      integer :: s,a,n
+      integer :: s,a,n,f
 
       decl_count = 0
 
@@ -2261,6 +2264,28 @@ c daily_z is currently only needed for CS
       enddo ! n
       enddo ! a
       enddo ! s
+
+      do f=1,size(sfrc)
+      do n=1,nraero_rf
+        if (diag_fc==1) then
+          if (tracers_amp) then
+            spcname='AMP'
+          elseif (tracers_tomas) then
+            spcname='TOMAS'
+          else
+            spcname='OMA'
+          endif
+        else
+          spcname = trim(trname(ntrix_rf(n)))
+        endif
+        arr(next()) = info_type_(
+     &    sname = trim(sfrc(f))//'_'//trim(spcname),
+     &    lname = trim(spcname)//' '//trim(lfrc(f))//' forcing',
+     &    units = 'W m-2',
+     &    sched = sched_rad
+     &       )
+      enddo ! n
+      enddo ! f
 
       return
       contains

@@ -173,20 +173,25 @@ C**** does not produce exactly the same as the default values.
 
 #ifdef TRACERS_ON
 !@var njaero max expected rad code tracers passed to photolysis
-!@var nraero_rsf value of nraero_aod found in the rsf file
+!@var nraero_aod_rsf value of nraero_aod found in the rsf file
+!@var nraero_rf_rsf value of nraero_rf found in the rsf file
 !@var ttausv_as All-sky aerosol optical saved 1:nraero_aod not 1:ntm
 !@+   This is so clays are separate. Now also used for old parameter
 !@+   mxfastj: Number of aerosol/cloud types currently active in the model
 !@var ttausv_cs Same as ttausv_as for clear-sky
       integer :: njaero ! nraero_aod+2 cloud types (water/ice)
-      integer :: nraero_rsf=0
+      integer :: nraero_aod_rsf=0
+      integer :: nraero_rf_rsf=0
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:,:) :: ttausv_as
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:,:) :: ttausv_cs
 #ifdef CACHED_SUBDD
 !@var tabssv_as Same as ttausv_as for absorption
 !@var tabssv_cs Same as ttausv_cs for absorption
+!@var swfrc Shortwave aerosol radiative forcing
+!@var lwfrc Shortwave aerosol radiative forcing
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:,:) :: tabssv_as
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:,:) :: tabssv_cs
+      REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: swfrc,lwfrc
 #endif  /* CACHED_SUBDD */
 #endif
 #endif
@@ -769,6 +774,9 @@ C**** Local variables initialised in init_RAD
      &       'tabssv_as(dist_im,dist_jm,lm,nraero_aod)')
         call defvar(grid,fid,tabssv_cs,
      &       'tabssv_cs(dist_im,dist_jm,lm,nraero_aod)')
+        call defvar(grid,fid,nraero_rf,'nraero_rf')
+        call defvar(grid,fid,swfrc,'swfrc(dist_im,dist_jm,nraero_rf)')
+        call defvar(grid,fid,lwfrc,'lwfrc(dist_im,dist_jm,nraero_rf)')
 #endif  /* CACHED_SUBDD */
       endif
 #ifdef TRACERS_SPECIAL_Shindell
@@ -855,6 +863,9 @@ C**** Local variables initialised in init_RAD
 #ifdef CACHED_SUBDD
           call write_dist_data(grid,fid,'tabssv_as',tabssv_as)
           call write_dist_data(grid,fid,'tabssv_cs',tabssv_cs)
+          call write_data(grid, fid,'nraero_rf', nraero_rf)
+          call write_dist_data(grid,fid,'swfrc',swfrc)
+          call write_dist_data(grid,fid,'lwfrc',lwfrc)
 #endif  /* CACHED_SUBDD */
         endif
 #endif
@@ -894,14 +905,20 @@ C**** Local variables initialised in init_RAD
 #endif
 #ifdef TRACERS_ON
         if (.not.allocated(ttausv_as)) then
-          call read_data(grid,fid,'nraero_aod',nraero_rsf,
+          call read_data(grid,fid,'nraero_aod',nraero_aod_rsf,
      &                   bcast_all=.true.)
-          if (nraero_rsf /= 0) then
-            allocate(ttausv_as(I_0H:I_1H,J_0H:J_1H,lm,nraero_rsf))
-            allocate(ttausv_cs(I_0H:I_1H,J_0H:J_1H,lm,nraero_rsf))
+          if (nraero_aod_rsf /= 0) then
+            allocate(ttausv_as(I_0H:I_1H,J_0H:J_1H,lm,nraero_aod_rsf))
+            allocate(ttausv_cs(I_0H:I_1H,J_0H:J_1H,lm,nraero_aod_rsf))
 #ifdef CACHED_SUBDD
-            allocate(tabssv_as(I_0H:I_1H,J_0H:J_1H,lm,nraero_rsf))
-            allocate(tabssv_cs(I_0H:I_1H,J_0H:J_1H,lm,nraero_rsf))
+            allocate(tabssv_as(I_0H:I_1H,J_0H:J_1H,lm,nraero_aod_rsf))
+            allocate(tabssv_cs(I_0H:I_1H,J_0H:J_1H,lm,nraero_aod_rsf))
+            call read_data(grid,fid,'nraero_rf',nraero_rf_rsf,
+     &                     bcast_all=.true.)
+            if (nraero_rf_rsf /= 0) then
+              allocate(swfrc(I_0H:I_1H,J_0H:J_1H,nraero_rf_rsf))
+              allocate(lwfrc(I_0H:I_1H,J_0H:J_1H,nraero_rf_rsf))
+            endif
 #endif  /* CACHED_SUBDD */
           endif
         endif
@@ -911,6 +928,8 @@ C**** Local variables initialised in init_RAD
 #ifdef CACHED_SUBDD
           call read_dist_data(grid,fid,'tabssv_as',tabssv_as)
           call read_dist_data(grid,fid,'tabssv_cs',tabssv_cs)
+          call read_dist_data(grid,fid,'swfrc',swfrc)
+          call read_dist_data(grid,fid,'lwfrc',lwfrc)
 #endif  /* CACHED_SUBDD */
         endif
 #endif

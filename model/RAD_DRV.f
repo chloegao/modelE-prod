@@ -88,9 +88,9 @@ C****
      *     ,variable_orb_par,orb_par_year_bp,orb_par,nrad
      *     ,radiationSetOrbit
 #ifdef TRACERS_ON
-     *     ,njaero,nraero_rsf,ttausv_as,ttausv_cs
+     *     ,njaero,nraero_aod_rsf,nraero_rf_rsf,ttausv_as,ttausv_cs
 #ifdef CACHED_SUBDD
-     *     ,tabssv_as,tabssv_cs
+     *     ,tabssv_as,tabssv_cs,swfrc,lwfrc
 #endif  /* CACHED_SUBDD */
 #endif  /* TRACERS_ON */
 #ifdef ALTER_RADF_BY_LAT
@@ -618,9 +618,15 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
 
       nraero_aod=nraero_OMA+nraero_AMP+nraero_TOMAS
 
-      if (nraero_rsf>0) then
-        if (nraero_rsf /= nraero_aod) then
-          call stop_model('nraero_rsf /= nraero_aod',255)
+      if (nraero_aod_rsf>0) then
+        if (nraero_aod_rsf /= nraero_aod) then
+          call stop_model('nraero_aod_rsf /= nraero_aod',255)
+        endif
+      endif
+
+      if (nraero_rf_rsf>0) then
+        if (nraero_rf_rsf /= nraero_rf) then
+          call stop_model('nraero_rf_rsf /= nraero_rf',255)
         endif
       endif
 
@@ -637,8 +643,12 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
 #ifdef CACHED_SUBDD
           allocate(tabssv_as(I_0H:I_1H,J_0H:J_1H,lm,nraero_aod))
           allocate(tabssv_cs(I_0H:I_1H,J_0H:J_1H,lm,nraero_aod))
+          allocate(swfrc(I_0H:I_1H,J_0H:J_1H,nraero_rf))
+          allocate(lwfrc(I_0H:I_1H,J_0H:J_1H,nraero_rf))
           tabssv_as = 0.d0
           tabssv_cs = 0.d0
+          swfrc = 0.d0
+          lwfrc = 0.d0
 #endif  /* CACHED_SUBDD */
         endif
       endif
@@ -1599,14 +1609,15 @@ C     OUTPUT DATA
 #ifdef TRACERS_DUST
      &     ,srnflb_save,trnflb_save
 #endif
-#ifdef TRACERS_ON
-     &     ,ttausv_as,ttausv_cs,nraero_rf
-#ifdef CACHED_SUBDD
-     *     ,tabssv_as,tabssv_cs
-#endif  /* CACHED_SUBDD */
-#endif
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
      &     ,stratO3_tracer_save
+#endif
+#ifdef TRACERS_ON
+      use rad_com, only: ttausv_as,ttausv_cs,nraero_rf
+#ifdef CACHED_SUBDD
+      use rad_com, only: tabssv_as,tabssv_cs,swfrc,lwfrc
+      use RunTimeControls_mod, only: tracers_amp, tracers_tomas
+#endif  /* CACHED_SUBDD */
 #endif
       USE RANDOM
       USE CLOUDS_COM, only : tauss,taumc,svlhx,rhsav,svlat,cldsav,
@@ -1734,6 +1745,10 @@ C     INPUT DATA   partly (i,j) dependent, partly global
       REAL*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
      &                  grid%j_strt_halo:grid%j_stop_halo,lm) ::
      &     SDDARR3D
+      REAL*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
+     &                  grid%j_strt_halo:grid%j_stop_halo,nraero_rf) ::
+     &     sddarr3drf
+      integer :: f
 #ifdef SCM
 C     radiative flux profiles for sub-daily output, generalized
 C     for GCM grid but currently limited to SCM use
@@ -1751,6 +1766,7 @@ C     for GCM grid but currently limited to SCM use
       character(len=10), dimension(2) :: sgroups=(/'taijh ','taijlh'/)
       character(len=10), dimension(2) :: ssky=(/'as','cs'/)
       character(len=10), dimension(2) :: sabs=(/' ','a'/)
+      character(len=10), dimension(2) :: sfrc=(/'swf','lwf'/)
       character(len=10) :: spcname
       character(len=50) :: sname
       integer :: g,s,a
@@ -3657,6 +3673,13 @@ c longwave GHG forcing at TOA
          enddo
 #endif /* ACCMIP_LIKE_DIAGS */
 
+#ifdef CACHED_SUBDD
+      swfrc(i,j,1:nraero_rf)=
+     &  rsign_aer*(SNFST(2,1:nraero_rf,I,J)-SNFS(LFRC,I,J))*CSZ2
+      lwfrc(i,j,1:nraero_rf)=
+     &  -rsign_aer*(TNFST(2,1:nraero_rf,I,J)-TNFS(LFRC,I,J))
+#endif  /* CACHED_SUBDD */
+
   770    CONTINUE
   780    CONTINUE
 
@@ -3822,6 +3845,7 @@ C****
 
 #ifdef TRACERS_ON
 
+! aod
       do g=1,size(sgroups)
       call find_groups(sgroups(g),grpids,ngroups)
       do igrp=1,ngroups
@@ -3869,6 +3893,41 @@ C****
       enddo ! k
       enddo ! igrp
       enddo ! g
+
+! rf
+      call find_groups('taijh',grpids,ngroups)
+      do igrp=1,ngroups
+      subdd => subdd_groups(grpids(igrp))
+      do k=1,subdd%ndiags
+      do f=1,size(sfrc)
+        select case (trim(sfrc(f)))
+          case ('swf')
+            sddarr3drf=swfrc
+          case ('lwf')
+            sddarr3drf=lwfrc
+          case default
+            cycle ! not implemented, silently ignore
+        end select
+        do n=1,nraero_rf
+          if (diag_fc==1) then
+            if (tracers_amp) then
+              spcname='AMP'
+            elseif (tracers_tomas) then
+              spcname='TOMAS'
+            else
+              spcname='OMA'
+            endif
+          else
+            spcname = trim(trname(ntrix_rf(n)))
+          endif
+          sname = trim(sfrc(f))//'_'//trim(spcname)
+          if (trim(sname)==trim(subdd%name(k))) then ! not select case here
+            call inc_subdd(subdd,k,sddarr3drf(:,:,n))
+          endif
+        enddo ! n
+      enddo ! f
+      enddo ! k
+      enddo ! igrp
 
 #endif  /* TRACERS_ON */
 
