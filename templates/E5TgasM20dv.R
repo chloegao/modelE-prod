@@ -130,8 +130,8 @@ MSU_wts=MSU.RSS.weights.data
 GLMELT=GLMELT_4X5.OCN.nc   ! glacial melt distribution
 ISCCP=ISCCP.tautables
 !         NUDGING INPUT
-u0.nc=uwnd.2000.GISS4x5_MANIP.nc
-v0.nc=vwnd.2000.GISS4x5_MANIP.nc
+u2000.nc=uwnd.2000.GISS4x5_MANIP.nc
+v2000.nc=vwnd.2000.GISS4x5_MANIP.nc
 SOILCARB_global=soilcarb_top30cm_2x2.5.nc
   
  

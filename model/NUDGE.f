@@ -72,12 +72,12 @@ c******************************************************************
       USE DOMAIN_DECOMP_1D, only: am_i_root, broadcast
       USE RESOLUTION, only : im,jm,lm
       use model_com, only: modelEclock
-      USE MODEL_COM, only : itime,nday,iyear1
+      USE MODEL_COM, only : itime,nday
       USE NUDGE_COM
       USE Dictionary_mod
       IMPLICIT NONE
       include 'netcdf.inc'
-      character(len=3) :: nstr1,nstr2
+      character(len=4) :: nstr1,nstr2
 
 C**** Rundeck parameters:
       call sync_param( "ANUDGEU", ANUDGEU )
@@ -85,10 +85,8 @@ C**** Rundeck parameters:
 
 C**** initiallise all netcdf parameters etc.
 
-C**** get current 'zirk'ulating year (calculated from iyear1)
-C**** thus if iyear=iyear1, file u0.nc will be read
 
-      write(nstr1,'(I0)') modelEclock%getYear() - iyear1
+      write(nstr1,'(I0)') modelEclock%getYear()
 
       step_rea = INT( (((modelEclock%getDayOfYear() - 1) * 24) + 
      &  modelEclock%getHour())/6) + 1
@@ -111,7 +109,7 @@ C**** read in second set of nudged winds
 C**** if near end of year, may need to open another file
       if (step_rea.eq.nts_max+1) then
         step_rea=1
-        write(nstr2,'(I0)') modelEclock%getYear() - iyear1 + 1
+        write(nstr2,'(I0)') modelEclock%getYear() + 1
         if (am_i_root()) then
           call close_nudge_file(nstr1)
           call  open_nudge_file(nstr2)
@@ -133,12 +131,12 @@ c******************************************************************
       USE DOMAIN_DECOMP_1D, only: am_i_root
       USE RESOLUTION, only: im,jm,lm
       use model_com, only: modelEclock
-      USE MODEL_COM, only: itime,nday,iyear1
+      USE MODEL_COM, only: itime,nday
       USE NUDGE_COM
       IMPLICIT NONE
       include 'netcdf.inc'
       integer step_rea_1
-      character(len=3) :: nstr1,nstr2
+      character(len=4) :: nstr1,nstr2
 
 C**** Check whether nudged winds need to be updated
       step_rea_1 = INT( (((modelEclock%getDayOfYear() - 1) * 24) + 
@@ -154,8 +152,8 @@ C**** check whether new file is needed
 
         if (step_rea.eq.nts_max+1) then
           step_rea = 1
-          write(nstr1,'(I0)') modelEclock%getYear() - iyear1
-          write(nstr2,'(I0)') modelEclock%getYear() - iyear1 + 1
+          write(nstr1,'(I0)') modelEclock%getYear()
+          write(nstr2,'(I0)') modelEclock%getYear() + 1
           if (am_i_root()) then
             call close_nudge_file(nstr1)
             call  open_nudge_file(nstr2)
@@ -314,7 +312,7 @@ c******************************************************************
       USE NUDGE_COM
       implicit none
       include 'netcdf.inc'
-      character(len=3) :: nstr
+      character(len=4) :: nstr
       integer status
       
       print*, 'IN NUDGE: OPEN NF FILES','  {u,v}'//trim(nstr)//'.nc'
@@ -345,7 +343,7 @@ c**** get levels which don't change as a function of time
       USE NUDGE_COM
       implicit none
       include 'netcdf.inc'
-      character(len=3) :: nstr
+      character(len=4) :: nstr
       integer status
 
       status=NF_CLOSE(ncidu)
@@ -401,7 +399,7 @@ c -----------------------------------------------------------------
 !@sum error handling for the netCDF/Fortran interface calls  
       implicit none
       include 'netcdf.inc'
-      character*80 :: activityString
+      character(len=*) :: activityString
       integer status
 
       print*, 'WIND NUDGING: while model was '//trim(activityString)
