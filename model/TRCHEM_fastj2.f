@@ -44,7 +44,7 @@
      &                     ,nfastj=4
      &                     ,mfastj=1
      &                     ,mfit=2*M__
-     &                     ,nlfastj=1000 !increased Nov 2010
+     &                     ,nlfastj=1400 !increased Nov 2010
      &                     ,njval=27 !formerly read in from jv_spec00_15.dat
      &                     ,nwfastj=18
      &                     ,np=60
