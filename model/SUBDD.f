@@ -1405,7 +1405,7 @@ c
 !@dbparam Nsubdd: DT_save_SUBDD =  Nsubdd*DTsrc sub-daily diag freq.
       INTEGER :: Nsubdd = 0
 !@var kddmax maximum number of sub-daily diags outputs
-      INTEGER, PARAMETER :: kddmax = 85
+      INTEGER, PARAMETER :: kddmax = 110
 !@dbparam subdd string contains variables to save for sub-daily diags
 !@dbparam subdd1 additional string of variables for sub-daily diags
 !@dbparam subdd2 additional string of variables for sub-daily diags
@@ -1417,13 +1417,22 @@ c
 !@dbparam subdd8 additional string of variables for sub-daily diags
 !@dbparam subdd9 additional string of variables for sub-daily diags
 !@dbparam subd10 additional string of variables for sub-daily diags
+!@dbparam subd11 additional string of variables for sub-daily diags
+!@dbparam subd12 additional string of variables for sub-daily diags
+!@dbparam subd13 additional string of variables for sub-daily diags
+!@dbparam subd14 additional string of variables for sub-daily diags
+!@dbparam subd15 additional string of variables for sub-daily diags
+!@dbparam subd16 additional string of variables for sub-daily diags
+!@dbparam subd17 additional string of variables for sub-daily diags
 C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
       CHARACTER*64 :: subdd="SLP", 
      & subdd1=" ", subdd2=" ", subdd3=" ", subdd4=" ",
      & subdd5=" ", subdd6=" ", subdd7=" ", subdd8=" ",
-     & subdd9=" ", subd10=" "
+     & subdd9=" ", subd10=" ", subd11=" ", subd12=" ",
+     & subd13=" ", subd14=" ", subd15=" ", subd16=" ",
+     & subd17=" "
 !@var subddt = subdd + subdd1,2,3 = all variables for sub-daily diags
-      CHARACTER*713 :: subddt = " "
+      CHARACTER*1169 :: subddt = " "
       ! e.g. here, 584=11*64+9
 !@var namedd array of names of sub-daily diags
       character(len=namedd_strlen), DIMENSION(kddmax) :: namedd
@@ -1499,6 +1508,13 @@ C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
       call sync_param( "subdd8" ,subdd8)
       call sync_param( "subdd9" ,subdd9)
       call sync_param( "subd10" ,subd10)
+      call sync_param( "subd11" ,subd11)
+      call sync_param( "subd12" ,subd12)
+      call sync_param( "subd13" ,subd13)
+      call sync_param( "subd14" ,subd14)
+      call sync_param( "subd15" ,subd15)
+      call sync_param( "subd16" ,subd16)
+      call sync_param( "subd17" ,subd17)
       call sync_param( "LmaxSUBDD",LmaxSUBDD)
 
 c
@@ -1510,6 +1526,10 @@ c
      &  //' '//trim(subdd5)//' '//trim(subdd6)     
      &  //' '//trim(subdd7)//' '//trim(subdd8)
      &  //' '//trim(subdd9)//' '//trim(subd10)
+     &  //' '//trim(subd11)//' '//trim(subd12)
+     &  //' '//trim(subd13)//' '//trim(subd14)
+     &  //' '//trim(subd15)//' '//trim(subd16)
+     &  //' '//trim(subd17)
 c
 c count/parse names
 c
