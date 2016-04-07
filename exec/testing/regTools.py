@@ -309,8 +309,8 @@ def createScriptTask(config, compconfig, deck, comp, mode):
             elif re.search('M20', deckName):
                 walltime = '00:30:00'
 
-        outname = resultsDir + '/' + jobName + '.' + comp + '.out'
-        errname = resultsDir + '/' + jobName + '.' + comp + '.err'
+        outname = resultsDir + '/' + jobName + '.' + mode + '.out'
+        errname = resultsDir + '/' + jobName + '.' + mode + '.err'
         fileHandle.write ('#!/bin/bash' + '\n')
         fileHandle.write ('#SBATCH -J ' + jobName + '\n')
         fileHandle.write ('#SBATCH -o ' + outname + '\n')
@@ -367,7 +367,7 @@ def createScriptTask(config, compconfig, deck, comp, mode):
             cmd = "cat "+modelErc+"| grep PFUNITMPIDIR"+"| awk -F= '{print $2}'"
         else:
             cmd = "cat "+modelErc+"| grep PFUNITSERIALDIR"+"| awk -F= '{print $2}'"
-        out = sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.STDOUT)
+        out = sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.STDOUT, shell=True)
         pfunitDir = out.communicate()[0].rstrip()
         fileHandle.write ('export PFUNIT=' + pfunitDir + '\n')
         
@@ -463,7 +463,6 @@ def sendDiffreport(config, compconfig, eTime):
         ('RUNDECK', 'COMPILER', 'MODE', 'RUN', 'UNT', 'BAS', 'RST', 'NPE'))
     fp.write('-'*80+'\n')
 
-
     if sortdiff == 'yes':
         sp.call('find '+resultsDir+' -name \*.diff -exec cat {} \; >' \
                     +resultsDir + '/' + 'alldiffs', shell=True)
@@ -479,6 +478,23 @@ def sendDiffreport(config, compconfig, eTime):
             for f in diffs:
                 with open(f,'r') as inf:
                     fp.write(inf.read())
+ 
+    # In some cases, if a task terminated unexpectedly then the results will
+    # not be recorded to a diff file. However, the system should generate an
+    # error file (*.err). If such a file exists then we update the results
+    # and notify a system error.
+    results = [' '*20, ' '*10, ' '*8, 
+                        '  -  ', '  -  ', '  -  ', '  -  ', '  -  ']
+    for comp in compilers:
+        errs = glob.glob(resultsDir + '/' + comp + '/*.err')
+        for f in errs:
+            if os.path.getsize(f) > 0:
+                fname = f.split('/')[-1]
+                results[0] = re.split(r'\.(?!\d)', fname)[0]
+                results[1] = comp
+                results[2] = re.split(r'\.(?!\d)', fname)[1]
+                results[3] = 'U'
+                util.writeDiff(results, fp)
     
     fp.write('-'*80+'\n')
     hhmmss = time.strftime('%H:%M:%S', time.gmtime(eTime))
@@ -491,6 +507,7 @@ def sendDiffreport(config, compconfig, eTime):
     fp.write('Fb  : build failure\n')
     fp.write('Fr  : run-time failure\n')
     fp.write('F*  : expected failure\n')
+    fp.write('U   : unexpected system failure\n')
     fp.write('C   : Created baseline\n')
     fp.write('-   : not available\n')
     fp.write('Notes:\n')
