@@ -244,4 +244,16 @@ def header(cfg):
         print('Results will be mailed to: ' + mailto)
     print('-'*80)
 
+#-------------------------------------------------------------------------------
+def writeDiff(results, fileH):
+    fileH.write('%20s' % (results[0]))
+    fileH.write('%10s' % (results[1]))
+    fileH.write('%8s'  % (results[2]))
+    fileH.write('%4s'  % '    ')
+    for s in results[3:]:
+        fileH.write('{: ^5}'.format(s))
+        fileH.write('%3s'  % '   ')
+    fileH.write('\n')
+
+      
 

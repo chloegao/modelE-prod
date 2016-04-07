@@ -120,12 +120,11 @@ class newRun(newRundeck):
                     status = proc.returncode
             else:
                 status = 1
-                failures = False
                 if os.environ.has_key('PFUNIT'):
-                    # Run make tests command
+                    # --- Run make tests command ---
                     proc = sp.Popen(cmdStr, stdout=sp.PIPE, stderr=sp.PIPE,
                                     shell=True)
-                    # And check output "interactively"
+                    # --- Check output "interactively"
                     while True:
                        output = proc.stdout.readline()
                        if output == '' and proc.poll is not None:
@@ -135,24 +134,13 @@ class newRun(newRundeck):
                            if 'Failures' in output:
                                outlist =  output.split(' ')
                                # Extract number of unit test failures, if any
-                               numfail = int(re.search(r'\d+', outlist[4]).group())
-                               failures = True
-                            
+                               numfail = int(re.search(r'\d+', outlist[4]).group())                            
                     proc.wait()
+                    # --- Done with tests ---
                     status = proc.returncode
                 else:
                     logger.error('PFUNIT environment variable has not been set.')
                                  
-                if status != 0:
-                    # Write result to small file for post-processing
-                    f = open(".unit", "w+")
-                    if failures:
-                        f.write(str(numfail))
-                    else: # Run-time error
-                        f.write('Fr')
-
-                    f.close()
-
             logger.debug('Return code: ' + str(status))
 
             if (status == 0):
@@ -162,7 +150,7 @@ class newRun(newRundeck):
                     logger.error(cmdStr+': FAILED')
                     self.results[resIdx] = self.failMark+stageID
                 else:
-                    self.results[resIdx] = grepResult
+                    self.results[resIdx] = str(numfail)
     
     # ------------------------------------------------------
     def build(self):
@@ -261,7 +249,7 @@ class newRun(newRundeck):
             logger.exception(str(e))
             return 1
 
-        logger.info(self.name + ' RUN1HR is DONE')
+        logger.info(self.name + ' is DONE')
         return 0
 
     # ------------------------------------------------------
@@ -354,14 +342,14 @@ class newRun(newRundeck):
                 logger.exception(str(e))
                 return 1
 
-        logger.info(self.name + ' RUNRST is DONE')
+        logger.info(self.name + ' is DONE')
         return 0
 
    
     # ------------------------------------------------------
     # Run 2 month run
-    def longRun(self, npes=1):
-        logger = logging.getLogger('RUNLONG ')
+    def customRun(self, npes=1):
+        logger = logging.getLogger('RUN2MOS ')
         logger.info(self.name + ', ' + self.mode + ', npes=' + str(npes) \
                     + ', 2 month run')
 
@@ -402,7 +390,7 @@ class newRun(newRundeck):
             logger.exception(str(e))
             return 1
 
-        logger.info(self.name + ' RUNLONG is DONE')
+        logger.info(self.name + ' is DONE')
         return 0
 
 

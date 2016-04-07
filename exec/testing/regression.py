@@ -22,6 +22,7 @@ import sys
 import os
 import logging
 import ConfigParser
+import regUtils as util
 import regCompare as comp
 import regRuns as runsrc
 
@@ -49,18 +50,6 @@ def compare(run):
             if run.verification == 'restartRun':
                 comp.base(run, run.endTime, npes=npes)
     
-#-------------------------------------------------------------------------------
-def writeDiff(run, fileH):
-    fileH.write('%20s' % (run.results[0]))
-    fileH.write('%10s' % (run.results[1]))
-    fileH.write('%8s'  % (run.results[2]))
-    fileH.write('%4s'  % '    ')
-    for s in run.results[3:]:
-        fileH.write('{: ^5}'.format(s))
-        fileH.write('%3s'  % '   ')
-    fileH.write('\n')
-
-      
 #-------------------------------------------------------------------------------
 def main():
     OK = 0
@@ -106,7 +95,7 @@ def main():
                 if serBuildResult == OK:
                     # Always run 1hr
                     rc = run.hrRun()
-                    if src.verification == 'restartRun':
+                    if rc == OK and src.verification == 'restartRun':
                         rc = run.restartRun(endTime=run.endTime)
             else: # MPI
                 mpiBuildResult = run.build()
@@ -115,14 +104,14 @@ def main():
                 if mpiBuildResult == OK:
                     if run.verification == 'customRun':
                         for npes in run.npes:
-                            rc = run.longRun(npes=npes)
+                            rc = run.customRun(npes=npes)
                             if rc != OK:
                                 continue
                     else:    
                         for npes in run.npes:
                             # Always run 1hr
                             rc = run.hrRun(npes=npes)
-                            if run.verification == 'restartRun':
+                            if rc == OK and run.verification == 'restartRun':
                                 rc = run.restartRun(npes=npes, endTime=run.endTime)
 
             logger.info(src.name + ' ' + run.mode + ' runs complete.')
@@ -130,9 +119,12 @@ def main():
             if serBuildResult != OK or mpiBuildResult != OK:
                 continue
 
-            if run.verification != 'customRun' or run.verification == 'compileOnly':
+            if run.verification != 'customRun' or run.verification != 'compileOnly':
                 compare(run)
-                writeDiff(run, fileH)
+                util.writeDiff(run.results, fileH)
+
+        if src.verification == 'compileOnly':
+            util.writeDiff(run.results, fileH)
 
         fileH.close()
 
