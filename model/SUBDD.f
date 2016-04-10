@@ -1433,7 +1433,7 @@ C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
      & subd17=" "
 !@var subddt = subdd + subdd1,2,3 = all variables for sub-daily diags
       CHARACTER*1169 :: subddt = " "
-      ! e.g. here, 584=11*64+9
+      ! e.g. here, 1169=18*64+17 (18 subdds of length 64, +17 space separators)
 !@var namedd array of names of sub-daily diags
       character(len=namedd_strlen), DIMENSION(kddmax) :: namedd
 !@var kdd total number of sub-daily diags
