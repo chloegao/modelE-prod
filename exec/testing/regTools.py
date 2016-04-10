@@ -176,8 +176,9 @@ def setupCloneTasks(config, compconfig, decklist):
          
         for comp in deck.getOpt('compilers').split(','):
             for mode in deck.getOpt('modes').split(','):
-                if comp in compilers:
-                   commandString = util.gitCloneCommand(config, dName, comp, mode)
+                if comp.strip() in compilers:
+                   commandString = util.gitCloneCommand(config, dName,
+                                                        comp.strip(), mode.strip())
                    cloneTasks.append(commandString)
                 else:
                    logger.error('Compiler '+comp+' is not defined in COMPCONFIG')
@@ -207,7 +208,7 @@ def setupRuns(config, compconfig, decklist):
                 start = deck.name.find('nonProduction') + 14
                 dName = deck.name[start:]
             for mode in deck.getOpt('modes').split(','):
-                adir = dName +  '.' + mode
+                adir = dName +  '.' + mode.strip()
                 if not os.path.isdir(adir):
                     util.mkdir_p(adir)
     setupModelEenv(config, compconfig)
@@ -222,9 +223,10 @@ def setupScriptTasks(config, compconfig, decklist):
     for deck in decklist:
         for comp in deck.getOpt('compilers').split(','):
             for mode in deck.getOpt('modes').split(','):
-                if comp in compilers:
+                if comp.strip() in compilers:
                     commandString = \
-                        createScriptTask(config, compconfig, deck, comp, mode)
+                        createScriptTask(config, compconfig, deck,
+                                         comp.strip(), mode.strip())
                     scriptTasks.append(commandString)
                 else:
                     logger.error(comp+' is not defined in COMPCONFIG')
@@ -503,12 +505,13 @@ def sendDiffreport(config, compconfig, eTime):
     fp.write('Legend:\n')
     fp.write('-'*7+'\n')
     fp.write('+   : success\n')
-    fp.write('NUM : number of reproducibility differences\n')
+    fp.write('C   : created baseline\n')
     fp.write('Fb  : build failure\n')
-    fp.write('Fr  : run-time failure\n')
+    fp.write('F1  : 1hr run-time failure\n')
+    fp.write('Fr  : restart run-time failure\n')
     fp.write('F*  : expected failure\n')
     fp.write('U   : unexpected system failure\n')
-    fp.write('C   : Created baseline\n')
+    fp.write('NUM : number of reproducibility differences\n')
     fp.write('-   : not available\n')
     fp.write('Notes:\n')
     fp.write('-'*6+'\n')
