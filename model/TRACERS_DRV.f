@@ -5642,7 +5642,6 @@ c      enddo
         do l=1,size(stoasrf)
         do f=1,size(sswlw)
           i=(s-1)*size(stoasrf)*size(sswlw)+(l-1)*size(sswlw)+f
-! shortwave radiative forcing
           k = k + 1
           ijts_fc(i,n) = k
           ia_ijts(k) = ia_rad_frc
