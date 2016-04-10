@@ -1674,9 +1674,6 @@ C     OUTPUT DATA
 #ifdef TRACERS_AEROSOLS_OCEAN
       use TRACER_COM, only: n_ococean
 #endif  /* TRACERS_AEROSOLS_OCEAN */
-#ifdef TRACERS_AEROSOLS_Koch
-c          use TRACER_COM, only: SNFST0,TNFST0
-#endif  /* TRACERS_AEROSOLS_Koch */
 #ifdef TRACERS_AEROSOLS_VBS
       use TRACERS_VBS, only: vbs_tr
 #endif
@@ -3440,10 +3437,6 @@ C**** define SNFS/TNFS level (TOA/TROPO) for calculating forcing
      &     =taijs(i,j,ijts_alb(2))
      &         +(SNFS(3,I,J)-NFSNBC(I,J))*CSZ2
 #endif /* BC_ALB */
-#ifdef TRACERS_AEROSOLS_Koch
-c          snfst0(:,:,i,j)=0.D0
-c          tnfst0(:,:,i,j)=0.D0
-#endif /* TRACERS_AEROSOLS_Koch */
 c     ..........
 c     accumulation of forcings for tracers for which nraero_rf fields are
 c     defined
@@ -3581,16 +3574,6 @@ c longwave forcing at surface clear sky (if required)
      &                -rsign_aer*(TNFST(1,N,I,J)-TNFS(1,I,J))
      &                *(1.d0-CFRAC(I,J))
                END SELECT
-#ifdef TRACERS_AEROSOLS_Koch
-c              SNFST0(1,ntrix_rf(n),I,J)=SNFST0(1,ntrix_rf(n),I,J)
-c    &              +rsign_aer*(SNFST(2,n,I,J)-SNFS(LFRC,I,J))*CSZ2
-c              SNFST0(2,ntrix_rf(n),I,J)=SNFST0(2,ntrix_rf(n),I,J)
-c    &              +rsign_aer*(SNFST(1,n,I,J)-SNFS(1,I,J))*CSZ2
-c              TNFST0(1,ntrix_rf(n),I,J)=TNFST0(1,ntrix_rf(n),I,J)
-c    &              -rsign_aer*(TNFST(2,n,I,J)-TNFS(LFRC,I,J))
-c              TNFST0(2,ntrix_rf(n),I,J)=TNFST0(2,ntrix_rf(n),I,J)
-c    &              -rsign_aer*(TNFST(1,n,I,J)-TNFS(1,I,J))
-#endif /* TRACERS_AEROSOLS_Koch */
            end do     ! n=1,nraero_rf
 
 c ..........

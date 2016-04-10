@@ -552,8 +552,6 @@ C**** Aerosol specific switches and arrays
       integer :: OFFLINE_SS = 0
 !@dbparam aer_int_yr indicates year of emission
       integer :: aer_int_yr = 0
-!@var SNFST0,TNFST0 are instantaneous SW, LW aerosol forcings for AEROCOM
-c      real*8 SNFST0(2,NTM,IM,JM),TNFST0(2,NTM,IM,JM)
 #endif
 
 C**** tracer specific switches
