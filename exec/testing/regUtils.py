@@ -73,7 +73,10 @@ def ConfigSectionMap(config, section):
 # Get a list of compilers used
 def getCompilers(config):
    compconfig = ConfigSectionMap(config, 'COMPCONFIG')
-   compilers = compconfig['compilers'].split(",")
+   complist = compconfig['compilers'].split(",")
+   compilers = []
+   for c in complist:
+       compilers.append(c.strip())
    return compilers
 
 #-------------------------------------------------------------------------------

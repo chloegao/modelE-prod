@@ -103,23 +103,16 @@ class newRun(newRundeck):
 
     # ------------------------------------------------------
     #  Make system calls and record results of a regression test
-    def sysCmd(self, cmdStr, resIdx, stageID, makeLog='yes'):
+    def sysCmd(self, cmdStr, resIdx, stageID):
 
         logger = logging.getLogger('SYSTEM  ')
         status = 1
-        grepResult = 'OK'
+        numfail = 0
         if self.debug:
             logger.info(cmdStr)
         else:
             logger.debug(cmdStr)
-            if makeLog == 'yes':
-                makeLog = self.resultsDir + '/'  + self.name + '-make.log'
-                with open(makeLog,'a') as f:
-                    proc = sp.Popen(cmdStr,stdout=f,stderr=f,shell=True)
-                    proc.wait()
-                    status = proc.returncode
-            else:
-                status = 1
+            if stageID == 't':
                 if os.environ.has_key('PFUNIT'):
                     # --- Run make tests command ---
                     proc = sp.Popen(cmdStr, stdout=sp.PIPE, stderr=sp.PIPE,
@@ -140,17 +133,24 @@ class newRun(newRundeck):
                     status = proc.returncode
                 else:
                     logger.error('PFUNIT environment variable has not been set.')
+            else:
+                makeLog = self.resultsDir + '/'  + self.name + '-make.log'
+                with open(makeLog,'a') as f:
+                    proc = sp.Popen(cmdStr,stdout=f,stderr=f,shell=True)
+                    proc.wait()
+                    status = proc.returncode
                                  
             logger.debug('Return code: ' + str(status))
 
             if (status == 0):
                 self.results[resIdx] = self.successMark
             else:
-                if grepResult == 'OK':
+                if stageID == 't':
+                    self.results[resIdx] = str(numfail)
+                else:
                     logger.error(cmdStr+': FAILED')
                     self.results[resIdx] = self.failMark+stageID
-                else:
-                    self.results[resIdx] = str(numfail)
+                raise RuntimeError(cmdStr+': failed')
     
     # ------------------------------------------------------
     def build(self):
@@ -163,44 +163,39 @@ class newRun(newRundeck):
             try:
                 cmd = 'make rundeck '+self.runCmd+' '+self.runSrcCmd
                 self.sysCmd(cmd, 3, stageID)
-            except Exception, e:
-                logger.exception(str(e))
+            except RuntimeError, e:
                 return 1
+
             if self.standalone == 'yes':
                 try:
                     cmd = 'make --quiet clean'
                     self.sysCmd(cmd, 3, stageID)
-                except Exception, e:
-                    logger.exception(str(e))
+                except RuntimeError, e:
                     return 1
             try:
                 cmd = 'make -j gcm '+self.runCmd+' '+self.modeCmd+' '+self.xflags
                 self.sysCmd(cmd, 3, stageID)
-            except Exception, e:
-                logger.exception(str(e))
+            except RuntimeError, e:
                 return 1
         else:
             try:
                 configure = self.repository+'/exec/configure '
                 cmd = configure+self.name+' '+self.runsrc
                 self.sysCmd(cmd, 3, stageID)
-            except Exception, e:
-                logger.exception(str(e))
+            except RuntimeError, e:
                 return 1
             try:
                 cmd = 'make -j gcm'
                 self.sysCmd(cmd, 3, stageID)
-            except Exception, e:
-                logger.exception(str(e))
+            except RuntimeError, e:
                 return 1
 
         if self.unitTest == 'yes':
             logger.info('Run unit tests...')
             try:
                 cmd = 'make tests '+self.runCmd+' '+self.modeCmd
-                self.sysCmd(cmd, 4, 't', 'no')
-            except Exception, e:
-                logger.exception(str(e))
+                self.sysCmd(cmd, 4, 't')
+            except RuntimeError, e:
                 return 1
         return 0
            
@@ -216,37 +211,32 @@ class newRun(newRundeck):
             try:
                 cmd =  'make -j setup '+self.runCmd+' '+self.modeCmd+' '+self.xflags
                 self.sysCmd(cmd, 3, stageID)
-            except Exception, e:
-                logger.exception(str(e))
+            except RuntimeError, e:
                 return 1
         else:
             try:
                 self.sysCmd('make -j setup', 3, stageID)
-            except Exception, e:
-                logger.exception(str(e))
+            except RuntimeError, e:
                 return 1
 
         try:
             rune = self.repository+'/exec/runE '
             cmd = rune+self.name+' -np '+str(npes)+' -cold-restart'  
             self.sysCmd(cmd, 3, stageID)
-        except Exception, e:
-            logger.exception(str(e))
+        except RuntimeError, e:
             return 1
 
         try:
             cmd = 'cd '+self.name+ '; test `head -1 run_status` -eq ' + self.OKrc
             self.sysCmd(cmd, 3, stageID)
-        except Exception, e:
-            logger.exception(str(e))
+        except RuntimeError, e:
             return 1
 
         try:
             cmd = 'cd ' + self.name + '; cp fort.2.nc ' \
                 + utils.checkpointName(self.name, self.mode, '1hr', npes)
             self.sysCmd(cmd, 3, stageID)
-        except Exception, e:
-            logger.exception(str(e))
+        except RuntimeError, e:
             return 1
 
         logger.info(self.name + ' is DONE')
@@ -275,8 +265,7 @@ class newRun(newRundeck):
         try:
             cmd = self.repository+'/exec/editRundeck.sh '+self.name+newTime 
             self.sysCmd(cmd, 3, stageID)
-        except Exception, e:
-            logger.exception(str(e))
+        except RuntimeError, e:
             return 1
 
         # Run make setup again to update the rundeck-derived I file
@@ -284,53 +273,46 @@ class newRun(newRundeck):
             try:
                 cmd =  'make -j setup '+self.runCmd+' '+self.modeCmd+' '+self.xflags
                 self.sysCmd(cmd, 3, stageID)
-            except Exception, e:
-                logger.exception(str(e))
+            except RuntimeError, e:
                 return 1
         else:
             try:
                 self.sysCmd('make -j setup', 3, stageID)
-            except Exception, e:
-                logger.exception(str(e))
+            except RuntimeError, e:
                 return 1
 
         try:
             rune = self.repository+'/exec/runE '
             cmd = rune+self.name+' -np '+str(npes)+' -cold-restart'  
             self.sysCmd(cmd, 3, stageID)
-        except Exception, e:
-            logger.exception(str(e))
+        except RuntimeError, e:
             return 1
 
         try:
             cmd = 'cd ' + self.name + '; cp fort.1.nc ' \
                 +utils.checkpointName(self.name, self.mode, str(endTime)+'hr', npes)
             self.sysCmd(cmd, 3, stageID)
-        except Exception, e:
-            logger.exception(str(e))
+        except RuntimeError, e:
             return 1
 
         try:
             cmd = 'cd ' + self.name + '; cp fort.2.nc fort.1.nc; rm -f run_status'
             self.sysCmd(cmd, 3, stageID)
-        except Exception, e:
-            logger.exception(str(e))
+        except RuntimeError, e:
             return 1 
 
         try:
             cmd = 'cd ' + self.name + '; ' + restart \
                 + '; test `head -1 run_status` -eq ' + self.OKrc
             self.sysCmd(cmd, 3, stageID)
-        except Exception, e:
-            logger.exception(str(e))
+        except RuntimeError, e:
             return 1
 
         try:
             cmd = 'cd ' + self.name + ';cp fort.2.nc ' \
                 + utils.checkpointName(self.name, self.mode, 'restart', npes)
             self.sysCmd(cmd, 3, stageID)
-        except Exception,e:
-            logger.exception(str(e))
+        except RuntimeError,e:
             return 1
 
         # Reset INPUTZ settings (changed by editRundeck.sh) for next MPI run
@@ -338,8 +320,7 @@ class newRun(newRundeck):
             try:
                 makecmd = 'make rundeck '+self.runCmd+' '+self.runSrcCmd
                 self.sysCmd(makecmd, 3, stageID)
-            except Exception, e:
-                logger.exception(str(e))
+            except RuntimeError, e:
                 return 1
 
         logger.info(self.name + ' is DONE')
@@ -365,29 +346,25 @@ class newRun(newRundeck):
         try:
             self.sysCmd(self.repository + '/exec/editRundeck.sh ' + self.name + \
                            newTime, 3, stageID)
-        except Exception, e:
-            logger.exception(str(e))
+        except RuntimeError, e:
             return 1
 
         if self.makesystem == 'makeOld':
             try:
                 self.sysCmd('make -j setup ' + self.runCmd + ' ' + self.modeCmd + \
                                ' ' + self.xflags, 3, stageID)
-            except Exception, e:
-                logger.exception(str(e))
+            except RuntimeError, e:
                 return 1
         else:
             try:
                 self.sysCmd('make -j setup', 3, stageID)
-            except Exception, e:
-                logger.exception(str(e))
+            except RuntimeError, e:
                 return 1
 
         try:
             self.sysCmd(self.repository + '/exec/runE ' + self.name + ' -np ' + \
                            str(npes) + ' -cold-restart', 3, stageID)
-        except Exception, e:
-            logger.exception(str(e))
+        except RuntimeError, e:
             return 1
 
         logger.info(self.name + ' is DONE')
