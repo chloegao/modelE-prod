@@ -27,28 +27,32 @@ import regCompare as comp
 import regRuns as runsrc
 
 #-------------------------------------------------------------------------------
-def compare(run):
-    # Internal consistency checks
-    if run.mode == 'serial':
-        if run.verification == 'restartRun':
-            comp.restart(run, run.endTime)
-    else:
-        for npes in run.npes:
+def compare(runs, fileH):
+    for run in runs:
+        
+        # Internal consistency checks
+        if run.mode == 'serial':
             if run.verification == 'restartRun':
-                comp.restart(run, npes=npes)
-            # Compare NPE vs serial
-            comp.nPE(run, run.endTime, npes)
+                comp.restart(run, run.endTime)
+        else:
+            for npes in run.npes:
+                if run.verification == 'restartRun':
+                    comp.restart(run, npes=npes)
+                # Compare NPE vs serial
+                comp.nPE(run, run.endTime, npes)
             
-    # Baseline checks
-    if run.mode == 'serial':
-        comp.base(run, 1) # 1hr run
-        if run.verification == 'restartRun':
-            comp.base(run, run.endTime)
-    else:
-        for npes in run.npes:
-            comp.base(run, 1, npes=npes) # 1hr run
+        # Baseline checks
+        if run.mode == 'serial':
+            comp.base(run, 1) # 1hr run
             if run.verification == 'restartRun':
-                comp.base(run, run.endTime, npes=npes)
+                comp.base(run, run.endTime)
+        else:
+            for npes in run.npes:
+                comp.base(run, 1, npes=npes) # 1hr run
+                if run.verification == 'restartRun':
+                    comp.base(run, run.endTime, npes=npes)
+                    
+        util.writeDiff(run.results, fileH)
     
 #-------------------------------------------------------------------------------
 def main():
@@ -97,6 +101,10 @@ def main():
                     rc = run.hrRun()
                     if rc == OK and src.verification == 'restartRun':
                         rc = run.restartRun(endTime=run.endTime)
+                    else:
+                        continue
+                else:
+                    continue
             else: # MPI
                 mpiBuildResult = run.build()
                 if run.verification == 'compileOnly':
@@ -113,19 +121,15 @@ def main():
                             rc = run.hrRun(npes=npes)
                             if rc == OK and run.verification == 'restartRun':
                                 rc = run.restartRun(npes=npes, endTime=run.endTime)
+                            else:
+                                continue
+                else:
+                    continue
 
             logger.info(src.name + ' ' + run.mode + ' runs complete.')
-
-            if serBuildResult != OK or mpiBuildResult != OK:
-                continue
-
-            if run.verification != 'customRun' or run.verification != 'compileOnly':
-                compare(run)
-                util.writeDiff(run.results, fileH)
-
-        if src.verification == 'compileOnly':
-            util.writeDiff(run.results, fileH)
-
+            
+        compare(runs, fileH)
+        
         fileH.close()
 
         logger.info(src.name + ' verification complete.')
