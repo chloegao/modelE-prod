@@ -40,7 +40,7 @@ Preprocessor Options
 !  OFF #define SHINDELL_STRAT_EXTRA     ! non-chemistry stratospheric tracers
 !  OFF #define INTERACTIVE_WETLANDS_CH4 ! turns on interactive CH4 wetland source
 !  OFF #define ACCMIP_LIKE_DIAGS  ! adds many diags as defined by ACCMIP project
-#define SMOOTH_SUNLIGHT_CHEMISTRY ! attempts to get the same number of sunlight steps each longitude
+!  OFF #define SMOOTH_SUNLIGHT_CHEMISTRY ! attempts to get the same number of sunlight steps each longitude
 !<--- chemistry end
 !---> MATRIX start
 #define TRACERS_AMP
