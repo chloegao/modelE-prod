@@ -166,7 +166,7 @@ C**** Local parameters and variables and arguments:
      &  changeapinp1g,changeapinp2g,changeOx,fraQ,
      &  thick,changeCO,changeN_d1,changeN_d2,changeN_d3,changeNO3p,
      &  temp_SW,BRTOT,CLTOT,colmO2,colmO3,changeClONO2,changeClOx,
-     &  changeHOCl,changeHCl,changehetClONO2,chgHT3,
+     &  changeHOCl,changeHCl,changehetClONO2,chgHT3,albedoToUse,
      &  chgHT4,chgHT5,rmrClOx,rmrBrOx,rmv,rmrOx,avgTT_H2O,avgTT_CH4,
      &  countTT,bHNO3,mHNO3,HNO3_thresh,Ttemp,changeBrOx,changeBrONO2,
      &  changeBrOx2,changeHBr,tempChangeNOx,ss27x2,ss27x2_c,OHpptv,
@@ -174,7 +174,7 @@ C**** Local parameters and variables and arguments:
       integer :: igas,LL,I,J,L,N,inss,L2,n2,ierr,ierr_loc,Jqq,Iqq,
      & maxT,iu,itemp_iter,ih1330e,ih1030e,ih1030,ih1330,m,istep,index1,
      & index2,nb
-      LOGICAL                   :: error, jay
+      LOGICAL                   :: error, jay, daylight
       CHARACTER*4               :: ghg_name
       CHARACTER*80              :: ghg_file,title
       character(len=300)        :: out_line
@@ -590,12 +590,26 @@ C (and hence COSZ1 is set to 0), recalculate it with get_sza routine:
         sza = acos(COSZ1(I,J))*byradian
       END IF
 
+C SUNLIGHT criteria:
+      albedoToUse=ALB(I,J,1)
+#ifdef SMOOTH_SUNLIGHT_CHEMISTRY
+      daylight=(sza<szamax)
+      if(daylight)then
+        if(albedoToUse/=0.d0)then
+          mostRecentNonZeroAlbedo(I,J)=albedoToUse
+        else
+          albedoToUse=mostRecentNonZeroAlbedo(I,J)
+        end if
+      end if
+#else
+      daylight=((ALB(I,J,1)/=0.d0).and.(sza<szamax))
+#endif
+
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 C                 BEGIN PHOTOLYSIS                               C
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
-      ! SUNLIGHT criterion
-      if((ALB(I,J,1) /= 0.d0).AND.(sza < szamax))then
+      if(daylight)then
        
 c Pass O3 array (in ppmv; here seems to be ppv) to fastj. Above these
 C levels fastj2 uses Nagatani climatological O3, read in by chem_init: 
@@ -604,7 +618,7 @@ C levels fastj2 uses Nagatani climatological O3, read in by chem_init:
         END DO
 
 ! calculate photolysis rates
-        call fastj2_drv(I, J, ta, rh)
+        call fastj2_drv(I, J, ta, rh, albedoToUse)
         call photo_acetone(I,J,sza*radian) ! simpler calculation for acetone
 
 C Define and alter resulting photolysis coefficients (zj --> ss):
@@ -723,7 +737,7 @@ c Calculate the chemical reaction rates:
       voc2nox(:)=0.d0
 #endif  /* TRACERS_AEROSOLS_SOA */
 
-      if((ALB(I,J,1) /= 0.d0).AND.(sza < szamax))then
+      if(daylight)then
 CCCCCCCCCCCCCCCCCCCC   SUNLIGHT   CCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
 c      When PSCs present, ensure heterogenous reactions do not destroy
@@ -1577,7 +1591,7 @@ c           Conserve N wrt BrONO2 once inital Br changes past:
 ! -- moved from sunlight/darkness sections because needed changeNOx
 ! -- saved here in molecules/cm2
         if(L<=min(maxT,LTROPO(I,J)))then
-          if((ALB(I,J,1) /= 0.d0).AND.(sza < szamax))then
+          if(daylight)then
 
             index1=0 ; index2=0
 
@@ -1976,7 +1990,7 @@ c (radiation code wants atm-cm units):
      &  'L, O3pO2, O3pO2*C, OHpptv, HO2pptv, O/O3, NO2/NO, Cl/ClO:'
         call write_parallel(trim(out_line),crit=jay)
         do L=LS1,topLevelOfChemistry
-          if((ALB(I,J,1) /= 0.d0).AND.(sza < szamax))then
+          if(daylight)then
             ss27x2=2.d0*ss(27,L,i,j)*y(nO2,L) * (rr(98,L)*y(nO2,L))/
      &           (rr(98,L)*y(nO2,L)+rr(88,L)*y(nO3,L))
           else
@@ -2026,7 +2040,7 @@ CCCCCCCCCCCCC PRINT SOME CHEMISTRY DIAGNOSTICS CCCCCCCCCCCCCCCC
      &    pClOx(I,J,lprn),pOClOx(I,J,lprn),pBrOx(I,J,lprn)
          call write_parallel(trim(out_line),crit=jay)
          write(out_line,*)
-     &   'sun, SALBFJ,sza,I,J,Itime= ',ALB(I,J,1),sza,I,J,Itime
+     &   'sun, SALBFJ,sza,I,J,Itime= ',albedoToUse,sza,I,J,Itime
          call write_parallel(trim(out_line),crit=jay)
        end if
       end if
@@ -2037,7 +2051,7 @@ CCCCCCCCCCCCC PRINT SOME CHEMISTRY DIAGNOSTICS CCCCCCCCCCCCCCCC
         if(prnchg.and.J == jprn.and.I == iprn.and.L == lprn)then
           jay = (J >= J_0 .and. J <= J_1)
           write(out_line,*)
-     &    'dark, SALBFJ,sza,I,J,L,Itime= ',ALB(I,J,1),sza,I,J,L,Itime
+     &    'dark, SALBFJ,sza,I,J,L,Itime= ',albedoToUse,sza,I,J,L,Itime
           call write_parallel(trim(out_line),crit=jay)
           if(pscX(L))then
             write(out_line,*) 'There are PSCs, T =',ta(L)

@@ -1307,8 +1307,11 @@ C**** check whether air mass is conserved
      &     first_mod,max_days,nra_ncep,nra_ch4,maxHR_ch4,avg_model,
      &     avg_ncep
 #endif
-      use photolysis, only: jppj
+#ifdef SMOOTH_SUNLIGHT_CHEMISTRY
+      USE TRCHEM_Shindell_COM, only: mostRecentNonZeroAlbedo
 #endif
+      use photolysis, only: jppj
+#endif /* TRACERS_SPECIAL_Shindell */
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       USE fluxes,ONLY : pprec,pevap
       USE tracers_dust,ONLY : hbaij,ricntd
@@ -1357,7 +1360,10 @@ C**** check whether air mass is conserved
       REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: Rijch4_glob
       REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: Rijncep_glob
 #endif
-#endif     
+#ifdef SMOOTH_SUNLIGHT_CHEMISTRY
+      REAL*8, DIMENSION(:,:),ALLOCATABLE :: MRNZA_glob
+#endif
+#endif /* TRACERS_SPECIAL_Shindell */     
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       REAL*8,DIMENSION(Im,Jm) :: pprec_glob,ricntd_glob,hbaij_glob
       REAL*8,DIMENSION(Im,Jm) :: pevap_glob
@@ -1432,7 +1438,10 @@ C**** check whether air mass is conserved
      &    ,rDch4(IM,J_0H:J_1H,nra_ch4)
      &    ,r0ch4(IM,J_0H:J_1H,nra_ch4) )
 #endif
+#ifdef SMOOTH_SUNLIGHT_CHEMISTRY
+      allocate( MRNZA_glob(img,jmg) )
 #endif
+#endif /* TRACERS_SPECIAL_Shindell */
 
       allocate(trcSurfMixR_acc_glob(im,jm,NTM)
      &        ,trcSurfByVol_acc_glob(im,jm,NTM))
@@ -1663,6 +1672,12 @@ c not yet        if(am_i_root()) write(kunit,err=10) header,aijl_glob
      &      ,sOx_acc_glob,sNOx_acc_glob,sCO_acc_glob,l1Ox_acc_glob
      &      ,l1NO2_acc_glob
 #endif
+#if (defined TRACERS_SPECIAL_Shindell) &&\
+    (defined SMOOTH_SUNLIGHT_CHEMISTRY)
+       header='SMOOTH_SUNLIGHT_CHEMISTRY: mostRecentNonZeroAlbedo'
+       call pack_data(grid,mostRecentNonZeroAlbedo,MRNZA_glob)
+       if(am_i_root())write(kunit,err=10)header,MRNZA_glob
+#endif
 
       CASE (IOREAD:)          ! input from restart file
         SELECT CASE (IACTION)
@@ -1805,8 +1820,8 @@ C**** ESMF: Broadcast all non-distributed read arrays.
           call broadcast( grid, iday_ncep )  
           call broadcast( grid, i0_ncep   )  
           call broadcast( grid, first_ncep)
-#endif
-#endif
+#endif /* INTERACTIVE_WETLANDS_CH4 */
+#endif /* TRACERS_SPECIAL_Shindell */
 
           if (am_i_root()) read(kunit,err=10) header
      &         ,trcSurfMixR_acc_glob,trcSurfByVol_acc_glob
@@ -1837,6 +1852,12 @@ C**** ESMF: Broadcast all non-distributed read arrays.
           call unpack_data(grid,sCO_acc_glob,sCO_acc)
           call unpack_data(grid,l1Ox_acc_glob,l1Ox_acc)
           call unpack_data(grid,l1NO2_acc_glob,l1NO2_acc)
+#endif
+
+#if (defined TRACERS_SPECIAL_Shindell) &&\
+    (defined SMOOTH_SUNLIGHT_CHEMISTRY)
+       if(am_i_root())read(kunit,err=10)header,MRNZA_glob
+       call unpack_data(grid,MRNZA_glob,mostRecentNonZeroAlbedo)
 #endif
 
         END SELECT
@@ -1880,7 +1901,11 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       deallocate(day_ncep_glob,DRA_ch4_glob,HRA_ch4_glob,Rijch4_glob,
      & Rijncep_glob,rfirst_mod,rHch4,rDch4,r0ch4)
 #endif
+#ifdef SMOOTH_SUNLIGHT_CHEMISTRY
+      deallocate(MRNZA_glob)
 #endif
+#endif /* TRACERS_SPECIAL_Shindell */
+
       end subroutine freemem
 
 #endif
@@ -2021,7 +2046,10 @@ C**** ESMF: Broadcast all non-distributed read arrays.
      & HRA_ch4,iday_ncep,i0_ncep,iHch4,iDch4,i0ch4,first_ncep,first_mod,
      & avg_model,avg_ncep
 #endif
+#ifdef SMOOTH_SUNLIGHT_CHEMISTRY
+      use TRCHEM_Shindell_COM, only: mostRecentNonZeroAlbedo
 #endif
+#endif /* TRACERS_SPECIAL_Shindell */
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_TOMAS) 
       USE AEROSOL_SOURCES, only : snosiz
 #endif
@@ -2189,6 +2217,14 @@ c daily_z is currently only needed for CS
       call doVar(handle,action,csPM2p5_acc,
      *     'csPM2p5_acc(dist_im,dist_jm)')
       call doVar(handle,action,csPM10_acc,'csPM10_acc(dist_im,dist_jm)')
+#endif
+
+#if (defined TRACERS_SPECIAL_Shindell) &&\
+    (defined SMOOTH_SUNLIGHT_CHEMISTRY)
+      handle = ParallelIo(grid, fid,
+     &  'TRACERS_SPECIAL_Shindell&&SMOOTH_SUNLIGHT_CHEMISTRY')
+      call doVar(handle,action,mostRecentNonZeroAlbedo,
+     & 'mostRecentNonZeroAlbedo(dist_im,dist_jm)')
 #endif
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
