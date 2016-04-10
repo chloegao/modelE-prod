@@ -2992,14 +2992,18 @@ c               print*,'SUSA  diag',SUM(aesqex(1:Lm,kr,n))
 #endif
 
 #ifdef TRACERS_ON
-      ttausv_as(i,j,1:LM,1:nraero_aod)=ttausv(1:LM,1:nraero_aod)
-      ttausv_cs(i,j,1:LM,1:nraero_aod)=ttausv(1:LM,1:nraero_aod)*OPNSKY
+      if (nraero_aod>0) then
+        ttausv_as(i,j,1:LM,1:nraero_aod)=ttausv(1:LM,1:nraero_aod)
+        ttausv_cs(i,j,1:LM,1:nraero_aod)=ttausv(1:LM,1:nraero_aod)*
+     &                                   OPNSKY
 #ifdef CACHED_SUBDD
-      tabssv_as(i,j,1:LM,1:nraero_aod)=
-     &  (aesqex(1:LM,6,1:nraero_aod)-aesqsc(1:LM,6,1:nraero_aod))
-      tabssv_cs(i,j,1:LM,1:nraero_aod)=
-     &  (aesqex(1:LM,6,1:nraero_aod)-aesqsc(1:LM,6,1:nraero_aod))*OPNSKY
+        tabssv_as(i,j,1:LM,1:nraero_aod)=
+     &    (aesqex(1:LM,6,1:nraero_aod)-aesqsc(1:LM,6,1:nraero_aod))
+        tabssv_cs(i,j,1:LM,1:nraero_aod)=
+     &    (aesqex(1:LM,6,1:nraero_aod)-aesqsc(1:LM,6,1:nraero_aod))*
+     &    OPNSKY
 #endif  /* CACHED_SUBDD */
+      endif
 #endif /* TRACERS_ON */
 
       IF (I.EQ.IWRITE .and. J.EQ.JWRITE) CALL WRITER(6,ITWRITE)
