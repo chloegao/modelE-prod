@@ -4711,68 +4711,58 @@ c
       ir_ij(k) = ir_0_180
       ia_ij(k) = ia_inst
 
-C**** Also include MSU radiation diagnotsics here
+C**** Also include MSU radiation diagnostics here
 
-c      k=k+1 !
-c      IJ_MSU2 = k
-c      lname_ij(k) = 'MSU CHANNEL 2'
-c      units_ij(k) = 'C'
-c      name_ij(k) = 'MSU2'
-c      ia_ij(k) = ia_inst
-c      ir_ij(k) = ir_m80_28
-c      scale_ij(k) = 1.
-
-c      k=k+1 !
-c      IJ_MSU2R = k
-c      lname_ij(k) = 'MSU CHANNEL 2R'
-c      units_ij(k) = 'C'
-c      name_ij(k) = 'MSU2R'
-c      ia_ij(k) = ia_inst
-c      ir_ij(k) = ir_m80_28
-c      scale_ij(k) = 1.
-
-c      k=k+1 !
-c      IJ_MSU3 = k
-c      lname_ij(k) = 'MSU CHANNEL 3'
-c      units_ij(k) = 'C'
-c      name_ij(k) = 'MSU3'
-c      ia_ij(k) = ia_inst
-c      ir_ij(k) = ir_m80_28
-c      scale_ij(k) = 1.
-
-c      k=k+1 !
-c      IJ_MSU4 = k
-c      lname_ij(k) = 'MSU CHANNEL 4'
-c      units_ij(k) = 'C'
-c      name_ij(k) = 'MSU4'
-c      ia_ij(k) = ia_inst
-c      ir_ij(k) = ir_m80_28
-c      scale_ij(k) = 1.
-
-      k = k + 1
-      ij_msu2 = k
-      name_ij(k) = 'Tmsu_ch2'
-      lname_ij(k) = 'MSU-channel 2 TEMPERATURE'
+      k=k+1 !
+      ij_msutlt = k
+      name_ij(k) = 'Tmsu-TLT'
+      lname_ij(k) = 'MSU-TLT TEMPERATURE'
       units_ij(k) = 'C'
       ia_ij(k) = ia_inst
       ir_ij(k) = ir_m80_28
 
       k = k + 1
-      ij_msu3 = k
-      name_ij(k) = 'Tmsu_ch3'
-      lname_ij(k) = 'MSU-channel 3 TEMPERATURE'
+      ij_msutmt = k
+      name_ij(k) = 'Tmsu_TMT'
+      lname_ij(k) = 'MSU-TMT TEMPERATURE'
       units_ij(k) = 'C'
       ia_ij(k) = ia_inst
       ir_ij(k) = ir_m80_28
 
       k = k + 1
-      ij_msu4 = k
-      name_ij(k) = 'Tmsu_ch4'
-      lname_ij(k) = 'MSU-channel 4 TEMPERATURE'
+      ij_msutls = k
+      name_ij(k) = 'Tmsu_TLS'
+      lname_ij(k) = 'MSU-TLS TEMPERATURE'
       units_ij(k) = 'C'
       ia_ij(k) = ia_inst
       ir_ij(k) = ir_m80_28
 
+C**** Add in Stratospheric Sounding Units (3 channels)
+      k = k + 1
+      ij_ssu1 = k
+      name_ij(k) = 'Tssu_ch1'
+      lname_ij(k) = 'SSU-Ch 1 TEMPERATURE'
+      units_ij(k) = 'C'
+      ia_ij(k) = ia_inst
+      ir_ij(k) = ir_m80_28
+
+      k = k + 1
+      ij_ssu2 = k
+      name_ij(k) = 'Tssu_ch2'
+      lname_ij(k) = 'SSU-Ch 2 TEMPERATURE'
+      units_ij(k) = 'C'
+      ia_ij(k) = ia_inst
+      ir_ij(k) = ir_m80_28
+
+      k = k + 1
+      ij_ssu3 = k
+      name_ij(k) = 'Tssu_ch3'
+      lname_ij(k) = 'SSU-Ch 3 TEMPERATURE'
+      units_ij(k) = 'C'
+      ia_ij(k) = ia_inst
+      ir_ij(k) = ir_m80_28
+
+C****
       k = k + 1
       ij_Tatm = k
       name_ij(k) = 'Tatm'

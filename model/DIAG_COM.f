@@ -556,7 +556,6 @@ C****      names, indices, units, idacc-numbers, etc.
      *     IJ_EMTMOM, IJ_SMTMOM, IJ_FMU, IJ_FMV, IJ_SSTABX,
      *     IJ_FGZU, IJ_FGZV, IJ_ERVR, IJ_MRVR, IJ_SSS, IJ_PRECMC,
      *     IJ_LKON, IJ_LKOFF, IJ_LKICE, IJ_PTROP, IJ_TTROP,
-     *     ! IJ_MSU2,IJ_MSU2R,
      *     IJ_P850,
      *     IJ_GPP, IJ_IPP, IJ_RAUTO, IJ_CLAB, IJ_DLEAF, IJ_LAI, !VEG DIAGNOSTICS
      *     IJ_SOILRESP, IJ_SOILCPOOLSUM, !additional veg diags (soil bgc)
@@ -610,9 +609,9 @@ c derived/composite diagnostics
       INTEGER, public ::
      *  ij_topo, ij_jet, ij_wsmn, ij_jetdir, ij_wsdir, ij_grow,
      *  ij_netrdp, ij_albp, ij_albg, ij_albv, ij_ntdsese, ij_ntdsete,
-     *  ij_fland, ij_dzt1, ij_albgv, ij_msu2,ij_msu3,ij_msu4,
+     *  ij_fland, ij_dzt1, ij_albgv, ij_msutlt,ij_msutmt,ij_msutls,
+     *  ij_ssu1, ij_ssu2, ij_ssu3,
      *  ij_Tatm, ij_RTSE, ij_HWV, ij_PVS
-
 
       integer, public :: ij_tsurfmin,ij_tsurfmax
 
