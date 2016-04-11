@@ -31,28 +31,21 @@
 #endif
 #endif /* TRACERS_WATER */
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
-    (defined TRACERS_TOMAS)
-      use tracers_dust,only : imDust,prefDustSources,fracClayPDFscheme
-     &   ,fracSiltPDFscheme
+    (defined TRACERS_AMP)  || (defined TRACERS_TOMAS)
       use trdust_drv, only : init_soildust
-#endif
-#ifdef TRACERS_QUARZHEM
-     &     ,DensityHematite, DensityQuartz, FreeFe, frHemaInQuarAggr,
-     &     pureByTotalHematite
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM,only:LCOalt,PCOalt,
      &     CH4altINT,CH4altINX,LCH4alt,PCH4alt,
      &     CH4altX,CH4altT,ch4_init_sh,ch4_init_nh,scale_ch4_IC_file,
      &     OxICIN,OxIC,OxICINL,OxICL,
-     &     fix_CH4_chemistry,which_trop,PI_run,PIratio_N,PIratio_CO_T,
-     &     PIratio_CO_S,PIratio_other,allowSomeChemReinit,
+     &     fix_CH4_chemistry,which_trop,
+     &     allowSomeChemReinit,
      &     CH4ICIN,CH4ICX,CH4ICINL,CH4ICL,use_rad_ch4,
      &     COICIN,COIC,COICINL,COICL,Lmax_rad_O3,Lmax_rad_CH4
      &     ,BrOxaltIN,ClOxaltIN,ClONO2altIN,HClaltIN,BrOxalt,
      &     ClOxalt,ClONO2alt,HClalt,N2OICIN,N2OICX,N2OICINL,N2OICL,
-     &     CFCICIN,CFCIC,CFCICINL,CFCICL,PIratio_N2O,PIratio_CFC,
+     &     CFCICIN,CFCIC,CFCICINL,CFCICL,
      &     use_rad_n2o,use_rad_cfc,cfc_rad95,PltOx,Tpsc_offset_N,
      &     Tpsc_offset_S
 #ifdef INTERACTIVE_WETLANDS_CH4
@@ -227,7 +220,7 @@ C         Interpolate CH4 altitude-dependence to model resolution:
       case ('CFC')
 #ifdef TRACERS_SPECIAL_Shindell
           if(AM_I_ROOT( ))then
-C          check on GHG file's 1995 value for CFCs:
+C          check on GHG files 1995 value for CFCs:
            call openunit('GHG',iu_data,.false.,.true.)
            do i=1,5; read(iu_data,'(a80)') title; enddo
            temp_year=0
@@ -259,7 +252,11 @@ C          read the CFC initial conditions:
           end do     ; end do
 #endif /* TRACERS_SPECIAL_Shindell */
 
-      case ('CO')
+      case ('CO'
+#ifdef TRACERS_dCO
+     *     ,'dC17O','dC18O','d13CO'
+#endif  /* TRACERS_dCO */
+     *     )
 #ifdef TRACERS_SPECIAL_Shindell
           call openunit('CO_IC',iu_data,.true.,.true.)
           CALL READT8_PARALLEL(grid,iu_data,NAMEUNIT(iu_data),COICIN,0)
@@ -289,8 +286,7 @@ C**** Get to_conc from rundecks if it exists
       call syncProperty(tracers,"to_conc", set_to_conc, to_conc())
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
 c**** soil dust aerosol initializations
       call init_soildust
 #endif
@@ -334,6 +330,7 @@ C Read landuse parameters and coefficients for tracer dry deposition:
       CALL SETUP_RAD
 #endif
 
+      call init_src_dist
 
       return
       end subroutine initTracerGriddedData

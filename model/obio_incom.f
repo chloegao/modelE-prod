@@ -9,9 +9,6 @@
 
       implicit none
 
-      integer, ALLOCATABLE, DIMENSION(:,:)   :: ir
-      real,    ALLOCATABLE, DIMENSION(:,:,:) :: Fer,dicmod,dic
-
       real :: rmumax(nchl)          !max phyto growth rate at 20oC, d/
       real :: rik(3,nchl)           !light saturation parameter umol quanta/m2/s
       real :: obio_wsd(nchl)        !phyto sinking rate m/d
@@ -23,7 +20,6 @@
 
       real rad, pi2
 
-      real :: pHsfc               !pH at surface
       real Pdeep(ntyp)            !deep BC
       real detdeep(ndet)          !detrital deep BC
       real cardeep(ncar)          !carbon deep BC
@@ -81,7 +77,7 @@ C if CARBON /=1    parameter(Rm=1.0/24.0)      !max zoopl. growth rate/hr
 
 c     parameter(bn=0.5,bs=0.5)        !N/chl and Si/chl ratios
       
-      real bn,bf,cchlratio
+      real bn,bs,bf,cchlratio
 
 
       integer nl450
@@ -113,24 +109,4 @@ c     parameter(bn=0.5,bs=0.5)        !N/chl and Si/chl ratios
       real, parameter ::  estFe = 0.01   ! estuarine retention rate, can vary between 0.2 and 0.01 (daCunha 2007)
 #endif
 #endif
-      contains
-
-      subroutine alloc_obio_incom
-
-#ifdef OBIO_ON_GARYocean
-      USE OCEANRES, only :idm=>imo,jdm=>jmo,kdm=>lmo
-#else
-      USE hycom_dim_glob
-#endif
-
-      implicit none
-
-!*******NEED TO DEALLOCATE LATER: only the first two lines
-      ALLOCATE(ir(idm,jdm))
-      ALLOCATE(Fer(idm,jdm,kdm),dicmod(idm,jdm,kdm),dic(idm,jdm,kdm))
-
-
-      end subroutine alloc_obio_incom
-
-
       END MODULE obio_incom

@@ -22,20 +22,43 @@ SECTORS_ARE='WET'
 !-fit-here--|                                                              |---
 !-----
 aircraft_Tyr1=1910 ! regardless of the type of run, if you have non-transient
-aircraft_Tyr2=2000 ! aircraft emission files, set these two equal or omit them.
+aircraft_Tyr2=2020 ! aircraft emission files, set these two equal or omit them.
 
 ! Colin Price lightning model needs resolution-dependant tuning:
-tune_lt_land=1.4322d0 ! =2.2d0*2.17d0 then *0.5*1.2*0.5 for 2x2.5 model
-tune_lt_sea= 3.1736d0 ! =3.9d0*2.17d0 then *0.25*1.5 for 2x2.5 model
+tune_lt_land=2.4920d0 ! =2.2d0*2.17d0, *0.5*1.2*0.5 for 2x2.5, * 2 for bugfix, *0.87
+tune_lt_sea= 5.5221d0 ! =3.9d0*2.17d0, *0.25*1.5 for 2x2.5, * 2 for bugfix, *0.87
 
 ! -----------------------------------
 ! Pressure above which Ox, NOx, BrOx, and ClOx will be
-! overwritten with climatology. Default of 0.1 is (From 23-
-! layer model) won't choose any 40-layer model levels):
-PltOx=0.2
-
-Tpsc_offset_N=-10.d0 ! pol.strat.cloud temperature offset NH
-Tpsc_offset_S=-7.5d0 ! pol.strat.cloud temperature offset SH
+! overwritten with climatology based on NINT ozone input.
+PltOx=0.0
+! NH and SH polar stratospheric cloud formation temperature offsets:
+Tpsc_offset_N=-10.d0 
+Tpsc_offset_S=-10.d0
+! -----------------------------------
+! 40-layer model with VMP clouds chemistry tuning parameters: 
+! (If you do *not* have VMP clouds comment these out and uncomment the next section):
+reg1Power_SpherO2andN2Ocorr=2.0
+reg1TopPres_SpherO2andN2Ocorr=50.
+reg2Power_SpherO2andN2Ocorr=2.0
+reg2TopPres_SpherO2andN2Ocorr=10.
+reg3Power_SpherO2andN2Ocorr=1.0
+reg3TopPres_SpherO2andN2Ocorr=5.
+reg4Power_SpherO2andN2Ocorr=0.5
+windowN2Ocorr=0.8
+windowO2corr=0.8
+! -----------------------------------
+! Older, 40-layer model without VMP clouds chemistry tuning parameters:
+! reg1Power_SpherO2andN2Ocorr=0.5
+! reg1TopPres_SpherO2andN2Ocorr=50.
+! reg2Power_SpherO2andN2Ocorr=0.5
+! reg2TopPres_SpherO2andN2Ocorr=10.
+! reg3Power_SpherO2andN2Ocorr=0.5
+! reg3TopPres_SpherO2andN2Ocorr=5.
+! reg4Power_SpherO2andN2Ocorr=0.5
+! windowN2Ocorr=0.6
+! windowO2corr=0.6
+! -----------------------------------
 
 COUPLED_CHEM=1     ! to couple chemistry and aerosols
 use_sol_Ox_cycle=0 ! (=1) apply ozone changes in radiation, based on solar cycle
@@ -60,7 +83,10 @@ scale_ch4_IC_file=1.d0 ! multiplicative factor on CH4 IC file (fix_CH4_chemistry
 ! For altering tracer initial conditions and overwriting by a factor:
 ! set PI_run=1 and change the corresponding factors below. [For altering
 ! emissions, use the sectors above in the rundeck.
-!PI_run        = 1       ! =1 turns on below factors:
+!PI_run        = 1       ! =1 turns on below PIratio factors. Note that for
+                         ! master_yr=1850 if PI_run is undefined in the rundeck
+                         ! it defaults to 1, so the parameters below are used.
+                         ! For all other master_yr values, PI_run defaults to 0
 PIratio_N     = 0.667d0 ! {NOx, HNO3, N2O5, HO2NO2}
 PIratio_CO_T  = 0.333d0 ! CO in troposphere
 PIratio_CO_S  = 0.500d0 ! CO in stratosphere

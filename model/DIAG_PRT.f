@@ -877,7 +877,7 @@ C****
       USE CONSTANT, only :
      &     grav,rgas,kapa,twopi,bygrav,tf,teeny,radius
       USE DOMAIN_DECOMP_ATM, only : GRID
-      USE RESOLUTION, only : ls1,pmtop
+      USE RESOLUTION, only : ls1=>ls1_nominal,pmtop
       USE MODEL_COM, only : xlabel,lrunid,DTsrc,IDACC
       USE ATM_COM, only : lm_req,req_fac_d,req_fac_m
       USE DYNAMICS, only : do_gwdrag

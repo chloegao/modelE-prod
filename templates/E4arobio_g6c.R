@@ -15,6 +15,7 @@ Preprocessor Options
 #define TRACERS_ON                  ! include tracers code
 #define USE_ENT
 #define CHECK_OCEAN                 ! needed to compile aux/file CMPE002
+#define OCN_LAYERING L32
 #define OBIO_ON_GARYocean           ! obio on Russell ocean
 #define TRACERS_OCEAN               ! Gary's Ocean tracers activated
 #define TRACERS_OCEAN_INDEP         ! independently defined ocn tracers
@@ -29,9 +30,9 @@ Object modules: (in order of decreasing priority)
      ! resolution-specific source codes
 Atm144x90                  ! horizontal resolution is 144x90 -> 2x2.5deg
 AtmL40                      ! vertical resolution is 40 layers -> 0.1mb
-ORES_2Hx2_L32                       ! ocean horiz res 2x2.5deg, 32 vert layers
 DIAG_RES_F                          ! diagnostics (resolution dependent)
-FFT144 OFFT144E                     ! utilities
+FFT144                              ! utilities
+ORES_2Hx2 OFFT144E                  ! ocean horiz res 2x2.5deg
 
 IO_DRV                              ! new i/o 
 
@@ -47,11 +48,6 @@ STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 OCN_Int_LATLON                      ! atm-ocn regrid routines
 
 #include "ocarbon_cycle_oR_files" ! both gas exch and ocean tracer oR model
-
-obio_diffmod     |$(R8)|
-
-!!!ar!!!obio_oasimhr     |$(R8)|
-!!!ar!!!obio_limits      |$(R8)|
 
 Components:
 tracers Ent shared MPI_Support solvers giss_LSM dd2d
@@ -103,13 +99,13 @@ cfle2=acbc25b.dat                        ! phytoplankton spectrl absorp.
 !!!!pco2table=pco2.tbl.asc               ! table to compute pco2 values
                                          ! from sst,sss,dic,alk
                                          ! if not defined pCO2_ONLINE
-nitrates_inicond=no3_nodc_annmean.asc    ! initial cond for nitrates (NODC)
-silicate_inicond=sio2_nodc_annmean.asc   ! initial cond for silicate (NODC)
-dic_inicond=dic_glodap_annmean.asc       ! initial cond for dic (GLODAP)
-alk_inicond=alk_glodap_annmean.asc       ! initial cond/forc for alk(GLODAP)
+nitrates_inicond=no3_nodc_annmean_90x144.nc    ! initial cond for nitrates (NODC)
+silicate_inicond=sio2_nodc_annmean_90x144.nc   ! initial cond for silicate (NODC)
+dic_inicond=dic_glodap_annmean_90x144.nc       ! initial cond for dic (GLODAP)
+alk_inicond=alk_glodap_annmean_90x144.nc       ! initial cond/forc for alk(GLODAP)
 !!!oasimdirect=oasimdirect_20w_new       ! spectral light components
                                          ! if not def OBIO_RAD_coupling
-atmFe_inicond=iron_gocart_1x1mon.asc     ! GOCART iron flux
+atmFe_inicond=iron_gocart_1x1mon_90x144.nc     ! GOCART iron flux
 atmFedirect1=iron_ron_195x180_20w.asc    ! Ron Miller's dust fluxes
 facirr=facirr.asc                        ! factors for mean irrad w/in water
 eda_esa_ratios=eda_esa_ratios.asc        ! ratios of rad spectrl components
@@ -218,6 +214,8 @@ nssw=48         ! obio needs that in order to always restart from hour 0
 !!! atmCO2=289.9      !uatm for preindustrial runs
 atmCO2=0.             !prognostic atmCO2
 to_volume_MixRat=1    ! for tracer printout
+!!!solFe=0.02            ! default iron solubility
+solFe=0.05            ! enhanced iron solubility
 
 &&END_PARAMETERS
 

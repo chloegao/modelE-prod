@@ -35,8 +35,7 @@ module AmpTracersMetadata_mod
     n_M_MXX_SU,n_M_MXX_BC,n_M_MXX_OC,n_M_MXX_DU, &
     n_M_MXX_SS,n_N_MXX_1 ,n_M_OCS_SU,n_M_OCS_OC, &
     n_N_OCS_1,n_M_SSS_SS,n_M_SSS_SU,             &
-    n_H2SO4, n_N_SSA_1, n_N_SSC_1,               &  
-    n_H2O2, n_NH3,  n_NH4, n_H2SO4, n_DMS, n_SO2, n_H2O2_s
+    n_H2SO4, n_N_SSA_1, n_N_SSC_1
   use RunTimeControls_mod, only: &
     tracers_nitrate, tracers_aerosols_koch, tracers_aerosols_seasalt, &
     tracers_amp_m1, tracers_amp_m2,         &
@@ -73,7 +72,7 @@ module AmpTracersMetadata_mod
     2 ,2 ,3 ,3 ,3,  & !ACC,DD1
     4 ,4 ,4 ,5 ,5,  & !DS1,DD2
     5 ,6 ,6 ,6 ,7,  & !DD2,DS2,SSA
-    7 ,8,           & !SSA,SSC
+    7 ,7, 8, 8,     & !SSA,SSC
     9 ,9 ,9 ,10,10, & !OCC,BC1
     10,11,11,11,12, & !BC1,BC2,BC3
     12,12,13,13,13, & !BC3,DBC
@@ -85,7 +84,7 @@ module AmpTracersMetadata_mod
     0 ,2 ,0 ,0 ,3,  & !ACC,DD1
     0 ,0 ,4 ,0 ,0,  & !DS1,DD2
     5 ,0 ,0 ,6 ,0,  & !DD2,DS2,SSA
-    0 ,0,           & !SSA,SSC
+    0 ,7 ,0 ,8 ,    & !SSA,SSC
     0 ,0 ,9 ,0 ,0 , & !OCC,BC1
     10,0 ,0 ,11,0 , & !BC1,BC2,BC3
     0 ,12,0 ,0 ,0 , & !BC3,DBC
@@ -95,7 +94,7 @@ module AmpTracersMetadata_mod
   integer, parameter :: AMP_AERO_MAP(ntmAMP)=(/ &
     1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10, &
     11,12,13,14,15,16,17,18,19,20, &
-    21,      24,   26,27,28,29,30, &
+    21,22,   24,25,26,27,28,29,30, &
     31,32,33,34,35,36,37,38,39,40, &
     41,42,43,44,45,46,47,48,49,50, &
     51,52,53,54   /)
@@ -104,25 +103,25 @@ module AmpTracersMetadata_mod
     ntm_chem+6 ,ntm_chem+6 ,ntm_chem+8 ,ntm_chem+8 ,ntm_chem+8,  & !ACC,DD1
     ntm_chem+11,ntm_chem+11,ntm_chem+11,ntm_chem+14,ntm_chem+14, & !DS1,DD2
     ntm_chem+14,ntm_chem+17,ntm_chem+17,ntm_chem+17,ntm_chem+20, & !DD2,DS2,SSA
-    ntm_chem+20,ntm_chem+22,                                     & !SSA,SSC
-    ntm_chem+23,ntm_chem+23,ntm_chem+23,ntm_chem+26,ntm_chem+26, & !OCC,BC1
-    ntm_chem+26,ntm_chem+29,ntm_chem+29,ntm_chem+29,ntm_chem+32, & !BC1,BC2,BC3
-    ntm_chem+32,ntm_chem+32,ntm_chem+35,ntm_chem+35,ntm_chem+35, & !BC3,DBC
-    ntm_chem+35,ntm_chem+39,ntm_chem+39,ntm_chem+39,ntm_chem+39, & !DBC,BOC
-    ntm_chem+43,ntm_chem+43,ntm_chem+43,ntm_chem+46,ntm_chem+46, & !BCS,MXX
-    ntm_chem+46,ntm_chem+46,ntm_chem+46,ntm_chem+46/)
+    ntm_chem+20,ntm_chem+20,ntm_chem+23,ntm_chem+23,             & !SSA,SSC
+    ntm_chem+25,ntm_chem+25,ntm_chem+25,ntm_chem+28,ntm_chem+28, & !OCC,BC1
+    ntm_chem+28,ntm_chem+31,ntm_chem+31,ntm_chem+31,ntm_chem+35, & !BC1,BC2,BC3
+    ntm_chem+35,ntm_chem+35,ntm_chem+37,ntm_chem+37,ntm_chem+37, & !BC3,DBC
+    ntm_chem+37,ntm_chem+41,ntm_chem+41,ntm_chem+41,ntm_chem+41, & !DBC,BOC
+    ntm_chem+45,ntm_chem+45,ntm_chem+45,ntm_chem+48,ntm_chem+48, & !BCS,MXX
+    ntm_chem+48,ntm_chem+48,ntm_chem+48,ntm_chem+48/)
   integer, parameter :: AMP_trm_nm2(ntmAMP)=(/ &
     0 ,         0 ,         0 ,ntm_chem+4 ,ntm_chem+4,  & !AKK
     ntm_chem+6 ,ntm_chem+6 ,ntm_chem+9 ,ntm_chem+9 ,ntm_chem+9,  & !ACC,DD1
     ntm_chem+12,ntm_chem+12,ntm_chem+12,ntm_chem+15,ntm_chem+15, & !DS1,DD2
     ntm_chem+15,ntm_chem+18,ntm_chem+18,ntm_chem+18,ntm_chem+21, & !DD2,DS2,SSA
-    ntm_chem+21,ntm_chem+22,                                     & !SSA,SSC
-    ntm_chem+24,ntm_chem+24,ntm_chem+24,ntm_chem+27,ntm_chem+27, & !OCC,BC1
-    ntm_chem+27,ntm_chem+30,ntm_chem+30,ntm_chem+30,ntm_chem+33, & !BC1,BC2,BC3
-    ntm_chem+33,ntm_chem+33,ntm_chem+37,ntm_chem+37,ntm_chem+37, & !BC3,DBC
-    ntm_chem+37,ntm_chem+41,ntm_chem+41,ntm_chem+41,ntm_chem+41, & !DBC,BOC
-    ntm_chem+44,ntm_chem+44,ntm_chem+44,ntm_chem+50,ntm_chem+50, & !BCS,MXX
-    ntm_chem+50,ntm_chem+50,ntm_chem+50,ntm_chem+50/)
+    ntm_chem+21,ntm_chem+21,ntm_chem+24,ntm_chem+24,             & !SSA,SSC
+    ntm_chem+26,ntm_chem+26,ntm_chem+26,ntm_chem+29,ntm_chem+29, & !OCC,BC1
+    ntm_chem+29,ntm_chem+32,ntm_chem+32,ntm_chem+32,ntm_chem+35, & !BC1,BC2,BC3
+    ntm_chem+35,ntm_chem+35,ntm_chem+39,ntm_chem+39,ntm_chem+39, & !BC3,DBC
+    ntm_chem+39,ntm_chem+43,ntm_chem+43,ntm_chem+43,ntm_chem+43, & !DBC,BOC
+    ntm_chem+46,ntm_chem+46,ntm_chem+46,ntm_chem+52,ntm_chem+52, & !BCS,MXX
+    ntm_chem+52,ntm_chem+52,ntm_chem+52,ntm_chem+52/)
 #endif
 #ifdef TRACERS_AMP_M2
   integer, parameter :: AMP_MODES_MAP(ntmAMP)=(/ &
@@ -476,7 +475,9 @@ contains
       tracers_amp_m7) then
       n_M_SSA_SU = AMP_SetSpec('SSA','SU')
       n_M_SSA_SS = AMP_SetSpec('SSA','SS')
+      n_N_SSA_1  = AMP_SetSpec('SSA','1' )
       n_M_SSC_SS = AMP_SetSpec('SSC','SS')
+      n_N_SSC_1  = AMP_SetSpec('SSC','1' )
     end if
 
     if ( tracers_amp_m4 .or. tracers_amp_m8) then ! cases not tested
@@ -656,6 +657,7 @@ contains
     function AMP_setSpec(mode, component) result (tracerIndex)
 !------------------------------------------------------------------------------
       use OldTracer_mod, only: om2oc, set_om2oc
+      use Dictionary_mod, only: sync_param
       implicit none
       character(len=*), intent(in) :: mode
       character(len=*), intent(in) :: component
@@ -677,7 +679,7 @@ contains
 
       if (trim(component) == 'OC') then
         tmp = om2oc(tracerIndex)
-        call sync_param(trim(name)//"_om2oc",tmp)
+        call sync_param(trim(tracerName)//"_om2oc",tmp)
         call set_om2oc(tracerIndex, tmp)
       endif
       call set_ntm_power(tracerIndex, -11)
@@ -692,10 +694,6 @@ contains
       call set_trradius(tracerIndex, getRadius(mode))
       call set_fq_aer(tracerIndex, getSolubility(mode))
       call set_tr_wd_type(tracerIndex, nPART)
-
-      if (trim(tracerName) == 'M_BC1_BC') then
-        call check_aircraft_sectors(tracerName) ! special 3D source case
-      endif
 
     end function AMP_setSpec
 

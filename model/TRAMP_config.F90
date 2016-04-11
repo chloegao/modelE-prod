@@ -69,7 +69,7 @@
 !                                                                                                                                MODE
 !-------------------------------------------------------------------------------------------------------------------------------------
       CHARACTER(LEN=3) :: CITABLE1(NM1,NM1)
-      DATA CITABLE1(1:NM1, 1)/'AKK','ACC','DD1','DS1','DD2','DS2','SSA','SSC','OCC','BCS','BCS','BCS','DBC','BOC','BCS','MXX'/ ! AKK
+      DATA CITABLE1(1:NM1, 1)/'AKK','ACC','DD1','DS1','DD2','DS2','SSA','SSC','OCC','BC1','BC2','BC3','DBC','BOC','BCS','MXX'/ ! AKK
       DATA CITABLE1(1:NM1, 2)/'ACC','ACC','DD1','DS1','DD2','DS2','SSA','SSC','OCC','BCS','BCS','BCS','DBC','BOC','BCS','MXX'/ ! ACC
       DATA CITABLE1(1:NM1, 3)/'DD1','DD1','DD1','DD1','DD2','DD2','MXX','MXX','MXX','DBC','DBC','DBC','DBC','MXX','DBC','MXX'/ ! DD1
       DATA CITABLE1(1:NM1, 4)/'DS1','DS1','DD1','DS1','DD2','DS2','MXX','MXX','MXX','DBC','DBC','DBC','DBC','MXX','DBC','MXX'/ ! DS1
@@ -78,9 +78,9 @@
       DATA CITABLE1(1:NM1, 7)/'SSA','SSA','MXX','MXX','MXX','MXX','SSA','SSC','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! SSA
       DATA CITABLE1(1:NM1, 8)/'SSC','SSC','MXX','MXX','MXX','MXX','SSC','SSC','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! SSC
       DATA CITABLE1(1:NM1, 9)/'OCC','OCC','MXX','MXX','MXX','MXX','MXX','MXX','OCC','BOC','BOC','BOC','MXX','BOC','BOC','MXX'/ ! OCC
-      DATA CITABLE1(1:NM1,10)/'BCS','BCS','DBC','DBC','DBC','DBC','MXX','MXX','BOC','BC1','BC1','BC1','DBC','BOC','BCS','MXX'/ ! BC1
-      DATA CITABLE1(1:NM1,11)/'BCS','BCS','DBC','DBC','DBC','DBC','MXX','MXX','BOC','BC1','BC2','BC2','DBC','BOC','BCS','MXX'/ ! BC2
-      DATA CITABLE1(1:NM1,12)/'BCS','BCS','DBC','DBC','DBC','DBC','MXX','MXX','BOC','BC1','BC2','BC3','DBC','BOC','BCS','MXX'/ ! BC3
+      DATA CITABLE1(1:NM1,10)/'BC1','BCS','DBC','DBC','DBC','DBC','MXX','MXX','BOC','BC1','BC1','BC1','DBC','BOC','BCS','MXX'/ ! BC1
+      DATA CITABLE1(1:NM1,11)/'BC2','BCS','DBC','DBC','DBC','DBC','MXX','MXX','BOC','BC1','BC2','BC2','DBC','BOC','BCS','MXX'/ ! BC2
+      DATA CITABLE1(1:NM1,12)/'BC3','BCS','DBC','DBC','DBC','DBC','MXX','MXX','BOC','BC1','BC2','BC3','DBC','BOC','BCS','MXX'/ ! BC3
       DATA CITABLE1(1:NM1,13)/'DBC','DBC','DBC','DBC','DBC','DBC','MXX','MXX','MXX','DBC','DBC','DBC','DBC','MXX','DBC','MXX'/ ! DBC
       DATA CITABLE1(1:NM1,14)/'BOC','BOC','MXX','MXX','MXX','MXX','MXX','MXX','BOC','BOC','BOC','BOC','MXX','BOC','BOC','MXX'/ ! BOC
       DATA CITABLE1(1:NM1,15)/'BCS','BCS','DBC','DBC','DBC','DBC','MXX','MXX','BOC','BCS','BCS','BCS','DBC','BOC','BCS','MXX'/ ! BCS
@@ -93,7 +93,7 @@
 !                                                                                                                                MODE
 !-------------------------------------------------------------------------------------------------------------------------------------
       CHARACTER(LEN=3) :: CITABLE2(NM2,NM2)
-      DATA CITABLE2(1:NM2, 1)/'AKK','ACC','DD1','DS1','DD2','DS2','SSA','SSC','OCS','BCS','BCS','OCS','DBC','BOC','BCS','MXX'/ ! AKK
+      DATA CITABLE2(1:NM2, 1)/'AKK','ACC','DD1','DS1','DD2','DS2','SSA','SSC','OCC','BC1','BC2','OCS','DBC','BOC','BCS','MXX'/ ! AKK
       DATA CITABLE2(1:NM2, 2)/'ACC','ACC','DD1','DS1','DD2','DS2','SSA','SSC','OCS','BCS','BCS','OCS','DBC','BOC','BCS','MXX'/ ! ACC
       DATA CITABLE2(1:NM2, 3)/'DD1','DD1','DD1','DD1','DD2','DD2','MXX','MXX','MXX','DBC','DBC','MXX','DBC','MXX','DBC','MXX'/ ! DD1
       DATA CITABLE2(1:NM2, 4)/'DS1','DS1','DD1','DS1','DD2','DS2','MXX','MXX','MXX','DBC','DBC','MXX','DBC','MXX','DBC','MXX'/ ! DS1
@@ -101,9 +101,9 @@
       DATA CITABLE2(1:NM2, 6)/'DS2','DS2','DD2','DS2','DD2','DS2','MXX','MXX','MXX','DBC','DBC','MXX','DBC','MXX','DBC','MXX'/ ! DS2
       DATA CITABLE2(1:NM2, 7)/'SSA','SSA','MXX','MXX','MXX','MXX','SSA','SSC','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! SSA
       DATA CITABLE2(1:NM2, 8)/'SSC','SSC','MXX','MXX','MXX','MXX','SSC','SSC','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! SSC
-      DATA CITABLE2(1:NM2, 9)/'OCS','OCS','MXX','MXX','MXX','MXX','MXX','MXX','OCC','BOC','BOC','OCS','MXX','BOC','BOC','MXX'/ ! OCC
-      DATA CITABLE2(1:NM2,10)/'BCS','BCS','DBC','DBC','DBC','DBC','MXX','MXX','BOC','BC1','BC1','BOC','DBC','BOC','BCS','MXX'/ ! BC1
-      DATA CITABLE2(1:NM2,11)/'BCS','BCS','DBC','DBC','DBC','DBC','MXX','MXX','BOC','BC1','BC2','BOC','DBC','BOC','BCS','MXX'/ ! BC2
+      DATA CITABLE2(1:NM2, 9)/'OCC','OCS','MXX','MXX','MXX','MXX','MXX','MXX','OCC','BOC','BOC','OCS','MXX','BOC','BOC','MXX'/ ! OCC
+      DATA CITABLE2(1:NM2,10)/'BC1','BCS','DBC','DBC','DBC','DBC','MXX','MXX','BOC','BC1','BC1','BOC','DBC','BOC','BCS','MXX'/ ! BC1
+      DATA CITABLE2(1:NM2,11)/'BC2','BCS','DBC','DBC','DBC','DBC','MXX','MXX','BOC','BC1','BC2','BOC','DBC','BOC','BCS','MXX'/ ! BC2
       DATA CITABLE2(1:NM2,12)/'OCS','OCS','MXX','MXX','MXX','MXX','MXX','MXX','OCS','BOC','BOC','OCS','MXX','BOC','BOC','MXX'/ ! OCS 
       DATA CITABLE2(1:NM2,13)/'DBC','DBC','DBC','DBC','DBC','DBC','MXX','MXX','MXX','DBC','DBC','MXX','DBC','MXX','DBC','MXX'/ ! DBC
       DATA CITABLE2(1:NM2,14)/'BOC','BOC','MXX','MXX','MXX','MXX','MXX','MXX','BOC','BOC','BOC','BOC','MXX','BOC','BOC','MXX'/ ! BOC
@@ -156,16 +156,16 @@
 !                                                                                                                    MODE
 !-------------------------------------------------------------------------------------------------------------------------
       CHARACTER(LEN=3) :: CITABLE5(NM5,NM5)
-      DATA CITABLE5(1:NM5, 1)/'AKK','ACC','DD1','DS1','SSA','SSC','OCC','BCS','BCS','BCS','DBC','BOC','BCS','MXX'/ ! AKK
+      DATA CITABLE5(1:NM5, 1)/'AKK','ACC','DD1','DS1','SSA','SSC','OCC','BC1','BC2','BC3','DBC','BOC','BCS','MXX'/ ! AKK
       DATA CITABLE5(1:NM5, 2)/'ACC','ACC','DD1','DS1','SSA','SSC','OCC','BCS','BCS','BCS','DBC','BOC','BCS','MXX'/ ! ACC
       DATA CITABLE5(1:NM5, 3)/'DD1','DD1','DD1','DD1','MXX','MXX','MXX','DBC','DBC','DBC','DBC','MXX','DBC','MXX'/ ! DD1
       DATA CITABLE5(1:NM5, 4)/'DS1','DS1','DD1','DS1','MXX','MXX','MXX','DBC','DBC','DBC','DBC','MXX','DBC','MXX'/ ! DS1
       DATA CITABLE5(1:NM5, 5)/'SSA','SSA','MXX','MXX','SSA','SSC','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! SSA
       DATA CITABLE5(1:NM5, 6)/'SSC','SSC','MXX','MXX','SSC','SSC','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! SSC
       DATA CITABLE5(1:NM5, 7)/'OCC','OCC','MXX','MXX','MXX','MXX','OCC','BOC','BOC','BOC','MXX','BOC','BOC','MXX'/ ! OCC
-      DATA CITABLE5(1:NM5, 8)/'BCS','BCS','DBC','DBC','MXX','MXX','BOC','BC1','BC1','BC1','DBC','BOC','BCS','MXX'/ ! BC1
-      DATA CITABLE5(1:NM5, 9)/'BCS','BCS','DBC','DBC','MXX','MXX','BOC','BC1','BC2','BC2','DBC','BOC','BCS','MXX'/ ! BC2
-      DATA CITABLE5(1:NM5,10)/'BCS','BCS','DBC','DBC','MXX','MXX','BOC','BC1','BC2','BC3','DBC','BOC','BCS','MXX'/ ! BC3
+      DATA CITABLE5(1:NM5, 8)/'BC1','BCS','DBC','DBC','MXX','MXX','BOC','BC1','BC1','BC1','DBC','BOC','BCS','MXX'/ ! BC1
+      DATA CITABLE5(1:NM5, 9)/'BC2','BCS','DBC','DBC','MXX','MXX','BOC','BC1','BC2','BC2','DBC','BOC','BCS','MXX'/ ! BC2
+      DATA CITABLE5(1:NM5,10)/'BC3','BCS','DBC','DBC','MXX','MXX','BOC','BC1','BC2','BC3','DBC','BOC','BCS','MXX'/ ! BC3
       DATA CITABLE5(1:NM5,11)/'DBC','DBC','DBC','DBC','MXX','MXX','MXX','DBC','DBC','DBC','DBC','MXX','DBC','MXX'/ ! DBC
       DATA CITABLE5(1:NM5,12)/'BOC','BOC','MXX','MXX','MXX','MXX','BOC','BOC','BOC','BOC','MXX','BOC','BOC','MXX'/ ! BOC
       DATA CITABLE5(1:NM5,13)/'BCS','BCS','DBC','DBC','MXX','MXX','BOC','BCS','BCS','BCS','DBC','BOC','BCS','MXX'/ ! BCS
@@ -178,15 +178,15 @@
 !                                                                                                                    MODE
 !-------------------------------------------------------------------------------------------------------------------------
       CHARACTER(LEN=3) :: CITABLE6(NM6,NM6)
-      DATA CITABLE6(1:NM6, 1)/'AKK','ACC','DD1','DS1','SSA','SSC','OCS','BCS','BCS','OCS','DBC','BOC','BCS','MXX'/ ! AKK
+      DATA CITABLE6(1:NM6, 1)/'AKK','ACC','DD1','DS1','SSA','SSC','OCC','BC1','BC2','OCS','DBC','BOC','BCS','MXX'/ ! AKK
       DATA CITABLE6(1:NM6, 2)/'ACC','ACC','DD1','DS1','SSA','SSC','OCS','BCS','BCS','OCS','DBC','BOC','BCS','MXX'/ ! ACC
       DATA CITABLE6(1:NM6, 3)/'DD1','DD1','DD1','DD1','MXX','MXX','MXX','DBC','DBC','MXX','DBC','MXX','DBC','MXX'/ ! DD1
       DATA CITABLE6(1:NM6, 4)/'DS1','DS1','DD1','DS1','MXX','MXX','MXX','DBC','DBC','MXX','DBC','MXX','DBC','MXX'/ ! DS2
       DATA CITABLE6(1:NM6, 5)/'SSA','SSA','MXX','MXX','SSA','SSC','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! SSA
       DATA CITABLE6(1:NM6, 6)/'SSC','SSC','MXX','MXX','SSC','SSC','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! SSC
-      DATA CITABLE6(1:NM6, 7)/'OCS','OCS','MXX','MXX','MXX','MXX','OCC','BOC','BOC','OCS','MXX','BOC','BOC','MXX'/ ! OCC
-      DATA CITABLE6(1:NM6, 8)/'BCS','BCS','DBC','DBC','MXX','MXX','BOC','BC1','BC1','BOC','DBC','BOC','BCS','MXX'/ ! BC1
-      DATA CITABLE6(1:NM6, 9)/'BCS','BCS','DBC','DBC','MXX','MXX','BOC','BC1','BC2','BOC','DBC','BOC','BCS','MXX'/ ! BC2
+      DATA CITABLE6(1:NM6, 7)/'OCC','OCS','MXX','MXX','MXX','MXX','OCC','BOC','BOC','OCS','MXX','BOC','BOC','MXX'/ ! OCC
+      DATA CITABLE6(1:NM6, 8)/'BC1','BCS','DBC','DBC','MXX','MXX','BOC','BC1','BC1','BOC','DBC','BOC','BCS','MXX'/ ! BC1
+      DATA CITABLE6(1:NM6, 9)/'BC2','BCS','DBC','DBC','MXX','MXX','BOC','BC1','BC2','BOC','DBC','BOC','BCS','MXX'/ ! BC2
       DATA CITABLE6(1:NM6,10)/'OCS','OCS','MXX','MXX','MXX','MXX','OCS','BOC','BOC','OCS','MXX','MXX','MXX','MXX'/ ! OCS 
       DATA CITABLE6(1:NM6,11)/'DBC','DBC','DBC','DBC','MXX','MXX','MXX','DBC','DBC','MXX','DBC','MXX','MXX','MXX'/ ! DBC
       DATA CITABLE6(1:NM6,12)/'BOC','BOC','MXX','MXX','MXX','MXX','BOC','BOC','BOC','MXX','MXX','BOC','MXX','MXX'/ ! BOC

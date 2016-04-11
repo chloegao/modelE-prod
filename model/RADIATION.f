@@ -150,7 +150,7 @@ C----------------
       REAL*8 :: snoage_fac_max=.5d0
 
 !@var ITRMAX maximum number of optional tracers
-      INTEGER, PARAMETER :: ITRMAX=50
+      INTEGER, PARAMETER :: ITRMAX=150
 !@var TRACER array to add up to ITRMAX additional aerosol species
       REAL*8    :: TRACER(LX,ITRMAX)
 !@var FSTOPX,FTTOPX switches on/off aerosol for diagnostics (solar,thermal component)
@@ -743,7 +743,11 @@ C-----------------------------------------------------------------------
       REAL*8, dimension(13) ::
 C     GAS NUMBER    1         2    3      4    5         6           7
 C                 H2O       CO2   O3     O2  NO2       N2O         CH4
+#ifdef V2_O2_MODE /* temporary option to exactly match v2_branch */
+     *   PPMV80=(/0d0, 337.90d0, 0d0,    21d4,0d0,  .3012d0,   1.5470d0
+#else
      *   PPMV80=(/0d0, 337.90d0, 0d0,pO2*1.d6,0d0,  .3012d0,   1.5470d0
+#endif
      *     ,.1666d-03,.3003d-03, 0d0,   .978D-04,  .0010D-10,  .0420d0/)
 C              CCL3F1    CCL2F2   N2     CFC-Y       CFC-Z         SO2
 C     GAS NUMBER    8         9   10        11          12          13
@@ -1666,7 +1670,11 @@ C----------------------------------------------
       SUBROUTINE RCOMPX
       use SURF_ALBEDO, only : getsur
       use O3mod, only : plbo3,nlo3
+#ifdef SCM
+      use SCM_COM, only : SCMopt,SCMin
+#endif
       IMPLICIT NONE
+      integer k
 C     ------------------------------------------------------------------
 C     MADVEL  Model Add-on Data of Extended Climatology Enable Parameter
 C             Each MADVEL digit is ON/OFF switch for corresponding input
@@ -1719,6 +1727,16 @@ C--------------------------------
         ! climatology above those levels:
         U0GAS(1:lm_gcm,3)=O3JDAY_HF_modelLevels(1:lm_gcm,IGCM,JGCM)
         FULGAS(3)=1.d0
+#endif
+#ifdef SCM
+        if(SCMopt%ozone)then
+        ! Overwrite specified SCM levels (indicated by non-zero values), 
+        ! leaving climatology above those levels:
+          do k = 1,lm_gcm
+            if(SCMin%O3(k) > 0.) U0GAS(k,3)=SCMin%O3(k)
+          enddo
+          FULGAS(3)=1.d0
+        endif
 #endif
         ! considering this move to here from setgas:
         ! chem_out(:,1)=U0GAS(:,3)*FULGAS(3) ! save climatology O3 for chem
@@ -2956,27 +2974,20 @@ C-----------------
 
   500 CONTINUE
 
+#if (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
 #ifdef TRACERS_AMP
       CALL SETAMP(EXT,SCT,GCB,TAB)
-       do L = L1,LM  !radiation has 3 extra levels on the top - aerosol are zero
-c SW
-         SRBEXT(l,:) = EXT(l,:)
-         SRBSCT(l,:) = SCT(l,:)
-         SRBGCB(l,:) = GCB(l,:)
-c LW
-         TRBALK(l,:) = TAB(l,:)
-       enddo
 #endif
 #ifdef TRACERS_TOMAS
       CALL SETTOMAS(EXT,SCT,GCB,TAB)
-       do L = L1,LM
+#endif
+!radiation has 3 extra levels on the top - aerosols are zero
 c SW
-         SRBEXT(l,:) = EXT(l,:)
-         SRBSCT(l,:) = SCT(l,:)
-         SRBGCB(l,:) = GCB(l,:)
+      SRBEXT(L1:LM,:) = EXT(L1:LM,:)
+      SRBSCT(L1:LM,:) = SCT(L1:LM,:)
+      SRBGCB(L1:LM,:) = GCB(L1:LM,:)
 c LW
-         TRBALK(l,:) = TAB(l,:)
-       enddo
+      TRBALK(L1:LM,:) = TAB(L1:LM,:)
 #endif
 
 #ifndef TRACERS_TOMAS
@@ -3979,6 +3990,10 @@ C     ----------------------------------------------------------
 
       real*8 :: dudp(lx),ddudp ! ddudp is vertical gradient of water vapor
 
+#ifdef TAPER_UTCF
+      real*8 :: pcen_tap,wt_one,pwid_tap
+#endif
+
       ! compute QABOVE/QBELOW, the WV amount above/below each reference level
       CALL REPART (ULGAS(1,1),PLB,  NL+1,
      &             QABOVE,    PLBCF, NLCF+1)
@@ -4246,6 +4261,18 @@ c      end if
 
         XTRU(NL,2:NRCF+1) = 1.
         XTRD(NL,2:NRCF+1) = 1.
+
+#ifdef TAPER_UTCF
+        ! force upward transmission correction factors to 1 near the model top
+        !pcen_tap = 1d0 ! center pressure (mb) of blending region
+        pcen_tap = .1d0 ! center pressure (mb) of blending region
+        pwid_tap = .5d0*pcen_tap ! width (mb) of blending region
+        do l=nl,1,-1
+          wt_one = .5d0*(1d0+tanh((pcen_tap-plb(l))/pwid_tap)) ! blending weight
+          xtru(l,2:nrcf+1) = wt_one*1d0 + (1d0-wt_one)*xtru(l,2:nrcf+1)
+          if(wt_one.lt.1d-3) exit ! far from model top
+        enddo
+#endif
 
       ! correction for cases when water vapor mixing ratio increases upward
         DO L=1,NL
@@ -5318,7 +5345,7 @@ C                            -------------------------------------------
      *     ,TRN2,TRN3,TAUG,TAU2,TAU3,S0VIS,S0NIR,SUMX,SUMD,SUMU,SUMN
      *     ,SUMH,SGPG
       INTEGER I,K,KK,L,M,N,NN,KLAM,NDBLS
-      REAL*8 :: ZWPATH,ALPH,BETA,FACK12,ROOT,TAUK,FACK13
+      REAL*8 :: WVCOL,ZWPATH,ALPH,BETA,FACK12,ROOT,PTROOT,TAUK,FACK13
 
       S0COSZ=S0 ; IF (NORMS0==0) S0COSZ=S0*COSZ
 
@@ -5489,7 +5516,15 @@ cc      ALLGCB(K)=SGPG
       ENDIF
    90 CONTINUE
 
-      ZWPATH = SUM(ULGAS(:,1))*(1d0/COSZ + 2d0*srbalb(6))
+      WVCOL = SUM(ULGAS(:,1))
+      ZWPATH = WVCOL*(1d0/COSZ + 2d0*srbalb(6))
+
+#ifdef SWFIX_20151201
+      FACK12 = 0.09325D0*
+     &     ((ZWPATH**0.97D0)/(1.D0+5.D-4*(ZWPATH**1.31D0)))*0.462D-05
+      FACK13 = 0.0001982D0*
+     &     ((WVCOL**1.08D0)*(1.D0+6.D-5*(WVCOL**0.93D0)))*0.277D-05 
+#endif
 
       K = 0
   300 CONTINUE    !   DO K=1,NKSLAM
@@ -5617,6 +5652,11 @@ C            fOnOff is 'tunable' from 0. to 1. (introduced 7/3/2014)
 
       CASE (12)
       !ULN=ULGAS(N,1) ! not needed because uln set to this before select case
+#ifdef SWFIX_20151201
+      PTROOT=(((PLN+10.0)/1000.0)**0.5D0)/SQRT(TLN/296.D0)
+      TAUK=PTROOT*ULN
+      TAU=TAUK*FACK12*FONOFF
+#else
       ALPH=0.002d0
       BETA=0.200d0
       !FACK12=1.05D-04*ZWPATH/(1.D0-1.D-05*ZWPATH)
@@ -5624,9 +5664,15 @@ C            fOnOff is 'tunable' from 0. to 1. (introduced 7/3/2014)
       ROOT=SQRT(((PLN+50.0)/1000.0)**2+1000.0*BETA*ULN/(PLN+50.0))
       TAUK=ALPH*(ROOT-(PLN+50.0)/1000.0)
       TAU=TAUK*FACK12*fOnOff
+#endif
 
       CASE (13)
       !ULN=ULGAS(N,1) ! not needed because uln set to this before select case
+#ifdef SWFIX_20151201
+      PTROOT=(((PLN+10.0)/1000.0)**0.5D0)/SQRT(TLN/296.D0)
+      TAUK=PTROOT*ULN
+      TAU=TAUK*FACK13*FONOFF
+#else
       ALPH=0.004d0
       BETA=0.200d0
       !FACK13=1.05D-04*ZWPATH/(1.D0-1.D-05*ZWPATH)
@@ -5634,6 +5680,7 @@ C            fOnOff is 'tunable' from 0. to 1. (introduced 7/3/2014)
       ROOT=SQRT(((PLN+50.0)/1000.0)**2+1000.0*BETA*ULN/(PLN+50.0))
       TAUK=ALPH*(ROOT-(PLN+50.0)/1000.0)
       TAU=TAUK*FACK13*fOnOff
+#endif
 
       CASE (14)
         TAU=XCMNO2*ULGAS(N,5)+XCMO3*ULGAS(N,3)

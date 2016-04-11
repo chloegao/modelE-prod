@@ -78,7 +78,7 @@ SCM_SFLUX=SCM_DYCOMS-II-RF02.nc   ! surface heat flux(es)
 SCM_TSKIN=SCM_DYCOMS-II-RF02.nc   ! skin temperature
 SCM_GEO=SCM_DYCOMS-II-RF02.nc     ! geostrophic wind profile(s)
 SCM_THETA=SCM_DYCOMS-II-RF02.nc   ! potential temperature profile(s)
-SCM_WVMR=SCM_DYCOMS-II-RF02.nc    ! water vapor mixing ratio profile(s)
+SCM_WVMR=SCM_DYCOMS-II-RF02.nc    ! water vapor mixing ratio profile(s) (revised 2015-10-29)
 SCM_W=SCM_DYCOMS-II-RF02.nc       ! large-scale vertical wind profile(s)
 
 ! Topography, area fractions of surface types
@@ -183,6 +183,8 @@ SCM_area=10000000000.0     ! arbitrary grid box area (m2)
 SCM_sfc=2                  ! 1:land,2:ocean
 SCM_ustar=0.25             ! surface friction speed (m/s)
 SCM_BeersLaw=70.,22.,85.   ! Beer's Law f0,f1 (W/m2), and kappa (m2/kg)
+SCM_allowMC=1              ! allow moist convection? 
+SCM_allowCTEI=1            ! allow cloud-top entrainment instability?
 
 DTsrc=1800.     ! Atm. physics timestep.
 NIsurf=1        ! Number of surface physics timesteps per atm. physics timestep.
@@ -243,7 +245,7 @@ Nssw=2
 SUBDD='u v t q rh z p_3d p_surf prec mcp ssp snowfall snowdp qcl qci'
 SUBDD1='cldss cldmc cldss_2d totcld totcld_diag'
 SUBDD2='gtempr shflx lhflx ustar pblht pwv lwp iwp tau_ss tau_mc'
-SUBDD3='olrrad olrcs lwds lwdscs lwus swds swus swdf'
+SUBDD3='olrrad olrcs lwds lwdscs lwus swds swus swdf egcm'
 SUBDD4='dq_turb dth_turb dq_mc dth_mc dq_ss dth_ss dth_sw dth_lw dth_rad'
 SUBDD5='dq_ls dth_ls dq_nudge dth_nudge'
 NSUBDD=1         ! saving sub-daily diags every NSUBDD-th physics time step (1/2 hr)

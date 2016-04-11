@@ -15,9 +15,8 @@ obio_incom       |$(R8)|
 obio_com         |$(R8)|
 obio_forc        |$(R8)|
 obio_init        |$(R8)|
-obio_bioinit_g   |$(R8)|
+obio_bioinit     |$(R8)|
 obio_model       |$(R8)|
-obio_trint       |$(R8)|
 obio_daysetrad   |$(R8)|
 obio_daysetbio   |$(R8)|
 obio_sfcirr      |$(R8)|
@@ -27,3 +26,6 @@ obio_carbon      |$(R8)|
 obio_update      |$(R8)|
 obio_sinksettl   |$(R8)|
 !!!obio_alkalinity  |$(R8)|
+obio_diffmod|$(R8)|
+obio_chkbalances |$(R8)|
+obio_conserv |$(R8)|

@@ -640,6 +640,11 @@
 
       !* Update cop respiration, NPP, C_lab.
       cop%R_auto =  Resp_maint + Resp_growth + Resp_growth_1
+
+!!! trying to restrict respiration to available C_lab
+      cop%R_auto = min(cop%R_auto, cop%C_lab*cop%n/1000.d0/dtsec)
+      cop%R_auto = max(cop%R_auto, 0.d0)
+
       cop%R_root = Resp_froot
       cop%NPP = cop%GPP - cop%R_auto !kg-C/m2-ground/s
       cop%C_lab = cop%C_lab + 1000.d0*cop%NPP*dtsec/cop%n !(g-C/individual)

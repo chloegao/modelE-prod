@@ -11,8 +11,7 @@
       USE OCEANRES, only : kdm=>lmo
       use ocean, only : jm
 #else
-      USE hycom_dim_glob
-      USE hycom_scalars, only: baclin
+      USE hycom_dim_glob, only: kdm
 #endif
 
       implicit none
@@ -28,10 +27,11 @@ c
       real, ALLOCATABLE, DIMENSION(:,:,:,:):: rmuplsr3d,rikd3d
       real, ALLOCATABLE, DIMENSION(:,:,:,:):: acdom3d
       real, ALLOCATABLE, DIMENSION(:,:,:)  :: gcmax         !cocco max growth rate
-      real, ALLOCATABLE, DIMENSION(:,:)    :: pCO2          !partial pressure of CO2
-      real, ALLOCATABLE, DIMENSION(:,:)    :: cexpij        !detritus term (Pg,C/yr)
-      real, ALLOCATABLE, DIMENSION(:,:)    :: caexpij       !CaCO3 export term (Pg,C/yr)
       real, ALLOCATABLE, DIMENSION(:,:)    :: pp2tot_day    !net pp total per day
+      real, ALLOCATABLE, DIMENSION(:,:)    :: pp2diat_day
+      real, ALLOCATABLE, DIMENSION(:,:)    :: pp2chlo_day
+      real, ALLOCATABLE, DIMENSION(:,:)    :: pp2cyan_day
+      real, ALLOCATABLE, DIMENSION(:,:)    :: pp2cocc_day
       real, ALLOCATABLE, DIMENSION(:,:)    :: tot_chlo      !tot chlorophyl at surf. layer
       real, ALLOCATABLE, DIMENSION(:,:,:,:):: rhs_obio      !rhs matrix
       real, ALLOCATABLE, DIMENSION(:,:,:)  :: chng_by       !integr tendency for total C
@@ -64,21 +64,31 @@ c
 #endif
 
 #ifndef OBIO_ON_GARYocean   /* NOT for Russell ocean */
-      real, ALLOCATABLE, DIMENSION(:,:,:,:) :: tracav
-      real, ALLOCATABLE, DIMENSION(:,:,:)   :: plevav
       real, ALLOCATABLE, DIMENSION(:,:) :: pCO2av, pCO2av_loc
       real, ALLOCATABLE, DIMENSION(:,:) :: pp2tot_dayav
       real, ALLOCATABLE, DIMENSION(:,:) :: pp2tot_dayav_loc
       real, ALLOCATABLE, DIMENSION(:,:) :: cexpav, cexpav_loc
       real, ALLOCATABLE, DIMENSION(:,:) :: caexpav, caexpav_loc
       real, ALLOCATABLE, DIMENSION(:,:) :: ao_co2fluxav,ao_co2fluxav_loc
-      real, ALLOCATABLE, DIMENSION(:,:) :: ao_co2flux_loc  !ao CO2 on the ocean grid ***NOT for GASEXCH runs****
+      real, ALLOCATABLE, DIMENSION(:,:) :: pp2diat_dayav
+      real, ALLOCATABLE, DIMENSION(:,:) :: pp2diat_dayav_loc
+      real, ALLOCATABLE, DIMENSION(:,:) :: pp2chlo_dayav
+      real, ALLOCATABLE, DIMENSION(:,:) :: pp2chlo_dayav_loc
+      real, ALLOCATABLE, DIMENSION(:,:) :: pp2cyan_dayav
+      real, ALLOCATABLE, DIMENSION(:,:) :: pp2cyan_dayav_loc
+      real, ALLOCATABLE, DIMENSION(:,:) :: pp2cocc_dayav
+      real, ALLOCATABLE, DIMENSION(:,:) :: pp2cocc_dayav_loc
+      real, ALLOCATABLE, DIMENSION(:,:) :: pHav,pHav_loc
 #endif
+      real, ALLOCATABLE, DIMENSION(:,:,:,:):: tracer
+      real, ALLOCATABLE, DIMENSION(:,:)::  Edz,Euz,Esz
+      real, ALLOCATABLE, DIMENSION(:,:)::  Kd       !absorption+scattering in seawater due to chl
+      real, ALLOCATABLE, DIMENSION(:)::  Kpar     !kpar from NBOM
+      real, ALLOCATABLE, DIMENSION(:)::  delta_temp1d  !change in T due to kpar
+
+      integer :: nstep0=0
+
 #ifdef OBIO_ON_GARYocean
-      real, ALLOCATABLE, DIMENSION(:,:,:,:):: tracer_loc    !only for gary ocean
-
-      integer nstep0
-
 
       !test point
 !!    integer, parameter :: itest=16, jtest=45    !equatorial Pacific                  2deg ocean
@@ -120,6 +130,7 @@ c
      .                 ,alk1d(kdm),flimit(kdm,nchl,5)
 
       real atmFe_ij,covice_ij
+
       integer inwst,inwnd,jnwst,jnwnd     !starting and ending indices 
                                           !for daylight 
                                           !in i and j directions
@@ -127,7 +138,8 @@ c
       real P_tend(kdm,ntyp+n_inert)       !bio tendency (dP/dt)
 
 #ifdef TRACERS_Alkalinity
-      real A_tend(kdm)
+      real A_tend(kdm), co3_conc
+      real ca_det_calc1d(kdm),Ca_tend(kdm)
 #endif
 #ifdef OBIO_RUNOFF
 
@@ -191,169 +203,556 @@ C endif
       real*8 :: Iron_BC = -0.005
 #endif
 
-#ifdef OBIO_ON_GARYocean
-      real*8, allocatable :: focean_glob(:,:)
-      integer, allocatable :: lmom_glob(:,:)
-#endif
+      real*8, dimension(:, :, :), allocatable :: ze
 
+      character(len=50) :: arg2d, arg3d
+
+      contains
+
+      subroutine build_ze
+#ifdef OBIO_ON_GARYocean
+      use oceanr_dim, only: ogrid
+      use oceanres, only: kdm=>lmo
+      use ofluxes, only: oapress
+      use ocean, only: g0m,s0m,mo,dxypo,lmm
+      use constant, only: grav
+#else
+      use hycom_dim, only: ogrid, kdm
+      USE hycom_arrays, only : dpinit
+      USE hycom_scalars, only: onem
+#endif
+      implicit none
+      integer :: k
+      real :: pres,g,s
+      integer :: i,j
+      real*8 :: volgsp
+
+      if (.not.allocated(ze)) allocate(ze(ogrid%i_strt:ogrid%i_stop,
+     &                                ogrid%j_strt:ogrid%j_stop, 0:kdm))
+      ze=0
+#ifdef OBIO_ON_GARYocean
+      do i=ogrid%i_strt,ogrid%i_stop
+        do j=ogrid%j_strt,ogrid%j_stop
+          pres=oapress(i,j)
+          do k=1, lmm(i,j)
+            pres=pres+mo(i,j,k)*grav*.5
+            g=g0m(i,j,k)/(mo(i,j,k)*dxypo(j))
+            s=s0m(i,j,k)/(mo(i,j,k)*dxypo(j))
+            ze(i,j,k)=ze(i,j,k-1)+mo(i,j,k)*volgsp(g,s,pres)
+            pres=pres+mo(i,j,k)*grav*.5
+          end do
+        end do
+      end do
+#else
+      do k=1, kdm
+        ze(:, :, k)=ze(:, :, k-1)+dpinit(ogrid%i_strt:ogrid%i_stop,
+     &                 ogrid%j_strt:ogrid%j_stop, k)/onem
+      end do
+#endif
+      end subroutine build_ze
 
       END MODULE obio_com
+
+
+
+!------------------------------------------------------------------------------
+      module vector_str30_mod
+#define _entry character(30)
+#include "containers/vector.fh"
+      end module vector_str30_mod
+
+      module vector_str80_mod
+#define _entry character(80)
+#include "containers/vector.fh"
+      end module vector_str80_mod
+
+
+      module obio_diag
+      use vector_str30_mod, only: vector_str30=>vector
+      use vector_str80_mod, only: vector_str80=>vector
+      use vector_integer_mod, only: vector_integer=>vector
+      use vector_real8_mod, only: vector_real8=>vector
+      use cdl_mod, only: cdl_type
+      use obio_dim, only: ntrac
+      implicit none
+      private
+
+      public :: init_obio_diag, new_io_obio_diag, def_meta_obio_diag,
+     &   write_meta_obio_diag, def_rsf_obio_diag, reset_obio_diag,
+     &   add_diag
+
+      real*8, dimension(:, :, :), allocatable, public :: obio_ij
+      real*8, dimension(:, :, :, :), allocatable, public :: obio_ijl
+      integer, public :: ij_solz, ij_sunz, ij_dayl, ij_ed, ij_es,
+     &   ij_nitr, ij_amm, ij_sil, ij_iron, ij_diat, ij_chlo, ij_cyan,
+     &   ij_cocc, ij_herb, ij_doc, ij_dic, ij_pco2, ij_alk, ij_flux,
+     &   ij_cexp, ij_ndet, ij_wsd, ij_xchl, ij_fca, ij_rnitrmflo,
+     &   ij_rnitrconc, ij_rdicconc, ij_rdocconc, ij_rsiliconc,
+     &   ij_rironconc, ij_rpocconc, ij_ralkconc, ij_pp, ij_lim(4, 5),
+     &   ij_rhs(ntrac-1, 17), ij_pp1, ij_pp2, ij_pp3, ij_pp4, ij_co3,
+     &   ij_ph
+      integer, public :: ijl_avgq, ijl_kpar, ijl_dtemp
+      type(vector_str30) :: sname_ij, units_ij
+      type(vector_str30) :: sname_ijl, units_ijl
+      type(vector_str80) :: lname_ij, lname_ijl
+      type(vector_integer) :: ia_ij, ia_ijl
+      type(vector_real8) :: scale_ij, scale_ijl
+      type(cdl_type) :: cdl_ij, cdl_ijl
+      type(cdl_type), pointer :: cdl_lons, cdl_lats, cdl_depths
+#ifndef OBIO_ON_GARYocean
+      type(cdl_type), allocatable, target ::
+     &                         hycom_lons, hycom_lats, hycom_depths
+#endif
+      contains
+
+
+      subroutine add_diag(lname, sname, units, dim3, idx)
+      use mdiag_com, only : ia_cpl
+      implicit none
+
+      character(len=*), target, intent(in) :: lname, sname, units
+      logical, intent(in) :: dim3
+      integer, intent(out) :: idx
+      character(len=30) :: sname1, units1
+      character(len=80) :: lname1
+
+      lname1=lname
+      sname1=sname
+      units1=units
+      if (dim3) then
+        call lname_ijl%push_back(lname1)
+        call sname_ijl%push_back(sname1)
+        call units_ijl%push_back(units1)
+        call scale_ijl%push_back(1.d0)
+        call ia_ijl%push_back(ia_cpl)
+        idx=lname_ijl%getsize()
+      else
+        call lname_ij%push_back(lname1)
+        call sname_ij%push_back(sname1)
+        call units_ij%push_back(units1)
+        call scale_ij%push_back(1.d0)
+        call ia_ij%push_back(ia_cpl)
+        idx=lname_ij%getsize()
+      endif
+      end subroutine add_diag
+
+
+      subroutine init_obio_diag
+#ifdef OBIO_ON_GARYocean
+      USE OCEANR_DIM, only: ogrid
+      USE OCEANRES, only: kdm=>lmo
+      use odiag, only: cdl_olons, cdl_olats, cdl_odepths
+#else
+      USE hycom_dim, only: kdm, ogrid
+      use cdl_mod, only: add_coord, init_cdl_type
+      use domain_decomp_1d, only: am_i_root
+#endif
+      use obio_com, only: arg2d, arg3d
+      implicit none
+
+#ifdef OBIO_ON_GARYocean
+      cdl_lons=>cdl_olons
+      cdl_lats=>cdl_olats
+      cdl_depths=>cdl_odepths
+      arg2d='dist_imo,dist_jmo'
+      arg3d='dist_imo,dist_jmo,lmo'
+#else
+      arg2d='idm,dist_jdm'
+      arg3d='idm,dist_jdm,kdm'
+      allocate(hycom_lons, hycom_lats, hycom_depths)
+      cdl_lons=>hycom_lons
+      cdl_lats=>hycom_lats
+      cdl_depths=>hycom_depths
+      if (am_i_root()) then
+            ! cdl not defined for hycom yet, this is for the time being:
+        call init_cdl_type('cdl_obio_lons', hycom_lons)
+        call add_coord(hycom_lons, 'lono', ogrid%im_world,
+     &      units='degrees_east')
+        call init_cdl_type('cdl_obio_lats', hycom_lats)
+        call add_coord(hycom_lats, 'lato', ogrid%jm_world,
+     &      units='degrees_north')
+        call init_cdl_type('cdl_obio_depths', hycom_depths)
+        call add_coord(hycom_depths, 'zoc', kdm, units='m')
+      endif
+#endif
+      allocate(obio_ij(ogrid%i_strt:ogrid%i_stop,
+     &         ogrid%j_strt:ogrid%j_stop, lname_ij%getsize()))
+      allocate(obio_ijl(ogrid%i_strt:ogrid%i_stop,
+     &         ogrid%j_strt:ogrid%j_stop, kdm, lname_ijl%getsize()))
+
+      end subroutine init_obio_diag
+
+
+      subroutine def_rsf_obio_diag(fid, r4_on_disk)
+      use pario, only: defvar
+      use obio_com, only: arg2d, arg3d
+#ifdef OBIO_ON_GARYocean
+      USE OCEANR_DIM, only: ogrid
+#else
+      USE hycom_dim, only: ogrid
+#endif
+      implicit none
+
+      integer, intent(in) :: fid
+      logical, intent(in) :: r4_on_disk
+
+      call defvar(ogrid, fid, obio_ij,
+     &   'obio_ij('//trim(arg2d)//',kobio_ij)', r4_on_disk=r4_on_disk)
+      call defvar(ogrid, fid, obio_ijl,
+     &   'obio_ijl('//trim(arg3d)//',kobio_ijl)', r4_on_disk=r4_on_disk)
+
+      end subroutine def_rsf_obio_diag
+
+
+      subroutine new_io_obio_diag(fid, iaction)
+      use model_com, only: ioread
+      use pario, only: write_dist_data, read_dist_data
+#ifdef OBIO_ON_GARYocean
+      USE OCEANR_DIM, only: ogrid
+#else
+      USE hycom_dim, only: ogrid
+#endif
+      implicit none
+
+      integer, intent(in) :: fid
+      integer, intent(in) :: iaction
+
+      if (iaction.eq.ioread) then
+        call read_dist_data(ogrid, fid, 'obio_ij', obio_ij)
+        call read_dist_data(ogrid, fid, 'obio_ijl', obio_ijl)
+      else
+        call write_dist_data(ogrid, fid, 'obio_ij', obio_ij)
+        call write_dist_data(ogrid, fid, 'obio_ijl', obio_ijl)
+      end if
+
+      end subroutine new_io_obio_diag
+
+
+      subroutine def_meta_obio_diag(fid)
+      use pario, only: defvar, write_attr
+      use cdl_mod, only: defvar_cdl, merge_cdl, add_var
+      use domain_decomp_1d, only: am_i_root
+#ifdef OBIO_ON_GARYocean
+      USE OCEANR_DIM, only: ogrid
+#else
+      USE hycom_dim, only: ogrid, kdm
+      use hycom_arrays, only : lonij, latij
+      use obio_com, only: ze, build_ze, arg2d, arg3d
+#endif
+      implicit none
+
+      integer, intent(in) :: fid
+      integer :: k
+
+      if (associated(cdl_lons)) then
+        if (am_i_root()) then
+          call merge_cdl(cdl_lons, cdl_lats, cdl_ij)
+#ifndef OBIO_ON_GARYocean
+          call add_var(cdl_ij, 'float latij(lato,lono) ;',
+     &         long_name='gridbox latitude', units='degrees')
+          call add_var(cdl_ij, 'float lonij(lato,lono) ;',
+     &         long_name='gridbox longitude', units='degrees')
+#endif
+          call merge_cdl(cdl_ij, cdl_depths, cdl_ijl)
+#ifndef OBIO_ON_GARYocean
+          call add_var(cdl_ijl, 'float depths(lato,lono,zoc) ;',
+     &         long_name='gridbox depth', units='m')
+#endif
+          do k=1, sname_ij%getsize()
+            call add_var(cdl_ij,
+     &         'float '//trim(sname_ij%at(k))//'(lato,lono) ;',
+     &         long_name=trim(lname_ij%at(k)),
+     &         units=trim(units_ij%at(k)) )
+          enddo
+          do k=1, sname_ijl%getsize()
+            call add_var(cdl_ijl,
+     &         'float '//trim(sname_ijl%at(k))//'(zoc,lato,lono) ;',
+     &         long_name=trim(lname_ijl%at(k)),
+     &         units=trim(units_ijl%at(k)),
+     &         set_miss=.true.)
+          enddo
+        endif
+        call defvar_cdl(ogrid, fid, cdl_ij,
+     &                  'cdl_obio_ij(cdl_strlen,kcdl_obio_ij)')
+        call defvar_cdl(ogrid, fid, cdl_ijl,
+     &       'cdl_obio_ijl(cdl_strlen,kcdl_obio_ijl)')
+      endif
+
+      call write_attr(ogrid, fid, 'obio_ij', 'reduction', 'sum')
+      call write_attr(ogrid, fid, 'obio_ij', 'split_dim', 3)
+      call defvar(ogrid, fid, ia_ij%getdata(), 'ia_obio_ij(kobio_ij)')
+      call defvar(ogrid, fid, scale_ij%getdata(),
+     &            'scale_obio_ij(kobio_ij)')
+      call defvar(ogrid, fid, sname_ij%getdata(),
+     &            'sname_obio_ij(sname_strlen,kobio_ij)')
+
+
+      call write_attr(ogrid, fid, 'obio_ijl', 'reduction', 'sum')
+      call write_attr(ogrid, fid, 'obio_ijl', 'split_dim', 4)
+      call defvar(ogrid, fid, ia_ijl%getdata(),
+     &            'ia_obio_ijl(kobio_ijl)')
+      call defvar(ogrid, fid, scale_ijl%getdata(),
+     &            'scale_obio_ijl(kobio_ijl)')
+      call defvar(ogrid, fid, sname_ijl%getdata(),
+     &            'sname_obio_ijl(sname_strlen,kobio_ijl)')
+#ifndef OBIO_ON_GARYocean
+      call defvar(ogrid, fid,latij(:,:,3), 'latij('//trim(arg2d)//')')
+      call defvar(ogrid, fid,lonij(:,:,3), 'lonij('//trim(arg2d)//')')
+      call build_ze
+      call defvar(ogrid,fid,ze(:,:,1:), 'depths('//trim(arg3d)//')')
+#endif
+
+      end subroutine def_meta_obio_diag
+
+
+      subroutine write_meta_obio_diag(fid)
+      use pario, only: write_data, write_dist_data
+      use cdl_mod, only: write_cdl
+#ifdef OBIO_ON_GARYocean
+      USE OCEANR_DIM, only: ogrid
+#else
+      USE hycom_dim, only: ogrid
+      use hycom_arrays, only : lonij, latij
+      use obio_com, only: ze
+#endif
+      implicit none
+
+      integer, intent(in) :: fid
+
+#ifndef OBIO_ON_GARYocean
+      call write_dist_data(ogrid, fid, 'latij', latij(:, :, 3))
+      call write_dist_data(ogrid, fid, 'lonij', lonij(:, :, 3))
+      call write_dist_data(ogrid, fid, 'depths', ze)
+#endif
+      call write_data(ogrid, fid, 'ia_obio_ij', ia_ij%getdata())
+      call write_data(ogrid, fid, 'scale_obio_ij', scale_ij%getdata())
+      call write_data(ogrid, fid, 'sname_obio_ij', sname_ij%getdata())
+      if (associated(cdl_lons))
+     &      call write_cdl(ogrid, fid, 'cdl_obio_ij', cdl_ij)
+
+      call write_data(ogrid, fid, 'ia_obio_ijl', ia_ijl%getdata())
+      call write_data(ogrid, fid, 'scale_obio_ijl', scale_ijl%getdata())
+      call write_data(ogrid, fid, 'sname_obio_ijl', sname_ijl%getdata())
+      if (associated(cdl_lons))
+     &      call write_cdl(ogrid, fid, 'cdl_obio_ijl', cdl_ijl)
+
+      end subroutine write_meta_obio_diag
+
+
+      subroutine reset_obio_diag
+      implicit none
+
+      obio_ij=0.
+      obio_ijl=0.
+
+      end subroutine reset_obio_diag
+
+
+      end module obio_diag
+
+
 
 !------------------------------------------------------------------------------
       subroutine alloc_obio_com
       USE obio_com
       USE obio_dim
+      use obio_diag, only: init_obio_diag
 
 #ifdef OBIO_ON_GARYocean
       USE OCEANR_DIM, only : ogrid
-      USE DOMAIN_DECOMP_1D, only : getDomainBounds
-      USE OCEANRES, only :idm=>imo,jdm=>jmo,kdm=>lmo
+      USE OCEANRES, only :kdm=>lmo
 #else
-      USE hycom_dim_glob 
-      USE hycom_dim, only : i_0h,i_1h,j_0h,j_1h
+      USE hycom_dim, only: kdm,ogrid
 #endif
 
       implicit none
 
-#ifdef OBIO_ON_GARYocean
 c**** Extract domain decomposition info
-      INTEGER :: j_0h,j_1h,i_0h,i_1h
+      INTEGER :: j_0,j_1,i_0,i_1
 
-      I_0H = ogrid%I_STRT_HALO
-      I_1H = ogrid%I_STOP_HALO
-      J_0H = ogrid%J_STRT_HALO
-      J_1H = ogrid%J_STOP_HALO
+      I_0 = ogrid%I_STRT
+      I_1 = ogrid%I_STOP
+      J_0 = ogrid%J_STRT
+      J_1 = ogrid%J_STOP
 
 
-      ALLOCATE(tracer_loc(i_0h:i_1h,j_0h:j_1h,kdm,ntrac))
-#endif
+      ALLOCATE(tracer(i_0:i_1,j_0:j_1,kdm,ntrac))
 
-      ALLOCATE(tzoo2d(i_0h:i_1h,j_0h:j_1h))
-      ALLOCATE(wshc3d(i_0h:i_1h,j_0h:j_1h,kdm))
-      ALLOCATE(Fescav3d(i_0h:i_1h,j_0h:j_1h,kdm))
-      ALLOCATE(rmuplsr3d(i_0h:i_1h,j_0h:j_1h,kdm,nchl),
-     &            rikd3d(i_0h:i_1h,j_0h:j_1h,kdm,nchl))
-      ALLOCATE(acdom3d(i_0h:i_1h,j_0h:j_1h,kdm,nlt))
-      ALLOCATE(tfac3d(i_0h:i_1h,j_0h:j_1h,kdm))
-      ALLOCATE(gcmax(i_0h:i_1h,j_0h:j_1h,kdm))
-      ALLOCATE(pCO2(i_0h:i_1h,j_0h:j_1h))           
-      ALLOCATE(pp2tot_day(i_0h:i_1h,j_0h:j_1h))
-      ALLOCATE(tot_chlo(i_0h:i_1h,j_0h:j_1h))
-      ALLOCATE(rhs_obio(i_0h:i_1h,j_0h:j_1h,ntrac,17))
-      ALLOCATE(chng_by(i_0h:i_1h,j_0h:j_1h,14))
+      call alloc_obio_forc
+
+      ALLOCATE(tzoo2d(i_0:i_1,j_0:j_1))
+      ALLOCATE(wshc3d(i_0:i_1,j_0:j_1,kdm))
+      ALLOCATE(Fescav3d(i_0:i_1,j_0:j_1,kdm))
+      ALLOCATE(rmuplsr3d(i_0:i_1,j_0:j_1,kdm,nchl),
+     &            rikd3d(i_0:i_1,j_0:j_1,kdm,nchl))
+      ALLOCATE(acdom3d(i_0:i_1,j_0:j_1,kdm,nlt))
+      ALLOCATE(tfac3d(i_0:i_1,j_0:j_1,kdm))
+      ALLOCATE(gcmax(i_0:i_1,j_0:j_1,kdm))
+      ALLOCATE(pp2tot_day(i_0:i_1,j_0:j_1))
+      ALLOCATE(pp2diat_day(i_0:i_1,j_0:j_1))
+      ALLOCATE(pp2chlo_day(i_0:i_1,j_0:j_1))
+      ALLOCATE(pp2cyan_day(i_0:i_1,j_0:j_1))
+      ALLOCATE(pp2cocc_day(i_0:i_1,j_0:j_1))
+      ALLOCATE(tot_chlo(i_0:i_1,j_0:j_1))
+      ALLOCATE(rhs_obio(i_0:i_1,j_0:j_1,ntrac,17))
+      ALLOCATE(chng_by(i_0:i_1,j_0:j_1,14))
 
 #ifdef OBIO_RUNOFF
 #ifdef NITR_RUNOFF
-!      ALLOCATE(rnitrmflo_loc(i_0h:i_1h,j_0h:j_1h))
-      ALLOCATE(rnitrconc_loc(i_0h:i_1h,j_0h:j_1h))
+!      ALLOCATE(rnitrmflo_loc(i_0:i_1,j_0:j_1))
+      ALLOCATE(rnitrconc_loc(i_0:i_1,j_0:j_1))
 #endif
 #ifdef DIC_RUNOFF
-      ALLOCATE(rdicconc_loc(i_0h:i_1h,j_0h:j_1h))
+      ALLOCATE(rdicconc_loc(i_0:i_1,j_0:j_1))
 #endif
 #ifdef DOC_RUNOFF
-      ALLOCATE(rdocconc_loc(i_0h:i_1h,j_0h:j_1h))
+      ALLOCATE(rdocconc_loc(i_0:i_1,j_0:j_1))
 #endif
 #ifdef SILI_RUNOFF
-      ALLOCATE(rsiliconc_loc(i_0h:i_1h,j_0h:j_1h))
+      ALLOCATE(rsiliconc_loc(i_0:i_1,j_0:j_1))
 #endif
 #ifdef IRON_RUNOFF
-      ALLOCATE(rironconc_loc(i_0h:i_1h,j_0h:j_1h))
+      ALLOCATE(rironconc_loc(i_0:i_1,j_0:j_1))
 #endif
 #ifdef POC_RUNOFF
-      ALLOCATE(rpocconc_loc(i_0h:i_1h,j_0h:j_1h))
+      ALLOCATE(rpocconc_loc(i_0:i_1,j_0:j_1))
 #endif
 #ifdef ALK_RUNOFF
-      ALLOCATE(ralkconc_loc(i_0h:i_1h,j_0h:j_1h))
+      ALLOCATE(ralkconc_loc(i_0:i_1,j_0:j_1))
 #endif
 #endif
 
 #ifndef OBIO_ON_GARYocean   /* NOT for Russell ocean */
-      ALLOCATE(ao_co2flux_loc(i_0h:i_1h,j_0h:j_1h))
-      ALLOCATE(tracav(i_0h:i_1h,j_0h:j_1h,kdm,ntrac))
-      ALLOCATE(plevav(i_0h:i_1h,j_0h:j_1h,kdm))
-      ALLOCATE(pCO2av(idm,jdm))
-      ALLOCATE(pp2tot_dayav(idm,jdm))
-      ALLOCATE(cexpij(i_0h:i_1h,j_0h:j_1h))
-      ALLOCATE(caexpij(i_0h:i_1h,j_0h:j_1h))
-      ALLOCATE(cexpav(idm,jdm))
-      ALLOCATE(caexpav(idm,jdm))
-      ALLOCATE(pCO2av_loc(i_0h:i_1h,j_0h:j_1h))
-      ALLOCATE(pp2tot_dayav_loc(i_0h:i_1h,j_0h:j_1h))
-      ALLOCATE(cexpav_loc(i_0h:i_1h,j_0h:j_1h))
-      ALLOCATE(caexpav_loc(i_0h:i_1h,j_0h:j_1h))
-      ALLOCATE(ao_co2fluxav(idm,jdm))
-      ALLOCATE(ao_co2fluxav_loc(i_0h:i_1h,j_0h:j_1h))
+      ALLOCATE(pCO2av(ogrid%im_world,ogrid%jm_world))
+      ALLOCATE(pp2tot_dayav(ogrid%im_world,ogrid%jm_world))
+      ALLOCATE(cexpav(ogrid%im_world,ogrid%jm_world))
+      ALLOCATE(caexpav(ogrid%im_world,ogrid%jm_world))
+      ALLOCATE(pp2diat_dayav(ogrid%im_world,ogrid%jm_world))
+      ALLOCATE(pp2chlo_dayav(ogrid%im_world,ogrid%jm_world))
+      ALLOCATE(pp2cyan_dayav(ogrid%im_world,ogrid%jm_world))
+      ALLOCATE(pp2cocc_dayav(ogrid%im_world,ogrid%jm_world))
+      ALLOCATE(pHav(ogrid%im_world,ogrid%jm_world))
+      ALLOCATE(ao_co2fluxav(ogrid%im_world,ogrid%jm_world))
+      ALLOCATE(pCO2av_loc(i_0:i_1,j_0:j_1))
+      ALLOCATE(pp2tot_dayav_loc(i_0:i_1,j_0:j_1))
+      ALLOCATE(cexpav_loc(i_0:i_1,j_0:j_1))
+      ALLOCATE(caexpav_loc(i_0:i_1,j_0:j_1))
+      ALLOCATE(ao_co2fluxav_loc(i_0:i_1,j_0:j_1))
+      ALLOCATE(pp2diat_dayav_loc(i_0:i_1,j_0:j_1))
+      ALLOCATE(pp2chlo_dayav_loc(i_0:i_1,j_0:j_1))
+      ALLOCATE(pp2cyan_dayav_loc(i_0:i_1,j_0:j_1))
+      ALLOCATE(pp2cocc_dayav_loc(i_0:i_1,j_0:j_1))
+      ALLOCATE(pHav_loc(i_0:i_1,j_0:j_1))
 #endif
+
+      ALLOCATE(Edz(nlt,kdm))
+      ALLOCATE(Esz(nlt,kdm))
+      ALLOCATE(Euz(nlt,kdm))
+      ALLOCATE(Kd(nlt,kdm))
+      ALLOCATE(Kpar(kdm))
+      ALLOCATE(delta_temp1d(kdm))
+
+      call init_obio_diag
 
       end subroutine alloc_obio_com
 
 !------------------------------------------------------------------------------
 
-#ifdef OBIO_ON_GARYocean
-
       subroutine def_rsf_obio(fid)
 !@sum  def_rsf_ocean defines ocean array structure in restart files
 !@auth M. Kelley
 !@ver  beta
-      USE OCEANR_DIM, only : grid=>ogrid
-      Use OCN_TRACER_COM, Only : tracerlist, ocn_tracer_entry
       USE obio_forc, only : avgq,tirrq3d,ihra
-      USE obio_com, only : gcmax,nstep0
-     &     ,tracer=>tracer_loc,pp2tot_day
+      USE obio_com, only : gcmax,nstep0,pp2tot_day, arg2d, arg3d
+#ifdef OBIO_ON_GARYocean
+      USE OCEANR_DIM, only : grid=>ogrid
       use pario, only : defvar
-      use domain_decomp_1d, only : getDomainBounds
+#else
+      USE HYCOM_DIM, only : grid=>ogrid
+      use pario, only : defvar
+      USE obio_com, only : pCO2av=>pCO2av_loc,
+     &    ao_co2fluxav=>ao_co2fluxav_loc,
+     &    pp2tot_dayav=>pp2tot_dayav_loc,
+     &    cexpav=>cexpav_loc, diag_counter,
+     .    pp2diat_dayav_loc,pp2chlo_dayav_loc,pp2cyan_dayav_loc,
+     .    pp2cocc_dayav_loc,pHav_loc
+#endif
       implicit none
-      integer fid   !@var fid file id
-      integer :: n
-      type(ocn_tracer_entry), pointer :: entry
+      integer, intent(in) :: fid   !@var fid file id
 
       call defvar(grid,fid,nstep0,'obio_nstep0')
-      call defvar(grid,fid,avgq,'avgq(dist_imo,dist_jmo,lmo)')
-      call defvar(grid,fid,gcmax,'gcmax(dist_imo,dist_jmo,lmo)')
-      call defvar(grid,fid,tirrq3d,'tirrq3d(dist_imo,dist_jmo,lmo)')
-      call defvar(grid,fid,ihra,'ihra(dist_imo,dist_jmo)')
-      do n=1,tracerlist%getsize()
-        entry=>tracerlist%at(n)
-        call defvar(grid,fid,tracer(:,:,:,n),
-     &       'obio_'//trim(entry%trname)//'(dist_imo,dist_jmo,lmo)')
-      enddo
-      call defvar(grid,fid,pp2tot_day,'pp2tot_day(dist_imo,dist_jmo)')
+      call defvar(grid,fid,avgq,'avgq('//trim(arg3d)//')')
+      call defvar(grid,fid,gcmax,'gcmax('//trim(arg3d)//')')
+      call defvar(grid,fid,tirrq3d,'tirrq3d('//trim(arg3d)//')')
+      call defvar(grid,fid,ihra,'ihra('//trim(arg2d)//')')
+      call defvar(grid,fid,pp2tot_day,'pp2tot_day('//trim(arg2d)//')')
+#ifndef OBIO_ON_GARYocean
+      call defvar(grid,fid,diag_counter,'obio_diag_counter')
+      call defvar(grid,fid,pCO2av,'pCO2av('//trim(arg2d)//')')
+      call defvar(grid,fid,pp2tot_dayav,'pp2tot_dayav('//
+     &                                                 trim(arg2d)//')')
+      call defvar(grid,fid,ao_co2fluxav,'ao_co2fluxav('//
+     &                                                 trim(arg2d)//')')
+      call defvar(grid,fid,cexpav,'cexpav('//trim(arg2d)//')')
+      call defvar(grid,fid,pp2diat_dayav_loc,'pp2diat_day('//
+     &                                                 trim(arg2d)//')')
+      call defvar(grid,fid,pp2chlo_dayav_loc,'pp2chlo_day('//
+     &                                                 trim(arg2d)//')')
+      call defvar(grid,fid,pp2cyan_dayav_loc,'pp2cyan_day('//
+     &                                                 trim(arg2d)//')')
+      call defvar(grid,fid,pp2cocc_dayav_loc,'pp2cocc_day('//
+     &                                                 trim(arg2d)//')')
+      call defvar(grid,fid,phav_loc,'pHav('//trim(arg2d)//')')
+#endif
       return
       end subroutine def_rsf_obio
 
+
       subroutine new_io_obio(fid,iaction)
 !@sum  new_io_ocean read/write ocean arrays from/to restart files
-!@auth M. Kelley
 !@ver  beta new_ prefix avoids name clash with the default version
       use model_com, only : ioread,iowrite
-      USE OCEANR_DIM, only : grid=>ogrid
       use pario, only : write_dist_data,read_dist_data,
      &     write_data,read_data
-      Use OCN_TRACER_COM, Only : tracerlist, ocn_tracer_entry
-      use model_com, only : nstep=>itime
       USE obio_forc, only : avgq,tirrq3d,ihra
       USE obio_com, only : gcmax,nstep0
-     &     ,tracer=>tracer_loc,pp2tot_day
-      use domain_decomp_1d, only : getDomainBounds
+     &     ,pp2tot_day
+#ifdef OBIO_ON_GARYocean
+      USE OCEANR_DIM, only : grid=>ogrid
+#else
+      USE HYCOM_DIM, only : grid=>ogrid
+      USE obio_com, only : pCO2av=>pCO2av_loc,
+     &     ao_co2fluxav=>ao_co2fluxav_loc,
+     &     pp2tot_dayav=>pp2tot_dayav_loc,
+     &     cexpav=>cexpav_loc, diag_counter
+     .    ,pp2diat_dayav_loc,pp2chlo_dayav_loc,pp2cyan_dayav_loc
+     .    ,pp2cocc_dayav_loc,pHav_loc
+#endif
       implicit none
+
       integer fid   !@var fid unit number of read/write
       integer iaction !@var iaction flag for reading or writing to file
-      integer :: n
-      type(ocn_tracer_entry), pointer :: entry
 
       select case (iaction)
       case (iowrite)            ! output to restart file
-        call write_data(grid,fid,'obio_nstep0',nstep)
+        call write_data(grid,fid,'obio_nstep0',nstep0)
         call write_dist_data(grid,fid,'avgq',avgq)
         call write_dist_data(grid,fid,'gcmax',gcmax)
         call write_dist_data(grid,fid,'tirrq3d',tirrq3d)
         call write_dist_data(grid,fid,'ihra',ihra)
-        do n=1,tracerlist%getsize()
-          entry=>tracerlist%at(n)
-          call write_dist_data(grid,fid,'obio_'//trim(entry%trname),
-     &         tracer(:,:,:,n))
-        enddo
         call write_dist_data(grid,fid,'pp2tot_day',pp2tot_day)
+#ifndef OBIO_ON_GARYocean
+        call write_data(grid,fid,'obio_diag_counter',diag_counter)
+        call write_dist_data(grid,fid,'pCO2av',pCO2av)
+        call write_dist_data(grid,fid,'pp2tot_dayav',pp2tot_dayav)
+        call write_dist_data(grid,fid,'ao_co2fluxav',ao_co2fluxav)
+        call write_dist_data(grid,fid,'cexpav',cexpav)
+        call write_dist_data(grid,fid,'pp2diat_day',pp2diat_dayav_loc)
+        call write_dist_data(grid,fid,'pp2chlo_day',pp2chlo_dayav_loc)
+        call write_dist_data(grid,fid,'pp2cyan_day',pp2cyan_dayav_loc)
+        call write_dist_data(grid,fid,'pp2cocc_day',pp2cocc_dayav_loc)
+        call write_dist_data(grid,fid,'pHav',phav_loc)
+#endif
       case (ioread)            ! input from restart file
         call read_data(grid,fid,'obio_nstep0',nstep0,
      &       bcast_all=.true.)
@@ -361,140 +760,37 @@ c**** Extract domain decomposition info
         call read_dist_data(grid,fid,'gcmax',gcmax)
         call read_dist_data(grid,fid,'tirrq3d',tirrq3d)
         call read_dist_data(grid,fid,'ihra',ihra)
-        do n=1,tracerlist%getsize()
-          entry=>tracerlist%at(n)
-          call read_dist_data(grid,fid,'obio_'//trim(entry%trname),
-     &         tracer(:,:,:,n))
-        enddo
         call read_dist_data(grid,fid,'pp2tot_day',pp2tot_day)
+#ifndef OBIO_ON_GARYocean
+        call read_data(grid,fid,'obio_diag_counter',diag_counter)
+        call read_dist_data(grid,fid,'pCO2av',pCO2av)
+        call read_dist_data(grid,fid,'pp2tot_dayav',pp2tot_dayav)
+        call read_dist_data(grid,fid,'ao_co2fluxav',ao_co2fluxav)
+        call read_dist_data(grid,fid,'cexpav',cexpav)
+        call read_dist_data(grid,fid,'pp2diat_day',pp2diat_dayav_loc)
+        call read_dist_data(grid,fid,'pp2chlo_day',pp2chlo_dayav_loc)
+        call read_dist_data(grid,fid,'pp2cyan_day',pp2cyan_dayav_loc)
+        call read_dist_data(grid,fid,'pp2cocc_day',pp2cocc_dayav_loc)
+        call read_dist_data(grid,fid,'pHav',phav_loc)
+#endif
       end select
       return
       end subroutine new_io_obio
 
-      subroutine new_io_obio_inicond
-      USE obio_com, only: tracer=>tracer_loc
-      use ocn_tracer_com, only : tracerlist, ocn_tracer_entry
-      use ocean, only : lmo,lmm,ze,zmid,focean
-      use ocean, only : im,jm
-      use oceanr_dim, only : grid=>ogrid
-      use pario, only : par_open,par_close
-     &     ,read_data,read_dist_data,get_dimlens
-      use domain_decomp_1d, only : halo_update
-      implicit none
-
-      integer i,j,l,lm,lm_in,lmo_in,n,fid,ii,jj
-      logical :: need_zregrid
-      real*8 :: rz(lmo)
-      real*8, allocatable :: z_in(:)
-      real*8, dimension(:,:,:), allocatable :: arr_in,arr_tmp
-      integer :: dlens(7),ndims
-      integer :: i_0,i_1,j_0,j_1
-      integer :: i_0h,i_1h,j_0h,j_1h
-      type(ocn_tracer_entry), pointer :: entry
-
-      i_0 = grid%i_strt
-      i_1 = grid%i_stop
-      j_0 = grid%j_strt
-      j_1 = grid%j_stop
-
-      i_0h = grid%i_strt_halo
-      i_1h = grid%i_stop_halo
-      j_0h = grid%j_strt_halo
-      j_1h = grid%j_stop_halo
-
-
-      fid = par_open(grid,'obio_inicond','read')
-
-      call get_dimlens(grid,fid,'Nitr',ndims,dlens)
-      lmo_in = dlens(3)
-
-      allocate(z_in(lmo_in),arr_in(i_0h:i_1h,j_0h:j_1h,lmo_in))
-      allocate(arr_tmp(0:im+1,j_0h:j_1h,lmo)) ! temporary until 2D decomp
-      arr_in = 0.
-
-      if(lmo_in == lmo) then
-        z_in = zmid ! default
-        call read_data(grid,fid,'z',z_in,bcast_all=.true.)
-        need_zregrid = .not. all(abs(z_in-zmid) < 1d0)
-      else
-        call read_data(grid,fid,'z',z_in,bcast_all=.true.)
-        need_zregrid = .true.
-      endif
-
-      tracer(:,:,:,:) = -9999.
-      do n=1,tracerlist%getsize()
-        entry=>tracerlist%at(n)
-        call read_dist_data(grid,fid,trim(entry%trname),arr_in)
-        if(need_zregrid) then
-          do j=j_0,j_1
-          do i=i_0,i_1
-            if(focean(i,j).le.0) cycle
-            lm = lmm(i,j)
-            call VLKtoLZ(lmo_in,lm,z_in,ze,
-     &           arr_in(i,j,:),tracer(i,j,:,n),rz)
-          enddo
-          enddo
-        else
-          tracer(:,:,:,n) = arr_in
-        endif
-        arr_tmp(1:im,:,:) = tracer(:,:,:,n)
-        do j=j_0,j_1
-          arr_tmp(0,j,:) = arr_tmp(im,j,:)
-          arr_tmp(im+1,j,:) = arr_tmp(1,j,:)
-        enddo
-        call halo_update(grid,arr_tmp)
-        do j=j_0,j_1
-        do i=i_0,i_1
-          lm = lmm(i,j)
-          do l=lm+1,lmo
-            tracer(i,j,l,n) = 0.
-          enddo
-          if(focean(i,j).le.0.) cycle
-          do lm_in=0,lmo-1
-            if(arr_tmp(i,j,1+lm_in).lt.0.) exit
-          enddo
-          if(lm_in.ge.lm) cycle
-          do l=lm_in+1,lm            
-c            do jj=j-1,j+1
-            do jj=max(1,j-1),min(jm,j+1) ! temporary limits
-            do ii=i-1,i+1
-              if(jj.eq.j .and. ii.eq.i) cycle
-              if(arr_tmp(ii,jj,l).lt.0.) cycle
-              tracer(i,j,l,n) = arr_tmp(ii,jj,l)
-            enddo
-            enddo
-          enddo
-          do lm_in=0,lmo-1
-            if(tracer(i,j,1+lm_in,n).lt.0.) exit
-          enddo
-          if(lm_in.ge.lm) cycle
-          do l=lm_in+1,lm
-            tracer(i,j,l,n) = tracer(i,j,lm_in,n)
-          enddo
-        enddo
-        enddo
-      enddo
-
-      call par_close(grid,fid)
-      deallocate(arr_in,arr_tmp)
-
-      return
-      end subroutine new_io_obio_inicond
-
-#else
+#ifndef OBIO_ON_GARYocean
 
       subroutine obio_set_data_after_archiv
       USE obio_com, only:
      .     diag_counter
-     .    ,plevav,ao_co2fluxav_loc,tracav, pp2tot_dayav_loc
+     .    ,ao_co2fluxav_loc, pp2tot_dayav_loc
      .    ,pCO2av_loc, cexpav_loc
+     .    ,pp2diat_dayav_loc,pp2chlo_dayav_loc,pp2cyan_dayav_loc
+     .    ,pp2cocc_dayav_loc,pHav_loc
 #ifdef TRACERS_Alkalinity
      .    ,caexpav_loc
 #endif
       implicit none
       diag_counter=0
-      tracav = 0
-      plevav = 0
       ao_co2fluxav_loc=0
       pCO2av_loc = 0
       pp2tot_dayav_loc = 0
@@ -502,17 +798,25 @@ c            do jj=j-1,j+1
 #ifdef TRACERS_Alkalinity
       caexpav_loc = 0
 #endif
+      pp2diat_dayav_loc=0
+      pp2chlo_dayav_loc=0
+      pp2cyan_dayav_loc=0
+      pp2cocc_dayav_loc=0
+      pHav_loc=0
       end subroutine obio_set_data_after_archiv
 
       subroutine obio_gather_before_archive
       USE HYCOM_DIM, only : ogrid
       USE DOMAIN_DECOMP_1D, ONLY: PACK_DATA
-      USE obio_com, only: tracav, plevav
       USE obio_com, only:
      .     ao_co2fluxav_loc, ao_co2fluxav
      .    ,pCO2av_loc, pCO2av
      .    ,pp2tot_dayav_loc, pp2tot_dayav
      .    ,cexpav_loc, cexpav
+     .    ,pp2diat_dayav_loc,pp2chlo_dayav_loc,pp2cyan_dayav_loc
+     .    ,pp2cocc_dayav_loc,pHav_loc
+     .    ,pp2diat_dayav,pp2chlo_dayav,pp2cyan_dayav
+     .    ,pp2cocc_dayav,pHav
 #ifdef TRACERS_Alkalinity
      .    ,caexpav_loc, caexpav
 #endif
@@ -525,90 +829,12 @@ c            do jj=j-1,j+1
 #ifdef TRACERS_Alkalinity
       call pack_data(ogrid, caexpav_loc, caexpav)
 #endif
+      call pack_data(ogrid, pp2diat_dayav_loc, pp2diat_dayav)
+      call pack_data(ogrid, pp2chlo_dayav_loc, pp2chlo_dayav)
+      call pack_data(ogrid, pp2cyan_dayav_loc, pp2cyan_dayav)
+      call pack_data(ogrid, pp2cocc_dayav_loc, pp2cocc_dayav)
+      call pack_data(ogrid, pHav_loc, pHav)
       return
       end subroutine obio_gather_before_archive
 
-      subroutine def_rsf_obio(fid)
-!@sum  def_rsf_ocean defines ocean array structure in restart files
-!@auth M. Kelley
-!@ver  beta
-      USE HYCOM_DIM, only : grid=>ogrid
-      use pario, only : defvar
-      USE obio_forc, only : avgq,tirrq3d,ihra
-      USE obio_com, only : gcmax,pCO2av=>pCO2av_loc,pp2tot_day,
-     &     ao_co2fluxav=>ao_co2fluxav_loc,
-     &     pp2tot_dayav=>pp2tot_dayav_loc,
-     &     cexpav=>cexpav_loc, diag_counter, tracav, plevav
-      implicit none
-      integer fid   !@var fid file id
-      character(len=14) :: str2d
-      character(len=18) :: str3d
-      character(len=20) :: str3d2
-      str2d ='(idm,dist_jdm)'
-      str3d ='(idm,dist_jdm,kdm)'
-      str3d2='(idm,dist_jdm,kdmx2)'
-
-c      call defvar(grid,fid,nstep,'obio_nstep0')
-      call defvar(grid,fid,diag_counter,'obio_diag_counter')
-      call defvar(grid,fid,avgq,'avgq'//str3d)
-      call defvar(grid,fid,gcmax,'gcmax'//str3d)
-      call defvar(grid,fid,tirrq3d,'tirrq3d'//str3d)
-      call defvar(grid,fid,ihra,'ihra'//str2d)
-      call defvar(grid,fid,pCO2av,'pCO2av'//str2d)
-      call defvar(grid,fid,pp2tot_dayav,'pp2tot_dayav'//str2d)
-      call defvar(grid,fid,ao_co2fluxav,'ao_co2fluxav'//str2d)
-      call defvar(grid,fid,cexpav,'cexpav'//str2d)
-      call defvar(grid,fid,pp2tot_day,'pp2tot_day'//str2d)
-      call defvar(grid,fid,tracav,'tracav(idm,dist_jdm,kdm,ntrcr)')
-      call defvar(grid,fid,plevav,'plevav'//str3d)
-
-      return
-      end subroutine def_rsf_obio
-
-      subroutine new_io_obio(fid,iaction)
-!@sum  new_io_ocean read/write ocean arrays from/to restart files
-!@auth M. Kelley
-!@ver  beta new_ prefix avoids name clash with the default version
-      use model_com, only : ioread,iowrite
-      use pario, only : write_dist_data,read_dist_data,
-     &     write_data,read_data
-      USE HYCOM_DIM, only : grid=>ogrid
-      USE obio_forc, only : avgq,tirrq3d,ihra
-      USE obio_com, only : gcmax,pCO2av=>pCO2av_loc,pp2tot_day,
-     &     ao_co2fluxav=>ao_co2fluxav_loc,
-     &     pp2tot_dayav=>pp2tot_dayav_loc,
-     &     cexpav=>cexpav_loc, diag_counter, tracav, plevav
-      implicit none
-      integer fid   !@var fid unit number of read/write
-      integer iaction !@var iaction flag for reading or writing to file
-      select case (iaction)
-      case (iowrite)            ! output to restart file
-        call write_data(grid,fid,'obio_diag_counter',diag_counter)
-        call write_dist_data(grid,fid,'avgq',avgq)
-        call write_dist_data(grid,fid,'gcmax',gcmax)
-        call write_dist_data(grid,fid,'tirrq3d',tirrq3d)
-        call write_dist_data(grid,fid,'ihra',ihra)
-        call write_dist_data(grid,fid,'pCO2av',pCO2av)
-        call write_dist_data(grid,fid,'pp2tot_dayav',pp2tot_dayav)
-        call write_dist_data(grid,fid,'ao_co2fluxav',ao_co2fluxav)
-        call write_dist_data(grid,fid,'cexpav',cexpav)
-        call write_dist_data(grid,fid,'pp2tot_day',pp2tot_day)
-        call write_dist_data(grid,fid,'tracav',tracav)
-        call write_dist_data(grid,fid,'plevav',plevav)
-      case (ioread)            ! input from restart file
-        call read_data(grid,fid,'obio_diag_counter',diag_counter)
-        call read_dist_data(grid,fid,'avgq',avgq)
-        call read_dist_data(grid,fid,'gcmax',gcmax)
-        call read_dist_data(grid,fid,'tirrq3d',tirrq3d)
-        call read_dist_data(grid,fid,'ihra',ihra)
-        call read_dist_data(grid,fid,'pCO2av',pCO2av)
-        call read_dist_data(grid,fid,'pp2tot_dayav',pp2tot_dayav)
-        call read_dist_data(grid,fid,'ao_co2fluxav',ao_co2fluxav)
-        call read_dist_data(grid,fid,'cexpav',cexpav)
-        call read_dist_data(grid,fid,'pp2tot_day',pp2tot_day)
-        call read_dist_data(grid,fid,'tracav',tracav)
-        call read_dist_data(grid,fid,'plevav',plevav)
-      end select
-      return
-      end subroutine new_io_obio
 #endif /* which ocean */

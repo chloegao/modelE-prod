@@ -543,7 +543,7 @@ c data
           allocate(tmp_(n))
           tmp_(1:n) = cdl%vars(1:n)
           deallocate(cdl%vars)
-          allocate(cdl%vars(2*n))
+          allocate(cdl%vars(max(k+100,2*n)))
           cdl%vars(1:n) = tmp_(1:n)
           deallocate(tmp_)
         endif
@@ -563,7 +563,7 @@ c data
           allocate(tmp_(n))
           tmp_(1:n) = cdl%datavalues(1:n)
           deallocate(cdl%datavalues)
-          allocate(cdl%datavalues(2*n))
+          allocate(cdl%datavalues(max(k+100,2*n)))
           cdl%datavalues(1:n) = tmp_(1:n)
           deallocate(tmp_)
         endif

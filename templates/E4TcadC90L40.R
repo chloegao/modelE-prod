@@ -22,7 +22,6 @@ Preprocessor Options
 #define TRDIAG_WETDEPO           ! additional wet deposition diags for tracers
 #define NO_HDIURN                ! exclude hdiurn diagnostics
 #define TRACERS_SPECIAL_Shindell    ! includes drew's chemical tracers
-#define AR5_FASTJ_XSECS ! to avoid using updated fastj cross sections introduced april 2015
 #define RAD_O3_2010              ! 2010 ozone dataset
 !  OFF #define AUXILIARY_OX_RADF ! radf diags for climatology or tracer Ozone
 #define TRACERS_TERP                ! include terpenes in gas-phase chemistry
@@ -59,7 +58,7 @@ TRDUST_COM TRDUST TRDUST_DRV        ! dust tracer specific code
 #include "tracer_shared_source_files"
 TRDIAG                              ! for offline postprocessing
 #include "tracer_shindell_source_files"
-#include "tracer_aerosols_source_files"
+#include "tracer_OMA_source_files"
 
 STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 #include "modelE4_source_files"
@@ -108,7 +107,7 @@ NAMERVR=RDdistocean_CS90_EM.names.txt  ! named river outlets
 
 #include "chem_emiss_C90_input_files"
 
-#include "aeros_C90_input_files"
+#include "aerosol_OMA_C90_input_files"
 
 MSU_wts=MSU.RSS.weights.data     ! MSU-diag
 REG=REG.txt                      ! special regions-diag
@@ -143,7 +142,7 @@ initial_GHG_setup = 1 ! Set to 0 after initial setup.
 !!!!!!!!!!!!!!!!!!!!!!!
 madaer=3         ! 3: updated aerosols          ; 1: default sulfates/aerosols
 #include "aerosol_params"
-#include "dust_params"
+#include "dust_params_oma"
 #include "chemistry_params"
 
 DTsrc=1800.      ! cannot be changed after a run has been started

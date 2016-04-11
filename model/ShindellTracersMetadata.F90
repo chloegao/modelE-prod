@@ -8,7 +8,10 @@ module ShindellTracersMetadata_mod
   use sharedTracersMetadata_mod, only: CH4_setspec, &
     N2O_setspec, H2O2_setspec
   use sharedTracersMetadata_mod, only: convert_HSTAR
-  use TRACER_COM, only: NTM_chem_beg, NTM_chem_end
+  use TRACER_COM, only: ntm_chem_beg, ntm_chem_end, whichEPFCs
+#ifdef TRACERS_dCO
+  use TRACER_COM, only: n_dC17O, n_dC18O, n_d13CO
+#endif  /* TRACERS_dCO */
   use TRACER_COM, only: n_CH4,  n_N2O, n_Ox,   n_NOx, & 
     n_N2O5,   n_HNO3,  n_H2O2,  n_CH3OOH,   n_HCHO,  &
     n_HO2NO2, n_CO,    n_PAN,   n_H2O17,             &
@@ -46,6 +49,7 @@ module ShindellTracersMetadata_mod
   use RunTimeControls_mod, only: tracers_aerosols_soa
   use RunTimeControls_mod, only: shindell_strat_extra
   use RunTimeControls_mod, only: accmip_like_diags
+  use RunTimeControls_mod, only: dynamic_biomass_burning
   USE CONSTANT, only: mair
 #ifdef TRACERS_AEROSOLS_SOA
   USE CONSTANT, only: gasc
@@ -116,6 +120,12 @@ contains
     call  N2O_setSpec('N2O')
     call  CFC_setSpec('CFC')
 
+#ifdef TRACERS_dCO
+    call  CO_setSpec('dC17O')
+    call  CO_setSpec('dC18O')
+    call  CO_setSpec('d13CO')
+#endif  /* TRACERS_dCO */
+
     if (shindell_strat_extra) then
       if (accmip_like_diags) then
         call  codirect_setSpec('codirect')
@@ -140,7 +150,10 @@ contains
            nn_apinp1g,nn_apinp1a,nn_apinp2g,nn_apinp2a,         &
            nn_ClOx,   nn_BrOx,  nn_HCl,   nn_HOCl,   nn_ClONO2,  &
            nn_HBr,    nn_HOBr,  nn_BrONO2,nn_CFC,    nn_GLT
-      use TRACER_COM, only: NTM_chem_beg
+#ifdef TRACERS_dCO
+      use TRACER_COM, only: nn_dC17O, nn_dC18O, nn_d13CO
+#endif  /* TRACERS_dCO */
+      use TRACER_COM, only: ntm_chem_beg
       integer :: offset
 
      offset = ntm_chem_beg - 1
@@ -187,13 +200,20 @@ contains
      nn_CFC = n_CFC - offset
      nn_GLT = n_GLT - offset
 
+#ifdef TRACERS_dCO
+     nn_dC17O = n_dC17O - offset
+     nn_dC18O = n_dC18O - offset
+     nn_d13CO = n_d13CO - offset
+#endif  /* TRACERS_dCO */
+
     end subroutine calculateIndexOffsets
 
     subroutine Ox_setSpec(name)
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_Ox = n
-      NTM_chem_beg = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       call set_ntm_power(n, -8)
       call set_tr_mm(n, 48.d0)
       if (tracers_drydep) then
@@ -206,6 +226,8 @@ contains
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_NOx = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       call set_ntm_power(n, -11)
       call set_tr_mm(n, 14.01d0)
       if (tracers_drydep) then
@@ -213,20 +235,36 @@ contains
         call set_HSTAR(n,  1.d-2)
       end if
 #ifdef DYNAMIC_BIOMASS_BURNING
-      ! 12 below are the 12 VDATA veg types or Ent remapped to them,
-      ! from Olga Pechony's AR5_EPFC_factors_incl_SO2.xlsx file.
-      emisPerFireByVegType(n,1:12)=(/0.0000000d+00, 1.1378230d-07, &
-      &  3.2166037d-07, 1.5559274d-07, 4.1611088d-07, 5.7316458d-07, &
-      &  2.1700112d-07, 3.0054335d-07, 0.0000000d+00, 0.0000000d+00, &
-      &  0.0000000d+00, 0.0000000d+00/)
+      if (dynamic_biomass_burning) then
+        ! 12 below are the 12 VDATA veg types or Ent remapped to them,
+        ! from Olga Pechony's EPFC.xlsx e-mailed to Greg 1/13/2013
+        call sync_param("whichEPFCs",whichEPFCs)
+        select case(whichEPFCs)
+        case(1) ! AR5
+          call set_emisPerFireByVegType(n, [0.d0,1.28d-8,1.16d-7,6.61d-8, &
+          & 1.68d-7,1.62d-7,8.84d-8,7.17d-8,0.d0,0.d0,0.d0,0.d0] )
+        case(2) ! GFED3
+          call set_emisPerFireByVegType(n, [0.d0,1.68d-7,1.44d-7,5.23d-8, &
+          & 8.45d-8,9.43d-8,1.72d-7,1.24d-7,0.d0,0.d0,0.d0,0.d0] )
+        case(3) ! GFED2
+          call set_emisPerFireByVegType(n, [0.d0,1.43d-7,9.33d-8,1.15d-7, &
+          & 1.07d-7,1.13d-7,1.33d-7,1.09d-7,0.d0,0.d0,0.d0,0.d0] )
+        case(4) ! MOPITT
+          call set_emisPerFireByVegType(n, [0.d0,1.48d-8,2.00d-7,6.58d-8, &
+          & 1.68d-7,1.96d-7,8.03d-8,5.04d-8,0.d0,0.d0,0.d0,0.d0] )
+        case default
+          call stop_model('whichEPFCs unknown',255)
+        end select
+      end if
 #endif
-      call check_aircraft_sectors(name) ! special 3D source case
     end subroutine NOx_setSpec
 
     subroutine ClOx_setSpec(name)
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_ClOx = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       call set_ntm_power(n, -11)
       call set_tr_mm(n, 51.5d0)
     end subroutine ClOx_setSpec
@@ -235,6 +273,8 @@ contains
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_BrOx = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       call set_ntm_power(n, -14)
       call set_tr_mm(n, 95.9d0)
     end subroutine BrOx_setSpec
@@ -243,6 +283,8 @@ contains
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_N2O5 = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       call set_ntm_power(n, -12)
       call set_tr_mm(n, 108.02d0)
     end subroutine N2O5_setSpec
@@ -251,6 +293,8 @@ contains
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_HNO3 = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       call set_ntm_power(n, -11)
       call set_tr_mm(n, 63.018d0)
       call set_tr_RKD(n, 2.073d3 ) ! in mole/J = 2.1d5 mole/(L atm)
@@ -261,6 +305,8 @@ contains
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_CH3OOH = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       call set_ntm_power(n, -11)
       call set_tr_mm(n, 48.042d0)
       if (tracers_drydep) call set_HSTAR(n,  3.d2)
@@ -270,6 +316,8 @@ contains
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_HCHO = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       call set_ntm_power(n, -11)
       call set_tr_mm(n, 30.026d0)
       call set_tr_RKD(n, 6.218d1 ) ! mole/J = 6.3d3 mole/(L atm)
@@ -280,6 +328,8 @@ contains
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_HO2NO2 = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       call set_ntm_power(n, -12)
       call set_tr_mm(n, 79.018d0)
     end subroutine HO2NO2_setSpec
@@ -287,22 +337,55 @@ contains
     subroutine CO_setSpec(name)
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
-      n_CO = n
+      select case (name)
+        case ('CO')
+          n_CO = n
+#ifdef TRACERS_dCO
+        case ('dC17O')
+          n_dC17O = n
+        case ('dC18O')
+          n_dC18O = n
+        case ('d13CO')
+          n_d13CO = n
+#endif  /* TRACERS_dCO */
+        case default
+          call stop_model('CO-like tracer '//name//' unknown',255)
+      end select
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       call set_ntm_power(n, -8)
       call set_tr_mm(n, 28.01d0)
 #ifdef DYNAMIC_BIOMASS_BURNING
-      ! 12 below are the 12 VDATA veg types or Ent remapped to them,
-      ! from Olga Pechony's AR5_EPFC_factors_incl_SO2.xlsx file.
-      emisPerFireByVegType(n,1:12)=(/0.0000000d+00, 7.0401156d-06, &
-      & 1.8708386d-05, 1.0678024d-05, 2.6742857d-05, 4.0226296d-05,&
-      & 2.3661527d-05, 4.4639346d-05, 0.0000000d+00, 0.0000000d+00,&
-      & 0.0000000d+00, 0.0000000d+00/)
+      if (dynamic_biomass_burning) then
+        ! 12 below are the 12 VDATA veg types or Ent remapped to them,
+        ! from Olga Pechony's EPFC.xlsx e-mailed to Greg 1/13/2013
+        call sync_param("whichEPFCs",whichEPFCs)
+        select case(whichEPFCs)
+        case(1) ! AR5
+          call set_emisPerFireByVegType(n, [0.d0,4.98d-6,8.28d-6,4.48d-6, &
+          & 1.22d-5,1.16d-5,7.74d-6,1.04d-5,0.d0,0.d0,0.d0,0.d0] )
+        case(2) ! GFED3
+          call set_emisPerFireByVegType(n, [0.d0,1.54d-5,4.62d-6,4.12d-6, &
+          & 7.08d-6,5.33d-6,7.96d-6,1.35d-5,0.d0,0.d0,0.d0,0.d0] )
+        case(3) ! GFED2
+          call set_emisPerFireByVegType(n, [0.d0,9.45d-6,5.16d-6,3.55d-6, &
+          & 6.72d-6,6.88d-6,8.94d-6,1.29d-5,0.d0,0.d0,0.d0,0.d0] )
+        case(4) ! MOPITT
+          call set_emisPerFireByVegType(n, [0.d0,5.82d-6,1.50d-5,3.81d-6, &
+          & 8.13d-6,1.39d-5,6.04d-6,4.66d-6,0.d0,0.d0,0.d0,0.d0] )
+        case default
+          call stop_model('whichEPFCs unknown',255)
+        end select
+      end if
 #endif
     end subroutine CO_setSpec
+
     subroutine PAN_setSpec(name)
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_PAN = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       call set_ntm_power(n, -11)
       call set_tr_mm(n, 121.054d0) ! assuming CH3COOONO2 = PAN)
       if (tracers_drydep) call set_HSTAR(n,  3.6d0)
@@ -312,6 +395,8 @@ contains
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_Isoprene = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       call set_ntm_power(n, -11)
       call set_tr_mm(n, 60.05d0) ! i.e. 5 carbons
       if (tracers_drydep) call set_HSTAR(n,  1.3d-2)
@@ -321,6 +406,8 @@ contains
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_AlkylNit = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       call set_ntm_power(n, -11)
       call set_tr_mm(n, mair)   !unknown molecular weight, so use air and make
       ! note in the diagnostics write-out...
@@ -330,16 +417,33 @@ contains
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_Alkenes = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       call set_ntm_power(n, -10)
       call set_tr_mm(n, 1.0d0)  ! So, careful: source files now in Kmole/m2/s or
       ! equivalently, kg/m2/s for species with tr_mm=1
 #ifdef DYNAMIC_BIOMASS_BURNING
-      ! 12 below are the 12 VDATA veg types or Ent remapped to them,
-      ! from Olga Pechony's AR5_EPFC_factors_incl_SO2.xlsx file.
-      emisPerFireByVegType(n,1:12)=(/0.0000000d+00, 6.1516259d-09, &
-      & 1.1544214d-08, 6.9501711d-09, 1.7481154d-08, 2.5840087d-08, &
-      & 1.5709551d-08, 3.5913079d-08, 0.0000000d+00, 0.0000000d+00, &
-      & 0.0000000d+00, 0.0000000d+00/)
+      if (dynamic_biomass_burning) then
+        ! 12 below are the 12 VDATA veg types or Ent remapped to them,
+        ! from Olga Pechony's EPFC.xlsx e-mailed to Greg 1/13/2013
+        call sync_param("whichEPFCs",whichEPFCs)
+        select case(whichEPFCs)
+        case(1) ! AR5
+          call set_emisPerFireByVegType(n, [0.d0,7.02d-9,7.16d-9,2.99d-9, &
+          & 8.65d-9,8.05d-9,6.11d-9,9.14d-9,0.d0,0.d0,0.d0,0.d0] )
+        case(2) ! GFED3
+          call set_emisPerFireByVegType(n, [0.d0,8.15d-9,4.30d-9,3.32d-9, &
+          & 2.90d-9,3.57d-9,6.43d-9,1.12d-8,0.d0,0.d0,0.d0,0.d0] )
+        case(3) ! GFED2
+          call set_emisPerFireByVegType(n, [0.d0,6.85d-9,3.80d-9,2.31d-9, &
+          & 4.59d-9,4.66d-9,7.16d-9,1.13d-8,0.d0,0.d0,0.d0,0.d0] )
+        case(4) ! MOPITT
+          call set_emisPerFireByVegType(n, [0.d0,1.91d-9,5.96d-9,8.21d-10,&
+          & 9.07d-9,6.02d-9,2.29d-9,3.81d-9,0.d0,0.d0,0.d0,0.d0] )
+        case default
+          call stop_model('whichEPFCs unknown',255)
+        end select
+      end if
 #endif
     end subroutine Alkenes_setSpec
 
@@ -347,16 +451,33 @@ contains
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_Paraffin = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       call set_ntm_power(n, -10)
       call set_tr_mm(n, 1.0d0)  ! So, careful: source files now in Kmole/m2/s or
       ! equivalently, kg/m2/s for species with tr_mm=1
 #ifdef DYNAMIC_BIOMASS_BURNING
-      ! 12 below are the 12 VDATA veg types or Ent remapped to them,
-      ! from Olga Pechony's AR5_EPFC_factors_incl_SO2.xlsx file.
-      emisPerFireByVegType(n,1:12)=(/0.0000000d+00, 1.5258348d-09, &
-      & 5.6236904d-09, 3.1752858d-09, 1.0662656d-08, 1.5271524d-08, &
-      & 8.0735774d-09, 2.6055675d-08, 0.0000000d+00, 0.0000000d+00, &
-      & 0.0000000d+00, 0.0000000d+00/)
+      if (dynamic_biomass_burning) then
+        ! 12 below are the 12 VDATA veg types or Ent remapped to them,
+        ! from Olga Pechony's EPFC.xlsx e-mailed to Greg 1/13/2013
+        call sync_param("whichEPFCs",whichEPFCs)
+        select case(whichEPFCs)
+        case(1) ! AR5
+          call set_emisPerFireByVegType(n, [0.d0,1.77d-9,8.28d-9,1.52d-9, &
+          & 5.24d-9,4.86d-9,4.18d-9,5.24d-9,0.d0,0.d0,0.d0,0.d0] )
+        case(2) ! GFED3
+          call set_emisPerFireByVegType(n, [0.d0,5.00d-9,1.42d-9,1.83d-9, &
+          & 1.94d-9,1.98d-9,2.98d-9,7.85d-9,0.d0,0.d0,0.d0,0.d0] )
+        case(3) ! GFED2
+          call set_emisPerFireByVegType(n, [0.d0,2.46d-9,2.01d-9,9.88d-10,&
+          & 2.60d-9,2.81d-9,4.59d-9,8.73d-9,0.d0,0.d0,0.d0,0.d0] )
+        case(4) ! MOPITT
+          call set_emisPerFireByVegType(n, [0.d0,1.94d-9,5.99d-9,9.05d-10,&
+          & 3.34d-9,6.18d-9,2.20d-9,2.57d-9,0.d0,0.d0,0.d0,0.d0] )
+        case default
+          call stop_model('whichEPFCs unknown',255)
+        end select
+      end if
 #endif
     end subroutine Paraffin_setSpec
 
@@ -364,6 +485,8 @@ contains
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_Terpenes = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       call set_ntm_power(n, -11)
       call set_tr_mm(n, 120.10d0) ! i.e. 10 carbons
       if (tracers_drydep) call set_HSTAR(n,  1.3d-2)
@@ -376,6 +499,8 @@ contains
       real*8 :: tmp
       n = oldAddTracer(name)
       n_isopp1g = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       n_soa_i = n_isopp1g       !the first from the soa species
       tmp = om2oc(n)
       call sync_param(trim(name)//"_om2oc",tmp)
@@ -395,6 +520,8 @@ contains
       real*8 :: tmp
       n = oldAddTracer(name)
       n_isopp1a = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       tmp = om2oc(n)
       call sync_param(trim(name)//"_om2oc",tmp)
       call set_om2oc(n, tmp)
@@ -413,6 +540,8 @@ contains
       real*8 :: tmp
       n = oldAddTracer(name)
       n_isopp2g = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       tmp = om2oc(n)
       call sync_param(trim(name)//"_om2oc",tmp)
       call set_om2oc(n, tmp)
@@ -431,6 +560,8 @@ contains
       real*8 :: tmp
       n = oldAddTracer(name)
       n_isopp2a = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       if (.not. tracers_terp) n_soa_e = n_isopp2a       !the last from the soa species
       tmp = om2oc(n)
       call sync_param(trim(name)//"_om2oc",tmp)
@@ -450,6 +581,8 @@ contains
       real*8 :: tmp
       n = oldAddTracer(name)
       n_apinp1g = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       tmp = om2oc(n)
       call sync_param(trim(name)//"_om2oc",tmp)
       call set_om2oc(n, tmp)
@@ -468,6 +601,8 @@ contains
       real*8 :: tmp
       n = oldAddTracer(name)
       n_apinp1a = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       tmp = om2oc(n)
       call sync_param(trim(name)//"_om2oc",tmp)
       call set_om2oc(n, tmp)
@@ -486,6 +621,8 @@ contains
       real*8 :: tmp
       n = oldAddTracer(name)
       n_apinp2g = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       tmp = om2oc(n)
       call sync_param(trim(name)//"_om2oc",tmp)
       call set_om2oc(n, tmp)
@@ -504,6 +641,8 @@ contains
       real*8 :: tmp
       n = oldAddTracer(name)
       n_apinp2a = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       n_soa_e = n_apinp2a       !the last from the soa species
       tmp = om2oc(n)
       call sync_param(trim(name)//"_om2oc",tmp)
@@ -522,6 +661,8 @@ contains
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_HCl = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       call set_ntm_power(n, -10)
       call set_tr_mm(n, 36.5d0)
     end subroutine HCl_setSpec
@@ -530,6 +671,8 @@ contains
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_HOCl = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       call set_ntm_power(n, -12)
       call set_tr_mm(n, 52.5d0)
     end subroutine HOCl_setSpec
@@ -538,6 +681,8 @@ contains
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_ClONO2 = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       call set_ntm_power(n, -11)
       call set_tr_mm(n, 97.5d0)
     end subroutine ClONO2_setSpec
@@ -546,6 +691,8 @@ contains
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_HBr = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       call set_ntm_power(n, -14)
       call set_tr_mm(n, 80.9d0)
     end subroutine HBr_setSpec
@@ -554,6 +701,8 @@ contains
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_HOBr = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       call set_ntm_power(n, -14)
       call set_tr_mm(n, 96.9d0)
     end subroutine HOBr_setSpec
@@ -562,6 +711,8 @@ contains
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_BrONO2 = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       call set_ntm_power(n, -14)
       call set_tr_mm(n, 141.9d0)
     end subroutine BrONO2_setSpec
@@ -570,7 +721,8 @@ contains
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_CFC = n
-      NTM_chem_end = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
       call set_ntm_power(n, -12)
       call set_tr_mm(n, 137.4d0) !CFC11
     end subroutine CFC_setSpec

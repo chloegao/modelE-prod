@@ -20,6 +20,7 @@ STACKSIZE=524288
 Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
 #define CHECK_OCEAN                 ! needed to compile aux/file CMPE002
+#define OCN_LAYERING L32
 #define AG2OG_PRECIP_BUNDLE
 #define OG2AG_TOC2SST_BUNDLE
 #define AG2OG_OCEANS_BUNDLE
@@ -32,7 +33,7 @@ Object modules: (in order of decreasing priority)
 AtmCS90                           ! 90 Cube-Sphere Grid
 AtmL40                             ! vertical resolution is 40 layers -> 0.1mb
 FFTW_COM          
-ORES_1Qx1_L32                       ! ocean vertical resolution, 13 layers  
+ORES_1Qx1 OFFT288E                  ! ocean horiz res 1.25x1deg
 MODEL_COM GNOM_CS IO_DRV
 TRIDIAG                             ! tridiagonal matrix solver
 MODELE                              ! Main and model overhead
@@ -69,7 +70,6 @@ DIAG_COM DIAG DEFACC QUICKPRT          ! diagnostics
 DIAG_RES_F
 DIAG_ZONALcs
 GCDIAGcs cs2ll_utils
-OFFT288E
 POUT                                   ! post-processing output
 SparseCommunicator_mod                 ! sparse gather/scatter module
 

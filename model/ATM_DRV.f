@@ -4,38 +4,21 @@
       USE TIMINGS, only : ntimemax,ntimeacc,timing,timestr
       USE Dictionary_mod
       Use RESOLUTION, Only: IM,JM,LM
-      Use ATM_COM,    Only: MA,MAOLD,PMID,PMIDOLD
+      Use CONSTANT,   Only: SHA,SHV
+      Use GEOM,       Only: AXYP
+      Use ATM_COM,    Only: MASUM,MA,MAOLD,PMID,PMIDOLD, PK,T,Q,QCL,QCI,
+     &                      MUs,MVs, KEA
+      Use DIAG_COM,   Only: AIJ=>AIJ_LOC,
+     &                      IJ_dSE_DYN,IJ_dKE_DYN,IJ_dTE_DYN
       USE MODEL_COM
-      USE ATM_COM, only : p,qcl,qci
-      USE ATM_COM, only : MUs,MVs,ps,kea
       Use DYNAMICS,   Only: nstep,nidyn,nfiltr,mfiltr,dt
-      USE DOMAIN_DECOMP_ATM, only: grid
+      Use DOMAIN_DECOMP_ATM, Only: GRID, GLOBALSUM
       use domain_decomp_atm, only: writei8_parallel
       USE RANDOM
       USE GETTIME_MOD
-#if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
-      USE TRACER_COM, only: mtrace
-#ifdef TRAC_ADV_CPU
-      USE TRACER_COM, only: mtradv
-#endif
-#endif
       USE DIAG_COM, only : ia_src,ia_d5s,ia_d5d,ia_filt
      &     ,oa,koa
      &     ,MODD5S,NDAa, NDA5d,NDA5s
-#ifdef USE_FVCORE
-      USE FV_INTERFACE_MOD, only: Run,fvstate
-#endif
-#ifndef CUBED_SPHERE
-      USE ATMDYN, only : DYNAM,SDRAG
-     &     ,COMPUTE_DYNAM_AIJ_DIAGNOSTICS
-#endif
-#ifdef SCM
-      USE SCM_COM , only : nstepSCM
-#endif
-#ifdef TRACERS_TOMAS
-      USE TRACER_COM, only : NBINS, n_ANUM,n_ASO4,n_AECIL, n_AECOB,
-     &     n_AOCIL, n_AOCOB,n_ADUST,n_AH2O,n_ANACL
-#endif
       use TimerPackage_mod, only: startTimer => start
       use TimerPackage_mod, only: stopTimer => stop
       use SystemTimers_mod
@@ -43,18 +26,47 @@
       use seaice_com, only : si_atm,si_ocn,iceocn ! temporary until
       use lakes_com, only : icelak                ! melt_si calls
       use fluxes, only : atmocn,atmice            ! are moved
+
+#ifdef USE_FVCORE
+      USE FV_INTERFACE_MOD, only: Run,fvstate
+#endif
+
+#ifndef CUBED_SPHERE
+      USE ATMDYN, only : DYNAM,SDRAG
+     &     ,COMPUTE_DYNAM_AIJ_DIAGNOSTICS
+#endif
+
+#if defined(TRACERS_ON) || defined(TRACERS_OCEAN)
+      USE TRACER_COM, only: mtrace
+#endif
+
+#if (defined(TRACERS_ON) || defined(TRACERS_OCEAN))  && defined(TRAC_ADV_CPU)
+      USE TRACER_COM, only: mtradv
+#endif
+
+#ifdef TRACERS_TOMAS
+      USE TRACER_COM, only : NBINS, n_ANUM,n_ASO4,n_AECIL, n_AECOB,
+     &     n_AOCIL, n_AOCOB,n_ADUST,n_AH2O,n_ANACL
+#endif
+
+#ifdef SCM
+      USE SCM_COM , only : nstepSCM
+#endif
+
       implicit none
 
       INTEGER K,M,MSTART,MNOW,MODD5D,months,ioerr,Ldate,istart
       INTEGER :: MDUM = 0
-
       REAL*8 start,now, DTIME,TOTALT
+      integer :: I,J,L,I_0,I_1,J_0,J_1
+      Real*8  :: dSEpKE,MMGLOB
+      Real*8,Dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     *                 GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
+     *   SEINIT,KEINIT,SEFINAL,KEFINAL
+
 #ifdef TRACERS_TOMAS
       integer :: n
 #endif
-      integer :: I,J,L,I_0,I_1,J_0,J_1
-      real*8 :: initialTotalEnergy, finalTotalEnergy
-      real*8 :: gettotalenergy ! external for now
 
       I_0 = GRID%I_STRT; I_1 = GRID%I_STOP
       J_0 = GRID%J_STRT; J_1 = GRID%J_STOP
@@ -67,7 +79,6 @@ C**** INTEGRATE DYNAMIC TERMS (DIAGA AND DIAGB ARE CALLED FROM DYNAM)
 C****
       CALL CHECKT ('DYNAM0')
          MODD5D=MOD(Itime-ItimeI,NDA5D)
-
          IF (MODD5D.EQ.0) IDACC(ia_d5d)=IDACC(ia_d5d)+1
 #ifndef SCM
          IF (MODD5D.EQ.0) CALL DIAG5A (2,0)
@@ -77,47 +88,44 @@ C****
 C**** Save MA and PMID before dynamics for Q advection and clouds
         MAOLD(:,:,:) =   MA(:,:,:)
       PMIDOLD(:,:,:) = PMID(:,:,:)
-      PS (:,:)   = P(:,:)
 
-C**** Initialise total energy (J/m^2)
-      initialTotalEnergy = getTotalEnergy()
+!**** Initialize total energy (J/m^2) before dynamics
+      Call CONSERV_SE (SEINIT)
+      Call CONSERV_KE (KEINIT)
+      call startTimer('Atm. Dynamics')
 
 #ifdef SCM
       nstepSCM = ITIME-ITIMEI
       write(0,*) 'nstepSCM ',nstepSCM
 #endif
 
-      call startTimer('Atm. Dynamics')
-
-#ifndef USE_FVCORE
+#if !defined(USE_FVCORE)
+!**** Latitude-Longitude B-grid dynamics
       CALL DYNAM()
-#else
-      ! Using FV instead
+#endif
+
+#if defined(USE_FVCORE)
+!**** FV core dynamics
         IF (MOD(Itime-ItimeI,NDAA).eq.0) CALL DIAGA0
-
       call Run(fvstate)
+#endif
 
-#ifndef CUBED_SPHERE
+#if defined(USE_FVCORE) && !defined(CUBED_SPHERE)
       CALL SDRAG (DTsrc)
 #endif
-#endif /* USE_FVCORE */
 
 #if defined(USE_FVCORE) || defined(SCM)
-        if (MOD(Itime-ItimeI,NDAA).eq.0) THEN
-          call DIAGA
-#ifndef SCM
-          call DIAGB
-#ifdef CUBED_SPHERE
-          call EPFLUX
-#endif
-#endif
-        endif
+           If (MOD(Itime-ItimeI,NDAA) == 0)  Call DIAGA
 #endif
 
-C**** This fix adjusts thermal energy to conserve total energy TE=KE+PE
-C**** Currently energy is put in uniformly weighted by mass
-      finalTotalEnergy = getTotalEnergy()
-      call addEnergyAsDiffuseHeat(finalTotalEnergy - initialTotalEnergy)
+#if defined(USE_FVCORE) && !defined(SCM)
+           If (MOD(Itime-ItimeI,NDAA) == 0)  Call DIAGB
+#endif
+
+#if defined(USE_FVCORE) && defined(CUBE_SPHERE)
+           If (MOD(Itime-ItimeI,NDAA) == 0)  Call EPFLUX
+#endif
+
 #ifndef CUBED_SPHERE
       call COMPUTE_DYNAM_AIJ_DIAGNOSTICS(MUs, MVs, DT)
 #endif
@@ -133,9 +141,12 @@ C**** Scale WM mixing ratios to conserve liquid water
       END DO
       CALL QDYNAM  ! Advection of Q by integrated fluxes
          CALL TIMER (NOW,MDYN)
-#ifdef TRACERS_ON
+
+#if defined(TRACERS_ON)
       CALL TrDYNAM   ! tracer dynamics
-#ifdef TRACERS_TOMAS
+#endif
+
+#if defined(TRACERS_ON) && defined(TRACERS_TOMAS)
 !TOMAS- This next section of code ratios the higher order moments of
 !       aerosol mass to those of aerosol number so the distributions of
 !       aerosol mass and number within a grid cell are consistent
@@ -150,33 +161,64 @@ C**** Scale WM mixing ratios to conserve liquid water
          call momentfix(n_ANUM(1)-1+n, n_AH2O(1)-1+n)  !water mass
       enddo
 #endif
-#ifdef TRAC_ADV_CPU
+
+#if defined(TRACERS_ON) && defined(TRAC_ADV_CPU)
          CALL TIMER (NOW,MTRADV)
-#else
-         CALL TIMER (NOW,MTRACE)
-#endif
 #endif
 
+#if defined(TRACERS_ON) && !defined(TRAC_ADV_CPU)
+         CALL TIMER (NOW,MTRACE)
+#endif
+
+#ifndef SCM
+
+! Why is this not in a subroutine?
+
+!**** Adjust thermal energy to conserve total energy by dynamics
+!**** Compute global energy generated by dynamics: dSEpKE (J)
+!**** Compute global mass: MMGLOB (kg); KEFINAL stores MASUM*AXYP
+!**** Subtract dSEpKE as heat proportional to mass
+!**** Gaseous specific heat capacity: SHG = SHA + Q*(SHV-SHA)
+      Call CONSERV_SE (SEFINAL)
+      Call CONSERV_KE (KEFINAL)
+      Do J=J_0,J_1  ;  Do I=I_0,I_1
+              AIJ(I,J,IJ_dSE_DYN) = AIJ(I,J,IJ_dSE_DYN) + 
+     +                  (SEFINAL(I,J) - SEINIT(I,J))
+              AIJ(I,J,IJ_dKE_DYN) = AIJ(I,J,IJ_dKE_DYN) + 
+     +                  (KEFINAL(I,J) - KEINIT(I,J))
+         SEFINAL(I,J) = (SEFINAL(I,J) - SEINIT(I,J) +
+     +                  (KEFINAL(I,J) - KEINIT(I,J))) * AXYP(I,J)
+         KEFINAL(I,J) = MASUM(I,J) * AXYP(I,J)
+         EndDo  ;  EndDo
+      Call GLOBALSUM (GRID, SEFINAL, dSEpKE, ALL=.True.)
+      Call GLOBALSUM (GRID, KEFINAL, MMGLOB, ALL=.True.)
+      dSEpKE = dSEpKE / MMGLOB  !  (J/kg)
+      Do J=J_0,J_1  ;  Do I=I_0,I_1
+!        T(I,J,:) = T(I,J,:)
+!    -            - dSEpKE / (PK(:,I,J)*(SHA + Q(I,J,:)*(SHV-SHA)))
+!PRESENTLY VAPORMASS=0
+         T(I,J,:) = T(I,J,:) - dSEpKE / (PK(:,I,J)*SHA)
+           AIJ(I,J,IJ_dTE_DYN) = AIJ(I,J,IJ_dTE_DYN) + dSEpKE*MASUM(I,J) 
+         EndDo  ;  EndDo
+#endif
       call stopTimer('Atm. Dynamics')
 
 #ifdef CACHED_SUBDD
       call get_subdd_vinterp_coeffs ! doing after dynamics
 #endif
 
-C****
 C**** Calculate tropopause level and pressure
-C****
       CALL CALC_TROP
-C**** calculate some dynamic variables for the PBL
+
 #ifndef SCM
+!**** Compute dynamic variables for the PBL
       CALL PGRAD_PBL
 #endif
+
 C**** calculate zenith angle for current time step
       CALL CALC_ZENITH_ANGLE
-
          CALL CHECKT ('DYNAM ')
          CALL TIMER (NOW,MSURF)
-
 #ifndef SCM
          IF (MODD5D.EQ.0) CALL DIAG5A (7,NIdyn)
 #endif
@@ -216,11 +258,11 @@ C**** AND ICE FRACTION CAN THEN STAY CONSTANT UNTIL END OF TIMESTEP
       call seaice_to_atmgrid(atmice)
          CALL UPDTYPE
          CALL TIMER (NOW,MSURF)
+
 C**** CONDENSATION, SUPER SATURATION AND MOIST CONVECTION
       CALL CONDSE
          CALL CHECKT ('CONDSE')
          CALL TIMER (NOW,MCNDS)
-
 #ifndef SCM
          IF (MODD5S.EQ.0) CALL DIAG5A (9,NIdyn)
 #endif
@@ -231,7 +273,6 @@ C**** RADIATION, SOLAR AND THERMAL
       CALL RADIA
          CALL CHECKT ('RADIA ')
          CALL TIMER (NOW,MRAD)
-
 #ifndef SCM
          IF (MODD5S.EQ.0) CALL DIAG5A (11,NIdyn)
 #endif
@@ -241,10 +282,7 @@ C**** RADIATION, SOLAR AND THERMAL
 C**** Calculate non-interactive tracer surface sources and sinks
          call set_tracer_2Dsource
          CALL TIMER (NOW,MTRACE)
-
-C****
 C**** Add up the non-interactive tracer surface sources.
-C****
       call sum_prescribed_tracer_2Dsources(dtsrc)
 #endif
 
@@ -280,6 +318,11 @@ C****
       use rad_com, only : dirvis,fsrdif,dirnir,difnir
       implicit none
       integer :: it
+
+#ifdef SCM
+      ! update SST every time step for SCM cases
+      call daily_ocean(.false.,atmocn)
+#endif
 
       ! Step 1: copy fields not already stored in atmsrf%xxx
       atmsrf%prec = prec
@@ -498,7 +541,7 @@ C****
       USE Dictionary_mod
       USE CONSTANT, only : grav
       USE FLUXES, only : nisurf,atmocn,atmice
-      USE RESOLUTION, only : ls1,plbot
+      USE RESOLUTION, only : ls1=>ls1_nominal,plbot
       USE RESOLUTION, only : im,jm,lm
       USE MODEL_COM, only :
      *      irand,idacc ,nday,dtsrc ,iyear1,itime,itimei,itimee
@@ -764,6 +807,7 @@ c set-up for MPI implementation
 #ifdef TRACERS_AEROSOLS_SEASALT
       use tracers_seasalt, only: alloc_seasalt_sources
 #endif  /* TRACERS_AEROSOLS_SEASALT */
+      use geom, only: geom_atm
       IMPLICIT NONE
 #ifdef GLINT2
       include 'mpif.h'      ! Needed for GLINT2
@@ -772,6 +816,8 @@ c set-up for MPI implementation
 c initialize the atmospheric domain decomposition
 c for now, CREATE_CAP is only relevant to the cubed sphere grid
       call init_grid(grid, im, jm, lm, CREATE_CAP=.true.)
+
+      call geom_atm
 
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
       call initTracerCom
@@ -840,8 +886,7 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
       call alloc_tracer_tomas_com(grid)
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
       CALL alloc_dust(grid)
 #endif
 #endif
@@ -1025,7 +1070,7 @@ C**** CHECKT IS TURNED ON BY SETTING QCHECK=.TRUE. IN NAMELIST
 C**** REMEMBER TO SET QCHECK BACK TO .FALSE. AFTER THE ERRORS ARE
 C**** CORRECTED.
       USE CONSTANT, only : tf
-      USE RESOLUTION, only : ls1
+      USE RESOLUTION, only : ls1=>ls1_nominal
       USE RESOLUTION, only : im,jm,lm
       USE ATM_COM, only : u,v,t,p,q,qcl,qci,pk
 #ifdef BLK_2MOM
@@ -1506,16 +1551,17 @@ C****
 #ifdef CACHED_SUBDD
       subroutine accum_subdd_atm
 C**** interpolate to pressure levels and accumulate the subdd diagnostics
-      USE CONSTANT, only : teeny,lhe,bygrav
+      USE CONSTANT, only : teeny,lhe,lhm,sha,bygrav
       use subdd_mod, only : lmaxsubdd
       use subdd_mod, only : subdd_type,subdd_groups,subdd_ngroups
       use subdd_mod, only : aijph_l1,aijph_l2
      &      ,subdd_npres,subdd_pk, subdd_pres
       use subdd_mod, only : inc_subdd,find_groups
       use atm_com,    only: u,v,t,q,qcl,qci, pdsig,pmid,pedn,pk,
-     &                      ualij,valij, zatmo,gz, wsave
+     &                      ualij,valij, zatmo,gz, wsave, ma,masum
+     &                     ,ptropo,ltropo
       use domain_decomp_atm, only : grid,get=>getdomainbounds
-      use resolution, only : lm
+      use resolution, only : lm,mtop
       USE GEOM, only: imaxj
       use fluxes, only : atmsrf,atmice
       use model_com, only : dtsrc
@@ -1552,11 +1598,8 @@ C
         sddarr2d = pedn(1,:,:)
         call inc_subdd(subdd,k,sddarr2d)
 C
-      case ('gtempr')
-        call inc_subdd(subdd,k,atmsrf%gtempr)
-C
-      case ('ustar')
-        call inc_subdd(subdd,k,atmice%ustar_pbl)
+      case ('z_surf')
+        call inc_subdd(subdd,k,zatmo)
 C
       case ('pblht')
         call inc_subdd(subdd,k,atmsrf%dblavg)
@@ -1587,6 +1630,17 @@ C
         enddo;        enddo
         call inc_subdd(subdd,k,sddarr2d)
 C
+      case ('column_fmse')
+        ! same as total static energy computed by conserv_se,
+        ! which is disabled for SCM
+        do j=j_0,j_1; do i=i_0,imaxj(j)
+          sddarr2d(i,j) = sum( 
+     &           (sha*t(i,j,1:LM)*pk(1:LM,i,j)+
+     &            lhe*q(i,j,1:LM)-lhm*qci(i,j,1:LM))*ma(1:LM,i,j))+
+     &           zatmo(i,j)*(masum(i,j)+mtop)
+        enddo;        enddo
+        call inc_subdd(subdd,k,sddarr2d)
+C
       case ('snowdp')
         call inc_subdd(subdd,k,atmice%snowsave)
 C
@@ -1595,6 +1649,15 @@ C
           !ts = t(i,j,1)*pek(1,i,j)
           sddarr2d(i,j) =
      &         slp(pedn(1,i,j),atmsrf%tsavg(i,j),bygrav*zatmo(i,j))
+        enddo;        enddo
+        call inc_subdd(subdd,k,sddarr2d)
+C
+      case ('ptrop')
+        call inc_subdd(subdd,k,ptropo)
+C
+      case ('ttrop')
+        do j=j_0,j_1; do i=i_0,imaxj(j)
+          sddarr2d(i,j) = t(i,j,ltropo(i,j))*pk(ltropo(i,j),i,j)
         enddo;        enddo
         call inc_subdd(subdd,k,sddarr2d)
       end select

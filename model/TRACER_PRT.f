@@ -35,6 +35,7 @@
      *     ,jlnt_cldh2o
 #endif
       USE ATM_COM, only: MA,byMA
+      use oldtracer_mod, only: src_dist_index
       implicit none
 
       integer i,j,l,n
@@ -97,32 +98,34 @@ C**** Latitude-longitude by layer concentration
 # endif /* accumulate aerosol 3Dmass (Ron) */
       end if
 C**** Average concentration; surface concentration; total mass
-      do j=J_0,J_1
-      do i=I_0,I_1
-        tsum = sum(trm(i,j,:,n))*byaxyp(i,j)  !sum over l
-        asum = sum(MA(:,i,j))     !sum over l
-        taijn(i,j,tij_mass,n) = taijn(i,j,tij_mass,n)+tsum  !MASS
-        taijn(i,j,tij_conc,n) = taijn(i,j,tij_conc,n)+tsum/asum
-      enddo; enddo
+      if (src_dist_index(n)==0) then
+        do j=J_0,J_1
+        do i=I_0,I_1
+          tsum = sum(trm(i,j,:,n))*byaxyp(i,j)  !sum over l
+          asum = sum(MA(:,i,j))     !sum over l
+          taijn(i,j,tij_mass,n) = taijn(i,j,tij_mass,n)+tsum  !MASS
+          taijn(i,j,tij_conc,n) = taijn(i,j,tij_conc,n)+tsum/asum
+        enddo; enddo
 C**** Zonal mean concentration and mass
-      do l=1,lm
-      do j=J_0,J_1
-        do i=I_0,imaxj(j)
-          call inc_tajln(i,j,l,jlnt_mass,n,trm(i,j,l,n))
-        end do
-      enddo; enddo
+        do l=1,lm
+        do j=J_0,J_1
+          do i=I_0,imaxj(j)
+            call inc_tajln(i,j,l,jlnt_mass,n,trm(i,j,l,n))
+          end do
+        enddo; enddo
 
 #ifdef TRACERS_WATER
 C**** Zonal mean cloud water concentration
-      if (dowetdep(n)) then
-      do l=1,lm
-      do j=J_0,J_1
-        do i=I_0,imaxj(j)
-          call inc_tajln(i,j,l,jlnt_cldh2o,n,trwm(i,j,l,n))
-        end do
-      enddo; enddo
-      end if
+        if (dowetdep(n)) then
+        do l=1,lm
+        do j=J_0,J_1
+          do i=I_0,imaxj(j)
+            call inc_tajln(i,j,l,jlnt_cldh2o,n,trwm(i,j,l,n))
+          end do
+        enddo; enddo
+        end if
 #endif
+      endif ! src_dist_index(n)==0
 
   600 continue
       return
@@ -136,6 +139,7 @@ C**** Zonal mean cloud water concentration
       USE DIAG_COM, only : jm_budg,j_budg, j_0b, j_1b
       USE TRDIAG_COM, only: tconsrv=>tconsrv_loc,nofmt,title_tcon
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
+      use oldtracer_mod, only: src_dist_index
       IMPLICIT NONE
 !@var M index denoting which process changed the tracer
       INTEGER, INTENT(IN) :: m
@@ -148,6 +152,7 @@ C**** Zonal mean cloud water concentration
       INTEGER :: nm,ni
       INTEGER :: I, J, I_0, I_1, J_0, J_1
 
+      if (src_dist_index(nt)/=0) return
       call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = GRID%I_STRT
       I_1 = GRID%I_STOP
@@ -191,7 +196,7 @@ C**** Save current value in TCONSRV(NI)
 !@sum consrv_tr calculate total zonal tracer amount (kg)
 !@auth Gavin Schmidt
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
-      use resolution, only : ls1
+      use resolution, only : ls1=>ls1_nominal
       use resolution, only : lm,jm,im
       use geom, only : imaxj
       use OldTracer_mod, only: trname
@@ -585,12 +590,15 @@ C****
 !@     It is NOT parallelized.
       USE CONSTANT, only : undef,teeny
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
-      USE RESOLUTION, only : ls1
+      USE RESOLUTION, only : ls1=>ls1_nominal
       USE RESOLUTION, only : jm,lm
       USE MODEL_COM, only: itime,idacc,xlabel,lrunid
       USE DYNAMICS, only : dsig
       USE GEOM, only: bydxyp,dxyp,lat_dg
       use OldTracer_mod, only: ntm_power, dowetdep, trw0
+#ifdef TRACERS_SPECIAL_Lerner
+      use OldTracer_mod, only: trname
+#endif
       USE TRACER_COM, only: ntm, n_water
 #ifdef TRACERS_SPECIAL_O18
       use tracer_com, only: n_h2o18, n_hdo, n_h2o17
@@ -615,7 +623,11 @@ C****
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRDIAG_COM, only : jls_H2Omr, jls_day
 #endif
+#ifdef TRACERS_SPECIAL_Lerner
+      use TRACER_COM, only: n_CH4, n_O3
+#endif
       USE BDJLT
+      use oldtracer_mod, only: src_dist_index
       IMPLICIT NONE
 
       REAL*8, DIMENSION(1:JM)   :: ONESPO, BYAPO
@@ -673,6 +685,9 @@ C**** Note: why are jtpow defined here AND in units definition above?
 C**** there is needless scope for inconsistency....
 
       DO 400 N=1,NTM
+
+      if (src_dist_index(n)/=0) cycle
+
 c     IF (itime.LT.itime_tr0(N)) cycle
 C****
 C**** TRACER CONCENTRATION
@@ -1242,7 +1257,8 @@ C****
       use model_com, only: modelEclock
       USE MODEL_COM, only: jhour0,jdate0,amon,amon0
      *     ,jyear0,nday,itime,itime0,xlabel,lrunid,idacc
-      use OldTracer_mod, only: dodrydep, dowetdep, trname, trw0
+      use OldTracer_mod, only: dodrydep, dowetdep, trname, trw0,
+     &   src_dist_index
       USE TRACER_COM, only: ntm, n_water
 #ifdef TRACERS_SPECIAL_O18
       use tracer_com, only: n_h2o18, n_hdo, n_h2o17
@@ -1327,6 +1343,7 @@ C**** Fill in the undefined pole box duplicates
 
 C**** Fill in maplet indices for tracer sums/means and ground conc
       do n=1,NTM
+      if (src_dist_index(n)/=0) cycle
       do kx=1,ktaij
         if (index(lname_tij(kx,n),'unused').gt.0) cycle
         k = k+1
@@ -1617,7 +1634,7 @@ C****
       use model_com, only: modelEclock
       USE MODEL_COM, only: jhour0,jdate0,amon,amon0
      *     ,jyear0,nday,itime,itime0,xlabel,lrunid,idacc
-      use OldTracer_mod, only: trw0
+      use OldTracer_mod, only: trw0, src_dist_index
       USE TRACER_COM, only: ntm, n_water
 #ifdef TRACERS_SPECIAL_O18
       use tracer_com, only: n_h2o18, n_hdo, n_h2o17
@@ -1711,6 +1728,7 @@ C**** Fill in the undefined pole box duplicates
 
 C**** Fill in maplet indices for tracer concentrations
       do n=1,NTM
+        if (src_dist_index(n)/=0) cycle
         k = k+1
         iord(k) = n
         ijtype(k) = 1

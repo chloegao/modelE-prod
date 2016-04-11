@@ -37,32 +37,17 @@
       use OldTracer_mod, only: dodrydep
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
-    (defined TRACERS_TOMAS)
-      use TRACER_COM, only: Ntm_dust
+    (defined TRACERS_AMP)  || (defined TRACERS_TOMAS)
+      use TRACER_COM, only: Ntm_dust, n_soildust
 #endif
 #ifdef TRACERS_TOMAS
       use TRACER_COM, only: NBINS, xk
 #endif
-#ifdef TRACERS_DUST
-      use TRACER_COM, only: n_clay
-#else
-#ifdef TRACERS_MINERALS
-      use TRACER_COM, only: n_clayilli
-#endif /* TRACERS_MINERALS */
-#ifdef TRACERS_QUARZHEM
-      use TRACER_COM, only: n_sil1quhe
-#endif /* TRACERS_QUARZHEM */
-#endif /* TRACERS_DUST */
-#endif /* TRACERS_DUST||TRACERS_MINERALS||TRACERS_QUARZHEM||TRACERS_AMP||TRACERS_TOMAS */
+#endif /* TRACERS_DUST || TRACERS_MINERALS || TRACERS_AMP || TRACERS_TOMAS */
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_AMP)  || (defined TRACERS_TOMAS)
       use tracers_dust,only : nAerocomDust
-#endif
-#if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
-      USE tracers_dust,ONLY : Mtrac
 #endif
       USE TRIDIAG_MOD, only :  TRIDIAG
       IMPLICIT NONE
@@ -146,8 +131,7 @@ c**** Tracer input/output
 #endif
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_AMP)  || (defined TRACERS_TOMAS)
 c**** input
 !@var pbl_args%wearth earth water of first layer [kg/m^2]
 !@var pbl_args%aiearth earth ice of first layer [kg/m^2]
@@ -167,7 +151,7 @@ c**** input
         REAL*8 :: pprec,pevap
 !@var pbl_args%d_dust prescribed daily dust emissions [kg/m^2/s] (e.g. AEROCOM)
         real(kind=8) :: d_dust(nAerocomDust)
-#if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
+#ifdef TRACERS_MINERALS
 !@var pbl_args%minfr distribution of tracer fractions in grid box
         real(kind=8) :: mineralFractions( Ntm_dust )
 #endif
@@ -193,8 +177,7 @@ c**** output
         LOGICAL :: qdust
 #endif
 
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
         integer :: moddd,ih,ihm
 #endif
 
@@ -507,8 +490,7 @@ C****
 #endif 
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_AMP)  || (defined TRACERS_TOMAS)
       INTEGER :: n1
       REAL*8 :: dsrcflx,dsrcflx2
 #endif
@@ -766,8 +748,7 @@ C**** for all dry deposited tracers
 #endif
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_AMP)  || (defined TRACERS_TOMAS)
       CALL dust_emission_constraints(itype,wsgcm,pbl_args)
 #endif
 
@@ -912,38 +893,31 @@ C****   4) tracers with interactive sources
         end select
 #endif
 
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
 ccc dust emission from earth
         SELECT CASE (trname(pbl_args%ntix(itr)))
-#ifdef TRACERS_DUST
-        CASE ('Clay','Silt1','Silt2','Silt3','Silt4')
-          n1=pbl_args%ntix(itr)-n_clay+1
-#else
-#ifdef TRACERS_MINERALS
-        CASE ('ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
-     &        'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
-     &        'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
-     &        'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps',
-     &        'Sil1QuHe','Sil2QuHe','Sil3QuHe')
-          n1=pbl_args%ntix(itr)-n_clayilli+1
-#else
-#ifdef TRACERS_QUARZHEM
-        CASE ('Sil1QuHe','Sil2QuHe','Sil3QuHe')
-          n1=pbl_args%ntix(itr)-n_sil1quhe+1
-#endif
-#endif
-#endif
-        END SELECT
-        SELECT CASE (trname(pbl_args%ntix(itr)))
-        CASE ('Clay','Silt1','Silt2','Silt3','Silt4',
-     &        'ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar',
-     &        'Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps',
-     &        'Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps',
-     &        'Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps',
-     &        'Sil1QuHe','Sil2QuHe','Sil3QuHe')
-          CALL local_dust_emission(pbl_args%ntix(itr),wsgcm,
-     &       pbl_args,dsrcflx,dsrcflx2)
+        case('Clay','Silt1','Silt2','Silt3','Silt4','Silt5','ClayIlli'
+     &         ,'ClayKaol','ClaySmec','ClayCalc','ClayQuar','ClayFeld'
+     &         ,'ClayHema','ClayGyps','ClayIlHe','ClayKaHe','ClaySmHe'
+     &         ,'ClayCaHe','ClayQuHe','ClayFeHe','ClayGyHe','Sil1Quar'
+     &         ,'Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps','Sil1Illi'
+     &         ,'Sil1Kaol','Sil1Smec','Sil1QuHe','Sil1FeHe','Sil1CaHe'
+     &         ,'Sil1GyHe','Sil1IlHe','Sil1KaHe','Sil1SmHe','Sil2Quar'
+     &         ,'Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps','Sil2Illi'
+     &         ,'Sil2Kaol','Sil2Smec','Sil2QuHe','Sil2FeHe','Sil2CaHe'
+     &         ,'Sil2GyHe','Sil2IlHe','Sil2KaHe','Sil2SmHe','Sil3Quar'
+     &         ,'Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps','Sil3Illi'
+     &         ,'Sil3Kaol','Sil3Smec','Sil3QuHe','Sil3FeHe','Sil3CaHe'
+     &         ,'Sil3GyHe','Sil3IlHe','Sil3KaHe','Sil3SmHe','Sil4Quar'
+     &         ,'Sil4Feld','Sil4Calc','Sil4Hema','Sil4Gyps','Sil4Illi'
+     &         ,'Sil4Kaol','Sil4Smec','Sil4QuHe','Sil4FeHe','Sil4CaHe'
+     &         ,'Sil4GyHe','Sil4IlHe','Sil4KaHe','Sil4SmHe','Sil5Quar'
+     &         ,'Sil5Feld','Sil5Calc','Sil5Hema','Sil5Gyps','Sil5Illi'
+     &         ,'Sil5Kaol','Sil5Smec','Sil5QuHe','Sil5FeHe','Sil5CaHe'
+     &         ,'Sil5GyHe','Sil5IlHe','Sil5KaHe','Sil5SmHe')
+          n1=pbl_args%ntix(itr)-n_soildust+1
+          CALL local_dust_emission( pbl_args%ntix(itr), wsgcm, pbl_args,
+     &         dsrcflx, dsrcflx2 )
           trcnst=dsrcflx*byrho
           pbl_args%dust_flux(n1)=dsrcflx
           pbl_args%dust_flux2(n1)=dsrcflx2
@@ -1163,8 +1137,7 @@ C**** tracer code output
       if (ddml_eq_1) pbl_args%trprime(1:pbl_args%ntx) = 
      &     pbl_args%trdn1(1:pbl_args%ntx)-tr(1,1:pbl_args%ntx)
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_AMP)  || (defined TRACERS_TOMAS)
       pbl_args%z(:) = z(:)
       pbl_args%zhat(:) = zhat(:)
       pbl_args%km(:) = km(:)

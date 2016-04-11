@@ -263,7 +263,7 @@ C
       REAL*8, INTENT(OUT), DIMENSION(NTM) :: gs_vel
       REAL*8,INTENT(IN) :: psurf ! surface pressure
 !      REAL*8, INTENT(IN), DIMENSION(NTM) :: TM
-      real Dp(nbins),density(nbins) !particle diameter (m)
+      real*8 Dp(nbins),density(nbins) !particle diameter (m)
       real*8 Dk          !@var Dk particle diffusivity (m2/s)
       real*8 mu          !@var mu air viscosity (kg/m s)
       real*8 Sc,St       !@var Sc/St  particle Schmidt and Stokes numbers
@@ -378,7 +378,7 @@ C* first check for any points that are ITYPE=4 but all ice/water:
             IF((II /= 1 .and. II /= 11) .or. problem_point) THEN
    
 C** Here, we should probably put some provisions that if the GCM land
-C** grid box is mostly snow-covered, set II=1 <<<<<<<<<<<<<<<<<<<<<<<
+C** grid box is mostly snow-covered, set II=1 <######################
 C**       
 C* Read the internal resistance RI (minimum stomatal resistance for
 C* water vapor, per unit area of leaf) from the IRI array; a '9999'

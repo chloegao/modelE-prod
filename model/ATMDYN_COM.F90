@@ -5,7 +5,7 @@
 !@vers 2013/03/29
 !@auth Original development team
       Use DOMAIN_DECOMP_ATM, Only: GRID
-      Use RESOLUTION,        Only: LM,LS1
+      Use RESOLUTION,        Only: LM,LS1=>LS1_NOMINAL
       Implicit  None
 
 !**** Vertical resolution dependent variables (set in INPUT)
@@ -102,7 +102,7 @@
 !!!#ifndef SCM
       Subroutine ALLOC_DYNAMICS (GRID)
       Use DOMAIN_DECOMP_ATM, Only: DIST_GRID, AM_I_ROOT
-      Use RESOLUTION, Only: LM,LS1, PSF,PLBOT,PSFmPT,PTOP
+      Use RESOLUTION, Only: LM,LS1=>LS1_NOMINAL, PSF,PLBOT
       Use DYNAMICS, Only: SIGE,SIG,DSIG,BYDSIG, MU,MV,MW,CONV, PU,PV,SD, DUT,DVT,SPA, SMASS,WCP,WCPsig
       Use ATM_COM,  Only: LM_REQ, PMIDL00,PDSIGL00,AML00,byAML00,PEDNL00
       Implicit  None
@@ -114,7 +114,7 @@
 !****
 !**** Set dependent vertical resolution variables
 !****
-      SIGE(:) = (PLBOT(:)-PTOP)/PSFMPT
+      SIGE(:) = (PLBOT(:)-PLBOT(LS1))/(PLBOT(1)-PLBOT(LS1))
       SIG(:)  = (sige(1:lm)+sige(2:lm+1))*0.5d0
       DSIG(:) =  sige(1:lm)-sige(2:lm+1)
     byDSIG(:) =  1 / DSIG(:)
@@ -146,7 +146,10 @@
       Subroutine MAtoP (MA,MASUM)                                        
 !@sum MAtoP calculates haloed pressure arrays PEDN, PMID, PDSIG and PK from haloed air mass MA
       Use CONSTANT,   Only: kg2mb,KAPA
-      Use RESOLUTION, Only: JM,LM, MTOP,MFIXS
+      Use RESOLUTION, Only: JM,LM, MTOP
+#ifndef STDHYB
+      Use RESOLUTION, Only: MFIXS
+#endif
       Use ATM_COM,    Only: PEDN,PMID,PDSIG,PK,P
       Use DOMAIN_DECOMP_ATM, Only: GRID
       Use DOMAIN_DECOMP_1D,  Only: GetDomainBounds, HALO_UPDATE_COLUMN, SOUTH
@@ -171,7 +174,11 @@
 !     J1 = GRID%J_STRT_HALO  ;  JN = GRID%J_STOP_HALO  !  haloed primary row limits
 
       Do J=J1,JN  ;  Do I=I1,IN
-         P(I,J) = kg2mb * (MASUM(I,J) - MFIXS)
+         P(I,J) = kg2mb * (MASUM(I,J) &
+#ifndef STDHYB
+              - MFIXS &
+#endif
+)
          M = MTOP
          Do L=LM,1,-1
             PEDN(L,I,J) = kg2mb * (M + MA(L,I,J))
@@ -187,7 +194,11 @@
 !@sum  CALC_VERT_AMPK calculates air mass and pressure vertical arrays
 !@auth Jean Lerner/Gavin Schmidt
       Use CONSTANT,   Only: MB2KG,KG2MB
-      Use RESOLUTION, Only: LM, MTOP,MFIX,MFRAC,MFIXs
+      Use RESOLUTION, Only: LM, MTOP
+      Use RESOLUTION, Only: MFIX,MFRAC
+#ifndef STDHYB
+      Use RESOLUTION, Only: MFIXs
+#endif
       Use ATM_COM,    Only: LM_REQ, REQ_FAC,REQ_FAC_M,REQ_FAC_D
       Implicit  None
 
@@ -204,7 +215,10 @@
       Real*8  :: MVAR
 
 !**** Calculate air mass, layer pressures
-      MVAR = PS*MB2KG - MFIXs - MTOP
+      MVAR = PS*MB2KG
+#ifndef STDHYB
+      MVAR = MVAR - MFIXs - MTOP
+#endif
       PEDN(LM+1) = MTOP*KG2MB
       Do L=LM,1,-1
            MA(L) = MFIX(L) + MVAR*MFRAC(L)
@@ -228,7 +242,11 @@
 !@+   the AIC file, this routine converts everything to ModelE form (units
 !@+   changes, auxiliary variables, etc.)
       Use CONSTANT,   Only: mb2kg,areag,rgas
-      Use RESOLUTION, Only: IM,JM,LM, MTOP,MFIX,MFIXs,MFRAC,MDRYA, PSF
+      Use RESOLUTION, Only: IM,JM,LM, MDRYA, PSF
+      Use RESOLUTION, Only: MFIX,MFRAC
+#ifndef STDHYB
+      Use RESOLUTION, Only: MFIXs,MTOP
+#endif
       Use ATM_COM,    Only: MA,U,V,T,P,Q, PK,PMID,PEDN,UALIJ,VALIJ, ZATMO
       Use ATM_COM,    Only: traditional_coldstart_aic
       Use DOMAIN_DECOMP_ATM, Only: GRID, GetDomainBounds, GLOBALSUM, HALO_UPDATE_COLUMN
@@ -276,7 +294,10 @@
 
 !**** Compute MA from PSURF; halo MA; call MAtoPMB
       Do J=J1,JN  ;  Do I=I1,IN
-         MVAR = P(I,J)*MB2KG - MFIXs - MTOP  !  P = surface pressure (mb)
+         MVAR = P(I,J)*MB2KG  !  P = surface pressure (mb)
+#ifndef STDHYB
+         MVAR = MVAR - MFIXs - MTOP
+#endif
          MA(:,I,J) = MFIX(:) + MVAR*MFRAC(:)  ;  EndDo  ;  EndDo
       Call HALO_UPDATE_COLUMN (GRID, MA)
       Call MAtoPMB
@@ -313,7 +334,7 @@
 
       Subroutine PERTURB_TEMPS
 !**** Perturb tropospheric temperatures by at most 1 degree C
-      Use RESOLUTION, Only: LS1
+      Use RESOLUTION, Only: LS1=>LS1_NOMINAL
       Use ATM_COM,    Only: T,PK
       Use RANDOM
       Use domain_decomp_atm, only : grid,getDomainBounds
@@ -339,7 +360,7 @@
 
 
       Subroutine INIT_SDRAG
-      Use RESOLUTION, Only: LM,LS1, PSTRAT
+      Use RESOLUTION, Only: LM,LS1=>LS1_NOMINAL
       Use ATM_COM,    Only: PEDNL00,PMIDL00
       Use DYNAMICS,   Only: LSDRAG,LPSDRAG,ANG_SDRAG,USE_UNR_DRAG, &
                             X_SDRAG,C_SDRAG,P_SDRAG,PP_SDRAG,P_CSDRAG,CSDRAGL,Wc_JDRAG,WMAX,VSDRAGL
@@ -415,7 +436,8 @@
 
       Subroutine DAILY_ATMDYN (END_of_DAY)
 !@sum DAILY_ATMDYN performs daily tasks at END-of-DAY and maybe at (re)starts
-      Use RESOLUTION, Only: LS1, MTOP,MDRYA, MFRAC
+      use verticalres, Only: LM,MTOP,MDRYA
+      use verticalres, Only: MFRAC
       Use ATM_COM,    Only: MA,MASUM
       Use MODEL_COM,  Only: ITIME,ITIMEI
       Use GEOM,       Only: AREAG,AXYP
@@ -437,7 +459,8 @@
 !**** Correct air mass caused by computer truncation
       DELTAM = MDRYA - MDRYANOW
       If (ITIME==ITIMEI .and. Abs(DELTAM) < 1d-9)  Return
-      Do L=1,LS1-1
+      Do L=1,LM
+        if(mfrac(l).eq.0.) cycle
          MA(L,:,:) = MA(L,:,:) + DELTAM*MFRAC(L)  ;  EndDo
       Call MAtoPMB
       If (AM_I_ROOT())  Write (6,*) 'Atmospheric mass added in DAILY_ATMDYN is =',DELTAM

@@ -1405,7 +1405,7 @@ c
 !@dbparam Nsubdd: DT_save_SUBDD =  Nsubdd*DTsrc sub-daily diag freq.
       INTEGER :: Nsubdd = 0
 !@var kddmax maximum number of sub-daily diags outputs
-      INTEGER, PARAMETER :: kddmax = 85
+      INTEGER, PARAMETER :: kddmax = 110
 !@dbparam subdd string contains variables to save for sub-daily diags
 !@dbparam subdd1 additional string of variables for sub-daily diags
 !@dbparam subdd2 additional string of variables for sub-daily diags
@@ -1417,13 +1417,22 @@ c
 !@dbparam subdd8 additional string of variables for sub-daily diags
 !@dbparam subdd9 additional string of variables for sub-daily diags
 !@dbparam subd10 additional string of variables for sub-daily diags
+!@dbparam subd11 additional string of variables for sub-daily diags
+!@dbparam subd12 additional string of variables for sub-daily diags
+!@dbparam subd13 additional string of variables for sub-daily diags
+!@dbparam subd14 additional string of variables for sub-daily diags
+!@dbparam subd15 additional string of variables for sub-daily diags
+!@dbparam subd16 additional string of variables for sub-daily diags
+!@dbparam subd17 additional string of variables for sub-daily diags
 C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
       CHARACTER*64 :: subdd="SLP", 
      & subdd1=" ", subdd2=" ", subdd3=" ", subdd4=" ",
      & subdd5=" ", subdd6=" ", subdd7=" ", subdd8=" ",
-     & subdd9=" ", subd10=" "
+     & subdd9=" ", subd10=" ", subd11=" ", subd12=" ",
+     & subd13=" ", subd14=" ", subd15=" ", subd16=" ",
+     & subd17=" "
 !@var subddt = subdd + subdd1,2,3 = all variables for sub-daily diags
-      CHARACTER*713 :: subddt = " "
+      CHARACTER*1169 :: subddt = " "
       ! e.g. here, 584=11*64+9
 !@var namedd array of names of sub-daily diags
       character(len=namedd_strlen), DIMENSION(kddmax) :: namedd
@@ -1499,6 +1508,13 @@ C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
       call sync_param( "subdd8" ,subdd8)
       call sync_param( "subdd9" ,subdd9)
       call sync_param( "subd10" ,subd10)
+      call sync_param( "subd11" ,subd11)
+      call sync_param( "subd12" ,subd12)
+      call sync_param( "subd13" ,subd13)
+      call sync_param( "subd14" ,subd14)
+      call sync_param( "subd15" ,subd15)
+      call sync_param( "subd16" ,subd16)
+      call sync_param( "subd17" ,subd17)
       call sync_param( "LmaxSUBDD",LmaxSUBDD)
 
 c
@@ -1510,6 +1526,10 @@ c
      &  //' '//trim(subdd5)//' '//trim(subdd6)     
      &  //' '//trim(subdd7)//' '//trim(subdd8)
      &  //' '//trim(subdd9)//' '//trim(subd10)
+     &  //' '//trim(subd11)//' '//trim(subd12)
+     &  //' '//trim(subd13)//' '//trim(subd14)
+     &  //' '//trim(subd15)//' '//trim(subd16)
+     &  //' '//trim(subd17)
 c
 c count/parse names
 c
@@ -1724,7 +1744,7 @@ c
 c 2D outputs
 c
       use model_com, only : dtsrc,nday
-      use constant, only : rhow
+      use constant, only : rhow,bygrav
       use TimeConstants_mod, only: SECONDS_PER_DAY
       use subdd_mod, only : info_type,sched_rad,reduc_min,reduc_max
 ! info_type_ is a homemade structure constructor for older compilers
@@ -1938,7 +1958,20 @@ c
      &     )
 c
       arr(next()) = info_type_(
+     &  sname = 'z_surf',
+     &  lname = 'surface height',
+     &  units = 'm',
+     &  scale = bygrav
+     &     )
+c
+      arr(next()) = info_type_(
      &  sname = 'gtempr',
+     &  lname = 'SKIN RADIATIVE TEMPERATURE',
+     &  units = 'K'
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'gtemp',
      &  lname = 'SKIN TEMPERATURE',
      &  units = 'K'
      &     )
@@ -1983,6 +2016,12 @@ c
      &  sname = 'iwp',
      &  lname = 'ICE WATER PATH',
      &  units = 'kg/m^2'
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'column_fmse',
+     &  lname = 'column of frozen moist static energy',
+     &  units = 'J/m^2'
      &     )
 c
       arr(next()) = info_type_(
@@ -2218,20 +2257,6 @@ c
      &     )    
 c
       arr(next()) = info_type_(
-     &  sname = 'aod',
-     &  lname = 'Aerosol Optical Thickness',
-     &  units = '-',
-     &  sched = sched_rad
-     &     )
-c
-      arr(next()) = info_type_(
-     &  sname = 'aaod',
-     &  lname = 'Aerosol Absorption Optical Thickness',
-     &  units = '-',
-     &  sched = sched_rad
-     &     )
-c
-      arr(next()) = info_type_(
      &  sname = 'pn',
      &  lname = 'Number Concentration of dg > 0.1 um',
      &  units = '#/m^2'
@@ -2241,6 +2266,18 @@ c
      &  sname = 'apn',
      &  lname = 'Activated Particles Number Concentration',
      &  units = '#/m^2'
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'ptrop',
+     &  lname = 'Tropopause pressure',
+     &  units = 'mb'
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'ttrop',
+     &  lname = 'Tropopause temperature',
+     &  units = 'K'
      &     )
       return
       contains
@@ -2546,7 +2583,7 @@ c
       arr(next()) = info_type_(
      &  sname = 'p_3d',
      &  lname = 'pressure on model levels',
-     &  units = 'Pa'
+     &  units = 'mb'
      &     )
       arr(next()) = info_type_(
      &  sname = 'rh_3d',
@@ -2602,18 +2639,6 @@ c
      &  sname = 'cod_i_3d',
      &  lname = 'COD ice cld on model levels',
      &  units = '-'
-     &     )
-      arr(next()) = info_type_(
-     &  sname = 'aod_3d',
-     &  lname = 'AOD on model levels',
-     &  units = '-',
-     &  sched = sched_rad
-     &     )
-      arr(next()) = info_type_(
-     &  sname = 'aaod_3d',
-     &  lname = 'AAOD on model levels',
-     &  units = '-',
-     &  sched = sched_rad
      &     )
       arr(next()) = info_type_(
      &  sname = 'ccn01_3d',

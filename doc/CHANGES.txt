@@ -1,5 +1,26 @@
-Changes from modelE-2-3-4+ to modelE1 (or 3.0) 
-==============================================
+Changes from modelE (AR4) to modelE (AR5)
+=========================================
+
+- Higher resolution versions available (2x2.5)
+
+- Cubed Sphere dynamics and grid (C90) resolution
+
+- Multiple changes to cloud schemes
+
+- Incorporation of Menon et al aerosol/cloud microphysics
+
+- Full atmosphere gas phase chemistry
+
+- Ocean biology and full carbon cycle
+
+- Coupler layer for different ocean grids
+
+- Fuller diagnostic output
+
+(note these are a very condensed summary of the differences).
+
+Changes from modelE-2-3-4+ to modelE1 (or 3.0) (AR4) 
+====================================================
 
 - big expansion of tracer coding 
 

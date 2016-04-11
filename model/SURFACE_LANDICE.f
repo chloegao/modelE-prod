@@ -169,8 +169,7 @@ C**** Set up tracers for PBL calculation if required
       pbl_args%ntix(1:ntm) = ntix(1:ntm)
 #endif
 
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       pbl_args % moddd = moddd
       pbl_args % ih = ih
       pbl_args % ihm = ihm
@@ -283,12 +282,14 @@ C****
 
 c      uocean = 0. ; vocean = 0. ! no land ice velocity
 #ifdef TRACERS_WATER
-#ifndef TRACERS_ATM_ONLY
       do nx=1,ntx
+#ifdef TRACERS_ATM_ONLY
+        trgrnd2(nx)=igla%gtracer(NTIX(NX),i,j)
+#else
         trgrnd2(nx)=TRLNDI(ntix(nx),I,J,IHC)/(ACE1LI+ACE2LI)
+#endif
       end do
       pbl_args%trgrnd2(1:ntm) = trgrnd2(1:ntm)
-#endif
 #endif
 ! END ---------------------------------------------------------
 
@@ -582,7 +583,10 @@ C****
 
       ! Stuff needed for downscaling
       use landice_com, only : elevhp, HC_T_LAPSE_RATE
-      Use RESOLUTION,  Only: MTOP,MFIX,MFRAC,MFIXs
+      Use RESOLUTION, Only: MFIX,MFRAC
+#ifndef STDHYB
+      Use RESOLUTION, Only: MFIXs,MTOP
+#endif
       Use CONSTANT,    Only: GRAV,KAPA,LHS,MB2KG,KG2MB
       use atm_com, only : zatmo
       USE GEOM, only : imaxj
@@ -644,7 +648,11 @@ c
             ! Pa = kg / (m s^2)
             ! Grav = m/s^2
             IGLA%AM1(I,J) = MFIX(1) +
-     +         (IGLA%SRFP(I,J)*MB2KG - MFIXs - MTOP)*MFRAC(1)  !  kg/m^2
+     +         (IGLA%SRFP(I,J)*MB2KG
+#ifndef STDHYB
+     &           - MFIXs - MTOP
+#endif
+     &           )*MFRAC(1)     !  kg/m^2
             AM1_hPa = IGLA%AM1(I,J)*KG2MB
 
             ! Center pressure of first layer

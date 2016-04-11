@@ -1,10 +1,4 @@
+# ignore everything except the Makefile
+*
+!/Makefile
 
-*.R
-*.mk
-*~
-/E4TTOMAS_M_TEST
-/E4TTOMAS_M_TEST_bin
-/TCC12_E4Tcad
-/TCC12_E4Tcad_bin
-/amp
-/amp_bin

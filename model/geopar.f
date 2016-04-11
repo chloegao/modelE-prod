@@ -8,6 +8,7 @@ c
 c --- hycom version 0.9 -- cyclic in j
 css   USE GEOM, only : dxyp
 c
+      USE CONSTANT, only: radian  ! radian=pi/180.
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,broadcast
 cddd      USE HYCOM_DIM_GLOB, only : ii,jj,kk,ii1,isp,ifp,ilp,ip,isq,ifq,ilq
 cddd     &     ,isu,ifu,ilu,jsv,jfv,jlv,ntrcr,jsp,jfp,jlp,msk,iio,jjo
@@ -32,7 +33,7 @@ c
       real*4 real4(idm,jdm),lat4(idm,jdm,4),lon4(idm,jdm,4)
 c --- 'glufac' = regional viscosity enhancement factor
       real, parameter :: glufac=3., zero=0.
-    
+
 c
 c --- read basin depth array
       write (lp,'(2a)') ' reading bathymetry file from ',flnmdep
@@ -129,7 +130,7 @@ c --- define coriolis parameter and grid size
       jb=mod(j     ,jj)+1
       do 56 i=1,ii
 c
-      corio(i,j)=sin(latij(i,j,4))*4.*pi/86164.        !  86400 * 365 / 366
+      corio(i,j)=sin(latij(i,j,4)*radian)*4.*pi/86164.        !  86400 * 365 / 366
 c
       scpy(i,j)=sphdis(latij(i,j ,2),lonij(i,j ,2),
      .                 latij(i,jb,2),lonij(i,jb,2))
@@ -502,13 +503,13 @@ c --- 1:9 represent NAT, SAT, NIN, SIN, NPA, SPA, ARC, SO, MED
         do n=1,2
         read(iu3,*)
         read(iu3,'(90i1)') ((msk(i,j),j=(n-1)*jj/2+1,n*jj/2),i=1,ii)
-        enddo 
+        enddo
 #endif
 #ifdef HYCOM1deg
         do n=1,3
         read(iu3,*)
         read(iu3,'(4x,120i1)') ((msk(i,j),j=(n-1)*jj/3+1,n*jj/3),i=1,ii)
-        enddo 
+        enddo
 #endif
       close(iu3)
 c
@@ -531,16 +532,20 @@ c
 c
       function sphdis(x1,y1,x2,y2)
 c --- dist.(m) between 2 points on sphere, lat/lon (x1,y1) and lat/lon (x2,y2)
-      USE CONSTANT, only: radius
+      USE CONSTANT, only: radius,radian    ! radian = pi/180.
       implicit none
-      real x1,y1,x2,y2,sphdis,ang,radian
-      data radian/57.2957795/
+      real x1,y1,x2,y2,sphdis,ang
+      real x1_rad,x2_rad,ang_rad
 c
       ang=mod(y2-y1+540.,360.)-180.
-      sphdis=radius*acos(min(1.,cos(90.-x1)*cos(90.-x2)
-     .                         +sin(90.-x1)*sin(90.-x2)*cos(ang)))
-      if (sphdis.eq.0.) 
-     .  sphdis=radius*sqrt((x2-x1)**2+(ang*cos(.5*(x1+x2)))**2)/radian
+      x1_rad=(90-x1)*radian    ! convert degrees to radian
+      x2_rad=(90-x2)*radian    ! convert degrees to radian
+      ang_rad=ang*radian       ! convert degrees to radian
+
+      sphdis=radius*acos(min(1.,cos(x1_rad)*cos(x2_rad)
+     .                         +sin(x1_rad)*sin(x2_rad)*cos(ang_rad)))
+      if (sphdis.eq.0.)  sphdis=radius*
+     .  sqrt((x2-x1)**2+(ang*cos(.5*(x1_rad+x2_rad)))**2)*radian
 cdiag if (sphdis.eq.0.) write (*,'(a,2f8.3,2x,2f8.3)')
 cdiag.  'warning - zero distance between lat/lon points',x1,y1,x2,y2
       sphdis=max(sphdis,1.)
@@ -580,8 +585,12 @@ cdiag.  'warning - zero distance between lat/lon points',x1,y1,x2,y2
       return
       contains
       function v3d(lon,lat)
+      USE CONSTANT, only: radian   ! radian = pi/180.
       real*8 :: lon,lat,v3d(3)
-      v3d(1:2) = cos(lat)*(/cos(lon),sin(lon)/); v3d(3) = sin(lat)
+      real*8 :: rlon,rlat  ! convert to radians
+      rlon=lon*radian
+      rlat=lat*radian
+      v3d(1:2) = cos(rlat)*(/cos(rlon),sin(rlon)/); v3d(3) = sin(rlat)
       end function v3d
       function cross3d(v1,v2)
       real*8, dimension(3) :: v1,v2,cross3d

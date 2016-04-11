@@ -3,9 +3,6 @@
       MODULE ODIAG
 !@sum  ODIAG ocean diagnostic arrays (incl. dynamic sea ice)
 !@auth Gary Russell/Gavin Schmidt
-#ifdef TRACERS_OceanBiology
-      USE obio_dim, only:  ntrac
-#endif
       USE OCEAN, only : im,jm,lmo
       USE STRAITS, only : nmst
       USE MDIAG_COM, only : sname_strlen,units_strlen,lname_strlen
@@ -14,11 +11,7 @@
 #endif
       IMPLICIT NONE
       SAVE
-#ifdef OBIO_ON_GARYocean
-      INTEGER, PARAMETER :: KOIJ=350
-#else
       INTEGER, PARAMETER :: KOIJ=71
-#endif
       INTEGER, PARAMETER :: KOIJL=42,KOL=6,KOLNST=14,KOIJmm=11
 !@var OIJ   lat-lon ocean diagnostics (on ocean grid)
 !@var OIJmm lat-lon ocean min/max diagnostics (on ocean grid)
@@ -38,7 +31,9 @@
 !@var IJ_xxx Names for OIJ diagnostics
       INTEGER IJ_HBL,IJ_BO,IJ_BOSOL,IJ_USTAR,IJ_SSH,IJ_PB,IJ_SF,
      *     IJ_SRHFLX,IJ_SRWFLX,IJ_SRHFLXI,IJ_SRWFLXI,IJ_SRSFLXI,IJ_ERVR
-     *     ,IJ_MRVR,IJ_EICB,IJ_MICB,IJ_GMSC,ij_mld 
+     *     ,IJ_MRVR,IJ_EICB,IJ_MICB,IJ_GMSC,IJ_GMSCz,ij_mld 
+     *     ,IJ_dEPO_Dyn
+
 #ifdef OCN_GISS_MESO
      .     ,ij_eke,ij_rd
 #endif
@@ -54,33 +49,10 @@
       REAL*8, DIMENSION(KOIJ) :: SCALE_OIJ
 !@var [ij]grid_oij Grid descriptor for OIJ diagnostics
       INTEGER, DIMENSION(KOIJ) :: IGRID_OIJ,JGRID_OIJ
-!@var ij_pCO2 surface ocean partial CO2 pressure
-       character(len=1)str1
-       character(len=4)str2
-       character(len=5)str3
-       character(len=4)str4
-       character(len=5)str5
-       character(len=9)str6
-       integer, allocatable :: ij_rhs(:, :)
-       INTEGER :: IJ_dic,IJ_pCO2,IJ_nitr,IJ_diat,ij_herb
-     .           ,ij_amm,ij_sil,ij_iron,ij_chlo,ij_cyan
-     .           ,ij_cocc,ij_doc,IJ_alk,IJ_dayl,ij_sunz,ij_solz
-     .           ,ij_flux,ij_Ed,ij_Es,ij_cexp,ij_pp,ij_wsd
-     .           ,ij_lim(4,5),ilim,ij_ndet,ij_xchl   
-     .           ,ij_pp1,ij_pp2,ij_pp3,ij_pp4
-     .           ,ll
-     .           ,ij_fca
-
-!     .           ,ij_rnitrmflo
-     .           ,ij_rnitrconc
-     .           ,ij_rdicconc
-     .           ,ij_rdocconc
-     .           ,ij_rsiliconc
-     .           ,ij_rironconc
-     .           ,ij_rpocconc
-     .           ,ij_ralkconc
 
       integer :: ij_cfcair, ij_kw, ij_csat, ij_cfcflux
+     .   , ij_cfcwind, ij_cfcpres, ij_cfcsst, ij_cfcsss, ij_cfcrho
+     .   , ij_cfcsolub, ij_cfcSpres
 
 !@var IJ_xxx Names for OIJmm diagnostics
       INTEGER IJ_HBLmax,ij_mldmax
@@ -96,7 +68,7 @@
       INTEGER IJL_MO,IJL_G0M,IJL_S0M,IJL_GFLX,IJL_SFLX,IJL_MFU,IJL_MFV
      *     ,IJL_MFW,IJL_GGMFL,IJL_SGMFL,IJL_KVM,IJL_KVG,IJL_WGFL
      *     ,IJL_WSFL,IJL_PTM,IJL_PDM,IJL_MOU,IJL_MOV,IJL_MFW2,IJL_AREA
-     *     ,IJL_MFUB,IJL_MFVB,IJL_MFWB,IJL_ISDM,IJL_PDM2
+     *     ,IJL_MFUB,IJL_MFVB,IJL_MFWB,IJL_ISDM,IJL_PDM2,IJL_KVX
 #ifdef OCN_GISS_TURB
      *     ,ijl_ri,ijl_rrho,ijl_bv2,ijl_otke,ijl_kvs,ijl_kvc,ijl_buoy
 #endif
@@ -255,7 +227,7 @@ C****
 
 #ifdef NEW_IO
 
-      type(cdl_type) :: cdl_olons,cdl_olats,cdl_odepths
+      type(cdl_type), target :: cdl_olons,cdl_olats,cdl_odepths
 
 !@var CDL_OIJ consolidated metadata for OIJ output fields in CDL notation
 !@var CDL_OIJL consolidated metadata for OIJL output fields in CDL notation
@@ -738,6 +710,7 @@ c instances of the arrays containing derived quantities
 
 #endif /* NEW_IO */
 
+
       SUBROUTINE DIAGCO (M,atmocn)
 !@sum  DIAGCO Keeps track of the ocean conservation properties
 !@auth Gary Russell/Gavin Schmidt
@@ -748,17 +721,23 @@ c instances of the arrays containing derived quantities
 #endif
       USE EXCHANGE_TYPES, only : atmocn_xchng_vars
       IMPLICIT NONE
-!@var M index denoting from where DIAGCO is called (see DIAGCA)
+
+!@var   M  index denoting from where DIAGCO is called
+!****   1  Initialization
+!****   5  Precipitation:  PRECIP_OC, RIVERF
+!****   9  Mixing:  ODIFF, GMKDIF, OCN_MESOSC, FORM_SI
+!****  10  Daily:  GLMELT
+!****  11  Surface:  UNDERICE, GROUND_OC, OSTRES2
+!****  12  Dynamics:  OCONV, OBDRAG2, OCOAST, Dynamics, Straits
+
       INTEGER, INTENT(IN) :: M
       type(atmocn_xchng_vars) :: atmocn
-c
       REAL*8, EXTERNAL :: conserv_OCE,conserv_OKE,conserv_OMS
      *     ,conserv_OSL,conserv_OAM
 #ifdef TRACERS_OCEAN
       INTEGER NT
       type(ocn_tracer_entry), pointer :: entry
 #endif
-
 
       if(.not. oGRID%have_domain) return
 
@@ -820,6 +799,7 @@ C**** NOFM contains the indexes of the CONSRV array where each
 C**** change is to be stored for each quantity. If NOFM(M,ICON)=0,
 C**** no calculation is done.
 C**** NOFM(1,ICON) is the index for the instantaneous value.
+      if (m>size(atmocn%nofm, 1)) return
       IF (atmocn%NOFM(M,ICON).gt.0) THEN
 C**** Calculate current value TOTAL
         CALL CONSFN(TOTAL)
@@ -868,6 +848,7 @@ C****
 #endif
       USE EXCHANGE_TYPES, only : atmocn_xchng_vars
       use runtimecontrols_mod, only: tracers_alkalinity, ocn_cfc
+      use dictionary_mod, only : get_param
       IMPLICIT NONE
       type(atmocn_xchng_vars) :: atmocn
 c
@@ -875,11 +856,12 @@ c
       type(ocn_tracer_entry), pointer :: entry
 #endif
       CHARACTER UNITS*20,UNITS_INST*20,unit_string*50
-      INTEGER k,kb,kq,kc,kk,n,nt,ndel,kk_Water
+      INTEGER k,kb,kq,kc,kk,n,nt,kk_Water
       character(len=10) :: xstr,ystr,zstr
       character(len=20) :: xyzstr,unitstr
       real*8 :: byrho2,inst_sc,chng_sc
       logical :: set_miss
+      integer :: use_tdiss_
 
 #ifndef STANDALONE_OCEAN
       call set_oj_budg(atmocn%jm_budg)
@@ -1047,15 +1029,14 @@ c
       scale_oijl(k) = (1d2/RHOWS)/dts
       lgrid_oijl(k) = 2
 c
-c will be activated when GM schemes other than skew-flux are activated
-c      k=k+1
-c      IJL_MFUB = k
-c      denom_oijl(k) = IJL_MOU
-c      sname_oijl(k) = 'ub'
-c      units_oijl(k) = 'cm/s'
-c      lname_oijl(k) = 'EAST-WEST BOLUS VELOCITY'
-c      scale_oijl(k) = 1d2/dts
-c      igrid_oijl(k) = 2
+      k=k+1
+      IJL_MFUB = k
+      denom_oijl(k) = IJL_MOU
+      sname_oijl(k) = 'ub'
+      units_oijl(k) = 'cm/s'
+      lname_oijl(k) = 'EAST-WEST BOLUS VELOCITY'
+      scale_oijl(k) = 1d2/dts
+      igrid_oijl(k) = 2
 c
       k=k+1
       IJL_MFVB = k
@@ -1066,15 +1047,14 @@ c
       scale_oijl(k) = 1d2/dts
       jgrid_oijl(k) = 2
 c
-c will be activated when GM schemes other than skew-flux are activated
-c      k=k+1
-c      IJL_MFWB = k
-c      denom_oijl(k) = IJL_AREA
-c      sname_oijl(k) = 'wb'
-c      units_oijl(k) = 'cm/s'
-c      lname_oijl(k) = 'VERTICAL BOLUS VELOCITY'
-c      scale_oijl(k) = (1d2/RHOWS)/dts
-c      lgrid_oijl(k) = 2
+      k=k+1
+      IJL_MFWB = k
+      denom_oijl(k) = IJL_AREA
+      sname_oijl(k) = 'wb'
+      units_oijl(k) = 'cm/s'
+      lname_oijl(k) = 'VERTICAL BOLUS VELOCITY'
+      scale_oijl(k) = (1d2/RHOWS)/dts
+      lgrid_oijl(k) = 2
 c
       k=k+1
       IJL_GFLX = k
@@ -1135,6 +1115,18 @@ c
       lname_oijl(k) = 'VERT. HEAT DIFF.'
       scale_oijl(k) = 1d4*byrho2
       lgrid_oijl(k) = 2
+c
+      call get_param('ocean_use_tdiss',use_tdiss_,default=0)
+      if(use_tdiss_==1) then
+      k=k+1
+      IJL_KVX = k
+      denom_oijl(k) = IJL_AREA
+      sname_oijl(k) = 'kvx'
+      units_oijl(k) = 'cm^2/s'
+      lname_oijl(k) = 'VERT. HEAT DIFF. FROM TIDAL DISSIPATION'
+      scale_oijl(k) = 1d4!*byrho2
+      lgrid_oijl(k) = 2
+      endif
 c
 #ifdef OCN_GISS_TURB
       k=k+1
@@ -1251,7 +1243,7 @@ c      IJL_GGMFL_vert = k
       denom_oijl(k) = IJL_AREA
       sname_oijl(k) = 'ggmflx_z'
       units_oijl(k) = 'W/m^2'
-      lname_oijl(k) = 'GM/EDDY VERT. HEAT FLUX'
+      lname_oijl(k) = 'GM/EDDY DOWNWARD VERT. HEAT FLUX'
       scale_oijl(k) = 1./dts
       lgrid_oijl(k) = 2
 c
@@ -1276,7 +1268,7 @@ c      IJL_SGMFL_vert = k
       denom_oijl(k) = IJL_AREA
       sname_oijl(k) = 'sgmflx_z'
       units_oijl(k) = '10^-6 kg/m^2 s'
-      lname_oijl(k) = 'GM/EDDY VERT. SALT FLUX'
+      lname_oijl(k) = 'GM/EDDY DOWNWARD VERT. SALT FLUX'
       scale_oijl(k) = 1d6/dts
       lgrid_oijl(k) = 2
 c
@@ -1423,359 +1415,63 @@ c
         units_oij(k)="mol/m2/s"
         ia_oij(k)=ia_src
         scale_oij(k)=1
-      endif
 
-#ifdef TRACERS_OceanBiology
-      k=k+1
-      IJ_solz=k
-      lname_oij(k)="Cos Solar Zenith Angle"
-      sname_oij(k)="oij_solz"
-      units_oij(k)="xxxx"
-      ia_oij(k)=ia_src
-      scale_oij(k)=1
-      k=k+1
-      IJ_sunz=k
-      lname_oij(k)="Solar Zenith Angle"
-      sname_oij(k)="oij_sunz"
-      units_oij(k)="degrees"
-      ia_oij(k)=ia_src
-      scale_oij(k)=1
-
-      k=k+1
-      IJ_dayl=k
-      lname_oij(k)="Daylight length"
-      sname_oij(k)="oij_dayl"
-      units_oij(k)="timesteps"
-      ia_oij(k)=ia_src
-      scale_oij(k)=1
-
-      k=k+1
-      IJ_Ed=k
-      lname_oij(k)="Surface Ocean Direct Sunlight"
-      sname_oij(k)="oij_Ed"
-      units_oij(k)="quanta"
-      ia_oij(k)=ia_src
-      scale_oij(k)=1
-
-      k=k+1
-      IJ_Es=k
-      lname_oij(k)="Surface Ocean Diffuse Sunlight"
-      sname_oij(k)="oij_Es"
-      units_oij(k)="quanta"
-      ia_oij(k)=ia_src
-      scale_oij(k)=1
-
-      k=k+1
-      IJ_nitr=k
-      lname_oij(k)="Surface ocean Nitrates"
-      sname_oij(k)="oij_nitr"
-      units_oij(k)="uM"
-      ia_oij(k)=ia_src
-      scale_oij(k)=1
-
-      k=k+1
-      IJ_amm=k
-      lname_oij(k)="Surface ocean Ammonium"
-      sname_oij(k)="oij_amm"
-      units_oij(k)="uM"
-      ia_oij(k)=ia_src
-      scale_oij(k)=1
-
-      k=k+1
-      IJ_sil=k
-      lname_oij(k)="Surface ocean Silicate"
-      sname_oij(k)="oij_sil"
-      units_oij(k)="uM"
-      ia_oij(k)=ia_src
-      scale_oij(k)=1
-
-      k=k+1
-      IJ_iron=k
-      lname_oij(k)="Surface ocean Iron"
-      sname_oij(k)="oij_iron"
-      units_oij(k)="nM"
-      ia_oij(k)=ia_src
-      scale_oij(k)=1
-
-      k=k+1
-      IJ_diat=k
-      lname_oij(k)="Surface ocean Diatoms"
-      sname_oij(k)="oij_diat"
-      units_oij(k)="mg/m3"
-      ia_oij(k)=ia_src
-      scale_oij(k)=1
-
-      k=k+1
-      IJ_chlo=k
-      lname_oij(k)="Surface ocean Chlorophytes"
-      sname_oij(k)="oij_chlo"
-      units_oij(k)="mg/m3"
-      ia_oij(k)=ia_src
-      scale_oij(k)=1
-
-      k=k+1
-      IJ_cyan=k
-      lname_oij(k)="Surface ocean Cyanobacteria"
-      sname_oij(k)="oij_cyan"
-      units_oij(k)="mg/m3"
-      ia_oij(k)=ia_src
-      scale_oij(k)=1
-
-      k=k+1
-      IJ_cocc=k
-      lname_oij(k)="Surface ocean Coccolithophores"
-      sname_oij(k)="oij_cocc"
-      units_oij(k)="mg/m3"
-      ia_oij(k)=ia_src
-      scale_oij(k)=1
-
-      k=k+1
-      IJ_herb=k
-      lname_oij(k)="Surface ocean Herbivores"
-      sname_oij(k)="oij_herb"
-      units_oij(k)="mg/m3"
-      ia_oij(k)=ia_src
-      scale_oij(k)=1
-
-      k=k+1
-      IJ_doc=k
-      lname_oij(k)="Surface ocean DOC"
-      sname_oij(k)="oij_doc"
-      units_oij(k)="uM"
-      ia_oij(k)=ia_src
-      scale_oij(k)=1
-
-      k=k+1
-      IJ_dic=k
-      lname_oij(k)="Surface ocean DIC"
-      sname_oij(k)="oij_dic"
-      units_oij(k)="uM"
-      ia_oij(k)=ia_src
-      scale_oij(k)=1
-
-      k=k+1
-      IJ_pCO2=k
-      lname_oij(k)="Surface ocean partial CO2 pressure"
-      sname_oij(k)="oij_pCO2"
-      units_oij(k)="uatm"
-      ia_oij(k)=ia_src
-      scale_oij(k)=1
-
-      k=k+1
-      IJ_alk=k
-      lname_oij(k)="Surface ocean alkalinity"
-      sname_oij(k)="oij_alk"
-      units_oij(k)="umol/kg"
-      ia_oij(k)=ia_src
-      scale_oij(k)=1
-    
-      k=k+1
-      IJ_flux=k
-      lname_oij(k)="AO Flux CO2 (ogrid,grC/m2/yr)"
-      sname_oij(k)="oij_flux"
-      units_oij(k)="grC/m2/yr"
-      ia_oij(k)=ia_src
-      scale_oij(k)=1
-
-      k=k+1
-      IJ_cexp=k
-      lname_oij(k)="C export flux at compensation depth"
-      sname_oij(k)="oij_cexp"
-      units_oij(k)="mili-grC/m2/hr"
-      ia_oij(k)=ia_src
-      scale_oij(k)=1
-
-      k=k+1
-      IJ_ndet=k
-      lname_oij(k)="N/C detritus at 74m"
-      sname_oij(k)="oij_ndet"
-      units_oij(k)="ugC/l"
-      ia_oij(k)=ia_src
-      scale_oij(k)=1
-
-      k=k+1
-      IJ_wsd=k
-      lname_oij(k)="sink vel n/cdet at 74m"
-      sname_oij(k)="oij_wsd"
-      units_oij(k)="m/hr"
-      ia_oij(k)=ia_src
-      scale_oij(k)=1
-
-      k=k+1
-      IJ_xchl=k
-      lname_oij(k)="C export due to chloroph"
-      sname_oij(k)="oij_xchl"
-      units_oij(k)="kg,C*m/hr"
-      ia_oij(k)=ia_src
-      scale_oij(k)=1
-
-      if (tracers_alkalinity) then
         k=k+1
-        IJ_fca=k
-        lname_oij(k)="CaCO3 export flux at compensation depth"
-        sname_oij(k)="oij_fca"
-        units_oij(k)="mili-g,C/m2/hr"
+        IJ_cfcwind=k
+        lname_oij(k)="CFC wind           "
+        sname_oij(k)="oij_cfcwind"
+        units_oij(k)="m/s"
+        ia_oij(k)=ia_src
+        scale_oij(k)=1
+
+        k=k+1
+        IJ_cfcpres=k
+        lname_oij(k)="CFC pres"
+        sname_oij(k)="oij_cfcpres"
+        units_oij(k)="atm"
+        ia_oij(k)=ia_src
+        scale_oij(k)=1
+
+        k=k+1
+        IJ_cfcSpres=k
+        lname_oij(k)="CFC Spres"
+        sname_oij(k)="oij_cfcSpres"
+        units_oij(k)="Pa"
+        ia_oij(k)=ia_src
+        scale_oij(k)=1
+
+        k=k+1
+        IJ_cfcsst=k
+        lname_oij(k)="CFC sst"
+        sname_oij(k)="oij_cfcsst"
+        units_oij(k)=" "
+        ia_oij(k)=ia_src
+        scale_oij(k)=1
+
+        k=k+1
+        IJ_cfcsss=k
+        lname_oij(k)="CFC sss"
+        sname_oij(k)="oij_cfcsss"
+        units_oij(k)=" "
+        ia_oij(k)=ia_src
+        scale_oij(k)=1
+
+        k=k+1
+        IJ_cfcrho=k
+        lname_oij(k)="CFC rho"
+        sname_oij(k)="oij_cfcrho"
+        units_oij(k)="kg/m3"
+        ia_oij(k)=ia_src
+        scale_oij(k)=1
+
+        k=k+1
+        IJ_cfcsolub=k
+        lname_oij(k)="CFC solub"
+        sname_oij(k)="oij_cfcsolub"
+        units_oij(k)="mol/m3/uatm"
         ia_oij(k)=ia_src
         scale_oij(k)=1
       endif
-
-#ifdef OBIO_RUNOFF
-#ifdef NITR_RUNOFF
-!      k=k+1
-!      IJ_rnitrmflo=k
-!      lname_oij(k)="Nitrate mass flow from rivers"
-!      sname_oij(k)="oij_rnitrmflo"
-!      units_oij(k)="kg/s"
-!      ia_oij(k)=ia_src
-!      scale_oij(k)=1
-
-       k=k+1
-       IJ_rnitrconc=k
-       lname_oij(k)="Nitrate conc in runoff"
-       sname_oij(k)="oij_rnitrconc"
-       units_oij(k)="kg/kg"
-       ia_oij(k)=ia_src
-       scale_oij(k)=1
-#endif
-#ifdef DIC_RUNOFF
-       k=k+1
-       IJ_rdicconc=k
-       lname_oij(k)="DIC conc in runoff"
-       sname_oij(k)="oij_rdicconc"
-       units_oij(k)="kg/kg"
-       ia_oij(k)=ia_src
-       scale_oij(k)=1  
-#endif
-#ifdef DOC_RUNOFF
-       k=k+1
-       IJ_rdocconc=k
-       lname_oij(k)="DOC conc in runoff"
-       sname_oij(k)="oij_rdocconc"
-       units_oij(k)="kg/kg"
-       ia_oij(k)=ia_src
-       scale_oij(k)=1
-#endif
-#ifdef SILI_RUNOFF
-       k=k+1
-       IJ_rsiliconc=k
-       lname_oij(k)="silica conc in runoff"
-       sname_oij(k)="oij_rsiliconc"
-       units_oij(k)="kg/kg"
-       ia_oij(k)=ia_src
-       scale_oij(k)=1
-#endif
-#ifdef IRON_RUNOFF
-       k=k+1
-       IJ_rironconc=k
-       lname_oij(k)="iron conc in runoff"
-       sname_oij(k)="oij_rironconc"
-       units_oij(k)="kg/kg"
-       ia_oij(k)=ia_src
-       scale_oij(k)=1
-#endif
-#ifdef POC_RUNOFF
-       k=k+1
-       IJ_rpocconc=k
-       lname_oij(k)="poc conc in runoff"
-       sname_oij(k)="oij_rpocconc"
-       units_oij(k)="kg/kg"
-       ia_oij(k)=ia_src
-       scale_oij(k)=1
-#endif
-#ifdef ALK_RUNOFF
-       k=k+1
-       IJ_ralkconc=k
-       lname_oij(k)="alkalinity conc in runoff"
-       sname_oij(k)="oij_ralkconc"
-       units_oij(k)="mol/kg"
-       ia_oij(k)=ia_src
-       scale_oij(k)=1
-#endif
-#endif
-
-      k=k+1
-      IJ_pp=k
-      lname_oij(k)="Depth integrated PP"
-      sname_oij(k)="oij_pp"
-      units_oij(k)="mg,C/m2/day"
-      ia_oij(k)=ia_src
-      scale_oij(k)=1
-
-      do nt=1,4
-      do ilim=1,5
-        if (nt.eq.1)str1 = 'd'  !diatoms
-        if (nt.eq.2)str1 = 'h'  !chloroph
-        if (nt.eq.3)str1 = 'b'  !cyanobact
-        if (nt.eq.4)str1 = 'c'  !coccoliths
-
-        if (ilim.eq.1)str2 = 'lim1'  !light limitation
-        if (ilim.eq.2)str2 = 'lim2'  !ice-light limitation
-        if (ilim.eq.3)str2 = 'lim3'  !nitr limitation
-        if (ilim.eq.4)str2 = 'lim4'  !silic limitation
-        if (ilim.eq.5)str2 = 'lim5'  !iron  limitation
-
-        str3=str1//str2
-
-        k=k+1
-        IJ_lim(nt,ilim) = k
-        lname_oij(k)=str3
-        sname_oij(k)=str3
-        units_oij(k)="?"
-        ia_oij(k)=ia_src
-        scale_oij(k)=1
-      enddo
-      enddo
-
-      allocate(ij_rhs(ntrac-1,17))
-      do nt=1,ntrac-1   ! don't include unused inert tracer
-      do ll=1,17
-        if (nt.eq.1)str4 = 'nitr'
-        if (nt.eq.2)str4 = 'ammo'
-        if (nt.eq.3)str4 = 'sili'
-        if (nt.eq.4)str4 = 'iron'
-        if (nt.eq.5)str4 = 'diat'
-        if (nt.eq.6)str4 = 'chlo'
-        if (nt.eq.7)str4 = 'cyan'
-        if (nt.eq.8)str4 = 'cocc'
-        if (nt.eq.9)str4 = 'herb'
-        if (nt.eq.10)str4 = 'ndet'
-        if (nt.eq.11)str4 = 'sdet'
-        if (nt.eq.12)str4 = 'idet'
-        if (nt.eq.13)str4 = 'doc_'
-        if (nt.eq.14)str4 = 'dic_'
-        if (nt.eq.15)str4 = 'alk_'
-
-        if (ll.eq.1)str5 = 'rhs1_'   ! see rhs_obio_matrix.doc for
-        if (ll.eq.2)str5 = 'rhs2_'   ! explanation of rhs terms
-        if (ll.eq.3)str5 = 'rhs3_'
-        if (ll.eq.4)str5 = 'rhs4_'
-        if (ll.eq.5)str5 = 'rhs5_'
-        if (ll.eq.6)str5 = 'rhs6_'
-        if (ll.eq.7)str5 = 'rhs7_'
-        if (ll.eq.8)str5 = 'rhs8_'
-        if (ll.eq.9)str5 = 'rhs9_'
-        if (ll.eq.10)str5 = 'rhs10'
-        if (ll.eq.11)str5 = 'rhs11'
-        if (ll.eq.12)str5 = 'rhs12'
-        if (ll.eq.13)str5 = 'rhs13'
-        if (ll.eq.14)str5 = 'rhs14'
-        if (ll.eq.15)str5 = 'rhs15'
-        if (ll.eq.16)str5 = 'rhs16'
-        if (ll.eq.17)str5 = 'rhs17'
-
-        str6=str4//str5
-
-        k=k+1
-       IJ_rhs(nt,ll) = k
-       lname_oij(k)=str6
-        sname_oij(k)=str6
-        units_oij(k)="?"
-        ia_oij(k)=ia_src
-        scale_oij(k)=1
-      enddo
-      enddo
-
-#endif
 
 #ifdef OCN_GISS_MESO
       k=k+1
@@ -1851,6 +1547,14 @@ c
       ia_oij(k)=ia_src
       scale_oij(k)=1./dts
 
+      K = K+1
+      IJ_dEPO_Dyn = K  !  OCEANS
+      LNAME_OIJ(K) = 'Potential Enthalpy of Ocean by Advection'
+      SNAME_OIJ(K) = 'dEPO_Dyn'    
+      UNITS_OIJ(K) = 'W/m^2'
+      SCALE_OIJ(K) = 1 / DTsrc
+         IA_OIJ(K) = IA_SRC
+
       k=k+1
       IJ_ERVR=k
       lname_oij(k)="Ocean input of energy from rivers"
@@ -1901,6 +1605,14 @@ c
       ia_oij(k)=ia_src
       scale_oij(k)=1.
 
+      k=k+1
+      IJ_GMSCz=k
+      lname_oij(k)='Mesoscale diffusivity z-decay scale'
+      sname_oij(k)='zscale_meso'
+      units_oij(k)='m'
+      ia_oij(k)=ia_src
+      scale_oij(k)=1.
+
       if (k.gt.KOIJ) then
         write(6,*) "Too many OIJ diagnostics: increase KOIJ to at least"
      *       ,k
@@ -1945,19 +1657,15 @@ C**** Set up oceanic component conservation diagnostics
 
 #ifdef TRACERS_OCEAN 
 C**** Oceanic tracers 
-#ifdef TRACERS_OceanBiology
-      ndel=8
-#else
-      ndel=10
-#endif
       do nt=1,tracerlist%getsize()
         entry=>tracerlist%at(nt)
         UNITS_INST="("//trim(unit_string(entry%ntrocn,'kg/m^2'))//")"
-        UNITS="("//trim(unit_string(entry%ntrocn-ndel,'kg/m^2/s'))//")"
+        UNITS="("//trim(unit_string(entry%ntrocn_delta,'kg/m^2/s'))//")"
         INST_SC=10.**(-entry%ntrocn)
-        CHNG_SC=10.**(-entry%ntrocn+ndel)
+        CHNG_SC=10.**(-entry%ntrocn_delta)
         CALL SET_TCONO(entry%trname(1:8),UNITS_INST,UNITS,
-     &            INST_SC,CHNG_SC, nt)
+     &            INST_SC,CHNG_SC, nt, size(entry%con_point_idx),
+     &            entry%con_point_idx, entry%con_point_str)
       end do
 #endif
 #endif /* STANDALONE_OCEAN */
@@ -2251,7 +1959,8 @@ c
         kn_toijl(:,kk) = (/ toijl_gmfl+2, nt /)
         call add_var(cdl_toijl,
      &       'float '//trim(sname_toijl(kk))//trim(xyzstr),
-     &       long_name='GM/EDDY VERT. FLUX '//trim(entry%trname),
+     &       long_name='GM/EDDY DOWNWARD VERT. FLUX '//
+     &       trim(entry%trname),
      &       units=trim(unitstr),
      &       make_timeaxis=make_timeaxis)
 
@@ -2496,15 +2205,21 @@ c compensate for polar loops in conserv_ODIAG not going from 1 to im
       integer, intent(in) :: jm_budg
 !@var I,J are atm grid point values for the accumulation
       INTEGER :: I,J,J_0,J_1,J_0H,J_1H
+      Real*8  :: dLATD  !  latitudinal budget spacing in degrees
  
 C**** define atmospheric grid
       call getDomainBounds(ogrid,
      &     J_STRT=J_0,J_STOP=J_1,
      &     J_STRT_HALO=J_0H,J_STOP_HALO=J_1H)
 
+      dLATD = 180d0 / JM_BUDG
+      If (JM_BUDG == 46)  dLATD = 4
+      If (JM_BUDG == 24)  dLATD = 8
       DO J=J_0H,J_1H
         DO I=1,IMO
-           oJ_BUDG(I,J)=NINT(1+(olat2d_dg(I,J)+90)*(JM_BUDG-1)/180.)
+           oJ_BUDG(I,J) = Nint (oLAT2D_DG(I,J)/dLATD + (JM_BUDG+1)/2d0)
+           If (oJ_BUDG(I,J) < 1)        oJ_BUDG(I,J) = 1
+           If (oJ_BUDG(I,J) > JM_BUDG)  oJ_BUDG(I,J) = JM_BUDG
         END DO
       END DO
 
@@ -2512,4 +2227,3 @@ C**** define atmospheric grid
       oJ_1B=MAXVAL( oJ_BUDG(1:IMO,J_0:J_1) )
 
       END SUBROUTINE SET_OJ_BUDG
-

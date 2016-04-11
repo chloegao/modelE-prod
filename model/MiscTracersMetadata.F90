@@ -39,7 +39,7 @@ module MiscTracersMetadata_mod
     n_Air, n_water, n_H2O18, n_HDO, n_HTO, n_Pb210,n_Be7, &
     n_Be10, n_CFCn, n_CO2n, n_Age, n_SO4_d1, n_SO4_d2, n_SO4_d3, &
     n_N_d1, n_N_d2, n_N_d3, n_NH3,   n_NH4,   n_NO3p, &
-    n_OCocean, n_clay, n_silt1, n_silt2, n_silt3, n_silt4
+    n_OCocean, n_clay, n_silt1, n_silt2, n_silt3, n_silt4, n_silt5
   implicit none
   integer :: n
  
@@ -259,9 +259,8 @@ contains
   subroutine Silt4_setSpec(name)
     implicit none
     character(len=*), intent(in) :: name
-
     n = oldAddTracer(name)
-    n_Silt4=n
+    n_Silt4 = n
     call set_ntm_power(n, -9)
     call set_trpdens(n, 2.65d3)
     if (tracers_drydep) call set_trradius(n, 11.77D-06)
@@ -270,8 +269,22 @@ contains
     call set_tr_wd_type(n, nPART)
     call set_tr_mm(n, 1.d+0)
     call set_isdust(n, 1)
-
   end subroutine Silt4_setSpec
+
+  subroutine Silt5_setSpec(name)
+    implicit none
+    character(len=*), intent(in) :: name
+    n = oldAddTracer(name)
+    n_Silt5 = n
+    call set_ntm_power(n, -9)
+    call set_trpdens(n, 2.65d3)
+    if (tracers_drydep) call set_trradius(n, 23.53D-06)
+    call set_fq_aer(n, 5.D-1)
+    call set_rc_washt(n, 5.D-1)
+    call set_tr_wd_type(n, nPART)
+    call set_tr_mm(n, 1.d+0)
+    call set_isdust(n, 1)
+  end subroutine Silt5_setSpec
 
   subroutine NO3p_setSpec(name)
     implicit none

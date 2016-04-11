@@ -205,7 +205,7 @@ C****     1/2 x-direction
      *        MMA(I,J,L)/MB(I,J,L),
      *        MUs(Im1,J,L)*byN*.5/MB(I,J,L),MUs(I,J,L)*byN*.5/MB(I,J,L),                                                    
      *        MVs(I,J-1:J,L)*byN/MB(I,J,L),   
-     *        MWs(I,J,L)*byN/MB(I,J,L),MWs(I,J,L-1)*byN/MB(I,J,L)                
+     *        MWs(I,J,L)*byN/MB(I,J,L),MWs(I,J,Max(L-1,1))*byN/MB(I,J,L)            
         CALL GLOBALSUM(grid, nbad_loc, nbad, all=.true.)
         IF(NBAD.GT.0) exit ! nc loop
 
@@ -242,7 +242,7 @@ C****         y-direction
      *        MMA(I,J,L)/MB(I,J,L),
      *        MUs(Im1,J,L)*byN*.5/MB(I,J,L),MUs(I,J,L)*byN*.5/MB(I,J,L),                                                    
      *        MVs(I,J-1:J,L)*byN/MB(I,J,L),   
-     *        MWs(I,J,L)*byN/MB(I,J,L),MWs(I,J,L-1)*byN/MB(I,J,L)                
+     *        MWs(I,J,L)*byN/MB(I,J,L),MWs(I,J,Max(L-1,1))*byN/MB(I,J,L)            
         CALL GLOBALSUM(grid, nbad_loc, nbad, all=.true.)
         IF(NBAD.GT.0) exit ! nc loop
 
@@ -285,7 +285,7 @@ C****         z-direction
      *        MMA(I,J,L)/MB(I,J,L),
      *        MUs(Im1,J,L)*byN*.5/MB(I,J,L),MUs(I,J,L)*byN*.5/MB(I,J,L),                                                    
      *        MVs(I,J-1:J,L)*byN/MB(I,J,L),   
-     *        MWs(I,J,L)*byN/MB(I,J,L),MWs(I,J,L-1)*byN/MB(I,J,L)                
+     *        MWs(I,J,L)*byN/MB(I,J,L),MWs(I,J,Max(L-1,1))*byN/MB(I,J,L)                
         CALL GLOBALSUM(grid, nbad_loc, nbad, all=.true.)
         IF(NBAD.GT.0) exit ! nc loop
 
@@ -308,7 +308,7 @@ C****     1/2 x-direction
      *        MMA(I,J,L)/MB(I,J,L),
      *        MUs(Im1,J,L)*byN*.5/MB(I,J,L),MUs(I,J,L)*byN*.5/MB(I,J,L),                                                    
      *        MVs(I,J-1:J,L)*byN/MB(I,J,L),   
-     *        MWs(I,J,L)*byN/MB(I,J,L),MWs(I,J,L-1)*byN/MB(I,J,L)                
+     *        MWs(I,J,L)*byN/MB(I,J,L),MWs(I,J,Max(L-1,1))*byN/MB(I,J,L)                
         CALL GLOBALSUM(grid, nbad_loc, nbad, all=.true.)
         IF(NBAD.GT.0) exit ! nc loop
 

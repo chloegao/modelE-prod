@@ -1,17 +1,18 @@
-*.ERR
-*.mod
+# object files, .mod files, libraries
 *.o
+*.mod
 *.smod
-*~
+*.a
+
+# dependency files
 .depend
-.depend_cpp
-.depend_f
-.depend_f.old
-/#notes#
-/.#notes
-/.current_options
+.current_options
+.current_srcs
 /.depend_subdirs
 /.liblist
+
+# error logs and other random output
+*.ERR
 *.i
 *.i90
-/notes
+

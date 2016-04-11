@@ -21,6 +21,7 @@ Preprocessor Options
 #define USE_ENT
 #define NEW_IO
 #define CHECK_OCEAN                 ! needed to compile aux/file CMPE002
+#define OCN_LAYERING L13
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
@@ -28,8 +29,8 @@ Object modules: (in order of decreasing priority)
 Atm72x46                   ! horizontal resolution is 72x46 -> 4x5deg
 AtmL20 STRAT_DUM          ! vertical resolution is 20 layers -> 0.1mb
 DIAG_RES_M  
-ORES_5x4_L13                ! ocean horiz res 4x5deg, 13 vert layers
 FFT72                      ! Fast Fourier Transform
+ORES_5x4 OFFT72E          ! ocean horiz res 4x5deg
 
 IO_DRV                             ! new i/o
 
@@ -40,17 +41,9 @@ QUS_DRV QUS3D
 #include "latlon_source_files"
 #include "modelE4_source_files"
 
-ODIAG_COM OCEAN_COM OSTRAITS_COM OGEOM   ! dynamic ocean modules
-OCNDYN  OCNDYN2  OTIDELL                 ! dynamic ocean routines
-OCNGISSVM
-OCN_Interp OCN_Int_LATLON                ! dynamic ocean routines
-OSTRAITS OCNGM OCNKPP                    ! dynamic ocean routines
-OCEANR_DIM OFLUXES
-ODIAG_PRT                              ! ocean diagnostic print out
-OCNFUNTAB                           ! ocean function look up table
-OCNQUS                     ! QUS advection scheme
-OFFT72E                 ! utilities
-SparseCommunicator_mod              ! sparse gather/scatter module
+#include "dynamic_ocn_source_files"
+
+OCN_Int_LATLON                ! dynamic ocean routines
 
 Components:
 #include "E4_components_nc"    /* without "Ent" */

@@ -22,12 +22,13 @@ Preprocessor Options
 !#define OBIO_ON_GARYocean
 !#define pCO2_ONLINE
 #define CHL_from_SeaWIFs
+#define OCN_LAYERING L32
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
 Atm144x90                  ! horizontal resolution is 144x90 -> 2x2.5deg
 AtmL40                      ! vertical resolution is 40 layers -> 0.1mb
-ORES_2Hx2_L32                       ! ocean horiz res 2x2.5deg, 32 vert layers
+ORES_2Hx2 OFFT144E                  ! ocean horiz res 2x2.5deg
 MODEL_COM GEOM_B IORSF              ! model variables and geometry
 TRIDIAG                             ! tridiagonal matrix solver
 MODELE                              ! Main and model overhead
@@ -60,7 +61,7 @@ RAD_UTILS ALBEDO READ_AERO             ! radiation and albedo
 DIAG_COM DIAG DEFACC DIAG_PRT          ! diagnostics
 DIAG_ZONAL GCDIAGb                     ! grid dependent code for lat-circle dia
 DIAG_RES_F                             ! diagnostics (resolution dependent)
-      FFT144 OFFT144E                  ! utilities
+      FFT144                           ! utilities
 POUT                                   ! post-processing output
 SparseCommunicator_mod                 ! sparse gather/scatter module
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -76,9 +77,8 @@ SparseCommunicator_mod                 ! sparse gather/scatter module
 !obio_com         |$(R8)|
 !obio_forc        |$(R8)|
 !obio_init        |$(R8)|
-!obio_bioinit_g   |$(R8)|
+!obio_bioinit     |$(R8)|
 !obio_model       |$(R8)|
-!obio_trint       |$(R8)|
 !obio_daysetrad   |$(R8)|
 !obio_daysetbio   |$(R8)|
 obio_ocalbedo    |$(R8)|
@@ -91,7 +91,6 @@ obio_reflectance |$(R8)|
 !obio_sinksettl   |$(R8)|
 
 !!!ar!!!obio_oasimhr     |$(R8)|
-!!!ar!!!obio_limits      |$(R8)|
 
 Components:
 MPI_Support shared
@@ -142,14 +141,14 @@ scatt. coefs
 !!!pco2table=pco2.tbl.asc                   ! table to compute pco2 vals from
 sst,sss,dic,alk
                                             ! if not defined pCO2_ONLINE
-nitrates_inicond=no3_nodc_annmean.asc    ! initial cond for nitrates (NODC)
-silicate_inicond=sio2_nodc_annmean.asc   ! initial cond for silicate (NODC)
-dic_inicond=dic_glodap_annmean.asc       ! initial cond for dic (GLODAP)
-alk_inicond=alk_glodap_annmean.asc       ! initial cond/forcing for alk
+nitrates_inicond=no3_nodc_annmean_90x144.nc    ! initial cond for nitrates (NODC)
+silicate_inicond=sio2_nodc_annmean_90x144.nc   ! initial cond for silicate (NODC)
+dic_inicond=dic_glodap_annmean_90x144.nc       ! initial cond for dic (GLODAP)
+alk_inicond=alk_glodap_annmean_90x144.nc       ! initial cond/forcing for alk
 (GLODAP)
 !!!oasimdirect=oasimdirect_20w_new          ! spectral light components
                                             ! if not defined
-atmFe_inicond=iron_gocart_1x1mon.asc     ! GOCART iron flux
+atmFe_inicond=iron_gocart_1x1mon_90x144.nc     ! GOCART iron flux
 atmFedirect1=iron_ron_195x180_20w.asc    ! Ron Miller's dust fluxes
 facirr=facirr.asc                        ! factors for mean irradiance w/in
 water

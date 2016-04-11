@@ -9,32 +9,30 @@ c
       USE MODEL_COM, only  : dtsrc,Itime,ItimeI
       USE CONSTANT, only   : pi, mair, mwat, radian,avog
       USE ATM_COM, only    : MA, byMA, PMID, PK
-      USE TRACER_COM, only : NTM, trm, ntm_soa, ntm_terp
+      USE TRACER_COM, only : trm, ntm_soa, ntm_terp, ntm_dCO
       use OldTracer_mod, only: TR_MM
-      USE TRACER_COM, only : ntm, trm, ntm_soa, ntm_terp
 
       IMPLICIT NONE
       SAVE
 
 C**************  P  A  R  A  M  E  T  E  R  S  *******************
-!@param p_1 number of reactants per reaction
-!@param p_2 number of rxns in assembled lists (check with print rxn list)
+!@param p_1 number of reactants or products per reaction
+!@param p_2 maximum number of reactions or photolysis rates.
+!@+     Equals to n_rx or JPPJ_Shindell, whichever is greater
 !@param p_3 number of rxns in assembled lists (check with print rxn list)
-!@param p_4 number of rxns in assembled lists (check with print rxn list)
-!@param p_5 number of levels from top down with SRB flux
-!@param n_rx maximum number of chemical reactions
-!@param n_bi maximum number of bimolecular reactions
-!@param n_tri maximum number of trimolecular reactions
-!@param n_nst maximum number of monomolecular decompositions
-!@param n_fam maximum number of chemical families
-!@param JPPJ_Shindell number of photolysis reactions in the Shindell chemistry
+!@+     Equals to p_1*p_2
+!@param n_rx maximum number of chemical reactions in JPLRX
+!@param n_bi maximum number of bimolecular reactions in JPLRX
+!@param n_tri maximum number of trimolecular reactions in JPLRX
+!@param n_nst maximum number of monomolecular decompositions in JPLRX
+!@param n_het maximum number of heterogeneous reactions in JPLRX
+!@param numfam number of chemical families in JPLRX
+!@param JPPJ_Shindell number of photolysis reactions in JPLPH
 !@param luselb Use reflective photolysis boundary treatment
 !@param zlbatm Optical depth above which to set lower boundary
 !@param CMEQ1 ?
 !@param nc total number of molecules included (incl. O2 and N2)
 !@param ny number of chemically calculated gases (no O2 or N2)
-!@param numfam number of chemical families
-!@param n_phot how often to do photolysis (in increments of DTsrc)
 !@param O3MULT =2.14d-2 This is the conversion from (atm*cm) units
 !@+     (i.e. 1000 Dobson Units) to KG/m2. It is: 
 !@+     1.E4*2.69E19*48./6.02E26 where 1.E4 is cm2/m2, 2.69E19 is 
@@ -65,54 +63,58 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
       INTEGER, PARAMETER ::
      & LCOalt =   23,
      & LCH4alt=    6,
-     & p_1   =     2, 
-     & p_2   =   209,
-     & p_3   =   500,
-     & p_4   =   209,
 #ifdef TRACERS_TERP
-     & n_rx  =   113,
-     & n_bi  =    97,
+     & n_bi_terp = 3, ! number of terpenes bimolecular reactions
 #else
-     & n_rx  =   110,
-     & n_bi  =    94,
+     & n_bi_terp = 0,
 #endif  /* TRACERS_TERP */
-     & n_tri =    11,
+#ifdef TRACERS_dCO
+     & n_bi_dCO = 12, ! number of dCO bimolecular reactions
+     & jppj_dCO = 9,  ! number of dCO photochemical reactions
+#else
+     & n_bi_dCO = 0,
+     & jppj_dCO = 0,
+#endif  /* TRACERS_dCO */
+     & n_bi  =    91+n_bi_terp+n_bi_dCO,
      & n_nst =     3,
-     & nc     =   53+ntm_terp+ntm_soa,     !formerly in param sub
-     & ny     =   51+ntm_terp+ntm_soa,     !formerly in param sub  
+     & n_tri =    11,
+     & n_het =     5,
+     & n_rx  = n_bi+n_nst+n_tri+n_het,
+     & ny     =   51+ntm_terp+ntm_soa+ntm_dCO,     !formerly in param sub  
+     & nc     = ny+2,     !formerly in param sub
      & numfam =    4,     !formerly in param sub  
-     & nC2O3=     26+ntm_terp+ntm_soa,
-     & nXO2=      27+ntm_terp+ntm_soa,
-     & nXO2N=     28+ntm_terp+ntm_soa,
-     & nRXPAR=    29+ntm_terp+ntm_soa,
-     & nROR=      30+ntm_terp+ntm_soa,
-     & nAldehyde= 31+ntm_terp+ntm_soa,
-     & nH2O=      32+ntm_terp+ntm_soa,
-     & nCH3O2=    33+ntm_terp+ntm_soa,
-     & nH2=       34+ntm_terp+ntm_soa,
-     & nOH=       35+ntm_terp+ntm_soa,
-     & nHO2=      36+ntm_terp+ntm_soa,
-     & nO3=       37+ntm_terp+ntm_soa,
-     & nO=        38+ntm_terp+ntm_soa,
-     & nO1D=      39+ntm_terp+ntm_soa,
-     & nNO=       40+ntm_terp+ntm_soa,
-     & nNO2=      41+ntm_terp+ntm_soa,
-     & nNO3=      42+ntm_terp+ntm_soa,
-     & nHONO=     43+ntm_terp+ntm_soa,
-     & nCl2O2=    44+ntm_terp+ntm_soa,
-     & nClO=      45+ntm_terp+ntm_soa,
-     & nOClO=     46+ntm_terp+ntm_soa,
-     & nCl2=      47+ntm_terp+ntm_soa,
-     & nCl=       48+ntm_terp+ntm_soa,
-     & nBrCl=     49+ntm_terp+ntm_soa,
-     & nBrO=      50+ntm_terp+ntm_soa,
-     & nBr=       51+ntm_terp+ntm_soa,
-     & nO2=       52+ntm_terp+ntm_soa,
-     & nM=        53+ntm_terp+ntm_soa,     !you must always put nM last (highest number)
-     & JPPJ_Shindell = 28,
-     & n_fam =     5,
-     & p_5   =    14,
-     & n_phot=     2  
+     & nC2O3=     26+ntm_terp+ntm_soa+ntm_dCO,
+     & nXO2=      27+ntm_terp+ntm_soa+ntm_dCO,
+     & nXO2N=     28+ntm_terp+ntm_soa+ntm_dCO,
+     & nRXPAR=    29+ntm_terp+ntm_soa+ntm_dCO,
+     & nROR=      30+ntm_terp+ntm_soa+ntm_dCO,
+     & nAldehyde= 31+ntm_terp+ntm_soa+ntm_dCO,
+     & nH2O=      32+ntm_terp+ntm_soa+ntm_dCO,
+     & nCH3O2=    33+ntm_terp+ntm_soa+ntm_dCO,
+     & nH2=       34+ntm_terp+ntm_soa+ntm_dCO,
+     & nOH=       35+ntm_terp+ntm_soa+ntm_dCO,
+     & nHO2=      36+ntm_terp+ntm_soa+ntm_dCO,
+     & nO3=       37+ntm_terp+ntm_soa+ntm_dCO,
+     & nO=        38+ntm_terp+ntm_soa+ntm_dCO,
+     & nO1D=      39+ntm_terp+ntm_soa+ntm_dCO,
+     & nNO=       40+ntm_terp+ntm_soa+ntm_dCO,
+     & nNO2=      41+ntm_terp+ntm_soa+ntm_dCO,
+     & nNO3=      42+ntm_terp+ntm_soa+ntm_dCO,
+     & nHONO=     43+ntm_terp+ntm_soa+ntm_dCO,
+     & nCl2O2=    44+ntm_terp+ntm_soa+ntm_dCO,
+     & nClO=      45+ntm_terp+ntm_soa+ntm_dCO,
+     & nOClO=     46+ntm_terp+ntm_soa+ntm_dCO,
+     & nCl2=      47+ntm_terp+ntm_soa+ntm_dCO,
+     & nCl=       48+ntm_terp+ntm_soa+ntm_dCO,
+     & nBrCl=     49+ntm_terp+ntm_soa+ntm_dCO,
+     & nBrO=      50+ntm_terp+ntm_soa+ntm_dCO,
+     & nBr=       51+ntm_terp+ntm_soa+ntm_dCO,
+     & nO2=       52+ntm_terp+ntm_soa+ntm_dCO,
+     & nM=        53+ntm_terp+ntm_soa+ntm_dCO,     !you must always put nM last (highest number)
+     & JPPJ_Shindell = 28+jppj_dCO,
+     & p_1   =     2, 
+     & p_2   = max(n_rx,JPPJ_Shindell),
+     & p_3   = p_1*p_2
 C ----------------------------------------------     
 c     & n_Ox=        1,    ! note, these
 c     & n_NOx=       2,    ! first 15 species are
@@ -179,10 +181,23 @@ C to define BrOx,ClOx,ClONOs,HCL,COIC,OxIC,CFCIC,N2OICX,CH4ICX too:
      
 !@dbparam Tpsc_offset_N NH offset for the above T_thresh
 !@dbparam Tpsc_offset_S SH offset for the above T_thresh
-!@dbparam preslimitO2photCorrection pressue above which ss(27) should
-!@+ get the spherical correction (on top of linear) (hPa)
-!@dbparam windowO2corr linear correction to ss(27) O2 in window region
-!@dbparam windowN2Ocorr linear correction to ss(28) N2O in window region
+!@dbparam reg1Power_SpherO2andN2Ocorr first from surface region power of 
+!@+ cos(sza)^x of spherical correction to ss(27) and ss(28)
+!@dbparam reg2Power_SpherO2andN2Ocorr second from surface region power of 
+!@+ cos(sza)^x of spherical correction to ss(27) and ss(28)
+!@dbparam reg3Power_SpherO2andN2Ocorr third from surface region power of 
+!@+ cos(sza)^x of spherical correction to ss(27) and ss(28)
+!@dbparam reg4Power_SpherO2andN2Ocorr fourth and last from surface region power of 
+!@+ cos(sza)^x of spherical correction to ss(27) and ss(28)
+!@dbparam reg1TopPres_SpherO2andN2Ocorr pressure at top of first from surface region
+!@+ for spherical correction to ss(27) and ss(28) (hPa)
+!@dbparam reg2TopPres_SpherO2andN2Ocorr pressure at top of second from surface region
+!@+ for spherical correction to ss(27) and ss(28) (hPa)
+!@dbparam reg3TopPres_SpherO2andN2Ocorr pressure at top of third from surface region
+!@+ for spherical correction to ss(27) and ss(28) (hPa)
+! (fourth = top region needs no upper pressure)
+!@dbparam windowO2corr linear correction to ss(27) O2 in window region (in addition to spherical)
+!@dbparam windowN2Ocorr linear correction to ss(28) N2O in window region (in addition to spherical)
 !@dbparam ch4_init_sh,ch4_init_nh initial methane conc. (ppmv) 
 !@+       defaults are for 1990
 !@dbparam allowSomeChemReinit (1=YES) to allow some chemistry variables
@@ -232,12 +247,18 @@ C to define BrOx,ClOx,ClONOs,HCL,COIC,OxIC,CFCIC,N2OICX,CH4ICX too:
      &                     ,PIratio_other = 0.500d0
      &                     ,PIratio_N2O   = 0.896d0
      &                     ,PIratio_CFC   = 0.000d0
-     &                     ,PltOx         = 0.100d0
-     &                     ,Tpsc_offset_N = 0.d0
-     &                     ,Tpsc_offset_S = 0.d0
-     &                     ,preslimitO2photCorrection = 20.d0
-     &                     ,windowN2Ocorr = 0.6d0
-     &                     ,windowO2corr  = 0.6d0
+     &                     ,PltOx         = 0.000d0
+     &                     ,Tpsc_offset_N = -10.d0
+     &                     ,Tpsc_offset_S = -10.d0
+     &                     ,reg1Power_SpherO2andN2Ocorr = 2.0d0
+     &                     ,reg2Power_SpherO2andN2Ocorr = 2.0d0
+     &                     ,reg3Power_SpherO2andN2Ocorr = 1.0d0
+     &                     ,reg4Power_SpherO2andN2Ocorr = 0.5d0
+     &                     ,reg1TopPres_SpherO2andN2Ocorr = 50.d0
+     &                     ,reg2TopPres_SpherO2andN2Ocorr = 10.d0
+     &                     ,reg3TopPres_SpherO2andN2Ocorr = 5.d0
+     &                     ,windowN2Ocorr = 0.8d0
+     &                     ,windowO2corr  = 0.8d0
      &                     ,PSClatS       = -50.d0
      &                     ,PSClatN       =  50.d0
 
@@ -245,21 +266,24 @@ C to define BrOx,ClOx,ClONOs,HCL,COIC,OxIC,CFCIC,N2OICX,CH4ICX too:
 
 C**************  V  A  R  I  A  B  L  E  S *******************  
 !@var topLevelOfChemistry the model level above which no chemistry is done
-!@var nn reactant's number in mol list, first index reactant 1 or 2,
-!@+      second - reaction number
-!@var nnr reaction product's number in mol list, indicies like nn
-!@var nps reaction numbers by molecule, photolytic production
-!@var nds reaction numbers by molecule, photolytic destruction
-!@var npnr reaction numbers by molecule, photolytic production
-!@var ndnr reaction numbers by molecule, photolytic destruction
-!@var kps reaction numbers by molecule, chemical production
-!@var kds reaction numbers by molecule, chemical destruction
-!@var kpnr reaction numbers by molecule, chemical production
-!@var kdnr reaction numbers by molecule, chemical destruction
-!@var fam ___?
+!@var nn name of species that reacts, as defined in the MOLEC file. The
+!@+      first index denotes the reactant 1 or 2, and the second the reaction
+!@+      number, as defined in the JPLRX file
+!@var nnr same as nn, for products
+!@var nps reaction index for production as defined in JPLPH, given the
+!@+       accumulated ireac (one ireac element per reaction per unique
+!@+       reactant)
+!@var nds same as nps for destruction
+!@var npnr same as nps for thermal reactions in JPLRX
+!@var ndnr same as npnr for destruction
+!@var kps index of JPLPH reaction (production) per photodissociating
+!@+       species found in MOLEC
+!@var kds same as kps for destruction
+!@var kpnr same as kps for thermal reactions in JPLRX
+!@var kdnr same as kpnr for destruction
 !@var nst reverse reaction number for dissociation reactions
 !@var lprn,jprn,iprn l, j, and i point for chemistry debugging
-!@var ay name of gas being considered
+!@var ay name of gas being considered, as defined in MOLEC
 !@var y concentration of gas, 1st index=gas number, 2nd=verticle level
 !@var rr rate constant of chemical reaction, first index - reaction
 !@+   number, 2nd is verticle level
@@ -319,7 +343,6 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var CH4altT tropical strat adjustments to CH4 (unitless, LM levels)
 !@var CH4altX xtra-tropical strat adjustments to CH4 (LM levels)
 !@var BYFJM = 1/JM
-!@var MODPHOT if MODPHOT=0 do photolysis, else skip it
 !@var TX temperature variable for master chem
 !@var ta local array to hold temperature
 !@var rh local array to hold relative humidity
@@ -330,14 +353,10 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var prod_sulfate  N2O5 change by sulfate reactions in mass units
 !@var wprod_sulf N2O5 change by sulfate reactions in molecules/cm3/s
 !@var DT2 variable chemical time step, set in masterchem
-!@var nr total number of        reactions read in from gs_jpl00_trop_15
-!@var nr3 #of trimolecular      reactions read in from gs_jpl00_trop_15
-!@var nr2 #of mono+bi-molecular reactions read in from gs_jpl00_trop_15
-!@var nmm #of monomolecular     reactions read in from gs_jpl00_trop_15
-!@var nhet #of heterogenous     reactions read in from gs_jpl00_trop_15
 !@var ratioNs,ratioN2,rNO2frac,rNOfrac,rNOdenom variables for nitrogen
 !@+   conservation (strat)
-!@var chemrate,photrate ?   
+!@var chemrate reaction rate per layer
+!@var photrate photolysis rate per layer
 !@var L75P first model level above nominal 75 hPa
 !@var L75M first model level below nominal 75 hPa
 !@var F75P interpolation coeff. of higher altitude value (units ln(P))
@@ -365,14 +384,19 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@+ model layers.
 !@var ClOx_old total ClOx at start of chemical timestep
 !@var aero yes(1) or no(0) tag of non-zero rkext from Crates
-      INTEGER :: nr,nr2,nr3,nmm,nhet,MODPHOT,L75P,L75M,L569P,L569M,
+#ifdef SMOOTH_SUNLIGHT_CHEMISTRY
+!@var mostRecentNonZeroAlbedo remembers last time that ALB(I,J,1) was non-zer
+!@+ for given I,J point (saved in rsf for reproducibilty purposes)
+#endif
+      INTEGER :: L75P,L75M,L569P,L569M,
      &lprn,jprn,iprn,MIEDX,NCFASTJ,topLevelOfChemistry
-      INTEGER, DIMENSION(n_fam)        :: nfam = 
-     &     (/37+ntm_terp+ntm_soa,40+ntm_terp+ntm_soa,
-     &       44+ntm_terp+ntm_soa,50+ntm_terp+ntm_soa,0/)
-      INTEGER, DIMENSION(p_1,p_2)      :: nn, nnr
+      INTEGER, DIMENSION(numfam+1)     :: nfam = 
+     &     (/37+ntm_terp+ntm_soa+ntm_dCO,40+ntm_terp+ntm_soa+ntm_dCO,
+     &       44+ntm_terp+ntm_soa+ntm_dCO,50+ntm_terp+ntm_soa+ntm_dCO,
+     &       ny+1/)
+      INTEGER, DIMENSION(p_1,n_rx)     :: nn, nnr
       INTEGER, DIMENSION(p_3)          :: nps, nds, npnr, ndnr
-      INTEGER, DIMENSION(p_4)          :: kps, kds, kpnr, kdnr
+      INTEGER, DIMENSION(nc)           :: kps, kds, kpnr, kdnr
       INTEGER, DIMENSION(n_nst)        :: nst
       INTEGER, ALLOCATABLE, DIMENSION(:) :: aero
 
@@ -388,6 +412,9 @@ C**************  Latitude-Dependant (allocatable) *******************
      &                                       ,N2OICIN,CFCICIN
       REAL*8, ALLOCATABLE, DIMENSION(:,:):: sOx_acc,sNOx_acc,sCO_acc,
      & l1Ox_acc,l1NO2_acc,save_NO2column
+#ifdef SMOOTH_SUNLIGHT_CHEMISTRY
+      REAL*8, ALLOCATABLE, DIMENSION(:,:):: mostRecentNonZeroAlbedo
+#endif
 
 C**************  Not Latitude-Dependant ****************************      
       REAL*8 :: XLTAU,BYFJM,
@@ -400,7 +427,7 @@ C**************  Not Latitude-Dependant ****************************
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: dest, prod
       REAL*8, ALLOCATABLE, DIMENSION(:)   :: OxlossbyH, ClOx_old
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: changeL
-      REAL*8, DIMENSION(n_bi)             :: pe, ea
+      REAL*8, DIMENSION(n_bi+n_nst)       :: pe, ea
       REAL*8, DIMENSION(n_tri)            :: ro, r1, sn, sb
       REAL*8, DIMENSION(LCOalt)           :: COICINL,OxICINL,CH4ICINL
      &                                       ,N2OICINL,CFCICINL
@@ -408,7 +435,7 @@ C**************  Not Latitude-Dependant ****************************
      &                        ,BrOxalt,ClOxalt,ClONO2alt,HClalt
      &                        ,N2OICL,CFCICL  
 
-      LOGICAL                             :: fam,prnrts,prnchg,prnls
+      LOGICAL                             :: prnrts,prnchg,prnls
       LOGICAL, ALLOCATABLE, DIMENSION(:)  :: pscX
 
       CHARACTER*8, DIMENSION(nc)          :: ay
@@ -434,6 +461,10 @@ C**************  Not Latitude-Dependant ****************************
      & OxlossbyH,pscX,nc,n_rx,p_2,ny,changeL,rh,bythick,ClOx_old,aero
 
       use TRCHEM_Shindell_COM, only: topLevelOfChemistry ! define here
+
+#ifdef SMOOTH_SUNLIGHT_CHEMISTRY
+      use TRCHEM_Shindell_COM, only: mostRecentNonZeroAlbedo
+#endif
 
       IMPLICIT NONE
 
@@ -543,6 +574,11 @@ C**************  Not Latitude-Dependant ****************************
       allocate(   l1NO2_acc(I_0H:I_1H,J_0H:J_1H)         )
 
       sOx_acc=0.; sNOx_acc=0.; sCO_acc=0.; l1Ox_acc=0. ; l1NO2_acc=0.
+
+#ifdef SMOOTH_SUNLIGHT_CHEMISTRY
+      allocate( mostRecentNonZeroAlbedo(I_0H:I_1H,J_0H:J_1H))
+      mostRecentNonZeroAlbedo=0.d0
+#endif
       
       return
       end subroutine alloc_trchem_shindell_com

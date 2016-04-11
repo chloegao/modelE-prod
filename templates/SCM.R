@@ -226,13 +226,14 @@ SCM (documenting the Single Column Model)
 &&PARAMETERS
 
 ! SCM parameters
-SCM_lon=-96.25             ! Southern Great Plains site longitude (deg)
-SCM_lat=37.                ! Southern Great Plains site latitude (deg)
+SCM_lon=-97.49             ! Southern Great Plains site longitude (deg)
+SCM_lat=36.61              ! Southern Great Plains site latitude (deg)
 SCM_area=49370385348.1287  ! nominal grid box area (m2) from 144x90 grid
 SCM_sfc=1                  ! 1:land,2:ocean
 SCM_z0m=0.0005             ! surface roughness height (m)
 SCM_alb=0.3                ! mid-visible surface albedo (-)
 SCM_tau=10800.             ! nudging time constant
+SCM_TopHat=1               ! input profiles treated as top-hat? (default=0)
 
 DTsrc=1800.     ! Atm. physics timestep.
 NIsurf=1        ! Number of surface physics timesteps per atm. physics timestep.
@@ -296,7 +297,7 @@ Nssw=2
 SUBDD='u v t q rh z p_3d p_surf prec mcp ssp snowfall snowdp qcl qci'
 SUBDD1='cldss cldmc cldss_2d totcld totcld_diag'
 SUBDD2='gtempr shflx lhflx ustar pblht pwv lwp iwp tau_ss tau_mc'
-SUBDD3='olrrad olrcs lwds lwdscs lwus swds swus swdf'
+SUBDD3='olrrad olrcs lwds lwdscs lwus swds swus swdf egcm'
 SUBDD4='dq_turb dth_turb dq_mc dth_mc dq_ss dth_ss dth_sw dth_lw dth_rad'
 SUBDD5='dq_ls dth_ls dq_nudge dth_nudge'
 SUBDD6='isccp_sunlit isccp_ctp isccp_tau isccp_lcld isccp_hcld'

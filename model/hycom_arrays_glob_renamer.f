@@ -49,11 +49,6 @@ c
      .,tauyav_loc => tauyav 
      .,ufxcum_loc => ufxcum,vfxcum_loc => vfxcum,dpinit_loc => dpinit 
      .,dpmxav_loc => dpmxav,oiceav_loc => oiceav
-#if (defined TRACERS_AGE_OCEAN) \
-    || (defined TRACERS_OCEAN_WATER_MASSES) \
-    || (defined TRACERS_ZEBRA)
-     .,plevav_loc => plevav,tracav_loc => tracav
-#endif
 c 
      .,util1_loc => util1, util2_loc => util2 
      .,util3_loc => util3, util4_loc => util4
@@ -187,12 +182,6 @@ c
       public dpinit_loc
       public dpmxav_loc
       public oiceav_loc
-#if (defined TRACERS_AGE_OCEAN) \
-    || (defined TRACERS_OCEAN_WATER_MASSES) \
-    || (defined TRACERS_ZEBRA)
-      public plevav_loc
-      public tracav_loc
-#endif
       public util1_loc
       public util2_loc
       public util3_loc

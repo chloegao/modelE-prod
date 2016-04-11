@@ -60,7 +60,7 @@ tracers
 Ent
 
 Component Options:
-OPTS_Ent = ONLINE=YES PS_MODEL=FBB    /* needed for "Ent" only */
+OPTS_Ent = ONLINE=YES PS_MODEL=FBB PFT_MODEL=ENT /* needed for "Ent" only */
 OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 
 Data input files:
@@ -105,7 +105,7 @@ KSOLAR=2         ! 2: use long annual mean file ; 1: use short monthly file
 #include "atmCompos_2000_params"
 madaer=3         ! 3: updated aerosols          ; 1: default sulfates/aerosols
 #include "aerosol_params"
-#include "dust_params"
+#include "dust_params_oma"
 
 DTsrc=1800.      ! cannot be changed after a run has been started
 DT=225.

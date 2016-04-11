@@ -101,15 +101,12 @@ subroutine CONDSE
 #ifdef TRACERS_COSMO
   use TRACER_COM, only: n_Be10,n_Be7
 #endif
-#ifdef TRACERS_DUST
-  use TRACER_COM, only: n_clay,n_clayilli,n_sil1quhe
-#endif
 #ifdef TRACERS_WATER
   use OldTracer_mod, only: trw0, dowetdep
   use TRACER_COM, only: trwm
 #else
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||    (defined TRACERS_QUARZHEM)
-  use TRACER_COM, only: Ntm_dust
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+  use TRACER_COM, only: Ntm_dust, n_soilDust
 #endif
 #endif
 #ifdef TRACERS_COSMO
@@ -132,7 +129,7 @@ subroutine CONDSE
   use TRDIAG_COM, only: jls_trdpmc,jls_trdpls,ijts_trdpmc,ijts_trdpls
 #endif
 #else
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
   use TRDIAG_COM, only: jls_wet,ijts_wet,itcon_wt
 #endif
 #endif
@@ -152,7 +149,7 @@ subroutine CONDSE
        ,diag_wetdep
 #endif
 #else
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
   use CLOUDS, only : tm_dust,tmom_dust,trprc_dust
 #endif
 #endif
@@ -207,7 +204,7 @@ subroutine CONDSE
 #ifdef TRACERS_WATER
   use FLUXES, only : trprec
 #else
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
   use FLUXES, only : trprec_dust
 #endif
 #endif
@@ -225,7 +222,7 @@ subroutine CONDSE
   use tracer_sources, only : n__prec
 #endif
   use FILEMANAGER, only: openunit,closeunit
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
   use tracers_dust,only : prelay
 #endif
   use TimerPackage_mod, only: startTimer => start, stopTimer => stop
@@ -247,11 +244,6 @@ subroutine CONDSE
 !@var Lfreeze Lowest level where temperature is below freezing (TF)
   integer Lfreeze
 #endif
-
-!@var TLS,QLS,TMC,QMC temperature and humidity work arrays
-!@var FSS fraction of the grid box for large-scale cloud
-  !      REAL*8, DIMENSION(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
-  !     *           TLS,QLS,TMC,QMC
 
   real*8, dimension(LM,GRID%I_STRT_HALO:GRID%I_STOP_HALO, &
        GRID%J_STRT_HALO:GRID%J_STOP_HALO) &
@@ -328,21 +320,6 @@ subroutine CONDSE
   integer itau,itrop(1),nbox(1),sunlit,ipres
   !****
 
-  !
-  !red*                       Reduced Arrays 1                 *********
-  !        not clear yet whether they still speed things up
-  real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,LM) :: &
-       GZIL,SD_CLDIL,QCIIL,QCLIL
-  real*8, dimension(NMOM,GRID%I_STRT_HALO:GRID%I_STOP_HALO,LM) :: &
-       TMOMIL,QMOMIL
-#ifdef TRACERS_ON
-  real*8, dimension(     LM,NTM,GRID%I_STRT_HALO:GRID%I_STOP_HALO) :: TRM_LNI
-#ifdef TRACERS_WATER
-  real*8, dimension(     LM,NTM,GRID%I_STRT_HALO:GRID%I_STOP_HALO) :: TRWM_LNI
-#endif
-  real*8, dimension(NMOM,LM,NTM,GRID%I_STRT_HALO:GRID%I_STOP_HALO) &
-       :: TRMOM_LNI
-#endif
   integer ICKERR, JCKERR, JERR, seed, NR
   real*8  RNDSS(3,LM,GRID%I_STRT_HALO:GRID%I_STOP_HALO, &
        GRID%J_STRT_HALO:GRID%J_STOP_HALO),xx
@@ -377,7 +354,7 @@ subroutine CONDSE
 #endif
   real*8 :: tmp(NDIUVAR)
 #ifndef TRACERS_WATER
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
   integer :: n1,n_fidx
 #endif
 #endif
@@ -562,47 +539,6 @@ subroutine CONDSE
       I_0thread = I_0 + (I_1-I_0+1) * iThread / numThreads
       I_1thread = I_0 + (I_1-I_0+1) * (iThread+1) / numThreads  - 1
       Imaxj_thread = min(IMAXJ(J), I_1thread)
-      !
-      !
-      !red* Reduced Arrays 2
-      !
-      do L=1,LM
-        do I=I_0thread,I_1thread
-          GZIL(I,L) = GZ(I,J,L)
-#ifdef SCM
-          ! apply large-scale divergence if specified
-          if( SCMopt%omega .or. SCMopt%w )then
-            SD_CLDIL(I,L) = SCMin%Omega(L)*AXYP(1,1)
-          else
-            SD_CLDIL(I,L) = 0.
-          endif
-#else
-          SD_CLDIL(I,L) = MWs(I,J,L)/DTsrc ! averaged SD
-#endif
-          QCIIL(I,L) = QCI(I,J,L)
-          QCLIL(I,L) = QCL(I,J,L)
-          TMOMIL(:,I,L) = T3MOM(:,I,J,L)
-          QMOMIL(:,I,L) = Q3MOM(:,I,J,L)
-        end do
-      end do
-#ifdef CUBED_SPHERE
-      ! note: clouds2 assumes w(l) is at the lower edge of layer l
-      sd_cldil(I_0:I_1,2:lm) = wcpsig(I_0:I_1,j,1:lm-1)/DTsrc
-#endif
-#ifdef TRACERS_ON
-      do n=1,ntm
-        do l=1,lm
-          do i=i_0thread,imaxj_thread
-            trm_lni(l,n,i) = trm(i,j,l,n)
-#ifdef TRACERS_WATER
-            trwm_lni(l,n,i) = trwm(i,j,l,n)
-#endif
-            trmom_lni(:,l,n,i) = trmom(:,i,j,l,n)
-          enddo
-        enddo
-      enddo
-#endif
-      !red* end Reduced Arrays 2
       kmax = kmaxj(j)
       !****
       !**** MAIN I LOOP
@@ -706,24 +642,33 @@ subroutine CONDSE
         do L=1,LM
           !**** TEMPERATURES
           SM(L)  =T(I,J,L)*AIRM(L)
-          SMOM(:,L) =TMOMIL(:,I,L)*AIRM(L)
+          SMOM(:,L) =T3MOM(:,I,J,L)*AIRM(L)
           SMOMMC(:,L) =SMOM(:,L)
           SMOMLS(:,L) =SMOM(:,L)
           TL(L)=T(I,J,L)*PLK(L)
           !**** MOISTURE (SPECIFIC HUMIDITY)
           QM(L)  =Q(I,J,L)*AIRM(L)
-          QMOM(:,L) =QMOMIL(:,I,L)*AIRM(L)
+          QMOM(:,L) =Q3MOM(:,I,J,L)*AIRM(L)
           QMOMMC(:,L) =QMOM(:,L)
           QMOMLS(:,L) =QMOM(:,L)
-          QCIL(L)=QCIIL(I,L)
-          QCLL(L)=QCLIL(I,L)
+          QCIL(L)=QCI(I,J,L)
+          QCLL(L)=QCL(I,J,L)
           QL(L) =Q(I,J,L)
           !**** others
-          SDL(L)=SD_CLDIL(I,L)*BYAXYP(I,J)
+#ifdef SCM
+          ! apply large-scale divergence if specified
+          if( SCMopt%omega .or. SCMopt%w )then
+            SDL(L) = SCMin%Omega(L)
+          else
+            SDL(L) = 0.
+          endif
+#else
+          SDL(L) = MWs(I,J,L)/DTsrc*BYAXYP(I,J) ! averaged SD
+#endif
           TVL(L)=TL(L)*(1.+DELTX*QL(L))
           W2L(L)=W2GCM(L,I,J)
           if(L.le.LM-2) &
-               ETAL(L+1)=.5*ENTCON*(GZIL(I,L+2)-GZIL(I,L))*1.d-3*BYGRAV
+               ETAL(L+1)=.5*ENTCON*(GZ(I,J,L+2)-GZ(I,J,L))*1.d-3*BYGRAV
           if(L.le.LM-2) GZL(L+1)=ETAL(L+1)/ENTCON
         end do
 
@@ -736,8 +681,8 @@ subroutine CONDSE
         !**** TRACERS: Use only the active ones
         do nx=1,ntx
           do l=1,lm
-            tm(l,nx) = trm_lni(l,ntix(nx),i)
-            tmom(:,l,nx) = trmom_lni(:,l,ntix(nx),i)
+            tm(l,nx) = trm(i,j,l,ntix(nx))
+            tmom(:,l,nx) = trmom(:,i,j,l,ntix(nx))
           end do
         end do
 #endif
@@ -1002,7 +947,7 @@ subroutine CONDSE
 #endif
           !**** ACCUMULATE PRECIP
           PRCP=PRCPMC*100.*BYGRAV
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
           precnvl(1)=precnvl(1)+prcpmc*bygrav
 #endif
           !**** CALCULATE PRECIPITATION HEAT FLUX (FALLS AT 0 DEGREES CENTIGRADE)
@@ -1101,7 +1046,7 @@ subroutine CONDSE
 #ifndef SKIP_TRACER_DIAGS
           if(lmcmax > 0) then
             do l=1,lmcmax
-              dtrm(l) = (tm(l,nx)-trm_lni(l,n,i))*(1.-fssl(l))
+              dtrm(l) = (tm(l,nx)-trm(i,j,l,n))*(1.-fssl(l))
 #ifdef TRACERS_WATER
               dtrm(l) = dtrm(l) + trsvwml(nx,l)
 #else
@@ -1116,12 +1061,12 @@ subroutine CONDSE
           do l=1,lm
 
 #ifdef TRACERS_WATER
-            trwml(nx,l) = trwm_lni(l,n,i)+trsvwml(nx,l)
+            trwml(nx,l) = trwm(i,j,l,n)+trsvwml(nx,l)
 #endif
             tmsave(l,nx) = tm(l,nx) ! save for tajln(large-scale condense)
             tmomsv(:,l,nx) = tmom(:,l,nx)
-            tm(l,nx) = trm_lni(l,n,i)*fssl(l)   ! kg in lsc fraction only
-            tmom(:,l,nx) = trmom_lni(:,l,n,i)*fssl(l)
+            tm(l,nx) = trm(i,j,l,n)*fssl(l)   ! kg in lsc fraction only
+            tmom(:,l,nx) = trmom(:,i,j,l,n)*fssl(l)
           end do
 #ifdef TRACERS_WATER
           trprec(n,i,j) = trprmc(nx)
@@ -1202,7 +1147,7 @@ subroutine CONDSE
           ALPHA2=2./(TH(1)+TH(2))
           DH1S=(PLE(1)-PL(1))*TL(1)*RGAS/(GRAV*PL(1))
           BYDH1S=1./DH1S
-          DH12=(GZIL(I,2)-GZIL(I,1))*BYGRAV
+          DH12=(GZ(I,J,2)-GZ(I,J,1))*BYGRAV
           BYDH12=1./DH12
           DTDZS=(THV1-THSV)*BYDH1S
           DTDZ=(THV2-THV1)*BYDH12
@@ -1238,6 +1183,47 @@ subroutine CONDSE
              Itime,I,J,LERR,' CONDSE:H2O<0',WMERR,' ->0'
 
         !**** Accumulate diagnostics of LSCOND
+
+#ifdef CLD_AER_CDNC
+        ! code transplanted from LSCOND
+        SMLWP=WMSUM
+        CDN3DL=0.
+        CRE3DL=0.
+        ACDNWS=0.
+        ACDNIS=0.
+        AREWS=0.
+        AREIS=0.
+        ALWWS=0.
+        ALWIS=0.
+        NLSW = 0
+        NLSI = 0
+!    CDNC_TOMAS=0.
+        do l=1,lmcld
+          if(CLDSV1(L).gt.1.d-5) then
+            if(SVLHXL(L).eq.LHE) then
+              ! max(...,20) b/c NCLL had different lower limit than SCDNCW
+              ACDNWS(L)= max(NCLL(L),20d0)
+              AREWS(L) = CSIZEL(L)
+              ALWWS(L) = 1.d5*QCLX(L)*PL(L)/(CLDSV1(L)*TL(L)*RGAS+teeny)
+              CDN3DL(L) = NCLL(L)
+              CRE3DL(L)=CSIZEL(L)
+              NLSW  = NLSW + 1
+        !      if(ACDNWS(L).gt.20.d0) write(6,*)"INWCLD",ACDNWS(L),
+        !    * SCDNCW,NLSW,AREWS(L),RCLDE,LHX
+            elseif(SVLHXL(L).eq.LHS) then
+              ACDNIS(L)= NCIL(L)
+              AREIS(L) = CSIZEL(L)
+              ALWIS(L) = 1.d5*QCIX(L)*PL(L)/(CLDSV1(L)*TL(L)*RGAS+teeny)
+              CDN3DL(L) = NCIL(L)
+              CRE3DL(L)=CSIZEL(L)
+              NLSI  = NLSI + 1
+        !      if(ACDNIS(L).gt.0.d0)    write(6,*)"INICLD",ACDNIS(L),
+        !    * SCDNCI,NLSI,AREIS(L),RCLDE,LHX
+            endif
+          endif
+        enddo
+#endif
+
         AIJ(I,J,IJ_WMSUM)=AIJ(I,J,IJ_WMSUM)+WMSUM
 #ifdef CACHED_SUBDD
       Cloud_daily(I,J,7) = Cloud_daily(I,J,7) + WMSUM
@@ -1261,7 +1247,7 @@ subroutine CONDSE
         !**** TOTAL PRECIPITATION AND AGE OF SNOW
         PRCP=PRCP+PRCPSS*100.*BYGRAV
 
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
         do l=1,lm
           prelay(i,j,l)=((prebar1(l)*DTsrc*100.+precnvl(l)*100.)+ &
                (prebar1(l+1)*DTsrc*100.+precnvl(l+1)*100.))/2.
@@ -1320,24 +1306,22 @@ subroutine CONDSE
         WM1=0  ; WMI=0
         do L=1,LMCLD
           if(SVLHXL(L).eq.LHE) then
-!           aijl(i,j,l,ijl_cldwtr) = aijl(i,j,l,ijl_cldwtr) + WMX(L)*AIRM(L)
             aijl(i,j,l,ijl_cldwtr) = aijl(i,j,l,ijl_cldwtr) + QCLX(L)*AIRM(L)
 #ifdef mjo_subdd
             CLWC3D(L,I,J)=CLWC3D(L,I,J)+QCLX(L)
 #endif
 #ifdef etc_subdd
-            CLWC3D(L,I,J)=QCLX(L)    ! WMX(L)
+            CLWC3D(L,I,J)=QCLX(L)
             LWP2D(I,J)=LWP2D(I,J)+QCLX(L)*AIRM(L)*100.*BYGRAV
 #endif
           endif
           if(SVLHXL(L).eq.LHS) then
-!           aijl(i,j,l,ijl_cldice) = aijl(i,j,l,ijl_cldice) + WMX(L)*AIRM(L)
             aijl(i,j,l,ijl_cldice) = aijl(i,j,l,ijl_cldice) + QCIX(L)*AIRM(L)
 #ifdef mjo_subdd
             CIWC3D(L,I,J)=CIWC3D(L,I,J)+QCIX(L)  ! WMX(L)
 #endif
 #ifdef etc_subdd
-            CIWC3D(L,I,J)=QCIX(L)   ! WMX(L)
+            CIWC3D(L,I,J)=QCIX(L)
             IWP2D(I,J)=IWP2D(I,J)+QCIX(L)*AIRM(L)*100.*BYGRAV
 #endif
           endif
@@ -1454,10 +1438,8 @@ subroutine CONDSE
         !**** Peak static stability diagnostic
         SSTAB=-1.d30
         do L=1,DCL
-          !red    IF(SSTAB.lt.(TH(L+1)-TH(L))/(GZ(I,J,L+1)-GZ(I,J,L)))
-          !red *     SSTAB =  (TH(L+1)-TH(L))/(GZ(I,J,L+1)-GZ(I,J,L))
-          if(SSTAB.lt.(TH(L+1)-TH(L))/(GZIL(I,L+1)-GZIL(I,L))) &
-               SSTAB =  (TH(L+1)-TH(L))/(GZIL(I,L+1)-GZIL(I,L))
+          if(SSTAB.lt.(TH(L+1)-TH(L))/(GZ(I,J,L+1)-GZ(I,J,L))) &
+             SSTAB =  (TH(L+1)-TH(L))/(GZ(I,J,L+1)-GZ(I,J,L))
         end do
         AIJ(I,J,ij_sstabx) = AIJ(I,J,ij_sstabx) + SSTAB
 
@@ -1542,10 +1524,10 @@ subroutine CONDSE
           SMOM(:,L)=SMOM(:,L)*FSSL(L)+SMOMMC(:,L)*(1.-FSSL(L))
           QMOM(:,L)=QMOM(:,L)*FSSL(L)+QMOMMC(:,L)*(1.-FSSL(L))
           !**** update moment changes
-          TMOMIL(:,I,L)=SMOM(:,L)*BYAM(L)
-          QMOMIL(:,I,L)=QMOM(:,L)*BYAM(L)
-          QCIIL(I,L)=QCIX(L)   ! WMX(L)
-          QCLIL(I,L)=QCLX(L)   ! WMX(L)
+          T3MOM(:,I,J,L)=SMOM(:,L)*BYAM(L)
+          Q3MOM(:,I,J,L)=QMOM(:,L)*BYAM(L)
+          QCI(I,J,L)=QCIX(L)
+          QCL(I,J,L)=QCLX(L)
 
           !**** CALCULATE WIND TENDENCIES AND STORE IN UKM,VKM
           if(J.eq.1 .and. HAVE_SOUTH_POLE)  then
@@ -1655,9 +1637,9 @@ subroutine CONDSE
 
 #ifndef SKIP_TRACER_DIAGS
           do l=1,LMCLD
-            dtrm(l) = tm(l,nx)-trm_lni(l,n,i)*fssl(l)
+            dtrm(l) = tm(l,nx)-trm(i,j,l,n)*fssl(l)
 #ifdef TRACERS_WATER
-                 dtrm(l) = dtrm(l) + (trwml(nx,l)-trwm_lni(l,n,i)-trsvwml(nx,l))
+            dtrm(l) = dtrm(l) + (trwml(nx,l)-trwm(i,j,l,n)-trsvwml(nx,l))
 #endif
           enddo
           if(itcon_ss(n).gt.0) call inc_diagtcb(i,j,sum(dtrm(1:LMCLD)), &
@@ -1667,10 +1649,10 @@ subroutine CONDSE
 
           do l=1,LMCLD
 #ifdef TRACERS_WATER
-            trwm_lni(l,n,i) = trwml(nx,l)
+            trwm(i,j,l,n) = trwml(nx,l)
 #endif
-            trm_lni(l,n,i) = tm(l,nx)+tmsave(l,nx)*(1.-fssl(l))
-            trmom_lni(:,l,n,i) = tmom(:,l,nx)+tmomsv(:,l,nx)*(1.-fssl(l))
+            trm(i,j,l,n) = tm(l,nx)+tmsave(l,nx)*(1.-fssl(l))
+            trmom(:,i,j,l,n) = tmom(:,l,nx)+tmomsv(:,l,nx)*(1.-fssl(l))
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
             if (trname(n).eq."SO2".or.trname(n).eq."SO4".or. &
@@ -1787,7 +1769,7 @@ subroutine CONDSE
               do kr=1,Ndiupt
                 if(i == ijdd(1,kr) .and. j == ijdd(2,kr)) then
                   select case (trname(n))
-                  case ('Clay','Silt1','Silt2','Silt3','Silt4')
+                  case ('Clay','Silt1','Silt2','Silt3','Silt4','Silt5')
                     tmp(idd_wet)=+trprec(n,i,j)/Dtsrc
                     ADIURN(IDXD(:),KR,IH)=ADIURN(IDXD(:),KR,IH)+ &
                          TMP(IDXD(:))
@@ -1810,24 +1792,14 @@ subroutine CONDSE
         !     call simple wet deposition scheme for dust/mineral tracers
         !     ..........
 
-#ifdef TRACERS_DUST
-        n_fidx=n_clay
-#else
-#ifdef TRACERS_MINERALS
-        n_fidx=n_clayilli
-#else
-#ifdef TRACERS_QUARZHEM
-        n_fidx=n_sil1quhe
-#endif
-#endif
-#endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+        n_fidx=n_soildust
 
         do n=1,Ntm_dust
           n1=n_fidx+n-1
           do l=1,Lm
-            tm_dust(l,n)=trm_lni(l,n1,i)
-            tmom_dust(:,l,n)=trmom_lni(:,l,n1,i)
+            tm_dust(l,n)=trm(i,j,l,n1)
+            tmom_dust(:,l,n)=trmom(:,i,j,l,n1)
           end do
         end do
 
@@ -1838,9 +1810,9 @@ subroutine CONDSE
           trprec_dust(n,i,j)=0.D0
           do l=1,Lm
             if (itcon_wt(n).gt.0) call inc_diagtcb(i,j, &
-                 tm_dust(l,n)-trm_lni(l,n1,i),itcon_wt(n),n)
-            trm_lni(l,n1,i)=tm_dust(l,n)
-            trmom_lni(:,l,n1,i)=tmom_dust(:,l,n)
+                 tm_dust(l,n)-trm(i,j,l,n1),itcon_wt(n),n)
+            trm(i,j,l,n1)=tm_dust(l,n)
+            trmom(:,i,j,l,n1)=tmom_dust(:,l,n)
             trprec_dust(n,i,j)=trprec_dust(n,i,j)+trprc_dust(l,n)
             call inc_tajls(i,j,l,jls_wet(n1),trprc_dust(l,n))
             taijs(i,j,ijts_wet(n1))=taijs(i,j,ijts_wet(n1)) &
@@ -1856,7 +1828,7 @@ subroutine CONDSE
             do kr=1,Ndiupt
               if(i == ijdd(1,kr) .and. j == ijdd(2,kr)) then
                 select case (trname(n))
-                case ('Clay','Silt1','Silt2','Silt3','Silt4')
+                case ('Clay','Silt1','Silt2','Silt3','Silt4','Silt5')
                   tmp(idd_wet)=+trprec_dust(n,i,j)*byaxyp(i,j)/Dtsrc
                   ADIURN(IDXD(:),KR,IH)=ADIURN(IDXD(:),KR,IH)+ &
                        TMP(IDXD(:))
@@ -1874,32 +1846,6 @@ subroutine CONDSE
 
       end do
       !**** END OF MAIN LOOP FOR INDEX I
-
-      !****
-      !red*           Reduced Arrays 3
-      !****
-      do L=1,LM
-        do I=I_0thread,I_1thread
-          QCI(I,J,L) = QCIIL(I,L)
-          QCL(I,J,L) = QCLIL(I,L)
-          T3MOM(:,I,J,L) = TMOMIL(:,I,L)
-          Q3MOM(:,I,J,L) = QMOMIL(:,I,L)
-        end do
-      end do
-#ifdef TRACERS_ON
-      do n=1,ntm
-        do l=1,lm
-          do i=i_0thread,imaxj_thread
-            trm(i,j,l,n) = trm_lni(l,n,i)
-#ifdef TRACERS_WATER
-            trwm(i,j,l,n) = trwm_lni(l,n,i)
-#endif
-            trmom(:,i,j,l,n) = trmom_lni(:,l,n,i)
-          enddo
-        enddo
-      enddo
-#endif
-      !red*       end Reduced Arrays 3
 
     end do ! loop over threads
 
@@ -2106,11 +2052,11 @@ end subroutine CONDSE
 subroutine init_CLD(istart)
 !@sum  init_CLD initialises parameters for MSTCNV and LSCOND
 !@auth M.S.Yao/A. Del Genio (modularisation by Gavin Schmidt)
-  use CONSTANT, only : grav,by3,radian
-  use RESOLUTION, only : ls1,plbot
+  use CONSTANT, only : grav,by3,radian,lhe
+  use RESOLUTION, only : ls1=>ls1_nominal,plbot
   use RESOLUTION, only : jm,lm
   use MODEL_COM, only : dtsrc
-  USE ATM_COM, only : t,q ! for coldstart istart=2 case
+  USE ATM_COM, only : t,q,pmid,pk ! for coldstart istart=2 case
   use DOMAIN_DECOMP_ATM, only : GRID, AM_I_ROOT
   use GEOM, only : lat2d
 #ifndef SCM
@@ -2148,7 +2094,7 @@ subroutine init_CLD(istart)
 #endif
 
   use CLOUDS_COM, only : llow,lmid,lhi &
-       ,isccp_reg2d,UKM,VKM,ttold,qtold
+       ,isccp_reg2d,UKM,VKM,ttold,qtold,rhsav
   use CLOUDS, only : use_vmp
   use DIAG_COM, only : nisccp,isccp_late &
        ,isccp_diags,ntau,npres
@@ -2165,6 +2111,7 @@ subroutine init_CLD(istart)
   implicit none
   integer, intent(in) :: istart
   real*8 PLE
+  real*8 qsat ! external function
   integer L,I,J,n,iu_ISCCP
   integer :: I_0,I_1,J_0,J_1, I_0H,I_1H,J_0H,J_1H
   character TITLE*80
@@ -2188,34 +2135,30 @@ subroutine init_CLD(istart)
   J_1H =GRID%J_STOP_HALO
 
 #ifdef BLK_2MOM
-! initialize microphysics
-!        print *,sname,'im        = ',im
-!        print *,sname,'jm        = ',jm
-!        print *,sname,'lm        = ',lm
-!        print *,sname,'dtsrc        = ',dtsrc
   kl0=12;il0=im;jl0=jm ;il0=1;jl0=1;kl0=1
   nm0 = 1 ! or whatever, put a correct value here
 #ifdef TRACERS_AMP
   nm0=NMODES
 #endif
-!        print *,sname,'il0       = ',il0
-!        print *,sname,'jl0       = ',jl0
-!        print *,sname,'kl0       = ',kl0
-!        print *,sname,'nm0       = ',nm0
   ldummy = init_bulk2m_driver(dtsrc,il0,jl0,kl0,nm0,bname)
   if(ldummy) then
     print *,sname,'BLK Initialization is completed...'
   else
     call stop_model("BLK Initialization is not completed: ",255)
   endif
-!        print *,sname,'Before:istart,ifile = ',istart,ifile
-!        print *,sname,'Before:im,jm        = ',im,jm
 #endif
 
   if(istart==2) then ! replace with cold vs warm start logic
     do l=1,lm
       ttold(l,:,:)=t(:,:,l)
       qtold(l,:,:)=q(:,:,l)
+#ifdef RH_INIT_FROM_TandQ /* define init RH(T,Q) w/r/t liquid instead of using fixed value */
+      do j=j_0,j_1
+      do i=i_0,i_1
+        rhsav(l,i,j)=q(i,j,l)/qsat(t(i,j,l)*pk(l,i,j),lhe,pmid(l,i,j))
+      enddo
+      enddo
+#endif
     end do
   endif
 
@@ -2375,7 +2318,7 @@ subroutine qmom_topo_adjustments
   ! topographic slopes to prevent large supersaturations in upslope flow.
   !
   use constant, only : tf,lhe,lhs,bysha
-  use resolution, only : ls1
+  use resolution, only : ls1=>ls1_nominal
   use resolution, only : im,jm,lm
   use atm_com, only : zatmo,t,q
   use atm_com, only : MUs,MVs,pk,pmid

@@ -8,19 +8,12 @@ AVAILABLE_COMPONENTS = profiler MPI_Support Ent giss_LSM shared solvers dd2d tra
 export MODEL_DIR := $(shell pwd)
 export MOD_DIR := $(MODEL_DIR)/mod
 export INCLUDE_DIR := $(MODEL_DIR)/include
-#export GISSCLIM_DIR := $(MODEL_DIR)/..
-export GISSCLIM_DIR := $(MODEL_E_ROOT)
-#export CONFIG_DIR := $(GISSCLIM_DIR)/config
-#export SCRIPTS_DIR := $(GISSCLIM_DIR)/exec
-#export COMPILER
 
 export RUN_H = $(INCLUDE_DIR)/rundeck_opts.h
 
 # export global options from OPTS_MAIN line here
 export FVCUBED
 export FVCORE
-
-#MAKE1 = $(MAKE) -f make_subdirs.mk
 
 sinclude $(DECKS_DIR)/$(RUN).mk
 
@@ -71,19 +64,24 @@ dir_structure:
 	if [ ! -d $(INCLUDE_DIR) ] ; then  mkdir $(INCLUDE_DIR) ; fi
 	if [ ! -d $(MOD_DIR) ] ; then  mkdir $(MOD_DIR) ; fi
 
-FSRCS_TMP = $(addsuffix .f,$(strip $(OBJ_LIST)))
-F90SRCS_TMP = $(addsuffix .F90,$(strip $(OBJ_LIST)))
-FORTSRCS_PRESENT = $(notdir $(wildcard $(SRC_DIR)/*.f) $(wildcard $(SRC_DIR)/*.F90))
-FSRCS = $(filter $(FORTSRCS_PRESENT), $(FSRCS_TMP))
-F90SRCS = $(filter $(FORTSRCS_PRESENT), $(F90SRCS_TMP))
-
+TMPOBJSTRING = $(addsuffix .*,$(strip $(OBJ_LIST)))
+ifeq ($(BUILD_OUT_OF_SOURCE),YES)
+  TMPOBJSTRING :=  $(addprefix $(MODEL_E_ROOT)/model/,$(TMPOBJSTRING))
+endif
+FFFLIST = $(notdir $(wildcard $(TMPOBJSTRING)))
+FSRCS = $(filter %.f, $(FFFLIST))
+F90SRCS = $(filter %.F90, $(FFFLIST))
 
 include $(CONFIG_DIR)/base.mk
 #sinclude $(DEPENDFILE)
 include $(CONFIG_DIR)/rules.mk
-INCS += -I$(MODEL_DIR)/shared
 
-#include $(GISSCLIM_DIR)/config/rules.mk
+# sanity check - make sure that sources are present for all listed objects
+MISSING_SRCS = $(filter-out $(FSRCS:.f=) $(F90SRCS:.F90=), $(strip $(OBJ_LIST)))
+ifneq ($(MISSING_SRCS),)
+  $(error no sources for requested objects: $(MISSING_SRCS))
+endif
+
 #COMPLIBS = $(patsubst %, %/lib.a, $(COMPONENTS))
 
 #$(OBJS): $(COMPONENTS:=_dir)
@@ -92,7 +90,7 @@ COMPLIBS = $(shell perl -e 'print reverse <>;' < .liblist)
 
 do_components: $(COMPONENTS:=_dir)
 
-main.o: $(SRC_DIR)/main.F90
+main.o: main.F90
 
 do_main $(RUN).bin: main.o  $(OBJS) #  $(COMPONENTS:=_dir)
 	-rm -f libmodel.a
@@ -104,7 +102,7 @@ do_main $(RUN).bin: main.o  $(OBJS) #  $(COMPONENTS:=_dir)
 	@echo
 
 main gcm: $(MOD_DIR)
-	-rm .liblist
+	-rm -f .liblist
 	touch .liblist
 	+$(MAKE) do_components
 	+$(MAKE) do_main
@@ -125,7 +123,7 @@ clean_all vclean: clean
 clean: clean_components
 
 clean_components:
-	-rm -f $(RUN_H) $(MOD_DIR)/*.mod
+	-rm -f $(RUN_H) $(MOD_DIR)/*.mod .liblist
 	for i in $(AVAILABLE_COMPONENTS) ; do \
 	  if [ -d $$i ] ; then $(MAKE) -C $$i clean ; fi ; done
 
@@ -143,7 +141,7 @@ $(DEPENDFILE): $(RUN_H)
 $(LIB):
 
 gcmlib: $(MOD_DIR)
-	-rm .liblist
+	-rm -f .liblist
 	touch .liblist
 	+$(MAKE) do_components
 	+$(MAKE) $(LIB)

@@ -23,6 +23,7 @@
 !  P(11) = alkalinity (uM)
 !  pCO2 (uatm)
 !  alk  (umolC/kg)
+!  Ca_det_calc   Ca in detritus calcite
 
       implicit none
 
@@ -34,7 +35,11 @@
      .                     ,ndet=3
      .                     ,ncar=2
 #ifdef TRACERS_Alkalinity
-     .                     ,nalk=1
+#ifdef TOPAZ_params
+     .                     ,nalk=2   ! 1- alk, 2-ca_det_calc
+#else
+     .                     ,nalk=1   ! 1- alk
+#endif
 #endif
 
       integer, parameter :: ntrac = nnut+nchl+nzoo+n_inert+ndet+ncar
@@ -61,19 +66,6 @@
       integer, parameter :: ALK_CLIM=0    !0-Alk is function of Salinity
                                           !1-Alk is from climatology (GLODAP annmean)
                                           !2-Alk is prognostic
-#endif
-
-#ifndef OBIO_ON_GARYocean
-!definition only used by HYCOM; Russell ocean def in OCN_TRACER_COM
-      CHARACTER*10 :: trname(ntrac) = (/ 'Nitr      ', 'Ammo      ' 
-     .      ,'Sili      ', 'Iron      ', 'Diat      ', 'Chlo      ' 
-     .      ,'Cyan      ', 'Cocc      ', 'Herb      ', 'Inert     ' 
-     .      ,'N_det     ', 'S_det     ', 'I_det     ', 'DOC       ' 
-     .      ,'DIC       '
-#ifdef TRACERS_Alkalinity
-     .      ,'ALK       '
-#endif
-     .     /)
 #endif
 
 c --- diagno_bio      output obio-model fields and diagnostic messages

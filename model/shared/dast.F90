@@ -10,6 +10,12 @@ module vector_real_mod
 #include "containers/vector.fh"
 end module vector_real_mod
 
+module vector_real8_mod
+#define _entry real(kind=kind(1.d0))
+#define EQUAL_DEFINED
+#include "containers/vector.fh"
+end module vector_real8_mod
+
 module set_integer_mod
 #define _entry integer
 #include "containers/set.fh"

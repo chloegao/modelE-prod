@@ -1,0 +1,13 @@
+!--------- general aerosol parameters-------------
+rad_forc_lev=0     ! 0: for TOA, 1: for tropopause for rad forcing diags.
+rad_interact_aer=1 ! 1: couples aerosols to radiation, 0: use climatology
+prather_limits=1   ! 1: to avoid some negative tracers in sub-gridscale
+diag_rad=1         ! 1: save ext/sct/asf for 6 bands; only ext for band6 otherwise
+diag_fc=1          ! 2=one radiation call per tracer (slow) || 1=one radiation call
+diag_wetdep=1      ! 1: additional wet deposition diagnostics
+OCB_om2oc=1.4      ! biomass burning organic matter to organic carbon ratio (default is 1.4)
+!--- number of biomass burning sources (per tracer)
+NH3_nBBsources=1
+SO2_nBBsources=1
+BCB_nBBsources=1
+OCB_nBBsources=1

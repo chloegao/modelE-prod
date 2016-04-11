@@ -299,7 +299,7 @@ C**** TEST FOR TERMINATION OF RUN
      &         ,err=210)
           read (3,'(A8)',end=210) str
           close (3)
- 210      continue
+ 210            continue
           IF (str .eq. string_go) iflag=1
         endif
         call broadcast(iflag)
@@ -956,7 +956,6 @@ C**** Get the rest of parameters from DB or put defaults to DB
 C**** Set date information
 
       modelETime0 = newTime(calendar)
-
       call modelEtime0%setByDate(iyear1, month=1, date=1, hour=0)
       call modelEtime0%add(dtSrcUsed * itime0)
 
@@ -967,9 +966,9 @@ C**** Set date information
       amon0 = modelEtime0%getAbbreviation()
 
       modelETime = newTime(calendar)
-      call modelEtime%setByDate(yearI, monthI, dateI, hourI)
+      call modelEtime%setByDate(Iyear1, 1, 1, 0)
       modelEclockI = ModelClock(modelETime, dtSrcUsed, itimeI)
-      call modelETime%add( dtSrcUsed * (itime-itimei) )
+      call modelETime%add( dtSrcUsed * itime )
 
       modelEclock = ModelClock(modelEtime, dtSrcUsed, itime)
 
@@ -1041,9 +1040,9 @@ C****
 C****
 C**** TERMINATE BECAUSE OF IMPROPER PICK-UP
 C****
-  900 write (6,*) 'Error in NAMELIST parameters'
+ 900   write (6,*) 'Error in NAMELIST parameters'
       call stop_model('Error in NAMELIST parameters',255)
-  910 write (6,*) 'Error readin I-file'
+ 910   write (6,*) 'Error readin I-file'
       call stop_model('Error reading I-file',255)
 
 

@@ -8,12 +8,11 @@ c from reactions *within* family only:
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
 
 C**** GLOBAL parameters and variables:
-      USE RESOLUTION, only : ls1,ptop,psf
       USE RESOLUTION, only : LM
-      USE DYNAMICS, only : sig
+      Use ATM_COM,    Only: PMIDL00
       USE TRACER_COM, only : n_CH4, n_Ox, nn_Ox, nn_CH4
       USE TRCHEM_Shindell_COM, only:ss,rr,y,nO2,nM,nH2O,nO,nO1D,nO3,pOx
-
+     &                             ,n_bi_terp,n_bi_dCO
       IMPLICIT NONE
 
 C**** Local parameters and variables and arguments:
@@ -26,15 +25,11 @@ C**** Local parameters and variables and arguments:
 !@var PRES local nominal pressure
       integer, intent(IN)   :: Lmax,I,J
       integer               :: L,iO3form
-      REAL*8, DIMENSION(LM) :: PRES ! keep at LM; defined by SIG(:)
+      REAL*8, DIMENSION(LM) :: PRES ! keep at LM; defined by PMIDL00(:)
       real*8                :: az, bz, P1
 
-      PRES(1:LM)=SIG(1:LM)*(PSF-PTOP)+PTOP
-#ifdef TRACERS_TERP
-      iO3form=98
-#else
-      iO3form=95
-#endif  /* TRACERS_TERP */
+      PRES(1:LM) = PMIDL00(1:LM)
+      iO3form=95+n_bi_terp+n_bi_dCO
 
       do L=1,Lmax
 c       for concentration of O(1D):
@@ -72,12 +67,12 @@ c
 
 C**** GLOBAL parameters and variables:
 
-      USE RESOLUTION, only         : LS1
+      USE RESOLUTION, only         : LS1=>LS1_NOMINAL
       USE ATM_COM, only            : LTROPO
       USE TRACER_COM, only         : n_NOx,nn_NOx,n_Alkenes,nn_Alkenes
       USE TRCHEM_Shindell_COM, only:rr,y,yNO3,nO3,nHO2,yCH3O2,nO,nC2O3,
      & pNO3,ta,nXO2,ss,nNO,nNO2,pNOx,nNO3,nHONO,which_trop,nClO,nOClO,
-     & nBrO
+     & nBrO,n_bi_terp,n_bi_dCO
 
       IMPLICIT NONE
 
@@ -94,11 +89,7 @@ C**** Local parameters and variables and arguments:
       integer, intent(IN) :: Lmax,I,J
       real*8              :: b,c,p1,p2,d
       
-#ifdef TRACERS_TERP
-      iNO2form=99
-#else
-      iNO2form=96
-#endif  /* TRACERS_TERP */
+      iNO2form=96+n_bi_terp+n_bi_dCO
 
       select case(which_trop)
       case(0); maxT=min(Ltropo(I,J),Lmax)
@@ -151,23 +142,21 @@ C       Set limits on NO, NO2, NOx:
       END SUBROUTINE NOxfam
 
 
-
       SUBROUTINE HOxfam(Lmax,I,J)
 !@sum HOxfam Find HOx family (OH,HO2) partitioning assuming equilibrium
 !@+   concentration of HOx.
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
 
 C**** GLOBAL parameters and variables:
-      USE RESOLUTION, only : LS1,ptop,psf
+      USE RESOLUTION, only : LS1=>LS1_NOMINAL
       USE RESOLUTION, only : LM
-      USE DYNAMICS, only : sig
       USE GEOM, only : LAT2D_DG
-      USE ATM_COM, only: LTROPO
+      USE ATM_COM, only: LTROPO,PMIDL00
 
-      USE TRACER_COM, only : n_CH4,n_HNO3,n_CH3OOH,n_H2O2,n_HCHO,n_CO,
+      USE TRACER_COM, only : n_CH4,n_HNO3,n_CH3OOH,n_H2O2,n_HCHO,
      &                       n_Paraffin,n_Alkenes,n_Isoprene,n_AlkylNit,
      &                       n_Terpenes,
-     &                       rsulf1,rsulf2,rsulf4,n_SO2,n_DMS,
+     &                       rsulf1,rsulf2,rsulf4,
      &                       n_HBr,n_HOCl,n_HCl
 
       USE TRACER_COM, only : nn_CH4,nn_HNO3,nn_CH3OOH,nn_H2O2,nn_HCHO,
@@ -179,6 +168,7 @@ C**** GLOBAL parameters and variables:
      &                        nO2,nM,nHO2,nOH,nH2,nAldehyde,nXO2,nXO2N,
      &                        ta,ss,nC2O3,nROR,yso2,ydms,which_trop,nO1D
      &         ,OxlossbyH,dt2,nBrO,nClO,nOClO,nBr,nCl,SF3,nO,nCH3O2
+     &         ,n_bi_terp,n_bi_dCO
 
       IMPLICIT NONE
 
@@ -197,11 +187,11 @@ C**** Local parameters and variables and arguments:
 !@var PRES local nominal pressure for regional Ox tracers
 
 #ifdef TRACERS_TERP
-      integer, parameter :: iH2O2form=100,iHNO3form=101,iHONOform=104
-     &                     ,iTerpenesOH=92,iTerpenesO3=93
-#else
-      integer, parameter :: iH2O2form=97,iHNO3form=98,iHONOform=101
+      integer, parameter :: iTerpenesOH=92,iTerpenesO3=93
 #endif  /* TRACERS_TERP */
+      integer, parameter :: iH2O2form=97+n_bi_terp+n_bi_dCO,
+     &                      iHNO3form=98+n_bi_terp+n_bi_dCO,
+     &                      iHONOform=101+n_bi_terp+n_bi_dCO
       integer             :: L, maxT 
       integer, intent(IN) :: Lmax,I,J
       real*8              :: aqqz, bqqz, cqqz, cz, dz, sqroot, 
@@ -209,7 +199,7 @@ C**** Local parameters and variables and arguments:
      &   yAtomicH
       REAL*8, DIMENSION(LM) :: PRES ! can keep LM
 
-      PRES(1:LM)=SIG(1:LM)*(PSF-PTOP)+PTOP
+      PRES(1:LM) = PMIDL00(1:LM)
 
       select case(which_trop)
       case(0); maxT=min(ltropo(I,J),Lmax)
@@ -275,7 +265,7 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
 
 c Now partition HOx into OH and HO2:
         ! CZ: OH->HO2 reactions :
-        cz=rr(2,L)*y(nO3,L)+rr(13,L)*y(nn_CO,L)
+        cz=rr(2,L)*y(nO3,L)+rr(13,L)*y(nn_CO,L) ! CO isotopes should not go here
      &  +rr(14,L)*y(nn_H2O2,L)+rr(19,L)*y(nH2,L)
 #ifdef V2_BUGS_TEMPORARY
      &  +rr(21,L)*y(nn_HCHO,L)+rr(37,L)*y(nn_Paraffin,L)*
@@ -371,7 +361,7 @@ c H + O2 + M -> HO2 + M , and affects on OH/HO2 and Ox
 
 c Now partition HOx into OH and HO2:
 c CZ: OH->HO2 reactions :
-        cz=rr(2,L)*y(nO3,L)+rr(13,L)*y(nn_CO,L)
+        cz=rr(2,L)*y(nO3,L)+rr(13,L)*y(nn_CO,L) ! CO isotopes should not go here
      &  +rr(14,L)*y(nn_H2O2,L)+rr(19,L)*y(nH2,L)
      &  +rr(21,L)*y(nn_HCHO,L)
      &  +rr(61,L)*y(nClO,L)+rr(80,L)*y(nBrO,L)
@@ -410,7 +400,7 @@ c CZ: OH->HO2 reactions :
 C**** GLOBAL parameters and variables:
 
       USE ATM_COM, only   : LTROPO
-      USE RESOLUTION, only : LS1
+      USE RESOLUTION, only : LS1=>LS1_NOMINAL
       USE RESOLUTION, only : LM
       USE TRACER_COM, only : n_ClOx,n_HOCl,n_ClONO2,n_HCl,n_H2O2,n_CH4
       USE TRACER_COM, only : nn_ClOx,nn_HOCl,nn_ClONO2,nn_HCl,nn_H2O2,
@@ -418,7 +408,8 @@ C**** GLOBAL parameters and variables:
       use photolysis, only : sza
       USE TRCHEM_Shindell_COM, only:pClOx,rr,y,nClO,nOClO,nCl,nCl2O2,
      &    ta,ss,nO3,nHO2,nNO3,nO,nNO,nBr,nOH,nBrO,nCH3O2,nM,nCl2,nH2,
-     &    dt2,pClx,pOClOx,nNO2,which_trop,yCl2,yCl2O2,ClOx_old
+     &    dt2,pClx,pOClOx,nNO2,which_trop,yCl2,yCl2O2,ClOx_old,
+     &    n_bi_terp,n_bi_dCO
 
       IMPLICIT NONE
 
@@ -434,13 +425,9 @@ C**** Local parameters and variables and arguments:
       integer, intent(IN)   :: Lmax,I,J
       real*8                :: A,B,C,D,F,G,Q,V,X,YY,dClOx,ww,p1,p2,p3,
      &                         dOClO,ratioc,rnormnum,destCl,prodCl
-#ifdef TRACERS_TERP
-      integer, parameter :: iClOplusClO=106,iCl2O2decomp=97,
-     &                      iClOplusNO2=107
-#else
-      integer, parameter :: iClOplusClO=103,iCl2O2decomp=94,
-     &                      iClOplusNO2=104
-#endif  /* TRACERS_TERP */
+      integer, parameter :: iClOplusClO=103+n_bi_terp+n_bi_dCO,
+     &                      iCl2O2decomp=94+n_bi_terp+n_bi_dCO,
+     &                      iClOplusNO2=104+n_bi_terp+n_bi_dCO
 
       select case(which_trop)
       case(0); maxT=min(ltropo(I,J),Lmax)
@@ -563,12 +550,12 @@ c Normalize so that amount of ClOx doesn't change:
 !@auth Drew Shindell
 
 C**** GLOBAL parameters and variables:
-      USE RESOLUTION, only : LS1
+      USE RESOLUTION, only : LS1=>LS1_NOMINAL
       USE ATM_COM, only    : LTROPO
       USE TRACER_COM, only : n_BrOx,n_H2O2,n_HBr,n_HOBr,n_BrONO2
       USE TRACER_COM, only : nn_BrOx,nn_H2O2,nn_HBr,nn_HOBr,nn_BrONO2
       USE TRCHEM_Shindell_COM, only:rr,y,nO3,nClO,nOClO,nNO,nO,nBr,nOH,
-     &    nBrO,ss,nHO2,nNO2,pBrOx,which_trop
+     &    nBrO,ss,nHO2,nNO2,pBrOx,which_trop,n_bi_terp,n_bi_dCO
 
       IMPLICIT NONE
 
@@ -580,11 +567,7 @@ C**** Local parameters and variables and arguments:
       integer             :: L,maxT
       integer, intent(IN) :: Lmax,I,J
       real*8              :: a,b,c,d,eq,f,p2,p1
-#ifdef TRACERS_TERP
-      integer, parameter :: iBrOplusNO2=108
-#else
-      integer, parameter :: iBrOplusNO2=105
-#endif  /* TRACERS_TERP */
+      integer, parameter :: iBrOplusNO2=105+n_bi_terp+n_bi_dCO
       
       select case(which_trop)
       case(0); maxT=min(ltropo(I,J),Lmax)

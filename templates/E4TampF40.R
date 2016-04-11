@@ -69,12 +69,12 @@ TRDUST_COM TRDUST TRDUST_DRV        ! dust tracer specific code
 #include "tracer_shared_source_files"
 TRDIAG                              ! new i/o
 !#include "tracer_shindell_source_files"
-!#include "tracer_aerosols_source_files"
 #include "tracer_AMP_source_files"
 
 #include "latlon_source_files"
 #include "modelE4_source_files"
 CLD_AEROSOLS_Menon_MBLK_MAT_E29q BLK_DRV ! aerosol-cloud interactions
+CLD_AER_CDNC            ! aerosol-cloud interactions wrapper
 lightning                           ! Colin Price lightning model
 ! flammability_drv flammability       ! Olga's fire model
 
@@ -87,7 +87,7 @@ Ent
 dd2d
 
 Component Options:
-OPTS_Ent = ONLINE=YES PS_MODEL=FBB    /* needed for "Ent" only */
+OPTS_Ent = ONLINE=YES PS_MODEL=FBB PFT_MODEL=ENT /* needed for "Ent" only */
 OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 
 Data input files:
@@ -110,7 +110,7 @@ NAMERVR=RD_modelE_Fa.names.txt  ! named river outlets
 !#include "chem_emiss_144x90_input_files"
 
 Terpenes_01=ORCHIDEE_Terpenes_1990_2x2.5_h
-#include "aeros_AMPconstSRC_input_files"
+#include "aerosol_MATRIX_input_files"
 
 MSU_wts=MSU.RSS.weights.data      ! MSU-diag
 REG=REG2X2.5                      ! special regions-diag
@@ -146,10 +146,10 @@ KSOLAR=2         ! 2: use long annual mean file ; 1: use short monthly file
 !!!!!!!!!!!!!!!!!!!!!!!
 madaer=3         ! 3: updated aerosols          ; 1: default sulfates/aerosols
 #include "AMP_params"
-#include "dust_params"
+#include "dust_params_matrix"
 !#include "chemistry_params"
 aircraft_Tyr1=1910 ! regardless of the type of run, if you have non-transient
-aircraft_Tyr2=2000 ! emission files, set these two equal or omit them.
+aircraft_Tyr2=2020 ! emission files, set these two equal or omit them.
 COUPLED_CHEM=0     ! to couple chemistry and aerosols
 
 DTsrc=1800.      ! cannot be changed after a run has been started

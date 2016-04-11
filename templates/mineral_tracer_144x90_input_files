@@ -1,3 +1,3 @@
 #include "dust_tracer_144x90_input_files"
-MINFR=mineralFractions_Claquin_etal_JGR1999.144x90.nc  ! mineral fractions in
-                                                       ! soil (Claquin et al., 1999)
+! mineral fractions at emission
+MINFR=mineralfractionsatemission_AMFmethod_NASAGISS_201412_144x90.nc

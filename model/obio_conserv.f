@@ -1,6 +1,6 @@
 #include "rundeck_opts.h"
 
-#ifdef TRACERS_GASEXCH_ocean_CO2
+#ifdef OBIO_ON_GARYocean
       Subroutine CARBON (SUBR)
 !@sum  CARBON writes global carbon reservoirs to unit 6
 !@auth Original Development Team
@@ -20,17 +20,14 @@ C****   TOTL = Sum (TRMO + TRMST)
 C****
 C**** Input: SUBR = 6 character string which labels ouput line
 
-      Use MODEL_COM, Only: IMA=>IM,JMA=>JM, JYEAR,JMON,JDATE,JHOUR,
-     *                     DTSRC, aFOCEAN=>FOCEAN,NIsurf
+      Use MODEL_COM, Only: DTSRC, modeleclock
       Use GEOM,      Only: AREAG, aXYP
-      Use OCEAN,     Only: IMO=>IM,JMO=>JM,LMO, oXYP, TRMO,
+      Use OCEAN,     Only: LMO, oXYP, TRMO,
      *                     oFOCEAN=>FOCEAN
-      USE SEAICE_COM, only : rsi
       Use STRAITS,   Only: TRMST
-      Use FLUXES,    Only: aTRGASEX=>TRGASEX,trsrfflx
-      Use OFLUXES,   Only: oTRGASEX
-      Use OCN_TRACER_COM,   Only: OBIO_TR_MM
-      Use DOMAIN_DECOMP_1D, Only: aGRID=>GRID, AM_I_ROOT,GLOBALSUM
+      Use FLUXES,    Only: atmocn
+      Use OFLUXES,   Only: ocnatm
+      Use DOMAIN_DECOMP_ATM, Only: aGRID=>GRID, AM_I_ROOT,GLOBALSUM
       Use OCEANR_DIM,       Only: oGRID
 
       Implicit  None
@@ -42,10 +39,13 @@ C**** Local Variables
       Integer*4 L,LMAX, J1A,JNA, J1O,JNO
       Real*8,Save :: LAST = 0
       Real*8 :: DIAT(LMO),CHLO(LMO),CYAN(LMO),COCC(LMO),
-     *          HERB(LMO),NDET(LMO), DOC(LMO), DIC(LMO),TOTL(LMO),
-     *          A(IMA,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO), aFLUX,
-     *          O(IMO,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO), oFLUX
+     *     HERB(LMO),NDET(LMO), DOC(LMO), DIC(LMO),TOTL(LMO),
+     *     A(agrid%im_world,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO), aFLUX,
+     *     O(ogrid%im_world,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO), oFLUX
+      integer :: idx_co2
 
+      idx_co2=atmocn%gasex_index%getindex(atmocn%n_co2n)
+      if (idx_co2<1) return
 C**** Extract domain decomposition band parameters
       J1A = aGRID%J_STRT
       JNA = aGRID%J_STOP
@@ -55,8 +55,9 @@ C**** Extract domain decomposition band parameters
 C**** Calculate DIAT
       Do 10 L=1,LMO
       O(:,:) = TRMO(:,:,L,5)
-      If (J1O==1)    O(2:IMO,1)   = O(1,1)
-      If (JNO==JMO)  O(2:IMO,JMO) = O(1,JMO)
+      If (J1O==1)    O(2:ogrid%im_world,1)   = O(1,1)
+      If (JNO==ogrid%jm_world)
+     &    O(2:ogrid%im_world,ogrid%jm_world) = O(1,ogrid%jm_world)
       Call GLOBALSUM (oGRID,O,DIAT(L))
       If (AM_I_ROOT())  DIAT(L) = DIAT(L) + Sum(TRMST(L,:,5))
    10 Continue
@@ -64,8 +65,9 @@ C**** Calculate DIAT
 C**** Calculate CHLO
       Do 20 L=1,LMO
       O(:,:) = TRMO(:,:,L,6)
-      If (J1O==1)    O(2:IMO,1)   = O(1,1)
-      If (JNO==JMO)  O(2:IMO,JMO) = O(1,JMO)
+      If (J1O==1)    O(2:ogrid%im_world,1)   = O(1,1)
+      If (JNO==ogrid%jm_world)
+     &    O(2:ogrid%im_world,ogrid%jm_world) = O(1,ogrid%jm_world)
       Call GLOBALSUM (oGRID,O,CHLO(L))
       If (AM_I_ROOT())  CHLO(L) = CHLO(L) + Sum(TRMST(L,:,6))
    20 Continue
@@ -73,8 +75,9 @@ C**** Calculate CHLO
 C**** Calculate CYAN
       Do 30 L=1,LMO
       O(:,:) = TRMO(:,:,L,7)
-      If (J1O==1)    O(2:IMO,1)   = O(1,1)
-      If (JNO==JMO)  O(2:IMO,JMO) = O(1,JMO)
+      If (J1O==1)    O(2:ogrid%im_world,1)   = O(1,1)
+      If (JNO==ogrid%jm_world)
+     &     O(2:ogrid%im_world,ogrid%jm_world) = O(1,ogrid%jm_world)
       Call GLOBALSUM (oGRID,O,CYAN(L))
       If (AM_I_ROOT())  CYAN(L) = CYAN(L) + Sum(TRMST(L,:,7))
    30 Continue
@@ -82,8 +85,9 @@ C**** Calculate CYAN
 C**** Calculate COCC
       Do 40 L=1,LMO
       O(:,:) = TRMO(:,:,L,8)
-      If (J1O==1)    O(2:IMO,1)   = O(1,1)
-      If (JNO==JMO)  O(2:IMO,JMO) = O(1,JMO)
+      If (J1O==1)    O(2:ogrid%im_world,1)   = O(1,1)
+      If (JNO==ogrid%jm_world)
+     &     O(2:ogrid%im_world,ogrid%jm_world) = O(1,ogrid%jm_world)
       Call GLOBALSUM (oGRID,O,COCC(L))
       If (AM_I_ROOT())  COCC(L) = COCC(L) + Sum(TRMST(L,:,8))
    40 Continue
@@ -91,8 +95,9 @@ C**** Calculate COCC
 C**** Calculate HERB
       Do 50 L=1,LMO
       O(:,:) = TRMO(:,:,L,9)
-      If (J1O==1)    O(2:IMO,1)   = O(1,1)
-      If (JNO==JMO)  O(2:IMO,JMO) = O(1,JMO)
+      If (J1O==1)    O(2:ogrid%im_world,1)   = O(1,1)
+      If (JNO==ogrid%jm_world)
+     &     O(2:ogrid%im_world,ogrid%jm_world) = O(1,ogrid%jm_world)
       Call GLOBALSUM (oGRID,O,HERB(L))
       If (AM_I_ROOT())  HERB(L) = HERB(L) + Sum(TRMST(L,:,9))
    50 Continue
@@ -100,8 +105,9 @@ C**** Calculate HERB
 C**** Calculate NDET
       Do 60 L=1,LMO
       O(:,:) = TRMO(:,:,L,11)
-      If (J1O==1)    O(2:IMO,1)   = O(1,1)
-      If (JNO==JMO)  O(2:IMO,JMO) = O(1,JMO)
+      If (J1O==1)    O(2:ogrid%im_world,1)   = O(1,1)
+      If (JNO==ogrid%jm_world)
+     &     O(2:ogrid%im_world,ogrid%jm_world) = O(1,ogrid%jm_world)
       Call GLOBALSUM (oGRID,O,NDET(L))
       If (AM_I_ROOT())  NDET(L) = NDET(L) + Sum(TRMST(L,:,11))
    60 Continue
@@ -109,8 +115,9 @@ C**** Calculate NDET
 C**** Calculate DOC
       Do 70 L=1,LMO
       O(:,:) = TRMO(:,:,L,14)
-      If (J1O==1)    O(2:IMO,1)   = O(1,1)
-      If (JNO==JMO)  O(2:IMO,JMO) = O(1,JMO)
+      If (J1O==1)    O(2:ogrid%im_world,1)   = O(1,1)
+      If (JNO==ogrid%jm_world)
+     &     O(2:ogrid%im_world,ogrid%jm_world) = O(1,ogrid%jm_world)
       Call GLOBALSUM (oGRID,O,DOC(L))
       If (AM_I_ROOT())  DOC(L) = DOC(L) + Sum(TRMST(L,:,14))
    70 Continue
@@ -118,26 +125,29 @@ C**** Calculate DOC
 C**** Calculate DIC
       Do 80 L=1,LMO
       O(:,:) = TRMO(:,:,L,15)
-      If (J1O==1)    O(2:IMO,1)   = O(1,1)
-      If (JNO==JMO)  O(2:IMO,JMO) = O(1,JMO)
+      If (J1O==1)    O(2:ogrid%im_world,1)   = O(1,1)
+      If (JNO==ogrid%jm_world)
+     &     O(2:ogrid%im_world,ogrid%jm_world) = O(1,ogrid%jm_world)
       Call GLOBALSUM (oGRID,O,DIC(L))
       If (AM_I_ROOT())  DIC(L) = DIC(L) + Sum(TRMST(L,:,15))
    80 Continue
       If (SUBR == 'SURFCE')  Then
-         A(:,:) = aTRGASEX(1,1,:,:) * aFOCEAN(:,:) * aXYP(:,:)
-         If (J1A==1)    A(2:IMA,1)   = A(1,1)
-         If (JNA==JMA)  A(2:IMA,JMA) = A(1,JMA)
+         A(:,:)=atmocn%trgasex(idx_co2,:,:)*atmocn%focean(:,:)*aXYP(:,:)
+         If (J1A==1)    A(2:agrid%im_world,1)   = A(1,1)
+         If (JNA==agrid%jm_world)
+     &      A(2:agrid%im_world,agrid%jm_world) = A(1,agrid%jm_world)
          Call GLOBALSUM (aGRID,A,aFLUX)
          If (AM_I_ROOT())
-     *      DIC(1) = DIC(1) + aFLUX * DTSRC * OBIO_TR_MM(15)*1d-3
+     *      DIC(1) = DIC(1) + aFLUX * DTSRC * 12.*1d-3
          EndIf
       If (SUBR == 'AG2OG_' .or. SUBR == 'OCONV ')  Then
-         O(:,:) = oTRGASEX(1,1,:,:) * oFOCEAN(:,:) * oXYP(:,:)
-         If (J1O==1)    O(2:IMO,1)   = O(1,1)
-         If (JNO==JMO)  O(2:IMO,JMO) = O(1,JMO)
+         O(:,:) = ocnatm%trgasex(idx_co2,:,:) * oFOCEAN(:,:) * oXYP(:,:)
+         If (J1O==1)    O(2:ogrid%im_world,1)   = O(1,1)
+         If (JNO==ogrid%jm_world)
+     &      O(2:ogrid%im_world,ogrid%jm_world) = O(1,ogrid%jm_world)
          Call GLOBALSUM (oGRID,O,oFLUX)
          If (AM_I_ROOT())
-     *      DIC(1) = DIC(1) + oFLUX * DTSRC * OBIO_TR_MM(15)*1d-3
+     *      DIC(1) = DIC(1) + oFLUX * DTSRC * 12.*1d-3
          EndIf
 
 C**** Write global data to unit 6
@@ -159,10 +169,12 @@ C**** Write global data to unit 6
 C     Write (6,910)
 C     LMAX = LMO  ;  If(SUBR=='SURFCE' .or. SUBR=='AG2OG_')  LMAX = 1
 C     Do 100 L=1,LMAX
-C 100 Write (6,910) SUBR, JYEAR,JMON,JDATE,JHOUR,
+C 100 Write (6,910) SUBR,modeleclock%getyear(),modeleclock%getmonth(),
+C    *              modeleclock%getdate(),modeleclock%gethour(),
 C    *              DIAT(L),CHLO(L),CYAN(L),COCC(L),
 C    *              HERB(L),NDET(L), DOC(L), DIC(L),TOTL(L)
-      Write (6,910) SUBR, JYEAR,JMON,JDATE,JHOUR,
+      Write (6,910) SUBR,modeleclock%getyear(),modeleclock%getmonth(),
+     *              modeleclock%getdate(),modeleclock%gethour(),
      *              Sum(DIAT(:)),Sum(CHLO(:)),Sum(CYAN(:)),
      *              Sum(COCC(:)),Sum(HERB(:)),Sum(NDET(:)),
      *              Sum( DOC(:)),Sum( DIC(:)),Sum(TOTL(:)),
@@ -199,17 +211,11 @@ C****   TOTL = Sum (TRMO + TRMST)
 C****
 C**** Input: SUBR = 6 character string which labels ouput line
 
-      Use MODEL_COM, Only: IMA=>IM,JMA=>JM, JYEAR,JMON,JDATE,JHOUR,
-     *                     DTSRC, aFOCEAN=>FOCEAN,NIsurf
-      Use GEOM,      Only: AREAG, aXYP
-      Use OCEAN,     Only: IMO=>IM,JMO=>JM,LMO, oXYP, TRMO,
-     *                     oFOCEAN=>FOCEAN
-      USE SEAICE_COM, only : rsi
+      Use MODEL_COM, Only: modeleclock
+      Use GEOM,      Only: AREAG
+      Use OCEAN,     Only: LMO, TRMO
       Use STRAITS,   Only: TRMST
-      Use FLUXES,    Only: aTRGASEX=>TRGASEX,trsrfflx
-      Use OFLUXES,   Only: oTRGASEX
-      Use OCN_TRACER_COM,   Only: OBIO_TR_MM
-      Use DOMAIN_DECOMP_1D, Only: aGRID=>GRID, AM_I_ROOT,GLOBALSUM
+      Use DOMAIN_DECOMP_ATM, Only: aGRID=>GRID, AM_I_ROOT,GLOBALSUM
       Use OCEANR_DIM,       Only: oGRID
 
       Implicit  None
@@ -221,10 +227,10 @@ C**** Local Variables
       Integer*4 L,LMAX, J1A,JNA, J1O,JNO
       Real*8,Save :: LAST = 0
       Real*8 :: DIAT(LMO),CHLO(LMO),CYAN(LMO),COCC(LMO),DIC(LMO),
-     *          HERB(LMO),NDET(LMO), DOC(LMO), NIT(LMO),TOTL(LMO),
-     *          A(IMA,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO), aFLUX,
-     *          O(IMO,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO), oFLUX,
-     *          AMMO(LMO)
+     *     HERB(LMO),NDET(LMO), DOC(LMO), NIT(LMO),TOTL(LMO),
+     *     A(agrid%im_world,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO), aFLUX,
+     *     O(ogrid%im_world,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO), oFLUX,
+     *     AMMO(LMO)
 
 C**** Extract domain decomposition band parameters
       J1A = aGRID%J_STRT
@@ -235,8 +241,9 @@ C**** Extract domain decomposition band parameters
 C**** Calculate DIAT
       Do 10 L=1,LMO
       O(:,:) = TRMO(:,:,L,5)
-      If (J1O==1)    O(2:IMO,1)   = O(1,1)
-      If (JNO==JMO)  O(2:IMO,JMO) = O(1,JMO)
+      If (J1O==1)    O(2:ogrid%im_world,1)   = O(1,1)
+      If (JNO==ogrid%jm_world)
+     &       O(2:ogrid%im_world,ogrid%jm_world) = O(1,ogrid%jm_world)
       Call GLOBALSUM (oGRID,O,DIAT(L))
       If (AM_I_ROOT())  DIAT(L) = DIAT(L) + Sum(TRMST(L,:,5))
    10 Continue
@@ -244,8 +251,9 @@ C**** Calculate DIAT
 C**** Calculate CHLO
       Do 20 L=1,LMO
       O(:,:) = TRMO(:,:,L,6)
-      If (J1O==1)    O(2:IMO,1)   = O(1,1)
-      If (JNO==JMO)  O(2:IMO,JMO) = O(1,JMO)
+      If (J1O==1)    O(2:ogrid%im_world,1)   = O(1,1)
+      If (JNO==ogrid%jm_world)
+     &    O(2:ogrid%im_world,ogrid%jm_world) = O(1,ogrid%jm_world)
       Call GLOBALSUM (oGRID,O,CHLO(L))
       If (AM_I_ROOT())  CHLO(L) = CHLO(L) + Sum(TRMST(L,:,6))
    20 Continue
@@ -253,8 +261,9 @@ C**** Calculate CHLO
 C**** Calculate CYAN
       Do 30 L=1,LMO
       O(:,:) = TRMO(:,:,L,7)
-      If (J1O==1)    O(2:IMO,1)   = O(1,1)
-      If (JNO==JMO)  O(2:IMO,JMO) = O(1,JMO)
+      If (J1O==1)    O(2:ogrid%im_world,1)   = O(1,1)
+      If (JNO==ogrid%jm_world)
+     &    O(2:ogrid%im_world,ogrid%jm_world) = O(1,ogrid%jm_world)
       Call GLOBALSUM (oGRID,O,CYAN(L))
       If (AM_I_ROOT())  CYAN(L) = CYAN(L) + Sum(TRMST(L,:,7))
    30 Continue
@@ -262,8 +271,9 @@ C**** Calculate CYAN
 C**** Calculate COCC
       Do 40 L=1,LMO
       O(:,:) = TRMO(:,:,L,8)
-      If (J1O==1)    O(2:IMO,1)   = O(1,1)
-      If (JNO==JMO)  O(2:IMO,JMO) = O(1,JMO)
+      If (J1O==1)    O(2:ogrid%im_world,1)   = O(1,1)
+      If (JNO==ogrid%jm_world)
+     &       O(2:ogrid%im_world,ogrid%jm_world) = O(1,ogrid%jm_world)
       Call GLOBALSUM (oGRID,O,COCC(L))
       If (AM_I_ROOT())  COCC(L) = COCC(L) + Sum(TRMST(L,:,8))
    40 Continue
@@ -271,8 +281,9 @@ C**** Calculate COCC
 C**** Calculate HERB
       Do 50 L=1,LMO
       O(:,:) = TRMO(:,:,L,9)
-      If (J1O==1)    O(2:IMO,1)   = O(1,1)
-      If (JNO==JMO)  O(2:IMO,JMO) = O(1,JMO)
+      If (J1O==1)    O(2:ogrid%im_world,1)   = O(1,1)
+      If (JNO==ogrid%jm_world)
+     &     O(2:ogrid%im_world,ogrid%jm_world) = O(1,ogrid%jm_world)
       Call GLOBALSUM (oGRID,O,HERB(L))
       If (AM_I_ROOT())  HERB(L) = HERB(L) + Sum(TRMST(L,:,9))
    50 Continue
@@ -280,8 +291,9 @@ C**** Calculate HERB
 C**** Calculate NDET
       Do 60 L=1,LMO
       O(:,:) = TRMO(:,:,L,11)
-      If (J1O==1)    O(2:IMO,1)   = O(1,1)
-      If (JNO==JMO)  O(2:IMO,JMO) = O(1,JMO)
+      If (J1O==1)    O(2:ogrid%im_world,1)   = O(1,1)
+      If (JNO==ogrid%jm_world)
+     &     O(2:ogrid%im_world,ogrid%jm_world) = O(1,ogrid%jm_world)
       Call GLOBALSUM (oGRID,O,NDET(L))
       If (AM_I_ROOT())  NDET(L) = NDET(L) + Sum(TRMST(L,:,11))
    60 Continue
@@ -289,8 +301,9 @@ C**** Calculate NDET
 C**** Calculate DOC
       Do 70 L=1,LMO
       O(:,:) = TRMO(:,:,L,14)
-      If (J1O==1)    O(2:IMO,1)   = O(1,1)
-      If (JNO==JMO)  O(2:IMO,JMO) = O(1,JMO)
+      If (J1O==1)    O(2:ogrid%im_world,1)   = O(1,1)
+      If (JNO==ogrid%jm_world)
+     &    O(2:ogrid%im_world,ogrid%jm_world) = O(1,ogrid%jm_world)
       Call GLOBALSUM (oGRID,O,DOC(L))
       If (AM_I_ROOT())  DOC(L) = DOC(L) + Sum(TRMST(L,:,14))
    70 Continue
@@ -298,8 +311,9 @@ C**** Calculate DOC
 C**** Calculate DIC
       Do 75 L=1,LMO
       O(:,:) = TRMO(:,:,L,15)
-      If (J1O==1)    O(2:IMO,1)   = O(1,1)
-      If (JNO==JMO)  O(2:IMO,JMO) = O(1,JMO)
+      If (J1O==1)    O(2:ogrid%im_world,1)   = O(1,1)
+      If (JNO==ogrid%jm_world)
+     &    O(2:ogrid%im_world,ogrid%jm_world) = O(1,ogrid%jm_world)
       Call GLOBALSUM (oGRID,O,DIC(L))
       If (AM_I_ROOT())  DIC(L) = DIC(L) + Sum(TRMST(L,:,15))
    75 Continue
@@ -307,8 +321,9 @@ C**** Calculate DIC
 C**** Calculate NIT
       Do 80 L=1,LMO
       O(:,:) = TRMO(:,:,L,1)
-      If (J1O==1)    O(2:IMO,1)   = O(1,1)
-      If (JNO==JMO)  O(2:IMO,JMO) = O(1,JMO)
+      If (J1O==1)    O(2:ogrid%im_world,1)   = O(1,1)
+      If (JNO==ogrid%jm_world)
+     &    O(2:ogrid%im_world,ogrid%jm_world) = O(1,ogrid%jm_world)
       Call GLOBALSUM (oGRID,O,NIT(L))
       If (AM_I_ROOT()) NIT(L) = NIT(L) + Sum(TRMST(L,:,1))
    80 Continue
@@ -316,8 +331,9 @@ C**** Calculate NIT
 C**** Calculate AMMO
       Do 85 L=1,LMO
       O(:,:) = TRMO(:,:,L,2)
-      If (J1O==1)    O(2:IMO,1)   = O(1,1)
-      If (JNO==JMO)  O(2:IMO,JMO) = O(1,JMO)
+      If (J1O==1)    O(2:ogrid%im_world,1)   = O(1,1)
+      If (JNO==ogrid%jm_world)
+     &    O(2:ogrid%im_world,ogrid%jm_world) = O(1,ogrid%jm_world)
       Call GLOBALSUM (oGRID,O,AMMO(L))
       If (AM_I_ROOT()) AMMO(L) = AMMO(L) + Sum(TRMST(L,:,2))
    85 Continue
@@ -342,10 +358,12 @@ C**** Write global data to unit 6
 C     Write (6,910)
 C     LMAX = LMO  ;  If(SUBR=='SURFCE' .or. SUBR=='AG2OG_')  LMAX = 1
 C     Do 100 L=1,LMAX
-C 100 Write (6,910) SUBR, JYEAR,JMON,JDATE,JHOUR,
+C 100 Write (6,910) SUBR,modeleclock%getyear(),modeleclock%getmonth(),
+C    *              modeleclock%getdate(),modeleclock%gethour(),
 C    *              DIAT(L),CHLO(L),CYAN(L),COCC(L),
 C    *              HERB(L),NDET(L), DOC(L), NIT(L),TOTL(L)
-      Write (6,910) SUBR, JYEAR,JMON,JDATE,JHOUR,
+      Write (6,910) SUBR,modeleclock%getyear(),modeleclock%getmonth(),
+     *              modeleclock%getdate(),modeleclock%gethour(),
      *              Sum(DIAT(:)),Sum(CHLO(:)),Sum(CYAN(:)),
      *              Sum(COCC(:)),Sum(HERB(:)),Sum(NDET(:)),
      *              Sum( DOC(:)),Sum(AMMO(:)),Sum(NIT(:)),Sum(TOTL(:)),

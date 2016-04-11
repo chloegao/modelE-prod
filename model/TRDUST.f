@@ -4,8 +4,7 @@
 !@auth Jan Perlwitz, Reha Cakmur, Ina Tegen
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
       USE model_com,ONLY : dtsrc
       use fluxes, only : nisurf
       USE socpbl,ONLY : t_pbl_args
@@ -281,17 +280,15 @@ c**** output
 !@auth Jan Perlwitz, Reha Cakmur, Ina Tegen
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_AMP)  || (defined TRACERS_TOMAS)
       USE socpbl,ONLY : t_pbl_args
       use tracer_com, only: Ntm_dust
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+     &     , n_soildust
+#endif
       use OldTracer_mod, only: trname
       use tracers_dust,only : nAerocomDust,CWiCub,FClWiCub,FSiWiCub,
      &     CWiPdf,FracClayPDFscheme,FracSiltPDFscheme,imDust
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-     &     , n_soildust
-#endif
 
       IMPLICIT NONE
 
@@ -301,14 +298,14 @@ c**** output
 
       REAL*8,INTENT(OUT) :: dsrcflx,dsrcflx2
 
-      integer :: n1
+      integer :: n1, n_bin
       REAL*8 :: vtrsh
       real(kind=8) :: d_dust(nAerocomDust)
       REAL*8 :: frtrac
       LOGICAL :: qdust
       REAL*8 :: frclay,frsilt
       real(kind=8) :: ers_data,dustSourceFunction,soilvtrsh,pdfint
-#if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
+#ifdef TRACERS_MINERALS
       real(kind=8) :: mineralFractions( Ntm_dust )
 #endif
 
@@ -322,7 +319,7 @@ c**** input
       dustSourceFunction = pbl_args%dustSourceFunction
       soilvtrsh=pbl_args%wtrsh
       pdfint=pbl_args%pdfint
-#if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
+#ifdef TRACERS_MINERALS
       mineralFractions( : ) = pbl_args%mineralFractions( : )
 #endif
 
@@ -334,22 +331,34 @@ c**** initialize
       IF (imDUST /= 1) THEN
 c**** Interactive dust emission
 
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
 
         SELECT CASE(trname(n))
-        CASE ('Clay','ClayIlli','ClayKaol','ClaySmec','ClayCalc',
-     &        'ClayQuar')
+        case('Clay','ClayIlli','ClayKaol','ClaySmec','ClayCalc'
+     &         ,'ClayQuar','ClayFeld','ClayHema','ClayGyps','ClayIlHe'
+     &         ,'ClayKaHe','ClaySmHe','ClayCaHe','ClayQuHe','ClayFeHe'
+     &         ,'ClayGyHe')
           IF (imDust == 0) THEN
             frtrac = FracClayPDFscheme
           ELSE IF (imDust == 2) THEN
             frtrac=FClWiCub*frclay
           END IF
-        CASE ('Silt1','Silt2','Silt3','Silt4','Sil1Quar','Sil1Feld',
-     &        'Sil1Calc','Sil1Hema','Sil1Gyps','Sil2Quar','Sil2Feld',
-     &        'Sil2Calc','Sil2Hema','Sil2Gyps','Sil3Quar','Sil3Feld',
-     &        'Sil3Calc','Sil3Hema','Sil3Gyps','Sil1QuHe','Sil2QuHe',
-     &        'Sil3QuHe')
+        case('Silt1','Silt2','Silt3','Silt4','Silt5','Sil1Quar'
+     &         ,'Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps','Sil1Illi'
+     &         ,'Sil1Kaol','Sil1Smec','Sil1QuHe','Sil1FeHe','Sil1CaHe'
+     &         ,'Sil1GyHe','Sil1IlHe','Sil1KaHe','Sil1SmHe','Sil2Quar'
+     &         ,'Sil2Feld','Sil2Calc','Sil2Hema','Sil2Gyps','Sil2Illi'
+     &         ,'Sil2Kaol','Sil2Smec','Sil2QuHe','Sil2FeHe','Sil2CaHe'
+     &         ,'Sil2GyHe','Sil2IlHe','Sil2KaHe','Sil2SmHe','Sil3Quar'
+     &         ,'Sil3Feld','Sil3Calc','Sil3Hema','Sil3Gyps','Sil3Illi'
+     &         ,'Sil3Kaol','Sil3Smec','Sil3QuHe','Sil3FeHe','Sil3CaHe'
+     &         ,'Sil3GyHe','Sil3IlHe','Sil3KaHe','Sil3SmHe','Sil4Quar'
+     &         ,'Sil4Feld','Sil4Calc','Sil4Hema','Sil4Gyps','Sil4Illi'
+     &         ,'Sil4Kaol','Sil4Smec','Sil4QuHe','Sil4FeHe','Sil4CaHe'
+     &         ,'Sil4GyHe','Sil4IlHe','Sil4KaHe','Sil4SmHe','Sil5Quar'
+     &         ,'Sil5Feld','Sil5Calc','Sil5Hema','Sil5Gyps','Sil5Illi'
+     &         ,'Sil5Kaol','Sil5Smec','Sil5QuHe','Sil5FeHe','Sil5CaHe'
+     &         ,'Sil5GyHe','Sil5IlHe','Sil5KaHe','Sil5SmHe')
           IF (imDust == 0) THEN
             frtrac = FracSiltPDFscheme
           ELSE IF (imDust == 2) THEN
@@ -359,11 +368,11 @@ c**** Interactive dust emission
           return
         END SELECT
 
-#if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
+#ifdef TRACERS_MINERALS
         frtrac = frtrac * mineralFractions( n - n_soildust + 1 )
 #endif
 
-#else /* TRACERS_DUST || TRACERS_MINERALS || TRACERS_QUARZHEM */
+#else /* TRACERS_DUST || TRACERS_MINERALS */
 #if (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
         SELECT CASE (n)
         CASE (1)
@@ -406,30 +415,47 @@ c ..........
       ELSE IF (imDUST == 1) THEN
 c**** prescribed AEROCOM dust emission
 
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
 
         SELECT CASE(trname(n))
-        CASE ('Clay','Silt1','Silt2','Silt3')
-          dsrcflx = d_dust( n - n_soildust + 1 )
-        CASE ('ClayIlli','ClayKaol','ClaySmec','ClayCalc','ClayQuar')
-          dsrcflx=d_dust(1)
-        case( 'Sil1Quar', 'Sil1Feld', 'Sil1Calc', 'Sil1Hema', 'Sil1Gyps'
-     &         , 'Sil1QuHe' )
-          dsrcflx=d_dust(2)
-        case( 'Sil2Quar', 'Sil2Feld', 'Sil2Calc', 'Sil2Hema', 'Sil2Gyps'
-     &         , 'Sil2QuHe' )
-          dsrcflx=d_dust(3)
-       CASE( 'Sil3Quar', 'Sil3Feld', 'Sil3Calc', 'Sil3Hema', 'Sil3Gyps'
-     &         , 'Sil3QuHe')
-          dsrcflx=d_dust(4)
+
+        case('Clay','ClayIlli' ,'ClayKaol','ClaySmec','ClayCalc'
+     &         ,'ClayQuar','ClayFeld','ClayHema','ClayGyps','ClayIlHe'
+     &         ,'ClayKaHe','ClaySmHe','ClayCaHe','ClayQuHe','ClayFeHe'
+     &         ,'ClayGyHe')
+          n_bin = 1
+
+        case('Silt1','Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema'
+     &         ,'Sil1Gyps','Sil1Illi','Sil1Kaol','Sil1Smec','Sil1QuHe'
+     &         ,'Sil1FeHe','Sil1CaHe','Sil1GyHe','Sil1IlHe','Sil1KaHe'
+     &         ,'Sil1SmHe')
+          n_bin = 2
+
+        case('Silt2','Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema'
+     &         ,'Sil2Gyps','Sil2Illi','Sil2Kaol','Sil2Smec','Sil2QuHe'
+     &         ,'Sil2FeHe','Sil2CaHe','Sil2GyHe','Sil2IlHe','Sil2KaHe'
+     &         ,'Sil2SmHe')
+          n_bin = 3
+
+        case('Silt3','Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema'
+     &         ,'Sil3Gyps','Sil3Illi','Sil3Kaol','Sil3Smec','Sil3QuHe'
+     &         ,'Sil3FeHe','Sil3CaHe','Sil3GyHe','Sil3IlHe','Sil3KaHe'
+     &         ,'Sil3SmHe')
+          n_bin = 4
+
+        case default
+
+          n_bin = 0
+
         END SELECT
 
-#if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
+        if ( n_bin > 0 ) dsrcflx = d_dust( n_bin )
+
+#ifdef TRACERS_MINERALS
         dsrcflx = dsrcflx * mineralFractions( n - n_soildust + 1 )
 #endif
 
-#else /* TRACERS_DUST || TRACERS_MINERALS || TRACERS_QUARZHEM */
+#else /* TRACERS_DUST || TRACERS_MINERALS */
 
 #if (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
         dsrcflx=d_dust(n)
@@ -457,8 +483,7 @@ c****
 !@auth Ina Tegen, Reha Cakmur, Jan Perlwitz
 
 #ifndef TRACERS_WATER
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       USE constant,ONLY : Grav
       USE resolution,ONLY : Jm,Lm
       USE atm_com,ONLY : zatmo,gz

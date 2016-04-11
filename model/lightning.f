@@ -75,6 +75,7 @@
 !@+   routine is apparently resolution dependant.  See the comments.
 !@auth Colin Price (modelEifications by Greg Faluvegi)
 
+      use TimeConstants_mod, only: SECONDS_PER_MINUTE
       use lightning, only : JNlight,JSlight,tune_lt_land,tune_lt_sea
      & ,saveC2gLightning,saveLightning
 #ifdef TRACERS_SPECIAL_Shindell
@@ -101,8 +102,11 @@
       integer:: lmax_temp
       real*8 :: htcon,htfrz,flash,th,th2,th3,th4,zlt,cg,area_ref
 !@param tune_NOx multiplier of NOx production rate from lightning
-      real*8, parameter :: tune_NOx=1.000d0
- 
+      real*8, parameter :: tune_NOx=0.500d0
+      real*8 :: minPerTimeStep
+
+      minPerTimeStep=DTsrc/SECONDS_PER_MINUTE
+    
 ! The folowing simple algorithm calculates the lightning
 ! frequency in each gridbox using the moist convective cloud
 ! scheme.  The algorithm is based on the Price and Rind (1992)
@@ -159,21 +163,17 @@
      &    - 36.544d0*th + 63.088d0
       cg=flash/(1.+zlt)
 
-! *If* flash is indeed in flashes/min, accumulate it in flashes/m2:
-!
-! Greg's note: I believe here aij should be accumulated in 
-! flashes/m2. Then upon output this is divided by the DTsrc so it's
-! in flashes/m2/s. Here it is being accumulated I think in what
-! looks to me like 2xflashes/m2. At the moment, this
-! is heavily scaled/tuned linearly for each resolution anyway. But
-! perhaps in the future, these "60.d0"s below should be changed to:
-! DTsrc/60 (the number of minutes in this timestep), then everything
-! retuned to be OK again? Let's do this before we link to fire model.
-      aij(i,j,ij_flash)=aij(i,j,ij_flash) + flash*60.d0*byaxyp(i,j)
-      aij(i,j,ij_CtoG) =aij(i,j,ij_CtoG)  +    cg*60.d0*byaxyp(i,j)
-! Also save for SUBDDdiags instantaneous output (in flashes/m2/s):
-      saveLightning(i,j)    =  flash*60.d0*byaxyp(i,j)/DTsrc
-      saveC2gLightning(i,j) =     cg*60.d0*byaxyp(i,j)/DTsrc
+! *If* flash is indeed in flashes/min, accumulate it (for aij)
+! in flashes/m2. It will later be divided by DTsrc and become
+! flashes/m2/s:
+      aij(i,j,ij_flash)= aij(i,j,ij_flash) + 
+     & flash*minPerTimeStep*byaxyp(i,j)
+      aij(i,j,ij_CtoG) = aij(i,j,ij_CtoG)  + 
+     &    cg*minPerTimeStep*byaxyp(i,j)
+! Save these for SUBDDdiags instantaneous output (in flashes/m2/s),
+! and (in the case of saveC2gLightning) for igniting fires:
+      saveLightning(i,j)    =  flash*minPerTimeStep*byaxyp(i,j)/DTsrc
+      saveC2gLightning(i,j) =     cg*minPerTimeStep*byaxyp(i,j)/DTsrc
 
 #ifdef TRACERS_SPECIAL_Shindell
 ! Given the number of cloud-to-ground flashes, we can now calculate
@@ -191,6 +191,7 @@
 !@sum  get_lightning_NOx to define the 3D source of NOx from lightning
 !@auth Colin Price / Greg Faluvegi
  
+      use TimeConstants_mod, only: SECONDS_PER_MINUTE
       use geom, only       : lat2d_dg,byaxyp,imaxj
       use fluxes, only     : tr3Dsource,fland
       use tracer_com, only : n_NOx,nOther
@@ -213,7 +214,7 @@
 !@var alttrop altitude of tropopause
 !@var alttop altitude at the top of ?
 !@param pmin2psec to convert from min-1 to sec-1
-      real*8, parameter :: pmin2psec = 1.d0/60.d0
+      real*8, parameter :: pmin2psec = 1.d0/SECONDS_PER_MINUTE
       integer:: latindx,landindx,ih,levtrop,i,j,L
       real*8, dimension(16):: height
       real*8:: alttrop,alttop

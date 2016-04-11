@@ -50,7 +50,7 @@ module CLOUDS
   use TRACER_COM, only: aqchem_list,aqchem_count
 #endif
 #else
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
   use TRACER_COM, only: Ntm_dust
 #endif
 #endif
@@ -284,7 +284,7 @@ module CLOUDS
        trprcp_ls,trclwe_ls,trcond_ls
 #endif
 #else
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
 !@var tm_dust vertical profile of dust/mineral tracers [kg]
   real*8,dimension(Lm,Ntm_dust) :: tm_dust
 !@var tmom_dust vertical profiles of dust/mineral tracer moments [kg]

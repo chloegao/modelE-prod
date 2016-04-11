@@ -1,8 +1,25 @@
-#include "dust_params"
-!--------- mineral parameters --------------------
-!pureByTotalHematite=0.d0 ! fraction of pure iron oxide to all iron oxide mineral mass
-                       ! not used for calcMineralAggrProb=1
-calcMineralAggrProb=1  ! 1: calculate aggregation probabilities from mineral fractions
-frHemaInQuarAggr=0.1d0 ! fraction of iron oxide in quartz-iron oxide aggregates
-brittleFactor=1.,1.,1.,1.,1., 1.,1.,1.,1.,1. ! brittle factor of minerals in soils
-!-------------------------------------------------
+!--------- mineralogical dust aerosol parameters----------------
+imDust=0                          ! 0: PDF emission scheme, 1: AEROCOM
+adiurn_dust=0                     ! 1: daily dust diagnostics for selected grid boxes
+! AMF method nudged
+fracClayPDFscheme=0.2025779939 ! clay emission parameter from calibration
+fracSiltPDFscheme=0.2025779939 ! silt emission parameter from calibration
+   !fracClayPDFscheme = 0.30927938[1] * 0.655[2]
+   !fracSiltPDFscheme = 0.30927938[1] * 0.655[2]
+   ![1]: emission parameters used for calibration run E20151001TminNu40AMF_001
+   ![2]: optimization factor calculated from calibration run
+! SMF method nudged
+!fracClayPDFscheme=0.07762912438
+!fracSiltPDFscheme=0.07762912438
+   !fracClayPDFscheme = 0.30927938[1] * 0.251[2]
+   !fracSiltPDFscheme = 0.30927938[1] * 0.251[2]
+   ![1] emission parameters used for calibration run E20151001TminNu40SMF_001
+   ![2] optimization factor calculated from calibration run
+to_conc_soildust=1    ! three-dimensional dust output as concentration [kg/m^3]
+soilDustEmissionDistr=1 ! choose emission size distr. 0: Kandler 2009 low/medium
+                        ! dust(default) 1: Kandler 2009 high dust
+calcEffectiveRadius=0 ! 0: prescribed effective radius (default); 1: calculated
+                      ! using particle size distribution
+calcMineralAggrProb=1 ! 1: calculate aggregation probabilities from min. fract.
+frIronOxideInAggregate=0.05d0 ! fraction of Iron oxide in Mineral-Iron oxide aggregates
+!----------------------------------------------------------------

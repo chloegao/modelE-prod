@@ -49,17 +49,24 @@ contains
     USE FILEMANAGER, only: openunit,closeunit,is_fbsa
     use pario, only : par_open,par_close,read_attr
     USE DOMAIN_DECOMP_ATM, only: GRID
+    use TimeConstants_mod, only: HOURS_PER_DAY
+    use SpecialIO_mod, only: write_parallel,read_parallel
     type (TracerSurfaceSource), intent(inout) :: this
     character(len=*), intent(in) :: tracerName
     character(len=*), intent(in) :: fileName
+    character(len=300) :: out_line
     character*10, intent(in):: sectorNames(:)
     logical, intent(in) :: checkName
+    logical :: diurnalFileExists = .false.
 
     integer :: nsect, nn, i, j, iu, fid
     character*32 :: pname
+    character*35 :: fname
     character*124 :: tr_sectors_are
     integer :: numTrSectors
     character(len=80) :: name ! sector
+    real*8 :: sumDiurnal
+    real*8, parameter :: diurnalSumTolerance=1.d-4
 
     if(is_fbsa(fileName)) then
       call openunit(fileName,iu,.true.)
@@ -69,14 +76,19 @@ contains
       this%tracerName = tracerName
       this%sourceName = 'notfound'
       fid = par_open(grid,trim(fileName),'read')
-      call read_attr(grid,fid,'global','source',i,this%sourceName)
+      ! give priority to variable attribute, but for backwards-compatibility,
+      ! try global attribute if variable attribute read failed:
+      call read_attr(grid,fid,this%tracerName,'source',i,this%sourceName)
+      if(trim(this%sourceName).eq.'notfound') then
+        call read_attr(grid,fid,'global','source',i,this%sourceName)
+      endif
       call par_close(grid,fid)
       if(trim(this%sourceName).eq.'notfound') then
         call stop_model('source name not found in file '//trim(fileName),255)
       endif
     endif
 
-    ! -- begin sector  stuff --
+    ! -- begin sector stuff --
     tr_sectors_are = ' '
     pname=trim(trim(fileName)//'_sect')
     call sync_param(pname,tr_sectors_are)
@@ -110,6 +122,30 @@ contains
         enddo loop_nn
       enddo
     endif
+
+    ! -- begin diurnal stuff -- 
+    fname=trim('diurnal_'//trim(fileName))
+    ! governed by file existance:
+    inquire(file=trim(fname), exist=diurnalFileExists)
+    if(diurnalFileExists)then
+       this%applyDiurnalCycle=.true.
+       write(out_line,*)'Applying diurnal cycle to file '//fileName
+       call write_parallel(trim(out_line))
+       call openunit(fname,iu,.false.,.true.)
+       call read_parallel(this%diurnalCycle,iu)
+       ! check that the diurnal cycle's sum is close to the number of hours
+       ! in a day (meaning it's hourly average would be a factor of 1.):
+       sumDiurnal=SUM(this%diurnalCycle)
+       if(  sumDiurnal > HOURS_PER_DAY + diurnalSumTolerance  &
+     & .or. sumDiurnal < HOURS_PER_DAY - diurnalSumTolerance) then
+         write(out_line,*) &
+     &   trim(fname),' sum is ',sumDiurnal,' not',HOURS_PER_DAY
+         call write_parallel(trim(out_line))
+         call stop_model('Problem with emissions diurnal cycle.',255)
+       end if
+       call closeunit(iu)
+    end if
+
   end subroutine initSurfaceSource
 
   subroutine parseHeader(this, name, str,error)
@@ -526,7 +562,7 @@ contains
 
   end subroutine releaseCache
 
-  subroutine readSurfaceSource(this, fname, checkname, sfc_src, xyear, xday)
+  subroutine readSurfaceSource(this, fname, checkname, sfc_src, xyear, xday, isChemTracer)
     USE DOMAIN_DECOMP_ATM, only: GRID,  readt_parallel, write_parallel
     use Domain_decomp_atm, only: getDomainBounds
     USE FILEMANAGER, only: openunit,closeunit, nameunit,is_fbsa
@@ -538,6 +574,7 @@ contains
     logical, intent(in) :: checkname
     real*8, intent(inout) :: sfc_src(grid%i_strt_halo:,grid%j_strt_halo:)
     integer, intent(in) :: xyear, xday
+    logical, intent(in) :: isChemTracer
 
     integer :: iu,k,ipos,kx,iposDay,kstep=10
     character(len=300) :: out_line
@@ -547,17 +584,22 @@ contains
          & sfc_a,sfc_b
 
     INTEGER :: J_1, J_0, I_0, I_1
-    integer :: aer_int_yr,master_yr
+    integer :: cyclic_yr,master_yr
 
     if(.not.is_fbsa(fname)) then
 
       if(this%firstTrip) then
         this%firstTrip = .false.
         call get_param('master_yr',master_yr)
-        call get_param('aer_int_yr',aer_int_yr,default=master_yr)
+        if (isChemTracer) then
+          call get_param('o3_yr',cyclic_yr,default=master_yr)
+        else
+          call get_param('aer_int_yr',cyclic_yr,default=master_yr)
+        end if
+        cyclic_yr=ABS(cyclic_yr)
         call init_stream(grid,this%EMstream,trim(fname), &
              trim(this%tracername),0d0,1d30,'linm2m',xyear,xday, &
-             cyclic = (aer_int_yr > 0) )
+             cyclic = (cyclic_yr > 0) )
       endif
       call read_stream(grid,this%EMstream,xyear,xday,sfc_src)
 

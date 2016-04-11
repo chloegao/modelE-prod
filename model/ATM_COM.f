@@ -25,7 +25,7 @@
      *     REQ_FAC_D=(/ .5d0,  .3d0,  .2d0 /)     ! delta
 
 !@var PL00, PMIDL00, PDSIGL00, AML00 press (mb), mid-pressure (mb),
-!@+        mass (kg/m2) for mean profile
+!@+        pressure thickness (mb), mass (kg/m2) for mean profile
 !@var PEDNL00 edge pressure for mean profile (mb)
       REAL*8, DIMENSION(LM+LM_REQ) ::
      &     PL00, PMIDL00, PDSIGL00, AML00, BYAML00
@@ -99,11 +99,10 @@ C**** module should own dynam variables used by other routines
       REAL*8, ALLOCATABLE, DIMENSION(:,:)  :: DPDY_BY_RHO_0
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: PHI
 
-!@var MUs,MVs,MWs,PS save PU,PV,SD,P for hourly tracer advection
+!@var MUs,MVs,MWs,MB save for source time step tracer advection
 !@var MB Air mass array for tracers (before advection)
 !@var MMA (kg) Air mass array for tracers (updated during advection)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: MUs,MVs,MWs,MB,MMA
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: PS
 
 !@var DKE change in KE due to dissipation (SURF/DC/MC) (m^2/s^2)
 !@var KEA KE on the A grid (m^2/s^2)
@@ -124,7 +123,7 @@ C**** module should own dynam variables used by other routines
       USE CONSTANT, only : GRAV
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID,HALO_UPDATE
      &     ,hassouthpole,hasnorthpole
-      Use RESOLUTION, Only: IM,JM,LM, MDRYA, PSFMPT
+      Use RESOLUTION, Only: IM,JM,LM, MDRYA
       USE ATM_COM, ONLY : temperature_istart1
       USE ATM_COM, ONLY : ZATMO,P,U,V,T,Q,qcl,qci
       USE ATM_COM, ONLY :
@@ -132,9 +131,8 @@ C**** module should own dynam variables used by other routines
      &     PEDN,PEK,SD_CLOUDS,GZ,PHI,
      &     MUs,MVs,MWs,MB,MMA,DKE,KEA,
      &     UALIJ,VALIJ,WSAVE,
-     &     MASUM,PTROPO,LTROPO,PS,
+     &     MASUM,PTROPO,LTROPO,
      &     DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
-      use GEOM, only : geom_atm
       use pario, only : par_open,par_close,read_dist_data
       use Dictionary_mod, only : sync_param, get_param
 #ifdef etc_subdd
@@ -161,8 +159,6 @@ C**** module should own dynam variables used by other routines
 C****
 C**** CALCULATE SPHERICAL GEOMETRY
 C****
-      call geom_atm
-
       ALLOCATE(ZATMO(I_0H:I_1H,J_0H:J_1H), STAT = IER)
       ALLOCATE(P(I_0H:I_1H,J_0H:J_1H), STAT = IER)
       ALLOCATE(U(I_0H:I_1H,J_0H:J_1H,LM), STAT = IER)
@@ -176,7 +172,7 @@ C****
       V(:,:,:)=0.
       T(:,:,:)=temperature_istart1  ! will be changed to pot.temp later
       Q(:,:,:)=3.D-6
-      P(:,:)=PSFMPT
+      !P(:,:)=PSFMPT
       qcl(:,:,:)=0.
       qci(:,:,:)=0.
       ZATMO(:,:)=0.
@@ -248,7 +244,6 @@ C**** Check polar uniformity
      $     DPDY_BY_RHO(I_0H:I_1H,J_0H:J_1H),
      $   DPDX_BY_RHO_0(I_0H:I_1H,J_0H:J_1H),
      $   DPDY_BY_RHO_0(I_0H:I_1H,J_0H:J_1H),
-     $              PS(I_0H:I_1H,J_0H:J_1H),
      $   STAT = IER)
 
 ! correct or wrong, but being static all arrays were initialized

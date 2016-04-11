@@ -175,6 +175,11 @@ c      logical pole
         pbl_args%evap_max = 1.
         pbl_args%fr_sat = 1.    ! entire surface is saturated
         pbl_args%qg_aver = pbl_args%qg_sat ! QG_AVER=QG_SAT
+#ifdef SCM
+        if( SCMopt%Qskin )then ! force skin water vapor mixing ratio
+          pbl_args%qg_aver = SCMin%Qskin
+        endif
+#endif
         if(itype==1) then
           pbl_args%elhx = lhe
         else
@@ -200,8 +205,7 @@ C**** Calculate first layer tracer concentration
       call tracer_lower_bc(i,j,itype,pbl_args,atm)
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
-    (defined TRACERS_TOMAS) 
+    (defined TRACERS_AMP)  || (defined TRACERS_TOMAS) 
       call dust_emission_prep(i,j,itype,pbl_args)
 #endif
 
@@ -416,8 +420,7 @@ C ******************************************************************
       atm%khsavg(i,j)  =  pbl_args%khs
       atm%wspdf(i,j) = pbl_args%wspdf
 
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       atm%wsgcm(i,j) = pbl_args%wsgcm
       atm%wsubwd(i,j) = pbl_args%wsubwd
       atm%wsubtke(i,j) = pbl_args%wsubtke
@@ -428,15 +431,13 @@ ccc put drive output data to pbl_args structure
       pbl_args%psi = psi ! maybe also should be moved to ADVANC
                          ! or completely otside of PBL* ?
 
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       call PBL_adiurn_dust(I,J,ITYPE,PTYPE,pbl_args,atm)
 #endif
 
 #ifdef TRACERS_ON
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
-    (defined TRACERS_TOMAS) 
+    (defined TRACERS_AMP)  || (defined TRACERS_TOMAS) 
       call save_dust_emission_vars(i,j,itype,pbl_args)
 #endif
 #endif
@@ -572,8 +573,7 @@ C       pbl_args%tr_evap_max(nx) = evap_max * trsoil_rat(nx)
 #endif
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
-    (defined TRACERS_TOMAS) 
+    (defined TRACERS_AMP)  || (defined TRACERS_TOMAS) 
       subroutine dust_emission_prep(i,j,itype,pbl_args)
       use constant, only : by3
       use fluxes, only : pprec,pevap
@@ -613,8 +613,7 @@ c**** wspdf in PBL.f for the other soil types.
       end subroutine save_dust_emission_vars
 #endif
 
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       SUBROUTINE PBL_adiurn_dust(I,J,ITYPE,PTYPE,pbl_args,atm)
       use exchange_types
       USE CONSTANT, only :  rgas,grav,deltx,teeny
@@ -643,7 +642,7 @@ c**** wspdf in PBL.f for the other soil types.
       type (t_pbl_args) :: pbl_args
       class (atmsrf_xchng_vars) :: atm
 
-#if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
+#ifdef TRACERS_MINERALS
       INTEGER,PARAMETER :: n_idxd=6
 #else
 #ifdef TRACERS_DUST
@@ -703,7 +702,7 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
               n = pbl_args%ntix(nx)
               if (dodrydep( n )) then
                 select case(trname( n ))
-                case('Clay', 'Silt1', 'Silt2', 'Silt3')
+                case('Clay','Silt1','Silt2','Silt3','Silt4','Silt5')
                   tmp( idd_turb ) = tmp( idd_turb ) + ptype * rhosrf
      &                 * pbl_args%trs(nx) * pbl_args%dep_vel(n)
                   tmp( idd_grav ) = tmp( idd_grav ) + ptype * rhosrf
@@ -784,7 +783,7 @@ c These routines include the array ipbl which indicates if the
 c  computation for a particular ITYPE was done last time step.
 c -------------------------------------------------------------
       USE Dictionary_mod
-      USE CONSTANT, only : lhe,lhs,tf,omega2,deltx,UNDEF_VAL
+      USE CONSTANT, only : lhe,lhs,tf,omega2,deltx,UNDEF_VAL,rgas,grav
       USE ATM_COM, only : u,v,p,t,q
       USE ATM_COM, only : traditional_coldstart_aic
       USE GEOM, only : imaxj,sinlat2d
@@ -799,7 +798,7 @@ c -------------------------------------------------------------
       USE PBLCOM
       USE DOMAIN_DECOMP_ATM, only : GRID
       USE DOMAIN_DECOMP_1D, only : WRITET_PARALLEL, getDomainBounds
-      USE ATM_COM, only : pmid,pk,pedn,pek
+      USE ATM_COM, only : pmid,pk,pedn,pek,pdsig
      &    ,DPDX_BY_RHO,DPDY_BY_RHO,DPDX_BY_RHO_0,DPDY_BY_RHO_0
      &    ,ua=>ualij,va=>valij
       USE SEAICE_COM, only : si_atm
@@ -808,6 +807,9 @@ c -------------------------------------------------------------
 #ifdef USE_ENT
       use ent_mod, only: ent_get_exports
       use ent_com, only : entcells
+#endif
+#ifdef SCM
+      USE SCM_COM, only : SCMopt,SCMin
 #endif
       use pario, only : par_open,par_close,read_dist_data
 
@@ -854,8 +856,7 @@ C**** ignore ocean currents for initialisation.
       ! todo: perhaps use presence of LKTAB file to automatically determine this
       call sync_param( 'calc_wspdf', calc_wspdf )
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP)  ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_AMP)  || (defined TRACERS_TOMAS)
       calc_wspdf = 1
 #endif
 
@@ -891,6 +892,8 @@ C****
 
         DO J=J_0,J_1
         DO I=I_0,I_1
+          pblht(i,j) = (.5*pdsig(1,i,j)/pmid(1,i,j))*
+     &         (rgas*t(i,j,1)*pk(1,i,j)/grav)
           atmsrf%usavg(i,j) = ua(1,i,j)
           atmsrf%vsavg(i,j) = va(1,i,j)
           atmsrf%wsavg(i,j) =
@@ -907,6 +910,11 @@ C**** Initialize surface friction velocity
 C**** SET SURFACE SPECIFIC HUMIDITY FROM FIRST LAYER HUMIDITY
           atmsrf%QSAVG(I,J)=Q(I,J,1)
           atmsrf%QGAVG(I,J)=Q(I,J,1)
+#ifdef SCM
+          if( SCMopt%Qskin )then ! force skin water vapor mixing ratio
+            atmsrf%qgavg(i,j) = SCMin%Qskin
+          endif
+#endif
         ENDDO
         ENDDO
       endif
@@ -928,6 +936,12 @@ C things to be done regardless of inipbl
 
       call sync_param( 'XCDpbl', XCDpbl )
       call sync_param( 'skin_effect', skin_effect )
+#ifdef SCM  
+      if( .not. SCMopt%sfcQrad )then
+c**** disable skin_effect when ignoring longwave atmospheric heating
+        skin_effect=0
+      endif
+#endif
 
       do j=J_0,J_1
         do i=I_0,I_1
@@ -1001,7 +1015,11 @@ C**** fix roughness length for ocean ice that turned to land ice
             ps=pedn(1,i,j)    !pij+ptop
             psk=pek(1,i,j)    !expbyk(ps)
             qgrnd=qsat(tgrndv,elhx,ps)
-
+#ifdef SCM
+            if( SCMopt%Qskin )then ! force skin water vapor mixing ratio
+              qgrnd = SCMin%Qskin
+            endif
+#endif
             utop = ua(1,i,j)
             vtop = va(1,i,j)
             qtop=q(i,j,1)
@@ -1271,7 +1289,7 @@ C**** initialise some pbl common variables
       use PBL_DRV
       use domain_decomp_atm, only : grid
       use PBL_DRV, only : dbls0,slope0,dbl_max_stable
-      USE RESOLUTION, only : ls1
+      USE RESOLUTION, only : lm
       implicit none
       integer :: i,j,l,ldbl,ldbls
       real*8 :: ztop,coriol,dbl,ustar,lmonin,tmp,dbls
@@ -1302,7 +1320,7 @@ C**** initialise some pbl common variables
           zpbl=ztop
           pl1=pmid(1,i,j)         ! pij*sig(1)+ptop
           tl1=t(i,j,1)*(1.+xdelt*q(i,j,1))*pk(1,i,j)
-          do l=2,ls1
+          do l=2,lm
             pl=pmid(l,i,j)        !pij*sig(l)+ptop
             tl=t(i,j,l)*(1.+xdelt*q(i,j,l))*pk(l,i,j) !virtual,absolute
             tbar=thbar(tl1,tl)

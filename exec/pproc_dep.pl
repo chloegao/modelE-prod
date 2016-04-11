@@ -6,7 +6,7 @@
 # In particuler recent version of the Fortran standard (2003 and 2008)
 # have introduced the concept of "intrinsic modules" that are provided
 # by the compiler.
-$skip_modules="iso_c_binding.mod|iso_fortran_env.mod|pfunit_mod.mod";
+$skip_modules="iso_c_binding.mod|iso_fortran_env.mod|ieee_arithmetic.mod|pfunit_mod.mod";
 
 while(<>) {
 

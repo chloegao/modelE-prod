@@ -14,7 +14,7 @@ c
      &                        GLOBALSUM,GLOBALMAX,
      &                        write_parallel,writet8_column,
      &                        writet_parallel
-      USE RESOLUTION, only  : ptop,psf,ls1
+      USE RESOLUTION, only  : ls1=>ls1_nominal
       USE RESOLUTION, only  : IM,JM
       USE ATM_COM, only     : T,Q
       use model_com, only: modelEclock
@@ -25,8 +25,7 @@ c
       USE RAD_COM, only     : o2x
       USE CONSTANT, only    : radian,gasc,mair,mb2kg,pi,avog,rgas,pO2,
      &                        bygrav,lhe,undef,teeny
-      USE ATM_COM, only     : pedn,LTROPO
-      USE DYNAMICS, only    : sig
+      USE ATM_COM, only     : pedn,PMIDL00,LTROPO
       USE FILEMANAGER, only : openunit,closeunit,nameunit
       USE RAD_COM, only     : COSZ1,alb,rcloudfj=>rcld,
      &                        rad_to_chem,chem_tracer_save,H2ObyCH4,
@@ -49,6 +48,9 @@ c
      &                      rsulf1,rsulf2,rsulf3,rsulf4,
      &                      n_HBr,n_HOCl,n_HCl,n_ClONO2,n_ClOx,
      &                      n_BrOx,n_BrONO2,n_CFC,n_N2O,n_HOBR
+#ifdef TRACERS_dCO
+     &                     ,n_dC17O,n_dC18O,n_d13CO
+#endif  /* TRACERS_dCO */
 #ifdef TRACERS_AMP
       USE TRACER_COM, only  : n_M_AKK_SU,n_M_ACC_SU,n_M_DD1_SU,
      &                        n_M_DS1_SU,n_M_DD2_SU,n_M_DS2_SU,
@@ -68,12 +70,12 @@ c
       USE TRACER_SOURCES, only: avg_model,n__sw
 #endif
       USE TRDIAG_COM, only    : taijs=>taijs_loc,taijls=>taijls_loc
-     &     ,ijlt_NO3,jls_COp,jls_COd,jls_Oxp,jls_N2O5sulf
+     &     ,ijlt_NO3,jls_COp,jls_COd,jls_Oxp,jls_N2O5sulf,jls_O3vmr
      &     ,jls_Oxd,jls_OxpT,jls_OxdT,ijs_NO2_1030,ijs_NO2_1030c
-     &     ,ijlt_COp,ijlt_COd,ijlt_Oxd,ijlt_Oxp,ijlt_pO1D
+     &     ,ijlt_COp,ijlt_COd,ijlt_Oxd,ijlt_Oxp,ijlt_pO1D,ijs_O3mass
      &     ,ijlt_pOH,ijlt_OxpHO2,ijlt_OxpCH3O2,ijlt_OxlHO2,ijlt_OxlALK
      &     ,ijlt_OxlOH,ijs_NO2_1330,ijs_NO2_1330c,ijlt_NO2vmr,ijlt_NOvmr
-     &     ,ijlt_JO1D,ijlt_JNO2,ijlt_JH2O2
+     &     ,ijlt_JO1D,ijlt_JNO2,ijlt_JH2O2,ijlt_O3ppbv,ijlt_O3cmatm
      &     ,jls_ClOcon,jls_H2Ocon
       USE TRCHEM_Shindell_COM
 #ifdef TRACERS_AEROSOLS_SOA
@@ -84,7 +86,7 @@ c
 
       use TRACER_COM, only: nn_CH4,  nn_N2O, nn_Ox,   nn_NOx, 
      &      nn_N2O5,   nn_HNO3,  nn_H2O2,  nn_CH3OOH,   nn_HCHO, 
-     &      nn_HO2NO2, nn_CO,    nn_PAN,   nn_H2O17,             
+     &      nn_HO2NO2, nn_PAN,   nn_H2O17,             
      &      nn_Isoprene, nn_AlkylNit, nn_Alkenes, nn_Paraffin,   
      &      nn_stratOx, nn_Terpenes,nn_codirect,                
      &      nn_isopp1g,nn_isopp1a,nn_isopp2g,nn_isopp2a,         
@@ -101,11 +103,11 @@ c
       IMPLICIT NONE
 
 #ifdef CACHED_SUBDD
-      integer :: igrp,ngroups,grpids(subdd_ngroups),k
+      integer :: igrp,ngroups,grpids(subdd_ngroups)
       type(subdd_type), pointer :: subdd
       real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
      &                  grid%j_strt_halo:grid%j_stop_halo,
-     &                  LM) :: mrno,mrno2
+     &                  LM) :: mrno,mrno2,mro3,OH_conc,HO2_conc
 #endif
 C**** Local parameters and variables and arguments:
 !@param by35 1/35 used for spherical geometry constant
@@ -147,7 +149,7 @@ C**** Local parameters and variables and arguments:
 !@var bysumOx reciprocal of sum of regional Ox tracers
 !@var maxPSC a limit placed on some PSC reactions to prevent sudden overflows
       REAL*8, DIMENSION(NTM) :: PIfact
-      REAL*8, DIMENSION(LM) :: PRES2 ! keep LM; based on SIG(:)
+      REAL*8, DIMENSION(LM) :: PRES2 ! keep LM; based on PMIDL00(:)
       REAL*8 :: FACT1,FACT2,FACT3,FACT4,FACT5,FACT6,FACT7,fact_so4,
      &  FASTJ_PFACT,bydtsrc,byavog,CH4FACT,r179,rlossN,maxPSC,
      &  rprodN,ratioN,pfactor,bypfactor,gwprodHNO3,gprodHNO3,
@@ -157,20 +159,22 @@ C**** Local parameters and variables and arguments:
      &  rNO3plusNO2,rN2O5decomp,rHCHOplusNO3,rAldplusNO3,rIsopplusNO3,
      &  rClOplusNO2,rDMSplusNO3,wlossN2O5,wlossNOx,
      &  wprodNOx,rlossNO3,rprodNO3,wprodN2O5,pNO3temp,rBrOplusNO2,
-     &  wlossClONO2,wprodClONO2,changeN,sphericalCorrection,
+     &  wlossClONO2,wprodClONO2,changeN,sphericalCorrectionReg1,
+     &  sphericalCorrectionReg2,sphericalCorrectionReg3,
+     &  sphericalCorrectionReg4,
      &  changeTerpenes,rTerpplusNO3,changeisopp1g,changeisopp2g,
      &  changeapinp1g,changeapinp2g,changeOx,fraQ,
      &  thick,changeCO,changeN_d1,changeN_d2,changeN_d3,changeNO3p,
      &  temp_SW,BRTOT,CLTOT,colmO2,colmO3,changeClONO2,changeClOx,
-     &  changeHOCl,changeHCl,changehetClONO2,chgHT3,
+     &  changeHOCl,changeHCl,changehetClONO2,chgHT3,albedoToUse,
      &  chgHT4,chgHT5,rmrClOx,rmrBrOx,rmv,rmrOx,avgTT_H2O,avgTT_CH4,
      &  countTT,bHNO3,mHNO3,HNO3_thresh,Ttemp,changeBrOx,changeBrONO2,
      &  changeBrOx2,changeHBr,tempChangeNOx,ss27x2,ss27x2_c,OHpptv,
-     &  HO2pptv,ObyO3,NO2byNO,ClbyClO,voc2nox_denom
+     &  HO2pptv,ObyO3,NO2byNO,ClbyClO,voc2nox_denom,tempChangeOx
       integer :: igas,LL,I,J,L,N,inss,L2,n2,ierr,ierr_loc,Jqq,Iqq,
      & maxT,iu,itemp_iter,ih1330e,ih1030e,ih1030,ih1330,m,istep,index1,
      & index2,nb
-      LOGICAL                   :: error, jay
+      LOGICAL                   :: error, jay, daylight
       CHARACTER*4               :: ghg_name
       CHARACTER*80              :: ghg_file,title
       character(len=300)        :: out_line
@@ -180,17 +184,17 @@ C**** Local parameters and variables and arguments:
 
       real*8, dimension(JM)     :: DU_O3_glob
 #ifdef TRACERS_TERP
-      integer, parameter :: iN2O5plusH2O=109,iNO3plusNO2=103,
-     &                      iN2O5decomp=96,iClOplusNO2=107,
-     &                      iClONO2plusH2O=110,iClONO2plusHCl=111,
-     &                      iHOClplusHCl=112,iN2O5plusHCl=113,
-     &                      iTerpenesO3=93,iTerpenesNO3=94
-#else
-      integer, parameter :: iN2O5plusH2O=106,iNO3plusNO2=100,
-     &                      iN2O5decomp=93,iClOplusNO2=104,
-     &                      iClONO2plusH2O=107,iClONO2plusHCl=108,
-     &                      iHOClplusHCl=109,iN2O5plusHCl=110
+      integer, parameter :: iTerpenesO3=93,iTerpenesNO3=94
 #endif  /* TRACERS_TERP */
+      integer, parameter :: iN2O5plusH2O=106+n_bi_terp+n_bi_dCO,
+     &                      iNO3plusNO2=100+n_bi_terp+n_bi_dCO,
+     &                      iN2O5decomp=93+n_bi_terp+n_bi_dCO,
+     &                      iClOplusNO2=104+n_bi_terp+n_bi_dCO,
+     &                      iClONO2plusH2O=107+n_bi_terp+n_bi_dCO,
+     &                      iClONO2plusHCl=108+n_bi_terp+n_bi_dCO,
+     &                      iHOClplusHCl=109+n_bi_terp+n_bi_dCO,
+     &                      iN2O5plusHCl=110+n_bi_terp+n_bi_dCO,
+     &                      iBrOplusNO2=105+n_bi_terp+n_bi_dCO
 
       real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
@@ -201,7 +205,7 @@ C**** Local parameters and variables and arguments:
       integer :: initial_GHG_setup
       LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE     
       real*8 :: qsat ! this is a function in UTILDBL.f
-#ifdef TRACERS_TOMAS
+#if (defined TRACERS_TOMAS) || (defined CACHED_SUBDD)
       integer :: k
 #endif
       integer :: hour, idx
@@ -288,7 +292,7 @@ C Some INITIALIZATIONS :
       byavog  = 1.d0/avog
       bydtsrc = 1.d0/dtsrc
       BYFJM   = 1.d0/real(JM)
-      PRES2(:)= SIG(:)*(PSF-PTOP)+PTOP
+      PRES2(1:LM) = PMIDL00(1:LM)
 
       if(H2ObyCH4 /= 0. .and. clim_interact_chem > 0)                
      &call stop_model('H2ObyCH4.ne.0 .and. clim_interact_chem > 0',13)
@@ -347,7 +351,6 @@ c This is to work around initial instabilities.
       maxPSC=0.2d0/dt2
 
 c Calculate new photolysis rates every n_phot main timesteps:
-      MODPHOT= 0 ! old days was: MOD(Itime-ItimeI,n_phot)
 
 C CALCULATE TX, THE REAL TEMPERATURE:
 C (note this section is already done in DIAG.f)
@@ -587,51 +590,78 @@ C (and hence COSZ1 is set to 0), recalculate it with get_sza routine:
         sza = acos(COSZ1(I,J))*byradian
       END IF
 
+C SUNLIGHT criteria:
+      albedoToUse=ALB(I,J,1)
+#ifdef SMOOTH_SUNLIGHT_CHEMISTRY
+      daylight=(sza<szamax)
+      if(daylight)then
+        if(albedoToUse/=0.d0)then
+          mostRecentNonZeroAlbedo(I,J)=albedoToUse
+        else
+          albedoToUse=mostRecentNonZeroAlbedo(I,J)
+        end if
+      end if
+#else
+      daylight=((ALB(I,J,1)/=0.d0).and.(sza<szamax))
+#endif
+
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 C                 BEGIN PHOTOLYSIS                               C
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
-      if(MODPHOT == 0)then ! i.e. not (necessarily) every time step
-
-       ! additional SUNLIGHT criterion (see also fam chem criterion):
-       if((ALB(I,J,1) /= 0.d0).AND.(sza < szamax))then
+      if(daylight)then
        
 c Pass O3 array (in ppmv; here seems to be ppv) to fastj. Above these
 C levels fastj2 uses Nagatani climatological O3, read in by chem_init: 
         DO L=1,topLevelOfChemistry
-          if(PMID(L,I,J)<=0.1d0) y(nO3,L)=y(nn_Ox,L)
           O3_FASTJ(L)=y(nO3,L)/y(nM,L)
         END DO
 
 ! calculate photolysis rates
-        call fastj2_drv(I, J, ta, rh)
+        call fastj2_drv(I, J, ta, rh, albedoToUse)
         call photo_acetone(I,J,sza*radian) ! simpler calculation for acetone
 
 C Define and alter resulting photolysis coefficients (zj --> ss):
         colmO2=5.6d20 
         colmO3=5.0d16 
 
-        ! Letting this spherical corrections get too small (0?) causes NaNs
+        ! Using MAX() here because 
+        ! letting this spherical corrections get too small (0?) causes NaNs
         ! e.g. in the SOA code. Also sza can be > 90, so COS could go negative:
-        sphericalCorrection=MAX(1.d-2,DCOS(sza*radian))
+        sphericalCorrectionReg1=
+     &    (MAX(1.d-2,DCOS(sza*radian)))**reg1Power_SpherO2andN2Ocorr
+        sphericalCorrectionReg2=
+     &    (MAX(1.d-2,DCOS(sza*radian)))**reg2Power_SpherO2andN2Ocorr
+        sphericalCorrectionReg3=
+     &    (MAX(1.d-2,DCOS(sza*radian)))**reg3Power_SpherO2andN2Ocorr
+        sphericalCorrectionReg4=
+     &    (MAX(1.d-2,DCOS(sza*radian)))**reg4Power_SpherO2andN2Ocorr
 
         DO L=min(JPNL,topLevelOfChemistry),1,-1
           do inss=1,JPPJ
             ss(inss,L,I,J)=zj(L,inss)
 #ifndef SHINDELL_SKIP_WINDOW_TUNE /* note NOT defined */
             !reduce rates for gases that photolyze in window region (~200nm):
-            if(inss == 27) then ! for O2:
-              if(pres2(L)>preslimitO2photCorrection) then
-                ss(inss,L,I,J)=ss(inss,L,I,J)
-     &          *windowO2corr*sphericalCorrection
+            if(inss == 27 .or. inss == 28) then ! for O2 and N2O reactions:
+              ! Apply spherical corrections:
+              if(pres2(L)>reg1TopPres_SpherO2andN2Ocorr)then
+                ss(inss,L,I,J)=ss(inss,L,I,J)*sphericalCorrectionReg1
+              else if(pres2(L)>reg2TopPres_SpherO2andN2Ocorr .and.
+     &                pres2(L).le.reg1TopPres_SpherO2andN2Ocorr) then
+                ss(inss,L,I,J)=ss(inss,L,I,J)*sphericalCorrectionReg2
+              else if(pres2(L)>reg3TopPres_SpherO2andN2Ocorr .and.
+     &                pres2(L).le.reg2TopPres_SpherO2andN2Ocorr) then
+                ss(inss,L,I,J)=ss(inss,L,I,J)*sphericalCorrectionReg3
               else
-                ss(inss,L,I,J)=ss(inss,L,I,J)*windowO2corr
+                ss(inss,L,I,J)=ss(inss,L,I,J)*sphericalCorrectionReg4
               end if
             end if
-            ! for N2O (similar correction for CFC removed):
+            ! Then apply linear corrections for same reactions:
+            if(inss == 27) then
+              ss(inss,L,I,J)=ss(inss,L,I,J)*windowO2corr
+            end if
             if(inss == 28) then
-              ss(inss,L,I,J)=ss(inss,L,I,J)
-     &        *windowN2Ocorr*sphericalCorrection
+              ss(inss,L,I,J)=ss(inss,L,I,J)*windowN2Ocorr
             end if
 #endif /* not defined to skip */
           enddo
@@ -671,8 +701,7 @@ C Define and alter resulting photolysis coefficients (zj --> ss):
      &    by35*SQRT(1.224d3*COSZ1(I,J)**2.+1.d0)
         END DO
 
-       endif ! (sunlight)
-      endif  ! (modphot)                           
+      endif ! (sunlight)
       
 CCCCCCCCCCCCCCCCC END PHOTOLYSIS SECTION CCCCCCCCCCCCCCCCCCCCCCCCC
 
@@ -708,7 +737,7 @@ c Calculate the chemical reaction rates:
       voc2nox(:)=0.d0
 #endif  /* TRACERS_AEROSOLS_SOA */
 
-      if((ALB(I,J,1) /= 0.d0).AND.(sza < szamax))then
+      if(daylight)then
 CCCCCCCCCCCCCCCCCCCC   SUNLIGHT   CCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
 c      When PSCs present, ensure heterogenous reactions do not destroy
@@ -913,7 +942,7 @@ c       paths if lead to negative conc:
 #endif  /* TRACERS_TERP */
         rClOplusNO2=y(nClO,L)*rr(iClOplusNO2,L)*y(nNO2,L)*dt2
         rDMSplusNO3=ydms(i,j,L)*rsulf3(i,j,L)*yNO3(I,J,L)*dt2
-        rBrOplusNO2=rr(108,L)*y(nn_NOx,L)*pNOx(I,J,L)
+        rBrOplusNO2=rr(iBrOplusNO2,L)*y(nn_NOx,L)*pNOx(I,J,L)
      &    *y(nn_BrOx,L)*pBrOx(I,J,L)*dt2
         chgHT3=rr(iClONO2plusHCl,L)*y(nn_ClONO2,L)*dt2
         changehetClONO2=-1.d0*(rr(iClONO2plusH2O,L)*y(nn_ClONO2,L))*dt2
@@ -1188,6 +1217,30 @@ C -- CO --
           taijls(i,j,L,ijlt_COd)=taijls(i,j,L,ijlt_COd)+changeCO*cpd
 #endif
         end if       
+#ifdef TRACERS_dCO
+! ok to overwrite changeCO here
+C -- dC17O --
+        changeL(L,n_dC17O)=rHCHOplusNO3*pfactor*vol2mass(n_dC17O)
+        changeCO=changeL(L,n_dC17O)*mass2vol(n_dC17O)*bypfactor
+        if((trm(i,j,l,n_dC17O)+changeL(l,n_dC17O)) < minKG)then
+          changeL(l,n_dC17O) = minKG - trm(i,j,l,n_dC17O)
+          changeCO=changeL(L,n_dC17O)*mass2vol(n_dC17O)*bypfactor
+        endif
+C -- dC18O --
+        changeL(L,n_dC18O)=rHCHOplusNO3*pfactor*vol2mass(n_dC18O)
+        changeCO=changeL(L,n_dC18O)*mass2vol(n_dC18O)*bypfactor
+        if((trm(i,j,l,n_dC18O)+changeL(l,n_dC18O)) < minKG)then
+          changeL(l,n_dC18O) = minKG - trm(i,j,l,n_dC18O)
+          changeCO=changeL(L,n_dC18O)*mass2vol(n_dC18O)*bypfactor
+        endif
+C -- d13CO --
+        changeL(L,n_d13CO)=rHCHOplusNO3*pfactor*vol2mass(n_d13CO)
+        changeCO=changeL(L,n_d13CO)*mass2vol(n_d13CO)*bypfactor
+        if((trm(i,j,l,n_d13CO)+changeL(l,n_d13CO)) < minKG)then
+          changeL(l,n_d13CO) = minKG - trm(i,j,l,n_d13CO)
+          changeCO=changeL(L,n_d13CO)*mass2vol(n_d13CO)*bypfactor
+        endif
+#endif  /* TRACERS_dCO */
 C -- HNO3 --  (HNO3 from gas and het phase rxns )
         changeL(L,n_HNO3)=changeHNO3*pfactor*vol2mass(n_HNO3)
         IF((trm(i,j,L,n_HNO3)+changeL(L,n_HNO3)) < minKG) THEN
@@ -1531,11 +1584,14 @@ c           Conserve N wrt BrONO2 once inital Br changes past:
         tempChangeNOx= ! this needed for several diags below:
      &  changeL(L,n_NOx)*mass2vol(n_NOx)*y(nM,L)/(axyp(I,J)*MA(L,I,J))
 
+        tempChangeOx=
+     &  changeL(L,n_Ox)*mass2vol(n_Ox)*y(nM,L)/(axyp(I,J)*MA(L,I,J))
+
 ! Accumulate NO2 10:30am/1:30pm tropo column diags:
 ! -- moved from sunlight/darkness sections because needed changeNOx
 ! -- saved here in molecules/cm2
         if(L<=min(maxT,LTROPO(I,J)))then
-          if((ALB(I,J,1) /= 0.d0).AND.(sza < szamax))then
+          if(daylight)then
 
             index1=0 ; index2=0
 
@@ -1621,6 +1677,18 @@ c           Conserve N wrt BrONO2 once inital Br changes past:
      &  (1.d0-pNOx(i,j,l))*(y(nn_NOx,l)+tempChangeNOx)/y(nM,l)
 #endif
 
+        ! Below there is a 3D O3 diagnostic in cm-atm units for more
+        ! direct NINT input. Here try to save it in vmr(ppbv) for humans,
+        ! (both JL and IJL). Above top of chemistry accumulate Ox (which is
+        ! likely, depending on your deck settings actually O3 from NINT
+        ! input anyway) further on in code below:
+        if(L <= topLevelOfChemistry) then
+          taijls(i,j,L,ijlt_O3ppbv)=taijls(i,j,L,ijlt_O3ppbv)+
+     &    1.e9*pOx(i,j,L)*(y(nn_Ox,L)+tempChangeOx)/y(nM,L)
+          CALL INC_TAJLS2  ! (V/V air)
+     &    (I,J,L,jls_O3vmr,pOx(i,j,L)*(y(nn_Ox,L)+tempChangeOx)/y(nM,L))
+        end if
+
         call printSS27x2Etc()
 
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
@@ -1645,6 +1713,9 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
         mrno2(i,j,L)=pNOx(i,j,L)*(y(nn_NOx,L)+tempChangeNOx)/y(nM,L)
         mrno(i,j,L)=
      &  (1d0-pNOx(i,j,L))*(y(nn_NOx,L)+tempChangeNOx)/y(nM,L)
+        mro3(i,j,L)=pOx(i,j,L)*(y(nn_Ox,L)+tempChangeOx)/y(nM,L)
+        OH_conc(i,j,l)=y(nOH,L)
+        HO2_conc(i,j,l)=y(nHO2,L)
 #endif
      
 #ifdef TRACERS_HETCHEM
@@ -1664,6 +1735,9 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       do L=topLevelOfChemistry+1,LM
         mrno2(i,j,L)=0.d0
         mrno(i,j,L)=0.d0
+        mro3(i,j,L)=0.d0
+        OH_conc(i,j,L)=0.d0
+        HO2_conc(i,j,L)=0.d0
       end do
 #endif
 
@@ -1695,6 +1769,12 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
             call inc_subdd(subdd,k,mrno2)
           case ('MRNO')
             call inc_subdd(subdd,k,mrno)
+          case ('MRO3')
+            call inc_subdd(subdd,k,mro3)
+          case ('OH_conc')
+            call inc_subdd(subdd,k,OH_conc)
+          case ('HO2_conc')
+            call inc_subdd(subdd,k,HO2_conc)
           end select
         enddo ! k
       enddo ! igroup
@@ -1708,6 +1788,12 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
             call inc_subdd(subdd,k,mrno2)
           case ('MRNOcp')
             call inc_subdd(subdd,k,mrno)
+          case ('MRO3cp')
+            call inc_subdd(subdd,k,mro3)
+          case ('OH_conccp')
+            call inc_subdd(subdd,k,OH_conc)
+          case ('HO2_conccp')
+            call inc_subdd(subdd,k,HO2_conc)
           end select
         enddo ! k
       enddo ! igroup
@@ -1731,7 +1817,7 @@ C Special cases of overwriting, when doing stratospheric chemistry C
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC     
 C N2O, CFC, and optional CH4 L=1 overwriting: with all these "fact"s
 C this looks complicated, but basically, you are either converting
-C from mixing ratio to KG (normal case) or from cm*atm to KG  
+C from mixing ratio to KG (normal case) or from cm-atm to KG  
 C (interactive radiation case - for more on that conversion, see
 C the notes on O3MULT in the TRCHEM_Shindell_COM program):
       PIfact(:)=1.d0     
@@ -1816,21 +1902,31 @@ C the notes on O3MULT in the TRCHEM_Shindell_COM program):
 
 CCCCCCCCCCCCCCCCCC END OVERWRITE SECTION CCCCCCCCCCCCCCCCCCCCCC
 
-c Save new tracer Ox and CH4 fields for use in radiation or elsewhere:
-c (radiation code wants atm*cm units):
+c Save new tracer O3 and CH4 fields for use in radiation or elsewhere:
+c (radiation code wants atm-cm units):
       do j=J_0,J_1
         if(prnchg)DU_O3(J)=0.d0 ! Drew's diagnostic...
         do i=I_0,imaxj(j) 
           do L=1,LM ! all model layers
+            ! Pass Ox to the rad code, except...
             chem_tracer_save(1,L,i,j)=(trm(i,j,L,n_Ox) +
      &      (tr3Dsource(i,j,L,nChemistry,n_Ox) + 
      &      tr3Dsource(i,j,L,nOverwrite,n_Ox))*dtsrc)
      &      *byaxyp(i,j)*byO3MULT
+            ! ... if on active chemistry level, pass O3 instead.
+            ! (likely, depending on rundeck settings, your Ox above
+            ! the top of the chemistry is actually NINT O3 anyway):
+            if(L <= topLevelOfChemistry) chem_tracer_save(1,L,i,j)=
+     &                          pOx(i,j,L)*chem_tracer_save(1,L,i,j)
             chem_tracer_save(2,L,i,j)=(trm(i,j,L,n_CH4) +
      &      (tr3Dsource(i,j,L,nChemistry,n_CH4) + 
      &      tr3Dsource(i,j,L,nOverwrite,n_CH4))*dtsrc)
      &      *byaxyp(i,j)*avog/(tr_mm(n_CH4)*2.69e20)
             if(prnchg)DU_O3(J)=DU_O3(J)+chem_tracer_save(1,L,i,j)
+            ! Above 3D O3 diagnostic in ppbv units is saved (for humans to see).
+            ! Here do it in atm-cm units for direct NINT input for rad code.
+            taijls(i,j,L,ijlt_O3cmatm)=taijls(i,j,L,ijlt_O3cmatm)+
+     &      chem_tracer_save(1,L,i,j)
           end do
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
           strato3_tracer_save(1:LM,i,j)=(trm(i,j,1:LM,n_stratOx) +
@@ -1838,6 +1934,36 @@ c (radiation code wants atm*cm units):
      &    tr3Dsource(i,j,1:LM,nOverwrite,n_stratOx))*dtsrc)
      &    *byaxyp(i,j)*byO3MULT
 #endif
+          ! accumulate diag for the column sum of O3 mass hopefully similarly to
+          ! how taijn Ox_Total_mass is done. Use O3 for chemistry layers, Ox
+          ! tracer above (which is likely anyway actually O3 from NINT intput):
+          taijs(i,j,ijs_O3mass)=taijs(i,j,ijs_O3mass)+
+     &    sum( pOx(i,j,1:topLevelOfChemistry)*
+     &    (trm(i,j,1:topLevelOfChemistry,n_Ox)+
+     &    (tr3Dsource(i,j,1:topLevelOfChemistry,nChemistry,n_Ox)+
+     &    tr3Dsource(i,j,1:topLevelOfChemistry,nOverwrite,n_Ox))
+     &    *dtsrc))*byaxyp(i,j)
+          taijs(i,j,ijs_O3mass)=taijs(i,j,ijs_O3mass)+
+     &    sum( 
+     &    (trm(i,j,topLevelOfChemistry+1:LM,n_Ox)+
+     &    (tr3Dsource(i,j,topLevelOfChemistry+1:LM,nChemistry,n_Ox)+
+     &    tr3Dsource(i,j,topLevelOfChemistry+1:LM,nOverwrite,n_Ox))
+     &    *dtsrc))*byaxyp(i,j)
+
+          ! and the above-chemistry O3 (using the Ox tracer which is probably
+          ! O3 from NINT anyway):
+          do L=topLevelOfChemistry+1,LM
+            taijls(i,j,L,ijlt_O3ppbv)=taijls(i,j,L,ijlt_O3ppbv)+
+     &      1.e9*(trm(i,j,L,n_Ox)+(tr3Dsource(i,j,L,nChemistry,n_Ox)+
+     &      tr3Dsource(i,j,L,nOverwrite,n_Ox))*dtsrc)*byMA(L,i,j)*
+     &      byaxyp(i,j)*mass2vol(n_Ox) ! ppbv
+            CALL INC_TAJLS2  ! (V/V air)
+     &      (I,J,L,jls_O3vmr,(trm(i,j,L,n_Ox)+
+     &      (tr3Dsource(i,j,L,nChemistry,n_Ox)+
+     &      tr3Dsource(i,j,L,nOverwrite,n_Ox))*dtsrc)*byMA(L,i,j)*
+     &      byaxyp(i,j)*mass2vol(n_Ox))
+          end do 
+
         end do ! i
         if(prnchg)DU_O3(J)=1.d3*DU_O3(J)/IMAXJ(J)
       end do   ! j
@@ -1864,7 +1990,7 @@ c (radiation code wants atm*cm units):
      &  'L, O3pO2, O3pO2*C, OHpptv, HO2pptv, O/O3, NO2/NO, Cl/ClO:'
         call write_parallel(trim(out_line),crit=jay)
         do L=LS1,topLevelOfChemistry
-          if((ALB(I,J,1) /= 0.d0).AND.(sza < szamax))then
+          if(daylight)then
             ss27x2=2.d0*ss(27,L,i,j)*y(nO2,L) * (rr(98,L)*y(nO2,L))/
      &           (rr(98,L)*y(nO2,L)+rr(88,L)*y(nO3,L))
           else
@@ -1914,7 +2040,7 @@ CCCCCCCCCCCCC PRINT SOME CHEMISTRY DIAGNOSTICS CCCCCCCCCCCCCCCC
      &    pClOx(I,J,lprn),pOClOx(I,J,lprn),pBrOx(I,J,lprn)
          call write_parallel(trim(out_line),crit=jay)
          write(out_line,*)
-     &   'sun, SALBFJ,sza,I,J,Itime= ',ALB(I,J,1),sza,I,J,Itime
+     &   'sun, SALBFJ,sza,I,J,Itime= ',albedoToUse,sza,I,J,Itime
          call write_parallel(trim(out_line),crit=jay)
        end if
       end if
@@ -1925,7 +2051,7 @@ CCCCCCCCCCCCC PRINT SOME CHEMISTRY DIAGNOSTICS CCCCCCCCCCCCCCCC
         if(prnchg.and.J == jprn.and.I == iprn.and.L == lprn)then
           jay = (J >= J_0 .and. J <= J_1)
           write(out_line,*)
-     &    'dark, SALBFJ,sza,I,J,L,Itime= ',ALB(I,J,1),sza,I,J,L,Itime
+     &    'dark, SALBFJ,sza,I,J,L,Itime= ',albedoToUse,sza,I,J,L,Itime
           call write_parallel(trim(out_line),crit=jay)
           if(pscX(L))then
             write(out_line,*) 'There are PSCs, T =',ta(L)
@@ -2106,7 +2232,7 @@ C Make sure nighttime chemistry changes are not too big:
 !@+ taken from the UK Harwell Model
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
 !
-      use resolution, only : ls1
+      use resolution, only : ls1=>ls1_nominal
       use resolution, only : lm
       use model_com, only: modelEclock
       use atm_com, only: pmid
@@ -2154,19 +2280,17 @@ C Make sure nighttime chemistry changes are not too big:
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
 
 C**** GLOBAL parameters and variables:
-      USE RESOLUTION, only  : ptop,psf,ls1
       USE RESOLUTION, only  : LM
       USE MODEL_COM, only: Itime,ItimeI
       USE TRACER_COM, only: coupled_chem,trm,nn_N2O5,n_N2O5,n_SO4
       USE TRDIAG_COM, only: jls_N2O5sulf
       USE OldTracer_mod, only: vol2mass
       USE RAD_COM, only  : rad_to_chem
-      USE CONSTANT, only : PI
-      USE ATM_COM, only : MA
-      USE DYNAMICS, only : sig
-      USE TRCHEM_Shindell_COM, only: nr2,nr3,nmm,nhet,ta,ea,rr,pe,
+      USE CONSTANT, only : PI, pN2
+      USE ATM_COM, only : MA, PMIDL00
+      USE TRCHEM_Shindell_COM, only: n_bi,n_tri,n_nst,n_het,ta,ea,rr,pe,
      & cboltz,r1,sb,nst,y,nM,nH2O,ro,sn,which_trop,sulfate,RKBYPIM,dt2,
-     & RGAMMASULF,pscX,topLevelOfChemistry,rh,bythick,aero
+     & RGAMMASULF,pscX,topLevelOfChemistry,rh,bythick,aero,n_bi_terp
 
 #ifdef TRACERS_AEROSOLS_SOA
       USE TRACER_COM, only: n_isopp1a,n_isopp2a
@@ -2211,15 +2335,18 @@ C**** Local parameters and variables and arguments:
 !@var LAXt,LAXb lowest and highest levels to have nonzero 
 !@+   RAD-code aerosol extinction 
 !@var aero array =1 for nonzero rkext, otherwise 0.
-      REAL*8, DIMENSION(LM) :: PRES ! PRES stays LM as function of SIG(:)
+      REAL*8, DIMENSION(LM) :: PRES ! = PMIDL00(1:LM). Keeps LM dimension not top of chem
       INTEGER               :: LAXt,LAXb
       real*8, allocatable, dimension(:) :: PSCEX,rkext
+#ifdef TRACERS_dCO
+      integer, parameter :: idC17OplusOH=92+n_bi_terp
+#endif  /* TRACERS_dCO */
 
       allocate( PSCEX(topLevelOfChemistry) )
       allocate( rkext(topLevelOfChemistry) )
 
       aero(:)=0
-      PRES(:)=SIG(:)*(PSF-PTOP)+PTOP
+      PRES(1:LM) = PMIDL00(1:LM)
       rkext(:)=0.d0 ! initialize over L
       LAXb=0
       LAXt=0
@@ -2246,17 +2373,21 @@ C**** Local parameters and variables and arguments:
       do L=1,topLevelOfChemistry            !  ==> BEGIN ALTITUDE LOOP <==
         byta=1.d0/ta(L)
         pcon=y(nM,L)*ta(L)*cboltz/1013.d0
-        do jj=1,nr2             ! bimolecular rates start
-          IF(ea(jj) /= 0.d0) THEN
-            rr(jj,L)=pe(jj)*exp(-ea(jj)*byta)
-          ELSE
-            rr(jj,L)=pe(jj)
-          END IF
+        do jj=1,n_bi+n_nst             ! bimolecular rates start
+          rr(jj,L)=pe(jj)*exp(-ea(jj)*byta)
+c         for #9, M is really N2
+          if(jj == 9) rr(jj,L)=rr(jj,L)*pN2
 c         for #12, k based on three-parameters from JPL2011
           if(jj == 12) rr(jj,L)=rr(jj,L)*(ta(L)**0.667)
 c         for #13, k= based on termolecular reaction from JPL2011
 c         (see paged 185-188 and note D1)
-          if(jj == 13) then
+          if(jj == 13
+#ifdef TRACERS_dCO
+     &       .or. jj == idC17OplusOH
+     &       .or. jj == idC17OplusOH+4
+     &       .or. jj == idC17OplusOH+8
+#endif  /* TRACERS_dCO */
+     &      ) then
             k0TM=y(nM,L)*pe(jj)*((300.d0*byta)**1.4)
             kinfT=1.1d-12*(300.d0*byta)**(-1.3)
             dd=k0TM/kinfT
@@ -2297,18 +2428,18 @@ c         for #16, k=[pe*exp(-e(jj)/ta(l))]+k3[M]/(1+k3[M]/k2)
                            
         ! here we USED TO tune rr for N2O+O(1D)-->N2+O2 and N2O+O(1D)-->NO+NO
          
-        do jj=1,nr3           ! trimolecular rates start
-          rr(nr2+jj,L)=y(nM,L)*ro(jj)*(300.d0*byta)**sn(jj)
+        do jj=1,n_tri         ! trimolecular rates start
+          rr(n_bi+n_nst+jj,L)=y(nM,L)*ro(jj)*(300.d0*byta)**sn(jj)
           if(r1(jj) .ne. 0.d0)then 
-            dd=rr(nr2+jj,L)/(r1(jj)*(300.d0*byta)**sb(jj))
+            dd=rr(n_bi+n_nst+jj,L)/(r1(jj)*(300.d0*byta)**sb(jj))
             pp=0.6d0**(1.d0/(1.d0+(log10(dd))**2.))
-            rr(nr2+jj,L)=(rr(nr2+jj,L)/(1.d0+dd))*pp
+            rr(n_bi+n_nst+jj,L)=(rr(n_bi+n_nst+jj,L)/(1.d0+dd))*pp
           end if
         end do                ! trimolecular rates end
 
-        nb=nr2-nmm
-        if(nmm >= 1) then
-          do jj=1,nmm         ! monomolecular rates start
+        nb=n_bi
+        if(n_nst >= 1) then
+          do jj=1,n_nst         ! monomolecular rates start
            ! 0.5 for precision,correct following line:
            rrrr=exp(0.5d0*ea(jj+nb)*byta)
            rr(jj+nb,L)=rr(nst(jj),L)/(rrrr*pe(jj+nb)*rrrr*y(nM,l))     
@@ -2331,7 +2462,7 @@ c coefficients(in km**-1) are from SAGE II data on GISS web site:
         bypfactor=1.d0/pfactor
 
         if(pres(L) >= 245.d0 .or. pres(L) <= 5.d0)then 
-          do jj=nr2+nr3+2,nr2+nr3+nhet
+          do jj=n_bi+n_nst+n_tri+2,n_bi+n_nst+n_tri+n_het
             rr(jj,L)=1.0d-35
           enddo 
           ! Add rxn of N2O5 on sulfate analogous to what is done in darkness:
@@ -2383,7 +2514,7 @@ c         in troposphere loss is rxn on sulfate, in strat rxn w PSC or sulfate
           prod_sulf=wprod_sulf*pfactor
           CALL INC_TAJLS(I,J,L,jls_N2O5sulf,
      &                   -1.d0*prod_sulf*vol2mass(n_N2O5))
-          rr(nr2+nr3+1,L)=wprod_sulf/(dt2*y(nn_N2O5,L))
+          rr(n_bi+n_nst+n_tri+1,L)=wprod_sulf/(dt2*y(nn_N2O5,L))
 
         else  
 
@@ -2443,30 +2574,32 @@ c         in troposphere loss is rxn on sulfate, in strat rxn w PSC or sulfate
 
 c         Reaction 1 on sulfate and PSCs:      
           temp=sqrt(8.d0*1.38d-16*ta(l)*6.02d23/(PI*108.d0))
-          rr(nr2+nr3+1,L)=0.5d0*rkext(l)*1.d-5*temp*0.2d0
-          if(pres(l) > 31.6d0) rr(nr2+nr3+1,L)=
-     &    rr(nr2+nr3+1,L)+0.25d0*pscEx(l)*temp*0.0004d0
+          rr(n_bi+n_nst+n_tri+1,L)=0.5d0*rkext(l)*1.d-5*temp*0.2d0
+          if(pres(l) > 31.6d0) rr(n_bi+n_nst+n_tri+1,L)=
+     &    rr(n_bi+n_nst+n_tri+1,L)+0.25d0*pscEx(l)*temp*0.0004d0
 
 c         Reaction 2 on sulfate and PSCs:      
           temp=sqrt(8.d0*1.38d-16*ta(l)*6.02d23/(PI*97.d0))
-          rr(nr2+nr3+2,L)=0.5d0*rkext(l)*1.d-5*temp*0.8d-2
-          if(pres(l) > 31.6d0) rr(nr2+nr3+2,L)=
-     &    rr(nr2+nr3+2,L)+0.25d0*pscEx(l)*temp*4.d-3
+          rr(n_bi+n_nst+n_tri+2,L)=0.5d0*rkext(l)*1.d-5*temp*0.8d-2
+          if(pres(l) > 31.6d0) rr(n_bi+n_nst+n_tri+2,L)=
+     &    rr(n_bi+n_nst+n_tri+2,L)+0.25d0*pscEx(l)*temp*4.d-3
 
           if(pres(l) > 31.6d0) then
-            rr(nr2+nr3+3,L)=0.25d0*pscEx(l)*temp*0.2d0
-            rr(nr2+nr3+4,L)=
+            rr(n_bi+n_nst+n_tri+3,L)=0.25d0*pscEx(l)*temp*0.2d0
+            rr(n_bi+n_nst+n_tri+4,L)=
      &      sqrt(8.d0*1.38d-16*ta(l)*6.02d23/(PI*52.d0))
-            rr(nr2+nr3+4,L)=0.25d0*pscEx(l)*rr(nr2+nr3+4,L)*0.1d0
-            rr(nr2+nr3+5,L)=
+            rr(n_bi+n_nst+n_tri+4,L)=
+     &        0.25d0*pscEx(l)*rr(n_bi+n_nst+n_tri+4,L)*0.1d0
+            rr(n_bi+n_nst+n_tri+5,L)=
      &      sqrt(8.d0*1.38d-16*ta(l)*6.02d23/(PI*108.d0))
-            rr(nr2+nr3+5,L)=0.25d0*pscEx(l)*rr(nr2+nr3+5,L)*0.003d0
+            rr(n_bi+n_nst+n_tri+5,L)=
+     &        0.25d0*pscEx(l)*rr(n_bi+n_nst+n_tri+5,L)*0.003d0
           end if
 
         end if  
 
         if(pres(L) < 245.d0 .and. pres(L) > 5.d0)then
-          wprod_sulf=dt2*y(nn_N2O5,L)*rr(nr2+nr3+1,L)
+          wprod_sulf=dt2*y(nn_N2O5,L)*rr(n_bi+n_nst+n_tri+1,L)
           prod_sulf=wprod_sulf*pfactor
           CALL INC_TAJLS(I,J,L,jls_N2O5sulf,
      &                   -1.d0*prod_sulf*vol2mass(n_N2O5))

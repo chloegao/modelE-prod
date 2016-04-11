@@ -329,7 +329,7 @@
       USE OCEAN, only : im,jm,lmo,focean,lmm
      *     ,lmu,lmv,hatmo,hocean,ze,mo,g0m,s0m,zmid,dzoe,bydzoe
      *     ,uo,vo,uod,vod,dxypo,ogeoz,kpl
-     *     ,dts,dtolf,dto,dtofs,mdyno,msgso
+     *     ,dts,dtolf,dto,dtofs,nocean,mdyno,msgso
      *     ,ndyno,imaxj,ogeoz_sv,bydts,lmo_min,j1o
      *     ,OBottom_drag,OCoastal_drag,OTIDE,oc_salt_mean
 #ifdef OCN_GISS_MESO
@@ -370,7 +370,8 @@
 #ifdef OCN_GISS_SM
       USE GISS_SM, only : giss_sm_init
 #endif
-      use pario, only : par_open,par_close,read_dist_data
+      use pario, only : par_open,par_close,read_dist_data,
+     &     variable_exists
       IMPLICIT NONE
 c
       LOGICAL, INTENT(IN) :: iniOCEAN
@@ -433,6 +434,7 @@ C****
 C**** set up time steps from atmospheric model
 C****
       call sync_param("DTO",DTO)
+      call sync_param('nocean',nocean)
 
       DTS=DTSRC
       BYDTS=1d0/DTS
@@ -581,70 +583,85 @@ C****
 C**** Initialize a run from ocean initial conditions
 
       fid = par_open(grid,'OIC','read')
-      call read_dist_data(grid,fid,'mo',mo)
-      call read_dist_data(grid,fid,'g' ,g0m)
-      call read_dist_data(grid,fid,'gz',gzmo)
-      call read_dist_data(grid,fid,'s' ,s0m)
-      call read_dist_data(grid,fid,'sz',szmo)
-      call par_close(grid,fid)
-      call halo_update(grid,mo)
-      call halo_update(grid,g0m)
-      call halo_update(grid,gzmo)
-      call halo_update(grid,s0m)
-      call halo_update(grid,szmo)
+
+      native_oic: if(variable_exists(grid,fid,'mo')) then
+        ! oic with full set of native variables
+        call read_dist_data(grid,fid,'mo',mo)
+        call read_dist_data(grid,fid,'g' ,g0m)
+        call read_dist_data(grid,fid,'gz',gzmo)
+        call read_dist_data(grid,fid,'s' ,s0m)
+        call read_dist_data(grid,fid,'sz',szmo)
+
+        call halo_update(grid,mo)
+        call halo_update(grid,g0m)
+        call halo_update(grid,gzmo)
+        call halo_update(grid,s0m)
+        call halo_update(grid,szmo)
 
 C**** Calculate layer mass from column mass and check for consistency
-      DO 313 J=J_0,J_1
-      DO 313 I=1,IM
-      LMIJ=LMM(I,J)
-      DO 312 L=LMIJ+1,LMO
-  312 MO(I,J,L) = 0.
-C**** if there is a problem try nearest neighbour
-      IF((LMM(I,J).GT.0).AND.(ABS(MO(I,J,1)/ZE(1)-1d3).GT.5d1)) THEN
-        WRITE (6,931) I,J,LMIJ,MO(I,J,1),ZE(1)
-        II=0 ; JJ=0 ; flagij=0
-
-        do j1=0,2
-          do i1=0,4
-            if(flagij.eq.0) then
-              if(j1.eq.0) jj=j
-              if(j1.eq.1) jj=j-1
-              if(j1.eq.2) jj=j+1
-
-              if(i1.eq.0) ii=i
-              if(i1.eq.1) ii=i-1
-              if(i1.eq.2) ii=i+1
-              if(i1.eq.3) ii=i-2
-              if(i1.eq.4) ii=i+2
-              if(i1.eq.5) ii=i-3
-              if(i1.eq.6) ii=i+3
-              if(ii.gt.im) ii=ii-im
-              if(ii.lt.1) ii=ii+im
-              if(jj.gt.jm) then
-                jj=jm
-                if(ii.le.im/2) ii=ii+im/2
-                if(ii.gt.im/2) ii=ii-im/2
-              endif
-              if(jj.lt.1) then
-                jj=1
-                if(ii.le.im/2) ii=ii+im/2
-                if(ii.gt.im/2) ii=ii-im/2
-              endif
-              IF ((MO(II,JJ,1).gt.0) .and. (LMM(II,JJ).ge.LMM(I,J)))
-     *             flagij=1
-            endif
+        DO J=J_0,J_1
+        DO I=1,IM
+          LMIJ=LMM(I,J)
+          DO L=LMIJ+1,LMO
+            MO(I,J,L) = 0.
           enddo
+C**** if there is a problem try nearest neighbour
+          IF((LMM(I,J).GT.0).AND.(ABS(MO(I,J,1)/ZE(1)-1d3).GT.5d1)) THEN
+            WRITE (6,931) I,J,LMIJ,MO(I,J,1),ZE(1)
+            II=0 ; JJ=0 ; flagij=0
+            do j1=0,2
+              do i1=0,4
+                if(flagij.eq.0) then
+                  if(j1.eq.0) jj=j
+                  if(j1.eq.1) jj=j-1
+                  if(j1.eq.2) jj=j+1
+
+                  if(i1.eq.0) ii=i
+                  if(i1.eq.1) ii=i-1
+                  if(i1.eq.2) ii=i+1
+                  if(i1.eq.3) ii=i-2
+                  if(i1.eq.4) ii=i+2
+                  if(i1.eq.5) ii=i-3
+                  if(i1.eq.6) ii=i+3
+                  if(ii.gt.im) ii=ii-im
+                  if(ii.lt.1) ii=ii+im
+                  if(jj.gt.jm) then
+                    jj=jm
+                    if(ii.le.im/2) ii=ii+im/2
+                    if(ii.gt.im/2) ii=ii-im/2
+                  endif
+                  if(jj.lt.1) then
+                    jj=1
+                    if(ii.le.im/2) ii=ii+im/2
+                    if(ii.gt.im/2) ii=ii-im/2
+                  endif
+                  IF ((MO(II,JJ,1).gt.0) .and. (LMM(II,JJ).ge.LMM(I,J)))
+     *                 flagij=1
+                endif
+              enddo
+            enddo
+            IF (flagij.ne.0) THEN
+              MO(I,J,1:LMM(I,J))=MO(II,JJ,1:LMM(I,J))
+              G0M(I,J,1:LMM(I,J))=G0M(II,JJ,1:LMM(I,J))
+              S0M(I,J,1:LMM(I,J))=S0M(II,JJ,1:LMM(I,J))
+              GZMO(I,J,1:LMM(I,J))=GZMO(II,JJ,1:LMM(I,J))
+              SZMO(I,J,1:LMM(I,J))=SZMO(II,JJ,1:LMM(I,J))
+              WRITE (6,*) "Inconsistency at ",I,J,"fixed from :",II,JJ
+            END IF
+          END IF
         enddo
-        IF (flagij.ne.0) THEN
-          MO(I,J,1:LMM(I,J))=MO(II,JJ,1:LMM(I,J))
-          G0M(I,J,1:LMM(I,J))=G0M(II,JJ,1:LMM(I,J))
-          S0M(I,J,1:LMM(I,J))=S0M(II,JJ,1:LMM(I,J))
-          GZMO(I,J,1:LMM(I,J))=GZMO(II,JJ,1:LMM(I,J))
-          SZMO(I,J,1:LMM(I,J))=SZMO(II,JJ,1:LMM(I,J))
-          WRITE (6,*) "Inconsistency at ",I,J,"fixed from :",II,JJ
-        END IF
-      END IF
-  313 CONTINUE
+        enddo
+      else ! not native oic
+        call tempsalt_oic(fid,mo,g0m,gzmo,s0m,szmo)
+        call halo_update(grid,mo)
+        call halo_update(grid,g0m)
+        call halo_update(grid,gzmo)
+        call halo_update(grid,s0m)
+        call halo_update(grid,szmo)
+      endif native_oic
+
+      call par_close(grid,fid)
+
 C**** Initialize velocity field and slopes of pot. heat and salinity to
 C**** zero
       UO=0
@@ -805,6 +822,7 @@ C**** Initialize solar radiation penetration arrays
       call init_solar
 
 C**** Initialize KPP mixing scheme
+      call alloc_kpp_com(grid) ! alloc moved here after lsrpd is set
       call kmixinit(ZE)
 
 #ifdef OCN_GISS_TURB
@@ -889,6 +907,335 @@ C****
 C****
       END SUBROUTINE init_OCEAN
 
+      subroutine tempsalt_oic(fid,mo,g0,gz,s0,sz)
+C**** Create MO/G/S on model levels from input file T/S on model
+C**** horizontal grid but arbitrary depths.  Input T/S are assumed
+C**** to be at specific depths rather than means over depth intervals.
+      use ocean, only : im,lmo,lmo_min
+      use ocean, only : focean,lmom=>lmm,hocean
+      use ocean, only : dzo,zoe=>ze
+      use constant, only : grav,rhow
+      use oceanr_dim, only : grid=>ogrid
+      use domain_decomp_1d, only : getdomainbounds
+      use pario, only : read_dist_data,read_data,
+     &     variable_exists,get_dimlens,read_attr
+      !use ofluxes, only : oapress
+      implicit none
+      integer :: fid
+      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,lmo) ::
+     &     MO,  !  layer mass (kg/m2)
+     &     G0,  !  mean potential specific enthalpy (J/kg)
+     &     GZ,  !  vertical gradient of potential enthalpy (J/kg)
+     &     S0,  !  mean salinity (psu)
+     &     SZ   !  vertical gradient of salinity (psu)
+c
+      real*8,   parameter ::
+     &     RHOO=1035,  ! precise value does not matter
+     &     zRT3=1/3**.5d0, zRT12=1/12**.5d0
+C****
+      integer :: kmoic  ! number of OIC levels
+      real*8 :: missing
+
+      real*8, dimension(:,:,:), allocatable ::
+     &    TOIC,  !  temperature (C)
+     &    SOIC   !  salinity (psu)
+
+C**** Variables for single vertical column
+      real*8, dimension(:), allocatable ::
+     &     ZOIC,!  input depths (m)
+     &     GK,  !  potential specific enthalpy (J/kg)
+     &     SK,  !  salinity (psu)
+     &     PK,  !  pressure (Pa)
+     &     VK   !  specific volume (m^3/kg)
+
+C**** Ocean functions of Pressure (Pa), Temperature (C), and Salinity
+      real*8 ::
+     *       PHPTS,        !  potential specific enthalpy (J/kg)
+     *      VOLPTS,VOLGSP  !  specific volume (m^3/kg)
+C****
+      integer I,J,K,L,LM, ITER, KMIJ, N
+      integer :: j_0,j_1,j_0h,j_1h
+      logical :: have_north_pole
+      real*8 :: PE,ZE, PUP,PDN, VUP,VDN, dMCOL
+      real*8 :: ZLO  !  liquid ocean height (m)
+      real*8 :: PSL !  sea level pressure (Pa)
+
+      integer :: ndims,dlens(7),ndgood
+      character(len=8) :: vnames(3)
+
+      !call stop_model('is oapress set?',255)
+
+      call getdomainbounds(grid,
+     &     j_strt = j_0, j_stop = j_1,
+     &     j_strt_halo = j_0h, j_stop_halo = j_1h,
+     &     have_north_pole = have_north_pole)
+
+c
+c basic sanity checks, reading of metadata
+c
+      vnames(1) = 'depth'
+      vnames(2) = 'temp'
+      vnames(3) = 'salt'
+
+      do n=1,3
+        if(.not.variable_exists(grid,fid,trim(vnames(n)))) then
+          call stop_model(
+     &         'tempsalt_oic currently expects OIC variable named '//
+     &         trim(vnames(n)),255)
+        endif
+        call get_dimlens(grid,fid,trim(vnames(n)),ndims,dlens)
+        if(trim(vnames(n)).eq.'depth') then
+          ndgood = 1
+        else
+          ndgood = 3
+        endif
+        if(ndims.ne.ndgood) then
+          call stop_model(
+     &         'tempsalt_oic: wrong rank for OIC variable '//
+     &         trim(vnames(n)),255)
+        endif
+        if(trim(vnames(n)).eq.'depth') kmoic = dlens(1)
+      enddo
+      missing = 12345678.
+      call read_attr(grid,fid,'temp','missing',i,missing)
+      call read_attr(grid,fid,'temp','_FillValue',i,missing)
+      if(missing == 12345678.) then
+        call stop_model(
+     &       'tempsalt_oic: no missing value set for temp',255)
+      endif
+
+c
+c read input variables
+c
+      allocate(gk(kmoic),sk(kmoic),pk(kmoic),vk(kmoic))
+      allocate(zoic(kmoic))
+      call read_data(grid,fid,'depth',zoic,bcast_all=.true.)
+      do k=2,kmoic
+        if(zoic(k).lt.0. .or. zoic(k).lt.zoic(k-1)) then
+          call stop_model(
+     &     'tempsalt_oic: zoic not monotonically increasing downward',
+     &         255)
+        endif
+      enddo
+
+      allocate(toic(im,j_0h:j_1h,kmoic),soic(im,j_0h:j_1h,kmoic))
+      toic = 0.
+      soic = 0.
+      call read_dist_data(grid,fid,'temp',toic)
+      call read_dist_data(grid,fid,'salt',soic)
+      where(soic.ne.missing) soic = soic*1d-3 ! psu -> kg/kg
+
+      g0 = missing  ;  gz = missing
+      s0 = missing  ;  sz = missing
+      mo = 0.
+
+      do j=j_0,j_1
+      do i=1,im
+        if (focean(i,j) == 0.) cycle
+
+        LM = LMOM(I,J)
+
+C****
+C**** Convert ocean temperature to potential specific enthalpy
+C****
+        GK(:) = MISSING
+        K = 1
+        PK(K) = 0
+        VK(K) = VOLPTS (PK(K), TOIC(I,J,K), SOIC(I,J,K))
+        GK(K) =  PHPTS (PK(K), TOIC(I,J,K), SOIC(I,J,K))
+        do k=2,kmoic
+          If (TOIC(I,J,K) <= MISSING .or. SOIC(I,J,K) <= MISSING) exit
+          kmij = k
+          VK(K) = VK(K-1)
+          do iter=1,3           ! use 3 iterations of PK, VK to converge
+            PK(K) = PK(K-1) + GRAV*(ZOIC(K)-ZOIC(K-1))*2/(VK(K-1)+VK(K))
+            VK(K) = VOLPTS (PK(K), TOIC(I,J,K), SOIC(I,J,K))
+          enddo
+          GK(K) =  PHPTS (PK(K), TOIC(I,J,K), SOIC(I,J,K))
+        enddo
+
+C****
+C**** Remap G and S to model layers; calculate vertical gradients
+C****
+        SK(1:KMIJ) = SOIC(I,J,1:KMIJ)
+        call VLKtoLZ (KMIJ,LMOM(I,J), ZOIC,ZOE(0:LM), GK(1:KMIJ),
+     &       G0(I,J,1:LM),GZ(I,J,1:LM), missing)
+        call VLKtoLZ (KMIJ,LMOM(I,J), ZOIC,ZOE(0:LM), SK(1:KMIJ),
+     &       S0(I,J,1:LM),SZ(I,J,1:LM), missing)
+C****
+C**** Iteratively solve for MO so that integrated Z matches ZLO
+C****
+
+C**** Calculate atmospheric surface pressure (Pa)
+        PSL = 101325 ! constant as it was in offline version
+        !ZLO = - MSI(I,J)/RHOW ! account for the weight of sea ice
+        ZLO = 0.!- OAPRESS(I,J)/RHOW/GRAV ! account for the weight of sea ice and atm
+                                          ! why rhow and not rhoo
+        MO(I,J,1:LM) = RHOO*dZO(1:LM) !  initial guess
+C**** Add heights from each layer from ZSOLID (= - HOCEAN)
+        do iter=1,10
+          PE = PSL - 101325
+          ZE = - HOCEAN(I,J)
+          DO L=1,LM
+            PUP = PE + MO(I,J,L)*GRAV*(.5-zRT12)
+            PDN = PE + MO(I,J,L)*GRAV*(.5+zRT12)
+            VUP = VOLGSP (G0(I,J,L)-zRT3*GZ(I,J,L),
+     *           (S0(I,J,L)-zRT3*SZ(I,J,L)), PUP)
+            VDN = VOLGSP (G0(I,J,L)+zRT3*GZ(I,J,L),
+     *           (S0(I,J,L)+zRT3*SZ(I,J,L)), PDN)
+            PE  = PE + MO(I,J,L)*GRAV
+            ZE  = ZE + MO(I,J,L)*(VUP+VDN)*.5
+          enddo
+          dMCOL = RHOO*(ZE-ZLO) !  excess mass in column
+          !MO(I,J,1:LM) = MO(I,J,1:LM) - dMCOL*MFO(1:LM,LM)
+          MO(I,J,1:LM) = MO(I,J,1:LM) - dMCOL*(dZO(1:LM) / ZOE(LM))
+          if(abs(ZE-ZLO) < 1d-6) exit
+        enddo
+      enddo
+      enddo
+
+      deallocate(toic,soic)
+
+      end subroutine tempsalt_oic
+
+
+      subroutine VLKtoLZ (KM,LM, MK,ME, RK, RL,RZ, missing)
+C****
+C**** VLKtoLZ assumes a continuous piecewise linear tracer distribution,
+C**** defined by input tracer concentrations RK at KM specific points.
+C**** MK in the downward vertical mass coordinate.
+C**** R(M) = {RK(K-1)*[MK(K)-M] + RK(K)*[M-MK(K-1)]} / [MK(K)-MK(K-1)]
+C****               when MK(K-1) < M < MK(K).
+C**** R(M) = RK(1)  when M < MK(1).
+C**** R(M) = is undefined when MK(KM) < M.
+C****
+C**** VLKtoLZ integrates this tracer distribution over the LM output
+C**** layers defined by their layer edges ME, calculating the tracer
+C**** mass RM of each layer and the vertical gradient RZ.
+C**** RNEW(M) = RL(L) + RZ(L)*[M-MC(L)]/dM(L) when ME(L-1) < M < ME(L)
+C**** where MC(L) = .5*[ME(L-1)+ME(L)] and dM(L) = ME(L)-ME(L-1)
+C**** Mean concentration of output layers is RL(L) = RM(L)/dM(L).
+C****
+C**** If ME(L-1) < MK(KM) < ME(L), then RL(L) and RZ(L) are calculated
+C**** from the input profile up to MK(KM); RL(L+1:LM) and RZ(L+1:LM)
+C**** for deeper layers are undefined, set to MISSING.
+C****
+C**** Input:  KM = number of input edges
+C****         LM = number of output cells
+C****         MK = mass coordinates of input points (kg/m^2)
+C****         ME = mass coordinates of output layer edges (kg/m^2)
+C****         RK = tracer concentration at input points
+C****
+C**** Output: RL = mean tracer concentration of each output layer
+C****         RZ = vertical gradient of tracer mass of each output layer
+C****
+C**** Internal: RM = integrated tracer mass of output layers (kg/m^2)
+C****           RQ = integrated tracer mass times mass (kg^2/m^4)
+C****
+      implicit none
+      integer :: km,lm
+      Real*8 MK(KM),ME(0:LM), RK(KM), RL(LM),RZ(LM), RM(1024),RQ(1024)
+      real*8 :: missing
+      real*8 :: mc
+      integer :: k,l,ll
+C     If (LM > 1024)  Stop 'LM exceeds internal dimentions in VLKtoLZ'
+C****
+      RM(1:LM) = 0
+      RQ(1:LM) = 0
+      K = 1
+      L = 1
+      MC = .5*(ME(L)+ME(L-1))
+C****
+C**** Integrate layers with M < MK(1)
+C****
+      If (ME(0) < MK(1))  GoTo 20
+C**** MK(1) <= ME(0), determine K such that MK(K-1) <= ME(0) < MK(K)
+   10 If (K == KM)  GoTo 200  ;  K = K+1
+      If (MK(K) <= ME(0))  GoTo 10
+      GoTo 130  !  MK(K-1) <= ME(0) < MK(K)
+C**** ME(0) < MK(1), determine output cell containing MK(1)
+   20 If (MK(1) < ME(L))  GoTo 30
+C**** ME(L-1) < ME(L) < MK(1), integrate RM from ME(L-1) to ME(L)
+      RM(L) = RK(1)*(ME(L)-ME(L-1))
+      RQ(L) = 0
+      If (L == LM)  GoTo 300  ;  L = L+1  ;  MC = .5*(ME(L)+ME(L-1))
+      GoTo 20
+C**** ME(L-1) < MK(1) < ME(L), integrate RM from ME(L-1) to MK(1)
+   30 RM(L) = RK(1)*(MK(1)-ME(L-1))
+      RQ(L) = RK(1)*(MK(1)-ME(L-1))*(.5*(MK(1)+ME(L-1))-MC)
+      If (K == KM)  GoTo 220  ;  K = K+1
+C****
+C**** Integrate layers with MK(1) < M < MK(KM)
+C****
+  100 If (ME(L) < MK(K))  GoTo 120
+C**** ME(L-1) < MK(K-1) < MK(K) < ME(L), integrate from MK(K-1) to MK(K)
+      RM(L) = RM(L) + (RK(K)-RK(K-1))*(MK(K)+MK(K-1))/2 +
+     +                RK(K-1)*MK(K)-RK(K)*MK(K-1)
+      RQ(L) = RQ(L) +
+     +  (RK(K)-RK(K-1))*(MK(K)*MK(K)+MK(K)*MK(K-1)+MK(K-1)*MK(K-1))/3 +
+     +  (RK(K-1)*(MK(K)+MC)-RK(K)*(MK(K-1)+MC))*(MK(K)+MK(K-1))/2 +
+     +  (RK(K)*MK(K-1)-RK(K-1)*MK(K))*MC
+      If (K == KM)  GoTo 220  ;  K = K+1
+      GoTo 100
+C**** ME(L-1) < MK(K-1) < ME(L) < MK(K), integrate from MK(K-1) to ME(L)
+  120 RM(L) = RM(L) + ((RK(K)-RK(K-1))*(ME(L)+MK(K-1))/2 +
+     +                 (RK(K-1)*MK(K)-RK(K)*MK(K-1))) * (ME(L)-MK(K-1))
+     /              / (MK(K)-MK(K-1))
+      RQ(L) = RQ(L) +
+     +  ((RK(K)-RK(K-1))*(ME(L)*ME(L)+ME(L)*MK(K-1)+MK(K-1)*MK(K-1))/3 +
+     +   (RK(K-1)*(MK(K)+MC)-RK(K)*(MK(K-1)+MC))*(ME(L)+MK(K-1))/2 +
+     +   (RK(K)*MK(K-1)-RK(K-1)*MK(K))*MC) * (ME(L)-MK(K-1)) /
+     /  (MK(K)-MK(K-1))
+      If (L == LM)  GoTo 300  ;  L = L+1  ;  MC = .5*(ME(L)+ME(L-1))
+  130 If (MK(K) < ME(L))  GoTo 160
+C**** MK(K-1) < ME(L-1) < ME(L) < MK(K), integrate from ME(L-1) to ME(L)
+  140 RM(L) = ((RK(K)-RK(K-1))*(ME(L)+ME(L-1))/2 +
+     +         (RK(K-1)*MK(K)-RK(K)*MK(K-1))) * (ME(L)-ME(L-1)) /
+     /        (MK(K)-MK(K-1))
+      RQ(L) =
+     +  ((RK(K)-RK(K-1))*(ME(L)*ME(L)+ME(L)*ME(L-1)+ME(L-1)*ME(L-1))/3 +
+     +   (RK(K-1)*(MK(K)+MC)-RK(K)*(MK(K-1)+MC))*(ME(L)+ME(L-1))/2 +
+     +   (RK(K)*MK(K-1)-RK(K-1)*MK(K))*MC) * (ME(L)-ME(L-1)) /
+     /  (MK(K)-MK(K-1))
+      If (L == LM)  GoTo 300  ;  L = L+1  ;  MC = .5*(ME(L)+ME(L-1))
+      If (ME(L) < MK(K))  GoTo 140
+C**** MK(K-1) < ME(L-1) < MK(K) < ME(L), integrate from ME(L-1) to MK(K)
+  160 RM(L) = RM(L) + ((RK(K)-RK(K-1))*(MK(K)+ME(L-1))/2 +
+     +                 (RK(K-1)*MK(K)-RK(K)*MK(K-1))) * (MK(K)-ME(L-1))
+     /              / (MK(K)-MK(K-1))
+      RQ(L) = RQ(L) +
+     +  ((RK(K)-RK(K-1))*(MK(K)*MK(K)+MK(K)*ME(L-1)+ME(L-1)*ME(L-1))/3 +
+     +   (RK(K-1)*(MK(K)+MC)-RK(K)*(MK(K-1)+MC))*(MK(K)+ME(L-1))/2 +
+     +   (RK(K)*MK(K-1)-RK(K-1)*MK(K))*MC) * (MK(K)-ME(L-1)) /
+     /  (MK(K)-MK(K-1))
+      If (K == KM)  GoTo 220  ;  K = K+1
+      GoTo 100
+C****
+C**** Calculate RL and RZ from RM and RQ when MK(KM) < ME(LM)
+C****
+C**** MK(KM) <= ME(0)
+  200 RL(:) = MISSING
+      RZ(:) = MISSING
+      Return
+C**** ME(L-1) < MK(KM) < ME(L)
+  220 Do 230 LL=1,L-1
+      RL(LL) =   RM(LL) / (ME(LL)-ME(LL-1))
+  230 RZ(LL) = 6*RQ(LL) / (ME(LL)-ME(LL-1))**2
+      RL(L)  =   RM(L)  / (MK(KM)-ME(L-1))
+      RZ(L)  = 6*(RQ(L) + .5*(ME(L)-MK(KM))*RM(L)) / (MK(KM)-ME(L-1))**2
+C**** Vertical gradient is extrapolated half way to .5*[MK(KM)+ME(L)]
+      RZ(L)  = RZ(L) * (.5*(MK(KM)+ME(L))-ME(L-1)) / (MK(KM)-ME(L-1))
+      RL(L+1:LM) = MISSING
+      RZ(L+1:LM) = MISSING
+      Return
+C****
+C**** Calculate RL and RZ from RM and RQ when ME(LM) < MK(KM)
+C****
+  300 Do 310 L=1,LM
+      RL(L) =   RM(L) / (ME(L)-ME(L-1))
+  310 RZ(L) = 6*RQ(L) / (ME(L)-ME(L-1))**2
+      return
+      end subroutine vlktolz
 
       subroutine init_odiff(grid)
       use OCEAN, only: BYDXYV, BYDXYPJM, UYPB, UYPA, FSLIP
@@ -899,7 +1246,7 @@ C****
       use ocean, only: dxpo, dypo, dxvo, dyvo, cospo, cosvo, dxyvo,
      &     rlat, IM, JM, LMO, dlat, dxypo, lmu, lmv, bydxypo
       use constant, only: twopi, omega, radius, rhows
-      USE OCEANRES, only : akhmin, akhfac
+      use dictionary_mod
       implicit none
       type (dist_grid) :: grid
 
@@ -913,6 +1260,25 @@ C****
      *     KYPXP,KXPYV,KYVXV,KXVYP
       REAL*8, DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,2) ::
      *      DUDX,DUDY,DVDX,DVDY
+
+!@var AKHMIN minimum horizontal viscosity (m2/s)
+!@dbparam AKHFAC tuning factor for horz viscosity
+      real*8 :: AKHMIN,AKHFAC=1d0
+
+      if(is_set_param('AKHFAC')) then
+        call get_param('AKHFAC',AKHFAC)
+      endif
+
+! resolution-dependent min. viscosity settings
+      if(jm==46) then
+        akhmin = 1.5d8
+      elseif(jm==90) then
+        akhmin = 5.d6
+      elseif(jm==180) then
+        akhmin = 1.d5
+      else
+        call stop_model('init_odiff: set AKHMIN for your res.',255)
+      endif
 
 c**** Extract domain decomposition info
       call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1,
@@ -1133,6 +1499,9 @@ C**** Only do this at end of the day
 
 C**** Add glacial melt from Antarctica and Greenland
         CALL GLMELT(SECONDS_PER_DAY)
+        if(associated(atmocn%consrv)) then ! not (yet) true for ocean-only
+          CALL DIAGCO (10,ATMOCN)
+        endif
 
 c uncomment following call to activate tracers at arbitrary times
 c#ifdef TRACERS_OCEAN
@@ -2178,6 +2547,7 @@ C****
 C****
       END SUBROUTINE CHECKO
 
+
       Subroutine CONSERV_OMS (OMASS)
 C****
 !@sum   CONSERV_OMS calculates zonal ocean mass (kg/m^2) on ocean grid
@@ -2209,14 +2579,15 @@ C****
 
 C**** Include ocean mass of straits
       Do N=1,NMST
-         I = IST(N,1)
-         J = JST(N,1)
-        If (J >= J_0 .and. J <= J_1)
-     &        OMASS(I,J) = OMASS(I,J) + Sum(MMST(:LMST(N),N))
-     &                                     /oXYP(I,J)
+         I = IST(N,1)  ;  J = JST(N,1)
+         If (J >= J_0 .and. J <= J_1)  OMASS(I,J) = OMASS(I,J) +
+     +      .5 * Sum(MMST(1:LMST(N),N)) / oXYP(I,J)
+         I = IST(N,2)  ;  J = JST(N,2)
+         If (J >= J_0 .and. J <= J_1)  OMASS(I,J) = OMASS(I,J) +
+     +      .5 * Sum(MMST(1:LMST(N),N)) / oXYP(I,J)
       EndDo
-
       End Subroutine CONSERV_OMS
+
 
       Subroutine CONSERV_OSL (OSALT)
 C****
@@ -2249,13 +2620,13 @@ C****
 
 C**** Include ocean salt of straits
       Do N=1,NMST
-        I = IST(N,1)
-        J = JST(N,1)
-        If (J >= J_0 .and. J <= J_1)
-     &    OSALT(I,J) = OSALT(I,J) + Sum(S0MST(:LMST(N),N))/oXYP(I,J)
-
+         I = IST(N,1)  ;  J = JST(N,1)
+         If (J >= J_0 .and. J <= J_1)  OSALT(I,J) = OSALT(I,J) +
+     +      .5 * Sum(S0MST(1:LMST(N),N)) / oXYP(I,J)
+         I = IST(N,2)  ;  J = JST(N,2)
+         If (J >= J_0 .and. J <= J_1)  OSALT(I,J) = OSALT(I,J) +
+     +      .5 * Sum(S0MST(1:LMST(N),N)) / oXYP(I,J)
       EndDo
-
       End Subroutine CONSERV_OSL
 
 
@@ -2290,13 +2661,13 @@ C****
 
 C**** Include ocean potential enthalpy of straits
       Do N=1,NMST
-        I = IST(N,1)
-        J = JST(N,1)
-        If (J >= J_0 .and. J <= J_1)
-     &       OCEANE(I,J) = OCEANE(I,J) + Sum(G0MST(:LMST(N),N))
-     &                     /oXYP(I,J)
+         I = IST(N,1)  ;  J = JST(N,1)
+         If (J >= J_0 .and. J <= J_1)  OCEANE(I,J) = OCEANE(I,J) +
+     +      .5 * Sum(G0MST(1:LMST(N),N)) / oXYP(I,J)
+         I = IST(N,2)  ;  J = JST(N,2)
+         If (J >= J_0 .and. J <= J_1)  OCEANE(I,J) = OCEANE(I,J) +
+     +      .5 * Sum(G0MST(1:LMST(N),N)) / oXYP(I,J)
       EndDo
-
       End Subroutine CONSERV_OCE
 
 
@@ -5018,6 +5389,9 @@ C****
      *  lmu,lmv,dxpo,dypo,dxvo,dyvo,bydxypo
       USE OCEAN_DYN, only : dh
       USE TRIDIAG_MOD, only : tridiag, tridiag_new
+#ifdef ODIFF_TRIDIAG_CYCLIC
+      USE TRIDIAG_MOD, only : tridiag_cyclic
+#endif
       USE DOMAIN_DECOMP_1D, ONLY : GETDomainBounds, AM_I_ROOT
       USE OCEANR_DIM, only : grid=>ogrid
       USE DOMAIN_DECOMP_1D, ONLY : HALO_UPDATE, NORTH, SOUTH, broadcast
@@ -5193,7 +5567,6 @@ C**** Calculate fluxes (including FSLIP condition)
      *                 FROM=SOUTH)
 
 C**** Calculate tridiagonal matrix for first semi-implicit step (in x)
-C**** Minor complication due to cyclic nature of boundary condition
       AU=0. ; BU=0. ; CU=0. ; RU=0.
       AV=0. ; BV=0. ; CV=0. ; RV=0.
 
@@ -5205,14 +5578,11 @@ C**** Minor complication due to cyclic nature of boundary condition
           BV(I,J) = 1d0
           IF (L.LE.LMU(I,J)) THEN
             DTU = DT2*(DH(I,J,L)+DH(IP1,J,L))*BYMU(I,J)
-            IF (I.gt.1 ) AU(I,J) =        - DTU*UXA(I,J,L)
-                         BU(I,J) = BU(I,J) - DTU*UXB(I,J,L)
-            IF (I.lt.IM) CU(I,J) =        - DTU*UXC(I,J,L)
+            AU(I,J) =         - DTU*UXA(I,J,L)
+            BU(I,J) = BU(I,J) - DTU*UXB(I,J,L)
+            CU(I,J) =         - DTU*UXC(I,J,L)
             RU(I,J) = UO(I,J,L) + DTU*(UYA(I,J,L)*UO(I,J-1,L)
      *           +UYB(I,J,L)*UO(I,J,L) + UYC(I,J,L)*UO(I,J+1,L))
-C**** Make properly tridiagonal by making explicit cyclic terms
-            IF (I == 1 ) RU(I,J)=RU(I,J) + DTU*UXA(I,J,L)*UO(IM,J,L)
-            IF (I == IM) RU(I,J)=RU(I,J) + DTU*UXC(I,J,L)*UO(1,J,L)
 C**** Add Wasjowicz cross-terms to RU + second metric term
             RU(I,J) = RU(I,J) + DTU*((DYPO(J)*(FUX(IM1,J) - FUX(I,J))
      *           + DXVO(J)*FUY(I,J) - DXVO(J-1)*FUY(I,J-1))*BYDXYPO(J)
@@ -5220,14 +5590,11 @@ C**** Add Wasjowicz cross-terms to RU + second metric term
           END IF
           IF (L.LE.LMV(I,J)) THEN
             DTV = DT2*(DH(I,J,L)+DH(I,J+1,L))*BYMV(I,J)
-            IF (I.gt.1 ) AV(I,J) =        - DTV*VXA(I,J,L)
-                         BV(I,J) = BV(I,J) - DTV*VXB(I,J,L)
-            IF (I.lt.IM) CV(I,J) =        - DTV*VXC(I,J,L)
+            AV(I,J) =         - DTV*VXA(I,J,L)
+            BV(I,J) = BV(I,J) - DTV*VXB(I,J,L)
+            CV(I,J) =         - DTV*VXC(I,J,L)
             RV(I,J) = VO(I,J,L) + DTV*(VYA(I,J,L)*VO(I,J-1,L)
      *           +VYB(I,J,L)*VO(I,J,L) + VYC(I,J,L)*VO(I,J+1,L))
-C**** Make properly tridiagonal by making explicit cyclic terms
-            IF (I == 1 ) RV(I,J)=RV(I,J) + DTV*VXA(I,J,L)*VO(IM,J,L)
-            IF (I == IM) RV(I,J)=RV(I,J) + DTV*VXC(I,J,L)*VO(1,J,L)
 C**** Add Wasjowicz cross-terms to RV + second metric term
             RV(I,J) = RV(I,J) + DTV*((DYVO(J)*(FVX(I,J) - FVX(IM1,J))
      *           + DXPO(J)*FVY(I,J-1) - DXPO(J+1)*FVY(I,J))*BYDXYV(J)
@@ -5236,6 +5603,32 @@ C**** Add Wasjowicz cross-terms to RV + second metric term
           IM1=I
           I=IP1
         END DO
+#ifndef ODIFF_TRIDIAG_CYCLIC
+C**** Minor complication due to cyclic nature of boundary condition
+C**** Make properly tridiagonal by making explicit cyclic terms
+        I = 1
+        IF (L.LE.LMU(I,J)) THEN
+          DTU = DT2*(DH(I,J,L)+DH(I+1,J,L))*BYMU(I,J)
+          AU(I,J) = 0.
+          RU(I,J)=RU(I,J) + DTU*UXA(I,J,L)*UO(IM,J,L)
+        ENDIF
+        IF (L.LE.LMV(I,J)) THEN
+          AV(I,J) = 0.
+          DTV = DT2*(DH(I,J,L)+DH(I,J+1,L))*BYMV(I,J)
+          RV(I,J)=RV(I,J) + DTV*VXA(I,J,L)*VO(IM,J,L)
+        ENDIF
+        I = IM
+        IF (L.LE.LMU(I,J)) THEN
+          CU(I,J) = 0.
+          DTU = DT2*(DH(I,J,L)+DH(1,J,L))*BYMU(I,J)
+          RU(I,J)=RU(I,J) + DTU*UXC(I,J,L)*UO(1,J,L)
+        ENDIF
+        IF (L.LE.LMV(I,J)) THEN
+          CV(I,J) = 0.
+          DTV = DT2*(DH(I,J,L)+DH(I,J+1,L))*BYMV(I,J)
+          RV(I,J)=RV(I,J) + DTV*VXC(I,J,L)*VO(1,J,L)
+        ENDIF
+#endif
       END DO
 C**** At North Pole (no metric terms)
 c     BU(IIP) = 1d0
@@ -5257,8 +5650,15 @@ c     END IF
       END DO
 C**** Call tridiagonal solver
       DO J = J_0S, J_1S
+#ifdef ODIFF_TRIDIAG_CYCLIC
+        CALL TRIDIAG_cyclic(AU(:,J), BU(:,J), CU(:,J), RU(:,J),
+     &       UO(:,J,L), IM)
+        CALL TRIDIAG_cyclic(AV(:,J), BV(:,J), CV(:,J), RV(:,J),
+     &       VO(:,J,L), IM)
+#else
         CALL TRIDIAG(AU(:,J), BU(:,J), CU(:,J), RU(:,J), UO(:,J,L), IM)
         CALL TRIDIAG(AV(:,J), BV(:,J), CV(:,J), RV(:,J), VO(:,J,L), IM)
+#endif
       END DO
 
       END DO ! end loop over layers
@@ -5565,11 +5965,10 @@ c area weights that would have been used by HNTRP for ocean C -> ocean A
 
       USE MODEL_COM, only : dtsrc
       USE OCEAN, only : IMO=>IM,JMO=>JM, LMM, IMAXJ,DXYPO
-     *     , MO, G0M, ZE, FOCEAN
+     *     , MO, G0M, ZE, FOCEAN, lmo, zmax_glmelt
       USE OFLUXES, only : oGMELT, oEGMELT
       use domain_decomp_1d, only : getDomainBounds
       USE OCEANR_DIM, only : ogrid
-      USE OCEANRES, only : maxgl
       USE ODIAG, only : oij=>oij_loc, ij_eicb, ij_micb
 #ifdef TRACERS_WATER
 #ifdef TRACERS_OCEAN
@@ -5581,11 +5980,16 @@ c area weights that would have been used by HNTRP for ocean C -> ocean A
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: DT  !@var DT timestep for GLMELT call
       REAL*8 DZ
-      INTEGER I,J,L
+      INTEGER I,J,L,MAXGL
       integer :: j_0,j_1
 
       if(.not. ogrid%have_domain) return
       call getDomainBounds(ogrid, J_STRT=j_0, J_STOP=j_1)
+
+      ! find layer index corresponding to zmax_glmelt
+      do maxgl=1,lmo-1
+        if(ze(maxgl+1) > zmax_glmelt) exit
+      enddo
 
       DO L=1,MAXGL
 C**** divide over depth and scale for time step
@@ -5726,7 +6130,7 @@ C**** ocean currents UO and VO in the East-West direction
 C****
       USE OCEAN, only : IM,JM,LMO,J1O, UO,VO, LMU,LMV
       USE OCEANR_DIM, only : grid=>ogrid
-      USE OCEANRES, only : NORDER, OABFUX, OABFVX
+      USE OCEAN, only : NORDER, OABFUX, OABFVX
       Implicit None
       Real*8, Dimension(IM) :: X,Y
       Integer :: I,J,L,J_0f,J_1f,N
@@ -5782,7 +6186,7 @@ C**** ocean currents UO and VO in the North-South direction
 C****
       USE OCEAN, only : IM,JM,LMO,J1O, UO,VO, LMU,LMV
       USE OCEANR_DIM, only : grid=>ogrid
-      USE OCEANRES, only : NORDER, by4tonv, by4tonu
+      USE OCEAN, only : NORDER, by4tonv, by4tonu
       use domain_decomp_1d, only : getDomainBounds,halo_update,north,
      &                             south
       implicit none

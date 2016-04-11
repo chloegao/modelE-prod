@@ -28,7 +28,11 @@ c!@var DMS_AER           DMS prescribed by AERONET (kg S/day/box)
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: OCT_src !(im,jm,12)
 #endif  /* TRACERS_AEROSOLS_SOA */
 !@var SO2_src_3D SO2 volcanic sources (and biomass) (kg/s)
+#ifdef TRACERS_VOLCEXP
+      INTEGER, PARAMETER :: nso2src_3d  = 2
+#else
       INTEGER, PARAMETER :: nso2src_3d  = 1
+#endif
       real*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: SO2_src_3D !(im,jm,lm,nso2src_3d)
 !@var PBLH boundary layer height
 !@var MDF is the mass of the downdraft flux
@@ -46,8 +50,6 @@ c!@var DMS_AER           DMS prescribed by AERONET (kg S/day/box)
 #endif
 !var off_HNO3 off-line HNO3 field, used for nitrate and AMP when gas phase chemistry turned off
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)     ::  off_HNO3, off_SS
-!@var BBinc enhancement factor of BB carbonaceous aerosol emissions (Kostas: should this be applied to all BB emitted tracers?)
-      real*8:: BBinc=1.0d0
 #ifdef TRACERS_AEROSOLS_VBS
 !@var VBSemifact factor that distributes organic aerosols in volatility bins
       real*8, allocatable, dimension(:) :: VBSemifact
@@ -593,7 +595,6 @@ c
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT, getDomainBounds 
       USE DOMAIN_DECOMP_ATM, only: DREAD8_PARALLEL,DREAD_PARALLEL
       USE DOMAIN_DECOMP_ATM, only : GRID, write_parallel
-      USE RESOLUTION, only : ls1
       use resolution, only: im,jm,lm
       use atm_com, only : t,q
       use model_com, only: modelEclock

@@ -81,7 +81,7 @@ SCM_GEO=SCM_BOMEX.nc     ! geostrophic wind profile(s)
 SCM_THETA=SCM_BOMEX.nc   ! temperature profile(s)
 SCM_WVMR=SCM_BOMEX.nc    ! water vapor mixing ratio profile(s)
 SCM_W=SCM_BOMEX.nc       ! large-scale vertical wind profile(s)
-SCM_QRAD=SCM_BOMEX.nc    ! radiative heating rate profile(s)
+SCM_QRAD=SCM_BOMEX.nc    ! radiative heating rate profile(s) (revised 2015-11-17)
 
 ! Topography, area fractions of surface types
 TOPO=/path/to/user/directory/extractions/Z2HX2fromZ1QX1N.nc
@@ -184,6 +184,8 @@ SCM_lat=15.                ! BOMEX latitude (deg)
 SCM_area=10000000000.0     ! arbitrary grid box area (m2)
 SCM_sfc=2                  ! 1:land,2:ocean
 SCM_ustar=0.28             ! surface friction speed (m/s)
+SCM_allowMC=1              ! allow moist convection? 
+SCM_allowCTEI=1            ! allow cloud-top entrainment instability?
 
 DTsrc=1800.     ! Atm. physics timestep.
 NIsurf=1        ! Number of surface physics timesteps per atm. physics timestep.
@@ -244,7 +246,7 @@ Nssw=2
 SUBDD='u v t q rh z p_3d p_surf prec mcp ssp snowfall snowdp qcl qci'
 SUBDD1='cldss cldmc cldss_2d totcld totcld_diag'
 SUBDD2='gtempr shflx lhflx ustar pblht pwv lwp iwp tau_ss tau_mc'
-SUBDD3='olrrad olrcs lwds lwdscs lwus swds swus swdf'
+SUBDD3='olrrad olrcs lwds lwdscs lwus swds swus swdf egcm'
 SUBDD4='dq_turb dth_turb dq_mc dth_mc dq_ss dth_ss dth_sw dth_lw dth_rad'
 SUBDD5='dq_ls dth_ls dq_nudge dth_nudge'
 NSUBDD=1         ! saving sub-daily diags every NSUBDD-th physics time step (1/2 hr)

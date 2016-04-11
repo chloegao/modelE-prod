@@ -9,7 +9,7 @@ C****
 C**** Note that we currently use the same horizontal grid as for the
 C**** atmosphere. However, we can redefine im,jm if necessary.
       Use CONSTANT,  Only: TWOPI
-      Use OCEANRES,  Only: IM=>IMO,JM=>JMO, LMO, LMO_MIN, LSRPD, dZO
+      Use OCEANRES,  Only: IM=>IMO,JM=>JMO, LMO, LMO_MIN, dZO
       Use SparseCommunicator_mod
 #ifdef CUBED_SPHERE
       use cs2ll_utils, only : aoremap_type=>xgridremap_type
@@ -109,6 +109,24 @@ C**** ocean related parameters
 !@dbparam DTO timestep for ocean dynamics (s)
       REAL*8 :: DTO=450.        ! default. setable parameter
       REAL*8 DTOFS,DTOLF,DTS,BYDTS
+
+!@dbparam NOCEAN number of ocean advective timesteps per physics timestep
+!  NDYNO must be multiple of 2*NOCEAN
+      integer :: NOCEAN = 1
+     &     + JM/180   ! force default of 2 for 1-degree res
+
+      ! to-do: make binomial filter coeffs into rundeck parameters
+      ! if/when it is reinstated
+      integer, parameter ::
+     &      NORDER=4      !  order of Alternating Binomial Filter (must be even)
+      ! coeffs for divergence/vorticity filter in X/Y dirs. 
+      real*8, parameter ::
+     &  OABFUX = 0d0
+     &    + (jm/180)*(.15d0/4**norder),  ! switch on for 1-degree res
+     &  OABFVX = OABFUX,
+     &  by4tonv = oabfux,
+     &  by4tonu = by4tonv
+
 !@var budget grid quantities (defined locally on each proc.)
       REAL*8, ALLOCATABLE, DIMENSION(:,:):: owtbudg
       INTEGER, ALLOCATABLE, DIMENSION(:,:):: oJ_BUDG
@@ -153,6 +171,10 @@ C**** ocean related parameters
       REAL*8, SAVE, DIMENSION(LMO) :: UYPB
       REAL*8, SAVE, DIMENSION(IM,LMO) :: UYPA
       REAL*8, PARAMETER :: FSLIP=0.
+
+!@param zmax_glmelt max. nominal depth over which to deposit glacial melt (m)
+! to-do: make this a rundeck parameter
+      real*8, parameter :: zmax_glmelt = 202d0 ! taken from 32-layer version
 
       contains
 
@@ -361,7 +383,7 @@ C**** ocean related parameters
 !@var DH height of each ocean layer
 !@var VBAR mean specific volume of each layer
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: DH,VBAR !  (IM,JM,LMO)
-     &     ,dZGdP
+     &     ,dZGdP,BYDH
 
 !@var GUP,GDN specific pot enthropy upper,lower part of layer (J/kg)
 !@var SUP,SDN salinity at           upper,lower part of layer (1)
@@ -382,9 +404,15 @@ C****
       Module SW2OCEAN
 !@sum  SW2OCEAN variables for putting solar radiation into ocean
 !@auth Gavin Schmidt/Gary Russell
-      Use OCEAN, Only : ze,lsrpd
+      Use OCEAN, Only : ze,lmo
       Implicit None
-      REAL*8, DIMENSION(LSRPD) :: FSR,FSRZ,dFSRdZ,dFSRdZB
+
+!@param zmax_solar nominal maximum SW penetration depth (m)
+      real*8, parameter :: zmax_solar=92d0 ! taken from 32-layer version
+      integer :: lsrpd=0 ! layer (bottom) index corresponding to zmax_solar
+
+      real*8, dimension(:), allocatable :: FSR,FSRZ,dFSRdZ,dFSRdZB
+
       REAL*8, PARAMETER :: RFRAC=.62d0, ZETA1=1.5d0, ZETA2=2d1
 
       CONTAINS
@@ -396,6 +424,13 @@ C****
       INTEGER L
       EF(Z) = RFRAC*EXP(-Z/ZETA1) + (1d0-RFRAC)*EXP(-Z/ZETA2)
       EFZ(Z)=ZETA1*RFRAC*EXP(-Z/ZETA1)+ZETA2*(1d0-RFRAC)*EXP(-Z/ZETA2)
+
+      ! determine lsrpd from zmax_solar and layering
+      do lsrpd=1,lmo-1
+        if(ze(lsrpd+1) > zmax_solar) exit
+      enddo
+      allocate(fsr(lsrpd),fsrz(lsrpd),dfsrdz(lsrpd),dfsrdzb(lsrpd))
+
 C****
 C**** Calculate the fraction of solar energy absorbed in each layer
 C****
@@ -446,7 +481,7 @@ C****
 
       USE OCEAN, only: alloc_odiff
 
-      USE OCEAN_DYN, only : DH,VBAR, dZGdP, GUP,GDN, SUP,SDN
+      USE OCEAN_DYN, only : DH,BYDH,VBAR, dZGdP, GUP,GDN, SUP,SDN
       USE OCEAN_DYN, only : MMI,SMU,SMV,SMW,CONV,MU,MV,MW
       use Dictionary_mod, only : sync_param
       IMPLICIT NONE
@@ -558,6 +593,7 @@ C****
 !!!   ALLOCATE(   PO(IM,J_0H:J_1H,LMO), STAT = IER)
 !!!   ALLOCATE(  PHI(IM,J_0H:J_1H,LMO), STAT = IER)
       ALLOCATE(   DH(IM,J_0H:J_1H,LMO), STAT = IER)
+      ALLOCATE( BYDH(IM,J_0H:J_1H,LMO), STAT = IER)
       ALLOCATE( VBAR(IM,J_0H:J_1H,LMO), STAT = IER)
       ALLOCATE(dZGdP(IM,J_0H:J_1H,LMO), STAT = IER)
       ALLOCATE(  GUP(IM,J_0H:J_1H,LMO), STAT = IER)
@@ -592,7 +628,7 @@ C**** Necessary initiallisation?
       ALLOCATE(I2YZC(NBYZMAX,J_0H:J_1H,LMO))
 
 c??   call ALLOC_GM_COM(agrid)
-      call ALLOC_KPP_COM(ogrid)
+c      call ALLOC_KPP_COM(ogrid) ! alloc deferred until lsrpd known
 #ifdef OCN_GISS_TURB
       call alloc_gissmix_com(ogrid)
 #endif
@@ -604,10 +640,11 @@ c??   call ALLOC_GM_COM(agrid)
       !call ALLOC_OFLUXES(atmocn)
 
 #ifdef TRACERS_OceanBiology
-      call alloc_obio_forc
       call alloc_obio_com
 #endif
       call alloc_odiff(ogrid)
+
+      call alloc_ocnmeso_com
 
       call read_ocean_topo
       if(ogrid%have_domain) CALL GEOMO

@@ -8,8 +8,7 @@ c Will add more documentation if this version becomes the modelE default.
 C****
       USE CONSTANT, only : rhows,grav
       USE MODEL_COM, only : msurf,itime,DTSRC
-      USE OCEANRES, only : NOCEAN
-      USE OCEAN, only : im,jm,lmo,ndyno,mo,g0m,s0m,
+      USE OCEAN, only : im,jm,lmo,ndyno,nocean,mo,g0m,s0m,
      *    dts,dtofs,dto,dtolf,mdyno,msgso,
      *    ogeoz,ogeoz_sv,opbot,ze,lmm,imaxj, UO,VO,VONP,IVNP, ! VOSP,IVSP,
      *    OBottom_drag,OCoastal_drag,OTIDE,uod,vod,lmu,lmv
@@ -24,7 +23,8 @@ C****
       USE OCEANR_DIM, only : grid=>ogrid
       USE ODIAG, only : oijl=>oijl_loc,oij=>oij_loc,
      *    ijl_mo,ijl_g0m,ijl_s0m,  ijl_gflx, ijl_sflx, ijl_mfw2,
-     *    ijl_mfu,ijl_mfv,ijl_mfw, ijl_ggmfl,ijl_sgmfl,ij_ssh,ij_pb
+     *    ijl_mfu,ijl_mfv,ijl_mfw, ijl_ggmfl,ijl_sgmfl,ij_ssh,ij_pb,
+     *    IJ_dEPO_Dyn
       USE OFLUXES, only : ocnatm
 #ifdef TRACERS_OCEAN
       USE OCN_TRACER_COM, only : tracerlist, ocn_tracer_entry,n_age,
@@ -43,12 +43,10 @@ c
       Integer*4 I,J,L,N,NS,NST,NO,NEVEN ; real*8 now
       Real*8,Dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LMO) ::
      &     MO1,MO2, UO1,UO2,UOD1,UOD2, VO1,VO2,VOD1,VOD2
-     &    ,G0M0,GXMO0,GYMO0,S0M0,SXMO0,SYMO0
       Real*8,Dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
-     &     OPBOT1,OPBOT2
+     &     OPBOT1,OPBOT2, G0INIT,G0FINAL
       real*8 :: relfac,dt_odiff,TIME
-      real*8, parameter :: byno=1./nocean
-      real*8 :: dtdum
+      real*8 :: dtdum,byno,mrat_st
 
       INTEGER it,jt
 
@@ -63,8 +61,14 @@ c**** Extract domain decomposition info
      &     J_STRT_SKP = J_0S, J_STOP_SKP = J_1S,
      &     J_STRT_HALO = J_0H, J_STOP_HALO = J_1H)
 
+      byno = 1d0/nocean
+
 C***  Get the data from the atmospheric grid to the ocean grid
       call AG2OG_oceans(atmocn,iceocn)
+#ifdef TRACERS_GASEXCH_ocean_CO2
+C        Call CARBON ('AG2OG_')
+         Call NITR ('AG2OG_')
+#endif
 
 C***  Interpolate DYNSI outputs to the ocean grid
 C***  (at present, only the ice-ocean stress is used)
@@ -80,6 +84,10 @@ c-------------------------------------------------------------------
 C**** Apply surface fluxes to ocean
       CALL GROUND_OC
          CALL CHECKO('GRNDOC')
+#ifdef TRACERS_GASEXCH_ocean_CO2
+C        Call CARBON ('GRNDOC')
+         Call NITR ('GRNDOC')
+#endif
 
 C**** Apply ice/ocean and air/ocean stress to ocean
       CALL OSTRES2
@@ -90,6 +98,10 @@ C**** Apply ice/ocean and air/ocean stress to ocean
 C**** Apply ocean vertical mixing
       CALL OCONV
          CALL CHECKO('OCONV ')
+#ifdef TRACERS_GASEXCH_ocean_CO2
+C        Call CARBON ('OCONV ')
+         Call NITR ('OCONV ')
+#endif
 
 C**** Apply bottom and coastal drags
       if (OBottom_drag  == 1) CALL OBDRAG2
@@ -98,7 +110,11 @@ C**** Apply bottom and coastal drags
 C**** Add ocean biology
 #ifdef TRACERS_OceanBiology
       call obio_model(ocnatm)
-      IF (ATMOCN%MODD5S.EQ.0) CALL DIAGCO (5,atmocn)
+#ifdef TRACERS_GASEXCH_ocean_CO2
+         Call CARBON ('OBIO_M')
+         Call NITR ('OBIO_M')
+#endif
+      CALL DIAGCO (13,atmocn)
 #endif
 
          CALL TIMER (NOW,MSGSO)
@@ -280,6 +296,7 @@ c
 c long-timestep advection of potential enthalpy, salt, and tracers
 c
       dtdum = DTOLF
+      Call CONSERV_OCE (G0INIT)
       if(use_qus==1) then
         CALL OADVT3 (G0M,
      &     GXMO,GYMO,GZMO, GXXMO,GYYMO,GZZMO, GXYMO,GYZMO,GZXMO,
@@ -293,6 +310,8 @@ c
         CALL OADVT2 (S0M,SXMO,SYMO,SZMO,DTDUM,.TRUE.
      *        ,OIJL(1,J_0H,1,IJL_SFLX))
       endif
+      Call CONSERV_OCE (G0FINAL)
+
 #ifdef TRACERS_OCEAN
       if(use_qus==1) then
         DO N=1,tracerlist%getsize()
@@ -353,6 +372,8 @@ c
             OIJ(I,J,IJ_SSH) = OIJ(I,J,IJ_SSH) + OGEOZ(I,J)*byno
             OIJ(I,J,IJ_PB)  = OIJ(I,J,IJ_PB)  +
      &           (OPBOT(I,J)-ZE(LMM(I,J))*RHOWS*GRAV)*byno
+            OIJ(I,J,IJ_dEPO_Dyn) = OIJ(I,J,IJ_dEPO_Dyn) +
+     +           (G0FINAL(I,J) - G0INIT(I,J))
           enddo
         enddo
       enddo
@@ -366,6 +387,24 @@ c
         END DO
 #endif
 
+      if(use_qus==1) then
+        ! Save seawater mass pre-straits to adjust second-order
+        ! moments (SOMs) post-straits.  This is easier than
+        ! propagating the SOMs through the straits code.
+        ! The need for adjustment primarily arises from the
+        ! fact that the moments have extensive units.
+        ! First-order moments are already propagated through
+        ! the straits code.
+        do l=1,lmo
+        do j=j_0,j_1
+        do n=1,nbyzm(j,l)
+        do i=i1yzm(n,j,l),i2yzm(n,j,l)
+          mo1(i,j,l) = mo(i,j,l)
+        enddo
+        enddo
+        enddo
+        enddo
+      endif
       call gather_ocean_straits()
 
       IF(AM_I_ROOT()) THEN
@@ -382,6 +421,43 @@ C****
       END IF
       call scatter_ocean_straits()
       call BCAST_straits (.false.)
+
+      if(use_qus==1) then
+        ! Adjust second-order moments post-straits in upstream cells.
+        ! Seawater emerging from a strait (downstream) is assumed
+        ! to have zero SOMs for now.
+        do l=1,lmo
+        do j=j_0,j_1
+        do n=1,nbyzm(j,l)
+        do i=i1yzm(n,j,l),i2yzm(n,j,l)
+          if(mo1(i,j,l) .le. mo(i,j,l)) cycle
+          mrat_st = mo(i,j,l)/mo1(i,j,l)
+          gxxmo(i,j,l) = gxxmo(i,j,l)*mrat_st
+          gyymo(i,j,l) = gyymo(i,j,l)*mrat_st
+          gzzmo(i,j,l) = gzzmo(i,j,l)*mrat_st
+          gxymo(i,j,l) = gxymo(i,j,l)*mrat_st
+          gyzmo(i,j,l) = gyzmo(i,j,l)*mrat_st
+          gzxmo(i,j,l) = gzxmo(i,j,l)*mrat_st
+          sxxmo(i,j,l) = sxxmo(i,j,l)*mrat_st
+          syymo(i,j,l) = syymo(i,j,l)*mrat_st
+          szzmo(i,j,l) = szzmo(i,j,l)*mrat_st
+          sxymo(i,j,l) = sxymo(i,j,l)*mrat_st
+          syzmo(i,j,l) = syzmo(i,j,l)*mrat_st
+          szxmo(i,j,l) = szxmo(i,j,l)*mrat_st
+#ifdef TRACERS_OCEAN
+          txxmo(i,j,l,:) = txxmo(i,j,l,:)*mrat_st
+          tyymo(i,j,l,:) = tyymo(i,j,l,:)*mrat_st
+          tzzmo(i,j,l,:) = tzzmo(i,j,l,:)*mrat_st
+          txymo(i,j,l,:) = txymo(i,j,l,:)*mrat_st
+          tyzmo(i,j,l,:) = tyzmo(i,j,l,:)*mrat_st
+          tzxmo(i,j,l,:) = tzxmo(i,j,l,:)*mrat_st
+#endif
+        enddo
+        enddo
+        enddo
+        enddo
+      endif
+
         CALL CHECKO ('STADV ')
 
       ENDDO  !  End of Do-loop NO=1,NOCEAN
@@ -404,30 +480,14 @@ c      CALL OABFILx ! binomial filter
 c      CALL OABFILy ! binomial filter
 c      CALL CHECKO ('ODIFF0')
 
-C**** Apply GM + Redi tracer fluxes
-      CALL GMKDIF(1d0)
-      G0M0=G0M; GXMO0=GXMO; GYMO0=GYMO
-      CALL GMFEXP(G0M,GXMO,GYMO,GZMO,.FALSE.,OIJL(1,J_0H,1,IJL_GGMFL))
-      S0M0=S0M; SXMO0=SXMO; SYMO0=SYMO
-      CALL GMFEXP(S0M,SXMO,SYMO,SZMO,.TRUE. ,OIJL(1,J_0H,1,IJL_SGMFL))
 
-#ifdef OCN_GISS_MESO
-c     CALL MESO_D(G0M0,GXMO0,GYMO0,G0M,GXMO,GYMO,GZMO)
-      CALL MESO_D(G0M0,GXMO0,GYMO0,GXMO,GYMO,GZMO)
-      G0M=G0M0
-c     CALL MESO_D_TEST(G0M0,G0M,GXMO0,GYMO0,GZMO)
-c     CALL MESO_D(S0M0,SXMO0,SYMO0,S0M,SXMO,SYMO,SZMO)
-
-      CALL MESO_A(G0M,GXMO,GYMO,GZMO)
-c     CALL MESO_A(S0M,SXMO,SYMO,SZMO)
-#endif
-
-#ifdef TRACERS_OCEAN
-      DO N = 1,tracerlist%getsize()
-        entry=>tracerlist%at(n)
-        CALL GMFEXP(TRMO(1,J_0H,1,N),TXMO(1,J_0H,1,N),TYMO(1,J_0H,1,N),
-     *    TZMO(1,J_0H,1,N),entry%t_qlimit,TOIJL(1,J_0H,1,TOIJL_GMFL,N))
-      END DO
+C****
+C**** Mesoscale tracer transports
+C****
+      call ocnmeso_drv
+#ifdef TRACERS_GASEXCH_ocean_CO2
+C        Call CARBON ('OCNMESO')
+         Call NITR ('OCNMESO')
 #endif
       CALL CHECKO ('GMDIFF')
 

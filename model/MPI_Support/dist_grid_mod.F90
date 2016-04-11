@@ -340,7 +340,7 @@ MODULE dist_grid_mod
      AIbounds = MPIgridBounds(distGrid)
 #endif
 
-#else  ! SERIAL CASE
+#else  /* SERIAL CASE */
 
 ! repeated assignment is needed for MPI unit tests
      rank = 0        ! default rank = root PE for serial run
@@ -354,7 +354,7 @@ MODULE dist_grid_mod
         AIbounds(4) = J_SCM
      end if
 
-#endif !USE_MPI
+#endif /* USE_MPI */
 
 #ifdef USE_ESMF
      distGrid%ESMF_GRID = ESMF_GridCreate( &

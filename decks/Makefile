@@ -1,5 +1,5 @@
 .SUFFIXES:
-.PHONY: force rundeck depend gcm setup clean vclean newstart exe cmp .R htmldoc setup_script setup_nocomp tests check_vars
+.PHONY: force rundeck depend gcm setup clean vclean newstart exe cmp .R htmldoc setup_script setup_nocomp tests check_vars check_RUNSRC
 
 # main definitions
 USER = $(shell whoami)
@@ -20,7 +20,8 @@ ifeq ($(findstring $(MAKECMDGOALS),config configure),)
 endif
 
 # modelE directory structure
-MODEL_E_ROOT ?= $(shell pwd)/..
+## MODEL_E_ROOT ?= $(shell pwd)/..
+MODEL_E_ROOT ?= $(abspath $(shell pwd)/..)
 ifeq ($(BUILD_OUT_OF_SOURCE),YES)
   MODEL_E_BUILD_DIR = $(RUN)_obj
 else
@@ -38,7 +39,7 @@ HTMLDOC_DIR = $(DECKS_DIR)/$(RUN)_html
 export HTMLDOC_DIR
 RUN_COMMAND = $(SCRIPTS_DIR)/runE
 
-RUNSRC  = EM20
+RUNSRC  =
 RUN     =
 RUNDECKSRC = $(TEMPLATES_DIR)/$(RUNSRC).R
 PRUNDECKSRC = $(TEMPLATES_DIR)/$(RUNSRC).py
@@ -60,8 +61,6 @@ export MODEL_E_ROOT
 export CONFIG_DIR
 export SCRIPTS_DIR
 
-V =
-
 ifeq ($(VERBOSE_OUTPUT),NO)
   MAKEFLAGS=-s
 endif
@@ -79,7 +78,7 @@ linkNonProduction:
 	@if [ -e $(TEMPLATES_DIR)/nonProduction/$(RUNSRC).R ]; then \
 	ln -sf $(TEMPLATES_DIR)/nonProduction/$(RUNSRC).R $(TEMPLATES_DIR); fi
 
-rundeck: linkNonProduction
+rundeck: linkNonProduction check_RUNSRC
 	@if [ -f $(DECKS_REPOSITORY)/$(RUN).R -a \
 	-z "`find $(DECKS_REPOSITORY)/$(RUN).R -user $(USER)`" ]; then \
 	echo 'name $(RUN) is already used by somebody else'; \
@@ -97,7 +96,7 @@ rundeck: linkNonProduction
 	  python $(PRUNDECKSRC) > $(RUNDECK); \
 	elif [ -s $(RUNDECKSRC) ]; then \
 	  echo '---- Regenerating Rundeck $(RUNDECK) from default ($(RUNDECKSRC)) ----' ; \
-	  sed 's/^'$(RUNSRC)'\([:\. ]\)/'$(RUN)'\1/g' $(RUNDECKSRC) \
+	  sed 's/^'$(notdir $(RUNSRC))'\([:\. ]\)/'$(RUN)'\1/g' $(RUNDECKSRC) \
 	  | $(SCRIPTS_DIR)/protect_ccp_options.pl -c | $(CPP) -I$(TEMPLATES_DIR) \
 	  | $(SCRIPTS_DIR)/protect_ccp_options.pl -c -u \
 	  > $(RUNDECK); \
@@ -191,38 +190,6 @@ else
 	@$(SETUP) $(SETUP_FLAGS) $(RUN)
 endif
 	@echo '---------       Setup  finished successfully         ---------'
-
-$(SETUP_GFDL):
-	$(SCRIPTS_DIR)/create_setup_gfdl
-
-setup_gfdl: gcm $(SETUP_GFDL)
-	@echo '---------       Looks like it was compiled OK        ---------'
-	@echo '----- Saving Rundeck and other info to global repository -----'
-	@if [ ! -d $(DECKS_REPOSITORY) ]; then \
-	  echo '--- $(DECKS_REPOSITORY) does not exist. Rundeck not saved ---';\
-	else \
-	  if [ -f $(DECKS_REPOSITORY)/$(RUN).R -a \
-	    -z "`find $(DECKS_REPOSITORY)/$(RUN).R -user $(USER)`" ]; then \
-	    echo 'name $(RUN) is already used by somebody else'; \
-	    echo 'please choose a unique one'; exit 1; \
-	  else \
-	    cp -f $(RUN).R $(DECKS_REPOSITORY)/$(RUN).R ;\
-	    chmod 644 $(DECKS_REPOSITORY)/$(RUN).R  ;    \
-	    echo '### Information below describes your run. Do not delete! ###'\
-	    >> $(DECKS_REPOSITORY)/$(RUN).R ; \
-	    date >> $(DECKS_REPOSITORY)/$(RUN).R ; \
-	    echo "$(F90_VERSION)" >> $(DECKS_REPOSITORY)/$(RUN).R ;\
-	    if [ -f $(MODEL_DIR)/CVS/Tag ]; then \
-	      echo "CVS Repository Tag: `cat $(MODEL_DIR)/CVS/Tag`" \
-	      >> $(DECKS_REPOSITORY)/$(RUN).R; else \
-	      echo 'CVS Repository: no info' \
-	      >> $(DECKS_REPOSITORY)/$(RUN).R ;\
-	    fi ;\
-	  fi ;\
-	fi
-	@echo '---------        Starting setup for $(RUN)          ---------'
-	@echo '--------------------------------------------------------------'
-	@$(SETUP_GFDL) $(RUN)
 
 
 aux rvr csrvr CMPE002: depend $(BIN_DIR)
@@ -335,9 +302,6 @@ config configure:
 	@echo 'really do exist on your system.'
 	@echo
 
-update:
-	$(MAKE) -C $(MODEL_E_ROOT) $@ RELEASE=$(RELEASE)
-
 src_cpp_dir:
 	$(MAKE) -C $(MODEL_DIR) $@ RUN=$(RUN) DECKS_DIR=$(DECKS_DIR) $(OPTS_MAIN)
 
@@ -347,14 +311,6 @@ etags:
 $(RUN).mk: $(DECKS_DIR)/$(RUN).R $(SCRIPTS_DIR)/r_to_mk.pl
 	@if [ -z "$(RUN)" ]; then echo "Please specify RUN name"; exit 1; fi
 	$(SCRIPTS_DIR)/r_to_mk.pl $< > $@
-
-#sinclude $(DECKS_DIR)/$(RUN).mk
-
-FSRCS = $(addsuffix .f,$(strip $(OBJ_LIST)))
-
-echo:
-	echo XX$(strip $(OBJ_LIST))XX
-	echo XX$(FSRCS)XX
 
 $(BIN_DIR):
 	mkdir $(BIN_DIR)
@@ -368,6 +324,13 @@ check_sanity:
 check_RUN:
 	@if [ "$(RUN)"xx = xx ] ; then \
 	  echo "Your have to specify rundeck name with RUN=..." ; \
+	  echo "... aborting ..." ; \
+	  exit 1 ; fi
+
+check_RUNSRC:
+	@if [ "$(RUNSRC)"xx = xx ] ; then \
+	  echo "Your have to specify template name with RUNSRC=..." ; \
+	  echo "For example: RUNSRC=E4F40" ; \
 	  echo "... aborting ..." ; \
 	  exit 1 ; fi
 

@@ -1,11 +1,7 @@
 import time
-import os
-import sys
 import subprocess
 import shlex
-import threading
 import multiprocessing
-import commands
 import logging
 
 logger = logging.getLogger('pool')
@@ -35,6 +31,7 @@ class Worker(multiprocessing.Process):
 class Task(object):
     def __init__(self, a):
         self.a = a
+
     def __call__(self):
         rc =  subprocess.Popen(self.a, shell=True)
         while rc.poll() is None:
@@ -42,34 +39,56 @@ class Task(object):
         if rc.returncode !=0:
             logger.debug('%r failed: %s' % (self.a, rc))
         logger.debug('%r is done' % (self.a))
+
     def __str__(self):
         return '%s' % (self.a)
 
 #-------------------------------------------------------------------------------
 class Batch(object):
-    def __init__(self, a):
-        self.a = a
+    jobs = []
+    def __init__(self, cmd):
+        self.cmd = cmd
+
     def __call__(self):
-        rc = sbatch_slurm_cmd(self.a)
+        self.slurmCommand()
         while True:
-            for job in jobs:
-                logger.debug('Monitoring job : ' + job)
-                rc=subproc('squeue -j '+str(job)+' -t PD,R -h -o %t')
+            # If list is empty then we are done
+            if len(self.jobs) == 0:
+                break                      
+            for job in self.jobs:
+                rc = subproc('squeue -j '+str(job)+' -t PD,R -h -o %t')
                 # If job is done, remove from list
                 if not rc:
                     logger.debug( '...' + job + ' is done')
-                    jobs.remove(job)
+                    self.jobs.remove(job)
                 else:
                     if 'PD' in rc:
                         logger.debug( '...' + job + ' is pending')
-                    else:
+                    elif 'R' in rc:
                         logger.debug( '...' + job + ' is running')
+                    elif 'U' in rc:
+                        logger.debug( '...' + job + ' is terminating')
+                    else:
+                        pass
                     time.sleep(30)
-            # If list is empty then we are done
-            if not jobs:
-                break
+
     def __str__(self):
-        return '%s' % (self.a)
+        return '%s' % (self.cmd)
+
+    # This function submits a batch job under SLURM and creates a jobs list
+    # NCCS-DISCOVER only.
+    def slurmCommand(self):
+        rc = subproc(self.cmd % vars())
+        logger.debug(rc)
+        # output example: "Submitted batch job 12345", so we
+        # parse the output from rc and append job ID to jobs list
+        self.jobs.append(shlex.split(rc)[3])
+
+#-------------------------------------------------------------------------------
+def subproc(cmd):
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+    (out, err) = proc.communicate()
+    return out
 
 #-------------------------------------------------------------------------------
 def runCommands(cmds, useBatch):
@@ -78,15 +97,14 @@ def runCommands(cmds, useBatch):
     results = multiprocessing.Queue()
     
     # Start workers
-    num_workers = len(cmds)
-    logger.debug( 'Creating %d workers' % num_workers)
+    num_jobs = len(cmds)
+    logger.debug( 'Creating %d workers' % num_jobs)
     workers = [ Worker(tasks, results)
-                  for i in xrange(num_workers) ]
+                  for i in xrange(num_jobs) ]
     for w in workers:
         w.start()
     
     # Enqueue jobs
-    num_jobs = len(cmds)
     for cmd in cmds:
         if useBatch == 'yes':
             tasks.put(Batch(cmd))
@@ -94,30 +112,13 @@ def runCommands(cmds, useBatch):
             tasks.put(Task(cmd))
 
     # add one stop value per worker to the job queue
-    for i in xrange(num_workers):
+    for i in xrange(num_jobs):
         tasks.put(None)
 
     # Wait for all of the tasks to finish
     tasks.join()
   
-#-------------------------------------------------------------------------------
-# This function submits a batch job under SLURM and creates a jobs list
-# NCCS-DISCOVER only.
-def sbatch_slurm_cmd(cmd):
-    global jobs
-    jobs = []
-    output = commands.getoutput(cmd % vars())
-    logger.debug(output)
-    # output example: "Submitted batch job 12345"
-    # Parse the output from sbatch and append job ID to jobs list
-    jobs.append(shlex.split(output)[3])
-    return 0
 
-#-------------------------------------------------------------------------------
-def subproc(cmd):
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-    (out, err) = proc.communicate()
-    return out
 
 
 

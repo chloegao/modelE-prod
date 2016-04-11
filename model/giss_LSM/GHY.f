@@ -352,8 +352,8 @@ c**** here theta is the fraction of canopy covered by water
       endif
       theta(0,2)=min(theta(0,2),one)
 c**** set up snowd variables
+      snowd(:) = 0.d0
       do ibv=i_bare,i_vege
-        snowd(ibv)=0.d0
         do lsn=1,nsn(ibv)
 ccc    we compute snowd as if all snow was distributed uniformly
 ccc    over the cell (i.e. snowd = wsn * sn_frac / 1.d0 )

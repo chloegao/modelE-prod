@@ -272,10 +272,6 @@ c --- 'lp' = logical unit number for printer output
 
 c --- grid point where detailed diagnostics are desired:
       integer, public :: itest=-1, jtest=-1    !overwritten by values in rundeck
-#if (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES) \
-    || (defined TRACERS_ZEBRA)
-      integer, public :: itest_trac=316, jtest_trac=258  
-#endif
 c
 c --- ocean mixed layer schemes
       integer, public :: iocnmx=2              !overwritten by value in rundeck
@@ -302,8 +298,4 @@ c --- 1 = true, 0 = false
       integer, public :: bolus_laplc_constant =1
       integer, public :: bolus_laplc_exponential=0
 
-#if (defined TRACERS_AGE_OCEAN) || (defined TRACERS_OCEAN_WATER_MASSES) \
-    || (defined TRACERS_ZEBRA)
-      real*8, public :: diag_counter
-#endif
       end module HYCOM_SCALARS

@@ -1,4 +1,8 @@
-!Aerosol Micro Physics
+! ----------------------------------
+#include "tracer_dust_source_files"
+TRACERS_AEROSOLS_SEASALT            ! seasalt
+TRACERS_AEROSOLS_Koch_e4            ! BC/OC/sulfate
+! Aerosol MicroPhysics
 TRAMP_drv        | $(EXTENDED_SOURCE) |  
 TRAMP_actv       | $(EXTENDED_SOURCE) |  
 TRAMP_diam       | $(EXTENDED_SOURCE) | 
@@ -25,5 +29,4 @@ TRAMP_rad        | $(EXTENDED_SOURCE) |
 TRAMP_thermo_eqsam | $(EXTENDED_SOURCE) |  
 TRAMP_eqsam_v03d
 AmpTracersMetadata
-TRACERS_AEROSOLS_SEASALT            ! seasalt
-TRACERS_AEROSOLS_Koch_e4            ! BC/OC/sulfate
+! ----------------------------------

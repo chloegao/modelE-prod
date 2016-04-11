@@ -7,6 +7,7 @@ Includes sea ice physics and transport
 Preprocessor Options
 #define NEW_IO
 #define STANDALONE_OCEAN
+#define OCN_LAYERING L32
 !#define OCN_GISS_MESO
 !#define OCN_GISS_TURB
 !#define OCN_GISS_SM
@@ -19,7 +20,7 @@ OCN_DRV                             ! driver for ocean-grid components
 SEAICE SEAICE_DRV                   ! seaice modules
 ICEDYN_DRV ICEDYN                   ! ice dynamics modules
 
-ORES_1Qx1_L32 OFFT288E              ! res.-dependent codes
+ORES_1Qx1 OFFT288E                  ! ocean horiz res 1.25x1deg
 #include "dynamic_ocn_source_files"
 OCN_Int_LATLON                      ! atm-ocn regrid routines
 

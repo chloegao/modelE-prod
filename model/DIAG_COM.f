@@ -4,7 +4,7 @@
 !@sum  DIAG_COM Diagnostic model variables
 !@auth Original Development Team
 !@ver  2010/11/12
-      use resolution, only : im,jm,lm,ls1
+      use resolution, only : im,jm,lm,ls1=>ls1_nominal
       USE ATM_COM, only : lm_req
 #ifndef SCM
       use diag_zonal, only : jm_budg
@@ -115,7 +115,7 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: ASJL,ASJL_loc
 
 !@param KAIJ number of AIJ diagnostics
-      INTEGER, PARAMETER, public :: KAIJ=415
+      INTEGER, PARAMETER, public :: KAIJ=436
 #ifdef ACCMIP_LIKE_DIAGS
      &                                   + 8
 #endif
@@ -195,13 +195,14 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
       integer, parameter, public :: lmax_dd2=ls1
 !@param NDIUVAR number of diurnal diagnostics
 #ifdef TRACERS_AMP
-      INTEGER, PARAMETER, public :: NDIUVAR=73+16+16+100+40+40+40+40
+c      INTEGER, PARAMETER, public :: NDIUVAR=73+16+16+100+40+40+40+40
+      INTEGER, PARAMETER, public :: NDIUVAR=700
 #else
 #ifdef TRACERS_DUST
       INTEGER, PARAMETER, public :: NDIUVAR=74+14*lmax_dd2+6*npbl
      &     +4*(npbl-1)
 #else
-#if (defined TRACERS_MINERALS) || (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_MINERALS)
       INTEGER, PARAMETER, public :: NDIUVAR=63
 #else
       INTEGER, PARAMETER, public :: NDIUVAR=60
@@ -212,8 +213,7 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
 #ifdef SCM
       INTEGER, PARAMETER, public :: NDIUPT=1
 #else
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       INTEGER, PARAMETER, public :: NDIUPT=34
 #else
       INTEGER, PARAMETER, public :: NDIUPT=4
@@ -530,8 +530,12 @@ C****      names, indices, units, idacc-numbers, etc.
 
       character(len=sname_strlen), dimension(kaj), public :: name_reg
 
+!****
 !@var IJ_xxx AIJ diagnostic names
+!****
       INTEGER, public ::
+!**** Vertical Energy Fluxes
+     &  IJ_dSE_Dyn,IJ_dKE_Dyn,IJ_dTE_Dyn,IJ_dHSI_Dyn,
      &     IJ_RSOI, IJ_RSNW, IJ_SNOW, IJ_SHDT, IJ_PREC, IJ_EVAP,
      *     IJ_SSAT, IJ_BETA,  IJ_SLP1,  IJ_P4UV, IJ_PRES, IJ_PHI1K,
      *     IJ_PHI850, IJ_PHI700, IJ_PHI500, IJ_PHI300, IJ_PHI100,
@@ -574,6 +578,7 @@ C****      names, indices, units, idacc-numbers, etc.
      *     ,ij_ssprec,ij_mcprec,IJ_WMCLWP,IJ_WMCTWP
      &     ,ij_wdry,ij_wtke,ij_wmoist,ij_wsgcm,ij_wspdf
      &     ,ij_flam,ij_CtoG,ij_flash
+     *     ,ij_fvden,ij_human,ij_fireC
      *     ,ij_swaerabs,ij_lwaerabs
      *     ,ij_swaerabsnt
      *     ,ij_lwaerabsnt,ij_evapsn,ij_irrW,ij_irrE,ij_irrW_tot
@@ -1227,7 +1232,7 @@ c allocate master copies of budget- and JK-arrays on root
 #ifndef SCM
       module gc_com
       use mdiag_com, only : sname_strlen,units_strlen,lname_strlen
-      use resolution, only : jm,lm,ls1,pmtop
+      use resolution, only : jm,lm,ls1=>ls1_nominal,pmtop
       use diag_zonal, only : imlonh,jmlat
       use cdl_mod
       implicit none
@@ -1881,6 +1886,7 @@ c more complicated logic
       return
       End Subroutine Scatter_zonal_diags
 
+
 C**** Routines associated with the budget grid
 #ifndef SCM
       SUBROUTINE SET_J_BUDG
@@ -1893,6 +1899,7 @@ C**** Routines associated with the budget grid
 !@var I,J are atm grid point values for the accumulation
       INTEGER :: I,J,J_0,J_1,I_0,I_1,J_0H,J_1H,I_0H,I_1H
       INTEGER :: IER
+      Real*8  :: dLATD  !  latitudinal budget spacing in degrees
 
 C**** define atmospheric grid
       call getDomainBounds(grid,J_STRT=J_0,J_STOP=J_1,J_STRT_HALO=J_0H,
@@ -1904,9 +1911,14 @@ C**** define atmospheric grid
 
 C**** Define mapping from actual lon/lat point to budget grid
 C**** this should be valid for all grids (lat/lon, cubed sphere,...)
+      dLATD = 180d0 / JM_BUDG
+      If (JM_BUDG == 46)  dLATD = 4
+      If (JM_BUDG == 24)  dLATD = 8
       DO J=J_0,J_1
         DO I=I_0,I_1
-           J_BUDG(I,J)=NINT(1+(lat2d_dg(I,J)+90)*(JM_BUDG-1)/180.)
+           J_BUDG(I,J) = Nint (LAT2D_DG(I,J)/dLATD + (JM_BUDG+1)/2d0)
+           If (J_BUDG(I,J) < 1)        J_BUDG(I,J) = 1
+           If (J_BUDG(I,J) > JM_BUDG)  J_BUDG(I,J) = JM_BUDG
         END DO
       END DO
 
@@ -1918,6 +1930,7 @@ C**** define limits on budget indices for each processor
 
       RETURN
       END SUBROUTINE SET_J_BUDG
+
 
       subroutine set_wtbudg()
 !@sum Precomputes area weights for zonal means on budget grid

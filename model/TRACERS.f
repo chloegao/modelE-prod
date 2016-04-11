@@ -15,8 +15,7 @@
       use TracerSource_mod, only: TracerSource3D
       use Tracer_mod, only: Tracer
       use OldTracer_mod, only: trname
-      USE TRACER_COM, only : NTM,trm,trmom,alter_sources,
-     * ef_FACT3d,tracers
+      USE TRACER_COM, only : NTM,trm,trmom,alter_sources,tracers
       USE CONSTANT, only : teeny
       USE RESOLUTION, only: lm
       USE MODEL_COM, only : dtsrc
@@ -49,8 +48,6 @@
       logical :: domom
       integer najl,i,j,l,naij,kreg,nsect,nn
       INTEGER :: J_0, J_1, I_0, I_1
-      integer :: mask(grid%i_strt:grid%i_stop,grid%j_strt:grid%j_stop)
-      real*8 :: coef(grid%i_strt:grid%i_stop,grid%j_strt:grid%j_stop)
 
       type (TracerSource3D), pointer :: source
       class (Tracer), pointer :: pTracer
@@ -74,46 +71,6 @@ C**** 3D sources.
 C**** Modify tracer amount, moments, and diagnostics
       najl = jls_3Dsource(ns,n)
       naij = ijts_3Dsource(ns,n)
-
-C**** apply tracer source alterations if requested in rundeck:
-      pTracer => tracers%getReference(trname(n))
-      source => pTracer%sources3D(ns)
-      if (alter_sources) then
-        do kreg = 1, numRegions
-          do j = j_0, j_1
-            do i = i_0, imaxj(j)
-              if (regions(kreg)%hasLatLon(lat2d_dg(i,j),lon2d_dg(i,j)))
-     &             then
-                 mask(i,j) = 1
-              else
-                 mask(i,j) = 0
-              end if
-            end do
-          end do
-
-          do nsect = 1, source%num_tr_sectors
-            nn = source%tr_sect_index(nsect)
-            if (ef_FACT3d(nn,kreg) > -1.e20) then
-              do j = j_0, j_1
-                 do i = i_0, imaxj(j)
-                    coef(i,j) = 
-     &                   mask(i,j) * ef_Fact3d(nn,kreg) + 
-     &                   (1-mask(i,j))
-                 end do
-              end do
-              do l = 1, lm
-                do j = j_0, j_1
-                  do i = i_0, imaxj(j)
-                    tr3Dsource(i,j,l,ns,n) = tr3Dsource(i,j,l,ns,n) *
-     &                    coef(i,j)
-        
-                  end do
-                end do
-              end do
-            end if
-          end do
-        end do
-      end if
 
       eps = tiny(trm(i_0,j_0,1,n))
       fred = UNDEF_VAL
@@ -176,7 +133,7 @@ C****
 !@calls sync_param
       use OldTracer_mod, only: trName, tr_wd_TYPE, mass2vol
       use OldTracer_mod, only: dowetdep, dodrydep, trradius, ntrocn
-      use OldTracer_mod, only: ntm_power, nwater
+      use OldTracer_mod, only: ntm_power, nwater, src_dist_index
       USE CONSTANT, only: mair
       USE MODEL_COM, only: dtsrc
       USE FLUXES, only : nisurf,atmice
@@ -368,15 +325,17 @@ C****     2  TRS (SURFACE TRACER CONC.) (M*M * KG TRACER/KG AIR)
 C****     3  TM (SUM OVER ALL LAYERS) (M*M * KG TRACER)
       do n=1,ntm
 C**** Summation of mass over all layers
-      k = 1        ! <<<<< Be sure to do this
-      tij_mass = k
+      k = 0        ! <<<<< Be sure to do this
+      if (src_dist_index(n)<=1) then
+        k = k+1
+        tij_mass = k
         write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_Total_Mass'
         write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//' Total Mass'
         units_tij(k,n) = unit_string(ijtm_power(n),'kg/m^2')
         scale_tij(k,n) = 10.**(-ijtm_power(n))
 C**** Average concentration over layers
-      k = k+1
-      tij_conc = k
+        k = k+1
+        tij_conc = k
         write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_Average'
         write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//' Average'
         units_tij(k,n) = unit_string(ijtc_power(n),cmr(n))
@@ -388,8 +347,8 @@ C**** Average concentration over layers
         endif
 #endif
 C**** Surface concentration
-      k = k+1
-      tij_surf = k
+        k = k+1
+        tij_surf = k
         write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_At_Surface'
         write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//' At Surface'
         units_tij(k,n) = unit_string(ijtc_power(n),cmr(n))
@@ -402,8 +361,8 @@ C**** Surface concentration
         endif
 #endif
 C**** Surface concentration by volume (units kg/m^3)
-      k = k+1
-      tij_surfbv = k
+        k = k+1
+        tij_surfbv = k
         write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
      *     '_byVol_At_Surface'
         write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
@@ -411,6 +370,7 @@ C**** Surface concentration by volume (units kg/m^3)
         units_tij(k,n) = unit_string(ijtc_power(n),'kg/m^3')
         scale_tij(k,n)=MMR_to_VMR(n)*10.**(-ijtc_power(n))/
      *                 REAL(NIsurf,KIND=8)
+      endif ! if (src_dist_index(n)<=1) then
 #ifdef TRACERS_WATER
 C**** the following diagnostics are set assuming that the particular
 C**** tracer exists in water.
@@ -435,9 +395,10 @@ C**** Tracers in precipitation (=Wet deposition)
         end if
       end if
 C**** Tracers in evaporation
-      k = k+1
-      tij_evap = k
-      if (tr_wd_type(n).eq.nWater) then
+      if (src_dist_index(n)<=1) then
+        k = k+1
+        tij_evap = k
+        if (tr_wd_type(n).eq.nWater) then
         write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_in_evap'
         write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
      *       ' in Evaporation'
@@ -449,10 +410,10 @@ C**** Tracers in evaporation
           units_tij(k,n)=unit_string(ijtc_power(n),trim(cmrwt(n))//'/s')
           scale_tij(k,n)=10.**(-ijtc_power(n))/dtsrc
         end if
-      endif
+        endif
 C**** Tracers in river runoff (two versions - for inflow and outflow)
-      k = k+1
-      tij_rvr = k
+        k = k+1
+        tij_rvr = k
         sname_tij(k,n) = trim(TRNAME(n))//'_in_rvr'
         lname_tij(k,n) = trim(TRNAME(n))//' in River Inflow'
         if (to_per_mil(n) .eq.1) then
@@ -463,8 +424,8 @@ C**** Tracers in river runoff (two versions - for inflow and outflow)
           scale_tij(k,n)=10.**(-ijtc_power(n)-3)
         end if
         denom_tij(k,n)=n_Water
-      k = k+1
-      tij_rvro = k
+        k = k+1
+        tij_rvro = k
         sname_tij(k,n) = trim(TRNAME(n))//'_in_rvro'
         lname_tij(k,n) = trim(TRNAME(n))//' in River Outflow'
         if (to_per_mil(n) .eq.1) then
@@ -476,8 +437,8 @@ C**** Tracers in river runoff (two versions - for inflow and outflow)
         end if
         denom_tij(k,n)=n_Water
 C**** Tracers in iceberg runoff 
-      k = k+1
-      tij_icb = k
+        k = k+1
+        tij_icb = k
         sname_tij(k,n) = trim(TRNAME(n))//'_in_icb'
         lname_tij(k,n) = trim(TRNAME(n))//' in Iceberg Inflow'
         if (to_per_mil(n) .eq.1) then
@@ -489,8 +450,8 @@ C**** Tracers in iceberg runoff
         end if
         denom_tij(k,n)=n_Water
 C**** Tracers in sea ice
-      k = k+1
-      atmice%tij_seaice = k
+        k = k+1
+        atmice%tij_seaice = k
         sname_tij(k,n) = trim(TRNAME(n))//'_in_ice'
         lname_tij(k,n) = trim(TRNAME(n))//' in Sea Ice'
         if (to_per_mil(n) .eq.1) then
@@ -504,8 +465,8 @@ C**** Tracers in sea ice
 c        denom_tij(k,n)=n_Water ! if kg/kg units for non-water-isotopes
         end if
 C**** Tracers conc. in ground component (ie. water or ice surfaces)
-      k = k+1
-      tij_grnd = k
+        k = k+1
+        tij_grnd = k
         write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_at_Grnd'
         write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
      *       ' at Ground'
@@ -518,8 +479,8 @@ C**** Tracers conc. in ground component (ie. water or ice surfaces)
           scale_tij(k,n)=10.**(-ijtc_power(n)-3)/REAL(NIsurf,KIND=8)
         end if
 C**** Tracers conc. in lakes (layer 1)
-      k = k+1
-      tij_lk1 = k
+        k = k+1
+        tij_lk1 = k
         sname_tij(k,n) = trim(TRNAME(n))//'_Lake1'
         lname_tij(k,n) = trim(TRNAME(n))//' Lakes layer 1'
         if (to_per_mil(n) .eq.1) then
@@ -531,8 +492,8 @@ C**** Tracers conc. in lakes (layer 1)
         end if
         denom_tij(k,n)=n_Water
 C**** Tracers conc. in lakes (layer 2)
-      k = k+1
-      tij_lk2 = k
+        k = k+1
+        tij_lk2 = k
         sname_tij(k,n) = trim(TRNAME(n))//'_Lake2'
         lname_tij(k,n) = trim(TRNAME(n))//' Lakes layer 2'
         if (to_per_mil(n) .eq.1) then
@@ -544,8 +505,8 @@ C**** Tracers conc. in lakes (layer 2)
         end if
         denom_tij(k,n)=n_Water
 C**** Tracers conc. in soil water
-      k = k+1
-      tij_soil = k
+        k = k+1
+        tij_soil = k
         sname_tij(k,n) = trim(TRNAME(n))//'_in_Soil'
         lname_tij(k,n) = trim(TRNAME(n))//' Soil Water'
         if (to_per_mil(n) .eq.1) then
@@ -557,8 +518,8 @@ C**** Tracers conc. in soil water
         end if
         denom_tij(k,n)=n_Water
 C**** Tracers conc. in land snow water
-      k = k+1
-      tij_snow = k
+        k = k+1
+        tij_snow = k
         sname_tij(k,n) = trim(TRNAME(n))//'_in_Snow'
         lname_tij(k,n) = trim(TRNAME(n))//' Land Snow Water'
         if (to_per_mil(n) .eq.1) then
@@ -570,8 +531,8 @@ C**** Tracers conc. in land snow water
         end if
         denom_tij(k,n)=n_Water
 C**** Tracer ice-ocean flux
-      k = k+1
-      atmice%tij_icocflx = k
+        k = k+1
+        atmice%tij_icocflx = k
         write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_ic_oc_flx'
         write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
      *       ' Ice-Ocean Flux'
@@ -584,35 +545,36 @@ C**** Tracer ice-ocean flux
           scale_tij(k,n)=10.**(-ijtc_power(n)+5)/DTsrc
         end if
 C**** Tracers integrated E-W atmospheric flux
-      k = k+1
-      tij_uflx = k
+        k = k+1
+        tij_uflx = k
         write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_uflx'
         write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
      *       ' E-W Atmos Flux'
         units_tij(k,n)=unit_string(ijtc_power(n)+10,'kg/s')
         scale_tij(k,n)=10.**(-ijtc_power(n)-10)/DTsrc
 C**** Tracers integrated N-S atmospheric flux
-      k = k+1
-      tij_vflx = k
+        k = k+1
+        tij_vflx = k
         write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//'_vflx'
         write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
      *       ' N-S Atmos Flux'
         units_tij(k,n)=unit_string(ijtc_power(n)+10,'kg/s')
         scale_tij(k,n)=10.**(-ijtc_power(n)-10)/DTsrc
 C**** Tracers integrated E-W sea ice flux
-      k = k+1
-      atmice%tij_tusi = k
+        k = k+1
+        atmice%tij_tusi = k
         sname_tij(k,n) = trim(TRNAME(n))//'_tusi'
         lname_tij(k,n) = trim(TRNAME(n))//' E-W Ice Flux'
         units_tij(k,n) = unit_string(ntrocn(n),'kg/s')
         scale_tij(k,n) = (10.**(-ntrocn(n)))/DTsrc
 C**** Tracers integrated N-S sea ice flux
-      k = k+1
-      atmice%tij_tvsi = k
+        k = k+1
+        atmice%tij_tvsi = k
         sname_tij(k,n) = trim(TRNAME(n))//'_tvsi'
         lname_tij(k,n) = trim(TRNAME(n))//' N-S Ice Flux'
         units_tij(k,n) = unit_string(ntrocn(n),'kg/s')
         scale_tij(k,n) = (10.**(-ntrocn(n)))/DTsrc
+      endif ! if (src_dist_index(n)<=1) then
 #endif
 #ifdef TRACERS_DRYDEP
 C**** Tracers dry deposition flux.
@@ -743,6 +705,7 @@ C**** trflux1 is total flux into first layer
       USE TRACER_COM, only : NTM,trm,trmom
       USE FLUXES, only : trflux1,atmsrf
       USE DOMAIN_DECOMP_ATM, ONLY : GRID, getDomainBounds
+      use oldtracer_mod, only: src_dist_index
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: dtstep
       INTEGER n,i,j
@@ -779,6 +742,7 @@ c        trflux1(:,j,n) = trflux1(:,j,n)+atmsrf%trsrfflx(n,:,j)
 C**** Technically speaking the vertical moments should be modified here
 C**** as well. But for consistency with water vapour we only modify
 C**** moments for dew.
+       if (src_dist_index(n)==0) then
         do j=J_0,J_1
           do i=i_0,imaxj(j)
             if (atmsrf%trsrfflx(n,i,j).lt.0 .and.
@@ -789,6 +753,7 @@ C**** moments for dew.
             end if
           end do
         end do
+       endif
       end do
 C****
       RETURN
@@ -829,17 +794,14 @@ C****
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
-      expdec = 1. 
-
       if (ifirst) then
-        do n=1,ntm
-          if (trdecay(n).gt.0.0) expdec(n)=exp(-trdecay(n)*dtsrc)
-        end do
+        expdec = 1.
         ifirst = .false.
       end if
 
       do n=1,ntm
         if (trdecay(n).gt.0. .and. itime.ge.itime_tr0(n)) then
+          expdec(n)=exp(-trdecay(n)*dtsrc)
 C**** Atmospheric decay
           told(:,:,:)=trm(:,:,:,n)
 
@@ -944,8 +906,8 @@ C****
       real*8, dimension(grid%I_STRT_HALO:grid%I_STOP_HALO,
      &     grid%J_STRT_HALO:grid%J_STOP_HALO,lm,NBINS) :: vs !gravitational settling velocity (m s-1)
 !@var Dp_gr : particle diameter (m)
-      real Dp_gr(nbins)         
-      real density_gr(nbins)    !density (kg/m3) of current size bin           
+      real*8 Dp_gr(nbins)         
+      real*8 density_gr(nbins)  !density (kg/m3) of current size bin
       real*8 mp                 !particle mass (kg)
       real*8 mu                 !air viscosity (kg/m s)
 #endif
@@ -1034,8 +996,9 @@ C     APR 2015 - FIX vs with slip correction factor (use vgs now)
 cyhl              vs(I,J,L,k)=density_gr(k)*(Dp_gr(k)**2)*grav
 cyhl     *             /18.d0/visc(i,j,l) 
 
-             vs(I,J,L,k)=vgs(airden(i,j,l),0.,Dp_gr(k)/2.,density_gr(k)
-     *           ,visc(i,j,l),hydrate) 
+             vs(I,J,L,k) = 
+     *            vgs(airden(i,j,l),0.d0,Dp_gr(k)/2.,density_gr(k),
+     *            visc(i,j,l),hydrate) 
            enddo
          endif
           binnum=mod(N-n_ASO4(1)+1,NBINS)
@@ -1079,12 +1042,7 @@ C****
       USE CONSTANT, only : by3,pi,gasc,avog,rt2,deltx
      *     ,mair,grav
       IMPLICIT NONE
-#ifdef TRACERS_TOMAS
-      real*8, intent(in) ::  airden,rh1,visc
-      real, intent(in) ::  tr_radius,tr_dens
-#else
       real*8, intent(in) ::  airden,rh1,tr_radius,tr_dens,visc
-#endif
       logical, intent(in) :: hydrate
       real*8  wmf,frpath
       real*8, parameter :: dair=3.65d-10 !m diameter of air molecule
@@ -1349,10 +1307,12 @@ C**** check whether air mass is conserved
      &     first_mod,max_days,nra_ncep,nra_ch4,maxHR_ch4,avg_model,
      &     avg_ncep
 #endif
-      use photolysis, only: jppj
+#ifdef SMOOTH_SUNLIGHT_CHEMISTRY
+      USE TRCHEM_Shindell_COM, only: mostRecentNonZeroAlbedo
 #endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+      use photolysis, only: jppj
+#endif /* TRACERS_SPECIAL_Shindell */
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       USE fluxes,ONLY : pprec,pevap
       USE tracers_dust,ONLY : hbaij,ricntd
       use trdust_drv, only: io_trDust
@@ -1400,9 +1360,11 @@ C**** check whether air mass is conserved
       REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: Rijch4_glob
       REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: Rijncep_glob
 #endif
-#endif     
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#ifdef SMOOTH_SUNLIGHT_CHEMISTRY
+      REAL*8, DIMENSION(:,:),ALLOCATABLE :: MRNZA_glob
+#endif
+#endif /* TRACERS_SPECIAL_Shindell */     
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       REAL*8,DIMENSION(Im,Jm) :: pprec_glob,ricntd_glob,hbaij_glob
       REAL*8,DIMENSION(Im,Jm) :: pevap_glob
 #endif
@@ -1476,7 +1438,10 @@ C**** check whether air mass is conserved
      &    ,rDch4(IM,J_0H:J_1H,nra_ch4)
      &    ,r0ch4(IM,J_0H:J_1H,nra_ch4) )
 #endif
+#ifdef SMOOTH_SUNLIGHT_CHEMISTRY
+      allocate( MRNZA_glob(img,jmg) )
 #endif
+#endif /* TRACERS_SPECIAL_Shindell */
 
       allocate(trcSurfMixR_acc_glob(im,jm,NTM)
      &        ,trcSurfByVol_acc_glob(im,jm,NTM))
@@ -1520,8 +1485,7 @@ c not yet        header='For tracer 3D emissions: daily_z(i,j,l)'
 c not yet        call pack_data(grid,daily_z,aijl_glob)
 c not yet        if(am_i_root()) write(kunit,err=10) header,aijl_glob
 
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
        CALL pack_data(grid,pprec,pprec_glob)
        CALL pack_data(grid,pevap,pevap_glob)
        CALL pack_data(grid,hbaij,hbaij_glob)
@@ -1708,6 +1672,12 @@ c not yet        if(am_i_root()) write(kunit,err=10) header,aijl_glob
      &      ,sOx_acc_glob,sNOx_acc_glob,sCO_acc_glob,l1Ox_acc_glob
      &      ,l1NO2_acc_glob
 #endif
+#if (defined TRACERS_SPECIAL_Shindell) &&\
+    (defined SMOOTH_SUNLIGHT_CHEMISTRY)
+       header='SMOOTH_SUNLIGHT_CHEMISTRY: mostRecentNonZeroAlbedo'
+       call pack_data(grid,mostRecentNonZeroAlbedo,MRNZA_glob)
+       if(am_i_root())write(kunit,err=10)header,MRNZA_glob
+#endif
 
       CASE (IOREAD:)          ! input from restart file
         SELECT CASE (IACTION)
@@ -1736,8 +1706,7 @@ C**** ESMF: Copy global data into the corresponding local (distributed) arrays.
 c not yet          if(am_i_root()) read(kunit,err=10) header,aijl_glob
 c not yet          call unpack_data(grid,aijl_glob,daily_z)
 
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
           IF (am_i_root()) READ(kunit,ERR=10) header,hbaij_glob,
      &         ricntd_glob,pprec_glob,pevap_glob
           CALL unpack_data(grid,hbaij_glob,hbaij)
@@ -1851,8 +1820,8 @@ C**** ESMF: Broadcast all non-distributed read arrays.
           call broadcast( grid, iday_ncep )  
           call broadcast( grid, i0_ncep   )  
           call broadcast( grid, first_ncep)
-#endif
-#endif
+#endif /* INTERACTIVE_WETLANDS_CH4 */
+#endif /* TRACERS_SPECIAL_Shindell */
 
           if (am_i_root()) read(kunit,err=10) header
      &         ,trcSurfMixR_acc_glob,trcSurfByVol_acc_glob
@@ -1885,11 +1854,16 @@ C**** ESMF: Broadcast all non-distributed read arrays.
           call unpack_data(grid,l1NO2_acc_glob,l1NO2_acc)
 #endif
 
+#if (defined TRACERS_SPECIAL_Shindell) &&\
+    (defined SMOOTH_SUNLIGHT_CHEMISTRY)
+       if(am_i_root())read(kunit,err=10)header,MRNZA_glob
+       call unpack_data(grid,MRNZA_glob,mostRecentNonZeroAlbedo)
+#endif
+
         END SELECT
       END SELECT
 
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       call io_trDust(kunit,iaction)
 #endif
 
@@ -1927,18 +1901,67 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       deallocate(day_ncep_glob,DRA_ch4_glob,HRA_ch4_glob,Rijch4_glob,
      & Rijncep_glob,rfirst_mod,rHch4,rDch4,r0ch4)
 #endif
+#ifdef SMOOTH_SUNLIGHT_CHEMISTRY
+      deallocate(MRNZA_glob)
 #endif
+#endif /* TRACERS_SPECIAL_Shindell */
+
       end subroutine freemem
 
 #endif
       END SUBROUTINE io_tracer
 
 
-      subroutine setup_emis_sectors_regions
-!@sum setup_emis_sectors_regions reads from the rundeck the 
+      subroutine setup_emis_sectors
+!@sum setup_emis_sectors reads from the rundeck the 
 !@+ geographic regions and sectors associated with tracer
 !@+ emissions and saves names.
-!@+ Also reads the factors associated with each sector and
+!@auth Greg Faluvegi
+
+      use TRACER_COM, only : n_max_sect,
+     & n_max_reg,alter_sources,ef_REG_IJ,
+     & ef_fact,num_sectors,sect_name
+      USE DOMAIN_DECOMP_ATM, only: GRID,getDomainBounds
+      use DOMAIN_DECOMP_ATM, only: AM_I_ROOT,writet_parallel
+      USE GEOM, only: lat2d_dg, lon2d_dg, imaxj
+      USE FILEMANAGER, only: openunit,closeunit,nameunit
+      use Dictionary_mod, only : sync_param
+      use EmissionRegion_mod, only: initializeEmissionsRegions
+      use EmissionRegion_mod, only: regions, numRegions
+
+      implicit none
+
+      integer :: i,j,n,iu
+      character*80 :: title
+      character*2 :: fnum
+      character*124 :: sectors_are
+
+      sectors_are=' '
+      call sync_param("sectors_are",sectors_are)
+
+      call initializeEmissionsRegions()
+
+! see how many sectors there are, save names in array:
+      num_sectors=0
+      i=1
+      do while(i < len(sectors_are))
+        j=index(sectors_are(i:len(sectors_are))," ")
+        if (j > 1) then
+          num_sectors=num_sectors+1
+          i=i+j
+        else
+          i=i+1
+        end if
+      enddo
+      if (num_sectors > n_max_sect) call stop_model
+     &("n_max_sect must be increased",255)
+      if(num_sectors > 0 ) read(sectors_are,*)
+     & sect_name(1:num_sectors)
+
+      end subroutine setup_emis_sectors
+
+      subroutine setup_emis_sectors_regions
+!@sum Reads the factors associated with each sector and
 !@+ region. Output IJ map of regions.
 !@auth Greg Faluvegi
 
@@ -1969,23 +1992,6 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       call sync_param("sectors_are",sectors_are)
 
       call initializeEmissionsRegions()
-
-! see how many sectors there are, save names in array:
-      num_sectors=0
-      i=1
-      do while(i < len(sectors_are))
-        j=index(sectors_are(i:len(sectors_are))," ")
-        if (j > 1) then
-          num_sectors=num_sectors+1
-          i=i+j
-        else
-          i=i+1
-        end if
-      enddo
-      if (num_sectors > n_max_sect) call stop_model
-     &("n_max_sect must be increased",255)
-      if(num_sectors > 0 ) read(sectors_are,*)
-     & sect_name(1:num_sectors)
 
 ! read the actual emission altering factors:
       do n=1,num_sectors
@@ -2025,6 +2031,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 !@+   on the full list of tracers.
 !@auth T. Clune
       use ParallelIo_mod
+      use pario, only : read_data,defvar,write_data
       use domain_decomp_atm, only : grid
       USE Dictionary_mod
       USE TRACER_COM, only: ntm, TRmom, TRM, coupled_chem
@@ -2039,7 +2046,10 @@ C**** ESMF: Broadcast all non-distributed read arrays.
      & HRA_ch4,iday_ncep,i0_ncep,iHch4,iDch4,i0ch4,first_ncep,first_mod,
      & avg_model,avg_ncep
 #endif
+#ifdef SMOOTH_SUNLIGHT_CHEMISTRY
+      use TRCHEM_Shindell_COM, only: mostRecentNonZeroAlbedo
 #endif
+#endif /* TRACERS_SPECIAL_Shindell */
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_TOMAS) 
       USE AEROSOL_SOURCES, only : snosiz
 #endif
@@ -2049,8 +2059,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
      &     ,sPM2p5_acc,sPM10_acc,l1PM2p5_acc,l1PM10_acc
      &     ,csPM2p5_acc,csPM10_acc
 #endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       USE fluxes,ONLY : pprec,pevap
       USE tracers_dust,ONLY : hbaij,ricntd
       use trdust_drv, only: io_trDust
@@ -2059,6 +2068,9 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 #endif
 #ifdef TRACERS_WATER
       USE TRACER_COM, only: trwm
+#endif
+#if (defined CUBED_SPHERE) || (defined TRACERS_VOLCEXP)
+      USE TRACER_COM, only: daily_z
 #endif
       use OldTracer_mod, only: trName
       use model_com, only : ioread,iowrite
@@ -2093,9 +2105,9 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 #endif
       enddo
 
-#ifdef CUBED_SPHERE
+#if (defined CUBED_SPHERE) || (defined TRACERS_VOLCEXP)
 c daily_z is currently only needed for CS
-      call doVar(handle,daily_z,'daily_z'//ijldims)
+      call doVar(handle,action,daily_z,'daily_z'//ijldims)
 #endif
 
 #ifdef TRACERS_SPECIAL_Shindell       
@@ -2174,6 +2186,7 @@ c daily_z is currently only needed for CS
           call read_data(grid,fid,'i0_ncep',i0_ncep,
      &       bcast_all=.true.)
           call read_data(grid,fid,'first_ncep',first_ncep,
+     &       bcast_all=.true.)
         case ('write_dist')
           call write_data(grid,fid,'iday_ncep',iday_ncep)
           call write_data(grid,fid,'i0_ncep',i0_ncep)
@@ -2206,10 +2219,17 @@ c daily_z is currently only needed for CS
       call doVar(handle,action,csPM10_acc,'csPM10_acc(dist_im,dist_jm)')
 #endif
 
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_SPECIAL_Shindell) &&\
+    (defined SMOOTH_SUNLIGHT_CHEMISTRY)
       handle = ParallelIo(grid, fid,
-     &   'TRACERS_DUST||TRACERS_MINERALS||TRACERS_QUARZHEM')
+     &  'TRACERS_SPECIAL_Shindell&&SMOOTH_SUNLIGHT_CHEMISTRY')
+      call doVar(handle,action,mostRecentNonZeroAlbedo,
+     & 'mostRecentNonZeroAlbedo(dist_im,dist_jm)')
+#endif
+
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+      handle = ParallelIo(grid, fid,
+     &   'TRACERS_DUST||TRACERS_MINERALS')
       call doVar(handle,action,hbaij,'hbaij(dist_im,dist_jm)')
       call doVar(handle,action,ricntd,'ricntd(dist_im,dist_jm)')
       call doVar(handle,action,pprec,'pprec(dist_im,dist_jm)')
@@ -2239,22 +2259,70 @@ c daily_z is currently only needed for CS
 ! 2D tracer outputs (model horizontal grid).
 ! Each tracer output must be declared separately (no bundling).
       use model_com, only : dtsrc,nday
-      use subdd_mod, only : info_type
+      use subdd_mod, only : info_type, sched_rad
+      use OldTracer_mod, only: trname
+      use radpar, only: nraero_aod=>NTRACE
+      use rad_com, only: ntrix_aod,nraero_rf,ntrix_rf,diag_fc
+      use RunTimeControls_mod, only: tracers_amp, tracers_tomas
 ! info_type_ is a homemade structure constructor for older compilers
       use subdd_mod, only : info_type_
       implicit none
       integer :: nmax,decl_count
       type(info_type) :: arr(nmax)
+! types of aods to be saved
+! The name will be any combination of {,TRNAME}{as,cs}{,a}aod
+      character(len=10), dimension(2) :: ssky=(/'as','cs'/),
+     &                                lsky=(/'All-sky  ','Clear-sky'/)
+      character(len=10), dimension(2) :: sabs=(/' ','a'/),
+     &                                labs=(/'          ','absorption'/)
+      character(len=10), dimension(2) :: sfrc=(/'swf','lwf'/),
+     &                                lfrc=(/'shortwave','longwave'/)
+      character(len=10) :: spcname
+      integer :: s,a,n,f
 
       decl_count = 0
 
-! NONE AT THE MOMENT:
-!     arr(next()) = info_type_(
-!    &  sname = 'someName',
-!    &  lname = 'some tracer output field',
-!    &  units = 'kg/m2'
-!    &     )
-!
+      do s=1,size(ssky)
+      do a=1,size(sabs)
+      do n=1,nraero_aod+1 ! +1 for total
+        if (n<=nraero_aod) then
+          spcname = trim(trname(ntrix_aod(n)))
+        else
+          spcname = ''
+        endif
+        arr(next()) = info_type_(
+     &    sname = trim(spcname)//trim(ssky(s))//trim(sabs(a))//'aod',
+     &    lname = trim(spcname)//' '//trim(lsky(s))//' '//
+     &            trim(labs(a))//' aerosol optical depth',
+     &    units = '-',
+     &    sched = sched_rad
+     &       )
+      enddo ! n
+      enddo ! a
+      enddo ! s
+
+      do f=1,size(sfrc)
+      do n=1,nraero_rf
+        if (diag_fc==1) then
+          if (tracers_amp) then
+            spcname='AMP'
+          elseif (tracers_tomas) then
+            spcname='TOMAS'
+          else
+            spcname='OMA'
+          endif
+        else
+          spcname = trim(trname(ntrix_rf(n)))
+        endif
+        arr(next()) = info_type_(
+     &    sname = trim(sfrc(f))//'_'//trim(spcname),
+     &    lname = trim(spcname)//' '//trim(lfrc(f))//' forcing',
+     &    units = 'W m-2',
+     &    sched = sched_rad
+     &       )
+      enddo ! n
+      enddo ! f
+
       return
       contains
       integer function next()
@@ -2267,17 +2335,27 @@ c daily_z is currently only needed for CS
 ! 3D tracer outputs (model horizontal grid and layers).
 ! Each tracer output must be declared separately (no bundling).
       use model_com, only : dtsrc,nday
-      use subdd_mod, only : info_type
+      use subdd_mod, only : info_type, sched_rad
 ! info_type_ is a homemade structure constructor for older compilers
       use subdd_mod, only : info_type_
       use tracer_com, only : ntm
       use OldTracer_mod, only: trname
+      use radpar, only: nraero_aod=>NTRACE
+      use rad_com, only: ntrix_aod
       use trdiag_com, only : to_volume_MixRat
       implicit none
       integer :: nmax,decl_count
       integer :: n
       character*80 :: unitString
       type(info_type) :: arr(nmax)
+! types of aods to be saved
+! The name will be any combination of {,TRNAME}{as,cs}{,a}aod3d
+      character(len=10), dimension(2) :: ssky=(/'as','cs'/),
+     &                                lsky=(/'All-sky  ','Clear-sky'/)
+      character(len=10), dimension(2) :: sabs=(/' ','a'/),
+     &                                labs=(/'          ','absorption'/)
+      character(len=10) :: spcname
+      integer :: s,a
 
       decl_count = 0
 
@@ -2296,7 +2374,40 @@ c daily_z is currently only needed for CS
      &    units = trim(unitString)
      &    )
 
+#ifdef TRACERS_AMP
+! AMP aerosol diameters
+        spcname=trim(trname(n))
+        if ((spcname(1:2) == 'N_') .and. (spcname(6:7) == '_1')) then
+          arr(next()) = info_type_(
+     &      sname = 'd'//trim(trname(n)),
+     &      lname = trim(trname(n))//' mass mean diameter',
+     &      units = 'm'
+     &         )
+        endif
+#endif  /* TRACERS_AMP */
+
       end do ! tracers loop
+
+! 3d AOD
+
+      do s=1,size(ssky)
+      do a=1,size(sabs)
+      do n=1,nraero_aod+1 ! +1 for total
+        if (n<=nraero_aod) then
+          spcname = trim(trname(ntrix_aod(n)))
+        else
+          spcname = ''
+        endif
+        arr(next()) = info_type_(
+     &    sname = trim(spcname)//trim(ssky(s))//trim(sabs(a))//'aod3d',
+     &    lname = trim(spcname)//' '//trim(lsky(s))//' '//
+     &            trim(labs(a))//' aerosol optical depth',
+     &    units = '-',
+     &    sched = sched_rad
+     &       )
+      enddo ! n
+      enddo ! a
+      enddo ! s
 
       ! Other tracer diags on model levels:
 
@@ -2311,6 +2422,24 @@ C
      &  sname = 'MRNO', ! because not a tracer
      &  lname = 'NO mixing ratio',
      &  units = 'mole species / mole air'
+     &  )
+C
+      arr(next()) = info_type_(
+     &  sname = 'MRO3', ! because not a tracer
+     &  lname = 'O3 mixing ratio',
+     &  units = 'mole species / mole air'
+     &  )
+C
+      arr(next()) = info_type_(
+     &  sname = 'OH_conc', ! because not a tracer
+     &  lname = 'OH concentration',
+     &  units = 'molecules cm-3'
+     &  )
+C
+      arr(next()) = info_type_(
+     &  sname = 'HO2_conc', ! because not a tracer
+     &  lname = 'HO2 concentration',
+     &  units = 'molecules cm-3'
      &  )
 #endif /* TRACERS_SPECIAL_Shindell */
 
@@ -2373,6 +2502,24 @@ C
      &  lname = 'NO mixing ratio',
      &  units = 'mole species / mole air'
      &  )
+C
+      arr(next()) = info_type_(
+     &  sname = 'MRO3cp', ! because not a tracer
+     &  lname = 'O3 mixing ratio',
+     &  units = 'mole species / mole air'
+     &  )
+C
+      arr(next()) = info_type_(
+     &  sname = 'OH_conccp', ! because not a tracer
+     &  lname = 'OH concentration',
+     &  units = 'molecules cm-3'
+     &  )
+C
+      arr(next()) = info_type_(
+     &  sname = 'HO2_conccp', ! because not a tracer
+     &  lname = 'HO2 concentration',
+     &  units = 'molecules cm-3'
+     &  )
 #endif /* TRACERS_SPECIAL_Shindell */
 
       return
@@ -2424,7 +2571,7 @@ C
               call inc_subdd(subdd,k,sddarr3d)
               exit ntm_loop
             end if
-         end do ntm_loop
+          end do ntm_loop
         enddo ! k
       enddo ! igroup
 
@@ -2447,7 +2594,7 @@ C
               call inc_subdd(subdd,k,sddarr3d)
               exit ntm_loop2
             end if
-         end do ntm_loop2
+          end do ntm_loop2
         enddo ! k
       enddo ! igroup
 
@@ -2469,36 +2616,27 @@ C
 #if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch) ||\
     (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
 
-      SUBROUTINE get_aircraft_tracer(year,xday,phi,need_read)
+      subroutine get_aircraft_tracer
+     & (nTracer,fileName,year,xday,phi,need_read)
 !@sum  get_aircraft_tracer to define the 3D source of tracers from aircraft
 !@auth Drew Shindell? / Greg Faluvegi / Jean Learner
-!@ver  2.0 (based on DB396Tds3M23 -- adapted for AR5 emissions)
-      USE RESOLUTION, only : im,jm
-      USE RESOLUTION, only : lm
+      use RESOLUTION, only : im,jm,lm
       use model_com, only: itime, master_yr
-      use domain_decomp_atm, only: GRID
-      use domain_decomp_atm, only: getDomainBounds, write_parallel
+      use domain_decomp_atm, only: GRID,getDomainBounds,write_parallel
       use constant, only: bygrav
-      use filemanager, only: openunit,closeunit
+      use filemanager, only: openunit,closeunit,is_fbsa
       use fluxes, only: tr3Dsource
       use geom, only: axyp
-      use OldTracer_mod, only: itime_tr0,trname
-      use TRACER_COM, only: ntm_chem, aer_int_yr, trans_emis_overr_yr
-#ifdef TRACERS_SPECIAL_Shindell
-      use TRACER_COM, only: n_NOx
+      use OldTracer_mod, only: itime_tr0
+      use TRACER_COM, only: ntm_chem_beg,ntm_chem_end,nAircraft
+      use TRACER_COM, only: trans_emis_overr_yr
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) || \
+    (defined TRACERS_TOMAS)
+      use TRACER_COM, only: aer_int_yr
 #endif
-#ifdef TRACERS_AEROSOLS_Koch
-      use TRACER_COM, only: n_BCIA
-#endif
-#ifdef TRACERS_TOMAS
-      use TRACER_COM, only: n_AECOB
-#endif
-#ifdef TRACERS_AMP
-          use TRACER_COM, only: n_M_BC1_BC
-#endif
-      use TRACER_COM, only: nAircraft
       use Dictionary_mod, only: is_set_param, get_param
-      USE RAD_COM, only: o3_yr
+      use RAD_COM, only: o3_yr
+
       IMPLICIT NONE
  
 !@param Laircr the number of layers of aircraft data read from file
@@ -2510,55 +2648,26 @@ C
       real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
      &     :: airtracer
-
-      integer, intent(IN) :: year,xday
+!@var fileName the name of the aircraft source file for this tracer
+      character(len=*), intent(IN) :: fileName
+!@var nTracer the index of the tracer in current call in ntm arrays
+!@+   for example n_NOx or n_M_BC1_BC
+      integer, intent(IN) :: year,xday,nTracer
       integer :: xyear
       real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),
      &     intent(IN) :: phi
       logical, intent(IN) :: need_read
 
-      character(len=300) :: out_line
-      integer, parameter :: nanns=0
-#if (defined TRACERS_SPECIAL_Shindell) && \
-    ((defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
-     (defined TRACERS_TOMAS))
-      integer, parameter :: nmons=2
-#else /* Shindell only, or aerosol only */
-      integer, parameter :: nmons=1
-#endif
-      integer :: mon_units
-      integer l,i,j,k,ll
-      character*13, dimension(nmons) :: 
-#if (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AEROSOLS_Koch)
-     *  mon_files=(/'NOx_AIRC     ','BCIA_AIRC    '/)
-#elif (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AMP)
-     *  mon_files=(/'NOx_AIRC     ','M_BC1_BC_AIRC'/)
-#elif (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_TOMAS)
-     *  mon_files=(/'NOx_AIRC     ','AECOB_01_AIRC'/)
-#elif (defined TRACERS_SPECIAL_Shindell)
-     *  mon_files=(/'NOx_AIRC     '/)
-#elif (defined TRACERS_AEROSOLS_Koch)
-     *  mon_files=(/'BCIA_AIRC    '/)
-#elif (defined TRACERS_AMP)
-     *  mon_files=(/'M_BC1_BC_AIRC'/)
-#elif (defined TRACERS_TOMAS)
-     *  mon_files=(/'AECOB_01_AIRC'/)
-#endif
+      integer :: fileUnit 
+      integer L,i,j,k,LL
 
-      integer, dimension(nmons) :: mon_tracers ! define them later
-#if (defined TRACERS_SPECIAL_Shindell) && \
-    ((defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
-     (defined TRACERS_TOMAS))
-      logical, dimension(nmons) :: mon_bins=(/.true.,.true./) ! binary file?
-#else /* this is for Shindell only or aerosol only */
-      logical, dimension(nmons) :: mon_bins=(/.true./) ! binary file?
-#endif
+!@var src holds the tracer source returned from actual reading routine
       real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO
      *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,Laircr):: src
 !@var zmod approx. geometric height at model layer(m), phi/grav
-      real*8, dimension(LM)                :: zmod
-!@var zairL heights of AR5 aircraft emissions (km)
+      real*8, dimension(LM) :: zmod
+!@var zairL heights of CMIP5,CMIP6 aircraft emissions (km)
       real*4, parameter, dimension(Laircr) :: zairL = ! alt in km:
      & (/0.305, 0.915, 1.525, 2.135, 2.745, 3.355, 3.965, 4.575, 5.185,
      & 5.795, 6.405, 7.015, 7.625, 8.235001, 8.845, 9.455001, 10.065,
@@ -2570,87 +2679,63 @@ C
 ! Aircraft tracer source input is monthly, on 25 levels.
 ! Read it in here and interpolated each day.
 
-      if (is_set_param("aircraft_Tyr1")) then
-        call get_param("aircraft_Tyr1",aircraft_Tyr1)
-      else
-        if (master_yr == 0) then
-          call stop_model("Please provide aircraft_Tyr1 via the "//
-     .                    "rundeck", 255)
+      if (is_fbsa(fileName)) then
+        if (is_set_param("aircraft_Tyr1")) then
+          call get_param("aircraft_Tyr1",aircraft_Tyr1)
         else
-          aircraft_Tyr1=master_yr
-        endif
-      endif
-      if (is_set_param("aircraft_Tyr2")) then
-        call get_param("aircraft_Tyr2",aircraft_Tyr2)
-      else
-        if (master_yr == 0) then
-          call stop_model("Please provide aircraft_Tyr2 via the "//
-     .                    "rundeck", 255)
+          call stop_model("Must provide aircraft_Tyr1 via rundeck",255)
+        end if
+        if (is_set_param("aircraft_Tyr2")) then
+          call get_param("aircraft_Tyr2",aircraft_Tyr2)
         else
-          aircraft_Tyr2=master_yr
-        endif
-      endif
-
-#if (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AEROSOLS_Koch)
-      mon_tracers(1)=n_NOx
-      mon_tracers(2)=n_BCIA
-#elif (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_TOMAS)
-      mon_tracers(1)=n_NOx
-      mon_tracers(2)=n_AECOB(1)
-#elif (defined TRACERS_SPECIAL_Shindell) && (defined TRACERS_AMP)
-      mon_tracers(1)=n_NOx
-      mon_tracers(2)=n_M_BC1_BC
-#elif (defined TRACERS_SPECIAL_Shindell)
-      mon_tracers(1)=n_NOx
-#elif (defined TRACERS_AEROSOLS_Koch)
-      mon_tracers(1)=n_BCIA
-#elif (defined TRACERS_AMP)
-      mon_tracers(1)=n_M_BC1_BC
-#elif (defined TRACERS_TOMAS)
-      mon_tracers(1)=n_AECOB(1)
-#endif
-      do k=1,nmons
-        if (mon_tracers(k) == 0) then
-          call stop_model("mon_tracers(k) not defined",255)
-        endif
-        if (itime < itime_tr0(mon_tracers(k))) cycle
-        call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
-        call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1)
-
-! Monthly sources are interpolated to the current day
-! Units are KG(N)/m2/s, so no conversion is necessary:
-        if(aircraft_Tyr1==aircraft_Tyr2)then
+          call stop_model("Must provide aircraft_Tyr2 via rundeck",255)
+        end if
+        if (aircraft_Tyr1==aircraft_Tyr2) then
           trans_emis=.false.; yr1=0; yr2=0
         else
           trans_emis=.true.; yr1=aircraft_Tyr1; yr2=aircraft_Tyr2
-        endif
-
-#ifdef TRACERS_SPECIAL_Shindell
-        if (mon_tracers(k)<=ntm_chem) then
-          trans_emis_overr_yr=ABS(o3_yr)
-          if(trans_emis_overr_yr > 0)then
-            xyear=trans_emis_overr_yr
-          else
-            xyear=year
-          endif
-        else
-#endif
-          if(aer_int_yr > 0) then
-            xyear=aer_int_yr
-          else
-            xyear=year
-          endif
-#ifdef TRACERS_SPECIAL_Shindell
         end if
+      end if
+
+      if (nTracer == 0) then
+        call stop_model("nTracer undefined in get_aircraft_tracer",255)
+      end if
+
+      if (itime < itime_tr0(nTracer)) goto 999 ! returns w/o doing source
+
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1)
+
+! Monthly sources are interpolated to the current day
+! Units are kg m-2 s-1, so no conversion is necessary:
+
+      ! Determine year of emissions to use:
+      trans_emis_overr_yr=0
+#ifdef TRACERS_SPECIAL_Shindell
+      if ((nTracer>=ntm_chem_beg).and.(nTracer<=ntm_chem_end)) then
+        trans_emis_overr_yr=ABS(o3_yr)
+      else
 #endif
-        if (trans_emis .and. xyear < 1900) return !<-- hardcode for NO AIRCRAFT before 1900
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) || \
+    (defined TRACERS_TOMAS)
+        trans_emis_overr_yr=aer_int_yr
+#else 
+        continue
+#endif
+#ifdef TRACERS_SPECIAL_Shindell
+      end if
+#endif
+      xyear=year ! default is model year but allow override:
+      if (trans_emis_overr_yr > 0) xyear=trans_emis_overr_yr
 
-        if(need_read) then
+      if (trans_emis .and. xyear < 1900) goto 999 !<-- hardcode for NO AIRCRAFT before 1900
 
-        call openunit(mon_files(k),mon_units,mon_bins(k))
-        call read_monthly_3Dsources(Laircr,mon_units,
+      if (need_read) then
+
+        call openunit(fileName,fileUnit,.true.)
+        call read_monthly_3Dsources(Laircr,fileUnit,
      &   src,trans_emis,yr1,yr2,xyear,xday)
-        call closeunit(mon_units)
+        call closeunit(fileUnit)
 
 ! Place aircraft sources onto model levels:
         airtracer = 0.d0
@@ -2658,87 +2743,29 @@ C
           do i=I_0,I_1
             zmod(:)=phi(i,j,:)*bygrav*1.d-3 ! km
             do LL=1,Laircr
-              if(src(i,j,LL) > 0.)then
-                loop_l: do L=1,LM
-                  if(zairL(LL) <= zmod(L)) then
-      airtracer(i,j,l) = airtracer(i,j,l) + src(i,j,LL)*axyp(i,j)
-                    exit loop_l
-                  endif
-                if(L==LM)call stop_model("aircraft level problem",255)
-                enddo loop_l
-              endif  ! is there a source?
-            enddo   ! LL
-          enddo    ! I
-        enddo     ! J
+              if (src(i,j,LL) > 0.) then
+                loop_L: do L=1,LM
+                  if (zairL(LL) <= zmod(L)) then
+                    airtracer(i,j,L) = airtracer(i,j,L) +
+     &                                 src(i,j,LL)*axyp(i,j)
+                    exit loop_L
+                  end if
+                  if(L==LM)call stop_model("aircraft lev. problem",255)
+                end do loop_L
+              end if ! is there a source?
+            end do ! LL aircraft levels
+          end do ! I
+        end do ! J
 
-        endif                     ! need_read?
+      end if ! read was needed
 
-        tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,mon_tracers(k)) =
-     &    airtracer(I_0:I_1,J_0:J_1,:)
-      enddo ! k
+      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,nTracer) =
+     & airtracer(I_0:I_1,J_0:J_1,:)
 
+999   continue
       return
       end subroutine get_aircraft_tracer
  
-
-      subroutine check_aircraft_sectors(tr_sect)
-!@sum check_aircraft_sectors checks parameters for user-
-!@+ set sector for aircraft source.
-!@auth Greg Faluvegi
-      use TracerSource_mod, only: TracerSource3D
-      use Tracer_mod, only: Tracer
-      use tracer_com, only: nAircraft, tracers,
-     & sect_name,num_sectors,
-     & n_max_sect,ef_fact,num_regions,ef_fact,ef_fact3d
-      use Dictionary_mod, only: sync_param
-      IMPLICIT NONE
-      character(len=*), intent(in) :: tr_sect
-      integer :: i,j,ns,nsect,nn
-      character*124 :: tr_sectors_are
-      character*32 :: pname
-
-      type (TracerSource3D), pointer :: source
-      class (Tracer), pointer :: pTracer
-
-      tr_sectors_are = ' '
-      pTracer => tracers%getReference(trim(tr_sect))
-      source => pTracer%sources3D(nAircraft)
-
-      pname=trim(tr_sect)//'_AIRC_sect'
-      call sync_param(pname,tr_sectors_are)
-      source%num_tr_sectors = 0
-
-      i=1
-      do while(i < len(tr_sectors_are))
-        j=index(tr_sectors_are(i:len(tr_sectors_are))," ")
-        if (j > 1) then
-          source%num_tr_sectors = source%num_tr_sectors + 1
-          i=i+j
-        else
-          i=i+1
-        end if
-      enddo
-      ns=source%num_tr_sectors
-      if(ns > n_max_sect)
-     &call stop_model("num_tr_sectors3D problem",255)
-      if(ns > 0)then
-        read(tr_sectors_are,*) source%tr_sect_name(1:ns)
-        do nsect=1,ns
-          source%tr_sect_index(nsect) = 0
-          loop_nn: do nn=1,num_sectors
-            if(trim(source%tr_sect_name(nsect)) ==
-     &         trim(sect_name(nn))) then
-              source%tr_sect_index(nsect) = nn
-              ef_fact3d(nn,1:num_regions)=
-     &        ef_fact(nn,1:num_regions)
-              exit loop_nn
-            endif
-          enddo loop_nn
-        enddo
-      endif
-
-      return
-      end subroutine check_aircraft_sectors
 
       SUBROUTINE read_monthly_3Dsources
      & (Ldim,iu,data1,trans_emis,yr1,yr2,xyear,xday)

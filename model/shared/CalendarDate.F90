@@ -65,12 +65,12 @@ end module CalendarDate_mod
 #define TYPE_NAME CalendarDate
 #define HAS_PRINT
 
-#include <AssociativeArrayTemplate.h>
+#include "AssociativeArrayTemplate.h"
 
 #define VALUE_TYPE CalendarDate
 #define ASSOCIATIVE_ARRAY_TYPE CalendarDateAssociativeArray
 #undef ITERATOR_TYPE
 #define HASH_TYPE CalendarDateHashMap
 
-#include <HashMapTemplate.h>
+#include "HashMapTemplate.h"
 

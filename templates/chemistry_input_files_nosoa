@@ -2,11 +2,11 @@
 !  resolution-independent chemistry input files:
 !-----------------------------------------------
 MOLEC=chem_files/ds4_moleculesE_terp!_soa
-JPLRX=chem_files/JPL2011_JUN13_fastterp_y2
+JPLRX=chem_files/JPL2011_DEC16th2015_fastterp_N2
 JPLPH=chem_files/ds4_photlist_T25
 RATJ=chem_files/ratj.giss_25
-SPECFJ=chem_files/jv_spec_AV.dat
+SPECFJ=chem_files/jv_spec_AV_X68d.dat ! for define AR5_FASTJ_XSECS case, use jv_spec_AV.dat
 ATMFJ=chem_files/jv_atms.dat
 ! fltran file used if rad_FL.ne.0:
-FLTRAN=chem_files/solar.DBbglean.ann850-2000.uvflux_hdr_fastj2 ! KSOLAR=2
+FLTRAN=solar.lean2015.ann1610-2014_hdr_fastj2 ! KSOLAR=2
 !-----------------------------------------------

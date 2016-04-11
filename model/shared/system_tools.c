@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <dirent.h>
+#include <string.h>
 
 int c_field_list(char *dir, char **list, int nl, int ls)
 {

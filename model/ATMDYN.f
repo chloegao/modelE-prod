@@ -20,6 +20,18 @@ C**** Variables used in DIAG5 calculations
 !@+   around steep orography
       logical :: aflux_topo_adjustments=.true.
 
+!@dbparam [npatch,ipatch,jpatch,md]_aflux_topo_adj number of patches in
+!@+       which to apply AFLUX adjustment, start/end i and j
+!@+       indices for each patch, and the mode for each patch.
+!@+       mode=0 sets the near-surface fluxes to 0.
+!@+       mode=1 transfers near-surface fluxes upward.
+!@+       If none of these parameters is specified in the rundeck,
+!@+       1 global patch with mode=1 is assumed.
+      integer :: npatch_aflux_topo_adj
+      integer, dimension(:,:), allocatable ::
+     &     ipatch_aflux_topo_adj,jpatch_aflux_topo_adj
+      integer, dimension(:), allocatable :: md_aflux_topo_adj
+
 !@var pfilter_using_slp whether to zonally filter surface pressure using
 !@+   diagnosed SLP.  If false, the filter adjusts surface pressure
 !@+   to smooth the zonal PGF
@@ -30,12 +42,15 @@ C**** Variables used in DIAG5 calculations
       SUBROUTINE init_ATMDYN
       USE DOMAIN_DECOMP_ATM, only: grid
       use domain_decomp_1d, only : am_i_root
-      use resolution, only : lm,mfixs,mdrya
+      use resolution, only : im,jm,lm,mdrya
       use model_com, only : dtsrc
       use constant, only : planet_name
       use dynamics
       use Dictionary_mod
       implicit none
+      integer, allocatable :: ibuf(:)
+      character(len=1) :: ptyp
+
       call get_param( "DT", DT )
 C**** NIdyn=dtsrc/dt(dyn) has to be a multiple of 2
       NIdyn = 2*nint(.5*dtsrc/dt)
@@ -114,6 +129,35 @@ c     endif
       CALL AVRX
       ALLOCATE( FCUVA(0:IMH, grid%j_strt_halo:grid%j_stop_halo, LM, 2),
      &          FCUVB(0:IMH, grid%j_strt_halo:grid%j_stop_halo, LM, 2))
+
+
+      ! Get AFLUX adjustment info
+      if(is_set_param('i1_aflux_topo_adj')) then
+        call query_param('i1_aflux_topo_adj',npatch_aflux_topo_adj,ptyp)
+        allocate(ibuf(npatch_aflux_topo_adj))
+        allocate(ipatch_aflux_topo_adj(2,npatch_aflux_topo_adj))
+        allocate(jpatch_aflux_topo_adj(2,npatch_aflux_topo_adj))
+        allocate(md_aflux_topo_adj(npatch_aflux_topo_adj))
+        call get_param('i1_aflux_topo_adj',ibuf,npatch_aflux_topo_adj)
+        ipatch_aflux_topo_adj(1,:) = ibuf
+        call get_param('i2_aflux_topo_adj',ibuf,npatch_aflux_topo_adj)
+        ipatch_aflux_topo_adj(2,:) = ibuf
+        call get_param('j1_aflux_topo_adj',ibuf,npatch_aflux_topo_adj)
+        jpatch_aflux_topo_adj(1,:) = ibuf
+        call get_param('j2_aflux_topo_adj',ibuf,npatch_aflux_topo_adj)
+        jpatch_aflux_topo_adj(2,:) = ibuf
+        call get_param('md_aflux_topo_adj',md_aflux_topo_adj,
+     &       npatch_aflux_topo_adj)
+      else ! use defaults
+        npatch_aflux_topo_adj = 1
+        allocate(ipatch_aflux_topo_adj(2,npatch_aflux_topo_adj))
+        allocate(jpatch_aflux_topo_adj(2,npatch_aflux_topo_adj))
+        allocate(md_aflux_topo_adj(npatch_aflux_topo_adj))
+        ipatch_aflux_topo_adj(:,1) = (/ 1, im /)
+        jpatch_aflux_topo_adj(:,1) = (/ 1, jm /)
+        md_aflux_topo_adj = 1
+      endif
+
       end SUBROUTINE init_ATMDYN
 
 c      subroutine setDtParam(tName, tParam, dtSrc)
@@ -144,7 +188,7 @@ c      end subroutine setDtParam
 !@vers 2015/05/08
 !@auth Original development team
       Use CONSTANT,   Only: by3,byGRAV,RGAS,SHA,kg2mb,UNDEF_VAL
-      Use RESOLUTION, Only: IM,JM,LM, MFIXs
+      Use RESOLUTION, Only: IM,JM,LM
       USE MODEL_COM, only : DTsrc
       Use ATM_COM,    Only: MA,U,V,T,Q,QCL,QCI,MASUM, MUs,MVs,MWs, GZ, P
       Use GEOM,       Only: AXYP
@@ -160,6 +204,9 @@ c      end subroutine setDtParam
 
       Real*8,Dimension (LM, IM, GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      &   MEVEN,MODD1,MODD3
+#ifdef V2_ATMDYN_TIMESTEPPING
+     &  ,MMID
+#endif
       Real*8,Dimension (IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      &   MSUMODD, FPEU,FPEV, AM1,AM2
       Real*8,Dimension (IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) ::
@@ -260,7 +307,9 @@ C**** Leap-frog re-initialization: IF (NS.LT.NIdyn)
       Call AFLUX  (NS,   UT,VT,MODD1,MSUMODD,   MEVEN,MASUM)
       Call ADVECM (DTLF,              MEVEN,    MA,MASUM)
       Call GWDRAG (DTLF, UT,VT,             U,V,MA, T,TZ, .False.)
+#ifndef V2_ATMDYN_TIMESTEPPING
       Call VDIFF  (DTLF, UT,VT,             U,V,MA, T)
+#endif
       Call ADVECV (DTLF, UT,VT,MODD1, MEVEN,U,V,MA)
        PU(:,:,:) = MU(:,:,:)*kg2mb
        PV(:,:,:) = MV(:,:,:)*kg2mb
@@ -278,12 +327,19 @@ C**** ADVECT Q AND T
       Do L=1,LM
          MMA(:,:,L) = MEVEN(L,:,:)*AXYP(:,:)  ;  EndDo
       Call AADVT (DTLF, MMA,T,TMOM, .False., FPEU,FPEV)
+#ifdef V2_ATMDYN_TIMESTEPPING
+      Call VDIFF  (DTLF, UT,VT,             U,V,MA, T)
+#endif
 !     save z-moment of temperature in contiguous memory for later
       TZ(:,:,:) = TMOM(MZ,:,:,:)
        TT(:,:,:) = .5*( T(:,:,:)+ TT(:,:,:))
       TZT(:,:,:) = .5*(TZ(:,:,:)+TZT(:,:,:))
-
+#ifdef V2_ATMDYN_TIMESTEPPING
+      MMID = .5d0*(MEVEN + MA)
+      Call PGF    (DTLF, UT,VT,MMID,       U,V,MA, TT,TZT)
+#else
       Call PGF    (DTLF, UT,VT,MODD1,       U,V,MA, TT,TZT)
+#endif
       Call COMPUTE_MASS_FLUX_DIAGS (GZ, MU,MV, DT)
       call isotropuv(u,v,COS_LIMIT)
       if (USE_UNR_DRAG==0) CALL SDRAG (DTLF)
@@ -426,7 +482,13 @@ c apply north-south filter to U and V once per physics timestep
 !@+            CONV (kg/s) =  horizontal mass convergence
 !@+            SPA (.5 m/s) = filtered (U+U) defined on eastern cell edge
 !!@auth Original development team
-      Use RESOLUTION, Only: IM,JM,LM,LS1, MFIX,MFIXs,MFRAC
+      Use RESOLUTION, Only: IM,JM,LM,LS1=>LS1_NOMINAL
+      Use RESOLUTION, Only: MFIX,MFRAC
+#ifdef STDHYB
+      Use RESOLUTION, Only: mtop
+#else
+      Use RESOLUTION, Only: MFIXs
+#endif
       Use ATM_COM,    Only: ZATMO
       Use GEOM,       Only: IMAXJ, DXYP,DYP,DXV, POLWT
       Use DYNAMICS,   Only: DT, MU,MV,MW,CONV, SPA,DO_POLEFIX
@@ -449,6 +511,8 @@ c apply north-south filter to U and V once per physics timestep
       Real*8  :: DUMMYS(IM),MUS,MVS,PBS,MVSA(LM), zNSxDT,
      *           DUMMYN(IM),MUN,MVN,PBN,MVNA(LM),
      *           USV0(IM,2,LM),VSV0(IM,2,LM), M,CONVs,MVARs
+      real*8 :: mdn,mup,xx
+      integer :: iup,idn,jup,jdn,adjmode,nn,j1p,j2p
 
        zNSxDT = 1 / (NS*DT)
 !****                             +---------+
@@ -539,50 +603,97 @@ c in ADVECV.
          If (QNP)  MU(:,JM,:) = MU(:,JM,:)*TWOby3  ;  EndIf
 
       if(aflux_topo_adjustments) then
+c
+c modify uphill air mass fluxes around topography
+c
+      do adjmode=0,1
+        ! mode=0 before 1 so that 1-overlying-0 regions are no-ops
+        do nn=1,npatch_aflux_topo_adj
+          if(md_aflux_topo_adj(nn).ne.adjmode) cycle
+          j1p=max(jpatch_aflux_topo_adj(1,nn),j1xp)
+          j2p=min(jpatch_aflux_topo_adj(2,nn),jnxp)
+          do j=j1p,j2p
+          do i=ipatch_aflux_topo_adj(1,nn),ipatch_aflux_topo_adj(2,nn)
+            if(i.eq.im) then
+              ip1 = 1
+            else
+              ip1 = i+1
+            endif
+            if    (zatmo(i,j) .lt. zatmo(ip1,j)) then
+              iup = ip1
+              idn = i
+              xx = +1d0
+            elseif(zatmo(i,j) .gt. zatmo(ip1,j)) then
+              idn = ip1
+              iup = i
+              xx = -1d0
+            else
+              cycle
+            endif
 
-!**** Modify eastward uphill air mass fluxes around steep topography
-      Do 310 J=J1XP,JNXP
-      I = IM
-      Do 310 Ip1=1,IM
-      If (ZATMO(I,J) == ZATMO(Ip1,J))  GoTo 310
-      If (ZATMO(I,J) <  ZATMO(Ip1,J))
-     *   Then  ;  M = MASUM(I,J)
-                  Do L=1,LS1-1
-                     If (MU(I,J,L) <= 0)  GoTo 310
-                     M = M - MA(L,I,J)
-                     If (M <= MASUM(Ip1,J))  GoTo 310
-                     MU(I,J,L+1) = MU(I,J,L+1) + MU(I,J,L)
-                     MU(I,J,L) = 0  ;  EndDo
-         Else  ;  M = MASUM(Ip1,J)
-                  Do L=1,LS1-1
-                     If (MU(I,J,L) >= 0)  GoTo 310
-                     M = M - MA(L,Ip1,J)
-                     If (M <= MASUM(I,J))  GoTo 310
-                     MU(I,J,L+1) = MU(I,J,L+1) + MU(I,J,L)
-                     MU(I,J,L) = 0  ;  EndDo  ;  EndIf
-  310 I = Ip1
+            mup = masum(iup,j)
+            mdn = masum(idn,j)
 
-!**** Modify northward uphill air mass fluxes around steep topography
-!**** Exceptional J loop boundaries, not:  Do J=J1V,JNV
-      Do 320 J=Max(J1XP,3),JNXP
-      Do 320 I=1,IM
-      If (ZATMO(I,J-1) == ZATMO(I,J))  GoTo 320
-      If (ZATMO(I,J-1) <  ZATMO(I,J))
-     *   Then  ;  M = MASUM(I,J-1)
-                  Do L=1,LS1-1
-                     If (MV(I,J,L) <= 0)  GoTo 320
-                     M = M - MA(L,I,J-1)
-                     If (M <= MASUM(I,J))  GoTo 320
-                     MV(I,J,L+1) = MV(I,J,L+1) + MV(I,J,L)
-                     MV(I,J,L) = 0  ;  EndDo
-         Else  ;  M = MASUM(I,J)
-                  Do L=1,LS1-1
-                     If (MV(I,J,L) >= 0)  GoTo 320
-                     M = M - MA(L,I,J)
-                     If (M <= MASUM(I,J-1))  GoTo 320
-                     MV(I,J,L+1) = MV(I,J,L+1) + MV(I,J,L)
-                     MV(I,J,L) = 0  ;  EndDo  ;  EndIf
-  320 Continue
+            if(adjmode.eq.0) then
+              do l=1,lm-1
+                mdn = mdn - ma(l,idn,j)
+                if(mdn .lt. mup) exit
+                mu(i,j,l) = 0.
+              enddo
+            else
+              do l=1,lm-1
+                mdn = mdn - ma(l,idn,j)
+                if(mdn .lt. mup) exit
+                if(xx*mu(i,j,l).gt.0.) then
+                  mu(i,j,l+1) = mu(i,j,l+1) + mu(i,j,l)
+                  mu(i,j,l) = 0.
+                endif
+              enddo
+            endif
+
+          enddo ! i
+          enddo ! j
+
+          j1p=max(jpatch_aflux_topo_adj(1,nn),max(3,j1xp))
+          j2p=min(jpatch_aflux_topo_adj(2,nn),jnxp)
+          do j=j1p,j2p
+          do i=ipatch_aflux_topo_adj(1,nn),ipatch_aflux_topo_adj(2,nn)
+            if    (zatmo(i,j-1) .lt. zatmo(i,j)) then
+              jup = j
+              jdn = j-1
+              xx = +1d0
+            elseif(zatmo(i,j-1) .gt. zatmo(i,j)) then
+              jdn = j
+              jup = j-1
+              xx = -1d0
+            else
+              cycle
+            endif
+
+            mup = masum(i,jup)
+            mdn = masum(i,jdn)
+
+            if(adjmode.eq.0) then
+              do l=1,lm-1
+                mdn = mdn - ma(l,i,jdn)
+                if(mdn .lt. mup) exit
+                mv(i,j,l) = 0.
+              enddo
+            else
+              do l=1,lm-1
+                mdn = mdn - ma(l,i,jdn)
+                if(mdn .lt. mup) exit
+                if(xx*mv(i,j,l).gt.0.) then
+                  mv(i,j,l+1) = mv(i,j,l+1) + mv(i,j,l)
+                  mv(i,j,l) = 0.
+                endif
+              enddo
+            endif
+          enddo ! i
+          enddo ! j
+
+        enddo ! nn
+      enddo ! adjmode
 
       endif ! aflux_topo_adjustments
 
@@ -603,12 +714,20 @@ C**** Compute MW (kg/s) = downward vertical mass flux
       DO 2435 J=J1,JN
       Do 2435 I=1,IMAXJ(J)
          CONVs = Sum(CONV(I,J,:))
-         MVARs = MESUM(I,J) - MFIXs
-         MW(I,J,LM-1) = CONV(I,J,LM) - CONVs*MFRAC(LM) +
-     +      (ME(LM,I,J) - MFIX(LM) - MVARs*MFRAC(LM))*DXYP(J)*zNSxDT
-         Do 2430 L=LM-2,1,-1
- 2430       MW(I,J,L) = CONV(I,J,L+1) - CONVs*MFRAC(L+1) + MW(I,J,L+1) +
-     +       (ME(L+1,I,J) - MFIX(L+1) - MVARs*MFRAC(L+1))*DXYP(J)*zNSxDT
+         MVARs = MESUM(I,J)
+#ifdef STDHYB
+     &        + MTOP
+#else
+     &        - MFIXs
+#endif
+         MW(I,J,LM-1) =
+     &        CONV(I,J,LM) - CONVs*MFRAC(LM) +
+     +      (ME(LM,I,J) - (MFIX(LM)+MVARs*MFRAC(LM)) )*DXYP(J)*zNSxDT
+         do L=LM-2,1,-1
+           MW(I,J,L) = MW(I,J,L+1) +
+     &          CONV(I,J,L+1) - CONVs*MFRAC(L+1) + 
+     &      (ME(L+1,I,J) - (MFIX(L+1)+MVARs*MFRAC(L+1)) )*DXYP(J)*zNSxDT
+         enddo
  2435 CONTINUE
       Do L=1,LM-1
          If (QSP)  MW(2:IM,1 ,L) = MW(1,1 ,L)
@@ -716,6 +835,266 @@ C**** Compute MW (kg/s) = downward vertical mass flux
      *  (I3,11F12.3,F12.6))
       EndSubroutine ADVECM
 
+#ifdef V2_PGF
+      SUBROUTINE PGF(DT1, U,V,MAM, UT,VT,MAFTER, T,SZ)
+
+!@sum  PGF Adds pressure gradient forces to momentum
+!@auth Original development team
+      USE CONSTANT, only : grav,rgas,kapa,bykapa,bykapap1,bykapap2
+      USE RESOLUTION, only : ls1,psfmpt,ptop
+      USE RESOLUTION, only : im,jm,lm
+      USE ATM_COM, only : zatmo
+      USE DIAG_COM, only : modd5k
+      USE GEOM, only : imaxj,dxyv,dxv,dyv,dxyp,dyp,dxp,acor,acor2
+      USE ATM_COM, only : gz,phi
+      USE DYNAMICS, only : pu,spa,dut,dvt,do_polefix,mrch
+     &     ,dsig,sige,sig,bydsig
+c      USE DIAG, only : diagcd
+      USE DOMAIN_DECOMP_ATM, only: grid
+      USE DOMAIN_DECOMP_1D, Only : getdomainbounds
+      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE
+      USE DOMAIN_DECOMP_1D, only : NORTH, SOUTH
+      USE DOMAIN_DECOMP_1D, only : haveLatitude
+      IMPLICIT NONE
+      REAL*8 DT1
+
+      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM)::
+     &     U,V,UT,VT,T,SZ
+
+      REAL*8,DIMENSION(LM,IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
+     &   MAM,MAFTER
+
+! local arrays computed from input
+      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LM) ::
+     *  P
+      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO) ::
+     *  PB
+
+      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO):: FD,RFDUX
+
+      REAL*8 PKE(LS1:LM+1)
+      REAL*8 DT4
+      REAL*8 PIJ,PDN,PKDN,PKPDN,PKPPDN,PUP,PKUP,PKPUP,PKPPUP,DP,P0,X
+     *     ,BYDP
+      REAL*8 TZBYDP,FLUX,FDNP,FDSP,RFDU,PHIDN,FACTOR
+      INTEGER I,J,L,IM1,IP1,IPOLE  !@var I,J,IP1,IM1,L,IPOLE loop variab.
+c**** Extract domain decomposition info
+      INTEGER :: J_0, J_1, J_0STG, J_1STG, J_0S, J_1S, J_0H, J_1H
+      LOGICAL :: HAVE_SOUTH_POLE, HAVE_NORTH_POLE
+      CALL getdomainbounds(grid, J_STRT = J_0, J_STOP = J_1,
+     &               J_STRT_STGR = J_0STG, J_STOP_STGR = J_1STG,
+     &               J_STRT_SKP  = J_0S,   J_STOP_SKP  = J_1S,
+     &               J_STRT_HALO = J_0H,   J_STOP_HALO = J_1H,
+     &         HAVE_SOUTH_POLE = HAVE_SOUTH_POLE,
+     &         HAVE_NORTH_POLE = HAVE_NORTH_POLE)
+C****
+      DT4=DT1/4.
+      DO L=LS1,LM+1
+        PKE(L)=(PSFMPT*SIGE(L)+PTOP)**KAPA
+      END DO
+C****
+C**** VERTICAL DIFFERENCING
+C****
+      DO L=LS1,LM
+      SPA(:,:,L)=0.
+      END DO
+
+      DO J=J_0,J_1
+      DO I=1,IMAXJ(J)
+        ! fill in old-style arrays from new-style arrays
+        p(i,j,1) = sum(mam(1:ls1-1,i,j))*grav*.01d0
+        pb(i,j) = sum(mafter(1:ls1-1,i,j))*grav*.01d0
+        do l=2,ls1-1
+          p(i,j,l) = p(i,j,1)
+        enddo
+        do l=ls1,lm
+          p(i,j,l) = psfmpt
+        enddo
+
+        PIJ=P(I,J,1)
+        PDN=PIJ+PTOP
+        PKDN=PDN**KAPA
+        PHIDN=ZATMO(I,J)
+C**** LOOP OVER THE LAYERS
+        DO L=1,LM
+          PKPDN=PKDN*PDN
+          PKPPDN=PKPDN*PDN
+          IF(L.GE.LS1) THEN
+            DP=DSIG(L)*PSFMPT
+            BYDP=1./DP
+            P0=SIG(L)*PSFMPT+PTOP
+            TZBYDP=2.*SZ(I,J,L)*BYDP
+            X=T(I,J,L)+TZBYDP*P0
+            PUP=SIGE(L+1)*PSFMPT+PTOP
+            PKUP=PKE(L+1)
+            PKPUP=PKUP*PUP
+            PKPPUP=PKPUP*PUP
+          ELSE
+            DP=DSIG(L)*PIJ
+            BYDP=1./DP
+            P0=SIG(L)*PIJ+PTOP
+            TZBYDP=2.*SZ(I,J,L)*BYDP
+            X=T(I,J,L)+TZBYDP*P0
+            PUP=SIGE(L+1)*PIJ+PTOP
+            PKUP=PUP**KAPA
+            PKPUP=PKUP*PUP
+            PKPPUP=PKPUP*PUP
+C****   CALCULATE SPA, MASS WEIGHTED THROUGHOUT THE LAYER
+            SPA(I,J,L)=RGAS*((X+TZBYDP*PTOP)*(PKPDN-PKPUP)*BYKAPAP1
+     *      -X*PTOP*(PKDN-PKUP)*BYKAPA-TZBYDP*(PKPPDN-PKPPUP)*BYKAPAP2)
+     *      *BYDP
+          END IF
+C**** CALCULATE PHI, MASS WEIGHTED THROUGHOUT THE LAYER
+          PHI(I,J,L)=PHIDN+RGAS*(X*PKDN*BYKAPA-TZBYDP*PKPDN*BYKAPAP1
+     *      -(X*(PKPDN-PKPUP)*BYKAPA-TZBYDP*(PKPPDN-PKPPUP)*BYKAPAP2)
+     *      *BYDP*BYKAPAP1)
+C**** CALULATE PHI AT LAYER TOP (EQUAL TO BOTTOM OF NEXT LAYER)
+          PHIDN=PHIDN+RGAS*(X*(PKDN-PKUP)*BYKAPA-TZBYDP*(PKPDN-PKPUP)
+     *     *BYKAPAP1)
+          PDN=PUP
+          PKDN=PKUP
+        END DO
+      END DO
+      END DO
+
+C**** SET POLAR VALUES FROM THOSE AT I=1
+      IF (haveLatitude(grid, J=1)) THEN
+        DO L=1,LM
+          P(2:IM,1,L)=P(1,1,L)
+          SPA(2:IM,1,L)=SPA(1,1,L)
+          PHI(2:IM,1,L)=PHI(1,1,L)
+        END DO
+        PB(2:IM,1)=PB(1,1)
+      END IF
+      IF (haveLatitude(grid, J=JM)) THEN
+        DO L=1,LM
+          P(2:IM,JM,L)=P(1,JM,L)
+          SPA(2:IM,JM,L)=SPA(1,JM,L)
+          PHI(2:IM,JM,L)=PHI(1,JM,L)
+        END DO
+        PB(2:IM,JM)=PB(1,JM)
+      END IF
+
+      DO L=1,LM
+        GZ(:,:,L)=PHI(:,:,L)
+      END DO
+C****
+C**** PRESSURE GRADIENT FORCE
+C****
+C**** NORTH-SOUTH DERIVATIVE AFFECTS THE V-COMPONENT OF MOMENTUM
+C
+      CALL HALO_UPDATE(grid, P,   FROM=SOUTH)
+      CALL HALO_UPDATE(grid, PHI, FROM=SOUTH)
+      CALL HALO_UPDATE(grid, SPA, FROM=SOUTH)
+      DO 3236 L=1,LM
+      DO 3236 J=J_0STG,J_1STG
+      FACTOR = DT4*DXV(J)*DSIG(L)
+      IM1=IM
+      DO 3234 I=1,IM
+      FLUX=    ((P(I,J,L)+P(I,J-1,L))*(PHI(I,J,L)-PHI(I,J-1,L))+
+     *  (SPA(I,J,L)+SPA(I,J-1,L))*(P(I,J,L)-P(I,J-1,L)))*FACTOR
+      DVT(I,J,L)  =DVT(I,J,L)  -FLUX
+      DVT(IM1,J,L)=DVT(IM1,J,L)-FLUX
+ 3234 IM1=I
+ 3236 CONTINUE
+C
+C**** SMOOTHED EAST-WEST DERIVATIVE AFFECTS THE U-COMPONENT
+C
+C Although PU appears to require a halo update, the halos
+C of PHI, SPA, and P enable implementation without the additional halo.
+C
+      DO L=1,LM
+        IF (haveLatitude(grid, J=1)) PU(:,1,L)=0.
+        IF (haveLatitude(grid, J=JM)) PU(:,JM,L)=0.
+        I=IM
+
+        DO J=Max(2,J_0STG-1),J_1STG
+          DO IP1=1,IM
+            PU(I,J,L)=(P(IP1,J,L)+P(I,J,L))*(PHI(IP1,J,L)-PHI(I,J,L))+
+     *           (SPA(IP1,J,L)+SPA(I,J,L))*(P(IP1,J,L)-P(I,J,L))
+            I=IP1
+          END DO
+        END DO
+
+        CALL AVRX (PU(1,J_0H,L),jrange=(/MAX(2,J_0H),MIN(JM-1,J_1H)/))
+
+        DO J=J_0STG,J_1STG
+          FACTOR = -DT4*DYV(J)*DSIG(L)
+          DO I=1,IM
+            DUT(I,J,L)=DUT(I,J,L)+FACTOR*(PU(I,J,L)+PU(I,J-1,L))
+          END DO
+        END DO
+      END DO
+
+c correct for erroneous dxyv at the poles
+      if(do_polefix.eq.1) then
+         do ipole=1,2
+            if(haveLatitude(grid,J=2) .and. ipole.eq.1) then
+               j = 2
+            else if(haveLatitude(grid,J=JM) .and. ipole.eq.2) then
+               j = JM
+            else
+               cycle
+            endif
+            dut(:,j,:) = dut(:,j,:)*acor
+            dvt(:,j,:) = dvt(:,j,:)*acor2
+         enddo
+      endif
+C
+C**** CALL DIAGNOSTICS
+      IF(MRCH.GT.0) THEN
+         IF(MODD5K.LT.MRCH) CALL DIAG5D (6,MRCH,DUT,DVT)
+         CALL DIAGCD (grid,3,U,V,DUT,DVT,DT1)
+      ENDIF
+C****
+C****
+C**** UNDO SCALING PERFORMED AT BEGINNING OF DYNAM
+C****
+      DO 3410 J=J_0STG,J_1STG
+      DO 3410 I=1,IM
+ 3410 FD(I,J)=PB(I,J)*DXYP(J)
+      IF (haveLatitude(grid, J=1)) THEN
+        FDSP=PB(1, 1)*DXYP( 1)
+        FDSP=FDSP+FDSP
+        DO I=1,IM
+          FD(I, 1)=FDSP
+        END DO
+      END IF
+      IF (haveLatitude(grid, J=JM)) THEN
+        FDNP=PB(1,JM)*DXYP(JM)
+        FDNP=FDNP+FDNP
+        DO I=1,IM
+          FD(I,JM)=FDNP
+        END DO
+      END IF
+C
+      CALL HALO_UPDATE(grid, FD, FROM=SOUTH)
+      DO 3530 J=J_0STG,J_1STG
+      I=IM
+      DO 3525 IP1=1,IM
+      RFDUX(I,J)=4./(FD(I,J)+FD(IP1,J)+FD(I,J-1)+FD(IP1,J-1))
+ 3525 I = IP1
+ 3530 CONTINUE
+C
+      DO 3550 L=1,LM
+      DO 3550 J=J_0STG,J_1STG
+      RFDU=1./(PSFMPT*DXYV(J)*DSIG(L))
+      DO 3540 I=1,IM
+      IF(L.LT.LS1) RFDU=RFDUX(I,J)*BYDSIG(L)
+
+c      if(i.eq.10 .and. j.eq.10) then
+c        write(6,*) 'dudt1010old ',l,dut(i,j,l)*rfdu,dvt(i,j,l)*rfdu
+c      endif
+
+      VT(I,J,L)=VT(I,J,L)+DVT(I,J,L)*RFDU
+      UT(I,J,L)=UT(I,J,L)+DUT(I,J,L)*RFDU
+ 3540 CONTINUE
+ 3550 CONTINUE
+C
+      RETURN
+      END SUBROUTINE PGF
+
+#else /* not V2_PGF */
 
       Subroutine PGF (DT1, U,V,MAM, UT,VT,MAFTER, S0,SZ)
 !@sum  PGF Adds pressure gradient forces to momentum
@@ -935,6 +1314,7 @@ C****
 
       RETURN
       END SUBROUTINE PGF
+#endif /* V2_PGF or not */
 
       SUBROUTINE AVRX(X,jrange)
 !@sum  AVRX Smoothes zonal mass flux and geopotential near the poles
@@ -1037,7 +1417,14 @@ C****        2  SMOOTH T USING TROPOSPHERIC STRATIFICATION OF TEMPER
 C****        3  SMOOTH P AND T
 C****
       Use CONSTANT,   Only: byGRAV,RGAS,SHA,KAPA,MB2KG
-      Use RESOLUTION, Only: IM,JM,LM, MTOP,MFIXs, MFIX,MFRAC
+      Use RESOLUTION, Only: IM,JM,LM
+      Use RESOLUTION, Only: MFIX,MFRAC
+#ifdef V2_PSURF_FILTER
+      Use RESOLUTION, Only: ptop
+#endif
+#ifndef STDHYB
+      Use RESOLUTION, Only: MFIXs,MTOP
+#endif
       USE MODEL_COM, only : itime
       Use ATM_COM,    Only: ZATMO, MA, T,Q,QCL,QCI, PEDN,PMID,PK
       USE GEOM, only : areag,dxyp,byim
@@ -1103,8 +1490,15 @@ C****
           PSUMO = PSUMO + PEDNOLD(I,J)
           PEDN(1,I,J) = X(I,J) / Y(I,J)
 C**** reduce large variations (mainly due to topography)
+#ifdef V2_PSURF_FILTER /* only for comparing to V2 runs */
+          PEDN(1,I,J) = ptop +
+     &         Max (PEDN(1,I,J)-ptop, 0.99d0*(PEDNOLD(I,J)-ptop))
+          PEDN(1,I,J) = ptop +
+     &         Min (PEDN(1,I,J)-ptop, 1.01d0*(PEDNOLD(I,J)-ptop))
+#else
           PEDN(1,I,J) = Max (PEDN(1,I,J), 0.9882d0*PEDNOLD(I,J))
           PEDN(1,I,J) = Min (PEDN(1,I,J), 1.0118d0*PEDNOLD(I,J))
+#endif
           PSUMN = PSUMN + PEDN(1,I,J)
         END DO
 !**** Conserve column mass for present J latitude row
@@ -1144,7 +1538,10 @@ C**** reduce large variations (mainly due to topography)
 
 !**** Compute new MA from filtered PEDN(1) array
       Do J=J1P,JNP  ;  Do I=1,IM
-         MVAR = PEDN(1,I,J)*MB2KG - MFIXs - MTOP
+         MVAR = PEDN(1,I,J)*MB2KG
+#ifndef STDHYB
+     &       - MFIXs - MTOP
+#endif
          MA(LMFRAC1:LMFRACM,I,J) = MFIX(LMFRAC1:LMFRACM) +
      +                       MVAR*MFRAC(LMFRAC1:LMFRACM)
          EndDo  ;  EndDo
@@ -1589,7 +1986,7 @@ c**** Extract domain decomposition info
 !@sum  SDRAG puts a drag on the winds in the top layers of atmosphere
 !@auth Original Development Team
       Use CONSTANT,   Only: GRAV,RGAS,SHA
-      USE RESOLUTION, only : ls1
+      USE RESOLUTION, only : ls1=>ls1_nominal
       USE RESOLUTION, only : im,jm,lm
       USE MODEL_COM, only : itime
       Use ATM_COM,    Only: MA,U,V,T, PEDN,PK
@@ -2897,7 +3294,7 @@ C**** vertically integrated atmospheric fluxes
       USE UNRDRAG_COM
       USE CONSTANT, only : grav, bygrav, kapa, rgas
       USE GEOM, only: RAPVS, RAPVN
-      USE RESOLUTION, only : ls1,psfmpt,ptop
+      use threeD_mass_unfinished, only : ls1=>ls1_nominal,psfmpt,ptop
       USE RESOLUTION, only : im,jm,lm
       USE MODEL_COM, only: modelEclock
       USE DYNAMICS, only : sig,dsig,sige

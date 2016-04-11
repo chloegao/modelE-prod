@@ -3,6 +3,7 @@ module LernerTracersMetadata_mod
 !------------------------------------------------------------------------------
 !@sum  LernerTracersMetadata_mod encapsulates the Lerner tracers metadata
 !@auth NCCS ASTG
+  use Dictionary_mod, only: sync_param
   use sharedTracersMetadata_mod
   use TRACER_COM, only: n_CH4, n_N2O, n_SF6, n_CO2, n_CFC11, n_14CO2, &
     n_O3, n_SF6_c, n_Rn222
@@ -13,7 +14,9 @@ module LernerTracersMetadata_mod
   USE LINOZ_CHEM_COM, only: dsol
   use OldTracer_mod, only: oldAddTracer
   use OldTracer_mod, only: set_tr_mm, set_ntm_power
+  use OldTracer_mod, only: set_t_qlimit
   use RunTimeControls_mod, only: tracers_special_lerner
+  use Tracer_mod, only: Tracer
   implicit none
 
   private

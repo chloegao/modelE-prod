@@ -125,8 +125,7 @@
      &     ,tauavg,tgvavg,qgavg
      &     ,w2_l1,gustiwind,dblavg,rhoavg
      &     ,ciaavg,khsavg,wspdf
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
 !@var wsgcm magnitude of the GCM surface wind - ocean currents [m/s]
 !@var wsubtke turbulent kinetic energy velocity scale [m/s]
 !@var wsubwd dry convective velocity scale [m/s]
@@ -370,7 +369,7 @@ C**** array of Chlorophyll data for use in ocean albedo calculation
 !@+   conservation diagnostics.  see diag_com.
          integer :: modd5s,jm_budg
          real*8, dimension(:), pointer :: area_of_zone
-         real*8, dimension(:,:), pointer :: consrv
+         real*8, dimension(:,:), pointer :: consrv=>NULL()
          integer, dimension(:,:), pointer :: nofm
 
 ! Some atmosphere-declared tracer info for uses within ocean codes.
@@ -433,7 +432,7 @@ C**** array of Chlorophyll data for use in ocean albedo calculation
      &     ,IJ_SIGRCG,IJ_SSI1,IJ_SSI2,IJ_TSI,IJ_F0OI,IJ_SISNWF
      &     ,IJ_RSOI,IJ_MSI,IJ_SITOPMLT
 !@var IJ_[MHS][UV]SI indices for sea ice mass/heat/salt transport diags
-     &     ,IJ_MUSI,IJ_MVSI,IJ_HUSI,IJ_HVSI,IJ_SUSI,IJ_SVSI
+     &     ,IJ_MUSI,IJ_MVSI,IJ_HUSI,IJ_HVSI,IJ_SUSI,IJ_SVSI,IJ_dHSI_Dyn
          INTEGER :: J_IMELT,J_HMELT,J_SMELT
      &     ,j_implm,j_implh
      &     ,j_rsnow,j_rsi,j_ace1,j_ace2,j_snow
@@ -825,8 +824,7 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
      &     ,this%ustar_pbl
      &     ,this%lmonin_pbl
      &     ,this%wspdf
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
      &     ,this%wsgcm
      &     ,this%wsubwd
      &     ,this%wsubtke
@@ -1543,15 +1541,13 @@ C**** fluxes associated with variable lake fractions
 #endif
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
 !@var trprec_dust dust/mineral tracers in precip [kg]
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:):: trprec_dust
 #endif
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
 !@var pprec precipitation at previous time step [kg/m^2]
       REAL*8,ALLOCATABLE,DIMENSION(:,:) :: pprec
 !@var pevap evaporation at previous time step (land only) [kg/m^2]
@@ -1564,8 +1560,7 @@ C**** fluxes associated with variable lake fractions
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: dust_flux2_glob
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
 #ifdef TRACERS_DRYDEP
 !@var depo_turb_glob global array of flux due to dry turb. dep. of tracers
 !@+   [kg/m^2/s]
@@ -1693,8 +1688,7 @@ C**** fluxes associated with variable lake fractions
 #ifdef TRACERS_ON
       USE tracer_com,ONLY : NTM
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
      &     ,Ntm_dust
 #endif
       use tracer_com, only : gasex_index, n_co2n
@@ -1849,14 +1843,12 @@ C**** Ensure that no round off error effects land with ice and earth
 #endif
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
       ALLOCATE(trprec_dust(Ntm_dust,I_0H:I_1H ,J_0H:J_1H),STAT=ier)
 #endif
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS)
+    (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
       ALLOCATE(pprec(I_0H:I_1H,J_0H:J_1H),STAT = IER)
       pprec = 0
       ALLOCATE(pevap(I_0H:I_1H,J_0H:J_1H),STAT = IER)
@@ -1869,8 +1861,8 @@ C**** Ensure that no round off error effects land with ice and earth
      &     ,STAT = IER)
 #endif
 #endif
-#if (defined TRACERS_DUST) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
       ALLOCATE(dust_flux2_glob(I_0H:I_1H,J_0H:J_1H,Ntm_dust),STAT = IER)
 #endif
 

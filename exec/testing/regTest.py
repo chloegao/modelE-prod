@@ -1,42 +1,21 @@
-#  Base class for modelE regression tests
-class regTest:
+# Base class for regression tests
+import sys
+class regTest(object):
+
     def __init__(self, name):
         self.name = name
-        self.modes = ['mpi']
+        self.modes = ['serial','mpi']
         self.compilers = ['gfortran']
-        self.buildtype = 'release'
         self.npes = [1,4]
-        self.verification = 'restartRun'
-        # for restartRun, 25hr endtime
-        self.endtime = 25
-        # SYSCONFIG options 
+        self.buildType = 'release'
         self.useBatch = 'no'
         self.modules = 'no'
-        self.scrDir = '/tmp'
-        self.resDir = '/tmp'
-        self.nsteps = 2
-
-    def setOpts(self, sysconfig, deckconfig):
-        for name,options in deckconfig.items():
-            if self.name == name:
-                for kk,vv in options.items():
-                    if kk=='modes':
-                        self.modes = vv
-                    elif kk=='compilers':
-                        self.compilers = vv
-                    elif kk=='endtime':
-                        self.endtime = vv
-                    elif kk=='verification':
-                        self.verification = vv
-                    elif kk=='npes':
-                        self.npes = vv
-                    elif kk=='buildtype':
-                        self.compile_only = vv
-        self.useBatch = sysconfig['usebatch']
-        self.modules = sysconfig['modules']
-        self.resDir = sysconfig['scratchdir'] + '/results/'
-        self.scrDir = sysconfig['scratchdir'] + '/scratch/'
-            
+        self.scratchDir = '.'
+        self.resultsDir = '.'
+        self.verification = 'compileOnly'
+        self.endTime = 25
+        self.unitTest = 'no'
+        
     def getOpt(self, opt):
         if opt=='modes':
             return self.modes
@@ -45,21 +24,56 @@ class regTest:
         elif opt=='buildtype':
             return self.compile_only
         elif opt=='npes':
-            return self.npes
-        elif opt=='verification':
-            return self.verification
-        elif opt=='endtime':
-            return self.endtime
-        elif opt=='nsteps':
-            return self.nsteps
+            nint = []
+            for n in self.npes:
+                nint.append(int(n))
+            return nint
         elif opt=='usebatch':
             return self.useBatch
         elif opt=='modules':
             return self.modules
-        elif opt=='resDir':
-            return self.resDir
-        elif opt=='scrDir':
-            return self.scrDir
+        elif opt=='resultsdir':
+            return self.resultsDir
+        elif opt=='scratchdir':
+            return self.scratchDir
+        elif opt=='verification':
+            return self.verification
+        elif opt=='endtime':
+            return int(self.endTime)
+        elif opt=='unittest':
+            return self.unitTest
+
+    def setOpts(self, deckconfig):
+        for name,options in deckconfig.items():
+            if self.name == name:
+                for kk,vv in options.items():
+                    if kk=='modes':
+                        self.modes = vv
+                    elif kk=='compilers':
+                        self.compilers = vv
+                    elif kk=='npes':
+                        nint = []
+                        for n in vv.split(','):
+                            nint.append(int(n))
+                        self.npes = nint 
+                    elif kk=='buildtype':
+                        self.compile_only = vv
+                    elif kk=='usebatch':
+                        self.useBatch = vv
+                    elif kk=='modules':
+                        self.modules = vv
+                    elif kk=='scratchdir':
+                        self.scratchDir = vv + '/scratch/'
+                    elif kk=='resultsdir':
+                        self.resultsDir = vv + '/results/'
+                    elif kk=='verification':
+                        self.verification = vv
+                    elif kk=='endtime':
+                        self.endTime = int(vv)
+                    elif kk=='unittest':
+                        self.unitTest = vv
 
     def dump(self):
-        print self.__dict__
+        attrs = vars(self)
+        print ', '.join("%s: %s" % item for item in attrs.items())
+

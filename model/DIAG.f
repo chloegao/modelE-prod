@@ -99,7 +99,7 @@ C**** Some local constants
 !@vers 2015/06/25
       USE CONSTANT, only : grav,rgas,kapa,lhe,lhs,sha,bygrav,tf
      *     ,rvap,gamd,teeny,undef,radius,omega,kg2mb,mair
-      Use Resolution, Only: IM,JM,LM, LS1
+      Use Resolution, Only: IM,JM,LM, LS1=>LS1_NOMINAL
       Use MODEL_COM,  Only: IDACC,MDYN,MDIAG
       Use ATM_COM,    Only: U,V,T,Q,QCL,QCI, ZATMO, LM_REQ,REQ_FAC_M
       USE GEOM, only : sinlat2d,coslat2d,axyp,imaxj,
@@ -573,12 +573,12 @@ c potential temperature.
 c
 
       X=RGAS*LHE*LHE/(SHA*RVAP)
-      bybetafac = radius/(2.*omega)
+      bybetafac = radius/(2.*abs(omega))
 
       DO J=J_0,J_1
       DO I=I_0,IMAXJ(J)
 
-        byfcor = 1d0/(2.*omega*abs(sinlat2d(i,j))+teeny)
+        byfcor = 1d0/(2.*abs(omega)*abs(sinlat2d(i,j))+teeny)
         bybeta = bybetafac/(coslat2d(i,j)+teeny)
 c troposphere
         w2max = maxval(ua(1:ls1-1,i,j)**2+va(1:ls1-1,i,j)**2)+teeny
@@ -917,7 +917,7 @@ C****  11  AFTER OCEAN DYNAMICS (from ODYNAM)
 C****  12  AFTER OCEAN SUB-GRIDSCALE PHYS
 C****
 #ifndef SCM
-      EXTERNAL conserv_AM,conserv_KE,conserv_MS,conserv_PE
+      EXTERNAL conserv_AM,conserv_KE,conserv_MS,conserv_PE,conserv_SE
      *     ,conserv_WM,conserv_EWM,conserv_LKM,conserv_LKE,conserv_OMSI
      *     ,conserv_OHSI,conserv_OSSI,conserv_LMSI,conserv_LHSI
      *     ,conserv_MLI,conserv_HLI,conserv_WTG,conserv_HTG
@@ -1115,6 +1115,118 @@ C****
       END SUBROUTINE conserv_PE
 
 
+      Subroutine CONSERV_SE (SE)
+!@sum  CONSERV_SE computes total atmospheric static energy
+!@auth Gary L. Russell
+
+!**** MA (kg/m^2)  = air mass including that of condensate
+!**** MD (kg/m^2)  = gaseous dry air mass = MA - MV - ML - MI
+!**** MV (kg/m^2)  = water vapor mass = Q / MA
+!**** ML (kg/m^2)  = liquid condensate = QCL / MA
+!**** MI (kg/m^2)  = ice condensate = QCI / MA
+!**** MG (kg/m^2)  = gaseous air mass = MA - ML - MI
+!**** MC (kg/m^2)  = condensate mass = ML + MI
+!**** Cv (J/C*kg)  = Cp - RGAS
+!**** SHG (J/C*kg) = Cp = gaseous specific heat capacity =
+!****              = (SHA*MD + SHV*MV) / (MD + MV)
+!**** SHA (J/C*kg) = specific heat capacity of dry air
+!**** SHV (J/C*kg) = specific heat capacity of water vapor
+!**** SHW (J/C*kg) = specific heat capacity of liquid water
+!**** SHI (J/C*kg) = specific heat capacity of ice
+!**** SHC (J/C*kg) = specific heat capacity of condensate =
+!****              = (SHW*ML + SHI*MI) / (ML + MI)
+!**** RGAS (J/C*kg) = gas constant for dry air
+!**** RVAP (J/C*kg) = gas constant for water vapor
+!**** RMIX (J/C*kg) = (RGAS*MD + RVAP*RV) / (MD + MV)
+!**** LHE  (J/kg)   = latent heat of vaporization at 0 C
+!**** LHM  (J/kg)   = latent heat of melting at 0 C
+!**** KAPA          = exponent of exner function = RGAS / SHA
+!****
+!**** G (m/s^2)  = Earth's gravitational acceleration
+!**** M (kg/m^2) = vertical coordinate = mass above
+!**** P (Pa)     = pressure = M*G = RHO*RMIX*TK
+!**** Z (m)      = altitude above sea level
+!**** TK  (K)    = gaseous temperature = TKP*P^KAPA
+!**** TKP (K)    = gaseous potential temperature
+!**** TCC (C)    = condensate temperature
+!**** TF  (K)    = freezing point temperature = TK - TC
+!**** RHO (kg/m^3) = gaseous density
+!****
+!**** dP = - RHO*G dZ   in layer without condensate
+!**** (MG/MA) dP = - RHO*G dZ   in layer with volumeless condensate
+!**** (MG/MA)*RMIX*TK dP = - P*G dZ   from P = RHO*RMIX*TK
+!**** (MG/MA)*RMIX*TK dM = - P dZ
+!****
+!**** TPE (J/m^2) = gaseous internal + geopotential + condensate energy 
+!****   = Integrate Total Potential Energy from M1,P1,Z1 to M2,P2,Z2 =
+!****   = S[(MG/MA)*Cv*TK + G*Z]dM + SHW*ML*TCC + SHI*MI*TCC = 
+!****   = S[(MG/MA)*Cp*TK - (MG/MA)*RGAS*TK + G*Z]dM + SHC*MC*TCC = 
+!****   = S[(MG/MA)*Cp*TK dM + P dZ + Z dP] + SHC*MC*TCC = 
+!****   = (MG/MA)*SHG*TK*MA + S[dPZ] + SHC*MC*TCc = 
+!****   = MG*SHG*TK + SHC*MC*TCC + P2*Z2 - P1*Z1 = TPE in layer 1:2
+!**** Integrate over all layers:
+!**** TPE = Sum(MG*SHG*TK + SHC*MC*TCC) + PSURF*ZSURF - P0*Z0
+!**** As Z0 approaches infinity, P0*Z0 approaches 0; P0*Z0 is ignored
+!****
+!**** gaseous sensible heat is measured in degrees Kelvin
+!**** condensate sensible heat is measured in degrees Centigrade
+!**** to measure all water in C, latent energy includes -SHV*TF*MV
+!**** SE(I,J) (J/m^2) = TPE + latent energy =
+!****   = sensible + latent + surface geopotential energy =
+!****   = SHG*Sum(MG*TKP*PK) + SHW*Sum(ML*TCC) + SHI*Sum(MI*TCC) +
+!****   + (LHE-SHV*TF)*Sum(MV) - LHM*Sum(MI)
+!****   + G*ZSURF*[MTOP+Sum(MA)]
+!****
+!**** If condensate falls from a layer to the layer below, it has lost
+!**** geopotential energy.  But the mean pressure of each layer is less,
+!**** each layer will expand, and the geopotential energy of the rest of
+!**** the column will increase.  Total geopotential energy is conserved. 
+
+      Use CONSTANT,   Only: SHA,SHV,SHW,SHI,LHE,LHM,TF
+      Use Resolution, Only: IM,JM,LM, MTOP
+      Use ATM_COM,    Only: MA,MASUM,PK,T,Q,QCL,QCI,ZATMO  !!! ,TCC
+      Use GEOM,       Only: IMAXJ
+      Use DOMAIN_DECOMP_ATM, Only: GetDomainBounds,GRID
+      Implicit None
+
+      Integer :: I,J,L, I1,IN,J1,JN
+      Logical :: QSP,QNP
+      Real*8  :: SE(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &              GRID%J_STRT_HALO:GRID%J_STOP_HALO),
+     &           MD,MV,ML,MI
+
+      Call GetDomainBounds (GRID, HAVE_SOUTH_POLE=QSP,
+     &                            HAVE_NORTH_POLE=QNP)
+      I1 = GRID%I_STRT  ;  IN = GRID%I_STOP
+      J1 = GRID%J_STRT  ;  JN = GRID%J_STOP
+
+!**** Total Static Energy (J/m^2)
+      Do J=J1,JN  ;  Do I=I1,IMAXJ(J)
+         SE(I,J) = 0
+         Do L=LM,1,-1
+!           ML = MA(L,I,J) * QCL(I,J,L)
+!           MI = MA(L,I,J) * QCI(I,J,L)
+!           MV = (MA(L,I,J) - ML - MI) * Q(I,J,L)
+!           MD = MA(L,I,J) - MV - ML - MI
+!           SE(I,J) = SE(I,J) + (SHA*MD + SHV*MV)*T(I,J,L)*PK(L,I,J)
+!    +                        + (SHW*ML + SHI*MI)*TCC(L,I,J)
+!    +                        + (LHE - SHV*TF)*MV - LHM*MI
+!****       Ignoring sensible heat of water
+            MI = MA(L,I,J) * QCI(I,J,L)
+            MV = MA(L,I,J) * Q(I,J,L)
+            MD = MA(L,I,J)
+            SE(I,J) = SE(I,J) + SHA*MD*T(I,J,L)*PK(L,I,J)
+     +                        + LHE*MV - LHM*MI
+         EndDo
+         SE(I,J) = SE(I,J) + ZATMO(I,J)*(MASUM(I,J)+MTOP)
+      EndDo  ;  EndDo
+
+      If (QSP)  SE(2:IM,1)  = SE(1,1)
+      If (QNP)  SE(2:IM,JM) = SE(1,JM)
+      Return
+      EndSubroutine CONSERV_SE
+
+
       SUBROUTINE conserv_WM(WATER)
 !@sum  conserv_WM calculates total atmospheric water mass
 !@auth Gary Russell/Gavin Schmidt
@@ -1193,7 +1305,6 @@ c this calculation currently only calculates latent heat
           EL = (Q(I,J,L)*LHE + QCL(I,J,L)*(LHE-SVLHX(L,I,J))
      +                       + QCI(I,J,L)*(LHE-SVLHX(L,I,J)))*MA(L,I,J)
           EWATER(I,J) = EWATER(I,J) + EL  !  + W*(SHV*T(I,J,L)*PK(L,I,J)
-!    +                  GRAV*HSCALE*Log(PEDN?(1,I,J)/PMID(L,I,J)))
         ENDDO
       ENDDO
       ENDDO
@@ -1268,16 +1379,16 @@ C****
 #endif
       USE Dictionary_mod
 #ifdef CALCULATE_FLAMMABILITY
-      use flammability_com, only : raP_acc
+      use flammability_com, only : raP_acc,veg_density,flammability
 #endif
 #ifdef TRACERS_ON
-#ifndef SKIP_TRACERS_RAD
-      use rad_com, only: nTracerRadiaActive,tracerRadiaActiveFlag
-#endif
       use TRACER_COM, only: NTM, trm, ntm_dust
       use TRACER_COM, only: n_SO4, n_SO4_d1, n_SO4_d2, n_SO4_d3
       use TRACER_COM, only: n_Clay, n_Silt1, n_Silt2, n_Silt3
       use TRACER_COM, only: n_SO2, n_CO, n_NOx, n_Ox
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+      use tracer_com, only: n_soilDust
+#endif
 #ifdef TRACERS_SPECIAL_O18
       use TRACER_COM, only: n_hdo, n_water
       use OldTracer_mod, only: trw0
@@ -1306,9 +1417,8 @@ C****
 #ifdef TRACERS_WATER
       USE TRDIAG_COM, only : trp_acc, tre_acc
 #endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
-      use tracers_dust, only: dustDiagSubdd_acc,dust_names,n_soilDust
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+      use tracers_dust, only: dustDiagSubdd_acc, dust_names
       use trdust_drv, only: accSubddDust
 #endif
 
@@ -1365,8 +1475,7 @@ C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
       real(kind=8),allocatable,dimension(:,:,:) :: TRACER_array
      &     ,rTRACER_array
 #endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
 !@var dust3d_array three-dimensional soil dust array for subdd diagnostics
 !@var dust4d_array four-dimensional soil dust array for subdd diagnostics
       real(kind=8),allocatable,dimension(:,:,:) :: dust3d_array
@@ -1487,14 +1596,9 @@ C**** initialise special subdd accumulation
       allocate(kgz_max_more_array(i_0h:i_1h,j_0h:j_1h,kgz_max_more))
 #endif
 #ifdef TRACERS_ON
-#ifndef SKIP_TRACERS_RAD
-      allocate(rTrname(nTracerRadiaActive))
-      allocate(rTRACER_array(i_0h:i_1h,j_0h:j_1h,nTracerRadiaActive))
-#endif
       allocate(TRACER_array(i_0h:i_1h,j_0h:j_1h,NTM))
 #endif
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       allocate(dust3d_array(i_0h:i_1h,j_0h:j_1h,ntm_dust))
       allocate(dust4d_array(i_0h:i_1h,j_0h:j_1h,LmaxSUBDD,ntm_dust))
 #endif
@@ -1643,8 +1747,7 @@ c accSubdd
       end do
 #endif
 
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       call accSubddDust(dustDiagSubdd_acc) ! in TRDUST_DRV.f
 #endif
 
@@ -1682,7 +1785,7 @@ c get_subdd
 !@+                    NO2col NO2 column amount, instant., (kg/m2)
 !@+                    D*          (HDO on any model level)
 !@+                    B*          (BE7 on any model level)
-!@+                    SO4, RAPR
+!@+                    SO4, RAPR, FVDEN, FLAM
 !@+                    7BEW, 7BED, BE7ATM
 !@+                    LWC,IWC,TLH,SLH,DLH,LLH,OLR,PW,EVP,PBH   ! mjo_subdd
 !@+                    SWH,LWH,TDRY,DDRY,SDRY,LDRY              ! mjo_subdd
@@ -1705,11 +1808,6 @@ c get_subdd
 !@+                    DuSCONC surface conc of soil dust aerosols [kg/m^3]
 !@+                    DuAOD dust aer opt depth daily avg [1]
 !@+                    DuCSAOD clear sky dust aer opt depth daily avg [1]
-!@+                    AOD aer opt dep (1,nTracerRadiaActive in rad code) daily avg
-!@+                    tAOD aer opt dep (sum 1,nTracerRadiaActive) daily avg
-!@+                    ctAOD and cAOD are clr-sky versions of tAOD/AOD
-!@+                    ictAOD clr-sky sum AOD, 'instantaneous', 3D
-!@+                    itAAOD all-sky sum AOD ext-scat band6, instant., 3D
 !@+                    FRAC land fractions over 6 types
 !@+
 !@+   More options can be added as extra cases in this routine
@@ -1767,11 +1865,6 @@ c get_subdd
      &   ,swu_avg,swu_cnt
 #endif
 #ifdef TRACERS_ON
-#ifndef SKIP_TRACERS_RAD
-      use rad_com, only: ttausv_sum,ttausv_sum_cs,ttausv_count,
-     &   aerAbs6SaveInst
-#endif
-      use rad_com, only: ttausv_save,ttausv_cs_save
       use TRDIAG_COM, only: MMR_to_VMR
 #endif
       USE MDIAG_COM, only : lname_strlen
@@ -2038,7 +2131,15 @@ c          datar8=SECONDS_PER_DAY*prec/dtsrc
           units_of_data = 'mm/day'
           long_name = 'Running Average of Precipitation'
           qinstant = .false.
-#endif
+        case ("FVDEN")  ! instantaneous vegetation density FOR FIRE MODEL only (unitless)
+          datar8=veg_density
+          units_of_data = '1'
+          long_name = 'Vegetation Density For Fire Model Only'
+        case ("FLAM")  ! instantaneous flammability from fire model (unitless)
+          datar8=flammability
+          units_of_data = '1'
+          long_name = 'Fire Model Flammability'
+#endif /* CALCULATE_FLAMMABILITY */
 #ifdef TRACERS_SPECIAL_Shindell
         case ("oAVG")   ! Nsubdd-step average SFC Ox tracer (ppbv)
           datar8=sOx_acc/real(Nsubdd) ! accum over Nsubdd steps, already in ppbv
@@ -3337,48 +3438,6 @@ C**** cases using all levels up to LmaxSUBDD
           do l=1,LmaxSUBDD
             select case(namedd(k))
 
-#ifdef TRACERS_ON
-c***** 3D i(c)tAOD instantaneous sum over tracers of aerosol opt depth
-c***** (keep in mind that depending on nRAD and NSUBDD, this could be
-c***** "instantaneous" is a relative term.)
-            case ("itAOD","ictAOD")   !tot aero(+dust,etc) opt dep, inst.
-#ifndef SKIP_TRACERS_RAD
-              if (any(tracerRadiaActiveFlag)) then
-                datar8=0.
-                do n=1,NTM        ! sum over rad code tracers is used
-                  if(tracerRadiaActiveFlag(n))then
-                    select case(namedd(k))
-                    case('itAOD')
-                      datar8=datar8+ttausv_save(:,:,n,L)
-                      units_of_data='1'
-                      long_name = 'Total All Sky Aerosol Optical Depth'
-                    case('ictAOD')
-                      datar8=datar8+ttausv_cs_save(:,:,n,L)
-                      units_of_data='1'
-                      long_name =
-     &                     'Total Clear Sky Aerosol Optical Depth'
-                    end select
-                  end if
-                end do
-#else
-              if (.false.) then
-#endif
-              else
-                write(6,*) 'Warning: No radiatively active tracers'
-                write(6,*) ' ',trim(namedd(k)),' not written'
-              end if
-c***** 3D itAAOD instantaneous sum over tracers of aerosol opt depth
-c***** Band 6 extinction-scatter (so absorption)
-c***** (keep in mind that depending on nRAD and NSUBDD, this could be
-c***** "instantaneous" is a relative term.)
-            case ("itAAOD")   !tot abs aero opt dep, inst.
-#ifndef SKIP_TRACERS_RAD
-              datar8=aerAbs6SaveInst(:,:,L)
-#endif
-              units_of_data='1'
-              long_name = 'Total All Sky Aerosol Optical Depth'
-#endif /*TRACERS_ON*/
-
 #ifdef mjo_subdd
 C**** accumulating/averaging mode ***
             case ("LWC")
@@ -3558,88 +3617,6 @@ C**** accumulating/averaging mode ***
           cycle
 
 #ifdef TRACERS_ON
-c***** for (c)tAOD the sum over tracers of aerosol optical depth
-          case ("tAOD","ctAOD")   !tot aero(+dust,etc) opt dep, daily avg
-            kunit=kunit+1
-#ifndef SKIP_TRACERS_RAD
-            if (any(tracerRadiaActiveFlag)) then
-              polefix=.true.
-              if(mod(itime+1,Nday).ne.0) cycle ! except at end of day
-              if(ttausv_count==0.)call stop_model('ttausv_count=0',255)
-              datar8=0.
-              do n=1,NTM        ! sum over rad code tracers is used
-                if(tracerRadiaActiveFlag(n))then
-                  select case(namedd(k))
-                  case('tAOD')
-                    datar8=datar8+ttausv_sum(:,:,n)
-                    units_of_data='1'
-                    long_name = 'Total All Sky Aerosol Optical Depth'
-                  case('ctAOD')
-                    datar8=datar8+ttausv_sum_cs(:,:,n)
-                    units_of_data='1'
-                    long_name = 'Total Clear Sky Aerosol Optical Depth'
-                  end select
-                end if
-              end do
-              datar8=datar8/ttausv_count
-              data=datar8
-              call write_data(data,kunit,polefix)
-#ifdef NEW_IO_SUBDD
-              call write_subdd(trim(namedd(k)),datar8,polefix
-     &             ,units_of_data,long_name=long_name,record
-     &             =day_of_month,qinstant=.false.)
-#endif
-#else
-            if (.false.) then
-#endif
-            else
-              write(6,*) 'Warning: No radiatively active tracers'
-              write(6,*) ' ',trim(namedd(k)),' not written'
-            end if
-            cycle
-
-C**** for (c)AOD multiple tracers are written to one file:
-          case ('AOD','cAOD')!aerosol opt dep daily avg (all/clear sky)
-            kunit=kunit+1
-#ifndef SKIP_TRACERS_RAD
-            if (any(tracerRadiaActiveFlag)) then
-              polefix=.true.
-              if(mod(itime+1,Nday).ne.0) cycle ! except at end of day
-              if(ttausv_count==0.)call stop_model('ttausv_count=0',255)
-              nc=0
-              do n=1,NTM
-                if(tracerRadiaActiveFlag(n))then
-                  nc=nc+1
-                  select case(namedd(k))
-                  case('AOD')
-                    datar8=ttausv_sum(:,:,n)/ttausv_count
-                    units_of_data='1'
-                    long_name = 'All Sky Aerosol Optical Depth of'
-                  case('cAOD')
-                    datar8=ttausv_sum_cs(:,:,n)/ttausv_count
-                    units_of_data='1'
-                    long_name = 'Clear Sky Aerosol Optical Depth of'
-                  end select
-                  rTrname(nc)=trname(n)
-                  rTRACER_array(:,:,nc)=datar8
-                  data=datar8
-                  call write_data(data,kunit,polefix)
-                end if
-              end do
-#ifdef NEW_IO_SUBDD
-              call write_subdd(trim(namedd(k)),rTRACER_array,polefix
-     &             ,units_of_data,long_name=long_name,record
-     &             =day_of_month,suffixes=rTrname ,qinstant=.false.)
-#endif
-#else
-            if (.false.) then
-#endif
-            else
-              write(6,*) 'Warning: No radiatively active tracers'
-              write(6,*) ' ',trim(namedd(k)),' not written'
-            end if
-            cycle
-
 c**** Mixing ratio for all tracers at surface [kg/kg]
           case('TrSMIXR')
             kunit=kunit+1
@@ -3660,9 +3637,11 @@ c**** Mixing ratio for all tracers at surface [kg/kg]
               call write_data(data,kunit,polefix)
             end do
 #ifdef NEW_IO_SUBDD
-            call write_subdd(trim(namedd(k)),TRACER_array,polefix
-     &           ,units_of_data,long_name=long_name,suffixes=trname
-     &           ,qinstant=.false.)
+            call stop_model('TrSMIXR: fix line in DIAG.f please',255)
+            ! next line fails compilation due to the "trname":
+!           call write_subdd(trim(namedd(k)),TRACER_array,polefix
+!    &           ,units_of_data,long_name=long_name,suffixes=trname
+!    &           ,qinstant=.false.)
 #endif
             cycle
 
@@ -3686,9 +3665,11 @@ c**** Concentration for all tracers at surface [kg/m^3]
               call write_data(data,kunit,polefix)
             end do
 #ifdef NEW_IO_SUBDD
-            call write_subdd(trim(namedd(k)),TRACER_array,polefix
-     &           ,units_of_data,long_name=long_name,suffixes=trname
-     &           ,qinstant=.false.)
+            call stop_model('TrSCONC: fix line in DIAG.f please',255)
+            ! next line fails compilation due to the "trname":
+!           call write_subdd(trim(namedd(k)),TRACER_array,polefix
+!    &           ,units_of_data,long_name=long_name,suffixes=trname
+!    &           ,qinstant=.false.)
 #endif
             cycle
 #endif /*TRACERS_ON*/
@@ -3715,8 +3696,7 @@ C**** overkill, but useful now for EPA down-scaling:
 
 C**** cases where multiple records go to one file for dust
 
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
         case ('DuEMIS','DuEMIS2','DuSMIXR','DuSCONC','DuLOAD')
           kunit=kunit+1
           do n=1,Ntm_dust
@@ -3831,36 +3811,6 @@ C**** first set: no 'if' tests
 
 C**** other dust special cases
 
-          case ("DuAOD","DuCSAOD") !tot dust aero opt dep, daily avg
-            kunit=kunit+1
-            if(mod(itime+1,Nday).ne.0) cycle ! except at end of day
-            if(ttausv_count==0.)call stop_model('ttausv_count=0',255)
-            datar8=0.
-            do n=1,Ntm_dust
-              n1=n_soilDust+n-1
-              select case(namedd(k))
-              case('DuAOD')
-                datar8(:,:)=ttausv_sum(:,:,n1)
-                units_of_data='1'
-                long_name = 'All Sky Optical Depth of'
-              case('DuCSAOD')
-                datar8(:,:)=ttausv_sum_cs(:,:,n1)
-                units_of_data='1'
-                long_name = 'Clear Sky Optical Depth of'
-              end select
-              datar8=datar8/ttausv_count
-              polefix=.true.
-              dust3d_array(:,:,n) = datar8
-              data=datar8
-              call write_data(data,kunit,polefix)
-            end do
-#ifdef NEW_IO_SUBDD
-            call write_subdd(trim(namedd(k)),dust3d_array,polefix
-     &           ,units_of_data,long_name=long_name,record=day_of_month
-     &           ,suffixes=dust_names ,qinstant=.false.)
-#endif
-            cycle
-
 #ifdef TRACERS_DRYDEP
           case ('DuDEPTURB')        ! Turb. deposition flux of dust tracers [kg/m^2/s]
           kunit=kunit+1
@@ -3947,7 +3897,7 @@ C**** other dust special cases
      &         ,qinstant=.false.)
 #endif
           cycle
-#endif /*TRACERS_DUST || TRACERS_MINERALS || TRACERS_QUARZHEM*/
+#endif /* TRACERS_DUST || TRACERS_MINERALS */
 
 C**** this prevents tokens that are not caught from messing up the file data
         case default
@@ -4399,14 +4349,14 @@ c time_subdd
      &       date=date)
       if (q24) then ! coordinate is #days
         t = newBaseTime(
-     &       madelEclock%getTimeInSecondsFromDate(iyear1,month,date,0)
-        time_subdd = nint(t / calendr%getSecondsPerDay())
+     &       modelEclock%getTimeInSecondsFromDate(iyear1,month,date,0))
+        time_subdd = nint(t / calendar%getSecondsPerDay())
       else ! coordinate is #hours
         t = newBaseTime(
-     &       madelEclock%getTimeInSecondsFromDate(iyear1,month,0,0)
+     &       modelEclock%getTimeInSecondsFromDate(iyear1,month,0,0)
      &        + (rec-1)*nsubdd*dtsrc)
         time_subdd =
-     &       nint(t / (calendr%getSecondsPerDay()/INT_HOURS_PER_DAY))
+     &       nint(t / (calendar%getSecondsPerDay()/INT_HOURS_PER_DAY))
       end if
 
       return
@@ -5119,8 +5069,11 @@ c write physical variable
       USE domain_decomp_atm, ONLY : globalsum,grid
       USE GEOM, only : imaxj,axyp,byaxyp
       USE ATM_COM, only : phi,wsave,pek,byMA
-      USE rad_com,ONLY : cosz1,srnflb_save,trnflb_save,ttausv_save,
-     &     ttausv_cs_save
+      USE rad_com,ONLY : cosz1,srnflb_save,trnflb_save
+#ifdef TRACERS_DUST
+     &                  ,nraero_dust,nr_soildust,ntrix_aod
+     &                  ,ttausv_as,ttausv_cs
+#endif
       USE diag_com,ONLY : adiurn_dust,ndiupt,ndiuvar,lmax_dd2,ijdd
      &     ,adiurn=>adiurn_loc
 #ifndef NO_HDIURN
@@ -5132,9 +5085,6 @@ c write physical variable
 #endif
 #ifdef TRACERS_ON
       USE TRACER_COM, only : trm
-#ifdef TRACERS_DUST
-     &     ,Ntm_dust,n_clay
-#endif
 #endif
 
       IMPLICIT NONE
@@ -5195,20 +5145,20 @@ C****
      *           *cosz1(i,j)
             tmp(idd_tr1:idd_tr1+lmax_dd2-1)=trnflb_save(i,j,1:lmax_dd2)
 
-            DO n=1,Ntm_dust
-              n1=n_clay+n-1
+            DO n=1,nraero_dust
+              n1=nr_soildust+n-1
 
               tmp(idd_load1:idd_load1+lmax_dd2-1)
      *             =tmp(idd_load1:idd_load1+lmax_dd2-1)+trm(i,j
-     *             ,1:lmax_dd2,n1)*byaxyp(i,j)
+     *             ,1:lmax_dd2,ntrix_aod(n1))*byaxyp(i,j)
               tmp(idd_conc1:idd_conc1+lmax_dd2-1)
      *             =tmp(idd_conc1:idd_conc1+lmax_dd2-1)+trm(i,j
-     *             ,1:lmax_dd2,n1)*byMA(1,i,j)*byaxyp(i,j)
+     *             ,1:lmax_dd2,ntrix_aod(n1))*byMA(1,i,j)*byaxyp(i,j)
               tmp(idd_tau1:idd_tau1+lmax_dd2-1)=tmp(idd_tau1:idd_tau1
-     *             +lmax_dd2-1)+ttausv_save(i,j,n1,1:lmax_dd2)
+     *             +lmax_dd2-1)+ttausv_as(i,j,1:lmax_dd2,n1)
               tmp(idd_tau_cs1:idd_tau_cs1+lmax_dd2-1)
      *             =tmp(idd_tau_cs1:idd_tau_cs1+lmax_dd2-1)
-     *             +ttausv_cs_save(i,j,n1,1:lmax_dd2)
+     *             +ttausv_cs(i,j,1:lmax_dd2,n1)
 
             END DO
 
@@ -5522,8 +5472,7 @@ c
       ijdd = 1
 #else
 C**** Initialse diurnal diagnostic locations (taken from the 4x5 res)
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_QUARZHEM)
+#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       NAMDD =
      &   (/'AUSD', 'MWST', 'SAHL', 'EPAC', 'AF01',
      &     'AF02', 'AF03', 'AF04', 'AF05', 'ASA1',
@@ -5969,11 +5918,6 @@ C**** Set conservation diagnostics for ice mass, energy, salt
       USE SUBDAILY, only : reset_subdd
 #endif
       USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds,am_i_root
-#ifdef TRACERS_ON
-#ifndef SKIP_TRACERS_RAD
-      USE RAD_COM,only: ttausv_sum,ttausv_sum_cs,ttausv_count
-#endif
-#endif
       IMPLICIT NONE
       logical, intent(in) :: newmonth
       character(len=16) :: aDate
@@ -6074,19 +6018,8 @@ C**** INITIALIZE SOME ARRAYS AT THE BEGINNING OF EACH DAY
                TSFREZ(I,J,TF_DAY1)=maxDaysInYear
                TSFREZ(I,J,TF_LAST)=maxDaysInYear
             END IF
-#ifdef TRACERS_ON
-#ifndef SKIP_TRACERS_RAD
-            ttausv_sum(I,J,:)=0.d0
-            ttausv_sum_cs(I,J,:)=0.d0
-#endif
-#endif
          END DO
       END DO
-#ifdef TRACERS_ON
-#ifndef SKIP_TRACERS_RAD
-      ttausv_count=0.d0
-#endif
-#endif
 
 C**** THINGS THAT GET DONE AT THE BEGINNING OF EVERY MONTH
       if ( newmonth ) then

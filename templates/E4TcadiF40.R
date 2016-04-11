@@ -15,44 +15,52 @@ filters: U,V in E-W and N-S direction (after every physics time step)
 
 Preprocessor Options
 #define NEW_IO                   ! new I/O (netcdf) on
-#define TRAC_ADV_CPU             ! timing index for tracer advection on
 #define USE_ENT                  ! include dynamic vegetation model
+#define SWFIX_20151201
+#define NO_HDIURN                ! exclude hdiurn diagnostics
+#define MODIS_LAI
+!---> generic tracers code start
+#define TRAC_ADV_CPU             ! timing index for tracer advection on
 #define TRACERS_ON               ! include tracers code
 #define TRACERS_WATER            ! wet deposition and water tracer
-#define TRACERS_DUST             ! include dust tracers
-#define TRACERS_DUST_Silt4       ! include 4th silt size class of dust
 #define TRACERS_DRYDEP           ! default dry deposition
 #define TRDIAG_WETDEPO           ! additional wet deposition diags for tracers
-#define NO_HDIURN                ! exclude hdiurn diagnostics
+!<--- generic tracers code end
+!---> chemistry start
 #define TRACERS_SPECIAL_Shindell    ! includes drew's chemical tracers
-#define AR5_FASTJ_XSECS ! to avoid using updated fastj cross sections introduced april 2015
 #define RAD_O3_2010              ! 2010 ozone dataset
 !  OFF #define AUXILIARY_OX_RADF ! radf diags for climatology or tracer Ozone
 #define TRACERS_TERP                ! include terpenes in gas-phase chemistry
 #define BIOGENIC_EMISSIONS       ! turns on interactive isoprene emissions
-#define TRACERS_AEROSOLS_SEASALT ! seasalt
-#define TRACERS_AEROSOLS_Koch    ! Dorothy Koch's tracers (aerosols, etc)
-#define TRACERS_AEROSOLS_SOA     ! Secondary Organic Aerosols
-!  OFF #define SOA_DIAGS                ! Additional diagnostics for SOA
-#define TRACERS_NITRATE
-#define TRACERS_HETCHEM
-#define BC_ALB                    !optional tracer BC affects snow albedo
-#define CLD_AER_CDNC              !aerosol-cloud interactions
-#define BLK_2MOM                  !aerosol-cloud interactions
 !  OFF #define WATER_MISC_GRND_CH4_SRC ! adds lake, ocean, misc. ground sources for CH4
 !  OFF #define CALCULATE_FLAMMABILITY  ! activated code to determine flammability of surface veg
 !  OFF #define DYNAMIC_BIOMASS_BURNING  ! alter biomas burning my flammability
 !  OFF #define CALCULATE_LIGHTNING ! turn on Colin Price lightning when TRACERS_SPECIAL_Shindell off
 !  OFF #define SHINDELL_STRAT_EXTRA     ! non-chemistry stratospheric tracers
 !  OFF #define INTERACTIVE_WETLANDS_CH4 ! turns on interactive CH4 wetland source
-!  OFF #define NUDGE_ON                 ! nudge the meteorology
 !  OFF #define ACCMIP_LIKE_DIAGS  ! adds many diags as defined by ACCMIP project
+!  OFF #define SMOOTH_SUNLIGHT_CHEMISTRY ! attempts to get the same number of sunlight steps each longitude
+!<--- chemistry end
+!---> OMA start
+#define TRACERS_DUST             ! include dust tracers
+#define TRACERS_DUST_Silt4       ! include 4th silt size class of dust
+#define TRACERS_AEROSOLS_SEASALT ! seasalt
+#define TRACERS_AEROSOLS_Koch    ! Dorothy Koch's tracers (aerosols, etc)
+#define TRACERS_AEROSOLS_SOA     ! Secondary Organic Aerosols
+!  OFF #define SOA_DIAGS                ! Additional diagnostics for SOA
+#define TRACERS_NITRATE
+#define TRACERS_HETCHEM
+!<--- OMA end
+#define BC_ALB                    !optional tracer BC affects snow albedo
+#define CLD_AER_CDNC              !aerosol-cloud interactions
+#define BLK_2MOM                  !aerosol-cloud interactions
+!  OFF #define NUDGE_ON                 ! nudge the meteorology
 End Preprocessor Options
 
 Object modules:
      ! resolution-specific source codes
-Atm144x90                  ! horizontal resolution is 144x90 -> 2x2.5deg
-AtmL40                      ! vertical resolution is 40 layers -> 0.1mb
+Atm144x90                           ! horizontal resolution is 144x90 -> 2x2.5deg
+AtmL40                              ! vertical resolution is 40 layers -> 0.1mb
 DIAG_RES_F                          ! diagnostics
 FFT144                              ! Fast Fourier Transform
 
@@ -60,19 +68,18 @@ IO_DRV                              ! new i/o
 
      ! GISS dynamics with gravity wave drag
 ATMDYN MOMEN2ND                     ! atmospheric dynamics
-QUS_DRV                             ! advection of T
+QUS_DRV QUS3D                       ! advection of Q/tracers
 STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 
-QUS3D                               ! advection of Q and tracers
-TRDUST_COM TRDUST TRDUST_DRV        ! dust tracer specific code
 #include "tracer_shared_source_files"
 #include "tracer_shindell_source_files"
-#include "tracer_aerosols_source_files"
-TRDIAG
+#include "tracer_OMA_source_files"
+TRDIAG                              ! new i/o
 
 #include "latlon_source_files"
 #include "modelE4_source_files"
-CLD_AEROSOLS_Menon_MBLK_MAT BLK_DRV ! aerosol-cloud interactions
+CLD_AEROSOLS_Menon_MBLK_MAT_E29q BLK_DRV ! aerosol-cloud interactions
+CLD_AER_CDNC            ! aerosol-cloud interactions wrapper
 lightning                           ! Colin Price lightning model
 ! flammability_drv flammability       ! Olga's fire model
 
@@ -84,15 +91,16 @@ tracers
 Ent
 
 Component Options:
-OPTS_Ent = ONLINE=YES PS_MODEL=FBB    /* needed for "Ent" only */
+OPTS_Ent = ONLINE=YES PS_MODEL=FBB PFT_MODEL=ENT /* needed for "Ent" only */
 OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
+OPTS_dd2d = NC_IO=PNETCDF
 
 Data input files:
 #include "IC_144x90_input_files"
 #include "static_ocn_1880_144x90_input_files"
-VEG_DENSE=gsin/veg_dense_2x2.5 ! vegetation density for flammability calculations
-RVR=RD_modelE_Fa.nc             ! river direction file
-NAMERVR=RD_modelE_Fa.names.txt  ! named river outlets
+! VEG_DENSE=gsin/veg_dense_2x2.5 ! vegetation density for flammability calculations
+RVR=RD_Fb.nc             ! river direction file
+NAMERVR=RD_Fb.names.txt  ! named river outlets
 
 #include "land144x90_input_files"
 #include "rad_input_files"
@@ -106,7 +114,7 @@ NAMERVR=RD_modelE_Fa.names.txt  ! named river outlets
 
 #include "chem_emiss_144x90_input_files"
 
-#include "aeros_input_files"
+#include "aerosol_OMA_input_files"
 
 MSU_wts=MSU.RSS.weights.data      ! MSU-diag
 REG=REG2X2.5                      ! special regions-diag
@@ -122,10 +130,19 @@ E4TcadiF40 (E4TcadF40 with computed aerosol indirect effect)
 
 ! cond_scheme=2   ! newer conductance scheme (N. Kiang) ! not used with Ent
 
+! The following two lines are only used when aerosol/radiation interactions are off
+FS8OPX=1.,1.,1.,1.,1.5,1.5,1.,1.
+FT8OPX=1.,1.,1.,1.,1.,1.,1.,1.
+
 ! Increasing U00a decreases the high cloud cover; increasing U00b decreases net rad at TOA
-U00a=0.54  ! above 850mb w/o MC region;  tune this first to get 30-35% high clouds
+! w/o VMP clouds (uncomment when model is run w/o VMP clouds):
+!U00a=0.58  ! above 850mb w/o MC region;  tune this first to get 30-35% high clouds
+! w/ VMP clouds (comment out when model is run w/o VMP clouds):
+U00a=0.59  ! above 850mb w/o MC region;  tune this first to get 30-35% high clouds
 U00b=1.00  ! below 850mb and MC regions; tune this last  to get rad.balance
-WMUI_multiplier = 2.
+WMUI_multiplier = 1.
+use_vmp=1
+radius_multiplier=1.1
 
 PTLISO=15.       ! press(mb) above which rad. assumes isothermal layers
 H2ObyCH4=0.      ! activates strat.H2O generated by CH4
@@ -140,9 +157,12 @@ initial_GHG_setup = 1 ! Set to 0 after initial setup.
 ! use of model year and use abs(o3_yr) instead!
 !!!!!!!!!!!!!!!!!!!!!!!
 madaer=3         ! 3: updated aerosols          ; 1: default sulfates/aerosols
-#include "aerosol_params"
-#include "dust_params"
+#include "aerosol_OMA_params"
+#include "dust_params_vmp_oma"
 #include "chemistry_params"
+! The following 2 lines OVERWRITE the include chemistry_params values!!
+! ch4_init_sh=1.750      ! init cond/fixed conditions SH CH4 ppmv
+! ch4_init_nh=1.855      ! init cond/fixed conditions NH CH4 ppmv
 
 DTsrc=1800.      ! cannot be changed after a run has been started
 DT=225.

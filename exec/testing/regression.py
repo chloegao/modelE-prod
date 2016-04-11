@@ -1,74 +1,61 @@
 """
-  This script executes modelE serial and MPI runs and generates results
-  used to verify various reproducibility measures.
-  The script can be executed from the decks directory using default
-  options and without arguments as follows:
- 
-      python  ../exec/testing/regression.py
- 
-  In that case the script will run the nonProduction_E_AR5_C12 rundeck 
-  using the gfortran compiler and in serial and mpi modes. 
-  Alternatively one can use the default options with one argument:
- 
-      python  ../exec/testing/regression.py <runsource>
- 
-  and run the <runsource> rundeck.
-  Finally one can run a set of rundecks by specifying configuration
-  files for each runsource, i.e. from the decks subdirectory issue the command:
+  This script executes modelE serial and MPI run combinations and generates 
+  results used to verify various reproducibility measures.
+
+  The script can be executed from the decks directory as follows:
+
+     ../exec/testing/regression.sh [RUNSRC1 RUNSRC2 ... RUNSRCN -r]
+
+  See the documentation in regression.sh 
+
+  If executed standalone as follows:
  
       python  ../exec/testing/regression.py  <runsource1> [<runsource2> ...]
  
-  This requires a configuration file name <runsource>.cfg for each runsource.
-  When called from a higher level driver (mainDriver.py), this script's results
+  then this requires a configuration file name <runsource>.cfg for each runsource.
+  When called from the higher level driver (reg), this script's results
   are used to generate a report of regression testing reproducibility checks.
   
 """
 
 import sys
 import os
-import shlex
-import subprocess
 import logging
 import ConfigParser
-from regRuns import *
+import regUtils as util
+import regCompare as comp
+import regRuns as runsrc
 
-def compare(rundeck, run):
-    if run.verification != 'compileOnly':
+#-------------------------------------------------------------------------------
+def compare(runs, fileH):
+    for run in runs:
+        
+        # Internal consistency checks
         if run.mode == 'serial':
-            compareBase(run, '1hr')
-            if run.verification != 'run1hr':
-                compareBase(run, run.endTime)
-                # And compare SERIAL checkpoint-restart
-                compareRestart(run)
+            if run.verification == 'restartRun':
+                comp.restart(run, run.endTime)
         else:
-            for npes in rundeck.npList:
-                # Compare runs with baseline
-                compareBase(run, '1hr', npes=npes)
-                if run.verification != 'run1hr':
-                    compareBase(run, run.endTime, npes=npes)
-                    compareRestart(run, npes=npes)
-                # Compare 1hr run against serial
-                compareNPE(run, run.endTime, npes)
-
-def writeDiff(run, fileH):
-    fileH.write('%20s' % (run.results[0]))
-    fileH.write('%10s' % (run.results[1]))
-    fileH.write('%8s'  % (run.results[2]))
-    fileH.write('%4s'  % '    ')
-    for s in run.results[3:]:
-        fileH.write('{: ^5}'.format(s))
-        fileH.write('%3s'  % '   ')
-    fileH.write('\n')
-
-      
-"""
-  MAIN PROGRAM
-"""
-if __name__ == '__main__':
-
-    setRunUtils()
-
-    # System call return code
+            for npes in run.npes:
+                if run.verification == 'restartRun':
+                    comp.restart(run, npes=npes)
+                # Compare NPE vs serial
+                comp.nPE(run, run.endTime, npes)
+            
+        # Baseline checks
+        if run.mode == 'serial':
+            comp.base(run, 1) # 1hr run
+            if run.verification == 'restartRun':
+                comp.base(run, run.endTime)
+        else:
+            for npes in run.npes:
+                comp.base(run, 1, npes=npes) # 1hr run
+                if run.verification == 'restartRun':
+                    comp.base(run, run.endTime, npes=npes)
+                    
+        util.writeDiff(run.results, fileH)
+    
+#-------------------------------------------------------------------------------
+def main():
     OK = 0
 
     # List of runSources to verify specified on command line
@@ -76,79 +63,82 @@ if __name__ == '__main__':
     if len(sys.argv) > 1:
         for arg in sys.argv[1:]:
             runSources.append(arg)
-    else: # if none specified, use nonProduction_E_AR5_C12
+    else:
         runSources.append('nonProduction_E_AR5_C12')
-    
-    # Loop over each run source in list
+
     for source in runSources:
 
-        # Create rundeck object with default or config properties
-        rundeck = newRundeck(source)
-        
-        # List of rundeck run configurations for each mode
-        runs = []
-        for mode in rundeck.modeList:
-            runs.append(newRun(rundeck, mode))
+        src = runsrc.newRundeck(source)
 
-        # Setup a logging stream
-        setupLogging(rundeck)
+        # Setup a logging stream for this rundeck
+        src.setLogging()
         logger = logging.getLogger('MAIN    ')
-        # All the work is done from the modelE decks directory
-        os.chdir(rundeck.decksDir)
+        
+        # Create a list of rundeck run configurations for each mode
+        runs = []
+        for mode in src.modes:
+            runs.append(runsrc.newRun(src, mode))
 
-        diffFile = rundeck.resultsDir + '/' + rundeck.name + '.diff'
+        # All the work is done from the modelE decks directory
+        os.chdir(src.decksDir)
+
+        diffFile = src.resultsDir + '/' + src.name + '.diff'
         fileH = open(diffFile, 'a')
 
-        logger.info('Verifying ' + rundeck.name + ': ' + rundeck.verification)
+        logger.info('Verifying ' + src.name + ': ' + src.verification)
 
         for run in runs:
+
             serBuildResult = OK
             mpiBuildResult = OK
+
             if run.mode == 'serial':
-                serBuildResult = build(run)
-                if rundeck.verification != 'compileOnly':
-                    if serBuildResult == OK:
-                        rc = run1hr(run)
-                        if rc != 0:
-                            continue
-                        if rundeck.verification != 'run1hr':
-                            rc = runRestart(run, endtime=run.endtime)
-                            if rc != 0:
+                serBuildResult = run.build()
+                if src.verification == 'compileOnly':
+                    continue
+                if serBuildResult == OK:
+                    # Always run 1hr
+                    rc = run.hrRun()
+                    if rc == OK and src.verification == 'restartRun':
+                        rc = run.restartRun(endTime=run.endTime)
+                    else:
+                        continue
+                else:
+                    continue
+            else: # MPI
+                mpiBuildResult = run.build()
+                if run.verification == 'compileOnly':
+                    continue
+                if mpiBuildResult == OK:
+                    if run.verification == 'customRun':
+                        for npes in run.npes:
+                            rc = run.customRun(npes=npes)
+                            if rc != OK:
                                 continue
-            else:
-                mpiBuildResult = build(run)
-                if run.verification != 'compileOnly':
-                    if mpiBuildResult == OK:
-                        for npes in rundeck.npList:
-                            rc = run1hr(run, npes=npes)
-                            if rc != 0:
+                    else:    
+                        for npes in run.npes:
+                            # Always run 1hr
+                            rc = run.hrRun(npes=npes)
+                            if rc == OK and run.verification == 'restartRun':
+                                rc = run.restartRun(npes=npes, endTime=run.endTime)
+                            else:
                                 continue
-                            if run.verification != 'run1hr':
-                                rc = runRestart(run, npes=npes, endtime=run.endtime)
-                                if rc != 0:
-                                    continue
+                else:
+                    continue
 
-                elif rundeck.verification == 'customRun':
-                    if mpiBuildResult == OK:
-                        for npes in run.npList:
-                            rc = runLong(run, npes=npes)
-                            if rc != 0:
-                                continue
-
-            logger.info(rundeck.name + ' ' + run.mode + ' runs complete.')
-            # If any build failed, then go on to the next run
-            if serBuildResult != OK or mpiBuildResult != OK:
-                continue
-
-            if rundeck.standalone == 'yes':
-                compare(rundeck, run)
-                writeDiff(run, fileH)
-
+            logger.info(src.name + ' ' + run.mode + ' runs complete.')
+            
+        compare(runs, fileH)
+        
         fileH.close()
 
-        logger.info(rundeck.name + ' verification complete.')
+        logger.info(src.name + ' verification complete.')
 
 
     logger.info('Regression testing is done.')            
                     
-                    
+#-------------------------------------------------------------------------------
+if __name__ == '__main__':
+    main()
+
+                   

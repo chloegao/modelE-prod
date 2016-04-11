@@ -19,6 +19,7 @@ define([PROPERTIES_AND_TYPES],
 !@+   Same as the tr_RKD wet dep variable, except for units.
 !@+   If F0 & HSTAR both 0, & tracer not particulate, then no drydep.),
   (do_fire,logical,.false.,true if tracer should have emissions via flammability),
+  (do_aircraft,logical,.false.,true if tracer should have emissions via aircraft),
   (nBBsources,integer,0, number of sources attributed to biomass burning),
   (emisPerFireByVegType,real*8[[[,]]] dimension(12),0.0d0,emisPerFireByVegType tracer emissions per fire count as a
 !@+ function of 12 standard GISS (VDATA) vegetation types, or Ent
@@ -43,7 +44,9 @@ define([PROPERTIES_AND_TYPES],
   (om2oc,real*8,1.4d0,ratio of organic matter to organic carbon),
   (to_volume_MixRat,integer,0, =0: print tracer conc. by vol mix ratio; =1:mass mixing ratio),
   (to_conc,integer,0, =0: print 3D tracer conc. by to_volume_MixRat; =1: kg/m3),
-  (TRLI0, real*8,0.d0,default tracer conc. for land ice (kg/kg))])dnl
+  (TRLI0, real*8,0.d0,default tracer conc. for land ice (kg/kg)),
+  (src_dist_base,integer,0,source distribution base),
+  (src_dist_index,integer,0,source distribution index)])dnl
 
 
 define([FIRST], [$1])

@@ -58,7 +58,7 @@
       real Kn                     !Knudsen number of particle
       real*8 mp         !particle mass (kg)
       real beta                   !correction for coagulation coeff.
-      real aerodens
+      real*8 aerodens
       external aerodens
       real*8 Mktot      !total mass of aerosol
 
@@ -1364,7 +1364,8 @@ Cjrp               endif
       real mso4, mh2o, mno3, mnh4 !mass of each component (kg/grid box)
       real mecil,mecob,mocil,mocob
       real mdust,mnacl  
-      real aerodens, gasdiff
+      real*8 aerodens
+      real gasdiff
       external aerodens         !!, gasdiff
       
       parameter(Neps=1.0d10)
@@ -1478,7 +1479,8 @@ C     get size dependent values
       real*8 mfp                !mean free path of air molecule (m)
       real Di                   !diffusivity of gas in air (m2/s), and molecular weight (kg/mol)
       real*8 Neps               !tolerance for number
-      real density,mw           !density [kg m^-3]
+      real*8 density            !density [kg m^-3]
+      real mw
       real*8 mp                 !mass per particle [kg]
       real*8 Dpk(ibins)         !diameter of particle [m]
       real*8 Kn                 !Knudson number
@@ -1488,7 +1490,8 @@ C     get size dependent values
       real mso4, mh2o, mno3, mnh4 !mass of each component (kg/grid box)
       real mecil,mecob,mocil,mocob
       real mdust,mnacl  
-      real aerodens, gasdiff
+      real*8 aerodens
+      real gasdiff
       external aerodens         !, gasdiff
 
       parameter(Neps=1.0d10)
@@ -1536,10 +1539,10 @@ C     get size dependent values
             mp=Mktot/Nko(k)
           else
 !nothing in this bin - set to "typical value"
-            density=1500.
+            density=1500.d0
             mp=sqrt(xk(k+1)*xk(k))
           endif
-          Dpk(k)=((mp/density)*(6./pi))**(0.333)
+          Dpk(k)=((mp/density)*(6.d0/pi))**(1.d0/3.d0)
           Kn=2.0*mfp/Dpk(k)     !S&P eqn 11.35 (text)
           beta(k)=(1.+Kn)/(1.+2.*Kn*(1.+Kn)/alpha(spec)) !S&P eqn 11.35
         enddo      
@@ -1606,7 +1609,7 @@ C-----OUTPUTS-----------------------------------------------------------
       real mso4, mh2o, mno3, mnh4  !mass of each component (kg/grid box)
       real mecil,mecob,mocil,mocob
       real mdust,mnacl  
-      real aerodens
+      real*8 aerodens
       external aerodens
 
       parameter (kB= 1.38E-23) !pi and gas constant (J/mol K)
@@ -1716,7 +1719,7 @@ Cjrp      kij_self=kij_self*1.0e6/boxvol !normalize by grid cell volume
       tot_nh3 = giss_nh3g/17.d0 + giss_nh4a/18.d0
 
       ! get the total number of kmol so4
-	tot_so4=0.d0
+      tot_so4=0.d0
       do k=1,ibins
          tot_so4 = tot_so4 + Mke(k,srtso4)/96.d0
       enddo
@@ -1971,7 +1974,7 @@ C     and get the nucleation rate and critical cluster size
          endif
       else
          max_H2SO4conc = 1.0D100
-      endif	
+      endif
       
 C     Checks for when condensation sink is very small
       if (CS.gt.CSeps) then
@@ -2180,7 +2183,7 @@ C-----INPUTS------------------------------------------------------------
       real mso4, mh2o, mno3, mnh4  !mass of each component (kg/grid box)
       real mecil,mecob,mocil,mocob
       real mdust,mnacl  
-      real aerodens
+      real*8 aerodens
       external aerodens
       real*8 fn_c     ! barrierless nucleation rate
       real*8 h1,h2,h3,h4,h5,h6
@@ -2268,10 +2271,10 @@ C     and get the nucleation rate and critical cluster size
             mp=Mktot/Nki(k)
          else
                                 !nothing in this bin - set to "typical value"
-            density=1500.
+            density=1500.d0
             mp=sqrt(xk(k+1)*xk(k))
          endif
-         Dpk(k)=((mp/density)*(6./pi))**(0.333)
+         Dpk(k)=((mp/density)*(6.d0/pi))**(1.d0/3.d0)
       enddo
 
 C     if nucleation occured, see how many particles grow to join the first size
@@ -2497,14 +2500,14 @@ C     particles into the first size bin.  don't let it go less than zero.
             enddo
          enddo
          return
-      endif	
+      endif
       
 ! determine how much mass to add to each size bin
 ! also determine how many condensation steps we need
       totsinkfrac = 0.d0
       do k=1,ibins
-	   totsinkfrac = totsinkfrac + sinkfrac(k) ! get sink frac total not including nuc bin
-	enddo
+        totsinkfrac = totsinkfrac + sinkfrac(k) ! get sink frac total not including nuc bin
+      enddo
       nsteps = 1
       do k=1,ibins
          if (sinkfrac(k).lt.1.0D-20)then
@@ -2531,8 +2534,8 @@ C     particles into the first size bin.  don't let it go less than zero.
      &        CS,sinkfrac)      ! set Nnuc to zero for this calculation
             totsinkfrac = 0.d0
             do k=1,ibins
-	         totsinkfrac = totsinkfrac + sinkfrac(k) ! get sink frac total not including nuc bin
-	      enddo
+              totsinkfrac = totsinkfrac + sinkfrac(k) ! get sink frac total not including nuc bin
+            enddo
          endif      
          
          tot_m=0.d0
@@ -3650,7 +3653,7 @@ c--------------------------------------------------------------------
       if (rh .gt. 0.95d0) rh = 0.95d0
       if (q .lt. 1.d0) q = 1.d0
       if (q .gt. 50.d0) q = 50.d0      
-	
+
       h6=0.000026859579119003205*SA + 1.7477354270484002d-8*q*SA + 
      &     1.5718068902491457d-8*SA**2 + 8.060796806911441d-8*SA*T + 
      &     3.904048293417882d-7*SA*Log(H2SO4) + 
@@ -3725,8 +3728,8 @@ c--------------------------------------------------------------------
       h3=EXP(h3)
 
 
-	
-	h1=456229.3726785317 - 696754.0061755505/h3 - 
+
+      h1=456229.3726785317 - 696754.0061755505/h3 - 
      &  8.954389043957226d7*h6 + (1.4677717736521986d8*h6)/h3 + 
      &  1867.5296995211318*q - (2798.172491398116*q)/h3 + 
      &  1500.05530404756*h6*q - (171625.68387665015*h6*q)/h3 - 
@@ -4029,10 +4032,10 @@ c--------------------------------------------------------------------
      &  0.000011334503487127534*q*T*Log(H2SO4)**3*Log(RH)**2 + 
      &  0.000029425270779265584*T**2*Log(H2SO4)**3*Log(RH)**2
 
-	  h1=EXP(h1)
+      h1=EXP(h1)
 
 
-	h2=-32043.03148295406 + 59725.428570008815/h3 +  
+      h2=-32043.03148295406 + 59725.428570008815/h3 +  
      & 7.128537634261564d6*h6 - (1.3833467233343722d7*h6)/h3+
      & 33.63110252227136*q-(48.61215633992165*q)/h3 - 16602.414377611287
      & *h6*q + (40754.788181739124* h6*q)/h3 -2.3397851800516185*q**2 + 
@@ -4262,11 +4265,11 @@ c--------------------------------------------------------------------
      & Log(RH)**2 + 0.00007918460467376976*q*T*Log(H2SO4)**2*Log(RH)**2+  
      & 0.00009291148493939081*T**2*Log(H2SO4)**2*Log(RH)**2
 
-	 h2=exp(h2)
+      h2=exp(h2)
 
 
 
-	h4=-233.3693139924163 + 3711.127600293859*h6 - 
+      h4=-233.3693139924163 + 3711.127600293859*h6 - 
      &  127375.45943800849*h6**2 - 0.6541599370168311*q - 
      &  8.950348936875036*h6*q + 1420.4060399615116*h6**2*q + 
      &  0.006010885721884837*q**2 - 0.2514391282801529*h6*q**2 + 
@@ -4355,10 +4358,10 @@ c--------------------------------------------------------------------
      &  0.0005604898286672238*T*Log(H2SO4)**3 - 
      &  0.00648946009121241*Log(H2SO4)**4
 
-	  H4=EXP(H4)
-	
+      H4=EXP(H4)
 
-	h5=68.64045827314231-3277.3575769882523*h6 + 1.0798559249565618*q- 
+
+      h5=68.64045827314231-3277.3575769882523*h6 + 1.0798559249565618*q- 
      &  25.296110707348316*h6*q + 13.398992645698215*RH + 
      &  922.4932305036297*h6*RH - 0.27140107873619296*q*RH + 
      &  20.08312325165439*h6*q*RH + 66.82077511984484*RH**2 + 
@@ -4414,8 +4417,8 @@ c--------------------------------------------------------------------
          return
       endif
 
-	return
-	End 
+      return
+      End 
 
 C=======================================================================
 C
@@ -4436,7 +4439,7 @@ C
      &     ,ijlt_ccn_03,ijlt_ccn_02
       USE CONSTANT, only: pi,gasc
       implicit none 
-      REAL*8 SURT,DIAM(NBINS+1),Tvol,DENS(7),A
+      REAL*8 SURT,DIAM3(NBINS+1),Tvol,DENS(7),A3
 c      REAL*8 Tp,BOXM,BOXV
       integer i, j, l, si, n
       integer k,kk,tracnum
@@ -4444,7 +4447,7 @@ c      REAL*8 Tp,BOXM,BOXV
       
 !@var constants needed for CCN calculation 
       real*8, parameter :: Mv=18.015d-3
-      real, parameter :: rhow= 1000.
+      real*8, parameter :: rhow= 1000.d0
 !@var temporal CCN 
       real*8, dimension(nsmax) :: ccn_mod 
 !@var temporal Sc 
@@ -4471,12 +4474,11 @@ C get density
 C surface tension
       SURT   = 0.0761-1.55E-4*(Temp-273.)
 
-      A = 4*Mv*SURT/(gasc*Temp*rhow)
+      A3 = (4*Mv*SURT/(gasc*Temp*rhow))**3
 
       DO N=1,NBINS+1 
-
-C Diameter in each size boundary with assuming density =1800 kg/m3. 
-        diam(n)= (xk(n)/1800.*6./pi)**0.333
+C Diameter cubed in each size boundary with assuming density =1800 kg/m3. 
+        diam3(n)= xk(n)/1800.d0*6.d0/pi
       ENDDO
 
       DO N=1,NBINS
@@ -4489,9 +4491,10 @@ C Diameter in each size boundary with assuming density =1800 kg/m3.
      &       +0.227*Mk(n,6)/dens(6))/Tvol ! average kappa in a bin 
 C note that kappa is hard-coded here. 
 
-        Sc(n) = exp(sqrt(4.*A*A*A/27./Diam(n)/Diam(n)/Diam(n)/kappa(n)))
-
-        Sc(n)=(Sc(n)-1.)*100.
+        Sc(n) = sqrt(4.d0*A3/27.d0/Diam3(n)/kappa(n))
+        Sc(n) = min(Sc(n), 10.d0) ! HACK!!! Yunha must fix this. Chances are that particles of diameter 2.55e-9 in mode 1 are just too small for this calculation?
+        Sc(n) = exp(Sc(n))
+        Sc(n)=(Sc(n)-1.d0)*100.d0
 
 c        print*,'debug_kappa',n,kappa(n),Sc(n)
 
@@ -4510,11 +4513,13 @@ C     INTERPOLATION :
           if(N .LT. NBINS)THEN 
             IF(SC(N+1) .lt. SMAX(si) .and. SC(N) .gt. SMAX(SI) ) THEN 
 C     compute new Sc (I+1) using the upper limit Dp to determine the activation fraction  
-              Scnew = exp(sqrt(4.*A*A*A/27./Diam(n+1)/Diam(n+1)/
-     &             Diam(n+1)/kappa(n)))
-              Scnew=(Scnew-1.)*100.
+              Scnew = sqrt(4.d0*A3/27.d0/Diam3(n+1)/kappa(n))
+              Scnew = min(Scnew, 10.d0) ! HACK!!! Yunha must fix this. Chances are that particles of diameter 2.55e-9 in mode 1 are just too small for this calculation?
+              Scnew = exp(Scnew)
+              Scnew=(Scnew-1.d0)*100.d0
 
-              CCN_mod(SI)=CCN_mod(SI)+Nk(n)/boxvol*
+              if (Sc(n) .ne. Scnew) ! HACK! This is needed to avoid division by zero. Yunha must verify that this is indeed the correct behavior, as it appears to be the case.
+     &        CCN_mod(SI)=CCN_mod(SI)+Nk(n)/boxvol*
      &         (1/(dlog(100.+SMAX(SI)))**(2)-1/(dlog(100.+Scnew))**(2))/
      &         (1/(dlog(100.+Sc(n)))**(2)-1/(dlog(100.+Scnew))**(2))
               

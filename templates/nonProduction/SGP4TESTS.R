@@ -16,11 +16,8 @@ AtmL40
 AtmRes
 
 SCM_COM SCM
-SCM_DIAG
-SCMDATA_SGPCONT  !SCMDATA_TWPICE
 ATMDYN_SCM
 ATMDYN_SCM_EXT
-SCM_DIAG_COM
 
 CLOUDS_COM CLOUDS2 CLOUDS2_DRV
 
@@ -75,10 +72,6 @@ SCM_WVMR=sgp60varanarucC1.c1.20050101.000000.cdf    ! water vapor mixing ratio p
 SCM_OMEGA=sgp60varanarucC1.c1.20050101.000000.cdf   ! large-scale vertical wind
 !SCM_LS_V=sgp60varanarucC1.c1.20050101.000000.cdf    ! large-scale vert adv flux div profile(s)
 SCM_LS_H=sgp60varanarucC1.c1.20050101.000000.cdf    ! large-scale horiz adv flux div profile(s)
-
-! Forcing for SGP case
-SCMSRF=SGP.surface.0501.dat
-SCMLAY=SGP.layer.0501.dat
 
 ! Topography, area fractions of surface types
 TOPO=SGP_extractions/Z2HX2fromZ1QX1N.nc

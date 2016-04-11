@@ -19,11 +19,16 @@ c  final is quanta for phytoplankton growth.
       use ocalbedo_mod, only: aw, bw, lam, nlt
       USE obio_forc,  only : Ed,Es,rmud,tirrq,tirrq_critical
       USE obio_com,   only : acdom,npst,npnd,WtoQ,dp1d,avgq1d
-     .                      ,obio_P,p1d
+     .                      ,obio_P,p1d,Kd,Kpar
+     .                      ,delta_temp1d,temp1d
 
 #ifdef OBIO_ON_GARYocean
       USE OCEANRES, only : kdm=>lmo
-      USE MODEL_COM,  only : nstep=>itime
+      USE MODEL_COM,  only : nstep=>itime,dtsrc
+      USE OCEAN,      only : g0m,s0m,mo,dxypo
+      USE OFLUXES,    only : oAPRESS
+      USE CONSTANT,   only : grav
+      USE SW2OCEAN, only : lsrpd,fsr
 #else
       USE hycom_dim_glob, only : kdm
       USE hycom_scalars, only:nstep
@@ -37,12 +42,14 @@ c  final is quanta for phytoplankton growth.
 
       real Ebotq,actot,bctot,bbctot,a,bt,bb
       real acdom450,bbc(10),Etopq,zd,zirrq,chl,chlm,fac
+      real*8 temgsp
 
 
       real Edz(nlt,kdm),Esz(nlt,kdm)
       real Euz(nlt,kdm)
       real Edtop(nlt),Estop(nlt)
       real fchl(nchl)
+      real g,s,pres,delta_g
 
       logical vrbos
 
@@ -77,6 +84,9 @@ cdiag.        nstep,i,j,nl,Ed(nl),Es(nl)
 
        enddo
 
+#ifdef OBIO_ON_GARYocean
+       pres = oAPRESS(i,j)    !surface atm. pressure
+#endif
        do k = 1,kmax
           Etopq = Ebotq
           zd = min(Dmax,p1d(k+1)) 
@@ -107,7 +117,50 @@ cdiag.        nstep,i,j,nl,Ed(nl),Es(nl)
              Estop(nl) = Esz(nl,k)
              zirrq = zirrq + (Edz(nl,k)+Esz(nl,k)+Euz(nl,k))
      .                     * WtoQ(nl)*1.0E6
+
+             if (p1d(k+1).le.zd) then
+             !!!!Kd(nl,k) = (a + bb) / rmus    !in quanta/m2/s
+             Kd(nl,k) = Edz(nl,k)+Esz(nl,k)+Euz(nl,k)    !in W/m2
+             endif
+
           enddo   !nl
+
+          !integrate kd to get kpar
+          Kpar(k) = 0.0
+          delta_temp1d(k) = 0.0
+          do nl = npst,npnd
+             Kpar(k) = Kpar(k) + Kd(nl,k)   !in W/m2
+          enddo !nl
+#ifdef OBIO_ON_GARYocean
+          pres=pres+MO(I,J,k)*GRAV*.5
+          g=G0M(I,J,k)/(MO(I,J,k)*DXYPO(J))
+          s=S0M(I,J,k)/(MO(I,J,k)*DXYPO(J))
+          !temperature change due to Kpar
+          delta_g =      Kpar(k)              ! W/m2
+     .                  * 1.                  !  -> Joules/s/m2
+     .                  / mo(i,j,k)           !  -> Joules/kg/s
+     .                  * dtsrc               !  -> Joules/kg
+          delta_temp1d(k) = temp1d(k) - TEMGSP(g+delta_g,s,pres)
+          !add missing pressure to get to the bottom of layer k
+          pres=pres+MO(I,J,k)*GRAV*.5
+#else
+!!!!!!!!!!!! need to write hycom implementation
+#endif
+
+#ifdef KPAR_2_OCEAN
+          !compute fractions
+          if (i.eq.40.and.j.eq.40) then
+          write(*,'(a,i9,3i5,3e12.4,i5,2e12.4)')'kpar=',
+     .        nstep,i,j,k,p1d(k),kpar(k),delta_temp1d(k),
+     .        lsrpd,fsr(k),kpar(k)/kpar(1)
+          endif
+          if (vrbos) then
+          write(*,'(a,i9,3i5,3e12.4,i5,2e12.4)')'kpar=',
+     .        nstep,i,j,k,p1d(k),kpar(k),delta_temp1d(k),
+     .        lsrpd,fsr(k),kpar(k)/kpar(1)
+          endif
+#endif
+
 
           Ebotq = zirrq
           ih = nint(p1d(k+1))
@@ -179,6 +232,12 @@ cdiag.       nstep,i,j,k,p1d(k),tirrq(k),zc
       enddo
 
 
+#ifdef KPAR_2_OCEAN
+      !compute par ratios
+      do k = 1,kmax
+          fsr(k) = kpar(k) / kpar(1)
+      enddo
+#endif
       return
       end
 

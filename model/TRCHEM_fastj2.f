@@ -44,7 +44,7 @@
      &                     ,nfastj=4
      &                     ,mfastj=1
      &                     ,mfit=2*M__
-     &                     ,nlfastj=1000 !increased Nov 2010
+     &                     ,nlfastj=1400 !increased Nov 2010
      &                     ,njval=27 !formerly read in from jv_spec00_15.dat
      &                     ,nwfastj=18
      &                     ,np=60
@@ -187,9 +187,11 @@
 !@var jlabel Reference label identifying appropriate J-value to use
       character(len=7), allocatable, dimension(:) :: jlabel
 !@var jind mapping index for jvalues
-!@var ks mollst number for source gas in photolysis reaction
+!@var ks name of species that photolyses, as defined in the MOLEC file.
+!@+      The index denotes the reaction number, as defined in the JPLPH file
       integer, allocatable, dimension(:) :: jind,ks
-!@var kss mollst number for product gases from photolysis
+!@var kss same as ks, for photolysis products. The first index denotes the
+!@+       product 1 or 2, and the second the reaction number, as in ks
       integer, allocatable, dimension(:,:) :: kss
 !@var jfacta Quantum yield (or multiplication factor) for photolysis
       real*8, allocatable, dimension(:) :: jfacta
@@ -200,7 +202,7 @@
 
 
 
-      subroutine fastj2_drv(I, J, ta, rh)
+      subroutine fastj2_drv(I, J, ta, rh, surfaceAlbedo)
 !@sum fastj2_drv driver for photolysis. This subroutine needs to be
 !@+   standalone, any chemical mechanism-related code should be present in
 !@+   the chemical mechanism files itself, not here.
@@ -215,6 +217,7 @@
 !@var rh humidity profile used to choose scattering input for FASTJ2
       real*8, intent(in) :: ta(:)
       real*8, intent(in) :: rh(:)
+      real*8, intent(in) :: surfaceAlbedo
       integer, intent(in) :: i, j ! current box horizontal indices
 
       character(len=300) :: out_line
@@ -234,7 +237,7 @@
 c       Apostolos Voulgarakis (Feb 2010): Choose the indexes of the 
 c       aerosol types that we are going to use in Fast-J2 (indexes
 c       in look-up table), taking humidity into account. The different 
-c       aerosols used are in the same order with those in nraero list and
+c       aerosols used are in the same order with those in nraero_aod list and
 c       based on the default CADI configuration are:
 c
 c        1 = Sulfate (n_SO4)
@@ -286,8 +289,12 @@ c       19 = Ice Clouds
 #ifdef TRACERS_AEROSOLS_Koch
           MIEDX2(LL,n+1)=12+irh
 #ifndef SULF_ONLY_AEROSOLS
-          MIEDX2(LL,n+2:n+nraero_koch)=
-     &      (/36+irh,36+irh
+          MIEDX2(LL,n+2:n+nraero_koch)=(/
+#ifdef TRACERS_AEROSOLS_VBS
+     &        36+irh
+#else
+     &        36+irh,36+irh
+#endif  /* TRACERS_AEROSOLS_VBS */
 #ifdef TRACERS_AEROSOLS_SOA
      &       ,36+irh
 #endif  /* TRACERS_AEROSOLS_SOA */
@@ -337,7 +344,7 @@ c       define pressures to be sent to FASTJ (centers):
         PFASTJ2(NLGCM+2)=PFASTJ2(NLGCM+1)*0.2816 ! 0.00058d0/0.00206d0 ! fudge
         PFASTJ2(NLGCM+3)=PFASTJ2(NLGCM+2)*0.4828 ! 0.00028d0/0.00058d0 ! fudge
         
-        call photoj(I,J) ! CALL THE PHOTOLYSIS SCHEME
+        call photoj(I,J,surfaceAlbedo) ! CALL THE PHOTOLYSIS SCHEME
       end subroutine fastj2_drv
 
 
@@ -397,7 +404,7 @@ c Assign ks and kss gas numbers of photolysis reactants from list:
 
 
 
-      subroutine photoj(nslon,nslat)
+      subroutine photoj(nslon,nslat,surfaceAlbedo)
 !@sum from jv_trop.f: FAST J-Value code, troposphere only (mjprather
 !@+ 6/96). Uses special wavelength quadrature spectral data
 !@+ (jv_spec.dat) that includes only 289 nm - 800 nm (later a single
@@ -421,6 +428,7 @@ C**** GLOBAL parameters and variables:
 C**** Local parameters and variables and arguments:
 !@var nslon,nslat I and J spatial indicies passed from master chem
 !@var i,j,k dummy loop variables
+      real*8, intent(IN) :: surfaceAlbedo
       INTEGER, INTENT(IN) :: nslon, nslat
       INTEGER             :: i,j,k
       logical             :: jay
@@ -435,7 +443,7 @@ C**** Local parameters and variables and arguments:
       U0 = DCOS(SZA*radian)
 
       if(SZA <= szamax)then 
-        CALL SET_PROF(NSLON,NSLAT)  ! Set up profiles on model levels
+        CALL SET_PROF(NSLON,NSLAT,surfaceAlbedo)  ! Set up profiles on model levels
         IF(j_prnrts .and. NSLON == j_iprn .and. NSLAT == j_jprn)
      &  CALL PRTATM(2,NSLON,NSLAT,jay) ! Print out atmosphere
         CALL JVALUE(nslon,nslat)    ! Calculate actinic flux
@@ -447,7 +455,7 @@ c
 
 
 
-      subroutine set_prof(NSLON,NSLAT)
+      subroutine set_prof(NSLON,NSLAT,surfaceAlbedo)
 !@sum set_prof to set up atmospheric profiles required by Fast-J2 using
 !@+   a doubled version of the level scheme used in the CTM. First
 !@+   pressure and z* altitude are defined, then O3 and T are taken
@@ -464,8 +472,8 @@ C**** GLOBAL parameters and variables:
       USE RESOLUTION, only  : JM,LM
       USE GEOM, only: lat2d_dg
       use model_com, only: modelEclock
-      USE RAD_COM,only: ttausv_nraero,ntrix
-      USE RADPAR, only : nraero=>ntrace
+      USE RAD_COM,only: ttausv_as
+      USE RADPAR, only : nraero_aod=>ntrace
 #ifdef TRACERS_ON
       use OldTracer_mod, only: trname
 #endif
@@ -479,6 +487,7 @@ C**** Local parameters and variables and arguments:
 !@var pstd Approximate pressures of levels for supplied climatology
 !@var skip_tracer logical to not define aer2 for a rad code tracer
       INTEGER, INTENT(IN) :: nslon, nslat
+      real*8, intent(IN) :: surfaceAlbedo
       integer             :: l, k, i, ii, m, j, iclay, n, LL
       real*8, dimension(nlevref+1) :: pstd
       real*8, dimension(nlevref) :: oref3, tref3
@@ -493,7 +502,7 @@ c Zero aerosol and cloud column
 #endif
 
 c  Set up cloud and surface properties
-      call CLDSRF(NSLON,NSLAT)
+      call CLDSRF(NSLON,NSLAT,surfaceAlbedo)
 
 c  Set up pressure levels for O3/T climatology - assume that value
 c  given for each 2 km z* level applies from 1 km below to 1 km above,
@@ -554,8 +563,8 @@ c  Add Aerosol Column - include aerosol (+cloud) types here.
 #ifndef TRACERS_TOMAS
 #ifndef TRACERS_AMP
 c Now do the rest of the aerosols
-      AER2(1:NLGCM,1:nraero)=
-     & ttausv_nraero(NSLON,NSLAT,1:NLGCM,1:nraero)
+      AER2(1:NLGCM,1:nraero_aod)=
+     &  ttausv_as(NSLON,NSLAT,1:NLGCM,1:nraero_aod)
 #endif
 #endif
 
@@ -587,7 +596,7 @@ c  Calculate column quantities for Fast-J2:
 
 
 
-      SUBROUTINE CLDSRF(NSLON,NSLAT)
+      SUBROUTINE CLDSRF(NSLON,NSLAT,surfaceAlbedo)
 !@sum CLDSRF to set cloud and surface properties
 !@auth UCI (see note above), GCM incorporation: Drew Shindell,
 !@+ modelEifications: Greg Faluvegi
@@ -595,7 +604,6 @@ c  Calculate column quantities for Fast-J2:
 C**** GLOBAL parameters and variables:
 
       USE RESOLUTION, only   : IM
-      USE RAD_COM, only      : ALB
 !@var rcloudfj cloudiness (optical depth) parameter, radiation to fastj
       USE RAD_COM, only    : rcloudfj=>rcld !!! ,salbfj=>salb
 
@@ -604,6 +612,7 @@ C**** GLOBAL parameters and variables:
 C**** Local parameters and variables and arguments:
 !@var nslon,nslat I and J spatial indicies passed from master chem
       INTEGER, INTENT(IN) :: nslon, nslat
+      real*8, intent(IN) :: surfaceAlbedo
       integer             :: l, k, j
 !@var odsum Column optical depth
       real*8              :: odtot,odsum
@@ -612,7 +621,7 @@ c Default lower photolysis boundary as bottom of level 1
       nlbatm = 1
 
 c Set and limit surface albedo
-      RFLECT = max(0.d0,min(1.d0,(1.-ALB(NSLON,NSLAT,1))))
+      RFLECT = max(0.d0,min(1.d0,(1.d0-surfaceAlbedo)))
 
 c Scale optical depths as appropriate - limit column to 'odmax'
       odsum = 0.d0

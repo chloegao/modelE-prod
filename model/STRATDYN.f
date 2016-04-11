@@ -64,7 +64,7 @@ C**** momentum passes through model top.
       INTEGER :: ang_gwd = 1 ! default: GWDRAG does conserve AM
 
 !@param NM number of gravity wave drag sources
-      INTEGER, PARAMETER :: NM=9
+      INTEGER, PARAMETER :: NM=15 ! = mtn, deform, shear + 2x6 conv. waves
 !@var EKOFJ wavenumbers as a function of GW source type and latitude J
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: EKOFJ ! (NM,J:)
 
@@ -138,6 +138,7 @@ C**** 1   Mountain waves
 C**** 2   Shear waves
 C**** 3-8 Convective waves
 C**** 9   Deformation wave
+C**** 10-15 Additional conv. waves.  Todo: all conv. waves in contiguous index range
 C****
 C 
       Use CONSTANT, Only: GRAV,RGAS,kg2mb 
@@ -153,6 +154,7 @@ C
 C     **  LOCAL  **   
 C
       Real*8  :: DP(LM), MUB(LM+1,NM),MU(NM)
+      REAL*8 :: MU3HOLD, MU37HOLD 
       REAL*8, DIMENSION(LM) :: UEDGE,VEDGE,BYFACS,WMC,DFM,DFR,DFTL
       INTEGER LD(NM)
       INTEGER L,N,LN,NMX,LD1,LTOP,LMAX   
@@ -269,9 +271,12 @@ c (the sum depends on the number of layers)
         WSRC=SQRT(USRC*USRC+VSRC*VSRC)
         UR(3)=USRC/(WSRC+ ERR)
         VR(3)=VSRC/(WSRC+ ERR)
-        MU(3)=-EK(3)*CMC*BVF(LMC1-1)*PL(LMC1-1)*CLDHT**2
-        MU(3)=MU(3)*0.1
-        MU(4)=MU(3)
+cc      MU(3)=-EK(3)*CMC*BVF(LMC1-1)*PL(LMC1-1)*CLDHT**2
+cc      MU(3)=MU(3)*0.1
+cc      MU(4)=MU(3)
+        MU3HOLD = -EK(3)*CMC*BVF(LMC1-1)*PL(LMC1-1)*CLDHT**2 
+        MU(3) = MU3HOLD * 0.1880  !   0.1806 
+        MU(4) = MU3HOLD * 0.1880  !   0.1806 
         CN(3)=WSRC-10.
         CN(4)=WSRC+10.
         UR(4)=UR(3)
@@ -280,23 +285,61 @@ c (the sum depends on the number of layers)
         LD(4)=LPCNV
         WT(3)=WTX
         WT(4)=WTX
+C 
+C       Additional Convective Waves 
+C 
+        UR(3+7) = USRC/(WSRC+ ERR) 
+        VR(3+7) =-VSRC/(WSRC+ ERR)  
+        MU37HOLD = -EK(3+7)*CMC*BVF(LMC1-1)*PL(LMC1-1)*CLDHT**2 
+        MU(3+7) = MU37HOLD * 0.1880   !   0.1806 
+        MU(4+7) = MU37HOLD * 0.1880   !   0.1806 
+        CN(3+7) = WSRC-10. 
+        CN(4+7) = WSRC+10. 
+        UR(4+7) = UR(3+7) 
+        VR(4+7) = VR(3+7) 
+        LD(3+7)=LPCNV
+        LD(4+7)=LPCNV
+        WT(3+7)=WTX
+        WT(4+7)=WTX
 C**** If convection is penetrating (i.e. above PCONPEN) do second set
         IF (PLE(LMC1).LT.PCONPEN .AND. NM.GE.8) THEN
           NMX=8
           DO N=3,NMX
             WT(N)=WTX
             LD(N)=LMC1+1
+            WT(N+7)=WTX
+            LD(N+7)=LMC1+1
           END DO
-          CN(5)=WSRC-40.
-          CN(6)=WSRC+40.
+          LD(5) = LM+1 
+          LD(6) = LM+1 
+          LD(5+7) = LM+1 
+          LD(6+7) = LM+1 
+ccc       CN(5)=WSRC-40.
+ccc       CN(6)=WSRC+40.
           CN(7)=WSRC-20.
           CN(8)=WSRC+20.
+          CN(7+7)=WSRC-20.
+          CN(8+7)=WSRC+20.
           DO N=5,NMX
-            MU(N)=MU(3)
+ccc         MU(N)=MU(3)
             UR(N)=UR(3)
             VR(N)=VR(3)
+            UR(N+7)=UR(3+7)
+            VR(N+7)=VR(3+7)
           END DO
         ENDIF
+C 
+        IF (PLE(LMC1).LT.PCONPEN .AND. NM.GE.8) THEN
+        MU(5) = 0.0 
+        MU(6) = 0.0 
+        MU(7) = MU3HOLD * 0.1880   !   0.1806 
+        MU(8) = MU3HOLD * 0.1880   !   0.1806 
+        MU(5+7) = 0.0 
+        MU(6+7) = 0.0 
+        MU(7+7) = MU37HOLD * 0.1880   !  0.1806 
+        MU(8+7) = MU37HOLD * 0.1880   !  0.1806 
+        END IF 
+C
         WCHECK=UL(LD(3))*UR(3)+VL(LD(3))*VR(3)
         DO N=3,NMX
           IF (WCHECK.GT.CN(N)) CYCLE
@@ -304,6 +347,17 @@ C**** If convection is penetrating (i.e. above PCONPEN) do second set
           VR(N)=-VR(N)
           CN(N)=-CN(N)
         END DO
+C 
+C       Additional 6 CWs 
+C
+        WCHECK=UL(LD(3+7))*UR(3+7)+VL(LD(3+7))*VR(3+7)
+        DO N=3,NMX
+          IF (WCHECK.GT.CN(N+7)) CYCLE
+          UR(N+7)=-UR(N+7)
+          VR(N+7)=-VR(N+7)
+          CN(N+7)=-CN(N+7)
+        END DO
+C 
         END IF ! skipping shallow convection
       END IF
 C****
@@ -314,9 +368,9 @@ C****
         VEDGE(L)=.5*(VL(L-1)+VL(L))
         TEDGE=.5*(TL(L-1)+TL(L))
         BVEDGE=.5*(BVF(L-1)+BVF(L))
-c Rind et al. JAS 45 vol. 3, eqn 10: original coding perhaps OK
-c        BYFACS(L)=-.5*GRAV*PLE(L)/(RGAS*RKBY3*BVEDGE*TEDGE)
-        BYFACS(L)=-.5*GRAV*PLE(L)/(RGAS*SQRT(RKBY3)*BVEDGE*TEDGE)
+c Rind et al. JAS 45 vol. 3, eqn 10: original coding OK
+        BYFACS(L)=-.5*GRAV*PLE(L)/(RGAS*RKBY3*BVEDGE*TEDGE)
+c        BYFACS(L)=-.5*GRAV*PLE(L)/(RGAS*SQRT(RKBY3)*BVEDGE*TEDGE)
       END DO
       DO N=1,NM
         DO L=LD(N),LM
@@ -674,7 +728,7 @@ C**** Uses TRIDIAG for implicit scheme (MU=1) as in diffuse53.
 C**** This version only does diffusion for lowest LDIFM layers.
 C****
       Use CONSTANT,   Only: RGAS,GRAV,TWOPI,KAPA,SHA,kg2mb
-      Use RESOLUTION, Only: IM,JM,LM,LS1
+      Use RESOLUTION, Only: IM,JM,LM,LS1=>ls1_nominal
       Use ATM_COM,    Only: PEDN,PMID,PK
       USE DYNAMICS, only : mrch
       USE DOMAIN_DECOMP_ATM, only: grid, getDomainBounds
@@ -1174,6 +1228,15 @@ C**** Levels for angular momentum restoration
       lmax_angm(7) = lp2040
       lmax_angm(8) = lp2040
 C 
+C     Additional CWs 
+C 
+      lmax_angm(3+7) = lp10
+      lmax_angm(4+7) = lp10
+      lmax_angm(5+7) = lp2040
+      lmax_angm(6+7) = lp2040
+      lmax_angm(7+7) = lp2040
+      lmax_angm(8+7) = lp2040
+C 
       RANMTN_CELL = RANMTN(I,J) 
       ZVARX_CELL  = ZVARX(I,J) 
       ZVARY_CELL  = ZVARY(I,J) 
@@ -1216,22 +1279,31 @@ C****
          AIJ(I,J,IJ_GW1)=AIJ(I,J,IJ_GW1)+MU_INC(9)*UR(9)*DTHR
          AIJ(I,J,IJ_GW2)=AIJ(I,J,IJ_GW2)+MU_INC(1)*UR(1)*DTHR  *WT(1)
          AIJ(I,J,IJ_GW3)=AIJ(I,J,IJ_GW3)+MU_INC(2)*UR(2)*DTHR
-         AIJ(I,J,IJ_GW4)=AIJ(I,J,IJ_GW4)+MU_INC(3)*UR(3)*DTHR  *WT(3)
-         AIJ(I,J,IJ_GW5)=AIJ(I,J,IJ_GW5)+MU_INC(7)*UR(7)*DTHR  *WT(7)
+         AIJ(I,J,IJ_GW4)=AIJ(I,J,IJ_GW4)
+     &        +(MU_INC(3)*UR(3)+MU_INC(3+7)*UR(3+7))*(DTHR*WT(3))
+         AIJ(I,J,IJ_GW5)=AIJ(I,J,IJ_GW5)
+     &        +(MU_INC(7)*UR(7)+MU_INC(7+7)*UR(7+7))*(DTHR*WT(7))
          AIJ(I,J,IJ_GW6)=AIJ(I,J,IJ_GW6)+MU_INC(5)*UR(5)*DTHR  *WT(5)
          AIJ(I,J,IJ_GW7)=AIJ(I,J,IJ_GW7)+CN(2)*UR(2)*DTHR
          AIJ(I,J,IJ_GW8)=AIJ(I,J,IJ_GW8)+USRC*DTHR
 C 
-         DO N=1,NM 
+         DO N=1,NM
             AIJ(I,J,IJ_GW9)=AIJ(I,J,IJ_GW9)+MU_TOP(N)*DTHR
          END DO 
 C
-         DO N=1,NM 
-         DO L=1,LM 
-            AJL(J,L,N+JL_gwFirst-1)=AJL(J,L,N+JL_gwFirst-1)
+         DO N=1,9 ! 9 is without additional convective waves
+           DO L=1,LM
+             AJL(J,L,N+JL_gwFirst-1)=AJL(J,L,N+JL_gwFirst-1)
      &          +DUGWD(L,N)*BYIM
+           END DO
+           if(n.ge.3 .and. n.le.8) then ! additional convective waves
+             DO L=1,LM
+               AJL(J,L,N+JL_gwFirst-1)=AJL(J,L,N+JL_gwFirst-1)
+     &          +DUGWD(L,N+7)*BYIM
+             END DO
+           endif
          END DO 
-         END DO 
+
 C
          DO L=LDRAG-1,LM
             AJL(J,L,JL_DUDTSDIF)=AJL(J,L,JL_DUDTSDIF)+DUSDIF(L)*BYIM

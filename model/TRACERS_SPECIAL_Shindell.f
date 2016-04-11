@@ -222,11 +222,10 @@ C we change that.)
 !@+    call read_aero(sulfate,'SULFATE_SA')
 !@+    call read_aero(so2_offline,'SO2_FIELD')
 !@auth Drew Shindell / Greg Faluvegi
-      USE RESOLUTION, only : ptop,psf
       USE RESOLUTION, only : lm
       USE RESOLUTION, only : im,jm
+      Use ATM_COM,    Only: PMIDL00
       use model_com, only: modelEclock
-      USE DYNAMICS, only : sig
       USE DOMAIN_DECOMP_ATM, only: GRID
       USE DOMAIN_DECOMP_ATM, only: getDomainBounds, write_parallel
       USE FILEMANAGER, only: openunit,closeunit
@@ -251,7 +250,7 @@ C we change that.)
       character*80 :: title
       character(len=300) :: out_line
       logical, dimension(ncalls) :: mon_bins=(/.true.,.true.,.true./)
-      REAL*8, DIMENSION(LM)    :: pres,srcLout
+      REAL*8, DIMENSION(LM)    :: srcLout
       REAL*8, DIMENSION(Lsulf) :: srcLin
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO
      *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,Lsulf,ncalls):: src
@@ -283,10 +282,9 @@ C     Interpolation in the vertical.
 C====
 C====   Place field onto model levels
 C====              
-      PRES(:)=SIG(:)*(PSF-PTOP)+PTOP
       DO J=J_0,J_1; DO I=I_0,I_1
         srcLin(1:Lsulf)=src(I,J,1:Lsulf,nc)
-        call LOGPINT(Lsulf,Psulf,srcLin,LM,PRES,srcLout,.true.)
+        Call LOGPINT (Lsulf,Psulf,srcLin,LM,PMIDL00,srcLout,.true.)
         field(I,J,1:LM)=srcLout(1:LM)
       END DO   ; END DO    
   
@@ -298,7 +296,7 @@ C====
 !@sum get_CH4_IC to generate initial conditions for methane.
 !@vers 2013/03/26
 !@auth Greg Faluvegi/Drew Shindell
-      USE RESOLUTION, only : ls1
+      USE RESOLUTION, only : ls1=>ls1_nominal
       USE RESOLUTION, only : im,jm,lm
       USE MODEL_COM, only  : DTsrc
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds,
@@ -986,11 +984,11 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
       call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1)
 
       imon=1
-      if (modelEclock%dayOfYear() <= 16)  then ! JDAY in Jan 1-15, first month is Dec
+      if (modelEclock%getDayOfYear() <= 16)  then ! JDAY in Jan 1-15, first month is Dec
         call readt_parallel(grid,iu,nameunit(iu),tlca,12)
         call rewind_parallel( iu )
       else            ! JDAY is in Jan 16 to Dec 16, get first month
-        do while(modelEclock%dayOfYear() > idofm(imon) .AND. imon <= 12)
+        do while(modelEclock%getDayOfYear() > idofm(imon).AND.imon<=12)
           imon=imon+1
         enddo
         call readt_parallel(grid,iu,nameunit(iu),tlca,imon-1)
@@ -1001,7 +999,7 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
       call readt_parallel(grid,iu,nameunit(iu),tlcb,1)
 
 c**** Interpolate two months of data to current day
-      frac = float(idofm(imon)-modelEclock%dayOfYear()) / 
+      frac = float(idofm(imon)-modelEclock%getDayOfYear()) / 
      & (idofm(imon)-idofm(imon-1))
       data(I_0:I_1,J_0:J_1)=tlca(I_0:I_1,J_0:J_1)*frac + 
      & tlcb(I_0:I_1,J_0:J_1)*(1.-frac)

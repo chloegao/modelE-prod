@@ -10,53 +10,39 @@
 
       subroutine obio_listDifferences(operation, phase)
 !@sum This routine checks for any changes against the previous state of both the 
-!@+   tracer array and the dpinit array.   Each tracer is reported separately.
+!@+   tracer array and the ze array.   Each tracer is reported separately.
       
+      use obio_com, only: tracer, ze
 #ifdef OBIO_ON_GARYocean
-      use oceanres,  only: idm=>imo, kdm=>lmo
-      use oceanr_dim, only : ogrid
-      use obio_com, only: tracers => tracer_loc
-      use ocn_tracer_com, only : tracerlist
        USE MODEL_COM,  only : nstep=>itime
 #else
-      use hycom_dim_glob, only : idm, kdm
-      use hycom_dim, only: ogrid
       use hycom_scalars, only: nstep
-      use hycom_arrays, only: tracers => tracer
-      use hycom_arrays, only: dpinit
-      use hycom_dim_glob, only: numTracers => ntrcr
 #endif
-      use domain_decomp_1d, only: getDomainBounds, am_i_root
+      use domain_decomp_1d, only: am_i_root
 
       character(len=*), intent(in) :: operation
       character(len=*), intent(in) :: phase
 
       logical, save :: init = .false.
       real*8, allocatable, save :: previousTracers(:,:,:,:)
-      real*8, allocatable, save :: previousdpinit(:,:,:)
+      real*8, allocatable, save :: previousze(:,:,:)
 
-      integer :: j_0, j_1, j_0h, j_1h
       integer :: iTracer
       character(len=50) :: name
-#ifdef OBIO_ON_GARYocean
-      integer :: numtracers
-#endif
-
-#ifdef OBIO_ON_GARYocean
-      numtracers=tracerlist%getsize()
-#endif
-      call getDomainBounds(ogrid, j_strt = j_0, j_stop = j_1,
-     &     j_strt_halo=j_0h, j_stop_halo = j_1h)
 
       if (.not. init) then
         init = .true.
 
-        allocate(previousTracers(idm, j_0h:j_1h, kdm, numTracers))
-        previousTracers = tracers
+#ifdef __GFORTRAN__
+        previousTracers = tracer
+#else
+        allocate(previousTracers, source=tracer)
+#endif
 
-#ifndef OBIO_ON_GARYocean
-        allocate(previousdpinit(idm,j_0h:j_1h, kdm))
-        previousdpinit = dpinit
+#ifdef __GFORTRAN__
+        previousze = ze
+#else
+        allocate(previousze, source=ze)
 #endif
         return ! nothing to compare on the 1st trip
       end if
@@ -64,32 +50,28 @@
       select case (trim(phase))
       case ('before')
 
-        previousTracers = tracers
-#ifndef OBIO_ON_GARYocean
-        previousdpinit = dpinit
-#endif
+        previousTracers = tracer
+        previousze = ze
 
       case default
 
         if (am_i_root()) 
      &       print*, 'obio_listDifferences for call: ', trim(operation)
-        do iTracer = 1, numTracers
+        do iTracer = 1, size(tracer, 4)
           if (am_i_root()) write(name,'(a,1x,a,i10,a,1x,i3.0)')
      .         trim(operation),',nstep = ',nstep,': tracer',iTracer
-          call spotDiff3D(name, tracers(:,:,:,iTracer), 
+          call spotDiff3D(lbound(tracer,2),name, tracer(:,:,:,iTracer), 
      &         previousTracers(:,:,:,iTracer))
         end do
 
-#ifndef OBIO_ON_GARYocean
         if (am_i_root()) write(name,'(a,1x,a,i10,a,1x)')
-     .         trim(operation),',nstep = ',nstep,': dpinit'
-        call spotDiff3D(name, dpinit, previousdpinit)
-#endif
+     .         trim(operation),',nstep = ',nstep,': ze'
+        call spotDiff3D(lbound(ze,2),name, ze, previousze)
       end select
 
       end subroutine obio_listDifferences
 
-      subroutine spotdiff3D(name, array, previous)
+      subroutine spotdiff3D(j_strt, name, array, previous)
 !@sum 3D version of similar routine from Rainer, which reports
 !@+   locations of min and max differences in an array from the
 !@+   previous call.
@@ -100,6 +82,7 @@ c
 c --- this routine compares 'array' with an earlier version of 'array'
 c --- saved during a previous call to this routine
 c
+      integer, intent(in) :: j_strt
       character(len=*), intent(in) :: name
       real*8, intent(in) :: array(:,:,:)
       real*8, intent(out) :: previous(:,:,:)
@@ -109,7 +92,7 @@ c
       integer :: nk
 
 c
-      call getLocalMaxMin(array, previous, 
+      call getLocalMaxMin(j_strt, array, previous, 
      &     ijkAtMax, valMax, ijkAtMin, valMin)
       call getGlobalExtreme(valMax, ijkAtMax, 'max')
       call getGlobalExtreme(valMin, ijkAtMin, 'min')
@@ -125,17 +108,11 @@ c
 
       contains
 
-      subroutine getLocalMaxMin(a, b, 
+      subroutine getLocalMaxMin(j_strt,a, b, 
      &     ijkAtMax, valMax, ijkAtMin, valMin)
-#ifdef OBIO_ON_GARYocean
-      use oceanres,  only: idm=>imo, kdm=>lmo
-      use oceanr_dim, only : ogrid
-#else
-      use hycom_dim_glob, only : idm, kdm
-      use hycom_dim, only: ogrid
-#endif
-      real*8, intent(in) :: a(:,ogrid%j_strt_halo:,:)
-      real*8, intent(inout) :: b(:,ogrid%j_strt_halo:,:)
+      integer, intent(in) :: j_strt
+      real*8, intent(in) :: a(:,j_strt:,:)
+      real*8, intent(inout) :: b(:,j_strt:,:)
       integer, intent(out) :: ijkAtMax(3)
       real*8, intent(out) :: valMax
       integer, intent(out) :: ijkAtMin(3)
@@ -143,16 +120,13 @@ c
 
       integer :: i, j, k
       real*8 :: diff
-      integer :: j_0, j_1
-
-      call getDomainBounds(ogrid, j_strt=j_0, j_stop=j_1)
 
       valMax=-1.e33
       valMin=+1.e33
 
-      do k = 1, kdm
-        do j = j_0, j_1
-          do i = 1, idm
+      do k = 1, size(a,3)
+        do j = lbound(a,2), ubound(a,2)
+          do i = 1, size(a,1)
             diff = a(i,j,k)-b(i,j,k)
             if      (diff > valMax) then
               valMax = diff

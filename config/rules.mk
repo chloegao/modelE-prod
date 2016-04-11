@@ -3,7 +3,7 @@
 #
 
 .PHONY:
-VPATH = $(SRC_DIR)
+
 ifdef MOD_DIR
   VPATH += $(MOD_DIR)
 endif
@@ -112,7 +112,9 @@ ifneq ($(COMPILER),)
 endif
 
 ### HACK !! - add source dir to CPPFLAGS
-CPPFLAGS += -I$(SRC_DIR)
+#ifneq ($(SRC_DIR),)
+#  CPPFLAGS += -I$(SRC_DIR)
+#endif
 
 ifeq ($(MPI),YES)
   CPPFLAGS += -DUSE_MPI
@@ -151,17 +153,13 @@ ifeq ($(FVCUBED),YES)
   # this extra -lesmf would not be needed if the ESMF stuff came after this section
   LIBS += $(ESMFLIBDIR)/libesmf.a
   ifdef NETCDFHOME
-  ifeq ($(MACHINE),IRIX64)
-    NETCDFLIB ?= -L$(NETCDFHOME)/lib64 -lnetcdf
-  else
     NETCDFLIB ?= -L$(NETCDFHOME)/lib -lnetcdf
-  endif
-  LIBS += $(subst ",,$(NETCDFLIB))
-  #"
-  NETCDFINCLUDE ?= -I$(NETCDFHOME)/include
-  FFLAGS += $(NETCDFINCLUDE)
-  F90FLAGS += $(NETCDFINCLUDE)
-  INCS += $(NETCDFINCLUDE)
+    LIBS += $(subst ",,$(NETCDFLIB))
+    #"
+    NETCDFINCLUDE ?= -I$(NETCDFHOME)/include
+    FFLAGS += $(NETCDFINCLUDE)
+    F90FLAGS += $(NETCDFINCLUDE)
+    INCS += $(NETCDFINCLUDE)
   endif
 
 endif
@@ -280,6 +278,10 @@ ifeq ($(MPI),YES)
   endif
 endif
 
+#!! hack to deal with Intel "source_include" bug
+# basically has to assume that all include files are in model/shared directory
+INCS += -I$(MODEL_E_ROOT)/model/shared
+
 
 CPPFLAGS += $(INCS)
 
@@ -313,7 +315,7 @@ endif
 endif
 
 ifdef SYSTEM_MOD_DIRS
-VPATH += $(SYSTEM_MOD_DIRS)
+VPATH += $(subst :, ,$(SYSTEM_MOD_DIRS))
 endif
 
 #
@@ -400,26 +402,25 @@ endif
 	$(CPP) $(CPPFLAGS) $*.F90 | sed -n '/^#pragma/!p' > $@
 
 %.f.cpp: %.f
-	@echo preprocessing $<  $(MSG)
-	$(CPP) $(CPPFLAGS) $*.f > $*.f.cpp
+	@#echo preprocessing $<  $(MSG)
+	$(CPP) $(CPPFLAGS) $< > $@
 
 %.F90.cpp: %.F90
-	 @echo preprocessing $<  $(MSG)
-	 $(CPP) $(CPPFLAGS) $*.F90 > $*.F90.cpp
+	 @#echo preprocessing $<  $(MSG)
+	 $(CPP) $(CPPFLAGS) $< > $@
 
 %.o: %.c
 	cc -c -O2 -m64 $<
 
-ifneq ($(MACHINE),IRIX64)
-
 %.f: %.m4f
-	m4 -I$(SRC_DIR) $*.m4f > $*.f
+	-rm -f $@
+	m4 -I`dirname $<` $< > $@
+	chmod -w $@
 
 %.F90: %.m4F90
-	rm -f $*.F90
-	m4 -I$(SRC_DIR) $*.m4F90 > $*.F90
-	chmod -w $*.F90
-endif
+	-rm -f $@
+	m4 -I`dirname $<` $< > $@
+	chmod -w $@
 
 
 

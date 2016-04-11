@@ -143,24 +143,6 @@ C Longwave: --------------------------------------------------------------------
       ENDDO   ! modes
       ENDDO   ! level
 
-c    write diagnostic on transported tracers: ss->ds1 and ds2
-        TTAUSV(:,3) =  TTAUSV(:,3) + TTAUSV(:,4) 
-        TTAUSV(:,4) =  TTAUSV(:,7) 
-        TTAUSV(:,5) =  TTAUSV(:,5) + TTAUSV(:,6) 
-        TTAUSV(:,6:14) =  TTAUSV(:,8:16) 
-        aesqex(:,:,3) =  aesqex(:,:,3) + aesqex(:,:,4) 
-        aesqex(:,:,4) =  aesqex(:,:,7) 
-        aesqex(:,:,5) =  aesqex(:,:,5) + aesqex(:,:,6) 
-        aesqex(:,:,6:14) =  aesqex(:,:,8:16) 
-        aesqsc(:,:,3) =  aesqsc(:,:,3) + aesqsc(:,:,4) 
-        aesqsc(:,:,4) =  aesqsc(:,:,7) 
-        aesqsc(:,:,5) =  aesqsc(:,:,5) + aesqsc(:,:,6) 
-        aesqsc(:,:,6:14) =  aesqsc(:,:,8:16) 
-        aesqcb(:,:,3) =  aesqcb(:,:,3) + aesqcb(:,:,4) 
-        aesqcb(:,:,4) =  aesqcb(:,:,7) 
-        aesqcb(:,:,5) =  aesqcb(:,:,5) + aesqcb(:,:,6) 
-        aesqcb(:,:,6:14) =  aesqcb(:,:,8:16) 
-
          ENDIF       ! AMP_RAD_KEY=1or3
 
 c --------------------------------------------------------------------------------------------------------    
@@ -314,24 +296,6 @@ C Longwave: --------------------------------------------------------------------
       ENDDO   ! modes
       ENDDO   ! level
 
-c    write diagnostic on transported tracers: ss->ds1 and ds2        
-        TTAUSV(:,3) =  TTAUSV(:,3) + TTAUSV(:,4) 
-        TTAUSV(:,4) =  TTAUSV(:,7) 
-        TTAUSV(:,5) =  TTAUSV(:,5) + TTAUSV(:,6) 
-        TTAUSV(:,6:14) =  TTAUSV(:,8:16) 
-        aesqex(:,:,3) =  aesqex(:,:,3) + aesqex(:,:,4) 
-        aesqex(:,:,4) =  aesqex(:,:,7) 
-        aesqex(:,:,5) =  aesqex(:,:,5) + aesqex(:,:,6) 
-        aesqex(:,:,6:14) =  aesqex(:,:,8:16) 
-        aesqsc(:,:,3) =  aesqsc(:,:,3) + aesqsc(:,:,4) 
-        aesqsc(:,:,4) =  aesqsc(:,:,7) 
-        aesqsc(:,:,5) =  aesqsc(:,:,5) + aesqsc(:,:,6) 
-        aesqsc(:,:,6:14) =  aesqsc(:,:,8:16) 
-        aesqcb(:,:,3) =  aesqcb(:,:,3) + aesqcb(:,:,4) 
-        aesqcb(:,:,4) =  aesqcb(:,:,7) 
-        aesqcb(:,:,5) =  aesqcb(:,:,5) + aesqcb(:,:,6) 
-        aesqcb(:,:,6:14) =  aesqcb(:,:,8:16) 
-
         ENDIF     ! AMP_RAD_KEY = 2
       endif
   
@@ -345,7 +309,7 @@ c -----------------------------------------------------------------
 !@sum Puts AMP Aerosols in 1 dimension CALLED in RADIA
 !@auth Susanne Bauer
 
-      USE AMP_AEROSOL, only: DIAM,Reff_LEV, NUMB_LEV, RindexAMP,NUMB_SS,
+      USE AMP_AEROSOL, only: DIAM,Reff_LEV, NUMB_LEV, RindexAMP,
      +  dry_Vf_LEV,MIX_OC,MIX_SU,MIX_AQ,AMP_dens, AMP_RAD_KEY
       USE AmpTracersMetadata_mod,  only: AMP_AERO_MAP, AMP_NUMB_MAP,
      +  AMP_MODES_MAP
@@ -443,9 +407,6 @@ cBond + Berstroem, all wavelength
            NUMB_LEV(l,AMP_NUMB_MAP(nAMP)) =trm(i,j,l,n) * bydxyp(j)
           endif
        ENDDO
-
-      NUMB_LEV(l,7) = NUMB_SS(i,j,l,1) *  bydxyp(j)
-      NUMB_LEV(l,8) = NUMB_SS(i,j,l,2) *  bydxyp(j)
 
        ! + Volume Fraction
        DO n=1,nmodes  ![#/m2]         pi/4     [m2]

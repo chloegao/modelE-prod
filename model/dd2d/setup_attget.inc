@@ -4,7 +4,7 @@
       integer :: attlen
       integer, intent(in), optional :: attnum
       integer :: rc,vid,ierr,lname,l,attlenx
-      character :: tmpstr(1200)
+      character :: tmpstr(1500)
       if(grid%am_i_globalroot) then
         if(trim(varname).eq.'global') then
           rc = nf_noerr

@@ -38,7 +38,6 @@ ATMDYN MOMEN2ND                     ! atmospheric dynamics
 QUS_DRV                             ! advection of Q/tracers
 TQUS_DRV                            ! advection of Q
 STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
-ALLOC_DRV                           ! allocate global distributed arrays
 
 #include "latlon_source_files"
 #include "modelE4_source_files"
@@ -100,13 +99,13 @@ scatt. coefs
 !!!pco2table=pco2.tbl.asc                   ! table to compute pco2 vals from
 sst,sss,dic,alk
                                             ! if not defined pCO2_ONLINE
-nitrates_inicond=no3_nodc_annmean.asc    ! initial cond for nitrates (NODC)
-silicate_inicond=sio2_nodc_annmean.asc   ! initial cond for silicate (NODC)
-dic_inicond=dic_glodap_annmean.asc       ! initial cond for dic (GLODAP)
-alk_inicond=alk_glodap_annmean.asc       ! initial cond/forcing for alk (GLODAP)
+nitrates_inicond=no3_nodc_annmean_387x360.nc    ! initial cond for nitrates (NODC)
+silicate_inicond=sio2_nodc_annmean_387x360.nc   ! initial cond for silicate (NODC)
+dic_inicond=dic_glodap_annmean_387x360.nc       ! initial cond for dic (GLODAP)
+alk_inicond=alk_glodap_annmean_387x360.nc       ! initial cond/forcing for alk (GLODAP)
 !!!oasimdirect=oasimdirect_20w_new          ! spectral light components
                                             ! if not defined
-atmFe_inicond=iron_gocart_1x1mon.asc     ! GOCART iron flux
+atmFe_inicond=iron_gocart_1x1mon_387x360.nc     ! GOCART iron flux
 atmFedirect1=iron_ron_195x180_20w.asc    ! Ron Miller's dust fluxes
 facirr=facirr.asc                        ! factors for mean irradiance w/in
 water
@@ -175,6 +174,8 @@ jerlv0=1
 !atmCO2=289.9      !uatm for preindustrial runs
 atmCO2=0.          !prognostic atmCO2
 to_volume_MixRat=1    ! for tracer printout
+!!!solFe=0.02            ! default iron solubility
+solFe=0.05            ! enhanced iron solubility
 
 &&END_PARAMETERS
 

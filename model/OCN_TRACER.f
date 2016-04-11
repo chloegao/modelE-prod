@@ -463,7 +463,7 @@ C****
       USE CONSTANT,   only : grav
       USE OCN_TRACER_COM, only : n_cfc
       USE OCEAN, only : trmo,txmo,tymo,tzmo, oxyp, mo, imaxj, focean,
-     *     lmm, lmo,dxypo,g0m,s0m,olat=>olat2d_dg ! 2D array containing lat at $
+     *     lmm, lmo,dxypo,g0m,s0m,olat=>olat2d_dg ! 2D array containing lat at each i,j
       USE OFLUXES,    only : oRSI,oAPRESS,ocnatm
       USE DOMAIN_DECOMP_1D, only : getDomainBounds
       USE OCEANR_DIM, only : grid=>ogrid
@@ -481,14 +481,14 @@ C****
       real*8, allocatable, dimension(:), save :: cfc11nh,cfc11sh
       integer, allocatable, dimension(:), save :: icfcyear
       real*8, intent(in) :: dts
-      real*8 :: cfc_inc, Xconv,a,pres,g,s,sst,sss,temgsp,wind,pnoice,Xkw
+      real*8 :: cfc_inc, Xconv,a,pres,g,s,sst,sss,temgs,wind,pnoice,Xkw
      .              ,solub,solub_cfc,schmidtno_cfc,Sc,kw,cfcair,csat
      .              ,fluxa,flux,flux_tendency,rho_water,dp1d
      .              ,Pnorth,Psouth,trmopro,fluxb
       real*8 :: ys ! northern boundary of SH constant-value domain (deg N)
       real*8 :: yn ! southern boundary of NH constant-value domain (deg N)
       real*8 :: wt_sh ! weight for SH constant-value domain
-      real*8,External   :: VOLGSP
+      real*8,External   :: VOLGS
       integer i,j,l,k
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1,year, month, dayOfYear, date
@@ -524,25 +524,18 @@ C**** at each time step set surface tracer conc=1+flux from atmos
       wind=ocnatm%wsavg(i,j)        !owind(i,j)
       pnoice = 1.d0 - oRSI(i,j)     !1-fice
       k = 1    !surface only
-      pres = oAPRESS(i,j)    !surface atm. pressure
-     .     + MO(I,J,k)*GRAV*.5   !pressure at first layer
-      pres = pres * 0.00000986923266716     ! atm
         g=G0M(I,J,k)/(MO(I,J,k)*DXYPO(J))
         s=S0M(I,J,k)/(MO(I,J,k)*DXYPO(J))
-        sst=TEMGSP(g,s,pres)     !in situ   temperature
-        sss=s*1000.d0            !convert to psu (eg. ocean mean salinity=35psu)
-        rho_water = 1d0/VOLGSP(g,s,pres)
+        sst=TEMGS(g,s)     !in situ   temperature
+        sss=s*1000.d0      !convert to psu (eg. ocean mean salinity=35psu)
+        rho_water = 1d0/VOLGS(g,s)
         dp1d = MO(I,J,K)/rho_water   !local thickenss of each layer in meters
-!     if (i.eq.50.and.j.eq.90) then
-!     write(*,'(a,5i5,5e12.4)')'CFC OUTPUT:',
-!    .   i,j,date,month,year,
-!    .   pres,sst,sss,rho_water,dp1d
-!     endif
 
       Xkw = Xconv * a * wind**2       ! units in m/s
       solub = solub_cfc(sst,sss,11)   !mol/m3/pptv
       Sc = schmidtno_cfc(sst,11)
-      kw = pnoice*Xkw/sqrt(Sc/660)
+!     kw = pnoice*Xkw/sqrt(Sc/660)
+      kw = Xkw/sqrt(Sc/660)
 
 !     if (i.eq.50.and.j.eq.90) then
 !     write(*,'(a,5i5,6e12.4)')'CFC OUTPUT:',
@@ -550,7 +543,7 @@ C**** at each time step set surface tracer conc=1+flux from atmos
 !    .   Xconv,a,wind,solub,Sc,kw   
 !     endif
 #ifdef OCN_CFCconst
-!     cfcair = 1.          !pptv to derive greens functions -- corresponds to $
+!     cfcair = 1.          !pptv to derive greens functions -- corresponds to year=1951
       call get_param('cfc_conc_const',cfc_conc_const)
       cfcair=cfc_conc_const
 #else
@@ -565,7 +558,11 @@ C**** at each time step set surface tracer conc=1+flux from atmos
 #endif
 
 !mo units: kg/m2
-      csat = solub * cfcair * pres/1       ! mol/m3
+!     pres = 1. !atm
+      pres = oAPRESS(i,j)    !surface atm. pressure ANOMALY in Pa
+      pres = (pres + 1013.25d0*100.d0)  !in Pa
+     .     * 9.86923266716e-6             !atm
+      csat = solub * cfcair * pres/1.d0       ! mol/m3
       fluxa = kw * csat                     ! mol/m2/s
       fluxb = kw * trmo(i,j,1,n_cfc) *1000.d0/137.37d0
      .           * rho_water/mo(i,j,1)/dxypo(j)            !mol/m2/s
