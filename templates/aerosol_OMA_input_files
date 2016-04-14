@@ -16,7 +16,6 @@ NH3_06=NH3_ene_AR5_1850-2020_2x2.5_h
 NH3_07=NH3_tra_AR5_1850-2020_2x2.5_h
 NH3_08=NH3_forestfire_AR5_1900-2020_2x2.5_h
 NH3_09=NH3_grassfire_AR5_1900-2020_2x2.5_h
-seasonalNH3src=2               !allow annual cycle of NH3 agricultural emissions
 ! ------- aerosol -----------
 PSREF=ANN1960.E70F40pi.prsurf  ! time avg. surf. pres. on model grid
 SO2_VOLCANO=SO2_volc_2000_2x2.5_pres.nc
