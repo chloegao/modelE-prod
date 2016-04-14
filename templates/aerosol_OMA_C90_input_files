@@ -16,6 +16,7 @@ NH3_06=AR5_C90/transient/NH3_ene_AR5_1850-2000_C90_h
 NH3_07=AR5_C90/transient/NH3_tra_AR5_1850-2000_C90_h
 NH3_08=AR5_C90/transient/NH3_forestfire_AR5_1900-2000_C90_h
 NH3_09=AR5_C90/transient/NH3_grassfire_AR5_1900-2000_C90_h
+seasonalNH3src=3               !allow annual cycle of NH3 agricultural emission
 ! ------- aerosol -----------
 PSREF=ANN1955.mkE4C90x.prsurf  ! time avg. surf. pres. on model grid
 SO2_VOLCANO=SO2_volc_2000_1x1_pres.nc
