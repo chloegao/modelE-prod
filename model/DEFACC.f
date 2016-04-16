@@ -4594,7 +4594,6 @@ c
           scale_ij(k) = 1.
       end do
 #endif /* DYNAMIC_BIOMASS_BURNING && DETAILED_FIRE_OUTPUT */
-#ifdef USE_ENT
       k=k+1        ! vegetation density for fire model purposes
         ij_fvden = k
         lname_ij(k) = 'FIRE MODEL VEGETATION DENSITY'
@@ -4602,7 +4601,6 @@ c
         name_ij(k) = 'FVDEN'
         ia_ij(k) = ia_src
         scale_ij(k) = 1.
-#endif /* USE_ENT */
 #ifdef ANTHROPOGENIC_FIRE_MODEL
       k=k+1        ! frac dynamic biomass burning emis from humans
         ij_human = k

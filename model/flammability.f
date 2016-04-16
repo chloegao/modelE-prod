@@ -114,7 +114,7 @@
 
       end subroutine prec_running_average
 
-#ifdef USE_ENT
+! #ifdef USE_ENT
       !! Could certainly be combined with prec_running_average above,
       !! but repeating now for neatness...
       subroutine lai_running_average(lai,avg,iH,iD,i0,first,HRA,DRA,PRS)
@@ -196,7 +196,7 @@
       end if
 
       end subroutine lai_running_average
-#endif /* USE_ENT */
+! #endif /* USE_ENT */
 
 #if defined DYNAMIC_BIOMASS_BURNING && defined CALCULATE_FLAMMABILITY
 
@@ -325,14 +325,10 @@
       use tracer_com, only: sfc_src
       use OldTracer_mod, only: emisPerFireByVegType
       use ghy_com, only: fearth
-#ifdef USE_ENT
       use ent_com, only: entcells
       use ent_mod, only: ent_get_exports
      &                   ,n_covertypes !YKIM-temp hack
       use ent_drv, only: map_ent2giss  !YKIM-temp hack
-#else
-      use veg_com, only: vdata
-#endif
 
       implicit none
    
@@ -343,9 +339,7 @@
 !@var pvt percent vegetation type for 12 VDATA types (per ice-free land)
 !@var EPFBVT emisPerFireByVegType for current tracer
       real*8, dimension(nVtype):: PVT, EPFBVT
-#ifdef USE_ENT
       real*8 :: pvt0(n_covertypes),hvt0(n_covertypes)
-#endif
 
       call getDomainBounds(grid, J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
      &              I_STRT_HALO=I_0H,I_STOP_HALO=I_1H)
@@ -361,7 +355,6 @@
             ! Obtain the vegetation types in the box:
             ! For now, the same way RAD_DRV does it, as per Greg F.'s 
             ! e-mails with Igor A. Mar-Apr,2010:
-#ifdef USE_ENT
             if(fearth(i,j)>0.d0) then
               call ent_get_exports(entcells(i,j),
      &                             vegetation_fractions=PVT0,
@@ -370,9 +363,6 @@
             else
               pvt(:) = 0.d0 
             end if
-#else
-            pvt(1:nVtype)=vdata(i,j,1:nVtype)
-#endif
             ! Notes on units:
             ! sfc_src = [kg/m2/s]
             ! emisPerFire = [kg/m2/#fire]
@@ -407,23 +397,17 @@
 
       use diag_com, only: ij_flam,aij=>aij_loc
 
-#ifdef USE_ENT
       use ent_com, only: entcells
       use ent_mod, only: ent_get_exports
      &                   ,n_covertypes !YKIM-temp hack
       use ent_drv, only: map_ent2giss  !YKIM-temp hack
-#else
-      use veg_com, only: vdata
-#endif
 
       implicit none
 
       integer :: J_0S, J_1S, I_0H, I_1H, i, j, nv
 !@var pvt percent vegetation type for 12 VDATA types (per ice-free land)
       real*8, dimension(nVtype):: PVT
-#ifdef USE_ENT
       real*8 :: pvt0(n_covertypes),hvt0(n_covertypes)
-#endif
       call getDomainBounds(grid, J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
      &                           I_STRT_HALO=I_0H,I_STOP_HALO=I_1H)
 
@@ -432,7 +416,6 @@
           ! Obtain the vegetation types in the box:
           ! For now, the same way RAD_DRV does it, as per Greg F.'s 
           ! e-mails with Igor A. Mar-Apr,2010:
-#ifdef USE_ENT
           if(fearth(i,j)>0.d0) then
             call ent_get_exports(entcells(i,j), 
      &           vegetation_fractions=PVT0,
@@ -441,9 +424,6 @@
           else
             pvt(:) = 0.d0
           end if
-#else
-          pvt(1:nVtype)=vdata(i,j,1:nVtype)
-#endif
           do nv=1,nVtype
             aij(i,j,ij_flamV(nv))=aij(i,j,ij_flamV(nv))+
      &      fearth(i,j)*pvt(nv)

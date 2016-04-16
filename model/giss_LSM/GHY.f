@@ -9,11 +9,11 @@
 #undef TRACERS_WATER
 #endif
 
-#ifdef USE_ENT
+!!!#ifdef USE_ENT
+
 #define EVAP_VEG_GROUND
 !#define EVAP_VEG_GROUND_NEW
 #define GHY_FD_1_HACK
-#endif
 
 !#define RAD_VEG_GROUND
 !#define ECOSYSTEM_SCALE
@@ -35,9 +35,7 @@
       use GHY_h, only : ghy_tr_str
 #endif
 
-#ifdef USE_ENT
       use ent_debug_mod
-#endif
 
       implicit none
       save
@@ -286,14 +284,12 @@ ccc tracers output:
 !!!      real*8, public :: atr_evap(ntgm),atr_rnff(ntgm),atr_g(ntgm)
 #endif
 
-#ifdef USE_ENT
 ccc the following variables are needed for the interface with 
 ccc dynamic vegetation module, i.e. Ent
       real*8, public :: Ci,cnc,lai
 
 ccc   debugging Ent
       real*8, public :: ent_debug_buf(SIZE_ENT_DEBUG)
-#endif
 
 ccc the data below this line is not in GHYTPC yet !
 ccc the following vars control if bare/vegetated fraction has to
@@ -631,21 +627,12 @@ c     solve for alph0 in s=((1+alph0)**n-1)/alph0
 !-----------------------------------------------------------------------
 
       subroutine evap_limits(
-#ifndef USE_ENT
-     &     vegcell,
-#endif
      &     compute_evap, evap_max_out, fr_sat_out )
 !@sum computes maximal evaporation fluxes for current soil properties
 !@calls cond
-#ifndef USE_ENT
-      use vegetation, only : veg_conductance, t_vegcell
-#endif
 !@var compute_evap if .true. compute evap, else just evap_max,fr_sat
 !@var evap_max_out max evaporation from unsaturated soil
 !@var fr_sat_out fraction of saturated soil
-#ifndef USE_ENT
-      type(t_vegcell) :: vegcell
-#endif
       logical, intent(in) :: compute_evap
       real*8, intent(out) :: evap_max_out, fr_sat_out
 ccc   local variables
@@ -671,9 +658,6 @@ ccc   local variables
 !!! !@var betadl transpiration efficiency for each soil layer
       !real*8 betadl(ngm) ! used in evaps_limits only
       real*8 pot_evap_can
-#ifndef USE_ENT
-      real*8 cnc         ! local cnc from veg_conductance, nyk
-#endif
       real*8 v_qprime    ! local variable
 
 #ifdef EVAP_VEG_GROUND
@@ -723,9 +707,6 @@ ccc make sure that important vars are initialized (needed for ibv hack)
       evap_max_snow(:) = 0.d0
       evap_max_wet(:) = 0.d0
       evap_max_dry(:) = 0.d0
-#ifndef USE_ENT
-      betadl(:) = 0.d0
-#endif
       betad = 0.d0
       abetad = 0.d0
       acna = 0.d0
@@ -777,31 +758,9 @@ ccc !!! it''s a hack should call it somewhere else !!!
 !     betad is the the root beta for transpiration.
 !     hw is the wilting point.
 !     fr(k) is the fraction of roots in layer k
-#ifdef USE_ENT
         betad = sum( betadl(1:n) )
         if ( betad < 1.d-12 ) betad = 0.d0 ! to avoid 0/0 divisions
         abetad = betad
-#else
-        betad=0.d0
-        do 30 k=1,n
-          betadl(k)=(1.d0-fice(k,2))*fr(k)*max((hw-h(k,2))/hw,zero)
-          betad=betad+betadl(k)
- 30     continue
-        if ( betad < 1.d-12 ) betad = 0.d0 ! to avoid 0/0 divisions
-        abetad=betad            ! return to old diagnostics
-c     Get canopy conductivity cnc and gpp
-        qv  = qsat(tp(0,2)+tfrz,lhe,pres) ! for cond_scheme==2
-        call veg_conductance(
-     &       vegcell
-     &       ,cnc
-     &       ,gpp
-     &       ,trans_sw       !nyk
-     &       ,betad          ! evaporation efficiency
-     &       ,tp(0,2)          ! canopy temperature C
-     &       ,qv
-     &       ,dts
-     &       )
-#endif
         !print *,"HGY_COND: ",ijdebug, cnc, betadl
         !print *,"GHY_FORCINGS: ", ijdebug, tp(0,2)
 
@@ -1954,9 +1913,6 @@ c**** calculate the layer centers, based on the boundaries.
 c**** fb,fv: bare, vegetated fraction (1=fb+fv)
       !fb=afb(i0,j0)
       !fv=1.-fb
-#ifndef USE_ENT
-      !!call get_fb_fv( fb, fv, i0, j0 )
-#endif
 c****
 cddd      do ibv=1,2
 cddd        do k=1,n
@@ -2059,13 +2015,9 @@ c****
 !-----------------------------------------------------------------------
 
       subroutine advnc(
-#ifdef USE_ENT
      &      entcell,
      &     Ca, cosz1, vis_rad, direct_vis_rad,
      &     Qf,
-#else
-     &     vegcell,
-#endif
      &     w_in,ht_in,          ! main prognostic
      &     nsn_in,dzsn_in,wsn_in,hsn_in,fr_snow_in, ! snow model prognostic
      &     top_index_in,top_stdev_in,dz_in,q_in,qk_in,sl_in, ! constatns
@@ -2107,7 +2059,6 @@ c**** retp,reth,fl,flg,runoff,sink,sinkh,fllmt,flh,flhg.
 c**** also uses surf with its required variables.
 ccc   include 'soils45.com'
 c**** soils28   common block     9/25/90
-#ifdef USE_ENT
       use ent_mod, only: entcelltype_public, ent_set_forcings,
      &     ent_get_exports, ent_fast_processes, ent_run
      &     ,ent_update_veg_structure, ent_cell_print
@@ -2115,11 +2066,6 @@ c**** soils28   common block     9/25/90
       type(entcelltype_public) entcell
       real*8, intent(in) :: Ca, cosz1, vis_rad, direct_vis_rad
       real*8, intent(inout) :: Qf
-#else
-      use vegetation, only: update_veg_locals,t_vegcell
-      ! arguments
-      type(t_vegcell) :: vegcell
-#endif
       real*8 :: w_in(0:ngm,LS_NFRAC),ht_in(0:ngm,LS_NFRAC)
       integer :: nsn_in(2)
       real*8 :: dzsn_in(nlsn,2),wsn_in(nlsn,2),hsn_in(nlsn,2)
@@ -2149,17 +2095,7 @@ c**** soils28   common block     9/25/90
 #endif
       real*8 :: C_before, C_after
       integer :: iu_debug
-#ifdef USE_ENT
       real*8, pointer :: ent_debug_ptr(:)
-#endif
-
-      ! get stuff from vegcell
-#ifndef USE_ENT
-      fr(1:ngm)   = vegcell%fr(:)   
-      snowm   = vegcell%snowm  
-      ws(0,2)  = vegcell%ws_can 
-      shc(0,2) = vegcell%shc_can
-#endif
 
       ! copy args to global vars
       w      =w_in
@@ -2264,7 +2200,6 @@ ccc reset main water/heat fluxes, so they are always initialized
       fh(:,:) = 0.d0
       fc(:) = 0.d0
       fch(:) = 0.d0
-#ifdef USE_ENT
 ccc get necessary data from ent
       call ent_get_exports( entcell,
      &     canopy_max_H2O=ws_can,
@@ -2288,7 +2223,6 @@ ccc make sure there are no round-off errors in fractions
        ent_debug_buf(:) = 0.d0
       ! get pointer to derived type structure with Ent diags
       call get_ent_debug_ptr( ent_debug_ptr )
-#endif
 
 
 ccc normal case (both present)
@@ -2353,7 +2287,6 @@ ccc accm0 was not called here in older version - check
 !debug
 !        fm = 1.d0
 !!!
-#ifdef USE_ENT
 !!!! insert new canopy conductance here (call to Ent)
 
         if ( process_vege ) then
@@ -2448,9 +2381,6 @@ ccc unpack necessary data
 !     &       vis_rad, direct_vis_rad, cosz1
 
         call evap_limits( .true., dum1, dum2 )
-#else
-        call evap_limits( vegcell, .true., dum1, dum2 )
-#endif
 !hh        call sensible_heat
 !debug debug!
 !        evapb = 0.d0
@@ -2537,7 +2467,6 @@ cddd     &     , tr_w(1,:,2) - w(:,2) * 1000.d0
         call check_water(1)
         call check_energy(1)
 
-#ifdef USE_ENT
         call accm(
 #ifdef TRACERS_WATER
      &     ghy_tr%ntg,
@@ -2547,23 +2476,12 @@ cddd     &     , tr_w(1,:,2) - w(:,2) * 1000.d0
      &     tr_evap,tr_rnff,
 #endif
      &       entcell)
-#else
-        call accm(
-#ifdef TRACERS_WATER
-     &     ghy_tr%ntg,
-     &     ghy_tr%atr_evap,
-     &     ghy_tr%atr_rnff,
-     &     ghy_tr%atr_g,
-     &     tr_evap,tr_rnff
-#endif
-     &       )
-#endif
+
         call reth
         call retp
 cddd      print '(a,i6,10(e12.4))', 'ghy_temp ', ijdebug,
 cddd     &     tp(1,1),tp(2,1),tp(0,2),tp(1,2),tp(2,2)
 
-#ifdef USE_ENT
         !Qf=evap_tot(2)/(rho/rhow*ch*vsm)+qs ! - old
         !Qf=( evap_tot(2)/(rho/rhow*ch) + (vs-vs0)*qprime )/vs + qs
         Qf=( evap_tot(2)/(rho/rhow*ch) + gusti*qprime )/vs + qs
@@ -2571,10 +2489,6 @@ cddd     &     tp(1,1),tp(2,1),tp(0,2),tp(1,2),tp(2,2)
 !        pot_evap_can = betat*rho3*ch*(
 !     &                 vs*(qsat(tp(0,2)+tfrz,lhe,pres) - qs)
 !     &                 -(vs-vs0)*qprime)
-#else
-        call update_veg_locals(evap_tot(2), rho, rhow, ch, vs,qs
-     &       ,vegcell%Qf)
-#endif
 
 #ifdef TRACERS_WATER
 C**** finalise surface tracer concentration here
@@ -2679,20 +2593,16 @@ cddd        endif
      &     atr_g,
      &     tr_evap,tr_rnff,
 #endif
-#ifdef USE_ENT
      &     entcell,
-#endif
      &     flag )
 c**** accumulates gcm diagnostics
 ccc   include 'soils45.com'
 c**** soils28   common block     9/25/90
 c**** the following lines were originally called before retp,
 c**** reth, and hydra.
-#ifdef USE_ENT
       use ent_mod, only: PTRACE,NPOOLS,N_CASA_LAYERS,NLIVE,CARBON  !for soil bgc diags
      &     ,entcelltype_public,ent_get_exports
       type(entcelltype_public), optional :: entcell
-#endif
 #ifdef TRACERS_WATER
       integer, intent(in) :: ntg
       real*8, intent(inout) :: atr_evap(:), atr_rnff(:), atr_g(:)
@@ -2701,10 +2611,8 @@ c**** reth, and hydra.
       integer, intent(in), optional :: flag
       real*8 qsats
       real*8 cpfac,dedifs,dqdt,el0,epen,h0
-#ifdef USE_ENT
       real*8 rauto,clab
       real*8 R_soil,soilCpools(PTRACE,NPOOLS,N_CASA_LAYERS)  !soil resp, C_org pools -PK  
-#endif
       integer k
 #ifdef TRACERS_WATER
       real*8 tot_w1
@@ -2757,7 +2665,6 @@ ccc   max in the following expression removes extra drip because of dew
       aepc=aepc+( epvg*(1.d0-fr_snow(2)) )*fv*dts
 #endif
       aepb=aepb+( epb*(1.d0-fr_snow(1)) + epbs*fr_snow(1) )*fb*dts
-#ifdef USE_ENT
       !Ent veg accumulators. nyk
       agpp = agpp + gpp*dts        
       clab = 0.d0 ;  rauto = 0.d0 ; R_soil = 0.d0 
@@ -2807,10 +2714,6 @@ ccc   max in the following expression removes extra drip because of dew
 !      !Instantaneous pool/column-integrated soil C_org (g/m2)    !
         asoilCpoolsum =
      &       sum( soilCpools(CARBON,NLIVE+1:NPOOLS,1:N_CASA_LAYERS) )
-#else
-      !Accumulate GPP, nyk, like evap_tot(2)
-      agpp = agpp + gpp*(1.d0-fr_snow(2)*fm)*fv*dts
-#endif
       dedifs=f(2,1)*tp(2,1)
       if(f(2,1).lt.0.d0) dedifs=f(2,1)*tp(1,1)
       aedifs=aedifs-dts*shw*dedifs*fb
