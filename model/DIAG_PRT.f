@@ -4783,12 +4783,8 @@ C**** write the binary file
       USE FLUXES, only : FOCEAN, FLICE
 cddd      USE LAKES_COM, only : FLAKE
 cddd      USE GHY_COM, only : FEARTH
-cddd#ifdef USE_ENT
 cddd      use ent_com, only : entcells
 cddd      use ent_mod, only : ent_get_exports
-cddd#else
-cddd      USE VEG_COM,   only : vdata
-cddd#endif
       USE DIAG_COM, only : IM, AIJ,  AIJ_loc, AJ,   AJ_loc,
      *     AIJK, AIJK_loc,
      *     ASJL, ASJL_loc, AJL,  AJL_loc , CONSRV, CONSRV_loc, TSFREZ,
@@ -4800,10 +4796,8 @@ cddd#endif
       IMPLICIT NONE
 cddd      INTEGER :: J_0, J_1, J_0H, J_1H
 cddd      REAL*8, ALLOCATABLE :: tmp(:,:)
-cddd#ifdef USE_ENT
 cddd      REAL*8, ALLOCATABLE :: fract_vege(:,:)
 cddd      INTEGER i,j
-cddd#endif
 
       call alloc_ijdiag_glob
 
@@ -4831,7 +4825,6 @@ cddd      wt_ij(:,:,1) = 1.
       !!CALL PACK_DATA(GRID, flice,  wt_ij(:,:,4))
       !!CALL PACK_DATA(GRID, fearth, wt_ij(:,:,5))  ! not correct
 
-cddd#ifdef USE_ENT
 cddd      ALLOCATE(fract_vege(IM, J_0H:J_1H))
 cddd      call ent_get_exports( entcells(1:IM,J_0:J_1),
 cddd     &           fraction_of_vegetated_soil=fract_vege(1:IM,J_0:J_1) )
@@ -4840,14 +4833,6 @@ cddd      CALL PACK_DATA(GRID, tmp, wt_ij(:,:,6))
 cddd      tmp(:,J_0:J_1) = fearth(:,J_0:J_1) * fract_vege(:,J_0:J_1)
 cddd      CALL PACK_DATA(GRID, tmp, wt_ij(:,:,7))
 cddd      DEALLOCATE(fract_vege)
-cddd#else
-cddd      tmp(:,J_0:J_1) = fearth(:,J_0:J_1) *
-cddd     &     (vdata(:,J_0:J_1,1)+vdata(:,J_0:J_1,10))
-cddd      CALL PACK_DATA(GRID, tmp, wt_ij(:,:,6))
-cddd      tmp(:,J_0:J_1) = fearth(:,J_0:J_1) *
-cddd     &     (1.-(vdata(:,J_0:J_1,1)+vdata(:,J_0:J_1,10)))
-cddd      CALL PACK_DATA(GRID, tmp, wt_ij(:,:,7))
-cddd#endif
 cddd      DEALLOCATE(tmp)
 
       call gather_odiags () ; call gather_icdiags ()

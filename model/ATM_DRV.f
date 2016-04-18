@@ -894,12 +894,8 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
 #ifndef SCM
       call alloc_tracer_adv(grid)
 #endif
-#ifdef USE_ENT
 !!! should be done in init_module_ent
       call alloc_ent_com(grid)
-#else
-      call alloc_veg_com(grid)
-#endif
 #ifdef TRACERS_ON
       call alloc_trdiag_com
 #ifdef TRACERS_SPECIAL_Shindell
@@ -933,9 +929,7 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
       call def_rsf_earth  (fid)
       call def_rsf_soils  (fid)
       call def_rsf_vegetation(fid)
-#ifdef USE_ENT
       call def_rsf_veg_related(fid)
-#endif
       call def_rsf_snow   (fid)
       call def_rsf_landice(fid)
       call def_rsf_bldat  (fid)
@@ -964,12 +958,10 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
       call new_io_earth  (fid,iorw)
       call new_io_soils  (fid,iorw)
       call new_io_vegetation  (fid,iorw)
-#ifdef USE_ENT
         !!! actually not sure if this call is needed
         !!! (seems like it is duplicated in io_vegetation...)
       call new_io_veg_related(fid,iorw)
         !call io_ent    (kunit,iaction,ioerr) ! io_vegetation handles ent
-#endif
       call new_io_snow   (fid,iorw)
       call new_io_landice(fid,iorw)
       call new_io_bldat  (fid,iorw)

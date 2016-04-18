@@ -643,9 +643,6 @@ c***********************************************************************
 !@auth I. Alienov/F. Abramopolous
       use resolution, only : im,jm
       use socpbl, only : npbl=>n
-#ifndef USE_ENT
-      use veg_drv, only : cosday,sinday
-#endif
 
       implicit none
       private
@@ -661,17 +658,10 @@ c***********************************************************************
       public checke
       public snow_cover
 
-      !real*8 cosday,sinday
-      !real*8 cosdaym1, sindaym1               !nyk TEMPORARY for jday-1
-#ifndef USE_ENT
-      real*8 adlmass          ! accumulator for dleafmass in daily_earth
-#endif
 !@dbparam snow_cover_coef coefficient for topography variance in
 !@+       snow cover parameterisation for albedo
       real*8 :: snow_cover_coef = .15d0
-#ifdef USE_ENT
       integer :: vegCO2X_off = 0
-#endif
 !@dbparam land_CO2_bc_flag type of CO2 BC to be used by Land Surface
 !@+   0 - fixed, 1 - transient (from radiation), 2 - interactive
       integer :: land_CO2_bc_flag = 1
@@ -698,10 +688,8 @@ c****
 #endif
       use DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, AM_I_ROOT
       use geom, only : imaxj,lat2d
-#ifdef USE_ENT
       use rad_com, only :
      &      FSRDIR, SRVISSURF,CO2X, CO2ppm
-#endif
       !use surf_albedo, only: albvnh   ! added 5/23/03 from RADIATION.f
       !albvnh(9,6,2)=albvnh(sand+8veg,6bands,2hemi) - only need 1st band
       use sle001, only : advnc,evap_limits,
@@ -715,9 +703,6 @@ c****
 !!!     &    qm1,qs,
 !!!     &    pres,rho,ts,ch,srht,trht
 !!!     &   ,vs,vs0,tprime,qprime
-#ifndef USE_ENT
-      use veg_drv, only: veg_save_cell,veg_set_cell
-#endif
       use fluxes, only : atmlnd,prec,eprec
      *     ,precss,nisurf, asflx
       use ghy_com, only : snowbv, fearth,
@@ -728,11 +713,6 @@ c****
 #ifdef CACHED_SUBDD
       use ghy_com, only : gsaveL
       use constant, only : undef
-#endif
-#ifndef USE_ENT
-      use vegetation, only :
-     &    veg_srht=>srht,veg_pres=>pres,veg_ch=>ch,veg_ws=>vsm, !ia
-     &    t_vegcell
 #endif
       use pbl_drv, only : pbl, t_pbl_args, xdelt
       use pbl_drv, only : alloc_pbl_args, dealloc_pbl_args
@@ -754,12 +734,10 @@ c****
       use tracer_com, only : NTM,trm
       use geom, only : axyp
 #endif
-#ifdef USE_ENT
       use ent_com, only : entcells
       !use ent_mod, only : ent_prescribe_vegupdate
       use ent_drv, only : update_vegetation_data
       !use ent_mod, only : ent_cell_print
-#endif
 #ifdef IRRIGATION_ON
       use fluxes, only : irrig_water_act, irrig_energy_act
 #ifdef TRACERS_WATER
@@ -770,9 +748,7 @@ c****
      *     ,top_index_ij,top_dev_ij
      &     ,w_ij,ht_ij,snowbv,nsn_ij,dzsn_ij,wsn_ij
      &     ,hsn_ij,fr_snow_ij,shc_soil_texture
-#ifdef USE_ENT
      &     ,Qf_ij
-#endif
 #ifdef TRACERS_ON
 !!! need for Ca hack
       use geom, only : byaxyp
@@ -824,9 +800,6 @@ c****
 
 c**** input/output for PBL
       type (t_pbl_args) pbl_args
-#ifndef USE_ENT
-      type (t_vegcell) vegcell
-#endif
       real*8 qg_sat,ts,qs
 
       INTEGER :: ii, ivar, kr
@@ -834,12 +807,10 @@ c**** input/output for PBL
       INTEGER :: n,n1
 #endif
 
-#ifdef USE_ENT
       real*8 Ca !@Ca concentration of CO2 at surface (mol/m3)
       real*8 vis_rad, direct_vis_rad, cos_zen_angle
       !integer hemi(1:IM,grid%J_STRT:grid%J_STOP)
       !integer :: JEQUATOR=JM/2
-#endif
 #ifdef WATER_PROPORTIONAL
       real*8, dimension(ntm) :: conc1
       integer :: lpbl,itr
@@ -909,7 +880,6 @@ c****
 c**** outside loop over j and i, executed once for each grid point
 c****
 
-#ifdef USE_ENT
       !--- at the moment update vegetation every time step
       !hemi(:,max(JEQUATOR+1,J_0):J_1) = 1
       !hemi(:,J_0:min(JEQUATOR,J_1)) = -1
@@ -919,7 +889,6 @@ c****
        ! moved to daily_earth
 !      call update_vegetation_data( entcells,
 !     &     im, jm, I_0, I_1, J_0, J_1, jday, jyear )
-#endif
 
       !call ent_cell_print(900+counter, entcells)
 
@@ -1081,19 +1050,12 @@ c  define extra variables to be passed in surfc:
       !!!srht   = srheat
       !veg_srht = srheat
       !!!trht   = trheat
-#ifndef USE_ENT
-      veg_pres = ps
-      veg_ws = pbl_args%ws
-      veg_ch = cdh
-      veg_srht = srheat
-#endif
 c***********************************************************************
 c****
 c**** calculate ground fluxes
 c     call qsbal
 !!! insert htprs here ???
 
-#ifdef USE_ENT
 ccc stuff needed for dynamic vegetation
 !!! changed units of Ca from mol/m^3 to ppm (also in advnc() )
       select case(land_CO2_bc_flag)
@@ -1130,12 +1092,6 @@ ccc stuff needed for dynamic vegetation
 
       !call veg_save_cell(i,j)
 !!!!      call ghy_save_cell(i,j)
-#else
-      !call ghinij (i,j)
-      !snowd(1:2) = snowbv(1:2,i,j)
-      call veg_set_cell( vegcell, i,j, ps, pbl_args%tsv/(1.+qs*xdelt) )
-      !call veg_set_cell(  i,j  )
-#endif
 ! snow / var lakes problem at this cell (underwater snow in initial data)
 !      if (i==47 .and. j==33) then
 !        print *,i,j
@@ -1156,13 +1112,9 @@ ccc stuff needed for dynamic vegetation
 #endif
 
       call advnc(
-#ifdef USE_ENT
      &     entcells(i,j), Ca,
      &     cos_zen_angle, vis_rad, direct_vis_rad,
      &     Qf_ij(i,j),
-#else
-     &     vegcell,
-#endif
      &     w_ij(0:ngm,1:LS_NFRAC,i,j),
      &     ht_ij(0:ngm,1:LS_NFRAC,i,j),
      &     nsn_ij    (1:2, i, j),
@@ -1205,14 +1157,8 @@ ccc stuff needed for dynamic vegetation
 
 
       call evap_limits(
-#ifndef USE_ENT
-     &     vegcell,
-#endif
      &     .false., evap_max_ij(i,j), fr_sat_ij(i,j) )
 
-#ifndef USE_ENT
-      if ( fv > 0 ) call veg_save_cell(i,j)
-#endif
       !call veg_save_cell(i,j)
       !call ghy_save_cell(i,j)
       if ( fb > 0 ) snowbv(1,i,j)   = snowd(1)
@@ -1401,7 +1347,7 @@ c another surface type
 
       ! land water deficit for changing lake fractions
       !!! not working with Ent
-!#ifndef USE_ENT
+!#ifndef uSE_ENT
       call compute_water_deficit
 !#endif
 
@@ -1464,7 +1410,6 @@ C
       return
       end subroutine earth
 
-#ifdef USE_ENT
       subroutine dump_ent_C_diags
       USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds,READT_PARALLEL
       USE DOMAIN_DECOMP_1D, only : WRITET_PARALLEL
@@ -1546,7 +1491,6 @@ C
       counter = counter + 1
 
       end subroutine dump_ent_C_diags
-#endif
 
 c***********************************************************************
 c***********************************************************************
@@ -1574,7 +1518,7 @@ c***********************************************************************
      &     ,ij_aflmlt,ij_aeruns,ij_aerunu,ij_fveg
      &     ,ij_htsoil,ij_htsnow,ij_aintrcp
      &     ,ij_evapsn,ij_irrW, ij_irrE
-#if (defined HEALY_LM_DIAGS) && (defined USE_ENT) 
+#if (defined HEALY_LM_DIAGS)
      &     ,ij_crops,j_crops,CROPS_DIAG
 #endif
       use constant, only : tf,lhe
@@ -1914,9 +1858,7 @@ c**** read rundeck parameters
       call sync_param( "ghy_default_data", ghy_default_data )
       !call  get_param( "variable_lk", variable_lk )
       !call  get_param( "init_flake", init_flake )
-#ifdef USE_ENT
       call sync_param( "vegCO2X_off", vegCO2X_off)
-#endif
       call sync_param( "land_CO2_bc_flag", land_CO2_bc_flag )
       call sync_param( "land_CO2_bc", land_CO2_bc )
 
@@ -2014,31 +1956,17 @@ c**** check whether ground hydrology data exist at this point.
       use TimeConstants_mod, only: EARTH_DAYS_PER_YEAR
       use model_com, only : modelEclock
       use model_com, only : itime,nday
-#ifdef USE_ENT
       use ent_drv, only : init_module_ent
-#else
-      use veg_drv, only : init_vegetation
-      use vegetation, only : t_vegcell
-#endif
       integer, intent(in) :: istart
       logical, intent(in) :: redogh
       !--- local
-#ifndef USE_ENT
-      type (t_vegcell) vegcell
-#endif
       integer year, dayOfYear
 
 c**** cosday, sinday should be defined (reset once a day in daily_earth)
       dayOfYear=1+mod(itime/nday,int(EARTH_DAYS_PER_YEAR))
 
-#ifdef USE_ENT
       call modelEclock%get(year=year, dayOfYear=dayOfYear)
       CALL init_module_ent(istart.le.2, dayOfYear, year)
-#else
-      cosday=cos(twopi/EARTH_DAYS_PER_YEAR*dayOfYear)
-      sinday=sin(twopi/EARTH_DAYS_PER_YEAR*dayOfYear)
-      call init_vegetation(redogh,istart)
-#endif
 
       end subroutine init_veg
 
@@ -2055,22 +1983,12 @@ c**** cosday, sinday should be defined (reset once a day in daily_earth)
       use SCM_COM, only : SCMopt,SCMin
 #endif
       use fluxes, only : atmlnd,focean, flice
-#ifdef USE_ENT
       use ent_com, only : entcells
       use ent_mod
       use ent_drv, only : map_ent2giss !YKIM-temp hack
-#else
-      use veg_drv, only : veg_set_cell
-      use vegetation, only : t_vegcell
-      use veg_com, only : ala
-      use veg_com, only : vdata
-#endif
 #ifdef TRACERS_WATER
       use OldTracer_mod, only: tr_wd_TYPE, nWATER, itime_tr0, needtrs
       use tracer_com, only : NTM
-#ifndef USE_ENT
-      use veg_com, only:  avh !,afb
-#endif
 #endif
       use rad_com, only : snoage
       implicit none
@@ -2078,9 +1996,6 @@ c**** cosday, sinday should be defined (reset once a day in daily_earth)
       logical, intent(in) :: redogh, inisnow, inilake
 
       !--- local
-#ifndef USE_ENT
-      type (t_vegcell) vegcell
-#endif
       real*8, external :: qsat
       real*8, parameter :: spgsn=.1d0 !@var spgsn specific gravity of snow
       real*8 :: ws_can, shc_can, ht_cap_can, fice_can, aa
@@ -2118,16 +2033,9 @@ c**** recompute ground hydrology data if necessary (new soils data)
             !snowbv(:,i,j)=0.d0
             if ( focean(i,j) >= 1.d0 ) cycle
             if ( fearth(i,j) <= 0.d0 .and. variable_lk==0 ) cycle
-#ifdef USE_ENT
             call ent_get_exports( entcells(i,j),
      &           canopy_heat_capacity=shc_can,
      &           canopy_max_H2O=ws_can )
-#else
-            call veg_set_cell(vegcell,i,j,0.d0,0.d0,.true.)
-            ws_can = vegcell%ws_can
-            shc_can = vegcell%shc_can
-#endif
-
             call tp_sat_2_ht_w(
      &           w_ij(:,:,i,j), ht_ij(:,:,i,j),
      &           nsn_ij    (1:2, i, j),
@@ -2179,15 +2087,10 @@ c**** in this case also set canopy water and water tracers to 0
             call get_fb_fv( fb, fv, i, j )
             if ( fv <= 0.d0 ) cycle
 
-#ifdef USE_ENT
             !!! probably will not work
          !!!call stop_model("reset_canopy_ic not implemented for Ent",255)
             call ent_get_exports( entcells(i,j),
      &           canopy_heat_capacity=ht_cap_can )
-#else
-            aa=ala(1,i,j)
-            ht_cap_can=(.010d0+.002d0*aa+.001d0*aa**2)*shw_kg*rhow
-#endif
             ! assume canopy completey dry
             w_ij(0,2,i,j) = 0.d0
             fice_can = 0.d0
@@ -2258,16 +2161,11 @@ c**** fix initial conditions for soil heat if necessry
           do i=I_0,I_1
             if ( focean(i,j) >= 1.d0 ) cycle
             if ( fearth(i,j) <= 0.d0 .and. variable_lk==0 ) cycle
-#ifdef USE_ENT
             !call stop_model("fix*_ic not implemented for Ent",255)
             !shc_can = 1.d30 ! i.e. don''t check canopy heat
             call ent_get_exports( entcells(i,j),
      &           canopy_heat_capacity=shc_can )
 
-#else
-            call veg_set_cell(vegcell,i,j,0.d0,0.d0,.true.)
-            shc_can = vegcell%shc_can
-#endif
             call fix_heat_ic(w_ij(:,:,i,j), ht_ij(:,:,i,j),
      &           shc_can,
      &           q_ij(i,j,:,:), dz_ij(i,j,:), i, j )
@@ -2328,7 +2226,7 @@ c**** set snow fraction for albedo computation (used by RAD_DRV.f)
 
       ! land water deficit for changing lake fractions
       !!! not working with Ent
-!#ifndef USE_ENT
+!#ifndef uSE_ENT
       call compute_water_deficit
 !#endif
 
@@ -2369,13 +2267,9 @@ ccc still not quite correct (assumes fw=1)
           if (focean(i,j) .ge. 1.d0) cycle
           !fb=afb(i,j) ; fv=1.-fb
           call get_fb_fv( fb, fv, i, j )
-#ifdef USE_ENT
       call ent_get_exports( entcells(i,j),
      &     canopy_height=height_can
      &     )
-#else
-      height_can = avh(i,j)
-#endif
           fm=1.d0-exp(-snowbv(2,i,j)/((height_can*spgsn) + 1d-12))
           if ( fm < 1.d-3 ) fm=0.d0
 
@@ -2824,9 +2718,6 @@ ccc (to make the data compatible with snow model)
       USE DOMAIN_DECOMP_ATM, ONLY : GRID, getDomainBounds
       use fluxes, only : atmlnd
       use ghy_com
-#ifndef USE_ENT
-      use veg_drv, only : reset_veg_to_defaults
-#endif
       logical, intent(in) :: reset_prognostic
       integer i,j
 
@@ -2841,12 +2732,12 @@ C****
       I_1 = grid%I_STOP
 
 ccc ugly, should fix later
-#ifdef USE_ENT
       call stop_model(
      &     "reset_gh_to_defaults not implemented yet for Ent",255)
-#else
-      call reset_veg_to_defaults( reset_prognostic )
-#endif
+      ! worked without Ent ...
+!#else , i.e. #ifndef uSE_ENT
+!      call reset_veg_to_defaults( reset_prognostic )
+!#endif
 
       do j=J_0,J_1
       do i=I_0,I_1
@@ -2909,329 +2800,6 @@ ccc ugly, should fix later
       end subroutine reset_gh_to_defaults
 
 
-cddd      subroutine ghinij (i0,j0)
-cdddc**** input:
-cdddc**** avh(i,j) - array of vegetation heights
-cdddc**** spgsn - specific gravity of snow
-cdddc**** output:
-cdddc**** vh - vegetation height
-cdddc**** snowm - snow masking depth
-cdddc**** wfcap - water field capacity of top soil layer, m
-cdddc****
-cddd      use snow_model, only : i_earth,j_earth
-cddd      use sle001, only : dz,qk,ng,zb,zc,q,sl,xklh !spgsn,
-cddd     *     ,fb,fv,prs,ijdebug,n
-cddd     *     ,thets,thetm,ws,thm,nth,shc,shw,htprs,pr !shcap,shtpr,
-cddd     *     ,htpr
-cddd     *     ,top_index,top_stdev
-cddd     &     ,w,ht,snowd,nsn,dzsn,wsn,hsn,fr_snow
-cddd#ifdef USE_ENT
-cddd     &     ,Ci, Qf, cnc
-cddd#endif
-cddd      use ghy_com, only : ngm,imt,nlsn,LS_NFRAC,dz_ij,sl_ij,q_ij,qk_ij
-cddd     *     ,top_index_ij,top_dev_ij
-cddd     &     ,w_ij,ht_ij,snowbv,nsn_ij,dzsn_ij,wsn_ij
-cddd     &     ,hsn_ij,fr_snow_ij,shc_soil_texture
-cddd#ifdef USE_ENT
-cddd     &     ,Ci_ij, Qf_ij, cnc_ij
-cddd#endif
-cddd#ifndef USE_ENT
-cddd      use veg_com, only: afb
-cddd#endif
-cddd      USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
-cddd!      use veg_drv, only : veg_set_cell
-cddd
-cddd      implicit none
-cddd      integer i0,j0
-cddd!      real*8 wfcap
-cddd      integer k,ibv,i
-cddd      real*8 shtpr
-cddd!----------------------------------------------------------------------!
-cddd      !real*8, parameter :: shcap(imt) = (/2d6,2d6,2d6,2.5d6,2.4d6/)
-cddd
-cddd
-cddd      ijdebug=i0*1000+j0
-cddd      i_earth = i0
-cddd      j_earth = j0
-cddd
-cdddccc extracting ghy prognostic vars
-cddd      !w(1:ngm,1) =  wbare(1:ngm,i0,j0)
-cddd      !w(0:ngm,2) =  wvege(0:ngm,i0,j0)
-cddd      !ht(0:ngm,1) = htbare(0:ngm,i0,j0)
-cddd      !ht(0:ngm,2) = htvege(0:ngm,i0,j0)
-cddd      w(0:ngm,1:LS_NFRAC) = w_ij(0:ngm,1:LS_NFRAC,i0,j0)
-cddd      ht(0:ngm,1:LS_NFRAC) = ht_ij(0:ngm,1:LS_NFRAC,i0,j0)
-cddd      snowd(1:2)  = snowbv(1:2,i0,j0)
-cdddccc extracting snow variables
-cddd      nsn(1:2)          = nsn_ij    (1:2, i0, j0)
-cddd      !isn(1:2)          = isn_ij    (1:2, i0, j)
-cddd      dzsn(1:nlsn, 1:2) = dzsn_ij   (1:nlsn, 1:2, i0, j0)
-cddd      wsn(1:nlsn, 1:2)  = wsn_ij    (1:nlsn, 1:2, i0, j0)
-cddd      hsn(1:nlsn, 1:2)  = hsn_ij    (1:nlsn, 1:2, i0, j0)
-cddd      fr_snow(1:2)      = fr_snow_ij(1:2, i0, j0)
-cddd#ifdef USE_ENT
-cdddccc extracting vegetation prognostic variables
-cddd      cnc = cnc_ij(i0,j0)
-cddd      Ci = Ci_ij(i0,j0)
-cddd      Qf = Qf_ij(i0,j0)
-cddd#endif
-cdddccc setting vegetation
-cddd !     call veg_set_cell(i0,j0)
-cddd
-cdddccc passing topmodel parameters
-cddd      top_index = top_index_ij(i0, j0)
-cddd      top_stdev = top_dev_ij(i0, j0)
-cdddc**** set up layers
-cddd      dz(1:ngm)=dz_ij(i0,j0,1:ngm)
-cddd      q(1:imt,1:ngm)=q_ij(i0,j0,1:imt,1:ngm)
-cddd      qk(1:imt,1:ngm)=qk_ij(i0,j0,1:imt,1:ngm)
-cddd      sl=sl_ij(i0,j0)
-cddd
-cddd      n=0
-cddd      do k=1,ngm
-cddd        if(dz(k).le.0.) exit
-cddd        n=k
-cddd      end do
-cddd
-cddd      if(n.le.0) then
-cddd         write (99,*) 'ghinij:  n <= 0:  i,j,n=',i0,j0,n,(dz(k),k=1,43)
-cddd         call stop_model('stopped in GHY_DRV.f',255)
-cddd      end if
-cddd
-cdddc**** calculate the boundaries, based on the thicknesses.
-cddd      zb(1)=0.
-cddd      do k=1,n
-cddd        zb(k+1)=zb(k)-dz(k)
-cddd      end do
-cdddc**** calculate the layer centers, based on the boundaries.
-cddd      do k=1,n
-cddd        zc(k)=.5*(zb(k)+zb(k+1))
-cddd      end do
-cdddc**** fb,fv: bare, vegetated fraction (1=fb+fv)
-cddd!!! I think we still need this
-cddd      fb=afb(i0,j0)
-cddd      fv=1.-fb
-cddd      call get_fb_fv( fb, fv, i0, j0 )
-cdddc****
-cddd      do ibv=1,2
-cddd        do k=1,n
-cddd          thets(k,ibv)=0.
-cddd          thetm(k,ibv)=0.
-cddd          do i=1,imt-1
-cddd            thets(k,ibv)=thets(k,ibv)+q(i,k)*thm(0,i)
-cddd            thetm(k,ibv)=thetm(k,ibv)+q(i,k)*thm(nth,i)
-cddd          end do
-cddd          ws(k,ibv)=thets(k,ibv)*dz(k)
-cddd        end do
-cddd      end do
-cddd!veg      ws(0,2)=.0001d0*alai  ! from call veg_set_cell above
-cddd  !    wfcap=fb*ws(1,1)+fv*(ws(0,2)+ws(1,2))
-cdddc****
-cddd      call xklh(1)
-cdddc****
-cddd
-cddd      do ibv=1,2
-cddd        do k=1,n
-cddd          shc(k,ibv)=0.
-cddd          do i=1,imt
-cddd            shc(k,ibv)=shc(k,ibv)+q(i,k)*shc_soil_texture(i)
-cddd          end do
-cddd          shc(k,ibv)=(1.-thets(k,ibv))*shc(k,ibv)*dz(k)
-cddd        end do
-cddd      end do
-cdddc****
-cdddc shc(0,2) is the heat capacity of the canopy
-cddd!veg      aa=ala(1,i0,j0)
-cddd!veg      shc(0,2)=(.010d0+.002d0*aa+.001d0*aa**2)*shw
-cdddc****
-cdddc htpr is the heat of precipitation.
-cdddc shtpr is the specific heat of precipitation.
-cddd      shtpr=0.
-cddd      if(pr.gt.0.)shtpr=htpr/pr
-cdddc htprs is the heat of large scale precipitation
-cddd      htprs=shtpr*prs
-cdddc****
-cddd      return
-cddd      end subroutine ghinij
-
-
-cddd      subroutine ghy_save_cell(i,j)
-cddd      use sle001, only : w,ht,snowd,nsn,dzsn,wsn,hsn,fr_snow
-cddd#ifdef USE_ENT
-cddd     $     ,cnc,Ci,Qf
-cddd#endif
-cddd      use ghy_com, only : ngm,nlsn,LS_NFRAC
-cddd     &     ,dz_ij,w_ij,ht_ij,snowbv
-cddd     &     ,nsn_ij,dzsn_ij,wsn_ij,hsn_ij,fr_snow_ij
-cddd#ifdef USE_ENT
-cddd     $     ,cnc_ij,Ci_ij,Qf_ij
-cddd#endif
-cddd      implicit none
-cddd      integer, intent(in) :: i,j
-cddd
-cddd      !wbare(1:ngm,i,j) = w(1:ngm,1)
-cddd      !wvege(0:ngm,i,j) = w(0:ngm,2)
-cddd      !htbare(0:ngm,i,j) = ht(0:ngm,1)
-cddd      !htvege(0:ngm,i,j) = ht(0:ngm,2)
-cddd      w_ij (0:ngm,1:LS_NFRAC,i,j) = w (0:ngm,1:LS_NFRAC)
-cddd      ht_ij(0:ngm,1:LS_NFRAC,i,j) = ht(0:ngm,1:LS_NFRAC)
-cddd      snowbv(1:2,i,j)   = snowd(1:2)
-cdddccc copy snow variables back to storage
-cddd      nsn_ij    (1:2, i, j)         = nsn(1:2)
-cddd      !isn_ij    (1:2, i, j)         = isn(1:2)
-cddd      dzsn_ij   (1:nlsn, 1:2, i, j) = dzsn(1:nlsn,1:2)
-cddd      wsn_ij    (1:nlsn, 1:2, i, j) = wsn(1:nlsn,1:2)
-cddd      hsn_ij    (1:nlsn, 1:2, i, j) = hsn(1:nlsn,1:2)
-cddd      fr_snow_ij(1:2, i, j)         = fr_snow(1:2)
-cddd#ifdef USE_ENT
-cdddccc saving vegetation prognostic variables
-cddd      cnc_ij(i,j) = cnc
-cddd      Ci_ij(i,j) = Ci
-cddd      Qf_ij(i,j) = Qf
-cddd#endif
-cddd      end subroutine ghy_save_cell
-
-
-cddd      subroutine ghinht (snowdp,tg1,tg2,wtr1,wtr2,ace1,ace2)
-cdddc**** initializes new ground (w,ht,snw) from old (t,w,ice,snw)
-cdddc**** evaluates the heat in the soil layers based on the
-cdddc**** temperatures.
-cdddc**** input:
-cdddc**** w - water in soil layers, m
-cdddc**** tp - temperature of layers, c
-cdddc**** fice - fraction of ice of layers
-cdddc**** fsn - heat of fusion of water
-cdddc**** shc - specific heat capacity of soil
-cdddc**** shi - specific heat capacity of ice
-cdddc**** shw - specific heat capcity of water
-cdddc**** snowd - snow depth, equivalent water m
-cdddc**** output:
-cdddc**** ht - heat in soil layers
-cdddc**** add calculation of wfc2
-cdddc**** based on combination of layers 2-n, as in retp2
-cddd      use sle001, only : tp, ht, w, shc, fice, snowd, ws, fb, fv,
-cddd     &    n, dz, fsn, thetm, shi, shw, ijdebug
-cddd      USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
-cddd      implicit none
-cddd
-cddd      real*8 snowdp,tg1,tg2,wtr1,wtr2,ace1,ace2
-cddd      real*8 wfc1, wfc2, wet1, wet2, wmin, fbv
-cddd      integer k, ibv, ll
-cddd
-cddd      wfc1=fb*ws(1,1)+fv*(ws(0,2)+ws(1,2))
-cddd      wfc2=0.
-cddd      fbv=fb
-cddd      do 30 ibv=1,2
-cddd      do 20 k=2,n
-cddd      wfc2=wfc2+fbv*ws(k,ibv)
-cddd   20 continue
-cddd      fbv=fv
-cddd   30 continue
-cddd      wfc1=1000.*wfc1
-cddd      wfc2=1000.*wfc2
-cddd      fice(0,2)=1.
-cddd      fice(1,1)=(ace1+snowdp*1000.)/(wtr1+ace1+snowdp*1000.+1.d-20)
-cddd      fice(1,2)=fice(1,1)
-cddd      tp(0,2)=tg1
-cdddc**** w = snow(if top layer) + wmin + (wmax-wmin)*(wtr+ice)/wfc
-cddd      w(0,2)=0.
-cddd      do ibv=1,2
-cddd        w(1,ibv)=snowdp
-cddd        wmin=thetm(1,ibv)*dz(1)
-cddd        wet1=(wtr1+ace1)/(wfc1+1.d-20)
-cddd        if(wet1.gt.1.) wet1=1.
-cddd        w(1,ibv)=w(1,ibv)+wmin+(ws(1,ibv)-wmin)*wet1
-cddd        snowd(ibv)=snowdp
-cddd        tp(1,ibv)=tg1
-cddd        do k=2,n
-cddd          fice(k,ibv)=ace2/(wtr2+ace2+1.d-20)
-cddd          wmin=thetm(k,ibv)*dz(k)
-cddd          wet2=(wtr2+ace2)/(wfc2+1.d-20)
-cddd          if(wet2.gt.1.) wet2=1.
-cddd          w(k,ibv)=wmin+(ws(k,ibv)-wmin)*wet2
-cddd          tp(k,ibv)=tg2
-cddd        end do
-cddd      end do
-cdddc****
-cddd!!!      entry ghexht
-cdddc****
-cdddc**** compute ht (heat w/m+2)
-cddd      do ibv=1,2
-cddd        ll=2-ibv
-cddd        do k=ll,n
-cddd          if(tp(k,ibv)) 2,4,6
-cddd 2        ht(k,ibv)=tp(k,ibv)*(shc(k,ibv)+w(k,ibv)*shi)-w(k,ibv)*fsn
-cddd          cycle
-cddd 4        ht(k,ibv)=-fice(k,ibv)*w(k,ibv)*fsn
-cddd          cycle
-cddd 6        ht(k,ibv)=tp(k,ibv)*(shc(k,ibv)+w(k,ibv)*shw)
-cddd        end do
-cddd      end do
-cddd      if(ijdebug.eq.0)then
-cddd       write(99,*)'ghinht id check',ijdebug
-cddd       write(99,*)'tg1,tg2',tg1,tg2
-cddd       write(99,*)'tp',tp
-cddd       write(99,*)'ht',ht
-cddd       write(99,*)'w',w
-cddd       write(99,*)'wtr1,wtr2',wtr1,wtr2
-cddd       write(99,*)'ace1,ace2',ace1,ace2
-cddd       write(99,*)'wfc1,wfc2',wfc1,wfc2
-cddd       write(99,*)'shc',shc
-cddd       write(99,*)'fice',fice
-cddd      endif
-cddd      return
-cddd      end subroutine ghinht
-
-cddd      subroutine retp2 (tg2av,wtr2av,ace2av)
-cdddc**** evaluates the mean temperature in the soil layers 2-ngm
-cdddc**** as well as the water and ice content.
-cdddc**** input:
-cdddc**** w - water in soil layers, m
-cdddc**** ht - heat in soil layers
-cdddc**** fsn - heat of fusion of water
-cdddc**** shc - specific heat capacity of soil
-cdddc**** shi - specific heat capacity of ice
-cdddc**** shw - specific heat capcity of water
-cdddc**** output:
-cdddc**** tg2av - temperature of layers 2 to ngm, c
-cdddc**** ice2av - ice amount in layers 2 to ngm, kg/m+2
-cdddc**** wtr2av - water in layers 2 to ngm, kg/m+2
-cddd      USE DOMAIN_DECOMP_ATM, ONLY : GRID, GET
-cddd      use sle001
-cddd      implicit none
-cddd      real*8 tg2av,wtr2av,ace2av, wc,htc,shcc,tpc,ficec,ftp
-cddd      integer k, ibv
-cddd      tg2av=0.
-cddd      wtr2av=0.
-cddd      ace2av=0.
-cddd      do 3500 ibv=1,2
-cddd      wc=0.
-cddd      htc=0.
-cddd      shcc=0.
-cddd      do k=2,n
-cddd        wc=wc+w(k,ibv)
-cddd        htc=htc+ht(k,ibv)
-cddd        shcc=shcc+shc(k,ibv)
-cddd      end do
-cddd      tpc=0.
-cddd      ficec=0.
-cddd      if(wc.ne.0.)  ficec=-htc/(fsn*wc)
-cddd      if(fsn*wc+htc.ge.0.)go to 3430
-cddd      tpc=(htc+wc*fsn)/(shcc+wc*shi)
-cddd      ficec=1.
-cddd      go to 3440
-cddd 3430 if(htc.le.0.) go to 3440
-cddd      tpc=htc/(shcc+wc*shw)
-cddd      ficec=0.
-cddd 3440 continue
-cddd      ftp=fb
-cddd      if(ibv.eq.2) ftp=fv
-cddd      tg2av=tg2av+tpc*ftp
-cddd      wtr2av=wtr2av+wc*ftp*1000.*(1.-ficec)
-cddd      ace2av=ace2av+wc*ftp*1000.*ficec
-cddd 3500 continue
-cddd      return
-cddd      end subroutine retp2
 
       subroutine checke(subr)
 !@sum  checke checks whether arrays are reasonable over earth
@@ -3425,33 +2993,20 @@ cddd     &         *fr_snow_ij(2,imax,jmax)
       use model_com, only : modelEclock
       use model_com, only : nday
       use fluxes, only : nisurf,focean,atmlnd
-#ifndef USE_ENT
-      use veg_com, only : vdata                 !nyk
-#endif
       use geom, only : imaxj,lat2d
       use diag_com, only : aij=>aij_loc
      *     ,tdiurn,ij_strngts,ij_dtgdts,ij_tmaxe,ij_tmaxc
      *     ,ij_tdsl,ij_tmnmx,ij_tdcomp, ij_dleaf
       use ghy_com, only : fearth, wsn_max,
      &     q_ij,dz_ij,ngm,w_ij,wfcs
-#ifdef USE_ENT
      &     ,aalbveg
-#else
-      use veg_com, only : almass,aalbveg       !nyk
-      use vegetation, only: crops_yr,cond_scheme !nyk
-#endif
       use surf_albedo, only: albvnh, updsur  !nyk
       USE DOMAIN_DECOMP_ATM, ONLY : GRID, getDomainBounds
       !use sle001, only : fb,fv,ws
       use sle001, only : get_soil_properties
-#ifdef USE_ENT
       use ent_com, only : entcells
       use ent_mod, only : ent_get_exports
       use ent_drv, only : update_vegetation_data
-#else
-      use veg_drv, only : veg_set_cell, updveg
-      use vegetation, only : t_vegcell
-#endif
       !!use ent_com, only : entcells
       !!use ent_mod, only : ent_get_exports
 
@@ -3464,12 +3019,8 @@ cddd     &         *fr_snow_ij(2,imax,jmax)
       real*8 fb, fv, ws_can
       real*8 thetm(ngm,2), thets(ngm,2), shc(ngm,2)
       integer ibv
-#ifdef USE_ENT
 !      integer hemi(1:IM,grid%J_STRT:grid%J_STOP)
 !      integer :: JEQUATOR=JM/2
-#else
-      type(t_vegcell) :: vegcell
-#endif
 C**** define local grid
       integer I_0, I_1, J_0, J_1
       real*8 ws11,ws12
@@ -3494,7 +3045,6 @@ C**** Extract useful local domain parameters from "grid"
 !!!      aalbveg(:,:) = 0.08D0
 !!!      return
 
-#ifdef USE_ENT
 C**** Update vegetation file if necessary  (i.e. if crops_yr=0)
       ! if(crops_yr.eq.0) - should be checked inside Ent
       !call ent_update_crops(jyear)
@@ -3514,18 +3064,9 @@ C**** Update vegetation file if necessary  (i.e. if crops_yr=0)
       ! we don''t use cond_scheme==1 any more, so call it always
       call updsur (0,dayOfYear)
 c****
-#else
-      if(crops_yr.eq.0) call updveg(year,.true.)
-c**** find leaf-area index & water field capacity for ground layer 1
-      if(cond_scheme.eq.2) call updsur (0,dayOfYear) ! Update vegn albedos
-#endif
       call set_roughness_length
 
             !albvnh(9,6,2)=albvnh(1+8veg,6bands,2hemi), band 1 is VIS.
-#ifndef USE_ENT
-      cosday=cos(twopi/EARTH_DAYS_PER_YEAR*dayOfYear)
-      sinday=sin(twopi/EARTH_DAYS_PER_YEAR*dayOfYear)
-#endif
       atmlnd%bare_soil_wetness(:,:) = 0.d0 ! make sure that it is initialized
       do j=J_0,J_1
         do i=I_0,I_1
@@ -3542,23 +3083,6 @@ c**** find leaf-area index & water field capacity for ground layer 1
           else
             if ( focean(i,j) >= 1.d0 ) cycle
           endif
-#ifndef USE_ENT
-            if (cond_scheme.eq.2) then
-              aalbveg0 = 0.d0
-              sfv=0.d0
-              do iv=1,11
-                if ( iv==9 .or. iv==10 ) cycle
-                fvp=vdata(i,j,iv+1)
-                sfv=sfv+fvp
-                aalbveg0 = aalbveg0 + fvp*(ALBVNH(iv+1,1,northsouth))
-                !write (99,*) 'fvp',fvp
-                !write (99,*) 'ALBVNH',ALBVNH(iv+1,1,northsouth)
-              end do
-              aalbveg(i,j) = 0.08D0
-              if(sfv.gt.0.) aalbveg(i,j) = aalbveg0/sfv !nyk
-             !write (99,*) 'daily aalbveg', aalbveg(i,j)
-            end if
-#endif
 
 !!!            call ghinij(i,j)
             do ibv=1,2
@@ -3569,16 +3093,7 @@ c**** find leaf-area index & water field capacity for ground layer 1
             call get_fb_fv( fb, fv, i, j )
 
             if ( fv > 0.d0 ) then
-#ifndef USE_ENT
-              call veg_set_cell(vegcell, i,j, 1.d0, 1.d0, .true.)
-            !call veg_set_cell(i,j, .true.)
-!!!            !ws_can = ws(0,2)
-!!!            ws_can = vegcell%ws_can
-            !ws_can = ws(0,2)
-              ws_can = vegcell%ws_can
-#else
               call ent_get_exports(entcells(i,j),canopy_max_H2O=ws_can)
-#endif
             else
               ws_can = 0.d0
             endif
@@ -3596,29 +3111,6 @@ cddd            write(934,*) "wfcs", i,j,wfcs(i,j)
      &           w_ij(1,1,i,j) / ( thets(1,1)*dz_ij(i,j,1) )
 
          !!! this diag belongs to Ent - commenting out
-#ifndef USE_ENT
-            !-----------------------------------------------------------
-            !nyk - TEMPORARY calculate change in leaf mass per day
-            !get aleafmass(i,j) at jday
-            aleafmass=
-     $           almass(1,i,j)+cosday*almass(2,i,j)+sinday*almass(3,i,j)
-
-            !Calculate dlmass(i,j) increment from last jday
-            !cosdaym1=cos(twopi/EARTH_DAYS_PER_YEAR*(jday-1))
-            !sindaym1=sin(twopi/EARTH_DAYS_PER_YEAR*(jday-1))
-            !aleafmasslast=almass(1,i,j)+cosdaym1*almass(2,i,j)+
-!     $      !     sindaym1*almass(3,i,j)
-            !accumulate dlmass
-            !adlmass = aleafmass - aleafmasslast
-            adlmass = aleafmass
-            !aij(i,j,ij_dleaf)=aij(i,j,ij_dleaf)+adlmass
-            if(end_of_day) then ! ij_dleaf not available otherwise
-              aij(i,j,ij_dleaf)=adlmass !accumulate just instant. value
-     &             *fearth(i,j)
-            !PRINT '(F4.4)',adlmass                            !DEBUG
-            !call stop_model('Just did adlmass',255)           !DEBUG
-            endif
-#endif
           !end if
         end do
       end do
@@ -3758,21 +3250,13 @@ c****
       use PBLCOM, only : roughl
       use fluxes, only : focean, flice
       use ghy_com, only : top_dev_ij
-#ifdef USE_ENT
       use ent_com, only : entcells
       use ent_mod
       use ent_drv, only : map_ent2giss !YKIM-temp hack
-#else
-      use veg_drv, only : veg_set_cell
-      use vegetation, only : t_vegcell
-      use veg_com, only : vdata
-#endif
       use pario, only : par_open,par_close,read_dist_data
       use filemanager, only : file_exists
       implicit none
-#ifdef USE_ENT
       real*8,dimension(N_COVERTYPES) :: fr_cover0, h_cover0
-#endif
       real*8 :: fr_cover(12), z0_veg
 !     original Model II (1983) values (except crops)
 !      real*8, parameter :: z0_cover(12) =
@@ -3826,15 +3310,11 @@ c****
         do i=I_0,I_1
             !if ( fearth(i,j) <= 0.d0 ) cycle
           if ( focean(i,j) >= 1.d0 ) cycle
-#ifdef USE_ENT
           call ent_get_exports( entcells(i,j),
      &         vegetation_fractions=fr_cover0,
      &         vegetation_heights=h_cover0 )
           call map_ent2giss(fr_cover0,h_cover0,fr_cover) !temp hack: ent pfts->giss veg
           vvv(i,j,:) = fr_cover(1:10)
-#else
-          fr_cover(:) = vdata(i,j,:)
-#endif
           z0_veg = (1.d0-flice(i,j))*sum( fr_cover(:)*z0_cover(:) )
      &         + flice(i,j)*0.005d0
           rrr(i,j) = max ( rrr(i,j), z0_veg )
@@ -3872,7 +3352,6 @@ c**** hack to reset roughl for non-standard land ice fractions
       subroutine accumulate_excess_C(flag)
 !@sum accumulate the increment of total carbon stored by LSM
 !@auth I. ALeinov
-#ifdef USE_ENT
       use constant, only : rhow
       use fluxes, only : focean
       use resolution, only : im,jm
@@ -3921,10 +3400,6 @@ cddd        enddo
 cddd      enddo
 cddd      counter = counter + 1
 
-#else
-      ! do nothing
-      integer, intent(in) :: flag
-#endif
       end subroutine accumulate_excess_C
 
 
@@ -4280,12 +3755,8 @@ cddd          w_stor(2) = w_stor(2) + .0001d0*alai
       use TRACER_COM, only : NTM
       use model_com, only : itime
 #endif
-#ifdef USE_ENT
       use ent_com, only : entcells
       use ent_mod, only : ent_get_exports
-#else
-      use veg_com, only : ala !,afb
-#endif
       use sle001, only : thm
       use fluxes, only : focean,DMWLDF
       USE DOMAIN_DECOMP_ATM, ONLY : GRID, getDomainBounds
@@ -4325,10 +3796,8 @@ cddd      sinday=sin(twopi/EARTH_DAYS_PER_YEAR*jday)
           dz(1:ngm) = dz_ij(i,j,1:ngm)
           q(1:imt,1:ngm) = q_ij(i,j,1:imt,1:ngm)
 
-#ifdef USE_ENT
           call ent_get_exports( entcells(i,j),
      &         canopy_heat_capacity=ht_cap(0) )
-#endif
           !fb = afb(i,j)
           !fv=1.-fb
           call get_fb_fv( fb, fv, i, j )
@@ -4352,10 +3821,6 @@ cddd      sinday=sin(twopi/EARTH_DAYS_PER_YEAR*jday)
           !!w_stor(0) = .0001d0*alai*fv
           w_stor(0) = 0.d0
 !! set above
-#ifndef USE_ENT
-          aa=ala(1,i,j)
-          ht_cap(0)=(.010d0+.002d0*aa+.001d0*aa**2)*shw_kg*rhow
-#endif
           ! we will use as a reference average temperature of the
           ! lowest layer
           call heat_to_temperature( tpb, ficeb,
@@ -4403,12 +3868,8 @@ cddd      sinday=sin(twopi/EARTH_DAYS_PER_YEAR*jday)
 !@+   returns -1d30 for a cell with no vegetation
       use constant, only : rhow, shw_kg=>shw
       use ghy_com, only : w_ij, ht_ij, fearth
-#ifdef USE_ENT
       use ent_com, only : entcells
       use ent_mod, only : ent_get_exports
-#else
-      use veg_com, only : ala
-#endif
       real*8, intent(out) :: CanTemp
       integer, intent(in) :: i, j
       real*8 :: fb, fv, fice, can_ht_cap
@@ -4424,13 +3885,8 @@ cddd      sinday=sin(twopi/EARTH_DAYS_PER_YEAR*jday)
         return
       endif
 
-#ifdef USE_ENT
       call ent_get_exports( entcells(i,j),
      &     canopy_heat_capacity=can_ht_cap )
-#else
-      aa=ala(1,i,j)
-      can_ht_cap=(.010d0+.002d0*aa+.001d0*aa**2)*shw_kg*rhow
-#endif
       call heat_to_temperature( CanTemp, fice,
      &     ht_ij(0,2,i,j), w_ij(0,2,i,j), can_ht_cap)
 
@@ -4997,26 +4453,17 @@ c     *         +flake(i,j)*sum(w_ij(0:ngm,3,i,j) )*rhow
 !@sum this is a hack to hyde dependence on Ent/non-Ent vegetation
 !@+   in most of the code. It returns fb,fv - fractions of bare and
 !@+   vegetated soil
-#ifdef USE_ENT
       use ent_com, only : entcells
       use ent_mod, only : ent_get_exports
-#else
-      use veg_com, only : afb
-#endif
       implicit none
       real*8, intent(out) :: fb, fv
       integer, intent(in) :: i, j
 
-#ifdef USE_ENT
       call ent_get_exports( entcells(i,j),
      &     fraction_of_vegetated_soil=fv )
       if ( fv > 1.d0 - 1.d-6 ) fv = 1.d0  ! get rid of round-off errors
       if ( fv < 1.d-6 ) fv = 0.d0         ! get rid of round-off errors
       fb = 1.d0 - fv
-#else
-      fb = afb(i,j)
-      fv=1.d0 - fb
-#endif
       end subroutine get_fb_fv
 
 #ifdef CACHED_SUBDD
