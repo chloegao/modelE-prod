@@ -371,6 +371,15 @@ C**** Surface concentration by volume (units kg/m^3)
         scale_tij(k,n)=MMR_to_VMR(n)*10.**(-ijtc_power(n))/
      *                 REAL(NIsurf,KIND=8)
       endif ! if (src_dist_index(n)<=1) then
+C**** Tropopause flux Diagnostics
+        k = k+1
+        tij_strop = k
+        write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
+     *     '_StratTropflux'
+        write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
+     *       ' Flux Tropopause'
+        units_tij(k,n) = unit_string(ijtc_power(n),'kg/m^2/s')
+        scale_tij(k,n)=10.**(-ijtc_power(n))
 #ifdef TRACERS_WATER
 C**** the following diagnostics are set assuming that the particular
 C**** tracer exists in water.
@@ -696,6 +705,42 @@ C**** trflux1 is total flux into first layer
       end do
       RETURN
       END SUBROUTINE sum_prescribed_tracer_2Dsources
+
+      SUBROUTINE set_strattroptracer_diag(dtstep)
+!@sum safe Tracer Fluxes at the Tropopause
+!@auth Susanne Bauer
+      USE GEOM, only : imaxj,byaxyp
+      USE TRACER_COM, only : NTM
+      USE TRDIAG_COM, only : taijn=>taijn_loc
+      USE TRDIAG_COM, only : TSCF3D=>tscf3d_loc
+      USE TRDIAG_COM, only : tij_strop
+      USE ATM_COM,    only : LTROPO
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID, getDomainBounds
+
+      IMPLICIT NONE
+      INTEGER n,j,i
+      REAL*8, INTENT(IN) :: dtstep
+      INTEGER :: J_0, J_1, I_0, I_1
+
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+
+#ifndef SKIP_TRACER_DIAGS
+      do j=j_0,j_1
+      do i=i_0,imaxj(j)
+      do n=1,ntm
+      taijn(i,j,tij_strop,n) = taijn(i,j,tij_strop,n)
+     &         + TSCF3D(i,j,ltropo(i,j),n)*byaxyp(i,j)/dtstep
+
+      end do ! tracer n
+      enddo
+      enddo
+#endif /*SKIP_TRACER_DIAGS*/
+
+
+      RETURN
+      END SUBROUTINE set_strattroptracer_diag
 
       SUBROUTINE apply_tracer_2Dsource(dtstep)
 !@sum apply_tracer_2Dsource adds surface sources to tracers

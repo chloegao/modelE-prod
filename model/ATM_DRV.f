@@ -284,6 +284,7 @@ C**** Calculate non-interactive tracer surface sources and sinks
          CALL TIMER (NOW,MTRACE)
 C**** Add up the non-interactive tracer surface sources.
       call sum_prescribed_tracer_2Dsources(dtsrc)
+      call set_strattroptracer_diag(dtsrc)
 #endif
 
       call atm_phase1_exports
