@@ -1943,7 +1943,7 @@ C**** lower levels
           HICE(1)=HICE(1) - FHSI1
           HICE(2)=HICE(2) + FHSI1
 #ifdef TRACERS_WATER
-          FTRSI1(:) = (FMSI0 - MICE(2))*TRICE(1)/MICE(1)
+          FTRSI1(:) = (FMSI0 - MICE(2))*TRICE(:,1)/MICE(1)
           TRICE(:,1)=TRICE(:,1)-FTRSI1(:)
           TRICE(:,2)=TRICE(:,2)+FTRSI1(:)
 #endif
@@ -1955,7 +1955,7 @@ C**** lower levels
           HICE(1)=HICE(1) + FHSI1
           HICE(2)=HICE(2) - FHSI1
 #ifdef TRACERS_WATER
-          FTRSI1(:) = (MICE(2)-FMSI0)*TRICE(2)/MICE(1)
+          FTRSI1(:) = (MICE(2)-FMSI0)*TRICE(:,2)/MICE(2)
           TRICE(:,1)=TRICE(:,1)+FTRSI1(:)
           TRICE(:,2)=TRICE(:,2)-FTRSI1(:)
 #endif
@@ -1976,16 +1976,16 @@ C**** lower levels
           HSNOW(2)=HSNOW(2)+FHSI1
           HSNOW(1)=HSNOW(1)-FHSI1
 #ifdef TRACERS_WATER
-          TRSNOW(:,2)=TRSNOW(:,2)+(SNOWL(1)-FMSI0)*TRSNOW(1)/SNOWL(1)
-          TRSNOW(:,1)=TRSNOW(:,1)-(SNOWL(1)-FMSI0)*TRSNOW(1)/SNOWL(1)
+          TRSNOW(:,2)=TRSNOW(:,2)+(SNOWL(1)-FMSI0)*TRSNOW(:,1)/SNOWL(1)
+          TRSNOW(:,1)=TRSNOW(:,1)-(SNOWL(1)-FMSI0)*TRSNOW(:,1)/SNOWL(1)
 #endif
         ELSE
           FHSI1 = (FMSI0-SNOWL(1))*HSNOW(2)/SNOWL(2)
           HSNOW(2)=HSNOW(2)-FHSI1
           HSNOW(1)=HSNOW(1)+FHSI1
 #ifdef TRACERS_WATER
-          TRSNOW(:,2)=TRSNOW(:,2)-(FMSI0-SNOWL(1))*TRSNOW(2)/SNOWL(2)
-          TRSNOW(:,1)=TRSNOW(:,1)+(FMSI0-SNOWL(1))*TRSNOW(2)/SNOWL(2)
+          TRSNOW(:,2)=TRSNOW(:,2)-(FMSI0-SNOWL(1))*TRSNOW(:,2)/SNOWL(2)
+          TRSNOW(:,1)=TRSNOW(:,1)+(FMSI0-SNOWL(1))*TRSNOW(:,2)/SNOWL(2)
 #endif
         ENDIF
         SNOWL(2)=SNOWL(1)+SNOWL(2)-FMSI0
