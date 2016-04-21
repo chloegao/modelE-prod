@@ -8018,6 +8018,7 @@ C**** at the start of any day
     (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_TOMAS)
       USE apply3d, only : apply_tracer_3Dsource
       USE RAD_COM,  only : cosz1,cosz_day
+      use tracer_com, only: seasonalNH3src
 #endif
 #ifdef TRACERS_AMP
       USE AERO_SETUP, only : RECIP_PART_MASS
@@ -8054,7 +8055,6 @@ c      real*8 :: nlight, max_COSZ1, fact0
 !@+ both tracers, and organics, where emissions of C are multiplied with OM/OC
       real*8 :: src_fact
 #endif
-      integer :: seasonalNH3src=0
 
 #ifdef TRACERS_TERP
 !@param orvoc_fact Fraction of ORVOC added to Terpenes, for SOA production (Griffin et al., 1999)
@@ -8711,19 +8711,22 @@ C****
 #ifdef DYNAMIC_BIOMASS_BURNING
         if(do_fire(n))call dynamic_biomass_burning(n,ntsurfsrc(n)+1) 
 #endif
-        call sync_param("seasonalNH3src", seasonalNH3src)
-        do ns=1,ntsurfsrc(n); do j=J_0,J_1; do i=I_0,I_1
-        ! add annual cycle to agricultural emissions
-        if (ns == seasonalNH3src) then
-          if (cosz1(i,j) > 0.) then
-          trsource(i,j,ns,n)=sfc_src(i,j,n,ns)
-     &      *axyp(i,j)* cosz1(i,j) * 4.d0
+        do ns=1,ntsurfsrc(n)
+          if (ns == seasonalNH3src) then
+! add annual cycle to agricultural emissions
+            do j=J_0,J_1; do i=I_0,I_1
+              if (cosz1(i,j) > 0.) then
+                trsource(i,j,ns,n)=sfc_src(i,j,n,ns)
+     &            *axyp(i,j)*cosz1(i,j)*4.d0
+              else
+                trsource(i,j,ns,n)=0.d0
+              endif
+            enddo; enddo
+          else
+            trsource(:,J_0:J_1,ns,n)=sfc_src(:,J_0:J_1,n,ns)
+     &        *axyp(:,J_0:J_1) 
           endif
-        else
-          trsource(:,J_0:J_1,ns,n)=sfc_src(:,J_0:J_1,n,ns)
-     &      *axyp(:,J_0:J_1) 
-        endif
-        enddo ; enddo ; enddo
+        enddo
 
 #endif /* TRACERS_NITRATE || TRACERS_AMP || TRACERS_TOMAS */
 #endif /* (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) || (defined TRACERS_TOMAS) */

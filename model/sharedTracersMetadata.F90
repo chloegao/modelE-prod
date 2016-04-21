@@ -26,7 +26,7 @@ module sharedTracersMetadata_mod
   use OldTracer_mod, only: HSTAR
   use OldTracer_mod, only: ngas, nPART
   use OldTracer_mod, only: set_emisPerFireByVegType
-  use TRACER_COM, only : set_ntsurfsrc, whichEPFCs
+  use TRACER_COM, only : set_ntsurfsrc, whichEPFCs, seasonalNH3src
   use TRACER_COM, only: n_H2O2, n_NH3,  n_NH4, n_DMS, n_SO2, n_H2O2_s, &
     n_CH4, n_N2O, n_Rn222
   use Dictionary_mod, only: sync_param
@@ -138,6 +138,7 @@ contains
     call set_tr_DHD(n, -2.84d4  ) !tr_DHD=-6.80 kcal/mole
     call set_tr_wd_type(n, ngas)
     if (tracers_drydep) call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
+    call sync_param("seasonalNH3src", seasonalNH3src)
 #ifdef DYNAMIC_BIOMASS_BURNING
     if (dynamic_biomass_burning) then
       ! 12 below are the 12 VDATA veg types or Ent remapped to them,

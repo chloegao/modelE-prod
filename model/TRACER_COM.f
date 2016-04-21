@@ -69,6 +69,9 @@ c
 
 !@dbparam whichEPFCs choses emisPerFireByVegType calibration: 1=AR5, 2=GFED3, 3=GFED2, 4=MOPITT
       integer :: whichEPFCs = 1 
+!@dbparam seasonalNH3src Defines the NH3 input file that a seasonal
+!@+                      variability should be imposed, NH3_XX
+      integer :: seasonalNH3src=0
 
 C**** Each tracer has a variable name and a unique index
 !@var NTM number of tracers
