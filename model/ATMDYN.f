@@ -3045,6 +3045,9 @@ C****
       Use GEOM,       Only: AXYP
       USE TRACER_ADV, only:
      *    AADVQ,AADVQ0,sbf,sbm,sfbm,scf,scm,sfcm,ncyc
+#ifndef TRACERS_OceanBiology
+     *    ,scf3d
+#endif
       USE DOMAIN_DECOMP_ATM, only: grid, getDomainBounds
       USE DOMAIN_DECOMP_1D, only : halo_update, south, north
       IMPLICIT NONE
@@ -3104,6 +3107,9 @@ C****
       USE TRACER_ADV
 #ifndef SKIP_TRACER_DIAGS
       USE TRDIAG_COM, only: TAJLN=>TAJLN_loc, TAIJN=>TAIJN_LOC,
+#ifndef TRACERS_OceanBiology
+     *     TSCF3D=>TSCF3D_loc,
+#endif      
      *     jlnt_nt_tot,jlnt_nt_mm,jlnt_vt_tot,jlnt_vt_mm,
      *     tij_uflx,tij_vflx
 #endif
@@ -3128,7 +3134,9 @@ C**** Flux diagnostics
         TAJLN(:,:,jlnt_vt_tot,n) = TAJLN(:,:,jlnt_vt_tot,n) + scf(:,:)
         TAJLN(:,:,jlnt_vt_mm, n) = TAJLN(:,:,jlnt_vt_mm, n)
      &    + scm(:,:)*sfcm(:,:)*byim
-
+#ifndef TRACERS_OceanBiology
+        TSCF3D(:,:,:,n) = scf3d(:,:,:)
+#endif     
 #ifdef TRACERS_WATER
 C**** vertically integrated atmospheric fluxes
         TAIJN(:,:,tij_uflx,n) = TAIJN(:,:,tij_uflx,n) + safv(:,:)

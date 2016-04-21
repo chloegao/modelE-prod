@@ -121,7 +121,6 @@ ccc TRSNOWBV is not used
 !@var ntixw index array for tracers (shared by OMP threads)
 !!      integer ntixw(ntm)
 #endif
-#ifdef USE_ENT
 ccc stuff that got back from VEG_COM, maybe should be relocated to Ent
 !@var Cint Internal foliage CO2 concentration (mol/m3)
       real*8, ALLOCATABLE, dimension(:,:) :: Ci_ij
@@ -133,7 +132,6 @@ ccc stuff that got back from VEG_COM, maybe should be relocated to Ent
 !@var aalbveg vegetation albedo, eventually should be moved to a
 !@+   better place DO WE NEED THIS ???
       real*8, ALLOCATABLE, dimension(:,:) :: aalbveg
-#endif
 
 !@var soil_surf_moist near surf soil moisture (kg/m^3) for subdd
       real*8, ALLOCATABLE, dimension(:,:) :: soil_surf_moist
@@ -218,13 +216,11 @@ cddd     *         STAT=IER)
       ALLOCATE(      SNOWD(2,I_0H:I_1H,J_0H:J_1H),
      *         STAT=IER)
 
-#ifdef USE_ENT
       ALLOCATE(     aalbveg(I_0H:I_1H,J_0H:J_1H),
      *              Ci_ij(I_0H:I_1H,J_0H:J_1H),
      *              Qf_ij(I_0H:I_1H,J_0H:J_1H),
      *              cnc_ij(I_0H:I_1H,J_0H:J_1H),
      *           STAT=IER)
-#endif
 
 C**** Initialize evaporation limits
       evap_max_ij(:,J_0H:J_1H)=-1.
@@ -929,7 +925,6 @@ c      END SUBROUTINE io_earth
       end subroutine new_io_snow
 #endif /* NEW_IO */
 
-#ifdef USE_ENT
       subroutine io_veg_related(kunit,iaction,ioerr)
 !@sum  reads and writes data needed to drive vegetation module
 !@auth I. Aleinov
@@ -1058,4 +1053,3 @@ c      END SUBROUTINE io_earth
       end subroutine new_io_veg_related
 #endif /* NEW_IO */
 
-#endif

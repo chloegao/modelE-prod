@@ -18,6 +18,8 @@
 C**** zonal mean diags
       REAL*8,  ALLOCATABLE, DIMENSION(:,:)   :: sfbm,sbm,sbf,
      *                                          sfcm,scm,scf
+C**** 3d diags
+      REAL*8,  ALLOCATABLE, DIMENSION(:,:,:)   :: scf3d
 C**** vertically integrated horizontal fluxes
       REAL*8,  ALLOCATABLE, DIMENSION(:,:)   :: safv,sbfv
 
@@ -237,10 +239,12 @@ c when flow out both sides would cause negative tracer mass, modify moments
               CALL AADVQZ(RM(1,j_0h,l-1),RMOM(1,1,j_0h,l-1),
      &             MMA(1,j_0h,l-1),SD(1,j_0h,L-1),mwdn,fdn,fmomdn,fdn0
      &             ,scf(j_0h,l-1),scm(j_0h,l-1),sfcm(j_0h,l-1))
+           scf3d(:,:,l-1)=fdn(:,:)
             else
               CALL AADVQZ2(RM(1,j_0h,l-1),RMOM(1,1,j_0h,l-1),
      &             MMA(1,j_0h,l-1),SD(1,j_0h,L-1),mwdn,fdn,fmomdn!,fdn0
      &             ,scf(j_0h,l-1),scm(j_0h,l-1),sfcm(j_0h,l-1))
+            scf3d(:,:,l-1)=fdn(:,:)
             endif
           endif
 
@@ -960,7 +964,7 @@ C****
      &     )
 
       allocate(mw_extra(im,j_0h:j_1h,lm))
-
+      allocate(scf3d(im,j_0h:j_1h,lm))
       allocate(ni_checkfobs_y(j_0h:j_1h,lm))
       allocate(ni_checkfobs_z(j_0h:j_1h,lm))
       allocate(i_checkfobs_y(im,j_0h:j_1h,lm))

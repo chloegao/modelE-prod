@@ -1927,9 +1927,80 @@ C**** lower levels
       REAL*8, INTENT(INOUT) :: TRSNOW(NTM,2),TRICE(NTM,LMI)
       REAL*8 FTRSI1(NTM)
 #endif 
-      REAL*8 FMSI1,FHSI1,FSSI1
+      REAL*8 FMSI1,FHSI1,FSSI1,FMSI0
 
       FMSI1 = SNOWL(1)+MICE(1)-XSI(1)*(SNOWL(1)+SNOWL(2)+ACE1I)
+
+      IF(dabs(FMSI1).LT.1.d-10) FMSI1=0.
+
+      FMSI0=XSI(1)*(SNOWL(1)+SNOWL(2)+ACE1I)
+      IF(SNOWL(2).GT.0..AND.MICE(1)+MICE(2).GT.FMSI0) THEN
+        IF(FMSI0.GT.MICE(2)) THEN
+          FSSI1 = (FMSI0 - MICE(2))*SICE(1)/MICE(1)
+          FHSI1 = (FMSI0 - MICE(2))*HICE(1)/MICE(1)
+          SICE(1)=SICE(1) - FSSI1
+          SICE(2)=SICE(2) + FSSI1
+          HICE(1)=HICE(1) - FHSI1
+          HICE(2)=HICE(2) + FHSI1
+#ifdef TRACERS_WATER
+          FTRSI1(:) = (FMSI0 - MICE(2))*TRICE(:,1)/MICE(1)
+          TRICE(:,1)=TRICE(:,1)-FTRSI1(:)
+          TRICE(:,2)=TRICE(:,2)+FTRSI1(:)
+#endif
+        ELSE
+          FSSI1 = (MICE(2) - FMSI0)*SICE(2)/MICE(2)
+          FHSI1 = (MICE(2) - FMSI0)*HICE(2)/MICE(2)
+          SICE(1)=SICE(1) + FSSI1
+          SICE(2)=SICE(2) - FSSI1
+          HICE(1)=HICE(1) + FHSI1
+          HICE(2)=HICE(2) - FHSI1
+#ifdef TRACERS_WATER
+          FTRSI1(:) = (MICE(2)-FMSI0)*TRICE(:,2)/MICE(2)
+          TRICE(:,1)=TRICE(:,1)+FTRSI1(:)
+          TRICE(:,2)=TRICE(:,2)-FTRSI1(:)
+#endif
+        ENDIF
+        MICE(1)=MICE(1)+MICE(2)-FMSI0
+        MICE(2)=FMSI0
+        SNOWL(1)=SNOWL(1)+SNOWL(2)
+        SNOWL(2)=0.
+        HSNOW(1)=HSNOW(1)+HSNOW(2)
+        HSNOW(2)=0.
+#ifdef TRACERS_WATER
+        TRSNOW(:,1)=TRSNOW(:,1)+TRSNOW(:,2)
+        TRSNOW(:,2)=0.
+#endif
+      ELSEIF(MICE(1).GT.0..AND.MICE(1)+MICE(2).LT.FMSI0) THEN
+        IF(FMSI0.LT.SNOWL(1)) THEN
+          FHSI1 = (SNOWL(1)-FMSI0)*HSNOW(1)/SNOWL(1)
+          HSNOW(2)=HSNOW(2)+FHSI1
+          HSNOW(1)=HSNOW(1)-FHSI1
+#ifdef TRACERS_WATER
+          TRSNOW(:,2)=TRSNOW(:,2)+(SNOWL(1)-FMSI0)*TRSNOW(:,1)/SNOWL(1)
+          TRSNOW(:,1)=TRSNOW(:,1)-(SNOWL(1)-FMSI0)*TRSNOW(:,1)/SNOWL(1)
+#endif
+        ELSE
+          FHSI1 = (FMSI0-SNOWL(1))*HSNOW(2)/SNOWL(2)
+          HSNOW(2)=HSNOW(2)-FHSI1
+          HSNOW(1)=HSNOW(1)+FHSI1
+#ifdef TRACERS_WATER
+          TRSNOW(:,2)=TRSNOW(:,2)-(FMSI0-SNOWL(1))*TRSNOW(:,2)/SNOWL(2)
+          TRSNOW(:,1)=TRSNOW(:,1)+(FMSI0-SNOWL(1))*TRSNOW(:,2)/SNOWL(2)
+#endif
+        ENDIF
+        SNOWL(2)=SNOWL(1)+SNOWL(2)-FMSI0
+        SNOWL(1)=FMSI0
+        HICE(2)=HICE(2)+HICE(1)
+        HICE(1)=0.
+        SICE(2)=SICE(2)+SICE(1)
+        SICE(1)=0.
+        MICE(2)=MICE(2)+MICE(1)
+        MICE(1)=0.
+#ifdef TRACERS_WATER
+        TRICE(:,2) = TRICE(:,1)+TRICE(:,2)
+        TRICE(:,1) = 0.
+#endif
+      ELSE
 
       IF (FMSI1.gt.0) THEN  ! flux from layer 1 to layer 2
         IF (MICE(1).gt.0) THEN ! flux ice and check for enough
@@ -2025,6 +2096,8 @@ c           FSSI1 = 0.
             HSNOW(2)=HSNOW(2)+FHSI1
           END IF
         END IF
+      END IF
+
       END IF
       
       return

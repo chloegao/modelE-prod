@@ -7,7 +7,7 @@ module SystemTools
   implicit none
   private
 
-  public stFileList
+  public stFileList, stLinkStatus
 
   interface
      function c_field_list(dir,list,nl,ls) &
@@ -20,6 +20,16 @@ module SystemTools
        integer (c_int), value :: ls
      end function c_field_list
   end interface
+
+  interface
+     function c_link_status(path) &
+          bind(C,name='c_link_status')
+       use iso_c_binding, only : c_ptr, c_int
+       integer (c_int) :: c_link_status
+       type (c_ptr), value :: path
+     end function c_link_status
+  end interface
+
 contains
 
   subroutine stFileList(dir,list,num)
@@ -68,5 +78,23 @@ contains
 
   end subroutine stFileList
 
+
+  subroutine stLinkStatus(path, status)
+!@sum returns the status of the file specified by "path" (if "path" is a
+!@+ symbolic link it is followed to the actual file):
+!@+ 1 - regular file
+!@+ 2 - directory
+!@+ 0 - file exists, but is nether regular file or directory
+!@+ -1 - file doesn't exist or reading error
+    use iso_c_binding, only : C_NULL_CHAR, c_loc
+    character*(*) :: path
+    integer status
+    !---
+    character(len=len(path)+1), target :: path0
+
+    path0 = trim(path)//C_NULL_CHAR
+    status = c_link_status( c_loc(path0(1:1)) )
+
+  end subroutine stLinkStatus
 
 end module SystemTools

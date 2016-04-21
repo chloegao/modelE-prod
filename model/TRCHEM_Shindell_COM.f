@@ -384,6 +384,10 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@+ model layers.
 !@var ClOx_old total ClOx at start of chemical timestep
 !@var aero yes(1) or no(0) tag of non-zero rkext from Crates
+#ifdef SMOOTH_SUNLIGHT_CHEMISTRY
+!@var mostRecentNonZeroAlbedo remembers last time that ALB(I,J,1) was non-zer
+!@+ for given I,J point (saved in rsf for reproducibilty purposes)
+#endif
       INTEGER :: L75P,L75M,L569P,L569M,
      &lprn,jprn,iprn,MIEDX,NCFASTJ,topLevelOfChemistry
       INTEGER, DIMENSION(numfam+1)     :: nfam = 
@@ -408,6 +412,9 @@ C**************  Latitude-Dependant (allocatable) *******************
      &                                       ,N2OICIN,CFCICIN
       REAL*8, ALLOCATABLE, DIMENSION(:,:):: sOx_acc,sNOx_acc,sCO_acc,
      & l1Ox_acc,l1NO2_acc,save_NO2column
+#ifdef SMOOTH_SUNLIGHT_CHEMISTRY
+      REAL*8, ALLOCATABLE, DIMENSION(:,:):: mostRecentNonZeroAlbedo
+#endif
 
 C**************  Not Latitude-Dependant ****************************      
       REAL*8 :: XLTAU,BYFJM,
@@ -454,6 +461,10 @@ C**************  Not Latitude-Dependant ****************************
      & OxlossbyH,pscX,nc,n_rx,p_2,ny,changeL,rh,bythick,ClOx_old,aero
 
       use TRCHEM_Shindell_COM, only: topLevelOfChemistry ! define here
+
+#ifdef SMOOTH_SUNLIGHT_CHEMISTRY
+      use TRCHEM_Shindell_COM, only: mostRecentNonZeroAlbedo
+#endif
 
       IMPLICIT NONE
 
@@ -563,6 +574,11 @@ C**************  Not Latitude-Dependant ****************************
       allocate(   l1NO2_acc(I_0H:I_1H,J_0H:J_1H)         )
 
       sOx_acc=0.; sNOx_acc=0.; sCO_acc=0.; l1Ox_acc=0. ; l1NO2_acc=0.
+
+#ifdef SMOOTH_SUNLIGHT_CHEMISTRY
+      allocate( mostRecentNonZeroAlbedo(I_0H:I_1H,J_0H:J_1H))
+      mostRecentNonZeroAlbedo=0.d0
+#endif
       
       return
       end subroutine alloc_trchem_shindell_com
