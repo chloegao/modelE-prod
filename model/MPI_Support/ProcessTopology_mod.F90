@@ -33,12 +33,16 @@ module ProcessTopology_mod
 
   interface newProcessTopology
     module procedure newProcessTopology_serial
+#ifdef USE_MPI
     module procedure newProcessTopology_mpi
+#endif
   end interface
 
   interface amRoot
     module Procedure amRoot_serial
+#ifdef USE_MPI
     module Procedure amRoot_mpi
+#endif
   end interface
 
 contains
@@ -55,6 +59,7 @@ contains
 
   end function newProcessTopology_serial
 
+#ifdef USE_MPI
   function newProcessTopology_mpi(communicator, partition) result (this)
     type (ProcessTopology_type) :: this
     integer, intent(in) :: communicator
@@ -74,11 +79,13 @@ contains
     this%rankTopology(3) = this%rank/(partition(1)*partition(2))
 
   end function newProcessTopology_mpi
+#endif
 
   logical function amRoot_serial() result(amRoot)
     amRoot = .true.
   end function amRoot_serial
 
+#ifdef USE_MPI
   logical function amRoot_mpi(this) result(amRoot)
     type (ProcessTopology_type), intent(in) :: this
     !    if (this%useMPI) then
@@ -88,6 +95,7 @@ contains
     !    end if
 
   end function amRoot_mpi
+#endif
 
   function getNeighborRank_util(partition, rank, direction) result(neighborRank)
     integer, intent(in) :: partition(NUM_DIMENSIONS)

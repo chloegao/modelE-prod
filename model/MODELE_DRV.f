@@ -1,11 +1,5 @@
 #include "rundeck_opts.h"
       subroutine modelE_mainDriver()
-      use iso_c_binding
-
-      interface
-        subroutine libmodele_refaddr() bind(C)
-        end subroutine
-      end interface
 
 !@sum Acquire configuration options from the command line and pass to
 !@+ the model.
@@ -26,9 +20,6 @@ C**** Command line options
         call getarg(i, arg)
         print *,'ARG ', trim(arg)
       end do
-
-      ! Set up to properly interpret stack traces
-      call libmodele_refaddr()
 
       call read_options(qcRestart, coldRestart, iFile )
       call GISS_modelE(qcRestart, coldRestart, iFile)
