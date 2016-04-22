@@ -24,7 +24,7 @@ C
      &  n_CH4,n_CH3OOH,n_Paraffin,n_PAN,n_Isoprene,n_stratOx,
      &  n_Terpenes,n_AlkylNit,n_Alkenes,n_N2O5,n_NOx,n_HO2NO2,
      &  n_isopp1g,n_isopp1a,n_isopp2g,n_isopp2a,n_apinp1g,
-     &  n_apinp1a,n_apinp2g,n_apinp2a,n_Ox,n_HNO3,n_H2O2,n_CO,n_HCHO,
+     &  n_apinp1a,n_apinp2g,n_apinp2a,n_Ox,n_HNO3,n_H2O2,n_CO,
      &  trm,NTM,n_N2O,n_ClOx,n_BrOx,n_HCl,n_HOCl,n_ClONO2,n_HBr,
      &  n_HOBr,n_BrONO2,n_CFC
 #ifdef TRACERS_WATER
