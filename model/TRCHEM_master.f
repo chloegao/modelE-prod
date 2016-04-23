@@ -186,7 +186,8 @@ C**** Local parameters and variables and arguments:
 #ifdef TRACERS_TERP
       integer, parameter :: iTerpenesO3=93,iTerpenesNO3=94
 #endif  /* TRACERS_TERP */
-      integer, parameter :: iN2O5plusH2O=106+n_bi_terp+n_bi_dCO,
+      integer, parameter :: iAlkenesO3=35,
+     &                      iN2O5plusH2O=106+n_bi_terp+n_bi_dCO,
      &                      iNO3plusNO2=100+n_bi_terp+n_bi_dCO,
      &                      iN2O5decomp=93+n_bi_terp+n_bi_dCO,
      &                      iClOplusNO2=104+n_bi_terp+n_bi_dCO,
@@ -1026,7 +1027,7 @@ C Alkenes, Isoprene, Terpenes (if used) and AlkylNit:
 #ifdef TRACERS_TERP
      &                +rr(iTerpenesO3,L)*y(nn_Terpenes,L)
 #endif  /* TRACERS_TERP */
-     &                -rr(35,L)*y(nn_Alkenes,L))*
+     &                -rr(iAlkenesO3,L)*y(nn_Alkenes,L))*
      &               y(nO3,L)*dt2
         if(-changeAlkenes > 0.75d0*y(nn_Alkenes,L))changeAlkenes=
      &  -0.75d0*y(nn_Alkenes,L)
@@ -1086,7 +1087,7 @@ C Alkenes, Isoprene, Terpenes (if used) and AlkylNit:
 #ifdef TRACERS_TERP
      &                         +rr(iTerpenesO3,L)*y(nn_Terpenes,L)*0.9d0
 #endif  /* TRACERS_TERP */
-     &             +rr(35,L)*y(nn_Alkenes,L))*y(nO3,L)*0.64d0*dt2
+     &            +rr(iAlkenesO3,L)*y(nn_Alkenes,L))*y(nO3,L)*0.64d0*dt2
 
         changeAlkylNit=rIsopplusNO3*0.9d0
 #ifdef TRACERS_TERP
@@ -1664,7 +1665,7 @@ c           Conserve N wrt BrONO2 once inital Br changes past:
 
         !chemical_destruction_rate_of_ozone_by_Alkenes:
         taijls(i,j,l,ijlt_OxlALK)=taijls(i,j,l,ijlt_OxlALK)+
-     &  rr(35,l)*y(nn_Alkenes,l)*y(nO3,l)*cpd ! (positive)
+     &  rr(iAlkenesO3,l)*y(nn_Alkenes,l)*y(nO3,l)*cpd ! (positive)
 
         !Save 3D NO2 separately from NOx (pppv here):
         ! need to add NOx change to match the NOx tracer diag:
