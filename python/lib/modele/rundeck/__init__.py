@@ -5,6 +5,7 @@ import sys
 from modele import pathutil
 import copy
 import urllib2
+from modele import xhash
 
 # parameter types
 GENERAL = 'GENERAL'
@@ -161,6 +162,11 @@ class Build(object):
 
         self.defines = dict()    # Preprocessor Options
 
+    def update_hash(self, hash):
+        xhash.update(self.sources, hash)
+        xhash.update(self.components, hash)
+        xhash.update(self.defines, hash)
+
     def add_legacy(self, legacy):
         for src in legacy['Object Modules']:
             self.sources.add(src)
@@ -172,7 +178,7 @@ class Build(object):
         for component,options in legacy['Component Options']:
             if component not in self.components:
                 raise ValueError('Options found for non-existant component %s' % component)
-            self.components[component] = options
+            self.components[component] = dict(options)
 
 
 
@@ -244,6 +250,8 @@ class Rundeck(object):
         self.params = Params(self.file_path, auto_download=auto_download)
         self.build = Build()
 
+    def update_hash(self, hash):
+        xhash.update(self.build, hash)
 
     def set(self, name, type, value):
         if id(type) == id(FILE):
