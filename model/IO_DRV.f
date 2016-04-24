@@ -5,6 +5,7 @@
 !@auth M. Kelley
 !@ver  beta.
 
+      use iso_c_binding, only: C_CHAR, C_NULL_CHAR
 C**** For all iaction < 0  ==> WRITE, For all iaction > 0  ==> READ
       USE DOMAIN_DECOMP_ATM, only : grid,am_i_root
       USE MODEL_COM, only : ioread_single,iowrite_single,irerun,
@@ -14,7 +15,20 @@ C**** For all iaction < 0  ==> WRITE, For all iaction > 0  ==> READ
 #ifdef TRACERS_OceanBiology
       use obio_diag, only: new_io_obio_diag
 #endif
+
       IMPLICIT NONE
+
+      interface
+        ! see: man 2 rename
+        subroutine rename_c(oldpath,newpath) bind(C, name="rename")
+          use iso_c_binding, only: c_char
+          character(kind=c_char) :: oldpath(*)
+          character(kind=c_char) :: newpath(*)
+        end subroutine rename_c
+      end interface
+
+
+
 !@var fname name of file to be read or written
       character(len=*) :: fname
 !@var iaction flag for reading or writing rsf file
@@ -122,8 +136,9 @@ c
       call par_close(grid,fid)
 
       if(iaction.eq.iowrite .and. am_i_root()) then
-        call execute_command_line
-     &    ('mv checkpoint.nc '//trim(fname)//'.nc')
+        call rename_c(
+     &      C_CHAR_'checkpoint.nc'//C_NULL_CHAR,
+     &      C_CHAR_''//trim(fname)//'.nc'//C_NULL_CHAR)
       endif
 
       RETURN
