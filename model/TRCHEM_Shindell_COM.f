@@ -69,8 +69,8 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
      & n_bi_terp = 0,
 #endif  /* TRACERS_TERP */
 #ifdef TRACERS_dCO
-     & n_bi_dCO = 12, ! number of dCO bimolecular reactions
-     & jppj_dCO = 9,  ! number of dCO photochemical reactions
+     & n_bi_dCO = 51, ! number of dCO bimolecular reactions
+     & jppj_dCO = 15, ! number of dCO photochemical reactions
 #else
      & n_bi_dCO = 0,
      & jppj_dCO = 0,

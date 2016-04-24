@@ -231,12 +231,12 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
 
 #ifdef V2_BUGS_TEMPORARY
         cqqz=(2.d0*ss(4,L,I,J)*y(nn_H2O2,L)+ss(9,L,I,J)*y(nn_HNO3,L)+
-     &  ss(13,L,I,J)*y(nn_HCHO,L)+ss(14,L,I,J)*y(nn_CH3OOH,L)+
+     &  ss(13,L,I,J)*y(nn_HCHO,L)+ss(14,L,I,J)*y(nn_CH3OOH,L)+ ! CO isotopes should not go here
      &  (rr(20,L)*y(nNO,L)+0.66d0*rr(27,L)*yCH3O2(I,J,L))
      &  *yCH3O2(I,J,L))
 #else
         cqqz=(2.d0*(ss(4,L,I,J)*y(nn_H2O2,L))+ss(9,L,I,J)*y(nn_HNO3,L)+
-     &  2.d0*(ss(13,L,I,J)*y(nn_HCHO,L))+2.d0*ss(14,L,I,J)*
+     &  2.d0*(ss(13,L,I,J)*y(nn_HCHO,L))+2.d0*ss(14,L,I,J)* ! CO isotopes should not go here
      &  y(nn_CH3OOH,L)+(rr(20,L)*y(nNO,L)+0.66d0*(rr(27,L)*
      &  yCH3O2(I,J,L)))*yCH3O2(I,J,L))
 #endif
@@ -247,7 +247,7 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
      &  y(nO1D,L))
      &  +ss(16,L,I,J)*y(nAldehyde,L)*2.d0+(rr(39,L)*y(nNO,L)
      &  +rr(40,L)*y(nC2O3,L)*2.d0)*y(nC2O3,L)
-     &  +(rr(42,L)*0.94d0+1.6d3)*y(nROR,L)+rr(35,L)*y(nn_Alkenes,L)
+     &  +(rr(42,L)*0.94d0+1.6d3)*y(nROR,L)+rr(35,L)*y(nn_Alkenes,L) ! CO isotopes should not go here
      &  *y(nO3,L)*0.65d0+rr(31,L)*y(nn_Isoprene,L)*y(nO3,L)*0.58d0
 #ifdef TRACERS_TERP
      &  +rr(iTerpenesO3,L)*y(nn_Terpenes,L)*y(nO3,L)*0.58d0
@@ -263,9 +263,9 @@ c Now partition HOx into OH and HO2:
         cz=rr(2,L)*y(nO3,L)+rr(13,L)*y(nn_CO,L) ! CO isotopes should not go here
      &  +rr(14,L)*y(nn_H2O2,L)+rr(19,L)*y(nH2,L)
 #ifdef V2_BUGS_TEMPORARY
-     &  +rr(21,L)*y(nn_HCHO,L)+rr(37,L)*y(nn_Paraffin,L)*
+     &  +rr(21,L)*y(nn_HCHO,L)+rr(37,L)*y(nn_Paraffin,L)* ! CO isotopes should not go here
 #else
-     &  +rr(21,L)*y(nn_HCHO,L)+rr(37,L)*y(nn_Paraffin,L)
+     &  +rr(21,L)*y(nn_HCHO,L)+rr(37,L)*y(nn_Paraffin,L) ! CO isotopes should not go here
 #endif
      &  *0.11d0+rr(30,L)*y(nn_Isoprene,L)*0.85d0
 #ifdef TRACERS_TERP
@@ -358,7 +358,7 @@ c Now partition HOx into OH and HO2:
 c CZ: OH->HO2 reactions :
         cz=rr(2,L)*y(nO3,L)+rr(13,L)*y(nn_CO,L) ! CO isotopes should not go here
      &  +rr(14,L)*y(nn_H2O2,L)+rr(19,L)*y(nH2,L)
-     &  +rr(21,L)*y(nn_HCHO,L)
+     &  +rr(21,L)*y(nn_HCHO,L) ! CO isotopes should not go here
      &  +rr(61,L)*y(nClO,L)+rr(80,L)*y(nBrO,L)
      &  +rr(89,L)*y(nO,L)*rktot/(rHspecloss+rktot)
         ! SO2 oxidation: 

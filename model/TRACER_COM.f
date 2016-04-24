@@ -164,7 +164,7 @@ C**** Each tracer has a variable name and a unique index
 #endif  /* TRACERS_AEROSOLS_OCEAN */
 !@var ntm_dCO: Number of TRACERS_dCO tracers.
 #ifdef TRACERS_dCO
-      integer, parameter :: ntm_dCO=3
+      integer, parameter :: ntm_dCO=6
 #else
       integer, parameter :: ntm_dCO=0
 #endif  /* TRACERS_AEROSOLS_OCEAN */
@@ -392,6 +392,7 @@ C**** Each tracer has a variable name and a unique index
      *     n_ClOx=0,   n_BrOx=0,  n_HCl=0,   n_HOCl=0,   n_ClONO2=0,
      *     n_HBr=0,    n_HOBr=0,  n_BrONO2=0,n_CFC=0,    n_GLT=0,
 #ifdef TRACERS_dCO
+     *     n_dHCH17O=0, n_dHCH18O=0, n_dH13CHO=0,
      *     n_dC17O=0, n_dC18O=0, n_d13CO=0,
 #endif  /* TRACERS_dCO */
      *     n_Pb210 = 0,n_Be7=0,   n_Be10=0,
@@ -460,6 +461,7 @@ C**** Each tracer has a variable name and a unique index
      *     nn_ClOx,   nn_BrOx,  nn_HCl,   nn_HOCl,   nn_ClONO2,  
      *     nn_HBr,    nn_HOBr,  nn_BrONO2,nn_CFC,    nn_GLT
 #ifdef TRACERS_dCO
+     *    ,nn_dHCH17O,nn_dHCH18O,nn_dH13CHO
      *    ,nn_dC17O, nn_dC18O, nn_d13CO
 #endif  /* TRACERS_dCO */
 

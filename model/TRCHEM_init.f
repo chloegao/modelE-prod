@@ -80,7 +80,7 @@ C Initialize a few (IM,JM,topLevelOfChemistry) arrays, first hour only:
 #ifdef TRACERS_AEROSOLS_SOA
 #ifdef TRACERS_TERP
 #ifdef TRACERS_dCO
- 110  format(6(///10(a8)),(///5(a8)))
+ 110  format(6(///10(a8)),(///8(a8)))
 #else
  110  format(6(///10(a8)),(///2(a8)))
 #endif

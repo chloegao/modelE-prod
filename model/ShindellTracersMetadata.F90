@@ -10,6 +10,7 @@ module ShindellTracersMetadata_mod
   use sharedTracersMetadata_mod, only: convert_HSTAR
   use TRACER_COM, only: ntm_chem_beg, ntm_chem_end, whichEPFCs
 #ifdef TRACERS_dCO
+  use TRACER_COM, only: n_dHCH17O, n_dHCH18O, n_dH13CHO
   use TRACER_COM, only: n_dC17O, n_dC18O, n_d13CO
 #endif  /* TRACERS_dCO */
   use TRACER_COM, only: n_CH4,  n_N2O, n_Ox,   n_NOx, & 
@@ -121,6 +122,9 @@ contains
     call  CFC_setSpec('CFC')
 
 #ifdef TRACERS_dCO
+    call  HCHO_setSpec('dHCH17O')
+    call  HCHO_setSpec('dHCH18O')
+    call  HCHO_setSpec('dH13CHO')
     call  CO_setSpec('dC17O')
     call  CO_setSpec('dC18O')
     call  CO_setSpec('d13CO')
@@ -151,6 +155,7 @@ contains
            nn_ClOx,   nn_BrOx,  nn_HCl,   nn_HOCl,   nn_ClONO2,  &
            nn_HBr,    nn_HOBr,  nn_BrONO2,nn_CFC,    nn_GLT
 #ifdef TRACERS_dCO
+      use TRACER_COM, only: nn_dHCH17O, nn_dHCH18O, nn_dH13CHO
       use TRACER_COM, only: nn_dC17O, nn_dC18O, nn_d13CO
 #endif  /* TRACERS_dCO */
       use TRACER_COM, only: ntm_chem_beg
@@ -201,6 +206,9 @@ contains
      nn_GLT = n_GLT - offset
 
 #ifdef TRACERS_dCO
+     nn_dHCH17O = n_dHCH17O - offset
+     nn_dHCH18O = n_dHCH18O - offset
+     nn_dH13CHO = n_dH13CHO - offset
      nn_dC17O = n_dC17O - offset
      nn_dC18O = n_dC18O - offset
      nn_d13CO = n_d13CO - offset
@@ -315,7 +323,20 @@ contains
     subroutine HCHO_setSpec(name)
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
-      n_HCHO = n
+      select case (name)
+        case ('HCHO')
+          n_HCHO = n
+#ifdef TRACERS_dCO
+        case ('dHCH17O')
+          n_dHCH17O = n
+        case ('dHCH18O')
+          n_dHCH18O = n
+        case ('dH13CHO')
+          n_dH13CHO = n
+#endif  /* TRACERS_dCO */
+        case default
+          call stop_model('HCHO-like tracer '//name//' unknown',255)
+      end select
       if (ntm_chem_beg==0) ntm_chem_beg = n
       ntm_chem_end = n
       call set_ntm_power(n, -11)

@@ -325,12 +325,16 @@ C**** set some defaults
         case ('Ox','N2O5','HNO3','H2O2','CH3OOH','HCHO','HO2NO2','PAN'
      *       ,'AlkylNit','ClOx','BrOx','HCl','HOCl','ClONO2','HBr'
 #ifdef TRACERS_dCO
+     *       ,'dHCH17O', 'dHCH18O', 'dH13CHO'
      *       ,'dC17O', 'dC18O', 'd13CO'
 #endif  /* TRACERS_dCO */
      *       ,'HOBr','BrONO2','CFC','NOx','CO','Isoprene','Alkenes'
      *       ,'Paraffin','stratOx','Terpenes') ! N2O done above
           select case (trim(pTracer%getName()))
             case ('N2O5','CH3OOH','HCHO','HO2NO2','PAN','AlkylNit','CFC'
+#ifdef TRACERS_dCO
+     *           ,'dHCH17O', 'dHCH18O', 'dH13CHO'
+#endif  /* TRACERS_dCO */
      *           ,'ClOx','BrOx','HCl','HOCl','ClONO2','HBr','HOBr'
      *           ,'BrONO2','NOx')
               kt_power_change(n) = -14
@@ -1670,6 +1674,7 @@ C**** special one unique to HTO
       case ('HCl','HOCl','ClONO2','HBr','HOBr','BrONO2','CFC',
      &      'BrOx','ClOx','Alkenes','Paraffin','Isoprene','CO',
 #ifdef TRACERS_dCO
+     *      'dHCH17O', 'dHCH18O', 'dH13CHO',
      *      'dC17O', 'dC18O', 'd13CO',
 #endif  /* TRACERS_dCO */
      &      'N2O5','HNO3','H2O2','CH3OOH','HCHO','HO2NO2','PAN',
@@ -1705,6 +1710,7 @@ C**** special one unique to HTO
         select case(trname(n))
         case ('Alkenes','Paraffin','Isoprene','CO','N2O5','HNO3',
 #ifdef TRACERS_dCO
+     *      'dHCH17O', 'dHCH18O', 'dH13CHO',
      *      'dC17O', 'dC18O', 'd13CO',
 #endif  /* TRACERS_dCO */
      &  'H2O2','CH3OOH','HCHO','HO2NO2','PAN','AlkylNit','Ox',
@@ -3407,6 +3413,7 @@ C**** This needs to be 'hand coded' depending on circumstances
 
       case ('NOx','CO','Isoprene','Alkenes','Paraffin',
 #ifdef TRACERS_dCO
+     *'dHCH17O', 'dHCH18O', 'dH13CHO',
      *'dC17O', 'dC18O', 'd13CO',
 #endif  /* TRACERS_dCO */
      &'ClOx','BrOx','HCl','HOCl','ClONO2','HBr','HOBr','BrONO2',
@@ -3435,6 +3442,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         select case(trname(n))
         case('NOx','CO','Isoprene','Alkenes','Paraffin',
 #ifdef TRACERS_dCO
+     *  'dHCH17O', 'dHCH18O', 'dH13CHO',
      *  'dC17O', 'dC18O', 'd13CO',
 #endif  /* TRACERS_dCO */
      &  'CFC','H2O2','CH3OOH','Ox','N2O5','HNO3','HCHO',
@@ -6970,7 +6978,11 @@ c**** earth
           end do; end do; end do
 #endif
 
-        case ('CH3OOH', 'HCHO')
+        case ('CH3OOH',
+#ifdef TRACERS_dCO
+     *        'dHCH17O', 'dHCH18O', 'dH13CHO',
+#endif  /* TRACERS_dCO */
+     &        'HCHO')
           do l=1,lm; do j=J_0,J_1; do i=i_0,i_1
             trm(i,j,l,n) = MA(l,i,j)*axyp(i,j)*1.d-11
           end do; end do; end do
@@ -8471,6 +8483,7 @@ C****
       case ('Ox','NOx','ClOx','BrOx','N2O5','HNO3','H2O2','CH3OOH',
      &      'HCHO','HO2NO2','CO','PAN','AlkylNit','Alkenes','Paraffin',
 #ifdef TRACERS_dCO
+     *      'dHCH17O', 'dHCH18O', 'dH13CHO',
      *      'dC17O', 'dC18O', 'd13CO',
 #endif  /* TRACERS_dCO */
      &      'HCl','HOCl','ClONO2','HBr','HOBr','BrONO2','N2O','CFC',

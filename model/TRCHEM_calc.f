@@ -62,6 +62,7 @@ C
      &      nn_ClOx,   nn_BrOx,  nn_HCl,   nn_HOCl,   nn_ClONO2,  
      &      nn_HBr,    nn_HOBr,  nn_BrONO2,nn_CFC,    nn_GLT
 #ifdef TRACERS_dCO
+     &     ,nn_dHCH17O,nn_dHCH18O,nn_dH13CHO
      &     ,nn_dC17O,nn_dC18O,nn_d13CO
 #endif  /* TRACERS_dCO */
 
@@ -225,6 +226,26 @@ c HCHO, Alkenes, and CO per rxn, correct here following Houweling:
 #ifdef TRACERS_TERP
      &                               -0.39d0*chemrate(iTerpenesOH,L)
 #endif  /* TRACERS_TERP */
+#ifdef TRACERS_dCO
+        prod(nn_dHCH17O,L)=prod(nn_dHCH17O,L)
+     &                    -0.36d0*chemrate(iAlkenesO3,L)
+        prod(nn_dHCH18O,L)=prod(nn_dHCH18O,L)
+     &                    -0.36d0*chemrate(iAlkenesO3,L)
+        prod(nn_dH13CHO,L)=prod(nn_dH13CHO,L)
+     &                    -0.36d0*chemrate(iAlkenesO3,L)
+        prod(nn_dHCH17O,L)=prod(nn_dHCH17O,L)-0.39d0*chemrate(30,L)
+#ifdef TRACERS_TERP
+     &                               -0.39d0*chemrate(iTerpenesOH,L)
+#endif  /* TRACERS_TERP */
+        prod(nn_dHCH18O,L)=prod(nn_dHCH18O,L)-0.39d0*chemrate(30,L)
+#ifdef TRACERS_TERP
+     &                               -0.39d0*chemrate(iTerpenesOH,L)
+#endif  /* TRACERS_TERP */
+        prod(nn_dH13CHO,L)=prod(nn_dH13CHO,L)-0.39d0*chemrate(30,L)
+#ifdef TRACERS_TERP
+     &                               -0.39d0*chemrate(iTerpenesOH,L)
+#endif  /* TRACERS_TERP */
+#endif  /* TRACERS_dCO */
         prod(nn_Alkenes,L)=prod(nn_Alkenes,L)-0.42d0*chemrate(30,L)
 #ifdef TRACERS_TERP
      &                               -0.42d0*chemrate(iTerpenesOH,L)
@@ -233,6 +254,20 @@ c HCHO, Alkenes, and CO per rxn, correct here following Houweling:
 #ifdef TRACERS_TERP
      &                               -0.10d0*chemrate(iTerpenesO3,L)
 #endif  /* TRACERS_TERP */
+#ifdef TRACERS_dCO
+        prod(nn_dHCH17O,L)=prod(nn_dHCH17O,L)-0.10d0*chemrate(31,L)
+#ifdef TRACERS_TERP
+     &                               -0.10d0*chemrate(iTerpenesO3,L)
+#endif  /* TRACERS_TERP */
+        prod(nn_dHCH18O,L)=prod(nn_dHCH18O,L)-0.10d0*chemrate(31,L)
+#ifdef TRACERS_TERP
+     &                               -0.10d0*chemrate(iTerpenesO3,L)
+#endif  /* TRACERS_TERP */
+        prod(nn_dH13CHO,L)=prod(nn_dH13CHO,L)-0.10d0*chemrate(31,L)
+#ifdef TRACERS_TERP
+     &                               -0.10d0*chemrate(iTerpenesO3,L)
+#endif  /* TRACERS_TERP */
+#endif  /* TRACERS_dCO */
         prod(nn_Alkenes,L)=prod(nn_Alkenes,L)-0.45d0*chemrate(31,L)
 #ifdef TRACERS_TERP
      &                               -0.45d0*chemrate(iTerpenesO3,L)
@@ -296,6 +331,14 @@ c         reduce non-acetone source gases (CH4 and CH3OOH):
 c         increase non-acetone product gases:
           prod(nn_HCHO,L)=prod(nn_HCHO,L)-(diffCH3O2-tempAcet)
      &    *(CH3O2loss-rr(22,L)*y(nHO2,L))/CH3O2loss
+#ifdef TRACERS_dCO
+          prod(nn_dHCH17O,L)=prod(nn_dHCH17O,L)-(diffCH3O2-tempAcet)
+     &    *(CH3O2loss-rr(22,L)*y(nHO2,L))/CH3O2loss
+          prod(nn_dHCH18O,L)=prod(nn_dHCH18O,L)-(diffCH3O2-tempAcet)
+     &    *(CH3O2loss-rr(22,L)*y(nHO2,L))/CH3O2loss
+          prod(nn_dH13CHO,L)=prod(nn_dH13CHO,L)-(diffCH3O2-tempAcet)
+     &    *(CH3O2loss-rr(22,L)*y(nHO2,L))/CH3O2loss
+#endif  /* TRACERS_dCO */
           prod(nn_CH3OOH,L)=prod(nn_CH3OOH,L)-(diffCH3O2-tempAcet)
      &    *(rr(22,L)*y(nHO2,L))/CH3O2loss
         end if
@@ -331,6 +374,14 @@ c         reduce source gases (CH4 and CH3OOH):
 c         increase product gases:
           prod(nn_HCHO,l)=prod(nn_HCHO,l)-diffCH3O2
      &    *(CH3O2loss-rr(22,L)*y(nHO2,L))/CH3O2loss
+#ifdef TRACERS_dCO
+          prod(nn_dHCH17O,l)=prod(nn_dHCH17O,l)-diffCH3O2
+     &    *(CH3O2loss-rr(22,L)*y(nHO2,L))/CH3O2loss
+          prod(nn_dHCH18O,l)=prod(nn_dHCH18O,l)-diffCH3O2
+     &    *(CH3O2loss-rr(22,L)*y(nHO2,L))/CH3O2loss
+          prod(nn_dH13CHO,l)=prod(nn_dH13CHO,l)-diffCH3O2
+     &    *(CH3O2loss-rr(22,L)*y(nHO2,L))/CH3O2loss
+#endif  /* TRACERS_dCO */
           prod(nn_CH3OOH,l)=prod(nn_CH3OOH,l)-diffCH3O2
      &    *(rr(22,L)*y(nHO2,L))/CH3O2loss
         end if
@@ -1687,6 +1738,7 @@ C**** GLOBAL parameters and variables:
       USE TRCHEM_Shindell_COM, only: p_2, p_3, nc, ny, numfam,nfam
       USE TRCHEM_Shindell_COM, only: n_rx
 #ifdef TRACERS_dCO
+      use TRACER_COM, only: n_dHCH17O, n_dHCH18O, n_dH13CHO
       use TRACER_COM, only: n_dC17O, n_dC18O, n_d13CO
 #endif  /* TRACERS_dCO */
 
@@ -1733,7 +1785,8 @@ c Reactive families:
 #ifdef TRACERS_dCO
             if (is_dCO_reaction(ireac,ndnr)) then
               if ((igas /= n_dC17O).and.(igas /= n_dC18O).and.
-     &            (igas /= n_d13CO)) cycle ! do not affect chemistry
+     &            (igas /= n_d13CO).and.(igas /= n_dHCH17O).and.
+     &            (igas /= n_dHCH18O).and.(igas /= n_dH13CHO)) cycle ! do not affect chemistry
             endif
 #endif  /* TRACERS_dCO */
             do nl=1,numeL
@@ -1762,7 +1815,8 @@ c Individual Species:
 #ifdef TRACERS_dCO
             if (is_dCO_reaction(ireac,ndnr)) then
               if ((igas /= n_dC17O).and.(igas /= n_dC18O).and.
-     &            (igas /= n_d13CO)) cycle ! do not affect chemistry
+     &            (igas /= n_d13CO).and.(igas /= n_dHCH17O).and.
+     &            (igas /= n_dHCH18O).and.(igas /= n_dH13CHO)) cycle ! do not affect chemistry
             endif
 #endif  /* TRACERS_dCO */
             dest(igas,1:maxL)=
@@ -1901,7 +1955,7 @@ c       skip same reaction if written twice:
 !@auth Kostas Tsigaridis
 
       use photolysis, only: jppj
-      use TRCHEM_Shindell_COM, only: p_3,n_bi_terp,n_bi_dCO
+      use TRCHEM_Shindell_COM, only: p_3,n_bi_terp,n_bi_dCO,jppj_dCO
       implicit none
 
       integer, intent(in) :: ireac
@@ -1910,8 +1964,8 @@ c       skip same reaction if written twice:
 
       is_dCO_reaction=.false.
       if (maxval(ndnr)==jppj) then ! photolysis
-        if ((ndnr(ireac) >= 29).and.
-     &      (ndnr(ireac) < 38)) then
+        if ((ndnr(ireac) > 28).and.
+     &      (ndnr(ireac) <= 28+jppj_dCO)) then
           is_dCO_reaction=.true.
         endif
       else                      ! thermal

@@ -49,6 +49,7 @@ c
      &                      n_HBr,n_HOCl,n_HCl,n_ClONO2,n_ClOx,
      &                      n_BrOx,n_BrONO2,n_CFC,n_N2O,n_HOBR
 #ifdef TRACERS_dCO
+     &                     ,n_dHCH17O,n_dHCH18O,n_dH13CHO
      &                     ,n_dC17O,n_dC18O,n_d13CO
 #endif  /* TRACERS_dCO */
 #ifdef TRACERS_AMP
@@ -93,6 +94,9 @@ c
      &      nn_apinp1g,nn_apinp1a,nn_apinp2g,nn_apinp2a,         
      &      nn_ClOx,   nn_BrOx,  nn_HCl,   nn_HOCl,   nn_ClONO2,  
      &      nn_HBr,    nn_HOBr,  nn_BrONO2,nn_CFC,    nn_GLT
+#ifdef TRACERS_dCO
+     &     ,nn_dHCH17O,nn_dHCH18O,nn_dH13CHO
+#endif  /* TRACERS_dCO */
 #ifdef CACHED_SUBDD
       use subdd_mod, only : subdd_groups,subdd_type,subdd_ngroups
      &     ,inc_subdd,find_groups, LmaxSUBDD
@@ -153,6 +157,9 @@ C**** Local parameters and variables and arguments:
       REAL*8 :: FACT1,FACT2,FACT3,FACT4,FACT5,FACT6,FACT7,fact_so4,
      &  FASTJ_PFACT,bydtsrc,byavog,CH4FACT,r179,rlossN,maxPSC,
      &  rprodN,ratioN,pfactor,bypfactor,gwprodHNO3,gprodHNO3,
+#ifdef TRACERS_dCO
+     &  gwprodHNO3dHCH17O,gwprodHNO3dHCH18O,gwprodHNO3dH13CHO,
+#endif  /* TRACERS_dCO */
      &  gwprodN2O5,wprod_sulf,wprodCO,dNO3,wprodHCHO,prod_sulf,
      &  RVELN2O5,changeAldehyde,changeAlkenes,changeAlkylNit,
      &  changeIsoprene,changeHCHO,changeHNO3,changeNOx,changeN2O5,
@@ -165,6 +172,11 @@ C**** Local parameters and variables and arguments:
      &  changeTerpenes,rTerpplusNO3,changeisopp1g,changeisopp2g,
      &  changeapinp1g,changeapinp2g,changeOx,fraQ,
      &  thick,changeCO,changeN_d1,changeN_d2,changeN_d3,changeNO3p,
+#ifdef TRACERS_dCO
+     &  rdHCH17OplusNO3,rdHCH18OplusNO3,rdH13CHOplusNO3,
+     &  changedHCH17O,changedHCH18O,changedH13CHO,
+     &  changedC17O,changedC18O,changed13CO,
+#endif  /* TRACERS_dCO */
      &  temp_SW,BRTOT,CLTOT,colmO2,colmO3,changeClONO2,changeClOx,
      &  changeHOCl,changeHCl,changehetClONO2,chgHT3,albedoToUse,
      &  chgHT4,chgHT5,rmrClOx,rmrBrOx,rmv,rmrOx,avgTT_H2O,avgTT_CH4,
@@ -935,6 +947,11 @@ c       paths if lead to negative conc:
         rN2O5decomp=rr(iN2O5decomp,L)*y(nn_N2O5,L)*dt2
         chgHT5=rr(iN2O5plusHCl,L)*y(nn_N2O5,L)*dt2
         rHCHOplusNO3=y(nn_HCHO,L)*rr(28,L)*yNO3(I,J,L)*dt2
+#ifdef TRACERS_dCO
+        rdHCH17OplusNO3=y(nn_dHCH17O,L)*rr(28,L)*yNO3(I,J,L)*dt2
+        rdHCH18OplusNO3=y(nn_dHCH18O,L)*rr(28,L)*yNO3(I,J,L)*dt2
+        rdH13CHOplusNO3=y(nn_dH13CHO,L)*rr(28,L)*yNO3(I,J,L)*dt2
+#endif  /* TRACERS_dCO */
         rAldplusNO3=2.5d-15*yAldehyde(I,J,L)*yNO3(I,J,L)*dt2
         rIsopplusNO3=rr(32,L)*y(nn_Isoprene,L)*yNO3(I,J,L)*dt2
 #ifdef TRACERS_TERP
@@ -960,7 +977,7 @@ c       Examine prod and loss of N2O5
         end if
 
 c       Examine prod and loss of NOx
-        wlossNOx=rHCHOplusNO3+rAldplusNO3+2.d0*rNO3plusNO2
+        wlossNOx=rHCHOplusNO3+rAldplusNO3+2.d0*rNO3plusNO2 ! CO isotopes should not go here
      &   +0.9d0*rIsopplusNO3+rClOplusNO2+rDMSplusNO3+rBrOplusNO2
 #ifdef TRACERS_TERP
      &   +0.9d0*rTerpplusNO3
@@ -970,6 +987,11 @@ c       Examine prod and loss of NOx
           if(wlossNOx==0.)call stop_model('wlossNOx=0',255)
           ratioN=0.99d0*(y(nn_NOx,L)+wprodNOx)/wlossNOx
           rHCHOplusNO3=rHCHOplusNO3*ratioN
+#ifdef TRACERS_dCO
+          rdHCH17OplusNO3=rdHCH17OplusNO3*ratioN
+          rdHCH18OplusNO3=rdHCH18OplusNO3*ratioN
+          rdH13CHOplusNO3=rdH13CHOplusNO3*ratioN
+#endif  /* TRACERS_dCO */
           rAldplusNO3=rAldplusNO3*ratioN
           rNO3plusNO2=rNO3plusNO2*ratioN
           rIsopplusNO3=rIsopplusNO3*ratioN
@@ -1006,6 +1028,17 @@ C Alkenes, Isoprene, Terpenes (if used) and AlkylNit:
         gwprodHNO3=rHCHOplusNO3+rAldplusNO3
         if(gwprodHNO3 > y(nn_HCHO,L))gwprodHNO3=y(nn_HCHO,L)
         gprodHNO3=gwprodHNO3*pfactor
+#ifdef TRACERS_dCO
+        gwprodHNO3dHCH17O=rdHCH17OplusNO3+rAldplusNO3
+        if(gwprodHNO3dHCH17O > y(nn_dHCH17O,L))
+     &    gwprodHNO3dHCH17O=y(nn_dHCH17O,L)
+        gwprodHNO3dHCH18O=rdHCH18OplusNO3+rAldplusNO3
+        if(gwprodHNO3dHCH18O > y(nn_dHCH18O,L))
+     &    gwprodHNO3dHCH18O=y(nn_dHCH18O,L)
+        gwprodHNO3dH13CHO=rdH13CHOplusNO3+rAldplusNO3
+        if(gwprodHNO3dH13CHO > y(nn_dH13CHO,L))
+     &    gwprodHNO3dH13CHO=y(nn_dH13CHO,L)
+#endif  /* TRACERS_dCO */
 
         changeAldehyde=(rr(36,L)*y(nn_Alkenes,L)
      &                 +rr(32,L)*y(nn_Isoprene,L)*0.12d0
@@ -1089,6 +1122,44 @@ C Alkenes, Isoprene, Terpenes (if used) and AlkylNit:
 #endif  /* TRACERS_TERP */
      &            +rr(iAlkenesO3,L)*y(nn_Alkenes,L))*y(nO3,L)*0.64d0*dt2
 
+#ifdef TRACERS_dCO
+        changedHCH17O=(rr(36,L)*y(nn_Alkenes,L)
+     &               +rr(32,L)*y(nn_Isoprene,L)*0.03d0
+#ifdef TRACERS_TERP
+     &               +rr(iTerpenesNO3,L)*y(nn_Terpenes,L)*0.03d0
+#endif  /* TRACERS_TERP */
+     &               )*yNO3(I,J,L)*dt2
+     &               -gwprodHNO3dHCH17O+(rr(31,L)*y(nn_Isoprene,L)*0.9d0
+#ifdef TRACERS_TERP
+     &                         +rr(iTerpenesO3,L)*y(nn_Terpenes,L)*0.9d0
+#endif  /* TRACERS_TERP */
+     &               +rr(35,L)*y(nn_Alkenes,L))*y(nO3,L)*0.64d0*dt2
+
+        changedHCH18O=(rr(36,L)*y(nn_Alkenes,L)
+     &               +rr(32,L)*y(nn_Isoprene,L)*0.03d0
+#ifdef TRACERS_TERP
+     &               +rr(iTerpenesNO3,L)*y(nn_Terpenes,L)*0.03d0
+#endif  /* TRACERS_TERP */
+     &               )*yNO3(I,J,L)*dt2
+     &               -gwprodHNO3dHCH18O+(rr(31,L)*y(nn_Isoprene,L)*0.9d0
+#ifdef TRACERS_TERP
+     &                         +rr(iTerpenesO3,L)*y(nn_Terpenes,L)*0.9d0
+#endif  /* TRACERS_TERP */
+     &               +rr(35,L)*y(nn_Alkenes,L))*y(nO3,L)*0.64d0*dt2
+
+        changedH13CHO=(rr(36,L)*y(nn_Alkenes,L)
+     &               +rr(32,L)*y(nn_Isoprene,L)*0.03d0
+#ifdef TRACERS_TERP
+     &               +rr(iTerpenesNO3,L)*y(nn_Terpenes,L)*0.03d0
+#endif  /* TRACERS_TERP */
+     &               )*yNO3(I,J,L)*dt2
+     &               -gwprodHNO3dH13CHO+(rr(31,L)*y(nn_Isoprene,L)*0.9d0
+#ifdef TRACERS_TERP
+     &                         +rr(iTerpenesO3,L)*y(nn_Terpenes,L)*0.9d0
+#endif  /* TRACERS_TERP */
+     &               +rr(35,L)*y(nn_Alkenes,L))*y(nO3,L)*0.64d0*dt2
+#endif  /* TRACERS_dCO */
+
         changeAlkylNit=rIsopplusNO3*0.9d0
 #ifdef TRACERS_TERP
      &                +rTerpplusNO3*0.9d0
@@ -1097,7 +1168,7 @@ C Alkenes, Isoprene, Terpenes (if used) and AlkylNit:
 c Convert some changes to molecules/cm3/s:
         changeHNO3=gwprodHNO3+2.d0*wprod_sulf  !always positive
 
-        wlossNOx=rHCHOplusNO3+rAldplusNO3+2.d0*rNO3plusNO2
+        wlossNOx=rHCHOplusNO3+rAldplusNO3+2.d0*rNO3plusNO2 ! CO isotopes should not go here
      &   +0.9d0*rIsopplusNO3+rClOplusNO2+rDMSplusNO3
 #ifdef TRACERS_TERP
      &   +0.9d0*rTerpplusNO3
@@ -1199,6 +1270,41 @@ c       Gas phase NO3 + HCHO -> HNO3 + CO yield of HCHO & CO:
           changeHCHO=changeL(L,n_HCHO)*mass2vol(n_HCHO)*bypfactor
         ENDIF
         wprodHCHO=changeHCHO
+#ifdef TRACERS_dCO
+        changeL(L,n_dHCH17O)=changedHCH17O*pfactor*vol2mass(n_dHCH17O)
+        if(-changeL(L,n_dHCH17O) > trm(I,J,L,n_dHCH17O))then
+          changeL(L,n_dHCH17O)=-.95d0*trm(I,J,L,n_dHCH17O)
+          changedHCH17O=changeL(L,n_dHCH17O)*mass2vol(n_dHCH17O)*
+     &                  bypfactor
+        endif
+        IF((trm(i,j,l,n_dHCH17O)+changeL(l,n_dHCH17O)) < minKG) THEN
+          changeL(l,n_dHCH17O) = minKG - trm(i,j,l,n_dHCH17O)
+          changedHCH17O=changeL(L,n_dHCH17O)*mass2vol(n_dHCH17O)*
+     &                  bypfactor
+        ENDIF
+        changeL(L,n_dHCH18O)=changedHCH18O*pfactor*vol2mass(n_dHCH18O)
+        if(-changeL(L,n_dHCH18O) > trm(I,J,L,n_dHCH18O))then
+          changeL(L,n_dHCH18O)=-.95d0*trm(I,J,L,n_dHCH18O)
+          changedHCH18O=changeL(L,n_dHCH18O)*mass2vol(n_dHCH18O)*
+     &                  bypfactor
+        endif
+        IF((trm(i,j,l,n_dHCH18O)+changeL(l,n_dHCH18O)) < minKG) THEN
+          changeL(l,n_dHCH18O) = minKG - trm(i,j,l,n_dHCH18O)
+          changedHCH18O=changeL(L,n_dHCH18O)*mass2vol(n_dHCH18O)*
+     &                  bypfactor
+        ENDIF
+        changeL(L,n_dH13CHO)=changedH13CHO*pfactor*vol2mass(n_dH13CHO)
+        if(-changeL(L,n_dH13CHO) > trm(I,J,L,n_dH13CHO))then
+          changeL(L,n_dH13CHO)=-.95d0*trm(I,J,L,n_dH13CHO)
+          changedH13CHO=changeL(L,n_dH13CHO)*mass2vol(n_dH13CHO)*
+     &                  bypfactor
+        endif
+        IF((trm(i,j,l,n_dH13CHO)+changeL(l,n_dH13CHO)) < minKG) THEN
+          changeL(l,n_dH13CHO) = minKG - trm(i,j,l,n_dH13CHO)
+          changedH13CHO=changeL(L,n_dH13CHO)*mass2vol(n_dH13CHO)*
+     &                  bypfactor
+        ENDIF
+#endif  /* TRACERS_dCO */
 C -- CO --
         changeL(L,n_CO)=rHCHOplusNO3*pfactor*vol2mass(n_CO)
         changeCO=changeL(L,n_CO)*mass2vol(n_CO)*bypfactor
@@ -1219,27 +1325,26 @@ C -- CO --
 #endif
         end if       
 #ifdef TRACERS_dCO
-! ok to overwrite changeCO here
 C -- dC17O --
-        changeL(L,n_dC17O)=rHCHOplusNO3*pfactor*vol2mass(n_dC17O)
-        changeCO=changeL(L,n_dC17O)*mass2vol(n_dC17O)*bypfactor
+        changeL(L,n_dC17O)=rdHCH17OplusNO3*pfactor*vol2mass(n_dC17O)
+        changedC17O=changeL(L,n_dC17O)*mass2vol(n_dC17O)*bypfactor
         if((trm(i,j,l,n_dC17O)+changeL(l,n_dC17O)) < minKG)then
           changeL(l,n_dC17O) = minKG - trm(i,j,l,n_dC17O)
-          changeCO=changeL(L,n_dC17O)*mass2vol(n_dC17O)*bypfactor
+          changedC17O=changeL(L,n_dC17O)*mass2vol(n_dC17O)*bypfactor
         endif
 C -- dC18O --
-        changeL(L,n_dC18O)=rHCHOplusNO3*pfactor*vol2mass(n_dC18O)
-        changeCO=changeL(L,n_dC18O)*mass2vol(n_dC18O)*bypfactor
+        changeL(L,n_dC18O)=rdHCH18OplusNO3*pfactor*vol2mass(n_dC18O)
+        changedC18O=changeL(L,n_dC18O)*mass2vol(n_dC18O)*bypfactor
         if((trm(i,j,l,n_dC18O)+changeL(l,n_dC18O)) < minKG)then
           changeL(l,n_dC18O) = minKG - trm(i,j,l,n_dC18O)
-          changeCO=changeL(L,n_dC18O)*mass2vol(n_dC18O)*bypfactor
+          changedC18O=changeL(L,n_dC18O)*mass2vol(n_dC18O)*bypfactor
         endif
 C -- d13CO --
-        changeL(L,n_d13CO)=rHCHOplusNO3*pfactor*vol2mass(n_d13CO)
-        changeCO=changeL(L,n_d13CO)*mass2vol(n_d13CO)*bypfactor
+        changeL(L,n_d13CO)=rdH13CHOplusNO3*pfactor*vol2mass(n_d13CO)
+        changed13CO=changeL(L,n_d13CO)*mass2vol(n_d13CO)*bypfactor
         if((trm(i,j,l,n_d13CO)+changeL(l,n_d13CO)) < minKG)then
           changeL(l,n_d13CO) = minKG - trm(i,j,l,n_d13CO)
-          changeCO=changeL(L,n_d13CO)*mass2vol(n_d13CO)*bypfactor
+          changed13CO=changeL(L,n_d13CO)*mass2vol(n_d13CO)*bypfactor
         endif
 #endif  /* TRACERS_dCO */
 C -- HNO3 --  (HNO3 from gas and het phase rxns )
@@ -2292,6 +2397,9 @@ C**** GLOBAL parameters and variables:
       USE TRCHEM_Shindell_COM, only: n_bi,n_tri,n_nst,n_het,ta,ea,rr,pe,
      & cboltz,r1,sb,nst,y,nM,nH2O,ro,sn,which_trop,sulfate,RKBYPIM,dt2,
      & RGAMMASULF,pscX,topLevelOfChemistry,rh,bythick,aero,n_bi_terp
+#ifdef TRACERS_dCO
+      USE TRCHEM_Shindell_COM, only: n_bi_dCO
+#endif  /* TRACERS_dCO */
 
 #ifdef TRACERS_AEROSOLS_SOA
       USE TRACER_COM, only: n_isopp1a,n_isopp2a
@@ -2385,10 +2493,17 @@ c         (see paged 185-188 and note D1)
           if(jj == 13
 #ifdef TRACERS_dCO
      &       .or. jj == idC17OplusOH
-     &       .or. jj == idC17OplusOH+4
-     &       .or. jj == idC17OplusOH+8
+     &       .or. jj == idC17OplusOH+n_bi_dCO/3
+     &       .or. jj == idC17OplusOH+2*n_bi_dCO/3
 #endif  /* TRACERS_dCO */
      &      ) then
+#ifdef TRACERS_dCO
+! The above if statement assumes that n_bi_dCO is an integer multiple of 3
+! since there are three types of isotopes, 17O, 18O, and 13C, so the relevant
+! reactions are exactly 3 times more.
+            if (modulo(n_bi_dCO, 3) /= 0)
+     &        call stop_model('n_bi_dCO mod 3 hardcoding error',255)
+#endif  /* TRACERS_dCO */
             k0TM=y(nM,L)*pe(jj)*((300.d0*byta)**1.4)
             kinfT=1.1d-12*(300.d0*byta)**(-1.3)
             dd=k0TM/kinfT
