@@ -245,7 +245,7 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
         cqqz=cqqz+
      &  ((2.d0*rr(10,L)*y(nH2O,L)+(1.66d0/1.31d0)*rr(11,L)*y(nn_CH4,L))*
      &  y(nO1D,L))
-     &  +ss(16,L,I,J)*y(nAldehyde,L)*2.d0+(rr(39,L)*y(nNO,L)
+     &  +ss(16,L,I,J)*y(nAldehyde,L)*2.d0+(rr(39,L)*y(nNO,L) ! CO isotopes should not go here
      &  +rr(40,L)*y(nC2O3,L)*2.d0)*y(nC2O3,L)
      &  +(rr(42,L)*0.94d0+1.6d3)*y(nROR,L)+rr(35,L)*y(nn_Alkenes,L) ! CO isotopes should not go here
      &  *y(nO3,L)*0.65d0+rr(31,L)*y(nn_Isoprene,L)*y(nO3,L)*0.58d0

@@ -423,7 +423,7 @@ c       Set value for C2O3:
 c       Set value for XO2:
 ! remember to update voc2nox if you update any of the following XO2 loss reactions
         iter=1
-        XO2prod=ss(16,L,I,J)*yAldehyde(I,J,L)+
+        XO2prod=ss(16,L,I,J)*yAldehyde(I,J,L)+ ! CO isotopes should not go here
      &  y(nC2O3,L)*(rr(39,L)*y(nNO2,L)+rr(40,L)*
      &  y(nC2O3,L)*2.d0+rr(41,L)*y(nHO2,L))
      &  +rr(42,L)*yROR(I,J,L)*0.96d0
@@ -444,7 +444,7 @@ c       Set value for XO2:
         do while (iter <= 7)
           XO2_XO2=yXO2(I,J,L)*tempiter2
           XO2dest=tempiter+XO2_XO2
-          if(XO2dest > 1.d-7.and.ss(16,L,I,J) > 1.d-6)then
+          if(XO2dest > 1.d-7.and.ss(16,L,I,J) > 1.d-6)then ! CO isotopes should not go here
             y(nXO2,L)=(XO2prod/XO2dest)
           else
             y(nXO2,L)=1.d0
@@ -490,7 +490,7 @@ c       Set value for Aldehyde:
      &  rr(34,L)*y(nn_Alkenes,L)*y(nOH,L)+
      &  rr(42,L)*yROR(I,J,L)*1.1d0+rr(iAlkenesO3,L)*y(nn_Alkenes,L)*
      &  y(nO3,L)*0.44d0
-        Aldehydedest=rr(38,L)*y(nOH,L)+ss(16,L,I,J)
+        Aldehydedest=rr(38,L)*y(nOH,L)+ss(16,L,I,J) ! CO isotopes should not go here
 c       Check for equilibrium:
         if(Aldehydedest*y(nAldehyde,L)*dt2 < y(nAldehyde,L))then
           changeAldehyde=
