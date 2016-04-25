@@ -407,6 +407,14 @@ C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
       year = modelEclock%getYear()
       month = modelEclock%getMonth()
       day = modelEclock%getDayOfYear()
+
+        if (am_i_root()) then
+          print '(A,I9,A,I0.4,A1,I0.2,A1,I0.2)',
+     &       '---------- Main Loop, itime=',itime,
+     &       ' day=',year,'-',month,'-',day
+        end if
+
+
       cMonth = calendar%getCalendarMonth(month=month-1,year=year)
       newmonth = (day == 1+ cMonth%lastDayInMonth)
       call daily_DIAG(newmonth) ! atmosphere

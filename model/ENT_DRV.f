@@ -95,7 +95,7 @@
 #ifdef MODIS_LAI
       allocate( LAIstream(N_PFT) )
       do pft=1,N_PFT
-        print *,"initializing stream for ",ent_cover_names(pft)
+!        print *,"initializing stream for ",ent_cover_names(pft)
         call init_stream(grid,LAIstream(pft)
      &       ,'LAI'             ! name of file in rundeck
      &       ,trim(ent_cover_names(pft)) ! netcdf name of the variable to be read
@@ -103,7 +103,7 @@
      &       ,'linm2m'          ! time interp method.  For monthly data, daily data created
                           ! by linearly interpolating between month midpoints.
      &       ,Jyear,Jday)
-        print *,"done"
+!        print *,"done"
       enddo
 #endif
 
@@ -252,7 +252,7 @@
       do pft=1,N_PFT
         ddd = jday
         !do ddd=1,365,30
-        print *, "reading lai for ", pft, year, ddd
+!        print *, "reading lai for ", pft, year, ddd
         call read_stream(grid,LAIstream(pft),year,ddd,
      &       laidata_h(pft,:,:))
         if (pft==15) then ! i.e. crops
@@ -454,7 +454,7 @@ cddd     &       cropsdata=cropdata_H(I0:I1,J0:J1) )
       laidata_h(:,:,:) = 0.d0
       do pft=1,N_PFT
         ddd = jday
-        print *, "reading lai for ", pft, year, ddd
+!        print *, "reading lai for ", pft, year, ddd
         call read_stream(grid,LAIstream(pft),year,ddd,
      &       laidata_h(pft,:,:))
         if (pft==15) then
@@ -579,10 +579,10 @@ cddd     &               I_STRT     =I_0,    I_STOP     =I_1)
         write(i_char,"(i8)") k
         !name = 'var_'//adjustl(i_char)
         name = ent_cover_names(k)
-        print *,"read_laimax: reading ", name
+!        print *,"read_laimax: reading ", name
         buf = 0
         call read_dist_data(grid, fid, trim(name), buf)
-        print *, sum(buf)
+!        print *, sum(buf)
 !!! hack : make sure that laimax is always >= .5 to avoid zero-divisions
         where ( buf(I0:I1, J0:J1) > .1d0 )
           laimax(k, I0:I1, J0:J1) = buf(I0:I1, J0:J1)
@@ -620,7 +620,7 @@ cddd     &               I_STRT     =I_0,    I_STOP     =I_1)
         write(i_char,"(i8)") k
         !name = 'var_'//adjustl(i_char)
         name = "hgt_"//ent_cover_names(k)
-        print *,"read_height: reading ", name
+!        print *,"read_height: reading ", name
         call read_dist_data(grid, fid, trim(name), buf)
 !!! hack : make sure that height is always >= .5 to avoid zero-divisions
         where ( buf(I0:I1, J0:J1) > .5d0 )
