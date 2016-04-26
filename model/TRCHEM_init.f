@@ -194,6 +194,8 @@ c
           call lstnum(ate(j),nn(j,i))
           call lstnum(ate(j+2),nnr(j,i))
         end do
+
+        call set_rrate_index(i, ate)
       end do                ! >>> end loop over total reactions <<<
 
  124  format(///5(/43x,i3)///)

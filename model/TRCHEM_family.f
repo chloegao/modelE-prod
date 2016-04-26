@@ -12,7 +12,7 @@ C**** GLOBAL parameters and variables:
       Use ATM_COM,    Only: PMIDL00
       USE TRACER_COM, only : n_CH4, n_Ox, nn_Ox, nn_CH4
       USE TRCHEM_Shindell_COM, only:ss,rr,y,nO2,nM,nH2O,nO,nO1D,nO3,pOx
-     &                             ,n_bi_terp,n_bi_dCO
+     &                             ,rrtri
       IMPLICIT NONE
 
 C**** Local parameters and variables and arguments:
@@ -21,15 +21,13 @@ C**** Local parameters and variables and arguments:
 !@var L dummy loop variable
 !@var I,J passed horizontal position indicies
 !@var Lmax maximum altitude for chemistry
-!@var iO3form O3 formation reaction from O + O2
 !@var PRES local nominal pressure
       integer, intent(IN)   :: Lmax,I,J
-      integer               :: L,iO3form
+      integer               :: L
       REAL*8, DIMENSION(LM) :: PRES ! keep at LM; defined by PMIDL00(:)
       real*8                :: az, bz, P1
 
       PRES(1:LM) = PMIDL00(1:LM)
-      iO3form=95+n_bi_terp+n_bi_dCO
 
       do L=1,Lmax
 c       for concentration of O(1D):
@@ -38,7 +36,8 @@ c       for concentration of O(1D):
         ! here we USED TO tune bz with a pressure criterion
 c       for concentration of O:
         if (y(nO2,L) > 0.d0) then
-          az=(ss(2,L,I,J)+ss(3,L,I,J))/(rr(iO3form,L)*y(nO2,L))
+          az=(ss(2,L,I,J)+ss(3,L,I,J))
+     &      /(rr(rrtri%O_O2__O3_M,L)*y(nO2,L))
           P1=1.d0/(1.d0+az+bz)
         else
           az=0.d0 ! actually az=infinite but multiplied by P1(=0) below:
@@ -72,7 +71,7 @@ C**** GLOBAL parameters and variables:
       USE TRACER_COM, only         : n_NOx,nn_NOx,n_Alkenes,nn_Alkenes
       USE TRCHEM_Shindell_COM, only:rr,y,yNO3,nO3,nHO2,yCH3O2,nO,nC2O3,
      & pNO3,ta,nXO2,ss,nNO,nNO2,pNOx,nNO3,nHONO,which_trop,nClO,nOClO,
-     & nBrO,n_bi_terp,n_bi_dCO
+     & nBrO,rrtri
 
       IMPLICIT NONE
 
@@ -81,16 +80,13 @@ C**** Local parameters and variables and arguments:
 !@var L dummy loop variable
 !@var I,J passed horizontal position indicies
 !@var lmax maximum altitude for chemistry
-!@var iNO2form NO2 formation reaction from O + NO
 !@var maxT LTROPO(I,J) or LS1-1, depending upon what_trop variable
 !@+ Or the top layer of chemistry in the unlikely event that is lower.
 !@+ Note in that case, loops like L=maxT+1,Lmax will do nothing.
-      integer             :: L,iNO2form,maxT
+      integer             :: L,maxT
       integer, intent(IN) :: Lmax,I,J
       real*8              :: b,c,p1,p2,d
       
-      iNO2form=96+n_bi_terp+n_bi_dCO
-
       select case(which_trop)
       case(0); maxT=min(Ltropo(I,J),Lmax)
       case(1); maxT=min(ls1-1,Lmax)
@@ -100,7 +96,8 @@ C**** Local parameters and variables and arguments:
       do L=1,Lmax
         ! here we USED TO set NO3 back to zero at dawn.
 c       B is for NO->NO2 reactions :
-        B=rr(5,L)*y(nO3,L)+rr(6,L)*y(nHO2,L)+rr(iNO2form,L)*y(nO,L)
+        B=rr(5,L)*y(nO3,L)+rr(6,L)*y(nHO2,L)
+     &    +rr(rrtri%NO_O__NO2_M,L)*y(nO,L)
 
         if(L <= maxT)then  ! Troposphere:
           B=B+rr(20,L)*yCH3O2(I,J,L)
@@ -163,7 +160,7 @@ C**** GLOBAL parameters and variables:
      &                        nO2,nM,nHO2,nOH,nH2,nAldehyde,nXO2,nXO2N,
      &                        ta,ss,nC2O3,nROR,yso2,ydms,which_trop,nO1D
      &         ,OxlossbyH,dt2,nBrO,nClO,nOClO,nBr,nCl,SF3,nO,nCH3O2
-     &         ,n_bi_terp,n_bi_dCO
+     &         ,rrbi,rrtri
 
       IMPLICIT NONE
 
@@ -172,21 +169,12 @@ C**** Local parameters and variables and arguments:
 !@var L dummy loop variable
 !@var I,J passed horizontal position indicies
 !@var Lmax maximum altitude for chemistry
-!@var iH2O2form H2O2 formation reaction from OH + OH
-!@var iHNO3form HNO3 formation reaction from OH + NO2
-!@var iHONOform HONO formation reaction from NO + OH
 !@var rHprod,rHspecloss,rkzero,rktot temporary var during OH->H rxns
 !@var maxT LTROPO(I,J) or LS1-1, depending upon what_trop variable
 !@+ Or the top layer of chemistry in the unlikely event that is lower.
 !@+ Note in that case, loops like L=maxT+1,Lmax will do nothing.
 !@var PRES local nominal pressure for regional Ox tracers
 
-#ifdef TRACERS_TERP
-      integer, parameter :: iTerpenesOH=92,iTerpenesO3=93
-#endif  /* TRACERS_TERP */
-      integer, parameter :: iH2O2form=97+n_bi_terp+n_bi_dCO,
-     &                      iHNO3form=98+n_bi_terp+n_bi_dCO,
-     &                      iHONOform=101+n_bi_terp+n_bi_dCO
       integer             :: L, maxT 
       integer, intent(IN) :: Lmax,I,J
       real*8              :: aqqz, bqqz, cqqz, cz, dz, sqroot, 
@@ -211,16 +199,19 @@ c C: prod equations
 c all: in terms of HO2 (so *pHOx when OH is reactant)
 
         aqqz=2.d0*(pHOx(I,J,L)*rr(1,L) + (pHOx(I,J,L)*pHOx(I,J,L))*
-     &  (rr(3,L)+rr(iH2O2form,L)) + rr(15,L))
+     &  (rr(3,L)
+     &    +rr(rrtri%OH_OH__H2O2_M,L)) + rr(15,L))
 
         bqqz=pHOx(I,J,L)*(rr(12,L)*y(nn_CH4,L)+rr(16,L)*
-     &  y(nn_HNO3,L)+rr(23,L)*y(nn_CH3OOH,L)+rr(iHNO3form,L)
-     &  *y(nNO2,L)+rr(iHONOform,L)*y(nNO,L))+rr(22,L)*yCH3O2(I,J,L)
+     &  y(nn_HNO3,L)+rr(23,L)*y(nn_CH3OOH,L)
+     &    +rr(rrtri%OH_NO2__HNO3_M,L)*y(nNO2,L)
+     &    +rr(rrtri%OH_NO__HONO_M,L)*y(nNO,L))
+     &    +rr(22,L)*yCH3O2(I,J,L)
      &  +pHOx(I,J,L)*(rr(38,L)*y(nAldehyde,L)+rr(37,L)
      &  *y(nn_Paraffin,L)*0.89d0+rr(34,L)*y(nn_Alkenes,L)
      &  +rr(30,L)*y(nn_Isoprene,L)*0.15d0+rr(33,L)*y(nn_AlkylNit,L)
 #ifdef TRACERS_TERP
-     &  +rr(iTerpenesOH,L)*y(nn_Terpenes,L)*0.15d0
+     &    +rr(rrbi%Terpenes_OH__HCHO_Alkenes,L)*y(nn_Terpenes,L)*0.15d0
 #endif  /* TRACERS_TERP */
      &  )
      &  +rr(43,L)*y(nXO2,L)+y(nXO2N,L)*
@@ -250,7 +241,8 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
      &  +(rr(42,L)*0.94d0+1.6d3)*y(nROR,L)+rr(35,L)*y(nn_Alkenes,L) ! CO isotopes should not go here
      &  *y(nO3,L)*0.65d0+rr(31,L)*y(nn_Isoprene,L)*y(nO3,L)*0.58d0
 #ifdef TRACERS_TERP
-     &  +rr(iTerpenesO3,L)*y(nn_Terpenes,L)*y(nO3,L)*0.58d0
+     &    +rr(rrbi%Terpenes_O3__HCHO_Alkenes,L)*y(nn_Terpenes,L)
+     &      *y(nO3,L)*0.58d0
 #endif  /* TRACERS_TERP */
 
         sqroot=sqrt(bqqz*bqqz+4.d0*aqqz*cqqz)
@@ -269,7 +261,7 @@ c Now partition HOx into OH and HO2:
 #endif
      &  *0.11d0+rr(30,L)*y(nn_Isoprene,L)*0.85d0
 #ifdef TRACERS_TERP
-     &  +rr(iTerpenesOH,L)*y(nn_Terpenes,L)*0.85d0
+     &    +rr(rrbi%Terpenes_OH__HCHO_Alkenes,L)*y(nn_Terpenes,L)*0.85d0
 #endif  /* TRACERS_TERP */
      &  +rr(34,L)*y(nn_Alkenes,L)
         ! SO2 oxidation: 
@@ -305,10 +297,13 @@ c B: loss rxns linear in HOx
 c C: prod equations
 c all: in terms of HO2 (so *pHOx when OH is reactant)
         aqqz=2.d0*(pHOx(I,J,L)*rr(1,L) + pHOx(I,J,L)*pHOx(I,J,L)*
-     &  (rr(3,L)+rr(iH2O2form,L)) + rr(15,L))
+     &  (rr(3,L)
+     &    +rr(rrtri%OH_OH__H2O2_M,L)) + rr(15,L))
 
         bqqz=pHOx(I,J,L)*(rr(12,L)*y(nn_CH4,L)+rr(16,L)*
-     &  y(nn_HNO3,L)+rr(iHNO3form,L)*y(nNO2,L)+rr(iHONOform,L)*y(nNO,L))
+     &  y(nn_HNO3,L)
+     &    +rr(rrtri%OH_NO2__HNO3_M,L)*y(nNO2,L)
+     &    +rr(rrtri%OH_NO__HONO_M,L)*y(nNO,L))
      &  +rr(52,L)*y(nn_HCl,L)*pHOx(I,J,L)+rr(53,L)*y(nn_HOCl,L)
      &  *pHOx(I,J,L)+rr(56,L)*y(nOClO,L)*pHOx(I,J,L)+
      &  rr(59,L)*y(nCl,L)
@@ -404,7 +399,7 @@ C**** GLOBAL parameters and variables:
       USE TRCHEM_Shindell_COM, only:pClOx,rr,y,nClO,nOClO,nCl,nCl2O2,
      &    ta,ss,nO3,nHO2,nNO3,nO,nNO,nBr,nOH,nBrO,nCH3O2,nM,nCl2,nH2,
      &    dt2,pClx,pOClOx,nNO2,which_trop,yCl2,yCl2O2,ClOx_old,
-     &    n_bi_terp,n_bi_dCO
+     &    rrmono,rrtri
 
       IMPLICIT NONE
 
@@ -420,9 +415,6 @@ C**** Local parameters and variables and arguments:
       integer, intent(IN)   :: Lmax,I,J
       real*8                :: A,B,C,D,F,G,Q,V,X,YY,dClOx,ww,p1,p2,p3,
      &                         dOClO,ratioc,rnormnum,destCl,prodCl
-      integer, parameter :: iClOplusClO=103+n_bi_terp+n_bi_dCO,
-     &                      iCl2O2decomp=94+n_bi_terp+n_bi_dCO,
-     &                      iClOplusNO2=104+n_bi_terp+n_bi_dCO
 
       select case(which_trop)
       case(0); maxT=min(ltropo(I,J),Lmax)
@@ -445,8 +437,10 @@ c Full ClOxfam code from offline photochemistry:
 c Low temperature stabilizes ClO dimer, use [Cl2O2] only for
 c calculating Cl amount, otherwise ignore:
         if(ta(L) <= 220.)then
-          y(nCl2O2,L)=(rr(iClOplusClO,L)*y(nClO,L)*y(nClO,L))/
-     &    (rr(iCl2O2decomp,L)+ss(20,L,i,j))
+          y(nCl2O2,L)=
+     &       (rr(rrtri%ClO_ClO__Cl2O2_M,L)*y(nClO,L)*y(nClO,L))
+     &      /(rr(rrmono%Cl2O2_M__ClO_ClO,L)
+     &       +ss(20,L,i,j))
           if(y(nCl2O2,L) > y(nClO,L)) y(nCl2O2,L)=y(nClO,L)
           y(nClO,L)=y(nClO,L)-y(nCl2O2,L)
         end if
@@ -463,9 +457,10 @@ c calculating Cl amount, otherwise ignore:
         D=y(nO3,L)*rr(49,L)+y(nBrO,L)*rr(75,L)
         F=(rr(53,L)*y(nOH,L)*y(nn_HOCl,L)+rr(55,L)*y(nO,L)*
      &    y(nn_HOCl,L)+rr(65,L)*y(nn_ClONO2,L)*y(nO,L))/y(nn_ClOx,L)
-        G=rr(62,L)*y(nOH,L)+rr(63,L)*y(nHO2,L)+rr(77,L)*
-     &    y(nBrO,L)+2.d0*rr(iClOplusClO,L)*y(nClO,L)+
-     &    rr(iClOplusNO2,L)*y(nNO2,L)
+        G=rr(62,L)*y(nOH,L)+rr(63,L)*y(nHO2,L)
+     &    +rr(77,L)*y(nBrO,L)
+     &    +2.d0*rr(rrtri%ClO_ClO__Cl2O2_M,L)*y(nClO,L)
+     &    +rr(rrtri%ClO_NO2__ClONO2_M,L)*y(nNO2,L)
         Q=rr(56,L)*y(nOH,L)
         V=C-D
         X=rr(51,L)*y(nOH,L)*y(nCl2,L)+rr(54,L)*y(nO,L)*
@@ -550,7 +545,7 @@ C**** GLOBAL parameters and variables:
       USE TRACER_COM, only : n_BrOx,n_H2O2,n_HBr,n_HOBr,n_BrONO2
       USE TRACER_COM, only : nn_BrOx,nn_H2O2,nn_HBr,nn_HOBr,nn_BrONO2
       USE TRCHEM_Shindell_COM, only:rr,y,nO3,nClO,nOClO,nNO,nO,nBr,nOH,
-     &    nBrO,ss,nHO2,nNO2,pBrOx,which_trop,n_bi_terp,n_bi_dCO
+     &    nBrO,ss,nHO2,nNO2,pBrOx,which_trop,rrtri
 
       IMPLICIT NONE
 
@@ -562,7 +557,6 @@ C**** Local parameters and variables and arguments:
       integer             :: L,maxT
       integer, intent(IN) :: Lmax,I,J
       real*8              :: a,b,c,d,eq,f,p2,p1
-      integer, parameter :: iBrOplusNO2=105+n_bi_terp+n_bi_dCO
       
       select case(which_trop)
       case(0); maxT=min(ltropo(I,J),Lmax)
@@ -575,8 +569,10 @@ C**** Local parameters and variables and arguments:
         b=y(nO,L)*rr(69,L)+y(nNO,L)*rr(71,L)+y(nClO,L)*
      &  (rr(75,L)+rr(76,L))+2*y(nBrO,L)*rr(78,L)+y(nOH,L)*
      &  rr(80,L)+ss(25,L,i,j)
-        c=rr(73,L)*y(nHO2,L)+rr(77,L)*y(nClO,L)+rr(81,L)*
-     &  y(nOH,L)+rr(iBrOplusNO2,L)*y(nNO2,L)    
+        c=rr(73,L)*y(nHO2,L)
+     &    +rr(77,L)*y(nClO,L)
+     &    +rr(81,L)*y(nOH,L)
+     &    +rr(rrtri%BrO_NO2__BrONO2_M,L)*y(nNO2,L)    
         d=rr(72,L)*y(nHO2,L)+rr(79,L)*y(nn_H2O2,L)
         eq=rr(68,L)*y(nn_HBr,L)*y(nOH,L)+rr(84,L)*y(nn_HBr,L)*
      &  y(nO,L)+ss(24,L,i,j)*y(nn_HOBr,L)

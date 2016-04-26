@@ -15,6 +15,195 @@ c
       IMPLICIT NONE
       SAVE
 
+      type rrmono_index
+! monomolecular break ups
+        integer :: HO2NO2_M__HO2_NO2=0
+        integer :: N2O5_M__NO3_NO2=0
+        integer :: Cl2O2_M__ClO_ClO=0
+      end type rrmono_index
+
+      type rrbi_index
+! bimolecular reactions
+        integer :: OH_HO2__H2O_O2=0
+        integer :: OH_O3__HO2_O2=0
+        integer :: OH_OH__H2O_O=0
+        integer :: HO2_O3__OH_O2=0
+        integer :: O3_NO__NO2_O2=0
+        integer :: HO2_NO__OH_NO2=0
+        integer :: NO2_O3__NO3_O2=0
+        integer :: O1D_O2__O_O2=0
+        integer :: O1D_M__O_M=0
+        integer :: O1D_H2O__OH_OH=0
+        integer :: O1D_CH4__OH_CH3O2=0
+        integer :: CH4_OH__H2O_CH3O2=0
+        integer :: CO_OH__HO2_O2=0
+        integer :: OH_H2O2__H2O_HO2=0
+        integer :: HO2_HO2__H2O2_O2=0
+        integer :: OH_HNO3__H2O_NO3=0
+        integer :: NO3_NO__NO2_NO2=0
+        integer :: OH_HO2NO2__H2O_NO2=0
+        integer :: H2_OH__HO2_H2O=0
+        integer :: CH3O2_NO__HCHO_NO2=0
+        integer :: HCHO_OH__HO2_CO=0
+        integer :: CH3O2_HO2__CH3OOH_O2=0
+        integer :: CH3OOH_OH__CH3O2_H2O=0
+        integer :: NO2_NO3__NO_NO2=0
+        integer :: NO3_NO3__NO2_NO2=0
+        integer :: O_NO2__NO_O2=0
+        integer :: CH3O2_CH3O2__HCHO_HCHO=0
+        integer :: NO3_HCHO__HNO3_CO=0
+        integer :: PAN_M__C2O3_NO2=0
+        integer :: Isoprene_OH__HCHO_Alkenes=0
+        integer :: Isoprene_O3__HCHO_Alkenes=0
+        integer :: Isoprene_NO3__HO2_Alkenes=0
+        integer :: AlkylNit_OH__NO2_M=0
+        integer :: Alkenes_OH__HCHO_HO2=0
+        integer :: Alkenes_O3__HCHO_CO=0
+        integer :: Alkenes_NO3__HCHO_NO2=0
+        integer :: Paraffin_OH__HO2_M=0
+        integer :: Aldehyde_OH__C2O3_M=0
+        integer :: C2O3_NO__HCHO_NO2=0
+        integer :: C2O3_C2O3__HCHO_HCHO=0
+        integer :: C2O3_HO2__HCHO_HO2=0
+        integer :: ROR_M__Aldehyde_HO2=0
+        integer :: XO2_HO2__CH3OOH_M=0
+        integer :: XO2N_NO__AlkylNit_M=0
+        integer :: Cl_O3__ClO_O2=0
+        integer :: ClO_O__Cl_O2=0
+        integer :: Cl_OClO__ClO_ClO=0
+        integer :: ClO_O3__Cl_O2=0
+        integer :: ClO_O3__OClO_O2=0
+        integer :: O_OClO__ClO_O2=0
+        integer :: OH_Cl2__HOCl_Cl=0
+        integer :: OH_HCl__H2O_Cl=0
+        integer :: OH_HOCl__H2O_ClO=0
+        integer :: O_HCl__OH_Cl=0
+        integer :: O_HOCl__OH_ClO=0
+        integer :: OClO_OH__HOCl_O2=0
+        integer :: Cl_HOCl__Cl2_OH=0
+        integer :: Cl_H2O2__HCl_HO2=0
+        integer :: Cl_HO2__HCl_O2=0
+        integer :: Cl_HO2__OH_ClO=0
+        integer :: ClO_OH__HO2_Cl=0
+        integer :: ClO_OH__HCl_O2=0
+        integer :: ClO_HO2__HOCl_O2=0
+        integer :: ClO_NO__NO2_Cl=0
+        integer :: ClONO2_O__ClO_NO3=0
+        integer :: HCl_O1D__Cl_OH=0
+        integer :: NO_OClO__NO2_ClO=0
+        integer :: HBr_OH__H2O_Br=0
+        integer :: BrO_O__Br_O2=0
+        integer :: Br_O3__BrO_O2=0
+        integer :: BrO_NO__Br_NO2=0
+        integer :: Br_HO2__HBr_O2=0
+        integer :: BrO_HO2__HOBr_O2=0
+        integer :: Br_OClO__BrO_ClO=0
+        integer :: BrO_ClO__OClO_Br=0
+        integer :: BrO_ClO__Br_Cl=0
+        integer :: O1D_CH4__HCHO_H2=0
+        integer :: BrO_BrO__Br_Br=0
+        integer :: Br_H2O2__HBr_HO2=0
+        integer :: BrO_OH__Br_HO2=0
+        integer :: BrO_OH__HBr_O2=0
+        integer :: Cl_CH4__HCl_CH3O2=0
+        integer :: Cl_H2__HCl_H2=0
+        integer :: O_HBr__OH_Br=0
+        integer :: ClO_CH3O2__Cl_HCHO=0
+        integer :: N2O_O1D__N2_O2=0
+        integer :: N2O_O1D__NO_NO=0
+        integer :: O_O3__O2_O2=0
+        integer :: O_OH__O2_H=0
+        integer :: O_HO2__OH_O2=0
+        integer :: HO2_NO__HNO3_M=0
+#ifdef TRACERS_TERP
+        integer :: Terpenes_OH__HCHO_Alkenes=0
+        integer :: Terpenes_O3__HCHO_Alkenes=0
+        integer :: Terpenes_NO3__HO2_Alkenes=0
+#endif  /* TRACERS_TERP */
+#ifdef TRACERS_dCO
+        integer :: dC17O_OH__HO2_O2=0
+        integer :: CH3O2_NO__dHCH17O_NO2=0
+        integer :: dHCH17O_OH__HO2_dC17O=0
+        integer :: CH3O2_CH3O2__dHCH17O_HCHO=0
+        integer :: NO3_dHCH17O__HNO3_dC17O=0
+        integer :: Isoprene_OH__dHCH17O_Alkenes=0
+        integer :: Isoprene_O3__dHCH17O_Alkenes=0
+        integer :: Alkenes_OH__dHCH17O_HO2=0
+        integer :: Alkenes_O3__dHCH17O_dC17O=0
+        integer :: Alkenes_NO3__dHCH17O_NO2=0
+        integer :: C2O3_NO__dHCH17O_NO2=0
+        integer :: C2O3_C2O3__dHCH17O_HCHO=0
+        integer :: C2O3_HO2__dHCH17O_HO2=0
+        integer :: O1D_CH4__dHCH17O_H2=0
+        integer :: ClO_CH3O2__Cl_dHCH17O=0
+        integer :: Terpenes_OH__dHCH17O_Alkenes=0
+        integer :: Terpenes_O3__dHCH17O_Alkenes=0
+        integer :: dC18O_OH__HO2_O2=0
+        integer :: CH3O2_NO__dHCH18O_NO2=0
+        integer :: dHCH18O_OH__HO2_dC18O=0
+        integer :: CH3O2_CH3O2__dHCH18O_HCHO=0
+        integer :: NO3_dHCH18O__HNO3_dC18O=0
+        integer :: Isoprene_OH__dHCH18O_Alkenes=0
+        integer :: Isoprene_O3__dHCH18O_Alkenes=0
+        integer :: Alkenes_OH__dHCH18O_HO2=0
+        integer :: Alkenes_O3__dHCH18O_dC18O=0
+        integer :: Alkenes_NO3__dHCH18O_NO2=0
+        integer :: C2O3_NO__dHCH18O_NO2=0
+        integer :: C2O3_C2O3__dHCH18O_HCHO=0
+        integer :: C2O3_HO2__dHCH18O_HO2=0
+        integer :: O1D_CH4__dHCH18O_H2=0
+        integer :: ClO_CH3O2__Cl_dHCH18O=0
+        integer :: Terpenes_OH__dHCH18O_Alkenes=0
+        integer :: Terpenes_O3__dHCH18O_Alkenes=0
+        integer :: d13CO_OH__HO2_O2=0
+        integer :: CH3O2_NO__dH13CHO_NO2=0
+        integer :: dH13CHO_OH__HO2_d13CO=0
+        integer :: CH3O2_CH3O2__dH13CHO_HCHO=0
+        integer :: NO3_dH13CHO__HNO3_d13CO=0
+        integer :: Isoprene_OH__dH13CHO_Alkenes=0
+        integer :: Isoprene_O3__dH13CHO_Alkenes=0
+        integer :: Alkenes_OH__dH13CHO_HO2=0
+        integer :: Alkenes_O3__dH13CHO_d13CO=0
+        integer :: Alkenes_NO3__dH13CHO_NO2=0
+        integer :: C2O3_NO__dH13CHO_NO2=0
+        integer :: C2O3_C2O3__dH13CHO_HCHO=0
+        integer :: C2O3_HO2__dH13CHO_HO2=0
+        integer :: O1D_CH4__dH13CHO_H2=0
+        integer :: ClO_CH3O2__Cl_dH13CHO=0
+        integer :: Terpenes_OH__dH13CHO_Alkenes=0
+        integer :: Terpenes_O3__dH13CHO_Alkenes=0
+#endif  /* TRACERS_dCO */
+      end type rrbi_index
+
+      type rrtri_index
+! trimolecular reactions
+        integer :: O_O2__O3_M=0
+        integer :: NO_O__NO2_M=0
+        integer :: OH_OH__H2O2_M=0
+        integer :: OH_NO2__HNO3_M=0
+        integer :: HO2_NO2__HO2NO2_M=0
+        integer :: NO3_NO2__N2O5_M=0
+        integer :: OH_NO__HONO_M=0
+        integer :: C2O3_NO2__PAN_M=0
+        integer :: ClO_ClO__Cl2O2_M=0
+        integer :: ClO_NO2__ClONO2_M=0
+        integer :: BrO_NO2__BrONO2_M=0
+      end type rrtri_index
+
+      type rrhet_index
+! heterogeneous reactions
+        integer :: N2O5_H2O__HNO3_HNO3=0
+        integer :: ClONO2_H2O__HOCl_HNO3=0
+        integer :: ClONO2_HCl__Cl_HNO3=0
+        integer :: HOCl_HCl__Cl_H2O=0
+        integer :: N2O5_HCl__Cl_HNO3=0
+      end type rrhet_index
+
+      type(rrmono_index) :: rrmono
+      type(rrbi_index) :: rrbi
+      type(rrtri_index) :: rrtri
+      type(rrhet_index) :: rrhet
+
 C**************  P  A  R  A  M  E  T  E  R  S  *******************
 !@param p_1 number of reactants or products per reaction
 !@param p_2 maximum number of reactions or photolysis rates.
@@ -583,3 +772,365 @@ C**************  Not Latitude-Dependant ****************************
       return
       end subroutine alloc_trchem_shindell_com
       
+      subroutine set_rrate_index(irr, ate)
+!@sum Dynamically assign reaction rate indices to variables, for use in
+!@+   chemistry. The reactions are denoted REAC1_REAC2__PROD1_PROD2, and
+!@+   the reaction types are rrmono (monomolecular breakups), rrbi
+!@+   bimolecular), rrtri (trimolecular), and rrhet (heterogeneous).
+!@auth Kostas Tsigaridis
+      use trchem_shindell_com, only: rrmono, rrbi,rrtri,rrhet
+      implicit none
+
+      integer, intent(in) :: irr
+      character(len=8), dimension(4), intent(in) :: ate
+      character(len=36) :: reaction
+
+      reaction = trim(ate(1))//'_'//trim(ate(2))//'__'//
+     &           trim(ate(3))//'_'//trim(ate(4))
+
+      select case(reaction)
+
+! monomolecular break ups
+        case('HO2NO2_M__HO2_NO2')
+          rrmono%HO2NO2_M__HO2_NO2=irr
+        case('N2O5_M__NO3_NO2')
+          rrmono%N2O5_M__NO3_NO2=irr
+        case('Cl2O2_M__ClO_ClO')
+          rrmono%Cl2O2_M__ClO_ClO=irr
+
+! bimolecular reactions
+        case('OH_HO2__H2O_O2')
+          rrbi%OH_HO2__H2O_O2=irr
+        case('OH_O3__HO2_O2')
+          rrbi%OH_O3__HO2_O2=irr
+        case('OH_OH__H2O_O')
+          rrbi%OH_OH__H2O_O=irr
+        case('HO2_O3__OH_O2')
+          rrbi%HO2_O3__OH_O2=irr
+        case('O3_NO__NO2_O2')
+          rrbi%O3_NO__NO2_O2=irr
+        case('HO2_NO__OH_NO2')
+          rrbi%HO2_NO__OH_NO2=irr
+        case('NO2_O3__NO3_O2')
+          rrbi%NO2_O3__NO3_O2=irr
+        case('O(1D)_O2__O_O2')
+          rrbi%O1D_O2__O_O2=irr
+        case('O(1D)_M__O_M')
+          rrbi%O1D_M__O_M=irr
+        case('O(1D)_H2O__OH_OH')
+          rrbi%O1D_H2O__OH_OH=irr
+        case('O(1D)_CH4__OH_CH3O2')
+          rrbi%O1D_CH4__OH_CH3O2=irr
+        case('CH4_OH__H2O_CH3O2')
+          rrbi%CH4_OH__H2O_CH3O2=irr
+        case('CO_OH__HO2_O2')
+          rrbi%CO_OH__HO2_O2=irr
+        case('OH_H2O2__H2O_HO2')
+          rrbi%OH_H2O2__H2O_HO2=irr
+        case('HO2_HO2__H2O2_O2')
+          rrbi%HO2_HO2__H2O2_O2=irr
+        case('OH_HNO3__H2O_NO3')
+          rrbi%OH_HNO3__H2O_NO3=irr
+        case('NO3_NO__NO2_NO2')
+          rrbi%NO3_NO__NO2_NO2=irr
+        case('OH_HO2NO2__H2O_NO2')
+          rrbi%OH_HO2NO2__H2O_NO2=irr
+        case('H2_OH__HO2_H2O')
+          rrbi%H2_OH__HO2_H2O=irr
+        case('CH3O2_NO__HCHO_NO2')
+          rrbi%CH3O2_NO__HCHO_NO2=irr
+        case('HCHO_OH__HO2_CO')
+          rrbi%HCHO_OH__HO2_CO=irr
+        case('CH3O2_HO2__CH3OOH_O2')
+          rrbi%CH3O2_HO2__CH3OOH_O2=irr
+        case('CH3OOH_OH__CH3O2_H2O')
+          rrbi%CH3OOH_OH__CH3O2_H2O=irr
+        case('NO2_NO3__NO_NO2')
+          rrbi%NO2_NO3__NO_NO2=irr
+        case('NO3_NO3__NO2_NO2')
+          rrbi%NO3_NO3__NO2_NO2=irr
+        case('O_NO2__NO_O2')
+          rrbi%O_NO2__NO_O2=irr
+        case('CH3O2_CH3O2__HCHO_HCHO')
+          rrbi%CH3O2_CH3O2__HCHO_HCHO=irr
+        case('NO3_HCHO__HNO3_CO')
+          rrbi%NO3_HCHO__HNO3_CO=irr
+        case('PAN_M__C2O3_NO2')
+          rrbi%PAN_M__C2O3_NO2=irr
+        case('Isoprene_OH__HCHO_Alkenes')
+          rrbi%Isoprene_OH__HCHO_Alkenes=irr
+        case('Isoprene_O3__HCHO_Alkenes')
+          rrbi%Isoprene_O3__HCHO_Alkenes=irr
+        case('Isoprene_NO3__HO2_Alkenes')
+          rrbi%Isoprene_NO3__HO2_Alkenes=irr
+        case('AlkylNit_OH__NO2_M')
+          rrbi%AlkylNit_OH__NO2_M=irr
+        case('Alkenes_OH__HCHO_HO2')
+          rrbi%Alkenes_OH__HCHO_HO2=irr
+        case('Alkenes_O3__HCHO_CO')
+          rrbi%Alkenes_O3__HCHO_CO=irr
+        case('Alkenes_NO3__HCHO_NO2')
+          rrbi%Alkenes_NO3__HCHO_NO2=irr
+        case('Paraffin_OH__HO2_M')
+          rrbi%Paraffin_OH__HO2_M=irr
+        case('Aldehyde_OH__C2O3_M')
+          rrbi%Aldehyde_OH__C2O3_M=irr
+        case('C2O3_NO__HCHO_NO2')
+          rrbi%C2O3_NO__HCHO_NO2=irr
+        case('C2O3_C2O3__HCHO_HCHO')
+          rrbi%C2O3_C2O3__HCHO_HCHO=irr
+        case('C2O3_HO2__HCHO_HO2')
+          rrbi%C2O3_HO2__HCHO_HO2=irr
+        case('ROR_M__Aldehyde_HO2')
+          rrbi%ROR_M__Aldehyde_HO2=irr
+        case('XO2_HO2__CH3OOH_M')
+          rrbi%XO2_HO2__CH3OOH_M=irr
+        case('XO2N_NO__AlkylNit_M')
+          rrbi%XO2N_NO__AlkylNit_M=irr
+        case('Cl_O3__ClO_O2')
+          rrbi%Cl_O3__ClO_O2=irr
+        case('ClO_O__Cl_O2')
+          rrbi%ClO_O__Cl_O2=irr
+        case('Cl_OClO__ClO_ClO')
+          rrbi%Cl_OClO__ClO_ClO=irr
+        case('ClO_O3__Cl_O2')
+          rrbi%ClO_O3__Cl_O2=irr
+        case('ClO_O3__OClO_O2')
+          rrbi%ClO_O3__OClO_O2=irr
+        case('O_OClO__ClO_O2')
+          rrbi%O_OClO__ClO_O2=irr
+        case('OH_Cl2__HOCl_Cl')
+          rrbi%OH_Cl2__HOCl_Cl=irr
+        case('OH_HCl__H2O_Cl')
+          rrbi%OH_HCl__H2O_Cl=irr
+        case('OH_HOCl__H2O_ClO')
+          rrbi%OH_HOCl__H2O_ClO=irr
+        case('O_HCl__OH_Cl')
+          rrbi%O_HCl__OH_Cl=irr
+        case('O_HOCl__OH_ClO')
+          rrbi%O_HOCl__OH_ClO=irr
+        case('OClO_OH__HOCl_O2')
+          rrbi%OClO_OH__HOCl_O2=irr
+        case('Cl_HOCl__Cl2_OH')
+          rrbi%Cl_HOCl__Cl2_OH=irr
+        case('Cl_H2O2__HCl_HO2')
+          rrbi%Cl_H2O2__HCl_HO2=irr
+        case('Cl_HO2__HCl_O2')
+          rrbi%Cl_HO2__HCl_O2=irr
+        case('Cl_HO2__OH_ClO')
+          rrbi%Cl_HO2__OH_ClO=irr
+        case('ClO_OH__HO2_Cl')
+          rrbi%ClO_OH__HO2_Cl=irr
+        case('ClO_OH__HCl_O2')
+          rrbi%ClO_OH__HCl_O2=irr
+        case('ClO_HO2__HOCl_O2')
+          rrbi%ClO_HO2__HOCl_O2=irr
+        case('ClO_NO__NO2_Cl')
+          rrbi%ClO_NO__NO2_Cl=irr
+        case('ClONO2_O__ClO_NO3')
+          rrbi%ClONO2_O__ClO_NO3=irr
+        case('HCl_O(1D)__Cl_OH')
+          rrbi%HCl_O1D__Cl_OH=irr
+        case('NO_OClO__NO2_ClO')
+          rrbi%NO_OClO__NO2_ClO=irr
+        case('HBr_OH__H2O_Br')
+          rrbi%HBr_OH__H2O_Br=irr
+        case('BrO_O__Br_O2')
+          rrbi%BrO_O__Br_O2=irr
+        case('Br_O3__BrO_O2')
+          rrbi%Br_O3__BrO_O2=irr
+        case('BrO_NO__Br_NO2')
+          rrbi%BrO_NO__Br_NO2=irr
+        case('Br_HO2__HBr_O2')
+          rrbi%Br_HO2__HBr_O2=irr
+        case('BrO_HO2__HOBr_O2')
+          rrbi%BrO_HO2__HOBr_O2=irr
+        case('Br_OClO__BrO_ClO')
+          rrbi%Br_OClO__BrO_ClO=irr
+        case('BrO_ClO__OClO_Br')
+          rrbi%BrO_ClO__OClO_Br=irr
+        case('BrO_ClO__Br_Cl')
+          rrbi%BrO_ClO__Br_Cl=irr
+        case('O(1D)_CH4__HCHO_H2')
+          rrbi%O1D_CH4__HCHO_H2=irr
+        case('BrO_BrO__Br_Br')
+          rrbi%BrO_BrO__Br_Br=irr
+        case('Br_H2O2__HBr_HO2')
+          rrbi%Br_H2O2__HBr_HO2=irr
+        case('BrO_OH__Br_HO2')
+          rrbi%BrO_OH__Br_HO2=irr
+        case('BrO_OH__HBr_O2')
+          rrbi%BrO_OH__HBr_O2=irr
+        case('Cl_CH4__HCl_CH3O2')
+          rrbi%Cl_CH4__HCl_CH3O2=irr
+        case('Cl_H2__HCl_H2')
+          rrbi%Cl_H2__HCl_H2=irr
+        case('O_HBr__OH_Br')
+          rrbi%O_HBr__OH_Br=irr
+        case('ClO_CH3O2__Cl_HCHO')
+          rrbi%ClO_CH3O2__Cl_HCHO=irr
+        case('N2O_O(1D)__N2_O2')
+          rrbi%N2O_O1D__N2_O2=irr
+        case('N2O_O(1D)__NO_NO')
+          rrbi%N2O_O1D__NO_NO=irr
+        case('O_O3__O2_O2')
+          rrbi%O_O3__O2_O2=irr
+        case('O_OH__O2_H')
+          rrbi%O_OH__O2_H=irr
+        case('O_HO2__OH_O2')
+          rrbi%O_HO2__OH_O2=irr
+        case('HO2_NO__HNO3_M')
+          rrbi%HO2_NO__HNO3_M=irr
+#ifdef TRACERS_TERP
+        case('Terpenes_OH__HCHO_Alkenes')
+          rrbi%Terpenes_OH__HCHO_Alkenes=irr
+        case('Terpenes_O3__HCHO_Alkenes')
+          rrbi%Terpenes_O3__HCHO_Alkenes=irr
+        case('Terpenes_NO3__HO2_Alkenes')
+          rrbi%Terpenes_NO3__HO2_Alkenes=irr
+#endif  /* TRACERS_TERP */
+#ifdef TRACERS_dCO
+        case('dC17O_OH__HO2_O2')
+          rrbi%dC17O_OH__HO2_O2=irr
+        case('CH3O2_NO__dHCH17O_NO2')
+          rrbi%CH3O2_NO__dHCH17O_NO2=irr
+        case('dHCH17O_OH__HO2_dC17O')
+          rrbi%dHCH17O_OH__HO2_dC17O=irr
+        case('CH3O2_CH3O2__dHCH17O_HCHO')
+          rrbi%CH3O2_CH3O2__dHCH17O_HCHO=irr
+        case('NO3_dHCH17O__HNO3_dC17O')
+          rrbi%NO3_dHCH17O__HNO3_dC17O=irr
+        case('Isoprene_OH__dHCH17O_Alkenes')
+          rrbi%Isoprene_OH__dHCH17O_Alkenes=irr
+        case('Isoprene_O3__dHCH17O_Alkenes')
+          rrbi%Isoprene_O3__dHCH17O_Alkenes=irr
+        case('Alkenes_OH__dHCH17O_HO2')
+          rrbi%Alkenes_OH__dHCH17O_HO2=irr
+        case('Alkenes_O3__dHCH17O_dC17O')
+          rrbi%Alkenes_O3__dHCH17O_dC17O=irr
+        case('Alkenes_NO3__dHCH17O_NO2')
+          rrbi%Alkenes_NO3__dHCH17O_NO2=irr
+        case('C2O3_NO__dHCH17O_NO2')
+          rrbi%C2O3_NO__dHCH17O_NO2=irr
+        case('C2O3_C2O3__dHCH17O_HCHO')
+          rrbi%C2O3_C2O3__dHCH17O_HCHO=irr
+        case('C2O3_HO2__dHCH17O_HO2')
+          rrbi%C2O3_HO2__dHCH17O_HO2=irr
+        case('O(1D)_CH4__dHCH17O_H2')
+          rrbi%O1D_CH4__dHCH17O_H2=irr
+        case('ClO_CH3O2__Cl_dHCH17O')
+          rrbi%ClO_CH3O2__Cl_dHCH17O=irr
+        case('Terpenes_OH__dHCH17O_Alkenes')
+          rrbi%Terpenes_OH__dHCH17O_Alkenes=irr
+        case('Terpenes_O3__dHCH17O_Alkenes')
+          rrbi%Terpenes_O3__dHCH17O_Alkenes=irr
+        case('dC18O_OH__HO2_O2')
+          rrbi%dC18O_OH__HO2_O2=irr
+        case('CH3O2_NO__dHCH18O_NO2')
+          rrbi%CH3O2_NO__dHCH18O_NO2=irr
+        case('dHCH18O_OH__HO2_dC18O')
+          rrbi%dHCH18O_OH__HO2_dC18O=irr
+        case('CH3O2_CH3O2__dHCH18O_HCHO')
+          rrbi%CH3O2_CH3O2__dHCH18O_HCHO=irr
+        case('NO3_dHCH18O__HNO3_dC18O')
+          rrbi%NO3_dHCH18O__HNO3_dC18O=irr
+        case('Isoprene_OH__dHCH18O_Alkenes')
+          rrbi%Isoprene_OH__dHCH18O_Alkenes=irr
+        case('Isoprene_O3__dHCH18O_Alkenes')
+          rrbi%Isoprene_O3__dHCH18O_Alkenes=irr
+        case('Alkenes_OH__dHCH18O_HO2')
+          rrbi%Alkenes_OH__dHCH18O_HO2=irr
+        case('Alkenes_O3__dHCH18O_dC18O')
+          rrbi%Alkenes_O3__dHCH18O_dC18O=irr
+        case('Alkenes_NO3__dHCH18O_NO2')
+          rrbi%Alkenes_NO3__dHCH18O_NO2=irr
+        case('C2O3_NO__dHCH18O_NO2')
+          rrbi%C2O3_NO__dHCH18O_NO2=irr
+        case('C2O3_C2O3__dHCH18O_HCHO')
+          rrbi%C2O3_C2O3__dHCH18O_HCHO=irr
+        case('C2O3_HO2__dHCH18O_HO2')
+          rrbi%C2O3_HO2__dHCH18O_HO2=irr
+        case('O(1D)_CH4__dHCH18O_H2')
+          rrbi%O1D_CH4__dHCH18O_H2=irr
+        case('ClO_CH3O2__Cl_dHCH18O')
+          rrbi%ClO_CH3O2__Cl_dHCH18O=irr
+        case('Terpenes_OH__dHCH18O_Alkenes')
+          rrbi%Terpenes_OH__dHCH18O_Alkenes=irr
+        case('Terpenes_O3__dHCH18O_Alkenes')
+          rrbi%Terpenes_O3__dHCH18O_Alkenes=irr
+        case('d13CO_OH__HO2_O2')
+          rrbi%d13CO_OH__HO2_O2=irr
+        case('CH3O2_NO__dH13CHO_NO2')
+          rrbi%CH3O2_NO__dH13CHO_NO2=irr
+        case('dH13CHO_OH__HO2_d13CO')
+          rrbi%dH13CHO_OH__HO2_d13CO=irr
+        case('CH3O2_CH3O2__dH13CHO_HCHO')
+          rrbi%CH3O2_CH3O2__dH13CHO_HCHO=irr
+        case('NO3_dH13CHO__HNO3_d13CO')
+          rrbi%NO3_dH13CHO__HNO3_d13CO=irr
+        case('Isoprene_OH__dH13CHO_Alkenes')
+          rrbi%Isoprene_OH__dH13CHO_Alkenes=irr
+        case('Isoprene_O3__dH13CHO_Alkenes')
+          rrbi%Isoprene_O3__dH13CHO_Alkenes=irr
+        case('Alkenes_OH__dH13CHO_HO2')
+          rrbi%Alkenes_OH__dH13CHO_HO2=irr
+        case('Alkenes_O3__dH13CHO_d13CO')
+          rrbi%Alkenes_O3__dH13CHO_d13CO=irr
+        case('Alkenes_NO3__dH13CHO_NO2')
+          rrbi%Alkenes_NO3__dH13CHO_NO2=irr
+        case('C2O3_NO__dH13CHO_NO2')
+          rrbi%C2O3_NO__dH13CHO_NO2=irr
+        case('C2O3_C2O3__dH13CHO_HCHO')
+          rrbi%C2O3_C2O3__dH13CHO_HCHO=irr
+        case('C2O3_HO2__dH13CHO_HO2')
+          rrbi%C2O3_HO2__dH13CHO_HO2=irr
+        case('O(1D)_CH4__dH13CHO_H2')
+          rrbi%O1D_CH4__dH13CHO_H2=irr
+        case('ClO_CH3O2__Cl_dH13CHO')
+          rrbi%ClO_CH3O2__Cl_dH13CHO=irr
+        case('Terpenes_OH__dH13CHO_Alkenes')
+          rrbi%Terpenes_OH__dH13CHO_Alkenes=irr
+        case('Terpenes_O3__dH13CHO_Alkenes')
+          rrbi%Terpenes_O3__dH13CHO_Alkenes=irr
+#endif  /* TRACERS_dCO */
+
+! trimolecular reactions
+        case('O_O2__O3_M')
+          rrtri%O_O2__O3_M=irr
+        case('NO_O__NO2_M')
+          rrtri%NO_O__NO2_M=irr
+        case('OH_OH__H2O2_M')
+          rrtri%OH_OH__H2O2_M=irr
+        case('OH_NO2__HNO3_M')
+          rrtri%OH_NO2__HNO3_M=irr
+        case('HO2_NO2__HO2NO2_M')
+          rrtri%HO2_NO2__HO2NO2_M=irr
+        case('NO3_NO2__N2O5_M')
+          rrtri%NO3_NO2__N2O5_M=irr
+        case('OH_NO__HONO_M')
+          rrtri%OH_NO__HONO_M=irr
+        case('C2O3_NO2__PAN_M')
+          rrtri%C2O3_NO2__PAN_M=irr
+        case('ClO_ClO__Cl2O2_M')
+          rrtri%ClO_ClO__Cl2O2_M=irr
+        case('ClO_NO2__ClONO2_M')
+          rrtri%ClO_NO2__ClONO2_M=irr
+        case('BrO_NO2__BrONO2_M')
+          rrtri%BrO_NO2__BrONO2_M=irr
+
+! heterogeneous reactions
+        case('N2O5_H2O__HNO3_HNO3')
+          rrhet%N2O5_H2O__HNO3_HNO3=irr
+        case('ClONO2_H2O__HOCl_HNO3')
+          rrhet%ClONO2_H2O__HOCl_HNO3=irr
+        case('ClONO2_HCl__Cl_HNO3')
+          rrhet%ClONO2_HCl__Cl_HNO3=irr
+        case('HOCl_HCl__Cl_H2O')
+          rrhet%HOCl_HCl__Cl_H2O=irr
+        case('N2O5_HCl__Cl_HNO3')
+          rrhet%N2O5_HCl__Cl_HNO3=irr
+        case default
+          call stop_model('Index for '//reaction//' missing',255)
+      end select
+
+      end subroutine set_rrate_index
