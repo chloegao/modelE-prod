@@ -937,9 +937,12 @@ C*****************************************************************
 
 c       calculate NO3 vs NO2 (assume no NO at night)
         do itemp_iter=1,5
-          rprodNO3=rr(7,L)*y(nNO2,L)*y(nn_Ox,L)*pOx(I,J,L)
-          rlossNO3=(2.d0*rr(25,L)*yNO3(I,J,L))*yNO3(I,J,L)-
-     &    (rr(36,L)*y(nn_Alkenes,L))*yNO3(I,J,L)
+          rprodNO3=rr(rrbi%NO2_O3__NO3_O2,L)*y(nNO2,L)*y(nn_Ox,L)
+     &      *pOx(I,J,L)
+          rlossNO3=(2.d0*rr(rrbi%NO3_NO3__NO2_NO2,L)*yNO3(I,J,L))
+     &        *yNO3(I,J,L)
+     &      -(rr(rrbi%Alkenes_NO3__HCHO_NO2,L)*y(nn_Alkenes,L))
+     &        *yNO3(I,J,L)
           if((rlossNO3+rprodNO3)==0.)
      &    call stop_model('(rlossNO3+rprodNO3)=0',255)
           pNO3temp=rprodNO3/(rlossNO3+rprodNO3)
@@ -955,14 +958,19 @@ c       paths if lead to negative conc:
      &    rr(rrtri%NO3_NO2__N2O5_M,L)*y(nNO2,L)*yNO3(I,J,L)*dt2
         rN2O5decomp=rr(rrmono%N2O5_M__NO3_NO2,L)*y(nn_N2O5,L)*dt2
         chgHT5=rr(rrhet%N2O5_HCl__Cl_HNO3,L)*y(nn_N2O5,L)*dt2
-        rHCHOplusNO3=y(nn_HCHO,L)*rr(28,L)*yNO3(I,J,L)*dt2
+        rHCHOplusNO3=
+     &    y(nn_HCHO,L)*rr(rrbi%NO3_HCHO__HNO3_CO,L)*yNO3(I,J,L)*dt2
 #ifdef TRACERS_dCO
-        rdHCH17OplusNO3=y(nn_dHCH17O,L)*rr(28,L)*yNO3(I,J,L)*dt2
-        rdHCH18OplusNO3=y(nn_dHCH18O,L)*rr(28,L)*yNO3(I,J,L)*dt2
-        rdH13CHOplusNO3=y(nn_dH13CHO,L)*rr(28,L)*yNO3(I,J,L)*dt2
+        rdHCH17OplusNO3=
+     &    y(nn_dHCH17O,L)*rr(rrbi%NO3_HCHO__HNO3_CO,L)*yNO3(I,J,L)*dt2
+        rdHCH18OplusNO3=
+     &    y(nn_dHCH18O,L)*rr(rrbi%NO3_HCHO__HNO3_CO,L)*yNO3(I,J,L)*dt2
+        rdH13CHOplusNO3=
+     &    y(nn_dH13CHO,L)*rr(rrbi%NO3_HCHO__HNO3_CO,L)*yNO3(I,J,L)*dt2
 #endif  /* TRACERS_dCO */
         rAldplusNO3=2.5d-15*yAldehyde(I,J,L)*yNO3(I,J,L)*dt2
-        rIsopplusNO3=rr(32,L)*y(nn_Isoprene,L)*yNO3(I,J,L)*dt2
+        rIsopplusNO3=rr(rrbi%Isoprene_NO3__HO2_Alkenes,L)
+     &    *y(nn_Isoprene,L)*yNO3(I,J,L)*dt2
 #ifdef TRACERS_TERP
         rTerpplusNO3=
      &    rr(rrbi%Terpenes_NO3__HO2_Alkenes,L)*y(nn_Terpenes,L)
@@ -1053,23 +1061,27 @@ C Alkenes, Isoprene, Terpenes (if used) and AlkylNit:
      &    gwprodHNO3dH13CHO=y(nn_dH13CHO,L)
 #endif  /* TRACERS_dCO */
 
-        changeAldehyde=(rr(36,L)*y(nn_Alkenes,L)
-     &                 +rr(32,L)*y(nn_Isoprene,L)*0.12d0
+        changeAldehyde=(rr(rrbi%Alkenes_NO3__HCHO_NO2,L)*y(nn_Alkenes,L)
+     &      +rr(rrbi%Isoprene_NO3__HO2_Alkenes,L)*y(nn_Isoprene,L)
+     &        *0.12d0
 #ifdef TRACERS_TERP
-     &    +rr(rrbi%Terpenes_NO3__HO2_Alkenes,L)*y(nn_Terpenes,L)*0.12d0
+     &      +rr(rrbi%Terpenes_NO3__HO2_Alkenes,L)*y(nn_Terpenes,L)
+     &        *0.12d0
 #endif  /* TRACERS_TERP */
-     &                 -2.5d-15*yAldehyde(I,J,L))*
-     &              yNO3(I,J,L)*dt2
+     &      -2.5d-15*yAldehyde(I,J,L)
+     &    )*yNO3(I,J,L)*dt2
         if(-changeAldehyde > 0.75d0*yAldehyde(I,J,L))changeAldehyde=
      &  -0.75d0*yAldehyde(I,J,L)
 
-        changeAlkenes=(rr(32,L)*y(nn_Isoprene,L)*0.45d0
+        changeAlkenes=(rr(rrbi%Isoprene_NO3__HO2_Alkenes,L)
+     &        *y(nn_Isoprene,L)*0.45d0
 #ifdef TRACERS_TERP
-     &    +rr(rrbi%Terpenes_NO3__HO2_Alkenes,L)*y(nn_Terpenes,L)*0.45d0
+     &      +rr(rrbi%Terpenes_NO3__HO2_Alkenes,L)*y(nn_Terpenes,L)
+     &        *0.45d0
 #endif  /* TRACERS_TERP */
-     &                -rr(36,L)*y(nn_Alkenes,L))*
-     &               yNO3(I,J,L)*dt2
-     &               +(rr(31,L)*y(nn_Isoprene,L)
+     &      -rr(rrbi%Alkenes_NO3__HCHO_NO2,L)*y(nn_Alkenes,L)
+     &    )*yNO3(I,J,L)*dt2
+     &    +(rr(rrbi%Isoprene_O3__HCHO_Alkenes,L)*y(nn_Isoprene,L)
 #ifdef TRACERS_TERP
      &    +rr(rrbi%Terpenes_O3__HCHO_Alkenes,L)*y(nn_Terpenes,L)
 #endif  /* TRACERS_TERP */
@@ -1083,12 +1095,14 @@ C Alkenes, Isoprene, Terpenes (if used) and AlkylNit:
 ! No nighttime production from OH reactions, since no nighttime OH exist.
 ! This should be improved in the future.
         if (L<=LM_soa) then
-          changeisopp1g=apartmolar(L,whichsoa(n_isopp1a))*
-     &                (rr(31,L)*y(nO3,L))*y(nn_Isoprene,L)*dt2
+          changeisopp1g=apartmolar(L,whichsoa(n_isopp1a))
+     &      *(rr(rrbi%Isoprene_O3__HCHO_Alkenes,L)*y(nO3,L))
+     &      *y(nn_Isoprene,L)*dt2
           if(-changeisopp1g > 0.75d0*y(nn_isopp1g,L))changeisopp1g=
      &    -0.75d0*y(nn_isopp1g,L)
-          changeisopp2g=apartmolar(L,whichsoa(n_isopp2a))*
-     &                (rr(31,L)*y(nO3,L))*y(nn_Isoprene,L)*dt2
+          changeisopp2g=apartmolar(L,whichsoa(n_isopp2a))
+     &      *(rr(rrbi%Isoprene_O3__HCHO_Alkenes,L)*y(nO3,L))
+     &      *y(nn_Isoprene,L)*dt2
           if(-changeisopp2g > 0.75d0*y(nn_isopp2g,L))changeisopp2g=
      &    -0.75d0*y(nn_isopp2g,L)
 #ifdef TRACERS_TERP
@@ -1113,27 +1127,32 @@ C Alkenes, Isoprene, Terpenes (if used) and AlkylNit:
         end if
 #endif  /* TRACERS_AEROSOLS_SOA */
 
-        changeIsoprene=-(rr(32,L)*yNO3(I,J,L)
-     &                 +rr(31,L)*y(nO3,L))*y(nn_Isoprene,L)*dt2
+        changeIsoprene=
+     &    -(rr(rrbi%Isoprene_NO3__HO2_Alkenes,L)*yNO3(I,J,L)
+     &    +rr(rrbi%Isoprene_O3__HCHO_Alkenes,L)*y(nO3,L))
+     &      *y(nn_Isoprene,L)*dt2
         if(-changeIsoprene > 0.75d0*y(nn_Isoprene,L))changeIsoprene=
      &  -0.75d0*y(nn_Isoprene,L)
 
 #ifdef TRACERS_TERP
         changeTerpenes=-(
-     &    rr(rrbi%Terpenes_NO3__HO2_Alkenes,L)*yNO3(I,J,L)
-     &    +rr(rrbi%Terpenes_O3__HCHO_Alkenes,L)*y(nO3,L)
+     &      rr(rrbi%Terpenes_NO3__HO2_Alkenes,L)*yNO3(I,J,L)
+     &      +rr(rrbi%Terpenes_O3__HCHO_Alkenes,L)*y(nO3,L)
      &    )*y(nn_Terpenes,L)*dt2
         if(-changeTerpenes > 0.75d0*y(nn_Terpenes,L))changeTerpenes=
      &  -0.75d0*y(nn_Terpenes,L)
 #endif  /* TRACERS_TERP */
 
-        changeHCHO=(rr(36,L)*y(nn_Alkenes,L)
-     &             +rr(32,L)*y(nn_Isoprene,L)*0.03d0
+        changeHCHO=(rr(rrbi%Alkenes_NO3__HCHO_NO2,L)*y(nn_Alkenes,L)
+     &      +rr(rrbi%Isoprene_NO3__HO2_Alkenes,L)*y(nn_Isoprene,L)
+     &        *0.03d0
 #ifdef TRACERS_TERP
-     &    +rr(rrbi%Terpenes_NO3__HO2_Alkenes,L)*y(nn_Terpenes,L)*0.03d0
+     &      +rr(rrbi%Terpenes_NO3__HO2_Alkenes,L)*y(nn_Terpenes,L)
+     &        *0.03d0
 #endif  /* TRACERS_TERP */
-     &             )*yNO3(I,J,L)*dt2
-     &             -gwprodHNO3+(rr(31,L)*y(nn_Isoprene,L)*0.9d0
+     &    )*yNO3(I,J,L)*dt2
+     &    -gwprodHNO3
+     &    +(rr(rrbi%Isoprene_O3__HCHO_Alkenes,L)*y(nn_Isoprene,L)*0.9d0
 #ifdef TRACERS_TERP
      &    +rr(rrbi%Terpenes_O3__HCHO_Alkenes,L)*y(nn_Terpenes,L)*0.9d0
 #endif  /* TRACERS_TERP */
@@ -1141,41 +1160,53 @@ C Alkenes, Isoprene, Terpenes (if used) and AlkylNit:
      &    )*y(nO3,L)*0.64d0*dt2
 
 #ifdef TRACERS_dCO
-        changedHCH17O=(rr(36,L)*y(nn_Alkenes,L)
-     &               +rr(32,L)*y(nn_Isoprene,L)*0.03d0
+        changedHCH17O=(rr(rrbi%Alkenes_NO3__HCHO_NO2,L)*y(nn_Alkenes,L)
+     &      +rr(rrbi%Isoprene_NO3__HO2_Alkenes,L)*y(nn_Isoprene,L)
+     &        *0.03d0
 #ifdef TRACERS_TERP
-     &    +rr(rrbi%Terpenes_NO3__HO2_Alkenes,L)*y(nn_Terpenes,L)*0.03d0
+     &      +rr(rrbi%Terpenes_NO3__HO2_Alkenes,L)*y(nn_Terpenes,L)
+     &        *0.03d0
 #endif  /* TRACERS_TERP */
-     &               )*yNO3(I,J,L)*dt2
-     &               -gwprodHNO3dHCH17O+(rr(31,L)*y(nn_Isoprene,L)*0.9d0
+     &    )*yNO3(I,J,L)*dt2
+     &    -gwprodHNO3dHCH17O
+     &    +(rr(rrbi%Isoprene_O3__HCHO_Alkenes,L)*y(nn_Isoprene,L)*0.9d0
 #ifdef TRACERS_TERP
      &    +rr(rrbi%Terpenes_O3__HCHO_Alkenes,L)*y(nn_Terpenes,L)*0.9d0
 #endif  /* TRACERS_TERP */
-     &               +rr(35,L)*y(nn_Alkenes,L))*y(nO3,L)*0.64d0*dt2
+     &    +rr(rrbi%Alkenes_O3__HCHO_CO,L)*y(nn_Alkenes,L))*y(nO3,L)
+     &      *0.64d0*dt2
 
-        changedHCH18O=(rr(36,L)*y(nn_Alkenes,L)
-     &               +rr(32,L)*y(nn_Isoprene,L)*0.03d0
+        changedHCH18O=(rr(rrbi%Alkenes_NO3__HCHO_NO2,L)*y(nn_Alkenes,L)
+     &      +rr(rrbi%Isoprene_NO3__HO2_Alkenes,L)*y(nn_Isoprene,L)
+     &        *0.03d0
 #ifdef TRACERS_TERP
-     &    +rr(rrbi%Terpenes_NO3__HO2_Alkenes,L)*y(nn_Terpenes,L)*0.03d0
+     &      +rr(rrbi%Terpenes_NO3__HO2_Alkenes,L)*y(nn_Terpenes,L)
+     &        *0.03d0
 #endif  /* TRACERS_TERP */
-     &               )*yNO3(I,J,L)*dt2
-     &               -gwprodHNO3dHCH18O+(rr(31,L)*y(nn_Isoprene,L)*0.9d0
+     &    )*yNO3(I,J,L)*dt2
+     &    -gwprodHNO3dHCH18O
+     &    +(rr(rrbi%Isoprene_O3__HCHO_Alkenes,L)*y(nn_Isoprene,L)*0.9d0
 #ifdef TRACERS_TERP
      &    +rr(rrbi%Terpenes_O3__HCHO_Alkenes,L)*y(nn_Terpenes,L)*0.9d0
 #endif  /* TRACERS_TERP */
-     &               +rr(35,L)*y(nn_Alkenes,L))*y(nO3,L)*0.64d0*dt2
+     &    +rr(rrbi%Alkenes_O3__HCHO_CO,L)*y(nn_Alkenes,L))*y(nO3,L)
+     &      *0.64d0*dt2
 
-        changedH13CHO=(rr(36,L)*y(nn_Alkenes,L)
-     &               +rr(32,L)*y(nn_Isoprene,L)*0.03d0
+        changedH13CHO=(rr(rrbi%Alkenes_NO3__HCHO_NO2,L)*y(nn_Alkenes,L)
+     &      +rr(rrbi%Isoprene_NO3__HO2_Alkenes,L)*y(nn_Isoprene,L)
+     &        *0.03d0
 #ifdef TRACERS_TERP
-     &    +rr(rrbi%Terpenes_NO3__HO2_Alkenes,L)*y(nn_Terpenes,L)*0.03d0
+     &      +rr(rrbi%Terpenes_NO3__HO2_Alkenes,L)*y(nn_Terpenes,L)
+     &        *0.03d0
 #endif  /* TRACERS_TERP */
-     &               )*yNO3(I,J,L)*dt2
-     &               -gwprodHNO3dH13CHO+(rr(31,L)*y(nn_Isoprene,L)*0.9d0
+     &    )*yNO3(I,J,L)*dt2
+     &    -gwprodHNO3dH13CHO
+     &    +(rr(rrbi%Isoprene_O3__HCHO_Alkenes,L)*y(nn_Isoprene,L)*0.9d0
 #ifdef TRACERS_TERP
      &    +rr(rrbi%Terpenes_O3__HCHO_Alkenes,L)*y(nn_Terpenes,L)*0.9d0
 #endif  /* TRACERS_TERP */
-     &               +rr(35,L)*y(nn_Alkenes,L))*y(nO3,L)*0.64d0*dt2
+     &    +rr(rrbi%Alkenes_O3__HCHO_CO,L)*y(nn_Alkenes,L))*y(nO3,L)
+     &      *0.64d0*dt2
 #endif  /* TRACERS_dCO */
 
         changeAlkylNit=rIsopplusNO3*0.9d0
@@ -1488,7 +1519,8 @@ C Make sure we get the nightime values; Set OH to zero for now:
         end if
 
 c --  Ox --   ( Ox from gas phase rxns)
-        changeOx=-1.d0*rr(7,L)*y(nNO2,L)*y(nn_Ox,L)*pOx(I,J,L)*dt2
+        changeOx=-1.d0*rr(rrbi%NO2_O3__NO3_O2,L)*y(nNO2,L)*y(nn_Ox,L)
+     &    *pOx(I,J,L)*dt2
         changeL(L,n_Ox)=changeOx*pfactor*vol2mass(n_Ox)
         IF((trm(i,j,L,n_Ox)+changeL(L,n_Ox)) < minKG) THEN
           changeL(L,n_Ox) = minKG - trm(i,j,L,n_Ox)
@@ -1768,11 +1800,11 @@ c           Conserve N wrt BrONO2 once inital Br changes past:
 
         ! chemical_production_of_OH_from_O1D_plus_H2O:
         taijls(i,j,l,ijlt_pOH)=taijls(i,j,l,ijlt_pOH)+
-     &  2.d0*rr(10,l)*y(nH2O,l)*y(nO1D,l)*cpd
+     &  2.d0*rr(rrbi%O1D_H2O__OH_OH,l)*y(nH2O,l)*y(nO1D,l)*cpd
 
         ! chemical_production_rate_of_ozone_by_HO2_plus_NO:
         taijls(i,j,l,ijlt_OxpHO2)=taijls(i,j,l,ijlt_OxpHO2)+
-     &  rr(6,l)*y(nHO2,l)*y(nNO,l)*cpd
+     &  rr(rrbi%HO2_NO__OH_NO2,l)*y(nHO2,l)*y(nNO,l)*cpd
    
         ! chemical_production_rate_of_ozone_by_CH3O2_plus_NO:
         taijls(i,j,l,ijlt_OxpCH3O2)=taijls(i,j,l,ijlt_OxpCH3O2)+
@@ -1780,11 +1812,11 @@ c           Conserve N wrt BrONO2 once inital Br changes past:
     
         ! chemical_destruction_rate_of_ozone_by_OH:
         taijls(i,j,l,ijlt_OxlOH)=taijls(i,j,l,ijlt_OxlOH)+
-     &  rr(2,l)*y(nOH,l)*y(nO3,l)*cpd ! (positive)
+     &  rr(rrbi%OH_O3__HO2_O2,l)*y(nOH,l)*y(nO3,l)*cpd ! (positive)
 
         !chemical_destruction_rate_of_ozone_by_HO2:
         taijls(i,j,l,ijlt_OxlHO2)=taijls(i,j,l,ijlt_OxlHO2)+
-     &  rr(4,l)*y(nOH,l)*y(nO3,l)*cpd ! (positive)
+     &  rr(rrbi%HO2_O3__OH_O2,l)*y(nOH,l)*y(nO3,l)*cpd ! (positive)
 
         !chemical_destruction_rate_of_ozone_by_Alkenes:
         taijls(i,j,l,ijlt_OxlALK)=taijls(i,j,l,ijlt_OxlALK)+

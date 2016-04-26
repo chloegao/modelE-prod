@@ -298,13 +298,17 @@ c HCHO, Alkenes, and CO per rxn, correct here following Houweling:
 c Set CH3O2 values (concentration = production/specific loss):
       do L=1,maxT ! troposphere
         iter=1
-        qqqCH3O2=(rr(11,L)*y(nO1D,L)+rr(12,L)*y(nOH,L))
-     &  *y(nn_CH4,L)+rr(23,L)*y(nn_CH3OOH,L)*y(nOH,L)
+        qqqCH3O2=(rr(rrbi%O1D_CH4__OH_CH3O2,L)*y(nO1D,L)
+     &      +rr(rrbi%CH4_OH__H2O_CH3O2,L)*y(nOH,L))
+     &    *y(nn_CH4,L)
+     &    +rr(rrbi%CH3OOH_OH__CH3O2_H2O,L)*y(nn_CH3OOH,L)*y(nOH,L)
         tempAcet=2.d0*Jacet(L)*acetone(I,J,L)
         prodCH3O2=qqqCH3O2+tempAcet
-        tempiter=rr(20,L)*y(nNO,L)+rr(22,L)*y(nHO2,L)
+        tempiter=rr(rrbi%CH3O2_NO__HCHO_NO2,L)*y(nNO,L)
+     &    +rr(rrbi%CH3O2_HO2__CH3OOH_O2,L)*y(nHO2,L)
         do while(iter <= 7)
-          CH3O2loss=tempiter+rr(27,L)*yCH3O2(I,J,L)
+          CH3O2loss=tempiter
+     &      +rr(rrbi%CH3O2_CH3O2__HCHO_HCHO,L)*yCH3O2(I,J,L)
           if(CH3O2loss > 1.d-7)then
             y(nCH3O2,L)=prodCH3O2/CH3O2loss
           else
@@ -318,36 +322,47 @@ c Conserve carbon wrt CH3O2 changes:
         if(diffCH3O2 > tempAcet)then
 c         reduce non-acetone source gases (CH4 and CH3OOH):
           dest(nn_CH4,L)=dest(nn_CH4,L)-(diffCH3O2-tempAcet)
-     &    *(qqqCH3O2-rr(23,L)*y(nn_CH3OOH,L)*y(nOH,L))/qqqCH3O2
+     &      *(qqqCH3O2-rr(rrbi%CH3OOH_OH__CH3O2_H2O,L)*y(nn_CH3OOH,L)
+     &      *y(nOH,L))/qqqCH3O2
           dest(nn_CH3OOH,L)=dest(nn_CH3OOH,L)-(diffCH3O2-tempAcet)
-     &    *(rr(23,L)*y(nn_CH3OOH,L)*y(nOH,L))/qqqCH3O2
+     &      *(rr(rrbi%CH3OOH_OH__CH3O2_H2O,L)*y(nn_CH3OOH,L)
+     &      *y(nOH,L))/qqqCH3O2
         else if(diffCH3O2 < tempAcet)then
 c         increase non-acetone product gases:
           prod(nn_HCHO,L)=prod(nn_HCHO,L)-(diffCH3O2-tempAcet)
-     &    *(CH3O2loss-rr(22,L)*y(nHO2,L))/CH3O2loss
+     &      *(CH3O2loss-rr(rrbi%CH3O2_HO2__CH3OOH_O2,L)*y(nHO2,L))
+     &      /CH3O2loss
 #ifdef TRACERS_dCO
           prod(nn_dHCH17O,L)=prod(nn_dHCH17O,L)-(diffCH3O2-tempAcet)
-     &    *(CH3O2loss-rr(22,L)*y(nHO2,L))/CH3O2loss
+     &      *(CH3O2loss-rr(rrbi%CH3O2_HO2__CH3OOH_O2,L)*y(nHO2,L))
+     &      /CH3O2loss
           prod(nn_dHCH18O,L)=prod(nn_dHCH18O,L)-(diffCH3O2-tempAcet)
-     &    *(CH3O2loss-rr(22,L)*y(nHO2,L))/CH3O2loss
+     &      *(CH3O2loss-rr(rrbi%CH3O2_HO2__CH3OOH_O2,L)*y(nHO2,L))
+     &      /CH3O2loss
           prod(nn_dH13CHO,L)=prod(nn_dH13CHO,L)-(diffCH3O2-tempAcet)
-     &    *(CH3O2loss-rr(22,L)*y(nHO2,L))/CH3O2loss
+     &      *(CH3O2loss-rr(rrbi%CH3O2_HO2__CH3OOH_O2,L)*y(nHO2,L))
+     &      /CH3O2loss
 #endif  /* TRACERS_dCO */
           prod(nn_CH3OOH,L)=prod(nn_CH3OOH,L)-(diffCH3O2-tempAcet)
-     &    *(rr(22,L)*y(nHO2,L))/CH3O2loss
+     &      *(rr(rrbi%CH3O2_HO2__CH3OOH_O2,L)*y(nHO2,L))
+     &      /CH3O2loss
         end if
         yCH3O2(I,J,L)=y(nCH3O2,L)
       end do
       
       do L=maxT+1,maxL
         iter=1
-        qqqCH3O2=(rr(11,L)*y(nO1D,L)+rr(12,L)*y(nOH,L))
-     &  *y(nn_CH4,L)+rr(23,L)*y(nn_CH3OOH,L)*y(nOH,L)
-     &  +rr(82,l)*y(nCl,L)
-        tempiter=rr(20,L)*y(nNO,L)+rr(22,L)*y(nHO2,L)
-     &  +rr(85,l)*y(nClO,l)
+        qqqCH3O2=(rr(rrbi%O1D_CH4__OH_CH3O2,L)*y(nO1D,L)
+     &      +rr(rrbi%CH4_OH__H2O_CH3O2,L)*y(nOH,L))
+     &    *y(nn_CH4,L)
+     &    +rr(rrbi%CH3OOH_OH__CH3O2_H2O,L)*y(nn_CH3OOH,L)*y(nOH,L)
+     &    +rr(82,l)*y(nCl,L)
+        tempiter=rr(rrbi%CH3O2_NO__HCHO_NO2,L)*y(nNO,L)
+     &    +rr(rrbi%CH3O2_HO2__CH3OOH_O2,L)*y(nHO2,L)
+     &    +rr(85,l)*y(nClO,l)
         do while (iter <= 7)
-          CH3O2loss=tempiter+rr(27,L)*yCH3O2(I,J,L)
+          CH3O2loss=tempiter
+     &      +rr(rrbi%CH3O2_CH3O2__HCHO_HCHO,L)*yCH3O2(I,J,L)
           if(CH3O2loss > 1.d-7)then
             y(nCH3O2,L)=qqqCH3O2/CH3O2loss
           else
@@ -361,23 +376,30 @@ c Conserve carbon wrt CH3O2 changes:
         if(diffCH3O2 > 0.d0)then
 c         reduce source gases (CH4 and CH3OOH):
           dest(nn_CH4,L)=dest(nn_CH4,l)-diffCH3O2
-     &    *(qqqCH3O2-rr(23,L)*y(nn_CH3OOH,L)*y(nOH,L))/qqqCH3O2
+     &      *(qqqCH3O2-rr(rrbi%CH3OOH_OH__CH3O2_H2O,L)*y(nn_CH3OOH,L)
+     &      *y(nOH,L))/qqqCH3O2
           dest(nn_CH3OOH,L)=dest(nn_CH3OOH,l)-diffCH3O2
-     &    *(rr(23,L)*y(nn_CH3OOH,L)*y(nOH,L))/qqqCH3O2
+     &    *(rr(rrbi%CH3OOH_OH__CH3O2_H2O,L)*y(nn_CH3OOH,L)
+     &    *y(nOH,L))/qqqCH3O2
         else if(diffCH3O2 < 0.d0)then
 c         increase product gases:
           prod(nn_HCHO,l)=prod(nn_HCHO,l)-diffCH3O2
-     &    *(CH3O2loss-rr(22,L)*y(nHO2,L))/CH3O2loss
+     &      *(CH3O2loss-rr(rrbi%CH3O2_HO2__CH3OOH_O2,L)*y(nHO2,L))
+     &      /CH3O2loss
 #ifdef TRACERS_dCO
           prod(nn_dHCH17O,l)=prod(nn_dHCH17O,l)-diffCH3O2
-     &    *(CH3O2loss-rr(22,L)*y(nHO2,L))/CH3O2loss
+     &      *(CH3O2loss-rr(rrbi%CH3O2_HO2__CH3OOH_O2,L)*y(nHO2,L))
+     &      /CH3O2loss
           prod(nn_dHCH18O,l)=prod(nn_dHCH18O,l)-diffCH3O2
-     &    *(CH3O2loss-rr(22,L)*y(nHO2,L))/CH3O2loss
+     &      *(CH3O2loss-rr(rrbi%CH3O2_HO2__CH3OOH_O2,L)*y(nHO2,L))
+     &      /CH3O2loss
           prod(nn_dH13CHO,l)=prod(nn_dH13CHO,l)-diffCH3O2
-     &    *(CH3O2loss-rr(22,L)*y(nHO2,L))/CH3O2loss
+     &      *(CH3O2loss-rr(rrbi%CH3O2_HO2__CH3OOH_O2,L)*y(nHO2,L))
+     &      /CH3O2loss
 #endif  /* TRACERS_dCO */
           prod(nn_CH3OOH,l)=prod(nn_CH3OOH,l)-diffCH3O2
-     &    *(rr(22,L)*y(nHO2,L))/CH3O2loss
+     &      *(rr(rrbi%CH3O2_HO2__CH3OOH_O2,L)*y(nHO2,L))
+     &      /CH3O2loss
         end if
         yCH3O2(I,J,L)=y(nCH3O2,L)
       end do
@@ -395,19 +417,22 @@ c       First set various specific loss rates:
 
 c       Set value for C2O3:
         iter=1
-        C2O3prod=rr(38,L)*yAldehyde(I,J,L)*y(nOH,L)+
-     &  (rr(29,L)*y(nM,L)+ss(15,L,I,J))*y(nn_PAN,L)
+        C2O3prod=rr(rrbi%Aldehyde_OH__C2O3_M,L)*yAldehyde(I,J,L)
+     &      *y(nOH,L)
+     &    +(rr(rrbi%PAN_M__C2O3_NO2,L)*y(nM,L)
+     &      +ss(15,L,I,J))*y(nn_PAN,L)
      &    +0.15d0*rr(rrbi%Isoprene_O3__HCHO_Alkenes,L)
      &      *y(nO3,L)*y(nn_Isoprene,L)
 #ifdef TRACERS_TERP
      &    +0.15d0*rr(rrbi%Terpenes_O3__HCHO_Alkenes,L)*y(nO3,L)
      &      *y(nn_Terpenes,L)
 #endif  /* TRACERS_TERP */
-        tempiter=rr(39,L)*y(nNO,L)
+        tempiter=rr(rrbi%C2O3_NO__HCHO_NO2,L)*y(nNO,L)
      &    +rr(rrtri%C2O3_NO2__PAN_M,L)*y(nNO2,L)
      &    +rr(41,L)*y(nHO2,L)
         do while (iter <= 7)
-          C2O3dest=tempiter+rr(40,L)*yC2O3(I,J,L)
+          C2O3dest=tempiter
+     &      +rr(rrbi%C2O3_C2O3__HCHO_HCHO,L)*yC2O3(I,J,L)
           if(C2O3dest > 1.d-7)then
             y(nC2O3,L)=(C2O3prod/C2O3dest)
           else
@@ -420,17 +445,19 @@ c       Set value for C2O3:
 c       Set value for XO2:
 ! remember to update voc2nox if you update any of the following XO2 loss reactions
         iter=1
-        XO2prod=ss(16,L,I,J)*yAldehyde(I,J,L)+ ! CO isotopes should not go here
-     &  y(nC2O3,L)*(rr(39,L)*y(nNO2,L)+rr(40,L)*
-     &  y(nC2O3,L)*2.d0+rr(41,L)*y(nHO2,L))
-     &  +rr(42,L)*yROR(I,J,L)*0.96d0
-     &  +y(nOH,L)*(rr(37,L)*y(nn_Paraffin,L)*0.87d0+rr(34,L)*
-     &  y(nn_Alkenes,L)
+        XO2prod=ss(16,L,I,J)*yAldehyde(I,J,L) ! CO isotopes should not go here
+     &    +y(nC2O3,L)*(rr(rrbi%C2O3_NO__HCHO_NO2,L)*y(nNO2,L)
+     &    +rr(rrbi%C2O3_C2O3__HCHO_HCHO,L)*y(nC2O3,L)*2.d0
+     &    +rr(41,L)*y(nHO2,L))
+     &    +rr(42,L)*yROR(I,J,L)*0.96d0
+     &    +y(nOH,L)*(rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
+     &      *0.87d0
+     &    +rr(rrbi%Alkenes_OH__HCHO_HO2,L)*y(nn_Alkenes,L)
      &    +rr(rrbi%Isoprene_OH__HCHO_Alkenes,L)*y(nn_Isoprene,L)*0.85d0
 #ifdef TRACERS_TERP
      &    +rr(rrbi%Terpenes_OH__HCHO_Alkenes,L)*y(nn_Terpenes,L)*0.85d0
 #endif  /* TRACERS_TERP */
-     &    +rr(33,L)*y(nn_AlkylNit,L))+
+     &    +rr(rrbi%AlkylNit_OH__NO2_M,L)*y(nn_AlkylNit,L))+
      &  y(nO3,L)*(rr(rrbi%Alkenes_O3__HCHO_CO,L)*y(nn_Alkenes,L)*0.29d0
      &    +rr(rrbi%Isoprene_O3__HCHO_Alkenes,L)*y(nn_Isoprene,L)*0.18d0
 #ifdef TRACERS_TERP
@@ -452,8 +479,9 @@ c       Set value for XO2:
         end do
 
 c       Set value for XO2N:
-        XO2Nprod=rr(37,L)*y(nn_Paraffin,L)*y(nOH,L)*0.13d0+
-     &  rr(42,L)*yROR(I,J,L)*0.04d0
+        XO2Nprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
+     &      *y(nOH,L)*0.13d0
+     &    +rr(42,L)*yROR(I,J,L)*0.04d0
      &    +rr(rrbi%Isoprene_OH__HCHO_Alkenes,L)*y(nn_Isoprene,L)*
      &  y(nOH,L)*0.15d0
 #ifdef TRACERS_TERP
@@ -474,8 +502,9 @@ c       Set value for XO2N:
 #endif
 
 c       Set value for RXPAR:
-        RXPARprod=rr(37,L)*y(nn_Paraffin,L)*y(nOH,L)*0.11d0
-     &    +rr(34,L)*yROR(I,J,L)*2.1d0
+        RXPARprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
+     &      *y(nOH,L)*0.11d0
+     &    +rr(rrbi%Alkenes_OH__HCHO_HO2,L)*yROR(I,J,L)*2.1d0
      &    +rr(rrbi%Alkenes_O3__HCHO_CO,L)*y(nn_Alkenes,L)*y(nO3,L)*0.9d0
         RXPARdest=RXPAR_PAR
         if(RXPARdest > 0.d0)then
@@ -486,12 +515,14 @@ c       Set value for RXPAR:
         yRXPAR(I,J,L)=y(nRXPAR,L)
 
 c       Set value for Aldehyde:
-        Aldehydeprod=rr(37,L)*y(nn_Paraffin,L)*y(nOH,L)*0.11d0+
-     &  rr(34,L)*y(nn_Alkenes,L)*y(nOH,L)+
-     &  rr(42,L)*yROR(I,J,L)*1.1d0
+        Aldehydeprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
+     &      *y(nOH,L)*0.11d0
+     &    +rr(rrbi%Alkenes_OH__HCHO_HO2,L)*y(nn_Alkenes,L)*y(nOH,L)
+     &    +rr(42,L)*yROR(I,J,L)*1.1d0
      &    +rr(rrbi%Alkenes_O3__HCHO_CO,L)*y(nn_Alkenes,L)
      &      *y(nO3,L)*0.44d0
-        Aldehydedest=rr(38,L)*y(nOH,L)+ss(16,L,I,J) ! CO isotopes should not go here
+        Aldehydedest=rr(rrbi%Aldehyde_OH__C2O3_M,L)*y(nOH,L)
+     &    +ss(16,L,I,J) ! CO isotopes should not go here
 c       Check for equilibrium:
         if(Aldehydedest*y(nAldehyde,L)*dt2 < y(nAldehyde,L))then
           changeAldehyde=
@@ -506,8 +537,9 @@ c       Check for equilibrium:
         yAldehyde(I,J,L)=y(nAldehyde,L)
 
 c       Set value for ROR:
-        RORprod=rr(37,L)*y(nn_Paraffin,L)*y(nOH,L)*0.76d0+
-     &  rr(42,L)*yROR(I,J,L)*0.02d0
+        RORprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
+     &      *y(nOH,L)*0.76d0
+     &    +rr(42,L)*yROR(I,J,L)*0.02d0
         RORdest=rr(42,L)+ROR_CH2
         if(RORdest > 0.d0)then
           y(nROR,L)=(RORprod/RORdest)
@@ -609,8 +641,10 @@ c If ClOx in equil with HOCl or ClONO2, remove from changes:
 c Calculate water vapor change AND APPLY TO MODEL Q VARIABLE:
       do L=1,maxL ! for a long time, this used to be stratosphere only loop...
         changeH2O(L)=(2.d0*y(nn_CH4,L)*
-     *  (rr(11,L)*y(nO1D,L)+rr(12,L)*y(nOH,L)+rr(82,L)*y(nCl,L))
-     *  -2.0d0*SF3(I,J,L)*y(nH2O,L))*dt2  
+     *    (rr(rrbi%O1D_CH4__OH_CH3O2,L)*y(nO1D,L)
+     &      +rr(rrbi%CH4_OH__H2O_CH3O2,L)*y(nOH,L)
+     &      +rr(82,L)*y(nCl,L))
+     *    -2.0d0*SF3(I,J,L)*y(nH2O,L))*dt2  
 C       And apply that change here and accumulate a diagnostic:
 C       --- y --- :
         y(nH2O,L)=y(nH2O,L)+changeH2O(L)
@@ -667,7 +701,7 @@ C
 !      do L=1,topLevelOfChemistry
 !        if(y(nO1D,L) == 0.) CYCLE
 !c       account for NO2 and NO ozone destruction:
-!        rNO2prod=rr(18,L)*y(nOH,L)*y(nn_HO2NO2,L)+
+!        rNO2prod=rr(rrbi%OH_HO2NO2__H2O_NO2,L)*y(nOH,L)*y(nn_HO2NO2,L)+
 !     &  rr(rrmono%HO2NO2_M__HO2_NO2,L)*y(nn_HO2NO2,L)+ss(9,L,I,J)*y(nn_HNO3,L)+
 !     &  ss(10,L,I,J)*y(nn_HO2NO2,L)+ss(23,L,I,J)*y(nn_BrONO2,L)
 !        rNOprod=rr(87,L)*y(nn_N2O,L)*y(nO1D,L)
@@ -684,13 +718,13 @@ C
 !        if(ratioNs > ratioN2)then !excess NO2 production
 !        
 !c         account for NO2 that then goes via NO2+O->NO+O2, NO2->NO+O:
-!          rNO2frac=(rr(26,L)*y(nO,L)-ss(1,L,I,J))/
+!          rNO2frac=(rr(rrbi%O_NO2__NO_O2,L)*y(nO,L)-ss(1,L,I,J))/
 !     &    (rr(rrtri%OH_NO2_HNO3_M,L)*y(nOH,L)+
 !     &    rr(rrtri%HO2_NO2__HO2NO2_M,L)*y(nHO2,L)+
 !     &    rr(rrtri%NO3_NO2__N2O5_M,L)*y(nNO3,L)+
 !     &    rr(rrtri%ClO_NO2__ClONO2_M,L)*y(nClO,L)+
 !     &    rr(rrtri%BrO_NO2__BrONO2_M,L)*y(nBrO,L)+
-!     &    rr(26,L)*y(nO,L)+ss(1,L,I,J))
+!     &    rr(rrbi%O_NO2__NO_O2,L)*y(nO,L)+ss(1,L,I,J))
 !          Oxcorr(L)=(rNO2prod-rNOprod)*rNO2frac*dt2*y(nNO,L)/y(nn_NOx,L)
 !          if(Oxcorr(L) > -1.d18 .and. Oxcorr(L) < 1.d18)then
 !            dest(nn_Ox,L)=dest(nn_Ox,L)-Oxcorr(L)
@@ -707,11 +741,11 @@ C
 !
 !c         account for NO that then goes via NO+O3->NO2+O2
 !c         or NO+O+M->NO2+M:
-!          rNOfrac=(rr(5,L)*y(nO3,L)+rr(rrtri%NO_O__NO2_M,L)*y(nO,L))
-!          rNOdenom=(rr(5,L)*y(nO3,L)+rr(rrtri%NO_O__NO2_M,L)*y(nO,L)+
-!     &    rr(6,L)*y(nHO2,L)+rr(44,L)*y(nXO2N,L)+1.d0)+
-!     &    rr(20,L)*yCH3O2(I,J,L)+
-!     &    rr(39,L)*y(nC2O3,L)+4.2d-12*exp(180/ta(L))*y(nXO2,L)+
+!          rNOfrac=(rr(rrbi%O3_NO__NO2_O2,L)*y(nO3,L)+rr(rrtri%NO_O__NO2_M,L)*y(nO,L))
+!          rNOdenom=(rr(rrbi%O3_NO__NO2_O2,L)*y(nO3,L)+rr(rrtri%NO_O__NO2_M,L)*y(nO,L)+
+!     &    rr(rrbi%HO2_NO__OH_NO2,L)*y(nHO2,L)+rr(44,L)*y(nXO2N,L)+1.d0)+
+!     &    rr(rrbi%CH3O2_NO__HCHO_NO2,L)*yCH3O2(I,J,L)+
+!     &    rr(rrbi%C2O3_NO__HCHO_NO2,L)*y(nC2O3,L)+4.2d-12*exp(180/ta(L))*y(nXO2,L)+
 !     &    rr(64,L)*y(nClO,L)+
 !     &    rr(67,L)*y(nOClO,L)+rr(71,L)*y(nBrO,L)
 !
@@ -1027,31 +1061,33 @@ c (chem1prn: argument before multip is index = number of call):
         call write_parallel(trim(out_line),crit=jay)
 
         do Lz=maxL,LS1,-1
-          sumC=rr(45,Lz)*y(nCl,Lz)*y(nO3,Lz)+
-     &    rr(46,Lz)*y(nClO,Lz)*y(nO,Lz)+
-     &    rr(49,Lz)*y(nClO,Lz)*y(nO3,Lz)+
-     &    rr(50,Lz)*y(nOClO,Lz)*y(nO,Lz) ! -ss(17,Lz,i,j)*y(nClO,Lz)
-          sumN=rr(5,Lz)*y(nNO,Lz)*y(nO3,Lz)+
-     &    rr(26,Lz)*y(nNO2,Lz)*y(nO,Lz)+
-     &    rr(7,Lz)*y(nNO2,Lz)*y(nO3,Lz)
+          sumC=rr(45,Lz)*y(nCl,Lz)*y(nO3,Lz)
+     &      +rr(46,Lz)*y(nClO,Lz)*y(nO,Lz)
+     &      +rr(49,Lz)*y(nClO,Lz)*y(nO3,Lz)
+     &      +rr(50,Lz)*y(nOClO,Lz)*y(nO,Lz) ! -ss(17,Lz,i,j)*y(nClO,Lz)
+          sumN=rr(rrbi%O3_NO__NO2_O2,Lz)*y(nNO,Lz)*y(nO3,Lz)
+     &      +rr(rrbi%O_NO2__NO_O2,Lz)*y(nNO2,Lz)*y(nO,Lz)
+     &      +rr(rrbi%NO2_O3__NO3_O2,Lz)*y(nNO2,Lz)*y(nO3,Lz)
      &      +rr(rrtri%NO_O__NO2_M,Lz)*y(nNO,Lz)*y(nO,Lz)
-     &    -ss(1,Lz,i,j)*y(nNO2,Lz)
-          sumH=rr(2,Lz)*y(nOH,Lz)*y(nO3,Lz)+
-     &    rr(4,Lz)*y(nHO2,Lz)*y(nO3,Lz)+
-     &    rr(89,Lz)*y(nOH,Lz)*y(nO,Lz)+
-     &    rr(90,Lz)*y(nHO2,Lz)*y(nO,Lz)
-          sumB=rr(69,Lz)*y(nBrO,Lz)*y(nO,Lz)+
-     &    rr(70,Lz)*y(nBr,Lz)*y(nO3,Lz) ! -ss(25,Lz,i,j)*y(nBrO,Lz)
+     &      -ss(1,Lz,i,j)*y(nNO2,Lz)
+          sumH=rr(rrbi%OH_O3__HO2_O2,Lz)*y(nOH,Lz)*y(nO3,Lz)
+     &      +rr(rrbi%HO2_O3__OH_O2,Lz)*y(nHO2,Lz)*y(nO3,Lz)
+     &      +rr(89,Lz)*y(nOH,Lz)*y(nO,Lz)
+     &      +rr(90,Lz)*y(nHO2,Lz)*y(nO,Lz)
+          sumB=rr(69,Lz)*y(nBrO,Lz)*y(nO,Lz)
+     &      +rr(70,Lz)*y(nBr,Lz)*y(nO3,Lz) ! -ss(25,Lz,i,j)*y(nBrO,Lz)
           sumO=2*rr(88,Lz)*y(nO,Lz)*y(nO3,Lz)
           sumA=sumC+sumN+sumH+sumB+sumO
           write(out_line,'(i3,1x,5(f7.2,1x),8(e9.2,1x))')
-     &    Lz,100.d0*sumC/sumA,
-     &    100.d0*sumN/sumA,100.d0*sumH/sumA,100.d0*sumB/sumA,
-     &    100.d0*sumO/sumA,rr(26,Lz)*y(nNO2,Lz)*y(nO,Lz),
-     &    rr(5,Lz)*y(nNO,Lz)*y(nO3,Lz),
-     &    rr(46,Lz)*y(nClO,Lz)*y(nO,Lz),
-     &    rr(45,Lz)*y(nCl,Lz)*y(nO3,Lz),ss(1,Lz,i,j)*y(nNO2,Lz),sumA
-     &    ,ss(27,Lz,i,j),SF2(i,j,Lz)
+     &      Lz,100.d0*sumC/sumA,
+     &      100.d0*sumN/sumA,100.d0*sumH/sumA,100.d0*sumB/sumA,
+     &      100.d0*sumO/sumA,
+     &      rr(rrbi%O_NO2__NO_O2,Lz)*y(nNO2,Lz)*y(nO,Lz),
+     &      rr(rrbi%O3_NO__NO2_O2,Lz)*y(nNO,Lz)*y(nO3,Lz),
+     &      rr(46,Lz)*y(nClO,Lz)*y(nO,Lz),
+     &      rr(45,Lz)*y(nCl,Lz)*y(nO3,Lz),
+     &      ss(1,Lz,i,j)*y(nNO2,Lz),sumA,
+     &      ss(27,Lz,i,j),SF2(i,j,Lz)
           call write_parallel(trim(out_line),crit=jay)
         end do
         write(out_line,*) ' '

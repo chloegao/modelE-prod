@@ -12,7 +12,7 @@ C**** GLOBAL parameters and variables:
       Use ATM_COM,    Only: PMIDL00
       USE TRACER_COM, only : n_CH4, n_Ox, nn_Ox, nn_CH4
       USE TRCHEM_Shindell_COM, only:ss,rr,y,nO2,nM,nH2O,nO,nO1D,nO3,pOx
-     &                             ,rrtri
+     &                             ,rrbi,rrtri
       IMPLICIT NONE
 
 C**** Local parameters and variables and arguments:
@@ -31,8 +31,11 @@ C**** Local parameters and variables and arguments:
 
       do L=1,Lmax
 c       for concentration of O(1D):
-        bz=ss(2,L,I,J)/(rr(8,L)*y(nO2,L)+rr(9,L)*y(nM,L)+
-     &  rr(10,L)*y(nH2O,L)+rr(11,L)*y(nn_CH4,L))
+        bz=ss(2,L,I,J)
+     &    /(rr(rrbi%O1D_O2__O_O2,L)*y(nO2,L)
+     &      +rr(rrbi%O1D_M__O_M,L)*y(nM,L)
+     &      +rr(rrbi%O1D_H2O__OH_OH,L)*y(nH2O,L)
+     &      +rr(rrbi%O1D_CH4__OH_CH3O2,L)*y(nn_CH4,L))
         ! here we USED TO tune bz with a pressure criterion
 c       for concentration of O:
         if (y(nO2,L) > 0.d0) then
@@ -71,7 +74,7 @@ C**** GLOBAL parameters and variables:
       USE TRACER_COM, only         : n_NOx,nn_NOx,n_Alkenes,nn_Alkenes
       USE TRCHEM_Shindell_COM, only:rr,y,yNO3,nO3,nHO2,yCH3O2,nO,nC2O3,
      & pNO3,ta,nXO2,ss,nNO,nNO2,pNOx,nNO3,nHONO,which_trop,nClO,nOClO,
-     & nBrO,rrtri
+     & nBrO,rrbi,rrtri
 
       IMPLICIT NONE
 
@@ -96,30 +99,43 @@ C**** Local parameters and variables and arguments:
       do L=1,Lmax
         ! here we USED TO set NO3 back to zero at dawn.
 c       B is for NO->NO2 reactions :
-        B=rr(5,L)*y(nO3,L)+rr(6,L)*y(nHO2,L)
+        B=rr(rrbi%O3_NO__NO2_O2,L)*y(nO3,L)
+     &    +rr(rrbi%HO2_NO__OH_NO2,L)*y(nHO2,L)
      &    +rr(rrtri%NO_O__NO2_M,L)*y(nO,L)
 
         if(L <= maxT)then  ! Troposphere:
-          B=B+rr(20,L)*yCH3O2(I,J,L)
-     &    +rr(39,L)*y(nC2O3,L)+4.2d-12*exp(180./ta(L))*y(nXO2,L)
+          B=B
+     &      +rr(rrbi%CH3O2_NO__HCHO_NO2,L)*yCH3O2(I,J,L)
+     &      +rr(rrbi%C2O3_NO__HCHO_NO2,L)*y(nC2O3,L)
+     &      +4.2d-12*exp(180./ta(L))*y(nXO2,L)
         else               ! Stratosphere:
-          B=B+rr(64,L)*y(nClO,L)+rr(67,L)*y(nOClO,L)
-     &    +rr(71,L)*y(nBrO,L)
+          B=B
+     &      +rr(64,L)*y(nClO,L)
+     &      +rr(67,L)*y(nOClO,L)
+     &      +rr(71,L)*y(nBrO,L)
         end if
 
 C       C is for NO2->NO reactions :
-        C=ss(1,L,I,J)+rr(26,L)*y(nO,L)
+        C=ss(1,L,I,J)
+     &    +rr(rrbi%O_NO2__NO_O2,L)*y(nO,L)
         ! below forms NO3, assume some goes to NO:
-        C = C + rr(7,L)*y(nO3,L)*ss(5,L,I,J)/(ss(5,L,I,J)+ss(6,L,I,J))
+        C=C
+     &    +rr(rrbi%NO2_O3__NO3_O2,L)*y(nO3,L)
+     &      *ss(5,L,I,J)
+     &      /(ss(5,L,I,J)
+     &        +ss(6,L,I,J))
         p2=B/(B+C)
         p1=1-p2
 
 C       Set NO3: D is loss rxns NO3->NO2 or NO
-        D=ss(5,L,I,J)+ss(6,L,I,J)+rr(17,L)*p1*y(nn_NOx,L)
-     &    +rr(24,L)*p2*y(nn_NOx,L)+rr(25,L)*yNO3(I,J,L)
-     &    +rr(36,L)*y(nn_Alkenes,L)
+        D=ss(5,L,I,J)+ss(6,L,I,J)
+     &    +rr(rrbi%NO3_NO__NO2_NO2,L)*p1*y(nn_NOx,L)
+     &    +rr(rrbi%NO2_NO3__NO_NO2,L)*p2*y(nn_NOx,L)
+     &    +rr(rrbi%NO3_NO3__NO2_NO2,L)*yNO3(I,J,L)
+     &    +rr(rrbi%Alkenes_NO3__HCHO_NO2,L)*y(nn_Alkenes,L)
 
-        yNO3(I,J,L)=((rr(7,L)*y(nO3,L)*p2*y(nn_NOx,L))/D)
+        yNO3(I,J,L)=(rr(rrbi%NO2_O3__NO3_O2,L)*y(nO3,L)*p2
+     &    *y(nn_NOx,L))/D
         if(yNO3(I,J,L).ge.1.d-1*y(nn_NOx,L))
      &    yNO3(I,J,L)=1.d-1*y(nn_NOx,L)
         y(nNO,L)= p1*(y(nn_NOx,L)-yNO3(I,J,L))
@@ -198,48 +214,66 @@ c B: loss rxns linear in HOx
 c C: prod equations
 c all: in terms of HO2 (so *pHOx when OH is reactant)
 
-        aqqz=2.d0*(pHOx(I,J,L)*rr(1,L) + (pHOx(I,J,L)*pHOx(I,J,L))*
-     &  (rr(3,L)
-     &    +rr(rrtri%OH_OH__H2O2_M,L)) + rr(15,L))
+        aqqz=2.d0*(pHOx(I,J,L)*rr(rrbi%OH_HO2__H2O_O2,L)
+     &    +(pHOx(I,J,L)*pHOx(I,J,L))
+     &      *(rr(rrbi%OH_OH__H2O_O,L)
+     &      +rr(rrtri%OH_OH__H2O2_M,L))
+     &      +rr(rrbi%HO2_HO2__H2O2_O2,L))
 
-        bqqz=pHOx(I,J,L)*(rr(12,L)*y(nn_CH4,L)+rr(16,L)*
-     &  y(nn_HNO3,L)+rr(23,L)*y(nn_CH3OOH,L)
-     &    +rr(rrtri%OH_NO2__HNO3_M,L)*y(nNO2,L)
-     &    +rr(rrtri%OH_NO__HONO_M,L)*y(nNO,L))
-     &    +rr(22,L)*yCH3O2(I,J,L)
-     &  +pHOx(I,J,L)*(rr(38,L)*y(nAldehyde,L)+rr(37,L)
-     &  *y(nn_Paraffin,L)*0.89d0+rr(34,L)*y(nn_Alkenes,L)
-     &  +rr(30,L)*y(nn_Isoprene,L)*0.15d0+rr(33,L)*y(nn_AlkylNit,L)
+        bqqz=pHOx(I,J,L)
+     &    *(rr(rrbi%CH4_OH__H2O_CH3O2,L)*y(nn_CH4,L)
+     &      +rr(rrbi%OH_HNO3__H2O_NO3,L)*y(nn_HNO3,L)
+     &      +rr(rrbi%CH3OOH_OH__CH3O2_H2O,L)*y(nn_CH3OOH,L)
+     &      +rr(rrtri%OH_NO2__HNO3_M,L)*y(nNO2,L)
+     &      +rr(rrtri%OH_NO__HONO_M,L)*y(nNO,L))
+     &    +rr(rrbi%CH3O2_HO2__CH3OOH_O2,L)*yCH3O2(I,J,L)
+     &    +pHOx(I,J,L)
+     &    *(rr(rrbi%Aldehyde_OH__C2O3_M,L)*y(nAldehyde,L)
+     &      +rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)*0.89d0
+     &      +rr(rrbi%Alkenes_OH__HCHO_HO2,L)*y(nn_Alkenes,L)
+     &      +rr(rrbi%Isoprene_OH__HCHO_Alkenes,L)*y(nn_Isoprene,L)
+     &        *0.15d0
+     &      +rr(rrbi%AlkylNit_OH__NO2_M,L)*y(nn_AlkylNit,L)
 #ifdef TRACERS_TERP
      &    +rr(rrbi%Terpenes_OH__HCHO_Alkenes,L)*y(nn_Terpenes,L)*0.15d0
 #endif  /* TRACERS_TERP */
-     &  )
-     &  +rr(43,L)*y(nXO2,L)+y(nXO2N,L)*
-     &  (rr(44,L)*rr(43,L)/(4.2d-12*exp(180./ta(L))))
-        ! oxidation of DMS,SO2: 
-     &  +pHOx(I,J,L)*(rsulf1(i,j,l)*ydms(i,j,l) + 
-     &  rsulf2(i,j,l)*ydms(i,j,l))
+     &    )
+     &    +rr(43,L)*y(nXO2,L)
+     &    +y(nXO2N,L)*(rr(44,L)*rr(43,L)/(4.2d-12*exp(180./ta(L))))
+     &    +pHOx(I,J,L)*(rsulf1(i,j,l)*ydms(i,j,l) ! oxidation of DMS
+     &    +rsulf2(i,j,l)*ydms(i,j,l)) ! oxidation of SO2
 
 #ifdef V2_BUGS_TEMPORARY
-        cqqz=(2.d0*ss(4,L,I,J)*y(nn_H2O2,L)+ss(9,L,I,J)*y(nn_HNO3,L)+
-     &  ss(13,L,I,J)*y(nn_HCHO,L)+ss(14,L,I,J)*y(nn_CH3OOH,L)+ ! CO isotopes should not go here
-     &  (rr(20,L)*y(nNO,L)+0.66d0*rr(27,L)*yCH3O2(I,J,L))
-     &  *yCH3O2(I,J,L))
+        cqqz=(2.d0*ss(4,L,I,J)*y(nn_H2O2,L)
+     &    +ss(9,L,I,J)*y(nn_HNO3,L)
+     &    +ss(13,L,I,J)*y(nn_HCHO,L)
+     &    +ss(14,L,I,J)*y(nn_CH3OOH,L) ! CO isotopes should not go here
+     &    +(rr(rrbi%CH3O2_NO__HCHO_NO2,L)*y(nNO,L)
+     &      +0.66d0*rr(rrbi%CH3O2_CH3O2__HCHO_HCHO,L)*yCH3O2(I,J,L)
+     &    )*yCH3O2(I,J,L))
 #else
-        cqqz=(2.d0*(ss(4,L,I,J)*y(nn_H2O2,L))+ss(9,L,I,J)*y(nn_HNO3,L)+
-     &  2.d0*(ss(13,L,I,J)*y(nn_HCHO,L))+2.d0*ss(14,L,I,J)* ! CO isotopes should not go here
-     &  y(nn_CH3OOH,L)+(rr(20,L)*y(nNO,L)+0.66d0*(rr(27,L)*
-     &  yCH3O2(I,J,L)))*yCH3O2(I,J,L))
+        cqqz=(2.d0*(ss(4,L,I,J)*y(nn_H2O2,L))
+     &    +ss(9,L,I,J)*y(nn_HNO3,L)
+     &    +2.d0*(ss(13,L,I,J)*y(nn_HCHO,L)) ! CO isotopes should not go here
+     &    +2.d0*ss(14,L,I,J)*y(nn_CH3OOH,L)
+     &    +(rr(rrbi%CH3O2_NO__HCHO_NO2,L)*y(nNO,L)
+     &      +0.66d0*(rr(rrbi%CH3O2_CH3O2__HCHO_HCHO,L)*yCH3O2(I,J,L))
+     &    )*yCH3O2(I,J,L))
 #endif
 
         ! 1.66/1.31 accounts for HOx production via O(1D)+CH4-->CH3O path:
         cqqz=cqqz+
-     &  ((2.d0*rr(10,L)*y(nH2O,L)+(1.66d0/1.31d0)*rr(11,L)*y(nn_CH4,L))*
-     &  y(nO1D,L))
-     &  +ss(16,L,I,J)*y(nAldehyde,L)*2.d0+(rr(39,L)*y(nNO,L) ! CO isotopes should not go here
-     &  +rr(40,L)*y(nC2O3,L)*2.d0)*y(nC2O3,L)
-     &  +(rr(42,L)*0.94d0+1.6d3)*y(nROR,L)+rr(35,L)*y(nn_Alkenes,L) ! CO isotopes should not go here
-     &  *y(nO3,L)*0.65d0+rr(31,L)*y(nn_Isoprene,L)*y(nO3,L)*0.58d0
+     &    +((2.d0*rr(rrbi%O1D_H2O__OH_OH,L)*y(nH2O,L)
+     &      +(1.66d0/1.31d0)*rr(rrbi%O1D_CH4__OH_CH3O2,L)*y(nn_CH4,L)
+     &    )*y(nO1D,L))
+     &    +ss(16,L,I,J)*y(nAldehyde,L)*2.d0
+     &    +(rr(rrbi%C2O3_NO__HCHO_NO2,L)*y(nNO,L) ! CO isotopes should not go here
+     &    +rr(rrbi%C2O3_C2O3__HCHO_HCHO,L)*y(nC2O3,L)*2.d0)*y(nC2O3,L)
+     &    +(rr(42,L)*0.94d0+1.6d3)*y(nROR,L)
+     &    +rr(rrbi%Alkenes_O3__HCHO_CO,L)*y(nn_Alkenes,L)*y(nO3,L)
+     &      *0.65d0 ! CO isotopes should not go here
+     &    +rr(rrbi%Isoprene_O3__HCHO_Alkenes,L)*y(nn_Isoprene,L)
+     &      *y(nO3,L)*0.58d0
 #ifdef TRACERS_TERP
      &    +rr(rrbi%Terpenes_O3__HCHO_Alkenes,L)*y(nn_Terpenes,L)
      &      *y(nO3,L)*0.58d0
@@ -252,24 +286,29 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
 
 c Now partition HOx into OH and HO2:
         ! CZ: OH->HO2 reactions :
-        cz=rr(2,L)*y(nO3,L)+rr(13,L)*y(nn_CO,L) ! CO isotopes should not go here
-     &  +rr(14,L)*y(nn_H2O2,L)+rr(19,L)*y(nH2,L)
+        cz=rr(rrbi%OH_O3__HO2_O2,L)*y(nO3,L)
+     &    +rr(rrbi%CO_OH__HO2_O2,L)*y(nn_CO,L) ! CO isotopes should not go here
+     &    +rr(rrbi%OH_H2O2__H2O_HO2,L)*y(nn_H2O2,L)
+     &    +rr(rrbi%H2_OH__HO2_H2O,L)*y(nH2,L)
 #ifdef V2_BUGS_TEMPORARY
-     &  +rr(21,L)*y(nn_HCHO,L)+rr(37,L)*y(nn_Paraffin,L)* ! CO isotopes should not go here
+     &    +rr(rrbi%HCHO_OH__HO2_CO,L)*y(nn_HCHO,L) ! CO isotopes should not go here
+     &    +rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)*
 #else
-     &  +rr(21,L)*y(nn_HCHO,L)+rr(37,L)*y(nn_Paraffin,L) ! CO isotopes should not go here
+     &    +rr(rrbi%HCHO_OH__HO2_CO,L)*y(nn_HCHO,L) ! CO isotopes should not go here
+     &    +rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
 #endif
-     &  *0.11d0+rr(30,L)*y(nn_Isoprene,L)*0.85d0
+     &      *0.11d0
+     &    +rr(rrbi%Isoprene_OH__HCHO_Alkenes,L)*y(nn_Isoprene,L)*0.85d0
 #ifdef TRACERS_TERP
      &    +rr(rrbi%Terpenes_OH__HCHO_Alkenes,L)*y(nn_Terpenes,L)*0.85d0
 #endif  /* TRACERS_TERP */
-     &  +rr(34,L)*y(nn_Alkenes,L)
-        ! SO2 oxidation: 
-     &  + rsulf4(i,j,l)*yso2(i,j,l)
+     &    +rr(rrbi%Alkenes_OH__HCHO_HO2,L)*y(nn_Alkenes,L)
+     &    +rsulf4(i,j,l)*yso2(i,j,l) ! SO2 oxidation: 
 
         ! DZ: HO2->OH reactions :
-        dz=rr(4,L)*y(nO3,L)+rr(6,L)*y(nNO,L)
-     &  +rr(41,L)*(0.79d0*y(nC2O3,L))
+        dz=rr(rrbi%HO2_O3__OH_O2,L)*y(nO3,L)
+     &    +rr(rrbi%HO2_NO__OH_NO2,L)*y(nNO,L)
+     &    +rr(41,L)*(0.79d0*y(nC2O3,L))
 c Previous few lines represent additional OH production via reaction 41
 c which also produces HO2 and R15 then S4/(S4+S14) fraction.
 
@@ -296,23 +335,29 @@ c A: loss rxns with HOx**2
 c B: loss rxns linear in HOx
 c C: prod equations
 c all: in terms of HO2 (so *pHOx when OH is reactant)
-        aqqz=2.d0*(pHOx(I,J,L)*rr(1,L) + pHOx(I,J,L)*pHOx(I,J,L)*
-     &  (rr(3,L)
-     &    +rr(rrtri%OH_OH__H2O2_M,L)) + rr(15,L))
+        aqqz=2.d0*(pHOx(I,J,L)*rr(rrbi%OH_HO2__H2O_O2,L)
+     &    +pHOx(I,J,L)*pHOx(I,J,L)*
+     &      (rr(rrbi%OH_OH__H2O_O,L)
+     &      +rr(rrtri%OH_OH__H2O2_M,L))
+     &      +rr(rrbi%HO2_HO2__H2O2_O2,L))
 
-        bqqz=pHOx(I,J,L)*(rr(12,L)*y(nn_CH4,L)+rr(16,L)*
-     &  y(nn_HNO3,L)
-     &    +rr(rrtri%OH_NO2__HNO3_M,L)*y(nNO2,L)
-     &    +rr(rrtri%OH_NO__HONO_M,L)*y(nNO,L))
-     &  +rr(52,L)*y(nn_HCl,L)*pHOx(I,J,L)+rr(53,L)*y(nn_HOCl,L)
-     &  *pHOx(I,J,L)+rr(56,L)*y(nOClO,L)*pHOx(I,J,L)+
-     &  rr(59,L)*y(nCl,L)
-     &  +rr(62,L)*y(nClO,L)*pHOx(I,J,L)+rr(63,L)*y(nClO,L)
-     &  +rr(68,L)*y(nn_HBr,L)*pHOx(I,J,L)+rr(72,L)*y(nBr,L)
-     &  +rr(73,L)*y(nBrO,L)+rr(81,L)*y(nBrO,L)*pHOx(I,J,L)
-        ! oxidation of DMS,SO2: 
-     &  +pHOx(I,J,L)*(rsulf1(i,j,l)*ydms(i,j,l) + 
-     &  rsulf2(i,j,l)*ydms(i,j,l))
+        bqqz=pHOx(I,J,L)
+     &    *(rr(rrbi%CH4_OH__H2O_CH3O2,L)*y(nn_CH4,L)
+     &      +rr(rrbi%OH_HNO3__H2O_NO3,L)*y(nn_HNO3,L)
+     &      +rr(rrtri%OH_NO2__HNO3_M,L)*y(nNO2,L)
+     &      +rr(rrtri%OH_NO__HONO_M,L)*y(nNO,L))
+     &    +rr(52,L)*y(nn_HCl,L)*pHOx(I,J,L)
+     &    +rr(53,L)*y(nn_HOCl,L)*pHOx(I,J,L)
+     &    +rr(56,L)*y(nOClO,L)*pHOx(I,J,L)
+     &    +rr(59,L)*y(nCl,L)
+     &    +rr(62,L)*y(nClO,L)*pHOx(I,J,L)
+     &    +rr(63,L)*y(nClO,L)
+     &    +rr(68,L)*y(nn_HBr,L)*pHOx(I,J,L)
+     &    +rr(72,L)*y(nBr,L)
+     &    +rr(73,L)*y(nBrO,L)
+     &    +rr(81,L)*y(nBrO,L)*pHOx(I,J,L)
+     &    +pHOx(I,J,L)*(rsulf1(i,j,l)*ydms(i,j,l) ! oxidation of SO2
+     &    +rsulf2(i,j,l)*ydms(i,j,l)) ! oxidation of DMS
 
         ! Use OH production without O1D explicitly:
         cqqz=2.d0*ss(4,L,i,j)*y(nn_H2O2,L)+ss(9,L,i,j)*y(nn_HNO3,L)
@@ -327,8 +372,10 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
 
         ! production from O1D NO LONGER limited to O1D amount or
         ! O1D fraction via r10,11,s2:
-        cqqz=cqqz+(2.d0*rr(10,L)*y(nH2O,L)+(1.66d0/1.31d0)*rr(11,L)*
-     &  y(nn_CH4,L))*y(nO1D,L)
+        cqqz=cqqz
+     &    +(2.d0*rr(rrbi%O1D_H2O__OH_OH,L)*y(nH2O,L)
+     &      +(1.66d0/1.31d0)*rr(rrbi%O1D_CH4__OH_CH3O2,L)*y(nn_CH4,L)
+     &    )*y(nO1D,L)
 
         sqroot=sqrt(bqqz*bqqz+4.d0*aqqz*cqqz)
         y(nHO2,L)=(sqroot-bqqz)/(2.d0*aqqz)
@@ -351,16 +398,20 @@ c H + O2 + M -> HO2 + M , and affects on OH/HO2 and Ox
 
 c Now partition HOx into OH and HO2:
 c CZ: OH->HO2 reactions :
-        cz=rr(2,L)*y(nO3,L)+rr(13,L)*y(nn_CO,L) ! CO isotopes should not go here
-     &  +rr(14,L)*y(nn_H2O2,L)+rr(19,L)*y(nH2,L)
-     &  +rr(21,L)*y(nn_HCHO,L) ! CO isotopes should not go here
-     &  +rr(61,L)*y(nClO,L)+rr(80,L)*y(nBrO,L)
-     &  +rr(89,L)*y(nO,L)*rktot/(rHspecloss+rktot)
-        ! SO2 oxidation: 
-     &  + rsulf4(i,j,l)*yso2(i,j,l)
+        cz=rr(rrbi%OH_O3__HO2_O2,L)*y(nO3,L)
+     &    +rr(rrbi%CO_OH__HO2_O2,L)*y(nn_CO,L) ! CO isotopes should not go here
+     &    +rr(rrbi%OH_H2O2__H2O_HO2,L)*y(nn_H2O2,L)
+     &    +rr(rrbi%H2_OH__HO2_H2O,L)*y(nH2,L)
+     &    +rr(rrbi%HCHO_OH__HO2_CO,L)*y(nn_HCHO,L) ! CO isotopes should not go here
+     &    +rr(61,L)*y(nClO,L)
+     &    +rr(80,L)*y(nBrO,L)
+     &    +rr(89,L)*y(nO,L)*rktot/(rHspecloss+rktot)
+     &    +rsulf4(i,j,l)*yso2(i,j,l) ! SO2 oxidation: 
 
-        dz=rr(4,L)*y(nO3,L)+rr(6,L)*y(nNO,L)
-     &  +rr(60,L)*y(nCl,L)+rr(90,L)*y(nO,L)
+        dz=rr(rrbi%HO2_O3__OH_O2,L)*y(nO3,L)
+     &    +rr(rrbi%HO2_NO__OH_NO2,L)*y(nNO,L)
+     &    +rr(60,L)*y(nCl,L)
+     &    +rr(90,L)*y(nO,L)
 
         if(cz+dz > 0)then
           y(nOH,L)=(dz/(cz+dz))*temp_yHOx-yAtomicH
