@@ -919,10 +919,20 @@ c while prod_sulf and wprod_sulf are sulfate rxn
 c wprods are in molecules/cm3/s
 c prods/mass2vol are in mass units to add to tracers
 c
-c NO3 amounts are a function of reaction 7 (NO2 + O3 -> NO3),
-c 24, 25 (leave out 28, 0.9*32, rrmono%N2O5_M__NO3_NO2, rrtri%NO3_NO2__N2O5_M
-c outside NOx family) NO2, similarly leave out 29, 45, and
-c rrmono%N2O5_M__NO3_NO2. Keep NOx unchanged as this is only intrafamily.
+c NO3 amounts are a function of reactions:
+c    NO2+O3-->NO3+O2
+c    NO2+NO3-->NO+NO2
+c    NO3+NO3-->NO2+NO2
+c leaving out, as outside of NOx family:
+c    NO3+HCHO-->HNO3+CO
+c    90% of Isoprene+NO3-->HO2+Alkenes,
+c    N2O5+M-->NO3+NO2
+c    NO3+NO2-->N2O5+M
+c For NO2, similarly leave out:
+c    PAN+M-->C2O3+NO2
+c    HO2NO2+M-->HO2+NO2
+c    N2O5+M-->NO3+NO2
+c Keep NOx unchanged as this is only intrafamily.
 C*****************************************************************
 
 c       calculate NO3 vs NO2 (assume no NO at night)
