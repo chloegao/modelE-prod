@@ -106,6 +106,7 @@ C**** Local parameters and variables and arguments:
      & changeH2O,dQ,dQM,fraQ2,c2ml,conOH,conClO,conH2O,NprodOx_pos,
      & NprodOx_neg ! Oxcorr,
       real*8, dimension(LM) :: PRES ! for consistency with elsewhere, I keep this LM
+      real*8, parameter :: chemtiny=1.d-12
 
       REAL*8 qqqCH3O2,CH3O2loss,XO2_NO,XO2N_HO2,RXPAR_PAR,ROR_CH2,
      & C2O3prod,C2O3dest,XO2prod,XO2dest,XO2_XO2,XO2Nprod,XO2Ndest,
@@ -1141,7 +1142,7 @@ c N2O5 is thermally unstable, has a very short lifetime):
          if(idx==n_N2O5.and.(-dest(igas,L) >= y(nn_N2O5,L)*0.75d0
      &    .or. chemrate(rrtri%NO3_NO2__N2O5_M,L) > y(nn_NOx,L)))then
            rnewval=(rr(rrtri%NO3_NO2__N2O5_M,L)*y(nNO3,L)*y(nNO2,L))/
-     &     (rr(rrmono%N2O5_M__NO3_NO2,L)*y(nM,L)+ss(7,L,I,J)+1.d-12)
+     &     (rr(rrmono%N2O5_M__NO3_NO2,L)*y(nM,L)+ss(7,L,I,J)+chemtiny)
            if(rnewval < 1.d0)rnewval=1.d0
            changeL(L,idx)=(rnewval-y(nn_N2O5,L))
            if(changeL(L,idx) > 0.33d0*y(nNO2,L))changeL(L,idx)=
@@ -1153,7 +1154,7 @@ c Conserve NOx with respect to N2O5:
          if(idx == n_NOx.and.(-dest(nn_N2O5,L) >= y(nn_N2O5,L)
      &   .or. chemrate(rrtri%NO3_NO2__N2O5_M,L) > y(nn_NOx,L)))then
            rnewval=(rr(rrtri%NO3_NO2__N2O5_M,L)*y(nNO3,L)*y(nNO2,L))/
-     &     (rr(rrmono%N2O5_M__NO3_NO2,L)*y(nM,L)+ss(7,L,I,J)+1.d-12)
+     &     (rr(rrmono%N2O5_M__NO3_NO2,L)*y(nM,L)+ss(7,L,I,J)+chemtiny)
            if(rnewval < 1.d0)rnewval=1.d0
            changeX=(rnewval-y(nn_N2O5,L))
            if(changeX > 0.33d0*y(nNO2,L))changeX=0.33d0*y(nNO2,L)
@@ -1169,7 +1170,7 @@ c Set HO2NO2 to equil when necessary:
      &         +rr(rrmono%HO2NO2_M__HO2_NO2,L)*y(nM,L)
      &         +ss(10,L,I,J)
      &         +ss(11,L,I,J)
-     &         +1.d-12)
+     &         +chemtiny)
            if(rnewval < 1.d0)rnewval=1.d0
            changeL(L,idx)=(rnewval-y(nn_HO2NO2,L))
            if(changeL(L,idx) > 0.33d0*y(nNO2,L))changeL(L,idx)=
@@ -1185,7 +1186,7 @@ c Conserve NOx with respect to HO2NO2:
      &         +rr(rrmono%HO2NO2_M__HO2_NO2,L)*y(nM,L)
      &         +ss(10,L,I,J)
      &         +ss(11,L,I,J)
-     &         +1.d-12)
+     &         +chemtiny)
            if(rnewval < 1.d0)rnewval=1.d0
            changeX=(rnewval-y(nn_HO2NO2,L))
            if(changeX > 0.33d0*y(nNO2,L))changeX=0.33d0*y(nNO2,L)
@@ -1198,7 +1199,7 @@ c PAN is thermally unstable, has a very short lifetime):
          if(idx == n_PAN.and.(-dest(igas,L) >= y(nn_PAN,L).or.
      &   chemrate(rrtri%C2O3_NO2__PAN_M,L) > y(nn_NOx,L)))then
            rnewval=(rr(rrtri%C2O3_NO2__PAN_M,L)*y(nC2O3,L)*y(nNO2,L))/
-     &     (rr(rrbi%PAN_M__C2O3_NO2,L)*y(nM,L)+ss(15,L,I,J)+1.d-12)
+     &     (rr(rrbi%PAN_M__C2O3_NO2,L)*y(nM,L)+ss(15,L,I,J)+chemtiny)
            if(rnewval < 1.d0)rnewval=1.d0
            changeL(L,idx)=(rnewval-y(nn_PAN,L))
            if(changeL(L,idx) > 0.33d0*y(nNO2,L))changeL(L,idx)=
@@ -1210,7 +1211,7 @@ c Conserve NOx with respect to PAN:
          if(idx == n_NOx.and.(-dest(nn_PAN,L) >= y(nn_PAN,L).or.
      &   chemrate(rrtri%C2O3_NO2__PAN_M,L) > y(nn_NOx,L)))then
            rnewval=(rr(rrtri%C2O3_NO2__PAN_M,L)*y(nC2O3,L)*y(nNO2,L))/
-     &     (rr(rrbi%PAN_M__C2O3_NO2,L)*y(nM,L)+ss(15,L,I,J)+1.d-12)
+     &     (rr(rrbi%PAN_M__C2O3_NO2,L)*y(nM,L)+ss(15,L,I,J)+chemtiny)
            if(rnewval < 1.d0)rnewval=1.d0
            changeX=(rnewval-y(nn_PAN,L))
            if(changeX > 0.33d0*y(nNO2,L))changeX=0.33d0*y(nNO2,L)
@@ -1220,7 +1221,7 @@ c Conserve NOx with respect to PAN:
 c Cacluate Cl2 amount to P/L:
          if((ss(18,L,I,J)+rr(51,L)*y(nOH,L)) > 0.)then
            y(nCl2,L)=rr(57,L)*y(nn_HOCl,L)*y(nCl,L) / 
-     &     (ss(18,L,I,J)+rr(51,L)*y(nOH,L) + 1.d-12)
+     &     (ss(18,L,I,J)+rr(51,L)*y(nOH,L)+chemtiny)
          else
            y(nCl2,L)=0.d0
          end if
@@ -1230,7 +1231,7 @@ c Set HOBr to equilibrium when necessary:
          if(idx == n_HOBr.and.(-dest(igas,L) >= y(nn_HOBr,L).or.
      &     chemrate(rrbi%BrO_HO2__HOBr_O2,L) > 0.5d0*y(nn_BrOx,L)))then
            rnewval=(rr(rrbi%BrO_HO2__HOBr_O2,L)*y(nBrO,L)*y(nHO2,L))/
-     &     (ss(24,L,i,j)+1.d-12)
+     &     (ss(24,L,i,j)+chemtiny)
            if(rnewval < 1.d0)rnewval=1.d0
            changeL(L,idx)=(rnewval-y(nn_HOBr,L))
            if(changeL(L,idx) > 0.5d0*y(nBrO,L))changeL(L,idx)=
@@ -1242,7 +1243,7 @@ c Conserve BrOx with respect to HOBr:
          if(idx == n_BrOx.and.(-dest(nn_HOBr,L) >= y(nn_HOBr,L).or.
      &      chemrate(rrbi%BrO_HO2__HOBr_O2,L) > 0.5d0*y(nn_BrOx,L)))then
            rnewval=(rr(rrbi%BrO_HO2__HOBr_O2,L)*y(nBrO,L)*y(nHO2,L))/
-     &     (ss(24,L,i,j)+1.d-12)
+     &     (ss(24,L,i,j)+chemtiny)
            if(rnewval < 1.d0)rnewval=1.d0
            changeX=(rnewval-y(nn_HOBr,L))
            if(changeX > 0.5d0*y(nBrO,L))changeX=0.5d0*y(nBrO,L)
@@ -1254,7 +1255,7 @@ c Set BrONO2 to equilibrium when necessary:
          if(idx == n_BrONO2.and.(-dest(igas,L) >= y(nn_BrONO2,L).or.
      &      chemrate(rrtri%BrO_NO2__BrONO2_M,L)>0.5d0*y(nn_BrOx,L)))then
            rnewval=(rr(rrtri%BrO_NO2__BrONO2_M,L)*y(nBrO,L)*y(nNO2,L))
-     &       /(ss(23,L,i,j)+1.d-12)
+     &       /(ss(23,L,i,j)+chemtiny)
            if(rnewval < 1.d0)rnewval=1.d0
            changeL(L,idx)=(rnewval-y(nn_BrONO2,L))
            if(changeL(L,idx) > 0.5d0*y(nBrO,L))changeL(L,idx)=
@@ -1266,7 +1267,7 @@ c Conserve BrOx with respect to BrONO2:
          if(idx == n_BrOx.and.(-dest(nn_BrONO2,L) >= y(nn_BrONO2,L).or.
      &      chemrate(rrtri%BrO_NO2__BrONO2_M,L)>0.5d0*y(nn_BrOx,L)))then
            rnewval=(rr(rrtri%BrO_NO2__BrONO2_M,L)*y(nBrO,L)*y(nNO2,L))
-     &       /(ss(23,L,i,j)+1.d-12)
+     &       /(ss(23,L,i,j)+chemtiny)
            if(rnewval < 1.d0)rnewval=1.d0
            changeX=(rnewval-y(nn_BrONO2,L))
            if(changeX > 0.5d0*y(nBrO,L))changeX=0.5d0*y(nBrO,L)
@@ -1278,7 +1279,7 @@ c Conserve NOx with respect to BrONO2:
          if(idx == n_NOx.and.(-dest(nn_BrONO2,L) >= y(nn_BrONO2,L).or.
      &      chemrate(rrtri%BrO_NO2__BrONO2_M,L)>0.5d0*y(nn_BrOx,L)))then
            rnewval=(rr(rrtri%BrO_NO2__BrONO2_M,L)*y(nBrO,L)*y(nNO2,L))
-     &       /(ss(23,L,i,j)+1.d-12)
+     &       /(ss(23,L,i,j)+chemtiny)
            if(rnewval < 1.d0)rnewval=1.d0
            changeX=(rnewval-y(nn_BrONO2,L))
            if(changeX > 0.5d0*y(nBrO,L))changeX=0.5d0*y(nBrO,L)
@@ -1290,7 +1291,7 @@ c Set ClONO2 to equilibrium when necessary:
          if(idx == n_ClONO2.and.(-dest(igas,L) >= y(nn_ClONO2,L).or.
      &      chemrate(rrtri%ClO_NO2__ClONO2_M,L)>0.8d0*y(nn_ClOx,L)))then
            rnewval=(rr(rrtri%ClO_NO2__ClONO2_M,L)*y(nClO,L)*y(nNO2,L))
-     &       /(ss(22,L,i,j)+rr(65,L)*y(nO,L)+1.d-12)
+     &       /(ss(22,L,i,j)+rr(65,L)*y(nO,L)+chemtiny)
            if(rnewval < 1.d0)rnewval=1.d0
            changeL(L,idx)=(rnewval-y(nn_ClONO2,L))
            if(changeL(L,idx) > 0.3d0*y(nClO,L))changeL(L,idx)=
@@ -1304,7 +1305,7 @@ c Conserve ClOx with respect to ClONO2:
          if(idx == n_ClOx.and.(-dest(nn_ClONO2,L) >= y(nn_ClONO2,L).or.
      &      chemrate(rrtri%ClO_NO2__ClONO2_M,L)>0.8d0*y(nn_ClOx,L)))then
            rnewval=(rr(rrtri%ClO_NO2__ClONO2_M,L)*y(nClO,L)*y(nNO2,L))
-     &       /(ss(22,L,i,j)+rr(65,L)*y(nO,L)+1.d-12)
+     &       /(ss(22,L,i,j)+rr(65,L)*y(nO,L)+chemtiny)
            if(rnewval < 1.d0)rnewval=1.d0
            changeX=(rnewval-y(nn_ClONO2,L))
            if(changeX > 0.3d0*y(nClO,L))changeX=0.3d0*y(nClO,L)
@@ -1317,7 +1318,7 @@ c Conserve NOx with respect to ClONO2:
          if(idx == n_NOx.and.(-dest(nn_ClONO2,L) >= y(nn_ClONO2,L).or.
      &      chemrate(rrtri%ClO_NO2__ClONO2_M,L)>0.8d0*y(nn_ClOx,L)))then
            rnewval=(rr(rrtri%ClO_NO2__ClONO2_M,L)*y(nClO,L)*y(nNO2,L))
-     &       /(ss(22,L,i,j)+rr(65,L)*y(nO,L)+1.d-12)
+     &       /(ss(22,L,i,j)+rr(65,L)*y(nO,L)+chemtiny)
            if(rnewval < 1.d0)rnewval=1.d0
            changeX=(rnewval-y(nn_ClONO2,L))
            if(changeX > 0.3d0*y(nClO,L))changeX=0.3d0*y(nClO,L)
@@ -1331,7 +1332,7 @@ c Set HOCl to equilibrium when necessary:
      &   chemrate(rrbi%ClO_HO2__HOCl_O2,L) > y(nn_ClOx,L)))then
            rnewval=(rr(rrbi%ClO_HO2__HOCl_O2,L)*y(nClO,L)*y(nHO2,L) + 
      &     rr(51,L)*y(nCl2,L)*y(nOH,L)) /
-     &     (ss(21,L,i,j)+rr(55,L)*y(nO,L)+rr(51,L)*y(nCl2,L)+1.d-12)
+     &     (ss(21,L,i,j)+rr(55,L)*y(nO,L)+rr(51,L)*y(nCl2,L)+chemtiny)
            if(rnewval < 1.d0)rnewval=1.d0
            changeL(L,idx)=(rnewval-y(nn_HOCl,L))
            if(changeL(L,idx) > 0.3d0*y(nClO,L))changeL(L,idx)=
@@ -1344,7 +1345,7 @@ c Conserve ClOx with respect to HOCl:
      &   .or. chemrate(rrbi%ClO_HO2__HOCl_O2,L) > y(nn_ClOx,L)))then
            rnewval=(rr(rrbi%ClO_HO2__HOCl_O2,L)*y(nClO,L)*y(nHO2,L) + 
      &     rr(51,L)*y(nCl2,L)*y(nOH,L)) /
-     &     (ss(21,L,i,j)+rr(55,L)*y(nO,L)+rr(51,L)*y(nCl2,L)+1.d-12)
+     &     (ss(21,L,i,j)+rr(55,L)*y(nO,L)+rr(51,L)*y(nCl2,L)+chemtiny)
            if(rnewval < 1.d0)rnewval=1.d0
            changeX=(rnewval-y(nn_HOCl,L))
            if(changeX > 0.3d0*y(nClO,L))changeX=0.3d0*y(nClO,L)
