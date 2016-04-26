@@ -567,8 +567,9 @@ c If NOx in equil with N2O5, HO2NO2, or PAN, remove from changes:
         
 c If BrOx in equil with HOBr or BrONO2, remove from changes:
         if(-dest(nn_HOBr,L) >= y(nn_HOBr,L).or.
-     &  chemrate(73,L) > 0.5d0*y(nn_BrOx,L))then
-          dest(nn_BrOx,L)=dest(nn_BrOx,L)+chemrate(73,L)
+     &  chemrate(rrbi%BrO_HO2__HOBr_O2,L) > 0.5d0*y(nn_BrOx,L))then
+          dest(nn_BrOx,L)=dest(nn_BrOx,L)
+     &      +chemrate(rrbi%BrO_HO2__HOBr_O2,L)
           prod(nn_BrOx,L)=prod(nn_BrOx,L)-photrate(24,L)
         endif
         if(-dest(nn_BrONO2,L) >= y(nn_BrONO2,L).or.
@@ -583,20 +584,25 @@ c If BrOx in equil with HOBr or BrONO2, remove from changes:
         
 c If ClOx in equil with HOCl or ClONO2, remove from changes:
         if(-dest(nn_HOCl,L) >= y(nn_HOCl,L) .or.
-     &  chemrate(63,L) > y(nn_ClOx,L))then
-          dest(nn_ClOx,L)=dest(nn_ClOx,L)+chemrate(63,L)
-          prod(nn_ClOx,L)=prod(nn_ClOx,L)-(photrate(21,L)+
-     &         chemrate(55,L))
+     &  chemrate(rrbi%ClO_HO2__HOCl_O2,L) > y(nn_ClOx,L))then
+          dest(nn_ClOx,L)=dest(nn_ClOx,L)
+     &      +chemrate(rrbi%ClO_HO2__HOCl_O2,L)
+          prod(nn_ClOx,L)=prod(nn_ClOx,L)
+     &      -(photrate(21,L)
+     &      +chemrate(rrbi%O_HOCl__OH_ClO,L))
         endif
         if(-dest(nn_ClONO2,L) >= y(nn_ClONO2,L) .or.
      &  chemrate(rrtri%ClO_NO2__ClONO2_M,L) > 0.8d0*y(nn_ClOx,L))then
           dest(nn_ClOx,L)=dest(nn_ClOx,L)
      &      +chemrate(rrtri%ClO_NO2__ClONO2_M,L)
-          prod(nn_ClOx,L)=prod(nn_ClOx,L)-(photrate(22,L)+
-     &         chemrate(65,L))
+          prod(nn_ClOx,L)=prod(nn_ClOx,L)
+     &      -(photrate(22,L)
+     &      +chemrate(rrbi%ClONO2_O__ClO_NO3,L))
           dest(nn_NOx,L)=dest(nn_NOx,L)
      &      +chemrate(rrtri%ClO_NO2__ClONO2_M,L)
-          prod(nn_NOx,L)=prod(nn_NOx,L)-(photrate(22,L)+chemrate(65,L))
+          prod(nn_NOx,L)=prod(nn_NOx,L)
+     &      -(photrate(22,L)
+     &      +chemrate(rrbi%ClONO2_O__ClO_NO3,L))
         end if
       end do
 
@@ -883,21 +889,23 @@ c (chem1prn: argument before multip is index = number of call):
      
           if(igas == nn_BrOx)then
             if(-dest(nn_HOBr,lprn) >= y(nn_HOBr,lprn).or.
-     &      chemrate(73,lprn) > 0.5d0*y(nn_BrOx,lprn))then
+     &         chemrate(rrbi%BrO_HO2__HOBr_O2,lprn) >
+     &           0.5d0*y(nn_BrOx,lprn))then
               write(out_line,110)
-     &        'gain by rxns 24 (HOBr photolysis) removed'
-     &        ,ss(24,lprn,i,j)*y(nn_HOBr,lprn)*dt2
+     &          'gain by rxns 24 (HOBr photolysis) removed',
+     &          ss(24,lprn,i,j)*y(nn_HOBr,lprn)*dt2
               call write_parallel(trim(out_line),crit=jay)
-              write(out_line,110)'loss by rxn 73 removed'
-     &        ,chemrate(73,lprn)
+              write(out_line,110)
+     &          'loss by rxn rrbi%BrO_HO2__HOBr_O2 removed',
+     &          chemrate(rrbi%BrO_HO2__HOBr_O2,lprn)
               call write_parallel(trim(out_line),crit=jay)
             endif
             if(-dest(nn_BrONO2,lprn) >= y(nn_BrONO2,lprn) .or.
      &         chemrate(rrtri%BrO_NO2__BrONO2_M,lprn) >
      &           0.5d0*y(nn_BrOx,lprn))then
               write(out_line,110)
-     &        'gain by rxns 23 (BrONO2 photolysis) removed'
-     &        ,ss(23,lprn,i,j)*y(nn_BrONO2,lprn)*dt2
+     &          'gain by rxns 23 (BrONO2 photolysis) removed',
+     &          ss(23,lprn,i,j)*y(nn_BrONO2,lprn)*dt2
               call write_parallel(trim(out_line),crit=jay)
               write(out_line,110)
      &          'loss by rxn rrtri%BrO_NO2__BrONO2_M removed'
@@ -923,27 +931,30 @@ c (chem1prn: argument before multip is index = number of call):
           
           if(igas == nn_ClOx)then
             if(-dest(nn_HOCl,lprn) >= y(nn_HOCl,lprn) .or.
-     &      chemrate(63,lprn) > y(nn_ClOx,lprn))then
+     &      chemrate(rrbi%ClO_HO2__HOCl_O2,lprn) > y(nn_ClOx,lprn))then
               write(out_line,110)
-     &        'gain by rxn 21 (HOCl photolysis) removed'
-     &        ,ss(21,lprn,i,j)*y(nn_HOCl,lprn)*dt2
+     &          'gain by rxn 21 (HOCl photolysis) removed',
+     &          ss(21,lprn,i,j)*y(nn_HOCl,lprn)*dt2
               call write_parallel(trim(out_line),crit=jay)
-              write(out_line,110)'gain by rxn 55 removed'
-     &        ,chemrate(55,lprn)
+              write(out_line,110)
+     &          'gain by rxn rrbi%O_HOCl__OH_ClO removed',
+     &          chemrate(rrbi%O_HOCl__OH_ClO,lprn)
               call write_parallel(trim(out_line),crit=jay)
-              write(out_line,110)'loss by rxn 63 removed'
-     &        ,chemrate(63,lprn)
+                write(out_line,110)
+     &          'loss by rxn rrbi%ClO_HO2__HOCl_O2 removed',
+     &          chemrate(rrbi%ClO_HO2__HOCl_O2,lprn)
               call write_parallel(trim(out_line),crit=jay)
             endif 
             if(-dest(nn_ClONO2,lprn) >= y(nn_ClONO2,lprn) .or.
      &         chemrate(rrtri%ClO_ClO__Cl2O2_M,lprn) >
      &           0.8d0*y(nn_ClOx,lprn))then
               write(out_line,110)
-     &        'gain by rxn 22 (ClONO2 photolysis) removed'
-     &        ,ss(22,lprn,i,j)*y(nn_ClONO2,lprn)*dt2
+     &          'gain by rxn 22 (ClONO2 photolysis) removed',
+     &          ss(22,lprn,i,j)*y(nn_ClONO2,lprn)*dt2
               call write_parallel(trim(out_line),crit=jay)
-              write(out_line,110)'gain by rxn 65 removed'
-     &        ,chemrate(65,lprn)
+              write(out_line,110)
+     &          'gain by rxn rrbi%ClONO2_O__ClO_NO3 removed',
+     &          chemrate(rrbi%ClONO2_O__ClO_NO3,lprn)
               call write_parallel(trim(out_line),crit=jay)
               write(out_line,110)
      &          'loss by rxn rrtri%ClO_ClO__Cl2O2_M removed'
@@ -957,11 +968,12 @@ c (chem1prn: argument before multip is index = number of call):
      &         chemrate(rrtri%ClO_ClO__Cl2O2_M,lprn) >
      &           0.8d0*y(nn_ClOx,lprn))then
               write(out_line,110)
-     &        'gain by rxn 22 (ClONO2 photolysis) removed'
-     &        ,ss(22,lprn,i,j)*y(nn_ClONO2,lprn)*dt2
+     &          'gain by rxn 22 (ClONO2 photolysis) removed',
+     &          ss(22,lprn,i,j)*y(nn_ClONO2,lprn)*dt2
               call write_parallel(trim(out_line),crit=jay)
-              write(out_line,110)'gain by rxn 65 removed'
-     &        ,chemrate(65,lprn)
+              write(out_line,110)
+     &          'gain by rxn rrbi%ClONO2_O__ClO_NO3 removed',
+     &          chemrate(rrbi%ClONO2_O__ClO_NO3,lprn)
               call write_parallel(trim(out_line),crit=jay)
               write(out_line,110)
      &          'loss by rxn rrtri%ClO_ClO__Cl2O2_M removed'
@@ -1180,8 +1192,8 @@ c Cacluate Cl2 amount to P/L:
 
 c Set HOBr to equilibrium when necessary:
          if(idx == n_HOBr.and.(-dest(igas,L) >= y(nn_HOBr,L).or.
-     &     chemrate(73,L) > 0.5d0*y(nn_BrOx,L)))then
-           rnewval=(rr(73,L)*y(nBrO,L)*y(nHO2,L))/
+     &     chemrate(rrbi%BrO_HO2__HOBr_O2,L) > 0.5d0*y(nn_BrOx,L)))then
+           rnewval=(rr(rrbi%BrO_HO2__HOBr_O2,L)*y(nBrO,L)*y(nHO2,L))/
      &     (ss(24,L,i,j)+1.d-12)
            if(rnewval < 1.d0)rnewval=1.d0
            changeL(L,idx)=(rnewval-y(nn_HOBr,L))
@@ -1191,9 +1203,9 @@ c Set HOBr to equilibrium when necessary:
          end if
 
 c Conserve BrOx with respect to HOBr:
-         if(idx == n_BrOx.and.(-dest(nn_HOBr,L) >= y(nn_HOBr,L)
-     &   .or. chemrate(73,L) > 0.5d0*y(nn_BrOx,L)))then
-           rnewval=(rr(73,L)*y(nBrO,L)*y(nHO2,L))/
+         if(idx == n_BrOx.and.(-dest(nn_HOBr,L) >= y(nn_HOBr,L).or.
+     &      chemrate(rrbi%BrO_HO2__HOBr_O2,L) > 0.5d0*y(nn_BrOx,L)))then
+           rnewval=(rr(rrbi%BrO_HO2__HOBr_O2,L)*y(nBrO,L)*y(nHO2,L))/
      &     (ss(24,L,i,j)+1.d-12)
            if(rnewval < 1.d0)rnewval=1.d0
            changeX=(rnewval-y(nn_HOBr,L))
@@ -1280,8 +1292,8 @@ c Conserve NOx with respect to ClONO2:
 
 c Set HOCl to equilibrium when necessary:
          if(idx == n_HOCl.and.(-dest(igas,L) >= y(nn_HOCl,L).or.
-     &   chemrate(63,L) > y(nn_ClOx,L)))then
-           rnewval=(rr(63,L)*y(nClO,L)*y(nHO2,L) + 
+     &   chemrate(rrbi%ClO_HO2__HOCl_O2,L) > y(nn_ClOx,L)))then
+           rnewval=(rr(rrbi%ClO_HO2__HOCl_O2,L)*y(nClO,L)*y(nHO2,L) + 
      &     rr(51,L)*y(nCl2,L)*y(nOH,L)) /
      &     (ss(21,L,i,j)+rr(55,L)*y(nO,L)+rr(51,L)*y(nCl2,L)+1.d-12)
            if(rnewval < 1.d0)rnewval=1.d0
@@ -1293,8 +1305,8 @@ c Set HOCl to equilibrium when necessary:
 
 c Conserve ClOx with respect to HOCl:
          if(idx == n_ClOx.and.(-dest(nn_HOCl,L) >= y(nn_HOCl,L)
-     &   .or. chemrate(63,L) > y(nn_ClOx,L)))then
-           rnewval=(rr(63,L)*y(nClO,L)*y(nHO2,L) + 
+     &   .or. chemrate(rrbi%ClO_HO2__HOCl_O2,L) > y(nn_ClOx,L)))then
+           rnewval=(rr(rrbi%ClO_HO2__HOCl_O2,L)*y(nClO,L)*y(nHO2,L) + 
      &     rr(51,L)*y(nCl2,L)*y(nOH,L)) /
      &     (ss(21,L,i,j)+rr(55,L)*y(nO,L)+rr(51,L)*y(nCl2,L)+1.d-12)
            if(rnewval < 1.d0)rnewval=1.d0
@@ -1326,7 +1338,8 @@ c Conserve ClOx with respect to HOCl:
 
 c Separate N2O change for N cons, leave out N2O->N2+O fromm cons:
       sv_changeN2O(1:maxL)=
-     &-chemrate(87,1:maxL)*axyp(i,j)*rMAbyM(1:maxL)*vol2mass(n_N2O)
+     &  -chemrate(rrbi%N2O_O1D__NO_NO,1:maxL)*axyp(i,j)
+     &    *rMAbyM(1:maxL)*vol2mass(n_N2O)
 
 c Ensure nitrogen conservation,
 c (since equilibration of short lived gases may alter this):
