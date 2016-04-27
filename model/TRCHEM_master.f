@@ -783,7 +783,7 @@ CCCCCCCCCCCCCCCCC NON-FAMILY CHEMISTRY CCCCCCCCCCCCCCCCCCCCCCCC
 ! calculate voc2nox for SOA precursor chemistry
       do L=1,topLevelOfChemistry
         voc2nox_denom=(4.2d-12*exp(180.d0/ta(L))*y(nNO,L)+
-     &                 rr(43,L)*y(nHO2,L)+
+     &                 rr(rrbi%XO2_HO2__CH3OOH_M,L)*y(nHO2,L)+
      &                 1.7d-14*exp(1300.d0/ta(L))*yXO2(I,J,L))
         if (voc2nox_denom==0.d0) then
           voc2nox(L)=0.d0
@@ -1239,7 +1239,7 @@ c       Nighttime changes in Bromine-containing species
         if(-1.d0*changeNOx>y(nn_NOx,L))changeNOx=-1.d0*y(nn_NOx,L)
 
 c       Br+H2O2 converts to HBr+HO2. HO2 assumed to revert to H2O2
-        changeBrOx2=-rr(79,L)*y(nn_H2O2,L)
+        changeBrOx2=-rr(rrbi%Br_H2O2__HBr_HO2,L)*y(nn_H2O2,L)
      &    *y(nn_BrOx,L)*(1.d0-pBrOx(I,J,L))*dt2
         if(-1.d0*changeBrOx2>0.2d0*y(nn_BrOx,L))
      &    changeBrOx2=-0.2d0*y(nn_BrOx,L)
@@ -2147,8 +2147,10 @@ c (radiation code wants atm-cm units):
         call write_parallel(trim(out_line),crit=jay)
         do L=LS1,topLevelOfChemistry
           if(daylight)then
-            ss27x2=2.d0*ss(27,L,i,j)*y(nO2,L) * (rr(98,L)*y(nO2,L))/
-     &           (rr(98,L)*y(nO2,L)+rr(88,L)*y(nO3,L))
+            ss27x2=2.d0*ss(27,L,i,j)*y(nO2,L)
+     &        *(rr(98,L)*y(nO2,L))
+     &        /(rr(98,L)*y(nO2,L)
+     &          +rr(rrbi%O_O3__O2_O2,L)*y(nO3,L))
           else
             ss27x2=0.d0
           end if

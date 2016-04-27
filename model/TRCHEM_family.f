@@ -110,9 +110,9 @@ c       B is for NO->NO2 reactions :
      &      +4.2d-12*exp(180./ta(L))*y(nXO2,L)
         else               ! Stratosphere:
           B=B
-     &      +rr(64,L)*y(nClO,L)
-     &      +rr(67,L)*y(nOClO,L)
-     &      +rr(71,L)*y(nBrO,L)
+     &      +rr(rrbi%ClO_NO__NO2_Cl,L)*y(nClO,L)
+     &      +rr(rrbi%NO_OClO__NO2_ClO,L)*y(nOClO,L)
+     &      +rr(rrbi%BrO_NO__Br_NO2,L)*y(nBrO,L)
         end if
 
 C       C is for NO2->NO reactions :
@@ -238,8 +238,9 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
      &    +rr(rrbi%Terpenes_OH__HCHO_Alkenes,L)*y(nn_Terpenes,L)*0.15d0
 #endif  /* TRACERS_TERP */
      &    )
-     &    +rr(43,L)*y(nXO2,L)
-     &    +y(nXO2N,L)*(rr(44,L)*rr(43,L)/(4.2d-12*exp(180./ta(L))))
+     &    +rr(rrbi%XO2_HO2__CH3OOH_M,L)*y(nXO2,L)
+     &    +y(nXO2N,L)*(rr(rrbi%XO2N_NO__AlkylNit_M,L)
+     &      *rr(rrbi%XO2_HO2__CH3OOH_M,L)/(4.2d-12*exp(180./ta(L))))
      &    +pHOx(I,J,L)*(rsulf1(i,j,l)*ydms(i,j,l) ! oxidation of DMS
      &    +rsulf2(i,j,l)*ydms(i,j,l)) ! oxidation of SO2
 
@@ -269,7 +270,7 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
      &    +ss(16,L,I,J)*y(nAldehyde,L)*2.d0
      &    +(rr(rrbi%C2O3_NO__HCHO_NO2,L)*y(nNO,L) ! CO isotopes should not go here
      &    +rr(rrbi%C2O3_C2O3__HCHO_HCHO,L)*y(nC2O3,L)*2.d0)*y(nC2O3,L)
-     &    +(rr(42,L)*0.94d0+1.6d3)*y(nROR,L)
+     &    +(rr(rrbi%ROR_M__Aldehyde_HO2,L)*0.94d0+1.6d3)*y(nROR,L)
      &    +rr(rrbi%Alkenes_O3__HCHO_CO,L)*y(nn_Alkenes,L)*y(nO3,L)
      &      *0.65d0 ! CO isotopes should not go here
      &    +rr(rrbi%Isoprene_O3__HCHO_Alkenes,L)*y(nn_Isoprene,L)
@@ -308,7 +309,7 @@ c Now partition HOx into OH and HO2:
         ! DZ: HO2->OH reactions :
         dz=rr(rrbi%HO2_O3__OH_O2,L)*y(nO3,L)
      &    +rr(rrbi%HO2_NO__OH_NO2,L)*y(nNO,L)
-     &    +rr(41,L)*(0.79d0*y(nC2O3,L))
+     &    +rr(rrbi%C2O3_HO2__HCHO_HO2,L)*(0.79d0*y(nC2O3,L))
 c Previous few lines represent additional OH production via reaction 41
 c which also produces HO2 and R15 then S4/(S4+S14) fraction.
 
@@ -346,26 +347,29 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
      &      +rr(rrbi%OH_HNO3__H2O_NO3,L)*y(nn_HNO3,L)
      &      +rr(rrtri%OH_NO2__HNO3_M,L)*y(nNO2,L)
      &      +rr(rrtri%OH_NO__HONO_M,L)*y(nNO,L))
-     &    +rr(52,L)*y(nn_HCl,L)*pHOx(I,J,L)
-     &    +rr(53,L)*y(nn_HOCl,L)*pHOx(I,J,L)
-     &    +rr(56,L)*y(nOClO,L)*pHOx(I,J,L)
-     &    +rr(59,L)*y(nCl,L)
-     &    +rr(62,L)*y(nClO,L)*pHOx(I,J,L)
-     &    +rr(63,L)*y(nClO,L)
-     &    +rr(68,L)*y(nn_HBr,L)*pHOx(I,J,L)
-     &    +rr(72,L)*y(nBr,L)
-     &    +rr(73,L)*y(nBrO,L)
-     &    +rr(81,L)*y(nBrO,L)*pHOx(I,J,L)
+     &    +rr(rrbi%OH_HCl__H2O_Cl,L)*y(nn_HCl,L)*pHOx(I,J,L)
+     &    +rr(rrbi%OH_HOCl__H2O_ClO,L)*y(nn_HOCl,L)*pHOx(I,J,L)
+     &    +rr(rrbi%OClO_OH__HOCl_O2,L)*y(nOClO,L)*pHOx(I,J,L)
+     &    +rr(rrbi%Cl_HO2__HCl_O2,L)*y(nCl,L)
+     &    +rr(rrbi%ClO_OH__HCl_O2,L)*y(nClO,L)*pHOx(I,J,L)
+     &    +rr(rrbi%ClO_HO2__HOCl_O2,L)*y(nClO,L)
+     &    +rr(rrbi%HBr_OH__H2O_Br,L)*y(nn_HBr,L)*pHOx(I,J,L)
+     &    +rr(rrbi%Br_HO2__HBr_O2,L)*y(nBr,L)
+     &    +rr(rrbi%BrO_HO2__HOBr_O2,L)*y(nBrO,L)
+     &    +rr(rrbi%BrO_OH__HBr_O2,L)*y(nBrO,L)*pHOx(I,J,L)
      &    +pHOx(I,J,L)*(rsulf1(i,j,l)*ydms(i,j,l) ! oxidation of SO2
      &    +rsulf2(i,j,l)*ydms(i,j,l)) ! oxidation of DMS
 
         ! Use OH production without O1D explicitly:
-        cqqz=2.d0*ss(4,L,i,j)*y(nn_H2O2,L)+ss(9,L,i,j)*y(nn_HNO3,L)
-     &  +ss(21,L,i,j)*y(nn_HOCl,L) 
-     &  +rr(54,L)*y(nn_HCl,L)*y(nO,L)+rr(55,L)*y(nn_HOCl,L)*y(nO,L)
-     &  +rr(57,L)*y(nn_HOCl,L)*y(nCl,L)+rr(58,L)*y(nCl,L)*
-     &  y(nn_H2O2,L)+rr(79,L)*y(nBr,L)*y(nn_H2O2,L)
-     &  +rr(84,L)*y(nn_HBr,L)*y(nO,L)
+        cqqz=2.d0*ss(4,L,i,j)*y(nn_H2O2,L)
+     &    +ss(9,L,i,j)*y(nn_HNO3,L)
+     &    +ss(21,L,i,j)*y(nn_HOCl,L) 
+     &    +rr(rrbi%O_HCl__OH_Cl,L)*y(nn_HCl,L)*y(nO,L)
+     &    +rr(rrbi%O_HOCl__OH_ClO,L)*y(nn_HOCl,L)*y(nO,L)
+     &    +rr(rrbi%Cl_HOCl__Cl2_OH,L)*y(nn_HOCl,L)*y(nCl,L)
+     &    +rr(rrbi%Cl_H2O2__HCl_HO2,L)*y(nCl,L)*y(nn_H2O2,L)
+     &    +rr(rrbi%Br_H2O2__HBr_HO2,L)*y(nBr,L)*y(nn_H2O2,L)
+     &    +rr(rrbi%O_HBr__OH_Br,L)*y(nn_HBr,L)*y(nO,L)
      
         ! water vapor photolysis in SRBs:
         if(PRES(L) < 10.) cqqz = cqqz + 0.5d0*SF3(I,J,L)*y(nH2O,L) 
@@ -385,7 +389,7 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
 c Include loss of OH into atomic H using production
 c via OH + O -> O2 + H, loss via H + O3 -> OH + O2 and
 c H + O2 + M -> HO2 + M , and affects on OH/HO2 and Ox
-        rHprod=rr(89,L)*y(nOH,L)*y(nO,L)
+        rHprod=rr(rrbi%O_OH__O2_H,L)*y(nOH,L)*y(nO,L)
         rHspecloss=y(nO3,L)*1.4d-10*exp(-470./ta(L))
         rkzero=y(nM,L)*4.4d-32*((ta(L)/300.d0)**(-1.3))
         rktot=(rkzero/(1+(rkzero/(7.5d-11*(ta(L)/300.d0)**0.2))))
@@ -403,15 +407,15 @@ c CZ: OH->HO2 reactions :
      &    +rr(rrbi%OH_H2O2__H2O_HO2,L)*y(nn_H2O2,L)
      &    +rr(rrbi%H2_OH__HO2_H2O,L)*y(nH2,L)
      &    +rr(rrbi%HCHO_OH__HO2_CO,L)*y(nn_HCHO,L) ! CO isotopes should not go here
-     &    +rr(61,L)*y(nClO,L)
-     &    +rr(80,L)*y(nBrO,L)
-     &    +rr(89,L)*y(nO,L)*rktot/(rHspecloss+rktot)
+     &    +rr(rrbi%ClO_OH__HO2_Cl,L)*y(nClO,L)
+     &    +rr(rrbi%BrO_OH__Br_HO2,L)*y(nBrO,L)
+     &    +rr(rrbi%O_OH__O2_H,L)*y(nO,L)*rktot/(rHspecloss+rktot)
      &    +rsulf4(i,j,l)*yso2(i,j,l) ! SO2 oxidation: 
 
         dz=rr(rrbi%HO2_O3__OH_O2,L)*y(nO3,L)
      &    +rr(rrbi%HO2_NO__OH_NO2,L)*y(nNO,L)
-     &    +rr(60,L)*y(nCl,L)
-     &    +rr(90,L)*y(nO,L)
+     &    +rr(rrbi%Cl_HO2__OH_ClO,L)*y(nCl,L)
+     &    +rr(rrbi%O_HO2__OH_O2,L)*y(nO,L)
 
         if(cz+dz > 0)then
           y(nOH,L)=(dz/(cz+dz))*temp_yHOx-yAtomicH
@@ -450,7 +454,7 @@ C**** GLOBAL parameters and variables:
       USE TRCHEM_Shindell_COM, only:pClOx,rr,y,nClO,nOClO,nCl,nCl2O2,
      &    ta,ss,nO3,nHO2,nNO3,nO,nNO,nBr,nOH,nBrO,nCH3O2,nM,nCl2,nH2,
      &    dt2,pClx,pOClOx,nNO2,which_trop,yCl2,yCl2O2,ClOx_old,
-     &    rrmono,rrtri
+     &    rrmono,rrbi,rrtri
 
       IMPLICIT NONE
 
@@ -496,31 +500,51 @@ c calculating Cl amount, otherwise ignore:
           y(nClO,L)=y(nClO,L)-y(nCl2O2,L)
         end if
 
-        A=y(nO3,L)*rr(45,L)+y(nOClO,L)*rr(47,L)+y(nHO2,L)*rr(60,L)
-        B=y(nCl,L)*rr(47,L)+y(nO,L)*rr(50,L)+y(nNO,L)*
-     &    rr(67,L)+y(nBr,L)*rr(74,L)+ss(19,L,i,j)
-        C=y(nO,L)*rr(46,L)+y(nO3,L)*(rr(48,L)+rr(49,L))+
-     &    y(nOH,L)*rr(61,L)+y(nNO,L)*rr(64,L)+y(nBrO,L)*
-     &    (rr(75,L)+rr(76,L))+ss(17,L,i,j)+rr(85,L)*
-     &    y(nCH3O2,L)
-     &    +y(nClO,L)*(1.d-12*exp(-1590./TA(L))+3.d-11*exp(-2450./TA(L))
-     &    + 3.5d-13*exp(-1370./TA(L))) 
-        D=y(nO3,L)*rr(49,L)+y(nBrO,L)*rr(75,L)
-        F=(rr(53,L)*y(nOH,L)*y(nn_HOCl,L)+rr(55,L)*y(nO,L)*
-     &    y(nn_HOCl,L)+rr(65,L)*y(nn_ClONO2,L)*y(nO,L))/y(nn_ClOx,L)
-        G=rr(62,L)*y(nOH,L)+rr(63,L)*y(nHO2,L)
-     &    +rr(77,L)*y(nBrO,L)
+        A=y(nO3,L)*rr(rrbi%Cl_O3__ClO_O2,L)
+     &    +y(nOClO,L)*rr(rrbi%Cl_OClO__ClO_ClO,L)
+     &    +y(nHO2,L)*rr(rrbi%Cl_HO2__OH_ClO,L)
+        B=y(nCl,L)*rr(rrbi%Cl_OClO__ClO_ClO,L)
+     &    +y(nO,L)*rr(rrbi%O_OClO__ClO_O2,L)
+     &    +y(nNO,L)*rr(rrbi%NO_OClO__NO2_ClO,L)
+     &    +y(nBr,L)*rr(rrbi%Br_OClO__BrO_ClO,L)
+     &    +ss(19,L,i,j)
+        C=y(nO,L)*rr(rrbi%ClO_O__Cl_O2,L)
+     &    +y(nO3,L)*(rr(rrbi%ClO_O3__Cl_O2,L)
+     &      +rr(rrbi%ClO_O3__OClO_O2,L))
+     &    +y(nOH,L)*rr(rrbi%ClO_OH__HO2_Cl,L)
+     &    +y(nNO,L)*rr(rrbi%ClO_NO__NO2_Cl,L)
+     &    +y(nBrO,L)*(rr(rrbi%BrO_ClO__OClO_Br,L)
+     &      +rr(rrbi%BrO_ClO__Br_Cl,L))
+     &    +ss(17,L,i,j)
+     &    +rr(rrbi%ClO_CH3O2__Cl_HCHO,L)*y(nCH3O2,L)
+     &    +y(nClO,L)*(1.d-12*exp(-1590./TA(L))
+     &      +3.d-11*exp(-2450./TA(L))
+     &      +3.5d-13*exp(-1370./TA(L))) 
+        D=y(nO3,L)*rr(rrbi%ClO_O3__OClO_O2,L)
+     &    +y(nBrO,L)*rr(rrbi%BrO_ClO__OClO_Br,L)
+        F=(rr(rrbi%OH_HOCl__H2O_ClO,L)*y(nOH,L)*y(nn_HOCl,L)
+     &      +rr(rrbi%O_HOCl__OH_ClO,L)*y(nO,L)*y(nn_HOCl,L)
+     &      +rr(rrbi%ClONO2_O__ClO_NO3,L)*y(nn_ClONO2,L)*y(nO,L)
+     &    )/y(nn_ClOx,L)
+        G=rr(rrbi%ClO_OH__HCl_O2,L)*y(nOH,L)
+     &    +rr(rrbi%ClO_HO2__HOCl_O2,L)*y(nHO2,L)
+     &    +rr(rrbi%O1D_CH4__HCHO_H2,L)*y(nBrO,L)
      &    +2.d0*rr(rrtri%ClO_ClO__Cl2O2_M,L)*y(nClO,L)
      &    +rr(rrtri%ClO_NO2__ClONO2_M,L)*y(nNO2,L)
-        Q=rr(56,L)*y(nOH,L)
+        Q=rr(rrbi%OClO_OH__HOCl_O2,L)*y(nOH,L)
         V=C-D
-        X=rr(51,L)*y(nOH,L)*y(nCl2,L)+rr(54,L)*y(nO,L)*
-     &    y(nn_HCl,L)+ 2.d0*
-     &    ss(18,L,i,j)*y(nCl2,L)+2.d0*ss(20,L,i,j)*y(nCl2O2,L)+
-     &    ss(21,L,i,j)*y(nn_HOCl,L)+ss(22,L,i,j)*y(nn_ClONO2,L)
+        X=rr(rrbi%OH_Cl2__HOCl_Cl,L)*y(nOH,L)*y(nCl2,L)
+     &    +rr(rrbi%O_HCl__OH_Cl,L)*y(nO,L)*y(nn_HCl,L)
+     &    +2.d0*ss(18,L,i,j)*y(nCl2,L)
+     &    +2.d0*ss(20,L,i,j)*y(nCl2O2,L)
+     &    +ss(21,L,i,j)*y(nn_HOCl,L)
+     &    +ss(22,L,i,j)*y(nn_ClONO2,L)
         X=X/y(nn_ClOx,L)
-        YY=rr(57,L)*y(nn_HOCl,L)+rr(58,L)*y(nn_H2O2,L)+rr(59,L)*
-     &    y(nHO2,L)+rr(82,L)*y(nn_CH4,L)+rr(83,L)*y(nH2,L)
+        YY=rr(rrbi%Cl_HOCl__Cl2_OH,L)*y(nn_HOCl,L)
+     &    +rr(rrbi%Cl_H2O2__HCl_HO2,L)*y(nn_H2O2,L)
+     &    +rr(rrbi%Cl_HO2__HCl_O2,L)*y(nHO2,L)
+     &    +rr(rrbi%Cl_CH4__HCl_CH3O2,L)*y(nn_CH4,L)
+     &    +rr(rrbi%Cl_H2__HCl_H2,L)*y(nH2,L)
         if((dt2*y(nn_ClOx,L)) /= 0)then
           dClOx=(y(nn_ClOx,L)-ClOx_old(L))/(dt2*y(nn_ClOx,L))
         else
@@ -596,7 +620,7 @@ C**** GLOBAL parameters and variables:
       USE TRACER_COM, only : n_BrOx,n_H2O2,n_HBr,n_HOBr,n_BrONO2
       USE TRACER_COM, only : nn_BrOx,nn_H2O2,nn_HBr,nn_HOBr,nn_BrONO2
       USE TRCHEM_Shindell_COM, only:rr,y,nO3,nClO,nOClO,nNO,nO,nBr,nOH,
-     &    nBrO,ss,nHO2,nNO2,pBrOx,which_trop,rrtri
+     &    nBrO,ss,nHO2,nNO2,pBrOx,which_trop,rrbi,rrtri
 
       IMPLICIT NONE
 
@@ -616,17 +640,25 @@ C**** Local parameters and variables and arguments:
       end select
 
       do L=maxT+1,Lmax  ! stratosphere
-        a=y(nO3,L)*rr(70,L)+y(nOClO,L)*rr(74,L)
-        b=y(nO,L)*rr(69,L)+y(nNO,L)*rr(71,L)+y(nClO,L)*
-     &  (rr(75,L)+rr(76,L))+2*y(nBrO,L)*rr(78,L)+y(nOH,L)*
-     &  rr(80,L)+ss(25,L,i,j)
-        c=rr(73,L)*y(nHO2,L)
-     &    +rr(77,L)*y(nClO,L)
-     &    +rr(81,L)*y(nOH,L)
+        a=y(nO3,L)*rr(rrbi%Br_O3__BrO_O2,L)
+     &    +y(nOClO,L)*rr(rrbi%Br_OClO__BrO_ClO,L)
+        b=y(nO,L)*rr(rrbi%BrO_O__Br_O2,L)
+     &    +y(nNO,L)*rr(rrbi%BrO_NO__Br_NO2,L)
+     &    +y(nClO,L)
+     &      *(rr(rrbi%BrO_ClO__OClO_Br,L)
+     &      +rr(rrbi%BrO_ClO__Br_Cl,L))
+     &    +2*y(nBrO,L)*rr(rrbi%BrO_BrO__Br_Br,L)
+     &    +y(nOH,L)*rr(rrbi%BrO_OH__Br_HO2,L)
+     &    +ss(25,L,i,j)
+        c=rr(rrbi%BrO_HO2__HOBr_O2,L)*y(nHO2,L)
+     &    +rr(rrbi%O1D_CH4__HCHO_H2,L)*y(nClO,L)
+     &    +rr(rrbi%BrO_OH__HBr_O2,L)*y(nOH,L)
      &    +rr(rrtri%BrO_NO2__BrONO2_M,L)*y(nNO2,L)    
-        d=rr(72,L)*y(nHO2,L)+rr(79,L)*y(nn_H2O2,L)
-        eq=rr(68,L)*y(nn_HBr,L)*y(nOH,L)+rr(84,L)*y(nn_HBr,L)*
-     &  y(nO,L)+ss(24,L,i,j)*y(nn_HOBr,L)
+        d=rr(rrbi%Br_HO2__HBr_O2,L)*y(nHO2,L)
+     &    +rr(rrbi%Br_H2O2__HBr_HO2,L)*y(nn_H2O2,L)
+        eq=rr(rrbi%HBr_OH__H2O_Br,L)*y(nn_HBr,L)*y(nOH,L)
+     &    +rr(rrbi%O_HBr__OH_Br,L)*y(nn_HBr,L)*y(nO,L)
+     &    +ss(24,L,i,j)*y(nn_HOBr,L)
         f=ss(23,L,i,j)*y(nn_BrONO2,L)
         if(a+b /= 0)then
           p2=a/(a+b)
