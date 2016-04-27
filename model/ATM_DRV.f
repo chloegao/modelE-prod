@@ -656,7 +656,7 @@ C****        tropospheric temperatures are changed by at most 1 degree C
          Call COMPUTE_GZ (MA,T,TMOM(MZ,:,:,:), DAILY_Z)
         daily_z = daily_z/grav
       endif
-      call initTracerGriddedData()
+      call initTracerGriddedData(istart<=2)
 #endif
 
 C****

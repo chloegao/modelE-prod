@@ -2120,6 +2120,10 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       use OldTracer_mod, only: trName
       use model_com, only : ioread,iowrite
 
+#ifdef TRACERS_AMP
+      use amp_aerosol, only : diam,nactv
+#endif
+
       implicit none
 
       integer, intent(in) :: fid
@@ -2293,6 +2297,15 @@ c daily_z is currently only needed for CS
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_TOMAS)
       call doVar(handle,action,snosiz,'snosiz(dist_im,dist_jm)')
+#endif
+
+#ifdef TRACERS_AMP
+      ! restartability hack until matrix code refactored to
+      ! re-diagnose these qtys on demand
+      call doVar(handle,action,diam,
+     &     'amp_diam(dist_im,dist_jm,lm,nmodes)')
+      call doVar(handle,action,nactv,
+     &     'amp_nactv(dist_im,dist_jm,lm,nmodes)')
 #endif
 
       return

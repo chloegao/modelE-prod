@@ -1,5 +1,5 @@
 #include "rundeck_opts.h"
-      SUBROUTINE initTracerGriddedData()
+      SUBROUTINE initTracerGriddedData(is_coldstart)
 !@sum init_tracer initializes trace gas attributes
 !@calls sync_param, SET_TCON, RDLAND, RDDRYCF
       USE DOMAIN_DECOMP_ATM, only:GRID,getDomainBounds,AM_I_ROOT,
@@ -129,6 +129,8 @@
       use OldTracer_mod, only: set_trsi0
 
       implicit none
+      logical, intent(in) :: is_coldstart
+c
       integer :: l,k,n,kr,m,ns
 #ifdef TRACERS_SPECIAL_O18
       real*8 fracls
@@ -326,7 +328,8 @@ C Read landuse parameters and coefficients for tracer dry deposition:
       CALL SETUP_EMIS
       CALL SETUP_KCI
       CALL SETUP_NPFMASS
-      CALL SETUP_DIAM
+      if(is_coldstart) ! do not overwrite diam during warm starts
+     &     CALL SETUP_DIAM
       CALL SETUP_RAD
 #endif
 
