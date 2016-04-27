@@ -1808,7 +1808,7 @@ c           Conserve N wrt BrONO2 once inital Br changes past:
    
         ! chemical_production_rate_of_ozone_by_CH3O2_plus_NO:
         taijls(i,j,l,ijlt_OxpCH3O2)=taijls(i,j,l,ijlt_OxpCH3O2)+
-     &  rr(20,l)*y(nCH3O2,l)*y(nNO,l)*cpd
+     &  rr(rrbi%CH3O2_NO__HCHO_NO2,l)*y(nCH3O2,l)*y(nNO,l)*cpd
     
         ! chemical_destruction_rate_of_ozone_by_OH:
         taijls(i,j,l,ijlt_OxlOH)=taijls(i,j,l,ijlt_OxlOH)+
@@ -2148,8 +2148,8 @@ c (radiation code wants atm-cm units):
         do L=LS1,topLevelOfChemistry
           if(daylight)then
             ss27x2=2.d0*ss(27,L,i,j)*y(nO2,L)
-     &        *(rr(98,L)*y(nO2,L))
-     &        /(rr(98,L)*y(nO2,L)
+     &        *(rr(rrtri%O_O2__O3_M,L)*y(nO2,L))
+     &        /(rr(rrtri%O_O2__O3_M,L)*y(nO2,L)
      &          +rr(rrbi%O_O3__O2_O2,L)*y(nO3,L))
           else
             ss27x2=0.d0
