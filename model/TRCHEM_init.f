@@ -256,7 +256,7 @@ C**** Local parameters and variables and arguments:
 !@+ in the photolysis module
 !@auth Kostas Tsigaridis
 
-      use TRCHEM_Shindell_COM, only: iprn,jprn,prnrts,JPPJ_shindell
+      use TRCHEM_Shindell_COM, only: iprn,jprn,prnrts,n_rj
      &                              ,p_1,topLevelOfChemistry
       use photolysis, only: phtlst,inphot
      &                     ,j_iprn,j_jprn,j_prnrts,jppj,jlabel
@@ -277,7 +277,7 @@ C**** Local parameters and variables and arguments:
       j_iprn=iprn
       j_jprn=jprn
       j_prnrts=prnrts
-      jppj=jppj_shindell
+      jppj=n_rj
  
       allocate(jndlev(NLGCM))
       allocate(pomegaj(2*M__,2*NLGCM+2+1))
@@ -314,7 +314,7 @@ c fastj initialization routine:
 
 C**** GLOBAL parameters and variables:
       USE TRCHEM_Shindell_COM, only: nps,nds,kps,kds,nn,nnr,n_rx,
-     &                      npnr,ndnr,kpnr,kdnr,prnls
+     &                      npnr,ndnr,kpnr,kdnr,prnls,n_rx,n_rj
       use photolysis, only: jppj,ks,kss
 
       IMPLICIT NONE
@@ -322,7 +322,7 @@ C**** GLOBAL parameters and variables:
 c Chemical reaction lists:
       call guide(npnr,ndnr,kpnr,kdnr,nn,nnr,2,n_rx)
 c Photolysis reaction lists:
-      call guide( nps, nds, kps, kds,ks,kss,1,JPPJ)
+      call guide( nps, nds, kps, kds,ks,kss,1,n_rj)
 C Print out some diagnostics:
       if(prnls) call printls
       
@@ -337,7 +337,7 @@ C Print out some diagnostics:
 !@calls calcls
 
 C**** GLOBAL parameters and variables:
-      USE TRCHEM_Shindell_COM, only: p_1,p_2,p_3,nc
+      USE TRCHEM_Shindell_COM, only: p_1,nc
 
       IMPLICIT NONE
 
@@ -351,8 +351,8 @@ C**** Local parameters and variables and arguments:
 !@var ns   = either 1   or    2 from reactn sub
 !@var nre number of reactions
       INTEGER,  DIMENSION(nc)      :: kpr, kdr
-      INTEGER,  DIMENSION(p_3)     :: npr, ndr
-      INTEGER, DIMENSION(p_1,p_2)  :: nn, nnn
+      INTEGER,  DIMENSION(p_1*nre) :: npr, ndr
+      INTEGER, DIMENSION(p_1,nre)  :: nn, nnn
       INTEGER                      :: ns, nre
 
 c Chemical and photolytic destruction:
@@ -371,7 +371,7 @@ c Chemical and photolytic production:
 
 C**** GLOBAL parameters and variables:
       USE DOMAIN_DECOMP_ATM, only: write_parallel
-      USE TRCHEM_Shindell_COM, only: ny, numfam, p_2, p_3, nc, nfam,
+      USE TRCHEM_Shindell_COM, only: ny, numfam, p_1, nc, nfam,
      &                               prnls
 
       IMPLICIT NONE
@@ -386,10 +386,10 @@ C**** Local parameters and variables and arguments:
 !@var nnn  = either nn or nnn from guide sub
 !@var ii,k,j,i,ij,i2,newfam,ifam dummy variables
       INTEGER, DIMENSION(nc)     :: kdr
-      INTEGER, DIMENSION(p_3)    :: ndr
+      INTEGER, DIMENSION(p_1*nre):: ndr
       INTEGER :: nre, nns, ns, k, j, i, ij, i2, newfam, ifam, ii
-      INTEGER, DIMENSION(ns,p_2) :: nn 
-      INTEGER, DIMENSION(nns,p_2):: nnn
+      INTEGER, DIMENSION(ns,nre) :: nn 
+      INTEGER, DIMENSION(nns,nre):: nnn
       character(len=300) :: out_line
 
       k=1

@@ -40,7 +40,7 @@ C
      &                   nAldehyde,nROR,nn,dt2,dest,prod,
      &                   rr,nO1D,nOH,nNO,nHO2,ta,nM,ss,
      &                   nO3,nNO2,nNO3,prnrts,jprn,iprn,lprn,ay,
-     &                   prnchg,y,nps,kps,nds,kds,
+     &                   prnchg,y,nps,kps,nds,kds,n_rx,n_rj,
      &                   npnr,nnr,ndnr,kpnr,kdnr,nH2O,which_trop,
      &                   Jacet,acetone,minKG,rrmono,rrbi,rrtri
      &                   ,SF3,ratioNs,ratioN2,rNO2frac,nO,nClO,nBrO
@@ -174,13 +174,13 @@ c change=dest or prod array
 c multip=1(prod) or -1(dest)
 
 c chemical destruction:
-      call chem1(kdnr,maxL,2,nn,ndnr,chemrate,dest,-1)
+      call chem1(kdnr,maxL,2,n_rx,nn,ndnr,chemrate,dest,-1)
 c chemical production:
-      call chem1(kpnr,maxL,2,nnr,npnr,chemrate,prod,1)
+      call chem1(kpnr,maxL,2,n_rx,nnr,npnr,chemrate,prod,1)
 c photolytic destruction:
-      call chem1(kds,maxL,1,ks,nds,photrate,dest,-1)
+      call chem1(kds,maxL,1,n_rj,ks,nds,photrate,dest,-1)
 c photolytic production:
-      call chem1(kps,maxL,2,kss,nps,photrate,prod,1)
+      call chem1(kps,maxL,2,n_rj,kss,nps,photrate,prod,1)
 
 c Add additional Cl from CFC photolysis + background :
       do L=1,maxL
@@ -282,7 +282,7 @@ c HCHO, Alkenes, and CO per rxn, correct here following Houweling:
      &    (chemrate(rrbi%Isoprene_OH__HCHO_Alkenes,L)
      &    +chemrate(rrbi%Isoprene_O3__HCHO_Alkenes,L))
         prod(nn_isopp2g,L)=prod(nn_isopp2g,L)+
-     &                    apartmolar(L,whichsoa(n_isopp2a))*
+     &    apartmolar(L,whichsoa(n_isopp2a))*
      &    (chemrate(rrbi%Isoprene_OH__HCHO_Alkenes,L)
      &    +chemrate(rrbi%Isoprene_O3__HCHO_Alkenes,L))
 #ifdef TRACERS_TERP
@@ -805,7 +805,7 @@ c (chem1prn: argument before multip is index = number of call):
           call write_parallel(trim(out_line),crit=jay)
 
           call chem1prn
-     &    (kdnr,2,nn,ndnr,chemrate,1,-1,igas,total,maxL,I,J,jay)
+     &    (kdnr,2,n_rx,nn,ndnr,chemrate,1,-1,igas,total,maxL,I,J,jay)
 
           if(igas == nn_NOx)then
             if(-dest(nn_HO2NO2,lprn) >= y(nn_HO2NO2,lprn) .or.
@@ -832,7 +832,7 @@ c (chem1prn: argument before multip is index = number of call):
           end if
           
           call chem1prn
-     &    (kpnr,2,nnr,npnr,chemrate,2,1,igas,total,maxL,I,J,jay)
+     &    (kpnr,2,n_rx,nnr,npnr,chemrate,2,1,igas,total,maxL,I,J,jay)
      
           if(igas == nn_NOx)then
             if(-dest(nn_HO2NO2,lprn) >= y(nn_HO2NO2,lprn) .or.
@@ -863,9 +863,9 @@ c (chem1prn: argument before multip is index = number of call):
           end if
 
           call chem1prn
-     &    (kds,1,ks,nds,photrate,3,-1,igas,total,maxL,I,J,jay)
+     &    (kds,1,n_rj,ks,nds,photrate,3,-1,igas,total,maxL,I,J,jay)
           call chem1prn
-     &    (kps,2,kss,nps,photrate,4,1,igas,total,maxL,I,J,jay)
+     &    (kps,2,n_rj,kss,nps,photrate,4,1,igas,total,maxL,I,J,jay)
 
 ! Commenting this goes along with reference commented section
 ! involving Oxcorr above:
@@ -1845,14 +1845,13 @@ c Initialize change arrays:
 
 
 
-      SUBROUTINE chem1(kdnr,maxL,numeL,nn,ndnr,chemrate,dest,multip)
+      SUBROUTINE chem1(kdnr,maxL,numeL,n_rr,nn,npdnrs,rrate,dest,multip)
 !@sum chem1 calculate chemical destruction/production
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
 
 C**** GLOBAL parameters and variables:
 
-      USE TRCHEM_Shindell_COM, only: p_2, p_3, nc, ny, numfam,nfam
-      USE TRCHEM_Shindell_COM, only: n_rx
+      USE TRCHEM_Shindell_COM, only:  p_1, nc, ny, numfam,nfam
 #ifdef TRACERS_dCO
       use TRACER_COM, only: n_dHCH17O, n_dHCH18O, n_dH13CHO
       use TRACER_COM, only: n_dC17O, n_dC18O, n_d13CO
@@ -1867,9 +1866,9 @@ C**** Local parameters and variables and arguments:
 !@+   two products
 !@var kdnr kdnr,kpnr,kds, or kps    passed from chemstep
 !@var nn nn,nnr,ks, or kss          passed from chemstep
-!@var ndnr ndnr,npnr,nds, or nps    passed from chemstep.
-!@+   ndnr(ireac) gives reaction index number as found in JPLRX or JPLPH
-!@var chemrate chemrate or photrate passed from chemstep
+!@var npdnrs ndnr,npnr,nds, or nps    passed from chemstep.
+!@+   npdnrs(ireac) gives reaction index number as found in JPLRX or JPLPH
+!@var rrate rrate or photrate passed from chemstep
 !@var dest dest or prod             passed from chemstep
 !@var multip -1 for destruction, +1 for production
 !@var igas index of tracer, as defined in e.g. trname
@@ -1879,11 +1878,11 @@ C**** Local parameters and variables and arguments:
 !@+   Production and destruction are tracked separately.
 !@var i,dk,nl dummy variable
       INTEGER ireac,igas,i,dk,nl
-      INTEGER, INTENT(IN)            :: maxL,numeL,multip
+      INTEGER, INTENT(IN)            :: maxL,numeL,n_rr,multip
       INTEGER, DIMENSION(nc)         :: kdnr
-      INTEGER, DIMENSION(numeL,n_rx) :: nn ! automatic array
-      INTEGER, DIMENSION(p_3)        :: ndnr
-      REAL*8,  DIMENSION(p_2,maxL)   :: chemrate ! automatic array
+      INTEGER, DIMENSION(numeL,n_rr) :: nn ! automatic array
+      INTEGER, DIMENSION(p_1*n_rr)   :: npdnrs
+      REAL*8,  DIMENSION(n_rr,maxL)  :: rrate ! automatic array
       REAL*8,  DIMENSION(ny,maxL)    :: dest ! automatic array
 #ifdef TRACERS_dCO
       logical :: is_dCO_reaction
@@ -1899,22 +1898,22 @@ c Reactive families:
           do i=1,dk
             ireac=ireac+1
 #ifdef TRACERS_dCO
-            if (is_dCO_reaction(ireac,ndnr)) then
+            if (is_dCO_reaction(ireac,n_rr,npdnrs)) then
               if ((igas /= n_dC17O).and.(igas /= n_dC18O).and.
      &            (igas /= n_d13CO).and.(igas /= n_dHCH17O).and.
      &            (igas /= n_dHCH18O).and.(igas /= n_dH13CHO)) cycle ! do not affect chemistry
             endif
 #endif  /* TRACERS_dCO */
             do nl=1,numeL
-              if(nn(nl,ndnr(ireac)) >= nfam(igas) .and. 
-     &           nn(nl,ndnr(ireac)) < nfam(igas+1))then
+              if(nn(nl,npdnrs(ireac)) >= nfam(igas) .and. 
+     &           nn(nl,npdnrs(ireac)) < nfam(igas+1))then
                 dest(igas,1:maxL)=
      &            dest(igas,1:maxL)+
-     &            multip*chemrate(ndnr(ireac),1:maxL)
+     &            multip*rrate(npdnrs(ireac),1:maxL)
 c               Save change array for individual family elements:
-                dest(nn(nl,ndnr(ireac)),1:maxL)=
-     &            dest(nn(nl,ndnr(ireac)),1:maxL)+
-     &            multip*chemrate(ndnr(ireac),1:maxL)
+                dest(nn(nl,npdnrs(ireac)),1:maxL)=
+     &            dest(nn(nl,npdnrs(ireac)),1:maxL)+
+     &            multip*rrate(npdnrs(ireac),1:maxL)
               end if
             end do ! numeL
           end do  ! i
@@ -1929,7 +1928,7 @@ c Individual Species:
           do i=1,dk
             ireac=ireac+1
 #ifdef TRACERS_dCO
-            if (is_dCO_reaction(ireac,ndnr)) then
+            if (is_dCO_reaction(ireac,n_rr,npdnrs)) then
               if ((igas /= n_dC17O).and.(igas /= n_dC18O).and.
      &            (igas /= n_d13CO).and.(igas /= n_dHCH17O).and.
      &            (igas /= n_dHCH18O).and.(igas /= n_dH13CHO)) cycle ! do not affect chemistry
@@ -1937,7 +1936,7 @@ c Individual Species:
 #endif  /* TRACERS_dCO */
             dest(igas,1:maxL)=
      &        dest(igas,1:maxL)+
-     &        multip*chemrate(ndnr(ireac),1:maxL)
+     &        multip*rrate(npdnrs(ireac),1:maxL)
           end do
         end if
       end do
@@ -1947,7 +1946,7 @@ c Individual Species:
 
 
 
-      SUBROUTINE chem1prn(kdnr,numeL,nn,ndnr,chemrate,
+      SUBROUTINE chem1prn(kdnr,numeL,n_rr,nn,npdnrs,rrate,
      &                    index,multip,igas,total,maxL,I,J,jay)
 !@sum chem1prn for printing out the chemical reactions
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
@@ -1955,8 +1954,7 @@ c Individual Species:
 C**** GLOBAL parameters and variables:
 
       USE DOMAIN_DECOMP_ATM, only : write_parallel
-      USE TRCHEM_Shindell_COM, only: ay, lprn, nfam, nc, numfam, y,
-     &                              p_2, p_3, n_rx
+      USE TRCHEM_Shindell_COM, only: ay, lprn, nfam, nc, numfam, y, p_1
 
       IMPLICIT NONE
 
@@ -1964,8 +1962,8 @@ C**** Local parameters and variables and arguments:
 !@var kdnr kdnr,kpnr,kds, or kps from chemstep
 !@var numeL first index of nn array
 !@var nn nn,nnr,ks, or kss from chemstep
-!@var ndnr ndnr,npnr,nds, or nps from chemstep
-!@var chemrate chemrate or photrate from chemstep
+!@var npdnrs ndnr,npnr,nds, or nps from chemstep
+!@var rrate rrate or photrate from chemstep
 !@var index passed index to know which call this is... {1,2,3,4}
 !@var multip 1 for production, -1 for destruction
 !@var igas passed index for gas number
@@ -1975,16 +1973,16 @@ C**** Local parameters and variables and arguments:
 !@var label character string for printing
 !@var irec dummy loop variables
 !@var per dummy temp variable
-      INTEGER, INTENT(IN) :: igas,I,J,maxL,multip,index,numeL
-      INTEGER, DIMENSION(p_3)        :: ndnr
-      INTEGER, DIMENSION(numeL,n_rx) :: nn ! automatic array
+      INTEGER, INTENT(IN) :: igas,I,J,maxL,multip,index,numeL,n_rr
+      INTEGER, DIMENSION(p_1*n_rr)   :: npdnrs
+      INTEGER, DIMENSION(numeL,n_rr) :: nn ! automatic array
       INTEGER, DIMENSION(nc)         :: kdnr      
       INTEGER                        :: ireac
       character*17                   :: label
       character(len=300)             :: out_line
       logical                        :: jay
       REAL*8                         :: total,per
-      REAL*8, DIMENSION(p_2,maxL)    :: chemrate ! automatic array
+      REAL*8, DIMENSION(n_rr,maxL)   :: rrate ! automatic array
 
 c FAMILIES ONLY:
 
@@ -1996,26 +1994,26 @@ c FAMILIES ONLY:
           else
             label=' phot reaction # '
           end if
-          if(nn(1,ndnr(ireac)) >= nfam(igas) .and. 
-     &    nn(1,ndnr(ireac)) < nfam(igas+1))then
+          if(nn(1,npdnrs(ireac)) >= nfam(igas) .and. 
+     &    nn(1,npdnrs(ireac)) < nfam(igas+1))then
             per=0.d0
             if(y(igas,lprn) /= 0.d0) per=multip*100.d0*
-     &      chemrate(ndnr(ireac),lprn)/y(igas,lprn)
-            write(out_line,177) label,ndnr(ireac),' percent change'
-     &      //' from ',ay(nn(1,ndnr(ireac))),' = ',per,
-     &      ' dy=',multip*chemrate(ndnr(ireac),lprn)
+     &      rrate(npdnrs(ireac),lprn)/y(igas,lprn)
+            write(out_line,177) label,npdnrs(ireac),' percent change'
+     &      //' from ',ay(nn(1,npdnrs(ireac))),' = ',per,
+     &      ' dy=',multip*rrate(npdnrs(ireac),lprn)
             call write_parallel(trim(out_line),crit=jay)
             total=total+per
           end if
           if(numeL == 2)then
-            if(nn(2,ndnr(ireac)) >= nfam(igas) .and. 
-     &      nn(2,ndnr(ireac)) < nfam(igas+1))then
+            if(nn(2,npdnrs(ireac)) >= nfam(igas) .and. 
+     &      nn(2,npdnrs(ireac)) < nfam(igas+1))then
               per=0.d0
               if(y(igas,lprn) /= 0.d0) per=multip*100.d0*
-     &        chemrate(ndnr(ireac),lprn)/y(igas,lprn)
-              write(out_line,177) label,ndnr(ireac),' percent change'
-     &        //' from ',ay(nn(2,ndnr(ireac))),' = ',per,
-     &        ' dy=',multip*chemrate(ndnr(ireac),lprn)
+     &        rrate(npdnrs(ireac),lprn)/y(igas,lprn)
+              write(out_line,177) label,npdnrs(ireac),' percent change'
+     &        //' from ',ay(nn(2,npdnrs(ireac))),' = ',per,
+     &        ' dy=',multip*rrate(npdnrs(ireac),lprn)
               call write_parallel(trim(out_line),crit=jay)
               total=total+per
             end if
@@ -2034,23 +2032,23 @@ c INDIVIDUAL SPECIES:
           label=' phot reaction # '
         end if
 c       skip same reaction if written twice:
-        if ((ireac > 1) .and. (ndnr(ireac) == ndnr(ireac-1))) CYCLE
-        if(nn(1,ndnr(ireac)) == igas)then
+        if ((ireac > 1) .and. (npdnrs(ireac) == npdnrs(ireac-1))) CYCLE
+        if(nn(1,npdnrs(ireac)) == igas)then
           per=0.d0
           if(y(igas,lprn) /= 0.d0) per=100.d0*multip*
-     &    chemrate(ndnr(ireac),lprn)/y(igas,lprn)
-          write(out_line,106) label,ndnr(ireac),' percent change = '
-     &    ,per,' dy=',multip*chemrate(ndnr(ireac),lprn)
+     &    rrate(npdnrs(ireac),lprn)/y(igas,lprn)
+          write(out_line,106) label,npdnrs(ireac),' percent change = '
+     &    ,per,' dy=',multip*rrate(npdnrs(ireac),lprn)
           call write_parallel(trim(out_line),crit=jay)
           total=total+per
         end if
         if(numeL == 2)then
-          if(nn(2,ndnr(ireac)) == igas)then
+          if(nn(2,npdnrs(ireac)) == igas)then
             per=0.d0
             if(y(igas,lprn) /= 0.d0) per=100.d0*multip*
-     &      chemrate(ndnr(ireac),lprn)/y(igas,lprn)
-            write(out_line,106) label,ndnr(ireac),' percent change = '
-     &      ,per,' dy=',multip*chemrate(ndnr(ireac),lprn)
+     &      rrate(npdnrs(ireac),lprn)/y(igas,lprn)
+            write(out_line,106) label,npdnrs(ireac),' percent change = '
+     &      ,per,' dy=',multip*rrate(npdnrs(ireac),lprn)
             call write_parallel(trim(out_line),crit=jay)
             total=total+per
           end if
@@ -2065,17 +2063,17 @@ c       skip same reaction if written twice:
       end SUBROUTINE chem1prn
 
 #ifdef TRACERS_dCO
-      logical function is_dCO_reaction(ireac, ndnr)
+      logical function is_dCO_reaction(ireac,n_rr,npdnrs)
 !@sum is_dCO_reaction Returns .true. if reaction ireac involves dCO tracers,
 !@+                   false otherwise
 !@auth Kostas Tsigaridis
 
       use photolysis, only: jppj
-      use TRCHEM_Shindell_COM, only: p_3,n_bi_dCO,jppj_dCO,rrbi
+      use TRCHEM_Shindell_COM, only: p_1,n_bi_dCO,jppj_dCO,rrbi
       implicit none
 
-      integer, intent(in) :: ireac
-      integer, dimension(p_3), intent(in) :: ndnr
+      integer, intent(in) :: ireac,n_rr
+      integer, dimension(p_1*n_rr), intent(in) :: npdnrs
 
       if (rrbi%Terpenes_O3__dH13CHO_Alkenes-rrbi%dC17O_OH__HO2_O2+1 /=
      &    n_bi_dCO)
@@ -2083,14 +2081,14 @@ c       skip same reaction if written twice:
      &                  255)
 
       is_dCO_reaction=.false.
-      if (maxval(ndnr)==jppj) then ! photolysis
-        if ((ndnr(ireac) > 28).and.
-     &      (ndnr(ireac) <= 28+jppj_dCO)) then
+      if (maxval(npdnrs)==jppj) then ! photolysis
+        if ((npdnrs(ireac) > 28).and.
+     &      (npdnrs(ireac) <= 28+jppj_dCO)) then
           is_dCO_reaction=.true.
         endif
       else                      ! thermal
-        if ((ndnr(ireac) >= rrbi%dC17O_OH__HO2_O2).and.
-     &      (ndnr(ireac) <= rrbi%Terpenes_O3__dH13CHO_Alkenes)) then
+        if ((npdnrs(ireac) >= rrbi%dC17O_OH__HO2_O2).and.
+     &      (npdnrs(ireac) <= rrbi%Terpenes_O3__dH13CHO_Alkenes)) then
           is_dCO_reaction=.true.
         endif
       endif

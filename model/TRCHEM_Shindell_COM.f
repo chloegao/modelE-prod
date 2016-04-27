@@ -206,17 +206,13 @@ c
 
 C**************  P  A  R  A  M  E  T  E  R  S  *******************
 !@param p_1 number of reactants or products per reaction
-!@param p_2 maximum number of reactions or photolysis rates.
-!@+     Equals to n_rx or JPPJ_Shindell, whichever is greater
-!@param p_3 number of rxns in assembled lists (check with print rxn list)
-!@+     Equals to p_1*p_2
 !@param n_rx maximum number of chemical reactions in JPLRX
 !@param n_bi maximum number of bimolecular reactions in JPLRX
 !@param n_tri maximum number of trimolecular reactions in JPLRX
 !@param n_nst maximum number of monomolecular decompositions in JPLRX
 !@param n_het maximum number of heterogeneous reactions in JPLRX
 !@param numfam number of chemical families in JPLRX
-!@param JPPJ_Shindell number of photolysis reactions in JPLPH
+!@param n_rj number of photolysis reactions in JPLPH
 !@param luselb Use reflective photolysis boundary treatment
 !@param zlbatm Optical depth above which to set lower boundary
 !@param CMEQ1 ?
@@ -300,10 +296,8 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
      & nBr=       51+ntm_terp+ntm_soa+ntm_dCO,
      & nO2=       52+ntm_terp+ntm_soa+ntm_dCO,
      & nM=        53+ntm_terp+ntm_soa+ntm_dCO,     !you must always put nM last (highest number)
-     & JPPJ_Shindell = 28+jppj_dCO,
-     & p_1   =     2, 
-     & p_2   = max(n_rx,JPPJ_Shindell),
-     & p_3   = p_1*p_2
+     & n_rj  =    28+jppj_dCO,
+     & p_1   =     2
 C ----------------------------------------------     
 c     & n_Ox=        1,    ! note, these
 c     & n_NOx=       2,    ! first 15 species are
@@ -584,7 +578,8 @@ C**************  V  A  R  I  A  B  L  E  S *******************
      &       44+ntm_terp+ntm_soa+ntm_dCO,50+ntm_terp+ntm_soa+ntm_dCO,
      &       ny+1/)
       INTEGER, DIMENSION(p_1,n_rx)     :: nn, nnr
-      INTEGER, DIMENSION(p_3)          :: nps, nds, npnr, ndnr
+      INTEGER, DIMENSION(p_1*n_rx)     :: npnr, ndnr
+      INTEGER, DIMENSION(p_1*n_rj)     :: nps, nds
       INTEGER, DIMENSION(nc)           :: kps, kds, kpnr, kdnr
       INTEGER, DIMENSION(n_nst)        :: nst
       INTEGER, ALLOCATABLE, DIMENSION(:) :: aero
@@ -643,11 +638,11 @@ C**************  Not Latitude-Dependant ****************************
       use TRCHEM_Shindell_COM, only: DU_O3,ss,yNO3,sOx_acc,l1Ox_acc,
      & pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yXO2N,yRXPAR,
      & TX,sulfate,COIC,OxIC,CH4ICX,dms_offline,so2_offline,yso2,ydms,
-     & COICIN,OxICIN,CH4ICIN,JPPJ_Shindell,LCOalt,acetone,mNO2,
+     & COICIN,OxICIN,CH4ICIN,n_rj,LCOalt,acetone,mNO2,
      & l1NO2_acc,sNOx_acc,sCO_acc,save_NO2column,pNO3
      & ,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2,N2OICX,CFCIC,SF3,SF2,
      & N2OICIN,CFCICIN,y,rr,odtmp,ta,Jacet,chemrate,photrate,dest,prod,
-     & OxlossbyH,pscX,nc,n_rx,p_2,ny,changeL,rh,bythick,ClOx_old,aero
+     & OxlossbyH,pscX,nc,n_rx,ny,changeL,rh,bythick,ClOx_old,aero
 
       use TRCHEM_Shindell_COM, only: topLevelOfChemistry ! define here
 
@@ -704,8 +699,8 @@ C**************  Not Latitude-Dependant ****************************
       allocate(    Jacet(      topLevelOfChemistry) )
       allocate(     aero(      topLevelOfChemistry) )
       allocate(     pscX(      topLevelOfChemistry) )
-      allocate( chemrate(p_2,  topLevelOfChemistry) )
-      allocate( photrate(p_2,  topLevelOfChemistry) )
+      allocate( chemrate(n_rx, topLevelOfChemistry) )
+      allocate( photrate(n_rj, topLevelOfChemistry) )
       allocate(     dest(ny,   topLevelOfChemistry) )
       allocate(     prod(ny,   topLevelOfChemistry) )
       allocate(OxlossbyH(      topLevelOfChemistry) )
@@ -714,7 +709,7 @@ C**************  Not Latitude-Dependant ****************************
       ! Normally allocated things:
       allocate(save_NO2column(I_0H:I_1H,J_0H:J_1H) )
       allocate(         DU_O3(          J_0H:J_1H) )
-      allocate(ss(JPPJ_Shindell,topLevelOfChemistry,
+      allocate(ss(n_rj, topLevelOfChemistry,
      &                      I_0H:I_1H,J_0H:J_1H) )
       allocate(     acetone(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
       allocate(        yNO3(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
