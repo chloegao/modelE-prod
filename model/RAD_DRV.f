@@ -1735,10 +1735,12 @@ C     INPUT DATA   partly (i,j) dependent, partly global
       REAL*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
      &                  grid%j_strt_halo:grid%j_stop_halo,lm) ::
      &     SDDARR3D
+#ifdef TRACERS_ON
       REAL*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
      &                  grid%j_strt_halo:grid%j_stop_halo,nraero_rf) ::
      &     sddarr3drf
       integer :: f
+#endif  /* TRACERS_ON */
 #ifdef SCM
 C     radiative flux profiles for sub-daily output, generalized
 C     for GCM grid but currently limited to SCM use
@@ -3646,10 +3648,12 @@ c longwave GHG forcing at TOA
 #endif /* ACCMIP_LIKE_DIAGS */
 
 #ifdef CACHED_SUBDD
+#ifdef TRACERS_ON
       swfrc(i,j,1:nraero_rf)=
      &  rsign_aer*(SNFST(2,1:nraero_rf,I,J)-SNFS(LFRC,I,J))*CSZ2
       lwfrc(i,j,1:nraero_rf)=
      &  -rsign_aer*(TNFST(2,1:nraero_rf,I,J)-TNFS(LFRC,I,J))
+#endif  /* TRACERS_ON */
 #endif  /* CACHED_SUBDD */
 
   770    CONTINUE
