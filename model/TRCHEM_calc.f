@@ -1845,7 +1845,8 @@ c Initialize change arrays:
 
 
 
-      SUBROUTINE chem1(kdnr,maxL,numeL,n_rr,nn,npdnrs,rrate,dest,multip)
+      SUBROUTINE chem1(kdnr,maxL,numeL,n_rr,nn,npdnrs,rrate,proddest,
+     &                 multip)
 !@sum chem1 calculate chemical destruction/production
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
 
@@ -1869,7 +1870,7 @@ C**** Local parameters and variables and arguments:
 !@var npdnrs ndnr,npnr,nds, or nps    passed from chemstep.
 !@+   npdnrs(ireac) gives reaction index number as found in JPLRX or JPLPH
 !@var rrate rrate or photrate passed from chemstep
-!@var dest dest or prod             passed from chemstep
+!@var proddest dest or prod             passed from chemstep
 !@var multip -1 for destruction, +1 for production
 !@var igas index of tracer, as defined in e.g. trname
 !@var ireac index of reaction per tracer. Starts from 1 and increases
@@ -1883,7 +1884,7 @@ C**** Local parameters and variables and arguments:
       INTEGER, DIMENSION(numeL,n_rr) :: nn ! automatic array
       INTEGER, DIMENSION(p_1*n_rr)   :: npdnrs
       REAL*8,  DIMENSION(n_rr,maxL)  :: rrate ! automatic array
-      REAL*8,  DIMENSION(ny,maxL)    :: dest ! automatic array
+      REAL*8,  DIMENSION(ny,maxL)    :: proddest ! automatic array
 #ifdef TRACERS_dCO
       logical :: is_dCO_reaction
 #endif  /* TRACERS_dCO */
@@ -1907,12 +1908,12 @@ c Reactive families:
             do nl=1,numeL
               if(nn(nl,npdnrs(ireac)) >= nfam(igas) .and. 
      &           nn(nl,npdnrs(ireac)) < nfam(igas+1))then
-                dest(igas,1:maxL)=
-     &            dest(igas,1:maxL)+
+                proddest(igas,1:maxL)=
+     &            proddest(igas,1:maxL)+
      &            multip*rrate(npdnrs(ireac),1:maxL)
 c               Save change array for individual family elements:
-                dest(nn(nl,npdnrs(ireac)),1:maxL)=
-     &            dest(nn(nl,npdnrs(ireac)),1:maxL)+
+                proddest(nn(nl,npdnrs(ireac)),1:maxL)=
+     &            proddest(nn(nl,npdnrs(ireac)),1:maxL)+
      &            multip*rrate(npdnrs(ireac),1:maxL)
               end if
             end do ! numeL
@@ -1934,8 +1935,8 @@ c Individual Species:
      &            (igas /= n_dHCH18O).and.(igas /= n_dH13CHO)) cycle ! do not affect chemistry
             endif
 #endif  /* TRACERS_dCO */
-            dest(igas,1:maxL)=
-     &        dest(igas,1:maxL)+
+            proddest(igas,1:maxL)=
+     &        proddest(igas,1:maxL)+
      &        multip*rrate(npdnrs(ireac),1:maxL)
           end do
         end if
