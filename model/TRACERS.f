@@ -1345,7 +1345,7 @@ C**** check whether air mass is conserved
      &     yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss,ydms,yso2,sulfate
      &     ,acetone,sOx_acc,sNOx_acc,sCO_acc,l1Ox_acc,l1NO2_acc,pNO3
      &     ,SF3,SF2,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2
-     &     ,topLevelOfChemistry
+     &     ,topLevelOfChemistry,n_rj
 #ifdef INTERACTIVE_WETLANDS_CH4 
       use TRACER_SOURCES, only: day_ncep,DRA_ch4,sum_ncep,PRS_ch4,
      &     HRA_ch4,iday_ncep,i0_ncep,iHch4,iDch4,i0ch4,first_ncep,
@@ -1355,7 +1355,6 @@ C**** check whether air mass is conserved
 #ifdef SMOOTH_SUNLIGHT_CHEMISTRY
       USE TRCHEM_Shindell_COM, only: mostRecentNonZeroAlbedo
 #endif
-      use photolysis, only: jppj
 #endif /* TRACERS_SPECIAL_Shindell */
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       USE fluxes,ONLY : pprec,pevap
@@ -1463,7 +1462,7 @@ C**** check whether air mass is conserved
 
 #ifdef TRACERS_SPECIAL_Shindell
       allocate(
-     &    ss_glob(JPPJ,topLevelOfChemistry,img,jmg)
+     &    ss_glob(n_rj,topLevelOfChemistry,img,jmg)
      &    ,Aijl_chem(img,jmg,topLevelOfChemistry)
      &    ,sOx_acc_glob(img,jmg)
      &    ,sNOx_acc_glob(img,jmg)
@@ -1547,7 +1546,7 @@ c not yet        if(am_i_root()) write(kunit,err=10) header,aijl_glob
 #endif
 
 #ifdef TRACERS_SPECIAL_Shindell       
-       header='TRACERS_SPECIAL_Shindell: ss(JPPJ,l,i,j)'
+       header='TRACERS_SPECIAL_Shindell: ss(n_rj,l,i,j)'
         call pack_block(grid,ss(:,:,:,:),ss_glob(:,:,:,:))
         if(am_i_root())write(kunit,err=10)header,ss_glob
        header='TRACERS_SPECIAL_Shindell: yNO3(i,j,l)'
@@ -2164,7 +2163,7 @@ c daily_z is currently only needed for CS
       handle = ParallelIo(grid, fid, 'TRACERS_SPECIAL_Shindell')
 
       call doVar(handle,action,ss,
-     & 'ss(JPPJ,topLevelOfChemistry,dist_im,dist_jm)',jdim=4)
+     & 'ss(n_rj,topLevelOfChemistry,dist_im,dist_jm)',jdim=4)
       call doVar(handle,action,yNO3,'yNO3'//ijcdims)
       call doVar(handle,action,pHOx,'pHOx'//ijcdims)
       call doVar(handle,action,pNOx,'pNOx'//ijcdims)

@@ -1808,8 +1808,8 @@ c
 C**** GLOBAL parameters and variables:
 
       USE TRCHEM_Shindell_COM, only: n_rx,chemrate,photrate,rr,y,nn,dt2,
-     &                          ss,ny,dest,prod,n_het
-      use photolysis, only: jppj,ks
+     &                          ss,ny,dest,prod,n_het,n_rj
+      use photolysis, only: ks
 
       IMPLICIT NONE
 
@@ -1830,7 +1830,7 @@ C Set up rates:
         do ireac=n_rx-n_het+1,n_rx    ! heterogeneous
           chemrate(ireac,kalt)=rr(ireac,kalt)*y(nn(1,ireac),kalt)*dt2
         end do
-        do ireac=1,JPPJ          ! photolysis
+        do ireac=1,n_rj          ! photolysis
           photrate(ireac,kalt)=ss(ireac,kalt,I,J)*y(ks(ireac),kalt)*dt2
         end do
 
@@ -2069,8 +2069,7 @@ c       skip same reaction if written twice:
 !@+                   false otherwise
 !@auth Kostas Tsigaridis
 
-      use photolysis, only: jppj
-      use TRCHEM_Shindell_COM, only: p_1,n_bi_dCO,jppj_dCO,rrbi
+      use TRCHEM_Shindell_COM, only: p_1,n_bi_dCO,n_rj_dCO,rrbi,n_rj
       implicit none
 
       integer, intent(in) :: ireac,n_rr
@@ -2082,9 +2081,9 @@ c       skip same reaction if written twice:
      &                  255)
 
       is_dCO_reaction=.false.
-      if (maxval(npdnrs)==jppj) then ! photolysis
+      if (maxval(npdnrs)==n_rj) then ! photolysis
         if ((npdnrs(ireac) > 28).and.
-     &      (npdnrs(ireac) <= 28+jppj_dCO)) then
+     &      (npdnrs(ireac) <= 28+n_rj_dCO)) then
           is_dCO_reaction=.true.
         endif
       else                      ! thermal

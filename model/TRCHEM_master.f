@@ -102,7 +102,7 @@ c
      &     ,inc_subdd,find_groups, LmaxSUBDD
 #endif
       use photolysis, only: fastj2_drv,o3_fastj
-     &                     ,sza,szamax,zj,jppj,jpnl,sf3_fact,sf2_fact
+     &                     ,sza,szamax,zj,jpnl,sf3_fact,sf2_fact
 
       IMPLICIT NONE
 
@@ -638,7 +638,7 @@ C Define and alter resulting photolysis coefficients (zj --> ss):
      &    (MAX(1.d-2,DCOS(sza*radian)))**reg4Power_SpherO2andN2Ocorr
 
         DO L=min(JPNL,topLevelOfChemistry),1,-1
-          do inss=1,JPPJ
+          do inss=1,n_rj
             ss(inss,L,I,J)=zj(L,inss)
 #ifndef SHINDELL_SKIP_WINDOW_TUNE /* note NOT defined */
             !reduce rates for gases that photolyze in window region (~200nm):

@@ -277,7 +277,7 @@ C**** Local parameters and variables and arguments:
       j_iprn=iprn
       j_jprn=jprn
       j_prnrts=prnrts
-      jppj=n_rj
+      jppj=n_rj ! needed for the photolysis routine
  
       allocate(jndlev(NLGCM))
       allocate(pomegaj(2*M__,2*NLGCM+2+1))
@@ -291,12 +291,12 @@ C**** Local parameters and variables and arguments:
       allocate(odcol(NLGCM))
       allocate(pfastj2(NLGCM+3))
       allocate(o3_fastj(NLGCM)) ! until recently was 2*NLGCM
-      allocate(jlabel(jppj))
-      allocate(jind(jppj))
-      allocate(ks(jppj))
-      allocate(kss(p_1,jppj))
-      allocate(jfacta(jppj))
-      allocate(zj(jpnl,jppj))
+      allocate(jlabel(n_rj))
+      allocate(jind(n_rj))
+      allocate(ks(n_rj))
+      allocate(kss(p_1,n_rj))
+      allocate(jfacta(n_rj))
+      allocate(zj(jpnl,n_rj))
 
 C Read photolysis parameters and reactions from unit JPLPH:
       call phtlst
@@ -315,7 +315,7 @@ c fastj initialization routine:
 C**** GLOBAL parameters and variables:
       USE TRCHEM_Shindell_COM, only: nps,nds,kps,kds,nn,nnr,
      &                      npnr,ndnr,kpnr,kdnr,prnls,n_rx,n_rj
-      use photolysis, only: jppj,ks,kss
+      use photolysis, only: ks,kss
 
       IMPLICIT NONE
 
