@@ -313,7 +313,7 @@ c fastj initialization routine:
 !@calls guide,printls
 
 C**** GLOBAL parameters and variables:
-      USE TRCHEM_Shindell_COM, only: nps,nds,kps,kds,nn,nnr,n_rx,
+      USE TRCHEM_Shindell_COM, only: nps,nds,kps,kds,nn,nnr,
      &                      npnr,ndnr,kpnr,kdnr,prnls,n_rx,n_rj
       use photolysis, only: jppj,ks,kss
 
