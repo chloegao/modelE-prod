@@ -142,7 +142,7 @@ C**** Local parameters and variables and arguments:
 !@+   changeapinp2g,changeHNO3,changeNOx,changeN2O5,wprodHCHO
 !@+   working variables to calculate nighttime chemistry changes
 !@var rlossN,rprodN,ratioN variables for nitrogen conservation
-!@var I,J,L,N,igas,inss,LL,JJ,L2,n2 dummy loop variables
+!@var I,J,L,N,igas,inss,LL,L2,n2 dummy loop variables
 !@var avgTT_CH4 Itime avg CH4 # density at LTROPO between 20N and 20S
 !@var avgTT_H2O Itime avg H2O # density at LTROPO between 20N and 20S
 !@var countTT # of points between 20N and 20S on LTROPO plane
@@ -2448,7 +2448,7 @@ C**** GLOBAL parameters and variables:
       USE ATM_COM, only : MA, PMIDL00
       USE TRCHEM_Shindell_COM, only: n_bi,n_tri,n_nst,n_het,ta,ea,rr,pe,
      & cboltz,r1,sb,nst,y,nM,nH2O,ro,sn,which_trop,sulfate,RKBYPIM,dt2,
-     & RGAMMASULF,pscX,topLevelOfChemistry,rh,bythick,aero,rrbi
+     & RGAMMASULF,pscX,topLevelOfChemistry,rh,bythick,aero,rrbi,rrhet
 
 #ifdef TRACERS_AEROSOLS_SOA
       USE TRACER_COM, only: n_isopp1a,n_isopp2a
@@ -2530,10 +2530,11 @@ C**** Local parameters and variables and arguments:
         pcon=y(nM,L)*ta(L)*cboltz/1013.d0
         do jj=1,n_bi+n_nst             ! bimolecular rates start
           rr(jj,L)=pe(jj)*exp(-ea(jj)*byta)
-c         for #9, M is really N2
-          if(jj == 9) rr(jj,L)=rr(jj,L)*pN2
-c         for #12, k based on three-parameters from JPL2011
-          if(jj == 12) rr(jj,L)=rr(jj,L)*(ta(L)**0.667)
+c         for rrbi%O1D_M__O_M, M is really N2
+          if(jj == rrbi%O1D_M__O_M) rr(jj,L)=rr(jj,L)*pN2
+c         for rrbi%CH4_OH__H2O_CH3O2, k based on three-parameters from JPL2011
+          if(jj == rrbi%CH4_OH__H2O_CH3O2)
+     &      rr(jj,L)=rr(jj,L)*(ta(L)**0.667)
 c         for rrbi%CO_OH__HO2_O2, k= based on termolecular reaction from JPL2011
 c         (see paged 185-188 and note D1)
           if(jj == rrbi%CO_OH__HO2_O2
@@ -2555,30 +2556,35 @@ c         (see paged 185-188 and note D1)
             activationReaction=(k0T/(1.d0+dd))*pp
             rr(jj,L)=associationReaction+activationReaction
           end if
-c         for reaction #15, k=(kc+kp)fw, kc=rr
-          if(jj == 15)then
+c         for reaction rrbi%HO2_HO2__H2O2_O2, k=(kc+kp)fw, kc=rr
+          if(jj == rrbi%HO2_HO2__H2O2_O2)then
             rkp=2.1d-33*y(nM,L)*exp(920.d0*byta)
             fw=(1.d0+1.4d-21*y(nH2O,L)*exp(2200.d0*byta))
             rr(jj,L)=(rr(jj,L)+rkp)*fw
           end if
-c         for #16, k=[pe*exp(-e(jj)/ta(l))]+k3[M]/(1+k3[M]/k2)
-          if(jj == 16)then
+c         for rrbi%OH_HNO3__H2O_NO3, k=[pe*exp(-e(jj)/ta(l))]+k3[M]/(1+k3[M]/k2)
+          if(jj == rrbi%OH_HNO3__H2O_NO3)then
             rk3M=y(nM,l)*6.5d-34*exp(1335.d0*byta)
             rk2=2.7d-17*exp(2199.d0*byta)
             rr(jj,L)=rr(jj,L)+rk3M/(1.d0+(rk3M/rk2))
           end if
-          if(jj == 29)rr(jj,L)=rr(jj,L)/y(nM,L)!PAN+M really PAN
-          if(jj == 42)rr(jj,L)=rr(jj,L)/y(nM,L)!ROR+M really ROR
-!         for #6 & 91 (HO2+NO) calculate branching ratio here          
-!         Butkovskaya et al J.Phys.Chem 2007         
-          waterPPMV=1.d6*y(nH2O,L)/y(nM,L)
-          if(ta(L)<298.d0 .and. waterPPMV > 100.)then
-            beta=(530.d0*byta + 6.4d-4*pcon*760.d0 - 1.73d0)*1.d-2
-          else
-            beta=0.d0
-          endif
-          if(jj == 91)rr(jj,L)=rr(jj,L)*beta
-          if(jj ==  6)rr(jj,L)=rr(jj,L)*(1.d0-beta)
+!         PAN+M really PAN
+          if(jj == rrbi%PAN_M__C2O3_NO2)rr(jj,L)=rr(jj,L)/y(nM,L)
+!         ROR+M really ROR
+          if(jj == rrbi%ROR_M__Aldehyde_HO2)rr(jj,L)=rr(jj,L)/y(nM,L)
+!         for rrbi%HO2_NO__OH_NO2 and rrbi%HO2_NO__HNO3_M (HO2+NO)
+!         calculate branching ratio here Butkovskaya et al J.Phys.Chem 2007
+          if (jj == rrbi%HO2_NO__OH_NO2 .or.
+     &        jj == rrbi%HO2_NO__HNO3_M) then
+            waterPPMV=1.d6*y(nH2O,L)/y(nM,L)
+            if(ta(L)<298.d0 .and. waterPPMV > 100.)then
+              beta=(530.d0*byta + 6.4d-4*pcon*760.d0 - 1.73d0)*1.d-2
+            else
+              beta=0.d0
+            endif
+            if(jj == rrbi%HO2_NO__HNO3_M)rr(jj,L)=rr(jj,L)*beta
+            if(jj == rrbi%HO2_NO__OH_NO2)rr(jj,L)=rr(jj,L)*(1.d0-beta)
+          endif ! HO2 + NO end
         end do                ! bimolecular rates end
                            
         ! here we USED TO tune rr for N2O+O(1D)-->N2+O2 and N2O+O(1D)-->NO+NO
@@ -2592,22 +2598,19 @@ c         for #16, k=[pe*exp(-e(jj)/ta(l))]+k3[M]/(1+k3[M]/k2)
           end if
         end do                ! trimolecular rates end
 
-        nb=n_bi
-        if(n_nst >= 1) then
-          do jj=1,n_nst         ! monomolecular rates start
-           ! 0.5 for precision,correct following line:
-           rrrr=exp(0.5d0*ea(jj+nb)*byta)
-           rr(jj+nb,L)=rr(nst(jj),L)/(rrrr*pe(jj+nb)*rrrr*y(nM,l))     
-          end do              ! monomolecular rates end
-        end if
+        do jj=1,n_nst         ! monomolecular rates start
+          ! 0.5 for precision,correct following line:
+          rrrr=exp(0.5d0*ea(n_bi+jj)*byta)
+          rr(n_bi+jj,L)=rr(nst(jj),L)/(rrrr*pe(n_bi+jj)*rrrr*y(nM,l))
+        end do              ! monomolecular rates end
 
 c Calculate rates for heterogeneous reactions (Divided by solid
 C in Chem1). sticking coefficients from JPL '02:
-c       1=N2O5 + H2O --> 2HNO3          gamma=0.2, 0.0004 (PSC)
-c       2=ClONO2 + H2O --> HOCl + HNO3  gamma=0.8d-2 (aero), 0.004 (PSC)
-c       3=ClONO2 + HCl --> Cl2 + HNO3   gamma=0.2
-c       4=HOCl + HCl --> Cl2 + H2O      gamma=0.1
-c       5=N2O5 + HCl --> ClNO2 + HNO3   gamma=0.003
+c       N2O5 + H2O --> 2HNO3          gamma=0.2, 0.0004 (PSC)
+c       ClONO2 + H2O --> HOCl + HNO3  gamma=0.8d-2 (aero), 0.004 (PSC)
+c       ClONO2 + HCl --> Cl2 + HNO3   gamma=0.2
+c       HOCl + HCl --> Cl2 + H2O      gamma=0.1
+c       N2O5 + HCl --> ClNO2 + HNO3   gamma=0.003
 C
 C Aerosols (14-33 km) & PSCs 14-22 km.
 C
@@ -2617,7 +2620,8 @@ c coefficients(in km**-1) are from SAGE II data on GISS web site:
         bypfactor=1.d0/pfactor
 
         if(pres(L) >= 245.d0 .or. pres(L) <= 5.d0)then 
-          do jj=n_bi+n_nst+n_tri+2,n_bi+n_nst+n_tri+n_het
+          do jj=n_bi+n_nst+n_tri+1,n_bi+n_nst+n_tri+n_het
+            if (jj == rrhet%N2O5_H2O__HNO3_HNO3) cycle
             rr(jj,L)=1.0d-35
           enddo 
           ! Add rxn of N2O5 on sulfate analogous to what is done in darkness:
@@ -2669,7 +2673,7 @@ c         in troposphere loss is rxn on sulfate, in strat rxn w PSC or sulfate
           prod_sulf=wprod_sulf*pfactor
           CALL INC_TAJLS(I,J,L,jls_N2O5sulf,
      &                   -1.d0*prod_sulf*vol2mass(n_N2O5))
-          rr(n_bi+n_nst+n_tri+1,L)=wprod_sulf/(dt2*y(nn_N2O5,L))
+          rr(rrhet%N2O5_H2O__HNO3_HNO3,L)=wprod_sulf/(dt2*y(nn_N2O5,L))
 
         else  
 
@@ -2727,34 +2731,38 @@ c         in troposphere loss is rxn on sulfate, in strat rxn w PSC or sulfate
             pscEx(l)=0.d0
           end if
 
-c         Reaction 1 on sulfate and PSCs:      
+c         Reaction rrhet%N2O5_H2O__HNO3_HNO3 on sulfate and PSCs:
           temp=sqrt(8.d0*1.38d-16*ta(l)*6.02d23/(PI*108.d0))
-          rr(n_bi+n_nst+n_tri+1,L)=0.5d0*rkext(l)*1.d-5*temp*0.2d0
-          if(pres(l) > 31.6d0) rr(n_bi+n_nst+n_tri+1,L)=
-     &    rr(n_bi+n_nst+n_tri+1,L)+0.25d0*pscEx(l)*temp*0.0004d0
+          rr(rrhet%N2O5_H2O__HNO3_HNO3,L)=
+     &      0.5d0*rkext(l)*1.d-5*temp*0.2d0
+          if(pres(l) > 31.6d0) rr(rrhet%N2O5_H2O__HNO3_HNO3,L)=
+     &      rr(rrhet%N2O5_H2O__HNO3_HNO3,L)
+     &      +0.25d0*pscEx(l)*temp*4.d-4
 
-c         Reaction 2 on sulfate and PSCs:      
+c         Reaction rrhet%ClONO2_H2O__HOCl_HNO3 on sulfate and PSCs:
           temp=sqrt(8.d0*1.38d-16*ta(l)*6.02d23/(PI*97.d0))
-          rr(n_bi+n_nst+n_tri+2,L)=0.5d0*rkext(l)*1.d-5*temp*0.8d-2
-          if(pres(l) > 31.6d0) rr(n_bi+n_nst+n_tri+2,L)=
-     &    rr(n_bi+n_nst+n_tri+2,L)+0.25d0*pscEx(l)*temp*4.d-3
+          rr(rrhet%ClONO2_H2O__HOCl_HNO3,L)=
+     &      0.5d0*rkext(l)*1.d-5*temp*0.8d-2
+          if(pres(l) > 31.6d0) rr(rrhet%ClONO2_H2O__HOCl_HNO3,L)=
+     &      rr(rrhet%ClONO2_H2O__HOCl_HNO3,L)
+     &      +0.25d0*pscEx(l)*temp*4.d-3
 
           if(pres(l) > 31.6d0) then
-            rr(n_bi+n_nst+n_tri+3,L)=0.25d0*pscEx(l)*temp*0.2d0
-            rr(n_bi+n_nst+n_tri+4,L)=
-     &      sqrt(8.d0*1.38d-16*ta(l)*6.02d23/(PI*52.d0))
-            rr(n_bi+n_nst+n_tri+4,L)=
-     &        0.25d0*pscEx(l)*rr(n_bi+n_nst+n_tri+4,L)*0.1d0
-            rr(n_bi+n_nst+n_tri+5,L)=
-     &      sqrt(8.d0*1.38d-16*ta(l)*6.02d23/(PI*108.d0))
-            rr(n_bi+n_nst+n_tri+5,L)=
-     &        0.25d0*pscEx(l)*rr(n_bi+n_nst+n_tri+5,L)*0.003d0
+            rr(rrhet%ClONO2_HCl__Cl_HNO3,L)=0.25d0*pscEx(l)*temp*0.2d0
+            rr(rrhet%HOCl_HCl__Cl_H2O,L)=
+     &        sqrt(8.d0*1.38d-16*ta(l)*6.02d23/(PI*52.d0))
+            rr(rrhet%HOCl_HCl__Cl_H2O,L)=
+     &        0.25d0*pscEx(l)*rr(rrhet%HOCl_HCl__Cl_H2O,L)*0.1d0
+            rr(rrhet%N2O5_HCl__Cl_HNO3,L)=
+     &        sqrt(8.d0*1.38d-16*ta(l)*6.02d23/(PI*108.d0))
+            rr(rrhet%N2O5_HCl__Cl_HNO3,L)=
+     &        0.25d0*pscEx(l)*rr(rrhet%N2O5_HCl__Cl_HNO3,L)*0.003d0
           end if
 
         end if  
 
         if(pres(L) < 245.d0 .and. pres(L) > 5.d0)then
-          wprod_sulf=dt2*y(nn_N2O5,L)*rr(n_bi+n_nst+n_tri+1,L)
+          wprod_sulf=dt2*y(nn_N2O5,L)*rr(rrhet%N2O5_H2O__HNO3_HNO3,L)
           prod_sulf=wprod_sulf*pfactor
           CALL INC_TAJLS(I,J,L,jls_N2O5sulf,
      &                   -1.d0*prod_sulf*vol2mass(n_N2O5))
