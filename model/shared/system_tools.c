@@ -13,7 +13,7 @@ int c_field_list(char *dir, char **list, int nl, int ls)
   struct dirent *entry;
   int n;
 
-  printf("Got request: %s %d %d\n", dir, nl, ls);
+  /* printf("Got request: %s %d %d\n", dir, nl, ls); */
 
   if ((d = opendir (dir)) != NULL) {
     n = 0;
