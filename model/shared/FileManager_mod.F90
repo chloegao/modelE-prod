@@ -277,20 +277,22 @@ contains
 
   function file_exists(fname)
     use dictionary_mod
+    use SystemTools, only : stLinkStatus
     implicit none
     character(len=*) :: fname
     logical :: file_exists
     character(len=128) :: pname
     character(len=256) :: fpath
-    logical :: qexist
+    integer :: status
     pname = '_file_'//trim(fname)
     file_exists = is_set_param(trim(pname))
-    if(file_exists) then ! param is set, but check if the actual file exists
-      fpath=''
-      call get_param(trim(pname),fpath)
-      inquire(file=trim(fpath),exist=qexist)
-      if(.not.qexist) &
-           call stop_model('nonexistent file '//trim(fpath),255)
+    if(file_exists) then ! param is set, but check if the actual file or directory exists
+      call stLinkStatus(fname, status)
+      if(.not.(status==1 .or. status==2)) then ! todo: no hard-coded retcodes
+        fpath=''
+        call get_param(trim(pname),fpath)
+        call stop_model('nonexistent file or directory '//trim(fpath),255)
+      endif
     endif
   end function file_exists
 
