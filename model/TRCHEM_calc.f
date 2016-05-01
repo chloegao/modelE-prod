@@ -195,42 +195,36 @@ c HCHO, Alkenes, and CO per rxn, correct here following Houweling:
       do L=1,maxL
         prod(nn_CO,L)=prod(nn_CO,L)
      &    -0.63d0*chemrate(rrbi%Alkenes_O3__HCHO_CO,L)
+        prod(nn_HCHO,L)=prod(nn_HCHO,L)
+     &    -0.36d0*chemrate(rrbi%Alkenes_O3__HCHO_CO,L)
 #ifdef TRACERS_dCO
-        prod(nn_dC17O,L)=prod(nn_dC17O,L)
-     &    -0.63d0*chemrate(rrbi%Alkenes_O3__HCHO_CO,L)
-        prod(nn_dC18O,L)=prod(nn_dC18O,L)
-     &    -0.63d0*chemrate(rrbi%Alkenes_O3__HCHO_CO,L)
-        prod(nn_d13CO,L)=prod(nn_d13CO,L)
-     &    -0.63d0*chemrate(rrbi%Alkenes_O3__HCHO_CO,L)
+        prod(nn_dHCH17O,L)=prod(nn_dHCH17O,L)
+     &    -0.36d0*chemrate(rrbi%Alkenes_O3__dHCH17O_CO,L)
+        prod(nn_dHCH18O,L)=prod(nn_dHCH18O,L)
+     &    -0.36d0*chemrate(rrbi%Alkenes_O3__dHCH18O_CO,L)
+        prod(nn_dH13CHO,L)=prod(nn_dH13CHO,L)
+     &    -0.36d0*chemrate(rrbi%Alkenes_O3__dH13CHO_CO,L)
 #endif  /* TRACERS_dCO */
         prod(nn_HCHO,L)=prod(nn_HCHO,L)
-     &    -0.36d0*chemrate(rrbi%Alkenes_O3__HCHO_CO,L)
-        prod(nn_HCHO,L)=prod(nn_HCHO,L)
      &    -0.39d0*chemrate(rrbi%Isoprene_OH__HCHO_Alkenes,L)
 #ifdef TRACERS_TERP
      &    -0.39d0*chemrate(rrbi%Terpenes_OH__HCHO_Alkenes,L)
 #endif  /* TRACERS_TERP */
 #ifdef TRACERS_dCO
         prod(nn_dHCH17O,L)=prod(nn_dHCH17O,L)
-     &    -0.36d0*chemrate(rrbi%Alkenes_O3__HCHO_CO,L)
-        prod(nn_dHCH18O,L)=prod(nn_dHCH18O,L)
-     &    -0.36d0*chemrate(rrbi%Alkenes_O3__HCHO_CO,L)
-        prod(nn_dH13CHO,L)=prod(nn_dH13CHO,L)
-     &    -0.36d0*chemrate(rrbi%Alkenes_O3__HCHO_CO,L)
-        prod(nn_dHCH17O,L)=prod(nn_dHCH17O,L)
-     &    -0.39d0*chemrate(rrbi%Isoprene_OH__HCHO_Alkenes,L)
+     &    -0.39d0*chemrate(rrbi%Isoprene_OH__dHCH17O_Alkenes,L)
 #ifdef TRACERS_TERP
-     &    -0.39d0*chemrate(rrbi%Terpenes_OH__HCHO_Alkenes,L)
+     &    -0.39d0*chemrate(rrbi%Terpenes_OH__dHCH17O_Alkenes,L)
 #endif  /* TRACERS_TERP */
         prod(nn_dHCH18O,L)=prod(nn_dHCH18O,L)
-     &    -0.39d0*chemrate(rrbi%Isoprene_OH__HCHO_Alkenes,L)
+     &    -0.39d0*chemrate(rrbi%Isoprene_OH__dHCH18O_Alkenes,L)
 #ifdef TRACERS_TERP
-     &    -0.39d0*chemrate(rrbi%Terpenes_OH__HCHO_Alkenes,L)
+     &    -0.39d0*chemrate(rrbi%Terpenes_OH__dHCH18O_Alkenes,L)
 #endif  /* TRACERS_TERP */
         prod(nn_dH13CHO,L)=prod(nn_dH13CHO,L)
-     &    -0.39d0*chemrate(rrbi%Isoprene_OH__HCHO_Alkenes,L)
+     &    -0.39d0*chemrate(rrbi%Isoprene_OH__dH13CHO_Alkenes,L)
 #ifdef TRACERS_TERP
-     &    -0.39d0*chemrate(rrbi%Terpenes_OH__HCHO_Alkenes,L)
+     &    -0.39d0*chemrate(rrbi%Terpenes_OH__dH13CHO_Alkenes,L)
 #endif  /* TRACERS_TERP */
 #endif  /* TRACERS_dCO */
         prod(nn_Alkenes,L)=prod(nn_Alkenes,L)
@@ -245,19 +239,19 @@ c HCHO, Alkenes, and CO per rxn, correct here following Houweling:
 #endif  /* TRACERS_TERP */
 #ifdef TRACERS_dCO
         prod(nn_dHCH17O,L)=prod(nn_dHCH17O,L)
-     &    -0.10d0*chemrate(rrbi%Isoprene_O3__HCHO_Alkenes,L)
+     &    -0.10d0*chemrate(rrbi%Isoprene_O3__dHCH17O_Alkenes,L)
 #ifdef TRACERS_TERP
-     &    -0.10d0*chemrate(rrbi%Terpenes_O3__HCHO_Alkenes,L)
+     &    -0.10d0*chemrate(rrbi%Terpenes_O3__dHCH17O_Alkenes,L)
 #endif  /* TRACERS_TERP */
         prod(nn_dHCH18O,L)=prod(nn_dHCH18O,L)
-     &    -0.10d0*chemrate(rrbi%Isoprene_O3__HCHO_Alkenes,L)
+     &    -0.10d0*chemrate(rrbi%Isoprene_O3__dHCH18O_Alkenes,L)
 #ifdef TRACERS_TERP
-     &    -0.10d0*chemrate(rrbi%Terpenes_O3__HCHO_Alkenes,L)
+     &    -0.10d0*chemrate(rrbi%Terpenes_O3__dHCH18O_Alkenes,L)
 #endif  /* TRACERS_TERP */
         prod(nn_dH13CHO,L)=prod(nn_dH13CHO,L)
-     &    -0.10d0*chemrate(rrbi%Isoprene_O3__HCHO_Alkenes,L)
+     &    -0.10d0*chemrate(rrbi%Isoprene_O3__dH13CHO_Alkenes,L)
 #ifdef TRACERS_TERP
-     &    -0.10d0*chemrate(rrbi%Terpenes_O3__HCHO_Alkenes,L)
+     &    -0.10d0*chemrate(rrbi%Terpenes_O3__dH13CHO_Alkenes,L)
 #endif  /* TRACERS_TERP */
 #endif  /* TRACERS_dCO */
         prod(nn_Alkenes,L)=prod(nn_Alkenes,L)
@@ -2074,9 +2068,13 @@ c       skip same reaction if written twice:
 
       integer, intent(in) :: ireac,n_rr
       integer, dimension(p_1*n_rr), intent(in) :: npdnrs
+!@var dCOrri First dCO reaction in JPLRX
+!@var dCOrre Last dCO reaction in JPLRX
+      integer :: dCOrri,dCOrre
 
-      if (rrbi%Terpenes_O3__dH13CHO_Alkenes-rrbi%dC17O_OH__HO2_O2+1 /=
-     &    n_bi_dCO)
+      dCOrri=rrbi%dC17O_OH__HO2_O2
+      dCOrre=rrbi%Terpenes_O3__dH13CHO_Alkenes
+      if (dCOrre-dCOrri+1 /= n_bi_dCO)
      &  call stop_model('ERROR: Check the first and last dCO reactions',
      &                  255)
 
@@ -2087,8 +2085,8 @@ c       skip same reaction if written twice:
           is_dCO_reaction=.true.
         endif
       else                      ! thermal
-        if ((npdnrs(ireac) >= rrbi%dC17O_OH__HO2_O2).and.
-     &      (npdnrs(ireac) <= rrbi%Terpenes_O3__dH13CHO_Alkenes)) then
+        if ((npdnrs(ireac) >= dCOrri).and.
+     &      (npdnrs(ireac) <= dCOrre)) then
           is_dCO_reaction=.true.
         endif
       endif

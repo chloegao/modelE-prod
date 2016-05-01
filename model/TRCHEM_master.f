@@ -962,11 +962,14 @@ c       paths if lead to negative conc:
      &    y(nn_HCHO,L)*rr(rrbi%NO3_HCHO__HNO3_CO,L)*yNO3(I,J,L)*dt2
 #ifdef TRACERS_dCO
         rdHCH17OplusNO3=
-     &    y(nn_dHCH17O,L)*rr(rrbi%NO3_HCHO__HNO3_CO,L)*yNO3(I,J,L)*dt2
+     &    y(nn_dHCH17O,L)*rr(rrbi%NO3_dHCH17O__HNO3_dC17O,L)
+     &      *yNO3(I,J,L)*dt2
         rdHCH18OplusNO3=
-     &    y(nn_dHCH18O,L)*rr(rrbi%NO3_HCHO__HNO3_CO,L)*yNO3(I,J,L)*dt2
+     &    y(nn_dHCH18O,L)*rr(rrbi%NO3_dHCH18O__HNO3_dC18O,L)
+     &      *yNO3(I,J,L)*dt2
         rdH13CHOplusNO3=
-     &    y(nn_dH13CHO,L)*rr(rrbi%NO3_HCHO__HNO3_CO,L)*yNO3(I,J,L)*dt2
+     &    y(nn_dH13CHO,L)*rr(rrbi%NO3_dH13CHO__HNO3_d13CO,L)
+     &      *yNO3(I,J,L)*dt2
 #endif  /* TRACERS_dCO */
         rAldplusNO3=2.5d-15*yAldehyde(I,J,L)*yNO3(I,J,L)*dt2
         rIsopplusNO3=rr(rrbi%Isoprene_NO3__HO2_Alkenes,L)
@@ -1160,7 +1163,8 @@ C Alkenes, Isoprene, Terpenes (if used) and AlkylNit:
      &    )*y(nO3,L)*0.64d0*dt2
 
 #ifdef TRACERS_dCO
-        changedHCH17O=(rr(rrbi%Alkenes_NO3__HCHO_NO2,L)*y(nn_Alkenes,L)
+        changedHCH17O=(
+     *      rr(rrbi%Alkenes_NO3__dHCH17O_NO2,L)*y(nn_Alkenes,L)
      &      +rr(rrbi%Isoprene_NO3__HO2_Alkenes,L)*y(nn_Isoprene,L)
      &        *0.03d0
 #ifdef TRACERS_TERP
@@ -1169,14 +1173,17 @@ C Alkenes, Isoprene, Terpenes (if used) and AlkylNit:
 #endif  /* TRACERS_TERP */
      &    )*yNO3(I,J,L)*dt2
      &    -gwprodHNO3dHCH17O
-     &    +(rr(rrbi%Isoprene_O3__HCHO_Alkenes,L)*y(nn_Isoprene,L)*0.9d0
+     &    +(rr(rrbi%Isoprene_O3__dHCH17O_Alkenes,L)*y(nn_Isoprene,L)
+     &      *0.9d0
 #ifdef TRACERS_TERP
-     &    +rr(rrbi%Terpenes_O3__HCHO_Alkenes,L)*y(nn_Terpenes,L)*0.9d0
+     &    +rr(rrbi%Terpenes_O3__dHCH17O_Alkenes,L)*y(nn_Terpenes,L)
+     &      *0.9d0
 #endif  /* TRACERS_TERP */
-     &    +rr(rrbi%Alkenes_O3__HCHO_CO,L)*y(nn_Alkenes,L))*y(nO3,L)
+     &    +rr(rrbi%Alkenes_O3__dHCH17O_CO,L)*y(nn_Alkenes,L))*y(nO3,L)
      &      *0.64d0*dt2
 
-        changedHCH18O=(rr(rrbi%Alkenes_NO3__HCHO_NO2,L)*y(nn_Alkenes,L)
+        changedHCH18O=(
+     &      rr(rrbi%Alkenes_NO3__dHCH18O_NO2,L)*y(nn_Alkenes,L)
      &      +rr(rrbi%Isoprene_NO3__HO2_Alkenes,L)*y(nn_Isoprene,L)
      &        *0.03d0
 #ifdef TRACERS_TERP
@@ -1185,14 +1192,17 @@ C Alkenes, Isoprene, Terpenes (if used) and AlkylNit:
 #endif  /* TRACERS_TERP */
      &    )*yNO3(I,J,L)*dt2
      &    -gwprodHNO3dHCH18O
-     &    +(rr(rrbi%Isoprene_O3__HCHO_Alkenes,L)*y(nn_Isoprene,L)*0.9d0
+     &    +(rr(rrbi%Isoprene_O3__dHCH18O_Alkenes,L)*y(nn_Isoprene,L)
+     &      *0.9d0
 #ifdef TRACERS_TERP
-     &    +rr(rrbi%Terpenes_O3__HCHO_Alkenes,L)*y(nn_Terpenes,L)*0.9d0
+     &    +rr(rrbi%Terpenes_O3__dHCH18O_Alkenes,L)*y(nn_Terpenes,L)
+     &      *0.9d0
 #endif  /* TRACERS_TERP */
-     &    +rr(rrbi%Alkenes_O3__HCHO_CO,L)*y(nn_Alkenes,L))*y(nO3,L)
+     &    +rr(rrbi%Alkenes_O3__dHCH18O_CO,L)*y(nn_Alkenes,L))*y(nO3,L)
      &      *0.64d0*dt2
 
-        changedH13CHO=(rr(rrbi%Alkenes_NO3__HCHO_NO2,L)*y(nn_Alkenes,L)
+        changedH13CHO=(
+     *      rr(rrbi%Alkenes_NO3__dH13CHO_NO2,L)*y(nn_Alkenes,L)
      &      +rr(rrbi%Isoprene_NO3__HO2_Alkenes,L)*y(nn_Isoprene,L)
      &        *0.03d0
 #ifdef TRACERS_TERP
@@ -1201,11 +1211,13 @@ C Alkenes, Isoprene, Terpenes (if used) and AlkylNit:
 #endif  /* TRACERS_TERP */
      &    )*yNO3(I,J,L)*dt2
      &    -gwprodHNO3dH13CHO
-     &    +(rr(rrbi%Isoprene_O3__HCHO_Alkenes,L)*y(nn_Isoprene,L)*0.9d0
+     &    +(rr(rrbi%Isoprene_O3__dH13CHO_Alkenes,L)*y(nn_Isoprene,L)
+     *      *0.9d0
 #ifdef TRACERS_TERP
-     &    +rr(rrbi%Terpenes_O3__HCHO_Alkenes,L)*y(nn_Terpenes,L)*0.9d0
+     &    +rr(rrbi%Terpenes_O3__dH13CHO_Alkenes,L)*y(nn_Terpenes,L)
+     *      *0.9d0
 #endif  /* TRACERS_TERP */
-     &    +rr(rrbi%Alkenes_O3__HCHO_CO,L)*y(nn_Alkenes,L))*y(nO3,L)
+     &    +rr(rrbi%Alkenes_O3__dH13CHO_CO,L)*y(nn_Alkenes,L))*y(nO3,L)
      &      *0.64d0*dt2
 #endif  /* TRACERS_dCO */
 
