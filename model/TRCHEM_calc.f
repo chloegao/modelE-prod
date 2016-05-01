@@ -106,6 +106,13 @@ C**** Local parameters and variables and arguments:
      & changeH2O,dQ,dQM,fraQ2,c2ml,conOH,conClO,conH2O,NprodOx_pos,
      & NprodOx_neg ! Oxcorr,
       real*8, dimension(LM) :: PRES ! for consistency with elsewhere, I keep this LM
+      real*8, parameter :: rCOplusO1D=1.d-9
+#ifdef TRACERS_dCO
+      real*8, parameter :: dCOfact=1.d0
+      real*8, parameter :: rdC17OplusO1D=1.d-9*dCOfact
+      real*8, parameter :: rdC18OplusO1D=1.d-9*dCOfact
+      real*8, parameter :: rd13COplusO1D=1.d-9*dCOfact
+#endif  /* TRACERS_dCO */
       real*8, parameter :: chemtiny=1.d-12
 
       REAL*8 qqqCH3O2,CH3O2loss,XO2_NO,XO2N_HO2,RXPAR_PAR,ROR_CH2,
@@ -330,13 +337,13 @@ c         increase non-acetone product gases:
 #ifdef TRACERS_dCO
           prod(nn_dHCH17O,L)=prod(nn_dHCH17O,L)-(diffCH3O2-tempAcet)
      &      *(CH3O2loss-rr(rrbi%CH3O2_HO2__CH3OOH_O2,L)*y(nHO2,L))
-     &      /CH3O2loss
+     &      /CH3O2loss*dCOfact
           prod(nn_dHCH18O,L)=prod(nn_dHCH18O,L)-(diffCH3O2-tempAcet)
      &      *(CH3O2loss-rr(rrbi%CH3O2_HO2__CH3OOH_O2,L)*y(nHO2,L))
-     &      /CH3O2loss
+     &      /CH3O2loss*dCOfact
           prod(nn_dH13CHO,L)=prod(nn_dH13CHO,L)-(diffCH3O2-tempAcet)
      &      *(CH3O2loss-rr(rrbi%CH3O2_HO2__CH3OOH_O2,L)*y(nHO2,L))
-     &      /CH3O2loss
+     &      /CH3O2loss*dCOfact
 #endif  /* TRACERS_dCO */
           prod(nn_CH3OOH,L)=prod(nn_CH3OOH,L)-(diffCH3O2-tempAcet)
      &      *(rr(rrbi%CH3O2_HO2__CH3OOH_O2,L)*y(nHO2,L))
@@ -384,13 +391,13 @@ c         increase product gases:
 #ifdef TRACERS_dCO
           prod(nn_dHCH17O,l)=prod(nn_dHCH17O,l)-diffCH3O2
      &      *(CH3O2loss-rr(rrbi%CH3O2_HO2__CH3OOH_O2,L)*y(nHO2,L))
-     &      /CH3O2loss
+     &      /CH3O2loss*dCOfact
           prod(nn_dHCH18O,l)=prod(nn_dHCH18O,l)-diffCH3O2
      &      *(CH3O2loss-rr(rrbi%CH3O2_HO2__CH3OOH_O2,L)*y(nHO2,L))
-     &      /CH3O2loss
+     &      /CH3O2loss*dCOfact
           prod(nn_dH13CHO,l)=prod(nn_dH13CHO,l)-diffCH3O2
      &      *(CH3O2loss-rr(rrbi%CH3O2_HO2__CH3OOH_O2,L)*y(nHO2,L))
-     &      /CH3O2loss
+     &      /CH3O2loss*dCOfact
 #endif  /* TRACERS_dCO */
           prod(nn_CH3OOH,l)=prod(nn_CH3OOH,l)-diffCH3O2
      &      *(rr(rrbi%CH3O2_HO2__CH3OOH_O2,L)*y(nHO2,L))
@@ -775,14 +782,14 @@ c Calculate ozone change due to Cl2O2 cycling:
 
 c Include oxidation of CO by O(1D)
       do L=1,maxL
-        dest(nn_CO,L)=dest(nn_CO,L)-1.0d-9*y(nn_CO,L)*y(nO1D,L)*dt2
+        dest(nn_CO,L)=dest(nn_CO,L)-rCOplusO1D*y(nn_CO,L)*y(nO1D,L)*dt2
 #ifdef TRACERS_dCO
         dest(nn_dC17O,L)=dest(nn_dC17O,L)
-     &                  -1.0d-9*y(nn_dC17O,L)*y(nO1D,L)*dt2
+     &                  -rdC17OplusO1D*y(nn_dC17O,L)*y(nO1D,L)*dt2
         dest(nn_dC18O,L)=dest(nn_dC18O,L)
-     &                  -1.0d-9*y(nn_dC18O,L)*y(nO1D,L)*dt2
+     &                  -rdC18OplusO1D*y(nn_dC18O,L)*y(nO1D,L)*dt2
         dest(nn_d13CO,L)=dest(nn_d13CO,L)
-     &                  -1.0d-9*y(nn_d13CO,L)*y(nO1D,L)*dt2
+     &                  -rd13COplusO1D*y(nn_d13CO,L)*y(nO1D,L)*dt2
 #endif  /* TRACERS_dCO */
       end do
 
