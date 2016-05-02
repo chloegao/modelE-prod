@@ -2570,7 +2570,10 @@ c         (see paged 185-188 and note D1)
             dd=k0TM/kinfT
             pp=0.6d0**(1.d0/(1.d0+(log10(dd))**2.))
             associationReaction=(k0TM/(1.d0+dd))*pp
-            k0T=1.5d-13*((300.d0*byta)**(-0.6))*dCOfact
+            k0T=1.5d-13*((300.d0*byta)**(-0.6))
+#ifdef TRACERS_dCO
+     &         *dCOfact
+#endif  /* TRACERS_dCO */
             kinfTbyM=(2.1d9*((300.d0*byta)**(-6.1)))/y(nM,L)
             dd=k0T/kinfTbyM
             pp=0.6d0**(1.d0/(1.d0+(log10(dd))**2.))
