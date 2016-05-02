@@ -645,7 +645,8 @@ C Define and alter resulting photolysis coefficients (zj --> ss):
             ss(inss,L,I,J)=zj(L,inss)
 #ifndef SHINDELL_SKIP_WINDOW_TUNE /* note NOT defined */
             !reduce rates for gases that photolyze in window region (~200nm):
-            if(inss == 27 .or. inss == 28) then ! for O2 and N2O reactions:
+            if(inss == rj%O2__O_O .or.
+     &         inss == rj%N2O__M_O1D) then ! for O2 and N2O reactions:
               ! Apply spherical corrections:
               if(pres2(L)>reg1TopPres_SpherO2andN2Ocorr)then
                 ss(inss,L,I,J)=ss(inss,L,I,J)*sphericalCorrectionReg1
@@ -660,10 +661,9 @@ C Define and alter resulting photolysis coefficients (zj --> ss):
               end if
             end if
             ! Then apply linear corrections for same reactions:
-            if(inss == 27) then
+            if(inss == rj%O2__O_O) then
               ss(inss,L,I,J)=ss(inss,L,I,J)*windowO2corr
-            end if
-            if(inss == 28) then
+            elseif(inss == rj%N2O__M_O1D) then
               ss(inss,L,I,J)=ss(inss,L,I,J)*windowN2Ocorr
             end if
 #endif /* not defined to skip */
