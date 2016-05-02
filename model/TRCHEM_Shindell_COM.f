@@ -365,22 +365,22 @@ C to define BrOx,ClOx,ClONOs,HCL,COIC,OxIC,CFCIC,N2OICX,CH4ICX too:
 !@dbparam Tpsc_offset_N NH offset for the above T_thresh
 !@dbparam Tpsc_offset_S SH offset for the above T_thresh
 !@dbparam reg1Power_SpherO2andN2Ocorr first from surface region power of 
-!@+ cos(sza)^x of spherical correction to ss(27) and ss(28)
+!@+ cos(sza)^x of spherical correction to ss(rj%O2__O_O) and ss(rj%N2O__M_O1D)
 !@dbparam reg2Power_SpherO2andN2Ocorr second from surface region power of 
-!@+ cos(sza)^x of spherical correction to ss(27) and ss(28)
+!@+ cos(sza)^x of spherical correction to ss(rj%O2__O_O) and ss(rj%N2O__M_O1D)
 !@dbparam reg3Power_SpherO2andN2Ocorr third from surface region power of 
-!@+ cos(sza)^x of spherical correction to ss(27) and ss(28)
+!@+ cos(sza)^x of spherical correction to ss(rj%O2__O_O) and ss(rj%N2O__M_O1D)
 !@dbparam reg4Power_SpherO2andN2Ocorr fourth and last from surface region power of 
-!@+ cos(sza)^x of spherical correction to ss(27) and ss(28)
+!@+ cos(sza)^x of spherical correction to ss(rj%O2__O_O) and ss(rj%N2O__M_O1D)
 !@dbparam reg1TopPres_SpherO2andN2Ocorr pressure at top of first from surface region
-!@+ for spherical correction to ss(27) and ss(28) (hPa)
+!@+ for spherical correction to ss(rj%O2__O_O) and ss(rj%N2O__M_O1D) (hPa)
 !@dbparam reg2TopPres_SpherO2andN2Ocorr pressure at top of second from surface region
-!@+ for spherical correction to ss(27) and ss(28) (hPa)
+!@+ for spherical correction to ss(rj%O2__O_O) and ss(rj%N2O__M_O1D) (hPa)
 !@dbparam reg3TopPres_SpherO2andN2Ocorr pressure at top of third from surface region
-!@+ for spherical correction to ss(27) and ss(28) (hPa)
+!@+ for spherical correction to ss(rj%O2__O_O) and ss(rj%N2O__M_O1D) (hPa)
 ! (fourth = top region needs no upper pressure)
-!@dbparam windowO2corr linear correction to ss(27) O2 in window region (in addition to spherical)
-!@dbparam windowN2Ocorr linear correction to ss(28) N2O in window region (in addition to spherical)
+!@dbparam windowO2corr linear correction to ss(rj%O2__O_O) O2 in window region (in addition to spherical)
+!@dbparam windowN2Ocorr linear correction to ss(rj%N2O__M_O1D) N2O in window region (in addition to spherical)
 !@dbparam ch4_init_sh,ch4_init_nh initial methane conc. (ppmv) 
 !@+       defaults are for 1990
 !@dbparam allowSomeChemReinit (1=YES) to allow some chemistry variables

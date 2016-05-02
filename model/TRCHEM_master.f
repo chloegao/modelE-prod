@@ -101,7 +101,7 @@ c
       use subdd_mod, only : subdd_groups,subdd_type,subdd_ngroups
      &     ,inc_subdd,find_groups, LmaxSUBDD
 #endif
-      use photolysis, only: fastj2_drv,o3_fastj
+      use photolysis, only: fastj2_drv,o3_fastj,rj
      &                     ,sza,szamax,zj,jpnl,sf3_fact,sf2_fact
 
       IMPLICIT NONE
@@ -668,9 +668,12 @@ C Define and alter resulting photolysis coefficients (zj --> ss):
             end if
 #endif /* not defined to skip */
           enddo
-          taijls(i,j,L,ijlt_JO1D)=taijls(i,j,L,ijlt_JO1D)+ss(2,L,i,j)
-          taijls(i,j,L,ijlt_JNO2)=taijls(i,j,L,ijlt_JNO2)+ss(1,L,i,j)
-          taijls(i,j,L,ijlt_JH2O2)=taijls(i,j,L,ijlt_JH2O2)+ss(4,L,i,j)
+          taijls(i,j,L,ijlt_JO1D)=taijls(i,j,L,ijlt_JO1D)
+     &      +ss(rj%O3__O1D_O2,L,i,j)
+          taijls(i,j,L,ijlt_JNO2)=taijls(i,j,L,ijlt_JNO2)
+     &      +ss(rj%NO2__NO_O,L,i,j)
+          taijls(i,j,L,ijlt_JH2O2)=taijls(i,j,L,ijlt_JH2O2)
+     &      +ss(rj%H2O2__OH_OH,L,i,j)
           thick=
      &    1.d-3*rgas*bygrav*TX(I,J,L)*LOG(PEDN(L,i,j)/PEDN(L+1,i,j))
           colmO2=colmO2+y(nO2,L)*thick*1.d5
@@ -1811,7 +1814,7 @@ c           Conserve N wrt BrONO2 once inital Br changes past:
 ! accumulate some 3D diagnostics in moles/m3/s units:
         ! chemical_production_of_O1D_from_ozone:
         taijls(i,j,l,ijlt_pO1D)=taijls(i,j,l,ijlt_pO1D)+
-     &  ss(2,l,i,j)*y(nO3,l)*cpd
+     &  ss(rj%O3__O1D_O2,l,i,j)*y(nO3,l)*cpd
 
         ! chemical_production_of_OH_from_O1D_plus_H2O:
         taijls(i,j,l,ijlt_pOH)=taijls(i,j,l,ijlt_pOH)+
@@ -2162,7 +2165,7 @@ c (radiation code wants atm-cm units):
         call write_parallel(trim(out_line),crit=jay)
         do L=LS1,topLevelOfChemistry
           if(daylight)then
-            ss27x2=2.d0*ss(27,L,i,j)*y(nO2,L)
+            ss27x2=2.d0*ss(rj%O2__O_O,L,i,j)*y(nO2,L)
      &        *(rr(rrtri%O_O2__O3_M,L)*y(nO2,L))
      &        /(rr(rrtri%O_O2__O3_M,L)*y(nO2,L)
      &          +rr(rrbi%O_O3__O2_O2,L)*y(nO3,L))
@@ -2197,10 +2200,10 @@ CCCCCCCCCCCCC PRINT SOME CHEMISTRY DIAGNOSTICS CCCCCCCCCCCCCCCC
          write(out_line,*) 'O/O3 = ',y(nO,lprn)/y(nO3,lprn)
          call write_parallel(trim(out_line),crit=jay)
          write(out_line,*) 'O1D/O3 = ',y(nO1D,lprn)/y(nO3,lprn),
-     &    '  J(O1D) = ',ss(2,lprn,I,J)
+     &    '  J(O1D) = ',ss(rj%O3__O1D_O2,lprn,I,J)
          call write_parallel(trim(out_line),crit=jay)
          write(out_line,*) 'NO/NO2 = ',y(nNO,lprn)/y(nNO2,lprn),
-     &    '   J(NO2) = ',ss(1,lprn,I,J)
+     &    '   J(NO2) = ',ss(rj%NO2__NO_O,lprn,I,J)
          call write_parallel(trim(out_line),crit=jay)
          write(out_line,*) 'conc OH = ',y(nOH,lprn)
          call write_parallel(trim(out_line),crit=jay)
