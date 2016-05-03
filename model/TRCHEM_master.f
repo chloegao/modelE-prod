@@ -595,7 +595,7 @@ C (and hence COSZ1 is set to 0), recalculate it with get_sza routine:
 
 C SUNLIGHT criteria:
       albedoToUse=ALB(I,J,1)
-#ifdef SMOOTH_SUNLIGHT_CHEMISTRY
+      ! previously: daylight=((ALB(I,J,1)/=0.d0).and.(sza<szamax))
       daylight=(sza<szamax)
       if(daylight)then
         if(albedoToUse/=0.d0)then
@@ -604,9 +604,6 @@ C SUNLIGHT criteria:
           albedoToUse=mostRecentNonZeroAlbedo(I,J)
         end if
       end if
-#else
-      daylight=((ALB(I,J,1)/=0.d0).and.(sza<szamax))
-#endif
 
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 C                 BEGIN PHOTOLYSIS                               C
@@ -940,6 +937,8 @@ c    HO2NO2+M-->HO2+NO2
 c    N2O5+M-->NO3+NO2
 c Keep NOx unchanged as this is only intrafamily.
 C*****************************************************************
+
+intentional stop
 
 c       calculate NO3 vs NO2 (assume no NO at night)
         do itemp_iter=1,5
