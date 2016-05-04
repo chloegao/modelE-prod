@@ -198,6 +198,54 @@
 !@var zj photodissociation coefficient (level,reaction)
       real*8, allocatable, dimension(:,:) :: zj
 
+      type rj_index
+        integer :: NO2__NO_O=0
+        integer :: O3__O1D_O2=0
+        integer :: O3__O_O2=0
+        integer :: H2O2__OH_OH=0
+        integer :: NO3__NO_O2=0
+        integer :: NO3__NO2_O=0
+        integer :: N2O5__NO3_NO2=0
+        integer :: HONO__OH_NO=0
+        integer :: HNO3__OH_NO2=0
+        integer :: HO2NO2__HO2_NO2=0
+        integer :: HO2NO2__OH_NO3=0
+        integer :: HCHO__CO_H2=0
+        integer :: HCHO__CO_HO2=0
+        integer :: CH3OOH__HCHO_HO2=0
+        integer :: PAN__C2O3_NO2=0
+        integer :: Aldehyde__HCHO_CO=0
+        integer :: ClO__Cl_O=0
+        integer :: Cl2__Cl_Cl=0
+        integer :: OClO__O_ClO=0
+        integer :: Cl2O2__Cl_Cl=0
+        integer :: HOCl__OH_Cl=0
+        integer :: ClONO2__Cl_NO3=0
+        integer :: BrONO2__BrO_NO2=0
+        integer :: HOBr__Br_OH=0
+        integer :: BrO__Br_O=0
+        integer :: CFC__Cl_O2=0
+        integer :: O2__O_O=0
+        integer :: N2O__M_O1D=0
+        integer :: dHCH17O__dC17O_H2=0
+        integer :: dHCH17O__dC17O_HO2=0
+        integer :: Aldehyde__HCHO_dC17O=0
+        integer :: dHCH18O__dC18O_H2=0
+        integer :: dHCH18O__dC18O_HO2=0
+        integer :: Aldehyde__HCHO_dC18O=0
+        integer :: dH13CHO__d13CO_H2=0
+        integer :: dH13CHO__d13CO_HO2=0
+        integer :: Aldehyde__HCHO_d13CO=0
+        integer :: CH3OOH__dHCH17O_HO2=0
+        integer :: Aldehyde__dHCH17O_CO=0
+        integer :: CH3OOH__dHCH18O_HO2=0
+        integer :: Aldehyde__dHCH18O_CO=0
+        integer :: CH3OOH__dH13CHO_HO2=0
+        integer :: Aldehyde__dH13CHO_CO=0
+      end type rj_index
+
+      type(rj_index) :: rj
+
       contains
 
 
@@ -393,6 +441,7 @@ c Assign ks and kss gas numbers of photolysis reactants from list:
            call lstnum(ate(j),kss(j-1,i))
         end do
 #endif
+        call set_jrate_index(i, ate)
       end do
  121  format(//2(45x,i2/),43x,f4.2/44x,i3/45x,i2/2(40x,e7.1/))
  112  format(4x,a8,3x,a8,1x,a8)
@@ -2429,6 +2478,114 @@ c Extend climatology to 100 km:
 
       end SUBROUTINE rd_prof
 
+      subroutine set_jrate_index(irr, ate)
+!@sum Dynamically assign photolysis rate indices to variables, for use in
+!@+   chemistry. The reactions are denoted REAC__PROD1_PROD2, and
+!@+   the reaction type is rj.
+!@auth Kostas Tsigaridis
+      implicit none
+
+      integer, intent(in) :: irr
+      character(len=8), dimension(3), intent(in) :: ate
+      character(len=36) :: reaction
+
+      reaction = trim(ate(1))//'__'//
+     &           trim(ate(2))//'_'//trim(ate(3))
+
+      select case(reaction)
+        case('NO2__NO_O')
+          rj%NO2__NO_O=irr
+        case('O3__O(1D)_O2')
+          rj%O3__O1D_O2=irr
+        case('O3__O_O2')
+          rj%O3__O_O2=irr
+        case('H2O2__OH_OH')
+          rj%H2O2__OH_OH=irr
+        case('NO3__NO_O2')
+          rj%NO3__NO_O2=irr
+        case('NO3__NO2_O')
+          rj%NO3__NO2_O=irr
+        case('N2O5__NO3_NO2')
+          rj%N2O5__NO3_NO2=irr
+        case('HONO__OH_NO')
+          rj%HONO__OH_NO=irr
+        case('HNO3__OH_NO2')
+          rj%HNO3__OH_NO2=irr
+        case('HO2NO2__HO2_NO2')
+          rj%HO2NO2__HO2_NO2=irr
+        case('HO2NO2__OH_NO3')
+          rj%HO2NO2__OH_NO3=irr
+        case('HCHO__CO_H2')
+          rj%HCHO__CO_H2=irr
+        case('HCHO__CO_HO2')
+          rj%HCHO__CO_HO2=irr
+        case('CH3OOH__HCHO_HO2')
+          rj%CH3OOH__HCHO_HO2=irr
+        case('PAN__C2O3_NO2')
+          rj%PAN__C2O3_NO2=irr
+        case('Aldehyde__HCHO_CO')
+          rj%Aldehyde__HCHO_CO=irr
+        case('ClO__Cl_O')
+          rj%ClO__Cl_O=irr
+        case('Cl2__Cl_Cl')
+          rj%Cl2__Cl_Cl=irr
+        case('OClO__O_ClO')
+          rj%OClO__O_ClO=irr
+        case('Cl2O2__Cl_Cl')
+          rj%Cl2O2__Cl_Cl=irr
+        case('HOCl__OH_Cl')
+          rj%HOCl__OH_Cl=irr
+        case('ClONO2__Cl_NO3')
+          rj%ClONO2__Cl_NO3=irr
+        case('BrONO2__BrO_NO2')
+          rj%BrONO2__BrO_NO2=irr
+        case('HOBr__Br_OH')
+          rj%HOBr__Br_OH=irr
+        case('BrO__Br_O')
+          rj%BrO__Br_O=irr
+        case('CFC__Cl_O2')
+          rj%CFC__Cl_O2=irr
+        case('O2__O_O')
+          rj%O2__O_O=irr
+        case('N2O__M_O(1D)')
+          rj%N2O__M_O1D=irr
+#ifdef TRACERS_dCO
+        case('dHCH17O__dC17O_H2')
+          rj%dHCH17O__dC17O_H2=irr
+        case('dHCH17O__dC17O_HO2')
+          rj%dHCH17O__dC17O_HO2=irr
+        case('Aldehyde__HCHO_dC17O')
+          rj%Aldehyde__HCHO_dC17O=irr
+        case('dHCH18O__dC18O_H2')
+          rj%dHCH18O__dC18O_H2=irr
+        case('dHCH18O__dC18O_HO2')
+          rj%dHCH18O__dC18O_HO2=irr
+        case('Aldehyde__HCHO_dC18O')
+          rj%Aldehyde__HCHO_dC18O=irr
+        case('dH13CHO__d13CO_H2')
+          rj%dH13CHO__d13CO_H2=irr
+        case('dH13CHO__d13CO_HO2')
+          rj%dH13CHO__d13CO_HO2=irr
+        case('Aldehyde__HCHO_d13CO')
+          rj%Aldehyde__HCHO_d13CO=irr
+        case('CH3OOH__dHCH17O_HO2')
+          rj%CH3OOH__dHCH17O_HO2=irr
+        case('Aldehyde__dHCH17O_CO')
+          rj%Aldehyde__dHCH17O_CO=irr
+        case('CH3OOH__dHCH18O_HO2')
+          rj%CH3OOH__dHCH18O_HO2=irr
+        case('Aldehyde__dHCH18O_CO')
+          rj%Aldehyde__dHCH18O_CO=irr
+        case('CH3OOH__dH13CHO_HO2')
+          rj%CH3OOH__dH13CHO_HO2=irr
+        case('Aldehyde__dH13CHO_CO')
+          rj%Aldehyde__dH13CHO_CO=irr
+#endif  /* TRACERS_dCO */
+        case default
+          call stop_model('Index for '//reaction//' missing',255)
+      end select
+
+      end subroutine set_jrate_index
 
 
       end module photolysis

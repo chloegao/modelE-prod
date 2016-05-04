@@ -129,7 +129,7 @@ c
         integer :: Isoprene_OH__dHCH17O_Alkenes=0
         integer :: Isoprene_O3__dHCH17O_Alkenes=0
         integer :: Alkenes_OH__dHCH17O_HO2=0
-        integer :: Alkenes_O3__dHCH17O_dC17O=0
+        integer :: Alkenes_O3__dHCH17O_CO=0
         integer :: Alkenes_NO3__dHCH17O_NO2=0
         integer :: C2O3_NO__dHCH17O_NO2=0
         integer :: C2O3_C2O3__dHCH17O_HCHO=0
@@ -146,7 +146,7 @@ c
         integer :: Isoprene_OH__dHCH18O_Alkenes=0
         integer :: Isoprene_O3__dHCH18O_Alkenes=0
         integer :: Alkenes_OH__dHCH18O_HO2=0
-        integer :: Alkenes_O3__dHCH18O_dC18O=0
+        integer :: Alkenes_O3__dHCH18O_CO=0
         integer :: Alkenes_NO3__dHCH18O_NO2=0
         integer :: C2O3_NO__dHCH18O_NO2=0
         integer :: C2O3_C2O3__dHCH18O_HCHO=0
@@ -163,7 +163,7 @@ c
         integer :: Isoprene_OH__dH13CHO_Alkenes=0
         integer :: Isoprene_O3__dH13CHO_Alkenes=0
         integer :: Alkenes_OH__dH13CHO_HO2=0
-        integer :: Alkenes_O3__dH13CHO_d13CO=0
+        integer :: Alkenes_O3__dH13CHO_CO=0
         integer :: Alkenes_NO3__dH13CHO_NO2=0
         integer :: C2O3_NO__dH13CHO_NO2=0
         integer :: C2O3_C2O3__dH13CHO_HCHO=0
@@ -365,22 +365,22 @@ C to define BrOx,ClOx,ClONOs,HCL,COIC,OxIC,CFCIC,N2OICX,CH4ICX too:
 !@dbparam Tpsc_offset_N NH offset for the above T_thresh
 !@dbparam Tpsc_offset_S SH offset for the above T_thresh
 !@dbparam reg1Power_SpherO2andN2Ocorr first from surface region power of 
-!@+ cos(sza)^x of spherical correction to ss(27) and ss(28)
+!@+ cos(sza)^x of spherical correction to ss(rj%O2__O_O) and ss(rj%N2O__M_O1D)
 !@dbparam reg2Power_SpherO2andN2Ocorr second from surface region power of 
-!@+ cos(sza)^x of spherical correction to ss(27) and ss(28)
+!@+ cos(sza)^x of spherical correction to ss(rj%O2__O_O) and ss(rj%N2O__M_O1D)
 !@dbparam reg3Power_SpherO2andN2Ocorr third from surface region power of 
-!@+ cos(sza)^x of spherical correction to ss(27) and ss(28)
+!@+ cos(sza)^x of spherical correction to ss(rj%O2__O_O) and ss(rj%N2O__M_O1D)
 !@dbparam reg4Power_SpherO2andN2Ocorr fourth and last from surface region power of 
-!@+ cos(sza)^x of spherical correction to ss(27) and ss(28)
+!@+ cos(sza)^x of spherical correction to ss(rj%O2__O_O) and ss(rj%N2O__M_O1D)
 !@dbparam reg1TopPres_SpherO2andN2Ocorr pressure at top of first from surface region
-!@+ for spherical correction to ss(27) and ss(28) (hPa)
+!@+ for spherical correction to ss(rj%O2__O_O) and ss(rj%N2O__M_O1D) (hPa)
 !@dbparam reg2TopPres_SpherO2andN2Ocorr pressure at top of second from surface region
-!@+ for spherical correction to ss(27) and ss(28) (hPa)
+!@+ for spherical correction to ss(rj%O2__O_O) and ss(rj%N2O__M_O1D) (hPa)
 !@dbparam reg3TopPres_SpherO2andN2Ocorr pressure at top of third from surface region
-!@+ for spherical correction to ss(27) and ss(28) (hPa)
+!@+ for spherical correction to ss(rj%O2__O_O) and ss(rj%N2O__M_O1D) (hPa)
 ! (fourth = top region needs no upper pressure)
-!@dbparam windowO2corr linear correction to ss(27) O2 in window region (in addition to spherical)
-!@dbparam windowN2Ocorr linear correction to ss(28) N2O in window region (in addition to spherical)
+!@dbparam windowO2corr linear correction to ss(rj%O2__O_O) O2 in window region (in addition to spherical)
+!@dbparam windowN2Ocorr linear correction to ss(rj%N2O__M_O1D) N2O in window region (in addition to spherical)
 !@dbparam ch4_init_sh,ch4_init_nh initial methane conc. (ppmv) 
 !@+       defaults are for 1990
 !@dbparam allowSomeChemReinit (1=YES) to allow some chemistry variables
@@ -1001,8 +1001,8 @@ C**************  Not Latitude-Dependant ****************************
           rrbi%Isoprene_O3__dHCH17O_Alkenes=irr
         case('Alkenes_OH__dHCH17O_HO2')
           rrbi%Alkenes_OH__dHCH17O_HO2=irr
-        case('Alkenes_O3__dHCH17O_dC17O')
-          rrbi%Alkenes_O3__dHCH17O_dC17O=irr
+        case('Alkenes_O3__dHCH17O_CO')
+          rrbi%Alkenes_O3__dHCH17O_CO=irr
         case('Alkenes_NO3__dHCH17O_NO2')
           rrbi%Alkenes_NO3__dHCH17O_NO2=irr
         case('C2O3_NO__dHCH17O_NO2')
@@ -1035,8 +1035,8 @@ C**************  Not Latitude-Dependant ****************************
           rrbi%Isoprene_O3__dHCH18O_Alkenes=irr
         case('Alkenes_OH__dHCH18O_HO2')
           rrbi%Alkenes_OH__dHCH18O_HO2=irr
-        case('Alkenes_O3__dHCH18O_dC18O')
-          rrbi%Alkenes_O3__dHCH18O_dC18O=irr
+        case('Alkenes_O3__dHCH18O_CO')
+          rrbi%Alkenes_O3__dHCH18O_CO=irr
         case('Alkenes_NO3__dHCH18O_NO2')
           rrbi%Alkenes_NO3__dHCH18O_NO2=irr
         case('C2O3_NO__dHCH18O_NO2')
@@ -1069,8 +1069,8 @@ C**************  Not Latitude-Dependant ****************************
           rrbi%Isoprene_O3__dH13CHO_Alkenes=irr
         case('Alkenes_OH__dH13CHO_HO2')
           rrbi%Alkenes_OH__dH13CHO_HO2=irr
-        case('Alkenes_O3__dH13CHO_d13CO')
-          rrbi%Alkenes_O3__dH13CHO_d13CO=irr
+        case('Alkenes_O3__dH13CHO_CO')
+          rrbi%Alkenes_O3__dH13CHO_CO=irr
         case('Alkenes_NO3__dH13CHO_NO2')
           rrbi%Alkenes_NO3__dH13CHO_NO2=irr
         case('C2O3_NO__dH13CHO_NO2')

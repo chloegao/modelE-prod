@@ -101,7 +101,7 @@ c
       use subdd_mod, only : subdd_groups,subdd_type,subdd_ngroups
      &     ,inc_subdd,find_groups, LmaxSUBDD
 #endif
-      use photolysis, only: fastj2_drv,o3_fastj
+      use photolysis, only: fastj2_drv,o3_fastj,rj
      &                     ,sza,szamax,zj,jpnl,sf3_fact,sf2_fact
 
       IMPLICIT NONE
@@ -209,6 +209,9 @@ C**** Local parameters and variables and arguments:
       integer :: k
 #endif
       integer :: hour, idx
+#ifdef TRACERS_dCO
+      real*8, parameter :: dCOfact=1.d0
+#endif  /* TRACERS_dCO */
 
       call modelEclock%get(hour=hour)
 
@@ -642,7 +645,8 @@ C Define and alter resulting photolysis coefficients (zj --> ss):
             ss(inss,L,I,J)=zj(L,inss)
 #ifndef SHINDELL_SKIP_WINDOW_TUNE /* note NOT defined */
             !reduce rates for gases that photolyze in window region (~200nm):
-            if(inss == 27 .or. inss == 28) then ! for O2 and N2O reactions:
+            if(inss == rj%O2__O_O .or.
+     &         inss == rj%N2O__M_O1D) then ! for O2 and N2O reactions:
               ! Apply spherical corrections:
               if(pres2(L)>reg1TopPres_SpherO2andN2Ocorr)then
                 ss(inss,L,I,J)=ss(inss,L,I,J)*sphericalCorrectionReg1
@@ -657,17 +661,19 @@ C Define and alter resulting photolysis coefficients (zj --> ss):
               end if
             end if
             ! Then apply linear corrections for same reactions:
-            if(inss == 27) then
+            if(inss == rj%O2__O_O) then
               ss(inss,L,I,J)=ss(inss,L,I,J)*windowO2corr
-            end if
-            if(inss == 28) then
+            elseif(inss == rj%N2O__M_O1D) then
               ss(inss,L,I,J)=ss(inss,L,I,J)*windowN2Ocorr
             end if
 #endif /* not defined to skip */
           enddo
-          taijls(i,j,L,ijlt_JO1D)=taijls(i,j,L,ijlt_JO1D)+ss(2,L,i,j)
-          taijls(i,j,L,ijlt_JNO2)=taijls(i,j,L,ijlt_JNO2)+ss(1,L,i,j)
-          taijls(i,j,L,ijlt_JH2O2)=taijls(i,j,L,ijlt_JH2O2)+ss(4,L,i,j)
+          taijls(i,j,L,ijlt_JO1D)=taijls(i,j,L,ijlt_JO1D)
+     &      +ss(rj%O3__O1D_O2,L,i,j)
+          taijls(i,j,L,ijlt_JNO2)=taijls(i,j,L,ijlt_JNO2)
+     &      +ss(rj%NO2__NO_O,L,i,j)
+          taijls(i,j,L,ijlt_JH2O2)=taijls(i,j,L,ijlt_JH2O2)
+     &      +ss(rj%H2O2__OH_OH,L,i,j)
           thick=
      &    1.d-3*rgas*bygrav*TX(I,J,L)*LOG(PEDN(L,i,j)/PEDN(L+1,i,j))
           colmO2=colmO2+y(nO2,L)*thick*1.d5
@@ -962,11 +968,14 @@ c       paths if lead to negative conc:
      &    y(nn_HCHO,L)*rr(rrbi%NO3_HCHO__HNO3_CO,L)*yNO3(I,J,L)*dt2
 #ifdef TRACERS_dCO
         rdHCH17OplusNO3=
-     &    y(nn_dHCH17O,L)*rr(rrbi%NO3_HCHO__HNO3_CO,L)*yNO3(I,J,L)*dt2
+     &    y(nn_dHCH17O,L)*rr(rrbi%NO3_dHCH17O__HNO3_dC17O,L)
+     &      *yNO3(I,J,L)*dt2
         rdHCH18OplusNO3=
-     &    y(nn_dHCH18O,L)*rr(rrbi%NO3_HCHO__HNO3_CO,L)*yNO3(I,J,L)*dt2
+     &    y(nn_dHCH18O,L)*rr(rrbi%NO3_dHCH18O__HNO3_dC18O,L)
+     &      *yNO3(I,J,L)*dt2
         rdH13CHOplusNO3=
-     &    y(nn_dH13CHO,L)*rr(rrbi%NO3_HCHO__HNO3_CO,L)*yNO3(I,J,L)*dt2
+     &    y(nn_dH13CHO,L)*rr(rrbi%NO3_dH13CHO__HNO3_d13CO,L)
+     &      *yNO3(I,J,L)*dt2
 #endif  /* TRACERS_dCO */
         rAldplusNO3=2.5d-15*yAldehyde(I,J,L)*yNO3(I,J,L)*dt2
         rIsopplusNO3=rr(rrbi%Isoprene_NO3__HO2_Alkenes,L)
@@ -1050,13 +1059,13 @@ C Alkenes, Isoprene, Terpenes (if used) and AlkylNit:
         if(gwprodHNO3 > y(nn_HCHO,L))gwprodHNO3=y(nn_HCHO,L)
         gprodHNO3=gwprodHNO3*pfactor
 #ifdef TRACERS_dCO
-        gwprodHNO3dHCH17O=rdHCH17OplusNO3+rAldplusNO3
+        gwprodHNO3dHCH17O=rdHCH17OplusNO3+rAldplusNO3*dCOfact
         if(gwprodHNO3dHCH17O > y(nn_dHCH17O,L))
      &    gwprodHNO3dHCH17O=y(nn_dHCH17O,L)
-        gwprodHNO3dHCH18O=rdHCH18OplusNO3+rAldplusNO3
+        gwprodHNO3dHCH18O=rdHCH18OplusNO3+rAldplusNO3*dCOfact
         if(gwprodHNO3dHCH18O > y(nn_dHCH18O,L))
      &    gwprodHNO3dHCH18O=y(nn_dHCH18O,L)
-        gwprodHNO3dH13CHO=rdH13CHOplusNO3+rAldplusNO3
+        gwprodHNO3dH13CHO=rdH13CHOplusNO3+rAldplusNO3*dCOfact
         if(gwprodHNO3dH13CHO > y(nn_dH13CHO,L))
      &    gwprodHNO3dH13CHO=y(nn_dH13CHO,L)
 #endif  /* TRACERS_dCO */
@@ -1160,52 +1169,61 @@ C Alkenes, Isoprene, Terpenes (if used) and AlkylNit:
      &    )*y(nO3,L)*0.64d0*dt2
 
 #ifdef TRACERS_dCO
-        changedHCH17O=(rr(rrbi%Alkenes_NO3__HCHO_NO2,L)*y(nn_Alkenes,L)
+        changedHCH17O=(
+     *      rr(rrbi%Alkenes_NO3__dHCH17O_NO2,L)*y(nn_Alkenes,L)
      &      +rr(rrbi%Isoprene_NO3__HO2_Alkenes,L)*y(nn_Isoprene,L)
-     &        *0.03d0
+     &        *0.03d0*dCOfact
 #ifdef TRACERS_TERP
      &      +rr(rrbi%Terpenes_NO3__HO2_Alkenes,L)*y(nn_Terpenes,L)
-     &        *0.03d0
+     &        *0.03d0*dCOfact
 #endif  /* TRACERS_TERP */
      &    )*yNO3(I,J,L)*dt2
      &    -gwprodHNO3dHCH17O
-     &    +(rr(rrbi%Isoprene_O3__HCHO_Alkenes,L)*y(nn_Isoprene,L)*0.9d0
+     &    +(rr(rrbi%Isoprene_O3__dHCH17O_Alkenes,L)*y(nn_Isoprene,L)
+     &      *0.9d0
 #ifdef TRACERS_TERP
-     &    +rr(rrbi%Terpenes_O3__HCHO_Alkenes,L)*y(nn_Terpenes,L)*0.9d0
+     &    +rr(rrbi%Terpenes_O3__dHCH17O_Alkenes,L)*y(nn_Terpenes,L)
+     &      *0.9d0
 #endif  /* TRACERS_TERP */
-     &    +rr(rrbi%Alkenes_O3__HCHO_CO,L)*y(nn_Alkenes,L))*y(nO3,L)
+     &    +rr(rrbi%Alkenes_O3__dHCH17O_CO,L)*y(nn_Alkenes,L))*y(nO3,L)
      &      *0.64d0*dt2
 
-        changedHCH18O=(rr(rrbi%Alkenes_NO3__HCHO_NO2,L)*y(nn_Alkenes,L)
+        changedHCH18O=(
+     &      rr(rrbi%Alkenes_NO3__dHCH18O_NO2,L)*y(nn_Alkenes,L)
      &      +rr(rrbi%Isoprene_NO3__HO2_Alkenes,L)*y(nn_Isoprene,L)
-     &        *0.03d0
+     &        *0.03d0*dCOfact
 #ifdef TRACERS_TERP
      &      +rr(rrbi%Terpenes_NO3__HO2_Alkenes,L)*y(nn_Terpenes,L)
-     &        *0.03d0
+     &        *0.03d0*dCOfact
 #endif  /* TRACERS_TERP */
      &    )*yNO3(I,J,L)*dt2
      &    -gwprodHNO3dHCH18O
-     &    +(rr(rrbi%Isoprene_O3__HCHO_Alkenes,L)*y(nn_Isoprene,L)*0.9d0
+     &    +(rr(rrbi%Isoprene_O3__dHCH18O_Alkenes,L)*y(nn_Isoprene,L)
+     &      *0.9d0
 #ifdef TRACERS_TERP
-     &    +rr(rrbi%Terpenes_O3__HCHO_Alkenes,L)*y(nn_Terpenes,L)*0.9d0
+     &    +rr(rrbi%Terpenes_O3__dHCH18O_Alkenes,L)*y(nn_Terpenes,L)
+     &      *0.9d0
 #endif  /* TRACERS_TERP */
-     &    +rr(rrbi%Alkenes_O3__HCHO_CO,L)*y(nn_Alkenes,L))*y(nO3,L)
+     &    +rr(rrbi%Alkenes_O3__dHCH18O_CO,L)*y(nn_Alkenes,L))*y(nO3,L)
      &      *0.64d0*dt2
 
-        changedH13CHO=(rr(rrbi%Alkenes_NO3__HCHO_NO2,L)*y(nn_Alkenes,L)
+        changedH13CHO=(
+     *      rr(rrbi%Alkenes_NO3__dH13CHO_NO2,L)*y(nn_Alkenes,L)
      &      +rr(rrbi%Isoprene_NO3__HO2_Alkenes,L)*y(nn_Isoprene,L)
-     &        *0.03d0
+     &        *0.03d0*dCOfact
 #ifdef TRACERS_TERP
      &      +rr(rrbi%Terpenes_NO3__HO2_Alkenes,L)*y(nn_Terpenes,L)
-     &        *0.03d0
+     &        *0.03d0*dCOfact
 #endif  /* TRACERS_TERP */
      &    )*yNO3(I,J,L)*dt2
      &    -gwprodHNO3dH13CHO
-     &    +(rr(rrbi%Isoprene_O3__HCHO_Alkenes,L)*y(nn_Isoprene,L)*0.9d0
+     &    +(rr(rrbi%Isoprene_O3__dH13CHO_Alkenes,L)*y(nn_Isoprene,L)
+     *      *0.9d0
 #ifdef TRACERS_TERP
-     &    +rr(rrbi%Terpenes_O3__HCHO_Alkenes,L)*y(nn_Terpenes,L)*0.9d0
+     &    +rr(rrbi%Terpenes_O3__dH13CHO_Alkenes,L)*y(nn_Terpenes,L)
+     *      *0.9d0
 #endif  /* TRACERS_TERP */
-     &    +rr(rrbi%Alkenes_O3__HCHO_CO,L)*y(nn_Alkenes,L))*y(nO3,L)
+     &    +rr(rrbi%Alkenes_O3__dH13CHO_CO,L)*y(nn_Alkenes,L))*y(nO3,L)
      &      *0.64d0*dt2
 #endif  /* TRACERS_dCO */
 
@@ -1796,7 +1814,7 @@ c           Conserve N wrt BrONO2 once inital Br changes past:
 ! accumulate some 3D diagnostics in moles/m3/s units:
         ! chemical_production_of_O1D_from_ozone:
         taijls(i,j,l,ijlt_pO1D)=taijls(i,j,l,ijlt_pO1D)+
-     &  ss(2,l,i,j)*y(nO3,l)*cpd
+     &  ss(rj%O3__O1D_O2,l,i,j)*y(nO3,l)*cpd
 
         ! chemical_production_of_OH_from_O1D_plus_H2O:
         taijls(i,j,l,ijlt_pOH)=taijls(i,j,l,ijlt_pOH)+
@@ -2147,7 +2165,7 @@ c (radiation code wants atm-cm units):
         call write_parallel(trim(out_line),crit=jay)
         do L=LS1,topLevelOfChemistry
           if(daylight)then
-            ss27x2=2.d0*ss(27,L,i,j)*y(nO2,L)
+            ss27x2=2.d0*ss(rj%O2__O_O,L,i,j)*y(nO2,L)
      &        *(rr(rrtri%O_O2__O3_M,L)*y(nO2,L))
      &        /(rr(rrtri%O_O2__O3_M,L)*y(nO2,L)
      &          +rr(rrbi%O_O3__O2_O2,L)*y(nO3,L))
@@ -2182,10 +2200,10 @@ CCCCCCCCCCCCC PRINT SOME CHEMISTRY DIAGNOSTICS CCCCCCCCCCCCCCCC
          write(out_line,*) 'O/O3 = ',y(nO,lprn)/y(nO3,lprn)
          call write_parallel(trim(out_line),crit=jay)
          write(out_line,*) 'O1D/O3 = ',y(nO1D,lprn)/y(nO3,lprn),
-     &    '  J(O1D) = ',ss(2,lprn,I,J)
+     &    '  J(O1D) = ',ss(rj%O3__O1D_O2,lprn,I,J)
          call write_parallel(trim(out_line),crit=jay)
          write(out_line,*) 'NO/NO2 = ',y(nNO,lprn)/y(nNO2,lprn),
-     &    '   J(NO2) = ',ss(1,lprn,I,J)
+     &    '   J(NO2) = ',ss(rj%NO2__NO_O,lprn,I,J)
          call write_parallel(trim(out_line),crit=jay)
          write(out_line,*) 'conc OH = ',y(nOH,lprn)
          call write_parallel(trim(out_line),crit=jay)
@@ -2496,6 +2514,9 @@ C**** Local parameters and variables and arguments:
       REAL*8, DIMENSION(LM) :: PRES ! = PMIDL00(1:LM). Keeps LM dimension not top of chem
       INTEGER               :: LAXt,LAXb
       real*8, allocatable, dimension(:) :: PSCEX,rkext
+#ifdef TRACERS_dCO
+      real*8, parameter :: dCOfact=1.d0
+#endif  /* TRACERS_dCO */
 
       allocate( PSCEX(topLevelOfChemistry) )
       allocate( rkext(topLevelOfChemistry) )
@@ -2550,6 +2571,9 @@ c         (see paged 185-188 and note D1)
             pp=0.6d0**(1.d0/(1.d0+(log10(dd))**2.))
             associationReaction=(k0TM/(1.d0+dd))*pp
             k0T=1.5d-13*((300.d0*byta)**(-0.6))
+#ifdef TRACERS_dCO
+     &         *dCOfact
+#endif  /* TRACERS_dCO */
             kinfTbyM=(2.1d9*((300.d0*byta)**(-6.1)))/y(nM,L)
             dd=k0T/kinfTbyM
             pp=0.6d0**(1.d0/(1.d0+(log10(dd))**2.))

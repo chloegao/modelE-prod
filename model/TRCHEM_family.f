@@ -11,6 +11,7 @@ C**** GLOBAL parameters and variables:
       USE RESOLUTION, only : LM
       Use ATM_COM,    Only: PMIDL00
       USE TRACER_COM, only : n_CH4, n_Ox, nn_Ox, nn_CH4
+      use photolysis, only: rj
       USE TRCHEM_Shindell_COM, only:ss,rr,y,nO2,nM,nH2O,nO,nO1D,nO3,pOx
      &                             ,rrbi,rrtri
       IMPLICIT NONE
@@ -31,7 +32,7 @@ C**** Local parameters and variables and arguments:
 
       do L=1,Lmax
 c       for concentration of O(1D):
-        bz=ss(2,L,I,J)
+        bz=ss(rj%O3__O1D_O2,L,I,J)
      &    /(rr(rrbi%O1D_O2__O_O2,L)*y(nO2,L)
      &      +rr(rrbi%O1D_M__O_M,L)*y(nM,L)
      &      +rr(rrbi%O1D_H2O__OH_OH,L)*y(nH2O,L)
@@ -39,7 +40,8 @@ c       for concentration of O(1D):
         ! here we USED TO tune bz with a pressure criterion
 c       for concentration of O:
         if (y(nO2,L) > 0.d0) then
-          az=(ss(2,L,I,J)+ss(3,L,I,J))
+          az=(ss(rj%O3__O1D_O2,L,I,J)
+     &        +ss(rj%O3__O_O2,L,I,J))
      &      /(rr(rrtri%O_O2__O3_M,L)*y(nO2,L))
           P1=1.d0/(1.d0+az+bz)
         else
@@ -72,6 +74,7 @@ C**** GLOBAL parameters and variables:
       USE RESOLUTION, only         : LS1=>LS1_NOMINAL
       USE ATM_COM, only            : LTROPO
       USE TRACER_COM, only         : n_NOx,nn_NOx,n_Alkenes,nn_Alkenes
+      use photolysis, only: rj
       USE TRCHEM_Shindell_COM, only:rr,y,yNO3,nO3,nHO2,yCH3O2,nO,nC2O3,
      & pNO3,ta,nXO2,ss,nNO,nNO2,pNOx,nNO3,nHONO,which_trop,nClO,nOClO,
      & nBrO,rrbi,rrtri
@@ -116,19 +119,20 @@ c       B is for NO->NO2 reactions :
         end if
 
 C       C is for NO2->NO reactions :
-        C=ss(1,L,I,J)
+        C=ss(rj%NO2__NO_O,L,I,J)
      &    +rr(rrbi%O_NO2__NO_O2,L)*y(nO,L)
         ! below forms NO3, assume some goes to NO:
         C=C
      &    +rr(rrbi%NO2_O3__NO3_O2,L)*y(nO3,L)
-     &      *ss(5,L,I,J)
-     &      /(ss(5,L,I,J)
-     &        +ss(6,L,I,J))
+     &      *ss(rj%NO3__NO_O2,L,I,J)
+     &      /(ss(rj%NO3__NO_O2,L,I,J)
+     &        +ss(rj%NO3__NO2_O,L,I,J))
         p2=B/(B+C)
         p1=1-p2
 
 C       Set NO3: D is loss rxns NO3->NO2 or NO
-        D=ss(5,L,I,J)+ss(6,L,I,J)
+        D=ss(rj%NO3__NO_O2,L,I,J)
+     &    +ss(rj%NO3__NO2_O,L,I,J)
      &    +rr(rrbi%NO3_NO__NO2_NO2,L)*p1*y(nn_NOx,L)
      &    +rr(rrbi%NO2_NO3__NO_NO2,L)*p2*y(nn_NOx,L)
      &    +rr(rrbi%NO3_NO3__NO2_NO2,L)*yNO3(I,J,L)
@@ -172,6 +176,7 @@ C**** GLOBAL parameters and variables:
      &                       nn_AlkylNit,nn_Terpenes,
      &                       nn_HBr,nn_HOCl,nn_HCl
 
+      use photolysis, only: rj
       USE TRCHEM_Shindell_COM, only:pHOx,rr,y,nNO2,nNO,yCH3O2,nH2O,nO3,
      &                        nO2,nM,nHO2,nOH,nH2,nAldehyde,nXO2,nXO2N,
      &                        ta,ss,nC2O3,nROR,yso2,ydms,which_trop,nO1D
@@ -245,18 +250,18 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
      &    +rsulf2(i,j,l)*ydms(i,j,l)) ! oxidation of SO2
 
 #ifdef V2_BUGS_TEMPORARY
-        cqqz=(2.d0*ss(4,L,I,J)*y(nn_H2O2,L)
-     &    +ss(9,L,I,J)*y(nn_HNO3,L)
-     &    +ss(13,L,I,J)*y(nn_HCHO,L)
-     &    +ss(14,L,I,J)*y(nn_CH3OOH,L) ! CO isotopes should not go here
+        cqqz=(2.d0*ss(rj%H2O2__OH_OH,L,I,J)*y(nn_H2O2,L)
+     &    +ss(rj%HNO3__OH_NO2,L,I,J)*y(nn_HNO3,L)
+     &    +ss(rj%HCHO__CO_HO2,L,I,J)*y(nn_HCHO,L) ! CO isotopes should not go here
+     &    +ss(rj%CH3OOH__HCHO_HO2,L,I,J)*y(nn_CH3OOH,L)
      &    +(rr(rrbi%CH3O2_NO__HCHO_NO2,L)*y(nNO,L)
      &      +0.66d0*rr(rrbi%CH3O2_CH3O2__HCHO_HCHO,L)*yCH3O2(I,J,L)
      &    )*yCH3O2(I,J,L))
 #else
-        cqqz=(2.d0*(ss(4,L,I,J)*y(nn_H2O2,L))
-     &    +ss(9,L,I,J)*y(nn_HNO3,L)
-     &    +2.d0*(ss(13,L,I,J)*y(nn_HCHO,L)) ! CO isotopes should not go here
-     &    +2.d0*ss(14,L,I,J)*y(nn_CH3OOH,L)
+        cqqz=(2.d0*(ss(rj%H2O2__OH_OH,L,I,J)*y(nn_H2O2,L))
+     &    +ss(rj%HNO3__OH_NO2,L,I,J)*y(nn_HNO3,L)
+     &    +2.d0*(ss(rj%HCHO__CO_HO2,L,I,J)*y(nn_HCHO,L)) ! CO isotopes should not go here
+     &    +2.d0*ss(rj%CH3OOH__HCHO_HO2,L,I,J)*y(nn_CH3OOH,L)
      &    +(rr(rrbi%CH3O2_NO__HCHO_NO2,L)*y(nNO,L)
      &      +0.66d0*(rr(rrbi%CH3O2_CH3O2__HCHO_HCHO,L)*yCH3O2(I,J,L))
      &    )*yCH3O2(I,J,L))
@@ -267,7 +272,7 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
      &    +((2.d0*rr(rrbi%O1D_H2O__OH_OH,L)*y(nH2O,L)
      &      +(1.66d0/1.31d0)*rr(rrbi%O1D_CH4__OH_CH3O2,L)*y(nn_CH4,L)
      &    )*y(nO1D,L))
-     &    +ss(16,L,I,J)*y(nAldehyde,L)*2.d0
+     &    +ss(rj%Aldehyde__HCHO_CO,L,I,J)*y(nAldehyde,L)*2.d0
      &    +(rr(rrbi%C2O3_NO__HCHO_NO2,L)*y(nNO,L) ! CO isotopes should not go here
      &    +rr(rrbi%C2O3_C2O3__HCHO_HCHO,L)*y(nC2O3,L)*2.d0)*y(nC2O3,L)
      &    +(rr(rrbi%ROR_M__Aldehyde_HO2,L)*0.94d0+1.6d3)*y(nROR,L)
@@ -361,9 +366,9 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
      &    +rsulf2(i,j,l)*ydms(i,j,l)) ! oxidation of DMS
 
         ! Use OH production without O1D explicitly:
-        cqqz=2.d0*ss(4,L,i,j)*y(nn_H2O2,L)
-     &    +ss(9,L,i,j)*y(nn_HNO3,L)
-     &    +ss(21,L,i,j)*y(nn_HOCl,L) 
+        cqqz=2.d0*ss(rj%H2O2__OH_OH,L,i,j)*y(nn_H2O2,L)
+     &    +ss(rj%HNO3__OH_NO2,L,i,j)*y(nn_HNO3,L)
+     &    +ss(rj%HOCl__OH_Cl,L,i,j)*y(nn_HOCl,L) 
      &    +rr(rrbi%O_HCl__OH_Cl,L)*y(nn_HCl,L)*y(nO,L)
      &    +rr(rrbi%O_HOCl__OH_ClO,L)*y(nn_HOCl,L)*y(nO,L)
      &    +rr(rrbi%Cl_HOCl__Cl2_OH,L)*y(nn_HOCl,L)*y(nCl,L)
@@ -450,7 +455,7 @@ C**** GLOBAL parameters and variables:
       USE TRACER_COM, only : n_ClOx,n_HOCl,n_ClONO2,n_HCl,n_H2O2,n_CH4
       USE TRACER_COM, only : nn_ClOx,nn_HOCl,nn_ClONO2,nn_HCl,nn_H2O2,
      &    nn_CH4
-      use photolysis, only : sza
+      use photolysis, only : sza,rj
       USE TRCHEM_Shindell_COM, only:pClOx,rr,y,nClO,nOClO,nCl,nCl2O2,
      &    ta,ss,nO3,nHO2,nNO3,nO,nNO,nBr,nOH,nBrO,nCH3O2,nM,nCl2,nH2,
      &    dt2,pClx,pOClOx,nNO2,which_trop,yCl2,yCl2O2,ClOx_old,
@@ -495,7 +500,7 @@ c calculating Cl amount, otherwise ignore:
           y(nCl2O2,L)=
      &       (rr(rrtri%ClO_ClO__Cl2O2_M,L)*y(nClO,L)*y(nClO,L))
      &      /(rr(rrmono%Cl2O2_M__ClO_ClO,L)
-     &       +ss(20,L,i,j))
+     &       +ss(rj%Cl2O2__Cl_Cl,L,i,j))
           if(y(nCl2O2,L) > y(nClO,L)) y(nCl2O2,L)=y(nClO,L)
           y(nClO,L)=y(nClO,L)-y(nCl2O2,L)
         end if
@@ -507,7 +512,7 @@ c calculating Cl amount, otherwise ignore:
      &    +y(nO,L)*rr(rrbi%O_OClO__ClO_O2,L)
      &    +y(nNO,L)*rr(rrbi%NO_OClO__NO2_ClO,L)
      &    +y(nBr,L)*rr(rrbi%Br_OClO__BrO_ClO,L)
-     &    +ss(19,L,i,j)
+     &    +ss(rj%OClO__O_ClO,L,i,j)
         C=y(nO,L)*rr(rrbi%ClO_O__Cl_O2,L)
      &    +y(nO3,L)*(rr(rrbi%ClO_O3__Cl_O2,L)
      &      +rr(rrbi%ClO_O3__OClO_O2,L))
@@ -515,7 +520,7 @@ c calculating Cl amount, otherwise ignore:
      &    +y(nNO,L)*rr(rrbi%ClO_NO__NO2_Cl,L)
      &    +y(nBrO,L)*(rr(rrbi%BrO_ClO__OClO_Br,L)
      &      +rr(rrbi%BrO_ClO__Br_Cl,L))
-     &    +ss(17,L,i,j)
+     &    +ss(rj%ClO__Cl_O,L,i,j)
      &    +rr(rrbi%ClO_CH3O2__Cl_HCHO,L)*y(nCH3O2,L)
      &    +y(nClO,L)*(1.d-12*exp(-1590./TA(L))
      &      +3.d-11*exp(-2450./TA(L))
@@ -535,10 +540,10 @@ c calculating Cl amount, otherwise ignore:
         V=C-D
         X=rr(rrbi%OH_Cl2__HOCl_Cl,L)*y(nOH,L)*y(nCl2,L)
      &    +rr(rrbi%O_HCl__OH_Cl,L)*y(nO,L)*y(nn_HCl,L)
-     &    +2.d0*ss(18,L,i,j)*y(nCl2,L)
-     &    +2.d0*ss(20,L,i,j)*y(nCl2O2,L)
-     &    +ss(21,L,i,j)*y(nn_HOCl,L)
-     &    +ss(22,L,i,j)*y(nn_ClONO2,L)
+     &    +2.d0*ss(rj%Cl2__Cl_Cl,L,i,j)*y(nCl2,L)
+     &    +2.d0*ss(rj%Cl2O2__Cl_Cl,L,i,j)*y(nCl2O2,L)
+     &    +ss(rj%HOCl__OH_Cl,L,i,j)*y(nn_HOCl,L)
+     &    +ss(rj%ClONO2__Cl_NO3,L,i,j)*y(nn_ClONO2,L)
         X=X/y(nn_ClOx,L)
         YY=rr(rrbi%Cl_HOCl__Cl2_OH,L)*y(nn_HOCl,L)
      &    +rr(rrbi%Cl_H2O2__HCl_HO2,L)*y(nn_H2O2,L)
@@ -619,6 +624,7 @@ C**** GLOBAL parameters and variables:
       USE ATM_COM, only    : LTROPO
       USE TRACER_COM, only : n_BrOx,n_H2O2,n_HBr,n_HOBr,n_BrONO2
       USE TRACER_COM, only : nn_BrOx,nn_H2O2,nn_HBr,nn_HOBr,nn_BrONO2
+      use photolysis, only: rj
       USE TRCHEM_Shindell_COM, only:rr,y,nO3,nClO,nOClO,nNO,nO,nBr,nOH,
      &    nBrO,ss,nHO2,nNO2,pBrOx,which_trop,rrbi,rrtri
 
@@ -649,7 +655,7 @@ C**** Local parameters and variables and arguments:
      &      +rr(rrbi%BrO_ClO__Br_Cl,L))
      &    +2*y(nBrO,L)*rr(rrbi%BrO_BrO__Br_Br,L)
      &    +y(nOH,L)*rr(rrbi%BrO_OH__Br_HO2,L)
-     &    +ss(25,L,i,j)
+     &    +ss(rj%BrO__Br_O,L,i,j)
         c=rr(rrbi%BrO_HO2__HOBr_O2,L)*y(nHO2,L)
      &    +rr(rrbi%O1D_CH4__HCHO_H2,L)*y(nClO,L)
      &    +rr(rrbi%BrO_OH__HBr_O2,L)*y(nOH,L)
@@ -658,8 +664,8 @@ C**** Local parameters and variables and arguments:
      &    +rr(rrbi%Br_H2O2__HBr_HO2,L)*y(nn_H2O2,L)
         eq=rr(rrbi%HBr_OH__H2O_Br,L)*y(nn_HBr,L)*y(nOH,L)
      &    +rr(rrbi%O_HBr__OH_Br,L)*y(nn_HBr,L)*y(nO,L)
-     &    +ss(24,L,i,j)*y(nn_HOBr,L)
-        f=ss(23,L,i,j)*y(nn_BrONO2,L)
+     &    +ss(rj%HOBr__Br_OH,L,i,j)*y(nn_HOBr,L)
+        f=ss(rj%BrONO2__BrO_NO2,L,i,j)*y(nn_BrONO2,L)
         if(a+b /= 0)then
           p2=a/(a+b)
         else

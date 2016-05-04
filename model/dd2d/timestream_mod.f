@@ -525,6 +525,9 @@ c
      &     ,get_record_dimlen,get_dimlens,get_record_dimname
      &     ,variable_exists
 !!       use param, only : sync_param
+!#ifdef IN_MODELE
+      use SystemTools, only : stLinkStatus,stFileList
+!#endif
       implicit none
       type(dist_grid) :: grid
       type(timestream) :: tstream
@@ -536,17 +539,22 @@ c
       INTEGER :: I,J,IDUM,RDIMLEN
       logical :: exists,monthly_data,daily_data,annual_data
 c
-      integer, parameter :: nyr_search=200
       integer :: jyr,nfileyrs,jj,yr_ind,roff
       integer, dimension(:), allocatable :: fileyrs
       real*8, dimension(:), allocatable :: taxis
       real*8 :: wtl,wtr
-      integer :: fileyr_min=+99999,fileyr_max=-99999
       logical :: cyclic,multiple_yrs,multiple_files
       integer :: ndims,dlens(7)
 c
       integer :: indx,yr0,mn0,dy0,tm0,yrx,rdimlen1
+      integer :: linkstatus
       character(len=32) :: dname,tunits,tunits_off
+      integer, parameter :: max_fname_len=128
+      character(len=max_fname_len), allocatable :: flist(:)
+      character(len=max_fname_len) :: thisline
+      character(len=4) :: c4
+      integer :: lsiter,nfiles,ifile,ios
+
 c
       cyclic = tstream%cyclic
 
@@ -557,37 +565,41 @@ c
 
       lm = tstream%lm
 
-c determine which files are available
-      do jyr=jyear-nyr_search,jyear+nyr_search
-        if(year_is_present(tstream%fbase,jyr)) then
-          fileyr_min = jyr
-          exit
-        endif
-      enddo
-c the following optimization prevents going backward in time
-c      if(fileyr_min.lt.jyear-1) then
-c        jj = fileyr_min+1
-c        do jyr=jyear-2,jj,-1
-c          if(year_is_present(tstream%fbase,jyr)) then
-c            fileyr_min = jyr
-c            exit
-c          endif
-c        enddo
-c      endif
-      do jyr=jyear+nyr_search,fileyr_min,-1
-        if(year_is_present(tstream%fbase,jyr)) then
-          fileyr_max = jyr
-          exit
-        endif
-      enddo
-      allocate(fileyrs(max(1,fileyr_max-fileyr_min+1)))
       nfileyrs = 0
-      do jyr=fileyr_min,fileyr_max
-        if(year_is_present(tstream%fbase,jyr)) then
+
+!#ifdef IN_MODELE
+      call stLinkStatus(tstream%fbase, linkstatus)
+      if(linkstatus==2) then  ! this is a directory. todo: no hard-coded retcodes
+        allocate(flist(1000)) ! 1000 files maximum
+        call stFileList(tstream%fbase,flist,nfiles)
+
+        ! determine available years from YYYY.nc file presence
+        do lsiter=1,2
+        if(lsiter.eq.2) allocate(fileyrs(nfileyrs))
+        nfileyrs = 0
+        do ifile=1,nfiles
+          thisline = adjustl(flist(ifile))
+          if(len_trim(thisline).ne.7) cycle
+          if(thisline(5:7).ne.'.nc') cycle
+          c4 = thisline(1:4)
+          read(c4,*,iostat=ios) jyr
+          if(ios.ne.0) cycle
+          if(jyr.lt.0) cycle
           nfileyrs = nfileyrs + 1
-          fileyrs(nfileyrs) = jyr
-        endif          
-      enddo
+          if(lsiter.eq.2) fileyrs(nfileyrs) = jyr
+        enddo
+        enddo
+
+        if(nfileyrs.eq.0) then
+          if(grid%am_i_globalroot) write(6,*)
+     &         'read_stream: empty directory '//trim(tstream%fbase)
+          call stop_model(
+     &         'read_stream: empty input directory',255)
+        endif
+
+      endif ! fbase is directory or not
+!#endif IN_MODELE
+
       multiple_yrs = nfileyrs.gt.0
       multiple_files = multiple_yrs
       if(multiple_yrs) then
@@ -648,7 +660,7 @@ c      endif
               daily_data = rdimlen1 == 365
               annual_data = rdimlen1 == 1
               monthly_data = .not. (daily_data .or. annual_data)
-              deallocate(fileyrs)
+              !deallocate(fileyrs)
               allocate(fileyrs(nfileyrs))
               allocate(taxis(rdimlen))
               call read_data(grid,fid,trim(dname),taxis,
@@ -713,7 +725,7 @@ c      endif
           ! debug print end
           ! end new
       endif
-      deallocate(fileyrs)
+      !deallocate(fileyrs)
       fid = par_open(grid,trim(fname),'read')
       attname = trim(tstream%vname)//'name'
       call read_attr(grid,fid,'global',trim(attname),idum,
@@ -779,16 +791,6 @@ c      endif
       m1 = 1-npad; m2 = tstream%m2r+npad
       allocate(tstream%qty(I_0:I_1,J_0:J_1,LM,M1:M2))
       tstream%qty = 0.
-      contains
-      function year_is_present(fbase,jyr)
-      logical :: year_is_present
-      character(len=*) :: fbase
-      integer :: jyr
-      character(len=4) :: year_string
-      write(year_string,'(i4)') jyr
-      inquire(file=trim(fbase)//'/'//year_string//'.nc',
-     &     exist=year_is_present)
-      end function year_is_present
       end subroutine check_metadata
 
       subroutine read_stream_netcdf(grid,tstream,jyear,jmon)

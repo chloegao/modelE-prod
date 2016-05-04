@@ -2,7 +2,7 @@ E_TdusF40.R GISS Model E  2000 ocn/atm   jan perlwitz  11/2011
 E_TdusF40: E_AR5_NINT + soil dust aerosol tracers
 
 E_AR5_NINT: modelE as frozen in April 2010
-modelE4 2x2.5 hor. grid with 40 lyrs, top at .1 mb (+ 3 rad.lyrs)
+modelE2 2x2.5 hor. grid with 40 lyrs, top at .1 mb (+ 3 rad.lyrs)
 atmospheric composition from year 2000
 ocean data: prescribed, 1996-2005 climatology
 uses turbulence scheme (no dry conv), grav.wave drag
