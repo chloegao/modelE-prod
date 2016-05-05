@@ -6,7 +6,7 @@ use Getopt::Long;         #module to process command line options
 GetOptions("w", "t=s", "y=s") || die "problem in GetOptions";
 
 if ( $#ARGV < 0 ) { 
-    print "Usage: $0 [-w] [-t ndays] RunID [data_dir]\n"; 
+    print "Usage: $0 [-w] [-t ndays] [-y year_start:year_end] RunID [data_dir]\n"; 
     print "  Creates a directory 'data_dir' (or 'RunID_data' by default)\n";
     print "  and copies there all input files required to run RunID.\n";
     print "  Intended to be used when taking the model off-site.\n";
@@ -15,7 +15,13 @@ if ( $#ARGV < 0 ) {
     print "      instead of using local repository try to download\n";
     print "      necessary files from central storage (using wget).\n";
     print "  -t ndays\n";
-    print "      if present the files older than ndays will be skipped\n";
+    print "      if present, the files older than ndays will be skipped\n";
+    print "  -y year_start:year_end\n";
+    print "      if present, the annual data files will be downloaded for the period\n";
+    print "      from year_start to year_end. Otherwise, the script assumes \n";
+    print "      year_start=year_end=1850 (preindustrial conditions).\n";
+    print "      This option has effect only when downloading data from a remote server.\n";
+    print "      When creating a local copy, the data files for all years will be copied.\n";
     exit; 
 }
 
@@ -92,7 +98,7 @@ if ( $opt_w ) {
     `rm -f $dirlist`;
     foreach $dir (split /:/, $GCMSEARCHPATH) {
 	print "dir = $dir\n";
-	`cd $dir && find . -type d >> $dirlist`;
+	`cd $dir && find . -type f >> $dirlist`;
     }
 }
 
@@ -102,12 +108,14 @@ $failed_downloads = "";
 foreach $str (@a) {
     #print "$str\n";
     ($tag,$filename) = split / *= */, $str;
+    # no trailing slashes at the end of the directory name allowed
+    $filename =~ s/\/+$//;
     if ( ! -f "$data_dir/$filename" ) {
 	create_path( "$data_dir/$filename" );
 	if ( $opt_w ) {
 	    my $file_dir = `dirname $data_dir/$filename`;
 	    chop $file_dir;
-	    if ( $dirlist_str =~ /^\.\/$filename$/m ) {
+	    if ( $dirlist_str =~ /^\.\/$filename\//m ) {
 		print "directory : $filename\n";
 		if ( ! -d "$data_dir/$filename" ) {
 		    print "has to create $data_dir/$filename\n";
@@ -118,6 +126,10 @@ foreach $str (@a) {
 		($year_start,$year_end) = split /:/, $years;
 		for($y=$year_start; $y<=$year_end; $y++) {
 		    # print "checking: $data_dir/$filename/$y.nc\n"; 
+		    if ( ! ($dirlist_str =~ /^\.\/$filename\/$y.nc/m) ) {
+			print "Not present on server: $filename/$y.nc - skipping\n";
+			next;
+		    }
 		    if ( ! -f "$data_dir/$filename/$y.nc" ) {
 			print "Downloading:     $filename/$y.nc\n";
 			`cd $data_dir/$filename && wget $DATA_PORTAL_URL/$filename/$y.nc`;
@@ -173,7 +185,7 @@ foreach $str (@a) {
 }
 
 ## update local dirlist
-`cd $data_dir && find . -type d > dirlist`;
+`cd $data_dir && find . -type f > dirlist`;
 
 if ( $failed_downloads ) {
     die "\nERROR: Failed to download:\n$failed_downloads\n";
