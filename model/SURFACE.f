@@ -1529,7 +1529,7 @@ C****
               else
                 idtype = itlkice
               endif
-            elseif(itype==ITYPE_LAND) then
+            elseif(itype==ITYPE_LANDICE) then
               idtype = itlandi
             else
               idtype = itearth
@@ -1755,7 +1755,7 @@ C****
             else
               idtype = itlkice
             endif
-          elseif(itype==ITYPE_LAND) then
+          elseif(itype==ITYPE_LANDICE) then
             idtype = itlandi
           else
             idtype = itearth
