@@ -9780,15 +9780,15 @@ C---SUBROUTINES FOR TRACER WET DEPOSITION-------------------------------
 !@+    within or below convective or large-scale clouds. Gas
 !@+    condensation uses Henry's Law if not freezing.
 !@auth Dorothy Koch (modelEifications by Greg Faluvegi)
-! NOTE: THLAW is only computed for the tracers in gases_list!
+! NOTE: THLAW is only computed for the tracers in hlaw_list!
 c
 C**** GLOBAL parameters and variables:
       USE CONSTANT, only: BYGASC, MAIR,teeny,LHE,tf,by3
 
       USE TRACER_COM, only :
-     &     gases_count,aero_count,water_count,hlawt_count,
+     &     aero_count,water_count,hlaw_count,
 ! NB: these lists are often used for implicit loops
-     &     gases_list,aero_list,water_list,hlawt_list
+     &     aero_list,water_list,hlaw_list
 
       use OldTracer_mod, only: tr_RKD, tr_DHD, tr_wd_type
       use OldTracer_mod, only: nWater, ngas,nPART
@@ -9838,7 +9838,7 @@ C**** Local parameters and variables and arguments:
       INTEGER, INTENT(IN) :: NTX, ntix(NTM)
       LOGICAL TR_CONV
       REAL*8 :: FQ0FAC,SUPSAT,SSFAC(NTM),SSFAC0
-      INTEGER :: N,IGAS,IAERO,IWAT
+      INTEGER :: N,IHLAW,IAERO,IWAT
 #ifdef TRACERS_TOMAS
       integer :: k
       real*8,dimension(nbins):: fraction !where to read fraction?
@@ -9850,29 +9850,26 @@ c      thlaw(:) = 0. ! default
     (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
 c
-c gases
+c gases with a henry law constant
 c
 c     cldinc=max(0.,cldsavt-fcloud)
       if(lhx.eq.lhe .and. fcloud.ge.1d-16) then
         Ppas = PL*1.D2          ! pressure to pascals
         tfac = (1.D0/TEMP - BY298K)*BYGASC
         ssfac0 = WMXTR*MAIR*1.D-6*Ppas/(CLDSAVT+teeny)
-        ssfac(gases_list) = ssfac0*tr_RKD(gases_list)
-        do igas=1,hlawt_count
-          n = hlawt_list(igas)
-          ssfac(n) = ssfac(n)*exp(-tr_DHD(n)*tfac)
-        enddo
+        ssfac(hlaw_list) = ssfac0*tr_RKD(hlaw_list)
+     &    *exp(-tr_DHD(hlaw_list)*tfac)
         if(tr_conv) then ! convective cloud
           fq0fac = 1.
           if (fq0.eq.0.) fq0fac=0.d0
-          do igas=1,gases_count
-            n = gases_list(igas)
+          do ihlaw=1,hlaw_count
+            n = hlaw_list(ihlaw)
             fq(n) = fq0fac*ssfac(n) / (1d0 + ssfac(n))
             thlaw(n) = 0.
           enddo
         else             ! stratiform cloud
-          do igas=1,gases_count
-            n = gases_list(igas)
+          do ihlaw=1,hlaw_count
+            n = hlaw_list(ihlaw)
             fq(n) = 0.
 c limit gas dissolution to incremental cloud change after cloud forms
 c   only apply to non-aqueous sulfur species since this is already
@@ -9888,10 +9885,10 @@ c           endif
           enddo
         endif
       else
-        fq(gases_list) = 0.
-        thlaw(gases_list) = 0.
+        fq(hlaw_list) = 0.
+        thlaw(hlaw_list) = 0.
       endif
-#endif /* dissolved gases */
+#endif /* dissolved gases with a henry law constant */
 
 c
 c loop over water species
@@ -10107,7 +10104,7 @@ c      enddo ! end loop over aerosols
 !@sum  GET_WASH_FACTOR calculation of the fraction of tracer
 !@+    scavanged by precipitation below convective clouds ("washout").
 !@auth Dorothy Koch (modelEifications by Greg Faluvegi)
-! NOTE: THLAW is only computed for the tracers in gases_list!
+! NOTE: THLAW is only computed for the tracers in hlaw_list!
 ! NOTE: FQ is only computed for the tracers in aero_list!
 c
 C**** GLOBAL parameters and variables:
@@ -10121,9 +10118,9 @@ c     USE PBLCOM, only: wsavg
 #endif
 
       USE TRACER_COM, only :
-     &     gases_count,aero_count,water_count,hlawt_count,
+     &     aero_count,water_count,hlaw_count,
 ! NB: these lists are often used for implicit loops
-     &     gases_list,aero_list,water_list,hlawt_list
+     &     aero_list,water_list,hlaw_list
 #ifdef TRACERS_TOMAS 
       USE TRACER_COM, only :
      &     NBS,NBINS,n_ANUM,n_ASO4,n_ANACL,xk
@@ -10149,7 +10146,7 @@ C**** Local parameters and variables and arguments:
      *  TM(NTM),pl, TRPR(NTM)
       REAL*8, PARAMETER :: BY298K=3.3557D-3
       REAL*8 Ppas, tfac, ssfac0, ssfac(NTM), bb_tmp
-      INTEGER :: N,IGAS,IAERO
+      INTEGER :: N,IHLAW,IAERO
       LOGICAL BELOW_CLOUD
 C
 #ifdef TRACERS_TOMAS
@@ -10164,9 +10161,9 @@ C
 c      thlaw(:)=0.
 
 c
-c gases
+c gases with a henry law constant
 c
-c      fq(gases_list) = 0.D0
+c      fq(hlaw_list) = 0.D0
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_SPECIAL_Shindell) ||\
     (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
       if(      LHX.EQ.LHE ! if not frozen
@@ -10175,18 +10172,15 @@ c      fq(gases_list) = 0.D0
         Ppas = PL*1.D2          ! pressure to pascals
         tfac = (1.D0/TEMP - BY298K)*BYGASC
         ssfac0 = WMXTR*MAIR*1.D-6*Ppas/(FCLOUD+teeny)
-        ssfac(gases_list) = ssfac0*tr_RKD(gases_list)
-        do igas=1,hlawt_count
-          n = hlawt_list(igas)
-          ssfac(n) = ssfac(n)*exp(-tr_DHD(n)*tfac)
-        enddo
-        do igas=1,gases_count
-          n = gases_list(igas)
+        ssfac(hlaw_list) = ssfac0*tr_RKD(hlaw_list)
+     &    *exp(-tr_DHD(hlaw_list)*tfac)
+        do ihlaw=1,hlaw_count
+          n = hlaw_list(ihlaw)
           thlaw(n) = min( tm(n),max( 0d0,(FCLOUD*
      &               ssfac(n)*tm(n)-TRPR(n))/(1.D0+ssfac(n)) ))
         enddo
       else
-        thlaw(gases_list) = 0.
+        thlaw(hlaw_list) = 0.
       endif
 #endif
 #ifdef TRACERS_TOMAS  
