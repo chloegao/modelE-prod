@@ -650,10 +650,8 @@ contains
 !@var FWASHT  fraction of tracer scavenged by below-cloud precipitation
     real*8 :: FQCONDT(NTM), FWASHT(NTM), FPRCPT(NTM), FQEVPT(NTM)
 !@var WMXTR available water mixing ratio for tracer condensation ( )?
-!@var b_beta_DT precipitating gridbox fraction from lowest precipitating
-!@+   layer. The name was chosen to correspond to Koch et al. p. 23,802.
 !@var precip_mm precipitation (mm) from the grid box above for washout
-    real*8 WMXTR, b_beta_DT, precip_mm
+    real*8 WMXTR, precip_mm
     ! for tracers in general, added by Koch
     real*8, dimension(NTM) :: THLAW,THWASH,TR_LEF,TMFAC,TR_LEFT
     real*8 CLDSAVT
@@ -1467,7 +1465,7 @@ contains
             ENDDO
 
             TM_dum(:) = TMP(:)
-            !     CALL GET_COND_FACTOR_array(
+            !     CALL GET_COND_FACTOR(
             !    &      NTX,WMXTR,TPOLD(L),TPOLD(L-1),LHX,FPLUME
             !    &     ,FQCOND,FQCONDT,.true.,TRCOND(:,L),TM_dum,THLAW,TR_LEF,PL(L)
             !    &     ,ntix,CLDSAVT)
@@ -1476,7 +1474,7 @@ contains
               if(TM_dum(n).lt.0.) print*,'TM_dum<0 1',TM_dum(n),trname(n)
             ENDDO
 !TOMAS DEBUG
-            call GET_COND_FACTOR_array( &
+            call GET_COND_FACTOR( &
                  NTX,WMXTR,TPOLD(L),TPOLD(L-1),LHX,FPLUME &
                  ,FQCOND,FQCONDT,.true.,TRCOND(:,L),TM_dum,THLAW,TR_LEF,PL(L) &
                  ,ntix,FPLUME)
@@ -1919,8 +1917,7 @@ contains
 #endif
               TRCOND(1:NTX,L) = 0.d0
             else            ! otherwise, tracers evaporate dependent on type of tracer
-              call GET_EVAP_FACTOR_array( &
-                   NTX,TNX1,LHX,.false.,1d0,FQEVP,FQEVPT,ntix)
+              call GET_EVAP_FACTOR(NTX,TNX1,LHX,.false.,1d0,FQEVP,FQEVPT,ntix)
               dtr(1:ntx) = fqevpt(1:ntx)*trcond(1:ntx,l)
 #ifdef TRDIAG_WETDEPO
               if (diag_wetdep == 1) trdvap_mc(l,1:ntx)=trdvap_mc(l,1:ntx) &
@@ -2513,8 +2510,7 @@ contains
               else
                 heff=1.
               end if
-              call GET_EVAP_FACTOR_array( &
-                   NTX,TOLD,LHX,BELOW_CLOUD,HEFF,FPRCP,FPRCPT,ntix)
+              call GET_EVAP_FACTOR(NTX,TOLD,LHX,BELOW_CLOUD,HEFF,FPRCP,FPRCPT,ntix)
               dtr(1:ntx) = fprcpt(1:ntx)*trprcp(1:ntx)
 #ifdef TRDIAG_WETDEPO
               if (diag_wetdep == 1) trnvap_mc(l,1:ntx)=trnvap_mc(l,1:ntx) &
@@ -2530,10 +2526,9 @@ contains
               !**** Washout of tracers in cloud
               wmxtr=prcp*byam(l)
               precip_mm=prcp*100.*bygrav
-              b_beta_DT=fplume
               TM_dum(:) = TM(L,:)
-              call GET_WASH_factor_array( &
-                   ntx,b_beta_dt,precip_mm,fwasht,told,lhx, &
+              call GET_WASH_factor( &
+                   ntx,fplume,precip_mm,fwasht,told,lhx, &
                    wmxtr,fplume,tm_dum,trprcp,thwash,pl(l),ntix,.true. &
 #ifdef TRACERS_TOMAS
       ,i_debug,j_debug,L &
@@ -2563,7 +2558,6 @@ contains
               !**** WASHOUT of TRACERS BELOW CLOUD
               WMXTR = PRCP*BYAM(L)
               precip_mm = PRCP*100.*bygrav
-              b_beta_DT = FPLUME
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
               WA_VOL= precip_mm*DXYPIJ
@@ -2584,7 +2578,7 @@ contains
               !dmk Here I took out GET_COND, since we are below cloud.
               !dmk GET_WASH now has gas dissolution, extra arguments
               TM_dum(:) = TM(L,:)
-              call GET_WASH_FACTOR_array(NTX,b_beta_DT,precip_mm,FWASHT, &
+              call GET_WASH_FACTOR(NTX,fplume,precip_mm,FWASHT, &
                    TOLD,LHX,WMXTR,FPLUME,TM_dum,TRPRCP,THWASH,pl(l),ntix,.true. &
 #ifdef TRACERS_TOMAS
        ,i_debug,j_debug,L &
@@ -4466,8 +4460,7 @@ contains
       DTPRT(1:NTX) = FPRT  *TRWML(1:NTX,L)
 
       if(fer.ne.0.) then
-        call GET_EVAP_FACTOR_array( &
-             NTX,TL(L),LHX,.false.,1d0,FER,FERT,ntix)
+        call GET_EVAP_FACTOR(NTX,TL(L),LHX,.false.,1d0,FER,FERT,ntix)
         DTERT(1:NTX) = FERT(1:NTX)  *TRPRBAR(1:NTX,L+1)
       else
         FERT(1:NTX) = 0.
@@ -4475,8 +4468,7 @@ contains
       endif
 
       if(fwtoq.ne.0.) then
-        call GET_EVAP_FACTOR_array( &
-             NTX,TL(L),LHX,.false.,1d0,FWTOQ,FWTOQT,ntix)
+        call GET_EVAP_FACTOR(NTX,TL(L),LHX,.false.,1d0,FWTOQ,FWTOQT,ntix)
         FPRT=FPR
         do N=1,NTX
           DTQWT(N) = -FWTOQT(N)*TRWML(N,L)*(1.-FPRT)
@@ -4499,7 +4491,7 @@ contains
         WMXTR = PREBAR(L+1)*grav*BYAM(L)*dtsrc
         if (precip_mm.lt.0.) precip_mm=0.
         if (wmxtr.lt.0.) wmxtr=0.
-        call GET_WASH_FACTOR_array(NTX,b_beta_DT,precip_mm,FWASHT, &
+        call GET_WASH_FACTOR(NTX,b_beta_DT,precip_mm,FWASHT, &
              tl(l),LHX,WMXTR,cldprec,TM_dum,TRPRBAR(:,l), &
              THWASH,pl(l),ntix,.true. &
 #ifdef TRACERS_TOMAS
@@ -4514,7 +4506,7 @@ contains
         cldprec=cldsavt
         !dmk added arguments above; THLAW added below (no way to factor this)
         WMXTR = WMX(L)
-        call GET_COND_FACTOR_array( &
+        call GET_COND_FACTOR( &
              NTX,WMXTR,TL(L),TL(L),LHX,FCLD,FQTOW &
              ,FQTOWT,.false.,TRWML(:,L),TM_dum,THLAW,TR_LEF,PL(L) &
              ,ntix,CLDSAVT)
@@ -4550,7 +4542,7 @@ contains
         WMXTR = PREBAR(L+1)*grav*BYAM(L)*dtsrc
         if (precip_mm.lt.0.) precip_mm=0.
         if (wmxtr.lt.0.) wmxtr=0.
-        call GET_WASH_FACTOR_array(NTX,b_beta_DT,precip_mm,FWASHT, &
+        call GET_WASH_FACTOR(NTX,b_beta_DT,precip_mm,FWASHT, &
              tl(l),LHX,WMXTR,cldprec,TM_dum,TRPRBAR(:,l), &
              THWASH,pl(l),ntix,.true. &
 #ifdef TRACERS_TOMAS
@@ -4706,7 +4698,7 @@ contains
               if(TM_dum(n).lt.0.) print*,'TM_dum<0 3',TM_dum(n),trname(n)
             ENDDO
 !TOMAS DEBUG
-          call GET_COND_FACTOR_array(NTX,WMXTR,TL(L),TL(L),LHX,FCLD,FCOND &
+          call GET_COND_FACTOR(NTX,WMXTR,TL(L),TL(L),LHX,FCLD,FCOND &
                ,FQCONDT,.false.,TRWML(:,L),TM_dum,THLAW,TR_LEF,pl(l) &
                ,ntix,CLDSAVT)
 #ifdef TRACERS_AEROSOLS_OCEAN
