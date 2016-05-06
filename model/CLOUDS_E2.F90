@@ -43,7 +43,7 @@ module CLOUDS
   use TRACER_COM, only: n_ococean,n_seasalt1,trm,trpdens
 #endif  /* TRACERS_AEROSOLS_OCEAN */
 #ifdef TRACERS_WATER
-  use TRACER_COM, only:        nGAS, nPART, nWATER, tr_wd_TYPE, tr_RKD, tr_DHD, &
+  use TRACER_COM, only: nWATER, tr_wd_TYPE, &
        tr_evap_fact, gases_list,gases_count
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)

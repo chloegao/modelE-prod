@@ -40,8 +40,8 @@ module CLOUDS
 #endif  /* TRACERS_AEROSOLS_OCEAN */
 
 #if defined(TRACERS_ON) && defined(TRACERS_WATER)
-  use OldTracer_mod, only: tr_wd_type, tr_RKD, tr_DHD
-  use TRACER_COM,    only: nGAS, nPART, nWATER, tr_evap_fact, gases_list,gases_count
+  use OldTracer_mod, only: tr_wd_type
+  use TRACER_COM,    only: nWATER, tr_evap_fact, gases_list,gases_count
 #endif
 
 #if defined(TRACERS_ON) && defined(TRACERS_WATER) && (defined(TRACERS_AEROSOLS_Koch) || defined(TRACERS_AMP) || defined(TRACERS_TOMAS))
