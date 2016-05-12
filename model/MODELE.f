@@ -406,7 +406,7 @@ C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
 
       year = modelEclock%getYear()
       month = modelEclock%getMonth()
-      day = modelEclock%getDayOfYear()
+      day = modelEclock%getDate()
 
         if (am_i_root()) then
           print '(A,I9,A,I0.4,A1,I0.2,A1,I0.2)',
