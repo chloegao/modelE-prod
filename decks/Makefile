@@ -99,6 +99,7 @@ rundeck: linkNonProduction check_RUNSRC
 	  sed 's/^'$(notdir $(RUNSRC))'\([:\. ]\)/'$(RUN)'\1/g' $(RUNDECKSRC) \
 	  | $(SCRIPTS_DIR)/protect_ccp_options.pl -c | $(CPP) -I$(TEMPLATES_DIR) \
 	  | $(SCRIPTS_DIR)/protect_ccp_options.pl -c -u \
+	  | $(SCRIPTS_DIR)/adapt_to_local.pl \
 	  > $(RUNDECK); \
 	else \
 	  echo "No source rundeck for $(RUNSRC)" ; exit 1; \
