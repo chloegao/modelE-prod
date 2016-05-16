@@ -34,7 +34,7 @@ tune_lt_sea= 5.5221d0 ! =3.9d0*2.17d0, *0.25*1.5 for 2x2.5, * 2 for bugfix, *0.8
 PltOx=0.0
 ! NH and SH polar stratospheric cloud formation temperature offsets:
 Tpsc_offset_N=-10.d0 
-Tpsc_offset_S=-10.d0
+Tpsc_offset_S=0.d0
 ! -----------------------------------
 ! 40-layer model with VMP clouds chemistry tuning parameters: 
 ! (If you do *not* have VMP clouds comment these out and uncomment the next section):
@@ -45,8 +45,8 @@ reg2TopPres_SpherO2andN2Ocorr=10.
 reg3Power_SpherO2andN2Ocorr=1.0
 reg3TopPres_SpherO2andN2Ocorr=5.
 reg4Power_SpherO2andN2Ocorr=0.5
-windowN2Ocorr=0.8
-windowO2corr=0.8
+windowN2Ocorr=1.0
+windowO2corr=1.0
 ! -----------------------------------
 ! Older, 40-layer model without VMP clouds chemistry tuning parameters:
 ! reg1Power_SpherO2andN2Ocorr=0.5
