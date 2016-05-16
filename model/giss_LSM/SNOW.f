@@ -235,7 +235,7 @@ ccc for tracers
      &    srht, trht, snht, htpr, evaporation, pr, dt,
      &    t_ground, dz_ground,
      &    water_to_ground, heat_to_ground,
-     &    radiation_out, snsh_dt, evap_dt, ! fb_or_fv,
+     &    radiation_out, snsh_dt, evap_dt, evap_min,! fb_or_fv,
      &     tr_flux )
       implicit none
 !@sum  a wrapper that calles real snow_adv (introduced for debugging)
@@ -244,7 +244,7 @@ ccc input:
       integer nl
       real*8 srht, trht, snht, htpr, evaporation
       real*8 pr, dt, t_ground, dz_ground
-      real*8 snsh_dt, evap_dt !, fb_or_fv
+      real*8 snsh_dt, evap_dt, evap_min !, fb_or_fv
 
 ccc output:
       real*8 water_to_ground, heat_to_ground
@@ -284,7 +284,7 @@ ccc checking if the model conserves energy (part 1) (for debugging)
      &    srht, trht, snht, htpr, evaporation, pr, dt,
      &    t_ground, dz_ground,
      &    water_to_ground, heat_to_ground,
-     &    radiation_out, snsh_dt, evap_dt, retcode )
+     &    radiation_out, snsh_dt, evap_dt, evap_min, retcode )
 
 !      if (fb_or_fv .le. 0.) return
 ccc checking if the model conserves energy (part 2) (for debugging)
@@ -340,7 +340,8 @@ ccc checking if preserve water
      &    srht, trht, snht, htpr, evaporation, pr, dt,
      &    t_ground, dz_ground,
      &    water_to_ground, heat_to_ground,
-     &    radiation_out, snsh_dt, evap_dt, retcode )
+     &    radiation_out, snsh_dt, evap_dt, evap_min,
+     &     retcode )
       implicit none
 !@sum main program that does column snow physics
 !@auth I.Aleinov
@@ -348,7 +349,7 @@ ccc input:
       integer nl
       real*8 srht, trht, snht, htpr, evaporation
       real*8 pr, dt, t_ground, dz_ground
-      real*8 snsh_dt, evap_dt
+      real*8 snsh_dt, evap_dt, evap_min
 
 ccc constants: (now defined as global params)
       real*8 k_ground, c_ground
@@ -368,6 +369,7 @@ ccc    of (MAX_NL) to force the allocation on a stack (for OpenMP) ?
       real*8 mass_layer, mass_above, scale_rho
       real*8 flux_in_deriv, flux_corr
       real*8 delta_tsn_impl ! shft of temperature due to implicit method
+      real*8 delta_evap, evap_corr
       integer n, nl_o
 c      real*8 dz_he(MAX_NL+1)
 
@@ -498,13 +500,21 @@ ccc snht_out_cor, delta_tsn_impl
       radiation_out = radiation_out -
      &     (-4.d0*sigma*(tsn(1)+tfrz)**3)*delta_tsn_impl
       snht = snht + snsh_dt * delta_tsn_impl
-      evaporation = evaporation + evap_dt * delta_tsn_impl
+      !evaporation = evaporation + evap_dt * delta_tsn_impl
+      delta_evap = evap_dt * delta_tsn_impl
+      if ( evaporation + delta_evap < evap_min ) then !hack to restrict the dew
+        evap_corr = evap_min - (evaporation + delta_evap)
+        delta_evap = delta_evap + evap_corr
+        snht = snht - evap_corr*lat_evap
+        !write(0,*) "SHOW: evap_corr = ", evap_corr
+      endif
+      evaporation = evaporation + delta_evap
 
 ccc and now remove (add) water due to extra evaporation.
 c!!! this may make wsn(1) negative, the only way I see now to prevent it
 c!!! is to keep minimal thickness of snow big enough
 
-      water_down = - evap_dt * delta_tsn_impl * dt ! ??
+      water_down = - delta_evap * dt ! ??
 
 #ifdef DEBUG_SNOW
       call check_rho_snow( dz, wsn, nl )

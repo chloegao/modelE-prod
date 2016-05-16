@@ -223,6 +223,9 @@ ccc   potential evaporation
 !@var epb,epbs,epv,epvs potential evaporation (b-bare, v-vege, s-snow)
       real*8 epb, epv, epbs, epvs, epvg
 
+!@var evap_min restriction on dew flux (m/s)
+      real*8 :: evap_min
+
 ccc   evaporation fluxes: these are pure fluxes over m^2
 ccc   i.e. they are not multiplied by any fr_...
 !@var evapb, evapbs, evapvw, evapvd, evapvs, evapvg evaporation flux (m/s)
@@ -838,6 +841,8 @@ ccc process_vege , but it should compute ok for dummy values.
 
 c**** qm1 has mass of water vapor in first atmosphere layer, kg m-2
       qm1dt=.001d0*qm1/dt
+      evap_min = - qm1dt
+
 ! need this ?      if(igcm.ge.0 .and. igcm.le.3) xl=eddy/(z1-zs)
 
 c     calculate bare soil, canopy and snow mixing ratios
@@ -3216,7 +3221,7 @@ ccc remember initial snow water for tracers
 ccc input
      &       fmask(ibv), evapsn(ibv), snshs(ibv), srht, trht, canht,
      &       drips(ibv), dripw(ibv), htdrips(ibv), htdripw(ibv),
-     &       devapsn_dt(ibv), dsnsh_dt, dts,
+     &       devapsn_dt(ibv), dsnsh_dt, evap_min, dts,
      &       tp(1,ibv), dz(1), nlsn, top_stdev,
 ccc updated
      &       dzsn(1,ibv), wsn(1,ibv), hsn(1,ibv), nsn(ibv),

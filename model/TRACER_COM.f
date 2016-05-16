@@ -623,11 +623,11 @@ c note: not applying CPP when declaring counts/lists.
      &     ,gases_count   ! tr_wd_type == nGas
      &     ,aero_count    ! tr_wd_type == nPart
      &     ,water_count   ! tr_wd_type == nWater
-     &     ,hlawt_count   ! tr_wd_type == nGas and tr_DHD != 0
+     &     ,hlaw_count    ! tr_wd_type == nGas and tr_RKD != 0
      &     ,aqchem_count  ! participates in cloud aqueous chemistry
       integer, dimension(:), allocatable ::
      &     active_list,gases_list,aero_list,water_list,
-     &     hlawt_list,aqchem_list
+     &     hlaw_list,aqchem_list
 
       ! temporary support of legacy interface
       interface ntsurfsrc
@@ -692,12 +692,12 @@ c note: not applying CPP when declaring counts/lists.
       integer :: n,nactive
       integer, dimension(1000) ::
      &     tmplist_active,tmplist_gases,tmplist_aero,tmplist_water,
-     &     tmplist_hlawt,tmplist_aqchem
+     &     tmplist_hlaw,tmplist_aqchem
       active_count = 0
       gases_count = 0
       aero_count = 0
       water_count = 0
-      hlawt_count = 0
+      hlaw_count = 0
       aqchem_count = 0
       do n=1,NTM
 
@@ -710,9 +710,9 @@ c note: not applying CPP when declaring counts/lists.
         case(nGAS)
           gases_count = gases_count + 1
           tmplist_gases(gases_count) = active_count
-          if(tr_DHD(n).ne.0.) then
-            hlawt_count = hlawt_count + 1
-            tmplist_hlawt(hlawt_count) = active_count
+          if(tr_RKD(n).ne.0.) then
+            hlaw_count = hlaw_count + 1
+            tmplist_hlaw(hlaw_count) = active_count
           endif
         case(nPART)
           aero_count = aero_count + 1
@@ -751,9 +751,9 @@ c note: not applying CPP when declaring counts/lists.
       allocate(water_list(water_count))
       water_list = tmplist_water(1:water_count)
 
-      if(allocated(hlawt_list)) deallocate(hlawt_list)
-      allocate(hlawt_list(hlawt_count))
-      hlawt_list = tmplist_hlawt(1:hlawt_count)
+      if(allocated(hlaw_list)) deallocate(hlaw_list)
+      allocate(hlaw_list(hlaw_count))
+      hlaw_list = tmplist_hlaw(1:hlaw_count)
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)

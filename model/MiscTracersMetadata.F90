@@ -13,11 +13,7 @@ module MiscTracersMetadata_mod
   use OldTracer_mod, only: nWater
   use OldTracer_mod, only: set_ntisurfsrc
   use OldTracer_mod, only: set_needtrs
-  use OldTracer_mod, only: tr_RKD 
-  use OldTracer_mod, only: set_F0
-  use OldTracer_mod, only: set_tr_RKD
-  use OldTracer_mod, only: set_tr_DHD
-  use OldTracer_mod, only: ngas, nPart
+  use OldTracer_mod, only: nPart
   use OldTracer_mod, only: set_tr_mm
   use OldTracer_mod, only: set_ntm_power
   use OldTracer_mod, only: set_trpdens
