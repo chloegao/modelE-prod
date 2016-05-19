@@ -3084,7 +3084,7 @@ c Oxidants
       USE TRDIAG_COM
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       use tracers_dust, only: nDustEmij, nDustEm2ij, nDustEv1ij
-     &   ,nDustEv2ij, nDustWthij, imDust
+     &   ,nDustEv2ij, nDustWthij, imDust, nSubClays
 #endif
 #if (defined TRACERS_WATER) && (defined TRDIAG_WETDEPO)
       USE CLOUDS, ONLY : diag_wetdep
@@ -3098,6 +3098,22 @@ c Oxidants
      &          src_dist_index
       use rad_com, only: nradfrc
       implicit none
+
+      interface
+        subroutine set_diag_aod(n,k,n_subclasses)
+        integer, intent(inout) :: k
+        integer, intent(in) :: n
+        integer, optional, intent(in) :: n_subclasses
+        end subroutine set_diag_aod
+      end interface
+      interface
+        subroutine set_diag_rf(n,k,n_subclasses)
+        integer, intent(inout) :: k
+        integer, intent(in) :: n
+        integer, optional, intent(in) :: n_subclasses
+        end subroutine set_diag_rf
+      end interface
+
       integer k,n,n1,kr,ktaijs_out
       character*50 :: unit_string
       CHARACTER*17 :: cform
@@ -4774,255 +4790,9 @@ c source of Pb210 from Rn222 decay
      &         ,'ClayKaHe','ClaySmHe' ,'ClayCaHe','ClayQuHe','ClayFeHe'
      &         ,'ClayGyHe')
 
-C???? can this be replaced with calls to set_diag_aod and set_diag_rf?
-          IF (diag_rad /= 1) THEN
-c dust optical thickness of four clay sub size classes
-            do kr=1,4
-              k = k + 1
-              ijts_tausub(1,n,kr) = k
-              ia_ijts(k) = ia_rad
-              lname_ijts(k) = trim(trname(n))//char(48+kr)//
-     *             ' optical thickness'
-              sname_ijts(k) = 'tau_'//trim(trname(n))//char(48+kr)
-              ijts_power(k) = -2
-              units_ijts(k) = unit_string(ijts_power(k),' ')
-              scale_ijts(k) = 10.**(-ijts_power(k))
-              ijts_HasArea(k) = .false.
-            end do
-c dust clear sky optical thickness of four clay sub size classes
-            do kr=1,4
-              k = k + 1
-              ijts_tausub(2,n,kr) = k
-              ia_ijts(k) = ia_rad
-              lname_ijts(k) = trim(trname(n))//char(48+kr)//
-     *             ' CS optical thickness'
-              sname_ijts(k) = 'tau_CS_'//trim(trname(n))//char(48+kr)
-              dname_ijts(k) = 'clrsky'
-              ijts_power(k) = -2
-              units_ijts(k) = unit_string(ijts_power(k),' ')
-              scale_ijts(k) = 10.**(-ijts_power(k))
-              ijts_HasArea(k) = .false.
-            end do
-          ELSE
-            DO kr=1,6
-              DO n1=1,4
-c extinction optical thickness in six solar bands for four clay sub classes
-                k=k+1
-                ijts_sqexsub(1,kr,n,n1)=k
-                ia_ijts(k)=ia_rad
-                WRITE(cform,'(A2,I1,A11)') '(A',LEN_TRIM(trname(n)),
-     &               ',I1,A26,I1)'
-                WRITE(lname_ijts(k),cform) TRIM(trname(n)),n1,
-     &               ' SW total extinction band ',kr
-                WRITE(cform,'(A11,I1,A4)') '(A8,I1,A1,A',
-     &               LEN_TRIM(trname(n)),',I1)'
-                WRITE(sname_ijts(k),cform) 'ext_band',kr,'_',
-     &               TRIM(trname(n)),n1
-                ijts_power(k) = -4
-                units_ijts(k) = unit_string(ijts_power(k),' ')
-                scale_ijts(k) = 10.**(-ijts_power(k))
-                ijts_HasArea(k) = .false.
-c clear sky extinction optical thickness in six solar bands for four clay
-c sub classes
-                k=k+1
-                ijts_sqexsub(2,kr,n,n1)=k
-                ia_ijts(k)=ia_rad
-                WRITE(cform,'(A2,I1,A11)') '(A',LEN_TRIM(trname(n)),
-     &               ',I1,A29,I1)'
-                WRITE(lname_ijts(k),cform) TRIM(trname(n)),n1,
-     &               ' CS SW total extinction band ',kr
-                WRITE(cform,'(A12,I1,A4)') '(A11,I1,A1,A',
-     &               LEN_TRIM(trname(n)),',I1)'
-                WRITE(sname_ijts(k),cform) 'ext_CS_band',kr,'_',
-     &               TRIM(trname(n)),n1
-                dname_ijts(k) = 'clrsky'
-                ijts_power(k) = -4
-                units_ijts(k) = unit_string(ijts_power(k),' ')
-                scale_ijts(k) = 10.**(-ijts_power(k))
-                ijts_HasArea(k) = .false.
-c scattering optical thickness in six solar bands for four clay sub classes
-                k=k+1
-                ijts_sqscsub(1,kr,n,n1)=k
-                ia_ijts(k)=ia_rad
-                WRITE(cform,'(A2,I1,A11)') '(A',LEN_TRIM(trname(n)),
-     &               ',I1,A28,I1)'
-                WRITE(lname_ijts(k),cform) TRIM(trname(n)),n1,
-     &               ' SW scatter extinction band ',kr
-                WRITE(cform,'(A11,I1,A4)') '(A8,I1,A1,A',
-     &               LEN_TRIM(trname(n)),',I1)'
-                WRITE(sname_ijts(k),cform) 'sct_band',kr,'_',
-     &               TRIM(trname(n)),n1
-                ijts_power(k) = -4
-                units_ijts(k) = unit_string(ijts_power(k),' ')
-                scale_ijts(k) = 10.**(-ijts_power(k))
-                ijts_HasArea(k) = .false.
-c clear sky scattering optical thickness in six solar bands for four clay
-c sub classes
-                k=k+1
-                ijts_sqscsub(2,kr,n,n1)=k
-                ia_ijts(k)=ia_rad
-                WRITE(cform,'(A2,I1,A11)') '(A',LEN_TRIM(trname(n)),
-     &               ',I1,A31,I1)'
-                WRITE(lname_ijts(k),cform) TRIM(trname(n)),n1,
-     &               ' CS SW scatter extinction band ',kr
-                WRITE(cform,'(A12,I1,A4)') '(A11,I1,A1,A',
-     &               LEN_TRIM(trname(n)),',I1)'
-                WRITE(sname_ijts(k),cform) 'sct_CS_band',kr,'_',
-     &               TRIM(trname(n)),n1
-                dname_ijts(k) = 'clrsky'
-                ijts_power(k) = -4
-                units_ijts(k) = unit_string(ijts_power(k),' ')
-                scale_ijts(k) = 10.**(-ijts_power(k))
-                ijts_HasArea(k) = .false.
-c scattering asymmetry factor in six solar bands for four clay sub classes
-                k=k+1
-                ijts_sqcbsub(1,kr,n,n1)=k
-                ia_ijts(k)=ia_rad
-                WRITE(cform,'(A2,I1,A11)') '(A',LEN_TRIM(trname(n)),
-     &               ',I1,A26,I1)'
-                WRITE(lname_ijts(k),cform) TRIM(trname(n)),n1,
-     &               ' SW asymmetry factor band ',kr
-                WRITE(cform,'(A11,I1,A4)') '(A8,I1,A1,A',
-     &               LEN_TRIM(trname(n)),',I1)'
-                WRITE(sname_ijts(k),cform) 'asf_band',kr,'_',
-     &               TRIM(trname(n)),n1
-                ijts_power(k) = -2
-                units_ijts(k) = unit_string(ijts_power(k),' ')
-                scale_ijts(k) = 10.**(-ijts_power(k))
-                ijts_HasArea(k) = .false.
-c clear sky scattering asymmetry factor in six solar bands for four clay
-c sub classes
-                k=k+1
-                ijts_sqcbsub(2,kr,n,n1)=k
-                ia_ijts(k)=ia_rad
-                WRITE(cform,'(A2,I1,A11)') '(A',LEN_TRIM(trname(n)),
-     &               ',I1,A29,I1)'
-                WRITE(lname_ijts(k),cform) TRIM(trname(n)),n1,
-     &               ' CS SW asymmetry factor band ',kr
-                WRITE(cform,'(A12,I1,A4)') '(A11,I1,A1,A',
-     &               LEN_TRIM(trname(n)),',I1)'
-                WRITE(sname_ijts(k),cform) 'asf_CS_band',kr,'_',
-     &               TRIM(trname(n)),n1
-                dname_ijts(k) = 'clrsky'
-                ijts_power(k) = -2
-                units_ijts(k) = unit_string(ijts_power(k),' ')
-                scale_ijts(k) = 10.**(-ijts_power(k))
-                ijts_HasArea(k) = .false.
-              END DO
-            END DO
-          END IF
-c dust shortwave radiative forcing of four clay sub size classes
-          if (nradfrc>0) then
-            do kr=1,4
-              k = k + 1
-              ijts_fcsub(1,n,kr) = k
-              ia_ijts(k) = ia_rad_frc
-              lname_ijts(k) = trim(trname(n))//char(48+kr)//
-     *             ' SW radiative forcing'
-              sname_ijts(k) = 'swf_'//trim(trname(n))//char(48+kr)
-              ijts_power(k) = -2
-              units_ijts(k) = unit_string(ijts_power(k),'W/m2')
-              scale_ijts(k) = 10.**(-ijts_power(k))
-              ijts_HasArea(k) = .false.
-            end do
-c dust longwave radiative forcing of four clay sub size classes
-            do kr=1,4
-              k = k + 1
-              ijts_fcsub(2,n,kr) = k
-              ia_ijts(k) = ia_rad_frc
-              lname_ijts(k) = trim(trname(n))//char(48+kr)//
-     *             ' LW radiative forcing'
-              sname_ijts(k) = 'lwf_'//trim(trname(n))//char(48+kr)
-              ijts_power(k) = -2
-              units_ijts(k) = unit_string(ijts_power(k),'W/m2')
-              scale_ijts(k) = 10.**(-ijts_power(k))
-              ijts_HasArea(k) = .false.
-            end do
-c dust shortwave radiative forcing at surface of four clay sub size classes
-            do kr=1,4
-              k = k + 1
-              ijts_fcsub(3,n,kr) = k
-              ia_ijts(k) = ia_rad_frc
-              lname_ijts(k) = trim(trname(n))//char(48+kr)//
-     *             ' SW Surf radiative forcing'
-              sname_ijts(k) = 'swf_surf_'//trim(trname(n))//char(48+kr)
-              ijts_power(k) = -2
-              units_ijts(k) = unit_string(ijts_power(k),'W/m2')
-              scale_ijts(k) = 10.**(-ijts_power(k))
-              ijts_HasArea(k) = .false.
-            end do
-c dust longwave radiative forcing at surface of four sub size classes
-            do kr=1,4
-              k = k + 1
-              ijts_fcsub(4,n,kr) = k
-              ia_ijts(k) = ia_rad_frc
-              lname_ijts(k) = trim(trname(n))//char(48+kr)//
-     *             ' LW Surf radiative forcing'
-              sname_ijts(k) = 'lwf_surf_'//trim(trname(n))//char(48+kr)
-              ijts_power(k) = -2
-              units_ijts(k) = unit_string(ijts_power(k),'W/m2')
-              scale_ijts(k) = 10.**(-ijts_power(k))
-              ijts_HasArea(k) = .false.
-            end do
-c dust clear sky shortwave radiative forcing of four clay sub size classes
-            do kr=1,4
-              k = k + 1
-              ijts_fcsub(5,n,kr) = k
-              ia_ijts(k) = ia_rad_frc
-              lname_ijts(k) = trim(trname(n))//char(48+kr)//
-     *             ' clr sky SW radiative forcing'
-              sname_ijts(k) = 'swf_CS_'//trim(trname(n))//char(48+kr)
-              dname_ijts(k) = 'clrsky'
-              ijts_power(k) = -2
-              units_ijts(k) = unit_string(ijts_power(k),'W/m2')
-              scale_ijts(k) = 10.**(-ijts_power(k))
-              ijts_HasArea(k) = .false.
-            end do
-c dust clear sky longwave radiative forcing of four clay sub size classes
-            do kr=1,4
-              k = k + 1
-              ijts_fcsub(6,n,kr) = k
-              ia_ijts(k) = ia_rad_frc
-              lname_ijts(k) = trim(trname(n))//char(48+kr) //
-     *             ' clr sky LW radiative forcing'
-              sname_ijts(k) = 'lwf_CS_'//trim(trname(n))//char(48+kr)
-              dname_ijts(k) = 'clrsky'
-              ijts_power(k) = -2
-              units_ijts(k) = unit_string(ijts_power(k),'W/m2')
-              scale_ijts(k) = 10.**(-ijts_power(k))
-              ijts_HasArea(k) = .false.
-            end do
-c dust clear sky shortwave radiative forcing at surface of four clay sub size classes
-            do kr=1,4
-              k = k + 1
-              ijts_fcsub(7,n,kr) = k
-              ia_ijts(k) = ia_rad_frc
-              lname_ijts(k) = trim(trname(n))//char(48+kr)//
-     *             ' clr sky SW Surf radiative forcing'
-              sname_ijts(k) = 'swf_CS_surf_'//
-     *             trim(trname(n))//char(48+kr)
-              dname_ijts(k) = 'clrsky'
-              ijts_power(k) = -2
-              units_ijts(k) = unit_string(ijts_power(k),'W/m2')
-              scale_ijts(k) = 10.**(-ijts_power(k))
-              ijts_HasArea(k) = .false.
-            end do
-c dust clear sky longwave radiative forcing at surface of four sub size classes
-            do kr=1,4
-              k = k + 1
-              ijts_fcsub(8,n,kr) = k
-              ia_ijts(k) = ia_rad_frc
-              lname_ijts(k) = trim(trname(n))//char(48+kr)//
-     *             ' clr sky LW Surf radiative forcing'
-              sname_ijts(k) = 'lwf_CS_surf_'//
-     *             trim(trname(n))//char(48+kr)
-              dname_ijts(k) = 'clrsky'
-              ijts_power(k) = -2
-              units_ijts(k) = unit_string(ijts_power(k),'W/m2')
-              scale_ijts(k) = 10.**(-ijts_power(k))
-              ijts_HasArea(k) = .false.
-            end do
-          endif
+        call set_diag_aod(n,k,nSubClays)
+        if (diag_fc==2) call set_diag_rf(n,k,nSubClays)
+
         CASE('Silt1','Silt2','Silt3','Silt4','Silt5','Sil1Quar'
      &         ,'Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps','Sil1Illi'
      &         ,'Sil1Kaol','Sil1Smec','Sil1QuHe','Sil1FeHe','Sil1CaHe'
@@ -5480,7 +5250,7 @@ c      enddo
 #endif
 
 #ifdef TRACERS_ON
-      subroutine set_diag_aod(n,k)
+      subroutine set_diag_aod(n,k,n_subclasses)
 !@sum set_diag_aod saves extinction, scattering and asymmetry parameter diags
 !@auth Dorothy Koch, modified by Kostas Tsigaridis
       use OldTracer_mod, only: trname
@@ -5489,110 +5259,146 @@ c      enddo
      &                     ,ijts_sqcb,ia_ijts,sname_ijts
      &                     ,lname_ijts,dname_ijts,ijts_power
      &                     ,units_ijts,scale_ijts,ijts_HasArea
+     &                     ,ijts_tausub,ijts_sqexsub,ijts_sqscsub
+     &                     ,ijts_sqcbsub
       USE DIAG_COM, only: ia_rad
       implicit none
 
       integer, intent(inout) :: k
       integer, intent(in) :: n
+!@var n_subclasses optional argument for the number of sub classes of a given
+!@+  tracer (>= 1)
+      integer, optional, intent(in) :: n_subclasses
       character*50 :: unit_string
 !@param sascs short name of all-sky/clear-sky selector
 !@param lascs long name of all-sky/clear-sky selector
 !@var s index of sascs and lascs
 !@var kr index of solar bands
 !@var skr value of kr as a string
+!@var sn1 value of n1 as a string
       character(len=sname_strlen), parameter :: dname='clrsky'
       character(len=10), parameter, dimension(2) ::
      &  sascs=(/'   ','CS_'/),lascs=(/'         ','clear sky'/)
-      integer :: kr,s
-      character(len=1) :: skr
+      integer :: kr,s,n1,n_sub
+      character(len=1) :: skr,sn1
+
+      n_sub=1
+      if (present(n_subclasses)) n_sub=n_subclasses
 
 ! aerosol optical depth and related diagnostics
 
       do s=1,size(sascs)
         IF (diag_rad /= 1) THEN
 ! aerosol optical depth for band6
-          k = k + 1
-          ijts_tau(s,n) = k
-          ia_ijts(k) = ia_rad
-          sname_ijts(k) = 'tau_'//trim(sascs(s))//trim(trname(n))
-          if (trim(sascs(s))=='CS_') then
-            lname_ijts(k) = trim(trname(n))//' '//trim(lascs(s))//
-     &                      ' aerosol optical depth'
-            dname_ijts(k) = 'clrsky'
-          else
-            lname_ijts(k) = trim(trname(n))//
-     &                      ' aerosol optical depth'
-          endif
-          ijts_power(k) = -2
-          units_ijts(k) = unit_string(ijts_power(k),' ')
-          scale_ijts(k) = 10.**(-ijts_power(k))
-          ijts_HasArea(k) = .false.
-        ELSE
-          DO kr=1,6
-            write (skr,'(i1)') kr
-! extinction aerosol optical depth in six solar bands
-            k=k+1
-            ijts_sqex(s,kr,n)=k
-            ia_ijts(k)=ia_rad
-            sname_ijts(k)='ext_'//trim(sascs(s))//'band'//skr//'_'//
-     &                    trim(trname(n))
+          do n1=1,n_sub
+            k = k + 1
+            if (n_sub == 1) then
+              ijts_tau(s,n) = k
+              sn1=' '
+            else
+              ijts_tausub(s,n,n1) = k
+              sn1=char(48+n1)
+            end if
+            sname_ijts(k) = 'tau_'//trim(sascs(s))//trim(trname(n))//
+     &           trim(sn1)
             if (trim(sascs(s))=='CS_') then
-              lname_ijts(k)=trim(trname(n))//' '//trim(lascs(s))//
-     &                      ' SW extinction band '//skr
+              lname_ijts(k) = trim(trname(n))//trim(sn1)//' '//
+     &             trim(lascs(s))//' aerosol optical depth'
               dname_ijts(k) = 'clrsky'
             else
-              lname_ijts(k)=trim(trname(n))//
-     &                      ' SW extinction band '//skr
-            endif
-            ijts_power(k) = -4
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-            ijts_HasArea(k) = .false.
-! scattering aerosol optical depth in six solar bands
-            k=k+1
-            ijts_sqsc(s,kr,n)=k
-            ia_ijts(k)=ia_rad
-            sname_ijts(k)='sct_'//trim(sascs(s))//'band'//skr//'_'//
-     &                    trim(trname(n))
-            if (trim(sascs(s))=='CS_') then
-              lname_ijts(k)=trim(trname(n))//' '//trim(lascs(s))//
-     &                      ' SW scattering band '//skr
-              dname_ijts(k) = 'clrsky'
-            else
-              lname_ijts(k)=trim(trname(n))//
-     &                      ' SW scattering band '//skr
-            endif
-            ijts_power(k) = -4
-            units_ijts(k) = unit_string(ijts_power(k),' ')
-            scale_ijts(k) = 10.**(-ijts_power(k))
-            ijts_HasArea(k) = .false.
-! scattering asymmetry factor in six solar bands
-            k=k+1
-            ijts_sqcb(s,kr,n)=k
-            ia_ijts(k)=ia_rad
-            sname_ijts(k)='asf_'//trim(sascs(s))//'band'//skr//'_'//
-     &                    trim(trname(n))
-            if (trim(sascs(s))=='CS_') then
-              lname_ijts(k)=trim(trname(n))//' '//trim(lascs(s))//
-     &                      ' SW assymetry factor band '//skr
-              dname_ijts(k) = 'clrsky'
-            else
-              lname_ijts(k)=trim(trname(n))//
-     &                      ' SW assymetry factor band '//skr
+              lname_ijts(k) = trim(trname(n))//' aerosol optical depth'
             endif
             ijts_power(k) = -2
             units_ijts(k) = unit_string(ijts_power(k),' ')
             scale_ijts(k) = 10.**(-ijts_power(k))
             ijts_HasArea(k) = .false.
-          END DO ! kr
+          end do                ! n1
+        ELSE
+          DO kr=1,6
+            write (skr,'(i1)') kr
+! extinction aerosol optical depth in six solar bands
+            do n1=1,n_sub
+              k=k+1
+              if (n_sub == 1) then
+                ijts_sqex(s,kr,n)=k
+                sn1=' '
+              else
+                ijts_sqexsub(s,kr,n,n1)=k
+                sn1=char(48+n1)
+              end if
+              ia_ijts(k)=ia_rad
+              sname_ijts(k)='ext_'//trim(sascs(s))//'band'//skr//'_'//
+     &                    trim(trname(n))//trim(sn1)
+              if (trim(sascs(s))=='CS_') then
+                lname_ijts(k)=trim(trname(n))//trim(sn1)//' '//
+     &               trim(lascs(s))//' SW extinction band '//skr
+                dname_ijts(k) = 'clrsky'
+              else
+                lname_ijts(k)=trim(trname(n))//
+     &                      ' SW extinction band '//skr
+              endif
+              ijts_power(k) = -4
+              units_ijts(k) = unit_string(ijts_power(k),' ')
+              scale_ijts(k) = 10.**(-ijts_power(k))
+              ijts_HasArea(k) = .false.
+! scattering aerosol optical depth in six solar bands
+              k=k+1
+              if (n_sub == 1) then
+                ijts_sqsc(s,kr,n)=k
+                sn1=' '
+              else
+                ijts_sqscsub(s,kr,n,n1)=k
+                sn1=char(48+n1)
+              end if
+              ia_ijts(k)=ia_rad
+              sname_ijts(k)='sct_'//trim(sascs(s))//'band'//skr//'_'//
+     &             trim(trname(n))//trim(sn1)
+              if (trim(sascs(s))=='CS_') then
+                lname_ijts(k)=trim(trname(n))//trim(sn1)//' '//
+     &               trim(lascs(s))//' SW scattering band '//skr
+                dname_ijts(k) = 'clrsky'
+              else
+                lname_ijts(k)=trim(trname(n))//
+     &               ' SW scattering band '//skr
+              endif
+              ijts_power(k) = -4
+              units_ijts(k) = unit_string(ijts_power(k),' ')
+              scale_ijts(k) = 10.**(-ijts_power(k))
+              ijts_HasArea(k) = .false.
+! scattering asymmetry factor in six solar bands
+              k=k+1
+              if (n_sub == 1) then
+                ijts_sqcb(s,kr,n)=k
+                sn1=' '
+              else
+                ijts_sqcbsub(s,kr,n,n1)=k
+                sn1=char(48+n1)
+              end if
+              ia_ijts(k)=ia_rad
+              sname_ijts(k)='asf_'//trim(sascs(s))//'band'//skr//'_'//
+     &             trim(trname(n))//(trim(sn1))
+              if (trim(sascs(s))=='CS_') then
+                lname_ijts(k)=trim(trname(n))//trim(sn1)//' '//
+     &               trim(lascs(s))//' SW assymetry factor band '//skr
+                dname_ijts(k) = 'clrsky'
+              else
+                lname_ijts(k)=trim(trname(n))//
+     &               ' SW assymetry factor band '//skr
+              endif
+              ijts_power(k) = -2
+              units_ijts(k) = unit_string(ijts_power(k),' ')
+              scale_ijts(k) = 10.**(-ijts_power(k))
+              ijts_HasArea(k) = .false.
+            end do              ! n1
+          END DO                ! kr
         END IF
-      enddo ! s
+      enddo                     ! s
 
       return
       end subroutine set_diag_aod
 
 
-      subroutine set_diag_rf(n,k)
+      subroutine set_diag_rf(n,k,n_subclasses)
 !@sum set_diag_rf saves shortwave and longwave forcing, for all-sky and
 !@+               clear-sky, at surface and TOA
 !@auth Kostas Tsigaridis
@@ -5602,13 +5408,16 @@ c      enddo
       USE TRDIAG_COM, only: ia_ijts,sname_ijts
      &                     ,lname_ijts,dname_ijts,ijts_power
      &                     ,units_ijts,scale_ijts,ijts_HasArea
-     &                     ,ijts_fc
+     &                     ,ijts_fc,ijts_fcsub
       USE DIAG_COM, only: ia_rad_frc
       use RAD_COM, only: nradfrc,diag_fc
       implicit none
 
       integer, intent(inout) :: k
       integer, intent(in) :: n
+!@var n_subclasses optional argument for the number of sub classes of a given
+!@+  tracer (>= 1)
+      integer, optional, intent(in) :: n_subclasses
       character*50 :: unit_string
 !@param sascs short name of all-sky/clear-sky selector
 !@param lascs long name of all-sky/clear-sky selector
@@ -5622,14 +5431,18 @@ c      enddo
 !@var i combined index of s,l,f
 !@var kr index of solar bands
 !@var skr value of kr as a string
+!@var sn1 value of n1 as a string
       character(len=sname_strlen), parameter :: dname='clrsky'
       character(len=10), parameter, dimension(2) ::
      &  sascs=(/'   ','CS_'/),lascs=(/'         ','clear sky'/),
      &  stoasrf=(/'     ','surf_'/),ltoasrf=(/'TOA    ','surface'/),
      &  sswlw=(/'swf_','lwf_'/),lswlw=(/'shortwave','longwave '/)
-      integer :: kr,s,l,f,i
-      character(len=1) :: skr
+      integer :: kr,s,l,f,i,n1,n_sub
+      character(len=1) :: skr,sn1
       character(len=20) :: spcname ! following MAX_LEN_NAME=20 for trname
+
+      n_sub=1
+      if (present(n_subclasses)) n_sub=n_subclasses
 
 ! radiative forcing and related diagnostics
 
@@ -5650,26 +5463,36 @@ c      enddo
         do l=1,size(stoasrf)
         do f=1,size(sswlw)
           i=(s-1)*size(stoasrf)*size(sswlw)+(l-1)*size(sswlw)+f
-          k = k + 1
-          ijts_fc(i,n) = k
-          ia_ijts(k) = ia_rad_frc
-          lname_ijts(k) = trim(spcname)//' '//trim(lswlw(f))//' '
-          sname_ijts(k) = trim(sswlw(f))
-          if (trim(sascs(s))=='CS_') then
-            lname_ijts(k) = trim(lname_ijts(k))//trim(lascs(s))//' '
-            sname_ijts(k) = trim(sname_ijts(k))//trim(sascs(s))
-            dname_ijts(k) = 'clrsky'
-          endif
-          if (trim(stoasrf(l))=='surf_') then
-            lname_ijts(k) = trim(lname_ijts(k))//trim(ltoasrf(l))//' '
-            sname_ijts(k) = trim(sname_ijts(k))//trim(stoasrf(l))
-          endif
-          lname_ijts(k) = trim(lname_ijts(k))//'radiative forcing'
-          sname_ijts(k) = trim(sname_ijts(k))//trim(spcname)
-          ijts_power(k) = -2
-          units_ijts(k) = unit_string(ijts_power(k),'W/m2')
-          scale_ijts(k) = 10.**(-ijts_power(k))
-          ijts_HasArea(k) = .false.
+          do n1=1,n_sub
+            k = k + 1
+            if (n_sub == 1) then
+              ijts_fc(i,n) = k
+              sn1=' '
+            else
+              ijts_fcsub(i,n,n1) = k
+              sn1=char(48+n1)
+            end if
+            ia_ijts(k) = ia_rad_frc
+            lname_ijts(k) = trim(spcname)//trim(sn1)//' '//
+     &           trim(lswlw(f))//' '
+            sname_ijts(k) = trim(sswlw(f))
+            if (trim(sascs(s))=='CS_') then
+              lname_ijts(k) = trim(lname_ijts(k))//trim(lascs(s))//' '
+              sname_ijts(k) = trim(sname_ijts(k))//trim(sascs(s))
+              dname_ijts(k) = 'clrsky'
+            endif
+            if (trim(stoasrf(l))=='surf_') then
+              lname_ijts(k) = trim(lname_ijts(k))//trim(ltoasrf(l))//' '
+              sname_ijts(k) = trim(sname_ijts(k))//trim(stoasrf(l))
+            endif
+            lname_ijts(k) = trim(lname_ijts(k))//'radiative forcing'
+            sname_ijts(k) = trim(sname_ijts(k))//trim(spcname)//
+     &           trim(sn1)
+            ijts_power(k) = -2
+            units_ijts(k) = unit_string(ijts_power(k),'W/m2')
+            scale_ijts(k) = 10.**(-ijts_power(k))
+            ijts_HasArea(k) = .false.
+          end do                ! n1
         enddo ! f
         enddo ! l
         enddo ! s
