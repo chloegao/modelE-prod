@@ -5,15 +5,18 @@ macro(modele_find_prerequisites)
     find_package(FException REQUIRED)
   endif()
 
-  find_package (MPI REQUIRED)
+  if (COMPILE_MODEL)
+    find_package (MPI REQUIRED)
+
+    if (${USE_PNETCDF})
+        find_package(PNetCDF REQUIRED)
+#        find_package(NetCDF_CXX REQUIRED)
+    endif()
+
+  endif()
   
   # Other required libraries
   find_package (NetCDF4_Fortran REQUIRED)
-
-  if (${USE_PNETCDF})
-      find_package(PNetCDF REQUIRED)
-#      find_package(NetCDF_CXX REQUIRED)
-  endif()
 
   # Use option values to set compiler and linker flags
   set (ModelE_EXTERNAL_LIBS "")
@@ -24,10 +27,13 @@ macro(modele_set_dependencies)
 
   # Set include and library directories for *required* libraries.
   include_directories(${NETCDF4_FORTRAN_INCLUDE_DIR})
-  include_directories(${MPI_Fortran_INCLUDE_PATH})
+
+  if (COMPILE_MODEL)
+    include_directories(${MPI_Fortran_INCLUDE_PATH})
+    list (APPEND ModelE_EXTERNAL_LIBS ${MPI_Fortran_LIBRARIES})
+  endif()
 
   list (APPEND ModelE_EXTERNAL_LIBS ${NETCDF4_FORTRAN_LIBRARY})
-  list (APPEND ModelE_EXTERNAL_LIBS ${MPI_Fortran_LIBRARIES})
 
   if (${USE_FEXCEPTION})
     include_directories(${FEXCEPTION_INCLUDE_DIR})
