@@ -34,7 +34,7 @@ tune_lt_sea= 58.903d0 ! =3.9d0*2.17d0 roughX4 * 2 for bugfix, *0.87
 ! overwritten with climatology based on NINT ozone input.
 PltOx=0.0
 ! NH and SH polar stratospheric cloud formation temperature offsets:
-Tpsc_offset_N=-10.d0
+Tpsc_offset_N=0.d0
 Tpsc_offset_S=0.d0
 ! -----------------------------------
 ! 40-layer model with VMP clouds chemistry tuning parameters:
