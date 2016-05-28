@@ -215,8 +215,8 @@
      &     1.2d0,25.0d0, 60.d0, 0.2d0, 0.153d0, 3,
      &     0.0296d0, 1.560d0, 0.0621d0, 2.306d0, 27.d0, -0.0232d0),
      ! !* 8 - deciduous needleleaf !## SLA from Reich (1997) leaf longev. 1 yr
-     !                !!! - changed SLA:  10 -> 25
-     &     pftype(1,.true.,2,-100.d0,.55d0, .25d0, 0.9d0, 25.0d0, 0.9d0, 
+     !                !!! - changed SLA:  10 -> 25 -> 24.7 data avg
+     &     pftype(1,.true.,2,-100.d0,.55d0, .25d0, 0.9d0, 24.7d0, 0.9d0, 
      &     1.8d0, 27.0d0, 50.d0, 0.2d0, 0.2d0, 2,
      &     0.0240d0, 1.899d0, 0.1470d0, 2.238d0, 34.d0, -0.0388d0),
      ! !* 9 - cold adapted shrub
@@ -239,14 +239,14 @@
      ! !* 13 - C3 grass - annual
      &     pftype(1,.false.,3,-2030.d0,.30d0,.1d0, 1.5d0, 22.d0, 1.2d0, !10->15  
      &     1.5d0, UNDEF, 50.d0, 0.1d0, 0.0d0, 5,
-     &     0.21d0, 1.200d0, 0.00001d0, 1.000d0, 0.4778d0, -0.75d0),
+     &     0.2100d0, 1.200d0, 0.00001d0, 1.000d0, 0.4778d0, -0.75d0),
      ! !* 14 - arctic C3 grass
      &     pftype(1,.false.,3,-153.d0,.60d0, .27d0, 1.4d0, 20.d0, 0.6d0, 
      &     1.5d0, UNDEF, 50.d0, 0.1d0, 0.0d0, 4,
      &     0.2100d0, 1.200d0, 0.00001d0, 1.000d0, 0.4778d0, -0.75d0),
-     ! !* 15 - C4 crops herbaceous
-           !!! hack : changed b1Cf : 2.00d0 -> 0.2100d0
+     ! !* 15 - C4 crops herbaceous - NOTE: 1 (C3) in AR5_v2_branch!  Hand fix!
      &     pftype(1,.false., 1,-153.d0,.45d0,.27d0,1.3d0, 15.d0, 0.6d0, 
+           !!! correction of error : changed b1Cf : 2.00d0 -> 0.2100d0
      &     1.1d0, UNDEF, 52.5d0, 0.16d0, 0.0d0, 4,
      &     0.2100d0, 1.200d0, 0.00001d0, 1.000d0, 0.4778d0, -0.75d0),
      ! !* 16 - crops - broadleaf woody !## COPIED FROM BROAD COLDDECID LATE ##

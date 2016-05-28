@@ -14,7 +14,7 @@
 ccc input
      &     fm, evap, snsh, srht, trht, canht,
      &     drips, dripw, htdrips, htdripw,
-     &     devap_dt, dsnsh_dt, dts,
+     &     devap_dt, dsnsh_dt, evap_min, dts,
      &     tp_soil, dz_soil, nlsn, top_stdev,
 ccc updated
      &       dzsn, wsn, hsn, nsn,
@@ -31,7 +31,7 @@ ccc input
 !@var canht heat flux from canopy, i.e. stbo*t_can**4 (w/m**2)
       real*8 fm, evap, snsh, srht, trht, canht
       real*8 drips, dripw, htdrips, htdripw
-      real*8 devap_dt, dsnsh_dt, dts
+      real*8 devap_dt, dsnsh_dt, evap_min, dts
       real*8 tp_soil, dz_soil, top_stdev
       integer nlsn
 ccc updated
@@ -126,7 +126,7 @@ ccc for tracers
      $     prsn, dts,
      &     tp_soil, dz_soil,
      &     flmlt, fhsng,
-     &     thrmsn, dsnsh_sn_dt, devap_sn_dt, ! fbfv(ibv),
+     &     thrmsn, dsnsh_sn_dt, devap_sn_dt, evap_min,! fbfv(ibv),
      &     tr_flux )
 
       flux_snow(:) = flux_snow(:) + tr_flux(:)

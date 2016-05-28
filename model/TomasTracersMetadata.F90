@@ -9,7 +9,6 @@ module TomasTracersMetadata_mod
   USE CONSTANT, only: pi
   use Dictionary_mod, only: sync_param
   use OldTracer_mod, only: set_emisPerFireByVegType
-  use OldTracer_mod, only : nPart
   use OldTracer_mod, only : set_tr_mm
   use OldTracer_mod, only : set_ntm_power
   use OldTracer_mod, only : set_trpdens
@@ -20,15 +19,11 @@ module TomasTracersMetadata_mod
   use OldTracer_mod, only: set_HSTAR
   use OldTracer_mod, only: set_ntisurfsrc
   use OldTracer_mod, only: set_needtrs
-  use OldTracer_mod, only: set_F0
   use OldTracer_mod, only: set_trpdens
   use OldTracer_mod, only: set_trradius
   use OldTracer_mod, only: set_tr_wd_TYPE
-  use OldTracer_mod, only: set_tr_RKD
-  use OldTracer_mod, only: set_tr_DHD
   use OldTracer_mod, only: set_fq_aer
   use OldTracer_mod, only: nGAS, nPart
-  use OldTracer_mod, only: tr_RKD      
   use TRACER_COM, only: offline_dms_ss, offline_ss
   use TRACER_COM, only: xk, nbins
   use TRACER_COM, only: n_NH4, n_H2SO4

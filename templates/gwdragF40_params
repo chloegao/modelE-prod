@@ -4,7 +4,7 @@ vsdragl=0.000,0.000,0.000,0.000,0.00,0.000,0.000,0.000,0.00,0.00,  0.00,0.00,0.0
 
 ! Gravity wave parameters
 PBREAK = 200.  ! The level for GW breaking above.
-DEFTHRESH=0.000055 ! threshold (1/s) for triggering deformation waves
+DEFTHRESH=0.00010  ! threshold (1/s) for triggering deformation waves
 PCONPEN=400.   ! penetrating convection defn for GWDRAG
 CMC = 0.0000002 ! parameter for GW Moist Convective drag
 CSHEAR=10.     ! Shear drag coefficient

@@ -13,10 +13,7 @@ C**** GLOBAL parameters and variables:
      &    prnls,prnrts,prnchg,lprn,jprn,iprn,ay,pHOx,pOx,pNOx,
      &    yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yNO3,yRXPAR,yXO2N,acetone,
      &    allowSomeChemReinit,pNO3,topLevelOfChemistry
-     &    ,pCLOx,pCLx,pOClOx,pBrOx,yCl2,yCl2O2
-#ifdef SMOOTH_SUNLIGHT_CHEMISTRY
-      use TRCHEM_Shindell_COM, only: mostRecentNonZeroAlbedo
-#endif
+     &    ,pCLOx,pCLx,pOClOx,pBrOx,yCl2,yCl2O2,mostRecentNonZeroAlbedo
 
       IMPLICIT NONE
 
@@ -95,18 +92,18 @@ C Initialize a few (IM,JM,topLevelOfChemistry) arrays, first hour only:
 #endif
 #endif  /* TRACERS_AEROSOLS_SOA */
 
-#ifdef SMOOTH_SUNLIGHT_CHEMISTRY
-      ! Read some albedo initial conditions I,J to be used only until
-      ! rad code ALB(I,J,1) has filled in it's first non-zero values 
-      ! at each I,J. Array mostRecentNonZeroAlbedo(I,J) is then 
-      ! saved to/read from restart files for use in rest of the run.
-      if(Itime == ItimeI)then         !binary, old:
+      if(Itime == ItimeI)then
+        ! First time only, read some albedo initial conditions (I,J)
+        ! to be used only until rad code ALB(I,J,1) has filled in it's
+        ! first non-zero values at each I,J. Array 
+        ! mostRecentNonZeroAlbedo(I,J) is then saved to/read from restart
+        ! files for use in rest of the run:
+                       ! logicals mean: binary, old:
         call openunit('ALB_IC',iu_data,.true.,.true.)
         call readt_parallel(grid,iu_data,nameunit(iu_data),
      &  mostRecentNonZeroAlbedo,0)
         call closeunit(iu_data)
       end if
-#endif
 
       return
       END SUBROUTINE cheminit

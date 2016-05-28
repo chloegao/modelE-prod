@@ -182,7 +182,7 @@ C**** Local parameters and variables and arguments:
      &  chgHT4,chgHT5,rmrClOx,rmrBrOx,rmv,rmrOx,avgTT_H2O,avgTT_CH4,
      &  countTT,bHNO3,mHNO3,HNO3_thresh,Ttemp,changeBrOx,changeBrONO2,
      &  changeBrOx2,changeHBr,tempChangeNOx,ss27x2,ss27x2_c,OHpptv,
-     &  HO2pptv,ObyO3,NO2byNO,ClbyClO,voc2nox_denom,tempChangeOx
+     &  HO2pptv,ObyO3,NO2byNO,ClbyClO,voc2nox_denom,tempChangeOx,pNOloc
       integer :: igas,LL,I,J,L,N,inss,L2,n2,ierr,ierr_loc,Jqq,Iqq,
      & maxT,iu,itemp_iter,ih1330e,ih1030e,ih1030,ih1330,m,istep,index1,
      & index2,nb
@@ -595,7 +595,7 @@ C (and hence COSZ1 is set to 0), recalculate it with get_sza routine:
 
 C SUNLIGHT criteria:
       albedoToUse=ALB(I,J,1)
-#ifdef SMOOTH_SUNLIGHT_CHEMISTRY
+      ! previously: daylight=((ALB(I,J,1)/=0.d0).and.(sza<szamax))
       daylight=(sza<szamax)
       if(daylight)then
         if(albedoToUse/=0.d0)then
@@ -604,9 +604,6 @@ C SUNLIGHT criteria:
           albedoToUse=mostRecentNonZeroAlbedo(I,J)
         end if
       end if
-#else
-      daylight=((ALB(I,J,1)/=0.d0).and.(sza<szamax))
-#endif
 
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 C                 BEGIN PHOTOLYSIS                               C
@@ -957,6 +954,8 @@ c       calculate NO3 vs NO2 (assume no NO at night)
           yNO3(I,J,L)=pNO3temp*y(nn_NOx,L)
           y(nNO2,L)=y(nn_NOx,L)-yNO3(I,J,L)
         end do
+        pNOx(I,J,L)=y(nNO2,L)/y(nn_NOx,L)
+        pNO3(I,J,L)=yNO3(I,J,L)/y(nn_NOx,L)
 
 c       set reaction rates, then limit any uniformly across all
 c       paths if lead to negative conc:
@@ -988,8 +987,7 @@ c       paths if lead to negative conc:
         rClOplusNO2=
      &    y(nClO,L)*rr(rrtri%ClO_NO2__ClONO2_M,L)*y(nNO2,L)*dt2
         rDMSplusNO3=ydms(i,j,L)*rsulf3(i,j,L)*yNO3(I,J,L)*dt2
-        rBrOplusNO2=
-     &    rr(rrtri%BrO_NO2__BrONO2_M,L)*y(nn_NOx,L)*pNOx(I,J,L)
+        rBrOplusNO2=rr(rrtri%BrO_NO2__BrONO2_M,L)*y(nNO2,L) 
      &      *y(nn_BrOx,L)*pBrOx(I,J,L)*dt2
         chgHT3=rr(rrhet%ClONO2_HCl__Cl_HNO3,L)*y(nn_ClONO2,L)*dt2
         changehetClONO2=
@@ -1847,8 +1845,15 @@ c           Conserve N wrt BrONO2 once inital Br changes past:
 
         !Save 3D NO separately from NOx (pppv here):
         ! need to add NOx change to match the NOx tracer diag:
-        taijls(i,j,l,ijlt_NOvmr)=taijls(i,j,l,ijlt_NOvmr)+
-     &  (1.d0-pNOx(i,j,l))*(y(nn_NOx,l)+tempChangeNOx)/y(nM,l)
+        pNOloc=1.d0-pNOx(i,j,L)-pNO3(i,j,L)
+        if(pNOloc > 0.d0)then
+          taijls(i,j,l,ijlt_NOvmr)=taijls(i,j,l,ijlt_NOvmr)+
+     &    pNOloc*(y(nn_NOx,l)+tempChangeNOx)/y(nM,l)
+        else
+          ! avoid accumulating small negatives due to round-off
+          ! of local pNO (e.g. at night)
+          continue
+        end if
 #endif
 
         ! Below there is a 3D O3 diagnostic in cm-atm units for more
@@ -1885,8 +1890,14 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
         mNO2(i,j,L)=pNOx(i,j,L)*(y(nn_NOx,L)+tempChangeNOx)/y(nM,L)
 #ifdef CACHED_SUBDD
         mrno2(i,j,L)=pNOx(i,j,L)*(y(nn_NOx,L)+tempChangeNOx)/y(nM,L)
-        mrno(i,j,L)=
-     &  (1d0-pNOx(i,j,L))*(y(nn_NOx,L)+tempChangeNOx)/y(nM,L)
+        pNOloc=1.d0-pNOx(i,j,L)-pNO3(i,j,L)
+        if(pNOloc > 0.d0)then
+          mrno(i,j,L)=pNOloc*(y(nn_NOx,L)+tempChangeNOx)/y(nM,L)
+        else
+          ! avoid accumulating small negatives due to round-off
+          ! of local pNO (e.g. at night)
+          mrno(i,j,L)=0.d0
+        end if
         mro3(i,j,L)=pOx(i,j,L)*(y(nn_Ox,L)+tempChangeOx)/y(nM,L)
         OH_conc(i,j,l)=y(nOH,L)
         HO2_conc(i,j,l)=y(nHO2,L)
