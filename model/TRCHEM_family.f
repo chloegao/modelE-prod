@@ -186,7 +186,7 @@ C**** GLOBAL parameters and variables:
       IMPLICIT NONE
 
 C**** Local parameters and variables and arguments:
-!@var aqqz,bqqz,cqqz,cz,dz,sqroot,temp_yHOx,rcqqz,ratio dummy vars
+!@var aqqz,bqqz,cqqz,cz,dz,sqroot,temp_yHOx,ratio dummy vars
 !@var L dummy loop variable
 !@var I,J passed horizontal position indicies
 !@var Lmax maximum altitude for chemistry
@@ -199,7 +199,7 @@ C**** Local parameters and variables and arguments:
       integer             :: L, maxT 
       integer, intent(IN) :: Lmax,I,J
       real*8              :: aqqz, bqqz, cqqz, cz, dz, sqroot, 
-     &   temp_yHOx,rcqqz,ratio,rHprod,rHspecloss,rkzero,rktot,
+     &   temp_yHOx,ratio,rHprod,rHspecloss,rkzero,rktot,
      &   yAtomicH
       REAL*8, DIMENSION(LM) :: PRES ! can keep LM
 
@@ -268,7 +268,7 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
 #endif
 
         ! 1.66/1.31 accounts for HOx production via O(1D)+CH4-->CH3O path:
-        cqqz=cqqz+
+        cqqz=cqqz
      &    +((2.d0*rr(rrbi%O1D_H2O__OH_OH,L)*y(nH2O,L)
      &      +(1.66d0/1.31d0)*rr(rrbi%O1D_CH4__OH_CH3O2,L)*y(nn_CH4,L)
      &    )*y(nO1D,L))
