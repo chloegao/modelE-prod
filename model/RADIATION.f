@@ -5312,8 +5312,10 @@ C     ------------------------------------------------------------------
 C                            -------------------------------------------
 C                            NO2, O3 Chappuis Band, Rayleigh, parameters
 C                            -------------------------------------------
-      REAL*8, PARAMETER :: XCMNO2=5.465d0, XCMO3=.0399623d0,
-     *     TOTRAY=0.000155d0
+      REAL*8, PARAMETER :: XCMNO2=5.465d0, XCMO3=.0399623d0
+      REAL*8, PARAMETER ::
+     &    SIGMA_RAY= 4.4028450689125004d-07
+C           Rayleigh scattering cross-section [m2/mol]
       REAL*8 RNB(LX),RNX(LX), TNB(LX),TNX(LX), XNB(LX),XNX(LX)
       REAL*8 SRB(LX),SRX(LX), VRU(LX+1),VRD(LX+1),FAC(LX+1)
       REAL*8 AO3D(LX),AO3U(LX),AO3X(LX)
@@ -5381,7 +5383,8 @@ C                     ----------------------------------------------
       COSMAG=35.D0/SQRT(1224.D0*COSZ*COSZ+1.D0)
       SECZ=1.D0/COSZ
 
-      TAURAY=TOTRAY*FRAYLE
+C     Compute Rayleigh optical depth, still missing dP in units of mbar
+      TAURAY=SIGMA_RAY/(grav*mair*1d-3)*1d+2*FRAYLE
 
       DO 90 K=1,6
       RTAU=1.D-10
