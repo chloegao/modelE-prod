@@ -557,9 +557,10 @@ c       prod term via isoprene rxns:
         dest(nn_Paraffin,L)=dest(nn_Paraffin,L)-
      &       y(nRXPAR,L)*RXPAR_PAR*dt2
         prod(nn_Paraffin,L)=prod(nn_Paraffin,L)
-     &    +0.63d0*y(nn_Isoprene,L)*(rr(rrbi%Isoprene_OH__HCHO_Alkenes,L)
-     &      *y(nOH,L)
-     &    +rr(rrbi%Isoprene_O3__HCHO_Alkenes,L)*y(nO3,L))*dt2
+     &    +0.63d0*y(nn_Isoprene,L)
+     &      *(rr(rrbi%Isoprene_OH__HCHO_Alkenes,L)*y(nOH,L)
+     &       +rr(rrbi%Isoprene_O3__HCHO_Alkenes,L)*y(nO3,L)
+     &       )*dt2
 #ifdef TRACERS_TERP
      &    +5.0d0*0.63d0*y(nn_Terpenes,L)
      &      *(rr(rrbi%Terpenes_OH__HCHO_Alkenes,L)*y(nOH,L)
