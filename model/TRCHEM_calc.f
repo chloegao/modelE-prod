@@ -2105,7 +2105,7 @@ c       skip same reaction if written twice:
      &                  255)
 
       dCOrji=rj%dHCH17O__dC17O_H2
-      dCOrje=rj%Aldehyde__dH13CHO_CO
+      dCOrje=rj%Aldehyde__HCHO_d13CO
       if (dCOrje-dCOrji+1 /= n_rj_dCO)
      &  call stop_model('ERROR: Check the first and last dCO photolyses'
      &                 ,255)
