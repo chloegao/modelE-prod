@@ -1212,16 +1212,6 @@ C**** check tracers
 
       integer :: fid
 
-#ifdef SCM
-! initialize variables until SCM input file is used
-      uout = 1.
-      vout = 0.
-      tout = 273.
-      qout = 3d-6
-      psrf = 1000.
-      return
-#endif
-
       fid = par_open(grid,'AIC','read')
 
       traditional_coldstart_aic = 
