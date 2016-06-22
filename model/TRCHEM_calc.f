@@ -202,6 +202,14 @@ c HCHO, Alkenes, and CO per rxn, correct here following Houweling:
       do L=1,maxL
         prod(nn_CO,L)=prod(nn_CO,L)
      &    -0.63d0*chemrate(rrbi%Alkenes_O3__HCHO_CO,L)
+#ifdef TRACERS_dCO
+        prod(nn_dC17O,L)=prod(nn_dC17O,L)
+     &    -0.63d0*chemrate(rrbi%Alkenes_O3__HCHO_dC17O,L)
+        prod(nn_dC18O,L)=prod(nn_dC18O,L)
+     &    -0.63d0*chemrate(rrbi%Alkenes_O3__HCHO_dC18O,L)
+        prod(nn_d13CO,L)=prod(nn_d13CO,L)
+     &    -0.63d0*chemrate(rrbi%Alkenes_O3__HCHO_d13CO,L)
+#endif  /* TRACERS_dCO */
         prod(nn_HCHO,L)=prod(nn_HCHO,L)
      &    -0.36d0*chemrate(rrbi%Alkenes_O3__HCHO_CO,L)
 #ifdef TRACERS_dCO

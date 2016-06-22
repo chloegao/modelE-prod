@@ -130,6 +130,7 @@ c
         integer :: Isoprene_O3__dHCH17O_Alkenes=0
         integer :: Alkenes_OH__dHCH17O_HO2=0
         integer :: Alkenes_O3__dHCH17O_CO=0
+        integer :: Alkenes_O3__HCHO_dC17O=0
         integer :: Alkenes_NO3__dHCH17O_NO2=0
         integer :: C2O3_NO__dHCH17O_NO2=0
         integer :: C2O3_C2O3__dHCH17O_HCHO=0
@@ -147,6 +148,7 @@ c
         integer :: Isoprene_O3__dHCH18O_Alkenes=0
         integer :: Alkenes_OH__dHCH18O_HO2=0
         integer :: Alkenes_O3__dHCH18O_CO=0
+        integer :: Alkenes_O3__HCHO_dC18O=0
         integer :: Alkenes_NO3__dHCH18O_NO2=0
         integer :: C2O3_NO__dHCH18O_NO2=0
         integer :: C2O3_C2O3__dHCH18O_HCHO=0
@@ -164,6 +166,7 @@ c
         integer :: Isoprene_O3__dH13CHO_Alkenes=0
         integer :: Alkenes_OH__dH13CHO_HO2=0
         integer :: Alkenes_O3__dH13CHO_CO=0
+        integer :: Alkenes_O3__HCHO_d13CO=0
         integer :: Alkenes_NO3__dH13CHO_NO2=0
         integer :: C2O3_NO__dH13CHO_NO2=0
         integer :: C2O3_C2O3__dH13CHO_HCHO=0
@@ -254,7 +257,7 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
      & n_bi_terp = 0,
 #endif  /* TRACERS_TERP */
 #ifdef TRACERS_dCO
-     & n_bi_dCO = 51, ! number of dCO bimolecular reactions
+     & n_bi_dCO = 54, ! number of dCO bimolecular reactions
      & n_rj_dCO = 15, ! number of dCO photochemical reactions
 #else
      & n_bi_dCO = 0,
@@ -994,6 +997,8 @@ C**************  Not Latitude-Dependant ****************************
           rrbi%Alkenes_OH__dHCH17O_HO2=irr
         case('Alkenes_O3__dHCH17O_CO')
           rrbi%Alkenes_O3__dHCH17O_CO=irr
+        case('Alkenes_O3__HCHO_dC17O')
+          rrbi%Alkenes_O3__HCHO_dC17O=irr
         case('Alkenes_NO3__dHCH17O_NO2')
           rrbi%Alkenes_NO3__dHCH17O_NO2=irr
         case('C2O3_NO__dHCH17O_NO2')
@@ -1028,6 +1033,8 @@ C**************  Not Latitude-Dependant ****************************
           rrbi%Alkenes_OH__dHCH18O_HO2=irr
         case('Alkenes_O3__dHCH18O_CO')
           rrbi%Alkenes_O3__dHCH18O_CO=irr
+        case('Alkenes_O3__HCHO_dC18O')
+          rrbi%Alkenes_O3__HCHO_dC18O=irr
         case('Alkenes_NO3__dHCH18O_NO2')
           rrbi%Alkenes_NO3__dHCH18O_NO2=irr
         case('C2O3_NO__dHCH18O_NO2')
@@ -1062,6 +1069,8 @@ C**************  Not Latitude-Dependant ****************************
           rrbi%Alkenes_OH__dH13CHO_HO2=irr
         case('Alkenes_O3__dH13CHO_CO')
           rrbi%Alkenes_O3__dH13CHO_CO=irr
+        case('Alkenes_O3__HCHO_d13CO')
+          rrbi%Alkenes_O3__HCHO_d13CO=irr
         case('Alkenes_NO3__dH13CHO_NO2')
           rrbi%Alkenes_NO3__dH13CHO_NO2=irr
         case('C2O3_NO__dH13CHO_NO2')
