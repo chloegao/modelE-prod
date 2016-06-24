@@ -12,7 +12,7 @@ C**** GLOBAL parameters and variables:
       USE TRCHEM_Shindell_COM, only:
      &    prnls,prnrts,prnchg,lprn,jprn,iprn,ay,pHOx,pOx,pNOx,
      &    yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yNO3,yRXPAR,yXO2N,acetone,
-     &    allowSomeChemReinit,pNO3,topLevelOfChemistry
+     &    allowSomeChemReinit,pNO3,topLevelOfChemistry,nfam,ny
      &    ,pCLOx,pCLx,pOClOx,pBrOx,yCl2,yCl2O2,mostRecentNonZeroAlbedo
 
       IMPLICIT NONE
@@ -37,6 +37,16 @@ C from MOLEC file:
       read(iu_data,100)prnls,prnrts,prnchg,lprn,jprn,iprn
       read(iu_data,110)ay
       call closeunit(iu_data)
+
+! figure out first element of each family
+      do i=1,ny
+        select case(ay(i))
+          case ('O3')    ; nfam(1)=i
+          case ('NO')    ; nfam(2)=i
+          case ('Cl2O2') ; nfam(3)=i
+          case ('BrO')   ; nfam(4)=i
+        end select
+      enddo
 
 C Read JPL chemical reactions/rates from unit JPLRX:
       call jplrts

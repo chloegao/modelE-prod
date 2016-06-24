@@ -580,10 +580,7 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@+ for given I,J point (saved in rsf for reproducibilty purposes)
       INTEGER :: L75P,L75M,L569P,L569M,
      &lprn,jprn,iprn,MIEDX,NCFASTJ,topLevelOfChemistry
-      INTEGER, DIMENSION(numfam+1)     :: nfam = 
-     &     (/37+ntm_terp+ntm_soa+ntm_dCO,40+ntm_terp+ntm_soa+ntm_dCO,
-     &       44+ntm_terp+ntm_soa+ntm_dCO,50+ntm_terp+ntm_soa+ntm_dCO,
-     &       ny+1/)
+      INTEGER, DIMENSION(numfam+1)     :: nfam = (/0,0,0,0,ny+1/)
       INTEGER, DIMENSION(p_1,n_rx)     :: nn, nnr
       INTEGER, DIMENSION(p_1*n_rx)     :: npnr, ndnr
       INTEGER, DIMENSION(p_1*n_rj)     :: nps, nds
