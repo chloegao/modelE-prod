@@ -37,7 +37,7 @@ c
       USE FLUXES, only      : tr3Dsource
       use OldTracer_mod, only: tr_wd_type, nWater
       USE TRACER_COM, only  : ntm_chem_beg, ntm_chem_end
-      USE TRACER_COM, only  : n_Ox,n_NOx,n_N2O5,n_HNO3,n_H2O2,n_CH3OOH,
+      USE TRACER_COM, only  : n_Ox,n_NOx,n_N2O5,n_HNO3,n_H2O2,
      &                      n_HCHO,n_HO2NO2,n_CO,n_CH4,n_PAN,
      &                      n_Isoprene,n_AlkylNit,n_Alkenes,n_stratOx,
      &                      n_Terpenes,n_SO4,n_H2O2_s,oh_live,no3_live,
@@ -86,7 +86,7 @@ c
       use zonalmean_mod, only : zonalmean_ij2ij
 
       use TRACER_COM, only: nn_CH4,  nn_N2O, nn_Ox,   nn_NOx, 
-     &      nn_N2O5,   nn_HNO3,  nn_H2O2,  nn_CH3OOH,   nn_HCHO, 
+     &      nn_N2O5,   nn_HNO3,  nn_H2O2,  nn_HCHO,
      &      nn_HO2NO2, nn_PAN,   nn_H2O17,             
      &      nn_Isoprene, nn_AlkylNit, nn_Alkenes, nn_Paraffin,   
      &      nn_stratOx, nn_Terpenes,nn_codirect,                
