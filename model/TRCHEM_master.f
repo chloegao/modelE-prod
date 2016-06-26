@@ -568,6 +568,11 @@ c - set reactive species for use in family chemistry & nighttime NO2:
        if(y(nNO,L) < 1.d0)y(nNO,L)=1.d0
        y(nO3,L)      =pOx(I,J,L)*y(nn_Ox,L)
        y(nCH3O2,L)   =yCH3O2(I,J,L)
+#ifdef TRACERS_dCO
+       y(ndCH317O2,L)=ydCH317O2(I,J,L)
+       y(ndCH318O2,L)=ydCH318O2(I,J,L)
+       y(nd13CH3O2,L)=yd13CH3O2(I,J,L)
+#endif  /* TRACERS_dCO */
        y(nC2O3,L)    =yC2O3(I,J,L)
        y(nXO2,L)     =yXO2(I,J,L)
        y(nXO2N,L)    =yXO2N(I,J,L)
@@ -2567,6 +2572,17 @@ c         for rrbi%O1D_M__O_M, M is really N2
 c         for rrbi%CH4_OH__H2O_CH3O2, k based on three-parameters from JPL2011
           if(jj == rrbi%CH4_OH__H2O_CH3O2)
      &      rr(jj,L)=rr(jj,L)*(ta(L)**0.667)
+#ifdef TRACERS_dCO
+c         for rrbi%CH4_OH__H2O_dCH317O2, k based on three-parameters from JPL2011
+          if(jj == rrbi%CH4_OH__H2O_dCH317O2)
+     &      rr(jj,L)=rr(jj,L)*(ta(L)**0.667)
+c         for rrbi%CH4_OH__H2O_dCH318O2, k based on three-parameters from JPL2011
+          if(jj == rrbi%CH4_OH__H2O_dCH318O2)
+     &      rr(jj,L)=rr(jj,L)*(ta(L)**0.667)
+c         for rrbi%CH4_OH__H2O_d13CH3O2, k based on three-parameters from JPL2011
+          if(jj == rrbi%CH4_OH__H2O_d13CH3O2)
+     &      rr(jj,L)=rr(jj,L)*(ta(L)**0.667)
+#endif  /* TRACERS_dCO */
 c         for rrbi%CO_OH__HO2_O2, k= based on termolecular reaction from JPL2011
 c         (see paged 185-188 and note D1)
           if(jj == rrbi%CO_OH__HO2_O2

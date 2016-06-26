@@ -12,6 +12,9 @@ C**** GLOBAL parameters and variables:
       USE TRCHEM_Shindell_COM, only:
      &    prnls,prnrts,prnchg,lprn,jprn,iprn,ay,pHOx,pOx,pNOx,
      &    yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yNO3,yRXPAR,yXO2N,acetone,
+#ifdef TRACERS_dCO
+     &    ydCH317O2,ydCH318O2,yd13CH3O2,
+#endif  /* TRACERS_dCO */
      &    allowSomeChemReinit,pNO3,topLevelOfChemistry,nfam,ny
      &    ,pCLOx,pCLx,pOClOx,pBrOx,yCl2,yCl2O2,mostRecentNonZeroAlbedo
 
@@ -64,7 +67,12 @@ C Initialize a few (IM,JM,topLevelOfChemistry) arrays, first hour only:
         pOx(I_0:I_1,J_0:J_1,:)      =1.d0
         pNOx(I_0:I_1,J_0:J_1,:)     =1.d0
         pNO3(I_0:I_1,J_0:J_1,:)     =0.d0
-        yCH3O2(I_0:I_1,J_0:J_1,:)   =1.d0 ! 1.d5 ??
+        yCH3O2(I_0:I_1,J_0:J_1,:)   =1.d0
+#ifdef TRACERS_dCO
+        ydCH317O2(I_0:I_1,J_0:J_1,:)=1.d0
+        ydCH318O2(I_0:I_1,J_0:J_1,:)=1.d0
+        yd13CH3O2(I_0:I_1,J_0:J_1,:)=1.d0
+#endif  /* TRACERS_dCO */
         yC2O3(I_0:I_1,J_0:J_1,:)    =0.d0
         yROR(I_0:I_1,J_0:J_1,:)     =0.d0
         yXO2(I_0:I_1,J_0:J_1,:)     =0.d0
@@ -87,7 +95,7 @@ C Initialize a few (IM,JM,topLevelOfChemistry) arrays, first hour only:
 #ifdef TRACERS_AEROSOLS_SOA
 #ifdef TRACERS_TERP
 #ifdef TRACERS_dCO
- 110  format(6(///10(a8)),(///8(a8)))
+ 110  format(7(///10(a8)),(///1(a8)))
 #else
  110  format(6(///10(a8)),(///2(a8)))
 #endif

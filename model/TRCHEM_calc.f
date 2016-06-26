@@ -38,6 +38,10 @@ C
      &                   yCH3O2,yC2O3,yXO2,yXO2N,yRXPAR,yAldehyde,
      &                   yROR,nCH3O2,nC2O3,nXO2,nXO2N,nRXPAR,
      &                   nAldehyde,nROR,nn,dt2,dest,prod,
+#ifdef TRACERS_dCO
+     &                   ydCH317O2,ydCH318O2,yd13CH3O2,
+     &                   ndCH317O2,ndCH318O2,nd13CH3O2,
+#endif  /* TRACERS_dCO */
      &                   rr,nO1D,nOH,nNO,nHO2,ta,nM,ss,
      &                   nO3,nNO2,nNO3,prnrts,jprn,iprn,lprn,ay,
      &                   prnchg,y,nps,kps,nds,kds,n_rx,n_rj,
@@ -82,9 +86,9 @@ C**** Local parameters and variables and arguments:
 !@var qqqCH3O2,CH3O2loss,XO2_NO,XO2N_HO2,RXPAR_PAR,ROR_CH2,C2O3prod,
 !@+   C2O3dest,XO2prod,XO2dest,XO2_XO2,XO2Nprod,XO2Ndest,RXPARprod,
 !@+   RXPARdest,Aldehydeprod,Aldehydedest,RORprod,RORdest,total,
-!@+   rnewval,dNOx,ratio,sumD,newD,ratioD,newP,ratioP,changeA
+!@+   rnewval,dNOx,ratio,sumD,newD,ratioD,newP,ratioP,changeA,
 !@+   sumP dummy temp variables
-!@+   sumN,sumC,sumH,sumB,sumO,sumA variables for O3 catalytic diags
+!@var sumN,sumC,sumH,sumB,sumO,sumA variables for O3 catalytic diags
 !@var tempiter,tempiter2 temp vars for equilibrium calcs iterations
 !@var changeX temporary variable for equil calcs
 !@var rMAbyM is airmass over air concentration
@@ -154,6 +158,11 @@ C**** Local parameters and variables and arguments:
       
       do L=1,maxT     ! troposphere
         y(nCH3O2,L)   =    yCH3O2(I,J,L)
+#ifdef TRACERS_dCO
+        y(ndCH317O2,L)= ydCH317O2(I,J,L)
+        y(ndCH318O2,L)= ydCH318O2(I,J,L)
+        y(nd13CH3O2,L)= yd13CH3O2(I,J,L)
+#endif  /* TRACERS_dCO */
         y(nC2O3,L)    =     yC2O3(I,J,L)
         y(nXO2,L)     =      yXO2(I,J,L)
         y(nXO2N,L)    =     yXO2N(I,J,L)
@@ -163,6 +172,11 @@ C**** Local parameters and variables and arguments:
       end do
       do L=maxT+1,maxL
         y(nCH3O2,L)   = 0.d0
+#ifdef TRACERS_dCO
+        y(ndCH317O2,L)= 0.d0
+        y(ndCH318O2,L)= 0.d0
+        y(nd13CH3O2,L)= 0.d0
+#endif  /* TRACERS_dCO */
         y(nC2O3,L)    = 0.d0
         y(nXO2,L)     = 0.d0
         y(nXO2N,L)    = 0.d0
@@ -305,8 +319,8 @@ c HCHO, Alkenes, and CO per rxn, correct here following Houweling:
       end do
 #endif  /* TRACERS_AEROSOLS_SOA */
 
-c Set CH3O2 values (concentration = production/specific loss):
       do L=1,maxT ! troposphere
+c Set CH3O2 values (concentration = production/specific loss):
         iter=1
         qqqCH3O2=(rr(rrbi%O1D_CH4__OH_CH3O2,L)*y(nO1D,L)
      &      +rr(rrbi%CH4_OH__H2O_CH3O2,L)*y(nOH,L))
@@ -342,25 +356,149 @@ c         increase non-acetone product gases:
           prod(nn_HCHO,L)=prod(nn_HCHO,L)-(diffCH3O2-tempAcet)
      &      *(CH3O2loss-rr(rrbi%CH3O2_HO2__CH3OOH_O2,L)*y(nHO2,L))
      &      /CH3O2loss
-#ifdef TRACERS_dCO
-          prod(nn_dHCH17O,L)=prod(nn_dHCH17O,L)-(diffCH3O2-tempAcet)
-     &      *(CH3O2loss-rr(rrbi%CH3O2_HO2__CH3OOH_O2,L)*y(nHO2,L))
-     &      /CH3O2loss*dCOfact
-          prod(nn_dHCH18O,L)=prod(nn_dHCH18O,L)-(diffCH3O2-tempAcet)
-     &      *(CH3O2loss-rr(rrbi%CH3O2_HO2__CH3OOH_O2,L)*y(nHO2,L))
-     &      /CH3O2loss*dCOfact
-          prod(nn_dH13CHO,L)=prod(nn_dH13CHO,L)-(diffCH3O2-tempAcet)
-     &      *(CH3O2loss-rr(rrbi%CH3O2_HO2__CH3OOH_O2,L)*y(nHO2,L))
-     &      /CH3O2loss*dCOfact
-#endif  /* TRACERS_dCO */
           prod(nn_CH3OOH,L)=prod(nn_CH3OOH,L)-(diffCH3O2-tempAcet)
      &      *(rr(rrbi%CH3O2_HO2__CH3OOH_O2,L)*y(nHO2,L))
      &      /CH3O2loss
         end if
         yCH3O2(I,J,L)=y(nCH3O2,L)
+
+#ifdef TRACERS_dCO
+c Set dCH317O2 values (concentration = production/specific loss):
+! ok to overwrite here qqqCH3O2,prodCH3O2,diffCH3O2,CH3O2loss
+        iter=1
+        qqqCH3O2=(rr(rrbi%O1D_CH4__OH_dCH317O2,L)*y(nO1D,L)
+     &      +rr(rrbi%CH4_OH__H2O_dCH317O2,L)*y(nOH,L))
+     &    *y(nn_CH4,L)
+     &    +rr(rrbi%CH3OOH_OH__dCH317O2_H2O,L)*y(nn_CH3OOH,L)*y(nOH,L)
+        tempAcet=2.d0*Jacet(L)*acetone(I,J,L)
+        prodCH3O2=qqqCH3O2+tempAcet
+        tempiter=rr(rrbi%dCH317O2_NO__dHCH17O_NO2,L)*y(nNO,L)
+     &    +rr(rrbi%dCH317O2_HO2__CH3OOH_O2,L)*y(nHO2,L)
+        do while(iter <= 7)
+          CH3O2loss=tempiter
+     &      +0.5d0*(rr(rrbi%dCH317O2_CH3O2__dHCH17O_HCHO,L)
+     &        +rr(rrbi%CH3O2_dCH317O2__HCHO_dHCH17O,L))*ydCH317O2(I,J,L)
+          if(CH3O2loss > 1.d-7)then
+            y(ndCH317O2,L)=prodCH3O2/CH3O2loss
+          else
+            y(ndCH317O2,L)=1.d0
+          end if
+          iter=iter+1
+        end do
+
+c Conserve carbon wrt dCH317O2 changes:
+        diffCH3O2=y(ndCH317O2,L)-ydCH317O2(I,J,L)
+        if(diffCH3O2 > tempAcet)then
+c         reduce non-acetone source gases (CH4 and CH3OOH):
+!          dest(nn_CH4,L)=dest(nn_CH4,L)-(diffCH3O2-tempAcet)
+!     &      *(qqqCH3O2-rr(rrbi%CH3OOH_OH__dCH317O2_H2O,L)*y(nn_CH3OOH,L)
+!     &      *y(nOH,L))/qqqCH3O2
+!          dest(nn_CH3OOH,L)=dest(nn_CH3OOH,L)-(diffCH3O2-tempAcet)
+!     &      *(rr(rrbi%CH3OOH_OH__dCH317O2_H2O,L)*y(nn_CH3OOH,L)
+!     &      *y(nOH,L))/qqqCH3O2
+        else if(diffCH3O2 < tempAcet)then
+c         increase non-acetone product gases:
+          prod(nn_dHCH17O,L)=prod(nn_dHCH17O,L)-(diffCH3O2-tempAcet)
+     &      *(CH3O2loss-rr(rrbi%dCH317O2_HO2__CH3OOH_O2,L)*y(nHO2,L))
+     &      /CH3O2loss*dCOfact
+!          prod(nn_CH3OOH,L)=prod(nn_CH3OOH,L)-(diffCH3O2-tempAcet)
+!     &      *(rr(rrbi%dCH317O2_HO2__CH3OOH_O2,L)*y(nHO2,L))
+!     &      /CH3O2loss
+        end if
+        ydCH317O2(I,J,L)=y(ndCH317O2,L)
+
+c Set dCH318O2 values (concentration = production/specific loss):
+! ok to overwrite here qqqCH3O2,prodCH3O2,diffCH3O2,CH3O2loss
+        iter=1
+        qqqCH3O2=(rr(rrbi%O1D_CH4__OH_dCH318O2,L)*y(nO1D,L)
+     &      +rr(rrbi%CH4_OH__H2O_dCH318O2,L)*y(nOH,L))
+     &    *y(nn_CH4,L)
+     &    +rr(rrbi%CH3OOH_OH__dCH318O2_H2O,L)*y(nn_CH3OOH,L)*y(nOH,L)
+        tempAcet=2.d0*Jacet(L)*acetone(I,J,L)
+        prodCH3O2=qqqCH3O2+tempAcet
+        tempiter=rr(rrbi%dCH318O2_NO__dHCH18O_NO2,L)*y(nNO,L)
+     &    +rr(rrbi%dCH318O2_HO2__CH3OOH_O2,L)*y(nHO2,L)
+        do while(iter <= 7)
+          CH3O2loss=tempiter
+     &      +0.5d0*(rr(rrbi%dCH318O2_CH3O2__dHCH18O_HCHO,L)
+     &        +rr(rrbi%CH3O2_dCH318O2__HCHO_dHCH18O,L))*ydCH318O2(I,J,L)
+          if(CH3O2loss > 1.d-7)then
+            y(ndCH318O2,L)=prodCH3O2/CH3O2loss
+          else
+            y(ndCH318O2,L)=1.d0
+          end if
+          iter=iter+1
+        end do
+
+c Conserve carbon wrt dCH318O2 changes:
+        diffCH3O2=y(ndCH318O2,L)-ydCH318O2(I,J,L)
+        if(diffCH3O2 > tempAcet)then
+c         reduce non-acetone source gases (CH4 and CH3OOH):
+!          dest(nn_CH4,L)=dest(nn_CH4,L)-(diffCH3O2-tempAcet)
+!     &      *(qqqCH3O2-rr(rrbi%CH3OOH_OH__dCH318O2_H2O,L)*y(nn_CH3OOH,L)
+!     &      *y(nOH,L))/qqqCH3O2
+!          dest(nn_CH3OOH,L)=dest(nn_CH3OOH,L)-(diffCH3O2-tempAcet)
+!     &      *(rr(rrbi%CH3OOH_OH__dCH318O2_H2O,L)*y(nn_CH3OOH,L)
+!     &      *y(nOH,L))/qqqCH3O2
+        else if(diffCH3O2 < tempAcet)then
+c         increase non-acetone product gases:
+          prod(nn_dHCH18O,L)=prod(nn_dHCH18O,L)-(diffCH3O2-tempAcet)
+     &      *(CH3O2loss-rr(rrbi%dCH318O2_HO2__CH3OOH_O2,L)*y(nHO2,L))
+     &      /CH3O2loss*dCOfact
+!          prod(nn_CH3OOH,L)=prod(nn_CH3OOH,L)-(diffCH3O2-tempAcet)
+!     &      *(rr(rrbi%dCH318O2_HO2__CH3OOH_O2,L)*y(nHO2,L))
+!     &      /CH3O2loss
+        end if
+        ydCH318O2(I,J,L)=y(ndCH318O2,L)
+
+c Set d13CH3O2 values (concentration = production/specific loss):
+! ok to overwrite here qqqCH3O2,prodCH3O2,diffCH3O2,CH3O2loss
+        iter=1
+        qqqCH3O2=(rr(rrbi%O1D_CH4__OH_d13CH3O2,L)*y(nO1D,L)
+     &      +rr(rrbi%CH4_OH__H2O_d13CH3O2,L)*y(nOH,L))
+     &    *y(nn_CH4,L)
+     &    +rr(rrbi%CH3OOH_OH__d13CH3O2_H2O,L)*y(nn_CH3OOH,L)*y(nOH,L)
+        tempAcet=2.d0*Jacet(L)*acetone(I,J,L)
+        prodCH3O2=qqqCH3O2+tempAcet
+        tempiter=rr(rrbi%d13CH3O2_NO__dH13CHO_NO2,L)*y(nNO,L)
+     &    +rr(rrbi%d13CH3O2_HO2__CH3OOH_O2,L)*y(nHO2,L)
+        do while(iter <= 7)
+          CH3O2loss=tempiter
+     &      +0.5d0*(rr(rrbi%d13CH3O2_CH3O2__dH13CHO_HCHO,L)
+     &        +rr(rrbi%CH3O2_d13CH3O2__HCHO_dH13CHO,L))*yd13CH3O2(I,J,L)
+          if(CH3O2loss > 1.d-7)then
+            y(nd13CH3O2,L)=prodCH3O2/CH3O2loss
+          else
+            y(nd13CH3O2,L)=1.d0
+          end if
+          iter=iter+1
+        end do
+
+c Conserve carbon wrt d13CH3O2 changes:
+        diffCH3O2=y(nd13CH3O2,L)-yd13CH3O2(I,J,L)
+        if(diffCH3O2 > tempAcet)then
+c         reduce non-acetone source gases (CH4 and CH3OOH):
+!          dest(nn_CH4,L)=dest(nn_CH4,L)-(diffCH3O2-tempAcet)
+!     &      *(qqqCH3O2-rr(rrbi%CH3OOH_OH__d13CH3O2_H2O,L)*y(nn_CH3OOH,L)
+!     &      *y(nOH,L))/qqqCH3O2
+!          dest(nn_CH3OOH,L)=dest(nn_CH3OOH,L)-(diffCH3O2-tempAcet)
+!     &      *(rr(rrbi%CH3OOH_OH__d13CH3O2_H2O,L)*y(nn_CH3OOH,L)
+!     &      *y(nOH,L))/qqqCH3O2
+        else if(diffCH3O2 < tempAcet)then
+c         increase non-acetone product gases:
+          prod(nn_dH13CHO,L)=prod(nn_dH13CHO,L)-(diffCH3O2-tempAcet)
+     &      *(CH3O2loss-rr(rrbi%d13CH3O2_HO2__CH3OOH_O2,L)*y(nHO2,L))
+     &      /CH3O2loss*dCOfact
+!          prod(nn_CH3OOH,L)=prod(nn_CH3OOH,L)-(diffCH3O2-tempAcet)
+!     &      *(rr(rrbi%d13CH3O2_HO2__CH3OOH_O2,L)*y(nHO2,L))
+!     &      /CH3O2loss
+        end if
+        yd13CH3O2(I,J,L)=y(nd13CH3O2,L)
+#endif  /* TRACERS_dCO */
       end do
       
-      do L=maxT+1,maxL
+      do L=maxT+1,maxL ! stratosphere
+c Set CH3O2 values (concentration = production/specific loss):
         iter=1
         qqqCH3O2=(rr(rrbi%O1D_CH4__OH_CH3O2,L)*y(nO1D,L)
      &      +rr(rrbi%CH4_OH__H2O_CH3O2,L)*y(nOH,L))
@@ -379,8 +517,8 @@ c         increase non-acetone product gases:
             y(nCH3O2,L)=1.d-5
           end if
           iter=iter+1
-        end do            
-            
+        end do
+
 c Conserve carbon wrt CH3O2 changes:
         diffCH3O2=y(nCH3O2,L)-yCH3O2(I,J,L)
         if(diffCH3O2 > 0.d0)then
@@ -396,22 +534,142 @@ c         increase product gases:
           prod(nn_HCHO,l)=prod(nn_HCHO,l)-diffCH3O2
      &      *(CH3O2loss-rr(rrbi%CH3O2_HO2__CH3OOH_O2,L)*y(nHO2,L))
      &      /CH3O2loss
-#ifdef TRACERS_dCO
-          prod(nn_dHCH17O,l)=prod(nn_dHCH17O,l)-diffCH3O2
-     &      *(CH3O2loss-rr(rrbi%CH3O2_HO2__CH3OOH_O2,L)*y(nHO2,L))
-     &      /CH3O2loss*dCOfact
-          prod(nn_dHCH18O,l)=prod(nn_dHCH18O,l)-diffCH3O2
-     &      *(CH3O2loss-rr(rrbi%CH3O2_HO2__CH3OOH_O2,L)*y(nHO2,L))
-     &      /CH3O2loss*dCOfact
-          prod(nn_dH13CHO,l)=prod(nn_dH13CHO,l)-diffCH3O2
-     &      *(CH3O2loss-rr(rrbi%CH3O2_HO2__CH3OOH_O2,L)*y(nHO2,L))
-     &      /CH3O2loss*dCOfact
-#endif  /* TRACERS_dCO */
           prod(nn_CH3OOH,l)=prod(nn_CH3OOH,l)-diffCH3O2
      &      *(rr(rrbi%CH3O2_HO2__CH3OOH_O2,L)*y(nHO2,L))
      &      /CH3O2loss
         end if
         yCH3O2(I,J,L)=y(nCH3O2,L)
+
+#ifdef TRACERS_dCO
+c Set dCH317O2 values (concentration = production/specific loss):
+        iter=1
+        qqqCH3O2=(rr(rrbi%O1D_CH4__OH_dCH317O2,L)*y(nO1D,L)
+     &      +rr(rrbi%CH4_OH__H2O_dCH317O2,L)*y(nOH,L))
+     &    *y(nn_CH4,L)
+     &    +rr(rrbi%CH3OOH_OH__dCH317O2_H2O,L)*y(nn_CH3OOH,L)*y(nOH,L)
+     &    +rr(rrbi%Cl_CH4__HCl_dCH317O2,l)*y(nCl,L)
+        tempiter=rr(rrbi%dCH317O2_NO__dHCH17O_NO2,L)*y(nNO,L)
+     &    +rr(rrbi%dCH317O2_HO2__CH3OOH_O2,L)*y(nHO2,L)
+     &    +rr(rrbi%ClO_dCH317O2__Cl_dHCH17O,l)*y(nClO,l)
+        do while (iter <= 7)
+          CH3O2loss=tempiter
+     &      +0.5d0*(rr(rrbi%dCH317O2_CH3O2__dHCH17O_HCHO,L)
+     &        +rr(rrbi%CH3O2_dCH317O2__HCHO_dHCH17O,L))*ydCH317O2(I,J,L)
+          if(CH3O2loss > 1.d-7)then
+            y(ndCH317O2,L)=qqqCH3O2/CH3O2loss
+          else
+            y(ndCH317O2,L)=1.d-5
+          end if
+          iter=iter+1
+        end do
+
+c Conserve carbon wrt CH3O2 changes:
+        diffCH3O2=y(ndCH317O2,L)-ydCH317O2(I,J,L)
+        if(diffCH3O2 > 0.d0)then
+c         reduce source gases (CH4 and CH3OOH):
+!          dest(nn_CH4,L)=dest(nn_CH4,l)-diffCH3O2
+!     &      *(qqqCH3O2-rr(rrbi%CH3OOH_OH__dCH317O2_H2O,L)*y(nn_CH3OOH,L)
+!     &      *y(nOH,L))/qqqCH3O2
+!          dest(nn_CH3OOH,L)=dest(nn_CH3OOH,l)-diffCH3O2
+!     &    *(rr(rrbi%CH3OOH_OH__dCH317O2_H2O,L)*y(nn_CH3OOH,L)
+!     &    *y(nOH,L))/qqqCH3O2
+        else if(diffCH3O2 < 0.d0)then
+c         increase product gases:
+          prod(nn_dHCH17O,l)=prod(nn_dHCH17O,l)-diffCH3O2
+     &      *(CH3O2loss-rr(rrbi%dCH317O2_HO2__CH3OOH_O2,L)*y(nHO2,L))
+     &      /CH3O2loss*dCOfact
+!          prod(nn_CH3OOH,l)=prod(nn_CH3OOH,l)-diffCH3O2
+!     &      *(rr(rrbi%dCH317O2_HO2__CH3OOH_O2,L)*y(nHO2,L))
+!     &      /CH3O2loss
+        end if
+        ydCH317O2(I,J,L)=y(ndCH317O2,L)
+
+c Set dCH318O2 values (concentration = production/specific loss):
+        iter=1
+        qqqCH3O2=(rr(rrbi%O1D_CH4__OH_dCH318O2,L)*y(nO1D,L)
+     &      +rr(rrbi%CH4_OH__H2O_dCH318O2,L)*y(nOH,L))
+     &    *y(nn_CH4,L)
+     &    +rr(rrbi%CH3OOH_OH__dCH318O2_H2O,L)*y(nn_CH3OOH,L)*y(nOH,L)
+     &    +rr(rrbi%Cl_CH4__HCl_dCH318O2,l)*y(nCl,L)
+        tempiter=rr(rrbi%dCH318O2_NO__dHCH18O_NO2,L)*y(nNO,L)
+     &    +rr(rrbi%dCH318O2_HO2__CH3OOH_O2,L)*y(nHO2,L)
+     &    +rr(rrbi%ClO_dCH318O2__Cl_dHCH18O,l)*y(nClO,l)
+        do while (iter <= 7)
+          CH3O2loss=tempiter
+     &      +0.5d0*(rr(rrbi%dCH318O2_CH3O2__dHCH18O_HCHO,L)
+     &        +rr(rrbi%CH3O2_dCH318O2__HCHO_dHCH18O,L))*ydCH318O2(I,J,L)
+          if(CH3O2loss > 1.d-7)then
+            y(ndCH318O2,L)=qqqCH3O2/CH3O2loss
+          else
+            y(ndCH318O2,L)=1.d-5
+          end if
+          iter=iter+1
+        end do
+
+c Conserve carbon wrt CH3O2 changes:
+        diffCH3O2=y(ndCH318O2,L)-ydCH318O2(I,J,L)
+        if(diffCH3O2 > 0.d0)then
+c         reduce source gases (CH4 and CH3OOH):
+!          dest(nn_CH4,L)=dest(nn_CH4,l)-diffCH3O2
+!     &      *(qqqCH3O2-rr(rrbi%CH3OOH_OH__dCH318O2_H2O,L)*y(nn_CH3OOH,L)
+!     &      *y(nOH,L))/qqqCH3O2
+!          dest(nn_CH3OOH,L)=dest(nn_CH3OOH,l)-diffCH3O2
+!     &    *(rr(rrbi%CH3OOH_OH__dCH318O2_H2O,L)*y(nn_CH3OOH,L)
+!     &    *y(nOH,L))/qqqCH3O2
+        else if(diffCH3O2 < 0.d0)then
+c         increase product gases:
+          prod(nn_dHCH18O,l)=prod(nn_dHCH18O,l)-diffCH3O2
+     &      *(CH3O2loss-rr(rrbi%dCH318O2_HO2__CH3OOH_O2,L)*y(nHO2,L))
+     &      /CH3O2loss*dCOfact
+!          prod(nn_CH3OOH,l)=prod(nn_CH3OOH,l)-diffCH3O2
+!     &      *(rr(rrbi%dCH318O2_HO2__CH3OOH_O2,L)*y(nHO2,L))
+!     &      /CH3O2loss
+        end if
+        ydCH318O2(I,J,L)=y(ndCH318O2,L)
+
+c Set d13CH3O2 values (concentration = production/specific loss):
+        iter=1
+        qqqCH3O2=(rr(rrbi%O1D_CH4__OH_d13CH3O2,L)*y(nO1D,L)
+     &      +rr(rrbi%CH4_OH__H2O_d13CH3O2,L)*y(nOH,L))
+     &    *y(nn_CH4,L)
+     &    +rr(rrbi%CH3OOH_OH__d13CH3O2_H2O,L)*y(nn_CH3OOH,L)*y(nOH,L)
+     &    +rr(rrbi%Cl_CH4__HCl_d13CH3O2,l)*y(nCl,L)
+        tempiter=rr(rrbi%d13CH3O2_NO__dH13CHO_NO2,L)*y(nNO,L)
+     &    +rr(rrbi%d13CH3O2_HO2__CH3OOH_O2,L)*y(nHO2,L)
+     &    +rr(rrbi%ClO_d13CH3O2__Cl_dH13CHO,l)*y(nClO,l)
+        do while (iter <= 7)
+          CH3O2loss=tempiter
+     &      +0.5d0*(rr(rrbi%d13CH3O2_CH3O2__dH13CHO_HCHO,L)
+     &        +rr(rrbi%CH3O2_d13CH3O2__HCHO_dH13CHO,L))*yd13CH3O2(I,J,L)
+          if(CH3O2loss > 1.d-7)then
+            y(nd13CH3O2,L)=qqqCH3O2/CH3O2loss
+          else
+            y(nd13CH3O2,L)=1.d-5
+          end if
+          iter=iter+1
+        end do
+
+c Conserve carbon wrt CH3O2 changes:
+        diffCH3O2=y(nd13CH3O2,L)-yd13CH3O2(I,J,L)
+        if(diffCH3O2 > 0.d0)then
+c         reduce source gases (CH4 and CH3OOH):
+!          dest(nn_CH4,L)=dest(nn_CH4,l)-diffCH3O2
+!     &      *(qqqCH3O2-rr(rrbi%CH3OOH_OH__d13CH3O2_H2O,L)*y(nn_CH3OOH,L)
+!     &      *y(nOH,L))/qqqCH3O2
+!          dest(nn_CH3OOH,L)=dest(nn_CH3OOH,l)-diffCH3O2
+!     &    *(rr(rrbi%CH3OOH_OH__d13CH3O2_H2O,L)*y(nn_CH3OOH,L)
+!     &    *y(nOH,L))/qqqCH3O2
+        else if(diffCH3O2 < 0.d0)then
+c         increase product gases:
+          prod(nn_dH13CHO,l)=prod(nn_dH13CHO,l)-diffCH3O2
+     &      *(CH3O2loss-rr(rrbi%d13CH3O2_HO2__CH3OOH_O2,L)*y(nHO2,L))
+     &      /CH3O2loss*dCOfact
+!          prod(nn_CH3OOH,l)=prod(nn_CH3OOH,l)-diffCH3O2
+!     &      *(rr(rrbi%d13CH3O2_HO2__CH3OOH_O2,L)*y(nHO2,L))
+!     &      /CH3O2loss
+        end if
+        yd13CH3O2(I,J,L)=y(nd13CH3O2,L)
+#endif  /* TRACERS_dCO */
       end do
 
       do L=1,maxT ! ---------- troposphere loop ---------
@@ -1728,6 +1986,20 @@ c Print chemical changes in a particular grid box if desired:
      &    ' CH3O2   :',yCH3O2(I,J,LPRN),(yCH3O2(I,J,LPRN)/
      &    y(nM,LPRN))*1.d9,' ppbv'
           call write_parallel(trim(out_line),crit=jay)
+#ifdef TRACERS_dCO
+          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &    ' dCH317O2:',ydCH317O2(I,J,LPRN),(ydCH317O2(I,J,LPRN)/
+     &    y(nM,LPRN))*1.d9,' ppbv'
+          call write_parallel(trim(out_line),crit=jay)
+          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &    ' dCH318O2:',ydCH318O2(I,J,LPRN),(ydCH318O2(I,J,LPRN)/
+     &    y(nM,LPRN))*1.d9,' ppbv'
+          call write_parallel(trim(out_line),crit=jay)
+          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &    ' d13CH3O2:',yd13CH3O2(I,J,LPRN),(yd13CH3O2(I,J,LPRN)/
+     &    y(nM,LPRN))*1.d9,' ppbv'
+          call write_parallel(trim(out_line),crit=jay)
+#endif  /* TRACERS_dCO */
           write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
      &    ' C2O3    :',y(nC2O3,LPRN),(y(nC2O3,LPRN)/y(nM,LPRN))*1.d9,
      &    ' ppbv'
@@ -2106,7 +2378,7 @@ c       skip same reaction if written twice:
 !@var dCOrre Last dCO reaction in JPLRX
       integer :: dCOrri,dCOrre,dCOrji,dCOrje
 
-      dCOrri=rrbi%dC17O_OH__HO2_O2
+      dCOrri=rrbi%O1D_CH4__OH_dCH317O2
       dCOrre=rrbi%Terpenes_O3__dH13CHO_Alkenes
       if (dCOrre-dCOrri+1 /= n_bi_dCO)
      &  call stop_model('ERROR: Check the first and last dCO reactions',
