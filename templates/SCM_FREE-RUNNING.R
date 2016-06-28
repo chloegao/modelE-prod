@@ -5,7 +5,7 @@ Run SCM using GCM IC's and no advective forcings
 Initial framework for truly single-column mode for Model E.
 
 This is a functioning rundeck, not a template (excepting the lines
-containing  /Users/abwolf/SCM/GCMDAT/SGPDAT/extractions - see notes below)
+containing  /path/to/user/directory/extractions - see notes below)
 
 SCM-irrelevant codes and input files are excluded.
 Template #includes should be refactored so that this exclusion happens automatically.
@@ -15,7 +15,7 @@ For other cases, change one or more of the following as necessary:
 (1) SCM input variable namelist (SCM_NML) and SCM input files (SCM_PS, SCM_SFLUX, etc.)
 (2) SCM parameters SCM_lon, SCM_lat, and files extracted from gridded data at SCM_lon, SCM_lat
     See notes in the input files section on a pre-scripted extraction procedure etc.
-    SCM_area and other SCM parameters may also be changed.
+    SCM_area and other SCM parameters may also be changed (or added).
 
 Preprocessor Options
 #define CACHED_SUBDD
@@ -88,28 +88,28 @@ SCM_NML=SCM_ARM.nml                                 ! input variable namelist wi
 
 ! The set of forcings for a particular SCM test case typically does not include
 ! all of the data required to run Model E.  Each line below of the form
-!   SHORTNAME=/Users/abwolf/SCM/GCMDAT/SGPDAT/extractions/filename.nc
+!   SHORTNAME=/path/to/user/directory/extractions/filename.nc
 ! corresponds to a location-dependent input dataset for which one of the following
 ! two options must be chosen.  The second option is provided for convenience.
-! (1) Replace /Users/abwolf/SCM/GCMDAT/SGPDAT/extractions/filename.nc with the
-!     Users to a single-column file that has already been created somehow.
+! (1) Replace /path/to/user/directory/extractions/filename.nc with the
+!     path to a single-column file that has already been created somehow.
 !     Note that the GCM file-reading infrastructure considers single-column
 !     files to be on a horizontal grid of size 1, and therefore the
 !     two horizontal dimensions must be retained in netcdf variables
 !     (which must have the netcdf names that model E expects).
 !     For any files previously extracted from global data via option (2),
-!     make sure that the Users does not contain substring "/extractions/"
+!     make sure that the path does not contain substring "/extractions/"
 !     if option (2) will be used create other files.
 ! (2) Use exec/extract_scm.sh to sample gridded files at location
 !     lon_targ, lat_targ.
 !     Firstly,
-!       replace /Users/abwolf/SCM/GCMDAT/SGPDAT with a real Users, preferably which
+!       replace /path/to/user/directory with a real path, preferably which
 !        (a) contains a string denoting the SCM location/case being run
 !        (b) is unlikely to be chosen by any other users on the system
 !       Habits (a) and (b) will prevent clutter and accidental overwrites.
 !       Note that
 !        (a) substring "/extractions/" must be retained in each Users
-!        (b) the rundeck Userss indicate the resulting single-column files
+!        (b) the rundeck paths indicate the resulting single-column files
 !            to be read by the model.  GCMSEARCHPATH (from your modelErc)
 !            is the location of the gridded file from which to extract the column
 !        (c) There is no requirement that all files from which data are extracted are
@@ -123,7 +123,7 @@ SCM_NML=SCM_ARM.nml                                 ! input variable namelist wi
 
 
 ! Topography, area fractions of surface types
-TOPO=/Users/abwolf/SCM/GCMDAT/SGPDAT/extractions/Z2HX2fromZ1QX1N.nc
+TOPO=/path/to/user/directory/extractions/Z2HX2fromZ1QX1N.nc
 
 ! Atm. initial conditions (temperature, wind, humidity, surface pressure)
 ! on the model's vertical grid and consistent with the
@@ -131,35 +131,35 @@ TOPO=/Users/abwolf/SCM/GCMDAT/SGPDAT/extractions/Z2HX2fromZ1QX1N.nc
 ! of operation may subsequently overwrite the values from
 ! this file, the model has not yet been programmed to
 ! skip reading this file if it is absent.
-AIC=/Users/abwolf/SCM/GCMDAT/SGPDAT/extractions/AIC.RES_F40.D771201.nc
+AIC=/path/to/user/directory/extractions/AIC.RES_F40.D771201.nc
 
 ! Optional: if absent, ozone is set to zero.
 ! Zero stratospheric ozone is usually a bad idea though.
-O3file=/Users/abwolf/SCM/GCMDAT/SGPDAT/extractions/o3_2005_shindelltrop_144x90x49_1850-1997.nc
+O3file=/path/to/user/directory/extractions/o3_2005_shindelltrop_144x90x49_1850-1997.nc
 
 ! Optional: if absent, dust is set to zero
-DUSTaer=/Users/abwolf/SCM/GCMDAT/SGPDAT/extractions/dust_mass_CakmurMillerJGR06_144x90x20x7x12.nc
+DUSTaer=/path/to/user/directory/extractions/dust_mass_CakmurMillerJGR06_144x90x20x7x12.nc
 
 ! Optional: if absent and MADAER flag not set, aerosols are zero.
 ! If these files are omitted, rundeck parameters od_cdncx and cc_cdncx
 ! must not be set (or if set, set to zero.)
 ! Currently, these files must be used as a group (will change in future).
-TAero_SUL=/Users/abwolf/SCM/GCMDAT/SGPDAT/extractions/SUL_Koch2008_kg_m2_144x90x20_1890-2000h.nc
-TAero_SSA=/Users/abwolf/SCM/GCMDAT/SGPDAT/extractions/SSA_Koch2008_kg_m2_144x90x20h.nc
-TAero_NIT=/Users/abwolf/SCM/GCMDAT/SGPDAT/extractions/NIT_Bauer2008_kg_m2_144x90x20_1890-2000h.nc
-TAero_OCA=/Users/abwolf/SCM/GCMDAT/SGPDAT/extractions/OCA_Koch2008_kg_m2_144x90x20_1890-2000h.nc
-TAero_BCA=/Users/abwolf/SCM/GCMDAT/SGPDAT/extractions/BCA_Koch2008_kg_m2_144x90x20_1890-2000h.nc
-TAero_BCB=/Users/abwolf/SCM/GCMDAT/SGPDAT/extractions/BCB_Koch2008_kg_m2_144x90x20_1890-2000h.nc
+TAero_SUL=/path/to/user/directory/extractions/SUL_Koch2008_kg_m2_144x90x20_1890-2000h.nc
+TAero_SSA=/path/to/user/directory/extractions/SSA_Koch2008_kg_m2_144x90x20h.nc
+TAero_NIT=/path/to/user/directory/extractions/NIT_Bauer2008_kg_m2_144x90x20_1890-2000h.nc
+TAero_OCA=/path/to/user/directory/extractions/OCA_Koch2008_kg_m2_144x90x20_1890-2000h.nc
+TAero_BCA=/path/to/user/directory/extractions/BCA_Koch2008_kg_m2_144x90x20_1890-2000h.nc
+TAero_BCB=/path/to/user/directory/extractions/BCB_Koch2008_kg_m2_144x90x20_1890-2000h.nc
 
 ! These ocean files are only needed if the TOPO file for the
 ! SCM case contains a nonzero ocean fraction.  Certain SCM
 ! modes of operation may also prescribe ocean surface conditions
 ! via mechanisms other than these files. SICE and ZSIFAC can be
 ! omitted if the simulation location is free of sea ice.
-!OSST=/Users/abwolf/SCM/GCMDAT/SGPDAT/extractions/OST_144x90.1996-2005avg.HadISST1.1.nc  ! SST
+!OSST=/path/to/user/directory/extractions/OST_144x90.1996-2005avg.HadISST1.1.nc  ! SST
 ! rsi var. in SICE is sea ice fraction, ZSIFAC var. dm is used to get ice thickness
-!SICE=/Users/abwolf/SCM/GCMDAT/SGPDAT/extractions/SICE_144x90.1996-2005avg.HadISST1.1.nc
-!ZSIFAC=/Users/abwolf/SCM/GCMDAT/SGPDAT/extractions/SICE_144x90.1996-2005avg.HadISST1.1.nc
+!SICE=/path/to/user/directory/extractions/SICE_144x90.1996-2005avg.HadISST1.1.nc
+!ZSIFAC=/path/to/user/directory/extractions/SICE_144x90.1996-2005avg.HadISST1.1.nc
 !OCNML=XXX ! see comment above regarding the OCNML source code.
 
 ! These land-surface files are only needed if the TOPO file for
@@ -167,11 +167,11 @@ TAero_BCB=/Users/abwolf/SCM/GCMDAT/SGPDAT/extractions/BCB_Koch2008_kg_m2_144x90x
 ! that the GIC contains initial conditions for surface types other
 ! than the land surface and that the SOILIC method is an optional
 ! replacement for the land-surface GIC.
-VEG=/Users/abwolf/SCM/GCMDAT/SGPDAT/extractions/V144X90_no_crops.ext.nc
-CROPS=/Users/abwolf/SCM/GCMDAT/SGPDAT/extractions/CROPS_and_pastures_Pongratz_to_Hurtt_144X90N_nocasp.nc
-SOIL=/Users/abwolf/SCM/GCMDAT/SGPDAT/extractions/S144X900098M.ext.nc
-SOILCARB_global=/Users/abwolf/SCM/GCMDAT/SGPDAT/extractions/soilcarb_top30cm_2x2.5.nc
-TOP_INDEX=/Users/abwolf/SCM/GCMDAT/SGPDAT/extractions/top_index_144x90_a.ij.ext.nc
+VEG=/path/to/user/directory/extractions/V144X90_no_crops.ext.nc
+CROPS=/path/to/user/directory/extractions/CROPS_and_pastures_Pongratz_to_Hurtt_144X90N_nocasp.nc
+SOIL=/path/to/user/directory/extractions/S144X900098M.ext.nc
+SOILCARB_global=/path/to/user/directory/extractions/soilcarb_top30cm_2x2.5.nc
+TOP_INDEX=/path/to/user/directory/extractions/top_index_144x90_a.ij.ext.nc
 
 
 ! Optional land-surface file which prescribes soil initial
@@ -179,7 +179,7 @@ TOP_INDEX=/Users/abwolf/SCM/GCMDAT/SGPDAT/extractions/top_index_144x90_a.ij.ext.
 ! relative wetness, snow depth) rather than the extensive
 ! units (total heat and water per layer) of the arrays in
 ! the file GIC.
-!SOILIC=/Users/to/SOILIC.nc
+!SOILIC=/path/to/SOILIC.nc
 
 ! Optional file to specify a "background" roughness
 ! length for the land surface that is not tied to
@@ -188,10 +188,10 @@ TOP_INDEX=/Users/abwolf/SCM/GCMDAT/SGPDAT/extractions/top_index_144x90_a.ij.ext.
 ! Note that the actual roughness length for the
 ! land surface is taken as the maximum of the vegetation-derived
 ! value and the value from either ROUGHL or TOP_INDEX.
-!ROUGHL=/Users/to/ROUGHL.nc
+!ROUGHL=/path/to/ROUGHL.nc
 
 ! Initial conditions for surface components from an arbitrary restart file
-GIC=/Users/abwolf/SCM/GCMDAT/SGPDAT/extractions/GIC.144X90.DEC01.1.ext_2.nc
+GIC=/path/to/user/directory/extractions/GIC.144X90.DEC01.1.ext_2.nc
 
 ! All input files below this line are location-independent.
 
@@ -220,9 +220,6 @@ SCM_FREE-RUNNING (Run SCM with GCM initialization and no forcing)
 SCM_lon=-96.25             ! Southern Great Plains site longitude (deg)
 SCM_lat=37.                ! Southern Great Plains site latitude (deg)
 SCM_area=49370385348.1287  ! nominal grid box area (m2) from 144x90 grid
-SCM_sfc=0                  ! 1:land,2:ocean, 0:gcm surface (default)
-SCM_allowMC=1              ! allow moist convection ?
-SCM_allowCTEI=1            ! allow cloud-top entrainment instability?
 
 GLMELT_ON=0      !turn off GLMELT in run deck for SCM long runs
 
