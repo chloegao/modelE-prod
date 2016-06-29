@@ -310,6 +310,9 @@ def createScriptTask(config, compconfig, deck, comp, mode):
                 walltime = '00:10:00'
             elif re.search('M20', deckName):
                 walltime = '00:30:00'
+            # Greg adding this one, as my tomas times out and gets a 'U' status....
+            elif re.search('tomas', deckName):
+                walltime = '01:30:00'
 
         outname = resultsDir + '/' + jobName + '.' + mode + '.out'
         errname = resultsDir + '/' + jobName + '.' + mode + '.err'
