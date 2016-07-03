@@ -126,8 +126,8 @@ c
         integer :: dC17O_OH__HO2_O2=0
         integer :: dCH317O2_NO__dHCH17O_NO2=0
         integer :: dHCH17O_OH__HO2_dC17O=0
-        integer :: dCH317O2_HO2__CH3OOH_O2=0
-        integer :: CH3OOH_OH__dCH317O2_H2O=0
+        integer :: dCH317O2_HO2__dMe17OOH_O2=0
+        integer :: dMe17OOH_OH__dCH317O2_H2O=0
         integer :: dCH317O2_CH3O2__dHCH17O_HCHO=0
         integer :: CH3O2_dCH317O2__HCHO_dHCH17O=0
         integer :: NO3_dHCH17O__HNO3_dC17O=0
@@ -141,6 +141,7 @@ c
         integer :: C2O3_C2O3__dHCH17O_HCHO=0
         integer :: C2O3_C2O3__HCHO_dHCH17O=0
         integer :: C2O3_HO2__dHCH17O_HO2=0
+        integer :: XO2_HO2__dMe17OOH_M=0
         integer :: O1D_CH4__dHCH17O_H2=0
         integer :: Cl_CH4__HCl_dCH317O2=0
         integer :: ClO_dCH317O2__Cl_dHCH17O=0
@@ -152,8 +153,8 @@ c
         integer :: dC18O_OH__HO2_O2=0
         integer :: dCH318O2_NO__dHCH18O_NO2=0
         integer :: dHCH18O_OH__HO2_dC18O=0
-        integer :: dCH318O2_HO2__CH3OOH_O2=0
-        integer :: CH3OOH_OH__dCH318O2_H2O=0
+        integer :: dCH318O2_HO2__dMe18OOH_O2=0
+        integer :: dMe18OOH_OH__dCH318O2_H2O=0
         integer :: dCH318O2_CH3O2__dHCH18O_HCHO=0
         integer :: CH3O2_dCH318O2__HCHO_dHCH18O=0
         integer :: NO3_dHCH18O__HNO3_dC18O=0
@@ -167,6 +168,7 @@ c
         integer :: C2O3_C2O3__dHCH18O_HCHO=0
         integer :: C2O3_C2O3__HCHO_dHCH18O=0
         integer :: C2O3_HO2__dHCH18O_HO2=0
+        integer :: XO2_HO2__dMe18OOH_M=0
         integer :: O1D_CH4__dHCH18O_H2=0
         integer :: Cl_CH4__HCl_dCH318O2=0
         integer :: ClO_dCH318O2__Cl_dHCH18O=0
@@ -178,8 +180,8 @@ c
         integer :: d13CO_OH__HO2_O2=0
         integer :: d13CH3O2_NO__dH13CHO_NO2=0
         integer :: dH13CHO_OH__HO2_d13CO=0
-        integer :: d13CH3O2_HO2__CH3OOH_O2=0
-        integer :: CH3OOH_OH__d13CH3O2_H2O=0
+        integer :: d13CH3O2_HO2__d13MeOOH_O2=0
+        integer :: d13MeOOH_OH__d13CH3O2_H2O=0
         integer :: d13CH3O2_CH3O2__dH13CHO_HCHO=0
         integer :: CH3O2_d13CH3O2__HCHO_dH13CHO=0
         integer :: NO3_dH13CHO__HNO3_d13CO=0
@@ -193,6 +195,7 @@ c
         integer :: C2O3_C2O3__dH13CHO_HCHO=0
         integer :: C2O3_C2O3__HCHO_dH13CHO=0
         integer :: C2O3_HO2__dH13CHO_HO2=0
+        integer :: XO2_HO2__d13MeOOH_M=0
         integer :: O1D_CH4__dH13CHO_H2=0
         integer :: Cl_CH4__HCl_d13CH3O2=0
         integer :: ClO_d13CH3O2__Cl_dH13CHO=0
@@ -281,7 +284,7 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
 #endif  /* TRACERS_TERP */
 #ifdef TRACERS_dCO
      & ntm_dCO_nontransp = 3, ! number of non-transported dCO tracers
-     & n_bi_dCO = 75, ! number of dCO bimolecular reactions
+     & n_bi_dCO = 78, ! number of dCO bimolecular reactions
      & n_rj_dCO = 15, ! number of dCO photochemical reactions
 #else
      & ntm_dCO_nontransp = 0,
@@ -1027,10 +1030,10 @@ C**************  Not Latitude-Dependant ****************************
           rrbi%dCH317O2_NO__dHCH17O_NO2=irr
         case('dHCH17O_OH__HO2_dC17O')
           rrbi%dHCH17O_OH__HO2_dC17O=irr
-        case('dCH317O2_HO2__CH3OOH_O2')
-          rrbi%dCH317O2_HO2__CH3OOH_O2=irr
-        case('CH3OOH_OH__dCH317O2_H2O')
-          rrbi%CH3OOH_OH__dCH317O2_H2O=irr
+        case('dCH317O2_HO2__dMe17OOH_O2')
+          rrbi%dCH317O2_HO2__dMe17OOH_O2=irr
+        case('dMe17OOH_OH__dCH317O2_H2O')
+          rrbi%dMe17OOH_OH__dCH317O2_H2O=irr
         case('dCH317O2_CH3O2__dHCH17O_HCHO')
           rrbi%dCH317O2_CH3O2__dHCH17O_HCHO=irr
         case('CH3O2_dCH317O2__HCHO_dHCH17O')
@@ -1057,6 +1060,8 @@ C**************  Not Latitude-Dependant ****************************
           rrbi%C2O3_C2O3__HCHO_dHCH17O=irr
         case('C2O3_HO2__dHCH17O_HO2')
           rrbi%C2O3_HO2__dHCH17O_HO2=irr
+        case('XO2_HO2__dMe17OOH_M')
+          rrbi%XO2_HO2__dMe17OOH_M=irr
         case('O(1D)_CH4__dHCH17O_H2')
           rrbi%O1D_CH4__dHCH17O_H2=irr
         case('Cl_CH4__HCl_dCH317O2')
@@ -1078,10 +1083,10 @@ C**************  Not Latitude-Dependant ****************************
           rrbi%dCH318O2_NO__dHCH18O_NO2=irr
         case('dHCH18O_OH__HO2_dC18O')
           rrbi%dHCH18O_OH__HO2_dC18O=irr
-        case('dCH318O2_HO2__CH3OOH_O2')
-          rrbi%dCH318O2_HO2__CH3OOH_O2=irr
-        case('CH3OOH_OH__dCH318O2_H2O')
-          rrbi%CH3OOH_OH__dCH318O2_H2O=irr
+        case('dCH318O2_HO2__dMe18OOH_O2')
+          rrbi%dCH318O2_HO2__dMe18OOH_O2=irr
+        case('dMe18OOH_OH__dCH318O2_H2O')
+          rrbi%dMe18OOH_OH__dCH318O2_H2O=irr
         case('dCH318O2_CH3O2__dHCH18O_HCHO')
           rrbi%dCH318O2_CH3O2__dHCH18O_HCHO=irr
         case('CH3O2_dCH318O2__HCHO_dHCH18O')
@@ -1108,6 +1113,8 @@ C**************  Not Latitude-Dependant ****************************
           rrbi%C2O3_C2O3__HCHO_dHCH18O=irr
         case('C2O3_HO2__dHCH18O_HO2')
           rrbi%C2O3_HO2__dHCH18O_HO2=irr
+        case('XO2_HO2__dMe18OOH_M')
+          rrbi%XO2_HO2__dMe18OOH_M=irr
         case('O(1D)_CH4__dHCH18O_H2')
           rrbi%O1D_CH4__dHCH18O_H2=irr
         case('Cl_CH4__HCl_dCH318O2')
@@ -1129,10 +1136,10 @@ C**************  Not Latitude-Dependant ****************************
           rrbi%d13CH3O2_NO__dH13CHO_NO2=irr
         case('dH13CHO_OH__HO2_d13CO')
           rrbi%dH13CHO_OH__HO2_d13CO=irr
-        case('d13CH3O2_HO2__CH3OOH_O2')
-          rrbi%d13CH3O2_HO2__CH3OOH_O2=irr
-        case('CH3OOH_OH__d13CH3O2_H2O')
-          rrbi%CH3OOH_OH__d13CH3O2_H2O=irr
+        case('d13CH3O2_HO2__d13MeOOH_O2')
+          rrbi%d13CH3O2_HO2__d13MeOOH_O2=irr
+        case('d13MeOOH_OH__d13CH3O2_H2O')
+          rrbi%d13MeOOH_OH__d13CH3O2_H2O=irr
         case('d13CH3O2_CH3O2__dH13CHO_HCHO')
           rrbi%d13CH3O2_CH3O2__dH13CHO_HCHO=irr
         case('CH3O2_d13CH3O2__HCHO_dH13CHO')
@@ -1159,6 +1166,8 @@ C**************  Not Latitude-Dependant ****************************
           rrbi%C2O3_C2O3__HCHO_dH13CHO=irr
         case('C2O3_HO2__dH13CHO_HO2')
           rrbi%C2O3_HO2__dH13CHO_HO2=irr
+        case('XO2_HO2__d13MeOOH_M')
+          rrbi%XO2_HO2__d13MeOOH_M=irr
         case('O(1D)_CH4__dH13CHO_H2')
           rrbi%O1D_CH4__dH13CHO_H2=irr
         case('Cl_CH4__HCl_d13CH3O2')

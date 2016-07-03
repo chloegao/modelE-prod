@@ -20,6 +20,7 @@ define([PROPERTIES_AND_TYPES],
 !@+   If F0 & HSTAR both 0, & tracer not particulate, then no drydep.),
   (do_fire,logical,.false.,true if tracer should have emissions via flammability),
   (do_aircraft,logical,.false.,true if tracer should have emissions via aircraft),
+  (is_dCO_tracer,logical,.false.,!@var true if the tracer belongs to TRACERS_dCO),
   (nBBsources,integer,0, number of sources attributed to biomass burning),
   (emisPerFireByVegType,real*8[[[,]]] dimension(12),0.0d0,emisPerFireByVegType tracer emissions per fire count as a
 !@+ function of 12 standard GISS (VDATA) vegetation types, or Ent
