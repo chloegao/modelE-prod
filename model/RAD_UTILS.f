@@ -3176,10 +3176,12 @@ C     functions
 !@var have_o3_file whether an O3file was specified in the rundeck
       logical :: have_o3_file
 
-!@param NLO3 # of layers in ozone data files.  Todo: read from datafiles.
-      INTEGER, PARAMETER :: NLO3=49
-!@var PLBO3 edge pressures in O3 input file. Todo: read from file.
-      REAL*8 :: PLBO3(NLO3+1) = (/
+!@param NLO3_traditional assumed number of layers in ozone data files.
+      integer, parameter :: NLO3_traditional = 49
+!@var NLO3 number of layers in ozone data files, as read from file.
+      integer :: NLO3 = 0
+!@var PLBO3_traditional assumed edge pressures in O3 input file.
+      real*8 :: PLBO3_traditional(NLO3_traditional+1) = (/
      *       984d0, 934d0, 854d0, 720d0, 550d0, 390d0, 285d0, 210d0,
      *       150d0, 125d0, 100d0,  80d0,  60d0,  55d0,  50d0,
      *        45d0,  40d0,  35d0,  30d0,  25d0,  20d0,  15d0,
@@ -3187,6 +3189,8 @@ C     functions
      *        1.d0,  7d-1,  5d-1,  4d-1,  3d-1,  2d-1,  1.5d-1,
      *        1d-1,  7d-2,  5d-2,  4d-2,  3d-2,  2d-2,  1.5d-2,
      *        1d-2,  7d-3,  5d-3,  4d-3,  3d-3,  1d-3,  1d-7/)
+!@var PLBO3 edge pressures in O3 input file, as read from file
+      real*8, allocatable :: PLBO3(:)
 
 
       contains
@@ -3195,7 +3199,8 @@ C     functions
       use resolution, only : psf
       use domain_decomp_atm, only: grid, getdomainbounds
       use timestream_mod, only : init_stream,read_stream
-      use pario, only : par_open,par_close,read_dist_data
+      use pario, only : par_open,par_close,read_dist_data,
+     & variable_exists,get_dimlen,read_data
       use filemanager, only : file_exists
       implicit none
       integer, intent(in) :: JYEARO,JJDAYO
@@ -3211,20 +3216,37 @@ C     functions
       call getdomainbounds(grid, j_strt=j_0,j_stop=j_1,
      &                           i_strt=i_0,i_stop=i_1)
 
-      allocate(o3arr(grid%i_strt_halo:grid%i_stop_halo,
-     &               grid%j_strt_halo:grid%j_stop_halo,nlo3))
-
       jyearx = abs(jyearo)
 
       if (.not. init) then
         init = .true.
 
+        have_o3_file = file_exists('O3file')
+
+        if(have_o3_file)then
+          fid = par_open(grid,'O3file','read')
+          if(variable_exists(grid,fid,'ple'))then
+            nlo3=get_dimlen(grid,fid,'ple') - 1 ! coord var but one less
+            if(nlo3.ne.get_dimlen(grid,fid,'plm'))call
+     &        stop_model('ple/plm dim problem in O3file',255)
+            allocate(plbo3(nlo3+1))
+            call read_data(grid,fid,'ple',plbo3,bcast_all=.true.)
+          else
+            call stop_model('missing ple info in o3file',255)
+          endif
+          call par_close(grid,fid)
+        else
+          nlo3=nlo3_traditional
+          allocate(plbo3(nlo3+1))
+          plbo3(:)=plbo3_traditional(:)
+        endif
+
         allocate(o3jday(nlo3,grid%i_strt:grid%i_stop,
      &                       grid%j_strt:grid%j_stop))
         o3jday = 0.
 
-        allocate(o3jref(nlo3,grid%i_strt:grid%i_stop,
-     &                       grid%j_strt:grid%j_stop))
+        allocate(o3jref(nlo3_traditional,grid%i_strt:grid%i_stop,
+     &                                   grid%j_strt:grid%j_stop))
         o3jref = 0.
 
 ! The next line is brought over from the original UPDO3D. I think
@@ -3232,22 +3254,22 @@ C     functions
 ! if the (fixed) lowest O3 level pressure is at lower pressure than
 ! the the (fixed) lowest nominal model pressure:
         if(plbo3(1) < psf) plbo3(1) = psf 
+        if(plbo3_traditional(1) < psf) plbo3_traditional(1) = psf 
 
+! Initialize the timestream for the O3 data file:
         cyclic = jyearo < 0
-
-        have_o3_file = file_exists('O3file')
-
         if(have_o3_file) then
           call init_stream(grid,O3stream,'O3file','O3',
      &         0d0,1d30,'linm2m',jyearx,jjdayo,cyclic=cyclic)
         endif
 
+! Read the 3D field for O3 RCOMPX reference calls.
+! (There is no need to allow for this one on flexible # of levels)
         inquire(file='Ox_ref',exist=exists)
         if(exists) then
-! read the 3D field for O3 RCOMPX reference calls
-! todo: if the reference O3 corresponds to some year or month
-! of the O3 timeseries, retrieve it through the read_stream
-! or get_by_index mechanism instead.
+          allocate(o3arr(grid%i_strt_halo:grid%i_stop_halo,
+     &                   grid%j_strt_halo:grid%j_stop_halo,
+     &                   nlo3_traditional))
           fid = par_open(grid,'Ox_ref','read')
           call read_dist_data(grid,fid,'O3',o3arr)
           call par_close(grid,fid)
@@ -3256,20 +3278,23 @@ C     functions
             O3JREF(:,I,J)=O3ARR(I,J,:)
           enddo
           enddo
+          deallocate(o3arr) ! note quick deallocation as will be resized below
         endif
         
       endif  ! end init
 
-      if(.not.have_o3_file) return
+      if(have_o3_file)then
+        allocate(o3arr(grid%i_strt_halo:grid%i_stop_halo, ! resizing
+     &                 grid%j_strt_halo:grid%j_stop_halo,nlo3))
 
-      call read_stream(grid,O3stream,jyearx,jjdayo,o3arr)
-      do j=j_0,j_1
-      do i=i_0,i_1 
-        O3JDAY(:,I,J)=O3ARR(I,J,:)
-      enddo
-      enddo
-
-      deallocate(o3arr)
+        call read_stream(grid,O3stream,jyearx,jjdayo,o3arr)
+        do j=j_0,j_1
+        do i=i_0,i_1 
+          O3JDAY(:,I,J)=O3ARR(I,J,:)
+        enddo
+        enddo
+        deallocate(o3arr)
+      endif ! there is an o3file
 
       return
       end subroutine UPDO3D

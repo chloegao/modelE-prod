@@ -39,7 +39,6 @@ Preprocessor Options
 !  OFF #define SHINDELL_STRAT_EXTRA     ! non-chemistry stratospheric tracers
 !  OFF #define INTERACTIVE_WETLANDS_CH4 ! turns on interactive CH4 wetland source
 !  OFF #define ACCMIP_LIKE_DIAGS  ! adds many diags as defined by ACCMIP project
-!  OFF #define SMOOTH_SUNLIGHT_CHEMISTRY ! attempts to get the same number of sunlight steps each longitude
 !<--- chemistry end
 !---> OMA start
 #define TRACERS_DUST             ! include dust tracers
@@ -138,7 +137,7 @@ FT8OPX=1.,1.,1.,1.,1.,1.,1.,1.
 ! w/o VMP clouds (uncomment when model is run w/o VMP clouds):
 !U00a=0.58  ! above 850mb w/o MC region;  tune this first to get 30-35% high clouds
 ! w/ VMP clouds (comment out when model is run w/o VMP clouds):
-U00a=0.59  ! above 850mb w/o MC region;  tune this first to get 30-35% high clouds
+U00a=0.635  ! above 850mb w/o MC region;  tune this first to get 30-35% high clouds
 U00b=1.00  ! below 850mb and MC regions; tune this last  to get rad.balance
 WMUI_multiplier = 1.
 use_vmp=1

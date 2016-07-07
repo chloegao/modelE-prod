@@ -17,7 +17,6 @@ module KochTracersMetadata_mod
   use OldTracer_mod, only: set_tr_wd_type
   use OldTracer_mod, only: set_HSTAR
   use OldTracer_mod, only: set_tr_RKD
-  use OldTracer_mod, only: set_tr_DHD
   use OldTracer_mod, only: set_emisPerFireByVegType
   use OldTracer_mod, only: tr_RKD 
   use TRACER_COM, only:  n_MSA, n_SO4, n_DMS, &

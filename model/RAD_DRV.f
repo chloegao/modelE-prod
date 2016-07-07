@@ -184,9 +184,6 @@ C****
       use fluxes, only : atmsrf,asflx4,focean,fland,flice
       use fluxes, only : atmocn,atmice,atmgla,atmlnd
       use ghy_com, only : fearth
-#ifndef USE_ENT
-      use veg_com, only : vdata
-#endif
       use lakes_com, only : flake
       use seaice_com, only : si_atm
       use clouds_com, only : svlhx,svlat,rhsav
@@ -427,7 +424,7 @@ C**** sync radiation parameters from input
         call get_param('bare_soil_wetness',
      &       atmlnd%bare_soil_wetness(1,1),default=1d0)
         call get_param('snow',atmsrf%snow(1,1),default=0d0)
-#ifndef USE_ENT
+#ifdef RESET_SURFACE_FRACTIONS_ON_SOUTH_POLE
         call get_param('vdata',vdata(1,1,:),size(vdata,3),
      &      default=(/0d0,0d0,1d0,0d0,0d0,0d0,0d0,0d0,0d0,0d0,0d0,0d0/))
 #endif
@@ -501,7 +498,7 @@ C     MADAER  =  3   uses Koch,Bauer 2008 aerosol climatology 1890-2000
 C     MADDST  =  1   Reads   Dust-windblown mineral climatology   RFILE6
 C     MADVOL  =  1   Reads   Volcanic 1950-00 aerosol climatology RFILE7
 C     MADEPS  =  1   Reads   Epsilon cloud heterogeniety data     RFILE8
-C     MADLUV  =  1   Reads   Lean's SolarUV 1882-1998 variability RFILE9
+C     MADLUV  =  1   Reads   Lean''s SolarUV 1882-1998 variability RFILE9
 C**** Radiative forcings are either constant = obs.value at given yr/day
 C****    or time dependent (year=0); if day=0 an annual cycle is used
 C****                                         even if the year is fixed
@@ -683,7 +680,7 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
 !-----------------------------------------------------------------------
 #ifdef TRACERS_AEROSOLS_Koch
       if (nraero_koch > 0) then
-        if (rad_interact_aer > 0) then  ! if BC's sol.effect are doubled:
+        if (rad_interact_aer > 0) then  ! if BC''s sol.effect are doubled:
           FS8OPX(1)=0.d0
           FT8OPX(1)=0.d0
 #ifndef SULF_ONLY_AEROSOLS
@@ -1334,7 +1331,7 @@ c****
 C**** Read in Seawifs files here
       IF (month.NE.IMON0) THEN
       IF (IMON0==0) THEN
-C**** READ IN LAST MONTH'S END-OF-MONTH DATA
+C**** READ IN LAST MONTH''S END-OF-MONTH DATA
         LSTMON=month-1
         if (lstmon.eq.0) lstmon = 12
         CALL READT_PARALLEL
@@ -1640,14 +1637,10 @@ C     OUTPUT DATA
       USE ATM_COM, only : pk,pedn,pmid,pdsig,ltropo,MA,byMA
       USE SEAICE_COM, only : si_atm
       USE GHY_COM, only : fearth,snowd_ij=>snowd
-#ifdef USE_ENT
       use ent_com, only : entcells
       use ent_mod, only : ent_get_exports
      &                    ,N_COVERTYPES !YKIM-temp hack
       use ent_drv, only : map_ent2giss  !YKIM-temp hack
-#else
-      USE VEG_COM, only : vdata
-#endif
       USE LAKES_COM, only : flake,dlake!,mwl
       USE FLUXES, only : asflx4,atmocn,atmice,atmgla,atmlnd,atmsrf
      &     ,flice,fland,focean
@@ -1674,9 +1667,6 @@ C     OUTPUT DATA
 #ifdef TRACERS_AEROSOLS_OCEAN
       use TRACER_COM, only: n_ococean
 #endif  /* TRACERS_AEROSOLS_OCEAN */
-#ifdef TRACERS_AEROSOLS_Koch
-c          use TRACER_COM, only: SNFST0,TNFST0
-#endif  /* TRACERS_AEROSOLS_Koch */
 #ifdef TRACERS_AEROSOLS_VBS
       use TRACERS_VBS, only: vbs_tr
 #endif
@@ -1745,10 +1735,12 @@ C     INPUT DATA   partly (i,j) dependent, partly global
       REAL*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
      &                  grid%j_strt_halo:grid%j_stop_halo,lm) ::
      &     SDDARR3D
+#ifdef TRACERS_ON
       REAL*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
      &                  grid%j_strt_halo:grid%j_stop_halo,nraero_rf) ::
      &     sddarr3drf
       integer :: f
+#endif  /* TRACERS_ON */
 #ifdef SCM
 C     radiative flux profiles for sub-daily output, generalized
 C     for GCM grid but currently limited to SCM use
@@ -1866,9 +1858,7 @@ c     INTEGER ICKERR,JCKERR,KCKERR
       integer :: nij_before_j0,nij_after_j1,nij_after_i1
       integer :: initial_GHG_setup
 
-#ifdef USE_ENT
       real*8 :: PVT0(N_COVERTYPES), HVT0(N_COVERTYPES)
-#endif
 #ifdef TRACERS_NITRATE
       real*8 :: nh4_on_no3
 #endif
@@ -2083,7 +2073,7 @@ C**** SS clouds are considered as a block for each continuous cloud
       end if                    ! kradia le 0
 
 #ifdef ACCMIP_LIKE_DIAGS
-! because of additional updghg calls, these factors won't apply:
+! because of additional updghg calls, these factors won''t apply:
       if(CO2X.ne.1.)  call stop_model('CO2x.ne.1 accmip diags',255)
       if(N2OX.ne.1.)  call stop_model('N2Ox.ne.1 accmip diags',255)
       if(CH4X.ne.1.)  call stop_model('CH4x.ne.1 accmip diags',255)
@@ -2093,7 +2083,7 @@ C**** SS clouds are considered as a block for each continuous cloud
       GFrefY=1850; GFrefD=182     ! ghg forcing refrnce year, day
       GFnowY=JyearR; GFnowD=JdayR ! ghg current desired year, day
       if(KJDAYG > 0) GFnowD=KJDAYG ! unless presribed in deck
-      if(KYEARG > 0) GFnowY=KYEARG !           "
+      if(KYEARG > 0) GFnowY=KYEARG !           
       call updghg(GFrefY,GFrefD)
       sv_fulgas_ref(1:4)=fulgas(nfghg(1:4))
       call updghg(GFnowY,GFnowD)
@@ -2566,7 +2556,6 @@ C****
       else                            ! rad.frc. model
         wearth = wsoil(i,j)
       end if
-#ifdef USE_ENT
       if ( fearth(i,j) > 0.d0 ) then
         call ent_get_exports( entcells(i,j),
      &       vegetation_fractions=PVT0,
@@ -2575,11 +2564,6 @@ C****
       else
         PVT(:) = 0.d0  ! actually PVT is not supposed to be used in this case
       endif
-#else
-      DO K=1,12
-        PVT(K)=VDATA(I,J,K)
-      END DO
-#endif
       WMAG=atmsrf%WSAVG(I,J)
 C****
 C**** Radiative interaction and forcing diagnostics:
@@ -2682,7 +2666,7 @@ C**** Ozone:
         ! forces use of tracer from L=1,LS1-1 and reference above that:
         use_o3_ref=1 ; use_tracer_chem(1)=LS1-1
 #else
-        ! use tracer or climatology, whichever won't be used in final call:
+        ! use tracer or climatology, whichever won''t be used in final call:
         use_o3_ref=0 ; use_tracer_chem(1)=(1-onoff_chem)*Lmax_rad_O3
 #endif
         kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
@@ -3440,10 +3424,6 @@ C**** define SNFS/TNFS level (TOA/TROPO) for calculating forcing
      &     =taijs(i,j,ijts_alb(2))
      &         +(SNFS(3,I,J)-NFSNBC(I,J))*CSZ2
 #endif /* BC_ALB */
-#ifdef TRACERS_AEROSOLS_Koch
-c          snfst0(:,:,i,j)=0.D0
-c          tnfst0(:,:,i,j)=0.D0
-#endif /* TRACERS_AEROSOLS_Koch */
 c     ..........
 c     accumulation of forcings for tracers for which nraero_rf fields are
 c     defined
@@ -3581,16 +3561,6 @@ c longwave forcing at surface clear sky (if required)
      &                -rsign_aer*(TNFST(1,N,I,J)-TNFS(1,I,J))
      &                *(1.d0-CFRAC(I,J))
                END SELECT
-#ifdef TRACERS_AEROSOLS_Koch
-c              SNFST0(1,ntrix_rf(n),I,J)=SNFST0(1,ntrix_rf(n),I,J)
-c    &              +rsign_aer*(SNFST(2,n,I,J)-SNFS(LFRC,I,J))*CSZ2
-c              SNFST0(2,ntrix_rf(n),I,J)=SNFST0(2,ntrix_rf(n),I,J)
-c    &              +rsign_aer*(SNFST(1,n,I,J)-SNFS(1,I,J))*CSZ2
-c              TNFST0(1,ntrix_rf(n),I,J)=TNFST0(1,ntrix_rf(n),I,J)
-c    &              -rsign_aer*(TNFST(2,n,I,J)-TNFS(LFRC,I,J))
-c              TNFST0(2,ntrix_rf(n),I,J)=TNFST0(2,ntrix_rf(n),I,J)
-c    &              -rsign_aer*(TNFST(1,n,I,J)-TNFS(1,I,J))
-#endif /* TRACERS_AEROSOLS_Koch */
            end do     ! n=1,nraero_rf
 
 c ..........
@@ -3678,10 +3648,12 @@ c longwave GHG forcing at TOA
 #endif /* ACCMIP_LIKE_DIAGS */
 
 #ifdef CACHED_SUBDD
+#ifdef TRACERS_ON
       swfrc(i,j,1:nraero_rf)=
      &  rsign_aer*(SNFST(2,1:nraero_rf,I,J)-SNFS(LFRC,I,J))*CSZ2
       lwfrc(i,j,1:nraero_rf)=
      &  -rsign_aer*(TNFST(2,1:nraero_rf,I,J)-TNFS(LFRC,I,J))
+#endif  /* TRACERS_ON */
 #endif  /* CACHED_SUBDD */
 
   770    CONTINUE

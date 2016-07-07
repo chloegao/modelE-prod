@@ -804,10 +804,6 @@ c -------------------------------------------------------------
       USE SEAICE_COM, only : si_atm
       USE FLUXES, only : atmocn,atmice,atmgla,atmlnd,flice,fland
      &     ,asflx,atmsrf
-#ifdef USE_ENT
-      use ent_mod, only: ent_get_exports
-      use ent_com, only : entcells
-#endif
 #ifdef SCM
       USE SCM_COM, only : SCMopt,SCMin
 #endif

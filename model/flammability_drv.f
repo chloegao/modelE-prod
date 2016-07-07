@@ -1,4 +1,8 @@
 #include "rundeck_opts.h"
+
+! Ent now is a default vegetation model
+#define USE_ENT
+
       module flammability_com    
 !@sum for routines to calculate flammability potential of surface 
 !@+   vegetation. Optionally also altering tracer biomass sources.

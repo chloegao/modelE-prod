@@ -231,7 +231,7 @@ TAero_NIT=NIT_Bauer2008_kg_m2_$resijx20_1890-2000h.nc
 TAero_OCA=OCA_Koch2008_kg_m2_$resijx20_1890-2000h.nc
 TAero_BCA=BCA_Koch2008_kg_m2_$resijx20_1890-2000h.nc
 TAero_BCB=BCB_Koch2008_kg_m2_$resijx20_1890-2000h.nc
-O3file=o3_2005_shindelltrop_$resijx49_1850-1997.nc
+O3file=o3_2005_shindelltrop_$resijx49_1850-1997_ple.nc
 
 MSU_wts=MSU.RSS.weights.data      ! MSU-diag
 REG=REG$resDEG                      ! special regions-diag

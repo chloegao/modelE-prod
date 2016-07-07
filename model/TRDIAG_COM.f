@@ -45,6 +45,9 @@ C**** TAIJLN
 !@var TAIJLN 3D tracer diagnostics (all tracers)
       real*8, allocatable, dimension(:,:,:,:) :: taijln
       real*8, allocatable, dimension(:,:,:,:) :: taijln_loc
+!@var TSCF3D 3D tracer advection flxes (all tracers)
+      real*8, allocatable, dimension(:,:,:,:) :: TSCF3D
+      real*8, allocatable, dimension(:,:,:,:) :: TSCF3D_loc
 !@var SNAME_IJT, UNITS_IJT: Names and units of lat-sigma tracer IJ diags
       character(len=sname_strlen), allocatable,dimension(:) :: sname_ijt
       character(len=units_strlen), allocatable,dimension(:) :: units_ijt
@@ -61,10 +64,10 @@ C**** TAIJN
 !@param KTAIJ number of 2D diags describing surface and column load along 
 !@+   with wet and dry deposition
 !@+   please just increase this if needed - do not bother with pp options
-      integer, parameter :: ktaij=22
+      integer, parameter :: ktaij=23
 
 !@var IJT_XX names for taijn diagnostics
-      integer tij_conc,tij_surf,tij_surfbv,tij_mass
+      integer tij_conc,tij_surf,tij_surfbv,tij_mass,tij_strop
 !@var IJT_XX names for water-based taijn diagnostics
       integer tij_rvr,tij_prec,tij_evap,tij_grnd,tij_lk1
      *     ,tij_lk2,tij_soil,tij_snow,tij_uflx,tij_vflx
@@ -1394,7 +1397,7 @@ C*** Unpack read global data into local distributed arrays
       ALLOCATE ( TAIJS_loc( I_0H:I_1H,J_0H:J_1H,ktaijs   ),stat=status )
       ALLOCATE ( TAJLN_loc(  J_0BUDG:J_1BUDG,LM,ktajlx,ntm),stat=status)
       ALLOCATE ( TAJLS_loc(  J_0BUDG:J_1BUDG,LM,ktajls    ),stat=status)
-
+      ALLOCATE ( TSCF3d_loc( I_0H:I_1H,J_0H:J_1H,lm,ntm),stat=status )
       if(am_i_root()) then
          img = IM
          jmg = JM
@@ -1403,6 +1406,7 @@ C*** Unpack read global data into local distributed arrays
          jmg = 1
       end if
       ALLOCATE ( TAIJLN(img,jmg,LM,ntm), stat=status )
+      ALLOCATE ( TSCF3d(img,jmg,LM,ntm), stat=status )
       ALLOCATE ( TAIJLS(img,jmg,LM,ktaijl), stat=status )
       ALLOCATE ( TAIJN( img,jmg,ktaij,ntm), stat=status )
       ALLOCATE ( TAIJS( img,jmg,ktaijs   ), stat=status )

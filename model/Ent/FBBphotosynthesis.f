@@ -279,9 +279,9 @@ cddd        if ( Ae > 0.d0 ) write(578,*) Axxx - Ae
         As = pspar%As
       endif
 
-      Anet = min(Ae, Ac, As)
+      !Anet = min(Ae, Ac, As)
       !Limit flux for numerical stability, keep cs>0.2*ca
-      !Anet = min(Ae, Ac, As, 0.8d0*ca*gb/1.37d0) 
+      Anet = min(Ae, Ac, As, 0.8d0*ca*gb/1.37d0) 
       Atot = Anet + Rd
       Aiso = Ae + Rd
 
@@ -676,6 +676,8 @@ cddd      end subroutine Ci_Js
 
       end function Tresponse
 !=================================================
+
+!#define ENT_CHECK_C4_SOLUTION
       subroutine  Asnet_C4(ca,rh,gb,Rd,pspar,Asnet)
 !@sum Asnet_C4 PEP carboxlase-limited carbon assimilation for C4 photosynthesis
 !@+   After Collatz, and CLM's correction of the coefficient
@@ -703,6 +705,9 @@ cddd      end subroutine Ci_Js
       real*8 :: X, Y, Z
       real*8 :: b0, a0, c0, sqrtop
       real*8 :: Aspos, Asneg
+#ifdef ENT_CHECK_C4_SOLUTION
+      real*8 ::  cs, gs, Acheck, Asnet1, Asnet2
+#endif
 
       K1 = pspar%m * rh
       !print *,'K1',K1
@@ -715,7 +720,8 @@ cddd      end subroutine Ci_Js
       !Anet^2*X + A*Y + Z = 0
       X = (K1 - pspar%b*K3)*(1/K2 + K3) - 1.65d0*K3
       !print *,'X',X
-      Y = ca*(pspar%b/K2 - K1 + 1.65d0) + Rd/K2*(K1 - pspar%b*K3)
+      Y = ca*(pspar%b/K2 - K1 + 1.65d0 + 2.d0*K3*pspar%b)
+     &     + Rd/K2*(K1 - pspar%b*K3)
       !print *, 'Y',Y
       Z = pspar%b * ca * ( Rd/K2 - ca ) 
       !print *, 'X,Y,Z',X, Y,Z
@@ -751,6 +757,26 @@ cddd      end subroutine Ci_Js
       Asnet = max (-Rd
      &     ,(-Y + sqrt(sqrtop))/(2.d0*X)) !Positive root is max.
       !print *, 'Asnet',Asnet
+      !Asnet = min(Asnet,  0.8d0*ca*gb/1.37d0)  
+
+#ifdef ENT_CHECK_C4_SOLUTION
+      if ( Asnet < 0.d0 ) return ! willnot check
+
+      !!! checking the solution
+      ci = (Asnet + Rd) / (4000.d0*pspar%Vcmax*1.d-06)
+      cs = ca - Asnet * 1.37d0/gb
+      gs = pspar%m*Asnet*rh/cs + pspar%b
+      Acheck = (cs - ci)*gs/1.65d0
+
+      if ( abs(Acheck-Asnet) > 1.d-10 .or. cs < 1.d-5 ) then
+      ! &     .or. Asnet >  0.8d0*ca*gb/1.37d0 ) then
+        write(889,'(E15.5, 10f15.3)') Acheck-Asnet,
+     &       Asnet, 0.8d0*ca*gb/1.37d0,
+     &       cs, ci
+      endif
+
+#endif
+
       end subroutine Asnet_C4
 
 !=================================================
@@ -1030,6 +1056,7 @@ cddd      !!print *,'QQQQ ',A,ci
 !     &     /(Rgas*(Tl+Kelvin))))
       pspar%Vcmax = pftpar(p)%Vcmax * Q10fn(2.21d0, Tl)
      &            * facclim * fparlimit
+!hack
       pspar%Kc = Kc*Q10fn(KcQ10,Tl) !(Collatz, eq. A12)
       pspar%Ko = Ko*Q10fn(KoQ10,Tl) !(Collatz, eq. A12)
       pspar%Gammastar = calc_CO2compp(O2pres,pspar%Kc,pspar%Ko,Tl) !(Pa) (Collatz)

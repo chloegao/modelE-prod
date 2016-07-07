@@ -21,10 +21,10 @@ C
      &     ,jls_ClOcon,jls_H2Ocon,jls_H2Ochem
       use OldTracer_mod, only: vol2mass, mass2vol
       USE TRACER_COM, only  : ntm_chem_beg, ntm_chem_end, ntm_chem,
-     &  n_CH4,n_CH3OOH,n_Paraffin,n_PAN,n_Isoprene,n_stratOx,
+     &  n_CH4,n_Paraffin,n_PAN,n_Isoprene,n_stratOx,
      &  n_Terpenes,n_AlkylNit,n_Alkenes,n_N2O5,n_NOx,n_HO2NO2,
      &  n_isopp1g,n_isopp1a,n_isopp2g,n_isopp2a,n_apinp1g,
-     &  n_apinp1a,n_apinp2g,n_apinp2a,n_Ox,n_HNO3,n_H2O2,n_CO,n_HCHO,
+     &  n_apinp1a,n_apinp2g,n_apinp2a,n_Ox,n_HNO3,n_H2O2,n_CO,
      &  trm,NTM,n_N2O,n_ClOx,n_BrOx,n_HCl,n_HOCl,n_ClONO2,n_HBr,
      &  n_HOBr,n_BrONO2,n_CFC
 #ifdef TRACERS_WATER
@@ -38,15 +38,19 @@ C
      &                   yCH3O2,yC2O3,yXO2,yXO2N,yRXPAR,yAldehyde,
      &                   yROR,nCH3O2,nC2O3,nXO2,nXO2N,nRXPAR,
      &                   nAldehyde,nROR,nn,dt2,dest,prod,
+#ifdef TRACERS_dCO
+     &                   ydCH317O2,ydCH318O2,yd13CH3O2,
+     &                   ndCH317O2,ndCH318O2,nd13CH3O2,
+#endif  /* TRACERS_dCO */
      &                   rr,nO1D,nOH,nNO,nHO2,ta,nM,ss,
      &                   nO3,nNO2,nNO3,prnrts,jprn,iprn,lprn,ay,
-     &                   prnchg,y,nps,kps,nds,kds,
+     &                   prnchg,y,nps,kps,nds,kds,n_rx,n_rj,
      &                   npnr,nnr,ndnr,kpnr,kdnr,nH2O,which_trop,
-     &                   Jacet,acetone,minKG
+     &                   Jacet,acetone,minKG,rrmono,rrbi,rrtri
      &                   ,SF3,ratioNs,ratioN2,rNO2frac,nO,nClO,nBrO
      &                   ,rNOfrac,rNOdenom,nOClO,nCl,nBr,OxlossbyH
      &                   ,nCl2,yCl2,SF2,nO2,MWabyMWw,yCl2O2,pscX
-     &                   ,topLevelOfChemistry,changeL,n_bi_terp,n_bi_dCO
+     &                   ,topLevelOfChemistry,changeL
 #ifdef TRACERS_AEROSOLS_SOA
        USE TRACERS_SOA, only: apartmolar,whichsoa,soa_apart,LM_soa
 #endif  /* TRACERS_AEROSOLS_SOA */
@@ -62,11 +66,13 @@ C
      &      nn_ClOx,   nn_BrOx,  nn_HCl,   nn_HOCl,   nn_ClONO2,  
      &      nn_HBr,    nn_HOBr,  nn_BrONO2,nn_CFC,    nn_GLT
 #ifdef TRACERS_dCO
+     &     ,nn_dMe17OOH,nn_dMe18OOH,nn_d13MeOOH
+     &     ,nn_dHCH17O,nn_dHCH18O,nn_dH13CHO
      &     ,nn_dC17O,nn_dC18O,nn_d13CO
 #endif  /* TRACERS_dCO */
 
       USE DIAG_COM_RAD, only : j_h2och4
-      use photolysis, only: ks,kss
+      use photolysis, only: rj,ks,kss
 c
       IMPLICIT NONE
 c
@@ -81,18 +87,11 @@ C**** Local parameters and variables and arguments:
 !@var qqqCH3O2,CH3O2loss,XO2_NO,XO2N_HO2,RXPAR_PAR,ROR_CH2,C2O3prod,
 !@+   C2O3dest,XO2prod,XO2dest,XO2_XO2,XO2Nprod,XO2Ndest,RXPARprod,
 !@+   RXPARdest,Aldehydeprod,Aldehydedest,RORprod,RORdest,total,
-!@+   rnewval,dNOx,ratio,sumD,newD,ratioD,newP,ratioP,changeA
+!@+   rnewval,dNOx,ratio,sumD,newD,ratioD,newP,ratioP,changeA,
 !@+   sumP dummy temp variables
-!@+   sumN,sumC,sumH,sumB,sumO,sumA variables for O3 catalytic diags
+!@var sumN,sumC,sumH,sumB,sumO,sumA variables for O3 catalytic diags
 !@var tempiter,tempiter2 temp vars for equilibrium calcs iterations
 !@var changeX temporary variable for equil calcs
-!@var iHO2NO2form HO2NO2 formation reaction
-!@var iN2O5form N2O5 formation reaction
-!@var iPANform PAN formation reaction
-!@var iHO2NO2_OH HO2NO2 oxidation by OH reaction
-!@var iHO2NO2decomp HO2NO2 decomposition reaction
-!@var iN2O5decomp N2O5 decomposition reaction
-!@var iPANdecomp PAN decomposition reaction
 !@var rMAbyM is airmass over air concentration
 !@var dxbym2v is axyp over mass2volume
 !@var sv_changeN2O N2O change without portion making N2 (for N cons)
@@ -106,28 +105,20 @@ C**** Local parameters and variables and arguments:
       INTEGER, INTENT(INOUT) :: ierr_loc
       INTEGER :: L,iter,maxL,igas,maxT,Lz,it,n
       INTEGER :: J_0, J_1
-      INTEGER, PARAMETER :: iAlkenesO3=35,
-     &                      iPANdecomp=29,
-     &                      iHO2NO2_OH=18
-#ifdef TRACERS_TERP
-      integer, parameter :: iTerpenesOH=92,iTerpenesO3=93
-#endif  /* TRACERS_TERP */
-      INTEGER, PARAMETER :: iHO2NO2form=99+n_bi_terp+n_bi_dCO,
-     &                      iN2O5form=100+n_bi_terp+n_bi_dCO,
-     &                      iPANform=102+n_bi_terp+n_bi_dCO,
-     &                      iHO2NO2decomp=92+n_bi_terp+n_bi_dCO,
-     &                      iN2O5decomp=93+n_bi_terp+n_bi_dCO,
-     &                      iClOplusNO2=104+n_bi_terp+n_bi_dCO,
-     &                      iBrOplusNO2=105+n_bi_terp+n_bi_dCO,
-     &                      iClOplusClO=103+n_bi_terp+n_bi_dCO,
-     &                      iOHplusNO2=98+n_bi_terp+n_bi_dCO,
-     &                      iNOplusO=96+n_bi_terp+n_bi_dCO
       character(len=300) :: out_line
       logical            :: jay
       real*8, allocatable, dimension(:) :: rMAbyM,sv_changeN2O,
      & changeH2O,dQ,dQM,fraQ2,c2ml,conOH,conClO,conH2O,NprodOx_pos,
      & NprodOx_neg ! Oxcorr,
       real*8, dimension(LM) :: PRES ! for consistency with elsewhere, I keep this LM
+      real*8, parameter :: rCOplusO1D=1.d-9
+#ifdef TRACERS_dCO
+      real*8, parameter :: dCOfact=1.d0
+      real*8, parameter :: rdC17OplusO1D=1.d-9*dCOfact
+      real*8, parameter :: rdC18OplusO1D=1.d-9*dCOfact
+      real*8, parameter :: rd13COplusO1D=1.d-9*dCOfact
+#endif  /* TRACERS_dCO */
+      real*8, parameter :: chemtiny=1.d-12
 
       REAL*8 qqqCH3O2,CH3O2loss,XO2_NO,XO2N_HO2,RXPAR_PAR,ROR_CH2,
      & C2O3prod,C2O3dest,XO2prod,XO2dest,XO2_XO2,XO2Nprod,XO2Ndest,
@@ -168,6 +159,11 @@ C**** Local parameters and variables and arguments:
       
       do L=1,maxT     ! troposphere
         y(nCH3O2,L)   =    yCH3O2(I,J,L)
+#ifdef TRACERS_dCO
+        y(ndCH317O2,L)= ydCH317O2(I,J,L)
+        y(ndCH318O2,L)= ydCH318O2(I,J,L)
+        y(nd13CH3O2,L)= yd13CH3O2(I,J,L)
+#endif  /* TRACERS_dCO */
         y(nC2O3,L)    =     yC2O3(I,J,L)
         y(nXO2,L)     =      yXO2(I,J,L)
         y(nXO2N,L)    =     yXO2N(I,J,L)
@@ -177,6 +173,11 @@ C**** Local parameters and variables and arguments:
       end do
       do L=maxT+1,maxL
         y(nCH3O2,L)   = 0.d0
+#ifdef TRACERS_dCO
+        y(ndCH317O2,L)= 0.d0
+        y(ndCH318O2,L)= 0.d0
+        y(nd13CH3O2,L)= 0.d0
+#endif  /* TRACERS_dCO */
         y(nC2O3,L)    = 0.d0
         y(nXO2,L)     = 0.d0
         y(nXO2N,L)    = 0.d0
@@ -195,13 +196,13 @@ c change=dest or prod array
 c multip=1(prod) or -1(dest)
 
 c chemical destruction:
-      call chem1(kdnr,maxL,2,nn,ndnr,chemrate,dest,-1)
+      call chem1(kdnr,maxL,2,n_rx,nn,ndnr,chemrate,dest,-1)
 c chemical production:
-      call chem1(kpnr,maxL,2,nnr,npnr,chemrate,prod,1)
+      call chem1(kpnr,maxL,2,n_rx,nnr,npnr,chemrate,prod,1)
 c photolytic destruction:
-      call chem1(kds,maxL,1,ks,nds,photrate,dest,-1)
+      call chem1(kds,maxL,1,n_rj,ks,nds,photrate,dest,-1)
 c photolytic production:
-      call chem1(kps,maxL,2,kss,nps,photrate,prod,1)
+      call chem1(kps,maxL,2,n_rj,kss,nps,photrate,prod,1)
 
 c Add additional Cl from CFC photolysis + background :
       do L=1,maxL
@@ -214,28 +215,79 @@ c Add additional Cl from CFC photolysis + background :
 c Oxidation of Isoprene and Alkenes produces less than one
 c HCHO, Alkenes, and CO per rxn, correct here following Houweling:
       do L=1,maxL
-        prod(nn_CO,L)=prod(nn_CO,L)-0.63d0*chemrate(iAlkenesO3,L)
+        prod(nn_CO,L)=prod(nn_CO,L)
+     &    -0.63d0*chemrate(rrbi%Alkenes_O3__HCHO_CO,L)
 #ifdef TRACERS_dCO
-        prod(nn_dC17O,L)=prod(nn_dC17O,L)-0.63d0*chemrate(iAlkenesO3,L)
-        prod(nn_dC18O,L)=prod(nn_dC18O,L)-0.63d0*chemrate(iAlkenesO3,L)
-        prod(nn_d13CO,L)=prod(nn_d13CO,L)-0.63d0*chemrate(iAlkenesO3,L)
+        prod(nn_dC17O,L)=prod(nn_dC17O,L)
+     &    -0.63d0*chemrate(rrbi%Alkenes_O3__HCHO_dC17O,L)
+        prod(nn_dC18O,L)=prod(nn_dC18O,L)
+     &    -0.63d0*chemrate(rrbi%Alkenes_O3__HCHO_dC18O,L)
+        prod(nn_d13CO,L)=prod(nn_d13CO,L)
+     &    -0.63d0*chemrate(rrbi%Alkenes_O3__HCHO_d13CO,L)
 #endif  /* TRACERS_dCO */
-        prod(nn_HCHO,L)=prod(nn_HCHO,L)-0.36d0*chemrate(iAlkenesO3,L)
-        prod(nn_HCHO,L)=prod(nn_HCHO,L)-0.39d0*chemrate(30,L)
+        prod(nn_HCHO,L)=prod(nn_HCHO,L)
+     &    -0.36d0*chemrate(rrbi%Alkenes_O3__HCHO_CO,L)
+#ifdef TRACERS_dCO
+        prod(nn_dHCH17O,L)=prod(nn_dHCH17O,L)
+     &    -0.36d0*chemrate(rrbi%Alkenes_O3__dHCH17O_CO,L)
+        prod(nn_dHCH18O,L)=prod(nn_dHCH18O,L)
+     &    -0.36d0*chemrate(rrbi%Alkenes_O3__dHCH18O_CO,L)
+        prod(nn_dH13CHO,L)=prod(nn_dH13CHO,L)
+     &    -0.36d0*chemrate(rrbi%Alkenes_O3__dH13CHO_CO,L)
+#endif  /* TRACERS_dCO */
+        prod(nn_HCHO,L)=prod(nn_HCHO,L)
+     &    -0.39d0*chemrate(rrbi%Isoprene_OH__HCHO_Alkenes,L)
 #ifdef TRACERS_TERP
-     &                               -0.39d0*chemrate(iTerpenesOH,L)
+     &    -0.39d0*chemrate(rrbi%Terpenes_OH__HCHO_Alkenes,L)
 #endif  /* TRACERS_TERP */
-        prod(nn_Alkenes,L)=prod(nn_Alkenes,L)-0.42d0*chemrate(30,L)
+#ifdef TRACERS_dCO
+        prod(nn_dHCH17O,L)=prod(nn_dHCH17O,L)
+     &    -0.39d0*chemrate(rrbi%Isoprene_OH__dHCH17O_Alkenes,L)
 #ifdef TRACERS_TERP
-     &                               -0.42d0*chemrate(iTerpenesOH,L)
+     &    -0.39d0*chemrate(rrbi%Terpenes_OH__dHCH17O_Alkenes,L)
 #endif  /* TRACERS_TERP */
-        prod(nn_HCHO,L)=prod(nn_HCHO,L)-0.10d0*chemrate(31,L)
+        prod(nn_dHCH18O,L)=prod(nn_dHCH18O,L)
+     &    -0.39d0*chemrate(rrbi%Isoprene_OH__dHCH18O_Alkenes,L)
 #ifdef TRACERS_TERP
-     &                               -0.10d0*chemrate(iTerpenesO3,L)
+     &    -0.39d0*chemrate(rrbi%Terpenes_OH__dHCH18O_Alkenes,L)
 #endif  /* TRACERS_TERP */
-        prod(nn_Alkenes,L)=prod(nn_Alkenes,L)-0.45d0*chemrate(31,L)
+        prod(nn_dH13CHO,L)=prod(nn_dH13CHO,L)
+     &    -0.39d0*chemrate(rrbi%Isoprene_OH__dH13CHO_Alkenes,L)
 #ifdef TRACERS_TERP
-     &                               -0.45d0*chemrate(iTerpenesO3,L)
+     &    -0.39d0*chemrate(rrbi%Terpenes_OH__dH13CHO_Alkenes,L)
+#endif  /* TRACERS_TERP */
+#endif  /* TRACERS_dCO */
+        prod(nn_Alkenes,L)=prod(nn_Alkenes,L)
+     &    -0.42d0*chemrate(rrbi%Isoprene_OH__HCHO_Alkenes,L)
+#ifdef TRACERS_TERP
+     &    -0.42d0*chemrate(rrbi%Terpenes_OH__HCHO_Alkenes,L)
+#endif  /* TRACERS_TERP */
+        prod(nn_HCHO,L)=prod(nn_HCHO,L)
+     &    -0.10d0*chemrate(rrbi%Isoprene_O3__HCHO_Alkenes,L)
+#ifdef TRACERS_TERP
+     &    -0.10d0*chemrate(rrbi%Terpenes_O3__HCHO_Alkenes,L)
+#endif  /* TRACERS_TERP */
+#ifdef TRACERS_dCO
+        prod(nn_dHCH17O,L)=prod(nn_dHCH17O,L)
+     &    -0.10d0*chemrate(rrbi%Isoprene_O3__dHCH17O_Alkenes,L)
+#ifdef TRACERS_TERP
+     &    -0.10d0*chemrate(rrbi%Terpenes_O3__dHCH17O_Alkenes,L)
+#endif  /* TRACERS_TERP */
+        prod(nn_dHCH18O,L)=prod(nn_dHCH18O,L)
+     &    -0.10d0*chemrate(rrbi%Isoprene_O3__dHCH18O_Alkenes,L)
+#ifdef TRACERS_TERP
+     &    -0.10d0*chemrate(rrbi%Terpenes_O3__dHCH18O_Alkenes,L)
+#endif  /* TRACERS_TERP */
+        prod(nn_dH13CHO,L)=prod(nn_dH13CHO,L)
+     &    -0.10d0*chemrate(rrbi%Isoprene_O3__dH13CHO_Alkenes,L)
+#ifdef TRACERS_TERP
+     &    -0.10d0*chemrate(rrbi%Terpenes_O3__dH13CHO_Alkenes,L)
+#endif  /* TRACERS_TERP */
+#endif  /* TRACERS_dCO */
+        prod(nn_Alkenes,L)=prod(nn_Alkenes,L)
+     &    -0.45d0*chemrate(rrbi%Isoprene_O3__HCHO_Alkenes,L)
+#ifdef TRACERS_TERP
+     &    -0.45d0*chemrate(rrbi%Terpenes_O3__HCHO_Alkenes,L)
 #endif  /* TRACERS_TERP */
 #ifdef TRACERS_HETCHEM
         dest(nn_HNO3,l)=dest(nn_HNO3,l) -
@@ -250,32 +302,38 @@ c HCHO, Alkenes, and CO per rxn, correct here following Houweling:
 #endif  /* SOA_DIAGS */
       do L=1,min(LM_soa,maxL)
         prod(nn_isopp1g,L)=prod(nn_isopp1g,L)+
-     &                    apartmolar(L,whichsoa(n_isopp1a))*
-     &                    (chemrate(30,L)+chemrate(31,L))
+     &    apartmolar(L,whichsoa(n_isopp1a))*
+     &    (chemrate(rrbi%Isoprene_OH__HCHO_Alkenes,L)
+     &    +chemrate(rrbi%Isoprene_O3__HCHO_Alkenes,L))
         prod(nn_isopp2g,L)=prod(nn_isopp2g,L)+
-     &                    apartmolar(L,whichsoa(n_isopp2a))*
-     &                    (chemrate(30,L)+chemrate(31,L))
+     &    apartmolar(L,whichsoa(n_isopp2a))*
+     &    (chemrate(rrbi%Isoprene_OH__HCHO_Alkenes,L)
+     &    +chemrate(rrbi%Isoprene_O3__HCHO_Alkenes,L))
 #ifdef TRACERS_TERP
         prod(nn_apinp1g,L)=prod(nn_apinp1g,L)+
-     &                    apartmolar(L,whichsoa(n_apinp1a))*
-     &                    chemrate(iTerpenesO3,L)
+     &    apartmolar(L,whichsoa(n_apinp1a))*
+     &    chemrate(rrbi%Terpenes_O3__HCHO_Alkenes,L)
         prod(nn_apinp2g,L)=prod(nn_apinp2g,L)+
-     &                    apartmolar(L,whichsoa(n_apinp2a))*
-     &                    chemrate(iTerpenesO3,L)
+     &    apartmolar(L,whichsoa(n_apinp2a))*
+     &    chemrate(rrbi%Terpenes_O3__HCHO_Alkenes,L)
 #endif  /* TRACERS_TERP */
       end do
 #endif  /* TRACERS_AEROSOLS_SOA */
 
-c Set CH3O2 values (concentration = production/specific loss):
       do L=1,maxT ! troposphere
+c Set CH3O2 values (concentration = production/specific loss):
         iter=1
-        qqqCH3O2=(rr(11,L)*y(nO1D,L)+rr(12,L)*y(nOH,L))
-     &  *y(nn_CH4,L)+rr(23,L)*y(nn_CH3OOH,L)*y(nOH,L)
+        qqqCH3O2=(rr(rrbi%O1D_CH4__OH_CH3O2,L)*y(nO1D,L)
+     &      +rr(rrbi%CH4_OH__H2O_CH3O2,L)*y(nOH,L))
+     &    *y(nn_CH4,L)
+     &    +rr(rrbi%CH3OOH_OH__CH3O2_H2O,L)*y(nn_CH3OOH,L)*y(nOH,L)
         tempAcet=2.d0*Jacet(L)*acetone(I,J,L)
         prodCH3O2=qqqCH3O2+tempAcet
-        tempiter=rr(20,L)*y(nNO,L)+rr(22,L)*y(nHO2,L)
+        tempiter=rr(rrbi%CH3O2_NO__HCHO_NO2,L)*y(nNO,L)
+     &    +rr(rrbi%CH3O2_HO2__CH3OOH_O2,L)*y(nHO2,L)
         do while(iter <= 7)
-          CH3O2loss=tempiter+rr(27,L)*yCH3O2(I,J,L)
+          CH3O2loss=tempiter
+     &      +rr(rrbi%CH3O2_CH3O2__HCHO_HCHO,L)*yCH3O2(I,J,L)
           if(CH3O2loss > 1.d-7)then
             y(nCH3O2,L)=prodCH3O2/CH3O2loss
           else
@@ -289,52 +347,336 @@ c Conserve carbon wrt CH3O2 changes:
         if(diffCH3O2 > tempAcet)then
 c         reduce non-acetone source gases (CH4 and CH3OOH):
           dest(nn_CH4,L)=dest(nn_CH4,L)-(diffCH3O2-tempAcet)
-     &    *(qqqCH3O2-rr(23,L)*y(nn_CH3OOH,L)*y(nOH,L))/qqqCH3O2
+     &      *(qqqCH3O2-rr(rrbi%CH3OOH_OH__CH3O2_H2O,L)*y(nn_CH3OOH,L)
+     &      *y(nOH,L))/qqqCH3O2
           dest(nn_CH3OOH,L)=dest(nn_CH3OOH,L)-(diffCH3O2-tempAcet)
-     &    *(rr(23,L)*y(nn_CH3OOH,L)*y(nOH,L))/qqqCH3O2
+     &      *(rr(rrbi%CH3OOH_OH__CH3O2_H2O,L)*y(nn_CH3OOH,L)
+     &      *y(nOH,L))/qqqCH3O2
         else if(diffCH3O2 < tempAcet)then
 c         increase non-acetone product gases:
           prod(nn_HCHO,L)=prod(nn_HCHO,L)-(diffCH3O2-tempAcet)
-     &    *(CH3O2loss-rr(22,L)*y(nHO2,L))/CH3O2loss
+     &      *(CH3O2loss-rr(rrbi%CH3O2_HO2__CH3OOH_O2,L)*y(nHO2,L))
+     &      /CH3O2loss
           prod(nn_CH3OOH,L)=prod(nn_CH3OOH,L)-(diffCH3O2-tempAcet)
-     &    *(rr(22,L)*y(nHO2,L))/CH3O2loss
+     &      *(rr(rrbi%CH3O2_HO2__CH3OOH_O2,L)*y(nHO2,L))
+     &      /CH3O2loss
         end if
         yCH3O2(I,J,L)=y(nCH3O2,L)
+
+#ifdef TRACERS_dCO
+c Set dCH317O2 values (concentration = production/specific loss):
+! ok to overwrite here qqqCH3O2,prodCH3O2,diffCH3O2,CH3O2loss
+        iter=1
+        qqqCH3O2=(rr(rrbi%O1D_CH4__OH_dCH317O2,L)*y(nO1D,L)
+     &      +rr(rrbi%CH4_OH__H2O_dCH317O2,L)*y(nOH,L))
+     &    *y(nn_CH4,L)
+     &    +rr(rrbi%dMe17OOH_OH__dCH317O2_H2O,L)*y(nn_dMe17OOH,L)
+     &      *y(nOH,L)
+        tempAcet=2.d0*Jacet(L)*acetone(I,J,L)
+        prodCH3O2=qqqCH3O2+tempAcet
+        tempiter=rr(rrbi%dCH317O2_NO__dHCH17O_NO2,L)*y(nNO,L)
+     &    +rr(rrbi%dCH317O2_HO2__dMe17OOH_O2,L)*y(nHO2,L)
+        do while(iter <= 7)
+          CH3O2loss=tempiter
+     &      +0.5d0*(rr(rrbi%dCH317O2_CH3O2__dHCH17O_HCHO,L)
+     &        +rr(rrbi%CH3O2_dCH317O2__HCHO_dHCH17O,L))*ydCH317O2(I,J,L)
+          if(CH3O2loss > 1.d-7)then
+            y(ndCH317O2,L)=prodCH3O2/CH3O2loss
+          else
+            y(ndCH317O2,L)=1.d0
+          end if
+          iter=iter+1
+        end do
+
+c Conserve carbon wrt dCH317O2 changes:
+        diffCH3O2=y(ndCH317O2,L)-ydCH317O2(I,J,L)
+        if(diffCH3O2 > tempAcet)then
+c         reduce non-acetone source gases (CH4 and dMe17OOH):
+!          dest(nn_CH4,L)=dest(nn_CH4,L)-(diffCH3O2-tempAcet)
+!     &      *(qqqCH3O2-rr(rrbi%dMe17OOH_OH__dCH317O2_H2O,L)*y(nn_dMe17OOH,L)
+!     &      *y(nOH,L))/qqqCH3O2
+          dest(nn_dMe17OOH,L)=dest(nn_dMe17OOH,L)-(diffCH3O2-tempAcet)
+     &      *(rr(rrbi%dMe17OOH_OH__dCH317O2_H2O,L)*y(nn_dMe17OOH,L)
+     &      *y(nOH,L))/qqqCH3O2
+        else if(diffCH3O2 < tempAcet)then
+c         increase non-acetone product gases:
+          prod(nn_dHCH17O,L)=prod(nn_dHCH17O,L)-(diffCH3O2-tempAcet)
+     &      *(CH3O2loss-rr(rrbi%dCH317O2_HO2__dMe17OOH_O2,L)*y(nHO2,L))
+     &      /CH3O2loss*dCOfact
+          prod(nn_dMe17OOH,L)=prod(nn_dMe17OOH,L)-(diffCH3O2-tempAcet)
+     &      *(rr(rrbi%dCH317O2_HO2__dMe17OOH_O2,L)*y(nHO2,L))
+     &      /CH3O2loss
+        end if
+        ydCH317O2(I,J,L)=y(ndCH317O2,L)
+
+c Set dCH318O2 values (concentration = production/specific loss):
+! ok to overwrite here qqqCH3O2,prodCH3O2,diffCH3O2,CH3O2loss
+        iter=1
+        qqqCH3O2=(rr(rrbi%O1D_CH4__OH_dCH318O2,L)*y(nO1D,L)
+     &      +rr(rrbi%CH4_OH__H2O_dCH318O2,L)*y(nOH,L))
+     &    *y(nn_CH4,L)
+     &    +rr(rrbi%dMe18OOH_OH__dCH318O2_H2O,L)*y(nn_dMe18OOH,L)
+     &      *y(nOH,L)
+        tempAcet=2.d0*Jacet(L)*acetone(I,J,L)
+        prodCH3O2=qqqCH3O2+tempAcet
+        tempiter=rr(rrbi%dCH318O2_NO__dHCH18O_NO2,L)*y(nNO,L)
+     &    +rr(rrbi%dCH318O2_HO2__dMe18OOH_O2,L)*y(nHO2,L)
+        do while(iter <= 7)
+          CH3O2loss=tempiter
+     &      +0.5d0*(rr(rrbi%dCH318O2_CH3O2__dHCH18O_HCHO,L)
+     &        +rr(rrbi%CH3O2_dCH318O2__HCHO_dHCH18O,L))*ydCH318O2(I,J,L)
+          if(CH3O2loss > 1.d-7)then
+            y(ndCH318O2,L)=prodCH3O2/CH3O2loss
+          else
+            y(ndCH318O2,L)=1.d0
+          end if
+          iter=iter+1
+        end do
+
+c Conserve carbon wrt dCH318O2 changes:
+        diffCH3O2=y(ndCH318O2,L)-ydCH318O2(I,J,L)
+        if(diffCH3O2 > tempAcet)then
+c         reduce non-acetone source gases (CH4 and dMe18OOH):
+!          dest(nn_CH4,L)=dest(nn_CH4,L)-(diffCH3O2-tempAcet)
+!     &      *(qqqCH3O2-rr(rrbi%dMe18OOH_OH__dCH318O2_H2O,L)*y(nn_dMe18OOH,L)
+!     &      *y(nOH,L))/qqqCH3O2
+          dest(nn_dMe18OOH,L)=dest(nn_dMe18OOH,L)-(diffCH3O2-tempAcet)
+     &      *(rr(rrbi%dMe18OOH_OH__dCH318O2_H2O,L)*y(nn_dMe18OOH,L)
+     &      *y(nOH,L))/qqqCH3O2
+        else if(diffCH3O2 < tempAcet)then
+c         increase non-acetone product gases:
+          prod(nn_dHCH18O,L)=prod(nn_dHCH18O,L)-(diffCH3O2-tempAcet)
+     &      *(CH3O2loss-rr(rrbi%dCH318O2_HO2__dMe18OOH_O2,L)*y(nHO2,L))
+     &      /CH3O2loss*dCOfact
+          prod(nn_dMe18OOH,L)=prod(nn_dMe18OOH,L)-(diffCH3O2-tempAcet)
+     &      *(rr(rrbi%dCH318O2_HO2__dMe18OOH_O2,L)*y(nHO2,L))
+     &      /CH3O2loss
+        end if
+        ydCH318O2(I,J,L)=y(ndCH318O2,L)
+
+c Set d13CH3O2 values (concentration = production/specific loss):
+! ok to overwrite here qqqCH3O2,prodCH3O2,diffCH3O2,CH3O2loss
+        iter=1
+        qqqCH3O2=(rr(rrbi%O1D_CH4__OH_d13CH3O2,L)*y(nO1D,L)
+     &      +rr(rrbi%CH4_OH__H2O_d13CH3O2,L)*y(nOH,L))
+     &    *y(nn_CH4,L)
+     &    +rr(rrbi%d13MeOOH_OH__d13CH3O2_H2O,L)*y(nn_d13MeOOH,L)
+     &      *y(nOH,L)
+        tempAcet=2.d0*Jacet(L)*acetone(I,J,L)
+        prodCH3O2=qqqCH3O2+tempAcet
+        tempiter=rr(rrbi%d13CH3O2_NO__dH13CHO_NO2,L)*y(nNO,L)
+     &    +rr(rrbi%d13CH3O2_HO2__d13MeOOH_O2,L)*y(nHO2,L)
+        do while(iter <= 7)
+          CH3O2loss=tempiter
+     &      +0.5d0*(rr(rrbi%d13CH3O2_CH3O2__dH13CHO_HCHO,L)
+     &        +rr(rrbi%CH3O2_d13CH3O2__HCHO_dH13CHO,L))*yd13CH3O2(I,J,L)
+          if(CH3O2loss > 1.d-7)then
+            y(nd13CH3O2,L)=prodCH3O2/CH3O2loss
+          else
+            y(nd13CH3O2,L)=1.d0
+          end if
+          iter=iter+1
+        end do
+
+c Conserve carbon wrt d13CH3O2 changes:
+        diffCH3O2=y(nd13CH3O2,L)-yd13CH3O2(I,J,L)
+        if(diffCH3O2 > tempAcet)then
+c         reduce non-acetone source gases (CH4 and d13MeOOH):
+!          dest(nn_CH4,L)=dest(nn_CH4,L)-(diffCH3O2-tempAcet)
+!     &      *(qqqCH3O2-rr(rrbi%d13MeOOH_OH__d13CH3O2_H2O,L)*y(nn_d13MeOOH,L)
+!     &      *y(nOH,L))/qqqCH3O2
+          dest(nn_d13MeOOH,L)=dest(nn_d13MeOOH,L)-(diffCH3O2-tempAcet)
+     &      *(rr(rrbi%d13MeOOH_OH__d13CH3O2_H2O,L)*y(nn_d13MeOOH,L)
+     &      *y(nOH,L))/qqqCH3O2
+        else if(diffCH3O2 < tempAcet)then
+c         increase non-acetone product gases:
+          prod(nn_dH13CHO,L)=prod(nn_dH13CHO,L)-(diffCH3O2-tempAcet)
+     &      *(CH3O2loss-rr(rrbi%d13CH3O2_HO2__d13MeOOH_O2,L)*y(nHO2,L))
+     &      /CH3O2loss*dCOfact
+          prod(nn_d13MeOOH,L)=prod(nn_d13MeOOH,L)-(diffCH3O2-tempAcet)
+     &      *(rr(rrbi%d13CH3O2_HO2__d13MeOOH_O2,L)*y(nHO2,L))
+     &      /CH3O2loss
+        end if
+        yd13CH3O2(I,J,L)=y(nd13CH3O2,L)
+#endif  /* TRACERS_dCO */
       end do
       
-      do L=maxT+1,maxL
+      do L=maxT+1,maxL ! stratosphere
+c Set CH3O2 values (concentration = production/specific loss):
         iter=1
-        qqqCH3O2=(rr(11,L)*y(nO1D,L)+rr(12,L)*y(nOH,L))
-     &  *y(nn_CH4,L)+rr(23,L)*y(nn_CH3OOH,L)*y(nOH,L)
-     &  +rr(82,l)*y(nCl,L)
-        tempiter=rr(20,L)*y(nNO,L)+rr(22,L)*y(nHO2,L)
-     &  +rr(85,l)*y(nClO,l)
+        qqqCH3O2=(rr(rrbi%O1D_CH4__OH_CH3O2,L)*y(nO1D,L)
+     &      +rr(rrbi%CH4_OH__H2O_CH3O2,L)*y(nOH,L))
+     &    *y(nn_CH4,L)
+     &    +rr(rrbi%CH3OOH_OH__CH3O2_H2O,L)*y(nn_CH3OOH,L)*y(nOH,L)
+     &    +rr(rrbi%Cl_CH4__HCl_CH3O2,l)*y(nCl,L)
+        tempiter=rr(rrbi%CH3O2_NO__HCHO_NO2,L)*y(nNO,L)
+     &    +rr(rrbi%CH3O2_HO2__CH3OOH_O2,L)*y(nHO2,L)
+     &    +rr(rrbi%ClO_CH3O2__Cl_HCHO,l)*y(nClO,l)
         do while (iter <= 7)
-          CH3O2loss=tempiter+rr(27,L)*yCH3O2(I,J,L)
+          CH3O2loss=tempiter
+     &      +rr(rrbi%CH3O2_CH3O2__HCHO_HCHO,L)*yCH3O2(I,J,L)
           if(CH3O2loss > 1.d-7)then
             y(nCH3O2,L)=qqqCH3O2/CH3O2loss
           else
             y(nCH3O2,L)=1.d-5
           end if
           iter=iter+1
-        end do            
-            
+        end do
+
 c Conserve carbon wrt CH3O2 changes:
         diffCH3O2=y(nCH3O2,L)-yCH3O2(I,J,L)
         if(diffCH3O2 > 0.d0)then
 c         reduce source gases (CH4 and CH3OOH):
           dest(nn_CH4,L)=dest(nn_CH4,l)-diffCH3O2
-     &    *(qqqCH3O2-rr(23,L)*y(nn_CH3OOH,L)*y(nOH,L))/qqqCH3O2
+     &      *(qqqCH3O2-rr(rrbi%CH3OOH_OH__CH3O2_H2O,L)*y(nn_CH3OOH,L)
+     &      *y(nOH,L))/qqqCH3O2
           dest(nn_CH3OOH,L)=dest(nn_CH3OOH,l)-diffCH3O2
-     &    *(rr(23,L)*y(nn_CH3OOH,L)*y(nOH,L))/qqqCH3O2
+     &    *(rr(rrbi%CH3OOH_OH__CH3O2_H2O,L)*y(nn_CH3OOH,L)
+     &    *y(nOH,L))/qqqCH3O2
         else if(diffCH3O2 < 0.d0)then
 c         increase product gases:
           prod(nn_HCHO,l)=prod(nn_HCHO,l)-diffCH3O2
-     &    *(CH3O2loss-rr(22,L)*y(nHO2,L))/CH3O2loss
+     &      *(CH3O2loss-rr(rrbi%CH3O2_HO2__CH3OOH_O2,L)*y(nHO2,L))
+     &      /CH3O2loss
           prod(nn_CH3OOH,l)=prod(nn_CH3OOH,l)-diffCH3O2
-     &    *(rr(22,L)*y(nHO2,L))/CH3O2loss
+     &      *(rr(rrbi%CH3O2_HO2__CH3OOH_O2,L)*y(nHO2,L))
+     &      /CH3O2loss
         end if
         yCH3O2(I,J,L)=y(nCH3O2,L)
+
+#ifdef TRACERS_dCO
+c Set dCH317O2 values (concentration = production/specific loss):
+        iter=1
+        qqqCH3O2=(rr(rrbi%O1D_CH4__OH_dCH317O2,L)*y(nO1D,L)
+     &      +rr(rrbi%CH4_OH__H2O_dCH317O2,L)*y(nOH,L))
+     &    *y(nn_CH4,L)
+     &    +rr(rrbi%dMe17OOH_OH__dCH317O2_H2O,L)*y(nn_dMe17OOH,L)
+     &      *y(nOH,L)
+     &    +rr(rrbi%Cl_CH4__HCl_dCH317O2,l)*y(nCl,L)
+        tempiter=rr(rrbi%dCH317O2_NO__dHCH17O_NO2,L)*y(nNO,L)
+     &    +rr(rrbi%dCH317O2_HO2__dMe17OOH_O2,L)*y(nHO2,L)
+     &    +rr(rrbi%ClO_dCH317O2__Cl_dHCH17O,l)*y(nClO,l)
+        do while (iter <= 7)
+          CH3O2loss=tempiter
+     &      +0.5d0*(rr(rrbi%dCH317O2_CH3O2__dHCH17O_HCHO,L)
+     &        +rr(rrbi%CH3O2_dCH317O2__HCHO_dHCH17O,L))*ydCH317O2(I,J,L)
+          if(CH3O2loss > 1.d-7)then
+            y(ndCH317O2,L)=qqqCH3O2/CH3O2loss
+          else
+            y(ndCH317O2,L)=1.d-5
+          end if
+          iter=iter+1
+        end do
+
+c Conserve carbon wrt CH3O2 changes:
+        diffCH3O2=y(ndCH317O2,L)-ydCH317O2(I,J,L)
+        if(diffCH3O2 > 0.d0)then
+c         reduce source gases (CH4 and dMe17OOH):
+!          dest(nn_CH4,L)=dest(nn_CH4,l)-diffCH3O2
+!     &      *(qqqCH3O2-rr(rrbi%dMe17OOH_OH__dCH317O2_H2O,L)*y(nn_dMe17OOH,L)
+!     &      *y(nOH,L))/qqqCH3O2
+          dest(nn_dMe17OOH,L)=dest(nn_dMe17OOH,l)-diffCH3O2
+     &    *(rr(rrbi%dMe17OOH_OH__dCH317O2_H2O,L)*y(nn_dMe17OOH,L)
+     &    *y(nOH,L))/qqqCH3O2
+        else if(diffCH3O2 < 0.d0)then
+c         increase product gases:
+          prod(nn_dHCH17O,l)=prod(nn_dHCH17O,l)-diffCH3O2
+     &      *(CH3O2loss-rr(rrbi%dCH317O2_HO2__dMe17OOH_O2,L)*y(nHO2,L))
+     &      /CH3O2loss*dCOfact
+          prod(nn_dMe17OOH,l)=prod(nn_dMe17OOH,l)-diffCH3O2
+     &      *(rr(rrbi%dCH317O2_HO2__dMe17OOH_O2,L)*y(nHO2,L))
+     &      /CH3O2loss
+        end if
+        ydCH317O2(I,J,L)=y(ndCH317O2,L)
+
+c Set dCH318O2 values (concentration = production/specific loss):
+        iter=1
+        qqqCH3O2=(rr(rrbi%O1D_CH4__OH_dCH318O2,L)*y(nO1D,L)
+     &      +rr(rrbi%CH4_OH__H2O_dCH318O2,L)*y(nOH,L))
+     &    *y(nn_CH4,L)
+     &    +rr(rrbi%dMe18OOH_OH__dCH318O2_H2O,L)*y(nn_dMe18OOH,L)
+     &      *y(nOH,L)
+     &    +rr(rrbi%Cl_CH4__HCl_dCH318O2,l)*y(nCl,L)
+        tempiter=rr(rrbi%dCH318O2_NO__dHCH18O_NO2,L)*y(nNO,L)
+     &    +rr(rrbi%dCH318O2_HO2__dMe18OOH_O2,L)*y(nHO2,L)
+     &    +rr(rrbi%ClO_dCH318O2__Cl_dHCH18O,l)*y(nClO,l)
+        do while (iter <= 7)
+          CH3O2loss=tempiter
+     &      +0.5d0*(rr(rrbi%dCH318O2_CH3O2__dHCH18O_HCHO,L)
+     &        +rr(rrbi%CH3O2_dCH318O2__HCHO_dHCH18O,L))*ydCH318O2(I,J,L)
+          if(CH3O2loss > 1.d-7)then
+            y(ndCH318O2,L)=qqqCH3O2/CH3O2loss
+          else
+            y(ndCH318O2,L)=1.d-5
+          end if
+          iter=iter+1
+        end do
+
+c Conserve carbon wrt CH3O2 changes:
+        diffCH3O2=y(ndCH318O2,L)-ydCH318O2(I,J,L)
+        if(diffCH3O2 > 0.d0)then
+c         reduce source gases (CH4 and dMe18OOH):
+!          dest(nn_CH4,L)=dest(nn_CH4,l)-diffCH3O2
+!     &      *(qqqCH3O2-rr(rrbi%dMe18OOH_OH__dCH318O2_H2O,L)*y(nn_dMe18OOH,L)
+!     &      *y(nOH,L))/qqqCH3O2
+          dest(nn_dMe18OOH,L)=dest(nn_dMe18OOH,l)-diffCH3O2
+     &    *(rr(rrbi%dMe18OOH_OH__dCH318O2_H2O,L)*y(nn_dMe18OOH,L)
+     &    *y(nOH,L))/qqqCH3O2
+        else if(diffCH3O2 < 0.d0)then
+c         increase product gases:
+          prod(nn_dHCH18O,l)=prod(nn_dHCH18O,l)-diffCH3O2
+     &      *(CH3O2loss-rr(rrbi%dCH318O2_HO2__dMe18OOH_O2,L)*y(nHO2,L))
+     &      /CH3O2loss*dCOfact
+          prod(nn_dMe18OOH,l)=prod(nn_dMe18OOH,l)-diffCH3O2
+     &      *(rr(rrbi%dCH318O2_HO2__dMe18OOH_O2,L)*y(nHO2,L))
+     &      /CH3O2loss
+        end if
+        ydCH318O2(I,J,L)=y(ndCH318O2,L)
+
+c Set d13CH3O2 values (concentration = production/specific loss):
+        iter=1
+        qqqCH3O2=(rr(rrbi%O1D_CH4__OH_d13CH3O2,L)*y(nO1D,L)
+     &      +rr(rrbi%CH4_OH__H2O_d13CH3O2,L)*y(nOH,L))
+     &    *y(nn_CH4,L)
+     &    +rr(rrbi%d13MeOOH_OH__d13CH3O2_H2O,L)*y(nn_d13MeOOH,L)
+     &      *y(nOH,L)
+     &    +rr(rrbi%Cl_CH4__HCl_d13CH3O2,l)*y(nCl,L)
+        tempiter=rr(rrbi%d13CH3O2_NO__dH13CHO_NO2,L)*y(nNO,L)
+     &    +rr(rrbi%d13CH3O2_HO2__d13MeOOH_O2,L)*y(nHO2,L)
+     &    +rr(rrbi%ClO_d13CH3O2__Cl_dH13CHO,l)*y(nClO,l)
+        do while (iter <= 7)
+          CH3O2loss=tempiter
+     &      +0.5d0*(rr(rrbi%d13CH3O2_CH3O2__dH13CHO_HCHO,L)
+     &        +rr(rrbi%CH3O2_d13CH3O2__HCHO_dH13CHO,L))*yd13CH3O2(I,J,L)
+          if(CH3O2loss > 1.d-7)then
+            y(nd13CH3O2,L)=qqqCH3O2/CH3O2loss
+          else
+            y(nd13CH3O2,L)=1.d-5
+          end if
+          iter=iter+1
+        end do
+
+c Conserve carbon wrt CH3O2 changes:
+        diffCH3O2=y(nd13CH3O2,L)-yd13CH3O2(I,J,L)
+        if(diffCH3O2 > 0.d0)then
+c         reduce source gases (CH4 and d13MeOOH):
+!          dest(nn_CH4,L)=dest(nn_CH4,l)-diffCH3O2
+!     &      *(qqqCH3O2-rr(rrbi%d13MeOOH_OH__d13CH3O2_H2O,L)*y(nn_d13MeOOH,L)
+!     &      *y(nOH,L))/qqqCH3O2
+          dest(nn_d13MeOOH,L)=dest(nn_d13MeOOH,l)-diffCH3O2
+     &    *(rr(rrbi%d13MeOOH_OH__d13CH3O2_H2O,L)*y(nn_d13MeOOH,L)
+     &    *y(nOH,L))/qqqCH3O2
+        else if(diffCH3O2 < 0.d0)then
+c         increase product gases:
+          prod(nn_dH13CHO,l)=prod(nn_dH13CHO,l)-diffCH3O2
+     &      *(CH3O2loss-rr(rrbi%d13CH3O2_HO2__d13MeOOH_O2,L)*y(nHO2,L))
+     &      /CH3O2loss*dCOfact
+          prod(nn_d13MeOOH,l)=prod(nn_d13MeOOH,l)-diffCH3O2
+     &      *(rr(rrbi%d13CH3O2_HO2__d13MeOOH_O2,L)*y(nHO2,L))
+     &      /CH3O2loss
+        end if
+        yd13CH3O2(I,J,L)=y(nd13CH3O2,L)
+#endif  /* TRACERS_dCO */
       end do
 
       do L=1,maxT ! ---------- troposphere loop ---------
@@ -343,23 +685,29 @@ c Set C2O3, XO2, XO2N, RXPAR, Aldehyde & ROR values:
 
 c       First set various specific loss rates:
         XO2_NO=y(nNO,L)*4.2d-12*exp(180.d0/ta(L))
-        XO2N_HO2=y(nHO2,L)*y(nNO,L)*rr(44,L)*
-     &  rr(43,L)/XO2_NO
+        XO2N_HO2=y(nHO2,L)*y(nNO,L)*rr(rrbi%XO2N_NO__AlkylNit_M,L)
+     &    *rr(rrbi%XO2_HO2__CH3OOH_M,L)/XO2_NO
         RXPAR_PAR=y(nn_Paraffin,L)*8.d-11
         ROR_CH2=1.6d3
 
 c       Set value for C2O3:
         iter=1
-        C2O3prod=rr(38,L)*yAldehyde(I,J,L)*y(nOH,L)+
-     &  (rr(29,L)*y(nM,L)+ss(15,L,I,J))*y(nn_PAN,L)+
-     &  0.15d0*rr(31,L)*y(nO3,L)*y(nn_Isoprene,L)
+        C2O3prod=rr(rrbi%Aldehyde_OH__C2O3_M,L)*yAldehyde(I,J,L)
+     &      *y(nOH,L)
+     &    +(rr(rrbi%PAN_M__C2O3_NO2,L)*y(nM,L)
+     &      +ss(rj%PAN__C2O3_NO2,L,I,J))*y(nn_PAN,L)
+     &    +0.15d0*rr(rrbi%Isoprene_O3__HCHO_Alkenes,L)
+     &      *y(nO3,L)*y(nn_Isoprene,L)
 #ifdef TRACERS_TERP
-     & +0.15d0*rr(iTerpenesO3,L)*y(nO3,L)*y(nn_Terpenes,L)
+     &    +0.15d0*rr(rrbi%Terpenes_O3__HCHO_Alkenes,L)*y(nO3,L)
+     &      *y(nn_Terpenes,L)
 #endif  /* TRACERS_TERP */
-        tempiter=rr(39,L)*y(nNO,L)+rr(iPANform,L)*y(nNO2,L)+
-     &  rr(41,L)*y(nHO2,L)
+        tempiter=rr(rrbi%C2O3_NO__HCHO_NO2,L)*y(nNO,L)
+     &    +rr(rrtri%C2O3_NO2__PAN_M,L)*y(nNO2,L)
+     &    +rr(rrbi%C2O3_HO2__HCHO_HO2,L)*y(nHO2,L)
         do while (iter <= 7)
-          C2O3dest=tempiter+rr(40,L)*yC2O3(I,J,L)
+          C2O3dest=tempiter
+     &      +rr(rrbi%C2O3_C2O3__HCHO_HCHO,L)*yC2O3(I,J,L)
           if(C2O3dest > 1.d-7)then
             y(nC2O3,L)=(C2O3prod/C2O3dest)
           else
@@ -372,28 +720,32 @@ c       Set value for C2O3:
 c       Set value for XO2:
 ! remember to update voc2nox if you update any of the following XO2 loss reactions
         iter=1
-        XO2prod=ss(16,L,I,J)*yAldehyde(I,J,L)+
-     &  y(nC2O3,L)*(rr(39,L)*y(nNO2,L)+rr(40,L)*
-     &  y(nC2O3,L)*2.d0+rr(41,L)*y(nHO2,L))
-     &  +rr(42,L)*yROR(I,J,L)*0.96d0
-     &  +y(nOH,L)*(rr(37,L)*y(nn_Paraffin,L)*0.87d0+rr(34,L)*
-     &  y(nn_Alkenes,L)+rr(30,L)*y(nn_Isoprene,L)*0.85d0+
+        XO2prod=ss(rj%Aldehyde__HCHO_CO,L,I,J)*yAldehyde(I,J,L) ! CO isotopes should not go here
+     &    +y(nC2O3,L)*(rr(rrbi%C2O3_NO__HCHO_NO2,L)*y(nNO2,L)
+     &    +rr(rrbi%C2O3_C2O3__HCHO_HCHO,L)*y(nC2O3,L)*2.d0
+     &    +rr(rrbi%C2O3_HO2__HCHO_HO2,L)*y(nHO2,L))
+     &    +rr(rrbi%ROR_M__Aldehyde_HO2,L)*yROR(I,J,L)*0.96d0
+     &    +y(nOH,L)*(rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
+     &      *0.87d0
+     &    +rr(rrbi%Alkenes_OH__HCHO_HO2,L)*y(nn_Alkenes,L)
+     &    +rr(rrbi%Isoprene_OH__HCHO_Alkenes,L)*y(nn_Isoprene,L)*0.85d0
 #ifdef TRACERS_TERP
-     &  rr(iTerpenesOH,L)*y(nn_Terpenes,L)*0.85d0+
+     &    +rr(rrbi%Terpenes_OH__HCHO_Alkenes,L)*y(nn_Terpenes,L)*0.85d0
 #endif  /* TRACERS_TERP */
-     &  rr(33,L)*y(nn_AlkylNit,L))+
-     &  y(nO3,L)*(rr(iAlkenesO3,L)*y(nn_Alkenes,L)*0.29d0+
-     &  rr(31,L)*y(nn_Isoprene,L)*0.18d0
+     &    +rr(rrbi%AlkylNit_OH__NO2_M,L)*y(nn_AlkylNit,L))+
+     &  y(nO3,L)*(rr(rrbi%Alkenes_O3__HCHO_CO,L)*y(nn_Alkenes,L)*0.29d0
+     &    +rr(rrbi%Isoprene_O3__HCHO_Alkenes,L)*y(nn_Isoprene,L)*0.18d0
 #ifdef TRACERS_TERP
-     &  +rr(iTerpenesO3,L)*y(nn_Terpenes,L)*0.18d0
+     &    +rr(rrbi%Terpenes_O3__HCHO_Alkenes,L)*y(nn_Terpenes,L)*0.18d0
 #endif  /* TRACERS_TERP */
      &           )
-        tempiter=XO2_NO+rr(43,L)*y(nHO2,L)
+        tempiter=XO2_NO+rr(rrbi%XO2_HO2__CH3OOH_M,L)*y(nHO2,L)
         tempiter2=1.7d-14*exp(1300.d0/ta(L))
         do while (iter <= 7)
           XO2_XO2=yXO2(I,J,L)*tempiter2
           XO2dest=tempiter+XO2_XO2
-          if(XO2dest > 1.d-7.and.ss(16,L,I,J) > 1.d-6)then
+          if(XO2dest > 1.d-7.and.
+     &       ss(rj%Aldehyde__HCHO_CO,L,I,J) > 1.d-6)then ! CO isotopes should not go here
             y(nXO2,L)=(XO2prod/XO2dest)
           else
             y(nXO2,L)=1.d0
@@ -403,13 +755,16 @@ c       Set value for XO2:
         end do
 
 c       Set value for XO2N:
-        XO2Nprod=rr(37,L)*y(nn_Paraffin,L)*y(nOH,L)*0.13d0+
-     &  rr(42,L)*yROR(I,J,L)*0.04d0+rr(30,L)*y(nn_Isoprene,L)*
+        XO2Nprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
+     &      *y(nOH,L)*0.13d0
+     &    +rr(rrbi%ROR_M__Aldehyde_HO2,L)*yROR(I,J,L)*0.04d0
+     &    +rr(rrbi%Isoprene_OH__HCHO_Alkenes,L)*y(nn_Isoprene,L)*
      &  y(nOH,L)*0.15d0
 #ifdef TRACERS_TERP
-     & +rr(iTerpenesOH,L)*y(nn_Terpenes,L)*y(nOH,L)*0.15d0
+     &    +rr(rrbi%Terpenes_OH__HCHO_Alkenes,L)*y(nn_Terpenes,L)
+     &      *y(nOH,L)*0.15d0
 #endif  /* TRACERS_TERP */
-        XO2Ndest=XO2N_HO2+rr(44,L)*y(nNO,L)
+        XO2Ndest=XO2N_HO2+rr(rrbi%XO2N_NO__AlkylNit_M,L)*y(nNO,L)
         if(XO2Ndest > 1.d-7)then
           y(nXO2N,L)=(XO2Nprod/XO2Ndest)
         else
@@ -418,14 +773,16 @@ c       Set value for XO2N:
         yXO2N(I,J,L)=y(nXO2N,L)
 
 #ifdef ACCMIP_LIKE_DIAGS
-        TAIJLS(I,J,L,ijlt_OxpRO2)=TAIJLS(I,J,L,ijlt_OxpRO2)+
-     &  (y(nXO2,L)*XO2_NO+y(nXO2N,L)*y(nNO,L)*rr(44,L))*cpd
+        TAIJLS(I,J,L,ijlt_OxpRO2)=TAIJLS(I,J,L,ijlt_OxpRO2)
+     &    +(y(nXO2,L)*XO2_NO
+     &      +y(nXO2N,L)*y(nNO,L)*rr(rrbi%XO2N_NO__AlkylNit_M,L))*cpd
 #endif
 
 c       Set value for RXPAR:
-        RXPARprod=rr(37,L)*y(nn_Paraffin,L)*y(nOH,L)*0.11d0+
-     &  rr(34,L)*yROR(I,J,L)*2.1d0+rr(iAlkenesO3,L)*y(nn_Alkenes,L)*
-     &  y(nO3,L)*0.9d0
+        RXPARprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
+     &      *y(nOH,L)*0.11d0
+     &    +rr(rrbi%Alkenes_OH__HCHO_HO2,L)*yROR(I,J,L)*2.1d0
+     &    +rr(rrbi%Alkenes_O3__HCHO_CO,L)*y(nn_Alkenes,L)*y(nO3,L)*0.9d0
         RXPARdest=RXPAR_PAR
         if(RXPARdest > 0.d0)then
           y(nRXPAR,L)=(RXPARprod/RXPARdest)
@@ -435,11 +792,14 @@ c       Set value for RXPAR:
         yRXPAR(I,J,L)=y(nRXPAR,L)
 
 c       Set value for Aldehyde:
-        Aldehydeprod=rr(37,L)*y(nn_Paraffin,L)*y(nOH,L)*0.11d0+
-     &  rr(34,L)*y(nn_Alkenes,L)*y(nOH,L)+
-     &  rr(42,L)*yROR(I,J,L)*1.1d0+rr(iAlkenesO3,L)*y(nn_Alkenes,L)*
-     &  y(nO3,L)*0.44d0
-        Aldehydedest=rr(38,L)*y(nOH,L)+ss(16,L,I,J)
+        Aldehydeprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
+     &      *y(nOH,L)*0.11d0
+     &    +rr(rrbi%Alkenes_OH__HCHO_HO2,L)*y(nn_Alkenes,L)*y(nOH,L)
+     &    +rr(rrbi%ROR_M__Aldehyde_HO2,L)*yROR(I,J,L)*1.1d0
+     &    +rr(rrbi%Alkenes_O3__HCHO_CO,L)*y(nn_Alkenes,L)
+     &      *y(nO3,L)*0.44d0
+        Aldehydedest=rr(rrbi%Aldehyde_OH__C2O3_M,L)*y(nOH,L)
+     &    +ss(rj%Aldehyde__HCHO_CO,L,I,J) ! CO isotopes should not go here
 c       Check for equilibrium:
         if(Aldehydedest*y(nAldehyde,L)*dt2 < y(nAldehyde,L))then
           changeAldehyde=
@@ -454,9 +814,10 @@ c       Check for equilibrium:
         yAldehyde(I,J,L)=y(nAldehyde,L)
 
 c       Set value for ROR:
-        RORprod=rr(37,L)*y(nn_Paraffin,L)*y(nOH,L)*0.76d0+
-     &  rr(42,L)*yROR(I,J,L)*0.02d0
-        RORdest=rr(42,L)+ROR_CH2
+        RORprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
+     &      *y(nOH,L)*0.76d0
+     &    +rr(rrbi%ROR_M__Aldehyde_HO2,L)*yROR(I,J,L)*0.02d0
+        RORdest=rr(rrbi%ROR_M__Aldehyde_HO2,L)+ROR_CH2
         if(RORdest > 0.d0)then
           y(nROR,L)=(RORprod/RORdest)
         else
@@ -468,75 +829,105 @@ c       Add parrafin loss term via rxpar reaction and
 c       prod term via isoprene rxns:
         dest(nn_Paraffin,L)=dest(nn_Paraffin,L)-
      &       y(nRXPAR,L)*RXPAR_PAR*dt2
-        prod(nn_Paraffin,L)=prod(nn_Paraffin,L)+0.63d0*y(nn_Isoprene,L)
-     &  *(rr(30,L)*y(nOH,L)+rr(31,L)*y(nO3,L))*dt2
+        prod(nn_Paraffin,L)=prod(nn_Paraffin,L)
+     &    +0.63d0*y(nn_Isoprene,L)
+     &      *(rr(rrbi%Isoprene_OH__HCHO_Alkenes,L)*y(nOH,L)
+     &       +rr(rrbi%Isoprene_O3__HCHO_Alkenes,L)*y(nO3,L)
+     &       )*dt2
 #ifdef TRACERS_TERP
-     &  +5.0d0*0.63d0*y(nn_Terpenes,L)
-     &  *(rr(iTerpenesOH,L)*y(nOH,L)+rr(iTerpenesO3,L)*y(nO3,L))*dt2
+     &    +5.0d0*0.63d0*y(nn_Terpenes,L)
+     &      *(rr(rrbi%Terpenes_OH__HCHO_Alkenes,L)*y(nOH,L)
+     &       +rr(rrbi%Terpenes_O3__HCHO_Alkenes,L)*y(nO3,L)
+     &       )*dt2
 #endif  /* TRACERS_TERP */
 
 c       Add CH3OOH production via XO2N + HO2:
         prod(nn_CH3OOH,L)=prod(nn_CH3OOH,L)+XO2N_HO2*y(nXO2N,L)*dt2
+#ifdef TRACERS_dCO
+        prod(nn_dMe17OOH,L)=prod(nn_dMe17OOH,L)+XO2N_HO2*y(nXO2N,L)*dt2
+        prod(nn_dMe18OOH,L)=prod(nn_dMe18OOH,L)+XO2N_HO2*y(nXO2N,L)*dt2
+        prod(nn_d13MeOOH,L)=prod(nn_d13MeOOH,L)+XO2N_HO2*y(nXO2N,L)*dt2
+#endif  /* TRACERS_dCO */
 c
       end do  ! --------------------------------------
 
 c If NOx in equil with N2O5, HO2NO2, or PAN, remove from changes:
       do L=1,maxl
         if(-dest(nn_N2O5,L) >= y(nn_N2O5,L) .or.
-     &  chemrate(iN2O5form,L) > y(nn_NOx,L))then
-          dest(nn_NOx,L)=dest(nn_NOx,L)+2.d0*chemrate(iN2O5form,L)
-          prod(nn_NOx,L)=prod(nn_NOx,L)-2.d0*(chemrate(iN2O5decomp,L)
+     &  chemrate(rrtri%NO3_NO2__N2O5_M,L) > y(nn_NOx,L))then
+          dest(nn_NOx,L)=dest(nn_NOx,L)
+     &      +2.d0*chemrate(rrtri%NO3_NO2__N2O5_M,L)
+          prod(nn_NOx,L)=prod(nn_NOx,L)
+     &      -2.d0*(chemrate(rrmono%N2O5_M__NO3_NO2,L)
      &    +photrate(7,L))
         endif
         if(-dest(nn_HO2NO2,L) >= y(nn_HO2NO2,L) .or.
-     &  chemrate(iHO2NO2form,L) > y(nn_NOx,L))then
-          dest(nn_NOx,L)=dest(nn_NOx,L)+chemrate(iHO2NO2form,L)
-          prod(nn_NOx,L)=prod(nn_NOx,L)-(chemrate(iHO2NO2_OH,L)+
-     &    chemrate(iHO2NO2decomp,L)+photrate(10,L)+photrate(11,L))
+     &  chemrate(rrtri%HO2_NO2__HO2NO2_M,L) > y(nn_NOx,L))then
+          dest(nn_NOx,L)=dest(nn_NOx,L)
+     &      +chemrate(rrtri%HO2_NO2__HO2NO2_M,L)
+          prod(nn_NOx,L)=prod(nn_NOx,L)
+     &      -(chemrate(rrbi%OH_HO2NO2__H2O_NO2,L)
+     &        +chemrate(rrmono%HO2NO2_M__HO2_NO2,L)
+     &        +photrate(10,L)
+     &        +photrate(11,L))
         endif
         if(-dest(nn_PAN,L) >= y(nn_PAN,L) .or.
-     &  chemrate(iPANform,L) > y(nn_NOx,L))then
-          dest(nn_NOx,L)=dest(nn_NOx,L)+chemrate(iPANform,L)
-          prod(nn_NOx,L)=prod(nn_NOx,L)-(chemrate(iPANdecomp,L)+
-     &    photrate(15,L))
+     &  chemrate(rrtri%C2O3_NO2__PAN_M,L) > y(nn_NOx,L))then
+          dest(nn_NOx,L)=dest(nn_NOx,L)
+     &      +chemrate(rrtri%C2O3_NO2__PAN_M,L)
+          prod(nn_NOx,L)=prod(nn_NOx,L)
+     &      -(chemrate(rrbi%PAN_M__C2O3_NO2,L)
+     &      +photrate(15,L))
         end if
         
 c If BrOx in equil with HOBr or BrONO2, remove from changes:
         if(-dest(nn_HOBr,L) >= y(nn_HOBr,L).or.
-     &  chemrate(73,L) > 0.5d0*y(nn_BrOx,L))then
-          dest(nn_BrOx,L)=dest(nn_BrOx,L)+chemrate(73,L)
+     &  chemrate(rrbi%BrO_HO2__HOBr_O2,L) > 0.5d0*y(nn_BrOx,L))then
+          dest(nn_BrOx,L)=dest(nn_BrOx,L)
+     &      +chemrate(rrbi%BrO_HO2__HOBr_O2,L)
           prod(nn_BrOx,L)=prod(nn_BrOx,L)-photrate(24,L)
         endif
         if(-dest(nn_BrONO2,L) >= y(nn_BrONO2,L).or.
-     &  chemrate(iBrOplusNO2,L) > 0.5d0*y(nn_BrOx,L))then
-          dest(nn_BrOx,L)=dest(nn_BrOx,L)+chemrate(iBrOplusNO2,L)
+     &  chemrate(rrtri%BrO_NO2__BrONO2_M,L) > 0.5d0*y(nn_BrOx,L))then
+          dest(nn_BrOx,L)=dest(nn_BrOx,L)
+     &      +chemrate(rrtri%BrO_NO2__BrONO2_M,L)
           prod(nn_BrOx,L)=prod(nn_BrOx,L)-photrate(23,L)
-          dest(nn_NOx,L)=dest(nn_NOx,L)+chemrate(iBrOplusNO2,L)
+          dest(nn_NOx,L)=dest(nn_NOx,L)
+     &      +chemrate(rrtri%BrO_NO2__BrONO2_M,L)
           prod(nn_NOx,L)=prod(nn_NOx,L)-photrate(23,L)
         end if
         
 c If ClOx in equil with HOCl or ClONO2, remove from changes:
         if(-dest(nn_HOCl,L) >= y(nn_HOCl,L) .or.
-     &  chemrate(63,L) > y(nn_ClOx,L))then
-          dest(nn_ClOx,L)=dest(nn_ClOx,L)+chemrate(63,L)
-          prod(nn_ClOx,L)=prod(nn_ClOx,L)-(photrate(21,L)+
-     &         chemrate(55,L))
+     &  chemrate(rrbi%ClO_HO2__HOCl_O2,L) > y(nn_ClOx,L))then
+          dest(nn_ClOx,L)=dest(nn_ClOx,L)
+     &      +chemrate(rrbi%ClO_HO2__HOCl_O2,L)
+          prod(nn_ClOx,L)=prod(nn_ClOx,L)
+     &      -(photrate(21,L)
+     &      +chemrate(rrbi%O_HOCl__OH_ClO,L))
         endif
         if(-dest(nn_ClONO2,L) >= y(nn_ClONO2,L) .or.
-     &  chemrate(iClOplusNO2,L) > 0.8d0*y(nn_ClOx,L))then
-          dest(nn_ClOx,L)=dest(nn_ClOx,L)+chemrate(iClOplusNO2,L)
-          prod(nn_ClOx,L)=prod(nn_ClOx,L)-(photrate(22,L)+
-     &         chemrate(65,L))
-          dest(nn_NOx,L)=dest(nn_NOx,L)+chemrate(iClOplusNO2,L)
-          prod(nn_NOx,L)=prod(nn_NOx,L)-(photrate(22,L)+chemrate(65,L))
+     &  chemrate(rrtri%ClO_NO2__ClONO2_M,L) > 0.8d0*y(nn_ClOx,L))then
+          dest(nn_ClOx,L)=dest(nn_ClOx,L)
+     &      +chemrate(rrtri%ClO_NO2__ClONO2_M,L)
+          prod(nn_ClOx,L)=prod(nn_ClOx,L)
+     &      -(photrate(22,L)
+     &      +chemrate(rrbi%ClONO2_O__ClO_NO3,L))
+          dest(nn_NOx,L)=dest(nn_NOx,L)
+     &      +chemrate(rrtri%ClO_NO2__ClONO2_M,L)
+          prod(nn_NOx,L)=prod(nn_NOx,L)
+     &      -(photrate(22,L)
+     &      +chemrate(rrbi%ClONO2_O__ClO_NO3,L))
         end if
       end do
 
 c Calculate water vapor change AND APPLY TO MODEL Q VARIABLE:
       do L=1,maxL ! for a long time, this used to be stratosphere only loop...
         changeH2O(L)=(2.d0*y(nn_CH4,L)*
-     *  (rr(11,L)*y(nO1D,L)+rr(12,L)*y(nOH,L)+rr(82,L)*y(nCl,L))
-     *  -2.0d0*SF3(I,J,L)*y(nH2O,L))*dt2  
+     *    (rr(rrbi%O1D_CH4__OH_CH3O2,L)*y(nO1D,L)
+     &      +rr(rrbi%CH4_OH__H2O_CH3O2,L)*y(nOH,L)
+     &      +rr(rrbi%Cl_CH4__HCl_CH3O2,L)*y(nCl,L))
+     *    -2.0d0*SF3(I,J,L)*y(nH2O,L))*dt2  
 C       And apply that change here and accumulate a diagnostic:
 C       --- y --- :
         y(nH2O,L)=y(nH2O,L)+changeH2O(L)
@@ -593,15 +984,16 @@ C
 !      do L=1,topLevelOfChemistry
 !        if(y(nO1D,L) == 0.) CYCLE
 !c       account for NO2 and NO ozone destruction:
-!        rNO2prod=rr(18,L)*y(nOH,L)*y(nn_HO2NO2,L)+
-!     &  rr(iHO2NO2decomp,L)*y(nn_HO2NO2,L)+ss(9,L,I,J)*y(nn_HNO3,L)+
-!     &  ss(10,L,I,J)*y(nn_HO2NO2,L)+ss(23,L,I,J)*y(nn_BrONO2,L)
-!        rNOprod=rr(87,L)*y(nn_N2O,L)*y(nO1D,L)
-!        rNO3prod=rr(65,L)*y(nO,L)*y(nn_ClONO2,L)+
-!     &  ss(7,L,I,J)*y(nn_N2O5,L)+ss(11,L,I,J)*y(nn_HO2NO2,L)+
-!     &  ss(22,L,I,J)*y(nn_ClONO2,L)
+!        rNO2prod=rr(rrbi%OH_HO2NO2__H2O_NO2,L)*y(nOH,L)*y(nn_HO2NO2,L)+
+!     &  rr(rrmono%HO2NO2_M__HO2_NO2,L)*y(nn_HO2NO2,L)+ss(rj%HNO3__OH_NO2,L,I,J)*y(nn_HNO3,L)+
+!     &  ss(rj%HO2NO2__HO2_NO2,L,I,J)*y(nn_HO2NO2,L)+ss(rj%BrONO2__BrO_NO2,L,I,J)*y(nn_BrONO2,L)
+!        rNOprod=rr(rrbi%N2O_O1D__NO_NO,L)*y(nn_N2O,L)*y(nO1D,L)
+!        rNO3prod=rr(rrbi%ClONO2_O__ClO_NO3,L)*y(nO,L)*y(nn_ClONO2,L)+
+!     &  ss(rj%N2O5__NO3_NO2,L,I,J)*y(nn_N2O5,L)+ss(rj%HO2NO2__OH_NO3,L,I,J)*y(nn_HO2NO2,L)+
+!     &  ss(rj%ClONO2__Cl_NO3,L,I,J)*y(nn_ClONO2,L)
 !c       add production of NO and NO2 from NO3:
-!        rNO3prod=rNO3prod*ss(6,L,I,J)/(ss(5,L,I,J)+ss(6,L,I,J)+1.d0)
+!        rNO3prod=rNO3prod*ss(rj%NO3__NO2_O,L,I,J)/(ss(rj%NO3__NO_O2,L,I,J)+
+!     &  ss(rj%NO3__NO2_O,L,I,J)+1.d0)
 !        rNO2prod=rNO2prod+rNO3prod
 !        rNOprod=rNOprod+rNO3prod
 !        ratioNs=rNO2prod/rNOprod
@@ -610,11 +1002,13 @@ C
 !        if(ratioNs > ratioN2)then !excess NO2 production
 !        
 !c         account for NO2 that then goes via NO2+O->NO+O2, NO2->NO+O:
-!          rNO2frac=(rr(26,L)*y(nO,L)-ss(1,L,I,J))/
-!     &    (rr(iOHplusNO2,L)*y(nOH,L)+
-!     &    rr(iHO2NO2form,L)*y(nHO2,L)+rr(iN2O5form,L)*y(nNO3,L)+
-!     &    rr(iClOplusNO2,L)*y(nClO,L)+rr(iBrOplusNO2,L)*y(nBrO,L)+
-!     &    rr(26,L)*y(nO,L)+ss(1,L,I,J))
+!          rNO2frac=(rr(rrbi%O_NO2__NO_O2,L)*y(nO,L)-ss(rj%NO2__NO_O,L,I,J))/
+!     &    (rr(rrtri%OH_NO2_HNO3_M,L)*y(nOH,L)+
+!     &    rr(rrtri%HO2_NO2__HO2NO2_M,L)*y(nHO2,L)+
+!     &    rr(rrtri%NO3_NO2__N2O5_M,L)*y(nNO3,L)+
+!     &    rr(rrtri%ClO_NO2__ClONO2_M,L)*y(nClO,L)+
+!     &    rr(rrtri%BrO_NO2__BrONO2_M,L)*y(nBrO,L)+
+!     &    rr(rrbi%O_NO2__NO_O2,L)*y(nO,L)+ss(rj%NO2__NO_O,L,I,J))
 !          Oxcorr(L)=(rNO2prod-rNOprod)*rNO2frac*dt2*y(nNO,L)/y(nn_NOx,L)
 !          if(Oxcorr(L) > -1.d18 .and. Oxcorr(L) < 1.d18)then
 !            dest(nn_Ox,L)=dest(nn_Ox,L)-Oxcorr(L)
@@ -631,13 +1025,18 @@ C
 !
 !c         account for NO that then goes via NO+O3->NO2+O2
 !c         or NO+O+M->NO2+M:
-!          rNOfrac=(rr(5,L)*y(nO3,L)+rr(iNOplusO,L)*y(nO,L))
-!          rNOdenom=(rr(5,L)*y(nO3,L)+rr(iNOplusO,L)*y(nO,L)+
-!     &    rr(6,L)*y(nHO2,L)+rr(44,L)*y(nXO2N,L)+1.d0)+
-!     &    rr(20,L)*yCH3O2(I,J,L)+
-!     &    rr(39,L)*y(nC2O3,L)+4.2d-12*exp(180/ta(L))*y(nXO2,L)+
-!     &    rr(64,L)*y(nClO,L)+
-!     &    rr(67,L)*y(nOClO,L)+rr(71,L)*y(nBrO,L)
+!          rNOfrac=(rr(rrbi%O3_NO__NO2_O2,L)*y(nO3,L)+
+!     &    rr(rrtri%NO_O__NO2_M,L)*y(nO,L))
+!          rNOdenom=(rr(rrbi%O3_NO__NO2_O2,L)*y(nO3,L)+
+!     &    rr(rrtri%NO_O__NO2_M,L)*y(nO,L)+
+!     &    rr(rrbi%HO2_NO__OH_NO2,L)*y(nHO2,L)+
+!     &    rr(rrbi%XO2N_NO__AlkylNit_M,L)*y(nXO2N,L)+1.d0)+
+!     &    rr(rrbi%CH3O2_NO__HCHO_NO2,L)*yCH3O2(I,J,L)+
+!     &    rr(rrbi%C2O3_NO__HCHO_NO2,L)*y(nC2O3,L)+
+!     &    4.2d-12*exp(180/ta(L))*y(nXO2,L)+
+!     &    rr(rrbi%ClO_NO__NO2_Cl,L)*y(nClO,L)+
+!     &    rr(rrbi%NO_OClO__NO2_ClO,L)*y(nOClO,L)+
+!     &    rr(rrbi%BrO_NO__Br_NO2,L)*y(nBrO,L)
 !
 !          rNOfrac=rNOfrac/rNOdenom
 !          Oxcorr(L)=(rNOprod-rNO2prod)*rNOfrac*dt2*y(nNO2,L)/y(nn_NOx,L)
@@ -657,20 +1056,21 @@ C
 
 c Calculate ozone change due to Cl2O2 cycling:
       do L=1,maxL
-        if(yCl2O2(I,J,L) > 1d1)dest(nn_Ox,L)=dest(nn_Ox,L) - 0.75d0*
-     &  rr(45,L)*y(nCl,L)*y(nO3,L)*dt2*yCl2O2(I,J,L)*1.5d9/y(nM,L)
+        if(yCl2O2(I,J,L) > 1d1)dest(nn_Ox,L)=dest(nn_Ox,L)
+     &    -0.75d0*rr(rrbi%Cl_O3__ClO_O2,L)*y(nCl,L)*y(nO3,L)*dt2
+     &      *yCl2O2(I,J,L)*1.5d9/y(nM,L)
       end do
 
 c Include oxidation of CO by O(1D)
       do L=1,maxL
-        dest(nn_CO,L)=dest(nn_CO,L)-1.0d-9*y(nn_CO,L)*y(nO1D,L)*dt2
+        dest(nn_CO,L)=dest(nn_CO,L)-rCOplusO1D*y(nn_CO,L)*y(nO1D,L)*dt2
 #ifdef TRACERS_dCO
         dest(nn_dC17O,L)=dest(nn_dC17O,L)
-     &                  -1.0d-9*y(nn_dC17O,L)*y(nO1D,L)*dt2
+     &                  -rdC17OplusO1D*y(nn_dC17O,L)*y(nO1D,L)*dt2
         dest(nn_dC18O,L)=dest(nn_dC18O,L)
-     &                  -1.0d-9*y(nn_dC18O,L)*y(nO1D,L)*dt2
+     &                  -rdC18OplusO1D*y(nn_dC18O,L)*y(nO1D,L)*dt2
         dest(nn_d13CO,L)=dest(nn_d13CO,L)
-     &                  -1.0d-9*y(nn_d13CO,L)*y(nO1D,L)*dt2
+     &                  -rd13COplusO1D*y(nn_d13CO,L)*y(nO1D,L)*dt2
 #endif  /* TRACERS_dCO */
       end do
 
@@ -687,65 +1087,67 @@ c (chem1prn: argument before multip is index = number of call):
           call write_parallel(trim(out_line),crit=jay)
 
           call chem1prn
-     &    (kdnr,2,nn,ndnr,chemrate,1,-1,igas,total,maxL,I,J,jay)
+     &    (kdnr,2,n_rx,nn,ndnr,chemrate,1,-1,igas,total,maxL,I,J,jay)
 
           if(igas == nn_NOx)then
             if(-dest(nn_HO2NO2,lprn) >= y(nn_HO2NO2,lprn) .or.
-     &      chemrate(iHO2NO2form,lprn) > y(nn_NOx,lprn)) then
+     &      chemrate(rrtri%HO2_NO2__HO2NO2_M,lprn)>y(nn_NOx,lprn)) then
               write(out_line,110)
-     &        'loss by reaction    (HO2NO2 formation) removed',
-     &        chemrate(iHO2NO2form,lprn)
+     &          'loss by reaction rrtri%HO2_NO2__HO2NO2_M removed',
+     &          chemrate(rrtri%HO2_NO2__HO2NO2_M,lprn)
               call write_parallel(trim(out_line),crit=jay)
             endif
             if(-dest(nn_N2O5,lprn) >= y(nn_N2O5,lprn) .or.
-     &      chemrate(iN2O5form,lprn) > y(nn_NOx,lprn)) then     
+     &      chemrate(rrtri%NO3_NO2__N2O5_M,lprn) > y(nn_NOx,lprn)) then
               write(out_line,110)
-     &        'losses by reaction    (N2O5 formation) removed',
-     &        2.d0*chemrate(iN2O5form,lprn)
+     &          'losses by reaction rrtri%NO3_NO2__N2O5_M removed',
+     &          2.d0*chemrate(rrtri%NO3_NO2__N2O5_M,lprn)
               call write_parallel(trim(out_line),crit=jay)
             endif
             if(-dest(nn_PAN,lprn) >= y(nn_PAN,lprn) .or.
-     &      chemrate(iPANform,lprn) > y(nn_NOx,lprn)) then
+     &      chemrate(rrtri%C2O3_NO2__PAN_M,lprn) > y(nn_NOx,lprn)) then
               write(out_line,110)
-     &        'losses by reaction     (PAN formation) removed',
-     &        chemrate(iPANform,lprn)
+     &          'losses by reaction rrtri%C2O3_NO2__PAN_M removed',
+     &          chemrate(rrtri%C2O3_NO2__PAN_M,lprn)
               call write_parallel(trim(out_line),crit=jay)
             end if
           end if
           
           call chem1prn
-     &    (kpnr,2,nnr,npnr,chemrate,2,1,igas,total,maxL,I,J,jay)
+     &    (kpnr,2,n_rx,nnr,npnr,chemrate,2,1,igas,total,maxL,I,J,jay)
      
           if(igas == nn_NOx)then
             if(-dest(nn_HO2NO2,lprn) >= y(nn_HO2NO2,lprn) .or.
-     &      chemrate(iHO2NO2form,lprn) > y(nn_NOx,lprn)) then
+     &      chemrate(rrtri%HO2_NO2__HO2NO2_M,lprn)>y(nn_NOx,lprn)) then
               write(out_line,110)
-     &        'gain by reactions destroying HO2NO2) rmoved  ',
-     &        (rr(iHO2NO2_OH,lprn)*y(nOH,L)+
-     &        rr(iHO2NO2decomp,lprn)*y(nM,lprn)+
-     &        ss(10,lprn,I,J)+ss(11,lprn,I,J))*y(nn_HO2NO2,lprn)*dt2
+     &          'gain by reactions destroying HO2NO2 removed  ',
+     &          (rr(rrbi%OH_HO2NO2__H2O_NO2,lprn)*y(nOH,L)
+     &            +rr(rrmono%HO2NO2_M__HO2_NO2,lprn)*y(nM,lprn)
+     &            +ss(rj%HO2NO2__HO2_NO2,lprn,I,J)
+     &            +ss(rj%HO2NO2__OH_NO3,lprn,I,J)
+     &          )*y(nn_HO2NO2,lprn)*dt2
               call write_parallel(trim(out_line),crit=jay)     
             endif
             if(-dest(nn_N2O5,lprn) >= y(nn_N2O5,lprn).or.
-     &      chemrate(iN2O5form,lprn) > y(nn_NOx,lprn)) then
+     &      chemrate(rrtri%NO3_NO2__N2O5_M,lprn) > y(nn_NOx,lprn)) then
               write(out_line,110)
-     &        'gains by reaction    (N2O5 decomposition) removed',
-     &        2.d0*chemrate(iN2O5decomp,lprn)
+     &          'gains by reaction rrmono%N2O5_M__NO3_NO2 removed',
+     &          2.d0*chemrate(rrmono%N2O5_M__NO3_NO2,lprn)
               call write_parallel(trim(out_line),crit=jay)
             endif
             if(-dest(nn_PAN,lprn) >= y(nn_PAN,lprn).or.
-     &      chemrate(iPANform,lprn) > y(nn_NOx,lprn)) then
+     &      chemrate(rrtri%C2O3_NO2__PAN_M,lprn) > y(nn_NOx,lprn)) then
               write(out_line,110)
-     &        'gain by reaction    (from PAN) removed',
-     &        chemrate(iPANdecomp,lprn)
+     &          'gain by reaction rrbi%PAN_M__C2O3_NO2 removed',
+     &          chemrate(rrbi%PAN_M__C2O3_NO2,lprn)
               call write_parallel(trim(out_line),crit=jay)
             end if
           end if
 
           call chem1prn
-     &    (kds,1,ks,nds,photrate,3,-1,igas,total,maxL,I,J,jay)
+     &    (kds,1,n_rj,ks,nds,photrate,3,-1,igas,total,maxL,I,J,jay)
           call chem1prn
-     &    (kps,2,kss,nps,photrate,4,1,igas,total,maxL,I,J,jay)
+     &    (kps,2,n_rj,kss,nps,photrate,4,1,igas,total,maxL,I,J,jay)
 
 ! Commenting this goes along with reference commented section
 ! involving Oxcorr above:
@@ -757,42 +1159,52 @@ c (chem1prn: argument before multip is index = number of call):
 
           if(igas == nn_NOx)then
             if(-dest(nn_N2O5,lprn) >= y(nn_N2O5,lprn) .or.
-     &      chemrate(iN2O5form,lprn) > y(nn_NOx,lprn)) then
+     &      chemrate(rrtri%NO3_NO2__N2O5_M,lprn) > y(nn_NOx,lprn)) then
               write(out_line,110)'gains by reaction 7'//
-     &        ' (N2O5 photolysis) removed',ss(7,lprn,I,J)*
-     &        y(nn_N2O5,lprn)*dt2
+     &          ' (N2O5 photolysis) removed',
+     &          ss(rj%N2O5__NO3_NO2,lprn,I,J)*
+     &          y(nn_N2O5,lprn)*dt2
               call write_parallel(trim(out_line),crit=jay)
             endif
             if(-dest(nn_N2O5,lprn) >= y(nn_N2O5,lprn) .or.
-     &      chemrate(iN2O5form,lprn) > y(nn_NOx,lprn)) then 
+     &      chemrate(rrtri%NO3_NO2__N2O5_M,lprn) > y(nn_NOx,lprn)) then
               write(out_line,110)'net change due to N2O5 is ',
-     &        2.d0*(y(nn_N2O5,lprn)-(rr(iN2O5form,lprn)*y(nNO3,lprn)*
-     &        y(nNO2,lprn))/
-     &        (rr(iN2O5decomp,lprn)*y(nM,lprn)+ss(7,lprn,I,J)))
+     &          2.d0*(y(nn_N2O5,lprn)
+     &                -(rr(rrtri%NO3_NO2__N2O5_M,lprn)*y(nNO3,lprn)*
+     &                    *y(nNO2,lprn))
+     &                 /(rr(rrmono%N2O5_M__NO3_NO2,lprn)*y(nM,lprn)
+     &                   +ss(rj%N2O5__NO3_NO2,lprn,I,J)))
               call write_parallel(trim(out_line),crit=jay)
             endif
             if(-dest(nn_HO2NO2,lprn) >= y(nn_HO2NO2,lprn) .or.
-     &      chemrate(iHO2NO2form,lprn) > y(nn_NOx,lprn)) then
+     &      chemrate(rrtri%HO2_NO2__HO2NO2_M,lprn)>y(nn_NOx,lprn)) then
               write(out_line,110)'gain by rxns 10 & 11 (HO2NO2'
-     &        //' photolysis) rmoved',(ss(10,lprn,I,J)+
-     &        ss(11,lprn,I,J))*y(nn_HO2NO2,lprn)*dt2
+     &          //' photolysis) removed',
+     &          (ss(rj%HO2NO2__HO2_NO2,lprn,I,J)
+     &            +ss(rj%HO2NO2__OH_NO3,lprn,I,J)
+     &          )*y(nn_HO2NO2,lprn)*dt2
               call write_parallel(trim(out_line),crit=jay)
             endif
             if(-dest(nn_HO2NO2,lprn) >= y(nn_HO2NO2,lprn) .or.
-     &      chemrate(iHO2NO2form,lprn) > y(nn_NOx,lprn)) then
+     &      chemrate(rrtri%HO2_NO2__HO2NO2_M,lprn)>y(nn_NOx,lprn)) then
               write(out_line,110)'net change due to HO2NO2 is ',
-     &        y(nn_HO2NO2,lprn)-((rr(iHO2NO2form,lprn)*y(nHO2,lprn)*
-     &        y(nNO2,lprn))/(rr(iHO2NO2_OH,lprn)*
-     &        y(nOH,lprn)+rr(iHO2NO2decomp,lprn)*y(nM,lprn)
-     &        +ss(10,lprn,I,J)+ss(11,lprn,I,J)))
+     &          y(nn_HO2NO2,lprn)
+     &          -((rr(rrtri%HO2_NO2__HO2NO2_M,lprn)*y(nHO2,lprn)*
+     &            y(nNO2,lprn))
+     &          /(rr(rrbi%OH_HO2NO2__H2O_NO2,lprn)*y(nOH,lprn)
+     &            +rr(rrmono%HO2NO2_M__HO2_NO2,lprn)*y(nM,lprn)
+     &            +ss(rj%HO2NO2__HO2_NO2,lprn,I,J)
+     &            +ss(rj%HO2NO2__OH_NO3,lprn,I,J)))
               call write_parallel(trim(out_line),crit=jay)
             endif
             if(-dest(nn_PAN,lprn) >= y(nn_PAN,lprn) .or.
-     &      chemrate(iPANform,lprn) > y(nn_NOx,lprn)) then
+     &      chemrate(rrtri%C2O3_NO2__PAN_M,lprn) > y(nn_NOx,lprn)) then
               write(out_line,110)'net change due to PAN is ',
-     &        y(nn_PAN,lprn)-((rr(iPANform,lprn)*y(nC2O3,lprn)*
-     &        y(nNO2,lprn))/
-     &        (rr(iPANdecomp,lprn)*y(nM,lprn)+ss(15,lprn,I,J)))
+     &          y(nn_PAN,lprn)
+     &          -((rr(rrtri%C2O3_NO2__PAN_M,lprn)*y(nC2O3,lprn)*
+     &            y(nNO2,lprn))
+     &          /(rr(rrbi%PAN_M__C2O3_NO2,lprn)*y(nM,lprn)
+     &            +ss(rj%PAN__C2O3_NO2,lprn,I,J)))
               call write_parallel(trim(out_line),crit=jay)    
             end if
           end if
@@ -802,93 +1214,137 @@ c (chem1prn: argument before multip is index = number of call):
      
           if(igas == nn_BrOx)then
             if(-dest(nn_HOBr,lprn) >= y(nn_HOBr,lprn).or.
-     &      chemrate(73,lprn) > 0.5d0*y(nn_BrOx,lprn))then
+     &         chemrate(rrbi%BrO_HO2__HOBr_O2,lprn) >
+     &           0.5d0*y(nn_BrOx,lprn))then
               write(out_line,110)
-     &        'gain by rxns 24 (HOBr photolysis) removed'
-     &        ,ss(24,lprn,i,j)*y(nn_HOBr,lprn)*dt2
+     &          'gain by rxns 24 (HOBr photolysis) removed',
+     &          ss(rj%HOBr__Br_OH,lprn,i,j)*y(nn_HOBr,lprn)*dt2
               call write_parallel(trim(out_line),crit=jay)
-              write(out_line,110)'loss by rxn 73 removed'
-     &        ,chemrate(73,lprn)
+              write(out_line,110)
+     &          'loss by rxn rrbi%BrO_HO2__HOBr_O2 removed',
+     &          chemrate(rrbi%BrO_HO2__HOBr_O2,lprn)
               call write_parallel(trim(out_line),crit=jay)
             endif
             if(-dest(nn_BrONO2,lprn) >= y(nn_BrONO2,lprn) .or.
-     &      chemrate(iBrOplusNO2,lprn) > 0.5d0*y(nn_BrOx,lprn))then
+     &         chemrate(rrtri%BrO_NO2__BrONO2_M,lprn) >
+     &           0.5d0*y(nn_BrOx,lprn))then
               write(out_line,110)
-     &        'gain by rxns 23 (BrONO2 photolysis) removed'
-     &        ,ss(23,lprn,i,j)*y(nn_BrONO2,lprn)*dt2
+     &          'gain by rxns 23 (BrONO2 photolysis) removed',
+     &          ss(rj%BrONO2__BrO_NO2,lprn,i,j)*y(nn_BrONO2,lprn)*dt2
               call write_parallel(trim(out_line),crit=jay)
-               write(out_line,110)'loss by rxn iBrOplusNO2 removed'
-     &        ,chemrate(iBrOplusNO2,lprn)
+              write(out_line,110)
+     &          'loss by rxn rrtri%BrO_NO2__BrONO2_M removed'
+     &          ,chemrate(rrtri%BrO_NO2__BrONO2_M,lprn)
               call write_parallel(trim(out_line),crit=jay)
             end if
           end if
           
           if(igas == nn_NOx)then
             if(-dest(nn_BrONO2,lprn) >= y(nn_BrONO2,lprn) .or.
-     &      chemrate(iBrOplusNO2,lprn) > 0.5d0*y(nn_BrOx,lprn))then
+     &         chemrate(rrtri%BrO_NO2__BrONO2_M,lprn) >
+     &           0.5d0*y(nn_BrOx,lprn))then
               write(out_line,110)
      &        'gain by rxns 23 (BrONO2 photolysis) removed'
-     &        ,ss(23,lprn,i,j)*y(nn_BrONO2,lprn)*dt2
+     &        ,ss(rj%BrONO2__BrO_NO2,lprn,i,j)*y(nn_BrONO2,lprn)*dt2
               call write_parallel(trim(out_line),crit=jay)
-              write(out_line,110)'loss by rxn iBrOplusNO2 removed'
-     &        ,chemrate(iBrOplusNO2,lprn)
+              write(out_line,110)
+     &          'loss by rxn rrtri%BrO_NO2__BrONO2_M removed'
+     &          ,chemrate(rrtri%BrO_NO2__BrONO2_M,lprn)
               call write_parallel(trim(out_line),crit=jay)     
             end if
           end if
           
           if(igas == nn_ClOx)then
             if(-dest(nn_HOCl,lprn) >= y(nn_HOCl,lprn) .or.
-     &      chemrate(63,lprn) > y(nn_ClOx,lprn))then
+     &      chemrate(rrbi%ClO_HO2__HOCl_O2,lprn) > y(nn_ClOx,lprn))then
               write(out_line,110)
-     &        'gain by rxn 21 (HOCl photolysis) removed'
-     &        ,ss(21,lprn,i,j)*y(nn_HOCl,lprn)*dt2
+     &          'gain by rxn 21 (HOCl photolysis) removed',
+     &          ss(rj%HOCl__OH_Cl,lprn,i,j)*y(nn_HOCl,lprn)*dt2
               call write_parallel(trim(out_line),crit=jay)
-              write(out_line,110)'gain by rxn 55 removed'
-     &        ,chemrate(55,lprn)
+              write(out_line,110)
+     &          'gain by rxn rrbi%O_HOCl__OH_ClO removed',
+     &          chemrate(rrbi%O_HOCl__OH_ClO,lprn)
               call write_parallel(trim(out_line),crit=jay)
-              write(out_line,110)'loss by rxn 63 removed'
-     &        ,chemrate(63,lprn)
+                write(out_line,110)
+     &          'loss by rxn rrbi%ClO_HO2__HOCl_O2 removed',
+     &          chemrate(rrbi%ClO_HO2__HOCl_O2,lprn)
               call write_parallel(trim(out_line),crit=jay)
             endif 
             if(-dest(nn_ClONO2,lprn) >= y(nn_ClONO2,lprn) .or.
-     &      chemrate(iClOplusClO,lprn) > 0.8d0*y(nn_ClOx,lprn))then
+     &         chemrate(rrtri%ClO_ClO__Cl2O2_M,lprn) >
+     &           0.8d0*y(nn_ClOx,lprn))then
               write(out_line,110)
-     &        'gain by rxn 22 (ClONO2 photolysis) removed'
-     &        ,ss(22,lprn,i,j)*y(nn_ClONO2,lprn)*dt2
+     &          'gain by rxn 22 (ClONO2 photolysis) removed',
+     &          ss(rj%ClONO2__Cl_NO3,lprn,i,j)*y(nn_ClONO2,lprn)*dt2
               call write_parallel(trim(out_line),crit=jay)
-              write(out_line,110)'gain by rxn 65 removed'
-     &        ,chemrate(65,lprn)
+              write(out_line,110)
+     &          'gain by rxn rrbi%ClONO2_O__ClO_NO3 removed',
+     &          chemrate(rrbi%ClONO2_O__ClO_NO3,lprn)
               call write_parallel(trim(out_line),crit=jay)
-              write(out_line,110)'loss by rxn iClOplusClO removed'
-     &        ,chemrate(iClOplusClO,lprn)
+              write(out_line,110)
+     &          'loss by rxn rrtri%ClO_ClO__Cl2O2_M removed'
+     &          ,chemrate(rrtri%ClO_ClO__Cl2O2_M,lprn)
               call write_parallel(trim(out_line),crit=jay)
             end if
           end if
         
           if(igas == nn_NOx)then
             if(-dest(nn_ClONO2,lprn) >= y(nn_ClONO2,lprn) .or.
-     &      chemrate(iClOplusClO,lprn) > 0.8d0*y(nn_ClOx,lprn))then
+     &         chemrate(rrtri%ClO_ClO__Cl2O2_M,lprn) >
+     &           0.8d0*y(nn_ClOx,lprn))then
               write(out_line,110)
-     &        'gain by rxn 22 (ClONO2 photolysis) removed'
-     &        ,ss(22,lprn,i,j)*y(nn_ClONO2,lprn)*dt2
+     &          'gain by rxn 22 (ClONO2 photolysis) removed',
+     &          ss(rj%ClONO2__Cl_NO3,lprn,i,j)*y(nn_ClONO2,lprn)*dt2
               call write_parallel(trim(out_line),crit=jay)
-              write(out_line,110)'gain by rxn 65 removed'
-     &        ,chemrate(65,lprn)
+              write(out_line,110)
+     &          'gain by rxn rrbi%ClONO2_O__ClO_NO3 removed',
+     &          chemrate(rrbi%ClONO2_O__ClO_NO3,lprn)
               call write_parallel(trim(out_line),crit=jay)
-              write(out_line,110)'loss by rxn iClOplusClO removed'
-     &        ,chemrate(iClOplusClO,lprn)
+              write(out_line,110)
+     &          'loss by rxn rrtri%ClO_ClO__Cl2O2_M removed'
+     &          ,chemrate(rrtri%ClO_ClO__Cl2O2_M,lprn)
               call write_parallel(trim(out_line),crit=jay)
             end if
           end if
 
           if(igas == nn_CH3OOH) then
             write(out_line,'(a48,a6,e10.3)')
-     &      'production from XO2N + HO2 ','dy = ',
-     &      y(nHO2,lprn)*y(nNO,lprn)*rr(44,lprn)*rr(43,lprn)/
-     &      (y(nNO,lprn)*4.2d-12*exp(180.d0/ta(lprn)))
-     &      *y(nXO2N,lprn)*dt2            
+     &        'production from XO2N + HO2 ','dy = ',
+     &        y(nHO2,lprn)*y(nNO,lprn)*rr(rrbi%XO2N_NO__AlkylNit_M,lprn)
+     &        *rr(rrbi%XO2_HO2__CH3OOH_M,lprn)
+     &        /(y(nNO,lprn)*4.2d-12*exp(180.d0/ta(lprn)))
+     &        *y(nXO2N,lprn)*dt2
             call write_parallel(trim(out_line),crit=jay)
           end if
+#ifdef TRACERS_dCO
+          if(igas == nn_dMe17OOH) then
+            write(out_line,'(a48,a6,e10.3)')
+     &        'production from XO2N + HO2 ','dy = ',
+     &        y(nHO2,lprn)*y(nNO,lprn)*rr(rrbi%XO2N_NO__AlkylNit_M,lprn)
+     &        *rr(rrbi%XO2_HO2__dMe17OOH_M,lprn)
+     &        /(y(nNO,lprn)*4.2d-12*exp(180.d0/ta(lprn)))
+     &        *y(nXO2N,lprn)*dt2
+            call write_parallel(trim(out_line),crit=jay)
+          end if
+          if(igas == nn_dMe18OOH) then
+            write(out_line,'(a48,a6,e10.3)')
+     &        'production from XO2N + HO2 ','dy = ',
+     &        y(nHO2,lprn)*y(nNO,lprn)*rr(rrbi%XO2N_NO__AlkylNit_M,lprn)
+     &        *rr(rrbi%XO2_HO2__dMe18OOH_M,lprn)
+     &        /(y(nNO,lprn)*4.2d-12*exp(180.d0/ta(lprn)))
+     &        *y(nXO2N,lprn)*dt2
+            call write_parallel(trim(out_line),crit=jay)
+          end if
+          if(igas == nn_d13MeOOH) then
+            write(out_line,'(a48,a6,e10.3)')
+     &        'production from XO2N + HO2 ','dy = ',
+     &        y(nHO2,lprn)*y(nNO,lprn)*rr(rrbi%XO2N_NO__AlkylNit_M,lprn)
+     &        *rr(rrbi%XO2_HO2__d13MeOOH_M,lprn)
+     &        /(y(nNO,lprn)*4.2d-12*exp(180.d0/ta(lprn)))
+     &        *y(nXO2N,lprn)*dt2
+            call write_parallel(trim(out_line),crit=jay)
+          end if
+#endif  /* TRACERS_dCO */
 
 #ifdef TRACERS_HETCHEM
           if(igas == nn_HNO3) then
@@ -926,31 +1382,35 @@ c (chem1prn: argument before multip is index = number of call):
         call write_parallel(trim(out_line),crit=jay)
 
         do Lz=maxL,LS1,-1
-          sumC=rr(45,Lz)*y(nCl,Lz)*y(nO3,Lz)+
-     &    rr(46,Lz)*y(nClO,Lz)*y(nO,Lz)+
-     &    rr(49,Lz)*y(nClO,Lz)*y(nO3,Lz)+
-     &    rr(50,Lz)*y(nOClO,Lz)*y(nO,Lz) ! -ss(17,Lz,i,j)*y(nClO,Lz)
-          sumN=rr(5,Lz)*y(nNO,Lz)*y(nO3,Lz)+
-     &    rr(26,Lz)*y(nNO2,Lz)*y(nO,Lz)+
-     &    rr(7,Lz)*y(nNO2,Lz)*y(nO3,Lz)+
-     &    rr(iNOplusO,Lz)*y(nNO,Lz)*y(nO,Lz)
-     &    -ss(1,Lz,i,j)*y(nNO2,Lz)
-          sumH=rr(2,Lz)*y(nOH,Lz)*y(nO3,Lz)+
-     &    rr(4,Lz)*y(nHO2,Lz)*y(nO3,Lz)+
-     &    rr(89,Lz)*y(nOH,Lz)*y(nO,Lz)+
-     &    rr(90,Lz)*y(nHO2,Lz)*y(nO,Lz)
-          sumB=rr(69,Lz)*y(nBrO,Lz)*y(nO,Lz)+
-     &    rr(70,Lz)*y(nBr,Lz)*y(nO3,Lz) ! -ss(25,Lz,i,j)*y(nBrO,Lz)
-          sumO=2*rr(88,Lz)*y(nO,Lz)*y(nO3,Lz)
+          sumC=rr(rrbi%Cl_O3__ClO_O2,Lz)*y(nCl,Lz)*y(nO3,Lz)
+     &      +rr(rrbi%ClO_O__Cl_O2,Lz)*y(nClO,Lz)*y(nO,Lz)
+     &      +rr(rrbi%ClO_O3__OClO_O2,Lz)*y(nClO,Lz)*y(nO3,Lz)
+     &      +rr(rrbi%O_OClO__ClO_O2,Lz)*y(nOClO,Lz)*y(nO,Lz)
+!     &      -ss(rj%ClO__Cl_O,Lz,i,j)*y(nClO,Lz)
+          sumN=rr(rrbi%O3_NO__NO2_O2,Lz)*y(nNO,Lz)*y(nO3,Lz)
+     &      +rr(rrbi%O_NO2__NO_O2,Lz)*y(nNO2,Lz)*y(nO,Lz)
+     &      +rr(rrbi%NO2_O3__NO3_O2,Lz)*y(nNO2,Lz)*y(nO3,Lz)
+     &      +rr(rrtri%NO_O__NO2_M,Lz)*y(nNO,Lz)*y(nO,Lz)
+     &      -ss(rj%NO2__NO_O,Lz,i,j)*y(nNO2,Lz)
+          sumH=rr(rrbi%OH_O3__HO2_O2,Lz)*y(nOH,Lz)*y(nO3,Lz)
+     &      +rr(rrbi%HO2_O3__OH_O2,Lz)*y(nHO2,Lz)*y(nO3,Lz)
+     &      +rr(rrbi%O_OH__O2_H,Lz)*y(nOH,Lz)*y(nO,Lz)
+     &      +rr(rrbi%O_HO2__OH_O2,Lz)*y(nHO2,Lz)*y(nO,Lz)
+          sumB=rr(rrbi%BrO_O__Br_O2,Lz)*y(nBrO,Lz)*y(nO,Lz)
+     &      +rr(rrbi%Br_O3__BrO_O2,Lz)*y(nBr,Lz)*y(nO3,Lz)
+!     &      -ss(rj%BrO__Br_O,Lz,i,j)*y(nBrO,Lz)
+          sumO=2*rr(rrbi%O_O3__O2_O2,Lz)*y(nO,Lz)*y(nO3,Lz)
           sumA=sumC+sumN+sumH+sumB+sumO
           write(out_line,'(i3,1x,5(f7.2,1x),8(e9.2,1x))')
-     &    Lz,100.d0*sumC/sumA,
-     &    100.d0*sumN/sumA,100.d0*sumH/sumA,100.d0*sumB/sumA,
-     &    100.d0*sumO/sumA,rr(26,Lz)*y(nNO2,Lz)*y(nO,Lz),
-     &    rr(5,Lz)*y(nNO,Lz)*y(nO3,Lz),
-     &    rr(46,Lz)*y(nClO,Lz)*y(nO,Lz),
-     &    rr(45,Lz)*y(nCl,Lz)*y(nO3,Lz),ss(1,Lz,i,j)*y(nNO2,Lz),sumA
-     &    ,ss(27,Lz,i,j),SF2(i,j,Lz)
+     &      Lz,100.d0*sumC/sumA,
+     &      100.d0*sumN/sumA,100.d0*sumH/sumA,100.d0*sumB/sumA,
+     &      100.d0*sumO/sumA,
+     &      rr(rrbi%O_NO2__NO_O2,Lz)*y(nNO2,Lz)*y(nO,Lz),
+     &      rr(rrbi%O3_NO__NO2_O2,Lz)*y(nNO,Lz)*y(nO3,Lz),
+     &      rr(rrbi%ClO_O__Cl_O2,Lz)*y(nClO,Lz)*y(nO,Lz),
+     &      rr(rrbi%Cl_O3__ClO_O2,Lz)*y(nCl,Lz)*y(nO3,Lz),
+     &      ss(rj%NO2__NO_O,Lz,i,j)*y(nNO2,Lz),sumA,
+     &      ss(rj%O2__O_O,Lz,i,j),SF2(i,j,Lz)
           call write_parallel(trim(out_line),crit=jay)
         end do
         write(out_line,*) ' '
@@ -1002,9 +1462,11 @@ c Loops to calculate tracer changes:
 c Set N2O5 to equilibrium when necessary (near ground,
 c N2O5 is thermally unstable, has a very short lifetime):
          if(idx==n_N2O5.and.(-dest(igas,L) >= y(nn_N2O5,L)*0.75d0
-     &    .or. chemrate(iN2O5form,L) > y(nn_NOx,L)))then
-           rnewval=(rr(iN2O5form,L)*y(nNO3,L)*y(nNO2,L))/
-     &     (rr(iN2O5decomp,L)*y(nM,L)+ss(7,L,I,J)+1.d-12)
+     &    .or. chemrate(rrtri%NO3_NO2__N2O5_M,L) > y(nn_NOx,L)))then
+           rnewval=(rr(rrtri%NO3_NO2__N2O5_M,L)*y(nNO3,L)*y(nNO2,L))/
+     &       (rr(rrmono%N2O5_M__NO3_NO2,L)*y(nM,L)
+     &         +ss(rj%N2O5__NO3_NO2,L,I,J)
+     &         +chemtiny)
            if(rnewval < 1.d0)rnewval=1.d0
            changeL(L,idx)=(rnewval-y(nn_N2O5,L))
            if(changeL(L,idx) > 0.33d0*y(nNO2,L))changeL(L,idx)=
@@ -1014,9 +1476,11 @@ c N2O5 is thermally unstable, has a very short lifetime):
 
 c Conserve NOx with respect to N2O5:
          if(idx == n_NOx.and.(-dest(nn_N2O5,L) >= y(nn_N2O5,L)
-     &   .or. chemrate(iN2O5form,L) > y(nn_NOx,L)))then
-           rnewval=(rr(iN2O5form,L)*y(nNO3,L)*y(nNO2,L))/
-     &     (rr(iN2O5decomp,L)*y(nM,L)+ss(7,L,I,J)+1.d-12)
+     &   .or. chemrate(rrtri%NO3_NO2__N2O5_M,L) > y(nn_NOx,L)))then
+           rnewval=(rr(rrtri%NO3_NO2__N2O5_M,L)*y(nNO3,L)*y(nNO2,L))/
+     &       (rr(rrmono%N2O5_M__NO3_NO2,L)*y(nM,L)
+     &         +ss(rj%N2O5__NO3_NO2,L,I,J)
+     &         +chemtiny)
            if(rnewval < 1.d0)rnewval=1.d0
            changeX=(rnewval-y(nn_N2O5,L))
            if(changeX > 0.33d0*y(nNO2,L))changeX=0.33d0*y(nNO2,L)
@@ -1026,10 +1490,13 @@ c Conserve NOx with respect to N2O5:
 
 c Set HO2NO2 to equil when necessary:
          if(idx == n_HO2NO2.and.(-dest(igas,L) >= y(nn_HO2NO2,L)
-     &   .or. chemrate(iHO2NO2form,L) > y(nn_NOx,L)))then
-           rnewval=(rr(iHO2NO2form,L)*y(nHO2,L)*y(nNO2,L))/
-     &     (rr(iHO2NO2_OH,L)*y(nOH,L)+rr(iHO2NO2decomp,L)*y(nM,L)
-     &     +ss(10,L,I,J)+ss(11,L,I,J)+1.d-12)
+     &   .or. chemrate(rrtri%HO2_NO2__HO2NO2_M,L) > y(nn_NOx,L)))then
+           rnewval=(rr(rrtri%HO2_NO2__HO2NO2_M,L)*y(nHO2,L)*y(nNO2,L))
+     &       /(rr(rrbi%OH_HO2NO2__H2O_NO2,L)*y(nOH,L)
+     &         +rr(rrmono%HO2NO2_M__HO2_NO2,L)*y(nM,L)
+     &         +ss(rj%HO2NO2__HO2_NO2,L,I,J)
+     &         +ss(rj%HO2NO2__OH_NO3,L,I,J)
+     &         +chemtiny)
            if(rnewval < 1.d0)rnewval=1.d0
            changeL(L,idx)=(rnewval-y(nn_HO2NO2,L))
            if(changeL(L,idx) > 0.33d0*y(nNO2,L))changeL(L,idx)=
@@ -1039,10 +1506,13 @@ c Set HO2NO2 to equil when necessary:
 
 c Conserve NOx with respect to HO2NO2:
          if(idx == n_NOx.and.(-dest(nn_HO2NO2,L) >= y(nn_HO2NO2,L)
-     &   .or. chemrate(iHO2NO2form,L) > y(nn_NOx,L)))then
-           rnewval=(rr(iHO2NO2form,L)*y(nHO2,L)*y(nNO2,L))/
-     &     (rr(iHO2NO2_OH,L)*y(nOH,L)+rr(iHO2NO2decomp,L)*y(nM,L)
-     &     +ss(10,L,I,J)+ss(11,L,I,J)+1.d-12)
+     &   .or. chemrate(rrtri%HO2_NO2__HO2NO2_M,L) > y(nn_NOx,L)))then
+           rnewval=(rr(rrtri%HO2_NO2__HO2NO2_M,L)*y(nHO2,L)*y(nNO2,L))
+     &       /(rr(rrbi%OH_HO2NO2__H2O_NO2,L)*y(nOH,L)
+     &         +rr(rrmono%HO2NO2_M__HO2_NO2,L)*y(nM,L)
+     &         +ss(rj%HO2NO2__HO2_NO2,L,I,J)
+     &         +ss(rj%HO2NO2__OH_NO3,L,I,J)
+     &         +chemtiny)
            if(rnewval < 1.d0)rnewval=1.d0
            changeX=(rnewval-y(nn_HO2NO2,L))
            if(changeX > 0.33d0*y(nNO2,L))changeX=0.33d0*y(nNO2,L)
@@ -1053,9 +1523,11 @@ c Conserve NOx with respect to HO2NO2:
 c Set PAN to equilibrium when necessary (near ground,
 c PAN is thermally unstable, has a very short lifetime):
          if(idx == n_PAN.and.(-dest(igas,L) >= y(nn_PAN,L).or.
-     &   chemrate(iPANform,L) > y(nn_NOx,L)))then
-           rnewval=(rr(iPANform,L)*y(nC2O3,L)*y(nNO2,L))/
-     &     (rr(iPANdecomp,L)*y(nM,L)+ss(15,L,I,J)+1.d-12)
+     &   chemrate(rrtri%C2O3_NO2__PAN_M,L) > y(nn_NOx,L)))then
+           rnewval=(rr(rrtri%C2O3_NO2__PAN_M,L)*y(nC2O3,L)*y(nNO2,L))/
+     &       (rr(rrbi%PAN_M__C2O3_NO2,L)*y(nM,L)
+     &         +ss(rj%PAN__C2O3_NO2,L,I,J)
+     &         +chemtiny)
            if(rnewval < 1.d0)rnewval=1.d0
            changeL(L,idx)=(rnewval-y(nn_PAN,L))
            if(changeL(L,idx) > 0.33d0*y(nNO2,L))changeL(L,idx)=
@@ -1065,9 +1537,11 @@ c PAN is thermally unstable, has a very short lifetime):
 
 c Conserve NOx with respect to PAN:
          if(idx == n_NOx.and.(-dest(nn_PAN,L) >= y(nn_PAN,L).or.
-     &   chemrate(iPANform,L) > y(nn_NOx,L)))then
-           rnewval=(rr(iPANform,L)*y(nC2O3,L)*y(nNO2,L))/
-     &     (rr(iPANdecomp,L)*y(nM,L)+ss(15,L,I,J)+1.d-12)
+     &   chemrate(rrtri%C2O3_NO2__PAN_M,L) > y(nn_NOx,L)))then
+           rnewval=(rr(rrtri%C2O3_NO2__PAN_M,L)*y(nC2O3,L)*y(nNO2,L))/
+     &       (rr(rrbi%PAN_M__C2O3_NO2,L)*y(nM,L)
+     &         +ss(rj%PAN__C2O3_NO2,L,I,J)
+     &         +chemtiny)
            if(rnewval < 1.d0)rnewval=1.d0
            changeX=(rnewval-y(nn_PAN,L))
            if(changeX > 0.33d0*y(nNO2,L))changeX=0.33d0*y(nNO2,L)
@@ -1075,9 +1549,12 @@ c Conserve NOx with respect to PAN:
          end if
 
 c Cacluate Cl2 amount to P/L:
-         if((ss(18,L,I,J)+rr(51,L)*y(nOH,L)) > 0.)then
-           y(nCl2,L)=rr(57,L)*y(nn_HOCl,L)*y(nCl,L) / 
-     &     (ss(18,L,I,J)+rr(51,L)*y(nOH,L) + 1.d-12)
+         if((ss(rj%Cl2__Cl_Cl,L,I,J)
+     &      +rr(rrbi%OH_Cl2__HOCl_Cl,L)*y(nOH,L)) > 0.)then
+           y(nCl2,L)=rr(rrbi%Cl_HOCl__Cl2_OH,L)*y(nn_HOCl,L)*y(nCl,L)/
+     &       (ss(rj%Cl2__Cl_Cl,L,I,J)
+     &       +rr(rrbi%OH_Cl2__HOCl_Cl,L)*y(nOH,L)
+     &       +chemtiny)
          else
            y(nCl2,L)=0.d0
          end if
@@ -1085,9 +1562,9 @@ c Cacluate Cl2 amount to P/L:
 
 c Set HOBr to equilibrium when necessary:
          if(idx == n_HOBr.and.(-dest(igas,L) >= y(nn_HOBr,L).or.
-     &     chemrate(73,L) > 0.5d0*y(nn_BrOx,L)))then
-           rnewval=(rr(73,L)*y(nBrO,L)*y(nHO2,L))/
-     &     (ss(24,L,i,j)+1.d-12)
+     &     chemrate(rrbi%BrO_HO2__HOBr_O2,L) > 0.5d0*y(nn_BrOx,L)))then
+           rnewval=(rr(rrbi%BrO_HO2__HOBr_O2,L)*y(nBrO,L)*y(nHO2,L))/
+     &     (ss(rj%HOBr__Br_OH,L,i,j)+chemtiny)
            if(rnewval < 1.d0)rnewval=1.d0
            changeL(L,idx)=(rnewval-y(nn_HOBr,L))
            if(changeL(L,idx) > 0.5d0*y(nBrO,L))changeL(L,idx)=
@@ -1096,10 +1573,10 @@ c Set HOBr to equilibrium when necessary:
          end if
 
 c Conserve BrOx with respect to HOBr:
-         if(idx == n_BrOx.and.(-dest(nn_HOBr,L) >= y(nn_HOBr,L)
-     &   .or. chemrate(73,L) > 0.5d0*y(nn_BrOx,L)))then
-           rnewval=(rr(73,L)*y(nBrO,L)*y(nHO2,L))/
-     &     (ss(24,L,i,j)+1.d-12)
+         if(idx == n_BrOx.and.(-dest(nn_HOBr,L) >= y(nn_HOBr,L).or.
+     &      chemrate(rrbi%BrO_HO2__HOBr_O2,L) > 0.5d0*y(nn_BrOx,L)))then
+           rnewval=(rr(rrbi%BrO_HO2__HOBr_O2,L)*y(nBrO,L)*y(nHO2,L))/
+     &     (ss(rj%HOBr__Br_OH,L,i,j)+chemtiny)
            if(rnewval < 1.d0)rnewval=1.d0
            changeX=(rnewval-y(nn_HOBr,L))
            if(changeX > 0.5d0*y(nBrO,L))changeX=0.5d0*y(nBrO,L)
@@ -1108,10 +1585,11 @@ c Conserve BrOx with respect to HOBr:
          end if
 
 c Set BrONO2 to equilibrium when necessary:
-         if(idx == n_BrONO2.and.(-dest(igas,L) >= y(nn_BrONO2,L)
-     &   .or. chemrate(iBrOplusNO2,L) > 0.5d0*y(nn_BrOx,L)))then
-           rnewval=(rr(iBrOplusNO2,L)*y(nBrO,L)*y(nNO2,L))/
-     &     (ss(23,L,i,j)+1.d-12)
+         if(idx == n_BrONO2.and.(-dest(igas,L) >= y(nn_BrONO2,L).or.
+     &      chemrate(rrtri%BrO_NO2__BrONO2_M,L)>0.5d0*y(nn_BrOx,L)))then
+           rnewval=(rr(rrtri%BrO_NO2__BrONO2_M,L)*y(nBrO,L)*y(nNO2,L))
+     &       /(ss(rj%BrONO2__BrO_NO2,L,i,j)
+     &         +chemtiny)
            if(rnewval < 1.d0)rnewval=1.d0
            changeL(L,idx)=(rnewval-y(nn_BrONO2,L))
            if(changeL(L,idx) > 0.5d0*y(nBrO,L))changeL(L,idx)=
@@ -1120,10 +1598,11 @@ c Set BrONO2 to equilibrium when necessary:
          end if
 
 c Conserve BrOx with respect to BrONO2:
-         if(idx == n_BrOx.and.(-dest(nn_BrONO2,L) >= y(nn_BrONO2,L)
-     &   .or. chemrate(iBrOplusNO2,L) > 0.5d0*y(nn_BrOx,L)))then
-           rnewval=(rr(iBrOplusNO2,L)*y(nBrO,L)*y(nNO2,L))/
-     &     (ss(23,L,i,j)+1.d-12)
+         if(idx == n_BrOx.and.(-dest(nn_BrONO2,L) >= y(nn_BrONO2,L).or.
+     &      chemrate(rrtri%BrO_NO2__BrONO2_M,L)>0.5d0*y(nn_BrOx,L)))then
+           rnewval=(rr(rrtri%BrO_NO2__BrONO2_M,L)*y(nBrO,L)*y(nNO2,L))
+     &       /(ss(rj%BrONO2__BrO_NO2,L,i,j)
+     &         +chemtiny)
            if(rnewval < 1.d0)rnewval=1.d0
            changeX=(rnewval-y(nn_BrONO2,L))
            if(changeX > 0.5d0*y(nBrO,L))changeX=0.5d0*y(nBrO,L)
@@ -1132,10 +1611,11 @@ c Conserve BrOx with respect to BrONO2:
          end if
 
 c Conserve NOx with respect to BrONO2:
-         if(idx == n_NOx.and.(-dest(nn_BrONO2,L) >= y(nn_BrONO2,L)
-     &   .or. chemrate(iBrOplusNO2,L) > 0.5d0*y(nn_BrOx,L)))then
-           rnewval=(rr(iBrOplusNO2,L)*y(nBrO,L)*y(nNO2,L))/
-     &     (ss(23,L,i,j)+1.d-12)
+         if(idx == n_NOx.and.(-dest(nn_BrONO2,L) >= y(nn_BrONO2,L).or.
+     &      chemrate(rrtri%BrO_NO2__BrONO2_M,L)>0.5d0*y(nn_BrOx,L)))then
+           rnewval=(rr(rrtri%BrO_NO2__BrONO2_M,L)*y(nBrO,L)*y(nNO2,L))
+     &       /(ss(rj%BrONO2__BrO_NO2,L,i,j)
+     &         +chemtiny)
            if(rnewval < 1.d0)rnewval=1.d0
            changeX=(rnewval-y(nn_BrONO2,L))
            if(changeX > 0.5d0*y(nBrO,L))changeX=0.5d0*y(nBrO,L)
@@ -1144,10 +1624,12 @@ c Conserve NOx with respect to BrONO2:
          end if
 
 c Set ClONO2 to equilibrium when necessary:
-         if(idx == n_ClONO2.and.(-dest(igas,L) >= y(nn_ClONO2,L)
-     &   .or. chemrate(iClOplusNO2,L) > 0.8d0*y(nn_ClOx,L)))then
-           rnewval=(rr(iClOplusNO2,L)*y(nClO,L)*y(nNO2,L))/
-     &     (ss(22,L,i,j)+rr(65,L)*y(nO,L)+1.d-12)
+         if(idx == n_ClONO2.and.(-dest(igas,L) >= y(nn_ClONO2,L).or.
+     &      chemrate(rrtri%ClO_NO2__ClONO2_M,L)>0.8d0*y(nn_ClOx,L)))then
+           rnewval=(rr(rrtri%ClO_NO2__ClONO2_M,L)*y(nClO,L)*y(nNO2,L))
+     &       /(ss(rj%ClONO2__Cl_NO3,L,i,j)
+     &         +rr(rrbi%ClONO2_O__ClO_NO3,L)*y(nO,L)
+     &         +chemtiny)
            if(rnewval < 1.d0)rnewval=1.d0
            changeL(L,idx)=(rnewval-y(nn_ClONO2,L))
            if(changeL(L,idx) > 0.3d0*y(nClO,L))changeL(L,idx)=
@@ -1158,10 +1640,12 @@ c Set ClONO2 to equilibrium when necessary:
          end if
 
 c Conserve ClOx with respect to ClONO2:
-         if(idx == n_ClOx.and.(-dest(nn_ClONO2,L) >= y(nn_ClONO2,L)
-     &   .or. chemrate(iClOplusNO2,L) > 0.8d0*y(nn_ClOx,L)))then
-           rnewval=(rr(iClOplusNO2,L)*y(nClO,L)*y(nNO2,L))/
-     &     (ss(22,L,i,j)+rr(65,L)*y(nO,L)+1.d-12)
+         if(idx == n_ClOx.and.(-dest(nn_ClONO2,L) >= y(nn_ClONO2,L).or.
+     &      chemrate(rrtri%ClO_NO2__ClONO2_M,L)>0.8d0*y(nn_ClOx,L)))then
+           rnewval=(rr(rrtri%ClO_NO2__ClONO2_M,L)*y(nClO,L)*y(nNO2,L))
+     &       /(ss(rj%ClONO2__Cl_NO3,L,i,j)
+     &         +rr(rrbi%ClONO2_O__ClO_NO3,L)*y(nO,L)
+     &         +chemtiny)
            if(rnewval < 1.d0)rnewval=1.d0
            changeX=(rnewval-y(nn_ClONO2,L))
            if(changeX > 0.3d0*y(nClO,L))changeX=0.3d0*y(nClO,L)
@@ -1171,10 +1655,12 @@ c Conserve ClOx with respect to ClONO2:
          end if
 
 c Conserve NOx with respect to ClONO2:
-         if(idx == n_NOx.and.(-dest(nn_ClONO2,L) >= y(nn_ClONO2,L)
-     &   .or. chemrate(iClOplusNO2,L) > 0.8d0*y(nn_ClOx,L)))then
-           rnewval=(rr(iClOplusNO2,L)*y(nClO,L)*y(nNO2,L))/
-     &     (ss(22,L,i,j)+rr(65,L)*y(nO,L)+1.d-12)
+         if(idx == n_NOx.and.(-dest(nn_ClONO2,L) >= y(nn_ClONO2,L).or.
+     &      chemrate(rrtri%ClO_NO2__ClONO2_M,L)>0.8d0*y(nn_ClOx,L)))then
+           rnewval=(rr(rrtri%ClO_NO2__ClONO2_M,L)*y(nClO,L)*y(nNO2,L))
+     &       /(ss(rj%ClONO2__Cl_NO3,L,i,j)
+     &         +rr(rrbi%ClONO2_O__ClO_NO3,L)*y(nO,L)
+     &         +chemtiny)
            if(rnewval < 1.d0)rnewval=1.d0
            changeX=(rnewval-y(nn_ClONO2,L))
            if(changeX > 0.3d0*y(nClO,L))changeX=0.3d0*y(nClO,L)
@@ -1185,10 +1671,13 @@ c Conserve NOx with respect to ClONO2:
 
 c Set HOCl to equilibrium when necessary:
          if(idx == n_HOCl.and.(-dest(igas,L) >= y(nn_HOCl,L).or.
-     &   chemrate(63,L) > y(nn_ClOx,L)))then
-           rnewval=(rr(63,L)*y(nClO,L)*y(nHO2,L) + 
-     &     rr(51,L)*y(nCl2,L)*y(nOH,L)) /
-     &     (ss(21,L,i,j)+rr(55,L)*y(nO,L)+rr(51,L)*y(nCl2,L)+1.d-12)
+     &   chemrate(rrbi%ClO_HO2__HOCl_O2,L) > y(nn_ClOx,L)))then
+           rnewval=(rr(rrbi%ClO_HO2__HOCl_O2,L)*y(nClO,L)*y(nHO2,L)
+     &         +rr(rrbi%OH_Cl2__HOCl_Cl,L)*y(nCl2,L)*y(nOH,L))
+     &       /(ss(rj%HOCl__OH_Cl,L,i,j)
+     &         +rr(rrbi%O_HOCl__OH_ClO,L)*y(nO,L)
+     &         +rr(rrbi%OH_Cl2__HOCl_Cl,L)*y(nCl2,L)
+     &         +chemtiny)
            if(rnewval < 1.d0)rnewval=1.d0
            changeL(L,idx)=(rnewval-y(nn_HOCl,L))
            if(changeL(L,idx) > 0.3d0*y(nClO,L))changeL(L,idx)=
@@ -1198,10 +1687,13 @@ c Set HOCl to equilibrium when necessary:
 
 c Conserve ClOx with respect to HOCl:
          if(idx == n_ClOx.and.(-dest(nn_HOCl,L) >= y(nn_HOCl,L)
-     &   .or. chemrate(63,L) > y(nn_ClOx,L)))then
-           rnewval=(rr(63,L)*y(nClO,L)*y(nHO2,L) + 
-     &     rr(51,L)*y(nCl2,L)*y(nOH,L)) /
-     &     (ss(21,L,i,j)+rr(55,L)*y(nO,L)+rr(51,L)*y(nCl2,L)+1.d-12)
+     &   .or. chemrate(rrbi%ClO_HO2__HOCl_O2,L) > y(nn_ClOx,L)))then
+           rnewval=(rr(rrbi%ClO_HO2__HOCl_O2,L)*y(nClO,L)*y(nHO2,L)
+     &         +rr(rrbi%OH_Cl2__HOCl_Cl,L)*y(nCl2,L)*y(nOH,L))
+     &       /(ss(rj%HOCl__OH_Cl,L,i,j)
+     &         +rr(rrbi%O_HOCl__OH_ClO,L)*y(nO,L)
+     &         +rr(rrbi%OH_Cl2__HOCl_Cl,L)*y(nCl2,L)
+     &         +chemtiny)
            if(rnewval < 1.d0)rnewval=1.d0
            changeX=(rnewval-y(nn_HOCl,L))
            if(changeX > 0.3d0*y(nClO,L))changeX=0.3d0*y(nClO,L)
@@ -1231,7 +1723,8 @@ c Conserve ClOx with respect to HOCl:
 
 c Separate N2O change for N cons, leave out N2O->N2+O fromm cons:
       sv_changeN2O(1:maxL)=
-     &-chemrate(87,1:maxL)*axyp(i,j)*rMAbyM(1:maxL)*vol2mass(n_N2O)
+     &  -chemrate(rrbi%N2O_O1D__NO_NO,1:maxL)*axyp(i,j)
+     &    *rMAbyM(1:maxL)*vol2mass(n_N2O)
 
 c Ensure nitrogen conservation,
 c (since equilibration of short lived gases may alter this):
@@ -1534,6 +2027,20 @@ c Print chemical changes in a particular grid box if desired:
      &    ' CH3O2   :',yCH3O2(I,J,LPRN),(yCH3O2(I,J,LPRN)/
      &    y(nM,LPRN))*1.d9,' ppbv'
           call write_parallel(trim(out_line),crit=jay)
+#ifdef TRACERS_dCO
+          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &    ' dCH317O2:',ydCH317O2(I,J,LPRN),(ydCH317O2(I,J,LPRN)/
+     &    y(nM,LPRN))*1.d9,' ppbv'
+          call write_parallel(trim(out_line),crit=jay)
+          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &    ' dCH318O2:',ydCH318O2(I,J,LPRN),(ydCH318O2(I,J,LPRN)/
+     &    y(nM,LPRN))*1.d9,' ppbv'
+          call write_parallel(trim(out_line),crit=jay)
+          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &    ' d13CH3O2:',yd13CH3O2(I,J,LPRN),(yd13CH3O2(I,J,LPRN)/
+     &    y(nM,LPRN))*1.d9,' ppbv'
+          call write_parallel(trim(out_line),crit=jay)
+#endif  /* TRACERS_dCO */
           write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
      &    ' C2O3    :',y(nC2O3,LPRN),(y(nC2O3,LPRN)/y(nM,LPRN))*1.d9,
      &    ' ppbv'
@@ -1641,8 +2148,8 @@ c
 C**** GLOBAL parameters and variables:
 
       USE TRCHEM_Shindell_COM, only: n_rx,chemrate,photrate,rr,y,nn,dt2,
-     &                          ss,ny,dest,prod,n_het
-      use photolysis, only: jppj,ks
+     &                          ss,ny,dest,prod,n_het,n_rj
+      use photolysis, only: ks
 
       IMPLICIT NONE
 
@@ -1663,7 +2170,7 @@ C Set up rates:
         do ireac=n_rx-n_het+1,n_rx    ! heterogeneous
           chemrate(ireac,kalt)=rr(ireac,kalt)*y(nn(1,ireac),kalt)*dt2
         end do
-        do ireac=1,JPPJ          ! photolysis
+        do ireac=1,n_rj          ! photolysis
           photrate(ireac,kalt)=ss(ireac,kalt,I,J)*y(ks(ireac),kalt)*dt2
         end do
 
@@ -1678,16 +2185,16 @@ c Initialize change arrays:
 
 
 
-      SUBROUTINE chem1(kdnr,maxL,numeL,nn,ndnr,chemrate,dest,multip)
+      SUBROUTINE chem1(kdnr,maxL,numeL,n_rr,nn,npdnrs,rrate,proddest,
+     &                 multip)
 !@sum chem1 calculate chemical destruction/production
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
 
 C**** GLOBAL parameters and variables:
 
-      USE TRCHEM_Shindell_COM, only: p_2, p_3, nc, ny, numfam,nfam
-      USE TRCHEM_Shindell_COM, only: n_rx
+      USE TRCHEM_Shindell_COM, only:  p_1, nc, ny, numfam,nfam
 #ifdef TRACERS_dCO
-      use TRACER_COM, only: n_dC17O, n_dC18O, n_d13CO
+      use OldTracer_mod, only: is_dCO_tracer
 #endif  /* TRACERS_dCO */
 
       IMPLICIT NONE
@@ -1699,10 +2206,10 @@ C**** Local parameters and variables and arguments:
 !@+   two products
 !@var kdnr kdnr,kpnr,kds, or kps    passed from chemstep
 !@var nn nn,nnr,ks, or kss          passed from chemstep
-!@var ndnr ndnr,npnr,nds, or nps    passed from chemstep.
-!@+   ndnr(ireac) gives reaction index number as found in JPLRX or JPLPH
-!@var chemrate chemrate or photrate passed from chemstep
-!@var dest dest or prod             passed from chemstep
+!@var npdnrs ndnr,npnr,nds, or nps    passed from chemstep.
+!@+   npdnrs(ireac) gives reaction index number as found in JPLRX or JPLPH
+!@var rrate rrate or photrate passed from chemstep
+!@var proddest dest or prod             passed from chemstep
 !@var multip -1 for destruction, +1 for production
 !@var igas index of tracer, as defined in e.g. trname
 !@var ireac index of reaction per tracer. Starts from 1 and increases
@@ -1711,12 +2218,12 @@ C**** Local parameters and variables and arguments:
 !@+   Production and destruction are tracked separately.
 !@var i,dk,nl dummy variable
       INTEGER ireac,igas,i,dk,nl
-      INTEGER, INTENT(IN)            :: maxL,numeL,multip
+      INTEGER, INTENT(IN)            :: maxL,numeL,n_rr,multip
       INTEGER, DIMENSION(nc)         :: kdnr
-      INTEGER, DIMENSION(numeL,n_rx) :: nn ! automatic array
-      INTEGER, DIMENSION(p_3)        :: ndnr
-      REAL*8,  DIMENSION(p_2,maxL)   :: chemrate ! automatic array
-      REAL*8,  DIMENSION(ny,maxL)    :: dest ! automatic array
+      INTEGER, DIMENSION(numeL,n_rr) :: nn ! automatic array
+      INTEGER, DIMENSION(p_1*n_rr)   :: npdnrs
+      REAL*8,  DIMENSION(n_rr,maxL)  :: rrate ! automatic array
+      REAL*8,  DIMENSION(ny,maxL)    :: proddest ! automatic array
 #ifdef TRACERS_dCO
       logical :: is_dCO_reaction
 #endif  /* TRACERS_dCO */
@@ -1731,21 +2238,20 @@ c Reactive families:
           do i=1,dk
             ireac=ireac+1
 #ifdef TRACERS_dCO
-            if (is_dCO_reaction(ireac,ndnr)) then
-              if ((igas /= n_dC17O).and.(igas /= n_dC18O).and.
-     &            (igas /= n_d13CO)) cycle ! do not affect chemistry
+            if (is_dCO_reaction(ireac,n_rr,npdnrs)) then
+              if (.not.is_dCO_tracer(igas)) cycle ! do not affect chemistry
             endif
 #endif  /* TRACERS_dCO */
             do nl=1,numeL
-              if(nn(nl,ndnr(ireac)) >= nfam(igas) .and. 
-     &           nn(nl,ndnr(ireac)) < nfam(igas+1))then
-                dest(igas,1:maxL)=
-     &            dest(igas,1:maxL)+
-     &            multip*chemrate(ndnr(ireac),1:maxL)
+              if(nn(nl,npdnrs(ireac)) >= nfam(igas) .and. 
+     &           nn(nl,npdnrs(ireac)) < nfam(igas+1))then
+                proddest(igas,1:maxL)=
+     &            proddest(igas,1:maxL)+
+     &            multip*rrate(npdnrs(ireac),1:maxL)
 c               Save change array for individual family elements:
-                dest(nn(nl,ndnr(ireac)),1:maxL)=
-     &            dest(nn(nl,ndnr(ireac)),1:maxL)+
-     &            multip*chemrate(ndnr(ireac),1:maxL)
+                proddest(nn(nl,npdnrs(ireac)),1:maxL)=
+     &            proddest(nn(nl,npdnrs(ireac)),1:maxL)+
+     &            multip*rrate(npdnrs(ireac),1:maxL)
               end if
             end do ! numeL
           end do  ! i
@@ -1760,14 +2266,13 @@ c Individual Species:
           do i=1,dk
             ireac=ireac+1
 #ifdef TRACERS_dCO
-            if (is_dCO_reaction(ireac,ndnr)) then
-              if ((igas /= n_dC17O).and.(igas /= n_dC18O).and.
-     &            (igas /= n_d13CO)) cycle ! do not affect chemistry
+            if (is_dCO_reaction(ireac,n_rr,npdnrs)) then
+              if (.not.is_dCO_tracer(igas)) cycle ! do not affect chemistry
             endif
 #endif  /* TRACERS_dCO */
-            dest(igas,1:maxL)=
-     &        dest(igas,1:maxL)+
-     &        multip*chemrate(ndnr(ireac),1:maxL)
+            proddest(igas,1:maxL)=
+     &        proddest(igas,1:maxL)+
+     &        multip*rrate(npdnrs(ireac),1:maxL)
           end do
         end if
       end do
@@ -1777,7 +2282,7 @@ c Individual Species:
 
 
 
-      SUBROUTINE chem1prn(kdnr,numeL,nn,ndnr,chemrate,
+      SUBROUTINE chem1prn(kdnr,numeL,n_rr,nn,npdnrs,rrate,
      &                    index,multip,igas,total,maxL,I,J,jay)
 !@sum chem1prn for printing out the chemical reactions
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
@@ -1785,8 +2290,7 @@ c Individual Species:
 C**** GLOBAL parameters and variables:
 
       USE DOMAIN_DECOMP_ATM, only : write_parallel
-      USE TRCHEM_Shindell_COM, only: ay, lprn, nfam, nc, numfam, y,
-     &                              p_2, p_3, n_rx
+      USE TRCHEM_Shindell_COM, only: ay, lprn, nfam, nc, numfam, y, p_1
 
       IMPLICIT NONE
 
@@ -1794,8 +2298,8 @@ C**** Local parameters and variables and arguments:
 !@var kdnr kdnr,kpnr,kds, or kps from chemstep
 !@var numeL first index of nn array
 !@var nn nn,nnr,ks, or kss from chemstep
-!@var ndnr ndnr,npnr,nds, or nps from chemstep
-!@var chemrate chemrate or photrate from chemstep
+!@var npdnrs ndnr,npnr,nds, or nps from chemstep
+!@var rrate rrate or photrate from chemstep
 !@var index passed index to know which call this is... {1,2,3,4}
 !@var multip 1 for production, -1 for destruction
 !@var igas passed index for gas number
@@ -1805,16 +2309,16 @@ C**** Local parameters and variables and arguments:
 !@var label character string for printing
 !@var irec dummy loop variables
 !@var per dummy temp variable
-      INTEGER, INTENT(IN) :: igas,I,J,maxL,multip,index,numeL
-      INTEGER, DIMENSION(p_3)        :: ndnr
-      INTEGER, DIMENSION(numeL,n_rx) :: nn ! automatic array
+      INTEGER, INTENT(IN) :: igas,I,J,maxL,multip,index,numeL,n_rr
+      INTEGER, DIMENSION(p_1*n_rr)   :: npdnrs
+      INTEGER, DIMENSION(numeL,n_rr) :: nn ! automatic array
       INTEGER, DIMENSION(nc)         :: kdnr      
       INTEGER                        :: ireac
       character*17                   :: label
       character(len=300)             :: out_line
       logical                        :: jay
       REAL*8                         :: total,per
-      REAL*8, DIMENSION(p_2,maxL)    :: chemrate ! automatic array
+      REAL*8, DIMENSION(n_rr,maxL)   :: rrate ! automatic array
 
 c FAMILIES ONLY:
 
@@ -1826,26 +2330,26 @@ c FAMILIES ONLY:
           else
             label=' phot reaction # '
           end if
-          if(nn(1,ndnr(ireac)) >= nfam(igas) .and. 
-     &    nn(1,ndnr(ireac)) < nfam(igas+1))then
+          if(nn(1,npdnrs(ireac)) >= nfam(igas) .and. 
+     &    nn(1,npdnrs(ireac)) < nfam(igas+1))then
             per=0.d0
             if(y(igas,lprn) /= 0.d0) per=multip*100.d0*
-     &      chemrate(ndnr(ireac),lprn)/y(igas,lprn)
-            write(out_line,177) label,ndnr(ireac),' percent change'
-     &      //' from ',ay(nn(1,ndnr(ireac))),' = ',per,
-     &      ' dy=',multip*chemrate(ndnr(ireac),lprn)
+     &      rrate(npdnrs(ireac),lprn)/y(igas,lprn)
+            write(out_line,177) label,npdnrs(ireac),' percent change'
+     &      //' from ',ay(nn(1,npdnrs(ireac))),' = ',per,
+     &      ' dy=',multip*rrate(npdnrs(ireac),lprn)
             call write_parallel(trim(out_line),crit=jay)
             total=total+per
           end if
           if(numeL == 2)then
-            if(nn(2,ndnr(ireac)) >= nfam(igas) .and. 
-     &      nn(2,ndnr(ireac)) < nfam(igas+1))then
+            if(nn(2,npdnrs(ireac)) >= nfam(igas) .and. 
+     &      nn(2,npdnrs(ireac)) < nfam(igas+1))then
               per=0.d0
               if(y(igas,lprn) /= 0.d0) per=multip*100.d0*
-     &        chemrate(ndnr(ireac),lprn)/y(igas,lprn)
-              write(out_line,177) label,ndnr(ireac),' percent change'
-     &        //' from ',ay(nn(2,ndnr(ireac))),' = ',per,
-     &        ' dy=',multip*chemrate(ndnr(ireac),lprn)
+     &        rrate(npdnrs(ireac),lprn)/y(igas,lprn)
+              write(out_line,177) label,npdnrs(ireac),' percent change'
+     &        //' from ',ay(nn(2,npdnrs(ireac))),' = ',per,
+     &        ' dy=',multip*rrate(npdnrs(ireac),lprn)
               call write_parallel(trim(out_line),crit=jay)
               total=total+per
             end if
@@ -1864,23 +2368,23 @@ c INDIVIDUAL SPECIES:
           label=' phot reaction # '
         end if
 c       skip same reaction if written twice:
-        if ((ireac > 1) .and. (ndnr(ireac) == ndnr(ireac-1))) CYCLE
-        if(nn(1,ndnr(ireac)) == igas)then
+        if ((ireac > 1) .and. (npdnrs(ireac) == npdnrs(ireac-1))) CYCLE
+        if(nn(1,npdnrs(ireac)) == igas)then
           per=0.d0
           if(y(igas,lprn) /= 0.d0) per=100.d0*multip*
-     &    chemrate(ndnr(ireac),lprn)/y(igas,lprn)
-          write(out_line,106) label,ndnr(ireac),' percent change = '
-     &    ,per,' dy=',multip*chemrate(ndnr(ireac),lprn)
+     &    rrate(npdnrs(ireac),lprn)/y(igas,lprn)
+          write(out_line,106) label,npdnrs(ireac),' percent change = '
+     &    ,per,' dy=',multip*rrate(npdnrs(ireac),lprn)
           call write_parallel(trim(out_line),crit=jay)
           total=total+per
         end if
         if(numeL == 2)then
-          if(nn(2,ndnr(ireac)) == igas)then
+          if(nn(2,npdnrs(ireac)) == igas)then
             per=0.d0
             if(y(igas,lprn) /= 0.d0) per=100.d0*multip*
-     &      chemrate(ndnr(ireac),lprn)/y(igas,lprn)
-            write(out_line,106) label,ndnr(ireac),' percent change = '
-     &      ,per,' dy=',multip*chemrate(ndnr(ireac),lprn)
+     &      rrate(npdnrs(ireac),lprn)/y(igas,lprn)
+            write(out_line,106) label,npdnrs(ireac),' percent change = '
+     &      ,per,' dy=',multip*rrate(npdnrs(ireac),lprn)
             call write_parallel(trim(out_line),crit=jay)
             total=total+per
           end if
@@ -1895,28 +2399,42 @@ c       skip same reaction if written twice:
       end SUBROUTINE chem1prn
 
 #ifdef TRACERS_dCO
-      logical function is_dCO_reaction(ireac, ndnr)
+      logical function is_dCO_reaction(ireac,n_rr,npdnrs)
 !@sum is_dCO_reaction Returns .true. if reaction ireac involves dCO tracers,
 !@+                   false otherwise
 !@auth Kostas Tsigaridis
 
-      use photolysis, only: jppj
-      use TRCHEM_Shindell_COM, only: p_3,n_bi_terp,n_bi_dCO
+      use photolysis, only: rj
+      use TRCHEM_Shindell_COM, only: p_1,n_bi_dCO,n_rj_dCO,rrbi,n_rj
       implicit none
 
-      integer, intent(in) :: ireac
-      integer, dimension(p_3), intent(in) :: ndnr
-      integer, parameter :: idC17OplusOH=92+n_bi_terp
+      integer, intent(in) :: ireac,n_rr
+      integer, dimension(p_1*n_rr), intent(in) :: npdnrs
+!@var dCOrri First dCO reaction in JPLRX
+!@var dCOrre Last dCO reaction in JPLRX
+      integer :: dCOrri,dCOrre,dCOrji,dCOrje
+
+      dCOrri=rrbi%O1D_CH4__OH_dCH317O2
+      dCOrre=rrbi%Terpenes_O3__dH13CHO_Alkenes
+      if (dCOrre-dCOrri+1 /= n_bi_dCO)
+     &  call stop_model('ERROR: Check the first and last dCO reactions',
+     &                  255)
+
+      dCOrji=rj%dHCH17O__dC17O_H2
+      dCOrje=rj%Aldehyde__HCHO_d13CO
+      if (dCOrje-dCOrji+1 /= n_rj_dCO)
+     &  call stop_model('ERROR: Check the first and last dCO photolyses'
+     &                 ,255)
 
       is_dCO_reaction=.false.
-      if (maxval(ndnr)==jppj) then ! photolysis
-        if ((ndnr(ireac) >= 29).and.
-     &      (ndnr(ireac) < 38)) then
+      if (maxval(npdnrs)==n_rj) then ! photolysis
+        if ((npdnrs(ireac) >= dCOrji).and.
+     &      (npdnrs(ireac) <= dCOrje)) then
           is_dCO_reaction=.true.
         endif
       else                      ! thermal
-        if ((ndnr(ireac) >= idC17OplusOH).and.
-     &      (ndnr(ireac) < idC17OplusOH+n_bi_dCO)) then
+        if ((npdnrs(ireac) >= dCOrri).and.
+     &      (npdnrs(ireac) <= dCOrre)) then
           is_dCO_reaction=.true.
         endif
       endif

@@ -125,17 +125,12 @@
   ! required and optional inputs
 
   SCMopt%Ps = file_exists('SCM_PS')
-  if( .not. SCMopt%Ps ) &
-    call stop_model('alloc_SCM_COM: surface pressure required',255)
 
   SCMopt%wvmr = file_exists('SCM_WVMR')
-  if( .not. SCMopt%wvmr ) &
-    call stop_model('alloc_SCM_COM: WVMR profile required',255)
 
   SCMopt%temp = file_exists('SCM_TEMP')
   SCMopt%theta = file_exists('SCM_THETA')
-  if( ( .not. SCMopt%temp .and. .not. SCMopt%theta ) .or. &
-      ( SCMopt%temp .and. SCMopt%theta ) ) &
+  if( SCMopt%temp .and. SCMopt%theta ) &
     call stop_model('alloc_SCM_COM: either T or theta required',255)
 
   SCMopt%Tskin = file_exists('SCM_TSKIN')

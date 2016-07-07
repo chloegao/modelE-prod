@@ -371,6 +371,15 @@ C**** Surface concentration by volume (units kg/m^3)
         scale_tij(k,n)=MMR_to_VMR(n)*10.**(-ijtc_power(n))/
      *                 REAL(NIsurf,KIND=8)
       endif ! if (src_dist_index(n)<=1) then
+C**** Tropopause flux Diagnostics
+        k = k+1
+        tij_strop = k
+        write(sname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
+     *     '_StratTropflux'
+        write(lname_tij(k,n),'(a,i2)') trim(TRNAME(n))//
+     *       ' Flux Tropopause'
+        units_tij(k,n) = unit_string(ijtc_power(n),'kg/m^2/s')
+        scale_tij(k,n)=10.**(-ijtc_power(n))
 #ifdef TRACERS_WATER
 C**** the following diagnostics are set assuming that the particular
 C**** tracer exists in water.
@@ -696,6 +705,42 @@ C**** trflux1 is total flux into first layer
       end do
       RETURN
       END SUBROUTINE sum_prescribed_tracer_2Dsources
+
+      SUBROUTINE set_strattroptracer_diag(dtstep)
+!@sum safe Tracer Fluxes at the Tropopause
+!@auth Susanne Bauer
+      USE GEOM, only : imaxj,byaxyp
+      USE TRACER_COM, only : NTM
+      USE TRDIAG_COM, only : taijn=>taijn_loc
+      USE TRDIAG_COM, only : TSCF3D=>tscf3d_loc
+      USE TRDIAG_COM, only : tij_strop
+      USE ATM_COM,    only : LTROPO
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID, getDomainBounds
+
+      IMPLICIT NONE
+      INTEGER n,j,i
+      REAL*8, INTENT(IN) :: dtstep
+      INTEGER :: J_0, J_1, I_0, I_1
+
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+
+#ifndef SKIP_TRACER_DIAGS
+      do j=j_0,j_1
+      do i=i_0,imaxj(j)
+      do n=1,ntm
+      taijn(i,j,tij_strop,n) = taijn(i,j,tij_strop,n)
+     &         + TSCF3D(i,j,ltropo(i,j),n)*byaxyp(i,j)/dtstep
+
+      end do ! tracer n
+      enddo
+      enddo
+#endif /*SKIP_TRACER_DIAGS*/
+
+
+      RETURN
+      END SUBROUTINE set_strattroptracer_diag
 
       SUBROUTINE apply_tracer_2Dsource(dtstep)
 !@sum apply_tracer_2Dsource adds surface sources to tracers
@@ -1298,19 +1343,18 @@ C**** check whether air mass is conserved
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
      &     yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss,ydms,yso2,sulfate
+#ifdef TRACERS_dCO
+     &     ,ydCH317O2,ydCH318O2,yd13CH3O2
+#endif  /* TRACERS_dCO */
      &     ,acetone,sOx_acc,sNOx_acc,sCO_acc,l1Ox_acc,l1NO2_acc,pNO3
      &     ,SF3,SF2,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2
-     &     ,topLevelOfChemistry
+     &     ,topLevelOfChemistry,n_rj,mostRecentNonZeroAlbedo
 #ifdef INTERACTIVE_WETLANDS_CH4 
       use TRACER_SOURCES, only: day_ncep,DRA_ch4,sum_ncep,PRS_ch4,
      &     HRA_ch4,iday_ncep,i0_ncep,iHch4,iDch4,i0ch4,first_ncep,
      &     first_mod,max_days,nra_ncep,nra_ch4,maxHR_ch4,avg_model,
      &     avg_ncep
 #endif
-#ifdef SMOOTH_SUNLIGHT_CHEMISTRY
-      USE TRCHEM_Shindell_COM, only: mostRecentNonZeroAlbedo
-#endif
-      use photolysis, only: jppj
 #endif /* TRACERS_SPECIAL_Shindell */
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       USE fluxes,ONLY : pprec,pevap
@@ -1360,9 +1404,7 @@ C**** check whether air mass is conserved
       REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: Rijch4_glob
       REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: Rijncep_glob
 #endif
-#ifdef SMOOTH_SUNLIGHT_CHEMISTRY
       REAL*8, DIMENSION(:,:),ALLOCATABLE :: MRNZA_glob
-#endif
 #endif /* TRACERS_SPECIAL_Shindell */     
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       REAL*8,DIMENSION(Im,Jm) :: pprec_glob,ricntd_glob,hbaij_glob
@@ -1418,7 +1460,7 @@ C**** check whether air mass is conserved
 
 #ifdef TRACERS_SPECIAL_Shindell
       allocate(
-     &    ss_glob(JPPJ,topLevelOfChemistry,img,jmg)
+     &    ss_glob(n_rj,topLevelOfChemistry,img,jmg)
      &    ,Aijl_chem(img,jmg,topLevelOfChemistry)
      &    ,sOx_acc_glob(img,jmg)
      &    ,sNOx_acc_glob(img,jmg)
@@ -1438,9 +1480,7 @@ C**** check whether air mass is conserved
      &    ,rDch4(IM,J_0H:J_1H,nra_ch4)
      &    ,r0ch4(IM,J_0H:J_1H,nra_ch4) )
 #endif
-#ifdef SMOOTH_SUNLIGHT_CHEMISTRY
       allocate( MRNZA_glob(img,jmg) )
-#endif
 #endif /* TRACERS_SPECIAL_Shindell */
 
       allocate(trcSurfMixR_acc_glob(im,jm,NTM)
@@ -1502,7 +1542,7 @@ c not yet        if(am_i_root()) write(kunit,err=10) header,aijl_glob
 #endif
 
 #ifdef TRACERS_SPECIAL_Shindell       
-       header='TRACERS_SPECIAL_Shindell: ss(JPPJ,l,i,j)'
+       header='TRACERS_SPECIAL_Shindell: ss(n_rj,l,i,j)'
         call pack_block(grid,ss(:,:,:,:),ss_glob(:,:,:,:))
         if(am_i_root())write(kunit,err=10)header,ss_glob
        header='TRACERS_SPECIAL_Shindell: yNO3(i,j,l)'
@@ -1523,6 +1563,17 @@ c not yet        if(am_i_root()) write(kunit,err=10) header,aijl_glob
        header='TRACERS_SPECIAL_Shindell: yCH3O2(i,j,l)'
         call pack_data(grid,yCH3O2,Aijl_chem)
         if(am_i_root())write(kunit,err=10)header,Aijl_chem
+#ifdef TRACERS_dCO
+       header='TRACERS_SPECIAL_Shindell: ydCH317O2(i,j,l)'
+        call pack_data(grid,ydCH317O2,Aijl_chem)
+        if(am_i_root())write(kunit,err=10)header,Aijl_chem
+       header='TRACERS_SPECIAL_Shindell: ydCH318O2(i,j,l)'
+        call pack_data(grid,ydCH318O2,Aijl_chem)
+        if(am_i_root())write(kunit,err=10)header,Aijl_chem
+       header='TRACERS_SPECIAL_Shindell: yd13CH3O2(i,j,l)'
+        call pack_data(grid,yd13CH3O2,Aijl_chem)
+        if(am_i_root())write(kunit,err=10)header,Aijl_chem
+#endif  /* TRACERS_dCO */
        header='TRACERS_SPECIAL_Shindell: yC2O3(i,j,l)'
         call pack_data(grid,yC2O3,Aijl_chem)
         if(am_i_root())write(kunit,err=10)header,Aijl_chem
@@ -1672,9 +1723,8 @@ c not yet        if(am_i_root()) write(kunit,err=10) header,aijl_glob
      &      ,sOx_acc_glob,sNOx_acc_glob,sCO_acc_glob,l1Ox_acc_glob
      &      ,l1NO2_acc_glob
 #endif
-#if (defined TRACERS_SPECIAL_Shindell) &&\
-    (defined SMOOTH_SUNLIGHT_CHEMISTRY)
-       header='SMOOTH_SUNLIGHT_CHEMISTRY: mostRecentNonZeroAlbedo'
+#ifdef TRACERS_SPECIAL_Shindell
+       header='TRACERS_SPECIAL_Shindell: mostRecentNonZeroAlbedo'
        call pack_data(grid,mostRecentNonZeroAlbedo,MRNZA_glob)
        if(am_i_root())write(kunit,err=10)header,MRNZA_glob
 #endif
@@ -1736,6 +1786,14 @@ c not yet          call unpack_data(grid,aijl_glob,daily_z)
           if(am_i_root())read(kunit,err=10)header,Aijl_chem
           call unpack_data(grid,Aijl_chem,yCH3O2)
           if(am_i_root())read(kunit,err=10)header,Aijl_chem
+#ifdef TRACERS_dCO
+          call unpack_data(grid,Aijl_chem,ydCH317O2)
+          if(am_i_root())read(kunit,err=10)header,Aijl_chem
+          call unpack_data(grid,Aijl_chem,ydCH318O2)
+          if(am_i_root())read(kunit,err=10)header,Aijl_chem
+          call unpack_data(grid,Aijl_chem,yd13CH3O2)
+          if(am_i_root())read(kunit,err=10)header,Aijl_chem
+#endif  /* TRACERS_dCO */
           call unpack_data(grid,Aijl_chem,yC2O3)
           if(am_i_root())read(kunit,err=10)header,Aijl_chem
           call unpack_data(grid,Aijl_chem,yROR)
@@ -1853,11 +1911,9 @@ C**** ESMF: Broadcast all non-distributed read arrays.
           call unpack_data(grid,l1Ox_acc_glob,l1Ox_acc)
           call unpack_data(grid,l1NO2_acc_glob,l1NO2_acc)
 #endif
-
-#if (defined TRACERS_SPECIAL_Shindell) &&\
-    (defined SMOOTH_SUNLIGHT_CHEMISTRY)
-       if(am_i_root())read(kunit,err=10)header,MRNZA_glob
-       call unpack_data(grid,MRNZA_glob,mostRecentNonZeroAlbedo)
+#ifdef TRACERS_SPECIAL_Shindell
+          if(am_i_root())read(kunit,err=10)header,MRNZA_glob
+          call unpack_data(grid,MRNZA_glob,mostRecentNonZeroAlbedo)
 #endif
 
         END SELECT
@@ -1901,9 +1957,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       deallocate(day_ncep_glob,DRA_ch4_glob,HRA_ch4_glob,Rijch4_glob,
      & Rijncep_glob,rfirst_mod,rHch4,rDch4,r0ch4)
 #endif
-#ifdef SMOOTH_SUNLIGHT_CHEMISTRY
       deallocate(MRNZA_glob)
-#endif
 #endif /* TRACERS_SPECIAL_Shindell */
 
       end subroutine freemem
@@ -2039,15 +2093,16 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
      &yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss,ydms,yso2,sulfate,pNO3
+#ifdef TRACERS_dCO
+     &,ydCH317O2,ydCH318O2,yd13CH3O2
+#endif  /* TRACERS_dCO */
      &,acetone,sOx_acc,sNOx_acc,sCO_acc,l1Ox_acc,l1NO2_acc
      &,SF3,SF2,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2,topLevelOfChemistry
+     &,mostRecentNonZeroAlbedo
 #ifdef INTERACTIVE_WETLANDS_CH4 
       use TRACER_SOURCES, only: day_ncep,DRA_ch4,sum_ncep,PRS_ch4,
      & HRA_ch4,iday_ncep,i0_ncep,iHch4,iDch4,i0ch4,first_ncep,first_mod,
      & avg_model,avg_ncep
-#endif
-#ifdef SMOOTH_SUNLIGHT_CHEMISTRY
-      use TRCHEM_Shindell_COM, only: mostRecentNonZeroAlbedo
 #endif
 #endif /* TRACERS_SPECIAL_Shindell */
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_TOMAS) 
@@ -2074,6 +2129,10 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 #endif
       use OldTracer_mod, only: trName
       use model_com, only : ioread,iowrite
+
+#ifdef TRACERS_AMP
+      use amp_aerosol, only : diam,nactv
+#endif
 
       implicit none
 
@@ -2115,13 +2174,18 @@ c daily_z is currently only needed for CS
       handle = ParallelIo(grid, fid, 'TRACERS_SPECIAL_Shindell')
 
       call doVar(handle,action,ss,
-     & 'ss(JPPJ,topLevelOfChemistry,dist_im,dist_jm)',jdim=4)
+     & 'ss(n_rj,topLevelOfChemistry,dist_im,dist_jm)',jdim=4)
       call doVar(handle,action,yNO3,'yNO3'//ijcdims)
       call doVar(handle,action,pHOx,'pHOx'//ijcdims)
       call doVar(handle,action,pNOx,'pNOx'//ijcdims)
       call doVar(handle,action,pNO3,'pNO3'//ijcdims)
       call doVar(handle,action,pOx ,'pOx'//ijcdims)
       call doVar(handle,action,yCH3O2,'yCH3O2'//ijcdims)
+#ifdef TRACERS_dCO
+      call doVar(handle,action,ydCH317O2,'ydCH317O2'//ijcdims)
+      call doVar(handle,action,ydCH318O2,'ydCH318O2'//ijcdims)
+      call doVar(handle,action,yd13CH3O2,'yd13CH3O2'//ijcdims)
+#endif  /* TRACERS_dCO */
       call doVar(handle,action,yC2O3,'yC2O3'//ijcdims)
       call doVar(handle,action,yROR,'yROR'//ijcdims)
       call doVar(handle,action,yXO2,'yXO2'//ijcdims)
@@ -2219,10 +2283,8 @@ c daily_z is currently only needed for CS
       call doVar(handle,action,csPM10_acc,'csPM10_acc(dist_im,dist_jm)')
 #endif
 
-#if (defined TRACERS_SPECIAL_Shindell) &&\
-    (defined SMOOTH_SUNLIGHT_CHEMISTRY)
-      handle = ParallelIo(grid, fid,
-     &  'TRACERS_SPECIAL_Shindell&&SMOOTH_SUNLIGHT_CHEMISTRY')
+#ifdef TRACERS_SPECIAL_Shindell
+      handle = ParallelIo(grid, fid,'TRACERS_SPECIAL_Shindell')
       call doVar(handle,action,mostRecentNonZeroAlbedo,
      & 'mostRecentNonZeroAlbedo(dist_im,dist_jm)')
 #endif
@@ -2248,6 +2310,15 @@ c daily_z is currently only needed for CS
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_TOMAS)
       call doVar(handle,action,snosiz,'snosiz(dist_im,dist_jm)')
+#endif
+
+#ifdef TRACERS_AMP
+      ! restartability hack until matrix code refactored to
+      ! re-diagnose these qtys on demand
+      call doVar(handle,action,diam,
+     &     'amp_diam(dist_im,dist_jm,lm,nmodes)')
+      call doVar(handle,action,nactv,
+     &     'amp_nactv(dist_im,dist_jm,lm,nmodes)')
 #endif
 
       return

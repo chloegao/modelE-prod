@@ -69,6 +69,9 @@ c
 
 !@dbparam whichEPFCs choses emisPerFireByVegType calibration: 1=AR5, 2=GFED3, 3=GFED2, 4=MOPITT
       integer :: whichEPFCs = 1 
+!@dbparam seasonalNH3src Defines the NH3 input file that a seasonal
+!@+                      variability should be imposed, NH3_XX
+      integer :: seasonalNH3src=0
 
 C**** Each tracer has a variable name and a unique index
 !@var NTM number of tracers
@@ -161,7 +164,7 @@ C**** Each tracer has a variable name and a unique index
 #endif  /* TRACERS_AEROSOLS_OCEAN */
 !@var ntm_dCO: Number of TRACERS_dCO tracers.
 #ifdef TRACERS_dCO
-      integer, parameter :: ntm_dCO=3
+      integer, parameter :: ntm_dCO=9
 #else
       integer, parameter :: ntm_dCO=0
 #endif  /* TRACERS_AEROSOLS_OCEAN */
@@ -389,6 +392,8 @@ C**** Each tracer has a variable name and a unique index
      *     n_ClOx=0,   n_BrOx=0,  n_HCl=0,   n_HOCl=0,   n_ClONO2=0,
      *     n_HBr=0,    n_HOBr=0,  n_BrONO2=0,n_CFC=0,    n_GLT=0,
 #ifdef TRACERS_dCO
+     *     n_dMe17OOH=0, n_dMe18OOH=0, n_d13MeOOH=0,
+     *     n_dHCH17O=0, n_dHCH18O=0, n_dH13CHO=0,
      *     n_dC17O=0, n_dC18O=0, n_d13CO=0,
 #endif  /* TRACERS_dCO */
      *     n_Pb210 = 0,n_Be7=0,   n_Be10=0,
@@ -457,6 +462,8 @@ C**** Each tracer has a variable name and a unique index
      *     nn_ClOx,   nn_BrOx,  nn_HCl,   nn_HOCl,   nn_ClONO2,  
      *     nn_HBr,    nn_HOBr,  nn_BrONO2,nn_CFC,    nn_GLT
 #ifdef TRACERS_dCO
+     *    ,nn_dMe17OOH,nn_dMe18OOH,nn_d13MeOOH
+     *    ,nn_dHCH17O,nn_dHCH18O,nn_dH13CHO
      *    ,nn_dC17O, nn_dC18O, nn_d13CO
 #endif  /* TRACERS_dCO */
 
@@ -552,8 +559,6 @@ C**** Aerosol specific switches and arrays
       integer :: OFFLINE_SS = 0
 !@dbparam aer_int_yr indicates year of emission
       integer :: aer_int_yr = 0
-!@var SNFST0,TNFST0 are instantaneous SW, LW aerosol forcings for AEROCOM
-c      real*8 SNFST0(2,NTM,IM,JM),TNFST0(2,NTM,IM,JM)
 #endif
 
 C**** tracer specific switches
@@ -620,11 +625,11 @@ c note: not applying CPP when declaring counts/lists.
      &     ,gases_count   ! tr_wd_type == nGas
      &     ,aero_count    ! tr_wd_type == nPart
      &     ,water_count   ! tr_wd_type == nWater
-     &     ,hlawt_count   ! tr_wd_type == nGas and tr_DHD != 0
+     &     ,hlaw_count    ! tr_wd_type == nGas and tr_RKD != 0
      &     ,aqchem_count  ! participates in cloud aqueous chemistry
       integer, dimension(:), allocatable ::
      &     active_list,gases_list,aero_list,water_list,
-     &     hlawt_list,aqchem_list
+     &     hlaw_list,aqchem_list
 
       ! temporary support of legacy interface
       interface ntsurfsrc
@@ -689,12 +694,12 @@ c note: not applying CPP when declaring counts/lists.
       integer :: n,nactive
       integer, dimension(1000) ::
      &     tmplist_active,tmplist_gases,tmplist_aero,tmplist_water,
-     &     tmplist_hlawt,tmplist_aqchem
+     &     tmplist_hlaw,tmplist_aqchem
       active_count = 0
       gases_count = 0
       aero_count = 0
       water_count = 0
-      hlawt_count = 0
+      hlaw_count = 0
       aqchem_count = 0
       do n=1,NTM
 
@@ -707,9 +712,9 @@ c note: not applying CPP when declaring counts/lists.
         case(nGAS)
           gases_count = gases_count + 1
           tmplist_gases(gases_count) = active_count
-          if(tr_DHD(n).ne.0.) then
-            hlawt_count = hlawt_count + 1
-            tmplist_hlawt(hlawt_count) = active_count
+          if(tr_RKD(n).ne.0.) then
+            hlaw_count = hlaw_count + 1
+            tmplist_hlaw(hlaw_count) = active_count
           endif
         case(nPART)
           aero_count = aero_count + 1
@@ -748,9 +753,9 @@ c note: not applying CPP when declaring counts/lists.
       allocate(water_list(water_count))
       water_list = tmplist_water(1:water_count)
 
-      if(allocated(hlawt_list)) deallocate(hlawt_list)
-      allocate(hlawt_list(hlawt_count))
-      hlawt_list = tmplist_hlawt(1:hlawt_count)
+      if(allocated(hlaw_list)) deallocate(hlaw_list)
+      allocate(hlaw_list(hlaw_count))
+      hlaw_list = tmplist_hlaw(1:hlaw_count)
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)

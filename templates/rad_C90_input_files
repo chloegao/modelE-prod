@@ -2,8 +2,8 @@ DUSTaer=dust_mass_CakmurMillerJGR06_C90L20x7x12.nc
 BC_dep=BC.Dry+Wet.depositions.ann_c90.nc
 #include "TAero2008_C90_input_files"
 #ifdef _RAD_O3_2010
-O3file=o3_2010_shindell_C90L49_1850-2000.nc
+O3file=o3_2010_shindell_C90L49_1850-2000_ple.nc
 Ox_ref=o3_2010_shindell_C90L49_April1850.nc
 #else
-O3file=o3_2005_shindelltrop_C90L49_1850-1997.nc
+O3file=o3_2005_shindelltrop_C90L49_1850-1997_ple.nc
 #endif

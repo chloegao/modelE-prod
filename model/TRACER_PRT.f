@@ -376,7 +376,7 @@ C**** No need to save current value
       USE MODEL_COM, only:
      &     idacc,jhour0,jdate0,amon,amon0,
      &     jyear0,nday,itime,itime0,xlabel,lrunid
-      USE GEOM, only: areag 
+      USE CONSTANT, only: areag 
       use OldTracer_mod, only: itime_tr0
       USE TRACER_COM, only: NTM
       USE TRDIAG_COM, only:

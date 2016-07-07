@@ -11,3 +11,4 @@ NH3_nBBsources=2
 SO2_nBBsources=2
 BCB_nBBsources=2
 OCB_nBBsources=2
+seasonalNH3src=2 

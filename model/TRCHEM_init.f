@@ -12,11 +12,11 @@ C**** GLOBAL parameters and variables:
       USE TRCHEM_Shindell_COM, only:
      &    prnls,prnrts,prnchg,lprn,jprn,iprn,ay,pHOx,pOx,pNOx,
      &    yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yNO3,yRXPAR,yXO2N,acetone,
-     &    allowSomeChemReinit,pNO3,topLevelOfChemistry
-     &    ,pCLOx,pCLx,pOClOx,pBrOx,yCl2,yCl2O2
-#ifdef SMOOTH_SUNLIGHT_CHEMISTRY
-      use TRCHEM_Shindell_COM, only: mostRecentNonZeroAlbedo
-#endif
+#ifdef TRACERS_dCO
+     &    ydCH317O2,ydCH318O2,yd13CH3O2,
+#endif  /* TRACERS_dCO */
+     &    allowSomeChemReinit,pNO3,topLevelOfChemistry,nfam,ny
+     &    ,pCLOx,pCLx,pOClOx,pBrOx,yCl2,yCl2O2,mostRecentNonZeroAlbedo
 
       IMPLICIT NONE
 
@@ -41,6 +41,16 @@ C from MOLEC file:
       read(iu_data,110)ay
       call closeunit(iu_data)
 
+! figure out first element of each family
+      do i=1,ny
+        select case(ay(i))
+          case ('O3')    ; nfam(1)=i
+          case ('NO')    ; nfam(2)=i
+          case ('Cl2O2') ; nfam(3)=i
+          case ('BrO')   ; nfam(4)=i
+        end select
+      enddo
+
 C Read JPL chemical reactions/rates from unit JPLRX:
       call jplrts
 
@@ -57,7 +67,12 @@ C Initialize a few (IM,JM,topLevelOfChemistry) arrays, first hour only:
         pOx(I_0:I_1,J_0:J_1,:)      =1.d0
         pNOx(I_0:I_1,J_0:J_1,:)     =1.d0
         pNO3(I_0:I_1,J_0:J_1,:)     =0.d0
-        yCH3O2(I_0:I_1,J_0:J_1,:)   =1.d0 ! 1.d5 ??
+        yCH3O2(I_0:I_1,J_0:J_1,:)   =1.d0
+#ifdef TRACERS_dCO
+        ydCH317O2(I_0:I_1,J_0:J_1,:)=1.d0
+        ydCH318O2(I_0:I_1,J_0:J_1,:)=1.d0
+        yd13CH3O2(I_0:I_1,J_0:J_1,:)=1.d0
+#endif  /* TRACERS_dCO */
         yC2O3(I_0:I_1,J_0:J_1,:)    =0.d0
         yROR(I_0:I_1,J_0:J_1,:)     =0.d0
         yXO2(I_0:I_1,J_0:J_1,:)     =0.d0
@@ -80,7 +95,7 @@ C Initialize a few (IM,JM,topLevelOfChemistry) arrays, first hour only:
 #ifdef TRACERS_AEROSOLS_SOA
 #ifdef TRACERS_TERP
 #ifdef TRACERS_dCO
- 110  format(6(///10(a8)),(///5(a8)))
+ 110  format(7(///10(a8)),(///4(a8)))
 #else
  110  format(6(///10(a8)),(///2(a8)))
 #endif
@@ -95,18 +110,18 @@ C Initialize a few (IM,JM,topLevelOfChemistry) arrays, first hour only:
 #endif
 #endif  /* TRACERS_AEROSOLS_SOA */
 
-#ifdef SMOOTH_SUNLIGHT_CHEMISTRY
-      ! Read some albedo initial conditions I,J to be used only until
-      ! rad code ALB(I,J,1) has filled in it's first non-zero values 
-      ! at each I,J. Array mostRecentNonZeroAlbedo(I,J) is then 
-      ! saved to/read from restart files for use in rest of the run.
-      if(Itime == ItimeI)then         !binary, old:
+      if(Itime == ItimeI)then
+        ! First time only, read some albedo initial conditions (I,J)
+        ! to be used only until rad code ALB(I,J,1) has filled in it's
+        ! first non-zero values at each I,J. Array 
+        ! mostRecentNonZeroAlbedo(I,J) is then saved to/read from restart
+        ! files for use in rest of the run:
+                       ! logicals mean: binary, old:
         call openunit('ALB_IC',iu_data,.true.,.true.)
         call readt_parallel(grid,iu_data,nameunit(iu_data),
      &  mostRecentNonZeroAlbedo,0)
         call closeunit(iu_data)
       end if
-#endif
 
       return
       END SUBROUTINE cheminit
@@ -122,7 +137,7 @@ C**** GLOBAL parameters and variables:
       USE DOMAIN_DECOMP_ATM, only: write_parallel
       USE FILEMANAGER, only: openunit,closeunit
       USE TRCHEM_Shindell_COM, only: pe,ea,nst,ro,
-     &                               r1,sn,sb,nn,nnr
+     &                               r1,sn,sb,nn,nnr,ay,rrtri
      &                              ,n_rx,n_bi,n_tri,n_nst,n_het
 
       IMPLICIT NONE
@@ -135,6 +150,7 @@ C
       CHARACTER*8, DIMENSION(4) :: ate
       character(len=300) :: out_line
       INTEGER :: i,ii,j,iu_data,nr,nr2,nr3,nmm,nhet
+      character(len=36) :: invreaction
 
 C Read in the number of each type of reaction:
       call openunit('JPLRX',iu_data,.false.,.true.)
@@ -162,46 +178,55 @@ C Read in the number of each type of reaction:
       do i=1,n_rx               ! >>> begin loop over total reactions <<<
         if(i <= n_rx-n_het) then !non-hetero
           if(i <= n_bi+n_nst) then   !mono or bi
-            if(i > n_bi) then ! read monomolecular reactions
-              if(i == n_bi+1) read(iu_data,22)ate
-              read(iu_data,16)ate,pe(i),ea(i),nst(i-n_bi)
-              write(out_line,30) i,ate(1),' + ',ate(2),
-     &        ' --> ',ate(3),' + ',ate(4)
-              call write_parallel(trim(out_line))
-            else                  ! read bimolecular reactions
-   5          read(iu_data,16)ate,pe(i),ea(i)
-              write(out_line,30) i,ate(1),' + ',ate(2),
-     &        ' --> ',ate(3),' + ',ate(4)
-              call write_parallel(trim(out_line))
-            end if
+            if(i == n_bi+1) read(iu_data,22)ate
+            read(iu_data,16)ate,pe(i),ea(i) ! read mono and bimolecular reactions
           else                    ! read trimolecular reactions
  20         if(i == n_bi+n_nst+1) read(iu_data,22)ate
             ii=i-n_bi-n_nst
             read(iu_data,21)ate,ro(ii),sn(ii),r1(ii),sb(ii)
-            write(out_line,30) i,ate(1),' + ',ate(2),
-     *      ' --> ',ate(3),' + ',ate(4)
-            call write_parallel(trim(out_line))
           end if
         else                     ! read heterogeneous reactions
           if(i == n_rx-(n_het-1)) read(iu_data,22)ate
           read(iu_data,31)ate
-          write(out_line,30) i,ate(1),' + ',ate(2),
-     *    ' --> ',ate(3),' + ',ate(4)
-          call write_parallel(trim(out_line))
         end if ! (i <= n_rx-n_het)
+
+        write(out_line,30) i,ate(1),' + ',ate(2),
+     *  ' --> ',ate(3),' + ',ate(4)
+        call write_parallel(trim(out_line))
 c
         do j=1,2
           call lstnum(ate(j),nn(j,i))
           call lstnum(ate(j+2),nnr(j,i))
         end do
+
+        call set_rrate_index(i, ate)
       end do                ! >>> end loop over total reactions <<<
+
+! find the inverse reaction of a thermal decomposition
+      do i=n_bi+1,n_bi+n_nst
+        invreaction = trim(ay(nnr(1,i)))//'_'//
+     &                trim(ay(nnr(2,i)))//'__'//
+     &                trim(ay(nn(1,i)))//'_'//
+     &                trim(ay(nn(2,i)))
+        select case(invreaction)
+          case('HO2_NO2__HO2NO2_M')
+            nst(i-n_bi)=rrtri%HO2_NO2__HO2NO2_M
+          case('NO3_NO2__N2O5_M')
+            nst(i-n_bi)=rrtri%NO3_NO2__N2O5_M
+          case('ClO_ClO__Cl2O2_M')
+            nst(i-n_bi)=rrtri%ClO_ClO__Cl2O2_M
+          case default
+            call stop_model('ERROR: Reaction '//trim(invreaction)//
+     &                      ' does not exist in the JPLRX file',255)
+        end select
+      enddo
 
  124  format(///5(/43x,i3)///)
   27  format(/(30x,i2))
   21  format(4x,a8,1x,a8,3x,a8,1x,a8,e8.2,f5.2,e9.2,f4.1)
   22  format(/10x,4a8/)
   25  format(//32x,2f7.1,i6)
-  16  format(4x,a8,1x,a8,3x,a8,1x,a8,e8.2,f8.0,i4)
+  16  format(4x,a8,1x,a8,3x,a8,1x,a8,e8.2,f8.0)
   31  format(4x,a8,1x,a8,3x,a8,1x,a8)
   30  format(1x,i3,2x,a8,a3,a8,a5,a8,a3,a8)
       call closeunit(iu_data)
@@ -254,7 +279,7 @@ C**** Local parameters and variables and arguments:
 !@+ in the photolysis module
 !@auth Kostas Tsigaridis
 
-      use TRCHEM_Shindell_COM, only: iprn,jprn,prnrts,JPPJ_shindell
+      use TRCHEM_Shindell_COM, only: iprn,jprn,prnrts,n_rj
      &                              ,p_1,topLevelOfChemistry
       use photolysis, only: phtlst,inphot
      &                     ,j_iprn,j_jprn,j_prnrts,jppj,jlabel
@@ -275,7 +300,7 @@ C**** Local parameters and variables and arguments:
       j_iprn=iprn
       j_jprn=jprn
       j_prnrts=prnrts
-      jppj=jppj_shindell
+      jppj=n_rj ! needed for the photolysis routine
  
       allocate(jndlev(NLGCM))
       allocate(pomegaj(2*M__,2*NLGCM+2+1))
@@ -289,12 +314,12 @@ C**** Local parameters and variables and arguments:
       allocate(odcol(NLGCM))
       allocate(pfastj2(NLGCM+3))
       allocate(o3_fastj(NLGCM)) ! until recently was 2*NLGCM
-      allocate(jlabel(jppj))
-      allocate(jind(jppj))
-      allocate(ks(jppj))
-      allocate(kss(p_1,jppj))
-      allocate(jfacta(jppj))
-      allocate(zj(jpnl,jppj))
+      allocate(jlabel(n_rj))
+      allocate(jind(n_rj))
+      allocate(ks(n_rj))
+      allocate(kss(p_1,n_rj))
+      allocate(jfacta(n_rj))
+      allocate(zj(jpnl,n_rj))
 
 C Read photolysis parameters and reactions from unit JPLPH:
       call phtlst
@@ -311,16 +336,16 @@ c fastj initialization routine:
 !@calls guide,printls
 
 C**** GLOBAL parameters and variables:
-      USE TRCHEM_Shindell_COM, only: nps,nds,kps,kds,nn,nnr,n_rx,
-     &                      npnr,ndnr,kpnr,kdnr,prnls
-      use photolysis, only: jppj,ks,kss
+      USE TRCHEM_Shindell_COM, only: nps,nds,kps,kds,nn,nnr,
+     &                      npnr,ndnr,kpnr,kdnr,prnls,n_rx,n_rj
+      use photolysis, only: ks,kss
 
       IMPLICIT NONE
 
 c Chemical reaction lists:
       call guide(npnr,ndnr,kpnr,kdnr,nn,nnr,2,n_rx)
 c Photolysis reaction lists:
-      call guide( nps, nds, kps, kds,ks,kss,1,JPPJ)
+      call guide( nps, nds, kps, kds,ks,kss,1,n_rj)
 C Print out some diagnostics:
       if(prnls) call printls
       
@@ -335,7 +360,7 @@ C Print out some diagnostics:
 !@calls calcls
 
 C**** GLOBAL parameters and variables:
-      USE TRCHEM_Shindell_COM, only: p_1,p_2,p_3,nc
+      USE TRCHEM_Shindell_COM, only: p_1,nc
 
       IMPLICIT NONE
 
@@ -349,8 +374,8 @@ C**** Local parameters and variables and arguments:
 !@var ns   = either 1   or    2 from reactn sub
 !@var nre number of reactions
       INTEGER,  DIMENSION(nc)      :: kpr, kdr
-      INTEGER,  DIMENSION(p_3)     :: npr, ndr
-      INTEGER, DIMENSION(p_1,p_2)  :: nn, nnn
+      INTEGER,  DIMENSION(p_1*nre) :: npr, ndr
+      INTEGER, DIMENSION(p_1,nre)  :: nn, nnn
       INTEGER                      :: ns, nre
 
 c Chemical and photolytic destruction:
@@ -369,7 +394,7 @@ c Chemical and photolytic production:
 
 C**** GLOBAL parameters and variables:
       USE DOMAIN_DECOMP_ATM, only: write_parallel
-      USE TRCHEM_Shindell_COM, only: ny, numfam, p_2, p_3, nc, nfam,
+      USE TRCHEM_Shindell_COM, only: ny, numfam, p_1, nc, nfam,
      &                               prnls
 
       IMPLICIT NONE
@@ -384,10 +409,10 @@ C**** Local parameters and variables and arguments:
 !@var nnn  = either nn or nnn from guide sub
 !@var ii,k,j,i,ij,i2,newfam,ifam dummy variables
       INTEGER, DIMENSION(nc)     :: kdr
-      INTEGER, DIMENSION(p_3)    :: ndr
+      INTEGER, DIMENSION(p_1*nre):: ndr
       INTEGER :: nre, nns, ns, k, j, i, ij, i2, newfam, ifam, ii
-      INTEGER, DIMENSION(ns,p_2) :: nn 
-      INTEGER, DIMENSION(nns,p_2):: nnn
+      INTEGER, DIMENSION(ns,nre) :: nn 
+      INTEGER, DIMENSION(nns,nre):: nnn
       character(len=300) :: out_line
 
       k=1
