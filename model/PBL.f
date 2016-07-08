@@ -1014,11 +1014,13 @@ ccc dust emission from earth
               ws_select=ws
             endif
 #ifdef TRACERS_GASEXCH_ocean
+#ifdef TRACERS_GASEXCH_ocean_CO2
             call TRACERS_GASEXCH_ocean_CO2_PBL(tg1,ws_select,
      .          pbl_args%sss_loc,psurf,tr_mm(pbl_args%ntix(itr)),
      .          pbl_args%trconstflx(itr),
      .          byrho,pbl_args%Kw_gas(ngx),pbl_args%alpha_gas(ngx),
      .          pbl_args%beta_gas(ngx),trsf,trcnst,ilong,jlat)
+#endif                         
 #else
             call stop_model('gas exchange code missing', 255)
 #endif                         
@@ -1035,11 +1037,13 @@ ccc dust emission from earth
         else if (pbl_args%ntix(itr)==n_cfcn) then
           IF (ocean) THEN  ! OCEAN only
 #ifdef TRACERS_GASEXCH_ocean
+#ifdef TRACERS_GASEXCH_ocean_CFC
             call TRACERS_GASEXCH_ocean_CFC_PBL(tg1,ws,
      .          pbl_args%sss_loc,psurf,tr_mm(pbl_args%ntix(itr)),
      .          pbl_args%trconstflx(itr),
      .          byrho,pbl_args%Kw_gas(ngx),pbl_args%alpha_gas(ngx),
      .          pbl_args%beta_gas(ngx),trsf,trcnst,ilong,jlat)
+#endif
 #else
             call stop_model('gas exchange code missing', 255)
 #endif

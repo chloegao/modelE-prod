@@ -204,6 +204,10 @@
 !       endif
       enddo
 
+      if (am_i_root())
+     .print*,
+     .'OCN_TRACER_COM: age,vent,gasx,wms1,wms2,wms3,dets,ncfc=',
+     .n_age,n_vent,n_gasx,n_wms1,n_wms2,n_wms3,n_dets,n_cfc
       return
       end subroutine alloc_ocn_tracer_com
 #endif

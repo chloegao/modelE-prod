@@ -2348,7 +2348,12 @@ C****
       type (t_pbl_args), intent(in) :: pbl_args
 c
       real*8 :: trgrnd,trs
-      real*8, external ::  alpha_gas2_co2, alpha_gas2_cfc
+#ifdef TRACERS_GASEXCH_ocean_CO2
+      real*8, external ::  alpha_gas2_co2
+#endif
+#ifdef TRACERS_GASEXCH_ocean_CFC
+      real*8, external ::  alpha_gas2_cfc
+#endif
       real*8, dimension(:,:,:), pointer :: TRGASEX
       integer :: n,nx,ngx
 
@@ -2428,9 +2433,13 @@ C****
         trs=pbl_args%trs(nx)
         ngx=gasex_index%getindex(n)
         if (n==n_co2n) then
+#ifdef TRACERS_GASEXCH_ocean_CO2
           alpha_gas2=>alpha_gas2_co2
+#endif
+#ifdef TRACERS_GASEXCH_ocean_CFC
         else if (n==n_cfcn) then
           alpha_gas2=>alpha_gas2_cfc
+#endif
         else
           cycle
         endif

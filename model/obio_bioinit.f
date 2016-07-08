@@ -50,6 +50,7 @@ c  Carbon type 2    = DIC
 #endif
       use obio_com, only: ze
       use bio_inicond_mod, only: bio_inicond
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
 
       implicit none
 
@@ -127,11 +128,12 @@ c  Carbon type 2    = DIC
        enddo
       enddo
 
-      write(*,'(a,2e12.4)')'BIO: bioinit: dic min-max=',
+      if (AM_I_ROOT()) 
+     .  write(*,'(a,2e12.4)')'BIO: bioinit: dic min-max=',
      .       minval(dic),maxval(dic)
 
 c  Obtain region indicators
-      write(6,*)'calling fndreg...'
+c     write(6,*)'calling fndreg...'
       call fndreg(ir)
  
 c  Define Fe:NO3 ratios by region, according to Fung et al. (2000)
@@ -144,7 +146,8 @@ c  GBC.  Conversion produces nM Fe, since NO3 is as uM
       enddo  !j-loop
  
 c  Create arrays 
-      write(6,*)'Creating bio restart data for ',ntyp,' arrays and'
+      if (AM_I_ROOT())
+     .  write(6,*)'Creating bio restart data for ',ntyp,' arrays and'
      . ,kdm,'  layers...'
 
       do j=j_0,j_1
@@ -208,7 +211,7 @@ c          tracer(i,j,k,nt) = 0.05*50.0  !in C units mg/m3
 
 
 c  Detritus (set to 0 for start up)
-      write(6,*)'Detritus...'
+      if (AM_I_ROOT()) write(6,*)'Detritus...'
       cnratio = 106.0/16.0*12.0    !C:N ratio (ugl:uM)
       csratio = 106.0/16.0*12.0    !C:Si ratio (ugl:uM)
       cfratio = 150000.0*12.0*1.0E-3    !C:Fe ratio (ugl:nM)
@@ -234,7 +237,7 @@ c   DIC is derived from GLODAP.  Using mean H from exp601,
 c   mean DIC for these values is computed.  Surface DIC is taken
 c   as the mean for 020m deeper than the mixed layer, converted from
 c   uM/kg to uM
-      write(6,*)'Carbon...'
+      if (AM_I_ROOT()) write(6,*)'Carbon...'
 c    conversion from uM to mg/m3
       do j=j_0,j_1
        do i=i_0,i_1
@@ -343,6 +346,7 @@ c       13 -- Mediterranean/Black Seas
       USE hycom_arrays, only : lonij,latij
 #endif
       use obio_com, only: ze
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
 
       implicit none
 
@@ -604,12 +608,14 @@ c  Set nir to minimum 1 value to prevent error in division
       enddo
  
 c  Total up points for check
+      if (AM_I_ROOT()) then
       ntot = 0
       do nr = 1,nrg
        ntot = ntot + nir(nr)
        write(6,*)'Region, no. points = ',nr,nir(nr)
       enddo
       write(6,*)'Total ocean points = ',ntot
+      endif
  
       return
       end subroutine fndreg

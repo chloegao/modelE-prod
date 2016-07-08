@@ -195,12 +195,12 @@ c
       !nstep0>0 : warm initialization, is the timestep of current restart run
       !nstep    : current timestep   
 
-      print*, 'nstep,nstep0 =',
+      if (AM_I_ROOT()) print*, 'nstep,nstep0 =',
      .         nstep,nstep0
 
       call build_ze
       if (nstep0==0) then
-        print*, 'COLD INITIALIZATION....'
+        if (AM_I_ROOT()) print*, 'COLD INITIALIZATION....'
 
         if (AM_I_ROOT()) write(*,'(a)')'BIO:Ocean Biology starts ....'
 
@@ -259,7 +259,7 @@ c
        endif
 
        call sync_param( "solFe", solFe)
-       print*, 'solfe=',solFe
+       if (AM_I_ROOT()) print*, 'solfe=',solFe
 
 !--------------------------------------------------------
 
@@ -290,7 +290,8 @@ c
       endif  !diagno_bio
 
 #ifdef OBIO_ON_GARYocean
-      write(*,'(/,a,2i5,2e12.4)')'obio_model, test point=',
+      if (AM_I_ROOT())
+     .   write(*,'(/,a,2i5,2e12.4)')'obio_model, test point=',
      .      itest,jtest,oLON_DG(itest,1),oLAT_DG(jtest,1)
 #endif
 
@@ -859,10 +860,10 @@ cdiag     endif
      .                 rhs(k,nt,ll)*dp1d(k)    
       enddo  !k
 
-      if (vrbos) then
-      write(*,'(a,5i5,1x,e20.13)')'rhs_obio (mass,trac/m2/hr):',
-     .   nstep,i,j,nt,ll,rhs_obio(i,j,nt,ll)
-      endif
+c     if (vrbos) then
+c     write(*,'(a,5i5,1x,e20.13)')'rhs_obio (mass,trac/m2/hr):',
+c    .   nstep,i,j,nt,ll,rhs_obio(i,j,nt,ll)
+c     endif
       enddo  !ntrac
 
       !convert all to mili-mol,C/m2
@@ -909,7 +910,7 @@ cdiag     endif
  
       enddo  !ll
 
-      call obio_chkbalances(vrbos,nstep,i,j)
+c     call obio_chkbalances(vrbos,nstep,i,j)
 
       do nt=1,ntrac-1   ! don't include unused inert tracer
       do ll=1,17
