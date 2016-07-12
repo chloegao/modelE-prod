@@ -22,6 +22,13 @@
       real rmud               !downwelling irradiance average cosine
       real rhosrf             !surface air density which comes from PBL.f
 
+#ifdef STANDALONE_OCEAN
+      real, ALLOCATABLE, DIMENSION(:,:,:,:,:):: Eda_glob,Esa_glob       !direct,diffuse downwelling irradiance
+      real, ALLOCATABLE, DIMENSION(:,:,:,:,:):: Eda,Esa
+      real, ALLOCATABLE, DIMENSION(:,:):: Eda2,Esa2
+#endif
+
+
       END MODULE obio_forc
 
 !------------------------------------------------------------------------------
@@ -30,7 +37,8 @@
       USE obio_forc
 #ifdef OBIO_ON_GARYocean
       USE OCEANR_DIM, only : ogrid
-      USE OCEANRES, only : kdm=>lmo
+      USE OCEANRES, only : idm=>imo,jdm=>jmo,kdm=>lmo
+
 #else
       USE hycom_dim, only : ogrid, kdm
 #endif
@@ -52,5 +60,11 @@
       ALLOCATE(atmFe(i_0:i_1,j_0:j_1,12))
       allocate(tirrq(kdm))
       allocate(Ed(nlt),Es(nlt))
+#ifdef STANDALONE_OCEAN
+      ALLOCATE(Eda_glob(idm,jdm,nlt,12,12),Esa_glob(idm,jdm,nlt,12,12))
+      ALLOCATE(Eda2(nlt,12),Esa2(nlt,12))
+      ALLOCATE (Eda(i_0:i_1,j_0:j_1,nlt,12,12))
+      ALLOCATE (Esa(i_0:i_1,j_0:j_1,nlt,12,12))
+#endif
 
       end subroutine alloc_obio_forc

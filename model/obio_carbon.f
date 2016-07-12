@@ -18,7 +18,7 @@ c
      .                      ,mgchltouMC,bf
       USE obio_forc, only: wind,tirrq
       USE obio_com, only : C_tend,obio_P,P_tend,car
-     .                    ,tfac,det,D_tend,tzoo,pnoice,pCO2_ij
+     .                    ,tfac,det,D_tend,tzoo,pnoice,pCO2_ij,pHsfc
      .                    ,temp1d,saln1d,dp1d,rhs,alk1d
 #ifdef TRACERS_Alkalinity
       use obio_com, only: co3_conc
@@ -56,6 +56,7 @@ c
 
       use runtimecontrols_mod, only: constco2, pco2_online
       use dictionary_mod, only: get_param
+      use domain_decomp_1d, only: am_i_root
 
       implicit none
 
@@ -72,7 +73,6 @@ c
       real  :: docexcp(nchl),dicresp(nchl),scco2,scco2arg,wssq,rkwco2
       real  :: Ts,tk,tk100,tk1002,ff,xco2,deltco2,flxmolm3,flxmolm3h
       real  :: gro(kdm,nchl)
-      real  :: pHsfc            !pH at surface
       real term
       real bs
       real, save :: atmco2=-1.
@@ -275,40 +275,22 @@ c
 
 c pCO2
       if (pco2_online) then
-      !this ppco2 routine comes from OCMIP. I am not using psurf
+        !this ppco2 routine comes from OCMIP. I am not using psurf
       !and thus not compute dtco2 because these are computed in PBL
       !for the case of gasexch and progn. atmco2, atmco2=dummy
         if (atmco2<0.) then    ! uninitialized
           if (constco2) then
-            call get_param("atmCO2", atmco2)
-            print*, 'atmCO2=', atmco2
+            call get_param("atmCO2", atmco2)    
+            if (AM_I_ROOT())print*, 'atmCO2=', atmco2
           else
             atmco2=0.
           endif
         endif
-        call ppco2(temp1d(1),saln1d(1),car(1,2),alk1d(1),
-     .           obio_P(1,1),obio_P(1,3),atmCO2,
-     .           pCO2_ij,pHsfc)
 
-!note: pco2 is computed as if it is 100% open ocean cell. This is why
-!in the flux computation below we need to take into account pnoice
-!also in the diagnostics
-
-!     !limits on pco2 ---more work needed
-! ppco2 does not handle well the extreme salinity cases, such as
-! when ice melts/forms, in river outflows.
-        if (saln1d(1).ge.40. .and. pCO2_ij.lt.100.)pCO2_ij=100.
-        if (saln1d(1).le.31. .and. pCO2_ij.gt.800.)pCO2_ij=800.
-        if (pCO2_ij .lt. 100.) pCO2_ij=100.
-        if (pCO2_ij .gt.1000.) pCO2_ij=1000.
-
-        if(vrbos)then
-          write(*,'(a,3i5,9e12.4)')
-     .      'carbon: ONLINE',nstep,i,j,temp1d(1),saln1d(1),
-     .                 car(1,2),alk1d(1),
-     .                 obio_P(1,1),obio_P(1,3),pCO2_ij,
-     .                 pHsfc,pnoice(1)
-        endif
+        call compute_pco2_online(nstep,i,j,atmco2,
+     .            temp1d(1),saln1d(1),car(1,2),alk1d(1),
+     .            obio_P(1,1),obio_P(1,3),pnoice(1),
+     .            pco2_ij,pHsfc,vrbos)
 
       else
 
@@ -406,6 +388,41 @@ c Update DIC for sea-air flux of CO2
 
       return
       end subroutine obio_carbon
+
+c ---------------------------------------------------------------------------
+      subroutine compute_pco2_online(nstep,i,j,atmco2,
+     .            T,S,dic,alk,nitr,sili,pnoice,
+     .            pco2,pH,vrbos)
+
+      implicit none
+
+      integer nstep,i,j
+      real, intent(in) :: T, S, dic, nitr, sili, alk, pnoice, atmco2
+      real, intent(inout):: pco2,pH
+      logical vrbos
+
+        call ppco2(T,S,dic,alk,nitr,sili,atmCO2,pCO2,pH)
+
+!note: pco2 is computed as if it is 100% open ocean cell. This is why
+!in the flux computation below we need to take into account pnoice
+!also in the diagnostics
+
+!     !limits on pco2 ---more work needed
+! ppco2 does not handle well the extreme salinity cases, such as
+! when ice melts/forms, in river outflows.
+        if (S.ge.40. .and. pCO2.lt.100.)pCO2=100.
+        if (S.le.31. .and. pCO2.gt.800.)pCO2=800.
+        if (pCO2 .lt. 100.) pCO2=100.
+        if (pCO2 .gt.1000.) pCO2=1000.
+
+        if(vrbos)then
+          write(*,'(a,3i5,9e12.4)')
+     .      'carbon: ONLINE',
+     .      nstep,i,j,T,S,dic,alk,nitr,sili,pCO2,pH,pnoice
+        endif
+
+        return
+        end subroutine compute_pco2_online
 
 c ---------------------------------------------------------------------------
       subroutine ppco2tab(T,S,car1D,TA,pco21D)
