@@ -7912,7 +7912,7 @@ c      real*8 :: nlight, max_COSZ1, fact0
       !60years (1939--1998) OCMIP surfc. concentr. converted to
       !global averaged emission rates
       !each value corresponds to the annual value
-      REAL*8, DIMENSION(:), allocatable, save :: ocmip_cfc
+!      REAL*8, DIMENSION(:), allocatable, save :: ocmip_cfc
       INTEGER I_0, I_1, J_0, J_1
       class (Tracer), pointer :: pTracer
       integer :: index
@@ -8139,35 +8139,35 @@ C**** Source over Australia and New Zealand
           !weight trsource by ocmip_cfc global average
           !number of steps/year=INT_DAYS_PER_YEAR*SECONDS_PER_DAY/dtsrc
           !                    =365*86400/1800 =17520
-          if (.not.allocated(ocmip_cfc)) then
-            !read in OCMIP based CFC-11 global emissions
-            !=sum(dC/dt) for each hemisphere
-            !these are *annual global averages* and need to be
-            !converted to our timestep value
-            allocate(ocmip_cfc(67))
-            print*, 'opening file=OCMIP_cfc.dat'
-            call openunit('OCMIP_cfc',iu_data,.false.,.true.)
-            do i=1,67
-              read(iu_data,'(5x,e12.4)')ocmip_cfc(i)
-            enddo
-            call closeunit(iu_data)
-          endif
-          i_ocmip=(itime-itime_tr0(n))/INT_DAYS_PER_YEAR/
-     &            int(SECONDS_PER_DAY/dtsrc)+1
-          if (mod(itime,INT_DAYS_PER_YEAR*int(SECONDS_PER_DAY/dtsrc)) 
-     &        .eq. 0.) then
-            write(6,'(a,2i5)'),'TRACERS_DRV, new year: itime, i_ocmip=',
-     &                         itime,i_ocmip
-          endif
-#ifndef SKIP_TRACER_SRCS
-          do j=J_0,J_1 ! TNL
-            do i=1,72
-               trsource(i,j,1,n) = trsource(i,j,1,n)* 
-     &           (ocmip_cfc(i_ocmip)/(INT_DAYS_PER_YEAR*
-     &           SECONDS_PER_DAY/dtsrc)) / trsource_glbavg(n)
-            enddo
-          enddo
-#endif
+!         if (.not.allocated(ocmip_cfc)) then
+!           !read in OCMIP based CFC-11 global emissions
+!           !=sum(dC/dt) for each hemisphere
+!           !these are *annual global averages* and need to be
+!           !converted to our timestep value
+!           allocate(ocmip_cfc(67))
+!           print*, 'opening file=OCMIP_cfc.dat'
+!           call openunit('OCMIP_cfc',iu_data,.false.,.true.)
+!           do i=1,67
+!             read(iu_data,'(5x,e12.4)')ocmip_cfc(i)
+!           enddo
+!           call closeunit(iu_data)
+!         endif
+!         i_ocmip=(itime-itime_tr0(n))/INT_DAYS_PER_YEAR/
+!    &            int(SECONDS_PER_DAY/dtsrc)+1
+!         if (mod(itime,INT_DAYS_PER_YEAR*int(SECONDS_PER_DAY/dtsrc)) 
+!    &        .eq. 0.) then
+!           write(6,'(a,2i5)'),'TRACERS_DRV, new year: itime, i_ocmip=',
+!    &                         itime,i_ocmip
+!         endif
+!#ifndef SKIP_TRACER_SRCS
+!          do j=J_0,J_1 ! TNL
+!            do i=1,72
+!               trsource(i,j,1,n) = trsource(i,j,1,n)* 
+!     &           (ocmip_cfc(i_ocmip)/(INT_DAYS_PER_YEAR*
+!     &           SECONDS_PER_DAY/dtsrc)) / trsource_glbavg(n)
+!            enddo
+!          enddo
+!#endif
 
           !recompute global average after weighting in OCMIP
           sarea  = 0.
