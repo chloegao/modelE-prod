@@ -22,7 +22,7 @@
      .                    ,temp1d,dp1d,obio_P,det,car,avgq1d
      .                    ,ihra_ij,gcmax1d,atmFe_ij,covice_ij
      .                    ,P_tend,D_tend,C_tend,saln1d
-     .                    ,pCO2_ij,p1d,wsdet
+     .                    ,pCO2_ij,p1d,wsdet,pHsfc
      .                    ,rhs,alk1d
      .                    ,tzoo,tfac,rmuplsr,rikd,wshc,Fescav
      .                    ,tzoo2d,tfac3d,rmuplsr3d,rikd3d
@@ -64,6 +64,9 @@
 #ifdef ALK_RUNOFF
       use obio_com, only: ralkconc_loc
 #endif
+#endif
+#ifdef STANDALONE_OCEAN 
+      USE obio_forc, only: Eda,Esa,Eda2,Esa2
 #endif
 
       use runtimecontrols_mod, only: tracers_alkalinity
@@ -147,13 +150,14 @@
       use obio_diag, only: reset_obio_diag
 
       use exchange_types, only : atmocn_xchng_vars
+      use runtimecontrols_mod, only: constco2
       implicit none
       type(atmocn_xchng_vars) :: atm
 
       REAL*4, parameter  :: obio_tr_mm(16)= (/ 14., 14., 28.055,
      &     55.845, 1., 1., 1., 1., 1., 14., 14., 28.055, 55.845,
      &     12., 12., 1. /)
-      integer i,j,k,l,km,mm
+      integer i,j,k,l,km,mm,JMON
 
       integer ihr,ichan,iyear,nt,ihr0,lgth,kmax
       integer ll,ilim
@@ -173,6 +177,7 @@
       real, allocatable, dimension(:), save :: eda_frac, esa_frac
       integer :: iu_bio
       logical, save :: initialized=.false.
+      real, save :: atmco2=-1.
 
       if(.not.dobio) return
 
@@ -195,12 +200,12 @@ c
       !nstep0>0 : warm initialization, is the timestep of current restart run
       !nstep    : current timestep   
 
-      print*, 'nstep,nstep0 =',
+      if (AM_I_ROOT()) print*, 'nstep,nstep0 =',
      .         nstep,nstep0
 
       call build_ze
       if (nstep0==0) then
-        print*, 'COLD INITIALIZATION....'
+        if (AM_I_ROOT()) print*, 'COLD INITIALIZATION....'
 
         if (AM_I_ROOT()) write(*,'(a)')'BIO:Ocean Biology starts ....'
 
@@ -221,6 +226,7 @@ c
         caexpav_loc = 0
         pHav_loc = 0
 #endif
+        print*,nstep,'calling bioinit'
         call obio_bioinit
       endif   !cold restart
 
@@ -259,7 +265,7 @@ c
        endif
 
        call sync_param( "solFe", solFe)
-       print*, 'solfe=',solFe
+       if (AM_I_ROOT()) print*, 'solfe=',solFe
 
 !--------------------------------------------------------
 
@@ -284,13 +290,16 @@ c
      .    nstep,time,day_of_month,hour_of_day,dayOfYear
       endif
 
-         ihr0 = int(hour_of_day/2)
+        !ihr0 = int(hour_of_day/2)
+         ihr0 = nint((hour_of_day+1)/2.)
+
 
       if (diagno_bio) then
       endif  !diagno_bio
 
 #ifdef OBIO_ON_GARYocean
-      write(*,'(/,a,2i5,2e12.4)')'obio_model, test point=',
+      if (AM_I_ROOT())
+     .   write(*,'(/,a,2i5,2e12.4)')'obio_model, test point=',
      .      itest,jtest,oLON_DG(itest,1),oLAT_DG(jtest,1)
 #endif
 
@@ -322,7 +331,19 @@ cdiag.          olon_dg(i,1),olat_dg(j,1)
        ihra_ij=ihra(i,j)
        !!covice_ij=covice(i,j)  !for standalone hycom
        covice_ij=oice(i,j)      !for modelE-hycom
-       pCO2_ij=atm%gtracer(atm%n_co2n,i,j)
+       !!!!pCO2_ij=atm%gtracer(atm%n_co2n,i,j)
+        if (atmco2<0.) then    ! uninitialized
+          if (constco2) then
+            call get_param("atmCO2", atmco2)
+            if (AM_I_ROOT())print*, 'atmCO2=', atmco2
+          else
+            atmco2=0.
+          endif
+        endif
+       call compute_pco2_online(nstep,i,j,atmco2,
+     .           temp1d(1),saln1d(1),car(1,2),alk1d(1),
+     .           obio_P(1,1),obio_P(1,3),(1.-covice_ij),
+     .           pCO2_ij,pHsfc,vrbos)
      
 #ifdef OBIO_ON_GARYocean
        pres = oAPRESS(i,j)    !surface atm. pressure
@@ -504,6 +525,20 @@ cdiag write(*,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
 
       if (vrbos) write(*,*) 'compensation depth, kzc = ',kzc
 
+#ifdef STANDALONE_OCEAN
+       !OASIM spectral irradiance data just above the surface
+       !Eda and Esa fields have ihr=1:12, ie every 2hrs
+       JMON = modelEclock%getMonth()
+       do ichan=1,nlt
+       Eda2(ichan,ihr0)=Eda(i,j,ichan,ihr0,JMON)
+       Esa2(ichan,ihr0)=Esa(i,j,ichan,ihr0,JMON)
+       enddo
+       if (vrbos) then
+       write(*,'(a,6i5,2e12.4)') 'obio_model, Eds:',
+     .      nstep,i,j,7,ihr0,JMON,Eda(i,j,7,ihr0,JMON)
+     .     ,Esa(i,j,7,ihr0,JMON)
+       endif
+#endif
 
        !solz is read inside hycom.f and forfun.f
 !      do ihr=1,12
@@ -641,14 +676,30 @@ cdiag    enddo
              Ed(ichan) = atm%dirnir(i,j) * eda_frac(ichan)
              Es(ichan) = atm%difnir(i,j) * esa_frac(ichan)
            endif
-
            tot = tot + Ed(ichan)+Es(ichan)
+          enddo
+       endif
 
+#ifdef STANDALONE_OCEAN
+         do ichan = 1,nlt
+          Ed(ichan) = Eda2(ichan,ihr0)
+          Es(ichan) = Esa2(ichan,ihr0)
+          tot = tot + Eda2(ichan,ihr0)+Esa2(ichan,ihr0)
+         enddo
+
+#endif
+      if (vrbos) then
+      if (ichan.eq.7)
+     . write(*,'(a,5i5,3e12.4)')'obio_model, Eds:',
+     .   nstep,i,j,ichan,ihr0,Ed(ichan),Es(ichan),tot
+      endif
        !integrate over all ichan
+         do ichan = 1,nlt
            OIJ(I,J,IJ_ed) = OIJ(I,J,IJ_ed) + Ed(ichan) ! direct sunlight   
            OIJ(I,J,IJ_es) = OIJ(I,J,IJ_es) + Es(ichan) ! diffuse sunlight   
          enddo  !ichan
-       endif
+
+
          noon=.false.
          if (hour_of_day.eq.12)then
           if (i.eq.itest.and.j.eq.jtest)noon=.true.
@@ -733,10 +784,10 @@ cdiag.       '           k   avgq    tirrq',
 cdiag.                 (k,avgq1d(k),tirrq(k),k=1,kdm)
  107  format(i9,a/(18x,i3,2(1x,es9.2)))
 
-cdiag    do k=1,kdm
-cdiag    write(*,'(a,4i5,2e12.5)')'obio_model,k,avgq,tirrq:',
-cdiag.       nstep,i,j,k,avgq1d(k),tirrq(k)
-cdiag    enddo
+         do k=1,kdm
+         write(*,'(a,4i5,2e12.5)')'obio_model,k,avgq,tirrq:',
+     .       nstep,i,j,k,avgq1d(k),tirrq(k)
+         enddo
          endif
 
          if (tot .ge. 0.1) ihra_ij = ihra_ij + 1
@@ -859,10 +910,10 @@ cdiag     endif
      .                 rhs(k,nt,ll)*dp1d(k)    
       enddo  !k
 
-      if (vrbos) then
-      write(*,'(a,5i5,1x,e20.13)')'rhs_obio (mass,trac/m2/hr):',
-     .   nstep,i,j,nt,ll,rhs_obio(i,j,nt,ll)
-      endif
+c     if (vrbos) then
+c     write(*,'(a,5i5,1x,e20.13)')'rhs_obio (mass,trac/m2/hr):',
+c    .   nstep,i,j,nt,ll,rhs_obio(i,j,nt,ll)
+c     endif
       enddo  !ntrac
 
       !convert all to mili-mol,C/m2
@@ -909,7 +960,7 @@ cdiag     endif
  
       enddo  !ll
 
-      call obio_chkbalances(vrbos,nstep,i,j)
+c     call obio_chkbalances(vrbos,nstep,i,j)
 
       do nt=1,ntrac-1   ! don't include unused inert tracer
       do ll=1,17
@@ -1038,7 +1089,11 @@ cdiag     endif
      .    pp2tot_day(i,j)
        endif
 
-       atm%gtracer(atm%n_co2n, i,j)=pCO2_ij
+       !!!atm%gtracer(atm%n_co2n, i,j)=pCO2_ij
+!      call ppco2(temp1d(1),saln1d(1),car(1,2),alk1d(1),
+!    .           obio_P(1,1),obio_P(1,3),atmCO2,
+!    .           pCO2_ij,pHsfc)
+
 
 !diagnostics
        if (solz.gt.0) then

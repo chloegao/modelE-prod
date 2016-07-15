@@ -273,10 +273,8 @@ def createScriptTask(config, compconfig, deck, comp, mode):
 
         # customRun is a 2-month run
         elif deck.getOpt('verification') == 'customRun':
-            if re.search('tomas', deckName):
-                walltime = '8:00:00'
-            elif re.search('amp', deckName):
-                walltime = '2:00:00'
+            if re.search('campi', deckName):
+                walltime = '3:00:00'
             elif re.search('cadi', deckName):
                 walltime = '2:00:00'
             elif re.search('obio', deckName):
@@ -308,8 +306,10 @@ def createScriptTask(config, compconfig, deck, comp, mode):
                 walltime = '00:30:00'
             elif re.search('SGP', deckName):
                 walltime = '00:10:00'
-            elif re.search('M20', deckName):
-                walltime = '00:30:00'
+            elif re.search('campi', deckName):
+                walltime = '02:00:00'
+            elif re.search('ctomas', deckName):
+                walltime = '03:00:00'
 
         outname = resultsDir + '/' + jobName + '.' + mode + '.out'
         errname = resultsDir + '/' + jobName + '.' + mode + '.err'

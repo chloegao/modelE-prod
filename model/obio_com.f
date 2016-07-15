@@ -182,7 +182,7 @@ C if NCHL_DEFINED > 3
 C endif
 
       real :: C_tend(kdm,ncar)                !carbon tendency
-      real :: pCO2_ij                         !partial pressure of CO2
+      real :: pCO2_ij,pHsfc                   !partial pressure of CO2, pH
       real :: gro(kdm,nchl)                   !realized growth rate
       integer :: day_of_month, hour_of_day
 

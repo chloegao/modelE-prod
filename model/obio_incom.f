@@ -38,8 +38,8 @@
       real :: Fescavrate(2)       !scavenging rate for dissolved iron
 
 C if CARBON == 1
-      real, parameter :: excp=0.05              !excretion of DOC by phyto %growth
-      real, parameter :: resp=0.05              !respiration of DIC by phyto %growth
+      real, parameter :: excp=0.05              !excretion of DOC by phyto growth
+      real, parameter :: resp=0.05              !respiration of DIC by phyto growth
       real, parameter :: excz=0.05/24.0         !excretion of DOC by zoopl/hr
       real, parameter :: resz=0.05/24.0         !respiration of DIC by zoopl/hr
       real, parameter :: phygross=1.0-(excp+resp) !factor to derive gross PP!

@@ -1535,7 +1535,7 @@ CLOUD_TOP:  do L=LMIN+1,LM
             WA_VOL=COND(L)*1.d2*BYGRAV*DXYPIJ
             call GET_SULFATE(PL(L),TPOLD(L),FPLUME,WA_VOL,WMXTR,SULFIN, &
                  SULFINOM,SULFINC,SULFOUT,TR_LEFT,TMP,TRCOND(:,L), &
-                 AIRM(L),LHX,DT_SULF_MC(:,L),CLDSAVT,.false.)
+                 AIRM(L),LHX,DT_SULF_MC(:,L),CLDSAVT)
             do iaqch=1,aqchem_count
               n = aqchem_list(iaqch)
               TMP(N)=TMP(N)+SULFIN(iaqch)
@@ -2721,8 +2721,8 @@ EVAP_PRECIP: do L=LMAX-1,1,-1
               WA_VOL= precip_mm*DXYPIJ
 
               call GET_SULFATE(PL(L),TOLD,FPLUME,WA_VOL,WMXTR,SULFIN,SULFINOM, &
-                   SULFINC,SULFOUT,TR_LEFT,TM(L,:),TRPRCP,AIRM(L),LHX, &
-                   DT_SULF_MC(:,L),CLDSAVT,.true.)
+                   SULFINC,SULFOUT,TR_LEFT,TM(L,:)*FPLUME,TRPRCP,AIRM(L),LHX, &
+                   DT_SULF_MC(:,L),CLDSAVT)
 
               do iaqch=1,aqchem_count
                 n = aqchem_list(iaqch)
@@ -3988,8 +3988,8 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
       end if
 
       call GET_SULFATE(PL(L),TL(L),FCLD,WA_VOL,WMXTR,SULFIN,SULFINOM &
-           ,SULFINC,SULFOUT,TR_LEFT,TM(L,:),TRWML(:,L),AIRM(L) &
-           ,LHX_WA,DT_SULF_SS(:,L),CLDSAVT,.true.)
+           ,SULFINC,SULFOUT,TR_LEFT,TM(L,:)*FCLD,TRWML(:,L),AIRM(L) &
+           ,LHX_WA,DT_SULF_SS(:,L),CLDSAVT)
 
       do iaqch=1,aqchem_count
         n = aqchem_list(iaqch)
@@ -4239,8 +4239,8 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
     (defined TRACERS_TOMAS)
 
           call GET_SULFATE(PL(L),TL(L),FCLD,WA_VOL,WMXTR,SULFIN,SULFINOM, &
-               SULFINC,SULFOUT,TR_LEFT,TM(L,:),TRWML(:,L),AIRM(L),LHX, &
-               DT_SULF_SS(:,L),CLDSAVT,.true.)
+               SULFINC,SULFOUT,TR_LEFT,TM(L,:)*FCLD,TRWML(:,L),AIRM(L),LHX, &
+               DT_SULF_SS(:,L),CLDSAVT)
 
           do iaqch=1,aqchem_count
             n = aqchem_list(iaqch)
