@@ -633,10 +633,10 @@ c        rfix = min(rfix,0.2)
        rhs(kto,1,11) = term
        P_tend(kto,1) = P_tend(kto,1) + term     !Ctest1
 
-       if (vrbos)write(*,'(a,5i6,8e18.8)')'Nfixation_new diag:',
-     .     nstep,i,j,k,kto,dp1d(k),dp1d(kto),
-     .     obio_P(kto,1),SobioP1,ratio,Sgronfix,
-     .     rhs(kto,1,11),rhs(k,7,12)*bn
+c      if (vrbos)write(*,'(a,5i6,8e18.8)')'Nfixation_new diag:',
+c    .     nstep,i,j,k,kto,dp1d(k),dp1d(kto),
+c    .     obio_P(kto,1),SobioP1,ratio,Sgronfix,
+c    .     rhs(kto,1,11),rhs(k,7,12)*bn
 #ifndef OBIO_ON_GARYocean
        endif
 #endif

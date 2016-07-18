@@ -148,6 +148,9 @@ c
       USE hycom_scalars, only : baclin
       USE hycom_dim, only : ogrid
 #endif
+#ifdef STANDALONE_OCEAN
+      USE obio_forc, only: Eda,Esa
+#endif
       USE pario
 
       use ocalbedo_mod, only: lam, ocalbedo_init=>init
@@ -172,7 +175,7 @@ c
       character*50 title
 !     character*50 cfle
       character cacbc*11,cabw*10
-      character*80 filename,fn
+      character*80 filename,fn,filename1,filename2
 
       data cacbc,cabw /'acbc25b.dat','abw25b.dat'/
 
@@ -200,6 +203,19 @@ c  Degrees to radians conversion
       pi = dacos(-1.0D0)
       pi2 = pi*2.0
       rad = 180.0D0/pi
+
+#ifdef STANDALONE_OCEAN
+      if (AM_I_ROOT()) then
+      print*, '    '
+      print*, 'reading OASIM data.....'
+      print*, '    '
+      endif
+
+      !reading Eda
+      filename1='oasimdirect1'
+      filename2='oasimdirect2'
+      call obio_edaesa_g(filename1,filename2)
+#endif
 
       do nt = 1,nchl
        rkn(nt) = 0.0
@@ -643,6 +659,70 @@ c  Read in factors to compute average irradiance
 
       return
       end subroutine obio_init
+
+c------------------------------------------------------------------------------
+#ifdef STANDALONE_OCEAN
+      subroutine obio_edaesa_g(filename1,filename2)
+!read in eda and esa
+!read in a field and convert to ocean grid (using Gary Russel's routine) 
+
+      USE FILEMANAGER, only: openunit,closeunit
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,unpack_data
+      USE OCEANR_DIM, only : ogrid
+
+      USE OCEANRES, only : imo,jmo,lmo
+      USE OCEAN, only : oDLATM=>DLATM,LMOM=>LMM,ZOE=>ZE,FOCEAN
+      USE obio_forc, only: Eda_glob, Esa_glob, Eda,Esa
+
+      implicit none
+
+
+      integer, parameter :: igrd=360,jgrd=180,kgrd=33
+      integer, parameter :: igrd2=288
+      integer, parameter :: nmo=12,nhr=12
+      integer i,j,k,l,n,lm
+      integer iu_file,lgth
+      real data1(igrd,jgrd)
+      real data2(igrd,jgrd)
+      real data_mask(igrd,jgrd)
+
+      integer imon,ihr
+
+      logical vrbos
+
+      character*80 filename1,filename2
+
+!--------------------------------------------------------------
+      if ( AM_I_ROOT() ) then
+      lgth=len_trim(filename1)
+      print*, 'obio-init: reading from file...',filename1(1:lgth)
+      call openunit(filename1,iu_file,.false.,.true.)
+
+      do imon=1,nmo; do ihr=1,nhr; do k=1,kgrd;
+          do i=1,igrd2; do j=1,jgrd
+          read(iu_file,'(e12.4)')Eda_glob(i,j,k,ihr,imon)
+          enddo; enddo    ! i,j-loop
+      enddo; enddo;enddo    ! k,imon
+      print*, 'completed reading ',filename1(1:lgth)
+      call closeunit(iu_file)
+      lgth=len_trim(filename2)
+      print*, 'obio-init: reading from file...',filename2(1:lgth)
+      call openunit(filename2,iu_file,.false.,.true.)
+
+      do imon=1,nmo; do ihr=1,nhr; do k=1,kgrd;
+          do i=1,igrd2; do j=1,jgrd
+          read(iu_file,'(e12.4)')Esa_glob(i,j,k,ihr,imon)
+          enddo; enddo    ! i,j-loop
+      enddo; enddo;enddo    ! k,imon
+      call closeunit(iu_file)
+      endif   !AM_I_ROOT
+!--------------------------------------------------------------
+
+      call unpack_data(ogrid, Eda_glob, Eda)
+      call unpack_data(ogrid, Esa_glob, Esa)
+
+      end subroutine obio_edaesa_g
+#endif /*  STANDALONE_OCEAN */
 
 c------------------------------------------------------------------------------
 

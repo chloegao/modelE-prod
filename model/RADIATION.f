@@ -1669,7 +1669,7 @@ C----------------------------------------------
 
       SUBROUTINE RCOMPX
       use SURF_ALBEDO, only : getsur
-      use O3mod, only : plbo3,nlo3
+      use O3mod, only : plbo3,nlo3,plbo3_traditional,nlo3_traditional
 #ifdef SCM
       use SCM_COM, only : SCMopt,SCMin
 #endif
@@ -1711,8 +1711,9 @@ C--------------------------------
       if(set_gases_internally) then
 !!!                   CALL GETO3D(ILON,JLAT) ! may have to be changed ??
       if(use_o3_ref > 0 )then
-        CALL REPART (O3JREF(1,IGCM,JGCM),PLBO3,NLO3+1, ! in
-     *                        U0GAS(1,3),PLB0, NL+1)   ! out, ok if L1>1 ?
+        CALL REPART (O3JREF(1,IGCM,JGCM),
+     *          PLBO3_traditional,NLO3_traditional+1, ! in
+     *                        U0GAS(1,3),PLB0, NL+1)  ! out, ok if L1>1 ?
         ! next block may seem weird but it is here to allow RCOMPX calls with
         ! reference ozone in part of the atmosphere and tracer below:
         if(use_tracer_chem(1) > 0) then

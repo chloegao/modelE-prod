@@ -227,21 +227,23 @@
         integer :: CFC__Cl_O2=0
         integer :: O2__O_O=0
         integer :: N2O__M_O1D=0
+#ifdef TRACERS_dCO
         integer :: dHCH17O__dC17O_H2=0
         integer :: dHCH17O__dC17O_HO2=0
+        integer :: Aldehyde__dHCH17O_CO=0
         integer :: Aldehyde__HCHO_dC17O=0
+        integer :: dMe17OOH__dHCH17O_HO2=0
         integer :: dHCH18O__dC18O_H2=0
         integer :: dHCH18O__dC18O_HO2=0
+        integer :: Aldehyde__dHCH18O_CO=0
         integer :: Aldehyde__HCHO_dC18O=0
+        integer :: dMe18OOH__dHCH18O_HO2=0
         integer :: dH13CHO__d13CO_H2=0
         integer :: dH13CHO__d13CO_HO2=0
-        integer :: Aldehyde__HCHO_d13CO=0
-        integer :: CH3OOH__dHCH17O_HO2=0
-        integer :: Aldehyde__dHCH17O_CO=0
-        integer :: CH3OOH__dHCH18O_HO2=0
-        integer :: Aldehyde__dHCH18O_CO=0
-        integer :: CH3OOH__dH13CHO_HO2=0
         integer :: Aldehyde__dH13CHO_CO=0
+        integer :: Aldehyde__HCHO_d13CO=0
+        integer :: d13MeOOH__dH13CHO_HO2=0
+#endif  /* TRACERS_dCO */
       end type rj_index
 
       type(rj_index) :: rj
@@ -2554,32 +2556,32 @@ c Extend climatology to 100 km:
           rj%dHCH17O__dC17O_H2=irr
         case('dHCH17O__dC17O_HO2')
           rj%dHCH17O__dC17O_HO2=irr
+        case('Aldehyde__dHCH17O_CO')
+          rj%Aldehyde__dHCH17O_CO=irr
         case('Aldehyde__HCHO_dC17O')
           rj%Aldehyde__HCHO_dC17O=irr
+        case('dMe17OOH__dHCH17O_HO2')
+          rj%dMe17OOH__dHCH17O_HO2=irr
         case('dHCH18O__dC18O_H2')
           rj%dHCH18O__dC18O_H2=irr
         case('dHCH18O__dC18O_HO2')
           rj%dHCH18O__dC18O_HO2=irr
+        case('Aldehyde__dHCH18O_CO')
+          rj%Aldehyde__dHCH18O_CO=irr
         case('Aldehyde__HCHO_dC18O')
           rj%Aldehyde__HCHO_dC18O=irr
+        case('dMe18OOH__dHCH18O_HO2')
+          rj%dMe18OOH__dHCH18O_HO2=irr
         case('dH13CHO__d13CO_H2')
           rj%dH13CHO__d13CO_H2=irr
         case('dH13CHO__d13CO_HO2')
           rj%dH13CHO__d13CO_HO2=irr
-        case('Aldehyde__HCHO_d13CO')
-          rj%Aldehyde__HCHO_d13CO=irr
-        case('CH3OOH__dHCH17O_HO2')
-          rj%CH3OOH__dHCH17O_HO2=irr
-        case('Aldehyde__dHCH17O_CO')
-          rj%Aldehyde__dHCH17O_CO=irr
-        case('CH3OOH__dHCH18O_HO2')
-          rj%CH3OOH__dHCH18O_HO2=irr
-        case('Aldehyde__dHCH18O_CO')
-          rj%Aldehyde__dHCH18O_CO=irr
-        case('CH3OOH__dH13CHO_HO2')
-          rj%CH3OOH__dH13CHO_HO2=irr
         case('Aldehyde__dH13CHO_CO')
           rj%Aldehyde__dH13CHO_CO=irr
+        case('Aldehyde__HCHO_d13CO')
+          rj%Aldehyde__HCHO_d13CO=irr
+        case('d13MeOOH__dH13CHO_HO2')
+          rj%d13MeOOH__dH13CHO_HO2=irr
 #endif  /* TRACERS_dCO */
         case default
           call stop_model('Index for '//reaction//' missing',255)

@@ -12,7 +12,10 @@ C**** GLOBAL parameters and variables:
       USE TRCHEM_Shindell_COM, only:
      &    prnls,prnrts,prnchg,lprn,jprn,iprn,ay,pHOx,pOx,pNOx,
      &    yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yNO3,yRXPAR,yXO2N,acetone,
-     &    allowSomeChemReinit,pNO3,topLevelOfChemistry
+#ifdef TRACERS_dCO
+     &    ydCH317O2,ydCH318O2,yd13CH3O2,
+#endif  /* TRACERS_dCO */
+     &    allowSomeChemReinit,pNO3,topLevelOfChemistry,nfam,ny
      &    ,pCLOx,pCLx,pOClOx,pBrOx,yCl2,yCl2O2,mostRecentNonZeroAlbedo
 
       IMPLICIT NONE
@@ -38,6 +41,16 @@ C from MOLEC file:
       read(iu_data,110)ay
       call closeunit(iu_data)
 
+! figure out first element of each family
+      do i=1,ny
+        select case(ay(i))
+          case ('O3')    ; nfam(1)=i
+          case ('NO')    ; nfam(2)=i
+          case ('Cl2O2') ; nfam(3)=i
+          case ('BrO')   ; nfam(4)=i
+        end select
+      enddo
+
 C Read JPL chemical reactions/rates from unit JPLRX:
       call jplrts
 
@@ -54,7 +67,12 @@ C Initialize a few (IM,JM,topLevelOfChemistry) arrays, first hour only:
         pOx(I_0:I_1,J_0:J_1,:)      =1.d0
         pNOx(I_0:I_1,J_0:J_1,:)     =1.d0
         pNO3(I_0:I_1,J_0:J_1,:)     =0.d0
-        yCH3O2(I_0:I_1,J_0:J_1,:)   =1.d0 ! 1.d5 ??
+        yCH3O2(I_0:I_1,J_0:J_1,:)   =1.d0
+#ifdef TRACERS_dCO
+        ydCH317O2(I_0:I_1,J_0:J_1,:)=1.d0
+        ydCH318O2(I_0:I_1,J_0:J_1,:)=1.d0
+        yd13CH3O2(I_0:I_1,J_0:J_1,:)=1.d0
+#endif  /* TRACERS_dCO */
         yC2O3(I_0:I_1,J_0:J_1,:)    =0.d0
         yROR(I_0:I_1,J_0:J_1,:)     =0.d0
         yXO2(I_0:I_1,J_0:J_1,:)     =0.d0
@@ -77,7 +95,7 @@ C Initialize a few (IM,JM,topLevelOfChemistry) arrays, first hour only:
 #ifdef TRACERS_AEROSOLS_SOA
 #ifdef TRACERS_TERP
 #ifdef TRACERS_dCO
- 110  format(6(///10(a8)),(///8(a8)))
+ 110  format(7(///10(a8)),(///4(a8)))
 #else
  110  format(6(///10(a8)),(///2(a8)))
 #endif
@@ -119,7 +137,7 @@ C**** GLOBAL parameters and variables:
       USE DOMAIN_DECOMP_ATM, only: write_parallel
       USE FILEMANAGER, only: openunit,closeunit
       USE TRCHEM_Shindell_COM, only: pe,ea,nst,ro,
-     &                               r1,sn,sb,nn,nnr
+     &                               r1,sn,sb,nn,nnr,ay,rrtri
      &                              ,n_rx,n_bi,n_tri,n_nst,n_het
 
       IMPLICIT NONE
@@ -132,6 +150,7 @@ C
       CHARACTER*8, DIMENSION(4) :: ate
       character(len=300) :: out_line
       INTEGER :: i,ii,j,iu_data,nr,nr2,nr3,nmm,nhet
+      character(len=36) :: invreaction
 
 C Read in the number of each type of reaction:
       call openunit('JPLRX',iu_data,.false.,.true.)
@@ -159,33 +178,21 @@ C Read in the number of each type of reaction:
       do i=1,n_rx               ! >>> begin loop over total reactions <<<
         if(i <= n_rx-n_het) then !non-hetero
           if(i <= n_bi+n_nst) then   !mono or bi
-            if(i > n_bi) then ! read monomolecular reactions
-              if(i == n_bi+1) read(iu_data,22)ate
-              read(iu_data,16)ate,pe(i),ea(i),nst(i-n_bi)
-              write(out_line,30) i,ate(1),' + ',ate(2),
-     &        ' --> ',ate(3),' + ',ate(4)
-              call write_parallel(trim(out_line))
-            else                  ! read bimolecular reactions
-   5          read(iu_data,16)ate,pe(i),ea(i)
-              write(out_line,30) i,ate(1),' + ',ate(2),
-     &        ' --> ',ate(3),' + ',ate(4)
-              call write_parallel(trim(out_line))
-            end if
+            if(i == n_bi+1) read(iu_data,22)ate
+            read(iu_data,16)ate,pe(i),ea(i) ! read mono and bimolecular reactions
           else                    ! read trimolecular reactions
  20         if(i == n_bi+n_nst+1) read(iu_data,22)ate
             ii=i-n_bi-n_nst
             read(iu_data,21)ate,ro(ii),sn(ii),r1(ii),sb(ii)
-            write(out_line,30) i,ate(1),' + ',ate(2),
-     *      ' --> ',ate(3),' + ',ate(4)
-            call write_parallel(trim(out_line))
           end if
         else                     ! read heterogeneous reactions
           if(i == n_rx-(n_het-1)) read(iu_data,22)ate
           read(iu_data,31)ate
-          write(out_line,30) i,ate(1),' + ',ate(2),
-     *    ' --> ',ate(3),' + ',ate(4)
-          call write_parallel(trim(out_line))
         end if ! (i <= n_rx-n_het)
+
+        write(out_line,30) i,ate(1),' + ',ate(2),
+     *  ' --> ',ate(3),' + ',ate(4)
+        call write_parallel(trim(out_line))
 c
         do j=1,2
           call lstnum(ate(j),nn(j,i))
@@ -195,12 +202,31 @@ c
         call set_rrate_index(i, ate)
       end do                ! >>> end loop over total reactions <<<
 
+! find the inverse reaction of a thermal decomposition
+      do i=n_bi+1,n_bi+n_nst
+        invreaction = trim(ay(nnr(1,i)))//'_'//
+     &                trim(ay(nnr(2,i)))//'__'//
+     &                trim(ay(nn(1,i)))//'_'//
+     &                trim(ay(nn(2,i)))
+        select case(invreaction)
+          case('HO2_NO2__HO2NO2_M')
+            nst(i-n_bi)=rrtri%HO2_NO2__HO2NO2_M
+          case('NO3_NO2__N2O5_M')
+            nst(i-n_bi)=rrtri%NO3_NO2__N2O5_M
+          case('ClO_ClO__Cl2O2_M')
+            nst(i-n_bi)=rrtri%ClO_ClO__Cl2O2_M
+          case default
+            call stop_model('ERROR: Reaction '//trim(invreaction)//
+     &                      ' does not exist in the JPLRX file',255)
+        end select
+      enddo
+
  124  format(///5(/43x,i3)///)
   27  format(/(30x,i2))
   21  format(4x,a8,1x,a8,3x,a8,1x,a8,e8.2,f5.2,e9.2,f4.1)
   22  format(/10x,4a8/)
   25  format(//32x,2f7.1,i6)
-  16  format(4x,a8,1x,a8,3x,a8,1x,a8,e8.2,f8.0,i4)
+  16  format(4x,a8,1x,a8,3x,a8,1x,a8,e8.2,f8.0)
   31  format(4x,a8,1x,a8,3x,a8,1x,a8)
   30  format(1x,i3,2x,a8,a3,a8,a5,a8,a3,a8)
       call closeunit(iu_data)

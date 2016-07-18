@@ -1,7 +1,7 @@
 DUSTaer=dust_mass_CakmurMillerJGR06_144x90x20x7x12.nc
 BC_dep=BC.Dry+Wet.depositions.ann_144x90.nc
 #include "TAero2008_144x90_input_files"
-O3file=o3_2010_shindell_144x90x49_1850-2000.nc
+O3file=o3_2010_shindell_144x90x49_1850-2000_ple.nc
 #ifdef _RAD_O3_2010
 Ox_ref=o3_2010_shindell_144x90x49_April1850.nc
 #endif

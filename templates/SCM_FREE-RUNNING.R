@@ -1,10 +1,21 @@
-SCM_SCT.R GISS Model E      A. Fridlind 10/2015
+SCM-FREE-RUNNING.R GISS Model E      M. Kelley 10/2013
 
-Single-column mode for Model E: Stratocumulus-to-cumulus transition,
-REF case from Sandu and Stevens (J. Atmos. Sci. 2011)
+Run SCM using GCM IC's and no advective forcings
 
-This is a functioning rundeck, not a template (excepting the lines containing
-/path/to/user/directory/extractions - see template SCM.R for discussion)
+Initial framework for truly single-column mode for Model E.
+
+This is a functioning rundeck, not a template (excepting the lines
+containing  /path/to/user/directory/extractions - see notes below)
+
+SCM-irrelevant codes and input files are excluded.
+Template #includes should be refactored so that this exclusion happens automatically.
+
+SCM case: example SCM_lat & SCM_lon correspond to ARM SGP site 
+For other cases, change one or more of the following as necessary:
+(1) SCM input variable namelist (SCM_NML) and SCM input files (SCM_PS, SCM_SFLUX, etc.)
+(2) SCM parameters SCM_lon, SCM_lat, and files extracted from gridded data at SCM_lon, SCM_lat
+    See notes in the input files section on a pre-scripted extraction procedure etc.
+    SCM_area and other SCM parameters may also be changed (or added).
 
 Preprocessor Options
 #define CACHED_SUBDD
@@ -17,7 +28,7 @@ Object modules: (in order of decreasing priority)
 
 SUBDD
 
-AtmL40
+AtmL40 
 AtmRes
 
 SCM_COM SCM
@@ -73,14 +84,43 @@ OPTS_giss_LSM = USE_ENT=YES
 Data input files:
 
 ! SCM input files
-SCM_NML=SCM_default.nml ! input variable namelist with units
-SCM_PS=SCM_SCT.nc       ! surface pressure
-SCM_TSKIN=SCM_SCT_TSKIN.nc ! skin temperature
-SCM_WIND=SCM_SCT.nc     ! horizontal wind profile(s)
-SCM_GEO=SCM_SCT.nc      ! geostrophic wind profile(s)
-SCM_TEMP=SCM_SCT.nc     ! temperature profile(s)
-SCM_WVMR=SCM_SCT.nc     ! water vapor mixing ratio profile(s)
-SCM_OMEGA=SCM_SCT.nc    ! large-scale vertical wind profile(s)
+SCM_NML=SCM_ARM.nml                                 ! input variable namelist with units
+
+! The set of forcings for a particular SCM test case typically does not include
+! all of the data required to run Model E.  Each line below of the form
+!   SHORTNAME=/path/to/user/directory/extractions/filename.nc
+! corresponds to a location-dependent input dataset for which one of the following
+! two options must be chosen.  The second option is provided for convenience.
+! (1) Replace /path/to/user/directory/extractions/filename.nc with the
+!     path to a single-column file that has already been created somehow.
+!     Note that the GCM file-reading infrastructure considers single-column
+!     files to be on a horizontal grid of size 1, and therefore the
+!     two horizontal dimensions must be retained in netcdf variables
+!     (which must have the netcdf names that model E expects).
+!     For any files previously extracted from global data via option (2),
+!     make sure that the path does not contain substring "/extractions/"
+!     if option (2) will be used create other files.
+! (2) Use exec/extract_scm.sh to sample gridded files at location
+!     lon_targ, lat_targ.
+!     Firstly,
+!       replace /path/to/user/directory with a real path, preferably which
+!        (a) contains a string denoting the SCM location/case being run
+!        (b) is unlikely to be chosen by any other users on the system
+!       Habits (a) and (b) will prevent clutter and accidental overwrites.
+!       Note that
+!        (a) substring "/extractions/" must be retained in each Users
+!        (b) the rundeck paths indicate the resulting single-column files
+!            to be read by the model.  GCMSEARCHPATH (from your modelErc)
+!            is the location of the gridded file from which to extract the column
+!        (c) There is no requirement that all files from which data are extracted are
+!            on the same grid - dimension and coordinate information is scanned per-file.
+!        (d) As currently programmed (10/2013), extract_scm.sh does require that
+!            each file possesses 1D coordinate variables named lon(lon) and lat(lat).
+!            Extraction from arbitrary grids (cubed-sphere etc.) will soon be enabled.
+!        (e) NCO must be installed on your system and in your $PATH.
+!     Secondly, execute
+!        extract_scm.sh THISRUNDECK.R
+
 
 ! Topography, area fractions of surface types
 TOPO=/path/to/user/directory/extractions/Z2HX2fromZ1QX1N.nc
@@ -116,10 +156,9 @@ TAero_BCB=/path/to/user/directory/extractions/BCB_Koch2008_kg_m2_144x90x20_1890-
 ! modes of operation may also prescribe ocean surface conditions
 ! via mechanisms other than these files. SICE and ZSIFAC can be
 ! omitted if the simulation location is free of sea ice.
-!OSST=/path/to/user/directory/extractions/OST.nc  ! SST
+!OSST=/path/to/user/directory/extractions/OST_144x90.1996-2005avg.HadISST1.1.nc  ! SST
 ! rsi var. in SICE is sea ice fraction, ZSIFAC var. dm is used to get ice thickness
-!SICE=/path/to/user/directory/extractions/SICE.nc
-!ZSI=/path/to/user/directory/extractions/SICE.nc
+!SICE=/path/to/user/directory/extractions/SICE_144x90.1996-2005avg.HadISST1.1.nc
 !ZSIFAC=/path/to/user/directory/extractions/SICE_144x90.1996-2005avg.HadISST1.1.nc
 !OCNML=XXX ! see comment above regarding the OCNML source code.
 
@@ -140,7 +179,7 @@ TOP_INDEX=/path/to/user/directory/extractions/top_index_144x90_a.ij.ext.nc
 ! relative wetness, snow depth) rather than the extensive
 ! units (total heat and water per layer) of the arrays in
 ! the file GIC.
-!SOILIC=/path/to/user/directory/extractions/SOILIC.nc
+!SOILIC=/path/to/SOILIC.nc
 
 ! Optional file to specify a "background" roughness
 ! length for the land surface that is not tied to
@@ -149,15 +188,14 @@ TOP_INDEX=/path/to/user/directory/extractions/top_index_144x90_a.ij.ext.nc
 ! Note that the actual roughness length for the
 ! land surface is taken as the maximum of the vegetation-derived
 ! value and the value from either ROUGHL or TOP_INDEX.
-!ROUGHL=/path/to/user/directory/extractions/ROUGHL.nc
+!ROUGHL=/path/to/ROUGHL.nc
 
 ! Initial conditions for surface components from an arbitrary restart file
 GIC=/path/to/user/directory/extractions/GIC.144X90.DEC01.1.ext_2.nc
-!SICEIC=/path/to/user/directory/extractions/SICEIC3.nc
 
 ! All input files below this line are location-independent.
 
-GHG=GHG.1850-2050.Mar2002
+GHG=GHG.Mar2004.txt
 RADN1=sgpgxg.table8
 RADN2=LWTables33k_lowH2O_CO2_O3_planck_1-800
 RADN4=LWCorrTables33k
@@ -173,20 +211,27 @@ ISCCP=ISCCP.tautables
 MSU_wts=MSU.RSS.weights.data
 
 Label and Namelist:
-SCM_SCT (SCT case using Single Column Model)
+SCM_FREE-RUNNING (Run SCM with GCM initialization and no forcing)
+
 
 &&PARAMETERS
 
 ! SCM parameters
-SCM_lon=-125.              ! SCT longitude of subtropical northeastern Pacific (deg)
-SCM_lat=25.                ! SCT latitude of subtropical northeastern Pacific (deg)
-SCM_area=10000000000.0     ! arbitrary grid box area (m2)
-SCM_sfc=2                  ! 1:land,2:ocean
-SCM_allowMC=1              ! allow moist convection? 
-SCM_allowCTEI=1            ! allow cloud-top entrainment instability?
+SCM_lon=-96.25             ! Southern Great Plains site longitude (deg)
+SCM_lat=37.                ! Southern Great Plains site latitude (deg)
+SCM_area=49370385348.1287  ! nominal grid box area (m2) from 144x90 grid
+
+GLMELT_ON=0      !turn off GLMELT in run deck for SCM long runs
+
+!for removing diurnal cycle set COSZ to a constant for run
+!COSZ=###
+!for removing seasonal cycle set orbital parameters 
+!planetName='notEarth'
+!eccentricity=0.000
+!obliquity=0.000
 
 DTsrc=1800.     ! Atm. physics timestep.
-NIsurf=1        ! Number of surface physics timesteps per atm. physics timestep.
+NIsurf=2        ! Number of surface physics timesteps per atm. physics timestep.
 NRAD=1          ! Full radiation calculation every NRAD physics timesteps.
 
 ! cloud tuning parameters
@@ -201,8 +246,8 @@ master_yr=1979
 !crops_yr=1850  ! if -1, crops in VEG-file is used
 !s0_yr=1850
 !s0_day=182
-ghg_yr=1968
-ghg_day=175
+!ghg_yr=1850
+!ghg_day=182
 volc_yr=-1
 !volc_day=182
 !aero_yr=1850
@@ -214,12 +259,12 @@ KSIALB=0        ! 6-band albedo (Hansen) (=1 A.Lacis orig. 6-band alb)
 KSOLAR=2
 PTLISO=15.      ! press(mb) above which rad. assumes isothermal layers
 madaer=3        ! indicates use of TAero_XXX aerosol files by radiation.
-!s0x=1.e-6       ! solar constant scale factor
+
 
 ! parameters affecting diagn. output
 aer_rad_forc=0   ! if set =1, radiation is called numerous times - slow !!
-cloud_rad_forc=1 ! calls radiation twice; use =0 to save cpu time
-isccp_diags=1    ! use =0 to save cpu time, but you lose some key diagnostics
+!cloud_rad_forc=1 ! calls radiation twice; use =0 to save cpu time
+!isccp_diags=1    ! use =0 to save cpu time, but you lose some key diagnostics
 nda5d=13         ! use =1 to get more accurate energy cons. diag (increases CPU time)
 nda5s=13         ! use =1 to get more accurate energy cons. diag (increases CPU time)
 ndaa=13
@@ -238,16 +283,21 @@ KCOPY=1
 Ndisk=1440
 
 ! restart state is saveable every nssw timesteps.
-w=2
+Nssw=2
 
-! SCM-useful GCM-native subdaily diagnostics system
+! SCM-useful GCM-native subdaily diagnostics system not yet imported to master branch
+!SUBDD=' '        ! no sub-daily frequency diags
+!NSUBDD=0         ! saving sub-daily diags every NSUBDD-th physics time step (1/2 hr)
+
 SUBDD='u v t q rh z p_3d p_surf prec mcp ssp snowfall snowdp qcl qci'
 SUBDD1='cldss cldmc cldss_2d totcld totcld_diag'
 SUBDD2='gtempr shflx lhflx ustar pblht pwv lwp iwp tau_ss tau_mc'
-SUBDD3='olrrad olrcs lwdp swdp lwds lwdscs lwus swds swus swdf egcm'
-SUBDD4='dq_turb dth_turb dq_mc dth_mc dq_ss dth_ss dth_sw dth_lw dth_rad'
-SUBDD5='dq_ls dth_ls dq_nudge dth_nudge'
+!SUBDD3='olrrad olrcs lwds lwdscs lwus swds swus swdf'
+!SUBDD4='dq_turb dth_turb dq_mc dth_mc dq_ss dth_ss dth_sw dth_lw dth_rad'
+!SUBDD5='dq_ls dth_ls dq_nudge dth_nudge'
+!SUBDD6='isccp_sunlit isccp_ctp isccp_tau isccp_lcld isccp_hcld'
 NSUBDD=1         ! saving sub-daily diags every NSUBDD-th physics time step (1/2 hr)
+SCM_PlumeDiag=0  !to save Plume diagnostics set SCM_PlumeDiag=1
 WRITE_ONE_FILE=1 ! all outputs to a single file
 
 ! KOCEAN=0 means prescribed surface ocean conditions.  This parameter is currently
@@ -256,12 +306,12 @@ KOCEAN=0
 
 ! variable lakes.  Probably unimportant for typical SCM simulation lengths.
 ! note that lakes can only evolve in response to local precip, evap, runoff.
-variable_lk=0
+variable_lk=1
 
 &&END_PARAMETERS
 
  &INPUTZ
- ISTART=2,IRANDI=0,KDIAG=12*0,9,
- YEARI=2006,MONTHI=7,DATEI=15,HOURI=18,
- YEARE=2006,MONTHE=7,DATEE=18,HOURE=18,
+ YEARI=2005,MONTHI=1,DATEI=1,HOURI=0, ! pick IYEAR1=YEARI (default) or < YEARI
+ YEARE=2005,MONTHE=3,DATEE=1,HOURE=0,     KDIAG=12*0,9,
+ ISTART=2,IRANDI=0, YEARE=2005,MONTHE=1,DATEE=3,HOURE=0,
 /

@@ -133,14 +133,19 @@
   ! initialize atmospheric state
   write(6,*) ' ... SCM initializing atmospheric state ...'
   do L = 1,LM
-    T(1,1,L) = SCMin%T(L)/PK(L,1,1) ! temperature -> potential temperature
-    Q(1,1,L) = SCMin%Q(L)
-    ! saturation adjustment (relieve any supersaturation w/r/t liquid in initial state)
-    call get_dq_cond( T(1,1,L), Q(1,1,L), PK(L,1,1), 1d0, lhe, pmid(L,1,1), dqsum, fcond )
-    if( dqsum > 0d0 ) CLDSAV(L,1,1) = 1d0
-    QCL(1,1,L) = dqsum
-    Q(1,1,L) = Q(1,1,L)-dqsum
-    T(1,1,L) = T(1,1,L)+dqsum*LHE/SHA/PK(L,1,1)
+    if( SCMopt%theta .or. SCMopt%temp )then
+      T(1,1,L) = SCMin%T(L)/PK(L,1,1) ! temperature -> potential temperature
+    endif
+    if( SCMopt%wvmr )then
+      Q(1,1,L) = SCMin%Q(L)
+      ! saturation adjustment (relieve any supersaturation w/r/t liquid in
+      ! initial state)
+      call get_dq_cond( T(1,1,L), Q(1,1,L), PK(L,1,1), 1d0, lhe, pmid(L,1,1), dqsum, fcond )
+      if( dqsum > 0d0 ) CLDSAV(L,1,1) = 1d0
+      QCL(1,1,L) = dqsum
+      Q(1,1,L) = Q(1,1,L)-dqsum
+      T(1,1,L) = T(1,1,L)+dqsum*LHE/SHA/PK(L,1,1)
+    endif
     ! horizontal winds may be specified throughout or else geostrophic
     ! throughout; if geostrophic, may be initialized using SCMopt%wind
     if( SCMopt%wind )then
@@ -1018,8 +1023,6 @@
     SCMin%Ps = SCMin_tPs%value(nstepSCM)
     PEDN(1,1,1) = SCMin%Ps
     call CALC_AMPK(LM)
-  else
-    call stop_model('SCM: no surface pressure?',255)
   endif
 
   ! specified surface fluxes

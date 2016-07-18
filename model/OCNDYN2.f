@@ -114,7 +114,9 @@ C**** Add ocean biology
          Call CARBON ('OBIO_M')
          Call NITR ('OBIO_M')
 #endif
+#ifndef STANDALONE_OCEAN
       CALL DIAGCO (13,atmocn)
+#endif
 #endif
 
          CALL TIMER (NOW,MSGSO)

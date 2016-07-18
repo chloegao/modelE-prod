@@ -96,7 +96,7 @@ AIC=/path/to/user/directory/extractions/AIC.RES_F40.D771201.nc
 
 ! Optional: if absent, ozone is set to zero.
 ! Zero stratospheric ozone is usually a bad idea though.
-O3file=/path/to/user/directory/extractions/o3_2005_shindelltrop_144x90x49_1850-1997.nc
+O3file=/path/to/user/directory/extractions/o3_2005_shindelltrop_144x90x49_1850-1997_ple.nc
 
 ! Optional: if absent, dust is set to zero
 DUSTaer=/path/to/user/directory/extractions/dust_mass_CakmurMillerJGR06_144x90x20x7x12.nc

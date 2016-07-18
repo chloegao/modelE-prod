@@ -186,7 +186,7 @@ C**** GLOBAL parameters and variables:
       IMPLICIT NONE
 
 C**** Local parameters and variables and arguments:
-!@var aqqz,bqqz,cqqz,cz,dz,sqroot,temp_yHOx,rcqqz,ratio dummy vars
+!@var aqqz,bqqz,cqqz,cz,dz,sqroot,temp_yHOx,ratio dummy vars
 !@var L dummy loop variable
 !@var I,J passed horizontal position indicies
 !@var Lmax maximum altitude for chemistry
@@ -199,7 +199,7 @@ C**** Local parameters and variables and arguments:
       integer             :: L, maxT 
       integer, intent(IN) :: Lmax,I,J
       real*8              :: aqqz, bqqz, cqqz, cz, dz, sqroot, 
-     &   temp_yHOx,rcqqz,ratio,rHprod,rHspecloss,rkzero,rktot,
+     &   temp_yHOx,ratio,rHprod,rHspecloss,rkzero,rktot,
      &   yAtomicH
       REAL*8, DIMENSION(LM) :: PRES ! can keep LM
 
@@ -218,19 +218,18 @@ c A: loss rxns with HOx**2
 c B: loss rxns linear in HOx
 c C: prod equations
 c all: in terms of HO2 (so *pHOx when OH is reactant)
-
         aqqz=2.d0*(pHOx(I,J,L)*rr(rrbi%OH_HO2__H2O_O2,L)
-     &    +(pHOx(I,J,L)*pHOx(I,J,L))
+     &    +pHOx(I,J,L)*pHOx(I,J,L)
      &      *(rr(rrbi%OH_OH__H2O_O,L)
-     &      +rr(rrtri%OH_OH__H2O2_M,L))
+     &        +rr(rrtri%OH_OH__H2O2_M,L))
      &      +rr(rrbi%HO2_HO2__H2O2_O2,L))
 
         bqqz=pHOx(I,J,L)
      &    *(rr(rrbi%CH4_OH__H2O_CH3O2,L)*y(nn_CH4,L)
      &      +rr(rrbi%OH_HNO3__H2O_NO3,L)*y(nn_HNO3,L)
-     &      +rr(rrbi%CH3OOH_OH__CH3O2_H2O,L)*y(nn_CH3OOH,L)
      &      +rr(rrtri%OH_NO2__HNO3_M,L)*y(nNO2,L)
-     &      +rr(rrtri%OH_NO__HONO_M,L)*y(nNO,L))
+     &      +rr(rrtri%OH_NO__HONO_M,L)*y(nNO,L)
+     &      +rr(rrbi%CH3OOH_OH__CH3O2_H2O,L)*y(nn_CH3OOH,L))
      &    +rr(rrbi%CH3O2_HO2__CH3OOH_O2,L)*yCH3O2(I,J,L)
      &    +pHOx(I,J,L)
      &    *(rr(rrbi%Aldehyde_OH__C2O3_M,L)*y(nAldehyde,L)
@@ -240,7 +239,8 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
      &        *0.15d0
      &      +rr(rrbi%AlkylNit_OH__NO2_M,L)*y(nn_AlkylNit,L)
 #ifdef TRACERS_TERP
-     &    +rr(rrbi%Terpenes_OH__HCHO_Alkenes,L)*y(nn_Terpenes,L)*0.15d0
+     &      +rr(rrbi%Terpenes_OH__HCHO_Alkenes,L)*y(nn_Terpenes,L)
+     &        *0.15d0
 #endif  /* TRACERS_TERP */
      &    )
      &    +rr(rrbi%XO2_HO2__CH3OOH_M,L)*y(nXO2,L)
@@ -342,9 +342,9 @@ c B: loss rxns linear in HOx
 c C: prod equations
 c all: in terms of HO2 (so *pHOx when OH is reactant)
         aqqz=2.d0*(pHOx(I,J,L)*rr(rrbi%OH_HO2__H2O_O2,L)
-     &    +pHOx(I,J,L)*pHOx(I,J,L)*
-     &      (rr(rrbi%OH_OH__H2O_O,L)
-     &      +rr(rrtri%OH_OH__H2O2_M,L))
+     &    +pHOx(I,J,L)*pHOx(I,J,L)
+     &      *(rr(rrbi%OH_OH__H2O_O,L)
+     &        +rr(rrtri%OH_OH__H2O2_M,L))
      &      +rr(rrbi%HO2_HO2__H2O2_O2,L))
 
         bqqz=pHOx(I,J,L)

@@ -1343,6 +1343,9 @@ C**** check whether air mass is conserved
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
      &     yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss,ydms,yso2,sulfate
+#ifdef TRACERS_dCO
+     &     ,ydCH317O2,ydCH318O2,yd13CH3O2
+#endif  /* TRACERS_dCO */
      &     ,acetone,sOx_acc,sNOx_acc,sCO_acc,l1Ox_acc,l1NO2_acc,pNO3
      &     ,SF3,SF2,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2
      &     ,topLevelOfChemistry,n_rj,mostRecentNonZeroAlbedo
@@ -1560,6 +1563,17 @@ c not yet        if(am_i_root()) write(kunit,err=10) header,aijl_glob
        header='TRACERS_SPECIAL_Shindell: yCH3O2(i,j,l)'
         call pack_data(grid,yCH3O2,Aijl_chem)
         if(am_i_root())write(kunit,err=10)header,Aijl_chem
+#ifdef TRACERS_dCO
+       header='TRACERS_SPECIAL_Shindell: ydCH317O2(i,j,l)'
+        call pack_data(grid,ydCH317O2,Aijl_chem)
+        if(am_i_root())write(kunit,err=10)header,Aijl_chem
+       header='TRACERS_SPECIAL_Shindell: ydCH318O2(i,j,l)'
+        call pack_data(grid,ydCH318O2,Aijl_chem)
+        if(am_i_root())write(kunit,err=10)header,Aijl_chem
+       header='TRACERS_SPECIAL_Shindell: yd13CH3O2(i,j,l)'
+        call pack_data(grid,yd13CH3O2,Aijl_chem)
+        if(am_i_root())write(kunit,err=10)header,Aijl_chem
+#endif  /* TRACERS_dCO */
        header='TRACERS_SPECIAL_Shindell: yC2O3(i,j,l)'
         call pack_data(grid,yC2O3,Aijl_chem)
         if(am_i_root())write(kunit,err=10)header,Aijl_chem
@@ -1772,6 +1786,14 @@ c not yet          call unpack_data(grid,aijl_glob,daily_z)
           if(am_i_root())read(kunit,err=10)header,Aijl_chem
           call unpack_data(grid,Aijl_chem,yCH3O2)
           if(am_i_root())read(kunit,err=10)header,Aijl_chem
+#ifdef TRACERS_dCO
+          call unpack_data(grid,Aijl_chem,ydCH317O2)
+          if(am_i_root())read(kunit,err=10)header,Aijl_chem
+          call unpack_data(grid,Aijl_chem,ydCH318O2)
+          if(am_i_root())read(kunit,err=10)header,Aijl_chem
+          call unpack_data(grid,Aijl_chem,yd13CH3O2)
+          if(am_i_root())read(kunit,err=10)header,Aijl_chem
+#endif  /* TRACERS_dCO */
           call unpack_data(grid,Aijl_chem,yC2O3)
           if(am_i_root())read(kunit,err=10)header,Aijl_chem
           call unpack_data(grid,Aijl_chem,yROR)
@@ -2071,6 +2093,9 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
      &yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss,ydms,yso2,sulfate,pNO3
+#ifdef TRACERS_dCO
+     &,ydCH317O2,ydCH318O2,yd13CH3O2
+#endif  /* TRACERS_dCO */
      &,acetone,sOx_acc,sNOx_acc,sCO_acc,l1Ox_acc,l1NO2_acc
      &,SF3,SF2,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2,topLevelOfChemistry
      &,mostRecentNonZeroAlbedo
@@ -2156,6 +2181,11 @@ c daily_z is currently only needed for CS
       call doVar(handle,action,pNO3,'pNO3'//ijcdims)
       call doVar(handle,action,pOx ,'pOx'//ijcdims)
       call doVar(handle,action,yCH3O2,'yCH3O2'//ijcdims)
+#ifdef TRACERS_dCO
+      call doVar(handle,action,ydCH317O2,'ydCH317O2'//ijcdims)
+      call doVar(handle,action,ydCH318O2,'ydCH318O2'//ijcdims)
+      call doVar(handle,action,yd13CH3O2,'yd13CH3O2'//ijcdims)
+#endif  /* TRACERS_dCO */
       call doVar(handle,action,yC2O3,'yC2O3'//ijcdims)
       call doVar(handle,action,yROR,'yROR'//ijcdims)
       call doVar(handle,action,yXO2,'yXO2'//ijcdims)
