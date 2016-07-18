@@ -2394,7 +2394,8 @@ c daily_z is currently only needed for CS
       character(len=10), dimension(2) :: ssky=(/'as','cs'/),
      &                                lsky=(/'All-sky  ','Clear-sky'/)
       character(len=10), dimension(2) :: sabs=(/' ','a'/),
-     &                                labs=(/'          ','absorption'/)
+     &                               labs=(/'          ','absorption'/),
+     &                               lcoef=(/'extinction','absorption'/)
       character(len=10) :: spcname
       integer :: s,a
 
@@ -2444,6 +2445,14 @@ c daily_z is currently only needed for CS
      &    lname = trim(spcname)//' '//trim(lsky(s))//' '//
      &            trim(labs(a))//' aerosol optical depth',
      &    units = '-',
+     &    sched = sched_rad
+     &       )
+        arr(next()) = info_type_(
+     &    sname = trim(spcname)//trim(ssky(s))//trim(sabs(a))//
+     &    'bcoef3d',
+     &    lname = trim(spcname)//' '//trim(lsky(s))//' '//
+     &            trim(lcoef(a))//' coefficient',
+     &    units = 'm-1',
      &    sched = sched_rad
      &       )
       enddo ! n
