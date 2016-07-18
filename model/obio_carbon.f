@@ -24,15 +24,6 @@ c
       use obio_com, only: co3_conc
 #endif
 
-#ifdef OBIO_RUNOFF
-#ifdef DOC_RUNOFF
-     .                    ,rdocconc_loc
-#endif
-#ifdef DIC_RUNOFF
-     .                    ,rdicconc_loc
-#endif
-#endif
-
       use obio_com, only: co2flux
 
       use TimeConstants_mod, only: SECONDS_PER_HOUR, DAYS_PER_YEAR,
@@ -48,10 +39,6 @@ c
       USE hycom_scalars, only : nstep
       use hycom_atm, only : ocnatm
       use obio_com, only: phav_loc
-#endif
-
-#ifdef OBIO_RUNOFF
-      USE OFLUXES, only:  oFLOWO
 #endif
 
       use runtimecontrols_mod, only: constco2, pco2_online
@@ -147,53 +134,16 @@ c
         term = dicresz*mgchltouMC * pnoice(k)
         rhs(k,14,15) = term
         C_tend(k,2) = C_tend(k,2) + term
-#ifdef noBIO
-        C_tend(k,2) = 0.d0
-#endif
 
         term = docbac * pnoice(k)
         rhs(k,14,14) = term
         C_tend(k,2) = C_tend(k,2) + term
-#ifdef noBIO
-        C_tend(k,2) = 0.d0
-#endif
      
         term = tfac(k)*remin(1)*det(k,1)/uMtomgm3 * pnoice(k)
         rhs(k,14,10) = term
         C_tend(k,2) = C_tend(k,2) + term
-#ifdef noBIO
-        C_tend(k,2) = 0.d0
-#endif
 
       enddo  !k=1,kmax
-
-#ifdef OBIO_RUNOFF
-#ifdef DOC_RUNOFF
-        term = rdocconc_loc(i,j)
-     .    * oFLOWO(i,j)/dtsrc          ! kg,C/kg,w => kg,C/m2,w/s
-     .    / dp1d(1)                    ! kg,C/m2,w/s => kg,C/m3,w/s
-     .    * 1.d6/12.                   ! kg,C/m3,w/s => mmol,C/m3,w/s
-     .    * 3600.                      ! mmol,C/m3,w/s => mmol,C/m3,w/hr
-        rhs(1,13,17) = term
-        C_tend(1,1) = C_tend(1,1) + term
-#endif
-#ifdef DIC_RUNOFF
-	term = rdicconc_loc(i,j)
-     .    * oFLOWO(i,j)/dtsrc          ! kg,C/kg,w => kg,C/m2,w/s
-     .    / dp1d(1)                    ! kg,C/m2,w/s => kg,C/m3,w/s
-     .    * 1.d6/12.                   ! kg,C/m3,w/s => mmol,C/m3,w/s
-     .    *3600.                       ! mmol,C/m3,w/s => mmol,C/m3,w/hr
-        rhs(1,14,17) = term
-        C_tend(1,2) = C_tend(1,2) + term
-
-
-	if (i.eq.169.and.j.eq.59) then
-	write(*,'(/,a,2i5,2e12.4)')'i,j,rdicconc,term:',
-     .  	i,j,rdicconc_loc(i,j),term
-	endif
-#endif
-#endif
-
 
 ! Phytoplankton components related to growth
       do k = 1,kmax
@@ -266,9 +216,6 @@ c
         term = -sumutk*mgchltouMC               !sink DIC by phyto growth
         rhs(k,14,6) = term
         C_tend(k,2) = C_tend(k,2) + term
-#ifdef noBIO
-        C_tend(k,2) = 0.d0
-#endif
 
       endif !tirrq>0
       enddo !k=1,kmax
@@ -319,16 +266,14 @@ c Update DIC for sea-air flux of CO2
       if (ocnatm%n_co2n>0) then
         k = 1
         term = co2flux               ! mol/m2/s
-     .     * SECONDS_PER_HOUR        ! mol/m2/hr
+!    .     * SECONDS_PER_HOUR        ! mol/m2/hr    !comment out to keep in /s   July 2016
      .     /dp1d(k)                  ! mol/m3/hr
-     .     * 1000.D0                 !units of uM/hr (=mili-mol/m3/hr)
+     .     * 1000.D0                 !units of uM/s (=mili-mol/m3/s)
                                      !do not mulitply by pnoice here, 
                                      !this is done in SURFACE.f (ptype)
         rhs(k,14,16) = term
         C_tend(k,2) = C_tend(k,2) + term
-#ifdef noBIO
-        C_tend(k,2) = term
-#endif
+
         if (vrbos) then
           write(*,'(a,3i7,3e12.4)')
      .      'obio_carbon (coupled):',
@@ -361,13 +306,10 @@ c Update DIC for sea-air flux of CO2
         xco2 = atmCO2*1013.D0/stdslp
         deltco2 = (xco2-pCO2_ij)*ff*1024.5*1d-6 !convert ff mol/m3/uatm
         flxmolm3 = (rkwco2*deltco2/dp1d(k))   !units of mol/m3/s
-        flxmolm3h = flxmolm3*SECONDS_PER_HOUR !units of mol/m3/hr
-        term = flxmolm3h*1000.D0*pnoice(k)    !units of uM/hr (=mili-mol/m^3/hr)
+!       flxmolm3h = flxmolm3*SECONDS_PER_HOUR !units of mol/m3/hr       July 2016
+        term = flxmolm3*1000.D0*pnoice(k)    !units of uM/s (=mili-mol/m^3/s)
         rhs(k,14,16) = term
         C_tend(k,2) = C_tend(k,2) + term
-#ifdef noBIO
-        C_tend(k,2) = term
-#endif
 
       !flux sign is (atmos-ocean)>0, i.e. positive flux is INTO the ocean
         co2flux= rkwco2*(xco2-pCO2_ij)*ff*1.0245D-3*pnoice(k)! air-sea co2 flux

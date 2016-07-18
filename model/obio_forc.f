@@ -7,9 +7,9 @@
 
       integer, ALLOCATABLE, DIMENSION(:,:) :: ihra            !counter for daylight hours
 
-      real, ALLOCATABLE, DIMENSION(:,:,:)  :: tirrq3d
+      real, ALLOCATABLE, DIMENSION(:,:,:)  :: tirrq3d         !total mean irradiance in quanta
       real, ALLOCATABLE, DIMENSION(:,:,:)  :: avgq            !mean daily irradiance in quanta
-      real, ALLOCATABLE, DIMENSION(:,:,:)  :: atmFe
+      real, ALLOCATABLE, DIMENSION(:,:,:)  :: atmFe           !atm Fe in nM
       real, ALLOCATABLE, DIMENSION(:,:)  :: surfN
       real, ALLOCATABLE, DIMENSION(:,:,:)  :: alk             !alkalinity in 'umol/kg'
 

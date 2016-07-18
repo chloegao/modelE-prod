@@ -34,37 +34,13 @@
      .                    ,obio_ws
      .                    ,cexp,flimit,kzc
      .                    ,rhs_obio,chng_by,Kpar,Edz,Esz,Euz
-     .                    ,delta_temp1d
+     .                    ,delta_temp1d,sday
 #ifdef TOPAZ_params
      .                    ,ca_det_calc1d
 #endif
       use obio_com, only: caexp
       use obio_com, only: build_ze
 
-#ifdef OBIO_RUNOFF
-#ifdef NITR_RUNOFF
-!      use obio_com, only: rnitrmflo_loc
-      use obio_com, only: rnitrconc_loc
-#endif
-#ifdef DIC_RUNOFF
-      use obio_com, only: rdicconc_loc
-#endif
-#ifdef DOC_RUNOFF
-      use obio_com, only: rdocconc_loc
-#endif
-#ifdef SILI_RUNOFF
-      use obio_com, only: rsiliconc_loc
-#endif
-#ifdef IRON_RUNOFF
-      use obio_com, only: rironconc_loc
-#endif
-#ifdef POC_RUNOFF
-      use obio_com, only: rpocconc_loc
-#endif
-#ifdef ALK_RUNOFF
-      use obio_com, only: ralkconc_loc
-#endif
-#endif
 #ifdef STANDALONE_OCEAN 
       USE obio_forc, only: Eda,Esa,Eda2,Esa2
 #endif
@@ -77,35 +53,11 @@
       USE obio_diag, only : ij_pCO2,ij_dic,ij_nitr,ij_diat
      .                 ,ij_amm,ij_sil,ij_chlo,ij_cyan,ij_cocc,ij_herb
      .                 ,ij_doc,ij_iron,ij_alk,ij_Ed,ij_Es,ij_pp,ij_dayl
-     .                 ,ij_cexp,ij_lim,ij_wsd,ij_ndet,ij_xchl
+     .                 ,ij_cexp,ij_lim,ij_sink,ij_setl,ij_ndet,ij_xchl
      .                 ,ij_sunz,ij_solz
      .                 ,ij_pp1,ij_pp2,ij_pp3,ij_pp4
      .                 ,ij_rhs,ij_flux,ij_fca
 
-#ifdef OBIO_RUNOFF
-#ifdef NITR_RUNOFF
-      USE obio_diag, only: ij_rnitrconc
-!     .                 ,ij_rnitrmflo
-#endif
-#ifdef DIC_RUNOFF
-      USE obio_diag, only: ij_rdicconc
-#endif
-#ifdef DOC_RUNOFF
-      USE obio_diag, only:  ij_rdocconc
-#endif
-#ifdef SILI_RUNOFF
-      USE obio_diag, only:  ij_rsiliconc
-#endif
-#ifdef IRON_RUNOFF
-      USE obio_diag, only:  ij_rironconc
-#endif
-#ifdef POC_RUNOFF
-      USE obio_diag, only:  ij_rpocconc
-#endif
-#ifdef ALK_RUNOFF
-      USE obio_diag, only:  ij_ralkconc
-#endif
-#endif
       USE obio_diag, only : oijl=>obio_ijl,ijl_avgq,ijl_kpar,ijl_dtemp
       use obio_diag, only: oij=>obio_ij
       use ocalbedo_mod, only: ocalbedo
@@ -437,10 +389,10 @@ cdiag.          olon_dg(i,1),olat_dg(j,1)
          tirrq(k)=tirrq3d(i,j,k)
 #ifdef TRACERS_Alkalinity
          nt=1
-         alk1d(k)=tracer(i,j,k,ntyp+n_inert+ndet+ncar+1)
+         alk1d(k)=tracer(i,j,k,ntyp+ndet+ncar+1)
 #ifdef TOPAZ_params
          nt=2
-         ca_det_calc1d(k)=tracer(i,j,k,ntyp+n_inert+ndet+ncar+nt)
+         ca_det_calc1d(k)=tracer(i,j,k,ntyp+ndet+ncar+nt)
 #endif
 #else
               !NOT for INTERACTIVE alk
@@ -459,14 +411,14 @@ cdiag.          olon_dg(i,1),olat_dg(j,1)
            acdom(k,nt)=acdom3d(i,j,k,nt)
          enddo
               !----daysetbio arrays----!
-         do nt=1,ntyp+n_inert
+         do nt=1,ntyp
            obio_P(k,nt)=tracer(i,j,k,nt)
          enddo
          do nt=1,ndet
-           det(k,nt)=tracer(i,j,k,ntyp+n_inert+nt)
+           det(k,nt)=tracer(i,j,k,ntyp+nt)
          enddo
          do nt=1,ncar
-           car(k,nt)=tracer(i,j,k,ntyp+n_inert+ndet+nt)
+           car(k,nt)=tracer(i,j,k,ntyp+ndet+nt)
          enddo
        enddo  !k=1,kdm or lmm
 
@@ -502,7 +454,7 @@ cdiag write(*,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
       !ensure that all massless layers have same concentration
       !as last mass one
       do k=kmax+1,kdm
-       do nt=1,ntyp+n_inert
+       do nt=1,ntyp
         if(obio_P(kmax,nt).le.0.)obio_P(kmax,nt)=1.e-8
         obio_P(k,nt)=obio_P(kmax,nt)
        enddo
@@ -566,9 +518,6 @@ cdiag write(*,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
 
        !atmospheric deposition iron 
        atmFe_ij=atmFe(i,j,month)
-#ifdef zero_ironflux
-        atmFe_ij=0.d0
-#endif
        if (vrbos) then
          write(*,'(/,a,3i5,4e12.4)')'obio_model, forcing: ',
      .   nstep,i,j,solz,sunz,wind,atmFe_ij
@@ -843,29 +792,12 @@ cdiag  endif
        !also do phyto sinking and detrital settling here
        !MUST CALL sinksettl BEFORE update
        call obio_sinksettl(vrbos,kmax,errcon,i,j)
-#ifdef noBIO
-       do k=1,kmax
-       P_tend(k,:)= 0.d0
-       C_tend(k,1)= 0.d0     !C_tend(k,2) not set to zero only flux term
-       D_tend(k,:)= 0.d0
-       obio_ws(k,:) = 0.d0
-       wsdet(k,:) = 0.d0
-       enddo
-#endif
+
        call obio_update(vrbos,kmax,i,j)
 #else
        !update biology from m to n level
        !also do phyto sinking and detrital settling here
        !MUST CALL sinksettl AFTER update
-#ifdef noBIO
-       do k=1,kmax
-       P_tend(k,:)= 0.d0
-       C_tend(k,1)= 0.d0     !C_tend(k,2) not set to zero only flux term
-       D_tend(k,:)= 0.d0
-       obio_ws(k,:) = 0.d0
-       wsdet(k,:) = 0.d0
-       enddo
-#endif
        call obio_update(vrbos,kmax,i,j)
        call obio_sinksettl(vrbos,kmax,errcon,i,j)
        if (errcon) then
@@ -910,8 +842,9 @@ cdiag     endif
      .                 rhs(k,nt,ll)*dp1d(k)    
       enddo  !k
 
+c     now all rates are in /s    July 2016
 c     if (vrbos) then
-c     write(*,'(a,5i5,1x,e20.13)')'rhs_obio (mass,trac/m2/hr):',
+c     write(*,'(a,5i5,1x,e20.13)')'rhs_obio (mass,trac/m2/s):',
 c    .   nstep,i,j,nt,ll,rhs_obio(i,j,nt,ll)
 c     endif
       enddo  !ntrac
@@ -962,7 +895,7 @@ c     endif
 
 c     call obio_chkbalances(vrbos,nstep,i,j)
 
-      do nt=1,ntrac-1   ! don't include unused inert tracer
+      do nt=1,ntrac
       do ll=1,17
       OIJ(I,J,IJ_rhs(nt,ll)) = OIJ(I,J,IJ_rhs(nt,ll))
      .                                    + rhs_obio(i,j,nt,ll)  ! all terms in rhs
@@ -998,21 +931,21 @@ c     call obio_chkbalances(vrbos,nstep,i,j)
 
        !update 3d tracer array
        do k=1,kmax
-        do nt=1,ntyp+n_inert
+        do nt=1,ntyp
          tracer(i,j,k,nt)=obio_P(k,nt)
         enddo
         do nt=1,ndet
-         tracer(i,j,k,ntyp+n_inert+nt)=det(k,nt)
+         tracer(i,j,k,ntyp+nt)=det(k,nt)
         enddo
         do nt=1,ncar
-         tracer(i,j,k,ntyp+n_inert+ndet+nt)=car(k,nt)
+         tracer(i,j,k,ntyp+ndet+nt)=car(k,nt)
         enddo
 #ifdef TRACERS_Alkalinity
          nt=1
-         tracer(i,j,k,ntyp+n_inert+ndet+ncar+nt)=alk1d(k)
+         tracer(i,j,k,ntyp+ndet+ncar+nt)=alk1d(k)
 #ifdef TOPAZ_params
          nt=2
-         tracer(i,j,k,ntyp+n_inert+ndet+ncar+nt)=ca_det_calc1d(k)
+         tracer(i,j,k,ntyp+ndet+ncar+nt)=ca_det_calc1d(k)
 #endif
 #endif
         !update avgq and gcmax arrays
@@ -1069,16 +1002,16 @@ c     call obio_chkbalances(vrbos,nstep,i,j)
           do nt=1,nchl
           do k=1,kdm
           if (nt.eq.1)pp2diat_day(i,j)
-     .       =pp2diat_day(i,j)+pp2_1d(k,1)*24.d0  !mg,C/m2/day
+     .       =pp2diat_day(i,j)+pp2_1d(k,1)   !mg,C/m2/day     !July 2016: pp2_1d is already mgC/m2/day in ptend.f
           if (nt.eq.2)pp2chlo_day(i,j)
-     .       =pp2chlo_day(i,j)+pp2_1d(k,2)*24.d0  !mg,C/m2/day
+     .       =pp2chlo_day(i,j)+pp2_1d(k,2)  !mg,C/m2/day
           if (nt.eq.3)pp2cyan_day(i,j)
-     .       =pp2cyan_day(i,j)+pp2_1d(k,3)*24.d0  !mg,C/m2/day
+     .       =pp2cyan_day(i,j)+pp2_1d(k,3)   !mg,C/m2/day
           if (nt.eq.4)pp2cocc_day(i,j)
-     .       =pp2cocc_day(i,j)+pp2_1d(k,4)*24.d0  !mg,C/m2/day
+     .       =pp2cocc_day(i,j)+pp2_1d(k,4)   !mg,C/m2/day
 
-              pp2tot_day(i,j)=pp2tot_day(i,j)+pp2_1d(k,nt)     !mg,C/m2/hr
-     &                                       * HOURS_PER_DAY   !->mg,C/m2/day
+              pp2tot_day(i,j)=pp2tot_day(i,j)+pp2_1d(k,nt)     !mg,C/m2/day
+!    &                                       * HOURS_PER_DAY   !->mg,C/m2/da
           enddo
           enddo
 !       endif
@@ -1097,15 +1030,15 @@ c     call obio_chkbalances(vrbos,nstep,i,j)
 
 !diagnostics
        if (solz.gt.0) then
-           OIJ(I,J,IJ_dayl) = OIJ(I,J,IJ_dayl) + 1.d0   !number of timesteps daylight   
+       OIJ(I,J,IJ_dayl) = OIJ(I,J,IJ_dayl) + 1.d0   !number of timesteps daylight   
        endif
        OIJ(I,J,IJ_solz) = OIJ(I,J,IJ_solz) + solz  !cos zenith angle
        OIJ(I,J,IJ_sunz) = OIJ(I,J,IJ_sunz) + sunz  !solar zenith angle in degrees  
 
-       OIJ(I,J,IJ_nitr) = OIJ(I,J,IJ_nitr) + tracer(i,j,1,1) ! surf ocean nitrates
-       OIJ(I,J,IJ_amm) = OIJ(I,J,IJ_amm) + tracer(i,j,1,2) ! surf ocean nitrates
-       OIJ(I,J,IJ_sil) = OIJ(I,J,IJ_sil) + tracer(i,j,1,3) ! surf ocean nitrates
-       OIJ(I,J,IJ_iron) = OIJ(I,J,IJ_iron) + tracer(i,j,1,4) ! surf ocean nitrates
+       OIJ(I,J,IJ_nitr) = OIJ(I,J,IJ_nitr) + tracer(i,j,1,1) ! surf ocean nitrate
+       OIJ(I,J,IJ_amm)  = OIJ(I,J,IJ_amm)  + tracer(i,j,1,2) ! surf ocean ammonium
+       OIJ(I,J,IJ_sil)  = OIJ(I,J,IJ_sil)  + tracer(i,j,1,3) ! surf ocean silicate
+       OIJ(I,J,IJ_iron) = OIJ(I,J,IJ_iron) + tracer(i,j,1,4) ! surf ocean iron    
 
        OIJ(I,J,IJ_diat) = OIJ(I,J,IJ_diat) + tracer(i,j,1,5) ! surf ocean diatoms
        OIJ(I,J,IJ_chlo) = OIJ(I,J,IJ_chlo) + tracer(i,j,1,6) ! surf ocean chlorophytes
@@ -1114,18 +1047,19 @@ c     call obio_chkbalances(vrbos,nstep,i,j)
        OIJ(I,J,IJ_herb) = OIJ(I,J,IJ_herb) + tracer(i,j,1,9) ! surf ocean herbivores
        OIJ(I,J,IJ_pp) = OIJ(I,J,IJ_pp) + pp2tot_day(i,j)     ! surf ocean pp
 
-       OIJ(I,J,IJ_pp1) = OIJ(I,J,IJ_pp1) + pp2diat_day(i,j)     ! ocean pp from diatoms
-       OIJ(I,J,IJ_pp2) = OIJ(I,J,IJ_pp2) + pp2chlo_day(i,j)     ! ocean pp from chlorophytes
-       OIJ(I,J,IJ_pp3) = OIJ(I,J,IJ_pp3) + pp2cyan_day(i,j)     ! ocean pp from cyanobacteria
-       OIJ(I,J,IJ_pp4) = OIJ(I,J,IJ_pp4) + pp2cocc_day(i,j)     ! ocean pp from coccolithophores
+       OIJ(I,J,IJ_pp1) = OIJ(I,J,IJ_pp1) + pp2diat_day(i,j)  ! ocean pp from diatoms
+       OIJ(I,J,IJ_pp2) = OIJ(I,J,IJ_pp2) + pp2chlo_day(i,j)  ! ocean pp from chlorophytes
+       OIJ(I,J,IJ_pp3) = OIJ(I,J,IJ_pp3) + pp2cyan_day(i,j)  ! ocean pp from cyanobacteria
+       OIJ(I,J,IJ_pp4) = OIJ(I,J,IJ_pp4) + pp2cocc_day(i,j)  ! ocean pp from coccolithophores
 
-       OIJ(I,J,IJ_doc) = OIJ(I,J,IJ_doc) + tracer(i,j,1,14) ! surf ocean doc
-       OIJ(I,J,IJ_dic) = OIJ(I,J,IJ_dic) + tracer(i,j,1,15) ! surf ocean dic
-       OIJ(I,J,IJ_pCO2) = OIJ(I,J,IJ_pCO2) + pCO2_ij*(1.-oice(i,j)) ! surf ocean pco2
+       OIJ(I,J,IJ_doc) = OIJ(I,J,IJ_doc) + tracer(i,j,1,14)  ! surf ocean doc
+       OIJ(I,J,IJ_dic) = OIJ(I,J,IJ_dic) + tracer(i,j,1,15)  ! surf ocean dic
+       OIJ(I,J,IJ_pCO2)= OIJ(I,J,IJ_pCO2)+ pCO2_ij*(1.-oice(i,j)) ! surf ocean pco2
 
        OIJ(I,J,IJ_cexp) = OIJ(I,J,IJ_cexp) + cexp             ! export production
        OIJ(I,J,IJ_ndet) = OIJ(I,J,IJ_ndet) + tracer(i,j,4,11) ! ndet at 74m
-       OIJ(I,J,IJ_wsd)= OIJ(I,J,IJ_wsd)+ wsdet(4,1)           ! sink. vel. n/cdet at 74m
+       OIJ(I,J,IJ_setl)= OIJ(I,J,IJ_setl)+ wsdet(4,1)          ! settl vel. n/cdet at 74m
+       OIJ(I,J,IJ_sink)= OIJ(I,J,IJ_sink)+ obio_ws(4,1)        ! sink. vel. phytoplankton
        if (4<=kmax) then
          OIJ(I,J,IJ_xchl) = OIJ(I,J,IJ_xchl)
      .              + tracer(i,j,4,5)*trmo_unit_factor(4,5)*obio_ws(4,1)
@@ -1146,31 +1080,6 @@ c     call obio_chkbalances(vrbos,nstep,i,j)
        enddo
 
        OIJ(I,J,IJ_flux) = OIJ(I,J,IJ_flux) + co2flux      !air-sea CO2 flux(watson)
-
-#ifdef OBIO_RUNOFF
-#ifdef NITR_RUNOFF
-!       OIJ(I,J,IJ_rnitrmflo) = OIJ(I,J,IJ_rnitrmflo)+rnitrmflo_loc(i,j)  ! riverine nitr mass flow from dC (kg/s)
-       OIJ(I,J,IJ_rnitrconc) = OIJ(I,J,IJ_rnitrconc)+rnitrconc_loc(i,j)  ! riverine nitr conc from dC (kg/kg)
-#endif
-#ifdef DIC_RUNOFF
-       OIJ(I,J,IJ_rdicconc) = OIJ(I,J,IJ_rdicconc)+rdicconc_loc(i,j)     ! riverine dic conc from dC (kg/kg)
-#endif
-#ifdef DOC_RUNOFF
-       OIJ(I,J,IJ_rdocconc) = OIJ(I,J,IJ_rdocconc)+rdocconc_loc(i,j)     ! riverine doc conc from dC (kg/kg)
-#endif
-#ifdef SILI_RUNOFF
-       OIJ(I,J,IJ_rsiliconc) = OIJ(I,J,IJ_rsiliconc)+rsiliconc_loc(i,j)  ! riverine silica conc from dC (kg/kg)
-#endif
-#ifdef IRON_RUNOFF
-       OIJ(I,J,IJ_rironconc) = OIJ(I,J,IJ_rironconc)+rironconc_loc(i,j)  ! riverine iron conc from dC (kg/kg)
-#endif
-#ifdef POC_RUNOFF
-       OIJ(I,J,IJ_rpocconc) = OIJ(I,J,IJ_rpocconc)+rpocconc_loc(i,j)     ! riverine poc conc from dC (kg/kg)
-#endif
-#ifdef ALK_RUNOFF
-       OIJ(I,J,IJ_ralkconc) = OIJ(I,J,IJ_ralkconc)+ralkconc_loc(i,j)     ! riverine alkalinity conc from A-S (mol/kg)
-#endif
-#endif
 
        if (tracers_alkalinity) then
          OIJ(I,J,IJ_alk) = OIJ(I,J,IJ_alk) + tracer(i,j,1,16)    ! surf ocean alkalinity
