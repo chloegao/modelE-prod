@@ -44,7 +44,7 @@ module CLOUDS
 
 #if defined(TRACERS_AEROSOLS_Koch) || defined(TRACERS_AMP) || defined(TRACERS_TOMAS)
   use TRACER_COM, only: aqchem_list,aqchem_count
-#endif  /* TRACERS_{AEROSOLS_Koch,AMP,TOMAS}
+#endif  /* TRACERS_{AEROSOLS_Koch,AMP,TOMAS} */
 
 #else  /* NOT TRACERS_WATER */
 
@@ -718,7 +718,7 @@ contains
     real*8 WA_VOL
     real*8, dimension(aqchem_count) ::SULFIN,SULFINOM,SULFINC, SULFOUT,TR_LEFT
     integer :: IAQCH
-#endif  /* TRACERS_{AEROSOLS_Koch,AMP,TOMAS}
+#endif  /* TRACERS_{AEROSOLS_Koch,AMP,TOMAS} */
 
 #endif  /* TRACERS_WATER */
 
@@ -885,7 +885,7 @@ contains
 
 #if defined(TRACERS_AEROSOLS_Koch) || defined(TRACERS_AMP) || defined(TRACERS_TOMAS)
     DT_SULF_MC(1:NTM,:)=0.
-#endif  /* TRACERS_{AEROSOLS_Koch,AMP,TOMAS}
+#endif  /* TRACERS_{AEROSOLS_Koch,AMP,TOMAS} */
 
 #endif  /* TRACERS_WATER */
 
