@@ -18,19 +18,10 @@ c
      .                      ,mgchltouMC,bf
       USE obio_forc, only: wind,tirrq
       USE obio_com, only : C_tend,obio_P,P_tend,car
-     .                    ,tfac,det,D_tend,tzoo,pnoice,pCO2_ij
+     .                    ,tfac,det,D_tend,tzoo,pnoice,pCO2_ij,pHsfc
      .                    ,temp1d,saln1d,dp1d,rhs,alk1d
 #ifdef TRACERS_Alkalinity
       use obio_com, only: co3_conc
-#endif
-
-#ifdef OBIO_RUNOFF
-#ifdef DOC_RUNOFF
-     .                    ,rdocconc_loc
-#endif
-#ifdef DIC_RUNOFF
-     .                    ,rdicconc_loc
-#endif
 #endif
 
       use obio_com, only: co2flux
@@ -50,12 +41,9 @@ c
       use obio_com, only: phav_loc
 #endif
 
-#ifdef OBIO_RUNOFF
-      USE OFLUXES, only:  oFLOWO
-#endif
-
       use runtimecontrols_mod, only: constco2, pco2_online
       use dictionary_mod, only: get_param
+      use domain_decomp_1d, only: am_i_root
 
       implicit none
 
@@ -72,7 +60,6 @@ c
       real  :: docexcp(nchl),dicresp(nchl),scco2,scco2arg,wssq,rkwco2
       real  :: Ts,tk,tk100,tk1002,ff,xco2,deltco2,flxmolm3,flxmolm3h
       real  :: gro(kdm,nchl)
-      real  :: pHsfc            !pH at surface
       real term
       real bs
       real, save :: atmco2=-1.
@@ -147,53 +134,16 @@ c
         term = dicresz*mgchltouMC * pnoice(k)
         rhs(k,14,15) = term
         C_tend(k,2) = C_tend(k,2) + term
-#ifdef noBIO
-        C_tend(k,2) = 0.d0
-#endif
 
         term = docbac * pnoice(k)
         rhs(k,14,14) = term
         C_tend(k,2) = C_tend(k,2) + term
-#ifdef noBIO
-        C_tend(k,2) = 0.d0
-#endif
      
         term = tfac(k)*remin(1)*det(k,1)/uMtomgm3 * pnoice(k)
         rhs(k,14,10) = term
         C_tend(k,2) = C_tend(k,2) + term
-#ifdef noBIO
-        C_tend(k,2) = 0.d0
-#endif
 
       enddo  !k=1,kmax
-
-#ifdef OBIO_RUNOFF
-#ifdef DOC_RUNOFF
-        term = rdocconc_loc(i,j)
-     .    * oFLOWO(i,j)/dtsrc          ! kg,C/kg,w => kg,C/m2,w/s
-     .    / dp1d(1)                    ! kg,C/m2,w/s => kg,C/m3,w/s
-     .    * 1.d6/12.                   ! kg,C/m3,w/s => mmol,C/m3,w/s
-     .    * 3600.                      ! mmol,C/m3,w/s => mmol,C/m3,w/hr
-        rhs(1,13,17) = term
-        C_tend(1,1) = C_tend(1,1) + term
-#endif
-#ifdef DIC_RUNOFF
-	term = rdicconc_loc(i,j)
-     .    * oFLOWO(i,j)/dtsrc          ! kg,C/kg,w => kg,C/m2,w/s
-     .    / dp1d(1)                    ! kg,C/m2,w/s => kg,C/m3,w/s
-     .    * 1.d6/12.                   ! kg,C/m3,w/s => mmol,C/m3,w/s
-     .    *3600.                       ! mmol,C/m3,w/s => mmol,C/m3,w/hr
-        rhs(1,14,17) = term
-        C_tend(1,2) = C_tend(1,2) + term
-
-
-	if (i.eq.169.and.j.eq.59) then
-	write(*,'(/,a,2i5,2e12.4)')'i,j,rdicconc,term:',
-     .  	i,j,rdicconc_loc(i,j),term
-	endif
-#endif
-#endif
-
 
 ! Phytoplankton components related to growth
       do k = 1,kmax
@@ -266,49 +216,28 @@ c
         term = -sumutk*mgchltouMC               !sink DIC by phyto growth
         rhs(k,14,6) = term
         C_tend(k,2) = C_tend(k,2) + term
-#ifdef noBIO
-        C_tend(k,2) = 0.d0
-#endif
 
       endif !tirrq>0
       enddo !k=1,kmax
 
 c pCO2
       if (pco2_online) then
-      !this ppco2 routine comes from OCMIP. I am not using psurf
+        !this ppco2 routine comes from OCMIP. I am not using psurf
       !and thus not compute dtco2 because these are computed in PBL
       !for the case of gasexch and progn. atmco2, atmco2=dummy
         if (atmco2<0.) then    ! uninitialized
           if (constco2) then
-            call get_param("atmCO2", atmco2)
-            print*, 'atmCO2=', atmco2
+            call get_param("atmCO2", atmco2)    
+            if (AM_I_ROOT())print*, 'atmCO2=', atmco2
           else
             atmco2=0.
           endif
         endif
-        call ppco2(temp1d(1),saln1d(1),car(1,2),alk1d(1),
-     .           obio_P(1,1),obio_P(1,3),atmCO2,
-     .           pCO2_ij,pHsfc)
 
-!note: pco2 is computed as if it is 100% open ocean cell. This is why
-!in the flux computation below we need to take into account pnoice
-!also in the diagnostics
-
-!     !limits on pco2 ---more work needed
-! ppco2 does not handle well the extreme salinity cases, such as
-! when ice melts/forms, in river outflows.
-        if (saln1d(1).ge.40. .and. pCO2_ij.lt.100.)pCO2_ij=100.
-        if (saln1d(1).le.31. .and. pCO2_ij.gt.800.)pCO2_ij=800.
-        if (pCO2_ij .lt. 100.) pCO2_ij=100.
-        if (pCO2_ij .gt.1000.) pCO2_ij=1000.
-
-        if(vrbos)then
-          write(*,'(a,3i5,9e12.4)')
-     .      'carbon: ONLINE',nstep,i,j,temp1d(1),saln1d(1),
-     .                 car(1,2),alk1d(1),
-     .                 obio_P(1,1),obio_P(1,3),pCO2_ij,
-     .                 pHsfc,pnoice(1)
-        endif
+        call compute_pco2_online(nstep,i,j,atmco2,
+     .            temp1d(1),saln1d(1),car(1,2),alk1d(1),
+     .            obio_P(1,1),obio_P(1,3),pnoice(1),
+     .            pco2_ij,pHsfc,vrbos)
 
       else
 
@@ -337,16 +266,14 @@ c Update DIC for sea-air flux of CO2
       if (ocnatm%n_co2n>0) then
         k = 1
         term = co2flux               ! mol/m2/s
-     .     * SECONDS_PER_HOUR        ! mol/m2/hr
+!    .     * SECONDS_PER_HOUR        ! mol/m2/hr    !comment out to keep in /s   July 2016
      .     /dp1d(k)                  ! mol/m3/hr
-     .     * 1000.D0                 !units of uM/hr (=mili-mol/m3/hr)
+     .     * 1000.D0                 !units of uM/s (=mili-mol/m3/s)
                                      !do not mulitply by pnoice here, 
                                      !this is done in SURFACE.f (ptype)
         rhs(k,14,16) = term
         C_tend(k,2) = C_tend(k,2) + term
-#ifdef noBIO
-        C_tend(k,2) = term
-#endif
+
         if (vrbos) then
           write(*,'(a,3i7,3e12.4)')
      .      'obio_carbon (coupled):',
@@ -379,13 +306,10 @@ c Update DIC for sea-air flux of CO2
         xco2 = atmCO2*1013.D0/stdslp
         deltco2 = (xco2-pCO2_ij)*ff*1024.5*1d-6 !convert ff mol/m3/uatm
         flxmolm3 = (rkwco2*deltco2/dp1d(k))   !units of mol/m3/s
-        flxmolm3h = flxmolm3*SECONDS_PER_HOUR !units of mol/m3/hr
-        term = flxmolm3h*1000.D0*pnoice(k)    !units of uM/hr (=mili-mol/m^3/hr)
+!       flxmolm3h = flxmolm3*SECONDS_PER_HOUR !units of mol/m3/hr       July 2016
+        term = flxmolm3*1000.D0*pnoice(k)    !units of uM/s (=mili-mol/m^3/s)
         rhs(k,14,16) = term
         C_tend(k,2) = C_tend(k,2) + term
-#ifdef noBIO
-        C_tend(k,2) = term
-#endif
 
       !flux sign is (atmos-ocean)>0, i.e. positive flux is INTO the ocean
         co2flux= rkwco2*(xco2-pCO2_ij)*ff*1.0245D-3*pnoice(k)! air-sea co2 flux
@@ -406,6 +330,41 @@ c Update DIC for sea-air flux of CO2
 
       return
       end subroutine obio_carbon
+
+c ---------------------------------------------------------------------------
+      subroutine compute_pco2_online(nstep,i,j,atmco2,
+     .            T,S,dic,alk,nitr,sili,pnoice,
+     .            pco2,pH,vrbos)
+
+      implicit none
+
+      integer nstep,i,j
+      real, intent(in) :: T, S, dic, nitr, sili, alk, pnoice, atmco2
+      real, intent(inout):: pco2,pH
+      logical vrbos
+
+        call ppco2(T,S,dic,alk,nitr,sili,atmCO2,pCO2,pH)
+
+!note: pco2 is computed as if it is 100% open ocean cell. This is why
+!in the flux computation below we need to take into account pnoice
+!also in the diagnostics
+
+!     !limits on pco2 ---more work needed
+! ppco2 does not handle well the extreme salinity cases, such as
+! when ice melts/forms, in river outflows.
+        if (S.ge.40. .and. pCO2.lt.100.)pCO2=100.
+        if (S.le.31. .and. pCO2.gt.800.)pCO2=800.
+        if (pCO2 .lt. 100.) pCO2=100.
+        if (pCO2 .gt.1000.) pCO2=1000.
+
+        if(vrbos)then
+          write(*,'(a,3i5,9e12.4)')
+     .      'carbon: ONLINE',
+     .      nstep,i,j,T,S,dic,alk,nitr,sili,pCO2,pH,pnoice
+        endif
+
+        return
+        end subroutine compute_pco2_online
 
 c ---------------------------------------------------------------------------
       subroutine ppco2tab(T,S,car1D,TA,pco21D)

@@ -1612,6 +1612,7 @@ C     OUTPUT DATA
 #ifdef TRACERS_ON
       use rad_com, only: ttausv_as,ttausv_cs,nraero_rf
 #ifdef CACHED_SUBDD
+      USE CONSTANT, only : grav,Rgas 
       use rad_com, only: tabssv_as,tabssv_cs,swfrc,lwfrc
       use RunTimeControls_mod, only: tracers_amp, tracers_tomas
 #endif  /* CACHED_SUBDD */
@@ -1702,6 +1703,7 @@ C     OUTPUT DATA
       USE ATM_COM, only : QCL
 #endif
       IMPLICIT NONE
+      real*8 dz,rho
 C
 #ifdef SCM
       real*8 q_above(LM+1),q_below(LM+1),Frad(LM+1)
@@ -3821,6 +3823,7 @@ C****
 
 #ifdef TRACERS_ON
 
+
 ! aod
       do g=1,size(sgroups)
       call find_groups(sgroups(g),grpids,ngroups)
@@ -3847,6 +3850,7 @@ C****
           else
             spcname = ''
           endif
+          !aod
           sname = trim(spcname)//trim(ssky(s))//trim(sabs(a))//'aod'
           if (trim(sgroups(g))=='taijlh') sname=trim(sname)//'3d'
           if (trim(sname)==trim(subdd%name(k))) then ! not select case here
@@ -3862,6 +3866,29 @@ C****
               case ('taijlh')
                 call inc_subdd(subdd,k,sddarr3d)
             end select
+          endif
+          !bext (bcoef) or babs (abcoef)
+          if (trim(sgroups(g))=='taijlh') then
+            sname = trim(spcname)//trim(ssky(s))//trim(sabs(a))//
+     *              'bcoef3d'
+            if (trim(sname)==trim(subdd%name(k))) then ! not select case here
+              if (n<=nraero_aod) then
+                sddarr3d=sddarr4d(:,:,:,n)
+              else
+                sddarr3d=sum(sddarr4d,dim=4)
+              endif
+              do j=j_0,j_1 
+                 do i=i_0,imaxj(j)
+                    do l=1,lm
+                       tlm(l) = T(i,j,l)*pk(l,i,j)
+                       rho = pmid(l,i,j)*100./(Rgas*tlm(l))
+                       dz = ma(l,i,j)/rho
+                       sddarr3d(i,j,l) = sddarr3d(i,j,l)/dz
+                    enddo
+                 enddo
+              enddo
+              call inc_subdd(subdd,k,sddarr3d)
+            endif
           endif
         enddo ! n
       enddo ! a

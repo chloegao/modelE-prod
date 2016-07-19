@@ -694,6 +694,7 @@ C**** surface tracer concentration
         atm%chl_defined=.true.
       endif
 
+#ifndef STANDALONE_OCEAN
 !partial CO2 pressure in seawater. Units are uatm.
 !defined only over open ocean cells, because this is what is
 !involved in gas exchage with the atmosphere.
@@ -728,6 +729,7 @@ C**** surface tracer concentration
 
         deallocate(opgas_loc)
       endif
+#endif
 #endif
 
       DEALLOCATE(oTOT_CHLO_loc)
@@ -783,7 +785,9 @@ C**** do poles
           atm%VOSURF(I,J_1) = atm%VOSURF(1,J_1)
           atm%OGEOZA(I,J_1) = atm%OGEOZA(1,J_1)
 #if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
+#ifndef STANDALONE_OCEAN
           atm%GTRACER(:,I,J_1)=atm%GTRACER(:,1,J_1)
+#endif
 #endif
         END DO
       END IF
@@ -801,7 +805,9 @@ C**** do poles
           atm%VOSURF(I,1) = atm%VOSURF(1,1)
           atm%OGEOZA(I,1) = atm%OGEOZA(1,1)
 #if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
+#ifndef STANDALONE_OCEAN
           atm%GTRACER(:,I,1)=atm%GTRACER(:,1,1)
+#endif
 #endif
         END DO
       END IF

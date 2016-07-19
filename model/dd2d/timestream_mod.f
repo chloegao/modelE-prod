@@ -597,6 +597,12 @@ c
      &         'read_stream: empty input directory',255)
         endif
 
+        ! Apparently there is no guarantee that stFileList will report
+        ! YYYY.nc files in ascending year order, so sort post-hoc
+        if(nfileyrs.gt.1) then
+          call mergesort(nfileyrs,fileyrs)
+        endif
+
       endif ! fbase is directory or not
 !#endif IN_MODELE
 
@@ -792,6 +798,55 @@ c
       allocate(tstream%qty(I_0:I_1,J_0:J_1,LM,M1:M2))
       tstream%qty = 0.
       end subroutine check_metadata
+
+      subroutine mergesort(n,arr)
+      implicit none
+      integer :: n
+      integer, dimension(n) :: arr
+      integer, dimension(:), allocatable :: arr1
+      integer :: i,ii,di,nn,ipass,npass,i1,i2,i1max,i2max
+      allocate(arr1(n))
+      di = 1
+      npass = 0
+      do while(di.lt.n)
+        npass = npass + 1
+        di = 2*di
+      enddo
+      di = 1
+      do ipass=1,npass
+        di = di*2
+        nn = 0
+        i1 = 1
+        do i=1,n,di
+          i2 = min(i1+di/2,n+1)
+          i1max = i2-1
+          i2max = min(i+di-1,n)
+          do ii=1,min(di,n-i+1)
+            nn = nn + 1
+            if(i1.gt.i1max) then
+              arr1(nn) = arr(i2)
+              i2 = i2 + 1
+            elseif(i2.gt.i2max) then
+              arr1(nn) = arr(i1)
+              i1 = i1 + 1
+            elseif(arr(i1).lt.arr(i2)) then
+              arr1(nn) = arr(i1)
+              i1 = i1 + 1
+            else
+              arr1(nn) = arr(i2)
+              i2 = i2 + 1
+            endif
+          enddo
+          i1 = i2max + 1
+        enddo
+        arr(:) = arr1(:)
+      enddo
+      do i=1,n-1
+        if(arr(i).gt.arr(i+1)) then
+          stop 'bad mergesort'
+        endif
+      enddo
+      end subroutine mergesort
 
       subroutine read_stream_netcdf(grid,tstream,jyear,jmon)
 !@sum read_stream_netcdf reads one year of qty

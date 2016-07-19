@@ -190,21 +190,6 @@ c          endif
 c          tracer(i,j,k,nt) = 0.05*50.0  !in C units mg/m3
           enddo
 
-          !inert tracer
-          do nt = ntyp+1,ntyp+n_inert
-           tracer(i,j,k,nt) = tracer(i,j,k,1)
-          enddo
-
-          !DIC
-          !read earlier from file
-#ifdef limitDIC1
-!!!       dic(i,j,k)=dmax1(1837d0,0.99*dic(i,j,k))  !!! g6hh
-          dic(i,j,k)=dmax1(1837d0,1.005*dic(i,j,k))  !!! g6hh2
-#endif
-#ifdef limitDIC2
-          dic(i,j,k)=dmax1(1837d0,1.002*dic(i,j,k))  !!! g6hh3
-#endif
-
          enddo
       end do
       end do
@@ -221,12 +206,12 @@ c  Detritus (set to 0 for start up)
          do k=1,kdm
            if (ze(i,j,k)>ze(i,j,k-1)) then
            !only detritus components
-             tracer(i,j,k,ntyp+n_inert+1) = tracer(i,j,k,1)*0.25*cnratio !as carbon
-             tracer(i,j,k,ntyp+n_inert+2) = tracer(i,j,k,3)*0.1
-             tracer(i,j,k,ntyp+n_inert+3) = tracer(i,j,k,4)*0.25
-             tracer(i,j,k,ntyp+n_inert+1) = 0.0
-             tracer(i,j,k,ntyp+n_inert+2) = 0.0
-             tracer(i,j,k,ntyp+n_inert+3) = 0.0
+             tracer(i,j,k,ntyp+1) = tracer(i,j,k,1)*0.25*cnratio !as carbon
+             tracer(i,j,k,ntyp+2) = tracer(i,j,k,3)*0.1
+             tracer(i,j,k,ntyp+3) = tracer(i,j,k,4)*0.25
+             tracer(i,j,k,ntyp+1) = 0.0
+             tracer(i,j,k,ntyp+2) = 0.0
+             tracer(i,j,k,ntyp+3) = 0.0
           endif
          enddo
         enddo
@@ -242,8 +227,8 @@ c    conversion from uM to mg/m3
       do j=j_0,j_1
        do i=i_0,i_1
          do k=1,kdm
-          tracer(i,j,k,ntyp+n_inert+ndet+1) = 0.0
-          tracer(i,j,k,ntyp+n_inert+ndet+2) = 0.0
+          tracer(i,j,k,ntyp+ndet+1) = 0.0
+          tracer(i,j,k,ntyp+ndet+2) = 0.0
          enddo
        enddo
       enddo
@@ -253,7 +238,7 @@ c    conversion from uM to mg/m3
        do i=i_0,i_1
          if (ip(i,j)==0) cycle
          do k = 1,kdm
-          tracer(i,j,k,ntyp+n_inert+ndet+2) = dic(i,j,k)
+          tracer(i,j,k,ntyp+ndet+2) = dic(i,j,k)
      .       * 1024.5 * 0.001                               ! convert micromole/kg to mili-mol/m3
          enddo
 c         car(i,j,k,1) = 3.0  !from Bissett et al 1999 (uM(C))

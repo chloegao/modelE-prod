@@ -6,6 +6,7 @@
 
       USE obio_dim
       use ocalbedo_mod, only: nlt
+!     USE Constant, only: sday     ! sday=86400.0    !seconds per day
 
 #ifdef OBIO_ON_GARYocean
       USE OCEANRES, only : kdm=>lmo
@@ -35,33 +36,6 @@ c
       real, ALLOCATABLE, DIMENSION(:,:)    :: tot_chlo      !tot chlorophyl at surf. layer
       real, ALLOCATABLE, DIMENSION(:,:,:,:):: rhs_obio      !rhs matrix
       real, ALLOCATABLE, DIMENSION(:,:,:)  :: chng_by       !integr tendency for total C
-
-#ifdef OBIO_RUNOFF
-
-#ifdef NITR_RUNOFF
-!      real, ALLOCATABLE, DIMENSION(:,:)    :: rnitrmflo_loc      ! riverine nitrate mass flow rate (kg/s)
-      real, ALLOCATABLE, DIMENSION(:,:)    :: rnitrconc_loc      ! riverine nitrate concentration (kg/kg)
-#endif
-#ifdef DIC_RUNOFF
-      real, ALLOCATABLE, DIMENSION(:,:)    :: rdicconc_loc       ! riverine dic concentration (kg/kg)
-#endif
-#ifdef DOC_RUNOFF
-      real, ALLOCATABLE, DIMENSION(:,:)    :: rdocconc_loc       ! riverine doc concentration (kg/kg)
-#endif 
-#ifdef SILI_RUNOFF
-      real, ALLOCATABLE, DIMENSION(:,:)    :: rsiliconc_loc      ! riverine silica concentration (kg/kg)
-#endif
-#ifdef IRON_RUNOFF
-      real, ALLOCATABLE, DIMENSION(:,:)    :: rironconc_loc      ! riverine iron concentration (kg/kg)
-#endif
-#ifdef POC_RUNOFF
-      real, ALLOCATABLE, DIMENSION(:,:)    :: rpocconc_loc       ! riverine poc concentration (kg/kg)
-#endif
-#ifdef ALK_RUNOFF
-      real, ALLOCATABLE, DIMENSION(:,:)    :: ralkconc_loc       ! riverine alkalinity concentration (mol/kg)
-#endif
-
-#endif
 
 #ifndef OBIO_ON_GARYocean   /* NOT for Russell ocean */
       real, ALLOCATABLE, DIMENSION(:,:) :: pCO2av, pCO2av_loc
@@ -104,15 +78,18 @@ c
 
       integer, parameter :: EUZ_DEFINED=1
 
-
+      real, parameter :: sday=86400.0
       real, parameter :: rlamz=1.0            !Ivlev constant
       real, parameter :: greff=0.25           !grazing efficiency     
-      real, parameter :: drate=0.05/24.0      !phytoplankton death rate/hr
-      real, parameter :: dratez1=0.1/24.0     !zooplankton death rate/hr
-      real, parameter :: dratez2=0.5/24.0     !zooplankton death rate/hr
+!     real, parameter :: drate=0.05/24.0      !phytoplankton death rate/hr
+      real, parameter :: drate=0.05/sday      !phytoplankton death rate/s    !July 2016
+!     real, parameter :: dratez1=0.1/24.0     !zooplankton death rate/hr
+      real, parameter :: dratez1=0.1/sday     !zooplankton death rate/s      !July 2016
+!     real, parameter :: dratez2=0.5/24.0     !zooplankton death rate/hr
+      real, parameter :: dratez2=0.5/sday     !zooplankton death rate/s      !July 2016
       real, parameter :: regen=0.25           !regeneration fraction
 
-      real ::  obio_deltath,obio_deltat       !time steps in hours because all rates are in hrs
+      real ::  obio_deltath,obio_deltat       !time steps in s  !July 2016
       real ::  co2mon(26,12)        !26 years 1979-2004, 12 months
 
       integer npst,npnd   !starting and ending array index for PAR
@@ -124,7 +101,7 @@ c
       integer ihra_ij
 
       real cexp, caexp
-      real temp1d(kdm),dp1d(kdm),obio_P(kdm,ntyp+n_inert)
+      real temp1d(kdm),dp1d(kdm),obio_P(kdm,ntyp)
      .                 ,det(kdm,ndet),car(kdm,ncar),avgq1d(kdm)
      .                 ,gcmax1d(kdm),saln1d(kdm),p1d(kdm+1)
      .                 ,alk1d(kdm),flimit(kdm,nchl,5)
@@ -135,38 +112,12 @@ c
                                           !for daylight 
                                           !in i and j directions
       real acdom(kdm,nlt)                 !absorption coefficient of CDOM
-      real P_tend(kdm,ntyp+n_inert)       !bio tendency (dP/dt)
+      real P_tend(kdm,ntyp)               !bio tendency (dP/dt)
 
 #ifdef TRACERS_Alkalinity
       real A_tend(kdm), co3_conc
       real ca_det_calc1d(kdm),Ca_tend(kdm)
 #endif
-#ifdef OBIO_RUNOFF
-
-#ifdef NITR_RUNOFF
-      real rnitrconc_ij
-!     .    , rnitrmflo_ij
-#endif
-#ifdef DIC_RUNOFF
-      real rdicconc_ij
-#endif
-#ifdef DOC_RUNOFF
-      real rdocconc_ij
-#endif
-#ifdef SILI_RUNOFF
-      real rsiliconc_ij
-#endif
-#ifdef IRON_RUNOFF
-      real rironconc_ij
-#endif
-#ifdef POC_RUNOFF
-      real rpocconc_ij
-#endif
-#ifdef ALK_RUNOFF
-      real ralkconc_ij
-#endif
-#endif
-
       real rmuplsr(kdm,nchl)                  !growth+resp 
       real D_tend(kdm,ndet)                   !detrtial tendency
       real obio_ws(kdm+1,nchl)                !phyto sinking rate
@@ -182,14 +133,11 @@ C if NCHL_DEFINED > 3
 C endif
 
       real :: C_tend(kdm,ncar)                !carbon tendency
-      real :: pCO2_ij                         !partial pressure of CO2
+      real :: pCO2_ij,pHsfc                   !partial pressure of CO2, pH
       real :: gro(kdm,nchl)                   !realized growth rate
       integer :: day_of_month, hour_of_day
 
       real :: rhs(kdm,ntrac,17)         !secord arg-refers to tracer definition 
-                                        !we are not using n_inert (always ntrac-1)
-                                        !second argument refers to process that
-                                        !contributes to tendency 
 
       real :: pp2_1d(kdm,nchl)          !net primary production
 
@@ -198,6 +146,7 @@ C endif
       real*8 :: carb_old,iron_old    !prev timesetep total carbon inventory
 
 #ifdef restoreIRON
+!this is an AR5 preprocessor option
 !per year change dI/I, + for sink, - for source
       !!!real*8 :: Iron_BC = 0.002
       real*8 :: Iron_BC = -0.005
@@ -286,7 +235,8 @@ C endif
       integer, public :: ij_solz, ij_sunz, ij_dayl, ij_ed, ij_es,
      &   ij_nitr, ij_amm, ij_sil, ij_iron, ij_diat, ij_chlo, ij_cyan,
      &   ij_cocc, ij_herb, ij_doc, ij_dic, ij_pco2, ij_alk, ij_flux,
-     &   ij_cexp, ij_ndet, ij_wsd, ij_xchl, ij_fca, ij_rnitrmflo,
+     &   ij_cexp, ij_ndet, ij_setl, ij_sink, ij_xchl, ij_fca, 
+     &   ij_rnitrmflo,
      &   ij_rnitrconc, ij_rdicconc, ij_rdocconc, ij_rsiliconc,
      &   ij_rironconc, ij_rpocconc, ij_ralkconc, ij_pp, ij_lim(4, 5),
      &   ij_rhs(ntrac-1, 17), ij_pp1, ij_pp2, ij_pp3, ij_pp4, ij_co3,
@@ -596,31 +546,6 @@ c**** Extract domain decomposition info
       ALLOCATE(tot_chlo(i_0:i_1,j_0:j_1))
       ALLOCATE(rhs_obio(i_0:i_1,j_0:j_1,ntrac,17))
       ALLOCATE(chng_by(i_0:i_1,j_0:j_1,14))
-
-#ifdef OBIO_RUNOFF
-#ifdef NITR_RUNOFF
-!      ALLOCATE(rnitrmflo_loc(i_0:i_1,j_0:j_1))
-      ALLOCATE(rnitrconc_loc(i_0:i_1,j_0:j_1))
-#endif
-#ifdef DIC_RUNOFF
-      ALLOCATE(rdicconc_loc(i_0:i_1,j_0:j_1))
-#endif
-#ifdef DOC_RUNOFF
-      ALLOCATE(rdocconc_loc(i_0:i_1,j_0:j_1))
-#endif
-#ifdef SILI_RUNOFF
-      ALLOCATE(rsiliconc_loc(i_0:i_1,j_0:j_1))
-#endif
-#ifdef IRON_RUNOFF
-      ALLOCATE(rironconc_loc(i_0:i_1,j_0:j_1))
-#endif
-#ifdef POC_RUNOFF
-      ALLOCATE(rpocconc_loc(i_0:i_1,j_0:j_1))
-#endif
-#ifdef ALK_RUNOFF
-      ALLOCATE(ralkconc_loc(i_0:i_1,j_0:j_1))
-#endif
-#endif
 
 #ifndef OBIO_ON_GARYocean   /* NOT for Russell ocean */
       ALLOCATE(pCO2av(ogrid%im_world,ogrid%jm_world))
