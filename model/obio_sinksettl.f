@@ -31,7 +31,7 @@
 
 #ifdef OBIO_ON_GARYocean
 
-!the sinking term is given in units (m/hr)*(mgr,chl/m3)
+!originally: the sinking term is given in units (m/hr)*(mgr,chl/m3)
 !in order to be converted into mgr,chl/m3/hr as the tendency
 !terms are in the phytoplankton equations, 
 !we need to multiply by dz of each layer:
@@ -39,6 +39,7 @@
 !  dz(k+1) * P_tend(k+1) = dz(k+1) * P_tend(k+1) + trnd
 !this way we ensure conservation of tracer after vertical adjustment
 !the /hr factor is bcz the obio timestep is in hrs.
+! now: all terms in /s, hence tendencies in /s. July 2016
 
       !phyto sinking
       do nt = nnut+1,ntyp-nzoo
@@ -89,7 +90,6 @@
       enddo ! nt
 
 #else     /* HYCOM */
-#ifndef noBIO            /****** for all runs except noBIO tests ********/
       if (kmax.le.1) return
 
 
@@ -97,7 +97,7 @@
        do nt=1,nchl
 
           do k=kmax+1,2,-1
-            !obio_ws is in m/hr
+            !obio_ws is in m/s   July 2016
             obio_ws(k,nt)=.5*(obio_ws(k,nt)+obio_ws(k-1,nt))
           end do
           obio_ws(     1,nt)=0.                !  no flux through sea surface
@@ -106,7 +106,8 @@
           !and convert to distance (m/timestep)
           do k=1,kmax
              obio_ws(k,nt)=min(obio_ws(k,nt),p1d(kmax+1)-p1d(k))
-     .                    * baclin/SECONDS_PER_HOUR
+!    .                    * baclin/SECONDS_PER_HOUR
+     .                    * baclin        !July 2016
           enddo
 
            do k=1,kmax
@@ -145,7 +146,8 @@
           !and convert to distance
           do k=1,kmax
              wsdet(k,nt)=min(wsdet(k,nt),p1d(kmax+1)-p1d(k))
-     .                  *baclin/SECONDS_PER_HOUR
+!    .                  *baclin/SECONDS_PER_HOUR
+     .                  *baclin
           enddo
 !need to change that (?) and create an array that will actually
 !hold the excess stuff (sediment array) to be used in
@@ -176,9 +178,6 @@
 
        end do  !ndet
 
-#else /* noBIO */
-       errcon = .false.
-#endif /* noBIO */
 #endif /* OBIO_ON_GARYocean */
 
       !diagnostic for carbon export at compensation depth
@@ -189,6 +188,7 @@
      .        + obio_P(k,nt)*obio_ws(k,nt-nnut)   
      .        * mgchltouMC              
      .        * 12.d0              
+     .        * SECONDS_PER_HOUR    !July 2016
      .        * HOURS_PER_DAY * DAYS_PER_YEAR         
      .        * 1.d-15            !mgm3 -> PgC/yr               
 #ifdef OBIO_ON_GARYocean
@@ -203,6 +203,7 @@
         nt= 1            !only the for carbon detritus
         cexp = cexp 
      .        + det(k,nt)*wsdet(k,nt)
+     .        * SECONDS_PER_HOUR     !July 2016
      .        * HOURS_PER_DAY * DAYS_PER_YEAR
      .        * 1.d-15                 !ugC/l -> PgC/yr
 #ifdef OBIO_ON_GARYocean

@@ -48,14 +48,6 @@
      .      npratio,uMtomgm3,cnratio,bn,zc,mgchltouMC
       USE obio_com, only: P_tend,p1d,pp2_1d,dp1d,A_tend,
      .      rhs,alk1d,caexp,kzc
-#ifdef OBIO_RUNOFF
-#ifdef ALK_RUNOFF
-      use obio_com, only: ralkconc_loc
-      USE OFLUXES, only:  oFLOWO
-      USE MODEL_COM, only: dtsrc
-#endif
-#endif
-
 
 #ifdef OBIO_ON_GARYocean
       USE MODEL_COM, only: nstep=> itime
@@ -83,6 +75,7 @@
 
 !compute sources/sinks of phosphate
 !J_PO4 units uM/hr
+! now uM/s  July 2016
       do k=1,kmax
 !     J_PO4(k) =  P_tend(k,1)           !approximate by nitrate conc tendency
 !                                       !NO3/PO4 ratio from Conkright et al, 1994
@@ -99,7 +92,7 @@
      .          +(rhs(k,5,13)+rhs(k,6,13)+rhs(k,7,13)+rhs(k,8,13))*bn
      .          + rhs(k,2,5)+rhs(k,2,6)+rhs(k,2,7)+rhs(k,2,8)
 
-      term = -1.d0* J_PO4(k)            !uM,N/hr= mili-mol,N/m3/hr
+      term = -1.d0* J_PO4(k)            !uM,N/hr= mili-mol,N/m3/hr: mili-mol,N/m3/s  July 2016
       rhs(k,15,1) = term
       A_tend(k)= term 
       enddo
@@ -129,9 +122,9 @@
         if (p1d(k) .le. p1d(kzc))  then
           pp=0.
           do nt=nchl1,nchl2
-             pp=pp+pp2_1d(k,nt)/dp1d(k)   !mgC/m3/hr
+             pp=pp+pp2_1d(k,nt)/sday/dp1d(k)   ![pp2_1d]=mgC/m2/day -> [pp]=mgC/m3/s  July 2016
           enddo
-          Jprod(k) = pp/cpratio  !mgP/m3/hr
+          Jprod(k) = pp/cpratio  !mgP/m3/s    July 2016
         else
           Jprod(k)=0.
         endif
@@ -145,18 +138,18 @@
       Jprod_sum = 0.
       do k=1,kmax
       if (p1d(k) .le. p1d(kzc))  then
-       Jprod_sum = Jprod_sum + Jprod(k)*dp1d(k)   ! mgP/m2/hr
+       Jprod_sum = Jprod_sum + Jprod(k)*dp1d(k)   ! mgP/m2/s   July 2016
       endif
       enddo
 
-      Fc = (1.d0-sigma_Ca)* Jprod_sum     !mgP/m2/hr
+      Fc = (1.d0-sigma_Ca)* Jprod_sum     !mgP/m2/s  July 2016
 
 !compute downward flux of CaCO3
 !only below the euphotic zone (the compensation layer)
       F_Ca = 0.d0
       do k=kzc,kmax+1
            F_Ca(k) = rain_ratio*cpratio*Fc
-     .             * exp(-1.d0*(p1d(k)-p1d(kzc))/d_Ca)    !mgC/m2/hr
+     .             * exp(-1.d0*(p1d(k)-p1d(kzc))/d_Ca)    !mgC/m2/s   July 2016
       enddo
 
       !p1d(kzc) is really the compensation depth
@@ -168,9 +161,9 @@
 
 #ifdef OBIO_ON_GARYocean
 !     caexp = F_Ca(4)        !mili-gC/m2/hr
-      caexp = F_Ca(kzc)        !mili-gC/m2/hr
+      caexp = F_Ca(kzc)        !mili-gC/m2/s   July 2016
 #else
-      caexp = F_Ca(kzc)      !mili-gC/m2/hr
+      caexp = F_Ca(kzc)      !mili-gC/m2/s     July 2016
 #endif
 
 !compute sources/sinks of CaCO3
@@ -178,12 +171,12 @@
       do k=1,kmax
          if (p1d(k) .le. p1d(kzc))  then
              !formation of calcium carbonate above compensation depth
-             J_Ca(k) = -1.d0*rain_ratio*cpratio*(1.-sigma_Ca)*Jprod(k)   !mgC/m3/hr
+             J_Ca(k) = -1.d0*rain_ratio*cpratio*(1.-sigma_Ca)*Jprod(k)   !mgC/m3/s  July 2016
          else
              !dissolution of calcium carbonate below compensation depth
-             J_Ca(k) = -1.d0* (F_Ca(k+1)-F_Ca(k)) / dp1d(k)   !mgC/m3/hr
+             J_Ca(k) = -1.d0* (F_Ca(k+1)-F_Ca(k)) / dp1d(k)   !mgC/m3/s   July 2016
          endif
-       term = 2.d0* J_Ca(k)/cnratio  ! mgC/m3/hr -> mili-mol,N/m3/hr  
+       term = 2.d0* J_Ca(k)/cnratio  ! mgC/m3/s -> mili-mol,N/m3/s  
                                      ! no need to multiply here by mol.weight
                                      ! because already in cnratio (see obio_init)
        rhs(k,15,5) = term
@@ -207,21 +200,9 @@
 
       enddo
 
-#ifdef OBIO_RUNOFF
-#ifdef ALK_RUNOFF
-      term = ralkconc_loc(i,j)
-     . * oFLOWO(i,j)/dtsrc           ! mol/kg,w => mol/m2,w/s
-     . / dp1d(1)                     ! mol/m2,w/s => mol/m3,w/s
-     . * 1.d3                        ! mol/m3,w/s => mmol/m3,w/s
-     . * 3600.                       ! mmol/m3,w/s => mmol/m3/hr
-      rhs(1,15,17) = term
-      A_tend(1) = A_tend(1) + term
-#endif
-#endif 
-
       !for consistency, keep term that goes into rhs table in uM/hr = mili-mol,N/m3/hr
       !convert A_tend terms into uE/kg/hr, the actual units of alkalinity 
-      A_tend = A_tend /1024.5d0 *1.d3     ! mili-mol,N/m3/hr -> umol/m3/hr -> umol/kg/hr
+      A_tend = A_tend /1024.5d0 *1.d3     ! mili-mol,N/m3/s -> umol/m3/s -> umol/kg/s
 
 !!!!!!!!!! NEED TO ADD BOTTOM BOUNDARY CONDITIONS 
 
@@ -258,8 +239,8 @@
       !rate of constant dissolution of cadet_calc
       !wsink=1.d0
       wsink =  wsdet(k,1)    !wsdet for carbon????
-      gamma_cadet_calc = wsink/1343.d0    ! in s-1
-      gamma_cadet_calc = gamma_cadet_calc * 3600.d0     ! in hr-1
+      gamma_cadet_calc = wsink/1343.d0    ! in s-1      ! July 2016
+!     gamma_cadet_calc = gamma_cadet_calc * 3600.d0     ! in hr-1
 
       T = temp1d(k)
       Salt = saln1d(k)
@@ -288,7 +269,8 @@
 !    .     gamma_cadet_calc*max(0.d0,1.d0-Omega_calc)* Ca_det_calc
 
       !grazing rate constant at 0C
-      lambda0 = 0.19/86400. *3600.   !hr^-1
+!     lambda0 = 0.19/86400. *3600.   !hr^-1
+      lambda0 = 0.19/86400.   !s^-1
       !Temp. coeff for growth
       KEppley = 0.063   ! C^-1 (Eppley 1972)
       !nitrogen in small phytoplankton (=here cyanobacteria)
