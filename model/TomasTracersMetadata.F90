@@ -171,7 +171,6 @@ contains
 
       n = oldAddTracer(name)
       n_ANACL = n         
-      call set_ntsurfsrc(n,  0) ! ocean bubbles
       call set_ntisurfsrc(n, 1)
       TOMAS_dens = 2.165d3
       TOMAS_radius = (sqrt(xk(bin)*xk(bin+1))/TOMAS_dens/pi/4.*3.)**(1./3.) 
@@ -262,7 +261,6 @@ contains
 
       n = oldAddTracer(name)
       n_ADUST = n  
-      call set_ntsurfsrc(n,  0)
       call set_ntisurfsrc(n, 1)
       if(bin.le.10) TOMAS_dens= 2.5d3 !clay 
       if(bin.gt.10) TOMAS_dens= 2.65d3 !Silt
@@ -285,7 +283,6 @@ contains
       n_AH2O = n         
       TOMAS_dens = 1.d3
       TOMAS_radius = (sqrt(xk(bin)*xk(bin+1))/TOMAS_dens/pi/4.*3.)**(1./3.) 
-      call set_ntsurfsrc(n,  0)
       call set_ntm_power(n, -8)
 
       call set_tr_mm(n, 18.d+0)
@@ -300,7 +297,6 @@ contains
 
       n = oldAddTracer(name)
       n_NH4 = n
-      call set_ntsurfsrc(n,  0)
       call set_ntm_power(n, -10)
       call set_tr_mm(n, 18.d0)
       call set_trpdens(n, 1.7d3)
@@ -315,7 +311,6 @@ contains
       n = oldAddTracer(name)
       n_H2SO4 = n
       call set_ntm_power(n, -11)
-      call set_ntsurfsrc(n,  0)
       call set_tr_mm(n, 98.d0)
       call set_trpdens(n, 1.78d0)
       call set_fq_aer(n, 1.d0)

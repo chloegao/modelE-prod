@@ -6,7 +6,6 @@ module MiscTracersMetadata_mod
 !@+    that have NOT been classified as belonging to any particular group.
 !@auth NCCS ASTG
   USE CONSTANT, only: mair,mwat,pi,gasc
-  use Tracer_com, only: set_ntsurfsrc
   use RunTimeControls_mod, only: tracers_ocean
   use RunTimeControls_mod, only: tracers_drydep
   use RunTimeControls_mod, only: tracers_water
@@ -152,7 +151,6 @@ contains
     call gasex_index%push_back(n_CFCn)
     call set_ntm_power(n, -12)
     call set_tr_mm(n, 137.37d0) !note units are in gr
-    call set_ntsurfsrc(n,  0)
     call set_needtrs(n, .true.)
 
   end subroutine CFCn_setSpec
@@ -168,7 +166,6 @@ contains
     call set_ntm_power(n, -6)
     call set_tr_mm(n, 44.d0)  !grams
     call set_t_qlimit(n,  .false.)
-    call set_ntsurfsrc(n,  0)
     call set_needtrs(n, .true.)
 
   end subroutine CO2n_setSpec
@@ -287,7 +284,6 @@ contains
     character(len=*), intent(in) :: name
     n = oldAddTracer(name)
     n_NO3p = n
-    call set_ntsurfsrc(n,  0)
     call set_ntm_power(n, -11)
     call set_tr_mm(n, 62.d0)
     call set_trpdens(n, 1.7d3)
@@ -303,7 +299,6 @@ contains
     n = oldAddTracer(name)
     n_SO4_d1 = n
     call set_ntm_power(n, -11)
-    call set_ntsurfsrc(n,  0)
     call set_tr_mm(n, 96.d0)  !!!! Sulfat
     call set_trpdens(n, 2.5d3) !kg/m3 this is clay density
     call set_trradius(n, 0.75D-06 ) !m
@@ -319,7 +314,6 @@ contains
     n = oldAddTracer(name)
     n_SO4_d2 = n
     call set_ntm_power(n, -11)
-    call set_ntsurfsrc(n,  0)
     call set_tr_mm(n, 96.d0)
     call set_trpdens(n, 2.65d3) !kg/m3 this is Silt1 value
     call set_trradius(n, 2.2D-06 ) !m
@@ -335,7 +329,6 @@ contains
     n = oldAddTracer(name)
     n_SO4_d3 = n
     call set_ntm_power(n, -11)
-    call set_ntsurfsrc(n,  0)
     call set_tr_mm(n, 96.d0)
     call set_trpdens(n, 2.65d3) !this is Silt2 value
     call set_trradius(n, 4.4D-06 ) !m this is Silt2 value
@@ -350,7 +343,6 @@ contains
     n = oldAddTracer(name)
     n_N_d1 = n
     call set_ntm_power(n, -11)
-    call set_ntsurfsrc(n,  0)
     call set_tr_mm(n, 62.d+0) ! NO3
     call set_trpdens(n, 2.5d3) !kg/m3 this is clay density
     call set_trradius(n, 0.75D-06 ) !m
@@ -365,7 +357,6 @@ contains
     n = oldAddTracer(name)
     n_N_d2 = n
     call set_ntm_power(n, -11)
-    call set_ntsurfsrc(n,  0)
     call set_tr_mm(n, 62.d+0)
     call set_trpdens(n, 2.65d3) !kg/m3 this is Silt1 value
     call set_trradius(n, 2.2D-06 ) !m
@@ -381,7 +372,6 @@ contains
     n = oldAddTracer(name)
     n_N_d3 = n
     call set_ntm_power(n, -11)
-    call set_ntsurfsrc(n,  0)
     call set_tr_mm(n, 62.d0)
     call set_trpdens(n, 2.65d3) !this is Silt2 value
     call set_trradius(n, 4.4D-06 ) !m this is Silt2 value

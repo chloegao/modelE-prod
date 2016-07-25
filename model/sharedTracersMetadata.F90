@@ -67,7 +67,6 @@ contains
     call set_ntm_power(n, -12)
     ! the ocean source of DMS is actually interactive and therefore should
     ! not count for ntsurfsrc....
-    call set_ntsurfsrc(n,  0) ! ocean DMS concentration
     call set_ntisurfsrc(n, 1)
     call set_tr_mm(n, 62.d+0)
     call set_needtrs(n, .true.)
@@ -250,7 +249,6 @@ contains
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_NH4 = n
-      call set_ntsurfsrc(n,  0)
       call set_ntm_power(n, -10)
       call set_tr_mm(n, 18.d0)
       call set_trpdens(n, 1.7d3)
