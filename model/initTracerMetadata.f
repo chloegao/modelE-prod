@@ -78,32 +78,18 @@
 
 !     allow some tracers to have biomass burning sources that mix over
 !     PBL layers (these become 3D sources no longer within ntsurfsrc(n)):
-        select case (trname(n))
-          case ('Alkenes', 'CO', 'NOx', 'Paraffin', 'codirect',
-#ifdef TRACERS_SPECIAL_Shindell
-     &         'CH4',           ! in here to avoid potential Lerner tracers conflict
-#endif
-#ifdef TRACERS_dCO
-     *         'dC17O', 'dC18O', 'd13CO',
-#endif  /* TRACERS_dCO */
-     &         'AECOB_01','AOCOB_01', 
-     &         'NH3', 'SO2', 'BCB', 'OCB', ! do not include sulfate here
-     &         'vbsAm2', 'vbsAm1', 'vbsAz',  'vbsAp1', 'vbsAp2',
-     &         'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6',
-     &         'M_BC1_BC', 'M_OCC_OC', 'M_BOC_BC', 'M_BOC_OC')
-          val = nBBsources(n)
-          call sync_param(trim(trname(n))//"_nBBsources",val)
-          call set_nBBsources(n, val)
-          if(nBBsources(n)>0)then
-            if(do_fire(n))then
-              if(am_i_root())write(6,*)
-     &             'nBBsource>0 for ',trim(trname(n)),' do_fire=t'
-              call stop_model('nBBsource do_fire conflict',13)
-            else
-              call set_ntsurfsrc(n, ntsurfsrc(n)-nBBsources(n))
-            end if
+        val = nBBsources(n)
+        call sync_param(trim(trname(n))//"_nBBsources",val)
+        call set_nBBsources(n, val)
+        if(nBBsources(n)>0)then
+          if(do_fire(n))then
+            if(am_i_root())write(6,*)
+     &           'nBBsource>0 for ',trim(trname(n)),' do_fire=t'
+            call stop_model('nBBsource do_fire conflict',13)
+          else
+            call set_ntsurfsrc(n, ntsurfsrc(n)-nBBsources(n))
           end if
-        end select
+        end if
         if(do_fire(n) .and.  (ntsurfsrc(n)+1 > ntsurfsrcmax))then
           write(6,*)trname(n),'ntsurfsrc+1 > max of ',ntsurfsrcmax
           call stop_model('do_fire+ntsurfsrc too large',13)
