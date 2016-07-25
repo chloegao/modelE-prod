@@ -95,7 +95,6 @@ subroutine CONDSE
 #endif
 #endif
 #ifdef TRACERS_ON
-  use TRACER_COM, only : remake_tracer_lists
   use TRACER_COM, only: TRM,TRMOM,NTM,trdn1
   use OldTracer_mod, only: itime_tr0, trname
 #ifdef TRACERS_COSMO
@@ -500,7 +499,6 @@ subroutine CONDSE
     ntix(nx) = n
   end do
   ntx = nx
-  call remake_tracer_lists()
 
 #ifdef TRACERS_AMP
   AQsulfRATE = 0.d0

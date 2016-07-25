@@ -747,7 +747,11 @@ C**** get rundeck parameter for cosmogenic source factor
 !------------------------------------------------------------------------------
       subroutine InitTracerDiagMetadata()
 !------------------------------------------------------------------------------
+      use TRACER_COM, only: remake_tracer_lists
       implicit none
+
+C**** create tracer lists, needed for some diagnostic output decisions
+      call remake_tracer_lists()
 
 C**** Set some diags that are the same regardless
       call set_generic_tracer_diags
