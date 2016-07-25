@@ -40,7 +40,7 @@ F90SRCS  = AbstractAttribute.F90 \
 	SystemTools.F90 \
 	dast.F90
 
-CSRCS = system_tools.c libmodele_refaddr.c
+CSRCS = system_tools.c
 
 # Time Management
 F90SRCS += KindParameters.F90 \
