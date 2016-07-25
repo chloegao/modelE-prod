@@ -1353,16 +1353,16 @@ C**** set defaults for some precip/wet-dep related diags
       select case (trname(n))
 
       case ('SF6','SF6_c','CFCn')
-        call SF6_setspec(k,n,trname(n))
+        call SF6_init_jls(k,n,trname(n))
       case ('CO2n')
-        call CO2n_setSpec(k,n,'CO2n')
+        call CO2n_init_jls(k,n,'CO2n')
       case ('Rn222')
-        call Rn222_setSpec(k,n,'Rn222')
+        call Rn222_init_jls(k,n,'Rn222')
 ! keep AIJ and AJL CO2 sources in same order !!
       case ('CO2')
-        call CO2_setSpec(k,n,'CO2')
+        call CO2_init_jls(k,n,'CO2')
       case ('N2O')
-        call N2O_setSpec(k,n,'N2O')
+        call N2O_init_jls(k,n,'N2O')
       case ('CFC11')   !!! should start April 1
         k = k + 1
         jls_source(1,n) = k
@@ -2920,7 +2920,7 @@ c Oxidants
 
       contains
 
-      subroutine SF6_setSpec(k,n, name)
+      subroutine SF6_init_jls(k,n, name)
       integer, intent(inout) :: k
       integer, intent(in) :: n
       character(len=*), intent(in) :: name
@@ -2931,9 +2931,9 @@ c Oxidants
       jls_ltop(k) = 1
       jls_power(k) = -3
       units_jls(k) = unit_string(jls_power(k),'kg/s')
-      end subroutine SF6_setSpec
+      end subroutine SF6_init_jls
 
-      subroutine CO2n_setSpec(k,n,name)
+      subroutine CO2n_init_jls(k,n,name)
       integer, intent(inout) :: k
       integer, intent(in) :: n
       character(len=*), intent(in) :: name
@@ -2944,9 +2944,9 @@ c Oxidants
       jls_ltop(k) = 1
       jls_power(k) = 3
       units_jls(k) = unit_string(jls_power(k),'kg/s')
-      end subroutine CO2n_setSpec
+      end subroutine CO2n_init_jls
 
-      subroutine Rn222_setSpec(k,n,name)
+      subroutine Rn222_init_jls(k,n,name)
       integer, intent(inout) :: k
       integer, intent(in) :: n
       character(len=*), intent(in) :: name
@@ -2966,9 +2966,9 @@ c Oxidants
       jls_ltop(k) = 1
       jls_power(k) = -10
       units_jls(k) = unit_string(jls_power(k),'kg/s')
-      end subroutine Rn222_setSpec
+      end subroutine Rn222_init_jls
       
-      subroutine CO2_setSpec(k,n,name)
+      subroutine CO2_init_jls(k,n,name)
       integer, intent(inout) :: k
       integer, intent(in) :: n
       character(len=*), intent(in) :: name
@@ -3015,9 +3015,9 @@ c Oxidants
         jls_power(k) = 3
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 
-      end subroutine CO2_setSpec
+      end subroutine CO2_init_jls
 
-      subroutine N2O_setSpec(k,n,name)
+      subroutine N2O_init_jls(k,n,name)
       integer, intent(inout) :: k
       integer, intent(in) :: n
       character(len=*), intent(in) :: name
@@ -3065,7 +3065,7 @@ c Oxidants
       jls_power(k) = -1
       units_jls(k) = unit_string(jls_power(k),'kg/s')
 #endif
-      end subroutine N2O_setSpec
+      end subroutine N2O_init_jls
 
       end subroutine init_jls_diag
 
