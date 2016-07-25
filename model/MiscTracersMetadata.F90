@@ -10,7 +10,6 @@ module MiscTracersMetadata_mod
   use RunTimeControls_mod, only: tracers_drydep
   use RunTimeControls_mod, only: tracers_water
   use OldTracer_mod, only: nWater
-  use OldTracer_mod, only: set_ntisurfsrc
   use OldTracer_mod, only: set_needtrs
   use OldTracer_mod, only: nPart
   use OldTracer_mod, only: set_tr_mm

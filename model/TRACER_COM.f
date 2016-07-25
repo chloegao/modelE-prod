@@ -41,7 +41,6 @@ C
       use OldTracer_mod, only: ntrocn
       use OldTracer_mod, only: conc_from_fw
       use OldTracer_mod, only: trglac
-      use OldTracer_mod, only: ntisurfsrc
       use OldTracer_mod, only: trli0
       use OldTracer_mod, only: trsi0
 #ifdef TRACERS_VOLCEXP
@@ -675,7 +674,6 @@ c note: not applying CPP when declaring counts/lists.
       call tracers%addDefaultValue('ntrocn', 0)
       call tracers%addDefaultValue('conc_from_fw', .true.)
 
-      call tracers%addDefaultValue('ntisurfsrc', 0)
       call tracers%addDefaultValue('iso_index', 1)
       call tracers%addDefaultValue('om2oc', 1.4d0)
       call tracers%addDefaultValue('to_volume_MixRat', 0)

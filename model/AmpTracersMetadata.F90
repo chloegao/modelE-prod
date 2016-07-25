@@ -44,7 +44,6 @@ module AmpTracersMetadata_mod
     tracers_amp_m7, tracers_amp_m8,         &
     tracers_special_shindell
   use Tracer_com, only: ntmAMPi, ntmAMPe, ntmAMP, ntm_chem
-  use OldTracer_mod, only: set_ntisurfsrc
   use OldTracer_mod, only: set_needtrs
   use OldTracer_mod, only: nPart
   use OldTracer_mod, only: set_tr_mm

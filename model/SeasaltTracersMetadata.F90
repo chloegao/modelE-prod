@@ -11,7 +11,6 @@ module SeasaltTracersMetadata_mod
   use OldTracer_mod, only: set_trradius
   use OldTracer_mod, only: set_fq_aer
   use OldTracer_mod, only: set_tr_wd_type
-  use OldTracer_mod, only: set_ntisurfsrc
   use TRACER_COM, only:  n_seasalt1,  n_seasalt2
   use TRACER_COM, only: offline_dms_ss, offline_ss
   use Tracer_mod, only: Tracer
@@ -43,7 +42,6 @@ module SeasaltTracersMetadata_mod
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_seasalt1 = n
-      call set_ntisurfsrc(n, 1)
       call set_ntm_power(n, -10)
       call set_tr_mm(n, 75.d0)  !Na x 3.256
       call set_trpdens(n, 2.2d3) !kg/m3 This is for non-hydrated
@@ -56,7 +54,6 @@ module SeasaltTracersMetadata_mod
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       n_seasalt2 = n
-      call set_ntisurfsrc(n, 1)
       call set_ntm_power(n, -9)
       call set_tr_mm(n, 75.d0)  !Na x 3.256
       call set_trpdens(n, 2.2d3) !kg/m3 This is for non-hydrated

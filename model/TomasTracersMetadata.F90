@@ -17,7 +17,6 @@ module TomasTracersMetadata_mod
   use OldTracer_mod, only : set_tr_wd_type
   use OldTracer_mod, only : oldAddTracer
   use OldTracer_mod, only: set_HSTAR
-  use OldTracer_mod, only: set_ntisurfsrc
   use OldTracer_mod, only: set_needtrs
   use OldTracer_mod, only: set_trpdens
   use OldTracer_mod, only: set_trradius
@@ -171,7 +170,6 @@ contains
 
       n = oldAddTracer(name)
       n_ANACL = n         
-      call set_ntisurfsrc(n, 1)
       TOMAS_dens = 2.165d3
       TOMAS_radius = (sqrt(xk(bin)*xk(bin+1))/TOMAS_dens/pi/4.*3.)**(1./3.) 
       if(bin.le.10) call set_ntm_power(n, -10)
@@ -261,7 +259,6 @@ contains
 
       n = oldAddTracer(name)
       n_ADUST = n  
-      call set_ntisurfsrc(n, 1)
       if(bin.le.10) TOMAS_dens= 2.5d3 !clay 
       if(bin.gt.10) TOMAS_dens= 2.65d3 !Silt
       TOMAS_radius = (sqrt(xk(bin)*xk(bin+1))/TOMAS_dens/pi/4.*3.)**(1./3.) 
