@@ -31,6 +31,7 @@ module TomasTracersMetadata_mod
   use TRACER_COM, only: set_ntsurfsrc
   use TOMAS_AEROSOL, only : binact10, binact02, fraction10, fraction02
   use RunTimeControls_mod, only: tracers_aerosols_soa
+  use RunTimeControls_mod, only: tracers_special_shindell
   use RunTimeControls_mod, only: tracers_drydep
   use Tracer_mod, only: Tracer
 
@@ -75,7 +76,9 @@ contains
     if (.not. tracers_aerosols_soa) &
       call  TOMAS_SOAgas_setSpec('SOAgas')
 #endif
-    call  H2O2_s_setSpec('H2O2_s') ! duplicate with Koch
+    if (.not. tracers_special_shindell) then
+      call  H2O2_s_setSpec('H2O2_s') ! duplicate with Koch
+    endif
     call  NH3_setSpec('NH3')  ! duplicate with nitrate
     call  NH4_setSpec('NH4')  ! duplicate with nitrate
 
