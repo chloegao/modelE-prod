@@ -497,7 +497,7 @@
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM,only:LCOalt,PCOalt,
      &     CH4altINT,CH4altINX,LCH4alt,PCH4alt,
-     &     CH4altX,CH4altT,ch4_init_sh,ch4_init_nh,scale_ch4_IC_file,
+     &     CH4altX,CH4altT,scale_ch4_IC_file,
      &     OxICIN,OxIC,OxICINL,OxICL,
      &     fix_CH4_chemistry,which_trop,PI_run,PIratio_N,PIratio_CO_T,
      &     PIratio_CO_S,PIratio_other,allowSomeChemReinit,
