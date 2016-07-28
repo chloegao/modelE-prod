@@ -755,12 +755,11 @@ c note: not applying CPP when declaring counts/lists.
       allocate(hlaw_list(hlaw_count))
       hlaw_list = tmplist_hlaw(1:hlaw_count)
 
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS)
-      if(allocated(aqchem_list)) deallocate(aqchem_list)
-      allocate(aqchem_list(aqchem_count))
-      aqchem_list = tmplist_aqchem(1:aqchem_count)
-#endif
+      if (aqchem_count>0) then
+        if(allocated(aqchem_list)) deallocate(aqchem_list)
+        allocate(aqchem_list(aqchem_count))
+        aqchem_list = tmplist_aqchem(1:aqchem_count)
+      endif
 
       return
       end subroutine remake_tracer_lists
