@@ -41,7 +41,6 @@ C
       use OldTracer_mod, only: ntrocn
       use OldTracer_mod, only: conc_from_fw
       use OldTracer_mod, only: trglac
-      use OldTracer_mod, only: ntisurfsrc
       use OldTracer_mod, only: trli0
       use OldTracer_mod, only: trsi0
 #ifdef TRACERS_VOLCEXP
@@ -680,7 +679,6 @@ c note: not applying CPP when declaring counts/lists.
       call tracers%addDefaultValue('ntrocn', 0)
       call tracers%addDefaultValue('conc_from_fw', .true.)
 
-      call tracers%addDefaultValue('ntisurfsrc', 0)
       call tracers%addDefaultValue('iso_index', 1)
       call tracers%addDefaultValue('om2oc', 1.4d0)
       call tracers%addDefaultValue('to_volume_MixRat', 0)
@@ -762,12 +760,11 @@ c note: not applying CPP when declaring counts/lists.
       allocate(hlaw_list(hlaw_count))
       hlaw_list = tmplist_hlaw(1:hlaw_count)
 
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS)
-      if(allocated(aqchem_list)) deallocate(aqchem_list)
-      allocate(aqchem_list(aqchem_count))
-      aqchem_list = tmplist_aqchem(1:aqchem_count)
-#endif
+      if (aqchem_count>0) then
+        if(allocated(aqchem_list)) deallocate(aqchem_list)
+        allocate(aqchem_list(aqchem_count))
+        aqchem_list = tmplist_aqchem(1:aqchem_count)
+      endif
 
       return
       end subroutine remake_tracer_lists
