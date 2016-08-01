@@ -67,6 +67,11 @@ c
 !@dbparam COUPLED_CHEM: if 0 => uncoupled, if 1 => coupled
       integer :: COUPLED_CHEM = 0
 
+!@dbparam nc_emis_use_ppm_interp: 1 means use ppm (non-linear) interpolation
+!@+ in timestream emissions (only) to preserve monthly totals. Else use linear
+!@+ month-to-month (linm2m)
+      integer :: nc_emis_use_ppm_interp=1
+
 !@dbparam whichEPFCs choses emisPerFireByVegType calibration: 1=AR5, 2=GFED3, 3=GFED2, 4=MOPITT
       integer :: whichEPFCs = 1 
 !@dbparam seasonalNH3src Defines the NH3 input file that a seasonal

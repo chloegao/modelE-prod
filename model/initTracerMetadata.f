@@ -489,7 +489,7 @@
       use OldTracer_mod, only: itime_tr0
       use OldTracer_mod, only: set_itime_tr0
       USE TRACER_COM, only: NTM, tracers, syncProperty
-      use TRACER_COM, only: coupled_chem
+      use TRACER_COM, only: coupled_chem,nc_emis_use_ppm_interp
       use Dictionary_mod, only: sync_param,is_set_param,get_param
       use RAD_COM, only: diag_fc
 #ifdef TRACERS_SPECIAL_O18
@@ -575,6 +575,7 @@ C****
 
 C**** Synchronise tracer related parameters from rundeck
 
+      call sync_param("nc_emis_use_ppm_interp",nc_emis_use_ppm_interp)
  
 #ifdef TRACERS_WATER
 C**** Decide on water tracer conc. units from rundeck if it exists
