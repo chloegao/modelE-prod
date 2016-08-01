@@ -547,7 +547,7 @@ C**** replicate ice values at the poles
       USE SEAICE, only: ntm
 #endif
       USE SEAICE, only : sea_ice,ssidec,lmi,xsi,ace1i,qsfix,debug
-     *     ,snowice, snow_ice, rhos, Ti
+     *     ,snowice, snow_ice, rhos, Ti, Ti2b
       USE TimerPackage_mod, only: startTimer => start
       USE TimerPackage_mod, only: stopTimer => stop
       IMPLICIT NONE
@@ -585,6 +585,7 @@ C**** replicate ice values at the poles
      *     ,tralpha
 #endif
       integer :: J_0, J_1, I_0,I_1
+      real*8 MSI1,SNOWL1,MICE1
 
       call startTimer('GROUND_SI()')
 
@@ -758,8 +759,21 @@ C**** RESAVE PROGNOSTIC QUANTITIES
         TRSI(:,:,I,J) = TRSIL(:,:)
 #endif
         FLAG_DSWS(I,J)=WETSNOW
-        Ti1 = Ti(HSIL(1)/(XSI(1)*(SNOW+ACE1I)),1d3*SSIL(1)/(XSI(1)*(SNOW
-     *       +ACE1I)))
+
+        MSI1 = ACE1I + SNOW
+        IF (ACE1I.gt.XSI(2)*MSI1) THEN ! some ice in first layer
+          MICE1 = ACE1I-XSI(2)*MSI1
+          SNOWL1= SNOW
+        ELSE  ! some snow in second layer
+          MICE1 = 0.
+          SNOWL1= XSI(1)*MSI1
+        ENDIF
+        IF (MICE1.NE.0.) THEN
+        Ti1 = Ti2b(HSIL(1)/(XSI(1)*MSI1),1d3*SSIL(1)/MICE1,SNOWL1,MICE1)
+        ELSE
+        Ti1 = Ti(HSIL(1)/(XSI(1)*(SNOW+ACE1I)),0d0)
+        ENDIF
+
         TI1save(I,J) = Ti1
 
         SIHC(I,J) = SUM(HSIL(:))
@@ -1634,13 +1648,13 @@ C****
       USE SCM_COM, only : SCMopt,SCMin
 #endif
       USE SEAICE_COM, only : si_atm,si_ocn
-      USE SEAICE, only : ace1i,xsi,lmi,Ti,rhoi,rhos
+      USE SEAICE, only : ace1i,xsi,lmi,Ti,rhoi,rhos,Ti2b
       USE EXCHANGE_TYPES, only : atmice_xchng_vars
       IMPLICIT NONE
       type(atmice_xchng_vars) :: atmice
 c
       INTEGER I,J, J_0, J_1 ,I_0,I_1
-      REAL*8 MSI1
+      REAL*8 MSI1,SNOWL(2),MICE(2)
 
       I_0 = atmice%I_0
       I_1 = atmice%I_1
@@ -1669,10 +1683,28 @@ c
       DO I=I_0, atmice%IMAXJ(J)
 C**** set GTEMP etc. array for ice
         MSI1=si_atm%SNOWI(I,J)+ACE1I
-        atmice%GTEMP(I,J)=Ti(si_atm%HSI(1,I,J)/(XSI(1)*MSI1),
-     &                1d3*si_atm%SSI(1,I,J)/(XSI(1)*MSI1))
-        atmice%GTEMP2(I,J)=Ti(si_atm%HSI(2,I,J)/(XSI(2)*MSI1),
-     &                1d3*si_atm%SSI(2,I,J)/(XSI(2)*MSI1))
+
+        IF (ACE1I.gt.XSI(2)*MSI1) THEN ! some ice in first layer
+          MICE(1) = ACE1I-XSI(2)*MSI1
+          MICE(2) = XSI(2)*MSI1
+c         SNOWL(1)= SNOW
+          SNOWL(1)= MSI1-ACE1I
+          SNOWL(2)= 0.
+        ELSE  ! some snow in second layer
+          MICE(1) = 0.
+          MICE(2) = ACE1I
+          SNOWL(1)= XSI(1)*MSI1
+          SNOWL(2)= XSI(2)*MSI1-ACE1I
+        ENDIF
+        IF(MICE(1).NE.0.) THEN
+        atmice%GTEMP(I,J)=Ti2b(si_atm%HSI(1,I,J)/(XSI(1)*MSI1),
+     *           1d3*si_atm%SSI(1,I,J)/MICE(1),SNOWL(1),MICE(1))
+        ELSE
+        atmice%GTEMP(I,J)=Ti(si_atm%HSI(1,I,J)/(XSI(1)*MSI1),0d0)
+        ENDIF
+        atmice%GTEMP2(I,J)=Ti2b(si_atm%HSI(2,I,J)/(XSI(2)*MSI1),
+     *           1d3*si_atm%SSI(2,I,J)/MICE(2),SNOWL(2),MICE(2))
+
         atmice%GTEMPR(I,J) = atmice%GTEMP(I,J)+TF
         atmice%ZSNOWI(I,J)=si_atm%SNOWI(I,J)/rhos
         si_atm%ZSI(I,J)=(ace1i+si_atm%msi(i,j))/rhoi
