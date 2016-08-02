@@ -2322,7 +2322,9 @@ cc**** solve Ei = shi*Ti-lhm
 c        Ti=(Ei+lhm)*byshi
       case ("SI")               ! salinity mass effect
 c**** solve Ei = shi*Ti-lhm*(1-1d-3*Si)
-        Ti2b=(Eit+lhm*(1.-1d-3*Si))*byshi
+c**** in this particular case, Si is the bulk salinity (like in the SI case for Ti)
+c**** so it has to be multiplied by MICE/(MICE+SNOWL)
+        Ti2b=(Eit+lhm*(1.-1d-3*Si*(MICE/(MICE+SNOWL))))*byshi
       case ("BP")               ! Brine pocket formulation
         if (Si.gt.1.d-10) then
 c**** solve Ei = shi*(Ti+mu*Si)-lhm*(1+mu*Si/Ti)-mu*Si*shw
