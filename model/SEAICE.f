@@ -81,7 +81,7 @@ C**** snow/ice thermal diffusivity (Pringle et al, 2007)
 !@var DEBUG flag
       LOGICAL DEBUG
 !@param seaice_thermo formulation of sea ice thermodynamics (BP or SI)
-      CHARACTER*2 :: seaice_thermo = "SI"  ! default is SI for now
+      CHARACTER*2 :: seaice_thermo = "BP"  ! default is SI for now
 
       CONTAINS
 
@@ -232,6 +232,7 @@ C**** RAIN and MELT COMPRESSES SNOW INTO ICE
               CMPRS = MIN(dSNdRN*(RAIN+MELTS), SNOW+SNWF-MELTS)
             END IF
             IF (CMPRS.LT.SNOWL(2)) THEN
+             IF(SNOWL(2).NE.0.) THEN
                HICE(2) = HICE(2)+HSNOW(2)*CMPRS/SNOWL(2) 
                HSNOW(2)= HSNOW(2)*(1.-CMPRS/SNOWL(2))
                MICE(2) = MICE(2)+CMPRS
@@ -242,7 +243,9 @@ C**** RAIN and MELT COMPRESSES SNOW INTO ICE
                TRICE(:,2)  = TRICE(:,2)  + TRCMPRS(:)
                TRSNOW(:,2) = TRSNOW(:,2) - TRCMPRS(:)
 #endif
+             END IF
             ELSE
+             IF(SNOWL(1).NE.0.) THEN
                HICE(1) = HICE(1)+HSNOW(1)*(CMPRS-SNOWL(2))/SNOWL(1)
                HICE(2) = HICE(2)+HSNOW(2)
                HSNOW(1)= HSNOW(1)*(1.-(CMPRS-SNOWL(2))/SNOWL(1))
@@ -259,6 +262,7 @@ C**** RAIN and MELT COMPRESSES SNOW INTO ICE
                TRSNOW(:,1) = TRSNOW(:,1)- (TRCMPRS(:) - TRSNOW(:,2))
                TRSNOW(:,2) = 0.
 #endif
+             END IF
             END IF
           END IF
         ELSE                     ! no existing snow
@@ -398,6 +402,7 @@ C**** Diagnostics for output
 #endif
 C****
       MSI1 = SNOW+ACE1I ! snow and first (physical) layer ice mass
+
 C**** Calculate solar fractions
       IF (SROX(1).gt.0) THEN
         call solar_ice_frac(snow,msi2,wetsnow,fsri,lmi)
@@ -441,7 +446,7 @@ C**** Update top two thermal layers with surface fluxes
 C**** redo separation into snow and ice layers
       call get_snow_ice_layer(SNOW,MSI2,HSIL,SSIL,
 #ifdef TRACERS_WATER
-     *     TRSIL,TRSNOW,TRICE, 
+     *     TRSIL,TRSNOW,TRICE,
 #endif 
      *     SNOWL,HSNOW,HICE,SICE,TSNW,TSIL,MICE,.false.)
 
@@ -517,9 +522,17 @@ C**** calculate melt in snow and ice layers
           TRMELTI(:,L)=MELTI(L)*TRICE(:,L)/MICE(L)
           TRICE(:,L) = TRICE(:,L) - TRMELTI(:,L)
 #endif
-          HICE(L) = HICE(L)-HMELTI(L)
           MICE(L) = MICE(L)- MELTI(L)
-          SICE(L) = SICE(L)-SMELTI(L)
+          IF(MICE(L).EQ.0..AND.dabs(SICE(L)-SMELTI(L)).LT.1.d-12) THEN
+            SICE(L) = 0.
+          ELSE
+            SICE(L) = SICE(L)-SMELTI(L)
+          ENDIF
+          IF(MICE(L).EQ.0..AND.dabs(HICE(L)-HMELTI(L)).LT.1.d-12) THEN
+            HICE(L) = 0.
+          ELSE
+            HICE(L) = HICE(L)-HMELTI(L)
+          ENDIF
         END IF
       END DO
 
@@ -1068,6 +1081,9 @@ C**** set defaults if no ice is left
         END DO
 
         TSIL=TFO
+
+        IF(TFO.GT.Ti(0d0,1d3*SSI0).AND.TFO.NE.0.) HSIL=0.
+
 #ifdef TRACERS_WATER
         TRSIL(:,:)=0.
 #endif
@@ -1155,7 +1171,11 @@ c           TRICE(:,L) = TRICE(:,L)-DTRSI(:,L)
 C**** calculate removal of excess salinity using flushing and brine pocket limit
         DO L=1,LMI
           IF (SICE(L).gt.0) THEN
-            brine_frac=-mu*1d3*(SICE(L)/min(TSIL(L),-1.d-8))/MICE(L)
+            IF(1d3*SICE(L)/MICE(L).GT.1d-10) THEN
+              brine_frac=-mu*1d3*(SICE(L)/TSIL(L))/MICE(L)
+            ELSE
+              brine_frac=0.
+            ENDIF
 C**** flushing (30% of MELT12 pushes out an equivalent mass of brine)
             rate = min(1d0,0.3d0*MELT12/(MICE(L)*brine_frac)) ! fractional loss
 C**** basic gravity drainage (3 day timescale)
@@ -1382,7 +1402,7 @@ c            lh = lhm + Tb*(shw-shi)
             lh = lhm*(1.-Sib*1d-3) + Tb*(shw-shi)
           case ("BP")           ! brine pockets
             if (Sib.gt.0) then
-             lh = lhm*(1.+mu*Sib/min(Tb,-1.d-8)) + (Tb+mu*Sib)*(shw-shi)
+              lh = lhm*(1.+mu*Sib/Tb) + (Tb+mu*Sib)*(shw-shi)
             else
               lh = lhm + Tb*(shw-shi)
             end if
@@ -1426,8 +1446,8 @@ c            lh = lhm + Tb*shw - Ti*shi
           case ("SI")           ! salinity effects only mass
             lh = lhm*(1.-Sib*1d-3) + Tb*shw - Ti*shi
           case ("BP")           ! brine pockets
-            if (Sib.gt.0) then
-              lh = lhm*(1.+mu*Sib/min(Ti,-1.d-8))
+            if (Sib.gt.0.AND.Ti.NE.0) then
+              lh = lhm*(1.+mu*Sib/Ti)
      *            +(Ti+mu*Sib)*(shw-shi)-shw*(Ti-Tb)
             else
               lh = lhm + Tb*shw - Ti*shi
@@ -1800,20 +1820,30 @@ C**** output flux (positive down)
       REAL*8, INTENT(IN) :: TRSIL(NTM,LMI)
       REAL*8, INTENT(OUT) :: TRSNOW(NTM,2),TRICE(NTM,LMI)
 #endif 
-      REAL*8 MSI1
+      REAL*8 MSI1,Ti1,Si1
       INTEGER L
 
 C**** Assume equal temperatures over snow and ice in single thermal layer
       MSI1=SNOW+ACE1I
+
       IF (ACE1I.gt.XSI(2)*MSI1) THEN ! some ice in first layer
         MICE(1) = ACE1I-XSI(2)*MSI1
         MICE(2) = XSI(2)*MSI1
         SNOWL(1)= SNOW
         SNOWL(2)= 0.
-        HSNOW(1) = SNOWL(1)*(Ti(HSIL(1)/(XSI(1)*MSI1),1d3*SSIL(1)
-     *         /(XSI(1)*MSI1))*shi-lhm)
-        HSNOW(2)= 0.
-        HICE(1) = HSIL(1)-HSNOW(1)
+
+C**** Calculcate actual salinity (not bulk) and temperature of the ice in layer 1
+        Si1 = 1d3*SSIL(1)/MICE(1)
+        Ti1 = Ti2b(HSIL(1)/(XSI(1)*MSI1),Si1,SNOWL(1),MICE(1))
+
+C**** We can’t have more energy in HICE than MICE*Em(Si) = -MICE*mu*Si*shw.
+C**** All excess energy then has to be in HSNOW.
+        HICE(1)  = min(max(MICE(1)*Ei(Ti1,Si1),HSIL(1)),MICE(1)*Em(Si1))
+
+        HSNOW(1) = HSIL(1) - HICE(1)
+        IF(SNOWL(1).EQ.0..OR.dabs(HSIL(1)-HICE(1)).LT.1.d-8) HSNOW(1)=0. ! clean up roundoff errors
+        HSNOW(2) = 0.
+
         HICE(2) = HSIL(2)
         SICE(1) = SSIL(1)
         SICE(2) = SSIL(2)
@@ -1829,10 +1859,20 @@ C**** Assume equal temperatures over snow and ice in single thermal layer
         SNOWL(1)= XSI(1)*MSI1
         SNOWL(2)= XSI(2)*MSI1-ACE1I
         HSNOW(1) = HSIL(1)
-        HSNOW(2) = SNOWL(2)*(Ti(HSIL(2)/(XSI(2)*MSI1),1d3*SSIL(2)/(XSI(2
-     $       )*MSI1))*shi-lhm) 
+
+C**** Calculcate actual salinity (not bulk) and temperature of the ice in layer 2
+        Si1 = 1d3*SSIL(2)/MICE(2)
+        Ti1 = Ti2b(HSIL(2)/(XSI(2)*MSI1),Si1,SNOWL(2),MICE(2))
+
         HICE(1) = 0.
-        HICE(2) = HSIL(2)-HSNOW(2)
+C**** We can’t have more energy in HICE than MICE*Em(Si) = -MICE*mu*Si*shw.
+C**** All excess energy then has to be in HSNOW.
+        HICE(2)  = min(max(MICE(2)*Ei(Ti1,Si1),HSIL(2)),MICE(2)*Em(Si1))
+
+        HSNOW(2) = HSIL(2) - HICE(2)
+
+        IF(SNOWL(2).EQ.0..OR.dabs(HSIL(2)-HICE(2)).LT.1.d-8) HSNOW(2)=0. ! clean up roundoff errors
+
         SICE(1) = 0.
         SICE(2) = SSIL(2)
 #ifdef TRACERS_WATER
@@ -2190,11 +2230,30 @@ c          END IF
       REAL*8, DIMENSION(LMI), INTENT(IN) :: HSIL, SSIL  ! J/m2, kg/m2
       REAL*8, INTENT(IN) :: MSI1,MSI2  ! kg/m2
       REAL*8, DIMENSION(LMI), INTENT(OUT) :: TSIL  ! deg C
+      REAL*8, DIMENSION(2) :: SNOWL,MICE
       INTEGER l
 
-      do l=1,2
-        TSIL(l)=Ti(HSIL(l)/(XSI(l)*MSI1),1d3*SSIL(l)/(XSI(l)*MSI1))
-      end do
+      IF (ACE1I.gt.XSI(2)*MSI1) THEN ! some ice in first layer
+        MICE(1) = ACE1I-XSI(2)*MSI1
+        MICE(2) = XSI(2)*MSI1
+c       SNOWL(1)= SNOW
+        SNOWL(1)= MSI1-ACE1I
+        SNOWL(2)= 0.
+      ELSE  ! some snow in second layer
+        MICE(1) = 0.
+        MICE(2) = ACE1I
+        SNOWL(1)= XSI(1)*MSI1
+        SNOWL(2)= XSI(2)*MSI1-ACE1I
+      ENDIF
+
+      IF(MICE(1).NE.0.) THEN
+        TSIL(1)=Ti2b(HSIL(1)/(XSI(1)*MSI1),1d3*SSIL(1)/MICE(1),
+     *             SNOWL(1),MICE(1))
+      ELSE
+        TSIL(1)=Ti(HSIL(1)/(XSI(1)*MSI1),0d0)
+      ENDIF
+        TSIL(2)=Ti2b(HSIL(2)/(XSI(2)*MSI1),1d3*SSIL(2)/MICE(2),
+     *             SNOWL(2),MICE(2))
       do l=3,lmi
         TSIL(l)=Ti(HSIL(l)/(XSI(l)*MSI2),1d3*SSIL(l)/(XSI(l)*MSI2))
       end do
@@ -2222,7 +2281,7 @@ c        Ti=(Ei+lhm)*byshi
 c**** solve Ei = shi*Ti-lhm*(1-1d-3*Si)
         Ti=(Ei+lhm*(1.-1d-3*Si))*byshi
       case ("BP")               ! Brine pocket formulation
-        if (Si.gt.0) then
+        if (Si.gt.1d-10) then
 c**** solve Ei = shi*(Ti+mu*Si)-lhm*(1+mu*Si/Ti)-mu*Si*shw
           Tm=-mu*Si
           if(Ei .ge. shw*Tm) then ! at or above melting point
@@ -2235,11 +2294,53 @@ c**** solve Ei = shi*(Ti+mu*Si)-lhm*(1+mu*Si/Ti)-mu*Si*shw
           end if
         else
           Ti=(Ei+lhm)*byshi  ! pure ice case
+          IF (dabs(Ei+lhm).LT.1.d-10) Ti=0. ! clean up roundoff errors
         end if
       end select
 
       return
       END FUNCTION Ti
+
+      REAL*8 FUNCTION Ti2b(Eit,Si,SNOWL,MICE)
+!@sum Ti2b calculates sea ice temperature as a function of internal
+!@+   energy and salinity content depending on ice thermo formulation
+!@+   when ice and snow are present in the same layer
+!@auth Anthony Leboissetier/Gavin Schmidt
+      USE CONSTANT, only : lhm,shw,shi,byshi
+      IMPLICIT NONE
+!@var Ei internal energy of sea ice (J/kg)
+!@var Si salinity  of sea ice (10-3 kg/kg = ppt)
+!@var SNOWL snow mass (kg/m^2) (use the actual salinity of the ice not the bulk salinity)
+!@var MICE ice mass (kg/m^2)
+!@var TI2b temperature (deg C)
+      REAL*8, INTENT(IN) :: Eit, Si,SNOWL, MICE
+      real*8 b,c,det,tm, Eil
+
+      select case (seaice_thermo)
+c      case ("PI")               ! pure ice
+cc**** solve Ei = shi*Ti-lhm
+c        Ti=(Ei+lhm)*byshi
+      case ("SI")               ! salinity mass effect
+c**** solve Ei = shi*Ti-lhm*(1-1d-3*Si)
+c**** in this particular case, Si is the bulk salinity (like in the SI case for Ti)
+c**** so it has to be multiplied by MICE/(MICE+SNOWL)
+        Ti2b=(Eit+lhm*(1.-1d-3*Si*(MICE/(MICE+SNOWL))))*byshi
+      case ("BP")               ! Brine pocket formulation
+        if (Si.gt.1.d-10) then
+c**** solve Ei = shi*(Ti+mu*Si)-lhm*(1+mu*Si/Ti)-mu*Si*shw
+          Tm=-mu*Si
+          b=(MICE/(MICE+SNOWL))*Tm*(shw-shi)-(Eit+lhm)
+          c=(MICE/(MICE+SNOWL))*lhm*Tm
+          det=b*b-4d0*shi*c   ! > 0
+          Ti2b=-5d-1*(b + sqrt(det))*byshi
+        else
+          Ti2b=(Eit+lhm)*byshi  ! pure ice case
+          IF (dabs(Eit+lhm).LT.1.d-10) Ti2b=0. ! clean up roundoff errors
+        end if
+      end select
+
+      return
+      END FUNCTION Ti2b
 
       REAL*8 FUNCTION Ei(Ti,Si)
 !@sum Calculation of energy of ice (J/kg) as a function of temp and salinity
@@ -2254,8 +2355,8 @@ c        Ei=Ti*shi-lhm
       case ("SI")               ! salinity affects only mass
         Ei=Ti*shi-lhm*(1.-1d-3*Si)
       case ("BP")               ! brine pocket formulation
-        if (Si.gt.0) then  ! is this safe from T=0? (or T>-muS?)
-          Ei= (Ti+mu*Si)*shi-lhm*(1.+mu*Si/min(Ti,-1.d-8))-shw*mu*Si
+        if (Si.gt.1d-10.AND.Ti.NE.0.) then  ! is this safe from T=0? (or T>-muS?
+          Ei= (Ti+mu*Si)*shi-lhm*(1.+mu*Si/Ti)-shw*mu*Si
         else
           Ei= Ti*shi-lhm
         end if
@@ -2277,9 +2378,10 @@ c        Mi=max(0d0,msi+hsi*bylhm)
       case ("SI")               ! salinity affects only mass
         Mi=max(0d0,msi+hsi*bylhm/(1.-ssi/msi))
       case ("BP")               ! brine pocket formulation
-        if (ssi.gt.ssimin*msi) then
+        if (1d3*ssi/msi.GT.1d-10) then
           Mi=0.
-          if (hsi+shw*mu*1d3*ssi.gt.0) Mi=msi
+          if (hsi+shw*mu*1d3*ssi.gt.0.OR.
+     *        dabs(hsi+shw*mu*1d3*ssi).LT.1.d-12) Mi=msi
         else
           Mi=max(0d0,msi+hsi*bylhm)
         end if
@@ -2335,11 +2437,15 @@ c        Em= 0.
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: Ti,Si   ! deg C and psu
 
-      if (seaice_thermo.eq."SI" .or. Si.eq.0) then ! pure ice value
+      if (seaice_thermo.eq."SI" .or. Si.lt.1d-10) then ! pure ice value
         alami=alami0
       else                      ! use brine fraction
-        alami=alami0 + alamdT*Ti + alamdS*Si/min(Ti,-1.d-8)
+        IF (Ti.NE.0.) THEN
+        alami=alami0 + alamdT*Ti + alamdS*Si/Ti
         IF(alami.LE.0.) alami=alami0
+        ELSE
+        alami=alami0
+        ENDIF
       end if
 
       RETURN
@@ -2352,14 +2458,38 @@ c        Em= 0.
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: Ti,Si   ! deg C and psu
 
-      if (seaice_thermo.eq."SI" .or. Si.eq.0) then ! pure ice value
+      if (seaice_thermo.eq."SI" .or. Si.lt.1d-10) then ! pure ice value
         dEidTi=shi
       else                      ! use brine fraction
-        dEidTi=shi+lhm*mu*Si/(min(Ti,-1.d-8)*min(Ti,-1.d-8))
+        IF(Ti.NE.0.) THEN
+        dEidTi=shi+lhm*mu*Si/(Ti*Ti)
+        ELSE
+        dEidTi=shi
+        ENDIF
       end if
 
       RETURN
       END FUNCTION dEidTi
+
+      REAL*8 FUNCTION dEidTiws(Ti,Si,SNOWL,MICE)
+!@sum Calculation of effective specific heat of ice J/(kg degC) =f(T,S)
+!@auth Gavin Schmidt
+      USE CONSTANT, only : shi, lhm
+      IMPLICIT NONE
+      REAL*8, INTENT(IN) :: Ti,Si,SNOWL,MICE   ! deg C and psu
+
+      if (seaice_thermo.eq."SI" .or. Si.lt.1d-10) then ! pure ice value
+        dEidTiws=shi
+      else                      ! use brine fraction
+        IF(Ti.NE.0..OR.MICE.EQ.0.) THEN
+        dEidTiws=shi+(MICE/(MICE+SNOWL))*lhm*mu*Si/(Ti*Ti)
+        ELSE
+        dEidTiws=shi
+        ENDIF
+      end if
+
+      RETURN 
+      END FUNCTION dEidTiws
 
       END MODULE SEAICE
 
