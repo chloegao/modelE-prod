@@ -24,6 +24,7 @@ C
       use OldTracer_mod, only: HSTAR
       use OldTracer_mod, only: do_fire
       use OldTracer_mod, only: do_aircraft
+      use OldTracer_mod, only: first_aircraft
       use OldTracer_mod, only: nBBsources
       use OldTracer_mod, only: emisPerFireByVegType
       use OldTracer_mod, only: trpdens
@@ -43,9 +44,7 @@ C
       use OldTracer_mod, only: trglac
       use OldTracer_mod, only: trli0
       use OldTracer_mod, only: trsi0
-#ifdef TRACERS_VOLCEXP
       use timestream_mod, only : timestream
-#endif
 #ifdef TRACERS_AEROSOLS_VBS
       use TRACERS_VBS, only: vbs_bins
 #endif
@@ -620,6 +619,11 @@ C**** arrays that could be general, but are only used by chemistry
       type(timestream) :: SO2_volc_stream  ! explosive emissions
       type(timestream) :: SO2_vphe_stream  ! explosive plume height
 #endif
+#if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch) ||\
+    (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
+!@var AIRCstreams organizes nc-reading of tracer 3D aircraft sources
+      type(timestream), allocatable, dimension(:) :: AIRCstreams
+#endif
 
 !@var xyz_count,xyz_list count/list of tracers in category xyz.
 !@+   A tracer can belong to more than one list.
@@ -665,6 +669,7 @@ c note: not applying CPP when declaring counts/lists.
       call tracers%addDefaultValue('HSTAR', 0.0d0)
       call tracers%addDefaultValue('do_fire', .false.)
       call tracers%addDefaultValue('do_aircraft', .false.)
+      call tracers%addDefaultValue('first_aircraft', .true.)
       call tracers%addDefaultValue('nBBsources', 0)
 
       call tracers%addDefaultValue('trradius', 0.0d0)
@@ -854,6 +859,7 @@ C****
      *           rsulf2(I_0H:I_1H,J_0H:J_1H,LM),
      *           rsulf3(I_0H:I_1H,J_0H:J_1H,LM),
      *           rsulf4(I_0H:I_1H,J_0H:J_1H,LM) )
+      ALLOCATE( AIRCstreams(NTM) )
 #endif
 
       END SUBROUTINE ALLOC_TRACER_COM

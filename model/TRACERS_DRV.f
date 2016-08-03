@@ -6954,7 +6954,8 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
       do n=1,ntm
         if(do_aircraft(n)) then
           call get_aircraft_tracer
-     &    (n,trim(trname(n))//'_AIRC',year,xday,daily_gz,.true.)
+     &    (n,trim(trname(n))//'_AIRC',year,xday,daily_gz,.true.,
+     &     AIRCstreams(n))
           ! for TOMAS, is trname(n_AECOB(1))=='AECOB_01' ?
         end if
       end do
@@ -8240,6 +8241,10 @@ c$$$      use OldTracer_mod, only: tr_mm, nBBsources, mass2vol
       use TRCHEM_Shindell_COM, only: fact_cfc, 
      &     use_rad_n2o, use_rad_ch4, use_rad_cfc, topLevelOfChemistry
 #endif
+#if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch) ||\
+    (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
+      use TRACER_COM, only: AIRCstreams
+#endif
 
       implicit none
       INTEGER n,ns,najl,i,j,l,blay,xday   ; real*8 now
@@ -8586,10 +8591,12 @@ c
           tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n)  = 0.d0
 #ifdef CUBED_SPHERE
           call get_aircraft_tracer ! logical read from disk
-     &     (n,trim(trname(n))//'_AIRC',year,xday,dummy3d,.false.)
+     &     (n,trim(trname(n))//'_AIRC',year,xday,dummy3d,.false.,
+     &     AIRCstreams(n))
 #else
           call get_aircraft_tracer
-     &     (n,trim(trname(n))//'_AIRC',year,xday,phi,.true.)
+     &     (n,trim(trname(n))//'_AIRC',year,xday,phi,.true.,
+     &     AIRCstreams(n))
 #endif
 #ifdef TRACERS_TOMAS
           ! TOMAS has to apply this among tracers in its own section below.

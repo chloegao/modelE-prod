@@ -7,6 +7,7 @@
       use RunTimeControls_mod, only: tracers_tomas
       use OldTracer_mod, only: trName, do_fire, do_aircraft
       use OldTracer_mod, only: set_do_fire, set_do_aircraft
+      use OldTracer_mod, only: set_first_aircraft, first_aircraft
       use OldTracer_mod, only: nBBsources, set_nBBsources
       use DOMAIN_DECOMP_ATM, only: am_i_root
       use TRACER_COM, only: tracers
@@ -16,6 +17,7 @@
       use Tracer_mod, only: Tracer
       use Tracer_mod, only: findSurfaceSources
       use Tracer_mod, only: addSurfaceSource
+      use SystemTools, only: stLinkStatus
 #ifdef TRACERS_SPECIAL_Shindell      
       use TRCHEM_Shindell_COM, only: use_rad_ch4
 #endif
@@ -24,8 +26,8 @@
       integer, intent(in) :: n
       class (Tracer), pointer :: pTracer
 
-      logical :: checkSourceName,hasAircraftFile
-      integer :: val
+      logical :: checkSourceName
+      integer :: val, linkstatus
 
       call pTracer%insert('ntSurfSrc', 0)
 
@@ -51,9 +53,13 @@
       call findSurfaceSources(pTracer, checkSourceName, 
      &     sect_name(1:num_sectors))
 
-!     Next, check whether tracers have 3D aircraft source files:
-      inquire(file=trim(trname(n)//'_AIRC'), exist=hasAircraftFile)
-      if(hasAircraftFile) call set_do_aircraft(n, .true.)
+!     Next, check whether tracers have 3D aircraft source files/dirs:
+      call stLinkStatus(trim(trname(n)//'_AIRC'),linkstatus)
+      select case(linkstatus)
+      case(1,2) ! TODO: no hardcoded integers
+        call set_do_aircraft(n, .true.)
+        call set_first_aircraft(n, .true.)
+      end select
 
 #ifdef DYNAMIC_BIOMASS_BURNING
 !     allow some tracers to have biomass burning based on fire model:
