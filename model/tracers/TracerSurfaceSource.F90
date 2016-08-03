@@ -615,7 +615,7 @@ contains
          & sfc_a,sfc_b
 
     INTEGER :: J_1, J_0, I_0, I_1
-    integer :: cyclic_yr,master_yr
+    integer :: cyclic_yr,master_yr,nc_emis_use_ppm_interp
 
     if(.not.is_fbsa(fname)) then
 
@@ -628,9 +628,16 @@ contains
           call get_param('aer_int_yr',cyclic_yr,default=master_yr)
         end if
         cyclic_yr=ABS(cyclic_yr)
-        call init_stream(grid,this%EMstream,trim(fname), &
+        call get_param('nc_emis_use_ppm_interp',nc_emis_use_ppm_interp)
+        if (nc_emis_use_ppm_interp==1) then
+          call init_stream(grid,this%EMstream,trim(fname), &
+             trim(this%tracername),0d0,1d30,'ppm',xyear,xday, &
+             cyclic = (cyclic_yr > 0) )
+        else
+          call init_stream(grid,this%EMstream,trim(fname), &
              trim(this%tracername),0d0,1d30,'linm2m',xyear,xday, &
              cyclic = (cyclic_yr > 0) )
+        endif
       endif
       call read_stream(grid,this%EMstream,xyear,xday,sfc_src)
 
