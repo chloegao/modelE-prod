@@ -3173,6 +3173,10 @@ C     functions
       integer :: use_sol_Ox_cycle = 0
       real*8 :: S0min, S0max
 
+!@dbparam ozone_use_ppm_interp = 1 uses ppm interpolation in the
+!@+ timestream. Otherwise uses linm2m.
+      integer :: ozone_use_ppm_interp = 1
+
 !@var have_o3_file whether an O3file was specified in the rundeck
       logical :: have_o3_file
 
@@ -3196,6 +3200,7 @@ C     functions
       contains
 
       subroutine UPDO3D(JYEARO,JJDAYO,O3JDAY,O3JREF)
+      use dictionary_mod
       use resolution, only : psf
       use domain_decomp_atm, only: grid, getdomainbounds
       use timestream_mod, only : init_stream,read_stream
@@ -3259,8 +3264,14 @@ C     functions
 ! Initialize the timestream for the O3 data file:
         cyclic = jyearo < 0
         if(have_o3_file) then
-          call init_stream(grid,O3stream,'O3file','O3',
+          call sync_param("ozone_use_ppm_interp",ozone_use_ppm_interp)
+          if(ozone_use_ppm_interp==1)then
+            call init_stream(grid,O3stream,'O3file','O3',
+     &         0d0,1d30,'ppm',jyearx,jjdayo,cyclic=cyclic)
+          else
+            call init_stream(grid,O3stream,'O3file','O3',
      &         0d0,1d30,'linm2m',jyearx,jjdayo,cyclic=cyclic)
+          endif
         endif
 
 ! Read the 3D field for O3 RCOMPX reference calls.
