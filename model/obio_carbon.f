@@ -32,6 +32,8 @@ c
 #ifdef OBIO_ON_GARYocean
       USE MODEL_COM, only : nstep=>itime
       USE OCEANRES, only : kdm=>lmo
+      USE OCEAN,    only : DTS,mo,dxypo,trmo
+      USE OCN_TRACER_COM, only : n_abioDIC
       use ofluxes, only : ocnatm
       use obio_diag, only: oij=>obio_ij, ij_ph, ij_co3
 #else
@@ -48,9 +50,12 @@ c
       implicit none
 
 
-      real, parameter :: awan=0.337d0/(3.6d5) !piston vel coeff., from
-                                              !Wanninkof 1992, but adjusted
-                                              !by OCMIP, and converted from
+!     real, parameter :: awan=0.337d0/(3.6d5) !piston vel coeff., from
+!                                             !Wanninkof 1992, but adjusted
+!                                             !by OCMIP, and converted from
+!                                             !cm/hr to m/s
+      real, parameter :: awan=0.251d0/(3.6d5) !piston vel coeff., OCMIP2016
+                                              !converted from
                                               !cm/hr to m/s
       integer :: i,j,k
 
@@ -279,6 +284,16 @@ c Update DIC for sea-air flux of CO2
      .      'obio_carbon (coupled):',
      .      nstep,i,j,dp1d(1),co2flux,term     !this flux should be mol,co2/m2/s
         endif
+
+      !abiotic DIC tracer
+      if (n_abioDIC.ne.0) then
+          trmo(i,j,1,n_abioDIC) = trmo(i,j,1,n_abioDIC) 
+     .                          + term*DTS**1e-6*12.d0     !term is in mili-mol/m3/s -> trmo is in kg,C
+     .                          * dxypo(j)*dp1d(1)
+!    .                          * mo(i,j,1)*dxypo(j)/rho_water 
+!    .                          * mo(i,j,1)*dxypo(j)/1024.d0
+      endif
+
       else
 
 !this is for only ocean biology but no gas exchange: 
@@ -286,7 +301,9 @@ c Update DIC for sea-air flux of CO2
       !atmco2 is set to constant
         k = 1
         Ts = temp1d(k)
-        scco2 = 2073.1 - 125.62*Ts + 3.6276*Ts**2 - 0.043219*Ts**3
+!       scco2 = 2073.1 - 125.62*Ts + 3.6276*Ts**2 - 0.043219*Ts**3
+        !new OCMIP2016 values
+        scco2 = 2116.8 - 136.25*Ts + 4.7353*Ts**2 - 0.092307*Ts**3 + 0.000755*Ts**4
         wssq = wind*wind
         if (scco2.lt.0.) then
           scco2arg=1.d-10
@@ -298,10 +315,16 @@ c Update DIC for sea-air flux of CO2
         tk = tf+Ts
         tk100 = tk*0.01
         tk1002 = tk100*tk100
-        ff = exp(-162.8301 + 218.2968/tk100  +       !solub in mol/kg/picoatm
-     .         90.9241*log(tk100) - 1.47696*tk1002 +
-     .         saln1d(k) * (.025695 - .025225*tk100 +
-     .         0.0049867*tk1002))
+!       ff = exp(-162.8301 + 218.2968/tk100  +       !solub in mol/kg/picoatm
+!    .         90.9241*log(tk100) - 1.47696*tk1002 +
+!    .         saln1d(k) * (.025695 - .025225*tk100 +
+!    .         0.0049867*tk1002))
+        !new OCMIP2016 values
+        ff = exp(-160.7333 + 215.4152/tk100  +       !solub in mol/kg/picoatm
+     .         89.8920*log(tk100) - 1.47759*tk1002 +
+     .         saln1d(k) * (0.029941 - 0.027455*tk100 +
+     .         0.0053407*tk1002))
+
 
         xco2 = atmCO2*1013.D0/stdslp
         deltco2 = (xco2-pCO2_ij)*ff*1024.5*1d-6 !convert ff mol/m3/uatm
@@ -326,6 +349,14 @@ c Update DIC for sea-air flux of CO2
      .      nstep,i,j,Ts,scco2arg,wssq,rkwco2,ff,xco2,pCO2_ij,
      .      rkwco2*(xco2-pCO2_ij)*ff*1.0245D-3,term     !this flux should have units mol,co2/m2/s
         endif
+
+      !abiotic DIC tracer
+      if (n_abioDIC.ne.0) then
+          trmo(i,j,1,n_abioDIC) = trmo(i,j,1,n_abioDIC) 
+     .                          + term*DTS**1e-6*12.d0     !term is in mili-mol/m3/s -> trmo is in kg,C
+!    .                          * mo(i,j,1)*dxypo(j)/rho_water 
+     .                          * mo(i,j,1)*dxypo(j)/1024.d0 
+      endif
       endif
 
       return

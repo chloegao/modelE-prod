@@ -239,7 +239,7 @@ C endif
      &   ij_rnitrmflo,
      &   ij_rnitrconc, ij_rdicconc, ij_rdocconc, ij_rsiliconc,
      &   ij_rironconc, ij_rpocconc, ij_ralkconc, ij_pp, ij_lim(4, 5),
-     &   ij_rhs(ntrac-1, 17), ij_pp1, ij_pp2, ij_pp3, ij_pp4, ij_co3,
+     &   ij_rhs(ntrac, 17), ij_pp1, ij_pp2, ij_pp3, ij_pp4, ij_co3,
      &   ij_ph
       integer, public :: ijl_avgq, ijl_kpar, ijl_dtemp
       type(vector_str30) :: sname_ij, units_ij

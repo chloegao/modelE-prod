@@ -455,47 +455,55 @@ C****
       end subroutine ocn_tr_age
 #endif
 
-      SUBROUTINE OCN_TR_CFC(DTS)
+      SUBROUTINE OCN_TR_CFC(DTS,icfc)
 !@sum OCN_TR_CFC tracer in ocean
 !@auth Natassa Romanou
       USE Dictionary_mod, only : get_param
       USE MODEL_COM, only : itime,modelEclock
       USE CONSTANT,   only : grav
-      USE OCN_TRACER_COM, only : n_cfc
+      USE OCN_TRACER_COM, only : n_cfc,n_cfc12,n_sf6
       USE OCEAN, only : trmo,txmo,tymo,tzmo, oxyp, mo, imaxj, focean,
      *     lmm, lmo,dxypo,g0m,s0m,olat=>olat2d_dg ! 2D array containing lat at each i,j
       USE OFLUXES,    only : oRSI,oAPRESS,ocnatm
       USE DOMAIN_DECOMP_1D, only : getDomainBounds
       USE OCEANR_DIM, only : grid=>ogrid
-      USE ODIAG, only : ij_cfcair,ij_kw,ij_csat,ij_cfcflux,oij=>oij_loc
+      USE ODIAG, only : ij_cfcair,ij_kw,ij_csat,ij_cfcflux,ij_cfcsolub
+     .        ,oij=>oij_loc
+     .        ,ij_cfc12air,ij_kw12,ij_csat12,ij_cfc12flux,ij_cfc12solub
+     .        ,ij_sf6air,ij_kw_sf6,ij_csat_sf6,ij_sf6flux,ij_sf6solub
       use model_com, only: modeleclock
       use runtimecontrols_mod, only: ocn_cfc
 
       IMPLICIT NONE
       interface
-        subroutine read_atmcfc(iyear,nh,sh)
-          real*8, allocatable, dimension(:), intent(out) :: nh, sh
+        subroutine read_atmcfc(iyear,nh1,sh1,nh2,sh2,nh3,sh3)
+          real*8, allocatable, dimension(:), intent(out) :: 
+     .            nh1,sh1,nh2,sh2,nh3,sh3
           integer, allocatable, dimension(:), intent(out) :: iyear
         end subroutine read_atmcfc
       end interface
       real*8, allocatable, dimension(:), save :: cfc11nh,cfc11sh
+      real*8, allocatable, dimension(:), save :: cfc12nh,cfc12sh
+      real*8, allocatable, dimension(:), save :: sf6nh,sf6sh
       integer, allocatable, dimension(:), save :: icfcyear
       real*8, intent(in) :: dts
       real*8 :: cfc_inc, Xconv,a,pres,g,s,sst,sss,temgs,wind,pnoice,Xkw
-     .              ,solub,solub_cfc,schmidtno_cfc,Sc,kw,cfcair,csat
+     .              ,solub,solub_cfc_sf6,schmidtno_cfc,Sc,kw,cfcair,csat
      .              ,fluxa,flux,flux_tendency,rho_water,dp1d
-     .              ,Pnorth,Psouth,trmopro,fluxb
+     .              ,Pnorth,Psouth,trmopro,fluxb,scsf6
       real*8 :: ys ! northern boundary of SH constant-value domain (deg N)
       real*8 :: yn ! southern boundary of NH constant-value domain (deg N)
       real*8 :: wt_sh ! weight for SH constant-value domain
       real*8,External   :: VOLGS
-      integer i,j,l,k
+      integer i,j,l,k,icfc,trac_ind
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1,year, month, dayOfYear, date
-      real*8 :: cfc_conc_const
+      real*8 :: cfc_conc_const,MW_gas
 
       if (.not.allocated(icfcyear)) then
-        call read_atmcfc(icfcyear,cfc11nh,cfc11sh)
+        call read_atmcfc(icfcyear,cfc11nh,cfc11sh
+     .                           ,cfc12nh,cfc12sh
+     .                           ,sf6nh,sf6sh)
       end if
 
       call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1)
@@ -504,13 +512,28 @@ C**** interpolate atmospheric values
       call modelEclock%get(year=year, month=month, date=date,
      &     dayOfYear=dayOfYear)
 
+! set the right tracer index
+      if (icfc==11) trac_ind=n_cfc
+      if (icfc==12) trac_ind=n_cfc12
+      if (icfc==6)  trac_ind=n_sf6
+      
       !pick appropriate values for each year
       do i=1,105
         if (year == icfcyear(i)) then
          yn=10.d0
          ys=-10.d0
-         Pnorth=cfc11nh(i)
-         Psouth=cfc11sh(i)
+         if (icfc==11) then
+             Pnorth=cfc11nh(i)
+             Psouth=cfc11sh(i)
+         endif
+         if (icfc==12) then
+             Pnorth=cfc12nh(i)
+             Psouth=cfc12sh(i)
+         endif
+         if (icfc==6) then
+             Pnorth=sf6nh(i)
+             Psouth=sf6sh(i)
+         endif
         endif
       enddo
 
@@ -532,16 +555,15 @@ C**** at each time step set surface tracer conc=1+flux from atmos
         dp1d = MO(I,J,K)/rho_water   !local thickenss of each layer in meters
 
       Xkw = Xconv * a * wind**2       ! units in m/s
-      solub = solub_cfc(sst,sss,11)   !mol/m3/pptv
-      Sc = schmidtno_cfc(sst,11)
-!     kw = pnoice*Xkw/sqrt(Sc/660)
+      if (icfc==11) solub = solub_cfc_sf6(sst,sss,11)   !mol/m3/pptv
+      if (icfc==12) solub = solub_cfc_sf6(sst,sss,12)   !mol/m3/pptv
+      if (icfc==6)  solub = solub_cfc_sf6(sst,sss,6)    !mol/m3/pptv
+
+      if (icfc==11) Sc = schmidtno_cfc(sst,11)
+      if (icfc==12) Sc = schmidtno_cfc(sst,12)
+      if (icfc==6) Sc = scsf6(sst)
       kw = Xkw/sqrt(Sc/660)
 
-!     if (i.eq.50.and.j.eq.90) then
-!     write(*,'(a,5i5,6e12.4)')'CFC OUTPUT:',
-!    .   i,j,date,month,year,
-!    .   Xconv,a,wind,solub,Sc,kw   
-!     endif
 #ifdef OCN_CFCconst
 !     cfcair = 1.          !pptv to derive greens functions -- corresponds to year=1951
       call get_param('cfc_conc_const',cfc_conc_const)
@@ -556,6 +578,10 @@ C**** at each time step set surface tracer conc=1+flux from atmos
       endif
       cfcair = (1.-wt_sh) * Pnorth + wt_sh * Psouth
 #endif
+      !molecular weights of gases
+      if (icfc==11) MW_gas = 137.37d0    !Use values from Sarmiento book
+      if (icfc==12) MW_gas = 120.90d0
+      if (icfc==6)  MW_gas = 146.10d0
 
 !mo units: kg/m2
 !     pres = 1. !atm
@@ -564,26 +590,20 @@ C**** at each time step set surface tracer conc=1+flux from atmos
      .     * 9.86923266716e-6             !atm
       csat = solub * cfcair * pres/1.d0       ! mol/m3
       fluxa = kw * csat                     ! mol/m2/s
-      fluxb = kw * trmo(i,j,1,n_cfc) *1000.d0/137.37d0
+      fluxb = kw * trmo(i,j,1,trac_ind) *1000.d0/MW_gas
      .           * rho_water/mo(i,j,1)/dxypo(j)            !mol/m2/s
       flux = fluxa - fluxb     !mol/m2/s
 
       flux_tendency= flux /dp1d * 1000.d0*pnoice  !mili-mol/m3/s
 
-!     if (i.eq.50.and.j.eq.90) then
-!      write(*,'(a,5i5,9e12.4)')'CFC OUTPUT 1:', 
-!    . i,j,date,month,year, cfcair,pres,solub,csat,kw,fluxa,
-!    . flux,flux_tendency,trmo(i,j,1,n_cfc)
-!     endif
-
-      trmopro=trmo(i,j,1,n_cfc)   !save for printout
-      trmo(i,j,1,n_cfc) =  trmo(i,j,1,n_cfc)
-     .                  + (flux_tendency * DTS)*1e-6*137.37
+      trmopro=trmo(i,j,1,trac_ind)   !save for printout
+      trmo(i,j,1,trac_ind) =  trmo(i,j,1,trac_ind)
+     .                  + (flux_tendency * DTS)*1e-6*MW_gas
      .                                 *mo(i,j,1)*dxypo(j)/rho_water   !kg
       if (i.eq.50.and.j.eq.90) then
-         write(*,'(a,5i5,12e12.4)')'CFC OUTPUT 1:',
-     . date,month,year,i,j,pnoice,cfcair,pres,solub,csat,kw,fluxa,
-     . fluxb,flux,dp1d,trmopro,trmo(i,j,1,n_cfc)
+         write(*,'(a,6i5,12e12.4)')'CFC OUTPUT 1:',
+     . date,month,year,i,j,icfc,pnoice,cfcair,pres,solub,csat,kw,fluxa,
+     . fluxb,flux,dp1d,trmopro,trmo(i,j,1,trac_ind)
       endif
 
 
@@ -593,10 +613,27 @@ C**** at each time step set surface tracer conc=1+flux from atmos
 !     TYMO(I,J,1,n_cfc)=0 ; TZMO(I,J,1,n_cfc)=0
 
        if (ocn_cfc) then
+        if (icfc==11) then
          OIJ(I,J,IJ_cfcair) = OIJ(I,J,IJ_cfcair) + cfcair
-         OIJ(I,J,IJ_kw) = OIJ(I,J,IJ_kw) +  kw
          OIJ(I,J,IJ_csat) = OIJ(I,J,IJ_csat) +  csat
+         OIJ(I,J,IJ_kw) = OIJ(I,J,IJ_kw) +  kw
+         OIJ(I,J,IJ_cfcsolub) = OIJ(I,J,IJ_cfcsolub) +  solub
          OIJ(I,J,IJ_cfcflux) = OIJ(I,J,IJ_cfcflux) +  flux
+        endif
+        if (icfc==12) then
+         OIJ(I,J,IJ_cfc12air) = OIJ(I,J,IJ_cfc12air) + cfcair
+         OIJ(I,J,IJ_csat12) = OIJ(I,J,IJ_csat) +  csat
+         OIJ(I,J,IJ_kw12) = OIJ(I,J,IJ_kw) +  kw
+         OIJ(I,J,IJ_cfc12solub) = OIJ(I,J,IJ_cfc12solub) +  solub
+         OIJ(I,J,IJ_cfc12flux) = OIJ(I,J,IJ_cfc12flux) +  flux
+        endif
+        if (icfc==6) then
+         OIJ(I,J,IJ_sf6air) = OIJ(I,J,IJ_sf6air) + cfcair
+         OIJ(I,J,IJ_csat_sf6) = OIJ(I,J,IJ_csat_sf6) +  csat
+         OIJ(I,J,IJ_kw_sf6) = OIJ(I,J,IJ_kw_sf6) +  kw
+         OIJ(I,J,IJ_sf6solub) = OIJ(I,J,IJ_sf6solub) +  solub
+         OIJ(I,J,IJ_sf6flux) = OIJ(I,J,IJ_sf6flux) +  flux
+        endif
       endif
       ENDIF
       ENDDO
@@ -605,29 +642,60 @@ C**** at each time step set surface tracer conc=1+flux from atmos
       end SUBROUTINE OCN_TR_CFC
 
 
-      SUBROUTINE read_atmcfc(icfcyear,cfc11nh,cfc11sh)
+      SUBROUTINE read_atmcfc(icfcyear,cfc11nh,cfc11sh
+     .                               ,cfc12nh,cfc12sh
+     .                               ,sf6nh,sf6sh)
   
       USE FILEMANAGER, only: openunit,closeunit
 
       implicit none
       real*8, allocatable, dimension(:), intent(out) :: cfc11nh, cfc11sh
+      real*8, allocatable, dimension(:), intent(out) :: cfc12nh, cfc12sh
+      real*8, allocatable, dimension(:), intent(out) :: sf6nh,  sf6sh
+      real*8 :: dummy
       integer, allocatable, dimension(:), intent(out) :: icfcyear
       integer iu_file,i
       character(len=80) :: first_line_dummy
 
       allocate(icfcyear(105),cfc11nh(105), cfc11sh(105))
+      allocate(cfc12nh(105), cfc12sh(105))
+      allocate(sf6nh(105), sf6sh(105))
 
       !read in the values from cfc1112.atm
       call openunit('cfcatm_data',iu_file,.false.,.true.)
       read(iu_file,*)
       do i=1,105
       read(iu_file,*)icfcyear(i), cfc11nh(i), cfc11sh(i)
+     .                          , cfc12nh(i), cfc12sh(i)
+     .                          , dummy, dummy
+     .                          , dummy, dummy
+     .                          , sf6nh(i), sf6sh(i)
       enddo
       call closeunit(iu_file)
 
       end SUBROUTINE read_atmcfc
 
-      real*8 function solub_cfc(pt,ps,kn)
+      real*8 FUNCTION scsf6(temp)
+!>    Compute Schmidt number for SF6 in seawater from temperature
+!     (from Orr et al, 2016 mocsy codes)
+
+!  Compute Schmidt number of SF6 in seawater w/ formulation from Wanninkhof (Limnol. Oceanogr.: Methods 12, 2014, 351–362)
+!  Input is temperature in deg C.
+
+      IMPLICIT NONE
+
+      !  Input & output variables:
+      real*8, INTENT(in) :: temp
+!     real*8 :: scsf6
+
+      scsf6 = 3177.5 - 200.57*temp + 6.8865*temp**2 - 
+     .                 0.13335*temp**3 + 0.0010877*temp**4
+
+      RETURN
+      END FUNCTION scsf6
+
+
+      real*8 function solub_cfc_sf6(pt,ps,kn)
 
 !_ ---------------------------------------------------------------------
 !_ RCS lines preceded by "c_ "
@@ -649,15 +717,16 @@ C**** at each time step set surface tracer conc=1+flux from atmos
 !_
 !_ ---------------------------------------------------------------------
 !_
-!     function sol_cfc=solub_cfc(pt,ps,kn)
+!     function sol_cfc_sf6=solub_cfc_sf6(pt,ps,kn)
 !-------------------------------------------------------------------
 !
 !     CFC 11 and 12 Solubilities in seawater
+!     SF6           Solubility in seawater
 !     ref: Warner & Weiss (1985) , Deep Sea Research, vol32
 !
 !     pt:       temperature (degree Celcius)
 !     ps:       salinity    (o/oo)
-!     kn:       11 = CFC-11, 12 = CFC-12
+!     kn:       11 = CFC-11, 12 = CFC-12, 6 = SF6
 !     sol_cfc:  in mol/m3/pptv
 !               1 pptv = 1 part per trillion = 10^-12 atm = 1 picoatm
 
@@ -696,22 +765,35 @@ C**** at each time step set surface tracer conc=1+flux from atmos
              b3 =   -0.0153924d0
        endif
  
+!    
+!     for SF6   OCMIP2016 protocol
+!     ----------
+      if (kn.eq.6) then
+             a1 = -80.0343d0
+             a2 =  117.232d0
+             a3 =  29.5817d0
+             a4 = -0.0d0
+             b1 =  0.0335183d0
+             b2 = -0.0373942d0
+             b3 =  0.0048472d0
+       endif
+
 
       ta       = ( pt + tf)* 0.01d0
       d    = (b3*ta + b2)*ta + b1
  
  
-      solub_cfc = exp(a1 + a2/ta + a3*log(ta) + a4*ta*ta + ps*d)
+      solub_cfc_sf6 = exp(a1 + a2/ta + a3*log(ta) + a4*ta*ta + ps*d)
 
 !     conversion from mol/(l * atm) to mol/(m^3 * atm) 
 !     ------------------------------------------------
-      solub_cfc = 1000.d0 * solub_cfc
+      solub_cfc_sf6 = 1000.d0 * solub_cfc_sf6
  
 !     conversion from mol/(m^3 * atm) to mol/(m3 * pptv) 
 !     --------------------------------------------------
-      solub_cfc = 1.0d-12 * solub_cfc
+      solub_cfc_sf6 = 1.0d-12 * solub_cfc_sf6
 
-      end function solub_cfc
+      end function solub_cfc_sf6
 
 
       real*8 function schmidtno_cfc(t,kn)
@@ -747,26 +829,38 @@ C**** at each time step set surface tracer conc=1+flux from atmos
 !   coefficients with t in degree Celcius
 !   ------------------------------------
       implicit none
-      real*8 :: a1,a2,a3,a4,t
+      real*8 :: a1,a2,a3,a4,a5,t
       integer kn
 
       if (kn==11) then
-      a1 = 3501.8d0
-      a2 = -210.31d0
-      a3 =    6.1851d0
-      a4 =   -0.07513d0
+      !a1 = 3501.8d0
+      !a2 = -210.31d0
+      !a3 =    6.1851d0
+      !a4 =   -0.07513d0
+      !new parameterizations based on Wanninkhof (2014)
+      a1 = 3579.2d0
+      a2 = -222.63d0
+      a3 = 7.5749d0
+      a4 = -0.14595d0
+      a5 = 0.0011874d0
       endif
  
       if (kn==12) then
-      a1 = 3845.4d0
-      a2 = -228.95d0
-      a3 =    6.1908d0
-      a4 =   -0.067430d0
+      !a1 = 3845.4d0
+      !a2 = -228.95d0
+      !a3 =    6.1908d0
+      !a4 =   -0.067430d0
+      a1 = 3828.1
+      a2 = -249.86
+      a3 = 8.7603
+      a4 = -0.1716
+      a5 = 0.001408
       endif
 
-      schmidtno_cfc = a1 + a2 * t + a3 *t*t + a4 *t*t*t;
+      schmidtno_cfc = a1 + a2 * t + a3 *t*t + a4 *t*t*t + a5 *t*t*t*t;
 
       end function schmidtno_cfc
+!---------------------------------------------------------------------------------------
 
       SUBROUTINE DIAGTCO (M,NT0,atmocn)
 !@sum  DIAGTCO Keeps track of the conservation properties of ocean tracers
