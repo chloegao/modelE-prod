@@ -236,14 +236,14 @@ c radii interpolation
       ENDDO ! l
       ENDDO ! nd
 
-      DO nd = 5,ndtr  !1,ndtr
+      DO nd = 5,ndtr-1  !1,ndtr
         krate(:,J_0:J_1,:,1,il) = krate(:,J_0:J_1,:,1,il)
      & + rxtnox(:,J_0:J_1,:,nd,il)
       ENDDO
         krate(:,J_0:J_1,:,2,il) = rxtnox(:,J_0:J_1,:,5,il)
         krate(:,J_0:J_1,:,3,il) = rxtnox(:,J_0:J_1,:,6,il)
         krate(:,J_0:J_1,:,4,il) = rxtnox(:,J_0:J_1,:,7,il)
-        krate(:,J_0:J_1,:,5,il) = rxtnox(:,J_0:J_1,:,8,il)
+!        krate(:,J_0:J_1,:,5,il) = rxtnox(:,J_0:J_1,:,8,il)
       ENDDO ! il
 
       return
@@ -494,13 +494,13 @@ c        if  (dustnc(i,j,l,nd).gt.1000.)
 
          rxts(:,:,:) = 0.d0
 
-      DO nd = 5,ndtr  !1,ndtr
+      DO nd = 5,ndtr-1  !1,ndtr
         rxts(:,j_0:J_1,:) = rxts(:,j_0:J_1,:) + rxt(:,j_0:J_1,:,nd)
       ENDDO
         rxts1(:,j_0:J_1,:) = rxt(:,j_0:J_1,:,5)
         rxts2(:,j_0:J_1,:) = rxt(:,j_0:J_1,:,6)
         rxts3(:,j_0:J_1,:) = rxt(:,j_0:J_1,:,7)
-        rxts4(:,j_0:J_1,:) = rxt(:,j_0:J_1,:,8)
+!        rxts4(:,j_0:J_1,:) = rxt(:,j_0:J_1,:,8)
 
 
       end subroutine sulfdust
