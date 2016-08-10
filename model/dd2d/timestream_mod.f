@@ -102,7 +102,7 @@
 !@+            is inferred from the size of the unlimited dimension
 !@+            in the file corresponding to the current year, or the next
 !@+            existing one in the dataset.  A size of 1 denotes annual,
-!@+            12 monthly, 365/366 daily, and so forth.
+!@+            12 monthly, 73 pentads, 365/366 daily, and so forth.
 !@+        (2) The path is a regular file.  Either
 !@+            (a) It lacks the time axis information defined below in (b), in
 !@+                which case it is assumed to correspond to one year of data
@@ -114,9 +114,11 @@
 !@+                the following patterns (case-sensitive):
 !@+                   "years since YYYY"       for annual data
 !@+                   "months since YYYY-MM"   for monthly data
+!@+                   "pentads since YYYY-PP"  for pentad data
 !@+                   "days since YYYY-MM-DD"  for daily data
-!@+                where YYYY denotes a 4-digit year, MM a 2-digit month, and
-!@+                DD a 2-digit day of the month.  Units of hours and minutes
+!@+                where YYYY denotes a 4-digit year, MM or PP a 2-digit month
+!@+                or pentad, and DD a 2-digit day of the month.
+!@+                Units of hours and minutes
 !@+                will be added to the match list in the future as necessary.
 !@+                Currently, only the integer part of the time axis values is
 !@+                considered. Excepting the first/last, each year of data must
@@ -228,9 +230,11 @@
 !@var daily_data flag indicating whether input file contains daily data
 !@var annual_data flag indicating whether input file contains annual data
 !@var monthly_data flag indicating whether input file contains monthly data
+!@var pentad_data flag indicating whether input file contains pentad data
          logical :: daily_data=.false.
          logical :: annual_data=.false.
          logical :: monthly_data=.false.
+         logical :: pentad_data=.false.
 !@var multiple_files whether multi-year data are stored one file per year
          logical :: multiple_files=.false.
 !@var roff time index corresponding to January of first year, minus 1
@@ -275,7 +279,7 @@
          real*8, dimension(:,:,:,:), allocatable :: qty1,qty2
 !@var eom holds one year of end-of-month values needed for
 !@+   parabolic interpolation (13 months incl. prev. Dec.)
-         real*8, dimension(:,:,:), allocatable :: eom
+         real*8, dimension(:,:,:,:), allocatable :: eom
       end type timestream
 
 C**** (Simplified) Calendar Related Terms
@@ -343,10 +347,6 @@ c
       endif
 
       call check_format(tstream)
-
-      if(tstream%tinterp_method.eq.ppm) then
-        allocate(tstream%eom(I_0:I_1,J_0:J_1,0:12))
-      endif
 
       ! duplicate of read_stream. maybe pass jday to read_year instead
       jmon=1
@@ -537,7 +537,7 @@ c
       character(len=200) :: fname,fname_eom,attname
       INTEGER :: J_0,J_1, I_0,I_1, M1,M2, npad
       INTEGER :: I,J,IDUM,RDIMLEN
-      logical :: exists,monthly_data,daily_data,annual_data
+      logical :: exists,monthly_data,daily_data,annual_data,pentad_data
 c
       integer :: jyr,nfileyrs,jj,yr_ind,roff
       integer, dimension(:), allocatable :: fileyrs
@@ -546,7 +546,7 @@ c
       logical :: cyclic,multiple_yrs,multiple_files
       integer :: ndims,dlens(7)
 c
-      integer :: indx,yr0,mn0,dy0,tm0,yrx,rdimlen1
+      integer :: indx,yr0,mn0,pn0,dy0,tm0,yrx,rdimlen1
       integer :: linkstatus
       character(len=32) :: dname,tunits,tunits_off
       integer, parameter :: max_fname_len=128
@@ -624,6 +624,8 @@ c
       else
         daily_data = .false.
         annual_data = .false.
+        pentad_data = .false.
+        monthly_data = .true. ! default?
           !tstream%cycl = 1 ! may be overridden
           !cyclic = .true.  ! may be overridden
         fname = tstream%fbase
@@ -655,23 +657,30 @@ c
               read(tunits_off,'(i4,1x,i2)') yr0,mn0
               tm0 = mn0
               rdimlen1 = 12
+            case ('pentads')
+              read(tunits_off,'(i4,1x,i2)') yr0,pn0
+              tm0 = pn0
+              rdimlen1 = 73
             case ('days')
               read(tunits_off,'(i4,1x,i2,1x,i2)') yr0,mn0,dy0
               tm0 = dy0+jdendofm(mn0-1)
               rdimlen1 = 365
+            case default
+              call stop_model('unrecognized time axis units',255)
             end select
             multiple_yrs = rdimlen.gt.rdimlen1
             if(multiple_yrs) then
               nfileyrs = rdimlen/rdimlen1
               daily_data = rdimlen1 == 365
               annual_data = rdimlen1 == 1
-              monthly_data = .not. (daily_data .or. annual_data)
+              monthly_data = rdimlen1 == 12
+              pentad_data = rdimlen1 == 73
               !deallocate(fileyrs)
               allocate(fileyrs(nfileyrs))
               allocate(taxis(rdimlen))
               call read_data(grid,fid,trim(dname),taxis,
      &             bcast_all=.true.)
-              if(monthly_data .or. daily_data) then
+              if(monthly_data .or. daily_data .or. pentad_data) then
                 ! sanity-check time axis
                 do jj=1,rdimlen-1
                   i = taxis(jj+1)-taxis(jj)
@@ -749,19 +758,23 @@ c
       call par_close(grid,fid)
 
       if(multiple_files .or. .not.multiple_yrs) then
-        if(rdimlen.gt.12 .and. rdimlen.lt.365) then
+        if(  (rdimlen.gt.12 .and. rdimlen.lt.73) .or.
+     &       (rdimlen.gt.73 .and. rdimlen.lt.365) ) then
           if(grid%am_i_globalroot) write(6,*)
      &         'read_netcdf: bad record dimension length'
           call stop_model('read_netcdf',255)
         endif
         daily_data = rdimlen == 365
         annual_data = rdimlen == 1
+        monthly_data = rdimlen == 12
+        pentad_data = rdimlen == 73
       endif
 
-      monthly_data = .not. (daily_data .or. annual_data)
+      !monthly_data = .not. (daily_data .or. annual_data)
       tstream%monthly_data = monthly_data
       tstream%daily_data = daily_data
       tstream%annual_data = annual_data
+      tstream%pentad_data = pentad_data
       tstream%multiple_files = multiple_files
 
 !!       call sync_param( trim(tstream%fbase)//'_cycl', tstream%cycl )
@@ -772,11 +785,20 @@ c
         tstream%tinterp_method = nointerp
       elseif(annual_data) then
         tstream%m2r = 1
-      else
+      elseif(pentad_data) then
+        tstream%m2r = 73
+      elseif(monthly_data) then
         tstream%m2r = 12
         inquire(file=trim(fname_eom), exist=tstream%eom_from_file)
         tstream%eom_from_file = tstream%eom_from_file .and.
      &       allocated(tstream%eom)
+      endif
+      if(tstream%tinterp_method.eq.ppm .and.
+     &     (annual_data.or.pentad_data)) then
+        tstream%tinterp_method = linm2m
+        if(grid%am_i_globalroot) write(6,*)
+     &       'disabling ppm and using linm2m for non-monthly file '//
+     &       trim(tstream%fbase)
       endif
       if(tstream%tinterp_method.eq.ppm) then
         if(tstream%eom_from_file) then
@@ -797,6 +819,11 @@ c
       m1 = 1-npad; m2 = tstream%m2r+npad
       allocate(tstream%qty(I_0:I_1,J_0:J_1,LM,M1:M2))
       tstream%qty = 0.
+
+      if(tstream%tinterp_method.eq.ppm) then
+        allocate(tstream%eom(I_0:I_1,J_0:J_1,LM,0:12))
+      endif
+
       end subroutine check_metadata
 
       subroutine mergesort(n,arr)
@@ -862,7 +889,7 @@ c
       INTEGER :: J_0,J_1, I_0,I_1
       INTEGER :: I,J,K, npad
       logical :: firstcall,year_reset
-     &     ,monthly_data,daily_data,annual_data,need_ends
+     &     ,monthly_data,daily_data,annual_data,pentad_data,need_ends
      &     ,read_prev,read_prev_full,snglread,yearly_varying
 c
       integer :: jyr,jj,yr_ind,roff
@@ -896,6 +923,7 @@ c
       daily_data = tstream%daily_data
       annual_data = tstream%annual_data
       monthly_data = tstream%monthly_data
+      pentad_data = tstream%pentad_data
       multiple_yrs = tstream%nfileyrs.gt.0
       multiple_files = tstream%multiple_files
       roff = tstream%roff
@@ -939,6 +967,8 @@ c
 
       if(monthly_data) then
         early_in_year = jmon.lt.3
+      elseif(pentad_data) then
+        early_in_year = jmon.lt.2
       elseif(annual_data) then
         early_in_year = jmon.lt.8 ! should use day instead
       else
@@ -1141,7 +1171,7 @@ c
         if(yearly_varying) then
         ! interannually varying conditions: time interp for the
         ! beginning of this year needs data from the end of the prev year
-          tstream%eom(:,:,0) = tstream%eom(:,:,12)
+          tstream%eom(:,:,:,0) = tstream%eom(:,:,:,12)
         endif
 
         if(year_reset .and. yearly_varying .and. jmon.eq.1) then
@@ -1173,34 +1203,46 @@ c
 
           fid = par_open(grid,trim(fnames_eom(k)),'read')
           if(snglread) then
-            call read_dist_data(grid,fid,trim(tstream%vname)//'_eom',
-     &           tstream%eom(:,:,1:12))
+            if(lm.eq.1) then
+              call read_dist_data(grid,fid,trim(tstream%vname)//'_eom',
+     &             tstream%eom(:,:,1,1:12))
+            else
+              call read_dist_data(grid,fid,trim(tstream%vname)//'_eom',
+     &             tstream%eom(:,:,:,1:12))
+            endif
           else
             do mon=mon1,mon2
-              call read_dist_data(grid,fid,trim(tstream%vname)//'_eom',
-     &             tstream%eom(:,:,mon+monoff),record=mon+record0)
+              if(lm.eq.1) then
+               call read_dist_data(grid,fid,trim(tstream%vname)//'_eom',
+     &               tstream%eom(:,:,1,mon+monoff),record=mon+record0)
+              else
+               call read_dist_data(grid,fid,trim(tstream%vname)//'_eom',
+     &               tstream%eom(:,:,:,mon+monoff),record=mon+record0)
+              endif
             enddo
           endif
           call par_close(grid,fid)
         enddo
 
         if(cyclic .and. firstcall)
-     &       tstream%eom(:,:,0) = tstream%eom(:,:,12)
+     &       tstream%eom(:,:,:,0) = tstream%eom(:,:,:,12)
 
       else ! calculate EOM values
         if(firstcall .or. .not.cyclic) then
-          call edginterp(tstream%qty(:,:,1,:),tstream%eom,
-     &         tstream%qmin,tstream%qmax)
+          do k=1,lm
+            call edginterp(tstream%qty(:,:,k,:),tstream%eom(:,:,k,:),
+     &           tstream%qmin,tstream%qmax)
+          enddo
           if(trim(tstream%fbase).eq.'OSST') then ! hack checking file name
             do mon=0,12
             do j=j_0,j_1
             do i=i_0,i_1
-              if(tstream%eom(i,j,mon).lt.-1.8d0)
-     &             tstream%eom(i,j,mon)=-1.8d0
+              if(tstream%eom(i,j,1,mon).lt.-1.8d0)
+     &             tstream%eom(i,j,1,mon)=-1.8d0
               if(tstream%qty(i,j,1,mon).le.-1.79d0)
-     &             tstream%eom(i,j,mon)=-1.8d0
+     &             tstream%eom(i,j,1,mon)=-1.8d0
               if(tstream%qty(i,j,1,mon+1).lt.-1.79d0)
-     &             tstream%eom(i,j,mon)=-1.8d0
+     &             tstream%eom(i,j,1,mon)=-1.8d0
             enddo
             enddo
             enddo
@@ -1315,7 +1357,8 @@ c
       integer :: j_0,j_1, i_0,i_1
 
       real*8 :: a,b,c,e0,e1,csq,t0,t1
-      integer, parameter :: ppm_frac = -99*ppm,ppm_tlim=-999*ppm
+      integer, parameter :: ppm_frac = -99*ppm,ppm_tlim=-999*ppm,
+     &     ppm_nonneg = -9999*ppm
       integer :: l,lm
 
       arr = 0.
@@ -1342,23 +1385,36 @@ c
         time=(jdate-.5)/(jdendofm(jmon)-jdendofm(jmon-1))-.5 ! -.5<time<.5
         if(trim(tstream%vname).eq.'ZSI') ! temp hack checking var name
      &       tinterp_method = ppm_tlim
-        if(tstream%qmin.eq.0d0 .and. tstream%qmax.eq.1d0) then
-          tinterp_method = ppm_frac
+        if(tstream%qmin.eq.0d0) then
+          if(tstream%qmax.eq.1d0) then
+            tinterp_method = ppm_frac
+          elseif(tstream%qmax.ge.1d20) then
+            tinterp_method = ppm_nonneg
+          else
+            call stop_model('unrecognized qmax for ppm',255)
+          endif
         endif
       endif
 
-      if(tstream%tinterp_method.eq.nointerp) then
+      select case (tinterp_method)
+
+      case(nointerp)
 ! no time interpolation required
         if(tstream%daily_data) then
           imon = jday
         elseif(tstream%annual_data) then
           imon = 1
+        elseif(tstream%pentad_data) then
+          imon = 1+(jday-1)/5
+        elseif(tstream%monthly_data) then
+          imon = jmon
         endif
+
         do l=1,lm
           arr(i_0:i_1,j_0:j_1,l) = tstream%qty(i_0:i_1,j_0:j_1,l,imon)
         enddo
 
-      elseif(tinterp_method.eq.linm2m) then
+      case(linm2m)
 ! linear interpolation between period midpoints
 
         if(tstream%daily_data) call stop_model
@@ -1372,7 +1428,7 @@ c
           endif
           frac = real(jdmidofm(imon)-jday,kind=8)/
      &               (jdmidofm(imon)-jdmidofm(imon-1))
-        else
+        elseif(tstream%annual_data) then
           if(jday.le.183) then
             imon = 1
             frac = real(183-jday,kind=8)/365d0
@@ -1380,6 +1436,9 @@ c
             imon = 2
             frac = real(548-jday,kind=8)/365d0
           endif
+        elseif(tstream%pentad_data) then
+          imon = 1+(jday+1)/5
+          frac = real(3+(imon-1)*5-jday,kind=8)/5d0
         endif
         do l=1,lm
         do j=j_0,j_1
@@ -1392,23 +1451,73 @@ c
         enddo
         enddo
 
-      elseif(tinterp_method.eq.ppm) then
+      case(ppm)
 
 ! Piecewise Parabolic Method.  A parabola is constructed for each period
 ! whose mean, initial, and final values are a, e0, and e1.
+        do l=1,lm
         do j=j_0,j_1
         do i=i_0,i_1
           if(tstream%msk(i,j).eq.0d0) cycle
-          a = tstream%qty(i,j,1,jmon)   ! period mean
-          e0 = tstream%eom(i,j,jmon-1)  ! value at beginning of period
-          e1 = tstream%eom(i,j,jmon)    ! value at end of period
-          b = e1-e0                     ! mean of first time derivative
-          c = 3.*(e1+e0) - 6.*a         ! second time derivative (curvature)
-          arr(i,j,1) = a+b*time+c*(time**2-by12)
+          a = tstream%qty(i,j,l,jmon)    ! period mean
+          e0 = tstream%eom(i,j,l,jmon-1) ! value at beginning of period
+          e1 = tstream%eom(i,j,l,jmon)   ! value at end of period
+          b = e1-e0                      ! mean of first time derivative
+          c = 3.*(e1+e0) - 6.*a          ! second time derivative (curvature)
+          arr(i,j,l) = a+b*time+c*(time**2-by12)
+        enddo
         enddo
         enddo
 
-      elseif(tinterp_method.eq.ppm_frac) then
+      case(ppm_nonneg)
+
+! Piecewise Parabolic Method limiting the interpolant to be non-negative.
+! See previous code block for pure-PPM details.
+! If the minimum of the unadjusted parabola is less than zero, the
+! form of the fit is instead taken as piecewise linear over three time
+! intervals: (1) time<t0 (2) t0<time<t1 (3) time>t1
+! The constant value in the second interval is 0 if the parabola undershot.
+! The values of t0 and t1 can be determined from the additional criteria
+! that the mean over the three intervals is a, the initial value of the
+! first interval is e0, and the final value of the last interval is e1.
+! The length of the first and/or last intervals may be zero.
+!
+        do l=1,lm
+        do j=j_0,j_1
+        do i=i_0,i_1
+          if(tstream%msk(i,j).eq.0d0) cycle
+          a = tstream%qty(i,j,l,jmon)
+          if(a.le.0.) then
+            !call stop_model('read_stream: bad monthly mean',255)
+            arr(i,j,l) = a ! keep constant value
+            cycle               
+          endif
+          e0 = tstream%eom(i,j,l,jmon-1)
+          e1 = tstream%eom(i,j,l,jmon)
+          b=e1-e0
+          c=3.*(e1+e0) - 6.*a
+          arr(i,j,l)=a+b*time+c*(time**2-by12) ! default: pure PPM
+          if(abs(c) .gt. abs(b)) then ! but check if linear fit is needed
+            csq=c*(a*c - .25*b**2 - c**2*by12)
+            if(csq.lt.0.) then        ! quadratic fit at apex < 0
+              b = .5*(e0**2 + e1**2) / a
+              if(e0-b*(time+.5) .gt. 0.)  then
+                arr(i,j,l) = e0 - b*(time+.5) !  time < t0
+              elseif(e1-b*(.5-time) .gt. 0.)  then
+                arr(i,j,l) = e1 - b*(.5-time) !  t1 < time
+              else
+                arr(i,j,l) = 0.               !  t0 < time < t1
+              end if
+            end if
+          end if
+          !if(arr(i,j,l).lt.0.) then
+          !  write(6,*) 'negative output',i,j,l,jday,jmon,arr(i,j,l)
+          !endif
+        enddo
+        enddo
+        enddo
+
+      case(ppm_frac)
 
 ! Piecewise Parabolic Method limiting the interpolant to the range 0-1.
 ! See previous code block for pure-PPM details.
@@ -1432,8 +1541,8 @@ c
             arr(i,j,1) = a ! keep constant value
             cycle               
           endif
-          e0 = tstream%eom(i,j,jmon-1)
-          e1 = tstream%eom(i,j,jmon)
+          e0 = tstream%eom(i,j,1,jmon-1)
+          e1 = tstream%eom(i,j,1,jmon)
           b=e1-e0
           c=3.*(e1+e0) - 6.*a
           arr(i,j,1)=a+b*time+c*(time**2-by12) ! default: pure PPM
@@ -1466,7 +1575,7 @@ c
         enddo
         enddo
 
-      elseif(tinterp_method.eq.ppm_tlim) then
+      case(ppm_tlim)
 
 ! Piecewise Parabolic Method for a quantity constrained to be
 ! zero over the time interval t0<time<t1, where t0 and t1 were
@@ -1480,8 +1589,8 @@ c
         do j=j_0,j_1
         do i=i_0,i_1
           if(tstream%msk(i,j).eq.0d0) cycle
-          e0 = tstream%eom(i,j,jmon-1)
-          e1 = tstream%eom(i,j,jmon)
+          e0 = tstream%eom(i,j,1,jmon-1)
+          e1 = tstream%eom(i,j,1,jmon)
           t0 = tlim(1,i,j)
           t1 = tlim(2,i,j)
           arr(i,j,1) = 0.
@@ -1500,7 +1609,7 @@ c
         enddo
         enddo
 
-      endif
+      end select ! tinterp_method
 
       return
       end subroutine read_stream_3d
