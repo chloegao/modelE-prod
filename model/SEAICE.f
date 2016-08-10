@@ -81,7 +81,7 @@ C**** snow/ice thermal diffusivity (Pringle et al, 2007)
 !@var DEBUG flag
       LOGICAL DEBUG
 !@param seaice_thermo formulation of sea ice thermodynamics (BP or SI)
-      CHARACTER*2 :: seaice_thermo = "BP"  ! default is SI for now
+      CHARACTER*2 :: seaice_thermo = "BP"  ! default is BP
 
       CONTAINS
 
