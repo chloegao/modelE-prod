@@ -158,10 +158,8 @@ initial_GHG_setup = 1 ! Set to 0 after initial setup.
 madaer=3         ! 3: updated aerosols          ; 1: default sulfates/aerosols
 #include "aerosol_OMA_params"
 #include "dust_params_vmp_oma"
+#include "common_tracer_params"
 #include "chemistry_params"
-! The following 2 lines OVERWRITE the include chemistry_params values!!
-! ch4_init_sh=1.750      ! init cond/fixed conditions SH CH4 ppmv
-! ch4_init_nh=1.855      ! init cond/fixed conditions NH CH4 ppmv
 
 DTsrc=1800.      ! cannot be changed after a run has been started
 DT=225.
