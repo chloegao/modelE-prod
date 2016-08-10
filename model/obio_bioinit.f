@@ -8,31 +8,13 @@
 !obio_init  is called for every start of the run and reads in BOUNDARY conditions and interpolates 
 !them to ocean grid. such fields are iron,alkalinity,chlorophyl
 
-c based on /g6/aromanou/Watson_new/BioInit/rstbio.F
+! based on /g6/aromanou/Watson_new/BioInit/rstbio.F
 
-c  Makes initialization data files for biological variables.
-c  This is for the global model.  To subset, use the routines in
-c  /u2/gregg/bio/biodat/subreg.
-c  Uses NOAA 2001 atlas for NO3 and SiO2 distributions.
-c  Includes initial iron distributions.
-c
-c  Particle type 1  = nitrate
-c  Particle type 2  = ammonium
-c  Particle type 3  = silicate
-c  Particle type 4  = iron
-c  Particle type 5  = diatoms
-c  Particle type 6  = chlorophytes
-c  Particle type 7  = cyanobacteria
-c  Particle type 8  = coccolithophores
-c  Particle type 9  = dinoflagellates
-c  Particle type 10 = zooplankton
-c
-c  Detritus type 1  = carbon/nitrogen
-c  Detritus type 2  = silica
-c  Detritus type 3  = iron
-c
-c  Carbon type 1    = semi-labile DOC
-c  Carbon type 2    = DIC
+!  Makes initialization data files for biological variables.
+!  This is for the global model.  To subset, use the routines in
+!  /u2/gregg/bio/biodat/subreg.
+!  Uses NOAA 2001 atlas for NO3 and SiO2 distributions.
+!  Includes initial iron distributions.
  
       USE FILEMANAGER, only: openunit,closeunit
 
@@ -43,8 +25,9 @@ c  Carbon type 2    = DIC
  
 #ifdef OBIO_ON_GARYocean
       USE OCEANRES, only : kdm=>lmo
-      USE OCEAN, only : ip=>focean
+      USE OCEAN, only : ip=>focean,trmo,MO,DXYPO
       USE OCEANR_DIM, only : ogrid
+      USE OCN_TRACER_COM, only : n_abioDIC
 #else
       USE hycom_dim, only : ip,kdm,ogrid
 #endif
@@ -168,13 +151,13 @@ c  Create arrays
 
           !Iron
           tracer(i,j,k,4) = Fer(i,j,k)*tracer(i,j,k,1)  !Fung et al. 2000
-c          if (ir(nw) .eq. 3)then
-c           P(i,j,k,4) = 0.04*float(k-1) + 0.2
-c           P(i,j,k,4) = 0.06*float(k-1) + 0.2
-c           P(i,j,k,4) = 0.08*float(k-1) + 0.2
-c           P(i,j,k,4) = min(P(i,j,k,4),0.65)
-c           P(i,j,k,4) = min(P(i,j,k,4),0.75)
-c          endif
+!          if (ir(nw) .eq. 3)then
+!           P(i,j,k,4) = 0.04*float(k-1) + 0.2
+!           P(i,j,k,4) = 0.06*float(k-1) + 0.2
+!           P(i,j,k,4) = 0.08*float(k-1) + 0.2
+!           P(i,j,k,4) = min(P(i,j,k,4),0.65)
+!           P(i,j,k,4) = min(P(i,j,k,4),0.75)
+!          endif
           if (ir(i,j) .eq. 1)then
            tracer(i,j,k,4) = Fer(i,j,k)*0.5*tracer(i,j,k,1)
           endif
@@ -187,7 +170,7 @@ c          endif
           enddo
           do nt = ntyp-nzoo+1,ntyp
            tracer(i,j,k,nt) = 0.05  !in chl units mg/m3
-c          tracer(i,j,k,nt) = 0.05*50.0  !in C units mg/m3
+!          tracer(i,j,k,nt) = 0.05*50.0  !in C units mg/m3
           enddo
 
          enddo
@@ -240,11 +223,16 @@ c    conversion from uM to mg/m3
          do k = 1,kdm
           tracer(i,j,k,ntyp+ndet+2) = dic(i,j,k)
      .       * 1024.5 * 0.001                               ! convert micromole/kg to mili-mol/m3
+!initialize abioDIC
+      if (n_abioDIC.ne.0) 
+     .    trmo(i,j,k,n_abioDIC) = tracer(i,j,k,ntyp+ndet+2)  ! mili-mol/m3
+     .                          * 1.d-06 * 12.d0* MO(I,J,K)*DXYPO(J)/1024.d0
          enddo
 c         car(i,j,k,1) = 3.0  !from Bissett et al 1999 (uM(C))
 c         car(i,j,k,1) = 0.0  !from Walsh et al 1999
         enddo
       enddo
+
 
 c  Light saturation data
       avgq = 0.0

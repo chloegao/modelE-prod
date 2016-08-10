@@ -761,8 +761,8 @@ c------------------------------------------------------------------------------
      &              "oij_pCO2", "uatm", .false., IJ_pCO2)
       call add_diag("Surface ocean alkalinity", "oij_alk",
      &              "umol/kg", .false., IJ_alk)
-      call add_diag("AO Flux CO2 (ogrid,grC/m2/yr)", "oij_flux",
-     &              "???", .false., IJ_flux)
+      call add_diag("AO Flux CO2 (gr,CO2 or mol,CO2/m2/yr)", "oij_flux",
+     &              "depends if on atm/ocean grid", .false., IJ_flux)
       call add_diag("C export flux at compensation depth", "oij_cexp",
      &              "PgC/yr", .false., IJ_cexp)
       call add_diag("N/C detritus at 74m", "oij_ndet",

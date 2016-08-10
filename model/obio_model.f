@@ -106,9 +106,18 @@
       implicit none
       type(atmocn_xchng_vars) :: atm
 
-      REAL*4, parameter  :: obio_tr_mm(16)= (/ 14., 14., 28.055,
-     &     55.845, 1., 1., 1., 1., 1., 14., 14., 28.055, 55.845,
-     &     12., 12., 1. /)
+      !molecular weights (gr/mole)
+      REAL*4, parameter  :: obio_tr_mm(15)= (/ 14.,   !nitrate
+     &     14.,      !ammonium
+     &     28.055,   !silicate
+     &     55.845,   !iron
+     &     1., 1., 1., 1., 1.,   !phyto and zooplankton
+     &     14.,      !ndet
+     &     28.055,   !sdet
+     &     55.845,   !idet
+     &     12.,      !DOC
+     &     12.,      !DIC
+     &     1. /)     !Alk
       integer i,j,k,l,km,mm,JMON
 
       integer ihr,ichan,iyear,nt,ihr0,lgth,kmax
@@ -333,26 +342,29 @@ cdiag.          olon_dg(i,1),olat_dg(j,1)
                 trmo_unit_factor(k,nt) =  1d-3*1d-3*obio_tr_mm(nt)        ! milimoles/m3=> kg/m3
      .                      *  MO(I,J,k)*DXYPO(J)/rho_water               ! kg/m3 => kg
 
-         if (nt.eq.4.or.nt.eq.13) 
+         !iron and idet
+         if (nt.eq.nnut.or.nt.eq.ntyp+ndet) 
      .          trmo_unit_factor(k,nt) =  1d-6*1d-3*obio_tr_mm(nt)        ! nanomoles/lt=> kg/m3
      .                      *  MO(I,J,k)*DXYPO(J)/rho_water               ! kg/m3 => kg
 
-         if (nt.eq.11)
+         !ndet
+         if (nt.eq.ntyp+1)
      .          trmo_unit_factor(k,nt) =  1d-6 *1d-3/1d-3                 ! micro-grC/lt -> kg/m3
      .                      *  MO(I,J,k)*DXYPO(J)/rho_water               ! kg/m3 => kg
 
-         if (nt.ge.5.and.nt.le.9) 
+         !phyto and zooplankton
+         if (nt.ge.nnut+1.and.nt.le.ntyp) 
      .          trmo_unit_factor(k,nt) =  
      .                          cchlratio * 1d-6                          ! miligr,chl/m3=> kg,C/m3
      .                       *  MO(I,J,k)*DXYPO(J)/rho_water              ! kg/m3 => kg
 
 #ifdef TRACERS_Alkalinity
-           if (nt.eq.16)    !factor for alkalinity
+           if (nt.eq.ntyp+ndet+ncar+1)    !factor for alkalinity
      .         trmo_unit_factor(k,nt) = 1d-6*1d-3*obio_tr_mm(nt)      ! umol/kg=micro-mol/kg=> kg,trac/kg,air
      .                                *  MO(I,J,k)*DXYPO(J)           ! kg,trac/kg,air=> kg,trac
 
 #ifdef TOPAZ_params
-           if (nt.eq.17)    !factor for ca_det
+           if (nt.eq.ntyp+ndet+ncar+2)    !factor for ca_det
      .         trmo_unit_factor(k,nt) = 1d-6*1d-3*obio_tr_mm(nt)      ! umol/kg=micro-mol/kg=> kg,trac/kg,air
      .                                *  MO(I,J,k)*DXYPO(J)           ! kg,trac/kg,air=> kg,trac
 #endif
@@ -1011,7 +1023,7 @@ c     call obio_chkbalances(vrbos,nstep,i,j)
      .       =pp2cocc_day(i,j)+pp2_1d(k,4)   !mg,C/m2/day
 
               pp2tot_day(i,j)=pp2tot_day(i,j)+pp2_1d(k,nt)     !mg,C/m2/day
-!    &                                       * HOURS_PER_DAY   !->mg,C/m2/da
+!    &                                       * HOURS_PER_DAY   !->mg,C/m2/day
           enddo
           enddo
 !       endif
@@ -1022,11 +1034,9 @@ c     call obio_chkbalances(vrbos,nstep,i,j)
      .    pp2tot_day(i,j)
        endif
 
-       !!!atm%gtracer(atm%n_co2n, i,j)=pCO2_ij
-!      call ppco2(temp1d(1),saln1d(1),car(1,2),alk1d(1),
-!    .           obio_P(1,1),obio_P(1,3),atmCO2,
-!    .           pCO2_ij,pHsfc)
-
+#ifndef STANDALONE_OCEAN
+       atm%gtracer(atm%n_co2n, i,j)=pCO2_ij
+#endif
 
 !diagnostics
        if (solz.gt.0) then
@@ -1052,12 +1062,12 @@ c     call obio_chkbalances(vrbos,nstep,i,j)
        OIJ(I,J,IJ_pp3) = OIJ(I,J,IJ_pp3) + pp2cyan_day(i,j)  ! ocean pp from cyanobacteria
        OIJ(I,J,IJ_pp4) = OIJ(I,J,IJ_pp4) + pp2cocc_day(i,j)  ! ocean pp from coccolithophores
 
-       OIJ(I,J,IJ_doc) = OIJ(I,J,IJ_doc) + tracer(i,j,1,14)  ! surf ocean doc
-       OIJ(I,J,IJ_dic) = OIJ(I,J,IJ_dic) + tracer(i,j,1,15)  ! surf ocean dic
+       OIJ(I,J,IJ_doc) = OIJ(I,J,IJ_doc) + tracer(i,j,1,13)  ! surf ocean doc
+       OIJ(I,J,IJ_dic) = OIJ(I,J,IJ_dic) + tracer(i,j,1,14)  ! surf ocean dic
        OIJ(I,J,IJ_pCO2)= OIJ(I,J,IJ_pCO2)+ pCO2_ij*(1.-oice(i,j)) ! surf ocean pco2
 
        OIJ(I,J,IJ_cexp) = OIJ(I,J,IJ_cexp) + cexp             ! export production
-       OIJ(I,J,IJ_ndet) = OIJ(I,J,IJ_ndet) + tracer(i,j,4,11) ! ndet at 74m
+       OIJ(I,J,IJ_ndet) = OIJ(I,J,IJ_ndet) + tracer(i,j,4,10) ! ndet at 74m
        OIJ(I,J,IJ_setl)= OIJ(I,J,IJ_setl)+ wsdet(4,1)          ! settl vel. n/cdet at 74m
        OIJ(I,J,IJ_sink)= OIJ(I,J,IJ_sink)+ obio_ws(4,1)        ! sink. vel. phytoplankton
        if (4<=kmax) then
@@ -1079,7 +1089,7 @@ c     call obio_chkbalances(vrbos,nstep,i,j)
        enddo
        enddo
 
-       OIJ(I,J,IJ_flux) = OIJ(I,J,IJ_flux) + co2flux      !air-sea CO2 flux(watson)
+       OIJ(I,J,IJ_flux) = OIJ(I,J,IJ_flux) + co2flux      !air-sea CO2 flux(if on ocean grid, this is gr,CO2/m2/yr, if coupled it is in molCO2/m2/yr)
 
        if (tracers_alkalinity) then
          OIJ(I,J,IJ_alk) = OIJ(I,J,IJ_alk) + tracer(i,j,1,16)    ! surf ocean alkalinity
