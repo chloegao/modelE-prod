@@ -1133,7 +1133,7 @@ C****
 !@var bydtssi decay constant for sea ice salinity (1/s)
       REAL*8, parameter :: dtssi = 30.d0
       REAL*8, parameter :: bydtssi = 1./(dtssi*SECONDS_PER_DAY)
-      REAL*8 :: rate,brine_frac
+      REAL*8 :: rate,brine_frac,mu_sbyt
 
       DSSI = 0. ; DMSI = 0. ; DHSI = 0.
 #ifdef TRACERS_WATER
@@ -1171,19 +1171,20 @@ c           TRICE(:,L) = TRICE(:,L)-DTRSI(:,L)
 C**** calculate removal of excess salinity using flushing and brine pocket limit
         DO L=1,LMI
           IF (SICE(L).gt.0) THEN
+            mu_sbyt = -mu*1d3*(SICE(L)/TSIL(L))
             IF(1d3*SICE(L)/MICE(L).GT.1d-10) THEN
-              brine_frac=-mu*1d3*(SICE(L)/TSIL(L))/MICE(L)
+              brine_frac = mu_sbyt/MICE(L)
             ELSE
-              brine_frac=0.
+              brine_frac = 0.
             ENDIF
 C**** flushing (30% of MELT12 pushes out an equivalent mass of brine)
-            rate = min(1d0,0.3d0*MELT12/(MICE(L)*brine_frac)) ! fractional loss
+            rate = min(1d0,0.3d0*MELT12/mu_sbyt) ! fractional loss
 C**** basic gravity drainage (3 day timescale)
             if (brine_frac.gt.0.01d0) rate =
      *           min(rate + DT*BYDTSSI*100.*(brine_frac-0.01d0),1d0)
 C**** remove very small amounts of salt
             if (SICE(L).lt.ssimin*MICE(L)) rate=1d0
-            DMSI(L) = rate*brine_frac*MICE(L)
+            DMSI(L) = rate*mu_sbyt
             DSSI(L) = rate*SICE(L)
 c            DHSI(L) = rate*brine_frac*MICE(L)*shw*TSIL(L)
             DHSI(L) = -rate*mu*1d3*SICE(L)*shw
