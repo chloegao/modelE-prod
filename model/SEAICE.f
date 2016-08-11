@@ -1170,7 +1170,7 @@ c           TRICE(:,L) = TRICE(:,L)-DTRSI(:,L)
       CASE ("BP")               ! Brine pocket formulation
 C**** calculate removal of excess salinity using flushing and brine pocket limit
         DO L=1,LMI
-          IF (SICE(L).gt.0) THEN
+          IF (SICE(L).gt.0 .and. TSIL(L).lt.-1d-8) THEN
             mu_sbyt = -mu*1d3*(SICE(L)/TSIL(L))
             IF(1d3*SICE(L)/MICE(L).GT.1d-10) THEN
               brine_frac = mu_sbyt/MICE(L)
