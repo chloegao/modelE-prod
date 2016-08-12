@@ -41,12 +41,18 @@ def gitCloneRepository(config):
     repo = userconfig['repository']
     branch =  userconfig['repobranch']
     clone = scratch + '/scratch/' + branch + '/' + branch
+    resultsDir = userconfig['scratchdir'] + '/results/' + branch + '/'
 
     cwd = os.getcwd()
     logger.debug('Cloning %s into %s', repo, clone)
     cmd = (['git', 'clone', '-b', branch, repo, clone])
     proc = sp.Popen(cmd)
     proc.wait()
+	
+    os.chdir(clone)
+    cmd = "git log --pretty=format:'%h - %an, %ar : %s' --since=1.day"
+    os.system(cmd+'>'+resultsDir+'gitLog')
+	
     os.chdir(cwd)
 
 #-------------------------------------------------------------------------------
@@ -274,7 +280,7 @@ def createScriptTask(config, compconfig, deck, comp, mode):
         # customRun is a 2-month run
         elif deck.getOpt('verification') == 'customRun':
             if re.search('campi', deckName):
-                walltime = '3:00:00'
+                walltime = '4:00:00'
             elif re.search('cadi', deckName):
                 walltime = '2:00:00'
             elif re.search('obio', deckName):
@@ -307,9 +313,9 @@ def createScriptTask(config, compconfig, deck, comp, mode):
             elif re.search('SGP', deckName):
                 walltime = '00:10:00'
             elif re.search('campi', deckName):
-                walltime = '02:00:00'
+                walltime = '04:00:00'
             elif re.search('ctomas', deckName):
-                walltime = '03:00:00'
+                walltime = '08:00:00'
 
         outname = resultsDir + '/' + jobName + '.' + mode + '.out'
         errname = resultsDir + '/' + jobName + '.' + mode + '.err'
@@ -522,6 +528,12 @@ def sendDiffreport(config, compconfig, eTime):
         fp.write(comp+' compiler version: '+compVers[i]+'\n')
         i+=1
     fp.write('Results in: ' + resultsDir +  '\n')
+    fp.write('-'*80+'\n')
+    fp.write( 'Commits from last day:\n')
+    with open(resultsDir + '/gitLog', 'r') as inf:
+        fp.write(inf.read())
+    fp.write( '\n')
+    fp.write('-'*80+'\n')
     fp.close()
 
     subject = '"[modelE-regression]" '
