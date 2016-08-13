@@ -6728,6 +6728,10 @@ C**** Note this routine must always exist (but can be a dummy routine)
       USE timestream_mod, only: init_stream,read_stream
       USE tracer_com, only: SO2_volc_stream,SO2_vphe_stream
 #endif
+#ifdef CUBED_SPHERE
+      USE tracer_com, only: AIRCstreams
+#endif
+
 #ifdef TRACERS_COSMO
       USE COSMO_SOURCES, only : variable_phi
 #endif
