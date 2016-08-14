@@ -2836,7 +2836,7 @@ C
         else
           if(first_aircraft(nTracer)) then
             call set_first_aircraft(nTracer, .false.)
-            call get_param('nc_emis_use_ppm_interp',do_ppm)
+            call get_param('nc_emis_use_ppm_interp',do_ppm,default=1)
             if (do_ppm==1) then
               call init_stream(grid,AIRCstream,fileName,
      &        trim(trname(nTracer)), 0d0, 1d30, 'ppm',

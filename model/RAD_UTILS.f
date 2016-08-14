@@ -3175,7 +3175,7 @@ C     functions
 
 !@dbparam ozone_use_ppm_interp = 1 uses ppm interpolation in the
 !@+ timestream. Otherwise uses linm2m.
-      integer :: ozone_use_ppm_interp = 0
+      integer :: ozone_use_ppm_interp = 1
 
 !@var have_o3_file whether an O3file was specified in the rundeck
       logical :: have_o3_file
