@@ -1177,7 +1177,11 @@ C**** calculate removal of excess salinity using flushing and brine pocket limit
               brine_frac=0.
             ENDIF
 C**** flushing (30% of MELT12 pushes out an equivalent mass of brine)
-            rate = min(1d0,0.3d0*MELT12/(MICE(L)*brine_frac)) ! fractional loss
+            IF(brine_frac.NE.0.) THEN
+              rate = min(1d0,0.3d0*MELT12/(MICE(L)*brine_frac)) ! fractional loss
+            ELSE
+              rate = 1.
+            ENDIF
 C**** basic gravity drainage (3 day timescale)
             if (brine_frac.gt.0.01d0) rate =
      *           min(rate + DT*BYDTSSI*100.*(brine_frac-0.01d0),1d0)
