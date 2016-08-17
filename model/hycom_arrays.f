@@ -56,7 +56,7 @@ c
      .,dpuav(:,:,:),dpvav(:,:,:)
      .,temav(:,:,:),salav(:,:,:)
      .,th3av(:,:,:), dpav(:,:,:)
-     .,ubavav(:,:),vbavav(:,:),pbavav(:,:),sfhtav(:,:)
+     .,pbavav(:,:),sfhtav(:,:)
      .,uflxav(:,:,:),vflxav(:,:,:)
      .,diaflx(:,:,:)                    ! time integral of diapyc.flux
      .,salflav(:,:),brineav(:,:),eminpav(:,:),surflav(:,:)
@@ -64,7 +64,7 @@ c
      .,ufxcum(:,:,:),vfxcum(:,:,:),dpinit(:,:,:)
      .,dpmxav(:,:),oiceav(:,:)
 c
-!!      real uav,vav,dpuav,dpvav,temav,salav,th3av,dpav,ubavav,vbavav
+!!      real uav,vav,dpuav,dpvav,temav,salav,th3av,dpav
 !!     .    ,pbavav,sfhtav,uflxav,vflxav,diaflx,salflav,brineav,eminpav
 !!     .    ,surflav,ufxcum,vfxcum,dpinit
 !!     .    ,dpmxav,oiceav
@@ -113,11 +113,12 @@ c    .,covice(:,:)                        ! ice coverage (rel.units)
 c    .,temice(:,:)                        ! ice surf.temp.
 c    .,odhsi(:,:)                         ! heat borrowed from frozen
      .,odmsi(:,:)                         ! newly formed ice
+     .,omlhc(:,:)
      .,dmfz(:,:)                          ! ice mass due to freezing
 c
 !!      real uja,ujb,via,vib,pbot,tracer,tprime,sgain,surflx,salflx
-c    .   ,thkice,covice,temice,dmfz,odhsi
-!!     .   ,odmsi,dmfz
+c    .   ,thkice,covice,temice,omlhc,dmfz,odhsi
+!!     .   ,odmsi,omlhc,dmfz
 c
       integer, allocatable, dimension (:,:) ::
      .  klist         !k-index of layer below mixl'r
@@ -145,7 +146,7 @@ c    .,airtmp(:,:,:)                      !  pseudo air temperature
 c    .,vapmix(:,:,:)                      !  atmosph. vapor mixing ratio
 c    .,oprec(:,:)                         !  precipitation
 c    .,oevap(:,:)                         !  evaportation
-     .,oemnp(:,:)                         !  e - p 
+     .,oemnp(:,:)                         !  e - p
      .,oflxa2o(:,:),oice(:,:)
      .,ustar(:,:)                         ! surface friction velocity
      .,ustarb(:,:)                        ! bottom friction velocity
@@ -154,6 +155,7 @@ c
      .,freshw(:,:)                        !  river & glacier runoff
      .,diafor(:,:)                        !  imposed diapycnal forcing
 c
+
       contains
 
       subroutine alloc_hycom_arrays
@@ -162,117 +164,117 @@ c
       print *,"alloc_hycom_arrays: halos", I_0H,I_1H,J_0H,J_1H
 
 
-      allocate( 
-     . u(I_0H:I_1H,J_0H:J_1H,2*kdm),v(I_0H:I_1H,J_0H:J_1H,2*kdm) 
-     .,dp(I_0H:I_1H,J_0H:J_1H,2*kdm),dpold(I_0H:I_1H,J_0H:J_1H,kdm) 
-     .,dpu(I_0H:I_1H,J_0H:J_1H,2*kdm),dpv(I_0H:I_1H,J_0H:J_1H,2*kdm) 
-     .,p(I_0H:I_1H,J_0H:J_1H,kdm+1) 
-     .,pu(I_0H:I_1H,J_0H:J_1H,kdm+1),pv(I_0H:I_1H,J_0H:J_1H,kdm+1) 
-     .,latij(I_0H:I_1H,J_0H:J_1H,4),lonij(I_0H:I_1H,J_0H:J_1H,4) 
-     .,corio(I_0H:I_1H,J_0H:J_1H) 
-     .,potvor(I_0H:I_1H,J_0H:J_1H) 
-     .,temp(I_0H:I_1H,J_0H:J_1H,2*kdm) 
-     .,saln(I_0H:I_1H,J_0H:J_1H,2*kdm) 
-     .,th3d(I_0H:I_1H,J_0H:J_1H,2*kdm) 
-     .,thstar(I_0H:I_1H,J_0H:J_1H,2*kdm) 
-     .,wgtkap(I_0H:I_1H,J_0H:J_1H) 
-     .,psikk(I_0H:I_1H,J_0H:J_1H) 
-     .,thkk(I_0H:I_1H,J_0H:J_1H) 
-     .,dpmixl(I_0H:I_1H,J_0H:J_1H,2) 
-     .,srfhgt(I_0H:I_1H,J_0H:J_1H) ) 
-c 
-      allocate( 
-     . montg(I_0H:I_1H,J_0H:J_1H,kdm) 
-     .,defor1(I_0H:I_1H,J_0H:J_1H),defor2(I_0H:I_1H,J_0H:J_1H) 
-     .,ubavg(I_0H:I_1H,J_0H:J_1H,3),vbavg(I_0H:I_1H,J_0H:J_1H,3) 
-     .,pbavg(I_0H:I_1H,J_0H:J_1H,3) 
-     .,ubrhs(I_0H:I_1H,J_0H:J_1H),vbrhs(I_0H:I_1H,J_0H:J_1H) 
-     .,utotm(I_0H:I_1H,J_0H:J_1H),vtotm(I_0H:I_1H,J_0H:J_1H) 
-     .,utotn(I_0H:I_1H,J_0H:J_1H),vtotn(I_0H:I_1H,J_0H:J_1H) 
-     .,uflux(I_0H:I_1H,J_0H:J_1H),vflux(I_0H:I_1H,J_0H:J_1H) 
-     .,uflux1(I_0H:I_1H,J_0H:J_1H),vflux1(I_0H:I_1H,J_0H:J_1H) 
-     .,uflux2(I_0H:I_1H,J_0H:J_1H),vflux2(I_0H:I_1H,J_0H:J_1H) 
-     .,uflux3(I_0H:I_1H,J_0H:J_1H),vflux3(I_0H:I_1H,J_0H:J_1H) 
-     .,uflx(I_0H:I_1H,J_0H:J_1H,kdm),vflx(I_0H:I_1H,J_0H:J_1H,kdm) 
-     .,bolusu(I_0H:I_1H,J_0H:J_1H,kdm),bolusv(I_0H:I_1H,J_0H:J_1H,kdm) ) 
-c 
-      allocate( 
-     .   uav(I_0H:I_1H,J_0H:J_1H,kdm),  vav(I_0H:I_1H,J_0H:J_1H,kdm) 
-     .,dpuav(I_0H:I_1H,J_0H:J_1H,kdm),dpvav(I_0H:I_1H,J_0H:J_1H,kdm) 
-     .,temav(I_0H:I_1H,J_0H:J_1H,kdm),salav(I_0H:I_1H,J_0H:J_1H,kdm) 
-     .,th3av(I_0H:I_1H,J_0H:J_1H,kdm), dpav(I_0H:I_1H,J_0H:J_1H,kdm) 
-     .,ubavav(I_0H:I_1H,J_0H:J_1H),vbavav(I_0H:I_1H,J_0H:J_1H)
-     &     ,pbavav(I_0H:I_1H,J_0H:J_1H),sfhtav(I_0H:I_1H,J_0H:J_1H) 
-     .,uflxav(I_0H:I_1H,J_0H:J_1H,kdm),vflxav(I_0H:I_1H,J_0H:J_1H,kdm) 
-     .,diaflx(I_0H:I_1H,J_0H:J_1H,kdm) 
+      allocate(
+     . u(I_0H:I_1H,J_0H:J_1H,2*kdm),v(I_0H:I_1H,J_0H:J_1H,2*kdm)
+     .,dp(I_0H:I_1H,J_0H:J_1H,2*kdm),dpold(I_0H:I_1H,J_0H:J_1H,kdm)
+     .,dpu(I_0H:I_1H,J_0H:J_1H,2*kdm),dpv(I_0H:I_1H,J_0H:J_1H,2*kdm)
+     .,p(I_0H:I_1H,J_0H:J_1H,kdm+1)
+     .,pu(I_0H:I_1H,J_0H:J_1H,kdm+1),pv(I_0H:I_1H,J_0H:J_1H,kdm+1)
+     .,latij(I_0H:I_1H,J_0H:J_1H,4),lonij(I_0H:I_1H,J_0H:J_1H,4)
+     .,corio(I_0H:I_1H,J_0H:J_1H)
+     .,potvor(I_0H:I_1H,J_0H:J_1H)
+     .,temp(I_0H:I_1H,J_0H:J_1H,2*kdm)
+     .,saln(I_0H:I_1H,J_0H:J_1H,2*kdm)
+     .,th3d(I_0H:I_1H,J_0H:J_1H,2*kdm)
+     .,thstar(I_0H:I_1H,J_0H:J_1H,2*kdm)
+     .,wgtkap(I_0H:I_1H,J_0H:J_1H)
+     .,psikk(I_0H:I_1H,J_0H:J_1H)
+     .,thkk(I_0H:I_1H,J_0H:J_1H)
+     .,dpmixl(I_0H:I_1H,J_0H:J_1H,2)
+     .,srfhgt(I_0H:I_1H,J_0H:J_1H) )
+c
+      allocate(
+     . montg(I_0H:I_1H,J_0H:J_1H,kdm)
+     .,defor1(I_0H:I_1H,J_0H:J_1H),defor2(I_0H:I_1H,J_0H:J_1H)
+     .,ubavg(I_0H:I_1H,J_0H:J_1H,3),vbavg(I_0H:I_1H,J_0H:J_1H,3)
+     .,pbavg(I_0H:I_1H,J_0H:J_1H,3)
+     .,ubrhs(I_0H:I_1H,J_0H:J_1H),vbrhs(I_0H:I_1H,J_0H:J_1H)
+     .,utotm(I_0H:I_1H,J_0H:J_1H),vtotm(I_0H:I_1H,J_0H:J_1H)
+     .,utotn(I_0H:I_1H,J_0H:J_1H),vtotn(I_0H:I_1H,J_0H:J_1H)
+     .,uflux(I_0H:I_1H,J_0H:J_1H),vflux(I_0H:I_1H,J_0H:J_1H)
+     .,uflux1(I_0H:I_1H,J_0H:J_1H),vflux1(I_0H:I_1H,J_0H:J_1H)
+     .,uflux2(I_0H:I_1H,J_0H:J_1H),vflux2(I_0H:I_1H,J_0H:J_1H)
+     .,uflux3(I_0H:I_1H,J_0H:J_1H),vflux3(I_0H:I_1H,J_0H:J_1H)
+     .,uflx(I_0H:I_1H,J_0H:J_1H,kdm),vflx(I_0H:I_1H,J_0H:J_1H,kdm)
+     .,bolusu(I_0H:I_1H,J_0H:J_1H,kdm),bolusv(I_0H:I_1H,J_0H:J_1H,kdm) )
+c
+      allocate(
+     .   uav(I_0H:I_1H,J_0H:J_1H,kdm),  vav(I_0H:I_1H,J_0H:J_1H,kdm)
+     .,dpuav(I_0H:I_1H,J_0H:J_1H,kdm),dpvav(I_0H:I_1H,J_0H:J_1H,kdm)
+     .,temav(I_0H:I_1H,J_0H:J_1H,kdm),salav(I_0H:I_1H,J_0H:J_1H,kdm)
+     .,th3av(I_0H:I_1H,J_0H:J_1H,kdm), dpav(I_0H:I_1H,J_0H:J_1H,kdm)
+     &     ,pbavav(I_0H:I_1H,J_0H:J_1H),sfhtav(I_0H:I_1H,J_0H:J_1H)
+     .,uflxav(I_0H:I_1H,J_0H:J_1H,kdm),vflxav(I_0H:I_1H,J_0H:J_1H,kdm)
+     .,diaflx(I_0H:I_1H,J_0H:J_1H,kdm)
      .,salflav(I_0H:I_1H,J_0H:J_1H),brineav(I_0H:I_1H,J_0H:J_1H)
-     &     ,eminpav(I_0H:I_1H,J_0H:J_1H) 
-     .,surflav(I_0H:I_1H,J_0H:J_1H) 
-     .,tauxav(I_0H:I_1H,J_0H:J_1H),tauyav(I_0H:I_1H,J_0H:J_1H) 
+     &     ,eminpav(I_0H:I_1H,J_0H:J_1H)
+     .,surflav(I_0H:I_1H,J_0H:J_1H)
+     .,tauxav(I_0H:I_1H,J_0H:J_1H),tauyav(I_0H:I_1H,J_0H:J_1H)
      .,ufxcum(I_0H:I_1H,J_0H:J_1H,kdm),vfxcum(I_0H:I_1H,J_0H:J_1H,kdm)
-     &     ,dpinit(I_0H:I_1H,J_0H:J_1H,kdm) 
+     &     ,dpinit(I_0H:I_1H,J_0H:J_1H,kdm)
      .,dpmxav(I_0H:I_1H,J_0H:J_1H),oiceav(I_0H:I_1H,J_0H:J_1H)
      .)
-c 
-      allocate( 
-     . util1(I_0H:I_1H,J_0H:J_1H),util2(I_0H:I_1H,J_0H:J_1H) 
-     .,util3(I_0H:I_1H,J_0H:J_1H),util4(I_0H:I_1H,J_0H:J_1H)
-c 
-     .,scpx(I_0H:I_1H,J_0H:J_1H),scpy(I_0H:I_1H,J_0H:J_1H) 
-     .,scux(I_0H:I_1H,J_0H:J_1H),scuy(I_0H:I_1H,J_0H:J_1H) 
-     .,scvx(I_0H:I_1H,J_0H:J_1H),scvy(I_0H:I_1H,J_0H:J_1H) 
-     .,scqx(I_0H:I_1H,J_0H:J_1H),scqy(I_0H:I_1H,J_0H:J_1H) 
-     .,scu2(I_0H:I_1H,J_0H:J_1H),scv2(I_0H:I_1H,J_0H:J_1H) 
-     .,scp2(I_0H:I_1H,J_0H:J_1H),scq2(I_0H:I_1H,J_0H:J_1H) 
-     .,scuxi(I_0H:I_1H,J_0H:J_1H),scvyi(I_0H:I_1H,J_0H:J_1H) 
-     .,scp2i(I_0H:I_1H,J_0H:J_1H),scq2i(I_0H:I_1H,J_0H:J_1H)
-c  
-     .,pgfx(I_0H:I_1H,J_0H:J_1H),pgfy(I_0H:I_1H,J_0H:J_1H) 
-     .,gradx(I_0H:I_1H,J_0H:J_1H),grady(I_0H:I_1H,J_0H:J_1H) 
-     .,depthu(I_0H:I_1H,J_0H:J_1H),depthv(I_0H:I_1H,J_0H:J_1H) 
-     .,pvtrop(I_0H:I_1H,J_0H:J_1H) 
-     .,depths(I_0H:I_1H,J_0H:J_1H) 
-     .,drag(I_0H:I_1H,J_0H:J_1H) 
-     .,glue(I_0H:I_1H,J_0H:J_1H) 
-     .,dampu(I_0H:I_1H,J_0H:J_1H),dampv(I_0H:I_1H,J_0H:J_1H) ) 
 c
-       allocate(  
-     . uja(I_0H:I_1H,J_0H:J_1H),ujb(I_0H:I_1H,J_0H:J_1H) 
-     .,via(I_0H:I_1H,J_0H:J_1H),vib(I_0H:I_1H,J_0H:J_1H) 
-     .,pbot(I_0H:I_1H,J_0H:J_1H) 
-     .,tracer(I_0H:I_1H,J_0H:J_1H,kdm,ntrcr) 
-     .,diadff(I_0H:I_1H,J_0H:J_1H,kdm) 
-     .,tprime(I_0H:I_1H,J_0H:J_1H) 
-     .,sgain(I_0H:I_1H,kdm) 
-     .,surflx(I_0H:I_1H,J_0H:J_1H) 
-     .,salflx(I_0H:I_1H,J_0H:J_1H) 
-c    .,thkice(I_0H:I_1H,J_0H:J_1H) 
-c    .,covice(I_0H:I_1H,J_0H:J_1H) 
-c    .,temice(I_0H:I_1H,J_0H:J_1H) 
-c    .,odhsi(I_0H:I_1H,J_0H:J_1H) 
-     .,odmsi(I_0H:I_1H,J_0H:J_1H) 
-     .,dmfz(I_0H:I_1H,J_0H:J_1H) ) 
-c 
-      allocate( klist(I_0H:I_1H,J_0H:J_1H) 
+      allocate(
+     . util1(I_0H:I_1H,J_0H:J_1H),util2(I_0H:I_1H,J_0H:J_1H)
+     .,util3(I_0H:I_1H,J_0H:J_1H),util4(I_0H:I_1H,J_0H:J_1H)
+c
+     .,scpx(I_0H:I_1H,J_0H:J_1H),scpy(I_0H:I_1H,J_0H:J_1H)
+     .,scux(I_0H:I_1H,J_0H:J_1H),scuy(I_0H:I_1H,J_0H:J_1H)
+     .,scvx(I_0H:I_1H,J_0H:J_1H),scvy(I_0H:I_1H,J_0H:J_1H)
+     .,scqx(I_0H:I_1H,J_0H:J_1H),scqy(I_0H:I_1H,J_0H:J_1H)
+     .,scu2(I_0H:I_1H,J_0H:J_1H),scv2(I_0H:I_1H,J_0H:J_1H)
+     .,scp2(I_0H:I_1H,J_0H:J_1H),scq2(I_0H:I_1H,J_0H:J_1H)
+     .,scuxi(I_0H:I_1H,J_0H:J_1H),scvyi(I_0H:I_1H,J_0H:J_1H)
+     .,scp2i(I_0H:I_1H,J_0H:J_1H),scq2i(I_0H:I_1H,J_0H:J_1H)
+c
+     .,pgfx(I_0H:I_1H,J_0H:J_1H),pgfy(I_0H:I_1H,J_0H:J_1H)
+     .,gradx(I_0H:I_1H,J_0H:J_1H),grady(I_0H:I_1H,J_0H:J_1H)
+     .,depthu(I_0H:I_1H,J_0H:J_1H),depthv(I_0H:I_1H,J_0H:J_1H)
+     .,pvtrop(I_0H:I_1H,J_0H:J_1H)
+     .,depths(I_0H:I_1H,J_0H:J_1H)
+     .,drag(I_0H:I_1H,J_0H:J_1H)
+     .,glue(I_0H:I_1H,J_0H:J_1H)
+     .,dampu(I_0H:I_1H,J_0H:J_1H),dampv(I_0H:I_1H,J_0H:J_1H) )
+c
+       allocate(
+     . uja(I_0H:I_1H,J_0H:J_1H),ujb(I_0H:I_1H,J_0H:J_1H)
+     .,via(I_0H:I_1H,J_0H:J_1H),vib(I_0H:I_1H,J_0H:J_1H)
+     .,pbot(I_0H:I_1H,J_0H:J_1H)
+     .,tracer(I_0H:I_1H,J_0H:J_1H,kdm,ntrcr)
+     .,diadff(I_0H:I_1H,J_0H:J_1H,kdm)
+     .,tprime(I_0H:I_1H,J_0H:J_1H)
+     .,sgain(I_0H:I_1H,kdm)
+     .,surflx(I_0H:I_1H,J_0H:J_1H)
+     .,salflx(I_0H:I_1H,J_0H:J_1H)
+c    .,thkice(I_0H:I_1H,J_0H:J_1H)
+c    .,covice(I_0H:I_1H,J_0H:J_1H)
+c    .,temice(I_0H:I_1H,J_0H:J_1H)
+c    .,odhsi(I_0H:I_1H,J_0H:J_1H)
+     .,odmsi(I_0H:I_1H,J_0H:J_1H)
+     .,omlhc(I_0H:I_1H,J_0H:J_1H)
+     .,dmfz(I_0H:I_1H,J_0H:J_1H) )
+c
+      allocate( klist(I_0H:I_1H,J_0H:J_1H)
      .        ,ijlist(I_0H:I_1H,J_0H:J_1H) )
-c  
-      allocate(  
-     . taux(I_0H:I_1H,J_0H:J_1H) 
-     .,tauy(I_0H:I_1H,J_0H:J_1H) 
-c    .,wndspd(I_0H:I_1H,J_0H:J_1H,4) 
-c    .,airtmp(I_0H:I_1H,J_0H:J_1H,4) 
-c    .,vapmix(I_0H:I_1H,J_0H:J_1H,4) 
-c    .,oprec(I_0H:I_1H,J_0H:J_1H) 
-c    .,oevap(I_0H:I_1H,J_0H:J_1H) 
-     .,oemnp(I_0H:I_1H,J_0H:J_1H) 
-     .,oflxa2o(I_0H:I_1H,J_0H:J_1H),oice(I_0H:I_1H,J_0H:J_1H) 
-     .,ustar(I_0H:I_1H,J_0H:J_1H) 
-     .,ustarb(I_0H:I_1H,J_0H:J_1H) 
+c
+      allocate(
+     . taux(I_0H:I_1H,J_0H:J_1H)
+     .,tauy(I_0H:I_1H,J_0H:J_1H)
+c    .,wndspd(I_0H:I_1H,J_0H:J_1H,4)
+c    .,airtmp(I_0H:I_1H,J_0H:J_1H,4)
+c    .,vapmix(I_0H:I_1H,J_0H:J_1H,4)
+c    .,oprec(I_0H:I_1H,J_0H:J_1H)
+c    .,oevap(I_0H:I_1H,J_0H:J_1H)
+     .,oemnp(I_0H:I_1H,J_0H:J_1H)
+     .,oflxa2o(I_0H:I_1H,J_0H:J_1H),oice(I_0H:I_1H,J_0H:J_1H)
+     .,ustar(I_0H:I_1H,J_0H:J_1H)
+     .,ustarb(I_0H:I_1H,J_0H:J_1H)
      .,osalt(I_0H:I_1H,J_0H:J_1H)
-c 
-     .,freshw(I_0H:I_1H,J_0H:J_1H) 
-     .,diafor(I_0H:I_1H,J_0H:J_1H) ) 
-c 
+c
+     .,freshw(I_0H:I_1H,J_0H:J_1H)
+     .,diafor(I_0H:I_1H,J_0H:J_1H) )
+c
 
       u = 0
       v = 0
@@ -328,8 +330,6 @@ c
       salav = 0
       th3av = 0
       dpav = 0
-      ubavav = 0
-      vbavav = 0
       pbavav = 0
       sfhtav = 0
       uflxav = 0
@@ -390,6 +390,7 @@ c
       surflx = 0
       salflx = 0
       odmsi = 0
+      omlhc = 0
       dmfz = 0
       taux = 0
       tauy = 0
