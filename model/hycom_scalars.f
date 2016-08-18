@@ -46,10 +46,10 @@ c ---' salmin' = minimum salinity allowed in an isopycnic layer
 c --- 'acurcy' = permissible roundoff error in column integral calc.
 c --- 'nhr   ' = coupling freq. in hours
 c
-      dimension theta(kdm),salmin(kdm)
+      dimension theta(kdm),salmin(kdm),dplist(kdm)
       real, public ::
      &     theta,thbase,baclin,batrop,veldff,temdff,viscos,
-     .     vertmx,h1,slip,cbar,diagfq,wuv1,wuv2,wts1,wts2,
+     &     vertmx,h1,slip,cbar,diagfq,wuv1,wuv2,wts1,wts2,dplist,
      &     acurcy, wbaro,thkmin,thkbot,botmin,ekman,sigjmp,salmin
 c
       integer, public ::       trcfrq,ntracr,nhr,mixfrq
@@ -73,8 +73,7 @@ c
      &     flnmdep,flnmrsi,flnmrso,flnmarc,flnmfor,flnmovt
      .            ,flnmini,flnmriv,flnmbas,flnmdia,flnmlat
      .            ,flnminp,flnmint,flnmins
-     .            ,flnmcoso,flnmcosa,flnma2o,flnma2o_s,flnma2o_tau
-     .            ,flnmo2a,flnmo2a_f
+     .            ,flnmcoso,flnmcosa,flnma2o,flnmo2a
 
 c --- opening the bering strait requires information exchange across a
 c --- 'u' face represented in 2 different locations in the tri-pole grid.
@@ -90,70 +89,47 @@ c
 c --- thus, the pairs [(ipacn,jpac),(iatln,jatl)],[(ipacs,jpac),(iatls,jatl)]
 c --- refer to identical grid cells in physical space.
 c
-      logical, public, parameter :: beropn=.true.  !true if bering strait open
-     .                             ,kappa =.false.  !true to include thermobaricity 
+      logical, public, parameter :: beropn=.true.   !true if bering strait open
+     .                             ,kappa =.false.  !true to include thermobaricity
 #ifdef HYCOM2deg
       integer, public, parameter :: ipacn=67,ipacs=68,jpac= 95
       integer, public, parameter :: iatln= 2,iatls= 1,jatl=156
 #endif
-#ifdef HYCOM1deg
+#ifdef HYCOM1degRefined
+      integer, public, parameter :: ipacn=137,ipacs=138,jpac=189
+      integer, public, parameter :: iatln= 2,iatls= 1,jatl=312
+#endif
+#ifdef HYCOM1degUnrefined
       integer, public, parameter :: ipacn=137,ipacs=138,jpac=189
       integer, public, parameter :: iatln= 2,iatls= 1,jatl=312
 #endif
 c-----------------------------------------------------------------------------
 c
 c --- layer densities (theta units):
+c
+#ifdef HYCOM26layers
       data theta/
-c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-c --- s i g m a _ 0
-ccc     .   24.02, 24.70, 25.28, 25.77, 26.18, 26.52, 26.80, 27.03, 
-ccc     .   27.22, 27.38, 27.52, 27.64, 27.74, 27.82, 27.88, 27.92/
-c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-c --- s i g m a _ 2
-clt   data theta/30.90,31.87,32.75,33.54,34.24,34.85,35.37,35.80,
-clt  .           36.15,36.43,36.65,36.82,36.95,37.05,37.13,37.20/    !light
-cmd   data theta/31.20,32.51,33.54,34.35,34.99,35.50,35.91,36.24,
-cmd  .           36.50,36.70,36.85,36.96,37.04,37.10,37.15,37.20/    !medium
-chv   data theta/31.85,33.22,34.26,35.04,35.62,36.05,36.37,36.61,
-chv  .           36.79,36.92,37.01,37.07,37.11,37.14,37.17,37.20/    !heavy
-c    .  28.89,30.07,31.11,32.02,32.81,33.49,34.07,34.56,34.97,35.31
-c    . ,35.59,35.82,36.01,36.17,36.31,36.44,36.56,36.67,36.77,36.86
-c    . ,36.94,37.01,37.07,37.12,37.16,37.20/          ! md 26
-c
-c    .  28.48,29.37,30.21,31.00,31.74,32.43,33.07,33.66,34.20,34.69
-c    . ,35.13,35.52,35.86,36.15,36.39,36.58,36.72,36.82,36.89,36.94
-c    . ,36.98,37.02,37.07,37.13,37.20,37.28/          ! hv 26 sig2
-c
-c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-c --- s i g m a _ 0.8
-c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-c    . 24.30,25.24,26.10,26.88,27.58,28.20,28.74,29.20,29.59,29.92,
-c    . 30.20,30.44,30.65,30.83,30.98,31.11,31.22,31.31,31.38,31.44,
-c    . 31.49,31.53,31.56,31.58,31.60,31.62/ !sig08
-
-c    . 23.85,24.74,25.57,26.34,27.05,27.70,28.29,28.82,29.29,29.70,
-c    . 30.06,30.37,30.63,30.85,31.03,31.18,31.30,31.40,31.48,31.54,
-c    . 31.58,31.61,31.63,31.64,31.65,31.66/ !sig08b
-
-c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-c --- s i g m a _ 1
-c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-c    . 25.03,25.97,26.83,27.61,28.32,28.96,29.53,30.04,30.49,30.88,
-c    . 31.22,31.51,31.75,31.95,32.11,32.24,32.34,32.42,32.48,32.52,
-c    . 32.55,32.57,32.58,32.59,32.60,32.61/    ! sig1
-
-c    . 25.01,25.96,26.83,27.62,28.33,28.97,29.54,30.05,30.50,30.89,
-c    . 31.23,31.52,31.76,31.96,32.12,32.25,32.35,32.43,32.49,32.53,
-c    . 32.56,32.58,32.59,32.60,32.61,32.62/    ! sig1
-
-c    . 24.38,26.00,27.38,28.54,29.50,30.28,30.90,31.38,31.74,32.00
-c    .,32.18,32.30,32.38,32.44,32.49,32.53,32.56,32.58,32.59,32.60
-ccc    .,32.61,32.62,32.63,32.64,32.65,32.66    ! sig1e
-c    .,32.61,32.62,32.64,32.68,32.76,32.84/     ! sig1e
-
      . 24.35,26.07,27.50,28.67,29.61,30.35,30.92,31.35,31.67,31.90
-     .,32.06,32.17,32.25,32.31,32.36,32.40,32.43,32.46,32.49,32.52 
-     .,32.54,32.56,32.58,32.60,32.62,32.64/     ! sig1g
+     .,32.06,32.17,32.25,32.31,32.36,32.40,32.43,32.46,32.49,32.52
+     .,32.54,32.56,32.58,32.60,32.62,32.64/     ! 26-sig1
+      data dplist/
+     .     5.,  7.,  9., 11., 13., 15., 17., 19., 22., 26.,
+     .    31., 37., 45., 55., 67., 81., 98.,118.,141.,168.,
+     .   199.,234.,274.,319.,369.,425./         ! total 2805m
+#endif
+
+#ifdef HYCOM32layers
+      data theta/
+     . 20.82,21.64,22.46,23.28,24.10,24.92,25.74,26.55,27.34,28.10,
+     . 28.82,29.49,30.10,30.64,31.10,31.48,31.78,32.01,32.18,32.30,
+     . 32.38,32.43,32.46,32.48,32.50,32.52,32.54,32.56,32.58,32.60,
+     . 32.62,32.64 /                            ! 32-sig1a
+      data dplist/
+     .   2.0,   3.0,  4.0,  5.0,  6.0,  8.0, 10.0, 12.0, 15.0, 18.0,
+     .  21.0,  25.0, 29.0, 33.0, 38.0, 43.0, 48.0, 54.0, 60.0, 66.0,
+     .  73.0,  81.0, 90.0,101.0,114.0,129.0,146.0,166.0,189.0,215.0,
+     . 244.0, 276. /
+#endif
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
 c --- 'baclin' = baroclinic time step
@@ -165,9 +141,13 @@ c --- 'equatn' = the i index of the equator
       data baclin,batrop/3600.,100./,diagfq/365./          ! 2deg full global
       data equatn/122./
 #endif
-#ifdef HYCOM1deg
+#ifdef HYCOM1degRefined
       data baclin,batrop/1800., 50./,diagfq/365./          ! 1deg full global
       data equatn/243./
+#endif
+#ifdef HYCOM1degUnrefined
+      data baclin,batrop/1800., 50./,diagfq/365./          ! 1deg full global
+      data equatn/229./
 #endif
 c
 c --- 'thkdff' = diffusion velocity (m/s) for thickness diffusion
@@ -223,7 +203,7 @@ c
  || (defined TRACERS_OCEAN_WATER_MASSES) \
  || (defined TRACERS_ZEBRA)
       data thermo/.true./, windf/.true./,relax/.false./,trcout/.true./
-#else     
+#else
       data thermo/.true./, windf/.true./,relax/.false./,trcout/.false./
 #endif
 c
@@ -257,11 +237,8 @@ c
       data flnmins    /'salt_ini'/
       data flnminp    /'pout_ini'/
       data flnmbas    /'ibasin'/
-      data flnma2o    /'flxa2o'/
-      data flnma2o_s  /'ssta2o'/      ! TNL weights for scalars
-      data flnma2o_tau/'taua2o'/
-      data flnmo2a    /'ssto2a'/
-      data flnmo2a_f  /'flxo2a'/      ! TNL weights for fluxes
+      data flnma2o    /'wgt_a2o'/
+      data flnmo2a    /'wgt_o2a'/
       data flnmcoso   /'cososino'/
       data flnmovt/'./'/
 
