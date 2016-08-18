@@ -671,11 +671,6 @@ c
      .,surflav(idm,jdm),tauxav(idm,jdm),tauyav(idm,jdm)
      .,ufxcum(idm,jdm,kdm),vfxcum(idm,jdm,kdm),dpinit(idm,jdm,kdm)
      .,dpmxav(idm,jdm),oiceav(idm,jdm)
-#if (defined TRACERS_AGE_OCEAN) \
-    || (defined TRACERS_OCEAN_WATER_MASSES) \
-    || (defined TRACERS_ZEBRA)
-     .,plevav(idm,jdm,kdm),tracav(idm,jdm,kdm,ntrcr)
-#endif
      .)
 c
       allocate(
