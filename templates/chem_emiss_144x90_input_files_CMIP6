@@ -1,5 +1,5 @@
 !---------- start chemistry emissions files --------------
-CO_AIRC=_A_CMIP6_FILE_MUST_GO_HERE_WHEN_READY__.nc !<<<<<<
+!!!CO_AIRC=emis/CMIP6_AIR_v2016-06-18_2.0x2.5 !!!!!!!
 CO_01=emis/CMIP6_IND_v2016-06-18_2.0x2.5
 CO_02=emis/CMIP6_TRA_v2016-06-18_2.0x2.5
 CO_03=emis/CMIP6_WST_v2016-06-18_2.0x2.5
@@ -9,7 +9,7 @@ CO_06=emis/CMIP6_SLV_v2016-06-18_2.0x2.5
 CO_07=emis/CMIP6_ENE_v2016-06-18_2.0x2.5
 CO_08=emis/CMIP6_AGR_v2016-06-18_2.0x2.5
 CO_09=emis/CMIP6_BBURN_v1.0_2.0x2.5
-NOx_AIRC=_A_CMIP6_FILE_MUST_GO_HERE_WHEN_READY__.nc !<<<<<<
+!!!NOx_AIRC=emis/CMIP6_AIR_v2016-06-18_2.0x2.5 !!!!!!!
 NOx_01=emis/CMIP6_IND_v2016-06-18_2.0x2.5
 NOx_02=emis/CMIP6_TRA_v2016-06-18_2.0x2.5
 NOx_03=emis/CMIP6_WST_v2016-06-18_2.0x2.5
@@ -50,7 +50,7 @@ Paraffin_07=emis/CMIP6_ENE_v2016-06-18_2.0x2.5
 Paraffin_08=emis/CMIP6_AGR_v2016-06-18_2.0x2.5
 Paraffin_09=emis/Paraffin_vegetation_GEIA_2x2.5_sname.nc
 Paraffin_10=emis/CMIP6_BBURN_v1.0_2.0x2.5
-! OFF CH4_AIRC=_A_CMIP6_FILE_MUST_GO_HERE_WHEN_READY__.nc !<<<<<<
+!!!!! OFF CH4_AIRC=emis/CMIP6_AIR_v2016-06-18_2.0x2.5 !!!!!!!
 ! OFF CH4_01=emis/CMIP6_IND_v2016-06-18_2.0x2.5
 ! OFF CH4_02=emis/CMIP6_TRA_v2016-06-18_2.0x2.5
 ! OFF CH4_03=emis/CMIP6_WST_v2016-06-18_2.0x2.5
