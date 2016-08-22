@@ -1785,15 +1785,15 @@ c not yet          call unpack_data(grid,aijl_glob,daily_z)
           call unpack_data(grid,Aijl_chem,pOx)
           if(am_i_root())read(kunit,err=10)header,Aijl_chem
           call unpack_data(grid,Aijl_chem,yCH3O2)
-          if(am_i_root())read(kunit,err=10)header,Aijl_chem
 #ifdef TRACERS_dCO
+          if(am_i_root())read(kunit,err=10)header,Aijl_chem
           call unpack_data(grid,Aijl_chem,ydCH317O2)
           if(am_i_root())read(kunit,err=10)header,Aijl_chem
           call unpack_data(grid,Aijl_chem,ydCH318O2)
           if(am_i_root())read(kunit,err=10)header,Aijl_chem
           call unpack_data(grid,Aijl_chem,yd13CH3O2)
-          if(am_i_root())read(kunit,err=10)header,Aijl_chem
 #endif  /* TRACERS_dCO */
+          if(am_i_root())read(kunit,err=10)header,Aijl_chem
           call unpack_data(grid,Aijl_chem,yC2O3)
           if(am_i_root())read(kunit,err=10)header,Aijl_chem
           call unpack_data(grid,Aijl_chem,yROR)
