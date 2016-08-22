@@ -180,7 +180,7 @@ C**** GLOBAL parameters and variables:
       USE TRCHEM_Shindell_COM, only:pHOx,rr,y,nNO2,nNO,yCH3O2,nH2O,nO3,
      &                        nO2,nM,nHO2,nOH,nH2,nAldehyde,nXO2,nXO2N,
      &                        ta,ss,nC2O3,nROR,yso2,ydms,which_trop,nO1D
-     &         ,OxlossbyH,dt2,nBrO,nClO,nOClO,nBr,nCl,SF3,nO,nCH3O2
+     &         ,OxlossbyH,dt2,nBrO,nClO,nOClO,nBr,nCl,SF3,nO
      &         ,rrbi,rrtri
 
       IMPLICIT NONE
