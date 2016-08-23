@@ -181,7 +181,7 @@ C**** GLOBAL parameters and variables:
      &                        nO2,nM,nHO2,nOH,nH2,nAldehyde,nXO2,nXO2N,
      &                        ta,ss,nC2O3,nROR,yso2,ydms,which_trop,nO1D
      &         ,OxlossbyH,dt2,nBrO,nClO,nOClO,nBr,nCl,SF3,nO,nCH3O2
-     &         ,rrbi,rrtri
+     &         ,rrbi,rrtri,yNO3
 
       IMPLICIT NONE
 
@@ -234,7 +234,7 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
      &    +pHOx(I,J,L)
      &    *(rr(rrbi%Aldehyde_OH__C2O3_M,L)*y(nAldehyde,L)
      &      +rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)*0.89d0
-     &      +rr(rrbi%Alkenes_OH__HCHO_HO2,L)*y(nn_Alkenes,L)
+!!!!!&      +rr(rrbi%Alkenes_OH__HCHO_HO2,L)*y(nn_Alkenes,L)
      &      +rr(rrbi%Isoprene_OH__HCHO_Alkenes,L)*y(nn_Isoprene,L)
      &        *0.15d0
      &      +rr(rrbi%AlkylNit_OH__NO2_M,L)*y(nn_AlkylNit,L)
@@ -280,6 +280,8 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
      &      *0.65d0 ! CO isotopes should not go here
      &    +rr(rrbi%Isoprene_O3__HCHO_Alkenes,L)*y(nn_Isoprene,L)
      &      *y(nO3,L)*0.58d0
+     &    +rr(rrbi%Isoprene_NO3__HO2_Alkenes,L)*y(nn_Isoprene,L)
+     &      *yNO3(I,J,L)*0.9d0
 #ifdef TRACERS_TERP
      &    +rr(rrbi%Terpenes_O3__HCHO_Alkenes,L)*y(nn_Terpenes,L)
      &      *y(nO3,L)*0.58d0
@@ -373,6 +375,7 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
      &    +rr(rrbi%O_HOCl__OH_ClO,L)*y(nn_HOCl,L)*y(nO,L)
      &    +rr(rrbi%Cl_HOCl__Cl2_OH,L)*y(nn_HOCl,L)*y(nCl,L)
      &    +rr(rrbi%Cl_H2O2__HCl_HO2,L)*y(nCl,L)*y(nn_H2O2,L)
+     &    +rr(rrbi%Cl_H2__HCl_HO2,L)*y(nCl,L)*y(nH2,L)
      &    +rr(rrbi%Br_H2O2__HBr_HO2,L)*y(nBr,L)*y(nn_H2O2,L)
      &    +rr(rrbi%O_HBr__OH_Br,L)*y(nn_HBr,L)*y(nO,L)
      
@@ -549,7 +552,7 @@ c calculating Cl amount, otherwise ignore:
      &    +rr(rrbi%Cl_H2O2__HCl_HO2,L)*y(nn_H2O2,L)
      &    +rr(rrbi%Cl_HO2__HCl_O2,L)*y(nHO2,L)
      &    +rr(rrbi%Cl_CH4__HCl_CH3O2,L)*y(nn_CH4,L)
-     &    +rr(rrbi%Cl_H2__HCl_H2,L)*y(nH2,L)
+     &    +rr(rrbi%Cl_H2__HCl_HO2,L)*y(nHO2,L)
         if((dt2*y(nn_ClOx,L)) /= 0)then
           dClOx=(y(nn_ClOx,L)-ClOx_old(L))/(dt2*y(nn_ClOx,L))
         else
