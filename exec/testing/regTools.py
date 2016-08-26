@@ -81,6 +81,9 @@ def setupModelEenv(config, compconfig):
           util.mkdir_p(resultsDir + '/' + comp)
           util.mkdir_p(scratchDir + '/' + comp)
        writeModelErc(libsconfig, scratchDir, comp, makesystem)
+# Make sure basedirs exist
+       if (userconfig['updatebase'] == 'yes'):
+		   util.mkdir_p(userconfig['basedir']+'/'+branch+'/'+comp)
 
 #-------------------------------------------------------------------------------
 # Write a compiler-specific modelErc file
