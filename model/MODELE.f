@@ -401,17 +401,18 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
       use CalendarMonth_mod
 C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
       logical :: newmonth
-      integer :: month, day, year
+      integer :: month, day, year, date
       type (CalendarMonth) :: cMonth
 
       year = modelEclock%getYear()
       month = modelEclock%getMonth()
+      date = modelEclock%getDate()
       day = modelEclock%getDayOfYear()
 
         if (am_i_root()) then
-          print '(A,I9,A,I0.4,A1,I0.2,A1,I0.2)',
+          print '(A,I9,A,I0.4,A1,I0.2,A1,I0.2,A,I3)',
      &       '---------- Main Loop, itime=',itime,
-     &       ' day=',year,'-',month,'-',day
+     &       ', date=',year,'-',month,'-',date,', day=',day
         end if
 
 
