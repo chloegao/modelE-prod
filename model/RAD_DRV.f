@@ -3650,12 +3650,15 @@ c longwave GHG forcing at TOA
 #endif /* ACCMIP_LIKE_DIAGS */
 
 #ifdef CACHED_SUBDD
-#ifdef TRACERS_ON
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
+    (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_MINERALS) ||\
+    (defined TRACERS_AMP) || (defined TRACERS_TOMAS) ||\
+    (defined TRACERS_AEROSOLS_SEASALT)
       swfrc(i,j,1:nraero_rf)=
      &  rsign_aer*(SNFST(2,1:nraero_rf,I,J)-SNFS(LFRC,I,J))*CSZ2
       lwfrc(i,j,1:nraero_rf)=
      &  -rsign_aer*(TNFST(2,1:nraero_rf,I,J)-TNFS(LFRC,I,J))
-#endif  /* TRACERS_ON */
+#endif /* any of various tracer groups defined */
 #endif  /* CACHED_SUBDD */
 
   770    CONTINUE
