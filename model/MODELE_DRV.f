@@ -1,5 +1,6 @@
 #include "rundeck_opts.h"
       subroutine modelE_mainDriver()
+      use iso_c_binding
 
 !@sum Acquire configuration options from the command line and pass to
 !@+ the model.
