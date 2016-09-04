@@ -401,23 +401,24 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
       use CalendarMonth_mod
 C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
       logical :: newmonth
-      integer :: month, day, year, date
+      integer :: month, day_of_month, year
+      integer :: day_of_year
       type (CalendarMonth) :: cMonth
 
       year = modelEclock%getYear()
       month = modelEclock%getMonth()
-      date = modelEclock%getDate()
-      day = modelEclock%getDayOfYear()
+      day_of_month = modelEclock%getDate()
+      day_of_year = modelEclock%getDayOfYear()
 
         if (am_i_root()) then
-          print '(A,I9,A,I0.4,A1,I0.2,A1,I0.2,A,I3)',
+          print '(A,I9,A,I0.4,A1,I0.2,A1,I0.2)',
      &       '---------- Main Loop, itime=',itime,
-     &       ', date=',year,'-',month,'-',date,', day=',day
+     &       ' day=',year,'-',month,'-',day_of_month
         end if
 
 
       cMonth = calendar%getCalendarMonth(month=month-1,year=year)
-      newmonth = (day == 1+ cMonth%lastDayInMonth)
+      newmonth = (day_of_year == 1+ cMonth%lastDayInMonth)
       call daily_DIAG(newmonth) ! atmosphere
       if(newmonth) then         ! ocean
         call reset_ODIAG(0)
