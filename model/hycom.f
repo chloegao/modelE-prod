@@ -168,12 +168,15 @@ c
       real, dimension(aI_0H:aI_1H,aJ_0H:aJ_1H) :: utila_loc
       real osst(idm,jdm),osss(idm,jdm),osiav(idm,jdm)
      . ,oogeoza(idm,jdm),usf(idm,jdm),vsf(idm,jdm),omlhc(idm,jdm)
+
      . ,usf_loc(idm,J_0H:J_1H),vsf_loc(idm,J_0H:J_1H)
      . ,omlhc_loc(idm,J_0H:J_1H)
       real, dimension(idm,J_0H:J_1H) :: tauxi_loc,tauyi_loc,ustari_loc
       real osst_loc(idm,J_0H:J_1H),osss_loc(idm,J_0H:J_1H),
      &    osiav_loc(idm,J_0H:J_1H), oogeoza_loc(idm,J_0H:J_1H)
+#ifdef TRACERS_GASEXCH_ocean
       real, allocatable :: otrac_loc(:,:,:) !(idm,J_0H:J_1H,ntm)
+#endif
 
 #include "state_eqn.h"
 
@@ -276,11 +279,16 @@ c
            aice_loc(ia,ja)=0.
          austar_loc(ia,ja)=0.
          aswflx_loc(ia,ja)=0.
+#ifdef TRACERS_GASEXCH_ocean
         do nt=1,atmocn%gasex_index%getsize()
           atracflx_loc(ia,ja,nt)=0.
         enddo
+#endif
+#ifdef TRACERS_OceanBiology
         awind_loc(ia,ja)=0.
         asolz_loc(ia,ja)=0.
+#endif
+#ifdef OBIO_RAD_coupling
         if (allocated(atmocn%dirvis)) then
           if (.not.allocated(avisdir_loc))
      &             ALLOCATE(
@@ -293,13 +301,14 @@ c
           anirdir_loc(ia,ja)=0.
           anirdif_loc(ia,ja)=0.
         endif
+#endif
  28     continue
 #ifdef CUBED_SPHERE
         call reset_dynsi_accum
 #endif
       endif
 c
-c --- accumulate agcm fields over nhr 
+c --- accumulate agcm fields over nhr
 
 #ifdef CUBED_SPHERE
 ! wind and ice stresses will be combined after regridding,
@@ -318,6 +327,9 @@ c first redistribute ice-ocean stresses to the atmospheric domain decomp
 #endif
 #endif
 c
+CTNL: two next lines from AR5_v2_branch
+CTNL  eflow_gl=0.
+CTNL  call globalsum_atm(grid, eflowo_loc, eflow_gl, all=.true.)
       eflow_gl = atmocn%eflow_gl
 c
       do 29 ia=aI_0,aI_1
@@ -370,6 +382,7 @@ c --- dmua on A-grid, admui on C-grid
      .                         (1.-rsi_loc(ia,ja))                       !J/m*m=>W/m*m
      .                         +iceocn%solar(ia,ja)*rsi_loc(ia,ja))
      .                         /(SECONDS_PER_HOUR*real(nhr))
+#ifdef TRACERS_GASEXCH_ocean
       do nt=1,atmocn%gasex_index%getsize()
         atracflx_loc(ia,ja,nt)=atracflx_loc(ia,ja,nt)
      .       + atmocn%TRGASEX(nt,ia,ja) ! in mol/m2/s
@@ -381,10 +394,14 @@ c --- dmua on A-grid, admui on C-grid
      .                       atracflx_loc(ia,ja,nt)
         end if
       enddo
+#endif
+#ifdef TRACERS_OceanBiology
             asolz_loc(ia,ja)=asolz_loc(ia,ja) !
      .           +COSZ1_loc(ia,ja)*dtsrc/(SECONDS_PER_HOUR*real(nhr)) !
             awind_loc(ia,ja)=awind_loc(ia,ja) !
      .           +wsavg_loc(ia,ja)*dtsrc/(SECONDS_PER_HOUR*real(nhr)) !
+#endif
+#ifdef OBIO_RAD_coupling
           if (allocated(atmocn%dirvis)) then
             avisdir_loc(ia,ja)=avisdir_loc(ia,ja) !
      .         +atmocn%dirvis(ia,ja)*dtsrc/(SECONDS_PER_HOUR*real(nhr)) !
@@ -395,6 +412,7 @@ c --- dmua on A-grid, admui on C-grid
             anirdif_loc(ia,ja)=anirdif_loc(ia,ja) !
      .         +atmocn%difnir(ia,ja)*dtsrc/(SECONDS_PER_HOUR*real(nhr)) !
           endif
+#endif
 
  29   continue
 
@@ -412,18 +430,18 @@ c
       end if
       nsavea=0
 c
-      call veca2o(ataux_loc,atauy_loc,taux_loc,tauy_loc) !wind stress
-      call flxa2o(aice_loc,oice_loc)              !ice coverage
-      call flxa2o(aflxa2o_loc,oflxa2o_loc)        !heatflux everywhere
-      call flxa2o(asalt_loc,osalt_loc)            !saltflux from SI
-      call flxa2o(aemnp_loc,oemnp_loc)            !E - P everywhere
-      call flxa2o(austar_loc,ustar_loc)           !friction velocity
-      call flxa2o(aswflx_loc,sswflx_loc)          ! shortwave flux
+      call vec_a2o(ataux_loc,atauy_loc,taux_loc,tauy_loc) !wind stress
+      call fld_a2o(aice_loc,oice_loc)			!ice coverage
+      call fld_a2o(aflxa2o_loc,oflxa2o_loc)		!heatflux everywhere
+      call fld_a2o(asalt_loc,osalt_loc)			!saltflux from SI
+      call fld_a2o(aemnp_loc,oemnp_loc)         !E - P everywhere
+      call fld_a2o(austar_loc,ustar_loc)        !friction velocity
+      call fld_a2o(aswflx_loc,sswflx_loc)       ! shortwave flux
 #ifdef CUBED_SPHERE
 c combine wind and ice stresses after regridding
       tauxi_loc = 0.; tauyi_loc = 0.; ustari_loc = 0.
-      call veci2o(taux_dynsi,tauy_dynsi,tauxi_loc,tauyi_loc)
-      call scai2o(ustar_dynsi,ustari_loc)
+      call vec_i2o(taux_dynsi,tauy_dynsi,tauxi_loc,tauyi_loc)
+      call fld_i2o(ustar_dynsi,ustari_loc)
       do j=j_0,j_1
         do i=1,idm
           taux_loc(i,j) = taux_loc(i,j) + tauxi_loc(i,j)
@@ -432,19 +450,23 @@ c combine wind and ice stresses after regridding
         enddo
       enddo
 #endif
+#ifdef TRACERS_GASEXCH_ocean
       do nt=1,atmocn%gasex_index%getsize()
         !call flxa2o(atracflx_loc(:,:,nt),tracflx_loc(:,:,nt)) !tracer flux
         call flxa2o(atracflx_loc(:,:,nt),ocnatm%work1)
         ocnatm%trgasex(nt,:,:) = ocnatm%work1(:,:)
       enddo
-      call flxa2o(asolz_loc,ocnatm%cosz1)
-      call flxa2o(awind_loc,ocnatm%wsavg)
-      if (allocated(atmocn%dirvis)) then
-        call flxa2o(avisdir_loc,ocnatm%dirvis)
-        call flxa2o(avisdif_loc,ocnatm%difvis)
-        call flxa2o(anirdir_loc,ocnatm%dirnir)
-        call flxa2o(anirdif_loc,ocnatm%difnir)
-      endif
+#endif
+#ifdef TRACERS_OceanBiology
+      call fld_a2o(asolz_loc,osolz_loc)
+      call fld_a2o(awind_loc,owind_loc)
+#endif
+#ifdef OBIO_RAD_coupling
+      call fld_a2o(avisdir_loc,ovisdir_loc)
+      call fld_a2o(avisdif_loc,ovisdif_loc)
+      call fld_a2o(anirdir_loc,onirdir_loc)
+      call fld_a2o(anirdif_loc,onirdif_loc)
+#endif
       call scatter1_hycom_arrays ! delete this call, if not the routine
 c
       call system_clock(before)
@@ -528,8 +550,8 @@ c
       write (lp,*) "time0/nstep0=",time0,nstep0
       write (lp,'(a,i4,a,i4,a)') "ogcm exchange w. agcm every",nstepi,
      .   " steps, i.e.",nhr," hr"
-      if( itest >= lbound(latij,dim=1) .AND. 
-     .    itest <= ubound(latij,dim=1) .AND.  
+      if( itest >= lbound(latij,dim=1) .AND.
+     .    itest <= ubound(latij,dim=1) .AND.
      .    jtest >= lbound(latij,dim=2) .AND.
      .    jtest <= ubound(latij,dim=2) ) then
       write (lp,*) "itest,jtest=",itest,jtest
@@ -547,7 +569,7 @@ c
 c     mixfrq=int(43200./baclin+.0001)
       mixfrq=1                   ! mixing every time step
       trcfrq=int(43200./baclin+.0001)
-      if (AM_I_ROOT()) 
+      if (AM_I_ROOT())
      &  write (lp,'(2(a,i4),a)') 'mixfrq/trcfrq set to'
      &   ,mixfrq,'/',trcfrq,' steps'
 
@@ -613,7 +635,7 @@ c
       endif
 
 c
-      endif       ! if (nstep=0 or nstep=nstep0) 
+      endif       ! if (nstep=0 or nstep=nstep0)
 c
       if (nstepi.le.0) stop 'wrong nstepi'
 c
@@ -638,8 +660,10 @@ c
      &           (abs(corio_loc(i,j  ))+abs(corio_loc(i+1,j  ))+
      &            abs(corio_loc(i,jb ))+abs(corio_loc(i+1,jb )))
  202  continue
+#ifdef TRACERS_GASEXCH_ocean
       allocate(otrac_loc(idm,J_0H:J_1H,atmocn%gasex_index%getsize()))
       otrac_loc(:,:,:) = 0.d0
+#endif
 c
 c --- ---------------------
 c --- sub loop starts here
@@ -668,11 +692,11 @@ c
      .  .nsub .eq. nstepi)  diagno = .true. ! end of month
 c
       if (nstep.eq.1) then
-c
+        call gather_before_archive()
         if (AM_I_ROOT()) then
           call archiv(n,nn)
         endif
-c
+        call set_data_after_archiv()
       endif
 c
       diag_ape=.false.
@@ -693,6 +717,7 @@ c     call findmx(ip,temp(1,1,k1n),idm,ii,jj,'sst')
 c     call findmx(ip,saln(1,1,k1n),idm,ii,jj,'sss')
 c     if (trcout) call cfcflx(tracer,p,temp(1,1,k1n),saln(1,1,k1n)
 c    .           ,latij(1,1,3),scp2,baclin*trcfrq)
+CTNL Why is it here?
       if (AM_I_ROOT())
      .write(*,'(a,6i3)') 'NTRCR = ',ntrcr,ntrcr_zebra,ntrcr_vent,
      .                   ntrcr_age,ntrcr_wm,ntrcr_obio
@@ -819,7 +844,6 @@ c
       before = after
       call tsadvc(m,n,mm,nn,k1m,k1n)
 cdiag if (AM_I_ROOT()) print *,'passed tsadvc'
-
       call system_clock(after)
       tsadvc_time = real(after-before)/real(rate)
 c
@@ -837,6 +861,7 @@ ccc      call comparall(m,n,mm,nn,string)
 c
       before = after
       call momtum(m,n,mm,nn,k1m,k1n)
+
 cdiag if (AM_I_ROOT()) print *,'passed momtum'
 c
       call system_clock(after)
@@ -1026,21 +1051,23 @@ c
       end if                      ! once a day
 !------------------------------------------------------------
 c
-c     write (*,'(2i5,2f8.1,a,f9.3,i4/(5(5f9.2,3x,5f9.2/)))')
+c     if (AM_I_ROOT())
+c    . write (*,'(2i5,2f8.1,a,f9.3,i4/(5(5f9.2,3x,5f9.2/)))')
 c    . itest,jtest,latij(itest,jtest,3),lonij(itest,jtest,3),
 c    .  ' output tx,ty,ht,ep,t,s,ice,dp,day=',time,nstep
-c    . ,((taux(i,j)*100.,j=jtest-2,jtest+2)
-c    . , (tauy(i,j)*100.,j=jtest-2,jtest+2),i=itest-2,itest+2)
-c    . ,((oflxa2o(i,j),j=jtest-2,jtest+2)
-c    . , (oemnp(i,j)*1.e6,j=jtest-2,jtest+2),i=itest-2,itest+2)
-c    . ,((temp(i,j,k1n),j=jtest-2,jtest+2)
-c    . , (saln(i,j,k1n),j=jtest-2,jtest+2),i=itest-2,itest+2)
-c    . ,((oice(i,j),j=jtest-2,jtest+2)
-c    . , (dpmixl(i,j)/onem,j=jtest-2,jtest+2),i=itest-2,itest+2)
+c    . ,((taux_loc(i,j)*100.,j=jtest-2,jtest+2)
+c    . , (tauy_loc(i,j)*100.,j=jtest-2,jtest+2),i=itest-2,itest+2)
+c    . ,((oflxa2o_loc(i,j),j=jtest-2,jtest+2)
+c    . , (oemnp_loc(i,j)*1.e6,j=jtest-2,jtest+2),i=itest-2,itest+2)
+c    . ,((temp_loc(i,j,k1n),j=jtest-2,jtest+2)
+c    . , (saln_loc(i,j,k1n),j=jtest-2,jtest+2),i=itest-2,itest+2)
+c    . ,((oice_loc(i,j),j=jtest-2,jtest+2)
+c    . , (dpmixl_loc(i,j,n)/onem,j=jtest-2,jtest+2),i=itest-2,itest+2)
 c
 c     write(401,'(i4,f7.3,2f6.1,f6.2,3f8.1)')
 c    .  nstep,time,latij(itest,jtest,3),lonij(itest,jtest,3)
-c    . ,oice(i,j),dpmixl(i,j)/onem,oflxa2o(i,j),oemnp(i,j)*1.e6
+c    . ,oice_loc(i,j),dpmixl_loc(i,j,n)/onem,oflxa2o_loc(i,j),
+c    .  oemnp_loc(i,j)*1.e6
 c     do k=1,kk
 c     kn=k+nn
 c     write(401,'(i3,4f8.2)')
@@ -1084,7 +1111,6 @@ c
 c
 c --- output to history file
 c
-
       call gather_before_archive()
 
       if (AM_I_ROOT()) then
@@ -1218,15 +1244,15 @@ c     call findmx(iv,vsf,ii,ii,jj,'v_ocn')
 c
 c      endif
 
-      call ssto2a(osst_loc,atmocn%work1)
-      call tempro2a(osst_loc,atmocn%work2)
-      call ssto2a(osss_loc,sss_loc)
-      call ssto2a(omlhc_loc,mlhc_loc)
-      call ssto2a(oogeoza_loc,ogeoza_loc)
-      call ssto2a(osiav_loc,utila_loc)                 !kg/m*m per agcm time step
-      call veco2a(usf_loc,vsf_loc,uosurf_loc,vosurf_loc)
+      call fld_o2a(osst_loc,atmocn%work1)
+      call tempr_o2a(osst_loc,atmocn%work2)
+      call fld_o2a(osss_loc,sss_loc)
+cTNL  call fld_o2a(omlhc_loc,mlhc_loc)
+      call fld_o2a(oogeoza_loc,ogeoza_loc)
+      call fld_o2a(osiav_loc,utila_loc)                 !kg/m*m per agcm time step
+      call vec_o2a(usf_loc,vsf_loc,uosurf_loc,vosurf_loc)
 #ifdef CUBED_SPHERE
-      call veco2i(usf_loc,vsf_loc,dynsice%uosurf,dynsice%vosurf)
+      call vec_o2i(usf_loc,vsf_loc,dynsice%uosurf,dynsice%vosurf)
 #else
 #ifndef STANDALONE_HYCOM
 c when atm is lat-lon, dynsi grid == atm grid
@@ -1241,7 +1267,8 @@ c     call findmx(ipa,uosurf,iia,iia,jja,'uosurf')
 c     call findmx(ipa,vosurf,iia,iia,jja,'vosurf')
 c
 cdiag if (time.le.1)
-cdiag.write (*,'(2i5,a,f9.3,i4/(5(5f9.2,3x,5f9.2/)))')
+      call vec_a2o(ataux_loc,atauy_loc,taux_loc,tauy_loc) !wind stress
+cdiag.write (*,l'(2i5,a,f9.3,i4/(5(5f9.2,3x,5f9.2/)))')
 cdiag. iatest,jatest,' output raw uo,vo,ice,focean day=',time,nstep
 cdiag. ,((uosurf(i,j)*100.,i=iatest-2,iatest+2)
 cdiag. , (vosurf(i,j)*100.,i=iatest-2,iatest+2),j=jatest+2,jatest-2,-1)
@@ -1269,6 +1296,7 @@ c --- with respect to the ice/openwater flux ratio?
       endif
  204  continue
 
+#ifdef TRACERS_GASEXCH_ocean
       do nt=1,atmocn%gasex_index%getsize()
          call ssto2a(otrac_loc(:,:,nt),atmocn%work1)
          do ja=aJ_0,aJ_1
@@ -1287,7 +1315,7 @@ c --- with respect to the ice/openwater flux ratio?
         call ssto2a(ocnatm%chl,achl_loc)
         atmocn%chl_defined=.true.
       endif
-
+#endif
 c
       call system_clock(afogcm)
       if (abs(time-(itime+1.)/nday).gt..01) then
@@ -1344,8 +1372,6 @@ c------------------------------------------------------------------
       call pack_data( ogrid,  salav_loc, salav )
       call pack_data( ogrid,  th3av_loc, th3av )
       call pack_data( ogrid,  dpav_loc, dpav )
-      call pack_data( ogrid,  ubavav_loc, ubavav )
-      call pack_data( ogrid,  vbavav_loc, vbavav )
       call pack_data( ogrid,  pbavav_loc, pbavav )
       call pack_data( ogrid,  sfhtav_loc, sfhtav )
       call pack_data( ogrid,  uflxav_loc, uflxav )
@@ -1363,11 +1389,12 @@ c------------------------------------------------------------------
       call pack_data( ogrid,  tracer_loc, tracer )
       call pack_data( ogrid,  oice_loc, oice )
       call pack_data( ogrid,  util1_loc, util1 )
+
       end subroutine gather_before_archive
 c------------------------------------------------------------------
       subroutine set_data_after_archiv
 
-      USE HYCOM_DIM, only : ii, J_0,  J_1, kk, ogrid 
+      USE HYCOM_DIM, only : ii, J_0,  J_1, kk, ogrid
       USE HYCOM_ARRAYS_GLOB, only : p_glob => p, util1_glob => util1,
      &                                           util2_glob => util2
       USE HYCOM_ARRAYS
@@ -1385,13 +1412,11 @@ c
       do 601 i=1,ii
       eminpav(i,j)=0.
       surflav(i,j)=0.
-       salflav(i,j)=0.
+      salflav(i,j)=0.
       brineav(i,j)=0.
       tauxav(i,j)=0.
       tauyav(i,j)=0.
 c
-      ubavav(i,j)=0.
-      vbavav(i,j)=0.
       pbavav(i,j)=0.
       dpmxav(i,j)=0.
       sfhtav(i,j)=0.
@@ -1427,7 +1452,7 @@ c------------------------------------------------------------------
       real osst(idm,jdm),osss(idm,jdm),osiav(idm,jdm),oogeoza(idm,jdm)
       real osst_loc(idm,J_0H:J_1H),osss_loc(idm,J_0H:J_1H),
      &     osiav_loc(idm,J_0H:J_1H),oogeoza_loc(idm,J_0H:J_1H)
-     
+
       call pack_data( ogrid,  osst_loc,      osst    )
       call pack_data( ogrid,  osss_loc,      osss    )
       call pack_data( ogrid,  osiav_loc,     osiav   )
@@ -1616,12 +1641,6 @@ c
       if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, sum(dpav,dim=3), arraySum ) !sum(dpav(:,:,:))
-      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
-
-      call GLOBALSUM( ogrid, ubavav, arraysum )   ! sum(ubavav(:,:))
-      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
-
-      call GLOBALSUM( ogrid, vbavav, arraysum )   ! sum(vbavav(:,:))
       if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, pbavav, arraysum )   ! sum(pbavav(:,:))
@@ -1853,7 +1872,7 @@ c------------------------------------------------------------------
       USE KPRF_ARRAYS, ONLY: sswflx, sswflx_loc,
      &                       akpar,  akpar_loc
 
-      implicit none 
+      implicit none
 
       call unpack_data( ogrid,  akpar,  akpar_loc )
 
