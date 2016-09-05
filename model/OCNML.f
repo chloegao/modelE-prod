@@ -36,8 +36,8 @@
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: OTA,OTB
 !@var SINANG,COSANG, [SN,CS]nANG sine, cosine of multiples n
 !@+   of the time of year (time from 0 to 2*pi)
-      REAL*8 :: SINANG,SN2ANG,SN3ANG,SN4ANG,
-     *          COSANG,CS2ANG,CS3ANG,CS4ANG
+      REAL*8 :: SINANG=0.,SN2ANG=0.,SN3ANG=0.,SN4ANG=0.,
+     *          COSANG=0.,CS2ANG=0.,CS3ANG=0.,CS4ANG=0.
 
 !@dbparam qfluxX multiplying factor for qfluxes
       REAL*8 :: qfluxX=1.
@@ -116,15 +116,20 @@ C**** limit z1o to the annual-maximum mixed layer depth z12o
 
 C**** Calculate sines and cosines of the time of year for
 C**** obtaining OHT convergence from arrays OT[ABC]
-      ANGLE=TWOPI*JDAY/daysPerYear
-      SINANG=SIN(ANGLE)
-      SN2ANG=SIN(2*ANGLE)
-      SN3ANG=SIN(3*ANGLE)
-      SN4ANG=SIN(4*ANGLE)
-      COSANG=COS(ANGLE)
-      CS2ANG=COS(2*ANGLE)
-      CS3ANG=COS(3*ANGLE)
-      CS4ANG=COS(4*ANGLE)
+      ! nb: runs in which daysPerYear is not the period of
+      ! the OHT cycle will probably be reading OHT in a
+      ! different style/format
+      if(daysPerYear > 0.) then
+        ANGLE=TWOPI*JDAY/daysPerYear
+        SINANG=SIN(ANGLE)
+        SN2ANG=SIN(2*ANGLE)
+        SN3ANG=SIN(3*ANGLE)
+        SN4ANG=SIN(4*ANGLE)
+        COSANG=COS(ANGLE)
+        CS2ANG=COS(2*ANGLE)
+        CS3ANG=COS(3*ANGLE)
+        CS4ANG=COS(4*ANGLE)
+      endif
 
       IF(end_of_day) THEN
 C**** Only do this at end of the day
