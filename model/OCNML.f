@@ -46,11 +46,6 @@
 !@+   See usage notes in timestream_mod
       type(timestream) :: Z1Ostream
 
-!@var off_line indicates code is being run in off-line mode as part
-!@+   of a preprocessing procedure to compute time averages of
-!@+   implied OHT convergence from output files from fixed-SST runs
-      logical, public :: off_line=.false.
-
       contains
 
       subroutine alloc_ocnml
@@ -108,10 +103,6 @@ C**** limit z1o to the annual-maximum mixed layer depth z12o
           z1o(i,j)=min( z12o(i,j) , z1o(i,j) )
         end do
         end do
-      endif
-
-      if(off_line) then
-        call daily_ocnml_offline(z1o,z12o)
       endif
 
 C**** Calculate sines and cosines of the time of year for
