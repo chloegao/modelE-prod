@@ -191,8 +191,12 @@ c
       real*8, dimension(:,:), pointer :: cosz1_loc,wsavg_loc,achl_loc
       real*8, dimension(:,:), allocatable, save ::
      &     avisdir_loc,avisdif_loc, anirdir_loc, anirdif_loc
+#ifdef TRACERS_OceanBiology /*TNL insert this line */
       real*8, allocatable, DIMENSION(:,:), save :: asolz_loc, awind_loc
+#endif   /*TNL insert this line */
+#ifdef TRACERS_GASEXCH_ocean /*TNL insert this line */
       real*8, dimension(:,:,:), pointer :: GTRACER_loc
+#endif   /*TNL insert this line */
 c
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c --- initiate named-pipe comparison utility
@@ -212,11 +216,12 @@ c
      .  hour=hour, dayOfYear=dayOfYear)
 
       call getdte(Itime,Nday,Iyear1,year,month,dayOfYear,date,hour,amon)
-
+#ifdef TRACERS_OceanBiology /*TNL insert this line */
       if (.not.allocated(asolz_loc)) then
         allocate(asolz_loc(aI_0H:aI_1H,aJ_0H:aJ_1H))
         allocate(awind_loc(aI_0H:aI_1H,aJ_0H:aJ_1H))
       endif
+#endif /*TNL insert this line */
       rsi_loc => iceocn%rsi
       focean_loc => atmocn%focean
       dmua_loc => atmocn%dmua
