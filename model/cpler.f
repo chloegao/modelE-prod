@@ -241,27 +241,6 @@ c
       return
       end subroutine fld_a2o_global
 c
-      subroutine flxo2a(fldo,flda)
-c --- mapping flux-like field from ogcm A grid to agcm A grid
-c     input: fldo (W/m*m), output: flda (W/m*m)
-c
-      implicit none
-      real*8, intent(in)  :: fldo(iio,jjo)
-      real*8, intent(out) :: flda(iia,jja)
-      integer n,ia,ja
-c
-      do 8 ja=1,jja
-      do 8 ia=1,iia
-      flda(ia,ja)=0.
-c
-      do 9 n=1,nlisto2a_f(ia,ja)
-      flda(ia,ja)=flda(ia,ja)+ 
-     . fldo(ilisto2a_f(ia,ja,n),jlisto2a_f(ia,ja,n))*wlisto2a_f(ia,ja,n)
- 9    continue
- 8    continue
-c
-      return
-      end subroutine flxo2a
 c
       subroutine vec_o2a(tauxo_loc,tauyo_loc,tauxa_loc,tauya_loc)
 c --- mapping vector like velocity from C grid ogcm to A grid agcm
