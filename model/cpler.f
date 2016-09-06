@@ -178,7 +178,6 @@ c --- rotate sward/eward to fit onto Panam grid
 
       deallocate(tauxa,tauya,tauxo,tauyo,sward,eward)
 
-      endif
       return
       end subroutine vec_a2o
 c
