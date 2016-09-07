@@ -222,7 +222,7 @@ subroutine CONDSE
 #endif
   use FILEMANAGER, only: openunit,closeunit
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
-  use tracers_dust,only : prelay
+  use trdust_mod,only : prelay
 #endif
   use TimerPackage_mod, only: startTimer => start, stopTimer => stop
 #ifdef CACHED_SUBDD

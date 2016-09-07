@@ -1294,7 +1294,7 @@ c     - Species including TOMAS  emissions - 2D sources and 3D sources
 #ifdef TRACERS_ON
       USE TRDIAG_COM
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
-      use tracers_dust, only: nDustEmjl, nDustEm2jl, nDustEv1jl,
+      use trdust_mod, only: nDustEmjl, nDustEm2jl, nDustEv1jl,
      &   nDustEv2jl, nDustWthjl, imDust
 #endif
 #if (defined TRACERS_WATER) && (defined TRDIAG_WETDEPO)
@@ -2847,7 +2847,7 @@ c Oxidants
 #ifdef TRACERS_ON
       USE TRDIAG_COM
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
-      use tracers_dust, only: nDustEmij, nDustEm2ij, nDustEv1ij
+      use trdust_mod, only: nDustEmij, nDustEm2ij, nDustEv1ij
      &   ,nDustEv2ij, nDustWthij, imDust, nSubClays
 #endif
 #if (defined TRACERS_WATER) && (defined TRDIAG_WETDEPO)
@@ -5628,7 +5628,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_AMP)  || (defined TRACERS_TOMAS)
-      USE tracers_dust,ONLY : hbaij,ricntd
+      USE trdust_mod,ONLY : hbaij,ricntd
       use trdust_drv, only: tracer_ic_soildust
 #endif
 #ifdef TRACERS_AMP

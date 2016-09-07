@@ -41,7 +41,7 @@ module MineralsTracersMetadata_mod
   use RunTimeControls_mod, only: tracers_dust_silt4
   use RunTimeControls_mod, only: tracers_dust_silt5
   use RunTimeControls_mod, only: tracers_drydep
-  use tracers_dust, only : densityIllite, densityKaolinite, densitySmectite, &
+  use trdust_mod, only : densityIllite, densityKaolinite, densitySmectite, &
        densityCalcite, densityQuartz, densityFeldspar, densityHematite, &
        densityGypsum, frIronOxideInAggregate
   use Tracer_mod, only: Tracer

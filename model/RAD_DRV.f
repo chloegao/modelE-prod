@@ -140,11 +140,11 @@ C****
      &     n_sil5quhe, n_sil5fehe, n_sil5cahe, n_sil5gyhe, n_sil5ilhe,
      &     n_sil5kahe, n_sil5smhe, ntm_sil1, ntm_sil2, ntm_sil3,
      &     ntm_sil4, ntm_sil5
-      use tracers_dust, only: nSubClays, effRadMinerals, subClayWeights
+      use trdust_mod, only: nSubClays, effRadMinerals, subClayWeights
       use trdust_drv, only : calcSubClayWeights
 #endif
 #ifdef TRACERS_DUST
-      use tracers_dust, only : nSubClays, subClayWeights
+      use trdust_mod, only : nSubClays, subClayWeights
       use trdust_drv, only : calcSubClayWeights
 #endif
 #ifdef TRACERS_AMP

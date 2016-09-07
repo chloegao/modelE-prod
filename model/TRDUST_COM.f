@@ -1,5 +1,5 @@
 #include "rundeck_opts.h"
-      module tracers_dust
+      module trdust_mod
 !@sum  tracers_dust dust/mineral tracer parameter and variable declarations
 !@auth Jan Perlwitz, Reha Cakmur, Ina Tegen
 !@ver 3.0
@@ -290,7 +290,7 @@ c**** Variables for specific subdaily soil dust aerosol diagnostics
 
 #endif /* TRACERS_DUST || TRACERS_MINERALS || TRACERS_AMP || TRACERS_TOMAS */
 
-      end module tracers_dust
+      end module trdust_mod
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
@@ -301,7 +301,7 @@ c**** Variables for specific subdaily soil dust aerosol diagnostics
       use domain_decomp_atm, only : dist_grid
       use resolution, only : Lm
       use tracer_com, only : Ntm_dust
-      use tracers_dust
+      use trdust_mod
       use TimeConstants_mod, only: INT_MONTHS_PER_YEAR
       use AbstractCalendar_mod
       use model_com, only: calendar

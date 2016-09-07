@@ -545,7 +545,7 @@
 #endif  /* TRACERS_AEROSOLS_VBS */
       USE TRACER_COM, only: no_emis_over_ice
 #ifdef TRACERS_MINERALS
-      use tracers_dust, only: frIronOxideInAggregate,
+      use trdust_mod, only: frIronOxideInAggregate,
      &     noAggregateByTotalFeox
 #endif
       use Model_com, only: itime
