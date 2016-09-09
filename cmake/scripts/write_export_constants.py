@@ -3,7 +3,7 @@
 # exports those constants from ModelE through a Fortran callback.
 #
 # by Elizabeth Fischer        April 26, 2014
-
+from __future__ import print_function
 import re
 import netCDF4
 import os.path
@@ -116,7 +116,7 @@ for (leaf, module) in source_files :
                 try:
                     compiled_unit = cf_units.Unit(units)
                 except ValueError:
-                    print('Invalid unit on {}: [{}]'.format(param_names, units))
+                    print('Invalid unit on {0}: [{1}]'.format(param_names, units))
 
             fdescription = "'%s'" % description.replace("'", "''")
 

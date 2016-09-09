@@ -32,6 +32,7 @@ class WriteIfDifferent(object):
         os.remove(self.tfname)
 
 # ------------------------------------------------------
+print('==================== BEGIN rundeck_to_cmake.py')
 print('sys.argv', sys.argv)
 
 # Get command line arguments
@@ -58,7 +59,7 @@ for obj_module in build.sources:
             break
 
     if src_file is None:
-        raise ValueError('Cannot find source file for object module {}'.format(obj_module))
+        raise ValueError('Cannot find source file for object module {0}'.format(obj_module))
     src_files.append(src_file)
 
 # Write out our source files for top-level ModelE build
@@ -70,8 +71,8 @@ with open(os.path.join(build_root, 'model', 'modele_SOURCES.cmake'), 'w') as out
     for component,options in build.components.items():
         if options is None:
             continue
-        for name,value in options:
-            out.write('set({} {})\n'.format(name,value))
+        for name,value in options.items():
+            out.write('set({0} {1})\n'.format(name,value))
 
     # Now include component lists of files
     # (which could depend on component options)
@@ -96,12 +97,13 @@ out = rundeck_opts.file
 
 for symbol,definition in build.defines.items():
     if definition is None:
-        out.write('#define {}\n'.format(symbol))
+        out.write('#define {0}\n'.format(symbol))
     else:
-        out.write('#define {} {}\n'.format(symbol, definition))
+        out.write('#define {0} {1}\n'.format(symbol, definition))
 
 # From command line
 for deff in defines:
-    out.write('#define {}\n'.format(deff))
+    out.write('#define {0}\n'.format(deff))
 rundeck_opts.close()
 
+print('==================== END rundeck_to_cmake.py')

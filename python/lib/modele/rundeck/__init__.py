@@ -24,9 +24,9 @@ class Param(object):
             if not isinstance(dt, datetime.datetime):
                 raise ValueError('Values of type DATETYPE must have Python type datetime.datetime')
             if (dt.minute!=0) or (dt.second !=0) or (dt.microsecond!=0):
-                raise ValueError('Values of type DATETYPE must be on the hour.  Error in: {}'.format(dt))
+                raise ValueError('Values of type DATETYPE must be on the hour.  Error in: {0}'.format(dt))
             if (dt.tzinfo is not None):
-                raise ValueError('Values of type DATETYPE cannot have a timezone.  Error in: {}'.format(dt))
+                raise ValueError('Values of type DATETYPE cannot have a timezone.  Error in: {0}'.format(dt))
 
     def __lt__(self, other):
         return self.pname < other.pname
@@ -107,7 +107,7 @@ class Params(dict):
 #                fname_full = self.download_file(fname)
 #            except Exception as e2:
 #                print(e2)
-                sys.stderr.write('{}: {}\n'.format(symbol, e))
+                sys.stderr.write('{0}: {1}\n'.format(symbol, e))
                 ret = False    # Error condition
                 fname_full = None
 

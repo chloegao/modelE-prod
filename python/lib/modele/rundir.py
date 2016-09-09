@@ -32,10 +32,10 @@ def make_rundir(rd, rundir):
         if len(pname) == 1:
             if (id(param.type) == id(rundeck.FILE)):
                 if param.value is not None:
-                    data_lines.append(" _file_{}='{}'".format(pname[0], param.value))
+                    data_lines.append(" _file_{0}='{1}'".format(pname[0], param.value))
                     data_files.append((pname[0], param.value))
 #                else:
-#                    parameters.append("! Not Found: {}={}".format(pname[0], param.sval))
+#                    parameters.append("! Not Found: {0}={1}".format(pname[0], param.sval))
 
             elif (id(param.type) == id(rundeck.GENERAL)):
                 parameters.append(' %s=%s' % (param.pname[0], param.value))
@@ -49,14 +49,14 @@ def make_rundir(rd, rundir):
             elif pname[0].lower() == 'inputz_cold':
                 iz = inputz_cold
             else:
-                raise ValueError('Unknown compund name: {}'.format(pname))
+                raise ValueError('Unknown compund name: {0}'.format(pname))
 
             if pname[1].upper() == 'END_TIME':
                 iz.append(namelist_time('E', param.value))
             elif pname[1].upper() == 'START_TIME':
                 iz.append(namelist_time('I', param.value))
             else:
-                iz.append('{}={},'.format(pname[1],param.value))
+                iz.append('{0}={1},'.format(pname[1],param.value))
 
 
 
