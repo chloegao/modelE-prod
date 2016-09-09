@@ -47,7 +47,7 @@
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_AMP)  || (defined TRACERS_TOMAS)
-      use tracers_dust,only : nAerocomDust
+      use trdust_mod,only : nAerocomDust
 #endif
       USE TRIDIAG_MOD, only :  TRIDIAG
       IMPLICIT NONE

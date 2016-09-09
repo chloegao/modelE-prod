@@ -36,19 +36,19 @@ c --- 'glufac' = regional viscosity enhancement factor
 
 c
 c --- read basin depth array
-      write (lp,'(2a)') ' reading bathymetry file from ',flnmdep
+      if (AM_I_ROOT())
+     .write (lp,'(2a)') ' reading bathymetry file from ',flnmdep
       call findunit(iu1)
       open (unit=iu1,file=flnmdep,form='unformatted',status='old'
-     .     ,action='read')
-      read (iu1) iz,jz
+     .     ,convert='big_endian')
+      read (iu1) iz,jz,real4
+      close (unit=iu1)
+
       if (iz.ne.idm .or. jz.ne.jdm) then
         write (lp,'(2(a,2i5))') 'depth file dimensions',iz,jz,
      .   '  should be',idm,jdm
         stop '(geopar)'
       end if
-      rewind (iu1)
-      read (iu1) iz,jz,((real4(i,j),i=1,iz),j=1,jz)
-      close (unit=iu1)
       do 9 j=1,jj
       do 9 i=1,ii
  9    depths(i,j)=real4(i,j)
@@ -280,8 +280,6 @@ c
       ustar(i,j)=zero
       sswflx(i,j)=zero
 c
-      ubavav(i,j)=zero
-      vbavav(i,j)=zero
       pbavav(i,j)=zero
       sfhtav(i,j)=zero
       dpmxav(i,j)=zero
@@ -488,7 +486,12 @@ c --- add glue to mediterranean:
         if (i.ge.  91 .and. i.le.  98 .and. j.le.  25)
      .        glue(i,j)=glufac
 #endif
-#ifdef HYCOM1deg
+#ifdef HYCOM1degRefined
+        if ((i.ge. 180 .and. i.le. 198 .and. j.le.  37)
+     . .or. (i .ge.188 .and. i.le. 191 .and. j.ge. 356))
+     .        glue(i,j)=glufac
+#endif
+#ifdef HYCOM1degUnrefined
         if ((i.ge. 180 .and. i.le. 198 .and. j.le.  37)
      . .or. (i .ge.188 .and. i.le. 191 .and. j.ge. 356))
      .        glue(i,j)=glufac
@@ -500,13 +503,23 @@ c --- 1:9 represent NAT, SAT, NIN, SIN, NPA, SPA, ARC, SO, MED
       call findunit(iu3)
       open (iu3,file=flnmbas,form='formatted',status='old')
 #ifdef HYCOM2deg
-        do n=1,2
+        do n=1,2	! reading in basinmask in 2 columns
         read(iu3,*)
         read(iu3,'(90i1)') ((msk(i,j),j=(n-1)*jj/2+1,n*jj/2),i=1,ii)
         enddo
 #endif
-#ifdef HYCOM1deg
-        do n=1,3
+#ifdef HYCOM1degRefined
+!       do n=1,2	! read basinmask in 2 columns
+!       read(iu3,*)
+!       read(iu3,'(4x,180i1)') ((msk(i,j),j=(n-1)*jj/2+1,n*jj/2),i=1,ii)
+!       enddo
+        do n=1,3	! read basinmask in 3 columns
+        read(iu3,*)
+        read(iu3,'(4x,120i1)') ((msk(i,j),j=(n-1)*jj/3+1,n*jj/3),i=1,ii)
+        enddo
+#endif
+#ifdef HYCOM1degUnrefined
+        do n=1,3	! read basinmask in 3 columns
         read(iu3,*)
         read(iu3,'(4x,120i1)') ((msk(i,j),j=(n-1)*jj/3+1,n*jj/3),i=1,ii)
         enddo
@@ -520,6 +533,31 @@ c
       enddo
 c
       write(*,'(a,20i12)') 'ijlist ',((ijlist(i,j),i=30,32),j=4,5)
+c
+      wgtkap=0.
+      do 159 j=1,jj
+      do 159 l=1,isp(j)
+      do 159 i=ifp(j,l),ilp(j,l)+1
+c
+c --- in indopacific, wgtkap varies between 2 in the south and 3 in the north
+c --- in atlantic, wgtkap varies between 2 in the south and 1 in the north
+c --- in mediterranean, wgtkap is set to 4
+c
+c --- linear variation between 30 S and 30 N
+      q=min(1.,max(0.,(latij(i,j,3)+30.)/60.))
+c
+      wgtkap(i,j)=2.
+      if (msk(i,j).eq.1.or.msk(i,j).eq.2.or.msk(i,j).eq.7) then ! Atl. & Arctic
+        wgtkap(i,j)=2.*(1.-q)+1.*q
+      elseif (msk(i,j).ge.3.and.msk(i,j).le.6) then ! Pacific & Indian
+        wgtkap(i,j)=2.*(1.-q)+3.*q
+      elseif (msk(i,j).eq.9) then       ! Med
+        wgtkap(i,j)=4.
+      endif
+ 159  continue
+      call prtmsk(ip,wgtkap,util1,idm,ii1,jj,0.,100.,
+     .     'wgtkap')
+c
       endif ! AM_I_ROOT
 c
       call cpl_wgt                      ! read in weights for coupler
@@ -590,7 +628,8 @@ cdiag.  'warning - zero distance between lat/lon points',x1,y1,x2,y2
       real*8 :: rlon,rlat  ! convert to radians
       rlon=lon*radian
       rlat=lat*radian
-      v3d(1:2) = cos(rlat)*(/cos(rlon),sin(rlon)/); v3d(3) = sin(rlat)
+      v3d(1:2) = cos(rlat)*(/cos(rlon),sin(rlon)/)
+      v3d(3)   = sin(rlat)
       end function v3d
       function cross3d(v1,v2)
       real*8, dimension(3) :: v1,v2,cross3d

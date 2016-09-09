@@ -8,7 +8,7 @@ c --- and between pcm and ppm
 c
       USE HYCOM_DIM
       USE HYCOM_SCALARS, only : dotrcr,lp,theta,onem,onecm,epsil,salmin
-     &     ,sigjmp,nstep,delt1,acurcy,time,onemm,huge,itest,jtest
+     &  ,sigjmp,nstep,delt1,acurcy,time,onemm,huge,itest,jtest,dplist
       USE HYCOM_ARRAYS
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, SOUTH, GLOBALSUM,
      &     AM_I_ROOT
@@ -27,10 +27,10 @@ c
      .     torho,totem,tosal,totrc,totuv,tndrho,tndtem,tndsal,tndtrc,
      .     tdcyuv,scale,displ(kdm+1),sumrho,sumtem,sumsal
       real targt(kdm+1),dens(kdm),ttem(kdm),ssal(kdm),pres(kdm+1),
-     .     uold(kdm),vold(kdm),pold(kdm+1),pnew(kdm+1),dplist(kdm),
+     .     uold(kdm),vold(kdm),pold(kdm+1),pnew(kdm+1),
      .     trac(kdm,ntrcr)
       logical abort,tscnsv,vrbos,useppm
-      data tscnsv/.true./		! if true, go with T/S conservation
+      data tscnsv/.true./       ! if true, go with T/S conservation
       data abort/.false./
       data useppm/.true./
       real sigocn,tofsig,dsigdt,dsigds,cushn
@@ -41,26 +41,18 @@ c
      .        ,nwrk2d(J_0H:J_1H),nwrk3d(J_0H:J_1H)
       real :: anwrk, anwrkd(J_0H:J_1H)
       character info*16
-      data uvscl/0.02/			!  2 cm/s
+      data uvscl/0.02/          !  2 cm/s
       real,parameter :: tfreez=-1.8
-      real,parameter :: scalt=-30.,scals=10.	! oceanic t/s range
+      real,parameter :: scalt=-30.,scals=10.   ! oceanic t/s range
 c
-      data dplist/
-c    .     5.,  7.,  9., 11., 13., 15., 17., 19., 21., 23.,
-c    .    25., 28., 32., 37., 43., 50., 58., 67., 77., 88.,
-c    .   100.,113.,127.,142.,158.,175./
-     .     5.,  7.,  9., 11., 13., 15., 17., 19., 22., 26.,
-     .    31., 37., 45., 55., 67., 81., 98.,118.,141.,168.,
-     .   199.,234.,274.,319.,369.,425./     ! total=2805m
-c
-css   real,parameter :: slak=.5/86400.	! intfc nudging time scale: 2 days
-css   real,parameter :: slak=1./86400.	! intfc nudging time scale: 1 day
-      real,parameter :: slak=2./SECONDS_PER_DAY	! intfc nudging time scale: 12 hrs
+css   real,parameter :: slak=.5/86400.  ! intfc nudging time scale: 2 days
+css   real,parameter :: slak=1./86400.  ! intfc nudging time scale: 1 day
+      real,parameter :: slak=2./86400.  ! intfc nudging time scale: 12 hrs
 c --- linear taper functions (latitude and depth-dependent) for slak
       real tapr,wgtf,slakf
-      tapr(q)=1.+9.*max(0.,1.-.02e-4*q)			! q = pressure (Pa)
-      wgtf(q)=(abs(q)-50.)*.1				! 0->1 for q=50->60
-      slakf(q)=min(0.7,max(    tapr(p_hat)*slak*delt1,	! q = latitude (deg)
+      tapr(q)=1.+9.*max(0.,1.-.02e-4*q) ! q = pressure (Pa)
+      wgtf(q)=(abs(q)-50.)*.1           ! 0->1 for q=50->60
+      slakf(q)=min(0.7,max(    tapr(p_hat)*slak*delt1,   ! q = latitude (deg)
      .             0.7*wgtf(q)+tapr(p_hat)*slak*delt1*(1.-wgtf(q))))
 c
       do 32 j=J_0,J_1
@@ -108,7 +100,7 @@ c
       do 2 l=1,isp(j)
       do 2 i=ifp(j,l),ilp(j,l)
 c
-c --- extract t,s,rho column from 3-d grid 
+c --- extract t,s,rho column from 3-d grid
 c
       pres(1)=p(i,j,1)
       do 3 k=1,kk
@@ -228,7 +220,7 @@ c
             write (lp,'(i9,2i5,i3,a,3f7.3,f8.2)') nstep,i,j,k,
      .      '  t,s,th,dp in upper sblyr:',tem_up,sal_up,
      .      sigocn(tem_up,sal_up),(p_hat-pres(k))/onem
-            write (lp,'(22x,a,3f7.3,f8.2)') 
+            write (lp,'(22x,a,3f7.3,f8.2)')
      .      '  t,s,th,dp in lower sblyr:',tem_lo,sal_lo,
      .      rho_lo,(pres(k+1)-p_hat)/onem
             write (lp,'(22x,a,1p,2e11.3)') '  scalt,scals =',scalt,scals
@@ -343,11 +335,11 @@ c
 c --- is density noticeably different from target value?
       if (abs(dens(k)-targt(k)).lt..1*sigjmp) go to 8
 c
-      if (dens(k).le.targt(k)) go to 7		!  layer too light
+      if (dens(k).le.targt(k)) go to 7     !  layer too light
 c
 c --- water in layer k is too  d e n s e . dilute with water from layer k-1
 c                              ^^^^^^^^^
-      if (k.eq.2) go to 6			!  don't touch layer 1
+      if (k.eq.2) go to 6             !  don't touch layer 1
       q=(targt(k)-dens(k))/max(targt(k)-dens(k-1),sigjmp*10.)
       p_hat=pres(k)*(1.-q)+pres(k+1)*q
 c
@@ -365,8 +357,8 @@ c --- upper intfc moves up. entrain layer k-1 water into layer k
 c
         p_hat=max(p_hat,pres(k-1),pres(k)+
      .        min(-onecm,slakf(latij(i,j,3))*(p_hat-pres(k))))
-        if (useppm .and. 
-     .    abs(dens(k-1)-targt(k-1)).gt..1*sigjmp) then		!  use ppm
+        if (useppm .and.
+     .    abs(dens(k-1)-targt(k-1)).gt..1*sigjmp) then     !  use ppm
           displ(1)=0.
           displ(2)=0.
           displ(3)=p_hat-pres(k)
@@ -383,7 +375,7 @@ c
             ttem(k-1)=tofsig(dens(k-1),ssal(k-1))
             ttem(k  )=tofsig(dens(k  ),ssal(k  ))
           end if
-        else							!  use pcm
+        else        !  use pcm
           q=(pres(k)-p_hat)/max(pres(k+1)-p_hat,epsil)
           if (q.lt.0. .or. q.gt.1.) then
             write (lp,*) 'i,j,k,p_hat,pres(k),q=',
@@ -426,7 +418,7 @@ c
             ttem(k-1)=tofsig(dens(k-1),ssal(k-1))
             ttem(k  )=tofsig(dens(k  ),ssal(k  ))
           end if
-        else							!  use pcm
+        else         !  use pcm
           q=(p_hat-pres(k))/max(p_hat-pres(k-1),epsil)
           if (q.lt.0. .or. q.gt.1.) then
             write (lp,*) 'i,j,k,p_hat,pres(k),q=',
@@ -556,8 +548,8 @@ c
           if (abs(tndtrc)*kk.gt.acurcy*scale*pnew(kk+1))
      .     write (lp,104) i,j,'  hybgen - bad trcr.intgl.:',totrc,
      .      tndtrc,tndtrc/(scale*pnew(kk+1))
-        end do				!  ntrcr
-      end if				!  dotrcr
+        end do          !  ntrcr
+      end if            !  dotrcr
 c
       tndrho=-torho
       tndtem=-totem
@@ -600,7 +592,7 @@ c
       saln(i,j,kn)=ssal(k)
       p(i,j,k+1)=pres(k+1)
       dp(i,j,kn)=pres(k+1)-pres(k)
-      diaflx(i,j,k)=diaflx(i,j,k)+(dp(i,j,kn)-dpold(i,j,k))	!  diapyc.flux
+      diaflx(i,j,k)=diaflx(i,j,k)+(dp(i,j,kn)-dpold(i,j,k))  !  diapyc.flux
  2    continue
 c
       ntot2d(j)=ntot2
@@ -840,7 +832,7 @@ c --- apex at x=+.5
             c=3.*(y(2)-yr)
             b=-c
           end if
-        else			!  -1/6 < x < +1/6
+        else          !  -1/6 < x < +1/6
 c --- can't put apex on edge of interval. only option is to flatten curve
           a=y(2)
           b=0.

@@ -63,7 +63,7 @@
 
 
 
-      if (present(fname) .eq. .false.) then
+      if (.not.present(fname)) then
          write(imch,'(i10)') imsource
          write(jmch,'(i10)') jmsource
          write(icch,'(i10)') imtarget

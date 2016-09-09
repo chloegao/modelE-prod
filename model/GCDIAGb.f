@@ -1007,13 +1007,7 @@ c Check the count
         call stop_model('JK_TITLES: KAGCx too small',255)
       end if
 
-      do k=1,kagcx
-        if(denom_gc(k).ne.0) cycle ! already set
-        if(lgrid_gc(k).eq.edg_cp) force_gc_vmean(k)=.true.
-        if(lgrid_gc(k).eq.edg_ml) force_gc_vmean(k)=.true.
-      enddo
-
-c
+c Print out long names of diagnostic fields if QCHECK=.TRUE.
       if (AM_I_ROOT()) then
          write (6,*) 'Number of AGC diagnostics defined: kagcmax=',k
          if(qcheck) then
@@ -1022,6 +1016,12 @@ c
            end do
          endif
       end if
+
+      do k=1,kagcx
+        if(denom_gc(k).ne.0) cycle ! already set
+        if(lgrid_gc(k).eq.edg_cp) force_gc_vmean(k)=.true.
+        if(lgrid_gc(k).eq.edg_ml) force_gc_vmean(k)=.true.
+      enddo
 
       lat_gc(:) = lat_dg(:,1)
       lat_gc2(:) = lat_dg(:,2)

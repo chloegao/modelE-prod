@@ -246,7 +246,8 @@ contains
       omega2 = 2*omega
 
       rotationsPerYear = orbitalPeriod / rotationPeriod
-      daysPerYear = rotationPeriod * (rotationsPerYear / (rotationsPerYear - 1))
+
+      daysPerYear = rotationsPerYear - 1 ! minus the revolution contribution
 
 !!$      syr = orbitalPeriod
 

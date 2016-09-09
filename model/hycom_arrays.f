@@ -113,7 +113,7 @@ c    .,covice(:,:)                        ! ice coverage (rel.units)
 c    .,temice(:,:)                        ! ice surf.temp.
 c    .,odhsi(:,:)                         ! heat borrowed from frozen
      .,odmsi(:,:)                         ! newly formed ice
-     .,omlhc(:,:)
+CTNL .,omlhc(:,:)
      .,dmfz(:,:)                          ! ice mass due to freezing
 c
 !!      real uja,ujb,via,vib,pbot,tracer,tprime,sgain,surflx,salflx
@@ -252,7 +252,7 @@ c    .,covice(I_0H:I_1H,J_0H:J_1H)
 c    .,temice(I_0H:I_1H,J_0H:J_1H)
 c    .,odhsi(I_0H:I_1H,J_0H:J_1H)
      .,odmsi(I_0H:I_1H,J_0H:J_1H)
-     .,omlhc(I_0H:I_1H,J_0H:J_1H)
+CTNL .,omlhc(I_0H:I_1H,J_0H:J_1H)
      .,dmfz(I_0H:I_1H,J_0H:J_1H) )
 c
       allocate( klist(I_0H:I_1H,J_0H:J_1H)
@@ -390,7 +390,7 @@ c
       surflx = 0
       salflx = 0
       odmsi = 0
-      omlhc = 0
+CTNL  omlhc = 0
       dmfz = 0
       taux = 0
       tauy = 0

@@ -118,7 +118,7 @@ c
       vbot=vbavg(i,j,n)+vbavg(i,jb ,n)+util2(i,j)/thkbop
       botvel=.25*sqrt(ubot*ubot+vbot*vbot)+cbar
       ustarb(i,j)=sqrt(drcoef)*botvel
- 804  drag(i,j)=min(drcoef*botvel/thkbot,.5/delt1)      ! units: 1/s
+ 804  drag(i,j)=min(drcoef*botvel/thkbot,.5/delt1)		! units: 1/s
 c
 c --- store r.h.s. of barotropic u/v eqn. in -ubrhs,vbrhs-
 c --- time-interpolate wind stress
@@ -136,7 +136,7 @@ c --- time-interpolate wind stress
       CALL HALO_UPDATE(ogrid,dpv,  FROM=NORTH)
 
       CALL HALO_UPDATE(ogrid,depthu, FROM=NORTH+SOUTH)
-      
+
 c
       do 70 j=J_0,J_1
       ja = PERIODIC_INDEX(j-1, jj)
@@ -277,7 +277,7 @@ c
       potvor(i+1,j)=(vort(i+1,j)+corio(i+1,j)) * 8.
      ./max(8.*cutoff,4.*(dp(i,j,km)+dp(i,ja ,km)),dpmx(i,j),dpmx(i+1,j))
  885  defor2(i+1,j)=(vtotn(i,j)*(1.-slip)*scvy(i,j))**2*scq2i(i+1,j)
-   
+
       CALL HALO_UPDATE(ogrid,dpmx,  FROM=NORTH)
       CALL HALO_UPDATE(ogrid,utotm, FROM=SOUTH)
       CALL HALO_UPDATE(ogrid,scux,  FROM=SOUTH)
@@ -326,7 +326,7 @@ c
  63   defor1(i,j)=((utotn(i+1,j)*scuy(i+1,j)-utotn(i,j)*scuy(i,j))
      .            -(vtotn(i,jb )*scvx(i,jb )-vtotn(i,j)*scvx(i,j)))**2
      .            *scp2i(i,j)
-      
+
       CALL HALO_UPDATE(ogrid,utotm, FROM=SOUTH)
       CALL HALO_UPDATE(ogrid,scux,  FROM=SOUTH)
       CALL HALO_UPDATE(ogrid,dpmx,  FROM=SOUTH+NORTH)
@@ -585,7 +585,7 @@ c
       j=jfv(i,l)
       ja=mod(j-2+jj,jj)+1
       if (haveLatitude(ogrid, J=ja)) then
-        if (j.ne.1  .or. jlv(i,jsv(i)).ne.jj) 
+        if (j.ne.1  .or. jlv(i,jsv(i)).ne.jj)
      &     visc(i,ja)=visc( i,PERIODIC_INDEX(ja+1, jj) )
       endif
       j=jlv(i,l)
@@ -881,7 +881,7 @@ c
       u(i,j,km)=(u(i,j,km)+u(i,j,kn)*wuv2*dpu(i,j,kn))/
      .   (wuv1*dpu(i,j,km)+onemm+wuv2*(pu(i,j,k+1)+dpu(i,j,kn)))
 c --- build up time integral of velocity field
-      uav  (i,j,k)=uav  (i,j,k)+u(i,j,km)*dpu(i,j,km)
+      uav  (i,j,k)=uav  (i,j,k)+(u(i,j,km)+ubavg(i,j,m))*dpu(i,j,km)
       dpuav(i,j,k)=dpuav(i,j,k)+          dpu(i,j,km)
  24   continue
 c
@@ -891,7 +891,7 @@ c
       v(i,j,km)=(v(i,j,km)+v(i,j,kn)*wuv2*dpv(i,j,kn))/
      .   (wuv1*dpv(i,j,km)+onemm+wuv2*(pv(i,j,k+1)+dpv(i,j,kn)))
 c --- build up time integral of velocity field
-      vav  (i,j,k)=vav  (i,j,k)+v(i,j,km)*dpv(i,j,km)
+      vav  (i,j,k)=vav  (i,j,k)+(v(i,j,km)+vbavg(i,j,m))*dpv(i,j,km)
       dpvav(i,j,k)=dpvav(i,j,k)+          dpv(i,j,km)
  22   continue
       end do
@@ -902,16 +902,12 @@ c
       do 865 i=ifu(j,l),ilu(j,l)
       utotn(i,j)=utotn(i,j)*dt1inv
       ubavg(i,j,n)=ubavg(i,j,m)
-c --- build up time integral of velocity field
-      ubavav(i,j)=ubavav(i,j)+ubavg(i,j,m)
  865  continue
 c
       do 866 l=1,isv(j)
       do 866 i=ifv(j,l),ilv(j,l)
       vtotn(i,j)=vtotn(i,j)*dt1inv
       vbavg(i,j,n)=vbavg(i,j,m)
-c --- build up time integral of velocity field
-      vbavav(i,j)=vbavav(i,j)+vbavg(i,j,m)
  866  continue
 c
       do 867 l=1,isp(j)

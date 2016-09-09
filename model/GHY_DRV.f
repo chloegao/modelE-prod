@@ -32,7 +32,7 @@ c******************   TRACERS             ******************************
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_AMP)  || (defined TRACERS_TOMAS)
-      USE tracers_dust,ONLY : imDust
+      USE trdust_mod,ONLY : imDust
 #endif
       use trdiag_com, only : taijn=>taijn_loc,
      *   taijs=>taijs_loc,ijts_isrc,jls_isrc,
@@ -50,7 +50,7 @@ c******************   TRACERS             ******************************
      &     ,trcsurf,trcSurfByVol
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
-      USE tracers_dust,ONLY : nDustEmij,nDustEm2ij,nDustEmjl,nDustEm2jl
+      USE trdust_mod,ONLY : nDustEmij,nDustEm2ij,nDustEmjl,nDustEm2jl
      &     ,nDustEv1ij,nDustEv2ij,nDustWthij
      &     ,nDustEv1jl,nDustEv2jl,nDustWthjl
 #endif
@@ -182,7 +182,7 @@ ccc extra stuff which was present in "earth" by default
       USE model_com,ONLY : modelEclock
       USE geom,ONLY : axyp
       USE ghy_com,ONLY : wearth,aiearth,wfcs
-      use tracers_dust,only : nAerocomDust,d_dust,ers_data
+      use trdust_mod,only : nAerocomDust,d_dust,ers_data
      &     ,dustSourceFunction,frclay,frsilt,dryhr,vtrsh
 #ifdef TRACERS_MINERALS
      &     ,mineralFractions

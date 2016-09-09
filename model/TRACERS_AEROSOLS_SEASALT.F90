@@ -40,6 +40,7 @@ USE TRACER_COM, only: OFFLINE_DMS_SS,OFFLINE_SS
 use TimeConstants_mod, only: SECONDS_PER_DAY
 USE GEOM, only: axyp
 use model_com, only: modelEclock
+use lakes_com, only: flake
 #ifdef TRACERS_TOMAS
 USE TOMAS_EMIS, only : scalesizeSalt
 #endif
@@ -57,6 +58,8 @@ character*8, intent(in) :: tr
 
 ss=0.
 erate=0.d0
+if (flake(i,j) /= 0.d0) return ! if there are lakes, there is no ocean
+
 #ifndef TRACERS_TOMAS
 if (OFFLINE_DMS_SS.ne.1.and.OFFLINE_SS.ne.1) then
   if (itype.eq.1) then

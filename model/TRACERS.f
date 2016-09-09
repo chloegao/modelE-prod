@@ -1358,7 +1358,7 @@ C**** check whether air mass is conserved
 #endif /* TRACERS_SPECIAL_Shindell */
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       USE fluxes,ONLY : pprec,pevap
-      USE tracers_dust,ONLY : hbaij,ricntd
+      USE trdust_mod,ONLY : hbaij,ricntd
       use trdust_drv, only: io_trDust
 #endif
 
@@ -2116,7 +2116,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       USE fluxes,ONLY : pprec,pevap
-      USE tracers_dust,ONLY : hbaij,ricntd
+      USE trdust_mod,ONLY : hbaij,ricntd
       use trdust_drv, only: io_trDust
       use trdust_drv, only: def_rsf_trdust
       use trdust_drv, only: new_io_trdust
