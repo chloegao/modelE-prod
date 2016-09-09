@@ -1,0 +1,32 @@
+      program driver
+      implicit none
+      include 'netcdf.inc'
+      integer :: status,ifid
+      character(len=80) :: ifile,argstr
+      character(len=160) :: progargs
+      integer :: iarg,nargs
+      !integer, external :: iargc
+      nargs = iargc()
+      call getarg(1,ifile)
+      progargs=''
+      if(nargs.gt.1) then
+         do iarg=2,nargs
+           call getarg(iarg,argstr)
+           if(trim(argstr).eq.'gissfmt') then
+             argstr='gissfmt='//ifile(1:len_trim(ifile)-3) ! no .nc suffix
+           endif
+           if(iarg.eq.2) then
+             progargs=argstr
+           else
+             progargs=trim(progargs)//' '//trim(argstr)
+           endif
+         enddo
+      endif
+      status = nf_open(trim(ifile),nf_nowrite,ifid)
+      if(status.ne.nf_noerr) then
+        write(6,*) 'nonexistent/non-netcdf input file ',trim(ifile)
+        stop
+      endif
+      call @PRTDIAG@(ifid,progargs)
+      status = nf_close(ifid)
+      end program driver
