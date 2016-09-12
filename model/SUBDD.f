@@ -2007,6 +2007,18 @@ c
      &     )
 c
       arr(next()) = info_type_(
+     &  sname = 'puq',
+     &  lname = 'East-west humidity flux (vert sum)',
+     &  units = 'kg m^-1 s^-1'
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'pvq',
+     &  lname = 'North-south humidity flux (vert sum)',
+     &  units = 'kg m^-1 s^-1'
+     &     )
+c
+      arr(next()) = info_type_(
      &  sname = 'lwp',
      &  lname = 'LIQUID WATER PATH',
      &  units = 'kg/m^2'

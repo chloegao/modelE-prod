@@ -1601,6 +1601,20 @@ C
         enddo;        enddo
         call inc_subdd(subdd,k,sddarr2d)
 C
+C     East-west humidity flux (vert sum)
+      case ('puq')
+        do j=j_0,j_1; do i=i_0,imaxj(j)
+          sddarr2d(i,j) = sum(u(i,j,1:LM)*q(i,j,1:LM)*pdsig(1:LM,i,j))*100.*bygrav
+        enddo;        enddo
+        call inc_subdd(subdd,k,sddarr2d)
+C
+C     North-south humidity flux (vert sum)
+      case ('pvq')
+        do j=j_0,j_1; do i=i_0,imaxj(j)
+          sddarr2d(i,j) = sum(v(i,j,1:LM)*q(i,j,1:LM)*pdsig(1:LM,i,j))*100.*bygrav
+        enddo;        enddo
+        call inc_subdd(subdd,k,sddarr2d) 
+C
       case ('lwp')
         do j=j_0,j_1; do i=i_0,imaxj(j)
           sddarr2d(i,j) = sum(qcl(i,j,1:LM)*pdsig(1:LM,i,j))*100.*bygrav
