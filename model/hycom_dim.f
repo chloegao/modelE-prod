@@ -25,9 +25,17 @@ c-----------------------------------------------------------------------------
       integer, public, parameter :: idm=195,jdm=180,kdm=26,ms=15
      .                             ,iold=181
 #endif
-#ifdef HYCOM1deg
-      integer, public, parameter :: idm=387,jdm=360,kdm=26,ms=15
-     .                             ,iold=359
+#ifdef HYCOM1degRefined
+      integer, public, parameter :: idm=387,jdm=360,ms=20,iold=359
+#endif
+#ifdef HYCOM1degUnrefined
+      integer, public, parameter :: idm=359,jdm=360,ms=20,iold=359
+#endif
+#ifdef HYCOM26layers
+      integer, public, parameter:: kdm=26
+#endif
+#ifdef HYCOM32layers
+      integer, public, parameter:: kdm=32
 #endif
 #ifdef ATM4x5
       integer, public, parameter :: iia=72,jja=46
@@ -107,7 +115,7 @@ c
       ! domain bounds with halos
       integer :: I_0H, I_1H, J_0H, J_1H
       integer ::aI_0H,aI_1H,aJ_0H,aJ_1H
-      
+
       ! openmp decomposition parameter
       integer, public :: jchunk
 
@@ -129,7 +137,7 @@ c
 !      J_1H = J_1
 !      I_0H = I_0
 !      I_1H = I_1
-      
+
 !      I_0H = 1
 !      I_1H = idm
 !      J_0H = 1
@@ -143,15 +151,15 @@ c
       ! leave these global for time being
 
       allocate(
-     . ip(I_0H:I_1H,J_0H:J_1H),iu(I_0H:I_1H,J_0H:J_1H), 
+     . ip(I_0H:I_1H,J_0H:J_1H),iu(I_0H:I_1H,J_0H:J_1H),
      . iv(I_0H:I_1H,J_0H:J_1H),iq(I_0H:I_1H,J_0H:J_1H),
      . ifp(J_0H:J_1H,ms),ilp(J_0H:J_1H,ms),isp(J_0H:J_1H),
      . jfp(I_0H:I_1H,ms),jlp(I_0H:I_1H,ms),jsp(I_0H:I_1H),
-     . ifq(J_0H:J_1H,ms),ilq(J_0H:J_1H,ms),isq(J_0H:J_1H), 
+     . ifq(J_0H:J_1H,ms),ilq(J_0H:J_1H,ms),isq(J_0H:J_1H),
      . jfq(I_0H:I_1H,ms),jlq(I_0H:I_1H,ms),jsq(I_0H:I_1H),
      . ifu(J_0H:J_1H,ms),ilu(J_0H:J_1H,ms),isu(J_0H:J_1H),
      . jfu(I_0H:I_1H,ms),jlu(I_0H:I_1H,ms),jsu(I_0H:I_1H),
-     . ifv(J_0H:J_1H,ms),ilv(J_0H:J_1H,ms),isv(J_0H:J_1H), 
+     . ifv(J_0H:J_1H,ms),ilv(J_0H:J_1H,ms),isv(J_0H:J_1H),
      . jfv(I_0H:I_1H,ms),jlv(I_0H:I_1H,ms),jsv(I_0H:I_1H),
      . msk(I_0H:I_1H,J_0H:J_1H) )
 

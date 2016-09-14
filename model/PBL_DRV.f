@@ -577,7 +577,7 @@ C       pbl_args%tr_evap_max(nx) = evap_max * trsoil_rat(nx)
       subroutine dust_emission_prep(i,j,itype,pbl_args)
       use constant, only : by3
       use fluxes, only : pprec,pevap
-      use tracers_dust, only : hbaij,ricntd
+      use trdust_mod, only : hbaij,ricntd
       use clouds_com, only : ddml
       implicit none
       integer, intent(in) :: i,j  !@var i,j grid point
@@ -602,7 +602,7 @@ c**** wspdf in PBL.f for the other soil types.
       end subroutine dust_emission_prep
 
       subroutine save_dust_emission_vars(i,j,itype,pbl_args)
-      use tracers_dust, only : hbaij,ricntd
+      use trdust_mod, only : hbaij,ricntd
       implicit none
       integer, intent(in) :: i,j  !@var i,j grid point
       integer, intent(in) :: itype  !@var itype surface type

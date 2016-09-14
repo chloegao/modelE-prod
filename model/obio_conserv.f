@@ -13,9 +13,9 @@ C****   CHLO = TRMO(6)  + TRMST(6)
 C****   CYAN = TRMO(7)  + TRMST(7)
 C****   COCC = TRMO(8)  + TRMST(8)
 C****   HERB = TRMO(9)  + TRMST(9)
-C****   NDET = TRMO(11) + TRMST(11)
-C****    DOC = TRMO(14) + TRMST(14)
-C****    DIC = TRMO(15) + TRMST(15)
+C****   NDET = TRMO(10) + TRMST(10)
+C****    DOC = TRMO(13) + TRMST(13)
+C****    DIC = TRMO(14) + TRMST(14)
 C****   TOTL = Sum (TRMO + TRMST)
 C****
 C**** Input: SUBR = 6 character string which labels ouput line
@@ -104,32 +104,32 @@ C**** Calculate HERB
 
 C**** Calculate NDET
       Do 60 L=1,LMO
-      O(:,:) = TRMO(:,:,L,11)
+      O(:,:) = TRMO(:,:,L,10)
       If (J1O==1)    O(2:ogrid%im_world,1)   = O(1,1)
       If (JNO==ogrid%jm_world)
      &     O(2:ogrid%im_world,ogrid%jm_world) = O(1,ogrid%jm_world)
       Call GLOBALSUM (oGRID,O,NDET(L))
-      If (AM_I_ROOT())  NDET(L) = NDET(L) + Sum(TRMST(L,:,11))
+      If (AM_I_ROOT())  NDET(L) = NDET(L) + Sum(TRMST(L,:,10))
    60 Continue
 
 C**** Calculate DOC
       Do 70 L=1,LMO
-      O(:,:) = TRMO(:,:,L,14)
+      O(:,:) = TRMO(:,:,L,13)
       If (J1O==1)    O(2:ogrid%im_world,1)   = O(1,1)
       If (JNO==ogrid%jm_world)
      &     O(2:ogrid%im_world,ogrid%jm_world) = O(1,ogrid%jm_world)
       Call GLOBALSUM (oGRID,O,DOC(L))
-      If (AM_I_ROOT())  DOC(L) = DOC(L) + Sum(TRMST(L,:,14))
+      If (AM_I_ROOT())  DOC(L) = DOC(L) + Sum(TRMST(L,:,13))
    70 Continue
 
 C**** Calculate DIC
       Do 80 L=1,LMO
-      O(:,:) = TRMO(:,:,L,15)
+      O(:,:) = TRMO(:,:,L,14)
       If (J1O==1)    O(2:ogrid%im_world,1)   = O(1,1)
       If (JNO==ogrid%jm_world)
      &     O(2:ogrid%im_world,ogrid%jm_world) = O(1,ogrid%jm_world)
       Call GLOBALSUM (oGRID,O,DIC(L))
-      If (AM_I_ROOT())  DIC(L) = DIC(L) + Sum(TRMST(L,:,15))
+      If (AM_I_ROOT())  DIC(L) = DIC(L) + Sum(TRMST(L,:,14))
    80 Continue
       If (SUBR == 'SURFCE')  Then
          A(:,:)=atmocn%trgasex(idx_co2,:,:)*atmocn%focean(:,:)*aXYP(:,:)
@@ -202,9 +202,9 @@ C****   CHLO = TRMO(6)  + TRMST(6)
 C****   CYAN = TRMO(7)  + TRMST(7)
 C****   COCC = TRMO(8)  + TRMST(8)
 C****   HERB = TRMO(9)  + TRMST(9)
-C****   NDET = TRMO(11) + TRMST(11)
-C****    DOC = TRMO(14) + TRMST(14)
-C****    DIC = TRMO(15) + TRMST(15)
+C****   NDET = TRMO(10) + TRMST(10)
+C****    DOC = TRMO(13) + TRMST(13)
+C****    DIC = TRMO(14) + TRMST(14)
 C****    NIT = TRMO(1)  + TRMST(1)
 C****   AMMO = TRMO(2)  + TRMST(2)
 C****   TOTL = Sum (TRMO + TRMST)
@@ -290,32 +290,32 @@ C**** Calculate HERB
 
 C**** Calculate NDET
       Do 60 L=1,LMO
-      O(:,:) = TRMO(:,:,L,11)
+      O(:,:) = TRMO(:,:,L,10)
       If (J1O==1)    O(2:ogrid%im_world,1)   = O(1,1)
       If (JNO==ogrid%jm_world)
      &     O(2:ogrid%im_world,ogrid%jm_world) = O(1,ogrid%jm_world)
       Call GLOBALSUM (oGRID,O,NDET(L))
-      If (AM_I_ROOT())  NDET(L) = NDET(L) + Sum(TRMST(L,:,11))
+      If (AM_I_ROOT())  NDET(L) = NDET(L) + Sum(TRMST(L,:,10))
    60 Continue
 
 C**** Calculate DOC
       Do 70 L=1,LMO
-      O(:,:) = TRMO(:,:,L,14)
+      O(:,:) = TRMO(:,:,L,13)
       If (J1O==1)    O(2:ogrid%im_world,1)   = O(1,1)
       If (JNO==ogrid%jm_world)
      &    O(2:ogrid%im_world,ogrid%jm_world) = O(1,ogrid%jm_world)
       Call GLOBALSUM (oGRID,O,DOC(L))
-      If (AM_I_ROOT())  DOC(L) = DOC(L) + Sum(TRMST(L,:,14))
+      If (AM_I_ROOT())  DOC(L) = DOC(L) + Sum(TRMST(L,:,13))
    70 Continue
 
 C**** Calculate DIC
       Do 75 L=1,LMO
-      O(:,:) = TRMO(:,:,L,15)
+      O(:,:) = TRMO(:,:,L,14)
       If (J1O==1)    O(2:ogrid%im_world,1)   = O(1,1)
       If (JNO==ogrid%jm_world)
      &    O(2:ogrid%im_world,ogrid%jm_world) = O(1,ogrid%jm_world)
       Call GLOBALSUM (oGRID,O,DIC(L))
-      If (AM_I_ROOT())  DIC(L) = DIC(L) + Sum(TRMST(L,:,15))
+      If (AM_I_ROOT())  DIC(L) = DIC(L) + Sum(TRMST(L,:,14))
    75 Continue
 
 C**** Calculate NIT

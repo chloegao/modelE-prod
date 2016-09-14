@@ -5,7 +5,8 @@
 ! parameters and arrays neccessary for obio_init and obio_bioinit
 
       USE obio_dim
-      use ocalbedo_mod, only: nlt
+      USE obio_com, only: sday
+      USE ocalbedo_mod, only: nlt
 
       implicit none
 
@@ -13,6 +14,7 @@
       real :: rik(3,nchl)           !light saturation parameter umol quanta/m2/s
       real :: obio_wsd(nchl)        !phyto sinking rate m/d
       real :: obio_wsh(nchl)        !phyto sinking rate m/h
+      real :: obio_wss(nchl)        !phyto sinking rate m/s
 
       real :: rkn(nchl)   !half-saturation constants for nitrogen (uM)
       real :: rks(nchl)   !half-saturation constants for silica (uM)
@@ -32,34 +34,39 @@
       
       real :: mgchltouMC
 
-      real :: wsdeth(ndet)        !sinking rate of detritus (m/d)
-      real :: remin(ndet)         !detrital remineralization rate /d
+      real :: wsdeth(ndet)        !sinking rate of detritus (m/d): changed to m/s    !July 2016
+      real :: remin(ndet)         !detrital remineralization rate /d: changed to m/s !July 2016
       
       real :: Fescavrate(2)       !scavenging rate for dissolved iron
 
 C if CARBON == 1
-      real, parameter :: excp=0.05              !excretion of DOC by phyto %growth
-      real, parameter :: resp=0.05              !respiration of DIC by phyto %growth
-      real, parameter :: excz=0.05/24.0         !excretion of DOC by zoopl/hr
-      real, parameter :: resz=0.05/24.0         !respiration of DIC by zoopl/hr
+      real, parameter :: excp=0.05              !excretion of DOC by phyto growth
+      real, parameter :: resp=0.05              !respiration of DIC by phyto growth
+!     real, parameter :: excz=0.05/24.0         !excretion of DOC by zoopl/hr
+      real, parameter :: excz=0.05/sday         !excretion of DOC by zoopl/s        !July 2016
+!     real, parameter :: resz=0.05/24.0         !respiration of DIC by zoopl/hr
+      real, parameter :: resz=0.05/sday         !respiration of DIC by zoopl/s      !July 2016
       real, parameter :: phygross=1.0-(excp+resp) !factor to derive gross PP!
 
 !change: March 15, 2010
 !     real, parameter :: rlamdoc=0.017/24.0    !N-dependent DOC remin/hr
-      real, parameter :: rlamdoc=0.005/24.0    !N-dependent DOC remin/hr
+!     real, parameter :: rlamdoc=0.005/24.0    !N-dependent DOC remin/hr
+      real, parameter :: rlamdoc=0.005/sday    !N-dependent DOC remin/s    !July 2016
 
       real, parameter :: rkdoc1=0.3*10.0       !N-dep half sat uM(PO4) modified
                                                !for nitrate by mult*10.0,
                                                !based on Conkright et al. 1994
       real, parameter :: rkdoc2=15.0           !DOC-dep half-sat uM(C)
-      real, parameter :: rlampoc=0.05/24.0     !detrital breakdown/hr
+!     real, parameter :: rlampoc=0.05/24.0     !detrital breakdown/hr
+      real, parameter :: rlampoc=0.05/sday     !detrital breakdown/s      !July 2016
       real, parameter :: uMtomgm3=12.0         !conversion uM to mg/m3 C
       real, parameter :: Pzo=1.0*uMtomgm3/50.0 !zoopl half-sat for
                                                !DOC excretion mg/m3(chl,assuming
                                                !C:chl ratio of 50))
       real, parameter :: stdslp=1013.25        !standard sea level pressure in mb
 
-      real, parameter :: Rm=1.20/24.0          !max zoopl. growth rate/hr
+!     real, parameter :: Rm=1.20/24.0          !max zoopl. growth rate/hr
+      real, parameter :: Rm=1.20/sday          !max zoopl. growth rate/s    !July 1016
                                                !increase to account for excretion
                                                !and respiration
 C if CARBON /=1    parameter(Rm=1.0/24.0)      !max zoopl. growth rate/hr
@@ -104,9 +111,4 @@ c     parameter(bn=0.5,bs=0.5)        !N/chl and Si/chl ratios
       real, parameter ::  kappa_Ca = 2.    ! (1/0.5years)^-1   !OCMIP
 #endif
 
-#ifdef OBIO_RUNOFF
-#ifdef IRON_RUNOFF
-      real, parameter ::  estFe = 0.01   ! estuarine retention rate, can vary between 0.2 and 0.01 (daCunha 2007)
-#endif
-#endif
       END MODULE obio_incom

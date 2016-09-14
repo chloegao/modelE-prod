@@ -4,10 +4,12 @@
 c
 c --- write archive file for time level n to flnm ( b i n a r y  hycom fmt)
 c
+      use netcdf
+      use cdf_io
       USE JulianCalendar_mod, only : jdendofm
       USE MODEL_COM, only : modelEclock,
      *  itime,iyear1,nday,aMON,xlabel,lrunid,monthi,datei
-      use TimeConstants_mod, only: SECONDS_PER_DAY
+      USE TimeConstants_mod, only: SECONDS_PER_DAY
       USE HYCOM_SCALARS, only : nstep,time,lp,theta,huge,baclin,onem
      &     ,thref,nhr,g
       USE HYCOM_DIM_GLOB, only : ii1,jj,JDM,kk,isp,ifp,ilp,ntrcr,isu
@@ -29,18 +31,24 @@ c
       integer no,nop,length,nt
       real factor,vol,tts2,temavg,sst,dpsmo(idm,jdm,kdm)
      .    ,icearea,icevol,icearean,icevoln,iceareas,icevols
-      character flnm*40,intvl*4
+      character flnm*40,intvl*4,flnm_nc*40
       character what*16
       real*4 real4(idm,jdm)
      .   ,time4,watcum4,empcum4,thref4,theta4(kdm),unused
+      real utotal(idm,jdm,kdm),vtotal(idm,jdm,kdm)
       integer*4 length4,idm4,jdm4,kdm4,nstep4
       integer*4 irecl ! specific record lenth, machine dependent
       logical, parameter :: smooth = .false.     ! smooth fields before saving
       data unused/0./
-      integer, parameter :: 
+      logical, parameter :: binary_output=.false., ncout=.true.
+      integer ncid1
+      integer, parameter ::
      . mon_date(13)=(/0,31,59,90,120,151,181,212,243,273,304,334,365/)
       integer :: year, month, dayOfYear, date, hour
 c
+      utotal(:,:,:)=0.
+      vtotal(:,:,:)=0.
+
       call modelEclock%get(year=year, month=month, date=date,
      .  hour=hour, dayOfYear=dayOfYear)
       call getdte(Itime,Nday,Iyear1,year,month,dayOfYear,date,hour,amon)
@@ -49,18 +57,23 @@ c
 c --- check if ogcm date matches agcm date
       if (nstep.eq.1) then
         write(flnm,'(a3,i4.4,2a)') amon,0,'.out',xlabel(1:lrunid)
+        write(flnm_nc,'(a3,i4.4,3a)')
+     .     amon,0,'.out',xlabel(1:lrunid),'.nc'
+        temav(:,:,:)=temp(:,:,:)
+        salav(:,:,:)=saln(:,:,:)
+        th3av(:,:,:)=th3d(:,:,:)
+        dpav (:,:,:)=  dp(:,:,:)/onem
+        oiceav(:,:)= oice(:,:)
       elseif (abs((itime+1.)/nday-time).gt.1.e-5) then
+c --- check if ogcm date matches agcm date
         write(*,*) 'mismatching archive date in agcm/ogcm=',
      .     (itime+1.)/nday,time
-        stop 'mismatching archive date'   
+        stop 'mismatching archive date'
       else
         write(flnm,'(a3,i4.4,2a)') amon,year,'.out',xlabel(1:lrunid)
+        write(flnm_nc,'(a3,i4.4,3a)')
+     .    amon,year,'.out',xlabel(1:lrunid),'.nc'
       endif
-c
-c     write (lp,*) 'shown below: sea surface height'
-c     call zebra(srfhgt,idm,ii1,jj)
-      write (lp,*) 'shown below: sea surface temperature'
-      call zebra(temp(1,1,1+nn),idm,ii1,jj)
 c
       if (date.le.9999) then
         write (intvl,'(i4.4)') date
@@ -68,33 +81,23 @@ c
         stop ' wrong date > 9999'
       endif
 c
-      no=4096 
-      inquire (iolength=irecl)  real4(1,1) ! length of an unformatted real*4  
-                                           ! irecl=1 on COMPAQ, irecl=4 on SGI
-      length=((irecl*idm*JDM+no+15)/no)*no
-c
-c
-      call findunit(nop)
-      open (unit=nop,file=flnm,status='unknown',form='unformatted',
-     .      access='direct',recl=length)
-      no=1
-      length4=length
-      idm4=idm
-      jdm4=jdm
-      kdm4=kdm
-      nstep4=nstep
-c --- time4: model integration time in day; time: starts as Judian Date 
-      time4 = time - mon_date(monthi) - datei + 1
+c --- output total velocity
       do k=1,kk
-        theta4(k)=theta(k)
-      end do
-      write(flnm(1:17),'(1x,2(i2.2,a),i4.4,a,i2)')
-     .             month,'/',date,'/',year,' hr ',hour+nhr
-      write (lp,'(a/9x,2a,f7.1)') 'storing history data in',flnm(1:17)
-     .               ,' date=',time4
-      write (nop,rec=no) length4,idm4,jdm4,kdm4,nstep4,time4
-     .      ,unused,theta4,flnm(1:17)
-c
+       do j=1,jj
+        do l=1,isu(j)
+         do i=ifu(j,l),ilu(j,l)
+          utotal(i,j,k)=u(i,j,k+nn)+ubavg(i,j,n)
+         end do
+        end do
+
+        do l=1,isv(j)
+         do i=ifv(j,l),ilv(j,l)
+          vtotal(i,j,k)=v(i,j,k+nn)+vbavg(i,j,n)
+         end do
+        end do
+       end do      ! do j
+      end do       !do k
+
       if (smooth) then
 c
         do j=1,jj
@@ -124,16 +127,33 @@ c
 c
       end if                            !  smooth
 c
-      no=no+1
-      call r8tor4(ubavg(1,1,n),real4)
-      if (smooth) call usmoo4(real4)
-      write (nop,rec=no) 'ubavg           ',0,real4
-      write (lp,100)     'ubavg           ',0,no
-      no=no+1
-      call r8tor4(vbavg(1,1,n),real4)
-      if (smooth) call vsmoo4(real4)
-      write (nop,rec=no) 'vbavg           ',0,real4
-      write (lp,100)     'vbavg           ',0,no
+      if (binary_output) then
+      no=4096
+      inquire (iolength=irecl)  real4(1,1) ! length of an unformatted real*4
+                                           ! irecl=1 on COMPAQ, irecl=4 on SGI
+      length=((irecl*idm*JDM+no+15)/no)*no
+c
+      write (lp,'(a/9x,a)') 'storing history data in',flnm
+c
+      call findunit(nop)
+      open (unit=nop,file=flnm,status='unknown',form='unformatted',
+     .      access='direct',recl=length)
+      no=1
+      length4=length
+      idm4=idm
+      jdm4=jdm
+      kdm4=kdm
+      nstep4=nstep
+      time4=time
+      do k=1,kk
+        theta4(k)=theta(k)
+      end do
+      write(flnm(1:17),'(1x,2(i2.2,a),i4.4,a,i2)')
+     .             month,'/',date,'/',year,' hr ',hour+nhr
+      print *,' flnm(1:17)=',flnm(1:17)
+      write (nop,rec=no) length4,idm4,jdm4,kdm4,nstep4,time4
+     .      ,unused,theta4,flnm(1:17)
+c
       no=no+1
       call r8tor4(srfhgt,real4)
       if (smooth) call psmoo4(real4)
@@ -153,12 +173,12 @@ c
       do 75 k=1,kk
       kn=k+nn
       no=no+1
-      call r8tor4(u(1,1,kn),real4)
+      call r8tor4(utotal(1,1,kn),real4)
       if (smooth) call usmoo4(real4)
       write (nop,rec=no) 'u               ',k,real4
       write (lp,100)     'u               ',k,no
       no=no+1
-      call r8tor4(v(1,1,kn),real4)
+      call r8tor4(vtotal(1,1,kn),real4)
       if (smooth) call vsmoo4(real4)
       write (nop,rec=no) 'v               ',k,real4
       write (lp,100)     'v               ',k,no
@@ -211,11 +231,13 @@ c --- code around compiler glitch:
       no=no+ntrcr
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  75   continue
+      end if    ! if binary_output
 c
 c --- output time-averaged fields
 c
       factor=baclin/(date*SECONDS_PER_DAY)
 c
+      if (nstep > 1) then
       do 55 j=1,jj
       do 55 l=1,isp(j)
       do 55 i=ifp(j,l),ilp(j,l)
@@ -272,6 +294,29 @@ c --- convert diapycnal thickness changes into actual interface fluxes
 ccc      write (lp,'(a,i3)') 'shown below: N.Atl. diaflx, bottm of layer',k
 ccc      call zebra(diaflx(1,int(.8*jdm),k),idm,idm/3,idm/3)
 c
+ 58   continue
+c
+      do 56 j=1,jj
+      do 56 l=1,isp(j)
+      do 56 i=ifp(j,l),ilp(j,l)
+      pbavav(i,j)=pbavav(i,j)*factor
+      sfhtav(i,j)=sfhtav(i,j)*factor        ! meter
+      dpmxav(i,j)=dpmxav(i,j)*factor
+ 56   oiceav(i,j)=oiceav(i,j)*factor
+c
+      end if     ! nstep > 1
+c
+c     write (lp,'(3a,i5)') 'shown below: ',intvl
+c    .    ,'- day SSH average step=',nstep
+c     call zebra(sfhtav,idm,ii1,jj)
+c     write (lp,'(3a,i5)') 'shown below: ',intvl
+c    .    ,'- day SST average, step=',nstep
+c     call zebra(temav,idm,ii1,jj)
+c     write (lp,'(3a,i5)') 'shown below: ',intvl
+c    .    ,'- day ice average, step=',nstep
+c     call zebra(oiceav,idm,ii1,jj)
+c
+      if (binary_output) then
       no=no+1
       call r8tor4(uflxav(1,1,k),real4)
       write (nop,rec=no) '     uflxav_'//intvl,k,real4
@@ -284,40 +329,6 @@ c
       call r8tor4(diaflx(1,1,k),real4)
       write (nop,rec=no) '     diaflx_'//intvl,k,real4
       write (lp,100)     '     diaflx_'//intvl,k,no
- 58   continue
-c
-      do 56 j=1,jj
-      do 561 l=1,isu(j)
-      do 561 i=ifu(j,l),ilu(j,l)
- 561  ubavav(i,j)=ubavav(i,j)*factor
-      do 562 l=1,isv(j)
-      do 562 i=ifv(j,l),ilv(j,l)
- 562  vbavav(i,j)=vbavav(i,j)*factor
-      do 56 l=1,isp(j)
-      do 56 i=ifp(j,l),ilp(j,l)
-      pbavav(i,j)=pbavav(i,j)*factor
-c     sfhtav(i,j)=sfhtav(i,j)*factor+thref*pbavav(i,j)/g  ! meter
-      sfhtav(i,j)=sfhtav(i,j)*factor
-      dpmxav(i,j)=dpmxav(i,j)*factor
- 56   oiceav(i,j)=oiceav(i,j)*factor
-c
-c     write (lp,'(3a)') 'shown below: ',intvl,'- day SSH average'
-c     call zebra(sfhtav,idm,ii1,jj)
-      write (lp,'(3a)') 'shown below: ',intvl,'- day SST average'
-      call zebra(temav,idm,ii1,jj)
-c
-      no=no+1
-      call r8tor4(ubavav,real4)
-      write (nop,rec=no) '     ubavav_'//intvl,0,real4
-      write (lp,100)     '     ubavav_'//intvl,0,no
-      no=no+1
-      call r8tor4(vbavav,real4)
-      write (nop,rec=no) '     vbavav_'//intvl,0,real4
-      write (lp,100)     '     vbavav_'//intvl,0,no
-      no=no+1
-      call r8tor4(sfhtav,real4)
-      write (nop,rec=no) '     sfhtav_'//intvl,0,real4
-      write (lp,100)     '     sfhtav_'//intvl,0,no
       no=no+1
       call r8tor4(dpmxav,real4)
       write (nop,rec=no) '     dpmxav_'//intvl,0,real4
@@ -421,7 +432,105 @@ c
  100  format (9x,a,' (layer',i3,') archived as record',i5)
       write (lp,*) no,' records archived'
 c
+      end if	! if binary_output
 
+!<>-<>-<>-<>-<>-<>-<>-<>-<>-<>-<>-<>-<>-<>-<>-<>-<>-<>-<>-<>-<>-<>-<>-<>-<>-<>
+      if (ncout) then                   ! archive data in netcdf format
+        print *,' flnm=',flnm_nc
+        print '(3a)','opening ',trim(flnm_nc),' for netcdf output'
+        call errhandl (nf90_create (path=trim(flnm_nc),
+     .      cmode=or(NF90_CLOBBER, NF90_64BIT_OFFSET),ncid=ncid1))
+        call out2cdf(ncid1,idm,jdm,depths,0.,
+     .    'topo','bottom depth','m')
+        call out2cdf(ncid1,idm,jdm,scp2,0.,
+     .    'scp2','grid cell size','m^2')
+        call out2cdf(ncid1,idm,jdm,latij(1,1,3),0.,
+     .    'lat','latitude','degrees')
+        call out2cdf(ncid1,idm,jdm,lonij(1,1,3),0.,
+     .    'lon','longitude','degrees')
+        call out1cdf(ncid1,kdm,theta,0.,
+     .    'theta','target pot.density, sigma1','kg/m^3')
+! snapshot
+        call out2cdf(ncid1,idm,jdm,srfhgt,time,
+     .    'srfht','sea surface height','m')
+        call out2cdf(ncid1,idm,jdm,dpmixl,time,
+     .    'zmixl','mixed layer depth','m')
+        call out2cdf(ncid1,idm,jdm,oice,time,
+     .    'covice','ice coverage','m')
+        call out3cdf(ncid1,idm,jdm,kdm,temp,time,
+     .    'temp','potential temperature','deg C')
+        call out3cdf(ncid1,idm,jdm,kdm,saln,time,
+     .    'saln','salinity','psu')
+        call out3cdf(ncid1,idm,jdm,kdm,th3d,time,
+     .    'th3d','pot.density, sigma1','kg/m^3')
+        call out3cdf(ncid1,idm,jdm,kdm,dp,time,
+     .    'thik','layer thickness','m')
+        call out3cdf(ncid1,idm,jdm,kdm,utotal,time,
+     .    'utotal','southward velocity','m/sec')
+        call out3cdf(ncid1,idm,jdm,kdm,vtotal,time,
+     .    'vtotal','eastward velocity','m/sec')
+! monthly average
+        call out2cdf(ncid1,idm,jdm,sfhtav,time,
+     .    'srfhtav','monthly sea surface height','m')
+        call out2cdf(ncid1,idm,jdm,dpmxav,time,
+     .    'zmixlav','monthly mixed layer depth','m')
+!       call out2cdf(ncid1,idm,jdm,ticeav,time,
+!    .    'temiceav','monthly ice surface temp','deg C')
+        call out2cdf(ncid1,idm,jdm,oiceav,time,
+     .    'coviceav','monthly ice coverage','m')
+        call out3cdf(ncid1,idm,jdm,kdm,temav,time,
+     .    'tempav','monthly potential temperature','deg C')
+        call out3cdf(ncid1,idm,jdm,kdm,salav,time,
+     .    'salnav','monthly salinity','psu')
+        call out3cdf(ncid1,idm,jdm,kdm,th3av,time,
+     .    'th3dav','monthly pot.density, sigma1','kg/m^3')
+        call out3cdf(ncid1,idm,jdm,kdm,dpav,time,
+     .    'thikav','monthly averaged layer thickness','m')
+        call out3cdf(ncid1,idm,jdm,kdm,uav,time,
+     .    'uav','monthly southward velocity','m/sec')
+        call out3cdf(ncid1,idm,jdm,kdm,vav,time,
+     .    'vav','monthly eastward velocity','m/sec')
+        if (ntrcr.ge.1)
+     .  call out3cdf(ncid1,idm,jdm,kdm,tracer(1,1,1,1),time,
+     .    'trc1','passive tracer 1',' ')
+        if (ntrcr.ge.2)
+     .  call out3cdf(ncid1,idm,jdm,kdm,tracer(1,1,1,2),time,
+     .    'trc2','passive tracer 2',' ')
+        if (ntrcr.ge.3)
+     .  call out3cdf(ncid1,idm,jdm,kdm,tracer(1,1,1,3),time,
+     .    'trc3','passive tracer 3',' ')
+        if (ntrcr.ge.4)
+     .  call out3cdf(ncid1,idm,jdm,kdm,tracer(1,1,1,4),time,
+     .    'trc4','passive tracer 4',' ')
+        if (ntrcr.ge.5) stop 'stop: need work for ntrcr > 4'
+        call out3cdf(ncid1,idm,jdm,kdm,uflxav,time,
+     .    'uflxav','monthly integral of southward mass flux','N')
+        call out3cdf(ncid1,idm,jdm,kdm,vflxav,time,
+     .    'vflxav','monthly integral of eastward mass flux','N')
+        call out3cdf(ncid1,idm,jdm,kdm,diaflx,time,
+     .    'diaflx','monthly integral of diaflx','N')
+!       call out3cdf(ncid1,idm,jdm,kdm,vctyav,time,
+!         'visc','monthly vertical viscosity','m^2/sec')
+!       call out3cdf(ncid1,idm,jdm,kdm,diftav,time,
+!         'dfft','monthly vert.temperature diffusivity','m^2/sec')
+!       call out3cdf(ncid1,idm,jdm,kdm,difsav,time,
+!         'dffs','monthly vert.scalar diffusivity','m^2/sec')
+!       call out2cdf(ncid1,idm,jdm,radflav,time,
+!    . 'radfx','monthly surface net radiative flux, pos.down','W/m^2')
+!       call out2cdf(ncid1,idm,jdm,snsibav,time,
+!    . 'snsib','monthly surface sensible heat flux, pos.down','W/m^2')
+!       call out2cdf(ncid1,idm,jdm,latntav,time,
+!    . 'latnt','monthly surface latent heat flux, pos.down','W/m^2')
+        call errhandl (nf90_inq_varid(ncid1,'time',i))
+        call errhandl (nf90_put_att  (ncid1,i,'calendar','NOLEAP'))
+        print '(2a)','closing ',trim(flnm_nc)
+        call errhandl (nf90_close (ncid1))
+      end if            ! ncout
+!<>-<>-<>-<>-<>-<>-<>-<>-<>-<>-<>-<>-<>-<>-<>-<>-<>-<>-<>-<>-<>-<>-<>-<>-<>-<>
+#if (defined TRACERS_OceanBiology) || (defined TRACERS_AGE_OCEAN) \
+ || (defined TRACERS_OCEAN_WATER_MASSES) || (defined TRACERS_ZEBRA)
+!     call obio_archyb(nn,dpav,temav,salav,th3av,dpmxav,oiceav)
+#endif
 
       do 60 j=1,jj
 c
@@ -434,7 +543,7 @@ c
       tauyav(i,j)=0.
 c
 #ifdef TRACERS_OceanBiology
-        diag_counter =0 
+        diag_counter =0
         ao_co2fluxav(i,j)=0.
         pco2av(i,j)=0.
         pp2tot_dayav(i,j)=0.
@@ -444,8 +553,6 @@ c
 #endif
 #endif
 
-      ubavav(i,j)=0.
-      vbavav(i,j)=0.
       pbavav(i,j)=0.
       dpmxav(i,j)=0.
       sfhtav(i,j)=0.

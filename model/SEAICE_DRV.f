@@ -547,7 +547,7 @@ C**** replicate ice values at the poles
       USE SEAICE, only: ntm
 #endif
       USE SEAICE, only : sea_ice,ssidec,lmi,xsi,ace1i,qsfix,debug
-     *     ,snowice, snow_ice, rhos, Ti
+     *     ,snowice, snow_ice, rhos, Ti, Ti2b
       USE TimerPackage_mod, only: startTimer => start
       USE TimerPackage_mod, only: stopTimer => stop
       IMPLICIT NONE
@@ -585,6 +585,7 @@ C**** replicate ice values at the poles
      *     ,tralpha
 #endif
       integer :: J_0, J_1, I_0,I_1
+      real*8 MSI1,SNOWL1,MICE1
 
       call startTimer('GROUND_SI()')
 
@@ -758,8 +759,21 @@ C**** RESAVE PROGNOSTIC QUANTITIES
         TRSI(:,:,I,J) = TRSIL(:,:)
 #endif
         FLAG_DSWS(I,J)=WETSNOW
-        Ti1 = Ti(HSIL(1)/(XSI(1)*(SNOW+ACE1I)),1d3*SSIL(1)/(XSI(1)*(SNOW
-     *       +ACE1I)))
+
+        MSI1 = ACE1I + SNOW
+        IF (ACE1I.gt.XSI(2)*MSI1) THEN ! some ice in first layer
+          MICE1 = ACE1I-XSI(2)*MSI1
+          SNOWL1= SNOW
+        ELSE  ! some snow in second layer
+          MICE1 = 0.
+          SNOWL1= XSI(1)*MSI1
+        ENDIF
+        IF (MICE1.NE.0.) THEN
+        Ti1 = Ti2b(HSIL(1)/(XSI(1)*MSI1),1d3*SSIL(1)/MICE1,SNOWL1,MICE1)
+        ELSE
+        Ti1 = Ti(HSIL(1)/(XSI(1)*(SNOW+ACE1I)),0d0)
+        ENDIF
+
         TI1save(I,J) = Ti1
 
         SIHC(I,J) = SUM(HSIL(:))
@@ -1634,13 +1648,13 @@ C****
       USE SCM_COM, only : SCMopt,SCMin
 #endif
       USE SEAICE_COM, only : si_atm,si_ocn
-      USE SEAICE, only : ace1i,xsi,lmi,Ti,rhoi,rhos
+      USE SEAICE, only : ace1i,xsi,lmi,Ti,rhoi,rhos,Ti2b
       USE EXCHANGE_TYPES, only : atmice_xchng_vars
       IMPLICIT NONE
       type(atmice_xchng_vars) :: atmice
 c
       INTEGER I,J, J_0, J_1 ,I_0,I_1
-      REAL*8 MSI1
+      REAL*8 MSI1,SNOWL(2),MICE(2)
 
       I_0 = atmice%I_0
       I_1 = atmice%I_1
@@ -1669,10 +1683,28 @@ c
       DO I=I_0, atmice%IMAXJ(J)
 C**** set GTEMP etc. array for ice
         MSI1=si_atm%SNOWI(I,J)+ACE1I
-        atmice%GTEMP(I,J)=Ti(si_atm%HSI(1,I,J)/(XSI(1)*MSI1),
-     &                1d3*si_atm%SSI(1,I,J)/(XSI(1)*MSI1))
-        atmice%GTEMP2(I,J)=Ti(si_atm%HSI(2,I,J)/(XSI(2)*MSI1),
-     &                1d3*si_atm%SSI(2,I,J)/(XSI(2)*MSI1))
+
+        IF (ACE1I.gt.XSI(2)*MSI1) THEN ! some ice in first layer
+          MICE(1) = ACE1I-XSI(2)*MSI1
+          MICE(2) = XSI(2)*MSI1
+c         SNOWL(1)= SNOW
+          SNOWL(1)= MSI1-ACE1I
+          SNOWL(2)= 0.
+        ELSE  ! some snow in second layer
+          MICE(1) = 0.
+          MICE(2) = ACE1I
+          SNOWL(1)= XSI(1)*MSI1
+          SNOWL(2)= XSI(2)*MSI1-ACE1I
+        ENDIF
+        IF(MICE(1).NE.0.) THEN
+        atmice%GTEMP(I,J)=Ti2b(si_atm%HSI(1,I,J)/(XSI(1)*MSI1),
+     *           1d3*si_atm%SSI(1,I,J)/MICE(1),SNOWL(1),MICE(1))
+        ELSE
+        atmice%GTEMP(I,J)=Ti(si_atm%HSI(1,I,J)/(XSI(1)*MSI1),0d0)
+        ENDIF
+        atmice%GTEMP2(I,J)=Ti2b(si_atm%HSI(2,I,J)/(XSI(2)*MSI1),
+     *           1d3*si_atm%SSI(2,I,J)/MICE(2),SNOWL(2),MICE(2))
+
         atmice%GTEMPR(I,J) = atmice%GTEMP(I,J)+TF
         atmice%ZSNOWI(I,J)=si_atm%SNOWI(I,J)/rhos
         si_atm%ZSI(I,J)=(ace1i+si_atm%msi(i,j))/rhoi
@@ -2154,114 +2186,4 @@ C**** regional diagnostics
       RETURN
       END SUBROUTINE ADVSI_DIAG_OCNML
 
-      subroutine daily_ocnml_offline(Z1O,Z12O,atmice)
-!@auth Original Development Team
-!@ver  1.0 (Q-flux ocean)
-      USE MODEL_COM, only : itime,itimei
-      USE MODEL_COM, only : modelEclock
-      USE CONSTANT, only : rhows
-      USE SEAICE, only : ace1i,lmi
-      USE SEAICE_COM, only : si_ocn
-      USE SEAICE_COM, only : grid=>sigrid
-!      USE DIAG_COM, only : aij=>aij_loc, jreg,j_implh, j_implm,
-!     *     j_imelt, j_hmelt, j_smelt, ij_fwio
-#ifdef TRACERS_WATER
-      USE SEAICE, only : ntm
-!      USE TRDIAG_COM, only: taijn=>taijn_loc, tij_icocflx
-#endif
-      USE EXCHANGE_TYPES, only : atmice_xchng_vars
-      IMPLICIT NONE
-      REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
-     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
-     &     Z1O,Z12O
-      type(atmice_xchng_vars) :: atmice
-c
-      INTEGER n,I,J,JR
-      REAL*8 Z1OMIN,MSINEW,RSINEW
-
-      INTEGER :: J_0,J_1, I_0,I_1
-
-      REAL*8, DIMENSION(:,:), POINTER :: RSI,MSI,SNOWI
-      REAL*8, DIMENSION(:,:,:), POINTER :: HSI,SSI
-#ifdef TRACERS_WATER
-      real*8, dimension(:,:,:,:), pointer :: trsi
-#endif
-      integer :: jmon,itoice
-
-      !itoice = atmice%itoice
-      jmon = modelEclock%getMonth()
-
-      I_0 = atmice%I_0
-      I_1 = atmice%I_1
-      J_0 = atmice%J_0
-      J_1 = atmice%J_1
-
-      RSI => SI_OCN%RSI
-      MSI => SI_OCN%MSI
-      HSI => SI_OCN%HSI
-      SSI => SI_OCN%SSI
-      SNOWI => SI_OCN%SNOWI
-#ifdef TRACERS_WATER
-      trsi => si_ocn%trsi
-#endif
-
-      DO J=J_0,J_1
-      DO I=I_0,si_ocn%IMAXJ(J)
-      IF (RSI(I,J)*atmice%FOCEAN(I,J).GT.0.) THEN
-        Z1OMIN=1.+atmice%FWSIM(I,J)/(RHOWS*RSI(I,J))
-        IF (Z1OMIN.GT.Z1O(I,J)) THEN
-C**** MIXED LAYER DEPTH IS INCREASED TO OCEAN ICE DEPTH + 1 METER
-          WRITE(6,602) ITime,I,J,JMON,Z1O(I,J),Z1OMIN,z12o(i,j)
- 602      FORMAT (' INCREASE OF MIXED LAYER DEPTH ',I10,3I4,3F10.3)
-          Z1O(I,J)=MIN(Z1OMIN, z12o(i,j))
-          IF (Z1OMIN.GT.Z12O(I,J)) THEN
-C****       ICE DEPTH+1>MAX MIXED LAYER DEPTH :
-C****       lose the excess mass to the deep ocean
-C**** Calculate freshwater mass to be removed, and then any energy/salt
-            MSINEW=MSI(I,J)*(1.-RHOWS*(Z1OMIN-Z12O(I,J))*RSI(I,J)/
-     *       (atmice%FWSIM(I,J)
-     &           -RSI(I,J)*(ACE1I+SNOWI(I,J)-SUM(SSI(1:2,I,J)))))
-!C**** save diagnostics
-!            AIJ(I,J,IJ_FWIO)=AIJ(I,J,IJ_FWIO)+RSI(I,J)*(MSI(I,J)
-!     *           -MSINEW)*(1-SUM(SSI(3:4,I,J))/MSI(I,J))
-!            CALL INC_AJ(I,J,ITOICE,J_IMELT,-FOCEAN(I,J)*RSI(I,J)*(MSINEW
-!     *           -MSI(I,J)))
-!            CALL INC_AJ(I,J,ITOICE,J_HMELT,-FOCEAN(I,J)*RSI(I,J)
-!     *           *SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.)) 
-!            CALL INC_AJ(I,J,ITOICE,J_SMELT,-FOCEAN(I,J)*RSI(I,J)
-!     *           *SUM(SSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.))
-!            CALL INC_AJ(I,J,ITOICE,J_IMPLM,-FOCEAN(I,J)*RSI(I,J)*(MSINEW
-!     *           -MSI(I,J))*(1.-SUM(SSI(3:4,I,J))/MSI(I,J)))
-!            CALL INC_AJ(I,J,ITOICE,J_IMPLH,-FOCEAN(I,J)*RSI(I,J)
-!     *           *SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.)) 
-!            JR=JREG(I,J)
-!            CALL INC_AREG(I,J,JR,J_IMPLM,-FOCEAN(I,J)*RSI(I,J)
-!     *           *(MSINEW-MSI(I,J))*(1.-SUM(SSI(3:4,I,J))
-!     *           /MSI(I,J)))
-!            CALL INC_AREG(I,J,JR,J_IMPLH,-FOCEAN(I,J)*RSI(I,J)
-!     *           *SUM(HSI(3:4,I,J))*(MSINEW/MSI(I,J)-1.))
-!#ifdef TRACERS_WATER
-!            DO N=1,NTM
-!              TAIJN(I,J,TIJ_ICOCFLX,N)=TAIJN(I,J,TIJ_ICOCFLX,N)-
-!     *           SUM(TRSI(N,1:2,I,J))*(RSINEW-RSI(I,J))-
-!     *           SUM(TRSI(N,3:4,I,J))*(RSINEW*MSINEW/MSI(I,J)-RSI(I,J))
-!            END DO
-!#endif
-C**** update heat and salt
-            HSI(3:4,I,J) = HSI(3:4,I,J)*(MSINEW/MSI(I,J))
-            SSI(3:4,I,J) = SSI(3:4,I,J)*(MSINEW/MSI(I,J))
-#ifdef TRACERS_WATER
-            TRSI(:,3:4,I,J) = TRSI(:,3:4,I,J)*(MSINEW/MSI(I,J))
-#endif
-            MSI(I,J)=MSINEW
-            atmice%FWSIM(I,J)=RSI(I,J)*
-     &           (ACE1I+SNOWI(I,J)+MSI(I,J)-SUM(SSI(1:LMI,I,J)))
-          END IF
-        END IF
-      END IF
-      END DO
-      END DO
-
-      RETURN
-      end subroutine daily_ocnml_offline
 #endif /* ifndef STANDALONE_OCEAN */

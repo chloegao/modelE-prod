@@ -113,32 +113,9 @@ c
       use bio_inicond_mod, only: bio_inicond_read
       USE obio_forc, only : ihra,atmFe,alk,surfN
       USE obio_com, only : npst,npnd,WtoQ,obio_ws,P_tend,D_tend
-     .                    ,C_tend,wsdet,gro,obio_deltath,obio_deltat 
+     .                    ,C_tend,wsdet,gro,obio_deltath,obio_deltat
+     .                    ,sday
 
-#ifdef OBIO_RUNOFF
-#ifdef NITR_RUNOFF
-!     .                    ,rnitrmflo_loc
-     .                    ,rnitrconc_loc
-#endif
-#ifdef DIC_RUNOFF
-     .                    ,rdicconc_loc
-#endif
-#ifdef DOC_RUNOFF
-     .                    ,rdocconc_loc
-#endif
-#ifdef SILI_RUNOFF
-     .                    ,rsiliconc_loc
-#endif
-#ifdef IRON_RUNOFF
-     .                    ,rironconc_loc
-#endif
-#ifdef POC_RUNOFF
-     .                    ,rpocconc_loc
-#endif
-#ifdef ALK_RUNOFF
-     .                    ,ralkconc_loc
-#endif
-#endif
 #ifdef OBIO_ON_GARYocean
       USE OCEANRES, only : kdm=>lmo
       USE MODEL_COM, only: dtsrc
@@ -147,6 +124,9 @@ c
       USE hycom_dim_glob, only : kdm
       USE hycom_scalars, only : baclin
       USE hycom_dim, only : ogrid
+#endif
+#ifdef STANDALONE_OCEAN
+      USE obio_forc, only: Eda,Esa
 #endif
       USE pario
 
@@ -172,7 +152,7 @@ c
       character*50 title
 !     character*50 cfle
       character cacbc*11,cabw*10
-      character*80 filename,fn
+      character*80 filename,fn,filename1,filename2
 
       data cacbc,cabw /'acbc25b.dat','abw25b.dat'/
 
@@ -182,14 +162,13 @@ c
 ! time steps
 #ifdef OBIO_ON_GARYocean
       obio_deltath = dtsrc/3600.d0  !time step in hours
-      obio_deltat = obio_deltath    !time step in hrs because all rates are in hrs
 #else
       obio_deltath = baclin/3600.d0  !time step in hours
-      obio_deltat = obio_deltath    !time step in hrs because all rates are in hrs
 #endif
+      obio_deltat = obio_deltath*3600.d0    !time step in s  !July 2016
 
       if (AM_I_ROOT()) 
-     . print*, 'Ocean Biology time step(per hour)=',obio_deltath
+     . print*, 'Ocean Biology time step =',obio_deltat
 
 c  Read in constants, light data
 c  Computes constants over entire run of model, reads in required
@@ -201,6 +180,19 @@ c  Degrees to radians conversion
       pi2 = pi*2.0
       rad = 180.0D0/pi
 
+#ifdef STANDALONE_OCEAN
+      if (AM_I_ROOT()) then
+      print*, '    '
+      print*, 'reading OASIM data.....'
+      print*, '    '
+      endif
+
+      !reading Eda
+      filename1='oasimdirect1'
+      filename2='oasimdirect2'
+      call obio_edaesa_g(filename1,filename2)
+#endif
+
       do nt = 1,nchl
        rkn(nt) = 0.0
        rks(nt) = 0.0
@@ -210,7 +202,7 @@ c
 c  Phytoplankton group parameters
       do nt = 1,nchl
        obio_wsd(nt)    = 0.0
-       obio_wsh(nt)    = 0.0
+       obio_wss(nt)    = 0.0
       enddo
       do nt = 1,nchl
        rmumax(nt) = 0.0
@@ -256,11 +248,7 @@ c  Diatoms
 !     rmumax(nt) = 1.50       !u max in /day at 20C
       rmumax(nt) = 2.00       !u max in /day at 20C
 #ifdef OBIO_ON_GARYocean
-#ifdef unlimitDIATOMS
-      obio_wsd(nt)    = 0.50  !sinking rate in m/day
-#else
       obio_wsd(nt)    = 0.75  !sinking rate in m/day
-#endif
 #else
       obio_wsd(nt)    = 0.50  !sinking rate in m/day   !!change Oct27,2008
 #endif
@@ -307,13 +295,7 @@ c  Cyanobacteria
       if (nchl > 3) then
 c  Coccolithophores
       nt = 4
-#ifdef RMUMAX_allcocco
-       !change 11/5/09
-       rmumax(nt) = rmumax(nt-3)*0.663   !all coccos
-#else
-       !default
        rmumax(nt) = rmumax(nt-3)*0.755   !E. huxleyi only
-#endif
 c      rmumax(nt) = rmumax(nt-3)*0.781   !E. huxleyi only (no Sunda/Hunts)
       obio_wsd(nt)    = 0.82
       obio_wsd(nt)    = 0.648
@@ -341,50 +323,64 @@ c  Dinoflagellates
 !!#endif
       do nt = 1,nchl
        obio_wsh(nt) = obio_wsd(nt)/24.0  !convert to m/hr
+       obio_wss(nt) = obio_wsd(nt)/sday  !convert to m/s     !July 2016
       enddo
 
-c  Detrital sinking rates m/h
-#ifdef limitEXPORT
-      wsdeth(1) = 50.0/24.0     !nitrogen
-#else
+c  Detrital sinking rates m/h  -> m/s   July 2016
       !default
 !change: March 10, 2010
 !     wsdeth(1) = 30.0/24.0     !nitrogen
-      wsdeth(1) = 20.0/24.0     !nitrogen
-#endif
-      wsdeth(2) = 50.0/24.0     !silica
+!     wsdeth(1) = 20.0/24.0     !nitrogen
+      wsdeth(1) = 20.0/sday     !nitrogen
+
+!     wsdeth(2) = 50.0/24.0     !silica
+      wsdeth(2) = 50.0/sday     !silica
+
 !     wsdeth(3) = 20.0/24.0     !iron
 !change June 1, 2010
-      wsdeth(3) =  5.0/24.0     !iron
+!     wsdeth(3) =  5.0/24.0     !iron
+      wsdeth(3) =  5.0/sday     !iron
 !endofchange
 c
-c  Detrital remineralization rates /hr
+c  Detrital remineralization rates /s
 !change: March 10, 2010
 !     remin(1) = 0.010/24.0            !nitrogen
-      remin(1) = 0.020/24.0            !nitrogen
+!     remin(1) = 0.020/24.0            !nitrogen
+      remin(1) = 0.020/sday            !nitrogen
 #ifdef increaseNremin
-      remin(1) = 0.5/24.0            !nitrogen
+!     remin(1) = 0.5/24.0            !nitrogen
+      remin(1) = 0.5/sday            !nitrogen
 #endif
 #ifdef increaseNremin2
-      remin(1) = 0.1/24.0            !nitrogen
+!AR5 preprocessor option
+!     remin(1) = 0.1/24.0            !nitrogen
+      remin(1) = 0.1/sday            !nitrogen
 #endif
 #ifdef increaseNremin3
-      remin(1) = 0.3/24.0            !nitrogen
+!     remin(1) = 0.3/24.0            !nitrogen
+      remin(1) = 0.3/sday            !nitrogen
 #endif
-      remin(2) = 0.0001/24.0           !silica
+!     remin(2) = 0.0001/24.0           !silica
+      remin(2) = 0.0001/sday           !silica
 #ifdef increaseSremin
-      remin(2) = 0.002/24.0           !silica
+!AR5 preprocessor option
+!     remin(2) = 0.002/24.0           !silica
+      remin(2) = 0.002/sday           !silica
 #endif
 !     remin(3) = 0.020/24.0            !iron
 !change June 1, 2010
-      remin(3) = 0.50/24.0            !iron
+!     remin(3) = 0.50/24.0            !iron
+      remin(3) = 0.50/sday            !iron
 !endofchange
 #ifdef increaseIremin
-      remin(3) = 0.70/24.0            !iron
+!AR5 preprocessor option
+!     remin(3) = 0.70/24.0            !iron
+      remin(3) = 0.70/sday            !iron
 #endif
 
-      fescavrate(1) = 2.74E-5/24.0      !low fe scavenging rate/hr
-      fescavrate(2) = 50.0*fescavrate(1) !high fe scavenging rate/hr
+!     fescavrate(1) = 2.74E-5/24.0      !low fe scavenging rate/s
+      fescavrate(1) = 2.74E-5/sday      !low fe scavenging rate/s     !July 2016
+      fescavrate(2) = 50.0*fescavrate(1) !high fe scavenging rate/s -> rate/s
 c
 c  (originally done inside lidata subroutine of obio_daysetrad)
 c  Reads in radiative transfer data: specifically
@@ -496,10 +492,6 @@ c  Read in factors to compute average irradiance
           gro(k,nt) = 0.0
          enddo
  
-         do nt=1,ntyp+n_inert
-          P_tend(k,nt) = 0.0
-         enddo
- 
          do nt=1,ndet
           D_tend(k,nt) = 0.0
           wsdet(k,nt) = 0.0
@@ -536,60 +528,6 @@ c  Read in factors to compute average irradiance
 #endif
       endif ! netcdf iron or not
 
-#ifdef OBIO_RUNOFF
-! read in nutrient concentrations, already regridded to model grid
-	if (AM_I_ROOT()) then
-	print*, '    '
-	print*, 'reading nutrient runoff data.....'
-	print*, '    '
-	endif
-#ifdef NITR_RUNOFF
-!        filename='rnitr_mflo'
-        filename='rnitr_conc'
-	fid=par_open(ogrid,filename,'read')
-!	call read_dist_data(ogrid,fid,'din',rnitrmflo_loc)
-	call read_dist_data(ogrid,fid,'din',rnitrconc_loc)
-	call par_close(ogrid,fid)
-#endif
-#ifdef DIC_RUNOFF
-	filename='rdic_conc'
-	fid=par_open(ogrid,filename,'read')
-	call read_dist_data(ogrid,fid,'dic',rdicconc_loc)
-	call par_close(ogrid,fid)
-	write(*,*)'reading dic from',filename
-#endif
-#ifdef DOC_RUNOFF
-	filename='rdoc_conc'
-	fid=par_open(ogrid,filename,'read')
-	call read_dist_data(ogrid,fid,'doc',rdocconc_loc)
-	call par_close(ogrid,fid)
-#endif
-#ifdef SILI_RUNOFF
-	filename='rsili_conc'
-	fid=par_open(ogrid,filename,'read')
-	call read_dist_data(ogrid,fid,'sil',rsiliconc_loc)
-	call par_close(ogrid,fid)
-#endif
-#ifdef IRON_RUNOFF
-	filename='riron_conc'
-	fid=par_open(ogrid,filename,'read')
-	call read_dist_data(ogrid,fid,'fe',rironconc_loc)
-	call par_close(ogrid,fid)
-#endif
-#ifdef POC_RUNOFF
-	filename='rpoc_conc'
-	fid=par_open(ogrid,filename,'read')
-	call read_dist_data(ogrid,fid,'poc',rpocconc_loc)
-	call par_close(ogrid,fid)
-#endif
-#ifdef ALK_RUNOFF
-	filename='ralk_conc'
-	fid=par_open(ogrid,filename,'read')
-	call read_dist_data(ogrid,fid,'alk',ralkconc_loc)
-	call par_close(ogrid,fid)
-#endif
-#endif
-
 #ifdef TRACERS_Alkalinity
 ! Alkalinity will be read in from obio_bioinit
 ! don't do anything here
@@ -621,20 +559,13 @@ c  Read in factors to compute average irradiance
 #else
       print*, 'PCO2 is computed through lookup table'
 #endif
-      write(*,'(a,4e12.4)')'obio_init, sinking rates for chlorophyll: ',
-     .    obio_wsd(1),obio_wsd(2),obio_wsd(3),obio_wsd(4)
-      write(*,'(a,3e12.4)')'obio_init, settling rates for detritus: ',
+      write(*,'(a,4e12.4)')'obio_init, sinking rates for chl (per s): ',
+     .    obio_wss(1),obio_wss(2),obio_wss(3),obio_wss(4)
+      write(*,'(a,3e12.4)')'obio_init, settl rates for detr (per s): ',
      .      wsdeth(1),  wsdeth(2),  wsdeth(3)
 
-#ifdef limitDIC1
-      print*,'limit DIC to +0.5%'
-#endif
-#ifdef limitDIC2
-      print*,'limit DIC to +0.2%'
-#endif
-
-       write(*,'(a,3(f8.6,1x))'), 'OBIO remin rates (per day)=',
-     . remin(1)*24.,remin(2)*24.,remin(3)*24.
+       write(*,'(a,3(f8.6,1x))'), 'OBIO remin rates (per s)=',
+     . remin(1),remin(2),remin(3)
 
       write(*,*)'**************************************************'
       write(*,*)'**************************************************'
@@ -643,6 +574,70 @@ c  Read in factors to compute average irradiance
 
       return
       end subroutine obio_init
+
+c------------------------------------------------------------------------------
+#ifdef STANDALONE_OCEAN
+      subroutine obio_edaesa_g(filename1,filename2)
+!read in eda and esa
+!read in a field and convert to ocean grid (using Gary Russel's routine) 
+
+      USE FILEMANAGER, only: openunit,closeunit
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,unpack_data
+      USE OCEANR_DIM, only : ogrid
+
+      USE OCEANRES, only : imo,jmo,lmo
+      USE OCEAN, only : oDLATM=>DLATM,LMOM=>LMM,ZOE=>ZE,FOCEAN
+      USE obio_forc, only: Eda_glob, Esa_glob, Eda,Esa
+
+      implicit none
+
+
+      integer, parameter :: igrd=360,jgrd=180,kgrd=33
+      integer, parameter :: igrd2=288
+      integer, parameter :: nmo=12,nhr=12
+      integer i,j,k,l,n,lm
+      integer iu_file,lgth
+      real data1(igrd,jgrd)
+      real data2(igrd,jgrd)
+      real data_mask(igrd,jgrd)
+
+      integer imon,ihr
+
+      logical vrbos
+
+      character*80 filename1,filename2
+
+!--------------------------------------------------------------
+      if ( AM_I_ROOT() ) then
+      lgth=len_trim(filename1)
+      print*, 'obio-init: reading from file...',filename1(1:lgth)
+      call openunit(filename1,iu_file,.false.,.true.)
+
+      do imon=1,nmo; do ihr=1,nhr; do k=1,kgrd;
+          do i=1,igrd2; do j=1,jgrd
+          read(iu_file,'(e12.4)')Eda_glob(i,j,k,ihr,imon)
+          enddo; enddo    ! i,j-loop
+      enddo; enddo;enddo    ! k,imon
+      print*, 'completed reading ',filename1(1:lgth)
+      call closeunit(iu_file)
+      lgth=len_trim(filename2)
+      print*, 'obio-init: reading from file...',filename2(1:lgth)
+      call openunit(filename2,iu_file,.false.,.true.)
+
+      do imon=1,nmo; do ihr=1,nhr; do k=1,kgrd;
+          do i=1,igrd2; do j=1,jgrd
+          read(iu_file,'(e12.4)')Esa_glob(i,j,k,ihr,imon)
+          enddo; enddo    ! i,j-loop
+      enddo; enddo;enddo    ! k,imon
+      call closeunit(iu_file)
+      endif   !AM_I_ROOT
+!--------------------------------------------------------------
+
+      call unpack_data(ogrid, Eda_glob, Eda)
+      call unpack_data(ogrid, Esa_glob, Esa)
+
+      end subroutine obio_edaesa_g
+#endif /*  STANDALONE_OCEAN */
 
 c------------------------------------------------------------------------------
 
@@ -710,8 +705,6 @@ c------------------------------------------------------------------------------
      &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
       call add_ocn_tracer('Herb      ', i_ntrocn=-8, i_ntrocn_delta=-16,
      &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
-      call add_ocn_tracer('Inert     ', i_ntrocn=-4, i_ntrocn_delta=-12,
-     &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
       call add_ocn_tracer('N_det     ', i_ntrocn=-6, i_ntrocn_delta=-14,
      &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
       call add_ocn_tracer('S_det     ', i_ntrocn=-6, i_ntrocn_delta=-14,
@@ -768,53 +761,23 @@ c------------------------------------------------------------------------------
      &              "oij_pCO2", "uatm", .false., IJ_pCO2)
       call add_diag("Surface ocean alkalinity", "oij_alk",
      &              "umol/kg", .false., IJ_alk)
-      call add_diag("AO Flux CO2 (ogrid,grC/m2/yr)", "oij_flux",
-     &              "grC/m2/yr", .false., IJ_flux)
+      call add_diag("AO Flux CO2 (gr,CO2 or mol,CO2/m2/yr)", "oij_flux",
+     &              "depends if on atm/ocean grid", .false., IJ_flux)
       call add_diag("C export flux at compensation depth", "oij_cexp",
-     &              "mili-grC/m2/hr", .false., IJ_cexp)
+     &              "PgC/yr", .false., IJ_cexp)
       call add_diag("N/C detritus at 74m", "oij_ndet",
      &              "ugC/l", .false., IJ_ndet)
-      call add_diag("sink vel n/cdet at 74m", "oij_wsd",
-     &              "m/hr", .false., IJ_wsd)
+      call add_diag("settlvel n/cdet at 74m", "oij_setl",
+     &              "m/s", .false., IJ_setl)
+      call add_diag("sink vel phytopl at 74m", "oij_sink",
+     &              "m/s", .false., IJ_sink)
       call add_diag("C export due to chloroph", "oij_xchl",
-     &              "kg,C*m/hr", .false., IJ_xchl)
+     &              "kg,C*m/s", .false., IJ_xchl)
       if (tracers_alkalinity) then
         call add_diag("CaCO3 export flux at compensation depth",
-     &                "oij_fca", "mili-g,C/m2/hr", .false., IJ_fca)
+     &                "oij_fca", "mili-g,C/m2/s", .false., IJ_fca)
       endif
 
-#ifdef OBIO_RUNOFF
-#ifdef NITR_RUNOFF
-!      call add_diag("Nitrate mass flow from rivers", "oij_rnitrmflo",
-!     &               "kg/s", IJ_rnitrmflo)
-      call add_diag("Nitrate conc in runoff", "oij_rnitrconc",
-     &              "kg/kg", .false., IJ_rnitrconc)
-#endif
-#ifdef DIC_RUNOFF
-      call add_diag("DIC conc in runoff", "oij_rdicconc",
-     &              "kg/kg", .false., IJ_rdicconc)
-#endif
-#ifdef DOC_RUNOFF
-      call add_diag("DOC conc in runoff", "oij_rdocconc",
-     &              "kg/kg", .false., IJ_rdocconc)
-#endif
-#ifdef SILI_RUNOFF
-      call add_diag("silica conc in runoff", "oij_rsiliconc",
-     &              "kg/kg", .false., IJ_rsiliconc)
-#endif
-#ifdef IRON_RUNOFF
-      call add_diag("iron conc in runoff", "oij_rironconc",
-     &              "kg/kg", .false., IJ_rironconc)
-#endif
-#ifdef POC_RUNOFF
-      call add_diag("poc conc in runoff", "oij_rpocconc",
-     &              "kg/kg", .false., IJ_rpocconc)
-#endif
-#ifdef ALK_RUNOFF
-      call add_diag("alkalinity conc in runoff", "oij_ralkconc",
-     &              "mol/kg", .false., IJ_ralkconc)
-#endif
-#endif
       call add_diag("Depth integrated PP", "oij_pp",
      &              "mg,C/m2/day", .false., IJ_pp)
       call add_diag("PP-diat", "oij_pp1",
@@ -831,7 +794,7 @@ c------------------------------------------------------------------------------
           call add_diag(str1, str1, "?", .false., ij_lim(nt, ilim))
         end do
       end do
-      do nt=1, ntrac-1      ! don't include unused inert tracer
+      do nt=1, ntrac     
         do ll=1, 17
           write(str2, '(A4,A3,I2.2)') rhs_sym(nt), 'rhs', ll
           call add_diag(str2, str2, "?", .false., ij_rhs(nt, ll))

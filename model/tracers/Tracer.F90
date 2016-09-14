@@ -161,6 +161,7 @@ contains
 
     USE SpecialIO_mod, only: write_parallel
     use MpiSupport_mod, only: am_i_root
+    use SystemTools, only : stLinkStatus
 
     implicit none
 
@@ -172,11 +173,11 @@ contains
     integer :: n
     character*80 :: fname
     character(len=300) :: out_line
-    logical :: fileExists
-    integer :: nsrc
+    logical :: fileOrDirExists
+    integer :: nsrc,linkstatus
 
     ! loop through potential number of surface sources, checking if
-    ! those files exist. If they do, obtain the source name by reading
+    ! those files (or directories) exist. If they do, obtain the source name by reading
     ! the header. If not, the number of sources for this tracer has 
     ! been reached.
 
@@ -185,10 +186,17 @@ contains
     loop_n: do n = 1, ntsurfsrcmax
 
       fname = addIntegerSuffix(getName(trcer), n)
-      inquire(file=trim(fname), exist=fileExists)
-      if (am_i_root()) print*,'name: ', trim(fname), fileExists
+      call stLinkStatus(trim(fname), linkstatus)
+      select case(linkstatus)
+      case(1,2) ! TODO: no hardcoded integers
+        fileOrDirExists=.true.
+      case default
+        fileOrDirExists=.false.
+      end select
+      
+      if (am_i_root()) print*,'name: ', trim(fname), fileOrDirExists
 
-      if (fileExists) then
+      if (fileOrDirExists) then
         nsrc=nsrc+1
         call addSourceFromFile(trcer, fname)
       else
@@ -200,9 +208,15 @@ contains
 
     n=n+1
     fname = addIntegerSuffix(getName(trcer), n)
-    inquire(file=fname,exist=fileExists)
+    call stLinkStatus(trim(fname), linkstatus)
+    select case(linkstatus)
+    case(1,2) ! TODO: no hardcoded integers
+      fileOrDirExists=.true.
+    case default
+      fileOrDirExists=.false.
+    end select
 
-    if (fileExists) then
+    if (fileOrDirExists) then
       write(out_line,*)'problem in findSurfaceSources.', &
            &        ' Possibly missing source? n=',n-1
       call write_parallel(trim(out_line))

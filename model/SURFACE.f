@@ -60,7 +60,7 @@ C****
       USE DIAG_COM, only : ndasf,ia_srf
      &     ,aij=>aij_loc,ij_dskin,ij_dskinsnow  ! temporarily still here
       USE SEAICE, only : xsi,ace1i,alami0,rhoi,byrls,solar_ice_frac
-     *     ,tfrez,dEidTi,alami
+     *     ,tfrez,dEidTi,alami,dEidTiws
       USE SEAICE_COM, only : si_atm
       USE LAKES_COM, only : mwl,gml,flake,icelak
       USE LAKES, only : minmld
@@ -144,7 +144,7 @@ C****
      *     ,FSRI(2),HTLIM,dlwdt,byNIsurf,TGO,SRHDT
      *     ,PEARTH
 
-      REAL*8 MA1, MSI1
+      REAL*8 MA1, MSI1, MICE(2), SNOWL(2)
 
 !@var XXX_sv temporary arrays to store the values of fluxes for
 !@+   the current surface timestep for a few flux diagnostics that
@@ -502,8 +502,28 @@ C****
 C**** determine heat capacity etc for top ice layers
       dF1dTG = 2./(ACE1I/(RHOI*alami(TG1,1d3*((SSI(1,I,J)+SSI(2,I,J))
      *     /ACE1I)))+SNOW*BYRLS)
-      HCG1 = dEidTi(TG1,1d3*(SSI(1,I,J)/(XSI(1)*MSI1)))*XSI(1)*MSI1
-      HCG2 = dEidTi(TG2,1d3*(SSI(2,I,J)/(XSI(2)*MSI1)))*XSI(2)*MSI1
+
+      IF (ACE1I.gt.XSI(2)*MSI1) THEN ! some ice in first layer
+        MICE(1) = ACE1I-XSI(2)*MSI1
+        MICE(2) = XSI(2)*MSI1
+c       SNOWL(1)= SNOW
+        SNOWL(1)= MSI1-ACE1I
+        SNOWL(2)= 0.
+      ELSE  ! some snow in second layer
+        MICE(1) = 0.
+        MICE(2) = ACE1I
+        SNOWL(1)= XSI(1)*MSI1
+        SNOWL(2)= XSI(2)*MSI1-ACE1I
+      ENDIF
+      IF(MICE(1).NE.0.) THEN
+      HCG1 = dEidTiws(TG1,1d3*(SSI(1,I,J)/MICE(1)),SNOWL(1),MICE(1))
+     *      *XSI(1)*MSI1
+      ELSE
+      HCG1 = dEidTiws(TG1,0d0,SNOWL(1),0d0)
+     *      *XSI(1)*MSI1
+      ENDIF
+      HCG2 = dEidTiws(TG2,1d3*(SSI(2,I,J)/MICE(2)),SNOWL(2),MICE(2))
+     *      *XSI(2)*MSI1
 
       SRHEAT=FSF(ITYPE,I,J)*COSZ1(I,J)
       atmice%SOLAR(I,J)=atmice%SOLAR(I,J)+DTSURF*SRHEAT
@@ -2353,7 +2373,12 @@ C****
       type (t_pbl_args), intent(in) :: pbl_args
 c
       real*8 :: trgrnd,trs
-      real*8, external ::  alpha_gas2_co2, alpha_gas2_cfc
+#ifdef TRACERS_GASEXCH_ocean_CO2
+      real*8, external ::  alpha_gas2_co2
+#endif
+#ifdef TRACERS_GASEXCH_ocean_CFC
+      real*8, external ::  alpha_gas2_cfc
+#endif
       real*8, dimension(:,:,:), pointer :: TRGASEX
       integer :: n,nx,ngx
 
@@ -2433,9 +2458,13 @@ C****
         trs=pbl_args%trs(nx)
         ngx=gasex_index%getindex(n)
         if (n==n_co2n) then
+#ifdef TRACERS_GASEXCH_ocean_CO2
           alpha_gas2=>alpha_gas2_co2
+#endif
+#ifdef TRACERS_GASEXCH_ocean_CFC
         else if (n==n_cfcn) then
           alpha_gas2=>alpha_gas2_cfc
+#endif
         else
           cycle
         endif

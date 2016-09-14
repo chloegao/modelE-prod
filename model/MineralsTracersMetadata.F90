@@ -29,7 +29,6 @@ module MineralsTracersMetadata_mod
     n_sil5quar, n_sil5feld, n_sil5hema, n_sil5gyps, &
     n_sil5ilhe, n_sil5kahe, n_sil5smhe, n_sil5cahe, &
     n_sil5quhe, n_sil5fehe, n_sil5gyhe
-  use TRACER_COM, only: set_ntsurfsrc
   use OldTracer_mod, only: oldAddTracer
   use OldTracer_mod, only: set_tr_mm, set_ntm_power
   use OldTracer_mod, only: set_trpdens
@@ -42,7 +41,7 @@ module MineralsTracersMetadata_mod
   use RunTimeControls_mod, only: tracers_dust_silt4
   use RunTimeControls_mod, only: tracers_dust_silt5
   use RunTimeControls_mod, only: tracers_drydep
-  use tracers_dust, only : densityIllite, densityKaolinite, densitySmectite, &
+  use trdust_mod, only : densityIllite, densityKaolinite, densitySmectite, &
        densityCalcite, densityQuartz, densityFeldspar, densityHematite, &
        densityGypsum, frIronOxideInAggregate
   use Tracer_mod, only: Tracer

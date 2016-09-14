@@ -7,6 +7,7 @@
       use RunTimeControls_mod, only: tracers_tomas
       use OldTracer_mod, only: trName, do_fire, do_aircraft
       use OldTracer_mod, only: set_do_fire, set_do_aircraft
+      use OldTracer_mod, only: set_first_aircraft, first_aircraft
       use OldTracer_mod, only: nBBsources, set_nBBsources
       use DOMAIN_DECOMP_ATM, only: am_i_root
       use TRACER_COM, only: tracers
@@ -16,6 +17,7 @@
       use Tracer_mod, only: Tracer
       use Tracer_mod, only: findSurfaceSources
       use Tracer_mod, only: addSurfaceSource
+      use SystemTools, only: stLinkStatus
 #ifdef TRACERS_SPECIAL_Shindell      
       use TRCHEM_Shindell_COM, only: use_rad_ch4
 #endif
@@ -24,8 +26,8 @@
       integer, intent(in) :: n
       class (Tracer), pointer :: pTracer
 
-      logical :: checkSourceName,hasAircraftFile
-      integer :: val
+      logical :: checkSourceName
+      integer :: val, linkstatus
 
       call pTracer%insert('ntSurfSrc', 0)
 
@@ -51,9 +53,13 @@
       call findSurfaceSources(pTracer, checkSourceName, 
      &     sect_name(1:num_sectors))
 
-!     Next, check whether tracers have 3D aircraft source files:
-      inquire(file=trim(trname(n)//'_AIRC'), exist=hasAircraftFile)
-      if(hasAircraftFile) call set_do_aircraft(n, .true.)
+!     Next, check whether tracers have 3D aircraft source files/dirs:
+      call stLinkStatus(trim(trname(n)//'_AIRC'),linkstatus)
+      select case(linkstatus)
+      case(1,2) ! TODO: no hardcoded integers
+        call set_do_aircraft(n, .true.)
+        call set_first_aircraft(n, .true.)
+      end select
 
 #ifdef DYNAMIC_BIOMASS_BURNING
 !     allow some tracers to have biomass burning based on fire model:
@@ -78,32 +84,18 @@
 
 !     allow some tracers to have biomass burning sources that mix over
 !     PBL layers (these become 3D sources no longer within ntsurfsrc(n)):
-        select case (trname(n))
-          case ('Alkenes', 'CO', 'NOx', 'Paraffin', 'codirect',
-#ifdef TRACERS_SPECIAL_Shindell
-     &         'CH4',           ! in here to avoid potential Lerner tracers conflict
-#endif
-#ifdef TRACERS_dCO
-     *         'dC17O', 'dC18O', 'd13CO',
-#endif  /* TRACERS_dCO */
-     &         'AECOB_01','AOCOB_01', 
-     &         'NH3', 'SO2', 'BCB', 'OCB', ! do not include sulfate here
-     &         'vbsAm2', 'vbsAm1', 'vbsAz',  'vbsAp1', 'vbsAp2',
-     &         'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6',
-     &         'M_BC1_BC', 'M_OCC_OC', 'M_BOC_BC', 'M_BOC_OC')
-          val = nBBsources(n)
-          call sync_param(trim(trname(n))//"_nBBsources",val)
-          call set_nBBsources(n, val)
-          if(nBBsources(n)>0)then
-            if(do_fire(n))then
-              if(am_i_root())write(6,*)
-     &             'nBBsource>0 for ',trim(trname(n)),' do_fire=t'
-              call stop_model('nBBsource do_fire conflict',13)
-            else
-              call set_ntsurfsrc(n, ntsurfsrc(n)-nBBsources(n))
-            end if
+        val = nBBsources(n)
+        call sync_param(trim(trname(n))//"_nBBsources",val)
+        call set_nBBsources(n, val)
+        if(nBBsources(n)>0)then
+          if(do_fire(n))then
+            if(am_i_root())write(6,*)
+     &           'nBBsource>0 for ',trim(trname(n)),' do_fire=t'
+            call stop_model('nBBsource do_fire conflict',13)
+          else
+            call set_ntsurfsrc(n, ntsurfsrc(n)-nBBsources(n))
           end if
-        end select
+        end if
         if(do_fire(n) .and.  (ntsurfsrc(n)+1 > ntsurfsrcmax))then
           write(6,*)trname(n),'ntsurfsrc+1 > max of ',ntsurfsrcmax
           call stop_model('do_fire+ntsurfsrc too large',13)
@@ -489,7 +481,7 @@
       use OldTracer_mod, only: itime_tr0
       use OldTracer_mod, only: set_itime_tr0
       USE TRACER_COM, only: NTM, tracers, syncProperty
-      use TRACER_COM, only: coupled_chem
+      use TRACER_COM, only: coupled_chem,nc_emis_use_ppm_interp
       use Dictionary_mod, only: sync_param,is_set_param,get_param
       use RAD_COM, only: diag_fc
 #ifdef TRACERS_SPECIAL_O18
@@ -511,7 +503,7 @@
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM,only:LCOalt,PCOalt,
      &     CH4altINT,CH4altINX,LCH4alt,PCH4alt,
-     &     CH4altX,CH4altT,ch4_init_sh,ch4_init_nh,scale_ch4_IC_file,
+     &     CH4altX,CH4altT,scale_ch4_IC_file,
      &     OxICIN,OxIC,OxICINL,OxICL,
      &     fix_CH4_chemistry,which_trop,PI_run,PIratio_N,PIratio_CO_T,
      &     PIratio_CO_S,PIratio_other,allowSomeChemReinit,
@@ -553,7 +545,7 @@
 #endif  /* TRACERS_AEROSOLS_VBS */
       USE TRACER_COM, only: no_emis_over_ice
 #ifdef TRACERS_MINERALS
-      use tracers_dust, only: frIronOxideInAggregate,
+      use trdust_mod, only: frIronOxideInAggregate,
      &     noAggregateByTotalFeox
 #endif
       use Model_com, only: itime
@@ -575,6 +567,7 @@ C****
 
 C**** Synchronise tracer related parameters from rundeck
 
+      call sync_param("nc_emis_use_ppm_interp",nc_emis_use_ppm_interp)
  
 #ifdef TRACERS_WATER
 C**** Decide on water tracer conc. units from rundeck if it exists
@@ -747,7 +740,11 @@ C**** get rundeck parameter for cosmogenic source factor
 !------------------------------------------------------------------------------
       subroutine InitTracerDiagMetadata()
 !------------------------------------------------------------------------------
+      use TRACER_COM, only: remake_tracer_lists
       implicit none
+
+C**** create tracer lists, needed for some diagnostic output decisions
+      call remake_tracer_lists()
 
 C**** Set some diags that are the same regardless
       call set_generic_tracer_diags

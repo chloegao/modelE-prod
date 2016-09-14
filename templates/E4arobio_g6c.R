@@ -47,7 +47,7 @@ STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 #include "tracer_shared_source_files"
 OCN_Int_LATLON                      ! atm-ocn regrid routines
 
-#include "ocarbon_cycle_oR_files" ! both gas exch and ocean tracer oR model
+#include "ocarbon_cycle_oR_files" /* both gas exch and ocean tracer oR model */
 
 Components:
 tracers Ent shared MPI_Support solvers giss_LSM dd2d

@@ -153,7 +153,7 @@ c
      .   '   buoyfl,ustar,mldpth:',buoyfl,ustar(i,j),dpmixl(i,j,n)/onem
  13   continue
 c
-      end if		! if (iocnmx.gt.4) use KT depth
+      end if       ! if (iocnmx.gt.4) use KT depth
 c
 c --- except for KPP, surface boundary layer is the mixed layer
       if (mod(iocnmx,4).eq.3) then		! GISS scheme
@@ -167,7 +167,7 @@ c --- except for KPP, surface boundary layer is the mixed layer
             enddo !i
           enddo !l
         enddo !j
-      endif				! GISS scheme
+      endif     ! GISS scheme
 c --- diffusivity/viscosity calculation
 c
       CALL HALO_UPDATE(ogrid,corio,FROM=NORTH)
@@ -194,21 +194,21 @@ ccc      endif
 c
 c ---   final mixing of variables at p points
 c
-      if (iocnmx.ne.0) then		! carry out mixing
+      if (iocnmx.ne.0) then    ! carry out mixing
         do j=J_0,J_1
           call mxkprfbj(nn,k1n,j)
         enddo
 c
 c --- final velocity mixing at u,v points
 c
-        CALL HALO_UPDATE(ogrid,vcty,FROM=SOUTH)  
+        CALL HALO_UPDATE(ogrid,vcty,FROM=SOUTH)
         CALL HALO_UPDATE(ogrid,dpmixl(:,:,1),FROM=SOUTH)
         CALL HALO_UPDATE(ogrid,dpmixl(:,:,2),FROM=SOUTH)
 
         do j=J_0,J_1
           call mxkprfcj(nn, j)
         enddo
-      end if				! carry out mixing
+      end if       ! carry out mixing
 
       if (dotrcr) write (lp,'(a)') 'tracer kpp mixing done'
 c
@@ -279,7 +279,7 @@ c ---       this may not vectorize, but is used infrequently.
                 endif
 c
                 if (thjmp(k).ge.sigmlj) then
-c             
+c
 c ---             find the density on the interface between layers
 c ---             k-1 and k, using the same cubic polynominal as PQM
 c
@@ -297,31 +297,31 @@ c ---               linear between cell centers
      &                                   max( dp(i,j,kn  )+
      &                                        dp(i,j,kn-1) ,
      &                                        onemm )
-                  else                                           
-                    thsur      = min(thloc(k+1),thsur)           
+                else
+                    thsur      = min(thloc(k+1),thsur)
                     thjmp(k+1) = max(thloc(k+1)-thsur,
-     &                               thjmp(k))        
+     &                               thjmp(k))
                     zintf = zgrid(i,j,k-1) - 0.5*dp(i,j,kn-1)/onem
                     thtop = thjmp(k-2)*
      &                        ((zintf         -zgrid(i,j,k-1))*
      &                         (zintf         -zgrid(i,j,k  ))*
      &                         (zintf         -zgrid(i,j,k+1)) )/
-     &                        ((zgrid(i,j,k-2)-zgrid(i,j,k-1))* 
-     &                         (zgrid(i,j,k-2)-zgrid(i,j,k  ))* 
+     &                        ((zgrid(i,j,k-2)-zgrid(i,j,k-1))*
+     &                         (zgrid(i,j,k-2)-zgrid(i,j,k  ))*
      &                         (zgrid(i,j,k-2)-zgrid(i,j,k+1)) ) +
      &                      thjmp(k-1)*
-     &                        ((zintf         -zgrid(i,j,k-2))*    
-     &                         (zintf         -zgrid(i,j,k  ))*    
+     &                        ((zintf         -zgrid(i,j,k-2))*
+     &                         (zintf         -zgrid(i,j,k  ))*
      &                         (zintf         -zgrid(i,j,k+1)) )/
-     &                        ((zgrid(i,j,k-1)-zgrid(i,j,k-2))* 
-     &                         (zgrid(i,j,k-1)-zgrid(i,j,k  ))* 
+     &                        ((zgrid(i,j,k-1)-zgrid(i,j,k-2))*
+     &                         (zgrid(i,j,k-1)-zgrid(i,j,k  ))*
      &                         (zgrid(i,j,k-1)-zgrid(i,j,k+1)) ) +
      &                      thjmp(k  )*
-     &                        ((zintf         -zgrid(i,j,k-2))*    
-     &                         (zintf         -zgrid(i,j,k-1))*    
+     &                        ((zintf         -zgrid(i,j,k-2))*
+     &                         (zintf         -zgrid(i,j,k-1))*
      &                         (zintf         -zgrid(i,j,k+1)) )/
-     &                        ((zgrid(i,j,k  )-zgrid(i,j,k-2))* 
-     &                         (zgrid(i,j,k  )-zgrid(i,j,k-1))* 
+     &                        ((zgrid(i,j,k  )-zgrid(i,j,k-2))*
+     &                         (zgrid(i,j,k  )-zgrid(i,j,k-1))*
      &                         (zgrid(i,j,k  )-zgrid(i,j,k+1)) ) +
      &                      thjmp(k+1)*
      &                        ((zintf         -zgrid(i,j,k-2))*
@@ -435,7 +435,7 @@ c
               dpmx=dpmixl(i,j,n)+dpmixl(i-1,j,n)
               delp=min(p(i,j,2)+p(i-1,j,2),dpmx)
               umix(i,j)=delp*u(i,j,k1n)
-              do k=2,kk 
+              do k=2,kk
               kn=k+nn
                 delp= min(p(i,j,k+1)+p(i-1,j,k+1),dpmx)
      &               -min(p(i,j,k  )+p(i-1,j,k  ),dpmx)
@@ -555,7 +555,7 @@ c
 
       implicit none
       integer,intent(IN) :: nn,j
-      integer            :: i,l 
+      integer            :: i,l
       logical vrbos
 c
       do l=1,isu(j)
@@ -599,7 +599,7 @@ c
       USE HYCOM_DIM, only: jj, kk, kdm
       USE HYCOM_SCALARS
       USE HYCOM_ARRAYS
-      USE KPRF_ARRAYS_LOC_RENAMER, only: 
+      USE KPRF_ARRAYS_LOC_RENAMER, only:
      +    akpar, betabl, betard, redfac, sswflx,
      +    zgrid, vcty, dift, difs, mixflx, dpbl, dpbbl,
      +    jerlov, ghats, hmonob, hekman, buoflx, bhtflx
@@ -628,7 +628,7 @@ c local variables for kpp mixing
       real betads(kdm+1)       ! s contribution to density jump
       real swfrml              ! fractional surface sw rad flux at ml base
       real ritop(kdm)          ! numerator of bulk richardson number
-      real dbloc(kdm+1)        ! buoyancy jump across interface 
+      real dbloc(kdm+1)        ! buoyancy jump across interface
       real dvsq(kdm)           ! squared current shear for bulk richardson no.
       real zgridb(kdm+1)       ! zgrid for bottom boundary layer
       real hwide(kdm)          ! layer thicknesses in m (minimum 1mm)
@@ -800,9 +800,9 @@ c
             dtemp=(sflux1+(1.-swfrac(k+1))*sswflx(i,j))*
      &            delt1*g*qspcifh*qdpmm(k)
             dsaln=salflx(i,j)*
-     &            delt1*g*        qdpmm(k) 
+     &            delt1*g*        qdpmm(k)
             if (vrbos) then
-              write (lp,101) nstep,i,j,k, 
+              write (lp,101) nstep,i,j,k,
      &          1.0,swfrac(k+1),dtemp,dsaln
               call sys_flush(lp)
             endif
@@ -818,7 +818,7 @@ c
           else !k.gt.klist(i,j)
             dtemp=0.0
             dsaln=0.0
-          endif 
+          endif
         else !.not.thermo ...
           dtemp=0.0
           dsaln=0.0
@@ -854,7 +854,7 @@ c --- modify t and s; set old value arrays at p points for initial iteration
         endif
       enddo
 c
-      if (iocnmx.eq.0) return			! skip mixing
+      if (iocnmx.eq.0) return     ! skip mixing
 c
       k=klist(i,j)
       kn=k+nn
@@ -1022,7 +1022,7 @@ c --- shear instability plus background internal wave contributions
             difs(i,j,k)=dflsiw
           endif
           dift(i,j,k)=difs(i,j,k)
-        enddo 
+        enddo
 c
 c --- double-diffusion (salt fingering and diffusive convection)
         if (dbdiff) then
@@ -1061,7 +1061,7 @@ CTNL &     k=1,kk+1)
         endif
 c
         if (iocnmx.gt.4) then
-          hbl=dpmixl(i,j,n)/onem	! use Kraus-Turner ML depth
+          hbl=dpmixl(i,j,n)/onem   ! use Kraus-Turner ML depth
 c
         else
 c
@@ -1098,7 +1098,7 @@ c --- salflx, sswflx and surflx are positive into the ocean
           buoyfl=buoyfs+
      &           g*thref*(dsgdt          *surflx(i,j)*thref/spcifh)
           buoysw=g*thref*(dsgdt          *sswflx(i,j)*thref/spcifh)
-c 
+c
 c --- diagnose the new boundary layer depth as the depth where a bulk
 c --- richardson number exceeds ric
 c
@@ -1284,7 +1284,7 @@ c --- find new nbl and re-calculate swfrml
 c
 c --- find forcing stability and buoyancy forcing for final hbl values
 c --- determine case (for case=0., hbl lies between -zgrid(i,j,nbl)
-c --- and the interface above. for case=1., hbl lies between 
+c --- and the interface above. for case=1., hbl lies between
 c --- -zgrid(i,j,nbl-1) and the interface below)
 c
 c --- velocity scales at hbl
@@ -1320,17 +1320,17 @@ c
         dvdzup=(difs(i,j,nbl-1)-difs(i,j,nbl  ))/hwide(nbl-1)
         dvdzdn=(difs(i,j,nbl  )-difs(i,j,nbl+1))/hwide(nbl  )
         difsp=.5*((1.-q)*(dvdzup+abs(dvdzup))+q*(dvdzdn+abs(dvdzdn)))
-        dvdzup=(dift(i,j,nbl-1)-dift(i,j,nbl  ))/hwide(nbl-1) 
+        dvdzup=(dift(i,j,nbl-1)-dift(i,j,nbl  ))/hwide(nbl-1)
         dvdzdn=(dift(i,j,nbl  )-dift(i,j,nbl+1))/hwide(nbl  )
         diftp=.5*((1.-q)*(dvdzup+abs(dvdzup))+q*(dvdzdn+abs(dvdzdn)))
 c
-        f1=-stable*c11*bfsfc/(ustar(i,j)**4+epsil) 
+        f1=-stable*c11*bfsfc/(ustar(i,j)**4+epsil)
 c
         gat1(1)=vctyh/hbl/(wm+epsil)
         dat1(1)=min(0.,-viscp/(wm+epsil)+f1*vctyh)
 c
         gat1(2)=difsh/hbl/(ws+epsil)
-        dat1(2)=min(0.,-difsp/(ws+epsil)+f1*difsh) 
+        dat1(2)=min(0.,-difsp/(ws+epsil)+f1*difsh)
 c
         gat1(3)=difth/hbl/(ws+epsil)
         dat1(3)=min(0.,-diftp/(ws+epsil)+f1*difth)
@@ -1348,7 +1348,7 @@ c --- compute the dimensionless shape functions at the interfaces
             aa2=3.-2.*sigg
             aa3=sigg-1.
 c
-            gm=aa1+aa2*gat1(1)+aa3*dat1(1) 
+            gm=aa1+aa2*gat1(1)+aa3*dat1(1)
             gs=aa1+aa2*gat1(2)+aa3*dat1(2)
             gt=aa1+aa2*gat1(3)+aa3*dat1(3)
 c
@@ -1366,7 +1366,7 @@ c --- compute nonlocal transport forcing term = ghats * <ws>o
 c
 c --- enhance diffusivities on the interface closest to hbl
 c
-c --- first compute diffusivities at nbl-1 grid level 
+c --- first compute diffusivities at nbl-1 grid level
         sigg=-zgrid(i,j,nbl-1)/hbl
         dnorm=stable*sigg+(1.-stable)*min(sigg,epsilon)
 c
@@ -1394,15 +1394,15 @@ c --- below hbl when hbl is located in a very thick layer
         delta=(hbl+zgrid(i,j,k))/(zgrid(i,j,k)-zgrid(i,j,ka))
 c
         dkmp2=case*vcty(i,j,ka)+(1.-case)*blmc(ka,1)
-        dstar=(1.-delta)**2*dkm1(1)+delta**2*dkmp2      
+        dstar=(1.-delta)**2*dkm1(1)+delta**2*dkmp2
         blmc(ka,1)=(1.-delta)*vcty(i,j,ka)+delta*dstar
 c
         dkmp2=case*difs(i,j,ka)+(1.-case)*blmc(ka,2)
-        dstar=(1.-delta)**2*dkm1(2)+delta**2*dkmp2    
+        dstar=(1.-delta)**2*dkm1(2)+delta**2*dkmp2
         blmc(ka,2)=(1.-delta)*difs(i,j,ka)+delta*dstar
 c
         dkmp2=case*dift(i,j,ka)+(1.-case)*blmc(ka,3)
-        dstar=(1.-delta)**2*dkm1(3)+delta**2*dkmp2     
+        dstar=(1.-delta)**2*dkm1(3)+delta**2*dkmp2
         blmc(ka,3)=(1.-delta)*dift(i,j,ka)+delta*dstar
 c
         if (case.eq.1.) then
@@ -1473,7 +1473,7 @@ c
         hbblmin=1.0
         hbblmax=zgridb(2)
 *     hbblmax=min(-hbl-zgrid(i,j,klist(i,j)+1),2.0*thkbot)
-c     
+c
 c --- buoyfl = buoyancy flux (m**2/sec**3) into bottom due to heating by
 c ---          the penetrating shortwave radiation
 c --- note: bottom density increases (column is destabilized) if buoyfl < 0
@@ -1501,7 +1501,7 @@ c
         endif
         buoysw=-g*thref*dsgdt*sswflx(i,j)*thref/spcifh
         buoyfl=-swfrac(klist(i,j)+1)*buoysw
-c     
+c
 c --- diagnose the new boundary layer depth as the depth where a bulk
 c --- richardson number exceeds ric
 c
@@ -1524,8 +1524,8 @@ c --- bottom buoyancy is estimated assuming a linear vertical
 c --- profile across the bottom layer
 c
         bref=g*thref*(0.5*(3.0*thold(klist(i,j))-
-     &     thold(klist(i,j)-1))+35.)		! 35 stands for thbase
-c     
+     &     thold(klist(i,j)-1))+35.)     ! 35 stands for thbase
+c
 c --- diagnose hbbl and nbbl
         do k=klist(i,j),nbbl,-1
           ritop(k)=max(zgridb(k)*(bref-g*thref*thold(k)),
@@ -1658,7 +1658,7 @@ c --- calculate swfrml, the fraction of solar radiation absorbed by depth hbbl
 c
 c --- find forcing stability and buoyancy forcing for final hbbl values
 c --- determine case (for case=0., hbbl lies between -zgridb(nbbl)
-c --- and the interface below. for case=1., hbbl lies between 
+c --- and the interface below. for case=1., hbbl lies between
 c --- -zgrid(nbbl+1) and the interface above)
 c
 c --- velocity scales at hbbl
@@ -1690,17 +1690,17 @@ c
         dvdzup=-(difs(i,j,nbbl  )-difs(i,j,nbbl+1))/hwide(nbbl  )
         dvdzdn=-(difs(i,j,nbbl+1)-difs(i,j,nbbl+2))/hwide(nbbl+1)
         difsp=.5*((1.-q)*(dvdzup+abs(dvdzup))+q*(dvdzdn+abs(dvdzdn)))
-        dvdzup=-(dift(i,j,nbbl  )-dift(i,j,nbbl+1))/hwide(nbbl) 
+        dvdzup=-(dift(i,j,nbbl  )-dift(i,j,nbbl+1))/hwide(nbbl)
         dvdzdn=-(dift(i,j,nbbl+1)-dift(i,j,nbbl+2))/hwide(nbbl+1)
         diftp=.5*((1.-q)*(dvdzup+abs(dvdzup))+q*(dvdzdn+abs(dvdzdn)))
 c
-        f1=stable*c11*bfbot/(ustarb(i,j)**4+epsil) 
+        f1=stable*c11*bfbot/(ustarb(i,j)**4+epsil)
 c
         gat1(1)=vctyh/hbbl/(wm+epsil)
         dat1(1)=min(0.,-viscp/(wm+epsil)+f1*vctyh)
 c
         gat1(2)=difsh/hbbl/(ws+epsil)
-        dat1(2)=min(0.,-difsp/(ws+epsil)+f1*difsh) 
+        dat1(2)=min(0.,-difsp/(ws+epsil)+f1*difsh)
 c
         gat1(3)=difth/hbbl/(ws+epsil)
         dat1(3)=min(0.,-diftp/(ws+epsil)+f1*difth)
@@ -1717,7 +1717,7 @@ c --- compute the dimensionless shape functions at the interfaces
           aa2=3.-2.*sigg
           aa3=sigg-1.
 c
-          gm=aa1+aa2*gat1(1)+aa3*dat1(1) 
+          gm=aa1+aa2*gat1(1)+aa3*dat1(1)
           gs=aa1+aa2*gat1(2)+aa3*dat1(2)
           gt=aa1+aa2*gat1(3)+aa3*dat1(3)
 c
@@ -1801,8 +1801,8 @@ c --- perform the vertical mixing at p points
 c
           do k=1,klist(i,j)
             kn=k+nn
-            difft(k+1)=dift(i,j,k+1)*ocnmx_factor_t
-            diffs(k+1)=difs(i,j,k+1)*ocnmx_factor_s
+            difft(k+1)=dift(i,j,k+1)
+            diffs(k+1)=difs(i,j,k+1)
             diffm(k+1)=vcty(i,j,k+1)
             ghat(k+1)=ghats(i,j,k+1)
             t1do(k)=temp(i,j,kn)
@@ -1959,8 +1959,8 @@ c     level k and k+1 and ak{m,h,s}(k) should be used to mix levels k and k+1.
 c     n is (nlayers-1) because there are nlayers-1 ocean interfaces to
 c     be mixed.
 c
-c     In the mixed layer the model diffusivity for each field is a product of 
-c     a dimensionless function of the two variables ria and rid 
+c     In the mixed layer the model diffusivity for each field is a product of
+c     a dimensionless function of the two variables ria and rid
 c     and the Shear and the square of a lengthscale.
 c     The lengthscale is proportional to depth near the surface but asymptotes
 c     towards a fixed fraction of the Mixed Layer Depth deeper in the mixed
@@ -1977,10 +1977,10 @@ c       additional factor multiplying the `epsilon/N^2' for deep mixing
 c       based on the formula cited as from Henyey et. al,
 c       JGR vol.91 8487-8495,1986) in Gregg et al. where it is shown
 c       confirmed by observations for lower latitudes except for being
-c       low very near the equator. 
+c       low very near the equator.
 c       I place a minimum, "eplatidepmin", on the Gregg et al. factor, "L".
 c       Note that Gregg et. al.'s formula:
-c         L(\theta,N) = 
+c         L(\theta,N) =
 c         (|f| cosh^{-1} (N/|f|))/(f_30^o cosh^{-1} (N_0/f_30^o)
 c       is only defined as a real number when N > |f|, since arccosh
 c       can only be defined as a real for arguments of at least 1.
@@ -1989,7 +1989,7 @@ c       I decide to set "L(\theta,N)" to "eplatidepmin"FOR (N/f < 1).
 c       This corresponds to setting a floor of 1 on (N/f).
 c       for foreground mixing at depth detached from the mixed-layer
 c       I revert to the "deep" lengthscale, which uses density gradients,
-c       in case (N/f)<1 to try not to make deep arctic&subarctic mixing 
+c       in case (N/f)<1 to try not to make deep arctic&subarctic mixing
 c       too small.
 c
 c-----------------------------------------------------------------------------
@@ -2015,8 +2015,8 @@ c
 c
       include 'kprf_scalars.h'
 c
-      real, parameter :: difmax = 9999.0e-4  !maximum diffusion/viscosity     
-      real, parameter :: acormin= 2.5453e-6  !minimum abs(corio), i.e. 1 degN 
+      real, parameter :: difmax = 9999.0e-4  !maximum diffusion/viscosity
+      real, parameter :: acormin= 2.5453e-6  !minimum abs(corio), i.e. 1 degN
 c
 c --- local variables for giss mixing
 c
@@ -2276,7 +2276,7 @@ c
      &        nstep,k,zgrid(i,j,k),hwide(k),z1d(k),
      &        th1d(k),u1d(k),v1d(k)
         enddo
-        write(6,'(a,a9,a3,3a13)') 
+        write(6,'(a,a9,a3,3a13)')
      &    'giss1din2','    nstep','  k',
      &    '           s2','          ria','          rid'
         do k=1,klist(i,j)
@@ -2312,8 +2312,8 @@ c
 c --- START OF FIRST LOOP THROUGH LEVELS
 c
       if (ifepson2.eq.2) then
-c ---   Initialize switch for sub(background-only) depth. 
-        ifbelow=0      
+c ---   Initialize switch for sub(background-only) depth.
+        ifbelow=0
       endif
 c
 c --- depth-grid dooloop starts here
@@ -2329,7 +2329,7 @@ c
 c --- Check that "slq2" has been set to 0 where it might have been negative.
       if (slq2.lt.0.) then
         write(lp,*) "************************************************"
-        write(lp,*) "Error detected in turbulence module." 
+        write(lp,*) "Error detected in turbulence module."
         write(lp,*) "'slq2' negative in turb_2 subroutine"
      &               //" after interpolation."
         write(lp,*) "k=",k,"     slq2=",slq2
@@ -2399,14 +2399,14 @@ c --- BEGIN SECTION .or.SALINITY MODEL BACKGROUND DIFFUSIVITY CALCULATION.
       if (ifsali.gt.0) then
 c
       if (ifsalback.ge.4) then
-c --- Change ALL THREE BACKGROUND DIFFUSIVITIES from input values to 
+c --- Change ALL THREE BACKGROUND DIFFUSIVITIES from input values to
 c --- diffusivities calculated using the turbulence model
-c --- with Ri and l_0 replaced by constants 'ri_internal' and 'back_l_0' 
+c --- with Ri and l_0 replaced by constants 'ri_internal' and 'back_l_0'
 c --- and S^2 replaced by  (N^2 / Ri_internal) for N^2>=0 and 0 for N^2 <0
 c --- to represent a modified Dubovikov internal wave generated turbulence
 c --- with constant Richardson number for ifsalback=4 case.
 c
-c --- Use a constant background Ri estimate. 
+c --- Use a constant background Ri estimate.
       if (ifsalback.EQ.4) then
         back_rit1 = 0.
         back_ric1 = 0.
@@ -2414,16 +2414,16 @@ c --- Use a constant background Ri estimate.
         back_rid1 = (rid1/ri1)*ri_internal
       else
 c
-c --- Change ALL THREE BACKGROUND DIFFUSIVITIES from input values to 
+c --- Change ALL THREE BACKGROUND DIFFUSIVITIES from input values to
 c --- diffusivities calculated using the turbulence model
-c --- with l_0 replaced by a constant 'back_l_0' and 
+c --- with l_0 replaced by a constant 'back_l_0' and
 c --- Ri by a function of Ri_d
 c --- and S^2 replaced by  (N^2 / Ri_internal) for N^2>=0 and 0 for N^2 <0
 c --- to represent a modified Dubovikov internal wave generated turbulence
 c --- with stability-ratio dependent Richardson number for ifsalback>4 case.
 c
 c --- When Ri_T = 0 and Ri_C \ne 0,
-c --- correctly set the angle 'theta_r' in the (Ri_T,Ri_C) plane to 'pi'/2 . 
+c --- correctly set the angle 'theta_r' in the (Ri_T,Ri_C) plane to 'pi'/2 .
 c
 c --- Skip background ra_r calculation in unstable .or.NEUTRAL* case.
 c --- Set background ra_r arbitrarily to zero in these cases.
@@ -2458,9 +2458,9 @@ c --- Make sure the right choice of arctan(Ri_C/Ri_T) [\theta_r] is made.
 c --- Arctan only covers the range (-pi/2,pi/2) which theta_r may be outside.
 c --- Want to consider statically stable case only: Ri > 0.
           if (abs(theta_r).gt.(pidbl/2.)) then
-            write(lp,*) 
+            write(lp,*)
      &       "************************************************"
-            write(lp,*) "Error detected in turbulence module." 
+            write(lp,*) "Error detected in turbulence module."
             write(lp,*) "theta_r (=",abs(theta_r),") too large"
             call sys_flush(lp)
                    stop '(mxgissaij)'
@@ -2480,7 +2480,7 @@ c --- INTRODUCE 'itheta' HERE .or.THE INDEX THAT IS ZERO AT THETA=0.
           itheta_r1 = itheta_r0+1
 c
 c --- ***WHEN THE ANGLE IS BETWEEN THE ANGLE .or.REALIZABILITY AT INFINITY***
-c --- ***AND THE LAST TABLE ANGLE BE.or. THAT CRITICAL ANGLE, *** 
+c --- ***AND THE LAST TABLE ANGLE BE.or. THAT CRITICAL ANGLE, ***
 c --- ***SET IT TO THE LAST TABLE ANGLE BE.or. THE CRITICAL ANGLE.****
           theta_r0 = itheta_r0*deltheta_r
           theta_r1 = itheta_r1*deltheta_r
@@ -2489,14 +2489,14 @@ c
      &            (theta_r .gt.theta_rcrp)     ) then
             theta_r = theta_r1
             theta_r0 = theta_r1
-            itheta_r0 = itheta_r1 
+            itheta_r0 = itheta_r1
             itheta_r1 = itheta_r1+1
             theta_r1 = theta_r1 + deltheta_r
           elseif ((theta_r1.ge.theta_rcrn).AND.
      &            (theta_r .lt.theta_rcrn)     ) then
             theta_r = theta_r0
             theta_r1 = theta_r0
-            itheta_r1 = itheta_r0 
+            itheta_r1 = itheta_r0
             itheta_r0 = itheta_r0-1
             theta_r0 = theta_r0 - deltheta_r
           endif
@@ -2507,7 +2507,7 @@ c
 c --- Sound the alarm if have unrealizability outside expected range in angle.
           if ((itheta_r1.gt.3*n_theta_r_oct).or.
      &        (itheta_r0.lt. -n_theta_r_oct)    ) then
-               write(lp,*) 
+               write(lp,*)
      &         "************************************************"
             write(lp,*) "Problem in turbulence module!"
             write(lp,*) "Unrealizability outside Ri>0 region. "
@@ -2516,7 +2516,7 @@ c --- Sound the alarm if have unrealizability outside expected range in angle.
             write(lp,*) "rit=",rit,"ric=",ric,"    theta_r=",theta_r
             write(lp,*) "theta_r_deg =",theta_r_deg
             write(lp,*) "itheta_r0=",itheta_r0," itheta_r1=",itheta_r1
-            write(lp,*) "n_theta_r_oct=",n_theta_r_oct 
+            write(lp,*) "n_theta_r_oct=",n_theta_r_oct
             write(lp,*) " "
             write(lp,*) "i,j=",i,j
             write(lp,*) "Program will stop."
@@ -2527,12 +2527,12 @@ c
           deltheta_r1 = theta_r - theta_r0
           delback_ra_r = back_ra_r(itheta_r1) - back_ra_r(itheta_r0)
           dback_ra_r_o_dtheta = delback_ra_r/deltheta_r
-          back_ra_r1 = back_ra_r(itheta_r0) + 
+          back_ra_r1 = back_ra_r(itheta_r0) +
      &                   deltheta_r1*dback_ra_r_o_dtheta
 c
 c --- In case choose ifrafgmax=1, ra_r is at maximum the ForeGround ra_r
-c --- at the "strong" double diffusive \theta_r's 
-c --- where have turbulence as Ri+> infinity. 
+c --- at the "strong" double diffusive \theta_r's
+c --- where have turbulence as Ri+> infinity.
          ifrafglt=0
          if (ifrafgmax.EQ.1) then
            if ((theta_r.le.theta_rcrp).or.(theta_r.ge.theta_rcrn)) then
@@ -2544,7 +2544,7 @@ c --- where have turbulence as Ri+> infinity.
          endif
 c
         if (back_ra_r1.lt.0.) then
-          write(lp,*) 
+          write(lp,*)
      &       "************************************************"
           write(lp,*) "Problem in turbulence module!"
           write(lp,*) "Negative bg ra_r \\equiv (Ri_T^2+Ri_C^2)^(1/2)"
@@ -2557,13 +2557,13 @@ c
           write(lp,*) "itheta_r0=",itheta_r0," itheta_r1=",itheta_r1
           write(lp,*) "jtheta_r0=",jtheta_r0," jtheta_r1=",jtheta_r1
           write(lp,*) "theta_r_deg =",theta_r_deg
-          write(lp,*) "n_theta_r_oct=",n_theta_r_oct 
+          write(lp,*) "n_theta_r_oct=",n_theta_r_oct
           write(lp,*) " "
           write(lp,*) "i,j=",i,j
           write(lp,*) "Program will stop."
           call sys_flush(lp)
                  stop '(mxgissaij)'
-        endif 
+        endif
 c
 c --- Calculate the background Ri and Ri_d .
         back_rit1 = cos(theta_r)*back_ra_r1
@@ -2574,7 +2574,7 @@ c
       endif !ifsalback.EQ.4:else
 c
 c --- CALCULATE THE BACKGROUND DIMENSIONLESS TURBULENCE FUNCTIONS
-c --- USING TABLE OF VALUES .or.BACKGROUND "\theta_r"'S 
+c --- USING TABLE OF VALUES .or.BACKGROUND "\theta_r"'S
 c --- .or."ifbg_theta_interp"=1.
 c --- Can only use theta_r table when do *not* reduce ra_r_BackGround
 c --- to a smaller ra_r_ForeGround.
@@ -2582,10 +2582,10 @@ c --- to a smaller ra_r_ForeGround.
 c
 c --- Use the calculated background Ri and Ri_d in the turbulence model.
 c --- Interpolate 2D table for salinity-temperature model case.
-c 
+c
         call interp2d_expabs(back_ri1,back_rid1,
      &               slq2_back,sm_back,sh_back,ss_back,mt,mt0,dri,rri)
-c 
+c
       elseif(ifbg_theta_interp.EQ.1) then
 c --- Interpolate 1D table of background vs. theta_r instead.
 *       if     (mnproc.eq.-99) then !always .false.
@@ -2604,19 +2604,19 @@ c --- Interpolate 1D table of background vs. theta_r instead.
         deltheta_r1 = theta_r - itheta_r0*deltheta_r
         delsm_back = sm_r1(itheta_r1) - sm_r1(itheta_r0)
         dsm_back_o_dtheta = delsm_back/deltheta_r
-        sm_back = sm_r1(itheta_r0) + 
+        sm_back = sm_r1(itheta_r0) +
      &                   deltheta_r1*dsm_back_o_dtheta
         delsh_back = sh_r1(itheta_r1) - sh_r1(itheta_r0)
         dsh_back_o_dtheta = delsh_back/deltheta_r
-        sh_back = sh_r1(itheta_r0) + 
+        sh_back = sh_r1(itheta_r0) +
      &                   deltheta_r1*dsh_back_o_dtheta
         delss_back = ss_r1(itheta_r1) - ss_r1(itheta_r0)
         dss_back_o_dtheta = delss_back/deltheta_r
-        ss_back = ss_r1(itheta_r0) + 
+        ss_back = ss_r1(itheta_r0) +
      &                   deltheta_r1*dss_back_o_dtheta
         delslq2_back = slq2_r1(itheta_r1) - slq2_r1(itheta_r0)
         dslq2_back_o_dtheta = delslq2_back/deltheta_r
-        slq2_back = slq2_r1(itheta_r0) + 
+        slq2_back = slq2_r1(itheta_r0) +
      &                   deltheta_r1*dslq2_back_o_dtheta
       else
         write(lp,*) "Problem with choice of background interpolation."
@@ -2628,7 +2628,7 @@ c --- Interpolate 1D table of background vs. theta_r instead.
       endif
 c
 c --- Calculate the square of the shear from the background Richardson number.
-c --- s2_back   = N^2 / ri_internal = (N^2 / S_ext^2) (S_ext^2 /ri_internal) 
+c --- s2_back   = N^2 / ri_internal = (N^2 / S_ext^2) (S_ext^2 /ri_internal)
 c ---           = (Ri_ext / ri_internal) S_ext^2
         s2_back = (ri1/back_ri1)*s2(k)
 c
@@ -2679,10 +2679,10 @@ c --- Calculate the background diffusivities.
           t_back(k)=tmp_back*sh_back
           s_back(k)=tmp_back*ss_back
 c
-c --- Use K_X = K_X/(\epsilon/N^2) * (\epsilon/N^2)    
-c --- From NBp.000215-5, Volume IX : 
+c --- Use K_X = K_X/(\epsilon/N^2) * (\epsilon/N^2)
+c --- From NBp.000215-5, Volume IX :
 c --- K_X/(\epsilon/N^2) = (1/2) B_1 Ri (S l/q)^2 S_X  .
-c --- K_X = (((1/2) B_1^2 Ri (S l/q)^2)* (\epsilon/N^2)) * S_X 
+c --- K_X = (((1/2) B_1^2 Ri (S l/q)^2)* (\epsilon/N^2)) * S_X
         else !if(ifepson2.gt.0) then
           tmp_back=0.5*b1**2*back_ri1*slq2_back*epson2
           v_back(k)=tmp_back*sm_back
@@ -2694,7 +2694,7 @@ c --- Stop if background diffusivities are negative.
         if ((v_back(k).lt.0.).or.
      &      (t_back(k).lt.0.).or.
      &      (s_back(k).lt.0.)    ) then
-               write(lp,*) 
+               write(lp,*)
      &         "************************************************"
             write(lp,*) "Problem in turbulence module!"
             write(lp,*) "Negative Background Diffusivity."
@@ -2728,7 +2728,7 @@ c --- Stop if background diffusivities are zero at positive Ri.
      &         (t_back(k).EQ.0.).or.
      &         (s_back(k).EQ.0.)    )) then
 c
-               write(lp,*) 
+               write(lp,*)
      &         "************************************************"
             write(lp,*) "Problem in turbulence module!"
             write(lp,*) "Zero Background Diffusivity in stable case."
@@ -2765,7 +2765,7 @@ c
             write(lp,*) "back_ri1=",back_ri1,"back_rid1=",back_rid1
             write(lp,*) "itheta_r0=",itheta_r0," itheta_r1=",itheta_r1
             write(lp,*) "jtheta_r0=",jtheta_r0," jtheta_r1=",jtheta_r1
-            write(lp,*) "n_theta_r_oct=",n_theta_r_oct 
+            write(lp,*) "n_theta_r_oct=",n_theta_r_oct
             write(lp,*) "deltheta_r=",deltheta_r
             write(lp,*) " "
             write(lp,*) "k=",k,"  ria(k)=",ria(k),"  rid(k)=",rid(k)
@@ -2797,9 +2797,9 @@ c --- Reversion to ifsalback=3 model for this purpose,
 c --- based on Gargett et. al. JPO Vol.11 p.1258-71 "deep record".
          s2(k) = max(s2(k),back_s2)
 c
-c --- In the case where the model is realizable at 
+c --- In the case where the model is realizable at
 c --- the Ri obtained from the external Shear,
-c --- *but* there is a level above where it is NOT thus realizable, 
+c --- *but* there is a level above where it is NOT thus realizable,
 c --- USE THE "epsilon/(N^2)" DIMENSIONALIZATION .or."ifepson=2".
 c --- EXCEPT if  "Ri<0" do *NOT* USE "epsilon/(N^2)" DIMENSIONALIZATION
 c --- BECAUSE IT PRODUCES NEGATIVE DIFFUSIVITIES IN THIS CASE.
@@ -2882,7 +2882,7 @@ c --- store new k values in the 3-d arrays
       enddo
 c
       if (vrbos) then
-        write(6,'(a,a9,a3,5a13)') 
+        write(6,'(a,a9,a3,5a13)')
      &    'giss1dout','    nstep','  k',
      &    '          tmp','       aldeep',
      &    '          akm','          akh','          aks'
@@ -2896,7 +2896,7 @@ c
 c
  101  format(i9,3i4,'absorbup,dn,dtemp,dsaln ',2f6.3,2f10.6)
 c
-      return   
+      return
       end subroutine mxgissaij
 c
 c
@@ -2911,7 +2911,7 @@ c
       USE HYCOM_DIM, only : kk, kdm, ntrcr
       USE HYCOM_SCALARS
       USE HYCOM_ARRAYS
-      USE KPRF_ARRAYS_LOC_RENAMER, only: 
+      USE KPRF_ARRAYS_LOC_RENAMER, only:
      +    zgrid, dift, difs, ghats,  sswflx
 c
       implicit none

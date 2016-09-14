@@ -59,7 +59,7 @@
       use OldTracer_mod, only: dowetdep
 #endif
       use trdiag_com, only: trcsurf, trcSurfByVol, to_conc, set_to_conc
-      use tracers_dust
+      use trdust_mod
 #ifdef NEW_IO
       use pario, only: par_open, par_close, defvar, read_dist_data,
      &     write_dist_data

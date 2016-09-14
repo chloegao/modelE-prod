@@ -28,10 +28,6 @@ DMS_SEA=DMS_Kettle_Andreae_2x2.5 ! needed when OFFLINE_DMS_SS=0
 SALT1=SALT_bin1_2000_2x2.5.nc
 SALT2=SALT_bin1_4_2000_2x2.5.nc  ! valis for coarse size range 1 - 4 um (r80=1.7)
 !SALT2=SALT_bin2_2000_2x2.5.nc ! valid for coarse size range 1 - 10 ym (r80=5)
-dust_bin1=DUST_bin1_2000_2x2.5.nc
-dust_bin2=DUST_bin2_2000_2x2.5.nc
-dust_bin3=DUST_bin3_2000_2x2.5.nc
-dust_bin4=DUST_bin4_2000_2x2.5.nc
 !--------AR5 inputs --------------------
 M_BC1_BC_AIRC=AR5_emis/F/T/BCIA_air_AR5_1910-2020_2x2.5
 M_BC1_BC_01=BCII_awb_AR5_1850-2020_2x2.5_h

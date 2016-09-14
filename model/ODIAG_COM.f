@@ -53,6 +53,8 @@
       integer :: ij_cfcair, ij_kw, ij_csat, ij_cfcflux
      .   , ij_cfcwind, ij_cfcpres, ij_cfcsst, ij_cfcsss, ij_cfcrho
      .   , ij_cfcsolub, ij_cfcSpres
+     .   ,ij_cfc12air,ij_kw12,ij_csat12,ij_cfc12flux,ij_cfc12solub
+     .   ,ij_sf6air,ij_kw_sf6,ij_csat_sf6,ij_sf6flux,ij_sf6solub
 
 !@var IJ_xxx Names for OIJmm diagnostics
       INTEGER IJ_HBLmax,ij_mldmax
@@ -1417,57 +1419,89 @@ c
         scale_oij(k)=1
 
         k=k+1
-        IJ_cfcwind=k
-        lname_oij(k)="CFC wind           "
-        sname_oij(k)="oij_cfcwind"
+        IJ_cfcsolub=k
+        lname_oij(k)="CFC solub"
+        sname_oij(k)="oij_cfcsolub"
+        units_oij(k)="mol/m3/uatm"
+        ia_oij(k)=ia_src
+        scale_oij(k)=1
+!------  cfc12
+        k=k+1
+        IJ_cfc12air=k
+        lname_oij(k)="CFC-12 concentration ATM"
+        sname_oij(k)="oij_cfc12air"
+        units_oij(k)="uatm"
+        ia_oij(k)=ia_src
+        scale_oij(k)=1
+
+        k=k+1
+        IJ_kw12=k
+        lname_oij(k)="CFC-12 piston velocity"
+        sname_oij(k)="oij_kw12"
         units_oij(k)="m/s"
         ia_oij(k)=ia_src
         scale_oij(k)=1
 
         k=k+1
-        IJ_cfcpres=k
-        lname_oij(k)="CFC pres"
-        sname_oij(k)="oij_cfcpres"
-        units_oij(k)="atm"
+        IJ_csat12=k
+        lname_oij(k)="CFC-12 Csat=CFC12air*solub"
+        sname_oij(k)="oij_csat12"
+        units_oij(k)="mol/m3"
         ia_oij(k)=ia_src
         scale_oij(k)=1
 
         k=k+1
-        IJ_cfcSpres=k
-        lname_oij(k)="CFC Spres"
-        sname_oij(k)="oij_cfcSpres"
-        units_oij(k)="Pa"
+        IJ_cfc12flux=k
+        lname_oij(k)="CFC-12 Flux into ocean"
+        sname_oij(k)="oij_cfc12flux"
+        units_oij(k)="mol/m2/s"
         ia_oij(k)=ia_src
         scale_oij(k)=1
 
         k=k+1
-        IJ_cfcsst=k
-        lname_oij(k)="CFC sst"
-        sname_oij(k)="oij_cfcsst"
-        units_oij(k)=" "
+        IJ_cfc12solub=k
+        lname_oij(k)="CFC-12 solub"
+        sname_oij(k)="oij_cfc12solub"
+        units_oij(k)="mol/m3/uatm"
+        ia_oij(k)=ia_src
+        scale_oij(k)=1
+!----- sf6
+        k=k+1
+        IJ_sf6air=k
+        lname_oij(k)="SF6 concentration ATM"
+        sname_oij(k)="oij_sf6air"
+        units_oij(k)="uatm"
+        ia_oij(k)=ia_src
+        scale_oij(k)=1
+      
+        k=k+1
+        IJ_kw_sf6=k
+        lname_oij(k)="SF6 piston velocity"
+        sname_oij(k)="oij_kw_sf6"
+        units_oij(k)="m/s"
         ia_oij(k)=ia_src
         scale_oij(k)=1
 
         k=k+1
-        IJ_cfcsss=k
-        lname_oij(k)="CFC sss"
-        sname_oij(k)="oij_cfcsss"
-        units_oij(k)=" "
+        IJ_csat_sf6=k
+        lname_oij(k)="SF6 Csat=SF6air*solub"
+        sname_oij(k)="oij_csat_sf6"
+        units_oij(k)="mol/m3"
         ia_oij(k)=ia_src
         scale_oij(k)=1
 
         k=k+1
-        IJ_cfcrho=k
-        lname_oij(k)="CFC rho"
-        sname_oij(k)="oij_cfcrho"
-        units_oij(k)="kg/m3"
+        IJ_sf6flux=k
+        lname_oij(k)="SF6 Flux into ocean"
+        sname_oij(k)="oij_sf6flux"
+        units_oij(k)="mol/m2/s"
         ia_oij(k)=ia_src
         scale_oij(k)=1
 
         k=k+1
-        IJ_cfcsolub=k
-        lname_oij(k)="CFC solub"
-        sname_oij(k)="oij_cfcsolub"
+        IJ_sf6solub=k
+        lname_oij(k)="SF6 solub"
+        sname_oij(k)="oij_sf6solub"
         units_oij(k)="mol/m3/uatm"
         ia_oij(k)=ia_src
         scale_oij(k)=1

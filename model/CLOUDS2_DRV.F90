@@ -95,7 +95,6 @@ subroutine CONDSE
 #endif
 #endif
 #ifdef TRACERS_ON
-  use TRACER_COM, only : remake_tracer_lists
   use TRACER_COM, only: TRM,TRMOM,NTM,trdn1
   use OldTracer_mod, only: itime_tr0, trname
 #ifdef TRACERS_COSMO
@@ -223,7 +222,7 @@ subroutine CONDSE
 #endif
   use FILEMANAGER, only: openunit,closeunit
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
-  use tracers_dust,only : prelay
+  use trdust_mod,only : prelay
 #endif
   use TimerPackage_mod, only: startTimer => start, stopTimer => stop
 #ifdef CACHED_SUBDD
@@ -500,7 +499,6 @@ subroutine CONDSE
     ntix(nx) = n
   end do
   ntx = nx
-  call remake_tracer_lists()
 
 #ifdef TRACERS_AMP
   AQsulfRATE = 0.d0
@@ -1655,15 +1653,12 @@ subroutine CONDSE
             trmom(:,i,j,l,n) = tmom(:,l,nx)+tmomsv(:,l,nx)*(1.-fssl(l))
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
-            if (trname(n).eq."SO2".or.trname(n).eq."SO4".or. &
-                trname(n).eq."H2O2_s") then
+            if (ijts_aq(n).gt.0) then ! use ij mask for jl as well
               call inc_tajls(i,j,l,jls_incloud(1,n), &
                    dt_sulf_mc(n,l)*(1.-fssl(l)))
               call inc_tajls(i,j,l,jls_incloud(2,n),dt_sulf_ss(n,l))
-              if (ijts_aq(n).gt.0) then
-                taijs(i,j,ijts_aq(n))=taijs(i,j,ijts_aq(n))+ &
-                     dt_sulf_mc(n,l)*(1.-fssl(l))+dt_sulf_ss(n,l)
-              endif
+              taijs(i,j,ijts_aq(n))=taijs(i,j,ijts_aq(n))+ &
+                   dt_sulf_mc(n,l)*(1.-fssl(l))+dt_sulf_ss(n,l)
             end if
 #ifdef ACCMIP_LIKE_DIAGS
             if(trname(n).eq."SO4".and.ijlt_prodSO4aq.gt.0) &

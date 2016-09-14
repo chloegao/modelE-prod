@@ -7,7 +7,7 @@ usage () {
   echo
   echo "Usage: $0 [-L -n -S] runName year1 year2 [yearOffset]"
   echo
-  echo "  This script converts non-instantaneous 3D Ox and 2D p_surf daily CACHED_SUBDD"
+  echo "  This script converts non-instantaneous 3D MRO3 and 2D p_surf daily CACHED_SUBDD"
   echo "subdd output files into daily NINT model ozone input for only the model levels"
   echo "of the subdd files. (I.e. pasting above the GCM top and any unit conversions"
   echo "are done online in the NINT run that will read these files.) This script expects"
@@ -38,13 +38,13 @@ scaleAndExtract() {
   $SCALE DATA/${file} all > /dev/null
   # After output file is scaled, extract the two variables needed and
   # concatenate into one file per year:
-  for v in Ox p_surf Ozone ; do
+  for v in MRO3 p_surf Ozone ; do
     if [[ -e ${v}_now.nc ]] ; then rm ${v}_now.nc ; fi
   done
-  ncks -v Ox ${ofile} Ox_now.nc ; rm $ofile
+  ncks -v MRO3 ${ofile} MRO3_now.nc ; rm $ofile
   ncks -v p_surf ${pfile} p_surf_now.nc ; rm $pfile
   ncks p_surf_now.nc Ozone_now.nc ; rm p_surf_now.nc
-  ncks -A Ox_now.nc Ozone_now.nc ; rm Ox_now.nc
+  ncks -A MRO3_now.nc Ozone_now.nc ; rm MRO3_now.nc
   return
 }
 

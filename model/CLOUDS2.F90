@@ -29,28 +29,32 @@ module CLOUDS
   use CLOUDS_COM, only : ncol
   use QUSDEF, only : nmom,xymoms,zmoms,zdir
 
-#if defined(TRACERS_ON)
+#ifdef TRACERS_ON
   use TRACER_COM, only: NTM, ntm_soa,ntm_ococean
   use OldTracer_mod, only: trname, t_qlimit
-#endif
 
-#if defined(TRACERS_ON) && defined(TRACERS_AEROSOLS_OCEAN)
+#ifdef TRACERS_AEROSOLS_OCEAN
   use OldTracer_mod, only: trpdens
   use TRACER_COM, only: n_ococean,n_seasalt1,trm
 #endif  /* TRACERS_AEROSOLS_OCEAN */
 
-#if defined(TRACERS_ON) && defined(TRACERS_WATER)
+#ifdef TRACERS_WATER
   use OldTracer_mod, only: tr_wd_type
   use TRACER_COM,    only: nWATER, tr_evap_fact, gases_list,gases_count
-#endif
 
-#if defined(TRACERS_ON) && defined(TRACERS_WATER) && (defined(TRACERS_AEROSOLS_Koch) || defined(TRACERS_AMP) || defined(TRACERS_TOMAS))
+#if defined(TRACERS_AEROSOLS_Koch) || defined(TRACERS_AMP) || defined(TRACERS_TOMAS)
   use TRACER_COM, only: aqchem_list,aqchem_count
-#endif
+#endif  /* TRACERS_{AEROSOLS_Koch,AMP,TOMAS} */
 
-#if defined(TRACERS_ON) && !defined(TRACERS_WATER) && (defined(TRACERS_DUST) || defined(TRACERS_MINERALS))
+#else  /* NOT TRACERS_WATER */
+
+#if (defined(TRACERS_DUST) || defined(TRACERS_MINERALS))
   use TRACER_COM, only: Ntm_dust
-#endif
+#endif  /* TRACERS_{DUST,MINERALS} */
+
+#endif  /* TRACERS_WATER */
+
+#endif  /* TRACERS_ON */
 
 #if defined(CLD_AER_CDNC) || defined(CLD_SUBDD)
   use CONSTANT, only : kapa,mair,gasc
@@ -289,9 +293,8 @@ module CLOUDS
   real*8, allocatable, dimension(:,:)      :: DTM, DTMR, TMDNL
   real*8, allocatable, dimension(:,:,:) :: DTMOM, DTMOMR, TMOMDNL
   real*8, dimension(LM)       :: TPOLD=0
-#endif
 
-#if defined(TRACERS_ON) && defined(TRACERS_WATER)
+#ifdef TRACERS_WATER
 !@var TRWML Vertical profile of liquid water tracers (kg)
 !@var TRSVWML New liquid water tracers from m.c. (kg)
 !@var TRPRSS super-saturated tracer precip (kg)
@@ -301,14 +304,13 @@ module CLOUDS
 !@var TRCOND tracer mass in condensate
 !@var TRCONDV tracer mass in lofted condensate
   real*8, allocatable, dimension(:,:)   :: TRCOND,TRCONDV
-#endif
 
-#if defined(TRACERS_ON) && defined(TRACERS_WATER) && (defined(TRACERS_AEROSOLS_Koch) || defined(TRACERS_AMP) || defined(TRACERS_TOMAS))
+#if defined(TRACERS_AEROSOLS_Koch) || defined(TRACERS_AMP) || defined(TRACERS_TOMAS)
 ! for diagnostics
   real*8, allocatable, dimension(:,:) :: DT_SULF_MC,DT_SULF_SS
-#endif
+#endif  /* TRACERS_{AEROSOLS_Koch,AMP,TOMAS} */
 
-#if defined(TRACERS_ON) && defined(TRACERS_WATER) && defined(TRDIAG_WETDEPO)
+#ifdef TRDIAG_WETDEPO
 !@dbparam diag_wetdep switches on/off special diags for wet deposition
   integer :: diag_wetdep=0 ! =off (default) (on: 1)
 !@var trcond_mc saves tracer condensation in MC clouds [kg]
@@ -325,16 +327,22 @@ module CLOUDS
 !@var trcond_ls saves tracer condensation in LS clouds [kg]
   real*8,allocatable, dimension(:,:) :: trcond_mc,trdvap_mc,trflcw_mc, trprcp_mc,trnvap_mc,trwash_mc
   real*8,allocatable,dimension(:,:) :: trwash_ls,trevap_ls,trclwc_ls, trprcp_ls,trclwe_ls,trcond_ls
-#endif
+#endif  /* TRDIAG_WETDEPO */
 
-#if defined(TRACERS_ON) && !defined(TRACERS_WATER) && (defined(TRACERS_DUST) || defined(TRACERS_MINERALS))
+#else  /* NOT TRACERS_WATER */
+
+#if (defined(TRACERS_DUST) || defined(TRACERS_MINERALS))
 !@var tm_dust vertical profile of dust/mineral tracers [kg]
 !@var tmom_dust vertical profiles of dust/mineral tracer moments [kg]
 !@var trprc_dust dust/mineral tracer precip [kg]
   real*8,dimension(Lm,Ntm_dust) :: tm_dust
   real*8,dimension(nmom,Lm,Ntm_dust) :: tmom_dust
   real*8,dimension(Lm,Ntm_dust) :: trprc_dust
-#endif
+#endif  /* TRACERS_{DUST,MINERALS} */
+
+#endif  /* TRACERS_WATER */
+
+#endif  /* TRACERS_ON */
 
 #if defined(CLD_AER_CDNC)
 !@var ACDNWM,ACDNIM -CDNC - warm and cold moist cnv clouds (cm^-3)
@@ -674,17 +682,17 @@ contains
     !          *******    VARIABLES DEFINED FOR     *******
     !          *******  CONDITIONAL COMPILIATIONS   *******
 
-#if defined(TRACERS_ON)
+    real*8 :: vsum
+    integer :: lborrow1
+
+#ifdef TRACERS_ON
 !@var TMOLD: old TM (tracer mass)
     real*8, dimension(LM,NTM)      :: TMOLD, TM1
     real*8, dimension(NMOM,LM,NTM) :: TMOMOLD
     real*8, dimension(NTM) :: TMP, TMPMAX, TENV, TMDN, TM_dum, DTR
     real*8, dimension(NMOM,NTM) :: TMOMP, TMOMPMAX, TMOMDN
-#endif
-    real*8 :: vsum
-    integer :: lborrow1
 
-#if defined(TRACERS_ON) && defined(TRACERS_WATER)
+#ifdef TRACERS_WATER
 !@var TRPCRP tracer mass in precip
     real*8, dimension(NTM)      :: TRPRCP
 !@var FQCONDT fraction of tracer that condenses
@@ -703,15 +711,18 @@ contains
 !@var THLAW Henry's Law determination of amount of tracer dissolution
 !@var TMFAC used to adjust tracer moments
     real*8 HEFF
-#endif
 
-#if defined(TRACERS_ON) && defined(TRACERS_WATER) && (defined(TRACERS_AEROSOLS_Koch) || defined(TRACERS_AMP) || defined(TRACERS_TOMAS))
+#if defined(TRACERS_AEROSOLS_Koch) || defined(TRACERS_AMP) || defined(TRACERS_TOMAS)
     ! for sulfur chemistry
 !@var WA_VOL Cloud water volume (L). Used by GET_SULFATE.
     real*8 WA_VOL
     real*8, dimension(aqchem_count) ::SULFIN,SULFINOM,SULFINC, SULFOUT,TR_LEFT
     integer :: IAQCH
-#endif
+#endif  /* TRACERS_{AEROSOLS_Koch,AMP,TOMAS} */
+
+#endif  /* TRACERS_WATER */
+
+#endif  /* TRACERS_ON */
 
 #ifdef CLD_AER_CDNC
     integer, parameter :: SNTM=31  !for tracers for CDNC
@@ -850,15 +861,6 @@ contains
     SM1=SM
     QM1=QM
 
-#ifdef TRACERS_ON
-    TM1(:,1:NTX) = TM(:,1:NTX)
-    TRDNL = 0.
-#endif
-
-#if defined(TRACERS_ON) && defined(TRACERS_WATER)
-    CLDSAVT=0.
-#endif
-
 !**** SAVE ORIG PROFILES
     SMOLD(:) = SM(:)
     SMOMOLD(:,:) = SMOM(:,:)
@@ -866,11 +868,13 @@ contains
     QMOMOLD(:,:) = QMOM(:,:)
 
 #ifdef TRACERS_ON
+    TM1(:,1:NTX) = TM(:,1:NTX)
     TMOLD(:,1:NTX) = TM(:,1:NTX)
     TMOMOLD(:,:,1:NTX) = TMOM(:,:,1:NTX)
-#endif
+    TRDNL = 0.
 
-#if defined(TRACERS_ON) && defined(TRACERS_WATER)
+#ifdef TRACERS_WATER
+    CLDSAVT=0.
     ! TR_LEF is an input to get_cond_factor not currently used for MC clouds
     TR_LEF(:)=1.D0
     thlaw(:) = 0.  ! nonzero only for gas tracers
@@ -878,11 +882,14 @@ contains
     tmfac(:) = 0.  ! nonzero only for gas tracers
     fwasht(:) = 0. ! nonzero only for aerosols
     fqcondt(:) = 0.
-#endif
 
-#if defined(TRACERS_ON) && (defined(TRACERS_AEROSOLS_Koch) || defined(TRACERS_AMP) || defined(TRACERS_TOMAS))
+#if defined(TRACERS_AEROSOLS_Koch) || defined(TRACERS_AMP) || defined(TRACERS_TOMAS)
     DT_SULF_MC(1:NTM,:)=0.
-#endif
+#endif  /* TRACERS_{AEROSOLS_Koch,AMP,TOMAS} */
+
+#endif  /* TRACERS_WATER */
+
+#endif  /* TRACERS_ON */
 
 !**** CALULATE PBL HEIGHT AND MASS
     PBLM=0.
@@ -1031,12 +1038,13 @@ AREA_PARTITION: do NPPL=1,2
           !**** Convection rose 2 or more layers for first AREA PARTITION
 
 #ifdef TRACERS_ON
-                If (NPPL==2)  Call reset_tracer_work_arrays (lmin,lmax)
-#endif
-
+            If (NPPL==2) then
+              call reset_tracer_work_arrays (lmin,lmax)
 #if defined(TRACERS_AEROSOLS_Koch) || defined(TRACERS_AMP) || defined(TRACERS_TOMAS)
-                If (NPPL==2)  DT_SULF_MC(1:NTM,lmin:lmax) = 0
-#endif
+              DT_SULF_MC(1:NTM,lmin:lmax) = 0
+#endif  /* TRACERS_{AEROSOLS_Koch,AMP,TOMAS} */
+            endif
+#endif  /* TRACERS_ON */
 
           MPLUME=MPLUM1*FCTYPE
 
@@ -1143,7 +1151,7 @@ AREA_PARTITION: do NPPL=1,2
           DTMOMR(xymoms,LMIN,1:NTX)=-TMOMP(xymoms,1:NTX)
           DTMOMR( zmoms,LMIN,1:NTX)=-TMOMOLD(zmoms,LMIN,1:NTX)*FPLUME
           TPOLD(LMIN)=TPSAV(LMIN)  ! initial plume temperature
-#endif
+#endif  /* TRACERS_ON */
 
           do K=1,KMAX
             UMP(K)=UM(K,LMIN)*FPLUME
@@ -1283,7 +1291,7 @@ CLOUD_TOP:  do L=LMIN+1,LM
                 if (TMP(n) < 0.) print *,'TMP<0 2',TMP(n),trname(n)  !  TOMAS debug
               END DO
 #endif
-#endif
+#endif  /* TRACERS_ON */
             end if
 #endif /* not WEAKER_MC_LIMITS */
 
@@ -1304,7 +1312,7 @@ CLOUD_TOP:  do L=LMIN+1,LM
 #ifdef TRACERS_ON
             !**** save plume temperature after possible condensation
             TPOLD(L)=SMP*PLK(L)/MPLUME
-#endif
+#endif  /* TRACERS_ON */
 
             !**** TOTAL CONDENSATE IN LAYER = NEWLY CONDENSED + ADVECTED FROM LOWER LAYER;
             !**** THE LATTER IS CALCULATED IN THE MICROPHYSICS SECTION
@@ -1431,9 +1439,7 @@ CLOUD_TOP:  do L=LMIN+1,LM
               case('isopp2a')
                 DSGL(L,19)=tm_cdnc(n)
                 DSS(19) = DSGL(L,19)
-#endif  /* TRACERS_AEROSOLS_SOA */
-
-#if defined(TRACERS_AEROSOLS_SOA) && defined(TRACERS_TERP)
+#ifdef TRACERS_TERP
               case('apinp1a')
                 DSGL(L,20)=tm_cdnc(n)
                 DSS(20) = DSGL(L,20)
@@ -1441,6 +1447,7 @@ CLOUD_TOP:  do L=LMIN+1,LM
                 DSGL(L,21)=tm_cdnc(n)
                 DSS(21) = DSGL(L,21)
 #endif  /* TRACERS_TERP */
+#endif  /* TRACERS_AEROSOLS_SOA */
 
 #if defined(TRACERS_AEROSOLS_OCEAN)
               case('OCocean')
@@ -1527,7 +1534,7 @@ CLOUD_TOP:  do L=LMIN+1,LM
 
             TAUMC1(L)=TAUMC1(L)+COND(L)*FMC1
 
-#ifdef TRACERS_WATER /* this restriction continues until appropriate #endif */
+#ifdef TRACERS_WATER
             !**** CONDENSING TRACERS
             WMXTR=DQSUM*BYAM(L)
 
@@ -1535,7 +1542,7 @@ CLOUD_TOP:  do L=LMIN+1,LM
             WA_VOL=COND(L)*1.d2*BYGRAV*DXYPIJ
             call GET_SULFATE(PL(L),TPOLD(L),FPLUME,WA_VOL,WMXTR,SULFIN, &
                  SULFINOM,SULFINC,SULFOUT,TR_LEFT,TMP,TRCOND(:,L), &
-                 AIRM(L),LHX,DT_SULF_MC(:,L),CLDSAVT,.false.)
+                 AIRM(L),LHX,DT_SULF_MC(:,L),CLDSAVT)
             do iaqch=1,aqchem_count
               n = aqchem_list(iaqch)
               TMP(N)=TMP(N)+SULFIN(iaqch)
@@ -1655,7 +1662,7 @@ CLOUD_TOP:  do L=LMIN+1,LM
                 DTMOMR(:,L,1:NTX) = DTMOMR(:,L,1:NTX)-TMOM(:,L,1:NTX)*FENTRA
                 TMP(1:NTX) = TMP(1:NTX)+TM(L,1:NTX)*FENTRA
                 TMOMP(xymoms,1:NTX) = TMOMP(xymoms,1:NTX) + TMOM(xymoms,L,1:NTX)*FENTRA
-#endif
+#endif  /* TRACERS_ON */
 
                 !****
                 !**** CONVECTIVE MOMENTUM TRANSPORT IS BASED ON GREGORY ET AL. (1997, QJRMS).
@@ -1720,7 +1727,7 @@ CLOUD_TOP:  do L=LMIN+1,LM
               DTMOM(xymoms,L,1:NTX) = DTMOM(xymoms,L,1:NTX) + DELTA*TMOMP(xymoms,1:NTX)
               TMP(1:NTX) = TMP(1:NTX)*(1.-DELTA)
               TMOMP(xymoms,1:NTX) = TMOMP(xymoms,1:NTX)*(1.-DELTA)
-#endif
+#endif  /* TRACERS_ON */
 
             end if
 
@@ -1798,7 +1805,7 @@ CLOUD_TOP:  do L=LMIN+1,LM
                 dtmomr(:,l,1:NTX) = dtmomr(:,l,1:NTX)-fddl *tmom(:,l,1:NTX)
                 Tmp         (1:NTX) = Tmp         (1:NTX)*fleft
                 tmomp(xymoms,1:NTX) = tmomp(xymoms,1:NTX)*fleft
-#endif
+#endif  /* TRACERS_ON */
 
                 do K=1,KMAX
                   UMDNL(K,L)=.5*(ETADN*UMP(K)+DDRAFT*U_0(K,L))
@@ -1845,7 +1852,7 @@ CLOUD_TOP:  do L=LMIN+1,LM
             !**** Tracers at top of plume
             TMPMAX(1:NTX) = TMP(1:NTX)
             TMOMPMAX(xymoms,1:NTX) = TMOMP(xymoms,1:NTX)
-#endif
+#endif  /* TRACERS_ON */
 
             MPMAX=MPLUME
             LMAX = LMAX + 1
@@ -1891,7 +1898,7 @@ CLOUD_TOP:  do L=LMIN+1,LM
 
 #ifdef TRACERS_ON
             call reset_tracer_work_arrays(lmin,lmin)
-#endif
+#endif  /* TRACERS_ON */
 
             cycle CLOUD_TYPES
           endif
@@ -1927,7 +1934,7 @@ CLOUD_TOP:  do L=LMIN+1,LM
 #ifdef TRACERS_ON
         DTM(LMAX,1:NTX) = DTM(LMAX,1:NTX) + TMPMAX(1:NTX)
         DTMOM(xymoms,LMAX,1:NTX) = DTMOM(xymoms,LMAX,1:NTX) + TMOMPMAX(xymoms,1:NTX)
-#endif
+#endif  /* TRACERS_ON */
 
         CCM(LMAX)=0.
         do K=1,KMAX
@@ -1972,7 +1979,7 @@ CLOUD_TOP:  do L=LMIN+1,LM
 #ifdef TRACERS_ON
           TMDN(:)=TMDNL(LDRAFT,:)
           TMOMDN(xymoms,:)=TMOMDNL(xymoms,LDRAFT,:)
-#endif
+#endif  /* TRACERS_ON */
 
           !**** LOOP FROM TOP DOWN OVER POSSIBLE DOWNDRAFTS
           !****
@@ -2093,7 +2100,7 @@ DOWNDRAFT: do L=LDRAFT,1,-1
                 TMOMDN(xymoms,1:NTX)= TMOMDN(xymoms,1:NTX) + TMOM(xymoms,L,1:NTX)*FENTRA
                 DTMR(L,1:NTX)=DTMR(L,1:NTX)-EDRAFT*TENV(1:NTX)
                 DTMOMR(:,L,1:NTX)=DTMOMR(:,L,1:NTX)-TMOM(:,L,1:NTX)*FENTRA
-#endif
+#endif  /* TRACERS_ON */
 
               else  ! occasionally detrain into environment if ddraft too big
                 FENTRA=EDRAFT/(DDRUP+teeny)  ! < 0
@@ -2120,7 +2127,7 @@ DOWNDRAFT: do L=LDRAFT,1,-1
                 DTMOM(xymoms,L,1:NTX) = DTMOM(xymoms,L,1:NTX) - TMOMDN(xymoms,1:NTX)*FENTRA
                 TMDN(1:NTX)=TMDN(1:NTX)*(1.+FENTRA)
                 TMOMDN(xymoms,1:NTX)= TMOMDN(xymoms,1:NTX)*(1.+FENTRA)
-#endif
+#endif  /* TRACERS_ON */
 
               end if
             end if
@@ -2153,7 +2160,7 @@ DOWNDRAFT: do L=LDRAFT,1,-1
 #ifdef TRACERS_ON
               TMDN(1:NTX) = TMDN(1:NTX) + TMDNL(L-1,1:NTX)
               TMOMDN(xymoms,1:NTX) = TMOMDN(xymoms,1:NTX) + TMOMDNL(xymoms,L-1,1:NTX)
-#endif
+#endif  /* TRACERS_ON */
 
             end if
 
@@ -2173,7 +2180,7 @@ DOWNDRAFT: do L=LDRAFT,1,-1
           DTM(LDMIN,1:NTX) = DTM(LDMIN,1:NTX) + TMDN(1:NTX)
           DTMOM(xymoms,LDMIN,1:NTX) = DTMOM(xymoms,LDMIN,1:NTX) + TMOMDN(xymoms,1:NTX)
           TRDNL(1:NTX,LDMIN)=TMDN(1:NTX)/(DDRAFT+teeny)
-#endif
+#endif  /* TRACERS_ON */
 
           do K=1,KMAX
             DUM(K,LDMIN)=DUM(K,LDMIN)+UMDN(K)
@@ -2367,7 +2374,7 @@ DOWNDRAFT: do L=LDRAFT,1,-1
             TMOM(:,LDMIN:LMAX,N) = TMOM(:,LDMIN:LMAX,N) + DTMOM(:,LDMIN:LMAX,N)*byKSUB
             ierr=max(ierrt,ierr) ; lerr=max(lerrt+ldmin-1,lerr)
           end do
-#endif
+#endif  /* TRACERS_ON */
 
         end do        ! end of sub-timesteps for subsidence
 
@@ -2399,14 +2406,14 @@ DOWNDRAFT: do L=LDRAFT,1,-1
         end do
 #endif /* not WEAKER_MC_LIMITS */
 
-#ifdef TRACERS_ON /* this restriction continues until appropriate #endif */
+#ifdef TRACERS_ON
         !**** check for independent tracer errors
         do N=1,NTX
           if (.not.t_qlimit(n)) cycle
 
 #ifdef TRACERS_WATER
           if (tr_wd_type(n) .eq. nWater) cycle ! water tracers already done
-#endif
+#endif  /* TRACERS_WATER */
 
           do L=LDMIN,LMAX
 !            if (TM(L,N).lt.0.) then
@@ -2443,7 +2450,7 @@ DOWNDRAFT: do L=LDRAFT,1,-1
             endif
           end do
         end do
-#endif /* TRACERS_ON */
+#endif  /* TRACERS_ON */
 
         !**** diagnostics
         do L=LDMIN,LMAX
@@ -2482,7 +2489,7 @@ DOWNDRAFT: do L=LDRAFT,1,-1
 
 #ifdef TRACERS_ON
         TM1(:,1:NTX) = TM(:,1:NTX)
-#endif
+#endif  /* TRACERS_ON */
 
         !****
         !**** Partition condensate into precipitation and cloud water
@@ -2640,7 +2647,7 @@ EVAP_PRECIP: do L=LMAX-1,1,-1
             DQCDEEP(L)=DQCDEEP(L)-DQSUM*BYAM(L)*FMC1
           endif
 
-#ifdef TRACERS_WATER /* this restriction continues until appropriate #endif */
+#ifdef TRACERS_WATER
           if (PRCP+DQSUM.gt.0.) then
             !**** Tracer net re-evaporation
             !**** (If 100% evaporation, allow all tracers to evaporate completely.)
@@ -2676,7 +2683,7 @@ EVAP_PRECIP: do L=LMAX-1,1,-1
               TRPRCP(1:NTX) = TRPRCP(1:NTX) - DTR(1:NTX)
             end if
 
-#ifndef NO_WASHOUT_IN_CLOUDS /* this restriction continues appropriate #endif */
+#ifndef NO_WASHOUT_IN_CLOUDS
             if (.not. below_cloud .and. prcp > teeny) then
               !**** Washout of tracers in cloud
               wmxtr=prcp*byam(l)
@@ -2721,8 +2728,8 @@ EVAP_PRECIP: do L=LMAX-1,1,-1
               WA_VOL= precip_mm*DXYPIJ
 
               call GET_SULFATE(PL(L),TOLD,FPLUME,WA_VOL,WMXTR,SULFIN,SULFINOM, &
-                   SULFINC,SULFOUT,TR_LEFT,TM(L,:),TRPRCP,AIRM(L),LHX, &
-                   DT_SULF_MC(:,L),CLDSAVT,.true.)
+                   SULFINC,SULFOUT,TR_LEFT,TM(L,:)*FPLUME,TRPRCP,AIRM(L),LHX, &
+                   DT_SULF_MC(:,L),CLDSAVT)
 
               do iaqch=1,aqchem_count
                 n = aqchem_list(iaqch)
@@ -2816,7 +2823,7 @@ EVAP_PRECIP: do L=LMAX-1,1,-1
 
 #ifdef TRACERS_ON
         call reset_tracer_work_arrays(ldmin,lmax)
-#endif
+#endif  /* TRACERS_ON */
 
       end do CLOUD_TYPES
 
@@ -2989,7 +2996,7 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
 
     return
 
-#ifdef TRACERS_ON /* restriction continues until appropriate #endif */
+#ifdef TRACERS_ON
 
   contains
 
@@ -3013,10 +3020,10 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
         trcond(1:ntx,l) = 0.
         trcondv(1:ntx,l) = 0.
       enddo
-#endif
+#endif  /* TRACERS_WATER */
 
     end subroutine reset_tracer_work_arrays
-#endif /* TRACERS_ON */
+#endif  /* TRACERS_ON */
 
   end subroutine MSTCNV
 
@@ -3988,8 +3995,8 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
       end if
 
       call GET_SULFATE(PL(L),TL(L),FCLD,WA_VOL,WMXTR,SULFIN,SULFINOM &
-           ,SULFINC,SULFOUT,TR_LEFT,TM(L,:),TRWML(:,L),AIRM(L) &
-           ,LHX_WA,DT_SULF_SS(:,L),CLDSAVT,.true.)
+           ,SULFINC,SULFOUT,TR_LEFT,TM(L,:)*FCLD,TRWML(:,L),AIRM(L) &
+           ,LHX_WA,DT_SULF_SS(:,L),CLDSAVT)
 
       do iaqch=1,aqchem_count
         n = aqchem_list(iaqch)
@@ -4239,8 +4246,8 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
     (defined TRACERS_TOMAS)
 
           call GET_SULFATE(PL(L),TL(L),FCLD,WA_VOL,WMXTR,SULFIN,SULFINOM, &
-               SULFINC,SULFOUT,TR_LEFT,TM(L,:),TRWML(:,L),AIRM(L),LHX, &
-               DT_SULF_SS(:,L),CLDSAVT,.true.)
+               SULFINC,SULFOUT,TR_LEFT,TM(L,:)*FCLD,TRWML(:,L),AIRM(L),LHX, &
+               DT_SULF_SS(:,L),CLDSAVT)
 
           do iaqch=1,aqchem_count
             n = aqchem_list(iaqch)
@@ -4588,9 +4595,9 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
         TWMTMP      = TRWML(N,L  )*(1.-FMIX)+FRAT*TRWML(N,L+1)
         TRWML(N,L+1)= TRWML(N,L+1)*(1.-FRAT)+FMIX*TRWML(N,L  )
         TRWML(N,L)  = TWMTMP
-#endif
+#endif  /* TRACERS_WATER */
       end do
-#endif
+#endif  /* TRACERS_ON */
       do K=1,KMAX
         UMN1(K)=(UMO1(K)*(1.-FMIX)+FRAT*UMO2(K))
         VMN1(K)=(VMO1(K)*(1.-FMIX)+FRAT*VMO2(K))

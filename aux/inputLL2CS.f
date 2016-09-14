@@ -1122,7 +1122,7 @@ c*    write
 
       do j=1,jms2
          do i=1,ims2
-            if (flag_dsws(i,j) .eq. .true.) then
+            if (flag_dsws(i,j)) then
                tsource2(i,j,1)=1.d0
             else
                tsource2(i,j,1)=0.d0
@@ -2183,7 +2183,7 @@ c     write(*,*) "mask cell",i,j,k
                enddo
             enddo
          enddo
-         if (failed) then
+         if (failed.ne.0) then
             write(*,*) "record ",ir," failed test"
          else
             write(*,*) "record ",ir," succeeded test"

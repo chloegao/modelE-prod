@@ -1358,7 +1358,7 @@ C**** check whether air mass is conserved
 #endif /* TRACERS_SPECIAL_Shindell */
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       USE fluxes,ONLY : pprec,pevap
-      USE tracers_dust,ONLY : hbaij,ricntd
+      USE trdust_mod,ONLY : hbaij,ricntd
       use trdust_drv, only: io_trDust
 #endif
 
@@ -2116,7 +2116,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       USE fluxes,ONLY : pprec,pevap
-      USE tracers_dust,ONLY : hbaij,ricntd
+      USE trdust_mod,ONLY : hbaij,ricntd
       use trdust_drv, only: io_trDust
       use trdust_drv, only: def_rsf_trdust
       use trdust_drv, only: new_io_trdust
@@ -2424,7 +2424,8 @@ c daily_z is currently only needed for CS
       character(len=10), dimension(2) :: ssky=(/'as','cs'/),
      &                                lsky=(/'All-sky  ','Clear-sky'/)
       character(len=10), dimension(2) :: sabs=(/' ','a'/),
-     &                                labs=(/'          ','absorption'/)
+     &                               labs=(/'          ','absorption'/),
+     &                               lcoef=(/'extinction','absorption'/)
       character(len=10) :: spcname
       integer :: s,a
 
@@ -2474,6 +2475,14 @@ c daily_z is currently only needed for CS
      &    lname = trim(spcname)//' '//trim(lsky(s))//' '//
      &            trim(labs(a))//' aerosol optical depth',
      &    units = '-',
+     &    sched = sched_rad
+     &       )
+        arr(next()) = info_type_(
+     &    sname = trim(spcname)//trim(ssky(s))//trim(sabs(a))//
+     &    'bcoef3d',
+     &    lname = trim(spcname)//' '//trim(lsky(s))//' '//
+     &            trim(lcoef(a))//' coefficient',
+     &    units = 'm-1',
      &    sched = sched_rad
      &       )
       enddo ! n
@@ -2688,7 +2697,7 @@ C
     (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
 
       subroutine get_aircraft_tracer
-     & (nTracer,fileName,year,xday,phi,need_read)
+     & (nTracer,fileName,year,xday,phi,need_read,AIRCstream)
 !@sum  get_aircraft_tracer to define the 3D source of tracers from aircraft
 !@auth Drew Shindell? / Greg Faluvegi / Jean Learner
       use RESOLUTION, only : im,jm,lm
@@ -2698,15 +2707,16 @@ C
       use filemanager, only: openunit,closeunit,is_fbsa
       use fluxes, only: tr3Dsource
       use geom, only: axyp
-      use OldTracer_mod, only: itime_tr0
+      use OldTracer_mod, only: itime_tr0, trname
+      use OldTracer_mod, only: set_first_aircraft, first_aircraft
       use TRACER_COM, only: ntm_chem_beg,ntm_chem_end,nAircraft
-      use TRACER_COM, only: trans_emis_overr_yr
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) || \
     (defined TRACERS_TOMAS)
       use TRACER_COM, only: aer_int_yr
 #endif
       use Dictionary_mod, only: is_set_param, get_param
       use RAD_COM, only: o3_yr
+      use timestream_mod, only : read_stream, timestream, init_stream
 
       IMPLICIT NONE
  
@@ -2743,14 +2753,20 @@ C
      & (/0.305, 0.915, 1.525, 2.135, 2.745, 3.355, 3.965, 4.575, 5.185,
      & 5.795, 6.405, 7.015, 7.625, 8.235001, 8.845, 9.455001, 10.065,
      & 10.675, 11.285, 11.895, 12.505, 13.115, 13.725, 14.335, 14.945/)
-      integer :: J_1, J_0, I_0, I_1
-      logical :: trans_emis=.false.
-      integer :: yr1=0, yr2=0
+      integer :: J_1, J_0, I_0, I_1, do_ppm
+      logical :: trans_emis=.false.,isItFbsa=.true.
+      integer :: yr1=0, yr2=0, copy_master_yr, cyclic_yr
+      ! note the AIRCstream is passed before init_stream is called for it
+      ! (and in the case of fbsa files init_stream is never called for it.)
+      type(timestream) :: AIRCstream
  
 ! Aircraft tracer source input is monthly, on 25 levels.
 ! Read it in here and interpolated each day.
 
-      if (is_fbsa(fileName)) then
+      ! for fortran binary sequential access files, transient emissions/
+      ! start/end years are determined from rundeck parameters:
+      isItFbsa=is_fbsa(fileName)
+      if (isItFbsa) then
         if (is_set_param("aircraft_Tyr1")) then
           call get_param("aircraft_Tyr1",aircraft_Tyr1)
         else
@@ -2777,36 +2793,62 @@ C
       call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1)
 
-! Monthly sources are interpolated to the current day
-! Units are kg m-2 s-1, so no conversion is necessary:
-
-      ! Determine year of emissions to use:
-      trans_emis_overr_yr=0
+      ! Determine year of emissions to use and (for nc emissions)
+      ! whether the timestream should be cyclic or not.
+      ! (Actual year 'year' has been passed in. Allow override of this
+      ! if say, {master,o3,aer_int}_yr non-zero):
+      call get_param('master_yr',copy_master_yr,default=0)
+      cyclic_yr=copy_master_yr
 #ifdef TRACERS_SPECIAL_Shindell
       if ((nTracer>=ntm_chem_beg).and.(nTracer<=ntm_chem_end)) then
-        trans_emis_overr_yr=ABS(o3_yr)
+        call get_param('o3_yr',cyclic_yr,default=copy_master_yr)
       else
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) || \
     (defined TRACERS_TOMAS)
-        trans_emis_overr_yr=aer_int_yr
+        call get_param('aer_int_yr',cyclic_yr,default=copy_master_yr)
 #else 
         continue
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
       end if
 #endif
-      xyear=year ! default is model year but allow override:
-      if (trans_emis_overr_yr > 0) xyear=trans_emis_overr_yr
+      cyclic_yr=abs(cyclic_yr)
+      xyear=year
+      if (cyclic_yr > 0) xyear=cyclic_yr
 
-      if (trans_emis .and. xyear < 1900) goto 999 !<-- hardcode for NO AIRCRAFT before 1900
+      if (isItFbsa) then
+        ! for old giss binary files, skip execessive reading by disallowing
+        ! emissions before year 1900 (if transient emissions requested):
+        if (trans_emis .and. xyear < 1900) goto 999
+      end if
 
       if (need_read) then
 
-        call openunit(fileName,fileUnit,.true.)
-        call read_monthly_3Dsources(Laircr,fileUnit,
-     &   src,trans_emis,yr1,yr2,xyear,xday)
-        call closeunit(fileUnit)
+        ! Monthly sources are interpolated to the current day
+        ! Units are kg m-2 s-1, so no conversion is necessary:
+
+        if (isItFbsa) then
+          call openunit(fileName,fileUnit,.true.)
+          call read_monthly_3Dsources(Laircr,fileUnit,
+     &         src,trans_emis,yr1,yr2,xyear,xday)
+          call closeunit(fileUnit)
+        else
+          if(first_aircraft(nTracer)) then
+            call set_first_aircraft(nTracer, .false.)
+            call get_param('nc_emis_use_ppm_interp',do_ppm,default=1)
+            if (do_ppm==1) then
+              call init_stream(grid,AIRCstream,fileName,
+     &        trim(trname(nTracer)), 0d0, 1d30, 'ppm',
+     &        xyear, xday, cyclic = (cyclic_yr > 0) )
+            else
+              call init_stream(grid,AIRCstream,fileName,
+     &        trim(trname(nTracer)), 0d0, 1d30, 'linm2m',
+     &        xyear, xday, cyclic = (cyclic_yr > 0) )
+            end if
+          end if
+          call read_stream(grid,AIRCstream,xyear,xday,src)
+        end if
 
 ! Place aircraft sources onto model levels:
         airtracer = 0.d0

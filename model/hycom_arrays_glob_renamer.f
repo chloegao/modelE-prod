@@ -2,108 +2,107 @@
       module hycom_arrays_glob_renamer
 
       USE HYCOM_ARRAYS, only :
-     . u_loc => u,v_loc => v 
-     .,dp_loc => dp,dpold_loc => dpold 
-     .,dpu_loc => dpu,dpv_loc => dpv 
-     .,p_loc => p 
-     .,pu_loc => pu,pv_loc => pv 
-     .,latij_loc => latij,lonij_loc => lonij 
-     .,corio_loc => corio 
-     .,potvor_loc => potvor 
-     .,temp_loc => temp 
-     .,saln_loc => saln 
-     .,th3d_loc => th3d 
-     .,thstar_loc => thstar 
-     .,wgtkap_loc => wgtkap 
-     .,psikk_loc => psikk 
-     .,thkk_loc => thkk 
-     .,dpmixl_loc => dpmixl 
+     . u_loc => u,v_loc => v
+     .,dp_loc => dp,dpold_loc => dpold
+     .,dpu_loc => dpu,dpv_loc => dpv
+     .,p_loc => p
+     .,pu_loc => pu,pv_loc => pv
+     .,latij_loc => latij,lonij_loc => lonij
+     .,corio_loc => corio
+     .,potvor_loc => potvor
+     .,temp_loc => temp
+     .,saln_loc => saln
+     .,th3d_loc => th3d
+     .,thstar_loc => thstar
+     .,wgtkap_loc => wgtkap
+     .,psikk_loc => psikk
+     .,thkk_loc => thkk
+     .,dpmixl_loc => dpmixl
      .,srfhgt_loc => srfhgt
-c 
+c
      .,montg_loc => montg
-     .,defor1_loc => defor1,defor2_loc => defor2 
-     .,ubavg_loc => ubavg,vbavg_loc => vbavg 
-     .,pbavg_loc => pbavg 
-     .,ubrhs_loc => ubrhs,vbrhs_loc => vbrhs 
-     .,utotm_loc => utotm,vtotm_loc => vtotm 
-     .,utotn_loc => utotn,vtotn_loc => vtotn 
-     .,uflux_loc => uflux,vflux_loc => vflux 
-     .,uflux1_loc => uflux1,vflux1_loc => vflux1 
-     .,uflux2_loc => uflux2,vflux2_loc => vflux2 
-     .,uflux3_loc => uflux3,vflux3_loc => vflux3 
-     .,uflx_loc => uflx,vflx_loc => vflx 
+     .,defor1_loc => defor1,defor2_loc => defor2
+     .,ubavg_loc => ubavg,vbavg_loc => vbavg
+     .,pbavg_loc => pbavg
+     .,ubrhs_loc => ubrhs,vbrhs_loc => vbrhs
+     .,utotm_loc => utotm,vtotm_loc => vtotm
+     .,utotn_loc => utotn,vtotn_loc => vtotn
+     .,uflux_loc => uflux,vflux_loc => vflux
+     .,uflux1_loc => uflux1,vflux1_loc => vflux1
+     .,uflux2_loc => uflux2,vflux2_loc => vflux2
+     .,uflux3_loc => uflux3,vflux3_loc => vflux3
+     .,uflx_loc => uflx,vflx_loc => vflx
      .,bolusu_loc => bolusu,bolusv_loc => bolusv
-c 
-     .,uav_loc => uav, vav_loc =>   vav 
-     .,dpuav_loc => dpuav,dpvav_loc => dpvav 
-     .,temav_loc => temav,salav_loc => salav 
-     .,th3av_loc => th3av, dpav_loc =>  dpav 
-     .,ubavav_loc => ubavav,vbavav_loc => vbavav
-     .,pbavav_loc => pbavav,sfhtav_loc => sfhtav 
-     .,uflxav_loc => uflxav,vflxav_loc => vflxav 
-     .,diaflx_loc => diaflx 
+c
+     .,uav_loc => uav, vav_loc =>   vav
+     .,dpuav_loc => dpuav,dpvav_loc => dpvav
+     .,temav_loc => temav,salav_loc => salav
+     .,th3av_loc => th3av, dpav_loc =>  dpav
+     .,pbavav_loc => pbavav,sfhtav_loc => sfhtav
+     .,uflxav_loc => uflxav,vflxav_loc => vflxav
+     .,diaflx_loc => diaflx
      .,salflav_loc => salflav,brineav_loc => brineav
-     .,eminpav_loc => eminpav 
-     .,surflav_loc => surflav 
-     .,tauxav_loc => tauxav 
-     .,tauyav_loc => tauyav 
-     .,ufxcum_loc => ufxcum,vfxcum_loc => vfxcum,dpinit_loc => dpinit 
+     .,eminpav_loc => eminpav
+     .,surflav_loc => surflav
+     .,tauxav_loc => tauxav
+     .,tauyav_loc => tauyav
+     .,ufxcum_loc => ufxcum,vfxcum_loc => vfxcum,dpinit_loc => dpinit
      .,dpmxav_loc => dpmxav,oiceav_loc => oiceav
-c 
-     .,util1_loc => util1, util2_loc => util2 
+     .,util1_loc => util1, util2_loc => util2
      .,util3_loc => util3, util4_loc => util4
-c 
-     .,scpx_loc => scpx,scpy_loc => scpy 
-     .,scux_loc => scux,scuy_loc => scuy 
-     .,scvx_loc => scvx,scvy_loc => scvy 
-     .,scqx_loc => scqx,scqy_loc => scqy 
-     .,scu2_loc => scu2,scv2_loc => scv2 
-     .,scp2_loc => scp2,scq2_loc => scq2 
-     .,scuxi_loc => scuxi,scvyi_loc => scvyi 
+c
+     .,scpx_loc => scpx,scpy_loc => scpy
+     .,scux_loc => scux,scuy_loc => scuy
+     .,scvx_loc => scvx,scvy_loc => scvy
+     .,scqx_loc => scqx,scqy_loc => scqy
+     .,scu2_loc => scu2,scv2_loc => scv2
+     .,scp2_loc => scp2,scq2_loc => scq2
+     .,scuxi_loc => scuxi,scvyi_loc => scvyi
      .,scp2i_loc => scp2i,scq2i_loc => scq2i
-c  
-     .,pgfx_loc => pgfx,pgfy_loc => pgfy 
-     .,gradx_loc => gradx,grady_loc => grady 
-     .,depthu_loc => depthu,depthv_loc => depthv 
-     .,pvtrop_loc => pvtrop 
-     .,depths_loc => depths 
-     .,drag_loc => drag 
-     .,glue_loc => glue 
+c
+     .,pgfx_loc => pgfx,pgfy_loc => pgfy
+     .,gradx_loc => gradx,grady_loc => grady
+     .,depthu_loc => depthu,depthv_loc => depthv
+     .,pvtrop_loc => pvtrop
+     .,depths_loc => depths
+     .,drag_loc => drag
+     .,glue_loc => glue
      .,dampu_loc => dampu,dampv_loc => dampv
-c  
-     .,uja_loc => uja,ujb_loc => ujb 
-     .,via_loc => via,vib_loc => vib 
-     .,pbot_loc => pbot 
-     .,tracer_loc => tracer 
-     .,diadff_loc => diadff 
-     .,tprime_loc => tprime 
-     .,sgain_loc => sgain 
-     .,surflx_loc => surflx 
-     .,salflx_loc => salflx 
-c    .,thkice_loc => thkice 
-c    .,covice_loc => covice 
-c    .,temice_loc => temice 
-c    .,odhsi_loc => odhsi 
-     .,odmsi_loc => odmsi 
+c
+     .,uja_loc => uja,ujb_loc => ujb
+     .,via_loc => via,vib_loc => vib
+     .,pbot_loc => pbot
+     .,tracer_loc => tracer
+     .,diadff_loc => diadff
+     .,tprime_loc => tprime
+     .,sgain_loc => sgain
+     .,surflx_loc => surflx
+     .,salflx_loc => salflx
+c    .,thkice_loc => thkice
+c    .,covice_loc => covice
+c    .,temice_loc => temice
+c    .,odhsi_loc => odhsi
+     .,odmsi_loc => odmsi
+CTNL .,omlhc_loc => omlhc
      .,dmfz_loc => dmfz
-c 
+c
      &,klist_loc => klist
      &,ijlist_loc => ijlist
-c  
+c
      .,taux_loc => taux
-     .,tauy_loc => tauy 
-c    .,wndspd_loc => wndspd 
-c    .,airtmp_loc => airtmp 
-c    .,vapmix_loc => vapmix 
-c    .,oprec_loc => oprec 
-c    .,oevap_loc => oevap 
-     .,oemnp_loc => oemnp 
-     .,oflxa2o_loc => oflxa2o,oice_loc => oice 
-     .,ustar_loc => ustar 
-     .,ustarb_loc => ustarb 
+     .,tauy_loc => tauy
+c    .,wndspd_loc => wndspd
+c    .,airtmp_loc => airtmp
+c    .,vapmix_loc => vapmix
+c    .,oprec_loc => oprec
+c    .,oevap_loc => oevap
+     .,oemnp_loc => oemnp
+     .,oflxa2o_loc => oflxa2o,oice_loc => oice
+     .,ustar_loc => ustar
+     .,ustarb_loc => ustarb
      .,osalt_loc => osalt
-c 
-     .,freshw_loc => freshw 
+c
+     .,freshw_loc => freshw
      .,diafor_loc => diafor
 
       implicit none
@@ -164,8 +163,6 @@ c
       public salav_loc
       public th3av_loc
       public dpav_loc
-      public ubavav_loc
-      public vbavav_loc
       public pbavav_loc
       public sfhtav_loc
       public uflxav_loc
@@ -226,6 +223,7 @@ c
       public surflx_loc
       public salflx_loc
       public odmsi_loc
+CTNL  public omlhc_loc
       public dmfz_loc
       public taux_loc
       public tauy_loc

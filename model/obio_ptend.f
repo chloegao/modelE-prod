@@ -15,7 +15,7 @@ c  P(8) = coccolithophores (mg chl m-3)
 c  P(9) = herbivores (mg chl m-3)
  
       USE obio_dim
-      USE obio_incom,only: cnratio,cfratio,remin,obio_wsh,bf,cchlratio
+      USE obio_incom,only: cnratio,cfratio,remin,obio_wss,bf,cchlratio
      .                    ,wsdeth,rkn,rks,rkf,Rm,phygross,bn,bs,solFe
      .                    ,mgchltouMC,uMtomgm3
       USE obio_forc, only: tirrq
@@ -25,33 +25,12 @@ c  P(9) = herbivores (mg chl m-3)
      .                    ,wshc,rikd,rmuplsr,det
      .                    ,gcmax1d,covice_ij,atmFe_ij
      .                    ,temp1d,wsdet,tzoo,p1d
-     .                    ,rhs,pp2_1d,flimit,obio_deltat
+     .                    ,rhs,pp2_1d,flimit,obio_deltat,sday
 #ifdef restoreIRON
+!AR5 preprocessor option
      .                    ,Iron_BC
 #endif
 
-#ifdef OBIO_RUNOFF
-#ifdef POC_RUNOFF
-     .                      ,rpocconc_loc
-#endif
-#ifdef NITR_RUNOFF
-     .                      ,rnitrconc_loc
-!                         ,rnitrfmlo_loc
-#endif
-#ifdef SILI_RUNOFF
-     .                      ,rsiliconc_loc
-#endif
-#ifdef IRON_RUNOFF
-     .                      ,rironconc_loc
-      USE obio_incom, only: estFe
-#endif
-#endif
-
-#ifdef OBIO_RUNOFF
-      USE OFLUXES, only:  oFLOWO
-!      USE ocean, only:  oxyp
-      USE MODEL_COM, only:  dtsrc 
-#endif
 #ifdef OBIO_ON_GARYocean
       USE OCEANRES, only : kdm=>lmo
       USE MODEL_COM, only : nstep=>itime
@@ -110,11 +89,7 @@ c  P(9) = herbivores (mg chl m-3)
 !define no ice points based on covice (here: covice_ij)
       pnoice(1)=1.-covice_ij
       do k=2,kdm
-#ifdef change_PNOICE
-         pnoice(k)=1.
-#else
          pnoice(k)=pnoice(1)
-#endif
       enddo
 
       bs = 2.0*bn
@@ -299,7 +274,8 @@ c  Start Model Space Loop
 
 !change June 1, 2010
          term = 0.1 * Fescav(k)
-#ifdef DETSCAV
+#ifdef DETSCAV     
+!this is an AR5 preprocessor option
          term = Fescav(k)
 #endif
 !endofchange
@@ -372,11 +348,11 @@ c Light-regulated growth
         rhs(k,nt+nnut,13) = term
         P_tend(k,nt+nnut) = P_tend(k,nt+nnut) + term
 
-        !Net primary production  in mgC/m2/hr because:
-        ! [gro]= mg,chl/m3/hr, [dp]= m,
+        !Net primary production  in mgC/m2/day because:
+        ! [gro]= mg,chl/m3/s, [dp]= m,                     !July 2016
         ! [cchlratio]= mgl/mgl,[phygross]=no units
         pp2_1d(k,nt) = gro(k,nt) * phygross 
-     .               * dp1d(k) * cchlratio
+     .               * dp1d(k) * cchlratio *sday    !July 2016
 
       endif
 
@@ -426,11 +402,11 @@ c Light-regulated growth
         rhs(k,nt+nnut,13) = term  
         P_tend(k,nt+nnut) = P_tend(k,nt+nnut) + term
 
-        !Net primary production  in mgC/m2/hr because:
-        ! [gro]= mg,chl/m3/hr, [dp]= m,
+        !Net primary production  in mgC/m2/day because:
+        ! [gro]= mg,chl/m3/s, [dp]= m,
         ! [cchlratio]= mgl/mgl,[phygross]=no units
         pp2_1d(k,nt) = gro(k,nt) * phygross
-     .               * dp1d(k) * cchlratio
+     .               * dp1d(k) * cchlratio * sday    !July 2016
       endif
 !!#endif
 
@@ -488,11 +464,11 @@ c        rfix = min(rfix,0.2)
         rhs(k,nt+nnut,13) = gron
         P_tend(k,nt+nnut) = P_tend(k,nt+nnut) + term
 
-        !Net primary production  in mgC/m2/hr because:
-        ! [gro]= mg,chl/m3/hr, [dp]= m,
+        !Net primary production  in mgC/m2/day because:
+        ! [gro]= mg,chl/m3/s, [dp]= m,
         ! [cchlratio]= mgl/mgl,[phygross]=no units
         pp2_1d(k,nt) = gro(k,nt) * phygross
-     .               * dp1d(k) * cchlratio
+     .               * dp1d(k) * cchlratio * sday     !July 2016
 
       endif
 !!#endif
@@ -539,11 +515,11 @@ c        rfix = min(rfix,0.2)
         P_tend(k,nt+nnut) = P_tend(k,nt+nnut) + term
         gcmax1d(k) = max(gcmax1d(k),grate)
 
-        !Net primary production  in mgC/m2/hr because:
-        ! [gro]= mg,chl/m3/hr, [dp]= m,
+        !Net primary production  in mgC/m2/day because:
+        ! [gro]= mg,chl/m3/s, [dp]= m,
         ! [cchlratio]= mgl/mgl,[phygross]=no units
         pp2_1d(k,nt) = gro(k,nt) * phygross
-     .               * dp1d(k) * cchlratio
+     .               * dp1d(k) * cchlratio * sday    !July 2016
 
       endif
 !!#endif
@@ -588,11 +564,11 @@ c        rfix = min(rfix,0.2)
         rhs(k,nt+nnut,13) = term
         P_tend(k,nt+nnut) = P_tend(k,nt+nnut) + term
 
-        !Net primary production  in mgC/m2/hr because:
-        ! [gro]= mg,chl/m3/hr, [dp]= m,
+        !Net primary production  in mgC/m2/day because:
+        ! [gro]= mg,chl/m3/s, [dp]= m,
         ! [cchlratio]= mgl/mgl,[phygross]=no units
         pp2_1d(k,nt) = gro(k,nt) * phygross
-     .               * dp1d(k) * cchlratio
+     .               * dp1d(k) * cchlratio * sday    !July 2016
 
       endif
 !!#endif
@@ -600,6 +576,7 @@ c        rfix = min(rfix,0.2)
       enddo  !kmax
 
 #ifdef new_NFIXATION
+!this is an AR5 preprocessor option
       Sgronfix = 0.d0
       SobioP1  = 0.d0
       do k=1,kmax
@@ -617,7 +594,8 @@ c        rfix = min(rfix,0.2)
         rhs(k,7,12) = term
         P_tend(k,7) = P_tend(k,7) + term    !cyanobacteria only     !Ctest1
         gro(k,3) = gro(k,3) + gronfix(k)
-        pp2_1d(k,3) = pp2_1d(k,3)+gronfix(k)*phygross*dp1d(k)*cchlratio
+        pp2_1d(k,3) = pp2_1d(k,3)
+     .              +gronfix(k)*phygross*dp1d(k)*cchlratio * sday   !July 2016
       endif
       enddo
 
@@ -633,10 +611,10 @@ c        rfix = min(rfix,0.2)
        rhs(kto,1,11) = term
        P_tend(kto,1) = P_tend(kto,1) + term     !Ctest1
 
-       if (vrbos)write(*,'(a,5i6,8e18.8)')'Nfixation_new diag:',
-     .     nstep,i,j,k,kto,dp1d(k),dp1d(kto),
-     .     obio_P(kto,1),SobioP1,ratio,Sgronfix,
-     .     rhs(kto,1,11),rhs(k,7,12)*bn
+c      if (vrbos)write(*,'(a,5i6,8e18.8)')'Nfixation_new diag:',
+c    .     nstep,i,j,k,kto,dp1d(k),dp1d(kto),
+c    .     obio_P(kto,1),SobioP1,ratio,Sgronfix,
+c    .     rhs(kto,1,11),rhs(k,7,12)*bn
 #ifndef OBIO_ON_GARYocean
        endif
 #endif
@@ -692,69 +670,8 @@ c        rfix = min(rfix,0.2)
 !#endif
 
 
-#ifdef OBIO_RUNOFF
-#ifdef NITR_RUNOFF
-!       if (oFLOWO(i,j) .gt. 0.)then
-!	 rnitr_loc = rnitrmflo_loc
-!     .    / (oFLOWO(i,j) * dxypo(j)) ! kg/s => kg,N/kg,w/s
-!     .    * 1.d3     ! kg,N to g,N
-!     .    * (1./14.) ! g,N to mol,N
-!     .    * 1.d3     ! mol,N to mmol,N
-!     .    * rho_water ! kg,water to m3 water
-!         if (i.eq.169.and. j.eq.59) then
-!           write(*,'(/,a,2i5,6e12.4)')'i,j,rnitrmflo, rnitr, oFLOWO,
-!     .       dxypo, nitr, rho_water:',i,j,rnitrmflo_loc(i,j),
-!     .       rnitr_loc(i,j),
-!     .       oFLOWO(i,j),dxypo(j),obio_P(1,1),rho_water
-!	else
-!	  rnitr_loc = 0.
-!	endif
-         term = rnitrconc_loc(i,j) 
-     .    * oFLOWO(i,j)/dtsrc         ! kg,N/kg,w => kg,N/m2,w/s
-     .    / dp1d(1)                   ! kg,N/m2,w/s => kg,N/m3,w/s
-     .    * 1.d6/14.                  ! kg,N/m3,w/s => mmol,N/m3,w/s
-     .    * 3600.                     ! mmol,N/m3,w/s => mmol,N/m3,w/hr
-         rhs(1,1,17) = term
-         P_tend(1,1) = P_tend(1,1) + term
-
-!	if (i.eq.169 .and. j.eq.59) then
-!	  write(*,'(/,a,2i5,5e12.4)')'i,j,rnitrconc,rnitr,oFLOWO,
-!     .       dtsrc,dp1d(1):',i,j,rnitrconc_loc(i,j),rhs(1,1,17),
-!     .       oFLOWO(i,j),dtsrc,dp1d(1) 
-!                endif
-
-#endif
-#ifdef SILI_RUNOFF
-	term = rsiliconc_loc(i,j)
-     .   * oFLOWO(i,j)/dtsrc         ! kg,S/kg,w => kg,S/m2,w/s
-     .   / dp1d(1)                   ! kg,S/m2,w/s => kg,S/m3,w/s
-     .   * 1.d6/28.055               ! kg,S/m3,w/s => mmol,S/m3,w/s
-     .   * 3600.                     ! mmol,S/m3,w/s => mmol,S/m3,w/hr
-        rhs(1,3,17) = term
-        P_tend(1,3) = P_tend(1,3) + term
-#endif
-#ifdef IRON_RUNOFF
-	term = rironconc_loc(i,j)
-     .   * oFLOWO(i,j)/dtsrc         ! kg,Fe/kg,w => kg,Fe/m2,w/s
-     .   / dp1d(1)                   ! kg,Fe/m2,w/s => kg,Fe/m3,w/s
-     .   * 1.d9/55.845              ! kg,Fe/m3,w/s => umol,Fe/m3,w/s
-     .   * 3600.                     ! umol,Fe/m3,w/s => umol,Fe/m3,w/hr
-     .   * estFe                     ! estuarine retention rate
-        rhs(1,4,17) = term
-        P_tend(1,4) = P_tend(1,4) + term
-#endif
-#ifdef POC_RUNOFF
-	term = rpocconc_loc(i,j)
-     .   * oFLOWO(i,j)/dtsrc         ! kg,C/kg,w => kg,C/m2,w/s
-     .   / dp1d(1)                   ! kg,C/m2,w/s => kg,C/m3,w/s
-     .   * 1.d6                      ! kg,C/m3,w/s => mg,C/m3,w/s
-     .   * 3600.                     ! mg,C/m3,w/s => mg,C/m3,w/hr
-        rhs(1,10,17) = term
-        D_tend(1,1) = D_tend(1,1) + term
-#endif
-#endif
-
 #ifdef restoreIRON
+!this is an AR5 preprocessor option
 !iron bottom sink/source
 !whether sink or source is determined from Iron_BC
 !Iron_BC > 0 sink of iron through sedimentation
@@ -762,7 +679,7 @@ c        rfix = min(rfix,0.2)
       k = kmax
         if (p1d(kmax) >= 3700.) then        !for deep regions, bottom cell (lower 200m)
             term =  - obio_P(k,4) / (200/(Iron_BC*3700))
-            term = term/(365*24)     !convert to per hr
+            term = term/(365.d0*sday)     !convert to per s   July 2016
             rhs(k,4,14) = term
             P_tend(k,4) = P_tend(k,4) + term
         endif
@@ -795,13 +712,14 @@ c        rfix = min(rfix,0.2)
 
 !compute here rates but all detritus update done inside the update routine
 
-c Sinking rate temperature (viscosity) dependence (also convert to /hr)
+c Sinking rate temperature (viscosity) dependence (also convert to /hr) -> convert to /s July 2016
       do k = 1,kmax
         viscfac(k) = 0.451 + 0.0178*temp1d(k)
       enddo
       do nt = 1,nchl
        do k = 1,kmax
-         obio_ws(k,nt) = obio_wsh(nt)*viscfac(k)*pnoice(k)
+!        obio_ws(k,nt) = obio_wsh(nt)*viscfac(k)*pnoice(k)
+         obio_ws(k,nt) = obio_wss(nt)*viscfac(k)*pnoice(k)    !July 2016
        enddo
       enddo
       nt = 4

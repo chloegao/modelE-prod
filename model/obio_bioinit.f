@@ -8,31 +8,13 @@
 !obio_init  is called for every start of the run and reads in BOUNDARY conditions and interpolates 
 !them to ocean grid. such fields are iron,alkalinity,chlorophyl
 
-c based on /g6/aromanou/Watson_new/BioInit/rstbio.F
+! based on /g6/aromanou/Watson_new/BioInit/rstbio.F
 
-c  Makes initialization data files for biological variables.
-c  This is for the global model.  To subset, use the routines in
-c  /u2/gregg/bio/biodat/subreg.
-c  Uses NOAA 2001 atlas for NO3 and SiO2 distributions.
-c  Includes initial iron distributions.
-c
-c  Particle type 1  = nitrate
-c  Particle type 2  = ammonium
-c  Particle type 3  = silicate
-c  Particle type 4  = iron
-c  Particle type 5  = diatoms
-c  Particle type 6  = chlorophytes
-c  Particle type 7  = cyanobacteria
-c  Particle type 8  = coccolithophores
-c  Particle type 9  = dinoflagellates
-c  Particle type 10 = zooplankton
-c
-c  Detritus type 1  = carbon/nitrogen
-c  Detritus type 2  = silica
-c  Detritus type 3  = iron
-c
-c  Carbon type 1    = semi-labile DOC
-c  Carbon type 2    = DIC
+!  Makes initialization data files for biological variables.
+!  This is for the global model.  To subset, use the routines in
+!  /u2/gregg/bio/biodat/subreg.
+!  Uses NOAA 2001 atlas for NO3 and SiO2 distributions.
+!  Includes initial iron distributions.
  
       USE FILEMANAGER, only: openunit,closeunit
 
@@ -43,13 +25,15 @@ c  Carbon type 2    = DIC
  
 #ifdef OBIO_ON_GARYocean
       USE OCEANRES, only : kdm=>lmo
-      USE OCEAN, only : ip=>focean
+      USE OCEAN, only : ip=>focean,trmo,MO,DXYPO
       USE OCEANR_DIM, only : ogrid
+      USE OCN_TRACER_COM, only : n_abioDIC
 #else
       USE hycom_dim, only : ip,kdm,ogrid
 #endif
       use obio_com, only: ze
       use bio_inicond_mod, only: bio_inicond
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
 
       implicit none
 
@@ -127,11 +111,12 @@ c  Carbon type 2    = DIC
        enddo
       enddo
 
-      write(*,'(a,2e12.4)')'BIO: bioinit: dic min-max=',
+      if (AM_I_ROOT()) 
+     .  write(*,'(a,2e12.4)')'BIO: bioinit: dic min-max=',
      .       minval(dic),maxval(dic)
 
 c  Obtain region indicators
-      write(6,*)'calling fndreg...'
+c     write(6,*)'calling fndreg...'
       call fndreg(ir)
  
 c  Define Fe:NO3 ratios by region, according to Fung et al. (2000)
@@ -144,7 +129,8 @@ c  GBC.  Conversion produces nM Fe, since NO3 is as uM
       enddo  !j-loop
  
 c  Create arrays 
-      write(6,*)'Creating bio restart data for ',ntyp,' arrays and'
+      if (AM_I_ROOT())
+     .  write(6,*)'Creating bio restart data for ',ntyp,' arrays and'
      . ,kdm,'  layers...'
 
       do j=j_0,j_1
@@ -165,13 +151,13 @@ c  Create arrays
 
           !Iron
           tracer(i,j,k,4) = Fer(i,j,k)*tracer(i,j,k,1)  !Fung et al. 2000
-c          if (ir(nw) .eq. 3)then
-c           P(i,j,k,4) = 0.04*float(k-1) + 0.2
-c           P(i,j,k,4) = 0.06*float(k-1) + 0.2
-c           P(i,j,k,4) = 0.08*float(k-1) + 0.2
-c           P(i,j,k,4) = min(P(i,j,k,4),0.65)
-c           P(i,j,k,4) = min(P(i,j,k,4),0.75)
-c          endif
+!          if (ir(nw) .eq. 3)then
+!           P(i,j,k,4) = 0.04*float(k-1) + 0.2
+!           P(i,j,k,4) = 0.06*float(k-1) + 0.2
+!           P(i,j,k,4) = 0.08*float(k-1) + 0.2
+!           P(i,j,k,4) = min(P(i,j,k,4),0.65)
+!           P(i,j,k,4) = min(P(i,j,k,4),0.75)
+!          endif
           if (ir(i,j) .eq. 1)then
            tracer(i,j,k,4) = Fer(i,j,k)*0.5*tracer(i,j,k,1)
           endif
@@ -184,23 +170,8 @@ c          endif
           enddo
           do nt = ntyp-nzoo+1,ntyp
            tracer(i,j,k,nt) = 0.05  !in chl units mg/m3
-c          tracer(i,j,k,nt) = 0.05*50.0  !in C units mg/m3
+!          tracer(i,j,k,nt) = 0.05*50.0  !in C units mg/m3
           enddo
-
-          !inert tracer
-          do nt = ntyp+1,ntyp+n_inert
-           tracer(i,j,k,nt) = tracer(i,j,k,1)
-          enddo
-
-          !DIC
-          !read earlier from file
-#ifdef limitDIC1
-!!!       dic(i,j,k)=dmax1(1837d0,0.99*dic(i,j,k))  !!! g6hh
-          dic(i,j,k)=dmax1(1837d0,1.005*dic(i,j,k))  !!! g6hh2
-#endif
-#ifdef limitDIC2
-          dic(i,j,k)=dmax1(1837d0,1.002*dic(i,j,k))  !!! g6hh3
-#endif
 
          enddo
       end do
@@ -208,7 +179,7 @@ c          tracer(i,j,k,nt) = 0.05*50.0  !in C units mg/m3
 
 
 c  Detritus (set to 0 for start up)
-      write(6,*)'Detritus...'
+      if (AM_I_ROOT()) write(6,*)'Detritus...'
       cnratio = 106.0/16.0*12.0    !C:N ratio (ugl:uM)
       csratio = 106.0/16.0*12.0    !C:Si ratio (ugl:uM)
       cfratio = 150000.0*12.0*1.0E-3    !C:Fe ratio (ugl:nM)
@@ -218,12 +189,12 @@ c  Detritus (set to 0 for start up)
          do k=1,kdm
            if (ze(i,j,k)>ze(i,j,k-1)) then
            !only detritus components
-             tracer(i,j,k,ntyp+n_inert+1) = tracer(i,j,k,1)*0.25*cnratio !as carbon
-             tracer(i,j,k,ntyp+n_inert+2) = tracer(i,j,k,3)*0.1
-             tracer(i,j,k,ntyp+n_inert+3) = tracer(i,j,k,4)*0.25
-             tracer(i,j,k,ntyp+n_inert+1) = 0.0
-             tracer(i,j,k,ntyp+n_inert+2) = 0.0
-             tracer(i,j,k,ntyp+n_inert+3) = 0.0
+             tracer(i,j,k,ntyp+1) = tracer(i,j,k,1)*0.25*cnratio !as carbon
+             tracer(i,j,k,ntyp+2) = tracer(i,j,k,3)*0.1
+             tracer(i,j,k,ntyp+3) = tracer(i,j,k,4)*0.25
+             tracer(i,j,k,ntyp+1) = 0.0
+             tracer(i,j,k,ntyp+2) = 0.0
+             tracer(i,j,k,ntyp+3) = 0.0
           endif
          enddo
         enddo
@@ -234,13 +205,13 @@ c   DIC is derived from GLODAP.  Using mean H from exp601,
 c   mean DIC for these values is computed.  Surface DIC is taken
 c   as the mean for 020m deeper than the mixed layer, converted from
 c   uM/kg to uM
-      write(6,*)'Carbon...'
+      if (AM_I_ROOT()) write(6,*)'Carbon...'
 c    conversion from uM to mg/m3
       do j=j_0,j_1
        do i=i_0,i_1
          do k=1,kdm
-          tracer(i,j,k,ntyp+n_inert+ndet+1) = 0.0
-          tracer(i,j,k,ntyp+n_inert+ndet+2) = 0.0
+          tracer(i,j,k,ntyp+ndet+1) = 0.0
+          tracer(i,j,k,ntyp+ndet+2) = 0.0
          enddo
        enddo
       enddo
@@ -250,13 +221,18 @@ c    conversion from uM to mg/m3
        do i=i_0,i_1
          if (ip(i,j)==0) cycle
          do k = 1,kdm
-          tracer(i,j,k,ntyp+n_inert+ndet+2) = dic(i,j,k)
+          tracer(i,j,k,ntyp+ndet+2) = dic(i,j,k)
      .       * 1024.5 * 0.001                               ! convert micromole/kg to mili-mol/m3
+!initialize abioDIC
+      if (n_abioDIC.ne.0) 
+     .    trmo(i,j,k,n_abioDIC) = tracer(i,j,k,ntyp+ndet+2)  ! mili-mol/m3
+     .                          * 1.d-06 * 12.d0* MO(I,J,K)*DXYPO(J)/1024.d0
          enddo
 c         car(i,j,k,1) = 3.0  !from Bissett et al 1999 (uM(C))
 c         car(i,j,k,1) = 0.0  !from Walsh et al 1999
         enddo
       enddo
+
 
 c  Light saturation data
       avgq = 0.0
@@ -343,6 +319,7 @@ c       13 -- Mediterranean/Black Seas
       USE hycom_arrays, only : lonij,latij
 #endif
       use obio_com, only: ze
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
 
       implicit none
 
@@ -604,12 +581,14 @@ c  Set nir to minimum 1 value to prevent error in division
       enddo
  
 c  Total up points for check
+      if (AM_I_ROOT()) then
       ntot = 0
       do nr = 1,nrg
        ntot = ntot + nir(nr)
        write(6,*)'Region, no. points = ',nr,nir(nr)
       enddo
       write(6,*)'Total ocean points = ',ntot
+      endif
  
       return
       end subroutine fndreg
