@@ -4491,9 +4491,18 @@ c
 c
       k=k+1 !
       IJ_DSKIN   = k !
-      lname_ij(k) = 'SKIN TEMPERATURE OFFSET'
+      lname_ij(k) = 'SKIN TEMPERATURE OFFSET (OCEAN)'
       units_ij(k) = '0.1 C'
       name_ij(k) = 'dskin'
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 10.
+      ir_ij(k) = ir_m9_26
+c
+      k=k+1 !
+      IJ_DSKINSNOW   = k !
+      lname_ij(k) = 'SKIN TEMPERATURE OFFSET (SNOW ON OC/LK ICE)'
+      units_ij(k) = '0.1 C'
+      name_ij(k) = 'dskinsnow'
       ia_ij(k) = ia_srf
       scale_ij(k) = 10.
       ir_ij(k) = ir_m9_26

@@ -5188,7 +5188,7 @@ C****
       subroutine read_msu_wts
       use filemanager
       integer n,l,iu_msu
-      character, dimension(ncols+1) :: titles*10
+      character, dimension(ncolmax+1) :: titles*10
 c**** read in the MSU/SSU weights file
       do_msu = file_exists('MSU_wts')
       if(.not.do_msu) return
@@ -5199,7 +5199,7 @@ c**** read in the MSU/SSU weights file
       do n=1,2
         read(iu_msu,*)
       end do
-      read(iu_msu,*) titles(1:ncols+1)
+      read(iu_msu,*) titles(1:(ncols+1))
       do l=1,nmsu
         read(iu_msu,*) plbmsu(l),(wmsu(n,l),n=1,ncols)
       end do
@@ -5242,7 +5242,7 @@ c**** find weighted channel temperatures
       end do
       tout(1) = (1-pland)*tmsu(1)+pland*tmsu(2)  ! TLT
       tout(2) = (1-pland)*tmsu(3)+pland*tmsu(4)  ! TMT
-      tout(3:(ncols-1)) = tmsu(5:ncols)          ! TLS and SSU[123] 
+      tout(3:(ncols-2)) = tmsu(5:ncols)          ! TLS and SSU[123] 
 
       return
       end subroutine diag_msu
