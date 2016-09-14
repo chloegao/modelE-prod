@@ -1,5 +1,7 @@
 #!/bin/sh
 
+ echo "for netcdf files use mk_diags/pdE_nc "
+
 CMRUNDIR1=$CMRUNDIR
 if [ -f $HOME/.modelErc ]; then . $HOME/.modelErc; fi
 if [ ! -d $CMRUNDIR/$1 ] ; then CMRUNDIR='..' ; fi
