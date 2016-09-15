@@ -86,7 +86,7 @@ NAMERVR=RD_Fb.names.txt  ! named river outlets
 #include "rad_input_files"
 #include "rad_144x90_input_files"
 
-#include "mineral_tracer_144x90_input_files"
+#include "dust_tracer_144x90_input_files"
 
 #include "dry_depos_144x90_input_files"
 
@@ -109,7 +109,7 @@ FS8OPX=1.,1.,1.,1.,1.5,1.5,1.,1.
 FT8OPX=1.,1.,1.,1.,1.,1.,1.,1.
 
 ! Increasing U00a decreases the high cloud cover; increasing U00b decreases net rad at TOA
-U00a=0.59      ! above 850mb w/o MC region; tune this first to get 30-35% high clouds
+U00a=0.635     ! above 850mb w/o MC region; tune this first to get 30-35% high clouds
 U00b=1.00      ! below 850mb and MC regions; then tune this to get rad.balance
 WMUI_multiplier = 1.
 use_vmp=1
@@ -142,7 +142,7 @@ Ndisk=480
 &&END_PARAMETERS
 
  &INPUTZ
- YEARI=1949,MONTHI=12,DATEI=1,HOURI=0, ! pick IYEAR1=YEARI (default) or < YEARI
- YEARE=1949,MONTHE=12,DATEE=2,HOURE=0,     KDIAG=12*0,9,
- ISTART=2,IRANDI=0, YEARE=1949,MONTHE=12,DATEE=1,HOURE=1,
+ YEARI=1999,MONTHI=12,DATEI=1,HOURI=0, ! pick IYEAR1=YEARI (default) or < YEARI
+ YEARE=2000,MONTHE=1,DATEE=1,HOURE=0,     KDIAG=12*0,9,
+ ISTART=2,IRANDI=0, YEARE=1999,MONTHE=12,DATEE=1,HOURE=1,
 /

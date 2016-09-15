@@ -2351,7 +2351,7 @@ c gravitational settling
           jls_ltop(k)=1
           jls_power(k)=1
           units_jls(k)=unit_string(jls_power(k),'kg/s')
-        IF (imDust == 0) THEN
+        IF ( imDust == 0 .or. imDust >= 3 ) THEN
           k=k+1
           jls_isrc(nDustEm2jl,n)=k
           lname_jls(k)='Cubic emission of '//TRIM(trname(n))
@@ -4233,7 +4233,7 @@ c source of Pb210 from Rn222 decay
         ijts_power(k) = -13
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-        IF (imDust == 0) THEN
+        IF ( imDust == 0 .or. imDust >= 3 ) THEN
         k=k+1
         ijts_isrc(nDustEm2ij,n)=k
         lname_ijts(k)='Cubic emission of '//TRIM(trname(n))

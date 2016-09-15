@@ -47,7 +47,7 @@
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_AMP)  || (defined TRACERS_TOMAS)
-      use trdust_mod,only : nAerocomDust
+      use trdust_mod,only : nDustBins
 #endif
       USE TRIDIAG_MOD, only :  TRIDIAG
       IMPLICIT NONE
@@ -150,11 +150,9 @@ c**** input
 !@var pbl_args%pevap evaporation at previous time step [kg/m^2]
         REAL*8 :: pprec,pevap
 !@var pbl_args%d_dust prescribed daily dust emissions [kg/m^2/s] (e.g. AEROCOM)
-        real(kind=8) :: d_dust(nAerocomDust)
-#ifdef TRACERS_MINERALS
-!@var pbl_args%minfr distribution of tracer fractions in grid box
+        real( kind=8 ) :: d_dust( nDustBins )
+!@var pbl_args%mineralFractions  mineral fractions of emitted dust aerosols [1]
         real(kind=8) :: mineralFractions( Ntm_dust )
-#endif
 c**** output
 !@var pbl_args%pdfint integral of dust emission probability density function
         REAL*8 :: pdfint
