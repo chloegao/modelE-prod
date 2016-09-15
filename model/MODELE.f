@@ -1,5 +1,74 @@
 #include "rundeck_opts.h"
 
+! ISTART controls how the model first picks up the initial conditions to
+! start the run. We have a number of options depending on how much
+! information is already available.
+! 
+!     ISTART=1
+!         Default start. This sets atmospheric variables to constants and
+!         requires input files for ground values (a GIC file), and ocean
+!         values (OIC) if required.
+! 
+!     ISTART=2
+!         Observed start. This sets atmospheric values to observations,
+!         based on a particular format of AIC file. As for ISTART=1,
+!         input files are required for ground and ocean variables.
+! 
+!     ISTART=3
+!         Not used.
+! 
+!     ISTART=4
+!         A restart from an rsf file from a previous run, but the ocean
+!         is reinitialised. Needs an initial OIC file (for fully coupled
+!         models).
+! 
+!     ISTART=5
+!         A restart from an rsf file from a previous run, but no
+!         tracers. This is only useful for tracer runs that need to be
+!         initialised with a particular model state.
+! 
+!     ISTART=6
+!         A restart from an rsf file from a previous run that might not
+!         have had the same land-ocean mask. This makes sure to reset
+!         snow values, pbl values and ocean values accordingly.
+! 
+!     ISTART=7
+!         A restart from an rsf file from a previous run with the same
+!         land-ocean mask. This still makes sure to set snow values and
+!         ocean values. This is used mainly for converted model II'
+!         data.
+! 
+!     ISTART=8
+!         This is a restart from a model configuration identical to the
+!         run now starting. This is for perturbation experiments
+!         etc. See note below.
+! 
+!     ISTART=9
+!         This is a restart from this model run. (i.e. a continuation,
+!         or a backtrack to an older rsf file).
+! 
+!     ISTART=10   (DEFAULT if not specified in I file)
+!         This is used internally to pick up from the instantaneous rsf
+!         file (the later of fort.1 and fort.2). Does not ever need to
+!         be set in the rundeck.
+! 
+!     ISTART=11
+!         This is used internally to pick up from an instantaneous rsf
+!         file (fort.1). Only rarely used.
+! 
+!     ISTART=12
+!         This is used internally to pick up from an instantaneous rsf
+!         file (fort.2). Only rarely used.
+! 
+!     ISTART=13
+!         This is used internally to pick up from the instantaneous rsf
+!         file (the earlier of fort.1 and fort.2). Only rarely used.
+! 
+!     ISTART<0
+!         This option is used by the post-processing program to run the
+!         model to generate nice diagnostics. This should never need to
+!         be set manually.
+
       subroutine GISS_modelE(qcRestart, coldRestart, iFile)
 !@sum  MAIN GISS modelE main time-stepping routine
 !@auth Original Development Team
