@@ -228,11 +228,6 @@
       call sync_param("OFFLINE_SS",OFFLINE_SS)
 #endif
 
-#ifdef TRACERS_SPECIAL_Lerner
-      n_MPtable = 0
-      tcscale = 0.
-#endif
-
 ! ***  BEGIN TRACER METADATA INITIALIZATION
 
 #ifdef TRACERS_SPECIAL_Shindell
