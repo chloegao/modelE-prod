@@ -1,5 +1,74 @@
 #include "rundeck_opts.h"
 
+! ISTART controls how the model first picks up the initial conditions to
+! start the run. We have a number of options depending on how much
+! information is already available.
+! 
+!     ISTART=1
+!         Default start. This sets atmospheric variables to constants and
+!         requires input files for ground values (a GIC file), and ocean
+!         values (OIC) if required.
+! 
+!     ISTART=2
+!         Observed start. This sets atmospheric values to observations,
+!         based on a particular format of AIC file. As for ISTART=1,
+!         input files are required for ground and ocean variables.
+! 
+!     ISTART=3
+!         Not used.
+! 
+!     ISTART=4
+!         A restart from an rsf file from a previous run, but the ocean
+!         is reinitialised. Needs an initial OIC file (for fully coupled
+!         models).
+! 
+!     ISTART=5
+!         A restart from an rsf file from a previous run, but no
+!         tracers. This is only useful for tracer runs that need to be
+!         initialised with a particular model state.
+! 
+!     ISTART=6
+!         A restart from an rsf file from a previous run that might not
+!         have had the same land-ocean mask. This makes sure to reset
+!         snow values, pbl values and ocean values accordingly.
+! 
+!     ISTART=7
+!         A restart from an rsf file from a previous run with the same
+!         land-ocean mask. This still makes sure to set snow values and
+!         ocean values. This is used mainly for converted model II'
+!         data.
+! 
+!     ISTART=8
+!         This is a restart from a model configuration identical to the
+!         run now starting. This is for perturbation experiments
+!         etc. See note below.
+! 
+!     ISTART=9
+!         This is a restart from this model run. (i.e. a continuation,
+!         or a backtrack to an older rsf file).
+! 
+!     ISTART=10   (DEFAULT if not specified in I file)
+!         This is used internally to pick up from the instantaneous rsf
+!         file (the later of fort.1 and fort.2). Does not ever need to
+!         be set in the rundeck.
+! 
+!     ISTART=11
+!         This is used internally to pick up from an instantaneous rsf
+!         file (fort.1). Only rarely used.
+! 
+!     ISTART=12
+!         This is used internally to pick up from an instantaneous rsf
+!         file (fort.2). Only rarely used.
+! 
+!     ISTART=13
+!         This is used internally to pick up from the instantaneous rsf
+!         file (the earlier of fort.1 and fort.2). Only rarely used.
+! 
+!     ISTART<0
+!         This option is used by the post-processing program to run the
+!         model to generate nice diagnostics. This should never need to
+!         be set manually.
+
       subroutine GISS_modelE(qcRestart, coldRestart, iFile)
 !@sum  MAIN GISS modelE main time-stepping routine
 !@auth Original Development Team
@@ -27,7 +96,7 @@
       USE FV_INTERFACE_MOD, only: fvstate
       USE FV_INTERFACE_MOD, only: Checkpoint,Compute_Tendencies
 #endif
-      use TimeConstants_mod, only: SECONDS_PER_MINUTE, 
+      use TimeConstants_mod, only: SECONDS_PER_MINUTE,
      &                             INT_MONTHS_PER_YEAR
       use TimerPackage_mod, only: startTimer => start
       use TimerPackage_mod, only: stopTimer => stop
@@ -55,7 +124,7 @@ C**** Command line options
       REAL*8, DIMENSION(0:NTIMEMAX) ::TIMING_glob = 0.
       REAL*8 start,now, DTIME,TOTALT
 
-      CHARACTER aDATE*14
+      CHARACTER aDATE*14, i5toc4*4 ! function in shared/Utilities.F90
       CHARACTER*8 :: string_go='___GO___'      ! green light
       CHARACTER*8 :: str
       integer :: iflag=1
@@ -192,7 +261,7 @@ C****
 C**** UPDATE Internal MODEL TIME AND CALL DAILY IF REQUIRED
 C****
       call modelEclock%nextTick()
-      call modelEclock%get(year=year, month=month, dayOfYear=day, 
+      call modelEclock%get(year=year, month=month, dayOfYear=day,
      &     date=date, hour=hour, amn=amon)
       Itime=Itime+1                       ! DTsrc-steps since 1/1/Iyear1
 
@@ -203,7 +272,7 @@ C****
         call TIMER (NOW,MELSE)
         call stopTimer('Daily')
       end if                                  !  NEW DAY
-       
+
 #ifdef USE_FVCORE
 ! Since dailyUpdates currently adjusts surf pressure,
 ! moving this call to the atm driver will change results.
@@ -235,7 +304,7 @@ C**** (after the end of a diagn. accumulation period)
 C**** PRINT DIAGNOSTIC TIME AVERAGED QUANTITIES
         call aPERIOD (JMON0,JYEAR0,months,1,0, aDATE(1:12),Ldate)
         acc_period=aDATE(1:12)
-        WRITE (aDATE(8:14),'(A3,I4.4)') aMON(1:3),year
+        WRITE (aDATE(8:14),'(A3,a4)') aMON(1:3),i5toc4(year)
         call print_diags(0)
 C**** SAVE ONE OR BOTH PARTS OF THE FINAL RESTART DATA SET
         IF (KCOPY.GT.0) THEN
@@ -283,7 +352,7 @@ C**** PRINT AND ZERO OUT THE TIMING NUMBERS
         end if
         TIMING = 0
         START= NOW
-        
+
       END IF  ! beginning of accumulation period
 
 C**** CPU TIME FOR CALLING DIAGNOSTICS
@@ -438,7 +507,7 @@ C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
 #ifdef USE_FVCORE
       USE FV_INTERFACE_MOD, only: Checkpoint,fvstate
 #endif
-      
+
       integer :: hour, date
       character(len=LEN_MONTH_ABBREVIATION) :: amon
 
@@ -553,13 +622,13 @@ C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
       call delete(report)
 
       end subroutine reportProfile
-      
+
       end subroutine GISS_modelE
 
       subroutine dailyUpdates
       use fluxes, only : atmocn
       implicit none
-      
+
       call daily_CAL(.true.)    ! end_of_day
       call daily_OCEAN(.true.,atmocn)  ! end_of_day
       call daily_ATM(.true.)
@@ -765,9 +834,9 @@ C****   Current settings: 2 - from observed data                    ****
 C****                     8 - from current model M-file - no resets ****
 C****                                                               ****
 C***********************************************************************
-C**** 
+C****
 C**** Set quantities that are derived from the namelist parameters
-C**** 
+C****
 !@var NDAY=(1 day)/DTsrc : even integer; adjust DTsrc to be commensurate
         NDAY = 2*nint(calendar%getSecondsPerDay()/(DTsrc*2))
         dtSrcUsed = TimeInterval(calendar%getSecondsPerDay() / NDAY)
@@ -801,18 +870,18 @@ C**** Get Start Time; at least YearI HAS to be specified in the rundeck
         END IF
 
         IF (ISTART.EQ.2) THEN
-C**** 
+C****
 C**** Cold Start: ISTART=2
-C**** 
+C****
           XLABEL(1:80)='Observed atmospheric data from NMC tape'
 
 C**** Set flag to initialise topography-related variables
           init_topog_related = 1
 
         ELSE IF (ISTART==8) THEN
-C**** 
+C****
 C**** Data from current type of RESTART FILE
-C**** 
+C****
 ! no need to read SRHR,TRHR,FSF,TSFREZ,diag.arrays
           call io_rsf("AIC",IhrX,irsfic,ioerr)
 
@@ -860,7 +929,7 @@ C****                    12 - from fort.2                           ****
 C****               13 & up - from earlier of fort.1 or fort.2      ****
 C****                                                               ****
 C***********************************************************************
-C**** 
+C****
 C**** DATA FROM end-of-month RESTART FILE     ISTART=9
 C**** mainly used for REPEATS and delayed EXTENSIONS
         IF(ISTART==9) THEN      !  diag.arrays are not read in
@@ -870,9 +939,9 @@ C**** mainly used for REPEATS and delayed EXTENSIONS
           XLABEL = RLABEL       ! switch to rundeck label
           TIMING = 0
         ELSE
-C**** 
+C****
 C**** RESTART ON DATA SETS 1 OR 2, ISTART=10 or more
-C**** 
+C****
 C**** CHOOSE DATA SET TO RESTART ON
           IF(ISTART==11 .OR. ISTART==12) THEN
             KDISK=ISTART-10
@@ -921,7 +990,7 @@ C****
 
       ! dtSrcUsed is of type TimeInterval to guarantee exact arithmetic
       ! use real(...) to convert for convenience in other calculations.
-      dtSrcUsed = TimeInterval(calendar%getSecondsPerDay() / NDAY)                       
+      dtSrcUsed = TimeInterval(calendar%getSecondsPerDay() / NDAY)
       DTsrc = real(dtSrcUsed)
 
       modelETimeE = newTime(calendar)
@@ -936,11 +1005,11 @@ C****
 
 
 C**** Check consistency of DTsrc with NDAY
-      if (is_set_param("DTsrc") .and. 
+      if (is_set_param("DTsrc") .and.
      &     nint(calendar%getSecondsPerDay()/DTsrc) .ne. NDAY) then
         if (AM_I_ROOT()) then
           secsPerDay = calendar%getSecondsPerDay()
-          write(6,*) 'DTsrc=',DTsrc,' has to stay at/be set to', 
+          write(6,*) 'DTsrc=',DTsrc,' has to stay at/be set to',
      &               real(secsPerDay / NDAY)
         end if
         call stop_model('INPUT: DTsrc inappropriately set',255)
@@ -982,7 +1051,7 @@ C**** Set date information
 
       modelEclock = ModelClock(modelEtime, dtSrcUsed, itime)
 
-      ! These next two lines are not necessary - but act as 
+      ! These next two lines are not necessary - but act as
       ! a (poor) test that the alternate constructor for clocks
       ! is working.
       tmpStr = modelEclock%toString()
@@ -1010,7 +1079,7 @@ C**** MUST be before other init routines
       if (istart==8 .and. do_IC_fixups==1) istart_fixup = 9
 
       is_coldstart = (istart<9 .and. init_topog_related == 1)
-! long version: 
+! long version:
 !      is_coldstart = istart==2 .or. (istart==8 .and. init_topog_related == 1)
 
       call INPUT_ocean (istart,istart_fixup,

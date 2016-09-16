@@ -304,9 +304,11 @@ def createScriptTask(config, compconfig, deck, comp, mode):
                 cores = 1
                 walltime = '00:30:00'
                 if re.search('obio', deckName):
-                    walltime = '01:30:00'
+                    walltime = '01:00:00'
                 elif re.search('cadi', deckName):
                     walltime = '04:00:00'
+                elif re.search('vsd', deckName):
+                    walltime = '01:00:00'
 
             # Adjust the walltime for some rundecks
             if re.search('C12', deckName):
@@ -477,7 +479,7 @@ def sendDiffreport(config, compconfig, eTime):
     if sortdiff == 'yes':
         sp.call('find '+resultsDir+' -name \*.diff -exec cat {} \; >' \
                     +resultsDir + '/' + 'alldiffs', shell=True)
-        sp.call('cat '+resultsDir + '/' + 'alldiffs | sort -k 2,2 >' \
+        sp.call('cat '+resultsDir + '/' + 'alldiffs | sort -k 1,1 >' \
                     +resultsDir + '/' + 'sorteddiffs', shell=True)
         with open(resultsDir + '/' + 'sorteddiffs','r') as inf:
             fp.write(inf.read())

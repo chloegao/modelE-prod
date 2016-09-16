@@ -115,7 +115,10 @@ C****
 #endif
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
-      use tracer_com, only: ntm_clay, n_soilDust
+      use trdust_mod, only : imDust, nSubClays, subClayWeights
+      use trdust_drv, only : calcSubClayWeights
+      use tracer_com, only: ntm_clay, ntm_sil1, ntm_sil2, ntm_sil3,
+     &     ntm_sil4, ntm_sil5, n_soilDust
       use rad_com, only: nr_soildust
 #endif
 #ifdef TRACERS_MINERALS
@@ -138,14 +141,8 @@ C****
      &     n_sil4kahe, n_sil4smhe, n_sil5quar, n_sil5feld, n_sil5calc,
      &     n_sil5hema, n_sil5gyps, n_sil5illi, n_sil5kaol, n_sil5smec,
      &     n_sil5quhe, n_sil5fehe, n_sil5cahe, n_sil5gyhe, n_sil5ilhe,
-     &     n_sil5kahe, n_sil5smhe, ntm_sil1, ntm_sil2, ntm_sil3,
-     &     ntm_sil4, ntm_sil5
+     &     n_sil5kahe, n_sil5smhe
       use trdust_mod, only: nSubClays, effRadMinerals, subClayWeights
-      use trdust_drv, only : calcSubClayWeights
-#endif
-#ifdef TRACERS_DUST
-      use trdust_mod, only : nSubClays, subClayWeights
-      use trdust_drv, only : calcSubClayWeights
 #endif
 #ifdef TRACERS_AMP
       USE AERO_CONFIG, only: nmodes
@@ -819,16 +816,9 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
 
         if ( tracers_minerals ) call calcSubClayWeights
 
-        wttr( n+1:n+nraero_dust )= (/((subClayWeights( ntrix_aod(i)
-     &       -n_soilDust+1, j ), j=1,nSubClays), i=n+1,ntm_clay), (1.d0,
-     &       i=1,ntm_sil1+ntm_sil2+ntm_sil3)
-#ifdef TRACERS_DUST_Silt4
-     &       ,(1.d0, i=1, ntm_sil4)
-#endif  /* TRACERS_DUST_Silt4 */
-#ifdef TRACERS_DUST_Silt5
-     &       ,(1.d0, i=1, ntm_sil5)
-#endif  /* TRACERS_DUST_Silt5 */
-     &       /)
+        wttr( n+1:n+nraero_dust ) = (/ ( ( subClayWeights( i, j ), j=1
+     &       ,nSubClays ), i=1,ntm_clay ), ( 1.d0, i=1,ntm_sil1+ntm_sil2
+     &       +ntm_sil3+ntm_sil4+ntm_sil5 ) /)
 
         densclay=(/(trpdens(n_clayilli), i=1,nSubClays),
      &             (trpdens(n_claykaol), i=1,nSubClays),
@@ -892,15 +882,22 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
 #endif  /* TRACERS_DUST_Silt5 */
      &                             /)
 
-        wttr(n+1:n+nraero_dust)=(/0.009d0,0.081d0,0.234d0,0.676d0,
-     &                            1.d0,1.d0,1.d0
-#ifdef TRACERS_DUST_Silt4
-     &                           ,1.d0
-#endif  /* TRACERS_DUST_Silt4 */
-#ifdef TRACERS_DUST_Silt5
-     &                           ,1.d0
-#endif  /* TRACERS_DUST_Silt5 */
-     &                           /)
+        if ( imDust >= 4 ) then
+
+          call calcSubClayWeights
+
+          wttr( n+1:n+nraero_dust ) = (/ ( ( subClayWeights( i , j ), j
+     &         =1,nSubClays ), i=1,ntm_clay ), ( 1.d0, i=1,ntm_sil1
+     &         +ntm_sil2+ntm_sil3+ntm_sil3+ntm_sil4+ntm_sil5 ) /)
+
+        else
+
+          wttr( n+1:n+nraero_dust ) = (/ 0.009d0, 0.081d0, 0.234d0,
+     &         0.676d0,( 1.d0, i=1,ntm_sil1+ntm_sil2+ntm_sil3+ntm_sil4
+     &         +ntm_sil5 ) /)
+
+        end if
+
 ! Particle density of dust
         traden(n+1:n+nraero_dust)=(/2.5d0,2.5d0,2.5d0,2.5d0,
      &                              2.65d0,2.65d0,2.65d0

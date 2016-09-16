@@ -7,9 +7,11 @@
     (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
 
       use filemanager,only: nameunit,openunit,closeunit
-      use RunTimeControls_mod, only : tracers_dust_silt4,
-     &     tracers_dust_silt5
+      use RunTimeControls_mod, only : tracers_dust, tracers_dust_silt4,
+     &     tracers_dust_silt5, tracers_minerals, tracers_amp,
+     &     tracers_tomas
       use constant, only: rgas
+      use geom, only: axyp
       use resolution, only: im,jm,lm
       use Dictionary_mod, only : sync_param
       use domain_decomp_atm, only: am_i_root, grid, dread_parallel
@@ -17,7 +19,7 @@
       use model_com, only: ioread, iowrite, irsfic, irsficno, irerun,
      &     itime
       use TimeConstants_mod, only: INT_DAYS_PER_YEAR,
-     &     INT_MONTHS_PER_YEAR
+     &     INT_MONTHS_PER_YEAR, SECONDS_PER_DAY
       use atm_com, only: byMA, pk, pmid, T
       use fluxes, only: dust_flux_glob, dust_flux2_glob
 #ifdef TRACERS_DRYDEP
@@ -47,10 +49,7 @@
      $     n_sil5hema, n_sil5gyps, n_sil5illi, n_sil5kaol, n_sil5smec,
      $     n_sil5quhe, n_sil5fehe, n_sil5cahe, n_sil5gyhe, n_sil5ilhe,
      $     n_sil5kahe, n_sil5smhe, n_soilDust, ntm_dust, ntm_clay,
-     $     trm
-#ifdef TRACERS_MINERALS
-     &     ,ntm_sil1, ntm_sil2, ntm_sil3, ntm_sil4, ntm_sil5
-#endif
+     $     trm, ntm_sil1, ntm_sil2, ntm_sil3, ntm_sil4, ntm_sil5
       use OldTracer_mod, only: trName
 #ifdef TRACERS_DRYDEP
       use OldTracer_mod, only: dodrydep
@@ -65,6 +64,7 @@
      &     write_dist_data
 #endif
       use PolynomialInterpolator_mod, only: interpolator3D
+      use ghy_com, only: fearth
 
       implicit none
 
@@ -102,8 +102,11 @@ c init_soildust
 
 c**** read in rundeck parameters
       call sync_param('imDUST',imDUST)
+      call sync_param('scaleDustEmission', scaleDustEmission)
       call sync_param('fracClayPDFscheme', fracClayPDFscheme)
       call sync_param('fracSiltPDFscheme', fracSiltPDFscheme)
+      call sync_param( 'vegetationERS', vegetationERS )
+      call sync_param( 'prefDustSources', prefDustSources )
 
 #ifndef TRACERS_AMP
 #ifndef TRACERS_TOMAS
@@ -150,7 +153,10 @@ c tracer_ic_soildust
 c**** temporary array to read in data
       real( kind=8 ), dimension( grid%i_strt:grid%i_stop, ! no halo
      &     grid%j_strt:grid%j_stop, INT_DAYS_PER_YEAR+1 ) ::
-     &     work_aerocom 
+     &     work_aerocom
+      real( kind=8 ), dimension( grid%i_strt_halo:grid%i_stop_halo,
+     &     grid%j_strt_halo:grid%j_stop_halo,INT_DAYS_PER_YEAR ) ::
+     &     work_sum
 
       LOGICAL,SAVE :: qfirst=.TRUE.
       CHARACTER :: cierr*3, name*256, cib
@@ -163,10 +169,16 @@ c**** temporary array to read in data
      &     i_stop=i_1, j_strt_halo=j_0h, j_stop_halo=j_1h, i_strt_halo
      &     =i_0h, i_stop_halo=i_1h )
 
-c**** prescribed AEROCOM dust emissions
-      IF (imDust == 1) THEN
+c**** prescribed AeroCom dust emissions
+      if ( imDust == 1 .or. imDust == 3 .or. imDust == 5 ) then
 
-        do ib = 1,4
+c        write( 6, * ) 'In tracer_ic_soilust:'
+c        write( 6, * ) 'i_0, i_1, j_0, j_1:', i_0, i_1, j_0, j_1
+c        write( 6, * ) 'fearth: ', fearth( i_0:i_1, j_0:j_1 )
+c        write( 6, * ) 'axyp: ', axyp( i_0:i_1, j_0:j_1 )
+
+        if ( imDust == 3) work_sum = 0.d0
+        do ib = 1,nAerocomDust
 
           work_aerocom = 0.
           write( cib, '(i1)' ) ib
@@ -185,13 +197,76 @@ c**** prescribed AEROCOM dust emissions
             d_dust( i_0:i_1, j_0:j_1, ib, k ) = work_aerocom( i_0:i_1,
      &           j_0:j_1, k1 )
 
+c            do j = j_0h,j_1h
+c              do i = i_0h,i_1h
+c                d_dust( i, j, ib, k ) = d_dust( i, j, ib, k ) /
+c     &               SECONDS_PER_DAY / axyp( i, j ) / fearth( i, j )
+c              end do
+c            end do
+
+c            where ( axyp( i_0h:i_1h, j_0h:j_1h ) > 0.d0 .and. fearth(
+c     &           i_0h:i_1h, j_0h:j_1h ) > 0.d0 )
+c            d_dust( i_0h:i_1h, j_0h:j_1h, ib, k ) = d_dust( i_0h:i_1h,
+c     &           j_0h:j_1h, ib, k ) / SECONDS_PER_DAY / axyp( i_0h:i_1h,
+c     &           j_0h:j_1h ) / fearth( i_0h:i_1h, j_0h:j_1h )
+c            elsewhere
+c              d_dust( i_0h:i_1h, j_0h:j_1h, ib, k ) = 0.d0
+c            end where
+
+c            write( 6, * ) 'In tracer_ic_soilust:'
+c            write( 6, * ) 'ib, k, i_0, i_1, j_0, j_1:', ib, k, i_0, i_1,
+c     &           j_0,j_1
+c            write( 6, * ) 'd_dust: ', d_dust( i_0:i_1, j_0:j_1, ib, k )
+
+            if ( imDust == 3 ) then
+              do j = j_0h,j_1h
+                do i = i_0h,i_1h
+                  work_sum( i, j, k ) = work_sum( i, j, k ) +
+     &                 d_dust( i, j, ib, k )
+                end do
+              end do
+            end if
+
           end do
 
-        end do
+        end do                  ! ib
+
+        if ( imDust == 5 .and. nDustBins > nAerocomDust ) then
+          do ib = nAerocomDust+1,nDustBins
+            d_dust( i_0h:i_1h, j_0h:j_1h, ib, : ) = d_dust( i_0h:i_1h,
+     &           j_0h:j_1h, nAerocomDust, : )
+          end do
+        end if
 
         CALL write_parallel(' Read from file dust_bin[1-4]',unit=6)
 
-      ELSE IF (imDust == 2) THEN
+c        write( 6, * ) 'In tracer_ic_soilust:'
+c        write( 6, * ) 'i_0h, i_1h, j_0h, j_1h:', i_0h, i_1h, j_0h, j_1h
+c        write( 6, * ) 'work_sum: ', work_sum( i_0h:i_1h, j_0h:j_1h, : )
+
+        if ( imDust == 3 ) then
+c******** normalize AeroCom size distribution to be used as factors for model
+c         calculated dust emission flux
+          do ib = 1,nAerocomDust
+            where ( work_sum( i_0h:i_1h, j_0h:j_1h, : ) > 0.d0 )
+              d_dust( i_0h:i_1h, j_0h:j_1h, ib, : ) = d_dust( i_0h:i_1h,
+     &             j_0h:j_1h, ib, : ) / work_sum( i_0h:i_1h, j_0h:j_1h,
+     &             : )
+            elsewhere
+              d_dust( i_0h:i_1h, j_0h:j_1h, ib, : ) = 0.d0
+            end where
+          end do
+
+c          write( 6, * ) 'In tracer_ic_soilust:'
+c          write( 6, * ) 'i_0h, i_1h, j_0h, j_1h:', i_0h, i_1h, j_0h,j_1h
+c          write( 6, * ) 'sum(d_dust): ', sum( d_dust( i_0h:i_1h,
+c     &         j_0h:j_1h, :, : ), dim = 3 )
+
+        end if
+
+      end if
+        
+      if (imDust == 2) then
 c**** legacy emission scheme
         if ( im /= 72 .or. jm /= 46 ) call stop_model (
      &       'Stopped in tracer_ic_soildust:' //
@@ -217,30 +292,47 @@ c**** Read input: prec-evap data
         CALL dread_parallel(grid,io_data,nameunit(io_data),dryhr)
         CALL closeunit(io_data)
 
-      ELSE IF (imDust == 0) THEN
+      end if
+
+      if ( am_i_root() ) then
+        write(6,*) ' Parameters for soil dust emission:'
+        write(6,'(1x,a28,f12.9)') '  scaleDustEmission = ',
+     &       scaleDustEmission
+      end if
+
+      if ( imDust == 0 .or. imDust >= 3 ) then
 c**** Probability density function scheme for dust emission
 
         if (am_i_root()) then
-          write(6,*) ' Parameters for soil dust emission:'
           write(6,'(1x,a28,f12.9)') '  Clay: fracClayPDFscheme = '
      &         ,fracClayPDFscheme
           write(6,'(1x,a28,f12.9)') '  Silt: fracSiltPDFscheme = '
      &         ,fracSiltPDFscheme
         end if
 
+        if ( vegetationERS >= 1 ) then
 c**** Read input: ERS data
-        CALL openunit('ERS',io_data,.TRUE.,.TRUE.)
-        DO k=1,INT_MONTHS_PER_YEAR
-          CALL dread_parallel(grid,io_data,nameunit(io_data),
-     &         ers_data(:,:,k))
-        END DO
-        CALL closeunit(io_data)
+          CALL openunit('ERS',io_data,.TRUE.,.TRUE.)
+          DO k=1,INT_MONTHS_PER_YEAR
+            CALL dread_parallel(grid,io_data,nameunit(io_data),
+     &           ers_data(:,:,k))
+          END DO
+          CALL closeunit(io_data)
+        else
+          call write_parallel (
+     &         ' ERS vegetation proxy filter switched off', unit=6 )
+        end if
 
+        if ( prefDustSources >= 1 ) then
 c**** Read input: source function data
-        call openunit('DSRC',io_data,.true.,.true.)
-        call dread_parallel(grid,io_data,nameunit(io_data)
-     &       ,dustSourceFunction)
-        CALL closeunit(io_data)
+          call openunit('DSRC',io_data,.true.,.true.)
+          call dread_parallel(grid,io_data,nameunit(io_data)
+     &         ,dustSourceFunction)
+          CALL closeunit(io_data)
+        else
+          call write_parallel (
+     &         ' Preferred dust sources filter switched off', unit=6 )
+        end if
 
 c**** Read input: EMISSION LOOKUP TABLE data
         IF (am_i_root()) THEN
@@ -283,16 +375,19 @@ c**** index of table for sub grid scale velocity (sigma) from .0001 to 30 m/s
         END DO
 c**** index of table for GCM surface wind speed from 0.0001 to 30 m/s
         x1(:)=x2(:)
-      ELSE
-        call stop_model ( 'Stopped in tracer_ic_soildust:' //
-     &       ' parameter imDUST must be <= 2', 255 )
-      END IF
+      end if
+
+      if ( imDust < 0 .or. imDust > 5 ) call stop_model
+     &     ('Stopped in tracer_ic_soildust:' /
+     &     /' parameter imDUST must be >=0 and <= 5', 255 )
+
       wsgInterp = interpolator3D( x1, x2, x3, table )
 
-#ifdef TRACERS_MINERALS
 !     read mineral fractions from input file
-      call read_mineralfractions_netcdf
+      if ( tracers_minerals .or. imDust == 4 .or. imDust == 5 ) call
+     &     read_mineralfractions_netcdf
 
+#ifdef TRACERS_MINERALS
 !     calculate some parameters (weighting of sub clay minerals,
 !     effective radii of minerals) for radiation derived from volume
 !     distribution of minerals using data by Kandler et al., Tellus B,
@@ -582,9 +677,7 @@ c accSubddDust
 
       return
       end subroutine accSubddDust
-#endif /* TRACERS_DUST || TRACERS_MINERALS || TRACERS_AMP || TRACERS_TOMAS */
 
-#ifdef TRACERS_MINERALS
 c read_mineralfractions_netcdf
       subroutine read_mineralfractions_netcdf
 !@sum read_mineralfractions_netcdf reads mineral fractions from input file
@@ -595,7 +688,7 @@ c read_mineralfractions_netcdf
       character( len = 28 ), parameter :: rstring =
      &     'read_mineralfractions_netcdf'
 
-      integer :: i, j, n, n1, fid, n_bin
+      integer :: i, j, n, n1, fid, n_bin, nn, m
 
       character( len=4 ) :: minName
       character( len=5 ) :: binName
@@ -604,60 +697,100 @@ c read_mineralfractions_netcdf
       real( kind=8 ), dimension( grid%i_strt:grid%i_stop, ! no halo
      &     grid%j_strt:grid%j_stop ) :: work 
       real( kind=8 ), dimension( grid%i_strt_halo:grid%i_stop_halo,
+     &     grid%j_strt_halo:grid%j_stop_halo ) :: work_sum
+      real( kind=8 ), dimension( grid%i_strt_halo:grid%i_stop_halo,
      &     grid%j_strt_halo:grid%j_stop_halo, nDustBins ) :: zsum
 
       if ( am_i_root() ) write( 6, * ) 'Read from file MINFR'
 
       fid = par_open( grid, 'MINFR', 'read' )
 
-      mineralFractions = 0.d0
-      do n = 1,Ntm_dust
+      if ( tracers_minerals ) then
 
-        select case ( dust_names( n )(5:8) )
+        mineralFractions = 0.d0
+        do n = 1,Ntm_dust
 
-        case('Illi','Kaol','Smec','Calc','Quar','Feld','Hema','Gyps')
+          select case ( dust_names( n )(5:8) )
 
-          minName = dust_names( n )(5:8)
-          if ( trim( minName ) == 'Hema' ) minName = 'Feox'
+          case('Illi','Kaol','Smec','Calc','Quar','Feld','Hema' ,'Gyps')
 
-        case default
-          cycle
+            minName = dust_names( n )(5:8)
+            if ( trim( minName ) == 'Hema' ) minName = 'Feox'
+
+          case default
+            cycle
           
-        end select
+          end select
 
-        select case ( dust_names( n )(1:4) )
+          select case ( dust_names( n )(1:4) )
 
-        case('Clay')
-          binName = 'Clay'
-        case('Sil1')
-          binName = 'Silt1'
-        case('Sil2')
-          binName = 'Silt2'
-        case('Sil3')
-          binName = 'Silt3'
+          case('Clay')
+            binName = 'Clay'
+          case('Sil1')
+            binName = 'Silt1'
+          case('Sil2')
+            binName = 'Silt2'
+          case('Sil3')
+            binName = 'Silt3'
 #ifdef TRACERS_DUST_Silt4
-        case('Sil4')
-          binName = 'Silt4'
+          case('Sil4')
+            binName = 'Silt4'
 #ifdef TRACERS_DUST_Silt5
-        case('Sil5')
-          binName = 'Silt5'
+          case('Sil5')
+            binName = 'Silt5'
 #endif
 #endif
-        case default
-          cycle
-        end select
+          case default
+            cycle
+          end select
 
-        varName='frac' // trim( binName ) // trim( minName )
+          varName='frac' // trim( binName ) // trim( minName )
 
-        call read_dist_data( grid, fid, trim( varName ), work )
+          call read_dist_data( grid, fid, trim( varName ), work )
 
-        if ( am_i_root()) write( 6, * ) '  read mineral fraction: ',
-     &       trim( varName )
+          if ( am_i_root()) write( 6, * ) '  read mineral fraction: ',
+     &           trim( varName )
 
-        mineralFractions( i_0:i_1, j_0:j_1, n ) = max( work( i_0:i_1,
-     &       j_0:j_1 ), 0.d0 )
+          mineralFractions( i_0:i_1, j_0:j_1, n ) = max( work( i_0:i_1,
+     &         j_0:j_1 ), 0.d0 )
 
-      end do                    ! Ntm_dust
+        end do                  ! Ntm_dust
+
+      else
+
+        mineralFractions = 0.d0
+        do n = 1,nDustBins
+
+          if ( tracers_amp .or. tracers_tomas ) then
+            nn = n
+          else if ( tracers_dust ) then
+            do n1 = 1,Ntm_dust
+              if ( dustBinNamesIn( n ) == dust_names( n1 ) ) nn = n1
+            end do
+          else
+            call stop_model (' Error in read_mineralfractions_netcdf:'
+     &           // 'why did it get here?', 255 )
+          end if
+
+          do m = 1,nMinerals
+
+            varName='frac' // trim( dustBinNamesIn( n ) ) //
+     &           trim( mineralNames( m ) )
+
+            call read_dist_data( grid, fid, trim( varName ), work )
+
+            if ( am_i_root()) write( 6, * ) '  read mineral fraction: ',
+     &           trim( varName )
+
+            mineralFractions( i_0:i_1, j_0:j_1, nn ) = mineralFractions(
+     &           i_0:i_1, j_0:j_1, nn ) + max( work(i_0:i_1, j_0:j_1 ),
+     &           0.d0 )
+
+          end do
+
+        end do
+
+      end if
 
       call par_close( grid, fid )
 
@@ -668,22 +801,22 @@ c**** possible different scaling of the input mineral fractions from
 c**** different files does not influence the results
       n1 = ntm_clay + ntm_sil1 + ntm_sil2 + ntm_sil3 + ntm_sil4 +
      &     ntm_sil5
-      work( i_0:i_1, j_0:j_1 ) = sum( mineralFractions( i_0:i_1, j_0:j_1
-     &     , 1:n1 ), dim=3 )
-      do j = j_0,j_1
-        do i = i_0,i_1
-          if ( work( i, j ) > 0.d0 ) then
-            mineralFractions( i, j, : ) =
-     &           mineralFractions( i, j, : ) / work( i, j )
+      work_sum( i_0h:i_1h, j_0h:j_1h ) = sum( mineralFractions(
+     &     i_0h:i_1h, j_0h:j_1h, 1:n1 ), dim=3 )
+      do j = j_0h,j_1h
+        do i = i_0h,i_1h
+          if ( work_sum( i, j ) > 0.d0 ) then
+            mineralFractions( i, j, : ) = mineralFractions( i, j, : ) /
+     &           work_sum( i, j )
           else
             mineralFractions( i, j, : ) = 0.d0
           end if
         end do
       end do
 
-      if ( imDust == 1 ) then
+      if ( imDust == 1 .or. imDust == 3 ) then
 
-c**** Prescribed dust emission (like AEROCOM emission) also comes with a
+c**** Prescribed dust emission (like AeroCom emission) also comes with a
 c**** prescribed size distribution. Therefore, the mineral fractions are
 c**** normalized to unity for each size bin.
 
@@ -707,8 +840,8 @@ c**** normalized to unity for each size bin.
             cycle
           end select
 
-          do j = j_0,j_1
-            do i = i_0,i_1
+          do j = j_0h,j_1h
+            do i = i_0h,i_1h
               zsum( i, j, n_bin ) = zsum( i, j, n_bin ) +
      &             mineralFractions( i, j, n )
             end do
@@ -735,10 +868,11 @@ c**** normalized to unity for each size bin.
             cycle
           end select
 
-          do j = j_0,j_1
-            do i = i_0,i_1
-              if ( zsum( i, j, n_bin ) > 0 )  mineralFractions( i, j, n)
-     &             = mineralFractions( i, j, n ) / zsum( i, j, n_bin )
+          do j = j_0h,j_1h
+            do i = i_0h,i_1h
+              if ( zsum( i, j, n_bin ) > 0.d0 ) mineralFractions( i, j,
+     &             n ) = mineralFractions( i, j, n ) / zsum( i, j, n_bin
+     &             )
             end do
           end do
 
@@ -748,7 +882,9 @@ c**** normalized to unity for each size bin.
 
       return
       end subroutine read_mineralfractions_netcdf
+#endif /* TRACERS_DUST || TRACERS_MINERALS || TRACERS_AMP || TRACERS_TOMAS */
 
+#ifdef TRACERS_MINERALS
 c calcMineralRadiationParameters
       subroutine calcMineralRadiationParameters
 !@sum calcMineralRadiationParameters  calculates mineral tracers missing
