@@ -203,7 +203,7 @@ C**** TAIJLS 3D special tracer diagnostics
 !@param ktaijl number of TAIJLS tracer diagnostics;
       INTEGER, PARAMETER :: ktaijl=72
 #ifdef ACCMIP_LIKE_DIAGS 
-     &                            + 12
+     &                            + 17
 #endif
 #ifdef SOA_DIAGS
      &                            + 12

@@ -74,6 +74,7 @@ contains
     character(len=80) :: name ! sector
     real*8 :: sumDiurnal
     real*8, parameter :: diurnalSumTolerance=1.d-4
+    character*80 :: targetVariable
 
     if(is_fbsa(fileName)) then ! binary file. Use old method.
       call openunit(fileName,iu,.true.)
@@ -107,12 +108,22 @@ contains
       this%tracerName = tracerName
       this%sourceName = 'notfound'
       fid = par_open(grid,trim(fileToRead),'read')
-      ! give priority to variable attribute, but for backwards-compatibility,
-      ! try global attribute if variable attribute read failed:
+      ! First try to read the variable attribute to get source name:
       call read_attr(grid,fid,this%tracerName,'source',i,this%sourceName)
+      ! If that fails, look for the source attribute of the variable
+      ! that varname attribute points to (like init_stream would):
+      if(trim(this%sourceName).eq.'notfound') then
+        targetVariable=this%tracerName
+        call read_attr(grid,fid,'global',trim(this%tracerName)//'name',&
+        & i,targetVariable)
+        call read_attr(grid,fid,trim(targetVariable),'source',&
+        & i,this%sourceName)
+      endif
+      ! If that fails, look for a global source attribute:
       if(trim(this%sourceName).eq.'notfound') then
         call read_attr(grid,fid,'global','source',i,this%sourceName)
       endif
+      ! If even that fails, stop the model:
       call par_close(grid,fid)
       if(trim(this%sourceName).eq.'notfound') then
         call stop_model('source name not found in file '//trim(fileName),255)
