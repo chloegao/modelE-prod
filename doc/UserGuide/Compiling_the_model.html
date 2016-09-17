@@ -22,7 +22,7 @@ model run is
      make setup RUN=&lt;RunID&gt;
 </pre>
 This command will read model configuration from
-<code>&lt;RunID&gt;.R</code> rundeck and compile a corresponding
+<code>&lt;RunID&gt;.R</code> rundeck and compile the corresponding
 executable. It will also create a directory for the run and link it to
 the current directory with the name <code>&lt;RunID&gt;</code>. The
 executable will be put into this run directory 
@@ -40,7 +40,7 @@ your simulations from initial conditions, run the model for 1 hour of
 model time and save its state into a checkpoint file (restart file). 
 This can be done with a command
 <pre>
-    ../exec/runE E001ia_foo -np &lt;NP&gt; -cold-restart
+    ../exec/runE &lt;RunID&gt; -np &lt;NP&gt; -cold-restart
 </pre>
 where <code>&lt;NP&gt;</code> is the number of MPI threads you want to
 use (typically the number of available cpu cores). Keep in mind that
@@ -48,7 +48,7 @@ on big computers you may not be allowed to run MPI jobs
 interactively. In this case you have to set a variable QSUB_STRING
 in your ~/.modelErc file to a command which would submit your task as
 a batch job (see next section). Once first-hour run finishes
-successfully your model is ready for longer runs.
+successfully your model is ready for longer runs. 
 <P>
 If you really want to, you can request <code>make</code> to
 automatically run the model for the first hour after it finishes the
