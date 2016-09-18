@@ -17,7 +17,7 @@ developer and need a full write access to the repository please click
 instructions on how to get it. Once you set up your access to simplex,
 you can get modelE source code (&quot;clone&quot; the repository) with
 <pre>
-git clone username_on_sumplex@simplex:/giss/gitrepo/modelE.git
+git clone username_on_sumplex@simplex.giss.nasa.gov:/giss/gitrepo/modelE.git
 </pre>
 where <code>username_on_sumplex</code> is your username on simplex.
 <p>
@@ -28,8 +28,9 @@ You still need a web password for simplex to use it (contact modelE
 core development team to get one). Once you have a password you can
 clone the modelE source code with</p>
 <pre>
-git clone http://simplex.giss.nasa.gov/gitrepo/modelE.git
+GIT_SSL_NO_VERIFY=true git clone https://simplex.giss.nasa.gov/gitrepo/modelE.git modelE_foo
 </pre>
+(may not work with older version of Git).
 <p>
 Finally, if you are a regular user who works only with
 &quot;stable&quot; releases of the model or who wants to try the
