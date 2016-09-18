@@ -307,7 +307,7 @@ c**** output
       LOGICAL :: qdust
       REAL*8 :: frclay,frsilt
       real(kind=8) :: ers_data,dustSourceFunction,soilvtrsh,pdfint
-      real(kind=8) :: mineralFractions( max( nDustBins,Ntm_dust) )
+      real(kind=8) :: mineralFractions( max( nDustBins, ntm_dust ) )
       real( kind=8 ) :: zsum
 
 c**** input
