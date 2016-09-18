@@ -888,7 +888,7 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
 
           wttr( n+1:n+nraero_dust ) = (/ ( ( subClayWeights( i , j ), j
      &         =1,nSubClays ), i=1,ntm_clay ), ( 1.d0, i=1,ntm_sil1
-     &         +ntm_sil2+ntm_sil3+ntm_sil3+ntm_sil4+ntm_sil5 ) /)
+     &         +ntm_sil2+ntm_sil3+ntm_sil4+ntm_sil5 ) /)
 
         else
 

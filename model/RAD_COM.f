@@ -16,6 +16,7 @@
       USE TOMAS_AEROSOL, only: icomp
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+      use trdust_mod, only: nSubClays
       use tracer_com, only: ntm_dust, ntm_clay, ntm_sil1, ntm_sil2,
      &     ntm_sil3, ntm_sil4, ntm_sil5
 #endif
@@ -148,7 +149,7 @@ C**** does not produce exactly the same as the default values.
 #endif  /* TRACERS_NITRATE */
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
-      integer, parameter :: nraero_clay = 4 * ntm_clay
+      integer, parameter :: nraero_clay = nSubClays * ntm_clay
       integer, parameter :: nraero_dust = nraero_clay + ntm_sil1 +
      &     ntm_sil2 + ntm_sil3 + ntm_sil4 + ntm_sil5
 !@var nr_soildust First index of dust tracers in radiation (nraero_aod)

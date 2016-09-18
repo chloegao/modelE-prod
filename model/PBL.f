@@ -152,7 +152,7 @@ c**** input
 !@var pbl_args%d_dust prescribed daily dust emissions [kg/m^2/s] (e.g. AEROCOM)
         real( kind=8 ) :: d_dust( nDustBins )
 !@var pbl_args%mineralFractions  mineral fractions of emitted dust aerosols [1]
-        real(kind=8) :: mineralFractions( Ntm_dust )
+        real(kind=8) :: mineralFractions( max( nDustBins, ntm_dust ) )
 c**** output
 !@var pbl_args%pdfint integral of dust emission probability density function
         REAL*8 :: pdfint
