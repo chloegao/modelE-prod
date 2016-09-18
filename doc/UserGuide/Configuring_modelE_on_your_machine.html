@@ -19,23 +19,28 @@ Git and wget.
 On Mac OS computer you can install all this software with MacPorts
 (MacPorts have to be installed on your computer, see www.macports.org
 for instructions). The following instructions assume that you are
-going to work with gfortran 4.7 compiler:
+going to work with gfortran 4.9 compiler:
 <pre><code>
-    sudo port -v install gcc47
-    sudo port -v install netcdf +gcc47
-    sudo port -v install netcdf-fortran +gcc47
-    sudo port -v install openmpi +gcc47
+    sudo port -v install gcc49
+    sudo port -v install netcdf +gcc49
+    sudo port -v install netcdf-fortran +gcc49
+    sudo port -v install openmpi +gcc49
     sudo port -v install git-core
     sudo port -v install wget
-    sudo port select --set gcc mp-gcc47
+    sudo port select --set gcc mp-gcc49
 </code></pre>
+Make sure that the directiry with MacPorts executables 
+(<code>/opt/local/bin</code>) appears in your <code>PATH</code> before 
+any of the system directories (this is necessary so that the model
+uses <code>cpp</code> provided by MacPorts, rather than the one 
+which comes with Xcode and lacks GNU compatibility).
 
 <P>
 On Linux machine you can also install these with the package manager (say,
 with <code>yum</code> on CentOS), but it is advisable to compile
 netcdf and openmpi from the source to ensure their compatibility with
 the fortran compiler you are using. If you are running relatively 
-&quot;new&quot; version of Linux (tested on Fedora 17) you can install
+&quot;new&quot; version of Linux (like Fedora 22) you can install
 all necessary binary packages with:
 <pre><code>
    yum install gcc.x86_64
