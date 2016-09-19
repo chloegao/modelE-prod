@@ -217,6 +217,7 @@ c HCHO, Alkenes, and CO per rxn, correct here following Houweling:
       do L=1,maxL
         prod(nn_CO,L)=prod(nn_CO,L)
      &    -0.63d0*chemrate(rrbi%Alkenes_O3__HCHO_CO,L)
+     &    -0.64d0*chemrate(rrbi%Isoprene_O3__HCHO_Alkenes,L)
 #ifdef TRACERS_dCO
         prod(nn_dC17O,L)=prod(nn_dC17O,L)
      &    -0.63d0*chemrate(rrbi%Alkenes_O3__HCHO_dC17O,L)
@@ -724,6 +725,8 @@ c       Set value for XO2:
      &    +y(nC2O3,L)*(rr(rrbi%C2O3_NO__HCHO_NO2,L)*y(nNO2,L)
      &    +rr(rrbi%C2O3_C2O3__HCHO_HCHO,L)*y(nC2O3,L)*2.d0
      &    +rr(rrbi%C2O3_HO2__HCHO_HO2,L)*y(nHO2,L))
+     &    +rr(rrbi%Alkenes_NO3__HCHO_NO2,L)*y(nNO3,L)*y(nn_Alkenes,L)
+     &      *0.91d0
      &    +rr(rrbi%ROR_M__Aldehyde_HO2,L)*yROR(I,J,L)*0.96d0
      &    +y(nOH,L)*(rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
      &      *0.87d0
@@ -757,6 +760,8 @@ c       Set value for XO2:
 c       Set value for XO2N:
         XO2Nprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
      &      *y(nOH,L)*0.13d0
+     &    +rr(rrbi%Alkenes_NO3__HCHO_NO2,L)*y(nNO3,L)*y(nn_Alkenes,L)
+     &      *0.09d0
      &    +rr(rrbi%ROR_M__Aldehyde_HO2,L)*yROR(I,J,L)*0.04d0
      &    +rr(rrbi%Isoprene_OH__HCHO_Alkenes,L)*y(nn_Isoprene,L)*
      &  y(nOH,L)*0.15d0
@@ -781,8 +786,10 @@ c       Set value for XO2N:
 c       Set value for RXPAR:
         RXPARprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
      &      *y(nOH,L)*0.11d0
-     &    +rr(rrbi%Alkenes_OH__HCHO_HO2,L)*yROR(I,J,L)*2.1d0
+     &    +rr(rrbi%Alkenes_OH__HCHO_HO2,L)*y(nn_Alkenes,L)*y(nOH,L)
+     &    +rr(rrbi%ROR_M__Aldehyde_HO2,L)*yROR(I,J,L)*y(nM,L)*2.1d0
      &    +rr(rrbi%Alkenes_O3__HCHO_CO,L)*y(nn_Alkenes,L)*y(nO3,L)*0.9d0
+     &    +rr(rrbi%Alkenes_NO3__HCHO_NO2,L)*y(nNO3,L)*y(nn_Alkenes,L)
         RXPARdest=RXPAR_PAR
         if(RXPARdest > 0.d0)then
           y(nRXPAR,L)=(RXPARprod/RXPARdest)
@@ -1061,18 +1068,18 @@ c Calculate ozone change due to Cl2O2 cycling:
      &      *yCl2O2(I,J,L)*1.5d9/y(nM,L)
       end do
 
-c Include oxidation of CO by O(1D)
-      do L=1,maxL
-        dest(nn_CO,L)=dest(nn_CO,L)-rCOplusO1D*y(nn_CO,L)*y(nO1D,L)*dt2
-#ifdef TRACERS_dCO
-        dest(nn_dC17O,L)=dest(nn_dC17O,L)
-     &                  -rdC17OplusO1D*y(nn_dC17O,L)*y(nO1D,L)*dt2
-        dest(nn_dC18O,L)=dest(nn_dC18O,L)
-     &                  -rdC18OplusO1D*y(nn_dC18O,L)*y(nO1D,L)*dt2
-        dest(nn_d13CO,L)=dest(nn_d13CO,L)
-     &                  -rd13COplusO1D*y(nn_d13CO,L)*y(nO1D,L)*dt2
-#endif  /* TRACERS_dCO */
-      end do
+! c Include oxidation of CO by O(1D)
+!       do L=1,maxL
+!         dest(nn_CO,L)=dest(nn_CO,L)-rCOplusO1D*y(nn_CO,L)*y(nO1D,L)*dt2
+! #ifdef TRACERS_dCO
+!         dest(nn_dC17O,L)=dest(nn_dC17O,L)
+!      &                  -rdC17OplusO1D*y(nn_dC17O,L)*y(nO1D,L)*dt2
+!         dest(nn_dC18O,L)=dest(nn_dC18O,L)
+!      &                  -rdC18OplusO1D*y(nn_dC18O,L)*y(nO1D,L)*dt2
+!         dest(nn_d13CO,L)=dest(nn_d13CO,L)
+!      &                  -rd13COplusO1D*y(nn_d13CO,L)*y(nO1D,L)*dt2
+! #endif  /* TRACERS_dCO */
+!       end do
 
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 c           Print chemistry diagnostics if desired :

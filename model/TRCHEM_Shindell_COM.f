@@ -106,7 +106,7 @@ c
         integer :: BrO_OH__Br_HO2=0
         integer :: BrO_OH__HBr_O2=0
         integer :: Cl_CH4__HCl_CH3O2=0
-        integer :: Cl_H2__HCl_H2=0
+        integer :: Cl_H2__HCl_HO2=0
         integer :: O_HBr__OH_Br=0
         integer :: ClO_CH3O2__Cl_HCHO=0
         integer :: N2O_O1D__N2_O2=0
@@ -993,8 +993,8 @@ C**************  Not Latitude-Dependant ****************************
           rrbi%BrO_OH__HBr_O2=irr
         case('Cl_CH4__HCl_CH3O2')
           rrbi%Cl_CH4__HCl_CH3O2=irr
-        case('Cl_H2__HCl_H2')
-          rrbi%Cl_H2__HCl_H2=irr
+        case('Cl_H2__HCl_HO2')
+          rrbi%Cl_H2__HCl_HO2=irr
         case('O_HBr__OH_Br')
           rrbi%O_HBr__OH_Br=irr
         case('ClO_CH3O2__Cl_HCHO')
