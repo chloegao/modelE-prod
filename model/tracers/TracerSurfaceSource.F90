@@ -1,3 +1,5 @@
+#include "rundeck_opts.h"
+
 module TracerSurfaceSource_mod
   use TracerSource_mod
   use timestream_mod, only : timestream
@@ -31,7 +33,7 @@ module TracerSurfaceSource_mod
     integer :: yearStep  ! interval between records in a transient emissions file
     logical :: firstTrip = .true.
 
-    integer :: monthA ! first month for the current interpolation
+    integer :: monthA = -1 ! first month for the current interpolation
     real*8, allocatable :: month1cache(:,:) ! used for interpolating from file source
     real*8, allocatable :: month2cache(:,:)
     logical :: saveCache = .true. ! set to false to use less memory (but more frequent reads)
