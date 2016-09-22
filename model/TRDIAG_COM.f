@@ -335,7 +335,7 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 #ifndef TRACERS_TOMAS
       INTEGER,PARAMETER :: ktajls=1260
 #else
-      INTEGER,PARAMETER :: ktajls=3262 
+      INTEGER,PARAMETER :: ktajls=3285 
 #endif
 !@var jls_XXX index for non-tracer specific or special diags
       INTEGER jls_OHconk,jls_HO2con,jls_NO3,jls_O3vmr

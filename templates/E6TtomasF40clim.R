@@ -1,8 +1,12 @@
-E6TmatrixF40.R GISS Model E Run with MATRIX Aerosols
+E6TtomasF40clim.R GISS Model E  1850 ocn/atm TOMAS tracers
 
-CURRENTLY NOT FOR PRODUCTION RUNS BUT WILL BE SOON
-E6TmatrixF40: based on E4TcampiF40. Similar to E4TcadiF40 but with aerosol microphysics
-              including shindell chemistry and dust
+CURRENTLY NOT FOR PRODUCTION RUNS BUT WILL BE SOON 
+E6TtomasF40clim: E6TtomasF40 but swap emissions to climatological
+                  (e.g. 9-year averages centered around nominal date)
+E6TtomasF40: based on E4TctomasiF40. Similar to E4TcadiF40 but with TOMAS aerosol microphysics 
+               including shindell chemistry and dust
+
+1% Primary sulfate/binary nucleation/coarse emission assumption/old DMS/SS 0.2% for all clouds
 
 modelE4 2x2.5 hor. grid with 40 lyrs, top at .1 mb (+ 3 rad.lyrs)
 atmospheric composition from year 2000
@@ -40,10 +44,13 @@ Preprocessor Options
 !  OFF #define INTERACTIVE_WETLANDS_CH4 ! turns on interactive CH4 wetland source
 !  OFF #define ACCMIP_LIKE_DIAGS  ! adds many diags as defined by ACCMIP project
 !<--- chemistry end
-!---> MATRIX start
-#define TRACERS_AMP
-#define TRACERS_AMP_M1
-!<--- MATRIX end
+!---> TOMAS start
+#define TRACERS_TOMAS    ! TOMAS aerosol tracers (aerosols, etc)
+#define TOMAS_12_3NM    ! 15 BIN and 3nm size cutoff 
+#define One_percent_sulfate
+#define Old_DMS_emis
+#define TOMAS_COARSER_EMISSION     ! larger emission size
+!<--- TOMAS end
 #define BC_ALB                    !optional tracer BC affects snow albedo
 #define CLD_AER_CDNC              !aerosol-cloud interactions
 #define BLK_2MOM                  !aerosol-cloud interactions
@@ -66,7 +73,7 @@ STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 
 #include "tracer_shared_source_files"
 #include "tracer_shindell_source_files"
-#include "tracer_AMP_source_files"
+#include "tracer_TOMAS_source_files"
 TRDIAG                              ! new i/o
 
 #include "latlon_source_files"
@@ -105,15 +112,15 @@ NAMERVR=RD_Fb.names.txt  ! named river outlets
 #include "dust_tracer_144x90_input_files"
 #include "dry_depos_144x90_input_files"
 
-#include "chem_emiss_144x90_input_files_CMIP6"
+#include "chem_emiss_144x90_input_files_CMIP6clim"
 
-#include "aerosol_MATRIX_input_files_CMIP6"
+#include "aerosol_TOMAS_input_files_CMIP6clim"
 
 MSU_wts=MSU.RSS.weights.data      ! MSU-diag
 REG=REG2X2.5                      ! special regions-diag
 
 Label and Namelist:  (next 2 lines)
-E6TmatrixF40 (prescribed ocean atmospheric tracer model with MATRIX)
+E6TtomasF40clim (CLIMATOLOGICAL EMISSIONS prescribed ocean atmospheric tracer model with TOMAS)
 
 
 &&PARAMETERS
@@ -128,10 +135,7 @@ FS8OPX=1.,1.,1.,1.,1.5,1.5,1.,1.
 FT8OPX=1.,1.,1.,1.,1.,1.,1.,1.
 
 ! Increasing U00a decreases the high cloud cover; increasing U00b decreases net rad at TOA
-! w/o VMP clouds (uncomment when model is run w/o VMP clouds):
-!U00a=0.60   ! above 850mb w/o MC region;  tune this first to get 30-35% high clouds
-! w/ VMP clouds (comment out when model is run w/o VMP clouds):
-U00a=0.61   ! above 850mb w/o MC region;  tune this first to get 30-35% high clouds 
+U00a=0.54  ! above 850mb w/o MC region;  tune this first to get 30-35% high clouds
 U00b=1.00  ! below 850mb and MC regions; tune this last  to get rad.balance
 WMUI_multiplier = 1.
 use_vmp=1
@@ -150,8 +154,8 @@ initial_GHG_setup = 1 ! Set to 0 after initial setup.
 ! use of model year and use abs(o3_yr) instead!
 !!!!!!!!!!!!!!!!!!!!!!!
 madaer=3         ! 3: updated aerosols          ; 1: default sulfates/aerosols
-#include "aerosol_MATRIX_params_CMIP6"
-#include "dust_params_vmp_matrix"
+#include "aerosol_TOMAS_params_CMIP6"
+#include "dust_params_vmp_matrix" /* THIS MUST BE REPLACED WITH A TOMAS ONE */
 #include "common_tracer_params_CMIP6"
 #include "chemistry_params_CMIP6"
 ! The following 2 lines OVERWRITE the include chemistry_params values!!

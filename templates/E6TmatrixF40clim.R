@@ -38,9 +38,9 @@ Preprocessor Options
 !  OFF #define CALCULATE_FLAMMABILITY  ! activated code to determine flammability of surface veg
 !  OFF #define DYNAMIC_BIOMASS_BURNING  ! alter biomas burning my flammability
 !  OFF #define CALCULATE_LIGHTNING ! turn on Colin Price lightning when TRACERS_SPECIAL_Shindell off
-#define SHINDELL_STRAT_EXTRA     ! non-chemistry stratospheric tracers
+!  OFF #define SHINDELL_STRAT_EXTRA     ! non-chemistry stratospheric tracers
 !  OFF #define INTERACTIVE_WETLANDS_CH4 ! turns on interactive CH4 wetland source
-#define ACCMIP_LIKE_DIAGS  ! adds many diags as defined by ACCMIP project
+!  OFF #define ACCMIP_LIKE_DIAGS  ! adds many diags as defined by ACCMIP project
 !<--- chemistry end
 !---> MATRIX start
 #define TRACERS_AMP
