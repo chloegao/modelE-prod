@@ -318,9 +318,11 @@ def createScriptTask(config, compconfig, deck, comp, mode):
             elif re.search('SGP', deckName):
                 walltime = '00:10:00'
             elif re.search('campi', deckName):
-                walltime = '04:00:00'
+                walltime = '02:00:00'
             elif re.search('ctomas', deckName):
                 walltime = '08:00:00'
+            elif re.search('matrix', deckName):
+                walltime = '02:00:00'
 
         outname = resultsDir + '/' + jobName + '.' + mode + '.out'
         errname = resultsDir + '/' + jobName + '.' + mode + '.err'
@@ -460,11 +462,14 @@ def sendDiffreport(config, compconfig, eTime):
     resultsDir = userconfig['scratchdir'] + '/results/' + branch
     buildtype  = userconfig['buildtype']
     message    = userconfig['message']
+    html       = userconfig['html']
     sortdiff   = userconfig['sortdiff']
     compilers  = util.getCompilers(compconfig)
 
     diffFile = resultsDir + '/' + 'diffreport.txt'
     fp = open(diffFile, 'w')
+    if html == 'yes':
+        fp.write('<html><pre>\n')
     fp.write(message + ' \n')
     fp.write('Repository: ' + userconfig['repository'] +  '\n')
     fp.write('-'*80+'\n')
@@ -539,9 +544,14 @@ def sendDiffreport(config, compconfig, eTime):
         fp.write(inf.read())
     fp.write( '\n')
     fp.write('-'*80+'\n')
+    if html == 'yes':
+        fp.write('</pre><html>\n')
     fp.close()
 
     subject = '"[modelE-regression]" '
     cmd = '/usr/bin/mail -s ' + subject + mailto + ' < ' + diffFile
+    if html == 'yes':
+        pref = 'mutt -e "set content_type=text/html" -s '
+        cmd = pref + subject + mailto + ' < ' + diffFile
     sp.call(cmd, shell=True)
 
