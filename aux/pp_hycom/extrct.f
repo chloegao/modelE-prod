@@ -5,7 +5,7 @@ c --- this version   c y c l i c   in j
       use hycom_dimen, only : idm,jdm,i,j
       implicit none
 c
-      real*4, intent (in)  :: work(idm,idm)	!input array is real*4
+      real*4, intent (in)  :: work(idm,jdm)	!input array is real*4
       real,   intent (out) :: array(idm,jdm)
       integer,intent(IN)   :: iorign,jorign
       integer :: jp
