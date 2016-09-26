@@ -4900,18 +4900,18 @@ c      enddo
             end if
             ia_ijts(k) = ia_rad_frc
             lname_ijts(k) = trim(spcname)//trim(sn1)//' '//
-     &           trim(lswlw(f))//' '
+     &                      trim(lswlw(f))
             sname_ijts(k) = trim(sswlw(f))
             if (trim(sascs(s))=='CS_') then
-              lname_ijts(k) = trim(lname_ijts(k))//trim(lascs(s))//' '
+              lname_ijts(k) = trim(lname_ijts(k))//' '//trim(lascs(s))
               sname_ijts(k) = trim(sname_ijts(k))//trim(sascs(s))
               dname_ijts(k) = 'clrsky'
             endif
             if (trim(stoasrf(l))=='surf_') then
-              lname_ijts(k) = trim(lname_ijts(k))//trim(ltoasrf(l))//' '
+              lname_ijts(k) = trim(lname_ijts(k))//' '//trim(ltoasrf(l))
               sname_ijts(k) = trim(sname_ijts(k))//trim(stoasrf(l))
             endif
-            lname_ijts(k) = trim(lname_ijts(k))//'radiative forcing'
+            lname_ijts(k) = trim(lname_ijts(k))//' radiative forcing'
             sname_ijts(k) = trim(sname_ijts(k))//trim(spcname)//
      &           trim(sn1)
             ijts_power(k) = -2
