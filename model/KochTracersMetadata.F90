@@ -180,7 +180,7 @@ module KochTracersMetadata_mod
 
 #ifdef TRACERS_AEROSOLS_VBS
     subroutine VBS_setSpec(name, index, type)
-      use OldTracer_mod, only: om2oc, set_om2oc
+      use OldTracer_mod, only: om2oc, set_om2oc, set_is_VBS_tracer
       use tracers_vbs, only: vbs_tr
       implicit none
       character(len=*), intent(in) :: name
@@ -189,6 +189,7 @@ module KochTracersMetadata_mod
       character(len=4), intent(in) :: type
 
       n = oldAddTracer(name)
+      call set_is_VBS_tracer(n, .true.)
 
       select case(name)
         case("vbsGm2"); n_vbsGm2 = n

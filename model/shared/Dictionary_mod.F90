@@ -160,7 +160,7 @@ module Dictionary_mod
 
   end type Dictionary
 
-  integer, parameter :: MAX_PARAMS =700
+  integer, parameter :: MAX_PARAMS =750
   integer, parameter :: MAX_RPARAMS =450
   integer, parameter :: MAX_IPARAMS = 1000 
   integer, parameter :: MAX_CPARAMS = 520

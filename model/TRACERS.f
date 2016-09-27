@@ -2707,7 +2707,7 @@ C
       use filemanager, only: openunit,closeunit,is_fbsa
       use fluxes, only: tr3Dsource
       use geom, only: axyp
-      use OldTracer_mod, only: itime_tr0, trname
+      use OldTracer_mod, only: itime_tr0, trname, om2oc
       use OldTracer_mod, only: set_first_aircraft, first_aircraft
       use TRACER_COM, only: ntm_chem_beg,ntm_chem_end,nAircraft
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) || \
@@ -2717,6 +2717,11 @@ C
       use Dictionary_mod, only: is_set_param, get_param
       use RAD_COM, only: o3_yr
       use timestream_mod, only : read_stream, timestream, init_stream
+#ifdef TRACERS_AEROSOLS_VBS
+      use OldTracer_mod, only: is_VBS_tracer
+      USE AEROSOL_SOURCES, only: VBSemifact
+      use TRACERS_VBS, only: vbs_tr
+#endif
 
       IMPLICIT NONE
  
@@ -2873,7 +2878,14 @@ C
       end if ! read was needed
 
       tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,nTracer) =
-     & airtracer(I_0:I_1,J_0:J_1,:)
+     & airtracer(I_0:I_1,J_0:J_1,:)*om2oc(nTracer)
+#ifdef TRACERS_AEROSOLS_VBS
+      if (is_VBS_tracer(nTracer)) then
+      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,nTracer) =
+     &  tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,nTracer)*
+     &  VBSemifact(vbs_tr%iaerinv(nTracer))
+      endif
+#endif
 
 999   continue
       return

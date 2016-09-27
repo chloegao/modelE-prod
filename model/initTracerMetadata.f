@@ -5,6 +5,7 @@
       use Dictionary_mod, only: sync_param
       use RunTimeControls_mod, only: tracers_amp
       use RunTimeControls_mod, only: tracers_tomas
+      use RunTimeControls_mod, only: tracers_aerosols_vbs
       use OldTracer_mod, only: trName, do_fire, do_aircraft
       use OldTracer_mod, only: set_do_fire, set_do_aircraft
       use OldTracer_mod, only: set_first_aircraft, first_aircraft
@@ -42,7 +43,7 @@
 !     sources to sectors, if desired:
 !     general case:
 
-      if (tracers_amp .or. tracers_tomas) then
+      if (tracers_amp .or. tracers_tomas .or. tracers_aerosols_vbs) then
          checkSourceName = .false.
       else if (trname(n) == 'codirect') then 
          checkSourceName = .false.

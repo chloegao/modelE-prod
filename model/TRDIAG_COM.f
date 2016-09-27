@@ -333,7 +333,7 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 !@param ktajls number of source/sink TAJLS tracer diagnostics;
 !@+   please just increase this if needed - do not bother with pp options
 #ifndef TRACERS_TOMAS
-      INTEGER,PARAMETER :: ktajls=1260
+      INTEGER,PARAMETER :: ktajls=1350
 #else
       INTEGER,PARAMETER :: ktajls=3285 
 #endif
