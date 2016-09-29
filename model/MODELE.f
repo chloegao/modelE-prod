@@ -1,73 +1,147 @@
 #include "rundeck_opts.h"
 
+! Soures of this doc:
+! https://simplex.giss.nasa.gov/gcm/doc/nlparams.txt
+!
 ! ISTART controls how the model first picks up the initial conditions to
 ! start the run. We have a number of options depending on how much
 ! information is already available.
 ! 
-!     ISTART=1
-!         Default start. This sets atmospheric variables to constants and
-!         requires input files for ground values (a GIC file), and ocean
-!         values (OIC) if required.
-! 
+!     Cold Starts
+!     ============
+!
 !     ISTART=2
 !         Observed start. This sets atmospheric values to observations,
 !         based on a particular format of AIC file. As for ISTART=1,
 !         input files are required for ground and ocean variables.
+!
+!
+!     Restart from checkpoint files
+!     =============================
+!
+!     Checkpoint files, called ``fort.1.nc`` and ``fort.2.nc``, are written
+!     frequently.  In case ModelE is terminated prematurely (i.e. before
+!     the end time specified in the rundeck / I file), they may be used
+!     to seamlessly continue the run where it left off.
+!
+!     Premature termination may happen for a number of reasons:
+!        a) The run is stopped gracefully by the user.
+!        b) The run exceeds its time limit on the supercomputer and is
+!           stopped forcefully
+!        c) The supercomputer crashes, and all jobs are stopped forcefully.
+!        d) ModelE has a bug that causes it to crash.
+!
+!     Checkpoint files may be corrupted or otherwise unreadable, if
+!     ModelE terminates while writing them.  For that reason, ModelE
+!     alternates between writing to the names ``fort.1.nc`` and
+!     ``fort.2.nc``.
+!
+!     ISTART=10   (DEFAULT if not specified in I file)
+!         This is used internally to pick up from the checkpoint
+!         file (the later of fort.1 and fort.2). Does not ever need to
+!         be set in the rundeck.
 ! 
-!     ISTART=3
+!     ISTART=11
+!     ISTART=12
+!         This is used internally to pick up from an instantaneous rsf
+!         file (fort.1.nc for ISTART=11 or fort.2.nc for ISTART=12).
+!
+!     ISTART=13
+!         Restarts from the OLDEST checkpoint file; the reverse of
+!         ISTART=10
+!
+!     ISTART=14
+!         Restarts from (presumably symlinked file) named fort.4.nc
+!         Should link to fort.1.nc or fort.2.nc written on a previous
+!         run.
+!
+!     Restart from .rsf files
+!     =======================
+!
+!     .rsf files are written at the beginning of every diagnostic
+!     accumulation period (eg once a month).  They contain everything 
+!     in the checkpoint files EXCEPT diagnostic accumulation status
+!
+!     ISTART=9
+!         Continuation of an old run that was stopped at the beginning
+!         of a diagnostic accumulation period.  Use this to restart from
+!         .rsf files:
+!            a) Set AIC=myrestartfile.rsf
+!            b) Set ISTART=9
+!
+!     Perturbation Experiments
+!     ======================== 
+!
+!     ISTART=8
+!         This is a restart from a model configuration identical to the
+!         run now starting. This is for perturbation experiments, etc.
+!
+!         Start of a new run - parameters from rundeck+defaults
+!         In particular: Itime is set to ItimeI, radiation and all
+!         diagnostic accumulations are performed in the first hour,
+!         IRAND is set to its default (unless reset in the rundeck).
+!
+!         Note: Since itime_tr0 defaults to Itime, tracers will be
+!             reinitialized. To have them keep their setttings from the
+!             rsf file, set itime_tr0 to < ItimeI (e.g. 0) for all
+!             tracers in the rundeck parameters. If you use tracers that
+!             depend on (Itime-itime_tr0), you need to set itime_tr0 to
+!             the starting time of the rsf file for continuity.
+! 
+!
+!     Obsolete ISTART Values
+!     ======================
+!
+!     ISTART=1 (OBSOLETE)
+!         Default start. This sets atmospheric variables to constants
+!         and requires input files for ground values (a GIC file), and
+!         ocean values (OIC) if required.  ISTART=1 may still work – if
+!         I remember correctly, it was used a long time ago for
+!         benchmarking when we were asked to submit a version that
+!         needed no input files. It may still be useful for simpler
+!         versions of the model, maybe for a different planet or
+!         simplified earth (e.g. no topography, all desert, …).
+! 
+!     ISTART=3-7 (OBSOLETE)
+!     ----------
+!         These were reserved for starting up a more complex model from
+!         the state obtained by spinning up a simpler model, e.g. a
+!         coupled model from an atmospheric model, a tracer run from a
+!         run without tracers, etc. I’m not sure whether those options
+!         are still needed or can be achieved without using the ISTART
+!         parameter. They were kind of place holders to deal with
+!         changes in the model restart file.
+
+!     ISTART=3 (OBSOLETE)
 !         Not used.
 ! 
-!     ISTART=4
+!     ISTART=4 (OBSOLETE)
 !         A restart from an rsf file from a previous run, but the ocean
 !         is reinitialised. Needs an initial OIC file (for fully coupled
 !         models).
 ! 
-!     ISTART=5
+!     ISTART=5 (OBSOLETE)
 !         A restart from an rsf file from a previous run, but no
 !         tracers. This is only useful for tracer runs that need to be
 !         initialised with a particular model state.
 ! 
-!     ISTART=6
+!     ISTART=6 (OBSOLETE)
 !         A restart from an rsf file from a previous run that might not
 !         have had the same land-ocean mask. This makes sure to reset
 !         snow values, pbl values and ocean values accordingly.
 ! 
-!     ISTART=7
+!     ISTART=7 (OBSOLETE)
 !         A restart from an rsf file from a previous run with the same
 !         land-ocean mask. This still makes sure to set snow values and
 !         ocean values. This is used mainly for converted model II'
 !         data.
 ! 
-!     ISTART=8
-!         This is a restart from a model configuration identical to the
-!         run now starting. This is for perturbation experiments
-!         etc. See note below.
-! 
-!     ISTART=9
-!         This is a restart from this model run. (i.e. a continuation,
-!         or a backtrack to an older rsf file).
-! 
-!     ISTART=10   (DEFAULT if not specified in I file)
-!         This is used internally to pick up from the instantaneous rsf
-!         file (the later of fort.1 and fort.2). Does not ever need to
-!         be set in the rundeck.
-! 
-!     ISTART=11
-!         This is used internally to pick up from an instantaneous rsf
-!         file (fort.1). Only rarely used.
-! 
-!     ISTART=12
-!         This is used internally to pick up from an instantaneous rsf
-!         file (fort.2). Only rarely used.
-! 
-!     ISTART=13
-!         This is used internally to pick up from the instantaneous rsf
-!         file (the earlier of fort.1 and fort.2). Only rarely used.
-! 
-!     ISTART<0
-!         This option is used by the post-processing program to run the
-!         model to generate nice diagnostics. This should never need to
-!         be set manually.
+!     ISTART<0 (OBSOLETE) This option is used by the post-processing
+!         program to run the model to generate nice diagnostics. This
+!         should never need to be set manually.  ISTART<0 may still work
+!         if the model is run with “old I/O” but is not needed with “new
+!         I/O”. It was meant as a device to bridge the transition period
+!         from old to new I/O.
 
       subroutine GISS_modelE(qcRestart, coldRestart, iFile)
 !@sum  MAIN GISS modelE main time-stepping routine
@@ -523,7 +597,7 @@ C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
      *     WRITE (6,'(A,I1,45X,A4,I5,A5,I3,A4,I3,A,I8)')
      *     '0Restart file written on fort.',KDISK,'Year',
      *     year,aMon,date,', Hr',hour,'  Internal clock time:',ITIME
-      kdisk=3-kdisk
+      kdisk=3-kdisk  ! Swap next fort.X.nc file
 
       end subroutine checkpointModelE
 
@@ -738,7 +812,8 @@ C****
 !@var  IHRI,IHOURE start and end of run in hours (from 1/1/IYEAR1 hr 0)
 !@nlparam IRANDI  random number seed to perturb init.state (if>0)
       INTEGER :: IHRI=-1,TIMEE=-1,IHOURE=-1,IRANDI=0
-      INTEGER IhrX, KDISK_restart
+      INTEGER IhrX
+      INTEGER KDISK_restart   ! Name of fort.X.nc file from which we restarted
       LOGICAL :: is_coldstart
       CHARACTER NLREC*80,RLABEL*132
 
@@ -944,23 +1019,35 @@ C**** RESTART ON DATA SETS 1 OR 2, ISTART=10 or more
 C****
 C**** CHOOSE DATA SET TO RESTART ON
           IF(ISTART==11 .OR. ISTART==12) THEN
+            ! ISTART=11: Use fort.1.nc
+            ! ISTART=12: Use fort.2.nc
             KDISK=ISTART-10
           ELSEIF(ISTART==10 .OR. ISTART==13) THEN
             call find_later_rsf(kdisk)
-            IF (ISTART.GE.13)     KDISK=3-KDISK
+            IF (ISTART==13) KDISK=3-KDISK ! Use earlier fort file, not later
           ENDIF
+          if (istart == 14) then
+              kdisk = 4    ! Start from fort.4.nc file
+          end if
           call io_rsf(rsf_file_name(KDISK),Itime,ioread,ioerr)
-          KDISK_restart = KDISK
+          KDISK_restart = KDISK   ! Fort file we started from
           if (AM_I_ROOT())
      *      WRITE (6,'(A,I2,A,I11,A,A/)') '0RESTART DISK READ, UNIT',
      *      KDISK,', Time=',Itime,' ',XLABEL(1:80)
 
-C**** Switch KDISK if the other file is (or may be) bad (istart>10)
-C**** so both files will be fine after the next write execution
-          IF (istart.gt.10) KDISK=3-KDISK
-C**** Keep KDISK after reading from the later restart file, so that
-C**** the same file is overwritten first; in case of trouble,
-C**** the earlier restart file will still be available
+          ! Set up the first checkpoint file to write
+          if (istart == 14) then
+            ! Set from I file
+            call get_param('KDISK', kdisk)
+          else if (istart == 10) then
+            ! Keep KDISK after reading from the later restart file, so that
+            ! the same file is overwritten first; in case of trouble,
+            ! the earlier restart file will still be available
+          else if (istart.gt.10) then
+            ! If user specified a fort.X.nc file,
+            ! switch to the checkpoint file we did NOT start from
+            KDISK=3-KDISK
+          end if
 
         ENDIF
 
@@ -1087,7 +1174,7 @@ C**** MUST be before other init routines
 
       call INPUT_atm(istart,istart_fixup,
      &     do_IC_fixups,is_coldstart,
-     &     KDISK_restart,IRANDI)
+     &     KDISK_restart, IRANDI)
 
       if (istart.le.9) then
         call reset_adiag(0)
@@ -1110,7 +1197,7 @@ C**** MUST be before other init routines
       call parse_subdd
       call reset_cached_subdd
       if(istart.ge.10) then
-        call read_subdd_rsf(trim(rsf_file_name(kdisk_restart))//'.nc')
+        call read_subdd_rsf(checkpoint_file_name)
       endif
 #endif
 

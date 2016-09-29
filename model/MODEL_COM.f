@@ -84,7 +84,8 @@ C**** (Simplified) Calendar Related Terms
 !@var KDISK next rsf (fort.)1 or 2 to be written to
       INTEGER :: IRAND=123456789, KDISK=1
 !@param rsf_file_name names of restart files
-      CHARACTER(6), PARAMETER :: rsf_file_name(2)=(/'fort.1','fort.2'/)
+      CHARACTER(6), PARAMETER :: rsf_file_name(4)=
+     &         (/'fort.1','fort.2','fort.3','fort.4'/)
 !@var MDYN,MCNDS,MRAD,MSURF,MDIAG,MELSE timing-indices
       INTEGER  MDYN,MCNDS,MRAD,MSURF,MDIAG,MELSE
 

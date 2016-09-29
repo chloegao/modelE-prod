@@ -753,6 +753,7 @@ C**** For restarts/continuations, FV state and import files are
 C**** copied to the appropriate names by this procedure, and for
 C**** cold starts the required IC files are generated.
 C****
+      ! See FV_INTERFACE.F90
       Call Initialize(fvstate, istart, kdisk_restart)
 #endif
 
