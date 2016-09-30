@@ -2311,29 +2311,37 @@ C Read aerosol phase functions:
 
       SUBROUTINE READ_FL(end_of_day)
 !@sum READ_FL Instead of reading the photon fluxes (FL) once from the 
-!@+   SPECFJ file, this now varyies year-to-year as read from FLTRAN file.
-!@+   Format is like the SPECFJ file, data should be consistent with the   
-!@+   RADN9 file.
+!@+   SPECFJ file, this now varyies year-to-year as read from FLTRAN ascii
+!@+   file witih format like that of the SPECFJ file and data which should
+!@+   be consistent with the radiation code input RADN9 file. Alternately,
+!@+   will read directly from the RADN9 file if that is netCDF and 
+!@+   contains the needed variable.
 !@auth Greg Faluvegi (based on RD_TJPL above)
-!@ver  1.0 
 
 C**** GLOBAL parameters and variables:
       USE FILEMANAGER, only: openunit,closeunit
       USE RAD_COM, only: s0_yr
       USE RADPAR, only: icycs0,icycs0f
       USE MODEL_COM, only: modelEClock
+      USE PARIO, only : par_open,par_close,variable_exists,read_data
 
       IMPLICIT NONE
+  
+      include 'netcdf.inc'
       
 C**** Local parameters and variables and arguments:
       integer :: yearx,iunit,i,iw,wantYear,firstYear,lastYear,icyc
       logical, intent(in) :: end_of_day
       character(len=300) :: out_line
       logical :: found1988, found1991
-      integer :: year, dayOfYear
+      logical :: fltranFileExists=.false., radn9VariableExists=.true.
+      integer :: year, dayOfYear, rc, fid, vid, tid, tdid, ntimes
+      integer :: i1988, i1991, iWantYear
+      real*8, dimension(:), allocatable :: time
 
       call modelEclock%get(year=year, dayOfYear=dayOfYear) 
-      ! only for start of years and restarts:
+      ! Reading is only done at beginning of years and at model
+      ! restarts:
       if(.not. end_of_day .or. dayOfYear == 1) then
 
         ! set year we are looking for based on rad code s0_yr:
@@ -2343,91 +2351,251 @@ C**** Local parameters and variables and arguments:
           wantYear=s0_yr
         end if
 
+        ! determine from rad code parameters periodicity of
+        ! solar cycling if year is outside of those in the file:
         if(wantYear > 2000)then
           icyc=icycs0f
         else
           icyc=icycs0
         end if
 
-        ! scan the file to make sure needed years are there
-        ! and to see whether we need to cycle based on the 
-        ! initial few or last few years:
+        ! Determine which file to read from. 
 
-        found1988=.false. ; found1991=.false.
-        CALL openunit('FLTRAN',iunit,.false.,.true.)
-        READ(iunit,*) ! 1 line of comments
-        i=0
-        scanLoop: do
-          i=i+1
-          READ(iunit,102,end=100) yearx,(FLX(IW),IW=1,NWWW)
-          if(i==1)firstYear=yearx
-          if(yearx==1988)found1988=.true.
-          if(yearx==1991)found1991=.true.
-        end do scanLoop
- 100    lastYear=yearx    
-        rewind(iunit)
-        if(.not.found1988)call stop_model('1988 problem READ_FL',13)
-        if(.not.found1991)call stop_model('1991 problem READ_FL',13)
-       
-        if(lastYear-firstYear+1 < icyc)
-     &  call stop_model('years in FLTRAN file < icyc',13)
-        if(wantYear < firstYear)then
-          write(out_line,*)'READ_FL year ',wantYear,' outside of file.'
-          call write_parallel(trim(out_line))
-          ! next line depends on integer arithmatic:
-          wantYear=wantYear+icyc*((firstYear-wantYear+icyc-1)/icyc)
-          write(out_line,*)'Using: ',wantYear,' instead.'
-          call write_parallel(trim(out_line))
-        else if(wantYear > lastYear)then
-          write(out_line,*)'READ_FL year ',wantYear,' outside of file.'
-          call write_parallel(trim(out_line))
-          ! next line depends on integer arithmatic:
-          wantYear=wantYear-icyc*((wantYear-lastYear+icyc-1)/icyc)
-          write(out_line,*)'Using: ',wantYear,' instead.'
-          call write_parallel(trim(out_line))
-        end if
+        inquire(file=trim('FLTRAN'),exist=fltranFileExists)
+        if(fltranFileExists)then
 
-        ! now read file with appropriate (safe) target year:
-        READ(iunit,*) ! 1 line of comments
-        readLoop: do
-          READ(iunit,102,end=101) yearx,(FLX(IW),IW=1,NWWW)
-          if(yearx == wantYear) then
-            FL(1:NWWW)=FLX(1:NWWW)
+          ! If the FLTRAN file exists, give it priority. But if
+          ! there is *also* an available fastj variable in the 
+          ! netCDF RADN file, stop the model for user to resolve
+          ! this ambiguity:
+
+          ! attempt to open netCDF RADN9 file (if fails assume no
+          ! fastj data in it.)
+          rc=nf_open('RADN9',ncnowrit,fid)
+          if(rc /= nf_noerr) then
+            radn9VariableExists=.false.
           else
-            FL_DUMMY(1:NWWW)=FLX(1:NWWW)
-          endif
-          if(yearx == 1988)then
-            if(yearx == wantYear)then
-              bin4_1988=FL(4); bin5_1988=FL(5)
-            else      
-              bin4_1988=FL_DUMMY(4); bin5_1988=FL_DUMMY(5)
-            endif
-          else if(yearx == 1991)then
-            if(yearx == wantYear)then
-              bin4_1991=FL(4)
-            else
-              bin4_1991=FL_DUMMY(4)
-            endif
-          endif
-          if(yearx >= wantYear.and.yearx >= 1991) exit readLoop
-        end do readLoop
+            ! look for variable:
+            rc=nf_inq_varid(fid,'photon_flux',vid)
+            if(rc /= nf_noerr) radn9VariableExists=.false.
+            ! close:
+            rc=nf_close(fid)
+             if(rc /= nf_noerr)
+     &       call stop_model('FastJ: problem closing RADN9 file',255)
+          end if
 
-        write(out_line,*)'READ_FL Using year ',wantYear,
-     &  ' bin4_now/1988/1991= ',FL(4),bin4_1988,bin4_1991,
-     &  ' bin5_now/1988= ',FL(5),bin5_1988
-        call write_parallel(trim(out_line))
+          if(radn9VariableExists) then
 
-        call closeunit(iunit)
-      endif
+            write(out_line,*)'An FLTRAN file exists and a "photon_flux"'
+     &      //' variable exists in RADN9 file. Please resolve conflict.'
+            call write_parallel(trim(out_line))
+            call stop_model('rad_FL input defined in FLTRAN and RADN9')
+
+          else ! continue with normal ascii file reading:
+
+            ! scan the file to make sure needed years exist
+            ! and to see whether we need to cycle based on the 
+            ! initial few or last few years:
+            found1988=.false. ; found1991=.false.
+            CALL openunit('FLTRAN',iunit,.false.,.true.)
+            READ(iunit,*) ! 1 line of comments
+            i=0
+            scanLoop: do
+              i=i+1
+              READ(iunit,102,end=100) yearx,(FLX(IW),IW=1,NWWW)
+              if(i==1)firstYear=yearx
+              if(yearx==1988)found1988=.true.
+              if(yearx==1991)found1991=.true.
+            end do scanLoop
+ 100        lastYear=yearx    
+            rewind(iunit)
+            if(.not.found1988)call stop_model('1988 problem READ_FL',13)
+            if(.not.found1991)call stop_model('1991 problem READ_FL',13)
+       
+            if(lastYear-firstYear+1 < icyc)
+     &      call stop_model('years in FLTRAN file < icyc',13)
+            if(wantYear < firstYear)then
+              write(out_line,*)'READ_FL year ',wantYear,' out of range.'
+              call write_parallel(trim(out_line))
+              ! next line depends on integer arithmatic:
+              wantYear=wantYear+icyc*((firstYear-wantYear+icyc-1)/icyc)
+              write(out_line,*)'Using: ',wantYear,' instead.'
+              call write_parallel(trim(out_line))
+            else if(wantYear > lastYear)then
+              write(out_line,*)'READ_FL year ',wantYear,' out of range.'
+              call write_parallel(trim(out_line))
+              ! next line depends on integer arithmatic:
+              wantYear=wantYear-icyc*((wantYear-lastYear+icyc-1)/icyc)
+              write(out_line,*)'Using: ',wantYear,' instead.'
+              call write_parallel(trim(out_line))
+            end if
+
+            ! now read file with appropriate (safe) target year:
+            READ(iunit,*) ! 1 line of comments
+            readLoop: do
+              READ(iunit,102,end=101) yearx,(FLX(IW),IW=1,NWWW)
+              if(yearx == wantYear) then
+                FL(1:NWWW)=FLX(1:NWWW)
+              else
+                FL_DUMMY(1:NWWW)=FLX(1:NWWW)
+              end if
+              if(yearx == 1988)then
+                if(yearx == wantYear)then
+                  bin4_1988=FL(4); bin5_1988=FL(5)
+                else      
+                  bin4_1988=FL_DUMMY(4); bin5_1988=FL_DUMMY(5)
+                end if
+              else if(yearx == 1991)then
+                if(yearx == wantYear)then
+                  bin4_1991=FL(4)
+                else
+                  bin4_1991=FL_DUMMY(4)
+                end if
+              end if
+              if(yearx >= wantYear.and.yearx >= 1991) exit readLoop
+            end do readLoop
+
+            write(out_line,*)'READ_FL Using year ',wantYear,
+     &      ' bin4_now/1988/1991= ',FL(4),bin4_1988,bin4_1991,
+     &      ' bin5_now/1988= ',FL(5),bin5_1988
+            call write_parallel(trim(out_line))
+            call closeunit(iunit)
+
+          end if 
+        
+        else ! no FLTRAN file; read RADN9 file
+
+! Temporary stop here. Once the radiation code can read in netCDF
+! RADN9 file, Greg will test this new section of code.
+          write(out_line,*)'FastJ code exists to read photon flux ' 
+     &    //'from netCDF RADN9 file. But there was no way to test '
+     &    //'that so stopping the model for now.'
+          call write_parallel(trim(out_line))
+          call stop_model("FastJ untested code. See PRT message.",255)
+! End of Temporary stop section.
+
+          ! open file
+          rc=nf_open('RADN9',ncnowrit,fid)
+           if(rc /= nf_noerr)
+     &     call stop_model('FastJ can not open nc RADN9 file',255)
+
+          ! get the id of time dimension:
+          rc=nf_inq_dimid(fid,'time',tdid)
+           if(rc /= nf_noerr)
+     &     call stop_model('FastJ can not find time dim in RADN9',255)
+
+          ! get lenght of time dimension:
+          rc=nf_inq_dimlen(fid,tdid,ntimes)
+           if(rc /= nf_noerr)
+     &     call stop_model('FastJ can not find size of time RADN9',255)
+          allocate( time(ntimes) )
+
+          ! get id of the variable holding the calendar years:
+          rc=nf_inq_varid(fid,'calyear',tid)
+           if(rc /= nf_noerr)
+     &     call stop_model('FastJ can not find calyear in RADN9',255)
+
+          ! read these years into the fortran "time" variable:
+          rc=nf_get_vara_double(fid,tid,1,ntimes,time)
+           if(rc /= nf_noerr)
+     &     call stop_model('FastJ failed reading calyear in RADN9',255)
+
+          ! find some years needed (FLOOR because years are like 1850.5 in
+          ! the file but in this routine would be called 1850):
+          found1988=.false. ; found1991=.false.
+          firstYear=FLOOR(time(1))
+          lastYear=FLOOR(time(ntimes))
+          do i=1,ntimes
+            if(FLOOR(time(i))==1988)then
+              found1988=.true.
+              i1988=i
+            end if
+            if(FLOOR(time(i))==1991)then
+              found1991=.true.
+              i1991=i
+            end if
+          end do
+          if(.not.found1988)call stop_model('1988 problem READ_FL',13)
+          if(.not.found1991)call stop_model('1991 problem READ_FL',13)
+          
+          ! check if we should use some available cyclic year instead:
+          ! This is repeated code from above ; should go in a subroutine...
+          if(lastYear-firstYear+1 < icyc)
+     &    call stop_model('years in FLTRAN file < icyc',13)
+          if(wantYear < firstYear)then
+            write(out_line,*)'READ_FL year ',wantYear,' out of range.'
+            call write_parallel(trim(out_line))
+            ! next line depends on integer arithmatic:
+            wantYear=wantYear+icyc*((firstYear-wantYear+icyc-1)/icyc)
+            write(out_line,*)'Using: ',wantYear,' instead.'
+            call write_parallel(trim(out_line))
+          else if(wantYear > lastYear)then
+            write(out_line,*)'READ_FL year ',wantYear,' out of range.'
+            call write_parallel(trim(out_line))
+            ! next line depends on integer arithmatic:
+            wantYear=wantYear-icyc*((wantYear-lastYear+icyc-1)/icyc)
+            write(out_line,*)'Using: ',wantYear,' instead.'
+            call write_parallel(trim(out_line))
+          end if
+
+          ! now read FL from file at appropriate (safe) target year:
+
+          ! first determine the time index to read for target year:
+          iWantYear=-1
+          do i=1,ntimes
+            if(FLOOR(time(i))==wantYear)then
+              iWantYear=i
+              exit
+            end if
+          end do
+          if(iWantYear==-1)call stop_model('READ_FL: year not found',13)
+ 
+          ! get photon_flux id:
+          rc=nf_inq_varid(fid,'photon_flux',vid)
+           if(rc /= nf_noerr)
+     &     call stop_model('FastJ can not find photon_flux, RADN9',255)
+
+          ! read all wavelenghts' photon flux for target year:
+          rc=nf_get_vara_real(fid,vid,(/iWantYear,1/),(/1,NWWW/),FL)
+           if(rc /= nf_noerr)
+     &     call stop_model('FastJ problem reading FL from RADN9',255)
+
+          ! also read certain wavelenghts for the years 1988 and 1991:
+          rc=nf_get_vara_real(fid,vid,(/i1988,4/),(/1,1/),bin4_1988)
+           if(rc /= nf_noerr)
+     &     call stop_model('Problem reading bin4_1988 from RADN9',255)
+          rc=nf_get_vara_real(fid,vid,(/i1991,4/),(/1,1/),bin4_1991)
+           if(rc /= nf_noerr)
+     &     call stop_model('Problem reading bin4_1991 from RADN9',255)
+          rc=nf_get_vara_real(fid,vid,(/i1988,5/),(/1,1/),bin5_1988)
+           if(rc /= nf_noerr)
+     &     call stop_model('Problem reading bin5_1988 from RADN9',255)
+
+          ! close the file:   
+          rc=nf_close(fid)
+           if(rc /= nf_noerr)
+     &     call stop_model('FastJ: problem closing RADN9 file',255)
+
+          write(out_line,*)'READ_FL Using year ',wantYear,
+     &    ' bin4_now/1988/1991= ',FL(4),bin4_1988,bin4_1991,
+     &    ' bin5_now/1988= ',FL(5),bin5_1988
+          call write_parallel(trim(out_line))
+
+          deallocate(time)
+
+        end if ! which file to read
+
+      end if ! was time to read
 
       if(rad_FL > 0)then
         SF2_fact=FL(5)/bin5_1988
         SF3_fact=0.1d-6*(FL(4)-bin4_1988)/(bin4_1991-bin4_1988)
-      endif
+      end if
+
   102 FORMAT((I4,6X,6E10.3)/(10X,6E10.3)/(10X,6E10.3))
       RETURN 
 
- 101  CONTINUE ! This should no longer be reached.        
+  101 CONTINUE ! This should no longer be reached.        
       call stop_model("READ_FL end of file problem.",13)
       RETURN 
       END SUBROUTINE READ_FL  
