@@ -685,7 +685,7 @@ c note: not applying CPP when declaring counts/lists.
       call tracers%addDefaultValue('conc_from_fw', .true.)
 
       call tracers%addDefaultValue('iso_index', 1)
-      call tracers%addDefaultValue('om2oc', 1.4d0)
+      call tracers%addDefaultValue('om2oc', 1.d0)
       call tracers%addDefaultValue('to_volume_MixRat', 0)
       call tracers%addDefaultValue('to_conc', 0)
       call tracers%addDefaultValue('TRLI0', 0.0d0)
