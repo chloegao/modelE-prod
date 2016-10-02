@@ -1,19 +1,18 @@
-! These subroutines are used to read/write arrays (distributed and
-! local) to NetCDF files.
-!
-! Simple usage example (to write); the same calls should be made from
-! all MPI nodes:
-!
-! 	fid = par_open(grid,fname,'create')
-!   call defvar(grid,fid,mdwnimp,'mdwnimp(dist_im,dist_jm)')
-!   call write_dist_data(grid,fid,'mdwnimp',mdwnimp)
-!   call par_close(grid, fid)
-!
-! See also Parallelio.F90 for "combined" define/write/read subroutines.
-! This allows, in many cases, a SINGLE subroutine to be used to read,
-! write and define the contents of a NetCDF file.
-
       module pario
+!@sum These subroutines are used to read/write arrays (distributed and
+!@+ local) to NetCDF files.
+!@+
+!@+ Simple usage example (to write); the same calls should be made from
+!@+ all MPI nodes:
+!@+
+!@+   fid = par_open(grid,fname,'create')
+!@+   call defvar(grid,fid,mdwnimp,'mdwnimp(dist_im,dist_jm)')
+!@+   call write_dist_data(grid,fid,'mdwnimp',mdwnimp)
+!@+   call par_close(grid, fid)
+!@+
+!@+ See also Parallelio.F90 for "combined" define/write/read subroutines.
+!@+ This allows, in many cases, a SINGLE subroutine to be used to read,
+!@+ write and define the contents of a NetCDF file.
 
 #ifdef OFFLINE
 #else
@@ -46,34 +45,36 @@ c these routines are only needed when running on multiple CPUs
       public :: write_dist_data,read_dist_data
 
       interface write_dist_data
-      ! subroutine Write a distributed array to a correesponding NetCDF variable on disk.
-      ! (after defvar() has been called).
-      !
-      ! type(dist_grid), intent(in) :: grid
-      !     The grid on which the array exists.
-      !
-      ! integer :: fid
-      !     Open file handle to write to (obtained via par_open())
-      !
-      ! character(len=*) :: varname
-      !     Name of NetCDF variable to write
-      !
-      ! <type> :: arr(:,:,...)
-      !     Array to write.
-      !     <type> may be real*8, integer or logical
-      !     Number of dimensions must be at least 2
-      !
-      !     NOTE: If the desired type/dimension implementation of this
-      !           interface does not yet exist, it should be added.
-      !
-      ! integer, intent(in), optional :: jdim = 2
-      !     Specifies the index (starting from 1) of the LAST horizontal
-      !     dimension.  If not specified, jdim=2; correct for model arrays
-      !     like T(i,j,l).  To write an array dimensioned T(l,i,j) set jdim=3.
-      !
-      ! logical, intent(in), optional :: no_xdim = .false.
-      !     (WARNING: Negative logic; let has_xdim = .not. no_xdim)
-      !     ?????
+      !@sum subroutine write_dist_data(grid,fid,varname,arr,jdim,no_xdim)
+      !@+ ---------------------------------------------------
+      !@+ Write a distributed array to a correesponding
+      !@+ NetCDF variable on disk (after defvar() has been called).
+      !@+
+      !@var type(dist_grid), intent(in) :: grid
+      !@+     The grid on which the array exists.
+      !@+
+      !@var integer :: fid
+      !@+     Open file handle to write to (obtained via par_open())
+      !@+
+      !@var character(len=*) :: varname
+      !@+     Name of NetCDF variable to write
+      !@+
+      !@var <type> :: arr(:,:,...)
+      !@+     Array to write.
+      !@+     <type> may be real*8, integer or logical
+      !@+     Number of dimensions must be at least 2
+      !@+
+      !@+     NOTE: If the desired type/dimension implementation of this
+      !@+           interface does not yet exist, it should be added.
+      !@+
+      !@var integer, intent(in), optional :: jdim = 2
+      !@+     Specifies the index (starting from 1) of the LAST horizontal
+      !@+     dimension.  If not specified, jdim=2; correct for model arrays
+      !@+     like T(i,j,l).  To write an array dimensioned T(l,i,j) set jdim=3.
+      !@+
+      !@var logical, intent(in), optional :: no_xdim = .false.
+      !@+     (WARNING: Negative logic; let has_xdim = .not. no_xdim)
+      !@+     ?????
         module procedure par_write_nc_2D
         module procedure par_write_nc_3D
         module procedure par_write_nc_4D
@@ -85,39 +86,39 @@ c these routines are only needed when running on multiple CPUs
       end interface write_dist_data
 
       interface read_dist_data
-      ! subroutine read_dist_data(grid,fid,varname,arr,jdim,no_xdim,record,record1)
-      ! ---------------------------------------------------
-      !
-      ! Reads a distributed array from a NetCDF variable on disk.
-      !
-      ! type(dist_grid), intent(in) :: grid
-      !     The grid on which the array exists.
-      !
-      ! integer :: fid
-      !     Open file handle to write to (obtained via par_open())
-      !
-      ! character(len=*) :: varname
-      !     Name of NetCDF variable to read
-      !
-      ! <type> :: arr(:,:,...)
-      !     Array to read.
-      !     <type> may be real*8, integer or logical
-      !     Number of dimensions must be at least 2
-      !
-      !     NOTE: If the desired type/dimension implementation of this
-      !           interface does not yet exist, it should be added.
-      !
-      ! integer, intent(in), optional :: jdim = 2
-      !     Specifies the index (starting from 1) of the LAST horizontal
-      !     dimension.  If not specified, jdim=2; correct for model arrays
-      !     like T(i,j,l).  To write an array dimensioned T(l,i,j) set jdim=3.
-      !
-      ! logical, intent(in), optional :: no_xdim = .false.
-      !     (WARNING: Negative logic; let has_xdim = .not. no_xdim)
-      !     ?????
-      !
-      ! integer, intent(in), optional :: record,record1
-      !     ????????
+      !@sum subroutine read_dist_data(grid,fid,varname,arr,jdim,no_xdim,record,record1)
+      !@+ ---------------------------------------------------
+      !@+
+      !@+ Reads a distributed array from a NetCDF variable on disk.
+      !@+
+      !@var type(dist_grid), intent(in) :: grid
+      !@+     The grid on which the array exists.
+      !@+
+      !@var integer :: fid
+      !@+     Open file handle to write to (obtained via par_open())
+      !@+
+      !@var character(len=*) :: varname
+      !@+     Name of NetCDF variable to read
+      !@+
+      !@var <type> :: arr(:,:,...)
+      !@+     Array to read.
+      !@+     <type> may be real*8, integer or logical
+      !@+     Number of dimensions must be at least 2
+      !@+
+      !@+     NOTE: If the desired type/dimension implementation of this
+      !@+           interface does not yet exist, it should be added.
+      !@+
+      !@var integer, intent(in), optional :: jdim = 2
+      !@+     Specifies the index (starting from 1) of the LAST horizontal
+      !@+     dimension.  If not specified, jdim=2; correct for model arrays
+      !@+     like T(i,j,l).  To write an array dimensioned T(l,i,j) set jdim=3.
+      !@+
+      !@var logical, intent(in), optional :: no_xdim = .false.
+      !@+     (WARNING: Negative logic; let has_xdim = .not. no_xdim)
+      !@+     ?????
+      !@+
+      !@var integer, intent(in), optional :: record,record1
+      !@+     ????????
 
         module procedure par_read_nc_2D
         module procedure par_read_nc_3D
@@ -131,29 +132,29 @@ c these routines are only needed when running on multiple CPUs
 
       public :: write_data,read_data
       interface write_data
-      ! subroutine write_data(grid,fid,varname,arr)
-      ! --------------------------------
-      !
-      ! Write a non-dstributed array to a correesponding NetCDF variable
-      ! on disk.  (after defvar() has been called).  The array is
-      ! written from the root MPI node; the value of arr on other MPI
-      ! nodes will have no effect on what is written.
-      !
-      ! type(dist_grid), intent(in) :: grid
-      !     The grid on which the array exists.
-      !
-      ! integer :: fid
-      !     Open file handle to write to (obtained via par_open())
-      !
-      ! character(len=*) :: varname
-      !     Name of NetCDF variable to write
-      !
-      ! <type> :: arr(:,:,...)
-      !     Array or scalar to write.
-      !     <type> may be real*8, integer or logical
-      !
-      !     NOTE: If the desired type/dimension implementation of this
-      !           interface does not yet exist, it should be added.
+      !@sum subroutine write_data(grid,fid,varname,arr)
+      !@+ --------------------------------
+      !@+
+      !@+ Write a non-dstributed array to a correesponding NetCDF variable
+      !@+ on disk.  (after defvar() has been called).  The array is
+      !@+ written from the root MPI node; the value of arr on other MPI
+      !@+ nodes will have no effect on what is written.
+      !@+
+      !@var type(dist_grid), intent(in) :: grid
+      !@+     The grid on which the array exists.
+      !@+
+      !@var integer :: fid
+      !@+     Open file handle to write to (obtained via par_open())
+      !@+
+      !@var character(len=*) :: varname
+      !@+     Name of NetCDF variable to write
+      !@+
+      !@var <type> :: arr(:,:,...)
+      !@+     Array or scalar to write.
+      !@+     <type> may be real*8, integer or logical
+      !@+
+      !@+     NOTE: If the desired type/dimension implementation of this
+      !@+           interface does not yet exist, it should be added.
         module procedure write_nc_0D
         module procedure write_nc_1D
         module procedure write_nc_2D
@@ -170,34 +171,34 @@ c these routines are only needed when running on multiple CPUs
 
 
       interface read_data
-      ! subroutine read_data(grid,fid,varname,arr,bcast_all)
-      ! --------------------------------
-      !
-      ! Write a non-dstributed array to a correesponding NetCDF variable
-      ! on disk.  (after defvar() has been called).  The array is
-      ! written from the root MPI node; the value of arr on other MPI
-      ! nodes will have no effect on what is written.
-      !
-      ! type(dist_grid), intent(in) :: grid
-      !     The grid on which the array exists.
-      !
-      ! integer :: fid
-      !     Open file handle to write to (obtained via par_open())
-      !
-      ! character(len=*) :: varname
-      !     Name of NetCDF variable to write
-      !
-      ! <type> :: arr(:,:,...)
-      !     Array or scalar to write.
-      !     <type> may be real*8, integer or logical
-      !
-      !     NOTE: If the desired type/dimension implementation of this
-      !           interface does not yet exist, it should be added.
-      !
-      ! logical, intent(in), optional :: bcast_all = .false.
-      !     If set, the value read into arr will be broadcast from the
-      !     root MPI node to MPI nodes.  This is to be used if one
-      !     wishes to read the same value into arr on all MPI nodes.
+      !@sum subroutine read_data(grid,fid,varname,arr,bcast_all)
+      !@+ --------------------------------
+      !@+
+      !@+ Write a non-dstributed array to a correesponding NetCDF variable
+      !@+ on disk.  (after defvar() has been called).  The array is
+      !@+ written from the root MPI node; the value of arr on other MPI
+      !@+ nodes will have no effect on what is written.
+      !@+
+      !@var type(dist_grid), intent(in) :: grid
+      !@+     The grid on which the array exists.
+      !@+
+      !@var integer :: fid
+      !@+     Open file handle to write to (obtained via par_open())
+      !@+
+      !@var character(len=*) :: varname
+      !@+     Name of NetCDF variable to write
+      !@+
+      !@var <type> :: arr(:,:,...)
+      !@+     Array or scalar to write.
+      !@+     <type> may be real*8, integer or logical
+      !@+
+      !@+     NOTE: If the desired type/dimension implementation of this
+      !@+           interface does not yet exist, it should be added.
+      !@+
+      !@var logical, intent(in), optional :: bcast_all = .false.
+      !@+     If set, the value read into arr will be broadcast from the
+      !@+     root MPI node to MPI nodes.  This is to be used if one
+      !@+     wishes to read the same value into arr on all MPI nodes.
 
         module procedure read_nc_0D
         module procedure read_nc_1D
@@ -214,57 +215,57 @@ c these routines are only needed when running on multiple CPUs
 
       public :: defvar
       interface defvar
-      ! subroutine defvar(grid,fid,arr,varinfo,r4_on_disk,defby)
-      ! --------------------------------------------------------
-      !
-      ! Define a variable in a NetCDF files.  Variables must be defined
-      ! before they can be written...  This subroutine defines both the
-      ! variables AND any required dimensions used by the variable.  The
-      ! sizes of dimensions are inferred from arr, whereas the NetCDF
-      ! names of variables and dimensions are parsed from varinfo.
-      !
-      ! EXAMPLE:
-      !     integer :: im,jm,lm
-      !     real(real64), dimension(:,:,:) :: t
-      !     allocate(t(im,jm,lm))
-      !     call defvar(grid,fid,t,'t(im,jm,lm)')
-      !
-      ! Model variables share dimensions; it is not necessary to declare
-      ! separate dimension names for each variable.  If a dimension is
-      ! ever redeclared with a different size than previously, defvar()
-      ! will abort.
-      !
-      !    NOTE: arr and varinfo are reversed, as compared to
-      !          write_data() and write_dist_data()
-      !
-      ! type(dist_grid), intent(in) :: grid
-      !     The grid on which the array exists.
-      !
-      ! integer :: fid
-      !     Open file handle to write to (obtained via par_open())
-      !
-      ! <type> :: arr(:,:,...)
-      !     Array or scalar to write.
-      !     <type> may be real*8, integer or logical
-      !
-      !     NOTE: If the desired type/dimension implementation of this
-      !           interface does not yet exist, it should be added.
-      !
-      ! character(*) :: varinfo
-      !     String defining name of variable and its dimensions to
-      !     define in NetCDF.
-      !     Example: 't(im,jm,lm)'
-      !
-      ! logical, intent(in), optional :: r4_on_disk
-      !     Indicates the defined real variable should be a 4-byte float
-      !     even though the passed array is 8-byte (which is what happens
-      !     writing out diagnostic acc files).
-      !
-      ! character(len=*), intent(in), optional :: defby
-      !     Allows a given variable to have the attribute defby
-      !     (“defined by”) set to whatever string is passed; this is not
-      !     frequently used but allows the component “owner” of a
-      !     variable to be defined if desired.
+      !@sum subroutine defvar(grid,fid,arr,varinfo,r4_on_disk,defby)
+      !@+ --------------------------------------------------------
+      !@+
+      !@+ Define a variable in a NetCDF files.  Variables must be defined
+      !@+ before they can be written...  This subroutine defines both the
+      !@+ variables AND any required dimensions used by the variable.  The
+      !@+ sizes of dimensions are inferred from arr, whereas the NetCDF
+      !@+ names of variables and dimensions are parsed from varinfo.
+      !@+
+      !@+ EXAMPLE:
+      !@+     integer :: im,jm,lm
+      !@+     real(real64), dimension(:,:,:) :: t
+      !@+     allocate(t(im,jm,lm))
+      !@+     call defvar(grid,fid,t,'t(im,jm,lm)')
+      !@+
+      !@+ Model variables share dimensions; it is not necessary to declare
+      !@+ separate dimension names for each variable.  If a dimension is
+      !@+ ever redeclared with a different size than previously, defvar()
+      !@+ will abort.
+      !@+
+      !@+    NOTE: arr and varinfo are reversed, as compared to
+      !@+          write_data() and write_dist_data()
+      !@+
+      !@var type(dist_grid), intent(in) :: grid
+      !@+     The grid on which the array exists.
+      !@+
+      !@var integer :: fid
+      !@+     Open file handle to write to (obtained via par_open())
+      !@+
+      !@var <type> :: arr(:,:,...)
+      !@+     Array or scalar to write.
+      !@+     <type> may be real*8, integer or logical
+      !@+
+      !@+     NOTE: If the desired type/dimension implementation of this
+      !@+           interface does not yet exist, it should be added.
+      !@+
+      !@var character(*) :: varinfo
+      !@+     String defining name of variable and its dimensions to
+      !@+     define in NetCDF.
+      !@+     Example: 't(im,jm,lm)'
+      !@+
+      !@var logical, intent(in), optional :: r4_on_disk
+      !@+     Indicates the defined real variable should be a 4-byte float
+      !@+     even though the passed array is 8-byte (which is what happens
+      !@+     writing out diagnostic acc files).
+      !@+
+      !@var character(len=*), intent(in), optional :: defby
+      !@+     Allows a given variable to have the attribute defby
+      !@+     (“defined by”) set to whatever string is passed; this is not
+      !@+     frequently used but allows the component “owner” of a
+      !@+     variable to be defined if desired.
 
         module procedure defvar_0D
         module procedure defvar_1D
