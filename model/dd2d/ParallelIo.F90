@@ -6,7 +6,7 @@ module ParallelIo_mod
 
    public :: ParallelIo ! type and constructor
    public :: doVar      ! procedure and method
-   
+
    type ParallelIo
       private
       type (dist_grid), pointer :: grid
@@ -39,6 +39,58 @@ module ParallelIo_mod
 
 
    interface doVar
+
+
+   ! subroutine doVar(handle, action, arr, varinfo, ...
+   !     r4_on_disk, jdim, no_xdim, record, record1)
+   !
+   ! All-in-one subroutine that will defin, read or write an array in
+   ! NetCDF, depending on the contents of action.  Equivalent to
+   ! defvar/read_dist_/write_dist in pario_nc.f
+   !
+   ! class (ParallelIo), intent(in) :: handle
+   !     Instance of ParallelIo constructed (see Parallelio() below)
+   !
+   ! action :: character(len=*)
+   !    'define': Define a variable
+   !    'read_dist': Read a distributed array
+   !    'write_dist': Write a distributed array
+   !    NOTE: There is no equivalent to read_data() or write_data() in pario_nc.f
+   !
+   ! <type> :: arr(:,:,...)
+   !     Array or scalar to write.
+   !     <type> may be real*8, integer or logical
+   !
+   !     NOTE: If the desired type/dimension implementation of this
+   !           interface does not yet exist, it should be added.
+   !
+   ! character(*) :: varinfo
+   !     String defining name of variable and its dimensions to
+   !     define in NetCDF.
+   !     Example: 't(im,jm,lm)'
+   !
+   ! ***** Keyword args: the remaining must be specfied by keyword, eg jdim=17
+   !
+   ! logical, intent(in), optional :: r4_on_disk
+   !     Used only when action=='define'
+   !     Indicates the defined real variable should be a 4-byte float
+   !     even though the passed array is 8-byte (which is what happens
+   !     writing out diagnostic acc files).
+   !
+   ! integer, intent(in), optional :: jdim = 2
+   !     Used only when action=='write_dist'
+   !     Specifies the index (starting from 1) of the LAST horizontal
+   !     dimension.  If not specified, jdim=2; correct for model arrays
+   !     like T(i,j,l).  To write an array dimensioned T(l,i,j) set jdim=3.
+   !
+   ! logical, intent(in), optional :: no_xdim = .false.
+   !     Used only when action=='read_dist'
+   !     (WARNING: Negative logic; let has_xdim = .not. no_xdim)
+   !     ?????
+   !
+   ! integer, intent(in), optional :: record,record1
+   !     Used only when action=='read_dist'
+   !     ????????
       module procedure doVar_2d_real64
       module procedure doVar_3d_real64
       module procedure doVar_4d_real64
@@ -50,6 +102,21 @@ module ParallelIo_mod
    end interface doVar
 
    interface ParallelIo
+   ! type(ParallelIo) ParallelIo(grid, fid)
+   ! --------------------------------------------------
+   !
+   ! Constructor of ParallelIO object.
+   !
+   ! type(dist_grid), intent(in) :: grid
+   !     The grid on which the array exists.
+   !
+   ! integer :: fid
+   !     Open file handle to write to (obtained via par_open())
+   !     
+   ! EXAMPLE:
+   !     type (ParallelIo) :: handle
+   !     handle = ParallelIo(grid, fid)
+   !
       module procedure newParallelIo
    end interface ParallelIo
 
