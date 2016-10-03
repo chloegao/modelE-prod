@@ -320,8 +320,10 @@ def createScriptTask(config, compconfig, deck, comp, mode):
             elif re.search('campi', deckName):
                 walltime = '02:00:00'
             elif re.search('ctomas', deckName):
-                walltime = '08:00:00'
+                walltime = '02:00:00'
             elif re.search('matrix', deckName):
+                walltime = '02:00:00'
+            elif re.search('vsd', deckName):
                 walltime = '02:00:00'
 
         outname = resultsDir + '/' + jobName + '.' + mode + '.out'
@@ -436,7 +438,7 @@ def createRegConfig(config, deck, modelErc, comp, jobName, mode):
         regconfig.set('regSettings', 'repository', cfg['repository'])
     else:
         # Out of source build still pollutes the repository a little bit,
-        # specially for nonProduction builds. So, let's make sure we poullte
+        # specially for nonProduction builds. So, let's make sure we pollute
         # a clone.
         newrepo = cfg['scratchdir']+'/scratch/'+branch+'/'+branch      
         regconfig.set('regSettings', 'repository', newrepo)
