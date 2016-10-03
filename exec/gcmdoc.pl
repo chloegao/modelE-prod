@@ -33,7 +33,7 @@ $parenth  = "\\([^()]*\\)";
 $parenth2 = "\\((?:[^()]|$parenth)*\\)";
 $parenth3 = "\\((?:[^()]|$parenth2)*\\)";
 
-#print "$some_decl\n";
+#print "SOME DECL >>>$some_decl<<<\n";
 
 #an example
 #GetOptions("s", "e=s", "f=s", "I=s@", "m=s", "c", "p", "g", "h", "o=s", "a=s")
@@ -91,7 +91,7 @@ if ( $#ARGV < 0 ) {
 while( $current_file = shift ) {
     my $file_to_open = $current_file;
     #if -cpp option is specified try to open .cpp instead of .f
-    if ( $opt_CPP ) { $file_to_open =~ s/\.f$/\.$opt_CPP/; }
+    if ( $opt_CPP ) { $file_to_open =~ s/$/$opt_CPP/; }
     open(SRCFILE, $file_to_open) or die "can't open $file_to_open\n";
     print "parsing $file_to_open\n";
     parse_file();
@@ -873,6 +873,8 @@ sub htm_incl_file {
 #@+       Continuation line for @sum/@calls/@cont
 
 sub parse_file {
+    my $free_form = 0;
+    if ( $current_file =~ /\.F90$/ ) { $free_form = 1; }
     #print "parsing $current_file\n";
     # resetting globals
     $current_module = "";
@@ -881,7 +883,7 @@ sub parse_file {
     while( <SRCFILE> ) {
 	chop;
 	#strip regular comments
-	if ( /^C/i || /^![^@]/ ) { next; }
+	if ( (/^C/i && !$free_form) || /^![^@]/ ) { next; }
 	#parse !@... info here
 #	if( /^!\@sum/i ) { #subroutine summary
 #	    $doc_tag = "sum";
@@ -892,6 +894,8 @@ sub parse_file {
 #	    next;
 #	}
 
+	#strip spaces at the end
+	s/\s*$//;
 
 	if( /^!\@(var|param|dbparam|nlparam)\b/i ) { #variable summary
 	    $doc_tag = "var";
@@ -986,10 +990,19 @@ sub parse_file {
 	    #print "$_\n";
 	}
 
-	if (  /^     \S/ || /^\s*$/ ) { # continuation line
-	    s/^     \S/ /;
-	    $fstr .= $_;
-	    next;
+	if ( $free_form ) {
+	    if ( $fstr =~ /\\$/ ) { # continuation line
+		 chop $fstr;
+		 s/^\s*\\//;
+		 $fstr .= $_;
+		next;
+		}
+	} else {
+	    if (  /^     \S/ || /^\s*$/ ) { # continuation line
+		s/^     \S/ /;
+		$fstr .= $_;
+		next;
+	    }
 	}
 
 	# parse previous line
@@ -1010,7 +1023,7 @@ sub parse_file {
 	    $current_module = "";
 	}
 	if ( 
-/^\s*(subroutine|(?:$some_decl\s+)?function|program|interface)\s+(\w+)/i ) {
+/^\s*(subroutine|(?:$some_decl)?\s*function|program|interface)\s+(\w+)/i ) {
 	    $current_sub = lc($2);
 	    $db_subs{"$current_module:$current_sub"}{file} = $current_file;
 	    if ( $current_module ) {
@@ -1043,6 +1056,15 @@ sub parse_file {
 
 sub parse_fort_str {
     #print "$fstr\n";
+
+    # subroutine/function declaration
+    if ( $fstr =~ /^\s*(subroutine|(?:$some_decl)?\s*function)/i ) {
+	my $decl = lc($fstr);
+	$decl =~ s/^\s*//; $decl =~ s/\s*$//;
+	$decl =~ s/\s*,\s*/, /g;
+	$db_subs{"$current_module:$current_sub"}{decl} = $decl;
+	return;
+    }
 
     if ( $current_typedef ) { return; } #skip typedefs for now
 
@@ -1121,15 +1143,6 @@ sub parse_fort_str {
 	    $var_name = "$current_module:$current_sub:$var";
 	    $db_vars{$var_name}{decl} .= ",dimension$dim";
 	}
-	return;
-    }
-
-    # subroutine/function declaration
-    if ( $fstr =~ /^\s*(subroutine|function)/i ) {
-	my $decl = lc($fstr);
-	$decl =~ s/^\s*//; $decl =~ s/\s*$//;
-	$decl =~ s/\s*,\s*/, /g;
-	$db_subs{"$current_module:$current_sub"}{decl} = $decl;
 	return;
     }
 
