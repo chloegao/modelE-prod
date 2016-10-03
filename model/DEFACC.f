@@ -1476,17 +1476,17 @@ c
       scale_ij(k) = 1.d2
 c
       k=k+1
-      IJ_WMSUM = k ! LIQUID WATER PATH (kg/m**2)             1 CL
-      lname_ij(k) = 'LIQUID WATER PATH'
+      IJ_WMSUM = k ! CLOUD LIQUID WATER PATH (kg/m**2)             1 CL
+      lname_ij(k) = 'CLOUD LIQUID WATER PATH'
       units_ij(k) = '.1 kg/m^2'
-      name_ij(k) = 'lwp'
+      name_ij(k) = 'clwp'
       ia_ij(k) = ia_src
       scale_ij(k) = 10.
       ir_ij(k) = ir_0_18
 c
       k=k+1 !
-      IJ_QM = k ! ATMOSPHERIC WATER VAPOUR CONTENT (kg/m**2)             1 CL
-      lname_ij(k) = 'ATMOSPHERIC WATER VAPOUR'
+      IJ_QM = k ! ATMOSPHERIC WATER VAPOUR COLUMN (kg/m**2)             1 CL
+      lname_ij(k) = 'ATMOSPHERIC WATER VAPOUR COLUMN'
       units_ij(k) = 'kg/m^2'
       name_ij(k) = 'qatm'
       ia_ij(k) = ia_dga
@@ -1494,19 +1494,35 @@ c
       ir_ij(k) = ir_0_18
 c
       k=k+1 !
-      IJ_CLDW = k ! CLOUD CONDENSED WATER                      1 CL
-      lname_ij(k) = 'CLOUD CONDENSED WATER'
+      IJ_CLDW = k ! CLOUD CONDENSED WATER COLUMN               1 CL
+      lname_ij(k) = 'CLOUD CONDENSED WATER COLUMN'
       units_ij(k) = 'kg/m^2'
       name_ij(k) = 'cldw'
       ia_ij(k) = ia_src
       scale_ij(k) = 1.
 c
       k=k+1 !
-      IJ_CLDI = k ! CLOUD CONDENSED ICE                        1 CL
-      lname_ij(k) = 'CLOUD CONDENSED ICE'
+      IJ_CLDI = k ! CLOUD CONDENSED ICE COLUMN                 1 CL
+      lname_ij(k) = 'CLOUD CONDENSED ICE COLUMN'
       units_ij(k) = 'kg/m^2'
       name_ij(k) = 'cldi'
       ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+c
+      k=k+1
+      IJ_LWPrad = k ! LIQUID WATER PATH SEEN BY RADIATION (kg/m**2), includes precip
+      lname_ij(k) = 'LIQUID WATER PATH SEEN BY RADIATION'
+      units_ij(k) = 'kg/m^2'
+      name_ij(k) = 'LWPrad'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 1.
+c
+      k=k+1
+      IJ_IWPrad = k ! ICE WATER PATH SEEN BY RADIATION (kg/m**2), includes precip
+      lname_ij(k) = 'ICE WATER PATH SEEN BY RADIATION'
+      units_ij(k) = 'kg/m^2'
+      name_ij(k) = 'IWPrad'
+      ia_ij(k) = ia_rad
       scale_ij(k) = 1.
 c
       k=k+1 !
@@ -6111,7 +6127,7 @@ c
       k=k+1        ! mass fraction of cloud liquid water (model layers)
       IJL_cldwtr   = k
       name_ijl(k)  = 'wtrcld'
-      lname_ijl(k) = 'Cloud Liquid Water Content'
+      lname_ijl(k) = 'Cloud Liquid Water Mass Mixing Ratio'
       units_ijl(k) = 'kg/kg'
       scale_ijl(k) = 1.
       denom_ijl(k) = IJL_DP
@@ -6121,7 +6137,27 @@ c
       k=k+1        ! mass fraction of cloud ice (model layers)
       IJL_cldice   = k
       name_ijl(k)  = 'icecld'
-      lname_ijl(k) = 'Cloud Ice Content'
+      lname_ijl(k) = 'Cloud Ice Water Mass Mixing Ratio'
+      units_ijl(k) = 'kg/kg'
+      scale_ijl(k) = 1.
+      denom_ijl(k) = IJL_DP
+      ia_ijl(k)    = ia_src
+      lgrid_ijl(k) = ctr_ml
+c
+      k=k+1        ! mass fraction of cloud+precip liquid seen by radiation (model layers)
+      IJL_QLrad    = k
+      name_ijl(k)  = 'QLrad'
+      lname_ijl(k) = 'Liquid Water Mass Mixing Ratio Seen by Radiation'
+      units_ijl(k) = 'kg/kg'
+      scale_ijl(k) = 1.
+      denom_ijl(k) = IJL_DP
+      ia_ijl(k)    = ia_src
+      lgrid_ijl(k) = ctr_ml
+c
+      k=k+1        ! mass fraction of cloud+precip ice seen by radiation (model layers)
+      IJL_QIrad    = k
+      name_ijl(k)  = 'QIrad'
+      lname_ijl(k) = 'Ice Water Mass Mixing Ratio Seen by Radiation'
       units_ijl(k) = 'kg/kg'
       scale_ijl(k) = 1.
       denom_ijl(k) = IJL_DP
