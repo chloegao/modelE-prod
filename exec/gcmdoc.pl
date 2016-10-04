@@ -204,6 +204,7 @@ foreach $name ( keys %db_files ) {
     htm_text("Summary: $db_files{$name}{sum}");
     print HTM "Author : $db_files{$name}{auth}<BR>\n";
     print HTM "Version: $db_files{$name}{ver}<BR>\n";
+    if ( $db_files{$name}{usage} ) { htm_usage($db_files{$name}{usage}); }
     print HTM "<HR width=10%>\n";
     print HTM "Modules: \n";
     print HTM "<dl>\n";

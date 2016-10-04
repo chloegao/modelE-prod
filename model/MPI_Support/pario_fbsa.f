@@ -3,7 +3,7 @@
 !@sum  pario_fbsa contains multitile-enabled versions of routines
 !@+    that fill real*8 domain-decomposed arrays with the contents of
 !@+    files written using Fortran Binary Sequential Access.
-!@+    The first two indices of arrays are assumed to correspond to
+!@usage The first two indices of arrays are assumed to correspond to
 !@+    the two horizontal dimensions.   Fortran records have the
 !@+    following structure in each routine, where im/jm are the
 !@+    number of points in i/j on each tile and ntiles is the number
