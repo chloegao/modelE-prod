@@ -478,38 +478,50 @@ sub print_main_index {
     print HTM "<HR>\n";
 
     print HTM '<H3><Center>General Documentation</Center></font></H3>'."\n";
-    htm_link("ModelE Reference Manual","modelE.html"); 
-    print HTM "<BR>\n";
-    htm_link("Frequently asked questions about the GISS model","FAQ.html"); 
-    print HTM "<BR>\n";
-    htm_link("HOW-TO document for the GCM","HOWTO.html"); 
-    print HTM "<BR>\n";
-    htm_link("Options for running the GISS GCM","OPTIONS.html"); 
-    print HTM "<BR>\n";
+#    htm_link("ModelE Reference Manual","modelE.html"); 
+#    print HTM "<BR>\n";
+#    htm_link("Frequently asked questions about the GISS model","FAQ.html"); 
+#    print HTM "<BR>\n";
+#    htm_link("HOW-TO document for the GCM","HOWTO.html"); 
+#    print HTM "<BR>\n";
+#    htm_link("Options for running the GISS GCM","OPTIONS.html"); 
+#    print HTM "<BR>\n";
 
-    while( <$doc_dir/*.txt> ) {
+#    while( <$doc_dir/*.txt> ) {
+#	s/$doc_dir\///;
+#	print "txt loop $_ \n";
+#	htm_link("$_", "$_"); print HTM "<BR>\n";
+#    }
+
+#    while( <$doc_dir/*.html> ) {
+#	s/$doc_dir\///;
+#	print "txt loop $_ \n";
+#	htm_link("$_", "$_"); print HTM "<BR>\n";
+#    }
+
+#    while( <$doc_dir/*/index.html> ) {
+    #for 
+    foreach $_ ( sort `ls $doc_dir/*/index.html` ) {
 	s/$doc_dir\///;
-	print "txt loop $_ \n";
-	htm_link("$_", "$_"); print HTM "<BR>\n";
+	print "dir loop $_ \n";
+	my $doc_link = $_;
+	s/\/index.html//;
+	htm_link("$_", "$doc_link"); print HTM "<BR>\n";
     }
 
-    while( <$doc_dir/*.html> ) {
-	s/$doc_dir\///;
-	print "txt loop $_ \n";
-	htm_link("$_", "$_"); print HTM "<BR>\n";
-    }
 
     print HTM '<H3><Center>Source Code Repository</Center></font></H3>'."\n";
     print HTM 
       "<a href=\"http://simplex.giss.nasa.gov/cgi-bin/gitweb.cgi?p=modelE.git;a=summary\">\n";
     print HTM "View source code in the repository</a>";
     print HTM " for latest updates e.t.c. This link allows you to view \n\
-      all the source files currently in CVS repository together with their \n\
+      all the source files currently in Git repository together with their \n\
       older versions. You can also make comparisons between different \n\
       versions of the same file.<BR>\n";
     print HTM "Don't use this link to download the code. Instead read the \n\
-      section "; htm_link( " Getting the code ", "HOWTO.html#part0" );
-    print HTM " of the "; htm_link( "HOWTO",  "HOWTO.html");
+      section "; htm_link( " Getting the code from GISS repository",
+      "UserGuide/Getting_the_code_form_GISS_repository.html" );
+    print HTM " of the "; htm_link( "User Guide",  "UserGuide/index.html");
     print HTM " file.<BR>\n";
 
     print HTM "<P>\n";
