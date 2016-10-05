@@ -49,12 +49,6 @@ C**** atmosphere. However, we can redefine im,jm if necessary.
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: MO,UO,VO,UOD,VOD,
      *     G0M,S0M
 
-#ifdef OCN_GISS_MESO
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: auvel,avvel,kappam3d_sm
-     * ,flux_x_sm,flux_y_sm,flux_z_sm
-     * ,fluxA_x_sm,fluxA_y_sm,fluxA_z_sm
-#endif
-
       INTEGER :: USE_QUS=0
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) ::
      *     GXMO,GYMO,GZMO, GXXMO,GYYMO,GZZMO, GXYMO,GYZMO,GZXMO,
@@ -460,11 +454,6 @@ C****
 
       USE OCEAN, only : MO,G0M,S0M
       USE OCEAN, only : UO,VO,UOD,VOD
-#ifdef OCN_GISS_MESO
-      USE OCEAN, only : auvel,avvel,kappam3d_sm
-     * ,flux_x_sm,flux_y_sm,flux_z_sm
-     * ,fluxA_x_sm,fluxA_y_sm,fluxA_z_sm
-#endif
       USE OCEAN, only : OPRESS,OPBOT, OGEOZ,OGEOZ_SV,kpl
       USE OCEAN, only : use_qus,
      *     GXMO,GYMO,GZMO, GXXMO,GYYMO,GZZMO, GXYMO,GYZMO,GZXMO,
@@ -552,21 +541,6 @@ C****
       sxxmo=0.; syymo=0.; szzmo=0.; sxymo=0.; syzmo=0.; szxmo=0.
       endif
 
-#ifdef OCN_GISS_MESO
-      ALLOCATE(   auvel(IM,J_0H:J_1H,LMO), STAT = IER)
-      ALLOCATE(   avvel(IM,J_0H:J_1H,LMO), STAT = IER)
-      ALLOCATE(   kappam3d_sm(IM,J_0H:J_1H,LMO), STAT = IER)
-      ALLOCATE(   flux_x_sm(IM,J_0H:J_1H,LMO), STAT = IER)
-      ALLOCATE(   flux_y_sm(IM,J_0H:J_1H,LMO), STAT = IER)
-      ALLOCATE(   flux_z_sm(IM,J_0H:J_1H,LMO), STAT = IER)
-      ALLOCATE(   fluxA_x_sm(IM,J_0H:J_1H,LMO), STAT = IER)
-      ALLOCATE(   fluxA_y_sm(IM,J_0H:J_1H,LMO), STAT = IER)
-      ALLOCATE(   fluxA_z_sm(IM,J_0H:J_1H,LMO), STAT = IER)
-      auvel=0.; avvel=0.; kappam3d_sm=850.
-      flux_x_sm=0.; flux_y_sm=0.; flux_z_sm=0.
-      fluxA_x_sm=0.; fluxA_y_sm=0.; fluxA_z_sm=0.
-#endif
-
       if (am_i_root()) then
         img = im
         jmg = jm
@@ -645,6 +619,10 @@ c      call ALLOC_KPP_COM(ogrid) ! alloc deferred until lsrpd known
       call alloc_odiff(ogrid)
 
       call alloc_ocnmeso_com
+
+#ifdef OCN_GISS_MESO
+      call alloc_gissmeso_com
+#endif
 
       call read_ocean_topo
       if(ogrid%have_domain) CALL GEOMO

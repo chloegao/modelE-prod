@@ -134,7 +134,7 @@
       use oceanr_dim, only : grid=>ogrid
       use odiag, only : oijl=>oijl_loc,oij=>oij_loc,
      *    ijl_ggmfl,ijl_sgmfl
-     &   ,ijl_mfub,ijl_mfvb,ijl_mfwb
+     &   ,ijl_mfub,ijl_mfvb,ijl_mfwb,ijl_k3d
       use odiag, only : ij_gmsc,ij_gmscz
 
 #ifdef TRACERS_OCEAN
@@ -163,10 +163,6 @@
 
       logical, dimension(im,grid%j_strt_halo:grid%j_stop_halo) ::
      &     zeroing_mask
-#ifdef OCN_GISS_MESO
-      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,lmo) ::
-     &    g0m0,gxmo0,gymo0,s0m0,sxmo0,symo0
-#endif
 #ifdef TRACERS_OCEAN
       type(ocn_tracer_entry), pointer :: trentry
 #endif
@@ -216,8 +212,9 @@ C**** Calculate mesoscale diffusivity
 #endif
 
 #if defined(OCN_GISS_MESO)
-      CALL OCN_mesosc(k3d)
+      call giss_meso(k3d,zeroing_mask)
 #endif
+
 
 !        if(use_kmeso2) then
 !          call get_kmeso2(kbg,k2d)
@@ -227,6 +224,8 @@ C**** Calculate mesoscale diffusivity
 C**** Apply GM + Redi tracer fluxes
 
       if(use_tdmix==1) then
+
+c       write(40,*) 'use_tdmix',use_tdmix
 
         allocate(mokg(im,grid%j_strt_halo:grid%j_stop_halo,lmo))
         allocate(k3dx(lmo,im,grid%j_strt_halo:grid%j_stop_halo))
@@ -248,8 +247,8 @@ C**** Apply GM + Redi tracer fluxes
         ! flux_y(I,J,L) = Vnew(I,J,L)*TRYMO(I,J,L)+dzFnewy(I,J,L)
         ! flux_z(I,J,L) = Wnew(I,J,L)*dzTRM(I,J,L)
         ! which I have not yet understood yet.
-        call stop_model('ocnmeso_drv: review remarks on '//
-     &       'tdmix+giss_meso before proceeding',255)
+c       call stop_model('ocnmeso_drv: review remarks on '//
+c    &       'tdmix+giss_meso before proceeding',255)
 #endif
         call make_k3dxy_from_k3d(k3d,k3dx,k3dy)
 #else
@@ -343,16 +342,18 @@ C**** Apply GM + Redi tracer fluxes
 ! to the following logic in old routine DENSGRAD (now ORIG_MESODIFF):
 C**** avoid occasional inversions. IF ARHOZ<=0 then GM is pure vertical
 C**** so keep at zero, and let KPP do the work.
-        do j=j_0,j_1
-        do n=1,nbyzm(j,1)
-        do i=i1yzm(n,j,1),i2yzm(n,j,1)
-          if(zeroing_mask(i,j)) k3d(i,j,:) = 0.
-          k3d(i,j,:) = k2d(i,j)
-        enddo
-        enddo
-        enddo
+c       do j=j_0,j_1
+c       do n=1,nbyzm(j,1)
+c       do i=i1yzm(n,j,1),i2yzm(n,j,1)
+c         if(zeroing_mask(i,j)) k3d(i,j,:) = 0.
+c         k3d(i,j,:) = k2d(i,j)
+c       enddo
+c       enddo
+c       enddo
 #endif
 
+#ifndef OCN_GISS_MESO
+        ! the following has been done in OCNGISS_MESO.f
         if(have_south_pole) then
           do l=1,lmo
             k3d(2:im,1,l) = k3d(1,1,l)
@@ -363,12 +364,9 @@ C**** so keep at zero, and let KPP do the work.
             k3d(2:im,jm,l) = k3d(1,jm,l)
           enddo
         endif
-
-
-#ifdef OCN_GISS_MESO
-        G0M0=G0M; GXMO0=GXMO; GYMO0=GYMO
-        S0M0=S0M; SXMO0=SXMO; SYMO0=SYMO
 #endif
+        ! adding k3d to the diag.
+        oijl(:,:,:,ijl_k3d) = oijl(:,:,:,ijl_k3d) + k3d(:,:,:)
 
         call gmkdif(k3d,1d0)
         call gmfexp(g0m,gxmo,gymo,gzmo,.false.,oijl(1,j_0h,1,ijl_ggmfl))
@@ -380,17 +378,6 @@ C**** so keep at zero, and let KPP do the work.
      &         txmo(1,j_0h,1,n),tymo(1,j_0h,1,n),tzmo(1,j_0h,1,n),
      &         trentry%t_qlimit,toijl(1,j_0h,1,toijl_gmfl,n))
         enddo
-#endif
-
-#ifdef OCN_GISS_MESO
-c     CALL MESO_D(G0M0,GXMO0,GYMO0,G0M,GXMO,GYMO,GZMO)
-        CALL MESO_D(G0M0,GXMO0,GYMO0,GXMO,GYMO,GZMO)
-        G0M=G0M0
-c     CALL MESO_D_TEST(G0M0,G0M,GXMO0,GYMO0,GZMO)
-c     CALL MESO_D(S0M0,SXMO0,SYMO0,S0M,SXMO,SYMO,SZMO)
-
-        CALL MESO_A(G0M,GXMO,GYMO,GZMO)
-c     CALL MESO_A(S0M,SXMO,SYMO,SZMO)
 #endif
 
       endif ! use_tdmix or not

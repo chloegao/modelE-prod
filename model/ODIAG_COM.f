@@ -11,8 +11,13 @@
 #endif
       IMPLICIT NONE
       SAVE
-      INTEGER, PARAMETER :: KOIJ=71
-      INTEGER, PARAMETER :: KOIJL=42,KOL=6,KOLNST=14,KOIJmm=11
+#ifndef OCN_GISS_MESO
+      INTEGER, PARAMETER :: KOIJ=71,KOIJL=43
+#else
+      INTEGER, PARAMETER :: KOIJ=90,KOIJL=54
+#endif
+      INTEGER, PARAMETER :: KOL=6,KOLNST=14,KOIJmm=11
+
 !@var OIJ   lat-lon ocean diagnostics (on ocean grid)
 !@var OIJmm lat-lon ocean min/max diagnostics (on ocean grid)
 !@var OIJL  3-dimensional ocean diagnostics
@@ -35,7 +40,8 @@
      *     ,IJ_dEPO_Dyn
 
 #ifdef OCN_GISS_MESO
-     .     ,ij_eke,ij_rd
+     *     ,ij_ekes,ij_udrift,ij_vdrift,ij_driftspd,ij_rd,ij_hstar
+     *     ,ij_var1,ij_var2,ij_ekes_d,ij_sstar,ij_divri
 #endif
 !@var lname_oij Long names for OIJ diagnostics
       CHARACTER(len=lname_strlen), DIMENSION(KOIJ) :: LNAME_OIJ
@@ -77,8 +83,10 @@
 #ifdef OCN_GISS_SM
      *     ,ijl_fvb
 #endif
+     *     ,ijl_k3d
 #ifdef OCN_GISS_MESO
-     .     ,ijl_ueddy,ijl_veddy,ijl_n2
+     *     ,ijl_eke,ijl_sxc,ijl_syc,ijl_n2c,ijl_dopplerspd
+     *     ,ijl_k31,ijl_k32,ijl_k33,ijl_fvbm,ijl_taper,ijl_epe
 #endif
 
 !@var lname_oijl Long names for OIJL diagnostics
@@ -1311,27 +1319,92 @@ c
       scale_oijl(k) = 1.
       lgrid_oijl(k) = 2
 c
-#ifdef OCN_GISS_MESO
       k=k+1
-      IJL_n2=k
-      lname_oijl(k) = "Brunt Vaisala frequency sq"
-      sname_oijl(k) = "n2"
+      IJL_k3d=k
+      lname_oijl(k) = "Mesoscale diffusivity"
+      sname_oijl(k) = "k3d"
+      units_oijl(k) = "m^2/s"
+      scale_oijl(k) = 1
+c
+#ifdef OCN_GISS_MESO
+c
+      k=k+1
+      ijl_eke=k
+      lname_oijl(k) = "Mesoscale eddy kinetic energy"
+      sname_oijl(k) = "eke"
+      units_oijl(k) = "m^2/s^2"
+      scale_oijl(k) = 1
+c
+      k=k+1
+      ijl_sxc=k
+      lname_oijl(k) = "Isopycnal slope x component at tracer point"
+      sname_oijl(k) = "sxc"
+      units_oijl(k) = "1"
+      scale_oijl(k) = 1
+c
+      k=k+1
+      ijl_syc=k
+      lname_oijl(k) = "Isopycnal slope y component at tracer point"
+      sname_oijl(k) = "syc"
+      units_oijl(k) = "1"
+      scale_oijl(k) = 1
+c
+      k=k+1
+      ijl_n2c=k
+      lname_oijl(k) = "Brunt Vaisala frequency squared at tracer point"
+      sname_oijl(k) = "n2c"
       units_oijl(k) = "1/s^2"
       scale_oijl(k) = 1
 c
       k=k+1
-      IJL_ueddy=k
-      lname_oijl(k) = "Eddy induced u velocity (Canuto)"
-      sname_oijl(k) = "ueddy"
+      ijl_dopplerspd=k
+      lname_oijl(k) = "Mesoscale eddy Doppler speed"
+      sname_oijl(k) = "dopplerspd"
       units_oijl(k) = "m/s"
       scale_oijl(k) = 1
 c
       k=k+1
-      IJL_veddy=k
-      lname_oijl(k) = "Eddy induced v velocity (Canuto)"
-      sname_oijl(k) = "veddy"
-      units_oijl(k) = "m/s"
+      ijl_k31=k
+      lname_oijl(k) = "Mesoscale diffusivity dimensionless tensor K31"
+      sname_oijl(k) = "k31"
+      units_oijl(k) = "1"
       scale_oijl(k) = 1
+c
+      k=k+1
+      ijl_k32=k
+      lname_oijl(k) = "Mesoscale diffusivity dimensionless tensor K32"
+      sname_oijl(k) = "k32"
+      units_oijl(k) = "1"
+      scale_oijl(k) = 1
+c
+      k=k+1
+      ijl_k33=k
+      lname_oijl(k) = "Mesoscale diffusivity dimensionless tensor K33"
+      sname_oijl(k) = "k33"
+      units_oijl(k) = "1"
+      scale_oijl(k) = 1
+c
+      k=k+1
+      ijl_fvbm=k
+      lname_oijl(k) = "Mesoscale vertical flux"
+      sname_oijl(k) = "fvbm"
+      units_oijl(k) = "m^2/s^3"
+      scale_oijl(k) = 1
+c
+      k=k+1
+      ijl_taper=k
+      lname_oijl(k) = "Tapering function"
+      sname_oijl(k) = "taper"
+      units_oijl(k) = "1"
+      scale_oijl(k) = 1
+c
+      k=k+1
+      ijl_epe=k
+      lname_oijl(k) = "Eddy potential energy"
+      sname_oijl(k) = "epe"
+      units_oijl(k) = "m^2/s^2"
+      scale_oijl(k) = 1
+c
 #endif
 
 c
@@ -1508,21 +1581,95 @@ c
       endif
 
 #ifdef OCN_GISS_MESO
+c
       k=k+1
-      IJ_rd=k
+      ij_rd=k
       lname_oij(k)="Rossby radius of deformation"
       sname_oij(k)="oij_rd"
-      units_oij(k)="cm"
+      units_oij(k)="m"
       ia_oij(k)=ia_src
       scale_oij(k)=1
 
       k=k+1
-      IJ_eke=k
-      lname_oij(k)="Depth Integrated Eddy Kinetic Energy"
-      sname_oij(k)="oij_eke"
-      units_oij(k)="cm2/s2"
+      ij_ekes=k
+      lname_oij(k)="Surface mesoscale eddy kinetic energy"
+      sname_oij(k)="oij_ekes"
+      units_oij(k)="m^2/s^2"
       ia_oij(k)=ia_src
       scale_oij(k)=1
+
+      k=k+1
+      ij_ekes_d=k
+      lname_oij(k)="Surface mesoscale eddy kinetic energy from D-regime"
+      sname_oij(k)="oij_ekes_d"
+      units_oij(k)="m^2/s^2"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1
+
+      k=k+1
+      ij_sstar=k
+      lname_oij(k)="Slope at A-D regimes interface"
+      sname_oij(k)="oij_sstar"
+      units_oij(k)="1"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1
+
+      k=k+1
+      ij_divri=k
+      lname_oij(k)="Integral of div R over z"
+      sname_oij(k)="oij_divri"
+      units_oij(k)="m^2/s^2"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1
+
+      k=k+1
+      ij_udrift=k
+      lname_oij(k)="Mesoscale eddy zonal drift velocity"
+      sname_oij(k)="oij_udrift"
+      units_oij(k)="m/s"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1
+
+      k=k+1
+      ij_vdrift=k
+      lname_oij(k)="Mesoscale eddy meridional drift velocity"
+      sname_oij(k)="oij_vdrift"
+      units_oij(k)="m/s"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1
+
+      k=k+1
+      ij_driftspd=k
+      lname_oij(k)="Mesoscale eddy drift spd"
+      sname_oij(k)="oij_driftspd"
+      units_oij(k)="m/s"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1
+
+      k=k+1
+      ij_hstar=k
+      lname_oij(k)="Depth of mesoscale A,D-regimes interface"
+      sname_oij(k)="oij_hstar"
+      units_oij(k)="m"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1
+
+      k=k+1
+      ij_var1=k
+      lname_oij(k)="Mesoscale production power"
+      sname_oij(k)="oij_var1"
+      units_oij(k)="W"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1
+
+      k=k+1
+      ij_var2=k
+      lname_oij(k)="Net mesoscale power"
+      sname_oij(k)="oij_var2"
+      units_oij(k)="W"
+      ia_oij(k)=ia_src
+      scale_oij(k)=1
+c
 #endif
 
       k=k+1
