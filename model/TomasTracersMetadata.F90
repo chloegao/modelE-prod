@@ -234,6 +234,7 @@ contains
       call set_tr_wd_type(n, npart)        
 
       if (bin==1) then
+        call set_om2oc(n, 1.4d0)
         tmp = om2oc(n_AOCOB)
         call sync_param("OCB_om2oc",tmp)
         call set_om2oc(n_AOCOB, tmp)

@@ -6686,6 +6686,7 @@ c units are mg Terpene/m2/month
 ! 10% of terpenes end up being SOA
 #ifdef TRACERS_TOMAS
         OCT_src(i,j,mm)=OCT_src(i,j,mm)*axyp(i,j)*0.1d0
+     +                  *om2oc(n_AOCOB(1))
 #else
 #ifdef TRACERS_AMP
         OCT_src(i,j,mm)=OCT_src(i,j,mm)*axyp(i,j)*0.1d0
@@ -7823,8 +7824,7 @@ C****
         case ('SOAgas')
 !OCT_src is kg/month? or kg/sec?? 
         do j=J_0,J_1; do i=I_0,I_1
-           trsource(i,j,ntsurfsrc(n),n)=OCT_src(i,j,month)*
-     &          om2oc(n_AOCOB(1))
+           trsource(i,j,ntsurfsrc(n),n)=OCT_src(i,j,month)
          end do; enddo
 #endif
 #endif  /* TRACERS_AEROSOLS_SOA */
