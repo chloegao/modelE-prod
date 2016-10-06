@@ -2294,6 +2294,9 @@ C**** save 3D cloud fraction as seen by radiation
                 OPTDI=OPTDI+TAUIC(L)
                 call inc_ajl(i,j,l,jl_icld,1d0)
                 call inc_ajl(i,j,l,jl_icldwt,pdsig(l,i,j))
+                aij(i,j,ij_iwprad)=aij(i,j,ij_iwprad)+QIss(l,i,j)*rhodz
+                aijl(i,j,l,ijl_QIrad)=aijl(i,j,l,ijl_QIrad)
+     &                               +QIss(l,i,j)*pdsig(l,i,j)
               endif
             ELSE
               TAUIC(L)=cldx*TAUSSL
