@@ -90,8 +90,17 @@ example above you will need to set:
     COMPILER=gfortran
     NETCDFHOME=/opt/local
     MPIDISTR=openmpi
+
     MPIDIR=/opt/local
+    MPIINCLUDEDIR=/opt/local/include/openmpi-mp
+    MPILIBDIR=/opt/local/lib/openmpi-mp
 </code></pre>
+On Linux machine, typically, you would not need the last three lines
+(if MPI package was installed with yum). Instead, you would need to
+load a corresponding shell module (see above). If you have compiled
+MPI library from the source, typically, you would need just to
+set <code>MPIDIR</code>, pointing it to the directory where you
+installed your MPI package.
 
 Your computer should now be ready to run modelE jobs, both serial and
 parallel ones.
