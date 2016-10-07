@@ -332,6 +332,11 @@
      *     ,dts,dtolf,dto,dtofs,nocean,mdyno,msgso
      *     ,ndyno,imaxj,ogeoz_sv,bydts,lmo_min,j1o
      *     ,OBottom_drag,OCoastal_drag,OTIDE,oc_salt_mean
+#ifdef OCN_GISS_MESO
+     *     ,auvel,avvel,kappam3d_sm
+     *     ,flux_x_sm,flux_y_sm,flux_z_sm
+     *     ,fluxA_x_sm,fluxA_y_sm,fluxA_z_sm
+#endif
       USE OCEAN, only : use_qus,
      *     GXMO,GYMO,GZMO, GXXMO,GYYMO,GZZMO, GXYMO,GYZMO,GZXMO,
      *     SXMO,SYMO,SZMO, SXXMO,SYYMO,SZZMO, SXYMO,SYZMO,SZXMO
@@ -1864,6 +1869,21 @@ C****
       call defvar(grid,fid,sxmo,'sxmo(dist_imo,dist_jmo,lmo)')
       call defvar(grid,fid,symo,'symo(dist_imo,dist_jmo,lmo)')
       call defvar(grid,fid,szmo,'szmo(dist_imo,dist_jmo,lmo)')
+#ifdef OCN_GISS_MESO
+      call defvar(grid,fid,auvel,'auvel(dist_imo,dist_jmo,lmo)')
+      call defvar(grid,fid,avvel,'avvel(dist_imo,dist_jmo,lmo)')
+      call defvar(grid,fid,kappam3d_sm,
+     *            'kappam3d_sm(dist_imo,dist_jmo,lmo)')
+      call defvar(grid,fid,flux_x_sm,'flux_x_sm(dist_imo,dist_jmo,lmo)')
+      call defvar(grid,fid,flux_y_sm,'flux_y_sm(dist_imo,dist_jmo,lmo)')
+      call defvar(grid,fid,flux_z_sm,'flux_z_sm(dist_imo,dist_jmo,lmo)')
+      call defvar(grid,fid,fluxA_x_sm,
+     *            'fluxA_x_sm(dist_imo,dist_jmo,lmo)')
+      call defvar(grid,fid,fluxA_y_sm,
+     *            'fluxA_y_sm(dist_imo,dist_jmo,lmo)')
+      call defvar(grid,fid,fluxA_z_sm,
+     *            'fluxA_z_sm(dist_imo,dist_jmo,lmo)')
+#endif
       if(use_qus==1) then
       call defvar(grid,fid,gxxmo,'gxxmo(dist_imo,dist_jmo,lmo)')
       call defvar(grid,fid,gyymo,'gyymo(dist_imo,dist_jmo,lmo)')
@@ -1991,6 +2011,17 @@ c tracer arrays in straits
         call write_dist_data(grid,fid,'sxmo',sxmo)
         call write_dist_data(grid,fid,'symo',symo)
         call write_dist_data(grid,fid,'szmo',szmo)
+#ifdef OCN_GISS_MESO
+        call write_dist_data(grid,fid,'auvel',auvel)
+        call write_dist_data(grid,fid,'avvel',avvel)
+        call write_dist_data(grid,fid,'kappam3d_sm',kappam3d_sm)
+        call write_dist_data(grid,fid,'flux_x_sm',flux_x_sm)
+        call write_dist_data(grid,fid,'flux_y_sm',flux_y_sm)
+        call write_dist_data(grid,fid,'flux_z_sm',flux_z_sm)
+        call write_dist_data(grid,fid,'fluxA_x_sm',fluxA_x_sm)
+        call write_dist_data(grid,fid,'fluxA_y_sm',fluxA_y_sm)
+        call write_dist_data(grid,fid,'fluxA_z_sm',fluxA_z_sm)
+#endif
         if(use_qus==1) then
         call write_dist_data(grid,fid,'gxxmo',gxxmo)
         call write_dist_data(grid,fid,'gyymo',gyymo)
@@ -2082,6 +2113,17 @@ c tracer arrays in straits
         call read_dist_data(grid,fid,'sxmo',sxmo)
         call read_dist_data(grid,fid,'symo',symo)
         call read_dist_data(grid,fid,'szmo',szmo)
+#ifdef OCN_GISS_MESO
+        call read_dist_data(grid,fid,'auvel',auvel)
+        call read_dist_data(grid,fid,'avvel',avvel)
+        call read_dist_data(grid,fid,'kappam3d_sm',kappam3d_sm)
+        call read_dist_data(grid,fid,'flux_x_sm',flux_x_sm)
+        call read_dist_data(grid,fid,'flux_y_sm',flux_y_sm)
+        call read_dist_data(grid,fid,'flux_z_sm',flux_z_sm)
+        call read_dist_data(grid,fid,'fluxA_x_sm',fluxA_x_sm)
+        call read_dist_data(grid,fid,'fluxA_y_sm',fluxA_y_sm)
+        call read_dist_data(grid,fid,'fluxA_z_sm',fluxA_z_sm)
+#endif
         if(use_qus==1) then
         call read_dist_data(grid,fid,'gxxmo',gxxmo)
         call read_dist_data(grid,fid,'gyymo',gyymo)

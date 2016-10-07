@@ -1759,10 +1759,8 @@ c
 #ifdef OCN_GISS_SM
      &     ,ijl_fvb
 #endif
-     &     ,ijl_k3d
 #ifdef OCN_GISS_MESO
-     &     ,ijl_eke,ijl_sxc,ijl_syc,ijl_n2c,ijl_dopplerspd
-     &     ,ijl_k31,ijl_k32,ijl_k33,ijl_fvbm,ijl_taper,ijl_epe
+     &     ,ijl_ueddy,ijl_veddy,ijl_n2
 #endif
       use odiag, only : ia_oijl
 #ifdef TRACERS_OCEAN
@@ -1816,20 +1814,11 @@ c
         oijl_out(i,j,l,ijl_mo) = mass
         oijl_out(i,j,l,ijl_g0m) = oijl(i,j,l,ijl_g0m)
         oijl_out(i,j,l,ijl_s0m) = oijl(i,j,l,ijl_s0m)
-        oijl_out(i,j,l,ijl_k3d) = oijl(i,j,l,ijl_k3d)
 
 #ifdef OCN_GISS_MESO
-        oijl_out(i,j,l,ijl_eke) = oijl(i,j,l,ijl_eke)
-        oijl_out(i,j,l,ijl_sxc) = oijl(i,j,l,ijl_sxc)
-        oijl_out(i,j,l,ijl_syc) = oijl(i,j,l,ijl_syc)
-        oijl_out(i,j,l,ijl_n2c) = oijl(i,j,l,ijl_n2c)
-        oijl_out(i,j,l,ijl_dopplerspd) = oijl(i,j,l,ijl_dopplerspd)
-        oijl_out(i,j,l,ijl_k31) = oijl(i,j,l,ijl_k31)
-        oijl_out(i,j,l,ijl_k32) = oijl(i,j,l,ijl_k32)
-        oijl_out(i,j,l,ijl_k33) = oijl(i,j,l,ijl_k33)
-        oijl_out(i,j,l,ijl_fvbm) = oijl(i,j,l,ijl_fvbm)
-        oijl_out(i,j,l,ijl_taper) = oijl(i,j,l,ijl_taper)
-        oijl_out(i,j,l,ijl_epe) = oijl(i,j,l,ijl_epe)
+        oijl_out(i,j,l,ijl_n2) = oijl(i,j,l,ijl_n2)
+        oijl_out(i,j,l,ijl_ueddy) = oijl(i,j,l,ijl_ueddy)
+        oijl_out(i,j,l,ijl_veddy) = oijl(i,j,l,ijl_veddy)
 #endif
 
 c

@@ -2,8 +2,8 @@
 
       MODULE GM_COM
 !@sum  GM_COM variables related to GM isopycnal and Redi fluxes
-!@auth Gavin Schmidt/Dan Collins; Ye Cheng (ifdef OCN_GISS_MESO)
-!@ver  2009/02/13; 2016/07/15
+!@auth Gavin Schmidt/Dan Collins
+!@ver  2009/02/13
       USE OCEAN, only : im,jm,lmo,lmm,lmu,lmv,dts,cospo,sinpo,ze,dxypo
      *     ,mo,dypo,dyvo,dxpo,dzo
       USE KPP_COM, only : kpl
@@ -19,17 +19,10 @@
 
 !@var AI0,AI1,AI2,AI3 Cmponents of GM mixing coeff = F(isopycnal slopes)
 !@var SIX0-SIX3,SIY0-SIY3: Slopes calculated from 4 triads of density.
-      ! AS=kappam*S;  AI=kappam
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) ::
      *     ASX0,ASX1,ASX2,ASX3,AIX0,AIX1,AIX2,AIX3,
      *     ASY0,ASY1,ASY2,ASY3,AIY0,AIY1,AIY2,AIY3,
      *     S2X0,S2X1,S2X2,S2X3,S2Y0,S2Y1,S2Y2,S2Y3
-
-#ifdef OCN_GISS_MESO
-      ! ae=kappam*et (in d-regime)
-      real*8, allocatable, dimension(:,:,:) ::
-     *     aex0,aex1,aex2,aex3,aey0,aey1,aey2,aey3
-#endif
 
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) ::
      *     DXZ, BXZ, CXZ,CDXZ, EXZ, DYZ,BYZ,
@@ -64,7 +57,6 @@
       SUBROUTINE ALLOC_GM_COM
         implicit none
 c**** allocate arrays
-        ! AS=kappam*S, AI=kappam
         allocate( ASX0(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
         allocate( ASX1(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
         allocate( ASX2(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) )
@@ -126,19 +118,6 @@ c**** allocate arrays
         allocate( BYDXP (grid%j_strt_halo:grid%j_stop_halo) )
         allocate( BYDYV (grid%j_strt_halo:grid%j_stop_halo) )
 
-#ifdef OCN_GISS_MESO
-        ! ae=kappam*et
-        allocate( aex0(im,grid%j_strt_halo:grid%j_stop_halo,lmo) )
-        allocate( aex1(im,grid%j_strt_halo:grid%j_stop_halo,lmo) )
-        allocate( aex2(im,grid%j_strt_halo:grid%j_stop_halo,lmo) )
-        allocate( aex3(im,grid%j_strt_halo:grid%j_stop_halo,lmo) )
-        allocate( aey0(im,grid%j_strt_halo:grid%j_stop_halo,lmo) )
-        allocate( aey1(im,grid%j_strt_halo:grid%j_stop_halo,lmo) )
-        allocate( aey2(im,grid%j_strt_halo:grid%j_stop_halo,lmo) )
-        allocate( aey3(im,grid%j_strt_halo:grid%j_stop_halo,lmo) )
-#endif
-
-
       END SUBROUTINE ALLOC_GM_COM
 
       END MODULE GM_COM
@@ -149,9 +128,6 @@ c**** allocate arrays
 !@auth Dan Collins/Gavin Schmidt
       USE GM_COM
       use ocean_dyn, only : bydh
-#ifdef OCN_GISS_MESO
-      use gissmeso_com, only : etx3d,ety3d,etz3d,omrx3d,omry3d,lhstar2d
-#endif
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: RGMI_in
       REAL*8, DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) ::
@@ -187,13 +163,9 @@ C**** set up geometry needed
      *                 FROM=SOUTH+NORTH)
       endif
 
-#ifndef OCN_GISS_MESO
       RGMI = RGMI_in
       QCROSS = .NOT. (RGMI.eq.1d0)
-#else
-      RGMI = 1.d0
-      QCROSS = .true. ! Giss model has cross terms XZ, YZ
-#endif
+
 
 C**** Initialize SLOPES common block of coefficients
       DO L=1,LMO
@@ -204,12 +176,6 @@ C**** Initialize SLOPES common block of coefficients
         S2X0(:,:,L)=0. ;S2X1(:,:,L)=0. ; S2X2(:,:,L)=0. ; S2X3(:,:,L)=0.
         S2Y0(:,:,L)=0. ;S2Y1(:,:,L)=0. ; S2Y2(:,:,L)=0. ; S2Y3(:,:,L)=0.
          BXX(:,:,L)=0. ; BYY(:,:,L)=0. ;  BZZ(:,:,L)=0.
-
-#ifdef OCN_GISS_MESO
-        aex0(:,:,l)=0. ;aex1(:,:,l)=0. ; aex2(:,:,l)=0. ; aex3(:,:,l)=0.
-        aey0(:,:,l)=0. ;aey1(:,:,l)=0. ; aey2(:,:,l)=0. ; aey3(:,:,l)=0.
-#endif
-
       END DO
 
       ARIV = K3D_in
@@ -254,7 +220,6 @@ C**** Calculate coefficients of Tracer Operator
 C**** ASX0,ASX1,ASX2,ASX3 (ASY0..) A*S for 4 triads in x (y) direction
 C**** FXZ   coefficients
       IF (QCROSS) THEN
-      ! kappam*s/dh
         DXZ(I,J,L)     = -ASX1(I,J,L) * BYDH(I,J,L)
         CDXZ(IM1,J,L)  = -ASX3(I,J,L) * BYDH(I,J,L)
         BXZ(I,J,L)     = (ASX1(I,J,L) - ASX0(I,J,L))*BYDH(I,J,L)
@@ -278,25 +243,17 @@ C**** from downgradients (-ve gradT)  !!!Sign!!!
      *                AIY3(I,J,L) + AIY1(I  ,J-1,L))
 C**** Z-direction fluxes
 C**** Diagonal (Includes AI and DYV/DYP)
-      ! BZZ is kappam*abs(slope)**2
-#ifndef OCN_GISS_MESO
       IF (L.gt.KPL(I,J)) THEN
-#else
-      IF (L.gt.lhstar2d(I,J)) THEN ! A-regime
-#endif
       IF (L.gt.1) BZZ(I,J,L-1) = (S2X1(I,J,L  ) + S2X3(I,J,L  ) +
      *                            S2X0(I,J,L-1) + S2X2(I,J,L-1) +
      *                            S2Y1(I,J,L  ) + S2Y3(I,J,L  ) +
      *                            S2Y0(I,J,L-1) + S2Y2(I,J,L-1))
-
 C**** Off-diagonal
 C**** FZXbot(I,J,L) = ASX0(I,J,L)*(TR(I  ,J,L) - TR(IP1,J,L))
 C****               + ASX2(I,J,L)*(TR(IM1,J,L) - TR(I  ,J,L))
 C**** FZXtop(I,J,L) = ASX1(I,J,L)*(TR(I  ,J,L) - TR(IP1,J,L))
 C****               + ASX3(I,J,L)*(TR(IM1,J,L) - TR(I  ,J,L))
 C**** Coeficients for (I,J,L) are multiplied by T(IP1,J,L) and T(IM1)
-!#ifndef OCN_GISS_MESO
-      ! kappam*s
       AZX(I,J,L)   =  ASX2(I,J,L)
       BZX(I,J,L)   =  ASX0(I,J,L) - ASX2(I,J,L)
       CZX(I,J,L)   = -ASX0(I,J,L)
@@ -304,17 +261,13 @@ C**** Coeficients for (I,J,L) are multiplied by T(IP1,J,L) and T(IM1)
       EZX(I,J,L)   =  ASX1(I,J,L) - ASX3(I,J,L)
       CEZX(I,J,L)  = -ASX1(I,J,L)
 C**** y-coefficients *DYV(J-1)/DYV(J-1) or *DYV(J)/DYV(J)
-      ! kappam*slopey
       AZY(I,J,L)   =  ASY2(I,J,L)
       BZY(I,J,L)   =  ASY0(I,J,L) - ASY2(I,J,L)
       CZY(I,J,L)   = -ASY0(I,J,L)
       AEZY(I,J,L)  =  ASY3(I,J,L)
       EZY(I,J,L)   =  ASY1(I,J,L) - ASY3(I,J,L)
       CEZY(I,J,L)  = -ASY1(I,J,L)
-
-      ELSE ! D-regime
-
-#ifndef OCN_GISS_MESO
+      ELSE
       IF (L.gt.1) BZZ(I,J,L-1) = 0.
       AZX(I,J,L)   = 0.
       BZX(I,J,L)   = 0.
@@ -328,24 +281,6 @@ C**** y-coefficients *DYV(J-1)/DYV(J-1) or *DYV(J)/DYV(J)
       AEZY(I,J,L)  = 0.
       EZY(I,J,L)   = 0.
       CEZY(I,J,L)  = 0.
-#else
-      ! with GISS_MESO, in D-regime  
-      ! k31=kappam*etx, k32=kappam*etym k33=kappam*etz
-      IF (L.gt.1) BZZ(I,J,L-1) = etz3d(i,j,l)
-      azx(i,j,l)   =  aex2(i,j,l)
-      bzx(i,j,l)   =  aex0(i,j,l) - aex2(i,j,l)
-      czx(i,j,l)   = -aex0(i,j,l)
-      aezx(i,j,l)  =  aex3(i,j,l)
-      ezx(i,j,l)   =  aex1(i,j,l) - aex3(i,j,l)
-      cezx(i,j,l)  = -aex1(i,j,l)
-
-      azy(i,j,l)   =  aey2(i,j,l)
-      bzy(i,j,l)   =  aey0(i,j,l) - aey2(i,j,l)
-      czy(i,j,l)   = -aey0(i,j,l)
-      aezy(i,j,l)  =  aey3(i,j,l)
-      ezy(i,j,l)   =  aey1(i,j,l) - aey3(i,j,l)
-      cezy(i,j,l)  = -aey1(i,j,l)
-#endif
       END IF
   110 IM1 = I
       END DO
@@ -378,7 +313,6 @@ C**** y-coefficients *DYV(J-1)/DYV(J-1) or *DYV(J)/DYV(J)
           END IF
           BYY(I,J-1,L) = (AIY2(I,J,L) + AIY0(I  ,J-1,L) +
      *                    AIY3(I,J,L) + AIY1(I  ,J-1,L))
-
   111     IM1 = I
         END DO
       END DO
@@ -393,18 +327,13 @@ C****
 !@auth Gavin Schmidt/Dan Collins
       USE GM_COM
       use ocnmeso_com, only : bydzv=>bydze3d
-#ifdef OCN_GISS_MESO
-      use gissmeso_com, only : omrx3d,omry3d,lhstar2d
-#endif
       IMPLICIT NONE
-
       REAL*8, DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LMO),
      *        INTENT(INOUT) :: TRM,TXM,TYM,TZM
       LOGICAL, INTENT(IN) :: QLIMIT
 !@var GIJL Tracer flux
       REAL*8, DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LMO,3),
      *         INTENT(INOUT) :: GIJL
-
       REAL*8, DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) :: TR
       REAL*8, DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LMO) ::
      *         FXX,FXZ,FYY,FYZ,FZZ,FZX,FZY
@@ -458,7 +387,6 @@ C**** Calculate fluxes
 C**** Diagonal (Includes 1/DXP for gradTX, Not divFX)
       FXX(IM1,J,L) = (DT4DX * BXX(IM1,J,L)) * (TR(IM1,J,L) - TR(I,J,L))
 C**** Off-diagonal
-c       write(43,*) 'QCROSS=', QCROSS
       IF (QCROSS) THEN
         IF(L.gt.1) FXZ(IM1,J,L) = FXZ(IM1,J,L) +
      *       DT4 * (DXZ(IM1,J,L) * TR(IM1,J,L-1) +
@@ -473,11 +401,7 @@ C**** Skip for L+1 greater than LMM(I,J)
         IF(LMM(I,J).gt.L) FXZ(IM1,J,L) =  FXZ(IM1,J,L) +
      *       DT4 * CEXZ(IM1,J,L) * TR(I,J,L+1)
         !FXZ(IM1,J,L) =  FXZ(IM1,J,L)*(1d0-ARAI)
-#ifndef OCN_GISS_MESO
         FXZ(IM1,J,L) =  -FXZ(IM1,J,L)*(RGMI-1d0)
-#else
-        FXZ(IM1,J,L) =   FXZ(IM1,J,L)*OMRX3D(IM1,J,L)
-#endif
       END IF
   510 CONTINUE
 C**** END of FX
@@ -502,11 +426,7 @@ C**** Skip for L+1 greater than LMM(I,J+1)
         IF(LMM(I,J+1).gt.L) FYZ(I,J,L) =  FYZ(I,J,L) +
      *       DT4 * CEYZ(I,J,L) * TR(I,J+1,L+1)
         !FYZ(I,J,L) =  FYZ(I,J,L) *(1d0-ARAI)
-#ifndef OCN_GISS_MESO
         FYZ(I,J,L) =  -FYZ(I,J,L) *(RGMI-1d0)
-#else
-        FYZ(I,J,L) =   FYZ(I,J,L) *OMRY3D(I,J,L)
-#endif
       END IF
   520 CONTINUE
 C**** END of FY
@@ -514,16 +434,8 @@ C**** Loop for Fluxes in Z-direction
       IF(LMM(I,J).le.L) GO TO 530
 C**** Calculate fluxes in Z-direction
 C**** Diagonal      :  Need BYDH for divF!
-#ifndef OCN_GISS_MESO
-      IF(KPL(I,J).le. L) ! A-regime
-#else
-      !IF (lhstar2d(I,J).le.L) ! was .le. 
-      IF (.true.) ! for both A and D regimes
-#endif
+      IF(KPL(I,J).le. L) 
      * FZZ(I,J,L) = DT4*BZZ(I,J,L)*(TR(I,J,L+1)-TR(I,J,L))*BYDZV(I,J,L)
-
-      ! for both A and D regimes
-
 C**** Off-diagonal X:  May need to use IM2,IM1,I and F(IM1)
       FZX(I,J,L) = DT4DX * (BZX(I,J,L) * TR(I,J,L) +
      *     AZX(I,J,L) * TR(IM1,J,L) + CZX(I,J,L) * TR(IP1,J,L) +
@@ -588,10 +500,6 @@ C****
      &                  DXYPO,MO, kpl,
      &                  BXX, BYY, BZZ, RGMI, BYDXP, BYDYP
       use ocean_dyn, only : bydh
-#ifdef OCN_GISS_MESO
-      use gissmeso_com, only : omrx3d,omry3d
-#endif
-
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: DT4
       REAL*8, DIMENSION(IM,grid%j_strt_halo:grid%j_stop_halo,LMO),
@@ -652,13 +560,9 @@ C**** Loop for Fluxes in Z-direction
 C**** Calculate new tracer/salinity/enthalpy
         MOFZ =((MO(I,J,L+1)*BYDH(I,J,L+1)) +
      *         (MO(I,J,L  )*BYDH(I,J,L  ))) * DXYPO(J) *0.5
-#ifndef OCN_GISS_MESO
-       !RFZT =(FZZ(I,J,L) +(FZX(I,J,L)+FZY(I,J,L))*(1.d0+ARAI))*MOFZ
+        !RFZT =(FZZ(I,J,L) +(FZX(I,J,L)+FZY(I,J,L))*(1.d0+ARAI))*MOFZ
         RFZT =(FZZ(I,J,L) +(FZX(I,J,L)+FZY(I,J,L))*(1.d0+RGMI))*MOFZ
-#else
-        RFZT =(FZZ(I,J,L) +FZX(I,J,L)*(2.d0-OMRX3D(I,J,L))
-     &                    +FZY(I,J,L)*(2.d0-OMRY3D(I,J,L)))*MOFZ
-#endif
+
         flux_z(I,J,L) =RFZT
       endif
 C**** Gradient fluxes in Z direction affected by diagonal terms
@@ -695,12 +599,8 @@ C****   Loop for Fluxes in Z-direction
 C****     Calculate new tracer/salinity/enthalpy
           MOFZ =((MO(1,JM,L+1)*BYDH(1,JM,L+1)) +
      *           (MO(1,JM,L  )*BYDH(1,JM,L  ))) * DXYPO(JM) *0.5
-#ifndef OCN_GISS_MESO
-         !RFZT =(FZZ(1,JM,L)+FZY(1,JM,L)*(1d0+ARAI))*MOFZ
+          !RFZT =(FZZ(1,JM,L)+FZY(1,JM,L)*(1d0+ARAI))*MOFZ
           RFZT =(FZZ(1,JM,L)+FZY(1,JM,L)*(1d0+RGMI))*MOFZ
-#else
-          RFZT =(FZZ(1,JM,L)+FZY(1,JM,L)*(2d0-OMRY3D(1,JM,L)))*MOFZ
-#endif
           flux_z(1,JM,L) = RFZT
         END IF
 C****   Gradient fluxes in Z direction affected by diagonal terms
@@ -735,13 +635,8 @@ C****   Loop for Fluxes in Z-direction
 C****     Calculate new tracer/salinity/enthalpy
           MOFZ =((MO(1,1,L+1)*BYDH(1,1,L+1)) +
      *           (MO(1,1,L  )*BYDH(1,1,L  ))) * DXYPO(1) *0.5
-#ifndef OCN_GISS_MESO
           !RFZT =(FZZ(1,1,L)+FZY(1,1,L)*(1d0+ARAI))*MOFZ
           RFZT =(FZZ(1,1,L)+FZY(1,1,L)*(1d0+RGMI))*MOFZ
-#else
-          RFZT =(FZZ(1,1,L)+FZY(1,1,L)*(2d0-OMRY3D(1,1,L)))*MOFZ
-#endif
-
           flux_z(1,1,L) = RFZT
         END IF
 C****   Gradient fluxes in Z direction affected by diagonal terms
@@ -1106,19 +1001,10 @@ C****
       USE GM_COM
       use ocean_dyn, only : bydh
       use ocnmeso_com, only : rhox,rhoy,rhomz,byrhoz,dzv=>dze3d
-#ifdef OCN_GISS_MESO
-      use gissmeso_com, only : etx3d,ety3d,etz3d,lhstar2d,omrx3d,omry3d
-#endif
-      use domain_decomp_1d, only : halo_update_column
-
       IMPLICIT NONE
-
       INTEGER I,J,L,IM1
       REAL*8 :: AIX0ST,AIX2ST,AIY0ST,AIY2ST,SIX0,SIX2,SIY0,SIY2,
      *          AIX1ST,AIX3ST,AIY1ST,AIY3ST,SIX1,SIX3,SIY1,SIY3
-#ifdef OCN_GISS_MESO
-      real*8 :: etx0,etx2,ety0,ety2,etx1,etx3,ety1,ety3
-#endif
       Real*8 :: byAIDT, DSX0sq,DSX1sq,DSX2sq,DSX3sq,
      *                  DSY0sq,DSY1sq,DSY2sq,DSY3sq
       INTEGER :: J_0, J_1, J_0S, J_1S, J_0STG, J_1STG, J_0H, J_1H
@@ -1136,16 +1022,13 @@ C**** diffusion coefficient is calculated for each triad as well.
 C**** The diffusion coefficient is taken from Visbeck et al (1997)
 C****
 C**** Main Loop over I,J and L
-
       DO L=1,LMO
       DO J=J_0STG,J_1STG
       IM1=IM
       DO I=1,IM
       IF(LMM(I,J).lt.L) GO TO 800
 C**** SIX0, SIY0, SIX2, SIY2: four slopes that use RHOMZ(L)
-      ! at cell edges
       IF(L.EQ.LMM(I,J) .or. RHOMZ(I,J,L).eq.0.) THEN
-        ! kappam
         AIX0ST = 0.
         AIX2ST = 0.
         AIY0ST = 0.
@@ -1158,34 +1041,15 @@ C**** SIX0, SIY0, SIX2, SIY2: four slopes that use RHOMZ(L)
         AIX2(I,J,L) = 0.
         AIY0(I,J,L) = 0.
         AIY2(I,J,L) = 0.
-#ifdef OCN_GISS_MESO
-        ! et
-        etx0 = 0.
-        etx2 = 0.
-        ety0 = 0.
-        ety2 = 0.
-#endif
       ELSE
-        ! kappam
-        AIX0ST = ARIV(I,J,L) ! change?
+        AIX0ST = ARIV(I,J,L)
         AIX2ST = ARIV(I,J,L)
         AIY0ST = ARIV(I,J,L)
         AIY2ST = ARIV(I,J,L)
-        ! slope
-        ! rhox,rhoy at cell edge, layer mid;
-        ! byrhoz at cell center, layer interf;
         SIX0 = RHOX(L,I  ,J) * BYRHOZ(I,J,L)
         SIX2 = RHOX(L,IM1,J) * BYRHOZ(I,J,L)
         SIY2 = RHOY(L,I,J-1) * BYRHOZ(I,J,L)
         SIY0 = RHOY(L,I,J  ) * BYRHOZ(I,J,L)
-
-#ifdef OCN_GISS_MESO
-        ! et
-        etx0 = etx3d(i,j,l)
-        etx2 = etx3d(i,j,l)
-        ety2 = ety3d(i,j,l)
-        ety0 = ety3d(i,j,l)
-#endif
         IF (ARIV(I,J,L).gt.0.) THEN ! limit slopes <ML
           byAIDT = 1 / (4*DTS*(AINV(I,J,L)+ARIV(I,J,L)))
           DSX0sq = DZV(I,J,L)**2 * byAIDT
@@ -1209,18 +1073,11 @@ C**** SIX1, SIY1, SIX3, SIY3: four slopes that use RHOMZ(L-1)
         SIX1 = 0.   ; SIX3 = 0.   ; SIY1 = 0.   ;  SIY3 = 0.
         AIX1(I,J,L) = 0. ; AIX3(I,J,L) = 0.
         AIY1(I,J,L) = 0. ; AIY3(I,J,L) = 0.
-#ifdef OCN_GISS_MESO
-        etx1 = 0.   ; etx3 = 0.   ; ety1 = 0.   ;  ety3 = 0.
-#endif
-
       ELSEIF (RHOMZ(I,J,L-1).eq.0.) THEN
         AIX1ST = 0. ; AIX3ST = 0. ; AIY1ST = 0. ;  AIY3ST = 0.
         SIX1 = 0.   ; SIX3 = 0.   ; SIY1 = 0.   ;  SIY3 = 0.
         AIX1(I,J,L) = 0. ; AIX3(I,J,L) = 0.
         AIY1(I,J,L) = 0. ; AIY3(I,J,L) = 0.
-#ifdef OCN_GISS_MESO
-        etx1 = 0.   ; etx3 = 0.   ; ety1 = 0.   ;  ety3 = 0.
-#endif
       ELSE
         AIX1ST = ARIV(I,J,L)
         AIX3ST = ARIV(I,J,L)
@@ -1230,13 +1087,6 @@ C**** SIX1, SIY1, SIX3, SIY3: four slopes that use RHOMZ(L-1)
         SIX3 = RHOX(L,IM1,J) * BYRHOZ(I,J,L-1)
         SIY1 = RHOY(L,I,J  ) * BYRHOZ(I,J,L-1)
         SIY3 = RHOY(L,I,J-1) * BYRHOZ(I,J,L-1)
-#ifdef OCN_GISS_MESO
-        ! et    use l-1 below??
-        etx1 = etx3d(i,j,l)
-        etx3 = etx3d(i,j,l)
-        ety1 = ety3d(i,j,l)
-        ety3 = ety3d(i,j,l)
-#endif
         IF (ARIV(I,J,L).gt.0.) THEN ! limit slopes <ML
           byAIDT = 1 / (4*DTS*(AINV(I,J,L)+ARIV(I,J,L)))
           DSX1sq = DZV(I,J,L-1)**2 * byAIDT
@@ -1255,7 +1105,6 @@ C**** AI are always * layer thickness for vertical gradient in FXX, FYY
         AIY3(I,J,L) = AIY3ST * DZV(I,J,L-1) * BYDH(I,J,L)
       ENDIF
 C**** AIX0...AIX3, AIY0...AIY3
-      ! AS: kappam*slope
       ASX0(I,J,L) = AIX0ST * SIX0
       ASX1(I,J,L) = AIX1ST * SIX1
       ASX2(I,J,L) = AIX2ST * SIX2
@@ -1265,8 +1114,6 @@ C**** AIX0...AIX3, AIY0...AIY3
       ASY2(I,J,L) = AIY2ST * SIY2
       ASY3(I,J,L) = AIY3ST * SIY3
 C**** S2X0...S2X3, S2Y0...S2Y3
-      ! S2: kappam*slope**2
-      ! BYDYP(J) * DYVO(J), etc. are weights
       S2X0(I,J,L) = AIX0ST * SIX0 * SIX0
       S2X1(I,J,L) = AIX1ST * SIX1 * SIX1
       S2X2(I,J,L) = AIX2ST * SIX2 * SIX2
@@ -1276,16 +1123,14 @@ C**** S2X0...S2X3, S2Y0...S2Y3
       S2Y2(I,J,L) = AIY2ST * SIY2 * SIY2 * BYDYP(J) * DYVO(J-1)
       S2Y3(I,J,L) = AIY3ST * SIY3 * SIY3 * BYDYP(J) * DYVO(J-1)
 #ifdef OCN_GISS_MESO
-      ! ae: kappam*et
-      ! note in the D-regime, omrx,omry are set to 0
-      aex0(i,j,l) = aix0st * etx0 * .5d0
-      aex1(i,j,l) = aix1st * etx1 * .5d0
-      aex2(i,j,l) = aix2st * etx2 * .5d0
-      aex3(i,j,l) = aix3st * etx3 * .5d0
-      aey0(i,j,l) = aiy0st * ety0 * .5d0
-      aey1(i,j,l) = aiy1st * ety1 * .5d0
-      aey2(i,j,l) = aiy2st * ety2 * .5d0
-      aey3(i,j,l) = aiy3st * ety3 * .5d0
+      AIX0(I,J,L) = ARIV(I,J,L)
+      AIX2(I,J,L) = ARIV(I,J,L)
+      AIY0(I,J,L) = ARIV(I,J,L)
+      AIY2(I,J,L) = ARIV(I,J,L)
+      AIX1(I,J,L) = ARIV(I,J,L)
+      AIX3(I,J,L) = ARIV(I,J,L)
+      AIY1(I,J,L) = ARIV(I,J,L)
+      AIY3(I,J,L) = ARIV(I,J,L)
 #endif
   800 IM1 = I
       END DO
@@ -1324,9 +1169,6 @@ c mimicking that logic here).
       use oceanr_dim, only : grid=>ogrid
       use kpp_com, only : kpl
       use ocnmeso_com, only : rhox,rhoy,rhomz,byrhoz
-#ifdef OCN_GISS_MESO
-      use gissmeso_com, only : lhstar2d
-#endif
       implicit none
       integer :: i,j,l,n,ip1
       integer :: j_0,j_1,j_0s,j_1s
@@ -1349,11 +1191,7 @@ c**** Extract domain decomposition info
         do j=j_0,j_1
         do n=1,nbyzm(j,l+1)
         do i=i1yzm(n,j,l+1),i2yzm(n,j,l+1)
-#ifndef OCN_GISS_MESO
           if(l.gt.kpl(i,j)) then ! GM excludes ML currently
-#else
-          if(l.gt.lhstar2d(i,j)) then
-#endif
             ! interpolate K/(drho/dz) to layer edges
             kbyrhoz(i,j,l) = (wtup*ainv(i,j,l)+wtdn*ainv(i,j,l+1))*
      &           byrhoz(i,j,l)
