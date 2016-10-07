@@ -886,7 +886,13 @@ C****
 
       n = 0
       do i=1, tracers%size()
-         if (src_dist_index(i)<=1) n=n+1 ! count tracers, ignoring duplicates
+!        Count tracers, ignoring duplicates,
+!        except when it comes to the "itime_tr0"
+!        parameter for water tracers, which is
+!        needed for exact restarts:
+         if (((tr_wd_type(i).eq.nWater) .and. 
+     &        (property.eq."itime_tr0")) .or.
+     &        (src_dist_index(i)<=1)) n=n+1
       end do
       scratch = values
       call sync_param(property,scratch,n)

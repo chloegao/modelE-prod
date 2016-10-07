@@ -6798,8 +6798,11 @@ C**** All sources are saved as kg/s
         pTracer => tracers%getReference(trname(n))
         sources => pTracer%surfaceSources
       if (itime.lt.itime_tr0(n)) cycle
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
       src_index=get_src_index(n)
       src_fact=get_src_fact(n)
+#endif
 
       select case (trim(pTracer%getName()))
 
