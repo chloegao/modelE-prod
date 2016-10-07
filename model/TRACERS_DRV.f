@@ -7,7 +7,86 @@
 !@+        Tracer initialisation + sources: tracer_ic, set_tracer_source
 !@+        Entry points: daily_tracer
 !@auth Jean Lerner/Gavin Schmidt
+!=======================================================================
+      integer function get_src_index(n)
+!@var get_src_index If an emission file contains information for more than one
+!@+                 tracer, first read tracer n_XXX, then set src_index=n_XXX.
+!@+                 Note the order! Notable case is SO2/SO4
+!@auth Kostas Tsigaridis
+      use OldTracer_mod, only: trname
+      use TRACER_COM, only: n_SO2
+      implicit none
+!@var n index of current tracer whose emissions index is being seeked
+      integer, intent(in) :: n
 
+      select case (trname(n))
+        case ('SO4', 'M_ACC_SU', 'ASO4__01')
+          get_src_index=n_SO2
+#ifdef TRACERS_AMP_M4
+        case ('M_AKK_SU')
+          get_src_index=n_SO2
+#endif  /* TRACERS_AMP_M4 */
+        case default
+          get_src_index=n
+      end select
+
+      end function get_src_index
+!=======================================================================
+      real*8 function get_src_fact(n,vibb)
+!@var src_fact Factor to multiply aerosol emissions with. Default is 1.
+!@+            Notable exceptions are SO2/SO4, where one file is being read
+!@+            and distributed to both tracers,and organics, where emissions
+!@+            of C are multiplied with OM/OC, and VBS tracers.
+!@auth Kostas Tsigaridis
+      use OldTracer_mod, only: trname
+      use OldTracer_mod, only: tr_mm
+      use OldTracer_mod, only: om2oc
+#ifdef TRACERS_AEROSOLS_VBS
+      use aerosol_sources, only: VBSemifact
+      use tracers_vbs, only: vbs_tr
+#endif  /* TRACERS_AEROSOLS_VBS */
+      implicit none
+!@var n index of current tracer whose emissions factor is being seeked
+!@var vibb true if the tracer has interactive biomass burning emissions
+!@var so4_fraction mole fraction of so2 to be emitted as so4
+      integer, intent(in) :: n
+      logical, intent(in), optional :: vibb
+      real*8, parameter :: so4_fraction=0.025d0
+#ifdef TRACERS_AMP_M4
+      real*8, parameter :: akk_fraction=0.01d0
+#else
+      real*8, parameter :: akk_fraction=0.d0
+#endif  /* TRACERS_AMP_M4 */
+      logical ibb
+      integer get_src_index
+
+      ibb=.false.
+      if (present(vibb)) ibb=vibb
+
+      select case (trname(n))
+        case ('SO2')
+          get_src_fact=1.d0-so4_fraction
+        case ('SO4', 'M_ACC_SU', 'ASO4__01')
+          get_src_fact=so4_fraction*tr_mm(n)/tr_mm(get_src_index(n))*
+     &                 (1.d0-akk_fraction)
+        case ('M_AKK_SU')
+          get_src_fact=so4_fraction*tr_mm(n)/tr_mm(get_src_index(n))*
+     &                 akk_fraction
+        case ('OCII', 'OCIA', 'OCB', 'M_OCC_OC', 'M_BOC_OC', 'AOCOB_01')
+          get_src_fact=1.d0
+          if (.not.ibb) get_src_fact=get_src_fact*om2oc(n)
+#ifdef TRACERS_AEROSOLS_VBS
+        case ('vbsAm2', 'vbsAm1', 'vbsAz', 'vbsAp1', 'vbsAp2',
+     &        'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6')
+          get_src_fact=VBSemifact(vbs_tr%iaerinv(n))
+          if (.not.ibb) get_src_fact=get_src_fact*om2oc(n)
+#endif  /* TRACERS_AEROSOLS_VBS */
+        case default
+          get_src_fact=1.d0
+      end select
+
+      end function get_src_fact
+!=======================================================================
       integer function tr_con_diag(vconpts, vqcon, vqsum)
 !@sum tr_con_diag populate tracer conservation diagnostics
 !@auth Kostas Tsigaridis
@@ -35,7 +114,7 @@
       if (present(vqsum)) qsum(g)=vqsum
 
       end function tr_con_diag
-
+!=======================================================================
       subroutine init_tracer_cons_diag
 !@sum init_tracer_cons_diag Initialize tracer conservation diagnostics
 !@auth Gavin Schmidt
@@ -6608,14 +6687,9 @@ C**** at the start of any day
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
-      use OldTracer_mod, only: om2oc
 #ifndef TRACERS_AEROSOLS_SOA
       USE AEROSOL_SOURCES, only: OCT_src
 #endif  /* TRACERS_AEROSOLS_SOA */
-#ifdef TRACERS_AEROSOLS_VBS
-      USE AEROSOL_SOURCES, only: VBSemifact
-      use TRACERS_VBS, only: vbs_tr
-#endif
 #endif
 #ifdef TRACERS_RADON
       USE AEROSOL_SOURCES, only: rn_src
@@ -6652,14 +6726,16 @@ c      real*8 :: nlight, max_COSZ1, fact0
       real*8 :: lon_w,lon_e,lat_s,lat_n
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
-!@var src_index If an emission file contains information for more than one
-!@+ tracer, first read tracer n_XXX, then set src_index=n_XXX. Note the order!
-!@+ Notable exception is SO2/SO4.
-      integer :: src_index
-!@var src_fact Factor to multiply aerosol emissions. Default is 1. Notable
-!@+ exceptions are SO2/SO4, where one file is being read and distributed to
-!@+ both tracers, and organics, where emissions of C are multiplied with OM/OC
+!@var src_index source index for the current tracer
+!@var src_fact source factor for the current tracer
+      integer :: src_index,get_src_index
       real*8 :: src_fact
+      interface
+        real*8 function get_src_fact(n,ibb)
+          integer, intent(in) :: n
+          logical, intent(in), optional :: ibb
+        end function get_src_fact
+      end interface
 #endif
 
 #ifdef TRACERS_TERP
@@ -6722,6 +6798,9 @@ C**** All sources are saved as kg/s
         pTracer => tracers%getReference(trname(n))
         sources => pTracer%surfaceSources
       if (itime.lt.itime_tr0(n)) cycle
+      src_index=get_src_index(n)
+      src_fact=get_src_fact(n)
+
       select case (trim(pTracer%getName()))
 
       case default
@@ -7169,10 +7248,6 @@ C****
          end do; enddo
 #endif
 #endif  /* TRACERS_AEROSOLS_SOA */
-! -----------
-! define src_fact (=1 by default) and src_index (=n by default)
-! for the aerosol tracers that have 2D emissions
-! -----------
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
       case ('SO2', 'SO4', 'M_ACC_SU', 'M_AKK_SU',
@@ -7181,60 +7256,6 @@ C****
      &      'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6',
      &      'M_BC1_BC', 'M_OCC_OC', 'M_BOC_BC', 'M_BOC_OC',
      &      'ASO4__01','AOCOB_01','AECOB_01')
-        src_fact=1.d0 ! factor to multiply emissions with
-        src_index=n   ! index to be used for emissions
-        select case (trim(pTracer%getName()))
-#ifndef One_percent_sulfate 
-! Yunha Lee added this (09/16/2001). 
-! Interested in using 1% SO2 emission for primary sulfate instead of 2.5%
-        case ('SO2')
-          src_fact=0.975d0 ! the rest goes to sulfate (SO4 or M_ACC_SU)
-        case ('SO4','ASO4__01')
-          src_fact=0.0375d0 ! (1.-SO2 fraction)*tr_mm(n_SO4)/tr_mm(n_SO4)
-          src_index=n_SO2
-        case ('M_ACC_SU')
-          src_fact=0.0375d0
-#ifndef TRACERS_AMP_M4
-     &            *0.99d0 ! the rest goes to M_AKK_SU
-#endif
-          src_index=n_SO2
-#ifndef TRACERS_AMP_M4
-        case ('M_AKK_SU')
-          src_fact=0.0375d0
-     &            *0.01d0
-          src_index=n_SO2
-#endif
-
-#else
-       case ('SO2')
-          src_fact=0.99d0 ! the rest goes to sulfate (SO4 or M_ACC_SU)
-        case ('SO4','ASO4__01')
-          src_fact=0.015d0 ! (1.-SO2 fraction)*tr_mm(n_SO4)/tr_mm(n_SO2)
-          src_index=n_SO2
-        case ('M_ACC_SU')
-          src_fact=0.015d0
-#ifndef TRACERS_AMP_M4
-     &            *0.99d0 ! the rest goes to M_AKK_SU
-#endif
-          src_index=n_SO2
-#ifndef TRACERS_AMP_M4
-        case ('M_AKK_SU')
-          src_fact=0.015d0
-     &            *0.01d0
-          src_index=n_SO2
-#endif
-#endif
-
-        case ('OCII')
-          src_fact=om2oc(n)
-        case ('OCB', 'M_OCC_OC', 'M_BOC_OC','AOCOB_01')
-          src_fact=om2oc(n)
-#ifdef TRACERS_AEROSOLS_VBS
-        case ('vbsAm2', 'vbsAm1', 'vbsAz', 'vbsAp1', 'vbsAp2',
-     &        'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6')
-          src_fact=om2oc(n)*VBSemifact(vbs_tr%iaerinv(n))
-#endif
-        end select
 
 #ifdef DYNAMIC_BIOMASS_BURNING
         if(do_fire(n))call dynamic_biomass_burning(n,ntsurfsrc(n)+1) 
@@ -7549,12 +7570,7 @@ c$$$      use OldTracer_mod, only: tr_mm, nBBsources, mass2vol
 #endif  /* TRACERS_AEROSOLS_SOA */
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
-      use OldTracer_mod, only: om2oc
       USE AEROSOL_SOURCES, only: so2_src_3d
-#ifdef TRACERS_AEROSOLS_VBS
-      USE AEROSOL_SOURCES, only: VBSemifact
-      USE TRACERS_VBS, only: vbs_tr
-#endif  /* TRACERS_AEROSOLS_VBS */
 #endif
       USE PBLCOM, only: dclev
 #ifdef TRACERS_AMP
@@ -7594,12 +7610,17 @@ c$$$      use OldTracer_mod, only: tr_mm, nBBsources, mass2vol
       implicit none
       INTEGER n,ns,najl,i,j,l,blay,xday   ; real*8 now
       INTEGER J_0, J_1, I_0, I_1
-      integer :: src_index,bb_i,bb_e
-      integer :: initial_ghg_setup
-!@var src_fact Factor to multiply aerosol emissions. Default is 1. Notable
-!@+ exceptions are SO2/SO4, where one file is being read and distributed to
-!@+ both tracers, and organics, where emissions of C are multiplied with OM/OC
+!@var src_index source index for the current tracer
+!@var src_fact source factor for the current tracer
+      integer :: src_index,get_src_index,bb_i,bb_e
       real*8 :: src_fact
+      interface
+        real*8 function get_src_fact(n,ibb)
+          integer, intent(in) :: n
+          logical, intent(in), optional :: ibb
+        end function get_src_fact
+      end interface
+      integer :: initial_ghg_setup
 !@var blsrc (m2/s) tr3Dsource (kg/s) in boundary layer,
 !@+                per unit of air mass (kg/m2)
       real*8 :: blsrc
@@ -7633,6 +7654,8 @@ C****
 C**** All sources are saved as kg/s
       do n=1,NTM
       if (itime.lt.itime_tr0(n)) cycle
+      src_index=get_src_index(n)
+      src_fact=get_src_fact(n)
 
       select case (trname(n))
 
@@ -7666,10 +7689,6 @@ C****
 C****
 #endif
 
-! -----------
-! define src_fact (=1 by default) and src_index (=n by default)
-! for the gas and aerosol tracers that have 3D emissions (will apply to biomass burning)
-! -----------
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_TOMAS)
       case ('Alkenes', 'CO', 'NOx', 'Paraffin','CH4','codirect',
@@ -7682,70 +7701,6 @@ C****
      &      'M_ACC_SU', 'M_AKK_SU',
      &      'M_BC1_BC', 'M_OCC_OC', 'M_BOC_BC', 'M_BOC_OC'
      &      ,'ASO4__01','AECOB_01','AOCOB_01')
-          src_fact=1.d0 ! factor to multiply emissions with
-          src_index=n   ! index to be used for emissions
-          select case (trname(n))
-#ifndef One_percent_sulfate 
-! Yunha Lee added this (09/16/2001). 
-! Interested in using 1% SO2 emission for primary sulfate instead of 2.5%
-
-          case ('SO2')
-            src_fact=0.975d0 ! the rest goes to sulfate (SO4 or M_ACC_SU)
-          case ('SO4','ASO4__01')
-            src_fact=0.0375d0 ! (1.-SO2 fraction)*tr_mm(n_SO4)/tr_mm(n_SO2)
-            src_index=n_SO2
-          case ('M_ACC_SU')
-            src_fact=0.0375d0
-#ifndef TRACERS_AMP_M4
-     &              *0.99d0 ! the rest goes to M_AKK_SU
-#endif
-            src_index=n_SO2
-#ifndef TRACERS_AMP_M4
-          case ('M_AKK_SU')
-            src_fact=0.0375d0
-     &              *0.01d0
-            src_index=n_SO2
-#endif
-#else
-          case ('SO2')
-            src_fact=0.99d0 ! the rest goes to sulfate (SO4 or M_ACC_SU)
-          case ('SO4','ASO4__01')
-            src_fact=0.015d0 ! (1.-SO2 fraction)*tr_mm(n_SO4)/tr_mm(n_SO2)
-            src_index=n_SO2
-          case ('M_ACC_SU')
-            src_fact=0.015d0
-#ifndef TRACERS_AMP_M4
-     &            *0.99d0 ! the rest goes to M_AKK_SU
-#endif
-            src_index=n_SO2
-#ifndef TRACERS_AMP_M4
-          case ('M_AKK_SU')
-            src_fact=0.015d0
-     &            *0.01d0
-            src_index=n_SO2
-#endif
-#endif
-
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_VBS)
-          case ('OCII')
-            src_fact=om2oc(n)
-          case ('OCB', 'M_OCC_OC', 'M_BOC_OC','AOCOB_01',
-     &          'vbsAm2', 'vbsAm1', 'vbsAz',  'vbsAp1', 'vbsAp2',
-     &          'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6')
-            select case (trname(n))
-            case ('OCB', 'M_OCC_OC', 'M_BOC_OC','AOCOB_01')
-              if(.not.do_fire(n))src_fact=om2oc(n)
-#ifdef TRACERS_AEROSOLS_VBS
-            case ('vbsAm2', 'vbsAm1', 'vbsAz',  'vbsAp1', 'vbsAp2',
-     &            'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6')
-              if(.not.do_fire(n))then
-                src_fact=om2oc(n)*VBSemifact(vbs_tr%iaerinv(n))
-              endif
-#endif
-            end select
-#endif
-          end select
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS) 
@@ -7774,7 +7729,7 @@ C**** 3D biomass source
           end if
           do j=J_0,J_1; do i=I_0,I_1
             blay=int(dclev(i,j)+0.5d0)
-            blsrc = axyp(i,j)*src_fact*
+            blsrc = axyp(i,j)*get_src_fact(n,do_fire(n))* ! not src_fact here
      &       sum(sfc_src(i,j,src_index,bb_i:bb_e))/sum(MA(1:blay,i,j))
             do l=1,blay
               tr3Dsource(i,j,l,nBiomass,n) = blsrc*MA(l,i,j)
