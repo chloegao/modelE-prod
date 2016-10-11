@@ -7889,17 +7889,18 @@ c
     (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
       !  Aircraft Sources Here: All Tracers! (formerly just hardcoded set allowed)
       do n=1,ntm 
-        if(do_aircraft(n)) then
+        src_index=get_src_index(n)
+        if(do_aircraft(src_index)) then
           xday=dayOfYear
           tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n)  = 0.d0
 #ifdef CUBED_SPHERE
           call get_aircraft_tracer ! logical read from disk
-     &     (n,trim(trname(n))//'_AIRC',year,xday,dummy3d,.false.,
-     &     AIRCstreams(n))
+     &     (n,trim(trname(src_index))//'_AIRC',year,xday,
+     &      dummy3d,.false.,AIRCstreams(n))
 #else
           call get_aircraft_tracer
-     &     (n,trim(trname(n))//'_AIRC',year,xday,phi,.true.,
-     &     AIRCstreams(n))
+     &     (n,trim(trname(src_index))//'_AIRC',year,xday,
+     &      phi,.true.,AIRCstreams(n))
 #endif
 #ifdef TRACERS_TOMAS
           ! TOMAS has to apply this among tracers in its own section below.
