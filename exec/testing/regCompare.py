@@ -46,7 +46,7 @@ def base(run, endTime, npes=1):
     # If baseline exists then execute diffreport
     else:
         logger.debug('Compare '+current+' '+theBase)
-        n = getNumDiffs(theBase, current)
+        n = getNumDiffs(run, theBase, current)
         # No differences
         if n == '0':
             run.results[5] = run.successMark
@@ -93,7 +93,7 @@ def restart(run, npes=1):
         return
 
     logger.debug('Compare '+fileCON+' '+fileRST)
-    n = getNumDiffs(fileCON, fileRST)
+    n = getNumDiffs(run, fileCON, fileRST)
     if n == '0':
         run.results[6] = run.successMark
     else:
@@ -135,7 +135,7 @@ def nPE(runMPI, endTime, npes):
         return
 
     logger.debug('Compare '+fileSER+' '+fileMPI)
-    n = getNumDiffs(fileSER, fileMPI)
+    n = getNumDiffs(run, fileSER, fileMPI)
     if n == '0':
         runMPI.results[7] = runMPI.successMark
     else:
@@ -145,11 +145,23 @@ def nPE(runMPI, endTime, npes):
 """
   Get number of -diffs- when running diffreport
 """
-def getNumDiffs(file1,file2):
-    cmd = getDiffexe()+' '+file1+' '+file2+' | grep diffs | wc -l'
-    diff = sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.STDOUT, shell=True)
-    numDiffs = diff.communicate()[0]
-    diff.wait()
+def getNumDiffs(run, file1, file2):
+    # Create a file to hold doffreport output
+    file1str = file1.split('/')
+    file2str = file2.split('/')
+    diffFile = run.resultsDir+'/'+file1str[-1]+'-vs-'+file2str[-1]
+    # Command to run diffreport executable
+    cmd1 = getDiffexe()+' '+file1+' '+file2+' > '+diffFile
+    diff1 = sp.Popen(cmd1, shell=True)
+    diff1.wait()
+    # Command to count number of diffs in diffFile
+    cmd2 = 'cat '+diffFile+' | grep diffs | wc -l'
+    diff2 = sp.Popen(cmd2, stdout=sp.PIPE, shell=True)
+    numDiffs = diff2.communicate()[0]
+    diff2.wait()
+    # If there are no diffreport differences remove the diffFile
+    if os.stat(diffFile).st_size == 0:
+        os.remove(diffFile)
     return ''.join(numDiffs.split())
 
 """

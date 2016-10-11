@@ -19,8 +19,10 @@ def setupEnv(config, compconfig):
     logger.info('Setup testing environment')
     userconfig = util.ConfigSectionMap(config, 'USERCONFIG')
     branch =  userconfig['repobranch']
-    resultsDir = userconfig['scratchdir'] + '/results/' + userconfig['repobranch']
-    scratchDir = userconfig['scratchdir'] + '/scratch/' + userconfig['repobranch']
+    if not branch:
+        branch = 'detached'
+    resultsDir = userconfig['scratchdir'] + '/results/' + branch
+    scratchDir = userconfig['scratchdir'] + '/scratch/' + branch
     makesystem =  userconfig['makesystem']
 
     # Make sure - if specified - that work space is clean
@@ -40,12 +42,20 @@ def gitCloneRepository(config):
     scratch = userconfig['scratchdir']
     repo = userconfig['repository']
     branch =  userconfig['repobranch']
-    clone = scratch + '/scratch/' + branch + '/' + branch
+
+    if not branch:
+        branch = 'detached'
+        clone = scratch + '/scratch/' + branch + '/' + branch
+        cmd = (['git', 'clone', repo, clone])
+    else:
+        clone = scratch + '/scratch/' + branch + '/' + branch
+        cmd = (['git', 'clone', '-b', branch, repo, clone])
+
     resultsDir = userconfig['scratchdir'] + '/results/' + branch + '/'
 
     cwd = os.getcwd()
     logger.debug('Cloning %s into %s', repo, clone)
-    cmd = (['git', 'clone', '-b', branch, repo, clone])
+
     proc = sp.Popen(cmd)
     proc.wait()
 	
@@ -53,13 +63,15 @@ def gitCloneRepository(config):
     cmd = "git log --pretty=format:'%h - %an, %ar : %s' --since=1.day"
     os.system(cmd+'>'+resultsDir+'gitLog')
 	
-    os.chdir(cwd)
+    os.chdir(cwd)	
 
 #-------------------------------------------------------------------------------
 # ModelE specific setup
 def setupModelEenv(config, compconfig):
     userconfig =util. ConfigSectionMap(config, 'USERCONFIG')
     branch =  userconfig['repobranch']
+    if not branch:
+        branch = 'detached'
     resultsDir = userconfig['scratchdir'] + '/results/' + branch
     scratchDir = userconfig['scratchdir'] + '/scratch/' + branch
     makesystem =  userconfig['makesystem']
@@ -204,6 +216,8 @@ def setupRuns(config, compconfig, decklist):
     scratch = userconfig['scratchdir']
     repo = userconfig['repository']
     branch =  userconfig['repobranch']
+    if not branch:
+        branch = 'detached'
     repo = scratch + '/scratch/' + branch + '/' + branch
     os.chdir(scratch + '/scratch/' + branch)
 
@@ -255,6 +269,8 @@ def createScriptTask(config, compconfig, deck, comp, mode):
     modules    = userconfig['modules']
     useBatch   = userconfig['usebatch']
     branch     = userconfig['repobranch']
+    if not branch:
+        branch = 'detached'
     scriptsDir = userconfig['scriptsdir'] + '/'
     useMods    = userconfig['modules']
     resultsDir = userconfig['scratchdir'] + '/results/' + \
@@ -408,6 +424,8 @@ def createScriptTask(config, compconfig, deck, comp, mode):
 def createRegConfig(config, deck, modelErc, comp, jobName, mode):
     cfg  = util.ConfigSectionMap(config, 'USERCONFIG')
     branch     = cfg['repobranch']
+    if not branch:
+        branch = 'detached'
     resultsDir = cfg['scratchdir'] + '/results/' + \
             branch + '/' + comp
     scratch = cfg['scratchdir'] + '/scratch/' + \
@@ -461,6 +479,8 @@ def sendDiffreport(config, compconfig, eTime):
     userconfig  = util.ConfigSectionMap(config, 'USERCONFIG')
     mailto     = userconfig['mailto']
     branch     = userconfig['repobranch']
+    if not branch:
+        branch = 'detached'
     resultsDir = userconfig['scratchdir'] + '/results/' + branch
     buildtype  = userconfig['buildtype']
     message    = userconfig['message']
