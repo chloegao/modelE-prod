@@ -1,4 +1,4 @@
-     
+
 C PLEASE KEEP THIS NOTE OF MODEL-DEVELOPMENT HISTORY
 C Matrix solve uses Thomas algorithm, 10/1991, Jinlun Zhang
 C Spherical coordinate system, 10/27/93, Jinlun Zhang
@@ -900,7 +900,7 @@ C****
       call getDomainBounds(grid_ICDYN, J_STRT =J_0,    J_STOP =J_1,
      &     J_STRT_SKP =J_0S,   J_STOP_SKP =J_1S)
 
-C**** 
+C****
 C**** calculate grid and initialise arrays
 C****
 
@@ -1053,13 +1053,13 @@ C****
       DXYP(1) = RADIUS*RADIUS*DLON*(SINV+1)
       BYDXYP(1) = 1./DXYP(1)
 
-      !aDXYP(:,1) = DXYP(1) 
+      !aDXYP(:,1) = DXYP(1)
 
       SINVm1  = Sin (DLAT*(JMICDYN-.5-FJEQ))
       DXYP(JMICDYN)= RADIUS*RADIUS*DLON*(1-SINVm1)
       BYDXYP(JMICDYN) = 1./DXYP(JMICDYN)
 
-      !aDXYP(:,JMICDYN) = DXYP(JMICDYN) 
+      !aDXYP(:,JMICDYN) = DXYP(JMICDYN)
 
       DXYS(1)  = 0.
       DXYS(JMICDYN) = DXYP(JMICDYN)
@@ -1067,12 +1067,12 @@ C****
       DXYN(JMICDYN) = 0.
 
       DO J=2,JMICDYN-1
-        DYP(J)  =  radius*dlat 
+        DYP(J)  =  radius*dlat
         SINVm1  = Sin (DLAT*(J-.5-FJEQ))
         SINV    = Sin (DLAT*(J+.5-FJEQ))
         DXYP(J) = RADIUS*RADIUS*DLON*(SINV-SINVm1)
 
-        !aDXYP(:,J) = DXYP(J) 
+        !aDXYP(:,J) = DXYP(J)
 
         BYDXYP(J) = 1./DXYP(J)
         DXYS(J) = .5*DXYP(J)
@@ -1148,8 +1148,8 @@ C**** Set land masks for tracer and velocity points
        do j=j_0,j_1
         do i=2,nx1-1
 
-#if (defined CUBED_SPHERE) || (defined HYCOM1deg) ||\
-    (defined HYCOM2deg) 
+#if (defined CUBED_SPHERE) || (defined HYCOM1degRefine) ||\
+    (defined HYCOM1degUnrefined) || (defined HYCOM2deg)
           heffm(i,j)=nint(focean(i-1,j))
 #else
           heffm(i,j)=ceiling(focean(i-1,j))
@@ -1416,10 +1416,10 @@ C**** to ALLOC_ICEDYN.
       ALLOCATE(LON_DG(IMICDYN,2))
       ALLOCATE(SINIU(IMICDYN),COSIU(IMICDYN))
 
-c***   - grid_NXY is the ice dynamics grid (for the resolution of the momentum equation) 
-c***     it is a latlon grid with dimensions IMICDYN+2 and JMICDYN, 
+c***   - grid_NXY is the ice dynamics grid (for the resolution of the momentum equation)
+c***     it is a latlon grid with dimensions IMICDYN+2 and JMICDYN,
 c***     both defined in the ICEDYN module
-c***   - grid_ICDYN is the same grid as grid_NXY, with dimensions IMICDYN and JMICDYN, 
+c***   - grid_ICDYN is the same grid as grid_NXY, with dimensions IMICDYN and JMICDYN,
 c***     the two boundary ghost cells in the longitudinal direction have been removed
 
       CALL INIT_GRID(grid_NXY,NX1,NY1,1,npes_max=JMICDYN/3)
@@ -1435,7 +1435,7 @@ c***     the two boundary ghost cells in the longitudinal direction have been re
      &           HEFFM(NX1,J_0H:J_1H),
      &           UVM(NX1,J_0H:J_1H),
      &           DWATN(NX1,J_0H:J_1H),
-     &           COR(NX1,J_0H:J_1H), 
+     &           COR(NX1,J_0H:J_1H),
      *           ZMAX(NX1,J_0H:J_1H),
      &           ZMIN(NX1,J_0H:J_1H),
      &           ETA(NX1,J_0H:J_1H),

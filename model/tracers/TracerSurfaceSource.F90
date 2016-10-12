@@ -1,3 +1,5 @@
+#include "rundeck_opts.h"
+
 module TracerSurfaceSource_mod
   use TracerSource_mod
   use timestream_mod, only : timestream
@@ -31,7 +33,7 @@ module TracerSurfaceSource_mod
     integer :: yearStep  ! interval between records in a transient emissions file
     logical :: firstTrip = .true.
 
-    integer :: monthA ! first month for the current interpolation
+    integer :: monthA = -1 ! first month for the current interpolation
     real*8, allocatable :: month1cache(:,:) ! used for interpolating from file source
     real*8, allocatable :: month2cache(:,:)
     logical :: saveCache = .true. ! set to false to use less memory (but more frequent reads)
@@ -44,6 +46,7 @@ module TracerSurfaceSource_mod
 contains
 
   subroutine initSurfaceSource(this, tracerName, fileName, sectorNames, checkname)
+    use SystemTools, only : stLinkStatus,stFileList
     use TracerSource_mod, only: N_MAX_SECT
     use Dictionary_mod, only : sync_param
     USE FILEMANAGER, only: openunit,closeunit,is_fbsa
@@ -60,6 +63,12 @@ contains
     logical :: diurnalFileExists = .false.
 
     integer :: nsect, nn, i, j, iu, fid
+    integer :: linkstatus, nfiles, ifile, ios, jyr
+    integer, parameter :: max_fname_len=128
+    character(len=max_fname_len), allocatable :: flist(:)
+    character(len=max_fname_len) :: thisline
+    character(len=max_fname_len+8) :: fileToRead
+    character(len=4) :: c4
     character*32 :: pname
     character*35 :: fname
     character*124 :: tr_sectors_are
@@ -67,21 +76,56 @@ contains
     character(len=80) :: name ! sector
     real*8 :: sumDiurnal
     real*8, parameter :: diurnalSumTolerance=1.d-4
+    character*80 :: targetVariable
 
-    if(is_fbsa(fileName)) then
+    if(is_fbsa(fileName)) then ! binary file. Use old method.
       call openunit(fileName,iu,.true.)
       call readEmissionHeader(this, tracerName, iu, checkname)
       call closeunit(iu)
     else
+      fileToRead=fileName ! default (e.g. if file is not a directory, or
+                          ! the directory search doesn't find a good file)
+      call stLinkStatus(trim(fileName), linkstatus)
+      if(linkstatus==2) then  ! this is a directory. todo: no hard-coded retcodes
+        ! The file is a directory. Do something similar to subroutine check_metadata
+        ! in timestream_mod to determine any useable YYYY.nc file in the directory.
+        allocate(flist(1000)) ! 1000 files maximum
+        call stFileList(trim(fileName),flist,nfiles)
+        do ifile=1,nfiles
+          thisline = adjustl(flist(ifile))
+          if(len_trim(thisline).ne.7) cycle
+          if(thisline(5:7).ne.'.nc') cycle
+          c4 = thisline(1:4)
+          read(c4,*,iostat=ios) jyr
+          if(ios.ne.0) cycle
+          if(jyr.lt.0) cycle
+          ! acceptable file. define it and exit:
+          fileToRead=trim(fileName)//'/'//trim(thisline)
+          exit
+        end do
+        deallocate(flist)
+      end if ! directory search
+
+      ! continue reading netCDF file:
       this%tracerName = tracerName
       this%sourceName = 'notfound'
-      fid = par_open(grid,trim(fileName),'read')
-      ! give priority to variable attribute, but for backwards-compatibility,
-      ! try global attribute if variable attribute read failed:
+      fid = par_open(grid,trim(fileToRead),'read')
+      ! First try to read the variable attribute to get source name:
       call read_attr(grid,fid,this%tracerName,'source',i,this%sourceName)
+      ! If that fails, look for the source attribute of the variable
+      ! that varname attribute points to (like init_stream would):
+      if(trim(this%sourceName).eq.'notfound') then
+        targetVariable=this%tracerName
+        call read_attr(grid,fid,'global',trim(this%tracerName)//'name',&
+        & i,targetVariable)
+        call read_attr(grid,fid,trim(targetVariable),'source',&
+        & i,this%sourceName)
+      endif
+      ! If that fails, look for a global source attribute:
       if(trim(this%sourceName).eq.'notfound') then
         call read_attr(grid,fid,'global','source',i,this%sourceName)
       endif
+      ! If even that fails, stop the model:
       call par_close(grid,fid)
       if(trim(this%sourceName).eq.'notfound') then
         call stop_model('source name not found in file '//trim(fileName),255)
@@ -584,7 +628,7 @@ contains
          & sfc_a,sfc_b
 
     INTEGER :: J_1, J_0, I_0, I_1
-    integer :: cyclic_yr,master_yr
+    integer :: cyclic_yr,master_yr,nc_emis_use_ppm_interp
 
     if(.not.is_fbsa(fname)) then
 
@@ -597,9 +641,17 @@ contains
           call get_param('aer_int_yr',cyclic_yr,default=master_yr)
         end if
         cyclic_yr=ABS(cyclic_yr)
-        call init_stream(grid,this%EMstream,trim(fname), &
+        call get_param('nc_emis_use_ppm_interp',nc_emis_use_ppm_interp,&
+          & default=1)
+        if (nc_emis_use_ppm_interp==1) then
+          call init_stream(grid,this%EMstream,trim(fname), &
+             trim(this%tracername),0d0,1d30,'ppm',xyear,xday, &
+             cyclic = (cyclic_yr > 0) )
+        else
+          call init_stream(grid,this%EMstream,trim(fname), &
              trim(this%tracername),0d0,1d30,'linm2m',xyear,xday, &
              cyclic = (cyclic_yr > 0) )
+        endif
       endif
       call read_stream(grid,this%EMstream,xyear,xday,sfc_src)
 

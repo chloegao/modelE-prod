@@ -44,8 +44,6 @@ module AmpTracersMetadata_mod
     tracers_amp_m7, tracers_amp_m8,         &
     tracers_special_shindell
   use Tracer_com, only: ntmAMPi, ntmAMPe, ntmAMP, ntm_chem
-  use Tracer_com, only: set_ntsurfsrc
-  use OldTracer_mod, only: set_ntisurfsrc
   use OldTracer_mod, only: set_needtrs
   use OldTracer_mod, only: nPart
   use OldTracer_mod, only: set_tr_mm
@@ -557,7 +555,6 @@ contains
       n = oldAddTracer(name)
       n_H2SO4 = n
       call set_ntm_power(n, -11)
-      call set_ntsurfsrc(n,  0)
       call set_tr_mm(n, 98.d0)
       call set_trpdens(n, DENS_SULF)
       call set_trradius(n, DG_ACC * .5d-6)
@@ -571,7 +568,6 @@ contains
       n_M_NO3 = n
       ntmAMPi=n                 ! always the first tracer in AMP
       call set_ntm_power(n, -11)
-      call set_ntsurfsrc(n,  0)
       call set_tr_mm(n, 62.d0)
       call set_trpdens(n, 1.7d3)
       call set_trradius(n, 3.d-7 ) !m
@@ -584,7 +580,6 @@ contains
       n = oldAddTracer(name)
       n_M_NH4 = n
       call set_ntm_power(n, -11)
-      call set_ntsurfsrc(n,  0)
       call set_tr_mm(n, 18.d0)
       call set_trpdens(n, 1.7d3)
       call set_trradius(n, 3.d-7)
@@ -597,7 +592,6 @@ contains
       n = oldAddTracer(name)
       n_M_H2O = n
       call set_ntm_power(n, -11)
-      call set_ntsurfsrc(n,  0)
       call set_tr_mm(n, mwat)
       call set_trpdens(n, 1.d3)
       call set_trradius(n, 3.d-7)
@@ -611,7 +605,6 @@ contains
       n = oldAddTracer(name)
       n_M_SSS_SS = n
       call set_ntm_power(n, -11)
-      call set_ntsurfsrc(n,  0)
       call set_tr_mm(n, 75.d0)
       call set_trpdens(n, DENS_SEAS)
       call set_trradius(n, DG_SSS * .5d-6)
@@ -625,7 +618,6 @@ contains
       n = oldAddTracer(name)
       n_M_SSS_SU = n
       call set_ntm_power(n, -11)
-      call set_ntsurfsrc(n,  0)
       call set_tr_mm(n, 75.d0)
       call set_trpdens(n, DENS_SULF)
       call set_trradius(n, DG_SSS * .5d-6)
@@ -641,7 +633,6 @@ contains
       n = oldAddTracer(name)
       n_M_DBC_BC = n
       call set_ntm_power(n, -11)
-      call set_ntsurfsrc(n,  0)
       call set_tr_mm(n, 96.d0)
       call set_trpdens(n, DENS_BCAR)
       call set_trradius(n, DG_DBC * .5d-6)
@@ -674,12 +665,12 @@ contains
       end if
 
       if (trim(component) == 'OC') then
+        call set_om2oc(n, 1.4d0)
         tmp = om2oc(tracerIndex)
         call sync_param(trim(tracerName)//"_om2oc",tmp)
         call set_om2oc(tracerIndex, tmp)
       endif
       call set_ntm_power(tracerIndex, -11)
-      call set_ntsurf(tracerIndex, tracerName)
       if (trim(component) == 'OC') then
         tmp = getMolecularMass(component) * om2oc(tracerIndex)
       else
@@ -692,34 +683,6 @@ contains
       call set_tr_wd_type(tracerIndex, nPART)
 
     end function AMP_setSpec
-
-!------------------------------------------------------------------------------
-    subroutine set_ntsurf(index, name)
-!------------------------------------------------------------------------------
-      use TRACER_COM, only : set_ntsurfsrc
-      implicit none
-      integer, intent(in) :: index
-      character(len=*), intent(in) :: name
-
-      ! In original code set_ntsurfsrc does not get called when tracer name is
-      ! one of the following: 
-      !$$$      if ( trim(name) == 'M_AKK_SU' .or. 
-      !$$$     &     trim(name) == 'N_AKK_1'  .or. 
-      !$$$     &     trim(name) == 'M_ACC_SU' .or. 
-      !$$$     &     trim(name) == 'M_OCC_OC' .or. 
-      !$$$     &     trim(name) == 'M_BC1_BC' .or. 
-      !$$$     &     trim(name) == 'M_BOC_SU' .or. 
-      !$$$     &     trim(name) == 'M_BOC_BC' .or. 
-      !$$$     &     trim(name) == 'M_BOC_OC' .or. 
-      !$$$     &     trim(name) == 'N_BOC_1' ) return
-
-      ! But the desired effect is obtained with just the following:
-      if (trim(name) == 'M_BC1_BC' .or. trim(name) == 'M_OCC_OC' .or. &
-        trim(name) == 'M_BOC_BC' .or. trim(name) == 'M_BOC_OC') return
-
-      call set_ntsurfsrc(index, 0)
-
-    end subroutine set_ntsurf
 
 !------------------------------------------------------------------------------
     function getTracerPrefix(component) result (unitPrefix)

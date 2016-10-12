@@ -1,14 +1,23 @@
 !--------- dust aerosol parameters----------------
-imDust=0                          ! 0: PDF emission scheme, 1: AEROCOM
-adiurn_dust=0                     ! 1: daily dust diagnostics for selected grid boxes
-!to_conc_soildust=1   ! three-dimensional dust output as concentration [kg/m^3]
+#include "dust_params_general"
 
 !! OMA
 ! OMA w/ VMP clouds:
+! for imDust=0:
+scaleDustEmission=1.0
 fracClayPDFscheme=0.0306498344482 ! clay emission parameter from calibration
 fracSiltPDFscheme=0.0516382878835 ! silt emission parameter from calibration
    !fracClayPDFscheme = 0.0319935641422[1] * 0.958[2]
    !fracSiltPDFscheme = 0.0456168620879[1] * 1.132[2]
    ![1] emission parameters used for calibration run E73TcadiF40pi_2000
    ![2] adjustment factors calculated from the data of calibration run
+! for imDust=3-5:
+!scaleDustEmission=0.2025779939 ! scales total dust emission
+  !scaleDustEmission = 0.30927938[1] * 0.655[2]
+  ![1]: emission parameter used for calibration run E20151001TminNu40AMF_001
+  ![2]: optimization factor calculated from calibration run
+  !fracClayPDFscheme=1.0
+  !fracSiltPDFscheme=1.0
+! for imDust=1:
+!scaleDustEmission=1.0
 !-------------------------------------------------

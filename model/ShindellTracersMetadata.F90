@@ -554,6 +554,7 @@ contains
       if (ntm_chem_beg==0) ntm_chem_beg = n
       ntm_chem_end = n
       n_soa_i = n_isopp1g       !the first from the soa species
+      call set_om2oc(n, 1.4d0)
       tmp = om2oc(n)
       call sync_param(trim(name)//"_om2oc",tmp)
       call set_om2oc(n, tmp)
@@ -574,6 +575,7 @@ contains
       n_isopp1a = n
       if (ntm_chem_beg==0) ntm_chem_beg = n
       ntm_chem_end = n
+      call set_om2oc(n, 1.4d0)
       tmp = om2oc(n)
       call sync_param(trim(name)//"_om2oc",tmp)
       call set_om2oc(n, tmp)
@@ -594,6 +596,7 @@ contains
       n_isopp2g = n
       if (ntm_chem_beg==0) ntm_chem_beg = n
       ntm_chem_end = n
+      call set_om2oc(n, 1.4d0)
       tmp = om2oc(n)
       call sync_param(trim(name)//"_om2oc",tmp)
       call set_om2oc(n, tmp)
@@ -615,6 +618,7 @@ contains
       if (ntm_chem_beg==0) ntm_chem_beg = n
       ntm_chem_end = n
       if (.not. tracers_terp) n_soa_e = n_isopp2a       !the last from the soa species
+      call set_om2oc(n, 1.4d0)
       tmp = om2oc(n)
       call sync_param(trim(name)//"_om2oc",tmp)
       call set_om2oc(n, tmp)
@@ -635,6 +639,7 @@ contains
       n_apinp1g = n
       if (ntm_chem_beg==0) ntm_chem_beg = n
       ntm_chem_end = n
+      call set_om2oc(n, 1.4d0)
       tmp = om2oc(n)
       call sync_param(trim(name)//"_om2oc",tmp)
       call set_om2oc(n, tmp)
@@ -655,6 +660,7 @@ contains
       n_apinp1a = n
       if (ntm_chem_beg==0) ntm_chem_beg = n
       ntm_chem_end = n
+      call set_om2oc(n, 1.4d0)
       tmp = om2oc(n)
       call sync_param(trim(name)//"_om2oc",tmp)
       call set_om2oc(n, tmp)
@@ -675,6 +681,7 @@ contains
       n_apinp2g = n
       if (ntm_chem_beg==0) ntm_chem_beg = n
       ntm_chem_end = n
+      call set_om2oc(n, 1.4d0)
       tmp = om2oc(n)
       call sync_param(trim(name)//"_om2oc",tmp)
       call set_om2oc(n, tmp)
@@ -696,6 +703,7 @@ contains
       if (ntm_chem_beg==0) ntm_chem_beg = n
       ntm_chem_end = n
       n_soa_e = n_apinp2a       !the last from the soa species
+      call set_om2oc(n, 1.4d0)
       tmp = om2oc(n)
       call sync_param(trim(name)//"_om2oc",tmp)
       call set_om2oc(n, tmp)

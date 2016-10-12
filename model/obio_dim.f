@@ -12,7 +12,6 @@
 !  P(7) = cyanobacteria (mg chl m-3)
 !  P(8) = coccolithophores (mg chl m-3)
 !  P(9) = herbivores (mg chl m-3)
-!  P(10)= inert tracer modelled after nitrate
 !  Detrital components
 !  det(1) = N/C detritus (ugC/l)
 !  det(2) = silica detritus (uM)
@@ -31,7 +30,6 @@
      .                     ,nchl=4
      .                     ,nzoo=1
      .                     ,ntyp=nnut+nchl+nzoo
-     .                     ,n_inert=1
      .                     ,ndet=3
      .                     ,ncar=2
 #ifdef TRACERS_Alkalinity
@@ -42,7 +40,7 @@
 #endif
 #endif
 
-      integer, parameter :: ntrac = nnut+nchl+nzoo+n_inert+ndet+ncar
+      integer, parameter :: ntrac = nnut+nchl+nzoo+ndet+ncar
 #ifdef TRACERS_Alkalinity
      .                            + nalk
 #endif

@@ -1,5 +1,5 @@
 #include "rundeck_opts.h"
-      module tracers_dust
+      module trdust_mod
 !@sum  tracers_dust dust/mineral tracer parameter and variable declarations
 !@auth Jan Perlwitz, Reha Cakmur, Ina Tegen
 !@ver 3.0
@@ -61,9 +61,14 @@
 c**** rundeck parameter to switch between different emission schemes
 c****
 !@dbparam imDust: 0: scheme using PDF of wind speed (default)
-!@+               1: prescribed AEROCOM emissions
+!@+               1: prescribed AeroCom emissions
 !@+               2: legacy emission scheme using third power of wind speeds
 !@+                  (only works with 72x46 horizontal resolution)
+!@+               3: use size distribution of AeroCom for model calculated
+!@+                  dust/mineral emission flux (PDF scheme)
+!@+               4: use the size distribution of the mineral version of the
+!@+                  dust aerosols for the emitted dust flux (PDF scheme)
+!@+               5: same as 4, but no dust emission where no AeroCom sources
       integer :: imDust=0
 
 c**** legacy emission code (Tegen, I. and R. Miller, JGR (1998))
@@ -99,10 +104,17 @@ c**** wind speed
 
 !@param CWiPdf uplift factor [kg*s**2/m**5] for all size classes of soil dust
       real( kind=8 ), parameter :: CWiPdf = 12.068996D-9
-!@dparam FracClayPDFscheme fraction [1] of uplifted clay
-!@dparam FracSiltPDFscheme fractions [1] of uplifted silt
-      real( kind=8 ) :: fracClayPDFscheme = 0.30927938
-      real( kind=8 ) :: fracSiltPDFscheme = 0.30927938
+!@dparam scaleDustEmission [1] scales emitted dust mass using the same factor
+!@+     for all size bins
+      real( kind=8 ) :: scaleDustEmission = 1.d0
+!@dparam fracClayPDFscheme emission parameter [1] for uplifted clay
+!@dparam fracSiltPDFscheme emission parameter [1] for uplifted silt
+      real( kind=8 ) :: fracClayPDFscheme = 1.d0
+      real( kind=8 ) :: fracSiltPDFscheme = 1.d0
+!@dparam vegetationERS switches on/off reading in ERS vegetation proxy data
+      integer :: vegetationERS = 1
+!@dparam prefDustSources switches on/off reading in preferred dust sources
+      integer :: prefDustSources = 1
 !@var ers_data field of ERS data
       real( kind=8 ), allocatable, dimension(:,:,:) :: ers_data
 !@var dustSourceFunction distribution of preferred dust sources
@@ -133,14 +145,21 @@ c****
       real( kind=8 ), allocatable, dimension(:,:,:,:) :: d_dust
 
 c**** additional declarations for dust tracers with mineralogical composition
-#ifdef TRACERS_MINERALS
 !@param nMinerals  number of different minerals
       integer, parameter :: nMinerals = 8
 !@param mineralNames  names of Minerals
       character( len=4 ), parameter, dimension( nMinerals ) ::
      &     mineralNames = (/'Illi', 'Kaol', 'Smec', 'Calc', 'Quar',
      &     'Feld', 'Feox', 'Gyps' /)
+!@param dustBinNamesIn dust bin names in mineral fraction input file
+      character(len=5), parameter, dimension( nDustBins ) ::
+     &     dustBinNamesIn = (/ 'Clay ', 'Silt1', 'Silt2', 'Silt3',
+     &     'Silt4', 'Silt5' /)
+!@var mineralFractions distribution of mineral fractions in soils for each
+!+    mineralogical soil dust tracer
+      real( kind=8 ), allocatable, dimension(:,:,:) :: mineralFractions
 
+#ifdef TRACERS_MINERALS
 !@param densityIllite  particle density of Illite [kg/m^3]
 !@+            (measured; http://www.mindat.org/min-2011.html)
 !      real(kind=8), parameter :: densityIllite = 2.795d3
@@ -192,9 +211,6 @@ c**** additional declarations for dust tracers with mineralogical composition
 
 !@var mineralIndex  index to map parameters of minerals to mineralogical tracers
       integer, dimension( ntm_dust ) :: mineralIndex
-!@var mineralFractions distribution of mineral fractions in soils for each
-!+    mineralogical soil dust tracer
-      real( kind=8 ), allocatable, dimension(:,:,:) :: mineralFractions
 
 !@dbparam calcEffectiveRadius  flag whether to calculate or prescribe
 !@+         effective radius of minerals from particle size distribution for
@@ -290,7 +306,7 @@ c**** Variables for specific subdaily soil dust aerosol diagnostics
 
 #endif /* TRACERS_DUST || TRACERS_MINERALS || TRACERS_AMP || TRACERS_TOMAS */
 
-      end module tracers_dust
+      end module trdust_mod
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
@@ -301,7 +317,7 @@ c**** Variables for specific subdaily soil dust aerosol diagnostics
       use domain_decomp_atm, only : dist_grid
       use resolution, only : Lm
       use tracer_com, only : Ntm_dust
-      use tracers_dust
+      use trdust_mod
       use TimeConstants_mod, only: INT_MONTHS_PER_YEAR
       use AbstractCalendar_mod
       use model_com, only: calendar
@@ -336,17 +352,17 @@ c**** Variables for specific subdaily soil dust aerosol diagnostics
      &     wsubwd_com(i_0h:i_1h,j_0h:j_1h),
      &     wsubwm_com(i_0h:i_1h,j_0h:j_1h),
      &     prelay(i_0h:i_1h,j_0h:j_1h,LM),
-     &     d_dust(i_0h:i_1h,j_0h:j_1h,nAerocomDust,maxDaysInYear),
-#ifdef TRACERS_MINERALS
-     &     mineralFractions( i_0h:i_1h, j_0h:j_1h, ntm_dust ),
-#endif
-     &     STAT=ier)
+     &     d_dust(i_0h:i_1h,j_0h:j_1h,nDustBins,maxDaysInYear),
+     &     mineralFractions( i_0h:i_1h, j_0h:j_1h, max( nDustBins,
+     &     ntm_dust ) ), STAT=ier)
+
+      dustSourceFunction( i_0h:i_1h, j_0h:j_1h ) = 1.d0
+
+      ers_data( i_0h:i_1h, j_0h:j_1h, : ) = 1.d0
 
       d_dust(i_0h:i_1h,j_0h:j_1h,:,:)=0.D0
 
-#ifdef TRACERS_MINERALS
       mineralFractions( i_0h:i_1h, j_0h:j_1h, : ) = 0.d0
-#endif
 
       allocate(dustDiagSubdd_acc%dustEmission(i_0h:i_1h,j_0h:j_1h
      &     ,Ntm_dust))

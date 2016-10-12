@@ -7,9 +7,9 @@ c
 
       USE obio_dim
       USE obio_incom, only : rmumax,cchl,cnratio,obio_wsd,obio_wsh
-     .                      ,Fescavrate,rik
+     .                      ,Fescavrate,rik,obio_wss
       USE obio_com,   only : tfac,rmuplsr,rikd,wshc,Fescav
-     .                      ,avgq1d,gcmax1d,temp1d,obio_P,tzoo
+     .                      ,avgq1d,gcmax1d,temp1d,obio_P,tzoo,sday
 
 #ifdef OBIO_ON_GARYocean
       USE OCEANRES, only : kdm=>lmo
@@ -17,8 +17,8 @@ c
 #else
       USE hycom_dim_glob, only : kdm
       USE hycom_scalars, only : nstep
-
 #endif
+
 
       implicit none
 
@@ -43,13 +43,15 @@ c    (divide by 1.44), and to account for 12-hour photoperiod
 c    (divide by 2), making the total factor 0.34722
 c    Finally convert to /hr units (instead of /day) by dividing by
 c    24.  Normalized to the max growth rate of diatoms
+c    Convert to /s  July 016
 !change: March 15, 2010
        tfact = 0.34722*0.851*1.066**temp1d(k)     !Eppley, 1972
        tfact = 0.81*exp(0.0631*temp1d(k))    !Bissinger et al., 2008
        tfac(k) = tfact/tfac20
        do nt = 1,nchl
 c       rmuplsr(i,k,nt) = rmumax(nt)*rmut*1.12
-        rmuplsr(k,nt) = (rmumax(nt)*tfac(k))/24.0
+!       rmuplsr(k,nt) = (rmumax(nt)*tfac(k))/24.0
+        rmuplsr(k,nt) = (rmumax(nt)*tfac(k))/sday     !July 2016
        enddo
 
 
@@ -141,13 +143,16 @@ c  Adjustable sinking rate for cocco's: range = 0.3 to 1.4 m/day
       if (nchl > 3) then
       nt = 4
       do k = 1,kdm
-       gcmaxd = gcmax1d(k)*24.0
+!      gcmaxd = gcmax1d(k)*24.0
+       gcmaxd = gcmax1d(k)*sday     !July 2016
 
        wstmp = 0.752*gcmaxd + 0.225
        obio_wsd(nt) = max(wstmp,0.3)
        obio_wsd(nt) = min(obio_wsd(nt),1.4)
        obio_wsh(nt) = obio_wsd(nt)/24.0
-       wshc(k) = obio_wsd(nt)/24.0
+       obio_wss(nt) = obio_wsd(nt)/sday      !July 2016
+!      wshc(k) = obio_wsd(nt)/24.0
+       wshc(k) = obio_wsd(nt)/sday           !July 2016
       enddo
       do k = 1,kdm
        gcmax1d(k) = 0.0

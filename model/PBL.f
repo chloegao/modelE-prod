@@ -47,7 +47,7 @@
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_AMP)  || (defined TRACERS_TOMAS)
-      use tracers_dust,only : nAerocomDust
+      use trdust_mod,only : nDustBins
 #endif
       USE TRIDIAG_MOD, only :  TRIDIAG
       IMPLICIT NONE
@@ -150,11 +150,9 @@ c**** input
 !@var pbl_args%pevap evaporation at previous time step [kg/m^2]
         REAL*8 :: pprec,pevap
 !@var pbl_args%d_dust prescribed daily dust emissions [kg/m^2/s] (e.g. AEROCOM)
-        real(kind=8) :: d_dust(nAerocomDust)
-#ifdef TRACERS_MINERALS
-!@var pbl_args%minfr distribution of tracer fractions in grid box
-        real(kind=8) :: mineralFractions( Ntm_dust )
-#endif
+        real( kind=8 ) :: d_dust( nDustBins )
+!@var pbl_args%mineralFractions  mineral fractions of emitted dust aerosols [1]
+        real(kind=8) :: mineralFractions( max( nDustBins, ntm_dust ) )
 c**** output
 !@var pbl_args%pdfint integral of dust emission probability density function
         REAL*8 :: pdfint
@@ -1014,11 +1012,13 @@ ccc dust emission from earth
               ws_select=ws
             endif
 #ifdef TRACERS_GASEXCH_ocean
+#ifdef TRACERS_GASEXCH_ocean_CO2
             call TRACERS_GASEXCH_ocean_CO2_PBL(tg1,ws_select,
      .          pbl_args%sss_loc,psurf,tr_mm(pbl_args%ntix(itr)),
      .          pbl_args%trconstflx(itr),
      .          byrho,pbl_args%Kw_gas(ngx),pbl_args%alpha_gas(ngx),
      .          pbl_args%beta_gas(ngx),trsf,trcnst,ilong,jlat)
+#endif                         
 #else
             call stop_model('gas exchange code missing', 255)
 #endif                         
@@ -1035,11 +1035,13 @@ ccc dust emission from earth
         else if (pbl_args%ntix(itr)==n_cfcn) then
           IF (ocean) THEN  ! OCEAN only
 #ifdef TRACERS_GASEXCH_ocean
+#ifdef TRACERS_GASEXCH_ocean_CFC
             call TRACERS_GASEXCH_ocean_CFC_PBL(tg1,ws,
      .          pbl_args%sss_loc,psurf,tr_mm(pbl_args%ntix(itr)),
      .          pbl_args%trconstflx(itr),
      .          byrho,pbl_args%Kw_gas(ngx),pbl_args%alpha_gas(ngx),
      .          pbl_args%beta_gas(ngx),trsf,trcnst,ilong,jlat)
+#endif
 #else
             call stop_model('gas exchange code missing', 255)
 #endif

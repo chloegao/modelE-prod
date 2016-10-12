@@ -1093,9 +1093,9 @@ C Alkenes, Isoprene, Terpenes (if used) and AlkylNit:
 #endif  /* TRACERS_TERP */
      &      -rr(rrbi%Alkenes_NO3__HCHO_NO2,L)*y(nn_Alkenes,L)
      &    )*yNO3(I,J,L)*dt2
-     &    +(rr(rrbi%Isoprene_O3__HCHO_Alkenes,L)*y(nn_Isoprene,L)
+     &    +(rr(rrbi%Isoprene_O3__HCHO_Alkenes,L)*y(nn_Isoprene,L)*0.55d0
 #ifdef TRACERS_TERP
-     &    +rr(rrbi%Terpenes_O3__HCHO_Alkenes,L)*y(nn_Terpenes,L)
+     &    +rr(rrbi%Terpenes_O3__HCHO_Alkenes,L)*y(nn_Terpenes,L)*0.55d0
 #endif  /* TRACERS_TERP */
      &    -rr(rrbi%Alkenes_O3__HCHO_CO,L)*y(nn_Alkenes,L)
      &    )*y(nO3,L)*dt2

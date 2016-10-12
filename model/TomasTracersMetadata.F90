@@ -17,7 +17,6 @@ module TomasTracersMetadata_mod
   use OldTracer_mod, only : set_tr_wd_type
   use OldTracer_mod, only : oldAddTracer
   use OldTracer_mod, only: set_HSTAR
-  use OldTracer_mod, only: set_ntisurfsrc
   use OldTracer_mod, only: set_needtrs
   use OldTracer_mod, only: set_trpdens
   use OldTracer_mod, only: set_trradius
@@ -32,6 +31,7 @@ module TomasTracersMetadata_mod
   use TRACER_COM, only: set_ntsurfsrc
   use TOMAS_AEROSOL, only : binact10, binact02, fraction10, fraction02
   use RunTimeControls_mod, only: tracers_aerosols_soa
+  use RunTimeControls_mod, only: tracers_special_shindell
   use RunTimeControls_mod, only: tracers_drydep
   use Tracer_mod, only: Tracer
 
@@ -76,7 +76,9 @@ contains
     if (.not. tracers_aerosols_soa) &
       call  TOMAS_SOAgas_setSpec('SOAgas')
 #endif
-    call  H2O2_s_setSpec('H2O2_s') ! duplicate with Koch
+    if (.not. tracers_special_shindell) then
+      call  H2O2_s_setSpec('H2O2_s') ! duplicate with Koch
+    endif
     call  NH3_setSpec('NH3')  ! duplicate with nitrate
     call  NH4_setSpec('NH4')  ! duplicate with nitrate
 
@@ -171,8 +173,6 @@ contains
 
       n = oldAddTracer(name)
       n_ANACL = n         
-      call set_ntsurfsrc(n,  0) ! ocean bubbles
-      call set_ntisurfsrc(n, 1)
       TOMAS_dens = 2.165d3
       TOMAS_radius = (sqrt(xk(bin)*xk(bin+1))/TOMAS_dens/pi/4.*3.)**(1./3.) 
       if(bin.le.10) call set_ntm_power(n, -10)
@@ -234,6 +234,7 @@ contains
       call set_tr_wd_type(n, npart)        
 
       if (bin==1) then
+        call set_om2oc(n, 1.4d0)
         tmp = om2oc(n_AOCOB)
         call sync_param("OCB_om2oc",tmp)
         call set_om2oc(n_AOCOB, tmp)
@@ -262,8 +263,6 @@ contains
 
       n = oldAddTracer(name)
       n_ADUST = n  
-      call set_ntsurfsrc(n,  0)
-      call set_ntisurfsrc(n, 1)
       if(bin.le.10) TOMAS_dens= 2.5d3 !clay 
       if(bin.gt.10) TOMAS_dens= 2.65d3 !Silt
       TOMAS_radius = (sqrt(xk(bin)*xk(bin+1))/TOMAS_dens/pi/4.*3.)**(1./3.) 
@@ -285,7 +284,6 @@ contains
       n_AH2O = n         
       TOMAS_dens = 1.d3
       TOMAS_radius = (sqrt(xk(bin)*xk(bin+1))/TOMAS_dens/pi/4.*3.)**(1./3.) 
-      call set_ntsurfsrc(n,  0)
       call set_ntm_power(n, -8)
 
       call set_tr_mm(n, 18.d+0)
@@ -300,7 +298,6 @@ contains
 
       n = oldAddTracer(name)
       n_NH4 = n
-      call set_ntsurfsrc(n,  0)
       call set_ntm_power(n, -10)
       call set_tr_mm(n, 18.d0)
       call set_trpdens(n, 1.7d3)
@@ -315,7 +312,6 @@ contains
       n = oldAddTracer(name)
       n_H2SO4 = n
       call set_ntm_power(n, -11)
-      call set_ntsurfsrc(n,  0)
       call set_tr_mm(n, 98.d0)
       call set_trpdens(n, 1.78d0)
       call set_fq_aer(n, 1.d0)

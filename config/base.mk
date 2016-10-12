@@ -149,12 +149,12 @@ endif
 
 
 # html documantation
-htmldoc: $(FSRCS_CPP)
-ifneq ($(FSRCS),)
+htmldoc: $(FFSRCS_CPP)
+ifneq ($(FFSRCS),)
 	[ -d $(HTMLDOC_DIR) ] || mkdir $(HTMLDOC_DIR)
 	-mkdir $(HTMLDOC_DIR_THIS)
-	$(SCRIPTS_DIR)/gcmdoc.pl -O $(HTMLDOC_DIR_THIS) -R $(RUN) -C $(THIS) -CPP f.cpp $(FSRCS)
-	rm -f $(FSRCS_CPP)
+	$(SCRIPTS_DIR)/gcmdoc.pl -O $(HTMLDOC_DIR_THIS) -R $(RUN) -C $(THIS) -CPP .cpp $(FFSRCS)
+	rm -f $(FFSRCS_CPP)
 else
 	@echo no .f files - will skip directory $(THIS)
 endif

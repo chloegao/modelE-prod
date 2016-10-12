@@ -21,14 +21,24 @@ c
 c
       integer totlj(jdm,kdm-1),totl(kdm-1),iz,jz,ni
       character text*24,preambl(5)*79
-      real cold,temavg,vol,sst,spval,sigocn,sigstar
+      real cold,temavg,vol,sst,spval,sigocn,sigstar,sofsig
       real*4 real4(idm,jdm)
-      external sigocn,sigstar
+      external sigocn,sigstar,sofsig
       data spval/-99.99/
       character title*80
 
 !!! not sure why I added this line ... IA
 !!!      asst(:,:) = 0.d0
+c
+c --- set minimum salinity for each isopycnic layer
+      do k=1,kk
+      salmin(k)=sofsig(theta(k),-3.0)
+      end do
+      write(*,'(a/(10f7.2))') 'minimum salinities:',salmin
+      write(*,'('' theta(k)     :'',10f6.2/(15x,10f6.2))')
+     .   (theta(k),k=1,kk)
+      write(*,'('' dplist(k)     :'',10f6.0/(15x,10f6.0))')
+     .   (dplist(k),k=1,kk)
 c
       if (nstep0.eq.0) then                ! start from Levitus
         !!call geopar
@@ -98,9 +108,6 @@ c
 c
  10     continue
 c
-      write (lp,'('' theta(k)     :'',9f7.2/(15x,9f7.2))')
-     .   (theta(k),k=1,kk)
-c
 cdiag do k=1,kk,3
 cdiag write (text,'(''intf.pressure (m), k='',i3)') k+1
 cdiag call prtmsk(ip,p(1,1,k+1),util1,idm,ii1,jj,0.,1./onem,text)
@@ -152,7 +159,7 @@ c
       do k=1,kk
 #ifdef HYCOM_UNFINISHED
       write (*,'(i5,a,2i5,a/7x,7(i3,3x),3x,7(i3,3x)/
-     .  (/(7(i4,7f6.0,3x,7f6.0/))))') 
+     .  (/(7(i4,7f6.0,3x,7f6.0/))))')
      .  k,' i,j=',itest,jtest,' input data (t,s,p,depth)'
      . ,        (j,j=jtest-3,jtest+3),(j,j=jtest-3,jtest+3)
      . ,(i,(temp(i,j,k),j=jtest-3,jtest+3)
@@ -161,7 +168,7 @@ c
      . ,    (depths(i,j),j=jtest-3,jtest+3),i=itest-3,itest+3)
 #endif
 c
-c     if (itest.gt.0.and.jtest.gt.0) 
+c     if (itest.gt.0.and.jtest.gt.0)
 c    . write (*,'(2i4,a,i2/(5(5f7.1,3x,5f7.1/)))')
 c    . itest,jtest,' initial t,s,p,depth at k',k,
 c    . ((temp(i,j,k),j=jtest-2,jtest+2)
@@ -244,7 +251,7 @@ c
 c     print *,'chk ini. sss at nstep=',nstep0
 c     call zebra(sss,iia,iia,jja)
 c
-      
+
       if (itest.gt.0.and.jtest.gt.0) then
         i=itest
         j=jtest
@@ -252,7 +259,7 @@ c
         i=equatn
         j=3
       endif
-      
+
       write (lp,'(a,2i4,4f8.2)') ' sig=',i,j,temp(i,j,1),saln(i,j,1),
      .   sigocn(temp(i,j,1),saln(i,j,1))
       write (lp,103) nstep,i,j,
@@ -278,7 +285,6 @@ c
 c     call zebra(akpar,idm,idm,jdm)
  103  format (i7,2i4,a/(24x,i3,2f8.2,f8.2,2f8.1,f8.3))
 c
-      call prtmsk(ip,saln(1,1,1),util1,idm,ii1,jj,0.,1.,'sss_ini')
       return
       end
 c> Revision history:
@@ -286,5 +292,5 @@ c>
 c> Mar. 2000 - conversion to SI units
 c> Aug. 2000 - added diagnostic count of static instabilities
 c> Apr. 2001 - eliminated stmt_funcs.h
-c> Sep. 2005 - added EQ refinement 
+c> Sep. 2005 - added EQ refinement
 c> JAN. 2008 - no need for EQ refinement - it is done in pre-processing

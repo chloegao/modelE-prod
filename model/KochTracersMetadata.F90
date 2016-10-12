@@ -180,7 +180,7 @@ module KochTracersMetadata_mod
 
 #ifdef TRACERS_AEROSOLS_VBS
     subroutine VBS_setSpec(name, index, type)
-      use OldTracer_mod, only: om2oc, set_om2oc
+      use OldTracer_mod, only: om2oc, set_om2oc, set_is_VBS_tracer
       use tracers_vbs, only: vbs_tr
       implicit none
       character(len=*), intent(in) :: name
@@ -189,6 +189,7 @@ module KochTracersMetadata_mod
       character(len=4), intent(in) :: type
 
       n = oldAddTracer(name)
+      call set_is_VBS_tracer(n, .true.)
 
       select case(name)
         case("vbsGm2"); n_vbsGm2 = n
@@ -217,6 +218,7 @@ module KochTracersMetadata_mod
         vbs_tr%iaer(index) = n
       end select
 
+      call set_om2oc(n, 1.4d0)
       tmp = om2oc(n)
       call sync_param(trim(name)//"_om2oc",tmp)
       call set_om2oc(n, tmp)
@@ -269,6 +271,7 @@ module KochTracersMetadata_mod
       real*8 :: tmp
       n = oldAddTracer(name)
       n_OCII = n
+      call set_om2oc(n, 1.4d0)
       tmp = om2oc(n)
       call sync_param("OCII_om2oc",tmp)
       call set_om2oc(n, tmp)
@@ -287,6 +290,7 @@ module KochTracersMetadata_mod
       real*8 :: tmp
       n = oldAddTracer(name)
       n_OCIA = n
+      call set_om2oc(n, 1.4d0)
       tmp = om2oc(n)
       call sync_param("OCIA_om2oc",tmp)
       call set_om2oc(n, tmp)
@@ -305,6 +309,7 @@ module KochTracersMetadata_mod
       real*8 :: tmp
       n = oldAddTracer(name)
       n_OCB = n
+      call set_om2oc(n, 1.4d0)
       tmp = om2oc(n)
       call sync_param("OCB_om2oc",tmp)
       call set_om2oc(n, tmp)

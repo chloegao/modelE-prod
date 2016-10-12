@@ -115,6 +115,14 @@ contains
   end subroutine sread_char
 
   subroutine parse_params( kunit )
+  !@sub Parse the information in the file <kunit>
+  !@+ and load the parameters into the database. It overwrites
+  !@+ existing parameters.
+  !@+
+  !@var integer, intent(in) :: kunit
+  !@+     Unit number of open rundeck file (it should contain a block
+  !@+     starting with &&PARAMETERS and ending with &&END_PARAMETERS)
+
     use Dictionary_mod
     integer, parameter :: MAXDIM=64
     integer, intent(in) :: kunit

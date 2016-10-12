@@ -1418,7 +1418,7 @@ C****
       USE TRDIAG_COM, only : trp_acc, tre_acc
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
-      use tracers_dust, only: dustDiagSubdd_acc, dust_names
+      use trdust_mod, only: dustDiagSubdd_acc, dust_names
       use trdust_drv, only: accSubddDust
 #endif
 

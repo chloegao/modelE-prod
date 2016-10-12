@@ -753,6 +753,7 @@ C**** For restarts/continuations, FV state and import files are
 C**** copied to the appropriate names by this procedure, and for
 C**** cold starts the required IC files are generated.
 C****
+      ! See FV_INTERFACE.F90
       Call Initialize(fvstate, istart, kdisk_restart)
 #endif
 
@@ -1600,6 +1601,24 @@ C
           sddarr2d(i,j) = sum(q(i,j,1:LM)*pdsig(1:LM,i,j))*100.*bygrav
         enddo;        enddo
         call inc_subdd(subdd,k,sddarr2d)
+C
+C     East-west humidity flux (vert sum)
+C     Calculated on primary (A) grid
+      case ('puq')
+        do j=j_0,j_1; do i=i_0,imaxj(j)
+          sddarr2d(i,j) = sum(ualij(1:LM,i,j)*q(i,j,1:LM)*
+     &                    pdsig(1:LM,i,j))*100.*bygrav
+        enddo;        enddo
+        call inc_subdd(subdd,k,sddarr2d)
+C
+C     North-south humidity flux (vert sum)
+C     Calculated on primary (A) grid
+      case ('pvq')
+        do j=j_0,j_1; do i=i_0,imaxj(j)
+          sddarr2d(i,j) = sum(valij(1:LM,i,j)*q(i,j,1:LM)*
+     &                    pdsig(1:LM,i,j))*100.*bygrav
+        enddo;        enddo
+        call inc_subdd(subdd,k,sddarr2d) 
 C
       case ('lwp')
         do j=j_0,j_1; do i=i_0,imaxj(j)

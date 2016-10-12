@@ -199,7 +199,7 @@
       write(*,*) '_____________________________________________'
       write(*,*) '---------------------------------------------'
       write(*,'(a,3i10)') 'N Conserv diagn, at ',nstep,i,j
-      write(*,'(a,3i10)') 'all units in mili-mol,N/m2/hr'   
+      write(*,'(a,3i10)') 'all units in mili-mol,N/m2/s'   
 !note here: N/C-detritus is in micro,grams/lt so use cnratio to get to uM,N
 !all other terms which are in uM,C divide by (cnratio*12)
       print*, 'Nchange by excretion of DON by zoo=',
@@ -376,7 +376,7 @@
 
       print*, '   '
       write(*,'(a,3i10)') 'Conserv diagn, at ',nstep,i,j
-      write(*,'(a,3i10)') 'all units in mili-mol,C/m2/hr'   
+      write(*,'(a,3i10)') 'all units in mili-mol,C/m2/s'   
       write(*,*)'chng by grazing =', chng_by(i,j,1)
       write(*,*)'chng by phyt dea=', chng_by(i,j,2)
       write(*,*)'chng by growth  =', chng_by(i,j,3)

@@ -29,7 +29,7 @@ c   in update.F, but P has not been updated yet
 
       do 1000 k = 1,kmax
 
-        do nt = 1,ntyp+n_inert
+        do nt = 1,ntyp
          Pnew = (obio_P(k ,nt) +  P_tend(k,nt)*obio_deltat)
 #ifndef OBIO_ON_GARYocean
          if (Pnew.lt.0.d0) Pnew=0.d0    !HYCOM coastal points

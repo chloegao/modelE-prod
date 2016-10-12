@@ -140,7 +140,7 @@ TOPO=/path/to/user/directory/extractions/Z2HX2fromZ1QX1N.nc
 ! of operation may subsequently overwrite the values from
 ! this file, the model has not yet been programmed to
 ! skip reading this file if it is absent.
-AIC=/path/to/user/directory/extractions/AIC.RES_F40.D771201.nc
+AIC=/path/to/user/directory/extractions/NCARIC.144x90.D7712010_ext.nc
 
 ! Optional: if absent, ozone is set to zero.
 ! Zero stratospheric ozone is usually a bad idea though.

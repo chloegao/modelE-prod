@@ -123,7 +123,6 @@
       use OldTracer_mod, only: set_ntrocn
       use OldTracer_mod, only: set_conc_from_fw
       use OldTracer_mod, only: set_trglac
-      use OldTracer_mod, only: set_ntisurfsrc
 
       use OldTracer_mod, only: set_trli0
       use OldTracer_mod, only: set_trsi0

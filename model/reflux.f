@@ -238,7 +238,7 @@ c
 c
       do 21 l=1,isp(j)
       do 21 i=ifp(j,l),ilp(j,l)
-      if (i.eq.itest .and. j.eq.jtest) then
+      if (vrbos(i,j)) then
         write (*,102) itest,jtest,
      .  '  reflux -- new profile:    dpthu     u         dpthv     v',
      .  (k,.5*(pnew(i,j,k+1)+pnew(i-1,j,k+1))/onem,uflxn(i,j,k),

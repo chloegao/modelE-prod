@@ -84,7 +84,8 @@ C**** (Simplified) Calendar Related Terms
 !@var KDISK next rsf (fort.)1 or 2 to be written to
       INTEGER :: IRAND=123456789, KDISK=1
 !@param rsf_file_name names of restart files
-      CHARACTER(6), PARAMETER :: rsf_file_name(2)=(/'fort.1','fort.2'/)
+      CHARACTER(6), PARAMETER :: rsf_file_name(4)=
+     &         (/'fort.1','fort.2','fort.3','fort.4'/)
 !@var MDYN,MCNDS,MRAD,MSURF,MDIAG,MELSE timing-indices
       INTEGER  MDYN,MCNDS,MRAD,MSURF,MDIAG,MELSE
 
@@ -365,6 +366,7 @@ C**** Accumulating_period information
       INTEGER yr1,yr2
 !@var aDATE date string: MONyyr1(-yyr2)
       character*12 aDATE
+      character(len=4) :: i5toc4 ! function in shared/Utilities.F90
 !@var LDATE length of date string (7 or 12)
       INTEGER LDATE
 
@@ -385,8 +387,8 @@ C**** Accumulating_period information
         if (jmon1.gt.1) yr1=yr1+1
       end if
       yr2=yr1+years-1
-      write(aDATE(4:7),'(i4.4)') yr1
-      if(years.gt.1) write(aDATE(8:12),'(a1,i4.4)') '-',yr2
+      write(aDATE(4:7),'(a4)') i5toc4(yr1)
+      if(years.gt.1) write(aDATE(8:12),'(a1,a4)') '-',i5toc4(yr2)
 
       if(months.gt.INT_MONTHS_PER_YEAR) aDATE(1:1)='x'       ! should not happen
       if(months.le.1 .or. months.gt.INT_MONTHS_PER_YEAR) return

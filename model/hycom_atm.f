@@ -19,7 +19,9 @@
      .     ,austar_loc,aswflx_loc
      .     ,admui_loc,admvi_loc
 
+#ifdef TRACERS_GASEXCH_ocean  /* TNL iserted this line */
       public atracflx_loc
+#endif /* TNL iserted this line */
 
       ! accumulators for output on atmospheric grid
       ! (shouldn't these actually be accumulated on ocean grid
@@ -29,7 +31,9 @@
      .     ,austar_loc,aswflx_loc
      .     ,admui_loc,admvi_loc ! == dmui_loc,dmvi_loc on atm. domain
 
+#ifdef TRACERS_GASEXCH_ocean /* TNL inserted this line */
       real, ALLOCATABLE, DIMENSION(:,:,:) :: atracflx_loc
+#endif /* TNL inserted this line */
 
 
       contains
@@ -61,8 +65,10 @@
      &     admvi_loc(aI_0H:aI_1H,aJ_0H:aJ_1H)  ! temporary
      &     )
 
+#ifdef TRACERS_GASEXCH_ocean  /* TNL inserted this line */
       ALLOCATE(atracflx_loc(aI_0H:aI_1H,aJ_0H:aJ_1H,
      &                          atmocn%gasex_index%getsize()))
+#endif /* TNL inserted this line */
 
       end subroutine alloc_hycom_atm
 

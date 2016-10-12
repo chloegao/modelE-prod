@@ -478,3 +478,25 @@ function clean_str(string)
   return
 end function clean_str
 
+function i5toc4 (iyr)
+!@sum i5toc4 converts an integer 0-35999 into a character string of length 4
+!@+   to preserve output file naming convention if runs go past year 9999
+!@auth Reto Ruedy
+      integer, intent(in) :: iyr
+      character(len=4) i5toc4
+      integer iyrbyk
+      character(len=26) :: atoz='ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+
+      if(iyr<10000) then
+         write(i5toc4,'(i4.4)') iyr
+      else if(iyr>35999) then
+         i5toc4='xxxx'
+      else
+         iyrbyk=iyr/1000 - 9 ; i5toc4(1:1)=atoz(iyrbyk:iyrbyk)
+         write(i5toc4(2:4),'(i3.3)') mod(iyr,1000)
+      end if
+
+      return
+end function i5toc4
+
+

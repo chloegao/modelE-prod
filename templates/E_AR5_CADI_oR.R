@@ -145,6 +145,7 @@ initial_GHG_setup = 1 ! Set to 0 after initial setup.
 madaer=3         ! 3: updated aerosols          ; 1: default sulfates/aerosols
 #include "aerosol_params"
 #include "dust_params_oma"
+#include "common_tracer_params"
 #include "chemistry_params"
 
 DTO=112.5        ! ocean dynamics timestep

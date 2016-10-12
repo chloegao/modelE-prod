@@ -2988,7 +2988,7 @@ C****
       use OldTracer_mod, only: trname, t_qlimit
       USE TRACER_COM, only : NTM
 #endif
-      USE SEAICE, only : lmi,xsi,ace1i,Ti
+      USE SEAICE, only : lmi,xsi,ace1i,Ti,Ti2b
       USE SEAICE_COM, only : x=>si_atm
       USE LAKES_COM, only : flake
       USE FLUXES
@@ -3008,6 +3008,7 @@ C****
 #endif
 
       integer :: J_0, J_1, J_0H, J_1H, I_0, I_1, I_0H, I_1H, njpol
+      REAL*8 MSI1,SNOWL(2),MICE(2)
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
@@ -3042,10 +3043,32 @@ C**** Check for reasonable values for ice variables
             QCHECKI = .TRUE.
           END IF
           IF ( (FOCEAN(I,J)+FLAKE(I,J))*x%RSI(I,J).gt.0) THEN
+          MSI1 = ACE1I + x%SNOWI(I,J)
+          IF (ACE1I.gt.XSI(2)*MSI1) THEN ! some ice in first layer
+            MICE(1) = ACE1I-XSI(2)*MSI1
+            MICE(2) = XSI(2)*MSI1
+c           SNOWL(1)= SNOW
+            SNOWL(1)= x%SNOWI(I,J)
+            SNOWL(2)= 0.
+          ELSE  ! some snow in second layer
+            MICE(1) = 0.
+            MICE(2) = ACE1I
+            SNOWL(1)= XSI(1)*MSI1
+            SNOWL(2)= XSI(2)*MSI1-ACE1I
+          ENDIF
           DO L=1,LMI
-            IF (L.le.2) TICE =
-     *           Ti(x%HSI(L,I,J)/(XSI(L)*(ACE1I+x%SNOWI(I,J)))
-     *           ,1d3*x%SSI(L,I,J)/(XSI(L)*(ACE1I+x%SNOWI(I,J))))
+            IF (L.EQ.1) THEN
+              IF(MICE(1).NE.0.) THEN
+                TICE = Ti2b(x%HSI(1,I,J)/(XSI(1)*MSI1),
+     *                      1d3*x%SSI(L,I,J)/MICE(1),SNOWL(1),MICE(1))
+              ELSE
+                TICE = Ti(x%HSI(1,I,J)/(XSI(1)*MSI1),0d0)
+              ENDIF
+            ENDIF
+            IF (L.EQ.2)
+     *          TICE = Ti2b(x%HSI(2,I,J)/(XSI(2)*MSI1),
+     *                      1d3*x%SSI(L,I,J)/MICE(2),SNOWL(2),MICE(2))
+
             IF (L.gt.2) TICE = Ti(x%HSI(L,I,J)/(XSI(L)*x%MSI(I,J))
      *           ,1d3*x%SSI(L,I,J)/(XSI(L)*x%MSI(I,J)))
             IF (x%HSI(L,I,J).gt.0.or.TICE.gt.1d-10.or.TICE.lt.-80.) THEN

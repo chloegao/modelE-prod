@@ -16,6 +16,7 @@
       USE TOMAS_AEROSOL, only: icomp
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
+      use trdust_mod, only: nSubClays
       use tracer_com, only: ntm_dust, ntm_clay, ntm_sil1, ntm_sil2,
      &     ntm_sil3, ntm_sil4, ntm_sil5
 #endif
@@ -148,7 +149,7 @@ C**** does not produce exactly the same as the default values.
 #endif  /* TRACERS_NITRATE */
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
-      integer, parameter :: nraero_clay = 4 * ntm_clay
+      integer, parameter :: nraero_clay = nSubClays * ntm_clay
       integer, parameter :: nraero_dust = nraero_clay + ntm_sil1 +
      &     ntm_sil2 + ntm_sil3 + ntm_sil4 + ntm_sil5
 !@var nr_soildust First index of dust tracers in radiation (nraero_aod)
@@ -1068,6 +1069,8 @@ C**** Local variables initialised in init_RAD
      &     ,ij_lwcrf2=1
      &     ,ij_siswd=1
      &     ,ij_siswu=1
+     &     ,ij_lwprad=1
+     &     ,ij_iwprad=1
 
 #ifdef ACCMIP_LIKE_DIAGS
 !@var IJ_fcghg GHG forcing diagnostics (2=LW,SW, 4=CH4,N2O,CFC11,CFC12)
@@ -1077,6 +1080,8 @@ C**** Local variables initialised in init_RAD
       integer ::
      &      ijl_rc=1
      &     ,ijl_cf=1
+     &     ,ijl_QLrad=1
+     &     ,ijl_QIrad=1
 
       integer ::
      &      idd_cl7=1

@@ -35,19 +35,19 @@ c
       real dt,onemu,q,clip,vlume,amount,bfore,after
       integer iord,ip1,im1,jp1,jm1
       logical wrap,recovr
-      data recovr/.true./
+      data recovr/.false./
 c
 c --- if iord=1, scheme reduces to simple donor cell scheme.
-      parameter (onemu=.0098)				!  SI units
+      parameter (onemu=.0098)          !  SI units
 c
-c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c --- optional code for checking conservation properties
 ccc      bfore=0.
 ccc      do 14 j=1,jj
 ccc      do 14 l=1,isp(j)
 ccc      do 14 i=ifp(j,l),ilp(j,l)
 ccc 14   bfore=bfore+fld(i,j)*fco(i,j)*scal(i,j)
-c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
 c --- compute low-order and part of antidiffusive fluxes
 c
@@ -55,7 +55,7 @@ c
       flp=0.d0; fln=0.d0;
 
       call cpy_p_par(fld)
-      
+
       CALL HALO_UPDATE(ogrid,fld, FROM=SOUTH+NORTH)
 c
       do 11 j=J_0,J_1
@@ -236,7 +236,7 @@ cdiag     write (lp,'(a,1pe11.3)') 'tracer drift in advem:',-clip
         end if
       end if
 c
-c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c --- optional code for checking conservation properties
 ccc      after=0.
 ccc      do 15 j=1,jj
@@ -245,7 +245,7 @@ ccc      do 15 i=ifp(j,l),ilp(j,l)
 ccc 15   after=after+fld(i,j)*fc(i,j)*scal(i,j)
 ccc      write (lp,'(a,1p,3e14.6,e11.1)') 'advem conservation:',
 ccc     .  bfore,after,after-bfore,(after-bfore)/bfore
-c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       return
       end
 c

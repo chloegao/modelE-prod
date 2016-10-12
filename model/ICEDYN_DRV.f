@@ -1,4 +1,4 @@
-c**** 
+c****
 C**** ICEDYN_DRV.f    Sea ICE DYNamics    2006/12/21
 C****
 #include "rundeck_opts.h"
@@ -8,7 +8,10 @@ C****
 #endif
 
 #ifdef CUBED_SPHERE
-#ifdef HYCOM1deg
+#ifdef HYCOM1degRefined
+#define OCEAN_IMPORTEXPORT_ON_BGRID
+#endif
+#ifdef HYCOM1degUnrefined
 #define OCEAN_IMPORTEXPORT_ON_BGRID
 #endif
 #endif
@@ -29,7 +32,7 @@ C****
       IMPLICIT NONE
       SAVE
 
-C**** Dimensions of ice advection grid (EDIT FOR ADVSI GRID CHANGE) are the same as 
+C**** Dimensions of ice advection grid (EDIT FOR ADVSI GRID CHANGE) are the same as
 C**** atmospheric grid
       !INTEGER, parameter :: IMIC=IM, JMIC=JM
 
@@ -37,7 +40,7 @@ C**** Ice advection grid, same as atmospheric grid (CS or latlon)
 C**** dimensions IMIC = IM, JMIC = JM
       !TYPE(DIST_GRID) :: grid_MIC
 
-!@var igice 
+!@var igice
       type(iceocn_xchng_vars) :: igice
 
 #ifdef CUBED_SPHERE
@@ -115,7 +118,7 @@ C**** Ice dynamics diagnostics
 
 C**** Allocate arrays defined on the ice rheology grid
 
-      call getDomainBounds(grid_icdyn, 
+      call getDomainBounds(grid_icdyn,
      &     I_STRT_HALO=I_0H, I_STOP_HALO=I_1H,
      &     J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
 
@@ -131,7 +134,7 @@ C**** Allocate arrays defined on the ice rheology grid
 
       ALLOCATE(  ICIJ(I_0H:I_1H, J_0H:J_1H,KICIJ),
      &     STAT = IER)
-      
+
 c      if(am_I_root()) then
 c         allocate(ICIJg(imic,jmic,KICIJ))
 c      else
@@ -143,7 +146,7 @@ c      end if
 C**** Allocate ice advection arrays defined on the atmospheric grid
       !grid_MIC=grid_atm
 
-      call getDomainBounds(grid_atm, 
+      call getDomainBounds(grid_atm,
      &     I_STRT_HALO=I_0H_MIC, I_STOP_HALO=I_1H_MIC,
      &     J_STRT_HALO=J_0H_MIC, J_STOP_HALO=J_1H_MIC)
 
@@ -370,7 +373,7 @@ C**** Allocate ice advection arrays defined on the atmospheric grid
         call read_dist_data(grid_icdyn, fid, 'vosurf_icdyn',
      &       igice%vosurf)
       end select
-      return      
+      return
       end subroutine new_io_icedyn
 
       subroutine def_rsf_icdiag(fid,r4_on_disk)
@@ -405,7 +408,7 @@ C**** Allocate ice advection arrays defined on the atmospheric grid
       case (ioread)            ! input from restart or acc file
         call read_dist_data(grid, fid, 'icij', icij)
       end select
-      return      
+      return
       end subroutine new_io_icdiag
 
       subroutine def_meta_icdiag(fid)
@@ -455,7 +458,7 @@ C**** Allocate ice advection arrays defined on the atmospheric grid
 
       subroutine set_ioptrs_iceacc_default
 c point i/o pointers for diagnostic accumlations to the
-c instances of the arrays used during normal operation. 
+c instances of the arrays used during normal operation.
 c temporarily empty.
       return
       end subroutine set_ioptrs_iceacc_default
@@ -556,14 +559,14 @@ C**** Get loop indices  corresponding to grid_ICDYN and atm. grid structures
       call getDomainBounds(grid_ICDYN, J_STRT=iJ_0, J_STOP=iJ_1,
      &     J_STRT_SKP=iJ_0S   , J_STOP_SKP=iJ_1S,
      &     J_STRT_HALO=iJ_0H  , J_STOP_HALO=iJ_1H )
-      call getDomainBounds(grid_ICDYN, J_STRT_STGR=iJ_0STG, 
+      call getDomainBounds(grid_ICDYN, J_STRT_STGR=iJ_0STG,
      &     J_STOP_STGR=iJ_1STG)
-      call getDomainBounds(atmice%grid, I_STRT=aI_0, I_STOP=aI_1,     
+      call getDomainBounds(atmice%grid, I_STRT=aI_0, I_STOP=aI_1,
      &     J_STRT=aJ_0, J_STOP=aJ_1)
-      call getDomainBounds(atmice%grid, 
-     &     I_STRT_HALO=aI_0H, I_STOP_HALO=aI_1H,    
+      call getDomainBounds(atmice%grid,
+     &     I_STRT_HALO=aI_0H, I_STOP_HALO=aI_1H,
      &     J_STRT_HALO=aJ_0H  , J_STOP_HALO=aJ_1H )
-      call getDomainBounds(atmice%grid, 
+      call getDomainBounds(atmice%grid,
      &     J_STRT_SKP=aJ_0S, J_STOP_SKP=aJ_1S)
       aIM = atmice%grid%im_world
       aJM = atmice%grid%jm_world
@@ -571,7 +574,7 @@ C**** Get loop indices  corresponding to grid_ICDYN and atm. grid structures
       allocate(
      &     pgfu(IMICDYN,
      &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO),
-     &     pgfv(IMICDYN,    
+     &     pgfv(IMICDYN,
      &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO)
      &     )
       allocate(
@@ -595,7 +598,7 @@ c**** interpolate air stress from A grid in atmos, to B grid in ice
 C**** change of unit from change of momentum, to flux
 
       DO J=aJ_0,aJ_1
-        do i=aI_0,aI_1 
+        do i=aI_0,aI_1
           IF (FOCEAN(I,J)*RSI(I,J).le.0) THEN
             DMUA(I,J) = 0.
             DMVA(I,J) = 0.
@@ -631,9 +634,9 @@ c needs evaluation      end if
         im1=imicdyn
         do i=1,imicdyn
           GAIRX(i,j)=0.25*(idmua(i,j)+idmua(im1,j)
-     &                    +idmua(im1,j+1)+idmua(i,j+1))*bydts  
+     &                    +idmua(im1,j+1)+idmua(i,j+1))*bydts
           GAIRY(i,j)=0.25*(idmva(i,j)+idmva(im1,j)
-     &                    +idmva(im1,j+1)+idmva(i,j+1))*bydts  
+     &                    +idmva(im1,j+1)+idmva(i,j+1))*bydts
           im1=i
         enddo
       enddo
@@ -667,11 +670,11 @@ C**** surface due to presence of ice). This is ignored in favour of
 C**** geostrophy if osurf_tilt=0.
 C**** PGF is an accelaration
 
-C****  define scalar pressure on atm grid then regrid it to the icedyn grid  
+C****  define scalar pressure on atm grid then regrid it to the icedyn grid
       DO J=aJ_0,aJ_1
          DO I=aI_0,aI_1
              aPtmp(I,J)=(iceocn%OGEOZA(I,J)
-     *            +(RSI(I,J)*(MSI(I,J)+SNOWI(I,J)+ACE1I))*GRAV/RHOWS) 
+     *            +(RSI(I,J)*(MSI(I,J)+SNOWI(I,J)+ACE1I))*GRAV/RHOWS)
         END DO
       END DO
 
@@ -796,11 +799,11 @@ C**** Update halo for USI,UOSURF,VOSURF,PGFU
           GWATY(i,j)=VOSURF(im1,j)
 #else
           GWATX(i,j)=0.25*(UOSURF(im1,j)  +UOSURF(im1,j+1)
-     &         +UOSURF(i,j)+UOSURF(i,j+1))                     ! ocean -> iceB  
+     &         +UOSURF(i,j)+UOSURF(i,j+1))                     ! ocean -> iceB
           GWATY(i,j)=0.25*(VOSURF(im1,j)  +VOSURF(im1,j+1)
      &         +VOSURF(i,j)+VOSURF(i,j+1))                     ! y component
 #endif
-          PGFUB(i,j)=0.5*(PGFU(im1,j)  +PGFU(im1,j+1))   ! iceC--> iceB 
+          PGFUB(i,j)=0.5*(PGFU(im1,j)  +PGFU(im1,j+1))   ! iceC--> iceB
           PGFVB(i,j)=0.5*(PGFV(im1,j)  +PGFV(i,j))       ! y component
           im1=i
         enddo
@@ -867,7 +870,7 @@ C**** Interpolate ice stress from its B grid to C grid
 C**** Update halos for UICE and DMU
       CALL ICE_HALO(grid_ICDYN,  UICE, from=SOUTH     )
       CALL ICE_HALO(grid_ICDYN,   DMU, from=SOUTH     )
- 
+
       do j=iJ_0S,iJ_1S
         do i=1,imicdyn
           usi(i,j)=uice(i+1,j,1)
@@ -900,12 +903,12 @@ C**** Rescale DMUI,DMVI to be net momentum into ocean
         enddo
       enddo
 
-C**** set south pole 
+C**** set south pole
       if (hasSouthPole(grid_ICDYN)) then
         dmui(:,1)=0.
       endif
 
-C**** set north pole 
+C**** set north pole
       IF (hasNorthPole(grid_ICDYN)) THEN
         USI(:,jmicdyn)=0.
         VSI(:,jmicdyn)=0.
@@ -1025,7 +1028,7 @@ C**** uisurf/visurf are on atm grid but are latlon oriented
       USE DOMAIN_DECOMP_1D, only : getDomainBounds
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE
       USE DOMAIN_DECOMP_1D, only : SOUTH, NORTH
-      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE_COLUMN, 
+      USE DOMAIN_DECOMP_1D, only : HALO_UPDATE_COLUMN,
      &     hasNorthPole, hasSouthPole
       USE ICEDYN, only : dxyp,dyp,dxp,dxv,bydxyp
       !USE ICEDYN_COM, only : grid_MIC
@@ -1159,7 +1162,7 @@ C**** Currently this is on atmospheric grid
       call get_snow_ice_layer(SNOWI(I,J),MSI(I,J),HSI(:,I,J),SSI(:,I,J),
 #ifdef TRACERS_WATER
      *     TRSI(:,:,I,J),TRSNOW,TRICE,
-#endif 
+#endif
      *     SNOWL,HSNOW,HICE,SICEg,TSNW,TSIL,MICE,.false.)
 
 C-- MASS: ICE(LMI)
@@ -1215,7 +1218,7 @@ C**** calculate mass fluxes for the ice advection
         DO IP1=1,IM
           USIDT(I,J)=0.
           IF (FOCEAN(I,J).gt.0 .and. FOCEAN(IP1,J).gt.0. .and.
-     &         RSISAVE(I,J)+RSISAVE(IP1,J).gt.1d-4) 
+     &         RSISAVE(I,J)+RSISAVE(IP1,J).gt.1d-4)
      &       USIDT(I,J)=0.5*(ausi(i,j-1)+ausi(i,j))*dts
           I=IP1
         END DO
@@ -1223,7 +1226,7 @@ C**** calculate mass fluxes for the ice advection
         DO I=1,IM
           VSIDT(I,J)=0.
           IF (FOCEAN(I,J+1).gt.0 .and. FOCEAN(I,J).gt.0. .and.
-     &         RSISAVE(I,J)+RSISAVE(I,J+1).gt.1d-4) 
+     &         RSISAVE(I,J)+RSISAVE(I,J+1).gt.1d-4)
      &       VSIDT(I,J)=0.5*(avsi(im1,j)+avsi(i,j))*dts
           IM1=I
         END DO
@@ -1655,14 +1658,14 @@ C**** relayer upper two layers
         call relayer_12(HSNOW,HICE,SICEg,MICE,SNOWL
 #ifdef TRACERS_WATER
      *       ,TRSNOW,TRICE
-#endif 
+#endif
      *       )
 
 C**** reconstitute upper snow and ice layers
         call set_snow_ice_layer(HSNOW,HICE,SICEg,MICE,SNOWL,
 #ifdef TRACERS_WATER
      *       TRSNOW,TRICE,TRSI(:,:,I,J),
-#endif 
+#endif
      *       SNOWI(I,J),MSI1,MSI(I,J),HSI(:,I,J),SSI(:,I,J))
 
             ATMICE%HSICNV(I,J) = FOCEAN(I,J) *
@@ -1722,9 +1725,9 @@ C****
       IMPLICIT NONE
       real*8 ::
      &     aA(agrid%I_STRT_HALO:agrid%I_STOP_HALO,
-     &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),     
+     &     agrid%J_STRT_HALO:agrid%J_STOP_HALO),
      &     iA(1:IMICDYN,
-     &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO)     
+     &     grid_ICDYN%J_STRT_HALO:grid_ICDYN%J_STOP_HALO)
 c      character*80 :: title
 c      real*8, allocatable :: iA_glob(:,:)
 c      real*4, allocatable :: iA4_glob(:,:)
@@ -1744,7 +1747,7 @@ c      deallocate(iA_glob,iA4_glob)
 
       end subroutine INT_AtmA2IceA_XY
 #else
-c***  for the moment me assume that the atm and icedyn grids are 
+c***  for the moment me assume that the atm and icedyn grids are
 c***  both latlon with equal resolution
 c      iA=aA
 #endif
@@ -1836,7 +1839,7 @@ C**** atmosphere and ice dynamics
      &     pack_i2a)
       igice%pack_a2i => pack_a2i
       igice%pack_i2a => pack_i2a
-C**** The ice dynamics land mask is that of the atmosphere      
+C**** The ice dynamics land mask is that of the atmosphere
       call band_pack(pack_a2i, atmice%focean, ifocean) ! ifocean = afocean
 #endif
 
@@ -2175,7 +2178,7 @@ c this is not necessary since usi,vsi already have this
       deallocate(uvice_cs)
       deallocate(uvice)
 #else
-c**** We assume that ice grid and latlon atm grid have same resolution 
+c**** We assume that ice grid and latlon atm grid have same resolution
       im = atmice%grid%im_world
       jm = atmice%grid%jm_world
       call band_pack(pack_i2a, uice, atmice%usi) ! fills halos
@@ -2206,7 +2209,7 @@ c*** Poles
          atmice%uisurf(:,1)=atmice%uisurf(1,1)
          atmice%visurf(:,1)=atmice%visurf(1,1)
       endif
-      
+
       if (hasNorthPole(atmice%grid)) then
          atmice%uisurf(1,JM) = 0. ; atmice%visurf(1,JM) = 0.
          do i=1,IM

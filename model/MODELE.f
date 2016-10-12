@@ -1,5 +1,148 @@
 #include "rundeck_opts.h"
 
+! Soures of this doc:
+! https://simplex.giss.nasa.gov/gcm/doc/nlparams.txt
+!
+! ISTART controls how the model first picks up the initial conditions to
+! start the run. We have a number of options depending on how much
+! information is already available.
+! 
+!     Cold Starts
+!     ============
+!
+!     ISTART=2
+!         Observed start. This sets atmospheric values to observations,
+!         based on a particular format of AIC file. As for ISTART=1,
+!         input files are required for ground and ocean variables.
+!
+!
+!     Restart from checkpoint files
+!     =============================
+!
+!     Checkpoint files, called ``fort.1.nc`` and ``fort.2.nc``, are written
+!     frequently.  In case ModelE is terminated prematurely (i.e. before
+!     the end time specified in the rundeck / I file), they may be used
+!     to seamlessly continue the run where it left off.
+!
+!     Premature termination may happen for a number of reasons:
+!        a) The run is stopped gracefully by the user.
+!        b) The run exceeds its time limit on the supercomputer and is
+!           stopped forcefully
+!        c) The supercomputer crashes, and all jobs are stopped forcefully.
+!        d) ModelE has a bug that causes it to crash.
+!
+!     Checkpoint files may be corrupted or otherwise unreadable, if
+!     ModelE terminates while writing them.  For that reason, ModelE
+!     alternates between writing to the names ``fort.1.nc`` and
+!     ``fort.2.nc``.
+!
+!     ISTART=10   (DEFAULT if not specified in I file)
+!         This is used internally to pick up from the checkpoint
+!         file (the later of fort.1 and fort.2). Does not ever need to
+!         be set in the rundeck.
+! 
+!     ISTART=11
+!     ISTART=12
+!         This is used internally to pick up from an instantaneous rsf
+!         file (fort.1.nc for ISTART=11 or fort.2.nc for ISTART=12).
+!
+!     ISTART=13
+!         Restarts from the OLDEST checkpoint file; the reverse of
+!         ISTART=10
+!
+!     ISTART=14
+!         Restarts from (presumably symlinked file) named fort.4.nc
+!         Should link to fort.1.nc or fort.2.nc written on a previous
+!         run.
+!
+!     Restart from .rsf files
+!     =======================
+!
+!     .rsf files are written at the beginning of every diagnostic
+!     accumulation period (eg once a month).  They contain everything 
+!     in the checkpoint files EXCEPT diagnostic accumulation status
+!
+!     ISTART=9
+!         Continuation of an old run that was stopped at the beginning
+!         of a diagnostic accumulation period.  Use this to restart from
+!         .rsf files:
+!            a) Set AIC=myrestartfile.rsf
+!            b) Set ISTART=9
+!
+!     Perturbation Experiments
+!     ======================== 
+!
+!     ISTART=8
+!         This is a restart from a model configuration identical to the
+!         run now starting. This is for perturbation experiments, etc.
+!
+!         Start of a new run - parameters from rundeck+defaults
+!         In particular: Itime is set to ItimeI, radiation and all
+!         diagnostic accumulations are performed in the first hour,
+!         IRAND is set to its default (unless reset in the rundeck).
+!
+!         Note: Since itime_tr0 defaults to Itime, tracers will be
+!             reinitialized. To have them keep their setttings from the
+!             rsf file, set itime_tr0 to < ItimeI (e.g. 0) for all
+!             tracers in the rundeck parameters. If you use tracers that
+!             depend on (Itime-itime_tr0), you need to set itime_tr0 to
+!             the starting time of the rsf file for continuity.
+! 
+!
+!     Obsolete ISTART Values
+!     ======================
+!
+!     ISTART=1 (OBSOLETE)
+!         Default start. This sets atmospheric variables to constants
+!         and requires input files for ground values (a GIC file), and
+!         ocean values (OIC) if required.  ISTART=1 may still work – if
+!         I remember correctly, it was used a long time ago for
+!         benchmarking when we were asked to submit a version that
+!         needed no input files. It may still be useful for simpler
+!         versions of the model, maybe for a different planet or
+!         simplified earth (e.g. no topography, all desert, …).
+! 
+!     ISTART=3-7 (OBSOLETE)
+!     ----------
+!         These were reserved for starting up a more complex model from
+!         the state obtained by spinning up a simpler model, e.g. a
+!         coupled model from an atmospheric model, a tracer run from a
+!         run without tracers, etc. I’m not sure whether those options
+!         are still needed or can be achieved without using the ISTART
+!         parameter. They were kind of place holders to deal with
+!         changes in the model restart file.
+
+!     ISTART=3 (OBSOLETE)
+!         Not used.
+! 
+!     ISTART=4 (OBSOLETE)
+!         A restart from an rsf file from a previous run, but the ocean
+!         is reinitialised. Needs an initial OIC file (for fully coupled
+!         models).
+! 
+!     ISTART=5 (OBSOLETE)
+!         A restart from an rsf file from a previous run, but no
+!         tracers. This is only useful for tracer runs that need to be
+!         initialised with a particular model state.
+! 
+!     ISTART=6 (OBSOLETE)
+!         A restart from an rsf file from a previous run that might not
+!         have had the same land-ocean mask. This makes sure to reset
+!         snow values, pbl values and ocean values accordingly.
+! 
+!     ISTART=7 (OBSOLETE)
+!         A restart from an rsf file from a previous run with the same
+!         land-ocean mask. This still makes sure to set snow values and
+!         ocean values. This is used mainly for converted model II'
+!         data.
+! 
+!     ISTART<0 (OBSOLETE) This option is used by the post-processing
+!         program to run the model to generate nice diagnostics. This
+!         should never need to be set manually.  ISTART<0 may still work
+!         if the model is run with “old I/O” but is not needed with “new
+!         I/O”. It was meant as a device to bridge the transition period
+!         from old to new I/O.
+
       subroutine GISS_modelE(qcRestart, coldRestart, iFile)
 !@sum  MAIN GISS modelE main time-stepping routine
 !@auth Original Development Team
@@ -27,7 +170,7 @@
       USE FV_INTERFACE_MOD, only: fvstate
       USE FV_INTERFACE_MOD, only: Checkpoint,Compute_Tendencies
 #endif
-      use TimeConstants_mod, only: SECONDS_PER_MINUTE, 
+      use TimeConstants_mod, only: SECONDS_PER_MINUTE,
      &                             INT_MONTHS_PER_YEAR
       use TimerPackage_mod, only: startTimer => start
       use TimerPackage_mod, only: stopTimer => stop
@@ -55,7 +198,7 @@ C**** Command line options
       REAL*8, DIMENSION(0:NTIMEMAX) ::TIMING_glob = 0.
       REAL*8 start,now, DTIME,TOTALT
 
-      CHARACTER aDATE*14
+      CHARACTER aDATE*14, i5toc4*4 ! function in shared/Utilities.F90
       CHARACTER*8 :: string_go='___GO___'      ! green light
       CHARACTER*8 :: str
       integer :: iflag=1
@@ -192,7 +335,7 @@ C****
 C**** UPDATE Internal MODEL TIME AND CALL DAILY IF REQUIRED
 C****
       call modelEclock%nextTick()
-      call modelEclock%get(year=year, month=month, dayOfYear=day, 
+      call modelEclock%get(year=year, month=month, dayOfYear=day,
      &     date=date, hour=hour, amn=amon)
       Itime=Itime+1                       ! DTsrc-steps since 1/1/Iyear1
 
@@ -203,7 +346,7 @@ C****
         call TIMER (NOW,MELSE)
         call stopTimer('Daily')
       end if                                  !  NEW DAY
-       
+
 #ifdef USE_FVCORE
 ! Since dailyUpdates currently adjusts surf pressure,
 ! moving this call to the atm driver will change results.
@@ -235,7 +378,7 @@ C**** (after the end of a diagn. accumulation period)
 C**** PRINT DIAGNOSTIC TIME AVERAGED QUANTITIES
         call aPERIOD (JMON0,JYEAR0,months,1,0, aDATE(1:12),Ldate)
         acc_period=aDATE(1:12)
-        WRITE (aDATE(8:14),'(A3,I4.4)') aMON(1:3),year
+        WRITE (aDATE(8:14),'(A3,a4)') aMON(1:3),i5toc4(year)
         call print_diags(0)
 C**** SAVE ONE OR BOTH PARTS OF THE FINAL RESTART DATA SET
         IF (KCOPY.GT.0) THEN
@@ -283,7 +426,7 @@ C**** PRINT AND ZERO OUT THE TIMING NUMBERS
         end if
         TIMING = 0
         START= NOW
-        
+
       END IF  ! beginning of accumulation period
 
 C**** CPU TIME FOR CALLING DIAGNOSTICS
@@ -401,22 +544,24 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
       use CalendarMonth_mod
 C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
       logical :: newmonth
-      integer :: month, day, year
+      integer :: month, day_of_month, year
+      integer :: day_of_year
       type (CalendarMonth) :: cMonth
 
       year = modelEclock%getYear()
       month = modelEclock%getMonth()
-      day = modelEclock%getDayOfYear()
+      day_of_month = modelEclock%getDate()
+      day_of_year = modelEclock%getDayOfYear()
 
         if (am_i_root()) then
           print '(A,I9,A,I0.4,A1,I0.2,A1,I0.2)',
      &       '---------- Main Loop, itime=',itime,
-     &       ' day=',year,'-',month,'-',day
+     &       ' day=',year,'-',month,'-',day_of_month
         end if
 
 
       cMonth = calendar%getCalendarMonth(month=month-1,year=year)
-      newmonth = (day == 1+ cMonth%lastDayInMonth)
+      newmonth = (day_of_year == 1+ cMonth%lastDayInMonth)
       call daily_DIAG(newmonth) ! atmosphere
       if(newmonth) then         ! ocean
         call reset_ODIAG(0)
@@ -436,7 +581,7 @@ C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
 #ifdef USE_FVCORE
       USE FV_INTERFACE_MOD, only: Checkpoint,fvstate
 #endif
-      
+
       integer :: hour, date
       character(len=LEN_MONTH_ABBREVIATION) :: amon
 
@@ -452,7 +597,7 @@ C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
      *     WRITE (6,'(A,I1,45X,A4,I5,A5,I3,A4,I3,A,I8)')
      *     '0Restart file written on fort.',KDISK,'Year',
      *     year,aMon,date,', Hr',hour,'  Internal clock time:',ITIME
-      kdisk=3-kdisk
+      kdisk=3-kdisk  ! Swap next fort.X.nc file
 
       end subroutine checkpointModelE
 
@@ -551,13 +696,13 @@ C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
       call delete(report)
 
       end subroutine reportProfile
-      
+
       end subroutine GISS_modelE
 
       subroutine dailyUpdates
       use fluxes, only : atmocn
       implicit none
-      
+
       call daily_CAL(.true.)    ! end_of_day
       call daily_OCEAN(.true.,atmocn)  ! end_of_day
       call daily_ATM(.true.)
@@ -667,7 +812,8 @@ C****
 !@var  IHRI,IHOURE start and end of run in hours (from 1/1/IYEAR1 hr 0)
 !@nlparam IRANDI  random number seed to perturb init.state (if>0)
       INTEGER :: IHRI=-1,TIMEE=-1,IHOURE=-1,IRANDI=0
-      INTEGER IhrX, KDISK_restart
+      INTEGER IhrX
+      INTEGER KDISK_restart   ! Name of fort.X.nc file from which we restarted
       LOGICAL :: is_coldstart
       CHARACTER NLREC*80,RLABEL*132
 
@@ -763,9 +909,9 @@ C****   Current settings: 2 - from observed data                    ****
 C****                     8 - from current model M-file - no resets ****
 C****                                                               ****
 C***********************************************************************
-C**** 
+C****
 C**** Set quantities that are derived from the namelist parameters
-C**** 
+C****
 !@var NDAY=(1 day)/DTsrc : even integer; adjust DTsrc to be commensurate
         NDAY = 2*nint(calendar%getSecondsPerDay()/(DTsrc*2))
         dtSrcUsed = TimeInterval(calendar%getSecondsPerDay() / NDAY)
@@ -799,18 +945,18 @@ C**** Get Start Time; at least YearI HAS to be specified in the rundeck
         END IF
 
         IF (ISTART.EQ.2) THEN
-C**** 
+C****
 C**** Cold Start: ISTART=2
-C**** 
+C****
           XLABEL(1:80)='Observed atmospheric data from NMC tape'
 
 C**** Set flag to initialise topography-related variables
           init_topog_related = 1
 
         ELSE IF (ISTART==8) THEN
-C**** 
+C****
 C**** Data from current type of RESTART FILE
-C**** 
+C****
 ! no need to read SRHR,TRHR,FSF,TSFREZ,diag.arrays
           call io_rsf("AIC",IhrX,irsfic,ioerr)
 
@@ -858,7 +1004,7 @@ C****                    12 - from fort.2                           ****
 C****               13 & up - from earlier of fort.1 or fort.2      ****
 C****                                                               ****
 C***********************************************************************
-C**** 
+C****
 C**** DATA FROM end-of-month RESTART FILE     ISTART=9
 C**** mainly used for REPEATS and delayed EXTENSIONS
         IF(ISTART==9) THEN      !  diag.arrays are not read in
@@ -868,28 +1014,40 @@ C**** mainly used for REPEATS and delayed EXTENSIONS
           XLABEL = RLABEL       ! switch to rundeck label
           TIMING = 0
         ELSE
-C**** 
+C****
 C**** RESTART ON DATA SETS 1 OR 2, ISTART=10 or more
-C**** 
+C****
 C**** CHOOSE DATA SET TO RESTART ON
           IF(ISTART==11 .OR. ISTART==12) THEN
+            ! ISTART=11: Use fort.1.nc
+            ! ISTART=12: Use fort.2.nc
             KDISK=ISTART-10
           ELSEIF(ISTART==10 .OR. ISTART==13) THEN
             call find_later_rsf(kdisk)
-            IF (ISTART.GE.13)     KDISK=3-KDISK
+            IF (ISTART==13) KDISK=3-KDISK ! Use earlier fort file, not later
           ENDIF
+          if (istart == 14) then
+              kdisk = 4    ! Start from fort.4.nc file
+          end if
           call io_rsf(rsf_file_name(KDISK),Itime,ioread,ioerr)
-          KDISK_restart = KDISK
+          KDISK_restart = KDISK   ! Fort file we started from
           if (AM_I_ROOT())
      *      WRITE (6,'(A,I2,A,I11,A,A/)') '0RESTART DISK READ, UNIT',
      *      KDISK,', Time=',Itime,' ',XLABEL(1:80)
 
-C**** Switch KDISK if the other file is (or may be) bad (istart>10)
-C**** so both files will be fine after the next write execution
-          IF (istart.gt.10) KDISK=3-KDISK
-C**** Keep KDISK after reading from the later restart file, so that
-C**** the same file is overwritten first; in case of trouble,
-C**** the earlier restart file will still be available
+          ! Set up the first checkpoint file to write
+          if (istart == 14) then
+            ! Set from I file
+            call get_param('KDISK', kdisk)
+          else if (istart == 10) then
+            ! Keep KDISK after reading from the later restart file, so that
+            ! the same file is overwritten first; in case of trouble,
+            ! the earlier restart file will still be available
+          else if (istart.gt.10) then
+            ! If user specified a fort.X.nc file,
+            ! switch to the checkpoint file we did NOT start from
+            KDISK=3-KDISK
+          end if
 
         ENDIF
 
@@ -919,7 +1077,7 @@ C****
 
       ! dtSrcUsed is of type TimeInterval to guarantee exact arithmetic
       ! use real(...) to convert for convenience in other calculations.
-      dtSrcUsed = TimeInterval(calendar%getSecondsPerDay() / NDAY)                       
+      dtSrcUsed = TimeInterval(calendar%getSecondsPerDay() / NDAY)
       DTsrc = real(dtSrcUsed)
 
       modelETimeE = newTime(calendar)
@@ -934,11 +1092,11 @@ C****
 
 
 C**** Check consistency of DTsrc with NDAY
-      if (is_set_param("DTsrc") .and. 
+      if (is_set_param("DTsrc") .and.
      &     nint(calendar%getSecondsPerDay()/DTsrc) .ne. NDAY) then
         if (AM_I_ROOT()) then
           secsPerDay = calendar%getSecondsPerDay()
-          write(6,*) 'DTsrc=',DTsrc,' has to stay at/be set to', 
+          write(6,*) 'DTsrc=',DTsrc,' has to stay at/be set to',
      &               real(secsPerDay / NDAY)
         end if
         call stop_model('INPUT: DTsrc inappropriately set',255)
@@ -980,7 +1138,7 @@ C**** Set date information
 
       modelEclock = ModelClock(modelEtime, dtSrcUsed, itime)
 
-      ! These next two lines are not necessary - but act as 
+      ! These next two lines are not necessary - but act as
       ! a (poor) test that the alternate constructor for clocks
       ! is working.
       tmpStr = modelEclock%toString()
@@ -1008,7 +1166,7 @@ C**** MUST be before other init routines
       if (istart==8 .and. do_IC_fixups==1) istart_fixup = 9
 
       is_coldstart = (istart<9 .and. init_topog_related == 1)
-! long version: 
+! long version:
 !      is_coldstart = istart==2 .or. (istart==8 .and. init_topog_related == 1)
 
       call INPUT_ocean (istart,istart_fixup,
@@ -1016,7 +1174,7 @@ C**** MUST be before other init routines
 
       call INPUT_atm(istart,istart_fixup,
      &     do_IC_fixups,is_coldstart,
-     &     KDISK_restart,IRANDI)
+     &     KDISK_restart, IRANDI)
 
       if (istart.le.9) then
         call reset_adiag(0)
@@ -1039,7 +1197,7 @@ C**** MUST be before other init routines
       call parse_subdd
       call reset_cached_subdd
       if(istart.ge.10) then
-        call read_subdd_rsf(trim(rsf_file_name(kdisk_restart))//'.nc')
+        call read_subdd_rsf(checkpoint_file_name)
       endif
 #endif
 

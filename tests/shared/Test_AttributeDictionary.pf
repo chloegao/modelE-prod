@@ -14,7 +14,7 @@ module Test_AttributeDictionary_mod
 
   implicit none
 
-   public :: Test_AttributeDictionary
+  public :: Test_AttributeDictionary
 
 @TestCase
    type, extends(TestCase) :: Test_AttributeDictionary
@@ -36,7 +36,7 @@ contains
     call clean(this%dictionary)
   end subroutine tearDown
 
-  ! Test that class can insert intrinsic integer and cast to an integer pointer.
+! Test that class can insert intrinsic integer and cast to an integer pointer.
 @Test  
   subroutine testInsertIntegerAttribute(this)
     class (Test_AttributeDictionary), intent(inout) :: this

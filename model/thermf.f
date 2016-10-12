@@ -64,7 +64,6 @@ ccc     .  '  => precip bias(%):',100.*pcpcor
 ccc      end if
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
-c$OMP PARALLEL DO PRIVATE(kn) SCHEDULE(STATIC,jchunk)
       do 66 j=J_0,J_1
       do 66 k=1,kk
       kn=k+nn
@@ -73,7 +72,6 @@ c$OMP PARALLEL DO PRIVATE(kn) SCHEDULE(STATIC,jchunk)
       if (glue(i,j).gt.1. .and. saln(i,j,kn).gt.40.)                !  Med fudge
      .  saln(i,j,kn)=saln(i,j,kn)+(40.-saln(i,j,kn))*baclin*3.e-8
  66   p(i,j,k+1)=p(i,j,k)+dp(i,j,kn)
-c$OMP END PARALLEL DO
 c
 c --- --------------------------------
 c --- thermal forcing of ocean surface
@@ -82,20 +80,16 @@ c
 c --- for conservation reasons, (E-P)-induced global virtual salt flux must
 c --- be proportional to global E-P. this requires a global corrrection.
 c
-c$OMP PARALLEL DO
       do 82 j=J_0,J_1
       sf2col(j)=0.
       do 82 l=1,isp(j)
       do 82 i=ifp(j,l),ilp(j,l)
  82   sf2col(j)=sf2col(j)+(saln(i,j,k1n)-34.7)*oemnp(i,j)/thref
      .                                                   *scp2(i,j)
-c$OMP END PARALLEL DO
 c
       call GLOBALSUM(ogrid,sf2col,sf2cum, all=.true.)
       sf2cum=sf2cum/area
 c
-c$OMP PARALLEL DO PRIVATE(thknss,vpmx,prcp,exchng,
-c$OMP. radfl,radflw,radfli,evap,evapw,evapi,old) SCHEDULE(STATIC,jchunk)
       do 85 j=J_0,J_1
 c
       watcol(j)=0.
@@ -148,7 +142,6 @@ c
       temcol(j)=temcol(j)+temp(i,j,k1n)*scp2(i,j)
       salcol(j)=salcol(j)+saln(i,j,k1n)*scp2(i,j)
  85   continue
-c$OMP END PARALLEL DO
 c
       call GLOBALSUM(ogrid,watcol,watcum, all=.true.)
       call GLOBALSUM(ogrid,empcol,empcum, all=.true.)
@@ -164,7 +157,6 @@ c --- correct salt flux globally for local clipping done to prevent S < 0
       bias=(slfcum-sf1cum)/area
       if (numcum.gt.0.) then
 
-c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
         do 83 j=J_0,J_1
         sf2col(j)=0.
         do 83 l=1,isp(j)
@@ -172,7 +164,6 @@ c$OMP PARALLEL DO SCHEDULE(STATIC,jchunk)
         salflx(i,j)=salflx(i,j)-bias
         sf2col(j)=sf2col(j)+salflx(i,j)*scp2(i,j)
  83     continue
-c$OMP END PARALLEL DO
 c --- optional, diagnostic use only:
         call GLOBALSUM(ogrid,sf2col,sf2cum, all=.true.)
         if( AM_I_ROOT() ) then
@@ -187,7 +178,6 @@ c --- optional, diagnostic use only:
       if (sss_relax) then
         sssobs => atmocn%sssobs  ! units:  psu/1000
         rsiobs => atmocn%rsiobs  ! sea ice fraction [0-1]
-c$OMP PARALLEL DO PRIVATE(piston,old,fxbias) SCHEDULE(STATIC,jchunk)
 c --- surface salinity restoration
         do 84 j=J_0,J_1
         fxbiasj(j)=0.
@@ -207,7 +197,6 @@ c --- surface salinity restoration
      . '  salflx before & after relax:',old,salflx(i,j)
           end if
  84     continue
-c$OMP END PARALLEL DO
       end if
 #endif
 
@@ -237,6 +226,38 @@ css  .  slfcum*365.*SECONDS_PER_DAY*g/onem
      .    rmean/area,tmean/area,smean/area
       end if ! AM_I_ROOT
 c
+      rmean=0.
+      smean=0.
+      tmean=0.
+      vmean=0.
+      ! reusing these arrays for next sums 
+      rhocol=0.; temcol=0.; salcol=0.; watcol=0.;
+      do 84 j=J_0,J_1
+      do 84 k=kk,1,-1
+      kn=k+nn
+      if (nstep.eq.nstep0+1) kn=k+mm
+      do 84 l=1,isp(j)
+      do 84 i=ifp(j,l),ilp(j,l)
+      boxvol=dp(i,j,kn)*scp2(i,j)
+      !--changing following to facilitate GLOBALSUM with bitwise reprocibility
+      ! rmean=rmean+th3d(i,j,kn)*boxvol
+      ! smean=smean+saln(i,j,kn)*boxvol
+      ! tmean=tmean+temp(i,j,kn)*boxvol
+      ! vmean=vmean+boxvol
+      !-----------------------------------------------
+      rhocol(j)=rhocol(j)+th3d(i,j,kn)*boxvol
+      salcol(j)=salcol(j)+saln(i,j,kn)*boxvol
+      temcol(j)=temcol(j)+temp(i,j,kn)*boxvol
+      watcol(j)=watcol(j)+boxvol
+ 84   continue
+      call GLOBALSUM(ogrid,rhocol,rmean, all=.true.) 
+      call GLOBALSUM(ogrid,salcol,smean, all=.true.) 
+      call GLOBALSUM(ogrid,temcol,tmean, all=.true.) 
+      call GLOBALSUM(ogrid,watcol,vmean, all=.true.) 
+c
+      if( AM_I_ROOT() )
+     .    write (lp,'(i9,a,3f9.3)') nstep,' mean basin sig,temp,saln:',
+     .    rmean/vmean,tmean/vmean,smean/vmean
       end if                                !  diagno = .true.
 c
       return

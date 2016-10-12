@@ -41,6 +41,7 @@ subroutine CONDSE
 #endif
   use CLOUDS_COM, only : tauss,taumc,cldss,cldmc,csizmc,csizss,fss,cldsav1 &
        ,tls,qls,tmc,qmc,ddm1,airx,lmc,taussip,csizssip &
+       ,QLss_3d=>QLss,QIss_3d=>QIss,QLmc_3d=>QLmc,QImc_3d=>QImc &
        ,ddms,tdn1,qdn1,ddml
 #if (defined mjo_subdd) || (defined etc_subdd)
   use CLOUDS_COM, only : CLWC3D,CIWC3D,TLH3D,LLH3D,SLH3D,DLH3D
@@ -68,8 +69,8 @@ subroutine CONDSE
 #ifndef NO_HDIURN
   use DIAG_COM, only : hdiurn=>hdiurn_loc
 #endif
-  use DIAG_COM, only : ntau,npres,aisccp=>aisccp_loc,ij_precmc,ij_cldw,ij_cldi, &
-       ij_fwoc,p_acc,pm_acc,ndiuvar,nisccp,adiurn_dust,jl_mcdflx &
+  use DIAG_COM, only : ntau,npres,aisccp=>aisccp_loc,ij_precmc,ij_cldw,ij_cldi &
+       ,ij_fwoc,p_acc,pm_acc,ndiuvar,nisccp,adiurn_dust,jl_mcdflx &
        ,lh_diags,ijl_llh,ijl_mctlh,ijl_mcdlh,ijl_mcslh &
        ,ijl_ldry,ijl_tmcdry,ijl_dmcdry,ijl_smcdry &
        ,ijl_cldwtr,ijl_cldice,ijl_MCamFX ! ipcc 3-D model layer diagnostics
@@ -95,7 +96,6 @@ subroutine CONDSE
 #endif
 #endif
 #ifdef TRACERS_ON
-  use TRACER_COM, only : remake_tracer_lists
   use TRACER_COM, only: TRM,TRMOM,NTM,trdn1
   use OldTracer_mod, only: itime_tr0, trname
 #ifdef TRACERS_COSMO
@@ -172,6 +172,7 @@ subroutine CONDSE
        ,dphashlw,dphadeep,dgshlw,dgdeep,tdnl,qdnl,prebar1 &
        ,DQMTOTAL,DQLSC &
        ,DQMSHLW,DQMDEEP,DQCTOTAL,DQCSHLW,DQCDEEP &
+       ,QLss,QIss,QLmc,QImc &
        ,use_vmp,wmpr,tausslip,csizelip
 #ifdef CLD_AER_CDNC
        use CLOUDS, only : acdnwm,acdnim,acdnws,acdnis,arews,arewm,areis,areim &
@@ -223,7 +224,7 @@ subroutine CONDSE
 #endif
   use FILEMANAGER, only: openunit,closeunit
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
-  use tracers_dust,only : prelay
+  use trdust_mod,only : prelay
 #endif
   use TimerPackage_mod, only: startTimer => start, stopTimer => stop
 #ifdef CACHED_SUBDD
@@ -500,7 +501,6 @@ subroutine CONDSE
     ntix(nx) = n
   end do
   ntx = nx
-  call remake_tracer_lists()
 
 #ifdef TRACERS_AMP
   AQsulfRATE = 0.d0
@@ -1454,6 +1454,10 @@ subroutine CONDSE
         CLDSAV1(:,I,J)=CLDSV1(:)
         SVLHX(:,I,J)=SVLHXL(:)
         CSIZSS(:,I,J)=CSIZEL(:)
+        QLss_3d(:,i,j)=QLss(:)
+        QIss_3d(:,i,j)=QIss(:)
+        QLmc_3d(:,i,j)=QLmc(:)
+        QImc_3d(:,i,j)=QImc(:)
 
         IF(USE_VMP) THEN
           TAUSSIP(:,I,J)=TAUSSLIP(:)
@@ -1655,15 +1659,12 @@ subroutine CONDSE
             trmom(:,i,j,l,n) = tmom(:,l,nx)+tmomsv(:,l,nx)*(1.-fssl(l))
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
-            if (trname(n).eq."SO2".or.trname(n).eq."SO4".or. &
-                trname(n).eq."H2O2_s") then
+            if (ijts_aq(n).gt.0) then ! use ij mask for jl as well
               call inc_tajls(i,j,l,jls_incloud(1,n), &
                    dt_sulf_mc(n,l)*(1.-fssl(l)))
               call inc_tajls(i,j,l,jls_incloud(2,n),dt_sulf_ss(n,l))
-              if (ijts_aq(n).gt.0) then
-                taijs(i,j,ijts_aq(n))=taijs(i,j,ijts_aq(n))+ &
-                     dt_sulf_mc(n,l)*(1.-fssl(l))+dt_sulf_ss(n,l)
-              endif
+              taijs(i,j,ijts_aq(n))=taijs(i,j,ijts_aq(n))+ &
+                   dt_sulf_mc(n,l)*(1.-fssl(l))+dt_sulf_ss(n,l)
             end if
 #ifdef ACCMIP_LIKE_DIAGS
             if(trname(n).eq."SO4".and.ijlt_prodSO4aq.gt.0) &

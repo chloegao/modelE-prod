@@ -1174,7 +1174,7 @@ c    *     'RRR SCALE ',stfac,cosz1(i,j),tczen(j),oh(i,j,l),ohr(i,j,l)
 
       SUBROUTINE GET_SULFATE(pl,temp_in,fcloud,
      *  wa_vol,wmxtr,sulfin,sulfinom,sulfinc,sulfout,tr_left,
-     *  tmg,tmd,airm,lhx,dt_sulf,fcld0,no_plume)
+     *  tmg,tmd,airm,lhx,dt_sulf,fcld0)
 
 !@sum  GET_SULFATE calculates formation of sulfate from SO2 and H2O2
 !@+    within or below convective or large-scale clouds. Gas
@@ -1213,11 +1213,8 @@ c    *     'RRR SCALE ',stfac,cosz1(i,j),tczen(j),oh(i,j,l),ohr(i,j,l)
 !@var lhx latent heat of evaporation or sublimation (J/Kg). When equal to lhe
 !@+   the cloud is in the ice phase.
 !@var finc XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-!@var no_plume true for convective plumes, false for convective precipitation
-!@+   and large-scale clouds/precipitation.
       real*8, intent(in) :: fcloud,fcld0,lhx
       real*8 :: finc
-      logical no_plume 
 !@var airm layer pressure depth (mb). Multiply by mb2kg to convert to air mass
 !@+   per m2, based on the hydrostatic pressure equation:
 !@+   pressure (Pa=kg/m/s2) = height (m) * density (kg/m3) * g (m/s2)
@@ -1264,9 +1261,7 @@ c    *     'RRR SCALE ',stfac,cosz1(i,j),tczen(j),oh(i,j,l),ohr(i,j,l)
 !@var ihx index of H2O2 species in aqchem_list array
       integer :: ix,is,ih,isx,ihx
 
-!@var tmg amount of tracer in the gas phase (kg). Multiply by fcloud when
-!@+   no_plume is true, to get the amount of gas phase tracer in cloudy area.
-!@+   When no_plume is false, tmg is tmp already, so no multiplication needed.
+!@var tmg amount of tracer in the gas phase in the cloudy area (kg).
 !@var tmd amount of tracer in the aqueous phase (kg).
 !@var tmgmol amount of gas phase tracer in cloudy area (moles)
 !@var tmdmol amount of gas phase tracer in cloudy area (moles)
@@ -1350,7 +1345,6 @@ c    *     'RRR SCALE ',stfac,cosz1(i,j),tczen(j),oh(i,j,l),ohr(i,j,l)
 
 ! initial amount of species in the gas and aqueous phases
           tmgmol(n)=1.d3*tmg(ix)/tr_mm(ix) ! gas-phase, in moles
-          if (no_plume) tmgmol(n)=tmgmol(n)*fcloud ! for gas phase only
           tmdmol(n)=tmd(ix)*1.d3/tr_mm(ix) ! aqueous phase, in moles
 
 ! henry coefficient
@@ -1388,11 +1382,11 @@ c    *     'RRR SCALE ',stfac,cosz1(i,j),tczen(j),oh(i,j,l),ohr(i,j,l)
 ! can't be more than the moles we started with
       if (dso4gt.gt.tmgmol(isx)) then ! so2
         dso4g=tmgmol(isx)/(tmg(ih)*tmg(is))
-        dso4gt=dso4g*tmg(ih)*tmg(is)
+        dso4gt=tmgmol(isx)
       endif
       if (dso4gt.gt.tmgmol(ihx)) then ! h2o2
         dso4g=tmgmol(ihx)/(tmg(ih)*tmg(is))
-        dso4gt=dso4g*tmg(ih)*tmg(is)
+        dso4gt=tmgmol(ihx)
       endif
  21   continue
 

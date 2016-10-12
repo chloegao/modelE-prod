@@ -64,6 +64,10 @@ module CLOUDS_COM
 !@var CSIZMC,CSIZSS mc,ss effective cloud droplet radius (microns)
 !@var CSIZSSIP counterpart to CSIZSS for ice precip in stratiform liquid clouds
   real*8, allocatable, dimension(:,:,:) :: CSIZMC,CSIZSS,CSIZSSIP
+!@var QLss,QIss stratiform liquid, ice water available to radiation (kg/kg)
+  real*8, allocatable, dimension(:,:,:) :: QLss,QIss
+!@var QLmc,QImc convective liquid, ice water available to radiation (kg/kg)
+  real*8, allocatable, dimension(:,:,:) :: QLmc,QImc
 
   !**** variables saved for surface wind spectrum calculations
 !@var DDM1 downdraft mass flux / rho at lowest level (m/s)
@@ -203,6 +207,7 @@ subroutine ALLOC_CLOUDS_COM(grid)
 #endif
   use CLOUDS_COM, only : TAUSS,TAUMC, CLDSS,CLDMC,CSIZMC,CSIZSS, &
        ULS,VLS,UMC,VMC,TLS,QLS,TAUSSIP,CSIZSSIP, &
+       QLss,QIss,QLmc,QImc, &
        TMC,QMC,DDM1,AIRX,LMC,DDMS,TDN1,QDN1,DDML
 #if (defined mjo_subdd) || (defined etc_subdd)
   use CLOUDS_COM, only : CLWC3D,CIWC3D,TLH3D,SLH3D,DLH3D,LLH3D
@@ -266,6 +271,10 @@ subroutine ALLOC_CLOUDS_COM(grid)
        CSIZMC(LM,I_0H:I_1H,J_0H:J_1H), &
        CSIZSS(LM,I_0H:I_1H,J_0H:J_1H), &
        CSIZSSIP(LM,I_0H:I_1H,J_0H:J_1H), &
+       QLss(LM,I_0H:I_1H,J_0H:J_1H), &
+       QIss(LM,I_0H:I_1H,J_0H:J_1H), &
+       QLmc(LM,I_0H:I_1H,J_0H:J_1H), &
+       QImc(LM,I_0H:I_1H,J_0H:J_1H), &
        STAT=IER)
 #ifdef mjo_subdd
   allocate( &
