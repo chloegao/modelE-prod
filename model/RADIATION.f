@@ -242,6 +242,7 @@ C**** local except for special radiative aerosol diagnostics aadiag
       REAL*8 ::  SRCQPI(6,15),TRCQPI(33,15)       !??? to setcld/getcld
                  !  Temp data used by WRITER, WRITET
       REAL*8  :: TRAQAB(33,11),TRBQAB(33,10),TRCQAB(33,15),TRDQAB(33,25)
+      REAL*8  :: AMP_TAB_SPEC(33,ITRMAX)
       INTEGER :: NORDER(16),NMWAVA(16),NMWAVB(16)
 
 C------------------------------------------
@@ -2796,6 +2797,26 @@ C     ------------------------------------------------------------------
 #endif
       INTEGER NRHNAN(LX,8),K,L,NA,N,NRH,M,KDREAD,NT
 
+
+#if (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
+#ifdef TRACERS_AMP
+      CALL SETAMP(EXT,SCT,GCB,TAB)
+#endif
+#ifdef TRACERS_TOMAS
+      CALL SETTOMAS(EXT,SCT,GCB,TAB)
+#endif
+!radiation has 3 extra levels on the top - aerosols are zero
+c SW
+      SRBEXT(L1:LM,:) = EXT(L1:LM,:)
+      SRBSCT(L1:LM,:) = SCT(L1:LM,:)
+      SRBGCB(L1:LM,:) = GCB(L1:LM,:)
+c LW
+      TRBALK(L1:LM,:) = TAB(L1:LM,:)
+#endif
+
+#ifndef TRACERS_TOMAS
+#ifndef TRACERS_AMP
+
       if ( present(GETAER_flag) ) goto 200
 
       IF(MADAER <= 0) GO TO 150
@@ -2975,24 +2996,6 @@ C-----------------
 
   500 CONTINUE
 
-#if (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
-#ifdef TRACERS_AMP
-      CALL SETAMP(EXT,SCT,GCB,TAB)
-#endif
-#ifdef TRACERS_TOMAS
-      CALL SETTOMAS(EXT,SCT,GCB,TAB)
-#endif
-!radiation has 3 extra levels on the top - aerosols are zero
-c SW
-      SRBEXT(L1:LM,:) = EXT(L1:LM,:)
-      SRBSCT(L1:LM,:) = SCT(L1:LM,:)
-      SRBGCB(L1:LM,:) = GCB(L1:LM,:)
-c LW
-      TRBALK(L1:LM,:) = TAB(L1:LM,:)
-#endif
-
-#ifndef TRACERS_TOMAS
-#ifndef TRACERS_AMP
       IF(NTRACE <= 0) RETURN
 
 C     ------------------------------------------------------------------
