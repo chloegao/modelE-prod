@@ -135,7 +135,7 @@ def nPE(runMPI, endTime, npes):
         return
 
     logger.debug('Compare '+fileSER+' '+fileMPI)
-    n = getNumDiffs(run, fileSER, fileMPI)
+    n = getNumDiffs(runMPI, fileSER, fileMPI)
     if n == '0':
         runMPI.results[7] = runMPI.successMark
     else:
