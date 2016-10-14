@@ -661,12 +661,12 @@ C Define and alter resulting photolysis coefficients (zj --> ss):
               else
                 ss(inss,L,I,J)=ss(inss,L,I,J)*sphericalCorrectionReg4
               end if
-            end if
-            ! Then apply linear corrections for same reactions:
-            if(inss == rj%O2__O_O) then
-              ss(inss,L,I,J)=ss(inss,L,I,J)*windowO2corr
-            elseif(inss == rj%N2O__M_O1D) then
-              ss(inss,L,I,J)=ss(inss,L,I,J)*windowN2Ocorr
+              ! Then apply linear corrections for same reactions:
+              if(inss == rj%O2__O_O) then
+                ss(inss,L,I,J)=ss(inss,L,I,J)*windowO2corr
+              else if(inss == rj%N2O__M_O1D) then
+                ss(inss,L,I,J)=ss(inss,L,I,J)*windowN2Ocorr
+              end if
             end if
 #endif /* not defined to skip */
           enddo
@@ -2567,31 +2567,27 @@ C**** Local parameters and variables and arguments:
         pcon=y(nM,L)*ta(L)*cboltz/1013.d0
         do jj=1,n_bi+n_nst             ! bimolecular rates start
           rr(jj,L)=pe(jj)*exp(-ea(jj)*byta)
-c         for rrbi%O1D_M__O_M, M is really N2
-          if(jj == rrbi%O1D_M__O_M) rr(jj,L)=rr(jj,L)*pN2
-c         for rrbi%CH4_OH__H2O_CH3O2, k based on three-parameters from JPL2011
-          if(jj == rrbi%CH4_OH__H2O_CH3O2)
-     &      rr(jj,L)=rr(jj,L)*(ta(L)**0.667)
+          if (jj==rrbi%O1D_M__O_M) then
+!           M is really N2
+            rr(jj,L)=rr(jj,L)*pN2
+          else if (jj==rrbi%CH4_OH__H2O_CH3O2
 #ifdef TRACERS_dCO
-c         for rrbi%CH4_OH__H2O_dCH317O2, k based on three-parameters from JPL2011
-          if(jj == rrbi%CH4_OH__H2O_dCH317O2)
-     &      rr(jj,L)=rr(jj,L)*(ta(L)**0.667)
-c         for rrbi%CH4_OH__H2O_dCH318O2, k based on three-parameters from JPL2011
-          if(jj == rrbi%CH4_OH__H2O_dCH318O2)
-     &      rr(jj,L)=rr(jj,L)*(ta(L)**0.667)
-c         for rrbi%CH4_OH__H2O_d13CH3O2, k based on three-parameters from JPL2011
-          if(jj == rrbi%CH4_OH__H2O_d13CH3O2)
-     &      rr(jj,L)=rr(jj,L)*(ta(L)**0.667)
+     &        .or. jj==rrbi%CH4_OH__H2O_dCH317O2
+     &        .or. jj==rrbi%CH4_OH__H2O_dCH318O2
+     &        .or. jj==rrbi%CH4_OH__H2O_d13CH3O2
 #endif  /* TRACERS_dCO */
-c         for rrbi%CO_OH__HO2_O2, k= based on termolecular reaction from JPL2011
-c         (see paged 185-188 and note D1)
-          if(jj == rrbi%CO_OH__HO2_O2
+     &           ) then
+!           based on three-parameters from JPL2011
+            rr(jj,L)=rr(jj,L)*(ta(L)**0.667)
+          else if (jj==rrbi%CO_OH__HO2_O2
 #ifdef TRACERS_dCO
-     &       .or. jj == rrbi%dC17O_OH__HO2_O2
-     &       .or. jj == rrbi%dC18O_OH__HO2_O2
-     &       .or. jj == rrbi%d13CO_OH__HO2_O2
+     &        .or. jj==rrbi%dC17O_OH__HO2_O2
+     &        .or. jj==rrbi%dC18O_OH__HO2_O2
+     &        .or. jj==rrbi%d13CO_OH__HO2_O2
 #endif  /* TRACERS_dCO */
-     &      ) then
+     &           ) then
+!           based on termolecular reaction from JPL2011
+!           (see pages 185-188 and note D1)
             k0TM=y(nM,L)*pe(jj)*((300.d0*byta)**1.4)
             kinfT=1.1d-12*(300.d0*byta)**(-1.3)
             dd=k0TM/kinfT
@@ -2606,36 +2602,37 @@ c         (see paged 185-188 and note D1)
             pp=0.6d0**(1.d0/(1.d0+(log10(dd))**2.))
             activationReaction=(k0T/(1.d0+dd))*pp
             rr(jj,L)=associationReaction+activationReaction
-          end if
-c         for reaction rrbi%HO2_HO2__H2O2_O2, k=(kc+kp)fw, kc=rr
-          if(jj == rrbi%HO2_HO2__H2O2_O2)then
+          else if (jj==rrbi%HO2_HO2__H2O2_O2) then
+!           k=(kc+kp)fw, kc=rr
             rkp=2.1d-33*y(nM,L)*exp(920.d0*byta)
             fw=(1.d0+1.4d-21*y(nH2O,L)*exp(2200.d0*byta))
             rr(jj,L)=(rr(jj,L)+rkp)*fw
-          end if
-c         for rrbi%OH_HNO3__H2O_NO3, k=[pe*exp(-e(jj)/ta(l))]+k3[M]/(1+k3[M]/k2)
-          if(jj == rrbi%OH_HNO3__H2O_NO3)then
+          else if (jj==rrbi%OH_HNO3__H2O_NO3) then
+!           k=[pe*exp(-e(jj)/ta(l))]+k3[M]/(1+k3[M]/k2)
             rk3M=y(nM,l)*6.5d-34*exp(1335.d0*byta)
             rk2=2.7d-17*exp(2199.d0*byta)
             rr(jj,L)=rr(jj,L)+rk3M/(1.d0+(rk3M/rk2))
-          end if
-!         PAN+M really PAN
-          if(jj == rrbi%PAN_M__C2O3_NO2)rr(jj,L)=rr(jj,L)/y(nM,L)
-!         ROR+M really ROR
-          if(jj == rrbi%ROR_M__Aldehyde_HO2)rr(jj,L)=rr(jj,L)/y(nM,L)
-!         for rrbi%HO2_NO__OH_NO2 and rrbi%HO2_NO__HNO3_M (HO2+NO)
-!         calculate branching ratio here Butkovskaya et al J.Phys.Chem 2007
-          if (jj == rrbi%HO2_NO__OH_NO2 .or.
-     &        jj == rrbi%HO2_NO__HNO3_M) then
+          else if (jj==rrbi%PAN_M__C2O3_NO2) then
+!           PAN+M really PAN
+            rr(jj,L)=rr(jj,L)/y(nM,L)
+          else if (jj==rrbi%ROR_M__Aldehyde_HO2) then
+!           ROR+M really ROR
+            rr(jj,L)=rr(jj,L)/y(nM,L)
+          else if (jj==rrbi%HO2_NO__OH_NO2
+     &        .or. jj==rrbi%HO2_NO__HNO3_M) then
+!           calculate branching ratio here Butkovskaya et al J.Phys.Chem 2007
             waterPPMV=1.d6*y(nH2O,L)/y(nM,L)
             if(ta(L)<298.d0 .and. waterPPMV > 100.)then
               beta=(530.d0*byta + 6.4d-4*pcon*760.d0 - 1.73d0)*1.d-2
             else
               beta=0.d0
             endif
-            if(jj == rrbi%HO2_NO__HNO3_M)rr(jj,L)=rr(jj,L)*beta
-            if(jj == rrbi%HO2_NO__OH_NO2)rr(jj,L)=rr(jj,L)*(1.d0-beta)
-          endif ! HO2 + NO end
+            if (jj==rrbi%HO2_NO__HNO3_M) then
+                rr(jj,L)=rr(jj,L)*beta
+            else if (jj==rrbi%HO2_NO__OH_NO2) then
+                rr(jj,L)=rr(jj,L)*(1.d0-beta)
+            end if
+          end if
         end do                ! bimolecular rates end
                            
         ! here we USED TO tune rr for N2O+O(1D)-->N2+O2 and N2O+O(1D)-->NO+NO
