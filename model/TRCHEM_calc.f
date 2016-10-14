@@ -206,10 +206,12 @@ c photolytic production:
 
 c Add additional Cl from CFC photolysis + background :
       do L=1,maxL
-        prod(nn_ClOx,L)=prod(nn_ClOx,L)+0.33d0*photrate(26,L)+
-     &  7.5d-3*photrate(28,L)
-        prod(nn_BrOx,L)=prod(nn_BrOx,L)+5.55d-4*photrate(26,L)+
-     &  5.2d-6*photrate(28,L)
+        prod(nn_ClOx,L)=prod(nn_ClOx,L)
+     &    +0.33d0*photrate(rj%CFC__Cl_O2,L)
+     &    +7.5d-3*photrate(rj%N2O__M_O1D,L)
+        prod(nn_BrOx,L)=prod(nn_BrOx,L)
+     &    +5.55d-4*photrate(rj%CFC__Cl_O2,L)
+     &    +5.2d-6*photrate(rj%N2O__M_O1D,L)
       end do
 
 c Oxidation of Isoprene and Alkenes produces less than one
@@ -869,7 +871,7 @@ c If NOx in equil with N2O5, HO2NO2, or PAN, remove from changes:
      &      +2.d0*chemrate(rrtri%NO3_NO2__N2O5_M,L)
           prod(nn_NOx,L)=prod(nn_NOx,L)
      &      -2.d0*(chemrate(rrmono%N2O5_M__NO3_NO2,L)
-     &    +photrate(7,L))
+     &      +photrate(rj%N2O5__NO3_NO2,L))
         endif
         if(-dest(nn_HO2NO2,L) >= y(nn_HO2NO2,L) .or.
      &  chemrate(rrtri%HO2_NO2__HO2NO2_M,L) > y(nn_NOx,L))then
@@ -878,8 +880,8 @@ c If NOx in equil with N2O5, HO2NO2, or PAN, remove from changes:
           prod(nn_NOx,L)=prod(nn_NOx,L)
      &      -(chemrate(rrbi%OH_HO2NO2__H2O_NO2,L)
      &        +chemrate(rrmono%HO2NO2_M__HO2_NO2,L)
-     &        +photrate(10,L)
-     &        +photrate(11,L))
+     &        +photrate(rj%HO2NO2__HO2_NO2,L)
+     &        +photrate(rj%HO2NO2__OH_NO3,L))
         endif
         if(-dest(nn_PAN,L) >= y(nn_PAN,L) .or.
      &  chemrate(rrtri%C2O3_NO2__PAN_M,L) > y(nn_NOx,L))then
@@ -887,7 +889,7 @@ c If NOx in equil with N2O5, HO2NO2, or PAN, remove from changes:
      &      +chemrate(rrtri%C2O3_NO2__PAN_M,L)
           prod(nn_NOx,L)=prod(nn_NOx,L)
      &      -(chemrate(rrbi%PAN_M__C2O3_NO2,L)
-     &      +photrate(15,L))
+     &      +photrate(rj%PAN__C2O3_NO2,L))
         end if
         
 c If BrOx in equil with HOBr or BrONO2, remove from changes:
@@ -895,16 +897,19 @@ c If BrOx in equil with HOBr or BrONO2, remove from changes:
      &  chemrate(rrbi%BrO_HO2__HOBr_O2,L) > 0.5d0*y(nn_BrOx,L))then
           dest(nn_BrOx,L)=dest(nn_BrOx,L)
      &      +chemrate(rrbi%BrO_HO2__HOBr_O2,L)
-          prod(nn_BrOx,L)=prod(nn_BrOx,L)-photrate(24,L)
+          prod(nn_BrOx,L)=prod(nn_BrOx,L)
+     &      -photrate(rj%HOBr__Br_OH,L)
         endif
         if(-dest(nn_BrONO2,L) >= y(nn_BrONO2,L).or.
      &  chemrate(rrtri%BrO_NO2__BrONO2_M,L) > 0.5d0*y(nn_BrOx,L))then
           dest(nn_BrOx,L)=dest(nn_BrOx,L)
      &      +chemrate(rrtri%BrO_NO2__BrONO2_M,L)
-          prod(nn_BrOx,L)=prod(nn_BrOx,L)-photrate(23,L)
+          prod(nn_BrOx,L)=prod(nn_BrOx,L)
+     &      -photrate(rj%BrONO2__BrO_NO2,L)
           dest(nn_NOx,L)=dest(nn_NOx,L)
      &      +chemrate(rrtri%BrO_NO2__BrONO2_M,L)
-          prod(nn_NOx,L)=prod(nn_NOx,L)-photrate(23,L)
+          prod(nn_NOx,L)=prod(nn_NOx,L)
+     &      -photrate(rj%BrONO2__BrO_NO2,L)
         end if
         
 c If ClOx in equil with HOCl or ClONO2, remove from changes:
@@ -913,7 +918,7 @@ c If ClOx in equil with HOCl or ClONO2, remove from changes:
           dest(nn_ClOx,L)=dest(nn_ClOx,L)
      &      +chemrate(rrbi%ClO_HO2__HOCl_O2,L)
           prod(nn_ClOx,L)=prod(nn_ClOx,L)
-     &      -(photrate(21,L)
+     &      -(photrate(rj%HOCl__OH_Cl,L)
      &      +chemrate(rrbi%O_HOCl__OH_ClO,L))
         endif
         if(-dest(nn_ClONO2,L) >= y(nn_ClONO2,L) .or.
@@ -921,12 +926,12 @@ c If ClOx in equil with HOCl or ClONO2, remove from changes:
           dest(nn_ClOx,L)=dest(nn_ClOx,L)
      &      +chemrate(rrtri%ClO_NO2__ClONO2_M,L)
           prod(nn_ClOx,L)=prod(nn_ClOx,L)
-     &      -(photrate(22,L)
+     &      -(photrate(rj%ClONO2__Cl_NO3,L)
      &      +chemrate(rrbi%ClONO2_O__ClO_NO3,L))
           dest(nn_NOx,L)=dest(nn_NOx,L)
      &      +chemrate(rrtri%ClO_NO2__ClONO2_M,L)
           prod(nn_NOx,L)=prod(nn_NOx,L)
-     &      -(photrate(22,L)
+     &      -(photrate(rj%ClONO2__Cl_NO3,L)
      &      +chemrate(rrbi%ClONO2_O__ClO_NO3,L))
         end if
       end do
