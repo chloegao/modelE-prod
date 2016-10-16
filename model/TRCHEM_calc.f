@@ -39,6 +39,8 @@ C
      &                   yROR,nCH3O2,nC2O3,nXO2,nXO2N,nRXPAR,
      &                   nAldehyde,nROR,nn,dt2,dest,prod,
 #ifdef TRACERS_dCO
+     &                   yd17Oald,yd18Oald,yd13Cald,
+     &                   nd17Oald,nd18Oald,nd13Cald,
      &                   ydCH317O2,ydCH318O2,yd13CH3O2,
      &                   ndCH317O2,ndCH318O2,nd13CH3O2,
 #endif  /* TRACERS_dCO */
@@ -169,6 +171,11 @@ C**** Local parameters and variables and arguments:
         y(nXO2N,L)    =     yXO2N(I,J,L)
         y(nRXPAR,L)   =    yRXPAR(I,J,L)
         y(nAldehyde,L)= yAldehyde(I,J,L)
+#ifdef TRACERS_dCO
+        y(nd17Oald,L) = yd17Oald(I,J,L)
+        y(nd18Oald,L) = yd18Oald(I,J,L)
+        y(nd13Cald,L) = yd13Cald(I,J,L)
+#endif  /* TRACERS_dCO */
         y(nROR,L)     =      yROR(I,J,L)
       end do
       do L=maxT+1,maxL
@@ -183,6 +190,11 @@ C**** Local parameters and variables and arguments:
         y(nXO2N,L)    = 0.d0
         y(nRXPAR,L)   = 0.d0
         y(nAldehyde,L)= 0.d0
+#ifdef TRACERS_dCO
+        y(nd17Oald,L) = 0.d0
+        y(nd18Oald,L) = 0.d0
+        y(nd13Cald,L) = 0.d0
+#endif  /* TRACERS_dCO */
         y(nROR,L)     = 0.d0
       end do
 C
@@ -824,6 +836,76 @@ c       Check for equilibrium:
           y(nAldehyde,L)=(Aldehydeprod/(Aldehydedest+0.5d-5))
         end if
         yAldehyde(I,J,L)=y(nAldehyde,L)
+
+#ifdef TRACERS_dCO
+c       Set value for d17Oald:
+!ok to overwrite here Aldehydeprod,Aldehydedest,changeAldehyde
+        Aldehydeprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
+     &      *y(nOH,L)*0.11d0
+     &    +rr(rrbi%Alkenes_OH__HCHO_HO2,L)*y(nn_Alkenes,L)*y(nOH,L)
+     &    +rr(rrbi%ROR_M__d17Oald_HO2,L)*yROR(I,J,L)*1.1d0
+     &    +rr(rrbi%Alkenes_O3__HCHO_CO,L)*y(nn_Alkenes,L)
+     &      *y(nO3,L)*0.44d0
+        Aldehydedest=rr(rrbi%d17Oald_OH__C2O3_M,L)*y(nOH,L)
+     &    +ss(rj%d17Oald__dHCH17O_dC17O,L,I,J)
+c       Check for equilibrium:
+        if(Aldehydedest*y(nd17Oald,L)*dt2 < y(nd17Oald,L))then
+          changeAldehyde=
+     &    (Aldehydeprod-y(nd17Oald,L)*Aldehydedest)*dt2
+          if(changeAldehyde > y(nd17Oald,L))
+     &    changeAldehyde=y(nd17Oald,L)
+          y(nd17Oald,L)=y(nd17Oald,L)+changeAldehyde
+          if(y(nd17Oald,L) < 0.d0) y(nd17Oald,L)=1.d0
+        else
+          y(nd17Oald,L)=(Aldehydeprod/(Aldehydedest+0.5d-5))
+        end if
+        yd17Oald(I,J,L)=y(nd17Oald,L)
+
+c       Set value for d18Oald:
+        Aldehydeprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
+     &      *y(nOH,L)*0.11d0
+     &    +rr(rrbi%Alkenes_OH__HCHO_HO2,L)*y(nn_Alkenes,L)*y(nOH,L)
+     &    +rr(rrbi%ROR_M__d18Oald_HO2,L)*yROR(I,J,L)*1.1d0
+     &    +rr(rrbi%Alkenes_O3__HCHO_CO,L)*y(nn_Alkenes,L)
+     &      *y(nO3,L)*0.44d0
+        Aldehydedest=rr(rrbi%d18Oald_OH__C2O3_M,L)*y(nOH,L)
+     &    +ss(rj%d18Oald__dHCH18O_dC18O,L,I,J)
+c       Check for equilibrium:
+        if(Aldehydedest*y(nd18Oald,L)*dt2 < y(nd18Oald,L))then
+          changeAldehyde=
+     &    (Aldehydeprod-y(nd18Oald,L)*Aldehydedest)*dt2
+          if(changeAldehyde > y(nd18Oald,L))
+     &    changeAldehyde=y(nd18Oald,L)
+          y(nd18Oald,L)=y(nd18Oald,L)+changeAldehyde
+          if(y(nd18Oald,L) < 0.d0) y(nd18Oald,L)=1.d0
+        else
+          y(nd18Oald,L)=(Aldehydeprod/(Aldehydedest+0.5d-5))
+        end if
+        yd18Oald(I,J,L)=y(nd18Oald,L)
+
+c       Set value for d13Cald:
+        Aldehydeprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
+     &      *y(nOH,L)*0.11d0
+     &    +rr(rrbi%Alkenes_OH__HCHO_HO2,L)*y(nn_Alkenes,L)*y(nOH,L)
+     &    +rr(rrbi%ROR_M__d13Cald_HO2,L)*yROR(I,J,L)*1.1d0
+     &    +rr(rrbi%Alkenes_O3__HCHO_CO,L)*y(nn_Alkenes,L)
+     &      *y(nO3,L)*0.44d0
+        Aldehydedest=rr(rrbi%d13Cald_OH__C2O3_M,L)*y(nOH,L)
+     &    +ss(rj%d13Cald__dH13CHO_d13CO,L,I,J)
+c       Check for equilibrium:
+        if(Aldehydedest*y(nd13Cald,L)*dt2 < y(nd13Cald,L))then
+          changeAldehyde=
+     &    (Aldehydeprod-y(nd13Cald,L)*Aldehydedest)*dt2
+          if(changeAldehyde > y(nd13Cald,L))
+     &    changeAldehyde=y(nd13Cald,L)
+          y(nd13Cald,L)=y(nd13Cald,L)+changeAldehyde
+          if(y(nd13Cald,L) < 0.d0) y(nd13Cald,L)=1.d0
+        else
+          y(nd13Cald,L)=(Aldehydeprod/(Aldehydedest+0.5d-5))
+        end if
+        yd13Cald(I,J,L)=y(nd13Cald,L)
+
+#endif  /* TRACERS_dCO */
 
 c       Set value for ROR:
         RORprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
@@ -2076,6 +2158,20 @@ c Print chemical changes in a particular grid box if desired:
      &    ' Aldehyde:',y(nAldehyde,LPRN),(y(nAldehyde,LPRN)/
      &    y(nM,LPRN))*1.d9,' ppbv'
           call write_parallel(trim(out_line),crit=jay)
+#ifdef TRACERS_dCO
+          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &    ' d17Oald :',y(nd17Oald,LPRN),(y(nd17Oald,LPRN)/
+     &    y(nM,LPRN))*1.d9,' ppbv'
+          call write_parallel(trim(out_line),crit=jay)
+          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &    ' d18Oald :',y(nd18Oald,LPRN),(y(nd18Oald,LPRN)/
+     &    y(nM,LPRN))*1.d9,' ppbv'
+          call write_parallel(trim(out_line),crit=jay)
+          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &    ' d13Cald :',y(nd13Cald,LPRN),(y(nd13Cald,LPRN)/
+     &    y(nM,LPRN))*1.d9,' ppbv'
+          call write_parallel(trim(out_line),crit=jay)
+#endif  /* TRACERS_dCO */
           write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
      &    ' ROR     :',y(nROR,LPRN),(y(nROR,LPRN)/
      &    y(nM,LPRN))*1.d9,' ppbv'
@@ -2436,7 +2532,7 @@ c       skip same reaction if written twice:
      &                  255)
 
       dCOrji=rj%dHCH17O__dC17O_H2
-      dCOrje=rj%Aldehyde__HCHO_d13CO
+      dCOrje=rj%d13Cald__dH13CHO_d13CO
       if (dCOrje-dCOrji+1 /= n_rj_dCO)
      &  call stop_model('ERROR: Check the first and last dCO photolyses'
      &                 ,255)

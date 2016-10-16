@@ -136,7 +136,7 @@ C**** Local parameters and variables and arguments:
 !@var PIfact strat-overwrite scaling
 !@var pfactor to convert units on species chemical changes
 !@var bypfactor to convert units on species chemical changes
-!@var dNO3,gwprodHNO3,gprodHNO3,gwprodN2O5,changeAldehyde,
+!@var dNO3,gwprodHNO3,gwprodN2O5,changeAldehyde,
 !@+   changeAlkenes,changeIsoprene,changeHCHO,changeAlkylNit,
 !@+   changeTerpenes,changeisopp1g,changeisopp2g,changeapinp1g,
 !@+   changeapinp2g,changeHNO3,changeNOx,changeN2O5,wprodHCHO
@@ -156,8 +156,10 @@ C**** Local parameters and variables and arguments:
       REAL*8, DIMENSION(LM) :: PRES2 ! keep LM; based on PMIDL00(:)
       REAL*8 :: FACT1,FACT2,FACT3,FACT4,FACT5,FACT6,FACT7,fact_so4,
      &  FASTJ_PFACT,bydtsrc,byavog,CH4FACT,r179,rlossN,maxPSC,
-     &  rprodN,ratioN,pfactor,bypfactor,gwprodHNO3,gprodHNO3,
+     &  rprodN,ratioN,pfactor,bypfactor,gwprodHNO3,
 #ifdef TRACERS_dCO
+     &  changed17Oald,changed18Oald,changed13Cald,
+     &  rd17OaldplusNO3,rd18OaldplusNO3,rd13CaldplusNO3,
      &  gwprodHNO3dHCH17O,gwprodHNO3dHCH18O,gwprodHNO3dH13CHO,
 #endif  /* TRACERS_dCO */
      &  gwprodN2O5,wprod_sulf,wprodCO,dNO3,wprodHCHO,prod_sulf,
@@ -559,8 +561,18 @@ c - set reactive species for use in family chemistry & nighttime NO2:
 
        if(Itime == ItimeI .and. allowSomeChemReinit == 1)then 
          y(nAldehyde,L)=y(nM,L)*pfix_Aldehyde
+#ifdef TRACERS_dCO
+         y(nd17Oald,L)=y(nM,L)*pfix_d17Oald
+         y(nd18Oald,L)=y(nM,L)*pfix_d18Oald
+         y(nd13Cald,L)=y(nM,L)*pfix_d13Cald
+#endif  /* TRACERS_dCO */
        else
          y(nAldehyde,L)=yAldehyde(I,J,L)
+#ifdef TRACERS_dCO
+         y(nd17Oald,L)=yd17Oald(I,J,L)
+         y(nd18Oald,L)=yd18Oald(I,J,L)
+         y(nd13Cald,L)=yd13Cald(I,J,L)
+#endif  /* TRACERS_dCO */
        endif
        yNO3(I,J,L)   =pNO3(I,J,L)*y(nn_NOx,L)
        y(nNO2,L)     =y(nn_NOx,L)*pNOx(I,J,L)
@@ -667,6 +679,17 @@ C Define and alter resulting photolysis coefficients (zj --> ss):
               else if(inss == rj%N2O__M_O1D) then
                 ss(inss,L,I,J)=ss(inss,L,I,J)*windowN2Ocorr
               end if
+#ifdef TRACERS_dCO
+#ifndef TRACERS_dCO_bin_reprod
+            else if(inss == rj%d17Oald__dHCH17O_dC17O
+     &         .or. inss == rj%d18Oald__dHCH18O_dC18O
+     &         .or. inss == rj%d13Cald__dH13CHO_d13CO
+     &             ) then
+              ! the yield is half, since one isotopically labeled atom
+              ! is assumed to exist in each aldehyde, not two
+              ss(inss,L,I,J)=ss(inss,L,I,J)*0.5d0
+#endif  /* not TRACERS_dCO_bin_reprod */
+#endif  /* TRACERS_dCO */
             end if
 #endif /* not defined to skip */
           enddo
@@ -982,6 +1005,11 @@ c       paths if lead to negative conc:
      &      *yNO3(I,J,L)*dt2
 #endif  /* TRACERS_dCO */
         rAldplusNO3=2.5d-15*yAldehyde(I,J,L)*yNO3(I,J,L)*dt2
+#ifdef TRACERS_dCO
+        rd17OaldplusNO3=2.5d-15*yd17Oald(I,J,L)*yNO3(I,J,L)*dt2
+        rd18OaldplusNO3=2.5d-15*yd18Oald(I,J,L)*yNO3(I,J,L)*dt2
+        rd13CaldplusNO3=2.5d-15*yd13Cald(I,J,L)*yNO3(I,J,L)*dt2
+#endif  /* TRACERS_dCO */
         rIsopplusNO3=rr(rrbi%Isoprene_NO3__HO2_Alkenes,L)
      &    *y(nn_Isoprene,L)*yNO3(I,J,L)*dt2
 #ifdef TRACERS_TERP
@@ -1020,12 +1048,15 @@ c       Examine prod and loss of NOx
           if(wlossNOx==0.)call stop_model('wlossNOx=0',255)
           ratioN=0.99d0*(y(nn_NOx,L)+wprodNOx)/wlossNOx
           rHCHOplusNO3=rHCHOplusNO3*ratioN
+          rAldplusNO3=rAldplusNO3*ratioN
 #ifdef TRACERS_dCO
           rdHCH17OplusNO3=rdHCH17OplusNO3*ratioN
           rdHCH18OplusNO3=rdHCH18OplusNO3*ratioN
           rdH13CHOplusNO3=rdH13CHOplusNO3*ratioN
+          rd17OaldplusNO3=rd17OaldplusNO3*ratioN
+          rd18OaldplusNO3=rd18OaldplusNO3*ratioN
+          rd13CaldplusNO3=rd13CaldplusNO3*ratioN
 #endif  /* TRACERS_dCO */
-          rAldplusNO3=rAldplusNO3*ratioN
           rNO3plusNO2=rNO3plusNO2*ratioN
           rIsopplusNO3=rIsopplusNO3*ratioN
 #ifdef TRACERS_TERP
@@ -1060,15 +1091,14 @@ C Alkenes, Isoprene, Terpenes (if used) and AlkylNit:
 
         gwprodHNO3=rHCHOplusNO3+rAldplusNO3
         if(gwprodHNO3 > y(nn_HCHO,L))gwprodHNO3=y(nn_HCHO,L)
-        gprodHNO3=gwprodHNO3*pfactor
 #ifdef TRACERS_dCO
-        gwprodHNO3dHCH17O=rdHCH17OplusNO3+rAldplusNO3*dCOfact
+        gwprodHNO3dHCH17O=rdHCH17OplusNO3+rd17OaldplusNO3*dCOfact
         if(gwprodHNO3dHCH17O > y(nn_dHCH17O,L))
      &    gwprodHNO3dHCH17O=y(nn_dHCH17O,L)
-        gwprodHNO3dHCH18O=rdHCH18OplusNO3+rAldplusNO3*dCOfact
+        gwprodHNO3dHCH18O=rdHCH18OplusNO3+rd18OaldplusNO3*dCOfact
         if(gwprodHNO3dHCH18O > y(nn_dHCH18O,L))
      &    gwprodHNO3dHCH18O=y(nn_dHCH18O,L)
-        gwprodHNO3dH13CHO=rdH13CHOplusNO3+rAldplusNO3*dCOfact
+        gwprodHNO3dH13CHO=rdH13CHOplusNO3+rd13CaldplusNO3*dCOfact
         if(gwprodHNO3dH13CHO > y(nn_dH13CHO,L))
      &    gwprodHNO3dH13CHO=y(nn_dH13CHO,L)
 #endif  /* TRACERS_dCO */
@@ -1084,6 +1114,41 @@ C Alkenes, Isoprene, Terpenes (if used) and AlkylNit:
      &    )*yNO3(I,J,L)*dt2
         if(-changeAldehyde > 0.75d0*yAldehyde(I,J,L))changeAldehyde=
      &  -0.75d0*yAldehyde(I,J,L)
+#ifdef TRACERS_dCO
+        changed17Oald=(rr(rrbi%Alkenes_NO3__HCHO_NO2,L)*y(nn_Alkenes,L)
+     &      +rr(rrbi%Isoprene_NO3__HO2_Alkenes,L)*y(nn_Isoprene,L)
+     &        *0.12d0
+#ifdef TRACERS_TERP
+     &      +rr(rrbi%Terpenes_NO3__HO2_Alkenes,L)*y(nn_Terpenes,L)
+     &        *0.12d0
+#endif  /* TRACERS_TERP */
+     &      -2.5d-15*yd17Oald(I,J,L)
+     &    )*yNO3(I,J,L)*dt2
+        if(-changed17Oald > 0.75d0*yd17Oald(I,J,L))changed17Oald=
+     &  -0.75d0*yd17Oald(I,J,L)
+        changed18Oald=(rr(rrbi%Alkenes_NO3__HCHO_NO2,L)*y(nn_Alkenes,L)
+     &      +rr(rrbi%Isoprene_NO3__HO2_Alkenes,L)*y(nn_Isoprene,L)
+     &        *0.12d0
+#ifdef TRACERS_TERP
+     &      +rr(rrbi%Terpenes_NO3__HO2_Alkenes,L)*y(nn_Terpenes,L)
+     &        *0.12d0
+#endif  /* TRACERS_TERP */
+     &      -2.5d-15*yd18Oald(I,J,L)
+     &    )*yNO3(I,J,L)*dt2
+        if(-changed18Oald > 0.75d0*yd18Oald(I,J,L))changed18Oald=
+     &  -0.75d0*yd18Oald(I,J,L)
+        changed13Cald=(rr(rrbi%Alkenes_NO3__HCHO_NO2,L)*y(nn_Alkenes,L)
+     &      +rr(rrbi%Isoprene_NO3__HO2_Alkenes,L)*y(nn_Isoprene,L)
+     &        *0.12d0
+#ifdef TRACERS_TERP
+     &      +rr(rrbi%Terpenes_NO3__HO2_Alkenes,L)*y(nn_Terpenes,L)
+     &        *0.12d0
+#endif  /* TRACERS_TERP */
+     &      -2.5d-15*yd13Cald(I,J,L)
+     &    )*yNO3(I,J,L)*dt2
+        if(-changed13Cald > 0.75d0*yd13Cald(I,J,L))changed13Cald=
+     &  -0.75d0*yd13Cald(I,J,L)
+#endif  /* TRACERS_dCO */
 
         changeAlkenes=(rr(rrbi%Isoprene_NO3__HO2_Alkenes,L)
      &        *y(nn_Isoprene,L)*0.45d0
@@ -1315,6 +1380,11 @@ C Apply Alkenes, AlkyNit, and Aldehyde changes here:
         y(nn_Alkenes,L)  =y(nn_Alkenes,L)  +changeAlkenes
         y(nn_AlkylNit,L) =y(nn_AlkylNit,L) +changeAlkylNit
         yAldehyde(I,J,L)=yAldehyde(I,J,L)+changeAldehyde
+#ifdef TRACERS_dCO
+        yd17Oald(I,J,L)=yd17Oald(I,J,L)+changed17Oald
+        yd18Oald(I,J,L)=yd18Oald(I,J,L)+changed18Oald
+        yd13Cald(I,J,L)=yd13Cald(I,J,L)+changed13Cald
+#endif  /* TRACERS_dCO */
 
 #ifdef TRACERS_AEROSOLS_SOA
         y(nn_isopp1g,L)  =y(nn_isopp1g,L)  +changeisopp1g
@@ -2295,6 +2365,23 @@ CCCCCCCCCCCCC PRINT SOME CHEMISTRY DIAGNOSTICS CCCCCCCCCCCCCCCC
      &    100.d0*(changeAldehyde)/yAldehyde(I,J,L),' percent of'
      &    ,yAldehyde(I,J,L),'(',1.d9*yAldehyde(I,J,L)/y(nM,L),' ppbv)'
           call write_parallel(trim(out_line),crit=jay)
+#ifdef TRACERS_dCO
+          write(out_line,198) 'd17Oald ',': ',
+     &    changed17Oald,' molecules produced; ',
+     &    100.d0*(changed17Oald)/yd17Oald(I,J,L),' percent of'
+     &    ,yd17Oald(I,J,L),'(',1.d9*yd17Oald(I,J,L)/y(nM,L),' ppbv)'
+          call write_parallel(trim(out_line),crit=jay)
+          write(out_line,198) 'd18Oald ',': ',
+     &    changed18Oald,' molecules produced; ',
+     &    100.d0*(changed18Oald)/yd18Oald(I,J,L),' percent of'
+     &    ,yd18Oald(I,J,L),'(',1.d9*yd18Oald(I,J,L)/y(nM,L),' ppbv)'
+          call write_parallel(trim(out_line),crit=jay)
+          write(out_line,198) 'd13Cald ',': ',
+     &    changed13Cald,' molecules produced; ',
+     &    100.d0*(changed13Cald)/yd13Cald(I,J,L),' percent of'
+     &    ,yd13Cald(I,J,L),'(',1.d9*yd13Cald(I,J,L)/y(nM,L),' ppbv)'
+          call write_parallel(trim(out_line),crit=jay)
+#endif  /* TRACERS_dCO */
           write(out_line,198) 'Alkenes ',': ',
      &    changeAlkenes,' molecules produced; ',
      &    100.d0*(changeAlkenes)/y(nn_Alkenes,L),' percent of'
@@ -2615,7 +2702,13 @@ C**** Local parameters and variables and arguments:
           else if (jj==rrbi%PAN_M__C2O3_NO2) then
 !           PAN+M really PAN
             rr(jj,L)=rr(jj,L)/y(nM,L)
-          else if (jj==rrbi%ROR_M__Aldehyde_HO2) then
+          else if (jj==rrbi%ROR_M__Aldehyde_HO2
+#ifdef TRACERS_dCO
+     &        .or. jj==rrbi%ROR_M__d17Oald_HO2
+     &        .or. jj==rrbi%ROR_M__d18Oald_HO2
+     &        .or. jj==rrbi%ROR_M__d13Cald_HO2
+#endif  /* TRACERS_dCO */
+     &            ) then
 !           ROR+M really ROR
             rr(jj,L)=rr(jj,L)/y(nM,L)
           else if (jj==rrbi%HO2_NO__OH_NO2
@@ -2632,6 +2725,14 @@ C**** Local parameters and variables and arguments:
             else if (jj==rrbi%HO2_NO__OH_NO2) then
                 rr(jj,L)=rr(jj,L)*(1.d0-beta)
             end if
+#ifdef TRACERS_dCO
+          else if (jj==rrbi%ROR_M__Aldehyde_HO2
+     &        .or. jj==rrbi%ROR_M__d18Oald_HO2
+     &        .or. jj==rrbi%ROR_M__d13Cald_HO2
+#endif  /* TRACERS_dCO */
+     &            ) then
+!           ROR+M really ROR
+            rr(jj,L)=rr(jj,L)*0.5d0
           end if
         end do                ! bimolecular rates end
                            

@@ -13,6 +13,7 @@ C**** GLOBAL parameters and variables:
      &    prnls,prnrts,prnchg,lprn,jprn,iprn,ay,pHOx,pOx,pNOx,
      &    yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yNO3,yRXPAR,yXO2N,acetone,
 #ifdef TRACERS_dCO
+     &    yd17Oald,yd18Oald,yd13Cald,
      &    ydCH317O2,ydCH318O2,yd13CH3O2,
 #endif  /* TRACERS_dCO */
      &    allowSomeChemReinit,pNO3,topLevelOfChemistry,nfam,ny
@@ -77,6 +78,11 @@ C Initialize a few (IM,JM,topLevelOfChemistry) arrays, first hour only:
         yROR(I_0:I_1,J_0:J_1,:)     =0.d0
         yXO2(I_0:I_1,J_0:J_1,:)     =0.d0
         yAldehyde(I_0:I_1,J_0:J_1,:)=0.d0
+#ifdef TRACERS_dCO
+        yd17Oald(I_0:I_1,J_0:J_1,:) =0.d0
+        yd18Oald(I_0:I_1,J_0:J_1,:) =0.d0
+        yd13Cald(I_0:I_1,J_0:J_1,:) =0.d0
+#endif  /* TRACERS_dCO */
         yNO3(I_0:I_1,J_0:J_1,:)     =0.d0
         yXO2N(I_0:I_1,J_0:J_1,:)    =0.d0
         yRXPAR(I_0:I_1,J_0:J_1,:)   =0.d0
@@ -95,7 +101,7 @@ C Initialize a few (IM,JM,topLevelOfChemistry) arrays, first hour only:
 #ifdef TRACERS_AEROSOLS_SOA
 #ifdef TRACERS_TERP
 #ifdef TRACERS_dCO
- 110  format(7(///10(a8)),(///4(a8)))
+ 110  format(7(///10(a8)),(///7(a8)))
 #else
  110  format(6(///10(a8)),(///2(a8)))
 #endif
