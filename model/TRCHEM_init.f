@@ -101,7 +101,7 @@ C Initialize a few (IM,JM,topLevelOfChemistry) arrays, first hour only:
 #ifdef TRACERS_AEROSOLS_SOA
 #ifdef TRACERS_TERP
 #ifdef TRACERS_dCO
- 110  format(7(///10(a8)),(///7(a8)))
+ 110  format(7(///10(a8)),(///10(a8)))
 #else
  110  format(6(///10(a8)),(///2(a8)))
 #endif
@@ -161,21 +161,31 @@ C
 C Read in the number of each type of reaction:
       call openunit('JPLRX',iu_data,.false.,.true.)
       read(iu_data,124)nr,nr2,nr3,nmm,nhet
-      if (nr /= n_rx)
-     &  call stop_model('ERROR: nr (from JPLRX) /= n_rx '//
+      if (nr /= n_rx) then
+        print*,'nr=',nr,' n_rx=',n_rx
+        call stop_model('ERROR: nr (from JPLRX) /= n_rx '//
      &                  '(from TRCHEM_Shindell_COM)', 255)
-      if (nr2 /= n_bi+n_nst)
-     &  call stop_model('ERROR: nr2 (from JPLRX) /= n_bi+n_nst '//
+      endif
+      if (nr2 /= n_bi+n_nst) then
+        print*,'nr2=',nr2,' n_bi=',n_bi,' n_nst=',n_nst
+        call stop_model('ERROR: nr2 (from JPLRX) /= n_bi+n_nst '//
      &                  '(from TRCHEM_Shindell_COM)', 255)
-      if (nr3 /= n_tri)
-     &  call stop_model('ERROR: nr3 (from JPLRX) /= n_tri '//
+      endif
+      if (nr3 /= n_tri) then
+        print*,'nr3=',nr3,' n_tri=',n_tri
+        call stop_model('ERROR: nr3 (from JPLRX) /= n_tri '//
      &                  '(from TRCHEM_Shindell_COM)', 255)
-      if (nmm /= n_nst)
-     &  call stop_model('ERROR: nmm (from JPLRX) /= n_nst '//
+      endif
+      if (nmm /= n_nst) then
+        print*,'nmm=',nmm,' n_nst=',n_nst
+        call stop_model('ERROR: nmm (from JPLRX) /= n_nst '//
      &                  '(from TRCHEM_Shindell_COM)', 255)
-      if (nhet /= n_het)
-     &  call stop_model('ERROR: nhet (from JPLRX) /= n_het '//
+      endif
+      if (nhet /= n_het) then
+        print*,'nhet=',nhet,' n_het=',n_het
+        call stop_model('ERROR: nhet (from JPLRX) /= n_het '//
      &                  '(from TRCHEM_Shindell_COM)', 255)
+      endif
       write(out_line,*)' '
       call write_parallel(trim(out_line))
       write(out_line,*) 'Chemical reactions used in the model: '

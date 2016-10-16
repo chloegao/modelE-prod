@@ -131,6 +131,7 @@ c
         integer :: dCH317O2_CH3O2__dHCH17O_HCHO=0
         integer :: CH3O2_dCH317O2__HCHO_dHCH17O=0
         integer :: NO3_dHCH17O__HNO3_dC17O=0
+        integer :: d17OPAN_M__C2O3_NO2=0
         integer :: Isoprene_OH__dHCH17O_Alkenes=0
         integer :: Isoprene_O3__dHCH17O_Alkenes=0
         integer :: Alkenes_OH__dHCH17O_HO2=0
@@ -160,6 +161,7 @@ c
         integer :: dCH318O2_CH3O2__dHCH18O_HCHO=0
         integer :: CH3O2_dCH318O2__HCHO_dHCH18O=0
         integer :: NO3_dHCH18O__HNO3_dC18O=0
+        integer :: d18OPAN_M__C2O3_NO2=0
         integer :: Isoprene_OH__dHCH18O_Alkenes=0
         integer :: Isoprene_O3__dHCH18O_Alkenes=0
         integer :: Alkenes_OH__dHCH18O_HO2=0
@@ -189,6 +191,7 @@ c
         integer :: d13CH3O2_CH3O2__dH13CHO_HCHO=0
         integer :: CH3O2_d13CH3O2__HCHO_dH13CHO=0
         integer :: NO3_dH13CHO__HNO3_d13CO=0
+        integer :: d13CPAN_M__C2O3_NO2=0
         integer :: Isoprene_OH__dH13CHO_Alkenes=0
         integer :: Isoprene_O3__dH13CHO_Alkenes=0
         integer :: Alkenes_OH__dH13CHO_HO2=0
@@ -223,6 +226,11 @@ c
         integer :: ClO_ClO__Cl2O2_M=0
         integer :: ClO_NO2__ClONO2_M=0
         integer :: BrO_NO2__BrONO2_M=0
+#ifdef TRACERS_dCO
+        integer :: C2O3_NO2__d17OPAN_M=0
+        integer :: C2O3_NO2__d18OPAN_M=0
+        integer :: C2O3_NO2__d13CPAN_M=0
+#endif  /* TRACERS_dCO */
       end type rrtri_index
 
       type rrhet_index
@@ -290,16 +298,18 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
 #endif  /* TRACERS_TERP */
 #ifdef TRACERS_dCO
      & ntm_dCO_nontransp = 6, ! number of non-transported dCO tracers
-     & n_bi_dCO = 84, ! number of dCO bimolecular reactions
-     & n_rj_dCO = 12, ! number of dCO photochemical reactions
+     & n_bi_dCO = 87, ! number of dCO bimolecular reactions
+     & n_tri_dCO = 3, ! number of dCO trimolecular reactions
+     & n_rj_dCO = 15, ! number of dCO photochemical reactions
 #else
      & ntm_dCO_nontransp = 0,
      & n_bi_dCO = 0,
+     & n_tri_dCO = 0,
      & n_rj_dCO = 0,
 #endif  /* TRACERS_dCO */
      & n_bi  =    91+n_bi_terp+n_bi_dCO,
      & n_nst =     3,
-     & n_tri =    11,
+     & n_tri =    11+n_tri_dCO,
      & n_het =     5,
      & n_rx  = n_bi+n_nst+n_tri+n_het,
      & ny     =   51+ntm_terp+ntm_soa+ntm_dCO+ntm_dCO_nontransp,
@@ -1061,6 +1071,8 @@ C**************  Not Latitude-Dependant ****************************
           rrbi%CH3O2_dCH317O2__HCHO_dHCH17O=irr
         case('NO3_dHCH17O__HNO3_dC17O')
           rrbi%NO3_dHCH17O__HNO3_dC17O=irr
+        case('d17OPAN_M__C2O3_NO2')
+          rrbi%d17OPAN_M__C2O3_NO2=irr
         case('Isoprene_OH__dHCH17O_Alkenes')
           rrbi%Isoprene_OH__dHCH17O_Alkenes=irr
         case('Isoprene_O3__dHCH17O_Alkenes')
@@ -1118,6 +1130,8 @@ C**************  Not Latitude-Dependant ****************************
           rrbi%CH3O2_dCH318O2__HCHO_dHCH18O=irr
         case('NO3_dHCH18O__HNO3_dC18O')
           rrbi%NO3_dHCH18O__HNO3_dC18O=irr
+        case('d18OPAN_M__C2O3_NO2')
+          rrbi%d18OPAN_M__C2O3_NO2=irr
         case('Isoprene_OH__dHCH18O_Alkenes')
           rrbi%Isoprene_OH__dHCH18O_Alkenes=irr
         case('Isoprene_O3__dHCH18O_Alkenes')
@@ -1175,6 +1189,8 @@ C**************  Not Latitude-Dependant ****************************
           rrbi%CH3O2_d13CH3O2__HCHO_dH13CHO=irr
         case('NO3_dH13CHO__HNO3_d13CO')
           rrbi%NO3_dH13CHO__HNO3_d13CO=irr
+        case('d13CPAN_M__C2O3_NO2')
+          rrbi%d13CPAN_M__C2O3_NO2=irr
         case('Isoprene_OH__dH13CHO_Alkenes')
           rrbi%Isoprene_OH__dH13CHO_Alkenes=irr
         case('Isoprene_O3__dH13CHO_Alkenes')
@@ -1236,6 +1252,14 @@ C**************  Not Latitude-Dependant ****************************
           rrtri%ClO_NO2__ClONO2_M=irr
         case('BrO_NO2__BrONO2_M')
           rrtri%BrO_NO2__BrONO2_M=irr
+#ifdef TRACERS_dCO
+        case('C2O3_NO2__d17OPAN_M')
+          rrtri%C2O3_NO2__d17OPAN_M=irr
+        case('C2O3_NO2__d18OPAN_M')
+          rrtri%C2O3_NO2__d18OPAN_M=irr
+        case('C2O3_NO2__d13CPAN_M')
+          rrtri%C2O3_NO2__d13CPAN_M=irr
+#endif  /* TRACERS_dCO */
 
 ! heterogeneous reactions
         case('N2O5_H2O__HNO3_HNO3')

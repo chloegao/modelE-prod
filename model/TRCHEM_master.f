@@ -38,7 +38,7 @@ c
       use OldTracer_mod, only: tr_wd_type, nWater
       USE TRACER_COM, only  : ntm_chem_beg, ntm_chem_end
       USE TRACER_COM, only  : n_Ox,n_NOx,n_N2O5,n_HNO3,n_H2O2,
-     &                      n_HCHO,n_HO2NO2,n_CO,n_CH4,n_PAN,
+     &                      n_HCHO,n_HO2NO2,n_CO,n_CH4,
      &                      n_Isoprene,n_AlkylNit,n_Alkenes,n_stratOx,
      &                      n_Terpenes,n_SO4,n_H2O2_s,oh_live,no3_live,
      &                      n_Paraffin,ntm_chem,n_DMS,n_MSA,n_SO2,
@@ -87,7 +87,7 @@ c
 
       use TRACER_COM, only: nn_CH4,  nn_N2O, nn_Ox,   nn_NOx, 
      &      nn_N2O5,   nn_HNO3,  nn_H2O2,  nn_HCHO,
-     &      nn_HO2NO2, nn_PAN,   nn_H2O17,             
+     &      nn_HO2NO2, nn_H2O17,             
      &      nn_Isoprene, nn_AlkylNit, nn_Alkenes, nn_Paraffin,   
      &      nn_stratOx, nn_Terpenes,nn_codirect,                
      &      nn_isopp1g,nn_isopp1a,nn_isopp2g,nn_isopp2a,         
@@ -2699,7 +2699,13 @@ C**** Local parameters and variables and arguments:
             rk3M=y(nM,l)*6.5d-34*exp(1335.d0*byta)
             rk2=2.7d-17*exp(2199.d0*byta)
             rr(jj,L)=rr(jj,L)+rk3M/(1.d0+(rk3M/rk2))
-          else if (jj==rrbi%PAN_M__C2O3_NO2) then
+          else if (jj==rrbi%PAN_M__C2O3_NO2
+#ifdef TRACERS_dCO
+     &        .or. jj==rrbi%d17OPAN_M__C2O3_NO2
+     &        .or. jj==rrbi%d18OPAN_M__C2O3_NO2
+     &        .or. jj==rrbi%d13CPAN_M__C2O3_NO2
+#endif  /* TRACERS_dCO */
+     &            ) then
 !           PAN+M really PAN
             rr(jj,L)=rr(jj,L)/y(nM,L)
           else if (jj==rrbi%ROR_M__Aldehyde_HO2
