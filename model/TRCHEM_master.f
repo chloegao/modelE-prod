@@ -2725,14 +2725,6 @@ C**** Local parameters and variables and arguments:
             else if (jj==rrbi%HO2_NO__OH_NO2) then
                 rr(jj,L)=rr(jj,L)*(1.d0-beta)
             end if
-#ifdef TRACERS_dCO
-          else if (jj==rrbi%ROR_M__Aldehyde_HO2
-     &        .or. jj==rrbi%ROR_M__d18Oald_HO2
-     &        .or. jj==rrbi%ROR_M__d13Cald_HO2
-#endif  /* TRACERS_dCO */
-     &            ) then
-!           ROR+M really ROR
-            rr(jj,L)=rr(jj,L)*0.5d0
           end if
         end do                ! bimolecular rates end
                            
