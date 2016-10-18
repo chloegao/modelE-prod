@@ -754,7 +754,7 @@ C**** trflux1 is total flux into first layer
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: dtstep
       INTEGER n,i,j
-      REAL*8 ftr1
+      REAL*8 ftr1,dewflux,tinyReal8
 
       INTEGER :: J_0, J_1, I_0, I_1
 
@@ -762,6 +762,8 @@ C**** trflux1 is total flux into first layer
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
       
+      tinyReal8=tiny(dewflux)
+
 C**** This is tracer independent coding designed to work for all
 C**** surface sources.
 C**** Note that tracer flux is added to first layer either implicitly
@@ -790,10 +792,16 @@ C**** moments for dew.
        if (src_dist_index(n)==0) then
         do j=J_0,J_1
           do i=i_0,imaxj(j)
-            if (atmsrf%trsrfflx(n,i,j).lt.0 .and.
-     &           trm(i,j,1,n).gt.0) then
-              ftr1=min(1d0,
-     &           -atmsrf%trsrfflx(n,i,j)*axyp(i,j)*dtstep/trm(i,j,1,n))
+            dewflux=-atmsrf%trsrfflx(n,i,j)*axyp(i,j)*dtstep
+            ! The previous criteria were: 
+            ! if(atmsrf%trsrfflx(n,i,j).lt.0 .and. trm(i,j,1,n).gt.0)then
+            ! The new "dewflux > tinyReal8" takes care of the first of those,
+            ! plus a saftey margin so we don't divide by an exceedingly small
+            ! number. The max() in the denominator of ftr1 already prevents
+            ! a negative ftr1, but I leave in the trm criterion just so we
+            ! don't alter moments when trm is negative (as before).
+            if ( dewflux > tinyReal8 .and. trm(i,j,1,n) > 0.) then
+              ftr1=dewflux/max(dewflux,trm(i,j,1,n))
               trmom(:,i,j,1,n)=trmom(:,i,j,1,n)*(1.-ftr1)
             end if
           end do
