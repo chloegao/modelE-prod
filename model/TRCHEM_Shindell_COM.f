@@ -642,6 +642,11 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 C**************  Latitude-Dependant (allocatable) *******************
       REAL*8, ALLOCATABLE, DIMENSION(:)       :: DU_O3
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)   :: acetone
+#ifdef TRACERS_dCO
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)   :: d17Oacetone
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)   :: d18Oacetone
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)   :: d13Cacetone
+#endif  /* TRACERS_dCO */
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: ss
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)   :: yNO3,pHOx,pNOx,pOx,
      & yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yXO2N,yRXPAR,TX,sulfate,OxIC,
@@ -698,6 +703,7 @@ C**************  Not Latitude-Dependant ****************************
 #ifdef TRACERS_dCO
      & yd17Oald,yd18Oald,yd13Cald,
      & ydCH317O2,ydCH318O2,yd13CH3O2,
+     & d17Oacetone,d18Oacetone,d13Cacetone,
 #endif  /* TRACERS_dCO */
      & COICIN,OxICIN,CH4ICIN,n_rj,LCOalt,acetone,mNO2,
      & l1NO2_acc,sNOx_acc,sCO_acc,save_NO2column,pNO3
@@ -770,6 +776,11 @@ C**************  Not Latitude-Dependant ****************************
       allocate(ss(n_rj, topLevelOfChemistry,
      &                      I_0H:I_1H,J_0H:J_1H) )
       allocate(     acetone(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
+#ifdef TRACERS_dCO
+      allocate( d17Oacetone(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
+      allocate( d18Oacetone(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
+      allocate( d13Cacetone(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
+#endif  /* TRACERS_dCO */
       allocate(        yNO3(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
       allocate(        pHOx(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
       allocate(        pNOx(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )

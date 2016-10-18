@@ -15,6 +15,7 @@ C**** GLOBAL parameters and variables:
 #ifdef TRACERS_dCO
      &    yd17Oald,yd18Oald,yd13Cald,
      &    ydCH317O2,ydCH318O2,yd13CH3O2,
+     &    d17Oacetone,d18Oacetone,d13Cacetone,
 #endif  /* TRACERS_dCO */
      &    allowSomeChemReinit,pNO3,topLevelOfChemistry,nfam,ny
      &    ,pCLOx,pCLx,pOClOx,pBrOx,yCl2,yCl2O2,mostRecentNonZeroAlbedo
@@ -89,6 +90,11 @@ C Initialize a few (IM,JM,topLevelOfChemistry) arrays, first hour only:
         oh_live(I_0:I_1,J_0:J_1,:)  =0.d0
         no3_live(I_0:I_1,J_0:J_1,:) =0.d0
         acetone(I_0:I_1,J_0:J_1,:)  =0.d0
+#ifdef TRACERS_dCO
+        d17Oacetone(I_0:I_1,J_0:J_1,:)=0.d0
+        d18Oacetone(I_0:I_1,J_0:J_1,:)=0.d0
+        d13Cacetone(I_0:I_1,J_0:J_1,:)=0.d0
+#endif  /* TRACERS_dCO */
         pClOx(I_0:I_1,J_0:J_1,:)    =1.d0
         pClx(I_0:I_1,J_0:J_1,:)     =0.d0
         pOClOx(I_0:I_1,J_0:J_1,:)   =0.d0

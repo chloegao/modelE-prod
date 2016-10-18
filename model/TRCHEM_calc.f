@@ -46,6 +46,7 @@ C
      &                   nd17Oald,nd18Oald,nd13Cald,
      &                   ydCH317O2,ydCH318O2,yd13CH3O2,
      &                   ndCH317O2,ndCH318O2,nd13CH3O2,
+     &                   d17Oacetone,d18Oacetone,d13Cacetone,
 #endif  /* TRACERS_dCO */
      &                   rr,nO1D,nOH,nNO,nHO2,ta,nM,ss,
      &                   nO3,nNO2,nNO3,prnrts,jprn,iprn,lprn,ay,
@@ -387,14 +388,14 @@ c         increase non-acetone product gases:
 
 #ifdef TRACERS_dCO
 c Set dCH317O2 values (concentration = production/specific loss):
-! ok to overwrite here qqqCH3O2,prodCH3O2,diffCH3O2,CH3O2loss
+! ok to overwrite here qqqCH3O2,prodCH3O2,diffCH3O2,CH3O2loss,tempAcet
         iter=1
         qqqCH3O2=(rr(rrbi%O1D_CH4__OH_dCH317O2,L)*y(nO1D,L)
      &      +rr(rrbi%CH4_OH__H2O_dCH317O2,L)*y(nOH,L))
      &    *y(nn_CH4,L)
      &    +rr(rrbi%dMe17OOH_OH__dCH317O2_H2O,L)*y(nn_dMe17OOH,L)
      &      *y(nOH,L)
-        tempAcet=2.d0*Jacet(L)*acetone(I,J,L)
+        tempAcet=2.d0*Jacet(L)*d17Oacetone(I,J,L)
         prodCH3O2=qqqCH3O2+tempAcet
         tempiter=rr(rrbi%dCH317O2_NO__dHCH17O_NO2,L)*y(nNO,L)
      &    +rr(rrbi%dCH317O2_HO2__dMe17OOH_O2,L)*y(nHO2,L)
@@ -439,7 +440,7 @@ c Set dCH318O2 values (concentration = production/specific loss):
      &    *y(nn_CH4,L)
      &    +rr(rrbi%dMe18OOH_OH__dCH318O2_H2O,L)*y(nn_dMe18OOH,L)
      &      *y(nOH,L)
-        tempAcet=2.d0*Jacet(L)*acetone(I,J,L)
+        tempAcet=2.d0*Jacet(L)*d18Oacetone(I,J,L)
         prodCH3O2=qqqCH3O2+tempAcet
         tempiter=rr(rrbi%dCH318O2_NO__dHCH18O_NO2,L)*y(nNO,L)
      &    +rr(rrbi%dCH318O2_HO2__dMe18OOH_O2,L)*y(nHO2,L)
@@ -484,7 +485,7 @@ c Set d13CH3O2 values (concentration = production/specific loss):
      &    *y(nn_CH4,L)
      &    +rr(rrbi%d13MeOOH_OH__d13CH3O2_H2O,L)*y(nn_d13MeOOH,L)
      &      *y(nOH,L)
-        tempAcet=2.d0*Jacet(L)*acetone(I,J,L)
+        tempAcet=2.d0*Jacet(L)*d13Cacetone(I,J,L)
         prodCH3O2=qqqCH3O2+tempAcet
         tempiter=rr(rrbi%d13CH3O2_NO__dH13CHO_NO2,L)*y(nNO,L)
      &    +rr(rrbi%d13CH3O2_HO2__d13MeOOH_O2,L)*y(nHO2,L)

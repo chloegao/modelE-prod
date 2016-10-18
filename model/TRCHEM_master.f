@@ -430,6 +430,27 @@ C info to set strat H2O based on tropical tropopause H2O and CH4:
           do L=maxT+1,topLevelOfChemistry
             acetone(i,j,L)=0.d0
           enddo
+#ifdef TRACERS_dCO
+          do L=1,maxT
+            d17Oacetone(i,j,L)=max(0.d0, ! in molec/cm3
+     &      (1.25d0*(
+     &        zonalIsop(i,j)-trm(i,j,L,n_Isoprene)*mass2vol(n_Isoprene)*
+     &        byaxyp(i,j)*byMA(L,i,j)))*PMID(L,i,j)/(TX(i,j,L)*cboltz))
+            d18Oacetone(i,j,L)=max(0.d0, ! in molec/cm3
+     &      (1.25d0*(
+     &        zonalIsop(i,j)-trm(i,j,L,n_Isoprene)*mass2vol(n_Isoprene)*
+     &        byaxyp(i,j)*byMA(L,i,j)))*PMID(L,i,j)/(TX(i,j,L)*cboltz))
+            d13Cacetone(i,j,L)=max(0.d0, ! in molec/cm3
+     &      (1.25d0*(
+     &        zonalIsop(i,j)-trm(i,j,L,n_Isoprene)*mass2vol(n_Isoprene)*
+     &        byaxyp(i,j)*byMA(L,i,j)))*PMID(L,i,j)/(TX(i,j,L)*cboltz))
+          enddo
+          do L=maxT+1,topLevelOfChemistry
+            d17Oacetone(i,j,L)=0.d0
+            d18Oacetone(i,j,L)=0.d0
+            d13Cacetone(i,j,L)=0.d0
+          enddo
+#endif  /* TRACERS_dCO */
         enddo
       enddo
 
