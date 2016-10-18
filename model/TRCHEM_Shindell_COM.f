@@ -131,16 +131,19 @@ c
         integer :: dCH317O2_CH3O2__dHCH17O_HCHO=0
         integer :: CH3O2_dCH317O2__HCHO_dHCH17O=0
         integer :: NO3_dHCH17O__HNO3_dC17O=0
+        integer :: d17OPAN_M__C2O3_NO2=0
         integer :: Isoprene_OH__dHCH17O_Alkenes=0
         integer :: Isoprene_O3__dHCH17O_Alkenes=0
         integer :: Alkenes_OH__dHCH17O_HO2=0
         integer :: Alkenes_O3__dHCH17O_CO=0
         integer :: Alkenes_O3__HCHO_dC17O=0
         integer :: Alkenes_NO3__dHCH17O_NO2=0
+        integer :: d17Oald_OH__C2O3_M=0
         integer :: C2O3_NO__dHCH17O_NO2=0
         integer :: C2O3_C2O3__dHCH17O_HCHO=0
         integer :: C2O3_C2O3__HCHO_dHCH17O=0
         integer :: C2O3_HO2__dHCH17O_HO2=0
+        integer :: ROR_M__d17Oald_HO2=0
         integer :: XO2_HO2__dMe17OOH_M=0
         integer :: O1D_CH4__dHCH17O_H2=0
         integer :: Cl_CH4__HCl_dCH317O2=0
@@ -158,16 +161,19 @@ c
         integer :: dCH318O2_CH3O2__dHCH18O_HCHO=0
         integer :: CH3O2_dCH318O2__HCHO_dHCH18O=0
         integer :: NO3_dHCH18O__HNO3_dC18O=0
+        integer :: d18OPAN_M__C2O3_NO2=0
         integer :: Isoprene_OH__dHCH18O_Alkenes=0
         integer :: Isoprene_O3__dHCH18O_Alkenes=0
         integer :: Alkenes_OH__dHCH18O_HO2=0
         integer :: Alkenes_O3__dHCH18O_CO=0
         integer :: Alkenes_O3__HCHO_dC18O=0
         integer :: Alkenes_NO3__dHCH18O_NO2=0
+        integer :: d18Oald_OH__C2O3_M=0
         integer :: C2O3_NO__dHCH18O_NO2=0
         integer :: C2O3_C2O3__dHCH18O_HCHO=0
         integer :: C2O3_C2O3__HCHO_dHCH18O=0
         integer :: C2O3_HO2__dHCH18O_HO2=0
+        integer :: ROR_M__d18Oald_HO2=0
         integer :: XO2_HO2__dMe18OOH_M=0
         integer :: O1D_CH4__dHCH18O_H2=0
         integer :: Cl_CH4__HCl_dCH318O2=0
@@ -185,16 +191,19 @@ c
         integer :: d13CH3O2_CH3O2__dH13CHO_HCHO=0
         integer :: CH3O2_d13CH3O2__HCHO_dH13CHO=0
         integer :: NO3_dH13CHO__HNO3_d13CO=0
+        integer :: d13CPAN_M__C2O3_NO2=0
         integer :: Isoprene_OH__dH13CHO_Alkenes=0
         integer :: Isoprene_O3__dH13CHO_Alkenes=0
         integer :: Alkenes_OH__dH13CHO_HO2=0
         integer :: Alkenes_O3__dH13CHO_CO=0
         integer :: Alkenes_O3__HCHO_d13CO=0
         integer :: Alkenes_NO3__dH13CHO_NO2=0
+        integer :: d13Cald_OH__C2O3_M=0
         integer :: C2O3_NO__dH13CHO_NO2=0
         integer :: C2O3_C2O3__dH13CHO_HCHO=0
         integer :: C2O3_C2O3__HCHO_dH13CHO=0
         integer :: C2O3_HO2__dH13CHO_HO2=0
+        integer :: ROR_M__d13Cald_HO2=0
         integer :: XO2_HO2__d13MeOOH_M=0
         integer :: O1D_CH4__dH13CHO_H2=0
         integer :: Cl_CH4__HCl_d13CH3O2=0
@@ -217,6 +226,11 @@ c
         integer :: ClO_ClO__Cl2O2_M=0
         integer :: ClO_NO2__ClONO2_M=0
         integer :: BrO_NO2__BrONO2_M=0
+#ifdef TRACERS_dCO
+        integer :: C2O3_NO2__d17OPAN_M=0
+        integer :: C2O3_NO2__d18OPAN_M=0
+        integer :: C2O3_NO2__d13CPAN_M=0
+#endif  /* TRACERS_dCO */
       end type rrtri_index
 
       type rrhet_index
@@ -283,17 +297,19 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
      & n_bi_terp = 0,
 #endif  /* TRACERS_TERP */
 #ifdef TRACERS_dCO
-     & ntm_dCO_nontransp = 3, ! number of non-transported dCO tracers
-     & n_bi_dCO = 78, ! number of dCO bimolecular reactions
+     & ntm_dCO_nontransp = 6, ! number of non-transported dCO tracers
+     & n_bi_dCO = 87, ! number of dCO bimolecular reactions
+     & n_tri_dCO = 3, ! number of dCO trimolecular reactions
      & n_rj_dCO = 15, ! number of dCO photochemical reactions
 #else
      & ntm_dCO_nontransp = 0,
      & n_bi_dCO = 0,
+     & n_tri_dCO = 0,
      & n_rj_dCO = 0,
 #endif  /* TRACERS_dCO */
      & n_bi  =    91+n_bi_terp+n_bi_dCO,
      & n_nst =     3,
-     & n_tri =    11,
+     & n_tri =    11+n_tri_dCO,
      & n_het =     5,
      & n_rx  = n_bi+n_nst+n_tri+n_het,
      & ny     =   51+ntm_terp+ntm_soa+ntm_dCO+ntm_dCO_nontransp,
@@ -329,6 +345,9 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
      & ndCH317O2= 52+ntm_terp+ntm_soa+ntm_dCO,
      & ndCH318O2= 53+ntm_terp+ntm_soa+ntm_dCO,
      & nd13CH3O2= 54+ntm_terp+ntm_soa+ntm_dCO,
+     & nd17Oald = 55+ntm_terp+ntm_soa+ntm_dCO,
+     & nd18Oald = 56+ntm_terp+ntm_soa+ntm_dCO,
+     & nd13Cald = 57+ntm_terp+ntm_soa+ntm_dCO,
 #endif  /* TRACERS_dCO */
      & nO2=       52+ntm_terp+ntm_soa+ntm_dCO+ntm_dCO_nontransp,
      & nM=        53+ntm_terp+ntm_soa+ntm_dCO+ntm_dCO_nontransp, !you must always put nM last (highest number)
@@ -358,6 +377,11 @@ C ----------------------------------------------
      &                      T_thresh     = 200.d0,
      &                      pfix_H2      = 560.d-9,
      &                      pfix_Aldehyde= 2.d-9,
+#ifdef TRACERS_dCO
+     &                      pfix_d17Oald = 2.d-9,
+     &                      pfix_d18Oald = 2.d-9,
+     &                      pfix_d13Cald = 2.d-9,
+#endif  /* TRACERS_dCO */
      &                      MWabyMWw     = mair/mwat,
      &                      RKBYPIM      = 1.961d2,
      &                      cboltz       = 1.3806d-19,
@@ -622,6 +646,7 @@ C**************  Latitude-Dependant (allocatable) *******************
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)   :: yNO3,pHOx,pNOx,pOx,
      & yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yXO2N,yRXPAR,TX,sulfate,OxIC,
 #ifdef TRACERS_dCO
+     & yd17Oald,yd18Oald,yd13Cald,
      & ydCH317O2,ydCH318O2,yd13CH3O2,
 #endif  /* TRACERS_dCO */
      & CH4ICX,dms_offline,so2_offline,yso2,ydms,mNO2,COIC,pNO3
@@ -671,6 +696,7 @@ C**************  Not Latitude-Dependant ****************************
      & pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yXO2N,yRXPAR,
      & TX,sulfate,COIC,OxIC,CH4ICX,dms_offline,so2_offline,yso2,ydms,
 #ifdef TRACERS_dCO
+     & yd17Oald,yd18Oald,yd13Cald,
      & ydCH317O2,ydCH318O2,yd13CH3O2,
 #endif  /* TRACERS_dCO */
      & COICIN,OxICIN,CH4ICIN,n_rj,LCOalt,acetone,mNO2,
@@ -759,6 +785,11 @@ C**************  Not Latitude-Dependant ****************************
       allocate(        yROR(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
       allocate(        yXO2(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
       allocate(   yAldehyde(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
+#ifdef TRACERS_dCO
+      allocate(    yd17Oald(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
+      allocate(    yd18Oald(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
+      allocate(    yd13Cald(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
+#endif  /* TRACERS_dCO */
       allocate(       yXO2N(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
       allocate(      yRXPAR(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
       allocate(        yso2(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
@@ -1040,6 +1071,8 @@ C**************  Not Latitude-Dependant ****************************
           rrbi%CH3O2_dCH317O2__HCHO_dHCH17O=irr
         case('NO3_dHCH17O__HNO3_dC17O')
           rrbi%NO3_dHCH17O__HNO3_dC17O=irr
+        case('d17OPAN_M__C2O3_NO2')
+          rrbi%d17OPAN_M__C2O3_NO2=irr
         case('Isoprene_OH__dHCH17O_Alkenes')
           rrbi%Isoprene_OH__dHCH17O_Alkenes=irr
         case('Isoprene_O3__dHCH17O_Alkenes')
@@ -1052,6 +1085,8 @@ C**************  Not Latitude-Dependant ****************************
           rrbi%Alkenes_O3__HCHO_dC17O=irr
         case('Alkenes_NO3__dHCH17O_NO2')
           rrbi%Alkenes_NO3__dHCH17O_NO2=irr
+        case('d17Oald_OH__C2O3_M')
+          rrbi%d17Oald_OH__C2O3_M=irr
         case('C2O3_NO__dHCH17O_NO2')
           rrbi%C2O3_NO__dHCH17O_NO2=irr
         case('C2O3_C2O3__dHCH17O_HCHO')
@@ -1060,6 +1095,8 @@ C**************  Not Latitude-Dependant ****************************
           rrbi%C2O3_C2O3__HCHO_dHCH17O=irr
         case('C2O3_HO2__dHCH17O_HO2')
           rrbi%C2O3_HO2__dHCH17O_HO2=irr
+        case('ROR_M__d17Oald_HO2')
+          rrbi%ROR_M__d17Oald_HO2=irr
         case('XO2_HO2__dMe17OOH_M')
           rrbi%XO2_HO2__dMe17OOH_M=irr
         case('O(1D)_CH4__dHCH17O_H2')
@@ -1093,6 +1130,8 @@ C**************  Not Latitude-Dependant ****************************
           rrbi%CH3O2_dCH318O2__HCHO_dHCH18O=irr
         case('NO3_dHCH18O__HNO3_dC18O')
           rrbi%NO3_dHCH18O__HNO3_dC18O=irr
+        case('d18OPAN_M__C2O3_NO2')
+          rrbi%d18OPAN_M__C2O3_NO2=irr
         case('Isoprene_OH__dHCH18O_Alkenes')
           rrbi%Isoprene_OH__dHCH18O_Alkenes=irr
         case('Isoprene_O3__dHCH18O_Alkenes')
@@ -1105,6 +1144,8 @@ C**************  Not Latitude-Dependant ****************************
           rrbi%Alkenes_O3__HCHO_dC18O=irr
         case('Alkenes_NO3__dHCH18O_NO2')
           rrbi%Alkenes_NO3__dHCH18O_NO2=irr
+        case('d18Oald_OH__C2O3_M')
+          rrbi%d18Oald_OH__C2O3_M=irr
         case('C2O3_NO__dHCH18O_NO2')
           rrbi%C2O3_NO__dHCH18O_NO2=irr
         case('C2O3_C2O3__dHCH18O_HCHO')
@@ -1113,6 +1154,8 @@ C**************  Not Latitude-Dependant ****************************
           rrbi%C2O3_C2O3__HCHO_dHCH18O=irr
         case('C2O3_HO2__dHCH18O_HO2')
           rrbi%C2O3_HO2__dHCH18O_HO2=irr
+        case('ROR_M__d18Oald_HO2')
+          rrbi%ROR_M__d18Oald_HO2=irr
         case('XO2_HO2__dMe18OOH_M')
           rrbi%XO2_HO2__dMe18OOH_M=irr
         case('O(1D)_CH4__dHCH18O_H2')
@@ -1146,6 +1189,8 @@ C**************  Not Latitude-Dependant ****************************
           rrbi%CH3O2_d13CH3O2__HCHO_dH13CHO=irr
         case('NO3_dH13CHO__HNO3_d13CO')
           rrbi%NO3_dH13CHO__HNO3_d13CO=irr
+        case('d13CPAN_M__C2O3_NO2')
+          rrbi%d13CPAN_M__C2O3_NO2=irr
         case('Isoprene_OH__dH13CHO_Alkenes')
           rrbi%Isoprene_OH__dH13CHO_Alkenes=irr
         case('Isoprene_O3__dH13CHO_Alkenes')
@@ -1158,6 +1203,8 @@ C**************  Not Latitude-Dependant ****************************
           rrbi%Alkenes_O3__HCHO_d13CO=irr
         case('Alkenes_NO3__dH13CHO_NO2')
           rrbi%Alkenes_NO3__dH13CHO_NO2=irr
+        case('d13Cald_OH__C2O3_M')
+          rrbi%d13Cald_OH__C2O3_M=irr
         case('C2O3_NO__dH13CHO_NO2')
           rrbi%C2O3_NO__dH13CHO_NO2=irr
         case('C2O3_C2O3__dH13CHO_HCHO')
@@ -1166,6 +1213,8 @@ C**************  Not Latitude-Dependant ****************************
           rrbi%C2O3_C2O3__HCHO_dH13CHO=irr
         case('C2O3_HO2__dH13CHO_HO2')
           rrbi%C2O3_HO2__dH13CHO_HO2=irr
+        case('ROR_M__d13Cald_HO2')
+          rrbi%ROR_M__d13Cald_HO2=irr
         case('XO2_HO2__d13MeOOH_M')
           rrbi%XO2_HO2__d13MeOOH_M=irr
         case('O(1D)_CH4__dH13CHO_H2')
@@ -1203,6 +1252,14 @@ C**************  Not Latitude-Dependant ****************************
           rrtri%ClO_NO2__ClONO2_M=irr
         case('BrO_NO2__BrONO2_M')
           rrtri%BrO_NO2__BrONO2_M=irr
+#ifdef TRACERS_dCO
+        case('C2O3_NO2__d17OPAN_M')
+          rrtri%C2O3_NO2__d17OPAN_M=irr
+        case('C2O3_NO2__d18OPAN_M')
+          rrtri%C2O3_NO2__d18OPAN_M=irr
+        case('C2O3_NO2__d13CPAN_M')
+          rrtri%C2O3_NO2__d13CPAN_M=irr
+#endif  /* TRACERS_dCO */
 
 ! heterogeneous reactions
         case('N2O5_H2O__HNO3_HNO3')

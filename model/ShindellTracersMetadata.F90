@@ -11,6 +11,7 @@ module ShindellTracersMetadata_mod
   use TRACER_COM, only: ntm_chem_beg, ntm_chem_end, whichEPFCs
 #ifdef TRACERS_dCO
   use OldTracer_mod, only: set_is_dCO_tracer
+  use TRACER_COM, only: n_d17OPAN, n_d18OPAN, n_d13CPAN
   use TRACER_COM, only: n_dMe17OOH, n_dMe18OOH, n_d13MeOOH
   use TRACER_COM, only: n_dHCH17O, n_dHCH18O, n_dH13CHO
   use TRACER_COM, only: n_dC17O, n_dC18O, n_d13CO
@@ -124,6 +125,9 @@ contains
     call  CFC_setSpec('CFC')
 
 #ifdef TRACERS_dCO
+    call  PAN_setSpec('d17OPAN')
+    call  PAN_setSpec('d18OPAN')
+    call  PAN_setSpec('d13CPAN')
     call  CH3OOH_setSpec('dMe17OOH')
     call  CH3OOH_setSpec('dMe18OOH')
     call  CH3OOH_setSpec('d13MeOOH')
@@ -160,6 +164,7 @@ contains
            nn_ClOx,   nn_BrOx,  nn_HCl,   nn_HOCl,   nn_ClONO2,  &
            nn_HBr,    nn_HOBr,  nn_BrONO2,nn_CFC,    nn_GLT
 #ifdef TRACERS_dCO
+      use TRACER_COM, only: nn_d17OPAN, nn_d18OPAN, nn_d13CPAN
       use TRACER_COM, only: nn_dMe17OOH, nn_dMe18OOH, nn_d13MeOOH
       use TRACER_COM, only: nn_dHCH17O, nn_dHCH18O, nn_dH13CHO
       use TRACER_COM, only: nn_dC17O, nn_dC18O, nn_d13CO
@@ -212,6 +217,9 @@ contains
      nn_GLT = n_GLT - offset
 
 #ifdef TRACERS_dCO
+     nn_d17OPAN = n_d17OPAN - offset
+     nn_d18OPAN = n_d18OPAN - offset
+     nn_d13CPAN = n_d13CPAN - offset
      nn_dMe17OOH = n_dMe17OOH - offset
      nn_dMe18OOH = n_dMe18OOH - offset
      nn_d13MeOOH = n_d13MeOOH - offset
@@ -435,7 +443,23 @@ contains
     subroutine PAN_setSpec(name)
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
-      n_PAN = n
+      select case (name)
+        case ('PAN')
+          n_PAN = n
+#ifdef TRACERS_dCO
+        case ('d17OPAN')
+          n_d17OPAN = n
+          call set_is_dCO_tracer(n, .true.)
+        case ('d18OPAN')
+          n_d18OPAN = n
+          call set_is_dCO_tracer(n, .true.)
+        case ('d13CPAN')
+          n_d13CPAN = n
+          call set_is_dCO_tracer(n, .true.)
+#endif  /* TRACERS_dCO */
+        case default
+          call stop_model('PAN-like tracer '//name//' unknown',255)
+      end select
       if (ntm_chem_beg==0) ntm_chem_beg = n
       ntm_chem_end = n
       call set_ntm_power(n, -11)
