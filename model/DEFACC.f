@@ -6151,7 +6151,7 @@ c
       units_ijl(k) = 'kg/kg'
       scale_ijl(k) = 1.
       denom_ijl(k) = IJL_DP
-      ia_ijl(k)    = ia_src
+      ia_ijl(k)    = ia_rad
       lgrid_ijl(k) = ctr_ml
 c
       k=k+1        ! mass fraction of cloud+precip ice seen by radiation (model layers)
@@ -6161,7 +6161,7 @@ c
       units_ijl(k) = 'kg/kg'
       scale_ijl(k) = 1.
       denom_ijl(k) = IJL_DP
-      ia_ijl(k)    = ia_src
+      ia_ijl(k)    = ia_rad
       lgrid_ijl(k) = ctr_ml
 c
 CC    3D drying and latent heating profiles
