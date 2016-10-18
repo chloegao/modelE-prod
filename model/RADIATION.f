@@ -81,7 +81,7 @@ C----------------
 !@var JGCM,IGCM     host GCM grid indices
 !@var NL,L1         highest and lowest above ground layer
 !@var LS1_loc       local tropopause level, used to limit H2O-scaling
-      INTEGER   :: JLAT,ILON, NL,L1, LS1_loc ! Offline deflts L1=LS1_loc=1
+      INTEGER   :: JLAT,ILON, NL,L1=1, LS1_loc ! Offline deflts L1=LS1_loc=1
       INTEGER   :: JGCM, IGCM
 !@var JYEAR,JDAY    current year, Julian date
       INTEGER :: JYEAR=1980, JDAY=1
