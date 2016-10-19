@@ -8,7 +8,6 @@ Preprocessor Options
 #define NEW_IO
 #define STANDALONE_OCEAN
 #define OCN_LAYERING L32
-!#define OCN_GISS_MESO
 !#define OCN_GISS_TURB
 !#define OCN_GISS_SM
 End Preprocessor Options

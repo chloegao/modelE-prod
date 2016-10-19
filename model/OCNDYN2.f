@@ -511,9 +511,6 @@ C        Call CARBON ('OCNMESO')
 #endif
 #endif
 
-C#ifdef OCN_GISS_MESO
-C      CALL OCN_mesosc
-C#endif
       CALL TIMER (NOW,MSGSO)
 
 c-------------------------------------------------------------------

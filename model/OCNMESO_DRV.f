@@ -6,7 +6,7 @@
 #define USE_1D_MESODIFF
 #endif
 
-#if defined(SIMPLE_MESODIFF) || defined(OCN_GISS_MESO) || defined(USE_1D_MESODIFF)
+#if defined(SIMPLE_MESODIFF) || defined(USE_1D_MESODIFF)
 #else
 #define ORIG_MESODIFF
 #endif
@@ -163,10 +163,6 @@
 
       logical, dimension(im,grid%j_strt_halo:grid%j_stop_halo) ::
      &     zeroing_mask
-#ifdef OCN_GISS_MESO
-      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,lmo) ::
-     &    g0m0,gxmo0,gymo0,s0m0,sxmo0,symo0
-#endif
 #ifdef TRACERS_OCEAN
       type(ocn_tracer_entry), pointer :: trentry
 #endif
@@ -207,16 +203,12 @@ C**** Calculate mesoscale diffusivity
       endif
 #endif
 
-#if defined(ORIG_MESODIFF) || defined(OCN_GISS_MESO)
+#if defined(ORIG_MESODIFF)
       call orig_mesodiff(k2d,zeroing_mask)
 #endif
 
 #if defined(ORIG_MESODIFF) || defined(SIMPLE_MESODIFF)
       if(use_tdmix==1) k3d(:,:,1) = k2d(:,:) ! for oij diag
-#endif
-
-#if defined(OCN_GISS_MESO)
-      CALL OCN_mesosc(k3d)
 #endif
 
 !        if(use_kmeso2) then
@@ -237,20 +229,7 @@ C**** Apply GM + Redi tracer fluxes
 
         mokg = mmi
 
-#if defined(USE_1D_MESODIFF) || defined(OCN_GISS_MESO)
-#ifdef OCN_GISS_MESO
-        ! M. Kelley note Sep 2 2015
-        ! Technically it is possible to use k3d from the above
-        ! call to OCN_mesosc in the tdmix framework.  However,
-        ! it is unlikely that tdmix will closely match the
-        ! flux convergence from MESO_A corresponding to its
-        ! flux_x(I,J,L) = Unew(I,J,L)*TRXMO(I,J,L)+dzFnewx(I,J,L)
-        ! flux_y(I,J,L) = Vnew(I,J,L)*TRYMO(I,J,L)+dzFnewy(I,J,L)
-        ! flux_z(I,J,L) = Wnew(I,J,L)*dzTRM(I,J,L)
-        ! which I have not yet understood yet.
-        call stop_model('ocnmeso_drv: review remarks on '//
-     &       'tdmix+giss_meso before proceeding',255)
-#endif
+#if defined(USE_1D_MESODIFF)
         call make_k3dxy_from_k3d(k3d,k3dx,k3dy)
 #else
         call make_k3dxy(k2d,gmscz,k3dx,k3dy)
@@ -335,24 +314,6 @@ C**** Apply GM + Redi tracer fluxes
 #if defined(ORIG_MESODIFF) || defined(SIMPLE_MESODIFF)
         call make_k3d_cellcenter(k2d,gmscz,k3d)
 #endif
-
-#ifdef OCN_GISS_MESO
-! This zero-out snippet was added so that previous results under
-! OCN_GISS_MESO option are preserved identically after separating
-! the various calculations of mesoscale diffusivity.  It corresponds
-! to the following logic in old routine DENSGRAD (now ORIG_MESODIFF):
-C**** avoid occasional inversions. IF ARHOZ<=0 then GM is pure vertical
-C**** so keep at zero, and let KPP do the work.
-        do j=j_0,j_1
-        do n=1,nbyzm(j,1)
-        do i=i1yzm(n,j,1),i2yzm(n,j,1)
-          if(zeroing_mask(i,j)) k3d(i,j,:) = 0.
-          k3d(i,j,:) = k2d(i,j)
-        enddo
-        enddo
-        enddo
-#endif
-
         if(have_south_pole) then
           do l=1,lmo
             k3d(2:im,1,l) = k3d(1,1,l)
@@ -364,12 +325,6 @@ C**** so keep at zero, and let KPP do the work.
           enddo
         endif
 
-
-#ifdef OCN_GISS_MESO
-        G0M0=G0M; GXMO0=GXMO; GYMO0=GYMO
-        S0M0=S0M; SXMO0=SXMO; SYMO0=SYMO
-#endif
-
         call gmkdif(k3d,1d0)
         call gmfexp(g0m,gxmo,gymo,gzmo,.false.,oijl(1,j_0h,1,ijl_ggmfl))
         call gmfexp(s0m,sxmo,symo,szmo,.true. ,oijl(1,j_0h,1,ijl_sgmfl))
@@ -380,17 +335,6 @@ C**** so keep at zero, and let KPP do the work.
      &         txmo(1,j_0h,1,n),tymo(1,j_0h,1,n),tzmo(1,j_0h,1,n),
      &         trentry%t_qlimit,toijl(1,j_0h,1,toijl_gmfl,n))
         enddo
-#endif
-
-#ifdef OCN_GISS_MESO
-c     CALL MESO_D(G0M0,GXMO0,GYMO0,G0M,GXMO,GYMO,GZMO)
-        CALL MESO_D(G0M0,GXMO0,GYMO0,GXMO,GYMO,GZMO)
-        G0M=G0M0
-c     CALL MESO_D_TEST(G0M0,G0M,GXMO0,GYMO0,GZMO)
-c     CALL MESO_D(S0M0,SXMO0,SYMO0,S0M,SXMO,SYMO,SZMO)
-
-        CALL MESO_A(G0M,GXMO,GYMO,GZMO)
-c     CALL MESO_A(S0M,SXMO,SYMO,SZMO)
 #endif
 
       endif ! use_tdmix or not
@@ -983,8 +927,7 @@ c
      &     k2d
       logical, dimension(im,grid%j_strt_halo:grid%j_stop_halo) ::
      &     zeroing_mask ! temporarily passed out to preserve results
-                        ! for OCN_GISS_MESO option
-c
+ 
       REAL*8  BYRHO,CORI,BETA,ARHO,ARHOX,ARHOY,ARHOZ,AN,RD
      *     ,BYTEADY,DZSUMX,DZSUMY,R1,R2,P12
       REAL*8 :: HUP
