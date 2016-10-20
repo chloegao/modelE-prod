@@ -391,7 +391,7 @@ C**** TCONSRV
 !@param NTCONS Maximum Number of special tracer conservation points
       INTEGER, PARAMETER :: ntcons=20
 #ifdef TRACERS_AMP
-     &                             +3
+     &                             +4
 #endif
 #ifdef TRACERS_TOMAS
      &                             +6
