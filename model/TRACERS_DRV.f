@@ -101,12 +101,14 @@
       logical, intent(in), optional :: vqcon, vqsum
       integer :: g,i
 
+      g=0
       do i=1,ntcons ! brute force, but only happens during initialization
         if (trim(conpts(i))=='') then
           g=npts_common+i
           exit
         endif
       enddo
+      if (g==0) call stop_model('ntcons too small',255)
 
       tr_con_diag=g
       conpts(g-npts_common)=trim(vconpts)
