@@ -608,14 +608,19 @@ c - set reactive species for use in family chemistry & nighttime NO2:
 #endif  /* TRACERS_dCO */
        y(nC2O3,L)    =yC2O3(I,J,L)
 #ifdef TRACERS_dCO
-       y(ndC217O3,L)    =ydC217O3(I,J,L)
-       y(ndC218O3,L)    =ydC218O3(I,J,L)
-       y(nd13C2O3,L)    =yd13C2O3(I,J,L)
+       y(ndC217O3,L) =ydC217O3(I,J,L)
+       y(ndC218O3,L) =ydC218O3(I,J,L)
+       y(nd13C2O3,L) =yd13C2O3(I,J,L)
 #endif  /* TRACERS_dCO */
        y(nXO2,L)     =yXO2(I,J,L)
        y(nXO2N,L)    =yXO2N(I,J,L)
        y(nRXPAR,L)   =yRXPAR(I,J,L)
        y(nROR,L)     =yROR(I,J,L)
+#ifdef TRACERS_dCO
+       y(nd17OROR,L) =yd17OROR(I,J,L)
+       y(nd18OROR,L) =yd18OROR(I,J,L)
+       y(nd13CROR,L) =yd13CROR(I,J,L)
+#endif  /* TRACERS_dCO */
        y(nCl2,L)     =yCl2(I,J,L)
        y(nCl2O2,L)   =yCl2O2(I,J,L)
        y(nOClO,L)    =y(nn_ClOx,L)*pOClOx(I,J,L)
@@ -2736,9 +2741,9 @@ C**** Local parameters and variables and arguments:
             rr(jj,L)=rr(jj,L)/y(nM,L)
           else if (jj==rrbi%ROR_M__Aldehyde_HO2
 #ifdef TRACERS_dCO
-     &        .or. jj==rrbi%ROR_M__d17Oald_HO2
-     &        .or. jj==rrbi%ROR_M__d18Oald_HO2
-     &        .or. jj==rrbi%ROR_M__d13Cald_HO2
+     &        .or. jj==rrbi%d17OROR_M__d17Oald_HO2
+     &        .or. jj==rrbi%d18OROR_M__d18Oald_HO2
+     &        .or. jj==rrbi%d13CROR_M__d13Cald_HO2
 #endif  /* TRACERS_dCO */
      &            ) then
 !           ROR+M really ROR

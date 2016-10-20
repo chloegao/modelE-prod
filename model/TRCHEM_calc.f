@@ -44,6 +44,8 @@ C
 #ifdef TRACERS_dCO
      &                   ydC217O3,ydC218O3,yd13C2O3,
      &                   ndC217O3,ndC218O3,nd13C2O3,
+     &                   yd17OROR,yd18OROR,yd13CROR,
+     &                   nd17OROR,nd18OROR,nd13CROR,
      &                   yd17Oald,yd18Oald,yd13Cald,
      &                   nd17Oald,nd18Oald,nd13Cald,
      &                   ydCH317O2,ydCH318O2,yd13CH3O2,
@@ -184,11 +186,16 @@ C**** Local parameters and variables and arguments:
         y(nRXPAR,L)   =    yRXPAR(I,J,L)
         y(nAldehyde,L)= yAldehyde(I,J,L)
 #ifdef TRACERS_dCO
-        y(nd17Oald,L) = yd17Oald(I,J,L)
-        y(nd18Oald,L) = yd18Oald(I,J,L)
-        y(nd13Cald,L) = yd13Cald(I,J,L)
+        y(nd17Oald,L) =  yd17Oald(I,J,L)
+        y(nd18Oald,L) =  yd18Oald(I,J,L)
+        y(nd13Cald,L) =  yd13Cald(I,J,L)
 #endif  /* TRACERS_dCO */
         y(nROR,L)     =      yROR(I,J,L)
+#ifdef TRACERS_dCO
+        y(nd17OROR,L) =  yd17OROR(I,J,L)
+        y(nd18OROR,L) =  yd18OROR(I,J,L)
+        y(nd13CROR,L) =  yd13CROR(I,J,L)
+#endif  /* TRACERS_dCO */
       end do
       do L=maxT+1,maxL
         y(nCH3O2,L)   = 0.d0
@@ -213,6 +220,11 @@ C**** Local parameters and variables and arguments:
         y(nd13Cald,L) = 0.d0
 #endif  /* TRACERS_dCO */
         y(nROR,L)     = 0.d0
+#ifdef TRACERS_dCO
+        y(nd17OROR,L) = 0.d0
+        y(nd18OROR,L) = 0.d0
+        y(nd13CROR,L) = 0.d0
+#endif  /* TRACERS_dCO */
       end do
 C
 C Calculate reaction rates with present concentrations:
@@ -941,7 +953,7 @@ c       Set value for d17Oald:
         Aldehydeprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
      &      *y(nOH,L)*0.11d0
      &    +rr(rrbi%Alkenes_OH__HCHO_HO2,L)*y(nn_Alkenes,L)*y(nOH,L)
-     &    +rr(rrbi%ROR_M__d17Oald_HO2,L)*yROR(I,J,L)*1.1d0
+     &    +rr(rrbi%d17OROR_M__d17Oald_HO2,L)*yd17OROR(I,J,L)*1.1d0
      &    +rr(rrbi%Alkenes_O3__HCHO_CO,L)*y(nn_Alkenes,L)
      &      *y(nO3,L)*0.44d0
         Aldehydedest=rr(rrbi%d17Oald_OH__dC217O3_M,L)*y(nOH,L)
@@ -963,7 +975,7 @@ c       Set value for d18Oald:
         Aldehydeprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
      &      *y(nOH,L)*0.11d0
      &    +rr(rrbi%Alkenes_OH__HCHO_HO2,L)*y(nn_Alkenes,L)*y(nOH,L)
-     &    +rr(rrbi%ROR_M__d18Oald_HO2,L)*yROR(I,J,L)*1.1d0
+     &    +rr(rrbi%d18OROR_M__d18Oald_HO2,L)*yd18OROR(I,J,L)*1.1d0
      &    +rr(rrbi%Alkenes_O3__HCHO_CO,L)*y(nn_Alkenes,L)
      &      *y(nO3,L)*0.44d0
         Aldehydedest=rr(rrbi%d18Oald_OH__dC218O3_M,L)*y(nOH,L)
@@ -985,7 +997,7 @@ c       Set value for d13Cald:
         Aldehydeprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
      &      *y(nOH,L)*0.11d0
      &    +rr(rrbi%Alkenes_OH__HCHO_HO2,L)*y(nn_Alkenes,L)*y(nOH,L)
-     &    +rr(rrbi%ROR_M__d13Cald_HO2,L)*yROR(I,J,L)*1.1d0
+     &    +rr(rrbi%d13CROR_M__d13Cald_HO2,L)*yd13CROR(I,J,L)*1.1d0
      &    +rr(rrbi%Alkenes_O3__HCHO_CO,L)*y(nn_Alkenes,L)
      &      *y(nO3,L)*0.44d0
         Aldehydedest=rr(rrbi%d13Cald_OH__d13C2O3_M,L)*y(nOH,L)
@@ -1002,7 +1014,6 @@ c       Check for equilibrium:
           y(nd13Cald,L)=(Aldehydeprod/(Aldehydedest+0.5d-5))
         end if
         yd13Cald(I,J,L)=y(nd13Cald,L)
-
 #endif  /* TRACERS_dCO */
 
 c       Set value for ROR:
@@ -1016,6 +1027,45 @@ c       Set value for ROR:
           y(nROR,L)=1.d0
         end if
         yROR(I,J,L)=y(nROR,L)
+
+#ifdef TRACERS_dCO
+! ok ot overwrite RORprod,RORdest
+c       Set value for d17OROR:
+        RORprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
+     &      *y(nOH,L)*0.76d0
+     &    +rr(rrbi%d17OROR_M__d17Oald_HO2,L)*yd17OROR(I,J,L)*0.02d0
+        RORdest=rr(rrbi%d17OROR_M__d17Oald_HO2,L)+ROR_CH2
+        if(RORdest > 0.d0)then
+          y(nd17OROR,L)=(RORprod/RORdest)
+        else
+          y(nd17OROR,L)=1.d0
+        end if
+        yd17OROR(I,J,L)=y(nd17OROR,L)
+
+c       Set value for d18OROR:
+        RORprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
+     &      *y(nOH,L)*0.76d0
+     &    +rr(rrbi%d18OROR_M__d18Oald_HO2,L)*yd18OROR(I,J,L)*0.02d0
+        RORdest=rr(rrbi%d18OROR_M__d18Oald_HO2,L)+ROR_CH2
+        if(RORdest > 0.d0)then
+          y(nd18OROR,L)=(RORprod/RORdest)
+        else
+          y(nd18OROR,L)=1.d0
+        end if
+        yd18OROR(I,J,L)=y(nd18OROR,L)
+
+c       Set value for d13CROR:
+        RORprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
+     &      *y(nOH,L)*0.76d0
+     &    +rr(rrbi%d13CROR_M__d13Cald_HO2,L)*yd13CROR(I,J,L)*0.02d0
+        RORdest=rr(rrbi%d13CROR_M__d13Cald_HO2,L)+ROR_CH2
+        if(RORdest > 0.d0)then
+          y(nd13CROR,L)=(RORprod/RORdest)
+        else
+          y(nd13CROR,L)=1.d0
+        end if
+        yd13CROR(I,J,L)=y(nd13CROR,L)
+#endif  /* TRACERS_dCO */
 
 c       Add parrafin loss term via rxpar reaction and
 c       prod term via isoprene rxns:
@@ -2350,6 +2400,18 @@ c Print chemical changes in a particular grid box if desired:
      &    ' ROR     :',y(nROR,LPRN),(y(nROR,LPRN)/
      &    y(nM,LPRN))*1.d9,' ppbv'
           call write_parallel(trim(out_line),crit=jay)
+#ifdef TRACERS_dCO
+          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &    ' d17OROR :',y(nd17OROR,LPRN),(y(nd17OROR,LPRN)/
+     &    y(nM,LPRN))*1.d9,' ppbv'
+          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &    ' d18OROR :',y(nd18OROR,LPRN),(y(nd18OROR,LPRN)/
+     &    y(nM,LPRN))*1.d9,' ppbv'
+          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &    ' d13CROR :',y(nd13CROR,LPRN),(y(nd13CROR,LPRN)/
+     &    y(nM,LPRN))*1.d9,' ppbv'
+          call write_parallel(trim(out_line),crit=jay)
+#endif  /* TRACERS_dCO */
          end if
 
        end do ! igas
