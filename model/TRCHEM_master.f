@@ -607,6 +607,11 @@ c - set reactive species for use in family chemistry & nighttime NO2:
        y(nd13CH3O2,L)=yd13CH3O2(I,J,L)
 #endif  /* TRACERS_dCO */
        y(nC2O3,L)    =yC2O3(I,J,L)
+#ifdef TRACERS_dCO
+       y(ndC217O3,L)    =ydC217O3(I,J,L)
+       y(ndC218O3,L)    =ydC218O3(I,J,L)
+       y(nd13C2O3,L)    =yd13C2O3(I,J,L)
+#endif  /* TRACERS_dCO */
        y(nXO2,L)     =yXO2(I,J,L)
        y(nXO2N,L)    =yXO2N(I,J,L)
        y(nRXPAR,L)   =yRXPAR(I,J,L)
@@ -2722,9 +2727,9 @@ C**** Local parameters and variables and arguments:
             rr(jj,L)=rr(jj,L)+rk3M/(1.d0+(rk3M/rk2))
           else if (jj==rrbi%PAN_M__C2O3_NO2
 #ifdef TRACERS_dCO
-     &        .or. jj==rrbi%d17OPAN_M__C2O3_NO2
-     &        .or. jj==rrbi%d18OPAN_M__C2O3_NO2
-     &        .or. jj==rrbi%d13CPAN_M__C2O3_NO2
+     &        .or. jj==rrbi%d17OPAN_M__dC217O3_NO2
+     &        .or. jj==rrbi%d18OPAN_M__dC218O3_NO2
+     &        .or. jj==rrbi%d13CPAN_M__d13C2O3_NO2
 #endif  /* TRACERS_dCO */
      &            ) then
 !           PAN+M really PAN
