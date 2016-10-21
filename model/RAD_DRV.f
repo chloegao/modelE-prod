@@ -1007,7 +1007,8 @@ C**** set up unit numbers for 14 more radiation input files
       if(.not.transmission_corrections) nrfun(4) = donotread
       if(madvol == 0) nrfun(7) = donotread
       if(madeps == 0) nrfun(8) = donotread
-      if(ksolar < 0)  nrfun(9) = donotread
+!      if(ksolar < 0)  nrfun(9) = donotread
+      nrfun(9) = donotread     ! open/read RADN9 inside RCOMP1  
       DO IU=1,14
         if(nrfun(iu) == donotread) cycle
         call openunit(RUNSTR(IU),NRFUN(IU),QBIN(IU),.true.)
