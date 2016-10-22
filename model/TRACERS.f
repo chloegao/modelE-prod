@@ -1353,6 +1353,8 @@ C**** check whether air mass is conserved
      &     yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss,ydms,yso2,sulfate
 #ifdef TRACERS_dCO
      &     ,ydC217O3,ydC218O3,yd13C2O3
+     &     ,yd17OXO2,yd18OXO2,yd13CXO2
+     &     ,yd17OXO2N,yd18OXO2N,yd13CXO2N
      &     ,yd17OROR,yd18OROR,yd13CROR
      &     ,yd17Oald,yd18Oald,yd13Cald
      &     ,ydCH317O2,ydCH318O2,yd13CH3O2
@@ -1617,9 +1619,31 @@ c not yet        if(am_i_root()) write(kunit,err=10) header,aijl_glob
        header='TRACERS_SPECIAL_Shindell: yXO2(i,j,l)'
         call pack_data(grid,yXO2,Aijl_chem)
         if(am_i_root())write(kunit,err=10)header,Aijl_chem
+#ifdef TRACERS_dCO
+       header='TRACERS_SPECIAL_Shindell: yd17OXO2(i,j,l)'
+        call pack_data(grid,yd17OXO2,Aijl_chem)
+        if(am_i_root())write(kunit,err=10)header,Aijl_chem
+       header='TRACERS_SPECIAL_Shindell: yd18OXO2(i,j,l)'
+        call pack_data(grid,yd18OXO2,Aijl_chem)
+        if(am_i_root())write(kunit,err=10)header,Aijl_chem
+       header='TRACERS_SPECIAL_Shindell: yd13CXO2(i,j,l)'
+        call pack_data(grid,yd13CXO2,Aijl_chem)
+        if(am_i_root())write(kunit,err=10)header,Aijl_chem
+#endif  /* TRACERS_dCO */
        header='TRACERS_SPECIAL_Shindell: yXO2N(i,j,l)'
         call pack_data(grid,yXO2N,Aijl_chem)
         if(am_i_root())write(kunit,err=10)header,Aijl_chem
+#ifdef TRACERS_dCO
+       header='TRACERS_SPECIAL_Shindell: yd17OXO2N(i,j,l)'
+        call pack_data(grid,yd17OXO2N,Aijl_chem)
+        if(am_i_root())write(kunit,err=10)header,Aijl_chem
+       header='TRACERS_SPECIAL_Shindell: yd18OXO2N(i,j,l)'
+        call pack_data(grid,yd18OXO2N,Aijl_chem)
+        if(am_i_root())write(kunit,err=10)header,Aijl_chem
+       header='TRACERS_SPECIAL_Shindell: yd13CXO2N(i,j,l)'
+        call pack_data(grid,yd13CXO2N,Aijl_chem)
+        if(am_i_root())write(kunit,err=10)header,Aijl_chem
+#endif  /* TRACERS_dCO */
        header='TRACERS_SPECIAL_Shindell: yAldehyde(i,j,l)'
         call pack_data(grid,yAldehyde,Aijl_chem)
         if(am_i_root())write(kunit,err=10)header,Aijl_chem
@@ -1871,8 +1895,24 @@ c not yet          call unpack_data(grid,aijl_glob,daily_z)
 #endif  /* TRACERS_dCO */
           if(am_i_root())read(kunit,err=10)header,Aijl_chem
           call unpack_data(grid,Aijl_chem,yXO2)
+#ifdef TRACERS_dCO
+          if(am_i_root())read(kunit,err=10)header,Aijl_chem
+          call unpack_data(grid,Aijl_chem,yd17OXO2)
+          if(am_i_root())read(kunit,err=10)header,Aijl_chem
+          call unpack_data(grid,Aijl_chem,yd18OXO2)
+          if(am_i_root())read(kunit,err=10)header,Aijl_chem
+          call unpack_data(grid,Aijl_chem,yd13CXO2)
+#endif  /* TRACERS_dCO */
           if(am_i_root())read(kunit,err=10)header,Aijl_chem
           call unpack_data(grid,Aijl_chem,yXO2N)
+#ifdef TRACERS_dCO
+          if(am_i_root())read(kunit,err=10)header,Aijl_chem
+          call unpack_data(grid,Aijl_chem,yd17OXO2N)
+          if(am_i_root())read(kunit,err=10)header,Aijl_chem
+          call unpack_data(grid,Aijl_chem,yd18OXO2N)
+          if(am_i_root())read(kunit,err=10)header,Aijl_chem
+          call unpack_data(grid,Aijl_chem,yd13CXO2N)
+#endif  /* TRACERS_dCO */
           if(am_i_root())read(kunit,err=10)header,Aijl_chem
           call unpack_data(grid,Aijl_chem,yAldehyde)
 #ifdef TRACERS_dCO
@@ -2183,6 +2223,8 @@ C**** ESMF: Broadcast all non-distributed read arrays.
      &yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss,ydms,yso2,sulfate,pNO3
 #ifdef TRACERS_dCO
      &,ydC217O3,ydC218O3,yd13C2O3
+     &,yd17OXO2,yd18OXO2,yd13CXO2
+     &,yd17OXO2N,yd18OXO2N,yd13CXO2N
      &,yd17OROR,yd18OROR,yd13CROR
      &,yd17Oald,yd18Oald,yd13Cald
      &,ydCH317O2,ydCH318O2,yd13CH3O2
@@ -2291,7 +2333,17 @@ c daily_z is currently only needed for CS
       call doVar(handle,action,yd13CROR,'yd13CROR'//ijcdims)
 #endif  /* TRACERS_dCO */
       call doVar(handle,action,yXO2,'yXO2'//ijcdims)
+#ifdef TRACERS_dCO
+      call doVar(handle,action,yd17OXO2,'yd17OXO2'//ijcdims)
+      call doVar(handle,action,yd18OXO2,'yd18OXO2'//ijcdims)
+      call doVar(handle,action,yd13CXO2,'yd13CXO2'//ijcdims)
+#endif  /* TRACERS_dCO */
       call doVar(handle,action,yXO2N,'yXO2N'//ijcdims)
+#ifdef TRACERS_dCO
+      call doVar(handle,action,yd17OXO2N,'yd17OXO2N'//ijcdims)
+      call doVar(handle,action,yd18OXO2N,'yd18OXO2N'//ijcdims)
+      call doVar(handle,action,yd13CXO2N,'yd13CXO2N'//ijcdims)
+#endif  /* TRACERS_dCO */
       call doVar(handle,action,yAldehyde,'yAldehyde'//ijcdims)
 #ifdef TRACERS_dCO
       call doVar(handle,action,yd17Oald,'yd17Oald'//ijcdims)

@@ -14,6 +14,8 @@ C**** GLOBAL parameters and variables:
      &    yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yNO3,yRXPAR,yXO2N,acetone,
 #ifdef TRACERS_dCO
      &    ydC217O3,ydC218O3,yd13C2O3,
+     &    yd17OXO2,yd18OXO2,yd13CXO2,
+     &    yd17OXO2N,yd18OXO2N,yd13CXO2N,
      &    yd17OROR,yd18OROR,yd13CROR,
      &    yd17Oald,yd18Oald,yd13Cald,
      &    ydCH317O2,ydCH318O2,yd13CH3O2,
@@ -90,6 +92,11 @@ C Initialize a few (IM,JM,topLevelOfChemistry) arrays, first hour only:
         yd13CROR(I_0:I_1,J_0:J_1,:) =0.d0
 #endif  /* TRACERS_dCO */
         yXO2(I_0:I_1,J_0:J_1,:)     =0.d0
+#ifdef TRACERS_dCO
+        yd17OXO2(I_0:I_1,J_0:J_1,:) =0.d0
+        yd18OXO2(I_0:I_1,J_0:J_1,:) =0.d0
+        yd13CXO2(I_0:I_1,J_0:J_1,:) =0.d0
+#endif  /* TRACERS_dCO */
         yAldehyde(I_0:I_1,J_0:J_1,:)=0.d0
 #ifdef TRACERS_dCO
         yd17Oald(I_0:I_1,J_0:J_1,:) =0.d0
@@ -98,6 +105,11 @@ C Initialize a few (IM,JM,topLevelOfChemistry) arrays, first hour only:
 #endif  /* TRACERS_dCO */
         yNO3(I_0:I_1,J_0:J_1,:)     =0.d0
         yXO2N(I_0:I_1,J_0:J_1,:)    =0.d0
+#ifdef TRACERS_dCO
+        yd17OXO2N(I_0:I_1,J_0:J_1,:)=0.d0
+        yd18OXO2N(I_0:I_1,J_0:J_1,:)=0.d0
+        yd13CXO2N(I_0:I_1,J_0:J_1,:)=0.d0
+#endif  /* TRACERS_dCO */
         yRXPAR(I_0:I_1,J_0:J_1,:)   =0.d0
         oh_live(I_0:I_1,J_0:J_1,:)  =0.d0
         no3_live(I_0:I_1,J_0:J_1,:) =0.d0
@@ -119,7 +131,7 @@ C Initialize a few (IM,JM,topLevelOfChemistry) arrays, first hour only:
 #ifdef TRACERS_AEROSOLS_SOA
 #ifdef TRACERS_TERP
 #ifdef TRACERS_dCO
- 110  format(8(///10(a8)),(///6(a8)))
+ 110  format(9(///10(a8)),(///2(a8)))
 #else
  110  format(6(///10(a8)),(///2(a8)))
 #endif
