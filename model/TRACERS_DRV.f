@@ -8885,9 +8885,6 @@ C**** no fractionation for ice evap
       USE ATM_COM, only: pmid,MA,pk
       USE GEOM, only: axyp,imaxj
       USE TRACER_COM, only: rsulf1,rsulf2,rsulf3,rsulf4
-#ifdef TRACERS_SPECIAL_Shindell
-      USE TRCHEM_Shindell_COM, only: which_trop
-#endif
       INTEGER J_0, J_1, I_0, I_1
       real*8 ppres,te,tt,mm,dmm,rk4,ek4,f
 C Greg: certain things now done outside the loops for speed:

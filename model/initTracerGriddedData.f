@@ -39,7 +39,7 @@
      &     CH4altINT,CH4altINX,LCH4alt,PCH4alt,
      &     CH4altX,CH4altT,ch4_init_sh,ch4_init_nh,scale_ch4_IC_file,
      &     OxICIN,OxIC,OxICINL,OxICL,
-     &     fix_CH4_chemistry,which_trop,
+     &     fix_CH4_chemistry,
      &     allowSomeChemReinit,
      &     CH4ICIN,CH4ICX,CH4ICINL,CH4ICL,use_rad_ch4,
      &     COICIN,COIC,COICINL,COICL,Lmax_rad_O3,Lmax_rad_CH4
