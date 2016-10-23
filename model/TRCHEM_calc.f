@@ -2536,148 +2536,146 @@ c     In the stratosphere, calculate ozone change due to rxn with atomic H:
 
 c Print chemical changes in a particular grid box if desired:
       if(prnchg .and. J==jprn .and. I==iprn)then
-       do igas=1,ntm_chem
-         idx=igas+ntm_chem_beg-1
-         changeA=changeL(Lprn,idx)*y(nM,lprn)*mass2vol(idx)*
-     &   byaxyp(I,J)*byMA(lprn,I,J)
-         if(y(igas,lprn) == 0.d0)then
-           write(out_line,156) ay(igas),': ',changeA,' molecules;  y=0'
-           call write_parallel(trim(out_line),crit=jay)
-         else
-           write(out_line,155)ay(igas),': ',changeA
-     &     ,' molecules produced; ',
-     &     (100.d0*changeA)/y(igas,lprn),' percent of'
-     &     ,y(igas,lprn),'(',1.d9*y(igas,lprn)/y(nM,lprn),' ppbv)'
-           call write_parallel(trim(out_line),crit=jay)
-         end if
-
-         if(igas == ntm_chem)then
-          if(LPRN > maxT)then
-            write(out_line,155) ay(nH2O),': ',
-     &      changeH2O(lprn),' molecules produced; ',
-     &      (100*changeH2O(lprn))/y(nH2O,lprn),' percent of',
-     &      y(nH2O,lprn),'(',1.d6*y(nH2O,lprn)/y(nM,lprn),' ppmv)'
+        do igas=1,ntm_chem
+          idx=igas+ntm_chem_beg-1
+          changeA=changeL(Lprn,idx)*y(nM,lprn)*mass2vol(idx)*
+     &    byaxyp(I,J)*byMA(lprn,I,J)
+          if(y(igas,lprn) == 0.d0)then
+            write(out_line,156) ay(igas),': ',changeA,' molecules;  y=0'
             call write_parallel(trim(out_line),crit=jay)
           else
-            write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
-     &      ' H2O     :',y(nH2O,LPRN),(y(nH2O,LPRN)/
-     &      y(nM,LPRN))*1.d6,' ppmv'
+            write(out_line,155)ay(igas),': ',changeA
+     &      ,' molecules produced; ',
+     &      (100.d0*changeA)/y(igas,lprn),' percent of'
+     &      ,y(igas,lprn),'(',1.d9*y(igas,lprn)/y(nM,lprn),' ppbv)'
             call write_parallel(trim(out_line),crit=jay)
           end if
-          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
-     &    ' CH3O2   :',yCH3O2(I,J,LPRN),(yCH3O2(I,J,LPRN)/
-     &    y(nM,LPRN))*1.d9,' ppbv'
-          call write_parallel(trim(out_line),crit=jay)
-#ifdef TRACERS_dCO
-          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
-     &    ' dCH317O2:',ydCH317O2(I,J,LPRN),(ydCH317O2(I,J,LPRN)/
-     &    y(nM,LPRN))*1.d9,' ppbv'
-          call write_parallel(trim(out_line),crit=jay)
-          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
-     &    ' dCH318O2:',ydCH318O2(I,J,LPRN),(ydCH318O2(I,J,LPRN)/
-     &    y(nM,LPRN))*1.d9,' ppbv'
-          call write_parallel(trim(out_line),crit=jay)
-          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
-     &    ' d13CH3O2:',yd13CH3O2(I,J,LPRN),(yd13CH3O2(I,J,LPRN)/
-     &    y(nM,LPRN))*1.d9,' ppbv'
-          call write_parallel(trim(out_line),crit=jay)
-#endif  /* TRACERS_dCO */
-          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
-     &    ' C2O3    :',y(nC2O3,LPRN),(y(nC2O3,LPRN)/
-     &    y(nM,LPRN))*1.d9,' ppbv'
-          call write_parallel(trim(out_line),crit=jay)
-#ifdef TRACERS_dCO
-          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
-     &    ' dC217O3 :',y(ndC217O3,LPRN),(y(ndC217O3,LPRN)/
-     &    y(nM,LPRN))*1.d9,' ppbv'
-          call write_parallel(trim(out_line),crit=jay)
-          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
-     &    ' dC218O3 :',y(ndC218O3,LPRN),(y(ndC218O3,LPRN)/
-     &    y(nM,LPRN))*1.d9,' ppbv'
-          call write_parallel(trim(out_line),crit=jay)
-          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
-     &    ' d13C2O3 :',y(nd13C2O3,LPRN),(y(nd13C2O3,LPRN)/
-     &    y(nM,LPRN))*1.d9,' ppbv'
-          call write_parallel(trim(out_line),crit=jay)
-#endif  /* TRACERS_dCO */
-          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
-     &    ' XO2     :',y(nXO2,LPRN),(y(nXO2,LPRN)/
-     &    y(nM,LPRN))*1.d9,
-     &    ' ppbv'
-          call write_parallel(trim(out_line),crit=jay)
-#ifdef TRACERS_dCO
-          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
-     &    ' d17OXO2 :',y(nd17OXO2,LPRN),(y(nd17OXO2,LPRN)/
-     &    y(nM,LPRN))*1.d9,' ppbv'
-          call write_parallel(trim(out_line),crit=jay)
-          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
-     &    ' d18OXO2 :',y(nd18OXO2,LPRN),(y(nd18OXO2,LPRN)/
-     &    y(nM,LPRN))*1.d9,' ppbv'
-          call write_parallel(trim(out_line),crit=jay)
-          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
-     &    ' d13CXO2 :',y(nd13CXO2,LPRN),(y(nd13CXO2,LPRN)/
-     &    y(nM,LPRN))*1.d9,' ppbv'
-          call write_parallel(trim(out_line),crit=jay)
-#endif  /* TRACERS_dCO */
-          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
-     &    ' XO2N    :',y(nXO2N,LPRN),(y(nXO2N,LPRN)/
-     &    y(nM,LPRN))*1.d9,' ppbv'
-          call write_parallel(trim(out_line),crit=jay)
-#ifdef TRACERS_dCO
-          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
-     &    ' d17OXO2N:',y(nd17OXO2N,LPRN),(y(nd17OXO2N,LPRN)/
-     &    y(nM,LPRN))*1.d9,' ppbv'
-          call write_parallel(trim(out_line),crit=jay)
-          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
-     &    ' d18OXO2N:',y(nd18OXO2N,LPRN),(y(nd18OXO2N,LPRN)/
-     &    y(nM,LPRN))*1.d9,' ppbv'
-          call write_parallel(trim(out_line),crit=jay)
-          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
-     &    ' d13CXO2N:',y(nd13CXO2N,LPRN),(y(nd13CXO2N,LPRN)/
-     &    y(nM,LPRN))*1.d9,' ppbv'
-          call write_parallel(trim(out_line),crit=jay)
-#endif  /* TRACERS_dCO */
-          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
-     &    ' RXPAR   :',y(nRXPAR,LPRN),(y(nRXPAR,LPRN)/
-     &    y(nM,LPRN))*1.d9,' ppbv'
-          call write_parallel(trim(out_line),crit=jay)
-          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
-     &    ' Aldehyde:',y(nAldehyde,LPRN),(y(nAldehyde,LPRN)/
-     &    y(nM,LPRN))*1.d9,' ppbv'
-          call write_parallel(trim(out_line),crit=jay)
-#ifdef TRACERS_dCO
-          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
-     &    ' d17Oald :',y(nd17Oald,LPRN),(y(nd17Oald,LPRN)/
-     &    y(nM,LPRN))*1.d9,' ppbv'
-          call write_parallel(trim(out_line),crit=jay)
-          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
-     &    ' d18Oald :',y(nd18Oald,LPRN),(y(nd18Oald,LPRN)/
-     &    y(nM,LPRN))*1.d9,' ppbv'
-          call write_parallel(trim(out_line),crit=jay)
-          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
-     &    ' d13Cald :',y(nd13Cald,LPRN),(y(nd13Cald,LPRN)/
-     &    y(nM,LPRN))*1.d9,' ppbv'
-          call write_parallel(trim(out_line),crit=jay)
-#endif  /* TRACERS_dCO */
-          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
-     &    ' ROR     :',y(nROR,LPRN),(y(nROR,LPRN)/
-     &    y(nM,LPRN))*1.d9,' ppbv'
-          call write_parallel(trim(out_line),crit=jay)
-#ifdef TRACERS_dCO
-          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
-     &    ' d17OROR :',y(nd17OROR,LPRN),(y(nd17OROR,LPRN)/
-     &    y(nM,LPRN))*1.d9,' ppbv'
-          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
-     &    ' d18OROR :',y(nd18OROR,LPRN),(y(nd18OROR,LPRN)/
-     &    y(nM,LPRN))*1.d9,' ppbv'
-          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
-     &    ' d13CROR :',y(nd13CROR,LPRN),(y(nd13CROR,LPRN)/
-     &    y(nM,LPRN))*1.d9,' ppbv'
-          call write_parallel(trim(out_line),crit=jay)
-#endif  /* TRACERS_dCO */
-         end if
+        end do ! igas
 
-       end do ! igas
+        if(LPRN > maxT)then
+          write(out_line,155) ay(nH2O),': ',
+     &    changeH2O(lprn),' molecules produced; ',
+     &    (100*changeH2O(lprn))/y(nH2O,lprn),' percent of',
+     &    y(nH2O,lprn),'(',1.d6*y(nH2O,lprn)/y(nM,lprn),' ppmv)'
+          call write_parallel(trim(out_line),crit=jay)
+        else
+          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &    ' H2O     :',y(nH2O,LPRN),(y(nH2O,LPRN)/
+     &    y(nM,LPRN))*1.d6,' ppmv'
+          call write_parallel(trim(out_line),crit=jay)
+        end if
+        write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &  ' CH3O2   :',yCH3O2(I,J,LPRN),(yCH3O2(I,J,LPRN)/
+     &  y(nM,LPRN))*1.d9,' ppbv'
+        call write_parallel(trim(out_line),crit=jay)
+#ifdef TRACERS_dCO
+        write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &  ' dCH317O2:',ydCH317O2(I,J,LPRN),(ydCH317O2(I,J,LPRN)/
+     &  y(nM,LPRN))*1.d9,' ppbv'
+        call write_parallel(trim(out_line),crit=jay)
+        write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &  ' dCH318O2:',ydCH318O2(I,J,LPRN),(ydCH318O2(I,J,LPRN)/
+     &  y(nM,LPRN))*1.d9,' ppbv'
+        call write_parallel(trim(out_line),crit=jay)
+        write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &  ' d13CH3O2:',yd13CH3O2(I,J,LPRN),(yd13CH3O2(I,J,LPRN)/
+     &  y(nM,LPRN))*1.d9,' ppbv'
+        call write_parallel(trim(out_line),crit=jay)
+#endif  /* TRACERS_dCO */
+        write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &  ' C2O3    :',y(nC2O3,LPRN),(y(nC2O3,LPRN)/
+     &  y(nM,LPRN))*1.d9,' ppbv'
+        call write_parallel(trim(out_line),crit=jay)
+#ifdef TRACERS_dCO
+        write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &  ' dC217O3 :',y(ndC217O3,LPRN),(y(ndC217O3,LPRN)/
+     &  y(nM,LPRN))*1.d9,' ppbv'
+        call write_parallel(trim(out_line),crit=jay)
+        write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &  ' dC218O3 :',y(ndC218O3,LPRN),(y(ndC218O3,LPRN)/
+     &  y(nM,LPRN))*1.d9,' ppbv'
+        call write_parallel(trim(out_line),crit=jay)
+        write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &  ' d13C2O3 :',y(nd13C2O3,LPRN),(y(nd13C2O3,LPRN)/
+     &  y(nM,LPRN))*1.d9,' ppbv'
+        call write_parallel(trim(out_line),crit=jay)
+#endif  /* TRACERS_dCO */
+        write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &  ' XO2     :',y(nXO2,LPRN),(y(nXO2,LPRN)/
+     &  y(nM,LPRN))*1.d9,
+     &  ' ppbv'
+        call write_parallel(trim(out_line),crit=jay)
+#ifdef TRACERS_dCO
+        write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &  ' d17OXO2 :',y(nd17OXO2,LPRN),(y(nd17OXO2,LPRN)/
+     &  y(nM,LPRN))*1.d9,' ppbv'
+        call write_parallel(trim(out_line),crit=jay)
+        write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &  ' d18OXO2 :',y(nd18OXO2,LPRN),(y(nd18OXO2,LPRN)/
+     &  y(nM,LPRN))*1.d9,' ppbv'
+        call write_parallel(trim(out_line),crit=jay)
+        write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &  ' d13CXO2 :',y(nd13CXO2,LPRN),(y(nd13CXO2,LPRN)/
+     &  y(nM,LPRN))*1.d9,' ppbv'
+        call write_parallel(trim(out_line),crit=jay)
+#endif  /* TRACERS_dCO */
+        write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &  ' XO2N    :',y(nXO2N,LPRN),(y(nXO2N,LPRN)/
+     &  y(nM,LPRN))*1.d9,' ppbv'
+        call write_parallel(trim(out_line),crit=jay)
+#ifdef TRACERS_dCO
+        write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &  ' d17OXO2N:',y(nd17OXO2N,LPRN),(y(nd17OXO2N,LPRN)/
+     &  y(nM,LPRN))*1.d9,' ppbv'
+        call write_parallel(trim(out_line),crit=jay)
+        write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &  ' d18OXO2N:',y(nd18OXO2N,LPRN),(y(nd18OXO2N,LPRN)/
+     &  y(nM,LPRN))*1.d9,' ppbv'
+        call write_parallel(trim(out_line),crit=jay)
+        write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &  ' d13CXO2N:',y(nd13CXO2N,LPRN),(y(nd13CXO2N,LPRN)/
+     &  y(nM,LPRN))*1.d9,' ppbv'
+        call write_parallel(trim(out_line),crit=jay)
+#endif  /* TRACERS_dCO */
+        write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &  ' RXPAR   :',y(nRXPAR,LPRN),(y(nRXPAR,LPRN)/
+     &  y(nM,LPRN))*1.d9,' ppbv'
+        call write_parallel(trim(out_line),crit=jay)
+        write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &  ' Aldehyde:',y(nAldehyde,LPRN),(y(nAldehyde,LPRN)/
+     &  y(nM,LPRN))*1.d9,' ppbv'
+        call write_parallel(trim(out_line),crit=jay)
+#ifdef TRACERS_dCO
+        write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &  ' d17Oald :',y(nd17Oald,LPRN),(y(nd17Oald,LPRN)/
+     &  y(nM,LPRN))*1.d9,' ppbv'
+        call write_parallel(trim(out_line),crit=jay)
+        write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &  ' d18Oald :',y(nd18Oald,LPRN),(y(nd18Oald,LPRN)/
+     &  y(nM,LPRN))*1.d9,' ppbv'
+        call write_parallel(trim(out_line),crit=jay)
+        write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &  ' d13Cald :',y(nd13Cald,LPRN),(y(nd13Cald,LPRN)/
+     &  y(nM,LPRN))*1.d9,' ppbv'
+        call write_parallel(trim(out_line),crit=jay)
+#endif  /* TRACERS_dCO */
+        write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &  ' ROR     :',y(nROR,LPRN),(y(nROR,LPRN)/
+     &  y(nM,LPRN))*1.d9,' ppbv'
+        call write_parallel(trim(out_line),crit=jay)
+#ifdef TRACERS_dCO
+        write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &  ' d17OROR :',y(nd17OROR,LPRN),(y(nd17OROR,LPRN)/
+     &  y(nM,LPRN))*1.d9,' ppbv'
+        write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &  ' d18OROR :',y(nd18OROR,LPRN),(y(nd18OROR,LPRN)/
+     &  y(nM,LPRN))*1.d9,' ppbv'
+        write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &  ' d13CROR :',y(nd13CROR,LPRN),(y(nd13CROR,LPRN)/
+     &  y(nM,LPRN))*1.d9,' ppbv'
+        call write_parallel(trim(out_line),crit=jay)
+#endif  /* TRACERS_dCO */
+
       end if  ! end this section of chem diags 
 
 C Tracer masses & slopes are updated in apply_tracer_3Dsource,
