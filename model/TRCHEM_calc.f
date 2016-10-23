@@ -1,5 +1,5 @@
 #include "rundeck_opts.h"
-      SUBROUTINE chemstep(I,J,ierr_loc)
+      SUBROUTINE chemstep(maxL,I,J,ierr_loc)
 !@sum chemstep Calculate new concentrations after photolysis & chemistry
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
 !@calls rates,chem1,chem1prn
@@ -64,7 +64,7 @@ C
      &                   ,SF3,ratioNs,ratioN2,rNO2frac,nO,nClO,nBrO
      &                   ,rNOfrac,rNOdenom,nOClO,nCl,nBr,OxlossbyH
      &                   ,nCl2,yCl2,SF2,nO2,MWabyMWw,yCl2O2,pscX
-     &                   ,topLevelOfChemistry,changeL
+     &                   ,changeL
 #ifdef TRACERS_AEROSOLS_SOA
        USE TRACERS_SOA, only: apartmolar,whichsoa,soa_apart,LM_soa
 #endif  /* TRACERS_AEROSOLS_SOA */
@@ -116,9 +116,9 @@ C**** Local parameters and variables and arguments:
 !@+   Not In Use.
 !@var rNO3prod,rNO2prod,rNOprod to acct for dOx from NOx partitioning
 !@var PRES local nominal pressure for regional Ox tracers
-      INTEGER, INTENT(IN) :: I,J
+      INTEGER, INTENT(IN) :: maxL,I,J
       INTEGER, INTENT(INOUT) :: ierr_loc
-      INTEGER :: L,iter,maxL,igas,maxT,Lz,it,n
+      INTEGER :: L,iter,igas,maxT,Lz,it,n
       INTEGER :: J_0, J_1
       character(len=300) :: out_line
       logical            :: jay
@@ -149,26 +149,24 @@ C**** Local parameters and variables and arguments:
       
       jay = (J >= J_0 .and. J <= J_1) 
      
-      allocate( rMAbyM(topLevelOfChemistry) )
-      allocate( sv_changeN2O(topLevelOfChemistry) )
-      allocate( changeH2O(topLevelOfChemistry) )
-      allocate( dQ(topLevelOfChemistry) )
-      allocate( dQM(topLevelOfChemistry) )
-      allocate( fraQ2(topLevelOfChemistry) )
-      allocate( c2ml(topLevelOfChemistry) )
-      allocate( conOH(topLevelOfChemistry) )
-      allocate( conClO(topLevelOfChemistry) )
-      allocate( conH2O(topLevelOfChemistry) )
-      allocate( NprodOx_pos(topLevelOfChemistry) )
-      allocate( NprodOx_neg(topLevelOfChemistry) ) 
+      allocate( rMAbyM(maxL) )
+      allocate( sv_changeN2O(maxL) )
+      allocate( changeH2O(maxL) )
+      allocate( dQ(maxL) )
+      allocate( dQM(maxL) )
+      allocate( fraQ2(maxL) )
+      allocate( c2ml(maxL) )
+      allocate( conOH(maxL) )
+      allocate( conClO(maxL) )
+      allocate( conH2O(maxL) )
+      allocate( NprodOx_pos(maxL) )
+      allocate( NprodOx_neg(maxL) ) 
 
       select case(which_trop)
-      case(0); maxT=min(ltropo(I,J),topLevelOfChemistry)
-      case(1); maxT=min(ls1-1,topLevelOfChemistry)
+      case(0); maxT=min(ltropo(I,J),maxL)
+      case(1); maxT=min(ls1-1,maxL)
       case default; call stop_model('which_trop problem 1',255)
       end select 
-
-      maxL=topLevelOfChemistry
 
       PRES(1:LM)=PMIDL00(1:LM)   !SIG(1:maxL)*(PSF-PTOP)+PTOP
       
@@ -1458,7 +1456,7 @@ C account for any within-NOx repartitioning anymore. So we took it out.
 ! in thie routine.)
 C
 !c Calculate ozone change due to within-NOx partitioning:
-!      do L=1,topLevelOfChemistry
+!      do L=1,maxL
 !        if(y(nO1D,L) == 0.) CYCLE
 !c       account for NO2 and NO ozone destruction:
 !        rNO2prod=rr(rrbi%OH_HO2NO2__H2O_NO2,L)*y(nOH,L)*y(nn_HO2NO2,L)+

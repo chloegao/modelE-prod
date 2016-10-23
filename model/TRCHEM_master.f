@@ -866,7 +866,7 @@ CCCCCCCCCCCCCCCCC NON-FAMILY CHEMISTRY CCCCCCCCCCCCCCCCCCCCCCCC
       end do
 #endif  /* TRACERS_AEROSOLS_SOA */
 
-      call chemstep(I,J,ierr_loc)
+      call chemstep(topLevelOfChemistry,I,J,ierr_loc)
       if(ierr_loc > 0) cycle i_loop
 
 C Save 3D radical arrays to pass to aerosol code:
