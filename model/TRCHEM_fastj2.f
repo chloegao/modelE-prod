@@ -2389,7 +2389,8 @@ C**** Local parameters and variables and arguments:
             write(out_line,*)'An FLTRAN file exists and a "photon_flux"'
      &      //' variable exists in RADN9 file. Please resolve conflict.'
             call write_parallel(trim(out_line))
-            call stop_model('rad_FL input defined in FLTRAN and RADN9')
+            call stop_model
+     &      ('rad_FL input defined in FLTRAN and RADN9',255)
 
           else ! continue with normal ascii file reading:
 
@@ -2464,15 +2465,6 @@ C**** Local parameters and variables and arguments:
           end if 
         
         else ! no FLTRAN file; read RADN9 file
-
-! Temporary stop here. Once the radiation code can read in netCDF
-! RADN9 file, Greg will test this new section of code.
-          write(out_line,*)'FastJ code exists to read photon flux ' 
-     &    //'from netCDF RADN9 file. But there was no way to test '
-     &    //'that so stopping the model for now.'
-          call write_parallel(trim(out_line))
-          call stop_model("FastJ untested code. See PRT message.",255)
-! End of Temporary stop section.
 
           ! open file
           rc=nf_open('RADN9',ncnowrit,fid)
