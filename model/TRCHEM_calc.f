@@ -21,6 +21,9 @@ C
      &     ,jls_ClOcon,jls_H2Ocon,jls_H2Ochem
       use OldTracer_mod, only: vol2mass, mass2vol
       USE TRACER_COM, only  : ntm_chem_beg, ntm_chem_end, ntm_chem,
+#ifdef TRACERS_dCO
+     &  n_d17OPAN,n_d18OPAN,n_d13CPAN,
+#endif  /* TRACERS_dCO */
      &  n_CH4,n_Paraffin,n_PAN,n_Isoprene,n_stratOx,
      &  n_Terpenes,n_AlkylNit,n_Alkenes,n_N2O5,n_NOx,n_HO2NO2,
      &  n_isopp1g,n_isopp1a,n_isopp2g,n_isopp2a,n_apinp1g,
@@ -39,8 +42,19 @@ C
      &                   yROR,nCH3O2,nC2O3,nXO2,nXO2N,nRXPAR,
      &                   nAldehyde,nROR,nn,dt2,dest,prod,
 #ifdef TRACERS_dCO
+     &                   ydC217O3,ydC218O3,yd13C2O3,
+     &                   ndC217O3,ndC218O3,nd13C2O3,
+     &                   yd17OXO2,yd18OXO2,yd13CXO2,
+     &                   nd17OXO2,nd18OXO2,nd13CXO2,
+     &                   yd17OXO2N,yd18OXO2N,yd13CXO2N,
+     &                   nd17OXO2N,nd18OXO2N,nd13CXO2N,
+     &                   yd17OROR,yd18OROR,yd13CROR,
+     &                   nd17OROR,nd18OROR,nd13CROR,
+     &                   yd17Oald,yd18Oald,yd13Cald,
+     &                   nd17Oald,nd18Oald,nd13Cald,
      &                   ydCH317O2,ydCH318O2,yd13CH3O2,
      &                   ndCH317O2,ndCH318O2,nd13CH3O2,
+     &                   d17Oacetone,d18Oacetone,d13Cacetone,
 #endif  /* TRACERS_dCO */
      &                   rr,nO1D,nOH,nNO,nHO2,ta,nM,ss,
      &                   nO3,nNO2,nNO3,prnrts,jprn,iprn,lprn,ay,
@@ -66,6 +80,7 @@ C
      &      nn_ClOx,   nn_BrOx,  nn_HCl,   nn_HOCl,   nn_ClONO2,  
      &      nn_HBr,    nn_HOBr,  nn_BrONO2,nn_CFC,    nn_GLT
 #ifdef TRACERS_dCO
+     &     ,nn_d17OPAN,nn_d18OPAN,nn_d13CPAN
      &     ,nn_dMe17OOH,nn_dMe18OOH,nn_d13MeOOH
      &     ,nn_dHCH17O,nn_dHCH18O,nn_dH13CHO
      &     ,nn_dC17O,nn_dC18O,nn_d13CO
@@ -165,11 +180,36 @@ C**** Local parameters and variables and arguments:
         y(nd13CH3O2,L)= yd13CH3O2(I,J,L)
 #endif  /* TRACERS_dCO */
         y(nC2O3,L)    =     yC2O3(I,J,L)
+#ifdef TRACERS_dCO
+        y(ndC217O3,L) =  ydC217O3(I,J,L)
+        y(ndC218O3,L) =  ydC218O3(I,J,L)
+        y(nd13C2O3,L) =  yd13C2O3(I,J,L)
+#endif  /* TRACERS_dCO */
         y(nXO2,L)     =      yXO2(I,J,L)
+#ifdef TRACERS_dCO
+        y(nd17OXO2,L) =  yd17OXO2(I,J,L)
+        y(nd18OXO2,L) =  yd18OXO2(I,J,L)
+        y(nd13CXO2,L) =  yd13CXO2(I,J,L)
+#endif  /* TRACERS_dCO */
         y(nXO2N,L)    =     yXO2N(I,J,L)
+#ifdef TRACERS_dCO
+        y(nd17OXO2N,L)= yd17OXO2N(I,J,L)
+        y(nd18OXO2N,L)= yd18OXO2N(I,J,L)
+        y(nd13CXO2N,L)= yd13CXO2N(I,J,L)
+#endif  /* TRACERS_dCO */
         y(nRXPAR,L)   =    yRXPAR(I,J,L)
         y(nAldehyde,L)= yAldehyde(I,J,L)
+#ifdef TRACERS_dCO
+        y(nd17Oald,L) =  yd17Oald(I,J,L)
+        y(nd18Oald,L) =  yd18Oald(I,J,L)
+        y(nd13Cald,L) =  yd13Cald(I,J,L)
+#endif  /* TRACERS_dCO */
         y(nROR,L)     =      yROR(I,J,L)
+#ifdef TRACERS_dCO
+        y(nd17OROR,L) =  yd17OROR(I,J,L)
+        y(nd18OROR,L) =  yd18OROR(I,J,L)
+        y(nd13CROR,L) =  yd13CROR(I,J,L)
+#endif  /* TRACERS_dCO */
       end do
       do L=maxT+1,maxL
         y(nCH3O2,L)   = 0.d0
@@ -179,11 +219,36 @@ C**** Local parameters and variables and arguments:
         y(nd13CH3O2,L)= 0.d0
 #endif  /* TRACERS_dCO */
         y(nC2O3,L)    = 0.d0
+#ifdef TRACERS_dCO
+        y(ndC217O3,L) = 0.d0
+        y(ndC218O3,L) = 0.d0
+        y(nd13C2O3,L) = 0.d0
+#endif  /* TRACERS_dCO */
         y(nXO2,L)     = 0.d0
+#ifdef TRACERS_dCO
+        y(nd17OXO2,L) = 0.d0
+        y(nd18OXO2,L) = 0.d0
+        y(nd13CXO2,L) = 0.d0
+#endif  /* TRACERS_dCO */
         y(nXO2N,L)    = 0.d0
+#ifdef TRACERS_dCO
+        y(nd17OXO2N,L)= 0.d0
+        y(nd18OXO2N,L)= 0.d0
+        y(nd13CXO2N,L)= 0.d0
+#endif  /* TRACERS_dCO */
         y(nRXPAR,L)   = 0.d0
         y(nAldehyde,L)= 0.d0
+#ifdef TRACERS_dCO
+        y(nd17Oald,L) = 0.d0
+        y(nd18Oald,L) = 0.d0
+        y(nd13Cald,L) = 0.d0
+#endif  /* TRACERS_dCO */
         y(nROR,L)     = 0.d0
+#ifdef TRACERS_dCO
+        y(nd17OROR,L) = 0.d0
+        y(nd18OROR,L) = 0.d0
+        y(nd13CROR,L) = 0.d0
+#endif  /* TRACERS_dCO */
       end do
 C
 C Calculate reaction rates with present concentrations:
@@ -206,10 +271,12 @@ c photolytic production:
 
 c Add additional Cl from CFC photolysis + background :
       do L=1,maxL
-        prod(nn_ClOx,L)=prod(nn_ClOx,L)+0.33d0*photrate(26,L)+
-     &  7.5d-3*photrate(28,L)
-        prod(nn_BrOx,L)=prod(nn_BrOx,L)+5.55d-4*photrate(26,L)+
-     &  5.2d-6*photrate(28,L)
+        prod(nn_ClOx,L)=prod(nn_ClOx,L)
+     &    +0.33d0*photrate(rj%CFC__Cl_O2,L)
+     &    +7.5d-3*photrate(rj%N2O__M_O1D,L)
+        prod(nn_BrOx,L)=prod(nn_BrOx,L)
+     &    +5.55d-4*photrate(rj%CFC__Cl_O2,L)
+     &    +5.2d-6*photrate(rj%N2O__M_O1D,L)
       end do
 
 c Oxidation of Isoprene and Alkenes produces less than one
@@ -221,10 +288,13 @@ c HCHO, Alkenes, and CO per rxn, correct here following Houweling:
 #ifdef TRACERS_dCO
         prod(nn_dC17O,L)=prod(nn_dC17O,L)
      &    -0.63d0*chemrate(rrbi%Alkenes_O3__HCHO_dC17O,L)
+     &    -0.64d0*chemrate(rrbi%Isoprene_O3__HCHO_Alkenes,L)
         prod(nn_dC18O,L)=prod(nn_dC18O,L)
      &    -0.63d0*chemrate(rrbi%Alkenes_O3__HCHO_dC18O,L)
+     &    -0.64d0*chemrate(rrbi%Isoprene_O3__HCHO_Alkenes,L)
         prod(nn_d13CO,L)=prod(nn_d13CO,L)
      &    -0.63d0*chemrate(rrbi%Alkenes_O3__HCHO_d13CO,L)
+     &    -0.64d0*chemrate(rrbi%Isoprene_O3__HCHO_Alkenes,L)
 #endif  /* TRACERS_dCO */
         prod(nn_HCHO,L)=prod(nn_HCHO,L)
      &    -0.36d0*chemrate(rrbi%Alkenes_O3__HCHO_CO,L)
@@ -366,14 +436,14 @@ c         increase non-acetone product gases:
 
 #ifdef TRACERS_dCO
 c Set dCH317O2 values (concentration = production/specific loss):
-! ok to overwrite here qqqCH3O2,prodCH3O2,diffCH3O2,CH3O2loss
+! ok to overwrite here qqqCH3O2,prodCH3O2,diffCH3O2,CH3O2loss,tempAcet
         iter=1
         qqqCH3O2=(rr(rrbi%O1D_CH4__OH_dCH317O2,L)*y(nO1D,L)
      &      +rr(rrbi%CH4_OH__H2O_dCH317O2,L)*y(nOH,L))
      &    *y(nn_CH4,L)
      &    +rr(rrbi%dMe17OOH_OH__dCH317O2_H2O,L)*y(nn_dMe17OOH,L)
      &      *y(nOH,L)
-        tempAcet=2.d0*Jacet(L)*acetone(I,J,L)
+        tempAcet=2.d0*Jacet(L)*d17Oacetone(I,J,L)
         prodCH3O2=qqqCH3O2+tempAcet
         tempiter=rr(rrbi%dCH317O2_NO__dHCH17O_NO2,L)*y(nNO,L)
      &    +rr(rrbi%dCH317O2_HO2__dMe17OOH_O2,L)*y(nHO2,L)
@@ -418,7 +488,7 @@ c Set dCH318O2 values (concentration = production/specific loss):
      &    *y(nn_CH4,L)
      &    +rr(rrbi%dMe18OOH_OH__dCH318O2_H2O,L)*y(nn_dMe18OOH,L)
      &      *y(nOH,L)
-        tempAcet=2.d0*Jacet(L)*acetone(I,J,L)
+        tempAcet=2.d0*Jacet(L)*d18Oacetone(I,J,L)
         prodCH3O2=qqqCH3O2+tempAcet
         tempiter=rr(rrbi%dCH318O2_NO__dHCH18O_NO2,L)*y(nNO,L)
      &    +rr(rrbi%dCH318O2_HO2__dMe18OOH_O2,L)*y(nHO2,L)
@@ -463,7 +533,7 @@ c Set d13CH3O2 values (concentration = production/specific loss):
      &    *y(nn_CH4,L)
      &    +rr(rrbi%d13MeOOH_OH__d13CH3O2_H2O,L)*y(nn_d13MeOOH,L)
      &      *y(nOH,L)
-        tempAcet=2.d0*Jacet(L)*acetone(I,J,L)
+        tempAcet=2.d0*Jacet(L)*d13Cacetone(I,J,L)
         prodCH3O2=qqqCH3O2+tempAcet
         tempiter=rr(rrbi%d13CH3O2_NO__dH13CHO_NO2,L)*y(nNO,L)
      &    +rr(rrbi%d13CH3O2_HO2__d13MeOOH_O2,L)*y(nHO2,L)
@@ -717,14 +787,95 @@ c       Set value for C2O3:
           yC2O3(I,J,L)=y(nC2O3,L)
           iter=iter+1
         end do
+#ifdef TRACERS_dCO
+! ok to overwrite C2O3prod and C2O3dest
+c       Set value for dC217O3:
+        iter=1
+        C2O3prod=rr(rrbi%d17Oald_OH__dC217O3_M,L)*yd17Oald(I,J,L)
+     &      *y(nOH,L)
+     &    +(rr(rrbi%d17OPAN_M__dC217O3_NO2,L)*y(nM,L)
+     &      +ss(rj%d17OPAN__dC217O3_NO2,L,I,J))*y(nn_d17OPAN,L)
+     &    +0.15d0*rr(rrbi%Isoprene_O3__HCHO_Alkenes,L)
+     &      *y(nO3,L)*y(nn_Isoprene,L)
+#ifdef TRACERS_TERP
+     &    +0.15d0*rr(rrbi%Terpenes_O3__HCHO_Alkenes,L)*y(nO3,L)
+     &      *y(nn_Terpenes,L)
+#endif  /* TRACERS_TERP */
+        tempiter=rr(rrbi%dC217O3_NO__dHCH17O_NO2,L)*y(nNO,L)
+     &    +rr(rrtri%dC217O3_NO2__d17OPAN_M,L)*y(nNO2,L)
+     &    +rr(rrbi%dC217O3_HO2__dHCH17O_HO2,L)*y(nHO2,L)
+        do while (iter <= 7)
+          C2O3dest=tempiter
+     &      +rr(rrbi%dC217O3_dC217O3__dHCH17O_dHCH17O,L)*ydC217O3(I,J,L)
+          if(C2O3dest > 1.d-7)then
+            y(ndC217O3,L)=(C2O3prod/C2O3dest)
+          else
+            y(ndC217O3,L)=1.d0
+          endif
+          ydC217O3(I,J,L)=y(ndC217O3,L)
+          iter=iter+1
+        end do
+c       Set value for dC218O3:
+        iter=1
+        C2O3prod=rr(rrbi%d18Oald_OH__dC218O3_M,L)*yd18Oald(I,J,L)
+     &      *y(nOH,L)
+     &    +(rr(rrbi%d18OPAN_M__dC218O3_NO2,L)*y(nM,L)
+     &      +ss(rj%d18OPAN__dC218O3_NO2,L,I,J))*y(nn_d18OPAN,L)
+     &    +0.15d0*rr(rrbi%Isoprene_O3__HCHO_Alkenes,L)
+     &      *y(nO3,L)*y(nn_Isoprene,L)
+#ifdef TRACERS_TERP
+     &    +0.15d0*rr(rrbi%Terpenes_O3__HCHO_Alkenes,L)*y(nO3,L)
+     &      *y(nn_Terpenes,L)
+#endif  /* TRACERS_TERP */
+        tempiter=rr(rrbi%dC218O3_NO__dHCH18O_NO2,L)*y(nNO,L)
+     &    +rr(rrtri%dC218O3_NO2__d18OPAN_M,L)*y(nNO2,L)
+     &    +rr(rrbi%dC218O3_HO2__dHCH18O_HO2,L)*y(nHO2,L)
+        do while (iter <= 7)
+          C2O3dest=tempiter
+     &      +rr(rrbi%dC218O3_dC218O3__dHCH18O_dHCH18O,L)*ydC218O3(I,J,L)
+          if(C2O3dest > 1.d-7)then
+            y(ndC218O3,L)=(C2O3prod/C2O3dest)
+          else
+            y(ndC218O3,L)=1.d0
+          endif
+          ydC218O3(I,J,L)=y(ndC218O3,L)
+          iter=iter+1
+        end do
+c       Set value for d13C2O3:
+        iter=1
+        C2O3prod=rr(rrbi%d13Cald_OH__d13C2O3_M,L)*yd13Cald(I,J,L)
+     &      *y(nOH,L)
+     &    +(rr(rrbi%d13CPAN_M__d13C2O3_NO2,L)*y(nM,L)
+     &      +ss(rj%d13CPAN__d13C2O3_NO2,L,I,J))*y(nn_d13CPAN,L)
+     &    +0.15d0*rr(rrbi%Isoprene_O3__HCHO_Alkenes,L)
+     &      *y(nO3,L)*y(nn_Isoprene,L)
+#ifdef TRACERS_TERP
+     &    +0.15d0*rr(rrbi%Terpenes_O3__HCHO_Alkenes,L)*y(nO3,L)
+     &      *y(nn_Terpenes,L)
+#endif  /* TRACERS_TERP */
+        tempiter=rr(rrbi%d13C2O3_NO__dH13CHO_NO2,L)*y(nNO,L)
+     &    +rr(rrtri%d13C2O3_NO2__d13CPAN_M,L)*y(nNO2,L)
+     &    +rr(rrbi%d13C2O3_HO2__dH13CHO_HO2,L)*y(nHO2,L)
+        do while (iter <= 7)
+          C2O3dest=tempiter
+     &      +rr(rrbi%d13C2O3_d13C2O3__dH13CHO_dH13CHO,L)*yd13C2O3(I,J,L)
+          if(C2O3dest > 1.d-7)then
+            y(nd13C2O3,L)=(C2O3prod/C2O3dest)
+          else
+            y(nd13C2O3,L)=1.d0
+          endif
+          yd13C2O3(I,J,L)=y(nd13C2O3,L)
+          iter=iter+1
+        end do
+#endif  /* TRACERS_dCO */
 
 c       Set value for XO2:
 ! remember to update voc2nox if you update any of the following XO2 loss reactions
         iter=1
-        XO2prod=ss(rj%Aldehyde__HCHO_CO,L,I,J)*yAldehyde(I,J,L) ! CO isotopes should not go here
+        XO2prod=ss(rj%Aldehyde__HCHO_CO,L,I,J)*yAldehyde(I,J,L)
      &    +y(nC2O3,L)*(rr(rrbi%C2O3_NO__HCHO_NO2,L)*y(nNO2,L)
-     &    +rr(rrbi%C2O3_C2O3__HCHO_HCHO,L)*y(nC2O3,L)*2.d0
-     &    +rr(rrbi%C2O3_HO2__HCHO_HO2,L)*y(nHO2,L))
+     &      +rr(rrbi%C2O3_C2O3__HCHO_HCHO,L)*y(nC2O3,L)*2.d0
+     &      +rr(rrbi%C2O3_HO2__HCHO_HO2,L)*y(nHO2,L))
      &    +rr(rrbi%Alkenes_NO3__HCHO_NO2,L)*y(nNO3,L)*y(nn_Alkenes,L)
      &      *0.91d0
      &    +rr(rrbi%ROR_M__Aldehyde_HO2,L)*yROR(I,J,L)*0.96d0
@@ -735,8 +886,9 @@ c       Set value for XO2:
 #ifdef TRACERS_TERP
      &    +rr(rrbi%Terpenes_OH__HCHO_Alkenes,L)*y(nn_Terpenes,L)*0.85d0
 #endif  /* TRACERS_TERP */
-     &    +rr(rrbi%AlkylNit_OH__NO2_M,L)*y(nn_AlkylNit,L))+
-     &  y(nO3,L)*(rr(rrbi%Alkenes_O3__HCHO_CO,L)*y(nn_Alkenes,L)*0.29d0
+     &    +rr(rrbi%AlkylNit_OH__NO2_M,L)*y(nn_AlkylNit,L))
+     &    +y(nO3,L)*(rr(rrbi%Alkenes_O3__HCHO_CO,L)*y(nn_Alkenes,L)
+     &      *0.29d0
      &    +rr(rrbi%Isoprene_O3__HCHO_Alkenes,L)*y(nn_Isoprene,L)*0.18d0
 #ifdef TRACERS_TERP
      &    +rr(rrbi%Terpenes_O3__HCHO_Alkenes,L)*y(nn_Terpenes,L)*0.18d0
@@ -748,7 +900,7 @@ c       Set value for XO2:
           XO2_XO2=yXO2(I,J,L)*tempiter2
           XO2dest=tempiter+XO2_XO2
           if(XO2dest > 1.d-7.and.
-     &       ss(rj%Aldehyde__HCHO_CO,L,I,J) > 1.d-6)then ! CO isotopes should not go here
+     &       ss(rj%Aldehyde__HCHO_CO,L,I,J) > 1.d-6)then
             y(nXO2,L)=(XO2prod/XO2dest)
           else
             y(nXO2,L)=1.d0
@@ -757,6 +909,147 @@ c       Set value for XO2:
           iter=iter+1
         end do
 
+#ifdef TRACERS_dCO
+! ok to overwrite XO2prod/XO2dest/XO2_XO2
+c       Set value for d17OXO2:
+        iter=1
+        XO2prod=ss(rj%d17Oald__dHCH17O_dC17O,L,I,J)*yd17Oald(I,J,L)
+     &    +y(ndC217O3,L)*(rr(rrbi%dC217O3_NO__dHCH17O_NO2,L)*y(nNO2,L)
+     &      +rr(rrbi%dC217O3_dC217O3__dHCH17O_dHCH17O,L)*y(ndC217O3,L)
+     &        *2.d0
+     &      +rr(rrbi%dC217O3_HO2__dHCH17O_HO2,L)*y(nHO2,L))
+     &    +rr(rrbi%Alkenes_NO3__dHCH17O_NO2,L)*y(nNO3,L)*y(nn_Alkenes,L)
+     &      *0.91d0
+     &    +rr(rrbi%d17OROR_M__d17Oald_HO2,L)*yd17OROR(I,J,L)*0.96d0
+     &    +y(nOH,L)*(rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
+     &      *0.87d0
+     &    +rr(rrbi%Alkenes_OH__dHCH17O_HO2,L)*y(nn_Alkenes,L)
+     &    +rr(rrbi%Isoprene_OH__dHCH17O_Alkenes,L)*y(nn_Isoprene,L)
+     &      *0.85d0
+#ifdef TRACERS_TERP
+     &    +rr(rrbi%Terpenes_OH__dHCH17O_Alkenes,L)*y(nn_Terpenes,L)
+     &      *0.85d0
+#endif  /* TRACERS_TERP */
+     &    +rr(rrbi%AlkylNit_OH__NO2_M,L)*y(nn_AlkylNit,L))
+     &    +y(nO3,L)*(rr(rrbi%Alkenes_O3__dHCH17O_CO,L)*y(nn_Alkenes,L)
+     &      *0.29d0*0.5d0
+     &      +rr(rrbi%Alkenes_O3__HCHO_dC17O,L)*y(nn_Alkenes,L)
+     &        *0.29d0*0.5d0
+     &      +rr(rrbi%Isoprene_O3__dHCH17O_Alkenes,L)*y(nn_Isoprene,L)
+     &        *0.18d0
+#ifdef TRACERS_TERP
+     &      +rr(rrbi%Terpenes_O3__dHCH17O_Alkenes,L)*y(nn_Terpenes,L)
+     &        *0.18d0
+#endif  /* TRACERS_TERP */
+     &           )
+        tempiter=XO2_NO+rr(rrbi%d17OXO2_HO2__dMe17OOH_M,L)*y(nHO2,L)
+        tempiter2=1.7d-14*exp(1300.d0/ta(L))
+        do while (iter <= 7)
+          XO2_XO2=yd17OXO2(I,J,L)*tempiter2
+          XO2dest=tempiter+XO2_XO2
+          if(XO2dest > 1.d-7.and.
+     &       ss(rj%d17Oald__dHCH17O_dC17O,L,I,J) > 1.d-6)then
+            y(nd17OXO2,L)=(XO2prod/XO2dest)
+          else
+            y(nd17OXO2,L)=1.d0
+          end if
+          yd17OXO2(I,J,L)=y(nd17OXO2,L)
+          iter=iter+1
+        end do
+
+c       Set value for d18OXO2:
+        iter=1
+        XO2prod=ss(rj%d18Oald__dHCH18O_dC18O,L,I,J)*yd18Oald(I,J,L)
+     &    +y(ndC218O3,L)*(rr(rrbi%dC218O3_NO__dHCH18O_NO2,L)*y(nNO2,L)
+     &      +rr(rrbi%dC218O3_dC218O3__dHCH18O_dHCH18O,L)*y(ndC218O3,L)
+     &        *2.d0
+     &      +rr(rrbi%dC218O3_HO2__dHCH18O_HO2,L)*y(nHO2,L))
+     &    +rr(rrbi%Alkenes_NO3__dHCH18O_NO2,L)*y(nNO3,L)*y(nn_Alkenes,L)
+     &      *0.91d0
+     &    +rr(rrbi%d18OROR_M__d18Oald_HO2,L)*yd18OROR(I,J,L)*0.96d0
+     &    +y(nOH,L)*(rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
+     &      *0.87d0
+     &    +rr(rrbi%Alkenes_OH__dHCH18O_HO2,L)*y(nn_Alkenes,L)
+     &    +rr(rrbi%Isoprene_OH__dHCH18O_Alkenes,L)*y(nn_Isoprene,L)
+     &      *0.85d0
+#ifdef TRACERS_TERP
+     &    +rr(rrbi%Terpenes_OH__dHCH18O_Alkenes,L)*y(nn_Terpenes,L)
+     &      *0.85d0
+#endif  /* TRACERS_TERP */
+     &    +rr(rrbi%AlkylNit_OH__NO2_M,L)*y(nn_AlkylNit,L))
+     &    +y(nO3,L)*(rr(rrbi%Alkenes_O3__dHCH18O_CO,L)*y(nn_Alkenes,L)
+     &      *0.29d0*0.5d0
+     &      +rr(rrbi%Alkenes_O3__HCHO_dC18O,L)*y(nn_Alkenes,L)
+     &        *0.29d0*0.5d0
+     &      +rr(rrbi%Isoprene_O3__dHCH18O_Alkenes,L)*y(nn_Isoprene,L)
+     &        *0.18d0
+#ifdef TRACERS_TERP
+     &      +rr(rrbi%Terpenes_O3__dHCH18O_Alkenes,L)*y(nn_Terpenes,L)
+     &        *0.18d0
+#endif  /* TRACERS_TERP */
+     &           )
+        tempiter=XO2_NO+rr(rrbi%d18OXO2_HO2__dMe18OOH_M,L)*y(nHO2,L)
+        tempiter2=1.7d-14*exp(1300.d0/ta(L))
+        do while (iter <= 7)
+          XO2_XO2=yd18OXO2(I,J,L)*tempiter2
+          XO2dest=tempiter+XO2_XO2
+          if(XO2dest > 1.d-7.and.
+     &       ss(rj%d18Oald__dHCH18O_dC18O,L,I,J) > 1.d-6)then
+            y(nd18OXO2,L)=(XO2prod/XO2dest)
+          else
+            y(nd18OXO2,L)=1.d0
+          end if
+          yd18OXO2(I,J,L)=y(nd18OXO2,L)
+          iter=iter+1
+        end do
+
+c       Set value for d13CXO2:
+        iter=1
+        XO2prod=ss(rj%d13Cald__dH13CHO_d13CO,L,I,J)*yd13Cald(I,J,L)
+     &    +y(nd13C2O3,L)*(rr(rrbi%d13C2O3_NO__dH13CHO_NO2,L)*y(nNO2,L)
+     &      +rr(rrbi%d13C2O3_d13C2O3__dH13CHO_dH13CHO,L)*y(nd13C2O3,L)
+     &        *2.d0
+     &      +rr(rrbi%d13C2O3_HO2__dH13CHO_HO2,L)*y(nHO2,L))
+     &    +rr(rrbi%Alkenes_NO3__dH13CHO_NO2,L)*y(nNO3,L)*y(nn_Alkenes,L)
+     &      *0.91d0
+     &    +rr(rrbi%d13CROR_M__d13Cald_HO2,L)*yd13CROR(I,J,L)*0.96d0
+     &    +y(nOH,L)*(rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
+     &      *0.87d0
+     &    +rr(rrbi%Alkenes_OH__dH13CHO_HO2,L)*y(nn_Alkenes,L)
+     &    +rr(rrbi%Isoprene_OH__dH13CHO_Alkenes,L)*y(nn_Isoprene,L)
+     &      *0.85d0
+#ifdef TRACERS_TERP
+     &    +rr(rrbi%Terpenes_OH__dH13CHO_Alkenes,L)*y(nn_Terpenes,L)
+     &      *0.85d0
+#endif  /* TRACERS_TERP */
+     &    +rr(rrbi%AlkylNit_OH__NO2_M,L)*y(nn_AlkylNit,L))
+     &    +y(nO3,L)*(rr(rrbi%Alkenes_O3__dH13CHO_CO,L)*y(nn_Alkenes,L)
+     &      *0.29d0*0.5d0
+     &      +rr(rrbi%Alkenes_O3__HCHO_d13CO,L)*y(nn_Alkenes,L)
+     &        *0.29d0*0.5d0
+     &      +rr(rrbi%Isoprene_O3__dH13CHO_Alkenes,L)*y(nn_Isoprene,L)
+     &        *0.18d0
+#ifdef TRACERS_TERP
+     &      +rr(rrbi%Terpenes_O3__dH13CHO_Alkenes,L)*y(nn_Terpenes,L)
+     &        *0.18d0
+#endif  /* TRACERS_TERP */
+     &           )
+        tempiter=XO2_NO+rr(rrbi%d13CXO2_HO2__d13MeOOH_M,L)*y(nHO2,L)
+        tempiter2=1.7d-14*exp(1300.d0/ta(L))
+        do while (iter <= 7)
+          XO2_XO2=yd13CXO2(I,J,L)*tempiter2
+          XO2dest=tempiter+XO2_XO2
+          if(XO2dest > 1.d-7.and.
+     &       ss(rj%d13Cald__dH13CHO_d13CO,L,I,J) > 1.d-6)then
+            y(nd13CXO2,L)=(XO2prod/XO2dest)
+          else
+            y(nd13CXO2,L)=1.d0
+          end if
+          yd13CXO2(I,J,L)=y(nd13CXO2,L)
+          iter=iter+1
+        end do
+#endif  /* TRACERS_dCO */
+
 c       Set value for XO2N:
         XO2Nprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
      &      *y(nOH,L)*0.13d0
@@ -764,7 +1057,7 @@ c       Set value for XO2N:
      &      *0.09d0
      &    +rr(rrbi%ROR_M__Aldehyde_HO2,L)*yROR(I,J,L)*0.04d0
      &    +rr(rrbi%Isoprene_OH__HCHO_Alkenes,L)*y(nn_Isoprene,L)*
-     &  y(nOH,L)*0.15d0
+     &      y(nOH,L)*0.15d0
 #ifdef TRACERS_TERP
      &    +rr(rrbi%Terpenes_OH__HCHO_Alkenes,L)*y(nn_Terpenes,L)
      &      *y(nOH,L)*0.15d0
@@ -776,6 +1069,69 @@ c       Set value for XO2N:
           y(nXO2N,L)=1.d0
         end if
         yXO2N(I,J,L)=y(nXO2N,L)
+
+#ifdef TRACERS_dCO
+! ok to replace XO2Nprod/XO2Ndest
+c       Set value for d17OXO2N:
+        XO2Nprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
+     &      *y(nOH,L)*0.13d0
+     &    +rr(rrbi%Alkenes_NO3__dHCH17O_NO2,L)*y(nNO3,L)*y(nn_Alkenes,L)
+     &      *0.09d0
+     &    +rr(rrbi%ROR_M__Aldehyde_HO2,L)*yROR(I,J,L)*0.04d0
+     &    +rr(rrbi%Isoprene_OH__dHCH17O_Alkenes,L)*y(nn_Isoprene,L)*
+     &      y(nOH,L)*0.15d0
+#ifdef TRACERS_TERP
+     &    +rr(rrbi%Terpenes_OH__dHCH17O_Alkenes,L)*y(nn_Terpenes,L)
+     &      *y(nOH,L)*0.15d0
+#endif  /* TRACERS_TERP */
+        XO2Ndest=XO2N_HO2+rr(rrbi%d17OXO2N_NO__AlkylNit_M,L)*y(nNO,L)
+        if(XO2Ndest > 1.d-7)then
+          y(nd17OXO2N,L)=(XO2Nprod/XO2Ndest)
+        else
+          y(nd17OXO2N,L)=1.d0
+        end if
+        yd17OXO2N(I,J,L)=y(nd17OXO2N,L)
+
+c       Set value for d18OXO2N:
+        XO2Nprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
+     &      *y(nOH,L)*0.13d0
+     &    +rr(rrbi%Alkenes_NO3__dHCH18O_NO2,L)*y(nNO3,L)*y(nn_Alkenes,L)
+     &      *0.09d0
+     &    +rr(rrbi%ROR_M__Aldehyde_HO2,L)*yROR(I,J,L)*0.04d0
+     &    +rr(rrbi%Isoprene_OH__dHCH18O_Alkenes,L)*y(nn_Isoprene,L)*
+     &      y(nOH,L)*0.15d0
+#ifdef TRACERS_TERP
+     &    +rr(rrbi%Terpenes_OH__dHCH18O_Alkenes,L)*y(nn_Terpenes,L)
+     &      *y(nOH,L)*0.15d0
+#endif  /* TRACERS_TERP */
+        XO2Ndest=XO2N_HO2+rr(rrbi%d18OXO2N_NO__AlkylNit_M,L)*y(nNO,L)
+        if(XO2Ndest > 1.d-7)then
+          y(nd18OXO2N,L)=(XO2Nprod/XO2Ndest)
+        else
+          y(nd18OXO2N,L)=1.d0
+        end if
+        yd18OXO2N(I,J,L)=y(nd18OXO2N,L)
+
+c       Set value for d13CXO2N:
+        XO2Nprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
+     &      *y(nOH,L)*0.13d0
+     &    +rr(rrbi%Alkenes_NO3__dH13CHO_NO2,L)*y(nNO3,L)*y(nn_Alkenes,L)
+     &      *0.09d0
+     &    +rr(rrbi%ROR_M__Aldehyde_HO2,L)*yROR(I,J,L)*0.04d0
+     &    +rr(rrbi%Isoprene_OH__dH13CHO_Alkenes,L)*y(nn_Isoprene,L)*
+     &      y(nOH,L)*0.15d0
+#ifdef TRACERS_TERP
+     &    +rr(rrbi%Terpenes_OH__dH13CHO_Alkenes,L)*y(nn_Terpenes,L)
+     &      *y(nOH,L)*0.15d0
+#endif  /* TRACERS_TERP */
+        XO2Ndest=XO2N_HO2+rr(rrbi%d13CXO2N_NO__AlkylNit_M,L)*y(nNO,L)
+        if(XO2Ndest > 1.d-7)then
+          y(nd13CXO2N,L)=(XO2Nprod/XO2Ndest)
+        else
+          y(nd13CXO2N,L)=1.d0
+        end if
+        yd13CXO2N(I,J,L)=y(nd13CXO2N,L)
+#endif  /* TRACERS_dCO */
 
 #ifdef ACCMIP_LIKE_DIAGS
         TAIJLS(I,J,L,ijlt_OxpRO2)=TAIJLS(I,J,L,ijlt_OxpRO2)
@@ -820,6 +1176,75 @@ c       Check for equilibrium:
         end if
         yAldehyde(I,J,L)=y(nAldehyde,L)
 
+#ifdef TRACERS_dCO
+c       Set value for d17Oald:
+!ok to overwrite here Aldehydeprod,Aldehydedest,changeAldehyde
+        Aldehydeprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
+     &      *y(nOH,L)*0.11d0
+     &    +rr(rrbi%Alkenes_OH__HCHO_HO2,L)*y(nn_Alkenes,L)*y(nOH,L)
+     &    +rr(rrbi%d17OROR_M__d17Oald_HO2,L)*yd17OROR(I,J,L)*1.1d0
+     &    +rr(rrbi%Alkenes_O3__HCHO_CO,L)*y(nn_Alkenes,L)
+     &      *y(nO3,L)*0.44d0
+        Aldehydedest=rr(rrbi%d17Oald_OH__dC217O3_M,L)*y(nOH,L)
+     &    +ss(rj%d17Oald__dHCH17O_dC17O,L,I,J)
+c       Check for equilibrium:
+        if(Aldehydedest*y(nd17Oald,L)*dt2 < y(nd17Oald,L))then
+          changeAldehyde=
+     &    (Aldehydeprod-y(nd17Oald,L)*Aldehydedest)*dt2
+          if(changeAldehyde > y(nd17Oald,L))
+     &    changeAldehyde=y(nd17Oald,L)
+          y(nd17Oald,L)=y(nd17Oald,L)+changeAldehyde
+          if(y(nd17Oald,L) < 0.d0) y(nd17Oald,L)=1.d0
+        else
+          y(nd17Oald,L)=(Aldehydeprod/(Aldehydedest+0.5d-5))
+        end if
+        yd17Oald(I,J,L)=y(nd17Oald,L)
+
+c       Set value for d18Oald:
+        Aldehydeprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
+     &      *y(nOH,L)*0.11d0
+     &    +rr(rrbi%Alkenes_OH__HCHO_HO2,L)*y(nn_Alkenes,L)*y(nOH,L)
+     &    +rr(rrbi%d18OROR_M__d18Oald_HO2,L)*yd18OROR(I,J,L)*1.1d0
+     &    +rr(rrbi%Alkenes_O3__HCHO_CO,L)*y(nn_Alkenes,L)
+     &      *y(nO3,L)*0.44d0
+        Aldehydedest=rr(rrbi%d18Oald_OH__dC218O3_M,L)*y(nOH,L)
+     &    +ss(rj%d18Oald__dHCH18O_dC18O,L,I,J)
+c       Check for equilibrium:
+        if(Aldehydedest*y(nd18Oald,L)*dt2 < y(nd18Oald,L))then
+          changeAldehyde=
+     &    (Aldehydeprod-y(nd18Oald,L)*Aldehydedest)*dt2
+          if(changeAldehyde > y(nd18Oald,L))
+     &    changeAldehyde=y(nd18Oald,L)
+          y(nd18Oald,L)=y(nd18Oald,L)+changeAldehyde
+          if(y(nd18Oald,L) < 0.d0) y(nd18Oald,L)=1.d0
+        else
+          y(nd18Oald,L)=(Aldehydeprod/(Aldehydedest+0.5d-5))
+        end if
+        yd18Oald(I,J,L)=y(nd18Oald,L)
+
+c       Set value for d13Cald:
+        Aldehydeprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
+     &      *y(nOH,L)*0.11d0
+     &    +rr(rrbi%Alkenes_OH__HCHO_HO2,L)*y(nn_Alkenes,L)*y(nOH,L)
+     &    +rr(rrbi%d13CROR_M__d13Cald_HO2,L)*yd13CROR(I,J,L)*1.1d0
+     &    +rr(rrbi%Alkenes_O3__HCHO_CO,L)*y(nn_Alkenes,L)
+     &      *y(nO3,L)*0.44d0
+        Aldehydedest=rr(rrbi%d13Cald_OH__d13C2O3_M,L)*y(nOH,L)
+     &    +ss(rj%d13Cald__dH13CHO_d13CO,L,I,J)
+c       Check for equilibrium:
+        if(Aldehydedest*y(nd13Cald,L)*dt2 < y(nd13Cald,L))then
+          changeAldehyde=
+     &    (Aldehydeprod-y(nd13Cald,L)*Aldehydedest)*dt2
+          if(changeAldehyde > y(nd13Cald,L))
+     &    changeAldehyde=y(nd13Cald,L)
+          y(nd13Cald,L)=y(nd13Cald,L)+changeAldehyde
+          if(y(nd13Cald,L) < 0.d0) y(nd13Cald,L)=1.d0
+        else
+          y(nd13Cald,L)=(Aldehydeprod/(Aldehydedest+0.5d-5))
+        end if
+        yd13Cald(I,J,L)=y(nd13Cald,L)
+#endif  /* TRACERS_dCO */
+
 c       Set value for ROR:
         RORprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
      &      *y(nOH,L)*0.76d0
@@ -831,6 +1256,45 @@ c       Set value for ROR:
           y(nROR,L)=1.d0
         end if
         yROR(I,J,L)=y(nROR,L)
+
+#ifdef TRACERS_dCO
+! ok ot overwrite RORprod,RORdest
+c       Set value for d17OROR:
+        RORprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
+     &      *y(nOH,L)*0.76d0
+     &    +rr(rrbi%d17OROR_M__d17Oald_HO2,L)*yd17OROR(I,J,L)*0.02d0
+        RORdest=rr(rrbi%d17OROR_M__d17Oald_HO2,L)+ROR_CH2
+        if(RORdest > 0.d0)then
+          y(nd17OROR,L)=(RORprod/RORdest)
+        else
+          y(nd17OROR,L)=1.d0
+        end if
+        yd17OROR(I,J,L)=y(nd17OROR,L)
+
+c       Set value for d18OROR:
+        RORprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
+     &      *y(nOH,L)*0.76d0
+     &    +rr(rrbi%d18OROR_M__d18Oald_HO2,L)*yd18OROR(I,J,L)*0.02d0
+        RORdest=rr(rrbi%d18OROR_M__d18Oald_HO2,L)+ROR_CH2
+        if(RORdest > 0.d0)then
+          y(nd18OROR,L)=(RORprod/RORdest)
+        else
+          y(nd18OROR,L)=1.d0
+        end if
+        yd18OROR(I,J,L)=y(nd18OROR,L)
+
+c       Set value for d13CROR:
+        RORprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
+     &      *y(nOH,L)*0.76d0
+     &    +rr(rrbi%d13CROR_M__d13Cald_HO2,L)*yd13CROR(I,J,L)*0.02d0
+        RORdest=rr(rrbi%d13CROR_M__d13Cald_HO2,L)+ROR_CH2
+        if(RORdest > 0.d0)then
+          y(nd13CROR,L)=(RORprod/RORdest)
+        else
+          y(nd13CROR,L)=1.d0
+        end if
+        yd13CROR(I,J,L)=y(nd13CROR,L)
+#endif  /* TRACERS_dCO */
 
 c       Add parrafin loss term via rxpar reaction and
 c       prod term via isoprene rxns:
@@ -851,9 +1315,12 @@ c       prod term via isoprene rxns:
 c       Add CH3OOH production via XO2N + HO2:
         prod(nn_CH3OOH,L)=prod(nn_CH3OOH,L)+XO2N_HO2*y(nXO2N,L)*dt2
 #ifdef TRACERS_dCO
-        prod(nn_dMe17OOH,L)=prod(nn_dMe17OOH,L)+XO2N_HO2*y(nXO2N,L)*dt2
-        prod(nn_dMe18OOH,L)=prod(nn_dMe18OOH,L)+XO2N_HO2*y(nXO2N,L)*dt2
-        prod(nn_d13MeOOH,L)=prod(nn_d13MeOOH,L)+XO2N_HO2*y(nXO2N,L)*dt2
+        prod(nn_dMe17OOH,L)=prod(nn_dMe17OOH,L)+XO2N_HO2*y(nd17OXO2N,L)
+     &                        *dt2
+        prod(nn_dMe18OOH,L)=prod(nn_dMe18OOH,L)+XO2N_HO2*y(nd18OXO2N,L)
+     &                        *dt2
+        prod(nn_d13MeOOH,L)=prod(nn_d13MeOOH,L)+XO2N_HO2*y(nd13CXO2N,L)
+     &                        *dt2
 #endif  /* TRACERS_dCO */
 c
       end do  ! --------------------------------------
@@ -866,7 +1333,7 @@ c If NOx in equil with N2O5, HO2NO2, or PAN, remove from changes:
      &      +2.d0*chemrate(rrtri%NO3_NO2__N2O5_M,L)
           prod(nn_NOx,L)=prod(nn_NOx,L)
      &      -2.d0*(chemrate(rrmono%N2O5_M__NO3_NO2,L)
-     &    +photrate(7,L))
+     &      +photrate(rj%N2O5__NO3_NO2,L))
         endif
         if(-dest(nn_HO2NO2,L) >= y(nn_HO2NO2,L) .or.
      &  chemrate(rrtri%HO2_NO2__HO2NO2_M,L) > y(nn_NOx,L))then
@@ -875,8 +1342,8 @@ c If NOx in equil with N2O5, HO2NO2, or PAN, remove from changes:
           prod(nn_NOx,L)=prod(nn_NOx,L)
      &      -(chemrate(rrbi%OH_HO2NO2__H2O_NO2,L)
      &        +chemrate(rrmono%HO2NO2_M__HO2_NO2,L)
-     &        +photrate(10,L)
-     &        +photrate(11,L))
+     &        +photrate(rj%HO2NO2__HO2_NO2,L)
+     &        +photrate(rj%HO2NO2__OH_NO3,L))
         endif
         if(-dest(nn_PAN,L) >= y(nn_PAN,L) .or.
      &  chemrate(rrtri%C2O3_NO2__PAN_M,L) > y(nn_NOx,L))then
@@ -884,7 +1351,7 @@ c If NOx in equil with N2O5, HO2NO2, or PAN, remove from changes:
      &      +chemrate(rrtri%C2O3_NO2__PAN_M,L)
           prod(nn_NOx,L)=prod(nn_NOx,L)
      &      -(chemrate(rrbi%PAN_M__C2O3_NO2,L)
-     &      +photrate(15,L))
+     &      +photrate(rj%PAN__C2O3_NO2,L))
         end if
         
 c If BrOx in equil with HOBr or BrONO2, remove from changes:
@@ -892,16 +1359,19 @@ c If BrOx in equil with HOBr or BrONO2, remove from changes:
      &  chemrate(rrbi%BrO_HO2__HOBr_O2,L) > 0.5d0*y(nn_BrOx,L))then
           dest(nn_BrOx,L)=dest(nn_BrOx,L)
      &      +chemrate(rrbi%BrO_HO2__HOBr_O2,L)
-          prod(nn_BrOx,L)=prod(nn_BrOx,L)-photrate(24,L)
+          prod(nn_BrOx,L)=prod(nn_BrOx,L)
+     &      -photrate(rj%HOBr__Br_OH,L)
         endif
         if(-dest(nn_BrONO2,L) >= y(nn_BrONO2,L).or.
      &  chemrate(rrtri%BrO_NO2__BrONO2_M,L) > 0.5d0*y(nn_BrOx,L))then
           dest(nn_BrOx,L)=dest(nn_BrOx,L)
      &      +chemrate(rrtri%BrO_NO2__BrONO2_M,L)
-          prod(nn_BrOx,L)=prod(nn_BrOx,L)-photrate(23,L)
+          prod(nn_BrOx,L)=prod(nn_BrOx,L)
+     &      -photrate(rj%BrONO2__BrO_NO2,L)
           dest(nn_NOx,L)=dest(nn_NOx,L)
      &      +chemrate(rrtri%BrO_NO2__BrONO2_M,L)
-          prod(nn_NOx,L)=prod(nn_NOx,L)-photrate(23,L)
+          prod(nn_NOx,L)=prod(nn_NOx,L)
+     &      -photrate(rj%BrONO2__BrO_NO2,L)
         end if
         
 c If ClOx in equil with HOCl or ClONO2, remove from changes:
@@ -910,7 +1380,7 @@ c If ClOx in equil with HOCl or ClONO2, remove from changes:
           dest(nn_ClOx,L)=dest(nn_ClOx,L)
      &      +chemrate(rrbi%ClO_HO2__HOCl_O2,L)
           prod(nn_ClOx,L)=prod(nn_ClOx,L)
-     &      -(photrate(21,L)
+     &      -(photrate(rj%HOCl__OH_Cl,L)
      &      +chemrate(rrbi%O_HOCl__OH_ClO,L))
         endif
         if(-dest(nn_ClONO2,L) >= y(nn_ClONO2,L) .or.
@@ -918,12 +1388,12 @@ c If ClOx in equil with HOCl or ClONO2, remove from changes:
           dest(nn_ClOx,L)=dest(nn_ClOx,L)
      &      +chemrate(rrtri%ClO_NO2__ClONO2_M,L)
           prod(nn_ClOx,L)=prod(nn_ClOx,L)
-     &      -(photrate(22,L)
+     &      -(photrate(rj%ClONO2__Cl_NO3,L)
      &      +chemrate(rrbi%ClONO2_O__ClO_NO3,L))
           dest(nn_NOx,L)=dest(nn_NOx,L)
      &      +chemrate(rrtri%ClO_NO2__ClONO2_M,L)
           prod(nn_NOx,L)=prod(nn_NOx,L)
-     &      -(photrate(22,L)
+     &      -(photrate(rj%ClONO2__Cl_NO3,L)
      &      +chemrate(rrbi%ClONO2_O__ClO_NO3,L))
         end if
       end do
@@ -1317,7 +1787,8 @@ c (chem1prn: argument before multip is index = number of call):
           if(igas == nn_CH3OOH) then
             write(out_line,'(a48,a6,e10.3)')
      &        'production from XO2N + HO2 ','dy = ',
-     &        y(nHO2,lprn)*y(nNO,lprn)*rr(rrbi%XO2N_NO__AlkylNit_M,lprn)
+     &        y(nHO2,lprn)*y(nNO,lprn)
+     &        *rr(rrbi%XO2N_NO__AlkylNit_M,lprn)
      &        *rr(rrbi%XO2_HO2__CH3OOH_M,lprn)
      &        /(y(nNO,lprn)*4.2d-12*exp(180.d0/ta(lprn)))
      &        *y(nXO2N,lprn)*dt2
@@ -1326,29 +1797,32 @@ c (chem1prn: argument before multip is index = number of call):
 #ifdef TRACERS_dCO
           if(igas == nn_dMe17OOH) then
             write(out_line,'(a48,a6,e10.3)')
-     &        'production from XO2N + HO2 ','dy = ',
-     &        y(nHO2,lprn)*y(nNO,lprn)*rr(rrbi%XO2N_NO__AlkylNit_M,lprn)
-     &        *rr(rrbi%XO2_HO2__dMe17OOH_M,lprn)
+     &        'production from d17OXO2N + HO2 ','dy = ',
+     &        y(nHO2,lprn)*y(nNO,lprn)
+     &        *rr(rrbi%d17OXO2N_NO__AlkylNit_M,lprn)
+     &        *rr(rrbi%d17OXO2_HO2__dMe17OOH_M,lprn)
      &        /(y(nNO,lprn)*4.2d-12*exp(180.d0/ta(lprn)))
-     &        *y(nXO2N,lprn)*dt2
+     &        *y(nd17OXO2N,lprn)*dt2
             call write_parallel(trim(out_line),crit=jay)
           end if
           if(igas == nn_dMe18OOH) then
             write(out_line,'(a48,a6,e10.3)')
-     &        'production from XO2N + HO2 ','dy = ',
-     &        y(nHO2,lprn)*y(nNO,lprn)*rr(rrbi%XO2N_NO__AlkylNit_M,lprn)
-     &        *rr(rrbi%XO2_HO2__dMe18OOH_M,lprn)
+     &        'production from d18OXO2N + HO2 ','dy = ',
+     &        y(nHO2,lprn)*y(nNO,lprn)
+     &        *rr(rrbi%d18OXO2N_NO__AlkylNit_M,lprn)
+     &        *rr(rrbi%d18OXO2_HO2__dMe18OOH_M,lprn)
      &        /(y(nNO,lprn)*4.2d-12*exp(180.d0/ta(lprn)))
-     &        *y(nXO2N,lprn)*dt2
+     &        *y(nd18OXO2N,lprn)*dt2
             call write_parallel(trim(out_line),crit=jay)
           end if
           if(igas == nn_d13MeOOH) then
             write(out_line,'(a48,a6,e10.3)')
-     &        'production from XO2N + HO2 ','dy = ',
-     &        y(nHO2,lprn)*y(nNO,lprn)*rr(rrbi%XO2N_NO__AlkylNit_M,lprn)
-     &        *rr(rrbi%XO2_HO2__d13MeOOH_M,lprn)
+     &        'production from d13CXO2N + HO2 ','dy = ',
+     &        y(nHO2,lprn)*y(nNO,lprn)
+     &        *rr(rrbi%d13CXO2N_NO__AlkylNit_M,lprn)
+     &        *rr(rrbi%d13CXO2_HO2__d13MeOOH_M,lprn)
      &        /(y(nNO,lprn)*4.2d-12*exp(180.d0/ta(lprn)))
-     &        *y(nXO2N,lprn)*dt2
+     &        *y(nd13CXO2N,lprn)*dt2
             call write_parallel(trim(out_line),crit=jay)
           end if
 #endif  /* TRACERS_dCO */
@@ -1541,6 +2015,44 @@ c PAN is thermally unstable, has a very short lifetime):
      &     0.33d0*y(nNO2,L)
            changeL(L,idx)=changeL(L,idx)*conc2mass
          endif
+#ifdef TRACERS_dCO
+         if(idx == n_d17OPAN.and.(-dest(igas,L) >= y(nn_d17OPAN,L).or.
+     &   chemrate(rrtri%dC217O3_NO2__d17OPAN_M,L) > y(nn_NOx,L)))then
+           rnewval=(rr(rrtri%dC217O3_NO2__d17OPAN_M,L)*y(ndC217O3,L)*
+     &       y(nNO2,L))/(rr(rrbi%d17OPAN_M__dC217O3_NO2,L)*y(nM,L)
+     &         +ss(rj%d17OPAN__dC217O3_NO2,L,I,J)
+     &         +chemtiny)
+           if(rnewval < 1.d0)rnewval=1.d0
+           changeL(L,idx)=(rnewval-y(nn_d17OPAN,L))
+           if(changeL(L,idx) > 0.33d0*y(nNO2,L))changeL(L,idx)=
+     &     0.33d0*y(nNO2,L)
+           changeL(L,idx)=changeL(L,idx)*conc2mass
+         endif
+         if(idx == n_d18OPAN.and.(-dest(igas,L) >= y(nn_d18OPAN,L).or.
+     &   chemrate(rrtri%dC218O3_NO2__d18OPAN_M,L) > y(nn_NOx,L)))then
+           rnewval=(rr(rrtri%dC218O3_NO2__d18OPAN_M,L)*y(ndC218O3,L)*
+     &       y(nNO2,L))/(rr(rrbi%d18OPAN_M__dC218O3_NO2,L)*y(nM,L)
+     &         +ss(rj%d18OPAN__dC218O3_NO2,L,I,J)
+     &         +chemtiny)
+           if(rnewval < 1.d0)rnewval=1.d0
+           changeL(L,idx)=(rnewval-y(nn_d18OPAN,L))
+           if(changeL(L,idx) > 0.33d0*y(nNO2,L))changeL(L,idx)=
+     &     0.33d0*y(nNO2,L)
+           changeL(L,idx)=changeL(L,idx)*conc2mass
+         endif
+         if(idx == n_d13CPAN.and.(-dest(igas,L) >= y(nn_d13CPAN,L).or.
+     &   chemrate(rrtri%d13C2O3_NO2__d13CPAN_M,L) > y(nn_NOx,L)))then
+           rnewval=(rr(rrtri%d13C2O3_NO2__d13CPAN_M,L)*y(nd13C2O3,L)*
+     &       y(nNO2,L))/(rr(rrbi%d13CPAN_M__d13C2O3_NO2,L)*y(nM,L)
+     &         +ss(rj%d13CPAN__d13C2O3_NO2,L,I,J)
+     &         +chemtiny)
+           if(rnewval < 1.d0)rnewval=1.d0
+           changeL(L,idx)=(rnewval-y(nn_d13CPAN,L))
+           if(changeL(L,idx) > 0.33d0*y(nNO2,L))changeL(L,idx)=
+     &     0.33d0*y(nNO2,L)
+           changeL(L,idx)=changeL(L,idx)*conc2mass
+         endif
+#endif  /* TRACERS_dCO */
 
 c Conserve NOx with respect to PAN:
          if(idx == n_NOx.and.(-dest(nn_PAN,L) >= y(nn_PAN,L).or.
@@ -1773,6 +2285,14 @@ c First check for nitrogen loss > 100% :
      &  changeL(L,n_HNO3)=minKG-trm(I,J,L,n_HNO3)
         if(-changeL(L,n_PAN) > trm(I,J,L,n_PAN))
      &  changeL(L,n_PAN)=minKG-trm(I,J,L,n_PAN)
+#ifdef TRACERS_dCO
+        if(-changeL(L,n_d17OPAN) > trm(I,J,L,n_d17OPAN))
+     &  changeL(L,n_d17OPAN)=minKG-trm(I,J,L,n_d17OPAN)
+        if(-changeL(L,n_d18OPAN) > trm(I,J,L,n_d18OPAN))
+     &  changeL(L,n_d18OPAN)=minKG-trm(I,J,L,n_d18OPAN)
+        if(-changeL(L,n_d13CPAN) > trm(I,J,L,n_d13CPAN))
+     &  changeL(L,n_d13CPAN)=minKG-trm(I,J,L,n_d13CPAN)
+#endif  /* TRACERS_dCO */
         if(-changeL(L,n_AlkylNit) > trm(I,J,L,n_AlkylNit))
      &  changeL(L,n_AlkylNit)=minKG-trm(I,J,L,n_AlkylNit)
         if(-changeL(L,n_ClONO2) > trm(I,J,L,n_ClONO2))
@@ -1839,6 +2359,14 @@ c          reduce N destruction to match NOx prodcution:
      &     changeL(L,n_HNO3)    *ratioD
            if(changeL(L,n_PAN) < 0.d0)     changeL(L,n_PAN)=
      &     changeL(L,n_PAN)     *ratioD
+#ifdef TRACERS_dCO
+           if(changeL(L,n_d17OPAN) < 0.d0) changeL(L,n_d17OPAN)=
+     &     changeL(L,n_d17OPAN)     *ratioD
+           if(changeL(L,n_d18OPAN) < 0.d0) changeL(L,n_d18OPAN)=
+     &     changeL(L,n_d18OPAN)     *ratioD
+           if(changeL(L,n_d13CPAN) < 0.d0) changeL(L,n_d13CPAN)=
+     &     changeL(L,n_d13CPAN)     *ratioD
+#endif  /* TRACERS_dCO */
            if(changeL(L,n_AlkylNit) < 0.d0)changeL(L,n_AlkylNit)=
      &     changeL(L,n_AlkylNit)*ratioD
            vClONO2=changeL(L,n_ClONO2)*(1.d0-ratioD)
@@ -1886,7 +2414,7 @@ c          reduce N production to match NOx loss:
              call write_parallel(trim(out_line),crit=.true.)
            end if
            ratioP=newP/sumP
-           if(changeL(L,n_N2O5) > 0.d0)     changeL(L,n_N2O5)=
+           if(changeL(L,n_N2O5) > 0.d0)    changeL(L,n_N2O5)=
      &     changeL(L,n_N2O5)*ratioP
            if(changeL(L,n_HO2NO2) > 0.d0)  changeL(L,n_HO2NO2)=
      &     changeL(L,n_HO2NO2)*ratioP
@@ -1894,6 +2422,14 @@ c          reduce N production to match NOx loss:
      &     changeL(L,n_HNO3)*ratioP
            if(changeL(L,n_PAN) > 0.d0)     changeL(L,n_PAN)=
      &     changeL(L,n_PAN)*ratioP
+#ifdef TRACERS_dCO
+           if(changeL(L,n_d17OPAN) > 0.d0) changeL(L,n_d17OPAN)=
+     &     changeL(L,n_d17OPAN)*ratioP
+           if(changeL(L,n_d18OPAN) > 0.d0) changeL(L,n_d18OPAN)=
+     &     changeL(L,n_d18OPAN)*ratioP
+           if(changeL(L,n_d13CPAN) > 0.d0) changeL(L,n_d13CPAN)=
+     &     changeL(L,n_d13CPAN)*ratioP
+#endif  /* TRACERS_dCO */
            if(changeL(L,n_AlkylNit) > 0.d0)changeL(L,n_AlkylNit)=
      &     changeL(L,n_AlkylNit)*ratioP
            vClONO2=changeL(L,n_ClONO2)*(1.d0-ratioP)
@@ -2049,17 +2585,60 @@ c Print chemical changes in a particular grid box if desired:
           call write_parallel(trim(out_line),crit=jay)
 #endif  /* TRACERS_dCO */
           write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
-     &    ' C2O3    :',y(nC2O3,LPRN),(y(nC2O3,LPRN)/y(nM,LPRN))*1.d9,
-     &    ' ppbv'
+     &    ' C2O3    :',y(nC2O3,LPRN),(y(nC2O3,LPRN)/
+     &    y(nM,LPRN))*1.d9,' ppbv'
+          call write_parallel(trim(out_line),crit=jay)
+#ifdef TRACERS_dCO
+          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &    ' dC217O3 :',y(ndC217O3,LPRN),(y(ndC217O3,LPRN)/
+     &    y(nM,LPRN))*1.d9,' ppbv'
           call write_parallel(trim(out_line),crit=jay)
           write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
-     &    ' XO2     :',y(nXO2,LPRN),(y(nXO2,LPRN)/y(nM,LPRN))*1.d9,
+     &    ' dC218O3 :',y(ndC218O3,LPRN),(y(ndC218O3,LPRN)/
+     &    y(nM,LPRN))*1.d9,' ppbv'
+          call write_parallel(trim(out_line),crit=jay)
+          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &    ' d13C2O3 :',y(nd13C2O3,LPRN),(y(nd13C2O3,LPRN)/
+     &    y(nM,LPRN))*1.d9,' ppbv'
+          call write_parallel(trim(out_line),crit=jay)
+#endif  /* TRACERS_dCO */
+          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &    ' XO2     :',y(nXO2,LPRN),(y(nXO2,LPRN)/
+     &    y(nM,LPRN))*1.d9,
      &    ' ppbv'
           call write_parallel(trim(out_line),crit=jay)
+#ifdef TRACERS_dCO
+          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &    ' d17OXO2 :',y(nd17OXO2,LPRN),(y(nd17OXO2,LPRN)/
+     &    y(nM,LPRN))*1.d9,' ppbv'
+          call write_parallel(trim(out_line),crit=jay)
+          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &    ' d18OXO2 :',y(nd18OXO2,LPRN),(y(nd18OXO2,LPRN)/
+     &    y(nM,LPRN))*1.d9,' ppbv'
+          call write_parallel(trim(out_line),crit=jay)
+          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &    ' d13CXO2 :',y(nd13CXO2,LPRN),(y(nd13CXO2,LPRN)/
+     &    y(nM,LPRN))*1.d9,' ppbv'
+          call write_parallel(trim(out_line),crit=jay)
+#endif  /* TRACERS_dCO */
           write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
      &    ' XO2N    :',y(nXO2N,LPRN),(y(nXO2N,LPRN)/
      &    y(nM,LPRN))*1.d9,' ppbv'
           call write_parallel(trim(out_line),crit=jay)
+#ifdef TRACERS_dCO
+          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &    ' d17OXO2N:',y(nd17OXO2N,LPRN),(y(nd17OXO2N,LPRN)/
+     &    y(nM,LPRN))*1.d9,' ppbv'
+          call write_parallel(trim(out_line),crit=jay)
+          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &    ' d18OXO2N:',y(nd18OXO2N,LPRN),(y(nd18OXO2N,LPRN)/
+     &    y(nM,LPRN))*1.d9,' ppbv'
+          call write_parallel(trim(out_line),crit=jay)
+          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &    ' d13CXO2N:',y(nd13CXO2N,LPRN),(y(nd13CXO2N,LPRN)/
+     &    y(nM,LPRN))*1.d9,' ppbv'
+          call write_parallel(trim(out_line),crit=jay)
+#endif  /* TRACERS_dCO */
           write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
      &    ' RXPAR   :',y(nRXPAR,LPRN),(y(nRXPAR,LPRN)/
      &    y(nM,LPRN))*1.d9,' ppbv'
@@ -2068,10 +2647,36 @@ c Print chemical changes in a particular grid box if desired:
      &    ' Aldehyde:',y(nAldehyde,LPRN),(y(nAldehyde,LPRN)/
      &    y(nM,LPRN))*1.d9,' ppbv'
           call write_parallel(trim(out_line),crit=jay)
+#ifdef TRACERS_dCO
+          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &    ' d17Oald :',y(nd17Oald,LPRN),(y(nd17Oald,LPRN)/
+     &    y(nM,LPRN))*1.d9,' ppbv'
+          call write_parallel(trim(out_line),crit=jay)
+          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &    ' d18Oald :',y(nd18Oald,LPRN),(y(nd18Oald,LPRN)/
+     &    y(nM,LPRN))*1.d9,' ppbv'
+          call write_parallel(trim(out_line),crit=jay)
+          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &    ' d13Cald :',y(nd13Cald,LPRN),(y(nd13Cald,LPRN)/
+     &    y(nM,LPRN))*1.d9,' ppbv'
+          call write_parallel(trim(out_line),crit=jay)
+#endif  /* TRACERS_dCO */
           write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
      &    ' ROR     :',y(nROR,LPRN),(y(nROR,LPRN)/
      &    y(nM,LPRN))*1.d9,' ppbv'
           call write_parallel(trim(out_line),crit=jay)
+#ifdef TRACERS_dCO
+          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &    ' d17OROR :',y(nd17OROR,LPRN),(y(nd17OROR,LPRN)/
+     &    y(nM,LPRN))*1.d9,' ppbv'
+          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &    ' d18OROR :',y(nd18OROR,LPRN),(y(nd18OROR,LPRN)/
+     &    y(nM,LPRN))*1.d9,' ppbv'
+          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &    ' d13CROR :',y(nd13CROR,LPRN),(y(nd13CROR,LPRN)/
+     &    y(nM,LPRN))*1.d9,' ppbv'
+          call write_parallel(trim(out_line),crit=jay)
+#endif  /* TRACERS_dCO */
          end if
 
        end do ! igas
@@ -2412,26 +3017,36 @@ c       skip same reaction if written twice:
 !@auth Kostas Tsigaridis
 
       use photolysis, only: rj
-      use TRCHEM_Shindell_COM, only: p_1,n_bi_dCO,n_rj_dCO,rrbi,n_rj
+      use TRCHEM_Shindell_COM, only: p_1,n_bi_dCO,n_tri_dCO,
+     &                               n_rj_dCO,rrbi,rrtri,n_rj
       implicit none
 
       integer, intent(in) :: ireac,n_rr
       integer, dimension(p_1*n_rr), intent(in) :: npdnrs
-!@var dCOrri First dCO reaction in JPLRX
-!@var dCOrre Last dCO reaction in JPLRX
-      integer :: dCOrri,dCOrre,dCOrji,dCOrje
+!@var dCOrrbi_i First dCO bimolecular reaction in JPLRX
+!@var dCOrrbi_e Last dCO bimolecular reaction in JPLRX
+!@var dCOrrtri_i First dCO trimolecular reaction in JPLRX
+!@var dCOrrtri_e Last dCO trimolecular reaction in JPLRX
+      integer :: dCOrrbi_i,dCOrrbi_e,dCOrrtri_i,dCOrrtri_e,
+     &           dCOrji,dCOrje
 
-      dCOrri=rrbi%O1D_CH4__OH_dCH317O2
-      dCOrre=rrbi%Terpenes_O3__dH13CHO_Alkenes
-      if (dCOrre-dCOrri+1 /= n_bi_dCO)
-     &  call stop_model('ERROR: Check the first and last dCO reactions',
-     &                  255)
+      dCOrrbi_i=rrbi%O1D_CH4__OH_dCH317O2
+      dCOrrbi_e=rrbi%Terpenes_O3__dH13CHO_Alkenes
+      if (dCOrrbi_e-dCOrrbi_i+1 /= n_bi_dCO)
+     &  call stop_model('ERROR: Check the first and last dCO '//
+     &                  'bimolecular reactions', 255)
+
+      dCOrrtri_i=rrtri%dC217O3_NO2__d17OPAN_M
+      dCOrrtri_e=rrtri%d13C2O3_NO2__d13CPAN_M
+      if (dCOrrtri_e-dCOrrtri_i+1 /= n_tri_dCO)
+     &  call stop_model('ERROR: Check the first and last dCO '//
+     &                  'trimolecular reactions', 255)
 
       dCOrji=rj%dHCH17O__dC17O_H2
-      dCOrje=rj%Aldehyde__HCHO_d13CO
+      dCOrje=rj%d13Cald__dH13CHO_d13CO
       if (dCOrje-dCOrji+1 /= n_rj_dCO)
-     &  call stop_model('ERROR: Check the first and last dCO photolyses'
-     &                 ,255)
+     &  call stop_model('ERROR: Check the first and last dCO '//
+     &                  'photolysis reactions', 255)
 
       is_dCO_reaction=.false.
       if (maxval(npdnrs)==n_rj) then ! photolysis
@@ -2439,9 +3054,13 @@ c       skip same reaction if written twice:
      &      (npdnrs(ireac) <= dCOrje)) then
           is_dCO_reaction=.true.
         endif
-      else                      ! thermal
-        if ((npdnrs(ireac) >= dCOrri).and.
-     &      (npdnrs(ireac) <= dCOrre)) then
+      else                           ! thermal
+        if ((npdnrs(ireac) >= dCOrrbi_i).and.
+     &      (npdnrs(ireac) <= dCOrrbi_e)) then
+          is_dCO_reaction=.true.
+        endif
+        if ((npdnrs(ireac) >= dCOrrtri_i).and.
+     &      (npdnrs(ireac) <= dCOrrtri_e)) then
           is_dCO_reaction=.true.
         endif
       endif

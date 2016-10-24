@@ -61,6 +61,7 @@ set(CMAKE_MODULE_PATH
 )
 
 include(PreventInSourceBuild)
+include(setup_rpath)
 
 # Process command line options
 include(ProcessCommandLineOptions)
@@ -4521,6 +4522,9 @@ add_executable(modelexe main.F90)
 
 # Set additional link library dependencies
 target_link_libraries(modelexe modele ${ModelE_EXTERNAL_LIBS})
+
+set_target_properties(modelexe PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
+install(TARGETS modelexe DESTINATION bin)
 
 __EOF__
 ======================== FILE ./model/Ent/Ent_SOURCES.cmake

@@ -1,4 +1,3 @@
-!TODO delete alloc_param
 module Dictionary_mod
 !@sum  Provides interfaces to manipulate sets of key-value pairs.
 !@+  This type of data structure is also knows as an associative array
@@ -193,23 +192,135 @@ module Dictionary_mod
   integer :: num_cparam = 0
 
   interface set_param
+  !@sum subroutine set_param(name, value, [np], opt)
+  !@+
+  !@+ Store a parameter in the database.
+  !@+ If the parameter is already in the database and not opt='o', will abort.
+  !@+ (unless opt='o') is provided.
+  !@+
+  !@var character*(*), intent(in) :: name
+  !@+     Name of parameter to store.
+  !@+     Parameters are case-insensitive; the case of name does not matter.
+  !@+     Must be no longer than 32 characters long.
+  !@+
+  !@var <type>, intent(in) :: value
+  !@+     Value to store.  May be of type:
+  !@+         integer,real*8,charaacter(len=*),logical,
+  !@+         integer(np),real*8(np),character*(*)(np),logical(np)
+  !@+
+  !@var integer, intent(in) :: np
+  !@+     If value is an array type, then the dimension of the array value.
+  !@+     Omitted for scalars.
+  !@+
+  !@var OPTIONAL: opt
+  !@var   Calling with ``opt='o'`` means to overwrite.
+  !@+
     module procedure set_iparam, set_rparam, set_cparam, set_lparam
     module procedure  set_aiparam, set_arparam, set_acparam, set_alparam
   end interface
 
   interface get_param
+  !@sum subroutine get_param(name, value, [np], default, [update_access_flag])
+  !@+
+  !@+ Fetch a parameter from the database.
+  !@+ If the parameter is not found and `default` is not set, will abort.
+  !@+
+  !@var character*(*), intent(in) :: name
+  !@+     Name of parameter to fetch.
+  !@+     Parameters are case-insensitive; the case of name does not matter.
+  !@+     Must be no longer than 32 characters long.
+  !@+
+  !@var <type>, intent(out) :: value
+  !@+     Location to store value fetched from database.  May be of type:
+  !@+         integer,real*8,charaacter(len=*),logical,
+  !@+         integer(np),real*8(np),character*(*)(np),logical(np)
+  !@+
+  !@var integer, intent(in) :: np
+  !@+     If value is an array type, then the dimension of the array value.
+  !@+     Omitted for scalars.
+  !@+
+  !@var <type>, intent(in), OPTIONAL :: default
+  !@+     Return this value if name is not found in the database.
+  !@+     If no default is set and name is not found, ModelE will abort.
+  !@+
+  !@+var logical, OPTIONAL :: update_access_flag = .true.
+  !@+     If set, mark the access flag when reading this value.
+  !@+     NOTE: Only available if value is an array.
+  !@+           The access flag will always be set for scalars.
+  !@+
     module procedure get_iparam, get_rparam, get_cparam, get_lparam
     module procedure get_aiparam, get_arparam, get_acparam, get_alparam
   end interface
 
   interface sync_param
+  !@sum subroutine sync_param(name, value, [np])
+  !@+
+  !@+ If name is in the database:
+  !@+     Return it in value
+  !@+ else:
+  !@+     Store value under name.
+  !@+
+  !@var character*(*), intent(in) :: name
+  !@+     Name of parameter to sync.
+  !@+     Parameters are case-insensitive; the case of name does not matter.
+  !@+     Must be no longer than 32 characters long.
+  !@+
+  !@var <type>, intent(out) :: value
+  !@+     Location to of value to sync with the database.  May be of type:
+  !@+         integer,real*8,charaacter(len=*),logical,
+  !@+         integer(np),real*8(np),character*(*)(np),logical(np)
+  !@+
+  !@var integer, intent(in) :: np
+  !@+     If value is an array type, then the dimension of the array value.
+  !@+     Omitted for scalars.
+  !@+
     module procedure sync_iparam, sync_rparam, sync_cparam, sync_lparam
     module procedure sync_aiparam, sync_arparam, sync_acparam, sync_alparam
   end interface
 
   interface query_param
     module procedure query_param_number
+    !@sum subroutine query_param(n, name, dim, ptype)
+    !@+ Returns meta-data about a parameter.
+    !@+ Information returned in name, dim and ptype
+    !@+
+    !@+ If the parameter does not exist, then returns:
+    !@+      (name, dim, ptype) = ('EMPTY', 0, 'U')
+    !@+
+    !@var integer, intent(in) :: n
+    !@+     Index in database of parameter to look up.
+    !@+
+    !@var character*(*), intent(out) :: name
+    !@+     Name of parmaeter at index n.
+    !@+     Parameters are case-insensitive; name will be returned lower case.
+    !@+
+    !@var integer, intent(out) :: dim
+    !@+     Returned length of the parameter in the database (1 for scalar)
+    !@+
+    !@var character*1, intent(out) :: ptype
+    !@+     Returned type of parameter:
+    !@+        'i' --> integer
+    !@+        'r' --> real(real64)
+    !@+        'c' --> chracter (string)
+
     module procedure query_param_name
+    !@sum subroutine query_param(name, dim, ptype)
+    !@+ Returns meta-data about a parameter.
+    !@+ Aborts if the parameter does not exist.
+    !@+ Information returned in dim and ptype
+    !@+
+    !@var character*(*), intent(in) :: name
+    !@+     Name of parmaeter to look up
+    !@+     Parameters are case-insensitive; the case of name does not matter.
+    !@+
+    !@var integer, intent(out) :: dim
+    !@+     Returned length of the parameter in the database (1 for scalar)
+    !@+
+    !@var character*1, intent(out) :: ptype
+    !@+     Returned type of parameter:
+    !@+        'i' --> integer
+    !@+        'r' --> real(real64)
+    !@+        'c' --> chracter (string)
   end interface
 
   ! Constructors
@@ -851,6 +962,18 @@ contains
   !***** input / output ******!
 
   subroutine read_param( kunit, ovrwrt )
+  !@sub Reads the parameter database from the unit <kunit>
+  !@+
+  !@var integer, intent(in) :: kunit
+  !@+     The unit number from which reading is performed.
+  !@+
+  !@var logical, intent(in) :: ovrwrt
+  !@+     if ovrwrt:
+  !@+         Reading overwrites parameters already in database.
+  !@+     else:
+  !@          Parameters already in database are left unchanged;
+  !@          only new parameters are added.
+
     implicit none
     integer, intent(in) :: kunit
     logical, intent(in) :: ovrwrt
@@ -936,6 +1059,10 @@ contains
 
 
   subroutine write_param( kunit )
+  !@sub Writes the parameter database to the unit <kunit>
+  !@+
+  !@var integer, intent(in) :: kunit
+  !@+     The unit number to which writing is performed.
     implicit none
     integer, intent(in) :: kunit
     integer n
@@ -972,6 +1099,11 @@ contains
   end subroutine write_param
 
   subroutine print_param1( kunit )
+  !@sub Does formatted output to the unit <kunit>, similar to namelist
+  !@+
+  !@var integer, intent(in) :: kunit
+  !@+     Output unit number
+
     implicit none
     integer, intent(in) :: kunit
     integer, parameter :: nf = 7
@@ -1007,6 +1139,10 @@ contains
   end subroutine print_param1
 
   subroutine print_param( kunit )
+  !@sub Does formatted output to the unit <kunit>, similar to namelist
+  !@+
+  !@var integer, intent(in) :: kunit
+  !@+     Output unit number
     implicit none
     integer, intent(in) :: kunit
     integer, parameter :: nf = 7

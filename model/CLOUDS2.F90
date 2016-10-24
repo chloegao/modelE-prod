@@ -267,12 +267,16 @@ module CLOUDS
 !@var AIRXL is convective mass flux (mb)
 !@var RNDSSL stored random number sequences
 !@var prebar1 copy of variable prebar
+!@var QLss,QIss stratiform liquid, ice water (cloud+precip) available to radiation (kg/kg)
+!@var QLmc,QImc convective liquid, ice water (cloud+precip) available to radiation (kg/kg)
   real*8 :: PRCPMC,PRCPSS,HCNDSS,WMSUM
   real*8 :: CLDSLWIJ,CLDDEPIJ
   integer :: LMCMAX,LMCMIN
   real*8 AIRXL,PRHEAT
   real*8  RNDSSL(3,LM)
   real*8 prebar1(Lm+1)
+  real*8 :: QLss(Lm),QIss(Lm)
+  real*8 :: QLmc(Lm),QImc(Lm)
 
 #ifdef TRACERS_ON
 !@var ntx,NTIX: Number and Indices of active tracers used in convection
@@ -2883,6 +2887,8 @@ EVAP_PRECIP: do L=LMAX-1,1,-1
     !****
     WCONST=WMU*(1.-PEARTH)+WMUL*PEARTH
     WMSUM=0.
+    QLmc(:)=0.
+    QImc(:)=0.
 
 #ifdef CLD_AER_CDNC
     WMCLWP=0.  ; WMCTWP=0. ; ACDNWM=0. ; ACDNIM=0.
@@ -2899,6 +2905,19 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
       WMCTWP=WMCTWP+TEMWM
       if(TL(L).ge.TF) WMCLWP=WMCLWP+TEMWM
 #endif
+
+      ! pick up cloud and precip water profiles
+      TEMWM=TAUMCL(L)-CONDP(L)*FMC1-SVWMXL(L)*AIRM(L)
+      if(SVLATL(L).eq.LHE)then
+        QLmc(L)=TEMWM/AIRM(L)+SVWMXL(L) ! includes detrained liquid
+      elseif(SVLATL(L).eq.LHS) then
+        QImc(L)=TEMWM/AIRM(L)+SVWMXL(L) ! includes detrained ice
+      endif
+      if(LHP(L).eq.LHE) then
+        QLmc(L)=QLmc(L)+CONDP(L)*FMC1/AIRM(L)
+      elseif(LHP(L).eq.LHS) then
+        QImc(L)=QImc(L)+CONDP(L)*FMC1/AIRM(L)
+      endif
 
       !**** DEFAULT OPTICAL THICKNESS = 8 PER 100 MB CLOUD DEPTH, BUT 2 PER
       !**** 100 MB INSTEAD FOR DETRAINMENT LEVEL OF SHALLOW/MIDLEVEL
@@ -3282,6 +3301,8 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
     WMPR=0.
     prebar1=0.
     rh1=0.
+    QLss(:)=0.
+    QIss(:)=0.
 
     QCINEW=0.
     QCLNEW=0.
@@ -4813,6 +4834,17 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
         ELSE
           QCIX(L)=0.
         END IF
+      else
+        if(lhx.eq.lhe) then
+          QLss(L) = QLss(L) + qclx(L)
+        else
+          QIss(L) = QIss(L) + qcix(L)
+        end if
+        if(lhp(L).eq.lhe) then
+          QLss(L) = QLss(L) + wmpr(L)
+        else
+          QIss(L) = QIss(L) + wmpr(L)
+        end if
       end if
       IF(USE_VMP .AND. TAUSSLIP(L).LT.0.) TAUSSLIP(L)=0.
     end do

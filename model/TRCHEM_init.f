@@ -13,7 +13,13 @@ C**** GLOBAL parameters and variables:
      &    prnls,prnrts,prnchg,lprn,jprn,iprn,ay,pHOx,pOx,pNOx,
      &    yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yNO3,yRXPAR,yXO2N,acetone,
 #ifdef TRACERS_dCO
+     &    ydC217O3,ydC218O3,yd13C2O3,
+     &    yd17OXO2,yd18OXO2,yd13CXO2,
+     &    yd17OXO2N,yd18OXO2N,yd13CXO2N,
+     &    yd17OROR,yd18OROR,yd13CROR,
+     &    yd17Oald,yd18Oald,yd13Cald,
      &    ydCH317O2,ydCH318O2,yd13CH3O2,
+     &    d17Oacetone,d18Oacetone,d13Cacetone,
 #endif  /* TRACERS_dCO */
      &    allowSomeChemReinit,pNO3,topLevelOfChemistry,nfam,ny
      &    ,pCLOx,pCLx,pOClOx,pBrOx,yCl2,yCl2O2,mostRecentNonZeroAlbedo
@@ -74,15 +80,45 @@ C Initialize a few (IM,JM,topLevelOfChemistry) arrays, first hour only:
         yd13CH3O2(I_0:I_1,J_0:J_1,:)=1.d0
 #endif  /* TRACERS_dCO */
         yC2O3(I_0:I_1,J_0:J_1,:)    =0.d0
+#ifdef TRACERS_dCO
+        ydC217O3(I_0:I_1,J_0:J_1,:) =0.d0
+        ydC218O3(I_0:I_1,J_0:J_1,:) =0.d0
+        yd13C2O3(I_0:I_1,J_0:J_1,:) =0.d0
+#endif  /* TRACERS_dCO */
         yROR(I_0:I_1,J_0:J_1,:)     =0.d0
+#ifdef TRACERS_dCO
+        yd17OROR(I_0:I_1,J_0:J_1,:) =0.d0
+        yd18OROR(I_0:I_1,J_0:J_1,:) =0.d0
+        yd13CROR(I_0:I_1,J_0:J_1,:) =0.d0
+#endif  /* TRACERS_dCO */
         yXO2(I_0:I_1,J_0:J_1,:)     =0.d0
+#ifdef TRACERS_dCO
+        yd17OXO2(I_0:I_1,J_0:J_1,:) =0.d0
+        yd18OXO2(I_0:I_1,J_0:J_1,:) =0.d0
+        yd13CXO2(I_0:I_1,J_0:J_1,:) =0.d0
+#endif  /* TRACERS_dCO */
         yAldehyde(I_0:I_1,J_0:J_1,:)=0.d0
+#ifdef TRACERS_dCO
+        yd17Oald(I_0:I_1,J_0:J_1,:) =0.d0
+        yd18Oald(I_0:I_1,J_0:J_1,:) =0.d0
+        yd13Cald(I_0:I_1,J_0:J_1,:) =0.d0
+#endif  /* TRACERS_dCO */
         yNO3(I_0:I_1,J_0:J_1,:)     =0.d0
         yXO2N(I_0:I_1,J_0:J_1,:)    =0.d0
+#ifdef TRACERS_dCO
+        yd17OXO2N(I_0:I_1,J_0:J_1,:)=0.d0
+        yd18OXO2N(I_0:I_1,J_0:J_1,:)=0.d0
+        yd13CXO2N(I_0:I_1,J_0:J_1,:)=0.d0
+#endif  /* TRACERS_dCO */
         yRXPAR(I_0:I_1,J_0:J_1,:)   =0.d0
         oh_live(I_0:I_1,J_0:J_1,:)  =0.d0
         no3_live(I_0:I_1,J_0:J_1,:) =0.d0
         acetone(I_0:I_1,J_0:J_1,:)  =0.d0
+#ifdef TRACERS_dCO
+        d17Oacetone(I_0:I_1,J_0:J_1,:)=0.d0
+        d18Oacetone(I_0:I_1,J_0:J_1,:)=0.d0
+        d13Cacetone(I_0:I_1,J_0:J_1,:)=0.d0
+#endif  /* TRACERS_dCO */
         pClOx(I_0:I_1,J_0:J_1,:)    =1.d0
         pClx(I_0:I_1,J_0:J_1,:)     =0.d0
         pOClOx(I_0:I_1,J_0:J_1,:)   =0.d0
@@ -95,7 +131,7 @@ C Initialize a few (IM,JM,topLevelOfChemistry) arrays, first hour only:
 #ifdef TRACERS_AEROSOLS_SOA
 #ifdef TRACERS_TERP
 #ifdef TRACERS_dCO
- 110  format(7(///10(a8)),(///4(a8)))
+ 110  format(9(///10(a8)),(///2(a8)))
 #else
  110  format(6(///10(a8)),(///2(a8)))
 #endif
@@ -155,21 +191,31 @@ C
 C Read in the number of each type of reaction:
       call openunit('JPLRX',iu_data,.false.,.true.)
       read(iu_data,124)nr,nr2,nr3,nmm,nhet
-      if (nr /= n_rx)
-     &  call stop_model('ERROR: nr (from JPLRX) /= n_rx '//
+      if (nr /= n_rx) then
+        print*,'nr=',nr,' n_rx=',n_rx
+        call stop_model('ERROR: nr (from JPLRX) /= n_rx '//
      &                  '(from TRCHEM_Shindell_COM)', 255)
-      if (nr2 /= n_bi+n_nst)
-     &  call stop_model('ERROR: nr2 (from JPLRX) /= n_bi+n_nst '//
+      endif
+      if (nr2 /= n_bi+n_nst) then
+        print*,'nr2=',nr2,' n_bi=',n_bi,' n_nst=',n_nst
+        call stop_model('ERROR: nr2 (from JPLRX) /= n_bi+n_nst '//
      &                  '(from TRCHEM_Shindell_COM)', 255)
-      if (nr3 /= n_tri)
-     &  call stop_model('ERROR: nr3 (from JPLRX) /= n_tri '//
+      endif
+      if (nr3 /= n_tri) then
+        print*,'nr3=',nr3,' n_tri=',n_tri
+        call stop_model('ERROR: nr3 (from JPLRX) /= n_tri '//
      &                  '(from TRCHEM_Shindell_COM)', 255)
-      if (nmm /= n_nst)
-     &  call stop_model('ERROR: nmm (from JPLRX) /= n_nst '//
+      endif
+      if (nmm /= n_nst) then
+        print*,'nmm=',nmm,' n_nst=',n_nst
+        call stop_model('ERROR: nmm (from JPLRX) /= n_nst '//
      &                  '(from TRCHEM_Shindell_COM)', 255)
-      if (nhet /= n_het)
-     &  call stop_model('ERROR: nhet (from JPLRX) /= n_het '//
+      endif
+      if (nhet /= n_het) then
+        print*,'nhet=',nhet,' n_het=',n_het
+        call stop_model('ERROR: nhet (from JPLRX) /= n_het '//
      &                  '(from TRCHEM_Shindell_COM)', 255)
+      endif
       write(out_line,*)' '
       call write_parallel(trim(out_line))
       write(out_line,*) 'Chemical reactions used in the model: '

@@ -25,14 +25,17 @@ c -----------------------------------------------------------------
      +                       Reff_LEV, NUMB_LEV, RindexAMP, AMP_Q55, dry_Vf_LEV,
      +                       MIX_OC, MIX_SU, MIX_AQ, AMP_RAD_KEY
       USE AERO_CONFIG, only: NMODES
+      USE AERO_PARAM,  only: DG_AKK,DG_ACC,DG_DD1,DG_DS1,DG_DD2, 
+     +                       DG_DS2,DG_SSA,DG_SSC,DG_OCC,DG_BC1,
+     +                       DG_BC2,DG_BC3,DG_DBC,DG_BOC,DG_BCS,DG_MXX
 
       USE RESOLUTION,  only: lm
       USE MODEL_COM,   only: itime,itimeI
       USE TRACER_COM,  only: TRM
-      USE RADPAR,      only: TTAUSV,aesqex,aesqsc,aesqcb,FSTOPX,FTTOPX !Diagnostics
+      USE RADPAR,      only: TTAUSV,aesqex,aesqsc,aesqcb,FSTOPX,FTTOPX,AMP_TAB_SPEC
 
       IMPLICIT NONE
-
+      INTEGER, save:: Ifirstrad = 1
       ! Arguments: Optical Parameters dimension(lm,wavelength)
       REAL(8), INTENT(OUT) :: EXT(LM,6)       ! Extinction, SW
       REAL(8), INTENT(OUT) :: SCT(LM,6)       ! Single Scattering Albedo, SW
@@ -42,7 +45,8 @@ c -----------------------------------------------------------------
       ! Local
       
       INTEGER l,n,w,MA,MB,MC,MD,NA,NS
-      REAL*8 Size(23), Mie_IM(17), Mie_RE(15), HELP, AMP_TAB(33), CORE_CLASS(nmodes), SHELL_CLASS(nmodes),Vf(6),CS_Mix(26)
+      REAL*8 Size(23), Mie_IM(17), Mie_RE(15), HELP, AMP_TAB(33) 
+      REAL*8 CORE_CLASS(nmodes), SHELL_CLASS(nmodes),Reff_mode(nmodes),Vf(6),CS_Mix(26)
       REAL*8 a,b,AMPEXT,AMPSCA,AMPASY
       DATA Size/0.002, 0.005,0.01,0.05,0.08,0.1,0.13,0.17,0.2,0.25,0.3,0.4,0.5,0.6,0.7,0.8,1.0,1.2,1.5,2.,3.,5.,10./
       DATA CS_Mix/0.,0.04,0.08,0.12,0.16,0.2,0.24,0.28
@@ -53,7 +57,12 @@ c -----------------------------------------------------------------
 c                        AKK  ACC  DD1  DS1  DD2  DS2  SSA  SSC  OCC  BC1  BC2  BC3  DBC  BOC  BCS  MXX
 c                        1    2    3    4    5    6    7    8    9    10   11   12   13   14   15   16
       DATA CORE_CLASS   /1,   1,   6,   6,   6,   6,   2,   2,   4,   5,   5,   5,   6,   4,   5,   6/
-      DATA SHELL_CLASS  /0,   0,   0,   0,   0,   0,   0,   0,   1,   0,   0,   0,   0,   1,   1,   2/
+      DATA SHELL_CLASS  /0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0/
+c      DATA SHELL_CLASS  /0,   0,   0,   0,   0,   0,   0,   0,   1,   0,   0,   0,   0,   1,   1,   2/
+      DATA REFF_mode / 0.026D+00, 0.075D+00, 1.160D+00, 2.000D+00, 1.260D+00,
+     +                 2.00D+00 , 0.12D+00 , 2.D+00   , 0.075D+00, 0.050D+00,  
+     +                 0.100D+00, 0.100D+00, 0.330D+00, 0.100D+00, 0.070D+00, 0.100D+00/    
+  
       CHARACTER*3 :: MODE_NAME(nmodes)=(/'AKK','ACC','DD1','DS1','DD2',
      +                             'DS2','SSA','SSC','OCC','BC1','BC2',
      +                                   'BC3','DBC','BOC','BCS','MXX'/)
@@ -64,6 +73,18 @@ c                   NA1= SO4  NA2=SS  NA3=NO3 NA4=OC NA5=BC NA6=DU
       GCB(:,:)    = 0.d0
       TAB(:,:)    = 0.d0
       TTAUSV(:,:) = 0.d0
+C Longwave Pre calculate TAB: ---------------------------------------------------------------------------------------------
+
+      if ( Ifirstrad==1 ) then
+      Ifirstrad = 0
+      DO n = 1,nmodes
+      NA = CORE_CLASS(n)
+      NS = SHELL_CLASS(n)
+      Vf(:)=0.d0 
+      CALL GET_LW(NA,NS,Reff_mode(n),AMP_TAB,Vf)
+      AMP_TAB_SPEC(:,n)=AMP_TAB(:)
+      enddo
+      endif
 
       if (itime.ne.itimeI) then 
           IF (AMP_RAD_KEY == 1 .or. AMP_RAD_KEY ==3) THEN
@@ -133,13 +154,6 @@ c--------------------------------------------------------------------
           aesqcb(l,w,n)= AMPASY * aesqsc(l,w,n)
 
       ENDDO   ! wave
-
-C Longwave: ---------------------------------------------------------------------------------------------
-      NA = CORE_CLASS(n)
-      NS = SHELL_CLASS(n)
-      Vf(:)=dry_Vf_LEV(l,n,1:6)
-      CALL GET_LW(NA,NS,Reff_LEV(l,n),AMP_TAB,Vf)
-         TAB(l,:) = TAB(l,:) + (AMP_TAB(:) *  TTAUSV(l,n) * FTTOPX(n))
       ENDDO   ! modes
       ENDDO   ! level
 
@@ -286,17 +300,19 @@ c--------------------------------------------------------------------
           aesqcb(l,w,n)= AMPASY * aesqsc(l,w,n)
 
       ENDDO   ! wave
-
-C Longwave: ---------------------------------------------------------------------------------------------
-      NA = CORE_CLASS(n)
-      NS = SHELL_CLASS(n)
-      Vf(:)=dry_Vf_LEV(l,n,1:6)
-      CALL GET_LW(NA,NS,Reff_LEV(l,n),AMP_TAB,Vf)
-         TAB(l,:) = TAB(l,:) + (AMP_TAB(:) *  TTAUSV(l,n) * FTTOPX(n))
       ENDDO   ! modes
       ENDDO   ! level
 
         ENDIF     ! AMP_RAD_KEY = 2
+
+
+C Longwave: ---------------------------------------------------------------------------------------------
+
+      DO l = 1,lm
+      DO n = 1,nmodes
+         TAB(l,:) = TAB(l,:) + (AMP_TAB_SPEC(:,n) *  TTAUSV(l,n) * FTTOPX(n))
+      ENDDO   ! modes
+      ENDDO   ! level
       endif
   
       RETURN
@@ -599,67 +615,62 @@ c CORE
         IF(NA==2) N0=22
         IF(NA==3) N0=44
         IF(NA==4) N0=88
-
-        DO 114 K=1,33
-        DO 113 N=1,22
+        DO K=1,33
+        DO N=1,22
         NN=N0+N
         QXAERN(N)=TRUQEX(K,NN)
         QSAERN(N)=TRUQSC(K,NN)
-  113   CONTINUE
+        ENDDO
         CALL SPLINE(REFU22,QXAERN,22,AREFF,TQEX(K),1.D0,1.D0,1)
         CALL SPLINE(REFU22,QSAERN,22,AREFF,TQSC(K),1.D0,1.D0,1)
         TQAB(K)=TQEX(K)-TQSC(K)
-  114   CONTINUE
-
+        ENDDO
       ENDIF
-
-                                      !                              5   
+                              
       IF(NA==5) THEN                  !   NA : Aerosol compositions BC
-        DO 124 K=1,33
+        DO K=1,33
         QXAERN(:)=TRSQEX(K,:)    ! 1:25
         QSAERN(:)=TRSQSC(K,:)    ! 1:25
         CALL SPLINE(REFS25,QXAERN,25,AREFF,TQEX(K),1.D0,1.D0,1)
         CALL SPLINE(REFS25,QSAERN,25,AREFF,TQSC(K),1.D0,1.D0,1)
         TQAB(K)=TQEX(K)-TQSC(K)
-  124   CONTINUE
-
+        ENDDO
       ENDIF
 
                                       !                              6
       IF(NA==6) THEN                  !   NA : Aerosol composition DST
-        DO 134 K=1,33
+       DO K=1,33
         QXAERN(:)=TRDQEX(K,:)    ! 1:25
         QSAERN(:)=TRDQSC(K,:)    ! 1:25
         CALL SPLINE(REFD25,QXAERN,25,AREFF,TQEX(K),1.D0,1.D0,1)
         CALL SPLINE(REFD25,QSAERN,25,AREFF,TQSC(K),1.D0,1.D0,1)
         TQAB(K)=TQEX(K)-TQSC(K)
-  134   CONTINUE
-
+      ENDDO
       ENDIF
 
 c SHELL
-         IF(NS > 0 .and. NS < 5) THEN    !    NS : Aerosol compositions SO4,SEA,NO3,OC
-         N0=0
-         IF(NS==2) N0=22
-         IF(NS==3) N0=44
-         IF(NS==4) N0=88
+c         IF(NS > 0 .and. NS < 5) THEN    !    NS : Aerosol compositions SO4,SEA,NO3,OC
+c         N0=0
+c         IF(NS==2) N0=22
+c         IF(NS==3) N0=44
+c         IF(NS==4) N0=88
 
 
-         DO K=1,33
-         DO N=1,22
-         NN=N0+N
-         IF (NS==1) WTS=Vf(1)                      ! <- shell fraction of aerosol composition
-         IF (NS==2) WTS=Vf(5)                      ! <- shell fraction of aerosol composition
-         WTA=1.D0-WTS
-         QXAERN(N)=TRUQEX(K,NN)
-         QSAERN(N)=TRUQSC(K,NN)
-         ENDDO
-         CALL SPLINE(REFU22,QXAERN,22,AREFF,TQEX_S(K),1.D0,1.D0,1)
-         CALL SPLINE(REFU22,QSAERN,22,AREFF,TQSC_S(K),1.D0,1.D0,1)
-         TQAB(K)=(TQEX(K)*WTA + TQEX_S(K)*WTS)-(TQSC(K)*WTA + TQSC_S(K)*WTS)
-         ENDDO
+c         DO K=1,33
+c         DO N=1,22
+c         NN=N0+N
+c         IF (NS==1) WTS=Vf(1)                      ! <- shell fraction of aerosol composition
+c         IF (NS==2) WTS=Vf(5)                      ! <- shell fraction of aerosol composition
+c         WTA=1.D0-WTS
+c         QXAERN(N)=TRUQEX(K,NN)
+c         QSAERN(N)=TRUQSC(K,NN)
+c         ENDDO
+c         CALL SPLINE(REFU22,QXAERN,22,AREFF,TQEX_S(K),1.D0,1.D0,1)
+c         CALL SPLINE(REFU22,QSAERN,22,AREFF,TQSC_S(K),1.D0,1.D0,1)
+c         TQAB(K)=(TQEX(K)*WTA + TQEX_S(K)*WTS)-(TQSC(K)*WTA + TQSC_S(K)*WTS)
+c         ENDDO
 
-      ENDIF
+c      ENDIF
 
       RETURN
       END SUBROUTINE GET_LW

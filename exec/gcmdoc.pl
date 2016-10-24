@@ -33,7 +33,7 @@ $parenth  = "\\([^()]*\\)";
 $parenth2 = "\\((?:[^()]|$parenth)*\\)";
 $parenth3 = "\\((?:[^()]|$parenth2)*\\)";
 
-#print "$some_decl\n";
+#print "SOME DECL >>>$some_decl<<<\n";
 
 #an example
 #GetOptions("s", "e=s", "f=s", "I=s@", "m=s", "c", "p", "g", "h", "o=s", "a=s")
@@ -91,7 +91,7 @@ if ( $#ARGV < 0 ) {
 while( $current_file = shift ) {
     my $file_to_open = $current_file;
     #if -cpp option is specified try to open .cpp instead of .f
-    if ( $opt_CPP ) { $file_to_open =~ s/\.f$/\.$opt_CPP/; }
+    if ( $opt_CPP ) { $file_to_open =~ s/$/$opt_CPP/; }
     open(SRCFILE, $file_to_open) or die "can't open $file_to_open\n";
     print "parsing $file_to_open\n";
     parse_file();
@@ -204,6 +204,7 @@ foreach $name ( keys %db_files ) {
     htm_text("Summary: $db_files{$name}{sum}");
     print HTM "Author : $db_files{$name}{auth}<BR>\n";
     print HTM "Version: $db_files{$name}{ver}<BR>\n";
+    if ( $db_files{$name}{usage} ) { htm_usage($db_files{$name}{usage}); }
     print HTM "<HR width=10%>\n";
     print HTM "Modules: \n";
     print HTM "<dl>\n";
@@ -477,38 +478,50 @@ sub print_main_index {
     print HTM "<HR>\n";
 
     print HTM '<H3><Center>General Documentation</Center></font></H3>'."\n";
-    htm_link("ModelE Reference Manual","modelE.html"); 
-    print HTM "<BR>\n";
-    htm_link("Frequently asked questions about the GISS model","FAQ.html"); 
-    print HTM "<BR>\n";
-    htm_link("HOW-TO document for the GCM","HOWTO.html"); 
-    print HTM "<BR>\n";
-    htm_link("Options for running the GISS GCM","OPTIONS.html"); 
-    print HTM "<BR>\n";
+#    htm_link("ModelE Reference Manual","modelE.html"); 
+#    print HTM "<BR>\n";
+#    htm_link("Frequently asked questions about the GISS model","FAQ.html"); 
+#    print HTM "<BR>\n";
+#    htm_link("HOW-TO document for the GCM","HOWTO.html"); 
+#    print HTM "<BR>\n";
+#    htm_link("Options for running the GISS GCM","OPTIONS.html"); 
+#    print HTM "<BR>\n";
 
-    while( <$doc_dir/*.txt> ) {
+#    while( <$doc_dir/*.txt> ) {
+#	s/$doc_dir\///;
+#	print "txt loop $_ \n";
+#	htm_link("$_", "$_"); print HTM "<BR>\n";
+#    }
+
+#    while( <$doc_dir/*.html> ) {
+#	s/$doc_dir\///;
+#	print "txt loop $_ \n";
+#	htm_link("$_", "$_"); print HTM "<BR>\n";
+#    }
+
+#    while( <$doc_dir/*/index.html> ) {
+    #for 
+    foreach $_ ( sort `ls $doc_dir/*/index.html` ) {
 	s/$doc_dir\///;
-	print "txt loop $_ \n";
-	htm_link("$_", "$_"); print HTM "<BR>\n";
+	print "dir loop $_ \n";
+	my $doc_link = $_;
+	s/\/index.html//;
+	htm_link("$_", "$doc_link"); print HTM "<BR>\n";
     }
 
-    while( <$doc_dir/*.html> ) {
-	s/$doc_dir\///;
-	print "txt loop $_ \n";
-	htm_link("$_", "$_"); print HTM "<BR>\n";
-    }
 
     print HTM '<H3><Center>Source Code Repository</Center></font></H3>'."\n";
     print HTM 
       "<a href=\"http://simplex.giss.nasa.gov/cgi-bin/gitweb.cgi?p=modelE.git;a=summary\">\n";
     print HTM "View source code in the repository</a>";
     print HTM " for latest updates e.t.c. This link allows you to view \n\
-      all the source files currently in CVS repository together with their \n\
+      all the source files currently in Git repository together with their \n\
       older versions. You can also make comparisons between different \n\
       versions of the same file.<BR>\n";
     print HTM "Don't use this link to download the code. Instead read the \n\
-      section "; htm_link( " Getting the code ", "HOWTO.html#part0" );
-    print HTM " of the "; htm_link( "HOWTO",  "HOWTO.html");
+      section "; htm_link( " Getting the code from GISS repository",
+      "UserGuide/Getting_the_code_form_GISS_repository.html" );
+    print HTM " of the "; htm_link( "User Guide",  "UserGuide/index.html");
     print HTM " file.<BR>\n";
 
     print HTM "<P>\n";
@@ -873,6 +886,8 @@ sub htm_incl_file {
 #@+       Continuation line for @sum/@calls/@cont
 
 sub parse_file {
+    my $free_form = 0;
+    if ( $current_file =~ /\.F90$/ ) { $free_form = 1; }
     #print "parsing $current_file\n";
     # resetting globals
     $current_module = "";
@@ -881,7 +896,7 @@ sub parse_file {
     while( <SRCFILE> ) {
 	chop;
 	#strip regular comments
-	if ( /^C/i || /^![^@]/ ) { next; }
+	if ( (/^C/i && !$free_form) || /^![^@]/ ) { next; }
 	#parse !@... info here
 #	if( /^!\@sum/i ) { #subroutine summary
 #	    $doc_tag = "sum";
@@ -892,6 +907,8 @@ sub parse_file {
 #	    next;
 #	}
 
+	#strip spaces at the end
+	s/\s*$//;
 
 	if( /^!\@(var|param|dbparam|nlparam)\b/i ) { #variable summary
 	    $doc_tag = "var";
@@ -986,10 +1003,19 @@ sub parse_file {
 	    #print "$_\n";
 	}
 
-	if (  /^     \S/ || /^\s*$/ ) { # continuation line
-	    s/^     \S/ /;
-	    $fstr .= $_;
-	    next;
+	if ( $free_form ) {
+	    if ( $fstr =~ /\\$/ ) { # continuation line
+		 chop $fstr;
+		 s/^\s*\\//;
+		 $fstr .= $_;
+		next;
+		}
+	} else {
+	    if (  /^     \S/ || /^\s*$/ ) { # continuation line
+		s/^     \S/ /;
+		$fstr .= $_;
+		next;
+	    }
 	}
 
 	# parse previous line
@@ -1010,7 +1036,7 @@ sub parse_file {
 	    $current_module = "";
 	}
 	if ( 
-/^\s*(subroutine|(?:$some_decl\s+)?function|program|interface)\s+(\w+)/i ) {
+/^\s*(subroutine|(?:$some_decl)?\s*function|program|interface)\s+(\w+)/i ) {
 	    $current_sub = lc($2);
 	    $db_subs{"$current_module:$current_sub"}{file} = $current_file;
 	    if ( $current_module ) {
@@ -1043,6 +1069,15 @@ sub parse_file {
 
 sub parse_fort_str {
     #print "$fstr\n";
+
+    # subroutine/function declaration
+    if ( $fstr =~ /^\s*(subroutine|(?:$some_decl)?\s*function)/i ) {
+	my $decl = lc($fstr);
+	$decl =~ s/^\s*//; $decl =~ s/\s*$//;
+	$decl =~ s/\s*,\s*/, /g;
+	$db_subs{"$current_module:$current_sub"}{decl} = $decl;
+	return;
+    }
 
     if ( $current_typedef ) { return; } #skip typedefs for now
 
@@ -1121,15 +1156,6 @@ sub parse_fort_str {
 	    $var_name = "$current_module:$current_sub:$var";
 	    $db_vars{$var_name}{decl} .= ",dimension$dim";
 	}
-	return;
-    }
-
-    # subroutine/function declaration
-    if ( $fstr =~ /^\s*(subroutine|function)/i ) {
-	my $decl = lc($fstr);
-	$decl =~ s/^\s*//; $decl =~ s/\s*$//;
-	$decl =~ s/\s*,\s*/, /g;
-	$db_subs{"$current_module:$current_sub"}{decl} = $decl;
 	return;
     }
 

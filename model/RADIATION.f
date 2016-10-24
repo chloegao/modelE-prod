@@ -81,7 +81,7 @@ C----------------
 !@var JGCM,IGCM     host GCM grid indices
 !@var NL,L1         highest and lowest above ground layer
 !@var LS1_loc       local tropopause level, used to limit H2O-scaling
-      INTEGER   :: JLAT,ILON, NL,L1, LS1_loc ! Offline deflts L1=LS1_loc=1
+      INTEGER   :: JLAT,ILON, NL,L1=1, LS1_loc ! Offline deflts L1=LS1_loc=1
       INTEGER   :: JGCM, IGCM
 !@var JYEAR,JDAY    current year, Julian date
       INTEGER :: JYEAR=1980, JDAY=1
@@ -242,6 +242,7 @@ C**** local except for special radiative aerosol diagnostics aadiag
       REAL*8 ::  SRCQPI(6,15),TRCQPI(33,15)       !??? to setcld/getcld
                  !  Temp data used by WRITER, WRITET
       REAL*8  :: TRAQAB(33,11),TRBQAB(33,10),TRCQAB(33,15),TRDQAB(33,25)
+      REAL*8  :: AMP_TAB_SPEC(33,ITRMAX)
       INTEGER :: NORDER(16),NMWAVA(16),NMWAVB(16)
 
 C------------------------------------------
@@ -862,6 +863,12 @@ C          radfile1   2   3   4   5   6   7   8   9   A   B   C   D   E
      *     ,OCM,WCM,YQSCCB
 !@var GTAU,TGDATA temporary array to read data and pass it to RAD_UTILS
       REAL*8 :: GTAU(51,11,143),TGDATA(122,13)
+     
+      INTEGER :: N_BIN,fid,dimid,vid,istatus    
+      REAL*4, ALLOCATABLE, DIMENSION(:,:) :: SSI_IN 
+      REAL*4, ALLOCATABLE, DIMENSION(:) :: TSI_IN
+      REAL*8, ALLOCATABLE, DIMENSION(:) :: calyear,WS_IN,DS_IN    
+      include 'netcdf.inc'
 
 !?    IF(LASTVC > 0) NRFUN=NRFN0
       IF(IFIRST < 1) GO TO 9999
@@ -1365,60 +1372,89 @@ C                                      ---------------------------------
         W1LEAN(:)=WSLEAN(:)-0.5D0*DSLEAN(:)
         GO TO 949
       END IF
-      NRFU=NRFUN(9)
+!      NRFU=NRFUN(9)
 
-      IF(KSOLAR.ne.9) THEN
-        READ(NRFU,'(a80)') TITLE
-        if(ksolar >= 2 .and. TITLE(1:3).ne.'ANN')
-     &    call stop_model('rcomp1: change RADN9 to ann.file',255)
-        if(ksolar < 2 .and. TITLE(1:3)=='ANN')
-     &    call stop_model('rcomp1: change RADN9 to monthly file',255)
-        READ(NRFU,'(5F14.2)') WSLEAN   !  1:190
-        READ(NRFU,'(a80)') TITLE
-        READ(NRFU,'(5E14.3)') DSLEAN   !  1:190
+!      IF(KSOLAR.ne.9) THEN
+!        READ(NRFU,'(a80)') TITLE
+!        if(ksolar >= 2 .and. TITLE(1:3).ne.'ANN')
+!     &    call stop_model('rcomp1: change RADN9 to ann.file',255)
+!        if(ksolar < 2 .and. TITLE(1:3)=='ANN')
+!     &    call stop_model('rcomp1: change RADN9 to monthly file',255)
+!        READ(NRFU,'(5F14.2)') WSLEAN   !  1:190
+!        READ(NRFU,'(a80)') TITLE
+!        READ(NRFU,'(5E14.3)') DSLEAN   !  1:190  
 
-        WSLEAN(:)=WSLEAN(:)/1000.D0
-        DSLEAN(:)=DSLEAN(:)/1000.D0
-        W1LEAN(:)=WSLEAN(:)-0.5D0*DSLEAN(:)
+      istatus=nf_open('RADN9',nf_nowrite,fid) 
+      istatus=nf_inq_dimid(fid,'time',dimid)
+      istatus=nf_inq_dimlen(fid,dimid,iMs0X) 
+      istatus=nf_inq_dimid(fid,'wlen',dimid)
+      istatus=nf_inq_dimlen(fid,dimid,N_BIN)    
+      ALLOCATE (WS_IN(N_BIN),DS_IN(N_BIN)) 
+      ALLOCATE (SSI_IN(N_BIN,iMS0X),TSI_IN(iMS0X),calyear(iMS0X)) 
+      istatus=nf_inq_varid(fid,'wlen',vid)
+      istatus=nf_get_var_double(fid,vid,WS_IN)
+      istatus=nf_inq_varid(fid,'wlenbinsize',vid)
+      istatus=nf_get_var_double(fid,vid,DS_IN)
+      istatus=nf_inq_varid(fid,'calyear',vid)
+      istatus=nf_get_var_double(fid,vid,calyear)
+      istatus=nf_inq_varid(fid,'ssi',vid)
+      istatus=nf_get_var_real(fid,vid,SSI_IN) 
+      istatus=nf_inq_varid(fid,'tsi',vid)
+      istatus=nf_get_var_real(fid,vid,TSI_IN)
+      istatus=nf_close(fid) 
+  
+      WSLEAN(:)=WS_IN(N_BIN-189:N_BIN)/1000.D0
+      DSLEAN(:)=DS_IN(N_BIN-189:N_BIN)/1000.D0
+      W1LEAN(:)=WSLEAN(:)-0.5D0*DSLEAN(:)
+      print *, 'okay'  
+!        WSLEAN(:)=WSLEAN(:)/1000.D0
+!        DSLEAN(:)=DSLEAN(:)/1000.D0
+!        W1LEAN(:)=WSLEAN(:)-0.5D0*DSLEAN(:)
 
-        READ(NRFU,'(a80)') TITLE
-        READ(NRFU,'(a80)') TITLE
-        READ(NRFU,'(a80)') TITLE
-        if(TITLE(1:5).ne.'MS0X=') then  ! old no_header file
-          backspace (NRFU)
-        else
-          read (title(6:80),*) iMs0X
-        endif
-      END IF
+!        READ(NRFU,'(a80)') TITLE
+!        READ(NRFU,'(a80)') TITLE
+!        READ(NRFU,'(a80)') TITLE
+!        if(TITLE(1:5).ne.'MS0X=') then  ! old no_header file
+!          backspace (NRFU)
+!        else
+!          read (title(6:80),*) iMs0X
+!        endif
+!      END IF
       ALLOCATE (UVLEAN(iMS0X,190),TSI1(iMS0X),TSI2(iMS0X))
-      IF(KSOLAR < 2) THEN
+      UVLEAN(:,:)=TRANSPOSE(SSI_IN(N_BIN-189:N_BIN,:))
+      TSI1(:)=TSI_IN(:)
+      TSI2(:)=TSI_IN(:)
+      yr1S0=calyear(1)
+      yr2S0=calyear(iMS0X)
+      DEALLOCATE(WS_IN,DS_IN,SSI_IN,TSI_IN,calyear) 
+!      IF(KSOLAR < 2) THEN
 C****   Read in monthly-mean data
-        DO I=1,iMs0X
-          READ(NRFU,'(2I6,3F17.6)') IYEAR,IMONTH,TSI1(I),TSI2(I)
-          READ(NRFU,'(5E14.6)')     FSLEAN    ! 1:190
-          SFNORM = TSI1(I) / SUM(FSLEAN(:)*DSLEAN(:))
-          UVLEAN(I,:)=FSLEAN(:)*SFNORM
-        END DO
-      ELSE
+!        DO I=1,iMs0X
+!          READ(NRFU,'(2I6,3F17.6)') IYEAR,IMONTH,TSI1(I),TSI2(I)
+!          READ(NRFU,'(5E14.6)')     FSLEAN    ! 1:190
+!          SFNORM = TSI1(I) / SUM(FSLEAN(:)*DSLEAN(:))
+!          UVLEAN(I,:)=FSLEAN(:)*SFNORM
+!        END DO
+!      ELSE
 C****   Read in annual-mean data
-        DO I=1,iMs0X
-          IF(KSOLAR.ne.9) THEN
-            READ(NRFU,'(F12.1,2F15.4)',end=908) yr2S0,TSI1(I),TSI2(I)
-          ELSE
-            READ(NRFU,'(I6,2F17.6)',end=908) yr2S0i,TSI1(I),TSI2(I)
-            yr2S0=real(yr2S0i)+0.5
-          END IF
-          if(I==1) yr1S0 = yr2S0
-          IF(KSOLAR.ne.9) THEN
-            READ(NRFU,'(5E14.6)')   FSLEAN    ! 1:190
-            SFNORM=TSI1(I) / SUM(FSLEAN(:)*DSLEAN(:))
-            UVLEAN(I,:)=FSLEAN(:)*SFNORM
-          ELSE ! ksolar=9
-            READ(NRFU,'(5E14.6)')               (UVLEAN(I,K),K=1,190)
-          ENDIF
-        END DO
+!        DO I=1,iMs0X
+!          IF(KSOLAR.ne.9) THEN
+!            READ(NRFU,'(F12.1,2F15.4)',end=908) yr2S0,TSI1(I),TSI2(I)
+!          ELSE
+!            READ(NRFU,'(I6,2F17.6)',end=908) yr2S0i,TSI1(I),TSI2(I)
+!            yr2S0=real(yr2S0i)+0.5
+!          END IF
+!          if(I==1) yr1S0 = yr2S0
+!          IF(KSOLAR.ne.9) THEN
+!            READ(NRFU,'(5E14.6)')   FSLEAN    ! 1:190
+!            SFNORM=TSI1(I) / SUM(FSLEAN(:)*DSLEAN(:))
+!            UVLEAN(I,:)=FSLEAN(:)*SFNORM
+!          ELSE ! ksolar=9
+!            READ(NRFU,'(5E14.6)')               (UVLEAN(I,K),K=1,190)
+!          ENDIF
+!        END DO
   908   if(Am_I_Root()) write(6,*) 'read S0-history: ',yr1S0,' - ',yr2S0
-      END IF
+!      END IF
 
   949 CONTINUE
 
@@ -2796,6 +2832,26 @@ C     ------------------------------------------------------------------
 #endif
       INTEGER NRHNAN(LX,8),K,L,NA,N,NRH,M,KDREAD,NT
 
+
+#if (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
+#ifdef TRACERS_AMP
+      CALL SETAMP(EXT,SCT,GCB,TAB)
+#endif
+#ifdef TRACERS_TOMAS
+      CALL SETTOMAS(EXT,SCT,GCB,TAB)
+#endif
+!radiation has 3 extra levels on the top - aerosols are zero
+c SW
+      SRBEXT(L1:LM,:) = EXT(L1:LM,:)
+      SRBSCT(L1:LM,:) = SCT(L1:LM,:)
+      SRBGCB(L1:LM,:) = GCB(L1:LM,:)
+c LW
+      TRBALK(L1:LM,:) = TAB(L1:LM,:)
+#endif
+
+#ifndef TRACERS_TOMAS
+#ifndef TRACERS_AMP
+
       if ( present(GETAER_flag) ) goto 200
 
       IF(MADAER <= 0) GO TO 150
@@ -2975,24 +3031,6 @@ C-----------------
 
   500 CONTINUE
 
-#if (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
-#ifdef TRACERS_AMP
-      CALL SETAMP(EXT,SCT,GCB,TAB)
-#endif
-#ifdef TRACERS_TOMAS
-      CALL SETTOMAS(EXT,SCT,GCB,TAB)
-#endif
-!radiation has 3 extra levels on the top - aerosols are zero
-c SW
-      SRBEXT(L1:LM,:) = EXT(L1:LM,:)
-      SRBSCT(L1:LM,:) = SCT(L1:LM,:)
-      SRBGCB(L1:LM,:) = GCB(L1:LM,:)
-c LW
-      TRBALK(L1:LM,:) = TAB(L1:LM,:)
-#endif
-
-#ifndef TRACERS_TOMAS
-#ifndef TRACERS_AMP
       IF(NTRACE <= 0) RETURN
 
 C     ------------------------------------------------------------------

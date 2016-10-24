@@ -424,8 +424,12 @@ def getConfiguration(rundeck):
             if mode != 'serial' and mode != 'mpi':
                 print ' *** Incorrect mode *** ' + mode
 
-        # This avoid errors in compareBase() when running baseDir is not available
+        # This avoid errors in compareBase() when baseDir is not available
         if rundeck.baseDir != '.':
-            rundeck.baseDir =  rundeck.baseDir + '/' + rundeck.branch + '/' \
+			# For detached branches basedir is associated with master branch
+            if rundeck.branch == 'detached':
+                rundeck.baseDir =  rundeck.baseDir + '/master/' + rundeck.compiler	
+            else:
+                rundeck.baseDir =  rundeck.baseDir + '/' + rundeck.branch + '/' \
                 + rundeck.compiler
 

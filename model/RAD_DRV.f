@@ -1007,7 +1007,8 @@ C**** set up unit numbers for 14 more radiation input files
       if(.not.transmission_corrections) nrfun(4) = donotread
       if(madvol == 0) nrfun(7) = donotread
       if(madeps == 0) nrfun(8) = donotread
-      if(ksolar < 0)  nrfun(9) = donotread
+!      if(ksolar < 0)  nrfun(9) = donotread
+      nrfun(9) = donotread     ! open/read RADN9 inside RCOMP1  
       DO IU=1,14
         if(nrfun(iu) == donotread) cycle
         call openunit(RUNSTR(IU),NRFUN(IU),QBIN(IU),.true.)
@@ -1617,6 +1618,7 @@ C     OUTPUT DATA
       USE RANDOM
       USE CLOUDS_COM, only : tauss,taumc,svlhx,rhsav,svlat,cldsav,
      *     cldmc,cldss,csizmc,csizss,llow,lmid,lhi,fss,taussip,csizssip
+     *    ,QLss,QIss,QLmc,QImc
      *    ,get_cld_overlap  !  subroutine
       USE DIAG_COM, only : ia_rad,jreg,aij=>aij_loc,aijl=>aijl_loc
      &     ,ntype,ftype,itocean,itlake,itearth,itlandi,itoice,itlkice
@@ -1867,6 +1869,7 @@ c     INTEGER ICKERR,JCKERR,KCKERR
 
       REAL*8, DIMENSION(:,:), POINTER :: RSI,ZSI,SNOWI,POND_MELT
       LOGICAL, DIMENSION(:,:), POINTER :: FLAG_DSWS
+      real*8 :: rhodz ! air density times layer thickness (kg/m2
       integer :: year, dayOfYear, hour, date
 
 #ifdef TRACERS_ON
@@ -2220,6 +2223,7 @@ C**** Adjust RDSS for semi-random overlap
      *       shl(L)=(Q(I,J,L)-QSS*FSS(L,I,J)*CLDSAV(L,I,J))/
      /              (1.-FSS(L,I,J)*CLDSAV(L,I,J))
         TLm(L)=T(I,J,L)*PK(L,I,J)
+        rhodz=pdsig(l,i,j)*100/grav
         TAUSSL=0.
         TAUSSLIP=0.
         TAUMCL=0.
@@ -2262,11 +2266,17 @@ C**** save 3D cloud fraction as seen by radiation
               OPTDW=OPTDW+TAUWC(L)
               call inc_ajl(i,j,l,jl_wcld,1d0)
               call inc_ajl(i,j,l,jl_wcldwt,pdsig(l,i,j))
+              aij(i,j,ij_lwprad)=aij(i,j,ij_lwprad)+QLmc(l,i,j)*rhodz
+              aijl(i,j,l,ijl_QLrad)=aijl(i,j,l,ijl_QLrad)
+     &                             +QLmc(l,i,j)*pdsig(l,i,j)
             ELSE
               TAUIC(L)=cldx*TAUMCL
               OPTDI=OPTDI+TAUIC(L)
               call inc_ajl(i,j,l,jl_icld,1d0)
               call inc_ajl(i,j,l,jl_icldwt,pdsig(l,i,j))
+              aij(i,j,ij_iwprad)=aij(i,j,ij_iwprad)+QImc(l,i,j)*rhodz
+              aijl(i,j,l,ijl_QIrad)=aijl(i,j,l,ijl_QIrad)
+     &                             +QImc(l,i,j)*pdsig(l,i,j)
             END IF
           ELSE
             SIZEWC(L)=CSIZSS(L,I,J)
@@ -2276,18 +2286,27 @@ C**** save 3D cloud fraction as seen by radiation
               OPTDW=OPTDW+TAUWC(L)
               call inc_ajl(i,j,l,jl_wcld,1d0)
               call inc_ajl(i,j,l,jl_wcldwt,pdsig(l,i,j))
+              aij(i,j,ij_lwprad)=aij(i,j,ij_lwprad)+QLss(l,i,j)*rhodz
+              aijl(i,j,l,ijl_QLrad)=aijl(i,j,l,ijl_QLrad)
+     &                             +QLss(l,i,j)*pdsig(l,i,j)
               if(tausslip.gt.0.) then
                 SIZEIC(L)=CSIZSSIP(L,I,J)
                 TAUIC(L)=cldx*TAUSSLIP
                 OPTDI=OPTDI+TAUIC(L)
                 call inc_ajl(i,j,l,jl_icld,1d0)
                 call inc_ajl(i,j,l,jl_icldwt,pdsig(l,i,j))
+                aij(i,j,ij_iwprad)=aij(i,j,ij_iwprad)+QIss(l,i,j)*rhodz
+                aijl(i,j,l,ijl_QIrad)=aijl(i,j,l,ijl_QIrad)
+     &                               +QIss(l,i,j)*pdsig(l,i,j)
               endif
             ELSE
               TAUIC(L)=cldx*TAUSSL
               OPTDI=OPTDI+TAUIC(L)
               call inc_ajl(i,j,l,jl_icld,1d0)
               call inc_ajl(i,j,l,jl_icldwt,pdsig(l,i,j))
+              aij(i,j,ij_iwprad)=aij(i,j,ij_iwprad)+QIss(l,i,j)*rhodz
+              aijl(i,j,l,ijl_QIrad)=aijl(i,j,l,ijl_QIrad)
+     &                             +QIss(l,i,j)*pdsig(l,i,j)
             END IF
           END IF
           call inc_ajl(i,j,l,jl_wcod,tauwc(l))

@@ -754,7 +754,7 @@ C**** trflux1 is total flux into first layer
       IMPLICIT NONE
       REAL*8, INTENT(IN) :: dtstep
       INTEGER n,i,j
-      REAL*8 ftr1
+      REAL*8 ftr1,dewflux,tinyReal8
 
       INTEGER :: J_0, J_1, I_0, I_1
 
@@ -762,6 +762,8 @@ C**** trflux1 is total flux into first layer
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
       
+      tinyReal8=tiny(dewflux)
+
 C**** This is tracer independent coding designed to work for all
 C**** surface sources.
 C**** Note that tracer flux is added to first layer either implicitly
@@ -790,10 +792,16 @@ C**** moments for dew.
        if (src_dist_index(n)==0) then
         do j=J_0,J_1
           do i=i_0,imaxj(j)
-            if (atmsrf%trsrfflx(n,i,j).lt.0 .and.
-     &           trm(i,j,1,n).gt.0) then
-              ftr1=min(1d0,
-     &           -atmsrf%trsrfflx(n,i,j)*axyp(i,j)*dtstep/trm(i,j,1,n))
+            dewflux=-atmsrf%trsrfflx(n,i,j)*axyp(i,j)*dtstep
+            ! The previous criteria were: 
+            ! if(atmsrf%trsrfflx(n,i,j).lt.0 .and. trm(i,j,1,n).gt.0)then
+            ! The new "dewflux > tinyReal8" takes care of the first of those,
+            ! plus a saftey margin so we don't divide by an exceedingly small
+            ! number. The max() in the denominator of ftr1 already prevents
+            ! a negative ftr1, but I leave in the trm criterion just so we
+            ! don't alter moments when trm is negative (as before).
+            if ( dewflux > tinyReal8 .and. trm(i,j,1,n) > 0.) then
+              ftr1=dewflux/max(dewflux,trm(i,j,1,n))
               trmom(:,i,j,1,n)=trmom(:,i,j,1,n)*(1.-ftr1)
             end if
           end do
@@ -1344,7 +1352,13 @@ C**** check whether air mass is conserved
       USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
      &     yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss,ydms,yso2,sulfate
 #ifdef TRACERS_dCO
+     &     ,ydC217O3,ydC218O3,yd13C2O3
+     &     ,yd17OXO2,yd18OXO2,yd13CXO2
+     &     ,yd17OXO2N,yd18OXO2N,yd13CXO2N
+     &     ,yd17OROR,yd18OROR,yd13CROR
+     &     ,yd17Oald,yd18Oald,yd13Cald
      &     ,ydCH317O2,ydCH318O2,yd13CH3O2
+     &     ,d17Oacetone,d18Oacetone,d13Cacetone
 #endif  /* TRACERS_dCO */
      &     ,acetone,sOx_acc,sNOx_acc,sCO_acc,l1Ox_acc,l1NO2_acc,pNO3
      &     ,SF3,SF2,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2
@@ -1577,18 +1591,73 @@ c not yet        if(am_i_root()) write(kunit,err=10) header,aijl_glob
        header='TRACERS_SPECIAL_Shindell: yC2O3(i,j,l)'
         call pack_data(grid,yC2O3,Aijl_chem)
         if(am_i_root())write(kunit,err=10)header,Aijl_chem
+#ifdef TRACERS_dCO
+       header='TRACERS_SPECIAL_Shindell: ydC217O3(i,j,l)'
+        call pack_data(grid,ydC217O3,Aijl_chem)
+        if(am_i_root())write(kunit,err=10)header,Aijl_chem
+       header='TRACERS_SPECIAL_Shindell: ydC218O3(i,j,l)'
+        call pack_data(grid,ydC218O3,Aijl_chem)
+        if(am_i_root())write(kunit,err=10)header,Aijl_chem
+       header='TRACERS_SPECIAL_Shindell: yd13C2O3(i,j,l)'
+        call pack_data(grid,yd13C2O3,Aijl_chem)
+        if(am_i_root())write(kunit,err=10)header,Aijl_chem
+#endif  /* TRACERS_dCO */
        header='TRACERS_SPECIAL_Shindell: yROR(i,j,l)'
         call pack_data(grid,yROR,Aijl_chem)
         if(am_i_root())write(kunit,err=10)header,Aijl_chem
+#ifdef TRACERS_dCO
+       header='TRACERS_SPECIAL_Shindell: yd17OROR(i,j,l)'
+        call pack_data(grid,yd17OROR,Aijl_chem)
+        if(am_i_root())write(kunit,err=10)header,Aijl_chem
+       header='TRACERS_SPECIAL_Shindell: yd18OROR(i,j,l)'
+        call pack_data(grid,yd18OROR,Aijl_chem)
+        if(am_i_root())write(kunit,err=10)header,Aijl_chem
+       header='TRACERS_SPECIAL_Shindell: yd13CROR(i,j,l)'
+        call pack_data(grid,yd13CROR,Aijl_chem)
+        if(am_i_root())write(kunit,err=10)header,Aijl_chem
+#endif  /* TRACERS_dCO */
        header='TRACERS_SPECIAL_Shindell: yXO2(i,j,l)'
         call pack_data(grid,yXO2,Aijl_chem)
         if(am_i_root())write(kunit,err=10)header,Aijl_chem
+#ifdef TRACERS_dCO
+       header='TRACERS_SPECIAL_Shindell: yd17OXO2(i,j,l)'
+        call pack_data(grid,yd17OXO2,Aijl_chem)
+        if(am_i_root())write(kunit,err=10)header,Aijl_chem
+       header='TRACERS_SPECIAL_Shindell: yd18OXO2(i,j,l)'
+        call pack_data(grid,yd18OXO2,Aijl_chem)
+        if(am_i_root())write(kunit,err=10)header,Aijl_chem
+       header='TRACERS_SPECIAL_Shindell: yd13CXO2(i,j,l)'
+        call pack_data(grid,yd13CXO2,Aijl_chem)
+        if(am_i_root())write(kunit,err=10)header,Aijl_chem
+#endif  /* TRACERS_dCO */
        header='TRACERS_SPECIAL_Shindell: yXO2N(i,j,l)'
         call pack_data(grid,yXO2N,Aijl_chem)
         if(am_i_root())write(kunit,err=10)header,Aijl_chem
+#ifdef TRACERS_dCO
+       header='TRACERS_SPECIAL_Shindell: yd17OXO2N(i,j,l)'
+        call pack_data(grid,yd17OXO2N,Aijl_chem)
+        if(am_i_root())write(kunit,err=10)header,Aijl_chem
+       header='TRACERS_SPECIAL_Shindell: yd18OXO2N(i,j,l)'
+        call pack_data(grid,yd18OXO2N,Aijl_chem)
+        if(am_i_root())write(kunit,err=10)header,Aijl_chem
+       header='TRACERS_SPECIAL_Shindell: yd13CXO2N(i,j,l)'
+        call pack_data(grid,yd13CXO2N,Aijl_chem)
+        if(am_i_root())write(kunit,err=10)header,Aijl_chem
+#endif  /* TRACERS_dCO */
        header='TRACERS_SPECIAL_Shindell: yAldehyde(i,j,l)'
         call pack_data(grid,yAldehyde,Aijl_chem)
         if(am_i_root())write(kunit,err=10)header,Aijl_chem
+#ifdef TRACERS_dCO
+       header='TRACERS_SPECIAL_Shindell: yd17Oald(i,j,l)'
+        call pack_data(grid,yd17Oald,Aijl_chem)
+        if(am_i_root())write(kunit,err=10)header,Aijl_chem
+       header='TRACERS_SPECIAL_Shindell: yd18Oald(i,j,l)'
+        call pack_data(grid,yd18Oald,Aijl_chem)
+        if(am_i_root())write(kunit,err=10)header,Aijl_chem
+       header='TRACERS_SPECIAL_Shindell: yd13Cald(i,j,l)'
+        call pack_data(grid,yd13Cald,Aijl_chem)
+        if(am_i_root())write(kunit,err=10)header,Aijl_chem
+#endif  /* TRACERS_dCO */
        header='TRACERS_SPECIAL_Shindell: yRXPAR(i,j,l)'
         call pack_data(grid,yRXPAR,Aijl_chem)
         if(am_i_root())write(kunit,err=10)header,Aijl_chem
@@ -1604,6 +1673,17 @@ c not yet        if(am_i_root()) write(kunit,err=10) header,aijl_glob
        header='TRACERS_SPECIAL_Shindell: acetone(i,j,l)'
         call pack_data(grid,acetone,Aijl_chem)
         if(am_i_root())write(kunit,err=10)header,Aijl_chem
+#ifdef TRACERS_dCO
+       header='TRACERS_SPECIAL_Shindell: d17Oacetone(i,j,l)'
+        call pack_data(grid,d17Oacetone,Aijl_chem)
+        if(am_i_root())write(kunit,err=10)header,Aijl_chem
+       header='TRACERS_SPECIAL_Shindell: d18Oacetone(i,j,l)'
+        call pack_data(grid,d18Oacetone,Aijl_chem)
+        if(am_i_root())write(kunit,err=10)header,Aijl_chem
+       header='TRACERS_SPECIAL_Shindell: d13Cacetone(i,j,l)'
+        call pack_data(grid,d13Cacetone,Aijl_chem)
+        if(am_i_root())write(kunit,err=10)header,Aijl_chem
+#endif  /* TRACERS_dCO */
        if(coupled_chem == 1)then
          header='TRACERS_SPECIAL_Shindell: oh_live(i,j,l)'
           call pack_data(grid,oh_live,Aijl_glob) ! still global.
@@ -1785,24 +1865,64 @@ c not yet          call unpack_data(grid,aijl_glob,daily_z)
           call unpack_data(grid,Aijl_chem,pOx)
           if(am_i_root())read(kunit,err=10)header,Aijl_chem
           call unpack_data(grid,Aijl_chem,yCH3O2)
-          if(am_i_root())read(kunit,err=10)header,Aijl_chem
 #ifdef TRACERS_dCO
+          if(am_i_root())read(kunit,err=10)header,Aijl_chem
           call unpack_data(grid,Aijl_chem,ydCH317O2)
           if(am_i_root())read(kunit,err=10)header,Aijl_chem
           call unpack_data(grid,Aijl_chem,ydCH318O2)
           if(am_i_root())read(kunit,err=10)header,Aijl_chem
           call unpack_data(grid,Aijl_chem,yd13CH3O2)
-          if(am_i_root())read(kunit,err=10)header,Aijl_chem
 #endif  /* TRACERS_dCO */
+          if(am_i_root())read(kunit,err=10)header,Aijl_chem
           call unpack_data(grid,Aijl_chem,yC2O3)
+#ifdef TRACERS_dCO
+          if(am_i_root())read(kunit,err=10)header,Aijl_chem
+          call unpack_data(grid,Aijl_chem,ydC217O3)
+          if(am_i_root())read(kunit,err=10)header,Aijl_chem
+          call unpack_data(grid,Aijl_chem,ydC218O3)
+          if(am_i_root())read(kunit,err=10)header,Aijl_chem
+          call unpack_data(grid,Aijl_chem,yd13C2O3)
+#endif  /* TRACERS_dCO */
           if(am_i_root())read(kunit,err=10)header,Aijl_chem
           call unpack_data(grid,Aijl_chem,yROR)
+#ifdef TRACERS_dCO
+          if(am_i_root())read(kunit,err=10)header,Aijl_chem
+          call unpack_data(grid,Aijl_chem,yd17OROR)
+          if(am_i_root())read(kunit,err=10)header,Aijl_chem
+          call unpack_data(grid,Aijl_chem,yd18OROR)
+          if(am_i_root())read(kunit,err=10)header,Aijl_chem
+          call unpack_data(grid,Aijl_chem,yd13CROR)
+#endif  /* TRACERS_dCO */
           if(am_i_root())read(kunit,err=10)header,Aijl_chem
           call unpack_data(grid,Aijl_chem,yXO2)
+#ifdef TRACERS_dCO
+          if(am_i_root())read(kunit,err=10)header,Aijl_chem
+          call unpack_data(grid,Aijl_chem,yd17OXO2)
+          if(am_i_root())read(kunit,err=10)header,Aijl_chem
+          call unpack_data(grid,Aijl_chem,yd18OXO2)
+          if(am_i_root())read(kunit,err=10)header,Aijl_chem
+          call unpack_data(grid,Aijl_chem,yd13CXO2)
+#endif  /* TRACERS_dCO */
           if(am_i_root())read(kunit,err=10)header,Aijl_chem
           call unpack_data(grid,Aijl_chem,yXO2N)
+#ifdef TRACERS_dCO
+          if(am_i_root())read(kunit,err=10)header,Aijl_chem
+          call unpack_data(grid,Aijl_chem,yd17OXO2N)
+          if(am_i_root())read(kunit,err=10)header,Aijl_chem
+          call unpack_data(grid,Aijl_chem,yd18OXO2N)
+          if(am_i_root())read(kunit,err=10)header,Aijl_chem
+          call unpack_data(grid,Aijl_chem,yd13CXO2N)
+#endif  /* TRACERS_dCO */
           if(am_i_root())read(kunit,err=10)header,Aijl_chem
           call unpack_data(grid,Aijl_chem,yAldehyde)
+#ifdef TRACERS_dCO
+          if(am_i_root())read(kunit,err=10)header,Aijl_chem
+          call unpack_data(grid,Aijl_chem,yd17Oald)
+          if(am_i_root())read(kunit,err=10)header,Aijl_chem
+          call unpack_data(grid,Aijl_chem,yd18Oald)
+          if(am_i_root())read(kunit,err=10)header,Aijl_chem
+          call unpack_data(grid,Aijl_chem,yd13Cald)
+#endif  /* TRACERS_dCO */
           if(am_i_root())read(kunit,err=10)header,Aijl_chem
           call unpack_data(grid,Aijl_chem,yRXPAR)
           if(am_i_root())read(kunit,err=10)header,Aijl_chem
@@ -1813,6 +1933,14 @@ c not yet          call unpack_data(grid,aijl_glob,daily_z)
           call unpack_data(grid,Aijl_glob,sulfate)
           if(am_i_root())read(kunit,err=10)header,Aijl_chem
           call unpack_data(grid,Aijl_chem,acetone)
+#ifdef TRACERS_dCO
+          if(am_i_root())read(kunit,err=10)header,Aijl_chem
+          call unpack_data(grid,Aijl_chem,d17Oacetone)
+          if(am_i_root())read(kunit,err=10)header,Aijl_chem
+          call unpack_data(grid,Aijl_chem,d18Oacetone)
+          if(am_i_root())read(kunit,err=10)header,Aijl_chem
+          call unpack_data(grid,Aijl_chem,d13Cacetone)
+#endif  /* TRACERS_dCO */
           if(coupled_chem == 1)then
             if(am_i_root())read(kunit,err=10)header,Aijl_glob ! stays global.
             call unpack_data(grid,Aijl_glob,oh_live)
@@ -2094,7 +2222,13 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
      &yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss,ydms,yso2,sulfate,pNO3
 #ifdef TRACERS_dCO
+     &,ydC217O3,ydC218O3,yd13C2O3
+     &,yd17OXO2,yd18OXO2,yd13CXO2
+     &,yd17OXO2N,yd18OXO2N,yd13CXO2N
+     &,yd17OROR,yd18OROR,yd13CROR
+     &,yd17Oald,yd18Oald,yd13Cald
      &,ydCH317O2,ydCH318O2,yd13CH3O2
+     &,d17Oacetone,d18Oacetone,d13Cacetone
 #endif  /* TRACERS_dCO */
      &,acetone,sOx_acc,sNOx_acc,sCO_acc,l1Ox_acc,l1NO2_acc
      &,SF3,SF2,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2,topLevelOfChemistry
@@ -2187,15 +2321,45 @@ c daily_z is currently only needed for CS
       call doVar(handle,action,yd13CH3O2,'yd13CH3O2'//ijcdims)
 #endif  /* TRACERS_dCO */
       call doVar(handle,action,yC2O3,'yC2O3'//ijcdims)
+#ifdef TRACERS_dCO
+      call doVar(handle,action,ydC217O3,'ydC217O3'//ijcdims)
+      call doVar(handle,action,ydC218O3,'ydC218O3'//ijcdims)
+      call doVar(handle,action,yd13C2O3,'yd13C2O3'//ijcdims)
+#endif  /* TRACERS_dCO */
       call doVar(handle,action,yROR,'yROR'//ijcdims)
+#ifdef TRACERS_dCO
+      call doVar(handle,action,yd17OROR,'yd17OROR'//ijcdims)
+      call doVar(handle,action,yd18OROR,'yd18OROR'//ijcdims)
+      call doVar(handle,action,yd13CROR,'yd13CROR'//ijcdims)
+#endif  /* TRACERS_dCO */
       call doVar(handle,action,yXO2,'yXO2'//ijcdims)
+#ifdef TRACERS_dCO
+      call doVar(handle,action,yd17OXO2,'yd17OXO2'//ijcdims)
+      call doVar(handle,action,yd18OXO2,'yd18OXO2'//ijcdims)
+      call doVar(handle,action,yd13CXO2,'yd13CXO2'//ijcdims)
+#endif  /* TRACERS_dCO */
       call doVar(handle,action,yXO2N,'yXO2N'//ijcdims)
+#ifdef TRACERS_dCO
+      call doVar(handle,action,yd17OXO2N,'yd17OXO2N'//ijcdims)
+      call doVar(handle,action,yd18OXO2N,'yd18OXO2N'//ijcdims)
+      call doVar(handle,action,yd13CXO2N,'yd13CXO2N'//ijcdims)
+#endif  /* TRACERS_dCO */
       call doVar(handle,action,yAldehyde,'yAldehyde'//ijcdims)
+#ifdef TRACERS_dCO
+      call doVar(handle,action,yd17Oald,'yd17Oald'//ijcdims)
+      call doVar(handle,action,yd18Oald,'yd18Oald'//ijcdims)
+      call doVar(handle,action,yd13Cald,'yd13Cald'//ijcdims)
+#endif  /* TRACERS_dCO */
       call doVar(handle,action,yRXPAR,'yRXPAR'//ijcdims)
       call doVar(handle,action,ydms,'ydms'//ijcdims)
       call doVar(handle,action,ySO2,'ySO2'//ijcdims)
       call doVar(handle,action,sulfate,'sulfate'//ijldims) ! stays ijldims
       call doVar(handle,action,acetone,'acetone'//ijcdims)
+#ifdef TRACERS_dCO
+      call doVar(handle,action,d17Oacetone,'d17Oacetone'//ijcdims)
+      call doVar(handle,action,d18Oacetone,'d18Oacetone'//ijcdims)
+      call doVar(handle,action,d13Cacetone,'d13Cacetone'//ijcdims)
+#endif  /* TRACERS_dCO */
       if(trim(action) == 'read_dist') then
            ! read_dist is a badly chosen synonym for read
         if(is_set_param("coupled_chem"))
@@ -2707,7 +2871,7 @@ C
       use filemanager, only: openunit,closeunit,is_fbsa
       use fluxes, only: tr3Dsource
       use geom, only: axyp
-      use OldTracer_mod, only: itime_tr0, trname, om2oc
+      use OldTracer_mod, only: itime_tr0, trname
       use OldTracer_mod, only: set_first_aircraft, first_aircraft
       use TRACER_COM, only: ntm_chem_beg,ntm_chem_end,nAircraft
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) || \
@@ -2717,11 +2881,6 @@ C
       use Dictionary_mod, only: is_set_param, get_param
       use RAD_COM, only: o3_yr
       use timestream_mod, only : read_stream, timestream, init_stream
-#ifdef TRACERS_AEROSOLS_VBS
-      use OldTracer_mod, only: is_VBS_tracer
-      USE AEROSOL_SOURCES, only: VBSemifact
-      use TRACERS_VBS, only: vbs_tr
-#endif
 
       IMPLICIT NONE
  
@@ -2747,6 +2906,12 @@ C
 
       integer :: fileUnit 
       integer L,i,j,k,LL
+      interface
+        real*8 function get_src_fact(n,ibb)
+          integer, intent(in) :: n
+          logical, intent(in), optional :: ibb
+        end function get_src_fact
+      end interface
 
 !@var src holds the tracer source returned from actual reading routine
       real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO
@@ -2878,14 +3043,7 @@ C
       end if ! read was needed
 
       tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,nTracer) =
-     & airtracer(I_0:I_1,J_0:J_1,:)*om2oc(nTracer)
-#ifdef TRACERS_AEROSOLS_VBS
-      if (is_VBS_tracer(nTracer)) then
-      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,nTracer) =
-     &  tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,nTracer)*
-     &  VBSemifact(vbs_tr%iaerinv(nTracer))
-      endif
-#endif
+     & airtracer(I_0:I_1,J_0:J_1,:)*get_src_fact(nTracer)
 
 999   continue
       return

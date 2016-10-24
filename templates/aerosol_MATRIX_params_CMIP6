@@ -5,7 +5,6 @@ prather_limits=1   ! 1: to avoid some negative tracers in sub-gridscale
 diag_rad=1         ! 1: save ext/sct/asf for 6 bands; only ext for band6 otherwise
 diag_fc=1          ! 2=one radiation call per tracer (slow) || 1=one radiation call
 diag_wetdep=1      ! 1: additional wet deposition diagnostics
-OCB_om2oc=1.4      ! biomass burning organic matter to organic carbon ratio (default is 1.4)
 !--- number of biomass burning sources (per tracer) Remember to list those sources last!
 NH3_nBBsources=1
 SO2_nBBsources=1

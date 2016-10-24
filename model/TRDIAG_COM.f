@@ -391,15 +391,19 @@ C**** TCONSRV
 !@param NTCONS Maximum Number of special tracer conservation points
       INTEGER, PARAMETER :: ntcons=20
 #ifdef TRACERS_AMP
-     &                             +3
+     &                             +4
 #endif
 #ifdef TRACERS_TOMAS
      &                             +6
 #endif
+!@param npts_common total number of conservation diagnostics outside
+!@+                 those defined for tracers
+      integer, parameter :: npts_common=npts+1
 !@param KTCON total number of conservation diagnostics for tracers
-      INTEGER, PARAMETER :: KTCON=npts+ntcons+2
+      INTEGER, PARAMETER :: KTCON=npts_common+ntcons+1
 !@param ntmxcon total number of conservation quantities
       integer :: ntmxcon
+      logical :: qcon(KTCON-1), qsum(KTCON-1)
 
 !@var TCONSRV conservation diagnostics for tracers
       REAL*8, allocatable, DIMENSION(:,:,:) :: TCONSRV,TCONSRV_loc 
@@ -414,7 +418,7 @@ C**** TCONSRV
 !@var NOFMT indices for TCONSRV array
       INTEGER, allocatable, DIMENSION(:,:) :: NOFMT
 !@var CONPTS names of special processes for tracer conservation diags
-      CHARACTER*16, DIMENSION(ntcons) :: CONPTS
+      CHARACTER*16, DIMENSION(ntcons) :: CONPTS=''
 !@var kt_power_inst,kt_power_change: Exponents for tracer conservation
       INTEGER, allocatable, DIMENSION(:):: kt_power_inst,kt_power_change
 !@var name_tconsrv,lname_tconsrv,units_tconsrv: for tracer conservation
@@ -584,7 +588,7 @@ C**** TCONSRV
      *     ,conpt0
       USE TRDIAG_COM, only: ktcon,title_tcon,scale_tcon,nsum_tcon
      *     ,nofmt,ia_tcon,name_tconsrv,lname_tconsrv,units_tconsrv
-     *     ,ntcons
+     *     ,ntcons,npts_common
       IMPLICIT NONE
 !@var QCON denotes at which points conservation diags are saved
       LOGICAL, INTENT(IN),DIMENSION(ktcon-1) :: QCON
@@ -643,7 +647,7 @@ C****
           QSUM_CON(NM)=.FALSE.
           IF (QSUM(N)) QSUM_CON(NM)=.TRUE.
           CHGSTR=" CHANGE OF "
-          if (n.le.npts+1) then
+          if (n.le.npts_common) then
             TITLE_TCON(NM,itr) = CHGSTR//TRIM(NAME_CON)//" BY "//
      *         CONPT0(N-1)
             name_tconsrv(NM,itr) =
@@ -651,9 +655,10 @@ C****
           else
             IF (.not. QSUM(N)) CHGSTR="     DELTA "
             TITLE_TCON(NM,itr) = CHGSTR//TRIM(NAME_CON)//" BY "//
-     *           CONPTs(N-npts-1)
+     *           CONPTs(N-npts_common)
             name_tconsrv(NM,itr) =
-     *           "chg_"//trim(sname)//"_"//TRIM(CONPTs_sname(N-npts-1))
+     *           "chg_"//trim(sname)//"_"//
+     *           TRIM(CONPTs_sname(N-npts_common))
           end if
           lname_tconsrv(NM,itr) = TITLE_TCON(NM,itr)
           units_tconsrv(NM,itr) = SUM_UNIT

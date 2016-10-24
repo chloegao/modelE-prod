@@ -1069,6 +1069,8 @@ C**** Local variables initialised in init_RAD
      &     ,ij_lwcrf2=1
      &     ,ij_siswd=1
      &     ,ij_siswu=1
+     &     ,ij_lwprad=1
+     &     ,ij_iwprad=1
 
 #ifdef ACCMIP_LIKE_DIAGS
 !@var IJ_fcghg GHG forcing diagnostics (2=LW,SW, 4=CH4,N2O,CFC11,CFC12)
@@ -1078,6 +1080,8 @@ C**** Local variables initialised in init_RAD
       integer ::
      &      ijl_rc=1
      &     ,ijl_cf=1
+     &     ,ijl_QLrad=1
+     &     ,ijl_QIrad=1
 
       integer ::
      &      idd_cl7=1

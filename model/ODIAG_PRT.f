@@ -1759,9 +1759,6 @@ c
 #ifdef OCN_GISS_SM
      &     ,ijl_fvb
 #endif
-#ifdef OCN_GISS_MESO
-     &     ,ijl_ueddy,ijl_veddy,ijl_n2
-#endif
       use odiag, only : ia_oijl
 #ifdef TRACERS_OCEAN
       use odiag, only :
@@ -1814,13 +1811,6 @@ c
         oijl_out(i,j,l,ijl_mo) = mass
         oijl_out(i,j,l,ijl_g0m) = oijl(i,j,l,ijl_g0m)
         oijl_out(i,j,l,ijl_s0m) = oijl(i,j,l,ijl_s0m)
-
-#ifdef OCN_GISS_MESO
-        oijl_out(i,j,l,ijl_n2) = oijl(i,j,l,ijl_n2)
-        oijl_out(i,j,l,ijl_ueddy) = oijl(i,j,l,ijl_ueddy)
-        oijl_out(i,j,l,ijl_veddy) = oijl(i,j,l,ijl_veddy)
-#endif
-
 c
 c compute potential temperature, potential density, in-situ density
 c
