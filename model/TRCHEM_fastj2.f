@@ -2325,7 +2325,6 @@ C**** GLOBAL parameters and variables:
       USE RAD_COM, only: s0_yr
       USE RADPAR, only: icycs0,icycs0f
       USE MODEL_COM, only: modelEClock
-      USE PARIO, only : par_open,par_close,variable_exists,read_data
 
       IMPLICIT NONE
   
