@@ -146,6 +146,8 @@
 !@var fl_dummy placeholder for reading FL if rad_FL>0
 !@var flx temp array for varying FL if rad_FL>0   
       real*8, dimension(nwfastj)       :: wl,fl,qrayl,qbc,fl_dummy,flx
+!@var FL4 single precision for reading e.g. fl array from netcdf 
+      real*4, dimension(nwfastj)       :: FL4
 !@var wbin Boundaries of wavelength bins
       real*8, dimension(nwfastj+1)     :: wbin
 !@var qo2 O2 cross-sections
@@ -2327,6 +2329,9 @@ C**** GLOBAL parameters and variables:
 
       IMPLICIT NONE
   
+!@var R4 local variable for scalar single precision reads
+      real*4 :: R4
+     
       include 'netcdf.inc'
       
 C**** Local parameters and variables and arguments:
@@ -2468,29 +2473,24 @@ C**** Local parameters and variables and arguments:
 
           ! open file
           rc=nf_open('RADN9',ncnowrit,fid)
-           if(rc /= nf_noerr)
-     &     call stop_model('FastJ can not open nc RADN9 file',255)
+          if(rc/=nf_noerr)call radn9Stop('opening the file',rc)
 
           ! get the id of time dimension:
           rc=nf_inq_dimid(fid,'time',tdid)
-           if(rc /= nf_noerr)
-     &     call stop_model('FastJ can not find time dim in RADN9',255)
+          if(rc/=nf_noerr)call radn9Stop('locating time dimension',rc)
 
-          ! get lenght of time dimension:
+          ! get length of time dimension:
           rc=nf_inq_dimlen(fid,tdid,ntimes)
-           if(rc /= nf_noerr)
-     &     call stop_model('FastJ can not find size of time RADN9',255)
+          if(rc/=nf_noerr)call radn9Stop('determining time dim size',rc)
           allocate( time(ntimes) )
 
           ! get id of the variable holding the calendar years:
           rc=nf_inq_varid(fid,'calyear',tid)
-           if(rc /= nf_noerr)
-     &     call stop_model('FastJ can not find calyear in RADN9',255)
+          if(rc/=nf_noerr)call radn9Stop('locating calyear variable',rc)
 
           ! read these years into the fortran "time" variable:
           rc=nf_get_vara_double(fid,tid,1,ntimes,time)
-           if(rc /= nf_noerr)
-     &     call stop_model('FastJ failed reading calyear in RADN9',255)
+          if(rc/=nf_noerr)call radn9Stop('reading calyear variable',rc)
 
           ! find some years needed (FLOOR because years are like 1850.5 in
           ! the file but in this routine would be called 1850):
@@ -2544,29 +2544,30 @@ C**** Local parameters and variables and arguments:
  
           ! get photon_flux id:
           rc=nf_inq_varid(fid,'photon_flux',vid)
-           if(rc /= nf_noerr)
-     &     call stop_model('FastJ can not find photon_flux, RADN9',255)
+          if(rc/=nf_noerr)
+     &     call radn9Stop('locating photon_flux variable',rc)
 
           ! read all wavelenghts' photon flux for target year:
-          rc=nf_get_vara_real(fid,vid,(/iWantYear,1/),(/1,NWWW/),FL)
-           if(rc /= nf_noerr)
-     &     call stop_model('FastJ problem reading FL from RADN9',255)
+          rc=nf_get_vara_real(fid,vid,(/1,iWantYear/),(/NWWW,1/),FL4)
+          FL(:)=dble(FL4(:))
+          if(rc/=nf_noerr)call radn9Stop('reading into FL array',rc)
 
           ! also read certain wavelenghts for the years 1988 and 1991:
-          rc=nf_get_vara_real(fid,vid,(/i1988,4/),(/1,1/),bin4_1988)
-           if(rc /= nf_noerr)
-     &     call stop_model('Problem reading bin4_1988 from RADN9',255)
-          rc=nf_get_vara_real(fid,vid,(/i1991,4/),(/1,1/),bin4_1991)
-           if(rc /= nf_noerr)
-     &     call stop_model('Problem reading bin4_1991 from RADN9',255)
-          rc=nf_get_vara_real(fid,vid,(/i1988,5/),(/1,1/),bin5_1988)
-           if(rc /= nf_noerr)
-     &     call stop_model('Problem reading bin5_1988 from RADN9',255)
+          rc=nf_get_vara_real(fid,vid,(/4,i1988/),(/1,1/),R4)
+          if(rc/=nf_noerr)call radn9Stop('reading bin4_1988',rc)
+          bin4_1988=dble(R4)
+
+          rc=nf_get_vara_real(fid,vid,(/4,i1991/),(/1,1/),R4)
+          if(rc/=nf_noerr)call radn9Stop('reading bin4_1991',rc)
+          bin4_1991=dble(R4)
+
+          rc=nf_get_vara_real(fid,vid,(/5,i1988/),(/1,1/),R4)
+          if(rc/=nf_noerr)call radn9Stop('reading bin5_1988',rc)
+          bin5_1988=dble(R4)
 
           ! close the file:   
           rc=nf_close(fid)
-           if(rc /= nf_noerr)
-     &     call stop_model('FastJ: problem closing RADN9 file',255)
+          if(rc/=nf_noerr)call radn9Stop('closing the file',rc)
 
           write(out_line,*)'READ_FL Using year ',wantYear,
      &    ' bin4_now/1988/1991= ',FL(4),bin4_1988,bin4_1991,
@@ -2592,6 +2593,19 @@ C**** Local parameters and variables and arguments:
       RETURN 
       END SUBROUTINE READ_FL  
 
+
+      subroutine radn9Stop(activityString,status)
+!@sum error handling for the netCDF/Fortran interface reads to RADN9 file
+      use domain_decomp_1d, only: am_i_root
+      implicit none
+      include 'netcdf.inc'
+      character(len=*) :: activityString
+      integer status
+      if(am_i_root())
+     &print*, 'FASTJ RADN9 READING: model was '//trim(activityString)
+     &//', encountered the NF error: ',trim(trim(nf_strerror(status)))
+      call stop_model('FASTJ RADN9 I/O error. See PRT message.',255)
+      end subroutine radn9Stop
 
 
       SUBROUTINE rd_prof(nj2)
