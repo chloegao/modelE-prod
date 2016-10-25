@@ -213,7 +213,7 @@ RADN5=H2Ocont_MT_CKD
 RADN3=miescatpar.abcdv2
 RH_QG_Mie=oct2003.relhum.nr.Q633G633.table
 RADN7=STRATAER.VOL.SATO.1850-1999.Apr02_hdr
-RADN9=solar.DBbglean.ann850-2000.uvflux_hdr
+RADN9=solar.DBbglean.ann850-2000.uvflux.nc
 RADNE=topcld.trscat8
 
 ! optional files for optional diagnostics
