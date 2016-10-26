@@ -75,7 +75,7 @@ C**** GLOBAL parameters and variables:
       USE ATM_COM, only            : LTROPO
       USE TRACER_COM, only         : n_NOx,nn_NOx,n_Alkenes,nn_Alkenes
       use photolysis, only: rj
-      USE TRCHEM_Shindell_COM, only:rr,y,yNO3,nO3,nHO2,yCH3O2,nO,nC2O3,
+      USE TRCHEM_Shindell_COM, only:rr,y,yNO3,nO3,nHO2,nO,nC2O3,nCH3O2,
      & pNO3,ta,nXO2,ss,nNO,nNO2,pNOx,nNO3,nHONO,which_trop,nClO,nOClO,
      & nBrO,rrbi,rrtri
 
@@ -108,7 +108,7 @@ c       B is for NO->NO2 reactions :
 
         if(L <= maxT)then  ! Troposphere:
           B=B
-     &      +rr(rrbi%CH3O2_NO__HCHO_NO2,L)*yCH3O2(I,J,L)
+     &      +rr(rrbi%CH3O2_NO__HCHO_NO2,L)*y(nCH3O2,L)
      &      +rr(rrbi%C2O3_NO__HCHO_NO2,L)*y(nC2O3,L)
      &      +4.2d-12*exp(180./ta(L))*y(nXO2,L)
         else               ! Stratosphere:
@@ -177,7 +177,7 @@ C**** GLOBAL parameters and variables:
      &                       nn_HBr,nn_HOCl,nn_HCl
 
       use photolysis, only: rj
-      USE TRCHEM_Shindell_COM, only:pHOx,rr,y,nNO2,nNO,yCH3O2,nH2O,nO3,
+      USE TRCHEM_Shindell_COM, only:pHOx,rr,y,nNO2,nNO,nH2O,nO3,nCH3O2,
      &                        nO2,nM,nHO2,nOH,nH2,nAldehyde,nXO2,nXO2N,
      &                        ta,ss,nC2O3,nROR,yso2,ydms,which_trop,nO1D
      &         ,OxlossbyH,dt2,nBrO,nClO,nOClO,nBr,nCl,SF3,nO
@@ -230,7 +230,7 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
      &      +rr(rrtri%OH_NO2__HNO3_M,L)*y(nNO2,L)
      &      +rr(rrtri%OH_NO__HONO_M,L)*y(nNO,L)
      &      +rr(rrbi%CH3OOH_OH__CH3O2_H2O,L)*y(nn_CH3OOH,L))
-     &    +rr(rrbi%CH3O2_HO2__CH3OOH_O2,L)*yCH3O2(I,J,L)
+     &    +rr(rrbi%CH3O2_HO2__CH3OOH_O2,L)*y(nCH3O2,L)
      &    +pHOx(I,J,L)
      &    *(rr(rrbi%Aldehyde_OH__C2O3_M,L)*y(nAldehyde,L)
      &      +rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)*0.89d0
@@ -255,16 +255,16 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
      &    +ss(rj%HCHO__CO_HO2,L,I,J)*y(nn_HCHO,L) ! CO isotopes should not go here
      &    +ss(rj%CH3OOH__HCHO_HO2,L,I,J)*y(nn_CH3OOH,L)
      &    +(rr(rrbi%CH3O2_NO__HCHO_NO2,L)*y(nNO,L)
-     &      +0.66d0*rr(rrbi%CH3O2_CH3O2__HCHO_HCHO,L)*yCH3O2(I,J,L)
-     &    )*yCH3O2(I,J,L))
+     &      +0.66d0*rr(rrbi%CH3O2_CH3O2__HCHO_HCHO,L)*y(nCH3O2,L)
+     &    )*y(nCH3O2,L))
 #else
         cqqz=(2.d0*(ss(rj%H2O2__OH_OH,L,I,J)*y(nn_H2O2,L))
      &    +ss(rj%HNO3__OH_NO2,L,I,J)*y(nn_HNO3,L)
      &    +2.d0*(ss(rj%HCHO__CO_HO2,L,I,J)*y(nn_HCHO,L)) ! CO isotopes should not go here
      &    +2.d0*ss(rj%CH3OOH__HCHO_HO2,L,I,J)*y(nn_CH3OOH,L)
      &    +(rr(rrbi%CH3O2_NO__HCHO_NO2,L)*y(nNO,L)
-     &      +0.66d0*(rr(rrbi%CH3O2_CH3O2__HCHO_HCHO,L)*yCH3O2(I,J,L))
-     &    )*yCH3O2(I,J,L))
+     &      +0.66d0*(rr(rrbi%CH3O2_CH3O2__HCHO_HCHO,L)*y(nCH3O2,L))
+     &    )*y(nCH3O2,L))
 #endif
 
         ! 1.66/1.31 accounts for HOx production via O(1D)+CH4-->CH3O path:
