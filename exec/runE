@@ -84,6 +84,8 @@ fi
 run_command=${RUNID}.qsub
 cd "$CMRUNDIR/$RUNID"
 echo "#!/bin/sh" > $run_command
+echo "if [ -s modules ] ; then" >> $run_command
+echo "  module purge ; module load `cat modules` ; fi" >> $run_command
 echo "trap '' TERM" >> $run_command
 echo "cd $CMRUNDIR/$RUNID" >> $run_command
 echo "./$RUNID $OPTS" >> $run_command
