@@ -249,15 +249,6 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
      &    +pHOx(I,J,L)*(rsulf1(i,j,l)*ydms(i,j,l) ! oxidation of DMS
      &    +rsulf2(i,j,l)*ydms(i,j,l)) ! oxidation of SO2
 
-#ifdef V2_BUGS_TEMPORARY
-        cqqz=(2.d0*ss(rj%H2O2__OH_OH,L,I,J)*y(nn_H2O2,L)
-     &    +ss(rj%HNO3__OH_NO2,L,I,J)*y(nn_HNO3,L)
-     &    +ss(rj%HCHO__CO_HO2,L,I,J)*y(nn_HCHO,L) ! CO isotopes should not go here
-     &    +ss(rj%CH3OOH__HCHO_HO2,L,I,J)*y(nn_CH3OOH,L)
-     &    +(rr(rrbi%CH3O2_NO__HCHO_NO2,L)*y(nNO,L)
-     &      +0.66d0*rr(rrbi%CH3O2_CH3O2__HCHO_HCHO,L)*y(nCH3O2,L)
-     &    )*y(nCH3O2,L))
-#else
         cqqz=(2.d0*(ss(rj%H2O2__OH_OH,L,I,J)*y(nn_H2O2,L))
      &    +ss(rj%HNO3__OH_NO2,L,I,J)*y(nn_HNO3,L)
      &    +2.d0*(ss(rj%HCHO__CO_HO2,L,I,J)*y(nn_HCHO,L)) ! CO isotopes should not go here
@@ -265,7 +256,6 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
      &    +(rr(rrbi%CH3O2_NO__HCHO_NO2,L)*y(nNO,L)
      &      +0.66d0*(rr(rrbi%CH3O2_CH3O2__HCHO_HCHO,L)*y(nCH3O2,L))
      &    )*y(nCH3O2,L))
-#endif
 
         ! 1.66/1.31 accounts for HOx production via O(1D)+CH4-->CH3O path:
         cqqz=cqqz
@@ -298,13 +288,8 @@ c Now partition HOx into OH and HO2:
      &    +rr(rrbi%CO_OH__HO2_O2,L)*y(nn_CO,L) ! CO isotopes should not go here
      &    +rr(rrbi%OH_H2O2__H2O_HO2,L)*y(nn_H2O2,L)
      &    +rr(rrbi%H2_OH__HO2_H2O,L)*y(nH2,L)
-#ifdef V2_BUGS_TEMPORARY
-     &    +rr(rrbi%HCHO_OH__HO2_CO,L)*y(nn_HCHO,L) ! CO isotopes should not go here
-     &    +rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)*
-#else
      &    +rr(rrbi%HCHO_OH__HO2_CO,L)*y(nn_HCHO,L) ! CO isotopes should not go here
      &    +rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
-#endif
      &      *0.11d0
      &    +rr(rrbi%Isoprene_OH__HCHO_Alkenes,L)*y(nn_Isoprene,L)*0.85d0
 #ifdef TRACERS_TERP
