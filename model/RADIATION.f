@@ -420,18 +420,18 @@ C            RADMAD6_SOLARUV_DECADAL          (user SETSOL)     radfile9
       INTEGER, PARAMETER :: icycs0=11,  icycs0f=12
       INTEGER  iMS0X
       REAL*4 yr1S0,yr2S0
-      real,    ALLOCATABLE, DIMENSION(:,:):: UVLEAN
+      real,    ALLOCATABLE, DIMENSION(:,:):: UV_SSI
       real,    ALLOCATABLE, DIMENSION(:)  :: TSI1,TSI2
-      REAL*8 FSLEAN(190),W1LEAN(190)
+      REAL*8 FS_SSI(190),W1_SSI(190)
 
       REAL*8 :: S00WM2=1366.2911d0, S0=1366.d0, RATLS0=1.
 
       REAL*8 :: WSOLAR(190),FSOLAR(190)
 
 C***  alternate sources to get WSOLAR,FSOLAR:
-      REAL*8, dimension(190) :: WSLEAN,DSLEAN,FRLEAN
+      REAL*8, dimension(190) :: WS_SSI,DS_SSI,FR_SSI  
 #ifdef USE_RAD_OFFLINE
-      common/lean1950/ WSLEAN,DSLEAN,FRLEAN ! for MADLUV=0 uses block data
+      common/lean1950/ WS_SSI,DS_SSI,FR_SSI ! for MADLUV=0 uses block data
 #endif
       REAL*8, PARAMETER :: WTHEK(190)=(/        ! if KSOLAR<0
      *           .115,.120,.125,.130,.140,.150,.160,.170,.180,.190,.200,
@@ -1367,9 +1367,9 @@ C                                      ---------------------------------
 
       IF(KSOLAR < 0) GO TO 949
       IF(MADLUV < 1) THEN
-        WSLEAN(:)=WSLEAN(:)/1000.D0
-        DSLEAN(:)=DSLEAN(:)/1000.D0
-        W1LEAN(:)=WSLEAN(:)-0.5D0*DSLEAN(:)
+        WS_SSI(:)=WS_SSI(:)/1000.D0
+        DS_SSI(:)=DS_SSI(:)/1000.D0
+        W1_SSI(:)=WS_SSI(:)-0.5D0*DS_SSI(:)
         GO TO 949
       END IF
 !      NRFU=NRFUN(9)
@@ -1403,9 +1403,9 @@ C                                      ---------------------------------
       istatus=nf_get_var_real(fid,vid,TSI_IN)
       istatus=nf_close(fid) 
   
-      WSLEAN(:)=WS_IN(N_BIN-189:N_BIN)/1000.D0
-      DSLEAN(:)=DS_IN(N_BIN-189:N_BIN)/1000.D0
-      W1LEAN(:)=WSLEAN(:)-0.5D0*DSLEAN(:)
+      WS_SSI(:)=WS_IN(N_BIN-189:N_BIN)/1000.D0
+      DS_SSI(:)=DS_IN(N_BIN-189:N_BIN)/1000.D0
+      W1_SSI(:)=WS_SSI(:)-0.5D0*DS_SSI(:)
       print *, 'okay'  
 !        WSLEAN(:)=WSLEAN(:)/1000.D0
 !        DSLEAN(:)=DSLEAN(:)/1000.D0
@@ -1420,8 +1420,8 @@ C                                      ---------------------------------
 !          read (title(6:80),*) iMs0X
 !        endif
 !      END IF
-      ALLOCATE (UVLEAN(iMS0X,190),TSI1(iMS0X),TSI2(iMS0X))
-      UVLEAN(:,:)=TRANSPOSE(SSI_IN(N_BIN-189:N_BIN,:))
+      ALLOCATE (UV_SSI(iMS0X,190),TSI1(iMS0X),TSI2(iMS0X))
+      UV_SSI(:,:)=TRANSPOSE(SSI_IN(N_BIN-189:N_BIN,:))
       TSI1(:)=TSI_IN(:)
       TSI2(:)=TSI_IN(:)
       yr1S0=calyear(1)
@@ -1855,9 +1855,9 @@ C            KSOLAR   SOLSPEC     UVWAVLs       UVFACTs         KUVFAC
 C-----------------------------------------------------------------------
 C              -1     THEK      Can be set    Can be set   (if KUVFAC=1)
 C-----------------------------------------------------------------------
-C               0     LEAN      Can be set    Can be set   (if KUVFAC=1)
+C               0     SSI       Can be set    Can be set   (if KUVFAC=1)
 C-----------------------------------------------------------------------
-C               1     LEAN      Can be set    Can be set   (if KUVFAC=1)
+C               1     SSI       Can be set    Can be set   (if KUVFAC=1)
 C-----------------------------------------------------------------------
 C
 C                               (Option to Modify Solar UV Fluxes)
@@ -1882,7 +1882,7 @@ C                (Thekaekara, if KSOLAR=-1, Reference = 1367 WATTS/M**2)
 C
 C
 C     SETSOL  is Generally Called once at Model Initialization to Select
-C                Solar Flux (LEAN,THEK), and to Define S00WM2 (RATLS0=1)
+C                Solar Flux (SSI,THEK), and to Define S00WM2 (RATLS0=1)
 C
 C-----------------------------------------------------------------------
 C NOTE:
@@ -1966,15 +1966,15 @@ C                                           ----------------------------
       LMOREF=LMO
 
 C                        IF(MADLUV==0) Default Option is then in force
-C                        Default (FRLEAN) = Lean 1950 Jan Solar, UV flux
-C                        CORFAC accounts for DSLEAN units in BLOCK DATA,
+C                        Default (FR_SSI) = Lean 1950 Jan Solar, UV flux
+C                        CORFAC accounts for DS_SSI units in BLOCK DATA,
 C                        and TSI1/TSI2 normalization of Lean input data.
 C                        -----------------------------------------------
 
 c      CORFAC=1366.2911D0/1366.4487855D0
       IF(KSOLAR.ne.9) THEN
-        IF(MADLUV == 0) S00WM2 = SUM(FRLEAN(:)*DSLEAN(:)*CORFAC)
-        IF(MADLUV >  0) S00WM2 = SUM(UVLEAN(LMO,:)*DSLEAN(:))
+        IF(MADLUV == 0) S00WM2 = SUM(FR_SSI(:)*DS_SSI(:)*CORFAC)
+        IF(MADLUV >  0) S00WM2 = SUM(UV_SSI(LMO,:)*DS_SSI(:))
       ELSE
         S00WM2=TSI2(LMO)
       END IF
@@ -1983,18 +1983,18 @@ c      CORFAC=1366.2911D0/1366.4487855D0
         I=0
         DO K=1,50
           I=I+1
-          WSOLAR(I)=W1LEAN(K)
-          IF(MADLUV == 0) FSOLAR(I)=FRLEAN(K)
-          IF(MADLUV >  0) FSOLAR(I)=UVLEAN(LMO,K)
+          WSOLAR(I)=W1_SSI(K)
+          IF(MADLUV == 0) FSOLAR(I)=FR_SSI(K)
+          IF(MADLUV >  0) FSOLAR(I)=UV_SSI(LMO,K)
           I=I+1
-          WSOLAR(I)=W1LEAN(K+1)
+          WSOLAR(I)=W1_SSI(K+1)
           FSOLAR(I)=FSOLAR(I-1)
         END DO
         NWSUV=100
       ELSE
         IF(MADLUV==0)call stop_model("invalid MADLUV for KSOLAR=9",255)
         WSOLAR(1:190)=WTHEK(1:190)
-        FSOLAR(1:190)=UVLEAN(LMO,1:190)
+        FSOLAR(1:190)=UV_SSI(LMO,1:190)
         NWSUV=190
       END IF
 
@@ -2083,7 +2083,7 @@ C--------------------------------
 C                                               Select Lean99 Solar Flux
 C                                               ------------------------
       IF(KSOLAR.ne.9)THEN
-        FLXSUM = SUM(UVLEAN(LMO,1:190)*DSLEAN(1:190))
+        FLXSUM = SUM(UV_SSI(LMO,1:190)*DS_SSI(1:190))
       ELSE
         FLXSUM=TSI2(LMO)
       END IF
@@ -2093,10 +2093,10 @@ c        write(6,*) 'UPDSOLAR::FLXSUM::',FLXSUM
         I=0
         DO K=1,50
           I=I+1
-          WSOLAR(I)=W1LEAN(K)
-          FSOLAR(I)=UVLEAN(LMO,K)
+          WSOLAR(I)=W1_SSI(K)
+          FSOLAR(I)=UV_SSI(LMO,K)
           I=I+1
-          WSOLAR(I)=W1LEAN(K+1)
+          WSOLAR(I)=W1_SSI(K+1)
           FSOLAR(I)=FSOLAR(I-1)
         END DO
         NWSUV=100
@@ -2104,7 +2104,7 @@ c        write(6,*) 'UPDSOLAR::FLXSUM::',FLXSUM
 C                                          Select Thekaekhara Solar Flux
 C                                          -----------------------------
         WSOLAR(1:190)=WTHEK(1:190)
-        FSOLAR(1:190)=UVLEAN(LMO,1:190)
+        FSOLAR(1:190)=UV_SSI(LMO,1:190)
         NWSUV=190
       END IF
 C                                         Option to Modify Solar UV Flux
@@ -8190,17 +8190,17 @@ C
       SFL0(I)=0.D0
   310 CONTINUE
       DO 320 K=1,190
-      IF(K <= NSW1)              SFL0(1)=SFL0(1)+UVLEAN(LMO,K)*DSLEAN(K)
-      IF(K > NSW1.and.K <= NSW2)SFL0(2)=SFL0(2)+UVLEAN(LMO,K)*DSLEAN(K)
-      IF(K > NSW2.and.K <= NSW3)SFL0(3)=SFL0(3)+UVLEAN(LMO,K)*DSLEAN(K)
-      IF(K > NSW3.and.K <= NSW4)SFL0(4)=SFL0(4)+UVLEAN(LMO,K)*DSLEAN(K)
-                                 SFL0(5)=SFL0(5)+UVLEAN(LMO,K)*DSLEAN(K)
+      IF(K <= NSW1)              SFL0(1)=SFL0(1)+UV_SSI(LMO,K)*DS_SSI(K)
+      IF(K > NSW1.and.K <= NSW2)SFL0(2)=SFL0(2)+UV_SSI(LMO,K)*DS_SSI(K)
+      IF(K > NSW2.and.K <= NSW3)SFL0(3)=SFL0(3)+UV_SSI(LMO,K)*DS_SSI(K)
+      IF(K > NSW3.and.K <= NSW4)SFL0(4)=SFL0(4)+UV_SSI(LMO,K)*DS_SSI(K)
+                                 SFL0(5)=SFL0(5)+UV_SSI(LMO,K)*DS_SSI(K)
   320 CONTINUE
 C
       if(ksolar==2.or.ksolar==9)
      *   WRITE(KW,6299) int(yr1s0),int(yr2s0),JYRREF,JYRNOW,SFL0(5)
       if(ksolar < 2) WRITE(KW,6300) JYRREF,JYRNOW,SFL0(5)
- 6299 FORMAT(/' (3)=INDEX  Annual-mean Solar flux (from J.Lean annual'
+ 6299 FORMAT(/' (3)=INDEX  Annual-mean Solar flux (from ann. SSI input'
      +      ,I6,'-',I4,' data) for JYRREF=',I4,' to JYRNOW=',I4,'  mid'
      +      ,' 1950 Ref S00WM2=',F9.4/12X,'Solar UV Spectral Flux W/m2'
      +      ,T57,'Delta Solar UV Spectral Flux W/m2'
@@ -8243,11 +8243,11 @@ C
       IF(LMO > lmax) LMO=LMO-icyc*((LMO-lmax+icyc-1)/icyc)
       IF(LMO < 1) LMO=LMO+icyc*((icyc-LMO)/icyc)
       DO 340 K=1,190
-      IF(K <= NSW1)              SFLX(1)=SFLX(1)+UVLEAN(LMO,K)*DSLEAN(K)
-      IF(K > NSW1.and.K <= NSW2)SFLX(2)=SFLX(2)+UVLEAN(LMO,K)*DSLEAN(K)
-      IF(K > NSW2.and.K <= NSW3)SFLX(3)=SFLX(3)+UVLEAN(LMO,K)*DSLEAN(K)
-      IF(K > NSW3.and.K <= NSW4)SFLX(4)=SFLX(4)+UVLEAN(LMO,K)*DSLEAN(K)
-                                 SFLX(5)=SFLX(5)+UVLEAN(LMO,K)*DSLEAN(K)
+      IF(K <= NSW1)              SFLX(1)=SFLX(1)+UV_SSI(LMO,K)*DS_SSI(K)
+      IF(K > NSW1.and.K <= NSW2)SFLX(2)=SFLX(2)+UV_SSI(LMO,K)*DS_SSI(K)
+      IF(K > NSW2.and.K <= NSW3)SFLX(3)=SFLX(3)+UV_SSI(LMO,K)*DS_SSI(K)
+      IF(K > NSW3.and.K <= NSW4)SFLX(4)=SFLX(4)+UV_SSI(LMO,K)*DS_SSI(K)
+                                 SFLX(5)=SFLX(5)+UV_SSI(LMO,K)*DS_SSI(K)
   340 CONTINUE
   350 CONTINUE
       DO 360 I=1,5
