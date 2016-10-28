@@ -9,6 +9,7 @@ C**** GLOBAL parameters and variables:
       USE MODEL_COM, only: Itime, ItimeI
       USE DOMAIN_DECOMP_ATM, only: getDomainBounds,grid,readt_parallel
       USE TRACER_COM, only: oh_live,no3_live
+      USE TRCHEM_Shindell_COM, only: nc
       USE TRCHEM_Shindell_COM, only:
      &    prnls,prnrts,prnchg,lprn,jprn,iprn,ay,pHOx,pOx,pNOx,
      &    yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yNO3,yRXPAR,yXO2N,acetone,
@@ -29,7 +30,8 @@ C**** GLOBAL parameters and variables:
 C**** Local parameters and variables and arguments:
 !@var iu_data temporary unit number
 !@var i,l loop dummy
-      integer :: iu_data,i,L,j
+      character(len=22) :: format_110
+      integer :: iu_data,i,L,j,nc_10,nc_mod
       integer :: J_0,J_1,J_0S,J_1S,J_1H,J_0H,I_0,I_1
          
       call getDomainBounds(grid, J_STRT    =J_0,  J_STOP    =J_1,
@@ -40,11 +42,22 @@ C**** Local parameters and variables and arguments:
       ! Note that topLevelOfChemistry is set in 
       ! alloc_trchem_shindell_com routine
 
+! define MOLEC reading format
+ 100  format(/3(50x,l1/),3(50x,i8/))
+      nc_10=floor(dble(nc+1)/10.d0)
+      if (nc_10 > 99) then
+        ! stop the model if the format becomes invalid
+        call stop_model('ERROR: Too many lines in MOLEC',255)
+      endif
+      nc_mod=mod(nc,10)
+      write (format_110,'(a2,i1,a14,i1,a4)')
+     &  '(',nc_10,'(///10a8),(///',nc_mod,'a8))'
+
 C Read chem diagnostics parameters and molecule names
 C from MOLEC file:
       call openunit('MOLEC',iu_data,.false.,.true.)
       read(iu_data,100)prnls,prnrts,prnchg,lprn,jprn,iprn
-      read(iu_data,110)ay
+      read(iu_data,trim(format_110))ay
       call closeunit(iu_data)
 
 ! figure out first element of each family
@@ -126,25 +139,6 @@ C Initialize a few (IM,JM,topLevelOfChemistry) arrays, first hour only:
         yCl2(I_0:I_1,J_0:J_1,:)     =0.d0
         yCl2O2(I_0:I_1,J_0:J_1,:)   =0.d0
       END IF
-
- 100  format(/3(50x,l1/),3(50x,i8/))
-#ifdef TRACERS_AEROSOLS_SOA
-#ifdef TRACERS_TERP
-#ifdef TRACERS_dCO
- 110  format(9(///10(a8)),(///2(a8)))
-#else
- 110  format(6(///10(a8)),(///2(a8)))
-#endif
-#else
- 110  format(6(///10(a8)),(///1(a8)))
-#endif
-#else
-#ifdef TRACERS_TERP
- 110  format(5(///10(a8)),(///4(a8)))
-#else
- 110  format(5(///10(a8)),(///3(a8)))
-#endif
-#endif  /* TRACERS_AEROSOLS_SOA */
 
       if(Itime == ItimeI)then
         ! First time only, read some albedo initial conditions (I,J)
