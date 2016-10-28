@@ -9,7 +9,7 @@ c
       USE MODEL_COM, only  : dtsrc,Itime,ItimeI
       USE CONSTANT, only   : pi, mair, mwat, radian,avog
       USE ATM_COM, only    : MA, byMA, PMID, PK
-      USE TRACER_COM, only : trm, ntm_soa, ntm_terp, ntm_dCO
+      USE TRACER_COM, only : trm, ntm_chem
       use OldTracer_mod, only: TR_MM
 
       IMPLICIT NONE
@@ -296,6 +296,7 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
 #else
      & n_bi_terp = 0,
 #endif  /* TRACERS_TERP */
+     & ntm_shindell_nontransp = 26, ! number of non-transported Shindell tracers
 #ifdef TRACERS_dCO
      & ntm_dCO_nontransp = 18, ! number of non-transported dCO tracers
      & n_bi_dCO = 87, ! number of dCO bimolecular reactions
@@ -312,57 +313,62 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
      & n_tri =    11+n_tri_dCO,
      & n_het =     5,
      & n_rx  = n_bi+n_nst+n_tri+n_het,
-     & ny     =   51+ntm_terp+ntm_soa+ntm_dCO+ntm_dCO_nontransp,
-     & nc     = ny+2,
+     & ntm_chem_nontransp=ntm_shindell_nontransp+ntm_dCO_nontransp,
+     & ntm_chem_extra=2,
+     & ny     = ntm_chem+ntm_chem_nontransp,
+     & nc     = ny+ntm_chem_extra,
      & numfam =    4,
-     & nC2O3=     26+ntm_terp+ntm_soa+ntm_dCO,
-     & nXO2=      27+ntm_terp+ntm_soa+ntm_dCO,
-     & nXO2N=     28+ntm_terp+ntm_soa+ntm_dCO,
-     & nRXPAR=    29+ntm_terp+ntm_soa+ntm_dCO,
-     & nROR=      30+ntm_terp+ntm_soa+ntm_dCO,
-     & nAldehyde= 31+ntm_terp+ntm_soa+ntm_dCO,
-     & nH2O=      32+ntm_terp+ntm_soa+ntm_dCO,
-     & nCH3O2=    33+ntm_terp+ntm_soa+ntm_dCO,
-     & nH2=       34+ntm_terp+ntm_soa+ntm_dCO,
-     & nOH=       35+ntm_terp+ntm_soa+ntm_dCO,
-     & nHO2=      36+ntm_terp+ntm_soa+ntm_dCO,
-     & nO3=       37+ntm_terp+ntm_soa+ntm_dCO,
-     & nO=        38+ntm_terp+ntm_soa+ntm_dCO,
-     & nO1D=      39+ntm_terp+ntm_soa+ntm_dCO,
-     & nNO=       40+ntm_terp+ntm_soa+ntm_dCO,
-     & nNO2=      41+ntm_terp+ntm_soa+ntm_dCO,
-     & nNO3=      42+ntm_terp+ntm_soa+ntm_dCO,
-     & nHONO=     43+ntm_terp+ntm_soa+ntm_dCO,
-     & nCl2O2=    44+ntm_terp+ntm_soa+ntm_dCO,
-     & nClO=      45+ntm_terp+ntm_soa+ntm_dCO,
-     & nOClO=     46+ntm_terp+ntm_soa+ntm_dCO,
-     & nCl2=      47+ntm_terp+ntm_soa+ntm_dCO,
-     & nCl=       48+ntm_terp+ntm_soa+ntm_dCO,
-     & nBrCl=     49+ntm_terp+ntm_soa+ntm_dCO,
-     & nBrO=      50+ntm_terp+ntm_soa+ntm_dCO,
-     & nBr=       51+ntm_terp+ntm_soa+ntm_dCO,
+! define below ntm_shindell_nontransp tracers
+     & nC2O3=      1+ntm_chem,
+     & nXO2=       2+ntm_chem,
+     & nXO2N=      3+ntm_chem,
+     & nRXPAR=     4+ntm_chem,
+     & nROR=       5+ntm_chem,
+     & nAldehyde=  6+ntm_chem,
+     & nH2O=       7+ntm_chem,
+     & nCH3O2=     8+ntm_chem,
+     & nH2=        9+ntm_chem,
+     & nOH=       10+ntm_chem,
+     & nHO2=      11+ntm_chem,
+     & nO3=       12+ntm_chem,
+     & nO=        13+ntm_chem,
+     & nO1D=      14+ntm_chem,
+     & nNO=       15+ntm_chem,
+     & nNO2=      16+ntm_chem,
+     & nNO3=      17+ntm_chem,
+     & nHONO=     18+ntm_chem,
+     & nCl2O2=    19+ntm_chem,
+     & nClO=      20+ntm_chem,
+     & nOClO=     21+ntm_chem,
+     & nCl2=      22+ntm_chem,
+     & nCl=       23+ntm_chem,
+     & nBrCl=     24+ntm_chem,
+     & nBrO=      25+ntm_chem,
+     & nBr=       26+ntm_chem,
 #ifdef TRACERS_dCO
-     & ndC217O3=  52+ntm_terp+ntm_soa+ntm_dCO,
-     & ndC218O3=  53+ntm_terp+ntm_soa+ntm_dCO,
-     & nd13C2O3=  54+ntm_terp+ntm_soa+ntm_dCO,
-     & nd17OXO2=  55+ntm_terp+ntm_soa+ntm_dCO,
-     & nd18OXO2=  56+ntm_terp+ntm_soa+ntm_dCO,
-     & nd13CXO2=  57+ntm_terp+ntm_soa+ntm_dCO,
-     & nd17OXO2N= 58+ntm_terp+ntm_soa+ntm_dCO,
-     & nd18OXO2N= 59+ntm_terp+ntm_soa+ntm_dCO,
-     & nd13CXO2N= 60+ntm_terp+ntm_soa+ntm_dCO,
-     & nd17OROR = 61+ntm_terp+ntm_soa+ntm_dCO,
-     & nd18OROR = 62+ntm_terp+ntm_soa+ntm_dCO,
-     & nd13CROR = 63+ntm_terp+ntm_soa+ntm_dCO,
-     & nd17Oald = 64+ntm_terp+ntm_soa+ntm_dCO,
-     & nd18Oald = 65+ntm_terp+ntm_soa+ntm_dCO,
-     & nd13Cald = 66+ntm_terp+ntm_soa+ntm_dCO,
-     & ndCH317O2= 67+ntm_terp+ntm_soa+ntm_dCO,
-     & ndCH318O2= 68+ntm_terp+ntm_soa+ntm_dCO,
-     & nd13CH3O2= 69+ntm_terp+ntm_soa+ntm_dCO,
+! define below ntm_dCO_nontransp tracers
+     & ndC217O3=   1+ntm_chem+ntm_shindell_nontransp,
+     & ndC218O3=   2+ntm_chem+ntm_shindell_nontransp,
+     & nd13C2O3=   3+ntm_chem+ntm_shindell_nontransp,
+     & nd17OXO2=   4+ntm_chem+ntm_shindell_nontransp,
+     & nd18OXO2=   5+ntm_chem+ntm_shindell_nontransp,
+     & nd13CXO2=   6+ntm_chem+ntm_shindell_nontransp,
+     & nd17OXO2N=  7+ntm_chem+ntm_shindell_nontransp,
+     & nd18OXO2N=  8+ntm_chem+ntm_shindell_nontransp,
+     & nd13CXO2N=  9+ntm_chem+ntm_shindell_nontransp,
+     & nd17OROR = 10+ntm_chem+ntm_shindell_nontransp,
+     & nd18OROR = 11+ntm_chem+ntm_shindell_nontransp,
+     & nd13CROR = 12+ntm_chem+ntm_shindell_nontransp,
+     & nd17Oald = 13+ntm_chem+ntm_shindell_nontransp,
+     & nd18Oald = 14+ntm_chem+ntm_shindell_nontransp,
+     & nd13Cald = 15+ntm_chem+ntm_shindell_nontransp,
+     & ndCH317O2= 16+ntm_chem+ntm_shindell_nontransp,
+     & ndCH318O2= 17+ntm_chem+ntm_shindell_nontransp,
+     & nd13CH3O2= 18+ntm_chem+ntm_shindell_nontransp,
 #endif  /* TRACERS_dCO */
-     & nO2=       52+ntm_terp+ntm_soa+ntm_dCO+ntm_dCO_nontransp,
-     & nM=        53+ntm_terp+ntm_soa+ntm_dCO+ntm_dCO_nontransp, !you must always put nM last (highest number)
+! define below ntm_chem_extra tracers
+     & nO2=        1+ntm_chem+ntm_chem_nontransp,
+     & nM=         2+ntm_chem+ntm_chem_nontransp, !you must always put nM last (highest number)
      & n_rj  =    28+n_rj_dCO,
      & p_1   =     2
 C ----------------------------------------------     
