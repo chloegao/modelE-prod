@@ -439,7 +439,6 @@ C**** GLOBAL parameters and variables:
 
       USE ATM_COM, only   : LTROPO
       USE RESOLUTION, only : LS1=>LS1_NOMINAL
-      USE RESOLUTION, only : LM
       USE TRACER_COM, only : n_ClOx,n_HOCl,n_ClONO2,n_HCl,n_H2O2,n_CH4
       USE TRACER_COM, only : nn_ClOx,nn_HOCl,nn_ClONO2,nn_HCl,nn_H2O2,
      &    nn_CH4

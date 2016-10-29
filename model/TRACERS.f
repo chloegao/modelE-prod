@@ -2231,7 +2231,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
      &,d17Oacetone,d18Oacetone,d13Cacetone
 #endif  /* TRACERS_dCO */
      &,acetone,sOx_acc,sNOx_acc,sCO_acc,l1Ox_acc,l1NO2_acc
-     &,SF3,SF2,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2,topLevelOfChemistry
+     &,SF3,SF2,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2
      &,mostRecentNonZeroAlbedo
 #ifdef INTERACTIVE_WETLANDS_CH4 
       use TRACER_SOURCES, only: day_ncep,DRA_ch4,sum_ncep,PRS_ch4,
