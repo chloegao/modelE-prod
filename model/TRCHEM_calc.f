@@ -396,7 +396,7 @@ c Set CH3O2 values (concentration = production/specific loss):
      &      +rr(rrbi%CH4_OH__H2O_CH3O2,L)*y(nOH,L))
      &    *y(nn_CH4,L)
      &    +rr(rrbi%CH3OOH_OH__CH3O2_H2O,L)*y(nn_CH3OOH,L)*y(nOH,L)
-        tempAcet=2.d0*Jacet(L)*acetone(I,J,L)
+        tempAcet=2.d0*Jacet(L)*acetone(L)
         prodCH3O2=qqqCH3O2+tempAcet
         tempiter=rr(rrbi%CH3O2_NO__HCHO_NO2,L)*y(nNO,L)
      &    +rr(rrbi%CH3O2_HO2__CH3OOH_O2,L)*y(nHO2,L)
@@ -441,7 +441,7 @@ c Set dCH317O2 values (concentration = production/specific loss):
      &    *y(nn_CH4,L)
      &    +rr(rrbi%dMe17OOH_OH__dCH317O2_H2O,L)*y(nn_dMe17OOH,L)
      &      *y(nOH,L)
-        tempAcet=2.d0*Jacet(L)*d17Oacetone(I,J,L)
+        tempAcet=2.d0*Jacet(L)*d17Oacetone(L)
         prodCH3O2=qqqCH3O2+tempAcet
         tempiter=rr(rrbi%dCH317O2_NO__dHCH17O_NO2,L)*y(nNO,L)
      &    +rr(rrbi%dCH317O2_HO2__dMe17OOH_O2,L)*y(nHO2,L)
@@ -486,7 +486,7 @@ c Set dCH318O2 values (concentration = production/specific loss):
      &    *y(nn_CH4,L)
      &    +rr(rrbi%dMe18OOH_OH__dCH318O2_H2O,L)*y(nn_dMe18OOH,L)
      &      *y(nOH,L)
-        tempAcet=2.d0*Jacet(L)*d18Oacetone(I,J,L)
+        tempAcet=2.d0*Jacet(L)*d18Oacetone(L)
         prodCH3O2=qqqCH3O2+tempAcet
         tempiter=rr(rrbi%dCH318O2_NO__dHCH18O_NO2,L)*y(nNO,L)
      &    +rr(rrbi%dCH318O2_HO2__dMe18OOH_O2,L)*y(nHO2,L)
@@ -531,7 +531,7 @@ c Set d13CH3O2 values (concentration = production/specific loss):
      &    *y(nn_CH4,L)
      &    +rr(rrbi%d13MeOOH_OH__d13CH3O2_H2O,L)*y(nn_d13MeOOH,L)
      &      *y(nOH,L)
-        tempAcet=2.d0*Jacet(L)*d13Cacetone(I,J,L)
+        tempAcet=2.d0*Jacet(L)*d13Cacetone(L)
         prodCH3O2=qqqCH3O2+tempAcet
         tempiter=rr(rrbi%d13CH3O2_NO__dH13CHO_NO2,L)*y(nNO,L)
      &    +rr(rrbi%d13CH3O2_HO2__d13MeOOH_O2,L)*y(nHO2,L)

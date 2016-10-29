@@ -630,7 +630,7 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var SF3 is H2O photolysis in Schumann-Runge Bands
 !@var SF2 is NO photolysis in Schumann-Runge Bands
 !@var Jacet photolysis rate for acetone (not done through fastj)
-!@var acetone 3D acetone mixing ratio (static for now)
+!@var acetone acetone column mixing ratio for the curren I,J (static for now)
 !@var pscX column logical for the existance of polar strat clouds(PSCs)
 !@var sOx_acc accumulated SURFACE ozone (Ox) (special for SUBDD)
 !@var sNOx_acc accumulated SURFACE NOx (special for SUBDD)
@@ -659,11 +659,11 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 
 C**************  Latitude-Dependant (allocatable) *******************
       REAL*8, ALLOCATABLE, DIMENSION(:)       :: DU_O3
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)   :: acetone
+      REAL*8, ALLOCATABLE, DIMENSION(:)       :: acetone
 #ifdef TRACERS_dCO
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)   :: d17Oacetone
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)   :: d18Oacetone
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)   :: d13Cacetone
+      REAL*8, ALLOCATABLE, DIMENSION(:)       :: d17Oacetone
+      REAL*8, ALLOCATABLE, DIMENSION(:)       :: d18Oacetone
+      REAL*8, ALLOCATABLE, DIMENSION(:)       :: d13Cacetone
 #endif  /* TRACERS_dCO */
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: ss
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)   :: yNO3,pHOx,pNOx,pOx,
@@ -801,11 +801,11 @@ C**************  Not Latitude-Dependant ****************************
       allocate(         DU_O3(          J_0H:J_1H) )
       allocate(ss(n_rj, topLevelOfChemistry,
      &                      I_0H:I_1H,J_0H:J_1H) )
-      allocate(     acetone(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
+      allocate(     acetone(topLevelOfChemistry) )
 #ifdef TRACERS_dCO
-      allocate( d17Oacetone(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
-      allocate( d18Oacetone(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
-      allocate( d13Cacetone(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
+      allocate( d17Oacetone(topLevelOfChemistry) )
+      allocate( d18Oacetone(topLevelOfChemistry) )
+      allocate( d13Cacetone(topLevelOfChemistry) )
 #endif  /* TRACERS_dCO */
       allocate(        yNO3(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
       allocate(        pHOx(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )

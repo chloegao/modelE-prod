@@ -12,7 +12,7 @@ C**** GLOBAL parameters and variables:
       USE TRCHEM_Shindell_COM, only: nc
       USE TRCHEM_Shindell_COM, only:
      &    prnls,prnrts,prnchg,lprn,jprn,iprn,ay,pHOx,pOx,pNOx,
-     &    yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yNO3,yRXPAR,yXO2N,acetone,
+     &    yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yNO3,yRXPAR,yXO2N,
 #ifdef TRACERS_dCO
      &    ydC217O3,ydC218O3,yd13C2O3,
      &    yd17OXO2,yd18OXO2,yd13CXO2,
@@ -20,7 +20,6 @@ C**** GLOBAL parameters and variables:
      &    yd17OROR,yd18OROR,yd13CROR,
      &    yd17Oald,yd18Oald,yd13Cald,
      &    ydCH317O2,ydCH318O2,yd13CH3O2,
-     &    d17Oacetone,d18Oacetone,d13Cacetone,
 #endif  /* TRACERS_dCO */
      &    allowSomeChemReinit,pNO3,topLevelOfChemistry,nfam,ny
      &    ,pCLOx,pCLx,pOClOx,pBrOx,yCl2,yCl2O2,mostRecentNonZeroAlbedo
@@ -126,12 +125,6 @@ C Initialize a few (IM,JM,topLevelOfChemistry) arrays, first hour only:
         yRXPAR(I_0:I_1,J_0:J_1,:)   =0.d0
         oh_live(I_0:I_1,J_0:J_1,:)  =0.d0
         no3_live(I_0:I_1,J_0:J_1,:) =0.d0
-        acetone(I_0:I_1,J_0:J_1,:)  =0.d0
-#ifdef TRACERS_dCO
-        d17Oacetone(I_0:I_1,J_0:J_1,:)=0.d0
-        d18Oacetone(I_0:I_1,J_0:J_1,:)=0.d0
-        d13Cacetone(I_0:I_1,J_0:J_1,:)=0.d0
-#endif  /* TRACERS_dCO */
         pClOx(I_0:I_1,J_0:J_1,:)    =1.d0
         pClx(I_0:I_1,J_0:J_1,:)     =0.d0
         pOClOx(I_0:I_1,J_0:J_1,:)   =0.d0
