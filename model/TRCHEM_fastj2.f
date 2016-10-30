@@ -522,7 +522,6 @@ c
 !@+ modelEifications: Greg Faluvegi, Apostolos Voulgarakis
 c
 C**** GLOBAL parameters and variables:
-      USE RESOLUTION, only  : JM,LM
       USE GEOM, only: lat2d_dg
       use model_com, only: modelEclock
       USE RAD_COM,only: ttausv_as
@@ -809,7 +808,6 @@ C------ Calculate remaining J-values with T-dep X-sections
 !@+ modelEifications: Greg Faluvegi
 
 C**** GLOBAL parameters and variables:
-      USE RESOLUTION, only  : JM
       USE GEOM, only: lat2d_dg
       use model_com, only: modelEclock
 

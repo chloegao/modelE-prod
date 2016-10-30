@@ -396,13 +396,13 @@ c Set CH3O2 values (concentration = production/specific loss):
      &      +rr(rrbi%CH4_OH__H2O_CH3O2,L)*y(nOH,L))
      &    *y(nn_CH4,L)
      &    +rr(rrbi%CH3OOH_OH__CH3O2_H2O,L)*y(nn_CH3OOH,L)*y(nOH,L)
-        tempAcet=2.d0*Jacet(L)*acetone(I,J,L)
+        tempAcet=2.d0*Jacet(L)*acetone(L)
         prodCH3O2=qqqCH3O2+tempAcet
         tempiter=rr(rrbi%CH3O2_NO__HCHO_NO2,L)*y(nNO,L)
      &    +rr(rrbi%CH3O2_HO2__CH3OOH_O2,L)*y(nHO2,L)
         do while(iter <= 7)
           CH3O2loss=tempiter
-     &      +rr(rrbi%CH3O2_CH3O2__HCHO_HCHO,L)*yCH3O2(I,J,L)
+     &      +rr(rrbi%CH3O2_CH3O2__HCHO_HCHO,L)*y(nCH3O2,L)
           if(CH3O2loss > 1.d-7)then
             y(nCH3O2,L)=prodCH3O2/CH3O2loss
           else
@@ -441,14 +441,14 @@ c Set dCH317O2 values (concentration = production/specific loss):
      &    *y(nn_CH4,L)
      &    +rr(rrbi%dMe17OOH_OH__dCH317O2_H2O,L)*y(nn_dMe17OOH,L)
      &      *y(nOH,L)
-        tempAcet=2.d0*Jacet(L)*d17Oacetone(I,J,L)
+        tempAcet=2.d0*Jacet(L)*d17Oacetone(L)
         prodCH3O2=qqqCH3O2+tempAcet
         tempiter=rr(rrbi%dCH317O2_NO__dHCH17O_NO2,L)*y(nNO,L)
      &    +rr(rrbi%dCH317O2_HO2__dMe17OOH_O2,L)*y(nHO2,L)
         do while(iter <= 7)
           CH3O2loss=tempiter
      &      +0.5d0*(rr(rrbi%dCH317O2_CH3O2__dHCH17O_HCHO,L)
-     &        +rr(rrbi%CH3O2_dCH317O2__HCHO_dHCH17O,L))*ydCH317O2(I,J,L)
+     &        +rr(rrbi%CH3O2_dCH317O2__HCHO_dHCH17O,L))*y(ndCH317O2,L)
           if(CH3O2loss > 1.d-7)then
             y(ndCH317O2,L)=prodCH3O2/CH3O2loss
           else
@@ -486,14 +486,14 @@ c Set dCH318O2 values (concentration = production/specific loss):
      &    *y(nn_CH4,L)
      &    +rr(rrbi%dMe18OOH_OH__dCH318O2_H2O,L)*y(nn_dMe18OOH,L)
      &      *y(nOH,L)
-        tempAcet=2.d0*Jacet(L)*d18Oacetone(I,J,L)
+        tempAcet=2.d0*Jacet(L)*d18Oacetone(L)
         prodCH3O2=qqqCH3O2+tempAcet
         tempiter=rr(rrbi%dCH318O2_NO__dHCH18O_NO2,L)*y(nNO,L)
      &    +rr(rrbi%dCH318O2_HO2__dMe18OOH_O2,L)*y(nHO2,L)
         do while(iter <= 7)
           CH3O2loss=tempiter
      &      +0.5d0*(rr(rrbi%dCH318O2_CH3O2__dHCH18O_HCHO,L)
-     &        +rr(rrbi%CH3O2_dCH318O2__HCHO_dHCH18O,L))*ydCH318O2(I,J,L)
+     &        +rr(rrbi%CH3O2_dCH318O2__HCHO_dHCH18O,L))*y(ndCH318O2,L)
           if(CH3O2loss > 1.d-7)then
             y(ndCH318O2,L)=prodCH3O2/CH3O2loss
           else
@@ -531,14 +531,14 @@ c Set d13CH3O2 values (concentration = production/specific loss):
      &    *y(nn_CH4,L)
      &    +rr(rrbi%d13MeOOH_OH__d13CH3O2_H2O,L)*y(nn_d13MeOOH,L)
      &      *y(nOH,L)
-        tempAcet=2.d0*Jacet(L)*d13Cacetone(I,J,L)
+        tempAcet=2.d0*Jacet(L)*d13Cacetone(L)
         prodCH3O2=qqqCH3O2+tempAcet
         tempiter=rr(rrbi%d13CH3O2_NO__dH13CHO_NO2,L)*y(nNO,L)
      &    +rr(rrbi%d13CH3O2_HO2__d13MeOOH_O2,L)*y(nHO2,L)
         do while(iter <= 7)
           CH3O2loss=tempiter
      &      +0.5d0*(rr(rrbi%d13CH3O2_CH3O2__dH13CHO_HCHO,L)
-     &        +rr(rrbi%CH3O2_d13CH3O2__HCHO_dH13CHO,L))*yd13CH3O2(I,J,L)
+     &        +rr(rrbi%CH3O2_d13CH3O2__HCHO_dH13CHO,L))*y(nd13CH3O2,L)
           if(CH3O2loss > 1.d-7)then
             y(nd13CH3O2,L)=prodCH3O2/CH3O2loss
           else
@@ -583,7 +583,7 @@ c Set CH3O2 values (concentration = production/specific loss):
      &    +rr(rrbi%ClO_CH3O2__Cl_HCHO,l)*y(nClO,l)
         do while (iter <= 7)
           CH3O2loss=tempiter
-     &      +rr(rrbi%CH3O2_CH3O2__HCHO_HCHO,L)*yCH3O2(I,J,L)
+     &      +rr(rrbi%CH3O2_CH3O2__HCHO_HCHO,L)*y(nCH3O2,L)
           if(CH3O2loss > 1.d-7)then
             y(nCH3O2,L)=qqqCH3O2/CH3O2loss
           else
@@ -628,7 +628,7 @@ c Set dCH317O2 values (concentration = production/specific loss):
         do while (iter <= 7)
           CH3O2loss=tempiter
      &      +0.5d0*(rr(rrbi%dCH317O2_CH3O2__dHCH17O_HCHO,L)
-     &        +rr(rrbi%CH3O2_dCH317O2__HCHO_dHCH17O,L))*ydCH317O2(I,J,L)
+     &        +rr(rrbi%CH3O2_dCH317O2__HCHO_dHCH17O,L))*y(ndCH317O2,L)
           if(CH3O2loss > 1.d-7)then
             y(ndCH317O2,L)=qqqCH3O2/CH3O2loss
           else
@@ -672,7 +672,7 @@ c Set dCH318O2 values (concentration = production/specific loss):
         do while (iter <= 7)
           CH3O2loss=tempiter
      &      +0.5d0*(rr(rrbi%dCH318O2_CH3O2__dHCH18O_HCHO,L)
-     &        +rr(rrbi%CH3O2_dCH318O2__HCHO_dHCH18O,L))*ydCH318O2(I,J,L)
+     &        +rr(rrbi%CH3O2_dCH318O2__HCHO_dHCH18O,L))*y(ndCH318O2,L)
           if(CH3O2loss > 1.d-7)then
             y(ndCH318O2,L)=qqqCH3O2/CH3O2loss
           else
@@ -716,7 +716,7 @@ c Set d13CH3O2 values (concentration = production/specific loss):
         do while (iter <= 7)
           CH3O2loss=tempiter
      &      +0.5d0*(rr(rrbi%d13CH3O2_CH3O2__dH13CHO_HCHO,L)
-     &        +rr(rrbi%CH3O2_d13CH3O2__HCHO_dH13CHO,L))*yd13CH3O2(I,J,L)
+     &        +rr(rrbi%CH3O2_d13CH3O2__HCHO_dH13CHO,L))*y(nd13CH3O2,L)
           if(CH3O2loss > 1.d-7)then
             y(nd13CH3O2,L)=qqqCH3O2/CH3O2loss
           else
@@ -776,15 +776,15 @@ c       Set value for C2O3:
      &    +rr(rrbi%C2O3_HO2__HCHO_HO2,L)*y(nHO2,L)
         do while (iter <= 7)
           C2O3dest=tempiter
-     &      +rr(rrbi%C2O3_C2O3__HCHO_HCHO,L)*yC2O3(I,J,L)
+     &      +rr(rrbi%C2O3_C2O3__HCHO_HCHO,L)*y(nC2O3,L)
           if(C2O3dest > 1.d-7)then
             y(nC2O3,L)=(C2O3prod/C2O3dest)
           else
             y(nC2O3,L)=1.d0
           endif
-          yC2O3(I,J,L)=y(nC2O3,L)
           iter=iter+1
         end do
+        yC2O3(I,J,L)=y(nC2O3,L)
 #ifdef TRACERS_dCO
 ! ok to overwrite C2O3prod and C2O3dest
 c       Set value for dC217O3:
@@ -804,15 +804,15 @@ c       Set value for dC217O3:
      &    +rr(rrbi%dC217O3_HO2__dHCH17O_HO2,L)*y(nHO2,L)
         do while (iter <= 7)
           C2O3dest=tempiter
-     &      +rr(rrbi%dC217O3_dC217O3__dHCH17O_dHCH17O,L)*ydC217O3(I,J,L)
+     &      +rr(rrbi%dC217O3_dC217O3__dHCH17O_dHCH17O,L)*y(ndC217O3,L)
           if(C2O3dest > 1.d-7)then
             y(ndC217O3,L)=(C2O3prod/C2O3dest)
           else
             y(ndC217O3,L)=1.d0
           endif
-          ydC217O3(I,J,L)=y(ndC217O3,L)
           iter=iter+1
         end do
+        ydC217O3(I,J,L)=y(ndC217O3,L)
 c       Set value for dC218O3:
         iter=1
         C2O3prod=rr(rrbi%d18Oald_OH__dC218O3_M,L)*yd18Oald(I,J,L)
@@ -830,15 +830,15 @@ c       Set value for dC218O3:
      &    +rr(rrbi%dC218O3_HO2__dHCH18O_HO2,L)*y(nHO2,L)
         do while (iter <= 7)
           C2O3dest=tempiter
-     &      +rr(rrbi%dC218O3_dC218O3__dHCH18O_dHCH18O,L)*ydC218O3(I,J,L)
+     &      +rr(rrbi%dC218O3_dC218O3__dHCH18O_dHCH18O,L)*y(ndC218O3,L)
           if(C2O3dest > 1.d-7)then
             y(ndC218O3,L)=(C2O3prod/C2O3dest)
           else
             y(ndC218O3,L)=1.d0
           endif
-          ydC218O3(I,J,L)=y(ndC218O3,L)
           iter=iter+1
         end do
+        ydC218O3(I,J,L)=y(ndC218O3,L)
 c       Set value for d13C2O3:
         iter=1
         C2O3prod=rr(rrbi%d13Cald_OH__d13C2O3_M,L)*yd13Cald(I,J,L)
@@ -856,15 +856,15 @@ c       Set value for d13C2O3:
      &    +rr(rrbi%d13C2O3_HO2__dH13CHO_HO2,L)*y(nHO2,L)
         do while (iter <= 7)
           C2O3dest=tempiter
-     &      +rr(rrbi%d13C2O3_d13C2O3__dH13CHO_dH13CHO,L)*yd13C2O3(I,J,L)
+     &      +rr(rrbi%d13C2O3_d13C2O3__dH13CHO_dH13CHO,L)*y(nd13C2O3,L)
           if(C2O3dest > 1.d-7)then
             y(nd13C2O3,L)=(C2O3prod/C2O3dest)
           else
             y(nd13C2O3,L)=1.d0
           endif
-          yd13C2O3(I,J,L)=y(nd13C2O3,L)
           iter=iter+1
         end do
+        yd13C2O3(I,J,L)=y(nd13C2O3,L)
 #endif  /* TRACERS_dCO */
 
 c       Set value for XO2:
@@ -895,7 +895,7 @@ c       Set value for XO2:
         tempiter=XO2_NO+rr(rrbi%XO2_HO2__CH3OOH_M,L)*y(nHO2,L)
         tempiter2=1.7d-14*exp(1300.d0/ta(L))
         do while (iter <= 7)
-          XO2_XO2=yXO2(I,J,L)*tempiter2
+          XO2_XO2=tempiter2*y(nXO2,L)
           XO2dest=tempiter+XO2_XO2
           if(XO2dest > 1.d-7.and.
      &       ss(rj%Aldehyde__HCHO_CO,L,I,J) > 1.d-6)then
@@ -903,9 +903,9 @@ c       Set value for XO2:
           else
             y(nXO2,L)=1.d0
           end if
-          yXO2(I,J,L)=y(nXO2,L)
           iter=iter+1
         end do
+        yXO2(I,J,L)=y(nXO2,L)
 
 #ifdef TRACERS_dCO
 ! ok to overwrite XO2prod/XO2dest/XO2_XO2
@@ -943,7 +943,7 @@ c       Set value for d17OXO2:
         tempiter=XO2_NO+rr(rrbi%d17OXO2_HO2__dMe17OOH_M,L)*y(nHO2,L)
         tempiter2=1.7d-14*exp(1300.d0/ta(L))
         do while (iter <= 7)
-          XO2_XO2=yd17OXO2(I,J,L)*tempiter2
+          XO2_XO2=tempiter2*y(nd17OXO2,L)
           XO2dest=tempiter+XO2_XO2
           if(XO2dest > 1.d-7.and.
      &       ss(rj%d17Oald__dHCH17O_dC17O,L,I,J) > 1.d-6)then
@@ -951,9 +951,9 @@ c       Set value for d17OXO2:
           else
             y(nd17OXO2,L)=1.d0
           end if
-          yd17OXO2(I,J,L)=y(nd17OXO2,L)
           iter=iter+1
         end do
+        yd17OXO2(I,J,L)=y(nd17OXO2,L)
 
 c       Set value for d18OXO2:
         iter=1
@@ -989,7 +989,7 @@ c       Set value for d18OXO2:
         tempiter=XO2_NO+rr(rrbi%d18OXO2_HO2__dMe18OOH_M,L)*y(nHO2,L)
         tempiter2=1.7d-14*exp(1300.d0/ta(L))
         do while (iter <= 7)
-          XO2_XO2=yd18OXO2(I,J,L)*tempiter2
+          XO2_XO2=tempiter2*y(nd18OXO2,L)
           XO2dest=tempiter+XO2_XO2
           if(XO2dest > 1.d-7.and.
      &       ss(rj%d18Oald__dHCH18O_dC18O,L,I,J) > 1.d-6)then
@@ -997,9 +997,9 @@ c       Set value for d18OXO2:
           else
             y(nd18OXO2,L)=1.d0
           end if
-          yd18OXO2(I,J,L)=y(nd18OXO2,L)
           iter=iter+1
         end do
+        yd18OXO2(I,J,L)=y(nd18OXO2,L)
 
 c       Set value for d13CXO2:
         iter=1
@@ -1035,7 +1035,7 @@ c       Set value for d13CXO2:
         tempiter=XO2_NO+rr(rrbi%d13CXO2_HO2__d13MeOOH_M,L)*y(nHO2,L)
         tempiter2=1.7d-14*exp(1300.d0/ta(L))
         do while (iter <= 7)
-          XO2_XO2=yd13CXO2(I,J,L)*tempiter2
+          XO2_XO2=tempiter2*y(nd13CXO2,L)
           XO2dest=tempiter+XO2_XO2
           if(XO2dest > 1.d-7.and.
      &       ss(rj%d13Cald__dH13CHO_d13CO,L,I,J) > 1.d-6)then
@@ -1043,9 +1043,9 @@ c       Set value for d13CXO2:
           else
             y(nd13CXO2,L)=1.d0
           end if
-          yd13CXO2(I,J,L)=y(nd13CXO2,L)
           iter=iter+1
         end do
+        yd13CXO2(I,J,L)=y(nd13CXO2,L)
 #endif  /* TRACERS_dCO */
 
 c       Set value for XO2N:

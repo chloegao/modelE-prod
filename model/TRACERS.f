@@ -1358,9 +1358,8 @@ C**** check whether air mass is conserved
      &     ,yd17OROR,yd18OROR,yd13CROR
      &     ,yd17Oald,yd18Oald,yd13Cald
      &     ,ydCH317O2,ydCH318O2,yd13CH3O2
-     &     ,d17Oacetone,d18Oacetone,d13Cacetone
 #endif  /* TRACERS_dCO */
-     &     ,acetone,pNO3
+     &     ,pNO3
      &     ,SF3,SF2,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2
      &     ,topLevelOfChemistry,n_rj,mostRecentNonZeroAlbedo
 #ifdef INTERACTIVE_WETLANDS_CH4 
@@ -1643,20 +1642,6 @@ c not yet        if(am_i_root()) write(kunit,err=10) header,aijl_glob
        header='TRACERS_SPECIAL_Shindell: sulfate(i,j,l)'
         call pack_data(grid,sulfate,Aijl_glob) ! still global.
         if(am_i_root())write(kunit,err=10)header,Aijl_glob
-       header='TRACERS_SPECIAL_Shindell: acetone(i,j,l)'
-        call pack_data(grid,acetone,Aijl_chem)
-        if(am_i_root())write(kunit,err=10)header,Aijl_chem
-#ifdef TRACERS_dCO
-       header='TRACERS_SPECIAL_Shindell: d17Oacetone(i,j,l)'
-        call pack_data(grid,d17Oacetone,Aijl_chem)
-        if(am_i_root())write(kunit,err=10)header,Aijl_chem
-       header='TRACERS_SPECIAL_Shindell: d18Oacetone(i,j,l)'
-        call pack_data(grid,d18Oacetone,Aijl_chem)
-        if(am_i_root())write(kunit,err=10)header,Aijl_chem
-       header='TRACERS_SPECIAL_Shindell: d13Cacetone(i,j,l)'
-        call pack_data(grid,d13Cacetone,Aijl_chem)
-        if(am_i_root())write(kunit,err=10)header,Aijl_chem
-#endif  /* TRACERS_dCO */
        if(coupled_chem == 1)then
          header='TRACERS_SPECIAL_Shindell: oh_live(i,j,l)'
           call pack_data(grid,oh_live,Aijl_glob) ! still global.
@@ -1881,16 +1866,6 @@ c not yet          call unpack_data(grid,aijl_glob,daily_z)
           call unpack_data(grid,Aijl_chem,ySO2)
           if(am_i_root())read(kunit,err=10)header,Aijl_glob ! stays global.
           call unpack_data(grid,Aijl_glob,sulfate)
-          if(am_i_root())read(kunit,err=10)header,Aijl_chem
-          call unpack_data(grid,Aijl_chem,acetone)
-#ifdef TRACERS_dCO
-          if(am_i_root())read(kunit,err=10)header,Aijl_chem
-          call unpack_data(grid,Aijl_chem,d17Oacetone)
-          if(am_i_root())read(kunit,err=10)header,Aijl_chem
-          call unpack_data(grid,Aijl_chem,d18Oacetone)
-          if(am_i_root())read(kunit,err=10)header,Aijl_chem
-          call unpack_data(grid,Aijl_chem,d13Cacetone)
-#endif  /* TRACERS_dCO */
           if(coupled_chem == 1)then
             if(am_i_root())read(kunit,err=10)header,Aijl_glob ! stays global.
             call unpack_data(grid,Aijl_glob,oh_live)
@@ -2146,10 +2121,8 @@ C**** ESMF: Broadcast all non-distributed read arrays.
      &,yd17OROR,yd18OROR,yd13CROR
      &,yd17Oald,yd18Oald,yd13Cald
      &,ydCH317O2,ydCH318O2,yd13CH3O2
-     &,d17Oacetone,d18Oacetone,d13Cacetone
 #endif  /* TRACERS_dCO */
-     &,acetone
-     &,SF3,SF2,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2,topLevelOfChemistry
+     &,SF3,SF2,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2
      &,mostRecentNonZeroAlbedo
 #ifdef INTERACTIVE_WETLANDS_CH4 
       use TRACER_SOURCES, only: day_ncep,DRA_ch4,sum_ncep,PRS_ch4,
@@ -2267,12 +2240,6 @@ c daily_z is currently only needed for CS
       call doVar(handle,action,ydms,'ydms'//ijcdims)
       call doVar(handle,action,ySO2,'ySO2'//ijcdims)
       call doVar(handle,action,sulfate,'sulfate'//ijldims) ! stays ijldims
-      call doVar(handle,action,acetone,'acetone'//ijcdims)
-#ifdef TRACERS_dCO
-      call doVar(handle,action,d17Oacetone,'d17Oacetone'//ijcdims)
-      call doVar(handle,action,d18Oacetone,'d18Oacetone'//ijcdims)
-      call doVar(handle,action,d13Cacetone,'d13Cacetone'//ijcdims)
-#endif  /* TRACERS_dCO */
       if(trim(action) == 'read_dist') then
            ! read_dist is a badly chosen synonym for read
         if(is_set_param("coupled_chem"))

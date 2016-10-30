@@ -405,8 +405,7 @@ C info to set strat H2O based on tropical tropopause H2O and CH4:
         if(countTT <= 0.)call stop_model('countTT.le.0',255)
       end if
 
-! Define acetone in terms of Isoprene:
-!kt Terpenes should also be included here in the future
+! calculate Isoprene zonal mean, to be used for acetone
       do j=J_0,J_1
         do i=I_0,IMAXJ(j)
           surfIsop(i,j)=trm(i,j,1,n_Isoprene)*mass2vol(n_Isoprene)*
@@ -414,45 +413,6 @@ C info to set strat H2O based on tropical tropopause H2O and CH4:
         enddo
       enddo
       call zonalmean_ij2ij(surfIsop,zonalIsop)
-      do j=J_0,J_1
-        do i=I_0,IMAXJ(j)
-          select case(which_trop)
-          case(0); maxT=min(ltropo(I,J),topLevelOfChemistry)
-          case(1); maxT=min(ls1-1      ,topLevelOfChemistry)
-          case default; call stop_model('which_trop problem',255)
-          end select
-          do L=1,maxT
-            acetone(i,j,L)=max(0.d0, ! in molec/cm3
-     &      (1.25d0*(
-     &        zonalIsop(i,j)-trm(i,j,L,n_Isoprene)*mass2vol(n_Isoprene)*
-     &        byaxyp(i,j)*byMA(L,i,j)))*PMID(L,i,j)/(TX(i,j,L)*cboltz))
-          enddo
-          do L=maxT+1,topLevelOfChemistry
-            acetone(i,j,L)=0.d0
-          enddo
-#ifdef TRACERS_dCO
-          do L=1,maxT
-            d17Oacetone(i,j,L)=max(0.d0, ! in molec/cm3
-     &      (1.25d0*(
-     &        zonalIsop(i,j)-trm(i,j,L,n_Isoprene)*mass2vol(n_Isoprene)*
-     &        byaxyp(i,j)*byMA(L,i,j)))*PMID(L,i,j)/(TX(i,j,L)*cboltz))
-            d18Oacetone(i,j,L)=max(0.d0, ! in molec/cm3
-     &      (1.25d0*(
-     &        zonalIsop(i,j)-trm(i,j,L,n_Isoprene)*mass2vol(n_Isoprene)*
-     &        byaxyp(i,j)*byMA(L,i,j)))*PMID(L,i,j)/(TX(i,j,L)*cboltz))
-            d13Cacetone(i,j,L)=max(0.d0, ! in molec/cm3
-     &      (1.25d0*(
-     &        zonalIsop(i,j)-trm(i,j,L,n_Isoprene)*mass2vol(n_Isoprene)*
-     &        byaxyp(i,j)*byMA(L,i,j)))*PMID(L,i,j)/(TX(i,j,L)*cboltz))
-          enddo
-          do L=maxT+1,topLevelOfChemistry
-            d17Oacetone(i,j,L)=0.d0
-            d18Oacetone(i,j,L)=0.d0
-            d13Cacetone(i,j,L)=0.d0
-          enddo
-#endif  /* TRACERS_dCO */
-        enddo
-      enddo
 
       ierr_loc = 0
 
@@ -470,6 +430,39 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       case default; call stop_model('which_trop problem 4',255)
       end select
 
+! Define acetone in terms of Isoprene:
+!kt Terpenes should also be included here in the future
+      do L=1,maxT
+        acetone(L)=max(0.d0, ! in molec/cm3
+     &  (1.25d0*(
+     &    zonalIsop(i,j)-trm(i,j,L,n_Isoprene)*mass2vol(n_Isoprene)*
+     &    byaxyp(i,j)*byMA(L,i,j)))*PMID(L,i,j)/(TX(i,j,L)*cboltz))
+      enddo
+      do L=maxT+1,topLevelOfChemistry
+        acetone(L)=0.d0
+      enddo
+#ifdef TRACERS_dCO
+      do L=1,maxT
+        d17Oacetone(L)=max(0.d0, ! in molec/cm3
+     &  (1.25d0*(
+     &    zonalIsop(i,j)-trm(i,j,L,n_Isoprene)*mass2vol(n_Isoprene)*
+     &    byaxyp(i,j)*byMA(L,i,j)))*PMID(L,i,j)/(TX(i,j,L)*cboltz))
+        d18Oacetone(L)=max(0.d0, ! in molec/cm3
+     &  (1.25d0*(
+     &    zonalIsop(i,j)-trm(i,j,L,n_Isoprene)*mass2vol(n_Isoprene)*
+     &    byaxyp(i,j)*byMA(L,i,j)))*PMID(L,i,j)/(TX(i,j,L)*cboltz))
+        d13Cacetone(L)=max(0.d0, ! in molec/cm3
+     &  (1.25d0*(
+     &    zonalIsop(i,j)-trm(i,j,L,n_Isoprene)*mass2vol(n_Isoprene)*
+     &    byaxyp(i,j)*byMA(L,i,j)))*PMID(L,i,j)/(TX(i,j,L)*cboltz))
+      enddo
+      do L=maxT+1,topLevelOfChemistry
+        d17Oacetone(L)=0.d0
+        d18Oacetone(L)=0.d0
+        d13Cacetone(L)=0.d0
+      enddo
+
+#endif  /* TRACERS_dCO */
       DO L=1,topLevelOfChemistry
 c Initialize the 2D change variable:
        changeL(L,:)=0.d0  
