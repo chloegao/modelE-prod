@@ -2327,7 +2327,6 @@ C     determine the mass added to each bin coagulation
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
-      write(666,*) 'tomas_pm_subdd_accum: ',diag
       sddarr2d(:,:)=0.d0 ! putting here assumes kdiag passed in
 
       do n=1,NTM
