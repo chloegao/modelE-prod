@@ -2307,9 +2307,9 @@ C     determine the mass added to each bin coagulation
       IMPLICIT NONE
 
 !@var diag the name of the SUBDDiag passed in to this routin
-      character(len=*), intent(IN) :: diag
+      character(len=*) :: diag
 !@var kdiag the index of the subddiag passed in
-      integer, intent(IN) :: kdiag
+      integer :: kdiag
       integer :: n,i,j,k,jc,tracnum
       integer :: J_0, J_1, I_0, I_1
       real*8 :: mp_PM2p5  ! particles mass for PM2.5 (for SUBDD)
@@ -2321,7 +2321,7 @@ C     determine the mass added to each bin coagulation
       real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
      &                  grid%j_strt_halo:grid%j_stop_halo) :: sddarr2d
       integer :: igrp,ngroups,grpids(subdd_ngroups)
-      type(subdd_type), intent(IN), pointer :: subdd
+      type(subdd_type) :: subdd
 
       call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
