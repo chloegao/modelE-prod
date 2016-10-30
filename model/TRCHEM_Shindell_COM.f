@@ -626,11 +626,6 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var Jacet photolysis rate for acetone (not done through fastj)
 !@var acetone 3D acetone mixing ratio (static for now)
 !@var pscX column logical for the existance of polar strat clouds(PSCs)
-!@var sOx_acc accumulated SURFACE ozone (Ox) (special for SUBDD)
-!@var sNOx_acc accumulated SURFACE NOx (special for SUBDD)
-!@var sCO_acc accumulated SURFACE CO (special for SUBDD)
-!@var l1Ox_acc accumulated L=1 ozone (Ox) (special for SUBDD)
-!@var l1NO2_acc accumulated L=1 NO2 (special for SUBDD)
 !@var save_NO2column instantaneous NO2 column (for SUBDD exporting)
 !@var RGAMMASULF N2O5-->HNO3 conversion on aerosols?
 !@var changeL 2D array holds the local change due to chem until
@@ -674,8 +669,7 @@ C**************  Latitude-Dependant (allocatable) *******************
      & ,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2,N2OICX,CFCIC,SF3,SF2
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: COICIN,OxICIN,CH4ICIN
      &                                       ,N2OICIN,CFCICIN
-      REAL*8, ALLOCATABLE, DIMENSION(:,:):: sOx_acc,sNOx_acc,sCO_acc,
-     & l1Ox_acc,l1NO2_acc,save_NO2column
+      REAL*8, ALLOCATABLE, DIMENSION(:,:):: save_NO2column
       REAL*8, ALLOCATABLE, DIMENSION(:,:):: mostRecentNonZeroAlbedo
 
 C**************  Not Latitude-Dependant ****************************      
@@ -713,7 +707,7 @@ C**************  Not Latitude-Dependant ****************************
       use domain_decomp_atm, only: dist_grid, getDomainBounds
       use resolution, only: im,lm,Plbot
       use tracer_com, only: ntm
-      use TRCHEM_Shindell_COM, only: DU_O3,ss,yNO3,sOx_acc,l1Ox_acc,
+      use TRCHEM_Shindell_COM, only: DU_O3,ss,yNO3,
      & pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yXO2N,yRXPAR,
      & TX,sulfate,COIC,OxIC,CH4ICX,dms_offline,so2_offline,yso2,ydms,
 #ifdef TRACERS_dCO
@@ -726,7 +720,7 @@ C**************  Not Latitude-Dependant ****************************
      & d17Oacetone,d18Oacetone,d13Cacetone,
 #endif  /* TRACERS_dCO */
      & COICIN,OxICIN,CH4ICIN,n_rj,LCOalt,acetone,mNO2,
-     & l1NO2_acc,sNOx_acc,sCO_acc,save_NO2column,pNO3
+     & save_NO2column,pNO3
      & ,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2,N2OICX,CFCIC,SF3,SF2,
      & N2OICIN,CFCICIN,y,rr,odtmp,ta,Jacet,chemrate,photrate,dest,prod,
      & OxlossbyH,pscX,nc,n_rx,ny,changeL,rh,bythick,ClOx_old,aero
@@ -868,15 +862,6 @@ C**************  Not Latitude-Dependant ****************************
       allocate( dms_offline(I_0H:I_1H,J_0H:J_1H,LM)      )
       allocate( so2_offline(I_0H:I_1H,J_0H:J_1H,LM)      )
       allocate(     sulfate(I_0H:I_1H,J_0H:J_1H,LM)      ) ! could be read from 3D file
-
-      ! SUBDD accumulators; initialize them.
-      allocate(     sOx_acc(I_0H:I_1H,J_0H:J_1H)         )
-      allocate(    sNOx_acc(I_0H:I_1H,J_0H:J_1H)         )
-      allocate(     sCO_acc(I_0H:I_1H,J_0H:J_1H)         )
-      allocate(    l1Ox_acc(I_0H:I_1H,J_0H:J_1H)         )
-      allocate(   l1NO2_acc(I_0H:I_1H,J_0H:J_1H)         )
-
-      sOx_acc=0.; sNOx_acc=0.; sCO_acc=0.; l1Ox_acc=0. ; l1NO2_acc=0.
 
       allocate( mostRecentNonZeroAlbedo(I_0H:I_1H,J_0H:J_1H))
       mostRecentNonZeroAlbedo=0.d0

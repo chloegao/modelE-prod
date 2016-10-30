@@ -7576,8 +7576,7 @@ c$$$      use OldTracer_mod, only: tr_mm, nBBsources, mass2vol
       USE GEOM, only : byaxyp,axyp
       USE RAD_COM, only: o3_yr
       USE Dictionary_mod, only : get_param, is_set_param
-      use trdiag_com, only : trcsurf,trcSurfByVol,taijls=>taijls_loc,
-     & ijlt_prodSO4gs
+      use trdiag_com, only : taijls=>taijls_loc,ijlt_prodSO4gs
 #if (defined TRACERS_COSMO)
       USE COSMO_SOURCES, only: be7_src_3d, be10_src_3d, be7_src_param
 #endif
@@ -7604,13 +7603,7 @@ c$$$      use OldTracer_mod, only: tr_mm, nBBsources, mass2vol
      &     scalesizeSO4_vol,scalesizeSO4_bio
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
-      USE TRCHEM_Shindell_COM, only: fix_CH4_chemistry,sOx_acc,sNOx_acc,
-     & sCO_acc,l1Ox_acc,l1NO2_acc,mNO2
-#endif
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
-      USE TRDIAG_COM, only: sPM2p5_acc,sPM10_acc,l1PM2p5_acc,l1PM10_acc,
-     &                      csPM2p5_acc,csPM10_acc
+      USE TRCHEM_Shindell_COM, only: fix_CH4_chemistry
 #endif
 
 #ifdef TRACERS_SPECIAL_Shindell
@@ -7650,12 +7643,6 @@ c$$$      use OldTracer_mod, only: tr_mm, nBBsources, mass2vol
       integer :: k, kk,kn,jc,tracnum
       real*8, dimension (GRID%I_STRT:GRID%I_STOP,
      &     GRID%J_STRT:GRID%J_STOP,LM,NBINS) :: TOMAS_bio,TOMAS_air
-      real*8 mp_PM2p5  ! particles mass for PM2.5 (for SUBDD)
-      real mso4, mh2o, mno3, mnh4  !mass of each component (kg/grid box)
-      real mecil,mecob,mocil,mocob
-      real mdust,mnacl  
-      real*8 aerodens, density
-      external aerodens 
 #endif
       integer :: year, dayOfYear
 
@@ -8161,152 +8148,6 @@ C       stop
        call apply_tracer_3Dsource(3,n_HNO3) ! H2SO4 chem prod
 #endif
 #endif /* TRACERS_AMP */
-
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_SOA) ||\
-    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
-! This section is to accumulate/aggregate certain tracers' SURFACE and
-! L=1 values into particulate matter PM2.5 and PM10 for use in the sub-
-! daily diags. Saved in ppmm or kg/m3. Also save Ox and NO2 in ppmv:
-      do n=1,NTM
-        select case (trname(n))
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_AEROSOLS_SOA) || (defined TRACERS_AEROSOLS_SEASALT)
-! 100% of these: <-----------------------------------------------------
-        case('BCII','BCIA','BCB','OCII','OCIA','OCB','SO4','NO3p',
-     &       'NH4','MSA',
-#ifdef TRACERS_AEROSOLS_VBS
-     &       'vbsAm2', 'vbsAm1', 'vbsAz',  'vbsAp1', 'vbsAp2',
-     &       'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6',
-#endif  /* TRACERS_AEROSOLS_VBS */
-#ifdef TRACERS_AEROSOLS_SOA
-     &       'isopp1a', 'isopp2a', 'apinp1a', 'apinp2a',
-#endif  /* TRACERS_AEROSOLS_SOA */
-#ifdef TRACERS_AEROSOLS_OCEAN
-     &       'OCocean',
-#endif  /* TRACERS_AEROSOLS_OCEAN */
-     &       'Clay','seasalt1','N_d1','SO4_d1')
-          sPM2p5_acc(:,:)=sPM2p5_acc(:,:)  + 1.d6*trcsurf(:,:,n)
-          sPM10_acc(:,:)=sPM10_acc(:,:)    + 1.d6*trcsurf(:,:,n)
-          csPM2p5_acc(:,:)=csPM2p5_acc(:,:)  + trcSurfByVol(:,:,n)
-          csPM10_acc(:,:)=csPM10_acc(:,:)    + trcSurfByVol(:,:,n)
-          L1PM2p5_acc(:,:)=L1PM2p5_acc(:,:)+
-     &                 trm(:,:,1,n)*byMA(1,:,:)*byaxyp(:,:)*1.d6
-          L1PM10_acc(:,:)=L1PM10_acc(:,:)  +
-     &                 trm(:,:,1,n)*byMA(1,:,:)*byaxyp(:,:)*1.d6
-! then, conditional or partial of these: <=============================
-        case('Silt1','N_d2','SO4_d2')
-          sPM2p5_acc(:,:)=sPM2p5_acc(:,:)  + 0.322d0*1.d6*trcsurf(:,:,n)
-          sPM10_acc(:,:)=sPM10_acc(:,:)    + 1.d6*trcsurf(:,:,n)
-          csPM2p5_acc(:,:)=csPM2p5_acc(:,:)+ 0.322d0*trcSurfByVol(:,:,n)
-          csPM10_acc(:,:)=csPM10_acc(:,:)  + trcSurfByVol(:,:,n)
-          L1PM2p5_acc(:,:)=L1PM2p5_acc(:,:)+ 0.322d0*
-     &                         trm(:,:,1,n)*byMA(1,:,:)*byaxyp(:,:)*1.d6
-          L1PM10_acc(:,:)=L1PM10_acc(:,:)  +
-     &                         trm(:,:,1,n)*byMA(1,:,:)*byaxyp(:,:)*1.d6
-        case('Silt2','N_d3','SO4_d3')
-          sPM10_acc(:,:)=sPM10_acc(:,:)    + 1.d6*trcsurf(:,:,n)
-          csPM10_acc(:,:)=csPM10_acc(:,:)  + trcSurfByVol(:,:,n)
-          L1PM10_acc(:,:)=L1PM10_acc(:,:)  +
-     &                 trm(:,:,1,n)*byMA(1,:,:)*byaxyp(:,:)*1.d6
-        case('Silt3')
-          sPM10_acc(:,:)=sPM10_acc(:,:)    + 0.322d0*1.d6*trcsurf(:,:,n)
-          csPM10_acc(:,:)=csPM10_acc(:,:)  + 0.322d0*trcSurfByVol(:,:,n)
-          L1PM10_acc(:,:)=L1PM10_acc(:,:)  + 0.322d0*
-     &                         trm(:,:,1,n)*byMA(1,:,:)*byaxyp(:,:)*1.d6
-        case('seasalt2')
-          sPM2p5_acc(:,:)=sPM2p5_acc(:,:)  + 0.500d0*1.d6*trcsurf(:,:,n)
-          sPM10_acc(:,:)=sPM10_acc(:,:)    +         1.d6*trcsurf(:,:,n)
-          csPM2p5_acc(:,:)=csPM2p5_acc(:,:)+ 0.500d0*trcSurfByVol(:,:,n)
-          csPM10_acc(:,:)=csPM10_acc(:,:)  +         trcSurfByVol(:,:,n)
-          L1PM2p5_acc(:,:)=L1PM2p5_acc(:,:)+ 0.500d0*
-     &                        trm(:,:,1,n)*byMA(1,:,:)*byaxyp(:,:)*1.d6
-          L1PM10_acc(:,:)=L1PM10_acc(:,:)  +
-     &                        trm(:,:,1,n)*byMA(1,:,:)*byaxyp(:,:)*1.d6
-#endif
-#ifdef TRACERS_SPECIAL_Shindell
-        case('Ox')
-          sOx_acc(:,:)=sOx_acc(:,:)+1.d9*trcsurf(:,:,n)*mass2vol(n)
-          l1Ox_acc(:,:)=l1Ox_acc(:,:)+trm(:,:,1,n)*byMA(1,:,:)*
-     &    byaxyp(:,:)*1.d9*mass2vol(n)
-        case('NOx')
-          sNOx_acc(:,:)=sNOx_acc(:,:)+1.d9*trcsurf(:,:,n)*mass2vol(n)
-          l1NO2_acc(:,:)=l1NO2_acc(:,:)+mNO2(:,:,1)*1.d9  ! note: NO2 not NOx
-        case('CO') 
-          sCO_acc(:,:)=sCO_acc(:,:)+1.d9*trcsurf(:,:,n)*mass2vol(n)
-#endif
-#ifdef TRACERS_TOMAS
-        case('ASO4__01')
-
-        do j=J_0,J_1 
-        do i=I_0,I_1
-
-        do k=1,nbins
-
-          mso4=trcsurf(i,j,n_aso4(1)+k-1) !kg/kg
-          mnacl=trcsurf(i,j,n_anacl(1)+k-1)
-          mno3=0.e0
-          mnh4=0.1875*mso4      !assume ammonium bisulfate
-          mecob=trcsurf(i,j,n_aecob(1)+k-1)
-          mecil=trcsurf(i,j,n_aecil(1)+k-1)
-          mocil=trcsurf(i,j,n_aocil(1)+k-1)
-          mocob=trcsurf(i,j,n_aocob(1)+k-1)
-          mdust=trcsurf(i,j,n_adust(1)+k-1)
-          mh2o=trcsurf(i,j,n_ah2o(1)+k-1)
-         if ((mso4+mno3) .lt. 1.e-8) mso4=1.e-8  ! to prevent error in aerodens
-!Normally TRM is passing to aerodens, but this time is for surface concentration. 
-         density=aerodens(mso4,mno3,mnh4 !mno3 taken off!
-     *        ,mnacl,mecil,mecob,mocil,mocob,mdust,mh2o) !assume bisulfate 
-
-
-         mp_PM2p5=density*pi/6.d0*(2.5e-6)**(3.d0) !particle mass for PM2.5 
-
-         do jc=1,icomp-idiag !mass tracers
-           tracnum=n_ASO4(1)-1+k+nbins*(jc-1) !ntm
-         
-         if(xk(k+1).lt.mp_PM2p5) then
-!all mass goes to PM2.5 and PM10
-            sPM2p5_acc(i,j)=sPM2p5_acc(i,j)  + 1.d6*trcsurf(i,j,tracnum)
-            csPM2p5_acc(i,j)=csPM2p5_acc(i,j)+trcSurfByVol(i,j,tracnum)
-            L1PM2p5_acc(i,j)=L1PM2p5_acc(i,j)+
-     &           trm(i,j,1,tracnum)*byMA(1,i,j)*byaxyp(i,j)*1.d6
-
-            sPM10_acc(i,j)=sPM10_acc(i,j)    + 1.d6*trcsurf(i,j,tracnum)
-            csPM10_acc(i,j)=csPM10_acc(i,j) + trcSurfByVol(i,j,tracnum)
-            L1PM10_acc(i,j)=L1PM10_acc(i,j)  +
-     &           trm(i,j,1,tracnum)*byMA(1,i,j)*byaxyp(i,j)*1.d6
-          elseif(xk(k).le.mp_PM2p5.and.xk(k+1).ge.mp_PM2p5)then
-!Need to interpolate 
-            sPM2p5_acc(i,j)=sPM2p5_acc(i,j)  + 1.d6*trcsurf(i,j,tracnum)
-     &           *((mp_PM2p5-xk(k))/(xk(k+1)-xk(k))) ! linear interpolation using mass boundary
-            csPM2p5_acc(i,j)=csPM2p5_acc(i,j)+ trcSurfByVol(i,j,tracnum)
-     &           *((mp_PM2p5-xk(k))/(xk(k+1)-xk(k))) 
-            L1PM2p5_acc(i,j)=L1PM2p5_acc(i,j)+
-     &           trm(i,j,1,tracnum)*byMA(1,i,j)*byaxyp(i,j)*1.d6
-     &           *((mp_PM2p5-xk(k))/(xk(k+1)-xk(k)))
-
-            sPM10_acc(i,j)=sPM10_acc(i,j)    + 1.d6*trcsurf(i,j,tracnum)
-            csPM10_acc(i,j)=csPM10_acc(i,j) + trcSurfByVol(i,j,tracnum)
-            L1PM10_acc(i,j)=L1PM10_acc(i,j)  +
-     &           trm(i,j,1,tracnum)*byMA(1,i,j)*byaxyp(i,j)*1.d6
-
-          elseif (xk(k).gt.mp_PM2p5)then
-!NO PM2.5 but all mass goes to PM10
-            sPM10_acc(i,j)=sPM10_acc(i,j)    + 1.d6*trcsurf(i,j,tracnum)
-            csPM10_acc(i,j)=csPM10_acc(i,j) + trcSurfByVol(i,j,tracnum)
-            L1PM10_acc(i,j)=L1PM10_acc(i,j)  +
-     &           trm(i,j,1,tracnum)*byMA(1,i,j)*byaxyp(i,j)*1.d6
-
-          endif
-          enddo !ncomp 
-        
-          enddo !nbins
-          enddo
-          enddo
-#endif
-        end select
-      enddo
-#endif
 
 #ifdef CACHED_SUBDD
       ! Accumulate the tracer-related subdaily diagnostics

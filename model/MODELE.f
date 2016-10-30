@@ -1197,7 +1197,7 @@ C**** MUST be before other init routines
       call parse_subdd
       call reset_cached_subdd
       if(istart.ge.10) then
-        call read_subdd_rsf(checkpoint_file_name)
+        call read_subdd_rsf(trim(rsf_file_name(kdisk_restart))//'.nc')
       endif
 #endif
 

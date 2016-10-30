@@ -1360,7 +1360,7 @@ C**** check whether air mass is conserved
      &     ,ydCH317O2,ydCH318O2,yd13CH3O2
      &     ,d17Oacetone,d18Oacetone,d13Cacetone
 #endif  /* TRACERS_dCO */
-     &     ,acetone,sOx_acc,sNOx_acc,sCO_acc,l1Ox_acc,l1NO2_acc,pNO3
+     &     ,acetone,pNO3
      &     ,SF3,SF2,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2
      &     ,topLevelOfChemistry,n_rj,mostRecentNonZeroAlbedo
 #ifdef INTERACTIVE_WETLANDS_CH4 
@@ -1381,11 +1381,6 @@ C**** check whether air mass is conserved
 #endif
       USE Dictionary_mod, only : sync_param
       use trdiag_com, only: trcSurfMixR_acc,trcSurfByVol_acc
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
-     &     ,sPM2p5_acc,sPM10_acc,l1PM2p5_acc,l1PM10_acc
-     &     ,csPM2p5_acc,csPM10_acc
-#endif
 
       IMPLICIT NONE
 
@@ -1408,8 +1403,6 @@ C**** check whether air mass is conserved
 #ifdef TRACERS_SPECIAL_Shindell
       REAL*8, DIMENSION(:,:,:,:), ALLOCATABLE :: ss_glob
       REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: Aijl_chem
-      real(kind=8),allocatable,dimension(:,:) :: sOx_acc_glob,
-     & sNOx_acc_glob, sCO_acc_glob, l1Ox_acc_glob, l1NO2_acc_glob
 #ifdef INTERACTIVE_WETLANDS_CH4 
       REAL*8, DIMENSION(:,:,:), ALLOCATABLE ::
      &     rHch4,rDch4,r0ch4,rfirst_mod
@@ -1426,12 +1419,6 @@ C**** check whether air mass is conserved
 #endif
       real(kind=8),allocatable,dimension(:,:,:) :: trcSurfMixR_acc_glob
      &     ,trcSurfByVol_acc_glob
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
-      real(kind=8),allocatable,dimension(:,:) :: sPM2p5_acc_glob
-     &     ,sPM10_acc_glob,l1PM2p5_acc_glob,l1PM10_acc_glob
-     &     ,csPM2p5_acc_glob,csPM10_acc_glob
-#endif
       INTEGER :: ITM,ITM1,ITM2
 #ifdef TRACERS_WATER
       CHARACTER*80 :: HEADER, MODULE_HEADER = "TRACERW01"
@@ -1475,12 +1462,7 @@ C**** check whether air mass is conserved
 #ifdef TRACERS_SPECIAL_Shindell
       allocate(
      &    ss_glob(n_rj,topLevelOfChemistry,img,jmg)
-     &    ,Aijl_chem(img,jmg,topLevelOfChemistry)
-     &    ,sOx_acc_glob(img,jmg)
-     &    ,sNOx_acc_glob(img,jmg)
-     &    ,sCO_acc_glob(img,jmg)
-     &    ,l1Ox_acc_glob(img,jmg) 
-     &    ,l1NO2_acc_glob(img,jmg))
+     &    ,Aijl_chem(img,jmg,topLevelOfChemistry) )
 #ifdef INTERACTIVE_WETLANDS_CH4
       allocate(
      &     day_ncep_glob(img,jmg,max_days,nra_ncep)
@@ -1499,15 +1481,6 @@ C**** check whether air mass is conserved
 
       allocate(trcSurfMixR_acc_glob(im,jm,NTM)
      &        ,trcSurfByVol_acc_glob(im,jm,NTM))
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
-      allocate(sPM2p5_acc_glob(im,jm)
-     &        ,sPM10_acc_glob(im,jm)
-     &        ,l1PM2p5_acc_glob(im,jm)
-     &        ,l1PM10_acc_glob(im,jm)
-     &        ,csPM2p5_acc_glob(im,jm)
-     &        ,csPM10_acc_glob(im,jm) )
-#endif
 
       SELECT CASE (IACTION)
 
@@ -1773,36 +1746,13 @@ c not yet        if(am_i_root()) write(kunit,err=10) header,aijl_glob
         if(am_i_root())write(kunit,err=10)
      &  header,iday_ncep,i0_ncep,first_ncep
 #endif /* INTERACTIVE_WETLANDS_CH4 */
-       call pack_data(grid,sOx_acc,sOx_acc_glob)
-       call pack_data(grid,sNOx_acc,sNOx_acc_glob)
-       call pack_data(grid,sCO_acc,sCO_acc_glob)
-       call pack_data(grid,l1Ox_acc,l1Ox_acc_glob)
-       call pack_data(grid,l1NO2_acc,l1NO2_acc_glob)
 #endif /* TRACERS_SPECIAL_Shindell */
 
        call pack_data(grid,trcSurfMixR_acc,trcSurfMixR_acc_glob)
        call pack_data(grid,trcSurfByVol_acc,trcSurfByVol_acc_glob)
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
-       call pack_data(grid,sPM2p5_acc,sPM2p5_acc_glob)
-       call pack_data(grid,sPM10_acc,sPM10_acc_glob)
-       call pack_data(grid,l1PM2p5_acc,l1PM2p5_acc_glob)
-       call pack_data(grid,l1PM10_acc,l1PM10_acc_glob)
-       call pack_data(grid,csPM2p5_acc,csPM2p5_acc_glob)
-       call pack_data(grid,csPM10_acc,csPM10_acc_glob)
-#endif
        header='accumulation arrays for subdd diagnostics for tracers'
        if (am_i_root()) write(kunit,err=10) header,trcSurfMixR_acc_glob
      &      ,trcSurfByVol_acc_glob
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
-     &      ,sPM2p5_acc_glob,sPM10_acc_glob,l1PM2p5_acc_glob
-     &      ,l1PM10_acc_glob,csPM2p5_acc_glob,csPM10_acc_glob
-#endif
-#ifdef TRACERS_SPECIAL_Shindell
-     &      ,sOx_acc_glob,sNOx_acc_glob,sCO_acc_glob,l1Ox_acc_glob
-     &      ,l1NO2_acc_glob
-#endif
 #ifdef TRACERS_SPECIAL_Shindell
        header='TRACERS_SPECIAL_Shindell: mostRecentNonZeroAlbedo'
        call pack_data(grid,mostRecentNonZeroAlbedo,MRNZA_glob)
@@ -2011,34 +1961,9 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 
           if (am_i_root()) read(kunit,err=10) header
      &         ,trcSurfMixR_acc_glob,trcSurfByVol_acc_glob
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
-     &         ,sPM2p5_acc_glob,sPM10_acc_glob,l1PM2p5_acc_glob
-     &         ,l1PM10_acc_glob,csPM2p5_acc_glob,csPM10_acc_glob
-#endif
-#ifdef TRACERS_SPECIAL_Shindell
-     &         ,sOx_acc_glob,sNOx_acc_glob,sCO_acc_glob,l1Ox_acc_glob
-     &         ,l1NO2_acc_glob
-#endif
 
           call unpack_data(grid,trcSurfMixR_acc_glob,trcSurfMixR_acc)
           call unpack_data(grid,trcSurfByVol_acc_glob,trcSurfByVol_acc)
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
-          call unpack_data(grid,sPM2p5_acc_glob,sPM2p5_acc)
-          call unpack_data(grid,sPM10_acc_glob,sPM10_acc)
-          call unpack_data(grid,l1PM2p5_acc_glob,l1PM2p5_acc)
-          call unpack_data(grid,l1PM10_acc_glob,l1PM10_acc)
-          call unpack_data(grid,csPM2p5_acc_glob,csPM2p5_acc)
-          call unpack_data(grid,csPM10_acc_glob,csPM10_acc)
-#endif
-#ifdef TRACERS_SPECIAL_Shindell
-          call unpack_data(grid,sOx_acc_glob,sOx_acc)
-          call unpack_data(grid,sNOx_acc_glob,sNOx_acc)
-          call unpack_data(grid,sCO_acc_glob,sCO_acc)
-          call unpack_data(grid,l1Ox_acc_glob,l1Ox_acc)
-          call unpack_data(grid,l1NO2_acc_glob,l1NO2_acc)
-#endif
 #ifdef TRACERS_SPECIAL_Shindell
           if(am_i_root())read(kunit,err=10)header,MRNZA_glob
           call unpack_data(grid,MRNZA_glob,mostRecentNonZeroAlbedo)
@@ -2071,16 +1996,9 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       deallocate(snosiz_glob)
 #endif
 
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
-      deallocate(sPM2p5_acc_glob, sPM10_acc_glob, l1PM2p5_acc_glob,
-     & l1PM10_acc_glob, csPM2p5_acc_glob, csPM10_acc_glob)
-#endif
-
       deallocate(Aijl_glob)
 #ifdef TRACERS_SPECIAL_Shindell
-      deallocate(ss_glob,sOx_acc_glob,sNOx_acc_glob,sCO_acc_glob,
-     & l1Ox_acc_glob,l1NO2_acc_glob,Aijl_chem)
+      deallocate(ss_glob,Aijl_chem)
 #ifdef INTERACTIVE_WETLANDS_CH4 
       deallocate(day_ncep_glob,DRA_ch4_glob,HRA_ch4_glob,Rijch4_glob,
      & Rijncep_glob,rfirst_mod,rHch4,rDch4,r0ch4)
@@ -2230,7 +2148,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
      &,ydCH317O2,ydCH318O2,yd13CH3O2
      &,d17Oacetone,d18Oacetone,d13Cacetone
 #endif  /* TRACERS_dCO */
-     &,acetone,sOx_acc,sNOx_acc,sCO_acc,l1Ox_acc,l1NO2_acc
+     &,acetone
      &,SF3,SF2,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2,topLevelOfChemistry
      &,mostRecentNonZeroAlbedo
 #ifdef INTERACTIVE_WETLANDS_CH4 
@@ -2243,11 +2161,6 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       USE AEROSOL_SOURCES, only : snosiz
 #endif
       use trdiag_com, only: trcSurfMixR_acc,trcSurfByVol_acc
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
-     &     ,sPM2p5_acc,sPM10_acc,l1PM2p5_acc,l1PM10_acc
-     &     ,csPM2p5_acc,csPM10_acc
-#endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       USE fluxes,ONLY : pprec,pevap
       USE trdust_mod,ONLY : hbaij,ricntd
@@ -2424,28 +2337,12 @@ c daily_z is currently only needed for CS
 !        call doVar(handle,action,i0_ncep,'i0_ncep(nra_ncep)')
 !        call doVar(handle,action,first_ncep,'first_ncep(nra_ncep)')
 #endif /* INTERACTIVE_WETLANDS_CH4 */
-      call doVar(handle,action,sOx_acc,'sOx_acc(dist_im,dist_jm)')
-      call doVar(handle,action,sNOx_acc,'sNOx_acc(dist_im,dist_jm)')
-      call doVar(handle,action,sCO_acc,'sCO_acc(dist_im,dist_jm)')
-      call doVar(handle,action,l1Ox_acc,'l1Ox_acc(dist_im,dist_jm)')
-      call doVar(handle,action,l1NO2_acc,'l1NO2_acc(dist_im,dist_jm)')
 #endif /* TRACERS_SPECIAL_Shindell */
 
       call doVar(handle,action,trcSurfMixR_acc
      &     ,'trcSurfMixR_acc(dist_im,dist_jm,Ntm)')
       call doVar(handle,action,trcSurfByVol_acc
      &     ,'trcSurfByVol_acc(dist_im,dist_jm,Ntm)')
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
-      call doVar(handle,action,sPM2p5_acc,'sPM2p5_acc(dist_im,dist_jm)')
-      call doVar(handle,action,sPM10_acc,'sPM10_acc(dist_im,dist_jm)')
-      call doVar(handle,action,l1PM2p5_acc,
-     *     'l1PM2p5_acc(dist_im,dist_jm)')
-      call doVar(handle,action,l1PM10_acc,'l1PM10_acc(dist_im,dist_jm)')
-      call doVar(handle,action,csPM2p5_acc,
-     *     'csPM2p5_acc(dist_im,dist_jm)')
-      call doVar(handle,action,csPM10_acc,'csPM10_acc(dist_im,dist_jm)')
-#endif
 
 #ifdef TRACERS_SPECIAL_Shindell
       handle = ParallelIo(grid, fid,'TRACERS_SPECIAL_Shindell')
@@ -2496,6 +2393,8 @@ c daily_z is currently only needed for CS
       use model_com, only : dtsrc,nday
       use subdd_mod, only : info_type, sched_rad
       use OldTracer_mod, only: trname
+      use tracer_com, only : ntm
+      use trdiag_com, only : to_volume_MixRat
       use radpar, only: nraero_aod=>NTRACE
       use rad_com, only: ntrix_aod,nraero_rf,ntrix_rf,diag_fc
       use RunTimeControls_mod, only: tracers_amp, tracers_tomas
@@ -2513,9 +2412,22 @@ c daily_z is currently only needed for CS
       character(len=10), dimension(2) :: sfrc=(/'swf','lwf'/),
      &                                lfrc=(/'shortwave','longwave'/)
       character(len=10) :: spcname
-      integer :: s,a,n,f
+! types of PM/tracer surface amounts to be saved
+! The name will be any combination of PM{2p5,10}{l1,s}{m,c}
+!                            I.E. {species}{location}{units}
+! and similar format for any tracer: trname(){l1,s}{m,s}.
+! In practice did not include the l1s (L=1 cocentration) case
+      character(len=20), dimension(2) :: 
+     &   ssiz=(/'2p5','10'/), lsiz=(/'PM2.5','PM10'/),
+     &   sloc=(/'l1','s'/),   lloc=(/'L=1','Surface'/),
+     &   sunt=(/'m','c'/), lunt=(/'Mass Mixing Ratio','Concentration'/),
+     &   uunt=(/'kg species / kg air','kg m-3'/)
+      character*80 :: unitString,unitString2
+      integer :: s,a,n,f,u,l,p
 
       decl_count = 0
+
+! Optical Depths
 
       do s=1,size(ssky)
       do a=1,size(sabs)
@@ -2535,6 +2447,8 @@ c daily_z is currently only needed for CS
       enddo ! n
       enddo ! a
       enddo ! s
+
+! Forcing
 
       do f=1,size(sfrc)
       do n=1,nraero_rf
@@ -2557,6 +2471,75 @@ c daily_z is currently only needed for CS
      &       )
       enddo ! n
       enddo ! f
+
+! Surface Tracer Amount
+
+      do n=1,ntm
+        ! L=1 and surface mixing ratios:
+        u=1
+        if (to_volume_MixRat(n) == 1) then
+          unitString='mole species / mole air'
+          unitString2='Volume Mixing Ratio'
+        else
+          unitString=trim(uunt(u))
+          unitString2=trim(lunt(u))
+        endif 
+        do l=1,size(sloc) 
+          arr(next()) = info_type_(
+     &    sname = trim(trname(n))//trim(sloc(l))//trim(sunt(u)),
+     &    lname=
+     &    trim(trname(n))//' '//trim(lloc(l))//' '//trim(unitString2),
+     &    units = trim(unitString)
+     &    )
+        end do
+        ! surface concentrations:
+        u=2
+        l=2
+        arr(next()) = info_type_(
+     &  sname = trim(trname(n))//trim(sloc(l))//trim(sunt(u)),
+     &  lname=trim(trname(n))//' '//trim(lloc(l))//' '//trim(lunt(u)),
+     &  units = trim(uunt(u))
+     &  )
+      end do ! ntm
+
+! Surface Particulate Matter Amount
+
+      do p=1,size(ssiz)
+        ! L=1 and surface mixing ratios (always mass):
+        u=1
+        do l=1,size(sloc)
+          arr(next()) = info_type_(
+     &    sname = 'PM'//trim(ssiz(p))//trim(sloc(l))//trim(sunt(u)),
+     &    lname = 
+     &     trim(lsiz(p))//' '//trim(lloc(l))//' '//trim(lunt(u)),
+     &    units = trim(uunt(u))
+     &    )
+        end do 
+        ! surface concentrations:
+        u=2
+        l=2
+        arr(next()) = info_type_(
+     &  sname = 'PM'//trim(ssiz(p))//trim(sloc(l))//trim(sunt(u)),
+     &  lname =
+     &   trim(lsiz(p))//' '//trim(lloc(l))//' '//trim(lunt(u)),
+     &  units = trim(uunt(u))
+     &  )
+      end do ! p (PM size)
+
+#ifdef TRACERS_SPECIAL_Shindell
+      arr(next()) = info_type_(
+     &  sname = 'MRNO2l1', ! because not a tracer
+     &  lname = 'L=1 NO2 mixing ratio',
+     &  units = 'mole species / mole air'
+     &  )
+C
+      arr(next()) = info_type_(
+     &  sname = 'MRNOl1', ! because not a tracer
+     &  lname = 'L=1 NO mixing ratio',
+     &  units = 'mole species / mole air'
+     &  )
+#endif 
+
 
       return
       contains
@@ -2599,7 +2582,7 @@ c daily_z is currently only needed for CS
       do n=1,ntm
 
         ! 3D mixing ratios (SUBDD string is just tracer name):
-        if (to_volume_MixRat(n) .eq.1) then
+        if (to_volume_MixRat(n) == 1) then
           unitString='mole species / mole air'
         else
           unitString='kg species / kg air'
@@ -2782,20 +2765,21 @@ C
       use geom, only : byaxyp
       use atm_com, only    : byma
       use tracer_com, only : ntm,trm,mass2vol
-      use OldTracer_mod, only: trname
-      use trdiag_com, only : to_volume_MixRat
+      use OldTracer_mod, only: trname, pm10fact, pm2p5fact
+      use trdiag_com, only : to_volume_MixRat,trcsurf,trcSurfByVol
       use subdd_mod, only : subdd_groups,subdd_type,subdd_ngroups
      &     ,inc_subdd,find_groups, LmaxSUBDD
       integer :: igrp,ngroups,grpids(subdd_ngroups)
       type(subdd_type), pointer :: subdd
       integer :: L, n, k
-!     real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
-!    &                  grid%j_strt_halo:grid%j_stop_halo) :: sddarr2d
+      real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
+     &                  grid%j_strt_halo:grid%j_stop_halo) :: sddarr2d
       real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
      &                  grid%j_strt_halo:grid%j_stop_halo,
      &                  LM                               ) :: sddarr3d
       real*8 :: convert
 
+      ! Tracer 3D diags on model levels
       call find_groups('taijlh',grpids,ngroups)
       do igrp=1,ngroups
         subdd => subdd_groups(grpids(igrp))
@@ -2803,7 +2787,7 @@ C
           ntm_loop: do n=1,ntm
             ! tracer 3D mixing ratios (SUBDD names are just tracer name):
             if(trim(trname(n)).eq.trim(subdd%name(k))) then
-              if (to_volume_MixRat(n) .eq.1) then
+              if (to_volume_MixRat(n) == 1) then
                 convert=mass2vol(n)
               else
                 convert=1.d0
@@ -2819,6 +2803,7 @@ C
         enddo ! k
       enddo ! igroup
 
+      ! Tracer 3D diags on constant pressure levels
       call find_groups('taijph',grpids,ngroups)
       do igrp=1,ngroups
         subdd => subdd_groups(grpids(igrp))
@@ -2826,7 +2811,7 @@ C
           ntm_loop2: do n=1,ntm
             ! tracer 3D mixing ratios (SUBDD names are tracer name with cp appended):
             if(trim(trname(n))//'cp'.eq.trim(subdd%name(k))) then
-              if (to_volume_MixRat(n) .eq.1) then
+              if (to_volume_MixRat(n) == 1) then
                 convert=mass2vol(n)
               else
                 convert=1.d0
@@ -2842,17 +2827,115 @@ C
         enddo ! k
       enddo ! igroup
 
-      ! Eventual 2D diags can go below (uncomment sddarr2d declaration
-      ! above, if needed)...
-!     call find_groups('taijh',grpids,ngroups)
-!     do igrp=1,ngroups
-!     subdd => subdd_groups(grpids(igrp))
-!     do k=1,subdd%ndiags
-!     select case (subdd%name(k))
-!      ...
-!     end select
-!     enddo ! k
-!     enddo ! igroup
+      ! Tracer 2D I-J diags
+      call find_groups('taijh',grpids,ngroups)
+      do igrp=1,ngroups
+      subdd => subdd_groups(grpids(igrp))
+      diag_loop: do k=1,subdd%ndiags
+        ntm_loop3: do n=1,ntm
+
+          ! tracer surface mixing ratios:
+          if(trim(trname(n))//'sm'.eq.trim(subdd%name(k))) then
+            if (to_volume_MixRat(n) == 1) then
+              sddarr2d(:,:)=trcsurf(:,:,n)*mass2vol(n)
+            else
+              sddarr2d(:,:)=trcsurf(:,:,n)
+            endif
+            call inc_subdd(subdd,k,sddarr2d) ; cycle diag_loop
+          end if
+
+          ! tracer surface concentrations:
+          if(trim(trname(n))//'sc'.eq.trim(subdd%name(k))) then
+            sddarr2d(:,:)=trcSurfByVol(:,:,n)
+            call inc_subdd(subdd,k,sddarr2d) ; cycle diag_loop
+          end if
+
+          ! tracer L=1 mixing ratios:
+          if(trim(trname(n))//'l1m'.eq.trim(subdd%name(k))) then
+            if (to_volume_MixRat(n) == 1) then
+              sddarr2d(:,:)=
+     &          trm(:,:,1,n)*mass2vol(n)*byaxyp(:,:)*byma(1,:,:)
+            else
+              sddarr2d(:,:)=trm(:,:,1,n)*byaxyp(:,:)*byma(1,:,:)
+            endif
+            call inc_subdd(subdd,k,sddarr2d) ; cycle diag_loop 
+          end if
+
+        enddo ntm_loop3
+
+! Particulate matter to be treated differently for mass-based 
+! aerosols or not:
+#ifdef TRACERS_TOMAS
+        select case(trim(subdd%name(k)))
+        case('PM2p5sm','PM2p5l1m','PM2p5sc',
+     &    'PM10sm','PM10l1m','PM10sc')
+          call tomas_pm_subdd_accum(subdd,k,trim(subdd%name(k)))
+          cycle diag_loop
+        end select
+#else
+        select case(trim(subdd%name(k)))
+
+        ! surface PM2.5 mass mixing ratio:
+        case('PM2p5sm')
+          sddarr2d(:,:)=0.d0
+          do n=1,ntm
+            if(pm2p5fact(n)/=0.)
+     &      sddarr2d(:,:)=sddarr2d(:,:)+pm2p5fact(n)*trcsurf(:,:,n)
+          end do
+          call inc_subdd(subdd,k,sddarr2d) ; cycle diag_loop 
+
+        ! L=1 PM2.5 mass mixing ratio:
+        case('PM2p5l1m')
+          sddarr2d(:,:)=0.d0
+          do n=1,ntm
+            if(pm2p5fact(n)/=0.)
+     &      sddarr2d(:,:)=sddarr2d(:,:)+pm2p5fact(n)*
+     &            trm(:,:,1,n)*byaxyp(:,:)*byma(1,:,:)
+          end do
+          call inc_subdd(subdd,k,sddarr2d) ; cycle diag_loop
+      
+        ! surface PM2.5 concentration:
+        case('PM2p5sc')
+          sddarr2d(:,:)=0.d0
+          do n=1,ntm
+            if(pm2p5fact(n)/=0.)
+     &      sddarr2d(:,:)=sddarr2d(:,:)+pm2p5fact(n)*trcSurfByVol(:,:,n)
+          end do
+          call inc_subdd(subdd,k,sddarr2d) ; cycle diag_loop
+
+        ! surface PM10 mass mixing ratio:
+        case('PM10sm')
+          sddarr2d(:,:)=0.d0
+          do n=1,ntm
+            if(pm10fact(n)/=0.)
+     &      sddarr2d(:,:)=sddarr2d(:,:)+pm10fact(n)*trcsurf(:,:,n)
+          end do
+          call inc_subdd(subdd,k,sddarr2d) ; cycle diag_loop  
+
+        ! L=1 PM10 mass mixing ratio:
+        case('PM10l1m')
+          sddarr2d(:,:)=0.d0
+          do n=1,ntm
+            if(pm10fact(n)/=0.)
+     &      sddarr2d(:,:)=sddarr2d(:,:)+pm10fact(n)*
+     &            trm(:,:,1,n)*byaxyp(:,:)*byma(1,:,:)
+          end do
+          call inc_subdd(subdd,k,sddarr2d) ; cycle diag_loop
+
+        ! surface PM10 concentration:
+        case('PM10sc')
+          sddarr2d(:,:)=0.d0
+          do n=1,ntm
+            if(pm10fact(n)/=0.)
+     &      sddarr2d(:,:)=sddarr2d(:,:)+pm10fact(n)*trcSurfByVol(:,:,n)
+          end do
+          call inc_subdd(subdd,k,sddarr2d) ; cycle diag_loop
+
+        end select
+#endif /* --not- TRACERS_TOMAS section */
+
+      enddo diag_loop
+      enddo ! igroup
 
       end subroutine accumCachedTracerSUBDDs
 #endif /* CACHED_SUBDD */

@@ -2098,6 +2098,19 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
           end select
         enddo ! k
       enddo ! igroup
+
+      call find_groups('taijh',grpids,ngroups)
+      do igrp=1,ngroups
+        subdd => subdd_groups(grpids(igrp))
+        do k=1,subdd%ndiags
+          select case (subdd%name(k))
+          case ('MRNO2l1')
+            call inc_subdd(subdd,k,mrno2(:,:,1))
+          case ('MRNOl1')
+            call inc_subdd(subdd,k,mrno(:,:,1))
+          end select
+        enddo ! k
+      enddo ! igroup
 #endif
 
 CCCCCCCCCCCCCCCCCC END CHEMISTRY SECTION CCCCCCCCCCCCCCCCCCCCCCCCC

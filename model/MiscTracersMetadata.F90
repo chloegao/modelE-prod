@@ -29,6 +29,8 @@ module MiscTracersMetadata_mod
   use OldTracer_mod, only: set_trsi0
   use OldTracer_mod, only: set_tr_h2obych4
   use OldTracer_mod, only: set_trdecay
+  use OldTracer_mod, only: set_pm2p5fact
+  use OldTracer_mod, only: set_pm10fact
   use TRACER_COM, only: &
     n_Air, n_water, n_H2O18, n_HDO, n_HTO, n_Pb210,n_Be7, &
     n_Be10, n_CFCn, n_CO2n, n_Age, n_SO4_d1, n_SO4_d2, n_SO4_d3, &
@@ -181,6 +183,8 @@ contains
     call set_trradius(n, 4.4d-7) !m, same as seasalt1
     call set_fq_aer(n, 1.0d0) ! same as seasalt
     call set_tr_wd_type(n, nPART)
+    call set_pm2p5fact(n, 1.d0) ! fraction that's PM2.5
+    call set_pm10fact(n, 1.d0) ! fraction that's PM10
 
   end subroutine OCocean_setSpec
 
@@ -198,6 +202,8 @@ contains
     call set_tr_wd_type(n, nPART)
     call set_tr_mm(n, 1.d+0)
     call set_isdust(n, 1)
+    call set_pm2p5fact(n, 1.d0) ! fraction that's PM2.5
+    call set_pm10fact(n, 1.d0) ! fraction that's PM10
 
   end subroutine Clay_setSpec
 
@@ -214,6 +220,8 @@ contains
     call set_tr_wd_type(n, nPART)
     call set_tr_mm(n, 1.d+0)
     call set_isdust(n, 1)
+    call set_pm2p5fact(n, 0.322d0) ! fraction that's PM2.5
+    call set_pm10fact(n, 1.d0) ! fraction that's PM10
   end subroutine Silt1_setSpec
 
   subroutine Silt2_setSpec(name)
@@ -230,6 +238,8 @@ contains
     call set_tr_wd_type(n, nPART)
     call set_tr_mm(n, 1.d+0)
     call set_isdust(n, 1)
+    call set_pm2p5fact(n, 0.d0) ! fraction that's PM2.5
+    call set_pm10fact(n, 1.d0) ! fraction that's PM10
 
   end subroutine Silt2_setSpec
 
@@ -246,6 +256,8 @@ contains
     call set_tr_wd_type(n, nPART)
     call set_tr_mm(n, 1.d+0)
     call set_isdust(n, 1)
+    call set_pm2p5fact(n, 0.d0) ! fraction that's PM2.5
+    call set_pm10fact(n, 0.322d0) ! fraction that's PM10
   end subroutine Silt3_setSpec
 
   subroutine Silt4_setSpec(name)
@@ -289,6 +301,8 @@ contains
     call set_trradius(n, 3.d-7)
     call set_fq_aer(n, 1.0d0   ) !fraction of aerosol that dissolves
     call set_tr_wd_type(n, npart)
+    call set_pm2p5fact(n, 1.d0) ! fraction that's PM2.5
+    call set_pm10fact(n, 1.d0) ! fraction that's PM10
   end subroutine NO3p_setSpec
 
   subroutine SO4_d1_setSpec(name)
@@ -303,6 +317,8 @@ contains
     call set_trradius(n, 0.75D-06 ) !m
     call set_fq_aer(n, 1.d0   ) !fraction of aerosol that dissolves
     call set_tr_wd_type(n, npart)
+    call set_pm2p5fact(n, 1.d0) ! fraction that's PM2.5
+    call set_pm10fact(n, 1.d0) ! fraction that's PM10
 
   end subroutine SO4_d1_setSpec
 
@@ -318,6 +334,8 @@ contains
     call set_trradius(n, 2.2D-06 ) !m
     call set_fq_aer(n, 1.d0   ) !fraction of aerosol that dissolves
     call set_tr_wd_type(n, npart)
+    call set_pm2p5fact(n, 0.322d0) ! fraction that's PM2.5
+    call set_pm10fact(n, 1.d0) ! fraction that's PM10
 
   end subroutine SO4_d2_setSpec
 
@@ -333,6 +351,8 @@ contains
     call set_trradius(n, 4.4D-06 ) !m this is Silt2 value
     call set_fq_aer(n, 1.d0   ) !fraction of aerosol that dissolves
     call set_tr_wd_type(n, npart)
+    call set_pm2p5fact(n, 0.d0) ! fraction that's PM2.5
+    call set_pm10fact(n, 1.d0) ! fraction that's PM10
 
   end subroutine SO4_d3_setSpec
 
@@ -347,6 +367,8 @@ contains
     call set_trradius(n, 0.75D-06 ) !m
     call set_fq_aer(n, 1.d0  ) !fraction of aerosol that dissolves
     call set_tr_wd_type(n, npart)
+    call set_pm2p5fact(n, 1.d0) ! fraction that's PM2.5
+    call set_pm10fact(n, 1.d0) ! fraction that's PM10
   end subroutine N_d1_setSpec
 
   subroutine N_d2_setSpec(name)
@@ -361,6 +383,8 @@ contains
     call set_trradius(n, 2.2D-06 ) !m
     call set_fq_aer(n, 1.d0  ) !fraction of aerosol that dissolves
     call set_tr_wd_type(n, npart)
+    call set_pm2p5fact(n, 0.322d0) ! fraction that's PM2.5
+    call set_pm10fact(n, 1.d0) ! fraction that's PM10
 
   end subroutine N_d2_setSpec
 
@@ -376,6 +400,8 @@ contains
     call set_trradius(n, 4.4D-06 ) !m this is Silt2 value
     call set_fq_aer(n, 1.d0  ) !fraction of aerosol that dissolves
     call set_tr_wd_type(n, npart)
+    call set_pm2p5fact(n, 0.d0) ! fraction that's PM2.5
+    call set_pm10fact(n, 1.d0) ! fraction that's PM10
 
   end subroutine N_d3_setSpec
 

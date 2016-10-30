@@ -1397,18 +1397,9 @@ C****
       use OldTracer_mod, only: trName
       use OldTracer_mod, only: dodrydep, dowetdep
       use OldTracer_mod, only: MAX_LEN_NAME
-#ifdef TRACERS_SPECIAL_Shindell
-      USE TRCHEM_Shindell_COM, only : sOx_acc,sNOx_acc,sCO_acc
-     &     ,l1Ox_acc,l1NO2_acc
-#endif
 #ifdef TRACERS_ON
       use trdiag_com, only: trcsurf,trcSurfByVol,trcSurfMixR_acc
      &     ,trcSurfByVol_acc
-#endif
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
-     &     ,sPM2p5_acc,sPM10_acc,l1PM2p5_acc,l1PM10_acc
-     &     ,csPM2p5_acc,csPM10_acc
 #endif
 #ifdef TRACERS_COSMO
       USE COSMO_SOURCES, only : BE7D_acc,BE7W_acc
@@ -1775,13 +1766,6 @@ c get_subdd
 !@+                    U*, V*, W*, C*  (on any model level only)
 !@+                    O*, X*, M*, N*  (Ox,NOx,CO,NO2 on fixed pres lvl)
 !@+                    o*, x*, m*, n*  (Ox,NOx,CO,NO2 on any model lvl)
-!@+                    oAVG  (SFC Ox time-average ppbv)
-!@+                    nxAVG (SFC NOx time-average ppbv)
-!@+                    cAVG (SFC CO time-average ppbv)
-!@+                    oAVG1,nAVG1 (L=1 Ox and NO2 time-average ppbv)
-!@+                    PM2p5, PM10 (SFC time-average PM2.5 and PM10 ppmm)
-!@+                    PM2p51,PM101(L=1 time-average PM2.5 and PM10 ppmm)
-!@+                    cPM2p5,cPM10 (SFC time-average PM2.5, PM10 kg/m3)
 !@+                    NO2col NO2 column amount, instant., (kg/m2)
 !@+                    D*          (HDO on any model level)
 !@+                    B*          (BE7 on any model level)
@@ -1849,8 +1833,7 @@ c get_subdd
       USE FLUXES, only : prec,tflux1,qflux1,uflux1,vflux1
      *     ,focean,flice,atmocn,atmice,atmgla,atmlnd,atmsrf
 #ifdef TRACERS_SPECIAL_Shindell
-      USE TRCHEM_Shindell_COM, only : mNO2,sOx_acc,sNOx_acc,sCO_acc
-     *     ,l1Ox_acc,l1NO2_acc,save_NO2column
+      USE TRCHEM_Shindell_COM, only : mNO2,save_NO2column
 #endif
 #if (defined TRACERS_SPECIAL_Shindell) || (defined CALCULATE_LIGHTNING)
       USE LIGHTNING, only : saveC2gLightning,saveLightning
@@ -2141,36 +2124,6 @@ c          datar8=SECONDS_PER_DAY*prec/dtsrc
           long_name = 'Fire Model Flammability'
 #endif /* CALCULATE_FLAMMABILITY */
 #ifdef TRACERS_SPECIAL_Shindell
-        case ("oAVG")   ! Nsubdd-step average SFC Ox tracer (ppbv)
-          datar8=sOx_acc/real(Nsubdd) ! accum over Nsubdd steps, already in ppbv
-          sOx_acc=0.
-          units_of_data = 'ppbv'
-          long_name = 'Average Surface Ox Tracer'
-          qinstant = .false.
-        case ("nxAVG")   ! Nsubdd-step average SFC NOx tracer (ppbv)
-          datar8=sNOx_acc/real(Nsubdd) ! accum over Nsubdd steps, already in ppbv
-          sNOx_acc=0.
-          units_of_data = 'ppbv'
-          long_name = 'Average Surface NOx Tracer'
-          qinstant = .false.
-        case ("cAVG")   ! Nsubdd-step average SFC CO tracer (ppbv)
-          datar8=sCO_acc/real(Nsubdd) ! accum over Nsubdd steps, already in ppbv
-          sCO_acc=0.
-          units_of_data = 'ppbv'
-          long_name = 'Average Surface CO Tracer'
-          qinstant = .false.
-        case ("oAVG1")  ! Nsubdd-step average L=1 Ox tracer (ppbv)
-          datar8=l1Ox_acc/real(Nsubdd) ! accum over Nsubdd steps, already in ppbv
-          l1Ox_acc=0.
-          units_of_data = 'ppbv'
-          long_name = 'Average Level 1 Ox Tracer'
-          qinstant = .false.
-        case ("nAVG1")  ! Nsubdd-step average L=1 NO2 (ppbv)
-          datar8=l1NO2_acc/real(Nsubdd) ! accum over Nsubdd steps, already in ppbv
-          l1NO2_acc=0.
-          units_of_data = 'ppbv'
-          long_name = 'Average Level 1 NO2'
-          qinstant = .false.
         case ("NO2col") ! instantaneous NO2 column amount (kg/m2)
           datar8=save_NO2column
           units_of_data = 'kg/m^2'
@@ -2555,45 +2508,6 @@ C**** accumulating/averaging mode ***
           units_of_data = 'flash/m^2/s'
           long_name = 'Cloud to Ground Lightning Flash Rate'
 #endif /* TRACERS_SPECIAL_Shindell or CALCULATE_LIGHTNING*/
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
-        case ("PM2p5") ! Nsubdd-step avg SFC PM2.5 (ppmm)
-           datar8=sPM2p5_acc/real(Nsubdd)
-           sPM2p5_acc=0.
-          units_of_data = 'ppmm'
-          long_name = 'Surface Particulate Matter <= 2.5 um'
-          qinstant = .false.
-        case ("PM10") ! Nsubdd-step avg SFC PM10 (ppmm)
-           datar8=sPM10_acc/real(Nsubdd)
-           sPM10_acc=0.
-          units_of_data = 'ppmm'
-          long_name = 'Surface Particulate Matter <= 10 um'
-          qinstant = .false.
-        case ("PM2p51") ! Nsubdd-step avg L=1 PM2.5 (ppmm)
-           datar8=l1PM2p5_acc/real(Nsubdd)
-           l1PM2p5_acc=0.
-          units_of_data = 'ppmm'
-          long_name = 'Layer 1 Particulate Matter <= 2.5 um'
-          qinstant = .false.
-        case ("PM101") ! Nsubdd-step avg L=1 PM10 (ppmm)
-           datar8=l1PM10_acc/real(Nsubdd)
-           l1PM10_acc=0.
-          units_of_data = 'ppmm'
-          long_name = 'Layer 1 Particulate Matter <= 10 um'
-          qinstant = .false.
-        case ("cPM2p5") ! Nsubdd-step avg SFC PM2.5 (kg/m3)
-           datar8=csPM2p5_acc/real(Nsubdd)
-           csPM2p5_acc=0.
-          units_of_data = 'kg/m^3'
-          long_name = 'Surface Particulate Matter <= 2.5 um'
-          qinstant = .false.
-        case ("cPM10") ! Nsubdd-step avg SFC PM10 (kg/m3)
-           datar8=csPM10_acc/real(Nsubdd)
-           csPM10_acc=0.
-          units_of_data = 'kg/m^3'
-          long_name = 'Surface Particulate Matter <= 10 um'
-          qinstant = .false.
-#endif /* (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)  || (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT) */
 
 #ifdef TRACERS_AEROSOLS_Koch
         case ("SO4")      ! sulfate in L=1

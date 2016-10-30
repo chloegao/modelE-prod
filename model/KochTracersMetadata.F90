@@ -18,6 +18,8 @@ module KochTracersMetadata_mod
   use OldTracer_mod, only: set_HSTAR
   use OldTracer_mod, only: set_tr_RKD
   use OldTracer_mod, only: set_emisPerFireByVegType
+  use OldTracer_mod, only: set_pm2p5fact
+  use OldTracer_mod, only: set_pm10fact
   use OldTracer_mod, only: tr_RKD 
   use TRACER_COM, only:  n_MSA, n_SO4, n_DMS, &
     n_BCII,  n_BCIA,  n_BCB, n_OCII,  n_OCIA,  n_OCB, n_H2O2_s
@@ -105,6 +107,8 @@ module KochTracersMetadata_mod
       call set_trradius(n, 5.d-7 ) !m (SO4 3;BC 1;OC 3)
       call set_fq_aer(n, 1.0d0   ) !fraction of aerosol that dissolves
       call set_tr_wd_type(n, npart)
+      call set_pm2p5fact(n, 1.d0) ! fraction that's PM2.5
+      call set_pm10fact(n, 1.d0) ! fraction that's PM10
     end subroutine MSA_setSpec
 
     subroutine SO4_setSpec(name)
@@ -117,6 +121,8 @@ module KochTracersMetadata_mod
       call set_trradius(n, 3.d-7 ) !m
       call set_fq_aer(n, 1.d0   ) !fraction of aerosol that dissolves
       call set_tr_wd_type(n, npart)
+      call set_pm2p5fact(n, 1.d0) ! fraction that's PM2.5
+      call set_pm10fact(n, 1.d0) ! fraction that's PM10
     end subroutine SO4_setSpec
 
     subroutine BCII_setSpec(name)
@@ -129,6 +135,8 @@ module KochTracersMetadata_mod
       call set_trradius(n, 1.d-7 ) !m
       call set_fq_aer(n, 0.0d0   ) !fraction of aerosol that dissolves
       call set_tr_wd_type(n, npart)
+      call set_pm2p5fact(n, 1.d0) ! fraction that's PM2.5
+      call set_pm10fact(n, 1.d0) ! fraction that's PM10
     end subroutine BCII_setSpec
 
     subroutine BCIA_setSpec(name)
@@ -141,6 +149,8 @@ module KochTracersMetadata_mod
       call set_trradius(n, 1.d-7 ) !m
       call set_fq_aer(n, 1.d0   ) !fraction of aerosol that dissolves
       call set_tr_wd_type(n, npart)
+      call set_pm2p5fact(n, 1.d0) ! fraction that's PM2.5
+      call set_pm10fact(n, 1.d0) ! fraction that's PM10
     end subroutine BCIA_setSpec
 
     subroutine BCB_setSpec(name)
@@ -153,6 +163,8 @@ module KochTracersMetadata_mod
       call set_trradius(n, 1.d-7 ) !m
       call set_fq_aer(n, 0.8d0 ) !fraction of aerosol that dissolves
       call set_tr_wd_type(n, npart)
+      call set_pm2p5fact(n, 1.d0) ! fraction that's PM2.5
+      call set_pm10fact(n, 1.d0) ! fraction that's PM10
 #ifdef DYNAMIC_BIOMASS_BURNING
       if (dynamic_biomass_burning) then
         ! 12 below are the 12 VDATA veg types or Ent remapped to them,
@@ -261,6 +273,8 @@ module KochTracersMetadata_mod
         call set_trpdens(n, 1.5d3) !kg/m3
         call set_trradius(n, 3.d-7 ) !m
         call set_fq_aer(n, 1.0d0   ) !fraction of aerosol that dissolves
+        call set_pm2p5fact(n, 1.d0) ! fraction that's PM2.5
+        call set_pm10fact(n, 1.d0) ! fraction that's PM10
       end select
     end subroutine VBS_setSpec
 #endif /* TRACERS_AEROSOLS_VBS */
@@ -282,6 +296,8 @@ module KochTracersMetadata_mod
       call set_trradius(n, 3.d-7 ) !m
       call set_fq_aer(n, 0.0d0   ) !fraction of aerosol that dissolves
       call set_tr_wd_type(n, npart)
+      call set_pm2p5fact(n, 1.d0) ! fraction that's PM2.5
+      call set_pm10fact(n, 1.d0) ! fraction that's PM10
     end subroutine OCII_setSpec
 
     subroutine OCIA_setSpec(name)
@@ -301,6 +317,8 @@ module KochTracersMetadata_mod
       call set_trradius(n, 3.d-7 ) !m
       call set_fq_aer(n, 1.d0   ) !fraction of aerosol that dissolves
       call set_tr_wd_type(n, npart)
+      call set_pm2p5fact(n, 1.d0) ! fraction that's PM2.5
+      call set_pm10fact(n, 1.d0) ! fraction that's PM10
     end subroutine OCIA_setSpec
 
     subroutine OCB_setSpec(name)
@@ -320,6 +338,8 @@ module KochTracersMetadata_mod
       call set_trradius(n, 3.d-7 ) !m
       call set_fq_aer(n, 0.8d0   ) !fraction of aerosol that dissolves
       call set_tr_wd_type(n, npart)
+      call set_pm2p5fact(n, 1.d0) ! fraction that's PM2.5
+      call set_pm10fact(n, 1.d0) ! fraction that's PM10
 #ifdef DYNAMIC_BIOMASS_BURNING
       if (dynamic_biomass_burning) then
         ! 12 below are the 12 VDATA veg types or Ent remapped to them,

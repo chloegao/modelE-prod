@@ -25,6 +25,8 @@ C
       use OldTracer_mod, only: do_fire
       use OldTracer_mod, only: do_aircraft
       use OldTracer_mod, only: first_aircraft
+      use OldTracer_mod, only: pm2p5fact
+      use OldTracer_mod, only: pm10fact
       use OldTracer_mod, only: nBBsources
       use OldTracer_mod, only: emisPerFireByVegType
       use OldTracer_mod, only: trpdens
@@ -688,6 +690,8 @@ c note: not applying CPP when declaring counts/lists.
 
       call tracers%addDefaultValue('iso_index', 1)
       call tracers%addDefaultValue('om2oc', 1.d0)
+      call tracers%addDefaultValue('pm2p5fact', 0.d0)
+      call tracers%addDefaultValue('pm10fact', 0.d0)
       call tracers%addDefaultValue('to_volume_MixRat', 0)
       call tracers%addDefaultValue('to_conc', 0)
       call tracers%addDefaultValue('TRLI0', 0.0d0)

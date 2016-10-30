@@ -47,6 +47,8 @@ module ShindellTracersMetadata_mod
   use OldTracer_mod, only: HSTAR
   use OldTracer_mod, only: ngas, nPART
   use OldTracer_mod, only: set_emisPerFireByVegType
+  use OldTracer_mod, only: set_pm2p5fact
+  use OldTracer_mod, only: set_pm10fact
   use RunTimeControls_mod, only: tracers_special_shindell
   use RunTimeControls_mod, only: tracers_drydep
   use RunTimeControls_mod, only: tracers_terp
@@ -610,6 +612,8 @@ contains
       call set_trradius(n, 3.d-7) !m
       call set_fq_aer(n, 0.8d0) !fraction of aerosol that dissolves
       call set_tr_wd_type(n, nPART)
+      call set_pm2p5fact(n, 1.d0) ! fraction that's PM2.5
+      call set_pm10fact(n, 1.d0) ! fraction that's PM10
     end subroutine isopp1a_setSpec
 
     subroutine isopp2g_setSpec(name)
@@ -653,6 +657,8 @@ contains
       call set_trradius(n, 3.d-7) !m
       call set_fq_aer(n, 0.8d0) !fraction of aerosol that dissolves
       call set_tr_wd_type(n, nPART)
+      call set_pm2p5fact(n, 1.d0) ! fraction that's PM2.5
+      call set_pm10fact(n, 1.d0) ! fraction that's PM10
     end subroutine isopp2a_setSpec
 
     subroutine apinp1g_setSpec(name)
@@ -695,6 +701,8 @@ contains
       call set_trradius(n, 3.d-7) !m
       call set_fq_aer(n, 0.8d0) !fraction of aerosol that dissolves
       call set_tr_wd_type(n, nPART)
+      call set_pm2p5fact(n, 1.d0) ! fraction that's PM2.5
+      call set_pm10fact(n, 1.d0) ! fraction that's PM10
     end subroutine apinp1a_setSpec
 
     subroutine apinp2g_setSpec(name)
@@ -738,6 +746,8 @@ contains
       call set_trradius(n, 3.d-7) !m
       call set_fq_aer(n, 0.8d0) !fraction of aerosol that dissolves
       call set_tr_wd_type(n, nPART)
+      call set_pm2p5fact(n, 1.d0) ! fraction that's PM2.5
+      call set_pm10fact(n, 1.d0) ! fraction that's PM10
     end subroutine apinp2a_setSpec
 #endif  /* TRACERS_AEROSOLS_SOA */
 
