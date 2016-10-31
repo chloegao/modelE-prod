@@ -833,8 +833,12 @@ C                TRACER AEROSOL COMPOSITIONAL/TYPE PARAMETERS
       CONTAINS
 
       SUBROUTINE RCOMP1(NRFUN)
-      use DOMAIN_DECOMP_ATM, only: AM_I_ROOT
+      use DOMAIN_DECOMP_ATM, only: AM_I_ROOT, grid  
       use DustParam_mod, only : read_alloc_dust
+      use pario, only : par_open,par_close, variable_exists  
+     &                 ,get_dimlen,read_data  
+      use filemanager, only : file_exists    
+
       IMPLICIT NONE
 C     ------------------------------------------------------------------
 C     Solar,GHG Trend, VolcAer Size Selection Parameters:    Defaults
@@ -865,11 +869,10 @@ C          radfile1   2   3   4   5   6   7   8   9   A   B   C   D   E
       REAL*8 :: GTAU(51,11,143),TGDATA(122,13)
      
       INTEGER :: N_BIN,fid,dimid,vid,istatus    
-      REAL*4, ALLOCATABLE, DIMENSION(:,:) :: SSI_IN 
-      REAL*4, ALLOCATABLE, DIMENSION(:) :: TSI_IN
-      REAL*8, ALLOCATABLE, DIMENSION(:) :: calyear,WS_IN,DS_IN    
-      include 'netcdf.inc'
-
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: SSI_IN 
+      REAL*8, ALLOCATABLE, DIMENSION(:) :: calyear,WS_IN,DS_IN,TSI_IN  
+      logical :: have_RADN9_file 
+ 
 !?    IF(LASTVC > 0) NRFUN=NRFN0
       IF(IFIRST < 1) GO TO 9999
 
@@ -1384,29 +1387,48 @@ C                                      ---------------------------------
 !        READ(NRFU,'(a80)') TITLE
 !        READ(NRFU,'(5E14.3)') DSLEAN   !  1:190  
 
-      istatus=nf_open('RADN9',nf_nowrite,fid) 
-      istatus=nf_inq_dimid(fid,'time',dimid)
-      istatus=nf_inq_dimlen(fid,dimid,iMs0X) 
-      istatus=nf_inq_dimid(fid,'wlen',dimid)
-      istatus=nf_inq_dimlen(fid,dimid,N_BIN)    
-      ALLOCATE (WS_IN(N_BIN),DS_IN(N_BIN)) 
-      ALLOCATE (SSI_IN(N_BIN,iMS0X),TSI_IN(iMS0X),calyear(iMS0X)) 
-      istatus=nf_inq_varid(fid,'wlen',vid)
-      istatus=nf_get_var_double(fid,vid,WS_IN)
-      istatus=nf_inq_varid(fid,'wlenbinsize',vid)
-      istatus=nf_get_var_double(fid,vid,DS_IN)
-      istatus=nf_inq_varid(fid,'calyear',vid)
-      istatus=nf_get_var_double(fid,vid,calyear)
-      istatus=nf_inq_varid(fid,'ssi',vid)
-      istatus=nf_get_var_real(fid,vid,SSI_IN) 
-      istatus=nf_inq_varid(fid,'tsi',vid)
-      istatus=nf_get_var_real(fid,vid,TSI_IN)
-      istatus=nf_close(fid) 
+      have_RADN9_file = file_exists('RADN9')  
+
+      if(have_RADN9_file) then
+        fid=par_open(grid,'RADN9','read')
+        iMs0X=get_dimlen(grid,fid,'time') 
+        N_BIN=get_dimlen(grid,fid,'wlen')
+        ALLOCATE (TSI_IN(iMS0X),calyear(iMS0X)) 
+        ALLOCATE (WS_IN(N_BIN),DS_IN(N_BIN),SSI_IN(N_BIN,iMS0X)) 
+        if(variable_exists(grid,fid,'calyear'))then
+          call read_data(grid,fid,'calyear',calyear,bcast_all=.true.)
+        else
+          call stop_model('missing calyear in RADN9 file',255)
+        endif 
+        if(variable_exists(grid,fid,'wlen'))then
+          call read_data(grid,fid,'wlen',WS_IN,bcast_all=.true.)
+        else
+          call stop_model('missing the wlen variable in RADN9 file',255)
+        endif
+        if(variable_exists(grid,fid,'wlenbinsize'))then  
+          call read_data(grid,fid,'wlenbinsize',DS_IN,bcast_all=.true.)
+        else
+          call stop_model('missing wlenbinsize in RADN9 file',255)
+        endif 
+          if(variable_exists(grid,fid,'ssi'))then 
+          call read_data(grid,fid,'ssi',SSI_IN,bcast_all=.true.)  
+        else  
+          call stop_model('missing the ssi variable in RADN9 file',255)
+        endif
+        if(variable_exists(grid,fid,'tsi'))then 
+          call read_data(grid,fid,'tsi',TSI_IN,bcast_all=.true.)
+        else
+          call stop_model('missing the tsi variable in RADN9 file',255)
+        endif    
+        call par_close(grid,fid)
+      else  
+        call stop_model('missing the RADN9 file',255)
+      endif 
   
       WS_SSI(:)=WS_IN(N_BIN-189:N_BIN)/1000.D0
       DS_SSI(:)=DS_IN(N_BIN-189:N_BIN)/1000.D0
-      W1_SSI(:)=WS_SSI(:)-0.5D0*DS_SSI(:)
-      print *, 'okay'  
+      W1_SSI(:)=WS_SSI(:)-0.5D0*DS_SSI(:) 
+
 !        WSLEAN(:)=WSLEAN(:)/1000.D0
 !        DSLEAN(:)=DSLEAN(:)/1000.D0
 !        W1LEAN(:)=WSLEAN(:)-0.5D0*DSLEAN(:)
