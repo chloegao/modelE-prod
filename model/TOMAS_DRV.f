@@ -2287,6 +2287,7 @@ C     determine the mass added to each bin coagulation
       end subroutine alloc_tracer_TOMAS_com
 
 
+#ifdef CACHED_SUBDD
       subroutine tomas_pm_subdd_accum(subdd,kdiag,diag)
 !@sum tomas_pm_subdd_accum Accumulate sub-daily diagnostics for particulate
 !@+ matter for TOMAS aerosol model.
@@ -2431,3 +2432,4 @@ C     determine the mass added to each bin coagulation
 
       return
       end subroutine tomas_pm_subdd_accum
+#endif /* CACHED_SUBDD */
