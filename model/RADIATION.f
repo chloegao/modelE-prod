@@ -868,7 +868,7 @@ C          radfile1   2   3   4   5   6   7   8   9   A   B   C   D   E
 !@var GTAU,TGDATA temporary array to read data and pass it to RAD_UTILS
       REAL*8 :: GTAU(51,11,143),TGDATA(122,13)
      
-      INTEGER :: N_BIN,fid,dimid,vid,istatus    
+      INTEGER :: N_BIN,fid 
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: SSI_IN 
       REAL*8, ALLOCATABLE, DIMENSION(:) :: calyear,WS_IN,DS_IN,TSI_IN  
       logical :: have_RADN9_file 
