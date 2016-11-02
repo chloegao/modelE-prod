@@ -665,7 +665,7 @@ contains
       end if
 
       if (trim(component) == 'OC') then
-        call set_om2oc(n, 1.4d0)
+        call set_om2oc(tracerIndex, 1.4d0)
         tmp = om2oc(tracerIndex)
         call sync_param(trim(tracerName)//"_om2oc",tmp)
         call set_om2oc(tracerIndex, tmp)
