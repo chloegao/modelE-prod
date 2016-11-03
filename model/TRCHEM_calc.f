@@ -1,5 +1,5 @@
 #include "rundeck_opts.h"
-      SUBROUTINE chemstep(maxL,I,J,ierr_loc)
+      SUBROUTINE chemstep(maxL,I,J)
 !@sum chemstep Calculate new concentrations after photolysis & chemistry
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
 !@calls rates,chem1,chem1prn
@@ -117,7 +117,6 @@ C**** Local parameters and variables and arguments:
 !@var rNO3prod,rNO2prod,rNOprod to acct for dOx from NOx partitioning
 !@var PRES local nominal pressure for regional Ox tracers
       INTEGER, INTENT(IN) :: maxL,I,J
-      INTEGER, INTENT(INOUT) :: ierr_loc
       INTEGER :: L,iter,igas,maxT,Lz,it,n
       INTEGER :: J_0, J_1
       character(len=300) :: out_line
@@ -1447,87 +1446,13 @@ C     -- water tracers --:
 #endif
       end if
 
-C THIS SECTION REMAINS FOR REFERENCE, since arguments could be made
-C for exclusion and inclusion. But Drew notes that once we made the day and
-C night N chemistry similar to one another, below code was incomplete, as it
-C was set up when NO3 was set to zero during the day. Hence it couldn't fully
-C account for any within-NOx repartitioning anymore. So we took it out.
-! (If you put it back in, change coding to not have multiple return statements
-! in thie routine.)
-C
-!c Calculate ozone change due to within-NOx partitioning:
-!      do L=1,maxL
-!        if(y(nO1D,L) == 0.) CYCLE
-!c       account for NO2 and NO ozone destruction:
-!        rNO2prod=rr(rrbi%OH_HO2NO2__H2O_NO2,L)*y(nOH,L)*y(nn_HO2NO2,L)+
-!     &  rr(rrmono%HO2NO2_M__HO2_NO2,L)*y(nn_HO2NO2,L)+ss(rj%HNO3__OH_NO2,L,I,J)*y(nn_HNO3,L)+
-!     &  ss(rj%HO2NO2__HO2_NO2,L,I,J)*y(nn_HO2NO2,L)+ss(rj%BrONO2__BrO_NO2,L,I,J)*y(nn_BrONO2,L)
-!        rNOprod=rr(rrbi%N2O_O1D__NO_NO,L)*y(nn_N2O,L)*y(nO1D,L)
-!        rNO3prod=rr(rrbi%ClONO2_O__ClO_NO3,L)*y(nO,L)*y(nn_ClONO2,L)+
-!     &  ss(rj%N2O5__NO3_NO2,L,I,J)*y(nn_N2O5,L)+ss(rj%HO2NO2__OH_NO3,L,I,J)*y(nn_HO2NO2,L)+
-!     &  ss(rj%ClONO2__Cl_NO3,L,I,J)*y(nn_ClONO2,L)
-!c       add production of NO and NO2 from NO3:
-!        rNO3prod=rNO3prod*ss(rj%NO3__NO2_O,L,I,J)/(ss(rj%NO3__NO_O2,L,I,J)+
-!     &  ss(rj%NO3__NO2_O,L,I,J)+1.d0)
-!        rNO2prod=rNO2prod+rNO3prod
-!        rNOprod=rNOprod+rNO3prod
-!        ratioNs=rNO2prod/rNOprod
-!        ratioN2=y(nNO2,L)/y(nNO,L)
-!        
-!        if(ratioNs > ratioN2)then !excess NO2 production
-!        
-!c         account for NO2 that then goes via NO2+O->NO+O2, NO2->NO+O:
-!          rNO2frac=(rr(rrbi%O_NO2__NO_O2,L)*y(nO,L)-ss(rj%NO2__NO_O,L,I,J))/
-!     &    (rr(rrtri%OH_NO2_HNO3_M,L)*y(nOH,L)+
-!     &    rr(rrtri%HO2_NO2__HO2NO2_M,L)*y(nHO2,L)+
-!     &    rr(rrtri%NO3_NO2__N2O5_M,L)*y(nNO3,L)+
-!     &    rr(rrtri%ClO_NO2__ClONO2_M,L)*y(nClO,L)+
-!     &    rr(rrtri%BrO_NO2__BrONO2_M,L)*y(nBrO,L)+
-!     &    rr(rrbi%O_NO2__NO_O2,L)*y(nO,L)+ss(rj%NO2__NO_O,L,I,J))
-!          Oxcorr(L)=(rNO2prod-rNOprod)*rNO2frac*dt2*y(nNO,L)/y(nn_NOx,L)
-!          if(Oxcorr(L) > -1.d18 .and. Oxcorr(L) < 1.d18)then
-!            dest(nn_Ox,L)=dest(nn_Ox,L)-Oxcorr(L)
-!          else
-!            ierr_loc=ierr_loc+1 ! will stop model in masterchem
-!            write(out_line,'(a17,5(1X,E11.4))')
-!     &      'Oxcorr fault NO2:',
-!     &      ratioNs,ratioN2,rNO2frac,rNO2prod,rNOprod
-!            call write_parallel(trim(out_line),crit=.true.)      
-!            return !< fix this, I need to deallocate!
-!          end if
-!
-!        else                      !excess NO prodcution
-!
-!c         account for NO that then goes via NO+O3->NO2+O2
-!c         or NO+O+M->NO2+M:
-!          rNOfrac=(rr(rrbi%O3_NO__NO2_O2,L)*y(nO3,L)+
-!     &    rr(rrtri%NO_O__NO2_M,L)*y(nO,L))
-!          rNOdenom=(rr(rrbi%O3_NO__NO2_O2,L)*y(nO3,L)+
-!     &    rr(rrtri%NO_O__NO2_M,L)*y(nO,L)+
-!     &    rr(rrbi%HO2_NO__OH_NO2,L)*y(nHO2,L)+
-!     &    rr(rrbi%XO2N_NO__AlkylNit_M,L)*y(nXO2N,L)+1.d0)+
-!     &    rr(rrbi%CH3O2_NO__HCHO_NO2,L)*yCH3O2(I,J,L)+
-!     &    rr(rrbi%C2O3_NO__HCHO_NO2,L)*y(nC2O3,L)+
-!     &    4.2d-12*exp(180/ta(L))*y(nXO2,L)+
-!     &    rr(rrbi%ClO_NO__NO2_Cl,L)*y(nClO,L)+
-!     &    rr(rrbi%NO_OClO__NO2_ClO,L)*y(nOClO,L)+
-!     &    rr(rrbi%BrO_NO__Br_NO2,L)*y(nBrO,L)
-!
-!          rNOfrac=rNOfrac/rNOdenom
-!          Oxcorr(L)=(rNOprod-rNO2prod)*rNOfrac*dt2*y(nNO2,L)/y(nn_NOx,L)
-!          if(Oxcorr(L) > -1.d18 .and. Oxcorr(L) < 1.d18)then
-!            dest(nn_Ox,L)=dest(nn_Ox,L)-Oxcorr(L)
-!          else 
-!            ierr_loc=ierr_loc+1 ! will stop model in masterchem
-!            write(out_line,'(a16,3I4,10(1X,E11.4))')'Oxcorr fault NO:',
-!     &      I,J,L,ratioNs,ratioN2,rNOfrac,rNO2prod,rNOprod,y(nNO2,L),
-!     &      y(nNO,L),rNOdenom,y(nO,L),y(nO3,L)
-!            call write_parallel(trim(out_line),crit=.true.)    
-!            return !< fix this, I need to deallocate!
-!          end if
-!c
-!        end if
-!      end do ! L loop
+C There was a section here in the code that altereded ozone change
+C based on within-NOx partitioning. Drew said that arguments could be
+C made to include such a section or not. But he notes that, once we
+C made day and night N-chemistry more similar, this section was incomplete
+C anyway because it was programmed when NO3 was 0 during the day.
+C To see this (commented-out) code, check out the master branch from Nov 1,
+C 2016.
 
 c Calculate ozone change due to Cl2O2 cycling:
       do L=1,maxL

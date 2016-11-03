@@ -185,7 +185,7 @@ C**** Local parameters and variables and arguments:
      &  countTT,bHNO3,mHNO3,HNO3_thresh,Ttemp,changeBrOx,changeBrONO2,
      &  changeBrOx2,changeHBr,tempChangeNOx,ss27x2,ss27x2_c,OHpptv,
      &  HO2pptv,ObyO3,NO2byNO,ClbyClO,voc2nox_denom,tempChangeOx,pNOloc
-      integer :: igas,LL,I,J,L,N,inss,L2,n2,ierr,ierr_loc,Jqq,Iqq,
+      integer :: igas,LL,I,J,L,N,inss,L2,n2,Jqq,Iqq,
      & maxT,iu,itemp_iter,ih1330e,ih1030e,ih1030,ih1330,m,istep,index1,
      & index2,nb
       LOGICAL                   :: error, jay, daylight
@@ -413,8 +413,6 @@ C info to set strat H2O based on tropical tropopause H2O and CH4:
         enddo
       enddo
       call zonalmean_ij2ij(surfIsop,zonalIsop)
-
-      ierr_loc = 0
 
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       j_loop: DO J=J_0,J_1          ! ===> MAIN J LOOP BEGINS <===
@@ -859,8 +857,7 @@ CCCCCCCCCCCCCCCCC NON-FAMILY CHEMISTRY CCCCCCCCCCCCCCCCCCCCCCCC
       end do
 #endif  /* TRACERS_AEROSOLS_SOA */
 
-      call chemstep(topLevelOfChemistry,I,J,ierr_loc)
-      if(ierr_loc > 0) cycle i_loop
+      call chemstep(topLevelOfChemistry,I,J)
 
 C Save 3D radical arrays to pass to aerosol code:
       if(coupled_chem == 1) then
@@ -2040,18 +2037,6 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
       END DO j_loop ! ===> MAIN J LOOP ENDS <===
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-
-      ! check if there was that error in certain section of chemstep
-      ! anywhere in the world; if so, stop the model (all processors):
-      
-      ! Currently the section where ierr could become non-zero is
-      ! commented. If it remains so, remove it from calls/sums/checks
-      ! in this program:
-      call globalmax(grid,ierr_loc,ierr)
-      if(ierr > 0) then ! all processors call stop_model
-        if(am_i_root()) write(6,*) 'chemstep Oxcorr fault'  
-        call stop_model('chemstep Oxcorr fault',255)
-      endif
 
 #ifdef CACHED_SUBDD
       call find_groups('taijlh',grpids,ngroups)
