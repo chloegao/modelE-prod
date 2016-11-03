@@ -274,11 +274,11 @@ c
       do 591 l=1,isu(j)
       do 591 i=ifu(j,l),ilu(j,l)
       if (dpuav(i,j,k).gt.0) uav(i,j,k)=uav(i,j,k)/dpuav(i,j,k)
- 591  uflxav(i,j,k)=uflxav(i,j,k)*baclin*1.e-6/(jdate*86400.*onem)	! in Sv
+ 591  uflxav(i,j,k)=uflxav(i,j,k)*baclin*1.e-6/( date*86400.*onem)	! in Sv
       do 592 l=1,isv(j)
       do 592 i=ifv(j,l),ilv(j,l)
       if (dpvav(i,j,k).gt.0) vav(i,j,k)=vav(i,j,k)/dpvav(i,j,k)
- 592  vflxav(i,j,k)=vflxav(i,j,k)*baclin*1.e-6/(jdate*86400.*onem)	! in Sv
+ 592  vflxav(i,j,k)=vflxav(i,j,k)*baclin*1.e-6/( date*86400.*onem)	! in Sv
       do 59 l=1,isp(j)
       do 59 i=ifp(j,l),ilp(j,l)
       if (dpav(i,j,k).gt.0.) then
