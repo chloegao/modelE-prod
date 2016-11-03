@@ -134,6 +134,7 @@ c
         integer :: d17OPAN_M__dC217O3_NO2=0
         integer :: Isoprene_OH__dHCH17O_Alkenes=0
         integer :: Isoprene_O3__dHCH17O_Alkenes=0
+        integer :: AlkylNit_OH__NO2_d17OXO2=0
         integer :: Alkenes_OH__dHCH17O_HO2=0
         integer :: Alkenes_O3__dHCH17O_CO=0
         integer :: Alkenes_O3__HCHO_dC17O=0
@@ -164,6 +165,7 @@ c
         integer :: d18OPAN_M__dC218O3_NO2=0
         integer :: Isoprene_OH__dHCH18O_Alkenes=0
         integer :: Isoprene_O3__dHCH18O_Alkenes=0
+        integer :: AlkylNit_OH__NO2_d18OXO2=0
         integer :: Alkenes_OH__dHCH18O_HO2=0
         integer :: Alkenes_O3__dHCH18O_CO=0
         integer :: Alkenes_O3__HCHO_dC18O=0
@@ -194,6 +196,7 @@ c
         integer :: d13CPAN_M__d13C2O3_NO2=0
         integer :: Isoprene_OH__dH13CHO_Alkenes=0
         integer :: Isoprene_O3__dH13CHO_Alkenes=0
+        integer :: AlkylNit_OH__NO2_d13CXO2=0
         integer :: Alkenes_OH__dH13CHO_HO2=0
         integer :: Alkenes_O3__dH13CHO_CO=0
         integer :: Alkenes_O3__HCHO_d13CO=0
@@ -299,7 +302,7 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
      & ntm_shindell_nontransp = 26, ! number of non-transported Shindell tracers
 #ifdef TRACERS_dCO
      & ntm_dCO_nontransp = 18, ! number of non-transported dCO tracers
-     & n_bi_dCO = 87, ! number of dCO bimolecular reactions
+     & n_bi_dCO = 90, ! number of dCO bimolecular reactions
      & n_tri_dCO = 3, ! number of dCO trimolecular reactions
      & n_rj_dCO = 15, ! number of dCO photochemical reactions
 #else
@@ -1119,6 +1122,8 @@ C**************  Not Latitude-Dependant ****************************
           rrbi%Isoprene_OH__dHCH17O_Alkenes=irr
         case('Isoprene_O3__dHCH17O_Alkenes')
           rrbi%Isoprene_O3__dHCH17O_Alkenes=irr
+        case('AlkylNit_OH__NO2_d17OXO2')
+          rrbi%AlkylNit_OH__NO2_d17OXO2=irr
         case('Alkenes_OH__dHCH17O_HO2')
           rrbi%Alkenes_OH__dHCH17O_HO2=irr
         case('Alkenes_O3__dHCH17O_CO')
@@ -1178,6 +1183,8 @@ C**************  Not Latitude-Dependant ****************************
           rrbi%Isoprene_OH__dHCH18O_Alkenes=irr
         case('Isoprene_O3__dHCH18O_Alkenes')
           rrbi%Isoprene_O3__dHCH18O_Alkenes=irr
+        case('AlkylNit_OH__NO2_d18OXO2')
+          rrbi%AlkylNit_OH__NO2_d18OXO2=irr
         case('Alkenes_OH__dHCH18O_HO2')
           rrbi%Alkenes_OH__dHCH18O_HO2=irr
         case('Alkenes_O3__dHCH18O_CO')
@@ -1237,6 +1244,8 @@ C**************  Not Latitude-Dependant ****************************
           rrbi%Isoprene_OH__dH13CHO_Alkenes=irr
         case('Isoprene_O3__dH13CHO_Alkenes')
           rrbi%Isoprene_O3__dH13CHO_Alkenes=irr
+        case('AlkylNit_OH__NO2_d13CXO2')
+          rrbi%AlkylNit_OH__NO2_d13CXO2=irr
         case('Alkenes_OH__dH13CHO_HO2')
           rrbi%Alkenes_OH__dH13CHO_HO2=irr
         case('Alkenes_O3__dH13CHO_CO')

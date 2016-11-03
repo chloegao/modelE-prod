@@ -927,7 +927,7 @@ c       Set value for d17OXO2:
      &    +rr(rrbi%Terpenes_OH__dHCH17O_Alkenes,L)*y(nn_Terpenes,L)
      &      *0.85d0
 #endif  /* TRACERS_TERP */
-     &    +rr(rrbi%AlkylNit_OH__NO2_XO2,L)*y(nn_AlkylNit,L))
+     &    +rr(rrbi%AlkylNit_OH__NO2_d17OXO2,L)*y(nn_AlkylNit,L))
      &    +y(nO3,L)*(rr(rrbi%Alkenes_O3__dHCH17O_CO,L)*y(nn_Alkenes,L)
      &      *0.29d0*0.5d0
      &      +rr(rrbi%Alkenes_O3__HCHO_dC17O,L)*y(nn_Alkenes,L)
@@ -973,7 +973,7 @@ c       Set value for d18OXO2:
      &    +rr(rrbi%Terpenes_OH__dHCH18O_Alkenes,L)*y(nn_Terpenes,L)
      &      *0.85d0
 #endif  /* TRACERS_TERP */
-     &    +rr(rrbi%AlkylNit_OH__NO2_XO2,L)*y(nn_AlkylNit,L))
+     &    +rr(rrbi%AlkylNit_OH__NO2_d18OXO2,L)*y(nn_AlkylNit,L))
      &    +y(nO3,L)*(rr(rrbi%Alkenes_O3__dHCH18O_CO,L)*y(nn_Alkenes,L)
      &      *0.29d0*0.5d0
      &      +rr(rrbi%Alkenes_O3__HCHO_dC18O,L)*y(nn_Alkenes,L)
@@ -1019,7 +1019,7 @@ c       Set value for d13CXO2:
      &    +rr(rrbi%Terpenes_OH__dH13CHO_Alkenes,L)*y(nn_Terpenes,L)
      &      *0.85d0
 #endif  /* TRACERS_TERP */
-     &    +rr(rrbi%AlkylNit_OH__NO2_XO2,L)*y(nn_AlkylNit,L))
+     &    +rr(rrbi%AlkylNit_OH__NO2_d13CXO2,L)*y(nn_AlkylNit,L))
      &    +y(nO3,L)*(rr(rrbi%Alkenes_O3__dH13CHO_CO,L)*y(nn_Alkenes,L)
      &      *0.29d0*0.5d0
      &      +rr(rrbi%Alkenes_O3__HCHO_d13CO,L)*y(nn_Alkenes,L)
