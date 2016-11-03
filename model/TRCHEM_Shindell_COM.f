@@ -1315,7 +1315,7 @@ C**************  Not Latitude-Dependant ****************************
         case('N2O5_HCl__Cl_HNO3')
           rrhet%N2O5_HCl__Cl_HNO3=irr
         case default
-          call stop_model('Index for '//reaction//' missing',255)
+          call stop_model('Index for '//trim(reaction)//' missing',255)
       end select
 
       end subroutine set_rrate_index
