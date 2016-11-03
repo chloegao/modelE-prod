@@ -56,7 +56,7 @@ c
         integer :: Isoprene_OH__HCHO_Alkenes=0
         integer :: Isoprene_O3__HCHO_Alkenes=0
         integer :: Isoprene_NO3__HO2_Alkenes=0
-        integer :: AlkylNit_OH__NO2_M=0
+        integer :: AlkylNit_OH__NO2_XO2=0
         integer :: Alkenes_OH__HCHO_HO2=0
         integer :: Alkenes_O3__HCHO_CO=0
         integer :: Alkenes_NO3__HCHO_NO2=0
@@ -966,8 +966,8 @@ C**************  Not Latitude-Dependant ****************************
           rrbi%Isoprene_O3__HCHO_Alkenes=irr
         case('Isoprene_NO3__HO2_Alkenes')
           rrbi%Isoprene_NO3__HO2_Alkenes=irr
-        case('AlkylNit_OH__NO2_M')
-          rrbi%AlkylNit_OH__NO2_M=irr
+        case('AlkylNit_OH__NO2_XO2')
+          rrbi%AlkylNit_OH__NO2_XO2=irr
         case('Alkenes_OH__HCHO_HO2')
           rrbi%Alkenes_OH__HCHO_HO2=irr
         case('Alkenes_O3__HCHO_CO')
