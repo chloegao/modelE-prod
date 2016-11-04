@@ -11,6 +11,7 @@ module ShindellTracersMetadata_mod
   use TRACER_COM, only: ntm_chem_beg, ntm_chem_end, whichEPFCs
 #ifdef TRACERS_dCO
   use OldTracer_mod, only: set_is_dCO_tracer
+  use TRACER_COM, only: n_d17ORNit, n_d18ORNit, n_d13CRNit
   use TRACER_COM, only: n_d17OPAN, n_d18OPAN, n_d13CPAN
   use TRACER_COM, only: n_dMe17OOH, n_dMe18OOH, n_d13MeOOH
   use TRACER_COM, only: n_dHCH17O, n_dHCH18O, n_dH13CHO
@@ -127,6 +128,9 @@ contains
     call  CFC_setSpec('CFC')
 
 #ifdef TRACERS_dCO
+    call  AlkylNit_setSpec('d17ORNit')
+    call  AlkylNit_setSpec('d18ORNit')
+    call  AlkylNit_setSpec('d13CRNit')
     call  PAN_setSpec('d17OPAN')
     call  PAN_setSpec('d18OPAN')
     call  PAN_setSpec('d13CPAN')
@@ -166,6 +170,7 @@ contains
            nn_ClOx,   nn_BrOx,  nn_HCl,   nn_HOCl,   nn_ClONO2,  &
            nn_HBr,    nn_HOBr,  nn_BrONO2,nn_CFC,    nn_GLT
 #ifdef TRACERS_dCO
+      use TRACER_COM, only: nn_d17ORNit, nn_d18ORNit, nn_d13CRNit
       use TRACER_COM, only: nn_d17OPAN, nn_d18OPAN, nn_d13CPAN
       use TRACER_COM, only: nn_dMe17OOH, nn_dMe18OOH, nn_d13MeOOH
       use TRACER_COM, only: nn_dHCH17O, nn_dHCH18O, nn_dH13CHO
@@ -219,6 +224,9 @@ contains
      nn_GLT = n_GLT - offset
 
 #ifdef TRACERS_dCO
+     nn_d17ORNit = n_d17ORNit - offset
+     nn_d18ORNit = n_d18ORNit - offset
+     nn_d13CRNit = n_d13CRNit - offset
      nn_d17OPAN = n_d17OPAN - offset
      nn_d18OPAN = n_d18OPAN - offset
      nn_d13CPAN = n_d13CPAN - offset
@@ -346,7 +354,7 @@ contains
           call set_is_dCO_tracer(n, .true.)
 #endif  /* TRACERS_dCO */
         case default
-          call stop_model('CH3OOH-like tracer '//name//' unknown',255)
+          call stop_model('CH3OOH-like tracer '//trim(name)//' unknown',255)
       end select
       if (ntm_chem_beg==0) ntm_chem_beg = n
       ntm_chem_end = n
@@ -373,7 +381,7 @@ contains
           call set_is_dCO_tracer(n, .true.)
 #endif  /* TRACERS_dCO */
         case default
-          call stop_model('HCHO-like tracer '//name//' unknown',255)
+          call stop_model('HCHO-like tracer '//trim(name)//' unknown',255)
       end select
       if (ntm_chem_beg==0) ntm_chem_beg = n
       ntm_chem_end = n
@@ -411,7 +419,7 @@ contains
           call set_is_dCO_tracer(n, .true.)
 #endif  /* TRACERS_dCO */
         case default
-          call stop_model('CO-like tracer '//name//' unknown',255)
+          call stop_model('CO-like tracer '//trim(name)//' unknown',255)
       end select
       if (ntm_chem_beg==0) ntm_chem_beg = n
       ntm_chem_end = n
@@ -460,7 +468,7 @@ contains
           call set_is_dCO_tracer(n, .true.)
 #endif  /* TRACERS_dCO */
         case default
-          call stop_model('PAN-like tracer '//name//' unknown',255)
+          call stop_model('PAN-like tracer '//trim(name)//' unknown',255)
       end select
       if (ntm_chem_beg==0) ntm_chem_beg = n
       ntm_chem_end = n
@@ -483,12 +491,28 @@ contains
     subroutine AlkylNit_setSpec(name)
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
-      n_AlkylNit = n
       if (ntm_chem_beg==0) ntm_chem_beg = n
+      select case (name)
+        case ('AlkylNit')
+          n_AlkylNit = n
+#ifdef TRACERS_dCO
+        case ('d17ORNit')
+          n_d17ORNit = n
+          call set_is_dCO_tracer(n, .true.)
+        case ('d18ORNit')
+          n_d18ORNit = n
+          call set_is_dCO_tracer(n, .true.)
+        case ('d13CRNit')
+          n_d13CRNit = n
+          call set_is_dCO_tracer(n, .true.)
+#endif  /* TRACERS_dCO */
+        case default
+          call stop_model('AlkylNit-like tracer '//trim(name)//' unknown',255)
+      end select
       ntm_chem_end = n
       call set_ntm_power(n, -11)
       call set_tr_mm(n, mair)   !unknown molecular weight, so use air and make
-      ! note in the diagnostics write-out...
+                                ! note in the diagnostics write-out...
     end subroutine AlkylNit_setSpec
 
     subroutine Alkenes_setSpec(name)

@@ -134,7 +134,7 @@ c
         integer :: d17OPAN_M__dC217O3_NO2=0
         integer :: Isoprene_OH__dHCH17O_Alkenes=0
         integer :: Isoprene_O3__dHCH17O_Alkenes=0
-        integer :: AlkylNit_OH__NO2_d17OXO2=0
+        integer :: d17ORNit_OH__NO2_d17OXO2=0
         integer :: Alkenes_OH__dHCH17O_HO2=0
         integer :: Alkenes_O3__dHCH17O_CO=0
         integer :: Alkenes_O3__HCHO_dC17O=0
@@ -145,7 +145,7 @@ c
         integer :: dC217O3_HO2__dHCH17O_HO2=0
         integer :: d17OROR_M__d17Oald_HO2=0
         integer :: d17OXO2_HO2__dMe17OOH_M=0
-        integer :: d17OXO2N_NO__AlkylNit_M=0
+        integer :: d17OXO2N_NO__d17ORNit_M=0
         integer :: O1D_CH4__dHCH17O_H2=0
         integer :: Cl_CH4__HCl_dCH317O2=0
         integer :: ClO_dCH317O2__Cl_dHCH17O=0
@@ -165,7 +165,7 @@ c
         integer :: d18OPAN_M__dC218O3_NO2=0
         integer :: Isoprene_OH__dHCH18O_Alkenes=0
         integer :: Isoprene_O3__dHCH18O_Alkenes=0
-        integer :: AlkylNit_OH__NO2_d18OXO2=0
+        integer :: d18ORNit_OH__NO2_d18OXO2=0
         integer :: Alkenes_OH__dHCH18O_HO2=0
         integer :: Alkenes_O3__dHCH18O_CO=0
         integer :: Alkenes_O3__HCHO_dC18O=0
@@ -176,7 +176,7 @@ c
         integer :: dC218O3_HO2__dHCH18O_HO2=0
         integer :: d18OROR_M__d18Oald_HO2=0
         integer :: d18OXO2_HO2__dMe18OOH_M=0
-        integer :: d18OXO2N_NO__AlkylNit_M=0
+        integer :: d18OXO2N_NO__d18ORNit_M=0
         integer :: O1D_CH4__dHCH18O_H2=0
         integer :: Cl_CH4__HCl_dCH318O2=0
         integer :: ClO_dCH318O2__Cl_dHCH18O=0
@@ -196,7 +196,7 @@ c
         integer :: d13CPAN_M__d13C2O3_NO2=0
         integer :: Isoprene_OH__dH13CHO_Alkenes=0
         integer :: Isoprene_O3__dH13CHO_Alkenes=0
-        integer :: AlkylNit_OH__NO2_d13CXO2=0
+        integer :: d13CRNit_OH__NO2_d13CXO2=0
         integer :: Alkenes_OH__dH13CHO_HO2=0
         integer :: Alkenes_O3__dH13CHO_CO=0
         integer :: Alkenes_O3__HCHO_d13CO=0
@@ -207,7 +207,7 @@ c
         integer :: d13C2O3_HO2__dH13CHO_HO2=0
         integer :: d13CROR_M__d13Cald_HO2=0
         integer :: d13CXO2_HO2__d13MeOOH_M=0
-        integer :: d13CXO2N_NO__AlkylNit_M=0
+        integer :: d13CXO2N_NO__d13CRNit_M=0
         integer :: O1D_CH4__dH13CHO_H2=0
         integer :: Cl_CH4__HCl_d13CH3O2=0
         integer :: ClO_d13CH3O2__Cl_dH13CHO=0
@@ -1122,8 +1122,8 @@ C**************  Not Latitude-Dependant ****************************
           rrbi%Isoprene_OH__dHCH17O_Alkenes=irr
         case('Isoprene_O3__dHCH17O_Alkenes')
           rrbi%Isoprene_O3__dHCH17O_Alkenes=irr
-        case('AlkylNit_OH__NO2_d17OXO2')
-          rrbi%AlkylNit_OH__NO2_d17OXO2=irr
+        case('d17ORNit_OH__NO2_d17OXO2')
+          rrbi%d17ORNit_OH__NO2_d17OXO2=irr
         case('Alkenes_OH__dHCH17O_HO2')
           rrbi%Alkenes_OH__dHCH17O_HO2=irr
         case('Alkenes_O3__dHCH17O_CO')
@@ -1144,8 +1144,8 @@ C**************  Not Latitude-Dependant ****************************
           rrbi%d17OROR_M__d17Oald_HO2=irr
         case('d17OXO2_HO2__dMe17OOH_M')
           rrbi%d17OXO2_HO2__dMe17OOH_M=irr
-        case('d17OXO2N_NO__AlkylNit_M')
-          rrbi%d17OXO2N_NO__AlkylNit_M=irr
+        case('d17OXO2N_NO__d17ORNit_M')
+          rrbi%d17OXO2N_NO__d17ORNit_M=irr
         case('O(1D)_CH4__dHCH17O_H2')
           rrbi%O1D_CH4__dHCH17O_H2=irr
         case('Cl_CH4__HCl_dCH317O2')
@@ -1183,8 +1183,8 @@ C**************  Not Latitude-Dependant ****************************
           rrbi%Isoprene_OH__dHCH18O_Alkenes=irr
         case('Isoprene_O3__dHCH18O_Alkenes')
           rrbi%Isoprene_O3__dHCH18O_Alkenes=irr
-        case('AlkylNit_OH__NO2_d18OXO2')
-          rrbi%AlkylNit_OH__NO2_d18OXO2=irr
+        case('d18ORNit_OH__NO2_d18OXO2')
+          rrbi%d18ORNit_OH__NO2_d18OXO2=irr
         case('Alkenes_OH__dHCH18O_HO2')
           rrbi%Alkenes_OH__dHCH18O_HO2=irr
         case('Alkenes_O3__dHCH18O_CO')
@@ -1205,8 +1205,8 @@ C**************  Not Latitude-Dependant ****************************
           rrbi%d18OROR_M__d18Oald_HO2=irr
         case('d18OXO2_HO2__dMe18OOH_M')
           rrbi%d18OXO2_HO2__dMe18OOH_M=irr
-        case('d18OXO2N_NO__AlkylNit_M')
-          rrbi%d18OXO2N_NO__AlkylNit_M=irr
+        case('d18OXO2N_NO__d18ORNit_M')
+          rrbi%d18OXO2N_NO__d18ORNit_M=irr
         case('O(1D)_CH4__dHCH18O_H2')
           rrbi%O1D_CH4__dHCH18O_H2=irr
         case('Cl_CH4__HCl_dCH318O2')
@@ -1244,8 +1244,8 @@ C**************  Not Latitude-Dependant ****************************
           rrbi%Isoprene_OH__dH13CHO_Alkenes=irr
         case('Isoprene_O3__dH13CHO_Alkenes')
           rrbi%Isoprene_O3__dH13CHO_Alkenes=irr
-        case('AlkylNit_OH__NO2_d13CXO2')
-          rrbi%AlkylNit_OH__NO2_d13CXO2=irr
+        case('d13CRNit_OH__NO2_d13CXO2')
+          rrbi%d13CRNit_OH__NO2_d13CXO2=irr
         case('Alkenes_OH__dH13CHO_HO2')
           rrbi%Alkenes_OH__dH13CHO_HO2=irr
         case('Alkenes_O3__dH13CHO_CO')
@@ -1266,8 +1266,8 @@ C**************  Not Latitude-Dependant ****************************
           rrbi%d13CROR_M__d13Cald_HO2=irr
         case('d13CXO2_HO2__d13MeOOH_M')
           rrbi%d13CXO2_HO2__d13MeOOH_M=irr
-        case('d13CXO2N_NO__AlkylNit_M')
-          rrbi%d13CXO2N_NO__AlkylNit_M=irr
+        case('d13CXO2N_NO__d13CRNit_M')
+          rrbi%d13CXO2N_NO__d13CRNit_M=irr
         case('O(1D)_CH4__dH13CHO_H2')
           rrbi%O1D_CH4__dH13CHO_H2=irr
         case('Cl_CH4__HCl_d13CH3O2')

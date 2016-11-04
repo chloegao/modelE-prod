@@ -359,6 +359,7 @@ C**** set some defaults
         case ('Ox','N2O5','HNO3','H2O2','CH3OOH','HCHO','HO2NO2','PAN'
      *       ,'AlkylNit','ClOx','BrOx','HCl','HOCl','ClONO2','HBr'
 #ifdef TRACERS_dCO
+     *       ,'d17ORNit', 'd18ORNit', 'd13CRNit'
      *       ,'d17OPAN', 'd18OPAN', 'd13CPAN'
      *       ,'dMe17OOH', 'dMe18OOH', 'd13MeOOH'
      *       ,'dHCH17O', 'dHCH18O', 'dH13CHO'
@@ -369,6 +370,7 @@ C**** set some defaults
           select case (trim(pTracer%getName()))
             case ('N2O5','CH3OOH','HCHO','HO2NO2','PAN','AlkylNit','CFC'
 #ifdef TRACERS_dCO
+     *           ,'d17ORNit', 'd18ORNit', 'd13CRNit'
      *           ,'d17OPAN', 'd18OPAN', 'd13CPAN'
      *           ,'dMe17OOH', 'dMe18OOH', 'd13MeOOH'
      *           ,'dHCH17O', 'dHCH18O', 'dH13CHO'
@@ -1155,6 +1157,7 @@ C**** special one unique to HTO
       case ('HCl','HOCl','ClONO2','HBr','HOBr','BrONO2','CFC',
      &      'BrOx','ClOx','Alkenes','Paraffin','Isoprene','CO',
 #ifdef TRACERS_dCO
+     *      'd17ORNit', 'd18ORNit', 'd13CRNit',
      *      'd17OPAN', 'd18OPAN', 'd13CPAN',
      *      'dMe17OOH', 'dMe18OOH', 'd13MeOOH',
      *      'dHCH17O', 'dHCH18O', 'dH13CHO',
@@ -1177,6 +1180,7 @@ C**** special one unique to HTO
         select case(trname(n))
         case ('Alkenes','Paraffin','Isoprene','CO','N2O5','HNO3',
 #ifdef TRACERS_dCO
+     *      'd17ORNit', 'd18ORNit', 'd13CRNit',
      *      'd17OPAN', 'd18OPAN', 'd13CPAN',
      *      'dMe17OOH', 'dMe18OOH', 'd13MeOOH',
      *      'dHCH17O', 'dHCH18O', 'dH13CHO',
@@ -2664,6 +2668,7 @@ C**** This needs to be 'hand coded' depending on circumstances
 
       case ('NOx','CO','Isoprene','Alkenes','Paraffin',
 #ifdef TRACERS_dCO
+     *'d17ORNit', 'd18ORNit', 'd13CRNit',
      *'d17OPAN', 'd18OPAN', 'd13CPAN',
      *'dMe17OOH', 'dMe18OOH', 'd13MeOOH',
      *'dHCH17O', 'dHCH18O', 'dH13CHO',
@@ -2692,6 +2697,7 @@ C**** This needs to be 'hand coded' depending on circumstances
           if (diag_fc==2) call set_diag_rf(n,k)
         case('NOx','CO','Isoprene','Alkenes','Paraffin',
 #ifdef TRACERS_dCO
+     *  'd17ORNit', 'd18ORNit', 'd13CRNit',
      *  'd17OPAN', 'd18OPAN', 'd13CPAN',
      *  'dMe17OOH', 'dMe18OOH', 'd13MeOOH',
      *  'dHCH17O', 'dHCH18O', 'dH13CHO',
@@ -5722,7 +5728,11 @@ c**** earth
      &      MA(l,i,j)*axyp(i,j)*vol2mass(n)*0.d-11*ICfactor
           end do; end do; end do
 
-        case ('AlkylNit')
+        case ('AlkylNit'
+#ifdef TRACERS_dCO
+     *       ,'d17ORNit','d18ORNit','d13CRNit'
+#endif  /* TRACERS_dCO */
+     *       )
           select case(PI_run)
           case(1)     ; ICfactor=PIratio_other
           case default; ICfactor=1.d0
@@ -7171,6 +7181,7 @@ C****
       case ('Ox','NOx','ClOx','BrOx','N2O5','HNO3','H2O2','CH3OOH',
      &      'HCHO','HO2NO2','CO','PAN','AlkylNit','Alkenes','Paraffin',
 #ifdef TRACERS_dCO
+     *      'd17ORNit','d18ORNit','d13CRNit',
      *      'd17OPAN','d18OPAN','d13CPAN',
      *      'dMe17OOH', 'dMe18OOH', 'd13MeOOH',
      *      'dHCH17O', 'dHCH18O', 'dH13CHO',

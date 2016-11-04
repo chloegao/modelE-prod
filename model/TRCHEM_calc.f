@@ -22,6 +22,7 @@ C
       use OldTracer_mod, only: vol2mass, mass2vol
       USE TRACER_COM, only  : ntm_chem_beg, ntm_chem_end, ntm_chem,
 #ifdef TRACERS_dCO
+     &  n_d17ORNit,n_d18ORNit,n_d13CRNit,
      &  n_d17OPAN,n_d18OPAN,n_d13CPAN,
 #endif  /* TRACERS_dCO */
      &  n_CH4,n_Paraffin,n_PAN,n_Isoprene,n_stratOx,
@@ -80,6 +81,7 @@ C
      &      nn_ClOx,   nn_BrOx,  nn_HCl,   nn_HOCl,   nn_ClONO2,  
      &      nn_HBr,    nn_HOBr,  nn_BrONO2,nn_CFC,    nn_GLT
 #ifdef TRACERS_dCO
+     &     ,nn_d17ORNit,nn_d18ORNit,nn_d13CRNit
      &     ,nn_d17OPAN,nn_d18OPAN,nn_d13CPAN
      &     ,nn_dMe17OOH,nn_dMe18OOH,nn_d13MeOOH
      &     ,nn_dHCH17O,nn_dHCH18O,nn_dH13CHO
@@ -927,7 +929,7 @@ c       Set value for d17OXO2:
      &    +rr(rrbi%Terpenes_OH__dHCH17O_Alkenes,L)*y(nn_Terpenes,L)
      &      *0.85d0
 #endif  /* TRACERS_TERP */
-     &    +rr(rrbi%AlkylNit_OH__NO2_d17OXO2,L)*y(nn_AlkylNit,L))
+     &    +rr(rrbi%d17ORNit_OH__NO2_d17OXO2,L)*y(nn_d17ORNit,L))
      &    +y(nO3,L)*(rr(rrbi%Alkenes_O3__dHCH17O_CO,L)*y(nn_Alkenes,L)
      &      *0.29d0*0.5d0
      &      +rr(rrbi%Alkenes_O3__HCHO_dC17O,L)*y(nn_Alkenes,L)
@@ -973,7 +975,7 @@ c       Set value for d18OXO2:
      &    +rr(rrbi%Terpenes_OH__dHCH18O_Alkenes,L)*y(nn_Terpenes,L)
      &      *0.85d0
 #endif  /* TRACERS_TERP */
-     &    +rr(rrbi%AlkylNit_OH__NO2_d18OXO2,L)*y(nn_AlkylNit,L))
+     &    +rr(rrbi%d18ORNit_OH__NO2_d18OXO2,L)*y(nn_d18ORNit,L))
      &    +y(nO3,L)*(rr(rrbi%Alkenes_O3__dHCH18O_CO,L)*y(nn_Alkenes,L)
      &      *0.29d0*0.5d0
      &      +rr(rrbi%Alkenes_O3__HCHO_dC18O,L)*y(nn_Alkenes,L)
@@ -1019,7 +1021,7 @@ c       Set value for d13CXO2:
      &    +rr(rrbi%Terpenes_OH__dH13CHO_Alkenes,L)*y(nn_Terpenes,L)
      &      *0.85d0
 #endif  /* TRACERS_TERP */
-     &    +rr(rrbi%AlkylNit_OH__NO2_d13CXO2,L)*y(nn_AlkylNit,L))
+     &    +rr(rrbi%d13CRNit_OH__NO2_d13CXO2,L)*y(nn_d13CRNit,L))
      &    +y(nO3,L)*(rr(rrbi%Alkenes_O3__dH13CHO_CO,L)*y(nn_Alkenes,L)
      &      *0.29d0*0.5d0
      &      +rr(rrbi%Alkenes_O3__HCHO_d13CO,L)*y(nn_Alkenes,L)
@@ -1081,7 +1083,7 @@ c       Set value for d17OXO2N:
      &    +rr(rrbi%Terpenes_OH__dHCH17O_Alkenes,L)*y(nn_Terpenes,L)
      &      *y(nOH,L)*0.15d0
 #endif  /* TRACERS_TERP */
-        XO2Ndest=XO2N_HO2+rr(rrbi%d17OXO2N_NO__AlkylNit_M,L)*y(nNO,L)
+        XO2Ndest=XO2N_HO2+rr(rrbi%d17OXO2N_NO__d17ORNit_M,L)*y(nNO,L)
         if(XO2Ndest > 1.d-7)then
           y(nd17OXO2N,L)=(XO2Nprod/XO2Ndest)
         else
@@ -1101,7 +1103,7 @@ c       Set value for d18OXO2N:
      &    +rr(rrbi%Terpenes_OH__dHCH18O_Alkenes,L)*y(nn_Terpenes,L)
      &      *y(nOH,L)*0.15d0
 #endif  /* TRACERS_TERP */
-        XO2Ndest=XO2N_HO2+rr(rrbi%d18OXO2N_NO__AlkylNit_M,L)*y(nNO,L)
+        XO2Ndest=XO2N_HO2+rr(rrbi%d18OXO2N_NO__d18ORNit_M,L)*y(nNO,L)
         if(XO2Ndest > 1.d-7)then
           y(nd18OXO2N,L)=(XO2Nprod/XO2Ndest)
         else
@@ -1121,7 +1123,7 @@ c       Set value for d13CXO2N:
      &    +rr(rrbi%Terpenes_OH__dH13CHO_Alkenes,L)*y(nn_Terpenes,L)
      &      *y(nOH,L)*0.15d0
 #endif  /* TRACERS_TERP */
-        XO2Ndest=XO2N_HO2+rr(rrbi%d13CXO2N_NO__AlkylNit_M,L)*y(nNO,L)
+        XO2Ndest=XO2N_HO2+rr(rrbi%d13CXO2N_NO__d13CRNit_M,L)*y(nNO,L)
         if(XO2Ndest > 1.d-7)then
           y(nd13CXO2N,L)=(XO2Nprod/XO2Ndest)
         else
@@ -1722,7 +1724,7 @@ c (chem1prn: argument before multip is index = number of call):
             write(out_line,'(a48,a6,e10.3)')
      &        'production from d17OXO2N + HO2 ','dy = ',
      &        y(nHO2,lprn)*y(nNO,lprn)
-     &        *rr(rrbi%d17OXO2N_NO__AlkylNit_M,lprn)
+     &        *rr(rrbi%d17OXO2N_NO__d17ORNit_M,lprn)
      &        *rr(rrbi%d17OXO2_HO2__dMe17OOH_M,lprn)
      &        /(y(nNO,lprn)*4.2d-12*exp(180.d0/ta(lprn)))
      &        *y(nd17OXO2N,lprn)*dt2
@@ -1732,7 +1734,7 @@ c (chem1prn: argument before multip is index = number of call):
             write(out_line,'(a48,a6,e10.3)')
      &        'production from d18OXO2N + HO2 ','dy = ',
      &        y(nHO2,lprn)*y(nNO,lprn)
-     &        *rr(rrbi%d18OXO2N_NO__AlkylNit_M,lprn)
+     &        *rr(rrbi%d18OXO2N_NO__d18ORNit_M,lprn)
      &        *rr(rrbi%d18OXO2_HO2__dMe18OOH_M,lprn)
      &        /(y(nNO,lprn)*4.2d-12*exp(180.d0/ta(lprn)))
      &        *y(nd18OXO2N,lprn)*dt2
@@ -1742,7 +1744,7 @@ c (chem1prn: argument before multip is index = number of call):
             write(out_line,'(a48,a6,e10.3)')
      &        'production from d13CXO2N + HO2 ','dy = ',
      &        y(nHO2,lprn)*y(nNO,lprn)
-     &        *rr(rrbi%d13CXO2N_NO__AlkylNit_M,lprn)
+     &        *rr(rrbi%d13CXO2N_NO__d13CRNit_M,lprn)
      &        *rr(rrbi%d13CXO2_HO2__d13MeOOH_M,lprn)
      &        /(y(nNO,lprn)*4.2d-12*exp(180.d0/ta(lprn)))
      &        *y(nd13CXO2N,lprn)*dt2
@@ -2218,6 +2220,14 @@ c First check for nitrogen loss > 100% :
 #endif  /* TRACERS_dCO */
         if(-changeL(L,n_AlkylNit) > trm(I,J,L,n_AlkylNit))
      &  changeL(L,n_AlkylNit)=minKG-trm(I,J,L,n_AlkylNit)
+#ifdef TRACERS_dCO
+        if(-changeL(L,n_d17ORNit) > trm(I,J,L,n_d17ORNit))
+     &  changeL(L,n_d17ORNit)=minKG-trm(I,J,L,n_d17ORNit)
+        if(-changeL(L,n_d18ORNit) > trm(I,J,L,n_d18ORNit))
+     &  changeL(L,n_d18ORNit)=minKG-trm(I,J,L,n_d18ORNit)
+        if(-changeL(L,n_d13CRNit) > trm(I,J,L,n_d13CRNit))
+     &  changeL(L,n_d13CRNit)=minKG-trm(I,J,L,n_d13CRNit)
+#endif  /* TRACERS_dCO */
         if(-changeL(L,n_ClONO2) > trm(I,J,L,n_ClONO2))
      &  changeL(L,n_ClONO2)=minKG-trm(I,J,L,n_ClONO2)
         if(-changeL(L,n_BrONO2) > trm(I,J,L,n_BrONO2))
@@ -2292,6 +2302,14 @@ c          reduce N destruction to match NOx prodcution:
 #endif  /* TRACERS_dCO */
            if(changeL(L,n_AlkylNit) < 0.d0)changeL(L,n_AlkylNit)=
      &     changeL(L,n_AlkylNit)*ratioD
+#ifdef TRACERS_dCO
+           if(changeL(L,n_d17ORNit) < 0.d0)changeL(L,n_d17ORNit)=
+     &     changeL(L,n_d17ORNit)*ratioD
+           if(changeL(L,n_d18ORNit) < 0.d0)changeL(L,n_d18ORNit)=
+     &     changeL(L,n_d18ORNit)*ratioD
+           if(changeL(L,n_d13CRNit) < 0.d0)changeL(L,n_d13CRNit)=
+     &     changeL(L,n_d13CRNit)*ratioD
+#endif  /* TRACERS_dCO */
            vClONO2=changeL(L,n_ClONO2)*(1.d0-ratioD)
            if(changeL(L,n_ClONO2) < 0.d0)changeL(L,n_ClONO2)=
      &     changeL(L,n_ClONO2)*ratioD
@@ -2355,6 +2373,14 @@ c          reduce N production to match NOx loss:
 #endif  /* TRACERS_dCO */
            if(changeL(L,n_AlkylNit) > 0.d0)changeL(L,n_AlkylNit)=
      &     changeL(L,n_AlkylNit)*ratioP
+#ifdef TRACERS_dCO
+           if(changeL(L,n_d17ORNit) > 0.d0)changeL(L,n_d17ORNit)=
+     &     changeL(L,n_d17ORNit)*ratioP
+           if(changeL(L,n_d18ORNit) > 0.d0)changeL(L,n_d18ORNit)=
+     &     changeL(L,n_d18ORNit)*ratioP
+           if(changeL(L,n_d13CRNit) > 0.d0)changeL(L,n_d13CRNit)=
+     &     changeL(L,n_d13CRNit)*ratioP
+#endif  /* TRACERS_dCO */
            vClONO2=changeL(L,n_ClONO2)*(1.d0-ratioP)
            if(changeL(L,n_ClONO2) > 0.d0)changeL(L,n_ClONO2)=
      &     changeL(L,n_ClONO2)*ratioP
