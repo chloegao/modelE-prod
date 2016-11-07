@@ -1141,7 +1141,7 @@ c       Set value for RXPAR:
         RXPARprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
      &      *y(nOH,L)*0.11d0
      &    +rr(rrbi%Alkenes_OH__HCHO_HO2,L)*y(nn_Alkenes,L)*y(nOH,L)
-     &    +rr(rrbi%ROR_M__Aldehyde_HO2,L)*yROR(I,J,L)*y(nM,L)*2.1d0
+     &    +rr(rrbi%ROR_M__Aldehyde_HO2,L)*yROR(I,J,L)*2.1d0
      &    +rr(rrbi%Alkenes_O3__HCHO_CO,L)*y(nn_Alkenes,L)*y(nO3,L)*0.9d0
      &    +rr(rrbi%Alkenes_NO3__HCHO_NO2,L)*y(nNO3,L)*y(nn_Alkenes,L)
         RXPARdest=RXPAR_PAR
