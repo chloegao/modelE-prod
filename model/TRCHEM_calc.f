@@ -1086,7 +1086,7 @@ c       Set value for d17OXO2N:
      &      *y(nOH,L)*0.13d0
      &    +rr(rrbi%Alkenes_NO3__dHCH17O_NO2,L)*y(nNO3,L)*y(nn_Alkenes,L)
      &      *0.09d0
-     &    +rr(rrbi%ROR_M__Aldehyde_HO2,L)*yROR(I,J,L)*0.04d0
+     &    +rr(rrbi%d17OROR_M__d17Oald_HO2,L)*yd17OROR(I,J,L)*0.04d0
      &    +rr(rrbi%Isoprene_OH__dHCH17O_Alkenes,L)*y(nn_Isoprene,L)*
      &      y(nOH,L)*0.15d0
 #ifdef TRACERS_TERP
@@ -1106,7 +1106,7 @@ c       Set value for d18OXO2N:
      &      *y(nOH,L)*0.13d0
      &    +rr(rrbi%Alkenes_NO3__dHCH18O_NO2,L)*y(nNO3,L)*y(nn_Alkenes,L)
      &      *0.09d0
-     &    +rr(rrbi%ROR_M__Aldehyde_HO2,L)*yROR(I,J,L)*0.04d0
+     &    +rr(rrbi%d18OROR_M__d18Oald_HO2,L)*yd18OROR(I,J,L)*0.04d0
      &    +rr(rrbi%Isoprene_OH__dHCH18O_Alkenes,L)*y(nn_Isoprene,L)*
      &      y(nOH,L)*0.15d0
 #ifdef TRACERS_TERP
@@ -1126,7 +1126,7 @@ c       Set value for d13CXO2N:
      &      *y(nOH,L)*0.13d0
      &    +rr(rrbi%Alkenes_NO3__dH13CHO_NO2,L)*y(nNO3,L)*y(nn_Alkenes,L)
      &      *0.09d0
-     &    +rr(rrbi%ROR_M__Aldehyde_HO2,L)*yROR(I,J,L)*0.04d0
+     &    +rr(rrbi%d13CROR_M__d13Cald_HO2,L)*yd13CROR(I,J,L)*0.04d0
      &    +rr(rrbi%Isoprene_OH__dH13CHO_Alkenes,L)*y(nn_Isoprene,L)*
      &      y(nOH,L)*0.15d0
 #ifdef TRACERS_TERP
