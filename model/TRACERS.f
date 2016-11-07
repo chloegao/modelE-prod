@@ -1355,6 +1355,7 @@ C**** check whether air mass is conserved
      &     ,ydC217O3,ydC218O3,yd13C2O3
      &     ,yd17OXO2,yd18OXO2,yd13CXO2
      &     ,yd17OXO2N,yd18OXO2N,yd13CXO2N
+     &     ,yd13CXPAR
      &     ,yd17OROR,yd18OROR,yd13CROR
      &     ,yd17Oald,yd18Oald,yd13Cald
      &     ,ydCH317O2,ydCH318O2,yd13CH3O2
@@ -1633,6 +1634,11 @@ c not yet        if(am_i_root()) write(kunit,err=10) header,aijl_glob
        header='TRACERS_SPECIAL_Shindell: yRXPAR(i,j,l)'
         call pack_data(grid,yRXPAR,Aijl_chem)
         if(am_i_root())write(kunit,err=10)header,Aijl_chem
+#ifdef TRACERS_dCO
+       header='TRACERS_SPECIAL_Shindell: yd13CXPAR(i,j,l)'
+        call pack_data(grid,yd13CXPAR,Aijl_chem)
+        if(am_i_root())write(kunit,err=10)header,Aijl_chem
+#endif  /* TRACERS_dCO */
        header='TRACERS_SPECIAL_Shindell: ydms(i,j,l)'
         call pack_data(grid,ydms,Aijl_chem)
         if(am_i_root())write(kunit,err=10)header,Aijl_chem
@@ -1860,6 +1866,10 @@ c not yet          call unpack_data(grid,aijl_glob,daily_z)
 #endif  /* TRACERS_dCO */
           if(am_i_root())read(kunit,err=10)header,Aijl_chem
           call unpack_data(grid,Aijl_chem,yRXPAR)
+#ifdef TRACERS_dCO
+          if(am_i_root())read(kunit,err=10)header,Aijl_chem
+          call unpack_data(grid,Aijl_chem,yd13CXPAR)
+#endif  /* TRACERS_dCO */
           if(am_i_root())read(kunit,err=10)header,Aijl_chem
           call unpack_data(grid,Aijl_chem,ydms)
           if(am_i_root())read(kunit,err=10)header,Aijl_chem
@@ -2118,6 +2128,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
      &,ydC217O3,ydC218O3,yd13C2O3
      &,yd17OXO2,yd18OXO2,yd13CXO2
      &,yd17OXO2N,yd18OXO2N,yd13CXO2N
+     &,yd13CXPAR
      &,yd17OROR,yd18OROR,yd13CROR
      &,yd17Oald,yd18Oald,yd13Cald
      &,ydCH317O2,ydCH318O2,yd13CH3O2
@@ -2237,6 +2248,9 @@ c daily_z is currently only needed for CS
       call doVar(handle,action,yd13Cald,'yd13Cald'//ijcdims)
 #endif  /* TRACERS_dCO */
       call doVar(handle,action,yRXPAR,'yRXPAR'//ijcdims)
+#ifdef TRACERS_dCO
+      call doVar(handle,action,yd13CXPAR,'yd13CXPAR'//ijcdims)
+#endif  /* TRACERS_dCO */
       call doVar(handle,action,ydms,'ydms'//ijcdims)
       call doVar(handle,action,ySO2,'ySO2'//ijcdims)
       call doVar(handle,action,sulfate,'sulfate'//ijldims) ! stays ijldims

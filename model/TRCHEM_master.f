@@ -49,6 +49,7 @@ c
      &                      n_HBr,n_HOCl,n_HCl,n_ClONO2,n_ClOx,
      &                      n_BrOx,n_BrONO2,n_CFC,n_N2O,n_HOBR
 #ifdef TRACERS_dCO
+     &                     ,n_d17ORNit,n_d18ORNit,n_d13CRNit
      &                     ,n_dHCH17O,n_dHCH18O,n_dH13CHO
      &                     ,n_dC17O,n_dC18O,n_d13CO
 #endif  /* TRACERS_dCO */
@@ -95,6 +96,7 @@ c
      &      nn_ClOx,   nn_BrOx,  nn_HCl,   nn_HOCl,   nn_ClONO2,  
      &      nn_HBr,    nn_HOBr,  nn_BrONO2,nn_CFC,    nn_GLT
 #ifdef TRACERS_dCO
+     &     ,nn_d17ORNit,nn_d18ORNit,nn_d13CRNit
      &     ,nn_dHCH17O,nn_dHCH18O,nn_dH13CHO
 #endif  /* TRACERS_dCO */
 #ifdef CACHED_SUBDD
@@ -176,6 +178,7 @@ C**** Local parameters and variables and arguments:
      &  thick,changeCO,changeN_d1,changeN_d2,changeN_d3,changeNO3p,
 #ifdef TRACERS_dCO
      &  rdHCH17OplusNO3,rdHCH18OplusNO3,rdH13CHOplusNO3,
+     &  changed17ORNit,changed18ORNit,changed13CRNit,
      &  changedHCH17O,changedHCH18O,changedH13CHO,
      &  changedC17O,changedC18O,changed13CO,
 #endif  /* TRACERS_dCO */
@@ -185,7 +188,7 @@ C**** Local parameters and variables and arguments:
      &  countTT,bHNO3,mHNO3,HNO3_thresh,Ttemp,changeBrOx,changeBrONO2,
      &  changeBrOx2,changeHBr,tempChangeNOx,ss27x2,ss27x2_c,OHpptv,
      &  HO2pptv,ObyO3,NO2byNO,ClbyClO,voc2nox_denom,tempChangeOx,pNOloc
-      integer :: igas,LL,I,J,L,N,inss,L2,n2,ierr,ierr_loc,Jqq,Iqq,
+      integer :: igas,LL,I,J,L,N,inss,L2,n2,Jqq,Iqq,
      & maxT,iu,itemp_iter,ih1330e,ih1030e,ih1030,ih1330,m,istep,index1,
      & index2,nb
       LOGICAL                   :: error, jay, daylight
@@ -414,8 +417,6 @@ C info to set strat H2O based on tropical tropopause H2O and CH4:
       enddo
       call zonalmean_ij2ij(surfIsop,zonalIsop)
 
-      ierr_loc = 0
-
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       j_loop: DO J=J_0,J_1          ! ===> MAIN J LOOP BEGINS <===
 
@@ -618,6 +619,9 @@ c - set reactive species for use in family chemistry & nighttime NO2:
        y(nd13CXO2N,L)    =yd13CXO2N(I,J,L)
 #endif  /* TRACERS_dCO */
        y(nRXPAR,L)   =yRXPAR(I,J,L)
+#ifdef TRACERS_dCO
+       y(nd13CXPAR,L)   =yd13CXPAR(I,J,L)
+#endif  /* TRACERS_dCO */
        y(nROR,L)     =yROR(I,J,L)
 #ifdef TRACERS_dCO
        y(nd17OROR,L) =yd17OROR(I,J,L)
@@ -859,8 +863,7 @@ CCCCCCCCCCCCCCCCC NON-FAMILY CHEMISTRY CCCCCCCCCCCCCCCCCCCCCCCC
       end do
 #endif  /* TRACERS_AEROSOLS_SOA */
 
-      call chemstep(topLevelOfChemistry,I,J,ierr_loc)
-      if(ierr_loc > 0) cycle i_loop
+      call chemstep(topLevelOfChemistry,I,J)
 
 C Save 3D radical arrays to pass to aerosol code:
       if(coupled_chem == 1) then
@@ -1333,6 +1336,20 @@ C Alkenes, Isoprene, Terpenes (if used) and AlkylNit:
 #ifdef TRACERS_TERP
      &                +rTerpplusNO3*0.9d0
 #endif  /* TRACERS_TERP */
+#ifdef TRACERS_dCO
+        changed17ORNit=rIsopplusNO3*0.9d0
+#ifdef TRACERS_TERP
+     &                +rTerpplusNO3*0.9d0
+#endif  /* TRACERS_TERP */
+        changed18ORNit=rIsopplusNO3*0.9d0
+#ifdef TRACERS_TERP
+     &                +rTerpplusNO3*0.9d0
+#endif  /* TRACERS_TERP */
+        changed13CRNit=rIsopplusNO3*0.9d0
+#ifdef TRACERS_TERP
+     &                +rTerpplusNO3*0.9d0
+#endif  /* TRACERS_TERP */
+#endif  /* TRACERS_dCO */
 
 c Convert some changes to molecules/cm3/s:
         changeHNO3=gwprodHNO3+2.d0*wprod_sulf  !always positive
@@ -1413,6 +1430,11 @@ C       Include reactions on dust for HNO3:
 C Apply Alkenes, AlkyNit, and Aldehyde changes here:
         y(nn_Alkenes,L)  =y(nn_Alkenes,L)  +changeAlkenes
         y(nn_AlkylNit,L) =y(nn_AlkylNit,L) +changeAlkylNit
+#ifdef TRACERS_dCO
+        y(nn_d17ORNit,L) =y(nn_d17ORNit,L) +changed17ORNit
+        y(nn_d18ORNit,L) =y(nn_d18ORNit,L) +changed18ORNit
+        y(nn_d13CRNit,L) =y(nn_d13CRNit,L) +changed13CRNit
+#endif  /* TRACERS_dCO */
         yAldehyde(I,J,L)=yAldehyde(I,J,L)+changeAldehyde
 #ifdef TRACERS_dCO
         yd17Oald(I,J,L)=yd17Oald(I,J,L)+changed17Oald
@@ -1635,6 +1657,35 @@ c -- AlkylNit -- (AlkylNit from gas phase rxns)
           changeAlkylNit=changeL(L,n_AlkylNit)*mass2vol(n_AlkylNit)
      &    *bypfactor
         END IF
+#ifdef TRACERS_dCO
+c -- d17ORNit -- (d17ORNit from gas phase rxns)
+        changeL(L,n_d17ORNit)=
+     &  changed17ORNit*pfactor*vol2mass(n_d17ORNit)
+        IF((trm(i,j,l,n_d17ORNit)+changeL(l,n_d17ORNit)) < minKG)
+     &  THEN
+          changeL(l,n_d17ORNit) = minKG - trm(i,j,l,n_d17ORNit)
+          changed17ORNit=changeL(L,n_d17ORNit)*mass2vol(n_d17ORNit)
+     &    *bypfactor
+        END IF
+c -- d18ORNit -- (d18ORNit from gas phase rxns)
+        changeL(L,n_d18ORNit)=
+     &  changed18ORNit*pfactor*vol2mass(n_d18ORNit)
+        IF((trm(i,j,l,n_d18ORNit)+changeL(l,n_d18ORNit)) < minKG)
+     &  THEN
+          changeL(l,n_d18ORNit) = minKG - trm(i,j,l,n_d18ORNit)
+          changed18ORNit=changeL(L,n_d18ORNit)*mass2vol(n_d18ORNit)
+     &    *bypfactor
+        END IF
+c -- d13CRNit -- (d13CRNit from gas phase rxns)
+        changeL(L,n_d13CRNit)=
+     &  changed13CRNit*pfactor*vol2mass(n_d13CRNit)
+        IF((trm(i,j,l,n_d13CRNit)+changeL(l,n_d13CRNit)) < minKG)
+     &  THEN
+          changeL(l,n_d13CRNit) = minKG - trm(i,j,l,n_d13CRNit)
+          changed13CRNit=changeL(L,n_d13CRNit)*mass2vol(n_d13CRNit)
+     &    *bypfactor
+        END IF
+#endif  /* TRACERS_dCO */
 
 C Save 3D radical arrays to pass to aerosol code:
 C Make sure we get the nightime values; Set OH to zero for now:
@@ -2040,18 +2091,6 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
       END DO j_loop ! ===> MAIN J LOOP ENDS <===
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-
-      ! check if there was that error in certain section of chemstep
-      ! anywhere in the world; if so, stop the model (all processors):
-      
-      ! Currently the section where ierr could become non-zero is
-      ! commented. If it remains so, remove it from calls/sums/checks
-      ! in this program:
-      call globalmax(grid,ierr_loc,ierr)
-      if(ierr > 0) then ! all processors call stop_model
-        if(am_i_root()) write(6,*) 'chemstep Oxcorr fault'  
-        call stop_model('chemstep Oxcorr fault',255)
-      endif
 
 #ifdef CACHED_SUBDD
       call find_groups('taijlh',grpids,ngroups)
@@ -2475,6 +2514,23 @@ CCCCCCCCCCCCC PRINT SOME CHEMISTRY DIAGNOSTICS CCCCCCCCCCCCCCCC
      &    100.d0*(changeAlkylNit)/y(nn_AlkylNit,L),' percent of'
      &    ,y(nn_AlkylNit,L),'(',1.d9*y(nn_AlkylNit,L)/y(nM,L),' ppbv)'
           call write_parallel(trim(out_line),crit=jay)
+#ifdef TRACERS_dCO
+          write(out_line,198) 'd17ORNit',': ',
+     &    changed17ORNit,' molecules produced; ',
+     &    100.d0*(changed17ORNit)/y(nn_d17ORNit,L),' percent of'
+     &    ,y(nn_d17ORNit,L),'(',1.d9*y(nn_d17ORNit,L)/y(nM,L),' ppbv)'
+          call write_parallel(trim(out_line),crit=jay)
+          write(out_line,198) 'd18ORNit',': ',
+     &    changed18ORNit,' molecules produced; ',
+     &    100.d0*(changed18ORNit)/y(nn_d18ORNit,L),' percent of'
+     &    ,y(nn_d18ORNit,L),'(',1.d9*y(nn_d18ORNit,L)/y(nM,L),' ppbv)'
+          call write_parallel(trim(out_line),crit=jay)
+          write(out_line,198) 'd13CRNit',': ',
+     &    changed13CRNit,' molecules produced; ',
+     &    100.d0*(changed13CRNit)/y(nn_d13CRNit,L),' percent of'
+     &    ,y(nn_d13CRNit,L),'(',1.d9*y(nn_d13CRNit,L)/y(nM,L),' ppbv)'
+          call write_parallel(trim(out_line),crit=jay)
+#endif  /* TRACERS_dCO */
           write(out_line,198) ay(nn_ClONO2),': ',
      &    changeClONO2,' molecules produced; ',
      &    100.d0*(changeClONO2)/y(nn_ClONO2,L),' percent of'

@@ -1,5 +1,5 @@
 #include "rundeck_opts.h"
-      SUBROUTINE chemstep(maxL,I,J,ierr_loc)
+      SUBROUTINE chemstep(maxL,I,J)
 !@sum chemstep Calculate new concentrations after photolysis & chemistry
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
 !@calls rates,chem1,chem1prn
@@ -22,6 +22,7 @@ C
       use OldTracer_mod, only: vol2mass, mass2vol
       USE TRACER_COM, only  : ntm_chem_beg, ntm_chem_end, ntm_chem,
 #ifdef TRACERS_dCO
+     &  n_d17ORNit,n_d18ORNit,n_d13CRNit,
      &  n_d17OPAN,n_d18OPAN,n_d13CPAN,
 #endif  /* TRACERS_dCO */
      &  n_CH4,n_Paraffin,n_PAN,n_Isoprene,n_stratOx,
@@ -48,6 +49,8 @@ C
      &                   nd17OXO2,nd18OXO2,nd13CXO2,
      &                   yd17OXO2N,yd18OXO2N,yd13CXO2N,
      &                   nd17OXO2N,nd18OXO2N,nd13CXO2N,
+     &                   yd13CXPAR,
+     &                   nd13CXPAR,
      &                   yd17OROR,yd18OROR,yd13CROR,
      &                   nd17OROR,nd18OROR,nd13CROR,
      &                   yd17Oald,yd18Oald,yd13Cald,
@@ -80,6 +83,7 @@ C
      &      nn_ClOx,   nn_BrOx,  nn_HCl,   nn_HOCl,   nn_ClONO2,  
      &      nn_HBr,    nn_HOBr,  nn_BrONO2,nn_CFC,    nn_GLT
 #ifdef TRACERS_dCO
+     &     ,nn_d17ORNit,nn_d18ORNit,nn_d13CRNit
      &     ,nn_d17OPAN,nn_d18OPAN,nn_d13CPAN
      &     ,nn_dMe17OOH,nn_dMe18OOH,nn_d13MeOOH
      &     ,nn_dHCH17O,nn_dHCH18O,nn_dH13CHO
@@ -117,7 +121,6 @@ C**** Local parameters and variables and arguments:
 !@var rNO3prod,rNO2prod,rNOprod to acct for dOx from NOx partitioning
 !@var PRES local nominal pressure for regional Ox tracers
       INTEGER, INTENT(IN) :: maxL,I,J
-      INTEGER, INTENT(INOUT) :: ierr_loc
       INTEGER :: L,iter,igas,maxT,Lz,it,n
       INTEGER :: J_0, J_1
       character(len=300) :: out_line
@@ -196,6 +199,9 @@ C**** Local parameters and variables and arguments:
         y(nd13CXO2N,L)= yd13CXO2N(I,J,L)
 #endif  /* TRACERS_dCO */
         y(nRXPAR,L)   =    yRXPAR(I,J,L)
+#ifdef TRACERS_dCO
+        y(nd13CXPAR,L)= yd13CXPAR(I,J,L)
+#endif  /* TRACERS_dCO */
         y(nAldehyde,L)= yAldehyde(I,J,L)
 #ifdef TRACERS_dCO
         y(nd17Oald,L) =  yd17Oald(I,J,L)
@@ -235,6 +241,9 @@ C**** Local parameters and variables and arguments:
         y(nd13CXO2N,L)= 0.d0
 #endif  /* TRACERS_dCO */
         y(nRXPAR,L)   = 0.d0
+#ifdef TRACERS_dCO
+        y(nd13CXPAR,L)= 0.d0
+#endif  /* TRACERS_dCO */
         y(nAldehyde,L)= 0.d0
 #ifdef TRACERS_dCO
         y(nd17Oald,L) = 0.d0
@@ -884,7 +893,7 @@ c       Set value for XO2:
 #ifdef TRACERS_TERP
      &    +rr(rrbi%Terpenes_OH__HCHO_Alkenes,L)*y(nn_Terpenes,L)*0.85d0
 #endif  /* TRACERS_TERP */
-     &    +rr(rrbi%AlkylNit_OH__NO2_M,L)*y(nn_AlkylNit,L))
+     &    +rr(rrbi%AlkylNit_OH__NO2_XO2,L)*y(nn_AlkylNit,L))
      &    +y(nO3,L)*(rr(rrbi%Alkenes_O3__HCHO_CO,L)*y(nn_Alkenes,L)
      &      *0.29d0
      &    +rr(rrbi%Isoprene_O3__HCHO_Alkenes,L)*y(nn_Isoprene,L)*0.18d0
@@ -928,7 +937,7 @@ c       Set value for d17OXO2:
      &    +rr(rrbi%Terpenes_OH__dHCH17O_Alkenes,L)*y(nn_Terpenes,L)
      &      *0.85d0
 #endif  /* TRACERS_TERP */
-     &    +rr(rrbi%AlkylNit_OH__NO2_M,L)*y(nn_AlkylNit,L))
+     &    +rr(rrbi%d17ORNit_OH__NO2_d17OXO2,L)*y(nn_d17ORNit,L))
      &    +y(nO3,L)*(rr(rrbi%Alkenes_O3__dHCH17O_CO,L)*y(nn_Alkenes,L)
      &      *0.29d0*0.5d0
      &      +rr(rrbi%Alkenes_O3__HCHO_dC17O,L)*y(nn_Alkenes,L)
@@ -974,7 +983,7 @@ c       Set value for d18OXO2:
      &    +rr(rrbi%Terpenes_OH__dHCH18O_Alkenes,L)*y(nn_Terpenes,L)
      &      *0.85d0
 #endif  /* TRACERS_TERP */
-     &    +rr(rrbi%AlkylNit_OH__NO2_M,L)*y(nn_AlkylNit,L))
+     &    +rr(rrbi%d18ORNit_OH__NO2_d18OXO2,L)*y(nn_d18ORNit,L))
      &    +y(nO3,L)*(rr(rrbi%Alkenes_O3__dHCH18O_CO,L)*y(nn_Alkenes,L)
      &      *0.29d0*0.5d0
      &      +rr(rrbi%Alkenes_O3__HCHO_dC18O,L)*y(nn_Alkenes,L)
@@ -1020,7 +1029,7 @@ c       Set value for d13CXO2:
      &    +rr(rrbi%Terpenes_OH__dH13CHO_Alkenes,L)*y(nn_Terpenes,L)
      &      *0.85d0
 #endif  /* TRACERS_TERP */
-     &    +rr(rrbi%AlkylNit_OH__NO2_M,L)*y(nn_AlkylNit,L))
+     &    +rr(rrbi%d13CRNit_OH__NO2_d13CXO2,L)*y(nn_d13CRNit,L))
      &    +y(nO3,L)*(rr(rrbi%Alkenes_O3__dH13CHO_CO,L)*y(nn_Alkenes,L)
      &      *0.29d0*0.5d0
      &      +rr(rrbi%Alkenes_O3__HCHO_d13CO,L)*y(nn_Alkenes,L)
@@ -1082,7 +1091,7 @@ c       Set value for d17OXO2N:
      &    +rr(rrbi%Terpenes_OH__dHCH17O_Alkenes,L)*y(nn_Terpenes,L)
      &      *y(nOH,L)*0.15d0
 #endif  /* TRACERS_TERP */
-        XO2Ndest=XO2N_HO2+rr(rrbi%d17OXO2N_NO__AlkylNit_M,L)*y(nNO,L)
+        XO2Ndest=XO2N_HO2+rr(rrbi%d17OXO2N_NO__d17ORNit_M,L)*y(nNO,L)
         if(XO2Ndest > 1.d-7)then
           y(nd17OXO2N,L)=(XO2Nprod/XO2Ndest)
         else
@@ -1102,7 +1111,7 @@ c       Set value for d18OXO2N:
      &    +rr(rrbi%Terpenes_OH__dHCH18O_Alkenes,L)*y(nn_Terpenes,L)
      &      *y(nOH,L)*0.15d0
 #endif  /* TRACERS_TERP */
-        XO2Ndest=XO2N_HO2+rr(rrbi%d18OXO2N_NO__AlkylNit_M,L)*y(nNO,L)
+        XO2Ndest=XO2N_HO2+rr(rrbi%d18OXO2N_NO__d18ORNit_M,L)*y(nNO,L)
         if(XO2Ndest > 1.d-7)then
           y(nd18OXO2N,L)=(XO2Nprod/XO2Ndest)
         else
@@ -1122,7 +1131,7 @@ c       Set value for d13CXO2N:
      &    +rr(rrbi%Terpenes_OH__dH13CHO_Alkenes,L)*y(nn_Terpenes,L)
      &      *y(nOH,L)*0.15d0
 #endif  /* TRACERS_TERP */
-        XO2Ndest=XO2N_HO2+rr(rrbi%d13CXO2N_NO__AlkylNit_M,L)*y(nNO,L)
+        XO2Ndest=XO2N_HO2+rr(rrbi%d13CXO2N_NO__d13CRNit_M,L)*y(nNO,L)
         if(XO2Ndest > 1.d-7)then
           y(nd13CXO2N,L)=(XO2Nprod/XO2Ndest)
         else
@@ -1151,6 +1160,27 @@ c       Set value for RXPAR:
           y(nRXPAR,L)=1.d0
         end if
         yRXPAR(I,J,L)=y(nRXPAR,L)
+
+#ifdef TRACERS_dCO
+! ok to overwrite RXPARprod and RXPARdest here
+c       Set value for d13CXPAR:
+        RXPARprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
+     &      *y(nOH,L)*0.11d0
+     &    +rr(rrbi%Alkenes_OH__dH13CHO_HO2,L)*y(nn_Alkenes,L)*y(nOH,L)
+     &    +rr(rrbi%ROR_M__Aldehyde_HO2,L)*yd13CROR(I,J,L)*y(nM,L)*2.1d0
+     &    +rr(rrbi%Alkenes_O3__dH13CHO_CO,L)*y(nn_Alkenes,L)*y(nO3,L)
+     &      *0.9d0*0.5d0
+     &    +rr(rrbi%Alkenes_O3__HCHO_d13CO,L)*y(nn_Alkenes,L)*y(nO3,L)
+     &      *0.9d0*0.5d0
+     &    +rr(rrbi%Alkenes_NO3__dH13CHO_NO2,L)*y(nNO3,L)*y(nn_Alkenes,L)
+        RXPARdest=RXPAR_PAR
+        if(RXPARdest > 0.d0)then
+          y(nd13CXPAR,L)=(RXPARprod/RXPARdest)
+        else
+          y(nd13CXPAR,L)=1.d0
+        end if
+        yd13CXPAR(I,J,L)=y(nd13CXPAR,L)
+#endif  /* TRACERS_dCO */
 
 c       Set value for Aldehyde:
         Aldehydeprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
@@ -1447,87 +1477,13 @@ C     -- water tracers --:
 #endif
       end if
 
-C THIS SECTION REMAINS FOR REFERENCE, since arguments could be made
-C for exclusion and inclusion. But Drew notes that once we made the day and
-C night N chemistry similar to one another, below code was incomplete, as it
-C was set up when NO3 was set to zero during the day. Hence it couldn't fully
-C account for any within-NOx repartitioning anymore. So we took it out.
-! (If you put it back in, change coding to not have multiple return statements
-! in thie routine.)
-C
-!c Calculate ozone change due to within-NOx partitioning:
-!      do L=1,maxL
-!        if(y(nO1D,L) == 0.) CYCLE
-!c       account for NO2 and NO ozone destruction:
-!        rNO2prod=rr(rrbi%OH_HO2NO2__H2O_NO2,L)*y(nOH,L)*y(nn_HO2NO2,L)+
-!     &  rr(rrmono%HO2NO2_M__HO2_NO2,L)*y(nn_HO2NO2,L)+ss(rj%HNO3__OH_NO2,L,I,J)*y(nn_HNO3,L)+
-!     &  ss(rj%HO2NO2__HO2_NO2,L,I,J)*y(nn_HO2NO2,L)+ss(rj%BrONO2__BrO_NO2,L,I,J)*y(nn_BrONO2,L)
-!        rNOprod=rr(rrbi%N2O_O1D__NO_NO,L)*y(nn_N2O,L)*y(nO1D,L)
-!        rNO3prod=rr(rrbi%ClONO2_O__ClO_NO3,L)*y(nO,L)*y(nn_ClONO2,L)+
-!     &  ss(rj%N2O5__NO3_NO2,L,I,J)*y(nn_N2O5,L)+ss(rj%HO2NO2__OH_NO3,L,I,J)*y(nn_HO2NO2,L)+
-!     &  ss(rj%ClONO2__Cl_NO3,L,I,J)*y(nn_ClONO2,L)
-!c       add production of NO and NO2 from NO3:
-!        rNO3prod=rNO3prod*ss(rj%NO3__NO2_O,L,I,J)/(ss(rj%NO3__NO_O2,L,I,J)+
-!     &  ss(rj%NO3__NO2_O,L,I,J)+1.d0)
-!        rNO2prod=rNO2prod+rNO3prod
-!        rNOprod=rNOprod+rNO3prod
-!        ratioNs=rNO2prod/rNOprod
-!        ratioN2=y(nNO2,L)/y(nNO,L)
-!        
-!        if(ratioNs > ratioN2)then !excess NO2 production
-!        
-!c         account for NO2 that then goes via NO2+O->NO+O2, NO2->NO+O:
-!          rNO2frac=(rr(rrbi%O_NO2__NO_O2,L)*y(nO,L)-ss(rj%NO2__NO_O,L,I,J))/
-!     &    (rr(rrtri%OH_NO2_HNO3_M,L)*y(nOH,L)+
-!     &    rr(rrtri%HO2_NO2__HO2NO2_M,L)*y(nHO2,L)+
-!     &    rr(rrtri%NO3_NO2__N2O5_M,L)*y(nNO3,L)+
-!     &    rr(rrtri%ClO_NO2__ClONO2_M,L)*y(nClO,L)+
-!     &    rr(rrtri%BrO_NO2__BrONO2_M,L)*y(nBrO,L)+
-!     &    rr(rrbi%O_NO2__NO_O2,L)*y(nO,L)+ss(rj%NO2__NO_O,L,I,J))
-!          Oxcorr(L)=(rNO2prod-rNOprod)*rNO2frac*dt2*y(nNO,L)/y(nn_NOx,L)
-!          if(Oxcorr(L) > -1.d18 .and. Oxcorr(L) < 1.d18)then
-!            dest(nn_Ox,L)=dest(nn_Ox,L)-Oxcorr(L)
-!          else
-!            ierr_loc=ierr_loc+1 ! will stop model in masterchem
-!            write(out_line,'(a17,5(1X,E11.4))')
-!     &      'Oxcorr fault NO2:',
-!     &      ratioNs,ratioN2,rNO2frac,rNO2prod,rNOprod
-!            call write_parallel(trim(out_line),crit=.true.)      
-!            return !< fix this, I need to deallocate!
-!          end if
-!
-!        else                      !excess NO prodcution
-!
-!c         account for NO that then goes via NO+O3->NO2+O2
-!c         or NO+O+M->NO2+M:
-!          rNOfrac=(rr(rrbi%O3_NO__NO2_O2,L)*y(nO3,L)+
-!     &    rr(rrtri%NO_O__NO2_M,L)*y(nO,L))
-!          rNOdenom=(rr(rrbi%O3_NO__NO2_O2,L)*y(nO3,L)+
-!     &    rr(rrtri%NO_O__NO2_M,L)*y(nO,L)+
-!     &    rr(rrbi%HO2_NO__OH_NO2,L)*y(nHO2,L)+
-!     &    rr(rrbi%XO2N_NO__AlkylNit_M,L)*y(nXO2N,L)+1.d0)+
-!     &    rr(rrbi%CH3O2_NO__HCHO_NO2,L)*yCH3O2(I,J,L)+
-!     &    rr(rrbi%C2O3_NO__HCHO_NO2,L)*y(nC2O3,L)+
-!     &    4.2d-12*exp(180/ta(L))*y(nXO2,L)+
-!     &    rr(rrbi%ClO_NO__NO2_Cl,L)*y(nClO,L)+
-!     &    rr(rrbi%NO_OClO__NO2_ClO,L)*y(nOClO,L)+
-!     &    rr(rrbi%BrO_NO__Br_NO2,L)*y(nBrO,L)
-!
-!          rNOfrac=rNOfrac/rNOdenom
-!          Oxcorr(L)=(rNOprod-rNO2prod)*rNOfrac*dt2*y(nNO2,L)/y(nn_NOx,L)
-!          if(Oxcorr(L) > -1.d18 .and. Oxcorr(L) < 1.d18)then
-!            dest(nn_Ox,L)=dest(nn_Ox,L)-Oxcorr(L)
-!          else 
-!            ierr_loc=ierr_loc+1 ! will stop model in masterchem
-!            write(out_line,'(a16,3I4,10(1X,E11.4))')'Oxcorr fault NO:',
-!     &      I,J,L,ratioNs,ratioN2,rNOfrac,rNO2prod,rNOprod,y(nNO2,L),
-!     &      y(nNO,L),rNOdenom,y(nO,L),y(nO3,L)
-!            call write_parallel(trim(out_line),crit=.true.)    
-!            return !< fix this, I need to deallocate!
-!          end if
-!c
-!        end if
-!      end do ! L loop
+C There was a section here in the code that altereded ozone change
+C based on within-NOx partitioning. Drew said that arguments could be
+C made to include such a section or not. But he notes that, once we
+C made day and night N-chemistry more similar, this section was incomplete
+C anyway because it was programmed when NO3 was 0 during the day.
+C To see this (commented-out) code, check out the master branch from Nov 1,
+C 2016.
 
 c Calculate ozone change due to Cl2O2 cycling:
       do L=1,maxL
@@ -1797,7 +1753,7 @@ c (chem1prn: argument before multip is index = number of call):
             write(out_line,'(a48,a6,e10.3)')
      &        'production from d17OXO2N + HO2 ','dy = ',
      &        y(nHO2,lprn)*y(nNO,lprn)
-     &        *rr(rrbi%d17OXO2N_NO__AlkylNit_M,lprn)
+     &        *rr(rrbi%d17OXO2N_NO__d17ORNit_M,lprn)
      &        *rr(rrbi%d17OXO2_HO2__dMe17OOH_M,lprn)
      &        /(y(nNO,lprn)*4.2d-12*exp(180.d0/ta(lprn)))
      &        *y(nd17OXO2N,lprn)*dt2
@@ -1807,7 +1763,7 @@ c (chem1prn: argument before multip is index = number of call):
             write(out_line,'(a48,a6,e10.3)')
      &        'production from d18OXO2N + HO2 ','dy = ',
      &        y(nHO2,lprn)*y(nNO,lprn)
-     &        *rr(rrbi%d18OXO2N_NO__AlkylNit_M,lprn)
+     &        *rr(rrbi%d18OXO2N_NO__d18ORNit_M,lprn)
      &        *rr(rrbi%d18OXO2_HO2__dMe18OOH_M,lprn)
      &        /(y(nNO,lprn)*4.2d-12*exp(180.d0/ta(lprn)))
      &        *y(nd18OXO2N,lprn)*dt2
@@ -1817,7 +1773,7 @@ c (chem1prn: argument before multip is index = number of call):
             write(out_line,'(a48,a6,e10.3)')
      &        'production from d13CXO2N + HO2 ','dy = ',
      &        y(nHO2,lprn)*y(nNO,lprn)
-     &        *rr(rrbi%d13CXO2N_NO__AlkylNit_M,lprn)
+     &        *rr(rrbi%d13CXO2N_NO__d13CRNit_M,lprn)
      &        *rr(rrbi%d13CXO2_HO2__d13MeOOH_M,lprn)
      &        /(y(nNO,lprn)*4.2d-12*exp(180.d0/ta(lprn)))
      &        *y(nd13CXO2N,lprn)*dt2
@@ -2293,6 +2249,14 @@ c First check for nitrogen loss > 100% :
 #endif  /* TRACERS_dCO */
         if(-changeL(L,n_AlkylNit) > trm(I,J,L,n_AlkylNit))
      &  changeL(L,n_AlkylNit)=minKG-trm(I,J,L,n_AlkylNit)
+#ifdef TRACERS_dCO
+        if(-changeL(L,n_d17ORNit) > trm(I,J,L,n_d17ORNit))
+     &  changeL(L,n_d17ORNit)=minKG-trm(I,J,L,n_d17ORNit)
+        if(-changeL(L,n_d18ORNit) > trm(I,J,L,n_d18ORNit))
+     &  changeL(L,n_d18ORNit)=minKG-trm(I,J,L,n_d18ORNit)
+        if(-changeL(L,n_d13CRNit) > trm(I,J,L,n_d13CRNit))
+     &  changeL(L,n_d13CRNit)=minKG-trm(I,J,L,n_d13CRNit)
+#endif  /* TRACERS_dCO */
         if(-changeL(L,n_ClONO2) > trm(I,J,L,n_ClONO2))
      &  changeL(L,n_ClONO2)=minKG-trm(I,J,L,n_ClONO2)
         if(-changeL(L,n_BrONO2) > trm(I,J,L,n_BrONO2))
@@ -2367,6 +2331,14 @@ c          reduce N destruction to match NOx prodcution:
 #endif  /* TRACERS_dCO */
            if(changeL(L,n_AlkylNit) < 0.d0)changeL(L,n_AlkylNit)=
      &     changeL(L,n_AlkylNit)*ratioD
+#ifdef TRACERS_dCO
+           if(changeL(L,n_d17ORNit) < 0.d0)changeL(L,n_d17ORNit)=
+     &     changeL(L,n_d17ORNit)*ratioD
+           if(changeL(L,n_d18ORNit) < 0.d0)changeL(L,n_d18ORNit)=
+     &     changeL(L,n_d18ORNit)*ratioD
+           if(changeL(L,n_d13CRNit) < 0.d0)changeL(L,n_d13CRNit)=
+     &     changeL(L,n_d13CRNit)*ratioD
+#endif  /* TRACERS_dCO */
            vClONO2=changeL(L,n_ClONO2)*(1.d0-ratioD)
            if(changeL(L,n_ClONO2) < 0.d0)changeL(L,n_ClONO2)=
      &     changeL(L,n_ClONO2)*ratioD
@@ -2430,6 +2402,14 @@ c          reduce N production to match NOx loss:
 #endif  /* TRACERS_dCO */
            if(changeL(L,n_AlkylNit) > 0.d0)changeL(L,n_AlkylNit)=
      &     changeL(L,n_AlkylNit)*ratioP
+#ifdef TRACERS_dCO
+           if(changeL(L,n_d17ORNit) > 0.d0)changeL(L,n_d17ORNit)=
+     &     changeL(L,n_d17ORNit)*ratioP
+           if(changeL(L,n_d18ORNit) > 0.d0)changeL(L,n_d18ORNit)=
+     &     changeL(L,n_d18ORNit)*ratioP
+           if(changeL(L,n_d13CRNit) > 0.d0)changeL(L,n_d13CRNit)=
+     &     changeL(L,n_d13CRNit)*ratioP
+#endif  /* TRACERS_dCO */
            vClONO2=changeL(L,n_ClONO2)*(1.d0-ratioP)
            if(changeL(L,n_ClONO2) > 0.d0)changeL(L,n_ClONO2)=
      &     changeL(L,n_ClONO2)*ratioP
@@ -2641,6 +2621,12 @@ c Print chemical changes in a particular grid box if desired:
      &  ' RXPAR   :',y(nRXPAR,LPRN),(y(nRXPAR,LPRN)/
      &  y(nM,LPRN))*1.d9,' ppbv'
         call write_parallel(trim(out_line),crit=jay)
+#ifdef TRACERS_dCO
+        write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &  ' d13CXPAR:',y(nd13CXPAR,LPRN),(y(nd13CXPAR,LPRN)/
+     &  y(nM,LPRN))*1.d9,' ppbv'
+        call write_parallel(trim(out_line),crit=jay)
+#endif  /* TRACERS_dCO */
         write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
      &  ' Aldehyde:',y(nAldehyde,LPRN),(y(nAldehyde,LPRN)/
      &  y(nM,LPRN))*1.d9,' ppbv'

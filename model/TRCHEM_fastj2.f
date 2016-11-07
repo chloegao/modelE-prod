@@ -2755,7 +2755,7 @@ c Extend climatology to 100 km:
           rj%d13MeOOH__dH13CHO_HO2=irr
 #endif  /* TRACERS_dCO */
         case default
-          call stop_model('Index for '//reaction//' missing',255)
+          call stop_model('Index for '//trim(reaction)//' missing',255)
       end select
 
       end subroutine set_jrate_index

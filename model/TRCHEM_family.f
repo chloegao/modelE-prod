@@ -237,7 +237,7 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
 !!!!!&      +rr(rrbi%Alkenes_OH__HCHO_HO2,L)*y(nn_Alkenes,L)
      &      +rr(rrbi%Isoprene_OH__HCHO_Alkenes,L)*y(nn_Isoprene,L)
      &        *0.15d0
-     &      +rr(rrbi%AlkylNit_OH__NO2_M,L)*y(nn_AlkylNit,L)
+     &      +rr(rrbi%AlkylNit_OH__NO2_XO2,L)*y(nn_AlkylNit,L)
 #ifdef TRACERS_TERP
      &      +rr(rrbi%Terpenes_OH__HCHO_Alkenes,L)*y(nn_Terpenes,L)
      &        *0.15d0

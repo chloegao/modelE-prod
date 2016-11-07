@@ -17,6 +17,7 @@ C**** GLOBAL parameters and variables:
      &    ydC217O3,ydC218O3,yd13C2O3,
      &    yd17OXO2,yd18OXO2,yd13CXO2,
      &    yd17OXO2N,yd18OXO2N,yd13CXO2N,
+     &    yd13CXPAR,
      &    yd17OROR,yd18OROR,yd13CROR,
      &    yd17Oald,yd18Oald,yd13Cald,
      &    ydCH317O2,ydCH318O2,yd13CH3O2,
@@ -123,6 +124,9 @@ C Initialize a few (IM,JM,topLevelOfChemistry) arrays, first hour only:
         yd13CXO2N(I_0:I_1,J_0:J_1,:)=0.d0
 #endif  /* TRACERS_dCO */
         yRXPAR(I_0:I_1,J_0:J_1,:)   =0.d0
+#ifdef TRACERS_dCO
+        yd13CXPAR(I_0:I_1,J_0:J_1,:)=0.d0
+#endif  /* TRACERS_dCO */
         oh_live(I_0:I_1,J_0:J_1,:)  =0.d0
         no3_live(I_0:I_1,J_0:J_1,:) =0.d0
         pClOx(I_0:I_1,J_0:J_1,:)    =1.d0
