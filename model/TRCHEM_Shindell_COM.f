@@ -301,7 +301,7 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
 #endif  /* TRACERS_TERP */
      & ntm_shindell_nontransp = 26, ! number of non-transported Shindell tracers
 #ifdef TRACERS_dCO
-     & ntm_dCO_nontransp = 18, ! number of non-transported dCO tracers
+     & ntm_dCO_nontransp = 19, ! number of non-transported dCO tracers
      & n_bi_dCO = 90, ! number of dCO bimolecular reactions
      & n_tri_dCO = 3, ! number of dCO trimolecular reactions
      & n_rj_dCO = 15, ! number of dCO photochemical reactions
@@ -359,15 +359,16 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
      & nd17OXO2N=  7+ntm_chem+ntm_shindell_nontransp,
      & nd18OXO2N=  8+ntm_chem+ntm_shindell_nontransp,
      & nd13CXO2N=  9+ntm_chem+ntm_shindell_nontransp,
-     & nd17OROR = 10+ntm_chem+ntm_shindell_nontransp,
-     & nd18OROR = 11+ntm_chem+ntm_shindell_nontransp,
-     & nd13CROR = 12+ntm_chem+ntm_shindell_nontransp,
-     & nd17Oald = 13+ntm_chem+ntm_shindell_nontransp,
-     & nd18Oald = 14+ntm_chem+ntm_shindell_nontransp,
-     & nd13Cald = 15+ntm_chem+ntm_shindell_nontransp,
-     & ndCH317O2= 16+ntm_chem+ntm_shindell_nontransp,
-     & ndCH318O2= 17+ntm_chem+ntm_shindell_nontransp,
-     & nd13CH3O2= 18+ntm_chem+ntm_shindell_nontransp,
+     & nd13CXPAR= 10+ntm_chem+ntm_shindell_nontransp,
+     & nd17OROR = 11+ntm_chem+ntm_shindell_nontransp,
+     & nd18OROR = 12+ntm_chem+ntm_shindell_nontransp,
+     & nd13CROR = 13+ntm_chem+ntm_shindell_nontransp,
+     & nd17Oald = 14+ntm_chem+ntm_shindell_nontransp,
+     & nd18Oald = 15+ntm_chem+ntm_shindell_nontransp,
+     & nd13Cald = 16+ntm_chem+ntm_shindell_nontransp,
+     & ndCH317O2= 17+ntm_chem+ntm_shindell_nontransp,
+     & ndCH318O2= 18+ntm_chem+ntm_shindell_nontransp,
+     & nd13CH3O2= 19+ntm_chem+ntm_shindell_nontransp,
 #endif  /* TRACERS_dCO */
 ! define below ntm_chem_extra tracers
      & nO2=        1+ntm_chem+ntm_chem_nontransp,
@@ -670,6 +671,7 @@ C**************  Latitude-Dependant (allocatable) *******************
      & ydC217O3,ydC218O3,yd13C2O3,
      & yd17OXO2,yd18OXO2,yd13CXO2,
      & yd17OXO2N,yd18OXO2N,yd13CXO2N,
+     & yd13CXPAR,
      & yd17OROR,yd18OROR,yd13CROR,
      & yd17Oald,yd18Oald,yd13Cald,
      & ydCH317O2,ydCH318O2,yd13CH3O2,
@@ -723,6 +725,7 @@ C**************  Not Latitude-Dependant ****************************
      & ydC217O3,ydC218O3,yd13C2O3,
      & yd17OXO2,yd18OXO2,yd13CXO2,
      & yd17OXO2N,yd18OXO2N,yd13CXO2N,
+     & yd13CXPAR,
      & yd17OROR,yd18OROR,yd13CROR,
      & yd17Oald,yd18Oald,yd13Cald,
      & ydCH317O2,ydCH318O2,yd13CH3O2,
@@ -846,6 +849,9 @@ C**************  Not Latitude-Dependant ****************************
       allocate(   yd13CXO2N(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
 #endif  /* TRACERS_dCO */
       allocate(      yRXPAR(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
+#ifdef TRACERS_dCO
+      allocate(   yd13CXPAR(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
+#endif  /* TRACERS_dCO */
       allocate(        yso2(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
       allocate(        ydms(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
       allocate(       pClOx(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )

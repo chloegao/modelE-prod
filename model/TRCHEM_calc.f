@@ -49,6 +49,8 @@ C
      &                   nd17OXO2,nd18OXO2,nd13CXO2,
      &                   yd17OXO2N,yd18OXO2N,yd13CXO2N,
      &                   nd17OXO2N,nd18OXO2N,nd13CXO2N,
+     &                   yd13CXPAR,
+     &                   nd13CXPAR,
      &                   yd17OROR,yd18OROR,yd13CROR,
      &                   nd17OROR,nd18OROR,nd13CROR,
      &                   yd17Oald,yd18Oald,yd13Cald,
@@ -197,6 +199,9 @@ C**** Local parameters and variables and arguments:
         y(nd13CXO2N,L)= yd13CXO2N(I,J,L)
 #endif  /* TRACERS_dCO */
         y(nRXPAR,L)   =    yRXPAR(I,J,L)
+#ifdef TRACERS_dCO
+        y(nd13CXPAR,L)= yd13CXPAR(I,J,L)
+#endif  /* TRACERS_dCO */
         y(nAldehyde,L)= yAldehyde(I,J,L)
 #ifdef TRACERS_dCO
         y(nd17Oald,L) =  yd17Oald(I,J,L)
@@ -236,6 +241,9 @@ C**** Local parameters and variables and arguments:
         y(nd13CXO2N,L)= 0.d0
 #endif  /* TRACERS_dCO */
         y(nRXPAR,L)   = 0.d0
+#ifdef TRACERS_dCO
+        y(nd13CXPAR,L)= 0.d0
+#endif  /* TRACERS_dCO */
         y(nAldehyde,L)= 0.d0
 #ifdef TRACERS_dCO
         y(nd17Oald,L) = 0.d0
@@ -1152,6 +1160,27 @@ c       Set value for RXPAR:
           y(nRXPAR,L)=1.d0
         end if
         yRXPAR(I,J,L)=y(nRXPAR,L)
+
+#ifdef TRACERS_dCO
+! ok to overwrite RXPARprod and RXPARdest here
+c       Set value for d13CXPAR:
+        RXPARprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
+     &      *y(nOH,L)*0.11d0
+     &    +rr(rrbi%Alkenes_OH__dH13CHO_HO2,L)*y(nn_Alkenes,L)*y(nOH,L)
+     &    +rr(rrbi%ROR_M__Aldehyde_HO2,L)*yd13CROR(I,J,L)*y(nM,L)*2.1d0
+     &    +rr(rrbi%Alkenes_O3__dH13CHO_CO,L)*y(nn_Alkenes,L)*y(nO3,L)
+     &      *0.9d0*0.5d0
+     &    +rr(rrbi%Alkenes_O3__HCHO_d13CO,L)*y(nn_Alkenes,L)*y(nO3,L)
+     &      *0.9d0*0.5d0
+     &    +rr(rrbi%Alkenes_NO3__dH13CHO_NO2,L)*y(nNO3,L)*y(nn_Alkenes,L)
+        RXPARdest=RXPAR_PAR
+        if(RXPARdest > 0.d0)then
+          y(nd13CXPAR,L)=(RXPARprod/RXPARdest)
+        else
+          y(nd13CXPAR,L)=1.d0
+        end if
+        yd13CXPAR(I,J,L)=y(nd13CXPAR,L)
+#endif  /* TRACERS_dCO */
 
 c       Set value for Aldehyde:
         Aldehydeprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
@@ -2592,6 +2621,12 @@ c Print chemical changes in a particular grid box if desired:
      &  ' RXPAR   :',y(nRXPAR,LPRN),(y(nRXPAR,LPRN)/
      &  y(nM,LPRN))*1.d9,' ppbv'
         call write_parallel(trim(out_line),crit=jay)
+#ifdef TRACERS_dCO
+        write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &  ' d13CXPAR:',y(nd13CXPAR,LPRN),(y(nd13CXPAR,LPRN)/
+     &  y(nM,LPRN))*1.d9,' ppbv'
+        call write_parallel(trim(out_line),crit=jay)
+#endif  /* TRACERS_dCO */
         write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
      &  ' Aldehyde:',y(nAldehyde,LPRN),(y(nAldehyde,LPRN)/
      &  y(nM,LPRN))*1.d9,' ppbv'

@@ -619,6 +619,9 @@ c - set reactive species for use in family chemistry & nighttime NO2:
        y(nd13CXO2N,L)    =yd13CXO2N(I,J,L)
 #endif  /* TRACERS_dCO */
        y(nRXPAR,L)   =yRXPAR(I,J,L)
+#ifdef TRACERS_dCO
+       y(nd13CXPAR,L)   =yd13CXPAR(I,J,L)
+#endif  /* TRACERS_dCO */
        y(nROR,L)     =yROR(I,J,L)
 #ifdef TRACERS_dCO
        y(nd17OROR,L) =yd17OROR(I,J,L)
