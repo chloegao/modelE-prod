@@ -67,7 +67,8 @@
         select case (trname(n))
           case('NOx','CO','Alkenes','Paraffin','BCB','OCB','NH3','SO2',
 #ifdef TRACERS_dCO
-               'dC17O', 'dC18O', 'd13CO',
+     &         'd13CPAR',
+     &         'dC17O', 'dC18O', 'd13CO',
 #endif  /* TRACERS_dCO */
      &         'vbsAm2', 'vbsAm1', 'vbsAz',  'vbsAp1', 'vbsAp2',
      &         'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6'

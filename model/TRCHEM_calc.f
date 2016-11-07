@@ -22,6 +22,7 @@ C
       use OldTracer_mod, only: vol2mass, mass2vol
       USE TRACER_COM, only  : ntm_chem_beg, ntm_chem_end, ntm_chem,
 #ifdef TRACERS_dCO
+     &  n_d13CPAR,
      &  n_d17ORNit,n_d18ORNit,n_d13CRNit,
      &  n_d17OPAN,n_d18OPAN,n_d13CPAN,
 #endif  /* TRACERS_dCO */
@@ -83,6 +84,7 @@ C
      &      nn_ClOx,   nn_BrOx,  nn_HCl,   nn_HOCl,   nn_ClONO2,  
      &      nn_HBr,    nn_HOBr,  nn_BrONO2,nn_CFC,    nn_GLT
 #ifdef TRACERS_dCO
+     &     ,nn_d13CPAR
      &     ,nn_d17ORNit,nn_d18ORNit,nn_d13CRNit
      &     ,nn_d17OPAN,nn_d18OPAN,nn_d13CPAN
      &     ,nn_dMe17OOH,nn_dMe18OOH,nn_d13MeOOH
@@ -1020,7 +1022,7 @@ c       Set value for d13CXO2:
      &    +rr(rrbi%Alkenes_NO3__dH13CHO_NO2,L)*y(nNO3,L)*y(nn_Alkenes,L)
      &      *0.91d0
      &    +rr(rrbi%d13CROR_M__d13Cald_HO2,L)*yd13CROR(I,J,L)*0.96d0
-     &    +y(nOH,L)*(rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
+     &    +y(nOH,L)*(rr(rrbi%d13CPAR_OH__HO2_M,L)*y(nn_d13CPAR,L)
      &      *0.87d0
      &    +rr(rrbi%Alkenes_OH__dH13CHO_HO2,L)*y(nn_Alkenes,L)
      &    +rr(rrbi%Isoprene_OH__dH13CHO_Alkenes,L)*y(nn_Isoprene,L)
@@ -1120,7 +1122,7 @@ c       Set value for d18OXO2N:
         yd18OXO2N(I,J,L)=y(nd18OXO2N,L)
 
 c       Set value for d13CXO2N:
-        XO2Nprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
+        XO2Nprod=rr(rrbi%d13CPAR_OH__HO2_M,L)*y(nn_d13CPAR,L)
      &      *y(nOH,L)*0.13d0
      &    +rr(rrbi%Alkenes_NO3__dH13CHO_NO2,L)*y(nNO3,L)*y(nn_Alkenes,L)
      &      *0.09d0
@@ -1164,10 +1166,10 @@ c       Set value for RXPAR:
 #ifdef TRACERS_dCO
 ! ok to overwrite RXPARprod and RXPARdest here
 c       Set value for d13CXPAR:
-        RXPARprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
+        RXPARprod=rr(rrbi%d13CPAR_OH__HO2_M,L)*y(nn_d13CPAR,L)
      &      *y(nOH,L)*0.11d0
      &    +rr(rrbi%Alkenes_OH__dH13CHO_HO2,L)*y(nn_Alkenes,L)*y(nOH,L)
-     &    +rr(rrbi%ROR_M__Aldehyde_HO2,L)*yd13CROR(I,J,L)*y(nM,L)*2.1d0
+     &    +rr(rrbi%ROR_M__Aldehyde_HO2,L)*yd13CROR(I,J,L)*2.1d0
      &    +rr(rrbi%Alkenes_O3__dH13CHO_CO,L)*y(nn_Alkenes,L)*y(nO3,L)
      &      *0.9d0*0.5d0
      &    +rr(rrbi%Alkenes_O3__HCHO_d13CO,L)*y(nn_Alkenes,L)*y(nO3,L)
@@ -1251,7 +1253,7 @@ c       Check for equilibrium:
         yd18Oald(I,J,L)=y(nd18Oald,L)
 
 c       Set value for d13Cald:
-        Aldehydeprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
+        Aldehydeprod=rr(rrbi%d13CPAR_OH__HO2_M,L)*y(nn_d13CPAR,L)
      &      *y(nOH,L)*0.11d0
      &    +rr(rrbi%Alkenes_OH__HCHO_HO2,L)*y(nn_Alkenes,L)*y(nOH,L)
      &    +rr(rrbi%d13CROR_M__d13Cald_HO2,L)*yd13CROR(I,J,L)*1.1d0
@@ -1312,7 +1314,7 @@ c       Set value for d18OROR:
         yd18OROR(I,J,L)=y(nd18OROR,L)
 
 c       Set value for d13CROR:
-        RORprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
+        RORprod=rr(rrbi%d13CPAR_OH__HO2_M,L)*y(nn_d13CPAR,L)
      &      *y(nOH,L)*0.76d0
      &    +rr(rrbi%d13CROR_M__d13Cald_HO2,L)*yd13CROR(I,J,L)*0.02d0
         RORdest=rr(rrbi%d13CROR_M__d13Cald_HO2,L)+ROR_CH2
@@ -1339,6 +1341,41 @@ c       prod term via isoprene rxns:
      &       +rr(rrbi%Terpenes_O3__HCHO_Alkenes,L)*y(nO3,L)
      &       )*dt2
 #endif  /* TRACERS_TERP */
+
+#ifdef TRACERS_dCO
+c       Add parrafin loss term via rxpar reaction and
+c       prod term via isoprene rxns:
+! divide by 3, to distribute carbon in HCHO, Alkenes, and Paraffin
+        dest(nn_d13CPAR,L)=dest(nn_d13CPAR,L)-
+     &       y(nd13CXPAR,L)*RXPAR_PAR*dt2
+        prod(nn_d13CPAR,L)=prod(nn_d13CPAR,L)
+     &    +0.63d0*y(nn_Isoprene,L)
+     &      *(rr(rrbi%Isoprene_OH__HCHO_Alkenes,L)*y(nOH,L)
+     &       +rr(rrbi%Isoprene_O3__HCHO_Alkenes,L)*y(nO3,L)
+     &       )*dt2/3.d0
+     &    +0.63d0*y(nn_Isoprene,L)
+     &      *(rr(rrbi%Isoprene_OH__dH13CHO_Alkenes,L)*y(nOH,L)
+     &       +rr(rrbi%Isoprene_O3__dH13CHO_Alkenes,L)*y(nO3,L)
+     &       )*dt2/3.d0
+     &    +0.63d0*y(nn_Isoprene,L)
+     &      *(rr(rrbi%Isoprene_OH__HCHO_Alkenes,L)*y(nOH,L) ! this will become d13Calke
+     &       +rr(rrbi%Isoprene_O3__HCHO_Alkenes,L)*y(nO3,L) ! this will become d13Calke
+     &       )*dt2/3.d0
+#ifdef TRACERS_TERP
+     &    +5.0d0*0.63d0*y(nn_Terpenes,L)
+     &      *(rr(rrbi%Terpenes_OH__HCHO_Alkenes,L)*y(nOH,L)
+     &       +rr(rrbi%Terpenes_O3__HCHO_Alkenes,L)*y(nO3,L)
+     &       )*dt2/3.d0
+     &    +5.0d0*0.63d0*y(nn_Terpenes,L)
+     &      *(rr(rrbi%Terpenes_OH__dH13CHO_Alkenes,L)*y(nOH,L)
+     &       +rr(rrbi%Terpenes_O3__dH13CHO_Alkenes,L)*y(nO3,L)
+     &       )*dt2/3.d0
+     &    +5.0d0*0.63d0*y(nn_Terpenes,L)
+     &      *(rr(rrbi%Terpenes_OH__HCHO_Alkenes,L)*y(nOH,L) ! this will become d13Calke
+     &       +rr(rrbi%Terpenes_O3__HCHO_Alkenes,L)*y(nO3,L) ! this will become d13Calke
+     &       )*dt2/3.d0
+#endif  /* TRACERS_TERP */
+#endif  /* TRACERS_dCO */
 
 c       Add CH3OOH production via XO2N + HO2:
         prod(nn_CH3OOH,L)=prod(nn_CH3OOH,L)+XO2N_HO2*y(nXO2N,L)*dt2
@@ -1794,6 +1831,13 @@ c (chem1prn: argument before multip is index = number of call):
      &      'dy = ',-y(nRXPAR,lprn)*y(nn_Paraffin,lprn)*8.d-11*dt2
             call write_parallel(trim(out_line),crit=jay)
           end if
+#ifdef TRACERS_dCO
+          if(igas == nn_d13CPAR) then
+            write(out_line,'(a48,a6,e10.3)')'destruction from d13CXPAR',
+     &      'dy = ',-y(nRXPAR,lprn)*y(nn_d13CPAR,lprn)*8.d-11*dt2
+            call write_parallel(trim(out_line),crit=jay)
+          end if
+#endif  /* TRACERS_dCO */
           
           write(out_line,118) ' Total change in ',ay(igas),
      &    ' is ',total,' percent; dy= ',dest(igas,lprn)+prod(igas,lprn)

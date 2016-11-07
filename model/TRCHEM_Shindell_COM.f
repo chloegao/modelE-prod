@@ -201,6 +201,7 @@ c
         integer :: Alkenes_O3__dH13CHO_CO=0
         integer :: Alkenes_O3__HCHO_d13CO=0
         integer :: Alkenes_NO3__dH13CHO_NO2=0
+        integer :: d13CPAR_OH__HO2_M=0
         integer :: d13Cald_OH__d13C2O3_M=0
         integer :: d13C2O3_NO__dH13CHO_NO2=0
         integer :: d13C2O3_d13C2O3__dH13CHO_dH13CHO=0
@@ -302,7 +303,7 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
      & ntm_shindell_nontransp = 26, ! number of non-transported Shindell tracers
 #ifdef TRACERS_dCO
      & ntm_dCO_nontransp = 19, ! number of non-transported dCO tracers
-     & n_bi_dCO = 90, ! number of dCO bimolecular reactions
+     & n_bi_dCO = 91, ! number of dCO bimolecular reactions
      & n_tri_dCO = 3, ! number of dCO trimolecular reactions
      & n_rj_dCO = 15, ! number of dCO photochemical reactions
 #else
@@ -1260,6 +1261,8 @@ C**************  Not Latitude-Dependant ****************************
           rrbi%Alkenes_O3__HCHO_d13CO=irr
         case('Alkenes_NO3__dH13CHO_NO2')
           rrbi%Alkenes_NO3__dH13CHO_NO2=irr
+        case('d13CPAR_OH__HO2_M')
+          rrbi%d13CPAR_OH__HO2_M=irr
         case('d13Cald_OH__d13C2O3_M')
           rrbi%d13Cald_OH__d13C2O3_M=irr
         case('d13C2O3_NO__dH13CHO_NO2')
