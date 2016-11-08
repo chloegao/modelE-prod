@@ -73,7 +73,7 @@ C**** GLOBAL parameters and variables:
 
       USE RESOLUTION, only         : LS1=>LS1_NOMINAL
       USE ATM_COM, only            : LTROPO
-      USE TRACER_COM, only         : n_NOx,nn_NOx,n_Alkenes,nn_Alkenes
+      USE TRACER_COM, only         : n_NOx,nn_NOx,nn_Alkenes
       use photolysis, only: rj
       USE TRCHEM_Shindell_COM, only:rr,y,yNO3,nO3,nHO2,nO,nC2O3,nCH3O2,
      & pNO3,ta,nXO2,ss,nNO,nNO2,pNOx,nNO3,nHONO,which_trop,nClO,nOClO,
