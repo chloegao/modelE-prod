@@ -12,6 +12,10 @@ module Timer_mod
 
    public :: Timer_type ! derived type
 
+   ! Free functions
+   public :: getWTime
+
+   ! Methods
    public :: start
    public :: stop
    public :: reset
