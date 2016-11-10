@@ -143,10 +143,13 @@
 !         I/O”. It was meant as a device to bridge the transition period
 !         from old to new I/O.
 
-      subroutine GISS_modelE(qcRestart, coldRestart, iFile)
+      subroutine GISS_modelE(qcRestart,coldRestart,iFile,max_wall_time)
 !@sum  MAIN GISS modelE main time-stepping routine
 !@auth Original Development Team
 !@ver  2009/05/11 (Based originally on B399)
+!@var max_wall_time Time (in seconds) this ModelE is to run for.
+!@+      Once it notices it has exceeded this allottment, it will wind
+!@+      down and exit.
       USE FILEMANAGER, only : openunit,closeunit
       USE TIMINGS, only : ntimemax,ntimeacc,timing,timestr
       USE Dictionary_mod
@@ -175,6 +178,7 @@
       use TimerPackage_mod, only: startTimer => start
       use TimerPackage_mod, only: stopTimer => stop
       use SystemTimers_mod
+      use Timer_mod, only : getWTime   ! Tells time in seconds
       use seaice_com, only : si_ocn,iceocn ! temporary until precip_si,
       use fluxes, only : atmocn,atmice     ! precip_oc calls are moved
       use CalendarMonth_mod, only: LEN_MONTH_ABBREVIATION
@@ -188,6 +192,7 @@ C**** Command line options
       logical, intent(in) :: qcRestart
       logical, intent(in) :: coldRestart
       character(len=*), intent(in) :: iFile
+      integer :: max_wall_time
 
       INTEGER K,M,MSTART,MNOW,months,ioerr,Ldate,istart
       INTEGER :: MDUM = 0
@@ -209,6 +214,7 @@ C**** Command line options
       real*8 :: tloopbegin, tloopend
       integer :: hour, month, day, date, year
       character(len=LEN_MONTH_ABBREVIATION) :: amon
+      real*8 :: wtime0, wtime1   ! Start and end wall times (rank 0 only)
 
 #ifdef CACHED_SUBDD
       character(len=8) :: yyyymmdd
@@ -233,6 +239,12 @@ C****
 #endif
 
       call initializeModelE()
+
+      ! Only the root node pays attention to allotted wall time
+      if (AM_I_ROOT()) then
+        wtime0 = getWTime()
+        wtime1 = wtime0 + max_wall_time
+      end if
 
 C****
 C**** INITIALIZATIONS
@@ -436,25 +448,47 @@ C**** CPU TIME FOR CALLING DIAGNOSTICS
 C**** TEST FOR TERMINATION OF RUN
       IF (MOD(Itime,Nssw).eq.0) then
        IF (AM_I_ROOT()) then
-        iflag=0
-        if ( .not. stop_on ) then
+        ! iflag values:
+        !     0: Stopping as per user requestUser-requested stop
+        !     1: Running
+        !     2
+        ! ------ stop_on ==> iflag =3
+        if (iflag == 1) then  ! iflag==1 means it's running
+          if (stop_on) then
+              iflag = 3
+          end if
+        end if
+
+        ! ------ User-requested stop ==> iflag=0
+        if (iflag == 1) then
           open(3,file='flagGoStop',form='FORMATTED',status='OLD'
      &         ,err=210)
           read (3,'(A8)',end=210) str
           close (3)
  210            continue
-          IF (str .eq. string_go) iflag=1
+          IF (str .ne. string_go) iflag=0
         endif
+
+        ! ------ Timeout ==> iflag=2
+        if (iflag == 1) then
+          if (getWTime() >= wtime1) iflag = 2
+        end if
+
         call broadcast(iflag)
        else
         call broadcast(iflag)
        end if
       endif
-      IF ( iflag == 0 ) THEN
-C**** Flag to continue run has been turned off
-         WRITE (6,'("0Flag to continue run has been turned off.")')
-         EXIT main_loop
-      END IF
+      select case (iflag)
+        case (0)
+           WRITE (6,'("0Flag to continue run has been turned off.")')
+        case (2)
+           WRITE (6,'("0Reached maximum wall clock time.")')
+        case (3)
+           WRITE (6,'("0Got signal 15.")')
+      end select
+
+      if (iflag .ne. 1) exit main_loop
 
       call stopTimer('Main Loop')
       END DO main_loop
@@ -496,7 +530,15 @@ C**** RUN TERMINATED BECAUSE IT REACHED TAUE (OR SS6 WAS TURNED ON)
      &     'Terminated normally (reached maximum time)',13)
       END IF
 
-      CALL stop_model ('Run stopped with sswE',12)  ! voluntary stop
+      select case(iflag)
+        case (0)
+          CALL stop_model('Run stopped with sswE',12)  ! voluntary stop
+        case(2)
+          call stop_model('Reached maximum wall clock time.',12)
+        case(3)
+          call stop_model('Got signal 15',12)
+      end select
+
 #ifdef USE_MPP
       call fms_end( )
 #endif
