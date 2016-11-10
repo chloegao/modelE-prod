@@ -1,6 +1,5 @@
 E6TtomasF40clim.R GISS Model E  1850 ocn/atm TOMAS tracers
 
-CURRENTLY NOT FOR PRODUCTION RUNS BUT WILL BE SOON 
 E6TtomasF40clim: E6TtomasF40 but swap emissions to climatological
                   (e.g. 9-year averages centered around nominal date)
 E6TtomasF40: based on E4TctomasiF40. Similar to E4TcadiF40 but with TOMAS aerosol microphysics 

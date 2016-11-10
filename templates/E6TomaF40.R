@@ -1,6 +1,5 @@
 E6TomaF40.R GISS Model E  1850 ocn/atm OMA tracers 
 
-CURRENTLY NOT FOR PRODUCTION RUNS BUT WILL BE SOON 
 E6TomaF40: based on E4TcadiF40. OMA tracers with computed aerosol
            indirect effect, including shindell chemistry and dust
 
