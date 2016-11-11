@@ -194,13 +194,13 @@ c
         integer :: CH3O2_d13CH3O2__HCHO_dH13CHO=0
         integer :: NO3_dH13CHO__HNO3_d13CO=0
         integer :: d13CPAN_M__d13C2O3_NO2=0
-        integer :: Isoprene_OH__dH13CHO_Alkenes=0
-        integer :: Isoprene_O3__dH13CHO_Alkenes=0
+        integer :: Isoprene_OH__dH13CHO_d13Calke=0
+        integer :: Isoprene_O3__dH13CHO_d13Calke=0
+        integer :: Isoprene_NO3__HO2_d13Calke=0
         integer :: d13CRNit_OH__NO2_d13CXO2=0
-        integer :: Alkenes_OH__dH13CHO_HO2=0
-        integer :: Alkenes_O3__dH13CHO_CO=0
-        integer :: Alkenes_O3__HCHO_d13CO=0
-        integer :: Alkenes_NO3__dH13CHO_NO2=0
+        integer :: d13Calke_OH__dH13CHO_HO2=0
+        integer :: d13Calke_O3__dH13CHO_d13CO=0
+        integer :: d13Calke_NO3__dH13CHO_NO2=0
         integer :: d13CPAR_OH__HO2_M=0
         integer :: d13Cald_OH__d13C2O3_M=0
         integer :: d13C2O3_NO__dH13CHO_NO2=0
@@ -212,8 +212,9 @@ c
         integer :: O1D_CH4__dH13CHO_H2=0
         integer :: Cl_CH4__HCl_d13CH3O2=0
         integer :: ClO_d13CH3O2__Cl_dH13CHO=0
-        integer :: Terpenes_OH__dH13CHO_Alkenes=0
-        integer :: Terpenes_O3__dH13CHO_Alkenes=0
+        integer :: Terpenes_OH__dH13CHO_d13Calke=0
+        integer :: Terpenes_O3__dH13CHO_d13Calke=0
+        integer :: Terpenes_NO3__HO2_d13Calke=0
 #endif  /* TRACERS_dCO */
       end type rrbi_index
 
@@ -303,7 +304,7 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
      & ntm_shindell_nontransp = 26, ! number of non-transported Shindell tracers
 #ifdef TRACERS_dCO
      & ntm_dCO_nontransp = 19, ! number of non-transported dCO tracers
-     & n_bi_dCO = 91, ! number of dCO bimolecular reactions
+     & n_bi_dCO = 92, ! number of dCO bimolecular reactions
      & n_tri_dCO = 3, ! number of dCO trimolecular reactions
      & n_rj_dCO = 15, ! number of dCO photochemical reactions
 #else
@@ -1247,20 +1248,20 @@ C**************  Not Latitude-Dependant ****************************
           rrbi%NO3_dH13CHO__HNO3_d13CO=irr
         case('d13CPAN_M__d13C2O3_NO2')
           rrbi%d13CPAN_M__d13C2O3_NO2=irr
-        case('Isoprene_OH__dH13CHO_Alkenes')
-          rrbi%Isoprene_OH__dH13CHO_Alkenes=irr
-        case('Isoprene_O3__dH13CHO_Alkenes')
-          rrbi%Isoprene_O3__dH13CHO_Alkenes=irr
+        case('Isoprene_OH__dH13CHO_d13Calke')
+          rrbi%Isoprene_OH__dH13CHO_d13Calke=irr
+        case('Isoprene_O3__dH13CHO_d13Calke')
+          rrbi%Isoprene_O3__dH13CHO_d13Calke=irr
+        case('Isoprene_NO3__HO2_d13Calke')
+          rrbi%Isoprene_NO3__HO2_d13Calke=irr
         case('d13CRNit_OH__NO2_d13CXO2')
           rrbi%d13CRNit_OH__NO2_d13CXO2=irr
-        case('Alkenes_OH__dH13CHO_HO2')
-          rrbi%Alkenes_OH__dH13CHO_HO2=irr
-        case('Alkenes_O3__dH13CHO_CO')
-          rrbi%Alkenes_O3__dH13CHO_CO=irr
-        case('Alkenes_O3__HCHO_d13CO')
-          rrbi%Alkenes_O3__HCHO_d13CO=irr
-        case('Alkenes_NO3__dH13CHO_NO2')
-          rrbi%Alkenes_NO3__dH13CHO_NO2=irr
+        case('d13Calke_OH__dH13CHO_HO2')
+          rrbi%d13Calke_OH__dH13CHO_HO2=irr
+        case('d13Calke_O3__dH13CHO_d13CO')
+          rrbi%d13Calke_O3__dH13CHO_d13CO=irr
+        case('d13Calke_NO3__dH13CHO_NO2')
+          rrbi%d13Calke_NO3__dH13CHO_NO2=irr
         case('d13CPAR_OH__HO2_M')
           rrbi%d13CPAR_OH__HO2_M=irr
         case('d13Cald_OH__d13C2O3_M')
@@ -1283,10 +1284,12 @@ C**************  Not Latitude-Dependant ****************************
           rrbi%Cl_CH4__HCl_d13CH3O2=irr
         case('ClO_d13CH3O2__Cl_dH13CHO')
           rrbi%ClO_d13CH3O2__Cl_dH13CHO=irr
-        case('Terpenes_OH__dH13CHO_Alkenes')
-          rrbi%Terpenes_OH__dH13CHO_Alkenes=irr
-        case('Terpenes_O3__dH13CHO_Alkenes')
-          rrbi%Terpenes_O3__dH13CHO_Alkenes=irr
+        case('Terpenes_OH__dH13CHO_d13Calke')
+          rrbi%Terpenes_OH__dH13CHO_d13Calke=irr
+        case('Terpenes_O3__dH13CHO_d13Calke')
+          rrbi%Terpenes_O3__dH13CHO_d13Calke=irr
+        case('Terpenes_NO3__HO2_d13Calke')
+          rrbi%Terpenes_NO3__HO2_d13Calke=irr
 #endif  /* TRACERS_dCO */
 
 ! trimolecular reactions

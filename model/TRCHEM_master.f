@@ -49,6 +49,7 @@ c
      &                      n_HBr,n_HOCl,n_HCl,n_ClONO2,n_ClOx,
      &                      n_BrOx,n_BrONO2,n_CFC,n_N2O,n_HOBR
 #ifdef TRACERS_dCO
+     &                     ,n_d13Calke
      &                     ,n_d17ORNit,n_d18ORNit,n_d13CRNit
      &                     ,n_dHCH17O,n_dHCH18O,n_dH13CHO
      &                     ,n_dC17O,n_dC18O,n_d13CO
@@ -96,6 +97,7 @@ c
      &      nn_ClOx,   nn_BrOx,  nn_HCl,   nn_HOCl,   nn_ClONO2,  
      &      nn_HBr,    nn_HOBr,  nn_BrONO2,nn_CFC,    nn_GLT
 #ifdef TRACERS_dCO
+     &     ,nn_d13Calke
      &     ,nn_d17ORNit,nn_d18ORNit,nn_d13CRNit
      &     ,nn_dHCH17O,nn_dHCH18O,nn_dH13CHO
 #endif  /* TRACERS_dCO */
@@ -178,6 +180,7 @@ C**** Local parameters and variables and arguments:
      &  thick,changeCO,changeN_d1,changeN_d2,changeN_d3,changeNO3p,
 #ifdef TRACERS_dCO
      &  rdHCH17OplusNO3,rdHCH18OplusNO3,rdH13CHOplusNO3,
+     &  changed13Calke,
      &  changed17ORNit,changed18ORNit,changed13CRNit,
      &  changedHCH17O,changedHCH18O,changedH13CHO,
      &  changedC17O,changedC18O,changed13CO,
@@ -1151,6 +1154,7 @@ C Alkenes, Isoprene, Terpenes (if used) and AlkylNit:
      &    )*yNO3(I,J,L)*dt2
         if(-changeAldehyde > 0.75d0*yAldehyde(I,J,L))changeAldehyde=
      &  -0.75d0*yAldehyde(I,J,L)
+
 #ifdef TRACERS_dCO
         changed17Oald=(rr(rrbi%Alkenes_NO3__HCHO_NO2,L)*y(nn_Alkenes,L)
      &      +rr(rrbi%Isoprene_NO3__HO2_Alkenes,L)*y(nn_Isoprene,L)
@@ -1163,6 +1167,7 @@ C Alkenes, Isoprene, Terpenes (if used) and AlkylNit:
      &    )*yNO3(I,J,L)*dt2
         if(-changed17Oald > 0.75d0*yd17Oald(I,J,L))changed17Oald=
      &  -0.75d0*yd17Oald(I,J,L)
+
         changed18Oald=(rr(rrbi%Alkenes_NO3__HCHO_NO2,L)*y(nn_Alkenes,L)
      &      +rr(rrbi%Isoprene_NO3__HO2_Alkenes,L)*y(nn_Isoprene,L)
      &        *0.12d0
@@ -1174,11 +1179,13 @@ C Alkenes, Isoprene, Terpenes (if used) and AlkylNit:
      &    )*yNO3(I,J,L)*dt2
         if(-changed18Oald > 0.75d0*yd18Oald(I,J,L))changed18Oald=
      &  -0.75d0*yd18Oald(I,J,L)
-        changed13Cald=(rr(rrbi%Alkenes_NO3__HCHO_NO2,L)*y(nn_Alkenes,L)
-     &      +rr(rrbi%Isoprene_NO3__HO2_Alkenes,L)*y(nn_Isoprene,L)
+
+        changed13Cald=(rr(rrbi%d13Calke_NO3__dH13CHO_NO2,L)
+     &        *y(nn_d13Calke,L)
+     &      +rr(rrbi%Isoprene_NO3__HO2_d13Calke,L)*y(nn_Isoprene,L)
      &        *0.12d0
 #ifdef TRACERS_TERP
-     &      +rr(rrbi%Terpenes_NO3__HO2_Alkenes,L)*y(nn_Terpenes,L)
+     &      +rr(rrbi%Terpenes_NO3__HO2_d13Calke,L)*y(nn_Terpenes,L)
      &        *0.12d0
 #endif  /* TRACERS_TERP */
      &      -2.5d-15*yd13Cald(I,J,L)
@@ -1203,6 +1210,27 @@ C Alkenes, Isoprene, Terpenes (if used) and AlkylNit:
      &    )*y(nO3,L)*dt2
         if(-changeAlkenes > 0.75d0*y(nn_Alkenes,L))changeAlkenes=
      &  -0.75d0*y(nn_Alkenes,L)
+
+#ifdef TRACERS_dCO
+        changed13Calke=(rr(rrbi%Isoprene_NO3__HO2_d13Calke,L)
+     &        *y(nn_Isoprene,L)*0.45d0
+#ifdef TRACERS_TERP
+     &      +rr(rrbi%Terpenes_NO3__HO2_d13Calke,L)*y(nn_Terpenes,L)
+     &        *0.45d0
+#endif  /* TRACERS_TERP */
+     &      -rr(rrbi%d13Calke_NO3__dH13CHO_NO2,L)*y(nn_d13Calke,L)
+     &    )*yNO3(I,J,L)*dt2
+     &    +(rr(rrbi%Isoprene_O3__dH13CHO_d13Calke,L)*y(nn_Isoprene,L)
+     &      *0.55d0
+#ifdef TRACERS_TERP
+     &    +rr(rrbi%Terpenes_O3__dH13CHO_d13Calke,L)*y(nn_Terpenes,L)
+     &      *0.55d0
+#endif  /* TRACERS_TERP */
+     &    -rr(rrbi%d13Calke_O3__dH13CHO_d13CO,L)*y(nn_d13Calke,L)
+     &    )*y(nO3,L)*dt2
+        if(-changed13Calke > 0.75d0*y(nn_d13Calke,L))changed13Calke=
+     &  -0.75d0*y(nn_d13Calke,L)
+#endif  /* TRACERS_dCO */
 
 #ifdef TRACERS_AEROSOLS_SOA
 ! WARNING!!!
@@ -1313,23 +1341,23 @@ C Alkenes, Isoprene, Terpenes (if used) and AlkylNit:
      &      *0.64d0*dt2
 
         changedH13CHO=(
-     *      rr(rrbi%Alkenes_NO3__dH13CHO_NO2,L)*y(nn_Alkenes,L)
-     &      +rr(rrbi%Isoprene_NO3__HO2_Alkenes,L)*y(nn_Isoprene,L)
+     *      rr(rrbi%d13Calke_NO3__dH13CHO_NO2,L)*y(nn_d13Calke,L)
+     &      +rr(rrbi%Isoprene_NO3__HO2_d13Calke,L)*y(nn_Isoprene,L)
      &        *0.03d0*dCOfact
 #ifdef TRACERS_TERP
-     &      +rr(rrbi%Terpenes_NO3__HO2_Alkenes,L)*y(nn_Terpenes,L)
+     &      +rr(rrbi%Terpenes_NO3__HO2_d13Calke,L)*y(nn_Terpenes,L)
      &        *0.03d0*dCOfact
 #endif  /* TRACERS_TERP */
      &    )*yNO3(I,J,L)*dt2
      &    -gwprodHNO3dH13CHO
-     &    +(rr(rrbi%Isoprene_O3__dH13CHO_Alkenes,L)*y(nn_Isoprene,L)
+     &    +(rr(rrbi%Isoprene_O3__dH13CHO_d13Calke,L)*y(nn_Isoprene,L)
      *      *0.9d0
 #ifdef TRACERS_TERP
-     &    +rr(rrbi%Terpenes_O3__dH13CHO_Alkenes,L)*y(nn_Terpenes,L)
+     &    +rr(rrbi%Terpenes_O3__dH13CHO_d13Calke,L)*y(nn_Terpenes,L)
      *      *0.9d0
 #endif  /* TRACERS_TERP */
-     &    +rr(rrbi%Alkenes_O3__dH13CHO_CO,L)*y(nn_Alkenes,L))*y(nO3,L)
-     &      *0.64d0*dt2
+     &    +rr(rrbi%d13Calke_O3__dH13CHO_d13CO,L)*y(nn_d13Calke,L)
+     &    )*y(nO3,L)*0.64d0*dt2
 #endif  /* TRACERS_dCO */
 
         changeAlkylNit=rIsopplusNO3*0.9d0
@@ -1429,6 +1457,9 @@ C       Include reactions on dust for HNO3:
 
 C Apply Alkenes, AlkyNit, and Aldehyde changes here:
         y(nn_Alkenes,L)  =y(nn_Alkenes,L)  +changeAlkenes
+#ifdef TRACERS_dCO
+        y(nn_d13Calke,L)  =y(nn_d13Calke,L)  +changed13Calke
+#endif  /* TRACERS_dCO */
         y(nn_AlkylNit,L) =y(nn_AlkylNit,L) +changeAlkylNit
 #ifdef TRACERS_dCO
         y(nn_d17ORNit,L) =y(nn_d17ORNit,L) +changed17ORNit
@@ -1592,6 +1623,16 @@ C -- Alkenes --  (Alkenes from gas phase rxns)
           changeAlkenes=changeL(L,n_Alkenes)*mass2vol(n_Alkenes)
      &    *bypfactor
         END IF
+#ifdef TRACERS_dCO
+C -- d13Calke --  (d13Calke from gas phase rxns)
+        changeL(L,n_d13Calke)=
+     &  changed13Calke*pfactor*vol2mass(n_d13Calke)
+        IF((trm(i,j,l,n_d13Calke)+changeL(l,n_d13Calke)) < minKG)THEN
+          changeL(l,n_d13Calke) = minKG - trm(i,j,l,n_d13Calke)
+          changed13Calke=changeL(L,n_d13Calke)*mass2vol(n_d13Calke)
+     &    *bypfactor
+        END IF
+#endif  /* TRACERS_dCO */
 #ifdef TRACERS_AEROSOLS_SOA
 C -- isopp1g --  (isopp1g from gas phase rxns)
         changeL(L,n_isopp1g)=
@@ -2473,6 +2514,13 @@ CCCCCCCCCCCCC PRINT SOME CHEMISTRY DIAGNOSTICS CCCCCCCCCCCCCCCC
      &    100.d0*(changeAlkenes)/y(nn_Alkenes,L),' percent of'
      &    ,y(nn_Alkenes,L),'(',1.d9*y(nn_Alkenes,L)/y(nM,L),' ppbv)'
           call write_parallel(trim(out_line),crit=jay)
+#ifdef TRACERS_dCO
+          write(out_line,198) 'd13Calke',': ',
+     &    changed13Calke,' molecules produced; ',
+     &    100.d0*(changed13Calke)/y(nn_d13Calke,L),' percent of'
+     &    ,y(nn_d13Calke,L),'(',1.d9*y(nn_d13Calke,L)/y(nM,L),' ppbv)'
+          call write_parallel(trim(out_line),crit=jay)
+#endif  /* TRACERS_dCO */
 #ifdef TRACERS_AEROSOLS_SOA
           write(out_line,198) 'isopp1g ',': ',
      &    changeisopp1g,' molecules produced; ',

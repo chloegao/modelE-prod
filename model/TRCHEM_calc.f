@@ -22,7 +22,7 @@ C
       use OldTracer_mod, only: vol2mass, mass2vol
       USE TRACER_COM, only  : ntm_chem_beg, ntm_chem_end, ntm_chem,
 #ifdef TRACERS_dCO
-     &  n_d13CPAR,
+     &  n_d13Calke,n_d13CPAR,
      &  n_d17ORNit,n_d18ORNit,n_d13CRNit,
      &  n_d17OPAN,n_d18OPAN,n_d13CPAN,
 #endif  /* TRACERS_dCO */
@@ -84,7 +84,7 @@ C
      &      nn_ClOx,   nn_BrOx,  nn_HCl,   nn_HOCl,   nn_ClONO2,  
      &      nn_HBr,    nn_HOBr,  nn_BrONO2,nn_CFC,    nn_GLT
 #ifdef TRACERS_dCO
-     &     ,nn_d13CPAR
+     &     ,nn_d13Calke,nn_d13CPAR
      &     ,nn_d17ORNit,nn_d18ORNit,nn_d13CRNit
      &     ,nn_d17OPAN,nn_d18OPAN,nn_d13CPAN
      &     ,nn_dMe17OOH,nn_dMe18OOH,nn_d13MeOOH
@@ -302,7 +302,7 @@ c HCHO, Alkenes, and CO per rxn, correct here following Houweling:
      &    -0.63d0*chemrate(rrbi%Alkenes_O3__HCHO_dC18O,L)
      &    -0.64d0*chemrate(rrbi%Isoprene_O3__HCHO_Alkenes,L)
         prod(nn_d13CO,L)=prod(nn_d13CO,L)
-     &    -0.63d0*chemrate(rrbi%Alkenes_O3__HCHO_d13CO,L)
+     &    -0.63d0*chemrate(rrbi%d13Calke_O3__dH13CHO_d13CO,L)
      &    -0.64d0*chemrate(rrbi%Isoprene_O3__HCHO_Alkenes,L)
 #endif  /* TRACERS_dCO */
         prod(nn_HCHO,L)=prod(nn_HCHO,L)
@@ -313,7 +313,7 @@ c HCHO, Alkenes, and CO per rxn, correct here following Houweling:
         prod(nn_dHCH18O,L)=prod(nn_dHCH18O,L)
      &    -0.36d0*chemrate(rrbi%Alkenes_O3__dHCH18O_CO,L)
         prod(nn_dH13CHO,L)=prod(nn_dH13CHO,L)
-     &    -0.36d0*chemrate(rrbi%Alkenes_O3__dH13CHO_CO,L)
+     &    -0.36d0*chemrate(rrbi%d13Calke_O3__dH13CHO_d13CO,L)
 #endif  /* TRACERS_dCO */
         prod(nn_HCHO,L)=prod(nn_HCHO,L)
      &    -0.39d0*chemrate(rrbi%Isoprene_OH__HCHO_Alkenes,L)
@@ -332,9 +332,9 @@ c HCHO, Alkenes, and CO per rxn, correct here following Houweling:
      &    -0.39d0*chemrate(rrbi%Terpenes_OH__dHCH18O_Alkenes,L)
 #endif  /* TRACERS_TERP */
         prod(nn_dH13CHO,L)=prod(nn_dH13CHO,L)
-     &    -0.39d0*chemrate(rrbi%Isoprene_OH__dH13CHO_Alkenes,L)
+     &    -0.39d0*chemrate(rrbi%Isoprene_OH__dH13CHO_d13Calke,L)
 #ifdef TRACERS_TERP
-     &    -0.39d0*chemrate(rrbi%Terpenes_OH__dH13CHO_Alkenes,L)
+     &    -0.39d0*chemrate(rrbi%Terpenes_OH__dH13CHO_d13Calke,L)
 #endif  /* TRACERS_TERP */
 #endif  /* TRACERS_dCO */
         prod(nn_Alkenes,L)=prod(nn_Alkenes,L)
@@ -342,6 +342,13 @@ c HCHO, Alkenes, and CO per rxn, correct here following Houweling:
 #ifdef TRACERS_TERP
      &    -0.42d0*chemrate(rrbi%Terpenes_OH__HCHO_Alkenes,L)
 #endif  /* TRACERS_TERP */
+#ifdef TRACERS_dCO
+        prod(nn_d13Calke,L)=prod(nn_d13Calke,L)
+     &    -0.42d0*chemrate(rrbi%Isoprene_OH__dH13CHO_d13Calke,L)
+#ifdef TRACERS_TERP
+     &    -0.42d0*chemrate(rrbi%Terpenes_OH__dH13CHO_d13Calke,L)
+#endif  /* TRACERS_TERP */
+#endif  /* TRACERS_dCO */
         prod(nn_HCHO,L)=prod(nn_HCHO,L)
      &    -0.10d0*chemrate(rrbi%Isoprene_O3__HCHO_Alkenes,L)
 #ifdef TRACERS_TERP
@@ -359,9 +366,9 @@ c HCHO, Alkenes, and CO per rxn, correct here following Houweling:
      &    -0.10d0*chemrate(rrbi%Terpenes_O3__dHCH18O_Alkenes,L)
 #endif  /* TRACERS_TERP */
         prod(nn_dH13CHO,L)=prod(nn_dH13CHO,L)
-     &    -0.10d0*chemrate(rrbi%Isoprene_O3__dH13CHO_Alkenes,L)
+     &    -0.10d0*chemrate(rrbi%Isoprene_O3__dH13CHO_d13Calke,L)
 #ifdef TRACERS_TERP
-     &    -0.10d0*chemrate(rrbi%Terpenes_O3__dH13CHO_Alkenes,L)
+     &    -0.10d0*chemrate(rrbi%Terpenes_O3__dH13CHO_d13Calke,L)
 #endif  /* TRACERS_TERP */
 #endif  /* TRACERS_dCO */
         prod(nn_Alkenes,L)=prod(nn_Alkenes,L)
@@ -369,6 +376,13 @@ c HCHO, Alkenes, and CO per rxn, correct here following Houweling:
 #ifdef TRACERS_TERP
      &    -0.45d0*chemrate(rrbi%Terpenes_O3__HCHO_Alkenes,L)
 #endif  /* TRACERS_TERP */
+#ifdef TRACERS_dCO
+        prod(nn_d13Calke,L)=prod(nn_d13Calke,L)
+     &    -0.45d0*chemrate(rrbi%Isoprene_O3__dH13CHO_d13Calke,L)
+#ifdef TRACERS_TERP
+     &    -0.45d0*chemrate(rrbi%Terpenes_O3__dH13CHO_d13Calke,L)
+#endif  /* TRACERS_TERP */
+#endif  /* TRACERS_dCO */
 #ifdef TRACERS_HETCHEM
         dest(nn_HNO3,l)=dest(nn_HNO3,l) -
      &       krate(i,j,l,1,1)*y(nn_HNO3,l)*dt2
@@ -1019,27 +1033,25 @@ c       Set value for d13CXO2:
      &      +rr(rrbi%d13C2O3_d13C2O3__dH13CHO_dH13CHO,L)*y(nd13C2O3,L)
      &        *2.d0
      &      +rr(rrbi%d13C2O3_HO2__dH13CHO_HO2,L)*y(nHO2,L))
-     &    +rr(rrbi%Alkenes_NO3__dH13CHO_NO2,L)*y(nNO3,L)*y(nn_Alkenes,L)
-     &      *0.91d0
+     &    +rr(rrbi%d13Calke_NO3__dH13CHO_NO2,L)*y(nNO3,L)
+     &      *y(nn_d13Calke,L)*0.91d0
      &    +rr(rrbi%d13CROR_M__d13Cald_HO2,L)*yd13CROR(I,J,L)*0.96d0
      &    +y(nOH,L)*(rr(rrbi%d13CPAR_OH__HO2_M,L)*y(nn_d13CPAR,L)
      &      *0.87d0
-     &    +rr(rrbi%Alkenes_OH__dH13CHO_HO2,L)*y(nn_Alkenes,L)
-     &    +rr(rrbi%Isoprene_OH__dH13CHO_Alkenes,L)*y(nn_Isoprene,L)
+     &    +rr(rrbi%d13Calke_OH__dH13CHO_HO2,L)*y(nn_d13Calke,L)
+     &    +rr(rrbi%Isoprene_OH__dH13CHO_d13Calke,L)*y(nn_Isoprene,L)
      &      *0.85d0
 #ifdef TRACERS_TERP
-     &    +rr(rrbi%Terpenes_OH__dH13CHO_Alkenes,L)*y(nn_Terpenes,L)
+     &    +rr(rrbi%Terpenes_OH__dH13CHO_d13Calke,L)*y(nn_Terpenes,L)
      &      *0.85d0
 #endif  /* TRACERS_TERP */
      &    +rr(rrbi%d13CRNit_OH__NO2_d13CXO2,L)*y(nn_d13CRNit,L))
-     &    +y(nO3,L)*(rr(rrbi%Alkenes_O3__dH13CHO_CO,L)*y(nn_Alkenes,L)
-     &      *0.29d0*0.5d0
-     &      +rr(rrbi%Alkenes_O3__HCHO_d13CO,L)*y(nn_Alkenes,L)
-     &        *0.29d0*0.5d0
-     &      +rr(rrbi%Isoprene_O3__dH13CHO_Alkenes,L)*y(nn_Isoprene,L)
+     &    +y(nO3,L)*(rr(rrbi%d13Calke_O3__dH13CHO_d13CO,L)
+     &      *y(nn_d13Calke,L)*0.29d0
+     &      +rr(rrbi%Isoprene_O3__dH13CHO_d13Calke,L)*y(nn_Isoprene,L)
      &        *0.18d0
 #ifdef TRACERS_TERP
-     &      +rr(rrbi%Terpenes_O3__dH13CHO_Alkenes,L)*y(nn_Terpenes,L)
+     &      +rr(rrbi%Terpenes_O3__dH13CHO_d13Calke,L)*y(nn_Terpenes,L)
      &        *0.18d0
 #endif  /* TRACERS_TERP */
      &           )
@@ -1124,13 +1136,13 @@ c       Set value for d18OXO2N:
 c       Set value for d13CXO2N:
         XO2Nprod=rr(rrbi%d13CPAR_OH__HO2_M,L)*y(nn_d13CPAR,L)
      &      *y(nOH,L)*0.13d0
-     &    +rr(rrbi%Alkenes_NO3__dH13CHO_NO2,L)*y(nNO3,L)*y(nn_Alkenes,L)
-     &      *0.09d0
+     &    +rr(rrbi%d13Calke_NO3__dH13CHO_NO2,L)*y(nNO3,L)
+     &      *y(nn_d13Calke,L)*0.09d0
      &    +rr(rrbi%d13CROR_M__d13Cald_HO2,L)*yd13CROR(I,J,L)*0.04d0
-     &    +rr(rrbi%Isoprene_OH__dH13CHO_Alkenes,L)*y(nn_Isoprene,L)*
+     &    +rr(rrbi%Isoprene_OH__dH13CHO_d13Calke,L)*y(nn_Isoprene,L)*
      &      y(nOH,L)*0.15d0
 #ifdef TRACERS_TERP
-     &    +rr(rrbi%Terpenes_OH__dH13CHO_Alkenes,L)*y(nn_Terpenes,L)
+     &    +rr(rrbi%Terpenes_OH__dH13CHO_d13Calke,L)*y(nn_Terpenes,L)
      &      *y(nOH,L)*0.15d0
 #endif  /* TRACERS_TERP */
         XO2Ndest=XO2N_HO2+rr(rrbi%d13CXO2N_NO__d13CRNit_M,L)*y(nNO,L)
@@ -1168,13 +1180,12 @@ c       Set value for RXPAR:
 c       Set value for d13CXPAR:
         RXPARprod=rr(rrbi%d13CPAR_OH__HO2_M,L)*y(nn_d13CPAR,L)
      &      *y(nOH,L)*0.11d0
-     &    +rr(rrbi%Alkenes_OH__dH13CHO_HO2,L)*y(nn_Alkenes,L)*y(nOH,L)
+     &    +rr(rrbi%d13Calke_OH__dH13CHO_HO2,L)*y(nn_d13Calke,L)*y(nOH,L)
      &    +rr(rrbi%ROR_M__Aldehyde_HO2,L)*yd13CROR(I,J,L)*2.1d0
-     &    +rr(rrbi%Alkenes_O3__dH13CHO_CO,L)*y(nn_Alkenes,L)*y(nO3,L)
-     &      *0.9d0*0.5d0
-     &    +rr(rrbi%Alkenes_O3__HCHO_d13CO,L)*y(nn_Alkenes,L)*y(nO3,L)
-     &      *0.9d0*0.5d0
-     &    +rr(rrbi%Alkenes_NO3__dH13CHO_NO2,L)*y(nNO3,L)*y(nn_Alkenes,L)
+     &    +rr(rrbi%d13Calke_O3__dH13CHO_d13CO,L)*y(nn_d13Calke,L)
+     &      *y(nO3,L)*0.9d0
+     &    +rr(rrbi%d13Calke_NO3__dH13CHO_NO2,L)*y(nNO3,L)
+     &      *y(nn_d13Calke,L)
         RXPARdest=RXPAR_PAR
         if(RXPARdest > 0.d0)then
           y(nd13CXPAR,L)=(RXPARprod/RXPARdest)
@@ -1255,9 +1266,9 @@ c       Check for equilibrium:
 c       Set value for d13Cald:
         Aldehydeprod=rr(rrbi%d13CPAR_OH__HO2_M,L)*y(nn_d13CPAR,L)
      &      *y(nOH,L)*0.11d0
-     &    +rr(rrbi%Alkenes_OH__HCHO_HO2,L)*y(nn_Alkenes,L)*y(nOH,L)
+     &    +rr(rrbi%d13Calke_OH__dH13CHO_HO2,L)*y(nn_d13Calke,L)*y(nOH,L)
      &    +rr(rrbi%d13CROR_M__d13Cald_HO2,L)*yd13CROR(I,J,L)*1.1d0
-     &    +rr(rrbi%Alkenes_O3__HCHO_CO,L)*y(nn_Alkenes,L)
+     &    +rr(rrbi%d13Calke_O3__dH13CHO_d13CO,L)*y(nn_d13Calke,L)
      &      *y(nO3,L)*0.44d0
         Aldehydedest=rr(rrbi%d13Cald_OH__d13C2O3_M,L)*y(nOH,L)
      &    +ss(rj%d13Cald__dH13CHO_d13CO,L,I,J)
@@ -1354,12 +1365,12 @@ c       prod term via isoprene rxns:
      &       +rr(rrbi%Isoprene_O3__HCHO_Alkenes,L)*y(nO3,L)
      &       )*dt2/3.d0
      &    +0.63d0*y(nn_Isoprene,L)
-     &      *(rr(rrbi%Isoprene_OH__dH13CHO_Alkenes,L)*y(nOH,L)
-     &       +rr(rrbi%Isoprene_O3__dH13CHO_Alkenes,L)*y(nO3,L)
+     &      *(rr(rrbi%Isoprene_OH__dH13CHO_d13Calke,L)*y(nOH,L)
+     &       +rr(rrbi%Isoprene_O3__dH13CHO_d13Calke,L)*y(nO3,L)
      &       )*dt2/3.d0
      &    +0.63d0*y(nn_Isoprene,L)
-     &      *(rr(rrbi%Isoprene_OH__HCHO_Alkenes,L)*y(nOH,L) ! this will become d13Calke
-     &       +rr(rrbi%Isoprene_O3__HCHO_Alkenes,L)*y(nO3,L) ! this will become d13Calke
+     &      *(rr(rrbi%Isoprene_OH__dH13CHO_d13Calke,L)*y(nOH,L)
+     &       +rr(rrbi%Isoprene_O3__dH13CHO_d13Calke,L)*y(nO3,L)
      &       )*dt2/3.d0
 #ifdef TRACERS_TERP
      &    +5.0d0*0.63d0*y(nn_Terpenes,L)
@@ -1367,12 +1378,12 @@ c       prod term via isoprene rxns:
      &       +rr(rrbi%Terpenes_O3__HCHO_Alkenes,L)*y(nO3,L)
      &       )*dt2/3.d0
      &    +5.0d0*0.63d0*y(nn_Terpenes,L)
-     &      *(rr(rrbi%Terpenes_OH__dH13CHO_Alkenes,L)*y(nOH,L)
-     &       +rr(rrbi%Terpenes_O3__dH13CHO_Alkenes,L)*y(nO3,L)
+     &      *(rr(rrbi%Terpenes_OH__dH13CHO_d13Calke,L)*y(nOH,L)
+     &       +rr(rrbi%Terpenes_O3__dH13CHO_d13Calke,L)*y(nO3,L)
      &       )*dt2/3.d0
      &    +5.0d0*0.63d0*y(nn_Terpenes,L)
-     &      *(rr(rrbi%Terpenes_OH__HCHO_Alkenes,L)*y(nOH,L) ! this will become d13Calke
-     &       +rr(rrbi%Terpenes_O3__HCHO_Alkenes,L)*y(nO3,L) ! this will become d13Calke
+     &      *(rr(rrbi%Terpenes_OH__dH13CHO_d13Calke,L)*y(nOH,L)
+     &       +rr(rrbi%Terpenes_O3__dH13CHO_d13Calke,L)*y(nO3,L)
      &       )*dt2/3.d0
 #endif  /* TRACERS_TERP */
 #endif  /* TRACERS_dCO */
@@ -3057,7 +3068,7 @@ c       skip same reaction if written twice:
      &           dCOrji,dCOrje
 
       dCOrrbi_i=rrbi%O1D_CH4__OH_dCH317O2
-      dCOrrbi_e=rrbi%Terpenes_O3__dH13CHO_Alkenes
+      dCOrrbi_e=rrbi%Terpenes_NO3__HO2_d13Calke
       if (dCOrrbi_e-dCOrrbi_i+1 /= n_bi_dCO)
      &  call stop_model('ERROR: Check the first and last dCO '//
      &                  'bimolecular reactions', 255)
