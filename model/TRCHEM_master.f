@@ -53,6 +53,7 @@ c
      &                     ,n_d17ORNit,n_d18ORNit,n_d13CRNit
      &                     ,n_dHCH17O,n_dHCH18O,n_dH13CHO
      &                     ,n_dC17O,n_dC18O,n_d13CO
+      use tracers_dCO, only: dacetone_fact, dalke_IC_fact
 #endif  /* TRACERS_dCO */
 #ifdef TRACERS_AMP
       USE TRACER_COM, only  : n_M_AKK_SU,n_M_ACC_SU,n_M_DD1_SU,
@@ -217,9 +218,6 @@ C**** Local parameters and variables and arguments:
       integer :: k
 #endif
       integer :: hour, idx
-#ifdef TRACERS_dCO
-      real*8, parameter :: dCOfact=1.d0
-#endif  /* TRACERS_dCO */
 
       call modelEclock%get(hour=hour)
 
@@ -446,24 +444,10 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
         acetone(L)=0.d0
       enddo
 #ifdef TRACERS_dCO
-      do L=1,maxT
-        d17Oacetone(L)=max(0.d0, ! in molec/cm3
-     &  (1.25d0*(
-     &    zonalIsop(i,j)-trm(i,j,L,n_Isoprene)*mass2vol(n_Isoprene)*
-     &    byaxyp(i,j)*byMA(L,i,j)))*PMID(L,i,j)/(TX(i,j,L)*cboltz))
-        d18Oacetone(L)=max(0.d0, ! in molec/cm3
-     &  (1.25d0*(
-     &    zonalIsop(i,j)-trm(i,j,L,n_Isoprene)*mass2vol(n_Isoprene)*
-     &    byaxyp(i,j)*byMA(L,i,j)))*PMID(L,i,j)/(TX(i,j,L)*cboltz))
-        d13Cacetone(L)=max(0.d0, ! in molec/cm3
-     &  (1.25d0*(
-     &    zonalIsop(i,j)-trm(i,j,L,n_Isoprene)*mass2vol(n_Isoprene)*
-     &    byaxyp(i,j)*byMA(L,i,j)))*PMID(L,i,j)/(TX(i,j,L)*cboltz))
-      enddo
-      do L=maxT+1,topLevelOfChemistry
-        d17Oacetone(L)=0.d0
-        d18Oacetone(L)=0.d0
-        d13Cacetone(L)=0.d0
+      do L=1,topLevelOfChemistry
+        d17Oacetone(L)=acetone(L)*dacetone_fact
+        d18Oacetone(L)=acetone(L)*dacetone_fact
+        d13Cacetone(L)=acetone(L)*dacetone_fact
       enddo
 
 #endif  /* TRACERS_dCO */
@@ -580,9 +564,9 @@ c - set reactive species for use in family chemistry & nighttime NO2:
        if(Itime == ItimeI .and. allowSomeChemReinit == 1)then 
          y(nAldehyde,L)=y(nM,L)*pfix_Aldehyde
 #ifdef TRACERS_dCO
-         y(nd17Oald,L)=y(nM,L)*pfix_d17Oald
-         y(nd18Oald,L)=y(nM,L)*pfix_d18Oald
-         y(nd13Cald,L)=y(nM,L)*pfix_d13Cald
+         y(nd17Oald,L)=y(nM,L)*pfix_Aldehyde*dalke_IC_fact
+         y(nd18Oald,L)=y(nM,L)*pfix_Aldehyde*dalke_IC_fact
+         y(nd13Cald,L)=y(nM,L)*pfix_Aldehyde*dalke_IC_fact
 #endif  /* TRACERS_dCO */
        else
          y(nAldehyde,L)=yAldehyde(I,J,L)
@@ -1132,13 +1116,13 @@ C Alkenes, Isoprene, Terpenes (if used) and AlkylNit:
         gwprodHNO3=rHCHOplusNO3+rAldplusNO3
         if(gwprodHNO3 > y(nn_HCHO,L))gwprodHNO3=y(nn_HCHO,L)
 #ifdef TRACERS_dCO
-        gwprodHNO3dHCH17O=rdHCH17OplusNO3+rd17OaldplusNO3*dCOfact
+        gwprodHNO3dHCH17O=rdHCH17OplusNO3+rd17OaldplusNO3
         if(gwprodHNO3dHCH17O > y(nn_dHCH17O,L))
      &    gwprodHNO3dHCH17O=y(nn_dHCH17O,L)
-        gwprodHNO3dHCH18O=rdHCH18OplusNO3+rd18OaldplusNO3*dCOfact
+        gwprodHNO3dHCH18O=rdHCH18OplusNO3+rd18OaldplusNO3
         if(gwprodHNO3dHCH18O > y(nn_dHCH18O,L))
      &    gwprodHNO3dHCH18O=y(nn_dHCH18O,L)
-        gwprodHNO3dH13CHO=rdH13CHOplusNO3+rd13CaldplusNO3*dCOfact
+        gwprodHNO3dH13CHO=rdH13CHOplusNO3+rd13CaldplusNO3
         if(gwprodHNO3dH13CHO > y(nn_dH13CHO,L))
      &    gwprodHNO3dH13CHO=y(nn_dH13CHO,L)
 #endif  /* TRACERS_dCO */
@@ -1305,10 +1289,10 @@ C Alkenes, Isoprene, Terpenes (if used) and AlkylNit:
         changedHCH17O=(
      *      rr(rrbi%Alkenes_NO3__dHCH17O_NO2,L)*y(nn_Alkenes,L)
      &      +rr(rrbi%Isoprene_NO3__HO2_Alkenes,L)*y(nn_Isoprene,L)
-     &        *0.03d0*dCOfact
+     &        *0.03d0
 #ifdef TRACERS_TERP
      &      +rr(rrbi%Terpenes_NO3__HO2_Alkenes,L)*y(nn_Terpenes,L)
-     &        *0.03d0*dCOfact
+     &        *0.03d0
 #endif  /* TRACERS_TERP */
      &    )*yNO3(I,J,L)*dt2
      &    -gwprodHNO3dHCH17O
@@ -1324,10 +1308,10 @@ C Alkenes, Isoprene, Terpenes (if used) and AlkylNit:
         changedHCH18O=(
      &      rr(rrbi%Alkenes_NO3__dHCH18O_NO2,L)*y(nn_Alkenes,L)
      &      +rr(rrbi%Isoprene_NO3__HO2_Alkenes,L)*y(nn_Isoprene,L)
-     &        *0.03d0*dCOfact
+     &        *0.03d0
 #ifdef TRACERS_TERP
      &      +rr(rrbi%Terpenes_NO3__HO2_Alkenes,L)*y(nn_Terpenes,L)
-     &        *0.03d0*dCOfact
+     &        *0.03d0
 #endif  /* TRACERS_TERP */
      &    )*yNO3(I,J,L)*dt2
      &    -gwprodHNO3dHCH18O
@@ -1343,10 +1327,10 @@ C Alkenes, Isoprene, Terpenes (if used) and AlkylNit:
         changedH13CHO=(
      *      rr(rrbi%d13Calke_NO3__dH13CHO_NO2,L)*y(nn_d13Calke,L)
      &      +rr(rrbi%Isoprene_NO3__HO2_d13Calke,L)*y(nn_Isoprene,L)
-     &        *0.03d0*dCOfact
+     &        *0.03d0
 #ifdef TRACERS_TERP
      &      +rr(rrbi%Terpenes_NO3__HO2_d13Calke,L)*y(nn_Terpenes,L)
-     &        *0.03d0*dCOfact
+     &        *0.03d0
 #endif  /* TRACERS_TERP */
      &    )*yNO3(I,J,L)*dt2
      &    -gwprodHNO3dH13CHO
@@ -2768,9 +2752,6 @@ C**** Local parameters and variables and arguments:
       REAL*8, DIMENSION(LM) :: PRES ! = PMIDL00(1:LM). Keeps LM dimension not top of chem
       INTEGER               :: LAXt,LAXb
       real*8, allocatable, dimension(:) :: PSCEX,rkext
-#ifdef TRACERS_dCO
-      real*8, parameter :: dCOfact=1.d0
-#endif  /* TRACERS_dCO */
 
       allocate( PSCEX(topLevelOfChemistry) )
       allocate( rkext(topLevelOfChemistry) )
@@ -2832,9 +2813,6 @@ C**** Local parameters and variables and arguments:
             pp=0.6d0**(1.d0/(1.d0+(log10(dd))**2.))
             associationReaction=(k0TM/(1.d0+dd))*pp
             k0T=1.5d-13*((300.d0*byta)**(-0.6))
-#ifdef TRACERS_dCO
-     &         *dCOfact
-#endif  /* TRACERS_dCO */
             kinfTbyM=(2.1d9*((300.d0*byta)**(-6.1)))/y(nM,L)
             dd=k0T/kinfTbyM
             pp=0.6d0**(1.d0/(1.d0+(log10(dd))**2.))

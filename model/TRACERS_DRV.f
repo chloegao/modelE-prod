@@ -5040,6 +5040,15 @@ C**** 3D tracer-related arrays but not attached to any one tracer
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
       USE RAD_COM, only: stratO3_tracer_save
 #endif
+#ifdef TRACERS_dCO
+      use tracers_dCO, only: dalke_IC_fact
+      use tracers_dCO, only: dPAR_IC_fact
+      use tracers_dCO, only: dRNit_IC_fact
+      use tracers_dCO, only: dPAN_IC_fact
+      use tracers_dCO, only: dMeOOH_IC_fact
+      use tracers_dCO, only: dHCHO_IC_fact
+      use tracers_dCO, only: dCO_IC_fact
+#endif  /* TRACERS_dCO */
       USE TRCHEM_Shindell_COM,only:O3MULT,ch4icx,
      &  OxIC,COIC,byO3MULT,PI_run,fix_CH4_chemistry,
      &  PIratio_N,PIratio_CO_T,PIratio_CO_S,PIratio_other
@@ -5124,8 +5133,9 @@ C**** 3D tracer-related arrays but not attached to any one tracer
      &                     GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: ghg_in
 !@var imonth dummy index for choosing the right month
 !@var ICfactor varying factor for altering initial conditions
+!@var dICfactor varying factor for altering initial conditions of dCO tracers
       INTEGER imonth, J2
-      REAL*8 ICfactor
+      REAL*8 ICfactor,dICfactor
 !@var PRES local nominal pressure for vertical interpolations
       REAL*8, DIMENSION(LM) :: PRES
 #endif
@@ -5671,8 +5681,18 @@ c**** earth
      *        'dHCH17O', 'dHCH18O', 'dH13CHO',
 #endif  /* TRACERS_dCO */
      &        'HCHO')
+          select case (trname(n))
+#ifdef TRACERS_dCO
+            case ('dMe17OOH', 'dMe18OOH', 'd13MeOOH')
+              dICfactor=dMeOOH_IC_fact
+            case ('dHCH17O', 'dHCH18O', 'dH13CHO')
+              dICfactor=dHCHO_IC_fact
+#endif  /* TRACERS_dCO */
+            case default
+              dICfactor=1.d0
+          end select
           do l=1,lm; do j=J_0,J_1; do i=i_0,i_1
-            trm(i,j,l,n) = MA(l,i,j)*axyp(i,j)*1.d-11
+            trm(i,j,l,n) = MA(l,i,j)*axyp(i,j)*1.d-11*dICfactor
           end do; end do; end do
 
 #ifdef TRACERS_SPECIAL_Shindell
@@ -5690,6 +5710,14 @@ c**** earth
      *       ,'dC17O','dC18O','d13CO'
 #endif  /* TRACERS_dCO */
      *       )
+          select case (trname(n))
+#ifdef TRACERS_dCO
+            case ('dC17O','dC18O','d13CO')
+              dICfactor=dCO_IC_fact
+#endif  /* TRACERS_dCO */
+            case default
+              dICfactor=1.d0
+          end select
           do l=1,lm
             select case(PI_run)
             case(1) ! ise scaling
@@ -5701,7 +5729,7 @@ c**** earth
             case default; ICfactor=1.d0
             end select
             do j=J_0,J_1; do i=I_0,I_1
-              trm(I,J,L,n) = COIC(I,J,L)*ICfactor
+              trm(I,J,L,n) = COIC(I,J,L)*ICfactor*dICfactor
             end do   ; end do
           end do
 
@@ -5716,13 +5744,21 @@ c**** earth
      *       ,'d17OPAN','d18OPAN','d13CPAN'
 #endif  /* TRACERS_dCO */
      *       )
+          select case (trname(n))
+#ifdef TRACERS_dCO
+            case ('d17OPAN','d18OPAN','d13CPAN')
+              dICfactor=dPAN_IC_fact
+#endif  /* TRACERS_dCO */
+            case default
+              dICfactor=1.d0
+          end select
           select case(PI_run)
           case(1)     ; ICfactor=PIratio_other
           case default; ICfactor=1.d0
           end select
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
             trm(i,j,l,n) =
-     &      MA(l,i,j)*axyp(i,j)*vol2mass(n)*4.d-11*ICfactor
+     &      MA(l,i,j)*axyp(i,j)*vol2mass(n)*4.d-11*ICfactor*dICfactor
           end do; end do; end do
 
         case ('Isoprene')
@@ -5740,13 +5776,21 @@ c**** earth
      *       ,'d17ORNit','d18ORNit','d13CRNit'
 #endif  /* TRACERS_dCO */
      *       )
+          select case (trname(n))
+#ifdef TRACERS_dCO
+            case ('d17ORNit','d18ORNit','d13CRNit')
+              dICfactor=dRNit_IC_fact
+#endif  /* TRACERS_dCO */
+            case default
+              dICfactor=1.d0
+          end select
           select case(PI_run)
           case(1)     ; ICfactor=PIratio_other
           case default; ICfactor=1.d0
           end select
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
             trm(i,j,l,n) =
-     &      MA(l,i,j)*axyp(i,j)*vol2mass(n)*2.d-10*ICfactor
+     &      MA(l,i,j)*axyp(i,j)*vol2mass(n)*2.d-10*ICfactor*dICfactor
           end do; end do; end do
 
         case('Alkenes'
@@ -5754,13 +5798,21 @@ c**** earth
      *      ,'d13Calke'
 #endif  /* TRACERS_dCO */
      *       )
+          select case (trname(n))
+#ifdef TRACERS_dCO
+            case ('d13Calke')
+              dICfactor=dalke_IC_fact
+#endif  /* TRACERS_dCO */
+            case default
+              dICfactor=1.d0
+          end select
           select case(PI_run)
           case(1)     ; ICfactor=PIratio_other
           case default; ICfactor=1.d0
           end select
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
             trm(i,j,l,n) =
-     &      MA(l,i,j)*axyp(i,j)*vol2mass(n)*4.d-10*ICfactor
+     &      MA(l,i,j)*axyp(i,j)*vol2mass(n)*4.d-10*ICfactor*dICfactor
           end do; end do; end do
 
         case('Paraffin'
@@ -5768,13 +5820,21 @@ c**** earth
      *      ,'d13CPAR'
 #endif  /* TRACERS_dCO */
      *       )
+          select case (trname(n))
+#ifdef TRACERS_dCO
+            case ('d13CPAR')
+              dICfactor=dPAR_IC_fact
+#endif  /* TRACERS_dCO */
+            case default
+              dICfactor=1.d0
+          end select
           select case(PI_run)
           case(1)     ; ICfactor=PIratio_other
           case default; ICfactor=1.d0
           end select
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
             trm(i,j,l,n) =
-     &      MA(l,i,j)*axyp(i,j)*vol2mass(n)*5.d-10*ICfactor
+     &      MA(l,i,j)*axyp(i,j)*vol2mass(n)*5.d-10*ICfactor*dICfactor
           end do; end do; end do
 
         case('Terpenes'

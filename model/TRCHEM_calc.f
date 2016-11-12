@@ -131,13 +131,7 @@ C**** Local parameters and variables and arguments:
      & changeH2O,dQ,dQM,fraQ2,c2ml,conOH,conClO,conH2O,NprodOx_pos,
      & NprodOx_neg ! Oxcorr,
       real*8, dimension(LM) :: PRES ! for consistency with elsewhere, I keep this LM
-      real*8, parameter :: rCOplusO1D=1.d-9
-#ifdef TRACERS_dCO
-      real*8, parameter :: dCOfact=1.d0
-      real*8, parameter :: rdC17OplusO1D=1.d-9*dCOfact
-      real*8, parameter :: rdC18OplusO1D=1.d-9*dCOfact
-      real*8, parameter :: rd13COplusO1D=1.d-9*dCOfact
-#endif  /* TRACERS_dCO */
+!      real*8, parameter :: rCOplusO1D=1.d-9
       real*8, parameter :: chemtiny=1.d-12
 
       REAL*8 qqqCH3O2,CH3O2loss,XO2_NO,XO2N_HO2,RXPAR_PAR,ROR_CH2,
@@ -496,7 +490,7 @@ c         reduce non-acetone source gases (CH4 and dMe17OOH):
 c         increase non-acetone product gases:
           prod(nn_dHCH17O,L)=prod(nn_dHCH17O,L)-(diffCH3O2-tempAcet)
      &      *(CH3O2loss-rr(rrbi%dCH317O2_HO2__dMe17OOH_O2,L)*y(nHO2,L))
-     &      /CH3O2loss*dCOfact
+     &      /CH3O2loss
           prod(nn_dMe17OOH,L)=prod(nn_dMe17OOH,L)-(diffCH3O2-tempAcet)
      &      *(rr(rrbi%dCH317O2_HO2__dMe17OOH_O2,L)*y(nHO2,L))
      &      /CH3O2loss
@@ -541,7 +535,7 @@ c         reduce non-acetone source gases (CH4 and dMe18OOH):
 c         increase non-acetone product gases:
           prod(nn_dHCH18O,L)=prod(nn_dHCH18O,L)-(diffCH3O2-tempAcet)
      &      *(CH3O2loss-rr(rrbi%dCH318O2_HO2__dMe18OOH_O2,L)*y(nHO2,L))
-     &      /CH3O2loss*dCOfact
+     &      /CH3O2loss
           prod(nn_dMe18OOH,L)=prod(nn_dMe18OOH,L)-(diffCH3O2-tempAcet)
      &      *(rr(rrbi%dCH318O2_HO2__dMe18OOH_O2,L)*y(nHO2,L))
      &      /CH3O2loss
@@ -586,7 +580,7 @@ c         reduce non-acetone source gases (CH4 and d13MeOOH):
 c         increase non-acetone product gases:
           prod(nn_dH13CHO,L)=prod(nn_dH13CHO,L)-(diffCH3O2-tempAcet)
      &      *(CH3O2loss-rr(rrbi%d13CH3O2_HO2__d13MeOOH_O2,L)*y(nHO2,L))
-     &      /CH3O2loss*dCOfact
+     &      /CH3O2loss
           prod(nn_d13MeOOH,L)=prod(nn_d13MeOOH,L)-(diffCH3O2-tempAcet)
      &      *(rr(rrbi%d13CH3O2_HO2__d13MeOOH_O2,L)*y(nHO2,L))
      &      /CH3O2loss
@@ -676,7 +670,7 @@ c         reduce source gases (CH4 and dMe17OOH):
 c         increase product gases:
           prod(nn_dHCH17O,l)=prod(nn_dHCH17O,l)-diffCH3O2
      &      *(CH3O2loss-rr(rrbi%dCH317O2_HO2__dMe17OOH_O2,L)*y(nHO2,L))
-     &      /CH3O2loss*dCOfact
+     &      /CH3O2loss
           prod(nn_dMe17OOH,l)=prod(nn_dMe17OOH,l)-diffCH3O2
      &      *(rr(rrbi%dCH317O2_HO2__dMe17OOH_O2,L)*y(nHO2,L))
      &      /CH3O2loss
@@ -720,7 +714,7 @@ c         reduce source gases (CH4 and dMe18OOH):
 c         increase product gases:
           prod(nn_dHCH18O,l)=prod(nn_dHCH18O,l)-diffCH3O2
      &      *(CH3O2loss-rr(rrbi%dCH318O2_HO2__dMe18OOH_O2,L)*y(nHO2,L))
-     &      /CH3O2loss*dCOfact
+     &      /CH3O2loss
           prod(nn_dMe18OOH,l)=prod(nn_dMe18OOH,l)-diffCH3O2
      &      *(rr(rrbi%dCH318O2_HO2__dMe18OOH_O2,L)*y(nHO2,L))
      &      /CH3O2loss
@@ -764,7 +758,7 @@ c         reduce source gases (CH4 and d13MeOOH):
 c         increase product gases:
           prod(nn_dH13CHO,l)=prod(nn_dH13CHO,l)-diffCH3O2
      &      *(CH3O2loss-rr(rrbi%d13CH3O2_HO2__d13MeOOH_O2,L)*y(nHO2,L))
-     &      /CH3O2loss*dCOfact
+     &      /CH3O2loss
           prod(nn_d13MeOOH,l)=prod(nn_d13MeOOH,l)-diffCH3O2
      &      *(rr(rrbi%d13CH3O2_HO2__d13MeOOH_O2,L)*y(nHO2,L))
      &      /CH3O2loss

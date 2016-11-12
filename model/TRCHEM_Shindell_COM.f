@@ -401,11 +401,6 @@ C ----------------------------------------------
      &                      T_thresh     = 200.d0,
      &                      pfix_H2      = 560.d-9,
      &                      pfix_Aldehyde= 2.d-9,
-#ifdef TRACERS_dCO
-     &                      pfix_d17Oald = 2.d-9,
-     &                      pfix_d18Oald = 2.d-9,
-     &                      pfix_d13Cald = 2.d-9,
-#endif  /* TRACERS_dCO */
      &                      MWabyMWw     = mair/mwat,
      &                      RKBYPIM      = 1.961d2,
      &                      cboltz       = 1.3806d-19,
