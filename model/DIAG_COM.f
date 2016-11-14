@@ -278,7 +278,7 @@ C**** parameters and variables for ISCCP diags
       real*8, public, dimension(nisccp) :: WISCCP
 
 !@param KGZ number of pressure levels for some diags
-      INTEGER, PARAMETER, public :: KGZ = 13
+      INTEGER, PARAMETER, public :: KGZ = 16
 !@param kgz_max is the actual number of geopotential heights saved
       INTEGER, public :: kgz_max
 !@param PMB pressure levels for geopotential heights (extends to strat)
@@ -287,21 +287,21 @@ C**** parameters and variables for ISCCP diags
 #if (defined ttc_subdd) || (defined etc_subdd)
       REAL*8, DIMENSION(KGZ), PARAMETER, public :: 
      &     PMB=(/1000d0,925d0,850d0,700d0,600d0,500d0,400d0,300d0,
-     *     250d0,200d0,150d0,100d0,50d0/),
+     *            250d0,200d0,150d0,100d0,50d0,10d0,5d0,1d0/),
      *     GHT=(/0.,900.,1500.,3000.,4500.,5600.,7800.,9500.,11500.,
-     *     14500.,15500.,16400.,20000./)
+     *           14500.,15500.,16400.,20000.,30000.,35000.,47000. /)
       CHARACTER*4, DIMENSION(KGZ), PARAMETER, public :: PMNAME=(/
      *     "1000","925 ","850 ","700 ","600 ","500 ","400 ","300 ",
-     *     "250 ","200 ","150 ","100 ","50" /)
+     *     "250 ","200 ","150 ","100 ","50  ","10  ","5   ","1   " /)
 #else
       REAL*8, DIMENSION(KGZ), PARAMETER, public ::
-     &     PMB=(/1000d0,850d0,700d0,500d0,300d0,100d0,30d0,10d0,
-     *     3.4d0,.7d0,.16d0,.07d0,.03d0/),
-     *     GHT=(/0.,1500.,3000.,5600.,9500.,16400.,24000.,30000.,
-     *     40000.,50000.,61000.,67000.,72000./)
+     &     PMB=(/1000d0,850d0,700d0,500d0,300d0,100d0,50d0,30d0,10d0,
+     *           5d0,3.4d0,1d0,.7d0,.16d0,.07d0,.03d0/),
+     *     GHT=(/0.,1500.,3000.,5600.,9500.,16400.,20000.,24000.,30000.,
+     *           35000.,40000.,47000.,50000.,61000.,67000.,72000./)
       CHARACTER*4, DIMENSION(KGZ), PARAMETER, public :: PMNAME=(/
-     *     "1000","850 ","700 ","500 ","300 ","100 ","30  ","10  ",
-     *     "3.4 ","0.7 ",".16 ",".07 ",".03 " /)
+     *     "1000","850 ","700 ","500 ","300 ","100 ","50  ","30  ",
+     *     "10  ","5   ","3.4 ","1   ","0.7 ",".16 ",".07 ",".03 " /)
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
 !@var O_inst saved instantaneous Ox tracer (at PMB lvls)
@@ -538,14 +538,15 @@ C****      names, indices, units, idacc-numbers, etc.
      &  IJ_dSE_Dyn,IJ_dKE_Dyn,IJ_dTE_Dyn,IJ_dHSI_Dyn,
      &     IJ_RSOI, IJ_RSNW, IJ_SNOW, IJ_SHDT, IJ_PREC, IJ_EVAP,
      *     IJ_SSAT, IJ_BETA,  IJ_SLP1,  IJ_P4UV, IJ_PRES, IJ_PHI1K,
-     *     IJ_PHI850, IJ_PHI700, IJ_PHI500, IJ_PHI300, IJ_PHI100,
-     *     IJ_PHI30, IJ_PHI10, IJ_PHI3p4, IJ_PHI0p7, IJ_PHI0p16,
-     *     IJ_PHI0p07, IJ_PHI0p03, IJ_T850, IJ_T500, IJ_T300, IJ_Q850,
-     *     IJ_Q500, IJ_Q300, IJ_DSEV,
-     *     IJ_T700, IJ_Q700,
-     *     IJ_PBLHT, IJ_RH700,
-     *     IJ_RH1, IJ_RH850, IJ_RH500, IJ_RH300,
-     *     IJ_T100,IJ_Q100,IJ_RH100,
+     *     IJ_T850,IJ_T500,IJ_T300,IJ_T100,IJ_T50,IJ_T10,IJ_T5,IJ_T1,
+     *     IJ_Q850,IJ_Q500,IJ_Q300,IJ_Q100,IJ_Q50,IJ_Q10,IJ_Q5,IJ_Q1,
+     *     IJ_RH850, IJ_RH500, IJ_RH300, IJ_RH100,
+     *     IJ_PHI850, IJ_PHI500, IJ_PHI300, IJ_PHI100, IJ_PHI50,
+     *     IJ_PHI10, IJ_PHI5, IJ_PHI1,
+     *     IJ_PHI700, IJ_PHI30, IJ_PHI3p4,
+     *     IJ_PHI0p7, IJ_PHI0p16, IJ_PHI0p07, IJ_PHI0p03,
+     *     IJ_PBLHT, IJ_DSEV,
+     *     IJ_RH1,
      *     IJ_SRTR, IJ_NETH,
      *     IJ_TG1, IJ_RSIT, IJ_TDSL, IJ_TDCOMP, IJ_DTDP,
      *     IJ_RUNE, IJ_TS1, IJ_RUNLI, IJ_WS, IJ_TS, IJ_US, IJ_VS,
