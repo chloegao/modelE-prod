@@ -1,6 +1,5 @@
 E6TmatrixF40.R GISS Model E Run with MATRIX Aerosols
 
-CURRENTLY NOT FOR PRODUCTION RUNS BUT WILL BE SOON
 E6TmatrixF40: based on E4TcampiF40. Similar to E4TcadiF40 but with aerosol microphysics
               including shindell chemistry and dust
 

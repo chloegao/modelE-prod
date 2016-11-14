@@ -1,6 +1,5 @@
 E6TomaF40clim.R GISS Model E  1850 ocn/atm OMA tracers 
 
-CURRENTLY NOT FOR PRODUCTION RUNS BUT WILL BE SOON 
 E6TomaF40clim: E6TomaF40 but swap emissions to climatological
                (e.g. 9-year averages centered around nominal date)
 E6TomaF40: based on E4TcadiF40. OMA tracers with computed aerosol

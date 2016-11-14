@@ -1,6 +1,5 @@
 E6TtomasF40.R GISS Model E  1850 ocn/atm TOMAS tracers
 
-CURRENTLY NOT FOR PRODUCTION RUNS BUT WILL BE SOON 
 E6TtomasF40: based on E4TctomasiF40. Similar to E4TcadiF40 but with TOMAS aerosol microphysics 
                including shindell chemistry and dust
 

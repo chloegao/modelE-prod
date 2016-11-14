@@ -225,12 +225,7 @@ C Read landuse parameters and coefficients for tracer dry deposition:
       call cheminit ! **** Initialize the chemistry ****
 #endif
 #ifdef TRACERS_COSMO
-      do n=1,ntm
-        if (trname(n) .eq. "Be7" .OR. trname(n) .eq. "Be10") then
-          call init_cosmo
-          exit
-        end if
-      end do
+      call init_cosmo
 #endif
 #endif /* TRACERS_ON */
 

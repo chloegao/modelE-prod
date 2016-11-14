@@ -359,7 +359,7 @@ C**** set some defaults
         case ('Ox','N2O5','HNO3','H2O2','CH3OOH','HCHO','HO2NO2','PAN'
      *       ,'AlkylNit','ClOx','BrOx','HCl','HOCl','ClONO2','HBr'
 #ifdef TRACERS_dCO
-     *       ,'d13CPAR'
+     *       ,'d13Calke','d13CPAR'
      *       ,'d17ORNit', 'd18ORNit', 'd13CRNit'
      *       ,'d17OPAN', 'd18OPAN', 'd13CPAN'
      *       ,'dMe17OOH', 'dMe18OOH', 'd13MeOOH'
@@ -382,6 +382,7 @@ C**** set some defaults
               kt_power_change(n) = -14
             case ('HNO3','H2O2','CO','Isoprene','Alkenes','Paraffin'
 #ifdef TRACERS_dCO
+     *           ,'d13Calke'
      *           ,'dC17O', 'dC18O', 'd13CO'
 #endif  /* TRACERS_dCO */
      *           ,'Terpenes')
@@ -1159,7 +1160,7 @@ C**** special one unique to HTO
       case ('HCl','HOCl','ClONO2','HBr','HOBr','BrONO2','CFC',
      &      'BrOx','ClOx','Alkenes','Paraffin','Isoprene','CO',
 #ifdef TRACERS_dCO
-     *      'd13CPAR',
+     *      'd13Calke','d13CPAR',
      *      'd17ORNit', 'd18ORNit', 'd13CRNit',
      *      'd17OPAN', 'd18OPAN', 'd13CPAN',
      *      'dMe17OOH', 'dMe18OOH', 'd13MeOOH',
@@ -1183,7 +1184,7 @@ C**** special one unique to HTO
         select case(trname(n))
         case ('Alkenes','Paraffin','Isoprene','CO','N2O5','HNO3',
 #ifdef TRACERS_dCO
-     *      'd13CPAR',
+     *      'd13Calke','d13CPAR',
      *      'd17ORNit', 'd18ORNit', 'd13CRNit',
      *      'd17OPAN', 'd18OPAN', 'd13CPAN',
      *      'dMe17OOH', 'dMe18OOH', 'd13MeOOH',
@@ -2672,7 +2673,7 @@ C**** This needs to be 'hand coded' depending on circumstances
 
       case ('NOx','CO','Isoprene','Alkenes','Paraffin',
 #ifdef TRACERS_dCO
-     *'d13CPAR',
+     *'d13Calke','d13CPAR',
      *'d17ORNit', 'd18ORNit', 'd13CRNit',
      *'d17OPAN', 'd18OPAN', 'd13CPAN',
      *'dMe17OOH', 'dMe18OOH', 'd13MeOOH',
@@ -2702,7 +2703,7 @@ C**** This needs to be 'hand coded' depending on circumstances
           if (diag_fc==2) call set_diag_rf(n,k)
         case('NOx','CO','Isoprene','Alkenes','Paraffin',
 #ifdef TRACERS_dCO
-     *  'd13CPAR',
+     *  'd13Calke','d13CPAR',
      *  'd17ORNit', 'd18ORNit', 'd13CRNit',
      *  'd17OPAN', 'd18OPAN', 'd13CPAN',
      *  'dMe17OOH', 'dMe18OOH', 'd13MeOOH',
@@ -5039,6 +5040,15 @@ C**** 3D tracer-related arrays but not attached to any one tracer
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
       USE RAD_COM, only: stratO3_tracer_save
 #endif
+#ifdef TRACERS_dCO
+      use tracers_dCO, only: dalke_IC_fact
+      use tracers_dCO, only: dPAR_IC_fact
+      use tracers_dCO, only: dRNit_IC_fact
+      use tracers_dCO, only: dPAN_IC_fact
+      use tracers_dCO, only: dMeOOH_IC_fact
+      use tracers_dCO, only: dHCHO_IC_fact
+      use tracers_dCO, only: dCO_IC_fact
+#endif  /* TRACERS_dCO */
       USE TRCHEM_Shindell_COM,only:O3MULT,ch4icx,
      &  OxIC,COIC,byO3MULT,PI_run,fix_CH4_chemistry,
      &  PIratio_N,PIratio_CO_T,PIratio_CO_S,PIratio_other
@@ -5123,8 +5133,9 @@ C**** 3D tracer-related arrays but not attached to any one tracer
      &                     GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: ghg_in
 !@var imonth dummy index for choosing the right month
 !@var ICfactor varying factor for altering initial conditions
+!@var dICfactor varying factor for altering initial conditions of dCO tracers
       INTEGER imonth, J2
-      REAL*8 ICfactor
+      REAL*8 ICfactor,dICfactor
 !@var PRES local nominal pressure for vertical interpolations
       REAL*8, DIMENSION(LM) :: PRES
 #endif
@@ -5670,8 +5681,18 @@ c**** earth
      *        'dHCH17O', 'dHCH18O', 'dH13CHO',
 #endif  /* TRACERS_dCO */
      &        'HCHO')
+          select case (trname(n))
+#ifdef TRACERS_dCO
+            case ('dMe17OOH', 'dMe18OOH', 'd13MeOOH')
+              dICfactor=dMeOOH_IC_fact
+            case ('dHCH17O', 'dHCH18O', 'dH13CHO')
+              dICfactor=dHCHO_IC_fact
+#endif  /* TRACERS_dCO */
+            case default
+              dICfactor=1.d0
+          end select
           do l=1,lm; do j=J_0,J_1; do i=i_0,i_1
-            trm(i,j,l,n) = MA(l,i,j)*axyp(i,j)*1.d-11
+            trm(i,j,l,n) = MA(l,i,j)*axyp(i,j)*1.d-11*dICfactor
           end do; end do; end do
 
 #ifdef TRACERS_SPECIAL_Shindell
@@ -5689,6 +5710,14 @@ c**** earth
      *       ,'dC17O','dC18O','d13CO'
 #endif  /* TRACERS_dCO */
      *       )
+          select case (trname(n))
+#ifdef TRACERS_dCO
+            case ('dC17O','dC18O','d13CO')
+              dICfactor=dCO_IC_fact
+#endif  /* TRACERS_dCO */
+            case default
+              dICfactor=1.d0
+          end select
           do l=1,lm
             select case(PI_run)
             case(1) ! ise scaling
@@ -5700,7 +5729,7 @@ c**** earth
             case default; ICfactor=1.d0
             end select
             do j=J_0,J_1; do i=I_0,I_1
-              trm(I,J,L,n) = COIC(I,J,L)*ICfactor
+              trm(I,J,L,n) = COIC(I,J,L)*ICfactor*dICfactor
             end do   ; end do
           end do
 
@@ -5715,13 +5744,21 @@ c**** earth
      *       ,'d17OPAN','d18OPAN','d13CPAN'
 #endif  /* TRACERS_dCO */
      *       )
+          select case (trname(n))
+#ifdef TRACERS_dCO
+            case ('d17OPAN','d18OPAN','d13CPAN')
+              dICfactor=dPAN_IC_fact
+#endif  /* TRACERS_dCO */
+            case default
+              dICfactor=1.d0
+          end select
           select case(PI_run)
           case(1)     ; ICfactor=PIratio_other
           case default; ICfactor=1.d0
           end select
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
             trm(i,j,l,n) =
-     &      MA(l,i,j)*axyp(i,j)*vol2mass(n)*4.d-11*ICfactor
+     &      MA(l,i,j)*axyp(i,j)*vol2mass(n)*4.d-11*ICfactor*dICfactor
           end do; end do; end do
 
         case ('Isoprene')
@@ -5739,37 +5776,65 @@ c**** earth
      *       ,'d17ORNit','d18ORNit','d13CRNit'
 #endif  /* TRACERS_dCO */
      *       )
+          select case (trname(n))
+#ifdef TRACERS_dCO
+            case ('d17ORNit','d18ORNit','d13CRNit')
+              dICfactor=dRNit_IC_fact
+#endif  /* TRACERS_dCO */
+            case default
+              dICfactor=1.d0
+          end select
           select case(PI_run)
           case(1)     ; ICfactor=PIratio_other
           case default; ICfactor=1.d0
           end select
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
             trm(i,j,l,n) =
-     &      MA(l,i,j)*axyp(i,j)*vol2mass(n)*2.d-10*ICfactor
+     &      MA(l,i,j)*axyp(i,j)*vol2mass(n)*2.d-10*ICfactor*dICfactor
           end do; end do; end do
 
-        case('Alkenes')
+        case('Alkenes'
+#ifdef TRACERS_dCO
+     *      ,'d13Calke'
+#endif  /* TRACERS_dCO */
+     *       )
+          select case (trname(n))
+#ifdef TRACERS_dCO
+            case ('d13Calke')
+              dICfactor=dalke_IC_fact
+#endif  /* TRACERS_dCO */
+            case default
+              dICfactor=1.d0
+          end select
           select case(PI_run)
           case(1)     ; ICfactor=PIratio_other
           case default; ICfactor=1.d0
           end select
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
             trm(i,j,l,n) =
-     &      MA(l,i,j)*axyp(i,j)*vol2mass(n)*4.d-10*ICfactor
+     &      MA(l,i,j)*axyp(i,j)*vol2mass(n)*4.d-10*ICfactor*dICfactor
           end do; end do; end do
 
         case('Paraffin'
 #ifdef TRACERS_dCO
-     *       ,'d13CPAR'
+     *      ,'d13CPAR'
 #endif  /* TRACERS_dCO */
      *       )
+          select case (trname(n))
+#ifdef TRACERS_dCO
+            case ('d13CPAR')
+              dICfactor=dPAR_IC_fact
+#endif  /* TRACERS_dCO */
+            case default
+              dICfactor=1.d0
+          end select
           select case(PI_run)
           case(1)     ; ICfactor=PIratio_other
           case default; ICfactor=1.d0
           end select
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
             trm(i,j,l,n) =
-     &      MA(l,i,j)*axyp(i,j)*vol2mass(n)*5.d-10*ICfactor
+     &      MA(l,i,j)*axyp(i,j)*vol2mass(n)*5.d-10*ICfactor*dICfactor
           end do; end do; end do
 
         case('Terpenes'
@@ -6486,7 +6551,7 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
             select case (trname(n)) ! list here tracers that have 3D biomass burning emissions
             case ('Alkenes', 'CO', 'NOx', 'Paraffin', ! CH4 done above
 #ifdef TRACERS_dCO
-     *      'd13CPAR',
+     *      'd13Calke','d13CPAR',
      *      'dC17O', 'dC18O', 'd13CO',
 #endif  /* TRACERS_dCO */
      &      'NH3', 'SO2', 'BCB', 'OCB', ! do not include sulfate here
@@ -7192,7 +7257,7 @@ C****
       case ('Ox','NOx','ClOx','BrOx','N2O5','HNO3','H2O2','CH3OOH',
      &      'HCHO','HO2NO2','CO','PAN','AlkylNit','Alkenes','Paraffin',
 #ifdef TRACERS_dCO
-     *      'd13CPAR',
+     *      'd13Calke','d13CPAR',
      *      'd17ORNit','d18ORNit','d13CRNit',
      *      'd17OPAN','d18OPAN','d13CPAN',
      *      'dMe17OOH', 'dMe18OOH', 'd13MeOOH',
@@ -7719,7 +7784,7 @@ C****
     (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_TOMAS)
       case ('Alkenes', 'CO', 'NOx', 'Paraffin','CH4','codirect',
 #ifdef TRACERS_dCO
-     *      'd13CPAR',
+     *      'd13Calke','d13CPAR',
      *      'dC17O', 'dC18O', 'd13CO',
 #endif  /* TRACERS_dCO */
      &      'NH3', 'SO2', 'SO4', 'BCII', 'BCB', 'OCII', 'OCB',

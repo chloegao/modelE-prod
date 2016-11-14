@@ -1,6 +1,5 @@
 E6TmatrixF40clim.R GISS Model E Run with MATRIX Aerosols
 
-CURRENTLY NOT FOR PRODUCTION RUNS BUT WILL BE SOON
 E6TmatrixF40clim: E6TmatrixF40 but swap emissions to climatological
                   (e.g. 9-year averages centered around nominal date)
 E6TmatrixF40: based on E4TcampiF40. Similar to E4TcadiF40 but with aerosol microphysics
