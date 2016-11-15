@@ -235,11 +235,13 @@
         integer :: d17OPAN__dC217O3_NO2=0
         integer :: d17Oald__dHCH17O_dC17O=0
         integer :: dMe17OOH__dHCH17O_HO2=0
+
         integer :: dHCH18O__dC18O_H2=0
         integer :: dHCH18O__dC18O_HO2=0
         integer :: d18OPAN__dC218O3_NO2=0
         integer :: d18Oald__dHCH18O_dC18O=0
         integer :: dMe18OOH__dHCH18O_HO2=0
+
         integer :: dH13CHO__d13CO_H2=0
         integer :: dH13CHO__d13CO_HO2=0
         integer :: d13CPAN__d13C2O3_NO2=0
@@ -2733,6 +2735,7 @@ c Extend climatology to 100 km:
           rj%d17Oald__dHCH17O_dC17O=irr
         case('dMe17OOH__dHCH17O_HO2')
           rj%dMe17OOH__dHCH17O_HO2=irr
+
         case('dHCH18O__dC18O_H2')
           rj%dHCH18O__dC18O_H2=irr
         case('dHCH18O__dC18O_HO2')
@@ -2743,6 +2746,7 @@ c Extend climatology to 100 km:
           rj%d18Oald__dHCH18O_dC18O=irr
         case('dMe18OOH__dHCH18O_HO2')
           rj%dMe18OOH__dHCH18O_HO2=irr
+
         case('dH13CHO__d13CO_H2')
           rj%dH13CHO__d13CO_H2=irr
         case('dH13CHO__d13CO_HO2')

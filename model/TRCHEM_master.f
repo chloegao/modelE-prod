@@ -1062,7 +1062,7 @@ c       Examine prod and loss of N2O5
         end if
 
 c       Examine prod and loss of NOx
-        wlossNOx=rHCHOplusNO3+rAldplusNO3+2.d0*rNO3plusNO2 ! CO isotopes should not go here
+        wlossNOx=rHCHOplusNO3+rAldplusNO3+2.d0*rNO3plusNO2
      &   +0.9d0*rIsopplusNO3+rClOplusNO2+rDMSplusNO3+rBrOplusNO2
 #ifdef TRACERS_TERP
      &   +0.9d0*rTerpplusNO3
@@ -1366,7 +1366,7 @@ C Alkenes, Isoprene, Terpenes (if used) and AlkylNit:
 c Convert some changes to molecules/cm3/s:
         changeHNO3=gwprodHNO3+2.d0*wprod_sulf  !always positive
 
-        wlossNOx=rHCHOplusNO3+rAldplusNO3+2.d0*rNO3plusNO2 ! CO isotopes should not go here
+        wlossNOx=rHCHOplusNO3+rAldplusNO3+2.d0*rNO3plusNO2
      &   +0.9d0*rIsopplusNO3+rClOplusNO2+rDMSplusNO3
 #ifdef TRACERS_TERP
      &   +0.9d0*rTerpplusNO3

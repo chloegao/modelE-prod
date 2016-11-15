@@ -251,7 +251,7 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
 
         cqqz=(2.d0*(ss(rj%H2O2__OH_OH,L,I,J)*y(nn_H2O2,L))
      &    +ss(rj%HNO3__OH_NO2,L,I,J)*y(nn_HNO3,L)
-     &    +2.d0*(ss(rj%HCHO__CO_HO2,L,I,J)*y(nn_HCHO,L)) ! CO isotopes should not go here
+     &    +2.d0*(ss(rj%HCHO__CO_HO2,L,I,J)*y(nn_HCHO,L))
      &    +2.d0*ss(rj%CH3OOH__HCHO_HO2,L,I,J)*y(nn_CH3OOH,L)
      &    +(rr(rrbi%CH3O2_NO__HCHO_NO2,L)*y(nNO,L)
      &      +0.66d0*(rr(rrbi%CH3O2_CH3O2__HCHO_HCHO,L)*y(nCH3O2,L))
@@ -263,11 +263,11 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
      &      +(1.66d0/1.31d0)*rr(rrbi%O1D_CH4__OH_CH3O2,L)*y(nn_CH4,L)
      &    )*y(nO1D,L))
      &    +ss(rj%Aldehyde__HCHO_CO,L,I,J)*y(nAldehyde,L)*2.d0
-     &    +(rr(rrbi%C2O3_NO__HCHO_NO2,L)*y(nNO,L) ! CO isotopes should not go here
+     &    +(rr(rrbi%C2O3_NO__HCHO_NO2,L)*y(nNO,L)
      &    +rr(rrbi%C2O3_C2O3__HCHO_HCHO,L)*y(nC2O3,L)*2.d0)*y(nC2O3,L)
      &    +(rr(rrbi%ROR_M__Aldehyde_HO2,L)*0.94d0+1.6d3)*y(nROR,L)
      &    +rr(rrbi%Alkenes_O3__HCHO_CO,L)*y(nn_Alkenes,L)*y(nO3,L)
-     &      *0.65d0 ! CO isotopes should not go here
+     &      *0.65d0
      &    +rr(rrbi%Isoprene_O3__HCHO_Alkenes,L)*y(nn_Isoprene,L)
      &      *y(nO3,L)*0.58d0
      &    +rr(rrbi%Isoprene_NO3__HO2_Alkenes,L)*y(nn_Isoprene,L)
@@ -285,10 +285,10 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
 c Now partition HOx into OH and HO2:
         ! CZ: OH->HO2 reactions :
         cz=rr(rrbi%OH_O3__HO2_O2,L)*y(nO3,L)
-     &    +rr(rrbi%CO_OH__HO2_O2,L)*y(nn_CO,L) ! CO isotopes should not go here
+     &    +rr(rrbi%CO_OH__HO2_O2,L)*y(nn_CO,L)
      &    +rr(rrbi%OH_H2O2__H2O_HO2,L)*y(nn_H2O2,L)
      &    +rr(rrbi%H2_OH__HO2_H2O,L)*y(nH2,L)
-     &    +rr(rrbi%HCHO_OH__HO2_CO,L)*y(nn_HCHO,L) ! CO isotopes should not go here
+     &    +rr(rrbi%HCHO_OH__HO2_CO,L)*y(nn_HCHO,L)
      &    +rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
      &      *0.11d0
      &    +rr(rrbi%Isoprene_OH__HCHO_Alkenes,L)*y(nn_Isoprene,L)*0.85d0
@@ -396,10 +396,10 @@ c H + O2 + M -> HO2 + M , and affects on OH/HO2 and Ox
 c Now partition HOx into OH and HO2:
 c CZ: OH->HO2 reactions :
         cz=rr(rrbi%OH_O3__HO2_O2,L)*y(nO3,L)
-     &    +rr(rrbi%CO_OH__HO2_O2,L)*y(nn_CO,L) ! CO isotopes should not go here
+     &    +rr(rrbi%CO_OH__HO2_O2,L)*y(nn_CO,L)
      &    +rr(rrbi%OH_H2O2__H2O_HO2,L)*y(nn_H2O2,L)
      &    +rr(rrbi%H2_OH__HO2_H2O,L)*y(nH2,L)
-     &    +rr(rrbi%HCHO_OH__HO2_CO,L)*y(nn_HCHO,L) ! CO isotopes should not go here
+     &    +rr(rrbi%HCHO_OH__HO2_CO,L)*y(nn_HCHO,L)
      &    +rr(rrbi%ClO_OH__HO2_Cl,L)*y(nClO,L)
      &    +rr(rrbi%BrO_OH__Br_HO2,L)*y(nBrO,L)
      &    +rr(rrbi%O_OH__O2_H,L)*y(nO,L)*rktot/(rHspecloss+rktot)

@@ -1197,7 +1197,7 @@ c       Set value for Aldehyde:
      &    +rr(rrbi%Alkenes_O3__HCHO_CO,L)*y(nn_Alkenes,L)
      &      *y(nO3,L)*0.44d0
         Aldehydedest=rr(rrbi%Aldehyde_OH__C2O3_M,L)*y(nOH,L)
-     &    +ss(rj%Aldehyde__HCHO_CO,L,I,J) ! CO isotopes should not go here
+     &    +ss(rj%Aldehyde__HCHO_CO,L,I,J)
 c       Check for equilibrium:
         if(Aldehydedest*y(nAldehyde,L)*dt2 < y(nAldehyde,L))then
           changeAldehyde=
