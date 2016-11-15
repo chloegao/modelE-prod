@@ -1358,6 +1358,42 @@ c
 c
 !**** Water Mass
       k=k+1
+      IJ_Q1 = k
+      lname_ij(k) = 'SPECIFIC HUMIDITY AT 1mb'
+      units_ij(k) = 'g/kg'
+      name_ij(k) = 'q_1'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 1d3
+      ir_ij(k) = ir_0_18
+c
+      k=k+1
+      IJ_Q5 = k
+      lname_ij(k) = 'SPECIFIC HUMIDITY AT 5mb'
+      units_ij(k) = 'g/kg'
+      name_ij(k) = 'q_5'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 1d3
+      ir_ij(k) = ir_0_18
+c
+      k=k+1
+      IJ_Q10 = k
+      lname_ij(k) = 'SPECIFIC HUMIDITY AT 10mb'
+      units_ij(k) = 'g/kg'
+      name_ij(k) = 'q_10'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 1d3
+      ir_ij(k) = ir_0_18
+c
+      k=k+1
+      IJ_Q50 = k
+      lname_ij(k) = 'SPECIFIC HUMIDITY AT 50mb'
+      units_ij(k) = 'g/kg'
+      name_ij(k) = 'q_50'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 1d3
+      ir_ij(k) = ir_0_18
+c
+      k=k+1
       IJ_Q100 = k
       lname_ij(k) = 'SPECIFIC HUMIDITY AT 100mb'
       units_ij(k) = 'g/kg'
@@ -1380,15 +1416,6 @@ c
       lname_ij(k) = 'SPECIFIC HUMIDITY AT 500mb'
       units_ij(k) = 'g/kg'
       name_ij(k) = 'q_500'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1d3
-      ir_ij(k) = ir_0_18
-c
-      k=k+1
-      IJ_Q700 = k
-      lname_ij(k) = 'SPECIFIC HUMIDITY AT 700mb'
-      units_ij(k) = 'g/kg'
-      name_ij(k) = 'q_700'
       ia_ij(k) = ia_dga
       scale_ij(k) = 1d3
       ir_ij(k) = ir_0_18
@@ -1435,15 +1462,6 @@ c
       lname_ij(k) = 'RELATIVE HUMIDITY AT 500mb'
       units_ij(k) = '%'
       name_ij(k) = 'rh_500'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1d2
-      ir_ij(k) = ir_pct
-c
-      k=k+1
-      IJ_RH700 = k
-      lname_ij(k) = 'RELATIVE HUMIDITY AT 700mb'
-      units_ij(k) = '%'
-      name_ij(k) = 'rh_700'
       ia_ij(k) = ia_dga
       scale_ij(k) = 1d2
       ir_ij(k) = ir_pct
@@ -1986,6 +2004,42 @@ c
       denom_ij(k) = IJ_TCLDI
 c
       k=k+1 !
+      IJ_T1 = k !
+      lname_ij(k) = 'TEMPERATURE AT 1mb'
+      units_ij(k) = 'C'
+      name_ij(k) = 't_1'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m80_28
+c
+      k=k+1 !
+      IJ_T5 = k !
+      lname_ij(k) = 'TEMPERATURE AT 5mb'
+      units_ij(k) = 'C'
+      name_ij(k) = 't_5'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m80_28
+c
+      k=k+1 !
+      IJ_T10 = k !
+      lname_ij(k) = 'TEMPERATURE AT 10mb'
+      units_ij(k) = 'C'
+      name_ij(k) = 't_10'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m80_28
+c
+      k=k+1 !
+      IJ_T50 = k !
+      lname_ij(k) = 'TEMPERATURE AT 50mb'
+      units_ij(k) = 'C'
+      name_ij(k) = 't_50'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 1.
+      ir_ij(k) = ir_m80_28
+c
+      k=k+1 !
       IJ_T100 = k !
       lname_ij(k) = 'TEMPERATURE AT 100mb'
       units_ij(k) = 'C'
@@ -2008,15 +2062,6 @@ c
       lname_ij(k) = 'TEMPERATURE AT 500mb'
       units_ij(k) = 'C'
       name_ij(k) = 't_500'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m80_28
-c
-      k=k+1 !
-      IJ_T700 = k !
-      lname_ij(k) = 'TEMPERATURE AT 700mb'
-      units_ij(k) = 'C'
-      name_ij(k) = 't_700'
       ia_ij(k) = ia_dga
       scale_ij(k) = 1.
       ir_ij(k) = ir_m80_28
@@ -2326,71 +2371,80 @@ c
       IJ_PHI1K = k ! PHI1000 (M**2/S**2) 4 DA
       lname_ij(k) = '1000mb HEIGHT'
       units_ij(k) = 'm'
-      name_ij(k) = 'phi_1000'
+      name_ij(k) = 'z_1000'
       ia_ij(k) = ia_dga
       scale_ij(k) = BYGRAV
       ir_ij(k) = ir_m190_530
 c
       k=k+1 !
-      IJ_PHI850 = k ! PHI850 (M**2/S**2-1500*GRAV) 4 DA
+      IJ_PHI850 = k ! PHI850 (M**2/S**2) 4 DA
       lname_ij(k) = '850 mb HEIGHT'
-      units_ij(k) = 'm-1500'
-      name_ij(k) = 'phi_850'
+      units_ij(k) = 'm'
+      name_ij(k) = 'z_850'
       ia_ij(k) = ia_dga
       scale_ij(k) = BYGRAV
       ir_ij(k) = ir_m265_95
 c
       k=k+1 !
-      IJ_PHI700 = k ! PHI700-3000*GRAV  4 DA
+      IJ_PHI700 = k ! PHI700  4 DA
       lname_ij(k) = '700 mb HEIGHT'
-      units_ij(k) = 'm-3000'
-      name_ij(k) = 'phi_700'
+      units_ij(k) = 'm'
+      name_ij(k) = 'z_700'
       ia_ij(k) = ia_dga
       scale_ij(k) = BYGRAV
       ir_ij(k) = ir_m530_190
 c
       k=k+1 !
-      IJ_PHI500 = k ! PHI500-5600*GRAV  4 DA
+      IJ_PHI500 = k ! PHI500  4 DA
       lname_ij(k) = '500 mb HEIGHT'
-      units_ij(k) = 'm-5600'
-      name_ij(k) = 'phi_500'
+      units_ij(k) = 'm'
+      name_ij(k) = 'z_500'
       ia_ij(k) = ia_dga
       scale_ij(k) = BYGRAV
       ir_ij(k) = ir_m1325_475
 c
       k=k+1 !
-      IJ_PHI300 = k ! PHI300-9500*GRAV  4 DA
+      IJ_PHI300 = k ! PHI300  4 DA
       lname_ij(k) = '300 mb HEIGHT'
-      units_ij(k) = 'm-9500'
-      name_ij(k) = 'phi_300'
+      units_ij(k) = 'm'
+      name_ij(k) = 'z_300'
       ia_ij(k) = ia_dga
       scale_ij(k) = BYGRAV
       ir_ij(k) = ir_m2650_950
 c
       k=k+1 !
-      IJ_PHI100 = k ! PHI100-16400*GRAV 4 DA
+      IJ_PHI100 = k ! PHI100 4 DA
       lname_ij(k) = '100 mb HEIGHT'
-      units_ij(k) = 'm-16400'
-      name_ij(k) = 'phi_100'
+      units_ij(k) = 'm'
+      name_ij(k) = 'z_100'
       ia_ij(k) = ia_dga
       scale_ij(k) = BYGRAV
       ir_ij(k) = ir_m2650_950
 c
       k=k+1 !
-      IJ_PHI30 = k ! PHI30-24000*GRAV   4 DA
+      IJ_PHI50 = k ! PHI50   4 DA
+      lname_ij(k) = '50 mb HEIGHT'
+      units_ij(k) = 'm'
+      name_ij(k) = 'z_50'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = BYGRAV
+      ir_ij(k) = ir_m3975_1425
+c
+      k=k+1 !
+      IJ_PHI30 = k ! PHI30   4 DA
       lname_ij(k) = '30 mb HEIGHT'
-      units_ij(k) = 'm-24000'
-      name_ij(k) = 'phi_30'
+      units_ij(k) = 'm'
+      name_ij(k) = 'z_30'
       ia_ij(k) = ia_dga
       scale_ij(k) = BYGRAV
       ir_ij(k) = ir_m3975_1425
 c
       if (kgz_max.gt.k-IJ_PHI1K+1) then
          k=k+1
-         IJ_PHI10 = k ! PHI10-30000*GRAV   4 DA
+         IJ_PHI10 = k ! PHI10   4 DA
          lname_ij(k) = '10 mb HEIGHT'
-         units_ij(k) = 'm-30000'
-         name_ij(k) = 'phi_10'
+         units_ij(k) = 'm'
+         name_ij(k) = 'z_10'
          ia_ij(k) = ia_dga
          scale_ij(k) = BYGRAV
          ir_ij(k) = ir_m5300_1900
@@ -2398,10 +2452,21 @@ c
 c
       if (kgz_max.gt.k-IJ_PHI1K+1) then
          k=k+1
-         IJ_PHI3p4 = k ! PHI3.4-40000*GRAV   4 DA
+         IJ_PHI5 = k ! PHI5   4 DA
+         lname_ij(k) = '5 mb HEIGHT'
+         units_ij(k) = 'm'
+         name_ij(k) = 'z_5'
+         ia_ij(k) = ia_dga
+         scale_ij(k) = BYGRAV
+         ir_ij(k) = ir_m5300_1900
+      end if
+c
+      if (kgz_max.gt.k-IJ_PHI1K+1) then
+         k=k+1
+         IJ_PHI3p4 = k ! PHI3.4   4 DA
          lname_ij(k) = '3.4 mb HEIGHT'
-         units_ij(k) = 'm-40000'
-         name_ij(k) = 'phi_3.4'
+         units_ij(k) = 'm'
+         name_ij(k) = 'z_3.4'
          ia_ij(k) = ia_dga
          scale_ij(k) = BYGRAV
          ir_ij(k) = ir_m5300_1900
@@ -2409,10 +2474,21 @@ c
 c
       if (kgz_max.gt.k-IJ_PHI1K+1) then
          k=k+1
-         IJ_PHI0p7 = k ! PHI0.7-50000*GRAV   4 DA
+         IJ_PHI1 = k ! PHI1   4 DA
+         lname_ij(k) = '1 mb HEIGHT'
+         units_ij(k) = 'm'
+         name_ij(k) = 'z_1'
+         ia_ij(k) = ia_dga
+         scale_ij(k) = BYGRAV
+         ir_ij(k) = ir_m5300_1900
+      end if
+c
+      if (kgz_max.gt.k-IJ_PHI1K+1) then
+         k=k+1
+         IJ_PHI0p7 = k ! PHI0.7   4 DA
          lname_ij(k) = '0.7 mb HEIGHT'
-         units_ij(k) = 'm-50000'
-         name_ij(k) = 'phi_0.7'
+         units_ij(k) = 'm'
+         name_ij(k) = 'z_0.7'
          ia_ij(k) = ia_dga
          scale_ij(k) = BYGRAV
          ir_ij(k) = ir_m5300_1900
@@ -2420,10 +2496,10 @@ c
 c
       if (kgz_max.gt.k-IJ_PHI1K+1) then
          k=k+1
-         IJ_PHI0p16 = k ! PHI0.16-61000*GRAV   4 DA
+         IJ_PHI0p16 = k ! PHI0.16   4 DA
          lname_ij(k) = '0.16 mb HEIGHT'
-         units_ij(k) = 'm-61000'
-         name_ij(k) = 'phi_0.16'
+         units_ij(k) = 'm'
+         name_ij(k) = 'z_0.16'
          ia_ij(k) = ia_dga
          scale_ij(k) = BYGRAV
          ir_ij(k) = ir_m5300_1900
@@ -2431,10 +2507,10 @@ c
 c
       if (kgz_max.gt.k-IJ_PHI1K+1) then
          k=k+1
-         IJ_PHI0p07 = k ! PHI0.07-67000*GRAV   4 DA
+         IJ_PHI0p07 = k ! PHI0.07   4 DA
          lname_ij(k) = '0.07 mb HEIGHT'
-         units_ij(k) = 'm-67000'
-         name_ij(k) = 'phi_0.07'
+         units_ij(k) = 'm'
+         name_ij(k) = 'z_0.07'
          ia_ij(k) = ia_dga
          scale_ij(k) = BYGRAV
          ir_ij(k) = ir_m5300_1900
@@ -2442,10 +2518,10 @@ c
 c
       if (kgz_max.gt.k-IJ_PHI1K+1) then
          k=k+1
-         IJ_PHI0p03 = k ! PHI0.03-72000*GRAV   4 DA
+         IJ_PHI0p03 = k ! PHI0.03   4 DA
          lname_ij(k) = '0.03 mb HEIGHT'
-         units_ij(k) = 'm-72000'
-         name_ij(k) = 'phi_0.03'
+         units_ij(k) = 'm'
+         name_ij(k) = 'z_0.03'
          ia_ij(k) = ia_dga
          scale_ij(k) = BYGRAV
          ir_ij(k) = ir_m5300_1900
@@ -2454,7 +2530,7 @@ c
       k=k+1 !
       IJ_PBLHT   = k !
       lname_ij(k) = 'PBL HEIGHT'
-      units_ij(k) = 'M'
+      units_ij(k) = 'm'
       name_ij(k) = 'pblht'
       ia_ij(k) = ia_srf
       scale_ij(k) = 1.

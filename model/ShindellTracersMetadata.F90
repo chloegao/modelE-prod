@@ -11,6 +11,7 @@ module ShindellTracersMetadata_mod
   use TRACER_COM, only: ntm_chem_beg, ntm_chem_end, whichEPFCs
 #ifdef TRACERS_dCO
   use OldTracer_mod, only: set_is_dCO_tracer
+  use TRACER_COM, only: n_d13Calke, n_d13CPAR
   use TRACER_COM, only: n_d17ORNit, n_d18ORNit, n_d13CRNit
   use TRACER_COM, only: n_d17OPAN, n_d18OPAN, n_d13CPAN
   use TRACER_COM, only: n_dMe17OOH, n_dMe18OOH, n_d13MeOOH
@@ -128,6 +129,8 @@ contains
     call  CFC_setSpec('CFC')
 
 #ifdef TRACERS_dCO
+    call  Alkenes_setSpec('d13Calke')
+    call  Paraffin_setSpec('d13CPAR')
     call  AlkylNit_setSpec('d17ORNit')
     call  AlkylNit_setSpec('d18ORNit')
     call  AlkylNit_setSpec('d13CRNit')
@@ -170,6 +173,7 @@ contains
            nn_ClOx,   nn_BrOx,  nn_HCl,   nn_HOCl,   nn_ClONO2,  &
            nn_HBr,    nn_HOBr,  nn_BrONO2,nn_CFC,    nn_GLT
 #ifdef TRACERS_dCO
+      use TRACER_COM, only: nn_d13Calke, nn_d13CPAR
       use TRACER_COM, only: nn_d17ORNit, nn_d18ORNit, nn_d13CRNit
       use TRACER_COM, only: nn_d17OPAN, nn_d18OPAN, nn_d13CPAN
       use TRACER_COM, only: nn_dMe17OOH, nn_dMe18OOH, nn_d13MeOOH
@@ -224,6 +228,8 @@ contains
      nn_GLT = n_GLT - offset
 
 #ifdef TRACERS_dCO
+     nn_d13Calke = n_d13Calke - offset
+     nn_d13CPAR = n_d13CPAR - offset
      nn_d17ORNit = n_d17ORNit - offset
      nn_d18ORNit = n_d18ORNit - offset
      nn_d13CRNit = n_d13CRNit - offset
@@ -518,7 +524,17 @@ contains
     subroutine Alkenes_setSpec(name)
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
-      n_Alkenes = n
+      select case (name)
+        case ('Alkenes')
+          n_Alkenes = n
+#ifdef TRACERS_dCO
+        case ('d13Calke')
+          n_d13Calke = n
+          call set_is_dCO_tracer(n, .true.)
+#endif  /* TRACERS_dCO */
+        case default
+          call stop_model('Alkenes-like tracer '//trim(name)//' unknown',255)
+      end select
       if (ntm_chem_beg==0) ntm_chem_beg = n
       ntm_chem_end = n
       call set_ntm_power(n, -10)
@@ -552,7 +568,17 @@ contains
     subroutine Paraffin_setSpec(name)
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
-      n_Paraffin = n
+      select case (name)
+        case ('Paraffin')
+          n_Paraffin = n
+#ifdef TRACERS_dCO
+        case ('d13CPAR')
+          n_d13CPAR = n
+          call set_is_dCO_tracer(n, .true.)
+#endif  /* TRACERS_dCO */
+        case default
+          call stop_model('Paraffin-like tracer '//trim(name)//' unknown',255)
+      end select
       if (ntm_chem_beg==0) ntm_chem_beg = n
       ntm_chem_end = n
       call set_ntm_power(n, -10)

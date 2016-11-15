@@ -112,13 +112,15 @@ C**** Some local constants
       USE DIAG_COM, only : ia_dga,jreg,ntype,ftype,
      *     aijl=>aijl_loc
      *     ,aij=>aij_loc,ij_dtdp,ij_phi1k,ij_pres,ij_slpq,ij_presq
-     *     ,ij_slp,ij_t850,ij_t500,ij_t300,ij_t100,ij_q850,ij_q500
-     *     ,ij_rh700,ij_t700,ij_q700,ij_q100,ij_rh100
-     *     ,ij_RH1,ij_RH850,ij_RH500,ij_RH300,ij_qm,ij_q300,ij_ujet
+     *     ,ij_slp
+     *     ,ij_t850,ij_t500,ij_t300,ij_t100,ij_t50,ij_t10,ij_t5,ij_t1
+     *     ,ij_q850,ij_q500,ij_q300,ij_q100,ij_q50,ij_q10,ij_q5,ij_q1
+     *     ,ij_rh850,ij_rh500,ij_rh300,ij_rh100
+     *     ,ij_RH1,ij_qm,ij_ujet
      *     ,ij_vjet,j_tx1,j_tx,j_qp,j_dtdjt,j_dtdjs,j_dtdgtr,j_dtsgst
      &     ,ijl_dp,ijk_dp,ijl_u,ijl_v,ijl_w,ijk_tx,ijk_q,ijk_rh
      *     ,j_rictr,j_rostr,j_ltro,j_ricst,j_rosst,j_lstr,j_gamm,j_gam
-     *     ,j_gamc,lstr,kgz_max,pmb,ght,ple
+     *     ,j_gamc,lstr,kgz_max,pmb,ple
      *     ,jl_dtdyn,jl_dpa
      *     ,jl_epacwt,jl_uepac,jl_vepac,jl_wepac
      *     ,jl_wpacwt,jl_uwpac,jl_vwpac,jl_wwpac
@@ -373,39 +375,43 @@ C**** Use masking for 850 mb temp/humidity
  174      qpress = .false.
           qabove = pmb(k).le.pedn(l-1,i,j)
           SELECT CASE (NINT(PMB(K)))
-          CASE (850)            ! 850 mb
+          CASE (850)
             nT = IJ_T850 ; nQ = IJ_Q850 ; nRH = IJ_RH850 ; qpress=.true.
             if (.not. qabove) qpress = .false.
             if (qpress) aij(i,j,ij_p850) = aij(i,j,ij_p850) + 1.
-          CASE (700)            ! 700 mb
-            nT = IJ_T700 ; nQ = IJ_Q700 ; nRH = IJ_RH700 ; qpress=.true.
-          CASE (500)            ! 500 mb
+          CASE (500)
             nT = IJ_T500 ; nQ = IJ_Q500 ; nRH = IJ_RH500 ; qpress=.true.
-          CASE (300)            ! 300 mb
+          CASE (300)
             nT = IJ_T300 ; nQ = IJ_Q300 ; nRH = IJ_RH300 ; qpress=.true.
-          CASE (100)            ! 100 mb
+          CASE (100)
             nT = IJ_T100 ; nQ = IJ_Q100 ; nRH = IJ_RH100 ; qpress=.true.
+          CASE (50)
+            nT = IJ_T50  ; nQ = IJ_Q50  ;                  qpress=.true.
+          CASE (10)
+            nT = IJ_T10  ; nQ = IJ_Q10  ;                  qpress=.true.
+          CASE (5)
+            nT = IJ_T5   ; nQ = IJ_Q5   ;                  qpress=.true.
+          CASE (1)
+            nT = IJ_T1   ; nQ = IJ_Q1   ;                  qpress=.true.
           END SELECT
 C**** calculate geopotential heights + temperatures
           IF (ABS(TX(I,J,L)-TX(I,J,L-1)).GE.EPSLON) THEN
             BBYGV=(TX(I,J,L-1)-TX(I,J,L))/(PHI(I,J,L)-PHI(I,J,L-1))
             AIJ(I,J,IJ_PHI1K-1+K)=AIJ(I,J,IJ_PHI1K-1+K)+(PHI(I,J,L)
-     *           -TX(I,J,L)*((PMB(K)/PL)**(RGAS*BBYGV)-1.)/BBYGV-GHT(K)
-     *           *GRAV)
+     *           -TX(I,J,L)*((PMB(K)/PL)**(RGAS*BBYGV)-1.)/BBYGV)
             IF (qabove) then
               TIJK=(TX(I,J,L)-TF
      *           +(TX(I,J,L-1)-TX(I,J,L))*LOG(PMB(K)/PL)/LOG(PDN/PL))
               Z_inst(K,I,J)=(PHI(I,J,L)
-     *           -TX(I,J,L)*((PMB(K)/PL)**(RGAS*BBYGV)-1.)/BBYGV-GHT(K)
-     *             *GRAV)
+     *           -TX(I,J,L)*((PMB(K)/PL)**(RGAS*BBYGV)-1.)/BBYGV)
             END IF
           ELSE
             AIJ(I,J,IJ_PHI1K-1+K)=AIJ(I,J,IJ_PHI1K-1+K)+(PHI(I,J,L)
-     *           -RGAS*TX(I,J,L)*LOG(PMB(K)/PL)-GHT(K)*GRAV)
+     *           -RGAS*TX(I,J,L)*LOG(PMB(K)/PL))
             IF (qabove) then
               TIJK=TX(I,J,L)-TF
               Z_inst(K,I,J)=(PHI(I,J,L)
-     *             -RGAS*TX(I,J,L)*LOG(PMB(K)/PL)-GHT(K)*GRAV)
+     *             -RGAS*TX(I,J,L)*LOG(PMB(K)/PL))
             END IF
           END IF
           if (qabove) then
@@ -450,11 +456,10 @@ C**** calculate geopotential heights + temperatures
             if (qpress) then
               AIJ(I,J,nT)=AIJ(I,J,nT)+TIJK
               AIJ(I,J,nQ)=AIJ(I,J,nQ)+QIJK
-              if (PMB(K).ge.500) then  ! w.r.t. water
-                AIJ(I,J,nRH)=AIJ(I,J,nRH)+QIJK/qsat(TIJK+TF,LHe,PMB(K))
-              else                     ! w.r.t ice above 500mb
-                AIJ(I,J,nRH)=AIJ(I,J,nRH)+QIJK/qsat(TIJK+TF,LHs,PMB(K))
-              end if
+              if (PMB(K) >= 100 .and. TIJK >= 0)  ! w.r.t. water
+     *          AIJ(I,J,nRH)=AIJ(I,J,nRH)+QIJK/qsat(TIJK+TF,LHe,PMB(K))
+              if (PMB(K) >= 100 .and. TIJK < 0)  ! w.r.t ice above 500mb
+     *          AIJ(I,J,nRH)=AIJ(I,J,nRH)+QIJK/qsat(TIJK+TF,LHs,PMB(K))
             end if
           end if
 C****
@@ -1861,7 +1866,7 @@ c get_subdd
      * ,vt_inst
 #endif
 #ifdef etc_subdd
-     * ,ght,omg_inst,lwc_inst,iwc_inst
+     * ,omg_inst,lwc_inst,iwc_inst
      * ,cldmc_inst,cldss_inst,tlh_inst,llh_inst,dlh_inst,slh_inst
 #endif
 #if (defined mjo_subdd) || (defined etc_subdd)
@@ -2684,9 +2689,6 @@ C**** get pressure level
               select case (namedd(k)(1:1))
               case ("Z")        ! geopotential heights
                 datar8=z_inst(kp,:,:)
-#ifdef etc_subdd
-                datar8=(z_inst(kp,:,:)+GHT(kp)*grav)*bygrav
-#endif
                 units_of_data = 'm'
                 long_name = 'Geopotential Height at '//trim(PMNAME(kp))
      &               //' hPa'
@@ -2858,9 +2860,6 @@ C**** get pressure level
               select case (namedd(k)(1:1))
               case ("Z")        ! geopotential heights
                 datar8=z_inst(kp,:,:)
-#ifdef etc_subdd
-                datar8=(z_inst(kp,:,:)+GHT(kp)*grav)*bygrav
-#endif
                 units_of_data = 'm'
                 long_name = 'Geopotential Height'
               case ("R")        ! relative humidity (wrt water)
@@ -6127,7 +6126,7 @@ C****
      &     IJ_TRSUP,IJ_TRSDN,IJ_EVAP,IJ_QS,IJ_PRES,
      &     IJ_PHI1K,
      &     IJ_US,IJ_VS,IJ_UJET,IJ_VJET,IJ_TATM,IJK_DP,IJK_TX,
-     &     IJ_MSU2,IJ_MSU3,IJ_MSU4,KGZ_MAX,GHT,PMB,
+     &     IJ_MSU2,IJ_MSU3,IJ_MSU4,KGZ_MAX,PMB,
      &     ij_TminC,ij_TmaxC,ij_TDcomp,
      *     ij_swaerabs,
      *     ij_lwaerabs,ij_swaerabsnt,ij_lwaerabsnt
@@ -6187,7 +6186,7 @@ C****
         do k=ij_dzt1,ij_dzt1+kgz_max-2
           k1 = k-ij_dzt1+1  ; k2 = ij_phi1k + k1
           scalek = 1./(rgas*log(pmb(k1)/pmb(k1+1)))
-          aij(i,j,k) = (scalek*(ght(k1+1)-ght(k1))*grav-tf)*
+          aij(i,j,k) = (-tf)*
      &         idacc(ia_ij(ij_phi1k))
      &         +scalek*(aij(i,j,k2)-aij(i,j,k2-1))
         enddo
