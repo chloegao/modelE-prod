@@ -5675,6 +5675,7 @@ c**** earth
           end do; end do; end do
 #endif
 
+#ifdef TRACERS_SPECIAL_Shindell
         case ('CH3OOH',
 #ifdef TRACERS_dCO
      *        'dMe17OOH', 'dMe18OOH', 'd13MeOOH',
@@ -5695,7 +5696,6 @@ c**** earth
             trm(i,j,l,n) = MA(l,i,j)*axyp(i,j)*1.d-11*dICfactor
           end do; end do; end do
 
-#ifdef TRACERS_SPECIAL_Shindell
         case ('HO2NO2')
           select case(PI_run)
           case(1)     ; ICfactor=PIratio_N
