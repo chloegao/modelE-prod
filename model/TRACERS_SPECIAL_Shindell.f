@@ -53,7 +53,7 @@
 !@var PTBA1, PTBA2 for interpolations of PTBA
       integer, parameter :: nra_ch4 = 5, nra_ncep=2, n__prec=1,
      &  n__temp=2, n__SW=3, n__SAT=4, n__gwet=5, max_days=28, nncep=4
-      integer :: int_wet_dist=0,exclude_us_eu=1,nn_or_zon=0,ns_wet=11
+      integer :: int_wet_dist=0,exclude_us_eu=1,nn_or_zon=0,ns_wet=-1
       real*8 :: topo_lim = 205.d0, sat_lim=-9.d0, 
      & gw_ulim=100.d0, gw_llim=18.d0, SW_lim=27.d0, ice_age=0.d0
       integer, parameter, dimension(nra_ch4) :: 
@@ -746,7 +746,7 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
       I_1 = grid%I_STOP
 
       if(ns_wet < 0 .or. ns_wet > ntsurfsrcmax)call stop_model
-     & ('problem with ns_wet parameter',255)
+     & ('Must set ns_wet rundeck param to CH4 wetlands emis file',255)
 
 ! Don't alter the wetlands if:
       ! -->  the tracer is not supposed to be on yet:
