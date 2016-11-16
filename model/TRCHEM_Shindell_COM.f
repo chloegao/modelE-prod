@@ -306,7 +306,7 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
      & ntm_dCO_nontransp = 19, ! number of non-transported dCO tracers
      & n_bi_dCO = 92, ! number of dCO bimolecular reactions
      & n_tri_dCO = 3, ! number of dCO trimolecular reactions
-     & n_rj_dCO = 15, ! number of dCO photochemical reactions
+     & n_rj_dCO = 21, ! number of dCO photochemical reactions
 #else
      & ntm_dCO_nontransp = 0,
      & n_bi_dCO = 0,

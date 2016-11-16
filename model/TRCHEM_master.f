@@ -706,13 +706,19 @@ C Define and alter resulting photolysis coefficients (zj --> ss):
               end if
 #ifdef TRACERS_dCO
 #ifndef TRACERS_dCO_bin_reprod
-            else if(inss == rj%d17Oald__dHCH17O_dC17O
-     &         .or. inss == rj%d18Oald__dHCH18O_dC18O
-     &         .or. inss == rj%d13Cald__dH13CHO_d13CO
+            else if(inss == rj%d17Oald__dHCH17O_CO
+     &         .or. inss == rj%d17Oald__HCHO_dC17O
+     &         .or. inss == rj%d17Oald__HCHO_CO
+     &         .or. inss == rj%d18Oald__dHCH18O_CO
+     &         .or. inss == rj%d18Oald__HCHO_dC18O
+     &         .or. inss == rj%d18Oald__HCHO_CO
+     &         .or. inss == rj%d13Cald__dH13CHO_CO
+     &         .or. inss == rj%d13Cald__HCHO_d13CO
+     &         .or. inss == rj%d13Cald__HCHO_CO
      &             ) then
-              ! the yield is half, since one isotopically labeled atom
-              ! is assumed to exist in each aldehyde, not two
-              ss(inss,L,I,J)=ss(inss,L,I,J)*0.5d0
+              ! the yield is one third, since one isotopically labeled atom
+              ! is assumed to exist in each aldehyde, not three
+              ss(inss,L,I,J)=ss(inss,L,I,J)/3.d0
 #endif  /* not TRACERS_dCO_bin_reprod */
 #endif  /* TRACERS_dCO */
             end if

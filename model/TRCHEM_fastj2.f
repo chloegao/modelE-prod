@@ -232,21 +232,27 @@
 #ifdef TRACERS_dCO
         integer :: dHCH17O__dC17O_H2=0
         integer :: dHCH17O__dC17O_HO2=0
-        integer :: d17OPAN__dC217O3_NO2=0
-        integer :: d17Oald__dHCH17O_dC17O=0
         integer :: dMe17OOH__dHCH17O_HO2=0
+        integer :: d17OPAN__dC217O3_NO2=0
+        integer :: d17Oald__dHCH17O_CO=0
+        integer :: d17Oald__HCHO_dC17O=0
+        integer :: d17Oald__HCHO_CO=0
 
         integer :: dHCH18O__dC18O_H2=0
         integer :: dHCH18O__dC18O_HO2=0
-        integer :: d18OPAN__dC218O3_NO2=0
-        integer :: d18Oald__dHCH18O_dC18O=0
         integer :: dMe18OOH__dHCH18O_HO2=0
+        integer :: d18OPAN__dC218O3_NO2=0
+        integer :: d18Oald__dHCH18O_CO=0
+        integer :: d18Oald__HCHO_dC18O=0
+        integer :: d18Oald__HCHO_CO=0
 
         integer :: dH13CHO__d13CO_H2=0
         integer :: dH13CHO__d13CO_HO2=0
-        integer :: d13CPAN__d13C2O3_NO2=0
-        integer :: d13Cald__dH13CHO_d13CO=0
         integer :: d13MeOOH__dH13CHO_HO2=0
+        integer :: d13CPAN__d13C2O3_NO2=0
+        integer :: d13Cald__dH13CHO_CO=0
+        integer :: d13Cald__HCHO_d13CO=0
+        integer :: d13Cald__HCHO_CO=0
 #endif  /* TRACERS_dCO */
       end type rj_index
 
@@ -2729,34 +2735,46 @@ c Extend climatology to 100 km:
           rj%dHCH17O__dC17O_H2=irr
         case('dHCH17O__dC17O_HO2')
           rj%dHCH17O__dC17O_HO2=irr
-        case('d17OPAN__dC217O3_NO2')
-          rj%d17OPAN__dC217O3_NO2=irr
-        case('d17Oald__dHCH17O_dC17O')
-          rj%d17Oald__dHCH17O_dC17O=irr
         case('dMe17OOH__dHCH17O_HO2')
           rj%dMe17OOH__dHCH17O_HO2=irr
+        case('d17OPAN__dC217O3_NO2')
+          rj%d17OPAN__dC217O3_NO2=irr
+        case('d17Oald__dHCH17O_CO')
+          rj%d17Oald__dHCH17O_CO=irr
+        case('d17Oald__HCHO_dC17O')
+          rj%d17Oald__HCHO_dC17O=irr
+        case('d17Oald__HCHO_CO')
+          rj%d17Oald__HCHO_CO=irr
 
         case('dHCH18O__dC18O_H2')
           rj%dHCH18O__dC18O_H2=irr
         case('dHCH18O__dC18O_HO2')
           rj%dHCH18O__dC18O_HO2=irr
-        case('d18OPAN__dC218O3_NO2')
-          rj%d18OPAN__dC218O3_NO2=irr
-        case('d18Oald__dHCH18O_dC18O')
-          rj%d18Oald__dHCH18O_dC18O=irr
         case('dMe18OOH__dHCH18O_HO2')
           rj%dMe18OOH__dHCH18O_HO2=irr
+        case('d18OPAN__dC218O3_NO2')
+          rj%d18OPAN__dC218O3_NO2=irr
+        case('d18Oald__dHCH18O_CO')
+          rj%d18Oald__dHCH18O_CO=irr
+        case('d18Oald__HCHO_dC18O')
+          rj%d18Oald__HCHO_dC18O=irr
+        case('d18Oald__HCHO_CO')
+          rj%d18Oald__HCHO_CO=irr
 
         case('dH13CHO__d13CO_H2')
           rj%dH13CHO__d13CO_H2=irr
         case('dH13CHO__d13CO_HO2')
           rj%dH13CHO__d13CO_HO2=irr
-        case('d13CPAN__d13C2O3_NO2')
-          rj%d13CPAN__d13C2O3_NO2=irr
-        case('d13Cald__dH13CHO_d13CO')
-          rj%d13Cald__dH13CHO_d13CO=irr
         case('d13MeOOH__dH13CHO_HO2')
           rj%d13MeOOH__dH13CHO_HO2=irr
+        case('d13CPAN__d13C2O3_NO2')
+          rj%d13CPAN__d13C2O3_NO2=irr
+        case('d13Cald__dH13CHO_CO')
+          rj%d13Cald__dH13CHO_CO=irr
+        case('d13Cald__HCHO_d13CO')
+          rj%d13Cald__HCHO_d13CO=irr
+        case('d13Cald__HCHO_CO')
+          rj%d13Cald__HCHO_CO=irr
 #endif  /* TRACERS_dCO */
         case default
           call stop_model('Index for '//trim(reaction)//' missing',255)

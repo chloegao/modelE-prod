@@ -930,7 +930,7 @@ c       Set value for XO2:
 ! ok to overwrite XO2prod/XO2dest/XO2_XO2
 c       Set value for d17OXO2:
         iter=1
-        XO2prod=ss(rj%d17Oald__dHCH17O_dC17O,L,I,J)*yd17Oald(I,J,L)
+        XO2prod=ss(rj%d17Oald__HCHO_CO,L,I,J)*yd17Oald(I,J,L)
      &    +y(ndC217O3,L)*(rr(rrbi%dC217O3_NO__dHCH17O_NO2,L)*y(nNO2,L)
      &      +rr(rrbi%dC217O3_dC217O3__dHCH17O_dHCH17O,L)*y(ndC217O3,L)
      &        *2.d0
@@ -965,7 +965,11 @@ c       Set value for d17OXO2:
           XO2_XO2=tempiter2*y(nd17OXO2,L)
           XO2dest=tempiter+XO2_XO2
           if(XO2dest > 1.d-7.and.
-     &       ss(rj%d17Oald__dHCH17O_dC17O,L,I,J) > 1.d-6)then
+#ifndef TRACERS_dCO_bin_reprod
+     &       ss(rj%d17Oald__dHCH17O_CO,L,I,J)
+     &        +ss(rj%d17Oald__HCHO_dC17O,L,I,J)
+#endif  /* TRACERS_dCO_bin_reprod */
+     &        +ss(rj%d17Oald__HCHO_CO,L,I,J) > 1.d-6)then
             y(nd17OXO2,L)=(XO2prod/XO2dest)
           else
             y(nd17OXO2,L)=1.d0
@@ -976,7 +980,7 @@ c       Set value for d17OXO2:
 
 c       Set value for d18OXO2:
         iter=1
-        XO2prod=ss(rj%d18Oald__dHCH18O_dC18O,L,I,J)*yd18Oald(I,J,L)
+        XO2prod=ss(rj%d18Oald__HCHO_CO,L,I,J)*yd18Oald(I,J,L)
      &    +y(ndC218O3,L)*(rr(rrbi%dC218O3_NO__dHCH18O_NO2,L)*y(nNO2,L)
      &      +rr(rrbi%dC218O3_dC218O3__dHCH18O_dHCH18O,L)*y(ndC218O3,L)
      &        *2.d0
@@ -1011,7 +1015,11 @@ c       Set value for d18OXO2:
           XO2_XO2=tempiter2*y(nd18OXO2,L)
           XO2dest=tempiter+XO2_XO2
           if(XO2dest > 1.d-7.and.
-     &       ss(rj%d18Oald__dHCH18O_dC18O,L,I,J) > 1.d-6)then
+#ifndef TRACERS_dCO_bin_reprod
+     &       ss(rj%d18Oald__dHCH18O_CO,L,I,J)
+     &        +ss(rj%d18Oald__HCHO_dC18O,L,I,J)
+#endif  /* TRACERS_dCO_bin_reprod */
+     &        +ss(rj%d18Oald__HCHO_CO,L,I,J) > 1.d-6)then
             y(nd18OXO2,L)=(XO2prod/XO2dest)
           else
             y(nd18OXO2,L)=1.d0
@@ -1022,7 +1030,7 @@ c       Set value for d18OXO2:
 
 c       Set value for d13CXO2:
         iter=1
-        XO2prod=ss(rj%d13Cald__dH13CHO_d13CO,L,I,J)*yd13Cald(I,J,L)
+        XO2prod=ss(rj%d13Cald__HCHO_CO,L,I,J)*yd13Cald(I,J,L)
      &    +y(nd13C2O3,L)*(rr(rrbi%d13C2O3_NO__dH13CHO_NO2,L)*y(nNO2,L)
      &      +rr(rrbi%d13C2O3_d13C2O3__dH13CHO_dH13CHO,L)*y(nd13C2O3,L)
      &        *2.d0
@@ -1055,7 +1063,11 @@ c       Set value for d13CXO2:
           XO2_XO2=tempiter2*y(nd13CXO2,L)
           XO2dest=tempiter+XO2_XO2
           if(XO2dest > 1.d-7.and.
-     &       ss(rj%d13Cald__dH13CHO_d13CO,L,I,J) > 1.d-6)then
+#ifndef TRACERS_dCO_bin_reprod
+     &       ss(rj%d13Cald__dH13CHO_CO,L,I,J)
+     &        +ss(rj%d13Cald__HCHO_d13CO,L,I,J)
+#endif  /* TRACERS_dCO_bin_reprod */
+     &        +ss(rj%d13Cald__HCHO_CO,L,I,J) > 1.d-6)then
             y(nd13CXO2,L)=(XO2prod/XO2dest)
           else
             y(nd13CXO2,L)=1.d0
@@ -1221,7 +1233,11 @@ c       Set value for d17Oald:
      &    +rr(rrbi%Alkenes_O3__HCHO_CO,L)*y(nn_Alkenes,L)
      &      *y(nO3,L)*0.44d0
         Aldehydedest=rr(rrbi%d17Oald_OH__dC217O3_M,L)*y(nOH,L)
-     &    +ss(rj%d17Oald__dHCH17O_dC17O,L,I,J)
+#ifndef TRACERS_dCO_bin_reprod
+     &    +ss(rj%d17Oald__dHCH17O_CO,L,I,J)
+     &    +ss(rj%d17Oald__HCHO_dC17O,L,I,J)
+#endif  /* TRACERS_dCO_bin_reprod */
+     &    +ss(rj%d17Oald__HCHO_CO,L,I,J)
 c       Check for equilibrium:
         if(Aldehydedest*y(nd17Oald,L)*dt2 < y(nd17Oald,L))then
           changeAldehyde=
@@ -1243,7 +1259,11 @@ c       Set value for d18Oald:
      &    +rr(rrbi%Alkenes_O3__HCHO_CO,L)*y(nn_Alkenes,L)
      &      *y(nO3,L)*0.44d0
         Aldehydedest=rr(rrbi%d18Oald_OH__dC218O3_M,L)*y(nOH,L)
-     &    +ss(rj%d18Oald__dHCH18O_dC18O,L,I,J)
+#ifndef TRACERS_dCO_bin_reprod
+     &    +ss(rj%d18Oald__dHCH18O_CO,L,I,J)
+     &    +ss(rj%d18Oald__HCHO_dC18O,L,I,J)
+#endif  /* TRACERS_dCO_bin_reprod */
+     &    +ss(rj%d18Oald__HCHO_CO,L,I,J)
 c       Check for equilibrium:
         if(Aldehydedest*y(nd18Oald,L)*dt2 < y(nd18Oald,L))then
           changeAldehyde=
@@ -1265,7 +1285,11 @@ c       Set value for d13Cald:
      &    +rr(rrbi%d13Calke_O3__dH13CHO_d13CO,L)*y(nn_d13Calke,L)
      &      *y(nO3,L)*0.44d0
         Aldehydedest=rr(rrbi%d13Cald_OH__d13C2O3_M,L)*y(nOH,L)
-     &    +ss(rj%d13Cald__dH13CHO_d13CO,L,I,J)
+#ifndef TRACERS_dCO_bin_reprod
+     &    +ss(rj%d13Cald__dH13CHO_CO,L,I,J)
+     &    +ss(rj%d13Cald__HCHO_d13CO,L,I,J)
+#endif  /* TRACERS_dCO_bin_reprod */
+     &    +ss(rj%d13Cald__HCHO_CO,L,I,J)
 c       Check for equilibrium:
         if(Aldehydedest*y(nd13Cald,L)*dt2 < y(nd13Cald,L))then
           changeAldehyde=
@@ -2854,7 +2878,7 @@ C**** Local parameters and variables and arguments:
 !@var rrate rrate or photrate passed from chemstep
 !@var proddest dest or prod             passed from chemstep
 !@var multip -1 for destruction, +1 for production
-!@var igas index of tracer, as defined in e.g. trname
+!@var igas index of tracer, as defined in the MOLEC file and the ay array
 !@var ireac index of reaction per tracer. Starts from 1 and increases
 !@+   every time a tracer has a reaction. E.g.: tracer a has 3 destruction
 !@+   reactions, and tracer b has 4; ireac is [123] for a and [4567] for b.
@@ -3074,7 +3098,7 @@ c       skip same reaction if written twice:
      &                  'trimolecular reactions', 255)
 
       dCOrji=rj%dHCH17O__dC17O_H2
-      dCOrje=rj%d13Cald__dH13CHO_d13CO
+      dCOrje=rj%d13Cald__HCHO_CO
       if (dCOrje-dCOrji+1 /= n_rj_dCO)
      &  call stop_model('ERROR: Check the first and last dCO '//
      &                  'photolysis reactions', 255)
