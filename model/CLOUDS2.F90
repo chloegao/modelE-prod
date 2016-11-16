@@ -58,8 +58,6 @@ module CLOUDS
 
 #if defined(CLD_AER_CDNC) || defined(CLD_SUBDD)
   use CONSTANT, only : kapa,mair,gasc
-  use threeD_mass_unfinished, only : ptop,psf,ls1=>ls1_nominal
-  use DYNAMICS, only : sig,sige
 #endif
 
 #if defined(CLD_AER_CDNC) || defined(BLK_2MOM)
@@ -4886,17 +4884,9 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
     !     ENDDO
 
     do L=1,LMCLD
-      PRS = (PL(1)-PTOP)/SIG(1)
-
-      if (L.ge.ls1) then
-        PPRES = (SIG(L)*(PSF-PTOP)+PTOP)         !in hPa
-        DPP= (SIGE(L+1)-SIGE(L))*(PSF-PTOP)      !in hPa
-        TEMPR=(TL(L)/PLK(L))*(SIG(L)*(PSF-PTOP)+PTOP)**KAPA
-      else
-        PPRES= (SIG(L)*PRS+PTOP)
-        DPP= (SIGE(L+1)-SIGE(L))*PRS
-        TEMPR=(TL(L)/PLK(L))*(SIG(L)*PRS+PTOP)**KAPA
-      endif
+       PPRES = PL(L)  !in hPa
+       DPP = AIRM(L)  !in hPa
+       TEMPR = (TL(L)/PLK(L))*PL(L))**KAPA
 
       CTEML(L)=TEMPR                                        ! Cloud temperature(K)
       D3DL(L)=DPP/PPRES*TEMPR/GRAV*(gasc*1.d03)/mair        ! For Cloud thickness (m)
