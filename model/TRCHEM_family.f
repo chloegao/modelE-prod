@@ -247,15 +247,15 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
      &    +y(nXO2N,L)*(rr(rrbi%XO2N_NO__AlkylNit_M,L)
      &      *rr(rrbi%XO2_HO2__CH3OOH_M,L)/(4.2d-12*exp(180./ta(L))))
      &    +pHOx(I,J,L)*(rsulf1(i,j,l)*ydms(i,j,l) ! oxidation of DMS
-     &    +rsulf2(i,j,l)*ydms(i,j,l)) ! oxidation of SO2
+     &      +rsulf2(i,j,l)*ydms(i,j,l)) ! oxidation of SO2
 
-        cqqz=(2.d0*(ss(rj%H2O2__OH_OH,L,I,J)*y(nn_H2O2,L))
+        cqqz=2.d0*ss(rj%H2O2__OH_OH,L,I,J)*y(nn_H2O2,L)
      &    +ss(rj%HNO3__OH_NO2,L,I,J)*y(nn_HNO3,L)
-     &    +2.d0*(ss(rj%HCHO__CO_HO2,L,I,J)*y(nn_HCHO,L))
+     &    +2.d0*ss(rj%HCHO__CO_HO2,L,I,J)*y(nn_HCHO,L)
      &    +2.d0*ss(rj%CH3OOH__HCHO_HO2,L,I,J)*y(nn_CH3OOH,L)
      &    +(rr(rrbi%CH3O2_NO__HCHO_NO2,L)*y(nNO,L)
      &      +0.66d0*(rr(rrbi%CH3O2_CH3O2__HCHO_HCHO,L)*y(nCH3O2,L))
-     &    )*y(nCH3O2,L))
+     &    )*y(nCH3O2,L)
 
         ! 1.66/1.31 accounts for HOx production via O(1D)+CH4-->CH3O path:
         cqqz=cqqz
