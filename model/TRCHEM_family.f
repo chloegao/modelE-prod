@@ -9,7 +9,6 @@ c from reactions *within* family only:
 
 C**** GLOBAL parameters and variables:
       USE RESOLUTION, only : LM
-      Use ATM_COM,    Only: PMIDL00
       USE TRACER_COM, only : n_CH4, n_Ox, nn_Ox, nn_CH4
       use photolysis, only: rj
       USE TRCHEM_Shindell_COM, only:ss,rr,y,nO2,nM,nH2O,nO,nO1D,nO3,pOx
@@ -22,13 +21,9 @@ C**** Local parameters and variables and arguments:
 !@var L dummy loop variable
 !@var I,J passed horizontal position indicies
 !@var Lmax maximum altitude for chemistry
-!@var PRES local nominal pressure
       integer, intent(IN)   :: Lmax,I,J
       integer               :: L
-      REAL*8, DIMENSION(LM) :: PRES ! keep at LM; defined by PMIDL00(:)
       real*8                :: az, bz, P1
-
-      PRES(1:LM) = PMIDL00(1:LM)
 
       do L=1,Lmax
 c       for concentration of O(1D):
@@ -194,16 +189,12 @@ C**** Local parameters and variables and arguments:
 !@var maxT LTROPO(I,J) or LS1-1, depending upon what_trop variable
 !@+ Or the top layer of chemistry in the unlikely event that is lower.
 !@+ Note in that case, loops like L=maxT+1,Lmax will do nothing.
-!@var PRES local nominal pressure for regional Ox tracers
 
       integer             :: L, maxT 
       integer, intent(IN) :: Lmax,I,J
       real*8              :: aqqz, bqqz, cqqz, cz, dz, sqroot, 
      &   temp_yHOx,ratio,rHprod,rHspecloss,rkzero,rktot,
      &   yAtomicH
-      REAL*8, DIMENSION(LM) :: PRES ! can keep LM
-
-      PRES(1:LM) = PMIDL00(1:LM)
 
       select case(which_trop)
       case(0); maxT=min(ltropo(I,J),Lmax)
@@ -365,7 +356,7 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
      &    +rr(rrbi%O_HBr__OH_Br,L)*y(nn_HBr,L)*y(nO,L)
      
         ! water vapor photolysis in SRBs:
-        if(PRES(L) < 10.) cqqz = cqqz + 0.5d0*SF3(I,J,L)*y(nH2O,L) 
+        if(PMIDL00(L) < 10.d0) cqqz = cqqz + 0.5d0*SF3(I,J,L)*y(nH2O,L)
 
         ! production from O1D NO LONGER limited to O1D amount or
         ! O1D fraction via r10,11,s2:
