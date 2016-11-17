@@ -245,7 +245,7 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
      &    +2.d0*ss(rj%HCHO__CO_HO2,L,I,J)*y(nn_HCHO,L)
      &    +2.d0*ss(rj%CH3OOH__HCHO_HO2,L,I,J)*y(nn_CH3OOH,L)
      &    +(rr(rrbi%CH3O2_NO__HCHO_NO2,L)*y(nNO,L)
-     &      +0.66d0*(rr(rrbi%CH3O2_CH3O2__HCHO_HCHO,L)*y(nCH3O2,L))
+     &      +0.66d0*rr(rrbi%CH3O2_CH3O2__HCHO_HCHO,L)*y(nCH3O2,L)
      &    )*y(nCH3O2,L)
 
         ! 1.66/1.31 accounts for HOx production via O(1D)+CH4-->CH3O2 path:
