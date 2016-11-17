@@ -4886,7 +4886,7 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
     do L=1,LMCLD
        PPRES = PL(L)  !in hPa
        DPP = AIRM(L)  !in hPa
-       TEMPR = (TL(L)/PLK(L))*PL(L))**KAPA
+       TEMPR = (TL(L)/PLK(L))*PL(L)**KAPA
 
       CTEML(L)=TEMPR                                        ! Cloud temperature(K)
       D3DL(L)=DPP/PPRES*TEMPR/GRAV*(gasc*1.d03)/mair        ! For Cloud thickness (m)
