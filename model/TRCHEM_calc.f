@@ -2042,6 +2042,7 @@ c PAN is thermally unstable, has a very short lifetime):
      &     0.33d0*y(nNO2,L)
            changeL(L,idx)=changeL(L,idx)*conc2mass
          endif
+
 #ifdef TRACERS_dCO
          if(idx == n_d17OPAN.and.(-dest(igas,L) >= y(nn_d17OPAN,L).or.
      &   chemrate(rrtri%dC217O3_NO2__d17OPAN_M,L) > y(nn_NOx,L)))then
@@ -2055,6 +2056,7 @@ c PAN is thermally unstable, has a very short lifetime):
      &     0.33d0*y(nNO2,L)
            changeL(L,idx)=changeL(L,idx)*conc2mass
          endif
+
          if(idx == n_d18OPAN.and.(-dest(igas,L) >= y(nn_d18OPAN,L).or.
      &   chemrate(rrtri%dC218O3_NO2__d18OPAN_M,L) > y(nn_NOx,L)))then
            rnewval=(rr(rrtri%dC218O3_NO2__d18OPAN_M,L)*y(ndC218O3,L)*
@@ -2067,6 +2069,7 @@ c PAN is thermally unstable, has a very short lifetime):
      &     0.33d0*y(nNO2,L)
            changeL(L,idx)=changeL(L,idx)*conc2mass
          endif
+
          if(idx == n_d13CPAN.and.(-dest(igas,L) >= y(nn_d13CPAN,L).or.
      &   chemrate(rrtri%d13C2O3_NO2__d13CPAN_M,L) > y(nn_NOx,L)))then
            rnewval=(rr(rrtri%d13C2O3_NO2__d13CPAN_M,L)*y(nd13C2O3,L)*
