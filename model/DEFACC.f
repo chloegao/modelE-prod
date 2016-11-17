@@ -1135,7 +1135,7 @@ c
 #endif
 #ifdef NEW_IO
       use cdl_mod
-      use MDIAG_COM, only : make_timeaxis
+      use MDIAG_COM, only : make_timeaxis,sname_strlen,lname_strlen
 #endif
       use geom
       use dynamics, only : do_gwdrag,ido_gwdrag
@@ -1144,11 +1144,36 @@ c
       use flammability_com, only: nVtype,ij_flamV
 #endif
       USE SOCPBL, only : calc_wspdf
+      use dictionary_mod
       implicit none
-      integer :: i,k,kk,k3,k1,l,n,ngx
+      integer :: i,k,kk,k3,k1,l,n,ngx,nq
       character(len=16) :: ijstr,string_flamV
       real*8 x_dummy(im)
       logical :: set_miss
+! The following local variables are used in the definition of groups of
+! 2D outputs collected into output fields having a third dimension.
+! The groupings are applied if fuse_groups is true.
+!@dbparam fuse_groups whether to output groups of related
+!@+         diagnostics in arrays of rank+1
+      logical :: fuse_groups=.false.
+!@var index1 index of the first acc element of a group of outputs
+!@var dim3info_index for a group using an already-defined third dimension,
+!@+      this is index of the acc element containing information
+!@+      about the third dimension
+      integer, dimension(:), allocatable :: index1,dim3info_index
+!@var coord3 the coordinate axes corresponding to the third dimensions.
+      real*8, dimension(:,:), allocatable :: coord3 ! (1:ncoordvalues,k)
+!@var name3 variable names used for grouped output
+!@var dim3name the names of the third dimensions for grouped output
+!@var dim3units units of coordinate axes of the third dimensions (if existing)
+      character(len=sname_strlen), dimension(:), allocatable ::
+     &     name3,dim3name,dim3units
+!@var lname3 long names of grouped output variable
+      character(len=lname_strlen), dimension(:), allocatable ::
+     &     lname3
+!@var ij_xxx_diminfo indices saved to set dim3info_index
+      integer :: ij_cp_diminfo,ij_ghy_diminfo,ij_aer_diminfo
+      character(len=80) :: varstr,varstrll,long_name,auxvar_string
 c
       do k=1,kaij
          write(name_ij(k),'(a3,i3.3)') 'AIJ',k
@@ -1168,6 +1193,21 @@ c
          units_ijmm(k) = 'unused'
          scale_ijmm(k) = 1.
       enddo
+
+      ! NB: fuse_groups only used for aij category at the moment,
+      ! so no special aij-specific substring in the flag name yet
+      if(is_set_param('fuse_groups')) then
+        call get_param('fuse_groups',fuse_groups)
+      endif
+      allocate(index1(kaij),name3(kaij),dim3name(kaij),coord3(100,kaij))
+      allocate(dim3info_index(kaij),lname3(kaij),dim3units(kaij))
+      do k=1,kaij
+        index1(k) = 0
+        dim3info_index(k) = 0
+        coord3(:,k) = -1d30
+        dim3units(k) = ''
+      enddo
+
 c
       k=0
 C**** AIJ diagnostic names:
@@ -1365,6 +1405,13 @@ c
       ia_ij(k) = ia_dga
       scale_ij(k) = 1d3
       ir_ij(k) = ir_0_18
+      index1(k) = IJ_Q1
+      name3(k) = 'qcp'
+      lname3(k) = 'SPECIFIC HUMIDITY'
+      dim3name(k) = 'pcp'
+      dim3units(k) = 'mb'
+      coord3(1:8,k) = (/1.,5.,10.,50.,100.,300.,500.,850./)
+      ij_cp_diminfo = k
 c
       k=k+1
       IJ_Q5 = k
@@ -1374,6 +1421,7 @@ c
       ia_ij(k) = ia_dga
       scale_ij(k) = 1d3
       ir_ij(k) = ir_0_18
+      index1(k) = IJ_Q1
 c
       k=k+1
       IJ_Q10 = k
@@ -1383,6 +1431,7 @@ c
       ia_ij(k) = ia_dga
       scale_ij(k) = 1d3
       ir_ij(k) = ir_0_18
+      index1(k) = IJ_Q1
 c
       k=k+1
       IJ_Q50 = k
@@ -1392,6 +1441,7 @@ c
       ia_ij(k) = ia_dga
       scale_ij(k) = 1d3
       ir_ij(k) = ir_0_18
+      index1(k) = IJ_Q1
 c
       k=k+1
       IJ_Q100 = k
@@ -1401,6 +1451,7 @@ c
       ia_ij(k) = ia_dga
       scale_ij(k) = 1d3
       ir_ij(k) = ir_0_18
+      index1(k) = IJ_Q1
 c
       k=k+1
       IJ_Q300 = k
@@ -1410,6 +1461,7 @@ c
       ia_ij(k) = ia_dga
       scale_ij(k) = 1d3
       ir_ij(k) = ir_0_18
+      index1(k) = IJ_Q1
 c
       k=k+1
       IJ_Q500 = k
@@ -1419,6 +1471,7 @@ c
       ia_ij(k) = ia_dga
       scale_ij(k) = 1d3
       ir_ij(k) = ir_0_18
+      index1(k) = IJ_Q1
 c
       k=k+1
       IJ_Q850 = k
@@ -1429,6 +1482,7 @@ c
       scale_ij(k) = 1d3
       ir_ij(k) = ir_0_18
       denom_ij(k) = IJ_P850
+      index1(k) = IJ_Q1
 c
       k=k+1 !
       IJ_QS   = k ! QS                                (NO PRT)  3 SF
@@ -1447,6 +1501,12 @@ c
       ia_ij(k) = ia_dga
       scale_ij(k) = 1d2
       ir_ij(k) = ir_pct
+      index1(k) = IJ_RH100
+      name3(k) = 'rhcp'
+      lname3(k) = 'RELATIVE HUMIDITY'
+      dim3name(k) = 'prh'
+      dim3units(k) = 'mb'
+      coord3(1:4,k) = (/100.,300.,500.,850./)
 c
       k=k+1
       IJ_RH300 = k
@@ -1456,6 +1516,7 @@ c
       ia_ij(k) = ia_dga
       scale_ij(k) = 1d2
       ir_ij(k) = ir_pct
+      index1(k) = IJ_RH100
 c
       k=k+1
       IJ_RH500 = k
@@ -1465,6 +1526,7 @@ c
       ia_ij(k) = ia_dga
       scale_ij(k) = 1d2
       ir_ij(k) = ir_pct
+      index1(k) = IJ_RH100
 c
       k=k+1
       IJ_RH850 = k
@@ -1475,6 +1537,7 @@ c
       scale_ij(k) = 1d2
       ir_ij(k) = ir_pct
       denom_ij(k) = IJ_P850
+      index1(k) = IJ_RH100
 c
       k=k+1 !
       IJ_RH1 = k !
@@ -2011,6 +2074,10 @@ c
       ia_ij(k) = ia_dga
       scale_ij(k) = 1.
       ir_ij(k) = ir_m80_28
+      index1(k) = IJ_T1
+      name3(k) = 'tcp'
+      lname3(k) = 'TEMPERATURE'
+      dim3info_index(k) = ij_cp_diminfo
 c
       k=k+1 !
       IJ_T5 = k !
@@ -2020,6 +2087,7 @@ c
       ia_ij(k) = ia_dga
       scale_ij(k) = 1.
       ir_ij(k) = ir_m80_28
+      index1(k) = IJ_T1
 c
       k=k+1 !
       IJ_T10 = k !
@@ -2029,6 +2097,7 @@ c
       ia_ij(k) = ia_dga
       scale_ij(k) = 1.
       ir_ij(k) = ir_m80_28
+      index1(k) = IJ_T1
 c
       k=k+1 !
       IJ_T50 = k !
@@ -2038,6 +2107,7 @@ c
       ia_ij(k) = ia_dga
       scale_ij(k) = 1.
       ir_ij(k) = ir_m80_28
+      index1(k) = IJ_T1
 c
       k=k+1 !
       IJ_T100 = k !
@@ -2047,6 +2117,7 @@ c
       ia_ij(k) = ia_dga
       scale_ij(k) = 1.
       ir_ij(k) = ir_m80_28
+      index1(k) = IJ_T1
 c
       k=k+1 !
       IJ_T300 = k !
@@ -2056,6 +2127,7 @@ c
       ia_ij(k) = ia_dga
       scale_ij(k) = 1.
       ir_ij(k) = ir_m80_28
+      index1(k) = IJ_T1
 c
       k=k+1 !
       IJ_T500 = k !
@@ -2065,6 +2137,7 @@ c
       ia_ij(k) = ia_dga
       scale_ij(k) = 1.
       ir_ij(k) = ir_m80_28
+      index1(k) = IJ_T1
 c
       k=k+1 !
       IJ_T850 = k !
@@ -2075,6 +2148,7 @@ c
       scale_ij(k) = 1.
       ir_ij(k) = ir_m80_28
       denom_ij(k) = IJ_P850
+      index1(k) = IJ_T1
 c
       k=k+1 !
       IJ_TS   = k ! TS (K-TF)                                 3 SF
@@ -2375,6 +2449,12 @@ c
       ia_ij(k) = ia_dga
       scale_ij(k) = BYGRAV
       ir_ij(k) = ir_m190_530
+      index1(k) = IJ_PHI1K
+      name3(k) = 'zcp'
+      lname3(k) = 'HEIGHT'
+      dim3name(k) = 'pz'
+      dim3units(k) = 'mb'
+      coord3(1:8,k) = (/1000.,850.,700.,500.,300.,100.,50.,30./)
 c
       k=k+1 !
       IJ_PHI850 = k ! PHI850 (M**2/S**2) 4 DA
@@ -2384,6 +2464,7 @@ c
       ia_ij(k) = ia_dga
       scale_ij(k) = BYGRAV
       ir_ij(k) = ir_m265_95
+      index1(k) = IJ_PHI1K
 c
       k=k+1 !
       IJ_PHI700 = k ! PHI700  4 DA
@@ -2393,6 +2474,7 @@ c
       ia_ij(k) = ia_dga
       scale_ij(k) = BYGRAV
       ir_ij(k) = ir_m530_190
+      index1(k) = IJ_PHI1K
 c
       k=k+1 !
       IJ_PHI500 = k ! PHI500  4 DA
@@ -2402,6 +2484,7 @@ c
       ia_ij(k) = ia_dga
       scale_ij(k) = BYGRAV
       ir_ij(k) = ir_m1325_475
+      index1(k) = IJ_PHI1K
 c
       k=k+1 !
       IJ_PHI300 = k ! PHI300  4 DA
@@ -2411,6 +2494,7 @@ c
       ia_ij(k) = ia_dga
       scale_ij(k) = BYGRAV
       ir_ij(k) = ir_m2650_950
+      index1(k) = IJ_PHI1K
 c
       k=k+1 !
       IJ_PHI100 = k ! PHI100 4 DA
@@ -2420,6 +2504,7 @@ c
       ia_ij(k) = ia_dga
       scale_ij(k) = BYGRAV
       ir_ij(k) = ir_m2650_950
+      index1(k) = IJ_PHI1K
 c
       k=k+1 !
       IJ_PHI50 = k ! PHI50   4 DA
@@ -2429,6 +2514,7 @@ c
       ia_ij(k) = ia_dga
       scale_ij(k) = BYGRAV
       ir_ij(k) = ir_m3975_1425
+      index1(k) = IJ_PHI1K
 c
       k=k+1 !
       IJ_PHI30 = k ! PHI30   4 DA
@@ -2438,6 +2524,7 @@ c
       ia_ij(k) = ia_dga
       scale_ij(k) = BYGRAV
       ir_ij(k) = ir_m3975_1425
+      index1(k) = IJ_PHI1K
 c
       if (kgz_max.gt.k-IJ_PHI1K+1) then
          k=k+1
@@ -2448,6 +2535,8 @@ c
          ia_ij(k) = ia_dga
          scale_ij(k) = BYGRAV
          ir_ij(k) = ir_m5300_1900
+         index1(k) = IJ_PHI1K
+         coord3(1+k-IJ_PHI1K,IJ_PHI1K) = 10.
       end if
 c
       if (kgz_max.gt.k-IJ_PHI1K+1) then
@@ -2459,6 +2548,8 @@ c
          ia_ij(k) = ia_dga
          scale_ij(k) = BYGRAV
          ir_ij(k) = ir_m5300_1900
+         index1(k) = IJ_PHI1K
+         coord3(1+k-IJ_PHI1K,IJ_PHI1K) = 5d0
       end if
 c
       if (kgz_max.gt.k-IJ_PHI1K+1) then
@@ -2470,6 +2561,8 @@ c
          ia_ij(k) = ia_dga
          scale_ij(k) = BYGRAV
          ir_ij(k) = ir_m5300_1900
+         index1(k) = IJ_PHI1K
+         coord3(1+k-IJ_PHI1K,IJ_PHI1K) = 3.4d0
       end if
 c
       if (kgz_max.gt.k-IJ_PHI1K+1) then
@@ -2481,6 +2574,8 @@ c
          ia_ij(k) = ia_dga
          scale_ij(k) = BYGRAV
          ir_ij(k) = ir_m5300_1900
+         index1(k) = IJ_PHI1K
+         coord3(1+k-IJ_PHI1K,IJ_PHI1K) = 1d0
       end if
 c
       if (kgz_max.gt.k-IJ_PHI1K+1) then
@@ -2492,6 +2587,8 @@ c
          ia_ij(k) = ia_dga
          scale_ij(k) = BYGRAV
          ir_ij(k) = ir_m5300_1900
+         index1(k) = IJ_PHI1K
+         coord3(1+k-IJ_PHI1K,IJ_PHI1K) = .7d0
       end if
 c
       if (kgz_max.gt.k-IJ_PHI1K+1) then
@@ -2503,6 +2600,8 @@ c
          ia_ij(k) = ia_dga
          scale_ij(k) = BYGRAV
          ir_ij(k) = ir_m5300_1900
+         index1(k) = IJ_PHI1K
+         coord3(1+k-IJ_PHI1K,IJ_PHI1K) = .16d0
       end if
 c
       if (kgz_max.gt.k-IJ_PHI1K+1) then
@@ -2514,6 +2613,8 @@ c
          ia_ij(k) = ia_dga
          scale_ij(k) = BYGRAV
          ir_ij(k) = ir_m5300_1900
+         index1(k) = IJ_PHI1K
+         coord3(1+k-IJ_PHI1K,IJ_PHI1K) = .07d0
       end if
 c
       if (kgz_max.gt.k-IJ_PHI1K+1) then
@@ -2525,6 +2626,8 @@ c
          ia_ij(k) = ia_dga
          scale_ij(k) = BYGRAV
          ir_ij(k) = ir_m5300_1900
+         index1(k) = IJ_PHI1K
+         coord3(1+k-IJ_PHI1K,IJ_PHI1K) = .03d0
       end if
 c
       k=k+1 !
@@ -5063,7 +5166,7 @@ c
       call add_dim(cdl_ij_template,'shnhgm',3)
 #endif
 #ifdef CUBED_SPHERE
-      ijstr='(tile,y,x) ;'
+      ijstr='tile,y,x);'
       do i=1,im
         x_dummy(i) = -1d0 + 2d0*(dble(i)-.5d0)/im
       enddo
@@ -5075,10 +5178,10 @@ c
      &     coordvalues=x_dummy)
       call add_dim(cdl_ij_template,'tile',6)
       call add_dim(cdl_ij_template,'nv',4)
-      call add_var(cdl_ij_template,'float lon'//trim(ijstr),
+      call add_var(cdl_ij_template,'float lon('//trim(ijstr),
      &     units='degrees_east')
       call add_varline(cdl_ij_template,'lon:bounds = "lonbds" ;')
-      call add_var(cdl_ij_template,'float lat'//trim(ijstr),
+      call add_var(cdl_ij_template,'float lat('//trim(ijstr),
      &     units='degrees_north')
       call add_varline(cdl_ij_template,'lat:bounds = "latbds" ;')
       call add_var(cdl_ij_template,'float lonbds(tile,y,x,nv) ;',
@@ -5096,36 +5199,85 @@ c
      &     units='m^2',long_name='gridcell area')
       cdl_ij_latlon = cdl_ij_latlon_template ! invoke a copy method later
 #else
-      ijstr='(lat,lon) ;'
+      ijstr='lat,lon);'
       call add_coord(cdl_ij_template,'lon',im,units='degrees_east',
      &     coordvalues=lon_dg(:,1))
       call add_coord(cdl_ij_template,'lat',jm,units='degrees_north',
      &     coordvalues=lat_dg(:,1))
 #endif
-      call add_var(cdl_ij_template,'float axyp'//trim(ijstr),
+      call add_var(cdl_ij_template,'float axyp('//trim(ijstr),
      &     units='m^2',long_name='gridcell area')
 
       cdl_ij = cdl_ij_template ! invoke a copy method later
       cdl_ijmm = cdl_ij_template
 
+      ! erase the grouping information if not applying it
+      if(.not.fuse_groups) index1(:) = 0
+
       do k=1,kaij
         if(trim(units_ij(k)).eq.'unused') cycle
-        set_miss = denom_ij(k).ne.0
+        if(index1(k).eq.0) then
+          set_miss = denom_ij(k).ne.0
+          varstr='float '//trim(name_ij(k))//'('//trim(ijstr)
+          varstrll='float '//trim(name_ij(k))//'(lat,lon);'
+          long_name=lname_ij(k)
+          auxvar_string=
+     &         'float '//trim(name_ij(k))//'_hemis(shnhgm);'
+        elseif(index1(k).eq.k) then
+          name_ij(k) = name3(k)
+          nq = count(index1==k)
+          write(6,*) 'foundit',
+     &         trim(name_ij(k)),nq,count(coord3(:,k).ne.-1d30),
+     &         trim(dim3units(k))
+          if(count(coord3(:,k).ne.-1d30).eq.nq) then
+            if(len_trim(dim3units(k)).gt.0) then
+              call add_coord(cdl_ij,trim(dim3name(k)),nq,
+     &             coordvalues=coord3(1:nq,k),units=trim(dim3units(k)))
+#ifdef CUBED_SPHERE
+              call add_coord(cdl_ij_latlon,trim(dim3name(k)),nq,
+     &             coordvalues=coord3(1:nq,k),units=trim(dim3units(k)))
+#endif
+            else
+              call add_coord(cdl_ij,trim(dim3name(k)),nq,
+     &             coordvalues=coord3(1:nq,k))
+#ifdef CUBED_SPHERE
+              call add_coord(cdl_ij_latlon,trim(dim3name(k)),nq,
+     &             coordvalues=coord3(1:nq,k))
+#endif
+            endif
+          elseif(dim3info_index(k).eq.0) then
+            call add_dim(cdl_ij,trim(dim3name(k)),nq)
+#ifdef CUBED_SPHERE
+            call add_dim(cdl_ij_latlon,trim(dim3name(k)),nq)
+#endif
+          else
+            dim3name(k) = dim3name(dim3info_index(k))
+          endif
+          set_miss = any(denom_ij(k:k+nq-1).ne.0)
+          varstr='float '//trim(name3(k))//'('//trim(dim3name(k))//
+     &             ','//trim(ijstr)
+          varstrll='float '//trim(name3(k))//'('//trim(dim3name(k))//
+     &             ',lat,lon);'
+          long_name=lname3(k)
+          auxvar_string=
+     &         'float '//trim(name3(k))//'_hemis('//
+     &                trim(dim3name(k))//',shnhgm);'
+        else
+          cycle
+        endif
         call add_var(cdl_ij,
-     &       'float '//trim(name_ij(k))//trim(ijstr),
+     &       trim(varstr),
      &       units=trim(units_ij(k)),
-     &       long_name=trim(lname_ij(k)),
-     &       auxvar_string=
-     &         'float '//trim(name_ij(k))//'_hemis(shnhgm);',
+     &       long_name=trim(long_name),
+     &       auxvar_string=trim(auxvar_string),
      &       set_miss=set_miss,
      &       make_timeaxis=make_timeaxis)
 #ifdef CUBED_SPHERE
         call add_var(cdl_ij_latlon,
-     &       'float '//trim(name_ij(k))//'(lat,lon) ;',
+     &       trim(varstrll),
      &       units=trim(units_ij(k)),
-     &       long_name=trim(lname_ij(k)),
-     &       auxvar_string=
-     &         'float '//trim(name_ij(k))//'_hemis(shnhgm);',
+     &       long_name=trim(long_name),
+     &       auxvar_string=trim(auxvar_string),
      &       set_miss=set_miss,
      &       make_timeaxis=make_timeaxis)
 #endif
@@ -5134,12 +5286,15 @@ c
       do k=1,kaijmm
         if(trim(units_ijmm(k)).eq.'unused') cycle
         call add_var(cdl_ijmm,
-     &       'float '//trim(name_ijmm(k))//trim(ijstr),
+     &       'float '//trim(name_ijmm(k))//'('//trim(ijstr),
      &       units=trim(units_ijmm(k)),
      &       long_name=trim(lname_ijmm(k)))
       enddo
 
 #endif
+
+      deallocate(index1,name3,dim3name,coord3)
+      deallocate(dim3info_index,lname3,dim3units)
 
       return
       end subroutine ij_defs
