@@ -3238,6 +3238,7 @@ C**** Save cloud tau=1 related diagnostics here (opt.depth=1 level)
      +           (plb(l)-plb(l+1))*wtlin )
             go to 590
          end if
+         tauup=taudn
       end do
  590  continue
 
