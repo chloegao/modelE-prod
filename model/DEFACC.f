@@ -5226,9 +5226,6 @@ c
         elseif(index1(k).eq.k) then
           name_ij(k) = name3(k)
           nq = count(index1==k)
-          write(6,*) 'foundit',
-     &         trim(name_ij(k)),nq,count(coord3(:,k).ne.-1d30),
-     &         trim(dim3units(k))
           if(count(coord3(:,k).ne.-1d30).eq.nq) then
             if(len_trim(dim3units(k)).gt.0) then
               call add_coord(cdl_ij,trim(dim3name(k)),nq,
