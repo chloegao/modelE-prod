@@ -5000,18 +5000,6 @@ c
       lname_ij(k) = 'NT DRY STAT ENR BY TR ED' ! NORTHWD TRANSP
       units_ij(k) = 'E14 WT'
 
-      ij_dzt1 = k+1
-      do k1 = 1,kgz_max-1
-        name_ij(k+k1) = 'dztemp_'//trim(pmname(k1))//
-     *    '-'//trim(pmname(k1+1))
-        lname_ij(k+k1) = 'THICKNESS TEMP '//trim(pmname(k1))//
-     *    '-'//pmname(k1+1)
-        units_ij(k+k1) = 'C'
-        ia_ij(k+k1) = ia_ij(ij_phi1k)
-        ir_ij(k+k1) = ir_m80_28
-      end do
-      k = k + kgz_max -1
-
       k = k + 1
       ij_grow = k
       name_ij(k) = 'grow_seas'

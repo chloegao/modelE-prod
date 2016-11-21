@@ -3282,8 +3282,8 @@ C**** OPEN PLOTTABLE OUTPUT FILE IF DESIRED
 C**** INITIALIZE CERTAIN QUANTITIES
 C**** standard printout
       kmaplets = 57
-      nmaplets = kmaplets+iDO_GWDRAG+(kgz_max-1)*2 + 6*isccp_diags +
-     *     2*cloud_rad_forc
+      nmaplets = kmaplets + 6*isccp_diags + 2*cloud_rad_forc +        
+     *           iDO_GWDRAG + kgz_max-1                  
       nmaps = 2
       iord(1:kmaplets) = (/
      *  ij_topo,    ij_fland,   ij_rsoi,     ! pg  1  row 1
@@ -3334,11 +3334,10 @@ C**** Fill in maplet indices for gravity wave diagnostics
         iord(k+kmaplets) = ij_gw1+k-1  !i.e. first entry is ij_gw1
       end do
 
-C**** Fill in maplet indices for geoptential heights and thickness T's
+!**** Fill in maplet indices for geoptential heights
       koff = kmaplets+iDO_GWDRAG
       do k=1,kgz_max-1
         iord(k+koff) = ij_phi1k+k  !i.e. first entry is ij_phi850
-        iord(k+koff+kgz_max-1) = ij_dzt1+k-1
       end do
 
 C**** Add the full-page maps (nmaps)

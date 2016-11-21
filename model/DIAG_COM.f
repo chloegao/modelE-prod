@@ -616,7 +616,7 @@ c derived/composite diagnostics
       INTEGER, public ::
      *  ij_topo, ij_jet, ij_wsmn, ij_jetdir, ij_wsdir, ij_grow,
      *  ij_netrdp, ij_albp, ij_albg, ij_albv, ij_ntdsese, ij_ntdsete,
-     *  ij_fland, ij_dzt1, ij_albgv, ij_msu2,ij_msu3,ij_msu4,
+     *  ij_fland, ij_albgv, ij_msu2,ij_msu3,ij_msu4,
      *  ij_Tatm, ij_RTSE, ij_HWV, ij_PVS
 
 

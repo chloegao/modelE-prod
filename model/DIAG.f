@@ -6121,7 +6121,7 @@ C****
      &     aijl=>aijl_loc,ia_ij,ia_src,ia_inst,ia_dga,tf_last,tf_day1,
      *     ij_topo, ij_wsmn, ij_wsdir, ij_jet, ij_jetdir, ij_grow,
      *     ij_netrdp, ij_albp, ij_albg, ij_albv,   ij_pwater, ij_lk,
-     *     ij_fland, ij_dzt1, ij_albgv, ij_clrsky, ij_pocean, ij_ts,
+     *     ij_fland, ij_albgv, ij_clrsky, ij_pocean, ij_ts,
      *     ij_RTSE, ij_HWV, ij_PVS,
      &     IJ_TRSUP,IJ_TRSDN,IJ_EVAP,IJ_QS,IJ_PRES,
      &     IJ_PHI1K,
@@ -6182,14 +6182,6 @@ C****
         k = ij_albg
         aij(i,j,k) = aij(i,j,ij_srincg)-aij(i,j,ij_srnfg)*
      &       idacc(ia_ij(ij_srincg))/idacc(ia_ij(ij_srnfg))
-
-        do k=ij_dzt1,ij_dzt1+kgz_max-2
-          k1 = k-ij_dzt1+1  ; k2 = ij_phi1k + k1
-          scalek = 1./(rgas*log(pmb(k1)/pmb(k1+1)))
-          aij(i,j,k) = (-tf)*
-     &         idacc(ia_ij(ij_phi1k))
-     &         +scalek*(aij(i,j,k2)-aij(i,j,k2-1))
-        enddo
 
         k = ij_jet
         aij(i,j,k) = sqrt(aij(i,j,ij_ujet)**2+aij(i,j,ij_vjet)**2)
