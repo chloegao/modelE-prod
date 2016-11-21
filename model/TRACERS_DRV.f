@@ -7900,65 +7900,6 @@ c Calculation of gas phase reaction rates for sulfur chemistry
       CALL GET_SULF_GAS_RATES
 #endif
 
-#ifdef TRACERS_AEROSOLS_Koch
-       call aerosol_gas_chem
-       call apply_tracer_3Dsource(nChemistry,n_DMS)  ! DMS chem sink
-       call apply_tracer_3Dsource(nChemistry,n_MSA)  ! MSA chem source
-       call apply_tracer_3Dsource(nChemistry,n_SO2)  ! SO2 chem source
-       call apply_tracer_3Dsource(nChemloss,n_SO2)  ! SO2 chem sink
-#ifdef ACCMIP_LIKE_DIAGS
-       do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
-         taijls(i,j,l,ijlt_prodSO4gs)=taijls(i,j,l,ijlt_prodSO4gs)+
-     &   tr3Dsource(i,j,l,nChemistry,n_SO4)*dtsrc*byaxyp(i,j)
-       end do; end do; end do
-#endif
-       call apply_tracer_3Dsource(nChemistry,n_SO4)  ! SO4 chem source
-       call apply_tracer_3Dsource(1,n_H2O2_s) ! H2O2 chem source
-       call apply_tracer_3Dsource(2,n_H2O2_s) ! H2O2 chem sink
-       call apply_tracer_3Dsource(nChemistry,n_BCII) ! BCII aging sink
-       call apply_tracer_3Dsource(nChemistry,n_BCIA) ! BCIA aging source
-#ifdef TRACERS_AEROSOLS_VBS
-       do i=1,vbs_tr%nbins
-         call apply_tracer_3Dsource(nChemistry,vbs_tr%igas(i)) ! aging source
-         call apply_tracer_3Dsource(nChemloss,vbs_tr%igas(i))  ! aging loss
-         call apply_tracer_3Dsource(nOther,vbs_tr%igas(i))     ! partitioning
-         call apply_tracer_3Dsource(nChemistry,vbs_tr%iaer(i)) ! partitioning
-       enddo
-#else
-       call apply_tracer_3Dsource(nChemistry,n_OCII) ! OCII aging sink
-       call apply_tracer_3Dsource(nChemistry,n_OCIA) ! OCIA aging source
-#endif
-
-#ifdef TRACERS_HETCHEM
-       call apply_tracer_3Dsource(nChemistry,n_SO4_d1) ! SO4 chem prod on dust
-       call apply_tracer_3Dsource(nChemistry,n_SO4_d2) ! SO4 chem prod on dust
-       call apply_tracer_3Dsource(nChemistry,n_SO4_d3) ! SO4 chem prod on dust
-#endif
-#endif
-
-#ifdef TRACERS_TOMAS
-
-       call aerosol_gas_chem
-!H2SO4 chem prod is zero for TOMAS (H2SO4 will use directly in TOMAS_DRV)
-!But it still calls to save the diagnostics. 
-       call apply_tracer_3Dsource(nChemistry,n_H2SO4) ! H2SO4 chem prod
-       call apply_tracer_3Dsource(nChemistry,n_DMS)  ! DMS chem sink
-       call apply_tracer_3Dsource(nChemistry,n_MSA)  ! MSA chem source
-       call apply_tracer_3Dsource(nChemistry,n_SO2)  ! SO2 chem source
-       call apply_tracer_3Dsource(nChemloss,n_SO2)  ! SO2 chem sink 
-       call apply_tracer_3Dsource(1,n_H2O2_s) ! H2O2 chem source
-       call apply_tracer_3Dsource(2,n_H2O2_s) ! H2O2 chem sink
-! EC/OC aging 
-       
-       do k=1,nbins
-          call apply_tracer_3Dsource(nChemistry,n_AECOB(k))
-          call apply_tracer_3Dsource(nChemistry,n_AECIL(k))
-          call apply_tracer_3Dsource(nChemistry,n_AOCOB(k))
-          call apply_tracer_3Dsource(nChemistry,n_AOCIL(k))
-       enddo
-
-#endif
-
 #ifdef TRACERS_SPECIAL_Shindell
 C Apply non-chemistry 3D sources, so they can be "seen" by chemistry:
 C (Note: using this method, tracer moments are changed just like they
@@ -8082,8 +8023,29 @@ C**** Apply chemistry and overwrite changes:
 
 #endif /* TRACERS_NITRATE */
 
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) || \
+    (defined TRACERS_TOMAS)
+       call aerosol_gas_chem
+#endif
+
 #ifdef TRACERS_TOMAS
-    
+!H2SO4 chem prod is zero for TOMAS (H2SO4 will use directly in TOMAS_DRV)
+!But it still calls to save the diagnostics. 
+       call apply_tracer_3Dsource(nChemistry,n_H2SO4) ! H2SO4 chem prod
+       call apply_tracer_3Dsource(nChemistry,n_DMS)  ! DMS chem sink
+       call apply_tracer_3Dsource(nChemistry,n_MSA)  ! MSA chem source
+       call apply_tracer_3Dsource(nChemistry,n_SO2)  ! SO2 chem source
+       call apply_tracer_3Dsource(nChemloss,n_SO2)  ! SO2 chem sink 
+       call apply_tracer_3Dsource(nChemistry,n_H2O2_s) ! H2O2 chem source
+       call apply_tracer_3Dsource(2,n_H2O2_s) ! H2O2 chem sink
+! EC/OC aging 
+       
+       do k=1,nbins
+          call apply_tracer_3Dsource(nChemistry,n_AECOB(k))
+          call apply_tracer_3Dsource(nChemistry,n_AECIL(k))
+          call apply_tracer_3Dsource(nChemistry,n_AOCOB(k))
+          call apply_tracer_3Dsource(nChemistry,n_AOCIL(k))
+       enddo
 
        do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
          trm_emis(i,j,l,:)=trm(i,j,l,:)
@@ -8207,15 +8169,47 @@ C       stop
 
 #endif /* TRACERS_TOMAS */
 
-#ifdef TRACERS_AMP
-
-       call aerosol_gas_chem
-
-       call apply_tracer_3Dsource(2,n_H2SO4) ! H2SO4 chem prod
-       call apply_tracer_3Dsource(1,n_DMS)  ! DMS chem sink
+#ifdef TRACERS_AEROSOLS_Koch
+       call apply_tracer_3Dsource(nChemistry,n_DMS)  ! DMS chem sink
+       call apply_tracer_3Dsource(nChemistry,n_MSA)  ! MSA chem source
        call apply_tracer_3Dsource(nChemistry,n_SO2)  ! SO2 chem source
        call apply_tracer_3Dsource(nChemloss,n_SO2)  ! SO2 chem sink
-       call apply_tracer_3Dsource(1,n_H2O2_s)! H2O2 chem source
+#ifdef ACCMIP_LIKE_DIAGS
+       do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
+         taijls(i,j,l,ijlt_prodSO4gs)=taijls(i,j,l,ijlt_prodSO4gs)+
+     &   tr3Dsource(i,j,l,nChemistry,n_SO4)*dtsrc*byaxyp(i,j)
+       end do; end do; end do
+#endif
+       call apply_tracer_3Dsource(nChemistry,n_SO4)  ! SO4 chem source
+       call apply_tracer_3Dsource(1,n_H2O2_s) ! H2O2 chem source
+       call apply_tracer_3Dsource(2,n_H2O2_s) ! H2O2 chem sink
+       call apply_tracer_3Dsource(nChemistry,n_BCII) ! BCII aging sink
+       call apply_tracer_3Dsource(nChemistry,n_BCIA) ! BCIA aging source
+#ifdef TRACERS_AEROSOLS_VBS
+       do i=1,vbs_tr%nbins
+         call apply_tracer_3Dsource(nChemistry,vbs_tr%igas(i)) ! aging source
+         call apply_tracer_3Dsource(nChemloss,vbs_tr%igas(i))  ! aging loss
+         call apply_tracer_3Dsource(nOther,vbs_tr%igas(i))     ! partitioning
+         call apply_tracer_3Dsource(nChemistry,vbs_tr%iaer(i)) ! partitioning
+       enddo
+#else
+       call apply_tracer_3Dsource(nChemistry,n_OCII) ! OCII aging sink
+       call apply_tracer_3Dsource(nChemistry,n_OCIA) ! OCIA aging source
+#endif
+
+#ifdef TRACERS_HETCHEM
+       call apply_tracer_3Dsource(nChemistry,n_SO4_d1) ! SO4 chem prod on dust
+       call apply_tracer_3Dsource(nChemistry,n_SO4_d2) ! SO4 chem prod on dust
+       call apply_tracer_3Dsource(nChemistry,n_SO4_d3) ! SO4 chem prod on dust
+#endif
+#endif  /* TRACERS_AEROSOLS_Koch */
+
+#ifdef TRACERS_AMP
+       call apply_tracer_3Dsource(2,n_H2SO4) ! H2SO4 chem prod
+       call apply_tracer_3Dsource(nChemistry,n_DMS)  ! DMS chem sink
+       call apply_tracer_3Dsource(nChemistry,n_SO2)  ! SO2 chem source
+       call apply_tracer_3Dsource(nChemloss,n_SO2)  ! SO2 chem sink
+       call apply_tracer_3Dsource(nChemistry,n_H2O2_s)! H2O2 chem source
        call apply_tracer_3Dsource(2,n_H2O2_s)! H2O2 chem sink
       DO n=ntmAMPi,ntmAMPe
         tr3Dsource(:,J_0:J_1,:,1,n)  = 0.d0! Aerosol Mirophysics
