@@ -1,0 +1,29 @@
+#include "rundeck_opts.h"
+
+module tracers_dCO
+
+implicit none
+
+!@param dacetone_fact factor to multiply with acetone (scaled) conc
+!@param dalke_IC_fact factor to multiply with Alkenes initial conc
+!@param dPAR_IC_fact factor to multiply with Paraffin initial conc
+!@param dRNit_IC_fact factor to multiply with AlkylNit initial conc
+!@param dPAN_IC_fact factor to multiply with PAN initial conc
+!@param dMeOOH_IC_fact factor to multiply with MeOOH initial conc
+!@param dHCHO_IC_fact factor to multiply with HCHO initial conc
+!@param dCO_IC_fact factor to multiply with CO_IC file
+
+#ifdef TRACERS_dCO_bin_reprod
+real*8, parameter :: dacetone_fact=1.d0
+real*8, parameter :: dalke_IC_fact=1.d0
+real*8, parameter :: dPAR_IC_fact=1.d0
+real*8, parameter :: dRNit_IC_fact=1.d0
+real*8, parameter :: dPAN_IC_fact=1.d0
+real*8, parameter :: dMeOOH_IC_fact=1.d0
+real*8, parameter :: dHCHO_IC_fact=1.d0
+real*8, parameter :: dCO_IC_fact=1.d0
+#else
+you should not even compile, not implemented yet.
+#endif  /* TRACERS_dCO_bin_reprod */
+
+end module tracers_dCO

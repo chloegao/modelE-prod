@@ -105,7 +105,7 @@ c       B is for NO->NO2 reactions :
           B=B
      &      +rr(rrbi%CH3O2_NO__HCHO_NO2,L)*y(nCH3O2,L)
      &      +rr(rrbi%C2O3_NO__HCHO_NO2,L)*y(nC2O3,L)
-     &      +4.2d-12*exp(180./ta(L))*y(nXO2,L)
+     &      +rr(rrbi%XO2_NO__NO2_M,L)*y(nXO2,L)
         else               ! Stratosphere:
           B=B
      &      +rr(rrbi%ClO_NO__NO2_Cl,L)*y(nClO,L)
@@ -234,9 +234,9 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
      &        *0.15d0
 #endif  /* TRACERS_TERP */
      &    )
-     &    +rr(rrbi%XO2_HO2__CH3OOH_M,L)*y(nXO2,L)
+     &    +rr(rrbi%XO2_HO2__CH3OOH_O2,L)*y(nXO2,L)
      &    +y(nXO2N,L)*(rr(rrbi%XO2N_NO__AlkylNit_M,L)
-     &      *rr(rrbi%XO2_HO2__CH3OOH_M,L)/(4.2d-12*exp(180./ta(L))))
+     &      *rr(rrbi%XO2_HO2__CH3OOH_O2,L)/rr(rrbi%XO2_NO__NO2_M,L))
      &    +pHOx(I,J,L)*(rsulf1(i,j,l)*ydms(i,j,l) ! oxidation of DMS
      &      +rsulf2(i,j,l)*ydms(i,j,l)) ! oxidation of SO2
 
@@ -256,7 +256,8 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
      &    +ss(rj%Aldehyde__HCHO_CO,L,I,J)*y(nAldehyde,L)*2.d0
      &    +(rr(rrbi%C2O3_NO__HCHO_NO2,L)*y(nNO,L)
      &    +rr(rrbi%C2O3_C2O3__HCHO_HCHO,L)*y(nC2O3,L)*2.d0)*y(nC2O3,L)
-     &    +(rr(rrbi%ROR_M__Aldehyde_HO2,L)*0.94d0+1.6d3)*y(nROR,L)
+     &    +(rr(rrbi%ROR_M__Aldehyde_HO2,L)*0.94d0
+     &      +rr(rrbi%ROR_M__HO2_M,L))*y(nROR,L)
      &    +rr(rrbi%Alkenes_O3__HCHO_CO,L)*y(nn_Alkenes,L)*y(nO3,L)
      &      *0.65d0
      &    +rr(rrbi%Isoprene_O3__HCHO_Alkenes,L)*y(nn_Isoprene,L)

@@ -844,13 +844,13 @@ CCCCCCCCCCCCCCCCC NON-FAMILY CHEMISTRY CCCCCCCCCCCCCCCCCCCCCCCC
 #ifdef TRACERS_AEROSOLS_SOA
 ! calculate voc2nox for SOA precursor chemistry
       do L=1,topLevelOfChemistry
-        voc2nox_denom=(4.2d-12*exp(180.d0/ta(L))*y(nNO,L)+
-     &                 rr(rrbi%XO2_HO2__CH3OOH_M,L)*y(nHO2,L)+
+        voc2nox_denom=(rr(rrbi%XO2_NO__NO2_M,L)*y(nNO,L)+
+     &                 rr(rrbi%XO2_HO2__CH3OOH_O2,L)*y(nHO2,L)+
      &                 1.7d-14*exp(1300.d0/ta(L))*yXO2(I,J,L))
         if (voc2nox_denom==0.d0) then
           voc2nox(L)=0.d0
         else
-          voc2nox(L)=4.2d-12*exp(180.d0/ta(L))*y(nNO,L)/
+          voc2nox(L)=rr(rrbi%XO2_NO__NO2_M,L)*y(nNO,L)/
      &               voc2nox_denom
         end if
       end do
@@ -2834,6 +2834,15 @@ C**** Local parameters and variables and arguments:
             rk3M=y(nM,l)*6.5d-34*exp(1335.d0*byta)
             rk2=2.7d-17*exp(2199.d0*byta)
             rr(jj,L)=rr(jj,L)+rk3M/(1.d0+(rk3M/rk2))
+          else if (jj==rrbi%XO2N_HO2__CH3OOH_O2
+#ifdef TRACERS_dCO
+     &        .or. jj==rrbi%d17OXO2N_HO2__dMe17OOH_O2
+     &        .or. jj==rrbi%d18OXO2N_HO2__dMe18OOH_O2
+     &        .or. jj==rrbi%d13CXO2N_HO2__d13MeOOH_O2
+#endif  /* TRACERS_dCO */
+     &            ) then
+            rr(jj,L)=rr(rrbi%XO2_HO2__CH3OOH_O2,L)
+     &        *rr(rrbi%XO2N_NO__AlkylNit_M,L)/rr(rrbi%XO2_NO__NO2_M,L)
           else if (jj==rrbi%PAN_M__C2O3_NO2
 #ifdef TRACERS_dCO
      &        .or. jj==rrbi%d17OPAN_M__dC217O3_NO2
@@ -2852,6 +2861,18 @@ C**** Local parameters and variables and arguments:
      &            ) then
 !           ROR+M really ROR
             rr(jj,L)=rr(jj,L)/y(nM,L)
+          else if (jj==rrbi%ROR_M__HO2_M
+#ifdef TRACERS_dCO
+     &        .or. jj==rrbi%d17OROR_M__HO2_M
+     &        .or. jj==rrbi%d18OROR_M__HO2_M
+     &        .or. jj==rrbi%d13CROR_M__HO2_M
+#endif  /* TRACERS_dCO */
+     &            ) then
+!           ROR+M really ROR
+! WARNING:
+! This reaction, together with the other ROR+M one, might have issues.
+! Kostas asked Greg who will ask Drew, and together will fix it, if required.
+            rr(jj,L)=rr(jj,L)!/y(nM,L)
           else if (jj==rrbi%HO2_NO__OH_NO2
      &        .or. jj==rrbi%HO2_NO__HNO3_M) then
 !           calculate branching ratio here Butkovskaya et al J.Phys.Chem 2007
