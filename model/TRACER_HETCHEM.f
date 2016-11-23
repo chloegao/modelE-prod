@@ -20,7 +20,7 @@
       USE GEOM,       only:  byaxyp
       USE ATM_COM,    only:  byMA ,pmid,pk   ! midpoint pressure in hPa (mb)
 c                                          and pk is t mess up factor
-      USE CONSTANT,   only:  pi, avog, gasc
+      USE CONSTANT,   only:  pi, avog, byavog, gasc
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, am_i_root
       use SpecialFunctions_mod, only: erf
       IMPLICIT NONE
@@ -137,7 +137,7 @@ C Molecular diffusion coefficient for a trace gas in air [ m/s ]
        Mdc(il)  = 3. / (8.* Avog * Roh * (Diaq**2.))
        Mdc(il)  = Mdc(il) * SQRT( ((gasc*look_t*Mgas)/(2.*pi))*wrk(il))
 C thermal velocity of a trace gas molecule [m/s2]
-       VSP(il)  = SQRT((8. * Bolz * look_t)/(Pi * mQ(il)/ Avog))
+       VSP(il)  = SQRT((8. * Bolz * look_t)/(Pi * mQ(il) * byAvog))
 C lamb  mean free pathway  [m]
        lamb(il)   = 3. * Mdc(il)/VSP(il)
 C Loop over radius
@@ -271,7 +271,7 @@ c radii interpolation
       USE CONSTANT,   only:  lhe       ! latent heat of evaporation at 0 C
       USE GEOM,       only:  byaxyp
       USE ATM_COM,    only:  byMA ,pmid,pk   ! midpoint pressure in hPa (mb)
-      USE CONSTANT,   only:  pi, avog, gasc
+      USE CONSTANT,   only:  pi, avog, byavog, gasc
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, am_i_root
       use SpecialFunctions_mod, only: erf
       IMPLICIT NONE
@@ -381,7 +381,7 @@ C Molecular diffusion coefficient for a trace gas in air [ m/s ]
        Mdc(1)  = Mdc(1) * SQRT( ((gasc*look_t*Mgas)/(2.*pi))*wrk(1))
 
 C thermal velocity of a trace gas molecule [m/s2]
-       VSP(1)  = SQRT((8. * Bolz * look_t)/(Pi * mQ1/ Avog))
+       VSP(1)  = SQRT((8. * Bolz * look_t)/(Pi * mQ1 * byAvog))
 
 C lamb  mean free pathway  [m]
        lamb(1)   = 3. * Mdc(1)/VSP(1)

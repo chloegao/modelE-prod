@@ -7652,7 +7652,7 @@ c$$$      use OldTracer_mod, only: tr_mm, nBBsources, mass2vol
 #ifdef SHINDELL_STRAT_EXTRA
       use TRACER_COM, only: n_GLT, n_stratOx
 #endif
-      USE CONSTANT, only : mair, avog
+      USE CONSTANT, only : mair, byavog
 #ifndef SKIP_TRACER_SRCS
       USE FLUXES, only: tr3Dsource
 #endif
@@ -7721,7 +7721,6 @@ c$$$      use OldTracer_mod, only: tr_mm, nBBsources, mass2vol
 !@var blsrc (m2/s) tr3Dsource (kg/s) in boundary layer,
 !@+                per unit of air mass (kg/m2)
       real*8 :: blsrc
-      real*8 :: byavog
 #ifdef CUBED_SPHERE
       real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
@@ -7971,7 +7970,6 @@ C**** Make sure that these 3D sources for all chem tracers start at 0.:
       if (is_set_param('initial_ghg_setup')) then
         call get_param('initial_GHG_setup', initial_GHG_setup)
         if (initial_GHG_setup == 1 .and. itime == itimeI) then
-          byavog = 1.d+0/avog
 
           if (use_rad_n2o > 0) call applyRadChem(3, n_N2O, 1.d+0)
           if (use_rad_ch4 > 0) call applyRadChem(4, n_CH4, 1.d+0)

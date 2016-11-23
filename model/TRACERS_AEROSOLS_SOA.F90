@@ -214,7 +214,7 @@ contains
 subroutine soa_init
 
 !use TRACER_COM, only: n_bcii,n_bcia,n_bcb,n_ocii,n_ocia,n_ocb,n_ococean
-use CONSTANT, only: avog
+use CONSTANT, only: byavog
 implicit none
 
 integer   :: i,j
@@ -349,7 +349,7 @@ do i=1,soacomp
 enddo
 
 do i=1,ntm
-  molec2ug(i)=tr_mm(i)*1.d12/avog
+  molec2ug(i)=tr_mm(i)*1.d12*byavog
 enddo
 
 if (am_i_root()) then

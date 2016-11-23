@@ -7,7 +7,7 @@
 c
       USE RESOLUTION, only : im,jm,lm
       USE MODEL_COM, only  : dtsrc,Itime,ItimeI
-      USE CONSTANT, only   : pi, mair, mwat, radian,avog
+      USE CONSTANT, only   : pi, mair, mwat, radian,byavog
       USE ATM_COM, only    : MA, byMA, PMID, PK
       USE TRACER_COM, only : trm, ntm_chem
       use OldTracer_mod, only: TR_MM
@@ -421,7 +421,7 @@ C ----------------------------------------------
      &                      zlbatm       = 4.d0,
      &                      CMEQ1        = 0.25d0,
      &                      byradian     = 1.d0/radian,
-     &                      cpd          = 1.d6/avog,
+     &                      cpd          = 1.d6*byavog,
      &                      minKG        = 0.d0,
      &                      cfc_pppv     = 1722.d-12,
      &                      n2o_pppv     = 316.3d-9,

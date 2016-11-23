@@ -24,7 +24,7 @@ c
       USE TRACER_COM, only  : COUPLED_CHEM
       USE RAD_COM, only     : o2x
       USE CONSTANT, only    : radian,gasc,mair,mb2kg,pi,avog,rgas,pO2,
-     &                        bygrav,lhe,undef,teeny
+     &                        bygrav,lhe,undef,teeny,byavog
       USE ATM_COM, only     : pedn,PMIDL00,LTROPO
       USE FILEMANAGER, only : openunit,closeunit,nameunit
       USE RAD_COM, only     : COSZ1,alb,rcloudfj=>rcld,
@@ -160,7 +160,7 @@ C**** Local parameters and variables and arguments:
       REAL*8, DIMENSION(NTM) :: PIfact
       REAL*8, DIMENSION(LM) :: PRES2 ! keep LM; based on PMIDL00(:)
       REAL*8 :: FACT1,FACT2,FACT3,FACT4,FACT5,FACT6,FACT7,fact_so4,
-     &  FASTJ_PFACT,bydtsrc,byavog,CH4FACT,r179,rlossN,maxPSC,
+     &  FASTJ_PFACT,bydtsrc,CH4FACT,r179,rlossN,maxPSC,
      &  rprodN,ratioN,pfactor,bypfactor,gwprodHNO3,
 #ifdef TRACERS_dCO
      &  changed17Oald,changed18Oald,changed13Cald,
@@ -229,8 +229,6 @@ C**** Local parameters and variables and arguments:
      &               HAVE_SOUTH_POLE = have_south_pole,
      &               HAVE_NORTH_POLE = have_north_pole)
       
-      byavog = 1.d0/avog
-
 ! calculate what longitudes to accumulate for 10:30am/1:30pm NO2 diags:
 ! Um... Does use of Jhour here assume starting the model at midnight?
       istep = NINT(real(IM)/HOURS_PER_DAY) ! number of boxes per hour
@@ -298,7 +296,6 @@ C--------special section for ghg runs ---------
       end if
 
 C Some INITIALIZATIONS :
-      byavog  = 1.d0/avog
       bydtsrc = 1.d0/dtsrc
       BYFJM   = 1.d0/real(JM)
       PRES2(1:LM) = PMIDL00(1:LM)
