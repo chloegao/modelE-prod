@@ -1843,7 +1843,7 @@ c (chem1prn: argument before multip is index = number of call):
           if(igas == nn_d13CPAR) then
             write(out_line,'(a48,a6,e10.3)')'destruction from d13CXPAR',
      &      'dy = ',-y(nRXPAR,lprn)*y(nn_d13CPAR,lprn)
-     &        *rr(rrbi%Paraffin_RXPAR__M_M,L)*dt2
+     &        *rr(rrbi%d13CPAR_d13CXPAR__M_M,L)*dt2
             call write_parallel(trim(out_line),crit=jay)
           end if
 #endif  /* TRACERS_dCO */
