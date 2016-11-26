@@ -1794,42 +1794,30 @@ c (chem1prn: argument before multip is index = number of call):
           if(igas == nn_CH3OOH) then
             write(out_line,'(a48,a6,e10.3)')
      &        'production from XO2N + HO2 ','dy = ',
-     &        y(nHO2,lprn)*y(nNO,lprn)
-     &        *rr(rrbi%XO2N_NO__AlkylNit_M,lprn)
-     &        *rr(rrbi%XO2_HO2__CH3OOH_O2,lprn)
-     &        /(y(nNO,lprn)*rr(rrbi%XO2_NO__NO2_M,lprn))
-     &        *y(nXO2N,lprn)*dt2
+     &        y(nHO2,lprn)*y(nXO2N,lprn)
+     &        *rr(rrbi%XO2N_HO2__CH3OOH_O2,lprn)*dt2
             call write_parallel(trim(out_line),crit=jay)
           end if
 #ifdef TRACERS_dCO
           if(igas == nn_dMe17OOH) then
             write(out_line,'(a48,a6,e10.3)')
      &        'production from d17OXO2N + HO2 ','dy = ',
-     &        y(nHO2,lprn)*y(nNO,lprn)
-     &        *rr(rrbi%d17OXO2N_NO__d17ORNit_M,lprn)
-     &        *rr(rrbi%d17OXO2_HO2__dMe17OOH_O2,lprn)
-     &        /(y(nNO,lprn)*rr(rrbi%d17OXO2_NO__NO2_M,lprn))
-     &        *y(nd17OXO2N,lprn)*dt2
+     &        y(nHO2,lprn)*y(nd17OXO2N,lprn)
+     &        *rr(rrbi%d17OXO2N_HO2__dMe17OOH_O2,lprn)*dt2
             call write_parallel(trim(out_line),crit=jay)
           end if
           if(igas == nn_dMe18OOH) then
             write(out_line,'(a48,a6,e10.3)')
      &        'production from d18OXO2N + HO2 ','dy = ',
-     &        y(nHO2,lprn)*y(nNO,lprn)
-     &        *rr(rrbi%d18OXO2N_NO__d18ORNit_M,lprn)
-     &        *rr(rrbi%d18OXO2_HO2__dMe18OOH_O2,lprn)
-     &        /(y(nNO,lprn)*rr(rrbi%d18OXO2_NO__NO2_M,lprn))
-     &        *y(nd18OXO2N,lprn)*dt2
+     &        y(nHO2,lprn)*y(nd18OXO2N,lprn)
+     &        *rr(rrbi%d18OXO2N_HO2__dMe18OOH_O2,lprn)*dt2
             call write_parallel(trim(out_line),crit=jay)
           end if
           if(igas == nn_d13MeOOH) then
             write(out_line,'(a48,a6,e10.3)')
      &        'production from d13CXO2N + HO2 ','dy = ',
-     &        y(nHO2,lprn)*y(nNO,lprn)
-     &        *rr(rrbi%d13CXO2N_NO__d13CRNit_M,lprn)
-     &        *rr(rrbi%d13CXO2_HO2__d13MeOOH_O2,lprn)
-     &        /(y(nNO,lprn)*rr(rrbi%d13CXO2_NO__NO2_M,lprn))
-     &        *y(nd13CXO2N,lprn)*dt2
+     &        y(nHO2,lprn)*y(nd13CXO2N,lprn)
+     &        *rr(rrbi%d13CXO2N_HO2__d13MeOOH_O2,lprn)*dt2
             call write_parallel(trim(out_line),crit=jay)
           end if
 #endif  /* TRACERS_dCO */
