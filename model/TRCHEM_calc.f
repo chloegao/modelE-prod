@@ -20,6 +20,9 @@ C
      &     ,ijlt_OxpRO2
      &     ,jls_ClOcon,jls_H2Ocon,jls_H2Ochem
       use OldTracer_mod, only: vol2mass, mass2vol
+#ifdef TRACERS_dCO
+      use tracers_dCO, only: d17O2_to_O2, d18O2_to_O2
+#endif  /* TRACERS_dCO */
       USE TRACER_COM, only  : ntm_chem_beg, ntm_chem_end, ntm_chem,
 #ifdef TRACERS_dCO
      &  n_d13Calke,n_d13CPAR,
@@ -981,7 +984,7 @@ c       Set value for d17OXO2:
      &      *0.91d0
      &    +rr(rrbi%d17OROR_M__d17Oald_HO2,L)*yd17OROR(I,J,L)*0.96d0
      &    +y(nOH,L)*(rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
-     &      *0.87d0
+     &      *0.87d0*d17O2_to_O2
      &    +rr(rrbi%Alkenes_OH__dHCH17O_HO2,L)*y(nn_Alkenes,L)
      &    +rr(rrbi%Isoprene_OH__dHCH17O_Alkenes,L)*y(nn_Isoprene,L)
      &      *0.85d0
@@ -1031,7 +1034,7 @@ c       Set value for d18OXO2:
      &      *0.91d0
      &    +rr(rrbi%d18OROR_M__d18Oald_HO2,L)*yd18OROR(I,J,L)*0.96d0
      &    +y(nOH,L)*(rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
-     &      *0.87d0
+     &      *0.87d0*d18O2_to_O2
      &    +rr(rrbi%Alkenes_OH__dHCH18O_HO2,L)*y(nn_Alkenes,L)
      &    +rr(rrbi%Isoprene_OH__dHCH18O_Alkenes,L)*y(nn_Isoprene,L)
      &      *0.85d0
@@ -1144,7 +1147,7 @@ c       Set value for XO2N:
 ! ok to replace XO2Nprod/XO2Ndest
 c       Set value for d17OXO2N:
         XO2Nprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
-     &      *y(nOH,L)*0.13d0
+     &      *y(nOH,L)*0.13d0*d17O2_to_O2
      &    +rr(rrbi%Alkenes_NO3__dHCH17O_NO2,L)*y(nNO3,L)*y(nn_Alkenes,L)
      &      *0.09d0
      &    +rr(rrbi%d17OROR_M__d17Oald_HO2,L)*yd17OROR(I,J,L)*0.04d0
@@ -1165,7 +1168,7 @@ c       Set value for d17OXO2N:
 
 c       Set value for d18OXO2N:
         XO2Nprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
-     &      *y(nOH,L)*0.13d0
+     &      *y(nOH,L)*0.13d0*d18O2_to_O2
      &    +rr(rrbi%Alkenes_NO3__dHCH18O_NO2,L)*y(nNO3,L)*y(nn_Alkenes,L)
      &      *0.09d0
      &    +rr(rrbi%d18OROR_M__d18Oald_HO2,L)*yd18OROR(I,J,L)*0.04d0
@@ -1273,7 +1276,7 @@ c       Check for equilibrium:
 c       Set value for d17Oald:
 !ok to overwrite here Aldehydeprod,Aldehydedest,changeAldehyde
         Aldehydeprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
-     &      *y(nOH,L)*0.11d0
+     &      *y(nOH,L)*0.11d0*d17O2_to_O2
      &    +rr(rrbi%Alkenes_OH__HCHO_HO2,L)*y(nn_Alkenes,L)*y(nOH,L)
      &    +rr(rrbi%d17OROR_M__d17Oald_HO2,L)*yd17OROR(I,J,L)*1.1d0
      &    +rr(rrbi%Alkenes_O3__HCHO_CO,L)*y(nn_Alkenes,L)
@@ -1299,7 +1302,7 @@ c       Check for equilibrium:
 
 c       Set value for d18Oald:
         Aldehydeprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
-     &      *y(nOH,L)*0.11d0
+     &      *y(nOH,L)*0.11d0*d18O2_to_O2
      &    +rr(rrbi%Alkenes_OH__HCHO_HO2,L)*y(nn_Alkenes,L)*y(nOH,L)
      &    +rr(rrbi%d18OROR_M__d18Oald_HO2,L)*yd18OROR(I,J,L)*1.1d0
      &    +rr(rrbi%Alkenes_O3__HCHO_CO,L)*y(nn_Alkenes,L)
@@ -1367,7 +1370,7 @@ c       Set value for ROR:
 ! ok ot overwrite RORprod,RORdest
 c       Set value for d17OROR:
         RORprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
-     &      *y(nOH,L)*0.76d0
+     &      *y(nOH,L)*0.76d0*d17O2_to_O2
      &    +rr(rrbi%d17OROR_M__d17Oald_HO2,L)*yd17OROR(I,J,L)*0.02d0
         RORdest=rr(rrbi%d17OROR_M__d17Oald_HO2,L)
      &    +rr(rrbi%d17OROR_M__HO2_M,L)
@@ -1380,7 +1383,7 @@ c       Set value for d17OROR:
 
 c       Set value for d18OROR:
         RORprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
-     &      *y(nOH,L)*0.76d0
+     &      *y(nOH,L)*0.76d0*d18O2_to_O2
      &    +rr(rrbi%d18OROR_M__d18Oald_HO2,L)*yd18OROR(I,J,L)*0.02d0
         RORdest=rr(rrbi%d18OROR_M__d18Oald_HO2,L)
      &    +rr(rrbi%d18OROR_M__HO2_M,L)
