@@ -2831,15 +2831,24 @@ C**** Local parameters and variables and arguments:
             rk3M=y(nM,l)*6.5d-34*exp(1335.d0*byta)
             rk2=2.7d-17*exp(2199.d0*byta)
             rr(jj,L)=rr(jj,L)+rk3M/(1.d0+(rk3M/rk2))
-          else if (jj==rrbi%XO2N_HO2__CH3OOH_O2
-#ifdef TRACERS_dCO
-     &        .or. jj==rrbi%d17OXO2N_HO2__dMe17OOH_O2
-     &        .or. jj==rrbi%d18OXO2N_HO2__dMe18OOH_O2
-     &        .or. jj==rrbi%d13CXO2N_HO2__d13MeOOH_O2
-#endif  /* TRACERS_dCO */
-     &            ) then
+          else if (jj==rrbi%XO2N_HO2__CH3OOH_O2) then
             rr(jj,L)=rr(rrbi%XO2_HO2__CH3OOH_O2,L)
-     &        *rr(rrbi%XO2N_NO__AlkylNit_M,L)/rr(rrbi%XO2_NO__NO2_M,L)
+     &        *rr(rrbi%XO2N_NO__AlkylNit_M,L)
+     &        /rr(rrbi%XO2_NO__NO2_M,L)
+#ifdef TRACERS_dCO
+          else if (jj==rrbi%d17OXO2N_HO2__dMe17OOH_O2) then
+            rr(jj,L)=rr(rrbi%d17OXO2_HO2__dMe17OOH_O2,L)
+     &        *rr(rrbi%d17OXO2N_NO__d17ORNit_M,L)
+     &        /rr(rrbi%d17OXO2_NO__NO2_M,L)
+          else if (jj==rrbi%d18OXO2N_HO2__dMe18OOH_O2) then
+            rr(jj,L)=rr(rrbi%d18OXO2_HO2__dMe18OOH_O2,L)
+     &        *rr(rrbi%d18OXO2N_NO__d18ORNit_M,L)
+     &        /rr(rrbi%d18OXO2_NO__NO2_M,L)
+          else if (jj==rrbi%d13CXO2N_HO2__d13MeOOH_O2) then
+            rr(jj,L)=rr(rrbi%d13CXO2_HO2__d13MeOOH_O2,L)
+     &        *rr(rrbi%d13CXO2N_NO__d13CRNit_M,L)
+     &        /rr(rrbi%d13CXO2_NO__NO2_M,L)
+#endif  /* TRACERS_dCO */
           else if (jj==rrbi%PAN_M__C2O3_NO2
 #ifdef TRACERS_dCO
      &        .or. jj==rrbi%d17OPAN_M__dC217O3_NO2
