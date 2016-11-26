@@ -106,12 +106,12 @@ C**** Local parameters and variables and arguments:
 !@+ unlikely event that is lower. Note in that case,
 !@var maxl highest level with chemistry, maxT top of troposphere
 !@var qqqCH3O2,CH3O2loss,C2O3prod,
-!@+   C2O3dest,XO2prod,XO2dest,XO2_XO2,XO2Nprod,XO2Ndest,RXPARprod,
+!@+   C2O3dest,XO2prod,XO2dest,XO2Nprod,XO2Ndest,RXPARprod,
 !@+   RXPARdest,Aldehydeprod,Aldehydedest,RORprod,RORdest,total,
 !@+   rnewval,dNOx,ratio,sumD,newD,ratioD,newP,ratioP,changeA,
 !@+   sumP dummy temp variables
 !@var sumN,sumC,sumH,sumB,sumO,sumA variables for O3 catalytic diags
-!@var tempiter,tempiter2 temp vars for equilibrium calcs iterations
+!@var tempiter temp var for equilibrium calc iterations
 !@var changeX temporary variable for equil calcs
 !@var rMAbyM is airmass over air concentration
 !@var dxbym2v is axyp over mass2volume
@@ -135,10 +135,10 @@ C**** Local parameters and variables and arguments:
       real*8, parameter :: chemtiny=1.d-12
 
       REAL*8 qqqCH3O2,CH3O2loss,
-     & C2O3prod,C2O3dest,XO2prod,XO2dest,XO2_XO2,XO2Nprod,XO2Ndest,
+     & C2O3prod,C2O3dest,XO2prod,XO2dest,XO2Nprod,XO2Ndest,
      & RXPARprod,RXPARdest,Aldehydeprod,Aldehydedest,RORprod,RORdest,
      & total,rnewval,dNOx,ratio,sumD,newD,ratioD,newP,ratioP,
-     & changeA,sumP,tempiter,tempiter2,sumC,sumN,sumH,sumB,sumO,sumA,
+     & changeA,sumP,tempiter,sumC,sumN,sumH,sumB,sumO,sumA,
      & dxbym2v,changeX,vClONO2,vBrONO2,conc2mass,rNO3prod,rNO2prod,
      & rNOprod,changeAldehyde,rxnN2,rxnN3,rxnN4,NprodOx,NlossNOx,byta,
      & diffCH3O2,tempAcet,prodCH3O2,dQMsum
@@ -955,10 +955,9 @@ c       Set value for XO2:
      &           )
         tempiter=rr(rrbi%XO2_NO__NO2_M,L)*y(nNO,L)
      &    +rr(rrbi%XO2_HO2__CH3OOH_O2,L)*y(nHO2,L)
-        tempiter2=1.7d-14*exp(1300.d0/ta(L))
         do while (iter <= 7)
-          XO2_XO2=tempiter2*y(nXO2,L)
-          XO2dest=tempiter+XO2_XO2
+          XO2dest=tempiter
+     &      +rr(rrbi%XO2_XO2__M_M,L)*y(nXO2,L)
           if(XO2dest > 1.d-7.and.
      &       ss(rj%Aldehyde__HCHO_CO,L,I,J) > 1.d-6)then
             y(nXO2,L)=(XO2prod/XO2dest)
@@ -970,7 +969,7 @@ c       Set value for XO2:
         yXO2(I,J,L)=y(nXO2,L)
 
 #ifdef TRACERS_dCO
-! ok to overwrite XO2prod/XO2dest/XO2_XO2
+! ok to overwrite XO2prod/XO2dest
 c       Set value for d17OXO2:
         iter=1
         XO2prod=ss(rj%d17Oald__HCHO_CO,L,I,J)*yd17Oald(I,J,L)
@@ -1004,10 +1003,9 @@ c       Set value for d17OXO2:
      &           )
         tempiter=rr(rrbi%d17OXO2_NO__NO2_M,L)*y(nNO,L)
      &    +rr(rrbi%d17OXO2_HO2__dMe17OOH_O2,L)*y(nHO2,L)
-        tempiter2=1.7d-14*exp(1300.d0/ta(L))
         do while (iter <= 7)
-          XO2_XO2=tempiter2*y(nd17OXO2,L)
-          XO2dest=tempiter+XO2_XO2
+          XO2dest=tempiter
+     &      +rr(rrbi%d17OXO2_d17OXO2__M_M,L)*y(nd17OXO2,L)
           if(XO2dest > 1.d-7.and.
 #ifndef TRACERS_dCO_bin_reprod
      &       ss(rj%d17Oald__dHCH17O_CO,L,I,J)
@@ -1055,10 +1053,9 @@ c       Set value for d18OXO2:
      &           )
         tempiter=rr(rrbi%d18OXO2_NO__NO2_M,L)*y(nNO,L)
      &    +rr(rrbi%d18OXO2_HO2__dMe18OOH_O2,L)*y(nHO2,L)
-        tempiter2=1.7d-14*exp(1300.d0/ta(L))
         do while (iter <= 7)
-          XO2_XO2=tempiter2*y(nd18OXO2,L)
-          XO2dest=tempiter+XO2_XO2
+          XO2dest=tempiter
+     &      +rr(rrbi%d18OXO2_d18OXO2__M_M,L)*y(nd18OXO2,L)
           if(XO2dest > 1.d-7.and.
 #ifndef TRACERS_dCO_bin_reprod
      &       ss(rj%d18Oald__dHCH18O_CO,L,I,J)
@@ -1104,10 +1101,9 @@ c       Set value for d13CXO2:
      &           )
         tempiter=rr(rrbi%d13CXO2_NO__NO2_M,L)*y(nNO,L)
      &    +rr(rrbi%d13CXO2_HO2__d13MeOOH_O2,L)*y(nHO2,L)
-        tempiter2=1.7d-14*exp(1300.d0/ta(L))
         do while (iter <= 7)
-          XO2_XO2=tempiter2*y(nd13CXO2,L)
-          XO2dest=tempiter+XO2_XO2
+          XO2dest=tempiter
+     &      +rr(rrbi%d13CXO2_d13CXO2__M_M,L)*y(nd13CXO2,L)
           if(XO2dest > 1.d-7.and.
 #ifndef TRACERS_dCO_bin_reprod
      &       ss(rj%d13Cald__dH13CHO_CO,L,I,J)

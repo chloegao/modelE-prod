@@ -843,7 +843,7 @@ CCCCCCCCCCCCCCCCC NON-FAMILY CHEMISTRY CCCCCCCCCCCCCCCCCCCCCCCC
       do L=1,topLevelOfChemistry
         voc2nox_denom=(rr(rrbi%XO2_NO__NO2_M,L)*y(nNO,L)+
      &                 rr(rrbi%XO2_HO2__CH3OOH_O2,L)*y(nHO2,L)+
-     &                 1.7d-14*exp(1300.d0/ta(L))*yXO2(I,J,L))
+     &                 rr(rrbi%XO2_XO2__M_M,L)*yXO2(I,J,L))
         if (voc2nox_denom==0.d0) then
           voc2nox(L)=0.d0
         else

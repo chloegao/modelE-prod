@@ -70,6 +70,7 @@ c
         integer :: ROR_M__HO2_M=0
         integer :: XO2_NO__NO2_M=0
         integer :: XO2_HO2__CH3OOH_O2=0
+        integer :: XO2_XO2__M_M=0
         integer :: XO2N_NO__AlkylNit_M=0
         integer :: XO2N_HO2__CH3OOH_O2=0
         integer :: Cl_O3__ClO_O2=0
@@ -151,6 +152,7 @@ c
         integer :: d17OROR_M__HO2_M=0
         integer :: d17OXO2_NO__NO2_M=0
         integer :: d17OXO2_HO2__dMe17OOH_O2=0
+        integer :: d17OXO2_d17OXO2__M_M=0
         integer :: d17OXO2N_NO__d17ORNit_M=0
         integer :: d17OXO2N_HO2__dMe17OOH_O2=0
         integer :: O1D_CH4__dHCH17O_H2=0
@@ -185,6 +187,7 @@ c
         integer :: d18OROR_M__HO2_M=0
         integer :: d18OXO2_NO__NO2_M=0
         integer :: d18OXO2_HO2__dMe18OOH_O2=0
+        integer :: d18OXO2_d18OXO2__M_M=0
         integer :: d18OXO2N_NO__d18ORNit_M=0
         integer :: d18OXO2N_HO2__dMe18OOH_O2=0
         integer :: O1D_CH4__dHCH18O_H2=0
@@ -221,6 +224,7 @@ c
         integer :: d13CROR_M__HO2_M=0
         integer :: d13CXO2_NO__NO2_M=0
         integer :: d13CXO2_HO2__d13MeOOH_O2=0
+        integer :: d13CXO2_d13CXO2__M_M=0
         integer :: d13CXO2N_NO__d13CRNit_M=0
         integer :: d13CXO2N_HO2__d13MeOOH_O2=0
         integer :: O1D_CH4__dH13CHO_H2=0
@@ -318,7 +322,7 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
      & ntm_shindell_nontransp = 26, ! number of non-transported Shindell tracers
 #ifdef TRACERS_dCO
      & ntm_dCO_nontransp = 19, ! number of non-transported dCO tracers
-     & n_bi_dCO =102, ! number of dCO bimolecular reactions
+     & n_bi_dCO =105, ! number of dCO bimolecular reactions
      & n_tri_dCO = 3, ! number of dCO trimolecular reactions
      & n_rj_dCO = 21, ! number of dCO photochemical reactions
 #else
@@ -327,7 +331,7 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
      & n_tri_dCO = 0,
      & n_rj_dCO = 0,
 #endif  /* TRACERS_dCO */
-     & n_bi  =    95+n_bi_terp+n_bi_dCO,
+     & n_bi  =    96+n_bi_terp+n_bi_dCO,
      & n_nst =     3,
      & n_tri =    11+n_tri_dCO,
      & n_het =     5,
@@ -1014,6 +1018,8 @@ C**************  Not Latitude-Dependant ****************************
           rrbi%XO2_NO__NO2_M=irr
         case('XO2_HO2__CH3OOH_O2')
           rrbi%XO2_HO2__CH3OOH_O2=irr
+        case('XO2_XO2__M_M')
+          rrbi%XO2_XO2__M_M=irr
         case('XO2N_NO__AlkylNit_M')
           rrbi%XO2N_NO__AlkylNit_M=irr
         case('XO2N_HO2__CH3OOH_O2')
@@ -1173,6 +1179,8 @@ C**************  Not Latitude-Dependant ****************************
           rrbi%d17OXO2_NO__NO2_M=irr
         case('d17OXO2_HO2__dMe17OOH_O2')
           rrbi%d17OXO2_HO2__dMe17OOH_O2=irr
+        case('d17OXO2_d17OXO2__M_M')
+          rrbi%d17OXO2_d17OXO2__M_M=irr
         case('d17OXO2N_NO__d17ORNit_M')
           rrbi%d17OXO2N_NO__d17ORNit_M=irr
         case('d17OXO2N_HO2__dMe17OOH_O2')
@@ -1240,6 +1248,8 @@ C**************  Not Latitude-Dependant ****************************
           rrbi%d18OXO2_NO__NO2_M=irr
         case('d18OXO2_HO2__dMe18OOH_O2')
           rrbi%d18OXO2_HO2__dMe18OOH_O2=irr
+        case('d18OXO2_d18OXO2__M_M')
+          rrbi%d18OXO2_d18OXO2__M_M=irr
         case('d18OXO2N_NO__d18ORNit_M')
           rrbi%d18OXO2N_NO__d18ORNit_M=irr
         case('d18OXO2N_HO2__dMe18OOH_O2')
@@ -1311,6 +1321,8 @@ C**************  Not Latitude-Dependant ****************************
           rrbi%d13CXO2_NO__NO2_M=irr
         case('d13CXO2_HO2__d13MeOOH_O2')
           rrbi%d13CXO2_HO2__d13MeOOH_O2=irr
+        case('d13CXO2_d13CXO2__M_M')
+          rrbi%d13CXO2_d13CXO2__M_M=irr
         case('d13CXO2N_NO__d13CRNit_M')
           rrbi%d13CXO2N_NO__d13CRNit_M=irr
         case('d13CXO2N_HO2__d13MeOOH_O2')
