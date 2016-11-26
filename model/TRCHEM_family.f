@@ -235,8 +235,7 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
 #endif  /* TRACERS_TERP */
      &    )
      &    +rr(rrbi%XO2_HO2__CH3OOH_O2,L)*y(nXO2,L)
-     &    +y(nXO2N,L)*(rr(rrbi%XO2N_NO__AlkylNit_M,L)
-     &      *rr(rrbi%XO2_HO2__CH3OOH_O2,L)/rr(rrbi%XO2_NO__NO2_M,L))
+     &    +rr(rrbi%XO2N_HO2__CH3OOH_O2,L)*y(nXO2N,L)
      &    +pHOx(I,J,L)*(rsulf1(i,j,l)*ydms(i,j,l) ! oxidation of DMS
      &      +rsulf2(i,j,l)*ydms(i,j,l)) ! oxidation of SO2
 
