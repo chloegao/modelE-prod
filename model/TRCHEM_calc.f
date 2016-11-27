@@ -1236,7 +1236,7 @@ c       Set value for d13CXPAR:
         RXPARprod=rr(rrbi%d13CPAR_OH__HO2_M,L)*y(nn_d13CPAR,L)
      &      *y(nOH,L)*0.11d0
      &    +rr(rrbi%d13Calke_OH__dH13CHO_HO2,L)*y(nn_d13Calke,L)*y(nOH,L)
-     &    +rr(rrbi%ROR_M__Aldehyde_HO2,L)*yd13CROR(I,J,L)*2.1d0
+     &    +rr(rrbi%d13CROR_M__d13Cald_HO2,L)*yd13CROR(I,J,L)*2.1d0
      &    +rr(rrbi%d13Calke_O3__dH13CHO_d13CO,L)*y(nn_d13Calke,L)
      &      *y(nO3,L)*0.9d0
      &    +rr(rrbi%d13Calke_NO3__dH13CHO_NO2,L)*y(nNO3,L)
