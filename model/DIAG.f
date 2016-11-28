@@ -63,6 +63,7 @@ C**** Some local constants
 
       END MODULE DIAG_LOC
 
+
       SUBROUTINE ALLOC_DIAG_LOC(grid)
       USE DOMAIN_DECOMP_ATM, only : getDomainBounds
       USE DOMAIN_DECOMP_ATM, only : DIST_GRID
@@ -109,25 +110,22 @@ C**** Some local constants
 #endif
       USE RAD_COM, only : rqt
       USE ATM_COM, only : pmidl00
-      USE DIAG_COM, only : ia_dga,jreg,ntype,ftype,
+      USE DIAG_COM, only : ia_dga,jreg,ntype,ftype, KGZ,
      *     aijl=>aijl_loc
-     *     ,aij=>aij_loc,ij_dtdp,ij_phi1k,ij_pres,ij_slpq,ij_presq
+     *     ,aij=>aij_loc,ij_dtdp,ij_pres,ij_slpq,ij_presq
      *     ,ij_slp
-     *     ,ij_t850,ij_t500,ij_t300,ij_t100,ij_t50,ij_t10,ij_t5,ij_t1
-     *     ,ij_q850,ij_q500,ij_q300,ij_q100,ij_q50,ij_q10,ij_q5,ij_q1
-     *     ,ij_rh850,ij_rh500,ij_rh300,ij_rh100
+     *  ,ij_pmb1,ij_tpmb1,ij_qpmb1,ij_zpmb1,ij_rhpmb1,ij_upmb1,ij_vpmb1
      *     ,ij_RH1,ij_qm,ij_ujet
      *     ,ij_vjet,j_tx1,j_tx,j_qp,j_dtdjt,j_dtdjs,j_dtdgtr,j_dtsgst
      &     ,ijl_dp,ijk_dp,ijl_u,ijl_v,ijl_w,ijk_tx,ijk_q,ijk_rh
      *     ,j_rictr,j_rostr,j_ltro,j_ricst,j_rosst,j_lstr,j_gamm,j_gam
-     *     ,j_gamc,lstr,kgz_max,pmb,ple
+     *     ,j_gamc,lstr,pmb,ple
      *     ,jl_dtdyn,jl_dpa
      *     ,jl_epacwt,jl_uepac,jl_vepac,jl_wepac
      *     ,jl_wpacwt,jl_uwpac,jl_vwpac,jl_wwpac
      *     ,jk_dpwt,jk_tx,jk_hght,jk_q,jk_rh,jk_cldh2o
      *     ,jk_cldwtr,jk_cldice
-     *     ,ij_p850,z_inst,rh_inst,t_inst,plm,ij_p1000,ij_p925,ij_p700
-     *     ,ij_p600,ij_p500,ijl_templ,ijl_gridh,ijl_husl,ijl_zL
+     *    ,z_inst,rh_inst,t_inst,plm,ijl_templ,ijl_gridh,ijl_husl,ijl_zL
 #ifdef TRACERS_SPECIAL_Shindell
      *     ,o_inst,x_inst,n_inst,m_inst
 #endif
@@ -164,12 +162,13 @@ C**** Some local constants
      &     BBYGV,DLNP01,DLNP12,DLNP23,MAzMASUM,
      &     DXYPJ,
      *     ESEPS,GAMC,GAMM,GAMX,
-     &     PDN,PE,PHI_REQ,pfact,chemL,chemLm1,
+     *     PDN,TDN,QDN,ZDN,UDN,VDN,
+     *     PUP,TUP,QUP,ZUP,UUP,VUP, PE,PHI_REQ,pfact,chemL,chemLm1,
      *     PL,PRT,W2MAX,RICHN,
      *     ROSSN,ROSSL,BYFCOR,BYBETA,BYBETAFAC,NH,SS,THETA,
-     *     TZL,X,TIJK,QIJK,DTXDY
-      LOGICAL qpress,qabove
-      INTEGER nT,nQ,nRH
+     *     TZL,X, TIJK,QIJK,ZIJK,RHIJK,UIJK,VIJK, DTXDY
+      Logical :: qabove
+      Integer :: NP,NT,NQ,NZ,NRH,NU,NV
       REAL*8, PARAMETER :: EPSLON=1.
 
       REAL*8 QSAT, SLP, PS, ZS, TS_SLP, QLH, begin
@@ -207,9 +206,8 @@ c
       DLNP01=LOG(pmidl00(lm)/PLM(LM+1))
       DLNP12=LOG(REQ_FAC_M(1)/REQ_FAC_M(2))  ! LOG(.75/.35)
       DLNP23=LOG(REQ_FAC_M(2)/REQ_FAC_M(3))  ! LOG(.35/.1)
-C****
-C**** FILL IN HUMIDITY AND SIGMA DOT ARRAYS AT THE POLES
-C****
+
+!**** Fill in Q array at poles
       IF(HAVE_SOUTH_POLE) THEN
         DO L=1,LM
           DO I=2,IM
@@ -224,9 +222,8 @@ C****
           END DO
         END DO
       ENDIF        ! HAVE_NORTH_POLE
-C****
+
 C**** CALCULATE PK AND TX, THE REAL TEMPERATURE
-C****
       IF(HAVE_SOUTH_POLE) THEN
         DO L=1,LM
           TX(1,1,L)=T(1,1,L)*PK(L,1,1)
@@ -249,11 +246,10 @@ C****
       DO L=1,LM
       DO J=J_0S,J_1S
         DO I=I_0,I_1
-          TX(I,J,L)=T(I,J,L)*PK(L,I,J)
+          TX(I,J,L) = T(I,J,L)*PK(L,I,J)  !  degrees K
         END DO
       END DO
       END DO
-
 
 C****
 C**** J LOOPS FOR ALL PRIMARY GRID ROWS
@@ -356,70 +352,48 @@ C**** Follows logic for geopotential section following this...
         enddo ! I
 #endif
 
-C**** CALCULATE GEOPOTENTIAL HEIGHTS AT SPECIFIC MILLIBAR LEVELS
-        DO I=I_0,IMAXJ(J)
-          K=1
-          L=1
-          rh_inst(:,i,j) = undef ; t_inst(:,i,j) = undef
-          z_inst(:,i,j) = undef
+!****
+!**** Compute T, Q, Z, RH, U, V at constant pressure coordinates
+!****
+      Do 50 I=I_0,IMAXJ(J)
+      L = 0  ;  PDN = PEDN(1,I,J)  ;  TDN = ATMSRF%TSAVG(I,J)
+          ZDN = ZATMO(I,J)*byGRAV  ;  QDN = ATMSRF%QSAVG(I,J)
+          UDN = 0                  ;  VDN= 0
+      K = 0  ;  NP = IJ_ PMB1-1  ;  NT = IJ_TPMB1-1  ;  NQ = IJ_QPMB1-1
+                NZ = IJ_ZPMB1-1  ;  NU = IJ_UPMB1-1  ;  NV = IJ_VPMB1-1
+               NRH = IJ_RHPMB1-1
+   10 K = K+1  ;  NP = NP+1  ;  NT = NT+1  ;  NQ = NQ+1  ;  NRH = NRH+1
+                  NZ = NZ+1  ;  NU = NU+1  ;  NV = NV+1
+      If (PDN < PMB(K))  Then
+         T_INST(K,I,J) = undef  ;  RH_INST(K,I,J) = undef
+         Z_INST(K,I,J) = undef
 #ifdef TRACERS_SPECIAL_Shindell
-          o_inst(:,i,j) = undef ; x_inst(:,i,j) = undef
-          n_inst(:,i,j) = undef ; m_inst(:,i,j) = undef
+         o_inst(K,i,j) = undef  ;  x_inst(K,i,j) = undef
+         n_inst(K,i,j) = undef  ;  m_inst(K,i,j) = undef
 #endif
- 172      L=L+1
-          PDN=PMID(L-1,I,J)
-          PL=PMID(L,I,J)
-          IF (PMB(K).LT.PL.AND.L.LT.LM) GO TO 172
-C**** Select pressure levels on which to save temperature and humidity
-C**** Use masking for 850 mb temp/humidity
- 174      qpress = .false.
-          qabove = pmb(k).le.pedn(l-1,i,j)
-          SELECT CASE (NINT(PMB(K)))
-          CASE (850)
-            nT = IJ_T850 ; nQ = IJ_Q850 ; nRH = IJ_RH850 ; qpress=.true.
-            if (.not. qabove) qpress = .false.
-            if (qpress) aij(i,j,ij_p850) = aij(i,j,ij_p850) + 1.
-          CASE (500)
-            nT = IJ_T500 ; nQ = IJ_Q500 ; nRH = IJ_RH500 ; qpress=.true.
-          CASE (300)
-            nT = IJ_T300 ; nQ = IJ_Q300 ; nRH = IJ_RH300 ; qpress=.true.
-          CASE (100)
-            nT = IJ_T100 ; nQ = IJ_Q100 ; nRH = IJ_RH100 ; qpress=.true.
-          CASE (50)
-            nT = IJ_T50  ; nQ = IJ_Q50  ;                  qpress=.true.
-          CASE (10)
-            nT = IJ_T10  ; nQ = IJ_Q10  ;                  qpress=.true.
-          CASE (5)
-            nT = IJ_T5   ; nQ = IJ_Q5   ;                  qpress=.true.
-          CASE (1)
-            nT = IJ_T1   ; nQ = IJ_Q1   ;                  qpress=.true.
-          END SELECT
-C**** calculate geopotential heights + temperatures
-          IF (ABS(TX(I,J,L)-TX(I,J,L-1)).GE.EPSLON) THEN
-            BBYGV=(TX(I,J,L-1)-TX(I,J,L))/(PHI(I,J,L)-PHI(I,J,L-1))
-            AIJ(I,J,IJ_PHI1K-1+K)=AIJ(I,J,IJ_PHI1K-1+K)+(PHI(I,J,L)
-     *           -TX(I,J,L)*((PMB(K)/PL)**(RGAS*BBYGV)-1.)/BBYGV)
-            IF (qabove) then
-              TIJK=(TX(I,J,L)-TF
-     *           +(TX(I,J,L-1)-TX(I,J,L))*LOG(PMB(K)/PL)/LOG(PDN/PL))
-              Z_inst(K,I,J)=(PHI(I,J,L)
-     *           -TX(I,J,L)*((PMB(K)/PL)**(RGAS*BBYGV)-1.)/BBYGV)
-            END IF
-          ELSE
-            AIJ(I,J,IJ_PHI1K-1+K)=AIJ(I,J,IJ_PHI1K-1+K)+(PHI(I,J,L)
-     *           -RGAS*TX(I,J,L)*LOG(PMB(K)/PL))
-            IF (qabove) then
-              TIJK=TX(I,J,L)-TF
-              Z_inst(K,I,J)=(PHI(I,J,L)
-     *             -RGAS*TX(I,J,L)*LOG(PMB(K)/PL))
-            END IF
-          END IF
-          if (qabove) then
-            QIJK=Q(I,J,L)+(Q(I,J,L-1)-Q(I,J,L))*(PMB(K)-PL)/(PDN-PL)
-            RH_inst(K,I,J)=QIJK/qsat(TIJK+TF,LHE,PMB(K))
-            T_inst(K,I,J) =TIJK
+         GoTo 10  ;  EndIf
+   20 L = L+1  ;  PUP = PMID(L,I,J)        ;  TUP = TX(I,J,L) - TF
+                  ZUP = PHI(I,J,L)*byGRAV  ;  QUP = Q(I,J,L)
+   30 If (PMB(K) < PUP)  Then
+          PDN = PUP  ;  TDN = TUP  ;  QUP = QDN  ;  ZUP = ZDN
+          GoTo 20  ;  EndIf
+!**** PUP <= PMB(K) <= PDN, interpolate model data to constant pressure
+      TIJK = TDN + (TUP - TDN) * (PMB(K) - PDN) / (PUP - PDN)
+      QIJK = QDN + (QUP - QDN) * (PMB(K) - PDN) / (PUP - PDN)
+      ZIJK = ZDN + (ZUP - ZDN) * Log(PMB(K)/PDN) / Log(PUP/PDN)
+      If (TIJK >= 0)
+     *   Then  ;  RHIJK = QIJK / QSAT(TIJK+TF,LHE,PMB(K))
+         Else  ;  RHIJK = QIJK / QSAT(TIJK+TF,LHS,PMB(K))  ;  EndIf
+      T_INST(K,I,J) = TIJK  ;  RH_INST(K,I,J) = RHIJK
+      Z_INST(K,I,J) = ZIJK
+      AIJ(I,J,NP)  = AIJ(I,J,NP)  + 1
+      AIJ(I,J,NT)  = AIJ(I,J,NT)  + TIJK
+      AIJ(I,J,NQ)  = AIJ(I,J,NQ)  + QIJK
+      AIJ(I,J,NZ)  = AIJ(I,J,NZ)  + ZIJK
+      AIJ(I,J,NRH) = AIJ(I,J,NRH) + RHIJK
+
 #ifdef TRACERS_SPECIAL_Shindell
-            pfact=(PMB(K)-PL)/(PDN-PL)
+            pfact = (PMB(K) - PUP) / (PDN - PDN)
               chemL=1.d6*trm(i,j,L,n_Ox)*mass2vol(n_Ox)/
      &        (MA(L,i,j)*axyp(i,j))
               chemLm1=1.d6*trm(i,j,L-1,n_Ox)*mass2vol(n_Ox)/
@@ -430,7 +404,6 @@ C**** calculate geopotential heights + temperatures
               chemLm1=1.d6*trm(i,j,L-1,n_NOx)*mass2vol(n_NOx)/
      &        (MA(L-1,i,j)*axyp(i,j))
             x_inst(K,I,J)= chemL+(chemLm1-chemL)*pfact
-
 ! NO2 is not defined above chemistry top (NOx is):
               if(L > topLevelOfChemistry) then
                 chemL=undef
@@ -453,30 +426,14 @@ C**** calculate geopotential heights + temperatures
      &        (MA(L-1,i,j)*axyp(i,j))
             m_inst(K,I,J)= chemL+(chemLm1-chemL)*pfact
 #endif
-            if (qpress) then
-              AIJ(I,J,nT)=AIJ(I,J,nT)+TIJK
-              AIJ(I,J,nQ)=AIJ(I,J,nQ)+QIJK
-              if (PMB(K) >= 100 .and. TIJK >= 0)  ! w.r.t. water
-     *          AIJ(I,J,nRH)=AIJ(I,J,nRH)+QIJK/qsat(TIJK+TF,LHe,PMB(K))
-              if (PMB(K) >= 100 .and. TIJK < 0)  ! w.r.t ice above 500mb
-     *          AIJ(I,J,nRH)=AIJ(I,J,nRH)+QIJK/qsat(TIJK+TF,LHs,PMB(K))
-            end if
-          end if
-C****
-          IF (K.LT.KGZ_max) THEN
-            K=K+1
-            IF (PMB(K).LT.PL.AND.L.LT.LM) GO TO 172
-            GO TO 174
-          END IF
-C**** BEGIN AMIP
-          If (PEDN(1,I,J) <1000) AIJ(I,J,IJ_P1000)= AIJ(I,J,IJ_P1000)+ 1
-          If (PEDN(1,I,J) < 925) AIJ(I,J,IJ_P925) = AIJ(I,J,IJ_P925) + 1
-          If (PEDN(1,I,J) < 700) AIJ(I,J,IJ_P700) = AIJ(I,J,IJ_P700) + 1
-          If (PEDN(1,I,J) < 600) AIJ(I,J,IJ_P600) = AIJ(I,J,IJ_P600) + 1
-          If (PEDN(1,I,J) < 500) AIJ(I,J,IJ_P500) = AIJ(I,J,IJ_P500) + 1
-C**** END AMIP
-        END DO
-      END DO
+
+      If (K < KGZ)  Then  
+          K = K+1  ;  NP = NP+1  ;  NT = NT+1  ;  NQ = NQ+1
+                      NZ = NZ+1  ;  NU = NU+1  ;  NV = NV+1
+                     NRH = NRH+1
+          GoTo 30  ;  EndIf
+   50 Continue  !  From  Do 50 I=I_0,IMAXJ(J)
+      EndDo     !  From  DO J=J_0,J_1
 
 C**** ACCUMULATION OF TEMP., POTENTIAL TEMP., Q, AND RH
       DO J=J_0,J_1
@@ -810,6 +767,7 @@ C**** ACCUMULATE TIME USED IN DIAGA
       CALL TIMEOUT(BEGIN,MDIAG,MDYN)
       RETURN
       END SUBROUTINE DIAGA
+
 
       SUBROUTINE DIAGA0
 c increment ajl(jl_dtdyn) by -t before dynamics.
@@ -6103,6 +6061,7 @@ C**** cases where Earth and Land Ice are lumped together
 C****
       END SUBROUTINE UPDTYPE
 
+
       subroutine calc_derived_aij
 !@sum Calculate derived lat/lon diagnostics prior to printing
 !@auth Group
@@ -6124,7 +6083,6 @@ C****
      *     ij_fland, ij_albgv, ij_clrsky, ij_pocean, ij_ts,
      *     ij_RTSE, ij_HWV, ij_PVS,
      &     IJ_TRSUP,IJ_TRSDN,IJ_EVAP,IJ_QS,IJ_PRES,
-     &     IJ_PHI1K,
      &     IJ_US,IJ_VS,IJ_UJET,IJ_VJET,IJ_TATM,IJK_DP,IJK_TX,
      &     IJ_MSU2,IJ_MSU3,IJ_MSU4,KGZ_MAX,PMB,
      &     ij_TminC,ij_TmaxC,ij_TDcomp,

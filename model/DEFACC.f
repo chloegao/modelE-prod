@@ -1305,13 +1305,15 @@ c
       ia_ij(k) = ia_src
       scale_ij(k) = 100.
 c
-      k=k+1 !
-      IJ_P850 = k !
-      lname_ij(k) = 'FREQUENCY OF 850mb PRESSURE'  ! weighting function
-      units_ij(k) = '%'
-      name_ij(k) = 'p_850_freq'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 100.
+      IJ_PMB1 = k+1
+      Do L=1,KGZ
+         k=k+1
+         lname_ij(k) = 'PRESSURE FREQUENCY at ' // Trim(PMNAME(L))//'mb'  
+         units_ij(k) = '%'
+         name_ij(k) = 'p_freq_' // PMNAME(L)
+         ia_ij(k) = ia_dga
+         scale_ij(k) = 100.
+      EndDo
 c
       k=k+1 !
       IJ_RSNW = k ! PSNOW (1)            1 GD
@@ -1397,92 +1399,24 @@ c
       scale_ij(k) = 100.
 c
 !**** Water Mass
-      k=k+1
-      IJ_Q1 = k
-      lname_ij(k) = 'SPECIFIC HUMIDITY AT 1mb'
-      units_ij(k) = 'g/kg'
-      name_ij(k) = 'q_1'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1d3
-      ir_ij(k) = ir_0_18
-      index1(k) = IJ_Q1
-      name3(k) = 'qcp'
-      lname3(k) = 'SPECIFIC HUMIDITY'
-      dim3name(k) = 'pcp'
-      dim3units(k) = 'mb'
-      coord3(1:8,k) = (/1.,5.,10.,50.,100.,300.,500.,850./)
-      ij_cp_diminfo = k
-c
-      k=k+1
-      IJ_Q5 = k
-      lname_ij(k) = 'SPECIFIC HUMIDITY AT 5mb'
-      units_ij(k) = 'g/kg'
-      name_ij(k) = 'q_5'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1d3
-      ir_ij(k) = ir_0_18
-      index1(k) = IJ_Q1
-c
-      k=k+1
-      IJ_Q10 = k
-      lname_ij(k) = 'SPECIFIC HUMIDITY AT 10mb'
-      units_ij(k) = 'g/kg'
-      name_ij(k) = 'q_10'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1d3
-      ir_ij(k) = ir_0_18
-      index1(k) = IJ_Q1
-c
-      k=k+1
-      IJ_Q50 = k
-      lname_ij(k) = 'SPECIFIC HUMIDITY AT 50mb'
-      units_ij(k) = 'g/kg'
-      name_ij(k) = 'q_50'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1d3
-      ir_ij(k) = ir_0_18
-      index1(k) = IJ_Q1
-c
-      k=k+1
-      IJ_Q100 = k
-      lname_ij(k) = 'SPECIFIC HUMIDITY AT 100mb'
-      units_ij(k) = 'g/kg'
-      name_ij(k) = 'q_100'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1d3
-      ir_ij(k) = ir_0_18
-      index1(k) = IJ_Q1
-c
-      k=k+1
-      IJ_Q300 = k
-      lname_ij(k) = 'SPECIFIC HUMIDITY AT 300mb'
-      units_ij(k) = 'g/kg'
-      name_ij(k) = 'q_300'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1d3
-      ir_ij(k) = ir_0_18
-      index1(k) = IJ_Q1
-c
-      k=k+1
-      IJ_Q500 = k
-      lname_ij(k) = 'SPECIFIC HUMIDITY AT 500mb'
-      units_ij(k) = 'g/kg'
-      name_ij(k) = 'q_500'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1d3
-      ir_ij(k) = ir_0_18
-      index1(k) = IJ_Q1
-c
-      k=k+1
-      IJ_Q850 = k
-      lname_ij(k) = 'SPECIFIC HUMIDITY AT 850mb'
-      units_ij(k) = 'g/kg'
-      name_ij(k) = 'q_850'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1d3
-      ir_ij(k) = ir_0_18
-      denom_ij(k) = IJ_P850
-      index1(k) = IJ_Q1
+      IJ_QPMB1 = k+1
+      Do L=1,KGZ
+         k=k+1
+         lname_ij(k) = 'SPECIFIC HUMIDITY at ' // Trim(PMNAME(L)) //'mb'
+         units_ij(k) = 'g/kg'
+         name_ij(k) = 'q_' // PMNAME(L)
+         ia_ij(k) = ia_dga
+         scale_ij(k) = 1d3
+         ir_ij(k) = ir_0_18
+         denom_ij(k) = IJ_PMB1 + L - 1
+         index1(k) = IJ_QPMB1
+         coord3(L,k) = PMB(L)
+      EndDo
+      name3(IJ_QPMB1) = 'qcp'
+      lname3(IJ_QPMB1) = 'SPECIFIC HUMIDITY'
+      dim3name(IJ_QPMB1) = 'pcp'
+      dim3units(IJ_QPMB1) = 'mb'
+      ij_cp_diminfo = IJ_QPMB1
 c
       k=k+1 !
       IJ_QS   = k ! QS                                (NO PRT)  3 SF
@@ -1493,51 +1427,23 @@ c
       scale_ij(k) = 1.d4
       ir_ij(k) = ir_0_180
 c
-      k=k+1
-      IJ_RH100 = k
-      lname_ij(k) = 'RELATIVE HUMIDITY (ICE) AT 100mb'
-      units_ij(k) = '%'
-      name_ij(k) = 'rh_100'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1d2
-      ir_ij(k) = ir_pct
-      index1(k) = IJ_RH100
-      name3(k) = 'rhcp'
-      lname3(k) = 'RELATIVE HUMIDITY'
-      dim3name(k) = 'prh'
-      dim3units(k) = 'mb'
-      coord3(1:4,k) = (/100.,300.,500.,850./)
-c
-      k=k+1
-      IJ_RH300 = k
-      lname_ij(k) = 'RELATIVE HUMIDITY (ICE) AT 300mb'
-      units_ij(k) = '%'
-      name_ij(k) = 'rh_300'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1d2
-      ir_ij(k) = ir_pct
-      index1(k) = IJ_RH100
-c
-      k=k+1
-      IJ_RH500 = k
-      lname_ij(k) = 'RELATIVE HUMIDITY AT 500mb'
-      units_ij(k) = '%'
-      name_ij(k) = 'rh_500'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1d2
-      ir_ij(k) = ir_pct
-      index1(k) = IJ_RH100
-c
-      k=k+1
-      IJ_RH850 = k
-      lname_ij(k) = 'RELATIVE HUMIDITY AT 850mb'
-      units_ij(k) = '%'
-      name_ij(k) = 'rh_850'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1d2
-      ir_ij(k) = ir_pct
-      denom_ij(k) = IJ_P850
-      index1(k) = IJ_RH100
+      IJ_RHPMB1 = k+1
+      Do L=1,KGZ
+         k=k+1
+         lname_ij(k) = 'RELATIVE HUMIDITY at ' // Trim(PMNAME(L)) //'mb'
+         units_ij(k) = '%'
+         name_ij(k) = 'rh_' // PMNAME(L)
+         ia_ij(k) = ia_dga
+         scale_ij(k) = 1d2
+         ir_ij(k) = ir_pct
+         denom_ij(k) = IJ_PMB1 + L - 1
+         index1(k) = IJ_RHPMB1
+         coord3(L,k) = PMB(L)
+      EndDo
+      name3(IJ_RHPMB1) = 'rhcp'
+      lname3(IJ_RHPMB1) = 'RELATIVE HUMIDITY'
+      dim3name(IJ_RHPMB1) = 'prh'
+      dim3units(IJ_RHPMB1) = 'mb'
 c
       k=k+1 !
       IJ_RH1 = k !
@@ -2066,89 +1972,24 @@ c
       ir_ij(k) = ir_0_1775
       denom_ij(k) = IJ_TCLDI
 c
-      k=k+1 !
-      IJ_T1 = k !
-      lname_ij(k) = 'TEMPERATURE AT 1mb'
-      units_ij(k) = 'C'
-      name_ij(k) = 't_1'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m80_28
-      index1(k) = IJ_T1
-      name3(k) = 'tcp'
-      lname3(k) = 'TEMPERATURE'
-      dim3info_index(k) = ij_cp_diminfo
-c
-      k=k+1 !
-      IJ_T5 = k !
-      lname_ij(k) = 'TEMPERATURE AT 5mb'
-      units_ij(k) = 'C'
-      name_ij(k) = 't_5'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m80_28
-      index1(k) = IJ_T1
-c
-      k=k+1 !
-      IJ_T10 = k !
-      lname_ij(k) = 'TEMPERATURE AT 10mb'
-      units_ij(k) = 'C'
-      name_ij(k) = 't_10'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m80_28
-      index1(k) = IJ_T1
-c
-      k=k+1 !
-      IJ_T50 = k !
-      lname_ij(k) = 'TEMPERATURE AT 50mb'
-      units_ij(k) = 'C'
-      name_ij(k) = 't_50'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m80_28
-      index1(k) = IJ_T1
-c
-      k=k+1 !
-      IJ_T100 = k !
-      lname_ij(k) = 'TEMPERATURE AT 100mb'
-      units_ij(k) = 'C'
-      name_ij(k) = 't_100'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m80_28
-      index1(k) = IJ_T1
-c
-      k=k+1 !
-      IJ_T300 = k !
-      lname_ij(k) = 'TEMPERATURE AT 300mb'
-      units_ij(k) = 'C'
-      name_ij(k) = 't_300'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m80_28
-      index1(k) = IJ_T1
-c
-      k=k+1 !
-      IJ_T500 = k !
-      lname_ij(k) = 'TEMPERATURE AT 500mb'
-      units_ij(k) = 'C'
-      name_ij(k) = 't_500'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m80_28
-      index1(k) = IJ_T1
-c
-      k=k+1 !
-      IJ_T850 = k !
-      lname_ij(k) = 'TEMPERATURE AT 850mb'
-      units_ij(k) = 'C'
-      name_ij(k) = 't_850'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m80_28
-      denom_ij(k) = IJ_P850
-      index1(k) = IJ_T1
+      IJ_TPMB1 = k+1
+      Do L=1,KGZ
+         k=k+1
+         lname_ij(k) = 'TEMPERATURE at ' // Trim(PMNAME(L)) // 'mb'
+         units_ij(k) = 'C'
+         name_ij(k) = 't_' // PMNAME(L)
+         ia_ij(k) = ia_dga
+         scale_ij(k) = 1
+         ir_ij(k) = ir_m80_28
+         denom_ij(k) = IJ_PMB1 + L - 1
+         index1(k) = IJ_TPMB1
+!        coord3(L,k) = PMB(L)
+      EndDo
+      name3(IJ_TPMB1) = 'tcp'
+      lname3(IJ_TPMB1) = 'TEMPERATURE'
+!     dim3name(IJ_TPMB1) = 'pcp'
+!     dim3units(IJ_TPMB1) = 'mb'
+      dim3info_index(IJ_TPMB1) = ij_cp_diminfo
 c
       k=k+1 !
       IJ_TS   = k ! TS (K-TF)                                 3 SF
@@ -2441,194 +2282,23 @@ c
       ir_ij(k) = ir_0_3550
 c
 !**** Geopotential Height
-      k=k+1 !
-      IJ_PHI1K = k ! PHI1000 (M**2/S**2) 4 DA
-      lname_ij(k) = '1000mb HEIGHT'
-      units_ij(k) = 'm'
-      name_ij(k) = 'z_1000'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = BYGRAV
-      ir_ij(k) = ir_m190_530
-      index1(k) = IJ_PHI1K
-      name3(k) = 'zcp'
-      lname3(k) = 'HEIGHT'
-      dim3name(k) = 'pz'
-      dim3units(k) = 'mb'
-      coord3(1:8,k) = (/1000.,850.,700.,500.,300.,100.,50.,30./)
-c
-      k=k+1 !
-      IJ_PHI850 = k ! PHI850 (M**2/S**2) 4 DA
-      lname_ij(k) = '850 mb HEIGHT'
-      units_ij(k) = 'm'
-      name_ij(k) = 'z_850'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = BYGRAV
-      ir_ij(k) = ir_m265_95
-      index1(k) = IJ_PHI1K
-c
-      k=k+1 !
-      IJ_PHI700 = k ! PHI700  4 DA
-      lname_ij(k) = '700 mb HEIGHT'
-      units_ij(k) = 'm'
-      name_ij(k) = 'z_700'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = BYGRAV
-      ir_ij(k) = ir_m530_190
-      index1(k) = IJ_PHI1K
-c
-      k=k+1 !
-      IJ_PHI500 = k ! PHI500  4 DA
-      lname_ij(k) = '500 mb HEIGHT'
-      units_ij(k) = 'm'
-      name_ij(k) = 'z_500'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = BYGRAV
-      ir_ij(k) = ir_m1325_475
-      index1(k) = IJ_PHI1K
-c
-      k=k+1 !
-      IJ_PHI300 = k ! PHI300  4 DA
-      lname_ij(k) = '300 mb HEIGHT'
-      units_ij(k) = 'm'
-      name_ij(k) = 'z_300'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = BYGRAV
-      ir_ij(k) = ir_m2650_950
-      index1(k) = IJ_PHI1K
-c
-      k=k+1 !
-      IJ_PHI100 = k ! PHI100 4 DA
-      lname_ij(k) = '100 mb HEIGHT'
-      units_ij(k) = 'm'
-      name_ij(k) = 'z_100'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = BYGRAV
-      ir_ij(k) = ir_m2650_950
-      index1(k) = IJ_PHI1K
-c
-      k=k+1 !
-      IJ_PHI50 = k ! PHI50   4 DA
-      lname_ij(k) = '50 mb HEIGHT'
-      units_ij(k) = 'm'
-      name_ij(k) = 'z_50'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = BYGRAV
-      ir_ij(k) = ir_m3975_1425
-      index1(k) = IJ_PHI1K
-c
-      k=k+1 !
-      IJ_PHI30 = k ! PHI30   4 DA
-      lname_ij(k) = '30 mb HEIGHT'
-      units_ij(k) = 'm'
-      name_ij(k) = 'z_30'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = BYGRAV
-      ir_ij(k) = ir_m3975_1425
-      index1(k) = IJ_PHI1K
-c
-      if (kgz_max.gt.k-IJ_PHI1K+1) then
+      IJ_ZPMB1 = k+1     
+      Do L=1,KGZ
          k=k+1
-         IJ_PHI10 = k ! PHI10   4 DA
-         lname_ij(k) = '10 mb HEIGHT'
+         lname_ij(k) = 'HEIGHT at ' // Trim(PMNAME(L)) // 'mb'
          units_ij(k) = 'm'
-         name_ij(k) = 'z_10'
+         name_ij(k) = 'z_' // PMNAME(L)     
          ia_ij(k) = ia_dga
-         scale_ij(k) = BYGRAV
-         ir_ij(k) = ir_m5300_1900
-         index1(k) = IJ_PHI1K
-         coord3(1+k-IJ_PHI1K,IJ_PHI1K) = 10.
-      end if
-c
-      if (kgz_max.gt.k-IJ_PHI1K+1) then
-         k=k+1
-         IJ_PHI5 = k ! PHI5   4 DA
-         lname_ij(k) = '5 mb HEIGHT'
-         units_ij(k) = 'm'
-         name_ij(k) = 'z_5'
-         ia_ij(k) = ia_dga
-         scale_ij(k) = BYGRAV
-         ir_ij(k) = ir_m5300_1900
-         index1(k) = IJ_PHI1K
-         coord3(1+k-IJ_PHI1K,IJ_PHI1K) = 5d0
-      end if
-c
-      if (kgz_max.gt.k-IJ_PHI1K+1) then
-         k=k+1
-         IJ_PHI3p4 = k ! PHI3.4   4 DA
-         lname_ij(k) = '3.4 mb HEIGHT'
-         units_ij(k) = 'm'
-         name_ij(k) = 'z_3.4'
-         ia_ij(k) = ia_dga
-         scale_ij(k) = BYGRAV
-         ir_ij(k) = ir_m5300_1900
-         index1(k) = IJ_PHI1K
-         coord3(1+k-IJ_PHI1K,IJ_PHI1K) = 3.4d0
-      end if
-c
-      if (kgz_max.gt.k-IJ_PHI1K+1) then
-         k=k+1
-         IJ_PHI1 = k ! PHI1   4 DA
-         lname_ij(k) = '1 mb HEIGHT'
-         units_ij(k) = 'm'
-         name_ij(k) = 'z_1'
-         ia_ij(k) = ia_dga
-         scale_ij(k) = BYGRAV
-         ir_ij(k) = ir_m5300_1900
-         index1(k) = IJ_PHI1K
-         coord3(1+k-IJ_PHI1K,IJ_PHI1K) = 1d0
-      end if
-c
-      if (kgz_max.gt.k-IJ_PHI1K+1) then
-         k=k+1
-         IJ_PHI0p7 = k ! PHI0.7   4 DA
-         lname_ij(k) = '0.7 mb HEIGHT'
-         units_ij(k) = 'm'
-         name_ij(k) = 'z_0.7'
-         ia_ij(k) = ia_dga
-         scale_ij(k) = BYGRAV
-         ir_ij(k) = ir_m5300_1900
-         index1(k) = IJ_PHI1K
-         coord3(1+k-IJ_PHI1K,IJ_PHI1K) = .7d0
-      end if
-c
-      if (kgz_max.gt.k-IJ_PHI1K+1) then
-         k=k+1
-         IJ_PHI0p16 = k ! PHI0.16   4 DA
-         lname_ij(k) = '0.16 mb HEIGHT'
-         units_ij(k) = 'm'
-         name_ij(k) = 'z_0.16'
-         ia_ij(k) = ia_dga
-         scale_ij(k) = BYGRAV
-         ir_ij(k) = ir_m5300_1900
-         index1(k) = IJ_PHI1K
-         coord3(1+k-IJ_PHI1K,IJ_PHI1K) = .16d0
-      end if
-c
-      if (kgz_max.gt.k-IJ_PHI1K+1) then
-         k=k+1
-         IJ_PHI0p07 = k ! PHI0.07   4 DA
-         lname_ij(k) = '0.07 mb HEIGHT'
-         units_ij(k) = 'm'
-         name_ij(k) = 'z_0.07'
-         ia_ij(k) = ia_dga
-         scale_ij(k) = BYGRAV
-         ir_ij(k) = ir_m5300_1900
-         index1(k) = IJ_PHI1K
-         coord3(1+k-IJ_PHI1K,IJ_PHI1K) = .07d0
-      end if
-c
-      if (kgz_max.gt.k-IJ_PHI1K+1) then
-         k=k+1
-         IJ_PHI0p03 = k ! PHI0.03   4 DA
-         lname_ij(k) = '0.03 mb HEIGHT'
-         units_ij(k) = 'm'
-         name_ij(k) = 'z_0.03'
-         ia_ij(k) = ia_dga
-         scale_ij(k) = BYGRAV
-         ir_ij(k) = ir_m5300_1900
-         index1(k) = IJ_PHI1K
-         coord3(1+k-IJ_PHI1K,IJ_PHI1K) = .03d0
-      end if
+         scale_ij(k) = 1       
+         ir_ij(k) = ir_m190_530
+         denom_ij(k) = IJ_PMB1 + L - 1
+         index1(k) = IJ_ZPMB1
+         coord3(L,k) = PMB(L) 
+      EndDo
+      name3(IJ_ZPMB1) = 'zcp'
+      lname3(IJ_ZPMB1) = 'HEIGHT'
+      dim3name(IJ_ZPMB1) = 'pcp'   !!!!! 'pz'
+      dim3units(IJ_ZPMB1) = 'mb'
 c
       k=k+1 !
       IJ_PBLHT   = k !
@@ -4692,46 +4362,6 @@ c
       ia_ij(k) = ia_srf
       scale_ij(k) = 10.
       ir_ij(k) = ir_m9_26
-c
-      k=k+1 !
-      IJ_P1000 = k !
-      lname_ij(k) = '1000 hPa BELOW GROUND'  ! weighting functi
-      units_ij(k) = '%'
-      name_ij(k) = 'p_1000_freq'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 100.
-c
-      k=k+1 !
-      IJ_P925 = k !
-      lname_ij(k) = '925 hPa BELOW GROUND'  ! weighting functi
-      units_ij(k) = '%'
-      name_ij(k) = 'p_925_freq'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 100.
-c
-      k=k+1 !
-      IJ_P700 = k !
-      lname_ij(k) = '700 hPa BELOW GROUND'  ! weighting functi
-      units_ij(k) = '%'
-      name_ij(k) = 'p_700_freq'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 100.
-c
-      k=k+1 !
-      IJ_P600 = k !
-      lname_ij(k) = '600 hPa BELOW GROUND'  ! weighting functi
-      units_ij(k) = '%'
-      name_ij(k) = 'p_600_freq'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 100.
-c
-      k=k+1 !
-      IJ_P500 = k !
-      lname_ij(k) = '500 hPa BELOW GROUND'  ! weighting functi
-      units_ij(k) = '%'
-      name_ij(k) = 'p_500_freq'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 100.
 c
       if (calc_wspdf == 1) then
         k=k+1

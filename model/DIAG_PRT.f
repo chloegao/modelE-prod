@@ -873,6 +873,7 @@ C****
       RETURN
       END SUBROUTINE JKJL_TITLEX
 
+
       SUBROUTINE DIAGJK
       USE CONSTANT, only :
      &     grav,rgas,kapa,twopi,bygrav,tf,teeny,radius
@@ -890,7 +891,7 @@ C****
       USE DIAG_COM, only : im,jm,lm,fim,byim,imh,
      &     kdiag,qdiag,linect,ia_dga,p1000k,
      &     plm,ple_dn,ple,pmb,kgz,kgz_max,
-     &     aij,ij_phi1k,aijl,aijk,ijk_q,
+     &     aij,aijl,aijk,ijk_q, ij_zpmb1,
      &     ajl,scale_jl,ia_jl,units_jl,sname_jl,lname_jl,
      &     jgrid_jl,pow_jl,
      &     asjl,
@@ -1774,7 +1775,7 @@ C****
             LINECT=63
       ELOFIM=.5*TWOPI-TWOPI/FIM
 
-      DO K=1,kgz_max
+      DO K=1,KGZ
       DO N=1,4
       AMPLTD(1,K,N)=0.
       AMPLTD(JM,K,N)=0.
@@ -1782,7 +1783,7 @@ C****
       PHASE(JM,K,N)=0.
       ENDDO
       DO J=2,JM-1
-      CALL FFT (AIJ(1,J,IJ_PHI1K-1+K),AN,BN)
+      CALL FFT (AIJ(1,J,IJ_ZPMB1-1+K),AN,BN)
       DO N=1,4
       AMPLTD(J,K,N)=SQRT(AN(N)*AN(N)+BN(N)*BN(N))
       PHASE(J,K,N)=(ATAN2(BN(N),AN(N))-TWOPI)/N+ELOFIM
@@ -1791,7 +1792,7 @@ C****
       ENDDO
       ENDDO
       ENDDO
-      SCALET = BYIADA*BYGRAV
+      SCALET = BYIADA
       IX = jl_phi_amp_wave1-1
       DO N=1,4
       CALL JLMAP(LNAME_gc(N+ix),SNAME_gc(N+ix),UNITS_gc(N+ix),
@@ -1813,6 +1814,7 @@ C****
      *  ' DEG K/DAY  = 0.01*SDAY*GRAV/SHA (= 8.445) W/(m^2*mb)'/
      *  ' 10**18 JOULES = .864 * 10**30 GM*cm^2/s/DAY')
       END SUBROUTINE DIAGJK
+
 
       SUBROUTINE JKMAP(LNAME,SNAME,UNITS,POW10P,
      &     PM,AX,SCALET,SCALEJ,SCALEK,KMAX,JWT,J1,
@@ -3225,6 +3227,7 @@ c**** find hemispheric and global means
       return
       end subroutine ij_avg
 
+
       SUBROUTINE DIAGIJ
 !@sum  DIAGIJ produces lat-lon fields as maplets (6/page) or full-page
 !@+    digital maps, and binary (netcdf etc) files (if qdiag=true)
@@ -3283,7 +3286,7 @@ C**** INITIALIZE CERTAIN QUANTITIES
 C**** standard printout
       kmaplets = 57
       nmaplets = kmaplets + 6*isccp_diags + 2*cloud_rad_forc +        
-     *           iDO_GWDRAG + kgz_max-1                  
+     *           iDO_GWDRAG                  
       nmaps = 2
       iord(1:kmaplets) = (/
      *  ij_topo,    ij_fland,   ij_rsoi,     ! pg  1  row 1
@@ -3332,12 +3335,6 @@ C**** include CRF diags if requested
 C**** Fill in maplet indices for gravity wave diagnostics
       do k=1,iDO_GWDRAG
         iord(k+kmaplets) = ij_gw1+k-1  !i.e. first entry is ij_gw1
-      end do
-
-!**** Fill in maplet indices for geoptential heights
-      koff = kmaplets+iDO_GWDRAG
-      do k=1,kgz_max-1
-        iord(k+koff) = ij_phi1k+k  !i.e. first entry is ij_phi850
       end do
 
 C**** Add the full-page maps (nmaps)
