@@ -50,7 +50,6 @@ c
      &                      n_BrOx,n_BrONO2,n_CFC,n_N2O,n_HOBR
 #ifdef TRACERS_dCO
      &                     ,n_d13Calke
-     &                     ,n_d17ORNit,n_d18ORNit,n_d13CRNit
      &                     ,n_dHCH17O,n_dHCH18O,n_dH13CHO
      &                     ,n_dC17O,n_dC18O,n_d13CO
       use tracers_dCO, only: dacetone_fact, dalke_IC_fact
@@ -99,7 +98,6 @@ c
      &      nn_HBr,    nn_HOBr,  nn_BrONO2,nn_CFC,    nn_GLT
 #ifdef TRACERS_dCO
      &     ,nn_d13Calke
-     &     ,nn_d17ORNit,nn_d18ORNit,nn_d13CRNit
      &     ,nn_dHCH17O,nn_dHCH18O,nn_dH13CHO
 #endif  /* TRACERS_dCO */
 #ifdef CACHED_SUBDD
@@ -182,7 +180,6 @@ C**** Local parameters and variables and arguments:
 #ifdef TRACERS_dCO
      &  rdHCH17OplusNO3,rdHCH18OplusNO3,rdH13CHOplusNO3,
      &  changed13Calke,
-     &  changed17ORNit,changed18ORNit,changed13CRNit,
      &  changedHCH17O,changedHCH18O,changedH13CHO,
      &  changedC17O,changedC18O,changed13CO,
 #endif  /* TRACERS_dCO */
@@ -591,17 +588,7 @@ c - set reactive species for use in family chemistry & nighttime NO2:
        y(nd13C2O3,L) =yd13C2O3(I,J,L)
 #endif  /* TRACERS_dCO */
        y(nXO2,L)     =yXO2(I,J,L)
-#ifdef TRACERS_dCO
-       y(nd17OXO2,L)     =yd17OXO2(I,J,L)
-       y(nd18OXO2,L)     =yd18OXO2(I,J,L)
-       y(nd13CXO2,L)     =yd13CXO2(I,J,L)
-#endif  /* TRACERS_dCO */
        y(nXO2N,L)    =yXO2N(I,J,L)
-#ifdef TRACERS_dCO
-       y(nd17OXO2N,L)    =yd17OXO2N(I,J,L)
-       y(nd18OXO2N,L)    =yd18OXO2N(I,J,L)
-       y(nd13CXO2N,L)    =yd13CXO2N(I,J,L)
-#endif  /* TRACERS_dCO */
        y(nRXPAR,L)   =yRXPAR(I,J,L)
 #ifdef TRACERS_dCO
        y(nd13CXPAR,L)   =yd13CXPAR(I,J,L)
@@ -705,17 +692,14 @@ C Define and alter resulting photolysis coefficients (zj --> ss):
 #ifndef TRACERS_dCO_bin_reprod
             else if(inss == rj%d17Oald__dHCH17O_CO
      &         .or. inss == rj%d17Oald__HCHO_dC17O
-     &         .or. inss == rj%d17Oald__HCHO_CO
      &         .or. inss == rj%d18Oald__dHCH18O_CO
      &         .or. inss == rj%d18Oald__HCHO_dC18O
-     &         .or. inss == rj%d18Oald__HCHO_CO
      &         .or. inss == rj%d13Cald__dH13CHO_CO
      &         .or. inss == rj%d13Cald__HCHO_d13CO
-     &         .or. inss == rj%d13Cald__HCHO_CO
      &             ) then
               ! the yield is one third, since one isotopically labeled atom
-              ! is assumed to exist in each aldehyde, not three
-              ss(inss,L,I,J)=ss(inss,L,I,J)/3.d0
+              ! is assumed to exist in each aldehyde, not two
+              ss(inss,L,I,J)=ss(inss,L,I,J)/2.d0
 #endif  /* not TRACERS_dCO_bin_reprod */
 #endif  /* TRACERS_dCO */
             end if
@@ -1351,20 +1335,6 @@ C Alkenes, Isoprene, Terpenes (if used) and AlkylNit:
 #ifdef TRACERS_TERP
      &                +rTerpplusNO3*0.9d0
 #endif  /* TRACERS_TERP */
-#ifdef TRACERS_dCO
-        changed17ORNit=rIsopplusNO3*0.9d0
-#ifdef TRACERS_TERP
-     &                +rTerpplusNO3*0.9d0
-#endif  /* TRACERS_TERP */
-        changed18ORNit=rIsopplusNO3*0.9d0
-#ifdef TRACERS_TERP
-     &                +rTerpplusNO3*0.9d0
-#endif  /* TRACERS_TERP */
-        changed13CRNit=rIsopplusNO3*0.9d0
-#ifdef TRACERS_TERP
-     &                +rTerpplusNO3*0.9d0
-#endif  /* TRACERS_TERP */
-#endif  /* TRACERS_dCO */
 
 c Convert some changes to molecules/cm3/s:
         changeHNO3=gwprodHNO3+2.d0*wprod_sulf  !always positive
@@ -1448,11 +1418,6 @@ C Apply Alkenes, AlkyNit, and Aldehyde changes here:
         y(nn_d13Calke,L)  =y(nn_d13Calke,L)  +changed13Calke
 #endif  /* TRACERS_dCO */
         y(nn_AlkylNit,L) =y(nn_AlkylNit,L) +changeAlkylNit
-#ifdef TRACERS_dCO
-        y(nn_d17ORNit,L) =y(nn_d17ORNit,L) +changed17ORNit
-        y(nn_d18ORNit,L) =y(nn_d18ORNit,L) +changed18ORNit
-        y(nn_d13CRNit,L) =y(nn_d13CRNit,L) +changed13CRNit
-#endif  /* TRACERS_dCO */
         yAldehyde(I,J,L)=yAldehyde(I,J,L)+changeAldehyde
 #ifdef TRACERS_dCO
         yd17Oald(I,J,L)=yd17Oald(I,J,L)+changed17Oald
@@ -1685,35 +1650,6 @@ c -- AlkylNit -- (AlkylNit from gas phase rxns)
           changeAlkylNit=changeL(L,n_AlkylNit)*mass2vol(n_AlkylNit)
      &    *bypfactor
         END IF
-#ifdef TRACERS_dCO
-c -- d17ORNit -- (d17ORNit from gas phase rxns)
-        changeL(L,n_d17ORNit)=
-     &  changed17ORNit*pfactor*vol2mass(n_d17ORNit)
-        IF((trm(i,j,l,n_d17ORNit)+changeL(l,n_d17ORNit)) < minKG)
-     &  THEN
-          changeL(l,n_d17ORNit) = minKG - trm(i,j,l,n_d17ORNit)
-          changed17ORNit=changeL(L,n_d17ORNit)*mass2vol(n_d17ORNit)
-     &    *bypfactor
-        END IF
-c -- d18ORNit -- (d18ORNit from gas phase rxns)
-        changeL(L,n_d18ORNit)=
-     &  changed18ORNit*pfactor*vol2mass(n_d18ORNit)
-        IF((trm(i,j,l,n_d18ORNit)+changeL(l,n_d18ORNit)) < minKG)
-     &  THEN
-          changeL(l,n_d18ORNit) = minKG - trm(i,j,l,n_d18ORNit)
-          changed18ORNit=changeL(L,n_d18ORNit)*mass2vol(n_d18ORNit)
-     &    *bypfactor
-        END IF
-c -- d13CRNit -- (d13CRNit from gas phase rxns)
-        changeL(L,n_d13CRNit)=
-     &  changed13CRNit*pfactor*vol2mass(n_d13CRNit)
-        IF((trm(i,j,l,n_d13CRNit)+changeL(l,n_d13CRNit)) < minKG)
-     &  THEN
-          changeL(l,n_d13CRNit) = minKG - trm(i,j,l,n_d13CRNit)
-          changed13CRNit=changeL(L,n_d13CRNit)*mass2vol(n_d13CRNit)
-     &    *bypfactor
-        END IF
-#endif  /* TRACERS_dCO */
 
 C Save 3D radical arrays to pass to aerosol code:
 C Make sure we get the nightime values; Set OH to zero for now:
@@ -2549,23 +2485,6 @@ CCCCCCCCCCCCC PRINT SOME CHEMISTRY DIAGNOSTICS CCCCCCCCCCCCCCCC
      &    100.d0*(changeAlkylNit)/y(nn_AlkylNit,L),' percent of'
      &    ,y(nn_AlkylNit,L),'(',1.d9*y(nn_AlkylNit,L)/y(nM,L),' ppbv)'
           call write_parallel(trim(out_line),crit=jay)
-#ifdef TRACERS_dCO
-          write(out_line,198) 'd17ORNit',': ',
-     &    changed17ORNit,' molecules produced; ',
-     &    100.d0*(changed17ORNit)/y(nn_d17ORNit,L),' percent of'
-     &    ,y(nn_d17ORNit,L),'(',1.d9*y(nn_d17ORNit,L)/y(nM,L),' ppbv)'
-          call write_parallel(trim(out_line),crit=jay)
-          write(out_line,198) 'd18ORNit',': ',
-     &    changed18ORNit,' molecules produced; ',
-     &    100.d0*(changed18ORNit)/y(nn_d18ORNit,L),' percent of'
-     &    ,y(nn_d18ORNit,L),'(',1.d9*y(nn_d18ORNit,L)/y(nM,L),' ppbv)'
-          call write_parallel(trim(out_line),crit=jay)
-          write(out_line,198) 'd13CRNit',': ',
-     &    changed13CRNit,' molecules produced; ',
-     &    100.d0*(changed13CRNit)/y(nn_d13CRNit,L),' percent of'
-     &    ,y(nn_d13CRNit,L),'(',1.d9*y(nn_d13CRNit,L)/y(nM,L),' ppbv)'
-          call write_parallel(trim(out_line),crit=jay)
-#endif  /* TRACERS_dCO */
           write(out_line,198) ay(nn_ClONO2),': ',
      &    changeClONO2,' molecules produced; ',
      &    100.d0*(changeClONO2)/y(nn_ClONO2,L),' percent of'
@@ -2835,20 +2754,6 @@ C**** Local parameters and variables and arguments:
             rr(jj,L)=rr(rrbi%XO2_HO2__CH3OOH_O2,L)
      &        *rr(rrbi%XO2N_NO__AlkylNit_M,L)
      &        /rr(rrbi%XO2_NO__NO2_M,L)
-#ifdef TRACERS_dCO
-          else if (jj==rrbi%d17OXO2N_HO2__dMe17OOH_O2) then
-            rr(jj,L)=rr(rrbi%d17OXO2_HO2__dMe17OOH_O2,L)
-     &        *rr(rrbi%d17OXO2N_NO__d17ORNit_M,L)
-     &        /rr(rrbi%d17OXO2_NO__NO2_M,L)
-          else if (jj==rrbi%d18OXO2N_HO2__dMe18OOH_O2) then
-            rr(jj,L)=rr(rrbi%d18OXO2_HO2__dMe18OOH_O2,L)
-     &        *rr(rrbi%d18OXO2N_NO__d18ORNit_M,L)
-     &        /rr(rrbi%d18OXO2_NO__NO2_M,L)
-          else if (jj==rrbi%d13CXO2N_HO2__d13MeOOH_O2) then
-            rr(jj,L)=rr(rrbi%d13CXO2_HO2__d13MeOOH_O2,L)
-     &        *rr(rrbi%d13CXO2N_NO__d13CRNit_M,L)
-     &        /rr(rrbi%d13CXO2_NO__NO2_M,L)
-#endif  /* TRACERS_dCO */
           else if (jj==rrbi%PAN_M__C2O3_NO2
 #ifdef TRACERS_dCO
      &        .or. jj==rrbi%d17OPAN_M__dC217O3_NO2

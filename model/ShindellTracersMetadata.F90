@@ -12,7 +12,6 @@ module ShindellTracersMetadata_mod
 #ifdef TRACERS_dCO
   use OldTracer_mod, only: set_is_dCO_tracer
   use TRACER_COM, only: n_d13Calke, n_d13CPAR
-  use TRACER_COM, only: n_d17ORNit, n_d18ORNit, n_d13CRNit
   use TRACER_COM, only: n_d17OPAN, n_d18OPAN, n_d13CPAN
   use TRACER_COM, only: n_dMe17OOH, n_dMe18OOH, n_d13MeOOH
   use TRACER_COM, only: n_dHCH17O, n_dHCH18O, n_dH13CHO
@@ -131,9 +130,6 @@ contains
 #ifdef TRACERS_dCO
     call  Alkenes_setSpec('d13Calke')
     call  Paraffin_setSpec('d13CPAR')
-    call  AlkylNit_setSpec('d17ORNit')
-    call  AlkylNit_setSpec('d18ORNit')
-    call  AlkylNit_setSpec('d13CRNit')
     call  PAN_setSpec('d17OPAN')
     call  PAN_setSpec('d18OPAN')
     call  PAN_setSpec('d13CPAN')
@@ -174,7 +170,6 @@ contains
            nn_HBr,    nn_HOBr,  nn_BrONO2,nn_CFC,    nn_GLT
 #ifdef TRACERS_dCO
       use TRACER_COM, only: nn_d13Calke, nn_d13CPAR
-      use TRACER_COM, only: nn_d17ORNit, nn_d18ORNit, nn_d13CRNit
       use TRACER_COM, only: nn_d17OPAN, nn_d18OPAN, nn_d13CPAN
       use TRACER_COM, only: nn_dMe17OOH, nn_dMe18OOH, nn_d13MeOOH
       use TRACER_COM, only: nn_dHCH17O, nn_dHCH18O, nn_dH13CHO
@@ -230,9 +225,6 @@ contains
 #ifdef TRACERS_dCO
      nn_d13Calke = n_d13Calke - offset
      nn_d13CPAR = n_d13CPAR - offset
-     nn_d17ORNit = n_d17ORNit - offset
-     nn_d18ORNit = n_d18ORNit - offset
-     nn_d13CRNit = n_d13CRNit - offset
      nn_d17OPAN = n_d17OPAN - offset
      nn_d18OPAN = n_d18OPAN - offset
      nn_d13CPAN = n_d13CPAN - offset
@@ -498,23 +490,7 @@ contains
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
       if (ntm_chem_beg==0) ntm_chem_beg = n
-      select case (name)
-        case ('AlkylNit')
-          n_AlkylNit = n
-#ifdef TRACERS_dCO
-        case ('d17ORNit')
-          n_d17ORNit = n
-          call set_is_dCO_tracer(n, .true.)
-        case ('d18ORNit')
-          n_d18ORNit = n
-          call set_is_dCO_tracer(n, .true.)
-        case ('d13CRNit')
-          n_d13CRNit = n
-          call set_is_dCO_tracer(n, .true.)
-#endif  /* TRACERS_dCO */
-        case default
-          call stop_model('AlkylNit-like tracer '//trim(name)//' unknown',255)
-      end select
+      n_AlkylNit = n
       ntm_chem_end = n
       call set_ntm_power(n, -11)
       call set_tr_mm(n, mair)   !unknown molecular weight, so use air and make

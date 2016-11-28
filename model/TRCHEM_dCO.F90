@@ -7,7 +7,6 @@ implicit none
 !@param dacetone_fact factor to multiply with acetone (scaled) conc
 !@param dalke_IC_fact factor to multiply with Alkenes initial conc
 !@param dPAR_IC_fact factor to multiply with Paraffin initial conc
-!@param dRNit_IC_fact factor to multiply with AlkylNit initial conc
 !@param dPAN_IC_fact factor to multiply with PAN initial conc
 !@param dMeOOH_IC_fact factor to multiply with MeOOH initial conc
 !@param dHCHO_IC_fact factor to multiply with HCHO initial conc
@@ -19,7 +18,6 @@ implicit none
 real*8, parameter :: dacetone_fact=1.d0
 real*8, parameter :: dalke_IC_fact=1.d0
 real*8, parameter :: dPAR_IC_fact=1.d0
-real*8, parameter :: dRNit_IC_fact=1.d0
 real*8, parameter :: dPAN_IC_fact=1.d0
 real*8, parameter :: dMeOOH_IC_fact=1.d0
 real*8, parameter :: dHCHO_IC_fact=1.d0
