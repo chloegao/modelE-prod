@@ -2350,6 +2350,42 @@ c
       igrid_ij(k) = 1 ! now using a-grid winds
       jgrid_ij(k) = 1
       ir_ij(k) = ir_m38_106
+!
+      IJ_UPMB1 = k+1
+      Do L=1,KGZ
+         k=k+1
+         lname_ij(k) = 'EASTWARD VELOCITY at ' // Trim(PMNAME(L)) //'mb'
+         units_ij(k) = 'm/s'
+         name_ij(k) = 'u_' // PMNAME(L)
+         ia_ij(k) = ia_dga
+         scale_ij(k) = 1       
+         ir_ij(k) = ir_m38_106
+         denom_ij(k) = IJ_PMB1 + L - 1
+         index1(k) = IJ_UPMB1
+         coord3(L,k) = PMB(L)
+      EndDo
+      name3(IJ_UPMB1) = 'ucp'
+      lname3(IJ_UPMB1) = 'EASTWARD VELOCITY'
+      dim3name(IJ_UPMB1) = 'pcp'
+      dim3units(IJ_UPMB1) = 'mb'
+!
+      IJ_VPMB1 = k+1
+      Do L=1,KGZ
+         k=k+1
+         lname_ij(k) = 'NORTHWARD VELOCITY at ' // Trim(PMNAME(L))//'mb'
+         units_ij(k) = 'm/s'
+         name_ij(k) = 'v_' // PMNAME(L)
+         ia_ij(k) = ia_dga
+         scale_ij(k) = 1       
+         ir_ij(k) = ir_m38_106
+         denom_ij(k) = IJ_PMB1 + L - 1
+         index1(k) = IJ_VPMB1
+         coord3(L,k) = PMB(L)
+      EndDo
+      name3(IJ_VPMB1) = 'vcp'
+      lname3(IJ_VPMB1) = 'NORTHWARD VELOCITY'
+      dim3name(IJ_VPMB1) = 'pcp'
+      dim3units(IJ_VPMB1) = 'mb'
 c
       k=k+1 !
       IJ_US   = k ! US (M/S)                                  3 SF

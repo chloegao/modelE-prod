@@ -353,7 +353,7 @@ C**** Follows logic for geopotential section following this...
 #endif
 
 !****
-!**** Compute T, Q, Z, RH, U, V at constant pressure coordinates
+!**** Compute T, Q, Z, RH, U, V at constant pressure levels
 !****
       Do 50 I=I_0,IMAXJ(J)
       L = 0  ;  PDN = PEDN(1,I,J)  ;  TDN = ATMSRF%TSAVG(I,J)
@@ -374,12 +374,16 @@ C**** Follows logic for geopotential section following this...
          GoTo 10  ;  EndIf
    20 L = L+1  ;  PUP = PMID(L,I,J)        ;  TUP = TX(I,J,L) - TF
                   ZUP = PHI(I,J,L)*byGRAV  ;  QUP = Q(I,J,L)
+                  UUP = UA(L,I,J)          ;  VUP = VA(L,I,J)
    30 If (PMB(K) < PUP)  Then
           PDN = PUP  ;  TDN = TUP  ;  QUP = QDN  ;  ZUP = ZDN
+          UDN = UUP  ;  VDN = VUP
           GoTo 20  ;  EndIf
 !**** PUP <= PMB(K) <= PDN, interpolate model data to constant pressure
       TIJK = TDN + (TUP - TDN) * (PMB(K) - PDN) / (PUP - PDN)
       QIJK = QDN + (QUP - QDN) * (PMB(K) - PDN) / (PUP - PDN)
+      UIJK = UDN + (UUP - UDN) * (PMB(K) - PDN) / (PUP - PDN)
+      VIJK = VDN + (VUP - VDN) * (PMB(K) - PDN) / (PUP - PDN)
       ZIJK = ZDN + (ZUP - ZDN) * Log(PMB(K)/PDN) / Log(PUP/PDN)
       If (TIJK >= 0)
      *   Then  ;  RHIJK = QIJK / QSAT(TIJK+TF,LHE,PMB(K))
@@ -390,6 +394,8 @@ C**** Follows logic for geopotential section following this...
       AIJ(I,J,NT)  = AIJ(I,J,NT)  + TIJK
       AIJ(I,J,NQ)  = AIJ(I,J,NQ)  + QIJK
       AIJ(I,J,NZ)  = AIJ(I,J,NZ)  + ZIJK
+      AIJ(I,J,NU)  = AIJ(I,J,NU)  + UIJK
+      AIJ(I,J,NV)  = AIJ(I,J,NV)  + VIJK
       AIJ(I,J,NRH) = AIJ(I,J,NRH) + RHIJK
 
 #ifdef TRACERS_SPECIAL_Shindell
