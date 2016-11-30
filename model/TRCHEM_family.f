@@ -483,6 +483,31 @@ c calculating Cl amount, otherwise ignore:
           y(nClO,L)=y(nClO,L)-y(nCl2O2,L)
         end if
 
+! Below is some documentation based on some very old notes from Drew. A word
+! of caution, they are from the mid-1990s and the current code might be a bit
+! (or a lot) different, but it is the best piece of documentation we can have.
+!
+! ClO equilibrium reactions
+! A: Cl to ClO
+! B: OClO to ClO
+! C: ClO to Cl or OClO
+!
+! OClO equilibrium reactions
+! D: OClO production
+! E: OClO loss
+!
+! Note that some reactions are going to appear in both the ClO and OClO
+! equilibrium sections
+!
+! F: non-family (i.e. non-ClOx) to ClO
+! G: ClO to non-family
+!
+! Cl equilibrium reactions
+! V: Cl production within ClOx family
+! W: Cl loss within ClOx family
+! X: Cl production from outside ClOx family
+! YY: Cl loss from outside ClOx family
+
         A=y(nO3,L)*rr(rrbi%Cl_O3__ClO_O2,L)
      &    +y(nOClO,L)*rr(rrbi%Cl_OClO__ClO_ClO,L)
      &    +y(nHO2,L)*rr(rrbi%Cl_HO2__OH_ClO,L)
