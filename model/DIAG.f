@@ -377,7 +377,7 @@ C**** Follows logic for geopotential section following this...
                   ZUP = PHI(I,J,L)*byGRAV  ;  QUP = Q(I,J,L)
                   UUP = UA(L,I,J)          ;  VUP = VA(L,I,J)
    30 If (PMB(K) < PUP)  Then
-          PDN = PUP  ;  TDN = TUP  ;  QUP = QDN  ;  ZUP = ZDN
+          PDN = PUP  ;  TDN = TUP  ;  QDN = QUP  ;  ZDN = ZUP
           UDN = UUP  ;  VDN = VUP
           GoTo 20  ;  EndIf
 !**** PUP <= PMB(K) <= PDN, interpolate model data to constant pressure
