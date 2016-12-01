@@ -1416,7 +1416,7 @@ c
       lname3(IJ_QPMB1) = 'SPECIFIC HUMIDITY'
       dim3name(IJ_QPMB1) = 'pcp'
       dim3units(IJ_QPMB1) = 'mb'
-      ij_cp_diminfo = IJ_QPMB1
+!     ij_cp_diminfo = IJ_QPMB1
 c
       k=k+1 !
       IJ_QS   = k ! QS                                (NO PRT)  3 SF
@@ -1983,13 +1983,13 @@ c
          ir_ij(k) = ir_m80_28
          denom_ij(k) = IJ_PMB1 + L - 1
          index1(k) = IJ_TPMB1
-!        coord3(L,k) = PMB(L)
+         coord3(L,k) = PMB(L)
       EndDo
       name3(IJ_TPMB1) = 'tcp'
       lname3(IJ_TPMB1) = 'TEMPERATURE'
-!     dim3name(IJ_TPMB1) = 'pcp'
-!     dim3units(IJ_TPMB1) = 'mb'
-      dim3info_index(IJ_TPMB1) = ij_cp_diminfo
+      dim3name(IJ_TPMB1) = 'pcp' 
+      dim3units(IJ_TPMB1) = 'mb'
+!     ij_cp_diminfo = IJ_TPMB1
 c
       k=k+1 !
       IJ_TS   = k ! TS (K-TF)                                 3 SF

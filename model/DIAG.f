@@ -372,7 +372,8 @@ C**** Follows logic for geopotential section following this...
          n_inst(K,i,j) = undef  ;  m_inst(K,i,j) = undef
 #endif
          GoTo 10  ;  EndIf
-   20 L = L+1  ;  PUP = PMID(L,I,J)        ;  TUP = TX(I,J,L) - TF
+   20 If (L == LM)  GoTo 50
+      L = L+1  ;  PUP = PMID(L,I,J)        ;  TUP = TX(I,J,L) - TF
                   ZUP = PHI(I,J,L)*byGRAV  ;  QUP = Q(I,J,L)
                   UUP = UA(L,I,J)          ;  VUP = VA(L,I,J)
    30 If (PMB(K) < PUP)  Then
