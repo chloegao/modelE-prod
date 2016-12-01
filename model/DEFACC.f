@@ -1416,7 +1416,7 @@ c
       lname3(IJ_QPMB1) = 'SPECIFIC HUMIDITY'
       dim3name(IJ_QPMB1) = 'pcp'
       dim3units(IJ_QPMB1) = 'mb'
-      ij_cp_diminfo = IJ_QPMB1
+!     ij_cp_diminfo = IJ_QPMB1
 c
       k=k+1 !
       IJ_QS   = k ! QS                                (NO PRT)  3 SF
