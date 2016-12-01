@@ -356,7 +356,7 @@ C**** Follows logic for geopotential section following this...
 !**** Compute T, Q, Z, RH, U, V at constant pressure levels
 !****
       Do 50 I=I_0,IMAXJ(J)
-      L = 0  ;  PDN = PEDN(1,I,J)  ;  TDN = ATMSRF%TSAVG(I,J)
+      L = 0  ;  PDN = PEDN(1,I,J)  ;  TDN = ATMSRF%TSAVG(I,J) - TF
           ZDN = ZATMO(I,J)*byGRAV  ;  QDN = ATMSRF%QSAVG(I,J)
           UDN = 0                  ;  VDN= 0
       K = 0  ;  NP = IJ_ PMB1-1  ;  NT = IJ_TPMB1-1  ;  NQ = IJ_QPMB1-1
