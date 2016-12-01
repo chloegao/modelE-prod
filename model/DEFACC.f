@@ -1410,13 +1410,13 @@ c
          ir_ij(k) = ir_0_18
          denom_ij(k) = IJ_PMB1 + L - 1
          index1(k) = IJ_QPMB1
-         coord3(L,k) = PMB(L)
+         coord3(L,IJ_QPMB1) = PMB(L)
       EndDo
       name3(IJ_QPMB1) = 'qcp'
       lname3(IJ_QPMB1) = 'SPECIFIC HUMIDITY'
       dim3name(IJ_QPMB1) = 'pcp'
       dim3units(IJ_QPMB1) = 'mb'
-!     ij_cp_diminfo = IJ_QPMB1
+      ij_cp_diminfo = IJ_QPMB1
 c
       k=k+1 !
       IJ_QS   = k ! QS                                (NO PRT)  3 SF
@@ -1438,7 +1438,7 @@ c
          ir_ij(k) = ir_pct
          denom_ij(k) = IJ_PMB1 + L - 1
          index1(k) = IJ_RHPMB1
-         coord3(L,k) = PMB(L)
+         coord3(L,IJ_RHPMB1) = PMB(L) ! let RH coord be distinct for other const-press
       EndDo
       name3(IJ_RHPMB1) = 'rhcp'
       lname3(IJ_RHPMB1) = 'RELATIVE HUMIDITY'
@@ -1983,13 +1983,10 @@ c
          ir_ij(k) = ir_m80_28
          denom_ij(k) = IJ_PMB1 + L - 1
          index1(k) = IJ_TPMB1
-         coord3(L,k) = PMB(L)
       EndDo
       name3(IJ_TPMB1) = 'tcp'
       lname3(IJ_TPMB1) = 'TEMPERATURE'
-      dim3name(IJ_TPMB1) = 'pcp' 
-      dim3units(IJ_TPMB1) = 'mb'
-!     ij_cp_diminfo = IJ_TPMB1
+      dim3info_index(IJ_TPMB1) = ij_cp_diminfo
 c
       k=k+1 !
       IJ_TS   = k ! TS (K-TF)                                 3 SF
@@ -2293,12 +2290,10 @@ c
          ir_ij(k) = ir_m190_530
          denom_ij(k) = IJ_PMB1 + L - 1
          index1(k) = IJ_ZPMB1
-         coord3(L,k) = PMB(L) 
       EndDo
       name3(IJ_ZPMB1) = 'zcp'
       lname3(IJ_ZPMB1) = 'HEIGHT'
-      dim3name(IJ_ZPMB1) = 'pcp'   !!!!! 'pz'
-      dim3units(IJ_ZPMB1) = 'mb'
+      dim3info_index(IJ_ZPMB1) = ij_cp_diminfo
 c
       k=k+1 !
       IJ_PBLHT   = k !
@@ -2362,12 +2357,10 @@ c
          ir_ij(k) = ir_m38_106
          denom_ij(k) = IJ_PMB1 + L - 1
          index1(k) = IJ_UPMB1
-         coord3(L,k) = PMB(L)
       EndDo
       name3(IJ_UPMB1) = 'ucp'
       lname3(IJ_UPMB1) = 'EASTWARD VELOCITY'
-      dim3name(IJ_UPMB1) = 'pcp'
-      dim3units(IJ_UPMB1) = 'mb'
+      dim3info_index(IJ_UPMB1) = ij_cp_diminfo
 !
       IJ_VPMB1 = k+1
       Do L=1,KGZ
@@ -2380,12 +2373,10 @@ c
          ir_ij(k) = ir_m38_106
          denom_ij(k) = IJ_PMB1 + L - 1
          index1(k) = IJ_VPMB1
-         coord3(L,k) = PMB(L)
       EndDo
       name3(IJ_VPMB1) = 'vcp'
       lname3(IJ_VPMB1) = 'NORTHWARD VELOCITY'
-      dim3name(IJ_VPMB1) = 'pcp'
-      dim3units(IJ_VPMB1) = 'mb'
+      dim3info_index(IJ_VPMB1) = ij_cp_diminfo
 c
       k=k+1 !
       IJ_US   = k ! US (M/S)                                  3 SF
