@@ -26,9 +26,10 @@ C****   i) A-grid <-> B-grid  should be done with indexes etc.
 !@dbparam Cshear parameter for GW shear drag (in param. database)
 !@dbparam CMTN parameter for GW MTN drag (in param. database)
 !@dbparam CDEF parameter for GW DEF drag (in param. database)
-!@dbparam CMC parameter for GW M. Convective drag (in param. database)
+!@dbparam CMC parameter for GW M. Convective drag (database if LM<=40)
+!@dbparam SCVMU parameter to Scale Convective MUs (database if LM>40)
 C**** (used to be FMC)
-      REAL*8 :: CMTN = .5, CDEF = 3., CMC = 2d-7, Cshear = 1.d0
+      REAL*8 :: CMTN=.5, CDEF=3, CMC=2d-7, Cshear=1, SCVMU=.188d0
 !@dbparam PBREAK p. level above which GW drag acts (in param. database)
       REAL*8 :: PBREAK = 500.   ! default is 500mb
 !@dbparam PCONPEN level of penetrating moist conv (in param. database)
@@ -275,8 +276,8 @@ cc      MU(3)=-EK(3)*CMC*BVF(LMC1-1)*PL(LMC1-1)*CLDHT**2
 cc      MU(3)=MU(3)*0.1
 cc      MU(4)=MU(3)
         MU3HOLD = -EK(3)*CMC*BVF(LMC1-1)*PL(LMC1-1)*CLDHT**2 
-        MU(3) = MU3HOLD * 0.1880  !   0.1806 
-        MU(4) = MU3HOLD * 0.1880  !   0.1806 
+        MU(3) = MU3HOLD * SCVMU  !  default = .188, old = .1806 
+        MU(4) = MU3HOLD * SCVMU  !  default = .188, old = .1806 
         CN(3)=WSRC-10.
         CN(4)=WSRC+10.
         UR(4)=UR(3)
@@ -291,8 +292,8 @@ C
         UR(3+7) = USRC/(WSRC+ ERR) 
         VR(3+7) =-VSRC/(WSRC+ ERR)  
         MU37HOLD = -EK(3+7)*CMC*BVF(LMC1-1)*PL(LMC1-1)*CLDHT**2 
-        MU(3+7) = MU37HOLD * 0.1880   !   0.1806 
-        MU(4+7) = MU37HOLD * 0.1880   !   0.1806 
+        MU(3+7) = MU37HOLD * SCVMU  !  default = .188, old = .1806
+        MU(4+7) = MU37HOLD * SCVMU  !  default = .188, old = .1806
         CN(3+7) = WSRC-10. 
         CN(4+7) = WSRC+10. 
         UR(4+7) = UR(3+7) 
@@ -332,12 +333,12 @@ C
         IF (PLE(LMC1).LT.PCONPEN .AND. NM.GE.8) THEN
         MU(5) = 0.0 
         MU(6) = 0.0 
-        MU(7) = MU3HOLD * 0.1880   !   0.1806 
-        MU(8) = MU3HOLD * 0.1880   !   0.1806 
+        MU(7) = MU3HOLD * SCVMU  !  default = .188, old = .1806
+        MU(8) = MU3HOLD * SCVMU  !  default = .188, old = .1806
         MU(5+7) = 0.0 
         MU(6+7) = 0.0 
-        MU(7+7) = MU37HOLD * 0.1880   !  0.1806 
-        MU(8+7) = MU37HOLD * 0.1880   !  0.1806 
+        MU(7+7) = MU37HOLD * SCVMU  !  default = .188, old = .1806
+        MU(8+7) = MU37HOLD * SCVMU  !  default = .188, old = .1806
         END IF 
 C
         WCHECK=UL(LD(3))*UR(3)+VL(LD(3))*VR(3)
@@ -567,6 +568,7 @@ C****
 
       END SUBROUTINE ALLOC_STRAT_COM
 
+
       SUBROUTINE init_GWDRAG
 !@sum init_GWDRAG
 !@auth Jean Lerner
@@ -589,6 +591,7 @@ C**** accumulated in the routines contained herein
       USE STRAT, only : xcdnst, qgwmtn, qgwshr, qgwdef, qgwcnv,lbreak
      *     ,ld2,lshr,ldef,zvarx,zvary,zvart,zwt,nm,ekofj, cmtn,Cshear
      *     ,cdef,cmc,pbreak,pbreaktop,defthresh,pconpen,ang_gwd,LPCNV  
+     *     ,SCVMU
       use pario, only : par_open,par_close,read_dist_data
       IMPLICIT NONE
       REAL*8 PLEV,PLEVE,EKS,EK1,EK2,EKX
@@ -619,6 +622,7 @@ C**** sync gwdrag parameters from input
       call sync_param( "CMTN", CMTN)
       call sync_param( "CDEF", CDEF)
       call sync_param( "CMC", CMC)
+      call sync_param( "SCVMU", SCVMU)
       call sync_param( "CSHEAR", CSHEAR)
       call sync_param( "PBREAK", PBREAK)
       call sync_param( "PCONPEN", PCONPEN)
