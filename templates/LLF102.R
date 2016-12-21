@@ -1,4 +1,4 @@
-LLF102.R     GISS Model E     Lat-Lon Atmosphere Model     2016/12/07
+LLF102.R     GISS Model E     Lat-Lon Atmosphere Model     2016/12/21
 
 LLF102 is continuously updated with most recent physics, parameters, and input files
 LLF = Lat-lon Fine resolution = 2.5 x 2 degree horizontal resolution
@@ -42,7 +42,7 @@ IO_DRV                          ! new i/o
      ! GISS dynamics with gravity wave drag
 ATMDYN  MOMEN2ND                ! atmospheric dynamics
 QUS_DRV  QUS3D                  ! advection of Q/tracers
-STRATDYN_MUscd  STRAT_DIAG      ! stratospheric dynamics (incl. gw drag)
+STRATDYN  STRAT_DIAG            ! stratospheric dynamics (incl. gw drag)
 
 #include "latlon_source_files"
 #include "modelE4_source_files"
@@ -69,7 +69,9 @@ NAMERVR=RD_Fb.names.txt  ! named river outlets
 
 #include "land144x90_input_files"
 #include "rad_input_files"
-#include "rad_144x90_input_files"
+#include "aerosol_144x90_input_files"
+! O3file=jan2012_o3_shindell_144x90x49x12_1850-2010_ple.nc
+O3file=O3/o3_shindell_144x90x53x12_E6TomaF40clim_c12_2000_ple.nc
 
 MSU_wts=MSU.RSS.weights.data      ! MSU-diag
 REG=REG2X2.5                      ! special regions-diag
