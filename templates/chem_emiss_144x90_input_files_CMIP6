@@ -8,7 +8,7 @@ CO_05=emis/CMIP6_SHP_v2016-07-26_2.0x2.5
 CO_06=emis/CMIP6_SLV_v2016-07-26_2.0x2.5
 CO_07=emis/CMIP6_ENE_v2016-07-26_2.0x2.5
 CO_08=emis/CMIP6_AGR_v2016-07-26_2.0x2.5
-CO_09=emis/CMIP6_BBURN_v1.1_2.0x2.5
+CO_09=emis/CMIP6_BBURN_v1.2_2.0x2.5
 NOx_AIRC=emis/CMIP6_AIR_v2016-07-26_2.0x2.5
 NOx_01=emis/CMIP6_IND_v2016-07-26_2.0x2.5
 NOx_02=emis/CMIP6_TRA_v2016-07-26_2.0x2.5
@@ -19,7 +19,7 @@ NOx_06=emis/CMIP6_SLV_v2016-07-26_2.0x2.5
 NOx_07=emis/CMIP6_ENE_v2016-07-26_2.0x2.5
 NOx_08=emis/CMIP6_AGR_v2016-07-26_2.0x2.5
 NOx_09=emisnc/F/NAT/NOx_Soil_GEIA_2x2.5_HALF_h.nc ! half because we have ag source
-NOx_10=emis/CMIP6_BBURN_v1.1_2.0x2.5
+NOx_10=emis/CMIP6_BBURN_v1.2_2.0x2.5
 ! Note that the Isoprene emis file is ignored when BIOGENIC_EMISSIONS
 ! directive is on. But I am commenting it anyway.
 ! if BIOGENIC_EMISSIONS or PS_BVOC are defined, and only one
@@ -40,7 +40,7 @@ Alkenes_06=emis/CMIP6_SLV_v2016-07-26_2.0x2.5
 Alkenes_07=emis/CMIP6_ENE_v2016-07-26_2.0x2.5
 Alkenes_08=emis/CMIP6_AGR_v2016-07-26_2.0x2.5
 Alkenes_09=emis/Alkenes_vegetation_GEIA_2x2.5_sname.nc
-Alkenes_10=emis/CMIP6_BBURN_v1.1_2.0x2.5
+Alkenes_10=emis/CMIP6_BBURN_v1.2_2.0x2.5
 Paraffin_AIRC=emis/CMIP6_AIR_v2016-07-26_2.0x2.5
 Paraffin_01=emis/CMIP6_IND_v2016-07-26_2.0x2.5
 Paraffin_02=emis/CMIP6_TRA_v2016-07-26_2.0x2.5
@@ -51,7 +51,7 @@ Paraffin_06=emis/CMIP6_SLV_v2016-07-26_2.0x2.5
 Paraffin_07=emis/CMIP6_ENE_v2016-07-26_2.0x2.5
 Paraffin_08=emis/CMIP6_AGR_v2016-07-26_2.0x2.5
 Paraffin_09=emis/Paraffin_vegetation_GEIA_2x2.5_sname.nc
-Paraffin_10=emis/CMIP6_BBURN_v1.1_2.0x2.5
+Paraffin_10=emis/CMIP6_BBURN_v1.2_2.0x2.5
 ! OFF CH4_AIRC=emis/CMIP6_AIR_v2016-07-26_2.0x2.5
 ! OFF CH4_01=emis/CMIP6_IND_v2016-07-26_2.0x2.5
 ! OFF CH4_02=emis/CMIP6_TRA_v2016-07-26_2.0x2.5
@@ -65,6 +65,6 @@ Paraffin_10=emis/CMIP6_BBURN_v1.1_2.0x2.5
 ! OFF CH4_10=emisnc/F/NAT/CH4SOILABS_2x2.5_h.nc
 ! OFF CH4_11=emisnc/F/NAT/CH4TRMITE_2x2.5_h.nc
 ! OFF CH4_12=emisnc/F/NAT/CH4WETL+TUNDRA_2x2.5_h.nc
-! OFF CH4_13=emis/CMIP6_BBURN_v1.1_2.0x2.5
+! OFF CH4_13=emis/CMIP6_BBURN_v1.2_2.0x2.5
 codirect_01=emisnc/F/OTHER/HTAP_codirect_emissions_2x2.5_h.nc
 !------------ end chemistry emissions files --------------
