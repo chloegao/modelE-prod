@@ -15,7 +15,7 @@ XCDNST = 400.,10000.   ! strat. gw drag parameters
 QGWMTN = 1 ! mountain waves ON
 QGWDEF = 1 ! deformation waves ON
 QGWSHR = 0 ! shear drag OFF
-QGWCNV = 1 ! convective drag OFF
+QGWCNV = 1 ! convective drag ON
 !  CMC = 0.0000002    ! parameter for GW Moist Convective drag
 
 SCVMU = .140d0  
