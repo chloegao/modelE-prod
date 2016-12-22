@@ -300,7 +300,13 @@ def createScriptTask(config, compconfig, deck, comp, mode):
         elif deck.getOpt('verification') == 'customRun':
             if re.search('campi', deckName):
                 walltime = '4:00:00'
+            elif re.search('Tmatrix', deckName):
+                walltime = '4:00:00'
+            elif re.search('Ttomas', deckName):
+                walltime = '4:00:00'
             elif re.search('cadi', deckName):
+                walltime = '2:00:00'
+            elif re.search('Toma', deckName):
                 walltime = '2:00:00'
             elif re.search('obio', deckName):
                 walltime = '1:00:00'
@@ -323,6 +329,8 @@ def createScriptTask(config, compconfig, deck, comp, mode):
                     walltime = '01:00:00'
                 elif re.search('cadi', deckName):
                     walltime = '04:00:00'
+                elif re.search('Toma', deckName):
+                    walltime = '04:00:00'
                 elif re.search('vsd', deckName):
                     walltime = '01:00:00'
 
@@ -337,7 +345,9 @@ def createScriptTask(config, compconfig, deck, comp, mode):
                 walltime = '02:00:00'
             elif re.search('ctomas', deckName):
                 walltime = '02:00:00'
-            elif re.search('matrix', deckName):
+            elif re.search('Ttomas', deckName):
+                walltime = '02:00:00'
+            elif re.search('Tmatrix', deckName):
                 walltime = '02:00:00'
             elif re.search('vsd', deckName):
                 walltime = '02:00:00'
