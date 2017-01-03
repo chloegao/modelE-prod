@@ -176,6 +176,7 @@ NRAD=5           ! radiation (every NRAD'th physics time step)
 
 Nssw=2           ! until diurnal diags are fixed, Nssw has to be even
 Ndisk=960
+KRSF=1
 &&END_PARAMETERS
 
  &INPUTZ
