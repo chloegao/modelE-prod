@@ -1,4 +1,4 @@
-LLF96.R     GISS Model E     Lat-Lon Atmosphere Model     2016/12/21
+LLF96.R     GISS Model E     Lat-Lon Atmosphere Model     2017/01/03
 
 LLF96 is continuously updated with most recent physics, parameters, and input files
 LLF = Lat-lon Fine resolution = 2.5 x 2 degree horizontal resolution
@@ -113,7 +113,8 @@ NRAD = 5            ! radiation computed NRAD times per source time step
 #include "diag_params"
 
 Nssw = 2            ! until diurnal diags are fixed, Nssw has to be even
-Ndisk = 960         ! write rsf file each Ndisk source time steps
+KRSF  = 120         ! write .rsf file at beginning of every KRSF momths    
+NDISK = 960         ! write fort.1.nc or fort.2.nc every NDISK source time step        
 &&END_PARAMETERS
 
 
