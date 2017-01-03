@@ -58,8 +58,8 @@
 !     Restart from .rsf files
 !     =======================
 !
-!     .rsf files are written at the beginning of every diagnostic
-!     accumulation period (eg once a month).  They contain everything 
+!     .rsf files are written at the beginning of every KRSF months.
+!     They contain everything 
 !     in the checkpoint files EXCEPT diagnostic accumulation status
 !
 !     ISTART=9
@@ -159,7 +159,7 @@
      &     , Jyear0, JMON0, Iyear1, ItimeE, Itime0
      &     , NIPRNT, XLABEL, LRUNID, MELSE, Nssw, stop_on
      &     , iowrite_single, isBeginningAccumPeriod
-     &     , KCOPY, NMONAV, IRAND, iowrite_mon, MDIAG, NDAY
+     &     , KCOPY,KRSF, NMONAV, IRAND, iowrite_mon, MDIAG, NDAY
      &     , rsf_file_name, iowrite, KDISK, dtSRC, MSURF
      &     , calendar
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,broadcast,sumxpe
@@ -409,8 +409,10 @@ C**** KCOPY > 0 : SAVE THE DIAGNOSTIC ACCUM ARRAYS IN SINGLE PRECISION
             call write_subdd_accfile (filenm)
           endif
 #endif
-C**** KCOPY > 1 : ALSO SAVE THE RESTART INFORMATION
-          IF (KCOPY.GT.1) THEN
+        EndIf  !  (KCOPY > 0)
+!**** KRSF > 0 : ALSO SAVE THE RESTART INFORMATION
+        If (KRSF > 0)  Then
+          If (Modulo(YEAR*INT_MONTHS_PER_YEAR+MONTH-1,KRSF) == 0)  Then
             CALL RFINAL (IRAND)
             call set_param( "IRAND", IRAND, 'o' )
             filenm='1'//aDATE(8:14)//'.rsf'//XLABEL(1:LRUNID)
@@ -419,7 +421,7 @@ C**** KCOPY > 1 : ALSO SAVE THE RESTART INFORMATION
             call Checkpoint(fvstate, filenm)
 #endif
           END IF
-        END IF
+        EndIf  !  (KRSF > 0)
 
 C**** PRINT AND ZERO OUT THE TIMING NUMBERS
         CALL TIMER (NOW,MDIAG)
@@ -770,7 +772,7 @@ C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
 !@+   if "B" is not in the database, then Y is unchanged and its
 !@+   value is saved in the database as "B" (here sync = synchronize)
       USE MODEL_COM, only : NIPRNT,master_yr
-     *     ,NMONAV,Ndisk,Nssw,KCOPY,KOCEAN,IRAND,ItimeI
+     *     ,NMONAV,Ndisk,Nssw,KCOPY,KRSF,KOCEAN,IRAND,ItimeI
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
       USE Dictionary_mod
 #ifdef NEW_IO
@@ -785,6 +787,7 @@ C**** Rundeck parameters:
       call sync_param( "Ndisk", Ndisk )
       call sync_param( "Nssw", Nssw )
       call sync_param( "KCOPY", KCOPY )
+      call sync_param( "KRSF",   KRSF )
       call sync_param( "KOCEAN", KOCEAN )
       call sync_param( "IRAND", IRAND )
       if (is_set_param("master_yr")) then
@@ -801,8 +804,8 @@ C**** Rundeck parameters:
 C****
       end subroutine init_Model
 
-      SUBROUTINE INPUT (istart,ifile,coldRestart)
 
+      SUBROUTINE INPUT (istart,ifile,coldRestart)
 C****
 C**** THIS SUBROUTINE SETS THE PARAMETERS IN THE C ARRAY, READS IN THE
 C**** INITIAL CONDITIONS, AND CALCULATES THE DISTANCE PROJECTION ARRAYS
