@@ -1,6 +1,8 @@
-! for the moment, this file is included in other files
-!#include "rundeck_opts.h"
-
+#include "rundeck_opts.h" 
+#ifdef TRACERS_ATM_ONLY
+#undef TRACERS_ON
+#undef TRACERS_WATER
+#endif
       module irrigmod
 
 !@sum  Module irrigmod contains the arrays/subroutines needed to prescribe
@@ -38,7 +40,7 @@
       implicit none
 
       integer :: i_0h,i_1h,j_0h,j_1h,ier
-      integer :: jyear,jday
+      integer :: jyear,jday,year_start, year_end
       logical :: cyclic
 
       irrig_exists = file_exists('IRRIG')
@@ -62,12 +64,28 @@
 
 
       call modelEclock%get(year=jyear, dayOfYear=jday)
-      if(cyclic) jyear = irrig_yr
 
+      if(cyclic)jyear = irrig_yr
+         
       if (jyear > 2100 .or. jyear < 1848) then 
-         call stop_model("No irrigation for that yr;turn irrig off",255)
+         call stop_model("No irrigation for that yr;turn off",255)
       endif
-
+!------
+      ! Check if irrigation data is available all years in the run
+!      if(cyclic)then 
+!         jyear = irrig_yr
+!         if (jyear > 2100 .or. jyear < 1848) then 
+!            call stop_model("No irrigation for that yr;turn off",255)
+!         endif
+!
+!      else
+!         call modelEclock%get(YEARI=year_start, YEARE=year_end)
+!
+!         if (year_end > 2100 .or. year_start < 1848) then 
+!            call stop_model("No irrigation for yr range;turn off",255)
+!         endif
+!      endif
+!-----------
       call init_stream(grid,IRRIGstream,'IRRIG','irrigation_per_m2',
      &              0d0,1000d0,'linm2m',jyear,jday,cyclic=cyclic)      
 
