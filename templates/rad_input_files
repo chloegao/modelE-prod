@@ -17,6 +17,6 @@ RADN9=solar.CMIP6official.ann1850-2299.nc ! need KSOLAR=2
 RADNE=topcld.trscat8
 
 ISCCP=ISCCP.tautables
-GHG=GHG_RCP45.txt ! use GHG.Jul2009.txt for runs that start before 1850
+GHG=GHG.CMIP6.1-2014.txt  !  GreenHouse Gases for CMIP6 runs up to 2014
 dH2O=dH2O_by_CH4_monthly
 
