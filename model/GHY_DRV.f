@@ -640,6 +640,10 @@ c***********************************************************************
       use resolution, only : im,jm
       use socpbl, only : npbl=>n
 
+#ifdef IRRIGATION_ON
+      use irrigmod, only : init_irrigmod
+#endif  /* IRRIGATION_ON */
+
       implicit none
       private
       save
@@ -1786,6 +1790,10 @@ ccc                               currently using only topography part
 
       call init_veg( istart, redogh )
       call init_land_surface(redogh,inisnow,inilake,istart)
+
+#ifdef IRRIGATION_ON
+      call init_irrigmod()
+#endif
 
       end subroutine init_LSM
 

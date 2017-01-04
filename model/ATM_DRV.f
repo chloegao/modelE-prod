@@ -569,9 +569,6 @@ C****
 #ifndef CUBED_SPHERE
       USE ATMDYN, only : init_ATMDYN
 #endif
-#ifdef IRRIGATION_ON
-      use irrigate_crop, only : init_irrigate
-#endif
 #ifdef USE_ESMF
       use ATM_COM, only : atmclock
 #endif
@@ -717,9 +714,6 @@ C****
       redoGH = .false.
       CALL init_LSM(DTsrc/NIsurf,redoGH,iniSNOW,inilake,ISTART)
 
-#ifdef IRRIGATION_ON
-      call init_irrigate()
-#endif
       CALL daily_EARTH(.false.)            ! not end_of_day
 
 #ifdef CALCULATE_FLAMMABILITY
