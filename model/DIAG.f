@@ -400,6 +400,7 @@ C**** Follows logic for geopotential section following this...
       AIJ(I,J,NRH) = AIJ(I,J,NRH) + RHIJK
 
 #ifdef TRACERS_SPECIAL_Shindell
+      if ( L > 1 ) then
             pfact = (PMB(K) - PUP) / (PDN - PUP)
               chemL=1.d6*trm(i,j,L,n_Ox)*mass2vol(n_Ox)/
      &        (MA(L,i,j)*axyp(i,j))
@@ -432,6 +433,7 @@ C**** Follows logic for geopotential section following this...
               chemLm1=1.d6*trm(i,j,L-1,n_CO)*mass2vol(n_CO)/
      &        (MA(L-1,i,j)*axyp(i,j))
             m_inst(K,I,J)= chemL+(chemLm1-chemL)*pfact
+      end if
 #endif
 
       If (K < KGZ)  Then  
