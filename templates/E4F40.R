@@ -1,4 +1,4 @@
-E4F40.R     GISS Model E     Lat-Lon Atmosphere Model     2017/01/03
+E4F40.R     GISS Model E     Lat-Lon Atmosphere Model     2017/01/04
 
 E4F40 is continuously updated with most recent physics, parameters, and input files
 E4F = Lat-lon Fine resolution = 2.5 x 2 degree horizontal resolution
@@ -120,6 +120,7 @@ NDISK = 960         ! write fort.1.nc or fort.2.nc every NDISK source time step
  IRANDI=0,
  YEARI=1848, MONTHI=12, DATEI=1, HOURI=0, ! pick IYEAR1=YEARI (default) or < YEARI
  YEARE=1860, MONTHE=01, DATEE=1, HOURE=0,   KDIAG=12*0,9,
+ YEARE=1848, MONTHE=12, DATEE=2, HOURE=1,
  ISTART=2, YEARE=1848, MONTHE=12, DATEE=1, HOURE=1,
 !! suggested settings for E4qsF40:
 !! YEARI=1901,MONTHI=1,DATEI=1,HOURI=0,
