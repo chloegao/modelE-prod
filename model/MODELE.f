@@ -318,7 +318,10 @@ C**** APPLY PRECIPITATION TO SEA/LAKE/LAND ICE
       call startTimer('Surface')
       CALL PRECIP_SI(si_ocn,iceocn,atmice)  ! move to ocean_driver
       CALL PRECIP_OC(atmocn,iceocn)         ! move to ocean_driver
-
+#ifdef IRRIGATION_ON
+C**** CHECK FOR IRRIGATION POSSIBILITY
+      CALL IRRIG_LK
+#endif
 C**** CALCULATE SURFACE FLUXES (and, for now, this procedure
 C**** also drives "surface" components that are on the atm grid)
       CALL SURFACE
