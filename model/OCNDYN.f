@@ -1296,9 +1296,14 @@ C**** Calculate KH=rho_0 BETA (sqrt(3) L_Munk/pi)^3, L_Munk=min(DX,DY)
         BYDYV(J)=1D0/DYVO(J)
         BYDYP(J)=1D0/DYPO(J)
         KYPXP(J)=KHP(J)*DYPO(J)*BYDXP(J)
+#ifdef ODIFF_FIXES_2017 /* for hemispheric symmetry */
+        KXPYV(J)=KHV(J)*DXVO(J)*BYDYV(J)
+        KXVYP(J)=KHP(J)*DXPO(J)*BYDYP(J)
+#else
         KXPYV(J)=KHV(J)*DXPO(J)*BYDYV(J)
-        KYVXV(J)=KHV(J)*DYVO(J)*BYDXV(J)
         KXVYP(J)=KHP(J)*DXVO(J)*BYDYP(J)
+#endif
+        KYVXV(J)=KHV(J)*DYVO(J)*BYDXV(J)
 C**** Discretisation errors need TANP/V to be defined like this
         TANP(J)=TAN(RLAT(J))*TAN(0.5*DLAT)/(RADIUS*0.5*DLAT)
         VLAT = DLAT*(J+0.5-0.5*(1+JM))
@@ -1335,7 +1340,7 @@ c    .       nstep,jm,dxpo(jm),dypo(jm),dxypo(jm)
       CALL HALO_UPDATE(grid,KHP (grid%j_strt_halo:grid%j_stop_halo) ,
      *                 FROM=NORTH)
       CALL HALO_UPDATE(grid,KXVYP (grid%j_strt_halo:grid%j_stop_halo) ,
-     *                 FROM=SOUTH)
+     *                 FROM=SOUTH+NORTH)
 !      DYPO has no halo !!
 !      CALL HALO_UPDATE(grid,DYPO (grid%j_strt_halo:grid%j_stop_halo) ,
 !     *                 FROM=SOUTH)
@@ -1374,10 +1379,27 @@ C**** including metric terms in y derivatives
             ELSE
               IF (L.LE.LMU(I,J+1)) DUDY(I,J,1) = (1.-FSLIP)*2d0*KXPYV(J)
             END IF
-            IF (L.LE.LMV(I,J+1)) DVDY(I,J+1,1) = KXVYP(J)*(1. +
-     *           0.5*TANP(J)*DYPO(J))
+            IF (L.LE.LMV(I,J+1)) THEN
+#ifdef ODIFF_FIXES_2017 /* for hemispheric symmetry */
+            if(j+1.ne.jm) then
+              DVDY(I,J+1,1) = KXVYP(J+1)*(1. + 0.5*TANP(J+1)*DYPO(J+1))
+            else ! previous line blows up at the NP - decision pending
+              DVDY(I,J+1,1) = KXVYP(J)*(1. + 0.5*TANP(J)*DYPO(J))
+            endif
+#else
+            DVDY(I,J+1,1) = KXVYP(J)*(1. + 0.5*TANP(J)*DYPO(J))
+#endif
+            ENDIF
             IF (L.LE.LMV(I,J)) THEN
+#ifdef ODIFF_FIXES_2017 /* for hemispheric symmetry */
+              if(j+1.ne.jm) then
+              DVDY(I,J+1,2) = -KXVYP(J+1)*(1.-0.5*TANP(J+1)*DYPO(J+1))
+              else ! previous line blows up at the NP - decision pending
               DVDY(I,J+1,2) = -KXVYP(J)*(1.-0.5*TANP(J)*DYPO(J))
+              endif
+#else
+              DVDY(I,J+1,2) = -KXVYP(J)*(1.-0.5*TANP(J)*DYPO(J))
+#endif
               IF (L.LE.LMV(IP1,J)) THEN
                 DVDX(I,J,1) =  KYVXV(J)
                 DVDX(I,J,2) = -KYVXV(J)
@@ -1390,6 +1412,17 @@ C**** including metric terms in y derivatives
             I=IP1
           END DO
         END DO
+#ifdef ODIFF_FIXES_2017 /* for SP as a 1-gridpoint island */
+        if( HAVE_SOUTH_POLE ) then
+          j = 1
+          do i=1,im
+            !IF (L.LE.LMU(I,J)) THEN
+            !ELSE
+            IF(L.LE.LMU(I,J+1)) DUDY(I,J,1) = (1.-FSLIP)*2d0*KXPYV(1)
+            !ENDIF
+          enddo
+        endif
+#endif
         CALL HALO_UPDATE(grid, DUDY(:,grid%j_strt_halo:grid%j_stop_halo,
      *     :), FROM=SOUTH)
 C****
@@ -1405,7 +1438,11 @@ C****
               UYA(IM1,J,L) = -DUDY(IM1,J-1,2)                *BYDXYPO(J)
      *                     + 0.5*TANP(J)*KHP(J)*BYDYP(J)
               UYB(IM1,J,L) =(DUDY(IM1,J  ,2)-DUDY(IM1,J-1,1))*BYDXYPO(J)
+#ifdef ODIFF_FIXES_2017
+     *                     - TANP(J)*TANP(J)*KHP(J)
+#else
      *                     + TANP(J)*TANP(J)*KHP(J)
+#endif
               UYC(IM1,J,L) = DUDY(IM1,J  ,1)                 *BYDXYPO(J)
      *                     - 0.5*TANP(J)*KHP(J)*BYDYP(J)
             END IF
@@ -1416,7 +1453,11 @@ C****
               VYA(I,J,L) = -DVDY(I,J  ,2)                 *BYDXYV(J)
      *                   + 0.5*TANV(J)*KHV(J)*BYDYV(J)
               VYB(I,J,L) = (DVDY(I,J+1,2) - DVDY(I  ,J,1))*BYDXYV(J)
+#ifdef ODIFF_FIXES_2017
+     *                   - TANV(J)*TANV(J)*KHV(J)
+#else
      *                   + TANV(J)*TANV(J)*KHV(J)
+#endif
               VYC(I,J,L) =  DVDY(I,J+1,1)                 *BYDXYV(J)
      *                   - 0.5*TANV(J)*KHV(J)*BYDYV(J)
             END IF
@@ -5452,6 +5493,13 @@ C**** Save (0.5*) mass reciprical for velocity points
           I=IP1
         END DO
       END DO
+
+#ifdef ODIFF_FIXES_2017
+      if(have_north_pole) then
+        call polevel(uo(1,j_0h,l),vo(1,j_0h,l),l)
+      endif
+#endif
+
       if( HAVE_NORTH_POLE ) then
         IF (L.LE.LMU(1,JM)) BYMU(1,JM) = 1./MO(1,JM,L)
       endif
