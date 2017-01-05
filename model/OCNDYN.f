@@ -234,7 +234,7 @@
 !        CALL TIMER (NOW,MDYNO)
 !        IF (MODD5S == 0) CALL DIAGCO (12)
 !
-!C**** Apply Wajowicz horizontal diffusion to UO and VO ocean currents
+!C**** Apply Wajsowicz horizontal diffusion to UO and VO ocean currents
 !      CALL ODIFF(DTS)
 !      CALL OABFILx ! binary filter
 !      CALL OABFILy ! binary filter
@@ -5367,10 +5367,10 @@ C**** Convert ocean surface temp to atmospheric SST array
 
       SUBROUTINE ODIFF (DTDIFF)
 C???? ESMF-exception - ODIFF currently works with global arrays
-!@sum  ODIFF applies Wasjowicz horizontal viscosity to velocities
+!@sum  ODIFF applies Wajsowicz horizontal viscosity to velocities
 !@auth Gavin Schmidt
 C****
-C**** ODIFF calculates horizontal Wasjowicz viscosity terms in momentum
+C**** ODIFF calculates horizontal Wajsowicz viscosity terms in momentum
 C**** equations implicitly using ADI method and assumes no slip/free
 C**** slip conditions at the side. K_h (m^2/s) may vary spatially
 C**** based on Munk length though must remain isotropic.
@@ -5503,7 +5503,7 @@ C**** Save (0.5*) mass reciprical for velocity points
       if( HAVE_NORTH_POLE ) then
         IF (L.LE.LMU(1,JM)) BYMU(1,JM) = 1./MO(1,JM,L)
       endif
-C**** Calculate Wasjowicz boundary terms
+C**** Calculate Wajsowicz boundary terms
 C**** Need dv/dy,tv,dv/dx for u equation, du/dy,tu,du/dx for v equation
       FUX=0             ! flux in U equation at the x_+ boundary
       FUY=0             ! flux in U equation at the y_+ boundary
@@ -5585,7 +5585,7 @@ C**** Calculate tridiagonal matrix for first semi-implicit step (in x)
             CU(I,J) =         - DTU*UXC(I,J,L)
             RU(I,J) = UO(I,J,L) + DTU*(UYA(I,J,L)*UO(I,J-1,L)
      *           +UYB(I,J,L)*UO(I,J,L) + UYC(I,J,L)*UO(I,J+1,L))
-C**** Add Wasjowicz cross-terms to RU + second metric term
+C**** Add Wajsowicz cross-terms to RU + second metric term
             RU(I,J) = RU(I,J) + DTU*((DYPO(J)*(FUX(IM1,J) - FUX(I,J))
      *           + DXVO(J)*FUY(I,J) - DXVO(J-1)*FUY(I,J-1))*BYDXYPO(J)
      *           - 0.5*(TANV(J-1)*FUY(I,J-1) + TANV(J)*FUY(I,J)))
@@ -5597,7 +5597,7 @@ C**** Add Wasjowicz cross-terms to RU + second metric term
             CV(I,J) =         - DTV*VXC(I,J,L)
             RV(I,J) = VO(I,J,L) + DTV*(VYA(I,J,L)*VO(I,J-1,L)
      *           +VYB(I,J,L)*VO(I,J,L) + VYC(I,J,L)*VO(I,J+1,L))
-C**** Add Wasjowicz cross-terms to RV + second metric term
+C**** Add Wajsowicz cross-terms to RV + second metric term
             RV(I,J) = RV(I,J) + DTV*((DYVO(J)*(FVX(I,J) - FVX(IM1,J))
      *           + DXPO(J)*FVY(I,J-1) - DXPO(J+1)*FVY(I,J))*BYDXYV(J)
      *           + 0.5*(TANP(J-1)*FVY(I,J-1) + TANP(J)*FVY(I,J)))
@@ -5638,7 +5638,7 @@ c     BV(IIP) = 1d0
 c     IF (L.LE.LMU(1,JM)) THEN
 c     DTU = DT2*DH(1,JM,L)*BYMU(1,JM)
 c       RU(IIP) = 0.
-c       DO I=1,IM       ! include Wasjowicz cross-terms at North Pole
+c       DO I=1,IM       ! include Wajsowicz cross-terms at North Pole
 c         RU(IIP) = RU(IIP) + DTU*(UYPA(I,L)*UO(I,JM-1,L)
 c    *                      - DXVO(JM-1)*FUY(I,JM-1)*BYDXYPJM)
 c       END DO
@@ -5777,7 +5777,7 @@ c**** Make properly tridiagonal by making explicit polar terms
 !mkt  UO(1,JM,L) changed to UO(I,JM,L)
             IF (J == JM-1) RU3D(I,J,L)=
      &           RU3D(I,J,L)+DTU*UYC(I,J,L)*UO(I,JM,L)
-C**** Add Wasjowicz cross-terms to RU3D + second metric term
+C**** Add Wajsowicz cross-terms to RU3D + second metric term
             RU3D(I,J,L)=RU3D(I,J,L)+DTU*((DYPO(J)*(FUX(IM1,J)-FUX(I,J))
      *           + DXVO(J)*FUY(I,J) - DXVO(J-1)*FUY(I,J-1))*BYDXYPO(J)
      *           - 0.5*(TANV(J-1)*FUY(I,J-1) + TANV(J)*FUY(I,J)))
@@ -5792,7 +5792,7 @@ C**** Add Wasjowicz cross-terms to RU3D + second metric term
 c**** Make properly tridiagonal by making explicit polar terms
             IF (J == JM-1) RV3D(I,J,L)=
      &           RV3D(I,J,L)+DTV*VYC(I,J,L)*VO(I,JM,L)
-C**** Add Wasjowicz cross-terms to RV + second metric term
+C**** Add Wajsowicz cross-terms to RV + second metric term
             RV3D(I,J,L)=RV3D(I,J,L)+DTV*((DYVO(J)*(FVX(I,J) -FVX(IM1,J))
      *           + DXPO(J)*FVY(I,J-1) - DXPO(J+1)*FVY(I,J))*BYDXYV(J)
      *           + 0.5*(TANP(J-1)*FVY(I,J-1) + TANP(J)*FVY(I,J)))
@@ -5808,7 +5808,7 @@ c     IF (L.LE.LMU(1,JM)) THEN
 c       DTU = DT2*DH(1,JM,L)*BYMU(1,JM)
 c       BU3D(IIP) = BU3D(IIP) - DTU*UYPB(L)
 c       RU3D(IIP) = UO(1,JM,L)
-c       DO I=1,IM       ! include Wasjowicz cross-terms at North Pole
+c       DO I=1,IM       ! include Wajsowicz cross-terms at North Pole
 c         RU3D(IIP)= RU3D(IIP) + DTU*(UYPA(I,L)*UO(I,JM-1,L)
 c    *         - DXVO(JM-1)*FUY(I,JM-1)*BYDXYPJM)
 c       END DO
