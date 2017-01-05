@@ -12,6 +12,8 @@
 C**** zonal mean diags
       REAL*8,  ALLOCATABLE, DIMENSION(:,:)   :: sfbm,sbm,sbf,
      *                                          sfcm,scm,scf
+!**** 3d diags
+      REAL*8,  ALLOCATABLE, DIMENSION(:,:,:) :: scf3d
 C**** vertically integrated fluxes
       REAL*8,  ALLOCATABLE, DIMENSION(:,:)   :: safv,sbfv
 
@@ -94,6 +96,7 @@ C**** Fill in values at the poles
 C****
 C**** Advect the tracer using the quadratic upstream scheme
 C****
+           SCF3D(:,:,:) = 0
       zNCYC = 1d0 / NCYC
 C**** loop over cycles
       do n=1,ncyc
@@ -105,7 +108,7 @@ C**** loop over cycles
       FNCYC = 2d0 * NCYC
       mflx(:,:,:) = - MWs(:,:,:) * zNCYC*.5
       call aadvqz (rm,rmom,mma,mflx,qlimit,tname,nstepz1(1,n),
-     &    scf,scm,sfcm,fncyc)
+     &    scf,scm,sfcm,fncyc, SCF3D)
 
       FNCYC = 1d0 * NCYC
       mflx(:,:,:) = MVs(:,:,:) * zNCYC
@@ -115,7 +118,7 @@ C**** loop over cycles
       FNCYC = 2d0 * NCYC
       mflx(:,:,:) = - MWs(:,:,:) * zNCYC*.5
       call aadvqz (rm,rmom,mma,mflx,qlimit,tname,nstepz2(1,n),
-     &    scf,scm,sfcm,fncyc)
+     &    scf,scm,sfcm,fncyc, SCF3D)
 
       mflx(:,:,:) = MUs(:,:,:) * zNCYC*.5
       call aadvqx (rm,rmom,mma,mflx,qlimit,tname,nstepx2(J_0H,1,n),
@@ -664,7 +667,7 @@ c****
 
 
       subroutine aadvQz(rm,rmom,mass,mw,qlimit,tname,nstep,
-     &  scf,scm,sfcm,fncyc)
+     &  scf,scm,sfcm,fncyc, SCF3D)
 !@sum  AADVQZ advection driver for z-direction
 !@auth Maxwell Kelley; modified by J. Lerner
 c****
@@ -690,7 +693,7 @@ ccc   use QUSCOM, only : im,jm,lm, zstride,cm,f_l,fmom_l
       use QUSCOM, only : im,jm,lm, zstride
       implicit none
       REAL*8, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) ::
-     &                                         rm,mass,mw
+     &                                         rm,mass,mw, SCF3D
       REAL*8, dimension(nmom,im,GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) ::
      &                                         rmom
       INTEGER, dimension(im,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: nstep
@@ -740,6 +743,7 @@ c****
         sfcm(j,l) = sfcm(j,l) + fqw(l)/(mw(i,j,l)*fncyc+teeny)
         scm (j,l) = scm (j,l) + mw(i,j,l)
         scf (j,l) = scf (j,l) + fqw(l)
+        SCF3D(I,J,L) = SCF3D(I,J,L) + FQW(L)
       enddo
       enddo ! i
       if (j.eq.1.or.j.eq.jm) then
@@ -1059,9 +1063,9 @@ C****
      *           scm(J_0H:J_1H,LM),
      *           scf(J_0H:J_1H,LM) )
 
+      allocate(scf3d(im,j_0h:j_1h,lm))
+
       ALLOCATE( safv(IM,J_0H:J_1H),
      *          sbfv(IM,J_0H:J_1H) )
 
       END SUBROUTINE ALLOC_TRACER_ADV
-
-
