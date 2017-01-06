@@ -1,4 +1,4 @@
-LLF40.R     GISS Model E     Lat-Lon Atmosphere Model     2017/01/03
+LLF40.R     GISS Model E     Lat-Lon Atmosphere Model     2017/01/05
 
 LLF40 is continuously updated with most recent physics, parameters, and input files
 LLF = Lat-lon Fine resolution = 2.5 x 2 degree horizontal resolution

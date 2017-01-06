@@ -91,6 +91,7 @@ c**** Extract domain decomposition info
       DO L=1,LM
          MMA(:,:,L) = MB(:,:,L) ! fill in halo lats
       ENDDO
+      SCF3D(:,:,:) = 0
 
       byNCYC = 1d0 / NCYC
       do nc=1,ncyc
@@ -239,12 +240,12 @@ c when flow out both sides would cause negative tracer mass, modify moments
               CALL AADVQZ(RM(1,j_0h,l-1),RMOM(1,1,j_0h,l-1),
      &             MMA(1,j_0h,l-1),SD(1,j_0h,L-1),mwdn,fdn,fmomdn,fdn0
      &             ,scf(j_0h,l-1),scm(j_0h,l-1),sfcm(j_0h,l-1))
-           scf3d(:,:,l-1)=fdn(:,:)
+              SCF3D(:,:,L-1) = SCF3D(:,:,L-1) + FDN(:,:)
             else
               CALL AADVQZ2(RM(1,j_0h,l-1),RMOM(1,1,j_0h,l-1),
      &             MMA(1,j_0h,l-1),SD(1,j_0h,L-1),mwdn,fdn,fmomdn!,fdn0
      &             ,scf(j_0h,l-1),scm(j_0h,l-1),sfcm(j_0h,l-1))
-            scf3d(:,:,l-1)=fdn(:,:)
+              SCF3D(:,:,L-1) = SCF3D(:,:,L-1) + FDN(:,:)
             endif
           endif
 
