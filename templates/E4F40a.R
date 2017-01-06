@@ -1,5 +1,6 @@
 E4F40a.R GISS Model E  1850 ocn/atm          larissa        04/15/2010
 
+updated on 1/06/2017 to switch to "new i/o" and allow compilation
 !! E4F40a is for NIsurf=2 (U00a=0.72; U00b=1.60)
 
 !! delete lines starting with '!!' unless E4F40 prepares a q-flux ocean run
@@ -20,6 +21,7 @@ Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
 #define USE_ENT
 #define IRRIGATION_ON
+#define NEW_IO
 End Preprocessor Options
 
 Object modules:
@@ -29,11 +31,11 @@ AtmL40                      ! vertical resolution is 40 layers -> 0.1mb
 DIAG_RES_F                          ! diagnostics
 FFT144                              ! Fast Fourier Transform
 
-IORSF                               ! old i/o
+IO_DRV                              ! new i/o
 
      ! GISS dynamics with gravity wave drag
 ATMDYN MOMEN2ND                     ! atmospheric dynamics
-QUS_DRV TQUS_DRV                    ! advection of Q/tracers
+QUS_DRV QUS3D                       ! advection of Q/tracers
 STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 
 #include "latlon_source_files"
@@ -41,12 +43,13 @@ STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 #include "static_ocn_source_files"
 
 Components:
-#include "E4_components"    /* without "Ent" */
+#include "E4_components_nc"    /* without "Ent" */
 Ent
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB PFT_MODEL=ENT /* needed for "Ent" only */
 OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
+OPTS_dd2d = NC_IO=PNETCDF
 
 Data input files:
 #include "IC_144x90_input_files"
