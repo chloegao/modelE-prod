@@ -187,7 +187,7 @@ c avol [m3/gb] mass of air pro m3
  
 ! save aerosol water (ug/m3) and aerosol pH (dimensionless)
       taijls(I,J,L,ijlt_aH2O)=taijls(I,J,L,ijlt_aH2O)+AH2O
-      taijls(I,J,L,ijlt_apH)=taijls(I,J,L,ijlt_apH)+(-log10(YO(1,37)))
+      taijls(I,J,L,ijlt_apH)=taijls(I,J,L,ijlt_apH)+(-log10(YO(1,37)+tiny(1.e0)))
 
 ! Nitrate production   from [ug/m^3] -> trm [kg/gb]
       tr3Dsource(i,j,l,1,n_NO3p)= ((ANO3 * 1.d-9 *AVOL) -trm(i,j,l,n_NO3p)) /dtsrc

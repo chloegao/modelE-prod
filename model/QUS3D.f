@@ -240,12 +240,14 @@ c when flow out both sides would cause negative tracer mass, modify moments
               CALL AADVQZ(RM(1,j_0h,l-1),RMOM(1,1,j_0h,l-1),
      &             MMA(1,j_0h,l-1),SD(1,j_0h,L-1),mwdn,fdn,fmomdn,fdn0
      &             ,scf(j_0h,l-1),scm(j_0h,l-1),sfcm(j_0h,l-1))
-              SCF3D(:,:,L-1) = SCF3D(:,:,L-1) + FDN(:,:)
+              SCF3D(:,j_0:j_1,L-1) = SCF3D(:,j_0:j_1,L-1) + FDN(:
+     &             ,j_0:j_1)
             else
               CALL AADVQZ2(RM(1,j_0h,l-1),RMOM(1,1,j_0h,l-1),
      &             MMA(1,j_0h,l-1),SD(1,j_0h,L-1),mwdn,fdn,fmomdn!,fdn0
      &             ,scf(j_0h,l-1),scm(j_0h,l-1),sfcm(j_0h,l-1))
-              SCF3D(:,:,L-1) = SCF3D(:,:,L-1) + FDN(:,:)
+              SCF3D(:,j_0:j_1,L-1) = SCF3D(:,j_0:j_1,L-1) + FDN(:
+     &             ,j_0:j_1)
             endif
           endif
 
