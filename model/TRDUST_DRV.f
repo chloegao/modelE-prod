@@ -1049,8 +1049,8 @@ c**** cross sectional area = surfaceIncrements / 4. and radius = diameter / 2.
       if ( calcEffectiveRadius == 1 ) then
 
 c**** map effective radii onto radiation code dust size bins
-        effRadMinerals = matmul( effRadiusMineralsK,
-     &       binsKtoDustBinsRadia )
+c        effRadMinerals = matmul( effRadiusMineralsK,
+c     &       binsKtoDustBinsRadia )
 
       end if
 

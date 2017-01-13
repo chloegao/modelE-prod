@@ -13,6 +13,8 @@
 
       IMPLICIT NONE
 
+      integer :: i
+
 !@param By8 0.25d0/2d0
       real( kind=8 ), parameter :: By8 = 0.25D0/2D0
 !@param By4 1D0/4D0
@@ -57,6 +59,8 @@
 !@var subClayWeights  weights for masses in the sub bins of the clay size
 !@+     class for each soil dust tracer
       real( kind=8 ), dimension( ntm_clay, nSubClays ) :: subClayWeights
+     &     = (/ ( ( 0.009d0, 0.081d0, 0.234d0, 0.676d0 ), i = 1,ntm_clay
+     &     ) /)
 
 c**** rundeck parameter to switch between different emission schemes
 c****
@@ -159,6 +163,28 @@ c**** additional declarations for dust tracers with mineralogical composition
 !+    mineralogical soil dust tracer
       real( kind=8 ), allocatable, dimension(:,:,:) :: mineralFractions
 
+!@dbparam calcEffectiveRadius  flag whether to calculate or prescribe
+!@+         effective radius of minerals from particle size distribution for
+!@+         radiation calculations (0: prescribed=default; 1:calculated)
+      integer :: calcEffectiveRadius = 0
+!@param dryEffRadClay  dry effective radius of clay minerals for radiation [um]
+      real( kind=8 ), parameter, dimension( 4 ) :: dryEffRadClay = (/
+     &     0.132d0, 0.23d0, 0.416d0, 0.766d0 /)
+!@param dryEffRadSil1  dry effective radius of silt1 minerals for radiation [um]
+      real( kind=8 ), parameter :: dryEffRadSil1 = 1.386d0
+!@param dryEffRadSil2  dry effective radius of silt2 minerals for radiation [um]
+      real( kind=8 ), parameter :: dryEffRadSil2 = 2.773d0
+!@param dryEffRadSil3  dry effective radius of silt3 minerals for radiation [um]
+      real( kind=8 ), parameter :: dryEffRadSil3 = 5.545d0
+!@param dryEffRadSil4  dry effective radius of silt4 minerals for radiation [um]
+      real( kind=8 ), parameter :: dryEffRadSil4 = 11.090d0
+!@param dryEffRadSil5  dry effective radius of silt5 minerals for radiation [um]
+      real( kind=8 ), parameter :: dryEffRadSil5 = 22.0d0
+!@param dryEffRadMinerals  dry effective radius of minerals for radiation [um]
+      real( kind=8 ), dimension( ndustBinsRadia ) :: dryEffRadMinerals =
+     &     (/ dryEffRadClay, dryEffRadSil1, dryEffRadSil2,
+     &     dryEffRadSil3, dryEffRadSil4, dryEffRadSil5 /)
+
 #ifdef TRACERS_MINERALS
 !@param densityIllite  particle density of Illite [kg/m^3]
 !@+            (measured; http://www.mindat.org/min-2011.html)
@@ -211,33 +237,6 @@ c**** additional declarations for dust tracers with mineralogical composition
 
 !@var mineralIndex  index to map parameters of minerals to mineralogical tracers
       integer, dimension( ntm_dust ) :: mineralIndex
-
-!@dbparam calcEffectiveRadius  flag whether to calculate or prescribe
-!@+         effective radius of minerals from particle size distribution for
-!@+         radiation calculations (0: prescribed=default; 1:calculated)
-      integer :: calcEffectiveRadius = 0
-!@param effRadClay  effective radius of clay minerals for radiative calculations
-      real( kind=8 ), parameter, dimension( 4 ) :: effRadClay = (/
-     &     0.132d0, 0.23d0, 0.416d0, 0.766d0 /)
-!@param effRadSil1  effective radius of silt1 minerals for radiative
-!@+       calculations
-      real( kind=8 ), parameter :: effRadSil1 = 1.386d0
-!@param effRadSil2  effective radius of silt2 minerals for radiative
-!@+       calculations
-      real( kind=8 ), parameter :: effRadSil2 = 2.773d0
-!@param effRadSil3  effective radius of silt3 minerals for radiative
-!@+       calculations
-      real( kind=8 ), parameter :: effRadSil3 = 5.545d0
-!@param effRadSil4  effective radius of silt4 minerals for radiative
-!@+       calculations
-      real( kind=8 ), parameter :: effRadSil4 = 11.090d0
-!@param effRadSil5  effective radius of silt5 minerals for radiative
-!@+       calculations
-      real( kind=8 ), parameter :: effRadSil5 = 22.0d0
-!@param effRadMinerals  effective radius of minerals for radiative calculations
-      real( kind=8 ), dimension( ndustBinsRadia ) :: effRadMinerals = (/
-     &     effRadClay, effRadSil1, effRadSil2, effRadSil3, effRadSil4,
-     &     effRadSil5 /)
 #endif
 
 c**** Parameters for dust/mineral tracer specific diagnostics
