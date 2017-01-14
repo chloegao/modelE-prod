@@ -59,8 +59,8 @@
 !@var subClayWeights  weights for masses in the sub bins of the clay size
 !@+     class for each soil dust tracer
       real( kind=8 ), dimension( ntm_clay, nSubClays ) :: subClayWeights
-     &     = (/ ( ( 0.009d0, 0.081d0, 0.234d0, 0.676d0 ), i = 1,ntm_clay
-     &     ) /)
+     &     = transpose( reshape ( (/ ( 0.009d0, 0.081d0, 0.234d0,
+     &     0.676d0, i = 1,ntm_clay ) /), (/ nSubClays, ntm_clay /) ) )
 
 c**** rundeck parameter to switch between different emission schemes
 c****
