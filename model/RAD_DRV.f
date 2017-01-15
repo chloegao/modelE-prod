@@ -816,8 +816,8 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
 
         if ( tracers_minerals ) call calcSubClayWeights
 
-        wttr( n+1:n+nraero_dust ) = (/ ( ( subClayWeights( i, j ), j=1
-     &       ,nSubClays ), i=1,ntm_clay ), ( 1.d0, i=1,ntm_sil1+ntm_sil2
+        wttr( n+1:n+nraero_dust ) = (/ ( ( subClayWeights( i, j ), i=1
+     &       ,nSubClays ), j=1,ntm_clay ), ( 1.d0, i=1,ntm_sil1+ntm_sil2
      &       +ntm_sil3+ntm_sil4+ntm_sil5 ) /)
 
         densclay=(/(trpdens(n_clayilli), i=1,nSubClays),
@@ -887,8 +887,8 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
 
         if ( imDust >= 4 ) call calcSubClayWeights
 
-        wttr( n+1:n+nraero_dust ) = (/ ( ( subClayWeights( i , j), j = 1
-     &       ,nSubClays ), i=1,ntm_clay ), ( 1.d0, i=1,ntm_sil1
+        wttr( n+1:n+nraero_dust ) = (/ ( ( subClayWeights( i , j ), i =
+     &       1,nSubClays ), j=1,ntm_clay ), ( 1.d0, i=1,ntm_sil1
      &       +ntm_sil2+ntm_sil3+ntm_sil4+ntm_sil5 ) /)
 
 ! Particle density of dust
