@@ -54,8 +54,8 @@ ICEDYN_MASKFAC=iceflowmask_144x90.nc
 TDISS=tdiss/TIDAL_e_v2_1QX1.nc
 TDISS_N=tdiss/Jayne2009_288x180.nc
 
-RVR=RD_Fb.nc             ! river direction file
-NAMERVR=RD_Fb.names.txt  ! named river outlets
+RVR=RD_Fd.nc             ! river direction file
+NAMERVR=RD_Fd.names.txt  ! named river outlets
 
 #include "land144x90_input_files"
 #include "rad_input_files"
