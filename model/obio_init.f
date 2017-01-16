@@ -67,7 +67,7 @@
           do j=ogrid%j_strt,ogrid%j_stop
             if (ip(i, j)==0) cycle
             call vlktolz(size(depth), lmm(i, j), depth, ze(i, j, :),
-     &           array(i, j, :), fldo(i, j, :), dummy, -999999.)
+     &           array(i, j, :), fldo(i, j, :), dummy, -999999.,.false.)
           end do
         end do
 #else
