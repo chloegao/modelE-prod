@@ -473,7 +473,7 @@ c recalculate vbar etc. for ocean physics
 c
       CALL ODHORZ0
 
-C**** Apply Wajowicz horizontal diffusion to UO and VO ocean currents
+C**** Apply Wajsowicz horizontal diffusion to UO and VO ocean currents
 C**** every 3 hours
       dt_odiff = 3.*3600.
       if(mod(itime,int(dt_odiff/dts)).eq.0) then

@@ -115,14 +115,15 @@ C****
 #endif
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
-      use trdust_mod, only : imDust, nSubClays, subClayWeights
+      use OldTracer_mod, only: trpdens
+      use trdust_mod, only : imDust, nSubClays, dryEffRadMinerals,
+     &     subClayWeights
       use trdust_drv, only : calcSubClayWeights
       use tracer_com, only: ntm_clay, ntm_sil1, ntm_sil2, ntm_sil3,
      &     ntm_sil4, ntm_sil5, n_soilDust
       use rad_com, only: nr_soildust
 #endif
 #ifdef TRACERS_MINERALS
-      use OldTracer_mod, only: trpdens
       use tracer_com, only: n_clayilli, n_claykaol, n_claysmec,
      &     n_claycalc, n_clayquar, n_clayfeld, n_clayhema, n_claygyps,
      &     n_clayilhe, n_claykahe, n_claysmhe, n_claycahe, n_clayquhe,
@@ -142,7 +143,6 @@ C****
      &     n_sil5hema, n_sil5gyps, n_sil5illi, n_sil5kaol, n_sil5smec,
      &     n_sil5quhe, n_sil5fehe, n_sil5cahe, n_sil5gyhe, n_sil5ilhe,
      &     n_sil5kahe, n_sil5smhe
-      use trdust_mod, only: nSubClays, effRadMinerals, subClayWeights
 #endif
 #ifdef TRACERS_AMP
       USE AERO_CONFIG, only: nmodes
@@ -802,22 +802,22 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
 #endif  /* TRACERS_DUST_Silt5 */
      &     /)
         trrdry(n+1:n+nraero_dust)=
-     &      (/(effRadMinerals(1:nSubClays), i=1,ntm_clay),
-     &        (effRadMinerals(5), i=1,ntm_sil1),
-     &        (effRadMinerals(6), i=1,ntm_sil2),
-     &        (effRadMinerals(7), i=1,ntm_sil3)
+     &      (/(dryEffRadMinerals(1:nSubClays), i=1,ntm_clay),
+     &        (dryEffRadMinerals(5), i=1,ntm_sil1),
+     &        (dryEffRadMinerals(6), i=1,ntm_sil2),
+     &        (dryEffRadMinerals(7), i=1,ntm_sil3)
 #ifdef TRACERS_DUST_Silt4
-     &       ,(effRadMinerals(8), i=1,ntm_sil4)
+     &       ,(dryEffRadMinerals(8), i=1,ntm_sil4)
 #endif  /* TRACERS_DUST_Silt4 */
 #ifdef TRACERS_DUST_Silt5
-     &       ,(effRadMinerals(9), i=1,ntm_sil5)
+     &       ,(dryEffRadMinerals(9), i=1,ntm_sil5)
 #endif  /* TRACERS_DUST_Silt5 */
      &       /)
 
         if ( tracers_minerals ) call calcSubClayWeights
 
-        wttr( n+1:n+nraero_dust ) = (/ ( ( subClayWeights( i, j ), j=1
-     &       ,nSubClays ), i=1,ntm_clay ), ( 1.d0, i=1,ntm_sil1+ntm_sil2
+        wttr( n+1:n+nraero_dust ) = (/ ( ( subClayWeights( i, j ), i=1
+     &       ,nSubClays ), j=1,ntm_clay ), ( 1.d0, i=1,ntm_sil1+ntm_sil2
      &       +ntm_sil3+ntm_sil4+ntm_sil5 ) /)
 
         densclay=(/(trpdens(n_clayilli), i=1,nSubClays),
@@ -859,12 +859,12 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
 #ifdef TRACERS_DUST_Silt5
      &     ,denssil5(:)
 #endif  /* TRACERS_DUST_Silt5 */
-     &       /)
+     &       /) * 1d-3 ! Convert from kg/m^3 to g/cm^3
 
 #else  /* not TRACERS_MINERALS */
 
-        ntrix_aod(n+1:n+nraero_dust)=(/n_clay,n_clay,n_clay,n_clay,
-     &                             n_silt1,n_silt2,n_silt3
+        ntrix_aod(n+1:n+nraero_dust)=(/ ( n_clay,i = 1,nSubClays ),
+     &       n_silt1, n_silt2, n_silt3
 #ifdef TRACERS_DUST_Silt4
      &                            ,n_silt4
 #endif  /* TRACERS_DUST_Silt4 */
@@ -872,42 +872,36 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
      &                            ,n_silt5
 #endif  /* TRACERS_DUST_Silt5 */
      &                            /)
-        trrdry(n+1:n+nraero_dust)=(/0.132d0,0.23d0,0.416d0,0.766d0,
-     &                              1.386d0,2.773d0,5.545d0
+        trrdry(n+1:n+nraero_dust)=
+     &      (/(dryEffRadMinerals(1:nSubClays), i=1,ntm_clay),
+     &        (dryEffRadMinerals(5), i=1,ntm_sil1),
+     &        (dryEffRadMinerals(6), i=1,ntm_sil2),
+     &        (dryEffRadMinerals(7), i=1,ntm_sil3)
 #ifdef TRACERS_DUST_Silt4
-     &                             ,11.090d0
+     &       ,(dryEffRadMinerals(8), i=1,ntm_sil4)
 #endif  /* TRACERS_DUST_Silt4 */
 #ifdef TRACERS_DUST_Silt5
-     &                             ,22.0d0
+     &       ,(dryEffRadMinerals(9), i=1,ntm_sil5)
 #endif  /* TRACERS_DUST_Silt5 */
      &                             /)
 
-        if ( imDust >= 4 ) then
+        if ( imDust >= 4 ) call calcSubClayWeights
 
-          call calcSubClayWeights
-
-          wttr( n+1:n+nraero_dust ) = (/ ( ( subClayWeights( i , j ), j
-     &         =1,nSubClays ), i=1,ntm_clay ), ( 1.d0, i=1,ntm_sil1
-     &         +ntm_sil2+ntm_sil3+ntm_sil4+ntm_sil5 ) /)
-
-        else
-
-          wttr( n+1:n+nraero_dust ) = (/ 0.009d0, 0.081d0, 0.234d0,
-     &         0.676d0,( 1.d0, i=1,ntm_sil1+ntm_sil2+ntm_sil3+ntm_sil4
-     &         +ntm_sil5 ) /)
-
-        end if
+        wttr( n+1:n+nraero_dust ) = (/ ( ( subClayWeights( i , j ), i =
+     &       1,nSubClays ), j=1,ntm_clay ), ( 1.d0, i=1,ntm_sil1
+     &       +ntm_sil2+ntm_sil3+ntm_sil4+ntm_sil5 ) /)
 
 ! Particle density of dust
-        traden(n+1:n+nraero_dust)=(/2.5d0,2.5d0,2.5d0,2.5d0,
-     &                              2.65d0,2.65d0,2.65d0
+        traden( n+1:n+nraero_dust )=(/ ( trpdens( n_clay ), i = 1
+     &       ,nSubClays ), trpdens( n_silt1 ), trpdens( n_silt2 ),
+     &       trpdens( n_silt3 )
 #ifdef TRACERS_DUST_Silt4
-     &                             ,2.65d0
+     &                             ,trpdens( n_silt4 )
 #endif  /* TRACERS_DUST_Silt4 */
 #ifdef TRACERS_DUST_Silt5
-     &                             ,2.65d0
+     &                             ,trpdens( n_silt5 )
 #endif  /* TRACERS_DUST_Silt5 */
-     &                             /)
+     &                             /) * 1d-3 ! Convert from kg/m^3 to g/cm^3
 
 #endif  /* TRACERS_MINERALS */
 

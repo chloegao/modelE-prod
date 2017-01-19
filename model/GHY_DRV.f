@@ -350,8 +350,10 @@ cddd      TRGASEX(n,4,I,J) =
 cddd     &     (arauto+asoilresp-agpp)/dtsurf
       atmlnd%trsrfflx(n,i,j)=atmlnd%trsrfflx(n,i,j)+
      &     (arauto+asoilresp-agpp+delta_C)/dtsurf
+     &     *44.d0/12.d0
       taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n))
      &     + (arauto+asoilresp-agpp+delta_C) * axyp(i,j)*ptype
+     &     *44.d0/12.d0
 #endif
 
 #ifdef TRACERS_WATER
@@ -1560,7 +1562,7 @@ c***********************************************************************
 #ifdef ENT_DEBUG_DIAGS
       use diag_com , only : ij_ent_debug
       use sle001, only : ent_debug_buf
-      use ent_debug_mod, only : SIZE_ENT
+      use ent_debug_mod, only : SIZE_ENT_DEBUG
 #endif
 
 

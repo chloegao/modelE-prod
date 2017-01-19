@@ -51,8 +51,9 @@
       logical :: regrid
       integer :: i, j, k, kmax, nodc_kmax
       interface
-        Subroutine VLKtoLZ (KM,LM, MK,ME, RK, RL,RZ, missing)
+        Subroutine VLKtoLZ (KM,LM, MK,ME, RK, RL,RZ, missing, foo)
         Real*8 MK(KM),ME(0:LM), RK(KM), RL(LM), RZ(LM), missing
+        logical foo
         end Subroutine VLKtoLZ
       end interface
 
@@ -67,7 +68,7 @@
           do j=ogrid%j_strt,ogrid%j_stop
             if (ip(i, j)==0) cycle
             call vlktolz(size(depth), lmm(i, j), depth, ze(i, j, :),
-     &           array(i, j, :), fldo(i, j, :), dummy, -999999.)
+     &           array(i, j, :), fldo(i, j, :), dummy, -999999.,.false.)
           end do
         end do
 #else

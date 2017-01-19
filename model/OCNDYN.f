@@ -234,7 +234,7 @@
 !        CALL TIMER (NOW,MDYNO)
 !        IF (MODD5S == 0) CALL DIAGCO (12)
 !
-!C**** Apply Wajowicz horizontal diffusion to UO and VO ocean currents
+!C**** Apply Wajsowicz horizontal diffusion to UO and VO ocean currents
 !      CALL ODIFF(DTS)
 !      CALL OABFILx ! binary filter
 !      CALL OABFILy ! binary filter
@@ -1050,9 +1050,9 @@ C**** Remap G and S to model layers; calculate vertical gradients
 C****
         SK(1:KMIJ) = SOIC(I,J,1:KMIJ)
         call VLKtoLZ (KMIJ,LMOM(I,J), ZOIC,ZOE(0:LM), GK(1:KMIJ),
-     &       G0(I,J,1:LM),GZ(I,J,1:LM), missing)
+     &       G0(I,J,1:LM),GZ(I,J,1:LM), missing, .true.)
         call VLKtoLZ (KMIJ,LMOM(I,J), ZOIC,ZOE(0:LM), SK(1:KMIJ),
-     &       S0(I,J,1:LM),SZ(I,J,1:LM), missing)
+     &       S0(I,J,1:LM),SZ(I,J,1:LM), missing, .true.)
 C****
 C**** Iteratively solve for MO so that integrated Z matches ZLO
 C****
@@ -1090,7 +1090,8 @@ C**** Add heights from each layer from ZSOLID (= - HOCEAN)
       end subroutine tempsalt_oic
 
 
-      subroutine VLKtoLZ (KM,LM, MK,ME, RK, RL,RZ, missing)
+      subroutine VLKtoLZ (KM,LM, MK,ME, RK, RL,RZ, missing,
+     &     fill_downward)
 C****
 C**** VLKtoLZ assumes a continuous piecewise linear tracer distribution,
 C**** defined by input tracer concentrations RK at KM specific points.
@@ -1127,6 +1128,7 @@ C****
       integer :: km,lm
       Real*8 MK(KM),ME(0:LM), RK(KM), RL(LM),RZ(LM), RM(1024),RQ(1024)
       real*8 :: missing
+      logical :: fill_downward
       real*8 :: mc
       integer :: k,l,ll
 C     If (LM > 1024)  Stop 'LM exceeds internal dimentions in VLKtoLZ'
@@ -1216,8 +1218,17 @@ C**** ME(L-1) < MK(KM) < ME(L)
       RZ(L)  = 6*(RQ(L) + .5*(ME(L)-MK(KM))*RM(L)) / (MK(KM)-ME(L-1))**2
 C**** Vertical gradient is extrapolated half way to .5*[MK(KM)+ME(L)]
       RZ(L)  = RZ(L) * (.5*(MK(KM)+ME(L))-ME(L-1)) / (MK(KM)-ME(L-1))
-      RL(L+1:LM) = MISSING
-      RZ(L+1:LM) = MISSING
+      if(l.lt.lm) then
+        if(fill_downward) then
+        ! set output points beyond deepest input
+        ! point using deepest interpolated value
+          rl(l+1:lm) = rl(l)
+          rz(l+1:lm) = 0.
+        else
+          RL(L+1:LM) = MISSING
+          RZ(L+1:LM) = MISSING
+        endif
+      endif
       Return
 C****
 C**** Calculate RL and RZ from RM and RQ when ME(LM) < MK(KM)
@@ -1296,9 +1307,14 @@ C**** Calculate KH=rho_0 BETA (sqrt(3) L_Munk/pi)^3, L_Munk=min(DX,DY)
         BYDYV(J)=1D0/DYVO(J)
         BYDYP(J)=1D0/DYPO(J)
         KYPXP(J)=KHP(J)*DYPO(J)*BYDXP(J)
+#ifdef ODIFF_FIXES_2017 /* for hemispheric symmetry */
+        KXPYV(J)=KHV(J)*DXVO(J)*BYDYV(J)
+        KXVYP(J)=KHP(J)*DXPO(J)*BYDYP(J)
+#else
         KXPYV(J)=KHV(J)*DXPO(J)*BYDYV(J)
-        KYVXV(J)=KHV(J)*DYVO(J)*BYDXV(J)
         KXVYP(J)=KHP(J)*DXVO(J)*BYDYP(J)
+#endif
+        KYVXV(J)=KHV(J)*DYVO(J)*BYDXV(J)
 C**** Discretisation errors need TANP/V to be defined like this
         TANP(J)=TAN(RLAT(J))*TAN(0.5*DLAT)/(RADIUS*0.5*DLAT)
         VLAT = DLAT*(J+0.5-0.5*(1+JM))
@@ -1335,7 +1351,7 @@ c    .       nstep,jm,dxpo(jm),dypo(jm),dxypo(jm)
       CALL HALO_UPDATE(grid,KHP (grid%j_strt_halo:grid%j_stop_halo) ,
      *                 FROM=NORTH)
       CALL HALO_UPDATE(grid,KXVYP (grid%j_strt_halo:grid%j_stop_halo) ,
-     *                 FROM=SOUTH)
+     *                 FROM=SOUTH+NORTH)
 !      DYPO has no halo !!
 !      CALL HALO_UPDATE(grid,DYPO (grid%j_strt_halo:grid%j_stop_halo) ,
 !     *                 FROM=SOUTH)
@@ -1374,10 +1390,27 @@ C**** including metric terms in y derivatives
             ELSE
               IF (L.LE.LMU(I,J+1)) DUDY(I,J,1) = (1.-FSLIP)*2d0*KXPYV(J)
             END IF
-            IF (L.LE.LMV(I,J+1)) DVDY(I,J+1,1) = KXVYP(J)*(1. +
-     *           0.5*TANP(J)*DYPO(J))
+            IF (L.LE.LMV(I,J+1)) THEN
+#ifdef ODIFF_FIXES_2017 /* for hemispheric symmetry */
+            if(j+1.ne.jm) then
+              DVDY(I,J+1,1) = KXVYP(J+1)*(1. + 0.5*TANP(J+1)*DYPO(J+1))
+            else ! previous line blows up at the NP - decision pending
+              DVDY(I,J+1,1) = KXVYP(J)*(1. + 0.5*TANP(J)*DYPO(J))
+            endif
+#else
+            DVDY(I,J+1,1) = KXVYP(J)*(1. + 0.5*TANP(J)*DYPO(J))
+#endif
+            ENDIF
             IF (L.LE.LMV(I,J)) THEN
+#ifdef ODIFF_FIXES_2017 /* for hemispheric symmetry */
+              if(j+1.ne.jm) then
+              DVDY(I,J+1,2) = -KXVYP(J+1)*(1.-0.5*TANP(J+1)*DYPO(J+1))
+              else ! previous line blows up at the NP - decision pending
               DVDY(I,J+1,2) = -KXVYP(J)*(1.-0.5*TANP(J)*DYPO(J))
+              endif
+#else
+              DVDY(I,J+1,2) = -KXVYP(J)*(1.-0.5*TANP(J)*DYPO(J))
+#endif
               IF (L.LE.LMV(IP1,J)) THEN
                 DVDX(I,J,1) =  KYVXV(J)
                 DVDX(I,J,2) = -KYVXV(J)
@@ -1390,6 +1423,17 @@ C**** including metric terms in y derivatives
             I=IP1
           END DO
         END DO
+#ifdef ODIFF_FIXES_2017 /* for SP as a 1-gridpoint island */
+        if( HAVE_SOUTH_POLE ) then
+          j = 1
+          do i=1,im
+            !IF (L.LE.LMU(I,J)) THEN
+            !ELSE
+            IF(L.LE.LMU(I,J+1)) DUDY(I,J,1) = (1.-FSLIP)*2d0*KXPYV(1)
+            !ENDIF
+          enddo
+        endif
+#endif
         CALL HALO_UPDATE(grid, DUDY(:,grid%j_strt_halo:grid%j_stop_halo,
      *     :), FROM=SOUTH)
 C****
@@ -1405,7 +1449,11 @@ C****
               UYA(IM1,J,L) = -DUDY(IM1,J-1,2)                *BYDXYPO(J)
      *                     + 0.5*TANP(J)*KHP(J)*BYDYP(J)
               UYB(IM1,J,L) =(DUDY(IM1,J  ,2)-DUDY(IM1,J-1,1))*BYDXYPO(J)
+#ifdef ODIFF_FIXES_2017
+     *                     - TANP(J)*TANP(J)*KHP(J)
+#else
      *                     + TANP(J)*TANP(J)*KHP(J)
+#endif
               UYC(IM1,J,L) = DUDY(IM1,J  ,1)                 *BYDXYPO(J)
      *                     - 0.5*TANP(J)*KHP(J)*BYDYP(J)
             END IF
@@ -1416,7 +1464,11 @@ C****
               VYA(I,J,L) = -DVDY(I,J  ,2)                 *BYDXYV(J)
      *                   + 0.5*TANV(J)*KHV(J)*BYDYV(J)
               VYB(I,J,L) = (DVDY(I,J+1,2) - DVDY(I  ,J,1))*BYDXYV(J)
+#ifdef ODIFF_FIXES_2017
+     *                   - TANV(J)*TANV(J)*KHV(J)
+#else
      *                   + TANV(J)*TANV(J)*KHV(J)
+#endif
               VYC(I,J,L) =  DVDY(I,J+1,1)                 *BYDXYV(J)
      *                   - 0.5*TANV(J)*KHV(J)*BYDYV(J)
             END IF
@@ -5326,10 +5378,10 @@ C**** Convert ocean surface temp to atmospheric SST array
 
       SUBROUTINE ODIFF (DTDIFF)
 C???? ESMF-exception - ODIFF currently works with global arrays
-!@sum  ODIFF applies Wasjowicz horizontal viscosity to velocities
+!@sum  ODIFF applies Wajsowicz horizontal viscosity to velocities
 !@auth Gavin Schmidt
 C****
-C**** ODIFF calculates horizontal Wasjowicz viscosity terms in momentum
+C**** ODIFF calculates horizontal Wajsowicz viscosity terms in momentum
 C**** equations implicitly using ADI method and assumes no slip/free
 C**** slip conditions at the side. K_h (m^2/s) may vary spatially
 C**** based on Munk length though must remain isotropic.
@@ -5452,10 +5504,17 @@ C**** Save (0.5*) mass reciprical for velocity points
           I=IP1
         END DO
       END DO
+
+#ifdef ODIFF_FIXES_2017
+      if(have_north_pole) then
+        call polevel(uo(1,j_0h,l),vo(1,j_0h,l),l)
+      endif
+#endif
+
       if( HAVE_NORTH_POLE ) then
         IF (L.LE.LMU(1,JM)) BYMU(1,JM) = 1./MO(1,JM,L)
       endif
-C**** Calculate Wasjowicz boundary terms
+C**** Calculate Wajsowicz boundary terms
 C**** Need dv/dy,tv,dv/dx for u equation, du/dy,tu,du/dx for v equation
       FUX=0             ! flux in U equation at the x_+ boundary
       FUY=0             ! flux in U equation at the y_+ boundary
@@ -5537,7 +5596,7 @@ C**** Calculate tridiagonal matrix for first semi-implicit step (in x)
             CU(I,J) =         - DTU*UXC(I,J,L)
             RU(I,J) = UO(I,J,L) + DTU*(UYA(I,J,L)*UO(I,J-1,L)
      *           +UYB(I,J,L)*UO(I,J,L) + UYC(I,J,L)*UO(I,J+1,L))
-C**** Add Wasjowicz cross-terms to RU + second metric term
+C**** Add Wajsowicz cross-terms to RU + second metric term
             RU(I,J) = RU(I,J) + DTU*((DYPO(J)*(FUX(IM1,J) - FUX(I,J))
      *           + DXVO(J)*FUY(I,J) - DXVO(J-1)*FUY(I,J-1))*BYDXYPO(J)
      *           - 0.5*(TANV(J-1)*FUY(I,J-1) + TANV(J)*FUY(I,J)))
@@ -5549,7 +5608,7 @@ C**** Add Wasjowicz cross-terms to RU + second metric term
             CV(I,J) =         - DTV*VXC(I,J,L)
             RV(I,J) = VO(I,J,L) + DTV*(VYA(I,J,L)*VO(I,J-1,L)
      *           +VYB(I,J,L)*VO(I,J,L) + VYC(I,J,L)*VO(I,J+1,L))
-C**** Add Wasjowicz cross-terms to RV + second metric term
+C**** Add Wajsowicz cross-terms to RV + second metric term
             RV(I,J) = RV(I,J) + DTV*((DYVO(J)*(FVX(I,J) - FVX(IM1,J))
      *           + DXPO(J)*FVY(I,J-1) - DXPO(J+1)*FVY(I,J))*BYDXYV(J)
      *           + 0.5*(TANP(J-1)*FVY(I,J-1) + TANP(J)*FVY(I,J)))
@@ -5590,7 +5649,7 @@ c     BV(IIP) = 1d0
 c     IF (L.LE.LMU(1,JM)) THEN
 c     DTU = DT2*DH(1,JM,L)*BYMU(1,JM)
 c       RU(IIP) = 0.
-c       DO I=1,IM       ! include Wasjowicz cross-terms at North Pole
+c       DO I=1,IM       ! include Wajsowicz cross-terms at North Pole
 c         RU(IIP) = RU(IIP) + DTU*(UYPA(I,L)*UO(I,JM-1,L)
 c    *                      - DXVO(JM-1)*FUY(I,JM-1)*BYDXYPJM)
 c       END DO
@@ -5729,7 +5788,7 @@ c**** Make properly tridiagonal by making explicit polar terms
 !mkt  UO(1,JM,L) changed to UO(I,JM,L)
             IF (J == JM-1) RU3D(I,J,L)=
      &           RU3D(I,J,L)+DTU*UYC(I,J,L)*UO(I,JM,L)
-C**** Add Wasjowicz cross-terms to RU3D + second metric term
+C**** Add Wajsowicz cross-terms to RU3D + second metric term
             RU3D(I,J,L)=RU3D(I,J,L)+DTU*((DYPO(J)*(FUX(IM1,J)-FUX(I,J))
      *           + DXVO(J)*FUY(I,J) - DXVO(J-1)*FUY(I,J-1))*BYDXYPO(J)
      *           - 0.5*(TANV(J-1)*FUY(I,J-1) + TANV(J)*FUY(I,J)))
@@ -5744,7 +5803,7 @@ C**** Add Wasjowicz cross-terms to RU3D + second metric term
 c**** Make properly tridiagonal by making explicit polar terms
             IF (J == JM-1) RV3D(I,J,L)=
      &           RV3D(I,J,L)+DTV*VYC(I,J,L)*VO(I,JM,L)
-C**** Add Wasjowicz cross-terms to RV + second metric term
+C**** Add Wajsowicz cross-terms to RV + second metric term
             RV3D(I,J,L)=RV3D(I,J,L)+DTV*((DYVO(J)*(FVX(I,J) -FVX(IM1,J))
      *           + DXPO(J)*FVY(I,J-1) - DXPO(J+1)*FVY(I,J))*BYDXYV(J)
      *           + 0.5*(TANP(J-1)*FVY(I,J-1) + TANP(J)*FVY(I,J)))
@@ -5760,7 +5819,7 @@ c     IF (L.LE.LMU(1,JM)) THEN
 c       DTU = DT2*DH(1,JM,L)*BYMU(1,JM)
 c       BU3D(IIP) = BU3D(IIP) - DTU*UYPB(L)
 c       RU3D(IIP) = UO(1,JM,L)
-c       DO I=1,IM       ! include Wasjowicz cross-terms at North Pole
+c       DO I=1,IM       ! include Wajsowicz cross-terms at North Pole
 c         RU3D(IIP)= RU3D(IIP) + DTU*(UYPA(I,L)*UO(I,JM-1,L)
 c    *         - DXVO(JM-1)*FUY(I,JM-1)*BYDXYPJM)
 c       END DO

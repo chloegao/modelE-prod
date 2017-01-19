@@ -1149,6 +1149,10 @@ c
       integer :: i,k,kk,k3,k1,l,n,ngx,nq
       character(len=16) :: ijstr,string_flamV
       real*8 x_dummy(im)
+#ifdef ENT_DEBUG_DIAGS
+      integer ent_k1, ent_k2
+      character*3 :: ent_s1, ent_s2
+#endif
       logical :: set_miss
 ! The following local variables are used in the definition of groups of
 ! 2D outputs collected into output fields having a third dimension.
@@ -3916,6 +3920,24 @@ c
       ia_ij(k) = ia_src
       scale_ij(k) = 1.d-3    !scale from g/m2 to kg/m2
       denom_ij(k) = IJ_PSOIL
+c
+#ifdef ENT_DEBUG_DIAGS
+      ij_ent_debug = k+1
+      do ent_k1=1,16+11
+      do ent_k2=1,16
+        write(ent_s1,'(i3.3)') ent_k1
+        write(ent_s2,'(i3.3)') ent_k2
+      k=k+1 ! nyk 1/10/08
+      !IJ_RAUTO = k    !kg[C]/m2/s original units
+      lname_ij(k) = 'Ent diag '//ent_s1//ent_s2
+      units_ij(k) = 'g[C]/m2/day'
+      name_ij(k) = 'ra'//ent_s1//ent_s2
+      ia_ij(k) = ia_src
+      scale_ij(k) = SECONDS_PER_DAY*1000./DTsrc    !scale from kg/s to g/day
+      denom_ij(k) = IJ_PSOIL
+      enddo
+      enddo
+#endif
 c
       k=k+1 ! nyk 5/12/03
       IJ_DLEAF = k    !kg[C]/m2, IJ_DLEAF is accumulated daily.

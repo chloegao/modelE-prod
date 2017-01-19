@@ -1049,8 +1049,8 @@ c**** cross sectional area = surfaceIncrements / 4. and radius = diameter / 2.
       if ( calcEffectiveRadius == 1 ) then
 
 c**** map effective radii onto radiation code dust size bins
-        effRadMinerals = matmul( effRadiusMineralsK,
-     &       binsKtoDustBinsRadia )
+c        effRadMinerals = matmul( effRadiusMineralsK,
+c     &       binsKtoDustBinsRadia )
 
       end if
 
@@ -2211,7 +2211,7 @@ c calcSubClayWeights
         erf_in = log( bin_mean / dAridSoils) / (sqrt( 2.d0 ) * log(
      &       sigmaAridSoils ))
 
-        subClayWeights( 1:ntm_clay, i ) = 1.d0 / Cv * ( 1 +
+        subClayWeights( i, 1:ntm_clay ) = 1.d0 / Cv * ( 1 +
      &       errorFunction( erf_in )) * exp(-(bin_mean /lambda)**3 ) *
      &       (subClayBounds( i + 1 ) - subClayBounds( i ))
 
@@ -2219,10 +2219,10 @@ c calcSubClayWeights
 
       do n = 1,ntm_clay
 
-        zsum = sum( subClayWeights( n, : ) )
+        zsum = sum( subClayWeights( :, n ) )
         if ( zsum == 0.d0 ) cycle
-        subClayWeights( n, 1:nSubClays ) = subClayWeights( n,
-     &       1:nSubClays ) / zsum
+        subClayWeights( 1:nSubClays, n ) = subClayWeights( 1:nSubClays,
+     &       n ) / zsum
 
       end do
 
