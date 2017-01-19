@@ -11,5 +11,5 @@ OCNFUNTAB                           ! ocean function look up table
 SparseCommunicator_mod              ! sparse gather/scatter module
 OCNQUS                              ! QUS advection scheme
 OCNGISS_TURB                        ! GISS Turbulence vertical mixing scheme
-OCNGISS_SM  OCNGISS_MESO            ! GISS Mesoscale mixing scheme
+OCNGISS_SM                          ! GISS Sub-mesoscale mixing scheme
 

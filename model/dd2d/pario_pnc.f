@@ -1,9 +1,11 @@
-c
-c A version of the pario module built on the Parallel-NetCDF
-c library provided by ANL.
-c   http://www.mcs.anl.gov/parallel-netcdf
-c
       module pario
+!@sum A version of the pario module built on the Parallel-NetCDF
+!@+ library provided by ANL.
+!@+   http://www.mcs.anl.gov/parallel-netcdf
+!@+
+!@+ This module has the same name and interface as pario_nc.f
+!@+ See pario_nc.f for API documentation.
+
 
 #ifdef OFFLINE
 #else

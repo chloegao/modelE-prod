@@ -4,32 +4,16 @@
 !@calls sync_param, SET_TCON, RDLAND, RDDRYCF
       USE DOMAIN_DECOMP_ATM, only:GRID,getDomainBounds,AM_I_ROOT,
      &     write_parallel,readt8_parallel
-      USE CONSTANT, only: mair,mwat
-#ifdef TRACERS_AEROSOLS_SOA
-     &                   ,gasc
-#endif  /* TRACERS_AEROSOLS_SOA */
       USE RESOLUTION, only : jm,lm
-      USE MODEL_COM, only: dtsrc,itime
       USE ATM_COM, only: pmidl00
       USE GEOM, only: axyp,byaxyp
       USE ATM_COM, only: MA  ! Air mass of each box (kg/m^2)
-      use OldTracer_mod, only: trname, trw0
+      use OldTracer_mod, only: trname
       USE TRACER_COM, only: ntm, tracers, syncProperty
 #ifdef TRACERS_ON
       USE TRDIAG_COM
 #endif
       USE Dictionary_mod
-#ifdef TRACERS_SPECIAL_Lerner
-      USE TRACERS_MPchem_COM, only: n_MPtable,tcscale
-!@dbparam dsol describes portion of solar cycle being modeled for linoz
-!@+      +1.0 = solar max, 0.0 = neutral, -1.0 = solar min
-      USE LINOZ_CHEM_COM, only: dsol
-#endif
-#ifdef TRACERS_WATER
-#ifdef TRDIAG_WETDEPO
-      USE CLOUDS, ONLY : diag_wetdep
-#endif
-#endif /* TRACERS_WATER */
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_AMP)  || (defined TRACERS_TOMAS)
       use trdust_drv, only : init_soildust
@@ -39,93 +23,27 @@
      &     CH4altINT,CH4altINX,LCH4alt,PCH4alt,
      &     CH4altX,CH4altT,ch4_init_sh,ch4_init_nh,scale_ch4_IC_file,
      &     OxICIN,OxIC,OxICINL,OxICL,
-     &     fix_CH4_chemistry,which_trop,
-     &     allowSomeChemReinit,
+     &     fix_CH4_chemistry,
      &     CH4ICIN,CH4ICX,CH4ICINL,CH4ICL,use_rad_ch4,
      &     COICIN,COIC,COICINL,COICL,Lmax_rad_O3,Lmax_rad_CH4
      &     ,BrOxaltIN,ClOxaltIN,ClONO2altIN,HClaltIN,BrOxalt,
      &     ClOxalt,ClONO2alt,HClalt,N2OICIN,N2OICX,N2OICINL,N2OICL,
      &     CFCICIN,CFCIC,CFCICINL,CFCICL,
-     &     use_rad_n2o,use_rad_cfc,cfc_rad95,PltOx,Tpsc_offset_N,
-     &     Tpsc_offset_S
-#ifdef INTERACTIVE_WETLANDS_CH4
-      USE TRACER_SOURCES, only:int_wet_dist,topo_lim,sat_lim,gw_ulim,
-     &gw_llim,sw_lim,exclude_us_eu,nn_or_zon,ice_age,nday_ch4,max_days,
-     &ns_wet,nra_ch4
-#endif
-#ifdef BIOGENIC_EMISSIONS
-      use biogenic_emis, only: base_isopreneX
-#endif
+     &     use_rad_n2o,use_rad_cfc,cfc_rad95
 #endif /* TRACERS_SPECIAL_Shindell */
 #ifdef TRACERS_AEROSOLS_SOA
-      USE TRACERS_SOA, only: n_soa_i,n_soa_e,soa_init
+      USE TRACERS_SOA, only: soa_init
 #endif  /* TRACERS_AEROSOLS_SOA */
 #ifdef TRACERS_AEROSOLS_VBS
       USE TRACERS_VBS, only: vbs_init
 #endif  /* TRACERS_AEROSOLS_VBS */
-#if (defined TRACERS_COSMO)
-      USE COSMO_SOURCES, only: be7_src_param
-#endif
 #if (defined TRACERS_AMP)
-      USE AERO_PARAM, only: DG_DD1, DG_DD2, DG_AKK,
-     & DG_DS1, DG_DS2, DG_SSA, DG_SSC, DG_ACC,
-     & DG_SSS, DG_OCC, DG_BC1, DG_BC2, DG_BC3,
-     & DG_DBC, DG_BOC, DG_BCS, DG_OCS, DG_MXX,
-
-     & SOLU_DD1, SOLU_DD2, SOLU_AKK, SOLU_ACC,
-     & SOLU_DS1, SOLU_DS2, SOLU_SSA, SOLU_SSC,
-     & SOLU_SSS, SOLU_OCC, SOLU_BC1, SOLU_BC2, SOLU_BC3,
-     & SOLU_DBC, SOLU_BOC, SOLU_BCS, SOLU_OCS, SOLU_MXX
-
-      USE AERO_ACTV, only: DENS_SULF, DENS_DUST,
-     &          DENS_SEAS, DENS_BCAR, DENS_OCAR
-      USE AERO_CONFIG, only: nbins
       USE AERO_COAG, only : SETUP_KIJ
       USE AERO_SETUP
       USE AERO_NPF, only: SETUP_NPFMASS
       USE AERO_DIAM, only: SETUP_DIAM
 #endif
-#ifdef TRACERS_TOMAS
-      use TOMAS_AEROSOL, only : binact10,binact02,
-     &     fraction10,fraction02
-#endif
       USE FILEMANAGER, only: openunit,closeunit,nameunit
-      use OldTracer_mod, only: initializeOldTracers
-      use OldTracer_mod, only: set_tr_mm, set_ntm_power
-      use OldTracer_mod, only: set_t_qlimit
-      use OldTracer_mod, only: set_needtrs
-      use OldTracer_mod, only: set_trdecay
-      use OldTracer_mod, only: set_itime_tr0
-      use OldTracer_mod, only: set_mass2vol
-      use OldTracer_mod, only: set_vol2mass
-      use OldTracer_mod, only: set_HSTAR
-      use OldTracer_mod, only: set_F0
-      use OldTracer_mod, only: set_dodrydep
-
-      use OldTracer_mod, only: dodrydep
-      use OldTracer_mod, only: F0
-      use OldTracer_mod, only: HSTAR
-
-      use OldTracer_mod, only: set_do_fire
-      use OldTracer_mod, only: set_nBBsources
-      use OldTracer_mod, only: set_emisPerFireByVegType
-      use OldTracer_mod, only: set_trpdens
-      use OldTracer_mod, only: set_trradius
-
-      use OldTracer_mod, only: set_tr_wd_TYPE
-      use OldTracer_mod, only: set_fq_aer
-      use OldTracer_mod, only: set_rc_washt
-      use OldTracer_mod, only: set_isDust
-
-      use OldTracer_mod, only: set_tr_H2ObyCH4
-      use OldTracer_mod, only: set_dowetdep
-      use OldTracer_mod, only: set_trw0
-      use OldTracer_mod, only: set_ntrocn
-      use OldTracer_mod, only: set_conc_from_fw
-      use OldTracer_mod, only: set_trglac
-
-      use OldTracer_mod, only: set_trli0
-      use OldTracer_mod, only: set_trsi0
 
       implicit none
       logical, intent(in) :: is_coldstart
@@ -307,12 +225,7 @@ C Read landuse parameters and coefficients for tracer dry deposition:
       call cheminit ! **** Initialize the chemistry ****
 #endif
 #ifdef TRACERS_COSMO
-      do n=1,ntm
-        if (trname(n) .eq. "Be7" .OR. trname(n) .eq. "Be10") then
-          call init_cosmo
-          exit
-        end if
-      end do
+      call init_cosmo
 #endif
 #endif /* TRACERS_ON */
 

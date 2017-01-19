@@ -5,7 +5,6 @@
 !@contains routines for calculating cloud droplet number (cm-3) for convective clouds
 !@this is called in CLOUDS2_E1 if MATRIX is used to set aerosols
       USE CLOUDS_COM
-      USE CONSTANT,only:mb2kg,by3 ,avog,bygasc,RGAS
       IMPLICIT NONE
       real*8 AIRM,EXPL,EXPO,WCDNO,WCDNL,rho
      *,MCDNL1,MCDNO1,amass,tams,smturb,DXYPJ,PL,TL
@@ -127,7 +126,7 @@ c
       USE TRACER_COM, only: n_apinp1a, n_apinp2a,n_BCB, n_isopp1a, 
      * n_isopp2a, n_OCB 
       USE OldTracer_mod, only: fq_aer
-      USE CONSTANT,only:mb2kg,by3 ,avog,bygasc,RGAS
+      USE CONSTANT,only:mb2kg,RGAS
       IMPLICIT NONE
       real*8 AIRM,EXPL,EXPO,WCDNO,WCDNL,rho
      *,MCDNL1,MCDNO1,amass,tams,smturb,DXYPJ,PL,TL

@@ -1,10 +1,8 @@
-! prescr. climatological ocean (1 yr of data)
-OSST=OST_144x90.1876-1885avg.HadISST1.1.nc
-! prescr. climatological sea ice
-SICE=SICE_144x90.1876-1885avg.HadISST1.1.nc
-ZSIFAC=SICE_144x90.1876-1885avg.HadISST1.1.nc
-!! q-flux ocean: use the next line instead,       set KOCEAN=1
-!! OHT=OTSPEC.E4F40.MXL65m.1956-1960            ! ocean horizontal heat transports
-!! OCNML is not used if KOCEAN=0, but needed in and to prepare for q-flux model
-OCNML=Z1O.B144x90.nc                               ! mixed layer depth
-TOPO=Z2HX2fromZ1QX1N.nc
+
+OSST=OST_144x90.1876-1885avg.CMIP6.nc     ! climatological ocean temperature
+SICE=SICE_144x90.1876-1885avg.CMIP6.nc    ! climatological sea ice cover 
+ZSIFAC=SICE_144x90.1876-1885avg.CMIP6.nc  ! climatological sea ice thickness
+TOPO=Z2HX2fromZ1QX1N.BS1.nc               ! ocean fraction and sirface topography
+!! Q-flux ocean: use the next line instead, set KOCEAN=1
+!! OHT=OTSPEC.E4F40.MXL65m.1956-1960         ! ocean horizontal heat transports
+!! OCNML=Z1O.B144x90.nc                      ! mixed layer depth for Q-flux model

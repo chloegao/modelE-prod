@@ -146,6 +146,8 @@
 !@var fl_dummy placeholder for reading FL if rad_FL>0
 !@var flx temp array for varying FL if rad_FL>0   
       real*8, dimension(nwfastj)       :: wl,fl,qrayl,qbc,fl_dummy,flx
+!@var FL4 single precision for reading e.g. fl array from netcdf 
+      real*4, dimension(nwfastj)       :: FL4
 !@var wbin Boundaries of wavelength bins
       real*8, dimension(nwfastj+1)     :: wbin
 !@var qo2 O2 cross-sections
@@ -230,19 +232,27 @@
 #ifdef TRACERS_dCO
         integer :: dHCH17O__dC17O_H2=0
         integer :: dHCH17O__dC17O_HO2=0
-        integer :: Aldehyde__dHCH17O_CO=0
-        integer :: Aldehyde__HCHO_dC17O=0
         integer :: dMe17OOH__dHCH17O_HO2=0
+        integer :: d17OPAN__dC217O3_NO2=0
+        integer :: d17Oald__dHCH17O_CO=0
+        integer :: d17Oald__HCHO_dC17O=0
+        integer :: d17Oald__HCHO_CO=0
+
         integer :: dHCH18O__dC18O_H2=0
         integer :: dHCH18O__dC18O_HO2=0
-        integer :: Aldehyde__dHCH18O_CO=0
-        integer :: Aldehyde__HCHO_dC18O=0
         integer :: dMe18OOH__dHCH18O_HO2=0
+        integer :: d18OPAN__dC218O3_NO2=0
+        integer :: d18Oald__dHCH18O_CO=0
+        integer :: d18Oald__HCHO_dC18O=0
+        integer :: d18Oald__HCHO_CO=0
+
         integer :: dH13CHO__d13CO_H2=0
         integer :: dH13CHO__d13CO_HO2=0
-        integer :: Aldehyde__dH13CHO_CO=0
-        integer :: Aldehyde__HCHO_d13CO=0
         integer :: d13MeOOH__dH13CHO_HO2=0
+        integer :: d13CPAN__d13C2O3_NO2=0
+        integer :: d13Cald__dH13CHO_CO=0
+        integer :: d13Cald__HCHO_d13CO=0
+        integer :: d13Cald__HCHO_CO=0
 #endif  /* TRACERS_dCO */
       end type rj_index
 
@@ -520,7 +530,6 @@ c
 !@+ modelEifications: Greg Faluvegi, Apostolos Voulgarakis
 c
 C**** GLOBAL parameters and variables:
-      USE RESOLUTION, only  : JM,LM
       USE GEOM, only: lat2d_dg
       use model_com, only: modelEclock
       USE RAD_COM,only: ttausv_as
@@ -807,7 +816,6 @@ C------ Calculate remaining J-values with T-dep X-sections
 !@+ modelEifications: Greg Faluvegi
 
 C**** GLOBAL parameters and variables:
-      USE RESOLUTION, only  : JM
       USE GEOM, only: lat2d_dg
       use model_com, only: modelEclock
 
@@ -2311,11 +2319,12 @@ C Read aerosol phase functions:
 
       SUBROUTINE READ_FL(end_of_day)
 !@sum READ_FL Instead of reading the photon fluxes (FL) once from the 
-!@+   SPECFJ file, this now varyies year-to-year as read from FLTRAN file.
-!@+   Format is like the SPECFJ file, data should be consistent with the   
-!@+   RADN9 file.
+!@+   SPECFJ file, this now varyies year-to-year as read from FLTRAN ascii
+!@+   file witih format like that of the SPECFJ file and data which should
+!@+   be consistent with the radiation code input RADN9 file. Alternately,
+!@+   will read directly from the RADN9 file if that is netCDF and 
+!@+   contains the needed variable.
 !@auth Greg Faluvegi (based on RD_TJPL above)
-!@ver  1.0 
 
 C**** GLOBAL parameters and variables:
       USE FILEMANAGER, only: openunit,closeunit
@@ -2324,16 +2333,25 @@ C**** GLOBAL parameters and variables:
       USE MODEL_COM, only: modelEClock
 
       IMPLICIT NONE
+  
+!@var R4 local variable for scalar single precision reads
+      real*4 :: R4
+     
+      include 'netcdf.inc'
       
 C**** Local parameters and variables and arguments:
       integer :: yearx,iunit,i,iw,wantYear,firstYear,lastYear,icyc
       logical, intent(in) :: end_of_day
       character(len=300) :: out_line
       logical :: found1988, found1991
-      integer :: year, dayOfYear
+      logical :: fltranFileExists=.false., radn9VariableExists=.true.
+      integer :: year, dayOfYear, rc, fid, vid, tid, tdid, ntimes
+      integer :: i1988, i1991, iWantYear
+      real*8, dimension(:), allocatable :: time
 
       call modelEclock%get(year=year, dayOfYear=dayOfYear) 
-      ! only for start of years and restarts:
+      ! Reading is only done at beginning of years and at model
+      ! restarts:
       if(.not. end_of_day .or. dayOfYear == 1) then
 
         ! set year we are looking for based on rad code s0_yr:
@@ -2343,95 +2361,256 @@ C**** Local parameters and variables and arguments:
           wantYear=s0_yr
         end if
 
+        ! determine from rad code parameters periodicity of
+        ! solar cycling if year is outside of those in the file:
         if(wantYear > 2000)then
           icyc=icycs0f
         else
           icyc=icycs0
         end if
 
-        ! scan the file to make sure needed years are there
-        ! and to see whether we need to cycle based on the 
-        ! initial few or last few years:
+        ! Determine which file to read from. 
 
-        found1988=.false. ; found1991=.false.
-        CALL openunit('FLTRAN',iunit,.false.,.true.)
-        READ(iunit,*) ! 1 line of comments
-        i=0
-        scanLoop: do
-          i=i+1
-          READ(iunit,102,end=100) yearx,(FLX(IW),IW=1,NWWW)
-          if(i==1)firstYear=yearx
-          if(yearx==1988)found1988=.true.
-          if(yearx==1991)found1991=.true.
-        end do scanLoop
- 100    lastYear=yearx    
-        rewind(iunit)
-        if(.not.found1988)call stop_model('1988 problem READ_FL',13)
-        if(.not.found1991)call stop_model('1991 problem READ_FL',13)
-       
-        if(lastYear-firstYear+1 < icyc)
-     &  call stop_model('years in FLTRAN file < icyc',13)
-        if(wantYear < firstYear)then
-          write(out_line,*)'READ_FL year ',wantYear,' outside of file.'
-          call write_parallel(trim(out_line))
-          ! next line depends on integer arithmatic:
-          wantYear=wantYear+icyc*((firstYear-wantYear+icyc-1)/icyc)
-          write(out_line,*)'Using: ',wantYear,' instead.'
-          call write_parallel(trim(out_line))
-        else if(wantYear > lastYear)then
-          write(out_line,*)'READ_FL year ',wantYear,' outside of file.'
-          call write_parallel(trim(out_line))
-          ! next line depends on integer arithmatic:
-          wantYear=wantYear-icyc*((wantYear-lastYear+icyc-1)/icyc)
-          write(out_line,*)'Using: ',wantYear,' instead.'
-          call write_parallel(trim(out_line))
-        end if
+        inquire(file=trim('FLTRAN'),exist=fltranFileExists)
+        if(fltranFileExists)then
 
-        ! now read file with appropriate (safe) target year:
-        READ(iunit,*) ! 1 line of comments
-        readLoop: do
-          READ(iunit,102,end=101) yearx,(FLX(IW),IW=1,NWWW)
-          if(yearx == wantYear) then
-            FL(1:NWWW)=FLX(1:NWWW)
+          ! If the FLTRAN file exists, give it priority. But if
+          ! there is *also* an available fastj variable in the 
+          ! netCDF RADN file, stop the model for user to resolve
+          ! this ambiguity:
+
+          ! attempt to open netCDF RADN9 file (if fails assume no
+          ! fastj data in it.)
+          rc=nf_open('RADN9',ncnowrit,fid)
+          if(rc /= nf_noerr) then
+            radn9VariableExists=.false.
           else
-            FL_DUMMY(1:NWWW)=FLX(1:NWWW)
-          endif
-          if(yearx == 1988)then
-            if(yearx == wantYear)then
-              bin4_1988=FL(4); bin5_1988=FL(5)
-            else      
-              bin4_1988=FL_DUMMY(4); bin5_1988=FL_DUMMY(5)
-            endif
-          else if(yearx == 1991)then
-            if(yearx == wantYear)then
-              bin4_1991=FL(4)
-            else
-              bin4_1991=FL_DUMMY(4)
-            endif
-          endif
-          if(yearx >= wantYear.and.yearx >= 1991) exit readLoop
-        end do readLoop
+            ! look for variable:
+            rc=nf_inq_varid(fid,'photon_flux',vid)
+            if(rc /= nf_noerr) radn9VariableExists=.false.
+            ! close:
+            rc=nf_close(fid)
+             if(rc /= nf_noerr)
+     &       call stop_model('FastJ: problem closing RADN9 file',255)
+          end if
 
-        write(out_line,*)'READ_FL Using year ',wantYear,
-     &  ' bin4_now/1988/1991= ',FL(4),bin4_1988,bin4_1991,
-     &  ' bin5_now/1988= ',FL(5),bin5_1988
-        call write_parallel(trim(out_line))
+          if(radn9VariableExists) then
 
-        call closeunit(iunit)
-      endif
+            write(out_line,*)'An FLTRAN file exists and a "photon_flux"'
+     &      //' variable exists in RADN9 file. Please resolve conflict.'
+            call write_parallel(trim(out_line))
+            call stop_model
+     &      ('rad_FL input defined in FLTRAN and RADN9',255)
+
+          else ! continue with normal ascii file reading:
+
+            ! scan the file to make sure needed years exist
+            ! and to see whether we need to cycle based on the 
+            ! initial few or last few years:
+            found1988=.false. ; found1991=.false.
+            CALL openunit('FLTRAN',iunit,.false.,.true.)
+            READ(iunit,*) ! 1 line of comments
+            i=0
+            scanLoop: do
+              i=i+1
+              READ(iunit,102,end=100) yearx,(FLX(IW),IW=1,NWWW)
+              if(i==1)firstYear=yearx
+              if(yearx==1988)found1988=.true.
+              if(yearx==1991)found1991=.true.
+            end do scanLoop
+ 100        lastYear=yearx    
+            rewind(iunit)
+            if(.not.found1988)call stop_model('1988 problem READ_FL',13)
+            if(.not.found1991)call stop_model('1991 problem READ_FL',13)
+       
+            if(lastYear-firstYear+1 < icyc)
+     &      call stop_model('years in FLTRAN file < icyc',13)
+            if(wantYear < firstYear)then
+              write(out_line,*)'READ_FL year ',wantYear,' out of range.'
+              call write_parallel(trim(out_line))
+              ! next line depends on integer arithmatic:
+              wantYear=wantYear+icyc*((firstYear-wantYear+icyc-1)/icyc)
+              write(out_line,*)'Using: ',wantYear,' instead.'
+              call write_parallel(trim(out_line))
+            else if(wantYear > lastYear)then
+              write(out_line,*)'READ_FL year ',wantYear,' out of range.'
+              call write_parallel(trim(out_line))
+              ! next line depends on integer arithmatic:
+              wantYear=wantYear-icyc*((wantYear-lastYear+icyc-1)/icyc)
+              write(out_line,*)'Using: ',wantYear,' instead.'
+              call write_parallel(trim(out_line))
+            end if
+
+            ! now read file with appropriate (safe) target year:
+            READ(iunit,*) ! 1 line of comments
+            readLoop: do
+              READ(iunit,102,end=101) yearx,(FLX(IW),IW=1,NWWW)
+              if(yearx == wantYear) then
+                FL(1:NWWW)=FLX(1:NWWW)
+              else
+                FL_DUMMY(1:NWWW)=FLX(1:NWWW)
+              end if
+              if(yearx == 1988)then
+                if(yearx == wantYear)then
+                  bin4_1988=FL(4); bin5_1988=FL(5)
+                else      
+                  bin4_1988=FL_DUMMY(4); bin5_1988=FL_DUMMY(5)
+                end if
+              else if(yearx == 1991)then
+                if(yearx == wantYear)then
+                  bin4_1991=FL(4)
+                else
+                  bin4_1991=FL_DUMMY(4)
+                end if
+              end if
+              if(yearx >= wantYear.and.yearx >= 1991) exit readLoop
+            end do readLoop
+
+            write(out_line,*)'READ_FL Using year ',wantYear,
+     &      ' bin4_now/1988/1991= ',FL(4),bin4_1988,bin4_1991,
+     &      ' bin5_now/1988= ',FL(5),bin5_1988
+            call write_parallel(trim(out_line))
+            call closeunit(iunit)
+
+          end if 
+        
+        else ! no FLTRAN file; read RADN9 file
+
+          ! open file
+          rc=nf_open('RADN9',ncnowrit,fid)
+          if(rc/=nf_noerr)call radn9Stop('opening the file',rc)
+
+          ! get the id of time dimension:
+          rc=nf_inq_dimid(fid,'time',tdid)
+          if(rc/=nf_noerr)call radn9Stop('locating time dimension',rc)
+
+          ! get length of time dimension:
+          rc=nf_inq_dimlen(fid,tdid,ntimes)
+          if(rc/=nf_noerr)call radn9Stop('determining time dim size',rc)
+          allocate( time(ntimes) )
+
+          ! get id of the variable holding the calendar years:
+          rc=nf_inq_varid(fid,'calyear',tid)
+          if(rc/=nf_noerr)call radn9Stop('locating calyear variable',rc)
+
+          ! read these years into the fortran "time" variable:
+          rc=nf_get_vara_double(fid,tid,1,ntimes,time)
+          if(rc/=nf_noerr)call radn9Stop('reading calyear variable',rc)
+
+          ! find some years needed (FLOOR because years are like 1850.5 in
+          ! the file but in this routine would be called 1850):
+          found1988=.false. ; found1991=.false.
+          firstYear=FLOOR(time(1))
+          lastYear=FLOOR(time(ntimes))
+          do i=1,ntimes
+            if(FLOOR(time(i))==1988)then
+              found1988=.true.
+              i1988=i
+            end if
+            if(FLOOR(time(i))==1991)then
+              found1991=.true.
+              i1991=i
+            end if
+          end do
+          if(.not.found1988)call stop_model('1988 problem READ_FL',13)
+          if(.not.found1991)call stop_model('1991 problem READ_FL',13)
+          
+          ! check if we should use some available cyclic year instead:
+          ! This is repeated code from above ; should go in a subroutine...
+          if(lastYear-firstYear+1 < icyc)
+     &    call stop_model('years in FLTRAN file < icyc',13)
+          if(wantYear < firstYear)then
+            write(out_line,*)'READ_FL year ',wantYear,' out of range.'
+            call write_parallel(trim(out_line))
+            ! next line depends on integer arithmatic:
+            wantYear=wantYear+icyc*((firstYear-wantYear+icyc-1)/icyc)
+            write(out_line,*)'Using: ',wantYear,' instead.'
+            call write_parallel(trim(out_line))
+          else if(wantYear > lastYear)then
+            write(out_line,*)'READ_FL year ',wantYear,' out of range.'
+            call write_parallel(trim(out_line))
+            ! next line depends on integer arithmatic:
+            wantYear=wantYear-icyc*((wantYear-lastYear+icyc-1)/icyc)
+            write(out_line,*)'Using: ',wantYear,' instead.'
+            call write_parallel(trim(out_line))
+          end if
+
+          ! now read FL from file at appropriate (safe) target year:
+
+          ! first determine the time index to read for target year:
+          iWantYear=-1
+          do i=1,ntimes
+            if(FLOOR(time(i))==wantYear)then
+              iWantYear=i
+              exit
+            end if
+          end do
+          if(iWantYear==-1)call stop_model('READ_FL: year not found',13)
+ 
+          ! get photon_flux id:
+          rc=nf_inq_varid(fid,'photon_flux',vid)
+          if(rc/=nf_noerr)
+     &     call radn9Stop('locating photon_flux variable',rc)
+
+          ! read all wavelenghts' photon flux for target year:
+          rc=nf_get_vara_real(fid,vid,(/1,iWantYear/),(/NWWW,1/),FL4)
+          FL(:)=dble(FL4(:))
+          if(rc/=nf_noerr)call radn9Stop('reading into FL array',rc)
+
+          ! also read certain wavelenghts for the years 1988 and 1991:
+          rc=nf_get_vara_real(fid,vid,(/4,i1988/),(/1,1/),R4)
+          if(rc/=nf_noerr)call radn9Stop('reading bin4_1988',rc)
+          bin4_1988=dble(R4)
+
+          rc=nf_get_vara_real(fid,vid,(/4,i1991/),(/1,1/),R4)
+          if(rc/=nf_noerr)call radn9Stop('reading bin4_1991',rc)
+          bin4_1991=dble(R4)
+
+          rc=nf_get_vara_real(fid,vid,(/5,i1988/),(/1,1/),R4)
+          if(rc/=nf_noerr)call radn9Stop('reading bin5_1988',rc)
+          bin5_1988=dble(R4)
+
+          ! close the file:   
+          rc=nf_close(fid)
+          if(rc/=nf_noerr)call radn9Stop('closing the file',rc)
+
+          write(out_line,*)'READ_FL Using year ',wantYear,
+     &    ' bin4_now/1988/1991= ',FL(4),bin4_1988,bin4_1991,
+     &    ' bin5_now/1988= ',FL(5),bin5_1988
+          call write_parallel(trim(out_line))
+
+          deallocate(time)
+
+        end if ! which file to read
+
+      end if ! was time to read
 
       if(rad_FL > 0)then
         SF2_fact=FL(5)/bin5_1988
         SF3_fact=0.1d-6*(FL(4)-bin4_1988)/(bin4_1991-bin4_1988)
-      endif
+      end if
+
   102 FORMAT((I4,6X,6E10.3)/(10X,6E10.3)/(10X,6E10.3))
       RETURN 
 
- 101  CONTINUE ! This should no longer be reached.        
+  101 CONTINUE ! This should no longer be reached.        
       call stop_model("READ_FL end of file problem.",13)
       RETURN 
       END SUBROUTINE READ_FL  
 
+
+      subroutine radn9Stop(activityString,status)
+!@sum error handling for the netCDF/Fortran interface reads to RADN9 file
+      use domain_decomp_1d, only: am_i_root
+      implicit none
+      include 'netcdf.inc'
+      character(len=*) :: activityString
+      integer status
+      if(am_i_root())
+     &print*, 'FASTJ RADN9 READING: model was '//trim(activityString)
+     &//', encountered the NF error: ',trim(trim(nf_strerror(status)))
+      call stop_model('FASTJ RADN9 I/O error. See PRT message.',255)
+      end subroutine radn9Stop
 
 
       SUBROUTINE rd_prof(nj2)
@@ -2556,35 +2735,49 @@ c Extend climatology to 100 km:
           rj%dHCH17O__dC17O_H2=irr
         case('dHCH17O__dC17O_HO2')
           rj%dHCH17O__dC17O_HO2=irr
-        case('Aldehyde__dHCH17O_CO')
-          rj%Aldehyde__dHCH17O_CO=irr
-        case('Aldehyde__HCHO_dC17O')
-          rj%Aldehyde__HCHO_dC17O=irr
         case('dMe17OOH__dHCH17O_HO2')
           rj%dMe17OOH__dHCH17O_HO2=irr
+        case('d17OPAN__dC217O3_NO2')
+          rj%d17OPAN__dC217O3_NO2=irr
+        case('d17Oald__dHCH17O_CO')
+          rj%d17Oald__dHCH17O_CO=irr
+        case('d17Oald__HCHO_dC17O')
+          rj%d17Oald__HCHO_dC17O=irr
+        case('d17Oald__HCHO_CO')
+          rj%d17Oald__HCHO_CO=irr
+
         case('dHCH18O__dC18O_H2')
           rj%dHCH18O__dC18O_H2=irr
         case('dHCH18O__dC18O_HO2')
           rj%dHCH18O__dC18O_HO2=irr
-        case('Aldehyde__dHCH18O_CO')
-          rj%Aldehyde__dHCH18O_CO=irr
-        case('Aldehyde__HCHO_dC18O')
-          rj%Aldehyde__HCHO_dC18O=irr
         case('dMe18OOH__dHCH18O_HO2')
           rj%dMe18OOH__dHCH18O_HO2=irr
+        case('d18OPAN__dC218O3_NO2')
+          rj%d18OPAN__dC218O3_NO2=irr
+        case('d18Oald__dHCH18O_CO')
+          rj%d18Oald__dHCH18O_CO=irr
+        case('d18Oald__HCHO_dC18O')
+          rj%d18Oald__HCHO_dC18O=irr
+        case('d18Oald__HCHO_CO')
+          rj%d18Oald__HCHO_CO=irr
+
         case('dH13CHO__d13CO_H2')
           rj%dH13CHO__d13CO_H2=irr
         case('dH13CHO__d13CO_HO2')
           rj%dH13CHO__d13CO_HO2=irr
-        case('Aldehyde__dH13CHO_CO')
-          rj%Aldehyde__dH13CHO_CO=irr
-        case('Aldehyde__HCHO_d13CO')
-          rj%Aldehyde__HCHO_d13CO=irr
         case('d13MeOOH__dH13CHO_HO2')
           rj%d13MeOOH__dH13CHO_HO2=irr
+        case('d13CPAN__d13C2O3_NO2')
+          rj%d13CPAN__d13C2O3_NO2=irr
+        case('d13Cald__dH13CHO_CO')
+          rj%d13Cald__dH13CHO_CO=irr
+        case('d13Cald__HCHO_d13CO')
+          rj%d13Cald__HCHO_d13CO=irr
+        case('d13Cald__HCHO_CO')
+          rj%d13Cald__HCHO_CO=irr
 #endif  /* TRACERS_dCO */
         case default
-          call stop_model('Index for '//reaction//' missing',255)
+          call stop_model('Index for '//trim(reaction)//' missing',255)
       end select
 
       end subroutine set_jrate_index

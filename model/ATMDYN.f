@@ -358,7 +358,7 @@ C**** Restart after 8 steps due to divergence of solutions
       If (MODDA >= 2)  Call MAtoPMB
 
       if (USE_UNR_DRAG==1) then
-         Call UNRDRAG (P,U,V,T,TZ,UNRDRAG_x,UNRDRAG_y)
+         Call UNRDRAG (U,V,T,TZ,UNRDRAG_x,UNRDRAG_y)
          U(:,:,:) = U(:,:,:) + UNRDRAG_x(:,:,:) * DTsrc
          V(:,:,:) = V(:,:,:) + UNRDRAG_y(:,:,:) * DTsrc  ;  EndIf
 
@@ -3293,19 +3293,18 @@ C**** vertically integrated atmospheric fluxes
       L_min = minval(IZ0)
       end subroutine init_UNRDRAG
 
-
       end module UNRDRAG_COM
 
-      subroutine UNRDRAG (PB,U,V,T,SZ,UNRDRAG_x,UNRDRAG_y)
+
+      subroutine UNRDRAG (U,V,T,SZ,UNRDRAG_x,UNRDRAG_y)
       !@sum  UNRDRAG is the driver for (alternative) gravity wave drag
       !@auth Tiehan Zhou / Marvin A. Geller
       USE UNRDRAG_COM
-      USE CONSTANT, only : grav, bygrav, kapa, rgas
+      USE CONSTANT, only : grav, bygrav, kapa, rgas, kg2mb  
       USE GEOM, only: RAPVS, RAPVN
-      use threeD_mass_unfinished, only : ls1=>ls1_nominal,psfmpt,ptop
-      USE RESOLUTION, only : im,jm,lm
+      USE RESOLUTION, only : im,jm,lm, MTOP
       USE MODEL_COM, only: modelEclock
-      USE DYNAMICS, only : sig,dsig,sige
+      USE ATM_COM, only : PMID,PDSIG,PEDN, MA
       USE DOMAIN_DECOMP_ATM, only: grid
       USE DOMAIN_DECOMP_1D, Only : getDomainBounds
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE
@@ -3314,17 +3313,14 @@ C**** vertically integrated atmospheric fluxes
       implicit none
       real(r8), dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::
      *                   U, V, T, SZ, UNRDRAG_x, UNRDRAG_y
-      real(r8), dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: PB
-      intent(inout) :: PB, T, SZ
+      intent(inout) :: T, SZ
       intent(in) :: U, V
       intent(out) :: UNRDRAG_x, UNRDRAG_y
       real(r8), parameter :: byrgas = 1.0_r8/rgas
       real(r8), parameter :: dkapa = 1.0_r8 - kapa
       real(r8), parameter :: g_sq = grav * grav
-      real(r8), parameter :: byPSFMPT = 1.0_r8/PSFMPT
       real(r8), dimension(LM,IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
-     *                   T2, SZ2
-      real(r8), dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: PB2
+     *                   T2, SZ2, MA2
       real(r8), dimension(LM) :: dp, P_mid
       real(r8), dimension(LM+1) :: P_edge
       real(r8), dimension(LM) :: uc, vc, rho, bvf_sq, drag_x, drag_y
@@ -3338,7 +3334,7 @@ C**** vertically integrated atmospheric fluxes
       integer :: Ikh, IC, IAZ
       integer :: IC0, MC
       real :: h_4sq
-      real(r8) :: byPB2, by_dp_sum
+      real(r8) :: by_dp_sum
       real(r8) :: Bsum
       real(r8) :: Ugw_S, Vgw_S, U_Comp_S
       real(r8) :: SGN, x
@@ -3357,50 +3353,33 @@ C**** vertically integrated atmospheric fluxes
      &         HAVE_NORTH_POLE = HAVE_NORTH_POLE)
 
       if (HAVE_SOUTH_POLE) then
-      do I = 2, IM
-      PB(I,1) = PB(1,1)
-      end do
       do L = 1, LM
-      do I = 2, IM
-      T(I,1,L) = T(1,1,L)
-      SZ(I,1,L) = SZ(1,1,L)
-      end do
+       T(2:IM,1,L) =  T(1,1,L)
+      SZ(2:IM,1,L) = SZ(1,1,L)
       end do
       end if
 
       if (HAVE_NORTH_POLE) then
-      do I = 2, IM
-      PB(I,JM) = PB(1,JM)
-      end do
       do L = 1, LM
-      do I = 2, IM
-      T(I,JM,L) = T(1,JM,L)
-      SZ(I,JM,L) = SZ(1,JM,L)
-      end do
+       T(2:IM,JM,L) =  T(1,JM,L)
+      SZ(2:IM,JM,L) = SZ(1,JM,L)
       end do
       end if
 
       call HALO_UPDATE(GRID, T,  from=SOUTH)
       call HALO_UPDATE(GRID, SZ, from=SOUTH)
-      call HALO_UPDATE(GRID, PB, from=SOUTH)
-
-      do L= LS1, LM
-      dp(L) = PSFMPT * DSIG(L)
-      P_mid(L) = SIG(L) * PSFMPT + PTOP
-      P_edge(L) = SIGE(L) * PSFMPT + PTOP
-      end do
-      P_edge(LM+1) = SIGE(LM+1) * PSFMPT + PTOP
+!     call HALO_UPDATE(GRID, MA, from=SOUTH)
 
       do J = J_0S, J_1
          I = IM
          do IP1 = 1, IM
-            PB2(I,J) = (PB(I,J-1) + PB(IP1,J-1))*RAPVN(J-1)     !&
-     &                  + (PB(I,J) + PB(IP1,J))*RAPVS(J)
             do L= 1, LM
             T2(L,I,J) = 0.25_r8 *
      *          (T(I,J-1,L) + T(IP1,J-1,L) + T(I,J,L) + T(IP1,J,L))
             SZ2(L,I,J) = 0.25_r8 *
      *       (SZ(I,J-1,L) + SZ(IP1,J-1,L) + SZ(I,J,L) + SZ(IP1,J,L))
+            MA2(L,I,J) = (MA(L,I,J-1) + MA(L,IP1,J-1))*RAPVN(J-1)  !  kg/m^2
+     &                 + (MA(L,I,J)   + MA(L,IP1,J  ))*RAPVS(J)
             end do
          I = IP1
          end do
@@ -3408,15 +3387,15 @@ C**** vertically integrated atmospheric fluxes
 
       Latitude:  do J = J_0STG, J_1STG
       Longitude: do I = 1, IM
-      byPB2 = 1.0_r8/PB2(I,J)
       h_4sq = Z4var(I,J)
       !
-      !Following loop calculates dp(1:LS1-1), P_mid(1:LS1-1), P_edge(1:LS1-1)
+      !Following loop calculates dp(1:LM), P_mid(1:LM), P_edge(1:LM+1)
       !
-      do L= 1, LS1-1
-      dp(L) = PB2(I,J) * DSIG(L)
-      P_mid(L) = SIG(L) * PB2(I,J) + PTOP
-      P_edge(L) = SIGE(L) * PB2(I,J) + PTOP
+      P_edge(LM+1) = MTOP * kg2mb
+      do L= LM,1,-1
+      dp(L)     = MA2(L,I,J) * kg2mb
+      P_mid(L)  = P_edge(L+1) + dp(L) * .5
+      P_edge(L) = P_edge(L+1) + dp(L)
       end do
       !
       !Following loop calculates rho(:) ,bvf_sq(:), uc(:), vc(:) at the middle levels.
@@ -3452,10 +3431,8 @@ C**** vertically integrated atmospheric fluxes
           call orographic_drag (ue, ve, rhoe, bvfe, h_4sq, Eke_by2
      *                           , drag_x, drag_y)
       end if
-          UNRDRAG_x(I,J,1:LS1-1) = drag_x(1:LS1-1) * byPB2
-          UNRDRAG_y(I,J,1:LS1-1) = drag_y(1:LS1-1) * byPB2
-          UNRDRAG_x(I,J,LS1:LM) = drag_x(LS1:LM) * byPSFMPT
-          UNRDRAG_y(I,J,LS1:LM) = drag_y(LS1:LM) * byPSFMPT
+          UNRDRAG_x(I,J,:) = drag_x(:) / dp(:)
+          UNRDRAG_y(I,J,:) = drag_y(:) / dp(:)
 
       !...Calculating Eps
       Eps = 0.0_r8
@@ -3513,25 +3490,20 @@ C**** vertically integrated atmospheric fluxes
          end do      !horizontal wavenumber grid
       end do      !azimuth grid
       do L = L_min, LM
-      if (L < LS1) then
-         UNRDRAG_x(I,J,L) = UNRDRAG_x(I,J,L) + GWF_X(L) * byPB2
-         UNRDRAG_y(I,J,L) = UNRDRAG_y(I,J,L) + GWF_Y(L) * byPB2
-      else
-         UNRDRAG_x(I,J,L) = UNRDRAG_x(I,J,L) + GWF_X(L) * byPSFMPT
-         UNRDRAG_y(I,J,L) = UNRDRAG_y(I,J,L) + GWF_Y(L) * byPSFMPT
-      end if
+         UNRDRAG_x(I,J,L) = UNRDRAG_x(I,J,L) + GWF_X(L) / dp(L)
+         UNRDRAG_y(I,J,L) = UNRDRAG_y(I,J,L) + GWF_Y(L) / dp(L)
       end do
 
       end do Longitude
       end do Latitude
       end subroutine UNRDRAG
 
+
       subroutine orographic_drag (u,v,rho, bvf,h_4sq,coef,drag_x,drag_y)
       !@sum   orographic_drag
       !@auth Tiehan Zhou / Marvin A. Geller
       USE CONSTANT, only : grav
       USE RESOLUTION, only: LM
-      USE DYNAMICS, only : bydsig
       USE UNRDRAG_COM, only : r8
       implicit none
       real(r8), intent(in) :: coef
@@ -3595,11 +3567,12 @@ C**** vertically integrated atmospheric fluxes
       proj_y = v(2) / u0
 
       do L = 2, LM
-      drag = -grav * (flux(L+1) - flux(L)) * byDSIG(L)
+      drag = -grav * (flux(L+1) - flux(L))
       drag_x(L) = drag * proj_x
       drag_y(L) = drag * proj_y
       end do
       end subroutine orographic_drag
+
 
       subroutine nonorographic_drag (c,dc,b,eps,kh,hb,rho
      *                                ,u,bf,nc,iz0, gwfrc)
@@ -3607,7 +3580,6 @@ C**** vertically integrated atmospheric fluxes
       !@auth Tiehan Zhou / Marvin A. Geller
       USE CONSTANT, only : grav, by3
       USE RESOLUTION, only: LM
-      USE DYNAMICS, only : bydsig
       USE UNRDRAG_COM, only : r8
       !===============================================
       !...AD parameterizaion with arbitrary tabulated
@@ -3739,8 +3711,7 @@ C**** vertically integrated atmospheric fluxes
       total_flux(LM-1) = total_flux(LM-2) * 2.0_r8 * by3
 
       do i = iz0, LM
-         gwfrc(i) = -grav * ( total_flux(i+1) - total_flux(i) ) *
-     *                                          byDSIG(i) * eps
+         gwfrc(i) = -grav * ( total_flux(i+1) - total_flux(i) ) * eps
       end do
 
       contains

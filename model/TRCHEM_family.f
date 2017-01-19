@@ -9,7 +9,6 @@ c from reactions *within* family only:
 
 C**** GLOBAL parameters and variables:
       USE RESOLUTION, only : LM
-      Use ATM_COM,    Only: PMIDL00
       USE TRACER_COM, only : n_CH4, n_Ox, nn_Ox, nn_CH4
       use photolysis, only: rj
       USE TRCHEM_Shindell_COM, only:ss,rr,y,nO2,nM,nH2O,nO,nO1D,nO3,pOx
@@ -22,13 +21,9 @@ C**** Local parameters and variables and arguments:
 !@var L dummy loop variable
 !@var I,J passed horizontal position indicies
 !@var Lmax maximum altitude for chemistry
-!@var PRES local nominal pressure
       integer, intent(IN)   :: Lmax,I,J
       integer               :: L
-      REAL*8, DIMENSION(LM) :: PRES ! keep at LM; defined by PMIDL00(:)
       real*8                :: az, bz, P1
-
-      PRES(1:LM) = PMIDL00(1:LM)
 
       do L=1,Lmax
 c       for concentration of O(1D):
@@ -73,9 +68,9 @@ C**** GLOBAL parameters and variables:
 
       USE RESOLUTION, only         : LS1=>LS1_NOMINAL
       USE ATM_COM, only            : LTROPO
-      USE TRACER_COM, only         : n_NOx,nn_NOx,n_Alkenes,nn_Alkenes
+      USE TRACER_COM, only         : n_NOx,nn_NOx,nn_Alkenes
       use photolysis, only: rj
-      USE TRCHEM_Shindell_COM, only:rr,y,yNO3,nO3,nHO2,yCH3O2,nO,nC2O3,
+      USE TRCHEM_Shindell_COM, only:rr,y,yNO3,nO3,nHO2,nO,nC2O3,nCH3O2,
      & pNO3,ta,nXO2,ss,nNO,nNO2,pNOx,nNO3,nHONO,which_trop,nClO,nOClO,
      & nBrO,rrbi,rrtri
 
@@ -108,9 +103,9 @@ c       B is for NO->NO2 reactions :
 
         if(L <= maxT)then  ! Troposphere:
           B=B
-     &      +rr(rrbi%CH3O2_NO__HCHO_NO2,L)*yCH3O2(I,J,L)
+     &      +rr(rrbi%CH3O2_NO__HCHO_NO2,L)*y(nCH3O2,L)
      &      +rr(rrbi%C2O3_NO__HCHO_NO2,L)*y(nC2O3,L)
-     &      +4.2d-12*exp(180./ta(L))*y(nXO2,L)
+     &      +rr(rrbi%XO2_NO__NO2_M,L)*y(nXO2,L)
         else               ! Stratosphere:
           B=B
      &      +rr(rrbi%ClO_NO__NO2_Cl,L)*y(nClO,L)
@@ -177,11 +172,11 @@ C**** GLOBAL parameters and variables:
      &                       nn_HBr,nn_HOCl,nn_HCl
 
       use photolysis, only: rj
-      USE TRCHEM_Shindell_COM, only:pHOx,rr,y,nNO2,nNO,yCH3O2,nH2O,nO3,
+      USE TRCHEM_Shindell_COM, only:pHOx,rr,y,nNO2,nNO,nH2O,nO3,nCH3O2,
      &                        nO2,nM,nHO2,nOH,nH2,nAldehyde,nXO2,nXO2N,
      &                        ta,ss,nC2O3,nROR,yso2,ydms,which_trop,nO1D
-     &         ,OxlossbyH,dt2,nBrO,nClO,nOClO,nBr,nCl,SF3,nO,nCH3O2
-     &         ,rrbi,rrtri
+     &         ,OxlossbyH,dt2,nBrO,nClO,nOClO,nBr,nCl,SF3,nO
+     &         ,rrbi,rrtri,yNO3
 
       IMPLICIT NONE
 
@@ -194,16 +189,12 @@ C**** Local parameters and variables and arguments:
 !@var maxT LTROPO(I,J) or LS1-1, depending upon what_trop variable
 !@+ Or the top layer of chemistry in the unlikely event that is lower.
 !@+ Note in that case, loops like L=maxT+1,Lmax will do nothing.
-!@var PRES local nominal pressure for regional Ox tracers
 
       integer             :: L, maxT 
       integer, intent(IN) :: Lmax,I,J
       real*8              :: aqqz, bqqz, cqqz, cz, dz, sqroot, 
      &   temp_yHOx,ratio,rHprod,rHspecloss,rkzero,rktot,
      &   yAtomicH
-      REAL*8, DIMENSION(LM) :: PRES ! can keep LM
-
-      PRES(1:LM) = PMIDL00(1:LM)
 
       select case(which_trop)
       case(0); maxT=min(ltropo(I,J),Lmax)
@@ -230,56 +221,48 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
      &      +rr(rrtri%OH_NO2__HNO3_M,L)*y(nNO2,L)
      &      +rr(rrtri%OH_NO__HONO_M,L)*y(nNO,L)
      &      +rr(rrbi%CH3OOH_OH__CH3O2_H2O,L)*y(nn_CH3OOH,L))
-     &    +rr(rrbi%CH3O2_HO2__CH3OOH_O2,L)*yCH3O2(I,J,L)
+     &    +rr(rrbi%CH3O2_HO2__CH3OOH_O2,L)*y(nCH3O2,L)
      &    +pHOx(I,J,L)
      &    *(rr(rrbi%Aldehyde_OH__C2O3_M,L)*y(nAldehyde,L)
      &      +rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)*0.89d0
-     &      +rr(rrbi%Alkenes_OH__HCHO_HO2,L)*y(nn_Alkenes,L)
+!!!!!&      +rr(rrbi%Alkenes_OH__HCHO_HO2,L)*y(nn_Alkenes,L)
      &      +rr(rrbi%Isoprene_OH__HCHO_Alkenes,L)*y(nn_Isoprene,L)
      &        *0.15d0
-     &      +rr(rrbi%AlkylNit_OH__NO2_M,L)*y(nn_AlkylNit,L)
+     &      +rr(rrbi%AlkylNit_OH__NO2_XO2,L)*y(nn_AlkylNit,L)
 #ifdef TRACERS_TERP
      &      +rr(rrbi%Terpenes_OH__HCHO_Alkenes,L)*y(nn_Terpenes,L)
      &        *0.15d0
 #endif  /* TRACERS_TERP */
      &    )
-     &    +rr(rrbi%XO2_HO2__CH3OOH_M,L)*y(nXO2,L)
-     &    +y(nXO2N,L)*(rr(rrbi%XO2N_NO__AlkylNit_M,L)
-     &      *rr(rrbi%XO2_HO2__CH3OOH_M,L)/(4.2d-12*exp(180./ta(L))))
+     &    +rr(rrbi%XO2_HO2__CH3OOH_O2,L)*y(nXO2,L)
+     &    +rr(rrbi%XO2N_HO2__CH3OOH_O2,L)*y(nXO2N,L)
      &    +pHOx(I,J,L)*(rsulf1(i,j,l)*ydms(i,j,l) ! oxidation of DMS
-     &    +rsulf2(i,j,l)*ydms(i,j,l)) ! oxidation of SO2
+     &      +rsulf2(i,j,l)*ydms(i,j,l)) ! oxidation of SO2
 
-#ifdef V2_BUGS_TEMPORARY
-        cqqz=(2.d0*ss(rj%H2O2__OH_OH,L,I,J)*y(nn_H2O2,L)
+        cqqz=2.d0*ss(rj%H2O2__OH_OH,L,I,J)*y(nn_H2O2,L)
      &    +ss(rj%HNO3__OH_NO2,L,I,J)*y(nn_HNO3,L)
-     &    +ss(rj%HCHO__CO_HO2,L,I,J)*y(nn_HCHO,L) ! CO isotopes should not go here
-     &    +ss(rj%CH3OOH__HCHO_HO2,L,I,J)*y(nn_CH3OOH,L)
-     &    +(rr(rrbi%CH3O2_NO__HCHO_NO2,L)*y(nNO,L)
-     &      +0.66d0*rr(rrbi%CH3O2_CH3O2__HCHO_HCHO,L)*yCH3O2(I,J,L)
-     &    )*yCH3O2(I,J,L))
-#else
-        cqqz=(2.d0*(ss(rj%H2O2__OH_OH,L,I,J)*y(nn_H2O2,L))
-     &    +ss(rj%HNO3__OH_NO2,L,I,J)*y(nn_HNO3,L)
-     &    +2.d0*(ss(rj%HCHO__CO_HO2,L,I,J)*y(nn_HCHO,L)) ! CO isotopes should not go here
+     &    +2.d0*ss(rj%HCHO__CO_HO2,L,I,J)*y(nn_HCHO,L)
      &    +2.d0*ss(rj%CH3OOH__HCHO_HO2,L,I,J)*y(nn_CH3OOH,L)
      &    +(rr(rrbi%CH3O2_NO__HCHO_NO2,L)*y(nNO,L)
-     &      +0.66d0*(rr(rrbi%CH3O2_CH3O2__HCHO_HCHO,L)*yCH3O2(I,J,L))
-     &    )*yCH3O2(I,J,L))
-#endif
+     &      +0.66d0*rr(rrbi%CH3O2_CH3O2__HCHO_HCHO,L)*y(nCH3O2,L)
+     &    )*y(nCH3O2,L)
 
-        ! 1.66/1.31 accounts for HOx production via O(1D)+CH4-->CH3O path:
+        ! 1.66/1.31 accounts for HOx production via O(1D)+CH4-->CH3O2 path:
         cqqz=cqqz
      &    +((2.d0*rr(rrbi%O1D_H2O__OH_OH,L)*y(nH2O,L)
      &      +(1.66d0/1.31d0)*rr(rrbi%O1D_CH4__OH_CH3O2,L)*y(nn_CH4,L)
      &    )*y(nO1D,L))
      &    +ss(rj%Aldehyde__HCHO_CO,L,I,J)*y(nAldehyde,L)*2.d0
-     &    +(rr(rrbi%C2O3_NO__HCHO_NO2,L)*y(nNO,L) ! CO isotopes should not go here
+     &    +(rr(rrbi%C2O3_NO__HCHO_NO2,L)*y(nNO,L)
      &    +rr(rrbi%C2O3_C2O3__HCHO_HCHO,L)*y(nC2O3,L)*2.d0)*y(nC2O3,L)
-     &    +(rr(rrbi%ROR_M__Aldehyde_HO2,L)*0.94d0+1.6d3)*y(nROR,L)
+     &    +(rr(rrbi%ROR_M__Aldehyde_HO2,L)*0.94d0
+     &      +rr(rrbi%ROR_M__HO2_M,L))*y(nROR,L)
      &    +rr(rrbi%Alkenes_O3__HCHO_CO,L)*y(nn_Alkenes,L)*y(nO3,L)
-     &      *0.65d0 ! CO isotopes should not go here
+     &      *0.65d0
      &    +rr(rrbi%Isoprene_O3__HCHO_Alkenes,L)*y(nn_Isoprene,L)
      &      *y(nO3,L)*0.58d0
+     &    +rr(rrbi%Isoprene_NO3__HO2_Alkenes,L)*y(nn_Isoprene,L)
+     &      *yNO3(I,J,L)*0.9d0
 #ifdef TRACERS_TERP
      &    +rr(rrbi%Terpenes_O3__HCHO_Alkenes,L)*y(nn_Terpenes,L)
      &      *y(nO3,L)*0.58d0
@@ -293,16 +276,11 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
 c Now partition HOx into OH and HO2:
         ! CZ: OH->HO2 reactions :
         cz=rr(rrbi%OH_O3__HO2_O2,L)*y(nO3,L)
-     &    +rr(rrbi%CO_OH__HO2_O2,L)*y(nn_CO,L) ! CO isotopes should not go here
+     &    +rr(rrbi%CO_OH__HO2_O2,L)*y(nn_CO,L)
      &    +rr(rrbi%OH_H2O2__H2O_HO2,L)*y(nn_H2O2,L)
      &    +rr(rrbi%H2_OH__HO2_H2O,L)*y(nH2,L)
-#ifdef V2_BUGS_TEMPORARY
-     &    +rr(rrbi%HCHO_OH__HO2_CO,L)*y(nn_HCHO,L) ! CO isotopes should not go here
-     &    +rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)*
-#else
-     &    +rr(rrbi%HCHO_OH__HO2_CO,L)*y(nn_HCHO,L) ! CO isotopes should not go here
+     &    +rr(rrbi%HCHO_OH__HO2_CO,L)*y(nn_HCHO,L)
      &    +rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
-#endif
      &      *0.11d0
      &    +rr(rrbi%Isoprene_OH__HCHO_Alkenes,L)*y(nn_Isoprene,L)*0.85d0
 #ifdef TRACERS_TERP
@@ -373,11 +351,12 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
      &    +rr(rrbi%O_HOCl__OH_ClO,L)*y(nn_HOCl,L)*y(nO,L)
      &    +rr(rrbi%Cl_HOCl__Cl2_OH,L)*y(nn_HOCl,L)*y(nCl,L)
      &    +rr(rrbi%Cl_H2O2__HCl_HO2,L)*y(nCl,L)*y(nn_H2O2,L)
+     &    +rr(rrbi%Cl_H2__HCl_HO2,L)*y(nCl,L)*y(nH2,L)
      &    +rr(rrbi%Br_H2O2__HBr_HO2,L)*y(nBr,L)*y(nn_H2O2,L)
      &    +rr(rrbi%O_HBr__OH_Br,L)*y(nn_HBr,L)*y(nO,L)
      
         ! water vapor photolysis in SRBs:
-        if(PRES(L) < 10.) cqqz = cqqz + 0.5d0*SF3(I,J,L)*y(nH2O,L) 
+        if(PMIDL00(L) < 10.d0) cqqz = cqqz + 0.5d0*SF3(I,J,L)*y(nH2O,L)
 
         ! production from O1D NO LONGER limited to O1D amount or
         ! O1D fraction via r10,11,s2:
@@ -408,10 +387,10 @@ c H + O2 + M -> HO2 + M , and affects on OH/HO2 and Ox
 c Now partition HOx into OH and HO2:
 c CZ: OH->HO2 reactions :
         cz=rr(rrbi%OH_O3__HO2_O2,L)*y(nO3,L)
-     &    +rr(rrbi%CO_OH__HO2_O2,L)*y(nn_CO,L) ! CO isotopes should not go here
+     &    +rr(rrbi%CO_OH__HO2_O2,L)*y(nn_CO,L)
      &    +rr(rrbi%OH_H2O2__H2O_HO2,L)*y(nn_H2O2,L)
      &    +rr(rrbi%H2_OH__HO2_H2O,L)*y(nH2,L)
-     &    +rr(rrbi%HCHO_OH__HO2_CO,L)*y(nn_HCHO,L) ! CO isotopes should not go here
+     &    +rr(rrbi%HCHO_OH__HO2_CO,L)*y(nn_HCHO,L)
      &    +rr(rrbi%ClO_OH__HO2_Cl,L)*y(nClO,L)
      &    +rr(rrbi%BrO_OH__Br_HO2,L)*y(nBrO,L)
      &    +rr(rrbi%O_OH__O2_H,L)*y(nO,L)*rktot/(rHspecloss+rktot)
@@ -451,7 +430,6 @@ C**** GLOBAL parameters and variables:
 
       USE ATM_COM, only   : LTROPO
       USE RESOLUTION, only : LS1=>LS1_NOMINAL
-      USE RESOLUTION, only : LM
       USE TRACER_COM, only : n_ClOx,n_HOCl,n_ClONO2,n_HCl,n_H2O2,n_CH4
       USE TRACER_COM, only : nn_ClOx,nn_HOCl,nn_ClONO2,nn_HCl,nn_H2O2,
      &    nn_CH4
@@ -505,6 +483,31 @@ c calculating Cl amount, otherwise ignore:
           y(nClO,L)=y(nClO,L)-y(nCl2O2,L)
         end if
 
+! Below is some documentation based on some very old notes from Drew. A word
+! of caution, they are from the mid-1990s and the current code might be a bit
+! (or a lot) different, but it is the best piece of documentation we can have.
+!
+! ClO equilibrium reactions
+! A: Cl to ClO
+! B: OClO to ClO
+! C: ClO to Cl or OClO
+!
+! OClO equilibrium reactions
+! D: OClO production
+! E: OClO loss
+!
+! Note that some reactions are going to appear in both the ClO and OClO
+! equilibrium sections
+!
+! F: non-family (i.e. non-ClOx) to ClO
+! G: ClO to non-family
+!
+! Cl equilibrium reactions
+! V: Cl production within ClOx family
+! W: Cl loss within ClOx family
+! X: Cl production from outside ClOx family
+! YY: Cl loss from outside ClOx family
+
         A=y(nO3,L)*rr(rrbi%Cl_O3__ClO_O2,L)
      &    +y(nOClO,L)*rr(rrbi%Cl_OClO__ClO_ClO,L)
      &    +y(nHO2,L)*rr(rrbi%Cl_HO2__OH_ClO,L)
@@ -549,7 +552,7 @@ c calculating Cl amount, otherwise ignore:
      &    +rr(rrbi%Cl_H2O2__HCl_HO2,L)*y(nn_H2O2,L)
      &    +rr(rrbi%Cl_HO2__HCl_O2,L)*y(nHO2,L)
      &    +rr(rrbi%Cl_CH4__HCl_CH3O2,L)*y(nn_CH4,L)
-     &    +rr(rrbi%Cl_H2__HCl_H2,L)*y(nH2,L)
+     &    +rr(rrbi%Cl_H2__HCl_HO2,L)*y(nHO2,L)
         if((dt2*y(nn_ClOx,L)) /= 0)then
           dClOx=(y(nn_ClOx,L)-ClOx_old(L))/(dt2*y(nn_ClOx,L))
         else

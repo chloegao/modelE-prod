@@ -25,6 +25,8 @@ C
       use OldTracer_mod, only: do_fire
       use OldTracer_mod, only: do_aircraft
       use OldTracer_mod, only: first_aircraft
+      use OldTracer_mod, only: pm2p5fact
+      use OldTracer_mod, only: pm10fact
       use OldTracer_mod, only: nBBsources
       use OldTracer_mod, only: emisPerFireByVegType
       use OldTracer_mod, only: trpdens
@@ -167,7 +169,7 @@ C**** Each tracer has a variable name and a unique index
 #endif  /* TRACERS_AEROSOLS_OCEAN */
 !@var ntm_dCO: Number of TRACERS_dCO tracers.
 #ifdef TRACERS_dCO
-      integer, parameter :: ntm_dCO=9
+      integer, parameter :: ntm_dCO=14
 #else
       integer, parameter :: ntm_dCO=0
 #endif  /* TRACERS_AEROSOLS_OCEAN */
@@ -395,6 +397,8 @@ C**** Each tracer has a variable name and a unique index
      *     n_ClOx=0,   n_BrOx=0,  n_HCl=0,   n_HOCl=0,   n_ClONO2=0,
      *     n_HBr=0,    n_HOBr=0,  n_BrONO2=0,n_CFC=0,    n_GLT=0,
 #ifdef TRACERS_dCO
+     *     n_d13Calke=0, n_d13CPAR=0,
+     *     n_d17OPAN=0, n_d18OPAN=0, n_d13CPAN=0,
      *     n_dMe17OOH=0, n_dMe18OOH=0, n_d13MeOOH=0,
      *     n_dHCH17O=0, n_dHCH18O=0, n_dH13CHO=0,
      *     n_dC17O=0, n_dC18O=0, n_d13CO=0,
@@ -457,7 +461,7 @@ C**** Each tracer has a variable name and a unique index
 ! Shindell tracer indices with offsets:
       integer :: nn_CH4,  nn_N2O, nn_Ox,   nn_NOx,  
      *     nn_N2O5,   nn_HNO3,  nn_H2O2,  nn_CH3OOH,   nn_HCHO,  
-     *     nn_HO2NO2, nn_CO,    nn_PAN,   nn_H2O17,             
+     *     nn_HO2NO2, nn_CO,    nn_PAN,   nn_H2O17,
      *     nn_Isoprene, nn_AlkylNit, nn_Alkenes, nn_Paraffin,   
      *     nn_stratOx, nn_Terpenes,nn_codirect,                
      *     nn_isopp1g,nn_isopp1a,nn_isopp2g,nn_isopp2a,         
@@ -465,6 +469,8 @@ C**** Each tracer has a variable name and a unique index
      *     nn_ClOx,   nn_BrOx,  nn_HCl,   nn_HOCl,   nn_ClONO2,  
      *     nn_HBr,    nn_HOBr,  nn_BrONO2,nn_CFC,    nn_GLT
 #ifdef TRACERS_dCO
+     *    ,nn_d13Calke,nn_d13CPAR
+     *    ,nn_d17OPAN,nn_d18OPAN,nn_d13CPAN
      *    ,nn_dMe17OOH,nn_dMe18OOH,nn_d13MeOOH
      *    ,nn_dHCH17O,nn_dHCH18O,nn_dH13CHO
      *    ,nn_dC17O, nn_dC18O, nn_d13CO
@@ -685,7 +691,9 @@ c note: not applying CPP when declaring counts/lists.
       call tracers%addDefaultValue('conc_from_fw', .true.)
 
       call tracers%addDefaultValue('iso_index', 1)
-      call tracers%addDefaultValue('om2oc', 1.4d0)
+      call tracers%addDefaultValue('om2oc', 1.d0)
+      call tracers%addDefaultValue('pm2p5fact', 0.d0)
+      call tracers%addDefaultValue('pm10fact', 0.d0)
       call tracers%addDefaultValue('to_volume_MixRat', 0)
       call tracers%addDefaultValue('to_conc', 0)
       call tracers%addDefaultValue('TRLI0', 0.0d0)
@@ -886,7 +894,13 @@ C****
 
       n = 0
       do i=1, tracers%size()
-         if (src_dist_index(i)<=1) n=n+1 ! count tracers, ignoring duplicates
+!        Count tracers, ignoring duplicates,
+!        except when it comes to the "itime_tr0"
+!        parameter for water tracers, which is
+!        needed for exact restarts:
+         if (((tr_wd_type(i).eq.nWater) .and. 
+     &        (property.eq."itime_tr0")) .or.
+     &        (src_dist_index(i)<=1)) n=n+1
       end do
       scratch = values
       call sync_param(property,scratch,n)

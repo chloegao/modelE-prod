@@ -1,5 +1,5 @@
 
-! ------ nudging files: link names based on jyear-iyear1
+! ------ nudging files: link names based on jyear
 u1950.nc=nudgeF_hold/uwnd.1950.GISS.144x89.nc
 v1950.nc=nudgeF_hold/vwnd.1950.GISS.144x89.nc
 u1951.nc=nudgeF_hold/uwnd.1951.GISS.144x89.nc
@@ -130,4 +130,8 @@ u2013.nc=nudgeF_hold/uwnd.2013.GISS.144x89.nc
 v2013.nc=nudgeF_hold/vwnd.2013.GISS.144x89.nc
 u2014.nc=nudgeF_hold/uwnd.2014.GISS.144x89.nc
 v2014.nc=nudgeF_hold/vwnd.2014.GISS.144x89.nc
+u2015.nc=nudgeF_hold/uwnd.2015.GISS.144x89.nc
+v2015.nc=nudgeF_hold/vwnd.2015.GISS.144x89.nc
+u2016.nc=nudgeF_hold/uwnd.2016.GISS.144x89_MANIP.nc
+v2016.nc=nudgeF_hold/vwnd.2016.GISS.144x89_MANIP.nc
 

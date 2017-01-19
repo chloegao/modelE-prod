@@ -11,6 +11,8 @@ module SeasaltTracersMetadata_mod
   use OldTracer_mod, only: set_trradius
   use OldTracer_mod, only: set_fq_aer
   use OldTracer_mod, only: set_tr_wd_type
+  use OldTracer_mod, only: set_pm2p5fact
+  use OldTracer_mod, only: set_pm10fact
   use TRACER_COM, only:  n_seasalt1,  n_seasalt2
   use TRACER_COM, only: offline_dms_ss, offline_ss
   use Tracer_mod, only: Tracer
@@ -48,6 +50,8 @@ module SeasaltTracersMetadata_mod
       call set_trradius(n, 4.4d-7 ) ! This is non-hydrated
       call set_fq_aer(n, 1.0d0   ) !fraction of aerosol that dissolves
       call set_tr_wd_type(n, npart)
+      call set_pm2p5fact(n, 1.d0) ! fraction that's PM2.5
+      call set_pm10fact(n, 1.d0) ! fraction that's PM10
     end subroutine seasalt1_setSpec
 
     subroutine seasalt2_setSpec(name)
@@ -63,6 +67,8 @@ module SeasaltTracersMetadata_mod
       end if
       call set_fq_aer(n, 1.0d0   ) !fraction of aerosol that dissolves
       call set_tr_wd_type(n, npart)
+      call set_pm2p5fact(n, 0.5d0) ! fraction that's PM2.5
+      call set_pm10fact(n, 1.d0) ! fraction that's PM10
     end subroutine seasalt2_setSpec
 
   end subroutine Seasalt_InitMetadata

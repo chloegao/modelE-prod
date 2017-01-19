@@ -34,9 +34,6 @@
      *     ,IJ_MRVR,IJ_EICB,IJ_MICB,IJ_GMSC,IJ_GMSCz,ij_mld 
      *     ,IJ_dEPO_Dyn
 
-#ifdef OCN_GISS_MESO
-     .     ,ij_eke,ij_rd
-#endif
 !@var lname_oij Long names for OIJ diagnostics
       CHARACTER(len=lname_strlen), DIMENSION(KOIJ) :: LNAME_OIJ
 !@var sname_oij Short names for OIJ diagnostics
@@ -76,9 +73,6 @@
 #endif
 #ifdef OCN_GISS_SM
      *     ,ijl_fvb
-#endif
-#ifdef OCN_GISS_MESO
-     .     ,ijl_ueddy,ijl_veddy,ijl_n2
 #endif
 
 !@var lname_oijl Long names for OIJL diagnostics
@@ -1311,30 +1305,6 @@ c
       scale_oijl(k) = 1.
       lgrid_oijl(k) = 2
 c
-#ifdef OCN_GISS_MESO
-      k=k+1
-      IJL_n2=k
-      lname_oijl(k) = "Brunt Vaisala frequency sq"
-      sname_oijl(k) = "n2"
-      units_oijl(k) = "1/s^2"
-      scale_oijl(k) = 1
-c
-      k=k+1
-      IJL_ueddy=k
-      lname_oijl(k) = "Eddy induced u velocity (Canuto)"
-      sname_oijl(k) = "ueddy"
-      units_oijl(k) = "m/s"
-      scale_oijl(k) = 1
-c
-      k=k+1
-      IJL_veddy=k
-      lname_oijl(k) = "Eddy induced v velocity (Canuto)"
-      sname_oijl(k) = "veddy"
-      units_oijl(k) = "m/s"
-      scale_oijl(k) = 1
-#endif
-
-c
 C**** set properties for OIJ diagnostics
       do k=1,koij
         sname_oij(k) = 'unused'
@@ -1506,24 +1476,6 @@ c
         ia_oij(k)=ia_src
         scale_oij(k)=1
       endif
-
-#ifdef OCN_GISS_MESO
-      k=k+1
-      IJ_rd=k
-      lname_oij(k)="Rossby radius of deformation"
-      sname_oij(k)="oij_rd"
-      units_oij(k)="cm"
-      ia_oij(k)=ia_src
-      scale_oij(k)=1
-
-      k=k+1
-      IJ_eke=k
-      lname_oij(k)="Depth Integrated Eddy Kinetic Energy"
-      sname_oij(k)="oij_eke"
-      units_oij(k)="cm2/s2"
-      ia_oij(k)=ia_src
-      scale_oij(k)=1
-#endif
 
       k=k+1
       IJ_SSH=k

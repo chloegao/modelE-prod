@@ -25,7 +25,7 @@
      &     nargs,k1,k2,lunit,prtpow_vmean
       integer :: lats_per_zone,j1,j2,zone,nzones,lats_this_zone
       integer :: minj,maxj
-      logical :: do_giss,all_lats,has_radonly
+      logical :: do_giss,all_lats,has_radonly,has_vmean
       real*4, parameter :: missing=-1.e30
       integer :: vid
 
@@ -104,6 +104,8 @@ c
       allocate(xjl_radonly(jm_budg,lm),xjl_radonly_hemis(3,lm))
       allocate(plm(lm),ple(lm),pm(lm))
 
+      allocate(xjl(1,1)) ! just in case allocation status undefined
+
 c
 c read geometry
 c
@@ -161,7 +163,8 @@ c
      &         xjl_radonly_hemis)
         endif
         status = nf_inq_varid(fid,trim(vname),varid)
-        status = nf_inq_varid(fid,trim(vname_vmean),varid_vmean)
+        has_vmean = nf_noerr.eq.
+     &       nf_inq_varid(fid,trim(vname_vmean),varid_vmean)
         units = ''
         status = nf_get_att_text(fid,varid,'units',units)
         if(trim(units).eq.'unused') cycle
@@ -193,6 +196,8 @@ c
           jm = jm_budg
           lat_dg(1:jm) = lat_budg_dg(1:jm)
           minj = 1; maxj = jm
+        else
+          stop 'how did we get here'
         endif
         km = lm
         if(dimids(2).eq.plm_dimid) then
@@ -207,8 +212,11 @@ c
 
         xjl_hemis = missing
         status = nf_get_var_real(fid,varid_hemis,xjl_hemis)
-        vmean = missing
-        status = nf_get_var_real(fid,varid_vmean,vmean)
+        if(has_vmean) then
+          status = nf_get_var_real(fid,varid_vmean,vmean)
+        else
+          vmean = missing
+        endif
         if(allocated(xjl)) deallocate(xjl)
         allocate(xjl(jm,lm))
         status = nf_get_var_real(fid,varid,xjl)

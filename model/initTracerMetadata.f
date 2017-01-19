@@ -5,6 +5,7 @@
       use Dictionary_mod, only: sync_param
       use RunTimeControls_mod, only: tracers_amp
       use RunTimeControls_mod, only: tracers_tomas
+      use RunTimeControls_mod, only: tracers_aerosols_vbs
       use OldTracer_mod, only: trName, do_fire, do_aircraft
       use OldTracer_mod, only: set_do_fire, set_do_aircraft
       use OldTracer_mod, only: set_first_aircraft, first_aircraft
@@ -42,7 +43,7 @@
 !     sources to sectors, if desired:
 !     general case:
 
-      if (tracers_amp .or. tracers_tomas) then
+      if (tracers_amp .or. tracers_tomas .or. tracers_aerosols_vbs) then
          checkSourceName = .false.
       else if (trname(n) == 'codirect') then 
          checkSourceName = .false.
@@ -66,7 +67,8 @@
         select case (trname(n))
           case('NOx','CO','Alkenes','Paraffin','BCB','OCB','NH3','SO2',
 #ifdef TRACERS_dCO
-               'dC17O', 'dC18O', 'd13CO',
+     &         'd13Calke', 'd13CPAR',
+     &         'dC17O', 'dC18O', 'd13CO',
 #endif  /* TRACERS_dCO */
      &         'vbsAm2', 'vbsAm1', 'vbsAz',  'vbsAp1', 'vbsAp2',
      &         'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6'
@@ -226,11 +228,6 @@
       call sync_param("OFFLINE_DMS_SS",OFFLINE_DMS_SS)
 !**** seasalt from offline fields
       call sync_param("OFFLINE_SS",OFFLINE_SS)
-#endif
-
-#ifdef TRACERS_SPECIAL_Lerner
-      n_MPtable = 0
-      tcscale = 0.
 #endif
 
 ! ***  BEGIN TRACER METADATA INITIALIZATION

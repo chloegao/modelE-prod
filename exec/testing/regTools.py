@@ -19,8 +19,10 @@ def setupEnv(config, compconfig):
     logger.info('Setup testing environment')
     userconfig = util.ConfigSectionMap(config, 'USERCONFIG')
     branch =  userconfig['repobranch']
-    resultsDir = userconfig['scratchdir'] + '/results/' + userconfig['repobranch']
-    scratchDir = userconfig['scratchdir'] + '/scratch/' + userconfig['repobranch']
+    if not branch:
+        branch = 'detached'
+    resultsDir = userconfig['scratchdir'] + '/results/' + branch
+    scratchDir = userconfig['scratchdir'] + '/scratch/' + branch
     makesystem =  userconfig['makesystem']
 
     # Make sure - if specified - that work space is clean
@@ -40,12 +42,20 @@ def gitCloneRepository(config):
     scratch = userconfig['scratchdir']
     repo = userconfig['repository']
     branch =  userconfig['repobranch']
-    clone = scratch + '/scratch/' + branch + '/' + branch
+
+    if not branch:
+        branch = 'detached'
+        clone = scratch + '/scratch/' + branch + '/' + branch
+        cmd = (['git', 'clone', repo, clone])
+    else:
+        clone = scratch + '/scratch/' + branch + '/' + branch
+        cmd = (['git', 'clone', '-b', branch, repo, clone])
+
     resultsDir = userconfig['scratchdir'] + '/results/' + branch + '/'
 
     cwd = os.getcwd()
     logger.debug('Cloning %s into %s', repo, clone)
-    cmd = (['git', 'clone', '-b', branch, repo, clone])
+
     proc = sp.Popen(cmd)
     proc.wait()
 	
@@ -53,13 +63,15 @@ def gitCloneRepository(config):
     cmd = "git log --pretty=format:'%h - %an, %ar : %s' --since=1.day"
     os.system(cmd+'>'+resultsDir+'gitLog')
 	
-    os.chdir(cwd)
+    os.chdir(cwd)	
 
 #-------------------------------------------------------------------------------
 # ModelE specific setup
 def setupModelEenv(config, compconfig):
     userconfig =util. ConfigSectionMap(config, 'USERCONFIG')
     branch =  userconfig['repobranch']
+    if not branch:
+        branch = 'detached'
     resultsDir = userconfig['scratchdir'] + '/results/' + branch
     scratchDir = userconfig['scratchdir'] + '/scratch/' + branch
     makesystem =  userconfig['makesystem']
@@ -204,6 +216,8 @@ def setupRuns(config, compconfig, decklist):
     scratch = userconfig['scratchdir']
     repo = userconfig['repository']
     branch =  userconfig['repobranch']
+    if not branch:
+        branch = 'detached'
     repo = scratch + '/scratch/' + branch + '/' + branch
     os.chdir(scratch + '/scratch/' + branch)
 
@@ -255,6 +269,8 @@ def createScriptTask(config, compconfig, deck, comp, mode):
     modules    = userconfig['modules']
     useBatch   = userconfig['usebatch']
     branch     = userconfig['repobranch']
+    if not branch:
+        branch = 'detached'
     scriptsDir = userconfig['scriptsdir'] + '/'
     useMods    = userconfig['modules']
     resultsDir = userconfig['scratchdir'] + '/results/' + \
@@ -284,7 +300,13 @@ def createScriptTask(config, compconfig, deck, comp, mode):
         elif deck.getOpt('verification') == 'customRun':
             if re.search('campi', deckName):
                 walltime = '4:00:00'
+            elif re.search('Tmatrix', deckName):
+                walltime = '4:00:00'
+            elif re.search('Ttomas', deckName):
+                walltime = '4:00:00'
             elif re.search('cadi', deckName):
+                walltime = '2:00:00'
+            elif re.search('Toma', deckName):
                 walltime = '2:00:00'
             elif re.search('obio', deckName):
                 walltime = '1:00:00'
@@ -304,9 +326,13 @@ def createScriptTask(config, compconfig, deck, comp, mode):
                 cores = 1
                 walltime = '00:30:00'
                 if re.search('obio', deckName):
-                    walltime = '01:30:00'
+                    walltime = '01:00:00'
                 elif re.search('cadi', deckName):
                     walltime = '04:00:00'
+                elif re.search('Toma', deckName):
+                    walltime = '04:00:00'
+                elif re.search('vsd', deckName):
+                    walltime = '01:00:00'
 
             # Adjust the walltime for some rundecks
             if re.search('C12', deckName):
@@ -316,9 +342,15 @@ def createScriptTask(config, compconfig, deck, comp, mode):
             elif re.search('SGP', deckName):
                 walltime = '00:10:00'
             elif re.search('campi', deckName):
-                walltime = '04:00:00'
+                walltime = '02:00:00'
             elif re.search('ctomas', deckName):
-                walltime = '08:00:00'
+                walltime = '02:00:00'
+            elif re.search('Ttomas', deckName):
+                walltime = '02:00:00'
+            elif re.search('Tmatrix', deckName):
+                walltime = '02:00:00'
+            elif re.search('vsd', deckName):
+                walltime = '02:00:00'
 
         outname = resultsDir + '/' + jobName + '.' + mode + '.out'
         errname = resultsDir + '/' + jobName + '.' + mode + '.err'
@@ -402,6 +434,8 @@ def createScriptTask(config, compconfig, deck, comp, mode):
 def createRegConfig(config, deck, modelErc, comp, jobName, mode):
     cfg  = util.ConfigSectionMap(config, 'USERCONFIG')
     branch     = cfg['repobranch']
+    if not branch:
+        branch = 'detached'
     resultsDir = cfg['scratchdir'] + '/results/' + \
             branch + '/' + comp
     scratch = cfg['scratchdir'] + '/scratch/' + \
@@ -432,7 +466,7 @@ def createRegConfig(config, deck, modelErc, comp, jobName, mode):
         regconfig.set('regSettings', 'repository', cfg['repository'])
     else:
         # Out of source build still pollutes the repository a little bit,
-        # specially for nonProduction builds. So, let's make sure we poullte
+        # specially for nonProduction builds. So, let's make sure we pollute
         # a clone.
         newrepo = cfg['scratchdir']+'/scratch/'+branch+'/'+branch      
         regconfig.set('regSettings', 'repository', newrepo)
@@ -455,14 +489,19 @@ def sendDiffreport(config, compconfig, eTime):
     userconfig  = util.ConfigSectionMap(config, 'USERCONFIG')
     mailto     = userconfig['mailto']
     branch     = userconfig['repobranch']
+    if not branch:
+        branch = 'detached'
     resultsDir = userconfig['scratchdir'] + '/results/' + branch
     buildtype  = userconfig['buildtype']
     message    = userconfig['message']
+    html       = userconfig['html']
     sortdiff   = userconfig['sortdiff']
     compilers  = util.getCompilers(compconfig)
 
     diffFile = resultsDir + '/' + 'diffreport.txt'
     fp = open(diffFile, 'w')
+    if html == 'yes':
+        fp.write('<html><pre>\n')
     fp.write(message + ' \n')
     fp.write('Repository: ' + userconfig['repository'] +  '\n')
     fp.write('-'*80+'\n')
@@ -477,7 +516,7 @@ def sendDiffreport(config, compconfig, eTime):
     if sortdiff == 'yes':
         sp.call('find '+resultsDir+' -name \*.diff -exec cat {} \; >' \
                     +resultsDir + '/' + 'alldiffs', shell=True)
-        sp.call('cat '+resultsDir + '/' + 'alldiffs | sort -k 2,2 >' \
+        sp.call('cat '+resultsDir + '/' + 'alldiffs | sort -k 1,1 >' \
                     +resultsDir + '/' + 'sorteddiffs', shell=True)
         with open(resultsDir + '/' + 'sorteddiffs','r') as inf:
             fp.write(inf.read())
@@ -537,9 +576,14 @@ def sendDiffreport(config, compconfig, eTime):
         fp.write(inf.read())
     fp.write( '\n')
     fp.write('-'*80+'\n')
+    if html == 'yes':
+        fp.write('</pre><html>\n')
     fp.close()
 
     subject = '"[modelE-regression]" '
     cmd = '/usr/bin/mail -s ' + subject + mailto + ' < ' + diffFile
+    if html == 'yes':
+        pref = 'mutt -e "set content_type=text/html" -s '
+        cmd = pref + subject + mailto + ' < ' + diffFile
     sp.call(cmd, shell=True)
 

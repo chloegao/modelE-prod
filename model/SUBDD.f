@@ -1110,7 +1110,7 @@ c
       type(info_type) :: diaglist(listlen)
 c
       integer :: i,j,k,kk,l,nperiod,dsize3,dsize3out
-      integer, parameter :: kmax=512
+      integer, parameter :: kmax=1024
       ! overdimensioned temporary instances of metadata to collect declarations
       real*8, dimension(kmax) :: scale_tmp
       integer, dimension(kmax) :: sched_tmp,reduc_tmp,denom_tmp
@@ -1444,7 +1444,7 @@ C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
       integer, dimension(8), parameter :: allowed_hrfreqs_timeavg=
      &     (/ 1, 2, 3, 4, 6, 8, 12, 24 /)
       integer, dimension(11) :: allowed_freqs_timeavg
-      integer, parameter :: nmax_possible=512,ncats_max=15
+      integer, parameter :: nmax_possible=1024,ncats_max=15
       character(len=sname_strlen) :: catshape,grpname
       character(len=sname_strlen), dimension(ncats_max) ::
      &     catshapes,categories

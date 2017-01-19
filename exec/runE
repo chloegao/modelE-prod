@@ -83,7 +83,11 @@ fi
 ## form the "qsub" request here
 run_command=${RUNID}.qsub
 cd "$CMRUNDIR/$RUNID"
-echo "#!/bin/sh" > $run_command
+echo "#!/bin/bash" > $run_command
+echo "if [ -s modules ] ; then" >> $run_command
+echo "  if [ -f /usr/share/modules/init/bash ] ; then . /usr/share/modules/init/bash ; fi" >>  $run_command
+echo "  if [ -f /usr/share/Modules/init/bash ] ; then . /usr/share/Modules/init/bash ; fi" >>  $run_command
+echo '  module purge ; module load `cat modules` ; fi' >> $run_command
 echo "trap '' TERM" >> $run_command
 echo "cd $CMRUNDIR/$RUNID" >> $run_command
 echo "./$RUNID $OPTS" >> $run_command

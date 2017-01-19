@@ -6,7 +6,6 @@
 !@this is called in CLOUDS2_E1 if MATRIX is used to set aerosols
       USE CLOUDS_COM
       USE TRACER_COM, only: ntm_ococean, ntm_soa
-      USE CONSTANT,only:mb2kg,by3 ,avog,bygasc,RGAS
       IMPLICIT NONE
       real*8 AIRM,EXPL,EXPO,WCDNO,WCDNL,rho
      *,MCDNL1,MCDNO1,amass,tams,smturb,DXYPJ,PL,TL
@@ -129,7 +128,7 @@ c
       USE TRACER_COM, only: n_seasalt1, n_seasalt2, ntm_ococean
       use TRACER_COM, only: ntm_soa
       use OldTracer_mod, only: fq_aer
-      USE CONSTANT,only:mb2kg,by3 ,avog,bygasc,RGAS
+      USE CONSTANT,only:mb2kg,RGAS
       IMPLICIT NONE
       real*8 AIRM,EXPL,EXPO,WCDNO,WCDNL,rho
      *,MCDNL1,MCDNO1,amass,tams,smturb,DXYPJ,PL,TL
@@ -228,7 +227,7 @@ c
 !@when using mass based aerosols
       USE CLOUDS_COM
       USE TRACER_COM, only: nbins
-      USE CONSTANT,only:mb2kg,by3 ,avog,bygasc,RGAS
+      USE CONSTANT,only:mb2kg,RGAS
       IMPLICIT NONE
       real*8 AIRM,EXPL,EXPO,WCDNO,WCDNL,rho
      *,MCDNL1,MCDNO1,amass,tams,DXYPJ,PL,TL,SSMAL,SSMAO

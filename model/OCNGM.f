@@ -1122,16 +1122,6 @@ C**** S2X0...S2X3, S2Y0...S2Y3
       S2Y1(I,J,L) = AIY1ST * SIY1 * SIY1 * BYDYP(J) * DYVO(J)
       S2Y2(I,J,L) = AIY2ST * SIY2 * SIY2 * BYDYP(J) * DYVO(J-1)
       S2Y3(I,J,L) = AIY3ST * SIY3 * SIY3 * BYDYP(J) * DYVO(J-1)
-#ifdef OCN_GISS_MESO
-      AIX0(I,J,L) = ARIV(I,J,L)
-      AIX2(I,J,L) = ARIV(I,J,L)
-      AIY0(I,J,L) = ARIV(I,J,L)
-      AIY2(I,J,L) = ARIV(I,J,L)
-      AIX1(I,J,L) = ARIV(I,J,L)
-      AIX3(I,J,L) = ARIV(I,J,L)
-      AIY1(I,J,L) = ARIV(I,J,L)
-      AIY3(I,J,L) = ARIV(I,J,L)
-#endif
   800 IM1 = I
       END DO
       END DO

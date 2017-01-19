@@ -1741,8 +1741,8 @@ C****
      *     ,trdwnimp
 #endif
 #ifdef IRRIGATION_ON
-      USE IRRIGATE_CROP, only : irrigate_flux
-#endif
+      USE IRRIGMOD, only : read_irrig
+#endif  /* IRRIGATION_ON   */
       USE DIAG_COM, only : j_run,j_erun,jreg,j_implm
      *                    ,J_IMPLH, AIJ=>AIJ_LOC,itlkice,itlake,
      *                     IJ_MLKtoGR,IJ_HLKtoGR,IJ_IMPMKI,IJ_IMPHKI
@@ -1787,8 +1787,8 @@ C****
 
 #ifdef IRRIGATION_ON
 C**** Read potential irrigation daily
-      call irrigate_flux(.true.)
-#endif
+      call read_irrig(.true.)
+#endif  /* IRRIGATION_ON   */
 
 C**** Update lake fraction as a function of lake mass at end of day
 C**** Assume lake is conical
@@ -2277,7 +2277,7 @@ C****
      *     ,trlake,ntm
 #endif
       USE LAKES, only : minmld,hlake_min
-      USE IRRIGATE_CROP, only : irrigate_extract
+      USE IRRIGMOD, only : irrigate_extract
       USE FLUXES,only : fland,irrig_water_act, irrig_energy_act
 #ifdef TRACERS_WATER
      *     ,irrig_tracer_act

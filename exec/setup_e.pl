@@ -221,7 +221,7 @@ foreach $_ ( @data_files ) {
     ($name, $dest) = split /\s*=\s*/;
     if ( $dest !~ /^\// ) { 
 	my $dir="";
-	foreach $dir (split /:/, $GCMSEARCHPATH) {
+	foreach $dir (split /:/, $GCMSEARCHPATH) { #/ - emacs fix
 	    if ( -e "$dir/$dest" ) {
 		$full_dest = "$dir/$dest";
 		last;
@@ -297,6 +297,8 @@ if ( $LOCATION =~ /Pleiades/i ) {
 	$mpi_start = "mpdboot --file=\$PBS_NODEFILE --ncpus=1 --totalnum=`cat \$PBS_NODEFILE  | sort -u | wc -l` --ifhn=`head -1 \$PBS_NODEFILE` --rsh=ssh --mpd=`which mpd` --ordered";
 	$mpi_run = "mpiexec \$MPI_FLAGS -np \$NP";
 	$mpi_stop = "mpdallexit";
+    } else {
+        $mpi_run = "mpiexec \$MPI_FLAGS -np \$NP";
     }
 }
 
@@ -432,6 +434,9 @@ close RUNID;
 chmod 0777 & $umask_inv, $runID;
 ## end of RUNID script
 `ln -sf $runID E`;
+
+## save the list of current modules
+`echo \$LOADEDMODULES | sed -s 's/:/ /g;' > modules`;
 
 ## setup finished normally
 exit 0 ;

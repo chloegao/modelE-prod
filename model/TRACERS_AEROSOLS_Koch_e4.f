@@ -609,9 +609,6 @@ c
      &      ohrCache, dho2rCache, perjrCache, tno3rCache
       USE CONSTANT, only : mair
       use TimeConstants_mod, only: SECONDS_PER_DAY
-#ifdef TRACERS_SPECIAL_Shindell
-      USE TRCHEM_Shindell_COM, only: which_trop
-#endif
 #ifdef TRACERS_TOMAS
       USE TOMAS_AEROSOL, only : h2so4_chem
 #endif

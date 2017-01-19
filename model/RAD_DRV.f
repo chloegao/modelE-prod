@@ -115,7 +115,10 @@ C****
 #endif
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
-      use tracer_com, only: ntm_clay, n_soilDust
+      use trdust_mod, only : imDust, nSubClays, subClayWeights
+      use trdust_drv, only : calcSubClayWeights
+      use tracer_com, only: ntm_clay, ntm_sil1, ntm_sil2, ntm_sil3,
+     &     ntm_sil4, ntm_sil5, n_soilDust
       use rad_com, only: nr_soildust
 #endif
 #ifdef TRACERS_MINERALS
@@ -138,14 +141,8 @@ C****
      &     n_sil4kahe, n_sil4smhe, n_sil5quar, n_sil5feld, n_sil5calc,
      &     n_sil5hema, n_sil5gyps, n_sil5illi, n_sil5kaol, n_sil5smec,
      &     n_sil5quhe, n_sil5fehe, n_sil5cahe, n_sil5gyhe, n_sil5ilhe,
-     &     n_sil5kahe, n_sil5smhe, ntm_sil1, ntm_sil2, ntm_sil3,
-     &     ntm_sil4, ntm_sil5
+     &     n_sil5kahe, n_sil5smhe
       use trdust_mod, only: nSubClays, effRadMinerals, subClayWeights
-      use trdust_drv, only : calcSubClayWeights
-#endif
-#ifdef TRACERS_DUST
-      use trdust_mod, only : nSubClays, subClayWeights
-      use trdust_drv, only : calcSubClayWeights
 #endif
 #ifdef TRACERS_AMP
       USE AERO_CONFIG, only: nmodes
@@ -819,16 +816,9 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
 
         if ( tracers_minerals ) call calcSubClayWeights
 
-        wttr( n+1:n+nraero_dust )= (/((subClayWeights( ntrix_aod(i)
-     &       -n_soilDust+1, j ), j=1,nSubClays), i=n+1,ntm_clay), (1.d0,
-     &       i=1,ntm_sil1+ntm_sil2+ntm_sil3)
-#ifdef TRACERS_DUST_Silt4
-     &       ,(1.d0, i=1, ntm_sil4)
-#endif  /* TRACERS_DUST_Silt4 */
-#ifdef TRACERS_DUST_Silt5
-     &       ,(1.d0, i=1, ntm_sil5)
-#endif  /* TRACERS_DUST_Silt5 */
-     &       /)
+        wttr( n+1:n+nraero_dust ) = (/ ( ( subClayWeights( i, j ), j=1
+     &       ,nSubClays ), i=1,ntm_clay ), ( 1.d0, i=1,ntm_sil1+ntm_sil2
+     &       +ntm_sil3+ntm_sil4+ntm_sil5 ) /)
 
         densclay=(/(trpdens(n_clayilli), i=1,nSubClays),
      &             (trpdens(n_claykaol), i=1,nSubClays),
@@ -892,15 +882,22 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
 #endif  /* TRACERS_DUST_Silt5 */
      &                             /)
 
-        wttr(n+1:n+nraero_dust)=(/0.009d0,0.081d0,0.234d0,0.676d0,
-     &                            1.d0,1.d0,1.d0
-#ifdef TRACERS_DUST_Silt4
-     &                           ,1.d0
-#endif  /* TRACERS_DUST_Silt4 */
-#ifdef TRACERS_DUST_Silt5
-     &                           ,1.d0
-#endif  /* TRACERS_DUST_Silt5 */
-     &                           /)
+        if ( imDust >= 4 ) then
+
+          call calcSubClayWeights
+
+          wttr( n+1:n+nraero_dust ) = (/ ( ( subClayWeights( i , j ), j
+     &         =1,nSubClays ), i=1,ntm_clay ), ( 1.d0, i=1,ntm_sil1
+     &         +ntm_sil2+ntm_sil3+ntm_sil4+ntm_sil5 ) /)
+
+        else
+
+          wttr( n+1:n+nraero_dust ) = (/ 0.009d0, 0.081d0, 0.234d0,
+     &         0.676d0,( 1.d0, i=1,ntm_sil1+ntm_sil2+ntm_sil3+ntm_sil4
+     &         +ntm_sil5 ) /)
+
+        end if
+
 ! Particle density of dust
         traden(n+1:n+nraero_dust)=(/2.5d0,2.5d0,2.5d0,2.5d0,
      &                              2.65d0,2.65d0,2.65d0
@@ -1010,7 +1007,8 @@ C**** set up unit numbers for 14 more radiation input files
       if(.not.transmission_corrections) nrfun(4) = donotread
       if(madvol == 0) nrfun(7) = donotread
       if(madeps == 0) nrfun(8) = donotread
-      if(ksolar < 0)  nrfun(9) = donotread
+!      if(ksolar < 0)  nrfun(9) = donotread
+      nrfun(9) = donotread     ! open/read RADN9 inside RCOMP1  
       DO IU=1,14
         if(nrfun(iu) == donotread) cycle
         call openunit(RUNSTR(IU),NRFUN(IU),QBIN(IU),.true.)
@@ -1620,6 +1618,7 @@ C     OUTPUT DATA
       USE RANDOM
       USE CLOUDS_COM, only : tauss,taumc,svlhx,rhsav,svlat,cldsav,
      *     cldmc,cldss,csizmc,csizss,llow,lmid,lhi,fss,taussip,csizssip
+     *    ,QLss,QIss,QLmc,QImc
      *    ,get_cld_overlap  !  subroutine
       USE DIAG_COM, only : ia_rad,jreg,aij=>aij_loc,aijl=>aijl_loc
      &     ,ntype,ftype,itocean,itlake,itearth,itlandi,itoice,itlkice
@@ -1870,6 +1869,7 @@ c     INTEGER ICKERR,JCKERR,KCKERR
 
       REAL*8, DIMENSION(:,:), POINTER :: RSI,ZSI,SNOWI,POND_MELT
       LOGICAL, DIMENSION(:,:), POINTER :: FLAG_DSWS
+      real*8 :: rhodz ! air density times layer thickness (kg/m2
       integer :: year, dayOfYear, hour, date
 
 #ifdef TRACERS_ON
@@ -2223,6 +2223,7 @@ C**** Adjust RDSS for semi-random overlap
      *       shl(L)=(Q(I,J,L)-QSS*FSS(L,I,J)*CLDSAV(L,I,J))/
      /              (1.-FSS(L,I,J)*CLDSAV(L,I,J))
         TLm(L)=T(I,J,L)*PK(L,I,J)
+        rhodz=pdsig(l,i,j)*100/grav
         TAUSSL=0.
         TAUSSLIP=0.
         TAUMCL=0.
@@ -2265,11 +2266,17 @@ C**** save 3D cloud fraction as seen by radiation
               OPTDW=OPTDW+TAUWC(L)
               call inc_ajl(i,j,l,jl_wcld,1d0)
               call inc_ajl(i,j,l,jl_wcldwt,pdsig(l,i,j))
+              aij(i,j,ij_lwprad)=aij(i,j,ij_lwprad)+QLmc(l,i,j)*rhodz
+              aijl(i,j,l,ijl_QLrad)=aijl(i,j,l,ijl_QLrad)
+     &                             +QLmc(l,i,j)*pdsig(l,i,j)
             ELSE
               TAUIC(L)=cldx*TAUMCL
               OPTDI=OPTDI+TAUIC(L)
               call inc_ajl(i,j,l,jl_icld,1d0)
               call inc_ajl(i,j,l,jl_icldwt,pdsig(l,i,j))
+              aij(i,j,ij_iwprad)=aij(i,j,ij_iwprad)+QImc(l,i,j)*rhodz
+              aijl(i,j,l,ijl_QIrad)=aijl(i,j,l,ijl_QIrad)
+     &                             +QImc(l,i,j)*pdsig(l,i,j)
             END IF
           ELSE
             SIZEWC(L)=CSIZSS(L,I,J)
@@ -2279,18 +2286,27 @@ C**** save 3D cloud fraction as seen by radiation
               OPTDW=OPTDW+TAUWC(L)
               call inc_ajl(i,j,l,jl_wcld,1d0)
               call inc_ajl(i,j,l,jl_wcldwt,pdsig(l,i,j))
+              aij(i,j,ij_lwprad)=aij(i,j,ij_lwprad)+QLss(l,i,j)*rhodz
+              aijl(i,j,l,ijl_QLrad)=aijl(i,j,l,ijl_QLrad)
+     &                             +QLss(l,i,j)*pdsig(l,i,j)
               if(tausslip.gt.0.) then
                 SIZEIC(L)=CSIZSSIP(L,I,J)
                 TAUIC(L)=cldx*TAUSSLIP
                 OPTDI=OPTDI+TAUIC(L)
                 call inc_ajl(i,j,l,jl_icld,1d0)
                 call inc_ajl(i,j,l,jl_icldwt,pdsig(l,i,j))
+                aij(i,j,ij_iwprad)=aij(i,j,ij_iwprad)+QIss(l,i,j)*rhodz
+                aijl(i,j,l,ijl_QIrad)=aijl(i,j,l,ijl_QIrad)
+     &                               +QIss(l,i,j)*pdsig(l,i,j)
               endif
             ELSE
               TAUIC(L)=cldx*TAUSSL
               OPTDI=OPTDI+TAUIC(L)
               call inc_ajl(i,j,l,jl_icld,1d0)
               call inc_ajl(i,j,l,jl_icldwt,pdsig(l,i,j))
+              aij(i,j,ij_iwprad)=aij(i,j,ij_iwprad)+QIss(l,i,j)*rhodz
+              aijl(i,j,l,ijl_QIrad)=aijl(i,j,l,ijl_QIrad)
+     &                             +QIss(l,i,j)*pdsig(l,i,j)
             END IF
           END IF
           call inc_ajl(i,j,l,jl_wcod,tauwc(l))
@@ -3222,6 +3238,7 @@ C**** Save cloud tau=1 related diagnostics here (opt.depth=1 level)
      +           (plb(l)-plb(l+1))*wtlin )
             go to 590
          end if
+         tauup=taudn
       end do
  590  continue
 

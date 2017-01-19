@@ -39,7 +39,7 @@ computer to see which scripts are available there.
 <P>
 The command to start a model run
 <pre>
-    runE &lt;RunID&gt; [-np NP] [-cold-restart] [-d] [-q] [-l logfile]
+    runE &lt;RunID&gt; [-np NP] [-t time] [-cold-restart] [-d] [-q] [-l logfile] [-s tag]
 </pre>
 Here <code>&lt;RunID&gt;</code> is the name of your run (rundeck name
 without <code>.R</code>). The script accepts the following options:
@@ -47,6 +47,11 @@ without <code>.R</code>). The script accepts the following options:
 <dt><code>-np NP</code></dt>
 <dd>
 Run the model in parallel with <code>NP</code> MPI threads.
+</dd>
+<dt><code>-t time</code></dt>
+<dd>
+Specify the execution time <code>time</code> to be used
+in <code>QSUB_STRING</code> (see below). Otherwise has no effect.
 </dd>
 <dt><code>-cold-restart</code></dt>
 <dd>
@@ -71,6 +76,11 @@ written to <code>&lt;RunID&gt;.PRT</code> file.
 Instead of <code>&lt;RunID&gt;.PRT</code> use <code>logfile</code> as
 a log file.  
 </dd>
+<dt><code>-s tag</code></dt>
+<dd>
+Instead of default <code>QSUB_STRING</code>
+use <code>QSUB_STRING_tag</code> (see below). 
+</dd>
 </dl>
 
 <P>
@@ -78,10 +88,26 @@ If you want to use this script to start model runs as batch jobs on a
 supercomputer, you can do it in most cases. You just have to add a
 variable <code>QSUB_STRING</code> to your <code>~/.modelErc</code>
 file and set it to a command which would start an appropriate batch
-job. Since typically one would need to change this command for
-different types of jobs, it is advisable to use this method only for 
-initial short runs.
+job. One can set several such strings (with different settings) giving
+each one a &quot;tag&quot; and choose which string to use by
+specifying the tag with <code>-s</code> flag. For example, for Slurm
+resource manager you could use
+<pre>
+QSUB_STRING=&quot;sbatch -A account_name -n %np -t %t&quot;
+QSUB_STRING_debug=&quot;sbatch --qos=debug -A account_name -n %np -t %t&quot;
+</pre>
+Here <code>%np</code> and <code>%t</code> are the number of MPI
+threads and execution time passed from the command line.
 
+<P>
+To start a run which was set up in the previous section, you can just
+execute 
+<pre>
+    ../exec/runE &lt;RunID&gt; -np &lt;NP&gt;
+</pre>
+Actually, this command will always restart
+your <code>&lt;RunID&gt;</code> run from the latest saved checkpoint
+file.
 
 <H4>Stopping the model</H4>
 

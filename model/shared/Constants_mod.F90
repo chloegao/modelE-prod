@@ -167,7 +167,9 @@ module constant
   real*8,parameter :: visc_wtr_kin = 1.05d-6
 
 !@var avog Avogadro's constant (molecules/mole)
+!@var byavog 1 over Avogadro's constant (molecules/mole)^-1
   real*8,parameter :: avog=6.02214129d23
+  real*8,parameter :: byavog=1.d0/avog
 
 !**** Astronomical constants
 !@param daysPerYear number of solar days per orbital period

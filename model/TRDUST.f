@@ -89,7 +89,7 @@ c     than threshold dryhr to permit dust emission
         qdust=.FALSE.
       END IF
 
-      ELSE IF (imDUST == 0) THEN
+      ELSE IF ( imDUST == 0 .or. imDust >= 3 ) THEN
 
 c**** dust emission using probability density function of wind speed
       IF (itype == 4 .AND. snowe <= 1.D0) THEN
@@ -281,14 +281,16 @@ c**** output
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_AMP)  || (defined TRACERS_TOMAS)
+      use RunTimeControls_mod, only : tracers_minerals
       USE socpbl,ONLY : t_pbl_args
       use tracer_com, only: Ntm_dust
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
      &     , n_soildust
 #endif
       use OldTracer_mod, only: trname
-      use trdust_mod,only : nAerocomDust,CWiCub,FClWiCub,FSiWiCub,
-     &     CWiPdf,FracClayPDFscheme,FracSiltPDFscheme,imDust
+      use trdust_mod,only : nDustBins, CWiCub, FClWiCub, FSiWiCub,
+     &     CWiPdf, scaleDustEmission, fracClayPDFscheme,
+     &     fracSiltPDFscheme, imDust
 
       IMPLICIT NONE
 
@@ -300,32 +302,31 @@ c**** output
 
       integer :: n1, n_bin
       REAL*8 :: vtrsh
-      real(kind=8) :: d_dust(nAerocomDust)
+      real( kind=8 ) :: d_dust( nDustBins )
       REAL*8 :: frtrac
       LOGICAL :: qdust
       REAL*8 :: frclay,frsilt
       real(kind=8) :: ers_data,dustSourceFunction,soilvtrsh,pdfint
-#ifdef TRACERS_MINERALS
-      real(kind=8) :: mineralFractions( Ntm_dust )
-#endif
+      real(kind=8) :: mineralFractions( max( nDustBins, ntm_dust ) )
+      real( kind=8 ) :: zsum
 
 c**** input
       qdust=pbl_args%qdust
       vtrsh=pbl_args%vtrsh
-      IF (imDust == 1) d_dust(:)=pbl_args%d_dust(:)
+      IF ( imDust == 1 .or. imDust == 3 .or. imDust == 5 ) d_dust( : ) =
+     &     pbl_args%d_dust( : )
       frclay=pbl_args%frclay
       frsilt=pbl_args%frsilt
       ers_data=pbl_args%ers_data
       dustSourceFunction = pbl_args%dustSourceFunction
       soilvtrsh=pbl_args%wtrsh
       pdfint=pbl_args%pdfint
-#ifdef TRACERS_MINERALS
       mineralFractions( : ) = pbl_args%mineralFractions( : )
-#endif
 
 c**** initialize
       dsrcflx=0.D0
       dsrcflx2=0.D0
+      frtrac = scaleDustEmission
       IF (qdust) THEN
 
       IF (imDUST /= 1) THEN
@@ -338,10 +339,10 @@ c**** Interactive dust emission
      &         ,'ClayQuar','ClayFeld','ClayHema','ClayGyps','ClayIlHe'
      &         ,'ClayKaHe','ClaySmHe','ClayCaHe','ClayQuHe','ClayFeHe'
      &         ,'ClayGyHe')
-          IF (imDust == 0) THEN
-            frtrac = FracClayPDFscheme
+        IF ( imDust == 0 .or. imDust >= 3 ) THEN
+            frtrac = FracClayPDFscheme*frtrac
           ELSE IF (imDust == 2) THEN
-            frtrac=FClWiCub*frclay
+            frtrac=FClWiCub*frclay*frtrac
           END IF
         case('Silt1','Silt2','Silt3','Silt4','Silt5','Sil1Quar'
      &         ,'Sil1Feld','Sil1Calc','Sil1Hema','Sil1Gyps','Sil1Illi'
@@ -359,35 +360,118 @@ c**** Interactive dust emission
      &         ,'Sil5Feld','Sil5Calc','Sil5Hema','Sil5Gyps','Sil5Illi'
      &         ,'Sil5Kaol','Sil5Smec','Sil5QuHe','Sil5FeHe','Sil5CaHe'
      &         ,'Sil5GyHe','Sil5IlHe','Sil5KaHe','Sil5SmHe')
-          IF (imDust == 0) THEN
-            frtrac = FracSiltPDFscheme
+        IF ( imDust == 0 .or. imDust >= 3 ) THEN
+            frtrac = FracSiltPDFscheme*frtrac
           ELSE IF (imDust == 2) THEN
-            frtrac=FSiWiCub*frsilt
+            frtrac=FSiWiCub*frsilt*frtrac
           END IF
         case default
           return
         END SELECT
 
-#ifdef TRACERS_MINERALS
-        frtrac = frtrac * mineralFractions( n - n_soildust + 1 )
-#endif
+        if ( imDust == 3 .or. imDust == 5 ) then
+c*****    shape size distribution of dust emission flux according to
+c         AeroCom size distribution (imDust=3) or use AeroCom
+c         distribution as additional mask for dust emission (imDust=5)
+          SELECT CASE(trname(n))
+
+          case('Clay','ClayIlli' ,'ClayKaol','ClaySmec','ClayCalc'
+     &         ,'ClayQuar','ClayFeld','ClayHema','ClayGyps','ClayIlHe'
+     &         ,'ClayKaHe','ClaySmHe','ClayCaHe','ClayQuHe','ClayFeHe'
+     &         ,'ClayGyHe')
+          n_bin = 1
+
+          case('Silt1','Sil1Quar','Sil1Feld','Sil1Calc','Sil1Hema'
+     &         ,'Sil1Gyps','Sil1Illi','Sil1Kaol','Sil1Smec','Sil1QuHe'
+     &         ,'Sil1FeHe','Sil1CaHe','Sil1GyHe','Sil1IlHe','Sil1KaHe'
+     &         ,'Sil1SmHe')
+          n_bin = 2
+
+          case('Silt2','Sil2Quar','Sil2Feld','Sil2Calc','Sil2Hema'
+     &         ,'Sil2Gyps','Sil2Illi','Sil2Kaol','Sil2Smec','Sil2QuHe'
+     &         ,'Sil2FeHe','Sil2CaHe','Sil2GyHe','Sil2IlHe','Sil2KaHe'
+     &         ,'Sil2SmHe')
+          n_bin = 3
+
+          case('Silt3','Sil3Quar','Sil3Feld','Sil3Calc','Sil3Hema'
+     &         ,'Sil3Gyps','Sil3Illi','Sil3Kaol','Sil3Smec','Sil3QuHe'
+     &         ,'Sil3FeHe','Sil3CaHe','Sil3GyHe','Sil3IlHe','Sil3KaHe'
+     &         ,'Sil3SmHe')
+          n_bin = 4
+
+          case('Silt4','Sil4Quar','Sil4Feld','Sil4Calc','Sil4Hema'
+     &         ,'Sil4Gyps','Sil4Illi','Sil4Kaol','Sil4Smec','Sil4QuHe'
+     &         ,'Sil4FeHe','Sil4CaHe','Sil4GyHe','Sil4IlHe','Sil4KaHe'
+     &         ,'Sil4SmHe')
+          n_bin = 5
+
+          case('Silt5','Sil5Quar','Sil5Feld','Sil5Calc','Sil5Hema'
+     &         ,'Sil5Gyps','Sil5Illi','Sil5Kaol','Sil5Smec','Sil5QuHe'
+     &         ,'Sil5FeHe','Sil5CaHe','Sil5GyHe','Sil5IlHe','Sil5KaHe'
+     &         ,'Sil5SmHe')
+          n_bin = 6
+
+          case default
+
+          n_bin = 0
+
+          END SELECT
+
+          if ( n_bin > 0 ) then
+
+            select case ( imDust )
+            case ( 3 )
+              zsum = sum( d_dust( : ) )
+              if ( zsum > 0.d0 ) then
+                frtrac = d_dust( n_bin ) / zsum * frtrac
+              else
+                frtrac = 0.d0
+              end if
+            case ( 5 )
+              if ( d_dust( n_bin ) <= 0.d0 ) frtrac = 0.d0
+            end select
+
+          end if
+
+        end if
+
+c**** mineral fractions of dust aerosols
+        if ( tracers_minerals .or. imDust == 4 .or. imDust == 5 ) frtrac
+     &       = frtrac * mineralFractions( n - n_soildust + 1 )
 
 #else /* TRACERS_DUST || TRACERS_MINERALS */
 #if (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
+
         SELECT CASE (n)
         CASE (1)
-          IF (imDust == 0) THEN
-            frtrac = FracClayPDFscheme
+          IF ( imDust == 0 .or. imDust >= 3 ) THEN
+            frtrac = FracClayPDFscheme*frtrac
           ELSE IF (imDust == 2) THEN
-            frtrac=FClWiCub*frclay
+            frtrac=FClWiCub*frclay*frtrac
           END IF
         CASE (2,3,4)
-          IF (imDust == 0) THEN
-            frtrac = FracSiltPDFscheme
+          IF ( imDust == 0 .or. imDust >= 3 ) THEN
+            frtrac = FracSiltPDFscheme*frtrac
           ELSE IF (imDust == 2) THEN
-            frtrac=FSiWiCub*frsilt
+            frtrac=FSiWiCub*frsilt*frtrac
           END IF
         END SELECT
+
+        select case ( imDust )
+        case ( 3 )
+          zsum = sum( d_dust( : ) )
+          if ( zsum > 0.d0 ) then
+            frtrac = d_dust( n ) / zsum * frtrac
+          else
+            frtrac = 0.d0
+          end if
+        case ( 5 )
+          if ( d_dust( n ) <= 0.d0 ) frtrac = 0.d0
+        end select
+
+        if ( imDust == 4 .or. imDust == 5 ) frtrac = mineralFractions(
+     &       n ) * frtrac
+
 #endif /* TRACERS_AMP || TRACERS_TOMAS */
 
 #endif
@@ -400,20 +484,20 @@ c**** default case
 c ..........
 c dust emission above threshold from sub grid scale wind fluctuations
 c ..........
-        ELSE IF (imDust == 0) THEN
+        ELSE IF ( imDust == 0 .or. imDust >= 3 ) THEN
           dsrcflx = CWiPdf*frtrac*ers_data*dustSourceFunction*pdfint
 c ..........
-c emission according to cubic scheme, but with pdf sheme parameters
+c emission according to cubic scheme, but with pdf scheme parameters
 c (only used as diagnostic variable)
 c ..........
           IF (soilvtrsh > 0. .AND. wsgcm > soilvtrsh) THEN
-            dsrcflx2 = CWiPdf*frtrac*dustSourceFunction*ers_data
+            dsrcflx2 = CWiPdf*frtrac*ers_data*dustSourceFunction
      &           *(wsgcm-soilvtrsh)*wsgcm**2
           END IF
         END IF
 
       ELSE IF (imDUST == 1) THEN
-c**** prescribed AEROCOM dust emission
+c**** prescribed (AeroCom) dust emission
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
 
@@ -449,16 +533,15 @@ c**** prescribed AEROCOM dust emission
 
         END SELECT
 
-        if ( n_bin > 0 ) dsrcflx = d_dust( n_bin )
+        if ( n_bin > 0 ) dsrcflx = frtrac * d_dust( n_bin )
 
-#ifdef TRACERS_MINERALS
-        dsrcflx = dsrcflx * mineralFractions( n - n_soildust + 1 )
-#endif
+        if ( tracers_minerals ) dsrcflx = dsrcflx * mineralFractions( n
+     &       - n_soildust + 1 )
 
 #else /* TRACERS_DUST || TRACERS_MINERALS */
 
 #if (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
-        dsrcflx=d_dust(n)
+        dsrcflx = frtrac * d_dust( n )
 #endif
 
 #endif

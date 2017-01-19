@@ -2285,3 +2285,151 @@ C     determine the mass added to each bin coagulation
 
       return
       end subroutine alloc_tracer_TOMAS_com
+
+
+#ifdef CACHED_SUBDD
+      subroutine tomas_pm_subdd_accum(subdd,kdiag,diag)
+!@sum tomas_pm_subdd_accum Accumulate sub-daily diagnostics for particulate
+!@+ matter for TOMAS aerosol model.
+!@auth Yunha Lee. Moved here from TRACERS.f and updated by Greg Faluvegi
+
+      use OldTracer_mod
+      use geom, only : byaxyp
+      use atm_com, only : byma
+      use tracer_com, only : ntm, nbins, n_ASO4, n_ANACL, n_AECOB, 
+     & n_AECIL, n_AOCOB, n_AOCIL, n_ADUST, n_AH2O, trm
+      use domain_decomp_atm, only : GRID, getDomainBounds
+      use trdiag_com, only : trcsurf,trcSurfByVol
+      use constant, only : pi
+      use tomas_aerosol, only : xk,icomp,idiag
+      use subdd_mod, only : subdd_groups,subdd_type,subdd_ngroups,
+     & inc_subdd,find_groups
+
+      IMPLICIT NONE
+
+!@var diag the name of the SUBDDiag passed in to this routin
+      character(len=*) :: diag
+!@var kdiag the index of the subddiag passed in
+      integer :: kdiag
+      integer :: n,i,j,k,jc,tracnum
+      integer :: J_0, J_1, I_0, I_1
+      real*8 :: mp_PM2p5  ! particles mass for PM2.5 (for SUBDD)
+      real :: mso4, mh2o, mno3, mnh4  !mass of each component (kg/grid box)
+      real :: mecil,mecob,mocil,mocob
+      real :: mdust,mnacl
+      real*8 :: aerodens, density
+      external aerodens
+      real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
+     &                  grid%j_strt_halo:grid%j_stop_halo) :: sddarr2d
+      integer :: igrp,ngroups,grpids(subdd_ngroups)
+      type(subdd_type) :: subdd
+
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+
+      sddarr2d(:,:)=0.d0 ! putting here assumes kdiag passed in
+
+      do n=1,NTM
+        select case (trname(n))
+        case('ASO4__01')
+
+        do j=J_0,J_1
+        do i=I_0,I_1
+
+        do k=1,nbins
+
+          mso4=trcsurf(i,j,n_aso4(1)+k-1) !kg/kg
+          mnacl=trcsurf(i,j,n_anacl(1)+k-1)
+          mno3=0.e0
+          mnh4=0.1875*mso4      !assume ammonium bisulfate
+          mecob=trcsurf(i,j,n_aecob(1)+k-1)
+          mecil=trcsurf(i,j,n_aecil(1)+k-1)
+          mocil=trcsurf(i,j,n_aocil(1)+k-1)
+          mocob=trcsurf(i,j,n_aocob(1)+k-1)
+          mdust=trcsurf(i,j,n_adust(1)+k-1)
+          mh2o=trcsurf(i,j,n_ah2o(1)+k-1)
+          if((mso4+mno3) .lt. 1.e-8) mso4=1.e-8  ! to prevent error in aerodens
+
+          ! Normally TRM is passed to aerodens, but this time is for
+          ! surface concentration:
+          density=aerodens(mso4,mno3,mnh4 !mno3 taken off!
+     *        ,mnacl,mecil,mecob,mocil,mocob,mdust,mh2o) !assume bisulfate 
+
+          mp_PM2p5=density*pi/6.d0*(2.5e-6)**(3.d0) !particle mass for PM2.5 
+  
+          select case(diag)
+          case('PM2p5sm','PM2p5l1m','PM2p5sc')
+            if(xk(k+1) < mp_PM2p5) then
+              ! 100% is PM2.5
+              do jc=1,icomp-idiag !mass tracers
+                tracnum=n_ASO4(1)-1+k+nbins*(jc-1) !ntm
+                select case(diag)
+                ! surface PM2.5 mass mixing ratio:
+                case('PM2p5sm')
+                  sddarr2d(i,j)=sddarr2d(i,j)+trcsurf(i,j,tracnum)
+                ! surface PM2.5 concentration:
+                case('PM2p5sc')
+                  sddarr2d(i,j)=sddarr2d(i,j)+trcSurfByVol(i,j,tracnum)
+                ! L=1 PM2.5 mass mixing ratio:
+                case('PM2p5l1m')
+                  sddarr2d(i,j)=sddarr2d(i,j)+
+     &            trm(i,j,1,tracnum)*byMA(1,i,j)*byaxyp(i,j)
+                end select
+              end do
+            else if(xk(k) <= mp_PM2p5 .and. xk(k+1) >= mp_PM2p5)then
+              ! need to linearly interpolate using mass boundary:
+              do jc=1,icomp-idiag
+                tracnum=n_ASO4(1)-1+k+nbins*(jc-1)
+                select case(diag)
+                ! surface PM2.5 mass mixing ratio:
+                case('PM2p5sm')
+                  sddarr2d(i,j)=sddarr2d(i,j)+trcsurf(i,j,tracnum)
+     &            *((mp_PM2p5-xk(k))/(xk(k+1)-xk(k)))
+                ! surface PM2.5 concentration:
+                case('PM2p5sc')
+                  sddarr2d(i,j)=sddarr2d(i,j)+trcSurfByVol(i,j,tracnum)
+     &            *((mp_PM2p5-xk(k))/(xk(k+1)-xk(k)))
+                ! L=1 PM2.5 mass mixing ratio:
+                case('PM2p5l1m')
+                  sddarr2d(i,j)=sddarr2d(i,j)+
+     &            trm(i,j,1,tracnum)*byMA(1,i,j)*byaxyp(i,j)
+     &            *((mp_PM2p5-xk(k))/(xk(k+1)-xk(k)))
+                end select
+              end do
+            end if
+          ! for PM10 cases, original coding says always accumulate 100%:
+          ! surface PM10 mass mixing ratio:
+          case('PM10sm')
+            do jc=1,icomp-idiag
+              tracnum=n_ASO4(1)-1+k+nbins*(jc-1)
+              sddarr2d(i,j)=sddarr2d(i,j)+trcsurf(i,j,tracnum)
+            end do
+          ! surface PM10 concentration:
+          case('PM10sc')
+            do jc=1,icomp-idiag
+              tracnum=n_ASO4(1)-1+k+nbins*(jc-1)
+              sddarr2d(i,j)=sddarr2d(i,j)+trcSurfByVol(i,j,tracnum)
+            end do
+          ! L=1 PM10 mass mixing ratio:
+          case('PM10l1m')
+            do jc=1,icomp-idiag
+              tracnum=n_ASO4(1)-1+k+nbins*(jc-1)
+              sddarr2d(i,j)=sddarr2d(i,j)+
+     &        trm(i,j,1,tracnum)*byMA(1,i,j)*byaxyp(i,j)
+            end do
+          end select
+
+        enddo ! nbins
+
+        enddo ! i
+        enddo ! j
+
+        end select
+      enddo
+
+      call inc_subdd(subdd,kdiag,sddarr2d)
+
+      return
+      end subroutine tomas_pm_subdd_accum
+#endif /* CACHED_SUBDD */

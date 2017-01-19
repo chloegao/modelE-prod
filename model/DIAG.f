@@ -63,6 +63,7 @@ C**** Some local constants
 
       END MODULE DIAG_LOC
 
+
       SUBROUTINE ALLOC_DIAG_LOC(grid)
       USE DOMAIN_DECOMP_ATM, only : getDomainBounds
       USE DOMAIN_DECOMP_ATM, only : DIST_GRID
@@ -109,23 +110,22 @@ C**** Some local constants
 #endif
       USE RAD_COM, only : rqt
       USE ATM_COM, only : pmidl00
-      USE DIAG_COM, only : ia_dga,jreg,ntype,ftype,
+      USE DIAG_COM, only : ia_dga,jreg,ntype,ftype, KGZ,
      *     aijl=>aijl_loc
-     *     ,aij=>aij_loc,ij_dtdp,ij_phi1k,ij_pres,ij_slpq,ij_presq
-     *     ,ij_slp,ij_t850,ij_t500,ij_t300,ij_t100,ij_q850,ij_q500
-     *     ,ij_rh700,ij_t700,ij_q700,ij_q100,ij_rh100
-     *     ,ij_RH1,ij_RH850,ij_RH500,ij_RH300,ij_qm,ij_q300,ij_ujet
+     *     ,aij=>aij_loc,ij_dtdp,ij_pres,ij_slpq,ij_presq
+     *     ,ij_slp
+     *  ,ij_pmb1,ij_tpmb1,ij_qpmb1,ij_zpmb1,ij_rhpmb1,ij_upmb1,ij_vpmb1
+     *     ,ij_RH1,ij_qm,ij_ujet
      *     ,ij_vjet,j_tx1,j_tx,j_qp,j_dtdjt,j_dtdjs,j_dtdgtr,j_dtsgst
      &     ,ijl_dp,ijk_dp,ijl_u,ijl_v,ijl_w,ijk_tx,ijk_q,ijk_rh
      *     ,j_rictr,j_rostr,j_ltro,j_ricst,j_rosst,j_lstr,j_gamm,j_gam
-     *     ,j_gamc,lstr,kgz_max,pmb,ght,ple
+     *     ,j_gamc,lstr,pmb,ple
      *     ,jl_dtdyn,jl_dpa
      *     ,jl_epacwt,jl_uepac,jl_vepac,jl_wepac
      *     ,jl_wpacwt,jl_uwpac,jl_vwpac,jl_wwpac
      *     ,jk_dpwt,jk_tx,jk_hght,jk_q,jk_rh,jk_cldh2o
      *     ,jk_cldwtr,jk_cldice
-     *     ,ij_p850,z_inst,rh_inst,t_inst,plm,ij_p1000,ij_p925,ij_p700
-     *     ,ij_p600,ij_p500,ijl_templ,ijl_gridh,ijl_husl,ijl_zL
+     *    ,z_inst,rh_inst,t_inst,plm,ijl_templ,ijl_gridh,ijl_husl,ijl_zL
 #ifdef TRACERS_SPECIAL_Shindell
      *     ,o_inst,x_inst,n_inst,m_inst
 #endif
@@ -162,12 +162,13 @@ C**** Some local constants
      &     BBYGV,DLNP01,DLNP12,DLNP23,MAzMASUM,
      &     DXYPJ,
      *     ESEPS,GAMC,GAMM,GAMX,
-     &     PDN,PE,PHI_REQ,pfact,chemL,chemLm1,
+     *     PDN,TDN,QDN,ZDN,UDN,VDN,
+     *     PUP,TUP,QUP,ZUP,UUP,VUP, PE,PHI_REQ,pfact,chemL,chemLm1,
      *     PL,PRT,W2MAX,RICHN,
      *     ROSSN,ROSSL,BYFCOR,BYBETA,BYBETAFAC,NH,SS,THETA,
-     *     TZL,X,TIJK,QIJK,DTXDY
-      LOGICAL qpress,qabove
-      INTEGER nT,nQ,nRH
+     *     TZL,X, TIJK,QIJK,ZIJK,RHIJK,UIJK,VIJK, DTXDY
+      Logical :: qabove
+      Integer :: NP,NT,NQ,NZ,NRH,NU,NV
       REAL*8, PARAMETER :: EPSLON=1.
 
       REAL*8 QSAT, SLP, PS, ZS, TS_SLP, QLH, begin
@@ -205,9 +206,8 @@ c
       DLNP01=LOG(pmidl00(lm)/PLM(LM+1))
       DLNP12=LOG(REQ_FAC_M(1)/REQ_FAC_M(2))  ! LOG(.75/.35)
       DLNP23=LOG(REQ_FAC_M(2)/REQ_FAC_M(3))  ! LOG(.35/.1)
-C****
-C**** FILL IN HUMIDITY AND SIGMA DOT ARRAYS AT THE POLES
-C****
+
+!**** Fill in Q array at poles
       IF(HAVE_SOUTH_POLE) THEN
         DO L=1,LM
           DO I=2,IM
@@ -222,9 +222,8 @@ C****
           END DO
         END DO
       ENDIF        ! HAVE_NORTH_POLE
-C****
+
 C**** CALCULATE PK AND TX, THE REAL TEMPERATURE
-C****
       IF(HAVE_SOUTH_POLE) THEN
         DO L=1,LM
           TX(1,1,L)=T(1,1,L)*PK(L,1,1)
@@ -247,11 +246,10 @@ C****
       DO L=1,LM
       DO J=J_0S,J_1S
         DO I=I_0,I_1
-          TX(I,J,L)=T(I,J,L)*PK(L,I,J)
+          TX(I,J,L) = T(I,J,L)*PK(L,I,J)  !  degrees K
         END DO
       END DO
       END DO
-
 
 C****
 C**** J LOOPS FOR ALL PRIMARY GRID ROWS
@@ -354,66 +352,55 @@ C**** Follows logic for geopotential section following this...
         enddo ! I
 #endif
 
-C**** CALCULATE GEOPOTENTIAL HEIGHTS AT SPECIFIC MILLIBAR LEVELS
-        DO I=I_0,IMAXJ(J)
-          K=1
-          L=1
-          rh_inst(:,i,j) = undef ; t_inst(:,i,j) = undef
-          z_inst(:,i,j) = undef
+!****
+!**** Compute T, Q, Z, RH, U, V at constant pressure levels
+!****
+      Do 50 I=I_0,IMAXJ(J)
+      L = 0  ;  PDN = PEDN(1,I,J)  ;  TDN = ATMSRF%TSAVG(I,J) - TF
+          ZDN = ZATMO(I,J)*byGRAV  ;  QDN = ATMSRF%QSAVG(I,J)
+          UDN = 0                  ;  VDN= 0
+      K = 0  ;  NP = IJ_ PMB1-1  ;  NT = IJ_TPMB1-1  ;  NQ = IJ_QPMB1-1
+                NZ = IJ_ZPMB1-1  ;  NU = IJ_UPMB1-1  ;  NV = IJ_VPMB1-1
+               NRH = IJ_RHPMB1-1
+   10 K = K+1  ;  NP = NP+1  ;  NT = NT+1  ;  NQ = NQ+1  ;  NRH = NRH+1
+                  NZ = NZ+1  ;  NU = NU+1  ;  NV = NV+1
+      If (PDN < PMB(K))  Then
+         T_INST(K,I,J) = undef  ;  RH_INST(K,I,J) = undef
+         Z_INST(K,I,J) = undef
 #ifdef TRACERS_SPECIAL_Shindell
-          o_inst(:,i,j) = undef ; x_inst(:,i,j) = undef
-          n_inst(:,i,j) = undef ; m_inst(:,i,j) = undef
+         o_inst(K,i,j) = undef  ;  x_inst(K,i,j) = undef
+         n_inst(K,i,j) = undef  ;  m_inst(K,i,j) = undef
 #endif
- 172      L=L+1
-          PDN=PMID(L-1,I,J)
-          PL=PMID(L,I,J)
-          IF (PMB(K).LT.PL.AND.L.LT.LM) GO TO 172
-C**** Select pressure levels on which to save temperature and humidity
-C**** Use masking for 850 mb temp/humidity
- 174      qpress = .false.
-          qabove = pmb(k).le.pedn(l-1,i,j)
-          SELECT CASE (NINT(PMB(K)))
-          CASE (850)            ! 850 mb
-            nT = IJ_T850 ; nQ = IJ_Q850 ; nRH = IJ_RH850 ; qpress=.true.
-            if (.not. qabove) qpress = .false.
-            if (qpress) aij(i,j,ij_p850) = aij(i,j,ij_p850) + 1.
-          CASE (700)            ! 700 mb
-            nT = IJ_T700 ; nQ = IJ_Q700 ; nRH = IJ_RH700 ; qpress=.true.
-          CASE (500)            ! 500 mb
-            nT = IJ_T500 ; nQ = IJ_Q500 ; nRH = IJ_RH500 ; qpress=.true.
-          CASE (300)            ! 300 mb
-            nT = IJ_T300 ; nQ = IJ_Q300 ; nRH = IJ_RH300 ; qpress=.true.
-          CASE (100)            ! 100 mb
-            nT = IJ_T100 ; nQ = IJ_Q100 ; nRH = IJ_RH100 ; qpress=.true.
-          END SELECT
-C**** calculate geopotential heights + temperatures
-          IF (ABS(TX(I,J,L)-TX(I,J,L-1)).GE.EPSLON) THEN
-            BBYGV=(TX(I,J,L-1)-TX(I,J,L))/(PHI(I,J,L)-PHI(I,J,L-1))
-            AIJ(I,J,IJ_PHI1K-1+K)=AIJ(I,J,IJ_PHI1K-1+K)+(PHI(I,J,L)
-     *           -TX(I,J,L)*((PMB(K)/PL)**(RGAS*BBYGV)-1.)/BBYGV-GHT(K)
-     *           *GRAV)
-            IF (qabove) then
-              TIJK=(TX(I,J,L)-TF
-     *           +(TX(I,J,L-1)-TX(I,J,L))*LOG(PMB(K)/PL)/LOG(PDN/PL))
-              Z_inst(K,I,J)=(PHI(I,J,L)
-     *           -TX(I,J,L)*((PMB(K)/PL)**(RGAS*BBYGV)-1.)/BBYGV-GHT(K)
-     *             *GRAV)
-            END IF
-          ELSE
-            AIJ(I,J,IJ_PHI1K-1+K)=AIJ(I,J,IJ_PHI1K-1+K)+(PHI(I,J,L)
-     *           -RGAS*TX(I,J,L)*LOG(PMB(K)/PL)-GHT(K)*GRAV)
-            IF (qabove) then
-              TIJK=TX(I,J,L)-TF
-              Z_inst(K,I,J)=(PHI(I,J,L)
-     *             -RGAS*TX(I,J,L)*LOG(PMB(K)/PL)-GHT(K)*GRAV)
-            END IF
-          END IF
-          if (qabove) then
-            QIJK=Q(I,J,L)+(Q(I,J,L-1)-Q(I,J,L))*(PMB(K)-PL)/(PDN-PL)
-            RH_inst(K,I,J)=QIJK/qsat(TIJK+TF,LHE,PMB(K))
-            T_inst(K,I,J) =TIJK
+         GoTo 10  ;  EndIf
+   20 If (L == LM)  GoTo 50
+      L = L+1  ;  PUP = PMID(L,I,J)        ;  TUP = TX(I,J,L) - TF
+                  ZUP = PHI(I,J,L)*byGRAV  ;  QUP = Q(I,J,L)
+                  UUP = UA(L,I,J)          ;  VUP = VA(L,I,J)
+   30 If (PMB(K) < PUP)  Then
+          PDN = PUP  ;  TDN = TUP  ;  QDN = QUP  ;  ZDN = ZUP
+          UDN = UUP  ;  VDN = VUP
+          GoTo 20  ;  EndIf
+!**** PUP <= PMB(K) <= PDN, interpolate model data to constant pressure
+      TIJK = TDN + (TUP - TDN) * (PMB(K) - PDN) / (PUP - PDN)
+      QIJK = QDN + (QUP - QDN) * (PMB(K) - PDN) / (PUP - PDN)
+      UIJK = UDN + (UUP - UDN) * (PMB(K) - PDN) / (PUP - PDN)
+      VIJK = VDN + (VUP - VDN) * (PMB(K) - PDN) / (PUP - PDN)
+      ZIJK = ZDN + (ZUP - ZDN) * Log(PMB(K)/PDN) / Log(PUP/PDN)
+      If (TIJK >= 0)
+     *   Then  ;  RHIJK = QIJK / QSAT(TIJK+TF,LHE,PMB(K))
+         Else  ;  RHIJK = QIJK / QSAT(TIJK+TF,LHS,PMB(K))  ;  EndIf
+      T_INST(K,I,J) = TIJK  ;  RH_INST(K,I,J) = RHIJK
+      Z_INST(K,I,J) = ZIJK
+      AIJ(I,J,NP)  = AIJ(I,J,NP)  + 1
+      AIJ(I,J,NT)  = AIJ(I,J,NT)  + TIJK
+      AIJ(I,J,NQ)  = AIJ(I,J,NQ)  + QIJK
+      AIJ(I,J,NZ)  = AIJ(I,J,NZ)  + ZIJK
+      AIJ(I,J,NU)  = AIJ(I,J,NU)  + UIJK
+      AIJ(I,J,NV)  = AIJ(I,J,NV)  + VIJK
+      AIJ(I,J,NRH) = AIJ(I,J,NRH) + RHIJK
+
 #ifdef TRACERS_SPECIAL_Shindell
-            pfact=(PMB(K)-PL)/(PDN-PL)
+            pfact = (PMB(K) - PUP) / (PDN - PUP)
               chemL=1.d6*trm(i,j,L,n_Ox)*mass2vol(n_Ox)/
      &        (MA(L,i,j)*axyp(i,j))
               chemLm1=1.d6*trm(i,j,L-1,n_Ox)*mass2vol(n_Ox)/
@@ -424,7 +411,6 @@ C**** calculate geopotential heights + temperatures
               chemLm1=1.d6*trm(i,j,L-1,n_NOx)*mass2vol(n_NOx)/
      &        (MA(L-1,i,j)*axyp(i,j))
             x_inst(K,I,J)= chemL+(chemLm1-chemL)*pfact
-
 ! NO2 is not defined above chemistry top (NOx is):
               if(L > topLevelOfChemistry) then
                 chemL=undef
@@ -447,31 +433,14 @@ C**** calculate geopotential heights + temperatures
      &        (MA(L-1,i,j)*axyp(i,j))
             m_inst(K,I,J)= chemL+(chemLm1-chemL)*pfact
 #endif
-            if (qpress) then
-              AIJ(I,J,nT)=AIJ(I,J,nT)+TIJK
-              AIJ(I,J,nQ)=AIJ(I,J,nQ)+QIJK
-              if (PMB(K).ge.500) then  ! w.r.t. water
-                AIJ(I,J,nRH)=AIJ(I,J,nRH)+QIJK/qsat(TIJK+TF,LHe,PMB(K))
-              else                     ! w.r.t ice above 500mb
-                AIJ(I,J,nRH)=AIJ(I,J,nRH)+QIJK/qsat(TIJK+TF,LHs,PMB(K))
-              end if
-            end if
-          end if
-C****
-          IF (K.LT.KGZ_max) THEN
-            K=K+1
-            IF (PMB(K).LT.PL.AND.L.LT.LM) GO TO 172
-            GO TO 174
-          END IF
-C**** BEGIN AMIP
-          If (PEDN(1,I,J) <1000) AIJ(I,J,IJ_P1000)= AIJ(I,J,IJ_P1000)+ 1
-          If (PEDN(1,I,J) < 925) AIJ(I,J,IJ_P925) = AIJ(I,J,IJ_P925) + 1
-          If (PEDN(1,I,J) < 700) AIJ(I,J,IJ_P700) = AIJ(I,J,IJ_P700) + 1
-          If (PEDN(1,I,J) < 600) AIJ(I,J,IJ_P600) = AIJ(I,J,IJ_P600) + 1
-          If (PEDN(1,I,J) < 500) AIJ(I,J,IJ_P500) = AIJ(I,J,IJ_P500) + 1
-C**** END AMIP
-        END DO
-      END DO
+
+      If (K < KGZ)  Then  
+          K = K+1  ;  NP = NP+1  ;  NT = NT+1  ;  NQ = NQ+1
+                      NZ = NZ+1  ;  NU = NU+1  ;  NV = NV+1
+                     NRH = NRH+1
+          GoTo 30  ;  EndIf
+   50 Continue  !  From  Do 50 I=I_0,IMAXJ(J)
+      EndDo     !  From  DO J=J_0,J_1
 
 C**** ACCUMULATION OF TEMP., POTENTIAL TEMP., Q, AND RH
       DO J=J_0,J_1
@@ -805,6 +774,7 @@ C**** ACCUMULATE TIME USED IN DIAGA
       CALL TIMEOUT(BEGIN,MDIAG,MDYN)
       RETURN
       END SUBROUTINE DIAGA
+
 
       SUBROUTINE DIAGA0
 c increment ajl(jl_dtdyn) by -t before dynamics.
@@ -1397,18 +1367,9 @@ C****
       use OldTracer_mod, only: trName
       use OldTracer_mod, only: dodrydep, dowetdep
       use OldTracer_mod, only: MAX_LEN_NAME
-#ifdef TRACERS_SPECIAL_Shindell
-      USE TRCHEM_Shindell_COM, only : sOx_acc,sNOx_acc,sCO_acc
-     &     ,l1Ox_acc,l1NO2_acc
-#endif
 #ifdef TRACERS_ON
       use trdiag_com, only: trcsurf,trcSurfByVol,trcSurfMixR_acc
      &     ,trcSurfByVol_acc
-#endif
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
-     &     ,sPM2p5_acc,sPM10_acc,l1PM2p5_acc,l1PM10_acc
-     &     ,csPM2p5_acc,csPM10_acc
 #endif
 #ifdef TRACERS_COSMO
       USE COSMO_SOURCES, only : BE7D_acc,BE7W_acc
@@ -1775,13 +1736,6 @@ c get_subdd
 !@+                    U*, V*, W*, C*  (on any model level only)
 !@+                    O*, X*, M*, N*  (Ox,NOx,CO,NO2 on fixed pres lvl)
 !@+                    o*, x*, m*, n*  (Ox,NOx,CO,NO2 on any model lvl)
-!@+                    oAVG  (SFC Ox time-average ppbv)
-!@+                    nxAVG (SFC NOx time-average ppbv)
-!@+                    cAVG (SFC CO time-average ppbv)
-!@+                    oAVG1,nAVG1 (L=1 Ox and NO2 time-average ppbv)
-!@+                    PM2p5, PM10 (SFC time-average PM2.5 and PM10 ppmm)
-!@+                    PM2p51,PM101(L=1 time-average PM2.5 and PM10 ppmm)
-!@+                    cPM2p5,cPM10 (SFC time-average PM2.5, PM10 kg/m3)
 !@+                    NO2col NO2 column amount, instant., (kg/m2)
 !@+                    D*          (HDO on any model level)
 !@+                    B*          (BE7 on any model level)
@@ -1849,8 +1803,7 @@ c get_subdd
       USE FLUXES, only : prec,tflux1,qflux1,uflux1,vflux1
      *     ,focean,flice,atmocn,atmice,atmgla,atmlnd,atmsrf
 #ifdef TRACERS_SPECIAL_Shindell
-      USE TRCHEM_Shindell_COM, only : mNO2,sOx_acc,sNOx_acc,sCO_acc
-     *     ,l1Ox_acc,l1NO2_acc,save_NO2column
+      USE TRCHEM_Shindell_COM, only : mNO2,save_NO2column
 #endif
 #if (defined TRACERS_SPECIAL_Shindell) || (defined CALCULATE_LIGHTNING)
       USE LIGHTNING, only : saveC2gLightning,saveLightning
@@ -1878,7 +1831,7 @@ c get_subdd
      * ,vt_inst
 #endif
 #ifdef etc_subdd
-     * ,ght,omg_inst,lwc_inst,iwc_inst
+     * ,omg_inst,lwc_inst,iwc_inst
      * ,cldmc_inst,cldss_inst,tlh_inst,llh_inst,dlh_inst,slh_inst
 #endif
 #if (defined mjo_subdd) || (defined etc_subdd)
@@ -2141,36 +2094,6 @@ c          datar8=SECONDS_PER_DAY*prec/dtsrc
           long_name = 'Fire Model Flammability'
 #endif /* CALCULATE_FLAMMABILITY */
 #ifdef TRACERS_SPECIAL_Shindell
-        case ("oAVG")   ! Nsubdd-step average SFC Ox tracer (ppbv)
-          datar8=sOx_acc/real(Nsubdd) ! accum over Nsubdd steps, already in ppbv
-          sOx_acc=0.
-          units_of_data = 'ppbv'
-          long_name = 'Average Surface Ox Tracer'
-          qinstant = .false.
-        case ("nxAVG")   ! Nsubdd-step average SFC NOx tracer (ppbv)
-          datar8=sNOx_acc/real(Nsubdd) ! accum over Nsubdd steps, already in ppbv
-          sNOx_acc=0.
-          units_of_data = 'ppbv'
-          long_name = 'Average Surface NOx Tracer'
-          qinstant = .false.
-        case ("cAVG")   ! Nsubdd-step average SFC CO tracer (ppbv)
-          datar8=sCO_acc/real(Nsubdd) ! accum over Nsubdd steps, already in ppbv
-          sCO_acc=0.
-          units_of_data = 'ppbv'
-          long_name = 'Average Surface CO Tracer'
-          qinstant = .false.
-        case ("oAVG1")  ! Nsubdd-step average L=1 Ox tracer (ppbv)
-          datar8=l1Ox_acc/real(Nsubdd) ! accum over Nsubdd steps, already in ppbv
-          l1Ox_acc=0.
-          units_of_data = 'ppbv'
-          long_name = 'Average Level 1 Ox Tracer'
-          qinstant = .false.
-        case ("nAVG1")  ! Nsubdd-step average L=1 NO2 (ppbv)
-          datar8=l1NO2_acc/real(Nsubdd) ! accum over Nsubdd steps, already in ppbv
-          l1NO2_acc=0.
-          units_of_data = 'ppbv'
-          long_name = 'Average Level 1 NO2'
-          qinstant = .false.
         case ("NO2col") ! instantaneous NO2 column amount (kg/m2)
           datar8=save_NO2column
           units_of_data = 'kg/m^2'
@@ -2555,45 +2478,6 @@ C**** accumulating/averaging mode ***
           units_of_data = 'flash/m^2/s'
           long_name = 'Cloud to Ground Lightning Flash Rate'
 #endif /* TRACERS_SPECIAL_Shindell or CALCULATE_LIGHTNING*/
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
-    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
-        case ("PM2p5") ! Nsubdd-step avg SFC PM2.5 (ppmm)
-           datar8=sPM2p5_acc/real(Nsubdd)
-           sPM2p5_acc=0.
-          units_of_data = 'ppmm'
-          long_name = 'Surface Particulate Matter <= 2.5 um'
-          qinstant = .false.
-        case ("PM10") ! Nsubdd-step avg SFC PM10 (ppmm)
-           datar8=sPM10_acc/real(Nsubdd)
-           sPM10_acc=0.
-          units_of_data = 'ppmm'
-          long_name = 'Surface Particulate Matter <= 10 um'
-          qinstant = .false.
-        case ("PM2p51") ! Nsubdd-step avg L=1 PM2.5 (ppmm)
-           datar8=l1PM2p5_acc/real(Nsubdd)
-           l1PM2p5_acc=0.
-          units_of_data = 'ppmm'
-          long_name = 'Layer 1 Particulate Matter <= 2.5 um'
-          qinstant = .false.
-        case ("PM101") ! Nsubdd-step avg L=1 PM10 (ppmm)
-           datar8=l1PM10_acc/real(Nsubdd)
-           l1PM10_acc=0.
-          units_of_data = 'ppmm'
-          long_name = 'Layer 1 Particulate Matter <= 10 um'
-          qinstant = .false.
-        case ("cPM2p5") ! Nsubdd-step avg SFC PM2.5 (kg/m3)
-           datar8=csPM2p5_acc/real(Nsubdd)
-           csPM2p5_acc=0.
-          units_of_data = 'kg/m^3'
-          long_name = 'Surface Particulate Matter <= 2.5 um'
-          qinstant = .false.
-        case ("cPM10") ! Nsubdd-step avg SFC PM10 (kg/m3)
-           datar8=csPM10_acc/real(Nsubdd)
-           csPM10_acc=0.
-          units_of_data = 'kg/m^3'
-          long_name = 'Surface Particulate Matter <= 10 um'
-          qinstant = .false.
-#endif /* (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST)  || (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT) */
 
 #ifdef TRACERS_AEROSOLS_Koch
         case ("SO4")      ! sulfate in L=1
@@ -2770,9 +2654,6 @@ C**** get pressure level
               select case (namedd(k)(1:1))
               case ("Z")        ! geopotential heights
                 datar8=z_inst(kp,:,:)
-#ifdef etc_subdd
-                datar8=(z_inst(kp,:,:)+GHT(kp)*grav)*bygrav
-#endif
                 units_of_data = 'm'
                 long_name = 'Geopotential Height at '//trim(PMNAME(kp))
      &               //' hPa'
@@ -2944,9 +2825,6 @@ C**** get pressure level
               select case (namedd(k)(1:1))
               case ("Z")        ! geopotential heights
                 datar8=z_inst(kp,:,:)
-#ifdef etc_subdd
-                datar8=(z_inst(kp,:,:)+GHT(kp)*grav)*bygrav
-#endif
                 units_of_data = 'm'
                 long_name = 'Geopotential Height'
               case ("R")        ! relative humidity (wrt water)
@@ -6196,6 +6074,7 @@ C**** cases where Earth and Land Ice are lumped together
 C****
       END SUBROUTINE UPDTYPE
 
+
       subroutine calc_derived_aij
 !@sum Calculate derived lat/lon diagnostics prior to printing
 !@auth Group
@@ -6214,13 +6093,13 @@ C****
      &     aijl=>aijl_loc,ia_ij,ia_src,ia_inst,ia_dga,tf_last,tf_day1,
      *     ij_topo, ij_wsmn, ij_wsdir, ij_jet, ij_jetdir, ij_grow,
      *     ij_netrdp, ij_albp, ij_albg, ij_albv,   ij_pwater, ij_lk,
-     *     ij_fland, ij_dzt1, ij_albgv, ij_clrsky, ij_pocean, ij_ts,
+     *     ij_fland, ij_albgv, ij_clrsky, ij_pocean, ij_ts,
      *     ij_RTSE, ij_HWV, ij_PVS,
      &     IJ_TRSUP,IJ_TRSDN,IJ_EVAP,IJ_QS,IJ_PRES,
-     &     IJ_PHI1K,
      &     IJ_US,IJ_VS,IJ_UJET,IJ_VJET,IJ_TATM,IJK_DP,IJK_TX,
      &     IJ_MSUTLT,IJ_MSUTMT,IJ_MSUTLS,KGZ_MAX,GHT,PMB,
      &     IJ_SSU1,IJ_SSU2,IJ_SSU3,
+     &     KGZ_MAX,PMB,
      &     ij_TminC,ij_TmaxC,ij_TDcomp,
      *     ij_swaerabs,
      *     ij_lwaerabs,ij_swaerabsnt,ij_lwaerabsnt
@@ -6277,14 +6156,6 @@ C****
         k = ij_albg
         aij(i,j,k) = aij(i,j,ij_srincg)-aij(i,j,ij_srnfg)*
      &       idacc(ia_ij(ij_srincg))/idacc(ia_ij(ij_srnfg))
-
-        do k=ij_dzt1,ij_dzt1+kgz_max-2
-          k1 = k-ij_dzt1+1  ; k2 = ij_phi1k + k1
-          scalek = 1./(rgas*log(pmb(k1)/pmb(k1+1)))
-          aij(i,j,k) = (scalek*(ght(k1+1)-ght(k1))*grav-tf)*
-     &         idacc(ia_ij(ij_phi1k))
-     &         +scalek*(aij(i,j,k2)-aij(i,j,k2-1))
-        enddo
 
         k = ij_jet
         aij(i,j,k) = sqrt(aij(i,j,ij_ujet)**2+aij(i,j,ij_vjet)**2)

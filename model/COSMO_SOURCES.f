@@ -53,7 +53,7 @@
 !@sum reads in cosmogenic Be7 source from appropriate "old" (no alpha particles) versions 
 !@sum of the Beer production files
 !@auth C Salyk
-      USE CONSTANT, only : avog
+      USE CONSTANT, only : byavog
       USE COSMO_SOURCES, only: be7_src_3d, be10_src_3d
       USE TRACER_COM
       USE GEOM, only: axyp
@@ -81,7 +81,8 @@ C**** ibe has units atoms/g/s
 
 C**** convert from atoms/g/s to (kg tracer)/ (kg air/m^2) /s
       do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
-        be7_src_3d(i,j,l)=ibe(j,l)*axyp(i,j)*(tr_mm(n_Be7)*tfacti/avog)
+        be7_src_3d(i,j,l)=ibe(j,l)*axyp(i,j)*(tr_mm(n_Be7)*tfacti
+     &    *byavog)
       end do ; end do ; end do
 
 C**** multiply by air mass to put in the right units
@@ -104,7 +105,7 @@ C**** multiply by air mass to put in the right units
       SUBROUTINE read_Be_source
 !@sum reads in cosmogenic Be7 source from appropriate file
 !@auth C Salyk
-      USE CONSTANT, only : avog
+      USE CONSTANT, only : byavog
       USE COSMO_SOURCES, only: be7_src_3d, be10_src_3d
       USE TRACER_COM
       USE GEOM, only: axyp
@@ -143,7 +144,8 @@ C**** ibe has units atoms/g/s
 C**** convert from atoms/g/s to (kg tracer)/ (kg air/m^2) /s
       print*, "converting"
       do l=1,lm; do j=J_0,J_1 ; do i=I_0,I_1
-        be7_src_3d(i,j,l)=ibe(j,l)*axyp(i,j)*(tr_mm(n_Be7)*tfacti/avog)
+        be7_src_3d(i,j,l)=ibe(j,l)*axyp(i,j)*(tr_mm(n_Be7)*tfacti
+     &    *byavog)
       end do ; end do ; end do
 
 C     repeat for Be10:
@@ -162,7 +164,7 @@ C**** convert from atoms/g/s to (kg tracer) (kg air/m^2) /s
       print*, "converting"
       do l=1,lm; do j=J_0,J_1 ; do i=I_0,I_1
         be10_src_3d(i,j,l)=ibe_10(j,l)*axyp(i,j)*(tr_mm(n_Be10)
-     *       *tfacti_10/avog)
+     *       *tfacti_10*byavog)
 
       end do ; end do ; end do
       print*, "finished converting"
@@ -179,7 +181,7 @@ C**** convert from atoms/g/s to (kg tracer) (kg air/m^2) /s
       USE FILEMANAGER, only: openunit,closeunit
       USE GEOM, only: axyp
       use model_com, only: modelEclock
-      USE CONSTANT, only : avog
+      USE CONSTANT, only : byavog
       USE TRACER_COM
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       USE COSMO_SOURCES, only : be7_src_3d, be10_src_3d
@@ -290,10 +292,10 @@ C**** convert from atoms/g/s to (kg tracer)/ (kg air/m^2) /s
       print*, "converting units for Be10 and Be7"
       do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
         be10_src_3d(i,j,l)=ibe_10(j,l)*axyp(i,j)*(tr_mm(n_Be10)
-     *       *tfacti_10/avog)
+     *       *tfacti_10*byavog)
          
         be7_src_3d(i,j,l)=ibe_7(j,l)*axyp(i,j)*(tr_mm(n_Be7)*tfacti_7
-     $       /avog)
+     $       *byavog)
       end do ; end do ; end do
       
       print*, "be7_src_param = ", be7_src_param
@@ -316,7 +318,7 @@ C**** convert from atoms/g/s to (kg tracer)/ (kg air/m^2) /s
       USE GEOM, only: axyp
       use model_com, only: modelEclock
       USE MODEL_COM, only : itime
-      USE CONSTANT, only : avog
+      USE CONSTANT, only : byavog
       USE TRACER_COM
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       USE COSMO_SOURCES, only : be7_src_3d
@@ -508,7 +510,7 @@ C**** convert from atoms/g/s to (kg tracer)/ (kg air/m^2) /s
             do k=1,npress
 !               print*, "converting atoms/g/s to kg/kg"
               be7_src_3d(i,j,k)=new_prod(k)*axyp(i,j)*(tr_mm(n_Be7)
-     $              /avog)
+     $              *byavog)
               if ((i .eq. 10) .and. (j .eq. 46) .and. (k .eq. 1)) then
                  print*, "DXYP = ", axyp(i,j)
                  print*, "tr_mm(n_Be7) = ", tr_mm(n_Be7)

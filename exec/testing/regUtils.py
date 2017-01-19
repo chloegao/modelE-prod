@@ -84,13 +84,19 @@ def getCompilers(config):
 def gitCloneCommand(config, expname, compiler, cmode):
     userconfig = ConfigSectionMap(config, 'USERCONFIG')
     branch    = userconfig['repobranch']
+    if not branch:
+        branch = 'detached'
     scratch   = userconfig['scratchdir'] + '/scratch/' + branch
     reference = scratch + '/' + branch
     clone     = scratch + '/' + compiler + '/' + expname + '.' + cmode
 
     if not os.path.isdir(clone):
-        s = string.Template('git clone -b $b $r $t > /dev/null 2>&1')
-        return s.substitute(b=branch, r=reference, t=clone)
+        if branch == 'detached':
+            s = string.Template('git clone $r $t > /dev/null 2>&1')
+            return s.substitute(r=reference, t=clone)
+        else:
+            s = string.Template('git clone -b $b $r $t > /dev/null 2>&1')
+            return s.substitute(b=branch, r=reference, t=clone)
     else:
         logger.debug('Git clone %s exists', clone)
         return clone
@@ -214,7 +220,10 @@ def showConfig(cfgfile):
 def cleanScratch(config):
     logger.info('Clean up testing environment')
     userconfig = ConfigSectionMap(config, 'USERCONFIG')
-    resultsDir = userconfig['scratchdir'] + '/results/' + userconfig['repobranch']
+    branch    = userconfig['repobranch']
+    if not branch:
+        branch = 'detached'
+    resultsDir = userconfig['scratchdir'] + '/results/' + branch
     scratchDir = userconfig['scratchdir'] + '/scratch/' + userconfig['repobranch']
 
     if not os.path.exists(resultsDir):
@@ -230,6 +239,8 @@ def header(cfg):
     userconfig  = ConfigSectionMap(cfg, 'USERCONFIG')
     mailto     = userconfig['mailto']
     branch     = userconfig['repobranch']
+    if not branch:
+        branch = 'detached'
     buildtype  = userconfig['buildtype']
     sections = cfg.sections()
 

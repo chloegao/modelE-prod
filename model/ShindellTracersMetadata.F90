@@ -11,6 +11,8 @@ module ShindellTracersMetadata_mod
   use TRACER_COM, only: ntm_chem_beg, ntm_chem_end, whichEPFCs
 #ifdef TRACERS_dCO
   use OldTracer_mod, only: set_is_dCO_tracer
+  use TRACER_COM, only: n_d13Calke, n_d13CPAR
+  use TRACER_COM, only: n_d17OPAN, n_d18OPAN, n_d13CPAN
   use TRACER_COM, only: n_dMe17OOH, n_dMe18OOH, n_d13MeOOH
   use TRACER_COM, only: n_dHCH17O, n_dHCH18O, n_dH13CHO
   use TRACER_COM, only: n_dC17O, n_dC18O, n_d13CO
@@ -46,6 +48,8 @@ module ShindellTracersMetadata_mod
   use OldTracer_mod, only: HSTAR
   use OldTracer_mod, only: ngas, nPART
   use OldTracer_mod, only: set_emisPerFireByVegType
+  use OldTracer_mod, only: set_pm2p5fact
+  use OldTracer_mod, only: set_pm10fact
   use RunTimeControls_mod, only: tracers_special_shindell
   use RunTimeControls_mod, only: tracers_drydep
   use RunTimeControls_mod, only: tracers_terp
@@ -124,6 +128,11 @@ contains
     call  CFC_setSpec('CFC')
 
 #ifdef TRACERS_dCO
+    call  Alkenes_setSpec('d13Calke')
+    call  Paraffin_setSpec('d13CPAR')
+    call  PAN_setSpec('d17OPAN')
+    call  PAN_setSpec('d18OPAN')
+    call  PAN_setSpec('d13CPAN')
     call  CH3OOH_setSpec('dMe17OOH')
     call  CH3OOH_setSpec('dMe18OOH')
     call  CH3OOH_setSpec('d13MeOOH')
@@ -160,6 +169,8 @@ contains
            nn_ClOx,   nn_BrOx,  nn_HCl,   nn_HOCl,   nn_ClONO2,  &
            nn_HBr,    nn_HOBr,  nn_BrONO2,nn_CFC,    nn_GLT
 #ifdef TRACERS_dCO
+      use TRACER_COM, only: nn_d13Calke, nn_d13CPAR
+      use TRACER_COM, only: nn_d17OPAN, nn_d18OPAN, nn_d13CPAN
       use TRACER_COM, only: nn_dMe17OOH, nn_dMe18OOH, nn_d13MeOOH
       use TRACER_COM, only: nn_dHCH17O, nn_dHCH18O, nn_dH13CHO
       use TRACER_COM, only: nn_dC17O, nn_dC18O, nn_d13CO
@@ -212,6 +223,11 @@ contains
      nn_GLT = n_GLT - offset
 
 #ifdef TRACERS_dCO
+     nn_d13Calke = n_d13Calke - offset
+     nn_d13CPAR = n_d13CPAR - offset
+     nn_d17OPAN = n_d17OPAN - offset
+     nn_d18OPAN = n_d18OPAN - offset
+     nn_d13CPAN = n_d13CPAN - offset
      nn_dMe17OOH = n_dMe17OOH - offset
      nn_dMe18OOH = n_dMe18OOH - offset
      nn_d13MeOOH = n_d13MeOOH - offset
@@ -336,7 +352,7 @@ contains
           call set_is_dCO_tracer(n, .true.)
 #endif  /* TRACERS_dCO */
         case default
-          call stop_model('CH3OOH-like tracer '//name//' unknown',255)
+          call stop_model('CH3OOH-like tracer '//trim(name)//' unknown',255)
       end select
       if (ntm_chem_beg==0) ntm_chem_beg = n
       ntm_chem_end = n
@@ -363,7 +379,7 @@ contains
           call set_is_dCO_tracer(n, .true.)
 #endif  /* TRACERS_dCO */
         case default
-          call stop_model('HCHO-like tracer '//name//' unknown',255)
+          call stop_model('HCHO-like tracer '//trim(name)//' unknown',255)
       end select
       if (ntm_chem_beg==0) ntm_chem_beg = n
       ntm_chem_end = n
@@ -401,7 +417,7 @@ contains
           call set_is_dCO_tracer(n, .true.)
 #endif  /* TRACERS_dCO */
         case default
-          call stop_model('CO-like tracer '//name//' unknown',255)
+          call stop_model('CO-like tracer '//trim(name)//' unknown',255)
       end select
       if (ntm_chem_beg==0) ntm_chem_beg = n
       ntm_chem_end = n
@@ -435,7 +451,23 @@ contains
     subroutine PAN_setSpec(name)
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
-      n_PAN = n
+      select case (name)
+        case ('PAN')
+          n_PAN = n
+#ifdef TRACERS_dCO
+        case ('d17OPAN')
+          n_d17OPAN = n
+          call set_is_dCO_tracer(n, .true.)
+        case ('d18OPAN')
+          n_d18OPAN = n
+          call set_is_dCO_tracer(n, .true.)
+        case ('d13CPAN')
+          n_d13CPAN = n
+          call set_is_dCO_tracer(n, .true.)
+#endif  /* TRACERS_dCO */
+        case default
+          call stop_model('PAN-like tracer '//trim(name)//' unknown',255)
+      end select
       if (ntm_chem_beg==0) ntm_chem_beg = n
       ntm_chem_end = n
       call set_ntm_power(n, -11)
@@ -457,18 +489,28 @@ contains
     subroutine AlkylNit_setSpec(name)
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
-      n_AlkylNit = n
       if (ntm_chem_beg==0) ntm_chem_beg = n
+      n_AlkylNit = n
       ntm_chem_end = n
       call set_ntm_power(n, -11)
       call set_tr_mm(n, mair)   !unknown molecular weight, so use air and make
-      ! note in the diagnostics write-out...
+                                ! note in the diagnostics write-out...
     end subroutine AlkylNit_setSpec
 
     subroutine Alkenes_setSpec(name)
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
-      n_Alkenes = n
+      select case (name)
+        case ('Alkenes')
+          n_Alkenes = n
+#ifdef TRACERS_dCO
+        case ('d13Calke')
+          n_d13Calke = n
+          call set_is_dCO_tracer(n, .true.)
+#endif  /* TRACERS_dCO */
+        case default
+          call stop_model('Alkenes-like tracer '//trim(name)//' unknown',255)
+      end select
       if (ntm_chem_beg==0) ntm_chem_beg = n
       ntm_chem_end = n
       call set_ntm_power(n, -10)
@@ -502,7 +544,17 @@ contains
     subroutine Paraffin_setSpec(name)
       character(len=*), intent(in) :: name
       n = oldAddTracer(name)
-      n_Paraffin = n
+      select case (name)
+        case ('Paraffin')
+          n_Paraffin = n
+#ifdef TRACERS_dCO
+        case ('d13CPAR')
+          n_d13CPAR = n
+          call set_is_dCO_tracer(n, .true.)
+#endif  /* TRACERS_dCO */
+        case default
+          call stop_model('Paraffin-like tracer '//trim(name)//' unknown',255)
+      end select
       if (ntm_chem_beg==0) ntm_chem_beg = n
       ntm_chem_end = n
       call set_ntm_power(n, -10)
@@ -554,6 +606,7 @@ contains
       if (ntm_chem_beg==0) ntm_chem_beg = n
       ntm_chem_end = n
       n_soa_i = n_isopp1g       !the first from the soa species
+      call set_om2oc(n, 1.4d0)
       tmp = om2oc(n)
       call sync_param(trim(name)//"_om2oc",tmp)
       call set_om2oc(n, tmp)
@@ -574,6 +627,7 @@ contains
       n_isopp1a = n
       if (ntm_chem_beg==0) ntm_chem_beg = n
       ntm_chem_end = n
+      call set_om2oc(n, 1.4d0)
       tmp = om2oc(n)
       call sync_param(trim(name)//"_om2oc",tmp)
       call set_om2oc(n, tmp)
@@ -584,6 +638,8 @@ contains
       call set_trradius(n, 3.d-7) !m
       call set_fq_aer(n, 0.8d0) !fraction of aerosol that dissolves
       call set_tr_wd_type(n, nPART)
+      call set_pm2p5fact(n, 1.d0) ! fraction that's PM2.5
+      call set_pm10fact(n, 1.d0) ! fraction that's PM10
     end subroutine isopp1a_setSpec
 
     subroutine isopp2g_setSpec(name)
@@ -594,6 +650,7 @@ contains
       n_isopp2g = n
       if (ntm_chem_beg==0) ntm_chem_beg = n
       ntm_chem_end = n
+      call set_om2oc(n, 1.4d0)
       tmp = om2oc(n)
       call sync_param(trim(name)//"_om2oc",tmp)
       call set_om2oc(n, tmp)
@@ -615,6 +672,7 @@ contains
       if (ntm_chem_beg==0) ntm_chem_beg = n
       ntm_chem_end = n
       if (.not. tracers_terp) n_soa_e = n_isopp2a       !the last from the soa species
+      call set_om2oc(n, 1.4d0)
       tmp = om2oc(n)
       call sync_param(trim(name)//"_om2oc",tmp)
       call set_om2oc(n, tmp)
@@ -625,6 +683,8 @@ contains
       call set_trradius(n, 3.d-7) !m
       call set_fq_aer(n, 0.8d0) !fraction of aerosol that dissolves
       call set_tr_wd_type(n, nPART)
+      call set_pm2p5fact(n, 1.d0) ! fraction that's PM2.5
+      call set_pm10fact(n, 1.d0) ! fraction that's PM10
     end subroutine isopp2a_setSpec
 
     subroutine apinp1g_setSpec(name)
@@ -635,6 +695,7 @@ contains
       n_apinp1g = n
       if (ntm_chem_beg==0) ntm_chem_beg = n
       ntm_chem_end = n
+      call set_om2oc(n, 1.4d0)
       tmp = om2oc(n)
       call sync_param(trim(name)//"_om2oc",tmp)
       call set_om2oc(n, tmp)
@@ -655,6 +716,7 @@ contains
       n_apinp1a = n
       if (ntm_chem_beg==0) ntm_chem_beg = n
       ntm_chem_end = n
+      call set_om2oc(n, 1.4d0)
       tmp = om2oc(n)
       call sync_param(trim(name)//"_om2oc",tmp)
       call set_om2oc(n, tmp)
@@ -665,6 +727,8 @@ contains
       call set_trradius(n, 3.d-7) !m
       call set_fq_aer(n, 0.8d0) !fraction of aerosol that dissolves
       call set_tr_wd_type(n, nPART)
+      call set_pm2p5fact(n, 1.d0) ! fraction that's PM2.5
+      call set_pm10fact(n, 1.d0) ! fraction that's PM10
     end subroutine apinp1a_setSpec
 
     subroutine apinp2g_setSpec(name)
@@ -675,6 +739,7 @@ contains
       n_apinp2g = n
       if (ntm_chem_beg==0) ntm_chem_beg = n
       ntm_chem_end = n
+      call set_om2oc(n, 1.4d0)
       tmp = om2oc(n)
       call sync_param(trim(name)//"_om2oc",tmp)
       call set_om2oc(n, tmp)
@@ -696,6 +761,7 @@ contains
       if (ntm_chem_beg==0) ntm_chem_beg = n
       ntm_chem_end = n
       n_soa_e = n_apinp2a       !the last from the soa species
+      call set_om2oc(n, 1.4d0)
       tmp = om2oc(n)
       call sync_param(trim(name)//"_om2oc",tmp)
       call set_om2oc(n, tmp)
@@ -706,6 +772,8 @@ contains
       call set_trradius(n, 3.d-7) !m
       call set_fq_aer(n, 0.8d0) !fraction of aerosol that dissolves
       call set_tr_wd_type(n, nPART)
+      call set_pm2p5fact(n, 1.d0) ! fraction that's PM2.5
+      call set_pm10fact(n, 1.d0) ! fraction that's PM10
     end subroutine apinp2a_setSpec
 #endif  /* TRACERS_AEROSOLS_SOA */
 

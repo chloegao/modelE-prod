@@ -182,11 +182,9 @@ ccc extra stuff which was present in "earth" by default
       USE model_com,ONLY : modelEclock
       USE geom,ONLY : axyp
       USE ghy_com,ONLY : wearth,aiearth,wfcs
-      use trdust_mod,only : nAerocomDust,d_dust,ers_data
+      use trdust_mod,only : nDustBins,d_dust,ers_data
      &     ,dustSourceFunction,frclay,frsilt,dryhr,vtrsh
-#ifdef TRACERS_MINERALS
      &     ,mineralFractions
-#endif
 #endif
 #ifdef TRACERS_WATER
       use fluxes, only : atmlnd
@@ -257,11 +255,9 @@ ccc tracers variables
       pbl_args%vtrsh=vtrsh(i,j)
       pbl_args%dryhr=dryhr(i,j)
 c**** prescribed dust emission
-      pbl_args%d_dust(1:nAerocomDust)=
-     &     d_dust(i,j,1:nAerocomDust,dayOfYear)
-     &     /SECONDS_PER_DAY/axyp(i,j)/ptype
-#endif
-#ifdef TRACERS_MINERALS
+      pbl_args%d_dust( 1:nDustBins ) = d_dust( i, j, 1:nDustBins,
+     &     dayOfYear )/ SECONDS_PER_DAY / axyp( i, j ) / ptype
+c**** mineral fractions of emitted dust aerosols
       pbl_args%mineralFractions(:)=mineralFractions(i,j,:)
 #endif
 
@@ -536,7 +532,7 @@ ccc dust emission from earth
      &         *axyp(i,j)*ptype*dtsurf
           if (jls_isrc(nDustEmjl,n)>0) call inc_tajls(i,j,1,jls_isrc(
      &       nDustEmjl,n),pbl_args%dust_flux(n1)*axyp(i,j)*ptype*dtsurf)
-          IF (imDust == 0) THEN
+          IF ( imDust == 0 .or. imDust >= 3 ) THEN
             taijs(i,j,ijts_isrc(nDustEm2ij,n))
      &           =taijs(i,j,ijts_isrc(nDustEm2ij,n))
      &           +pbl_args%dust_flux2(n1)
@@ -643,6 +639,10 @@ c***********************************************************************
 !@auth I. Alienov/F. Abramopolous
       use resolution, only : im,jm
       use socpbl, only : npbl=>n
+
+#ifdef IRRIGATION_ON
+      use irrigmod, only : init_irrigmod
+#endif  /* IRRIGATION_ON */
 
       implicit none
       private
@@ -1790,6 +1790,10 @@ ccc                               currently using only topography part
 
       call init_veg( istart, redogh )
       call init_land_surface(redogh,inisnow,inilake,istart)
+
+#ifdef IRRIGATION_ON
+      call init_irrigmod()
+#endif
 
       end subroutine init_LSM
 

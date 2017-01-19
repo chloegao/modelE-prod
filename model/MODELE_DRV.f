@@ -10,6 +10,7 @@ C**** Command line options
       logical :: coldRestart=.false.
       integer, parameter :: MAX_LEN_IFILE = 32
       character(len=MAX_LEN_IFILE) :: iFile
+      integer :: max_wall_time
 #if ((! defined(COMPILER_NAG) ) && (! defined(COMPILER_G95) )) || (defined COMPILER_PGI)
       integer, external :: iargc
 #endif
@@ -22,23 +23,26 @@ C**** Command line options
         print *,'ARG ', trim(arg)
       end do
 
-      call read_options(qcRestart, coldRestart, iFile )
-      call GISS_modelE(qcRestart, coldRestart, iFile)
+      call read_options(qcRestart, coldRestart, iFile, max_wall_time)
+      call GISS_modelE(qcRestart, coldRestart, iFile, max_wall_time)
 
       contains
 
-      subroutine read_options(qcRestart, coldRestart, iFile )
+      subroutine read_options(qcRestart,coldRestart,iFile,max_wall_time)
 !@sum Reads options from the command line
 !@auth I. Aleinov
       implicit none
 !@var qcRestart true if "-r" is present
 !@var iFile is name of the file containing run configuration data
+!@var max_wall_time Maximum wall time [s] this program is to run
       logical, intent(inout) :: qcRestart
       logical, intent(inout) :: coldRestart
       character(*),intent(out)  :: ifile
+      integer, intent(out) :: max_wall_time
       integer, parameter :: MAX_LEN_ARG = 80
       character(len=MAX_LEN_ARG) :: arg, value
 
+      max_wall_time = huge(max_wall_time)
       iFile = "";
       do
         call nextarg( arg, 1 )
@@ -51,6 +55,9 @@ C**** Command line options
         case ("-i")
           call nextarg( value, 0 )
           iFile=value
+        case ("--time")
+          call nextarg(value, 0)
+          read(value,'(i10)') max_wall_time
         ! new options can be included here
         case default
           print *,'Unknown option specified: ', arg

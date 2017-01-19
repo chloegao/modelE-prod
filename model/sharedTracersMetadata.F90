@@ -25,6 +25,8 @@ module sharedTracersMetadata_mod
   use OldTracer_mod, only: HSTAR
   use OldTracer_mod, only: ngas, nPART
   use OldTracer_mod, only: set_emisPerFireByVegType
+  use OldTracer_mod, only: set_pm2p5fact
+  use OldTracer_mod, only: set_pm10fact
   use TRACER_COM, only : set_ntsurfsrc, whichEPFCs, seasonalNH3src
   use TRACER_COM, only: n_H2O2, n_NH3,  n_NH4, n_DMS, n_SO2, n_H2O2_s, &
     n_CH4, n_N2O, n_Rn222
@@ -253,6 +255,8 @@ contains
       call set_trradius(n, 3.d-7)
       call set_fq_aer(n, 1.0d0   ) !fraction of aerosol that dissolves
       call set_tr_wd_type(n, npart)
+      call set_pm2p5fact(n, 1.d0) ! fraction that's PM2.5
+      call set_pm10fact(n, 1.d0) ! fraction that's PM10
     end subroutine NH4_setSpec
 
 

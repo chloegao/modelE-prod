@@ -1719,6 +1719,9 @@ C****
      *           STAT=IER )
       allocate( n_MPtable(ntm) )
 
+      n_MPtable = 0
+      tcscale = 0.
+
       END SUBROUTINE ALLOC_TRACER_SPECIAL_Lerner_COM
 
 

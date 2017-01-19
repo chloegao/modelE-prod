@@ -145,7 +145,7 @@
 
       use biogenic_emis
       use tracers_drydep, only : ijreg,ijland
-      use constant, only   : avog
+      use constant, only   : byavog
       use geom, only : axyp,imaxj
       use domain_decomp_atm, only : getDomainBounds, grid
 
@@ -179,7 +179,7 @@
 ! 12.d-3 is the carbon mol wt. in kg/mole.
 ! 1.d4 because the convert data from file is /1000: greg says "huh?"
 
-      factor = 12.d-3*1.d4/avog      
+      factor = 12.d-3*1.d4*byavog      
 
       do J=J_0,J_1
         do I=I_0,imaxj(J)

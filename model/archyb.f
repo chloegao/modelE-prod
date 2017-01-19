@@ -46,9 +46,6 @@ c
      . mon_date(13)=(/0,31,59,90,120,151,181,212,243,273,304,334,365/)
       integer :: year, month, dayOfYear, date, hour
 c
-      utotal(:,:,:)=0.
-      vtotal(:,:,:)=0.
-
       call modelEclock%get(year=year, month=month, date=date,
      .  hour=hour, dayOfYear=dayOfYear)
       call getdte(Itime,Nday,Iyear1,year,month,dayOfYear,date,hour,amon)
@@ -62,7 +59,7 @@ c --- check if ogcm date matches agcm date
         temav(:,:,:)=temp(:,:,:)
         salav(:,:,:)=saln(:,:,:)
         th3av(:,:,:)=th3d(:,:,:)
-        dpav (:,:,:)=  dp(:,:,:)/onem
+        dpav (:,:,:)=  dp(:,:,:)/onem    ! convert to meter
         oiceav(:,:)= oice(:,:)
       elseif (abs((itime+1.)/nday-time).gt.1.e-5) then
 c --- check if ogcm date matches agcm date
@@ -75,12 +72,14 @@ c --- check if ogcm date matches agcm date
      .    amon,year,'.out',xlabel(1:lrunid),'.nc'
       endif
 c
-      if (date.le.9999) then
+      if (date.le.999) then ! jdate = number of days in this month
         write (intvl,'(i4.4)') date
       else
-        stop ' wrong date > 9999'
+        stop ' wrong date > 999'
       endif
 c
+      utotal(:,:,:)=0.
+      vtotal(:,:,:)=0.
 c --- output total velocity
       do k=1,kk
        do j=1,jj
@@ -162,6 +161,7 @@ c
       no=no+1
       call r8tor4(dpmixl,real4)
       if (smooth) call psmoo4(real4)
+      real4(:,:)=real4(:,:)/onem	! convert to meter
       write (nop,rec=no) 'mix_dpth        ',0,real4
       write (lp,100)     'mix_dpth        ',0,no
       no=no+1
@@ -188,6 +188,7 @@ c
       else
         call r8tor4(dp(1,1,kn),real4)
       endif
+      real4(:,:)=real4(:,:)/onem	! convert to meter
       write (nop,rec=no) 'dp              ',k,real4
       write (lp,100)     'dp              ',k,no
       no=no+1
@@ -273,11 +274,11 @@ c
       do 591 l=1,isu(j)
       do 591 i=ifu(j,l),ilu(j,l)
       if (dpuav(i,j,k).gt.0) uav(i,j,k)=uav(i,j,k)/dpuav(i,j,k)
- 591  uflxav(i,j,k)=uflxav(i,j,k)*baclin
+ 591  uflxav(i,j,k)=uflxav(i,j,k)*baclin*1.e-6/( date*86400.*onem)	! in Sv
       do 592 l=1,isv(j)
       do 592 i=ifv(j,l),ilv(j,l)
       if (dpvav(i,j,k).gt.0) vav(i,j,k)=vav(i,j,k)/dpvav(i,j,k)
- 592  vflxav(i,j,k)=vflxav(i,j,k)*baclin
+ 592  vflxav(i,j,k)=vflxav(i,j,k)*baclin*1.e-6/( date*86400.*onem)	! in Sv
       do 59 l=1,isp(j)
       do 59 i=ifp(j,l),ilp(j,l)
       if (dpav(i,j,k).gt.0.) then
@@ -285,7 +286,7 @@ c
         salav(i,j,k)=salav(i,j,k)/dpav(i,j,k)
         th3av(i,j,k)=th3av(i,j,k)/dpav(i,j,k)
       end if
-      dpav(i,j,k)=dpav(i,j,k)*factor
+      dpav(i,j,k)=dpav(i,j,k)*factor/onem	! in meter
 c
       diaflx(i,j,k)=-diaflx(i,j,k)/(2.*onem)
 c --- convert diapycnal thickness changes into actual interface fluxes
@@ -300,11 +301,11 @@ c
       do 56 l=1,isp(j)
       do 56 i=ifp(j,l),ilp(j,l)
       pbavav(i,j)=pbavav(i,j)*factor
-      sfhtav(i,j)=sfhtav(i,j)*factor        ! meter
-      dpmxav(i,j)=dpmxav(i,j)*factor
+      sfhtav(i,j)=sfhtav(i,j)*factor      ! in meter
+      dpmxav(i,j)=dpmxav(i,j)*factor/onem ! in meter
  56   oiceav(i,j)=oiceav(i,j)*factor
 c
-      end if     ! nstep > 1
+      end if      ! nstep > 1
 c
 c     write (lp,'(3a,i5)') 'shown below: ',intvl
 c    .    ,'- day SSH average step=',nstep
@@ -453,7 +454,7 @@ c
 ! snapshot
         call out2cdf(ncid1,idm,jdm,srfhgt,time,
      .    'srfht','sea surface height','m')
-        call out2cdf(ncid1,idm,jdm,dpmixl,time,
+        call out2cdf(ncid1,idm,jdm,dpmixl/onem,time,	! convert to m
      .    'zmixl','mixed layer depth','m')
         call out2cdf(ncid1,idm,jdm,oice,time,
      .    'covice','ice coverage','m')
@@ -463,7 +464,7 @@ c
      .    'saln','salinity','psu')
         call out3cdf(ncid1,idm,jdm,kdm,th3d,time,
      .    'th3d','pot.density, sigma1','kg/m^3')
-        call out3cdf(ncid1,idm,jdm,kdm,dp,time,
+        call out3cdf(ncid1,idm,jdm,kdm,dp/onem,time,	! convert to m
      .    'thik','layer thickness','m')
         call out3cdf(ncid1,idm,jdm,kdm,utotal,time,
      .    'utotal','southward velocity','m/sec')
@@ -504,11 +505,12 @@ c
      .    'trc4','passive tracer 4',' ')
         if (ntrcr.ge.5) stop 'stop: need work for ntrcr > 4'
         call out3cdf(ncid1,idm,jdm,kdm,uflxav,time,
-     .    'uflxav','monthly integral of southward mass flux','N')
+     .    'uflxav','monthly integral of southward mass flux','Sv')
         call out3cdf(ncid1,idm,jdm,kdm,vflxav,time,
-     .    'vflxav','monthly integral of eastward mass flux','N')
+     .    'vflxav','monthly integral of eastward mass flux','Sv')
         call out3cdf(ncid1,idm,jdm,kdm,diaflx,time,
-     .    'diaflx','monthly integral of diaflx','N')
+     .    'diaflx','monthly integral of diaflx (interlayer mass flux per
+     . unit area)','m')
 !       call out3cdf(ncid1,idm,jdm,kdm,vctyav,time,
 !         'visc','monthly vertical viscosity','m^2/sec')
 !       call out3cdf(ncid1,idm,jdm,kdm,diftav,time,

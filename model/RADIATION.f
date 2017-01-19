@@ -81,7 +81,7 @@ C----------------
 !@var JGCM,IGCM     host GCM grid indices
 !@var NL,L1         highest and lowest above ground layer
 !@var LS1_loc       local tropopause level, used to limit H2O-scaling
-      INTEGER   :: JLAT,ILON, NL,L1, LS1_loc ! Offline deflts L1=LS1_loc=1
+      INTEGER   :: JLAT,ILON, NL,L1=1, LS1_loc ! Offline deflts L1=LS1_loc=1
       INTEGER   :: JGCM, IGCM
 !@var JYEAR,JDAY    current year, Julian date
       INTEGER :: JYEAR=1980, JDAY=1
@@ -242,6 +242,7 @@ C**** local except for special radiative aerosol diagnostics aadiag
       REAL*8 ::  SRCQPI(6,15),TRCQPI(33,15)       !??? to setcld/getcld
                  !  Temp data used by WRITER, WRITET
       REAL*8  :: TRAQAB(33,11),TRBQAB(33,10),TRCQAB(33,15),TRDQAB(33,25)
+      REAL*8  :: AMP_TAB_SPEC(33,ITRMAX)
       INTEGER :: NORDER(16),NMWAVA(16),NMWAVB(16)
 
 C------------------------------------------
@@ -419,18 +420,18 @@ C            RADMAD6_SOLARUV_DECADAL          (user SETSOL)     radfile9
       INTEGER, PARAMETER :: icycs0=11,  icycs0f=12
       INTEGER  iMS0X
       REAL*4 yr1S0,yr2S0
-      real,    ALLOCATABLE, DIMENSION(:,:):: UVLEAN
+      real,    ALLOCATABLE, DIMENSION(:,:):: UV_SSI
       real,    ALLOCATABLE, DIMENSION(:)  :: TSI1,TSI2
-      REAL*8 FSLEAN(190),W1LEAN(190)
+      REAL*8 FS_SSI(190),W1_SSI(190)
 
       REAL*8 :: S00WM2=1366.2911d0, S0=1366.d0, RATLS0=1.
 
       REAL*8 :: WSOLAR(190),FSOLAR(190)
 
 C***  alternate sources to get WSOLAR,FSOLAR:
-      REAL*8, dimension(190) :: WSLEAN,DSLEAN,FRLEAN
+      REAL*8, dimension(190) :: WS_SSI,DS_SSI,FR_SSI  
 #ifdef USE_RAD_OFFLINE
-      common/lean1950/ WSLEAN,DSLEAN,FRLEAN ! for MADLUV=0 uses block data
+      common/lean1950/ WS_SSI,DS_SSI,FR_SSI ! for MADLUV=0 uses block data
 #endif
       REAL*8, PARAMETER :: WTHEK(190)=(/        ! if KSOLAR<0
      *           .115,.120,.125,.130,.140,.150,.160,.170,.180,.190,.200,
@@ -832,8 +833,12 @@ C                TRACER AEROSOL COMPOSITIONAL/TYPE PARAMETERS
       CONTAINS
 
       SUBROUTINE RCOMP1(NRFUN)
-      use DOMAIN_DECOMP_ATM, only: AM_I_ROOT
+      use DOMAIN_DECOMP_ATM, only: AM_I_ROOT, grid  
       use DustParam_mod, only : read_alloc_dust
+      use pario, only : par_open,par_close, variable_exists  
+     &                 ,get_dimlen,read_data  
+      use filemanager, only : file_exists    
+
       IMPLICIT NONE
 C     ------------------------------------------------------------------
 C     Solar,GHG Trend, VolcAer Size Selection Parameters:    Defaults
@@ -862,7 +867,12 @@ C          radfile1   2   3   4   5   6   7   8   9   A   B   C   D   E
      *     ,OCM,WCM,YQSCCB
 !@var GTAU,TGDATA temporary array to read data and pass it to RAD_UTILS
       REAL*8 :: GTAU(51,11,143),TGDATA(122,13)
-
+     
+      INTEGER :: N_BIN,fid 
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: SSI_IN 
+      REAL*8, ALLOCATABLE, DIMENSION(:) :: calyear,WS_IN,DS_IN,TSI_IN  
+      logical :: have_RADN9_file 
+ 
 !?    IF(LASTVC > 0) NRFUN=NRFN0
       IF(IFIRST < 1) GO TO 9999
 
@@ -1360,65 +1370,113 @@ C                                      ---------------------------------
 
       IF(KSOLAR < 0) GO TO 949
       IF(MADLUV < 1) THEN
-        WSLEAN(:)=WSLEAN(:)/1000.D0
-        DSLEAN(:)=DSLEAN(:)/1000.D0
-        W1LEAN(:)=WSLEAN(:)-0.5D0*DSLEAN(:)
+        WS_SSI(:)=WS_SSI(:)/1000.D0
+        DS_SSI(:)=DS_SSI(:)/1000.D0
+        W1_SSI(:)=WS_SSI(:)-0.5D0*DS_SSI(:)
         GO TO 949
       END IF
-      NRFU=NRFUN(9)
+!      NRFU=NRFUN(9)
 
-      IF(KSOLAR.ne.9) THEN
-        READ(NRFU,'(a80)') TITLE
-        if(ksolar >= 2 .and. TITLE(1:3).ne.'ANN')
-     &    call stop_model('rcomp1: change RADN9 to ann.file',255)
-        if(ksolar < 2 .and. TITLE(1:3)=='ANN')
-     &    call stop_model('rcomp1: change RADN9 to monthly file',255)
-        READ(NRFU,'(5F14.2)') WSLEAN   !  1:190
-        READ(NRFU,'(a80)') TITLE
-        READ(NRFU,'(5E14.3)') DSLEAN   !  1:190
+!      IF(KSOLAR.ne.9) THEN
+!        READ(NRFU,'(a80)') TITLE
+!        if(ksolar >= 2 .and. TITLE(1:3).ne.'ANN')
+!     &    call stop_model('rcomp1: change RADN9 to ann.file',255)
+!        if(ksolar < 2 .and. TITLE(1:3)=='ANN')
+!     &    call stop_model('rcomp1: change RADN9 to monthly file',255)
+!        READ(NRFU,'(5F14.2)') WSLEAN   !  1:190
+!        READ(NRFU,'(a80)') TITLE
+!        READ(NRFU,'(5E14.3)') DSLEAN   !  1:190  
 
-        WSLEAN(:)=WSLEAN(:)/1000.D0
-        DSLEAN(:)=DSLEAN(:)/1000.D0
-        W1LEAN(:)=WSLEAN(:)-0.5D0*DSLEAN(:)
+      have_RADN9_file = file_exists('RADN9')  
 
-        READ(NRFU,'(a80)') TITLE
-        READ(NRFU,'(a80)') TITLE
-        READ(NRFU,'(a80)') TITLE
-        if(TITLE(1:5).ne.'MS0X=') then  ! old no_header file
-          backspace (NRFU)
+      if(have_RADN9_file) then
+        fid=par_open(grid,'RADN9','read')
+        iMs0X=get_dimlen(grid,fid,'time') 
+        N_BIN=get_dimlen(grid,fid,'wlen')
+        ALLOCATE (TSI_IN(iMS0X),calyear(iMS0X)) 
+        ALLOCATE (WS_IN(N_BIN),DS_IN(N_BIN),SSI_IN(N_BIN,iMS0X)) 
+        if(variable_exists(grid,fid,'calyear'))then
+          call read_data(grid,fid,'calyear',calyear,bcast_all=.true.)
         else
-          read (title(6:80),*) iMs0X
+          call stop_model('missing calyear in RADN9 file',255)
+        endif 
+        if(variable_exists(grid,fid,'wlen'))then
+          call read_data(grid,fid,'wlen',WS_IN,bcast_all=.true.)
+        else
+          call stop_model('missing the wlen variable in RADN9 file',255)
         endif
-      END IF
-      ALLOCATE (UVLEAN(iMS0X,190),TSI1(iMS0X),TSI2(iMS0X))
-      IF(KSOLAR < 2) THEN
+        if(variable_exists(grid,fid,'wlenbinsize'))then  
+          call read_data(grid,fid,'wlenbinsize',DS_IN,bcast_all=.true.)
+        else
+          call stop_model('missing wlenbinsize in RADN9 file',255)
+        endif 
+          if(variable_exists(grid,fid,'ssi'))then 
+          call read_data(grid,fid,'ssi',SSI_IN,bcast_all=.true.)  
+        else  
+          call stop_model('missing the ssi variable in RADN9 file',255)
+        endif
+        if(variable_exists(grid,fid,'tsi'))then 
+          call read_data(grid,fid,'tsi',TSI_IN,bcast_all=.true.)
+        else
+          call stop_model('missing the tsi variable in RADN9 file',255)
+        endif    
+        call par_close(grid,fid)
+      else  
+        call stop_model('missing the RADN9 file',255)
+      endif 
+  
+      WS_SSI(:)=WS_IN(N_BIN-189:N_BIN)/1000.D0
+      DS_SSI(:)=DS_IN(N_BIN-189:N_BIN)/1000.D0
+      W1_SSI(:)=WS_SSI(:)-0.5D0*DS_SSI(:) 
+
+!        WSLEAN(:)=WSLEAN(:)/1000.D0
+!        DSLEAN(:)=DSLEAN(:)/1000.D0
+!        W1LEAN(:)=WSLEAN(:)-0.5D0*DSLEAN(:)
+
+!        READ(NRFU,'(a80)') TITLE
+!        READ(NRFU,'(a80)') TITLE
+!        READ(NRFU,'(a80)') TITLE
+!        if(TITLE(1:5).ne.'MS0X=') then  ! old no_header file
+!          backspace (NRFU)
+!        else
+!          read (title(6:80),*) iMs0X
+!        endif
+!      END IF
+      ALLOCATE (UV_SSI(iMS0X,190),TSI1(iMS0X),TSI2(iMS0X))
+      UV_SSI(:,:)=TRANSPOSE(SSI_IN(N_BIN-189:N_BIN,:))
+      TSI1(:)=TSI_IN(:)
+      TSI2(:)=TSI_IN(:)
+      yr1S0=calyear(1)
+      yr2S0=calyear(iMS0X)
+      DEALLOCATE(WS_IN,DS_IN,SSI_IN,TSI_IN,calyear) 
+!      IF(KSOLAR < 2) THEN
 C****   Read in monthly-mean data
-        DO I=1,iMs0X
-          READ(NRFU,'(2I6,3F17.6)') IYEAR,IMONTH,TSI1(I),TSI2(I)
-          READ(NRFU,'(5E14.6)')     FSLEAN    ! 1:190
-          SFNORM = TSI1(I) / SUM(FSLEAN(:)*DSLEAN(:))
-          UVLEAN(I,:)=FSLEAN(:)*SFNORM
-        END DO
-      ELSE
+!        DO I=1,iMs0X
+!          READ(NRFU,'(2I6,3F17.6)') IYEAR,IMONTH,TSI1(I),TSI2(I)
+!          READ(NRFU,'(5E14.6)')     FSLEAN    ! 1:190
+!          SFNORM = TSI1(I) / SUM(FSLEAN(:)*DSLEAN(:))
+!          UVLEAN(I,:)=FSLEAN(:)*SFNORM
+!        END DO
+!      ELSE
 C****   Read in annual-mean data
-        DO I=1,iMs0X
-          IF(KSOLAR.ne.9) THEN
-            READ(NRFU,'(F12.1,2F15.4)',end=908) yr2S0,TSI1(I),TSI2(I)
-          ELSE
-            READ(NRFU,'(I6,2F17.6)',end=908) yr2S0i,TSI1(I),TSI2(I)
-            yr2S0=real(yr2S0i)+0.5
-          END IF
-          if(I==1) yr1S0 = yr2S0
-          IF(KSOLAR.ne.9) THEN
-            READ(NRFU,'(5E14.6)')   FSLEAN    ! 1:190
-            SFNORM=TSI1(I) / SUM(FSLEAN(:)*DSLEAN(:))
-            UVLEAN(I,:)=FSLEAN(:)*SFNORM
-          ELSE ! ksolar=9
-            READ(NRFU,'(5E14.6)')               (UVLEAN(I,K),K=1,190)
-          ENDIF
-        END DO
+!        DO I=1,iMs0X
+!          IF(KSOLAR.ne.9) THEN
+!            READ(NRFU,'(F12.1,2F15.4)',end=908) yr2S0,TSI1(I),TSI2(I)
+!          ELSE
+!            READ(NRFU,'(I6,2F17.6)',end=908) yr2S0i,TSI1(I),TSI2(I)
+!            yr2S0=real(yr2S0i)+0.5
+!          END IF
+!          if(I==1) yr1S0 = yr2S0
+!          IF(KSOLAR.ne.9) THEN
+!            READ(NRFU,'(5E14.6)')   FSLEAN    ! 1:190
+!            SFNORM=TSI1(I) / SUM(FSLEAN(:)*DSLEAN(:))
+!            UVLEAN(I,:)=FSLEAN(:)*SFNORM
+!          ELSE ! ksolar=9
+!            READ(NRFU,'(5E14.6)')               (UVLEAN(I,K),K=1,190)
+!          ENDIF
+!        END DO
   908   if(Am_I_Root()) write(6,*) 'read S0-history: ',yr1S0,' - ',yr2S0
-      END IF
+!      END IF
 
   949 CONTINUE
 
@@ -1819,9 +1877,9 @@ C            KSOLAR   SOLSPEC     UVWAVLs       UVFACTs         KUVFAC
 C-----------------------------------------------------------------------
 C              -1     THEK      Can be set    Can be set   (if KUVFAC=1)
 C-----------------------------------------------------------------------
-C               0     LEAN      Can be set    Can be set   (if KUVFAC=1)
+C               0     SSI       Can be set    Can be set   (if KUVFAC=1)
 C-----------------------------------------------------------------------
-C               1     LEAN      Can be set    Can be set   (if KUVFAC=1)
+C               1     SSI       Can be set    Can be set   (if KUVFAC=1)
 C-----------------------------------------------------------------------
 C
 C                               (Option to Modify Solar UV Fluxes)
@@ -1846,7 +1904,7 @@ C                (Thekaekara, if KSOLAR=-1, Reference = 1367 WATTS/M**2)
 C
 C
 C     SETSOL  is Generally Called once at Model Initialization to Select
-C                Solar Flux (LEAN,THEK), and to Define S00WM2 (RATLS0=1)
+C                Solar Flux (SSI,THEK), and to Define S00WM2 (RATLS0=1)
 C
 C-----------------------------------------------------------------------
 C NOTE:
@@ -1930,15 +1988,15 @@ C                                           ----------------------------
       LMOREF=LMO
 
 C                        IF(MADLUV==0) Default Option is then in force
-C                        Default (FRLEAN) = Lean 1950 Jan Solar, UV flux
-C                        CORFAC accounts for DSLEAN units in BLOCK DATA,
+C                        Default (FR_SSI) = Lean 1950 Jan Solar, UV flux
+C                        CORFAC accounts for DS_SSI units in BLOCK DATA,
 C                        and TSI1/TSI2 normalization of Lean input data.
 C                        -----------------------------------------------
 
 c      CORFAC=1366.2911D0/1366.4487855D0
       IF(KSOLAR.ne.9) THEN
-        IF(MADLUV == 0) S00WM2 = SUM(FRLEAN(:)*DSLEAN(:)*CORFAC)
-        IF(MADLUV >  0) S00WM2 = SUM(UVLEAN(LMO,:)*DSLEAN(:))
+        IF(MADLUV == 0) S00WM2 = SUM(FR_SSI(:)*DS_SSI(:)*CORFAC)
+        IF(MADLUV >  0) S00WM2 = SUM(UV_SSI(LMO,:)*DS_SSI(:))
       ELSE
         S00WM2=TSI2(LMO)
       END IF
@@ -1947,18 +2005,18 @@ c      CORFAC=1366.2911D0/1366.4487855D0
         I=0
         DO K=1,50
           I=I+1
-          WSOLAR(I)=W1LEAN(K)
-          IF(MADLUV == 0) FSOLAR(I)=FRLEAN(K)
-          IF(MADLUV >  0) FSOLAR(I)=UVLEAN(LMO,K)
+          WSOLAR(I)=W1_SSI(K)
+          IF(MADLUV == 0) FSOLAR(I)=FR_SSI(K)
+          IF(MADLUV >  0) FSOLAR(I)=UV_SSI(LMO,K)
           I=I+1
-          WSOLAR(I)=W1LEAN(K+1)
+          WSOLAR(I)=W1_SSI(K+1)
           FSOLAR(I)=FSOLAR(I-1)
         END DO
         NWSUV=100
       ELSE
         IF(MADLUV==0)call stop_model("invalid MADLUV for KSOLAR=9",255)
         WSOLAR(1:190)=WTHEK(1:190)
-        FSOLAR(1:190)=UVLEAN(LMO,1:190)
+        FSOLAR(1:190)=UV_SSI(LMO,1:190)
         NWSUV=190
       END IF
 
@@ -2047,7 +2105,7 @@ C--------------------------------
 C                                               Select Lean99 Solar Flux
 C                                               ------------------------
       IF(KSOLAR.ne.9)THEN
-        FLXSUM = SUM(UVLEAN(LMO,1:190)*DSLEAN(1:190))
+        FLXSUM = SUM(UV_SSI(LMO,1:190)*DS_SSI(1:190))
       ELSE
         FLXSUM=TSI2(LMO)
       END IF
@@ -2057,10 +2115,10 @@ c        write(6,*) 'UPDSOLAR::FLXSUM::',FLXSUM
         I=0
         DO K=1,50
           I=I+1
-          WSOLAR(I)=W1LEAN(K)
-          FSOLAR(I)=UVLEAN(LMO,K)
+          WSOLAR(I)=W1_SSI(K)
+          FSOLAR(I)=UV_SSI(LMO,K)
           I=I+1
-          WSOLAR(I)=W1LEAN(K+1)
+          WSOLAR(I)=W1_SSI(K+1)
           FSOLAR(I)=FSOLAR(I-1)
         END DO
         NWSUV=100
@@ -2068,7 +2126,7 @@ c        write(6,*) 'UPDSOLAR::FLXSUM::',FLXSUM
 C                                          Select Thekaekhara Solar Flux
 C                                          -----------------------------
         WSOLAR(1:190)=WTHEK(1:190)
-        FSOLAR(1:190)=UVLEAN(LMO,1:190)
+        FSOLAR(1:190)=UV_SSI(LMO,1:190)
         NWSUV=190
       END IF
 C                                         Option to Modify Solar UV Flux
@@ -2796,6 +2854,26 @@ C     ------------------------------------------------------------------
 #endif
       INTEGER NRHNAN(LX,8),K,L,NA,N,NRH,M,KDREAD,NT
 
+
+#if (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
+#ifdef TRACERS_AMP
+      CALL SETAMP(EXT,SCT,GCB,TAB)
+#endif
+#ifdef TRACERS_TOMAS
+      CALL SETTOMAS(EXT,SCT,GCB,TAB)
+#endif
+!radiation has 3 extra levels on the top - aerosols are zero
+c SW
+      SRBEXT(L1:LM,:) = EXT(L1:LM,:)
+      SRBSCT(L1:LM,:) = SCT(L1:LM,:)
+      SRBGCB(L1:LM,:) = GCB(L1:LM,:)
+c LW
+      TRBALK(L1:LM,:) = TAB(L1:LM,:)
+#endif
+
+#ifndef TRACERS_TOMAS
+#ifndef TRACERS_AMP
+
       if ( present(GETAER_flag) ) goto 200
 
       IF(MADAER <= 0) GO TO 150
@@ -2975,24 +3053,6 @@ C-----------------
 
   500 CONTINUE
 
-#if (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
-#ifdef TRACERS_AMP
-      CALL SETAMP(EXT,SCT,GCB,TAB)
-#endif
-#ifdef TRACERS_TOMAS
-      CALL SETTOMAS(EXT,SCT,GCB,TAB)
-#endif
-!radiation has 3 extra levels on the top - aerosols are zero
-c SW
-      SRBEXT(L1:LM,:) = EXT(L1:LM,:)
-      SRBSCT(L1:LM,:) = SCT(L1:LM,:)
-      SRBGCB(L1:LM,:) = GCB(L1:LM,:)
-c LW
-      TRBALK(L1:LM,:) = TAB(L1:LM,:)
-#endif
-
-#ifndef TRACERS_TOMAS
-#ifndef TRACERS_AMP
       IF(NTRACE <= 0) RETURN
 
 C     ------------------------------------------------------------------
@@ -8152,17 +8212,17 @@ C
       SFL0(I)=0.D0
   310 CONTINUE
       DO 320 K=1,190
-      IF(K <= NSW1)              SFL0(1)=SFL0(1)+UVLEAN(LMO,K)*DSLEAN(K)
-      IF(K > NSW1.and.K <= NSW2)SFL0(2)=SFL0(2)+UVLEAN(LMO,K)*DSLEAN(K)
-      IF(K > NSW2.and.K <= NSW3)SFL0(3)=SFL0(3)+UVLEAN(LMO,K)*DSLEAN(K)
-      IF(K > NSW3.and.K <= NSW4)SFL0(4)=SFL0(4)+UVLEAN(LMO,K)*DSLEAN(K)
-                                 SFL0(5)=SFL0(5)+UVLEAN(LMO,K)*DSLEAN(K)
+      IF(K <= NSW1)              SFL0(1)=SFL0(1)+UV_SSI(LMO,K)*DS_SSI(K)
+      IF(K > NSW1.and.K <= NSW2)SFL0(2)=SFL0(2)+UV_SSI(LMO,K)*DS_SSI(K)
+      IF(K > NSW2.and.K <= NSW3)SFL0(3)=SFL0(3)+UV_SSI(LMO,K)*DS_SSI(K)
+      IF(K > NSW3.and.K <= NSW4)SFL0(4)=SFL0(4)+UV_SSI(LMO,K)*DS_SSI(K)
+                                 SFL0(5)=SFL0(5)+UV_SSI(LMO,K)*DS_SSI(K)
   320 CONTINUE
 C
       if(ksolar==2.or.ksolar==9)
      *   WRITE(KW,6299) int(yr1s0),int(yr2s0),JYRREF,JYRNOW,SFL0(5)
       if(ksolar < 2) WRITE(KW,6300) JYRREF,JYRNOW,SFL0(5)
- 6299 FORMAT(/' (3)=INDEX  Annual-mean Solar flux (from J.Lean annual'
+ 6299 FORMAT(/' (3)=INDEX  Annual-mean Solar flux (from ann. SSI input'
      +      ,I6,'-',I4,' data) for JYRREF=',I4,' to JYRNOW=',I4,'  mid'
      +      ,' 1950 Ref S00WM2=',F9.4/12X,'Solar UV Spectral Flux W/m2'
      +      ,T57,'Delta Solar UV Spectral Flux W/m2'
@@ -8205,11 +8265,11 @@ C
       IF(LMO > lmax) LMO=LMO-icyc*((LMO-lmax+icyc-1)/icyc)
       IF(LMO < 1) LMO=LMO+icyc*((icyc-LMO)/icyc)
       DO 340 K=1,190
-      IF(K <= NSW1)              SFLX(1)=SFLX(1)+UVLEAN(LMO,K)*DSLEAN(K)
-      IF(K > NSW1.and.K <= NSW2)SFLX(2)=SFLX(2)+UVLEAN(LMO,K)*DSLEAN(K)
-      IF(K > NSW2.and.K <= NSW3)SFLX(3)=SFLX(3)+UVLEAN(LMO,K)*DSLEAN(K)
-      IF(K > NSW3.and.K <= NSW4)SFLX(4)=SFLX(4)+UVLEAN(LMO,K)*DSLEAN(K)
-                                 SFLX(5)=SFLX(5)+UVLEAN(LMO,K)*DSLEAN(K)
+      IF(K <= NSW1)              SFLX(1)=SFLX(1)+UV_SSI(LMO,K)*DS_SSI(K)
+      IF(K > NSW1.and.K <= NSW2)SFLX(2)=SFLX(2)+UV_SSI(LMO,K)*DS_SSI(K)
+      IF(K > NSW2.and.K <= NSW3)SFLX(3)=SFLX(3)+UV_SSI(LMO,K)*DS_SSI(K)
+      IF(K > NSW3.and.K <= NSW4)SFLX(4)=SFLX(4)+UV_SSI(LMO,K)*DS_SSI(K)
+                                 SFLX(5)=SFLX(5)+UV_SSI(LMO,K)*DS_SSI(K)
   340 CONTINUE
   350 CONTINUE
       DO 360 I=1,5

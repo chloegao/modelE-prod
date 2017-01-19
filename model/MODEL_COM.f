@@ -74,17 +74,19 @@ C**** (Simplified) Calendar Related Terms
 !@dbparam DTSRC source time step (s)   = 1 ITU
       REAL*8 :: DTsrc = 3600.
 
-!@dbparam KCOPY: if 1 => acc, if 2 => +rsf, if 3 => +od are saved
+!@dbparam KCOPY: if 1 => acc, if 3 => +od are saved
+!@dbparam KRSF:  .rsf is written at beginning of every KRSF month
 !@dbparam Ndisk:  DT_saversf    =  Ndisk *DTsrc fort.1/fort.2 saves
 !@dbparam Nssw:   DT_checkSsw   =  Nssw  *DTsrc
-      INTEGER :: KCOPY=2, NDisk = 24, Nssw = 1
+      INTEGER :: KCOPY = 1, KRSF = 120, NDisk = 24, Nssw = 1
 
 !**** Accounting variables
 !@dbparam IRAND last seed used by rand.number generator
 !@var KDISK next rsf (fort.)1 or 2 to be written to
       INTEGER :: IRAND=123456789, KDISK=1
 !@param rsf_file_name names of restart files
-      CHARACTER(6), PARAMETER :: rsf_file_name(2)=(/'fort.1','fort.2'/)
+      CHARACTER(6), PARAMETER :: rsf_file_name(4)=
+     &         (/'fort.1','fort.2','fort.3','fort.4'/)
 !@var MDYN,MCNDS,MRAD,MSURF,MDIAG,MELSE timing-indices
       INTEGER  MDYN,MCNDS,MRAD,MSURF,MDIAG,MELSE
 

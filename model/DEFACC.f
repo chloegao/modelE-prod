@@ -1135,7 +1135,7 @@ c
 #endif
 #ifdef NEW_IO
       use cdl_mod
-      use MDIAG_COM, only : make_timeaxis
+      use MDIAG_COM, only : make_timeaxis,sname_strlen,lname_strlen
 #endif
       use geom
       use dynamics, only : do_gwdrag,ido_gwdrag
@@ -1144,11 +1144,36 @@ c
       use flammability_com, only: nVtype,ij_flamV
 #endif
       USE SOCPBL, only : calc_wspdf
+      use dictionary_mod
       implicit none
-      integer :: i,k,kk,k3,k1,l,n,ngx
+      integer :: i,k,kk,k3,k1,l,n,ngx,nq
       character(len=16) :: ijstr,string_flamV
       real*8 x_dummy(im)
       logical :: set_miss
+! The following local variables are used in the definition of groups of
+! 2D outputs collected into output fields having a third dimension.
+! The groupings are applied if fuse_groups is true.
+!@dbparam fuse_groups whether to output groups of related
+!@+         diagnostics in arrays of rank+1
+      logical :: fuse_groups=.false.
+!@var index1 index of the first acc element of a group of outputs
+!@var dim3info_index for a group using an already-defined third dimension,
+!@+      this is index of the acc element containing information
+!@+      about the third dimension
+      integer, dimension(:), allocatable :: index1,dim3info_index
+!@var coord3 the coordinate axes corresponding to the third dimensions.
+      real*8, dimension(:,:), allocatable :: coord3 ! (1:ncoordvalues,k)
+!@var name3 variable names used for grouped output
+!@var dim3name the names of the third dimensions for grouped output
+!@var dim3units units of coordinate axes of the third dimensions (if existing)
+      character(len=sname_strlen), dimension(:), allocatable ::
+     &     name3,dim3name,dim3units
+!@var lname3 long names of grouped output variable
+      character(len=lname_strlen), dimension(:), allocatable ::
+     &     lname3
+!@var ij_xxx_diminfo indices saved to set dim3info_index
+      integer :: ij_cp_diminfo,ij_ghy_diminfo,ij_aer_diminfo
+      character(len=80) :: varstr,varstrll,long_name,auxvar_string
 c
       do k=1,kaij
          write(name_ij(k),'(a3,i3.3)') 'AIJ',k
@@ -1168,6 +1193,21 @@ c
          units_ijmm(k) = 'unused'
          scale_ijmm(k) = 1.
       enddo
+
+      ! NB: fuse_groups only used for aij category at the moment,
+      ! so no special aij-specific substring in the flag name yet
+      if(is_set_param('fuse_groups')) then
+        call get_param('fuse_groups',fuse_groups)
+      endif
+      allocate(index1(kaij),name3(kaij),dim3name(kaij),coord3(100,kaij))
+      allocate(dim3info_index(kaij),lname3(kaij),dim3units(kaij))
+      do k=1,kaij
+        index1(k) = 0
+        dim3info_index(k) = 0
+        coord3(:,k) = -1d30
+        dim3units(k) = ''
+      enddo
+
 c
       k=0
 C**** AIJ diagnostic names:
@@ -1265,13 +1305,15 @@ c
       ia_ij(k) = ia_src
       scale_ij(k) = 100.
 c
-      k=k+1 !
-      IJ_P850 = k !
-      lname_ij(k) = 'FREQUENCY OF 850mb PRESSURE'  ! weighting function
-      units_ij(k) = '%'
-      name_ij(k) = 'p_850_freq'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 100.
+      IJ_PMB1 = k+1
+      Do L=1,KGZ
+         k=k+1
+         lname_ij(k) = 'PRESSURE FREQUENCY at ' // Trim(PMNAME(L))//'mb'  
+         units_ij(k) = '%'
+         name_ij(k) = 'p_freq_' // PMNAME(L)
+         ia_ij(k) = ia_dga
+         scale_ij(k) = 100.
+      EndDo
 c
       k=k+1 !
       IJ_RSNW = k ! PSNOW (1)            1 GD
@@ -1357,51 +1399,24 @@ c
       scale_ij(k) = 100.
 c
 !**** Water Mass
-      k=k+1
-      IJ_Q100 = k
-      lname_ij(k) = 'SPECIFIC HUMIDITY AT 100mb'
-      units_ij(k) = 'g/kg'
-      name_ij(k) = 'q_100'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1d3
-      ir_ij(k) = ir_0_18
-c
-      k=k+1
-      IJ_Q300 = k
-      lname_ij(k) = 'SPECIFIC HUMIDITY AT 300mb'
-      units_ij(k) = 'g/kg'
-      name_ij(k) = 'q_300'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1d3
-      ir_ij(k) = ir_0_18
-c
-      k=k+1
-      IJ_Q500 = k
-      lname_ij(k) = 'SPECIFIC HUMIDITY AT 500mb'
-      units_ij(k) = 'g/kg'
-      name_ij(k) = 'q_500'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1d3
-      ir_ij(k) = ir_0_18
-c
-      k=k+1
-      IJ_Q700 = k
-      lname_ij(k) = 'SPECIFIC HUMIDITY AT 700mb'
-      units_ij(k) = 'g/kg'
-      name_ij(k) = 'q_700'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1d3
-      ir_ij(k) = ir_0_18
-c
-      k=k+1
-      IJ_Q850 = k
-      lname_ij(k) = 'SPECIFIC HUMIDITY AT 850mb'
-      units_ij(k) = 'g/kg'
-      name_ij(k) = 'q_850'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1d3
-      ir_ij(k) = ir_0_18
-      denom_ij(k) = IJ_P850
+      IJ_QPMB1 = k+1
+      Do L=1,KGZ
+         k=k+1
+         lname_ij(k) = 'SPECIFIC HUMIDITY at ' // Trim(PMNAME(L)) //'mb'
+         units_ij(k) = 'g/kg'
+         name_ij(k) = 'q_' // PMNAME(L)
+         ia_ij(k) = ia_dga
+         scale_ij(k) = 1d3
+         ir_ij(k) = ir_0_18
+         denom_ij(k) = IJ_PMB1 + L - 1
+         index1(k) = IJ_QPMB1
+         coord3(L,IJ_QPMB1) = PMB(L)
+      EndDo
+      name3(IJ_QPMB1) = 'qcp'
+      lname3(IJ_QPMB1) = 'SPECIFIC HUMIDITY'
+      dim3name(IJ_QPMB1) = 'pcp'
+      dim3units(IJ_QPMB1) = 'mb'
+      ij_cp_diminfo = IJ_QPMB1
 c
       k=k+1 !
       IJ_QS   = k ! QS                                (NO PRT)  3 SF
@@ -1412,51 +1427,23 @@ c
       scale_ij(k) = 1.d4
       ir_ij(k) = ir_0_180
 c
-      k=k+1
-      IJ_RH100 = k
-      lname_ij(k) = 'RELATIVE HUMIDITY (ICE) AT 100mb'
-      units_ij(k) = '%'
-      name_ij(k) = 'rh_100'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1d2
-      ir_ij(k) = ir_pct
-c
-      k=k+1
-      IJ_RH300 = k
-      lname_ij(k) = 'RELATIVE HUMIDITY (ICE) AT 300mb'
-      units_ij(k) = '%'
-      name_ij(k) = 'rh_300'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1d2
-      ir_ij(k) = ir_pct
-c
-      k=k+1
-      IJ_RH500 = k
-      lname_ij(k) = 'RELATIVE HUMIDITY AT 500mb'
-      units_ij(k) = '%'
-      name_ij(k) = 'rh_500'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1d2
-      ir_ij(k) = ir_pct
-c
-      k=k+1
-      IJ_RH700 = k
-      lname_ij(k) = 'RELATIVE HUMIDITY AT 700mb'
-      units_ij(k) = '%'
-      name_ij(k) = 'rh_700'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1d2
-      ir_ij(k) = ir_pct
-c
-      k=k+1
-      IJ_RH850 = k
-      lname_ij(k) = 'RELATIVE HUMIDITY AT 850mb'
-      units_ij(k) = '%'
-      name_ij(k) = 'rh_850'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1d2
-      ir_ij(k) = ir_pct
-      denom_ij(k) = IJ_P850
+      IJ_RHPMB1 = k+1
+      Do L=1,KGZ
+         k=k+1
+         lname_ij(k) = 'RELATIVE HUMIDITY at ' // Trim(PMNAME(L)) //'mb'
+         units_ij(k) = '%'
+         name_ij(k) = 'rh_' // PMNAME(L)
+         ia_ij(k) = ia_dga
+         scale_ij(k) = 1d2
+         ir_ij(k) = ir_pct
+         denom_ij(k) = IJ_PMB1 + L - 1
+         index1(k) = IJ_RHPMB1
+         coord3(L,IJ_RHPMB1) = PMB(L) ! let RH coord be distinct for other const-press
+      EndDo
+      name3(IJ_RHPMB1) = 'rhcp'
+      lname3(IJ_RHPMB1) = 'RELATIVE HUMIDITY'
+      dim3name(IJ_RHPMB1) = 'prh'
+      dim3units(IJ_RHPMB1) = 'mb'
 c
       k=k+1 !
       IJ_RH1 = k !
@@ -1476,17 +1463,17 @@ c
       scale_ij(k) = 1.d2
 c
       k=k+1
-      IJ_WMSUM = k ! LIQUID WATER PATH (kg/m**2)             1 CL
-      lname_ij(k) = 'LIQUID WATER PATH'
+      IJ_WMSUM = k ! CLOUD LIQUID WATER PATH (kg/m**2)             1 CL
+      lname_ij(k) = 'CLOUD LIQUID WATER PATH'
       units_ij(k) = '.1 kg/m^2'
-      name_ij(k) = 'lwp'
+      name_ij(k) = 'clwp'
       ia_ij(k) = ia_src
       scale_ij(k) = 10.
       ir_ij(k) = ir_0_18
 c
       k=k+1 !
-      IJ_QM = k ! ATMOSPHERIC WATER VAPOUR CONTENT (kg/m**2)             1 CL
-      lname_ij(k) = 'ATMOSPHERIC WATER VAPOUR'
+      IJ_QM = k ! ATMOSPHERIC WATER VAPOUR COLUMN (kg/m**2)             1 CL
+      lname_ij(k) = 'ATMOSPHERIC WATER VAPOUR COLUMN'
       units_ij(k) = 'kg/m^2'
       name_ij(k) = 'qatm'
       ia_ij(k) = ia_dga
@@ -1494,19 +1481,35 @@ c
       ir_ij(k) = ir_0_18
 c
       k=k+1 !
-      IJ_CLDW = k ! CLOUD CONDENSED WATER                      1 CL
-      lname_ij(k) = 'CLOUD CONDENSED WATER'
+      IJ_CLDW = k ! CLOUD CONDENSED WATER COLUMN               1 CL
+      lname_ij(k) = 'CLOUD CONDENSED WATER COLUMN'
       units_ij(k) = 'kg/m^2'
       name_ij(k) = 'cldw'
       ia_ij(k) = ia_src
       scale_ij(k) = 1.
 c
       k=k+1 !
-      IJ_CLDI = k ! CLOUD CONDENSED ICE                        1 CL
-      lname_ij(k) = 'CLOUD CONDENSED ICE'
+      IJ_CLDI = k ! CLOUD CONDENSED ICE COLUMN                 1 CL
+      lname_ij(k) = 'CLOUD CONDENSED ICE COLUMN'
       units_ij(k) = 'kg/m^2'
       name_ij(k) = 'cldi'
       ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+c
+      k=k+1
+      IJ_LWPrad = k ! LIQUID WATER PATH SEEN BY RADIATION (kg/m**2), includes precip
+      lname_ij(k) = 'LIQUID WATER PATH SEEN BY RADIATION'
+      units_ij(k) = 'kg/m^2'
+      name_ij(k) = 'LWPrad'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 1.
+c
+      k=k+1
+      IJ_IWPrad = k ! ICE WATER PATH SEEN BY RADIATION (kg/m**2), includes precip
+      lname_ij(k) = 'ICE WATER PATH SEEN BY RADIATION'
+      units_ij(k) = 'kg/m^2'
+      name_ij(k) = 'IWPrad'
+      ia_ij(k) = ia_rad
       scale_ij(k) = 1.
 c
       k=k+1 !
@@ -1969,51 +1972,21 @@ c
       ir_ij(k) = ir_0_1775
       denom_ij(k) = IJ_TCLDI
 c
-      k=k+1 !
-      IJ_T100 = k !
-      lname_ij(k) = 'TEMPERATURE AT 100mb'
-      units_ij(k) = 'C'
-      name_ij(k) = 't_100'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m80_28
-c
-      k=k+1 !
-      IJ_T300 = k !
-      lname_ij(k) = 'TEMPERATURE AT 300mb'
-      units_ij(k) = 'C'
-      name_ij(k) = 't_300'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m80_28
-c
-      k=k+1 !
-      IJ_T500 = k !
-      lname_ij(k) = 'TEMPERATURE AT 500mb'
-      units_ij(k) = 'C'
-      name_ij(k) = 't_500'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m80_28
-c
-      k=k+1 !
-      IJ_T700 = k !
-      lname_ij(k) = 'TEMPERATURE AT 700mb'
-      units_ij(k) = 'C'
-      name_ij(k) = 't_700'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m80_28
-c
-      k=k+1 !
-      IJ_T850 = k !
-      lname_ij(k) = 'TEMPERATURE AT 850mb'
-      units_ij(k) = 'C'
-      name_ij(k) = 't_850'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 1.
-      ir_ij(k) = ir_m80_28
-      denom_ij(k) = IJ_P850
+      IJ_TPMB1 = k+1
+      Do L=1,KGZ
+         k=k+1
+         lname_ij(k) = 'TEMPERATURE at ' // Trim(PMNAME(L)) // 'mb'
+         units_ij(k) = 'C'
+         name_ij(k) = 't_' // PMNAME(L)
+         ia_ij(k) = ia_dga
+         scale_ij(k) = 1
+         ir_ij(k) = ir_m80_28
+         denom_ij(k) = IJ_PMB1 + L - 1
+         index1(k) = IJ_TPMB1
+      EndDo
+      name3(IJ_TPMB1) = 'tcp'
+      lname3(IJ_TPMB1) = 'TEMPERATURE'
+      dim3info_index(IJ_TPMB1) = ij_cp_diminfo
 c
       k=k+1 !
       IJ_TS   = k ! TS (K-TF)                                 3 SF
@@ -2306,139 +2279,26 @@ c
       ir_ij(k) = ir_0_3550
 c
 !**** Geopotential Height
-      k=k+1 !
-      IJ_PHI1K = k ! PHI1000 (M**2/S**2) 4 DA
-      lname_ij(k) = '1000mb HEIGHT'
-      units_ij(k) = 'm'
-      name_ij(k) = 'phi_1000'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = BYGRAV
-      ir_ij(k) = ir_m190_530
-c
-      k=k+1 !
-      IJ_PHI850 = k ! PHI850 (M**2/S**2-1500*GRAV) 4 DA
-      lname_ij(k) = '850 mb HEIGHT'
-      units_ij(k) = 'm-1500'
-      name_ij(k) = 'phi_850'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = BYGRAV
-      ir_ij(k) = ir_m265_95
-c
-      k=k+1 !
-      IJ_PHI700 = k ! PHI700-3000*GRAV  4 DA
-      lname_ij(k) = '700 mb HEIGHT'
-      units_ij(k) = 'm-3000'
-      name_ij(k) = 'phi_700'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = BYGRAV
-      ir_ij(k) = ir_m530_190
-c
-      k=k+1 !
-      IJ_PHI500 = k ! PHI500-5600*GRAV  4 DA
-      lname_ij(k) = '500 mb HEIGHT'
-      units_ij(k) = 'm-5600'
-      name_ij(k) = 'phi_500'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = BYGRAV
-      ir_ij(k) = ir_m1325_475
-c
-      k=k+1 !
-      IJ_PHI300 = k ! PHI300-9500*GRAV  4 DA
-      lname_ij(k) = '300 mb HEIGHT'
-      units_ij(k) = 'm-9500'
-      name_ij(k) = 'phi_300'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = BYGRAV
-      ir_ij(k) = ir_m2650_950
-c
-      k=k+1 !
-      IJ_PHI100 = k ! PHI100-16400*GRAV 4 DA
-      lname_ij(k) = '100 mb HEIGHT'
-      units_ij(k) = 'm-16400'
-      name_ij(k) = 'phi_100'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = BYGRAV
-      ir_ij(k) = ir_m2650_950
-c
-      k=k+1 !
-      IJ_PHI30 = k ! PHI30-24000*GRAV   4 DA
-      lname_ij(k) = '30 mb HEIGHT'
-      units_ij(k) = 'm-24000'
-      name_ij(k) = 'phi_30'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = BYGRAV
-      ir_ij(k) = ir_m3975_1425
-c
-      if (kgz_max.gt.k-IJ_PHI1K+1) then
+      IJ_ZPMB1 = k+1     
+      Do L=1,KGZ
          k=k+1
-         IJ_PHI10 = k ! PHI10-30000*GRAV   4 DA
-         lname_ij(k) = '10 mb HEIGHT'
-         units_ij(k) = 'm-30000'
-         name_ij(k) = 'phi_10'
+         lname_ij(k) = 'HEIGHT at ' // Trim(PMNAME(L)) // 'mb'
+         units_ij(k) = 'm'
+         name_ij(k) = 'z_' // PMNAME(L)     
          ia_ij(k) = ia_dga
-         scale_ij(k) = BYGRAV
-         ir_ij(k) = ir_m5300_1900
-      end if
-c
-      if (kgz_max.gt.k-IJ_PHI1K+1) then
-         k=k+1
-         IJ_PHI3p4 = k ! PHI3.4-40000*GRAV   4 DA
-         lname_ij(k) = '3.4 mb HEIGHT'
-         units_ij(k) = 'm-40000'
-         name_ij(k) = 'phi_3.4'
-         ia_ij(k) = ia_dga
-         scale_ij(k) = BYGRAV
-         ir_ij(k) = ir_m5300_1900
-      end if
-c
-      if (kgz_max.gt.k-IJ_PHI1K+1) then
-         k=k+1
-         IJ_PHI0p7 = k ! PHI0.7-50000*GRAV   4 DA
-         lname_ij(k) = '0.7 mb HEIGHT'
-         units_ij(k) = 'm-50000'
-         name_ij(k) = 'phi_0.7'
-         ia_ij(k) = ia_dga
-         scale_ij(k) = BYGRAV
-         ir_ij(k) = ir_m5300_1900
-      end if
-c
-      if (kgz_max.gt.k-IJ_PHI1K+1) then
-         k=k+1
-         IJ_PHI0p16 = k ! PHI0.16-61000*GRAV   4 DA
-         lname_ij(k) = '0.16 mb HEIGHT'
-         units_ij(k) = 'm-61000'
-         name_ij(k) = 'phi_0.16'
-         ia_ij(k) = ia_dga
-         scale_ij(k) = BYGRAV
-         ir_ij(k) = ir_m5300_1900
-      end if
-c
-      if (kgz_max.gt.k-IJ_PHI1K+1) then
-         k=k+1
-         IJ_PHI0p07 = k ! PHI0.07-67000*GRAV   4 DA
-         lname_ij(k) = '0.07 mb HEIGHT'
-         units_ij(k) = 'm-67000'
-         name_ij(k) = 'phi_0.07'
-         ia_ij(k) = ia_dga
-         scale_ij(k) = BYGRAV
-         ir_ij(k) = ir_m5300_1900
-      end if
-c
-      if (kgz_max.gt.k-IJ_PHI1K+1) then
-         k=k+1
-         IJ_PHI0p03 = k ! PHI0.03-72000*GRAV   4 DA
-         lname_ij(k) = '0.03 mb HEIGHT'
-         units_ij(k) = 'm-72000'
-         name_ij(k) = 'phi_0.03'
-         ia_ij(k) = ia_dga
-         scale_ij(k) = BYGRAV
-         ir_ij(k) = ir_m5300_1900
-      end if
+         scale_ij(k) = 1       
+         ir_ij(k) = ir_m190_530
+         denom_ij(k) = IJ_PMB1 + L - 1
+         index1(k) = IJ_ZPMB1
+      EndDo
+      name3(IJ_ZPMB1) = 'zcp'
+      lname3(IJ_ZPMB1) = 'HEIGHT'
+      dim3info_index(IJ_ZPMB1) = ij_cp_diminfo
 c
       k=k+1 !
       IJ_PBLHT   = k !
       lname_ij(k) = 'PBL HEIGHT'
-      units_ij(k) = 'M'
+      units_ij(k) = 'm'
       name_ij(k) = 'pblht'
       ia_ij(k) = ia_srf
       scale_ij(k) = 1.
@@ -2485,6 +2345,38 @@ c
       igrid_ij(k) = 1 ! now using a-grid winds
       jgrid_ij(k) = 1
       ir_ij(k) = ir_m38_106
+!
+      IJ_UPMB1 = k+1
+      Do L=1,KGZ
+         k=k+1
+         lname_ij(k) = 'EASTWARD VELOCITY at ' // Trim(PMNAME(L)) //'mb'
+         units_ij(k) = 'm/s'
+         name_ij(k) = 'u_' // PMNAME(L)
+         ia_ij(k) = ia_dga
+         scale_ij(k) = 1       
+         ir_ij(k) = ir_m38_106
+         denom_ij(k) = IJ_PMB1 + L - 1
+         index1(k) = IJ_UPMB1
+      EndDo
+      name3(IJ_UPMB1) = 'ucp'
+      lname3(IJ_UPMB1) = 'EASTWARD VELOCITY'
+      dim3info_index(IJ_UPMB1) = ij_cp_diminfo
+!
+      IJ_VPMB1 = k+1
+      Do L=1,KGZ
+         k=k+1
+         lname_ij(k) = 'NORTHWARD VELOCITY at ' // Trim(PMNAME(L))//'mb'
+         units_ij(k) = 'm/s'
+         name_ij(k) = 'v_' // PMNAME(L)
+         ia_ij(k) = ia_dga
+         scale_ij(k) = 1       
+         ir_ij(k) = ir_m38_106
+         denom_ij(k) = IJ_PMB1 + L - 1
+         index1(k) = IJ_VPMB1
+      EndDo
+      name3(IJ_VPMB1) = 'vcp'
+      lname3(IJ_VPMB1) = 'NORTHWARD VELOCITY'
+      dim3info_index(IJ_VPMB1) = ij_cp_diminfo
 c
       k=k+1 !
       IJ_US   = k ! US (M/S)                                  3 SF
@@ -4814,18 +4706,6 @@ c
       lname_ij(k) = 'NT DRY STAT ENR BY TR ED' ! NORTHWD TRANSP
       units_ij(k) = 'E14 WT'
 
-      ij_dzt1 = k+1
-      do k1 = 1,kgz_max-1
-        name_ij(k+k1) = 'dztemp_'//trim(pmname(k1))//
-     *    '-'//trim(pmname(k1+1))
-        lname_ij(k+k1) = 'THICKNESS TEMP '//trim(pmname(k1))//
-     *    '-'//pmname(k1+1)
-        units_ij(k+k1) = 'C'
-        ia_ij(k+k1) = ia_ij(ij_phi1k)
-        ir_ij(k+k1) = ir_m80_28
-      end do
-      k = k + kgz_max -1
-
       k = k + 1
       ij_grow = k
       name_ij(k) = 'grow_seas'
@@ -4970,7 +4850,7 @@ c
       call add_dim(cdl_ij_template,'shnhgm',3)
 #endif
 #ifdef CUBED_SPHERE
-      ijstr='(tile,y,x) ;'
+      ijstr='tile,y,x);'
       do i=1,im
         x_dummy(i) = -1d0 + 2d0*(dble(i)-.5d0)/im
       enddo
@@ -4982,10 +4862,10 @@ c
      &     coordvalues=x_dummy)
       call add_dim(cdl_ij_template,'tile',6)
       call add_dim(cdl_ij_template,'nv',4)
-      call add_var(cdl_ij_template,'float lon'//trim(ijstr),
+      call add_var(cdl_ij_template,'float lon('//trim(ijstr),
      &     units='degrees_east')
       call add_varline(cdl_ij_template,'lon:bounds = "lonbds" ;')
-      call add_var(cdl_ij_template,'float lat'//trim(ijstr),
+      call add_var(cdl_ij_template,'float lat('//trim(ijstr),
      &     units='degrees_north')
       call add_varline(cdl_ij_template,'lat:bounds = "latbds" ;')
       call add_var(cdl_ij_template,'float lonbds(tile,y,x,nv) ;',
@@ -5003,36 +4883,82 @@ c
      &     units='m^2',long_name='gridcell area')
       cdl_ij_latlon = cdl_ij_latlon_template ! invoke a copy method later
 #else
-      ijstr='(lat,lon) ;'
+      ijstr='lat,lon);'
       call add_coord(cdl_ij_template,'lon',im,units='degrees_east',
      &     coordvalues=lon_dg(:,1))
       call add_coord(cdl_ij_template,'lat',jm,units='degrees_north',
      &     coordvalues=lat_dg(:,1))
 #endif
-      call add_var(cdl_ij_template,'float axyp'//trim(ijstr),
+      call add_var(cdl_ij_template,'float axyp('//trim(ijstr),
      &     units='m^2',long_name='gridcell area')
 
       cdl_ij = cdl_ij_template ! invoke a copy method later
       cdl_ijmm = cdl_ij_template
 
+      ! erase the grouping information if not applying it
+      if(.not.fuse_groups) index1(:) = 0
+
       do k=1,kaij
         if(trim(units_ij(k)).eq.'unused') cycle
-        set_miss = denom_ij(k).ne.0
+        if(index1(k).eq.0) then
+          set_miss = denom_ij(k).ne.0
+          varstr='float '//trim(name_ij(k))//'('//trim(ijstr)
+          varstrll='float '//trim(name_ij(k))//'(lat,lon);'
+          long_name=lname_ij(k)
+          auxvar_string=
+     &         'float '//trim(name_ij(k))//'_hemis(shnhgm);'
+        elseif(index1(k).eq.k) then
+          name_ij(k) = name3(k)
+          nq = count(index1==k)
+          if(count(coord3(:,k).ne.-1d30).eq.nq) then
+            if(len_trim(dim3units(k)).gt.0) then
+              call add_coord(cdl_ij,trim(dim3name(k)),nq,
+     &             coordvalues=coord3(1:nq,k),units=trim(dim3units(k)))
+#ifdef CUBED_SPHERE
+              call add_coord(cdl_ij_latlon,trim(dim3name(k)),nq,
+     &             coordvalues=coord3(1:nq,k),units=trim(dim3units(k)))
+#endif
+            else
+              call add_coord(cdl_ij,trim(dim3name(k)),nq,
+     &             coordvalues=coord3(1:nq,k))
+#ifdef CUBED_SPHERE
+              call add_coord(cdl_ij_latlon,trim(dim3name(k)),nq,
+     &             coordvalues=coord3(1:nq,k))
+#endif
+            endif
+          elseif(dim3info_index(k).eq.0) then
+            call add_dim(cdl_ij,trim(dim3name(k)),nq)
+#ifdef CUBED_SPHERE
+            call add_dim(cdl_ij_latlon,trim(dim3name(k)),nq)
+#endif
+          else
+            dim3name(k) = dim3name(dim3info_index(k))
+          endif
+          set_miss = any(denom_ij(k:k+nq-1).ne.0)
+          varstr='float '//trim(name3(k))//'('//trim(dim3name(k))//
+     &             ','//trim(ijstr)
+          varstrll='float '//trim(name3(k))//'('//trim(dim3name(k))//
+     &             ',lat,lon);'
+          long_name=lname3(k)
+          auxvar_string=
+     &         'float '//trim(name3(k))//'_hemis('//
+     &                trim(dim3name(k))//',shnhgm);'
+        else
+          cycle
+        endif
         call add_var(cdl_ij,
-     &       'float '//trim(name_ij(k))//trim(ijstr),
+     &       trim(varstr),
      &       units=trim(units_ij(k)),
-     &       long_name=trim(lname_ij(k)),
-     &       auxvar_string=
-     &         'float '//trim(name_ij(k))//'_hemis(shnhgm);',
+     &       long_name=trim(long_name),
+     &       auxvar_string=trim(auxvar_string),
      &       set_miss=set_miss,
      &       make_timeaxis=make_timeaxis)
 #ifdef CUBED_SPHERE
         call add_var(cdl_ij_latlon,
-     &       'float '//trim(name_ij(k))//'(lat,lon) ;',
+     &       trim(varstrll),
      &       units=trim(units_ij(k)),
-     &       long_name=trim(lname_ij(k)),
-     &       auxvar_string=
-     &         'float '//trim(name_ij(k))//'_hemis(shnhgm);',
+     &       long_name=trim(long_name),
+     &       auxvar_string=trim(auxvar_string),
      &       set_miss=set_miss,
      &       make_timeaxis=make_timeaxis)
 #endif
@@ -5041,12 +4967,15 @@ c
       do k=1,kaijmm
         if(trim(units_ijmm(k)).eq.'unused') cycle
         call add_var(cdl_ijmm,
-     &       'float '//trim(name_ijmm(k))//trim(ijstr),
+     &       'float '//trim(name_ijmm(k))//'('//trim(ijstr),
      &       units=trim(units_ijmm(k)),
      &       long_name=trim(lname_ijmm(k)))
       enddo
 
 #endif
+
+      deallocate(index1,name3,dim3name,coord3)
+      deallocate(dim3info_index,lname3,dim3units)
 
       return
       end subroutine ij_defs
@@ -6110,7 +6039,7 @@ c
       k=k+1        ! mass fraction of cloud liquid water (model layers)
       IJL_cldwtr   = k
       name_ijl(k)  = 'wtrcld'
-      lname_ijl(k) = 'Cloud Liquid Water Content'
+      lname_ijl(k) = 'Cloud Liquid Water Mass Mixing Ratio'
       units_ijl(k) = 'kg/kg'
       scale_ijl(k) = 1.
       denom_ijl(k) = IJL_DP
@@ -6120,11 +6049,31 @@ c
       k=k+1        ! mass fraction of cloud ice (model layers)
       IJL_cldice   = k
       name_ijl(k)  = 'icecld'
-      lname_ijl(k) = 'Cloud Ice Content'
+      lname_ijl(k) = 'Cloud Ice Water Mass Mixing Ratio'
       units_ijl(k) = 'kg/kg'
       scale_ijl(k) = 1.
       denom_ijl(k) = IJL_DP
       ia_ijl(k)    = ia_src
+      lgrid_ijl(k) = ctr_ml
+c
+      k=k+1        ! mass fraction of cloud+precip liquid seen by radiation (model layers)
+      IJL_QLrad    = k
+      name_ijl(k)  = 'QLrad'
+      lname_ijl(k) = 'Liquid Water Mass Mixing Ratio Seen by Radiation'
+      units_ijl(k) = 'kg/kg'
+      scale_ijl(k) = 1.
+      denom_ijl(k) = IJL_DP
+      ia_ijl(k)    = ia_rad
+      lgrid_ijl(k) = ctr_ml
+c
+      k=k+1        ! mass fraction of cloud+precip ice seen by radiation (model layers)
+      IJL_QIrad    = k
+      name_ijl(k)  = 'QIrad'
+      lname_ijl(k) = 'Ice Water Mass Mixing Ratio Seen by Radiation'
+      units_ijl(k) = 'kg/kg'
+      scale_ijl(k) = 1.
+      denom_ijl(k) = IJL_DP
+      ia_ijl(k)    = ia_rad
       lgrid_ijl(k) = ctr_ml
 c
 CC    3D drying and latent heating profiles
