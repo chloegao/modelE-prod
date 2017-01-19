@@ -122,6 +122,9 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
 #ifdef HEALY_LM_DIAGS
      &                                   + 1
 #endif
+#ifdef ENT_DEBUG_DIAGS
+     &                                  + 5+256+16*9+2
+#endif
 
 !@param KAIJmm maximum number of AIJ min/max diagnostics
       INTEGER, PARAMETER, public :: KAIJmm=10
@@ -579,6 +582,7 @@ C****      names, indices, units, idacc-numbers, etc.
      *     ,IJ_IMPMGR,IJ_IMPHGR,IJ_IMPMKI,IJ_IMPHKI
      *     ,IJ_MLKtoGR,IJ_HLKtoGR
      *     ,ij_precli,ij_precsi,ij_precoo,ij_precgr
+     &     ,ij_ent_debug
 #ifdef HEALY_LM_DIAGS
      &     ,IJ_CROPS
 #endif
