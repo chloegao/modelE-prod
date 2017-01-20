@@ -716,7 +716,7 @@ C Define and alter resulting photolysis coefficients (zj --> ss):
           colmO2=colmO2+y(nO2,L)*thick*1.d5
           colmO3=colmO3+y(nO3,L)*thick*1.d5
 ! SF3 is photolysis of water in Schumann-Runge bands based on:
-! Nicolet, Pl. Space Sci., p 871, 1983.
+! Nicolet, Pl. Space Sci., p 871, 1984.
 ! SF3_fact is, if x[ ] = bin4_flux[ ]:
 ! {(x[present] - x[1988]) / (x[1991] - x[1988])} * 0.1E-6
 ! This gets ADDED to the 1.3E-6 factor in the SF3 calculation. Here,
@@ -726,9 +726,9 @@ C Define and alter resulting photolysis coefficients (zj --> ss):
           if(pres2(L) <= 10.)then
             if((SF3_FACT+1.3d-6) < 0.)call stop_model
      &      ('(SF3_FACT+1.3d-6) < 0 in master',255)
-            SF3(I,J,L)=6.d0*(SF3_FACT+1.3d-6)*EXP(-1.d-7*colmO2**.35)
+            SF3(I,J,L)=(SF3_FACT+1.3d-6)*EXP(-1.d-7*colmO2**.35)
      &      *by35*SQRT(1.224d3*COSZ1(I,J)**2.+1.d0)
-            SF3(I,J,L)=SF3(I,J,L)*5.d-2
+            ! SF3(I,J,L)=SF3(I,J,L)*5.d-2
           else
             SF3(I,J,L)=0.d0
           endif
@@ -1358,7 +1358,6 @@ c       Nighttime changes in Bromine-containing species
      &   changeBrOx=-0.5d0*y(nn_BrOx,L)
         changeBrONO2=-changeBrOx
         changeNOx=changeNOx+changeBrOx
-        if(-1.d0*changeNOx>y(nn_NOx,L))changeNOx=-1.d0*y(nn_NOx,L)
 
 c       Br+H2O2 converts to HBr+HO2. HO2 assumed to revert to H2O2
         changeBrOx2=-rr(rrbi%Br_H2O2__HBr_HO2,L)*y(nn_H2O2,L)
@@ -1394,15 +1393,18 @@ c 110 N2O5    +HCl     -->Cl      +HNO3  !really makes ClNO2 (calc above)
           changeClONO2=changeClONO2-chgHT3
           changeHOCl=changeHOCl-chgHT4
           changeN2O5=changeN2O5-chgHT5
+          changeNOx=changeNOx+chgHT5
 c         Note that really the following 3 produce Cl2, not ClOx, and Cl2
 C         at night is stable and doesn't go back into ClONO2, so
 C         should eventually keep track of Cl2/ClOx partitioning!
           changeHCl=changeHCl-chgHT3-chgHT4-chgHT5
           changeHNO3=changeHNO3+chgHT3+chgHT5
-          changeClOx=changeClOx+chgHT3+chgHT4+chgHT5
+          changeClOx=changeClOx+2.d0*(chgHT3+chgHT4+chgHT5)
           ! Here we USED TO remove some of the HNO3 formed heterogeneously,
           ! as it doesn't come back to the gas phase. No longer.
         end if
+
+        if(-1.d0*changeNOx>y(nn_NOx,L))changeNOx=-1.d0*y(nn_NOx,L)
 
 #ifdef TRACERS_HETCHEM
 C       Include reactions on dust for HNO3:

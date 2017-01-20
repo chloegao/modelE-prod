@@ -914,7 +914,7 @@ c       Set value for XO2:
      &      +rr(rrbi%C2O3_HO2__HCHO_HO2,L)*y(nHO2,L))
      &    +rr(rrbi%Alkenes_NO3__HCHO_NO2,L)*y(nNO3,L)*y(nn_Alkenes,L)
      &      *0.91d0
-     &    +rr(rrbi%ROR_M__Aldehyde_HO2,L)*yROR(I,J,L)*0.96d0
+     &    +rr(rrbi%ROR_M__Aldehyde_HO2,L)*y(nM,L)*yROR(I,J,L)*0.96d0
      &    +y(nOH,L)*(rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
      &      *0.87d0
      &    +rr(rrbi%Alkenes_OH__HCHO_HO2,L)*y(nn_Alkenes,L)
@@ -950,7 +950,7 @@ c       Set value for XO2N:
      &      *y(nOH,L)*0.13d0
      &    +rr(rrbi%Alkenes_NO3__HCHO_NO2,L)*y(nNO3,L)*y(nn_Alkenes,L)
      &      *0.09d0
-     &    +rr(rrbi%ROR_M__Aldehyde_HO2,L)*yROR(I,J,L)*0.04d0
+     &    +rr(rrbi%ROR_M__Aldehyde_HO2,L)*y(nM,L)*yROR(I,J,L)*0.04d0
      &    +rr(rrbi%Isoprene_OH__HCHO_Alkenes,L)*y(nn_Isoprene,L)*
      &      y(nOH,L)*0.15d0
 #ifdef TRACERS_TERP
@@ -976,7 +976,7 @@ c       Set value for RXPAR:
         RXPARprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
      &      *y(nOH,L)*0.11d0
      &    +rr(rrbi%Alkenes_OH__HCHO_HO2,L)*y(nn_Alkenes,L)*y(nOH,L)
-     &    +rr(rrbi%ROR_M__Aldehyde_HO2,L)*yROR(I,J,L)*2.1d0
+     &    +rr(rrbi%ROR_M__Aldehyde_HO2,L)*y(nM,L)*yROR(I,J,L)*2.1d0
      &    +rr(rrbi%Alkenes_O3__HCHO_CO,L)*y(nn_Alkenes,L)*y(nO3,L)*0.9d0
      &    +rr(rrbi%Alkenes_NO3__HCHO_NO2,L)*y(nNO3,L)*y(nn_Alkenes,L)
         RXPARdest=rr(rrbi%Paraffin_RXPAR__M_M,L)*y(nn_Paraffin,L)
@@ -1011,7 +1011,7 @@ c       Set value for Aldehyde:
         Aldehydeprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
      &      *y(nOH,L)*0.11d0
      &    +rr(rrbi%Alkenes_OH__HCHO_HO2,L)*y(nn_Alkenes,L)*y(nOH,L)
-     &    +rr(rrbi%ROR_M__Aldehyde_HO2,L)*yROR(I,J,L)*1.1d0
+     &    +rr(rrbi%ROR_M__Aldehyde_HO2,L)*y(nM,L)*yROR(I,J,L)*1.1d0
      &    +rr(rrbi%Alkenes_O3__HCHO_CO,L)*y(nn_Alkenes,L)
      &      *y(nO3,L)*0.44d0
         Aldehydedest=rr(rrbi%Aldehyde_OH__C2O3_M,L)*y(nOH,L)
@@ -1113,8 +1113,8 @@ c       Check for equilibrium:
 c       Set value for ROR:
         RORprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
      &      *y(nOH,L)*0.76d0
-     &    +rr(rrbi%ROR_M__Aldehyde_HO2,L)*yROR(I,J,L)*0.02d0
-        RORdest=rr(rrbi%ROR_M__Aldehyde_HO2,L)
+     &    +rr(rrbi%ROR_M__Aldehyde_HO2,L)*y(nM,L)*yROR(I,J,L)*0.02d0
+        RORdest=rr(rrbi%ROR_M__Aldehyde_HO2,L)*y(nM,L)
      &    +rr(rrbi%ROR_M__HO2_M,L)
         if(RORdest > 0.d0)then
           y(nROR,L)=(RORprod/RORdest)
@@ -1242,10 +1242,10 @@ c If ClOx in equil with HOCl or ClONO2, remove from changes:
 c Calculate water vapor change AND APPLY TO MODEL Q VARIABLE:
       do L=1,maxL ! for a long time, this used to be stratosphere only loop...
         changeH2O(L)=(2.d0*y(nn_CH4,L)*
-     *    (rr(rrbi%O1D_CH4__OH_CH3O2,L)*y(nO1D,L)
+     &    (rr(rrbi%O1D_CH4__OH_CH3O2,L)*y(nO1D,L)
      &      +rr(rrbi%CH4_OH__H2O_CH3O2,L)*y(nOH,L)
      &      +rr(rrbi%Cl_CH4__HCl_CH3O2,L)*y(nCl,L))
-     *    -2.0d0*SF3(I,J,L)*y(nH2O,L))*dt2  
+     &      -SF3(I,J,L)*y(nH2O,L))*dt2  
 C       And apply that change here and accumulate a diagnostic:
 C       --- y --- :
         y(nH2O,L)=y(nH2O,L)+changeH2O(L)
