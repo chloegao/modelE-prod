@@ -1149,6 +1149,10 @@ c
       integer :: i,k,kk,k3,k1,l,n,ngx,nq
       character(len=16) :: ijstr,string_flamV
       real*8 x_dummy(im)
+#ifdef ENT_DEBUG_DIAGS
+      integer ent_k1, ent_k2
+      character*3 :: ent_s1, ent_s2
+#endif
       logical :: set_miss
 ! The following local variables are used in the definition of groups of
 ! 2D outputs collected into output fields having a third dimension.
@@ -3917,6 +3921,24 @@ c
       scale_ij(k) = 1.d-3    !scale from g/m2 to kg/m2
       denom_ij(k) = IJ_PSOIL
 c
+#ifdef ENT_DEBUG_DIAGS
+      ij_ent_debug = k+1
+      do ent_k1=1,16+11
+      do ent_k2=1,16
+        write(ent_s1,'(i3.3)') ent_k1
+        write(ent_s2,'(i3.3)') ent_k2
+      k=k+1 ! nyk 1/10/08
+      !IJ_RAUTO = k    !kg[C]/m2/s original units
+      lname_ij(k) = 'Ent diag '//ent_s1//ent_s2
+      units_ij(k) = 'g[C]/m2/day'
+      name_ij(k) = 'ra'//ent_s1//ent_s2
+      ia_ij(k) = ia_src
+      scale_ij(k) = SECONDS_PER_DAY*1000./DTsrc    !scale from kg/s to g/day
+      denom_ij(k) = IJ_PSOIL
+      enddo
+      enddo
+#endif
+c
       k=k+1 ! nyk 5/12/03
       IJ_DLEAF = k    !kg[C]/m2, IJ_DLEAF is accumulated daily.
 !      lname_ij(k) = 'LEAF MASS CHANGE'
@@ -4383,12 +4405,61 @@ c
 c
       k=k+1 !
       IJ_DSKIN   = k !
-      lname_ij(k) = 'SKIN TEMPERATURE OFFSET'
+      lname_ij(k) = 'SKIN TEMPERATURE OFFSET (OCEAN)'
       units_ij(k) = '0.1 C'
       name_ij(k) = 'dskin'
       ia_ij(k) = ia_srf
       scale_ij(k) = 10.
       ir_ij(k) = ir_m9_26
+c
+      k=k+1 !
+      IJ_DSKINSNOW   = k !
+      lname_ij(k) = 'SKIN TEMPERATURE OFFSET (SNOW ON OC/LK ICE)'
+      units_ij(k) = '0.1 C'
+      name_ij(k) = 'dskinsnow'
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 10.
+      ir_ij(k) = ir_m9_26
+c
+      k=k+1 !
+      IJ_P1000 = k !
+      lname_ij(k) = '1000 hPa BELOW GROUND'  ! weighting functi
+      units_ij(k) = '%'
+      name_ij(k) = 'p_1000_freq'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 100.
+c
+      k=k+1 !
+      IJ_P925 = k !
+      lname_ij(k) = '925 hPa BELOW GROUND'  ! weighting functi
+      units_ij(k) = '%'
+      name_ij(k) = 'p_925_freq'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 100.
+c
+      k=k+1 !
+      IJ_P700 = k !
+      lname_ij(k) = '700 hPa BELOW GROUND'  ! weighting functi
+      units_ij(k) = '%'
+      name_ij(k) = 'p_700_freq'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 100.
+c
+      k=k+1 !
+      IJ_P600 = k !
+      lname_ij(k) = '600 hPa BELOW GROUND'  ! weighting functi
+      units_ij(k) = '%'
+      name_ij(k) = 'p_600_freq'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 100.
+c
+      k=k+1 !
+      IJ_P500 = k !
+      lname_ij(k) = '500 hPa BELOW GROUND'  ! weighting functi
+      units_ij(k) = '%'
+      name_ij(k) = 'p_500_freq'
+      ia_ij(k) = ia_dga
+      scale_ij(k) = 100.
 c
       if (calc_wspdf == 1) then
         k=k+1
@@ -4665,68 +4736,58 @@ c
       ir_ij(k) = ir_0_180
       ia_ij(k) = ia_inst
 
-C**** Also include MSU radiation diagnotsics here
+C**** Also include MSU radiation diagnostics here
 
-c      k=k+1 !
-c      IJ_MSU2 = k
-c      lname_ij(k) = 'MSU CHANNEL 2'
-c      units_ij(k) = 'C'
-c      name_ij(k) = 'MSU2'
-c      ia_ij(k) = ia_inst
-c      ir_ij(k) = ir_m80_28
-c      scale_ij(k) = 1.
-
-c      k=k+1 !
-c      IJ_MSU2R = k
-c      lname_ij(k) = 'MSU CHANNEL 2R'
-c      units_ij(k) = 'C'
-c      name_ij(k) = 'MSU2R'
-c      ia_ij(k) = ia_inst
-c      ir_ij(k) = ir_m80_28
-c      scale_ij(k) = 1.
-
-c      k=k+1 !
-c      IJ_MSU3 = k
-c      lname_ij(k) = 'MSU CHANNEL 3'
-c      units_ij(k) = 'C'
-c      name_ij(k) = 'MSU3'
-c      ia_ij(k) = ia_inst
-c      ir_ij(k) = ir_m80_28
-c      scale_ij(k) = 1.
-
-c      k=k+1 !
-c      IJ_MSU4 = k
-c      lname_ij(k) = 'MSU CHANNEL 4'
-c      units_ij(k) = 'C'
-c      name_ij(k) = 'MSU4'
-c      ia_ij(k) = ia_inst
-c      ir_ij(k) = ir_m80_28
-c      scale_ij(k) = 1.
-
-      k = k + 1
-      ij_msu2 = k
-      name_ij(k) = 'Tmsu_ch2'
-      lname_ij(k) = 'MSU-channel 2 TEMPERATURE'
+      k=k+1 !
+      ij_msutlt = k
+      name_ij(k) = 'Tmsu-TLT'
+      lname_ij(k) = 'MSU-TLT TEMPERATURE'
       units_ij(k) = 'C'
       ia_ij(k) = ia_inst
       ir_ij(k) = ir_m80_28
 
       k = k + 1
-      ij_msu3 = k
-      name_ij(k) = 'Tmsu_ch3'
-      lname_ij(k) = 'MSU-channel 3 TEMPERATURE'
+      ij_msutmt = k
+      name_ij(k) = 'Tmsu_TMT'
+      lname_ij(k) = 'MSU-TMT TEMPERATURE'
       units_ij(k) = 'C'
       ia_ij(k) = ia_inst
       ir_ij(k) = ir_m80_28
 
       k = k + 1
-      ij_msu4 = k
-      name_ij(k) = 'Tmsu_ch4'
-      lname_ij(k) = 'MSU-channel 4 TEMPERATURE'
+      ij_msutls = k
+      name_ij(k) = 'Tmsu_TLS'
+      lname_ij(k) = 'MSU-TLS TEMPERATURE'
       units_ij(k) = 'C'
       ia_ij(k) = ia_inst
       ir_ij(k) = ir_m80_28
 
+C**** Add in Stratospheric Sounding Units (3 channels)
+      k = k + 1
+      ij_ssu1 = k
+      name_ij(k) = 'Tssu_ch1'
+      lname_ij(k) = 'SSU-Ch 1 TEMPERATURE'
+      units_ij(k) = 'C'
+      ia_ij(k) = ia_inst
+      ir_ij(k) = ir_m80_28
+
+      k = k + 1
+      ij_ssu2 = k
+      name_ij(k) = 'Tssu_ch2'
+      lname_ij(k) = 'SSU-Ch 2 TEMPERATURE'
+      units_ij(k) = 'C'
+      ia_ij(k) = ia_inst
+      ir_ij(k) = ir_m80_28
+
+      k = k + 1
+      ij_ssu3 = k
+      name_ij(k) = 'Tssu_ch3'
+      lname_ij(k) = 'SSU-Ch 3 TEMPERATURE'
+      units_ij(k) = 'C'
+      ia_ij(k) = ia_inst
+      ir_ij(k) = ir_m80_28
+
+C****
       k = k + 1
       ij_Tatm = k
       name_ij(k) = 'Tatm'

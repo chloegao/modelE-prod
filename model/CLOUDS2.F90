@@ -709,7 +709,7 @@ contains
     real*8, dimension(NTM) :: THLAW,THWASH,TR_LEF,TMFAC
     real*8 CLDSAVT
     integer :: IGAS
-!@var TR_LEF limits precurser dissolution following sulfate formation
+!@var TR_LEF limits precursor dissolution following sulfate formation
 !@var THLAW Henry's Law determination of amount of tracer dissolution
 !@var TMFAC used to adjust tracer moments
     real*8 HEFF

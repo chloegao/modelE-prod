@@ -25,8 +25,8 @@
         dashes(n:n) = '-'
       enddo
       header=' Strait               Sum/Mean'//
-     &     '     1     2     3     4     5     6     7'//
-     &     '     8     9    10    11    12     13   14'
+     &     '     1     2     3     4     5     6     7     8'//
+     &     '     9    10    11    12    13    14    15    16'
 
 c
 c get run ID, time/date info, etc.
@@ -86,7 +86,7 @@ c
           lmax = lmst(n)
           vsum = sum(as(1:lmax,n))
           if(index(lname,'Trans').eq.0) vsum=vsum/lmax
-          write(6,'(1x,a20,f8.1,1x,10i6)') name_st(n),vsum,
+          write(6,'(1x,a20,f8.1,1x,16i6)') name_st(n),vsum,
      &         nint(as(1:lmax,n))
         enddo
       enddo

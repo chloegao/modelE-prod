@@ -21,6 +21,9 @@ C****
 !@dbparam use_tdiss whether to apply tidally induced vertical mixing
 !@+       from input dataset
       integer :: use_tdiss=0
+!@dbparam tdiss_eff locality+conversion efficiency of dissip -> kv
+      real*8 :: tdiss_eff=.7d0/3d0
+
 !@var tdiss prescribed tidal dissipation (W/m2)
 !@var tdiss_n N corresponding to prescribed tidal dissipation (1/s)
       real*8, allocatable, dimension(:,:) :: tdiss,tdiss_n
@@ -2858,6 +2861,7 @@ C****
 !@+   of heat and salt diffusivity when evaluating the action of the
 !@+   trial kv.
       use constant, only : grav
+      use kpp_com, only : eff => tdiss_eff
       implicit none
 !@var lm number of layers in local column
       integer :: lm
@@ -2876,8 +2880,9 @@ C****
 c
 ! Empirical parameters and tuning factors:
       real*8, parameter ::
-     &      eff=.7d0/3d0        ! locality+conversion efficiency of dissip - >kv
-     &     ,n_column_ref=.01d0  ! col. N (1/s) at which kv z-scale = zscale_ref
+! eff is now a dbparam
+!     &      eff=.7d0/3d0        ! locality+conversion efficiency of dissip -> kv
+     &      n_column_ref=.01d0  ! col. N (1/s) at which kv z-scale = zscale_ref
      &     ,zscale_ref=100d0    ! reference vertical decay scale of kv (m)
      &     ,zscale_max=1000d0   ! maximum allowed vertical decay scale (m)
      &     ,delz_n_bot=300d0    ! distance over which near-bottom N is evaluated
@@ -3534,6 +3539,8 @@ c     k02count=1.
         fid = par_open(grid,'TDISS_N','read')
         call read_dist_data(grid,fid,'buoyancy',tdiss_n)
         call par_close(grid,fid)
+
+        call sync_param("ocean_tdiss_eff",tdiss_eff)
       endif
 
       END SUBROUTINE alloc_kpp_com

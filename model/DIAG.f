@@ -2253,7 +2253,7 @@ C**** accumulating mode ***
           units_of_data = 'W/m^2'
           long_name = 'Solar Downward Flux at Surface'
         case ("SWU")            ! solar upward flux at surface (W/m^2)
-! estimating this from the downward x albedo, since that's already saved
+! estimating this from the downward x albedo, since that is already saved
           datar8=srdn*(1.-salb)*cosz1
 #ifdef mjo_subdd
 C**** accumulating/averaging mode ***
@@ -5060,44 +5060,50 @@ C****
       module msu_wts_mod
       implicit none
       save
-      integer, parameter :: nmsu=200 , ncols=4
-      real*8 plbmsu(nmsu),wmsu(ncols,nmsu)
+      integer, parameter :: nmsu=200 , ncolmax=8
+      real*8 plbmsu(nmsu),wmsu(ncolmax,nmsu)
+      integer ncols
       logical :: do_msu
       contains
       subroutine read_msu_wts
       use filemanager
       integer n,l,iu_msu
-c**** read in the MSU weights file
+      character, dimension(ncolmax+1) :: titles*10
+c**** read in the MSU/SSU weights file
       do_msu = file_exists('MSU_wts')
       if(.not.do_msu) return
       call openunit('MSU_wts',iu_msu,.false.,.true.)
-      do n=1,4
+      read(iu_msu,*) titles(1)
+      ncols=ncolmax
+      if (titles(1) .eq. "MSU") ncols=4
+      do n=1,2
         read(iu_msu,*)
       end do
+      read(iu_msu,*) titles(1:(ncols+1))
       do l=1,nmsu
         read(iu_msu,*) plbmsu(l),(wmsu(n,l),n=1,ncols)
       end do
+      if (ncols.eq.4) wmsu(ncols+1:ncolmax,1:nmsu)=0.
       call closeunit(iu_msu)
+
       end subroutine read_msu_wts
       end module msu_wts_mod
 
-      subroutine diag_msu(pland,ts,tlm,ple,tmsu2,tmsu3,tmsu4)
-!@sum diag_msu computes MSU channel 2,3,4 temperatures as weighted means
-!@auth Reto A Ruedy (input file created by Makiko Sato)
+      subroutine diag_msu(pland,ts,tlm,ple,tout)
+!@sum diag_msu computes MSU TLT/TMT/TLS + SSU Ch. 1,2,3 temperatures as weighted means
+!@auth Reto A Ruedy (input file created by Makiko Sato); updated by Gavin Schmidt
       USE RESOLUTION, only : lm
       use msu_wts_mod
       implicit none
       real*8, intent(in) :: pland,ts,tlm(lm),ple(lm+1)
-      real*8, intent(out) :: tmsu2,tmsu3,tmsu4
+      real*8, intent(out) :: tout(ncolmax-1)
 
-      real*8 tlmsu(nmsu),tmsu(ncols)
+      real*8 tlmsu(nmsu),tmsu(ncolmax)
       real*8 plb(0:lm+2),tlb(0:lm+2)
       integer l
 
       if(.not.do_msu) then
-        tmsu2 = 0.
-        tmsu3 = 0.
-        tmsu4 = 0.
+        tout(:) = 0.
         return
       endif
 
@@ -5109,14 +5115,14 @@ c**** find edge temperatures (assume continuity and given means)
       end do
       tlb(lm+2)=tlb(lm+1) ; plb(lm+2)=0.
       call vntrp1 (lm+2,plb,tlb, nmsu-1,plbmsu,tlmsu)
-c**** find MSU channel 2,3,4 temperatures
-      tmsu(:)=0.
+c**** find weighted channel temperatures
+      tmsu(1:ncols)=0.
       do l=1,nmsu-1
-        tmsu(:)=tmsu(:)+tlmsu(l)*wmsu(:,l)
+        tmsu(1:ncols)=tmsu(1:ncols)+tlmsu(l)*wmsu(1:ncols,l)
       end do
-      tmsu2 = (1-pland)*tmsu(1)+pland*tmsu(2)
-      tmsu3 = tmsu(3)
-      tmsu4 = tmsu(4)
+      tout(1) = (1-pland)*tmsu(1)+pland*tmsu(2)  ! TLT
+      tout(2) = (1-pland)*tmsu(3)+pland*tmsu(4)  ! TMT
+      tout(3:(ncols-2)) = tmsu(5:ncols)          ! TLS and SSU[123] 
 
       return
       end subroutine diag_msu
@@ -6093,16 +6099,19 @@ C****
      *     ij_RTSE, ij_HWV, ij_PVS,
      &     IJ_TRSUP,IJ_TRSDN,IJ_EVAP,IJ_QS,IJ_PRES,
      &     IJ_US,IJ_VS,IJ_UJET,IJ_VJET,IJ_TATM,IJK_DP,IJK_TX,
-     &     IJ_MSU2,IJ_MSU3,IJ_MSU4,KGZ_MAX,PMB,
+     &     IJ_MSUTLT,IJ_MSUTMT,IJ_MSUTLS,KGZ_MAX,GHT,PMB,
+     &     IJ_SSU1,IJ_SSU2,IJ_SSU3,
+     &     KGZ_MAX,PMB,
      &     ij_TminC,ij_TmaxC,ij_TDcomp,
      *     ij_swaerabs,
      *     ij_lwaerabs,ij_swaerabsnt,ij_lwaerabsnt
       use DIAG_COM_RAD
+      use msu_wts_mod, only : ncolmax,ncols
       IMPLICIT NONE
       INTEGER :: I,J,L,K,K1,K2,N,KHEM
       INTEGER :: J_0,J_1,I_0,I_1
       REAL*8 :: SCALEK
-      real*8 :: ts,pland,tlm(lm),ple(lm+1),dp,tmsu2,tmsu3,tmsu4
+      real*8 :: ts,pland,tlm(lm),ple(lm+1),dp,tmsu(ncolmax-1)
       real*8, dimension(2,kaij) :: shnh_loc,shnh
 
       I_0 = GRID%I_STRT
@@ -6197,7 +6206,7 @@ C****
         k = ij_TminC
         aij(i,j,k) = aij(i,j,ij_TmaxC) - aij(i,j,ij_TDcomp)
 
-C**** Find MSU channel 2,3,4 temperatures (simple lin.comb. of Temps)
+C**** Find MSU/SSU channels (simple lin.comb. of Temps)
         pland = fearth0(i,j)+flice(i,j)
         ts = aij(i,j,ij_ts)/idacc(ia_ij(ij_ts))
         ple(lm+1) = pmtop
@@ -6207,10 +6216,13 @@ C**** Find MSU channel 2,3,4 temperatures (simple lin.comb. of Temps)
           tlm(l) = ts
           if(dp.gt.0.) tlm(l)=aijl(i,j,l,ijk_tx)/dp
         enddo
-        call diag_msu(pland,ts,tlm,ple,tmsu2,tmsu3,tmsu4)
-        aij(i,j,ij_msu2) = tmsu2*idacc(ia_inst)
-        aij(i,j,ij_msu3) = tmsu3*idacc(ia_inst)
-        aij(i,j,ij_msu4) = tmsu4*idacc(ia_inst)
+        call diag_msu(pland,ts,tlm,ple,tmsu)
+        aij(i,j,ij_msutlt) = tmsu(1)*idacc(ia_inst)
+        aij(i,j,ij_msutmt) = tmsu(2)*idacc(ia_inst)
+        aij(i,j,ij_msutls) = tmsu(3)*idacc(ia_inst)
+        aij(i,j,ij_ssu1)   = tmsu(4)*idacc(ia_inst)
+        aij(i,j,ij_ssu2)   = tmsu(5)*idacc(ia_inst)
+        aij(i,j,ij_ssu3)   = tmsu(6)*idacc(ia_inst)
 
       ENDDO
       ENDDO

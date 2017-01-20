@@ -340,7 +340,7 @@ c   output:
 !@var  z0m  roughness height for momentum (if itype=1 or 2)
 !@var  z0h  roughness height for heat
 !@var  z0q  roughness height for moisture
-!@var  dskin skin-bulk SST difference
+!@var  dskin skin-bulk SST or skin-bulk snow temp difference
 !  more output (may be duplicated)
 !@var US     = x component of surface wind, positive eastward (m/s)
 !@var VS     = y component of surface wind, positive northward (m/s)
@@ -452,7 +452,8 @@ c**** local vars for output to pbl_args
       real*8 :: ws0,lmonin
       real*8 :: ws_select
 c**** other local vars
-      real*8 :: qsat,deltaSST,tgskin,qnet,ts,rhosrf,qgrnd,delt
+      real*8 :: qsat,deltaSST,tgskin,qnet,ts,rhosrf,qgrnd,delt,snow
+      real*8 :: deltaSnowT,dqnetdtg,deltatg0
       real*8 :: tstar,qstar,ustar0,test,wstar3,wstar2h,tgrnd,ustar_oc
       real*8 :: bgrid,an2,as2,dudz,dvdz,tau,tgr4skin
       real*8 :: ws02,dm
@@ -528,7 +529,8 @@ c**** get input from pbl_args structure
       ug = pbl_args%ug
       vg = pbl_args%vg
       ddml_eq_1 = pbl_args%ddml_eq_1
-
+      snow = pbl_args%snow
+      
       call griddr(z,zhat,xi,xihat,dz,dzh,zgs,ztop,bgrid,n,ierr)
       if (ierr.gt.0) then
         print*,"advanc: i,j,ihc=",ilong,jlat,ihc
@@ -591,27 +593,40 @@ c       qprime=qdns-q(1)
 
         if(iter.gt.1) then
           call getl(e,u,v,tv,zhat,dzh,lmonin,ustar,lscale,dbl,n)
-C**** adjust tgrnd/qgrnd for skin effects over the ocean & lakes
-          if (itype.eq.1 .and. skin_effect.gt.0) then
+C**** adjust tgrnd/qgrnd for skin effects over the ocean & lakes & snow
+          if ((itype.eq.1 .or. (itype.eq.2 .and. snow.gt.0)) .and.
+     &         skin_effect.gt.0) then
 c estimate net flux and ustar_oc from current tg,qg etc.
             ts=t(1)/(1+q(1)*xdelt)
             rhosrf=100.*psurf/(rgas*t(1)) ! surface air density
             Qnet= (lhe+tgskin*shv)*cq*rhosrf*(ws*(q(1)-qgrnd)
      &           +gusti*qprime)        ! Latent
      &           + sha*ch*rhosrf*(ws*(ts-tgskin)+gusti*tprime) ! Sensible
-     &           +trhr0-stbo*tgr4skin     ! LW
+     &           +trhr0-stbo*tgr4skin ! LW
+            dQnetdtg=shv*cq*rhosrf*(ws*(q(1)-qgrnd)+gusti*qprime)
+     &           - sha*ch*rhosrf*ws-4d0*stbo*tgskin*tgskin*tgskin
+            deltatg0=tgskin-tg
+            
+            if (itype.eq.1) then
+               ustar_oc=ustar*sqrt(rhosrf*byrhows)
+               dskin=deltaSST(Qnet,Qsol,ustar_oc)
+               tgskin=0.5*(tgskin+(tg+dskin)) ! smooth changes in iteration
+               tgskin=max(tgskin,tf+tfrez(sss_loc)) ! prevent unphysical values
+#ifdef SNOW_SKIN_TEMP
+            elseif (itype.eq.2 .and. snow.gt.0) then
+               dskin=deltaSnowT(Qnet,Qsol,snow,tgskin,dQnetdtg,deltatg0)
+               tgskin=0.5*(tgskin+(tg+dskin)) ! smooth changes in iteration
+               tgskin=min(tgskin,tf) ! prevent unphysical values
+#endif
+            end if
 
-            ustar_oc=ustar*sqrt(rhosrf*byrhows)
-            dskin=deltaSST(Qnet,Qsol,ustar_oc)
-            tgskin=0.5*(tgskin+(tg+dskin))   ! smooth changes in iteration
-            tgskin=max(tgskin,tf+tfrez(sss_loc))  ! prevent unphysical values
-            dskin=tgskin-tg ! net dskin diagnostic
+            dskin=tgskin-tg     ! net dskin diagnostic
             tgr4skin=(sqrt(sqrt(tr4))+dskin)**4
             qgrnd=qsat(tgskin,elhx,psurf)
             if (ocean) qgrnd=0.98d0*qgrnd  ! use ocean adjustment
             tgrnd=tgskin*(1.+qgrnd*xdelt)
           endif
-        endif
+       endif
 
         call getk(km,kh,kq,ke,gm,gh,u,v,tv,e,lscale,dzh,n)
         call stars(ustar,tstar,qstar,lmonin,lmonin_dry,tgrnd,qgrnd,ts,
@@ -3510,3 +3525,56 @@ C**** includes occurences of warm skin temperatures (generally < 0.01 C)
       deltaSST=(Qnet + fc*Qsol)*del*byk
 
       end function deltaSST
+
+      real*8 function deltaSnowT(Qnet,Qsol,snow,tg,dQnetdtg,deltatg0)
+!@sum deltaSnowT calculate skin-bulk snow T difference (deg C)
+      USE SEAICE, only : alams, alami, rhos, ace1i, byrhoi, xsi, rhoi
+      IMPLICIT NONE
+!@var Qnet Net heat flux (not including solar, +ve dwn) (W/m2)
+!@var Qsol Solar heat flux (W/m2)
+!@var snow Snow mass (kg/m2)
+!@var dQnetdtg derivative of Qnet w.r.t. tg 
+!@var deltatg0 starting value of deltaSnowT
+      real*8, intent(in) :: Qnet,Qsol,snow,tg,dQnetdtg,deltatg0
+!@var ksext solar radiation extinction coeffficent (1/m)
+!@var ssi1 salinity in upper layer ice (estimated)
+!@var dz1 depth of first thermal layer (m)
+!@var hsnow depth of snow (m)
+      real*8 :: ksext,dz1,hsnow,delbyk
+      real*8 :: ssi1 = 5d0 ! estimate (should be passed?)
+
+!@var fc fraction of solar passing though in micro-layer (LeComte et al, 2013)
+      real*8, parameter :: fc = 0.82d0
+
+      hsnow = snow/rhos
+      dz1=hsnow+(xsi(1)*ace1i-snow*xsi(2))/rhoi
+
+C**** Effective dz/K
+      if (xsi(2)*snow > xsi(1)*ace1i) then ! only snow in first thermal layer
+         delbyk = 0.5*hsnow/alams
+      else ! snow and ice
+         delbyk = hsnow/alams + (0.5*dz1-hsnow)/alami(tg,ssi1)
+      end if
+
+C**** snow extinction coefficients. This really depends on fraction of vis and nir
+C**** and on snow coniditons (wet or dry) (see solar_ice_frac), but just assume a standard value here
+      ksext = 20d0
+
+C**** delta Snow T = skin - bulk (+ve for flux going down)
+c      print*,"in1",hsnow,dz1,Qnet,Qsol,delbyk,
+c     *     (Qnet+fc*Qsol)*delbyk
+c      print*,"in2",(exp(-ksext*hsnow)-1.0+ksext*hsnow)/
+c     *     (ksext*ksext*hsnow*alams),(1-fc)*Qsol*
+c     *     (exp(-ksext*hsnow)-1.0+ksext*hsnow)/
+c     *     (ksext*ksext*hsnow*alams)
+c**** explciit is too noisy
+c     deltaSnowT= (Qnet + fc*Qsol)*delbyk +
+c     *     (1-fc)*Qsol*(exp(-ksext*hsnow)-1.0+ksext*hsnow)/
+c     *     (ksext*ksext*hsnow*alams)
+c**** implicit 
+      deltaSnowT= (Qnet + dQnetdtg*deltatg0 + fc*Qsol
+     *    + (1-fc)*Qsol*(exp(-ksext*hsnow)-1.0+ksext*hsnow)/
+     *     (ksext*ksext*hsnow*alams))*delbyk
+     *     /(1d0 - dQnetdtg*delbyk) 
+      
+      end function deltaSnowT
