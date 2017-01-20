@@ -612,10 +612,12 @@ c estimate net flux and ustar_oc from current tg,qg etc.
                dskin=deltaSST(Qnet,Qsol,ustar_oc)
                tgskin=0.5*(tgskin+(tg+dskin)) ! smooth changes in iteration
                tgskin=max(tgskin,tf+tfrez(sss_loc)) ! prevent unphysical values
+#ifdef SNOW_SKIN_TEMP
             elseif (itype.eq.2 .and. snow.gt.0) then
                dskin=deltaSnowT(Qnet,Qsol,snow,tgskin,dQnetdtg,deltatg0)
                tgskin=0.5*(tgskin+(tg+dskin)) ! smooth changes in iteration
                tgskin=min(tgskin,tf) ! prevent unphysical values
+#endif
             end if
 
             dskin=tgskin-tg     ! net dskin diagnostic
@@ -3559,19 +3561,20 @@ C**** and on snow coniditons (wet or dry) (see solar_ice_frac), but just assume 
       ksext = 20d0
 
 C**** delta Snow T = skin - bulk (+ve for flux going down)
-      print*,"in1",hsnow,dz1,Qnet,Qsol,delbyk,
-     *     (Qnet+fc*Qsol)*delbyk
-      print*,"in2",(exp(-ksext*hsnow)-1.0+ksext*hsnow)/
-     *     (ksext*ksext*hsnow*alams),(1-fc)*Qsol*
-     *     (exp(-ksext*hsnow)-1.0+ksext*hsnow)/
-     *     (ksext*ksext*hsnow*alams)
-c      deltaSnowT= (Qnet + fc*Qsol)*delbyk +
+c      print*,"in1",hsnow,dz1,Qnet,Qsol,delbyk,
+c     *     (Qnet+fc*Qsol)*delbyk
+c      print*,"in2",(exp(-ksext*hsnow)-1.0+ksext*hsnow)/
+c     *     (ksext*ksext*hsnow*alams),(1-fc)*Qsol*
+c     *     (exp(-ksext*hsnow)-1.0+ksext*hsnow)/
+c     *     (ksext*ksext*hsnow*alams)
+c**** explciit is too noisy
+c     deltaSnowT= (Qnet + fc*Qsol)*delbyk +
 c     *     (1-fc)*Qsol*(exp(-ksext*hsnow)-1.0+ksext*hsnow)/
 c     *     (ksext*ksext*hsnow*alams)
+c**** implicit 
       deltaSnowT= (Qnet + dQnetdtg*deltatg0 + fc*Qsol
      *    + (1-fc)*Qsol*(exp(-ksext*hsnow)-1.0+ksext*hsnow)/
      *     (ksext*ksext*hsnow*alams))*delbyk
      *     /(1d0 - dQnetdtg*delbyk) 
-
       
       end function deltaSnowT
