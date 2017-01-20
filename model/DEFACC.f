@@ -4421,46 +4421,6 @@ c
       scale_ij(k) = 10.
       ir_ij(k) = ir_m9_26
 c
-      k=k+1 !
-      IJ_P1000 = k !
-      lname_ij(k) = '1000 hPa BELOW GROUND'  ! weighting functi
-      units_ij(k) = '%'
-      name_ij(k) = 'p_1000_freq'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 100.
-c
-      k=k+1 !
-      IJ_P925 = k !
-      lname_ij(k) = '925 hPa BELOW GROUND'  ! weighting functi
-      units_ij(k) = '%'
-      name_ij(k) = 'p_925_freq'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 100.
-c
-      k=k+1 !
-      IJ_P700 = k !
-      lname_ij(k) = '700 hPa BELOW GROUND'  ! weighting functi
-      units_ij(k) = '%'
-      name_ij(k) = 'p_700_freq'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 100.
-c
-      k=k+1 !
-      IJ_P600 = k !
-      lname_ij(k) = '600 hPa BELOW GROUND'  ! weighting functi
-      units_ij(k) = '%'
-      name_ij(k) = 'p_600_freq'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 100.
-c
-      k=k+1 !
-      IJ_P500 = k !
-      lname_ij(k) = '500 hPa BELOW GROUND'  ! weighting functi
-      units_ij(k) = '%'
-      name_ij(k) = 'p_500_freq'
-      ia_ij(k) = ia_dga
-      scale_ij(k) = 100.
-c
       if (calc_wspdf == 1) then
         k=k+1
         ij_wspdf = k
