@@ -1431,6 +1431,7 @@ C**** Update orbital parameters at start of year
       RETURN
       END SUBROUTINE DAILY_orbit
 
+
       SUBROUTINE DAILY_ch4ox(end_of_day)
 !@sum  DAILY performs daily tasks at end-of-day and maybe at (re)starts
 !@vers 2013/03/27
@@ -1448,8 +1449,8 @@ C**** Update orbital parameters at start of year
       use OldTracer_mod, only: tr_wd_type, nWATER,tr_H2ObyCH4, itime_tr0
       USE TRACER_COM, only: trm,NTM
 #endif
-      USE DIAG_COM, only : ftype,ntype
-      USE DIAG_COM_RAD, only : j_h2och4
+      USE DIAG_COM, only : ftype,ntype, aij=>aij_loc
+      USE DIAG_COM_RAD, only : j_h2och4, ij_h2och4
       USE DOMAIN_DECOMP_ATM, only : grid, getDomainBounds, am_I_root
       IMPLICIT NONE
       REAL*8 :: xCH4,xdH2O
@@ -1508,6 +1509,7 @@ C**** Add water to relevant tracers as well
           do it=1,ntype
             call inc_aj(i,j,it,j_h2och4,xCH4*xdH2O*ftype(it,i,j))
           end do
+          aij(i,j,ij_h2och4) = aij(i,j,ij_h2och4) + xCH4 * xdH2O
         end do
         end do
         If (HAVE_NORTH_POLE) q(2:im,jm,l)=q(1,jm,l)
