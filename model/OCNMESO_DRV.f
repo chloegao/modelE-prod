@@ -133,7 +133,10 @@
      &     south,north
       use oceanr_dim, only : grid=>ogrid
       use odiag, only : oijl=>oijl_loc,oij=>oij_loc,
-     *    ijl_ggmfl,ijl_sgmfl
+     &    ijl_ggmfl,ijl_sgmfl
+#ifdef TDMIX_AUX_DIAGS
+     &   ,ijl_gsymmf,ijl_ssymmf
+#endif
      &   ,ijl_mfub,ijl_mfvb,ijl_mfwb
       use odiag, only : ij_gmsc,ij_gmscz
 
@@ -158,7 +161,10 @@
       real*8, dimension(:,:,:), allocatable :: k3dx,k3dy,mokg
 !@var fl3d 3D fluxes (kg/s) for diagnostic accumulations (see notes in tdmix)
       real*8, dimension(:,:,:,:), allocatable :: fl3d
-
+#ifdef TDMIX_AUX_DIAGS
+!@var fl3ds the symmetric part of fl3d
+     &     ,fl3ds
+#endif
       integer :: ind1,ind2
 
       logical, dimension(im,grid%j_strt_halo:grid%j_stop_halo) ::
@@ -224,6 +230,9 @@ C**** Apply GM + Redi tracer fluxes
         allocate(k3dx(lmo,im,grid%j_strt_halo:grid%j_stop_halo))
         allocate(k3dy(lmo,im,grid%j_strt_halo:grid%j_stop_halo))
         allocate(fl3d(im,grid%j_strt_halo:grid%j_stop_halo,lmo,3))
+#ifdef TDMIX_AUX_DIAGS
+        allocate(fl3ds(im,grid%j_strt_halo:grid%j_stop_halo,lmo,3))
+#endif
 
         call halo_update(grid,mo)
 
@@ -241,7 +250,11 @@ C**** Apply GM + Redi tracer fluxes
         ! Bolus velocity diagnostics are inferred from this tracer.
         ! See notes in tdmix_mod regarding post-hoc partitioning of the
         ! vertical remapping flux into resolved and bolus-induced components.
-        call tdmix(mokg,.false.,fl3d)
+        call tdmix(mokg,.false.,fl3d
+#ifdef TDMIX_AUX_DIAGS
+     &       ,fl3ds  ! will be zero for water mass
+#endif
+     &       )
         ind1 = ijl_mfub; ind2 = ind1 + 2
         oijl(:,:,:,ind1:ind2) = oijl(:,:,:,ind1:ind2) + fl3d
 
@@ -272,9 +285,17 @@ C**** Apply GM + Redi tracer fluxes
           call relax_qusmoms(mokg,g0m,
      &         gxmo,gymo,gzmo, Xxxmo,Xyymo,Xzzmo, Xxymo,Xyzmo,Xzxmo)
         endif
-        call tdmix(g0m,.false.,fl3d)
+        call tdmix(g0m,.false.,fl3d
+#ifdef TDMIX_AUX_DIAGS
+     &       ,fl3ds
+#endif
+     &       )
         ind1 = ijl_ggmfl; ind2 = ind1 + 2
         oijl(:,:,:,ind1:ind2) = oijl(:,:,:,ind1:ind2) + fl3d
+#ifdef TDMIX_AUX_DIAGS
+        ind1 = ijl_gsymmf; ind2 = ind1 + 2
+        oijl(:,:,:,ind1:ind2) = oijl(:,:,:,ind1:ind2) + fl3ds
+#endif
 
         ! Salt transport
         if(use_qus==1) then
@@ -284,9 +305,17 @@ C**** Apply GM + Redi tracer fluxes
           call relax_qusmoms(mokg,s0m,
      &         sxmo,symo,szmo, Xxxmo,Xyymo,Xzzmo, Xxymo,Xyzmo,Xzxmo)
         endif
-        call tdmix(s0m,.true. ,fl3d)
+        call tdmix(s0m,.true. ,fl3d
+#ifdef TDMIX_AUX_DIAGS
+     &       ,fl3ds
+#endif
+     &       )
         ind1 = ijl_sgmfl; ind2 = ind1 + 2
         oijl(:,:,:,ind1:ind2) = oijl(:,:,:,ind1:ind2) + fl3d
+#ifdef TDMIX_AUX_DIAGS
+        ind1 = ijl_ssymmf; ind2 = ind1 + 2
+        oijl(:,:,:,ind1:ind2) = oijl(:,:,:,ind1:ind2) + fl3ds
+#endif
 
 #ifdef TRACERS_OCEAN
         ! Tracer transport
@@ -304,8 +333,16 @@ C**** Apply GM + Redi tracer fluxes
      &           txmo(1,j_0h,1,n),tymo(1,j_0h,1,n),tzmo(1,j_0h,1,n),
      &           Xxxmo,Xyymo,Xzzmo, Xxymo,Xyzmo,Xzxmo)
           endif
-          call tdmix(trmo(1,j_0h,1,n),trentry%t_qlimit,fl3d)
+          call tdmix(trmo(1,j_0h,1,n),trentry%t_qlimit,fl3d
+#ifdef TDMIX_AUX_DIAGS
+     &         ,fl3ds
+#endif
+     &         )
           toijl(:,:,:,ind1:ind2,n) = toijl(:,:,:,ind1:ind2,n) + fl3d
+#ifdef TDMIX_AUX_DIAGS
+          call stop_model(
+     &     'ocnmeso_drv: add tracer acc space for tdmix_aux_diags',255)
+#endif
         enddo
 #endif
 
