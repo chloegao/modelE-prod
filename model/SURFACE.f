@@ -1267,6 +1267,12 @@ C
          enddo;        enddo
         call inc_subdd(subdd,k,sddarr2d)
 C
+      case ('evap')
+        do j=j_0,j_1; do i=i_0,imaxj(j)
+          sddarr2d(i,j) = -dtsurf*qflux1(i,j)
+        enddo;        enddo
+        call inc_subdd(subdd,k,sddarr2d) 
+C
 C
       end select
       enddo
