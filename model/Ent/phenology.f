@@ -1,3 +1,4 @@
+#include "rundeck_opts.h"
       module phenology
 !@sum Routines to calculate phenological change in an entcell:
 !@sum budburst/leafout, albedo change, senescence
@@ -2260,6 +2261,8 @@ c      endif
       real*8 :: dC_total, dClab_dbiomass
       real*8 :: facclim !Frost hardiness parameter - affects turnover rates in winter.
       real*8 :: dC_lab_corr
+      real*8 :: clab_init ! value of clab from init_Clab (g per plant)
+      real*8 :: clab_max ! max clab computed from clab_init (g/m^2)
 
       Closs(:,:,:) = 0.d0
       !Clossacc(:,:,:) = 0.d0 !Initialized outside of this routine
@@ -2397,12 +2400,28 @@ c      endif
      &       * (turn_froot + max(0.d0,-dC_froot))
       enddo
 
+#ifdef ENT_DISABLE_CLAB_DUMPING_TO_SOIL
+      continue ! do nothing
+#else
+
+#ifdef ENT_PROPER_CLAB_MAX
+      call init_Clab(cop%pft, cop%dbh, cop%h, clab_init)
+      clab_max = clab_init*2.d0*cop%n
+      if ( cop%C_lab*cop%n > clab_max ) then
+        dC_lab_corr = cop%C_lab*cop%n - clab_max
+        dC_lab = dC_lab - dC_lab_corr/cop%n
+        Closs(CARBON,LEAF,1) = Closs(CARBON,LEAF,1) + dC_lab_corr
+      endif
+#else
 !!! hack to prevent C_lab from growing infinitely
       if ( cop%C_lab*cop%n > 3000.d0 ) then
         dC_lab_corr = cop%C_lab*cop%n - 3000.d0
         dC_lab = dC_lab - dC_lab_corr/cop%n
         Closs(CARBON,LEAF,1) = Closs(CARBON,LEAF,1) + dC_lab_corr
       endif
+#endif
+
+#endif
 
       !* Diagnostic
       dC_total = 0.d0

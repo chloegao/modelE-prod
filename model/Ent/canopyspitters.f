@@ -642,7 +642,11 @@
       cop%R_auto =  Resp_maint + Resp_growth + Resp_growth_1
 
 !!! trying to restrict respiration to available C_lab
+#ifdef ENT_DISABLE_RAUTO_RESTRICTION_DUE_TO_CLAB
+      continue ! do nothing
+#else
       cop%R_auto = min(cop%R_auto, cop%C_lab*cop%n/1000.d0/dtsec)
+#endif
       cop%R_auto = max(cop%R_auto, 0.d0)
 
       cop%R_root = Resp_froot
